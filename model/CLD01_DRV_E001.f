@@ -7,12 +7,12 @@
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
       USE E001M12_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,gdata,sig,DTsrc
-      USE SOMTQ_COM
+      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,raj,idij,idjj
       USE CLD01_COM_E001
       USE CLD01, only : kmax,ra,pl,ple,plk
-     *     ,airm,byam,etal,sm,sxm,sym,szm,sxxm,sxym,syym,syzm,szzm,szxm
-     *     ,qm,qxm,qym,qzm,qxxm,qxym,qyym,qyzm,qzzm,qzxm,tl,aj13
+     *     ,airm,byam,etal,sm,smomij=>smom,qm,qmomij=>qmom
+     *     ,tl,aj13
      *     ,aj50,aj51,aj52,aj57,aj8,aj11,wml,sdl,u_0,v_0,um,vm,tf
      *     ,prcpmc,pearth,ts,bygrav,taumcl,cldmcl,svwmxl,svlatl,svlhxl
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
@@ -76,27 +76,11 @@ C**** PRESSURES, AND PRESSURE TO THE KAPA
      *     1.d-3*BYGRAV
 C**** TEMPERATURES
       SM(L)  =T(I,J,L)*AIRM(L)
-      SXM(L) =TX(I,J,L)*AIRM(L)
-      SYM(L) =TY(I,J,L)*AIRM(L)
-      SZM(L) =TZ(I,J,L)*AIRM(L)
-      SXXM(L)=TXX(I,J,L)*AIRM(L)
-      SYYM(L)=TYY(I,J,L)*AIRM(L)
-      SZZM(L)=TZZ(I,J,L)*AIRM(L)
-      SXYM(L)=TXY(I,J,L)*AIRM(L)
-      SYZM(L)=TYZ(I,J,L)*AIRM(L)
-      SZXM(L)=TZX(I,J,L)*AIRM(L)
+      SMOMIJ(:,L) =TMOM(:,I,J,L)*AIRM(L)
       TL(L)=T(I,J,L)*PLK(L)
 C**** MOISTURE (SPECIFIC HUMIDITY)
       QM(L)  =Q(I,J,L)*AIRM(L)
-      QXM(L) =QX(I,J,L)*AIRM(L)
-      QYM(L) =QY(I,J,L)*AIRM(L)
-      QZM(L) =QZ(I,J,L)*AIRM(L)
-      QXXM(L)=QXX(I,J,L)*AIRM(L)
-      QYYM(L)=QYY(I,J,L)*AIRM(L)
-      QZZM(L)=QZZ(I,J,L)*AIRM(L)
-      QXYM(L)=QXY(I,J,L)*AIRM(L)
-      QYZM(L)=QYZ(I,J,L)*AIRM(L)
-      QZXM(L)=QZX(I,J,L)*AIRM(L)
+      QMOMIJ(:,L) =QMOM(:,I,J,L)*AIRM(L)
 c      QL(L)=Q(I,J,L)
       WML(L)=WM(I,J,L)
       SDL(L)=SD_CLOUDS(I,J,L)*BYDXYP(J)
@@ -124,7 +108,6 @@ C**** SET PRECIPITATION AND LATENT HEAT
       TPREC(I,J)=T(I,J,1)*PK(1,I,J)-TF
 
 C**** MOIST CONVECTION
-
       CALL MSTCNV
 
 C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
@@ -227,24 +210,8 @@ C**** WRITE TO GLOBAL ARRAYS
          T(I,J,L)=TH(L)
          Q(I,J,L)=QL(L)
 C**** update moment changes
-         TX(I,J,L)= SXM(L)*BYAM(L)
-         TY(I,J,L)= SYM(L)*BYAM(L)
-         TZ(I,J,L)= SZM(L)*BYAM(L)
-         TXX(I,J,L)=SXXM(L)*BYAM(L)
-         TXY(I,J,L)=SXYM(L)*BYAM(L)
-         TYY(I,J,L)=SYYM(L)*BYAM(L)
-         TYZ(I,J,L)=SYZM(L)*BYAM(L)
-         TZZ(I,J,L)=SZZM(L)*BYAM(L)
-         TZX(I,J,L)=SZXM(L)*BYAM(L)
-         QX(I,J,L)= QXM(L)*BYAM(L)
-         QY(I,J,L)= QYM(L)*BYAM(L)
-         QZ(I,J,L)= QZM(L)*BYAM(L)
-         QXX(I,J,L)=QXXM(L)*BYAM(L)
-         QXY(I,J,L)=QXYM(L)*BYAM(L)
-         QYY(I,J,L)=QYYM(L)*BYAM(L)
-         QYZ(I,J,L)=QYZM(L)*BYAM(L)
-         QZZ(I,J,L)=QZZM(L)*BYAM(L)
-         QZX(I,J,L)=QZXM(L)*BYAM(L)
+         TMOM(:,I,J,L)=SMOMIJ(:,L)*BYAM(L)
+         QMOM(:,I,J,L)=QMOMIJ(:,L)*BYAM(L)
          RHSAV(L,I,J)=RH(L)
          TTOLD(L,I,J)=TH(L)
          QTOLD(L,I,J)=QL(L)
@@ -264,6 +231,7 @@ C**** END OF MAIN LOOP FOR INDEX I
       END DO
 C**** END OF MAIN LOOP FOR INDEX J
 C****
+
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       DO L=1,LM
          DO J=2,JM

@@ -130,7 +130,7 @@ C**** SURFACE INTERACTION AND GROUND CALCULATION
 C**** Calculate river runoff from lake mass
       CALL RIVERF
          CALL CHECKT ('RIVERF')
-      CALL DRYCNV
+      CALL DRYCNV (2,lm-1)
          CALL CHECKT ('DRYCNV')
          CALL TIMER (MNOW,MINC,MSURF)
          IF (MODD5S.EQ.0) CALL DIAG9A (5)
@@ -435,7 +435,7 @@ C****
      *     ,kocean,ls1,psfmpt,pstrat,kacc0,ktacc0,idacc,im0,jm0,lm0
      *     ,vdata,amonth,jdendofm,jdpery,amon,amon0,irestart,irerun
      *     ,irsfic,mdyn,mcnds,mrad,msurf,mdiag,melse
-      USE SOMTQ_COM
+      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b
       USE GHYCOM
      &  , only : ghdata
@@ -461,7 +461,7 @@ C****
      *     ,IR,IREC,NOFF,ioerr
       INTEGER ::   HOURI=0 , DATEI=1, MONTHI=1, YEARI=-1, IHRI=-1,
      *  ISTART=10, HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1
-      REAL*8 TIJL,X,RDSIG,CDM,TEMP,PLTOP(LM)   ! ,SNOAGE ? obsolete
+      REAL*8 TIJL,X,CDM,TEMP,PLTOP(LM)   ! ,SNOAGE ? obsolete
       REAL*4 XX4
       REAL*8 HOURX   ! ? to restart from older versions
       INTEGER Itime1,Itime2,ItimeX
@@ -494,8 +494,8 @@ C****
       T(:,:,:)=TEMP  ! will be changed to pot.temp later
       Q(:,:,:)=3.D-6
 C**** Advection terms for first and second order moments
-      TX=0; TY=0; TZ=0; TXX=0; TYY=0; TZZ=0; TXY=0; TZX=0; TYZ=0
-      QX=0; QY=0; QZ=0; QXX=0; QYY=0; QZZ=0; QXY=0; QZX=0; QYZ=0
+      TMOM(:,:,:,:)=0.
+      QMOM(:,:,:,:)=0.
 C**** Auxiliary clouds arrays
       RHSAV (:,:,:)=.85
       CLDSAV(:,:,:)=0.
@@ -676,24 +676,7 @@ C**** Initialize surface friction velocity
 C**** Initiallise T50
         T50=TSAVG
 C**** INITIALIZE VERTICAL SLOPES OF T,Q
-        DO J=1,JM
-        DO I=1,IM
-          RDSIG=(SIG(1)-SIGE(2))/(SIG(1)-SIG(2))
-          TZ(I,J,1)=(T(I,J,2)-T(I,J,1))*RDSIG
-          QZ(I,J,1)=(Q(I,J,2)-Q(I,J,1))*RDSIG
-          IF (Q(I,J,1)+QZ(I,J,1).LT.0.) QZ(I,J,1) = -Q(I,J,1)
-          DO L=2,LM-1
-            RDSIG=(SIG(L)-SIGE(L+1))/(SIG(L-1)-SIG(L+1))
-            TZ(I,J,L)=(T(I,J,L+1)-T(I,J,L-1))*RDSIG
-            QZ(I,J,L)=(Q(I,J,L+1)-Q(I,J,L-1))*RDSIG
-            IF (Q(I,J,L)+QZ(I,J,L).LT.0.) QZ(I,J,L) = -Q(I,J,L)
-          END DO
-          RDSIG=(SIG(LM)-SIGE(LM+1))/(SIG(LM-1)-SIG(LM))
-          TZ(I,J,LM)=(T(I,J,LM)-T(I,J,LM-1))*RDSIG
-          QZ(I,J,LM)=(Q(I,J,LM)-Q(I,J,LM-1))*RDSIG
-          IF (Q(I,J,LM)+QZ(I,J,LM).LT.0.) QZ(I,J,LM) = -Q(I,J,LM)
-        END DO
-        END DO
+        call tq_zmom_init(t,q)
       END IF
 C****
 C**** I.C FROM OLDER INCOMPLETE MODEL OUTPUT, ISTART=3-6    just hints
@@ -950,6 +933,7 @@ cc?     GDATA(:,:,10)=SNOAGE(:,:,2)
       CALL FFT0 (IM)
       CALL init_CLD
       CALL init_DIAG
+      CALL init_QUS(im,jm,lm)
       IF (KDIAG(2).EQ.9.AND.SKIPSE.EQ.0..AND.KDIAG(3).LT.9) KDIAG(2)=8
       WRITE (6,INPUTZ)
       WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)

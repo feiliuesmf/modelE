@@ -22,15 +22,13 @@ C****
       USE E001M12_COM, only : im,jm,lm,fim,DTsrc,NIsurf,u,v,t,p,q
      *     ,idacc,dsig,jday,gdata,ndasf,jeq,fland,flice
      *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim
-      USE SOMTQ_COM, only : tx,ty,tz,txx,tyy,tzz,txy,tzx,tyz,qx,qy,qz
-     *     ,qxx,qyy,qzz,qxy,qzx,qyz
-      USE GEOM, only : dxyp,imaxj,kmaxj,raj,idij,idjj,rapvn,rapvs,sini
-     *     ,cosi
+      USE SOMTQ_COM, only : tmom,qmom
+      USE GEOM, only : dxyp,imaxj,kmaxj,raj,idij,idjj,sini,cosi
       USE RADNCB, only : trhr,fsf,cosz1
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
       USE SOCPBL, only : zgs
-      USE DAGCOM, only : aij,tdiurn,aj,bj,cj,areg,ajl,adaily,jreg
+      USE DAGCOM, only : aij,tdiurn,aj,bj,cj,areg,adaily,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt
@@ -42,7 +40,7 @@ C****
 
       IMPLICIT NONE
 
-      INTEGER I,J,L,K,IM1,IP1,LMAX,KR,JR,NS,NSTEPS,MODDSF,MODD6
+      INTEGER I,J,K,IM1,IP1,KR,JR,NS,NSTEPS,MODDSF,MODD6
      *     ,KMAX,IMAX,ITYPE,NGRNDZ,NG
       REAL*8 ATRHDT,BTRHDT
      *     ,CTRHDT,ASHDT,BSHDT,CSHDT,AEVHDT,BEVHDT,CEVHDT,ATS,BTS,CTS
@@ -52,25 +50,20 @@ C****
      *     ,EVHDT,F1DT,CM,CH,CQ,DHGS,DQGS,DGS,BETAUP,EVHEAT,F0
      *     ,F1,DSHDTG,DQGDTG,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG
      *     ,dEVdQS,HSDEN,HSCON,HSMUL,dHS,dQS,dT2,dTS,DQ1X,EVHDT0,EVAP
-     *     ,F0DT,FTEVAP,VAP,PKMS,SPRING,TIMEZ,PWATER
+     *     ,F0DT,FTEVAP,VAP,SPRING,TIMEZ,PWATER
      *     ,PXSOIL,PSK,TH1,Q1,THV1,TFS,RMBYA,HZM1,Q0M1,QZM1,TSS,QSS,TAUS
      *     ,RTAUS,RTAUUS,RTAUVS,TG1S,QGS,SRHDTS,TRHDTS,SHDTS,UGS,PTYPE
      *     ,TG1,SRHEAT,SNOW,TG2,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS
      *     ,RCDHWS,RCDQWS,SHEAT,TRHEAT,QSDEN,QSCON,QSMUL,T2DEN,T2CON
-     *     ,T2MUL,TGDEN,FQEVAP,THPKMS,TXS,TYS,TXXS,TYYS,TXYS,QMS,QXS,QYS
-     *     ,QXXS,QYYS,QXYS,TVMS,THETA,RDP,THM,ZS1CO,WARMER
+     *     ,T2MUL,TGDEN,FQEVAP,ZS1CO,WARMER
      *     ,USS,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L
      *     ,THZ1,QZ1
 
       REAL*8 MSUM, MA1, MSI1, MSI2
       REAL*8, DIMENSION(IM,JM) :: DTH1,DQ1,DU1,DV1
       COMMON /WORK1d/DTH1,DQ1
-      REAL*8, DIMENSION(IM,JM,LM) :: UT,VT
-      COMMON/WORK2/UT,VT,DU1,DV1
+      COMMON/WORK2/DU1,DV1
 
-      INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
-      REAL*8, DIMENSION(IM) :: RA !@var
-      REAL*8, DIMENSION(IM) :: UMS,VMS !@var
       REAL*8, DIMENSION(IM,JM,4) :: E0,E1,EVAPOR,TGRND,TGRN2
       COMMON/WORK3/E0,E1,EVAPOR,TGRND
 
@@ -620,37 +613,14 @@ C****
           FQEVAP=0
           IF (DQ1(I,J).lt.0.and.Q(I,J,1).gt.0) FQEVAP=-DQ1(I,J)/Q(I,J,1)
             T(I,J,1)=  T(I,J,1)+DTH1(I,J)
-           TX(I,J,1)= TX(I,J,1)*(1.-FTEVAP)
-           TY(I,J,1)= TY(I,J,1)*(1.-FTEVAP)
-          TXX(I,J,1)=TXX(I,J,1)*(1.-FTEVAP)
-          TXY(I,J,1)=TXY(I,J,1)*(1.-FTEVAP)
-          TYY(I,J,1)=TYY(I,J,1)*(1.-FTEVAP)
-          TYZ(I,J,1)=TYZ(I,J,1)*(1.-FTEVAP)
-          TZX(I,J,1)=TZX(I,J,1)*(1.-FTEVAP)
-           TZ(I,J,1)= TZ(I,J,1)*(1.-FTEVAP) ! should be set from PBL
-          TZZ(I,J,1)=TZZ(I,J,1)*(1.-FTEVAP) ! should be set from PBL
             Q(I,J,1)=  Q(I,J,1)+DQ1(I,J)
-           QX(I,J,1)= QX(I,J,1)*(1.-FQEVAP)
-           QY(I,J,1)= QY(I,J,1)*(1.-FQEVAP)
-          QXX(I,J,1)=QXX(I,J,1)*(1.-FQEVAP)
-          QXY(I,J,1)=QXY(I,J,1)*(1.-FQEVAP)
-          QYY(I,J,1)=QYY(I,J,1)*(1.-FQEVAP)
-          QYZ(I,J,1)=QYZ(I,J,1)*(1.-FQEVAP)
-          QZX(I,J,1)=QZX(I,J,1)*(1.-FQEVAP)
-           QZ(I,J,1)= QZ(I,J,1)*(1.-FQEVAP) ! should be set from PBL
-          QZZ(I,J,1)=QZZ(I,J,1)*(1.-FQEVAP) ! should be set from PBL
+! Z-moments should be set from PBL
+            TMOM(:,I,J,1) = TMOM(:,I,J,1)*(1.-FTEVAP)
+            QMOM(:,I,J,1) = QMOM(:,I,J,1)*(1.-FQEVAP)
           IF (Q(I,J,1).LT.qmin) THEN
              WRITE(99,*) ITime,'I,J:',I,J,' Q1:',Q(I,J,1),'->0',DQ1(I,J)
              Q(I,J,1)=qmin
-             QX(I,J,1)=0.
-             QY(I,J,1)=0.
-             QZ(I,J,1)=0.
-             QXX(I,J,1)=0.
-             QYY(I,J,1)=0.
-             QZZ(I,J,1)=0.
-             QXY(I,J,1)=0.
-             QYZ(I,J,1)=0.
-             QZX(I,J,1)=0.
+             QMOM(:,I,J,1)=0.
           ENDIF
         END DO
       END DO
@@ -688,130 +658,25 @@ C**** non polar boxes
 C****
 C**** DRY CONVECTION ORIGINATING FROM THE FIRST LAYER
 C****
-C**** LOAD U,V INTO UT,VT.  UT,VT WILL BE FIXED DURING DRY CONVECTION
-C****   WHILE U,V WILL BE UPDATED.
-      UT=U ; VT=V
-C**** OUTSIDE LOOPS OVER J AND I
-      DO J=1,JM
-      IMAX=IMAXJ(J)
-      KMAX=KMAXJ(J)
-
-      DO I=1,IMAX
-        DO K=1,KMAX
-          RA(K)=RAJ(K,J)
-          IDI(K)=IDIJ(K,I,J)
-          IDJ(K)=IDJJ(K,J)
-        END DO
-      DCLEV(I,J)=1.
-      IF(T(I,J,1)*(1.+Q(I,J,1)*RVX).GT.
-     *   T(I,J,2)*(1.+Q(I,J,2)*RVX)) THEN
-C**** MIX HEAT AND MOISTURE THROUGHOUT THE BOUNDARY LAYER
-      PIJ=P(I,J)
-      PKMS=(PK(1,I,J)*DSIG(1)+PK(2,I,J)*DSIG(2))*PIJ
-      THPKMS=(T(I,J,1)*(PK(1,I,J)*DSIG(1))+T(I,J,2)*(PK(2,I,J)*DSIG(2)))
-     *   *PIJ
-      TXS= (TX(I,J,1)*(PK(1,I,J)*DSIG(1)) + TX(I,J,2)*(PK(2,I,J)*
-     *     DSIG(2)))*PIJ
-      TYS= (TY(I,J,1)*(PK(1,I,J)*DSIG(1)) + TY(I,J,2)*(PK(2,I,J)*
-     *     DSIG(2)))*PIJ
-      TXXS=(TXX(I,J,1)*(PK(1,I,J)*DSIG(1))+TXX(I,J,2)*(PK(2,I,J)*
-     *     DSIG(2)))*PIJ
-      TYYS=(TYY(I,J,1)*(PK(1,I,J)*DSIG(1))+TYY(I,J,2)*(PK(2,I,J)*
-     *     DSIG(2)))*PIJ
-      TXYS=(TXY(I,J,1)*(PK(1,I,J)*DSIG(1))+TXY(I,J,2)*(PK(2,I,J)*
-     *     DSIG(2)))*PIJ
-      QMS=(Q(I,J,1)*DSIG(1)+Q(I,J,2)*DSIG(2))*PIJ
-      QXS  = (QX(I,J,1)*DSIG(1) +  QX(I,J,2)*DSIG(2))*PIJ
-      QYS  = (QY(I,J,1)*DSIG(1) +  QY(I,J,2)*DSIG(2))*PIJ
-      QXXS =(QXX(I,J,1)*DSIG(1) + QXX(I,J,2)*DSIG(2))*PIJ
-      QYYS =(QYY(I,J,1)*DSIG(1) + QYY(I,J,2)*DSIG(2))*PIJ
-      QXYS =(QXY(I,J,1)*DSIG(1) + QXY(I,J,2)*DSIG(2))*PIJ
-      TVMS=(T(I,J,1)*(1.+Q(I,J,1)*RVX)*(PK(1,I,J)*DSIG(1))
-     *     +T(I,J,2)*(1.+Q(I,J,2)*RVX)*(PK(2,I,J)*DSIG(2)))*PIJ
-      THETA=TVMS/PKMS
-C**** MIX THROUGH SUMSEQUENT LAYERS
-      DO L=3,LM
-      IF(THETA.LT.T(I,J,L)*(1.+Q(I,J,L)*RVX)) GO TO 8160
-      PIJ=PLIJ(L,I,J)
-      PKMS=PKMS+(PK(L,I,J)*PDSIG(L,I,J))
-      THPKMS=THPKMS+  T(I,J,L)*(PK(L,I,J)*PDSIG(L,I,J))
-       TXS =  TXS +  TX(I,J,L)*(PK(L,I,J)*PDSIG(L,I,J))
-       TYS =  TYS +  TY(I,J,L)*(PK(L,I,J)*PDSIG(L,I,J))
-      TXXS = TXXS + TXX(I,J,L)*(PK(L,I,J)*PDSIG(L,I,J))
-      TYYS = TYYS + TYY(I,J,L)*(PK(L,I,J)*PDSIG(L,I,J))
-      TXYS = TXYS + TXY(I,J,L)*(PK(L,I,J)*PDSIG(L,I,J))
-      QMS=    QMS +   Q(I,J,L)*PDSIG(L,I,J)
-       QXS =  QXS +  QX(I,J,L)*PDSIG(L,I,J)
-       QYS =  QYS +  QY(I,J,L)*PDSIG(L,I,J)
-      QXXS = QXXS + QXX(I,J,L)*PDSIG(L,I,J)
-      QYYS = QYYS + QYY(I,J,L)*PDSIG(L,I,J)
-      QXYS = QXYS + QXY(I,J,L)*PDSIG(L,I,J)
-      TVMS=TVMS+T(I,J,L)*(1.+Q(I,J,L)*RVX)*(PK(L,I,J)*PDSIG(L,I,J))
-      THETA=TVMS/PKMS
+      CALL DRYCNV(1,1)
+C****
+C**** ACCUMULATE SOME ADDITIONAL BOUNDARY LAYER DIAGNOSTICS
+C****
+      IF(MODD6.EQ.0) THEN
+        DO J=1,JM
+        IMAX=IMAXJ(J)
+        DO I=1,IMAX
+        if(dclev(i,j).gt.1.) then ! dry conv has happened in this gridbox
+           DO KR=1,4
+              IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
+                 ADAILY(JHOUR+1,47,KR)=ADAILY(JHOUR+1,47,KR)+1.
+                 ADAILY(JHOUR+1,48,KR)=ADAILY(JHOUR+1,48,KR)+DCLEV(I,J)
+              END IF
+           END DO
+        endif
       END DO
-      L=LM+1
- 8160 LMAX=L-1
-      RDP=1./(P(I,J)*SIGE(1)-PIJ*SIGE(LMAX+1))
-      THM=THPKMS/PKMS
-      QMS=QMS*RDP
-      DCLEV(I,J)=LMAX
-      DO 8180 L=1,LMAX
-         AJL(J,L,12)=AJL(J,L,12)+(THM-T(I,J,L))*PK(L,I,J)*PLIJ(L,I,J)
-      T(I,J,L)=THM
-       TX(I,J,L) = TXS/PKMS
-       TY(I,J,L) = TYS/PKMS
-       TZ(I,J,L) = 0.
-      TXX(I,J,L) = TXXS/PKMS
-      TYY(I,J,L) = TYYS/PKMS
-      TXY(I,J,L) = TXYS/PKMS
-      TZZ(I,J,L) = 0.
-      TZX(I,J,L) = 0.
-      TYZ(I,J,L) = 0.
-      Q(I,J,L)=QMS
-       QX(I,J,L) = QXS*RDP
-       QY(I,J,L) = QYS*RDP
-       QZ(I,J,L) = 0.
-      QXX(I,J,L) = QXXS*RDP
-      QYY(I,J,L) = QYYS*RDP
-      QXY(I,J,L) = QXYS*RDP
-      QZZ(I,J,L) = 0.
-      QZX(I,J,L) = 0.
-      QYZ(I,J,L) = 0.
- 8180 CONTINUE
-C**** MIX MOMENTUM THROUGHOUT THE BOUNDARY LAYER
-      UMS(1:KMAX)=0.
-      VMS(1:KMAX)=0.
-      DO L=1,LMAX
-         DO K=1,KMAX
-            UMS(K)=UMS(K)+UT(IDI(K),IDJ(K),L)*PDSIG(L,I,J)
-            VMS(K)=VMS(K)+VT(IDI(K),IDJ(K),L)*PDSIG(L,I,J)
-         ENDDO
-      ENDDO
-      UMS(1:KMAX)=UMS(1:KMAX)*RDP
-      VMS(1:KMAX)=VMS(1:KMAX)*RDP
-      DO L=1,LMAX
-        PIJ=PLIJ(L,I,J)
-        DO K=1,KMAX
-          U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
-     &         +(UMS(K)-UT(IDI(K),IDJ(K),L))*RA(K)
-          V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
-     &         +(VMS(K)-VT(IDI(K),IDJ(K),L))*RA(K)
-          AJL(IDJ(K),L,38)=AJL(IDJ(K),L,38)
-     &         +(UMS(K)-UT(IDI(K),IDJ(K),L))*PIJ*RA(K)
-        END DO
       END DO
-C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
- 8400   IF(MODD6.EQ.0) THEN
-        DO KR=1,4
-          IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-            ADAILY(JHOUR+1,47,KR)=ADAILY(JHOUR+1,47,KR)+1.
-            ADAILY(JHOUR+1,48,KR)=ADAILY(JHOUR+1,48,KR)+LMAX
-          END IF
-        END DO
       END IF
-      END IF
-      END DO
-      END DO
 C****
       END DO
       RETURN

@@ -7,125 +7,131 @@ C**** and water vapor advection, with limits applied to water vapor.
 C**** Changes for constant pressure above LS1
 C**** FQU,FQV for additional diagnostics
 C**** Routines included: AADVT, AADVTX, AADVTY, AADVTZ
-      SUBROUTINE AADVT (PC,P,RM,RXM,RYM,RZM,RXXM,RYYM,RZZM,RXYM,RZXM,
-     *                  RYZM,  DXYP,DSIG,PSFMPT,LS1,DT,QLIMIT,FQU,FQV)
-C****
-C**** AADVT advects tracers using the Quadradic Upstream Scheme.
-C****
-C**** Input: MA (kg) = fluid mass before advection
+
+      MODULE QUSCOM
+!@sum  QUSCOM contains gcm-specific advection parameters/workspace
+!@auth Maxwell Kelley
+      USE QUSDEF
+      IMPLICIT NONE
+      INTEGER :: IM,JM,LM
+      INTEGER :: XSTRIDE,YSTRIDE,ZSTRIDE
+      DOUBLE PRECISION :: BYIM
+C**** AIR MASS FLUXES
+      DOUBLE PRECISION, DIMENSION(:,:,:), ALLOCATABLE :: MFLX
+C**** WORKSPACE FOR AADVTX
+      DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE :: AM,F_I
+      DOUBLE PRECISION, DIMENSION(:,:), ALLOCATABLE :: FMOM_I
+C**** WORKSPACE FOR AADVTY
+      DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE :: BM,F_J
+      DOUBLE PRECISION, DIMENSION(:,:), ALLOCATABLE :: FMOM_J
+C**** WORKSPACE FOR AADVTZ
+      DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE :: CM,F_L
+      DOUBLE PRECISION, DIMENSION(:,:), ALLOCATABLE :: FMOM_L
+
+      END MODULE QUSCOM
+
+      SUBROUTINE init_QUS(IM_GCM,JM_GCM,LM_GCM)
+!@sum  init_QUS sets gcm-specific advection parameters/workspace
+!@auth Maxwell Kelley
+      use QUSCOM
+      INTEGER, INTENT(IN) :: IM_GCM,JM_GCM,LM_GCM
+C**** SET RESOLUTION
+      IM = IM_GCM
+      JM = JM_GCM
+      LM = LM_GCM
+      BYIM = 1.D0/DBLE(IM)
+      XSTRIDE = 1
+      YSTRIDE = IM
+      ZSTRIDE = IM*JM
+C**** ALLOCATE SPACE FOR AIR MASS FLUXES
+      ALLOCATE(MFLX(IM,JM,LM))
+C**** ALLOCATE WORKSPACE FOR AADVTX
+      ALLOCATE(AM(IM),F_I(IM),FMOM_I(NMOM,IM))
+C**** ALLOCATE WORKSPACE FOR AADVTY
+      ALLOCATE(BM(JM),F_J(JM),FMOM_J(NMOM,JM))
+C**** ALLOCATE WORKSPACE FOR AADVTZ
+      ALLOCATE(CM(LM),F_L(LM),FMOM_L(NMOM,LM))
+      RETURN
+      END SUBROUTINE init_QUS
+
+      SUBROUTINE AADVT (MA,RM,RMOM,SD,PU,PV,DT,QLIMIT,FQU,FQV)
+!@sum  AADVT advection driver
+!@auth G. Russell, modified by Maxwell Kelley
+c****
+c**** AADVT advects tracers using the Quadradic Upstream Scheme.
+c****
+c**** input:
+c****  pu,pv,sd (kg/s) = east-west,north-south,vertical mass fluxes
+c****      qlimit = whether moment limitations should be used
 C****         DT (s) = time step
-C****      MU (kg/s) = west to east mass flux
-C****      MV (kg/s) = south to north mass flux
-C****      MW (kg/s) = vertical mass flux
-C****         QLIMIT = whether moment limitations should be used
-C****
-C**** Output:    RM (kg) = mean tracer mass
-C****   RXM,RYM,RZM (kg) = first moments of tracer mass
-C****   RXXM,RYYM,. (kg) = second moments of tracer mass
-C****
-      USE E001M12_COM
-     &   , ONLY : IM,JM,LM
+c****
+c**** input/output:
+c****     rm = tracer concentration
+c****   rmom = moments of tracer concentration
+c****     ma (kg) = fluid mass
+c****
+      USE QUSCOM, ONLY : IM,JM,LM, MFLX
+      USE QUSDEF
       IMPLICIT NONE
 
-      REAL*8, INTENT(IN) :: P
-      REAL*8, INTENT(IN) :: PSFMPT
-      REAL*8, INTENT(IN) :: DT
-      REAL*8, INTENT(OUT) :: FQU,FQV
-      INTEGER, INTENT(IN) :: LS1
-      REAL*8 :: MA,MU,MV,MW
-      REAL*8 :: PIT,SD,PU,PV
+      double precision, dimension(im,jm,lm) :: rm,ma
+      double precision, dimension(NMOM,IM,JM,LM) :: rmom
 
-      LOGICAL*4 QLIMIT
-      REAL*8 RXM(IM,JM,LM), RYM(IM,JM,LM), RZM(IM,JM,LM),
-     *      RXXM(IM,JM,LM),RYYM(IM,JM,LM),RZZM(IM,JM,LM),
-     *      RXYM(IM,JM,LM),RYZM(IM,JM,LM),RZXM(IM,JM,LM)
-      REAL*8 RM(IM,JM,LM),PC(IM,JM),DXYP(JM),DSIG(LM)
-      COMMON /WORK03/ MA(IM,JM,LM)
-      COMMON /FLUXCB/ MU(IM,JM,LM),MV(IM,JM,LM),MW(IM,JM,LM-1)
-      COMMON /WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),
-     *        PV(IM,JM,LM)
-      DIMENSION P(IM,JM),FQU(IM,JM),FQV(IM,JM)
-      INTEGER I,J,L
-      REAL*8 BYMA
+      REAL*8, INTENT(IN) :: DT
+      double precision, dimension(im,jm,lm), intent(in) :: pu,pv
+      double precision, dimension(im,jm,lm-1), intent(in) :: sd
+      LOGICAL, INTENT(IN) :: QLIMIT
+
+      double precision, dimension(im,jm), intent(inout) :: fqu,fqv
+
+      INTEGER :: I,J,L
+      DOUBLE PRECISION :: BYMA
 
 C**** Fill in values at the poles
-      DO 120 L=1,LM
-      DO 120 I=2,IM
-        RM(I, 1,L) =   RM(1,1,L)
-       RZM(I, 1,L) =  RZM(1,1,L)
-      RZZM(I, 1,L) = RZZM(1,1,L)
-        RM(I,JM,L) =   RM(1,JM,L)
-       RZM(I,JM,L) =  RZM(1,JM,L)
-  120 RZZM(I,JM,L) = RZZM(1,JM,L)
+      DO L=1,LM
+         RM(2:IM,1 ,L) =   RM(1,1 ,L)
+         RM(2:IM,JM,L) =   RM(1,JM,L)
+         DO I=2,IM
+            RMOM(:,I,1 ,L) =  RMOM(:,1,1 ,L)
+            RMOM(:,I,JM,L) =  RMOM(:,1,JM,L)
+         enddo
+      enddo
 C****
-C**** Load mass after advection from mass before advection
+C**** convert from concentration to mass units
 C****
-      DO 200 L=1,LS1-1
-      DO 200 J=1,JM
-      DO 200 I=1,IM
-  200 MA(I,J,L)=PC(I,J)*DSIG(L)*DXYP(J)
-      DO 220 L=LS1,LM
-      DO 220 J=1,JM
-      DO 220 I=1,IM
-  220 MA(I,J,L)=PSFMPT*DXYP(J)*DSIG(L)
-      DO 300 L=1,LM
-      DO 300 J=1,JM
-      DO 300 I=1,IM
-      RM(I,J,L)=RM(I,J,L)*MA(I,J,L)
-      RXM(I,J,L)=RXM(I,J,L)*MA(I,J,L)
-      RYM(I,J,L)=RYM(I,J,L)*MA(I,J,L)
-      RZM(I,J,L)=RZM(I,J,L)*MA(I,J,L)
-      RXXM(I,J,L)=RXXM(I,J,L)*MA(I,J,L)
-      RYYM(I,J,L)=RYYM(I,J,L)*MA(I,J,L)
-      RZZM(I,J,L)=RZZM(I,J,L)*MA(I,J,L)
-      RXYM(I,J,L)=RXYM(I,J,L)*MA(I,J,L)
-      RYZM(I,J,L)=RYZM(I,J,L)*MA(I,J,L)
-      RZXM(I,J,L)=RZXM(I,J,L)*MA(I,J,L)
-  300 MU(I,J,L)=PU(I,J,L)
-      DO 310 L=1,LM
-      DO 310 J=1,JM-1
-      DO 310 I=1,IM
-  310 MV(I,J,L)=PV(I,J+1,L)
-      DO 320 L=1,LM-1
-      DO 320 J=1,JM
-      DO 320 I=1,IM
-  320 MW(I,J,L)=-SD(I,J,L)
+      DO L=1,LM
+      DO J=1,JM
+      DO I=1,IM
+         RM(I,J,L)=RM(I,J,L)*MA(I,J,L)
+         RMOM(:,I,J,L)=RMOM(:,I,J,L)*MA(I,J,L)
+      enddo
+      enddo
+      enddo
 C****
 C**** Advect the tracer using the quadratic upstream scheme
 C****
-      CALL AADVTX (RM,RXM,RYM,RZM,RXXM,RYYM,RZZM,RXYM,RYZM,RZXM,MA,
-     *  .5*DT,QLIMIT,FQU)
-      CALL AADVTY (RM,RXM,RYM,RZM,RXXM,RYYM,RZZM,RXYM,RYZM,RZXM,MA,
-     *     DT,QLIMIT,FQV)
-      CALL AADVTZ (RM,RXM,RYM,RZM,RXXM,RYYM,RZZM,RXYM,RYZM,RZXM,MA,
-     *     DT,QLIMIT)
-      CALL AADVTX (RM,RXM,RYM,RZM,RXXM,RYYM,RZZM,RXYM,RYZM,RZXM,MA,
-     *  .5*DT,QLIMIT,FQU)
-C**** Fill in values at the poles
-      DO 210 L=1,LM
-      DO 210 I=1,IM
-        MA(I, 1,L) =   MA(IM,1,L)
-        RM(I, 1,L) =   RM(IM,1,L)
-       RZM(I, 1,L) =  RZM(IM,1,L)
-      RZZM(I, 1,L) = RZZM(IM,1,L)
-        MA(I,JM,L) =   MA(1,JM,L)
-        RM(I,JM,L) =   RM(1,JM,L)
-       RZM(I,JM,L) =  RZM(1,JM,L)
-  210 RZZM(I,JM,L) = RZZM(1,JM,L)
-      DO 330 L=1,LM
-      DO 330 J=1,JM
-      DO 330 I=1,IM
-      BYMA = 1.D0/MA(I,J,L)
-      RM(I,J,L)=RM(I,J,L)    *BYMA
-      RXM(I,J,L)=RXM(I,J,L)  *BYMA
-      RYM(I,J,L)=RYM(I,J,L)  *BYMA
-      RZM(I,J,L)=RZM(I,J,L)  *BYMA
-      RXXM(I,J,L)=RXXM(I,J,L)*BYMA
-      RYYM(I,J,L)=RYYM(I,J,L)*BYMA
-      RZZM(I,J,L)=RZZM(I,J,L)*BYMA
-      RXYM(I,J,L)=RXYM(I,J,L)*BYMA
-      RYZM(I,J,L)=RYZM(I,J,L)*BYMA
-  330 RZXM(I,J,L)=RZXM(I,J,L)*BYMA
+      mflx(:,:,:)=pu(:,:,:)*(.5*dt)
+      CALL AADVTX (RM,RMOM,MA,MFLX,QLIMIT,FQU)
+      mflx(:,1:jm-1,:)=pv(:,2:jm,:)*dt
+      mflx(:,jm,:)=0.
+      CALL AADVTY (RM,RMOM,MA,MFLX,QLIMIT,FQV)
+      mflx(:,:,1:lm-1)=sd(:,:,1:lm-1)*(-dt)
+      mflx(:,:,lm)=0.
+      CALL AADVTZ (RM,RMOM,MA,MFLX,QLIMIT)
+      mflx(:,:,:)=pu(:,:,:)*(.5*dt)
+      CALL AADVTX (RM,RMOM,MA,MFLX,QLIMIT,FQU)
+C****
+C**** convert from mass to concentration units
+C****
+      DO L=1,LM
+      DO J=1,JM
+      DO I=1,IM
+         BYMA = 1.D0/MA(I,J,L)
+         RM(I,J,L)=RM(I,J,L)*BYMA
+         RMOM(:,I,J,L)=RMOM(:,I,J,L)*BYMA
+      enddo
+      enddo
+      enddo
 C**** CHECK MA(I,J,L)   (debugging only)
 c     DO 340 L=1,LS1-1
 c     DO 340 J=1,JM
@@ -139,867 +145,168 @@ c     DO 345 I=1,IM
 c     CHECK=PSFMPT-MA(I,J,L)/DSIG(L)/DXYP(J)
 c 345 IF(ABS(CHECK).GT..01)WRITE(6,9000)I,J,L,MA(I,J,L),PSFMPT,DSIG(L)
 c    *     ,DXYP(J),CHECK
- 9000 FORMAT(' MA DIFFERS FROM P*DSIG*DXYP BY TOO MUCH',3I3,5E11.3)
+c 9000 FORMAT(' MA DIFFERS FROM P*DSIG*DXYP BY TOO MUCH',3I3,5E11.3)
       RETURN
       END
-      SUBROUTINE AADVTX
-     *  (RM,RXM,RYM,RZM,RXXM,RYYM,RZZM,RXYM,RYZM,RZXM,M,DT,QLIMIT,FQU)
-C****
-C**** AADVTX advects tracers in the west to east direction using the
-C**** Quadratic Upstream Scheme.  If QLIMIT is true, the moments are
-C**** limited to prevent the mean tracer from becoming negative.
-C****
-C**** Input: DT (s) = time step
-C****     MU (kg/s) = west to east mass flux
-C****        QLIMIT = whether moment limitations should be used
-C****
-C**** Output:       RM (kg) = tracer mass
-C****      RXM,RYM,RZM (kg) = first moments of tracer mass
-C****   RXXM,RYYM,RZZM (kg) = second moments of tracer mass
-C****                M (kg) = fluid mass
-C****
-      USE E001M12_COM
-     &   , ONLY : IM,JM,LM
-      IMPLICIT NONE
 
-      REAL*8, INTENT(IN) :: DT
-      REAL*8, INTENT(INOUT),DIMENSION(IM,JM,LM) :: RM,RXM,RYM,RZM,RXXM
-     *     ,RYYM,RZZM,RXYM,RYZM,RZXM,M
-      REAL*8 MU(IM,JM,LM)
-      REAL*8, INTENT(OUT) :: FQU(IM,JM)
+      subroutine aadvtx(rm,rmom,mass,mu,qlimit,fqu)
+!@sum  AADVTX advection driver for x-direction
+!@auth Maxwell Kelley
+c****
+c**** aadvtx advects tracers in the west to east direction using the
+c**** quadratic upstream scheme.  if qlimit is true, the moments are
+c**** limited to prevent the mean tracer from becoming negative.
+c****
+c**** input:
+c****     mu (kg) = west-east mass flux, positive eastward
+c****      qlimit = whether moment limitations should be used
+c****
+c**** input/output:
+c****     rm (kg) = tracer mass
+c****   rmom (kg) = moments of tracer mass
+c****   mass (kg) = fluid mass
+c****
+      use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
+      use QUSDEF
+      implicit none
+      double precision, dimension(im,jm,lm) :: rm,mass,mu
+      double precision, dimension(NMOM,IM,JM,LM) :: rmom
+      logical ::  qlimit
+      DOUBLE PRECISION, INTENT(OUT), DIMENSION(IM,JM) :: FQU
+      integer :: i,j,l
+c**** loop over layers and latitudes
+      do l=1,lm
+      do j=2,jm-1
+      am(:) = mu(:,j,l)
+c****
+c**** call 1-d advection routine
+c****
+      call adv1d(rm(1,j,l),rmom(1,1,j,l), f_i,fmom_i, mass(1,j,l),
+     &        am, im, qlimit,xstride,xdir)
+c****
+c**** store tracer flux in fqu array
+c****
+      fqu(:,j)  = fqu(:,j) + f_i(:)
+      enddo ! j
+      enddo ! l
+      return
+c****
+      end subroutine aadvtx
 
-      REAL*8, DIMENSION(IM) :: A,AM,F,FX,FY,FZ,FXX,FYY,FZZ,FXY,FZX,FYZ
-      LOGICAL*4 QLIMIT
-      COMMON /FLUXCB/ MU
-      COMMON /WORK04/ A,AM,F,FX,FY,FZ,FXX,FYY,FZZ,FXY,FZX,FYZ
+      subroutine aadvty(rm,rmom,mass,mv,qlimit,fqv)
+!@sum  AADVTY advection driver for y-direction
+!@auth Maxwell Kelley
+c****
+c**** aadvty advects tracers in the south to north direction using the
+c**** quadratic upstream scheme.  if qlimit is true, the moments are
+c**** limited to prevent the mean tracer from becoming negative.
+c****
+c**** input:
+c****     mv (kg) = north-south mass flux, positive northward
+c****      qlimit = whether moment limitations should be used
+c****
+c**** input/output:
+c****     rm (kg) = tracer mass
+c****   rmom (kg) = moments of tracer mass
+c****   mass (kg) = fluid mass
+c****
+      use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
+      use QUSDEF
+      implicit none
+      double precision, dimension(im,jm,lm) :: rm,mass,mv
+      double precision, dimension(NMOM,IM,JM,LM) :: rmom
+      logical ::  qlimit
+      double precision, intent(out), dimension(im,jm) :: fqv
+      integer :: i,j,l
+      double precision ::
+     &     m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
+c**** loop over layers
+      do l=1,lm
+c**** scale polar boxes to their full extent
+      mass(:,1:jm:jm-1,l)=mass(:,1:jm:jm-1,l)*im
+      m_sp = mass(1,1 ,l)
+      m_np = mass(1,jm,l)
+      rm(:,1:jm:jm-1,l)=rm(:,1:jm:jm-1,l)*im
+      rm_sp = rm(1,1 ,l)
+      rm_np = rm(1,jm,l)
+      do i=1,im
+         rmom(:,i,1 ,l)=rmom(:,i,1 ,l)*im
+         rmom(:,i,jm,l)=rmom(:,i,jm,l)*im
+      enddo
+      rzm_sp  = rmom(mz ,1,1 ,l)
+      rzzm_sp = rmom(mzz,1,1 ,l)
+      rzm_np  = rmom(mz ,1,jm,l)
+      rzzm_np = rmom(mzz,1,jm,l)
+c**** loop over longitudes
+      do i=1,im
+c****
+c**** load 1-dimensional arrays
+c****
+      bm   (:) = mv(i,:,l) !/nstep
+      bm(jm)= 0.
+      rmom(ihmoms,i,1 ,l) = 0.! horizontal moments are zero at pole
+      rmom(ihmoms,i,jm,l) = 0.
+c****
+c**** call 1-d advection routine
+c****
+      call adv1d(rm(i,1,l),rmom(1,i,1,l), f_j,fmom_j, mass(i,1,l),
+     &     bm, jm,qlimit,ystride,ydir)
+c**** store tracer flux in fqv array
+      fqv(i,:) = fqv(i,:) + f_j(:)
+      fqv(i,jm) = 0.   ! play it safe
+      rmom(ihmoms,i,1 ,l) = 0.! horizontal moments are zero at pole
+      rmom(ihmoms,i,jm,l) = 0.
+      enddo ! end loop over longitudes
+c**** average and unscale polar boxes
+      mass(:,1 ,l) = (m_sp + sum(mass(:,1 ,l)-m_sp))*byim
+      mass(:,jm,l) = (m_np + sum(mass(:,jm,l)-m_np))*byim
+      rm(:,1 ,l) = (rm_sp + sum(rm(:,1 ,l)-rm_sp))*byim
+      rm(:,jm,l) = (rm_np + sum(rm(:,jm,l)-rm_np))*byim
+      rmom(mz ,:,1 ,l) = (rzm_sp  + sum(rmom(mz ,:,1 ,l)-rzm_sp ))*byim
+      rmom(mzz,:,1 ,l) = (rzzm_sp + sum(rmom(mzz,:,1 ,l)-rzzm_sp))*byim
+      rmom(mz ,:,jm,l) = (rzm_np  + sum(rmom(mz ,:,jm,l)-rzm_np ))*byim
+      rmom(mzz,:,jm,l) = (rzzm_np + sum(rmom(mzz,:,jm,l)-rzzm_np))*byim
+      enddo ! end loop over levels
+      return
+c****
+      end subroutine aadvty
 
-      INTEGER I,J,L,IM1,IP1
-      REAL*8 RMFIM1,MOT2,BYMNEW,MNEW,G13AB,GAMMA,RMCEN
-C**** Loop over layers and latitudes
-      DO 420 L=1,LM
-      DO 420 J=2,JM-1
-C****
-C**** Calculate tracer mass flux F (kg)
-C****
-      I=IM
-      DO 120 IP1=1,IM
-      AM(I) = DT*MU(I,J,L)
-      IF(AM(I).LT.0.)  GO TO 110
-      A(I) = AM(I)/M(I,J,L)
-      IF(A(I).GT.1.)  WRITE (6,*) 'A>1:',I,J,L,A(I),M(I,J,L)
-      F(I) = A(I)*(RM(I,J,L)+(1.-A(I))*(RXM(I,J,L)
-     *                   +(1.-2.*A(I))*RXXM(I,J,L)))
-      GO TO 120
-  110 A(I) = AM(I)/M(IP1,J,L)
-      IF(A(I).LT.-1.)  WRITE (6,*) 'A<-1:',I,J,L,A(I),M(IP1,J,L)
-      F(I) = A(I)*(RM(IP1,J,L)-(1.+A(I))*(RXM(IP1,J,L)
-     *                     -(1.+2.*A(I))*RXXM(IP1,J,L)))
-  120 I=IP1
-C****
-C**** Modify the tracer moments so that the tracer mass in each
-C**** division is non-negative
-C****
-      IF(.NOT.QLIMIT)  GO TO 300
-      IM1=IM
-      DO 295 I=1,IM
-      IF(A(IM1).GE.0.)  GO TO 280
-C**** Air is leaving through the left edge: 2 or 3 divisions
-      IF(A(I).LE.0.)  GO TO 260
-C**** Air is leaving through the right edge: 3 divisions
-      IF(F(IM1).GT.0.)  GO TO 230
-C**** Tracer leaving to the left is non-negative: case 1, 3, 4 or 6
-      IF(F(I).LT.0.)  GO TO 210
-C**** Tracer leaving to the right is non-negative: case 1 or 4
-      RMCEN = RM(I,J,L) + (F(IM1)-F(I))
-      IF(RMCEN.GE.0.)  GO TO 295
-C**** Tracer remaining in the box is negative: case 4
-      GAMMA = 1.+(A(IM1)-A(I))
-      G13AB = GAMMA*GAMMA - 1. + 3.*(A(IM1)+A(I))**2
-      RXXM(I,J,L) = RXXM(I,J,L) - RMCEN*10.*G13AB /
-     /  (GAMMA*(12.*(A(IM1)+A(I))**2 + 5.*G13AB*G13AB))
-      RXM(I,J,L) = RXM(I,J,L) + RMCEN*12.*(A(IM1)+A(I)) /
-     /  (GAMMA*(12.*(A(IM1)+A(I))**2 + 5.*G13AB*G13AB))
-      F(IM1) = A(IM1)*(RM(I,J,L)-(1.+A(IM1))*(RXM(I,J,L)
-     -                       -(1.+2.*A(IM1))*RXXM(I,J,L)))
-      IF(F(IM1).GT.0.)  GO TO 240
-      IF(RM(I,J,L)+F(IM1).LT.0.)  GO TO 220
-      F(I) = RM(I,J,L)+F(IM1)
-      GO TO 295
-C**** Tracer leaving to the right is negative: case 3 or 6
-  210 IF(RM(I,J,L).LT.F(I)-F(IM1))  GO TO 220
-C**** Only the tracer leaving to the right is negative: case 3
-      RXXM(I,J,L) = RXXM(I,J,L) - F(I)*(1.-2.*A(I)) /
-     /         (A(I)*(1.-A(I))*(.6d0+(1.-2.*A(I))**2))
-      RXM(I,J,L) = RM(I,J,L)/(A(I)-1.) - (1.-2.*A(I))*RXXM(I,J,L)
-      F(IM1) = A(IM1)*(RM(I,J,L)-(1.+A(IM1))*(RXM(I,J,L)
-     -                       -(1.+2.*A(IM1))*RXXM(I,J,L)))
-      IF(F(IM1).GT.0.)  GO TO 250
-      F(I) = 0.
-      IF(RM(I,J,L)+F(IM1).GE.0.)  GO TO 295
-C**** The two right divisions are negative: case 6
-  220 RXXM(I,J,L) = RM(I,J,L)/(2.*A(IM1)*(A(I)-1.))
-      RXM (I,J,L) = RM(I,J,L)*(.5-A(IM1)-A(I))/(A(IM1)*(1.-A(I)))
-      F(IM1) = -RM(I,J,L)
-      F(I)   = 0.
-      GO TO 295
-C**** Tracer leaving to the left is negative: case 2, 5 or 7
-  230 IF(F(I).LT.0.)  GO TO 250
-C**** Tracer leaving to the right is non-negative: case 2 or 5
-      IF(RM(I,J,L).LT.F(I)-F(IM1))  GO TO 240
-C**** Only the tracer leaving to the left is negative: case 2
-      RXXM(I,J,L) = RXXM(I,J,L) - F(IM1)*(1.+2.*A(IM1)) /
-     /  (A(IM1)*(1.+A(IM1))*(.6d0+(1.+2.*A(IM1))**2))
-      RXM(I,J,L) = RM(I,J,L)/(1.+A(IM1)) + (1.+2.*A(IM1))*RXXM(I,J,L)
-      F(I) = A(I)*(RM(I,J,L)+(1.-A(I))*(RXM(I,J,L)
-     +                   +(1.-2.*A(I))*RXXM(I,J,L)))
-      IF(F(I).LT.0.)  GO TO 250
-      F(IM1) = 0.
-      IF(RM(I,J,L)-F(I).GE.0.)  GO TO 295
-C**** The two left divisions are negative: case 5
-  240 RXXM(I,J,L) = RM(I,J,L)/(2.*A(I)*(1.+A(IM1)))
-      RXM (I,J,L) = RM(I,J,L)*(.5+A(IM1)+A(I))/(A(I)*(1.+A(IM1)))
-      F(IM1) = 0.
-      F(I)   = RM(I,J,L)
-      GO TO 295
-C**** Tracer leaving to both the left and right is negative: case 7
-  250 GAMMA = 1.+(A(IM1)-A(I))
-      RXXM(I,J,L) = -RM(I,J,L)*(1.+GAMMA)/
-     /  (2.*GAMMA*(1.+A(IM1))*(1.-A(I)))
-      RXM (I,J,L) = -RM(I,J,L)*(A(IM1)+A(I))*(1.+2.*GAMMA)/
-     /  (2.*GAMMA*(1.+A(IM1))*(1.-A(I)))
-      F(IM1) = 0.
-      F(I  ) = 0.
-      GO TO 295
-C**** No air is leaving through the right edge: 2 divisions
-  260 IF(F(IM1).GT.0.)  GO TO 270
-C**** Tracer leaving to the left is non-negative: case 1 or 3
-      IF(RM(I,J,L)+F(IM1).GE.0.)  GO TO 295
-C**** Tracer remaining in the box is negative: case 3
-      IF(A(IM1).LT.-1.)  STOP ' AADVTX 260'
-      RXXM(I,J,L) = RXXM(I,J,L)-(RM(I,J,L)+F(IM1))*(1.+2.*A(IM1))/
-     /        (A(IM1)*(1.+A(IM1))*(.6d0+(1.+2.*A(IM1))**2))
-      RXM(I,J,L) = RM(I,J,L)/A(IM1) + (1.+2.*A(IM1))*RXXM(I,J,L)
-      F(IM1) = -RM(I,J,L)
-      GO TO 295
-C**** Tracer leaving to the left is negative: case 2
-  270 IF(A(IM1).LT.-1.)  STOP ' AADVTX 270'
-      RXXM(I,J,L) = RXXM(I,J,L) - F(IM1)*(1.+2.*A(IM1)) /
-     /           (A(IM1)*(1.+A(IM1))*(.6d0+(1.+2.*A(IM1))**2))
-      RXM(I,J,L) = RM(I,J,L)/(1.+A(IM1))+(1.+2.*A(IM1))*RXXM(I,J,L)
-      F(IM1) = 0.
-      GO TO 295
-C**** No air is leaving through the left edge: 1 or 2 divisions
-  280 IF(A(I).LE.0.)  GO TO 295
-C**** Air is leaving through the right edge: 2 divisions
-      IF(F(I).LT.0.)  GO TO 290
-C**** Tracer leaving to the right is non-negative: case 1 or 2
-      IF(RM(I,J,L)-F(I).GE.0.)  GO TO 295
-C**** Tracer remaining in the box is negative: case 2
-      IF(A(I).GT.1.)  STOP ' AADVTX 280'
-      RXXM(I,J,L) = RXXM(I,J,L)+(RM(I,J,L)-F(I))*(1.-2.*A(I))/
-     /        (A(I)*(1.-A(I))*(.6d0+(1.-2.*A(I))**2))
-      RXM(I,J,L) = RM(I,J,L)/A(I)-(1.-2.*A(I))*RXXM(I,J,L)
-      F(I) = RM(I,J,L)
-      GO TO 295
-C**** Tracer leaving to the right is negative: case 3
-  290 IF(A(I).GT.1.)  STOP ' AADVTX 290'
-      RXXM(I,J,L) = RXXM(I,J,L) - F(I)*(1.-2.*A(I)) /
-     *             (A(I)*(1.-A(I))*(.6d0+(1.-2.*A(I))**2))
-      RXM(I,J,L) = RM(I,J,L)/(A(I)-1.)-(1.-2.*A(I))*RXXM(I,J,L)
-      F(I) = 0.
-  295 IM1=I
-C****
-C**** Calculate FX (kg**2), FY (kg), and FZ (kg)
-C****
-  300 I=IM
-      DO 320 IP1=1,IM
-      IF(AM(I).LT.0.)  GO TO 310
-C**** Air mass flux is positive
-      FYY(I) = A(I)*RYYM(I,J,L)
-      FZZ(I) = A(I)*RZZM(I,J,L)
-      FYZ(I) = A(I)*RYZM(I,J,L)
-      FY(I)  = A(I)*(RYM(I,J,L)+(1.-A(I))*RXYM(I,J,L))
-      FZ(I)  = A(I)*(RZM(I,J,L)+(1.-A(I))*RZXM(I,J,L))
-      FXY(I) = AM(I)*(A(I)*A(I)*RXYM(I,J,L)-3.*FY(I))
-      FZX(I) = AM(I)*(A(I)*A(I)*RZXM(I,J,L)-3.*FZ(I))
-      FX(I)  = AM(I)*(A(I)*A(I)*(RXM(I,J,L)
-     *            +3.*(1.-A(I))*RXXM(I,J,L))-3.*F(I))
-      FXX(I) = AM(I)*(AM(I)*A(I)**3*RXXM(I,J,L)-5.*(AM(I)*F(I)+FX(I)))
-      GO TO 320
-C**** Air mass flux is negative
-  310 FYY(I) = A(I)*RYYM(IP1,J,L)
-      FZZ(I) = A(I)*RZZM(IP1,J,L)
-      FYZ(I) = A(I)*RYZM(IP1,J,L)
-      FY(I)  = A(I)*(RYM(IP1,J,L)-(1.+A(I))*RXYM(IP1,J,L))
-      FZ(I)  = A(I)*(RZM(IP1,J,L)-(1.+A(I))*RZXM(IP1,J,L))
-      FXY(I) = AM(I)*(A(I)*A(I)*RXYM(IP1,J,L)-3.*FY(I))
-      FZX(I) = AM(I)*(A(I)*A(I)*RZXM(IP1,J,L)-3.*FZ(I))
-      FX(I)  = AM(I)*(A(I)*A(I)*(RXM(IP1,J,L)
-     *            -3.*(1.+A(I))*RXXM(IP1,J,L))-3.*F(I))
-      FXX(I) = AM(I)*(AM(I)*A(I)**3*RXXM(IP1,J,L)-5.*(AM(I)*F(I)+FX(I)))
-  320 I=IP1
-C****
-C**** Calculate new tracer mass and moments of tracer mass
-C**** Calculate new air mass distribution
-C****
-      IM1 = IM
-      DO 410 I=1,IM
-      MNEW = M(I,J,L) + AM(IM1)-AM(I)
-      BYMNEW = 1./MNEW
-      MOT2 = -(AM(IM1)+AM(I))
-      RYYM(I,J,L) = RYYM(I,J,L) + FYY(IM1)-FYY(I)
-      RZZM(I,J,L) = RZZM(I,J,L) + FZZ(IM1)-FZZ(I)
-      RYZM(I,J,L) = RYZM(I,J,L) + FYZ(IM1)-FYZ(I)
-      RYM (I,J,L) = RYM (I,J,L) +  FY(IM1)- FY(I)
-      RZM (I,J,L) = RZM (I,J,L) +  FZ(IM1)- FZ(I)
-      RMFIM1 = RM(I,J,L)+F(IM1)      ! 7/94 These lines fix
-      RM  (I,J,L) = RMFIM1-F(I)      !  truncation error if opt2
-C     RM  (I,J,L) = RM  (I,J,L) +   F(IM1)-  F(I)
-      RXYM(I,J,L) = (RXYM(I,J,L)*M(I,J,L)-3.*(MOT2*RYM(I,J,L) +
-     +   M(I,J,L)*(FY(IM1)+FY(I)))+(FXY(IM1)-FXY(I)))*BYMNEW
-      RZXM(I,J,L) = (RZXM(I,J,L)*M(I,J,L)-3.*(MOT2*RZM(I,J,L) +
-     +   M(I,J,L)*(FZ(IM1)+FZ(I)))+(FZX(IM1)-FZX(I)))*BYMNEW
-      RXM (I,J,L) = (RXM (I,J,L)*M(I,J,L)-3.*(MOT2* RM(I,J,L) +
-     +   M(I,J,L)*( F(IM1)+ F(I)))+( FX(IM1)- FX(I)))*BYMNEW
-      RXXM(I,J,L) = (RXXM(I,J,L)*M(I,J,L)*M(I,J,L) +
-     +  2.5*RM(I,J,L)*(M(I,J,L)*M(I,J,L)-MNEW*MNEW -
-     -  3.*MOT2*MOT2)+5.*(M(I,J,L)*(M(I,J,L)*(F(IM1)-F(I)) -
-     -  FX(IM1)-FX(I)) - MNEW*MOT2*RXM(I,J,L)) + (FXX(IM1)-FXX(I)))*
-     *  (BYMNEW*BYMNEW)
-C**** Store new air mass in M array
-      M(I,J,L) = MNEW
-         IF(M(I,J,L).LT.0.)  GO TO 800
-         IF(QLIMIT .AND. RM(I,J,L).LT.0.) GO TO 810
-C**** COLLECT EAST-WEST TRACER FLUX
-      FQU(I,J)=FQU(I,J)+F(I)
-  410 IM1=I
-  420 CONTINUE
-      RETURN
-C****
-  800 WRITE (6,*) 'M<0 IN AADVTX:',I,J,L,M(I,J,L)
-  810 WRITE (6,*) 'RM IN AADVTX:',I,J,L,RM(I,J,L),RMFIM1
-      WRITE (6,*) 'A=',(I,A(I),I=1,IM)
-      STOP
-      END
-      SUBROUTINE AADVTY
-     *  (RM,RXM,RYM,RZM,RXXM,RYYM,RZZM,RXYM,RYZM,RZXM,M,DT,QLIMIT,FQV)
-C****
-C**** AADVTY advects tracers in the south to north direction using the
-C**** Quadratic Upstream Scheme.  If QLIMIT is true, the moments are
-C**** limited to prevent the mean tracer from becoming negative.
-C****
-C**** Input: DT (s) = time step
-C****     MV (kg/s) = south to north mass flux
-C****        QLIMIT = whether slope limitations should be used
-C****
-C**** Output:       RM (kg) = tracer mass
-C****      RXM,RYM,RZM (kg) = first moments of tracer mass
-C****   RXXM,RYYM,RZZM (kg) = second moments of tracer mass
-C****                M (kg) = fluid mass
-C****
-      USE E001M12_COM
-     &   , ONLY : IM,JM,LM,BYIM
-      IMPLICIT NONE
-
-      REAL*8, INTENT(IN) :: DT
-      REAL*8, INTENT(INOUT),DIMENSION(IM,JM,LM) :: RM,RXM,RYM,RZM,
-     *      RXXM,RYYM,RZZM,RXYM,RYZM,RZXM,M
-      REAL*8, DIMENSION(IM,JM,LM) :: MU,MV
-      LOGICAL*4 QLIMIT
-      COMMON /FLUXCB/ MU,MV
-      REAL*8, DIMENSION(JM) :: B,BM,F,FX,FY,FZ,FXX,FYY,FZZ,FXY,FZX,FYZ
-      COMMON /WORK04/ B,BM,F,FX,FY,FZ,FXX,FYY,FZZ,FXY,FZX,FYZ
-      REAL*8, INTENT(OUT) :: FQV(IM,JM)
-      INTEGER I,J,L
-      REAL*8 SBMS,SBMN,SFS,SFZS,SFZZS,SFN,SFZN,SFZZN,MOT2,RMFJM1
-     *     ,MNEW,BYMNEW,G13AB,GAMMA,RMCEN
-
-C**** Loop over layers and longitudes
-      DO 440 L=1,LM
-      SBMS  = 0.
-      SFS   = 0.
-      SFZS  = 0.
-      SFZZS = 0.
-      SBMN  = 0.
-      SFN   = 0.
-      SFZN  = 0.
-      SFZZN = 0.
-      DO 430 I=1,IM
-C****
-C**** Calculate tracer mass flux F (kg)
-C****
-C**** Near the South Pole
-      BM(1) = DT*MV(I,1,L)
-      IF(BM(1).LT.0.)  GO TO 110
-      B(1) = BM(1)/M(IM,1,L)
-C     IF(B(1).GT.1.)  WRITE (6,*) 'B>1:',I,1,L,B(1),M(IM,1,L)
-      F(1) = B(1)*RM(IM,1,L)
-      GO TO 120
-  110 B(1) = BM(1)/M(I,2,L)
-      IF(B(1).LT.-1.)  WRITE (6,*) 'B<-1:',I,1,L,B(1),M(1,2,L)
-      F(1) = B(1)*(RM(I,2,L)-(1.+B(1))*(RYM(I,2,L)
-     *                   -(1.+2.*B(1))*RYYM(I,2,L)))
-C**** In the interior
-  120 DO 140 J=2,JM-2
-      BM(J) = DT*MV(I,J,L)
-      IF(BM(J).LT.0.)  GO TO 130
-      B(J) = BM(J)/M(I,J,L)
-      IF(B(J).GT.1.)  WRITE (6,*) 'B>1:',I,J,L,B(J),M(I,J,L)
-      F(J) =  B(J)*(RM(I,J,L)+(1.-B(J))*(RYM(I,J,L)
-     *                    +(1.-2.*B(J))*RYYM(I,J,L)))
-      GO TO 140
-  130 B(J) = BM(J)/M(I,J+1,L)
-      IF(B(J).LT.-1.)  WRITE (6,*) 'B<-1:',I,J,L,B(J),M(I,J+1,L)
-      F(J) = B(J)*(RM(I,J+1,L)-(1.+B(J))*(RYM(I,J+1,L)
-     *                     -(1.+2.*B(J))*RYYM(I,J+1,L)))
-  140 CONTINUE
-C**** Near the North Pole
-      J=JM-1
-      BM(J) = DT*MV(I,J,L)
-      IF(BM(J).LT.0.)  GO TO 150
-      B(J) = BM(J)/M(I,J,L)
-      IF(B(J).GT.1.)  WRITE (6,*) 'B>1:',I,J,L,B(J),M(I,J,L)
-      F(J) = B(J)*(RM(I,J,L)+(1.-B(J))*(RYM(I,J,L)
-     *                   +(1.-2.*B(J))*RYYM(I,J,L)))
-      GO TO 200
-  150 B(J) = BM(J)/M(1,JM,L)
-C     IF(B(J).LT.-1.)  WRITE (6,*) 'B<-1:',I,J,L,B(J),M(1,J+1,L)
-      F(J) = B(J)*RM(1,JM,L)
-C****
-C**** Modify the tracer moments so that the tracer mass in each
-C**** division is non-negative
-C****
-  200 IF(.NOT.QLIMIT)  GO TO 300
-      DO 295 J=2,JM-1
-      IF(B(J-1).GE.0.)  GO TO 280
-C**** Air is leaving through the left edge: 2 or 3 divisions
-      IF(B(J).LE.0.)  GO TO 260
-C**** Air is leaving through the right edge: 3 divisions
-      IF(F(J-1).GT.0.)  GO TO 230
-C**** Tracer leaving to the left is non-negative: case 1, 3, 4 or 6
-      IF(F(J).LT.0.)  GO TO 210
-C**** Tracer leaving to the right is non-negative: case 1 or 4
-      RMCEN = RM(I,J,L) + (F(J-1)-F(J))
-      IF(RMCEN.GE.0.)  GO TO 295
-C**** Tracer remaining in the box is negative: case 4
-      GAMMA = 1.+(B(J-1)-B(J))
-      G13AB = GAMMA*GAMMA - 1. + 3.*(B(J-1)+B(J))**2
-      RYYM(I,J,L) = RYYM(I,J,L) - RMCEN*10.*G13AB /
-     /  (GAMMA*(12.*(B(J-1)+B(J))**2 + 5.*G13AB*G13AB))
-      RYM(I,J,L) = RYM(I,J,L) + RMCEN*12.*(B(J-1)+B(J)) /
-     /  (GAMMA*(12.*(B(J-1)+B(J))**2 + 5.*G13AB*G13AB))
-      F(J-1) = B(J-1)*(RM(I,J,L)-(1.+B(J-1))*(RYM(I,J,L)
-     *                       -(1.+2.*B(J-1))*RYYM(I,J,L)))
-      IF(F(J-1).GT.0.)  GO TO 240
-      IF(RM(I,J,L)+F(J-1).LT.0.)  GO TO 220
-      F(J) = RM(I,J,L)+F(J-1)
-      GO TO 295
-C**** Tracer leaving to the right is negative: case 3 or 6
-  210 IF(RM(I,J,L).LT.F(J)-F(J-1))  GO TO 220
-C**** Only the tracer leaving to the right is negative: case 3
-      RYYM(I,J,L) = RYYM(I,J,L) - F(J)*(1.-2.*B(J)) /
-     /             (B(J)*(1.-B(J))*(.6d0+(1.-2.*B(J))**2))
-      RYM(I,J,L) = RM(I,J,L)/(B(J)-1.)-(1.-2.*B(J))*RYYM(I,J,L)
-      F(J-1) = B(J-1)*(RM(I,J,L)-(1.+B(J-1))*(RYM(I,J,L)
-     -                       -(1.+2.*B(J-1))*RYYM(I,J,L)))
-      IF(F(J-1).GT.0.)  GO TO 250
-      F(J)  = 0.
-      IF(RM(I,J,L)+F(J-1).GE.0.)  GO TO 295
-C**** The two right divisions are negative: case 6
-  220 RYYM(I,J,L) = RM(I,J,L)/(2.*B(J-1)*(B(J)-1.))
-      RYM(I,J,L)  = RM(I,J,L)*(.5-B(J-1)-B(J))/(B(J-1)*(1.-B(J)))
-      F(J-1) = -RM(I,J,L)
-      F(J)   = 0.
-      GO TO 295
-C**** Tracer leaving to the left is negative: case 2, 5 or 7
-  230 IF(F(J).LT.0.)  GO TO 250
-C**** Tracer leaving to the right is non-negative: case 2 or 5
-      IF(RM(I,J,L).LT.F(J)-F(J-1))  GO TO 240
-C**** Only the tracer leaving to the left is negative: case 2
-      RYYM(I,J,L) = RYYM(I,J,L) - F(J-1)*(1.+2.*B(J-1)) /
-     /           (B(J-1)*(1.+B(J-1))*(.6d0+(1.+2.*B(J-1))**2))
-      RYM(I,J,L) = RM(I,J,L)/(1.+B(J-1))+(1.+2.*B(J-1))*RYYM(I,J,L)
-      F(J) = B(J)*(RM(I,J,L)+(1.-B(J))*(RYM(I,J,L)
-     +                   +(1.-2.*B(J))*RYYM(I,J,L)))
-      IF(F(J).LT.0.)  GO TO 250
-      F(J-1) = 0.
-      IF(RM(I,J,L)-F(J).GE.0.)  GO TO 295
-C**** The two left divisions are negative: case 5
-  240 RYYM(I,J,L) = RM(I,J,L)/(2.*B(J)*(1.+B(J-1)))
-      RYM(I,J,L)  = RM(I,J,L)*(.5+B(J-1)+B(J))/(B(J)*(1.+B(J-1)))
-      F(J-1) = 0.
-      F(J)   = RM(I,J,L)
-      GO TO 295
-C**** Tracer leaving to both the left and right is negative: case 7
-  250 GAMMA = 1.+(B(J-1)-B(J))
-      RYYM(I,J,L) = -RM(I,J,L)*(1.+GAMMA)/
-     /  (2.*GAMMA*(1.+B(J-1))*(1.-B(J)))
-      RYM (I,J,L) = -RM(I,J,L)*(B(J-1)+B(J))*(1.+2.*GAMMA)/
-     /  (2.*GAMMA*(1.+B(J-1))*(1.-B(J)))
-      F(J-1) = 0.
-      F(J)   = 0.
-      GO TO 295
-C**** No air is leaving through the right edge: 2 divisions
-  260 IF(F(J-1).GT.0.)  GO TO 270
-C**** Tracer leaving to the left is non-negative: case 1 or 3
-      IF(RM(I,J,L)+F(J-1).GE.0.)  GO TO 295
-C**** Tracer remaining in the box is negative: case 3
-      IF(B(J-1).LT.-1.)  STOP ' AADVTY 260'
-      RYYM(I,J,L) = RYYM(I,J,L) - (RM(I,J,L)+F(J-1)) *
-     *  (1.+2.*B(J-1))/ (B(J-1)*(1.+B(J-1))*(.6d0+(1.+2.*B(J-1))**2))
-      RYM(I,J,L) = RM(I,J,L)/B(J-1) + (1.+2.*B(J-1))*RYYM(I,J,L)
-      F(J-1) = -RM(I,J,L)
-      GO TO 295
-C**** Tracer leaving to the left is negative: case 2
-  270 CONTINUE
-      IF(B(J-1).LT.-1.)  STOP ' AADVTY 270'
-      RYYM(I,J,L) = RYYM(I,J,L) - F(J-1)*(1.+2.*B(J-1)) /
-     /  (B(J-1)*(1.+B(J-1))*(.6d0+(1.+2.*B(J-1))**2))
-      RYM(I,J,L) = RM(I,J,L)/(1.+B(J-1)) + (1.+2.*B(J-1))*RYYM(I,J,L)
-      F(J-1) = 0.
-      GO TO 295
-C**** No air is leaving through the left edge: 1 or 2 divisions
-  280 IF(B(J).LE.0.)  GO TO 295
-C**** Air is leaving through the right edge: 2 divisions
-      IF(F(J).LT.0.)  GO TO 290
-C**** Tracer leaving to the right is non-negative: case 1 or 2
-      IF(RM(I,J,L)-F(J).GE.0.)  GO TO 295
-C**** Tracer remaining in the box is negative: case 2
-      IF(B(J).GT.1.)  STOP ' AADVTY 280'
-      RYYM(I,J,L) = RYYM(I,J,L)+(RM(I,J,L)-F(J))*(1.-2.*B(J))/
-     /        (B(J)*(1.-B(J))*(.6d0+(1.-2.*B(J))**2))
-      RYM(I,J,L) = RM(I,J,L)/B(J)-(1.-2.*B(J))*RYYM(I,J,L)
-      F(J) = RM(I,J,L)
-      GO TO 295
-C**** Tracer leaving to the right is negative: case 3
-  290 IF(B(J).GT.1.)  STOP ' AADVTY 290'
-      RYYM(I,J,L) = RYYM(I,J,L) - F(J)*(1.-2.*B(J)) /
-     *             (B(J)*(1.-B(J))*(.6d0+(1.-2.*B(J))**2))
-      RYM(I,J,L) = RM(I,J,L)/(B(J)-1.)-(1.-2.*B(J))*RYYM(I,J,L)
-      F(J) = 0.
-  295 CONTINUE
-C****
-C**** Calculate F? (kg), FY? (kg**2), and FYY (kg**3)
-C****
-C**** Near the South Pole
-  300 IF(BM(1).LT.0.)  GO TO 310
-      FXX(1) = 0.
-      FZZ(1) = B(1)*RZZM(IM,1,L)
-      FZX(1) = 0.
-      FX(1)  = 0.
-      FZ(1)  = B(1)*RZM(IM,1,L)
-      FXY(1) = 0.
-      FYZ(1) = -3.*BM(1)*FZ(1)
-      FY(1)  = -3.*BM(1)*F (1)
-      FYY(1) = -5.*BM(1)*(BM(1)*F(1)+FY(1))
-      GO TO 320
-  310 FXX(1) = B(1)*RXXM(I,2,L)
-      FZZ(1) = B(1)*RZZM(I,2,L)
-      FZX(1) = B(1)*RZXM(I,2,L)
-      FX(1)  = B(1)*(RXM(I,2,L)-(1.+B(1))*RXYM(I,2,L))
-      FZ(1)  = B(1)*(RZM(I,2,L)-(1.+B(1))*RYZM(I,2,L))
-      FXY(1) = BM(1)*(B(1)*B(1)*RXYM(I,2,L)-3.*FX(1))
-      FYZ(1) = BM(1)*(B(1)*B(1)*RYZM(I,2,L)-3.*FZ(1))
-      FY(1)  = BM(1)*(B(1)*B(1)*(RYM(I,2,L)
-     *            -3.*(1.+B(1))*RYYM(I,2,L))-3.*F(1))
-      FYY(1) = BM(1)*(BM(1)*B(1)**3*RYYM(I,2,L)-5.*(BM(1)*F(1)+FY(1)))
-C**** In the interior
-  320 DO 340 J=2,JM-2
-      IF(BM(J).LT.0.)  GO TO 330
-      FXX(J) = B(J)*RXXM(I,J,L)
-      FZZ(J) = B(J)*RZZM(I,J,L)
-      FZX(J) = B(J)*RZXM(I,J,L)
-      FX(J)  = B(J)*(RXM(I,J,L)+(1.-B(J))*RXYM(I,J,L))
-      FZ(J)  = B(J)*(RZM(I,J,L)+(1.-B(J))*RYZM(I,J,L))
-      FXY(J) = BM(J)*(B(J)*B(J)*RXYM(I,J,L)-3.*FX(J))
-      FYZ(J) = BM(J)*(B(J)*B(J)*RYZM(I,J,L)-3.*FZ(J))
-      FY(J)  = BM(J)*(B(J)*B(J)*(RYM(I,J,L)
-     *            +3.*(1.-B(J))*RYYM(I,J,L))-3.*F(J))
-      FYY(J) = BM(J)*(BM(J)*B(J)**3*RYYM(I,J,L)  -5.*(BM(J)*F(J)+FY(J)))
-      GO TO 340
-  330 FXX(J) = B(J)*RXXM(I,J+1,L)
-      FZZ(J) = B(J)*RZZM(I,J+1,L)
-      FZX(J) = B(J)*RZXM(I,J+1,L)
-      FX(J)  = B(J)*(RXM(I,J+1,L)-(1.+B(J))*RXYM(I,J+1,L))
-      FZ(J)  = B(J)*(RZM(I,J+1,L)-(1.+B(J))*RYZM(I,J+1,L))
-      FXY(J) = BM(J)*(B(J)*B(J)*RXYM(I,J+1,L)-3.*FX(J))
-      FYZ(J) = BM(J)*(B(J)*B(J)*RYZM(I,J+1,L)-3.*FZ(J))
-      FY(J)  = BM(J)*(B(J)*B(J)*(RYM(I,J+1,L)
-     *            -3.*(1.+B(J))*RYYM(I,J+1,L))-3.*F(J))
-      FYY(J) = BM(J)*(BM(J)*B(J)**3*RYYM(I,J+1,L)-5.*(BM(J)*F(J)+FY(J)))
-  340 CONTINUE
-C**** Near the North Pole
-      J=JM-1
-      IF(BM(J).LT.0.) GO TO 350
-      FXX(J) = B(J)*RXXM(I,J,L)
-      FZZ(J) = B(J)*RZZM(I,J,L)
-      FZX(J) = B(J)*RZXM(I,J,L)
-      FX(J)  = B(J)*(RXM(I,J,L)+(1.-B(J))*RXYM(I,J,L))
-      FZ(J)  = B(J)*(RZM(I,J,L)+(1.-B(J))*RYZM(I,J,L))
-      FXY(J) = BM(J)*(B(J)*B(J)*RXYM(I,J,L)-3.*FX(J))
-      FYZ(J) = BM(J)*(B(J)*B(J)*RYZM(I,J,L)-3.*FZ(J))
-      FY(J)  = BM(J)*(B(J)*B(J)*(RYM(I,J,L)
-     *            +3.*(1.-B(J))*RYYM(I,J,L))-3.*F(J))
-      FYY(J) = BM(J)*(BM(J)*B(J)**3*RYYM(I,J,L)  -5.*(BM(J)*F(J)+FY(J)))
-      GO TO 360
-  350 FXX(J) = 0.
-      FZZ(J) = B(J)*RZZM(1,JM,L)
-      FZX(J) = 0.
-      FX(J)  = 0.
-      FZ(J)  = B(J)*RZM(1,JM,L)
-      FXY(J) = 0.
-      FYZ(J) = -3.*BM(J)*FZ(J)
-      FY(J)  = -3.*BM(J)*F(J)
-      FYY(J) = -5.*BM(J)*(BM(J)*F(J)+FY(J))
-C****
-  360 SBMS  = SBMS  + BM(1)
-      SFS   = SFS   + F(1)
-      SFZS  = SFZS  + FZ(1)
-      SFZZS = SFZZS + FZZ(1)
-      SBMN  = SBMN  + BM(JM-1)
-      SFN   = SFN   + F(JM-1)
-      SFZN  = SFZN  + FZ(JM-1)
-      SFZZN = SFZZN + FZZ(JM-1)
-C****
-C**** Calculate new tracer mass and moments of tracer mass
-C****
-C**** Non-polar regions
-      DO 410 J=2,JM-1
-      MNEW = M(I,J,L) + (BM(J-1)-BM(J))
-      BYMNEW = 1./MNEW
-      MOT2 = -(BM(J-1)+BM(J))
-      RXXM(I,J,L) = RXXM(I,J,L)+(FXX(J-1)-FXX(J))
-      RZZM(I,J,L) = RZZM(I,J,L)+(FZZ(J-1)-FZZ(J))
-      RZXM(I,J,L) = RZXM(I,J,L)+(FZX(J-1)-FZX(J))
-      RXM (I,J,L) = RXM (I,J,L)+ (FX(J-1)-FX(J))
-      RZM (I,J,L) = RZM (I,J,L)+ (FZ(J-1)-FZ(J))
-      RMFJM1 = RM(I,J,L)+F(J-1)      ! 7/94 These lines fix
-      RM  (I,J,L) = RMFJM1-F(J)      !  truncation error if opt2
-C     RM  (I,J,L) = RM  (I,J,L)+  (F(J-1)-F(J))
-      RXYM(I,J,L) = (RXYM(I,J,L)*M(I,J,L)-3.*(MOT2*RXM(I,J,L) +
-     +   M(I,J,L)*(FX(J-1)+FX(J)))+(FXY(J-1)-FXY(J)))*BYMNEW
-      RYZM(I,J,L) = (RYZM(I,J,L)*M(I,J,L)-3.*(MOT2*RZM(I,J,L) +
-     +   M(I,J,L)*(FZ(J-1)+FZ(J)))+(FYZ(J-1)-FYZ(J)))*BYMNEW
-      RYM (I,J,L)  = (RY M(I,J,L)*M(I,J,L)-3.*(MOT2*R M(I,J,L) +
-     +   M(I,J,L)*( F(J-1)+ F(J)))+( FY(J-1)- FY(J)))*BYMNEW
-      RYYM(I,J,L) = (RYYM(I,J,L)*M(I,J,L)*M(I,J,L) +
-     +  2.5*RM(I,J,L)*(M(I,J,L)*M(I,J,L)-MNEW*MNEW -
-     -  3.*MOT2*MOT2)+5.*(M(I,J,L)*(M(I,J,L)*(F(J-1)-F(J)) -
-     -  FY(J-1)-FY(J)) - MNEW*MOT2*RYM(I,J,L)) + (FYY(J-1)-FYY(J)))*
-     *  (BYMNEW*BYMNEW)
-      M(I,J,L) = MNEW
-         IF(M(I,J,L).LT.0.)  GO TO 800
-         IF(QLIMIT .AND. RM(I,J,L).LT.0.)  GO TO 810
-C**** COLLECT NORTH-SOUTH TRACER FLUX
-      FQV(I,J)=FQV(I,J)+F(J)
-  410 CONTINUE
-      FQV(I,1)=FQV(I,1)+F(1)
-      FQV(I,JM)=FQV(I,JM)+F(JM)
-  430 CONTINUE
-C**** At the South Pole
-      RZZM(IM,1,L) = RZZM(IM,1,L) - SFZZS*BYIM
-      RZM (IM,1,L) =  RZM(IM,1,L) - SFZS*BYIM
-      RM  (IM,1,L) =   RM(IM,1,L) - SFS*BYIM
-      M   (IM,1,L) =    M(IM,1,L) - SBMS*BYIM
-         IF(M(IM,1,L).LT.0.) GO TO 800
-         IF(QLIMIT .AND. RM(IM,1,L).LT.0.) GO TO 810
-C**** At the North Pole
-      RZZM(1,JM,L) = RZZM(1,JM,L) + SFZZN*BYIM
-      RZM (1,JM,L) =  RZM(1,JM,L) + SFZN*BYIM
-      RM  (1,JM,L) =   RM(1,JM,L) + SFN*BYIM
-      M   (1,JM,L) =    M(1,JM,L) + SBMN*BYIM
-         IF(M(1,JM,L).LT.0.) GO TO 800
-         IF(QLIMIT .AND. RM(1,JM,L).LT.0.) GO TO 810
-  440 CONTINUE
-      RETURN
-C****
-  800 WRITE (6,*) 'M<0 IN AADVTY:',I,J,L,M(I,J,L)
-  810 WRITE (6,*) 'RM IN AADVTY:',I,J,L,RM(I,J,L),RMFJM1
-      WRITE (6,*) 'B=',(J,B(J),J=1,JM-1)
-      STOP
-      END
-      SUBROUTINE AADVTZ
-     *  (RM,RXM,RYM,RZM,RXXM,RYYM,RZZM,RXYM,RYZM,RZXM,M,DT,QLIMIT)
-C****
-C**** AADVTZ advects tracers in the upward vertical direction using the
-C**** Quadratic Upstream Scheme.  If QLIMIT is true, the moments are
-C**** limited to prevent the mean tracer from becoming negative.
-C****
-C**** Input: DT (s) = time step
-C****     MW (kg/s) = vertical mass flux
-C****        QLIMIT = whether slope limitations should be used
-C****
-C**** Output:       RM (kg) = tracer mass
-C****      RXM,RYM,RZM (kg) = first moments of tracer mass
-C****   RXXM,RYYM,RZZM (kg) = second moments of tracer mass
-C****                M (kg) = air mass
-C****
-      USE E001M12_COM
-     &   , ONLY : IM,JM,LM
-      IMPLICIT NONE
-
-      REAL*8, INTENT(IN) :: DT
-      REAL*8, INTENT(INOUT),DIMENSION(IM,JM,LM) :: RM,RXM,RYM,RZM,
-     *      RXXM,RYYM,RZZM,RXYM,RYZM,RZXM,M
-      REAL*8, DIMENSION(IM,JM,LM) :: MU,MV
-      REAL*8, DIMENSION(IM,JM,LM-1) :: MW
-      LOGICAL*4 QLIMIT
-      COMMON /FLUXCB/ MU,MV,MW
-      REAL*8, DIMENSION(LM) :: FX,FY,FZ,FXX,FYY,FZZ,FXY,FZX,FYZ
-      REAL*8, DIMENSION(0:LM) :: C,CM,F
-      COMMON /WORK04/ C,CM,F,FX,FY,FZ,FXX,FYY,FZZ,FXY,FZX,FYZ
-      INTEGER I,J,L
-      REAL*8 MNEW,BYMNEW,MOT2,RMFLM1,G13AB,GAMMA,RMCEN
-
-      C(0)   = 0.
-      C(LM)  = 0.
-      CM(0)  = 0.
-      CM(LM) = 0.
-      F(0)   = 0.
-      F(LM)  = 0.
-C**** Loop over latitudes and longitudes
-      DO 430 I=IM,IM*(JM-1)+1
-C****
-C**** Calculate the tracer mass flux F (kg)
-C****
-      DO 120 L=1,LM-1
-      CM(L) = DT*MW(I,1,L)
-      IF(CM(L).LT.0.)  GO TO 110
-      C(L) = CM(L)/M(I,1,L)
-      IF(C(L).GT.1.)  WRITE (6,*) 'C>1:',I,1,L,C(L),M(I,1,L)
-      F(L) = C(L)*(RM(I,1,L)+(1.-C(L))*(RZM(I,1,L)
-     *                   +(1.-2.*C(L))*RZZM(I,1,L)))
-      GO TO 120
-  110 C(L) = CM(L)/M(I,1,L+1)
-      IF(C(L).LT.-1.)  WRITE (6,*) 'C<-1:',I,1,L,C(L),M(I,1,L+1)
-      F(L) = C(L)*(RM(I,1,L+1)-(1.+C(L))*(RZM(I,1,L+1)
-     *                     -(1.+2.*C(L))*RZZM(I,1,L+1)))
-  120 CONTINUE
-C****
-C**** Modify the tracer moments so that the tracer mass in each
-C**** division is non-negative
-C****
-      IF(.NOT.QLIMIT)  GO TO 300
-      DO 295 L=1,LM
-      IF(C(L-1).GE.0.)  GO TO 280
-C**** Air is leaving through the left edge: 2 or 3 divisions
-      IF(C(L).LE.0.)  GO TO 260
-C**** Air is leaving through the right edge: 3 divisions
-      IF(F(L-1).GT.0.)  GO TO 230
-C**** Tracer leaving to the left is non-negative: case 1, 3, 4 or 6
-      IF(F(L).LT.0.)  GO TO 210
-C**** Tracer leaving to the right is non-negative: case 1 or 4
-      RMCEN = RM(I,1,L) + (F(L-1)-F(L))
-      IF(RMCEN.GE.0.)  GO TO 295
-C**** Tracer remaining in the box is negative: case 4
-      GAMMA = 1.+(C(L-1)-C(L))
-      G13AB = GAMMA*GAMMA - 1. + 3.*(C(L-1)+C(L))**2
-      RZZM(I,1,L) = RZZM(I,1,L) - RMCEN*10.*G13AB /
-     /  (GAMMA*(12.*(C(L-1)+C(L))**2 + 5.*G13AB*G13AB))
-      RZM(I,1,L) = RZM(I,1,L) + RMCEN*12.*(C(L-1)+C(L)) /
-     /  (GAMMA*(12.*(C(L-1)+C(L))**2 + 5.*G13AB*G13AB))
-      F(L-1) = C(L-1)*(RM(I,1,L)-(1.+C(L-1))*(RZM(I,1,L)
-     -                       -(1.+2.*C(L-1))*RZZM(I,1,L)))
-      IF(F(L-1).GT.0.)  GO TO 240
-      IF(RM(I,1,L)+F(L-1).LT.0.)  GO TO 220
-      F(L)  = RM(I,1,L)+F(L-1)
-      GO TO 295
-C**** Tracer leaving to the right is negative: case 3 or 6
-  210 IF(RM(I,1,L).LT.F(L)-F(L-1))  GO TO 220
-C**** Only the tracer leaving to the right is negative: case 3
-      RZZM(I,1,L) = RZZM(I,1,L) - F(L)*(1.-2.*C(L)) /
-     /                 (C(L)*(1.-C(L))*(.6d0+(1.-2.*C(L))**2))
-      RZM(I,1,L) = RM(I,1,L)/(C(L)-1.)-(1.-2.*C(L))*RZZM(I,1,L)
-      F(L-1) = C(L-1)*(RM(I,1,L)-(1.+C(L-1))*(RZM(I,1,L)
-     -                       -(1.+2.*C(L-1))*RZZM(I,1,L)))
-      IF(F(L-1).GT.0.)  GO TO 250
-      F(L)  = 0.
-      IF(RM(I,1,L)+F(L-1).GE.0.)  GO TO 295
-C**** The two right divisions are negative: case 6
-  220 RZZM(I,1,L) = RM(I,1,L)/(2.*C(L-1)*(C(L)-1.))
-      RZM(I,1,L)  = RM(I,1,L)*(.5-C(L-1)-C(L)) / (C(L-1)*(1.-C(L)))
-      F(L-1) = -RM(I,1,L)
-      F(L)  = 0.
-      GO TO 295
-C**** Tracer leaving to the left is negative: case 2, 5 or 7
-  230 IF(F(L).LT.0.)  GO TO 250
-C**** Tracer leaving to the right is non-negative: case 2 or 5
-      IF(RM(I,1,L).LT.F(L)-F(L-1))  GO TO 240
-C**** Only the tracer leaving to the left is negative: case 2
-      RZZM(I,1,L) = RZZM(I,1,L) - F(L-1)*(1.+2.*C(L-1)) /
-     /  (C(L-1)*(1.+C(L-1))*(.6d0+(1.+2.*C(L-1))**2))
-      RZM(I,1,L) = RM(I,1,L)/(1.+C(L-1)) + (1.+2.*C(L-1))*RZZM(I,1,L)
-      F(L)  = C(L)*(RM(I,1,L)+(1.-C(L))*(RZM(I,1,L) +
-     +                     (1.-2.*C(L))*RZZM(I,1,L)))
-      IF(F(L).LT.0.)  GO TO 250
-      F(L-1) = 0.
-      IF(RM(I,1,L)-F(L).GE.0.)  GO TO 295
-C**** The two left divisions are negative: case 5
-  240 RZZM(I,1,L) = RM(I,1,L)/(2.*C(L)*(1.+C(L-1)))
-      RZM(I,1,L)  = RM(I,1,L)*(.5+C(L-1)+C(L)) / (C(L)*(1.+C(L-1)))
-      F(L-1) = 0.
-      F(L)   = RM(I,1,L)
-      GO TO 295
-C**** Tracer leaving to both the left and right is negative: case 7
-  250 GAMMA = 1.+(C(L-1)-C(L))
-      RZZM(I,1,L) = -RM(I,1,L)*(1.+GAMMA)/
-     /   (2.*GAMMA*(1.+C(L-1))*(1.-C(L)))
-      RZ M(I,1,L) = -RM(I,1,L)*(C(L-1)+C(L))*(1.+2.*GAMMA)/
-     /   (2.*GAMMA*(1.+C(L-1))*(1.-C(L)))
-      F(L-1) = 0.
-      F(L)   = 0.
-      GO TO 295
-C**** No air is leaving through the right edge: 2 divisions
-  260 IF(F(L-1).GT.0.)  GO TO 270
-C**** Tracer leaving to the left is non-negative: case 1 or 3
-      IF(RM(I,1,L)+F(L-1).GE.0.)  GO TO 295
-C**** Tracer remaining in the box is negative: case 3
-      IF(C(L-1).LT.-1.)  STOP ' AADVTZ 260'
-      RZZM(I,1,L) = RZZM(I,1,L) -(RM(I,1,L)+F(L-1))*
-     *  (1.+2.*C(L-1)) / (C(L-1)*(1.+C(L-1))*(.6d0+(1.+2.*C(L-1))**2))
-      RZM(I,1,L) = RM(I,1,L)/C(L-1) + (1.+2.*C(L-1))*RZZM(I,1,L)
-      F(L-1) = -RM(I,1,L)
-      GO TO 295
-C**** Tracer leaving to the left is negative: case 2
-  270 IF(C(L-1).LT.-1.)  STOP ' AADVTZ 270'
-      RZZM(I,1,L) = RZZM(I,1,L) - F(L-1)*(1.+2.*C(L-1)) /
-     /             (C(L-1)*(1.+C(L-1))*(.6d0+(1.+2.*C(L-1))**2))
-      RZM(I,1,L) = RM(I,1,L)/(1.+C(L-1)) + (1.+2.*C(L-1))*RZZM(I,1,L)
-      F(L-1) = 0.
-      GO TO 295
-C**** No air is leaving through the left edge: 1 or 2 divisions
-  280 IF(C(L).LE.0.)  GO TO 295
-C**** Air is leaving through the right edge: 2 divisions
-      IF(F(L).LT.0.)  GO TO 290
-C**** Tracer leaving to the right is non-negative: case 1 or 2
-      IF(RM(I,1,L)-F(L).GE.0.)  GO TO 295
-C**** Tracer remaining in the box is negative: case 2
-      IF(C(L).GT.1.)  STOP ' AADVTZ 280'
-      RZZM(I,1,L) = RZZM(I,1,L)+(RM(I,1,L)-F(L))*(1.-2.*C(L))/
-     /        (C(L)*(1.-C(L))*(.6d0+(1.-2.*C(L))**2))
-      RZM(I,1,L) = RM(I,1,L)/C(L)-(1.-2.*C(L))*RZZM(I,1,L)
-      F(L) = RM(I,1,L)
-      GO TO 295
-C**** Tracer leaving to the right is negative: case 3
-  290 IF(C(L).GT.1.)  STOP ' AADVTZ 290'
-      RZZM(I,1,L) = RZZM(I,1,L) - F(L)*(1.-2.*C(L)) /
-     /             (C(L)*(1.-C(L))*(.6d0+(1.-2.*C(L))**2))
-      RZM(I,1,L) = RM(I,1,L)/(C(L)-1.)-(1.-2.*C(L))*RZZM(I,1,L)
-      F(L) = 0.
-  295 CONTINUE
-C****
-C**** Calculate F? (kg), FZ? (kg**2), and FZZ (kg**3)
-C****
-  300 DO 320 L=1,LM-1
-      IF(CM(L).LT.0.)  GO TO 310
-C**** Air mass flux is positive
-      FYY(L) = C(L)*RYYM(I,1,L)
-      FXX(L) = C(L)*RXXM(I,1,L)
-      FXY(L) = C(L)*RXYM(I,1,L)
-      FY (L) = C(L)*(RYM(I,1,L)+(1.-C(L))*RYZM(I,1,L))
-      FX (L) = C(L)*(RXM(I,1,L)+(1.-C(L))*RZXM(I,1,L))
-      FYZ(L) = CM(L)*(C(L)*C(L)*RYZM(I,1,L)-3.*FY(L))
-      FZX(L) = CM(L)*(C(L)*C(L)*RZXM(I,1,L)-3.*FX(L))
-      FZ (L) = CM(L)*(C(L)*C(L)*(RZM(I,1,L)
-     *            +3.*(1.-C(L))*RZZM(I,1,L))-3.*F(L))
-      FZZ(L) = CM(L)*(CM(L)*C(L)**3*RZZM(I,1,L)-5.*(CM(L)*F(L)+FZ(L)))
-      GO TO 320
-C**** Air mass flux is negative
-  310 FYY(L) = C(L)*RYYM(I,1,L+1)
-      FXX(L) = C(L)*RXXM(I,1,L+1)
-      FXY(L) = C(L)*RXYM(I,1,L+1)
-      FY (L) = C(L)*(RYM(I,1,L+1)-(1.+C(L))*RYZM(I,1,L+1))
-      FX (L) = C(L)*(RXM(I,1,L+1)-(1.+C(L))*RZXM(I,1,L+1))
-      FYZ(L) = CM(L)*(C(L)*C(L)*RYZM(I,1,L+1)-3.*FY(L))
-      FZX(L) = CM(L)*(C(L)*C(L)*RZXM(I,1,L+1)-3.*FX(L))
-      FZ (L) = CM(L)*(C(L)*C(L)*(RZM(I,1,L+1)
-     *            -3.*(1.+C(L))*RZZM(I,1,L+1))-3.*F(L))
-      FZZ(L) = CM(L)*(CM(L)*C(L)**3*RZZM(I,1,L+1)-5.*(CM(L)*F(L)+FZ(L)))
-  320 CONTINUE
-C****
-C**** Calculate new tracer mass and moments of tracer mass
-C**** Calculate new air mass distribution
-C****
-C**** Calculation in the first layer
-      L=1
-      MNEW = M(I,1,L)-CM(L)
-      BYMNEW = 1./MNEW
-      MOT2 = -CM(L)
-      RXXM(I,1,L) = RXXM(I,1,L)-FXX(L)
-      RYYM(I,1,L) = RYYM(I,1,L)-FYY(L)
-      RXYM(I,1,L) = RXYM(I,1,L)-FXY(L)
-      RXM (I,1,L) = RXM (I,1,L)-FX(L)
-      RYM (I,1,L) = RYM (I,1,L)-FY(L)
-      RM  (I,1,L) = RM  (I,1,L)-F(L)
-      RZXM(I,1,L) = (RZXM(I,1,L)*M(I,1,L)-3.*(MOT2*RXM(I,1,L) +
-     +   M(I,1,L)*FX(L))-FZX(L))*BYMNEW
-      RYZM(I,1,L) = (RYZM(I,1,L)*M(I,1,L)-3.*(MOT2*RYM(I,1,L) +
-     +   M(I,1,L)*FY(L))-FYZ(L))*BYMNEW
-      RZM (I,1,L) = (RZM (I,1,L)*M(I,1,L)-3.*(MOT2*RM(I,1,L) +
-     +   M(I,1,L)* F(L))- FZ(L))*BYMNEW
-      RZZM(I,1,L) = (RZZM(I,1,L)*M(I,1,L)*M(I,1,L) +
-     +  2.5*RM(I,1,L)*(M(I,1,L)*M(I,1,L)-MNEW*MNEW-3.*MOT2*MOT2) -
-     -  5.*(M(I,1,L)*(M(I,1,L)*F(L) + FZ(L)) + MNEW*MOT2*RZM(I,1,L)) -
-     -  FZZ(L)) * (BYMNEW*BYMNEW)
-      M(I,1,L) = MNEW
-         IF(M(I,1,L).LE.0.) GO TO 800
-         IF(QLIMIT .AND. RM(I,1,L).LT.0.) GO TO 810
-C**** Calculation in the interior layers
-      DO 410 L=2,LM-1
-      MNEW = M(I,1,L)+(CM(L-1)-CM(L))
-      BYMNEW = 1./MNEW
-      MOT2 = -(CM(L-1)+CM(L))
-      RXXM(I,1,L) = RXXM(I,1,L)+(FXX(L-1)-FXX(L))
-      RYYM(I,1,L) = RYYM(I,1,L)+(FYY(L-1)-FYY(L))
-      RXYM(I,1,L) = RXYM(I,1,L)+(FXY(L-1)-FXY(L))
-      RXM (I,1,L) = RXM (I,1,L)+ (FX(L-1)-FX(L))
-      RYM (I,1,L) = RYM (I,1,L)+ (FY(L-1)-FY(L))
-      RMFLM1 = RM(I,1,L)+F(L-1)      ! 7/94 These lines fix
-      RM  (I,1,L) = RMFLM1-F(L)      !  truncation error if opt2
-C     RM  (I,1,L) = RM  (I,1,L)+  (F(L-1)-F(L))
-      RZXM(I,1,L) = (RZXM(I,1,L)*M(I,1,L)-3.*(MOT2*RXM(I,1,L) +
-     +   M(I,1,L)*(FX(L-1)+FX(L)))+(FZX(L-1)-FZX(L)))*BYMNEW
-      RYZM(I,1,L) = (RYZM(I,1,L)*M(I,1,L)-3.*(MOT2*RYM(I,1,L) +
-     +   M(I,1,L)*(FY(L-1)+FY(L)))+(FYZ(L-1)-FYZ(L)))*BYMNEW
-      RZM (I,1,L) = (RZM (I,1,L)*M(I,1,L)-3.*(MOT2*RM (I,1,L) +
-     +   M(I,1,L)*( F(L-1)+ F(L)))+( FZ(L-1)- FZ(L)))*BYMNEW
-      RZZM(I,1,L) = (RZZM(I,1,L)*M(I,1,L)*M(I,1,L) +
-     +  2.5*RM(I,1,L)*(M(I,1,L)*M(I,1,L)-MNEW*MNEW-3.*MOT2*MOT2) +
-     +  5.*(M(I,1,L)*(M(I,1,L)*(F(L-1)-F(L)) - FZ(L-1)-FZ(L)) -
-     -  MNEW*MOT2*RZM(I,1,L)) + (FZZ(L-1)-FZZ(L))) * (BYMNEW*BYMNEW)
-      M(I,1,L) = MNEW
-         IF(M(I,1,L).LE.0.)  GO TO 800
-         IF(QLIMIT .AND. RM(I,1,L).LT.0.)  GO TO 810
-  410 CONTINUE
-C**** Calculation in the top layer
-      L=LM
-      MNEW = M(I,1,L)+CM(L-1)
-      BYMNEW = 1./MNEW
-      MOT2 = -CM(L-1)
-      RXXM(I,1,L) = RXXM(I,1,L)+FXX(L-1)
-      RYYM(I,1,L) = RYYM(I,1,L)+FYY(L-1)
-      RXYM(I,1,L) = RXYM(I,1,L)+FXY(L-1)
-      RXM (I,1,L) = RXM (I,1,L)+FX(L-1)
-      RYM (I,1,L) = RYM (I,1,L)+FY(L-1)
-      RM  (I,1,L) = RM  (I,1,L)+F (L-1)
-      RZXM(I,1,L) = (RZXM(I,1,L)*M(I,1,L)-3.*(MOT2*RXM(I,1,L)
-     *  + M(I,1,L)*FX(L-1))+FZX(L-1))*BYMNEW
-      RYZM(I,1,L) = (RYZM(I,1,L)*M(I,1,L)-3.*(MOT2*RYM(I,1,L)
-     *  + M(I,1,L)*FY(L-1))+FYZ(L-1))*BYMNEW
-      RZM (I,1,L) = (RZM (I,1,L)*M(I,1,L)-3.*(MOT2*R M(I,1,L)
-     *  + M(I,1,L)* F(L-1))+ FZ(L-1))*BYMNEW
-      RZZM(I,1,L) = (RZZM(I,1,L)*M(I,1,L)*M(I,1,L)
-     *  + 2.5*RM(I,1,L)*(M(I,1,L)*M(I,1,L)-MNEW*MNEW
-     *  - 3.*MOT2*MOT2)+5.*(M(I,1,L)*(M(I,1,L)*F(L-1)
-     *  - FZ(L-1)) - MNEW*MOT2*RZM(I,1,L))+FZZ(L-1))*(BYMNEW*BYMNEW)
-      M(I,1,L) = MNEW
-         IF(M(I,1,L).LE.0.) GO TO 800
-         IF(QLIMIT .AND. RM(I,1,L).LT.0.) GO TO 810
-  430 CONTINUE
-      RETURN
-C****
-  800 WRITE (6,*) 'M<0 IN AADVTZ:',I,1,L,M(I,1,L),QLIMIT
-  810 WRITE (6,*) 'RM IN AADVTZ:',I,1,L,RM(I,1,L),RMFLM1
-      WRITE( 6,*) 'C=',(L,C(L),L=0,LM)
-      STOP
-      END
+      subroutine aadvtz(rm,rmom,mass,mw,qlimit)
+!@sum  AADVTZ advection driver for z-direction
+!@auth Maxwell Kelley
+c****
+c**** aadvtz advects tracers in the upward vertical direction using the
+c**** quadratic upstream scheme.  if qlimit is true, the moments are
+c**** limited to prevent the mean tracer from becoming negative.
+c****
+c**** input:
+c****     mw (kg) = vertical mass flux, positive upward
+c****      qlimit = whether moment limitations should be used
+c****
+c**** input/output:
+c****     rm (kg) = tracer mass
+c****   rmom (kg) = moments of tracer mass
+c****   mass (kg) = fluid mass
+c****
+      use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
+      use QUSDEF
+      implicit none
+      double precision, dimension(im,jm,lm) :: rm,mass,mw
+      double precision, dimension(NMOM,IM,JM,LM) :: rmom
+      logical ::  qlimit
+      integer :: i,j,l
+c**** loop over latitudes and longitudes
+      do j=1,jm
+      do i=1,im
+      cm(:) = mw(i,j,:)
+      cm(lm)= 0.
+c****
+c**** call 1-d advection routine
+c****
+      call adv1d(rm(i,j,1),rmom(1,i,j,1),f_l,fmom_l,mass(i,j,1),
+     &        cm,lm,qlimit,zstride,zdir)
+      enddo ! i
+      enddo ! j
+      return
+c****
+      end subroutine aadvtz

@@ -18,18 +18,20 @@ C**** must be compiled after the model
       USE SEAICE_COM, only : rsi,msi
       USE LAKES_COM, only : t50
       IMPLICIT NONE
-      CHARACTER infile*60
-      INTEGER IARGC,iu_AIC,I,J,L,ioerr
+      CHARACTER infile*60, outfile*60
+      INTEGER IARGC,iu_AIC,I,J,L,N,ioerr
       REAL*8 TAUX   ! ? temporary for compatibility only
       INTEGER ItimeX
 
-      IF (IARGC().eq.0) THEN
+      IF (IARGC().lt.2) THEN
         PRINT*,"Convert rsf files from old format to new"
-        PRINT*,"conv_rsf filename"
+        PRINT*,"conv_rsf filename output_file"
         STOP
       END IF
 
       CALL GETARG(1,infile)
+      CALL GETARG(2,outfile)
+
       iu_AIC=9
       OPEN(iu_AIC,FILE=trim(infile),FORM="UNFORMATTED",STATUS="OLD")
 
@@ -45,30 +47,23 @@ C**** must be compiled after the model
      C     (((SVLHX(L,I,J),I=1,IM),J=1,JM),L=1,LM),
      D     (((RHSAV(L,I,J),I=1,IM),J=1,JM),L=1,LM),WM,
      E     (((CLDSAV(L,I,J),I=1,IM),J=1,JM),L=1,LM),
-     4     TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
-     5     QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
+     4     ((((TMOM(N,I,J,L),I=1,IM),J=1,JM),L=1,LM),N=1,9),
+     4     ((((QMOM(N,I,J,L),I=1,IM),J=1,JM),L=1,LM),N=1,9),
      6     (((RQT(L,I,J),I=1,IM),J=1,JM),L=1,LM_REQ),T50
       CLOSE (iu_AIC)
 
       ItimeX=NINT(TAUX)
       print*,ItimeX
 
-      OPEN(iu_AIC,FILE=trim(infile)//".modelE",
+      OPEN(iu_AIC,FILE=trim(outfile),
      *     FORM="UNFORMATTED",STATUS="UNKNOWN")
 
       call io_rsf(iu_AIC,ItimeX,iowrite_mon,ioerr)
       close (iu_AIC)
       print*,ioerr
-      print*,"New rsf file written out to ",trim(infile)//".modelE"
+      print*,"New rsf file written out to ",trim(outfile)
       stop
  800  print*,"Error reading in file"
  810  print*,"Error reading in file"
       stop
       end 
-
-
-
-
-
-
-

@@ -10,7 +10,7 @@
      *     ,gdata,modd5k,psfmpt,bydsig,byim
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega,
      *     bbyg,gbyrb,bykapa,bykapap1,bykapap2
-      USE SOMTQ_COM
+      USE SOMTQ_COM, only : tmom,qmom
       USE PBLCOM, only : tsavg
 
       USE GEOM
@@ -47,6 +47,12 @@ C**** module should own dynam variables used by other routines
 c      REAL*8, SAVE,DIMENSION(IM,JM)    :: DPDX,DPDY
 
 
+      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: PU,PV,CONV
+      DOUBLE PRECISION, DIMENSION(IM,JM,LM-1) :: SD
+      DOUBLE PRECISION, DIMENSION(IM,JM) :: PIT
+      EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
+      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
+
       CONTAINS
 
       SUBROUTINE AFLUX (U,V,PA)
@@ -57,13 +63,11 @@ C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 C****
       IMPLICIT NONE
       REAL*8 U(IM,JM,LM),V(IM,JM,LM),P(IM,JM) ! p is just workspace
-      REAL*8 PIT,SD,PU,PV,PHI,SPA
-      COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
+      REAL*8 PHI,SPA
       COMMON/WORK3/PHI(IM,JM,LM),SPA(IM,JM,LM)
       REAL*8 FD,FLUXQ,DUMMYS,DUMMYN
       COMMON/WORK4/FD(IM,JM),FLUXQ(IM),DUMMYS(IM),DUMMYN(IM)
-      REAL*8 CONV(IM,JM,LM),PA(IM,JM)
-      EQUIVALENCE (CONV,PIT)
+      REAL*8 PA(IM,JM)
       INTEGER I,J,L,IP1,IM1
       REAL*8 PUS,PUN,PVS,PVN,PBS,PBN,SDNP,SDSP
 C****
@@ -195,9 +199,8 @@ C**** DETERMINED BY DT1 AND THE CURRENT AIR MASS FLUXES.
 C****
       IMPLICIT NONE
       REAL*8 P(IM,JM)
-      REAL*8 PIT,SD,FD
-      COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1)
-      COMMON/WORK4/FD(IM,JM)
+      REAL*8 FD
+       COMMON/WORK4/FD(IM,JM)
       REAL*8 PA(IM,JM)
       INTEGER I,J,L,K,IMAX  !@var I,J,L,K  loop variables
       REAL*8 DT1
@@ -234,8 +237,7 @@ C**** AS DETERMINED BY DT1 AND THE CURRENT AIR MASS FLUXES
 C****
       IMPLICIT NONE
       REAL*8 U(IM,JM,LM),V(IM,JM,LM),P(IM,JM)
-      REAL*8 PIT,SD,PU,PV,PHI,SPA
-      COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
+      REAL*8 PHI,SPA
       COMMON/WORK3/PHI(IM,JM,LM),SPA(IM,JM,LM)
       REAL*8 FD,DUT,DVT
       COMMON/WORK4/FD(IM,JM)
@@ -420,11 +422,6 @@ C****
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LM) :: U,V,T
       REAL*8, DIMENSION(IM,JM) :: P
-
-      REAL*8, DIMENSION(IM,JM,LM) :: PU,PV
-      REAL*8, DIMENSION(IM,JM,LM-1) :: SD
-      REAL*8, DIMENSION(IM,JM) :: PIT
-      COMMON/WORK1/PIT,SD,PU,PV
 
       REAL*8, DIMENSION(IM,JM,LM) :: PHI,SPA
       COMMON/WORK3/PHI,SPA
@@ -688,26 +685,10 @@ C**** Scale mixing ratios (incl moments) to conserve mass/heat
       DO L=1,LS1-1
         DO J=2,JM-1
           DO I=1,IM
-              Q(I,J,L)=  Q(I,J,L)*PRAT(I,J)
-             QX(I,J,L)= QX(I,J,L)*PRAT(I,J)
-             QY(I,J,L)= QY(I,J,L)*PRAT(I,J)
-             QZ(I,J,L)= QZ(I,J,L)*PRAT(I,J)
-            QXX(I,J,L)=QXX(I,J,L)*PRAT(I,J)
-            QXY(I,J,L)=QXY(I,J,L)*PRAT(I,J)
-            QYY(I,J,L)=QYY(I,J,L)*PRAT(I,J)
-            QYZ(I,J,L)=QYZ(I,J,L)*PRAT(I,J)
-            QZZ(I,J,L)=QZZ(I,J,L)*PRAT(I,J)
-            QZX(I,J,L)=QZX(I,J,L)*PRAT(I,J)
-              T(I,J,L)=  T(I,J,L)*PRAT(I,J)
-             TX(I,J,L)= TX(I,J,L)*PRAT(I,J)
-             TY(I,J,L)= TY(I,J,L)*PRAT(I,J)
-             TZ(I,J,L)= TZ(I,J,L)*PRAT(I,J)
-            TXX(I,J,L)=TXX(I,J,L)*PRAT(I,J)
-            TXY(I,J,L)=TXY(I,J,L)*PRAT(I,J)
-            TYY(I,J,L)=TYY(I,J,L)*PRAT(I,J)
-            TYZ(I,J,L)=TYZ(I,J,L)*PRAT(I,J)
-            TZZ(I,J,L)=TZZ(I,J,L)*PRAT(I,J)
-            TZX(I,J,L)=TZX(I,J,L)*PRAT(I,J)
+             Q(I,J,L)=  Q(I,J,L)*PRAT(I,J)
+             QMOM(:,I,J,L)=QMOM(:,I,J,L)*PRAT(I,J)
+             T(I,J,L)=  T(I,J,L)*PRAT(I,J)
+             TMOM(:,I,J,L)=TMOM(:,I,J,L)*PRAT(I,J)
              WM(I,J,L)= WM(I,J,L)*PRAT(I,J)
           END DO
         END DO
@@ -948,6 +929,26 @@ c               BYAM(L,I,J) = 1./AM(L,I,J)
       RETURN
       END SUBROUTINE CALC_AMPK
 
+
+      SUBROUTINE CALC_AMP(p,amp)
+C**** Compute AMP: kg air * grav/100, including constant pressure strat
+      implicit none
+      double precision, dimension(im,jm) :: p
+      double precision, dimension(im,jm,lm) :: amp
+      integer :: j,l
+      do l=1,ls1-1
+      do j=1,jm
+        amp(:,j,l) = p(:,j)*dxyp(j)*dsig(l)
+      enddo
+      enddo
+      do l=ls1,lm
+      do j=1,jm
+        amp(:,j,l) = (psf-ptop)*dxyp(j)*dsig(l)
+      enddo
+      enddo
+      return
+      end subroutine calc_amp
+
       END MODULE DYNAMICS
 
       SUBROUTINE DYNAM
@@ -958,23 +959,23 @@ C****
       USE E001M12_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
      *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1
       USE GEOM, only : dyp,dxv,dxyp
-      USE SOMTQ_COM
+      USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : ptold,advecm,advecv,aflux,pgf,fltruv
+     &     ,pu,pv,pit,sd,calc_amp
 
       USE DAGCOM, only : aij,ij_fpeu,ij_fpev,ij_fqu,ij_fqv,ij_fmv,ij_fmu
      *     ,ij_fgzu,ij_fgzv
 
       IMPLICIT NONE
-      REAL*8 UT,VT,TT,TZT,WMT,PRAT
+      REAL*8 PRAT
+      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: UT,VT,TT,TZ,TZT,WMT,MA
+      COMMON/WORK6/UT,VT,TT,TZ,TZT,WMT,MA,PRAT(IM,JM)
       REAL*8 UX,VX
-      COMMON/WORK6/UT(IM,JM,LM),VT(IM,JM,LM),
-     *   TT(IM,JM,LM),TZT(IM,JM,LM),WMT(IM,JM,LM),PRAT(IM,JM)
       COMMON/WORK2/UX(IM,JM,LM),VX(IM,JM,LM)
       REAL*8 PA(IM,JM),PB(IM,JM),PC(IM,JM),FPEU(IM,JM),FPEV(IM,JM),
      *          FWVU(IM,JM),FWVV(IM,JM)
 
-      REAL*8 PIT,SD,PU,PV,PHI
-      COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
+      REAL*8 PHI
       COMMON/WORK3/PHI(IM,JM,LM)
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: DUT,DVT
       COMMON/WORK5/DUT,DVT
@@ -1002,6 +1003,8 @@ C****
             ENDDO
          ENDDO
       ENDDO
+C*** copy z-moment of temperature into contiguous memory
+      tz(:,:,:) = tmom(mz,:,:,:)
       DO 311 J=1,JM
       DO 311 I=1,IM
       PA(I,J)=P(I,J)
@@ -1062,10 +1065,12 @@ C     DO 352 L=1,LM
       DO 352 L=1,LM
       TT(I,J,L)=T(I,J,L)
   352 TZT(I,J,L)=TZ(I,J,L)
-      CALL AADVT (PC,P,T,TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
-     *            DXYP,DSIG,PSFMPT,LS1,DTLF,.FALSE.,FPEU,FPEV)
-      CALL AADVT (PC,P,Q,QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
-     *            DXYP,DSIG,PSFMPT,LS1,DTLF,.TRUE.,FWVU,FWVV)
+      call calc_amp(pc,ma)
+      CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
+C*** copy z-moment of temperature into contiguous memory
+      tz(:,:,:) = tmom(mz,:,:,:)
+      call calc_amp(pc,ma)
+      CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE. ,FWVU,FWVV)
       DO 354 J=1,JM
       DO 354 I=1,IM
       PC(I,J)=0.5*(P(I,J)+PC(I,J))

@@ -3,12 +3,12 @@ E001A.R GISS Model E                                 gas 06/00
 E001A: new modelE (Qflux version)
 
 Object modules: (in order of decreasing priority)
-E001M12_COM SOMTQ_COM GEOM_B        ! model modules
+E001M12_COM SOMTQ_COM QUSDEF GEOM_B ! model modules
 GHYCOM const DAGCOM RADNCB          ! more model modules
 PBLCOM LAKES_COM                    ! more model modules
 ME001M12 QUSEM12 DYNE001            ! daily dyn,Filt adv/avrx (2d ord mom.)
 CLD01 CLD01_DRV_E001 CLD01_COM_E001 ! clouds modules
-SUBSIDEM12 PE001M12                 ! phys(no surfce)
+PE001M12                            ! phys(no surfce)
 SE001M12 EE001M12   PBLE001  SLE001 ! surfce and its subr
 PBLDRV                              ! surfce and its subr
 OCNE001 SEAICE LAKES LANDICE        ! ocean, lake and sea ice modules

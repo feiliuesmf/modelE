@@ -2,10 +2,11 @@
 !@sum  CLD01 column physics of moist conv. and large-scale condensation
 !@auth M.S.Yao/T. Del Genio (modifications by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
-!@cont MSTCNV,LSCOND,CTMIX
+!@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
      *     ,by3,tf,bytf,rvap,bygrav
       USE E001M12_COM, only : IM,LM,Itime,DTsrc
+      USE QUSDEF, only : nmom,xymoms,zmoms,zdir
       USE RANDOM
       IMPLICIT NONE
       SAVE
@@ -50,14 +51,8 @@ C**** input variables
       REAL*8, DIMENSION(LM) :: AJ11,AJ55,TAUSSL,CLDSSL
 
 !@var SM,QM Vertical profiles of T/Q
-      REAL*8, DIMENSION(LM) ::
-     * SM,SXM,SYM,SZM,SXXM,SXYM,SYYM,SYZM,SZZM,SZXM,
-     * QM,QXM,QYM,QZM,QXXM,QXYM,QYYM,QYZM,QZZM,QZXM
-      COMMON/CLDPRF/
-     * SM,SXM,SYM,SZM,SXXM,SXYM,SYYM,SYZM,SZZM,SZXM,
-     * QM,QXM,QYM,QZM,QXXM,QXYM,QYYM,QYZM,QZZM,QZXM
-      REAL*8 QMALL(10*LM),SMALL(10*LM)
-      EQUIVALENCE (QMALL,QM),(SMALL,SM)
+      DOUBLE PRECISION, DIMENSION(LM) :: SM,QM
+      DOUBLE PRECISION, DIMENSION(NMOM,LM) :: SMOM,QMOM
 
 !@var KMAX number of surrounding velocity points
       INTEGER ::  KMAX
@@ -73,7 +68,6 @@ C**** output variables
       INTEGER :: LMCMAX,LMCMIN
 
       REAL*8 :: QSAT, DQSATDT
-      PRIVATE CTMIX
 
       CONTAINS
 
@@ -89,49 +83,33 @@ C**** output variables
       REAL*8, DIMENSION(IM) :: UMP,VMP,UMDN,VMDN,UMPO,VMPO  !@var
 !@var DQM,DSM,DQMR,DSMR Vertical profiles of T/Q and changes
       REAL*8, DIMENSION(LM) ::
-     * SMOLD,SXMOLD,SYMOLD,SZMOLD,SXXMOLD,SXYMOLD,SYYMOLD,SYZMOLD,
-     *       SZZMOLD,SZXMOLD,
-     * QMOLD,QXMOLD,QYMOLD,QZMOLD,QXXMOLD,QXYMOLD,QYYMOLD,QYZMOLD,
-     *       QZZMOLD,QZXMOLD,
-     * DQM,DQXM,DQYM,DQZM,DQXXM,DQXYM,DQYYM,DQYZM,DQZZM,DQZXM,
-     * DSM,DSXM,DSYM,DSZM,DSXXM,DSXYM,DSYYM,DSYZM,DSZZM,DSZXM,
-     * DQMR,DQXMR,DQYMR,DQZMR,DQXXMR,DQXYMR,DQYYMR,DQYZMR,DQZZMR,DQZXMR,
-     * DSMR,DSXMR,DSYMR,DSZMR,DSXXMR,DSXYMR,DSYYMR,DSYZMR,DSZZMR,DSZXMR
-
-      COMMON/WORK3/
-     * SMOLD,SXMOLD,SYMOLD,SZMOLD,SXXMOLD,SXYMOLD,SYYMOLD,SYZMOLD,
-     *     SZZMOLD,SZXMOLD,
-     * QMOLD,QXMOLD,QYMOLD,QZMOLD,QXXMOLD,QXYMOLD,QYYMOLD,QYZMOLD,
-     *     QZZMOLD,QZXMOLD,
-     * DQM,DQXM,DQYM,DQZM,DQXXM,DQXYM,DQYYM,DQYZM,DQZZM,DQZXM,
-     * DSM,DSXM,DSYM,DSZM,DSXXM,DSXYM,DSYYM,DSYZM,DSZZM,DSZXM,
-     * DQMR,DQXMR,DQYMR,DQZMR,DQXXMR,DQXYMR,DQYYMR,DQYZMR,DQZZMR,DQZXMR,
-     * DSMR,DSXMR,DSYMR,DSZMR,DSXXMR,DSXYMR,DSYYMR,DSYZMR,DSZZMR,DSZXMR
-      REAL*8 QMOLDALL(10*LM),SMOLDALL(10*LM),DMALL(40*LM)
-      EQUIVALENCE (QMOLDALL,QMOLD),(SMOLDALL,SMOLD),(DMALL,DQM)
+     * SMOLD,QMOLD, DQM,DSM,DQMR,DSMR
+      DOUBLE PRECISION, DIMENSION(LM) :: F,CMNEG
+      DOUBLE PRECISION, DIMENSION(NMOM,LM) :: FMOM
+      DOUBLE PRECISION, DIMENSION(NMOM,LM) :: SMOMOLD,QMOMOLD
+      DOUBLE PRECISION, DIMENSION(NMOM,LM) :: DSMOM,DQMOM,DSMOMR,DQMOMR
+      DOUBLE PRECISION, DIMENSION(NMOM) ::
+     &     SMOMP,QMOMP, SMOMPMAX,QMOMPMAX, SMOMDN,QMOMDN
 
       REAL*8, DIMENSION(LM) ::
      *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,SVTP
 
       INTEGER LDRAFT,LEVAP,LMAX,LMIN,MCCONT,MAXLVL
-     *     ,MINLVL,ITER,IC,LFRZ
+     *     ,MINLVL,ITER,IC,LFRZ,NSUB
       REAL*8 TERM1,FMP0,SMO1
      *     ,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE,WMDN,WMUP,SVDN
      *     ,SVUP,WMEDG,SVEDG,DMSE,FPLUME,DFP,FMP2,FRAT1,FRAT2,SMN1
      *     ,QMN1,SMN2,QMN2,SMP,QMP,TP,GAMA,DQSUM,TNX
-     *     ,DQ,DMSE1,FTYPE,SXMP,SYMP,SXXMP,SXYMP,SYYMP,QXMP,QYMP
-     *     ,QXXMP,QXYMP,QYYMP,CDHDRT,DDRAFT,DELTA
+     *     ,DQ,DMSE1,FTYPE
+     *     ,CDHDRT,DDRAFT,DELTA
      *     ,ALPHA,BETA,CDHM,CDHSUM,CLDM,CLDREF,CONSUM,DQEVP
      *     ,DQRAT,EPLUME,ETADN,ETAL1,EVPSUM,FCDH
      *     ,FCDH1,FCLD,FCLOUD,FDDL,FDDP,FENTR,FENTRA,FEVAP,FLEFT
      *     ,FQCOND,FSEVP,FSSUM,HEAT1
      *     ,PRHEAT,PRCP
-     *     ,QMDN,QMIX,QMPMAX,QMPT,QNX,QSATC,QSATMP,QXMDN
-     *     ,QXMPMAX,QXXMDN,QXXMPMAX,QXYMDN
-     *     ,QXYMPMAX,QYMDN,QYMPMAX,QYYMDN
-     *     ,QYYMPMAX,RCLD,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ
-     *     ,SUMDP,SXMDN,SXMPMAX,SXXMDN,SXXMPMAX,SXYMDN
-     *     ,SXYMPMAX,SYMDN,SYMPMAX,SYYMDN,SYYMPMAX
+     *     ,QMDN,QMIX,QMPMAX,QMPT,QNX,QSATC,QSATMP
+     *     ,RCLD,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ
+     *     ,SUMDP
      *     ,TOLD,TOLD1,TEMWM,TEM,WTEM,WCONST,WORK,SMPO,QMPO
 
       LOGICAL MC1
@@ -274,10 +252,10 @@ C****
 C     IF(LMIN.LE.2) ITYPE=2          ! entraining & non-entraining
       FTYPE=1.
 C**** SET PROFILE TO BE CONSTANT FOR BOTH TYPES OF CLOUDS
-      DO L=1,10*LM
-        QMOLDALL(L) = QMALL(L)
-        SMOLDALL(L) = SMALL(L)
-      END DO
+      SMOLD(:) = SM(:)
+      SMOMOLD(:,:) = SMOM(:,:)
+      QMOLD(:) = QM(:)
+      QMOMOLD(:,:) = QMOM(:,:)
       DO 570 IC=1,ITYPE
 C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       DO L=1,LM
@@ -288,9 +266,14 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       END DO
       DUM(1:KMAX,:)=0.
       DVM(1:KMAX,:)=0.
-      DO L=1,40*LM
-        DMALL(L) = 0.
-      END DO
+      DSM(:) = 0.
+      DSMOM(:,:) = 0.
+      DSMR(:) = 0.
+      DSMOMR(:,:) = 0.
+      DQM(:) = 0.
+      DQMOM(:,:) = 0.
+      DQMR(:) = 0.
+      DQMOMR(:,:) = 0.
       MC1=.FALSE.
       LHX=LHE
       MPLUME=MIN(1.*AIRM(LMIN),1.*AIRM(LMIN+1))
@@ -305,39 +288,17 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
 C     FPLUM0=FMP1*BYAM(LMIN)
       FPLUME=MPLUME*BYAM(LMIN)
       SMP  =  SMOLD(LMIN)*FPLUME
-      SXMP = SXMOLD(LMIN)*FPLUME
-      SYMP = SYMOLD(LMIN)*FPLUME
-      SXXMP=SXXMOLD(LMIN)*FPLUME
-      SYYMP=SYYMOLD(LMIN)*FPLUME
-      SXYMP=SXYMOLD(LMIN)*FPLUME
+      SMOMP(xymoms)=SMOMOLD(xymoms,LMIN)*FPLUME
       QMP  =  QMOLD(LMIN)*FPLUME
-      QXMP = QXMOLD(LMIN)*FPLUME
-      QYMP = QYMOLD(LMIN)*FPLUME
-      QXXMP=QXXMOLD(LMIN)*FPLUME
-      QYYMP=QYYMOLD(LMIN)*FPLUME
-      QXYMP=QXYMOLD(LMIN)*FPLUME
+      QMOMP(xymoms)=QMOMOLD(xymoms,LMIN)*FPLUME
       TPSAV(LMIN)=SMP*PLK(LMIN)/MPLUME
       DMR(LMIN)=-MPLUME
         DSMR(LMIN)=-SMP
-       DSXMR(LMIN)=-SXMP
-       DSYMR(LMIN)=-SYMP
-      DSXXMR(LMIN)=-SXXMP
-      DSYYMR(LMIN)=-SYYMP
-      DSXYMR(LMIN)=-SXYMP
-       DSZMR(LMIN)=- SZMOLD(LMIN)*FPLUME
-      DSZZMR(LMIN)=-SZZMOLD(LMIN)*FPLUME
-      DSYZMR(LMIN)=-SYZMOLD(LMIN)*FPLUME
-      DSZXMR(LMIN)=-SZXMOLD(LMIN)*FPLUME
+      DSMOMR(xymoms,LMIN)=-SMOMP(xymoms)
+      DSMOMR(zmoms,LMIN)=-SMOMOLD(zmoms,LMIN)*FPLUME
         DQMR(LMIN)=-QMP
-       DQXMR(LMIN)=-QXMP
-       DQYMR(LMIN)=-QYMP
-      DQXXMR(LMIN)=-QXXMP
-      DQYYMR(LMIN)=-QYYMP
-      DQXYMR(LMIN)=-QXYMP
-       DQZMR(LMIN)=- QZMOLD(LMIN)*FPLUME
-      DQZZMR(LMIN)=-QZZMOLD(LMIN)*FPLUME
-      DQYZMR(LMIN)=-QYZMOLD(LMIN)*FPLUME
-      DQZXMR(LMIN)=-QZXMOLD(LMIN)*FPLUME
+      DQMOMR(xymoms,LMIN)=-QMOMP(xymoms)
+      DQMOMR(zmoms,LMIN)=-QMOMOLD(zmoms,LMIN)*FPLUME
       DO K=1,KMAX !vref
          UMP(K)=UM(K,LMIN)*FPLUME !vref
          DUM(K,LMIN)=-UMP(K) !vref
@@ -424,29 +385,13 @@ C**** TEST FOR CONENSATION ALSO DETERMINES IF PLUME REACHES UPPER LAYER
       QSATMP=MPLUME*QSAT(TP,LHX,PL(L))
   290 SLH=LHX*BYSHA
         DSM(L-1)=  DSM(L-1)+DELTA*SMPO
-       DSXM(L-1)= DSXM(L-1)+DELTA*SXMP
-       DSYM(L-1)= DSYM(L-1)+DELTA*SYMP
-      DSXXM(L-1)=DSXXM(L-1)+DELTA*SXXMP
-      DSYYM(L-1)=DSYYM(L-1)+DELTA*SYYMP
-      DSXYM(L-1)=DSXYM(L-1)+DELTA*SXYMP
+      DSMOM(xymoms,L-1)=DSMOM(xymoms,L-1)+DELTA*SMOMP(xymoms)
 c      SMP = SMP *(1.-DELTA)     ! already set above
-      SXMP = SXMP*(1.-DELTA)
-      SYMP = SYMP*(1.-DELTA)
-      SXXMP=SXXMP*(1.-DELTA)
-      SYYMP=SYYMP*(1.-DELTA)
-      SXYMP=SXYMP*(1.-DELTA)
+      SMOMP(xymoms) = SMOMP(xymoms)*(1.-DELTA)
         DQM(L-1)=  DQM(L-1)+DELTA*QMPO
-       DQXM(L-1)= DQXM(L-1)+DELTA*QXMP
-       DQYM(L-1)= DQYM(L-1)+DELTA*QYMP
-      DQXXM(L-1)=DQXXM(L-1)+DELTA*QXXMP
-      DQYYM(L-1)=DQYYM(L-1)+DELTA*QYYMP
-      DQXYM(L-1)=DQXYM(L-1)+DELTA*QXYMP
+      DQMOM(xymoms,L-1)=DQMOM(xymoms,L-1)+DELTA*QMOMP(xymoms)
 c      QMP = QMP *(1.-DELTA)     ! already set above
-      QXMP = QXMP*(1.-DELTA)
-      QYMP = QYMP*(1.-DELTA)
-      QXXMP=QXXMP*(1.-DELTA)
-      QYYMP=QYYMP*(1.-DELTA)
-      QXYMP=QXYMP*(1.-DELTA)
+      QMOMP(xymoms) = QMOMP(xymoms)*(1.-DELTA)
       DO K=1,KMAX !vref
          DUM(K,L-1)=DUM(K,L-1)+UMPO(K)*DELTA !vref
          DVM(K,L-1)=DVM(K,L-1)+VMPO(K)*DELTA !vref
@@ -467,38 +412,14 @@ C**** Reduce EPLUME so that mass flux is less than mass in box
       MPLUME=MPLUME+EPLUME
       FENTRA = EPLUME*BYAM(L)
       DSMR(L)=DSMR(L)-EPLUME*SUP        ! = DSM(L)-SM(L)*FENTRA
-       DSXMR(L)= DSXMR(L)- SXM(L)*FENTRA
-       DSYMR(L)= DSYMR(L)- SYM(L)*FENTRA
-       DSZMR(L)= DSZMR(L)- SZM(L)*FENTRA
-      DSXXMR(L)=DSXXMR(L)-SXXM(L)*FENTRA
-      DSYYMR(L)=DSYYMR(L)-SYYM(L)*FENTRA
-      DSZZMR(L)=DSZZMR(L)-SZZM(L)*FENTRA
-      DSXYMR(L)=DSXYMR(L)-SXYM(L)*FENTRA
-      DSYZMR(L)=DSYZMR(L)-SYZM(L)*FENTRA
-      DSZXMR(L)=DSZXMR(L)-SZXM(L)*FENTRA
+      DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
       DQMR(L)=DQMR(L)-EPLUME*QUP        ! = DQM(L)-QM(L)*FENTRA
-       DQXMR(L)= DQXMR(L)- QXM(L)*FENTRA
-       DQYMR(L)= DQYMR(L)- QYM(L)*FENTRA
-       DQZMR(L)= DQZMR(L)- QZM(L)*FENTRA
-      DQXXMR(L)=DQXXMR(L)-QXXM(L)*FENTRA
-      DQYYMR(L)=DQYYMR(L)-QYYM(L)*FENTRA
-      DQZZMR(L)=DQZZMR(L)-QZZM(L)*FENTRA
-      DQXYMR(L)=DQXYMR(L)-QXYM(L)*FENTRA
-      DQYZMR(L)=DQYZMR(L)-QYZM(L)*FENTRA
-      DQZXMR(L)=DQZXMR(L)-QZXM(L)*FENTRA
+      DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
       DMR(L)=DMR(L)-EPLUME
       SMP=SMP+EPLUME*SUP
-       SXMP= SXMP+ SXM(L)*FENTRA
-       SYMP= SYMP+ SYM(L)*FENTRA
-      SXXMP=SXXMP+SXXM(L)*FENTRA
-      SYYMP=SYYMP+SYYM(L)*FENTRA
-      SXYMP=SXYMP+SXYM(L)*FENTRA
+       SMOMP(xymoms)= SMOMP(xymoms)+ SMOM(xymoms,L)*FENTRA
       QMP=QMP+EPLUME*QUP
-       QXMP= QXMP+ QXM(L)*FENTRA
-       QYMP= QYMP+ QYM(L)*FENTRA
-      QXXMP=QXXMP+QXXM(L)*FENTRA
-      QYYMP=QYYMP+QYYM(L)*FENTRA
-      QXYMP=QXYMP+QXYM(L)*FENTRA
+       QMOMP(xymoms)= QMOMP(xymoms)+ QMOM(xymoms,L)*FENTRA
       DO K=1,KMAX !vref
          UMP(K)=UMP(K)+U_0(K,L)*EPLUME !vref
          DUM(K,L)=DUM(K,L)-U_0(K,L)*EPLUME !vref
@@ -528,50 +449,18 @@ C     IF(DMMIX.LT.1.E-10) GO TO 291
       FDDL = .5*DDRAFT*BYAM(L)
       MPLUME=FLEFT*MPLUME
       SMDN=DDRAFT*SMIX         ! = SM(L)*FDDL +  SMP*FDDP
-       SXMDN= SXM(L)*FDDL +  SXMP*FDDP
-       SYMDN= SYM(L)*FDDL +  SYMP*FDDP
-      SXXMDN=SXXM(L)*FDDL + SXXMP*FDDP
-      SYYMDN=SYYM(L)*FDDL + SYYMP*FDDP
-      SXYMDN=SXYM(L)*FDDL + SXYMP*FDDP
+      SMOMDN(xymoms)=SMOM(xymoms,L)*FDDL +  SMOMP(xymoms)*FDDP
       SMP=FLEFT*SMP
-       SXMP= SXMP*FLEFT
-       SYMP= SYMP*FLEFT
-      SXXMP=SXXMP*FLEFT
-      SYYMP=SYYMP*FLEFT
-      SXYMP=SXYMP*FLEFT
+       SMOMP(xymoms)= SMOMP(xymoms)*FLEFT
       QMDN=DDRAFT*QMIX        ! = QM(L)*FDDL +  QMP*FDDP
-       QXMDN= QXM(L)*FDDL +  QXMP*FDDP
-       QYMDN= QYM(L)*FDDL +  QYMP*FDDP
-      QXXMDN=QXXM(L)*FDDL + QXXMP*FDDP
-      QYYMDN=QYYM(L)*FDDL + QYYMP*FDDP
-      QXYMDN=QXYM(L)*FDDL + QXYMP*FDDP
+      QMOMDN(xymoms)=QMOM(xymoms,L)*FDDL +  QMOMP(xymoms)*FDDP
       QMP=FLEFT*QMP
-       QXMP= QXMP*FLEFT
-       QYMP= QYMP*FLEFT
-      QXXMP=QXXMP*FLEFT
-      QYYMP=QYYMP*FLEFT
-      QXYMP=QXYMP*FLEFT
+       QMOMP(xymoms)= QMOMP(xymoms)*FLEFT
       DMR(L) = DMR(L)-.5*DDRAFT
       DSMR(L)=DSMR(L)-.5*DDRAFT*SUP        ! = DSM(L)-SM(L)*FDDL
-       DSXMR(L)= DSXMR(L) -  SXM(L)*FDDL
-       DSYMR(L)= DSYMR(L) -  SYM(L)*FDDL
-       DSZMR(L)= DSZMR(L) -  SZM(L)*FDDL
-      DSXXMR(L)=DSXXMR(L) - SXXM(L)*FDDL
-      DSYYMR(L)=DSYYMR(L) - SYYM(L)*FDDL
-      DSZZMR(L)=DSZZMR(L) - SZZM(L)*FDDL
-      DSXYMR(L)=DSXYMR(L) - SXYM(L)*FDDL
-      DSYZMR(L)=DSYZMR(L) - SYZM(L)*FDDL
-      DSZXMR(L)=DSZXMR(L) - SZXM(L)*FDDL
+      DSMOMR(:,L)=DSMOMR(:,L) - SMOM(:,L)*FDDL
       DQMR(L)=DQMR(L)-.5*DDRAFT*QUP       ! = DQM(L)-QM(L)*FDDL
-       DQXMR(L)= DQXMR(L) -  QXM(L)*FDDL
-       DQYMR(L)= DQYMR(L) -  QYM(L)*FDDL
-       DQZMR(L)= DQZMR(L) -  QZM(L)*FDDL
-      DQXXMR(L)=DQXXMR(L) - QXXM(L)*FDDL
-      DQYYMR(L)=DQYYMR(L) - QYYM(L)*FDDL
-      DQZZMR(L)=DQZZMR(L) - QZZM(L)*FDDL
-      DQXYMR(L)=DQXYMR(L) - QXYM(L)*FDDL
-      DQYZMR(L)=DQYZMR(L) - QYZM(L)*FDDL
-      DQZXMR(L)=DQZXMR(L) - QZXM(L)*FDDL
+      DQMOMR(:,L)=DQMOMR(:,L) - QMOM(:,L)*FDDL
       DO K=1,KMAX !vref
          UMDN(K)=.5*(ETADN*UMP(K)+DDRAFT*U_0(K,L)) !vref
          UMP(K)=UMP(K)*FLEFT !vref
@@ -607,11 +496,7 @@ C****
       IF(DQSUM.GE.0.) THEN
       FQCOND = 0
       IF (QMPT.gt.1d-20) FQCOND = DQSUM/QMPT
-       QXMP =  QXMP*(1.-FQCOND)
-       QYMP =  QYMP*(1.-FQCOND)
-      QXXMP = QXXMP*(1.-FQCOND)
-      QYYMP = QYYMP*(1.-FQCOND)
-      QXYMP = QXYMP*(1.-FQCOND)
+       QMOMP(xymoms) =  QMOMP(xymoms)*(1.-FQCOND)
       ELSE  ! no change
         DQSUM=0.
         SMP=SMPT
@@ -629,17 +514,9 @@ C****
       IF(MCCONT.EQ.1) MC1=.TRUE.
       IF(MC1.AND.PLE(LMIN)-PLE(L+2).GE.450.) SVLATL(L)=LHX
       SMPMAX=SMP
-       SXMPMAX =  SXMP
-       SYMPMAX =  SYMP
-      SXXMPMAX = SXXMP
-      SYYMPMAX = SYYMP
-      SXYMPMAX = SXYMP
+      SMOMPMAX(xymoms) =  SMOMP(xymoms)
       QMPMAX=QMP
-       QXMPMAX =  QXMP
-       QYMPMAX =  QYMP
-      QXXMPMAX = QXXMP
-      QYYMPMAX = QYYMP
-      QXYMPMAX = QXYMP
+      QMOMPMAX(xymoms) =  QMOMP(xymoms)
       MPMAX=MPLUME
       LMAX = LMAX + 1
       IF (LMAX.LT.LM) GO TO 220   ! CHECK FOR NEXT POSSIBLE LMAX
@@ -648,17 +525,9 @@ C**** UPDATE CHANGES CARRIED BY THE PLUME IN THE TOP CLOUD LAYER
       IF(TPSAV(LMAX).GE.TF) LFRZ=LMAX
       DM(LMAX)=DM(LMAX)+MPMAX
       DSM(LMAX)=DSM(LMAX)+SMPMAX
-       DSXM(LMAX)= DSXM(LMAX) +  SXMPMAX
-       DSYM(LMAX)= DSYM(LMAX) +  SYMPMAX
-      DSXXM(LMAX)=DSXXM(LMAX) + SXXMPMAX
-      DSYYM(LMAX)=DSYYM(LMAX) + SYYMPMAX
-      DSXYM(LMAX)=DSXYM(LMAX) + SXYMPMAX
+      DSMOM(xymoms,LMAX)=DSMOM(xymoms,LMAX) + SMOMPMAX(xymoms)
       DQM(LMAX)=DQM(LMAX)+QMPMAX
-       DQXM(LMAX)= DQXM(LMAX) +  QXMPMAX
-       DQYM(LMAX)= DQYM(LMAX) +  QYMPMAX
-      DQXXM(LMAX)=DQXXM(LMAX) + QXXMPMAX
-      DQYYM(LMAX)=DQYYM(LMAX) + QYYMPMAX
-      DQXYM(LMAX)=DQXYM(LMAX) + QXYMPMAX
+      DQMOM(xymoms,LMAX)=DQMOM(xymoms,LMAX) + QMOMPMAX(xymoms)
       CCM(LMAX)=0.
       DO K=1,KMAX !vref
          DUM(K,LMAX)=DUM(K,LMAX)+UMP(K) !vref
@@ -702,11 +571,7 @@ C     DQEVP=DQ*DDRAFT
       FSEVP = 0
       IF (ABS(PLK(L)*SMDN).gt.1d-20) FSEVP = SLH*DQEVP/(PLK(L)*SMDN)
       SMDN=SMDN-SLH*DQEVP/PLK(L)
-       SXMDN= SXMDN*(1.-FSEVP)
-       SYMDN= SYMDN*(1.-FSEVP)
-      SXXMDN=SXXMDN*(1.-FSEVP)
-      SYYMDN=SYYMDN*(1.-FSEVP)
-      SXYMDN=SXYMDN*(1.-FSEVP)
+      SMOMDN(xymoms)=SMOMDN(xymoms)*(1.-FSEVP)
       QMDN=QMDN+DQEVP
       COND(L)=COND(L)-DQEVP
       TAUMCL(L)=TAUMCL(L)-DQEVP
@@ -725,17 +590,9 @@ c  399 FORMAT(1X,'L TMIX QMIX HMIX TENV QENV HENV HSENV=',
 c     *  I5,7E12.4)
   346 CONTINUE
       DSM(LMIN)=DSM(LMIN)+SMDN
-       DSXM(LMIN)= DSXM(LMIN) +  SXMDN
-       DSYM(LMIN)= DSYM(LMIN) +  SYMDN
-      DSXXM(LMIN)=DSXXM(LMIN) + SXXMDN
-      DSYYM(LMIN)=DSYYM(LMIN) + SYYMDN
-      DSXYM(LMIN)=DSXYM(LMIN) + SXYMDN
+      DSMOM(xymoms,LMIN)=DSMOM(xymoms,LMIN) + SMOMDN(xymoms)
       DQM(LMIN)=DQM(LMIN)+QMDN
-       DQXM(LMIN)= DQXM(LMIN) +  QXMDN
-       DQYM(LMIN)= DQYM(LMIN) +  QYMDN
-      DQXXM(LMIN)=DQXXM(LMIN) + QXXMDN
-      DQYYM(LMIN)=DQYYM(LMIN) + QYYMDN
-      DQXYM(LMIN)=DQXYM(LMIN) + QXYMDN
+      DQMOM(xymoms,LMIN)=DQMOM(xymoms,LMIN) + QMOMDN(xymoms)
       DO K=1,KMAX !vref
       DUM(K,LMIN)=DUM(K,LMIN)+UMDN(K) !vref
       DVM(K,LMIN)=DVM(K,LMIN)+VMDN(K) !vref
@@ -786,58 +643,25 @@ c     QM(L)=QM(L)*(1.-ALPHA)+BETA*QM(L+1)+DQM(L)
       ENDDO !vref
   380 ALPHA=BETA
 C**** Subsidence uses Quadratic Upstream Scheme for QM and SM
-      DO L = LMIN,LMAX
-          ML(L) = AIRM(L) +   DMR(L)
-          SM(L) =   SM(L) +  DSMR(L)
-         SXM(L) =  SXM(L) + DSXMR(L)
-         SYM(L) =  SYM(L) + DSYMR(L)
-        SXXM(L) = SXXM(L) +DSXXMR(L)
-        SXYM(L) = SXYM(L) +DSXYMR(L)
-        SYYM(L) = SYYM(L) +DSYYMR(L)
-         SZM(L) =  SZM(L) + DSZMR(L)
-        SYZM(L) = SYZM(L) +DSYZMR(L)
-        SZXM(L) = SZXM(L) +DSZXMR(L)
-        SZZM(L) = SZZM(L) +DSZZMR(L)
-      END DO
-      CALL SUBSID(SM,SXM,SYM,SZM,SXXM,SYYM,SZZM,SXYM,SYZM,SZXM,
-     *     ML,.FALSE.,CM,LMIN,LMAX,-1)
-      DO L = LMIN,LMAX
-          SM(L) =   SM(L) +   DSM(L)
-         SXM(L) =  SXM(L) +  DSXM(L)
-         SYM(L) =  SYM(L) +  DSYM(L)
-        SXXM(L) = SXXM(L) + DSXXM(L)
-        SXYM(L) = SXYM(L) + DSXYM(L)
-        SYYM(L) = SYYM(L) + DSYYM(L)
-         SZM(L) =  SZM(L) +  DSZM(L)
-        SYZM(L) = SYZM(L) + DSYZM(L)
-        SZXM(L) = SZXM(L) + DSZXM(L)
-        SZZM(L) = SZZM(L) + DSZZM(L)
-          ML(L) = AIRM(L) +   DMR(L)
-          QM(L) =   QM(L) +  DQMR(L)
-         QXM(L) =  QXM(L) + DQXMR(L)
-         QYM(L) =  QYM(L) + DQYMR(L)
-        QXXM(L) = QXXM(L) +DQXXMR(L)
-        QXYM(L) = QXYM(L) +DQXYMR(L)
-        QYYM(L) = QYYM(L) +DQYYMR(L)
-         QZM(L) =  QZM(L) + DQZMR(L)
-        QYZM(L) = QYZM(L) +DQYZMR(L)
-        QZXM(L) = QZXM(L) +DQZXMR(L)
-        QZZM(L) = QZZM(L) +DQZZMR(L)
-      END DO
-      CALL SUBSID(QM,QXM,QYM,QZM,QXXM,QYYM,QZZM,QXYM,QYZM,QZXM,
-     *     ML,.TRUE.,CM,LMIN,LMAX,0)
-      DO L = LMIN,LMAX
-          QM(L) =   QM(L) +   DQM(L)
-         QXM(L) =  QXM(L) +  DQXM(L)
-         QYM(L) =  QYM(L) +  DQYM(L)
-        QXXM(L) = QXXM(L) + DQXXM(L)
-        QXYM(L) = QXYM(L) + DQXYM(L)
-        QYYM(L) = QYYM(L) + DQYYM(L)
-         QZM(L) =  QZM(L) +  DQZM(L)
-        QYZM(L) = QYZM(L) + DQYZM(L)
-        QZXM(L) = QZXM(L) + DQZXM(L)
-        QZZM(L) = QZZM(L) + DQZZM(L)
-      END DO
+      ML(LMIN:LMAX) = AIRM(LMIN:LMAX) +   DMR(LMIN:LMAX)
+      SM(LMIN:LMAX) =   SM(LMIN:LMAX) +  DSMR(LMIN:LMAX)
+      SMOM(:,LMIN:LMAX) =  SMOM(:,LMIN:LMAX) + DSMOMR(:,LMIN:LMAX)
+C****
+      nsub = lmax-lmin+1
+      cmneg(lmin:lmax)=-cm(lmin:lmax)
+      cmneg(lmax)=0. ! avoid roundoff error (esp. for qlimit)
+      call adv1d(sm(lmin),smom(1,lmin), f(lmin),fmom(1,lmin),
+     &     ml(lmin),cmneg(lmin), nsub,.false.,1, zdir)
+      SM(LMIN:LMAX) =   SM(LMIN:LMAX) +   DSM(LMIN:LMAX)
+      SMOM(:,LMIN:LMAX) =  SMOM(:,LMIN:LMAX) +  DSMOM(:,LMIN:LMAX)
+C****
+      ML(LMIN:LMAX) = AIRM(LMIN:LMAX) +   DMR(LMIN:LMAX)
+      QM(LMIN:LMAX) =   QM(LMIN:LMAX) +  DQMR(LMIN:LMAX)
+      QMOM(:,LMIN:LMAX) =  QMOM(:,LMIN:LMAX) + DQMOMR(:,LMIN:LMAX)
+      call adv1d(qm(lmin),qmom(1,lmin), f(lmin),fmom(1,lmin),
+     &     ml(lmin),cmneg(lmin), nsub,.true.,1, zdir)
+      QM(LMIN:LMAX) =   QM(LMIN:LMAX) +   DQM(LMIN:LMAX)
+      QMOM(:,LMIN:LMAX) =  QMOM(:,LMIN:LMAX) +  DQMOM(:,LMIN:LMAX)
 C**** diagnostics
       DO L=LMIN,LMAX
         FCDH=0.
@@ -946,15 +770,7 @@ C**** UPDATE TEMPERATURE AND HUMIDITY DUE TO NET REVAPORATION IN CLOUDS
       IF (ABS(PLK(L)*SM(L)).gt.1d-20) FSSUM = (SLH*DQSUM+HEAT1)/
      *     (PLK(L)*SM(L))
       SM(L)=SM(L)-(SLH*DQSUM+HEAT1)/PLK(L)
-       SXM(L) =  SXM(L)*(1.-FSSUM)
-       SYM(L) =  SYM(L)*(1.-FSSUM)
-       SZM(L) =  SZM(L)*(1.-FSSUM)
-      SXXM(L) = SXXM(L)*(1.-FSSUM)
-      SYYM(L) = SYYM(L)*(1.-FSSUM)
-      SXYM(L) = SXYM(L)*(1.-FSSUM)
-      SYZM(L) = SYZM(L)*(1.-FSSUM)
-      SZXM(L) = SZXM(L)*(1.-FSSUM)
-      SZZM(L) = SZZM(L)*(1.-FSSUM)
+       SMOM(:,L) =  SMOM(:,L)*(1.-FSSUM)
       QM(L)=QM(L)+DQSUM
          FCDH1=0.
 C        IF(L.EQ.LDEP) FCDH1=FCDH1+CDHM
@@ -1309,15 +1125,7 @@ c     *       *ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
       END IF
       QL(L)=QNEW
 C**** adjust gradients down if Q decreases
-       QXM(L)= QXM(L)*(1.-FQTOW)
-       QYM(L)= QYM(L)*(1.-FQTOW)
-       QZM(L)= QZM(L)*(1.-FQTOW)
-      QXXM(L)=QXXM(L)*(1.-FQTOW)
-      QXYM(L)=QXYM(L)*(1.-FQTOW)
-      QYYM(L)=QYYM(L)*(1.-FQTOW)
-      QYZM(L)=QYZM(L)*(1.-FQTOW)
-      QZZM(L)=QZZM(L)*(1.-FQTOW)
-      QZXM(L)=QZXM(L)*(1.-FQTOW)
+       QMOM(:,L)= QMOM(:,L)*(1.-FQTOW)
       WMX(L)=WMNEW
       TL(L)=TL(L)+DTsrc*(QHEAT(L)-HPHASE)/SHA
       TH(L)=TL(L)/PLK(L)
@@ -1338,15 +1146,7 @@ C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
       WMX(L)=WMX(L)+DQSUM
       FCOND=DQSUM/QNEW
 C**** adjust gradients down if Q decreases
-       QXM(L)= QXM(L)*(1.-FCOND)
-       QYM(L)= QYM(L)*(1.-FCOND)
-       QZM(L)= QZM(L)*(1.-FCOND)
-      QXXM(L)=QXXM(L)*(1.-FCOND)
-      QXYM(L)=QXYM(L)*(1.-FCOND)
-      QYYM(L)=QYYM(L)*(1.-FCOND)
-      QYZM(L)=QYZM(L)*(1.-FCOND)
-      QZZM(L)=QZZM(L)*(1.-FCOND)
-      QZXM(L)=QZXM(L)*(1.-FCOND)
+       QMOM(:,L)= QMOM(:,L)*(1.-FCOND)
       ELSE
       TL(L)=TNEW
       QL(L)=QNEW
@@ -1478,10 +1278,8 @@ C**** UPDATE TEMPERATURE, SPECIFIC HUMIDITY AND MOMENTUM DUE TO CTEI
       TH(L+1)=SMN2*BYAM(L+1)
       QL(L+1)=QMN2*BYAM(L+1)
       WMX(L+1)=WMN2*BYAM(L+1)
-      CALL CTMIX (SM,SXM,SYM,SZM,SXXM,SXYM,SYYM,SYZM,SZZM,SZXM,L,
-     *     FMASS*AIRMR,FMIX,FRAT,LM)
-      CALL CTMIX (QM,QXM,QYM,QZM,QXXM,QXYM,QYYM,QYZM,QZZM,QZXM,L,
-     *     FMASS*AIRMR,FMIX,FRAT,LM)
+      CALL CTMIX (SM(L),SMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
+      CALL CTMIX (QM(L),QMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
       DO K=1,KMAX !vref
          UMN1(K)=(UMO1(K)*(1.-FMIX)+FRAT*UMO2(K)) !vref
          VMN1(K)=(VMO1(K)*(1.-FMIX)+FRAT*VMO2(K)) !vref
@@ -1558,61 +1356,7 @@ C**** CALCULATE OPTICAL THICKNESS
       IF(WMX(L).LE.0.) SVLHXL(L)=0.
       END DO
 
-
       RETURN
       END SUBROUTINE LSCOND
-C****
-      SUBROUTINE CTMIX (RM,RX,RY,RZ,RXX,RXY,RYY,RYZ,RZZ,RZX,L,FMAIR,
-     *     FMIX,FRAT,LM)
-!@sum CTMIX  Cloud top mixing of tracer moments (incl. q,t) from CONDSE
-!@auth Jean Lerner
-!@ver 1.0
-!@var RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX mean and moments of tracer
-      IMPLICIT NONE
-      REAL*8, DIMENSION(LM) ::  RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX
-      REAL*8 FMIX      !@var FMIX  fraction of lower box mixed up
-      REAL*8 FRAT      !@var FRAT  fraction of upper box mixed down
-      REAL*8 FMAIR     !@var FMAIR mass of air mixed
-      REAL*8 RTEMP     !@var RTEMP dummy variable
-      INTEGER L        !@var L   level of mixing
-      INTEGER LM       !@var LM  max level
-
-      RTEMP   = RM(L  )*(1.-FMIX)+FRAT*RM(L+1)
-      RM(L+1) = RM(L+1)*(1.-FRAT)+FMIX*RM(L  )
-      RM(L  ) = RTEMP
-C X
-      RTEMP   = RX(L  )*(1.-FMIX)+FRAT*RX(L+1)
-      RX(L+1) = RX(L+1)*(1.-FRAT)+FMIX*RX(L  )
-      RX(L  ) = RTEMP
-C Y
-      RTEMP   = RY(L  )*(1.-FMIX)+FRAT*RY(L+1)
-      RY(L+1) = RY(L+1)*(1.-FRAT)+FMIX*RY(L  )
-      RY(L  ) = RTEMP
-C Z
-      RZ(L  ) = RZ(L  )*(1.-FMAIR)
-      RZ(L+1) = RZ(L+1)*(1.-FMAIR)
-C XX
-      RTEMP    = RXX(L  )*(1.-FMIX)+FRAT*RXX(L+1)
-      RXX(L+1) = RXX(L+1)*(1.-FRAT)+FMIX*RXX(L  )
-      RXX(L  ) = RTEMP
-C YY
-      RTEMP    = RYY(L  )*(1.-FMIX)+FRAT*RYY(L+1)
-      RYY(L+1) = RYY(L+1)*(1.-FRAT)+FMIX*RYY(L  )
-      RYY(L  ) = RTEMP
-C XY
-      RTEMP    = RXY(L  )*(1.-FMIX)+FRAT*RXY(L+1)
-      RXY(L+1) = RXY(L+1)*(1.-FRAT)+FMIX*RXY(L  )
-      RXY(L  ) = RTEMP
-C ZZ
-      RZZ(L  ) = RZZ(L  )*(1.-FMAIR)
-      RZZ(L+1) = RZZ(L+1)*(1.-FMAIR)
-C ZX
-      RZX(L  ) = RZX(L  )*(1.-FMAIR)
-      RZX(L+1) = RZX(L+1)*(1.-FMAIR)
-C ZZ
-      RYZ(L  ) = RYZ(L  )*(1.-FMAIR)
-      RYZ(L+1) = RYZ(L+1)*(1.-FMAIR)
-      RETURN
-      END SUBROUTINE CTMIX
 
       END MODULE CLD01

@@ -1588,20 +1588,22 @@ C        BJ(J,J_ERUN1)=BJ(J,J_ERUN1)+BERUN0 ! land ice (Tg=0)
   980 CONTINUE
       RETURN
       END
-      SUBROUTINE DRYCNV
+      SUBROUTINE DRYCNV(LBASE_MIN,LBASE_MAX)
 C****
-C**** THIS SUBROUTINE MIXES AIR CAUSED BY DRY CONVECTION.  SINCE DRY
-C**** CONVECTION IN THE BOUNDARY LAYER IS DONE IN SUBROUTINE SURFCE,
-C**** THIS ROUTINE ONLY CHECKS LAYERS 2 TO LM.
+C**** THIS SUBROUTINE MIXES AIR CAUSED BY DRY CONVECTION.
+C**** THIS VERSION CHECKS BASE LAYERS LBASE_MIN TO LBASE_MAX.
 C****
       USE CONSTANT, only : lhe,sha
       USE E001M12_COM
       USE GEOM
-      USE SOMTQ_COM
+      USE QUSDEF, only : nmom,zmoms,xymoms
+      USE SOMTQ_COM, only : tmom,qmom
       USE DAGCOM, only : ajl
       USE DYNAMICS, only : pk,pdsig,plij
+      USE PBLCOM, only : dclev
       IMPLICIT NONE
 
+      integer, intent(in) :: LBASE_MIN,LBASE_MAX
       REAL*8, DIMENSION(IM,JM,LM) :: UT,VT
       REAL*8, DIMENSION(LM) :: DP
       COMMON/WORK2/UT,VT,DP
@@ -1611,9 +1613,11 @@ C****
       LOGICAL POLE
       INTEGER I,J,L,K,IMAX,KMAX,IM1,LMAX,LMIN
 
-      REAL*8 RVX,DOK,PIJBOT,PIJ,PKMS,THPKMS,QMS,TXS,TYS,TXXS,TYYS
-     *     ,TXYS,QXS,QYS,QXXS,QYYS,QXYS,TVMS,THETA,RDP,THM
+      DOUBLE PRECISION, DIMENSION(NMOM) :: TMOMS,QMOMS
+      REAL*8 RVX,DOK,PIJBOT,PIJ,PKMS,THPKMS,QMS
+     *     ,TVMS,THETA,RDP,THM
 
+      if(LBASE_MAX.GE.LM) stop 'DRYCNV: LBASE_MAX.GE.LM'
       RVX=0.
 C**** LOAD U,V INTO UT,VT.  UT,VT WILL BE FIXED DURING DRY CONVECTION
 C****   WHILE U,V WILL BE UPDATED.
@@ -1624,7 +1628,7 @@ C****   WHILE U,V WILL BE UPDATED.
       UT(I,J,L)=U(I,J,L)
    50 VT(I,J,L)=V(I,J,L)
 C**** OUTSIDE LOOPS OVER J AND I
-      DO 500 J=1,JM
+      JLOOP: DO J=1,JM
       POLE=.FALSE.
       IF (J.EQ.1.OR.J.EQ.JM) POLE=.TRUE.
 
@@ -1634,18 +1638,18 @@ C****
 C**** MAIN LOOP
 C****
       IM1=IM
-      DO 500 I=1,IMAX
+      ILOOP: DO I=1,IMAX
          DO K=1,KMAX
             RA(K)=RAJ(K,J)
             IDI(K)=IDIJ(K,I,J)
             IDJ(K)=IDJJ(K,J)
          END DO
-      LMAX=1
-  130 LMIN=LMAX+1
-      IF (LMIN.GE.LM) GO TO 500
+      LMAX=LBASE_MIN-1
+      lbase_loop: do while(lmax.lt.lbase_max)
+      LMIN=LMAX+1
       LMAX=LMIN
       IF (T(I,J,LMIN)*(1.+Q(I,J,LMIN)*RVX).LE.
-     *   T(I,J,LMIN+1)*(1.+Q(I,J,LMIN+1)*RVX)) GO TO 130
+     *   T(I,J,LMIN+1)*(1.+Q(I,J,LMIN+1)*RVX)) cycle lbase_loop
 C**** MIX HEAT AND MOISTURE THROUGHOUT THE UNSTABLE LAYERS
 C**** MIX THROUGH TWO LOWER LAYERS
       PIJBOT=PLIJ(LMIN,I,J)
@@ -1657,21 +1661,12 @@ C**** MIX THROUGH TWO LOWER LAYERS
      *  +T(I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
       QMS=Q(I,J,LMIN)*DP(LMIN)+Q(I,J,LMIN+1)*DP(LMIN+1)
 C**** sum moments to mix over unstable layers
-      TXS=   TX(I,J,LMIN  )*(PK(LMIN  ,I,J)*DP(LMIN  ))  +
-     *       TX(I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
-      TYS=   TY(I,J,LMIN  )*(PK(LMIN  ,I,J)*DP(LMIN  ))  +
-     *       TY(I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
-      TXXS= TXX(I,J,LMIN  )*(PK(LMIN  ,I,J)*DP(LMIN  )) +
-     *      TXX(I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
-      TYYS= TYY(I,J,LMIN  )*(PK(LMIN  ,I,J)*DP(LMIN  )) +
-     *      TYY(I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
-      TXYS= TXY(I,J,LMIN  )*(PK(LMIN  ,I,J)*DP(LMIN  )) +
-     *      TXY(I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
-      QXS  =  QX(I,J,LMIN)*DP(LMIN) +  QX(I,J,LMIN+1)*DP(LMIN+1)
-      QYS  =  QY(I,J,LMIN)*DP(LMIN) +  QY(I,J,LMIN+1)*DP(LMIN+1)
-      QXXS = QXX(I,J,LMIN)*DP(LMIN) + QXX(I,J,LMIN+1)*DP(LMIN+1)
-      QYYS = QYY(I,J,LMIN)*DP(LMIN) + QYY(I,J,LMIN+1)*DP(LMIN+1)
-      QXYS = QXY(I,J,LMIN)*DP(LMIN) + QXY(I,J,LMIN+1)*DP(LMIN+1)
+      TMOMS(XYMOMS) =
+     &     TMOM(XYMOMS,I,J,LMIN  )*(PK(LMIN  ,I,J)*DP(LMIN  ))  +
+     &     TMOM(XYMOMS,I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
+      QMOMS(XYMOMS) =
+     &     QMOM(XYMOMS,I,J,LMIN  )*(DP(LMIN  ))  +
+     &     QMOM(XYMOMS,I,J,LMIN+1)*(DP(LMIN+1))
       IF (LMIN+1.GE.LM) GO TO 150
       TVMS=T(I,J,LMIN)*(1.+Q(I,J,LMIN)*RVX)*(PK(LMIN,I,J)*DP(LMIN))
      *    +T(I,J,LMIN+1)*(1.+Q(I,J,LMIN+1)*RVX)
@@ -1686,16 +1681,10 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       THPKMS=THPKMS+T(I,J,L)*(PK(L,I,J)*DP(L))
       QMS=QMS+Q(I,J,L)*DP(L)
       TVMS=TVMS+T(I,J,L)*(1.+Q(I,J,L)*RVX)*(PK(L,I,J)*DP(L))
-      TXS=   TXS +  TX(I,J,L)*(PK(L,I,J)*DP(L))
-      TYS=   TYS +  TY(I,J,L)*(PK(L,I,J)*DP(L))
-      TXXS= TXXS + TXX(I,J,L)*(PK(L,I,J)*DP(L))
-      TYYS= TYYS + TYY(I,J,L)*(PK(L,I,J)*DP(L))
-      TXYS= TXYS + TXY(I,J,L)*(PK(L,I,J)*DP(L))
-      QXS  =  QXS +  QX(I,J,L)*DP(L)
-      QYS  =  QYS +  QY(I,J,L)*DP(L)
-      QXXS = QXXS + QXX(I,J,L)*DP(L)
-      QYYS = QYYS + QYY(I,J,L)*DP(L)
-      QXYS = QXYS + QXY(I,J,L)*DP(L)
+      TMOMS(XYMOMS) = TMOMS(XYMOMS) +
+     &     TMOM(XYMOMS,I,J,L)*(PK(L,I,J)*DP(L))
+      QMOMS(XYMOMS) = QMOMS(XYMOMS) +
+     &     QMOM(XYMOMS,I,J,L)*DP(L)
   140 THETA=TVMS/PKMS
   150 L=LM+1
   160 LMAX=L-1
@@ -1706,25 +1695,11 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
          AJL(J,L,12)=AJL(J,L,12)+(THM-T(I,J,L))*PK(L,I,J)*PLIJ(L,I,J)
          AJL(J,L,55)=AJL(J,L,55)+(QMS-Q(I,J,L))*PDSIG(L,I,J)*LHE/SHA
       T(I,J,L)=THM
-       TX(I,J,L) = TXS/PKMS
-       TY(I,J,L) = TYS/PKMS
-       TZ(I,J,L) = 0.
-      TXX(I,J,L) = TXXS/PKMS
-      TYY(I,J,L) = TYYS/PKMS
-      TXY(I,J,L) = TXYS/PKMS
-      TZZ(I,J,L) = 0.
-      TZX(I,J,L) = 0.
-      TYZ(I,J,L) = 0.
+      TMOM(XYMOMS,I,J,L)=TMOMS(XYMOMS)/PKMS
+      TMOM(ZMOMS,I,J,L)=0.
       Q(I,J,L)=QMS
-       QX(I,J,L) = QXS*RDP
-       QY(I,J,L) = QYS*RDP
-       QZ(I,J,L) = 0.
-      QXX(I,J,L) = QXXS*RDP
-      QYY(I,J,L) = QYYS*RDP
-      QXY(I,J,L) = QXYS*RDP
-      QZZ(I,J,L) = 0.
-      QZX(I,J,L) = 0.
-      QYZ(I,J,L) = 0.
+      QMOM(XYMOMS,I,J,L)=QMOMS(XYMOMS)*RDP
+      QMOM(ZMOMS,I,J,L)=0.
   180 CONTINUE
 C**** MIX MOMENTUM THROUGHOUT UNSTABLE LAYERS
       UMS(1:KMAX)=0.
@@ -1748,8 +1723,14 @@ c the following line gives bytewise different ajl
      &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*PLIJ(L,I,J)*RA(K)
          ENDDO
       ENDDO
-      GO TO 130
-  500 IM1=I
+      enddo lbase_loop
+C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
+      if(lbase_min.eq.1) then ! was called from surfce
+         DCLEV(I,J)=LMAX
+      endif
+      IM1=I
+      ENDDO ILOOP
+      ENDDO JLOOP
       RETURN
       END
       SUBROUTINE SDRAG !(DT1) in stratosphere model
