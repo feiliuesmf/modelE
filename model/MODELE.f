@@ -449,7 +449,7 @@ C**** message and stop
 C**** sync_param( "B", Y ) reads parameter B into variable Y
 C**** if "B" is not in the database, then Y is unchanged and its
 C**** value is saved in the database as "B" (here sync = synchronize)
-      USE MODEL_COM, only : LM,NIPRNT,dt_UVfilter,MFILTR,NFILTR,NRAD,
+      USE MODEL_COM, only : LM,NIPRNT,dt_UVfilter,MFILTR,NFILTR,NRAD
      *     ,NDASF,NDA4,NDA5S,NDA5K,NDA5D,NDAA,Kvflxo,kradia
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND,ItimeI,PSFMPT,PSTRAT,SIG,SIGE
