@@ -607,6 +607,8 @@ C**** Check conservation of water tracers in ocean
 
       END IF
 C****
+      CALL CHECKOST(SUBR)
+C****
       END SUBROUTINE CHECKO
 
       SUBROUTINE conserv_OKE(OKE)

@@ -72,7 +72,7 @@ C****
      *     ,trmo,txmo,tymo,tzmo,ntm
 #endif
       USE STRAITS, only : nmst,lmst,ist,jst,wist,must,distpg,g0mst,s0mst
-     *     ,gxmst,sxmst,gzmst,szmst
+     *     ,gxmst,sxmst,gzmst,szmst,mmst
 #ifdef TRACERS_OCEAN
      *     ,trmst,txmst,tzmst
 #endif
@@ -208,7 +208,7 @@ C****
 
       SUBROUTINE STBDRA
 !@sum  STBDRA exerts a bottom drag on the lowest layer and a side drag
-!@+    on each layer of each strait.
+!@+    on each layer of each strait. Also reduces along strait gradients
 !@auth Gary Russell
 !@ver  1.0
 C**** MUST = MUST*(1-x)  is approximated by  MUST = MUST/(1+x)
@@ -218,10 +218,14 @@ C****         MUST  Mass flow through strait (kg/s)
 C****         WIST  Width of strait (m)
 C****         DIST  Length of strait (m)
 C****
+      USE CONSTANT, only : sday
       USE OCEAN, only : lmo,dts
-      USE STRAITS, only : nmst,lmst,must,mmst,wist,dist
+      USE STRAITS, only : nmst,lmst,must,mmst,wist,dist,sxmst,gxmst
+#ifdef TRACERS_OCEAN
+     *     ,txmst
+#endif
       IMPLICIT NONE
-      REAL*8, PARAMETER :: BDRAGX=1d0, SDRAGX=1d-1
+      REAL*8, PARAMETER :: BDRAGX=1d0, SDRAGX=1d-1, REDUCE=1./(SDAY*20.)
       INTEGER N,L
 
       DO N=1,NMST
@@ -229,10 +233,16 @@ C**** Apply bottom drag
       L=LMST(N)
       MUST(L,N) = MUST(L,N) * MMST(L,N)**2 /
      *  (MMST(L,N)**2 + DTS*BDRAGX*ABS(MUST(L,N))*WIST(N)*DIST(N)**2)
-C**** Apply side drag
       DO L=1,LMST(N)
+C**** Apply side drag
         MUST(L,N) = MUST(L,N) * MMST(L,N)*WIST(N) /
      *       (MMST(L,N)*WIST(N) + DTS*SDRAGX*ABS(MUST(L,N))*DIST(N))
+C**** Reduce cross strait tracer gradients (20 day restoring to zero)
+        GXMST(L,N)=GXMST(L,N)*(1.-REDUCE*DTS)
+        SXMST(L,N)=SXMST(L,N)*(1.-REDUCE*DTS)
+#ifdef TRACERS_OCEAN
+        TXMST(L,N,:)=TXMST(L,N,:)*(1.-REDUCE*DTS)
+#endif
       END DO
       END DO
 C****
@@ -616,3 +626,91 @@ C****
       RETURN
       END
 
+      SUBROUTINE CHECKOST(SUBR)
+!@sum  CHECKOST Checks whether Straits are reasonable
+!@auth Original Development Team
+!@ver  1.0
+      USE MODEL_COM, only : qcheck
+#ifdef TRACERS_OCEAN
+      USE TRACER_COM, only : ntm, trname
+#endif
+      USE SEAICE, only : xsi,lmi
+      USE STRAITS
+      IMPLICIT NONE
+      REAL*8 relerr,errmax
+      INTEGER L,n,ns,nmax,lmax
+!@var SUBR identifies where CHECK was called from
+      CHARACTER*6, INTENT(IN) :: SUBR
+
+
+C**** Check for NaN/INF in ocean data
+      IF (QCHECK) THEN
+      CALL CHECK3(G0MST,LMO,NMST,1,SUBR,'g0mst')
+      CALL CHECK3(GXMST,LMO,NMST,1,SUBR,'gxmst')
+      CALL CHECK3(GZMST,LMO,NMST,1,SUBR,'gzmst')
+      CALL CHECK3(S0MST,LMO,NMST,1,SUBR,'s0mst')
+      CALL CHECK3(SXMST,LMO,NMST,1,SUBR,'sxmst')
+      CALL CHECK3(SZMST,LMO,NMST,1,SUBR,'szmst')
+      CALL CHECK3(MUST ,LMO,NMST,1,SUBR,'must')
+      CALL CHECK3(MSIST,2,NMST,1,SUBR,'msist')
+      CALL CHECK3(SSIST,LMI,NMST,1,SUBR,'hsist')
+      CALL CHECK3(HSIST,LMI,NMST,1,SUBR,'ssist')
+      CALL CHECK3(RSIST,NMST,1,1,SUBR,'rsist')
+      CALL CHECK3(RSIXST,NMST,1,1,SUBR,'rsxst')
+#ifdef TRACERS_OCEAN
+      CALL CHECK3(TRMST,LMO,NMST,NTM,SUBR,'trmst')
+      CALL CHECK3(TXMST,LMO,NMST,NTM,SUBR,'txmst')
+      CALL CHECK3(TZMST,LMO,NMST,NTM,SUBR,'tzmst')
+      CALL CHECK3(TRSIST,NTM,LMI,NMST,SUBR,'trist')
+#endif
+
+#ifdef TRACERS_OCEAN
+C**** Check conservation of water tracers in straits
+      do n=1,ntm
+        if (trname(n).eq.'Water') then
+          errmax = 0. ; nmax=1 ; lmax=1
+          do ns=1,nmst
+          do l=1,lmst(ns)
+            relerr=max(
+     *           abs(trmst(l,ns,n)-mmst(l,ns)+s0mst(l,ns)),
+     *           abs(txmst(l,ns,n)+sxmst(l,ns)),
+     *           abs(tzmst(l,ns,n)+szmst(l,ns)))/
+     *           (mmst(l,ns)-s0mst(l,ns))
+            if (relerr.gt.errmax) then
+              nmax=ns ; lmax=l ; errmax=relerr
+            end if
+          end do
+          end do
+          print*,"Relative error in straits fresh water mass after "
+     *         ,subr,":",nmax,lmax,errmax,trmst(lmax,nmax,n),mmst(lmax
+     *         ,nmax)-s0mst(lmax,nmax),txmst(lmax,nmax,n),-sxmst(lmax
+     *         ,nmax),tzmst(lmax,nmax,n),-szmst(lmax,nmax)
+
+C**** now straits ice
+          errmax = 0. ; nmax=1 ; lmax=1
+          do ns=1,nmst
+          do l=1,lmst(ns)
+              relerr=max(
+     *           abs(trsist(n,1,ns)-msist(1,ns)*xsi(1)+ssist(1,ns))
+     *           /(msist(1,ns)*xsi(1)-ssist(1,ns)),abs(trsist(n,2,ns)
+     *           -msist(1,ns)*xsi(2)+ssist(2,ns))/(msist(1,ns)*xsi(2)
+     *           -ssist(2,ns)),abs(trsist(n,3,ns)-msist(2,ns)*xsi(3)
+     *           +ssist(3,ns))/(msist(2,ns)*xsi(3)-ssist(3,ns))
+     *           ,abs(trsist(n,4,ns)-msist(2,ns)*xsi(4)+ssist(4,ns))
+     *           /(msist(2,ns)*xsi(4)-ssist(4,ns)))
+            if (relerr.gt.errmax) then
+              nmax=ns ; lmax=l ; errmax=relerr
+            end if
+          end do
+          end do
+          print*,"Relative error in straits ice mass after ",subr
+     *         ,":",nmax,lmax,errmax,trsist(n,1:4,nmax),msist(1,nmax)
+     *         *xsi(1:2)-ssist(1:2,nmax),msist(2,nmax)*xsi(3:4)
+     *         -ssist(3:4,nmax)
+        end if
+      end do
+#endif
+
+      END IF
+C****
+      END SUBROUTINE CHECKOST
