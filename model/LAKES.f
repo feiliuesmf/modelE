@@ -7,6 +7,7 @@
 C****
 C**** Changes from Model III: MO -> MWL (kg), G0M -> GML (J),
 C****    GZM -> TLAKE (deg C)
+C**** Note that ZATMO is now geopotential = topography * grav
 !@var KDIREC directions for river flow
 C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       INTEGER, DIMENSION(IM,JM) :: KDIREC
@@ -27,7 +28,7 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 !@sum  init_LAKES initiallises lake variables
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : rhow,shw
+      USE CONSTANT, only : rhow,shw,grav
       USE E001M12_COM, only : im,jm,flake,zatmo,dtsrc,flice,hlake,ftype
      *     ,fland,itlake,itlkice
       USE OCEAN, only : tocean
@@ -191,7 +192,7 @@ C****
           IF(KDIREC(IU,JU).gt.0) THEN
             JD=JFLOW(IU,JU)
             ID=IFLOW(IU,JU)
-            DZDH  = (ZATMO(IU,JU)-ZATMO(ID,JD)) / DHORZ(IU,JU)
+            DZDH  = (ZATMO(IU,JU)-ZATMO(ID,JD)) / (GRAV*DHORZ(IU,JU))
             SPEED = SPEED0*DZDH/DZDH1
             IF(SPEED.lt.SPMIN)  SPEED = SPMIN
             IF(SPEED.gt.SPMAX)  SPEED = SPMAX
@@ -259,16 +260,16 @@ C             DGM = GML(IU,JU)*DMM/MWL(IU,JU)   ! if well mixed
               EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
               AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) +  DMM
               AIJ(ID,JD,IJ_ERVR)=AIJ(ID,JD,IJ_ERVR)+
-     *             (DGM+GRAV*DMM*(ZATMO(IU,JU)-ZATMO(ID,JD)))
+     *             (DGM+DMM*(ZATMO(IU,JU)-ZATMO(ID,JD)))
               IF(FOCEAN(ID,JD).le.0.) THEN
                 FLOW(ID,JD) =  FLOW(ID,JD) + DMM
                 EFLOW(ID,JD) = EFLOW(ID,JD) +
-     +               DGM+GRAV*DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
+     +               DGM+DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
               ELSE ! Save river mouth flow to for output to oceans
 c                K=KDIREC(IU,JU)
                 FLOWO(ID,JD)=FLOWO(ID,JD)+DMM
                 EFLOWO(ID,JD)=EFLOWO(ID,JD)+DGM
-     *               +GRAV*DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
+     *               +DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
 C**** move application to ocean to ocean code
 c      GXM(ID,JD,1) = GXM(ID,JD,1) - XK(K)*(DGM -
 c     * (G0M(ID,JD,1)+XK(K)*GXM(ID,JD,1))*(DMM/(MO(ID,JD,1)*DXYPO(JD))))
@@ -280,7 +281,7 @@ c      SYM(ID,JD,1) = SYM(ID,JD,1) + YK(K)*
 c     * (S0M(ID,JD,1)+YK(K)*SYM(ID,JD,1))*(DMM/(MO(ID,JD,1)*DXYPO(JD)))
 c       MO(ID,JD,1) =  MO(ID,JD,1) + BYDXYPO(JD)* DMM
 c      G0M(ID,JD,1) = G0M(ID,JD,1) +
-c     *               DGM+GRAV*DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
+c     *               DGM+DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
               END IF
             END IF
           END IF
@@ -301,10 +302,10 @@ C       DGM = GML(1,1)*DMM/MWL(1,1)
         EFLOW(1,1) = EFLOW(1,1) - DGM
         AIJ(IDPOLE,JDPOLE,IJ_MRVR)=AIJ(IDPOLE,JDPOLE,IJ_MRVR) +  DMM
         AIJ(IDPOLE,JDPOLE,IJ_ERVR)=AIJ(IDPOLE,JDPOLE,IJ_ERVR) + (DGM
-     *       +GRAV*DMM*(ZATMO(1,1)-ZATMO(IDPOLE,JDPOLE)))
+     *       +DMM*(ZATMO(1,1)-ZATMO(IDPOLE,JDPOLE)))
          FLOW(IDPOLE,JDPOLE) =  FLOW(IDPOLE,JDPOLE) + IM*DMM
         EFLOW(IDPOLE,JDPOLE) = EFLOW(IDPOLE,JDPOLE) +
-     +       IM*(DGM+GRAV*DMM*(ZATMO(1,1)-ZATMO(IDPOLE,JDPOLE)))
+     +       IM*(DGM+DMM*(ZATMO(1,1)-ZATMO(IDPOLE,JDPOLE)))
       END IF
 C****
 C**** Apply net river flow to continental reservoirs
@@ -724,7 +725,7 @@ C****
       DO J=1,JM
         LKE(J)=0.
         DO I=1,IMAXJ(J)
-          LKE(J)=LKE(J)+GML(I,J)+ZATMO(I,J)*MWL(I,J)*GRAV
+          LKE(J)=LKE(J)+GML(I,J)+ZATMO(I,J)*MWL(I,J)
         END DO
       END DO
       RETURN
