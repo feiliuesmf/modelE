@@ -22,7 +22,7 @@
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
      &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,
      &     jl_mchphas,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,
-     *     ij_ctpi,ij_taui,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,        
+     *     ij_ctpi,ij_taui,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,
      *     ij_sstabx,isccp_diags
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
@@ -44,7 +44,7 @@
 #endif
 #endif
       USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subroutines
-     *     ,airm,byam,etal,sm,smom,qm,qmom
+     *     ,airm,byam,etal,sm,smom,qm,qmom,isc
      *     ,tl,ris,ri1,ri2,aj8,aj11,aj13,aj50,aj51,aj52,aj53,aj57
      *     ,wml,sdl,u_0,v_0,um,vm,qs,us,vs,dcl,airxl,prcpss,hcndss
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl
@@ -78,18 +78,20 @@
       REAL*8,  PARAMETER :: DELTX=.608d0
 
       INTEGER I,J,K,L  !@var I,J,K,L loop variables
-      INTEGER JR,KR,ITYPE,IT,IH
+      INTEGER JR,KR,ITYPE,IT,IH,LP850,LP600
 !@var JR = JREG(I,J)
 !@var KR index for regional diagnostics
 !@var ITYPE index for snow age
 !@var IT index for surface types
+!@var LP850 layer near 850 mb
+!@var LP600 layer near 600 mb
 !@var LERR,IERR error reporting
       INTEGER :: LERR, IERR
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
 
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,ALPHAS
       REAL*8 :: DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV1,THV2,QG,TGV
-      REAL*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG,SSTAB
+      REAL*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG,SSTAB,DIFT,CSC
 !@var HCNDMC heating due to moist convection
 !@var PRCP precipipation
 !@var TPRCP temperature of precip  (deg. C)
@@ -98,7 +100,7 @@
 !@var WMERR DH12,BYDH12,DH1S,BYDH1S,SSTAB dummy variable
 !@var THSV,THV1,THV2 vertual potential temperatures
 !@var QG,TGV ground humidity,virt.temperature from pbl
-!@var ALPHA1,ALPHA2,ALPHAS dummy variables
+!@var ALPHA1,ALPHA2,ALPHAS,DIFT,CSC dummy variables
 !@var DTDZ,DTDZS,DTDZG vertical potential temperature gradients
 !@var DUDZ,DVDZ,DUDZS,DVDZS,DUDZG,DVDZG vertical wind gradients
 
@@ -401,6 +403,37 @@ C****
       AQ(:)=(QL(:)-QTOLD(:,I,J))*BYDTsrc
       RNDSS1L(:)=RNDSS1(:,I,J)
       RNDSS2L(:)=RNDSS2(:,I,J)
+C****
+C**** COMPUTE STRATOCUMULUS CLOUDS USING PHILANDER'S FORMULA
+C****
+       CSC=0.D0
+       IF (ISC.EQ.1.AND.FOCEAN(I,J).GT..5D0) THEN
+         LP600=LM
+         LP850=LM                                 
+         DO L=2,LM
+          IF(L.GT.LP600) EXIT
+          IF(PL(L).LT.600.D0) THEN
+           LP600=L
+           IF(600.D0-PL(L).GT.PL(L-1)-600.D0) LP600=L-1
+          ENDIF
+         ENDDO
+         DO L=2,LM
+          IF(L.GT.LP850) EXIT
+          IF(PL(L).LT.850.D0) THEN
+           LP850=L
+           IF(850.D0-PL(L).GT.PL(L-1)-850.D0) LP850=L-1
+          ENDIF
+         ENDDO
+         IF(SDL(LP600)+SDL(LP600+1).GT.0.D0) THEN
+         DIFT=TL(LP850)-TGV/(1.+DELTX*QG)
+         CSC=.031D0*DIFT+.623D0
+         IF(CSC.LT.0.D0) CSC=0.D0
+         ENDIF
+       ENDIF
+       CLDMCL(1)=CLDMCL(1)+CSC
+       IF(CSC.GT.0.D0) TAUMCL(1)=AIRM(1)*.08D0
+       IF(CLDMCL(1).GT.1.D0) CLDMCL(1)=1.D0
+C     IF(CSC.GT.0.) WRITE (6,*) I,J,DCL,TL(LP850),TGV/(1.+DELTX*QG),CSC
 
 C**** COMPUTE RICHARDSON NUMBER FROM SURFACE CONDITIONS WHEN DEPTH OF
 C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
@@ -799,7 +832,7 @@ C$OMP  END PARALLEL DO
       USE CONSTANT, only : grav,by3
       USE MODEL_COM, only : dtsrc,ls1
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtr,U00ice
-     *  ,HRMAX
+     *  ,HRMAX,ISC      
       USE PARAM
 
       IMPLICIT NONE
@@ -808,6 +841,7 @@ C$OMP  END PARALLEL DO
       call sync_param( 'U00ice', U00ice )
       call sync_param( "LMCM", LMCM )
       call sync_param( "HRMAX", HRMAX )
+      call sync_param( "ISC", ISC)
 
       IF(LMCM.LT.0) LMCM = LS1-1
       call set_param( "LMCM", LMCM, 'o' )

@@ -37,6 +37,8 @@ C**** parameters and constants
 C**** Set-able variables
 !@dbparam LMCM max level for originating MC plumes
       INTEGER :: LMCM = -1 ! defaults to LS1-1 if not set in rundeck
+!@dbparam ISC integer to turn on computation of stratocumulus clouds
+      INTEGER :: ISC = 0  ! set ISC=1 to compute stratocumulus clouds
 !@dbparam U00wtr critical humidity for water cloud condensation
       REAL*8 :: U00wtr = .7d0       ! default
 !@dbparam U00ice critical humidity for ice cloud condensation
