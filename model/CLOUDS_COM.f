@@ -49,14 +49,19 @@ C**** variables used (and saved) for gravity wave drag calculations
 !@var LLOW,LMID,LHI max levels for low, mid and high clouds
       INTEGER LLOW,LMID,LHI
 
-      CONTAINS
+      END MODULE CLOUDS_COM
 
-      SUBROUTINE INIT_CLOUDS_COM(grid)
+      SUBROUTINE ALLOC_CLOUDS_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE MODEL_COM, ONLY : IM,LM
+      USE CLOUDS_COM, ONLY : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV,
+     *                       CLDSAV1,FSS,TAUSS,TAUMC,CLDSS,CLDMC,
+     *                       CSIZMC,CSIZSS,ULS,VLS,UMC,VMC,TLS,QLS,
+     *                       TMC,QMC,DDM1,AIRX,LMC
       IMPLICIT NONE
       TYPE (DYN_GRID), INTENT(IN) :: grid
 
@@ -106,9 +111,7 @@ C**** Initialise some output used in dynamics
       LMC(:,:,J_0H:J_1H)=0
       AIRX(:,J_0H:J_1H)=0.
 
-      END SUBROUTINE INIT_CLOUDS_COM
-
-      END MODULE CLOUDS_COM
+      END SUBROUTINE ALLOC_CLOUDS_COM
 
       SUBROUTINE io_clouds(kunit,iaction,ioerr)
 !@sum  io_clouds reads and writes cloud arrays to file
