@@ -8,7 +8,8 @@ if [[ $# -lt 5 ]] ; then
     exit
 fi
 # Input files from rundeck (actually ${RUNID}ln)
-# This script uses TOPO,OSST,SICE,OCNML,MLMAX
+# This script uses (inputs) TOPO,OSST,SICE,OCNML,MLMAX,VFLX,RSFIC
+#               (tmp files) OHT,OCNOUT,SRCOR,XCORR,OHTLP,RSFNEW,SNOW
 
 cd ..
 MODEL_E_ROOT=$PWD
@@ -18,11 +19,12 @@ BIN_DIR=${DECKS_DIR}/$1_bin
 
 runID=$1 
 cd /u/cmrun/$runID
-rm -f RSFIC 
+rm -f RSFIC OHT
 
 do_uln=1 ; if [[ ! -L TOPO ]] ; then ${runID}ln ; do_uln=0 ; fi
 
-echo 'Enter rsf file for new initial conditions (absolute pathname):'  
+echo 'Enter rsf file for new initial conditions'
+echo "   (path from `pwd` or absolute pathname):"
 read rsfic 
 ln -s $rsfic RSFIC
 if [[ -s RSFIC ]]
@@ -44,12 +46,12 @@ echo "Reading in saved ocean data..."
 echo "  ${BIN_DIR}/vertflux.exe $1 $2 $3 $4 $5 > vertflux.$1.$3-$5.PRT "
 if ( ! ${BIN_DIR}/vertflux.exe $1 $2 $3 $4 $5 > vertflux.$1.$3-$5.PRT ) then
     echo " "
-    echo "  Problem reading in data. Aborting."
+    echo "  Problem reading in vertical flux data. Aborting."
     exit
 fi
 echo "Done"
 echo " "
-  mv fort.99  SRCOR.line.$1.$3-$5
+  mv SRCOR  SRCOR.line.$1.$3-$5
 
 echo "Finding climatological ocean temperatures below mixed layer..."
 echo "  ${BIN_DIR}/dec31.exe > dec31.PRT"
@@ -73,14 +75,14 @@ echo " "
 
 echo Output files in `pwd`:
 outfile=OTSPEC.$1.M250D.$3-$5
-mv fort.30 $outfile
+mv OHT $outfile
 echo "Saved ocean heat transports in file: " $outfile
 
-mv fort.99 oht$1.$3-$5.lpl   
+mv OHTLP oht$1.$3-$5.lpl   
 echo "Saved zonal ocean heat transports: " oht$1.$3-$5.lpl
 
 icfile=IMJAN.$1.O250D
-mv fort.9 $icfile ;       #do--put on raid, link to /u/cmrun
+mv RSFNEW $icfile ;       #do--put on raid, link to /u/cmrun
 echo "Saved modified init. condition file: " $icfile 
 $BIN_DIR/qc $icfile
 
@@ -89,5 +91,6 @@ cat SRCOR.line.$1.$3-$5
 
 # clean up
 
+rm SNOW XCORR OCNOUT
 if [[ ${do_uln} -eq 0 ]] ; then ${runID}uln ; fi
 

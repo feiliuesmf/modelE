@@ -1,52 +1,31 @@
-C**** For other runs change:  OM70Y to your climatol.ocn.file (15)
-C****                         Z12OM65.Y  to your max.MLD file   (25)
-C****                         ZM70  to your topography file   (26)
-C****                         SEP30 to last day of your run (modify)
-C****                         all PARAMETER statements (3)
-C**** Changes for B08 M9:  OM70Z,Z12OM250.Y,ZM70,IM=36
-C**** Changes for B23 M9:  OM70Z,Z12OM250.Y,ZM70,DEC31,IM=36,JDAY0=5
-C**** SEP30.OCN writes an output disk file containing ALL ocean data
-C**** on SEP30.  The values are obtained
-C**** by integrating in time from Day 1 and applying subroutine
-C**** OSTRUC.
-C**** Output: TGO = mixed layer temperature
-C****       ROICE = ratio ice/water in ocean
-C****        ICE2 = ice amount in ocean layer 2
-C****   27   TG2O = mean temperature from mixed layer to annual maximum
-C****       TG12O = ocean temperature at annual maximum mixed layer
-C****         Z1O = current mixed layer depth (on Sep 30)
+      program dec31
+!@sum dec31 integrate ocean heat fluxes through to dec31 and
+!@+   writes an output disk file containing ALL ocean data
+!@+   The values are obtained by integrating in time from Day 1 and
+!@+   applying subroutine OSTRUC.
 C****
-C**** Input: 15 = OM70Y      climatological ocean data
-C****        17 = sea ice data
-C****        18 = mixed layer depth
-C****        25 = Z12OM65.Y annual maximal mixed layer depths
-C****        26 = ZM70       topography
+C**** Output: 
+C****       TOCEAN(1) = mixed layer temperature
+C****       TOCEAN(2) = mean temperature from mixed layer to annual maximum
+C****       TOCEAN(3) = ocean temperature at annual maximum mixed layer
+C****         Z1O = current mixed layer depth (on Dec 31)
+C****
+C**** Input: OSST = climatological ocean data
+C****        SICE = sea ice data
+C****        OCNML = mixed layer depth
+C****        MLMAX = annual maximal mixed layer depths
+C****        TOPO = topography
+C****        SNOW = daily snow amounts (from vertflux)
 C****
       USE OCEAN 
       USE SEAICE_COM, only : rsi,msi,snowi 
       USE FILEMANAGER
       implicit none 
       integer i, j, k, last_day, kday, jday0, IH,   
-     *     months, monthe, month,iu_TOPO,iu_MLMAX
-
-      REAL*4 TGO(IM,JM),TG2O(IM,JM),TG12O(IM,JM),
-     *       ROICE(IM,JM),ACE2(IM,JM)
-      REAL*4 ODATA(IM,JM,7),PWATER(im,jm)
-      REAL*8 OUTDBL(IM,JM,6)
+     *     months, monthe, month, iu_TOPO, iu_MLMAX, iu_SNOW, iu_OCNOUT
       REAL*4 month_day(12)
-      CHARACTER*80 TITLE(7),TITLE0
+      CHARACTER*80 TITLE
       data month_day /31,28,31,30,31,30,31,31,30,31,30,31/ 
-C****
-C**** Contents of OCLIMD
-C****
-      DATA TITLE/
-     1  '  TGO = Ocean Temperature of Mixed Layer (C)',
-     2  'ROICE = Ratio of Ocean Ice to Water (1)',
-     3  ' ACE2 = Ocean Ice Amount in Second Layer (kg/m**2)',
-     4  '  Z1O = MIXED LAYER DEPTH (M)',
-     5  ' Z12O = DEPTH OF BOTTOM OF SECOND LAYER (M)',
-     6  ' TG2O = OCEAN TEMPERATURE OF SECOND LAYER (C)',
-     7  'TG12O = OCEAN TEMPERATURE AT BOTTOM OF SECOND LAYER (C)'/
 C****
 C**** Read in FOCEAN - ocean fraction
 C****
@@ -54,12 +33,7 @@ C****
       CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
       call closeunit(iu_TOPO)
 C* 
-      DO J = 1,JM
-         DO I = 1,IM
-            PWATER(I,J) = FOCEAN(I,J)
-            fland (i,j) = 1.- focean(i,j) 
-         end do
-      end do
+      fland = 1.- focean
 C* 
 C**** Read in aux. sea-ice file
 C* 
@@ -79,6 +53,8 @@ C**** set up unit numbers for ocean climatologies
       call openunit("OSST",iu_OSST,.true.,.true.)
 C**** Set up unit number of mixed layer depth climatogies
       call openunit("OCNML",iu_OCNML,.true.,.true.)
+C**** open snow file
+      call openunit("SNOW",iu_SNOW,.true.,.true.)
 C****
 C**** Loop over days of the year
 C****
@@ -86,93 +62,68 @@ C****
       months = 1 
       monthe = 12 
       do month = months, monthe 
-         last_day = month_day(month) 
-         do kday = 1,last_day
+        last_day = month_day(month) 
+        do kday = 1,last_day
 C*
 C**** Interpolate daily ocean data from the monthly climatology
 C*
-         kocean = 0
-         jmon = month 
-         jdate = kday
-         CALL OCLIM (1)
-c* 
-         do j = 1,jm 
-         do i = 1,im 
-            roice(i,j) = rsi(i,j) 
-            ace2(i,j)  = msi(i,j) 
-            tgo(i,j) = tocean(1,i,j) 
-         end do
-         end do 
-C* 
+          kocean = 0
+          jmon = month 
+          jdate = kday
+          CALL OCLIM (1)
+
 C***  Read in the ocean mixed layer depth data 
 C***  and interpolate them for the current day 
-C* 
-         kocean = 1 
-         jday = jday + 1  
-         CALL OCLIM (1)          
-C* 
-C***  Read in ocean ice snow(+ 10 cm ice) data
-C* 
-         READ(77) TITLE0,SNOWI 
-         WRITE (6,*) TITLE0
-C* 
-         IF(month.eq.1 .and. kday.eq.1) THEN
-C*
-C**** Initialize TG2O and TG12O on Day 1
-C* 
-           DO J = 1,JM
-           DO I = 1,IM
-              TG2O(I,J) = TGO(I,J) 
-              TG12O(I,J) = TGO(I,J) 
-           END DO
-           END DO
-         ELSE 
-C*
+          kocean = 1 
+          jday = jday + 1  
+          CALL OCLIM (1)          
+
+C***  Read in ocean ice snow data
+          READ(iu_SNOW) TITLE,SNOWI 
+          WRITE (6,*) TITLE
+
+          IF(month.eq.1 .and. kday.eq.1) THEN
+C**** Initialize TOCEAN(2) and TOCEAN(3) on Day 1
+            DO J = 1,JM
+              DO I = 1,IM
+                TOCEAN(2:3,I,J) = TOCEAN(1,I,J)
+              END DO
+            END DO
+          ELSE 
 C**** Restructure the ocean temperature profile on subsequent days
-C* 
-           CALL OSTRUC(.false.)
-C* 
-           DO J = 1,JM
-           DO I = 1,IM
-              TOCEAN(1,I,J) = TGO(I,J) 
-              TOCEAN(2,I,J) = TG2O(I,J)
-              TOCEAN(3,I,J) = TG12O(I,J) 
-           END DO
-           END DO
-         END IF 
-       end do
-       print*,"Z1O,Z12O,TOCEAN(1:3)",Z1O(71,23),Z12O(71,23),TOCEAN(1:3
-     *      ,71,23)
+            CALL OSTRUC(.false.)
+          END IF 
+        end do
+        print*,"Z1O,Z12O,TOCEAN(1:3)",Z1O(71,23),Z12O(71,23),TOCEAN(1:3
+     *       ,71,23)
       end do
-      CLOSE(77) 
+      CLOSE(iu_SNOW) 
 C****
-C**** Write Z1O, TG2O and TG12O to a disk file in REAL*8
+C**** Write Z1O, TOCEAN to a disk file
 C****
-      DO 350 J=1,JM
-      DO 350 I=1,IM
-      ODATA(I,J,1) =TOCEAN(1,I,J) 
-      ODATA(I,J,4) =Z1O(I,J) 
-      ODATA(I,J,5) =Z12O(I,J) 
-      ODATA(I,J,6) =TOCEAN(2,I,J) 
-      ODATA(I,J,7) =TOCEAN(3,I,J) 
-      OUTDBL(I,J,6)=Z1O(I,J)
-      OUTDBL(I,J,1)=TOCEAN(1,I,J)
-      OUTDBL(I,J,2)=ODATA(I,J,2)
-      OUTDBL(I,J,3)=ODATA(I,J,3)
-      OUTDBL(I,J,4)=TOCEAN(2,I,J)
-  350 OUTDBL(I,J,5)=TOCEAN(3,I,J)
-      WRITE (27) OUTDBL
-      REWIND 27
+      print*,"OCNOUT: TOC(1:3),Z1O" 
+      print*,"   Arc",TOCEAN(:,1,45),Z1O(1,45)
+      print*,"   Equ",TOCEAN(:,1,23),Z1O(1,23)
+      call openunit("OCNOUT",iu_OCNOUT,.true.,.false.)
+      WRITE (iu_OCNOUT) TOCEAN,Z1O
+      call closeunit(iu_OCNOUT)
       WRITE (6,940)
 C****
 C**** PRODUCE MAPS OF OCEAN DATA ON DEC 31
 C****
       jday0=1
       IH=24*(JDAY0-1)
-      DO 700 K=1,7
-      IF((K.EQ.2).OR.(K.EQ.3))  GO TO 700
-      CALL MAP1 (IM,JM,IH,TITLE(K),ODATA(1,1,K),PWATER,1.,0.,26)
-  700 CONTINUE
+      TITLE = '  TGO = Ocean Temperature of Mixed Layer (C)'
+      CALL MAP1(IM,JM,IH,TITLE,SNGL(TOCEAN(1,:,:)),SNGL(FOCEAN),1.,0.,0)
+      TITLE = ' TG2O = OCEAN TEMPERATURE OF SECOND LAYER (C)'
+      CALL MAP1(IM,JM,IH,TITLE,SNGL(TOCEAN(2,:,:)),SNGL(FOCEAN),1.,0.,0)
+      TITLE = 'TG12O = OCEAN TEMPERATURE AT BOTTOM OF SECOND LAYER (C)'
+      CALL MAP1(IM,JM,IH,TITLE,SNGL(TOCEAN(3,:,:)),SNGL(FOCEAN),1.,0.,0)
+      TITLE = '  Z1O = MIXED LAYER DEPTH (M)'
+      CALL MAP1(IM,JM,IH,TITLE,SNGL(Z1O),SNGL(FOCEAN),1.,0.,0)
+      TITLE = ' Z12O = DEPTH OF BOTTOM OF SECOND LAYER (M)'
+      CALL MAP1(IM,JM,IH,TITLE,SNGL(Z12O),SNGL(FOCEAN),1.,0.,0)
+
       STOP
 C****
   940 FORMAT ('0Z1O, TG2O and TG12O written on unit 2,',

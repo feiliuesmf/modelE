@@ -1,29 +1,22 @@
-C**** For other runs change:  O4X5... to your climatol.ocn.file (15)
-C****  (all but one affect    Z12OW250.Y  to your max.MLD file   (25)
-C****   printout comments     ZW40  to your topography file   (26)
-C****   only)                 NOV30 to last day of your run
-C****  ONLY ESSENTIAL CHANGE  all PARAMETER statements (3)
-C****                         B05  to run number
-C**** Changes for B08 M9:  OM70Z,Z12OM250.Y,ZM70,IM=36,JYEARS=5
-C**** Changes for B23 M9:  OM70Z,Z12OM250.Y,ZM70,DEC31,IM=36,JYEARS=5
-C**** OTSPEC.OCN reads the ocean vertical fluxes saved from a GCM
-C**** run, calculates the ocean energy from the climatological
-C**** ocean file, and accumulates the zeroeth and first harmonics
-C**** of each of those quantities.  The spectral coefficients are
-C**** used to calculate the zeroeth and first harmonics of the
-C**** ocean transports.
+      program otspec
+!@sum  otspec reads the ocean vertical fluxes saved from a GCM
+!@+   run, calculates the ocean energy from the climatological
+!@+   ocean file, and accumulates the zeroeth and first harmonics
+!@+   of each of those quantities.  The spectral coefficients are
+!@+   used to calculate the zeroeth and first harmonics of the
+!@+   ocean transports.
 C****
-C**** Input:
-C**** Input:  unit  1 - restart file of a run with prescribed ODATA
-C****         4 - XCORR produced by program   vertflux.B05.S
-C****        20 - flux data from run B05 W9
-C****        15 - O4X5.1979-93means    climatological ocean data
-C****        25 - Z12O.B4X5.AMIP.250M  ann max mixed layer depths
-C****        26 - Z4X500      topography
-C****        27 - dec31.O1-5.MLD.250M.DBL      O(1-5),Z1O at JAN 1
+C**** Input: RSFIC - restart file of a run with prescribed sst
+C****        VFLX - flux data from fixed sst run
+C****        OSST - climatological ocean data
+C****        MLMAX - ann max mixed layer depths
+C****        TOPO - topography
+C****        XCORR - XCORR produced by program (from vertflux.f)
+C****        OCNOUT - ocean conditions for start of new run (from dec31.f)
 C**** Output:
-C****        30 - OTSPEC.RB150.M250D
-C**** Output: unit  9 - augmented restart file
+C****        OHT - OTSPEC.RB150.M250D
+C****      OHTLP - line plottable zonal northward heat transports
+C****     RSFNEW - augmented restart file
 C****
       USE CONSTANT, only : twopi,sday
       USE MODEL_COM, only: im,jm,lm,iowrite_mon,irerun  
@@ -39,16 +32,15 @@ C****
      *        last_year, jyears, jyear, i, j, k
       integer months, monthe, itime1, month, kday, last_day
       REAL*8 COT(IM,JM),AOT(IM,JM,4),BOT(IM,JM,4)
-      REAL*4  AMPOT(IM,JM),PHAOT(IM,JM),COTS(IM,JM),TAU4
+      REAL*4 AMPOT(IM,JM),PHAOT(IM,JM),COTS(IM,JM),TAU4
       REAL*8 ARG,COSDAY(4),SINDAY(4),VFX, XCORR, SYEARS, OMEG, OE, 
      *  CV(IM,JM),AV(IM,JM,4),BV(IM,JM,4),AE(IM,JM,4),BE(IM,JM,4)
       CHARACTER*80 TITLE(5),TITLE0, RunID, file_name
-      REAL*4 PWATER(IM,JM), month_day(12)
-      REAL*8 TGO(IM,JM),ROICE(IM,JM),ACE2(IM,JM),
-     *       TG2O(IM,JM),TG12O(IM,JM)   
-      INTEGER iu_AIC,ioerr,iu_TOPO,iu_MLMAX
+      REAL*4 month_day(12)
+      INTEGER iu_AIC,ioerr,iu_TOPO,iu_MLMAX,iu_VFLX,iu_OHTLP,iu_OCNOUT
+     *     ,iu_XCORR,iu_OHT
       INTEGER ItimeX
-      REAL*8 onht(jm)
+      REAL*8 onht(jm),toceansv(3,IM,JM)
 C****
       character*4 month_name(12), tmonth, tyear  
       data month_name /'JAN ','FEB ','MAR ','APR ','MAY ','JUN ',
@@ -62,7 +54,7 @@ C****
      4  'Cosine coefficient of Ocean Transport (W/m**2)',
      5  'Sine coefficient of Ocean Transport (W/m**2)'/
 C****
-C**** Ocean vertical flux data saved from run B210M9
+C**** Ocean vertical flux data saved from run 
 C****    K= 1  ACE1I+SNOWOI  (instantaneous at noon GMT)
 C****       2  TG1OI  (instantaneous at noon GMT)
 C****       3  TG2OI  (instantaneous at noon GMT)
@@ -86,8 +78,10 @@ C****
       read(title0,*) last_year
       jyears = last_year-first_year+1 
 C* 
-      READ(4) XCORR
+      call openunit("XCORR",iu_XCORR,.true.,.true.)
+      READ(iu_XCORR) XCORR
       WRITE(6,*) ' XCORR=',XCORR
+      call closeunit(iu_XCORR)
 C****
 C**** Read in input files
 C****
@@ -108,22 +102,16 @@ C*
 C* 
 C**** Read in ocean data below mixed layer on December 31
 C*
-      READ (27) Z1O,Z1O,Z1O,TG2O,TG12O,Z1O
-      WRITE(6,*)'Z1O, TG2O, TG12O read on unit 27',Z1O(71,23),Z1O(71,24)
-     *     ,TG2O(71,23),TG2O(71,24),TG12O(71,23),TG12O(71,24)
+      call openunit("OCNOUT",iu_OCNOUT,.true.,.true.)
+      READ (iu_OCNOUT) TOCEAN,Z1O
+      WRITE(6,*)'TOCEAN,Z1O read from OCNOUT',TOCEAN(:,1,45),Z1O(1,45)
+     *     ,TOCEAN(:,1,23),Z1O(1,23)
+      call closeunit(iu_OCNOUT)
 C* 
 C**** Zero out spectral coefficients
 C* 
-      DO 120 J=1,JM
-      DO 120 I=1,IM
-      PWATER(I,J) = FOCEAN(I,J) 
-      FLAND (I,J) = 1. - FOCEAN(I,J) 
-      CV(I,J) = 0.
-      DO 120 K=1,4
-      AV(I,J,K) = 0.
-      BV(I,J,K) = 0.
-      AE(I,J,K) = 0.
-  120 BE(I,J,K) = 0.
+      CV = 0. ; AV = 0. ; BV = 0. ; AE = 0. ; BE = 0.
+      FLAND = 1. - FOCEAN 
 C****
 C**** Calculate spherical geometry
 C****
@@ -135,156 +123,157 @@ C**** Set up unit number of mixed layer depth climatogies
 C****
 C**** Loop over years of data and days in the year
 C****
-      DO 320 JYEAR=first_year,last_year
-         months = 1 
-         monthe = 12 
-         if (jyear .eq. first_year) months = first_month 
-         if (jyear .eq. last_year)  monthe = last_month 
-         jday = JDendOfM(first_month-1)
-         do month = months, monthe 
-            tmonth = month_name(month) 
-            write (tyear, '(i4.4)') jyear
-            file_name= 
-     *  '/u/cmrun/'//trim(RunID)//'/VFLXO'//trim(tmonth)//tyear
-            open (20,file=file_name,form='unformatted')
-            last_day = month_day(month) 
-            do kday = 1,last_day
-               jday = jday + 1 
-               ARG  = JDAY*TWOPI/365.
-               DO K=1,4
-                  COSDAY(K) = DCOS(K*ARG)
-                  SINDAY(K) = DSIN(K*ARG) 
-               END DO
+      DO JYEAR=first_year,last_year
+        months = 1 
+        monthe = 12 
+        if (jyear .eq. first_year) months = first_month 
+        if (jyear .eq. last_year)  monthe = last_month 
+        jday = JDendOfM(first_month-1)
+        do month = months, monthe 
+          tmonth = month_name(month) 
+          write (tyear, '(i4.4)') jyear
+          file_name= 
+     *         '/u/cmrun/'//trim(RunID)//'/VFLXO'//trim(tmonth)//tyear
+          call openunit(file_name,iu_VFLX,.true.,.true.)
+          last_day = month_day(month) 
+          do kday = 1,last_day
+            jday = jday + 1 
+            ARG  = JDAY*TWOPI/365.
+            DO K=1,4
+              COSDAY(K) = DCOS(K*ARG)
+              SINDAY(K) = DSIN(K*ARG) 
+            END DO
 C*
-               READ (20, END=555) itime,OA,itime1 
+            READ (iu_VFLX, END=555) itime,OA,itime1 
 C* 
 C**** Interpolate daily ocean data from the monthly climatology
 C*
-               kocean = 0 
-               jmon = month 
-               jdate = kday
-               CALL OCLIM (1)
-C*             
-               do j = 1,jm 
-                  do i = 1,im 
-                     roice(i,j) = rsi(i,j) 
-                     ace2(i,j)  = msi(i,j) 
-                     tgo(i,j) = tocean(1,i,j) 
-                  end do 
-               end do 
-C* 
+            kocean = 0 
+            jmon = month 
+            jdate = kday
+            CALL OCLIM (1)
+
 C***  Read in the ocean mixed layer depth data 
 C***  and interpolate them for the current day 
+            kocean = 1 
+            CALL OCLIM (1)          
 C* 
-               kocean = 1 
-               CALL OCLIM (1)          
-C* 
-               DO J = 1,JM 
-                  DO I = 1,IM 
-                     SNOWI(I,J) = OA(I,J,1) - ACE1I  
-                  END DO
-               END DO
-           CALL OSTRUC(.false.)
+            DO J = 1,JM 
+              DO I = 1,IM 
+                SNOWI(I,J) = OA(I,J,1) - ACE1I  
+              END DO
+            END DO
+            CALL OSTRUC(.false.)
 C****
 C**** Calculate the vertical flux (J/m**2) and ocean energy (J/m**2)
 C****
-      DO 310 J=1,JM
-      DO 310 I=1,IMAXJ(J)
-      IF(PWATER(I,J).LE.0.)  GO TO 310
-      VFX = OA(I,J,4)
-     * + (1.-ROICE(I,J))*(OA(I,J,6)+OA(I,J,7)+OA(I,J,8)+XCORR*OA(I,J,5))
-     * + ROICE(I,J)*(OA(I,J,9)+OA(I,J,10)+OA(I,J,11)+XCORR*OA(I,J,12))
+            DO J=1,JM
+              DO I=1,IMAXJ(J)
+                IF(FOCEAN(I,J).LE.0.)  CYCLE
+                VFX = OA(I,J,4)
+     *               + (1.-RSI(I,J))*(OA(I,J,6)+OA(I,J,7)+OA(I,J,8)
+     *               +XCORR*OA(I,J,5))+ RSI(I,J)*(OA(I,J,9)+OA(I,J,10)
+     *               +OA(I,J,11)+XCORR*OA(I,J,12))
 C* 
-      OE = ROICE(I,J)*(OA(I,J,1)*(OA(I,J,2)*SHI-LHM)
-     *               + ACE2(I,J)*(OA(I,J,3)*SHI-LHM))
-     *   + ((Z1O(I,J)*RHOW-(OA(I,J,1)+ACE2(I,J))*ROICE(I,J))*TGO(I,J)
-     *   +  (Z12O(I,J)-Z1O(I,J))*RHOW*TG2O(I,J))*SHW
+                OE = RSI(I,J)*(OA(I,J,1)*(OA(I,J,2)*SHI-LHM)
+     *               + MSI(I,J)*(OA(I,J,3)*SHI-LHM))
+     *               + ((Z1O(I,J)*RHOW-(OA(I,J,1)+MSI(I,J))*RSI(I,J))
+     *               *TOCEAN(1,I,J)+
+     *               (Z12O(I,J)-Z1O(I,J))*RHOW*TOCEAN(2,I,J))*SHW
 C* 
 C**** Accumulate the spectral coefficients
 C* 
-      CV(I,J) = CV(I,J) + VFX
-      DO 305 K=1,4
-      AV(I,J,K) = AV(I,J,K) + VFX*COSDAY(K)
-      BV(I,J,K) = BV(I,J,K) + VFX*SINDAY(K)
-      AE(I,J,K) = AE(I,J,K) + OE *COSDAY(K)
-  305 BE(I,J,K) = BE(I,J,K) + OE *SINDAY(K)
-  310 CONTINUE
-      end do
-      end do
-  320 CONTINUE
+                CV(I,J) = CV(I,J) + VFX
+                DO K=1,4
+                  AV(I,J,K) = AV(I,J,K) + VFX*COSDAY(K)
+                  BV(I,J,K) = BV(I,J,K) + VFX*SINDAY(K)
+                  AE(I,J,K) = AE(I,J,K) + OE *COSDAY(K)
+                  BE(I,J,K) = BE(I,J,K) + OE *SINDAY(K)
+                END DO
+              END DO
+            END DO
+          end do
+          call closeunit(iu_VFLX)
+        end do
+      END DO
       SYEARS = SDAY*365.*JYEARS
 C****
 C**** SCALE AV TO W/M**2 , AE TO J/M**2 TO CALCULATE SPECTRAL COEFF
 C****
-      DO 330 J=1,JM
-      DO 330 I=1,IM
-      CV(I,J) = CV(I,J)/SYEARS
-      DO 330 K=1,4
-      AV(I,J,K) = AV(I,J,K)*2./SYEARS
-      BV(I,J,K) = BV(I,J,K)*2./SYEARS
-      AE(I,J,K) = AE(I,J,K)*2./(365.*JYEARS)
-  330 BE(I,J,K) = BE(I,J,K)*2./(365.*JYEARS)
+      DO J=1,JM
+      DO I=1,IM
+        CV(I,J) = CV(I,J)/SYEARS
+        DO K=1,4
+          AV(I,J,K) = AV(I,J,K)*2./SYEARS
+          BV(I,J,K) = BV(I,J,K)*2./SYEARS
+          AE(I,J,K) = AE(I,J,K)*2./(365.*JYEARS)
+          BE(I,J,K) = BE(I,J,K)*2./(365.*JYEARS)
+        END DO
+      END DO
+      END DO
 C****
 C**** Calculate the ocean transports spectral coefficients
 C****
       OMEG = TWOPI/(SDAY*365.)
-      DO 410 J=1,JM
-      DO 410 I=1,IMAXJ(J)
-      IF(PWATER(I,J).LE.0.)  GO TO 410
-      COT(I,J) =                      - CV(I,J)
-      DO 405 K=1,4
-      AOT(I,J,K) =  BE(I,J,K)*K*OMEG - AV(I,J,K)
-  405 BOT(I,J,K) = -AE(I,J,K)*K*OMEG - BV(I,J,K)
-  410 CONTINUE
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
+        IF(FOCEAN(I,J).LE.0.)  CYCLE
+        COT(I,J) =  -CV(I,J)
+        DO K=1,4
+          AOT(I,J,K) =  BE(I,J,K)*K*OMEG - AV(I,J,K)
+          BOT(I,J,K) = -AE(I,J,K)*K*OMEG - BV(I,J,K)
+        END DO
+      END DO
+      END DO
 C**** Compute phase and amplitude of ocean transports
-      DO 420 J=1,JM
-      DO 420 I=1,IMAXJ(J)
-      IF(PWATER(I,J).LE.0.)  GO TO 420
-      AMPOT(I,J) = SQRT(AOT(I,J,1)*AOT(I,J,1)+BOT(I,J,1)*BOT(I,J,1))
-      PHAOT(I,J) = ATAN2(BOT(I,J,1),AOT(I,J,1))*365./TWOPI
-  420 COTS(I,J)  = COT(I,J)
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
+        IF(FOCEAN(I,J).LE.0.) CYCLE
+        AMPOT(I,J) = SQRT(AOT(I,J,1)*AOT(I,J,1)+BOT(I,J,1)*BOT(I,J,1))
+        PHAOT(I,J) = ATAN2(BOT(I,J,1),AOT(I,J,1))*365./TWOPI
+        COTS(I,J)  = COT(I,J)
+      END DO
+      END DO
       TAU4 = itime
-      CALL MAP1 (IM,JM,ITIME,TITLE(1),AMPOT,PWATER,1.,0.,26)
-      CALL MAP1 (IM,JM,ITIME,TITLE(2),PHAOT,PWATER,1.,0.,26)
-      CALL MAP1 (IM,JM,ITIME,TITLE(3),COTS,PWATER,1.,0.,26)
+      CALL MAP1 (IM,JM,ITIME,TITLE(1),AMPOT,SNGL(FOCEAN),1.,0.,0)
+      CALL MAP1 (IM,JM,ITIME,TITLE(2),PHAOT,SNGL(FOCEAN),1.,0.,0)
+      CALL MAP1 (IM,JM,ITIME,TITLE(3),COTS ,SNGL(FOCEAN),1.,0.,0)
 C****
 C**** Write ocean transports spectral coefficients to disk
 C****
-      WRITE (30) BOT,AOT,COT
+      call openunit("OHT",iu_OHT,.true.,.false.)
+      WRITE (iu_OHT) BOT,AOT,COT
       print*,"OHT comp:",BOT(71,23,1:4),AOT(71,23,1:4),COT(71,23)
+      call closeunit(iu_OHT)
+
+C**** save tocean data
+      TOCEANSV=TOCEAN
 
 C**** Combine final restart file of PRESCRIBED OCEAN DATA model run
 C**** with mean & bottom temperature of 2nd ocean layer to create
 C**** Initial Conditions for a PREDICTED OCEAN DATA model run.
 C****
-
-      iu_AIC = 1
+      call openunit("RSFIC",iu_AIC,.true.,.true.)
       call io_rsf(iu_AIC,ItimeX,irerun,ioerr)
-      close (iu_AIC)
-
+      call closeunit(iu_AIC)
 C* 
-C***  Set the ocean temperature below the mixed layer 
+C****  Set the ocean temperature below the mixed layer 
 C* 
-      do j = 1,jm 
-        do i = 1,im 
-          tocean(2,i,j) = TG2O(i,j) 
-          tocean(3,i,j) = TG12O(i,j) 
-        end do 
-      end do
+      tocean(2:3,:,:) = toceansv(2:3,:,:)
 C* 
       ntimeacc = 1
       timing = 0 
       timestr = " " 
 C* 
-      iu_AIC = 9      
+      call openunit("RSFNEW",iu_AIC,.true.,.false.)
       call io_rsf(iu_AIC,ItimeX,iowrite_mon,ioerr)
-      close (iu_AIC)
+      call closeunit(iu_AIC)
 
 C**** Output aplot format file of ocean heat transports
       print*,"Calculating global northward heat transport..."
 
       onht(jm)=cot(1,jm)*im*dxyp(jm)*focean(1,jm)
-        write(*,*) cot(1,jm),1.e-15*onht(jm),dxyp(jm)
+      write(*,*) cot(1,jm),1.d-15*onht(jm),dxyp(jm)
       do j=jm-1,2,-1
         onht(j)=onht(j+1)
         do i=1,im
@@ -292,18 +281,22 @@ C**** Output aplot format file of ocean heat transports
         end do
       end do
 
-      write(99,*) 'Global Northward Ocean Heat Transport '
-      write(99,*) 'Latitude'
-      write(99,*) '10**15 W'
-      write(99,*) ' lat  ',RunID 
-      do j=2,jm
-        write(99,*) -92+(j-1)*4,1.e-15*onht(j)
-      end do
-      write(99,*) ' '
+      call openunit("OHTLP",iu_OHTLP,.false.,.false.)
 
+      write(iu_OHTLP,*) 'Global Northward Ocean Heat Transport '
+      write(iu_OHTLP,*) 'Latitude'
+      write(iu_OHTLP,*) '10**15 W'
+      write(iu_OHTLP,*) ' lat  ',RunID 
+      do j=2,jm
+        write(iu_OHTLP,*) lat_dg(j,2),1d-15*onht(j)
+      end do
+      write(iu_OHTLP,*) ' '
+
+      call closeunit(iu_OHTLP)
       WRITE(0,*) ' NORMAL END'
 
       STOP
  555  write (*,*) ' Reached end of file ',file_name  
+      call exit_rc (11)
       END
 
