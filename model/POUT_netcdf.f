@@ -24,11 +24,12 @@ C**** have to wait.
      &     outfile
      &    ,open_out,def_dim_out,set_dim_out,close_out
      &    ,status_out,varid_out,out_fid
-     &    ,ndims_out,dimids_out,file_dimlens
+     &    ,ndims_out,dimids_out,file_dimlens,var_name
      &    ,units,long_name,missing,real_att_name,real_att
      &    ,disk_dtype,prog_dtype,lat_dg
      &    ,iu_ij,im,jm,lm,lm_req,im_data
      &    ,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
+     &    ,def_missing,srt,cnt,write_whole_array
 
 !@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
       integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
@@ -51,6 +52,11 @@ C**** have to wait.
       integer :: varid_out
 !@var dimids_out dimension ID-numbers (1:ndims_out) of output field
       integer, dimension(7) :: dimids_out
+!@var srt start indices for output from current output field
+!@var cnt number of elements to output from current output field
+      integer, dimension(7) :: srt,cnt
+!@var var_name string containing name of current output field
+      character(len=30) :: var_name='' ! is reset to '' after each write
 !@var units string containing units of current output field
       character(len=30) :: units='' ! is reset to '' after each write
 !@var long_name description of current output field
@@ -69,6 +75,10 @@ C**** have to wait.
 
 !@param missing value to substitute for missing data
       real, parameter :: missing=-1.e30
+!@var def_missing flag whether to define a missing data attribute
+      logical :: def_missing=.false.
+!@var write_whole_array flag whether to write the entire array
+      logical :: write_whole_array=.false.
 
       integer, parameter :: real_att_max_size=100
 !@var real_att_name name of real attribute to write to output file
@@ -162,18 +172,15 @@ c-----------------------------------------------------------------------
       return
       end subroutine wrtgattc
 
-      subroutine wrtarr(var_name,var)
+      subroutine defarr
       use ncout
       implicit none
       include 'netcdf.inc'
-      character(len=30) :: var_name
-      REAL*8 :: var(1)
-      integer :: var_nelems,n
       status_out = nf_redef(out_fid)
 c check to make sure that variable isn't already defined in output file
       if(nf_inq_varid(out_fid,trim(var_name),varid_out)
      &                 .eq.nf_noerr) then
-         write(6,*) 'wrtarr: variable already defined: ',trim(var_name)
+         write(6,*) 'defarr: variable already defined: ',trim(var_name)
          call stop_model('stopped in POUT_netcdf.f',255)
       endif
       status_out=nf_def_var(out_fid,trim(var_name),disk_dtype,
@@ -187,124 +194,157 @@ c check to make sure that variable isn't already defined in output file
       if(len_trim(real_att_name).gt.0) status_out =
      &     nf_put_att_real(out_fid,varid_out,trim(real_att_name),
      &     nf_float,count(real_att.ne.missing),real_att)
-c define missing value attribute only if there are missing values
-      var_nelems = product(file_dimlens(dimids_out(1:ndims_out)))
-      do n=1,var_nelems
-         if(var(n).eq.missing) then
-            status_out = nf_put_att_real(out_fid,varid_out,
-     &           'missing_value',nf_float,1,missing)
-            exit
-         endif
-      enddo
+c define missing value attribute if requested
+      if(def_missing) status_out = nf_put_att_real(out_fid,varid_out,
+     &     'missing_value',nf_float,1,missing)
       status_out = nf_enddef(out_fid)
-      select case (prog_dtype)
-      case (nf_double)
-         status_out = nf_put_var_double(out_fid,varid_out,var)
-      case (nf_real  )
-         status_out = nf_put_var_real  (out_fid,varid_out,var)
-      case (nf_int   )
-         status_out = nf_put_var_int   (out_fid,varid_out,var)
-      case (nf_char  )
-         status_out = nf_put_var_text  (out_fid,varid_out,var)
-      end select
-c restore defaults
+c restore defaults (perhaps move this to end of setup_arrn)
+      var_name=''
       units=''
       long_name=''
       real_att_name=''
       real_att=missing
       disk_dtype = nf_real
       prog_dtype = nf_double
+      def_missing = .false.
+      write_whole_array = .false.
       return
-      end subroutine wrtarr
+      end subroutine defarr
 
-      subroutine wrtarrn(var_name,var,outer_pos)
-c this subroutine is like wrtarr, but writes the outer_pos-th element
-c of an arbitrarily shaped array.  when outer_pos=1, it defines the
-c array as well.  the first call to it for a particular array MUST have
-c outer_pos=1, otherwise it stops.
-c wrtarrn does not currently have the capability to write any real_atts
+      subroutine wrtdarr(var)
+      use ncout
+      implicit none
+      REAL*8 :: var(1)
+      write_whole_array = .true.
+      call wrtdarrn(var,1)
+      return
+      end subroutine wrtdarr
+      subroutine wrtrarr(var)
+      use ncout
+      implicit none
+      REAL*4 :: var(1)
+      write_whole_array = .true.
+      call wrtrarrn(var,1)
+      return
+      end subroutine wrtrarr
+      subroutine wrtiarr(var)
+      use ncout
+      implicit none
+      INTEGER :: var(1)
+      write_whole_array = .true.
+      call wrtiarrn(var,1)
+      return
+      end subroutine wrtiarr
+      subroutine wrtcarr(var)
+      use ncout
+      implicit none
+      character(len=*) :: var
+      write_whole_array = .true.
+      call wrtcarrn(var,1)
+      return
+      end subroutine wrtcarr
+
+      subroutine setup_arrn(outer_pos)
       use ncout
       implicit none
       include 'netcdf.inc'
-      character(len=30) :: var_name
-      REAL*8 :: var(1)
       integer :: outer_pos
-      integer :: var_nelems,n
-      integer, dimension(7) :: srt,cnt
-
-      if(ndims_out.lt.2)
-     &     call stop_model('wrtarrn: invalid ndims_out',255)
+      integer :: n
+      if(ndims_out.lt.2 .and. .not.write_whole_array)
+     &     call stop_model('setup_arrn: invalid ndims_out',255)
       if(outer_pos.le.0 .or.
      &     outer_pos.gt.file_dimlens(dimids_out(ndims_out))) then
-         write(6,*) 'wrtarrn: invalid outer_pos'
+         write(6,*) 'setup_arrn: invalid outer_pos'
          call stop_model('stopped in POUT_netcdf.f',255)
       endif
-
-      status_out = nf_redef(out_fid)
-
-c define the variable if outer_pos is 1
-      if(outer_pos.eq.1) then
-
-c check to make sure that variable isn't already defined in output file
-      if(nf_inq_varid(out_fid,trim(var_name),varid_out)
-     &                 .eq.nf_noerr) then
-         write(6,*) 'wrtarrn: variable already defined: ',trim(var_name)
-         call stop_model('stopped in POUT_netcdf.f',255)
-      endif
-      status_out=nf_def_var(out_fid,trim(var_name),disk_dtype,
-     &     ndims_out,dimids_out,varid_out)
-      if(len_trim(units).gt.0) status_out =
-     &     nf_put_att_text(out_fid,varid_out,
-     &     'units',len_trim(units),units)
-      if(len_trim(long_name).gt.0) status_out =
-     &     nf_put_att_text(out_fid,varid_out,
-     &     'long_name',len_trim(long_name),long_name)
-c define missing value attribute only if there are missing values
-      var_nelems = product(file_dimlens(dimids_out(1:ndims_out)))
-      do n=1,var_nelems
-         if(var(n).eq.missing) then
-            status_out = nf_put_att_real(out_fid,varid_out,
-     &           'missing_value',nf_float,1,missing)
-            exit
-         endif
-      enddo
-
-      else
-c check to make sure that variable is already defined in output file
-      if(nf_inq_varid(out_fid,trim(var_name),varid_out)
-     &                 .ne.nf_noerr) then
-         write(6,*) 'wrtarrn: variable not yet defined: ',trim(var_name)
-         call stop_model('stopped in POUT_netcdf.f',255)
-      endif
-
-      endif
-
-      status_out = nf_enddef(out_fid)
-
-      srt(1:ndims_out-1) = 1
-      srt(ndims_out) = outer_pos
-      do n=1,ndims_out-1
+      do n=1,ndims_out
+         srt(n) = 1
          cnt(n) = file_dimlens(dimids_out(n))
       enddo
-      cnt(ndims_out) = 1
-
-      select case (prog_dtype)
-      case (nf_double)
-         status_out = nf_put_vara_double(out_fid,varid_out,srt,cnt,var)
-      case (nf_real  )
-         status_out = nf_put_vara_real  (out_fid,varid_out,srt,cnt,var)
-      case (nf_int   )
-         status_out = nf_put_vara_int   (out_fid,varid_out,srt,cnt,var)
-      case (nf_char  )
-         status_out = nf_put_vara_text  (out_fid,varid_out,srt,cnt,var)
-      end select
-c restore defaults
-      units=''
-      long_name=''
-      disk_dtype = nf_real
-      prog_dtype = nf_double
+      if(.not.write_whole_array) then
+         srt(ndims_out) = outer_pos
+         cnt(ndims_out) = 1
+      endif
+c define variable if outer_pos=1
+      if(outer_pos.eq.1) then
+         call defarr
+      else
+c check to make sure that var_name is already defined in output file
+         if(nf_inq_varid(out_fid,trim(var_name),varid_out)
+     &        .ne.nf_noerr) then
+            write(6,*) 'setup_arrn: variable not yet defined: ',
+     &           trim(var_name)
+            if(.not.write_whole_array) write(6,*)
+     &           'first call to wrtXarrn must have outer_pos=1'
+            call stop_model('stopped in POUT_netcdf.f',255)
+         endif
+      endif
       return
-      end subroutine wrtarrn
+      end subroutine setup_arrn
+
+      subroutine wrtdarrn(var,outer_pos)
+c Writes the outer_pos-th element of the outermost dimension of an array.
+c When outer_pos=1, defines the array as well; hence the first call
+c for a particular array MUST have outer_pos=1.
+c Does not currently have the capability to write any real_atts.
+      use ncout
+      implicit none
+      include 'netcdf.inc'
+      REAL*8 :: var(1)
+      integer :: outer_pos
+      integer :: n
+      if(outer_pos.eq.1) then ! check for missing values
+         prog_dtype=nf_double
+         n = product(file_dimlens(dimids_out(1:ndims_out)))
+         if(any(var(1:n).eq.missing)) def_missing=.true.
+      endif
+      call setup_arrn(outer_pos)
+      status_out = nf_put_vara_double(out_fid,varid_out,srt,cnt,var)
+      return
+      end subroutine wrtdarrn
+      subroutine wrtrarrn(var,outer_pos)
+c like wrtdarrn but for real*4 data
+      use ncout
+      implicit none
+      include 'netcdf.inc'
+      REAL*4 :: var(1)
+      integer :: outer_pos
+      integer :: n
+      if(outer_pos.eq.1) then ! check for missing values
+         prog_dtype=nf_real
+         n = product(file_dimlens(dimids_out(1:ndims_out)))
+         if(any(var(1:n).eq.missing)) def_missing=.true.
+      endif
+      call setup_arrn(outer_pos)
+      status_out = nf_put_vara_real(out_fid,varid_out,srt,cnt,var)
+      return
+      end subroutine wrtrarrn
+      subroutine wrtiarrn(var,outer_pos)
+c like wrtdarrn but for integer data
+      use ncout
+      implicit none
+      include 'netcdf.inc'
+      integer :: var(1)
+      integer :: outer_pos
+      prog_dtype=nf_int
+      call setup_arrn(outer_pos)
+      status_out = nf_put_vara_int(out_fid,varid_out,srt,cnt,var)
+      return
+      end subroutine wrtiarrn
+      subroutine wrtcarrn(var,outer_pos)
+c like wrtdarrn but for character data
+      use ncout
+      implicit none
+      include 'netcdf.inc'
+      character(len=*) :: var
+      integer :: outer_pos
+      disk_dtype=nf_char
+      prog_dtype=nf_char
+      call setup_arrn(outer_pos)
+      status_out = nf_put_vara_text(out_fid,varid_out,srt,cnt,var)
+      return
+      end subroutine wrtcarrn
+
 
       subroutine open_ij(filename,im_gcm,jm_gcm)
 !@sum  OPEN_IJ opens the lat-lon binary output file
@@ -312,14 +352,14 @@ c restore defaults
 !@ver  1.0
       USE GEOM, only : lon_dg,lat_dg
       USE NCOUT, only : iu_ij,im,jm,set_dim_out,def_dim_out,units
-     *     ,outfile,out_fid,ndims_out,open_out
+     *     ,outfile,out_fid,ndims_out,open_out,var_name
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
 !@var IM_GCM,JM_GCM dimensions for ij output
       INTEGER, INTENT(IN) :: im_gcm,jm_gcm
 !
-      character(len=30) :: var_name,dim_name
+      character(len=30) :: dim_name
 
       outfile = trim(filename)//".nc"
 
@@ -339,16 +379,16 @@ C**** set dimensions
       ndims_out = 1
       dim_name='longitude'; call set_dim_out(dim_name,1)
       units='degrees_east'
-      var_name='longitude';call wrtarr(var_name,lon_dg(1,1))
+      var_name='longitude';call wrtdarr(lon_dg(1,1))
       dim_name='latitude'; call set_dim_out(dim_name,1)
       units='degrees_north'
-      var_name='latitude';call wrtarr(var_name,lat_dg(1,1))
+      var_name='latitude';call wrtdarr(lat_dg(1,1))
       dim_name='lonb'; call set_dim_out(dim_name,1)
       units='degrees_east'
-      var_name='lonb'; call wrtarr(var_name,lon_dg(1,2))
+      var_name='lonb'; call wrtdarr(lon_dg(1,2))
       dim_name='latb'; call set_dim_out(dim_name,1)
       units='degrees_north'
-      var_name='latb'; call wrtarr(var_name,lat_dg(2,2))
+      var_name='latb'; call wrtdarr(lat_dg(2,2))
 
       return
       end subroutine open_ij
@@ -389,7 +429,7 @@ C**** set dimensions
 !@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
       INTEGER, INTENT(IN) :: IJGRID
 
-      character(len=30) :: var_name,lon_name,lat_name
+      character(len=30) :: lon_name,lat_name
 
       out_fid = iu_ij
 
@@ -413,9 +453,9 @@ C**** set dimensions
       real_att_name='glb_mean'
       real_att(1)=xsum
       if(ijgrid.eq.1) then
-         call wrtarr(var_name,xij(1,1))
+         call wrtdarr(xij(1,1))
       else
-         call wrtarr(var_name,xij(1,2)) ! ignore first latitude row
+         call wrtdarr(xij(1,2)) ! ignore first latitude row
       endif
       return
       end
@@ -430,7 +470,7 @@ C**** set dimensions
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
-      character(len=30) :: var_name,dim_name
+      character(len=30) :: dim_name
 !@var LM_GCM,JM_GCM,lm_req_gcm dimensions for jl output
       INTEGER, INTENT(IN) :: lm_gcm,jm_gcm,lm_req_gcm
 !@var lat_dg_gcm latitude of mid points of grid boxs (deg)
@@ -462,37 +502,37 @@ C**** set dimensions
       ndims_out = 1
       dim_name='latitude'; call set_dim_out(dim_name,1)
       units='degrees_north'
-      var_name='latitude'; call wrtarr(var_name,lat_dg(1,1))
+      var_name='latitude'; call wrtdarr(lat_dg(1,1))
       dim_name='latb'; call set_dim_out(dim_name,1)
       units='degrees_north'
-      var_name='latb'; call wrtarr(var_name,lat_dg(2,2))
+      var_name='latb'; call wrtdarr(lat_dg(2,2))
       dim_name='p'; call set_dim_out(dim_name,1)
       units='mb'
-      var_name='p'; call wrtarr(var_name,plm)
+      var_name='p'; call wrtdarr(plm)
       dim_name='prqt'; call set_dim_out(dim_name,1)
       units='mb'
-      var_name='prqt'; call wrtarr(var_name,plm)
+      var_name='prqt'; call wrtdarr(plm)
       dim_name='ple_up'; call set_dim_out(dim_name,1)
       units='mb'
-      var_name='ple_up'; call wrtarr(var_name,ple)
+      var_name='ple_up'; call wrtdarr(ple)
       dim_name='ple_dn'; call set_dim_out(dim_name,1)
       units='mb'
-      var_name='ple_dn'; call wrtarr(var_name,ple_dn)
+      var_name='ple_dn'; call wrtdarr(ple_dn)
       dim_name='ple_int'; call set_dim_out(dim_name,1)
       units='mb'
-      var_name='ple_int'; call wrtarr(var_name,ple)
+      var_name='ple_int'; call wrtdarr(ple)
       dim_name='pgz'; call set_dim_out(dim_name,1)
       units='mb'
-      var_name='pgz'; call wrtarr(var_name,pmb(1:kgz_max))
+      var_name='pgz'; call wrtdarr(pmb(1:kgz_max))
       dim_name='p1'; call set_dim_out(dim_name,1)
       units='mb'
-      var_name='p1'; call wrtarr(var_name,pmb(1))
+      var_name='p1'; call wrtdarr(pmb(1))
       dim_name='odepth'; call set_dim_out(dim_name,1)
       units='m'
-      var_name='odepth'; call wrtarr(var_name,zoc)
+      var_name='odepth'; call wrtdarr(zoc)
       dim_name='odepth1'; call set_dim_out(dim_name,1)
       units='m'
-      var_name='odepth1'; call wrtarr(var_name,zoc1)
+      var_name='odepth1'; call wrtdarr(zoc1)
 
       return
       end subroutine open_jl
@@ -540,7 +580,7 @@ C**** set dimensions
 !@var PM pressure levels (MB)
       REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM
 
-      character(len=30) :: var_name,dim_name
+      character(len=30) :: dim_name
 
       CHARACTER*16, INTENT(IN) :: CX,CY
       INTEGER J,L
@@ -595,10 +635,10 @@ C**** set dimensions
 
       if(j1.eq.1) then
          xjl0(1:jm,1:klmax) = xjl(1:jm,1:klmax)
-         call wrtarr(var_name,xjl0)
+         call wrtdarr(xjl0)
       else
          xjl0b(1:jm-1,1:klmax) = xjl(2:jm,1:klmax)
-         call wrtarr(var_name,xjl0b)
+         call wrtdarr(xjl0b)
       endif
 
       return
@@ -615,7 +655,7 @@ C**** set dimensions
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
-      character(len=30) :: var_name,dim_name
+      character(len=30) :: dim_name
 !@var IM_GCM,LM_GCM,lm_req_gcm dimensions for il output
       INTEGER, INTENT(IN) :: im_gcm,lm_gcm,lm_req_gcm
 
@@ -640,25 +680,25 @@ C**** set units
       ndims_out = 1
       dim_name='longitude'; call set_dim_out(dim_name,1)
       units='degrees_east'
-      var_name='longitude'; call wrtarr(var_name,lon_dg(1,1))
+      var_name='longitude'; call wrtdarr(lon_dg(1,1))
       dim_name='lonb'; call set_dim_out(dim_name,1)
       units='degrees_east'
-      var_name='lonb'; call wrtarr(var_name,lon_dg(1,2))
+      var_name='lonb'; call wrtdarr(lon_dg(1,2))
       dim_name='p'; call set_dim_out(dim_name,1)
       units='mb'
-      var_name='p'; call wrtarr(var_name,plm)
+      var_name='p'; call wrtdarr(plm)
       dim_name='prqt'; call set_dim_out(dim_name,1)
       units='mb'
-      var_name='prqt'; call wrtarr(var_name,plm)
+      var_name='prqt'; call wrtdarr(plm)
       dim_name='ple_up'; call set_dim_out(dim_name,1)
       units='mb'
-      var_name='ple_up'; call wrtarr(var_name,ple)
+      var_name='ple_up'; call wrtdarr(ple)
       dim_name='ple_dn'; call set_dim_out(dim_name,1)
       units='mb'
-      var_name='ple_dn'; call wrtarr(var_name,ple_dn)
+      var_name='ple_dn'; call wrtdarr(ple_dn)
       dim_name='ple_int'; call set_dim_out(dim_name,1)
       units='mb'
-      var_name='ple_int'; call wrtarr(var_name,ple)
+      var_name='ple_int'; call wrtdarr(ple)
 
       return
       end subroutine open_il
@@ -705,7 +745,7 @@ C**** set units
       CHARACTER*16, INTENT(IN) :: CX,CY
       INTEGER I,L
       REAL*8 XTEMP(IM,LM+LM_REQ+1)
-      character(len=30) :: var_name,dim_name
+      character(len=30) :: dim_name
       character(len=20), intent(in) :: sname,unit
       character(len=80), intent(in) :: lname
 
@@ -753,7 +793,7 @@ C**** therefore shift array back to standard order.
       real_att_name='mean'
       real_att(1)=gsum
 
-      call wrtarr(var_name,xil)
+      call wrtdarr(xil)
 
       return
       end
@@ -773,7 +813,7 @@ C**** therefore shift array back to standard order.
 !@var lat_dg_gcm latitude of mid points of grid boxs (deg)
       REAL*8, INTENT(IN), DIMENSION(JM_GCM,2) :: lat_dg_gcm
 
-      character(len=30) :: var_name,dim_name
+      character(len=30) :: dim_name
 
       outfile = trim(filename)//".nc"
       call open_out
@@ -790,7 +830,7 @@ C**** set dimensions
       ndims_out = 1
       dim_name='latitude'; call set_dim_out(dim_name,1)
       units='degrees_north'
-      var_name='latitude';call wrtarr(var_name,lat_dg(1,1))
+      var_name='latitude';call wrtdarr(lat_dg(1,1))
 
       return
       end subroutine open_j
@@ -816,8 +856,6 @@ C**** set dimensions
       USE DAGCOM, only : KAJ
       USE NCOUT
       IMPLICIT NONE
-c temporary, to see nf_char
-      include 'netcdf.inc'
 c
       CHARACTER*16, DIMENSION(KAJ),INTENT(INOUT) :: TITLE
 !@var LNAME,SNAME,UNITS_IN information strings for netcdf
@@ -829,7 +867,7 @@ c
       INTEGER, INTENT(IN) :: KMAX,iotype
       INTEGER K,N,J
 
-      character(len=30) :: var_name,dim_name
+      character(len=30) :: dim_name
 
       out_fid = iu_j
 
@@ -837,9 +875,7 @@ c
       ndims_out = 2
       dim_name='stype_clen'; call set_dim_out(dim_name,1)
       dim_name='stype'; call set_dim_out(dim_name,2)
-      disk_dtype = nf_char
-      prog_dtype = nf_char
-      var_name='stype_names';call wrtarrn(var_name,terrain,iotype)
+      var_name='stype_names';call wrtcarrn(terrain,iotype)
 
 
 ! (re)set shape of output array
@@ -851,7 +887,7 @@ c
         var_name=sname(k)
         long_name=lname(k)
         units=units_in(k)
-        call wrtarrn(var_name,budg(1,k),iotype)
+        call wrtdarrn(budg(1,k),iotype)
       END DO
 
       return
@@ -864,14 +900,14 @@ c
       USE GEOM, only : lon_dg,lat_dg
       USE DAGCOM, only : plm
       USE NCOUT, only : im,jm,lm,iu_ijk,set_dim_out,def_dim_out,out_fid
-     *     ,outfile,units,ndims_out,open_out
+     *     ,outfile,units,ndims_out,open_out,var_name
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
 !@var IM_GCM,JM_GCM,LM_GCM dimensions for ijk output
       INTEGER, INTENT(IN) :: im_gcm,jm_gcm,lm_gcm
 !
-      character(len=30) :: var_name,dim_name
+      character(len=30) :: dim_name
 
       outfile = trim(filename)//".nc"
 
@@ -891,13 +927,13 @@ C**** set dimensions
       ndims_out = 1
       dim_name='longitude'; call set_dim_out(dim_name,1)
       units='degrees_east'
-      var_name='longitude';call wrtarr(var_name,lon_dg(1,2))
+      var_name='longitude';call wrtdarr(lon_dg(1,2))
       dim_name='latitude'; call set_dim_out(dim_name,1)
       units='degrees_north'
-      var_name='latitude';call wrtarr(var_name,lat_dg(2,2))
+      var_name='latitude';call wrtdarr(lat_dg(2,2))
       dim_name='p'; call set_dim_out(dim_name,1)
       units='mb'
-      var_name='p'; call wrtarr(var_name,plm)
+      var_name='p'; call wrtdarr(plm)
 
       return
       end subroutine open_ijk
@@ -936,7 +972,7 @@ C**** set dimensions
 !@var XK global sum/mean of output field
       REAL*8, DIMENSION(LM), INTENT(IN) :: XK
 
-      character(len=30) :: var_name,dim_name
+      character(len=30) :: dim_name
 
       integer :: j,l,jpack,lpack
 
@@ -971,7 +1007,7 @@ c pack first-j-empty :,jm,lm array to memory-contiguous :,jm-1,lm array
       long_name=lname
       units=units_in
 
-      call wrtarr(var_name,xijk)
+      call wrtdarr(xijk)
 
 c unpack memory-contiguous :,jm-1,lm memory to first-j-empty :,jm,lm array
       lpack = 1 + ((jm-1)*lm)/jm
@@ -997,16 +1033,15 @@ c unpack memory-contiguous :,jm-1,lm memory to first-j-empty :,jm,lm array
 !@ver  1.0
       USE DAGCOM, only : isccp_press,isccp_tau,isccp_lat
       USE NCOUT, only : im,jm,lm,iu_isccp,set_dim_out,def_dim_out,
-     &     out_fid,outfile,units,long_name,ndims_out,open_out,prog_dtype
+     &     out_fid,outfile,units,long_name,ndims_out,open_out
+     &     ,var_name
       IMPLICIT NONE
-c temporary, to see nf_int
-      include 'netcdf.inc'
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
 !@var ntau,npres,nisccp dimensions for isccp output
       INTEGER, INTENT(IN) :: ntau,npres,nisccp
 !
-      character(len=30) :: var_name,dim_name
+      character(len=30) :: dim_name
 
       outfile = trim(filename)//".nc"
 
@@ -1028,18 +1063,17 @@ C**** set dimensions
       dim_name='tau'; call set_dim_out(dim_name,1)
       units='1'
       long_name='lower bound of optical depth for each tau category'
-      var_name='tau';call wrtarr(var_name,isccp_tau)
+      var_name='tau';call wrtdarr(isccp_tau)
 
       dim_name='p'; call set_dim_out(dim_name,1)
       units='mb'
       long_name='midpoint pressure for each pressure category'
-      prog_dtype = nf_int ! isccp_press is an integer array for now
-      var_name='p';call wrtarr(var_name,isccp_press)
+      var_name='p';call wrtiarr(isccp_press)
 
       dim_name='lat'; call set_dim_out(dim_name,1)
       units='degrees_north'
       long_name='midpoint latitude for each latitude category'
-      var_name='lat'; call wrtarr(var_name,isccp_lat)
+      var_name='lat'; call wrtdarr(isccp_lat)
 
       return
       end subroutine open_isccp
@@ -1074,7 +1108,7 @@ C**** set dimensions
 !@var XIJK tau/height/lat output field
       REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: XIJK
 
-      character(len=30) :: var_name,dim_name
+      character(len=30) :: dim_name
 
       out_fid = iu_isccp
 
@@ -1092,7 +1126,7 @@ C**** set dimensions
       long_name=lname
       units=units_in
 
-      call wrtarr(var_name,xijk)
+      call wrtdarr(xijk)
 
       return
       end subroutine pout_isccp
@@ -1110,7 +1144,7 @@ C**** set dimensions
       INTEGER, INTENT(IN) :: hr_in_period,NDIUVAR_gcm
 !
       character(len=3) :: istr,jstr
-      character(len=30) :: var_name,dim_name,att_name
+      character(len=30) :: dim_name,att_name
       character(len=100) :: loc_info
       integer :: n
 
@@ -1143,7 +1177,7 @@ C**** set dimensions
 c      ndims_out = 1
 c      dim_name='hour'; call set_dim_out(dim_name,1)
 c      units='1'
-c      var_name='hour';call wrtarr(var_name,hours)
+c      var_name='hour';call wrtdarr(hours)
 
       return
       end subroutine open_diurn
@@ -1174,7 +1208,7 @@ c      var_name='hour';call wrtarr(var_name,hours)
       INTEGER, INTENT(IN) :: HR_IN_PERIOD,KP,IJDD1,IJDD2
       REAL*8, DIMENSION(im_data,jm), INTENT(IN) :: FHOUR
 
-      character(len=30) :: var_name,dim_name
+      character(len=30) :: dim_name
       integer :: k
 
       out_fid = iu_diurn
@@ -1189,7 +1223,7 @@ c      var_name='hour';call wrtarr(var_name,hours)
          var_name = namdd//'_'//trim(sname_in(k))
          long_name=trim(name_in(k))
          units=trim(units_in(k))
-         call wrtarr(var_name,fhour(1,k))
+         call wrtdarr(fhour(1,k))
       enddo
 
       return
@@ -1257,4 +1291,3 @@ c      var_name='hour';call wrtarr(var_name,hours)
 
       return
       end subroutine POUT_hdiurn
-
