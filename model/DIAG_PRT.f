@@ -4567,7 +4567,7 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
 !@auth G. Schmidt/M. Kelley
 !@ver  1.0
       USE CONSTANT, only : bygrav
-      USE DAGCOM, only : kaijk,kaijkx,UNITS_IJK,NAME_IJK,LNAME_IJK,
+      USE DAGCOM, only : kaijk,kaijkx,
      *   units_ijk,name_ijk,lname_ijk,scale_ijk  !  dagcom
       IMPLICIT NONE
       INTEGER :: K

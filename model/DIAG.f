@@ -2453,7 +2453,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : sday,kapa
       USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,sige,sig,ptop
-     *     ,pmtop,psfmpt,nfiltr,dtsrc,jhour,jdate,jmon,amon,jyear
+     *     ,pmtop,psfmpt,nfiltr,jhour,jdate,jmon,amon,jyear
      *     ,jhour0,jdate0,jmon0,amon0,jyear0,idacc,ioread_single
      *     ,xlabel,iowrite_single,iyear1,nday,dtsrc,dt,nmonav
      *     ,ItimeE,lrunid

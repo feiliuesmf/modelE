@@ -16,9 +16,9 @@ C
      B             ,WETTRA,WETSRA,FSXAER(5),FTXAER(5),FZSRA(6),FEMTRA(6)
      C             ,KWVCON,KEEPAL,KEEPRH,KEEP10,KCNORM,KCLDEP,ICE012,NV
      D             ,MADVES,MRELAY,MOZONE,KO3LON,NO3COL,NORMS0,KSOLAR
-     E             ,KTREND,NTRACE,ITR(8),NL,NLP,MLAT46,MLON72,LASTVC
+     E             ,KTREND,NTRACE,ITR(8),       MLAT46,MLON72,LASTVC
 C     INPUT DATA  not (i,j) dependent
-     X             ,S00WM2,RATLS0,S0,XXJDAY,JYEAR,JDAY,ISPARE(98)
+     X             ,S00WM2,RATLS0,S0,XXJDAY,           ISPARE(98)
 C     INPUT DATA  (i,j) dependent
             COMMON/RADCOM_local/JLAT,ILON
      F             ,PLB(LX),HLB(LX),TLB(LX),TLT(LX),TLM(LX)

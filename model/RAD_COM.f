@@ -55,7 +55,7 @@ C**** Local variables initialised in init_RAD
 !@var COE
       REAL*8, DIMENSION(LM+LM_REQ) :: COE
 !@var PLE0,QL0 global parts of local arrays (to avoid OMP-copyin)
-      REAL*8, DIMENSION(LM_REQ)       :: PLE0,QL0
+      REAL*8, DIMENSION(LM_REQ)       :: PLB0,SHL0
 !@var LLOW,LMID,LHI max levels for low, mid and high clouds
       INTEGER LLOW,LMID,LHI
 !@var SINJ,COSJ sines and cosines for zenith angle calculation

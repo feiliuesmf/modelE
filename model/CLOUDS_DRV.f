@@ -8,7 +8,7 @@
 
       USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
-     *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,sig,DTsrc,ftype
+     *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype
      *     ,ntype,itime,fim,airx,lmc,focean,fland,flice
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : tmom,qmom
@@ -35,7 +35,7 @@
       USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subroutines
      *     ,airm,byam,etal,sm,smomij=>smom,qm,qmomij=>qmom
      *     ,tl,ris,ri1,ri2,aj8,aj11,aj13,aj50,aj51,aj52,aj53,aj57
-     *     ,wml,sdl,u_0,v_0,um,vm,tf,qs,us,vs,dcl,airxl,prcpss,hcndss
+     *     ,wml,sdl,u_0,v_0,um,vm,qs,us,vs,dcl,airxl,prcpss,hcndss
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1

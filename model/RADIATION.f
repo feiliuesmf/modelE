@@ -5,6 +5,7 @@ C**** Weak puddling; Land Ice Alb set to 80% (95% vis) in Greenl/Antarct
 
       INCLUDE 'BR00B.COM'
       REAL*4 yr1S0,yr2S0
+      INTEGER :: NL=15,NLP=16,JYEAR=1980,JDAY=1
       SAVE
 
       CONTAINS
@@ -5677,7 +5678,7 @@ c****
       BSNNIR=ASNNIR+ASNAGE
       BOIVIS=AOIVIS*EXPSNO+BSNVIS*(1.D0-EXPSNO)
       BOINIR=AOINIR*EXPSNO+BSNNIR*(1.D0-EXPSNO)
-     
+
 c**** Puddlings: weak in both Hemispheres, i.e. if Ts > 0C, then
 c**** set albedos indep. of snow to .3/.15 up to .55/.3 as Ts grows
       if (kvega6.lt.-2) then
@@ -5767,7 +5768,7 @@ C****
      *   (JLAT.LT.45.AND.JLAT.GT.38.AND.ILON.LT.33.AND.ILON.GT.23)) THEN
           BLIVN(1)=BLIVIS
           XLIVN(1)=XLIVIS
-          DO L=2,6                    
+          DO L=2,6
             BLIVN(L)=BLINIR
             XLIVN(L)=XLINIR
           END DO
@@ -11353,13 +11354,13 @@ C
 C
       DATA   KSOLAR/1/,       KTREND/1/,    MADBAK/0/,        NV/11/
       DATA   KEEPRH/0/,       KEEP10/0/,    NO3COL/0/
-      DATA   KCNORM/0/,       KEEPAL/0/,    MRELAY/0/,        NL/15/
-      DATA   KCLDEP/4/,       KO3LON/0/,    MOZONE/5/,       NLP/16/
+      DATA   KCNORM/0/,       KEEPAL/0/,    MRELAY/0/
+      DATA   KCLDEP/4/,       KO3LON/0/,    MOZONE/5/
       DATA   MADGHG/1/,       MADSUR/1/,    ICE012/1/,    MLAT46/46/
       DATA   KWVCON/1/,       KSNORM/0/,    NORMS0/1/,    MLON72/72/
 C
-      DATA     JYEAR/1980/,   JLAT/ 7/,   S00WM2/1366.2911/, S0/1366.0/
-      DATA      JDAY/   1/,   ILON/18/,   COSZ/0.5000/
+      DATA                    JLAT/ 7/,   S00WM2/1366.2911/, S0/1366.0/
+      DATA                    ILON/18/,   COSZ/0.5000/
 C
 cg    DATA   POCEAN/0.700/,   TGO/288.15/,   AGESN/3*1./,    WMAG/2.00/
 cg    DATA   PEARTH/0.000/,   TGE/288.15/,   SNOWE/0.30/,  WEARTH/0.00/

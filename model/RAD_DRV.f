@@ -288,16 +288,16 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,kradia
       USE GEOM, only : dlat,lat_dg
       USE RE001, only : setnew,rcomp1,writer             ! routines
-     &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLE=>PLB, PTOPTR
-     *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, QL=>SHL
+     &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLB, PTOPTR
+     *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, SHL
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,llow,lmid,lhi,coe,sinj,cosj,H2ObyCH4,dH2O
-     *     ,ple0,ql0  ! saved to avoid OMP-copyin of input arrays
+     *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
       IMPLICIT NONE
 
       INTEGER J,L,LR,MADVEL
-      REAL*8 COEX,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS,PLB(LM+1)
+      REAL*8 COEX,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS,PLBx(LM+1)
 !@var NRFUN indices of unit numbers for radiation routines
       INTEGER NRFUN(14),IU
 !@var RUNSTR names of files for radiation routines
@@ -356,24 +356,24 @@ C****
       COEX=1d-2*GRAV*BYSHA
       DO L=1,LM
         COE(L)=DTsrc*COEX/DSIG(L)
-        PLE(L)=SIGE(L)*PSFMPT+PTOP
-        PLB(L)=PLE(L)           ! needed for CH4 prod. H2O
+        PLB(L)=SIGE(L)*PSFMPT+PTOP
+        PLBx(L)=PLB(L)           ! needed for CH4 prod. H2O
       END DO
-      PLE(LM+1)=SIGE(LM+1)*PSFMPT+PTOP
-      PLE(LM+2)=.5*PLE(LM+1)
-      PLE(LMR)=.2d0*PLE(LM+1)
-      PLE(LMR+1)=1d-5
+      PLB(LM+1)=SIGE(LM+1)*PSFMPT+PTOP
+      PLB(LM+2)=.5*PLB(LM+1)
+      PLB(LMR)=.2d0*PLB(LM+1)
+      PLB(LMR+1)=1d-5
       PTOPTR=PTOP ! top of sigma-coord.system
       DO LR=LM+1,LMR
-        COE(LR)=DTsrc*NRAD*COEX/(PLE(LR)-PLE(LR+1))
-        ple0(LR-LM) = ple(LR+1)
+        COE(LR)=DTsrc*NRAD*COEX/(PLB(LR)-PLB(LR+1))
+        PLB0(LR-LM) = PLB(LR+1)
       END DO
       if (kradia.gt.1) then
         do l=1,ls1-1
           COE(L)=DTsrc*nrad*COEX/DSIG(L)
         end do
         do l=ls1,lm
-          COE(L)=DTsrc*NRAD*COEX/(PLE(L)-PLE(L+1))
+          COE(L)=DTsrc*NRAD*COEX/(PLB(L)-PLB(L+1))
         end do
       end if
       PTLISO=15.
@@ -410,7 +410,7 @@ C****   Read in time history of well-mixed greenhouse gases
         if (H2ObyCH4.gt.0.and.Kradia.le.0) then
 C****     Read in dH2O: H2O prod.rate in kg/m^2 per second and ppm_CH4
           call openunit('dH2O',iu,.false.,.true.)
-          call getqma(iu,lat_dg,plb,dh2o,lm,jm)
+          call getqma(iu,lat_dg,plbx,dh2o,lm,jm)
           call closeunit(iu)
         end if
       end if
@@ -430,9 +430,9 @@ C***********************************************************************
       END DO
 C**** Save initial (currently permanent and global) Q in rad.layers
       do LR=1,LM_REQ
-        QL0(LR) = QL(LM+LR)
+        shl0(LR) = shl(LM+LR)
       end do
-      write(6,*) 'spec.hum in rad.equ.layers:',ql0
+      write(6,*) 'spec.hum in rad.equ.layers:',shl0
 C**** Optionally scale selected greenhouse gases
       IF(ghg_yr.gt.0) FULGAS(2)=FULGAS(2)*CO2X
       if(ghg_yr.gt.0) FULGAS(7)=FULGAS(7)*CH4X
@@ -440,11 +440,11 @@ C**** Optionally scale selected greenhouse gases
 C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
       DO L=1,LM
         LLOW=L
-        IF (.5*(PLE(L+1)+PLE(L+2)).LT.750.) GO TO 44 ! was 786. 4/16/97
+        IF (.5*(PLB(L+1)+PLB(L+2)).LT.750.) GO TO 44 ! was 786. 4/16/97
       END DO
  44   DO L=LLOW+1,LM
         LMID=L
-        IF (.5*(PLE(L+1)+PLE(L+2)).LT.430.) GO TO 46
+        IF (.5*(PLB(L+1)+PLB(L+2)).LT.430.) GO TO 46
       END DO
  46   LHI=LM
       IF (LMID+1.GT.LHI) LHI=LMID+1
@@ -469,10 +469,10 @@ C****
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY
 C     INPUT DATA  (i,j) dependent
-     &             ,JLAT,ILON, PLE=>PLB ,TL=>TLM ,QL=>SHL
+     &             ,JLAT,ILON, PLB ,TLM ,SHL
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC
      &             ,POCEAN,PEARTH,POICE,PLICE,COSZ,PVT
-     &             ,TGO,TGE,TGOI,TGLI,TS=>TSL,WS=>WMAG,WEARTH
+     &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI,DMOICE,DMLICE
      &             ,hsn,hin,hmp,fmp,flags,LS1_loc
 C     OUTPUT DATA
@@ -482,7 +482,7 @@ C     OUTPUT DATA
      &          ,SRRVIS ,SRAVIS ,SRRNIR ,SRANIR
      &          ,BTEMPW
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
-     *     ,llow,lmid,lhi,coe,ple0,ql0,tchg
+     *     ,llow,lmid,lhi,coe,PLB0,shl0,tchg
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss
@@ -490,7 +490,7 @@ C     OUTPUT DATA
       USE DAGCOM, only : aj,areg,jreg,aij,ail,ajl,asjl,adiurn,
      *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,
      *     j_clddep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
-     *     ij_cldtppr,lm_req,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
+     *     ij_cldtppr,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
      *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,j_plavis,ij_trnfp0,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
      *     ,ij_srvis,j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp,il_req,il_r50n
@@ -655,8 +655,8 @@ C****
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
         if (kradia.gt.0) then     ! rad forcing model
            do l=1,lm
-             tl(l) = T(i,j,l)*pk(l,i,j)
-             ql(l) = QR(l,i,j)
+             tlm(l) = T(i,j,l)*pk(l,i,j)
+             shl(l) = QR(l,i,j)
              tauwc(l) = CLDinfo(l,1,i,j)
              tauic(l) = CLDinfo(l,2,i,j)
              SIZEWC(L)= CLDinfo(l,3,i,j)
@@ -675,10 +675,10 @@ CCC   RANDMC=RANDU(X)
       DO 240 L=1,LM
       PIJ=PLIJ(L,I,J)
       QSS=Q(I,J,L)/(RHSAV(L,I,J)+1.D-20)
-      QL(L)=QSS
+      shl(L)=QSS
       IF(CLDSAV(L,I,J).LT.1.)
-     *  QL(L)=(Q(I,J,L)-QSS*CLDSAV(L,I,J))/(1.-CLDSAV(L,I,J))
-      TL(L)=T(I,J,L)*PK(L,I,J)
+     *  shl(L)=(Q(I,J,L)-QSS*CLDSAV(L,I,J))/(1.-CLDSAV(L,I,J))
+      TLm(L)=T(I,J,L)*PK(L,I,J)
 CCC   IF(CLDSS(L,I,J).EQ.0.) RANDSS=RANDU(X)
       RANDSS=RDSS(L,I,J)
       TAUSSL=0.
@@ -690,7 +690,7 @@ CCC   IF(CLDSS(L,I,J).EQ.0.) RANDSS=RANDU(X)
          TOTCLD(L)=0.
       IF (CLDSS(L,I,J).LT.RANDSS.OR.TAUSS(L,I,J).LE.0.) GO TO 220
       TAUSSL=TAUSS(L,I,J)
-      QL(L)=QSS
+      shl(L)=QSS
          CSS=1.
          AJL(J,L,JL_SSCLD)=AJL(J,L,JL_SSCLD)+CSS
          TOTCLD(L)=1.
@@ -702,8 +702,8 @@ CCC   IF(CLDSS(L,I,J).EQ.0.) RANDSS=RANDU(X)
       IF(TAUMC(L,I,J).LE.TAUSSL) GO TO 230
       TAUMCL=TAUMC(L,I,J)
       ELHX=LHE
-      IF(TL(L).LE.TF) ELHX=LHS
-      QL(L)=QSAT(TL(L),ELHX,PMID(L,I,J))
+      IF(TLm(L).LE.TF) ELHX=LHS
+      shl(L)=QSAT(TLm(L),ELHX,PMID(L,I,J))
   230    AJL(J,L,JL_TOTCLD)=AJL(J,L,JL_TOTCLD)+TOTCLD(L)
       IF(TAUSSL+TAUMCL.GT.0.) THEN
         IF(TAUMCL.GT.TAUSSL) THEN
@@ -785,19 +785,19 @@ C****
 C**** SET UP VERTICAL ARRAYS OMITTING THE I AND J INDICES
 C****
 C**** EVEN PRESSURES
-      PLE(LM+1)=PEDN(LM+1,I,J)
+      PLB(LM+1)=PEDN(LM+1,I,J)
       DO 340 L=1,LM
-      PLE(L)=PEDN(L,I,J)
+      PLB(L)=PEDN(L,I,J)
 C**** TEMPERATURES
-C---- TL(L)=T(I,J,L)*PK(L,I,J)     ! already defined
-      IF(TL(L).LT.130..OR.TL(L).GT.370.) THEN
-         WRITE(99,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TL(L)
+C---- TLm(L)=T(I,J,L)*PK(L,I,J)     ! already defined
+      IF(TLm(L).LT.130..OR.TLm(L).GT.370.) THEN
+         WRITE(99,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TLm(L)
          WRITE(99,*) 'GTEMP:',GTEMP(:,:,I,J)
 CCC      STOP 'In Radia: Temperature out of range'
          ICKERR=1
       END IF
 C**** MOISTURE VARIABLES
-C---- QL(L)=Q(I,J,L)        ! already defined
+C---- shl(L)=Q(I,J,L)        ! already defined
   340 CONTINUE
 C**** Radiative Equilibrium Layer data
       DO K=1,LM_REQ
@@ -806,9 +806,9 @@ C**** Radiative Equilibrium Layer data
 CCC     STOP 'In Radia: RQT out of range'
         JCKERR=1
         END IF
-        TL(LM+K)=RQT(K,I,J)
-        ple(LM+k+1) = ple0(k)
-        ql(LM+k)    = ql0(k)
+        TLm(LM+K)=RQT(K,I,J)
+        PLB(LM+k+1) = PLB0(k)
+        shl(LM+k)    = shl0(k)
         tauwc(LM+k) = 0.
         tauic(LM+k) = 0.
         sizewc(LM+k)= 0.
@@ -816,7 +816,7 @@ CCC     STOP 'In Radia: RQT out of range'
       END DO
       if (kradia.gt.1) then
         do l=1,lm+lm_req
-          tl(l) = tl(l) + Tchg(l,i,j)
+          tlm(l) = tlm(l) + Tchg(l,i,j)
           AFLX_ST(L,I,J,5)=AFLX_ST(L,I,J,5)+Tchg(L,I,J)
         end do
       end if
@@ -826,7 +826,7 @@ C**** Zenith angle and GROUND/SURFACE parameters
       TGOI=GTEMP(1,2,I,J)+TF
       TGLI=GTEMP(1,3,I,J)+TF
       TGE =GTEMP(1,4,I,J)+TF
-      TS=TSAVG(I,J)
+      TSL=TSAVG(I,J)
       SNOWOI=SNOWI(I,J)
       SNOWLI=SNOWLI_COM(I,J)
       SNOWE=SNOWE_COM(I,J)
@@ -860,7 +860,7 @@ C****
       DO K=1,11
         PVT(K)=VDATA(I,J,K)
       END DO
-      WS=WSAVG(I,J)
+      WMAG=WSAVG(I,J)
 C****
 C*****************************************************
 C     Main RADIATIVE computations, SOLAR and THERMAL
@@ -889,7 +889,7 @@ C*****************************************************
         fmp_com(i,j) = fmp                  ! input data
         wsoil(i,j) = wearth
         do L=1,LM
-          QR(L,I,J) = QL(L)
+          QR(L,I,J) = shl(L)
           CLDinfo(L,1,I,J) = tauwc(L)
           CLDinfo(L,2,I,J) = tauic(L)
           CLDinfo(L,3,I,J) = sizeic(L)  ! sizeic=sizewc currently
@@ -1165,10 +1165,10 @@ C**** daily diagnostics
 !@ver  1.0
       implicit none
       integer, parameter:: jma=16,lma=21
+      integer iu,jm,lm,j,j1,j2,l,ll,ldn,lup
       real*8 PLB(lm+1),dH2O(jm,lm),dglat(jm)
       real*4 pb(0:lma+1),h2o(jma,0:lma),xlat(jma),z(lma),dz(lma)
       character*100 title
-      integer iu,jm,lm,j,j1,j2,l,ll,ldn,lup
       real*4  pdn,pup,w1,w2,dh,fracl
 
 C**** read headers/latitudes

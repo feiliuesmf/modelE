@@ -2993,7 +2993,6 @@ c
 
       subroutine jk_defs
       use CONSTANT, only : sday,twopi,rgas,lhe,bygrav
-      use CONSTANT, only : twopi
       use MODEL_COM, only : fim,byim,dt
       use GEOM, only : dlon
       use DAGCOM
