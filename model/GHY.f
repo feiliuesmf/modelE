@@ -204,7 +204,7 @@ ccc   tsn1 is private
       real*8 tsn1(2)
 
       real*8 betat,betad
-      real*8 gpp,dts
+      real*8 gpp,dts,trans_sw
 !xxx      real*8, public :: cnc
 
 ccc fractions of dry,wet,covered by snow canopy
@@ -772,6 +772,7 @@ c     Get canopy conductivity cnc and gpp
         call veg_conductance(
      &       cnc 
      &       ,gpp 
+     &       ,trans_sw       !nyk
      &       ,betad          ! evaporation efficiency
      &       ,tp(0,2)          ! canopy temperature C
      &       ,qv

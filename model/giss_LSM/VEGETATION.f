@@ -56,15 +56,14 @@ ccc   rundeck parameters  5/1/03 nyk
 !@var qv Canopy saturated mixing ratio (kg/kg)
 
 !out:
-      real*8 GPP
-
+!      real*8 GPP 
 
       common /veg_private/
      &      alaie,rs,alai,nm,nf,vh
      &     ,srht,pres,ch,vsm
      &     ,parinc,fdir,vegalbedo,sbeta,Ci,Qf
      &     ,betad,tcan,qv
-     &     ,GPP,CNC
+     &     ,CNC
 !$OMP  THREADPRIVATE (/veg_private/)
 
 
@@ -74,6 +73,7 @@ ccc   rundeck parameters  5/1/03 nyk
       subroutine veg_conductance(
      &      cnc_out 
      &     ,gpp_out 
+     &     ,trans_sw_out
      &     ,betad_in ! evaporation efficiency
      &     ,tcan_in ! canopy temperature C
      &     ,qv_in
@@ -82,6 +82,7 @@ ccc   rundeck parameters  5/1/03 nyk
       implicit none
       real*8, intent(out) :: cnc_out
       real*8, intent(out) :: gpp_out
+      real*8, intent(out) :: trans_sw_out
       real*8, intent(in) :: betad_in,tcan_in,qv_in,dt_in
 
       betad = betad_in
@@ -89,13 +90,13 @@ ccc   rundeck parameters  5/1/03 nyk
       qv = qv_in
 
       if ( cond_scheme.eq.1 ) then !if switch added by nyk 5/1/03
-        gpp=0                   ! dummy value for GPP if old cond_scheme
+        gpp_out=0               ! dummy value for GPP if old cond_scheme
+        trans_sw_out=0          ! dummy value for old cond_scheme
         call cond
       else         ! cond_scheme=2 or anything else
-        call veg(dt_in)                ! added by adf
+        call veg(dt_in, gpp_out, trans_sw_out)
       endif
       cnc_out = CNC
-      gpp_out = GPP
       end subroutine veg_conductance
 
 
@@ -125,7 +126,7 @@ c**** adjust canopy conductance for incoming solar radiation
       end subroutine cond
 
 !----------------------------------------------------------------------!
-      subroutine veg( dt )
+      subroutine veg( dt, GPP, TRANS_SW )
 !----------------------------------------------------------------------!
 ! Vegetation dynamics routine (adf). Currently (April, 2003)
 ! calculates canopy stomatal conductance (CNC, m/s) using a
@@ -134,6 +135,10 @@ c**** adjust canopy conductance for incoming solar radiation
 !----------------------------------------------------------------------!
       implicit none
 !----------------------------------------------------------------------!
+      real*8, intent(in) :: dt
+      real*8, intent(out) :: GPP
+      real*8, intent(out) :: TRANS_SW
+
 !****************************************************
 !NEED TO REPLACE Ca WITH CO2 FROM THE CLIMATE MODEL TRACERS
 !@var Ca Atmospheric CO2 concentration at surface height (mol/m3).
@@ -149,7 +154,6 @@ c**** adjust canopy conductance for incoming solar radiation
       real*8, parameter :: Oi=20.9D0
 !@var k Canopy nitrogen extinction coefficient (?unitless).
       real*8, parameter :: k=0.11D0
-      real*8, intent(in) :: dt
 !@var PAR Incident photosynthetically active radiation (umol/m2/s).
       real*8 PAR
 !@var tk Canopy temperature (K).
@@ -160,6 +164,20 @@ c**** adjust canopy conductance for incoming solar radiation
       real*8 I0dr
 !@var I0df Diffuse PAR incident on canopy (umol/m2/s).
       real*8 I0df
+!------Full canopy radiation transmittance, nyk------------------------
+!@var transdf Transmittance of diffuse SW radiation (fraction)
+      real*8 transdf
+!@var transdr Transmittance of direct SW radiation (fraction)
+      real*8 transdr
+!@var transdrdr Transmittance of direct SW that remains direct (fraction)
+      real*8 transdrdr
+!@var transsh Transmittance of SW through shaded foliage (fraction)
+      real*8 transsh
+!@var transsl Transmittance of SW through sunlit foliage (fraction)
+      real*8 transsl
+!Output variable trans_sw Total canopy transmittance of shortwave (fraction)
+!      real*8 TRANS_SW  !Subroutine var parameter
+!----------------------------------------------------------------------
 !@var rho Canopy reflectivity (?unitless).
       real*8 rhor
 !@var kbl Canopy extinction coeff. for direct radiation (unitless).
@@ -278,6 +296,25 @@ c**** adjust canopy conductance for incoming solar radiation
      1k,n1,n2,m1,msat,sigma,temp,rhor,kdf,kbl)
 !      write(99,*)'sbeta,Acan',sbeta,Acan
 !----------------------------------------------------------------------!
+! Transmission of shortwave radiation through canopy.
+! Diffuse shortwave in canopy (umol/m[ground]2/s).
+        transdf=fdir*(1.0D0-rhor)*kdf*exp(-kdf*alai)
+! Direct shortwave in canopy (umol/m[ground]2/s).
+        transdr=(1-fdir)*(1.0D0-rhor)*temp*kbl*exp(-temp*kbl*alai)
+! Direct shortwave that remains direct (umol/m[ground]2/s).
+        transdrdr=transdr*(1.0D0-sigma)*kbl*exp(-temp*kbl*alai)
+! Shortwave penetrating shaded foliage (umol/m[foliage]2/s).
+        transsh=transdf + (transdr-transdrdr) 
+! Shortwave penetrating sunlit foliage (umol/m[foliage]2/s).
+        transsl=transsh+(1.0D0-sigma)*kbL*fdir
+      if(sbeta.gt.zero)then
+        if(transsh.lt.(0.001D0)) transsh=0.001D0
+        if(transsl.lt.0.001D0)transsl=0.001D0
+      else
+        transsh=0.001D0
+        transsl=0.001D0
+      endif
+!----------------------------------------------------------------------!
 ! Saturating Ci to calculate canopy conductance (mol/m3).
       CiPa=1.0D6
 ! CO2 dependence of light-limited photosynthesis (?units).
@@ -330,6 +367,8 @@ c**** adjust canopy conductance for incoming solar radiation
 !        ground hydrology.  Therefore updated through update_veg_locals.
 !----------------------------------------------------------------------!
 ! OUTPUTS:
+! Transmission of shortwave through canopy.
+      TRANS_SW = transsh + transsl
 ! Gross primary productivity (kg[C]/m2/s).
       GPP=0.012D-6*Anet   ! should be dependent on conductance ??
 ! Canopy conductance for next timestep (m/s).
