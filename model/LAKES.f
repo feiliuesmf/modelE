@@ -720,7 +720,7 @@ C****
      *        ij_ervr,ij_mrvr,ij_f0oc,aj=>aj_loc,areg,jreg,
      *        j_rvrd,j_ervr,ij_fwoc
 #ifdef TRACERS_WATER
-      USE TRDIAG_COM, only : taijn , tij_rvr
+      USE TRDIAG_COM, only : taijn=>taijn_loc , tij_rvr
       USE FLUXES, only : trflowo,gtracer
 #endif
       USE FLUXES, only : flowo,eflowo,gtemp,mlhc
@@ -1582,8 +1582,8 @@ C**** Store mass and energy fluxes for formation of sea ice
         DTRSI(:,2,I,J)=TRI(:)
 #endif
       END IF
-      END DO
-      END DO
+      END DO  ! i loop
+      END DO  ! j loop
 
       DO JR=1,size(AREG,1)
         CALL GLOBALSUM(grid,AREG_part(JR,1,:),AREGSUM,ALL=.TRUE.)
