@@ -51,80 +51,84 @@ endif
 $(BIN_DIR)/CMPE002: CMPE002.F90 $(GCMLIB)
 	$(F90) $(FFLAGSF) $(EXTRA_FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
 
-$(BIN_DIR)/CMPE001: CMPE001.f $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
+CMPE001.o: $(GCMLIB)
 
-$(BIN_DIR)/RMS: RMS.f $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
+$(BIN_DIR)/CMPE001: CMPE001.o $(GCMLIB)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
-$(BIN_DIR)/conv_rsf: conv_rsf.o $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
+RMS.o: $(GCMLIB)
+
+$(BIN_DIR)/RMS: RMS.o $(GCMLIB)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
 conv_rsf.o: $(GCMLIB)
 
-$(BIN_DIR)/conv_strat_rsf: conv_strat_rsf.o $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
+$(BIN_DIR)/conv_rsf: conv_rsf.o $(GCMLIB)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
 conv_strat_rsf.o: $(GCMLIB)
 
-$(BIN_DIR)/conv_gic: conv_gic.o $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
-
-$(BIN_DIR)/rsf2gic: rsf2gic.o $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
+$(BIN_DIR)/conv_strat_rsf: conv_strat_rsf.o $(GCMLIB)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
 conv_gic.o: $(GCMLIB)
 
+$(BIN_DIR)/conv_gic: conv_gic.o $(GCMLIB)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+
 rsf2gic.o: $(GCMLIB)
+
+$(BIN_DIR)/rsf2gic: rsf2gic.o $(GCMLIB)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
 ext_gic.o: $(GCMLIB)
 
 $(BIN_DIR)/ext_gic: ext_gic.o $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
-
-$(BIN_DIR)/qc: qc.o $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
 qc.o: $(GCMLIB)
 
-$(BIN_DIR)/vertflux.exe: vertflux.E001.o MAPS.o $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
+$(BIN_DIR)/qc: qc.o $(GCMLIB)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
 vertflux.E001.o: $(GCMLIB)
 
-$(BIN_DIR)/ocnIC.exe: ocnIC.E001.o MAPS.o $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
+$(BIN_DIR)/vertflux.exe: vertflux.E001.o MAPS.o $(GCMLIB)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
 ocnIC.E001.o: $(GCMLIB)
 
-$(BIN_DIR)/otspec.E001.exe: otspec.E001.o MAPS.o $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
+$(BIN_DIR)/ocnIC.exe: ocnIC.E001.o MAPS.o $(GCMLIB)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
 otspec.E001.o: $(GCMLIB)
+
+$(BIN_DIR)/otspec.E001.exe: otspec.E001.o MAPS.o $(GCMLIB)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
 #$(BIN_DIR)/rsfE001.addO.exe: rsfE001.addO.o $(GCMLIB)
 #	$(F90) $(FFLAGS) $(LFLAGS) -o $@ $^
 #
 #rsfE001.addO.o: $(GCMLIB)
 
-$(BIN_DIR)/mkdeep.exe: mkdeep.o $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
-
 mkdeep.o: $(GCMLIB)
+
+$(BIN_DIR)/mkdeep.exe: mkdeep.o $(GCMLIB)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
 $(GCMLIB): FORCE
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN)
 
 ifdef NETCDFHOME
+acc2nc.o: $(GCMLIB)
+
 $(BIN_DIR)/acc2nc: acc2nc.o $(GCMLIB)
-	$(F90) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 else
 $(BIN_DIR)/acc2nc:
 	@echo "NetCDF library is not specified"
 	@echo "will skip $(BIN_DIR)/acc2nc"
 endif
-
-acc2nc.o: $(GCMLIB)
 
 clean:
 	rm -f *.LST *~ *.ERR *.CHK *.L
