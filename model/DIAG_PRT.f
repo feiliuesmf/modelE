@@ -2751,6 +2751,7 @@ c          if (n .gt. 13) n = (n+123)/10
 !@auth G. Schmidt/M. Kelley
 !@ver  1.0
       USE BDIJ
+      USE DAGCOM
       IMPLICIT NONE
       INTEGER :: k,k1
 c
@@ -2833,10 +2834,10 @@ c
       do k1 = 1,kgz_max-1
         name_ij(k+k1) = 'dztemp_1000-850'
         if(k1.gt.1) write(name_ij(k+k1)(8:15),
-     *    '(i3.3,a1,i3.3,a1)') nint(pmb(k1)),'-',nint(pmb(k1+1)),' '
+     *    '(a3,a1,a3,a1)') PMNAME(k1),'-',PMNAME(k1+1),' '
         lname_ij(k+k1) = 'THICKNESS TEMP 1000-850'
         if(k1.gt.1) write(lname_ij(k+k1)(16:23),
-     *     '(i3.3,a1,i3.3,a1)') nint(pmb(k1)),'-',nint(pmb(k1+1)),' '
+     *    '(a3,a1,a3,a1)') PMNAME(k1),'-',PMNAME(k1+1),' '
         units_ij(k+k1) = 'C'
       end do
       k = k + kgz_max -1
