@@ -58,10 +58,10 @@ cc      USE SOMTQ_COM, only : tmom,qmom
 cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 
       real*8 :: uflx,vflx,tvflx,qflx,tvs
-     &   ,ustar2,t0ijl,rak,alpha1,ustar
+     &   ,ustar2,t0ijl,tijl,rak,alpha1,ustar
      &   ,flux_bot,flux_top,x_surf,dgcdz
      &   ,wstar,dbl,lmonin
-      integer :: idik,idjk,ldbl,
+      integer :: idik,idjk,ldbl,kmax,
      &    i,j,l,k,n,iter !@i,j,l,k,n,iter loop variable
 #ifdef TRACERS_ON
 !@var tr0ij initial vertical tracer concentration profile (kg/kg)
@@ -80,10 +80,12 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
       if (lbase_min.eq.2) return       ! quit if called from main
 
       !  convert input T to virtual T
+
+!$OMP  PARALLEL DO PRIVATE (L,I,J)
       do j=1,jm
         do i=1,imaxj(j)
           !@var tvsurf(i,j) surface virtual temperature
-          !@var tsavg(i,j) COMPOSITE SURFACE AIR TEMPERATURE (K)
+          !@var tsavg(i,j) composite surface air temperature (k)
           tvsurf(i,j)=tsavg(i,j)*(1.d0+deltx*qsavg(i,j))
           do l=1,lm
             ! t_3d_virtual is virtual potential temp. referenced at 1 mb
@@ -91,6 +93,7 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
           end do
         end do
       end do
+!$OMP  END PARALLEL DO
 
       ! integrate equations other than u,v at agrids
 
@@ -100,6 +103,12 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
       call getdz(t_3d_virtual,dz_3d,dze_3d,rho_3d,rhoe_3d,tvsurf
      &    ,im,jm,lm)
 
+!$OMP  PARALLEL DO PRIVATE (L,I,J,u,v,t,q,e,rho,rhoe,t0,q0,e0,qturb,
+!$OMP*   dze,dz,bydzerho,rhobydze,bydzrhoe,rhoebydz,tvs,uflx,vflx,
+!$OMP*   qflx,tvflx,ustar,ustar2,alpha1,dudz,dvdz,dtdz,dqdz,g_alpha,
+!$OMP*   an2,as2,ze,lscale,dbl,ldbl,wstar,kh,km,ke,wt,wq,uw,vw,
+!$OMP*   wt_nl,wq_nl,lmonin,p3,p4,x_surf,flux_bot,flux_top,t0ijl,tijl)
+!$OMP*    SCHEDULE(DYNAMIC,2)
       loop_j_tq: do j=1,jm
         loop_i_tq: do i=1,imaxj(j)
 
@@ -273,14 +282,14 @@ c     c        call diff_mom(trmomij)
             end if
           end do
 #endif
-
           call find_pbl_top(e,ze,dbl,ldbl,lm)
           dclev(i,j)=real(ldbl)
 
           do l=1,lm
             ! update 3-d t,q,e and km
             t0ijl=t_3d(i,j,l)
-            t_3d(i,j,l)=t(l)/(1.d0+deltx*q(l))
+            tijl=t(l)/(1.d0+deltx*q(l))
+            t_3d(i,j,l)=tijl
 C**** moment variation to be added
 cc            qmom(:,i,j,l)=qmomij(:,l)
 cc            tmom(:,i,j,l)=tmomij(:,l)
@@ -292,11 +301,12 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
             km_3d(l,i,j)=km(l)
             ! ACCUMULATE DIAGNOSTICS for t and q
             AJL(J,L,JL_TRBHR)=AJL(J,L,JL_TRBHR)
-     2                 +(T_3d(I,J,L)-t0ijl)*PK(L,I,J)*PLIJ(L,I,J)
+     2                 +(tijl-t0ijl)*PK(L,I,J)*PLIJ(L,I,J)
             AJL(J,L,JL_TRBDLHT)=AJL(J,L,JL_TRBDLHT)
-     2                 +(Q_3d(I,J,L)-q0(l))*PDSIG(L,I,J)*LHE/SHA
+     2                 +(q(l)-q0(l))*PDSIG(L,I,J)*LHE/SHA
             AJL(J,L,JL_TRBKE)=AJL(J,L,JL_TRBKE)+e(l)
 #ifdef TRACERS_ON
+            write(99,*) "inside in  block"
             do n=1,ntm
               if (itime_tr0(n).le.itime) then
                 tajln(j,l,jlnt_turb,n)=tajln(j,l,jlnt_turb,n) +
@@ -312,23 +322,25 @@ cc                trmom(:,i,j,l,n)=trmomij(:,l,n)
 
           if (call_diag.and.(i.eq.itest).and.(j.eq.jtest)) then
             call dout(ze,dz,u,v,t,q,ke,dtdz,dqdz,an2,as2
-     &         ,wt_nl,wq_nl,kh,km,gm,gh,e,lscale
+     &         ,wt_nl,wq_nl,kh,km,e,lscale
      &         ,uflx,vflx,tvflx,qflx,dbl,ldbl,i,j,lm)
           endif
 
         end do loop_i_tq
       end do loop_j_tq
+!$OMP  END PARALLEL DO
 
       ! integrate U,V equations at bgrids
 
       call ave_uv_to_bgrid(uflux1,vflux1,uflux_bgrid,vflux_bgrid,
      &                     im,jm,1)
-      call ave_s_to_bgrid(km_3d,km_3d_bgrid,im,jm,lm)
-      call ave_s_to_bgrid(dz_3d,dz_3d_bgrid,im,jm,lm)
-      call ave_s_to_bgrid(dze_3d,dze_3d_bgrid,im,jm,lm)
-      call ave_s_to_bgrid(rho_3d,rho_3d_bgrid,im,jm,lm)
-      call ave_s_to_bgrid(rhoe_3d,rhoe_3d_bgrid,im,jm,lm)
+      call ave_s_to_bgrid(km_3d,dz_3d,dze_3d,rho_3d,rhoe_3d,
+     &  km_3d_bgrid,dz_3d_bgrid,dze_3d_bgrid,rho_3d_bgrid,
+     &  rhoe_3d_bgrid,im,jm,lm)
 
+!$OMP  PARALLEL DO PRIVATE (L,I,J,u,v,rho,rhoe,u0,v0,km,dze,dz,
+!$OMP*   bydzerho,rhoebydz,uflx,vflx,p4,flux_bot,flux_top)
+!$OMP*    SCHEDULE(DYNAMIC,2)
       loop_j_uv: do j=2,jm
         loop_i_uv: do i=1,im
 
@@ -374,12 +386,15 @@ cc                trmom(:,i,j,l,n)=trmomij(:,l,n)
 
         end do loop_i_uv
       end do loop_j_uv
+!$OMP  END PARALLEL DO
 
       ! ACCUMULATE DIAGNOSTICS for u and v
+
       DO J=1,JM
+        KMAX=KMAXJ(J)
         DO I=1,IMAXJ(J)
           DO L=1,LM
-            DO K=1,KMAXJ(J)
+            DO K=1,KMAX
               RAK=RAVJ(K,J)
               IDIK=IDIJ(K,I,J)
               IDJK=IDJJ(K,J)
@@ -460,6 +475,9 @@ C**** Save additional changes in KE for addition as heat later
       !@ temp0 virtual temperature (K) at (i,j) and SIG(l)
       !@ temp1 virtual temperature (K) at (i,j) and SIG(l+1)
       !@ temp1e average of temp0 and temp1
+!$OMP  PARALLEL DO PRIVATE (J,I,L,pl1,pl,pl1e,ple,temp0,temp1,temp1e,
+!$OMP*  plm1e)
+!$OMP*    SCHEDULE(DYNAMIC,2)
       do j=1,jm
         do i=1,imaxj(j)
           do l=1,lm-1
@@ -488,12 +506,13 @@ C**** Save additional changes in KE for addition as heat later
           end do
         end do
       end do
+!$OMP  END PARALLEL DO
 
       return
       end subroutine getdz
 
       subroutine dout(ze,dz,u,v,t,q,ke,dtdz,dqdz,an2,as2
-     &      ,wt_nl,wq_nl,kh,km,gm,gh,e,lscale
+     &      ,wt_nl,wq_nl,kh,km,e,lscale
      &      ,uflx,vflx,tvflx,qflx,dbl,ldbl,i,j,n)
 !@sum dout writes out diagnostics at (i,j)
 !@auth  Ye Cheng/G. Hartke
@@ -515,8 +534,6 @@ C**** Save additional changes in KE for addition as heat later
 !@var km turbulent viscosity for u and v equations
 !@var kh turbulent diffusivity for t,q
 !@var ke turbulent diffusivity for e
-!@var gm normalized velocity gradient, tau**2*as2
-!@var gh normalized temperature gradient, tau**2*an2
 !@var lscale  turbulent length scale
 !@var uflx momentun flux -uw at surface, ze(1)
 !@var vflx momentun flux -vw at surface, ze(1)
@@ -532,7 +549,7 @@ C**** Save additional changes in KE for addition as heat later
       integer, intent(in) :: ldbl,i,j,n 
       real*8, dimension(n), intent(in) ::
      &   dz,u,v,t,q,ke,dtdz,dqdz,an2,as2
-     &   ,wt_nl,wq_nl,kh,km,gm,gh,e,lscale
+     &   ,wt_nl,wq_nl,kh,km,e,lscale
       real*8, dimension(n+1), intent(in) :: ze
       real*8, intent(in) :: uflx,vflx,tvflx,qflx,dbl
 
@@ -585,7 +602,7 @@ C**** Save additional changes in KE for addition as heat later
      4            '     ke    ',1x,'           ',1x,'           ',1x,
      5            '           ',/)
         write (67,2000) l,pe(l),ze(l),wt_lcl,wt_nl(l),wq_lcl,wq_nl(l)
-     2    ,kh(l),km(l),gh(l),ri,e(l)
+     2    ,kh(l),km(l),lscale(l),ri,e(l)
 1400  format (' ',' l',1x,
      2            '  p (edge) ',1x,
      2            '  z (edge) ',1x,'  wt_lcl   ',1x,'   wt_nl   ',1x,
@@ -741,41 +758,63 @@ C**** Save additional changes in KE for addition as heat later
       real*8, dimension(im,jm,lm), intent(in) ::  u,v
       real*8, dimension(lm,im,jm), intent(out) :: u_a,v_a
 
-      real*8 :: HEMI,u_t,v_t
-      integer :: i,j,l,k
+      real*8, dimension(im) :: ra
+      integer, dimension(im) :: idj
+      real*8 :: HEMI,u_t,v_t,rak,ck,sk,uk,vk
+      integer :: i,j,l,k,idik,idjk,kmax
 
-c     polar boxes
+!     polar boxes
       DO J=1,JM,JM-1
+        KMAX=KMAXJ(J)
         HEMI=1.
         IF(J.LE.JM/2) HEMI=-1.
+!$OMP  PARALLEL DO PRIVATE (I,L,u_t,v_t,K,IDIK,IDJK,RAK,ck,sk,uk,vk)
         DO I=1,IMAXJ(J)
           DO L=1,LM
             u_t=0.d0; v_t=0.d0
-            DO K=1,KMAXJ(J)
-              u_t=u_t+rapj(k,j)*(u(idij(k,i,j),idjj(k,j),L)*cosiv(k)-
-     2                      hemi*v(idij(k,i,j),idjj(k,j),L)*siniv(k))
-              v_t=v_t+rapj(k,j)*(v(idij(k,i,j),idjj(k,j),L)*cosiv(k)+
-     2                      hemi*u(idij(k,i,j),idjj(k,j),L)*siniv(k))
+            DO K=1,KMAX
+              IDIK=IDIJ(K,I,J)
+              IDJK=IDJJ(K,J)
+              RAK=RAPJ(K,J)
+              ck=cosiv(k)
+              sk=siniv(k)
+              uk=u(idik,idjk,L)
+              vk=v(idik,idjk,L)
+              u_t=u_t+rak*(uk*ck-hemi*vk*sk)
+              v_t=v_t+rak*(vk*ck+hemi*uk*sk)
             END DO
             u_a(l,i,j)=u_t
             v_a(l,i,j)=v_t
           END DO
         END DO
+!$OMP  END PARALLEL DO
       END DO
-c     non polar boxes
+
+!     non polar boxes
+!$OMP  PARALLEL DO PRIVATE (J,I,L,u_t,v_t,K,KMAX,IDJ,RA,IDIK,IDJK,RAK)
+!$OMP*    SCHEDULE(DYNAMIC,2)
       DO J=2,JM-1
+        KMAX=KMAXJ(J)
+        DO K=1,KMAX
+          IDJ(K)=IDJJ(K,J)
+          RA(K)=RAPJ(K,J)
+        END DO
         DO I=1,IMAXJ(J)
           DO L=1,LM
             u_t=0.d0; v_t=0.d0
-            DO K=1,KMAXJ(J)
-              u_t=u_t+u(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
-              v_t=v_t+v(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
+            DO K=1,KMAX
+              IDIK=IDIJ(K,I,J)
+              IDJK=IDJ(K)
+              RAK=RA(K)
+              u_t=u_t+u(IDIK,IDJK,L)*RAK
+              v_t=v_t+v(IDIK,IDJK,L)*RAK
             END DO
             u_a(l,i,j)=u_t
             v_a(l,i,j)=v_t
           END DO
         END DO
       END DO
+!$OMP  END PARALLEL DO
 C****
       return
       end subroutine ave_uv_to_agrid
@@ -797,34 +836,48 @@ C****
       real*8, dimension(lm,im,jm), intent(in) ::  u_a,v_a
       real*8, dimension(im,jm,lm), intent(out) :: u,v
 
-      real*8 :: HEMI
-      integer :: i,j,l,k
+      real*8, dimension(im) :: ra
+      integer, dimension(im) :: idj
+      real*8 :: HEMI,u_t,v_t,rak,ck,sk,uk,vk
+      integer :: i,j,l,k,idik,idjk,kmax
 
       u=0.d0; v=0.d0
-c     polar boxes
+!     polar boxes
       DO J=1,JM,JM-1
+        KMAX=KMAXJ(J)
         HEMI=1.
         IF(J.LE.JM/2) HEMI=-1.
         DO I=1,IMAXJ(J)
         DO L=1,LM
-        DO K=1,KMAXJ(J)
-          U(IDIJ(K,I,J),IDJJ(K,J),L)=U(IDIJ(K,I,J),IDJJ(K,J),L)
-     *      +RAVJ(K,J)*(U_A(L,I,J)*COSIV(K)+V_A(L,I,J)*SINIV(K)*HEMI)
-          V(IDIJ(K,I,J),IDJJ(K,J),L)=V(IDIJ(K,I,J),IDJJ(K,J),L)
-     *      +RAVJ(K,J)*(V_A(L,I,J)*COSIV(K)-U_A(L,I,J)*SINIV(K)*HEMI)
+        DO K=1,KMAX
+              IDIK=IDIJ(K,I,J)
+              IDJK=IDJJ(K,J)
+              RAK=RAVJ(K,J)
+              ck=cosiv(k)
+              sk=siniv(k)
+              uk=u_a(L,I,J)
+              vk=v_a(L,I,J)
+          U(IDIK,IDJK,L)=U(IDIK,IDJK,L)+RAK*(UK*CK+VK*SK*HEMI)
+          V(IDIK,IDJK,L)=V(IDIK,IDJK,L)+RAK*(VK*CK-UK*SK*HEMI)
         END DO
         END DO
         END DO
       END DO
-c     non polar boxes
+!     non polar boxes
       DO J=2,JM-1
+        KMAX=KMAXJ(J)
+        DO K=1,KMAX
+          IDJ(K)=IDJJ(K,J)
+          RA(K)=RAVJ(K,J)
+        END DO
         DO I=1,IMAXJ(J)
         DO L=1,LM
-        DO K=1,KMAXJ(J)
-          U(IDIJ(K,I,J),IDJJ(K,J),L)=U(IDIJ(K,I,J),IDJJ(K,J),L)
-     *          +RAVJ(K,J)*U_A(L,I,J)
-          V(IDIJ(K,I,J),IDJJ(K,J),L)=V(IDIJ(K,I,J),IDJJ(K,J),L)
-     *          +RAVJ(K,J)*V_A(L,I,J)
+        DO K=1,KMAX
+          IDIK=IDIJ(K,I,J)
+          IDJK=IDJ(K)
+          RAK=RA(K)
+          U(IDIK,IDJK,L)=U(IDIK,IDJK,L)+RAK*U_A(L,I,J)
+          V(IDIK,IDJK,L)=V(IDIK,IDJK,L)+RAK*V_A(L,I,J)
         END DO
         END DO
         END DO
@@ -833,10 +886,11 @@ c     non polar boxes
       return
       end subroutine ave_uv_to_bgrid
 
-      subroutine ave_s_to_bgrid(s,s_b,im,jm,lm)
+      subroutine ave_s_to_bgrid(s1,s2,s3,s4,s5,
+     &  sb1,sb2,sb3,sb4,sb5,im,jm,lm)
 !@sum Computes s_b from s
-!@var s scalar at primary grid (A_grid)
-!@var s_b scalar at secondary grid (B_grid)
+!@var s  scalar at primary grid (A_grid)
+!@var sb scalar at secondary grid (B_grid)
 !@auth Ye Cheng
 !@ver  1.0
 
@@ -845,23 +899,37 @@ c     non polar boxes
       implicit none
 
       integer, intent(in) :: im,jm,lm
-      real*8, dimension(lm,im,jm), intent(in) ::  s
-      real*8, dimension(lm,im,jm), intent(out) :: s_b
+      real*8, dimension(lm,im,jm), intent(in) ::  s1,s2,s3,s4,s5
+      real*8, dimension(lm,im,jm), intent(out) :: sb1,sb2,sb3,sb4,sb5
 
+      real*8, dimension(im) :: ra
+      integer, dimension(im) :: idj
+      integer :: idik,idjk,kmax
       integer :: i,j,l,k
+      real*8 :: rak
 
-      S_B=0.d0
+      SB1=0.;SB2=0.;SB3=0.;SB4=0.;SB5=0.
       DO J=1,JM
+        KMAX=KMAXJ(J)
+        DO K=1,KMAX
+          IDJ(K)=IDJJ(K,J)
+          RA(K)=RAVJ(K,J)
+        END DO
         DO I=1,IMAXJ(J)
         DO L=1,LM
-        DO K=1,KMAXJ(J)
-          S_B(L,IDIJ(K,I,J),IDJJ(K,J))=S_B(L,IDIJ(K,I,J),IDJJ(K,J))
-     *          +RAVJ(K,J)*S(L,I,J)
+        DO K=1,KMAX
+          IDIK=IDIJ(K,I,J)
+          IDJK=IDJ(K)
+          RAK=RA(K)
+          SB1(L,IDIK,IDJK)=SB1(L,IDIK,IDJK)+RAK*S1(L,I,J)
+          SB2(L,IDIK,IDJK)=SB2(L,IDIK,IDJK)+RAK*S2(L,I,J)
+          SB3(L,IDIK,IDJK)=SB3(L,IDIK,IDJK)+RAK*S3(L,I,J)
+          SB4(L,IDIK,IDJK)=SB4(L,IDIK,IDJK)+RAK*S4(L,I,J)
+          SB5(L,IDIK,IDJK)=SB5(L,IDIK,IDJK)+RAK*S5(L,I,J)
         END DO
         END DO
         END DO
       END DO
-1003  format(4(i4,1x),3(1pe14.4))
       return
       end subroutine ave_s_to_bgrid
 
