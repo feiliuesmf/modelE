@@ -340,6 +340,8 @@ command 'runn E001xyz'. The printout can always be recreated if needed.
 
 5) HOW-TO change boundary conditions
 
+Simply alter the file declarations in the rundeck appropriately!
+
 6) HOW-TO change trace gas amounts
 
 7) HOW-TO have a perpetual winter
@@ -391,21 +393,23 @@ and NMONAV in the NAMELIST).
   ii) Post-processed output:
 	Each month the program produces an 'acc' accumulated
 diagnostics file which contains all of the diagnostic information from
-the previous month. The program 'pDE' is an alternate entry point into
-the model that reads in any number of these files and a) creates a
-printout (as above) for the time period concerned and b) creates
-binary output of many more diagnostics. This can be used simply
-to recreate the monthly printout, but also to create longer term
-means (annual,seaonal, monthly climatologies etc.).
+the previous month. The program 'pDE' (in the exec directory) is an
+alternate entry point into the model that reads in any number of these
+files and a) creates a printout (as above) for the time period
+concerned and b) creates binary output of many more diagnostics. This
+can be used simply to recreate the monthly printout, but also to
+create longer term means (annual,seaonal, monthly climatologies etc.).
 
 For example, to recreate the printout;
   for a single month: pdE JAN1987.acc.$RUNID
   for all Januaries:  pdE JAN*.acc.$RUNID
   for a whole year:   pdE *1987.acc.$RUNID
 
-A number of files will be created appropriate for the accumulated time
-period.  (xxxnnnn where xxx is a month or a season or ANN or DCD, and
-nnnn is a year or nrange of years).
+Note that the output can be controlled (a little) by the settings in
+'Ipd' (which is produced in the run directory the first time you run
+pdE). A number of files will be created appropriate for the
+accumulated time period.  (xxxnnnn where xxx is a month or a season or
+ANN or DCD, and nnnn is a year or nrange of years).
 
 	xxxnnnn.PRT     the printout
         xxxnnnn.j$RUNID zonal budget pages (ASCII Aplot format)
@@ -422,6 +426,8 @@ subgroups of diagnostics are calculated and output. At present, there
 is no simple way to pick and choose exactly which diagnostics appear,
 although we are working on a scheme to do just that. Some of the
 following options are rarely used, and may soon be made obsolete.
+These switches can also be used in 'Ipd' input for pdE to control
+which binary output to produce.
 
 Current options are:
 

@@ -1,0 +1,82 @@
+Options for running the GISS GCM
+================================
+
+There are a number of 'plug and play' options available for ModelE,
+and there will be more soon. The essence of this is that by a simple
+change of filename in the rundeck, a new model will be compiled and
+run, without any further coding necessary. (A good thing!).  Remember
+that you must recompile the model and replace the executable for any
+change to be effected. (i.e. 'gmake exe RUN=E001xyz')
+
+This is a brief list of the current options:
+
+0) Resolution (horizontal and vertical)
+
+RES_M12: 4x5 (medium resolution) 12 vertical layers 
+RES_M23: 4x5 (medium resolution) 23 vertical layers (incl. stratosphere)
+
+Other resolutions can be used as required. Note that these files also
+contain some dummy routines that can be replaced by other options (see
+v) below).
+
+i) Momentum advection scheme:
+
+MOMEN2ND:  2nd order advection scheme (12 layer DT = 450 sec)
+MOMEN4TH:  4th order advection scheme (12 layer DT = 300 sec)
+
+
+ii) Binary output from postprocessing
+
+POUT: Standard GISS output 
+	ij arrays: TITLE*80,DATA(IM,JM)*R4,ZMEAN(JM)*R4,GLOB*R4
+	jl/jk arrays: TITLE*80,IX,IY,IZ,IT,X(IX,IY,IZ,IT),XCOOR(IX),
+                      YCOOR(IY),ZCORR(IZ),TCORR(IT),CX,CY,CZ,CT,'NASAGISS',
+                      ASUM(IX),GLOB,ZMEAN(IZ) 
+	j arrays: (ASCII) aplot format 
+
+POUT_netcdf: Full netcdf format for all fields
+
+Other output methods may also be defined.
+
+iii) Ocean model treatment
+
+OCEAN:  Standard fixed SST ocean + Qlfux (fixed Ocean heat transport model)
+        Chosen by KOCEAN = 0 or KOCEAN = 1 respectively
+
+OCEAN_DEEP: Mixed layer ocean that allows diffusion into top 1000 meters.
+        (Not yet available)
+
+ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM }
+OCNDYN OSTRAITS OCNGM OCNKPP OCNFUNTAB } - Russell Dynamic Ocean
+ICEDYN                                 }
+       This should be used in conjunction with ICEDYN (dynamic sea ice).
+
+Other ocean models may also be used.
+
+iv) Atmospheric mixing
+
+DRYCNV: original scheme. complete mixing of dry statically unstable column.
+
+ATURB: turbulence scheme that diffuses tracers as a function of second
+       order colsure calulations of effective diffusivity.
+
+v) Stratospheric diagnostics
+
+STRAT_DIAG: calculates full set of zonally averaged EP-fluxes. Must be
+            used in conjunction with a suitable RES_Xnn file. 
+            (i.e. one that does not have dummy routines EP*, and sets
+            KEP to be non-zero).
+
+vi) Stratosphere dynamics (Gravity wave drag)
+
+STRATDYN: Calculates and applies gravity wave drag in the
+          dynamics. This MUST be used for all strat models, but can
+          also be used for tropospheric models. Note that a suitable
+          RES_Xnn file must be used in conjunction. (i.e. One that
+          does not have a dummy GWDRAG, VDIFF or io_strat).
+
+vii) Fast fourier transforms
+
+FFT72: Suitable for IM=72 models
+FFT144: Suiable for IM=144 models
+
