@@ -461,7 +461,7 @@ c???  add a couple of lines to replace ACCS and avoid 'COMMON BLOCK'
 !@var it input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
 
-      write (MODULE_HEADER(LHEAD+1:LHEAD+14),'(a10,i4,a1)')
+      write (MODULE_HEADER(LHEAD+1:LHEAD+15),'(a10,i4,a1)')
      *   'I/R8 keys(',1+NKEYNR*NKEYMO,')'             ! keyct,keynr(:,:)
       i_ida = Lhead + 10+4+1 + 10+2+1 + 1
       write (MODULE_HEADER(LHEAD+10+4+1+1:i_ida-1),'(a10,i2,a1)')
