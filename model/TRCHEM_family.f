@@ -5,7 +5,7 @@ C
       SUBROUTINE Oxinit(lmax,I,J)
 !@sum Oxinit Find O,O1D and Ox initial conc assuming equilibrium with O3
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_famchem_apr1902_M23)
+!@ver  1.0 (based on famchem0C8_M23p but not parallel)
 c
 C**** GLOBAL parameters and variables:
 c
@@ -80,6 +80,9 @@ c       B is for NO->NO2 reactions :
      &   +rr(39,I,J,L)*y(nC2O3,L)+4.2E-12*exp(180./ta(L))*y(nXO2,L)
 C       C is for NO2->NO reactions :
         C=ss(1,I,J,L)
+     &   +y(nO,L)*5.60E-12*exp(180/ta(L)) !O+NO2 rxn
+     &   +rr(7,I,J,L)*y(nO3,L)*0.75 !forms NO3, assume most goes to NO
+c        most likely rxns: NO2+NO3->NO+NO2, J5:NO3->NO+O2, J6:NO3->NO2+O
         p2=B/(B+C)
         p1=1-p2
         y(nNO,L)=p1*y(n_NOx,L)
