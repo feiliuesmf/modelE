@@ -35,9 +35,9 @@ C****
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
-      USE LANDICE, only : hc2li,hc1de,z1e,z2li
-      USE OCEAN, only : oa,odata,xsi1,xsi2,z1i,ace1i,tfo,hc1i,alami
-     *     ,byrli,byrls,rhos
+      USE LANDICE, only : hc2li,hc1de,z1e,z2li,hc1li
+      USE OCEAN, only : odata,oa,tfo
+      USE SEAICE, only : xsi1,xsi2,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
 
       IMPLICIT NONE
 
@@ -85,7 +85,7 @@ C**** Interface to PBL
       REAL*8, PARAMETER :: qmin=1.e-12
 
       REAL*8, PARAMETER :: S1BYG1 = 0.57735, RVX=0.,
-     *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI)
+     *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
 
       REAL*8 QSAT,QLH,PR,TM
       QSAT(TM,PR,QLH)=3.797915*DEXP(QLH*(7.93252D-6-2.166847D-3/TM))/PR
@@ -316,10 +316,10 @@ C****
       TG1=TGRND(I,J,3)
       TG2=GDATA(I,J,14)
       SRHEAT=FSF(I,J,ITYPE)*COSZ1(I,J)
-      Z1BY6L=(Z1IBYL+SNOW*BYRLS)*BY6
+      Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
       CDTERM=TG2
       CDENOM=1./(2.*Z1BY6L+Z2LI3L)
-      HCG1=HC1I+SNOW*SHI
+      HCG1=HC1LI+SNOW*SHI
       HC1 = HCG1
       BETA=1.
       ELHX=LHS
