@@ -53,10 +53,10 @@ RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean99.uvflux             ! need KSOLAR<2
 ! RADN9=solar.lean02.ann.uvflux       ! need KSOLAR=2
-RADNA=o3trend.1850-2050 
+RADNA=o3trend.1850-2050
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
-GHG=GHG.1850-2050.Sep2001
+GHG=GHG.1850-2050.Mar2002
 dH2O=dH2O_by_CH4
 TOP_INDEX=top_index_72x46.ij
 RADJAN=../E001/RADJAN1950    ! replace E001 by the control run

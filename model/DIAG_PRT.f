@@ -3307,7 +3307,7 @@ C**** standard printout
      *  ij_prec,    ij_evap,    ij_shdt,     ! pg  2  row 1
      *  ij_beta,    ij_rune,    ij_tg1,      !        row 2
      *  ij_ws,      ij_jet ,    ij_wsmn,     ! pg  3  row 1
-     *  ij_sdrag,   ij_jetdir,  ij_wsdir,    !        row 2
+     *  0       ,   ij_jetdir,  ij_wsdir,    !        row 2
      *  ij_cldcv,   ij_pmccld,  ij_cldtppr,  ! pg  4  row 1
      *  ij_netrdp,  ij_srtr,    ij_btmpw,    !        row 2
      *  ij_albp,    ij_albg,    ij_albv,     ! pg  5  row 1

@@ -56,7 +56,7 @@ RADN9=solar.lean99.uvflux         ! need KSOLAR<2
 RADNA=o3trend.1850-2050
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
-GHG=GHG.1850-2050.Sep2001
+GHG=GHG.1850-2050.Mar2002
 dH2O=dH2O_by_CH4
 TOP_INDEX=top_index_72x46.ij
 
@@ -65,7 +65,8 @@ E001 (new modelE based on B402A, uses dry adiab. adjustment)
 R=00BG/B
 
 &&PARAMETERS
-XCDLM=.00025,.000025
+X_SDRAG=.00025,.000025
+C_SDRAG=0.
 KOCEAN=0
 U00ice=.55   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
 HRMAX=1000.  ! tune this to get rad.equilibrium (range: 100.-1500. meters)

@@ -308,13 +308,13 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_SLP, IJ_UJET, IJ_VJET, IJ_PCLDL, IJ_PCLDM, IJ_PCLDH,
      *     IJ_BTMPW, IJ_SRREF, IJ_SRVIS, IJ_TOC2, IJ_TAUS, IJ_TAUUS,
      *     IJ_TAUVS, IJ_GWTR, IJ_QS, IJ_STRNGTS, IJ_ARUNU, IJ_DTGDTS,
-     *     IJ_PUQ, IJ_PVQ, IJ_TGO, IJ_MSI2, IJ_WLM, IJ_TGO2, IJ_EVAPO,
+     *     IJ_PUQ, IJ_PVQ, IJ_TGO, IJ_MSI2, IJ_TGO2, IJ_EVAPO,
      *     IJ_EVAPI, IJ_EVAPLI,IJ_EVAPE, IJ_F0OC,IJ_F0OI,IJ_F0LI,IJ_F0E,
      *     IJ_F1LI, IJ_SNWF, IJ_TSLI, IJ_ERUN2, IJ_SHDTLI, IJ_EVHDT,
      *     IJ_TRHDT, IJ_TMAX, IJ_TMIN, IJ_TMNMX, IJ_PEVAP, IJ_TMAXE,
      *     IJ_WMSUM, IJ_PSCLD, IJ_PDCLD, IJ_DCNVFRQ, IJ_SCNVFRQ,
      *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV,
-     *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SDRAG,
+     *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR,
      *     IJ_LKON, IJ_LKOFF, IJ_PTROP, IJ_TSI, IJ_SSI1, IJ_SSI2,
      *     IJ_SMFX, IJ_MSU2, IJ_MSU2R, IJ_MSU3, IJ_MSU4, IJ_MLTP,
      *     IJ_FRMP, IJ_P850
@@ -383,7 +383,7 @@ C****      names, indices, units, idacc-numbers, etc.
       integer, parameter :: ib_pos=1,ib_pct=2,ib_npp=3,ib_hyb=4,ib_nnp=5
      &     ,ib_ntr=6
 
-!@dbparam isccp_diags flag for accumulating ISCCP diagnostics (default not)
+!@dbparam isccp_diags: if 1 accumulate ISCCP cloud data (default 0)
       INTEGER :: isccp_diags = 0
 
 !@var SCALE_IJ scaling for weighted AIJ diagnostics

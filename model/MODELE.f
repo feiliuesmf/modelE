@@ -87,7 +87,7 @@ C**** Files for an accumulation period (1-12 months)
         call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
         call io_POS(iu_VFLXO,Itime,2*im*jm*koa,Nday) ! real*8-dim -> 2*
       end if
-C**** Initiallise file for sub-daily diagnostics, controlled by 
+C**** Initiallise file for sub-daily diagnostics, controlled by
 C**** space-seperated string segments in SUBDD from the rundeck
       call init_subdd(aDATE)
 
@@ -189,7 +189,7 @@ C**** SURFACE INTERACTION AND GROUND CALCULATION
 C****
 C**** NOTE THAT FLUXES ARE APPLIED IN TOP-DOWN ORDER SO THAT THE
 C**** FLUXES FROM ONE MODULE CAN BE SUBSEQUENTLY APPLIED TO THAT BELOW
-C**** 
+C****
 C**** FIRST CALL MELT_SI SO THAT TOO SMALL ICE FRACTIONS ARE REMOVED
       CALL MELT_SI
          IF (MODD5S.EQ.0) CALL DIAGCA (4)
@@ -446,11 +446,11 @@ C**** message and stop
 C**** sync_param( "B", Y ) reads parameter B into variable Y
 C**** if "B" is not in the database, then Y is unchanged and its
 C**** value is saved in the database as "B" (here sync = synchronize)
-      USE MODEL_COM, only : LM,NIPRNT,MFILTR,XCDLM,NDASF
+      USE MODEL_COM, only : LM,NIPRNT,MFILTR,NDASF
      *     ,NDA4,NDA5S,NDA5K,NDA5D,NDAA,NFILTR,NRAD,Kvflxo,kradia
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
-     $     ,PTOP,LS1,IRAND,LSDRAG,P_SDRAG
-     $     ,ItimeI,PSFMPT,PSTRAT,SIG,SIGE
+     $     ,PTOP,LS1,IRAND,ItimeI,PSFMPT,PSTRAT,SIG,SIGE
+     $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
       USE PARAM
       implicit none
       INTEGER L
@@ -459,7 +459,11 @@ C**** Rundeck parameters:
       call sync_param( "NMONAV", NMONAV )
       call sync_param( "NIPRNT", NIPRNT )
       call sync_param( "MFILTR", MFILTR )
-      call sync_param( "XCDLM", XCDLM, 2 )
+      call sync_param( "X_SDRAG", X_SDRAG, 2 )
+      call sync_param( "C_SDRAG", C_SDRAG )
+      call sync_param( "P_SDRAG", P_SDRAG )
+      call sync_param( "PP_SDRAG", PP_SDRAG )
+      call sync_param( "ANG_SDRAG", ANG_SDRAG )
       call sync_param( "NDASF", NDASF )
       call sync_param( "NDA4", NDA4 ) !!
       call sync_param( "NDA5S", NDA5S ) !!
@@ -476,18 +480,19 @@ C**** Rundeck parameters:
       call sync_param( "KRADIA", KRADIA )
       call sync_param( "NIsurf", NIsurf )
       call sync_param( "IRAND", IRAND )
-      call sync_param( "P_SDRAG", P_SDRAG )
 
 C**** Non-Rundeck parameters
 
-C**** Calculate level for application of SDRAG
-C**** All levels above and including P_SDRAG mb, or LM
+C**** Calculate levels for application of SDRAG: LSDRAG,LPSDRAG
+C**** All levels above and including P_SDRAG mb (PP_SDRAG near poles)
+      LSDRAG=LM ; LPSDRAG=LM
       DO L=1,LM
         IF (PTOP+PSFMPT*SIGE(L+1)+1d-5.lt.P_SDRAG .and.
-     *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.P_SDRAG) EXIT
+     *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.P_SDRAG) LSDRAG=L
+        IF (PTOP+PSFMPT*SIGE(L+1)+1d-5.lt.PP_SDRAG .and.
+     *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.PP_SDRAG) LPSDRAG=L
       END DO
-      LSDRAG=MIN(L,LM)
-      WRITE(6,*) "Level for SDRAG = ",LSDRAG
+      WRITE(6,*) "Levels for SDRAG =",LSDRAG," (",LPSDRAG," near poles)"
       RETURN
 C****
       end subroutine init_Model
@@ -856,7 +861,7 @@ C     iniPBL=.TRUE.  ; iniSNOW = .TRUE.
       CASE (3:4)
          go to 890   !  not available
 C****
-C**** I.C FROM FULL MODEL RESTART FILE (but no tracers) 
+C**** I.C FROM FULL MODEL RESTART FILE (but no tracers)
 C****
       CASE (5)             ! this model's rsf file, no tracers
         call io_rsf(iu_AIC,IhrX,irsficnt,ioerr)
@@ -1128,7 +1133,7 @@ C**** as residual terms. (deals with SP=>DP problem)
           FLAND(I,J)=1.
         END IF
 C**** Ensure that no round off error effects land with ice and earth
-        IF (FLICE(I,J)-FLAND(I,J).gt.-1d-4 .and. FLICE(I,J).gt.0) THEN 
+        IF (FLICE(I,J)-FLAND(I,J).gt.-1d-4 .and. FLICE(I,J).gt.0) THEN
           FLICE(I,J)=FLAND(I,J)
           FEARTH(I,J)=0.
         ELSE
@@ -1292,7 +1297,7 @@ C**** Add water to relevant tracers as well
       IMPLICIT NONE
 !@var ipos =1 (after input), =2 (current diags), =3 (end of diag period)
       INTEGER, INTENT(IN) :: ipos
-      
+
       IF (KDIAG(1).LT.9) CALL DIAGJ
       IF (KDIAG(2).LT.9) CALL DIAGJK
       IF (KDIAG(10).LT.9) CALL DIAGIL
@@ -1300,13 +1305,13 @@ C**** Add water to relevant tracers as well
       IF (KDIAG(3).LT.9) CALL DIAGIJ
       IF (KDIAG(9).LT.9) CALL DIAGCP
       IF (KDIAG(5).LT.9) CALL DIAG5P
-      IF (ipos.ne.2. .and. KDIAG(6).LT.9) CALL DIAGDD 
+      IF (ipos.ne.2. .and. KDIAG(6).LT.9) CALL DIAGDD
       IF (KDIAG(4).LT.9) CALL DIAG4
       IF (KDIAG(11).LT.9) CALL diag_RIVER
       IF (KDIAG(12).LT.9) CALL diag_OCEAN
       IF (KDIAG(12).LT.9) CALL diag_ICEDYN
       IF (ipos.ne.2 .or. Itime.LE.ItimeI+1) THEN
-        CALL DIAGKN                      
+        CALL DIAGKN
       ELSE                      ! RESET THE UNUSED KEYNUMBERS TO ZERO
         KEYNR(1:42,KEYCT)=0
       END IF

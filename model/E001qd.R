@@ -56,7 +56,7 @@ RADN9=solar.lean99.uvflux             ! need KSOLAR<2
 RADNA=o3trend.1850-2050
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
-GHG=GHG.1850-2050.Oct2000
+GHG=GHG.1850-2050.Mar2002
 dH2O=dH20_by_CH4
 TOP_INDEX=top_index_72x46.ij
 
@@ -65,7 +65,8 @@ E001qd (new modelE based on B402A - Qflux + deep diffusion)
 R=00BG/B
 
 &&PARAMETERS
-XCDLM=.00025,.000025
+X_SDRAG=.00025,.000025
+C_SDRAG=0.
 KOCEAN=1
 U00ice=.55   ! use same values as in corr. run with climatological ocean
 HRMAX=1000.  ! use same values as in corr. run with climatological ocean

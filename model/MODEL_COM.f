@@ -23,12 +23,16 @@
 !@dbparam MFILTR: if 1 => SLP, if 2 => T, if 3 => SLP&T is filtered
       integer :: KOCEAN = 1, MFILTR = 1
 
-!@dbparam XCDLM.  SDRAG ~XCDLM(1)+XCDLM(2)*wind_magnitude
-      REAL*8, DIMENSION(2) :: XCDLM = (/5.D-4,5.D-5/)
-!@dbparam P_SDRAG pressure level above which SDRAG may be applied (mb)
-      REAL*8 :: P_SDRAG = 1.d0 ! default=1mb
-!@var LSDRAG level above which SDRAG is applied (above P_SDRAG mb)
-      INTEGER :: LSDRAG=LM  ! default=LM
+!@dbparam X_SDRAG.  SDRAG ~X_SDRAG(1)+X_SDRAG(2)*wind_magnitude
+      REAL*8, DIMENSION(2) :: X_SDRAG = (/2.5D-4,2.5D-5/)
+!@dbparam C_SDRAG.  SDRAG=C_SDRAG (const.) for L=LS1 to L(P)SDRAG-1
+      REAL*8 :: C_SDRAG = 2.5D-5
+!@dbparam P(P)_SDRAG pressure level above which SDRAG is applied (mb)
+      REAL*8 :: P_SDRAG=0., PP_SDRAG = 1.d0 ! (PP_... near poles)
+!@var L(P)SDRAG level above which SDRAG is applied (near pole)
+      INTEGER :: LSDRAG=LM, LPSDRAG=LM  ! non-polar, polar limit
+!@var ANG_SDRAG if =1: ang.momentum lost by SDRAG is added in below PTOP
+      INTEGER :: ANG_SDRAG=0  ! default: SDRAG does NOT conserve ang.mom
 
 !**** Diagnostic control parameters
 !@dbparam KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved

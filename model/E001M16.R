@@ -56,7 +56,7 @@ RADN9=solar.lean99.uvflux          ! need KSOLAR<2
 RADNA=o3trend.1850-2050
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
-GHG=GHG.1850-2050.Sep2001
+GHG=GHG.1850-2050.Mar2002
 dH2O=dH2O_by_CH4
 TOP_INDEX=top_index_72x46.ij
 
@@ -65,8 +65,12 @@ E001M16 (strat.H2O - dry cnv - Sdrag->20mb, no GW drag)
 R=00BG/B
 
 &&PARAMETERS
-XCDLM=.00025,.000025
-P_sdrag=20.
+X_SDRAG=.00025,.000025  ! used above P(P)_sdrag mb (and in top layer)
+C_SDRAG=.000025 ! constant SDRAG above PTOP=150mb
+P_sdrag=0.      ! linear SDRAG only in top layer (except near poles)
+PP_sdrag=20.    ! linear SDRAG above PP_sdrag mb near poles
+ANG_sdrag=0     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
+
 KOCEAN=0
 U00ice=.55   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
 HRMAX=450.   ! tune this to get rad.equilibrium (range: 100.-1500. meters)
@@ -80,7 +84,7 @@ SUBDD='SLP'     ! save SLP at sub-daily frequency
 NSUBDD=12       ! saving sub-daily diags 12hrly
 Kvflxo=1        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
-isccp_diags=1
+isccp_diags=1   ! activates coll. of ISCCP cloud data
 &&END_PARAMETERS
 
  &INPUTZ

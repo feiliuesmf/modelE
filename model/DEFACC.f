@@ -1470,15 +1470,15 @@ c
 cc    iw_ij(k) = iw_oic !! built in
       ir_ij(k) = ir_0_4
 c
-      k=k+1 !
-      IJ_WLM  = k ! WIND SPEED IN TOP LAYER (M/S) before SDRAG 1 SD
-      lname_ij(k) = 'WIND SPEED IN TOP LAYER'
-      units_ij(k) = 'm/s'
-      name_ij(k) = 'WLM'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      jgrid_ij(k) = 2
-      ir_ij(k) = ir_0_26_150
+c     k=k+1 !
+c     IJ_WLM  = k ! WIND SPEED IN TOP LAYER (M/S) before SDRAG 1 SD
+c     lname_ij(k) = 'WIND SPEED IN TOP LAYER'
+c     units_ij(k) = 'm/s'
+c     name_ij(k) = 'WLM'
+c     ia_ij(k) = ia_src
+c     scale_ij(k) = 1.
+c     jgrid_ij(k) = 2
+c     ir_ij(k) = ir_0_26_150
 c
       k=k+1 !
       IJ_TGO2 = k ! TGO12= TOCEAN(3) (C)                  .5*9 MN
@@ -1777,14 +1777,14 @@ c
       scale_ij(k) = 1.d-5/DTsrc
       ir_ij(k) = ir_m1325_475
 c
-      k=k+1 !
-      IJ_SDRAG = k ! DU/DT BY SDRAG (M S-2)                       1 SD
-      lname_ij(k) = 'STRATOSPHERIC DRAG'
-      units_ij(k) = '10^-6 m/s^2'
-      name_ij(k) = 'SDRAG'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d6/DTsrc
-      ir_ij(k) = ir_m190_530
+c     k=k+1 !
+c     IJ_SDRAG = k ! DU/DT BY SDRAG (M S-2)                       1 SD
+c     lname_ij(k) = 'STRATOSPHERIC DRAG'
+c     units_ij(k) = '10^-6 m/s^2'
+c     name_ij(k) = 'SDRAG'
+c     ia_ij(k) = ia_src
+c     scale_ij(k) = 1.d6/DTsrc
+c     ir_ij(k) = ir_m190_530
 c
       k=k+1 !
       IJ_LKON = k

@@ -6,7 +6,7 @@
 !@ver  1.0
       USE CONSTANT, only : by3
       USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
-     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,lsdrag,byim
+     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,byim
       USE GEOM, only : dyv,dxv
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : ptold,pu,pv,pit,sd,phi,dut,dvt
@@ -167,11 +167,10 @@ C$OMP  END PARALLEL DO
            CALL DIAGB
            CALL EPFLUX (U,V,T,P)
          ENDIF
+      CALL SDRAG (DTLF)
 C**** Restart after 8 steps due to divergence of solutions
-C**** STRATOSPHERIC MOMENTUM DRAG must be called at least once
       IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
 c      CALL CALC_AMPK(LS1-1)
-      CALL SDRAG (LSDRAG,DT*(NS-NSOLD))
       NSOLD=NS
       IF (NS.LT.NIdyn) GO TO 300
 C**** Scale WM mixing ratios to conserve liquid water
@@ -1289,41 +1288,45 @@ C****
       END SUBROUTINE PGRAD_PBL
 
 
-      SUBROUTINE SDRAG(LMIN,DT1)
-!@sum  SDRAG puts a drag on the winds on the top layers of atmosphere
+      SUBROUTINE SDRAG(DT1)
+!@sum  SDRAG puts a drag on the winds in the top layers of atmosphere
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas
-      USE MODEL_COM, only : im,jm,lm,psfmpt,u,v,sige,ptop,t,xcdlm
-     *     ,bydsig,itime,dtsrc
+      USE MODEL_COM, only : im,jm,lm,ls1,psfmpt,u,v,sige,bydsig,ptop,t
+     *    ,x_sdrag,c_sdrag,lsdrag,lpsdrag,ang_sdrag,itime
       USE GEOM, only : cosv,dxyn,dxys
-      USE DAGCOM, only : aij, ij_wlm,ajl,ij_sdrag,jl_dudtsdrg
+      USE DAGCOM, only : ajl,jl_dudtsdrg
       USE DYNAMICS, only : pk,pdsig
       IMPLICIT NONE
 
 !@var DT1 time step (s)
       REAL*8, INTENT(IN) :: DT1
-!@var LMIN lowest level at which SDRAG is applied
-C**** Normally 1 mb and up (inclusive)
-C**** Note that this low level is only applied at the pole, elsewhere
-C**** only top two layers are done (unless LMIN=LM i.e. only top layer)
-      INTEGER, INTENT(IN) :: LMIN
-      REAL*8 WL,RHO,CDN,X,BYPIJU,DP
+!@var L(P)SDRAG lowest level at which SDRAG_lin is applied (near poles)
+C**** SDRAG_const is applied everywhere else above PTOP (150 mb)
+      REAL*8 WL,RHO,CDN,X,BYPIJU,DP,DPL(LM)
 !@var DUT,DVT change in momentum (mb m^3/s)
       REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT
       INTEGER I,J,L,IP1
+      logical cd_lin
+!@var ang_mom is the sum of angular momentun at layers LS1 to LM
+      REAL*8, DIMENSION(IM,JM)    :: ang_mom, sum_am
 
+      ang_mom=0. ;  sum_am=0. ! am=air mass
+C*
       BYPIJU=1./PSFMPT
       DUT=0. ; DVT=0.
-      DO L=LMIN,LM
+      DO L=LS1,LM
       DO J=2,JM
-      IF (COSV(J).LE..15.OR.L.GE.LM-1) THEN
+      cd_lin=.false.
+      IF( L.ge.LSDRAG .or.
+     *    (L.ge.LPSDRAG.and.COSV(J).LE..15) ) cd_lin=.true.
       I=IM
       DO IP1=1,IM
         WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
         RHO=(PSFMPT*SIGE(L+1)+PTOP)/(RGAS*T(I,J,L)*PK(L,I,J))
-        CDN=XCDLM(1)+XCDLM(2)*WL
-        AIJ(I,J,IJ_WLM)=AIJ(I,J,IJ_WLM)+WL
+                    CDN=C_SDRAG
+        IF (cd_lin) CDN=X_SDRAG(1)+X_SDRAG(2)*WL
         X=DT1*RHO*CDN*WL*GRAV*BYDSIG(L)*BYPIJU
         IF(X.GT.1) THEN
           write(99,*)'SDRAG: ITime,I,J,PSFMPT,X,RHO,CDN,U,V'
@@ -1334,18 +1337,39 @@ C**** only top two layers are done (unless LMIN=LM i.e. only top layer)
         END IF
 C**** adjust diags for possible difference between DT1 and DTSRC
         AJL(J,L,JL_DUDTSDRG) = AJL(J,L,JL_DUDTSDRG)-U(I,J,L)*X
-        AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
         DP=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
      *         +(PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*DXYS(J  ))
+        ang_mom(i,j) = ang_mom(i,j)+U(I,J,L)*X*DP
         DUT(I,J,L)=-X*U(I,J,L)*DP
         DVT(I,J,L)=-X*V(I,J,L)*DP
         U(I,J,L)=U(I,J,L)*(1.-X)
         V(I,J,L)=V(I,J,L)*(1.-X)
         I=IP1
       END DO
-      END IF
       END DO
       END DO
+C*
+C***  Apply the angular momentum to layers 1 to LS1-1 if ang_sdrag=1
+C*
+      if (ang_sdrag.eq.1) then
+        do j = 2,jm
+        I=IM
+        do ip1 = 1,im
+          do l = 1,ls1-1
+            DPL(L)=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
+     *        +(PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*DXYS(J  ))
+            sum_am(i,j) = sum_am(i,j)+DPL(L)
+          end do
+C*
+          do l = 1,ls1-1
+            DUT(I,J,L)=(ang_mom(i,j)/sum_am(i,j))*dpl(l)
+            U(I,J,L)=U(I,J,L)+ang_mom(i,j)/sum_am(i,j)
+          end do
+          I=IP1
+        end do
+        end do
+      end if
+C*
 C**** conservation diagnostic
 C**** (technically we should use U,V from before but this is ok)
       CALL DIAGCD (4,U,V,DUT,DVT,DT1)
