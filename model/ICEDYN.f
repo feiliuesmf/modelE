@@ -87,7 +87,7 @@ C****
       USE CONSTANT, only : radian,twopi,rhoi,radius,rhow
 C**** Dynamic sea ice should be on the ocean grid
       USE OCEAN, only : im,jm,focean,lmu,lmv,uo,vo,dxyno,dxyso,dxyvo
-     *     ,dxypo,lmm,bydxypo,ratoc,rocat
+     *     ,dxypo,lmm,bydxypo,ratoc,rocat,dxpo,dyvo,opress,ogeoz
       USE GEOM, only : dxyp
       USE ICEDYN, only : rsix,rsiy,usi,vsi,nx1,ny1,press,heffm,uvm,out
      *     ,dwatn,cor,sinen,dxt,dxu,dyt,dyu,cst,csu,tngt,tng,sine,usidt
@@ -105,8 +105,11 @@ C**** working arrays for V-P rheology scheme (on B grid)
       REAL*8, DIMENSION(NX1,NY1,3) :: UICE,VICE
       REAL*8, DIMENSION(NX1,NY1,3) :: HEFF,AREA   ! SAVE
       REAL*8, DIMENSION(NX1,NY1) ::  ETA,ZETA,DRAGS,DRAGA,GAIRX,GAIRY
-     *     ,GWATX,GWATY,FORCEX,FORCEY,AMASS,UICEC,VICEC,UIB,VIB,DMU,DMV
+     *     ,GWATX,GWATY,PGFUB,PGFVB,FORCEX,FORCEY,AMASS,UICEC,VICEC,UIB
+     *     ,VIB,DMU,DMV 
       INTEGER, DIMENSION(NX1,NY1) :: KMT,KMU
+C**** intermediate calculation for pressure gradient term
+      REAL*8, DIMENSION(IM,JM) :: PGFU,PGFV
 
 C**** should be defined based on ocean grid
       REAL*8 :: dlat,dlon,phit,phiu,hemi
@@ -263,42 +266,79 @@ C**** Replicate polar boxes
         enddo
       enddo
 
+C**** calculate sea surface tilt (incl. atmospheric pressure term)
+C**** on ocean velocity grid
+      PGFU(1:IM,JM)=0
+      DO J=2,JM-1
+        I=IM   
+        DO IP1=1,IM
+          IF(LMU(I,J).gt.0. .and. RSI(I,J)+RSI(IP1,J).gt.0.) THEN
+            PGFU(I,J)=((OPRESS(IP1,J)-OPRESS(I,J))*BYRHOI
+     *           +OGEOZ(IP1,J)-OGEOZ(I,J))/DXPO(J)
+          ELSE
+            PGFU(I,J)=0. 
+          END IF
+          I=IP1 
+        END DO
+      END DO
+      DO J=1,JM-1 
+        DO I=1,IM 
+          IF(LMV(I,J).gt.0. .and. RSI(I,J)+RSI(I,J+1).gt.0.) THEN
+            PGFV(I,J)=((OPRESS(I,J+1)-OPRESS(I,J))*BYRHOI
+     *           +OGEOZ(I,J+1)-OGEOZ(I,J))/DYVO(J)
+          ELSE
+            PGFV(I,J)=0. 
+          END IF
+        END DO
+      END DO
+
 c**** interpolate air, current and ice velocity from C grid to B grid
 C**** This should be more generally from ocean grid to ice grid
       do j=1,jm-1
-       UIB(1,j)=0.5*(USI(im,j)+USI(im,j+1))
-       GWATX(1,j)=0.5*(UO(im,j,1)+UO(im,j+1,1))
-      do i=2,im
-       UIB(i,j)=0.5*(USI(i-1,j)+USI(i-1,j+1))
-       GWATX(i,j)=0.5*(UO(i-1,j,1)+UO(i-1,j+1,1))
-      enddo
+        UIB(1,j)=0.5*(USI(im,j)+USI(im,j+1))
+        GWATX(1,j)=0.5*(UO(im,j,1)+UO(im,j+1,1))
+        PGFUB(1,j)=0.5*(PGFU(im,j)+PGFU(im,j+1))
+        do i=2,im
+          UIB(i,j)=0.5*(USI(i-1,j)+USI(i-1,j+1))
+          GWATX(i,j)=0.5*(UO(i-1,j,1)+UO(i-1,j+1,1))
+          PGFUB(i,j)=0.5*(PGFU(i-1,j)+PGFU(i-1,j+1))
+        enddo
       enddo
       do j=1,jm-1
-       VIB(im,j)=0.5*(VSI(im-1,j)+VSI(im,j))
-       GWATX(im,j)=0.5*(VO(im-1,j,1)+VO(im,j,1))
-       VIB(1,j)=0.5*(VSI(im,j)+VSI(1,j))
-       GWATX(1,j)=0.5*(VO(im,j,1)+VO(i,j,1))
-      do i=2,im-1
-       VIB(i,j)=0.5*(VSI(i-1,j)+VSI(i,j))
-       GWATX(i,j)=0.5*(VO(i-1,j,1)+VO(i,j,1))
-      enddo
+        VIB(im,j)=0.5*(VSI(im-1,j)+VSI(im,j))
+        GWATX(im,j)=0.5*(VO(im-1,j,1)+VO(im,j,1))
+        PGFVB(im,j)=0.5*(PGFV(im-1,j)+PGFV(im,j))
+        VIB(1,j)=0.5*(VSI(im,j)+VSI(1,j))
+        GWATX(1,j)=0.5*(VO(im,j,1)+VO(i,j,1))
+        PGFVB(1,j)=0.5*(PGFV(im,j)+PGFV(i,j))
+        do i=2,im-1
+          VIB(i,j)=0.5*(VSI(i-1,j)+VSI(i,j))
+          GWATX(i,j)=0.5*(VO(i-1,j,1)+VO(i,j,1))
+          PGFVB(i,j)=0.5*(PGFV(i-1,j)+PGFV(i,j))
+        enddo
       enddo
 c**** set north pole
       do i=1,im
-       UIB(i,jm)=USI(1,jm)
-       GWATX(i,jm)=UO(1,jm,1)
-       VIB(i,jm)=0.
-       GWATX(i,jm)=0.
+        UIB(i,jm)=USI(1,jm)
+        GWATX(i,jm)=UO(1,jm,1)
+        PGFUB(i,jm)=PGFU(i,jm)
+        VIB(i,jm)=0.
+        GWATX(i,jm)=0.
+        PGFVB(i,jm)=0.
       enddo
       DO J=1,NY1
-       UIB(nx1-1,J)=UIB(1,J)
-       VIB(nx1-1,J)=VIB(1,J)
-       GWATX(nx1-1,J)=GWATX(1,J)
-       GWATX(nx1-1,J)=GWATX(1,J)
-       UIB(nx1,J)=UIB(2,J)
-       VIB(nx1,J)=VIB(2,J)
-       GWATX(nx1,J)=GWATX(2,J)
-       GWATX(nx1,J)=GWATX(2,J)
+        UIB(nx1-1,J)=UIB(1,J)
+        VIB(nx1-1,J)=VIB(1,J)
+        GWATX(nx1-1,J)=GWATX(1,J)
+        GWATX(nx1-1,J)=GWATX(1,J)
+        PGFUB(nx1-1,J)=PGFUB(1,J)
+        PGFVB(nx1-1,J)=PGFVB(1,J)
+        UIB(nx1,J)=UIB(2,J)
+        VIB(nx1,J)=VIB(2,J)
+        GWATX(nx1,J)=GWATX(2,J)
+        GWATX(nx1,J)=GWATX(2,J)
+        PGFUB(nx1,J)=PGFUB(2,J)
+        PGFVB(nx1,J)=PGFVB(2,J)
       ENDDO
 
 C**** DMUA is defined over the whole box (not just over ptype)
@@ -370,7 +410,7 @@ C FIRST DO PREDICTOR
       END DO
 
       CALL FORM(UICE,VICE,ETA,ZETA,DRAGS,DRAGA,GAIRX,GAIRY,GWATX,GWATY
-     2,FORCEX,FORCEY,HEFF,AMASS,AREA)
+     *     ,PGFUB,PGFVB,FORCEX,FORCEY,HEFF,AMASS,AREA)
       CALL RELAX(UICE,VICE,ETA,ZETA,DRAGS,DRAGA,AMASS,FORCEX,FORCEY
      1,UICEC,VICEC)
 
@@ -392,7 +432,7 @@ c
       END DO
 
       CALL FORM(UICE,VICE,ETA,ZETA,DRAGS,DRAGA,GAIRX,GAIRY,GWATX,GWATY
-     2,FORCEX,FORCEY,HEFF,AMASS,AREA)
+     *     ,PGFUB,PGFVB,FORCEX,FORCEY,HEFF,AMASS,AREA)
 c
 C NOW SET U(1)=U(2) AND SAME FOR V
       DO J=1,NY1
@@ -520,8 +560,8 @@ C submitted to JGR, 1999
 C Adapted for GISS coupled model Jiping Liu/Gavin Schmidt 2000
 C*************************************************************
 
-      SUBROUTINE FORM(UICE,VICE,ETA,ZETA,DRAGS
-     1,DRAGA,GAIRX,GAIRY,GWATX,GWATY,FORCEX,FORCEY,HEFF,AMASS,AREA)
+      SUBROUTINE FORM(UICE,VICE,ETA,ZETA,DRAGS,DRAGA,GAIRX,GAIRY,
+     *     GWATX,GWATY,PGFUB,PGFVB,FORCEX,FORCEY,HEFF,AMASS,AREA)
 !@sum  FORM calculates ice dynamics input parameters for relaxation
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
@@ -529,7 +569,7 @@ C*************************************************************
       IMPLICIT NONE
       REAL*8, DIMENSION(NX1,NY1,3), INTENT(INOUT) :: UICE,VICE,HEFF,AREA
       REAL*8, DIMENSION(NX1,NY1), INTENT(INOUT) :: ETA,ZETA,DRAGS,DRAGA
-     *     ,GAIRX,GAIRY,GWATX,GWATY,FORCEX,FORCEY,AMASS
+     *     ,GAIRX,GAIRY,GWATX,GWATY,FORCEX,FORCEY,AMASS,PGFUB,PGFVB
       REAL*8, DIMENSION(NX1,NY1) :: ZMAX,ZMIN
       INTEGER I,J
       REAL*8 AAA
@@ -589,9 +629,13 @@ C NOW ADD IN CURRENT FORCE
      1        +COSWAT*GWATY(I,J))
        END IF
 
-C NOW ADD IN TILT
-       FORCEX(I,J)=FORCEX(I,J)-COR(I,J)*GWATY(I,J)
-       FORCEY(I,J)=FORCEY(I,J)+COR(I,J)*GWATX(I,J)
+C NOW ADD IN TILT 
+C**** This assumes explicit knowledge of sea surface tilt
+       FORCEX(I,J)=FORCEX(I,J)+AMASS(I,J)*PGFUB(I,J)
+       FORCEY(I,J)=FORCEY(I,J)+AMASS(I,J)*PGFVB(I,J)
+C**** Otherwise estimate tilt using geostrophy
+c       FORCEX(I,J)=FORCEX(I,J)-COR(I,J)*GWATY(I,J)
+c       FORCEY(I,J)=FORCEY(I,J)+COR(I,J)*GWATX(I,J)
 
       END DO
       END DO
