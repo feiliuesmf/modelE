@@ -102,117 +102,107 @@ C**** OF FIRST LAYER.
 C****
       MODULE SLE001
 
+ccc alai used in printout only
+
       USE CONSTANT, only : stbo,tfrz=>tf,sha,lhe
       IMPLICIT NONE
       SAVE
-ccc   INCLUDE 'soils45.COM'
-      real*8 alaic  !!! should be moved to EE001
-      REAL*8 C
-      REAL*8 QSAT,DQSATDT
-c     REAL*8 STBO
-      INTEGER NEXP
-c     PARAMETER (STBO=5.67032d-8)
-      PARAMETER (NEXP=6)
-      PARAMETER (C=2.3025851d0)
-C**** INCLUDE FILE FOR SOILS45
-      REAL*8 A1,A2,A3,AA
+      private
+
+c**** public functions:
+      public hl0, set_snow, reth, retp, advnc
+
+c**** public parameters:
+      public ngm,imt,nlsn  ! used by ghycom
+
+c**** public variables:
+      public dz,qk,ng,zb,zc,fr,q,sl,xklh0
+     *     ,snowm,alai,alaie,rs,ijdebug,n
+     *     ,thets,thetm,ws,thm,nth,shc,shw
+     *     ,htpr
+     *     ,top_index
+      public 
+     &    PR,HTPR,PRS,HTPRS,W,HT,SNOWD,TP,FICE,HOUR,
+     &    FV,FB,ATRG,ASHG,ALHG,
+     &    ABETAD,ABETAV,ABETAT,
+     &    ABETAP,ABETAB,ABETA,
+     &    ACNA,ACNC,
+     &    AEVAPW,AEVAPD,AEVAPB,
+     &    ARUNS,ARUNU,AERUNS,AERUNU,
+     &    ADIFS,AEDIFS,
+     &    AEPC,AEPB,AEPP,AFHG,AF0DT,AF1DT,ZW,TBCS,
+     &    QM1,Q1,QS,
+     &    PRES,RHO,TS,VSM,CH,SRHT,TRHT,ZS,
+     &    Z1,
+     &    TG,T1,VG,EDDY,
+     &    ISN,NSN,DZSN,WSN,HSN,FR_SNOW
+      public igcm, dt, fsn, elh, shi, alamw, alami, alama, 
+     $     alambr, alams, hw,   
+     $     sdstnc, c1, prfr, SO_
+
+      REAL*8, external :: QSAT,DQSATDT
+      integer, PARAMETER :: NEXP=6
+      real*8, PARAMETER :: C=2.3025851d0
+      REAL*8 A1,A2,A3
      *     ,AK1,AK2
      *     ,ALPH0O,ALPLS1,ARG
      *     ,BA,BETA,BETAB,BETAS,BETAT,BETAV,CC
       REAL*8 CNA,CPFAC,D1,D2,DAY,DD,DEDIFS,DELH1,DELHN,DENOM
-     *     ,DFH,DFLUX,DFUNC,DIF,DIFF,DL,DLDZ2,DQDT,DRNF
+     *     ,DFH,DFLUX,DFUNC,DIFF,DL,DLDZ2,DQDT,DRNF
      *     ,DTM,DTM1,DTM2,DTPL,ED,EL0
-     *     ,EPEN,EPS,FBV,FICEC
-     *     ,FLMT,FRDN,FRUP,FTP,FUNC,GAA,GABC
+     *     ,EPEN,EPS,FICEC
+     *     ,FLMT,FUNC,GAA,GABC
       REAL*8 GCA,GM,H0,HCWT,HCWTA,HCWTB,HCWTI,HCWTW,HL,HMAT,HMIN
-     *     ,HS,HTC,HZ,ONE,PEARTH,PFAC,PHASE,PM,PMAX
+     *     ,HS,HZ,ONE,PFAC,PM,PMAX
      *     ,PRFAC,PTMP,PTMPS,QG
-     *     ,QSO,RHO3,RNFS,S,SAT,SCNDS,SCS0,SCSIM,SCSRE
-     *     ,SFV,SGMM,SHCC,SLA0,SLIM
-     *     ,SLRE,SNC,SNDP,SNOWDU
-      REAL*8 SRHT0,SVH,SXTN,T450,TB0,TC0,TEMP
+     *     ,QSO,RHO3,RNFS,S,SAT,SCNDS
+     *     ,SGMM,SHCC
+      REAL*8 SRHT0,SXTN,T450,TB0,TC0,TEMP
      *     ,TESTH,THR,THR0,THR1,THR2
-     *     ,TOL,TPC,TRUNC,U1,V1,WC,WET1
-     *     ,WET2,WFC1,WFC2,WMIN,XA,XB,XDEN,XI,XK1,XK2
+     *     ,TOL,TRUNC,U1,V1
+     *     ,XA,XB,XDEN,XI,XK1,XK2
      *     ,XKL,XKLU,XKU1,XKU2,XKUD,XL,XLW,XNUM
-     *     ,XS,XSH,XSHA,XTOL,XW,Z,ZERO
-      REAL*8 ALAMAX,ALAMIN,AROOT,BROOT
-     *     ,RSAR,SHCAP
-     *     ,VHGHT
+     *     ,XS,XSH,XSHA,XTOL,XW,ZERO
       INTEGER IBV,ICHN,IDAY,IHOUR,ITH,ITR,J1,J2,JCM,L
-     *     ,LADAY,LIMIT,LL,MMAX,NINTEG,NIT,IV,JC,K,M
+     *     ,LIMIT,LL,MMAX,NINTEG,NIT,JC,K,M
       INTEGER NGM,NG,IMT,IGCM
       PARAMETER (NGM=6,NG=NGM+1,IMT=5)
       real*8 PR,HTPR,PRS,HTPRS,W(0:NGM,2),HT(0:NGM,2)
-     & ,SNOWD(2),WS(0:NGM,2),TP(0:NGM,2),FICE(0:NGM,2),HOUR,COST,SINT
+     & ,SNOWD(2),WS(0:NGM,2),TP(0:NGM,2),FICE(0:NGM,2),HOUR,COST
      & ,DZ(NGM),Q(IMT,NGM),QK(IMT,NGM),SL,FV,FB,ALAI,ATRG,ASHG,ALHG
      & ,ABETAD,ABETAV,ABETAT,ABETAP,ABETAB,ABETA,ACNA,ACNC,AEVAPW,AEVAPD
      & ,AEVAPB,ARUNS,ARUNU,AERUNS,AERUNU,ADIFS,AEDIFS,AEPC,AEPB,AEPP
-     & ,AFHG,AF0DT,AF1DT,CNC,ZW(2),FD,FW,FM,VH,ALAIE,TBCS,TCS
+     & ,AFHG,AF0DT,AF1DT,CNC,ZW(2),FD,FW,FM,ALAIE,TBCS,TCS
      & ,SNOWM
       integer  IJdebug
       REAL*8 THETA(0:NG,2),THETS(0:NG,2),F(0:NG,2)
-     &     ,FH(0:NG,2),ZB(NG),ZC(NG),ZHTB,SB(33),SHW,SHI,FSN,ELH,SDSTNC
-     &     ,SHV,SHC(0:NG,2),ALAMW,ALAMI,ALAMA,ALAMSN,ALAMBR,ALAMS(IMT-1)
+     &     ,FH(0:NG,2),ZB(NG),ZC(NG),SHW,SHI,FSN,ELH,SDSTNC
+     &     ,SHC(0:NG,2),ALAMW,ALAMI,ALAMA,ALAMBR,ALAMS(IMT-1)
      &     ,XKH(NG,2),XKHM(NG,2),FR(NG),RNF(2),RNFF(NG,2),H(0:NG,2)
-     &     ,XK(0:NG,2),XINFC(2),SNK(0:NG,2),SNKH(0:NG,2),SHCLC,D(0:NG,2)
-     &     ,XKU(0:NG,2),IST(33)
-      REAL*8 DT,TTOT,ZMAX,ZMIN,ALGDEL,XIN,AKAPPA,DTR,SGM
-     &     ,DTS,SHTPR,DTOUT,BETAD,HW,DR,DRS,RS,PRFR,C1,AL(2),XINC
-     &     ,PRE(2),BETADL(NGM),SPGSN
-      integer N,NMAX,LC
+     &     ,XK(0:NG,2),XINFC(2),SNK(0:NG,2),SNKH(0:NG,2),D(0:NG,2)
+     &     ,XKU(0:NG,2)
+      REAL*8 DT,ALGDEL,DTR
+     &     ,DTS,BETAD,HW,DR,DRS,RS,PRFR,C1
+     &     ,PRE(2),BETADL(NGM)
+      integer N
 C     COMMON/WEIGHT/A(4,IMT-1),B(4,IMT-1),P(4,IMT-1)
-      REAL*8 DTH,THETM(0:NG,2),THMAX(0:NG,2),HLM(0:64),
+      REAL*8 THETM(0:NG,2),HLM(0:64),
      &     XKLM(0:64,IMT-1),DLM(0:64,IMT-1),THM(0:64,IMT-1),ALPH0
       integer NTH
       REAL*8 QM1,Q1,QS,QB,QC,EVAP(2),EVAPW,EVAPD,EVAPS,EPB,EPC,
-     &     QL,QLDT,SNOWF,SNOWFS
-      DIMENSION FS(2),FS1(2,2)
-      REAL*8 PRES,RHO,TS,VSM,CH,CD,SNHT,SRHT,TRHT,ZS,Z1,CDN,
-     &     P1,PPBL,FCOR,FMAG,TG,T1,VG,SINA,EDDY,RI1,RIS,FPAD,FS,FS1,
-     &     T1G,TSG
-      integer IZ,IZX
-      real*8 THRM(2),SNSH(2),XLTH(2),ALTH(2)
+     &     SNOWF,SNOWFS
+      !DIMENSION FS(2),FS1(2,2)
+      REAL*8 PRES,RHO,TS,VSM,CH,SRHT,TRHT,ZS,Z1,
+     &     TG,T1,VG,EDDY
+      real*8 THRM(2),SNSH(2),XLTH(2)
       real*8 TOP_INDEX, XKUS(NG,2), XKUSA(2)
-      double precision, dimension(4,imt-1), parameter :: a=reshape(
-     &     (/                   ! matric potential coefficients for
-     &     .2514d0,  0.0136d0, -2.8319d0,  0.5958d0, ! sand
-     &     .1481d0,  1.8726d0,  0.1025d0, -3.6416d0, ! loam
-     &     .2484d0,  2.4842d0,  0.4583d0, -3.9470d0, ! clay
-     &     .8781d0, -5.1816d0, 13.2385d0,-11.9501d0/), ! peat
-     &     (/4,imt-1/))
-      double precision, dimension(4,imt-1), parameter :: b=reshape(
-     &     (/                   ! conductivity coefficients for
-     &     -0.4910d0, -9.8945d0,  9.7976d0, -3.2211d0, ! sand
-     &     -0.3238d0,-12.9013d0,  3.4247d0,  4.4929d0, ! loam
-     &     -0.5187d0,-13.4246d0,  2.8899d0,  5.0642d0, ! clay
-     &     -3.0848d0,  9.5497d0,-26.2868d0, 16.6930d0/), ! peat
-     &     (/4,imt-1/))
-      double precision, dimension(4,imt-1), parameter :: p=reshape(
-     &     (/                   ! diffusivity coefficients for
-     &     -0.1800d0, -7.9999d0,  5.5685d0, -1.8868d0, ! sand
-     &     -0.1000d0,-10.0085d0,  3.6752d0,  1.2304d0, ! loam
-     &     -0.1951d0, -9.7055d0,  2.7418d0,  2.0054d0, ! clay
-     &     -2.1220d0,  5.9983d0,-16.9824d0,  8.7615d0/), ! peat
-     &     (/4,imt-1/))
       DIMENSION ARG(IMT-1)
       DIMENSION SAT(IMT-1)
       DATA SAT/.394d0,.537d0,.577d0,.885d0/
-      DIMENSION SNOWDU(2)
+      !DIMENSION SNOWDU(2)
       DIMENSION XSHA(NG,2),XSH(NG,2),GABC(3),HCWT(IMT-1)
       DIMENSION QG(2),XK2(2),AK2(2)
       DIMENSION BETAS(2)
-      DIMENSION RSAR(8),ALAMIN(8),ALAMAX(8),LADAY(8),AROOT(8),BROOT(8)
-      DIMENSION VHGHT(8)
-      DATA AROOT/ 12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0/
-      DATA BROOT/  1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0/
-      DATA ALAMAX/ 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0/
-      DATA ALAMIN/ 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0/
-      DATA  LADAY/ 196,  196,  196,  196,  196,  196,  196,  196/
-      DATA   RSAR/100d0, 100d0, 200d0, 200d0, 200d0, 300d0,250d0, 125d0/
-      DATA  VHGHT/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0/
-      DIMENSION SHCAP(IMT)
-      DATA SHCAP/2d6,2d6,2d6,2.5d6,2.4d6/
 
 ccc   I hate to do it, but as a quick solution I declare snow variables
 ccc   as global ones ...
@@ -228,7 +218,7 @@ ccc   the following looks like diagnistic output
       REAL*8 AEVAPS
 
 ccc   put some obscure parameters to SOIL_PARAMS structure
-      TYPE SOIL_PARAMS
+      TYPE, public :: SOIL_PARAMS
         real*8 ROSMP
       END TYPE SOIL_PARAMS
 
@@ -436,7 +426,29 @@ C**** XKLM(J,I) - CONDUCTIVITY AT J'TH H POINT FOR TEXTURE I
 C**** DLM(J,I) - DIFFUSIVITY AT J'TH H POINT FOR TEXTURE I
 ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
+      real*8, dimension(4,imt-1), parameter :: a=reshape(
+     &     (/                   ! matric potential coefficients for
+     &     .2514d0,  0.0136d0, -2.8319d0,  0.5958d0, ! sand
+     &     .1481d0,  1.8726d0,  0.1025d0, -3.6416d0, ! loam
+     &     .2484d0,  2.4842d0,  0.4583d0, -3.9470d0, ! clay
+     &     .8781d0, -5.1816d0, 13.2385d0,-11.9501d0/), ! peat
+     &     (/4,imt-1/))
+      real*8, dimension(4,imt-1), parameter :: b=reshape(
+     &     (/                   ! conductivity coefficients for
+     &     -0.4910d0, -9.8945d0,  9.7976d0, -3.2211d0, ! sand
+     &     -0.3238d0,-12.9013d0,  3.4247d0,  4.4929d0, ! loam
+     &     -0.5187d0,-13.4246d0,  2.8899d0,  5.0642d0, ! clay
+     &     -3.0848d0,  9.5497d0,-26.2868d0, 16.6930d0/), ! peat
+     &     (/4,imt-1/))
+      real*8, dimension(4,imt-1), parameter :: p=reshape(
+     &     (/                   ! diffusivity coefficients for
+     &     -0.1800d0, -7.9999d0,  5.5685d0, -1.8868d0, ! sand
+     &     -0.1000d0,-10.0085d0,  3.6752d0,  1.2304d0, ! loam
+     &     -0.1951d0, -9.7055d0,  2.7418d0,  2.0054d0, ! clay
+     &     -2.1220d0,  5.9983d0,-16.9824d0,  8.7615d0/), ! peat
+     &     (/4,imt-1/))
       integer I,J
+
       SXTN=16.d0
       NTH=2**NEXP
       HLM(0)=0.0d0
@@ -939,6 +951,7 @@ C**** SNK - WATER SINK FROM LAYERS, M S-1
 ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
 C**** UNDERGROUND RUNOFF IS A SINK
+      integer L, IBV
       DO IBV=1,2
         DO L=1,N
           SNK(L,IBV)=RNFF(L,IBV)
@@ -976,6 +989,7 @@ C**** SNOWDL - THE LOWER BOUND ON THE SNOW DEPTH AT END OF TIME STEP
 C**** TRUNC - FIX FOR TRUNCATION ON IBM MAINFRAMES
 ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
+      integer L, IBV, LL
       ZERO=0.d0
       TRUNC=1d-6
       TRUNC=1d-12

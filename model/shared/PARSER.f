@@ -19,13 +19,9 @@
       subroutine skip_junk( str )
       implicit none
       character*(*) str
-      !character*256 tstr
       integer n
 
-      !print *, 'SJin::', str, '::'
-
       do while ( len_trim( str ) > 0 .and. scan( str, ' =,' ) == 1 )
-        !print *, 'SJ::', str, '::'
         str = str(2:)
       enddo
       return
@@ -80,9 +76,6 @@
       n  = scan( str, '=' )
       if ( n>0 .and. ( n1==0 .or. n<n1 ) ) str(n:n) = ' '
 
-      !print *, '$$$:', str
-
-      !call adjustl( str )
       read ( str, * ) value
 
       if ( scan( str, '''' ) == 1 ) then  ! quated string
@@ -91,7 +84,6 @@
         str = str(n+1:)
       else  ! remove chars till the next [ =,]
         n = scan( str, ' =,' ) 
-        !tstr = str
         str = str(n+1:)
       endif
 
@@ -127,9 +119,6 @@
 
       do
         read( kunit, '(a256)', err=666, end=666 ) bufs
-        !print *
-        !print *,'######', trim( bufs )//' :::'
-        !print *
 
         if ( len_trim(bufs) < 1 ) cycle
 
@@ -137,9 +126,6 @@
         call skip_junk( bufs )
 
         if ( len_trim(bufs) < 1 ) cycle
-
-        !if ( bufs == 'exit' ) exit
-
 
         !read the name of the variable
         call sread_char( bufs, name )
@@ -167,8 +153,6 @@
             np = np+1
             call sread_int( bufs, ivars(np) )
           end do
-          !print *, 'name= ', name, ', int'
-          !print *, 'vars= ', ( ivars(i),':',i=1,np )
           call set_param( name, ivars, np, 'o' )
         case ('r')
           np = 0
@@ -176,8 +160,6 @@
             np = np+1
             call sread_real( bufs, rvars(np) )
           end do
-          !print *, 'name= ', name, ', real'
-          !print *, 'vars= ', ( rvars(i),':',i=1,np )
           call set_param( name, rvars, np, 'o' )
         case ('c')
           np = 0
@@ -185,8 +167,6 @@
             np = np+1
             call sread_char( bufs, cvars(np) )
           end do
-          !print *, 'name= ', name, ', char'
-          !print *, 'vars= ', ( cvars(i),':',i=1,np )
           call set_param( name, cvars, np, 'o' )
         end select
 
@@ -200,32 +180,6 @@
       end subroutine parse_params
 
       end module PARSER
-
-
-#ifdef TEST_PARSER
-      program foo
-      use PARAM
-      use PARSER
-      implicit none
-      integer ia(128), i
-      real*8 ra(128), r
-      character*16 ca(128), c
-
-      call parse_params( 1 )
-
-      call get_param('rvars', ra, 5 )
-      print *, 'rvars = ', (ra(i), i=1,5)
-
-      call get_param('somename', c)
-      print *, 'somename = ', c
-
-      call get_param('abcd', ia, 1)
-      print *, 'abcd = ', (ia(i), i=1,2)
-
-
-      end
-      
-#endif
 
 
 

@@ -10,6 +10,7 @@
       USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
+      USE SOIL_DRV, only: daily_earth, ground_e
       IMPLICIT NONE
 
       INTEGER I,J,L,K,M,KSS6,MSTART,MNOW,MODD5D,months,ioerr,Ldate
@@ -466,6 +467,7 @@ C****
       USE TIMINGS, only : timing,ntimeacc
       USE PARAM
       USE PARSER
+      USE SOIL_DRV, only: init_gh
 
 
       IMPLICIT NONE

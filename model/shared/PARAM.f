@@ -6,7 +6,7 @@
 !@use set_rparam( name, value ) - add parameter <name> to the database
 !@use                             and set it to <value>
 !@use get_rparam( name, value ) - get value of <name> from the database
-!@use read_param( kunit ) - read parameters from <kunit> unit
+!@use read_param( kunit, flag ) - read parameters from <kunit> unit
 !@use write_param( kunit ) - write paramerers to <kunit> unit
 !@use
 !@use Here <name> is a character string with length up to 32
@@ -14,6 +14,7 @@
 !@use Each parameter can be set only once. If an attempt is made to set
 !@use a parameter which is already in the database, an error will be
 !@use generated.
+!@use Read FAQ's for the full description.
 
       implicit none
       save
@@ -667,9 +668,6 @@
         return
       endif
 
-c printout is sometimes inappropriate (i.e. for qc)
-c      print *, 'READING PARAMETERS from rsf'
-
       read( kunit, err=10 ) HEADER,
      *     lnum_param, lnum_rparam, lnum_iparam, lnum_cparam,
      *     ( LParams(n), n=1,min(lnum_param,MAX_PARAMS) ),
@@ -690,7 +688,6 @@ c      print *, 'READING PARAMETERS from rsf'
 
       ! now merge the data just read with existing database
       do n=1,lnum_param
-        !print *,'read: ',LParams(n)
         if ( (.not. is_set_param(LParams(n)%name)) .or. ovrwrt ) then
           select case( LParams(n)%attrib )
           case ('i')
@@ -832,158 +829,4 @@ c      print *, 'READING PARAMETERS from rsf'
 
 
       end module param
-
-
-#ifdef TEST_MODULE_PARAM
-ccc this part is for testing - will be removed soon
-
-  ! trying to add some code
-
-      program foo
-      use param
-      implicit none
-      real*8 a, b, w(10)
-      integer i, ai(3)
-      integer, pointer :: pi(:)
-      character*32 c
-      character*16 cc(4)
-      integer, pointer :: ppi(:), ppi1
-      real*8, pointer :: ppr(:), ppr1
-      character*4, pointer :: ppc(:), ppc1
-      integer :: d6(2,4)
-      data d6 /63,17, 17,34, 37,27, 13,23/
-      integer dd(8)
-
-      a = 1234.77d0
-      b = 122
-
-      w(1) = 9.d0
-      w(3) = 11.d0
-      w(10) = 13.d0
-
-      ai(1) = 11
-      ai(2) = 12
-      ai(3) = 13+100
-
-      cc(1) = 'fd'
-      cc(2) = '12'
-      cc(3) = 'a'
-
-      !call read_param( 99 )
-
-      dd(1:8) =  d6(1:8,1)
-      call set_param( "d6", d6(1:8,1), 8 )
-
-      d6(:,:) = 0
-      print *, dd, d6
-
-      call get_param( "d6", d6(1:8,1), 8 )
-      print *, dd, d6
-
-      call alloc_param( "ppi", ppi, (/1,2,3/), 3)
-      call alloc_param( "ppi1", ppi1, 7)
-
-      print *, 'ppi = ', (ppi(i), i=1,3), ' :: ',ppi1
-
-      ppi(2) = 22
-
-      print *, 'ppi = ', (ppi(i), i=1,3), ' :: ',ppi1
-
-      call get_param( 'ppi', ai, 3 )
-
-      print *, 'ppi = ', ai
-
-
-
-      call alloc_param( "ppr", ppr, (/11.d0,12.d0,13.d0/), 3)
-      call alloc_param( "ppr1", ppr1, 77.d0)
-
-      print *, 'ppr = ', (ppr(i), i=1,3), ' :: ',ppr1
-
-      ppr(2) = 222.
-
-      print *, 'ppr = ', (ppr(i), i=1,3), ' :: ',ppr1
-
-      call get_param( 'ppr', w , 3 )
-
-      print *, 'ppr = ', w
-
-
-      call alloc_param( "ppc", ppc, (/'asdf','ghjk','qwer','tyui'/), 4)
-      call alloc_param( "ppc1", ppc1, 'abc')
-      print *, 'ppc = ', (ppc(i), i=1,4), ' :: ',ppc1
-
-      ppc(3) = 'JAN'
-
-      print *, 'ppc = ', (ppc(i), i=1,4), ' :: ',ppc1
-
-      call get_param( 'ppc', cc, 4 )
-
-      print *, 'ppc = ', cc
-
-
-      a =  999999
-
-      !call set_param( 'par_a', a )
-      call set_param( 'par_c', 'test23_oOOO', 'o' )
-      call set_param( 'parbb_b', b )
-      !call set_param( 'par_i', ai, 3, 'o' )
-      call set_param( 'par_cc', cc, 3 )
-
-      call read_param( 99, .false. )
-
-      print *, is_set_param('par_c'), is_set_param('parbb_b'),
-     *     is_set_param('par_a'), is_set_param('abc'),
-     $     is_set_param('par_c')
-
-      call get_param( 'par_c', c )
-      print *, 'c = ', c
-
-      print *, 'a = ', a
-      call sync_param( 'par_a', a )
-      print *, 'a = ', a
-
-      call get_param( 'par_a', a )
-      print *, 'a = ', a
-
-      call get_param( 'par_cc', cc, 3 )
-      print *, 'cc = ', cc
-
-
-      !call get_pparam( 'par_i', pi, 3 )
-
-      call get_param( 'parbb_b', a )
-      print *, 'b = ', a
-
-      call set_param( 'par_d', 12301, 'o' )
-
-
-      call get_param( 'par_c', c )
-      print *, 'c = ', c
-
-      !call get_param( 'par_i', ai, 3 )
-      print *, 'i = ', ai
-
-      !pi(1) = 2001
-      !pi(2) = 2002
-
-      ai(1) = 1024
-      ai(2) = 2048
-      print *, 'ai = ', ai
-      call sync_param( 'par_i', ai, 3 )
-      print *, 'ai = ', ai
-      call get_param( 'par_i', ai, 3 )
-      print *, 'ai = ', ai
-
-
-      call get_param( 'par_d', i )
-      print *, 'par_d = ', i
-
-      call write_param( 98 )
-
-      end program foo
-#endif
-
-
-
 

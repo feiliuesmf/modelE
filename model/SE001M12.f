@@ -45,6 +45,7 @@ C****
       USE LAKES, only : minmld
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,runoe,erunoe
      *     ,solar,dmua,dmva,gtemp,nstype
+      USE SOIL_DRV, only: earth
       IMPLICIT NONE
 
       INTEGER I,J,K,IM1,IP1,KR,JR,NS,NSTEPS,MODDSF,MODD6

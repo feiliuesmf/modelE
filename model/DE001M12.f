@@ -2163,6 +2163,7 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
       USE DAGCOM, only : icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM
      *     ,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG,icon_MSI
      *     ,icon_HSI,icon_SSI,title_con
+      USE SOIL_DRV, only: conserv_WTG,conserv_HTG
       IMPLICIT NONE
 !@var M index denoting from where DIAG9A is called
       INTEGER, INTENT(IN) :: M
@@ -2182,8 +2183,8 @@ C****  11  AFTER OCEAN SUB-GRIDSCALE PHYS
 C****  12  AFTER DAILY
 C****
       REAL*8, EXTERNAL :: conserv_AM,conserv_KE,conserv_MS,conserv_PE
-     *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_WTG
-     *     ,conserv_HTG,conserv_MSI,conserv_HSI,conserv_SSI
+     *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE
+     *     ,conserv_MSI,conserv_HSI,conserv_SSI
       REAL*8 MNOW
 
 C**** ATMOSPHERIC ANGULAR MOMENTUM

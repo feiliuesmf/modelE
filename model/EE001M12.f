@@ -2,6 +2,23 @@ C**** EE001M12 E001M12 SOMTQ EB357M12
 C****
 C**** Subroutine EARTH used by new land surface model.
 C**** Coded to use new SOC PBL routines.
+      module soil_drv
+      use MODEL_COM, only : im,jm
+      implicit none
+      private
+      save
+      
+      public daily_earth, ground_e, init_gh, earth, conserv_wtg
+     $     ,conserv_htg
+
+      real*8 cosday,sinday
+!@var GDEEP keeps average (2:n) values of temperature, water and ice
+      REAL*8, DIMENSION(IM,JM,3) :: GDEEP 
+
+      real*8 spgsn !@var specific gravity of snow
+
+
+      contains
       SUBROUTINE EARTH (NS,MODDSF,MODD6)
 C****
 C**** This subroutine calculates surface fluxes of sensible heat,
@@ -9,7 +26,7 @@ C**** evaporation, thermal radiation, and momentum drag.
 C****
       USE CONSTANT, only : grav,rgas,sday,lhm,lhe,lhs,twopi,omega
      *     ,sha,tf,rhow,rhoi,shw,shi,edpery,deltx
-      USE MODEL_COM, only : im,jm,lm,t,p,q,DTsrc,NIsurf,dsig
+      USE MODEL_COM, only : t,p,q,DTsrc,NIsurf,dsig
      *     ,jday,JHOUR,NDAY,ITime,jeq,fearth,modrd,ijd6,itearth
      *     ,vt_on
       USE GEOM, only : imaxj,dxyp
@@ -30,8 +47,8 @@ C****
      &    DIFS=>ADIFS,EDIFS=>AEDIFS,
      &    AEPC,AEPB,AEPP,AFHG,AF0DT,AF1DT,ZW,TBCS,
      &    QM1,Q1,QS,
-     &    PRES,RHO,TSPASS=>TS,VSM,CH,CD,SNHT,SRHT,TRHT,ZS,
-     &    ZMIXE=>Z1,CN=>CDN,P1,PBLP=>PPBL,
+     &    PRES,RHO,TSPASS=>TS,VSM,CH,SRHT,TRHT,ZS, !CD,SNHT,
+     &    ZMIXE=>Z1, !CN=>CDN,P1,PBLP=>PPBL,
      &    TGPASS=>TG,TKPASS=>T1,VGM=>VG,EDDY,
      &    NLSN,ISN,NSN,DZSN,WSN,HSN,FR_SNOW
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
@@ -51,8 +68,8 @@ C****
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: NS,MODDSF,MODD6
-      INTEGER I,J,L,KR,JR,ITYPE,IM1,IMAX,IHOUR
-      REAL*8 SHDT,QSATS,EVAP,EVHDT,TG2AV,ACE2AV,TRHDT,CDN,RCDMWS
+      INTEGER I,J,L,KR,JR,ITYPE,IMAX,IHOUR
+      REAL*8 SHDT,QSATS,EVAP,EVHDT,TG2AV,ACE2AV,TRHDT,RCDMWS
      *     ,RCDHWS,DHGS,CDQ,CDM,CDH,ELHX,TG,SRHEAT,TG1,PTYPE,QSATSS
      *     ,EVAPS,PPBLS,EDS1S,DBLS,DGSS,CDHS,CDMS,QGS,SRHDTS,SHDTS
      *     ,EVHDTS,TG1S,DXYPJ,TRHEAT,WTR2AV,WFC1,WGS,VGS,UGS,TRHDTS
@@ -67,9 +84,6 @@ c      COMMON /WORK1d/DTH1,DQ1
 c      COMMON /WORK2/DU1,DV1
 c      REAL*8, DIMENSION(IM,JM,4) :: E0,E1,EVAPOR,TGRND
 c      COMMON/WORK3/E0,E1,EVAPOR,TGRND
-      REAL*8, DIMENSION(IM,JM,3) :: GDEEP
-      COMMON/oldDAG/GDEEP
-C****
       REAL*8, DIMENSION(IM,JM) :: PRCSS
       COMMON /WORKLS/PRCSS
 C**** Interface to PBL
@@ -113,33 +127,28 @@ c     endif
       DTSURF=DTsrc/NISURF
       ZS1CO=.5*DSIG(1)*RGAS/GRAV
 
-         SPRING=-1.
-         IF((JDAY.GE.32).AND.(JDAY.LE.212)) SPRING=1.
-         IHOUR=1+JHOUR
+      SPRING=-1.
+      IF((JDAY.GE.32).AND.(JDAY.LE.212)) SPRING=1.
+      IHOUR=1+JHOUR
 C****
 C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NISURF TIMES EVERY HOUR
 C****
-         TIMEZ=JDAY+(MOD(ITime,NDAY)+(NS-1.)/NISURF)/NDAY  ! -1 ??
-         IF(JDAY.LE.31) TIMEZ=TIMEZ+365.
-         GHOUR=(ITime+(NS-1.)/NISURF) ! *(24./NDAY)
+      TIMEZ=JDAY+(MOD(ITime,NDAY)+(NS-1.)/NISURF)/NDAY ! -1 ??
+      IF(JDAY.LE.31) TIMEZ=TIMEZ+365.
+      GHOUR=(ITime+(NS-1.)/NISURF) ! *(24./NDAY)
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
-      DO J=1,JM
+         
+      loop_j: DO J=1,JM
       HEMI=1.
       IF(J.LE.JM/2) HEMI=-1.
       IMAX=IMAXJ(J)
       POLE=.FALSE.
-C**** CONDITIONS AT THE SOUTH POLE
-      IF(J.EQ.1) THEN
-         POLE = .TRUE.
-      ENDIF
-C**** CONDITIONS AT THE NORTH POLE
-      IF(J.EQ.JM) THEN
-         POLE=.TRUE.
-      ENDIF
+C**** CONDITIONS AT THE SOUTH/NORTH POLE
+      IF( J.EQ.1 .or. J.EQ.JM ) POLE = .TRUE.
 C**** ZERO OUT SURFACE DIAGNOSTICS WHICH WILL BE SUMMED OVER LONGITUDE
-  100    BTRHDT=0.
+         BTRHDT=0.
          BSHDT=0.
          BEVHDT=0.
          BTS=0.
@@ -151,8 +160,7 @@ C**** ZERO OUT SURFACE DIAGNOSTICS WHICH WILL BE SUMMED OVER LONGITUDE
          BRUNU=0.
          IF(J.LT.JEQ) WARMER=-SPRING
          IF(J.GE.JEQ) WARMER=SPRING
-      IM1=IM
-      DO I=1,IMAX
+      loop_i: DO I=1,IMAX
 C****
 C**** DETERMINE SURFACE CONDITIONS
 C****
@@ -161,7 +169,7 @@ C****
       PIJ=P(I,J)
       PS=PEDN(1,I,J)
       PSK=PEK(1,I,J)
-      P1=PMID(1,I,J)
+      ! P1=PMID(1,I,J) ! not used
       P1K=PK(1,I,J)
       TH1=T(I,J,1)
       Q1=Q(I,J,1)
@@ -226,9 +234,13 @@ C**** New quantities to be zeroed out over ground timesteps
 C****
 C**** EARTH
 C****
- 2400 IF (PEARTH.LE.0.) then
+      IF (PEARTH.LE.0.) then
         ipbl(i,j,4)=0
-        go to 5000
+        TDIURN(I,J,5)=TDIURN(I,J,5)+(TSAVG(I,J)-TF)
+        IF(TSAVG(I,J).GT.TDIURN(I,J,6)) TDIURN(I,J,6)=TSAVG(I,J)
+C       IF(TSAVG(I,J).GT.AIJ(I,J,IJ_TMAX)) AIJ(I,J,IJ_TMAX)=TSAVG(I,J)
+C       IF(TSAVG(I,J).LT.AIJ(I,J,IJ_TMIN)) AIJ(I,J,IJ_TMIN)=TSAVG(I,J)
+        cycle loop_i
       endif
 C     NGRNDZ=NGRND HAS TO BE 1
 c      ZGS=10.
@@ -256,12 +268,12 @@ C     CALL HYDRA
 C??   SNOW = SNOWD(1)*FB + SNOWD(2)*FV
       TG1=TBCS
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
-         SRHDTS=SRHDTS+SRHEAT*DTSURF*PTYPE
+      SRHDTS=SRHDTS+SRHEAT*DTSURF*PTYPE
 C****
 C**** BOUNDARY LAYER INTERACTION
 C****
- 3000 ZS1=ZS1CO*TKV*PIJ/PS
-      P1=PMID(1,I,J)    ! SIG(1)*PIJ+PTOP
+      ZS1=ZS1CO*TKV*PIJ/PS
+      !P1=PMID(1,I,J)    ! SIG(1)*PIJ+PTOP  - not used
 C**** LOOP OVER GROUND TIME STEPS
       TG=TG1+TF
       ELHX=LHE
@@ -286,7 +298,7 @@ C**** CALCULATE RHOSRF*CDM*WS
       RCDHWS=CDH*WS*RHOSRF
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
 C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2)
-      SNHT=-SHA*RCDHWS*(TS-TG)
+c      SNHT=-SHA*RCDHWS*(TS-TG)  ! -not used
       TRHEAT=TRHR(1,I,J)
 C **********************************************************************
 C *****
@@ -295,15 +307,15 @@ C  Define extra variables to be passed in SURFC:
       RHO   =RHOSRF
       VSM   =WS
       CH    =CDH
-      CD    =CDM
+      ! CD    =CDM  ! - not used
       SRHT  =SRHEAT
       TRHT  =TRHEAT
       ZS    =ZGS
       ZMIXE =ZMIX
-      PBLP  =PPBL
+      !PBLP  =PPBL ! not used
       VGM   =WG
       EDDY  =EDS1
-      CN    =CDN
+      ! CN    =CDN ! not used
       TGPASS=TGV
       TSPASS=TSV
       TKPASS=TKV
@@ -314,11 +326,11 @@ C     CALL QSBAL
       CALL ADVNC
       TG1=TBCS
 
-        WBARE(1:NGM,I,J) = GW(1:NGM,1)
-        WVEGE(0:NGM,I,J) = GW(0:NGM,2)
-       HTBARE(0:NGM,I,J) = HT(0:NGM,1)
-       HTVEGE(0:NGM,I,J) = HT(0:NGM,2)
-       SNOWBV(1:2,I,J)   = SNOWD(1:2)
+      WBARE(1:NGM,I,J) = GW(1:NGM,1)
+      WVEGE(0:NGM,I,J) = GW(0:NGM,2)
+      HTBARE(0:NGM,I,J) = HT(0:NGM,1)
+      HTVEGE(0:NGM,I,J) = HT(0:NGM,2)
+      SNOWBV(1:2,I,J)   = SNOWD(1:2)
 ccc copy snow variables back to storage
       NSN_IJ    (1:2, I, J)         = NSN(1:2)
       ISN_IJ    (1:2, I, J)         = ISN(1:2)
@@ -346,27 +358,27 @@ ccc copy snow variables back to storage
       AIJ(I,J,IJ_G25)=AIJ(I,J,IJ_G25)+FB*ZW(1)+FV*ZW(2)
       AIJ(I,J,IJ_G26)=AIJ(I,J,IJ_G26)+BETAV/NIsurf
       AIJ(I,J,IJ_G27)=AIJ(I,J,IJ_G27)+BETAT/NIsurf
-          TRHDT=TRHEAT*DTSURF-ATRG
+      TRHDT=TRHEAT*DTSURF-ATRG
 C     FOR RADIATION FIND COMPOSITE VALUES OVER EARTH
 C           FOR DIAGNOSTIC PURPOSES ALSO COMPUTE GDEEP 1 2 3
       SNOWE(I,J)=1000.*(SNOWD(1)*FB+SNOWD(2)*FV)
       TEARTH(I,J)=TG1
       WEARTH(I,J)=1000.*( FB*GW(1,1)*(1.-FICE(1,1)) +
-     +  FV*(GW(1,2)*(1.-FICE(1,2))+GW(0,2)*(1.-FICE(0,2))) )
+     &     FV*(GW(1,2)*(1.-FICE(1,2))+GW(0,2)*(1.-FICE(0,2))) )
       AIEARTH(I,J)=1000.*( FB*GW(1,1)*FICE(1,1) +
-     +  FV*(GW(1,2)*FICE(1,2)+GW(0,2)*FICE(0,2)) )
-            CALL RETP2 (TG2AV,WTR2AV,ACE2AV)
-            GDEEP(I,J,1)=TG2AV
-            GDEEP(I,J,2)=WTR2AV
-            GDEEP(I,J,3)=ACE2AV
-            GTEMP(1,4,I,J)=TEARTH(I,J)
+     &     FV*(GW(1,2)*FICE(1,2)+GW(0,2)*FICE(0,2)) )
+      CALL RETP2 (TG2AV,WTR2AV,ACE2AV)
+      GDEEP(I,J,1)=TG2AV
+      GDEEP(I,J,2)=WTR2AV
+      GDEEP(I,J,3)=ACE2AV
+      GTEMP(1,4,I,J)=TEARTH(I,J)
 C**** CALCULATE FLUXES USING IMPLICIT TIME STEP FOR NON-OCEAN POINTS
       DU1(I,J)=DU1(I,J)+PTYPE*DTSURF*RCDMWS*US/RMBYA
- 3600 DV1(I,J)=DV1(I,J)+PTYPE*DTSURF*RCDMWS*VS/RMBYA
+      DV1(I,J)=DV1(I,J)+PTYPE*DTSURF*RCDMWS*VS/RMBYA
 C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       EVAP=EVAPW+EVAPD+EVAPB
-         EVAPOR(I,J,4)=EVAPOR(I,J,4)+EVAP
-         EVHDT=-ALHG
+      EVAPOR(I,J,4)=EVAPOR(I,J,4)+EVAP
+      EVHDT=-ALHG
       SHDT=-ASHG
       DTH1(I,J)=DTH1(I,J)-SHDT*PTYPE/(SHA*RMBYA*P1K)
       DQ1(I,J) =DQ1(I,J)+EVAP*PTYPE/RMBYA
@@ -404,7 +416,7 @@ C        USRS=USRS+USR*PTYPE
 C****
 C**** EARTH
 C****
- 4600    BSHDT=BSHDT+SHDT*PEARTH
+         BSHDT=BSHDT+SHDT*PEARTH
          BEVHDT=BEVHDT+EVHDT*PEARTH
          BTRHDT=BTRHDT+TRHDT*PEARTH
          BTS=BTS+(TS-TF)*PEARTH
@@ -423,13 +435,16 @@ C****
          BEDIFS=BEDIFS+EDIFS*PEARTH
          E0(I,J,4)=E0(I,J,4)+AF0DT
          E1(I,J,4)=E1(I,J,4)+AF1DT
-         IF(WARMER.LT.0.) GO TO 4610
-         IF(TS.LT.TF) TSFREZ(I,J,1)=TIMEZ
-         TSFREZ(I,J,2)=TIMEZ
-         GO TO 4620
- 4610    IF(TSFREZ(I,J,2)+.03.LT.TIMEZ) GO TO 4620
-         IF(TS.GE.TF) TSFREZ(I,J,2)=TIMEZ
- 4620    IF(TG1.LT.TDIURN(I,J,1)) TDIURN(I,J,1)=TG1
+
+         if ( WARMER >= 0 ) then
+           IF(TS.LT.TF) TSFREZ(I,J,1)=TIMEZ
+           TSFREZ(I,J,2)=TIMEZ
+         else
+         if ( TSFREZ(I,J,2)+.03 >= TIMEZ .and. TS >= TF )
+     $        TSFREZ(I,J,2)=TIMEZ
+         endif
+
+         IF(TG1.LT.TDIURN(I,J,1)) TDIURN(I,J,1)=TG1
          IF(TG1.GT.TDIURN(I,J,2)) TDIURN(I,J,2)=TG1
          IF(TS.LT.TDIURN(I,J,3)) TDIURN(I,J,3)=TS
          IF(TS.GT.TDIURN(I,J,4)) TDIURN(I,J,4)=TS
@@ -438,51 +453,51 @@ C****   IMPLICIT TIME STEPS
 C****
 C**** UPDATE SURFACE AND FIRST LAYER QUANTITIES
 C****
- 5000 CONTINUE
          TDIURN(I,J,5)=TDIURN(I,J,5)+(TSAVG(I,J)-TF)
          IF(TSAVG(I,J).GT.TDIURN(I,J,6)) TDIURN(I,J,6)=TSAVG(I,J)
 C        IF(TSAVG(I,J).GT.AIJ(I,J,IJ_TMAX)) AIJ(I,J,IJ_TMAX)=TSAVG(I,J)
 C        IF(TSAVG(I,J).LT.AIJ(I,J,IJ_TMIN)) AIJ(I,J,IJ_TMIN)=TSAVG(I,J)
-      IF(PEARTH.LE.0.)  GO TO 6000
 C****
 C**** ACCUMULATE DIAGNOSTICS
 C****
 C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
-         IF(JR.EQ.24) GO TO 5700
-         AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+TRHDTS*DXYPJ
-         AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+SHDTS*DXYPJ
-         AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+EVHDTS*DXYPJ
-         AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+EVAPS*DXYPJ
-         AREG(JR,J_ERUN1)=AREG(JR,J_ERUN1)+AERUNS*PEARTH*DXYPJ
-         AREG(JR,J_DIFS )=AREG(JR,J_DIFS )+DIFS*PEARTH*DXYPJ
-         AREG(JR,J_RUN2 )=AREG(JR,J_RUN2 )+ARUNU*PEARTH*DXYPJ
-         AREG(JR,J_DWTR2)=AREG(JR,J_DWTR2)+AERUNU*PEARTH*DXYPJ
-         AREG(JR,J_RUN1 )=AREG(JR,J_RUN1 )+ARUNS*PEARTH*DXYPJ
-         AREG(JR,J_F1DT )=AREG(JR,J_F1DT )+F1DTS*DXYPJ
-         IF(MODDSF.NE.0) GO TO 5700
-         AREG(JR,J_TSRF )=AREG(JR,J_TSRF )+(TSS-TFS)*DXYPJ
+         if ( JR /= 24 ) then 
+           AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+TRHDTS*DXYPJ
+           AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+SHDTS*DXYPJ
+           AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+EVHDTS*DXYPJ
+           AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+EVAPS*DXYPJ
+           AREG(JR,J_ERUN1)=AREG(JR,J_ERUN1)+AERUNS*PEARTH*DXYPJ
+           AREG(JR,J_DIFS )=AREG(JR,J_DIFS )+DIFS*PEARTH*DXYPJ
+           AREG(JR,J_RUN2 )=AREG(JR,J_RUN2 )+ARUNU*PEARTH*DXYPJ
+           AREG(JR,J_DWTR2)=AREG(JR,J_DWTR2)+AERUNU*PEARTH*DXYPJ
+           AREG(JR,J_RUN1 )=AREG(JR,J_RUN1 )+ARUNS*PEARTH*DXYPJ
+           AREG(JR,J_F1DT )=AREG(JR,J_F1DT )+F1DTS*DXYPJ
+           if ( MODDSF == 0 )
+     $          AREG(JR,J_TSRF )=AREG(JR,J_TSRF )+(TSS-TFS)*DXYPJ
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
- 5700    AIJ(I,J,IJ_SHDT)=AIJ(I,J,IJ_SHDT)+SHDTS
+         endif
+         AIJ(I,J,IJ_SHDT)=AIJ(I,J,IJ_SHDT)+SHDTS
          AIJ(I,J,IJ_BETA)=AIJ(I,J,IJ_BETA)+BETAD/NIsurf
          IF(MODRD.EQ.0) AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)+TRHDTS
      *        /DTSRC
          AIJ(I,J,IJ_SRTR)=AIJ(I,J,IJ_SRTR)+(SRHDTS+TRHDTS)
          AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+(SRHDTS+TRHDTS+SHDTS+EVHDTS)
-         IF(MODDSF.NE.0) GO TO 5800
-         AIJ(I,J,IJ_WS)=AIJ(I,J,IJ_WS)+WSS          ! added 3/3/95 -rar-
-         AIJ(I,J,IJ_TS)=AIJ(I,J,IJ_TS)+(TSS-TFS)
-         AIJ(I,J,IJ_US)=AIJ(I,J,IJ_US)+USS
-         AIJ(I,J,IJ_VS)=AIJ(I,J,IJ_VS)+VSS
-         AIJ(I,J,IJ_TAUS)=AIJ(I,J,IJ_TAUS)+RTAUS
-         AIJ(I,J,IJ_TAUUS)=AIJ(I,J,IJ_TAUUS)+RTAUUS
-         AIJ(I,J,IJ_TAUVS)=AIJ(I,J,IJ_TAUVS)+RTAUVS
-         AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QSS
-CHYD     AIJ(I,J,IJ_ARUNU)=AIJ(I,J,IJ_ARUNU)
-CHYD *  +   (40.6*PSOIL+.72*(2.*(TSS-TFS)-(QSATSS-QSS)*LHE/SHA))
+         if ( MODDSF == 0 ) then
+           AIJ(I,J,IJ_WS)=AIJ(I,J,IJ_WS)+WSS ! added 3/3/95 -rar-
+           AIJ(I,J,IJ_TS)=AIJ(I,J,IJ_TS)+(TSS-TFS)
+           AIJ(I,J,IJ_US)=AIJ(I,J,IJ_US)+USS
+           AIJ(I,J,IJ_VS)=AIJ(I,J,IJ_VS)+VSS
+           AIJ(I,J,IJ_TAUS)=AIJ(I,J,IJ_TAUS)+RTAUS
+           AIJ(I,J,IJ_TAUUS)=AIJ(I,J,IJ_TAUUS)+RTAUUS
+           AIJ(I,J,IJ_TAUVS)=AIJ(I,J,IJ_TAUVS)+RTAUVS
+           AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QSS
+CHYD       AIJ(I,J,IJ_ARUNU)=AIJ(I,J,IJ_ARUNU)
+CHYD      *  +   (40.6*PSOIL+.72*(2.*(TSS-TFS)-(QSATSS-QSS)*LHE/SHA))
 C**** QUANTITIES ACCUMULATED HOURLY FOR DIAG6
- 5800    IF(MODD6.NE.0) GO TO 6000
-         DO KR=1,4
-            IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
+         endif
+         if ( MODD6 == 0 ) then
+           DO KR=1,4
+             IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
                ADAILY(IHOUR,12,KR)=ADAILY(IHOUR,12,KR)+TSS
                ADAILY(IHOUR,13,KR)=ADAILY(IHOUR,13,KR)+(TG1S+TFS)
                ADAILY(IHOUR,19,KR)=ADAILY(IHOUR,19,KR)+QSS
@@ -505,10 +520,10 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAG6
                ADAILY(IHOUR,45,KR)=ADAILY(IHOUR,45,KR)+EDS1S
                ADAILY(IHOUR,46,KR)=ADAILY(IHOUR,46,KR)+DBLS
                ADAILY(IHOUR,50,KR)=ADAILY(IHOUR,50,KR)+EVAPS
-            END IF
-         END DO
- 6000    IM1=I
-      END DO
+             END IF
+           END DO
+         endif
+      END DO loop_i
 C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
          AJ(J,J_TRHDT,ITEARTH)=AJ(J,J_TRHDT,ITEARTH)+BTRHDT
          AJ(J,J_SHDT ,ITEARTH)=AJ(J,J_SHDT ,ITEARTH)+BSHDT
@@ -520,7 +535,7 @@ C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
          AJ(J,J_DWTR2,ITEARTH)=AJ(J,J_DWTR2,ITEARTH)+BERUNU
          AJ(J,J_RUN1 ,ITEARTH)=AJ(J,J_RUN1 ,ITEARTH)+BRUN0
          IF(MODDSF.EQ.0) AJ(J,J_TSRF,ITEARTH)=AJ(J,J_TSRF,ITEARTH)+BTS
-      END DO
+      END DO loop_j
       RETURN
       END SUBROUTINE EARTH
 
@@ -528,9 +543,9 @@ C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
 C**** Modifications needed for split of bare soils into 2 types
       USE CONSTANT, only : twopi,rhow,edpery,sha,shw_const=>shw,
      *     shi_const=>shi,lhe,lhm
-      USE MODEL_COM, only : im,jm,fearth,vdata,Itime,Nday,jeq
+      USE MODEL_COM, only : fearth,vdata,Itime,Nday,jeq
       USE GHYCOM
-      USE SLE001, sinday=>sint,cosday=>cost,fglob=>f
+      USE SLE001
       USE FLUXES, only : gtemp
       USE DAGCOM, only : npts,icon_WTG,icon_HTG
       USE FILEMANAGER
@@ -541,8 +556,29 @@ C**** Modifications needed for split of bare soils into 2 types
       INTEGER JDAY
       REAL*8 SNOWDP,WTR1,WTR2,ACE1,ACE2,TG1,TG2
       LOGICAL redoGH, iniSNOW
-      LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
+      LOGICAL :: QCON(NPTS)
       INTEGER I, J
+      real*8 ONE,WFC1
+      real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
+      real*8 slim,slre,svh,z
+      integer iv, L
+
+      real*8, parameter :: ALAMAX(8) =
+     $     (/ 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0/)
+      real*8, parameter :: ALAMIN(8) =
+     $     (/ 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0/)
+      real*8, parameter :: AROOT(8) =
+     $     (/ 12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0/)
+      real*8, parameter :: BROOT(8) =
+     $     (/  1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0/)
+      real*8, parameter :: RSAR(8) =
+     $     (/100d0, 100d0, 200d0, 200d0, 200d0, 300d0,250d0, 125d0/)
+      real*8, parameter :: VHGHT(8) = 
+     $     (/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0/)
+      integer, parameter :: LADAY(8) =
+     $     (/ 196,  196,  196,  196,  196,  196,  196,  196/)
+
+
 C****             TUNDR GRASS SHRUB TREES DECID EVRGR RAINF CROPS
 C****
 C**** LADAY(veg type, lat belt) = day of peak LAI
@@ -606,7 +642,8 @@ C THE ALAM'S ARE THE HEAT CONDUCTIVITIES
       ALAMW=.573345d0
       ALAMI=2.1762d0
       ALAMA=.025d0
-      ALAMSN=0.088d0
+ccc ALAMSN is not used
+c      ALAMSN=0.088d0
       ALAMBR=2.9d0
       ALAMS(1)=8.8d0
       ALAMS(2)=2.9d0
@@ -617,11 +654,12 @@ C HW IS THE WILTING POINT IN METERS
 C TFRZ IS 0 C IN K
 c      TFRZ=273.16d0
 C ZHTB IS DEPTH FOR COMBINING HEAT LAYERS FOR STABILITY
-      IF(Q(4,1).LT..01)THEN
-      ZHTB=6.
-      ELSE
-      ZHTB=6.
-      ENDIF
+ccc looks like ZHTB is not used
+c      IF(Q(4,1).LT..01)THEN
+c      ZHTB=6.
+c      ELSE
+c      ZHTB=6.
+cc     ENDIF
 C SPGSN IS THE SPECIFIG GRAVITY OF SNOW
       SPGSN=.1d0
 C
@@ -823,10 +861,12 @@ C****     COPY SOILS PROGNOSTIC QUANTITIES TO MODEL VARIABLES
       END IF
 
 C**** Set conservation diagnostics for ground water mass and energy
-      QCON=(/ F, F, F, F, F, T, F, F, T, F, F/)
+      QCON=(/ .false., .false., .false., .false., .false., .true.
+     $     , .false., .false., .true., .false., .false./)
       CALL SET_CON(QCON,"GRND WTR","(KG/M^2)        ",
      *     "(10^-9 KG/S/M^2)",1d0,1d9,icon_WTG)
-      QCON=(/ F, F, F, F, F, T, F, F, T, F, F/)
+      QCON=(/ .false., .false., .false., .false., .false., .true.
+     $     , .false., .false., .true., .false., .false./)
       CALL SET_CON(QCON,"GRND ENG","(10**6 J/M^2)   ",
      *     "(10^-3 J/S/M^2) ",1d-6,1d3,icon_HTG)
 
@@ -844,9 +884,9 @@ C**** WFCAP - WATER FIELD CAPACITY OF TOP SOIL LAYER, M
 C****
       USE GHYCOM, only : dz_ij,sl_ij,q_ij,qk_ij,avh,afr,afb,ala,acs
      *     ,top_index_ij
-      USE SLE001, only : dz,qk,ngm,imt,ng,zb,zc,fr,spgsn,q,sl,xklh0
-     *     ,fb,fv,snowm,vh,alai,alaic,alaie,cost,sint,rs,prs,ijdebug,n
-     *     ,thets,thetm,ws,thm,nth,shc,shcap,shw,shtpr,htprs,pr
+      USE SLE001, only : dz,qk,ngm,imt,ng,zb,zc,fr,q,sl,xklh0 !spgsn,
+     *     ,fb,fv,snowm,alai,alaie,rs,prs,ijdebug,n !alaic,vh,
+     *     ,thets,thetm,ws,thm,nth,shc,shw,htprs,pr !shcap,shtpr,
      *     ,htpr
      *     ,top_index
       USE snow_model, only : i_earth,j_earth
@@ -855,6 +895,8 @@ C****
       REAL*8 WFCAP
       INTEGER L,IBV,K,I
       REAL*8 AA,ONE
+      real*8 alaic,vh,shtpr
+      real*8, parameter :: SHCAP(IMT) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
 
       ONE=1.
       IJdebug=I0*100+J0
@@ -895,12 +937,12 @@ C**** FB,FV: BARE, VEGETATED FRACTION (1=FB+FV)
       FB=AFB(I0,J0)
       FV=1.-FB
 C**** ALAI: LEAF AREA INDEX
-      ALAI=ALA(1,I0,J0)+COST*ALA(2,I0,J0)+SINT*ALA(3,I0,J0)
+      ALAI=ALA(1,I0,J0)+COSDAY*ALA(2,I0,J0)+SINDAY*ALA(3,I0,J0)
       ALAI=MAX(ALAI,ONE)
       ALAIC=5.0
       ALAIE=ALAIC*(1.-EXP(-ALAI/ALAIC))
 C**** RS: MINIMUM STOMATAL RESISTANCE
-      RS=ALAI/(ACS(1,I0,J0)+COST*ACS(2,I0,J0)+SINT*ACS(3,I0,J0))
+      RS=ALAI/(ACS(1,I0,J0)+COSDAY*ACS(2,I0,J0)+SINDAY*ACS(3,I0,J0))
 C???  CNC=ALAI/RS   REDEFINED BEFORE BEING USED (QSBAL,COND)
 C
 CW    WRITE(6,*)'N=',N,'  R=',R
@@ -973,6 +1015,8 @@ C**** BASED ON COMBINATION OF LAYERS 2-N, AS IN RETP2
       IMPLICIT NONE
 
       REAL*8 SNOWDP,TG1,TG2,WTR1,WTR2,ACE1,ACE2
+      real*8 WFC1, WFC2, WET1, WET2, WMIN, FBV
+      integer L, IBV, LL
 
       WFC1=FB*WS(1,1)+FV*(WS(0,2)+WS(1,2))
       WFC2=0.
@@ -1054,8 +1098,8 @@ C**** ICE2AV - ICE AMOUNT IN LAYERS 2 TO NGM, KG/M+2
 C**** WTR2AV - WATER IN LAYERS 2 TO NGM, KG/M+2
       USE SLE001
       IMPLICIT NONE
-      REAL*8 TG2AV,WTR2AV,ACE2AV
-
+      REAL*8 TG2AV,WTR2AV,ACE2AV, WC,HTC,SHCC,TPC,FICEC,FTP
+      integer L, IBV
       TG2AV=0.
       WTR2AV=0.
       ACE2AV=0.
@@ -1092,7 +1136,7 @@ C**** WTR2AV - WATER IN LAYERS 2 TO NGM, KG/M+2
 !@sum  CHECKE Checks whether arrays are reasonable over earth
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,fearth,ITime,wfcs
+      USE MODEL_COM, only : fearth,ITime,wfcs
       USE GEOM, only : imaxj
       USE GHYCOM, only : tearth,wearth,aiearth,snowe,wbare,wvege,htbare
      *     ,htvege,snowbv,ngm
@@ -1139,12 +1183,10 @@ C**** Check for reasonable temperatures over earth
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : rhow,twopi,edpery,tf
-      USE MODEL_COM, only : im,jm,NDAY,NIsurf,jday,fearth,wfcs
+      USE MODEL_COM, only : NDAY,NIsurf,jday,fearth,wfcs
       USE GEOM, only : imaxj
       USE DAGCOM, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx
-      USE SLE001
-     &  , only : cosday=>cost, sinday=>sint
       USE GHYCOM, only : snoage
       IMPLICIT NONE
       REAL*8 TSAVG,WFC1
@@ -1196,7 +1238,7 @@ C****
 !@sum  GROUND_E driver for applying surface fluxes to land fraction
 !@auth Original Development team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,fearth,itearth
+      USE MODEL_COM, only : fearth,itearth
       USE GEOM, only : imaxj,dxyp
       USE GHYCOM, only : snowe, tearth,wearth,aiearth,wbare,wvege,snowbv
       USE DAGCOM, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
@@ -1209,8 +1251,6 @@ C****
       REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,DXYPJ,WTR1,WTR2,ACE1,ACE2
      *     ,PEARTH,ENRGP,SCOVE
       INTEGER I,J,IMAX,JR,K
-      REAL*8, DIMENSION(IM,JM,3) :: GDEEP
-      COMMON/oldDAG/GDEEP
 
       DO J=1,JM
       IMAX=IMAXJ(J)
@@ -1282,7 +1322,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : rhow
-      USE MODEL_COM, only : im,jm,fim,fearth
+      USE MODEL_COM, only : fim,fearth
       USE GEOM, only : imaxj
       USE GHYCOM, only : wbare,wvege,afb
       USE SLE001, only : ngm
@@ -1314,7 +1354,7 @@ C****
 !@sum  conserv_HTG calculates zonal ground energy
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,fim,fearth
+      USE MODEL_COM, only : fim,fearth
       USE GEOM, only : imaxj
       USE GHYCOM, only : htbare,htvege,afb
       USE SLE001, only : ngm
@@ -1341,3 +1381,5 @@ C****
       HEATG(JM)=FIM*HEATG(JM)
 C****
       END SUBROUTINE conserv_HTG
+
+      end module soil_drv
