@@ -140,11 +140,6 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 
 !@param NWAV_DAG number of components in spectral diagnostics
       INTEGER, PARAMETER :: NWAV_DAG=min(9,imh)
-!@param KAJLSP number of spectral diagnostics
-      INTEGER, PARAMETER :: KAJLSP=3
-!@var AJLSP spectral diagnostics
-      DOUBLE PRECISION, DIMENSION(JM,LM,0:NWAV_DAG,KAJLSP) :: AJLSP
-
 !@param Max12HR_sequ,Min12HR_sequ lengths of time series for wave powers
       INTEGER, PARAMETER :: Max12HR_sequ=2*31, Min12HR_sequ=2*28
 !@param RE_AND_IM complex components of wave power diagnostics
@@ -173,11 +168,11 @@ C****   10 - 1: mid strat               1 and up : upp strat.
      *     IM*LM*KAIL + NEHIST*HIST_DAYS + JM*KCON +
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
-     *     IM*JM*LM*KAIJK + IM*JM*LM*KAIJL + JM*LM*(1+NWAV_DAG)*KAJLSP
+     *     IM*JM*LM*KAIJK + IM*JM*LM*KAIJL 
 
       COMMON /ACCUM/ AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
      &  ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,
-     &  AJK,AIJK,AIJL,AJLSP
+     &  AJK,AIJK,AIJL
       DOUBLE PRECISION, DIMENSION(KACC) :: ACC
       EQUIVALENCE (ACC,AJ)
 
@@ -406,9 +401,6 @@ C****      names, indices, units, idacc-numbers, etc.
       character(len=20), dimension(kwp) :: name_wave,units_wave
       character(len=80), dimension(kwp) :: lname_wave
 
-      character(len=20), dimension(kajlsp) :: name_jlsp,units_jlsp
-      character(len=80), dimension(kajlsp) :: lname_jlsp
-
       character(len=20), dimension(kcon) :: name_consrv,units_consrv
       character(len=80), dimension(kcon) :: lname_consrv
 
@@ -496,7 +488,7 @@ c???  add a couple of lines to replace ACCS and avoid 'COMMON BLOCK'
         WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
      *     idacc,ACC,
 c??? *     idacc,AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,CONSRV,SPECA,ATPE,
-c??? *     ADIURN,WAVE,AJK,AIJK,AIJL,AJLSP,
+c??? *     ADIURN,WAVE,AJK,AIJK,AIJL,
      *     TDIURN,OA,it
       CASE (IOWRITE_SINGLE)     ! output in single precision
         MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
@@ -506,7 +498,7 @@ c??? *     ADIURN,WAVE,AJK,AIJK,AIJL,AJLSP,
 c??? *     idacc,SNGL(AJ),SNGL(AREG),SNGL(APJ),SNGL(AJL),
 c??? *     SNGL(ASJL),SNGL(AIJ),SNGL(AIL),SNGL(ENERGY),
 c??? *     SNGL(CONSRV),SNGL(SPECA),SNGL(ATPE),SNGL(ADIURN),SNGL(WAVE),
-c??? *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),
+c??? *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),
      *     monacc,it
       CASE (IOWRITE_MON)        ! output to end-of-month restart file
         MODULE_HEADER(i_ida:80) = ',it '
@@ -515,7 +507,7 @@ c??? *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),
         READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
      *      idacc, ACC,
 c??? *      idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,
-c??? *      CONSRV,SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AIJL,AJLSP,
+c??? *      CONSRV,SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AIJL,
      *      TDIURN,OA,it
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER

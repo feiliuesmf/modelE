@@ -23,7 +23,6 @@ c-----------------------------------------------------------------------
       call jk_defs
       call ijk_defs
       call ijl_defs
-      call jlsp_defs
       call diurn_defs
       return
       end subroutine def_acc
@@ -3492,36 +3491,6 @@ c
       return
       end subroutine wave_defs
 
-      subroutine jlsp_defs
-      use DAGCOM
-      implicit none
-      integer :: k
-c
-      do k=1,kajlsp
-         write(name_jlsp(k),'(a5,i3.3)') 'AJLSP',k
-         lname_jlsp(k) = 'unused'
-         units_jlsp(k) = 'unused'
-      enddo
-c
-      k=0
-c
-      k=k+1
-      name_jlsp(k) = 'AJLSP01'
-      lname_jlsp(k) = 'unknown'
-      units_jlsp(k) = 'unknown'
-c
-      k=k+1
-      name_jlsp(k) = 'AJLSP02'
-      lname_jlsp(k) = 'unknown'
-      units_jlsp(k) = 'unknown'
-c
-      k=k+1
-      name_jlsp(k) = 'AJLSP03'
-      lname_jlsp(k) = 'unknown'
-      units_jlsp(k) = 'unknown'
-c
-      return
-      end subroutine jlsp_defs
 
       subroutine pj_defs
       use DAGCOM

@@ -868,10 +868,6 @@ c      USE PRTCOM, only :
       DOUBLE PRECISION, DIMENSION(LM,2) :: DSGLOB
       COMMON/WORK5/DSJK,DSHEM,DSGLOB
 
-      DOUBLE PRECISION, DIMENSION(JM,LM,0:NWAV_DAG,KAJLSP):: SPSTAD
-      DOUBLE PRECISION, DIMENSION(JM,LM,0:NWAV_DAG,KAJLSP):: SPTRAN
-      DOUBLE PRECISION, DIMENSION(0:IMH,JM,LM) ::FCJKA,FCJKB,FCPVA,FCPVB
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: AIJL2
       DOUBLE PRECISION, DIMENSION(LM) :: PM,PKM,PME
       DOUBLE PRECISION, DIMENSION(JM,2) :: PJ
       DOUBLE PRECISION, DIMENSION(JM,kgz+1,4) :: AMPLTD,PHASE
@@ -1072,7 +1068,6 @@ C****
             AIJL(I,J,K,IJL_DSE)=0.
             AIJL(I,J,K,IJL_Q)=0.
           ENDIF
-          AIJL2(I,J,K)=AIJL(I,J,K,IJL_V)/(AIJL(I,J,K,IJL_DP)+1.D-20)
         END DO
         EX(J,K)=0.
         AX(J,K)=0.
@@ -1082,25 +1077,6 @@ C****
       END DO
       DO 170 J=2,JM
       DO 170 K=1,KM
-C**** SPECTRAL ANALYSIS OF STAND. AND TRANSIENT EDDY FLUXES
-      CALL FFT(AIJL2(1,J,K),FCPVA(0,J,K),FCPVB(0,J,K))
-      CALL FFT(AIJL(1,J,K,IJL_DSE),FCJKA(0,J,K),FCJKB(0,J,K))
-C     CALL FFTI(FCJKA(0,J,K),FCJKB(0,J,K),ACHK(1,J,K))
-      DO 156 N=0,NWAV_DAG
-  156 SPSTAD(J,K,N,1)=.5*FIM*(FCPVA(N,J,K)*FCJKA(N,J,K)+
-     *   FCPVB(N,J,K)*FCJKB(N,J,K))/DSIG(K)
-      CALL FFT(AIJL(1,J,K,IJL_Q),FCJKA(0,J,K),FCJKB(0,J,K))
-      DO 157 N=0,NWAV_DAG
-  157 SPSTAD(J,K,N,2)=.5*FIM*(FCPVA(N,J,K)*FCJKA(N,J,K)+
-     *   FCPVB(N,J,K)*FCJKB(N,J,K))/DSIG(K)
-      CALL FFT(AIJL(1,J,K,IJL_U),FCJKA(0,J,K),FCJKB(0,J,K))
-      DO 158 N=0,NWAV_DAG
-  158 SPSTAD(J,K,N,3)=.5*FIM*(FCPVA(N,J,K)*FCJKA(N,J,K)+
-     *   FCPVB(N,J,K)*FCJKB(N,J,K))/DSIG(K)
-      DO 159 N=0,NWAV_DAG
-      SPTRAN(J,K,N,1)=AJLSP(J,K,N,1)/DSIG(K)-SPSTAD(J,K,N,1)
-      SPTRAN(J,K,N,2)=AJLSP(J,K,N,2)/DSIG(K)-SPSTAD(J,K,N,2)
-  159 SPTRAN(J,K,N,3)=AJLSP(J,K,N,3)/DSIG(K)-SPSTAD(J,K,N,3)
       DPTI=0.
       PUTI=0.
       PVTI=0.
@@ -1175,9 +1151,7 @@ C**** Individual wave transports commented out. (gas - 05/2001)
       N = jkl_nt_dse_se
       CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
      &     PLM,BX,SCALET,DXV,ONES,KM,2,2)
-C      DO 219 N=1,5
-C  219 CALL JLMAP(114+N,PLM,SPSTAD(1,1,N,1),SCALET,DXV,ONES,LM,2,2)
-  220 DO 230 K=1,KM
+      DO 230 K=1,KM
       DO 230 J=2,JM
       AX(J,K)=SHA*(AJK(J,K,JK_TOTNTSH)-AJK(J,K,JK_ZMFNTSH))+
      &            (AJK(J,K,JK_TOTNTGEO)-AJK(J,K,JK_ZMFNTGEO))
@@ -1185,8 +1159,6 @@ C  219 CALL JLMAP(114+N,PLM,SPSTAD(1,1,N,1),SCALET,DXV,ONES,LM,2,2)
       n = jkl_nt_dse_e
       CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
      &     PLM,AX,SCALET,DXV,ONES,KM,2,2)
-C      DO 231 N=1,9
-C  231 CALL JLMAP(119+N,PLM,SPTRAN(1,1,N,1),SCALET,DXV,ONES,LM,2,2)
       SCALET=SCALET*.1
       n = jkl_tot_nt_dse
       CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
@@ -1200,13 +1172,9 @@ C**** NORTHWARD TRANSPORT OF LATENT HEAT BY STAND. EDDY, EDDIES AND TOTA
       n = jkl_nt_lh_se
       CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
      &     PLM,EX,SCALET,DXV,ONES,KM,2,2)
-C      DO 241 N=1,5
-C  241 CALL JLMAP(128+N,PLM,SPSTAD(1,1,N,2),SCALET,DXV,ONES,LM,2,2)
       n = jkl_nt_lh_e
       CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
      &     PLM,DX,SCALET,DXV,ONES,KM,2,2)
-C      DO 243 N=1,9
-C  243 CALL JLMAP(133+N,PLM,SPTRAN(1,1,N,2),SCALET,DXV,ONES,LM,2,2)
       SCALET=SCALET*.1
       n = jk_totntlh
       CALL JKMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),
@@ -1233,8 +1201,6 @@ C**** NOR. TRANS. OF ANG. MOMENTUM BY STANDING EDDIES, EDDIES AND TOTAL
       n = jkl_nt_am_stand_eddy
       CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
      &     PLM,CX,SCALET,DXCOSV,ONES,KM,2,2)
-C      DO 249 N=1,5
-C  249 CALL JLMAP(142+N,PLM,SPSTAD(1,1,N,3),SCALET,DXCOSV,ONES,LM,2,2)
       DO 260 K=1,KM
       DO 260 J=2,JM
       CX(J,K)=AJK(J,K,JK_TOTNTMOM)-AJK(J,K,JK_ZMFNTMOM)
@@ -1242,8 +1208,6 @@ C  249 CALL JLMAP(142+N,PLM,SPSTAD(1,1,N,3),SCALET,DXCOSV,ONES,LM,2,2)
       n = jkl_nt_am_eddy
       CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
      &     PLM,CX,SCALET,DXCOSV,ONES,KM,2,2)
-C      DO 261 N=1,9
-C  261 CALL JLMAP(147+N,PLM,SPTRAN(1,1,N,3),SCALET,DXCOSV,ONES,LM,2,2)
       SCALET=.1*SCALET
       n = jkl_tot_nt_am
       CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
@@ -2618,7 +2582,9 @@ C**FREQUENCY BAND AVERAGE
 !@var ij_xxx non single-aij diagnostic names
       INTEGER :: ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
      *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_fland,
-     *  ij_ntdsete, ij_dzt1
+     *  ij_ntdsete, ij_dzt1, ij_gwdrag, ij_mtn_wmf, ij_shr_wmf,
+     *  ij_mc_c_m10r_mf, ij_mc_c_m40r_mf, ij_phase_v_of_wind_shr,
+     *  ij_source_v_of_mc, ij_exit_tot_mom_flux, ij_def_drag_mom_flux 
 
 !@param LEGEND "contour levels" for ij-maps
       CHARACTER(LEN=40), DIMENSION(24), PARAMETER :: LEGEND=(/ !
@@ -2745,6 +2711,7 @@ c          if (n .gt. 13) n = (n+123)/10
 !@auth G. Schmidt/M. Kelley
 !@ver  1.0
       USE BDIJ
+      USE MODEL_COM, only : DO_GWDRAG
       IMPLICIT NONE
       INTEGER :: k,k1
 c
@@ -2841,6 +2808,59 @@ c
       lname_ij(k) = 'GROWING SEASON'
       units_ij(k) = 'days'
 
+c Gravity Wave diagnostics   
+      if (DO_GWDRAG) then
+      k = k + 1
+      ij_gwdrag = k       ! <<<<
+      ij_def_drag_mom_flux = k
+      name_ij(k) = 'ij_def_drag_mom_flux'
+      lname_ij(k) = 'DEF DRAG MOM. FLUX'
+      units_ij(k) = 'D/CM**2'
+
+      k = k + 1
+      ij_mtn_wmf = k
+      name_ij(k) = 'ij_mtn_wave_mom_flux'
+      lname_ij(k) = 'MTN WAVE MOM. FLUX'
+      units_ij(k) = 'D/CM**2'
+
+      k = k + 1
+      ij_shr_wmf = k
+      name_ij(k) = 'ij_shr_wave_mom_flux'
+      lname_ij(k) = 'SHR WAVE MOM. FLUX'
+      units_ij(k) = '.01 D/CM**2'
+
+      k = k + 1
+      ij_mc_c_m10r_mf = k
+      name_ij(k) = 'ij_mc_c_m10r_mom_flux'
+      lname_ij(k) = 'MC C=-10R MOM. FLUX'
+      units_ij(k) = '.01 D/CM**2'
+
+      k = k + 1
+      ij_mc_c_m40r_mf = k
+      name_ij(k) = 'ij_mc_c_m40r_mom_flux'
+      lname_ij(k) = 'MC C=-40R MOM. FLUX'
+      units_ij(k) = '.01 D/CM**2'
+
+      k = k + 1
+      ij_phase_v_of_wind_shr = k
+      name_ij(k) = 'ij_phase_speed_of_wind_shear'
+      lname_ij(k) = 'PHASE SPEED OF WIND SHEAR'
+      units_ij(k) = 'M/S'
+
+      k = k + 1
+      ij_source_v_of_mc = k
+      name_ij(k) = 'ij_source_speed_of_mc'
+      lname_ij(k) = 'SOURCE SPEED OF MC'
+      units_ij(k) = 'M/S'
+
+      k = k + 1
+      ij_exit_tot_mom_flux = k
+      name_ij(k) = 'ij_exit_tot_mom_flux'
+      lname_ij(k) = 'EXIT TOT. MOM. FLUX'
+      units_ij(k) = 'E-3 D/CM*2'
+      end if
+
+c Check the count
       if (k .gt. kaijx) then
         write (6,*) 'Increase kaijx=',kaijx,' to at least ',k
         stop 'IJ_TITLES: kaijx too small'

@@ -1238,7 +1238,7 @@ C****
      *     ,u,v,t,p,q,wm
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
-      USE DAGCOM, only : ajk,aijk,aijl,ajlsp,speca,adiurn,nspher,
+      USE DAGCOM, only : ajk,aijk,aijl,speca,adiurn,nspher,
      &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
      *     ,ijk_dse,klayer,idd_w,ijdd,ijl_u, ijl_v, ijl_dse, ijl_dp,
      *     ijl_q,
@@ -1268,8 +1268,6 @@ C****
       DOUBLE PRECISION, DIMENSION(IM) :: PSEC,X1
       DOUBLE PRECISION, DIMENSION(LM) :: SHETH,PMO,PLO,DPM,DTH
       DOUBLE PRECISION, DIMENSION(LM+1) :: PM,PL
-      DOUBLE PRECISION, DIMENSION(0:IMH,JM,LM):: FCJKA,FCJKB,FCPVA,FCPVB
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: AIJL1,AIJL2,AIJL3,AIJL4
 
       INTEGER ::
      &     I,IH,IM1,INCH,INCHM,IP1,IZERO,J,J45N,
@@ -1456,10 +1454,6 @@ C**** ACCUMULATE AIJL ARRAYS
       AIJL(I,J,L,IJL_DSE)=AIJL(I,J,L,IJL_DSE)+SHA*PT4L+PZ4L
       AIJL(I,J,L,IJL_Q)=AIJL(I,J,L,IJL_Q)+PQ4L
       AIJL(I,J,L,IJL_DP)=AIJL(I,J,L,IJL_DP)+DELP
-      AIJL1(I,J,L)=DELP*U(I,J,L)
-      AIJL2(I,J,L)=V(I,J,L)
-      AIJL3(I,J,L)=SHA*PT4L+PZ4L
-      AIJL4(I,J,L)=PQ4L
   284 I=IP1
   285 CONTINUE
       DO 350 K=1,KM
@@ -1597,23 +1591,6 @@ C**** EDDY TRANSPORT OF THETA;  VORTICITY
          IF (IDACC(4).EQ.1) AJK(J,K,JK_UINST)=UJK(J,K)
          AJK(J,K,JK_TOTDUDT)=UJK(J,K)-AJK(J,K,JK_UINST)
   350 AJK(J,K,JK_SHETH)=AJK(J,K,JK_SHETH)+SHETH(K)
-      DO 345 L=1,LM
-C**** SPECTRAL ANALYSIS OF DRY STATIC ENERGY FLUX, LATENT HEAT FLUX,
-C**** AND ANGULAR MOMENTUM FLUX
-      CALL FFT(AIJL2(1,J,L),FCPVA(0,J,L),FCPVB(0,J,L))
-      CALL FFT(AIJL3(1,J,L),FCJKA(0,J,L),FCJKB(0,J,L))
-      DO 342 N=0,NWAV_DAG
-  342 AJLSP(J,L,N,1)=AJLSP(J,L,N,1)+.5*FIM*(FCPVA(N,J,L)*
-     *  FCJKA(N,J,L)+FCPVB(N,J,L)*FCJKB(N,J,L))
-      CALL FFT(AIJL4(1,J,L),FCJKA(0,J,L),FCJKB(0,J,L))
-      DO 343 N=0,NWAV_DAG
-  343 AJLSP(J,L,N,2)=AJLSP(J,L,N,2)+.5*FIM*(FCPVA(N,J,L)*
-     *  FCJKA(N,J,L)+FCPVB(N,J,L)*FCJKB(N,J,L))
-      CALL FFT(AIJL1(1,J,L),FCJKA(0,J,L),FCJKB(0,J,L))
-      DO 344 N=0,NWAV_DAG
-  344 AJLSP(J,L,N,3)=AJLSP(J,L,N,3)+.5*FIM*(FCPVA(N,J,L)*
-     *  FCJKA(N,J,L)+FCPVB(N,J,L)*FCJKB(N,J,L))
-  345 CONTINUE
   390 CONTINUE
 C****
 C**** VERTICAL MASS FLUXES  W(I,J,K)
@@ -3186,7 +3163,7 @@ C**** Calculate the max number of geopotential heights
         if (pmb(k).le.pmtop) exit
         kgz_max = k
       end do
-      write(6,'(a)') "Geopotential height diagnostics at (mb): "
+      write(6,'(a)') " Geopotential height diagnostics at (mb): "
       write(6,'(20F9.3)') PMB(1:kgz_max)
 
 c**** Initialize acc-array names, units, idacc-indices
@@ -3218,7 +3195,7 @@ C**** Ensure that diagnostics are reset at the beginning of the run
       APJ=0   ; AJL=0  ; ASJL=0   ; AIJ=0
       AIL=0   ; ENERGY=0 ; CONSRV=0
       SPECA=0 ; ATPE=0 ; ADIURN=0 ; WAVE=0
-      AJK=0   ; AIJK=0 ; AIJL=0   ; AJLSP=0
+      AJK=0   ; AIJK=0 ; AIJL=0   
       call reset_ODIAG(isum)
 
       if (isum.eq.1) return

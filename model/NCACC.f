@@ -217,14 +217,6 @@ c-----------------------------------------------------------------------
       dimids(3)=sig_did
       call ncdefarr(name_ijl,lname_ijl,units_ijl,
      &     ncid,kaijl,nf_real,3,dimids)
-c-----------------------------------------------------------------------
-c ajlsp_[dse,lht,mom]
-c-----------------------------------------------------------------------
-      dimids(1)=lat_did
-      dimids(2)=sig_did
-      status = nf_def_dim(ncid,'ZERO_TO_NWAV_DAG',1+NWAV_DAG,dimids(3))
-      call ncdefarr(name_jlsp,lname_jlsp,units_jlsp,
-     &     ncid,kajlsp,nf_real,3,dimids)
 
 c-----------------------------------------------------------------------
 c end netcdf definitions
@@ -270,7 +262,6 @@ c-----------------------------------------------------------------------
       call ncwrtdbl(name_jk,ncid,jm*lm,kajk,ajk)
       call ncwrtdbl(name_ijk,ncid,im*jm*lm,kaijk,aijk)
       call ncwrtdbl(name_ijl,ncid,im*jm*lm,kaijl,aijl)
-      call ncwrtdbl(name_jlsp,ncid,jm*lm*(nwav_dag+1),kajlsp,ajlsp)
 c-----------------------------------------------------------------------
 c close netcdf file
 c-----------------------------------------------------------------------
