@@ -72,7 +72,7 @@ C**** Ice advection diagnostics
       END MODULE ICEDYN_COM
 
       SUBROUTINE ALLOC_ICEDYN_COM(grid)
-!@sum ALLOC_ICEDYN_COM allocates arrays defined in the ICEDYN_COM module.
+!@sum ALLOC_ICEDYN_COM allocates arrays defined in the ICEDYN_COM module
 !@auth Rosalinda de Fainchtein
 
       USE DOMAIN_DECOMP, only : GET
@@ -83,7 +83,7 @@ C**** Ice advection diagnostics
       USE ICEDYN_COM, only : RSIX,RSIY,USI,VSI,USIDT,VSIDT,
      &                       RSISAVE,ICIJ
 #ifdef TRACERS_WATER
-      USE ICEDYN_COM, only : TICIJ
+      USE ICEDYN_COM, only : TICIJ,KTICIJ,NTM
 #endif
       IMPLICIT NONE
 
@@ -99,8 +99,8 @@ C**** Ice advection diagnostics
       init = .true.
 
 !*** For now set grid_MIC to be the same as grid
-!    This is consistent with the current status of the code for parallelization
-!    along latitude (j) 
+!    This is consistent with the current status of the code for
+!    parallelization along latitude (j)
       grid_MIC =grid
       CALL GET(grid    , J_STRT_HALO=J_0H    , J_STOP_HALO=J_1H    )
       CALL GET(grid_MIC, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
@@ -299,7 +299,7 @@ C****
       IMPLICIT NONE
       SAVE
 C**** intermediate calculation for pressure gradient terms
-      REAL*8, DIMENSION(IM, grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(IM, grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &                            PGFU,PGFV
 C****
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
@@ -308,18 +308,18 @@ C****
       REAL*8 USINP,DMUINP,duA,dvA
 
 C**** Declare a new grid data type grid_NXY (to handle do j=1,ny1 type
-C     Loops. Set grid_NXY=grid, consistent with current state of the code.
+C     Loops. Set grid_NXY=grid, consistent with curr. state of the code.
 
       TYPE(DYN_GRID) :: grid_NXY
       INTEGER :: J_1NXY, J_0NXY
-      INTEGER :: J_1   , J_0   
-      INTEGER :: J_1S  , J_0S  
+      INTEGER :: J_1   , J_0
+      INTEGER :: J_1S  , J_0S
       INTEGER :: J_1STG,J_0STG
       grid_NXY=grid
 
 C**** Get loop indices  corresponding to grid and grid_NXY structures
       CALL GET(grid_NXY, J_STRT=J_0NXY   , J_STOP=J_1NXY  )
-      call GET(grid    , J_STRT=J_0      , J_STOP=J_1     )    
+      call GET(grid    , J_STRT=J_0      , J_STOP=J_1     )
       call GET(grid    , J_STRT_SKP=J_0S , J_STOP_SKP=J_1S)
       call GET(grid    , J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
 
@@ -366,8 +366,8 @@ c     *           +OGEOZA(IP1,J)-OGEOZA(I,J))/DXP(J)
           I=IP1
         END DO
       END DO
-C**** Fill halos for arrays FOCEAN, RSI,OGEOZA,DYV,MSI,SNOWI 
-C**** Commented Halo fill for array APRESS supports commented statement in loop
+C**** Fill halos for arrays FOCEAN, RSI,OGEOZA,DYV,MSI,SNOWI
+C**** Commented Halo fill for array APRESS supports commented statement
       CALL CHECKSUM(   grid, FOCEAN, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, FOCEAN, from=NORTH )
       CALL CHECKSUM(   grid, RSI   , __LINE__, __FILE__)
@@ -831,7 +831,7 @@ C****
 C****
 C**** Calculate south-north sea ice fluxes at grid box edges
 C****
-C**** Update halo of DXV,RSIY,RSI,RSIX,FOCEAN,BYDXYP,and MHS 
+C**** Update halo of DXV,RSIY,RSI,RSIX,FOCEAN,BYDXYP,and MHS
       CALL CHECKSUM(grid,    DXV  ,  __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, DXV  , FROM=NORTH)
       CALL CHECKSUM(grid,    RSIY ,  __LINE__, __FILE__)
@@ -882,7 +882,7 @@ C**** Calculate south-north sea ice fluxes near North Pole
 C****
       IF (grid%HAVE_NORTH_POLE) THEN
         IF(VSIDT(I,JM-1).eq.0.)  GO TO 200
-        FAW(JM-1) = VSIDT(I,JM-1)*DXV(JM) ! be careful with atm.grid index
+        FAW(JM-1) = VSIDT(I,JM-1)*DXV(JM) ! careful with atm.grid index!
         IF(VSIDT(I,JM-1).le.0.) THEN
 C**** Sea ice velocity is southward from North Pole box
           FASI(JM-1) = FAW(JM-1)*RSI(1,JM)*FOCEAN(1,JM)
