@@ -467,7 +467,7 @@ C**** Mass diagnostic (this is saved for everyone, but only output
 C**** for Dorothy for the time being)
 C****
       k=jlnt_mass
-      scalet = scale_jln(n)*scale_jlq(k)/idacc(ia_jlq(k))
+      scalet = scale_jlq(k)/idacc(ia_jlq(k))
       jtpow = ntm_power(n)+5+jlq_power(k)
       scalet = scalet*10.**(-jtpow)
 

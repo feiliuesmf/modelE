@@ -93,7 +93,6 @@ C**** Tracer mass
         units_jln(k,n) = unit_string(ntm_power(n)+5+jlq_power(k)
      *       ,'kg/m^2')
         scale_jlq(k) = 1.d0
-        scale_jln(n) = 1.d0
 
 #ifdef TRACERS_WATER
 C****   TRACER CONCENTRATION IN CLOUD WATER
