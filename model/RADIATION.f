@@ -5753,7 +5753,7 @@ C****
 C**** Specify the Albedo for Antarctica and Greenland: vis.alb = 95%
 C**** and mean albedo=80%, i.e. AMEAN = .57*BLIVIS+.43*BLINIR = .80
 C****
-      if (kvega6.eq.2) then
+      if (kvega6.gt.2) then
         IF( JLAT.LT.NINT(MLAT46/6.) .OR.
      *   (JLAT.LT.45.AND.JLAT.GT.38.AND.ILON.LT.33.AND.ILON.GT.23)) THEN
           BLIVN(1)=BLIVIS
