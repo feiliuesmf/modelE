@@ -306,7 +306,7 @@ C**** parallel to the case of Q
      &           rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm)
 cc          call diff_mom(trmomij)
             do l=1,lm
-                if(trij(1,n).lt.teeny) trij(1,n)=teeny
+                if(trij(l,n).lt.teeny) trij(l,n)=teeny
             end do
           end do
 #endif
