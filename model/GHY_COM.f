@@ -30,6 +30,10 @@ C containing its contents in a contiguous real*4 block
       REAL*8, DIMENSION(NGM,IM,JM) :: AFR
       REAL*8, DIMENSION(3,IM,JM) :: ALA,ACS
       REAL*8, DIMENSION(IM,JM) :: AFB,AVH
+!----------------------------------------------------------------------!
+! adf
+      REAL*8, DIMENSION(IM,JM) :: ANM,ANF
+!----------------------------------------------------------------------!
 
 ccc the following arrays contain prognostic variables for the snow model
 ccc ( ISN can be eliminated later, since FR_SNOW contains similar info )

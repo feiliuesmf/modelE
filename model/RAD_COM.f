@@ -25,6 +25,11 @@ C**** PMIP LGM (21k):    294.42         22.949       0.018994
 !@var OMEGT,OBLIQ,ECCN actual orbital parameters used
       real*8 OMEGT,OBLIQ,ECCN
 
+!----------------------------------------------------------------------!
+! adf
+      REAL*8, DIMENSION(IM,JM) :: FSRDIR
+!----------------------------------------------------------------------!
+
 C**** Database parameters to control orbital parameter calculation
 C**** Note: setting calc_orb_par with paleo_orb_yr=2000 does not produce
 C**** exactly the same as ther default values.
@@ -122,7 +127,9 @@ C**** Local variables initialised in init_RAD
       else
 
       MODULE_HEADER(lhead+1:80) = 'R8 Teq(3,im,jm),'//
-     *  ' S0, s+tHr(0:lm,im,jm,2),fs(im,jm,4)'
+!----------------------------------------------------------------------!
+     *  ' S0, s+tHr(0:lm,im,jm,2),fs(im,jm,4),fdir(im,jm)'
+!----------------------------------------------------------------------!
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file

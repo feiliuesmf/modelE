@@ -548,6 +548,10 @@ C****
      *     ,aMONTH,jdendofm,jdpery,aMON,aMON0,ioread,irerun
      *     ,ioread_single,irsfic,irsficnt,iowrite_single,ioreadnt
      *     ,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0,Jhour0
+!----------------------------------------------------------------------!
+! adf
+     *     ,Cint,Qfol
+!----------------------------------------------------------------------!
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b,imaxj
       USE RANDOM
@@ -616,6 +620,11 @@ C****
       T(:,:,:)=TEMP  ! will be changed to pot.temp later
       Q(:,:,:)=3.D-6
       P(:,:)=PSFMPT
+!----------------------------------------------------------------------!
+! adf
+      Cint(:,:)=0.0141D0
+      Qfol(:,:)=3.D-6
+!----------------------------------------------------------------------!
 C**** Advection terms for first and second order moments
       TMOM(:,:,:,:)=0.
       QMOM(:,:,:,:)=0.

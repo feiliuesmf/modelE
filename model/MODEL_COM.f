@@ -160,6 +160,13 @@ C**** slightly larger, to sample all points within the cycle
       REAL*8, DIMENSION(IM,JM,LM) :: U,V,T,Q,WM
 !@var P surface pressure (hecto-Pascals - PTOP)
       REAL*8, DIMENSION(IM,JM) :: P
+!----------------------------------------------------------------------!
+! adf
+! Internal foliage CO2 concentration (mol/m3)
+      REAL*8, DIMENSION(IM,JM) :: Cint
+! Foliage surface mixing ratio (kg/kg)
+      REAL*8, DIMENSION(IM,JM) :: Qfol
+!----------------------------------------------------------------------!
 
 C**** Define surface types (mostly used for weighting diagnostics)
 !@param NTYPE number of different surface types
@@ -372,13 +379,21 @@ C**** keep track of min/max time over the combined diagnostic period
       CHARACTER*80 :: HEADER, MODULE_HEADER = "MODEL01"
 
       MODULE_HEADER(lhead+1:80) = 'R8 dim(im,jm,lm):u,v,t, p(im,jm),'//
-     *  ' dim(im,jm,lm):q,MliqW'
+     *  ' dim(im,jm,lm):q,MliqW,Cint(im,jm),Qfol(im,jm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE) ! output to end-of-month restart file
         WRITE (kunit,err=10) MODULE_HEADER,U,V,T,P,Q,WM
+!----------------------------------------------------------------------!
+! adf
+     *                       ,Cint,Qfol
+!----------------------------------------------------------------------!
       CASE (IOREAD:)          ! input from restart file
         READ (kunit,err=10) HEADER,U,V,T,P,Q,WM
+!----------------------------------------------------------------------!
+! adf
+     *                       ,Cint,Qfol
+!----------------------------------------------------------------------!
         IF (HEADER(1:LHEAD).ne.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10

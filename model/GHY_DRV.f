@@ -32,10 +32,18 @@ c****
      *     ,sha,tf,rhow,deltx
       use model_com, only : t,p,q,dtsrc,nisurf,dsig,qcheck
      *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
+!----------------------------------------------------------------------!
+! adf
+     *     ,Cint,Qfol
+!----------------------------------------------------------------------!
       use geom, only : imaxj,dxyp,bydxyp
       use dynamics, only : pk,pek,pedn,pdsig,am,byam
       use somtq_com, only : mz
       use radncb, only : trhr,fsf,cosz1
+!----------------------------------------------------------------------!
+     &    ,FSRDIR
+!----------------------------------------------------------------------!
+! adf
       use sle001
      &    , only : advnc,evap_limits,
      &    ngm,
@@ -51,6 +59,10 @@ c****
      &    pres,rho,ts,vsm,ch,srht,trht, !cd,snht,
      &    nlsn,nsn,dzsn,wsn,hsn,fr_snow
      &     ,ghy_debug
+!----------------------------------------------------------------------!
+! adf
+     &    ,fdir,Ci,Qf,Cin,Qfn
+!----------------------------------------------------------------------!
 #ifdef TRACERS_WATER
      &     ,tr_w,tr_wsn,trpr,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
 #endif
@@ -435,6 +447,14 @@ c  define extra variables to be passed in surfc:
       ch    =cdh
       srht  =srheat
       trht  =trheat
+!----------------------------------------------------------------------!
+! adf Fraction of solar radiation at ground that is direct beam.
+      fdir=FSRDIR(i,j)
+! Internal foliage CO2 concentration (mol/m3).
+      Ci=Cint(i,j)
+! Foliage surface mixing ratio (kg/kg).
+      Qf=Qfol(i,j)
+!----------------------------------------------------------------------!
   !    zs    =zgs  !!! will not need after qsbal is replaced
   !    z1    =zmix  !!! will not need after qsbal is replaced
   !    eddy  =khs   !!! will not need after qsbal is replaced
@@ -446,6 +466,11 @@ c     call qsbal
       call ghinij (i,j,wfc1)
       call advnc
       call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
+!----------------------------------------------------------------------!
+! adf Save new CO2 and mixing ratios for next timestep.
+      Cint(i,j)=Cin
+      Qfol(i,j)=Qfn
+!----------------------------------------------------------------------!
       tg1=tbcs
       !qg_ij(i,j) = qs  !!! - this seemed to work ok
       !! trying more precise value for qg :  qsat(tg1+tf,elhx,ps)
@@ -844,6 +869,10 @@ c**** modifications needed for split of bare soils into 2 types
       real*8 wfc1
       real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
       real*8 slim,slre,svh,z
+!----------------------------------------------------------------------!
+! adf
+      real*8 snm,snf
+!----------------------------------------------------------------------!
       integer iv, l
       logical ghy_data_missing
       character conpt(npts)*10
@@ -863,8 +892,17 @@ c**** modifications needed for split of bare soils into 2 types
      $     (/100d0, 100d0, 200d0, 200d0, 200d0, 300d0,250d0, 125d0/)
       real*8, parameter :: vhght(8) =
      $     (/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0/)
+!----------------------------------------------------------------------!
+! adf Mean canopy nitrogen (g/m2) and Rubisco factors for each
+! vegetation type.
+      real*8, parameter :: nmv(8) =
+     $     (/1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,0.82d0/)
+      real*8, parameter :: nfv(8) =
+     $     (/1.4d0,1.5d0 ,1.3d0 ,1.3d0 ,1.5d0 ,0.9d0,1.1d0,1.5d0 /)
+!----------------------------------------------------------------------!
       integer, parameter :: laday(8) =
      $     (/ 196,  196,  196,  196,  196,  196,  196,  196/)
+      
 
 c****             tundr grass shrub trees decid evrgr rainf crops
 c****
@@ -1010,12 +1048,21 @@ c spgsn is the specific gravity of snow
 c
 c****
 c**** initialize global arrays  ala, acs, afb, afr
+!----------------------------------------------------------------------!
+! adf
+!     , anm, anf
+!----------------------------------------------------------------------!
 c****
       ala(:,:,:)=0.
       acs(:,:,:)=0.
       afb(:,:)=0.
       afr(:,:,:)=0.
       acs(1,:,:)=.01d0
+!----------------------------------------------------------------------!
+! adf
+      anm(:,:)=0.
+      anf(:,:)=0.
+!----------------------------------------------------------------------!
 
 c**** check whether ground hydrology data exist at this point.
       ghy_data_missing = .false.
@@ -1065,12 +1112,22 @@ c**** calculate lai, cs coefficicents
           scsre=0.
           scsim=0.
           svh=0.
+!----------------------------------------------------------------------!
+! adf
+          snm=0.
+          snf=0.
+!----------------------------------------------------------------------!
           do iv=1,8
             phase=twopi*laday(iv)/365.
             if(j.lt.jeq) phase=phase+twopi/2.
             fv=vdata(i,j,iv+1)
             sfv=sfv+fv
             svh=svh+fv*vhght(iv)
+!----------------------------------------------------------------------!
+! adf
+            snm=snm+fv*nmv(iv)
+            snf=snf+fv*nfv(iv)
+!----------------------------------------------------------------------!
             dif=(alamax(iv) - alamin(iv))
             sla0=sla0+fv*(alamax(iv) + alamin(iv))
             slre=slre+fv*dif*cos(phase)
@@ -1086,6 +1143,11 @@ c**** calculate lai, cs coefficicents
           acs(2,i,j)=.5/sfv*scsre
           acs(3,i,j)=.5/sfv*scsim
           avh(i,j)=svh/sfv
+!----------------------------------------------------------------------!
+! adf
+          anm(i,j)=snm/sfv
+          anf(i,j)=snf/sfv
+!----------------------------------------------------------------------!
 c**** calculate root fraction afr averaged over vegetation types
           do n=1,ngm
             dz(n)=dz_ij(i,j,n)
@@ -1393,14 +1455,26 @@ c****
      *     ,thets,thetm,ws,thm,nth,shc,shw,htprs,pr !shcap,shtpr,
      *     ,htpr
      *     ,top_index
+!----------------------------------------------------------------------!
+! adf
+     *     ,nm,nf,alai,vh
+!----------------------------------------------------------------------!
       use ghycom, only : dz_ij,sl_ij,q_ij,qk_ij,avh,afr,afb,ala,acs
      *     ,top_index_ij
+!----------------------------------------------------------------------!
+! adf
+     *     ,anm,anf
+!----------------------------------------------------------------------!
       implicit none
       integer i0,j0
       real*8 wfcap
       integer l,ibv,k,i
       real*8 aa,one
-      real*8 alaic,vh,shtpr,alai
+!----------------------------------------------------------------------!
+! adf
+!      real*8 alaic,vh,shtpr,alai
+      real*8 alaic,shtpr
+!----------------------------------------------------------------------!
       real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
 
       one=1.
@@ -1439,6 +1513,13 @@ c**** fr: root fraction in layer l  (1=fr(1)+fr(2)+...+fr(n))
       end do
 c**** vh: vegetation height
       vh=avh(i0,j0)
+!----------------------------------------------------------------------!
+! adf
+! Mean canopy nitrogen (g/m2)
+      nm=anm(i0,j0)
+! Canopy Rubisco factor.
+      nf=anf(i0,j0)
+!----------------------------------------------------------------------!
       snowm=vh*spgsn
 c**** fb,fv: bare, vegetated fraction (1=fb+fv)
       fb=afb(i0,j0)

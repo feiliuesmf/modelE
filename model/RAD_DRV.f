@@ -505,8 +505,16 @@ C     OUTPUT DATA
      &          ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
      &          ,SRRVIS ,SRAVIS ,SRRNIR ,SRANIR
      &          ,BTEMPW
+!----------------------------------------------------------------------!
+! adf
+     &          ,SRXVIS ,SRDVIS
+!----------------------------------------------------------------------!
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
-     *     ,coe,PLB0,shl0,tchg,ALB             
+     *     ,coe,PLB0,shl0,tchg,ALB
+!----------------------------------------------------------------------!
+! adf
+     *     ,FSRDIR
+!----------------------------------------------------------------------!
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi
@@ -1002,6 +1010,10 @@ C****
       ALB(I,J,7)=SRRNIR
       ALB(I,J,8)=SRAVIS
       ALB(I,J,9)=SRANIR
+!----------------------------------------------------------------------!
+! adf Fraction of total solar incident at ground that is direct beam.
+      FSRDIR(I,J)=SRXVIS
+!----------------------------------------------------------------------!
 C**** Save clear sky/tropopause diagnostics here
         AIJ(I,J,IJ_CLR_SRINCG)=AIJ(I,J,IJ_CLR_SRINCG)+
      +                                    OPNSKY*SRDFLB(1)*CSZ2
