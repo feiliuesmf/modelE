@@ -202,7 +202,10 @@ ccc   soil prognostic variables
       real*8, public :: w(0:ngm,2),ht(0:ngm,2),dz(ngm)
 
 ccc   soil properties which need to be passed in:
-      real*8, public :: q(imt,ngm),qk(imt,ngm),sl,fv,fb,top_index
+      real*8, public :: q(imt,ngm),qk(imt,ngm),sl,fv,fb
+
+ccc   topographic info which is passed in
+      real*8, public :: top_index, top_stdev
 
 ccc   soil internal variables wchich need to be passed from/to ghinij
       real*8, public :: zb(ng),zc(ng),fr(ng),alaie,rs,snowm
@@ -353,8 +356,8 @@ C***
      &     ,htdrips,htdripw,htpr,htprs,pr,pres,prs,q,qk,qm1,qs
      &     ,rho,rnf,rnff,rs,shc,sl,snowd,snowm,snsh,snsh_tot
      &     ,snshs,srht,tbcs,theta,thetm,thets,thrm_tot,thrmsn !thm
-     &     ,top_index,tp,trht,ts,tsn1,vsm,w,ws,wsn,xinfc,xk,xkh
-     &     ,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
+     &     ,top_index,top_stdev,tp,trht,ts,tsn1,vsm,w,ws,wsn,xinfc,xk
+     &     ,xkh,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
      &     ,ijdebug,n,nsn !nth
      &     ,flux_snow,wsn_for_tr
      &     ,fdir,sbeta,Ci,Qf,nm,nf,alai ! added by adf
@@ -1374,8 +1377,11 @@ c****
 !@sum computes the flux of drip water (and its heat cont.) from canopy
 !@+   the drip water is split into liquid water dripw() and snow drips()
 !@+   for bare soil fraction the canopy is transparent
+      use snow_drvm, only : snow_cover_same_as_rad
       real*8 ptmp,ptmps,pfac,pm,pmax
       real*8 snowf,snowfs,dr,drs
+      integer ibv
+      real*8 melt_w, melt_h
 c     calculate snow fall.  snowf is snow fall, m s-1 of water depth.
       snowf=0.d0
       if(htpr.lt.0.d0)snowf=min(-htpr/fsn,pr)
@@ -1419,6 +1425,21 @@ ccc   for bare soil drip is precipitation
       htdrips(1) = min( htpr, 0.d0 )
       dripw(1) = pr - drips(1)
       htdripw(1) = htpr - htdrips(1)
+      if ( snow_cover_same_as_rad .ne. 0 ) then 
+#define TRY_TO_MELT_FRESH_SNOW_ON_WARM_GROUND
+#ifdef TRY_TO_MELT_FRESH_SNOW_ON_WARM_GROUND
+        do ibv=1,2
+          if ( tp(1,ibv) > 0.d0 ) then
+            melt_w = (1.d0-fr_snow(ibv)) * drips(ibv)
+            melt_h = (1.d0-fr_snow(ibv)) * htdrips(ibv)
+            drips(ibv) = drips(ibv) - melt_w
+            htdrips(ibv) = htdrips(ibv) - melt_h
+            dripw(ibv) = dripw(ibv) + melt_w
+            htdripw(ibv) = htdripw(ibv) + melt_h
+          endif
+        enddo
+#endif
+      endif
       return
       end subroutine drip_from_canopy
 
@@ -2566,7 +2587,7 @@ ccc input
      &       fmask(ibv), evapsn(ibv), snshs(ibv), srht, trht, canht,
      &       drips(ibv), dripw(ibv), htdrips(ibv), htdripw(ibv),
      &       devapsn_dt(ibv), dsnsh_dt, dts,
-     &       tp(1,ibv), dz(1), nlsn,
+     &       tp(1,ibv), dz(1), nlsn, top_stdev,
 ccc updated
      &       dzsn(1,ibv), wsn(1,ibv), hsn(1,ibv), nsn(ibv),
      &       fr_snow(ibv),

@@ -19,7 +19,7 @@
 !@var gdeep keeps average (2:n) values of temperature, water and ice
       real*8, dimension(im,jm,3) :: gdeep
 
-      real*8 spgsn !@var specific gravity of snow
+      real*8 spgsn !@var spgsn specific gravity of snow
 !@dbparam snow_cover_coef coefficient for topography variance in
 !@+       snow cover parameterisation for albedo
       real*8 :: snow_cover_coef = .15d0
@@ -127,6 +127,7 @@ c****
      *     ,dep_vel
 #endif
 #endif
+      use snow_drvm, only : snow_cover_same_as_rad
       implicit none
 
       integer, intent(in) :: ns,moddsf,moddd
@@ -591,12 +592,18 @@ ccc tracers
 #endif
 
 c**** set snow fraction for albedo computation (used by RAD_DRV.f)
-      do ibv=1,2
-        call snow_cover(fr_snow_rad_ij(ibv,i,j),
-     &       snowbv(ibv,i,j), top_dev_ij(i,j) )
-        fr_snow_rad_ij(ibv,i,j) = min (
-     &       fr_snow_rad_ij(ibv,i,j), fr_snow_ij(ibv, i, j) )
-      enddo
+      if ( snow_cover_same_as_rad == 0 ) then
+        do ibv=1,2
+          call snow_cover(fr_snow_rad_ij(ibv,i,j),
+     &         snowbv(ibv,i,j), top_dev_ij(i,j) )
+          fr_snow_rad_ij(ibv,i,j) = min (
+     &         fr_snow_rad_ij(ibv,i,j), fr_snow_ij(ibv, i, j) )
+        enddo
+      else
+        do ibv=1,2 
+          fr_snow_rad_ij(ibv,i,j) = fr_snow_ij(ibv, i, j)
+        enddo
+      endif
 
       aij(i,j,ij_g18)=aij(i,j,ij_g18)+aevapb
       aij(i,j,ij_g19)=aij(i,j,ij_g19)+aevapd
@@ -899,6 +906,8 @@ c**** modifications needed for split of bare soils into 2 types
       use fluxes, only : gtemp
       use ghycom
       use dynamics, only : pedn
+      use snow_drvm, only : snow_cover_coef2=>snow_cover_coef
+     &     ,snow_cover_same_as_rad
       use surf_albedo, only: albvnh  !nyk
 
       implicit none
@@ -915,18 +924,19 @@ c**** modifications needed for split of bare soils into 2 types
       real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
       real*8 almass0, almassre, almassim  !nyk
       real*8 slim,slre,svh,z
-      real*8 snm,snf ! temporary sums (adf)
+      real*8 snm,snf  ! temporary sums (adf)
+      real*8 cwc_sum
       integer iv, l
       logical ghy_data_missing
       character conpt(npts)*10
 #ifdef TRACERS_WATER
       real*8 trsoil_tot,wsoil_tot,fm
 #endif
-
       real*8, parameter :: alamax(8) =
      $     (/ 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0/)
       real*8, parameter :: alamin(8) =
      $     (/ 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0/)
+
       real*8, parameter :: aroot(8) =
      $     (/ 12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0/)
       real*8, parameter :: broot(8) =
@@ -943,6 +953,8 @@ c**** modifications needed for split of bare soils into 2 types
      $     (/1.4d0,1.5d0 ,1.3d0 ,1.3d0 ,1.5d0 ,0.9d0,1.1d0,1.5d0 /)
       integer, parameter :: laday(8) =
      $     (/ 196,  196,  196,  196,  196,  196,  196,  196/)
+      real*8, parameter :: can_w_coef(8) =
+     &     (/ 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4 /)
 
 ! Specific leaf areas (sleafa, kg[C]/m2) (adf, nyk)
 ! Values below 1/(m2/kg) to get kg/m2 for multiplying.
@@ -1003,6 +1015,9 @@ c**** set conservation diagnostics for ground water mass and energy
 
 c**** read rundeck parameters
       call sync_param( "snow_cover_coef", snow_cover_coef )
+! hack. snow_cover_coef should be moved to snow_drvm
+      snow_cover_coef2 = snow_cover_coef
+      call sync_param( "snow_cover_same_as_rad", snow_cover_same_as_rad)
       call sync_param( "snoage_def", snoage_def )
       call sync_param( "ghy_default_data", ghy_default_data )
       call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03
@@ -1158,6 +1173,7 @@ c****
       anf(:,:)=0.0D0            ! Global Rubisco factors (adf)
       almass(:,:,:)=0.0D0       ! Global leaf mass at a time, nyk
 !rar  aalbveg(:,:)=0.08D0 ! no need, it is set in daily_earth 
+      can_w_capacity(:,:) = 0.d0
 
       do j=1,jm
         if(j.le.jm/2) then
@@ -1171,7 +1187,7 @@ c****
           if(afb(i,j).gt..999) afb(i,j)=1.
           if(pearth.le.0..or.afb(i,j).ge.1.) cycle
 c**** calculate lai, cs coefficicents
-          sfv=0.
+          sfv=0.d0
           sla0=0.
           slre=0.
           slim=0.
@@ -1184,6 +1200,7 @@ c**** calculate lai, cs coefficicents
           svh=0.
           snm=0. ! adf
           snf=0. ! adf
+          cwc_sum = 0.d0
           do iv=1,8
             phase=twopi*laday(iv)/365.
             if(j.lt.jeq) phase=phase+twopi/2.
@@ -1206,6 +1223,7 @@ c**** calculate lai, cs coefficicents
             scs0=scs0+fv*(alamax(iv) + alamin(iv))/rsar(iv)
             scsre=scsre+fv*dif*cos(phase)/rsar(iv)
             scsim=scsim+fv*dif*sin(phase)/rsar(iv)
+            cwc_sum = cwc_sum + fv*can_w_coef(iv)
           end do
           ala(1,i,j)=.5/sfv*sla0
           ala(2,i,j)=.5/sfv*slre
@@ -1214,6 +1232,7 @@ c**** calculate lai, cs coefficicents
           acs(2,i,j)=.5/sfv*scsre
           acs(3,i,j)=.5/sfv*scsim
           avh(i,j)=svh/sfv
+          can_w_capacity(i,j) = cwc_sum/sfv
           anm(i,j)=snm/sfv ! adf
           anf(i,j)=snf/sfv ! adf
           almass(1,i,j) = almass0   !This just computes total growth for
@@ -1530,10 +1549,10 @@ c****
      *     ,fb,fv,snowm,alaie,rs,prs,ijdebug,n !alaic,vh,
      *     ,thets,thetm,ws,thm,nth,shc,shw,htprs,pr !shcap,shtpr,
      *     ,htpr
-     *     ,top_index
+     *     ,top_index,top_stdev
      *     ,nm,nf,alai,vh ! added by adf
       use ghycom, only : dz_ij,sl_ij,q_ij,qk_ij,avh,afr,afb,ala,acs
-     *     ,top_index_ij
+     *     ,top_index_ij,top_dev_ij,can_w_capacity
      *     ,anm,anf ! added by adf
 !     *     ,aalbveg ! nyk
       use model_com, only:  vdata, jm !nyk
@@ -1560,6 +1579,7 @@ c****
 
 ccc passing topmodel parameters
       top_index = top_index_ij(i0, j0)
+      top_stdev = top_dev_ij(i0, j0)
 c**** set up layers
       dz(1:ngm)=dz_ij(i0,j0,1:ngm)
       q(1:imt,1:ngm)=q_ij(i0,j0,1:imt,1:ngm)
@@ -1648,6 +1668,7 @@ c****
         end do
       end do
       ws(0,2)=.0001d0*alai
+!!!      ws(0,2)=can_w_capacity(i0,j0)*alai
       wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
 c****
       call xklh0

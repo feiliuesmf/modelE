@@ -1,5 +1,13 @@
  
       module snow_drvm
+      implicit none
+!@dbparam snow_cover_coef coefficient for topography variance in
+!@+       snow cover parameterisation for albedo
+      real*8 :: snow_cover_coef = .15d0
+!@dbparam snow_cover_same_as_rad if > 0 use the same snow fraction
+!@+  for the computation of albedo and inside the snow model
+      integer :: snow_cover_same_as_rad = 0
+
 
       contains
       subroutine snow_drv(
@@ -7,7 +15,7 @@ ccc input
      &     fm, evap, snsh, srht, trht, canht,
      &     drips, dripw, htdrips, htdripw,
      &     devap_dt, dsnsh_dt, dts,
-     &     tp_soil, dz_soil, nlsn,
+     &     tp_soil, dz_soil, nlsn, top_stdev,
 ccc updated
      &       dzsn, wsn, hsn, nsn,
      &       fr_snow,
@@ -24,7 +32,7 @@ ccc input
       real*8 fm, evap, snsh, srht, trht, canht
       real*8 drips, dripw, htdrips, htdripw
       real*8 devap_dt, dsnsh_dt, dts
-      real*8 tp_soil, dz_soil
+      real*8 tp_soil, dz_soil, top_stdev
       integer nlsn
 ccc updated
       real*8 dzsn(nlsn+1), wsn(nlsn), hsn(nlsn), fr_snow
@@ -62,8 +70,15 @@ c!      cthsn(2)=shc(1,2)
       fr_snow_old = fr_snow
       epot_sn_old = epotsn
 
-      call snow_fraction(dzsn, nsn, drips, dts,
-     &     fr_snow_old, fr_snow )
+      if ( snow_cover_same_as_rad .ne. 0 ) then
+        call snow_fraction1(dzsn, nsn, drips, dts, top_stdev,
+     &       fr_snow_old, fr_snow )
+      else
+        call snow_fraction(dzsn, nsn, drips, dts,
+     &       fr_snow_old, fr_snow )
+      endif
+
+      !print *, sum(dzsn(1:nsn)), top_stdev, fr_snow
 
       if ( fr_snow <= 0.d0 ) then ! no snow
         flmlt_scale = drips
@@ -138,6 +153,50 @@ ccc update fluxes that could have been changed by snow model
 
       return
       end subroutine snow_drv
+
+
+      subroutine snow_fraction1( 
+     &     dz, nl, prsnow, dt,
+     &     top_dev, fract_snow_old, fract_snow )
+!@sum computes snow cover from snow water eq. and topography
+!@var fract_snow snow cover fraction (0-1)
+!@var top_dev standard deviation of the surface elevation
+      use constant, only : teeny
+      use snow_model, only : MIN_SNOW_THICKNESS, MIN_FRACT_COVER,
+     &     rho_water, rho_fresh_snow
+      real*8, intent(in) :: dz(:), prsnow, dt, fract_snow_old
+      integer, intent(in) :: nl
+      real*8, intent(out) :: fract_snow
+      real*8, intent(in) :: top_dev
+! locals
+!@par rho_sn average snow density (kg/m^3)
+      real*8, parameter :: rho_sn = 300.d0
+      real*8 dz_aver, fresh_snow
+
+      fresh_snow = rho_water/rho_fresh_snow * prsnow*dt
+      dz_aver = max( sum(dz(1:nl))*fract_snow_old + fresh_snow, 0.d0 )
+
+      fract_snow = min( 1.d0, dz_aver/MIN_SNOW_THICKNESS )
+
+      ! using formula from the paper by A. Roesch et al
+      ! (Climate Dynamics (2001), 17: 933-946)
+!!      fract_snow = fract_snow *
+ccc     $     .95d0 * tanh( 100.d0 * snow_water ) *
+ccc                               currently using only topography part
+!!     $     sqrt ( 1000.d0 * snow_water /
+!!     $     (1000.d0 * snow_water + teeny + snow_cover_coef * top_dev) )
+      fract_snow = fract_snow *
+     &     sqrt ( rho_sn * dz_aver /
+     &     (rho_sn * dz_aver + teeny + snow_cover_coef * top_dev) )
+
+      if ( fract_snow < MIN_FRACT_COVER ) fract_snow = 0.d0
+
+      if ( .not. fract_snow >= 0.d0 )
+     &     call stop_model("NaN in snow_fraction1, 255")
+      
+      end subroutine snow_fraction1
+
+
 
       end module snow_drvm
 

@@ -38,6 +38,7 @@ C containing its contents in a contiguous real*4 block
       REAL*8, DIMENSION(NGM,IM,JM) :: AFR
       REAL*8, DIMENSION(3,IM,JM) :: ALA,ACS,ALMASS !nyk almass
       REAL*8, DIMENSION(IM,JM) :: AFB,AVH,AALBVEG !nyk aalbveg
+      real*8 can_w_capacity(im,jm)
 !----------------------------------------------------------------------!
 ! adf
       REAL*8, DIMENSION(IM,JM) :: ANM,ANF

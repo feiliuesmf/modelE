@@ -105,7 +105,7 @@
       character buf(256)
       character*256 bufs
       character*256 ttt
-      character*16 name
+      character*32 name
       character*1 type
       integer np, i
       integer ivars(MAXDIM)
