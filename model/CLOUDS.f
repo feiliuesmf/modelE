@@ -1221,9 +1221,9 @@ C**** CALCULATE OPTICAL THICKNESS
             TEM=1.d5*SVWMXL(L)*AIRM(L)*BYGRAV
             WTEM=1.d5*SVWMXL(L)*PL(L)/(FCLD*TL(L)*RGAS)
             IF(SVLATL(L).EQ.LHE.AND.SVWMXL(L)/FCLD.GE.WCONST*1.d-3)
-     *           WTEM=1.d5*WCONST*1.d-3*PL(L)/(TL(L)*RGAS)
+     *           WTEM=1d2*WCONST*PL(L)/(TL(L)*RGAS)
             IF(SVLATL(L).EQ.LHS.AND.SVWMXL(L)/FCLD.GE.WMUI*1.d-3)
-     *           WTEM=1.E5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
+     *           WTEM=1d2*WMUI*PL(L)/(TL(L)*RGAS)
             IF(WTEM.LT.1.d-10) WTEM=1.d-10
             IF(SVLATL(L).EQ.LHE)  THEN
                RCLD=(10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
@@ -1409,7 +1409,7 @@ C**** initialise vertical arrays
         IF(WMX(L).LE.0.) CAREA(L)=1.
       END DO
       DQUP=0.
-      LHXUP=LHE
+      LHXUP=0.
       TOLDUP=TL(LM)
       PREICE(LM+1)=0.
       WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
@@ -1442,51 +1442,75 @@ C**** THE PROBABLITY OF GLACIATION OF SUPER-COOLED WATER, PFR
 C**** DETERMINE THE PHASE MOISTURE CONDENSES TO
 C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
       BANDF=.FALSE.
-      LHX= LHE
-      PMI=PREICE(L+1)*DTsrc
-      PML=WMX(L)*AIRM(L)*BYGRAV
-      PRATIO=PMI/(PML+1.E-20)
-      IF(PRATIO.GT.10.) PRATIO=10.
-      PMW=(PREBAR(L+1)-PREICE(L+1))*DTsrc
-      PRATW=PML/(PMW+1.E-20)
-      IF(PRATW.GT.10.) PRATW=10.
-      CBF=1.+1.*EXP(-((TL(L)-258.16d0)/10.)**2)
+      LHX=LHE
+      CBF=1. + EXP(-((TL(L)-258.16d0)/10.)**2)
       CBFC0=.5*CM0*CBF*DTsrc
-      PFR=(1.-EXP(-(PRATIO*PRATIO)))*(1.-EXP(-(CBFC0*CBFC0)))
-      FUNIO=1.-EXP(-((TL(L)-269.16d0)/15.)**2)
-      FUNIL=1.-EXP(-((TL(L)-263.16d0)/15.)**2)
-      IF(TL(L).GT.269.16) FUNIO=0.
-      IF(TL(L).GT.263.16) FUNIL=0.
-      FUNI=FUNIO*(1.-PEARTH)+FUNIL*PEARTH
-      IF(TL(L).LE.TI) FUNI=1.
-      IF(TL(L).LT.TI) LHX=LHS
-      RANDNO=RNDSS1L(L)   !  RANDNO=RANDU(XY)
-      IF(TL(L).GE.TI.AND.RANDNO.LT.FUNI) LHX=LHS
-      IF((OLDLHX.EQ.LHS.OR.OLDLAT.EQ.LHS).AND.TL(L).LT.TF) THEN
-        IF(LHX.EQ.LHE) BANDF=.TRUE.
+
+      IF (TL(L).LE.TI) THEN     ! below -40: force ice
         LHX=LHS
-      ENDIF
-      IF(L.LT.LM) THEN
-        RANDNO=RNDSS2L(L)       !  RANDNO=RANDU(XY)
-        IF(PFR.GT.RANDNO.AND.TL(L).LT.TF) THEN
+      ELSEIF (TL(L).GE.TF) THEN ! above freezing: force water
+        LHX=LHE
+      ELSE                      ! in between: compute probability
+        IF(TL(L).GT.269.16) THEN ! OC/SI/LI clouds: water above -4
+          FUNIO=0.
+        ELSE
+          FUNIO=1.-EXP(-((TL(L)-269.16d0)/15.)**2)
+        END IF
+        IF(TL(L).GT.263.16) THEN ! land clouds water: above -10
+          FUNIL=0.
+        ELSE
+          FUNIL=1.-EXP(-((TL(L)-263.16d0)/15.)**2)
+        END IF
+        FUNI=FUNIO*(1.-PEARTH)+FUNIL*PEARTH
+        RANDNO=RNDSS1L(L)       !  RANDNO=RANDU(XY)
+        IF(RANDNO.LT.FUNI) LHX=LHS
+
+C**** special case 1) if ice previously then stay as ice (if T<Tf)
+        IF((OLDLHX.EQ.LHS.OR.OLDLAT.EQ.LHS).AND.TL(L).LT.TF) THEN
           IF(LHX.EQ.LHE) BANDF=.TRUE.
           LHX=LHS
         ENDIF
-        PFR=(1.-EXP(-(PRATW*PRATW)))*(1.-EXP(-(CBFC0*CBFC0)))
-        PRATM=2.d5*WMX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
-        IF(LHX.EQ.LHS) PRATM=2.d5*WMX(L)*PL(L)/
-     *    (WMUI*FCLD*TL(L)*RGAS+teeny)
-        IF(PRATM.GT.PFR) PFR=PRATM
-        IF(PFR.GT.1.) PFR=1.
-        IF(PFR.GT.RANDNO.AND.TL(L).LT.TF) THEN
-          BANDF=.TRUE.
-          LHX=LHS
-        ENDIF
-        IF(LHXUP.EQ.LHE.AND.PFR.LE.RANDNO.AND.WMX(L+1).gt.0) THEN
-          LHX=LHE
-          BANDF=.FALSE.
-        ENDIF
+
+        IF (L.LT.LM) THEN
+C**** special case 2) default is that water cloud is below water cloud
+          IF(LHXUP.EQ.LHE) THEN
+            LHX=LHE
+            BANDF = .FALSE.
+          END IF
+
+C**** Decide whether precip initiates B-F process
+          IF (LHX.EQ.LHE .AND. TL(L).LT.TF) THEN
+            PML=WMX(L)*AIRM(L)*BYGRAV
+            PMI=PREICE(L+1)*DTsrc
+            PMW=0.
+            IF (PPHASE.EQ.LHE) PMW=PREBAR(L+1)*DTsrc
+            RANDNO=RNDSS2L(L)   !  RANDNO=RANDU(XY)
+C**** Calculate probability of ice precip seeding a water cloud
+            IF (PMI.gt.0) THEN
+              PRATIO=MIN(PMI/(PML+1.E-20),10d0)
+              PFR=(1.-EXP(-(PRATIO*PRATIO)))*(1.-EXP(-(CBFC0*CBFC0)))
+              IF(PFR.GT.RANDNO) THEN
+                BANDF=.TRUE.
+                LHX=LHS
+              END IF
+C**** Calculate probablity of water precip freezing (and thereby
+C**** seeding an ice cloud)
+            ELSEIF (PMW.gt.0) THEN
+              PRATW=MIN(PML/PMW,10d0)
+              PFR=(1.-EXP(-(PRATW*PRATW)))*(1.-EXP(-(CBFC0*CBFC0)))
+              PRATM=2.d5*WMX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
+c             IF(LHX.EQ.LHS) PRATM=2.d5*WMX(L)*PL(L)/
+c     *           (WMUI*FCLD*TL(L)*RGAS+teeny)    ! no need, always LHE
+              PFR=MIN(MAX(PFR,PRATM),1d0)
+              IF(PFR.GT.RANDNO) THEN
+                BANDF=.TRUE.
+                LHX=LHS
+              END IF
+            END IF
+          END IF
+        END IF
       END IF
+      IF(LHX.EQ.LHS .AND. (OLDLHX.EQ.LHE.OR.OLDLAT.EQ.LHE)) BANDF=.TRUE.
 C**** COMPUTE RELATIVE HUMIDITY
       QSATL(L)=QSAT(TL(L),LHX,PL(L))
       RH1(L)=QL(L)/QSATL(L)
@@ -1500,10 +1524,7 @@ C**** COMPUTE RELATIVE HUMIDITY
       END IF
 C**** PHASE CHANGE OF CLOUD WATER CONTENT
       HCHANG=0.
-      IF(LHX.EQ.LHS) THEN
-        IF(OLDLHX.EQ.LHE) HCHANG=WML(L)*LHM
-        IF(OLDLHX.EQ.LHE.OR.OLDLAT.EQ.LHE) BANDF=.TRUE.
-      END IF
+      IF(OLDLHX.EQ.LHE.AND.LHX.EQ.LHS) HCHANG= WML(L)*LHM
       IF(OLDLHX.EQ.LHS.AND.LHX.EQ.LHE) HCHANG=-WML(L)*LHM
       IF(OLDLAT.EQ.LHE.AND.LHX.EQ.LHS) HCHANG=HCHANG+SVWMXL(L)*LHM
       IF(OLDLAT.EQ.LHS.AND.LHX.EQ.LHE) HCHANG=HCHANG-SVWMXL(L)*LHM
@@ -1592,9 +1613,9 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
       IF (CAREA(L).GT.0.) THEN
       WTEM=1d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
       IF(LHX.EQ.LHE.AND.WMX(L)/FCLD.GE.WCONST*1d-3)
-     *  WTEM=1d5*WCONST*1d-3*PL(L)/(TL(L)*RGAS)
+     *  WTEM=1d2*WCONST*PL(L)/(TL(L)*RGAS)
       IF(LHX.EQ.LHS.AND.WMX(L)/FCLD.GE.WMUI*1d-3)
-     *  WTEM=1d5*WMUI*1d-3*PL(L)/(TL(L)*RGAS)
+     *  WTEM=1d2*WMUI*PL(L)/(TL(L)*RGAS)
       IF(WTEM.LT.1d-10) WTEM=1d-10
       IF(LHX.EQ.LHE)  THEN
          RCLD=1d-6*(10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
@@ -1602,8 +1623,7 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
          RCLD=25.d-6*(WTEM/4.2d-3)**BY3
       END IF
       CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
-      CK2=1000.*RVAP*TL(L)/(2.4d-3*QSATL(L)*PL(L)/.622d0)
-c      CK2=1000.*RGAS*TL(L)/(2.4d-3*QSATL(L)*PL(L))    ! new
+      CK2=1000.*RGAS*TL(L)/(2.4d-3*QSATL(L)*PL(L))
       TEVAP=1000.*(CK1+CK2)*RCLD*RCLD
       WMX1=WMX(L)-PREP(L)*DTsrc
       ECRATE=(1.-RHF(L))/(TEVAP*FCLD+teeny)
@@ -1645,7 +1665,7 @@ C**** In such a case, no energy of phase change is needed.
         PREICE(L+1)=0.
       ENDIF
 C**** PHASE CHANGE OF PRECIP, FROM WATER TO ICE
-      IF(BANDF .AND. LHXUP.EQ.LHE .AND. PREBAR(L+1).GT.0.) THEN
+      IF(LHX.EQ.LHS .AND. PPHASE.EQ.LHE .AND. PREBAR(L+1).GT.0.) THEN
         HPHASE=-LHM*PREBAR(L+1)*GRAV*BYAM(L)
       ENDIF
 C**** COMPUTE THE PRECIP AMOUNT ENTERING THE LAYER TOP
@@ -1835,21 +1855,13 @@ C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       IF(CLOUD_YET.and.CLDSSL(L).eq.0.) BELOW_CLOUD=.true.
 #endif
       TOLDUP=TOLD
-      LHXUP=LHX
+      LHXUP=0.
+      IF (WMX(L).gt.0) LHXUP=LHX
 C**** ACCUMULATE SOME DIAGNOSTICS
          HCNDSS=HCNDSS+(TNEW-TOLD)*AIRM(L)
          SSHR(L)=SSHR(L)+(TNEW-TOLD)*AIRM(L)
       END DO  ! end of loop over L
 
-C**** Set final precip value and fix phase if necessary.
-C**** This fix deals with the possibility that super-cooled water would
-C**** actual freeze before falling until this is specifically dealt with.
-c      IF (TL(1).lt.TF .AND. SVLHXL(1).eq.LHE) THEN
-c        HPHASE=-LHM*PREBAR(1)*GRAV*BYAM(1)
-c        TL(1)=TL(1)-DTsrc*HPHASE/SHA
-c        TH(1)=TL(1)/PLK(1)
-c        PPHASE=LHS
-c      END IF
       PRCPSS=MAX(0d0,PREBAR(1)*GRAV*DTsrc) ! fix small round off err
 #ifdef TRACERS_WATER
       TRPRSS(1:NTX)=MAX(0d0,TRPRBAR(1:NTX,1))
