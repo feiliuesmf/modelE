@@ -1308,7 +1308,7 @@ c****
      *     ,top_index_ij,top_dev_ij
       use veg_com, only: afb
       use veg_drv, only : veg_set_cell
-      use vegetation, only: alai  !nyk
+
 
       implicit none
       integer i0,j0
@@ -1372,7 +1372,7 @@ c****
           ws(k,ibv)=thets(k,ibv)*dz(k)
         end do
       end do
-      ws(0,2)=.0001d0*alai
+!veg      ws(0,2)=.0001d0*alai
 !!!      ws(0,2)=can_w_capacity(i0,j0)*alai
       wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
 c****
