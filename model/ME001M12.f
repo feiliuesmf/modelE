@@ -26,7 +26,7 @@ C**** f90 changes
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
      *     cq=>cqgs,ipbl,bldata
       USE DAGCOM, only : aj,kacc,aij,aijg,tsfrez,tdiurn,keynr,kdiag
-      USE DYNAMICS, only : DYNAM,FILTER,CALC_AMPK
+      USE DYNAMICS, only : FILTER,CALC_AMPK
 
       IMPLICIT REAL*8 (A-H,O-Z)
 

@@ -5,8 +5,13 @@
 !@ver  1.0
 !@cont DYNAM,ADVECM,ADVECV,AFLUX,PGF,SHAP1D,AVRX,FILTER,FLTRUV,CALC_AMPK
 
-      USE E001M12_COM, only : im,jm,lm
+      USE E001M12_COM, only : im,jm,lm,imh,sig,sige,dsig,psf,ptop,ls1,u
+     *     ,v,t,q,p,wm,ptrunc,mfiltr,zatmo,fim,mrch,fland,flice,odata
+     *     ,gdata,modd5k 
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+      USE SOMTQ_COM
+      USE PBLCOM, only : tsavg
+
       USE GEOM
       IMPLICIT NONE
 
@@ -39,194 +44,12 @@ c      REAL*8, SAVE,DIMENSION(IM,JM)    :: DPDX,DPDY
 
       CONTAINS
 
-      SUBROUTINE DYNAM
-C****
-C**** INTEGRATE DYNAMIC TERMS
-C****
-      USE E001M12_COM
-      USE SOMTQ_COM
-c      USE CLOUDS, only : PTOLD,WM
-c      USE CLOUDS, only : WM
-      USE DAGCOM, only : aij
-c      IMPLICIT REAL*8 (A-H,O-Z)
-      IMPLICIT NONE
-      REAL*8 UT,VT,TT,TZT,WMT,PRAT
-      REAL*8 UX,VX
-      COMMON/WORK6/UT(IM,JM,LM),VT(IM,JM,LM),
-     *   TT(IM,JM,LM),TZT(IM,JM,LM),WMT(IM,JM,LM),PRAT(IM,JM)
-      COMMON/WORK2/UX(IM,JM,LM),VX(IM,JM,LM)
-      REAL*8 PA(IM,JM),PB(IM,JM),PC(IM,JM),FPEU(IM,JM),FPEV(IM,JM),
-     *          FWVU(IM,JM),FWVV(IM,JM)
-      
-      REAL*8 PIT,SD,PU,PV,PHI
-      COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
-      COMMON/WORK3/PHI(IM,JM,LM)
-
-      REAL*8 DTFS,DTLF,PP,UU,VV
-      INTEGER J,I,L,IP1,IM1,NS,NDYNO
-
-      NDYNO=MOD(NDYN,2)
-      DTFS=DT*2./3.
-      DTLF=2.*DT
-      DO J=1,JM
-         DO I=1,IM
-            PTOLD(I,J)=P(I,J)
-         ENDDO
-      ENDDO
-      DO L=1,LM
-         DO J=1,JM
-            DO I=1,IM
-               UX(I,J,L)=U(I,J,L)
-               UT(I,J,L)=U(I,J,L)
-               VX(I,J,L)=V(I,J,L)
-               VT(I,J,L)=V(I,J,L)
-               WMT(I,J,L)=WM(I,J,L)
-            ENDDO
-         ENDDO
-      ENDDO
-      DO 311 J=1,JM
-      DO 311 I=1,IM
-      PA(I,J)=P(I,J)
-      PB(I,J)=P(I,J)
-  311 PC(I,J)=P(I,J)
-C**** INITIAL FORWARD STEP, QX = Q + .667*DT*F(Q)
-      NS=0
-      MRCH=0
-C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
-      CALL AFLUX (U,V,P)
-      CALL ADVECM (P,PB,DTFS)
-      CALL ADVECV (P,UX,VX,PB,U,V,P,DTFS)
-      CALL PGF (UX,VX,PB,U,V,T,TZ,P,DTFS)
-      CALL FLTRUV(UX,VX)
-      IF (NDYNO.EQ.1) GO TO 320
-C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
-      MRCH=-1
-C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
-      CALL AFLUX (UX,VX,PB)
-      CALL ADVECM (P,PA,DT)
-      CALL ADVECV (P,UT,VT,PA,UX,VX,PB,DT)
-      CALL PGF (UT,VT,PA,UX,VX,T,TZ,PB,DT)
-      CALL FLTRUV(UT,VT)
-      GO TO 360
-C**** INITIAL BACKWARD STEP IS EVEN, Q = Q + DT*F(QX)
-  320 NS=1
-         MODD5K=MOD(NSTEP+NS-NDYN+NDA5K,NDA5K)
-      MRCH=1
-C     CALL DYNAM (U,V,T,P,Q,UX,VX,TX,PX,QT,DT)
-CD       DIAGA SHOULD BE CALLED HERE BUT THEN ARRAYS MUST BE CHANGED
-C**** ODD LEAP FROG STEP, QT = QT + 2*DT*F(Q)
-  340 MRCH=-2
-C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
-      CALL AFLUX (U,V,P)
-      CALL ADVECM (PA,PB,DTLF)
-      CALL ADVECV (PA,UT,VT,PB,U,V,P,DTLF)
-      CALL PGF (UT,VT,PB,U,V,T,TZ,P,DTLF)
-      CALL FLTRUV(UT,VT)
-C**** LOAD PB TO PA
-      DO 341 J=1,JM
-      DO 341 I=1,IM
-  341 PA(I,J)=PB(I,J)
-C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
-  360 NS=NS+2
-         MODD5K=MOD(NSTEP+NS-NDYN+NDA5K,NDA5K)
-      MRCH=2
-C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
-      CALL AFLUX (UT,VT,PA)
-      CALL ADVECM (PC,P,DTLF)
-      CALL ADVECV (PC,U,V,P,UT,VT,PA,DTLF)
-C     DO 352 L=1,LM
-      DO 352 J=1,JM
-      DO 352 I=1,IM
-      FPEU(I,J)=0.
-      FPEV(I,J)=0.
-      FWVU(I,J)=0.
-      FWVV(I,J)=0.
-      DO 352 L=1,LM
-      TT(I,J,L)=T(I,J,L)
-  352 TZT(I,J,L)=TZ(I,J,L)
-      CALL AADVT (PC,P,T,TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
-     *            DXYP,DSIG,PSF-PTOP,LS1,DTLF,.FALSE.,FPEU,FPEV)
-      CALL AADVT (PC,P,Q,QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
-     *            DXYP,DSIG,PSF-PTOP,LS1,DTLF,.TRUE.,FWVU,FWVV)
-      DO 354 J=1,JM
-      DO 354 I=1,IM
-      PC(I,J)=0.5*(P(I,J)+PC(I,J))
-      AIJ(I,J,88) = AIJ(I,J,88)+FPEU(I,J)
-      AIJ(I,J,89) = AIJ(I,J,89)+FPEV(I,J)
-      AIJ(I,J,92) = AIJ(I,J,92)+FWVU(I,J)
-      AIJ(I,J,93) = AIJ(I,J,93)+FWVV(I,J)
-      DO 354 L=1,LM
-      TT(I,J,L)=0.5*(T(I,J,L)+TT(I,J,L))
-  354 TZT(I,J,L)=0.5*(TZ(I,J,L)+TZT(I,J,L))
-      DO 363 L=1,LM
-      DO 361 J=2,JM
-      DO 361 I=1,IM
-      AIJ(I,J,91)=AIJ(I,J,91)+PV(I,J,L)*DTLF
-  361 CONTINUE
-      DO 362 I=1,IM
-      AIJ(I,1,90)=AIJ(I,1,90)+PU(I,1,L)*DTLF/3.
-      AIJ(I,JM,90)=AIJ(I,JM,90)+PU(I,JM,L)*DTLF/3.
-      DO 362 J=2,JM-1
-      AIJ(I,J,90)=AIJ(I,J,90)+PU(I,J,L)*DTLF
-  362 CONTINUE
-  363 CONTINUE
-      CALL PGF (U,V,P,UT,VT,TT,TZT,PC,DTLF)
-      DO 366 L=1,LM
-      AIJ(I,1,94)=AIJ(I,1,94)+.5*PHI(1,1,L)+U(I,1,L)*DYP(1)*DTLF
-      AIJ(I,JM,94)=AIJ(I,JM,94)+.5*PHI(1,JM,L)+U(I,JM,L)*DYP(JM)*DTLF
-      I=IM
-      DO 366 IP1=1,IM
-      DO 366 J=2,JM-1
-      PP=.5*(PHI(I,J,L)+PHI(IP1,J,L))
-      UU=.5*(U(I,J,L)+U(I,J+1,L))
-      AIJ(I,J,94)=AIJ(I,J,94)+PP*UU*DYP(J)*DTLF
-      I=IP1
-  366 CONTINUE
-      DO 367 L=1,LM
-      DO 367 J=2,JM
-      IM1=IM
-      DO 367 I=1,IM
-      PP=.5*(PHI(I,J-1,L)+PHI(I,J,L))
-      VV=.5*(V(I,J,L)+V(IM1,J,L))
-      AIJ(I,J,95)=AIJ(I,J,95)+PP*VV*DXV(J)*DTLF
-      IM1=I
-  367 CONTINUE
-      CALL FLTRUV(U,V)
-C**** LOAD P TO PC
-      DO 371 J=1,JM
-      DO 371 I=1,IM
-  371 PC(I,J)=P(I,J)
-         IF (MOD(NSTEP+NS-NDYN+NDAA,NDAA).LT.MRCH) THEN
-           CALL DIAGA (UT,VT,TT,PB,Q)
-           CALL DIAGB (UT,VT,TT,PB,Q,WMT)
-         ENDIF
-      IF (NS.LT.NDYN) GO TO 340
-C**** Scale WM mixing ratios to conserve liquid water
-      DO J=1,JM
-        DO I=1,IM
-          PRAT(I,J)=PTOLD(I,J)/P(I,J)
-        END DO
-      END DO
-      DO L=1,LS1-1
-        DO J=1,JM
-          DO I=1,IM
-           WM(I,J,L)=WM(I,J,L)*PRAT(I,J)
-          END DO
-        END DO
-      END DO
-      RETURN
-      END SUBROUTINE DYNAM
-
       SUBROUTINE AFLUX (U,V,PA)
 C****
 C**** THIS SUBROUTINE CALCULATES THE HORIZONTAL AIR MASS FLUXES
 C**** AND VERTICAL AIR MASS FLUXES AS DETERMINED BY U, V AND P.
 C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 C****
-      USE E001M12_COM
-     &     , only : im,jm,lm,psf,ptop,ls1,dsig,fim
-c      USE CLOUDS, only : SD_CLOUDS  ! tmp fix for CLOUDS module
-c      IMPLICIT REAL*8 (A-H,O-Z)
       IMPLICIT NONE
       REAL*8 U(IM,JM,LM),V(IM,JM,LM),P(IM,JM) ! p is just workspace
       REAL*8 PIT,SD,PU,PV,PHI,SPA
@@ -365,17 +188,13 @@ C****
 C**** THIS SUBROUTINE CALCULATES UPDATED COLUMN PRESSURES AS
 C**** DETERMINED BY DT1 AND THE CURRENT AIR MASS FLUXES.
 C****
-      USE E001M12_COM
-     &     , only : im,jm,lm,ptrunc,mrch,zatmo,fland,flice,odata,gdata,u
-     *     ,v,t,q
-c      IMPLICIT REAL*8 (A-H,O-Z)
       IMPLICIT NONE
       REAL*8 P(IM,JM)
       REAL*8 PIT,SD,FD
       COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1)
       COMMON/WORK4/FD(IM,JM)
       REAL*8 PA(IM,JM)
-      INTEGER I,J,L,K
+      INTEGER I,J,L,K      !@var I,J,L,K  loop variables
       REAL*8 DT1
 
 C**** COMPUTE PA, THE NEW SURFACE PRESSURE
@@ -416,9 +235,6 @@ C****
 C**** THIS SUBROUTINE ADVECTS MOMENTUM (INCLUDING THE CORIOLIS FORCE)
 C**** AS DETERMINED BY DT1 AND THE CURRENT AIR MASS FLUXES
 C****
-      USE E001M12_COM
-     &     , only : im,jm,lm,mrch,modd5k,psf,ptop,ls1,dsig
-c      IMPLICIT REAL*8 (A-H,O-Z)
       IMPLICIT NONE
       REAL*8 U(IM,JM,LM),V(IM,JM,LM),P(IM,JM)
       REAL*8 PIT,SD,PU,PV,PHI,SPA
@@ -432,7 +248,7 @@ c      IMPLICIT REAL*8 (A-H,O-Z)
 
       INTEGER IFIRST
       DATA IFIRST/1/
-      INTEGER I,J,IJL2,IP1,IM1,L,K
+      INTEGER I,J,IP1,IM1,L,K  !@var I,J,IP1,IM1,L,K  loop variables
       REAL*8 VMASS,RVMASS,ALPH,PDT4,SDU,PSFMPT,DT1,DT2,DT4,DT8,DT12,DT24
      *     ,FLUX,FLUXU,FLUXV
 C****
@@ -440,7 +256,7 @@ C****
       IF(IFIRST.NE.1) GO TO 50
       IFIRST=0
 c      JMM2=JM-2
-      IJL2=IM*JM*LM*2
+c      IJL2=IM*JM*LM*2
       DO 10 J=2,JM
    10 SMASS(J)=(PSF-PTOP)*DXYV(J)
       PSFMPT=PSF-PTOP
@@ -469,8 +285,8 @@ C****
       DO 150 I=1,IM
       UT(I,J,L)=UT(I,J,L)*VMASS
   150 VT(I,J,L)=VT(I,J,L)*VMASS
-      DO 160 I=1,IJL2
-  160 DUT(I,1,1)=0.
+      DUT=0.
+      DVT=0.
 C****
 C**** BEGINNING OF LAYER LOOP
 C****
@@ -604,11 +420,6 @@ C****
 C**** THIS SUBROUTINE ADDS TO MOMENTUM THE TENDENCIES DETERMINED BY
 C**** THE PRESSURE GRADIENT FORCE
 C****
-      USE E001M12_COM
-     &     , only : im,jm,lm,sige,psf,ptop,ls1,zatmo,dsig,sig,
-     &              mrch,modd5k
-c      USE CLOUDS, only : GZ
-c      IMPLICIT REAL*8 (A-H,O-Z)
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LM) :: U,V,T
       REAL*8, DIMENSION(IM,JM) :: P
@@ -635,7 +446,7 @@ c      IMPLICIT REAL*8 (A-H,O-Z)
       REAL*8 PIJ,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,X
       REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDUX,RFDU,PHIDN
       REAL*8 EXPBYK
-      INTEGER I,J,L,IM1,IP1,IMAX
+      INTEGER I,J,L,IM1,IP1,IMAX  !@var I,J,IP1,IM1,L,IMAX  loop variables
 C****
 c      SHA=RGAS/KAPA
       KAPAP1=KAPA+1.
@@ -795,8 +606,6 @@ C**** THIS SUBROUTINE SMOOTHES THE ZONAL MASS FLUX AND GEOPOTENTIAL
 C**** GRADIENTS NEAR THE POLES TO HELP AVOID COMPUTATIONAL INSTABILITY.
 C**** THIS VERSION OF AVRX DOES SO BY TRUNCATING THE FOURIER SERIES.
 C****
-      USE E001M12_COM
-c      IMPLICIT REAL*8 (A-H,O-Z)
       IMPLICIT NONE
       REAL*8 X(IM,JM),SM(IMH,JM),DRAT(JM)
       REAL*8 NMIN(JM)
@@ -845,11 +654,6 @@ C**** MFILTR=1  SMOOTH P USING SEA LEVEL PRESSURE FILTER
 C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
 C****        3  SMOOTH P AND T
 C****
-      USE E001M12_COM
-      USE SOMTQ_COM
-c      USE CLOUDS, only : WM
-      USE PBLCOM, only : tsavg
-c      IMPLICIT REAL*8 (A-H,O-Z)
       IMPLICIT NONE
       REAL*8 X,XS,Y
       COMMON/WORK2/X(IM,JM),XS(IM),Y(IM,JM)
@@ -857,7 +661,7 @@ c      IMPLICIT REAL*8 (A-H,O-Z)
 
       REAL*8 POLD(IM,JM),PRAT(IM,JM)
       REAL*8 BBYG,GBYRB,PSUMN,PDIF,AKAP
-      INTEGER I,J,L
+      INTEGER I,J,L  !@var I,J,L  loop variables
 
       IF (MOD(MFILTR,2).NE.1) GO TO 200
 C****
@@ -951,14 +755,12 @@ C**** VELOCITY FIELDS (U,V) IN BOTH DIMENSIONS WITH A 8TH ORDER SHAPIRO
 C**** FILTER. THE EFFECT OF THE FILTER IS THAT OF DISSIPATION AT
 C**** THE SMALLEST SCALES.
 C**********************************************************************
-c      USE E001M12_COM
-c     &     , only : im,jm,lm
-c      IMPLICIT REAL*8 (A-H,O-Z)
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LM) :: U,V
       REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM)
       LOGICAL*4 QFILY,QFILX,QFIL2D
-      INTEGER IFIRST,I,J,L,N,NSHAP,ISIGN
+      INTEGER IFIRST,NSHAP,ISIGN
+      INTEGER I,J,L,N  !@var I,J,L,N  loop variables
       REAL*8 X4TON,X1,XI,XIM1
       REAL*8 Y4TO8,YJ,YJM1
  
@@ -1081,11 +883,9 @@ C****
 C**** THIS SUBROUTINE SMOOTHES THE ARRAY X IN THE ZONAL DIRECTION
 C**** USING AN N-TH ORDER SHAPIRO FILTER.  N MUST BE EVEN.
 C****
-c      USE E001M12_COM
-c      IMPLICIT REAL*8 (A-H,O-Z)
       IMPLICIT NONE
       REAL*8 X,XS,RE4TON,XS1,XSIM1,XSI
-      INTEGER I,J,N,NORDER
+      INTEGER I,J,N,NORDER    !@var I,J,N  loop variables
 
       COMMON/WORK2/X(IM,JM),XS(IM)
       RE4TON=1./4.**NORDER
@@ -1109,7 +909,6 @@ c      IMPLICIT REAL*8 (A-H,O-Z)
 !@sum  CALC_AMPK calculate air mass and pressure functions
 !@auth Jean Lerner/Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,lm,sig,sige,p,ptop,ls1,psf
       IMPLICIT NONE
       INTEGER :: I,J,IMAX,L  !@var I,J,IMAX,L  loop variables
       INTEGER, INTENT(IN) :: LMAX !@var LMAX max. level for update
@@ -1169,3 +968,184 @@ c         BYAM(L,2:IM,JM)=BYAM(L,1,JM)
       END SUBROUTINE CALC_AMPK
 
       END MODULE DYNAMICS
+
+      SUBROUTINE DYNAM
+C****
+C**** INTEGRATE DYNAMIC TERMS
+C****
+      USE E001M12_COM
+      USE GEOM
+      USE SOMTQ_COM
+      USE DYNAMICS, only : PTOLD,ADVECM,ADVECV,AFLUX,PGF,FLTRUV
+
+      USE DAGCOM, only : aij
+
+      IMPLICIT NONE
+      REAL*8 UT,VT,TT,TZT,WMT,PRAT
+      REAL*8 UX,VX
+      COMMON/WORK6/UT(IM,JM,LM),VT(IM,JM,LM),
+     *   TT(IM,JM,LM),TZT(IM,JM,LM),WMT(IM,JM,LM),PRAT(IM,JM)
+      COMMON/WORK2/UX(IM,JM,LM),VX(IM,JM,LM)
+      REAL*8 PA(IM,JM),PB(IM,JM),PC(IM,JM),FPEU(IM,JM),FPEV(IM,JM),
+     *          FWVU(IM,JM),FWVV(IM,JM)
+      
+      REAL*8 PIT,SD,PU,PV,PHI
+      COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
+      COMMON/WORK3/PHI(IM,JM,LM)
+
+      REAL*8 DTFS,DTLF,PP,UU,VV
+      INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
+      INTEGER NS,NDYNO
+
+      NDYNO=MOD(NDYN,2)
+      DTFS=DT*2./3.
+      DTLF=2.*DT
+      DO J=1,JM
+         DO I=1,IM
+            PTOLD(I,J)=P(I,J)
+         ENDDO
+      ENDDO
+      DO L=1,LM
+         DO J=1,JM
+            DO I=1,IM
+               UX(I,J,L)=U(I,J,L)
+               UT(I,J,L)=U(I,J,L)
+               VX(I,J,L)=V(I,J,L)
+               VT(I,J,L)=V(I,J,L)
+               WMT(I,J,L)=WM(I,J,L)
+            ENDDO
+         ENDDO
+      ENDDO
+      DO 311 J=1,JM
+      DO 311 I=1,IM
+      PA(I,J)=P(I,J)
+      PB(I,J)=P(I,J)
+  311 PC(I,J)=P(I,J)
+C**** INITIAL FORWARD STEP, QX = Q + .667*DT*F(Q)
+      NS=0
+      MRCH=0
+C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
+      CALL AFLUX (U,V,P)
+      CALL ADVECM (P,PB,DTFS)
+      CALL ADVECV (P,UX,VX,PB,U,V,P,DTFS)
+      CALL PGF (UX,VX,PB,U,V,T,TZ,P,DTFS)
+      CALL FLTRUV(UX,VX)
+      IF (NDYNO.EQ.1) GO TO 320
+C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
+      MRCH=-1
+C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
+      CALL AFLUX (UX,VX,PB)
+      CALL ADVECM (P,PA,DT)
+      CALL ADVECV (P,UT,VT,PA,UX,VX,PB,DT)
+      CALL PGF (UT,VT,PA,UX,VX,T,TZ,PB,DT)
+      CALL FLTRUV(UT,VT)
+      GO TO 360
+C**** INITIAL BACKWARD STEP IS EVEN, Q = Q + DT*F(QX)
+  320 NS=1
+         MODD5K=MOD(NSTEP+NS-NDYN+NDA5K,NDA5K)
+      MRCH=1
+C     CALL DYNAM (U,V,T,P,Q,UX,VX,TX,PX,QT,DT)
+CD       DIAGA SHOULD BE CALLED HERE BUT THEN ARRAYS MUST BE CHANGED
+C**** ODD LEAP FROG STEP, QT = QT + 2*DT*F(Q)
+  340 MRCH=-2
+C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
+      CALL AFLUX (U,V,P)
+      CALL ADVECM (PA,PB,DTLF)
+      CALL ADVECV (PA,UT,VT,PB,U,V,P,DTLF)
+      CALL PGF (UT,VT,PB,U,V,T,TZ,P,DTLF)
+      CALL FLTRUV(UT,VT)
+C**** LOAD PB TO PA
+      DO 341 J=1,JM
+      DO 341 I=1,IM
+  341 PA(I,J)=PB(I,J)
+C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
+  360 NS=NS+2
+         MODD5K=MOD(NSTEP+NS-NDYN+NDA5K,NDA5K)
+      MRCH=2
+C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
+      CALL AFLUX (UT,VT,PA)
+      CALL ADVECM (PC,P,DTLF)
+      CALL ADVECV (PC,U,V,P,UT,VT,PA,DTLF)
+C     DO 352 L=1,LM
+      DO 352 J=1,JM
+      DO 352 I=1,IM
+      FPEU(I,J)=0.
+      FPEV(I,J)=0.
+      FWVU(I,J)=0.
+      FWVV(I,J)=0.
+      DO 352 L=1,LM
+      TT(I,J,L)=T(I,J,L)
+  352 TZT(I,J,L)=TZ(I,J,L)
+      CALL AADVT (PC,P,T,TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
+     *            DXYP,DSIG,PSF-PTOP,LS1,DTLF,.FALSE.,FPEU,FPEV)
+      CALL AADVT (PC,P,Q,QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
+     *            DXYP,DSIG,PSF-PTOP,LS1,DTLF,.TRUE.,FWVU,FWVV)
+      DO 354 J=1,JM
+      DO 354 I=1,IM
+      PC(I,J)=0.5*(P(I,J)+PC(I,J))
+      AIJ(I,J,88) = AIJ(I,J,88)+FPEU(I,J)
+      AIJ(I,J,89) = AIJ(I,J,89)+FPEV(I,J)
+      AIJ(I,J,92) = AIJ(I,J,92)+FWVU(I,J)
+      AIJ(I,J,93) = AIJ(I,J,93)+FWVV(I,J)
+      DO 354 L=1,LM
+      TT(I,J,L)=0.5*(T(I,J,L)+TT(I,J,L))
+  354 TZT(I,J,L)=0.5*(TZ(I,J,L)+TZT(I,J,L))
+      DO 363 L=1,LM
+      DO 361 J=2,JM
+      DO 361 I=1,IM
+      AIJ(I,J,91)=AIJ(I,J,91)+PV(I,J,L)*DTLF
+  361 CONTINUE
+      DO 362 I=1,IM
+      AIJ(I,1,90)=AIJ(I,1,90)+PU(I,1,L)*DTLF/3.
+      AIJ(I,JM,90)=AIJ(I,JM,90)+PU(I,JM,L)*DTLF/3.
+      DO 362 J=2,JM-1
+      AIJ(I,J,90)=AIJ(I,J,90)+PU(I,J,L)*DTLF
+  362 CONTINUE
+  363 CONTINUE
+      CALL PGF (U,V,P,UT,VT,TT,TZT,PC,DTLF)
+      DO 366 L=1,LM
+      AIJ(I,1,94)=AIJ(I,1,94)+.5*PHI(1,1,L)+U(I,1,L)*DYP(1)*DTLF
+      AIJ(I,JM,94)=AIJ(I,JM,94)+.5*PHI(1,JM,L)+U(I,JM,L)*DYP(JM)*DTLF
+      I=IM
+      DO 366 IP1=1,IM
+      DO 366 J=2,JM-1
+      PP=.5*(PHI(I,J,L)+PHI(IP1,J,L))
+      UU=.5*(U(I,J,L)+U(I,J+1,L))
+      AIJ(I,J,94)=AIJ(I,J,94)+PP*UU*DYP(J)*DTLF
+      I=IP1
+  366 CONTINUE
+      DO 367 L=1,LM
+      DO 367 J=2,JM
+      IM1=IM
+      DO 367 I=1,IM
+      PP=.5*(PHI(I,J-1,L)+PHI(I,J,L))
+      VV=.5*(V(I,J,L)+V(IM1,J,L))
+      AIJ(I,J,95)=AIJ(I,J,95)+PP*VV*DXV(J)*DTLF
+      IM1=I
+  367 CONTINUE
+      CALL FLTRUV(U,V)
+C**** LOAD P TO PC
+      DO 371 J=1,JM
+      DO 371 I=1,IM
+  371 PC(I,J)=P(I,J)
+         IF (MOD(NSTEP+NS-NDYN+NDAA,NDAA).LT.MRCH) THEN
+           CALL DIAGA (UT,VT,TT,PB,Q)
+           CALL DIAGB (UT,VT,TT,PB,Q,WMT)
+         ENDIF
+      IF (NS.LT.NDYN) GO TO 340
+C**** Scale WM mixing ratios to conserve liquid water
+      DO J=1,JM
+        DO I=1,IM
+          PRAT(I,J)=PTOLD(I,J)/P(I,J)
+        END DO
+      END DO
+      DO L=1,LS1-1
+        DO J=1,JM
+          DO I=1,IM
+           WM(I,J,L)=WM(I,J,L)*PRAT(I,J)
+          END DO
+        END DO
+      END DO
+      RETURN
+      END SUBROUTINE DYNAM
+
