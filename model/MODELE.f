@@ -1200,7 +1200,7 @@ C****
 C****
       if(istart.gt.0) CALL RINIT (IRAND)
       CALL FFT0 (IM)
-      if(istart.gt.0) CALL init_CLD
+      CALL init_CLD
       CALL init_DIAG(ISTART)
       CALL UPDTYPE
       if(istart.gt.0) CALL init_QUS(im,jm,lm)

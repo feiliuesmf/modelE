@@ -5103,6 +5103,7 @@ C****
       INTEGER N,ITAU,IPRESS,J,IU_ISCCP
 
 C**** calculate area weightings 
+      area(:)=0.
       do j=1,jm
         n=isccp_reg(j)
         if (n.gt.0) area(n)=area(n)+dyp(j)
@@ -5113,7 +5114,7 @@ C**** POUT so that netcdf output can also be used
       if (qdiag) call openunit(trim(acc_period)//'.isccp'//
      *     XLABEL(1:LRUNID),iu_isccp,.true.,.false.)
       do n=nisccp,1,-1   ! north to south
-        title(n)(65:80) = acc_period
+        title(n)(61:72) = acc_period
         write(6,100) title(n)
         AX=100.*AISCCP(:,:,n)/(fim*idacc(ia_src)*area(n))
         do ipress=1,npres
@@ -5125,7 +5126,7 @@ C**** POUT so that netcdf output can also be used
       if (qdiag) call closeunit(iu_isccp)
       RETURN
 
- 100  FORMAT (1X,A80/1X,80('-')/3X,
+ 100  FORMAT (1X,A80/1X,72('-')/3X,
      *     'PRESS\TAU    0.  1.3  3.6  9.4  23   60   > ')
  101  FORMAT (5X,I3,7X,6F5.1)
 
