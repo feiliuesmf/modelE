@@ -94,7 +94,7 @@ c
       real*8, dimension(ntm) :: tevaplim,trgrnd
       real*8  TEV,dTEVdTQS,tevap,dTQS,TDP,TDT1
 #ifdef TRACERS_SPECIAL_O18
-     *     ,FRACVL,FRACVS,FRACLK
+     *     ,FRACVL,FRACVS,FRACLK,frac
 #endif
 #endif
 #endif
@@ -533,7 +533,12 @@ C**** tracer flux is set by source tracer concentration
               TEVAP=EVAP*trgrnd(nx)/QG_SAT
             ELSE                ! DEW (fractionates)
 #ifdef TRACERS_SPECIAL_O18
-              TEVAP=EVAP*trs(nx)/(QSRF*FRACVL(TG1,trname(n))+teeny)
+              IF (TG1.gt.0) THEN
+                frac=FRACVL(TG1,trname(n))
+              ELSE
+                frac=FRACVS(TG1,trname(n))
+              END IF
+              TEVAP=EVAP*trs(nx)/(QSRF*frac+teeny)
 #else
               TEVAP=EVAP*trs(nx)/(QSRF+teeny)
 #endif

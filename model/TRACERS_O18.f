@@ -5,21 +5,28 @@
 
       FUNCTION FRACVL(TEMP,trname)
 !@sum FRACVL Calculate vapor-->liquid equilibrium fractionation factor
-!@+          by a quadratic fit to Majoube'71
 !@auth Gavin Schmidt
+      USE CONSTANT, only : tf
       IMPLICIT NONE
 !@var TEMP  temperature (deg C)
       REAL*8, INTENT(IN) :: TEMP
       CHARACTER, INTENT(IN) :: trname*8
       INTEGER, PARAMETER :: NTSPM=4
+c**** quadratic fit to Majoube (1971)
+c      REAL*8, PARAMETER ::
+c     *     A(NTSPM) = (/  0d0, -3.75d-7, -6.375d-6, -6.875d-6  /),
+c     *     B(NTSPM) = (/  0d0,  1.025d-4, 1.2475d-3, 1.7d-3    /),
+c     *     C(NTSPM) = (/  1d0,  0.9884d0, 0.9001d0 , 0.86975d0 /)
+c**** exponentials 
       REAL*8, PARAMETER ::
-     *     A(NTSPM) = (/  0d0, -3.75d-7, -6.375d-6, -6.875d-6  /),
-     *     B(NTSPM) = (/  0d0,  1.025d-4, 1.2475d-3, 1.7d-3    /),
-     *     C(NTSPM) = (/  1d0,  0.9884d0, 0.9001d0 , 0.86975d0 /)
+     *     A(NTSPM) = (/  0d0,  1137d0   ,  24844d0  , 46480d0  /),
+     *     B(NTSPM) = (/  0d0, -0.4156d0 , -76.248d0 ,-103.87d0 /),
+     *     C(NTSPM) = (/  0d0, -2.0667d-3,  52.612d-3, 0d0      /)
+
 !@var ITR   species number of tracer
 C****       1: Fresh Water 2: o18 3: Deu  4: Tritium
       INTEGER ITR
-      REAL*8 FRACVL
+      REAL*8 FRACVL,TK
 C****
       select case (trname)
       case ('Water')
@@ -34,27 +41,38 @@ C****
         write(6,*) "Tracer name ",trname," not defined in FRACVL"
         call stop_model('Tracer name not defined in FRACVL',255)
       end select
-      FRACVL=C(ITR) + TEMP*(B(ITR) + TEMP*A(ITR))
+C**** Quadratic fit
+c      FRACVL=C(ITR) + TEMP*(B(ITR) + TEMP*A(ITR))
+C**** Exponential
+      TK=TEMP+TF
+      FRACVL=EXP(-A(ITR)/TK**2 - B(ITR)/TK - C(ITR))
 C****
       RETURN
       END FUNCTION FRACVL
 
       FUNCTION FRACVS(TEMP,trname)
-!@sum FRACVS Calculate vapour --> solid (ice) equilibrium fractionation
-!@+          factor
+!@sum FRACVS Calculate vapour --> solid (ice) equil. fractionation fact.
 !@auth Gavin Schmidt
+      USE CONSTANT, only : tf
       IMPLICIT NONE
 !@var TEMP  temperature (deg C)
       REAL*8, INTENT(IN) :: TEMP
       CHARACTER, INTENT(IN) :: trname*8
       INTEGER, PARAMETER :: NTSPM=4
+C**** linear fit
+c      REAL*8, PARAMETER ::
+c     *     A(NTSPM) = (/  0d0,  1.36d-4,   1.46d-3, 0d0/),
+c     *     B(NTSPM) = (/  1d0,  0.9850d0, 0.8834d0, 0.7845d0/)
+C**** exponential
       REAL*8, PARAMETER ::
-     *     A(NTSPM) = (/  0d0,  1.36d-4,   1.46d-3, 0d0/),
-     *     B(NTSPM) = (/  1d0,  0.9850d0, 0.8834d0, 1d0/)
+     *     A(NTSPM) = (/  0d0,  0d0       , 16288d0 , 46480d0 /),
+     *     B(NTSPM) = (/  0d0,  11.839d0  , 0d0     ,-103.87d0/),
+     *     C(NTSPM) = (/  0d0, -0.028244d0,-0.0934d0, 0d0     /)
+
 !@var ITR   species number of tracer
 C****       1: Fresh Water 2: o18 3: Deu  4: Tritium
       INTEGER ITR
-      REAL*8 FRACVS
+      REAL*8 FRACVS,TK
 C****
       select case (trname)
       case ('Water')
@@ -69,7 +87,11 @@ C****
         write(6,*) "Tracer name ",trname," not defined in FRACVS"
         call stop_model('Tracer name not defined in FRACVS',255)
       end select
-      FRACVS=B(ITR) + A(ITR)*TEMP
+C**** linear fit
+c      FRACVS=B(ITR) + A(ITR)*TEMP
+C**** Exponential
+      TK=TEMP+TF
+      FRACVS=EXP(-A(ITR)/TK**2 - B(ITR)/TK -C(ITR))
 C****
       RETURN
       END FUNCTION FRACVS
@@ -94,7 +116,7 @@ C****
         ITR=2
       case ('HDO')
         ITR=3
-      case ('HTO')   ! tritium data not yet confirmed
+      case ('HTO')
         ITR=4
       case default
         FRACLS=1.    ! no fractionation

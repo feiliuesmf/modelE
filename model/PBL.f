@@ -9,7 +9,7 @@
 !@cont t_eqn_sta,q_eqn_sta,uv_eqn_sta
 !@cont inits,tcheck,ucheck,check1,output,rtsafe
 
-      USE CONSTANT, only : grav,omega,pi,radian,bygrav,teeny
+      USE CONSTANT, only : grav,omega,pi,radian,bygrav,teeny,deltx,tf
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trname
 #endif
@@ -208,7 +208,7 @@ c  internals:
 #ifdef TRACERS_WATER
       real*8, intent(in), dimension(ntm) :: tr_evap_max
 #ifdef TRACERS_SPECIAL_O18
-      real*8 fk,fraclk,fracvl
+      real*8 fk,fraclk,fracvl,fracvs,ws1,tg1,frac
 #endif
 #endif
 #endif
@@ -228,8 +228,6 @@ c**** special threadprivate common block (compaq compiler stupidity)
       common/pbluvtq/u,v,t,q
 C$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
-
-      !print *,"PBL ::: ", evap_max,fr_sat
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
@@ -371,15 +369,21 @@ C**** Isotope tracers have different fractionations dependent on
 C**** type and direction of flux
         select case (itype)
         case (1)                ! ocean: kinetic fractionation
-          fk = fraclk(wsh,trname(ntix(itr)))
+          ws1 = sqrt(u(1)*u(1)+v(1)*v(1))
+          fk = fraclk(ws1,trname(ntix(itr)))
           trcnst = trcnst * fk
           trsf = trsf * fk
         case (2:4)              ! other types
 C**** tracers are now passive, so use 'upstream' concentration
           if (q(1)-qgrnd.gt.0.) then  ! dew
             trcnst = 0.
-            trsf = trsf*(q(1)-qgrnd)/(q(1)*fracvl(tgrnd
-     *           ,trname(ntix(itr))))
+            tg1 =tgrnd/(1.+qgrnd*deltx)-tf ! re-calculate ground T (C)
+            if (tg1.gt.0) then
+              frac=fracvl(tg1,trname(ntix(itr)))
+            else
+              frac=fracvs(tg1,trname(ntix(itr)))
+            end if
+            trsf=trsf*(q(1)-qgrnd)/(q(1)*frac)
           else
             trcnst = trcnst*(1.-q(1)/qgrnd)
             trsf = 0.

@@ -64,7 +64,6 @@
 
         AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
 C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
-
         CALL PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,RUN0,SRUN0,
 #ifdef TRACERS_WATER
      *       TRSIL,TRPRCP,TRUN0,
@@ -148,7 +147,7 @@ C****
      *     ,trlake
 #endif
       IMPLICIT NONE
-      INTEGER I,J
+      INTEGER I,J,N
       REAL*8 coriol,ustar,Tm,Sm,Si,Ti,dh,mflux,hflux,sflux,fluxlim
      *     ,mlsh   !,mfluxmax
 #ifdef TRACERS_WATER
@@ -169,7 +168,9 @@ C**** Set mixed layer conditions
             Trm(:)=GTRACER(:,1,I,J)
             Tri(:)=TRSI(:,LMI,I,J)/(XSI(LMI)*MSI(I,J)-SSI(LMI,I,J))
 #ifdef TRACERS_SPECIAL_O18
-            tralpha(:)=fracls(trname(:))
+            do n=1,ntm
+              tralpha(n)=fracls(trname(n))
+            end do
 #else
             tralpha(:)=1.
 #endif
@@ -210,6 +211,7 @@ C**** should we calculate ocean rho(Tm,Sm) here?
      *             Tri,Trm,trflux,tralpha,
 #endif
      *             mflux,hflux)
+
 C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
               IF (MWL(I,J).lt.0.4d0*RHOW*FLAKE(I,J)*DXYP(J)) THEN
                 FLUXLIM=-GML(I,J)/(DTSRC*FLAKE(I,J)*DXYP(J))

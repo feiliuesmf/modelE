@@ -1719,7 +1719,10 @@ C**** need seperate accounting for liquid/solid precip
         TRPRICE(N,L) = TRPRICE(N,L+1) - DTERTICE
         IF (LHX.EQ.LHS) TRPRICE(N,L) = TRPRICE(N,L) + DTPRT
 C**** Isotopic equilibration of the CLW and water vapour
-        CALL ISOEQUIL(NTIX(N),TL(L),QL(L),WMX(L),TM(L,N),TRWML(N,L),1d0)
+        IF (TL(L).gt.TF) THEN  ! only if above freezing
+          CALL ISOEQUIL(NTIX(N),TL(L),QL(L),WMX(L),TM(L,N),TRWML(N,L)
+     *         ,1d0)
+        END IF
 C**** Isotopic equilibration of the liquid Precip and water vapour
 C**** only if T> -20 deg ???
         PRLIQ = (PREBAR(L)-PREICE(L))*DTsrc*BYAM(L)*GRAV
