@@ -119,7 +119,7 @@ c****
      &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_vsm=>vsm !ia
 
       USE SOCPBL, only : dtsurf         ! zgs,     ! global
-     &     ,zs1,tgv,tkv,qg_sat,hemi,pole     ! rest local
+     &     ,zs1,tgv,tkv,qg_sat,qg_aver,hemi,pole     ! rest local
      &     ,us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl    ! ,edvisc=>kms
      &     ,khs,ug,vg,wg,wint   ! ,kq=>kqs ,ppbl
       use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
@@ -368,6 +368,7 @@ c**** loop over ground time steps
       qg_sat=qsat(tg,elhx,ps)  !  replacing with qs from prev step
       qg = qg_ij(i,j)
       ! if ( qg > 999.d0 ) qg = qg_sat
+      qg_aver = qg
       tgv=tg*(1.+qg*deltx)
       psurf=ps
       trhr0 = TRHR(0,I,J)

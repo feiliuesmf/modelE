@@ -19,6 +19,8 @@ c     input data:
 
 !$OMP  THREADPRIVATE (/pbl_loc/)
 
+
+
 #ifdef TRACERS_ON
 C**** Tracer input/output common block for PBL
 !@var trtop,trs tracer mass ratio in level 1/surface
@@ -60,7 +62,7 @@ C**** Tracer input/output common block for PBL
 !@auth Greg. Hartke/Ye Cheng
 !@ver  1.0
 
-C    input: ZS1,TGV,TKV,QG_SAT,HEMI,DTSURF,POLE,UOCEAN,VOCEAN
+C    input: ZS1,TGV,TKV,QG_SAT,qg_aver,HEMI,DTSURF,POLE,UOCEAN,VOCEAN
 C    output:US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
 C          ,UG,VG,WG,W2_1
 
@@ -76,7 +78,7 @@ C          ,UG,VG,WG,W2_1
      &     ,dpdxr0,dpdyr0
      &     ,advanc                      ! subroutine
      &     ,zgs,DTSURF                  ! global
-     &     ,ZS1,TGV,TKV,QG_SAT,HEMI,POLE    ! rest local
+     &     ,ZS1,TGV,TKV,QG_SAT,qg_aver,HEMI,POLE    ! rest local
      &     ,US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
      &     ,UG,VG,WG,mdf
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q,w2_1
@@ -106,7 +108,7 @@ C          ,UG,VG,WG,W2_1
 #endif
 c
       REAL*8 ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
-      REAL*8 ttop,qtop,tgrndv,qgrnd,utop,vtop,ufluxs,vfluxs
+      REAL*8 ttop,qtop,tgrndv,qgrnd,qgrnd_sat,utop,vtop,ufluxs,vfluxs
      *     ,tfluxs,qfluxs,psitop,psisrf
       INTEGER LDC,L,k
 
@@ -201,7 +203,8 @@ C        roughness lengths from Brutsaert for rough surfaces
       ttop=tkv
       qtop=q(i,j,1)
       tgrndv=tgv
-      qgrnd=qg_sat
+      qgrnd_sat=qg_sat
+      qgrnd=qg_aver
 
       utop=0. ; vtop=0. ;  ug=0. ; vg=0.
       ! pole and hemi are determined before pbl is called
@@ -249,7 +252,8 @@ C        roughness lengths from Brutsaert for rough surfaces
       mdf = ddm1(i,j)
 
       call advanc(
-     3     coriol,utop,vtop,ttop,qtop,tgrndv,qgrnd,evap_max,fr_sat,
+     3     coriol,utop,vtop,ttop,qtop,tgrndv,
+     &     qgrnd,qgrnd_sat,evap_max,fr_sat,
 #if defined(TRACERS_ON)
      *     trs,trtop,trsfac,trconstflx,ntx,ntix,
 #if defined(TRACERS_WATER)

@@ -56,7 +56,7 @@
 !@var WG     = magnitude of the geostrophic wind (m/s)
 !@var MDF    = downdraft mass flux (m/s)
 !@var WINT   = integrated surface wind speed over sgs wind distribution
-      real*8 :: zs1,tgv,tkv,qg_sat,hemi,dtsurf,w2_1,mdf,wint
+      real*8 :: zs1,tgv,tkv,qg_sat,qg_aver,hemi,dtsurf,w2_1,mdf,wint
       real*8 :: us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl,kms,khs,kqs,ppbl
      *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wg,XCDpbl=1d0
       logical :: pole
@@ -100,7 +100,7 @@ C***
 #endif
 !$OMP  THREADPRIVATE (/PBLTPC/)
 
-      COMMON /PBLPAR/ZS1,TGV,TKV,QG_SAT,HEMI,POLE
+      COMMON /PBLPAR/ZS1,TGV,TKV,QG_SAT,qg_aver,HEMI,POLE
       COMMON /PBLOUT/US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL,
      *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,WG,W2_1,MDF,WINT
 !$OMP  THREADPRIVATE (/PBLPAR/,/PBLOUT/)
@@ -119,7 +119,8 @@ CCC      real*8 :: bgrid
       CONTAINS
 
       subroutine advanc(
-     3     coriol,utop,vtop,ttop,qtop,tgrnd,qgrnd,evap_max,fr_sat,
+     3     coriol,utop,vtop,ttop,qtop,tgrnd,
+     &     qgrnd,qgrnd_sat,evap_max,fr_sat,
 #if defined(TRACERS_ON)
      *     trs,trtop,trsfac,trconstflx,ntx,ntix,
 #if defined(TRACERS_WATER)
@@ -199,7 +200,8 @@ c  internals:
 
       real*8, intent(in) :: coriol,utop,vtop,ttop,qtop,uocean,vocean
      *                      ,ts_guess
-      real*8, intent(in) :: tgrnd,qgrnd,evap_max,fr_sat,ztop,dtime
+      real*8, intent(in) :: tgrnd,qgrnd,qgrnd_sat,evap_max,fr_sat
+     &     ,ztop,dtime
       real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
       integer, intent(in) :: ilong,jlat,itype
       real*8, intent(in) :: psurf,trhr0
@@ -285,7 +287,7 @@ C**** end special threadprivate common block
         endif
 
         call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
-        call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
+        call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd_sat,
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
      3             km,kh,kq,dzh,itype,n)
 #ifdef TRACERS_ON
@@ -310,7 +312,7 @@ C**** end special threadprivate common block
 
         call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,wsh,tgrnd,ttop,dtime,n)
 
-        call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd,qtop,dtime,n
+        call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd_sat,qtop,dtime,n
      &       ,evap_max,fr_sat)
 
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
@@ -478,7 +480,7 @@ c Diagnostics printed at a selected point:
       if ((ilong.eq.iprint).and.(jlat.eq.jprint)) then
         call output(u,v,t,q,e,lscale,z,zhat,dzh,
      2              km,kh,kq,ke,gm,gh,cm,ch,cq,z0m,z0h,z0q,
-     3              ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
+     3              ustar,tstar,qstar,lmonin,tgrnd,qgrnd_sat,
      4              utop,vtop,ttop,qtop,
      5              dtime,bgrid,ilong,jlat,iter,itype,n)
       endif

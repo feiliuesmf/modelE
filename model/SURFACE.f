@@ -33,7 +33,7 @@
 #endif
 #endif
 C**** Interface to PBL
-      USE SOCPBL, only : zgs,ZS1,TGV,TKV,QG_SAT,HEMI,DTSURF,POLE
+      USE SOCPBL, only : zgs,ZS1,TGV,TKV,QG_SAT,QG_AVER,HEMI,DTSURF,POLE
      &     ,US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KHS,KQS !,PPBL ! ,KMS
      &     ,UG,VG,WG,WINT
 
@@ -455,6 +455,7 @@ C****
       TG=TG1+TF
       QG_SAT=QSAT(TG,ELHX,PS)
       IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG_SAT=0.98d0*QG_SAT
+      QG_AVER=QG_SAT
       TGV=TG*(1.+QG_SAT*deltx)
       psurf=PS   ! extra values to pass to PBL, possibly temporary
       trhr0 = TRHR(0,I,J)
