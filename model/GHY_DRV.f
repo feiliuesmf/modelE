@@ -98,7 +98,7 @@ c****
      *     ,Cint,Qfol
 !----------------------------------------------------------------------!
 #ifdef TRACERS_WATER
-     &     ,tr_wbare,tr_wvege,tr_wsn_ij,ntm
+     &     ,tr_wbare,tr_wvege,tr_wsn_ij
 #endif
 !#ifdef TRACERS_WATER
 !     *     ,trvege,trbare,trsnowbv

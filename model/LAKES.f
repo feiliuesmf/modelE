@@ -894,7 +894,7 @@ C****
 !@sum  diag_RIVER prints out the river outflow for various rivers
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : rhow,sday,teeny
+      USE CONSTANT, only : rhow,sday,teeny,undef
       USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
      *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
       USE GEOM, only : bydxyp
@@ -933,6 +933,8 @@ C**** convert kg/(source time step) to km^3/mon
      *         ,trim(units_tij(tij_rvr,n)),":",TRNAME(N)
           DO INM=1,NRVR,6
             DO I=1,6
+              IF (AIJ(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM),IJ_MRVR).gt.0)
+     *             THEN
               if (to_per_mil(n).gt.0) then
                 TRRVOUT(I,N)=1d3*(TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1
      *               +INM),TIJ_RVR,N)/(trw0(n)*AIJ(IRVRMTH(I-1+INM)
@@ -944,6 +946,9 @@ C**** convert kg/(source time step) to km^3/mon
      *               ,JRVRMTH(I-1+INM),IJ_MRVR)*BYDXYP(JRVRMTH(I-1+INM))
      *               +teeny)
               end if
+              ELSE
+                TRRVOUT(I,N)=undef
+              END IF
             END DO
             WRITE(6,901) (NAMERVR(I-1+INM),TRRVOUT(I,N),I=1,6)
           END DO

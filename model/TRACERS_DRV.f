@@ -470,7 +470,7 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH4 BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -478,7 +478,7 @@ C****
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH4 BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -853,7 +853,7 @@ C**** special unique to HTO
       case ('Ox')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Ox BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -861,7 +861,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Ox BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -871,7 +871,7 @@ C**** special unique to HTO
       case ('NOx')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF NOx BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -879,7 +879,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF NOx BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -929,7 +929,7 @@ C**** special unique to HTO
       case ('N2O5')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF N2O5 BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -937,7 +937,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF N2O5 BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -947,7 +947,7 @@ C**** special unique to HTO
       case ('HNO3')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HNO3 BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -955,7 +955,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HNO3 BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -965,7 +965,7 @@ C**** special unique to HTO
       case ('H2O2')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF H2O2 BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -973,7 +973,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF H2O2 BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -983,7 +983,7 @@ C**** special unique to HTO
        case ('CH3OOH')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH3OOH BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -991,7 +991,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH3OOH BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1001,7 +1001,7 @@ C**** special unique to HTO
        case ('HCHO')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HCHO BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1009,7 +1009,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HCHO BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1019,7 +1019,7 @@ C**** special unique to HTO
        case ('HO2NO2')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HO2NO2 BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1027,7 +1027,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HO2NO2 BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1037,7 +1037,7 @@ C**** special unique to HTO
        case ('CO')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CO BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1045,7 +1045,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CO BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1071,7 +1071,7 @@ C**** special unique to HTO
       case ('PAN')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF PAN BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1079,7 +1079,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF PAN BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1089,7 +1089,7 @@ C**** special unique to HTO
       case ('Isoprene')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Isoprene BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1097,7 +1097,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Isoprene BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1116,7 +1116,7 @@ C**** special unique to HTO
       case ('AlkylNit')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF AlkylNit BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1124,7 +1124,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF AlkylNit BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1134,7 +1134,7 @@ C**** special unique to HTO
       case ('Alkenes')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Alkenes BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1142,7 +1142,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Alkenes BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1176,7 +1176,7 @@ C**** special unique to HTO
       case ('Paraffin')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Paraffin BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
         jls_ltop(k) = LM
@@ -1184,7 +1184,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Paraffin BY STRATOSPHERIC OVERWRITE'
         jls_index(k) = n
         jls_ltop(k) = LM
