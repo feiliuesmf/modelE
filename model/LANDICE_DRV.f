@@ -21,7 +21,6 @@
      *     ,gtracer
 #ifdef TRACERS_OCEAN
      *     ,trgmelt
-      USE TRACER_COM, only : trglac
 #endif
 #endif
 #ifdef TRACERS_OCEAN
