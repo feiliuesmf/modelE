@@ -1,0 +1,9 @@
+C**** COMMON BLOCK SOMTQ                      9/98
+      COMMON/TADV/TX(IM,JM,LM),TY(IM,JM,LM),TZ(IM,JM,LM),
+     *         TXX(IM,JM,LM),TYY(IM,JM,LM),TZZ(IM,JM,LM),
+     *         TXY(IM,JM,LM),TZX(IM,JM,LM),TYZ(IM,JM,LM)
+      COMMON/QADV/QX(IM,JM,LM),QY(IM,JM,LM),QZ(IM,JM,LM),
+     *         QXX(IM,JM,LM),QYY(IM,JM,LM),QZZ(IM,JM,LM),
+     *         QXY(IM,JM,LM),QZX(IM,JM,LM),QYZ(IM,JM,LM)
+      DIMENSION TMOM(IM,JM,LM,9),QMOM(IM,JM,LM,9)
+      EQUIVALENCE (TX,TMOM),(QX,QMOM)
