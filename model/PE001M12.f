@@ -904,9 +904,10 @@ C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
       LMR=LM+3
       LMRP=LMR+1
       COEX=.01*GRAV*KAPA/RGAS
-      DO 30 L=1,LM
-      COE(L)=DTCNDS*COEX/DSIG(L)
-   30 PLE(L)=SIGE(L)*(PSF-PTOP)+PTOP
+      DO L=1,LM
+         COE(L)=DTCNDS*COEX/DSIG(L)
+         PLE(L)=SIGE(L)*(PSF-PTOP)+PTOP
+      END DO
       PLE(LM+1)=SIGE(LM+1)*(PSF-PTOP)+PTOP
       PLE(LM+2)=.5*PLE(LM+1)
       PLE(LMR)=.2*PLE(LM+1)
@@ -1029,7 +1030,7 @@ CF       LTOP=0
       QL(L)=QSS
       IF(CLDSAV(I,J,L).LT.1.)
      *  QL(L)=(Q(I,J,L)-QSS*CLDSAV(I,J,L))/(1.-CLDSAV(I,J,L))
-      TL(L)=T(I,J,L)*PK(I,J,L)
+      TL(L)=T(I,J,L)*PK(L,I,J)
       IF(CLDSS(I,J,L).EQ.0.) RANDSS=RANDU(X)
       TAUSSL=0.
       TAUMCL=0.
@@ -1150,9 +1151,10 @@ C**** EVEN PRESSURES
       PIJ=P(I,J)
       DO 340 L=1,LM
       IF(L.EQ.LS1) PIJ=PSF-PTOP
-      PLE(L)=SIGE(L)*PIJ+PTOP
+c      PLE(L)=SIGE(L)*PIJ+PTOP
+      PLE(L)=PEDN(L,I,J)
 C**** TEMPERATURES
-C---- TL(L)=T(I,J,L)*PK(I,J,L)     ! already defined
+C---- TL(L)=T(I,J,L)*PK(L,I,J)     ! already defined
       IF(TL(L).LT.130..OR.TL(L).GT.370.) THEN
          WRITE(99,*) 'In Radia: TAU,I,J,L,TL',TAU,I,J,L,TL(L)
          STOP 4255
@@ -1440,14 +1442,14 @@ C****
       DO 860 L=1,LS1-1
       DO 860 I=1,IMAX
   860 T(I,J,L)=T(I,J,L)+(SRHR(I,J,L+1)*COSZ1(I,J)+TRHR(I,J,L+1))
-     *  *COE(L)/(P(I,J)*PK(I,J,L))
+     *  *COE(L)/(P(I,J)*PK(L,I,J))
       DO 870 J=1,JM
       IMAX=IM
       IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
       DO 870 L=LS1,LM
       DO 870 I=1,IMAX
   870 T(I,J,L)=T(I,J,L)+(SRHR(I,J,L+1)*COSZ1(I,J)+TRHR(I,J,L+1))
-     *  *COE(L)/((PSF-PTOP)*PK(I,J,L))
+     *  *COE(L)/((PSF-PTOP)*PK(L,I,J))
       RETURN
       END
       SUBROUTINE GROUND
@@ -2436,7 +2438,7 @@ C****
       USE E001M12_COM
       USE SOMTQ_COM
       IMPLICIT REAL*8 (A-H,O-Z)
-c      COMMON/WORK1/CONV(IM,JM,LM),PK(IM,JM,LM)
+c      COMMON/WORK1/CONV(IM,JM,LM),PK(LM,IM,JM)
       COMMON/WORK2/UT(IM,JM,LM),VT(IM,JM,LM),
      *  DP(LM),RA(8),ID(8),UMS(8)
       LOGICAL POLE
@@ -2479,45 +2481,45 @@ C**** MIX THROUGH TWO LOWER LAYERS
       PIJ=PIJBOT
       IF(LMIN+1.EQ.LS1) PIJ=PSF-PTOP
       DP(LMIN+1)=PIJ*DSIG(LMIN+1)
-      PKMS=PK(I,J,LMIN)*DP(LMIN)+PK(I,J,LMIN+1)*DP(LMIN+1)
-      THPKMS=T(I,J,LMIN)*(PK(I,J,LMIN)*DP(LMIN))
-     *  +T(I,J,LMIN+1)*(PK(I,J,LMIN+1)*DP(LMIN+1))
+      PKMS=PK(LMIN,I,J)*DP(LMIN)+PK(LMIN+1,I,J)*DP(LMIN+1)
+      THPKMS=T(I,J,LMIN)*(PK(LMIN,I,J)*DP(LMIN))
+     *  +T(I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
       QMS=Q(I,J,LMIN)*DP(LMIN)+Q(I,J,LMIN+1)*DP(LMIN+1)
 C**** sum moments to mix over unstable layers
-      TXS=   TX(I,J,LMIN  )*(PK(I,J,LMIN  )*DP(LMIN  ))  +
-     *       TX(I,J,LMIN+1)*(PK(I,J,LMIN+1)*DP(LMIN+1))
-      TYS=   TY(I,J,LMIN  )*(PK(I,J,LMIN  )*DP(LMIN  ))  +
-     *       TY(I,J,LMIN+1)*(PK(I,J,LMIN+1)*DP(LMIN+1))
-      TXXS= TXX(I,J,LMIN  )*(PK(I,J,LMIN  )*DP(LMIN  )) +
-     *      TXX(I,J,LMIN+1)*(PK(I,J,LMIN+1)*DP(LMIN+1))
-      TYYS= TYY(I,J,LMIN  )*(PK(I,J,LMIN  )*DP(LMIN  )) +
-     *      TYY(I,J,LMIN+1)*(PK(I,J,LMIN+1)*DP(LMIN+1))
-      TXYS= TXY(I,J,LMIN  )*(PK(I,J,LMIN  )*DP(LMIN  )) +
-     *      TXY(I,J,LMIN+1)*(PK(I,J,LMIN+1)*DP(LMIN+1))
+      TXS=   TX(I,J,LMIN  )*(PK(LMIN  ,I,J)*DP(LMIN  ))  +
+     *       TX(I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
+      TYS=   TY(I,J,LMIN  )*(PK(LMIN  ,I,J)*DP(LMIN  ))  +
+     *       TY(I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
+      TXXS= TXX(I,J,LMIN  )*(PK(LMIN  ,I,J)*DP(LMIN  )) +
+     *      TXX(I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
+      TYYS= TYY(I,J,LMIN  )*(PK(LMIN  ,I,J)*DP(LMIN  )) +
+     *      TYY(I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
+      TXYS= TXY(I,J,LMIN  )*(PK(LMIN  ,I,J)*DP(LMIN  )) +
+     *      TXY(I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
       QXS  =  QX(I,J,LMIN)*DP(LMIN) +  QX(I,J,LMIN+1)*DP(LMIN+1)
       QYS  =  QY(I,J,LMIN)*DP(LMIN) +  QY(I,J,LMIN+1)*DP(LMIN+1)
       QXXS = QXX(I,J,LMIN)*DP(LMIN) + QXX(I,J,LMIN+1)*DP(LMIN+1)
       QYYS = QYY(I,J,LMIN)*DP(LMIN) + QYY(I,J,LMIN+1)*DP(LMIN+1)
       QXYS = QXY(I,J,LMIN)*DP(LMIN) + QXY(I,J,LMIN+1)*DP(LMIN+1)
       IF (LMIN+1.GE.LM) GO TO 150
-      TVMS=T(I,J,LMIN)*(1.+Q(I,J,LMIN)*RVX)*(PK(I,J,LMIN)*DP(LMIN))
+      TVMS=T(I,J,LMIN)*(1.+Q(I,J,LMIN)*RVX)*(PK(LMIN,I,J)*DP(LMIN))
      *    +T(I,J,LMIN+1)*(1.+Q(I,J,LMIN+1)*RVX)
-     *                                  *(PK(I,J,LMIN+1)*DP(LMIN+1))
+     *                                  *(PK(LMIN+1,I,J)*DP(LMIN+1))
       THETA=TVMS/PKMS
 C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       DO 140 L=LMIN+2,LM
       IF (THETA.LT.T(I,J,L)*(1.+Q(I,J,L)*RVX)) GO TO 160
       IF(L.EQ.LS1) PIJ=PSF-PTOP
       DP(L)=PIJ*DSIG(L)
-      PKMS=PKMS+(PK(I,J,L)*DP(L))
-      THPKMS=THPKMS+T(I,J,L)*(PK(I,J,L)*DP(L))
+      PKMS=PKMS+(PK(L,I,J)*DP(L))
+      THPKMS=THPKMS+T(I,J,L)*(PK(L,I,J)*DP(L))
       QMS=QMS+Q(I,J,L)*DP(L)
-      TVMS=TVMS+T(I,J,L)*(1.+Q(I,J,L)*RVX)*(PK(I,J,L)*DP(L))
-      TXS=   TXS +  TX(I,J,L)*(PK(I,J,L)*DP(L))
-      TYS=   TYS +  TY(I,J,L)*(PK(I,J,L)*DP(L))
-      TXXS= TXXS + TXX(I,J,L)*(PK(I,J,L)*DP(L))
-      TYYS= TYYS + TYY(I,J,L)*(PK(I,J,L)*DP(L))
-      TXYS= TXYS + TXY(I,J,L)*(PK(I,J,L)*DP(L))
+      TVMS=TVMS+T(I,J,L)*(1.+Q(I,J,L)*RVX)*(PK(L,I,J)*DP(L))
+      TXS=   TXS +  TX(I,J,L)*(PK(L,I,J)*DP(L))
+      TYS=   TYS +  TY(I,J,L)*(PK(L,I,J)*DP(L))
+      TXXS= TXXS + TXX(I,J,L)*(PK(L,I,J)*DP(L))
+      TYYS= TYYS + TYY(I,J,L)*(PK(L,I,J)*DP(L))
+      TXYS= TXYS + TXY(I,J,L)*(PK(L,I,J)*DP(L))
       QXS  =  QXS +  QX(I,J,L)*DP(L)
       QYS  =  QYS +  QY(I,J,L)*DP(L)
       QXXS = QXXS + QXX(I,J,L)*DP(L)
@@ -2532,7 +2534,7 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       PIJ=P(I,J)
       DO 180 L=LMIN,LMAX
       IF(L.GE.LS1) PIJ=PSF-PTOP
-         AJL(J,L,12)=AJL(J,L,12)+(THM-T(I,J,L))*PK(I,J,L)*PIJ
+         AJL(J,L,12)=AJL(J,L,12)+(THM-T(I,J,L))*PK(L,I,J)*PIJ
          AJL(J,L,55)=AJL(J,L,55)+(QMS-Q(I,J,L))*PIJ*LHE/SHA
       T(I,J,L)=THM
        TX(I,J,L) = TXS/PKMS
@@ -2611,7 +2613,7 @@ C**** THE ATMOSPHERE
 C****
       USE E001M12_COM
       IMPLICIT REAL*8 (A-H,O-Z)
-c      COMMON/WORK1/CONV(IM,JM,LM),PK(IM,JM,LM)
+c      COMMON/WORK1/CONV(IM,JM,LM),PK(LM,IM,JM)
       DIMENSION XCDLM(2)
       NAMELIST/SDRNML/XCDLM
       INTEGER :: IFIRST = 1
@@ -2625,7 +2627,7 @@ c      COMMON/WORK1/CONV(IM,JM,LM),PK(IM,JM,LM)
       DO 100 IP1=1,IM
       PIJU=PSF-PTOP
       WLM=SQRT(U(I,J,LM)*U(I,J,LM)+V(I,J,LM)*V(I,J,LM))
-      RHO=(PIJU*SIGE(LM+1)+PTOP)/(RGAS*T(I,J,LM)*PK(I,J,LM))
+      RHO=(PIJU*SIGE(LM+1)+PTOP)/(RGAS*T(I,J,LM)*PK(LM,I,J))
       CDN=XCDLM(1)+XCDLM(2)*WLM
          AIJ(I,J,59)=AIJ(I,J,59)+WLM
       X=NDYN*DT*RHO*CDN*WLM*GRAV/(PIJU*DSIG(LM))

@@ -38,7 +38,7 @@ C --------------------------------------------------------------------
      *     ,s4,s5,s6,c1,c2,c3,c4,c5,b1,b123
 
 C**** boundary layer parameters
-      real*8, parameter :: kappa=0.40  !@var kappa
+      real*8, parameter :: kappa=0.40  !@var kappa  Von Karman constant
       real*8, parameter :: zgs=10. !@var zgs height of surface layer (m)
 
 C**** model related constants (should be taken directly from E001M12_COM)
@@ -46,7 +46,7 @@ C**** model related constants (should be taken directly from E001M12_COM)
       real*8, save :: omega2          !@var omega2 2*omega (s^-1)
       integer, parameter ::  iq1=im/4+1,iq2=im/2+1,iq3=3*im/4+1
 
-      real*8 expbyk
+c      real*8 expbyk
 
       CONTAINS
 
@@ -103,8 +103,8 @@ C     WG     = magnitude of the geostrophic wind (m/sec)
 C
 C --------------------------------------------------------------------
       USE E001M12_COM
-     &     , only : IM,JM, bldata, t,q,u,v,p,ptop,ls1,rgas,grav,psf,sig
-     *     ,sige
+     &     , only : IM,JM, bldata, t,q,u,v,p,ptop,ls1,rgas,grav,psf
+     *     ,pmid,pk,pedn  !,sig,sige
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
@@ -173,11 +173,11 @@ C THE VERTICAL LEVEL FOR WHICH WG IS COMPUTED IS THE FIRST:
           if (dbl.gt.3000.) dbl=3000.
 C FIND THE VERTICAL LEVEL NEXT HIGHER THAN DBL AND COMPUTE WG THERE:
           zpbl=ztop
-          pl1=pij*sig(1)+ptop
-          tl1=t(i,j,1)*expbyk(pl1)
+          pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
+          tl1=t(i,j,1)*pk(1,i,j)  !expbyk(pl1)
           do l=2,ls1
-            pl=pij*sig(l)+ptop
-            tl=t(i,j,l)*expbyk(pl)
+            pl=pmid(l,i,j)        !pij*sig(l)+ptop
+            tl=t(i,j,l)*pk(l,i,j) !expbyk(pl)
             tbar=thbar(tl1,tl)
             zpbl=zpbl+(rgas/grav)*tbar*(pl1-pl)/pl1
             if (zpbl.ge.dbl) go to 200
@@ -202,12 +202,12 @@ C
           l=1
           else
           zpbl=ztop
-          pl1=pij*sig(1)+ptop
-          tl1=t(i,j,1)*expbyk(pl1)
+          pl1=pmid(1,i,j)          !pij*sig(1)+ptop
+          tl1=t(i,j,1)*pk(1,i,j)   !expbyk(pl1)
           zpbl1=ztop
           do l=2,ldc
-            pl=pij*sig(l)+ptop
-            tl=t(i,j,l)*expbyk(pl)
+            pl=pmid(l,i,j)         !pij*sig(l)+ptop
+            tl=t(i,j,l)*pk(l,i,j)  !expbyk(pl)
             tbar=thbar(tl1,tl)
             zpbl=zpbl+(rgas/grav)*tbar*(pl1-pl)/pl1
             if (zpbl.ge.3000.) then
@@ -226,8 +226,8 @@ C**********************************************************************
       ENDIF
 
 C *********************************************************************
-      ppbl=sige(l)*pij+ptop
-      if (l.gt.ls1) ppbl=sige(l)*(psf-ptop)+ptop
+      ppbl=pedn(l,i,j)      ! sige(l)*pij+ptop
+c      if (l.gt.ls1) ppbl=sige(l)*(psf-ptop)+ptop
       phi=radian*(float(j-1)*180./float(jm-1)-90.)
       coriol=sin(phi)*omega2
       ttop=tkv
@@ -2369,7 +2369,7 @@ c -------------------------------------------------------------
       integer :: itype  !@var itype surface type
       integer i,j,iter,imax,im1,jvpo,lpbl !@var i,j,iter loop variable 
       real*8 pland,pwater,plice,psoil,poice,pocean,pi,radian,
-     *     ztop,bgrid,elhx,phi,coriol,tgrnd,pij,ps,psk,expbyk,qgrnd,hemi
+     *     ztop,bgrid,elhx,phi,coriol,tgrnd,pij,ps,psk,qgrnd,hemi
      *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar
       real*8 qsat,tm,pm,qlh
       qsat(tm,pm,qlh)=3.797915*exp(qlh*(7.93252d-6-2.166847d-3/tm))/pm
@@ -2427,8 +2427,8 @@ c -------------------------------------------------------------
             endif
             ilong=i
             pij=p(i,j)
-            ps=pij+ptop
-            psk=expbyk(ps)
+            ps=pedn(1,i,j)    !pij+ptop
+            psk=pek(1,i,j)    !expbyk(ps)
             qgrnd=qsat(tgrnd,ps,elhx)
 
             if (j.eq.1) then
@@ -2652,7 +2652,7 @@ c ******* itype=4: Land
       integer i,j,iter  !@var i,j,iter loop variable 
       real*8 p1k,t1,pij,rho1,dpx,dpy,dypsp,dypnp,rhojm,p1
       integer index1,index2
-      real*8 expbyk
+c      real*8 expbyk
 
 c     for gcm main level 1:
       call geopot
@@ -2661,8 +2661,8 @@ c     for gcm main level 1:
         do i=1,im
 
           pij=p(i,j)
-          p1=100.*(pij*sig(1)+ptop)
-          t1=t(i,j,1)*expbyk(pij*sig(1)+ptop)
+          p1=100.*pmid(1,i,j)      !(pij*sig(1)+ptop)
+          t1=t(i,j,1)*pk(1,i,j)    !expbyk(pij*sig(1)+ptop)
           rho1=p1/(rgas*t1)
 
           index1=i+1
@@ -2700,15 +2700,15 @@ c         at the surface:
       i=1
       j=1
       pij=p(i,j)
-      p1=100.*(pij*sig(1)+ptop)
-      t1=t(i,j,1)*expbyk(pij*sig(1)+ptop)
+      p1=100.*pmid(1,i,j)            !(pij*sig(1)+ptop)
+      t1=t(i,j,1)*pk(1,i,j)          !expbyk(pij*sig(1)+ptop)
       rho1 =p1/(rgas*t1)
       dypsp=2.*dyp(1)
 
       j=jm
       pij=p(i,j)
-      p1=100.*(pij*sig(1)+ptop)
-      t1=t(i,j,1)*expbyk(pij*sig(1)+ptop)
+      p1=100.*pmid(1,i,j)            !(pij*sig(1)+ptop)
+      t1=t(i,j,1)*pk(1,i,j)          !expbyk(pij*sig(1)+ptop)
       rhojm=p1/(rgas*t1)
       dypnp=2.*dyp(jm)
 
@@ -2768,7 +2768,7 @@ c     at the surface:
       USE SOCPBL, only : phi,zgs
       IMPLICIT NONE
 
-      real*8 expbyk
+c      real*8 expbyk
 
       integer i,j,iter  !@var i,j,iter loop variable 
       real*8 p1,p1k,pij,t1,z1
@@ -2779,8 +2779,8 @@ c     for GCM main level 1:
       do j=2,jm-1
         do i=1,im
           pij=p(i,j)
-          p1=pij*sig(1)+ptop
-          p1k=expbyk(p1)
+          p1=pmid(1,i,j)     !pij*sig(1)+ptop
+          p1k=pk(1,i,j)      !expbyk(p1)
           t1=t(i,j,1)*p1k
           z1=zgs+0.5*dsig(1)*rgas*t1*pij/(p1*grav)
           phi(i,j)=grav*z1+FDATA(I,J,1)
@@ -2789,16 +2789,16 @@ c     for GCM main level 1:
       i=1
       j=1
       pij=p(i,j)
-      p1=pij*sig(1)+ptop
-      p1k=expbyk(p1)
+      p1=pmid(1,i,j)          !pij*sig(1)+ptop
+      p1k=pk(1,i,j)           !expbyk(p1)
       t1=t(i,j,1)*p1k
       z1=zgs+0.5*dsig(1)*rgas*t1*pij/(p1*grav)
       phi(i,j)=grav*z1+FDATA(I,J,1)
 
       j=jm
       pij=p(i,j)
-      p1=pij*sig(1)+ptop
-      p1k=expbyk(p1)
+      p1=pmid(1,i,j)          !pij*sig(1)+ptop
+      p1k=pk(1,i,j)           !expbyk(p1)
       t1=t(i,j,1)*p1k
       z1=zgs+0.5*dsig(1)*rgas*t1*pij/(p1*grav)
       phi(i,j)=grav*z1+FDATA(I,J,1)

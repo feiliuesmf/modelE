@@ -63,7 +63,9 @@ C**** INITIALIZE TIME PARAMETERS
       WRITE (6,'(A,13X,A,I6,A,F6.2,I6,A5,I27,I7,F7.1,A,F11.2)')
      *  '0CLIMATE MODEL STARTED UP','DAY',IDAY,', HR',TOFDAY,
      *   JDATE,JMONTH,MINC,MELSE,PERCNT,' TAU',TAU
-      DOPK=1.
+      DOPK=0.   ! 1. replaced with CALL CALC_AMPK(LM)
+      CALL CALC_AMPK(LM)
+
          MODD5K=1000
       CALL CHECKT (1)
       RUNON=-1.
@@ -163,7 +165,9 @@ C****
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
          IF (MODD5D.EQ.0) CALL DIAG9A (1)
       CALL DYNAM
-      DOPK=1.
+      DOPK=0.   ! 1. replaced with CALL CALC_AMPK(LS1)
+      CALL CALC_AMPK(LS1-1)
+
       CALL CHECKT (2)
       CALL TIMER (MNOW,MINC,MDYN)
       PERCNT=100.*MDYN/(MNOW-MSTART)
@@ -1889,7 +1893,9 @@ C**** Scale mixing ratios (incl moments) to conserve mass/heat
           END DO
         END DO
       END DO
-      DOPK=1.
+      DOPK=0.   ! 1. replaced with CALL CALC_AMPK(LS1)
+      CALL CALC_AMPK(LS1-1)
+
   200 IF (MFILTR.LT.2) RETURN
 C****
 C**** TEMPERATURE STRATIFICATION FILTER ON T
@@ -2128,7 +2134,9 @@ C**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
       DO 140 J=1,JM
       DO 140 I=1,IM
   140 P(I,J)=P(I,J)+DELTAP
-      DOPK=1.
+      DOPK=0.   ! 1. replaced with CALL CALC_AMPK(LS1)
+      CALL CALC_AMPK(LS1-1)
+
       WRITE (6,901) DELTAP
       DOZ1O=1.
 C****

@@ -130,17 +130,21 @@ C**** DIAGNOSTIC ARRAYS
       INTEGER, DIMENSION(12) :: KDIAG
       COMMON /KEYS/ KEYNR,KDIAG
 
-C**** Some helpful arrays 
+C**** Some helpful arrays (arrays should be L first)
 
-!@var  AM  Air mass of each box (kg)
-!      REAL*8, DIMENSION(IM,JM,LM) :: AM
-!@var  BYAM  1/Air mass (kg**-1)
-!      REAL*8, DIMENSION(IM,JM,LM) :: BYAM
-!@var  PK   P**KAPA 
-      REAL*8, SAVE,DIMENSION(IM,JM,LM) :: PK
-!@var  PEUP  Pressure at upper edge of box (mb)
-!      REAL*8, DIMENSION(IM,JM,LM) :: PEUP
+!@var  AM  Air mass of each box (kg/m^2)
+!      REAL*8, DIMENSION(LM,IM,JM) :: AM
+!@var  BYAM  1/Air mass (m^2/kg)
+!      REAL*8, DIMENSION(LM,IM,JM) :: BYAM
 !@var  PMID  Pressure at mid point of box (mb)
-!      REAL*8, DIMENSION(IM,JM,LM) :: PMID
+      REAL*8, DIMENSION(LM,IM,JM) :: PMID
+!@var  PK   PMID**KAPA 
+      REAL*8, SAVE,DIMENSION(LM,IM,JM) :: PK
+!@var  PEUP  Pressure at lower edge of box (incl. surface) (mb)
+      REAL*8, DIMENSION(LM+1,IM,JM) :: PEDN
+!@var  PEK  PEUP**KAPA
+      REAL*8, DIMENSION(LM+1,IM,JM) :: PEK
+!@var  SQRTP  square root of P (used in diagnostics)
+      REAL*8, DIMENSION(IM,JM) :: SQRTP
 
       END MODULE E001M12_COM

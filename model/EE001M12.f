@@ -164,10 +164,10 @@ C****
       PEARTH=PLAND-PLICE
       PSOIL=PEARTH
       PIJ=P(I,J)
-      PS=PIJ+PTOP
-      PSK=EXPBYK(PS)
-      P1=SIG(1)*PIJ+PTOP
-      P1K=PK(I,J,1)
+      PS=PEDN(1,I,J)    ! PIJ+PTOP
+      PSK=PEK(1,I,J)    ! EXPBYK(PS)
+      P1=PMID(1,I,J)    ! SIG(1)*PIJ+PTOP
+      P1K=PK(1,I,J)     ! EXPBYK(P1)
       TH1=T(I,J,1)
       Q1=Q(I,J,1)
       THV1=TH1*(1.+Q1*RVX)

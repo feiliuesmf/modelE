@@ -211,10 +211,10 @@ C****
       POCEAN=PWATER-POICE
       PXSOIL=POCEAN+POICE+PLICE
       PIJ=P(I,J)
-      PS=PIJ+PTOP
-      PSK=EXPBYK(PS)
-      P1=SIG(1)*PIJ+PTOP
-      P1K=EXPBYK(P1)
+      PS=PEDN(1,I,J)    ! PIJ+PTOP
+      PSK=PEK(1,I,J)    ! EXPBYK(PS)
+      P1=PMID(1,I,J)    ! SIG(1)*PIJ+PTOP
+      P1K=PK(1,I,J)     ! EXPBYK(P1)
       TH1=T(I,J,1)
       Q1=Q(I,J,1)
       THV1=TH1*(1.+Q1*RVX)
@@ -747,18 +747,18 @@ C**** OUTSIDE LOOPS OVER J AND I
      *   T(I,J,2)*(1.+Q(I,J,2)*RVX)) GO TO 8500
 C**** MIX HEAT AND MOISTURE THROUGHOUT THE BOUNDARY LAYER
       PIJ=P(I,J)
-      PKMS=(PK(I,J,1)*DSIG(1)+PK(I,J,2)*DSIG(2))*PIJ
-      THPKMS=(T(I,J,1)*(PK(I,J,1)*DSIG(1))+T(I,J,2)*(PK(I,J,2)*DSIG(2)))
+      PKMS=(PK(1,I,J)*DSIG(1)+PK(2,I,J)*DSIG(2))*PIJ
+      THPKMS=(T(I,J,1)*(PK(1,I,J)*DSIG(1))+T(I,J,2)*(PK(2,I,J)*DSIG(2)))
      *   *PIJ
-      TXS= (TX(I,J,1)*(PK(I,J,1)*DSIG(1)) + TX(I,J,2)*(PK(I,J,2)*
+      TXS= (TX(I,J,1)*(PK(1,I,J)*DSIG(1)) + TX(I,J,2)*(PK(2,I,J)*
      *     DSIG(2)))*PIJ
-      TYS= (TY(I,J,1)*(PK(I,J,1)*DSIG(1)) + TY(I,J,2)*(PK(I,J,2)*
+      TYS= (TY(I,J,1)*(PK(1,I,J)*DSIG(1)) + TY(I,J,2)*(PK(2,I,J)*
      *     DSIG(2)))*PIJ
-      TXXS=(TXX(I,J,1)*(PK(I,J,1)*DSIG(1))+TXX(I,J,2)*(PK(I,J,2)*
+      TXXS=(TXX(I,J,1)*(PK(1,I,J)*DSIG(1))+TXX(I,J,2)*(PK(2,I,J)*
      *     DSIG(2)))*PIJ
-      TYYS=(TYY(I,J,1)*(PK(I,J,1)*DSIG(1))+TYY(I,J,2)*(PK(I,J,2)*
+      TYYS=(TYY(I,J,1)*(PK(1,I,J)*DSIG(1))+TYY(I,J,2)*(PK(2,I,J)*
      *     DSIG(2)))*PIJ
-      TXYS=(TXY(I,J,1)*(PK(I,J,1)*DSIG(1))+TXY(I,J,2)*(PK(I,J,2)*
+      TXYS=(TXY(I,J,1)*(PK(1,I,J)*DSIG(1))+TXY(I,J,2)*(PK(2,I,J)*
      *     DSIG(2)))*PIJ
       QMS=(Q(I,J,1)*DSIG(1)+Q(I,J,2)*DSIG(2))*PIJ
       QXS  = (QX(I,J,1)*DSIG(1) +  QX(I,J,2)*DSIG(2))*PIJ
@@ -766,27 +766,27 @@ C**** MIX HEAT AND MOISTURE THROUGHOUT THE BOUNDARY LAYER
       QXXS =(QXX(I,J,1)*DSIG(1) + QXX(I,J,2)*DSIG(2))*PIJ
       QYYS =(QYY(I,J,1)*DSIG(1) + QYY(I,J,2)*DSIG(2))*PIJ
       QXYS =(QXY(I,J,1)*DSIG(1) + QXY(I,J,2)*DSIG(2))*PIJ
-      TVMS=(T(I,J,1)*(1.+Q(I,J,1)*RVX)*(PK(I,J,1)*DSIG(1))
-     *    +T(I,J,2)*(1.+Q(I,J,2)*RVX)*(PK(I,J,2)*DSIG(2)))*PIJ
+      TVMS=(T(I,J,1)*(1.+Q(I,J,1)*RVX)*(PK(1,I,J)*DSIG(1))
+     *    +T(I,J,2)*(1.+Q(I,J,2)*RVX)*(PK(2,I,J)*DSIG(2)))*PIJ
       THETA=TVMS/PKMS
 C**** MIX THROUGH SUBSEQUENT LAYERS
       DO 8140 L=3,LM
       IF(THETA.LT.T(I,J,L)*(1.+Q(I,J,L)*RVX)) GO TO 8160
       IF(L.EQ.LS1) PIJ=PSF-PTOP
-      PKMS=PKMS+(PK(I,J,L)*(DSIG(L)*PIJ))
-      THPKMS=THPKMS+T(I,J,L)*(PK(I,J,L)*(DSIG(L)*PIJ))
-       TXS =  TXS +  TX(I,J,L)*(PK(I,J,L)*DSIG(L))*PIJ
-       TYS =  TYS +  TY(I,J,L)*(PK(I,J,L)*DSIG(L))*PIJ
-      TXXS = TXXS + TXX(I,J,L)*(PK(I,J,L)*DSIG(L))*PIJ
-      TYYS = TYYS + TYY(I,J,L)*(PK(I,J,L)*DSIG(L))*PIJ
-      TXYS = TXYS + TXY(I,J,L)*(PK(I,J,L)*DSIG(L))*PIJ
+      PKMS=PKMS+(PK(L,I,J)*(DSIG(L)*PIJ))
+      THPKMS=THPKMS+T(I,J,L)*(PK(L,I,J)*(DSIG(L)*PIJ))
+       TXS =  TXS +  TX(I,J,L)*(PK(L,I,J)*DSIG(L))*PIJ
+       TYS =  TYS +  TY(I,J,L)*(PK(L,I,J)*DSIG(L))*PIJ
+      TXXS = TXXS + TXX(I,J,L)*(PK(L,I,J)*DSIG(L))*PIJ
+      TYYS = TYYS + TYY(I,J,L)*(PK(L,I,J)*DSIG(L))*PIJ
+      TXYS = TXYS + TXY(I,J,L)*(PK(L,I,J)*DSIG(L))*PIJ
       QMS=QMS+Q(I,J,L)*(DSIG(L)*PIJ)
        QXS =  QXS +  QX(I,J,L)*(DSIG(L)*PIJ)
        QYS =  QYS +  QY(I,J,L)*(DSIG(L)*PIJ)
       QXXS = QXXS + QXX(I,J,L)*(DSIG(L)*PIJ)
       QYYS = QYYS + QYY(I,J,L)*(DSIG(L)*PIJ)
       QXYS = QXYS + QXY(I,J,L)*(DSIG(L)*PIJ)
-      TVMS=TVMS+T(I,J,L)*(1.+Q(I,J,L)*RVX)*(PK(I,J,L)*(DSIG(L)*PIJ))
+      TVMS=TVMS+T(I,J,L)*(1.+Q(I,J,L)*RVX)*(PK(L,I,J)*(DSIG(L)*PIJ))
  8140 THETA=TVMS/PKMS
       L=LM+1
  8160 LMAX=L-1
@@ -797,7 +797,7 @@ C**** MIX THROUGH SUBSEQUENT LAYERS
       PIJ=P(I,J)
       DO 8180 L=1,LMAX
       IF(L.EQ.LS1) PIJ=(PSF-PTOP)
-         AJL(J,L,12)=AJL(J,L,12)+(THM-T(I,J,L))*PK(I,J,L)*PIJ
+         AJL(J,L,12)=AJL(J,L,12)+(THM-T(I,J,L))*PK(L,I,J)*PIJ
       T(I,J,L)=THM
        TX(I,J,L) = TXS/PKMS
        TY(I,J,L) = TYS/PKMS

@@ -59,7 +59,7 @@ C**** Subsid only works on non-plume portion of column (properly!)
 !@sum  MSTCNV moist convective processes (incl. precip and convective clouds)
 !@auth M.S.Yao/T. Del Genio (modifications by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
-!@calls SUBSID,QSAT,THBAR,EXPBYK 
+!@calls SUBSID,QSAT,THBAR  !,EXPBYK 
       IMPLICIT NONE
 
       REAL*8 LHX,MPLUME,MCLOUD,MPMAX,MPO
@@ -103,7 +103,7 @@ C**** Subsid only works on non-plume portion of column (properly!)
 
       INTEGER LDRAFT,LEVAP,LMAX,LMCMIN,LMCMAX,LMIN,MCCONT,MAXLVL
      *     ,MINLVL,ITER,IC,LFRZ
-      REAL*8 PRCPMC,PLAND,POICE,POCEAN,PLICE,PEARTH,PIJ,TERM1,FMP0,SMO1
+      REAL*8 PLAND,POICE,POCEAN,PLICE,PEARTH,TERM1,FMP0,SMO1
      *     ,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE,WMDN,WMUP,SVDN
      *     ,SVUP,WMEDG,SVEDG,SLH,DMSE,FPLUME,DFP,FMP2,FRAT1,FRAT2,SMN1
      *     ,QMN1,SMN2,QMN2,SMP,QMP,TP,QSATMP,GAMA,DQSUM,FEVAP,TNX,QNX
@@ -130,14 +130,14 @@ C**** Subsid only works on non-plume portion of column (properly!)
       REAL*8,  PARAMETER :: DELTX=.608d0   !@param DELTX ???
       LOGICAL, PARAMETER :: MCSSC=.TRUE.  !@param MCSSC  TRUE IF NEW CONDSE USED
       INTEGER, PARAMETER :: JEQ = JM/2 + 1 !@param JEQ  N. equatorial gridpoint
-      REAL*8,  SAVE :: BYDSIG(LM),XMASS,PKS(LM)
+      REAL*8,  SAVE :: BYDSIG(LM),XMASS   ! ,PKS(LM)
       INTEGER, SAVE :: IFIRST = 1
 
       INTEGER I,J,K,L,N  !@var I,J,K,L,N loop variables
       INTEGER IHOUR,IMAX,ITYPE,KMAX,JVPO,IM1,JR,KR
       LOGICAL POLE
       REAL*8 RAPO
-      REAL*8 THBAR,EXPBYK
+      REAL*8 THBAR   !,EXPBYK
 C****
       IDACC(1)=IDACC(1)+1
       IF(IFIRST.EQ.1) THEN
@@ -153,8 +153,8 @@ C****
       BYBR=((1.-BRCLD)*(1.-2.*BRCLD))**RECIP3
       SLHE=LHE*BYSHA
       SLHS=LHS*BYSHA
-      DO 42 L=LS1,LM
-   42 PKS(L)=((PSF-PTOP)*SIG(L)+PTOP)**KAPA
+c      DO 42 L=LS1,LM
+c   42 PKS(L)=((PSF-PTOP)*SIG(L)+PTOP)**KAPA
       DO L=1,LM
         BYDSIG(L)=1./DSIG(L)
       END DO
@@ -164,17 +164,17 @@ C****
       IFIRST=0
       END IF
 C**** CALCULATE PK = P**KAPA
-      IF(DOPK.EQ.1.) THEN
-      DO 53 L=1,LS1-1
-      DO 53 J=1,JM
-      DO 53 I=1,IM
-   53 PK(I,J,L)=EXPBYK(SIG(L)*P(I,J)+PTOP)
-      DO 55 L=LS1,LM
-      DO 55 J=1,JM
-      DO 55 I=1,IM
-   55 PK(I,J,L)=PKS(L)
-      DOPK=0.
-      END IF
+c      IF(DOPK.EQ.1.) THEN
+c      DO 53 L=1,LS1-1
+c      DO 53 J=1,JM
+c      DO 53 I=1,IM
+c   53 PK(L,I,J)=EXPBYK(SIG(L)*P(I,J)+PTOP)
+c      DO 55 L=LS1,LM
+c      DO 55 J=1,JM
+c      DO 55 I=1,IM
+c   55 PK(L,I,J)=PKS(L)
+c      DOPK=0.
+c      END IF
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
    70 DO 75 L=1,LM
       DO 75 J=1,JM
@@ -200,7 +200,7 @@ C**** SET PRECIPITATION AND LATENT HEAT
       CLDSLW(I,J)=0.
       PRECNV(I,J,LM+1)=0.
       PREC(I,J)=0.
-   78 TPREC(I,J)=T(I,J,1)*PK(I,J,1)-TF
+   78 TPREC(I,J)=T(I,J,1)*PK(1,I,J)-TF
          IHOUR=1.5+TOFDAY
 C****
 C**** MAIN J LOOP
@@ -262,9 +262,11 @@ C**** PRESSURES, AND PRESSURE TO THE KAPA
       PIJ=P(I,J)
       DO 150 L=1,LM
       IF(L.EQ.LS1) PIJ=PSF-PTOP
-      PL(L)=SIG(L)*PIJ+PTOP
-      PLE(L)=SIGE(L)*PIJ+PTOP
-      PLK(L)=PK(I,J,L)
+c      PL(L)=SIG(L)*PIJ+PTOP
+c      PLE(L)=SIGE(L)*PIJ+PTOP
+      PL(L) =PMID(L,I,J)
+      PLE(L)=PEDN(L,I,J)
+      PLK(L)=PK(L,I,J)
       AIRM(L)=PIJ*DSIG(L)
       BYAM(L)=1./AIRM(L)
       IF(L.LE.LM-2) ETAL(L+1)=.5*ENTCON*(GZ(I,J,L+2)-GZ(I,J,L))*
@@ -307,7 +309,8 @@ C**** SURROUNDING WINDS
   120 UM(K,L)=UC(ID(K),1,L)*AIRM(L)
   150 CONTINUE
       ETAL(LM)=ETAL(LM-1)
-      PLE(LM+1)=PTOP+(PSF-PTOP)*SIGE(LM+1)
+c      PLE(LM+1)=PTOP+(PSF-PTOP)*SIGE(LM+1)
+      PLE(LM+1)=PEDN(LM+1,I,J)
 C**** CAL. HEIGHT OF CONDENSATION LEVEL
 C     LHX=LHE
 C     IF(TL(1).LT.TF) LHX=LHS
@@ -1372,9 +1375,11 @@ C 161 LPBL1=LPBL+1
       SLH=LHE*BYSHA
       DO 180 L=1,LM
       IF(L.EQ.LS1) PIJ=PSF-PTOP
-      PL(L)=SIG(L)*PIJ+PTOP
-      PLE(L)=SIGE(L)*PIJ+PTOP
-      PLK(L)=PK(I,J,L)
+c      PL(L)=SIG(L)*PIJ+PTOP
+c      PLE(L)=SIGE(L)*PIJ+PTOP
+      PL(L) =PMID(L,I,J)
+      PLE(L)=PEDN(L,I,J)
+      PLK(L)=PK(L,I,J)
       AIRM(L)=PIJ*DSIG(L)
       BYAM(L)=1./AIRM(L)
       TL(L)=T(I,J,L)*PLK(L)
@@ -1407,7 +1412,8 @@ C     CAREA(L)=(1.-RH(L))/(1.-RHF(L)*0.999+1.E-20)
 C     IF(CAREA(L).GT.1.) CAREA(L)=1.
 C     IF(RH(L).GT.1.) CAREA(L)=0.
   180 CONTINUE
-      PLE(LM+1)=PTOP+(PSF-PTOP)*SIGE(LM+1)
+c      PLE(LM+1)=PTOP+(PSF-PTOP)*SIGE(LM+1)
+      PLE(LM+1)=PEDN(LM+1,I,J)
       PIJ=P(I,J)
 C****
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION

@@ -337,7 +337,8 @@ C****   7  MAX TG1 OVER OCEAN ICE FOR CURRENT DAY (C)
 C****   8  MAX TG1 OVER LAND ICE FOR CURRENT DAY (C)
 C****
       USE E001M12_COM
-     &     , uhide=>u, vhide=>v, thide=>t, phide=>p, qhide=>q
+     &     , uhide=>u, vhide=>v, thide=>t, phide=>p, qhide=>q,
+     *     sqrtpx=>sqrtp
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION U(IM,JM,LM),V(IM,JM,LM),T(IM,JM,LM),P(IM,JM),Q(IM,JM,LM)
       LOGICAL POLE
@@ -418,29 +419,29 @@ C****
 C**** CALCULATE PK AND TX, THE REAL TEMPERATURE
 C****
       DO 80 L=1,LS1-1
-      PK(1,1,L)=EXPBYK(SIG(L)*P(1,1)+PTOP)
-      TX(1,1,L)=T(1,1,L)*PK(1,1,L)
-      PK(1,JM,L)=EXPBYK(SIG(L)*P(1,JM)+PTOP)
-      TX(1,JM,L)=T(1,JM,L)*PK(1,JM,L)
+c      PK(L,1,1)=EXPBYK(SIG(L)*P(1,1)+PTOP)
+      TX(1,1,L)=T(1,1,L)*PK(L,1,1)
+c      PK(L,1,JM)=EXPBYK(SIG(L)*P(1,JM)+PTOP)
+      TX(1,JM,L)=T(1,JM,L)*PK(L,1,JM)
       DO 70 I=2,IM
       T(I,1,L)=T(1,1,L)
       T(I,JM,L)=T(1,JM,L)
-      PK(I,1,L)=PK(1,1,L)
+c      PK(L,I,1)=PK(L,1,1)
       TX(I,1,L)=TX(1,1,L)
-      PK(I,JM,L)=PK(1,JM,L)
+c      PK(L,I,JM)=PK(L,1,JM)
    70 TX(I,JM,L)=TX(1,JM,L)
       DO 80 J=2,JM-1
       DO 80 I=1,IM
-      PK(I,J,L)=EXPBYK(SIG(L)*P(I,J)+PTOP)
-   80 TX(I,J,L)=T(I,J,L)*PK(I,J,L)
+c      PK(L,I,J)=EXPBYK(SIG(L)*P(I,J)+PTOP)
+   80 TX(I,J,L)=T(I,J,L)*PK(L,I,J)
       DO 83 L=LS1,LM
       DO 82 I=2,IM
       T(I,1,L)=T(1,1,L)
    82 T(I,JM,L)=T(1,JM,L)
       DO 83 J=1,JM
       DO 83 I=1,IM
-      PK(I,J,L)=PKS(L)
-   83 TX(I,J,L)=T(I,J,L)*PKS(L)
+c      PK(L,I,J)=PKS(L)
+   83 TX(I,J,L)=T(I,J,L)*PK(L,I,J)  !      PKS(L)
 C****
 C**** CALCULATE PUV, THE MASS WEIGHTED PRESSURE
 C****
@@ -956,11 +957,11 @@ C     SDQ2I=0.
 C     SDI=SDI+SD(I,J,L)
       PIJ=P(I,J)
       IF(L.GE.LS1-1) PIJ=PSF-PTOP
-      PE=SIGE(L+1)*PIJ+PTOP
-      PKE=EXPBYK(PE)
+      PE=PEDN(L+1,I,J)  ! SIGE(L+1)*PIJ+PTOP
+      PKE=PEK(L+1,I,J)  ! EXPBYK(PE)
       THETA=THBAR(T(I,J,L+1),T(I,J,L))
       W(I,J,L)=SD(I,J,L)*THETA*PKE/PE
-C     PHIE(I,J,L)=PHI(I,J,L)+SHA*THETA*(PK(I,J,L)-PKE)
+C     PHIE(I,J,L)=PHI(I,J,L)+SHA*THETA*(PK(L,I,J)-PKE)
 C     PZI=PZI+PHIE(I,J,L)*P(I,J)
 C     SDZI=SDZI+PHIE(I,J,L)*SD(I,J,L)
 C     PDSE2I=PDSE2I+(SHA*(TX(I,J,L)+TX(I,J,L+1))+2.*PHIE(I,J,L))*P(I,J)
@@ -1033,7 +1034,7 @@ C**** GMEAN CALCULATED FOR EACH LAYER, THJL, THSQJL ARRAYS FILLED
       THJL(J,L)=THJL(J,L)+T(I,J,L)*SQRTP(I)
       THSQJL(J,L)=THSQJL(J,L)+T(I,J,L)*T(I,J,L)*P(I,J)
   730 GMEAN(L)=GMEAN(L)+(SIG(L)*P(I,J)+PTOP)*(T(I,J,LUP)-T(I,J,LDN))*
-     *  DXYP(J)/(P(I,J)*PK(I,J,L))
+     *  DXYP(J)/(P(I,J)*PK(L,I,J))
   740 CONTINUE
 C**** CALCULATE APE
       DO 760 L=1,LM
@@ -5220,7 +5221,7 @@ C****
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION UX(IM,JM,*),VX(IM,JM,*)
       COMMON/WORK1/PIT(IM,JM)
-c    ,SD(IM,JM,LM-1),PK(IM,JM,LM)
+c    ,SD(IM,JM,LM-1),PK(LM,IM,JM)
       COMMON/WORK2/JLATP(JM),JLATV(JM),SCALE(36),FGLOB(36),FHEM(2,36),
      *  MLAT(JM,36),MAREA(JM)
       COMMON/WORK3/GBUDG(JM+3,80,4),CNSLAT(JM+3,36)
@@ -5329,16 +5330,16 @@ C****
 C**** TOTAL POTENTIAL ENERGY
 C****
   400 SHA=RGAS/KAPA
-      IF (DOPK.LE.0.) GO TO 420
-      DO 410 L=1,LS1-1
-      DO 410 J=1,JM
-      DO 410 I=1,IM
-  410 PK(I,J,L)=EXPBYK(SIG(L)*P(I,J)+PTOP)
-      DO 415 L=LS1,LM
-      DO 415 J=1,JM
-      DO 415 I=1,IM
-  415 PK(I,J,L)=PKS(L)
-      DOPK=0.
+c      IF (DOPK.LE.0.) GO TO 420
+c      DO 410 L=1,LS1-1
+c      DO 410 J=1,JM
+c      DO 410 I=1,IM
+c  410 PK(L,I,J)=EXPBYK(SIG(L)*P(I,J)+PTOP)
+c      DO 415 L=LS1,LM
+c      DO 415 J=1,JM
+c      DO 415 I=1,IM
+c  415 PK(L,I,J)=PKS(L)
+c      DOPK=0.
   420 DO 460 J=1,JM
       IMAX=IM
       IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
@@ -5347,9 +5348,9 @@ C****
       TPEI=0.
       DO 430 I=1,IMAX
       IF(L.GE.LS1) GO TO 425
-      TPEI=TPEI+T(I,J,L)*PK(I,J,L)*P(I,J)
+      TPEI=TPEI+T(I,J,L)*PK(L,I,J)*P(I,J)
       GO TO 430
-  425 TPEI=TPEI+T(I,J,L)*PK(I,J,L)*PSFMPT
+  425 TPEI=TPEI+T(I,J,L)*PK(L,I,J)*PSFMPT
   430 CONTINUE
   440 TPEIL=TPEIL+TPEI*DSIG(L)
       SGEOI=0.
@@ -5635,12 +5636,13 @@ C****
       IMPLICIT REAL*8 (A-H,O-Z)
       REAL*8 KE
       DOUBLE PRECISION TPE,SUMI,SUMT
-c      COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PK(IM,JM,LM)
+c      COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PK(LM,IM,JM)
       COMMON/WORK3/GBUDG(JM+3,80,4),FATPE(8,2),FNM5(20,IMH+3,2,4)
       COMMON/WORK5/DUT(IM,JM,LM),DVT(IM,JM,LM),
      *  X(IM),FCUVA(0:IMH,JM,LM,2),FCUVB(0:IMH,JM,LM,2),
      * FA(0:IMH),FB(0:IMH),KE(IMH+1,8),APE(IMH+1,8),VAR(IMH+1,4),TPE(2),
-     *  SQRTM(IM,JM),SQRTP(IM,JM),THJSP(LM),THJNP(LM),THGM(LM),
+c     *  SQRTM(IM,JM),SQRTP(IM,JM),THJSP(LM),THJNP(LM),THGM(LM),
+     *  SQRTM(IM,JM),THJSP(LM),THJNP(LM),THGM(LM),
      *  SCALE(20),MN(20),F0(20),FNSUM(20)
       DIMENSION UX(IM,JM,*)
       DIMENSION MTPEOF(20),MAPEOF(8)
@@ -5758,25 +5760,25 @@ C**** TRANSFER RATES AS DIFFERENCES OF KINETIC ENERGY
 C****
 C**** POTENTIAL ENERGY
 C****
-      IF (DOPK.EQ.-1.) GO TO 296
+c      IF (DOPK.EQ.-1.) GO TO 296
 C**** COMPUTE SQRTP = SQRT(P) AND PK = P**KAPA
-      SQRTP1=SQRT(P(1,1))
-      SQRTPM=SQRT(P(1,JM))
-      DO 290 J=2,JM-1
-      DO 290 I=1,IM
-  290 SQRTP(I,J)=SQRT(P(I,J))
-      DO 292 I=1,IM
-      SQRTP(I,1)=SQRTP1
-  292 SQRTP(I,JM)=SQRTPM
-      IF (DOPK.EQ.0.) GO TO 296
-      DO 294 L=1,LS1-1
-      DO 294 J=1,JM
-      DO 294 I=1,IM
-  294 PK(I,J,L)=EXPBYK(SIG(L)*P(I,J)+PTOP)
-      DO 295 L=LS1,LM
-      DO 295 J=1,JM
-      DO 295 I=1,IM
-  295 PK(I,J,L)=PKS(L)
+c      SQRTP1=SQRT(P(1,1))
+c      SQRTPM=SQRT(P(1,JM))
+c      DO 290 J=2,JM-1
+c      DO 290 I=1,IM
+c  290 SQRTP(I,J)=SQRT(P(I,J))
+c      DO 292 I=1,IM
+c      SQRTP(I,1)=SQRTP1
+c  292 SQRTP(I,JM)=SQRTPM
+c      IF (DOPK.EQ.0.) GO TO 296
+c      DO 294 L=1,LS1-1
+c      DO 294 J=1,JM
+c      DO 294 I=1,IM
+c  294 PK(L,I,J)=EXPBYK(SIG(L)*P(I,J)+PTOP)
+c      DO 295 L=LS1,LM
+c      DO 295 J=1,JM
+c      DO 295 I=1,IM
+c  295 PK(L,I,J)=PKS(L)
   296 DOPK=-1.
       DO 298 N=1,NM8
   298 APE(N,1)=0.
@@ -5806,15 +5808,15 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
       VAR(1,1)=.5*(THJSP(L)-THGM(L))**2*DXYP(1)*FIM
       VAR(1,2)=.5*(THJNP(L)-THGM(L))**2*DXYP(JM)*FIM
       GMEAN=((THJSP(LUP)-THJSP(LDN))*DXYP(1)*(SIG(L)*P(1,1)+PTOP)/
-     *  (SQRTP1*P(1,1)*PK(1,1,L)) + (THJNP(LUP)-THJNP(LDN))*DXYP(JM)*
-     *  (SIG(L)*P(1,JM)+PTOP)/(SQRTPM*P(1,JM)*PK(1,JM,L)))*FIM
+     *  (SQRTP(1,1)*P(1,1)*PK(L,1,1))+(THJNP(LUP)-THJNP(LDN))*DXYP(JM)*
+     *  (SIG(L)*P(1,JM)+PTOP)/(SQRTP(1,JM)*P(1,JM)*PK(L,1,JM)))*FIM
       JHEMI=1
       DO 388 J=2,JM-1
       GMSUM=0.
       DO 370 I=1,IM
       X(I)=T(I,J,L)*SQRTP(I,J)-THGM(L)
   370 GMSUM=GMSUM+(T(I,J,LUP)-T(I,J,LDN))*(SIG(L)*P(I,J)+PTOP)/
-     *  (P(I,J)*PK(I,J,L))
+     *  (P(I,J)*PK(L,I,J))
       GMEAN=GMEAN+GMSUM*DXYP(J)
       CALL FFTE (X,X)
       DO 380 N=1,NM
@@ -5844,7 +5846,7 @@ C**** CURRENT TOTAL POTENTIAL ENERGY
       JP=1+JMM1*(JHEMI-1)
       SUMT=0.
       DO 455 L=1,LM
-  455 SUMT=SUMT+T(1,JP,L)*PK(1,JP,L)*DSIG(L)
+  455 SUMT=SUMT+T(1,JP,L)*PK(L,1,JP)*DSIG(L)
       TPE(JHEMI)=FIM*DXYP(JP)*(FDATA(1,JP,1)*(P(1,JP)+PTOP)+
      *  SUMT*SHA*P(1,JP))
       DO 480 JH=2,JEQM1
@@ -5853,7 +5855,7 @@ C**** CURRENT TOTAL POTENTIAL ENERGY
       DO 470 I=1,IM
       SUMT=0.
       DO 460 L=1,LM
-  460 SUMT=SUMT+T(I,J,L)*PK(I,J,L)*DSIG(L)
+  460 SUMT=SUMT+T(I,J,L)*PK(L,I,J)*DSIG(L)
   470 SUMI=SUMI+FDATA(I,J,1)*(P(I,J)+PTOP)+SUMT*SHA*P(I,J)
   480 TPE(JHEMI)=TPE(JHEMI)+SUMI*DXYP(J)
       IF (NDT.EQ.0) GO TO 520
