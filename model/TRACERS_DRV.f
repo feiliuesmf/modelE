@@ -34,8 +34,8 @@
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM,only:COaltIN,LCOalt,PCOalt,COalt,
      & mass2vol,bymass2vol,CH4altINT,CH4altINX,LCH4alt,PCH4alt,
-     &     CH4altX,CH4altT,corrOxIN,corrOx,LcorrOx,PcorrOx,ch4_init_sh
-     &     ,ch4_init_nh,LS1Jmax 
+     &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,LS1J,LS1Jmax,
+     &     OxICIN,OxIC,OxICINL,OxICL
 #ifdef Shindell_Strat_chem
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt
@@ -61,9 +61,8 @@
 !@var PRES local nominal pressure for vertical interpolations
 !@var iu_data unit number
 !@var title header read in from file
-      REAL*8, DIMENSION(LM) :: PRES,tempOx2
-      REAL*8, DIMENSION(LcorrOx) :: tempOx1
-      integer iu_data,m,j,nq
+      REAL*8, DIMENSION(LM) :: PRES
+      integer iu_data,m,i,j,nq
       character*80 title
 #ifdef regional_Ox_tracers
 !@var Ox_a_tracer logical is true if Ox is one of the tracers
@@ -127,6 +126,9 @@ C**** Define a max layer for some optionally trop/strat tracers
       LTOP = LM
 #else
       LTOP = LS1Jmax-1
+      DO J=1,JM
+       IF(LS1J(J).gt.LTOP+1)call stop_model('LS1J > LS1Jmax',255)
+      END DO 
 #endif
 #endif
 
@@ -290,24 +292,16 @@ C**** Get solar variability coefficient from namelist if it exits
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       case ('Ox')
-      n_Ox = n
-c         read stratospheric correction from files:
-          call openunit('Ox_corr',iu_data,.true.,.true.)
-          read (iu_data) title,corrOxIN
+      n_Ox = n    
+          call openunit('Ox_IC',iu_data,.true.,.true.)
+          read (iu_data) title,OxICIN
           call closeunit(iu_data)
-          write(6,*) title,' read from Ox_corr'
-          DO m=1,12; DO j=1,jm
-           tempOx1(:)=CorrOxIN(J,:,M)
-           CALL LOGPINT(LcorrOX,PcorrOx,tempOx1,LM,PRES,
-     &                  tempOx2,.true.)
-           CorrOx(J,:,M)=tempOx2(:)
-          END DO   ; END DO
-C         Only alter Ox between 150 and 30 hPa (lower strat):
-          DO L=1,LM
-            IF(PRES(L).lt.30.d0.or.PRES(L).gt.150.d0) 
-     &      corrOx(:,L,:)=1.0d0
-          END DO
-c          
+          write(6,*) title,' read from OxIC'
+          do j=1,jm  ; do i=1,im
+           OxICINL(:)=OxICIN(I,J,:)
+           CALL LOGPINT(LCOalt,PCOalt,OxICINL,LM,PRES,OxICL,.true.)
+           OxIC(I,J,:)=OxICL(:)
+          end do     ; end do
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
@@ -1790,7 +1784,7 @@ C**** (not necessary associated with a particular tracer)
         jls_OHcon=k
         sname_jls(k) = 'OH_conc'
         lname_jls(k) = 'OH concentration'
-        jls_ltop(k)  = LS1Jmax-1
+        jls_ltop(k)  = LTOP
         jwt_jls(k) = 2
         jls_power(k) = 5.
         scale_jls(k) = byim
@@ -1800,7 +1794,7 @@ c
         jls_H2Omr=k
         sname_jls(k) = 'H2O_mr'
         lname_jls(k) = 'H2O mixing ratio (weighted by daylight)'
-        jls_ltop(k)  = LS1Jmax-1
+        jls_ltop(k)  = LTOP
         jwt_jls(k) = 2
         jls_power(k) = -4. 
         scale_jls(k) = 1.
@@ -1819,7 +1813,7 @@ c
         jls_N2O5sulf=k
         sname_jls(k) = 'N2O5_sulf'
         lname_jls(k) = 'N2O5 sulfate sink'
-        jls_ltop(k)  = LS1Jmax-1
+        jls_ltop(k)  = LTOP
         jls_power(k) = -2. 
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifdef regional_Ox_tracers
@@ -1828,7 +1822,7 @@ c
         jls_Oxloss=k
         sname_jls(k) = 'Ox_loss'
         lname_jls(k) = 'Ox chemical loss'
-        jls_ltop(k)  = LS1Jmax-1
+        jls_ltop(k)  = LTOP 
         jls_power(k) = -2. 
         units_jls(k) = unit_string(jls_power(k),'molecules/cm3/s')
 c
@@ -1836,7 +1830,7 @@ c
         jls_Oxprod=k
         sname_jls(k) = 'Ox_prod'
         lname_jls(k) = 'Ox chemical production'
-        jls_ltop(k)  = LS1Jmax-1
+        jls_ltop(k)  = LTOP
         jls_power(k) = -2. 
         units_jls(k) = unit_string(jls_power(k),'molecules/cm3/s')
 #endif
@@ -3730,11 +3724,10 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       USE FILEMANAGER, only: openunit,closeunit
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM,only:O3MULT,COlat,MDOFM 
-     &  ,corrOx,COalt,JCOlat,O3DLJI,O3DLJI_clim
+     &  ,COalt,JCOlat,OxIC
 #ifdef Shindell_Strat_chem
      &  ,ClOxalt,BrOxalt,ClONO2alt,HClalt
 #endif
-      USE RADPAR, only: O3DLJ
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only: dmsinput
@@ -4020,25 +4013,10 @@ c**** earth
 
 #ifdef TRACERS_SPECIAL_Shindell
         case ('Ox')
-          do i=1,im; DO l=1,lm
-            O3DLJI(L,:,I)=O3DLJ(L,:)
-          end do   ; end do
-          O3DLJI_clim(:,:,:)=O3DLJI(:,:,:)
-          imonth= 1
-          DO i=2,12
-            IF((JDAY.LE.MDOFM(i)).AND.(JDAY.GT.MDOFM(i-1))) THEN
-              imonth=i
-              EXIT     
-            END IF
-          END DO
-          WRITE(6,*) 'Use month ',imonth,' Ox correction.'
-C         Place initial conditions into tracer mass array:
-          DO L=1,LM; DO I=1,IM
-            trm(I,:,L,n) = 
-     &      O3DLJI(L,:,I)*DXYP(:)*O3MULT*corrOx(:,L,imonth)
-          END DO   ; END DO
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(I,J,L,n) = OxIC(I,J,L)
+          end do   ; end do   ; end do
           trmom(:,:,:,:,n) = 0.
-          J2=0
 #endif
 #ifdef regional_Ox_tracers
         case ('OxREG1','OxREG2','OxREG3','OxREG4','OxREG5','OxREG6')
