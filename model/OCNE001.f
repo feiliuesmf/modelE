@@ -111,16 +111,17 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
 !@ver  1.0 (Q-flux ocean or fixed SST)
       IMPLICIT NONE
 
-      REAL*8 XZO(IM,JM),XZN(IM,JM)
+      REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       INTEGER, INTENT(IN) :: IDOZ1O
 
-      INTEGER n,MD,J,I,LSTMON,K,MDMAX,IMAX,IMON
+      INTEGER n,MD,J,I,LSTMON,K,MDMAX,IMAX
       REAL*8 PLICEN,PLICE,POICE,POCEAN,RSICSQ,ZIMIN,ZIMAX,X1
      *     ,X2,Z1OMIN,RSINEW,TIME,FRAC,MSINEW
 !@var JDLAST julian day that OCLIM was last called
       INTEGER, SAVE :: JDLAST=0
 !@var MONTHO current month for climatology reading
-      INTEGER, SAVE :: MONTHO = 0
+!@var IMON current month for climatology reading
+      INTEGER, SAVE :: MONTHO = 0, IMON = 0
 
       IF (KOCEAN.EQ.1) GO TO 500
 C****
@@ -273,7 +274,7 @@ C**** set ftype arrays
 C****
 C**** CALCULATE DAILY OCEAN MIXED LAYER DEPTHS FROM CLIMATOLOGY
 C****
-C**** SAVE PREVIOUS DAY'S MIXED LAYER DEPTH IN WORK2
+C**** SAVE PREVIOUS DAY'S MIXED LAYER DEPTH
  500  Z1OOLD=Z1O
 C**** COMPUTE Z1O ONLY AT THE BEGINNING OF A DAY (OR AT ItimeI)
 C**** Check mark to see if Z1O needs to be set initially
