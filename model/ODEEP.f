@@ -71,7 +71,7 @@ C**** base of mixed layer, initialise deep arrays for start of run
         stg3=0. ; dtg3=0. ; rtgo=0.
 
         call openunit("TG3M",iu_tg3m,.true.,.true.)
-        READ(iu_tg3m) TITLE,TOCEAN,RSI,MSI,HSI,SSI,TG3M
+        READ(iu_tg3m) TITLE,TG3M
         WRITE(6,*) "Read from TG3M",TITLE
         call closeunit (iu_tg3m)
 
@@ -365,14 +365,14 @@ C**** Check for NaN/INF in ocean data
 C**** Check for reasonable values for ocean variables
       DO J=1,JM
         DO I=1,IM
-          IF (TOCEAN(1,I,J).lt.-2. .or. TOCEAN(1,I,J).gt.50.) THEN 
-            WRITE(6,*) 'After ',SUBR,': I,J,TOCEAN=',I,J,TOCEAN(1:3,I,J) 
+          IF (TOCEAN(1,I,J).lt.-2. .or. TOCEAN(1,I,J).gt.50.) THEN
+            WRITE(6,*) 'After ',SUBR,': I,J,TOCEAN=',I,J,TOCEAN(1:3,I,J)
             QCHECKO = .TRUE.
           END IF
        END DO
       END DO
-      IF (QCHECKO) 
-     *     call stop_model("CHECKO: Ocean variables out of bounds",255)  
+      IF (QCHECKO)
+     *     call stop_model("CHECKO: Ocean variables out of bounds",255)
 
       END SUBROUTINE CHECKO
 

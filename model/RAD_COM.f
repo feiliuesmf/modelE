@@ -69,6 +69,8 @@ C**** exactly the same as the default values.
       INTEGER :: Aero_yr = 1951    ! always use annual cycle
 !@dbparam O3_yr obs.year of Ozone (if 0: time var)
       INTEGER :: O3_yr = 1951      ! always use annual cycle
+!@dbparam crops_yr obs.year of crops (if 0: time var, -1: default)
+      INTEGER :: crops_yr = -1
 !@dbparam H2OstratX stratospheric water vapour multiplication factor
       REAL*8 :: H2OstratX = 1.
 !@dbparam H2ObyCH4 if not 0: add CH4 produced H2O into layers 1->LM

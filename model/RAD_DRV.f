@@ -295,7 +295,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARD,KJDAYD,MADDST, KYEARV,KJDAYV,MADVOL
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
-     *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
+     *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr,crops_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,calc_orb_par,paleo_orb_yr
@@ -331,6 +331,7 @@ C**** sync radiation parameters from input
       call sync_param( "volc_day", volc_day )
       call sync_param( "aero_yr", aero_yr )
       call sync_param( "O3_yr", O3_yr )
+      call sync_param( "crops_yr", crops_yr )
       call sync_param( "MOZONE", MOZONE )
       call sync_param( "KSOLAR", KSOLAR )
       call sync_param( "KVEGA6", KVEGA6 )
@@ -1767,4 +1768,74 @@ C****
       RETURN
       END SUBROUTINE ORBIT
 
+
+      subroutine updveg (year)
+!@sum  reads appropriate crops data and updates the vegetation file
+!@auth R. Ruedy
+!@ver  1.0
+      USE FILEMANAGER
+      USE MODEL_COM, only : im,jm,vdata      
+      USE GEOM, only : imaxj
+      implicit none
+      integer, intent(in) :: year
+
+      real*8 wt,crop(im,jm),crops         ! temporary vars
+
+      integer :: year1,year2,year_old=-1, iu, i,j,k
+      real*8 vdata0(im,jm,11),crop1(im,jm),crop2(im,jm)  ! to limit i/o
+      save    year1,year2,year_old,vdata0,crop1,crop2    ! to limit i/o
+
+      character*80 title
+      real*4 crop4(im,jm)
+
+C**** check whether update is needed
+      if (year.eq.year_old) return
+
+C**** first iteration actions:
+      if (year_old.lt.0) then
+C****     check whether a no-crops vege-file was used
+        do j=2,jm-1
+        do i=1,im
+           if(vdata(i,j,9).gt.0.)
+     *     call stop_model('updveg: use no_crops_VEG_file',255)
+        end do
+        end do
+C****     open and read input file
+        call openunit('CROPS',iu,.true.,.true.)
+        read(iu) title,crop4
+        read(title,*) year1
+        crop1=crop4 ; crop2=crop4 ; year2=year1
+        if (year1.ge.year)          year2=year+1
+C****     save orig. (no-crop) vdata to preserve restart-independence
+        vdata0 = vdata
+      end if
+
+      wt=0.
+      do while (year2.lt.year)
+         year1 = year2 ; crop1 = crop2
+         read (iu,end=10) title,crop4
+         read(title,*) year2
+         crop2 = crop4
+      end do
+      wt = (year-year1)/(real(year2-year1,kind=8))
+   10 continue
+      write(6,*) 'Using crops data from year',year1+wt*(year2-year1)
+
+C**** Modify the vegetation fractions
+      do j=1,jm
+      do i=1,imaxj(j)
+         if (crop1(i,j).ge.0.) then
+            crops = crop1(i,j) + wt*(crop2(i,j)-crop1(i,j))
+            do k=1,11
+              vdata(i,j,k) = vdata0(i,j,k)*(1.-crops)
+            end do
+              vdata(i,j,9) = crops
+         end if
+      end do
+      end do
+
+      year_old = year
+
+      return
+      end subroutine updveg
 

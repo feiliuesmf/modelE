@@ -439,7 +439,7 @@ c****   radiation, and conduction heat (watts/m**2)
 c      snht=-sha*rcdhws*(ts-tg)  ! -not used
       trheat=trhr(0,i,j)
 c***********************************************************************
-c**** 
+c****
 c  define extra variables to be passed in surfc:
       pres  =ps
       rho   =rhosrf
@@ -451,16 +451,16 @@ c  define extra variables to be passed in surfc:
 ! adf Fraction of solar radiation at ground that is direct beam.
       fdir=FSRDIR(i,j)
 ! Internal foliage CO2 concentration (mol/m3).
-      Ci=Cint(i,j)  ! ; Cin=Ci  ! needed to prevent div.check , why ?
+      Ci=Cint(i,j)
 ! Foliage surface mixing ratio (kg/kg).
-      Qf=Qfol(i,j)  ! ; Qfn=Qf
+      Qf=Qfol(i,j)
 !----------------------------------------------------------------------!
   !    zs    =zgs  !!! will not need after qsbal is replaced
   !    z1    =zmix  !!! will not need after qsbal is replaced
   !    eddy  =khs   !!! will not need after qsbal is replaced
 c     tspass=ts
 c***********************************************************************
-c**** 
+c****
 c**** calculate ground fluxes
 c     call qsbal
       call ghinij (i,j,wfc1)
@@ -969,7 +969,7 @@ c**** zero-out vdata(11) until it is properly read in
           Qfol(:,:)=3.D-6
         end if
 !----------------------------------------------------------------------!
-        if (istart.le.0) return ! Why ?
+        if (istart.le.0) return ! avoid reading unneeded files
 c**** read soils parameters
         call openunit("SOIL",iu_SOIL,.true.,.true.)
         call dread (iu_SOIL,dz_ij,im*jm*(11*ngm+1),dz_ij)

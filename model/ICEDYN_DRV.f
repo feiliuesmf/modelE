@@ -244,14 +244,14 @@ C**** save current value of sea ice concentration for ADVSI
 C**** RSISAVE is on atmospheric grid
       RSISAVE(:,:)=RSI(:,:)
 
-C**** Pressure anomaly at surface APRESS is calculated by sea ice routines
+C**** Pressure anomaly at surface APRESS: calculated by sea ice routines
 C**** APRESS is on atmospheric grid. We are now no longer using this as
 C**** a forcing in the sea ice dynamics because it is partially
-C**** included ready in the internal ice pressure gradient. The
-C**** atmospheric pressure graident term does not in general produce a
+C**** included already in the internal ice pressure gradient. The
+C**** atmospheric pressure gradient term does not in general produce a
 C**** horizontal force in a solid (such as ice).
 
-C**** calculate sea surface tilt on atmospheric C grid 
+C**** calculate sea surface tilt on atmospheric C grid
 C**** (using OGEOZA on atmospheric grid plus displacement of free
 C**** surface due to presence of ice)
 C**** PGF is an accelaration
@@ -712,7 +712,7 @@ C**** VSIDT(J-1)=0, VSIDT(J)<0.
       RSIY(I,J) = YRSI*BYFOA(I,J)
       RSIX(I,J) = RSIX(I,J) - FXSI(J)*BYFOA(I,J)
       IF (ASI.gt.0) MHS(1:NTRICE,I,J) = AMSI(1:NTRICE)/ASI
-      GO TO 310 
+      GO TO 310
 C**** VSIDT(J-1)=0, VSIDT(J)>0.
   230 RSI(I,J)  =  RSI(I,J) -  FASI(J)*BYFOA(I,J)
       RSIX(I,J) = RSIX(I,J)*(1d0-FAW(J)*BYDXYP(J))

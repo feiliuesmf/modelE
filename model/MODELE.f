@@ -519,7 +519,7 @@ C**** Also find CSDRAGL, the coefficients of C_Sdrag as a function of L
      *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.P_SDRAG)         LSDRAG=L
         IF (PTOP+PSFMPT*SIGE(L+1)-1d-5.lt.PP_SDRAG .and.
      *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.PP_SDRAG)        LPSDRAG=L
-        IF (PTOP+PSFMPT*SIGE(L+1)-1d-5.lt.P_CSDRAG .and. 
+        IF (PTOP+PSFMPT*SIGE(L+1)-1d-5.lt.P_CSDRAG .and.
      *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.P_CSDRAG)        LCSDRAG=L
       END DO
       DO L=LCSDRAG,LSDRAG-1
@@ -1260,7 +1260,7 @@ C****
       USE DYNAMICS, only : byAM
       USE RE001, only : ghgam,ghgyr2,ghgyr1
       USE RADNCB, only : RSDIST,COSD,SIND, dh2o,H2ObyCH4,ghg_yr,
-     *     omegt,obliq,eccn
+     *     omegt,obliq,eccn,crops_yr
 #ifdef TRACERS_WATER
       USE TRACER_COM, only: trm,tr_wd_type,nwater,tr_H2ObyCH4,itime_tr0
      *     ,ntm
@@ -1280,6 +1280,10 @@ C****
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
 C**** This is for noon (GMT) for new day.
       CALL ORBIT (OBLIQ,ECCN,OMEGT,DFLOAT(JDAY)-.5,RSDIST,SIND,COSD,LAM)
+
+C**** Update vegetation file if necessary
+      if(crops_yr.eq.0) call updveg(jyear)
+      if(crops_yr.gt.0) call updveg(crops_yr)
 
       IF (.not.(end_of_day.or.itime.eq.itimei)) RETURN
 

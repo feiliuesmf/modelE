@@ -1009,11 +1009,9 @@ C****
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output
-        WRITE (kunit,err=10) it,TOCEAN,RSI,MSI,HSI,SSI,
-     *     ((AIJ(I,J,IJ_TGO2),I=1,IM),J=1,JM)
+        WRITE (kunit,err=10) it,((AIJ(I,J,IJ_TGO2),I=1,IM),J=1,JM)
       CASE (IOREAD:)            ! input
-        READ (kunit,err=10) it,TOCEAN,RSI,MSI,HSI,SSI,
-     *     ((AIJ(I,J,IJ_TGO2),I=1,IM),J=1,JM)
+        READ (kunit,err=10) it,((AIJ(I,J,IJ_TGO2),I=1,IM),J=1,JM)
       END SELECT
 
       RETURN
