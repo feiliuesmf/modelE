@@ -642,12 +642,14 @@ C$OMP*   PLAND,PIJ, QSS, RANDSS,RANDMC, TOTCLD,TAUSSL,TAUMCL)
 C$OMP*   COPYIN(/RADCOM_hybrid/)
 C$OMP    DO SCHEDULE(DYNAMIC,2)
       DO 600 J=1,JM
-      JLAT=NINT(1.+(J-1.)*45./(JM-1.))  !  lat_index w.r.to 72x46 grid
+      ! can't we replace it with J ?
+      JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)  !  lat_index w.r.to 72x46 grid
 C****
 C**** MAIN I LOOP
 C****
       DO I=1,IMAXJ(J)
-      ILON=NINT(.5+(I-.5)*72./IM)       !  lon_index w.r.to 72x46 grid
+      ! can't we replace it with I?
+      ILON=INT(.5+(I-.5)*72./IM+.5)       !  lon_index w.r.to 72x46 grid
 CCC      JR=JREG(I,J)
 C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PLAND=FLAND(I,J)

@@ -227,7 +227,8 @@ C****
       VS=VSAVG(I,J)
       TGV=TGVAVG(I,J)
       QG=QGAVG(I,J)
-      DCL=NINT(DCLEV(I,J))
+!!!      DCL=NINT(DCLEV(I,J))   ! is DCLEV always >= 0 ?
+      DCL=INT(DCLEV(I,J)+.5)
 
       DO K=1,KMAX
          RA(K)=RAVJ(K,J)

@@ -141,25 +141,25 @@ C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
-cccC$OMP   PARALLEL DO PRIVATE (ACE2, BETA,BETAUP,   CM,CH,CQ,
-cccC$OMP*  CDTERM,CDENOM, DGS,DSHDTG,DQGDTG,DEVDTG,DTRDTG,
-cccC$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DHGS,DQGS,DSNDTG,DEVDQS,
-cccC$OMP*  DHS,DQS,DT2,DTS, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0,
-cccC$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HC1,HCG1,HCG2,HSDEN,HSCON,
-cccC$OMP*  HSMUL,HTLIM,I,ITYPE,IDTYPE, J,
-cccC$OMP*  KR, MSUM,MA1,MSI1,MSI2, PS,PXSOIL,P1,P1K,PLAND,PWATER,
-cccC$OMP*  PLICE,PIJ,POICE,POCEAN,PGK,PKDN,PTYPE,PSK, Q1,QSDEN,
-cccC$OMP*  QSCON,QSMUL, RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT,
-cccC$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TGDEN,TH1,TFS,TS,
-cccC$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,Z2BY4L
+C$OMP   PARALLEL DO PRIVATE (ACE2, BETA,BETAUP,   CM,CH,CQ,
+C$OMP*  CDTERM,CDENOM, DGS,DSHDTG,DQGDTG,DEVDTG,DTRDTG,
+C$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DHGS,DQGS,DSNDTG,DEVDQS,
+C$OMP*  DHS,DQS,DT2,DTS, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0,
+C$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HC1,HCG1,HCG2,HSDEN,HSCON,
+C$OMP*  HSMUL,HTLIM,I,ITYPE,IDTYPE, J,
+C$OMP*  KR, MSUM,MA1,MSI1,MSI2, PS,PXSOIL,P1,P1K,PLAND,PWATER,
+C$OMP*  PLICE,PIJ,POICE,POCEAN,PGK,PKDN,PTYPE,PSK, Q1,QSDEN,
+C$OMP*  QSCON,QSMUL, RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT,
+C$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TGDEN,TH1,TFS,TS,
+C$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,Z2BY4L
 #ifdef TRACERS_ON
-cccC$OMP*  ,n,nx,nsrc,rhosrf0,totflux
+C$OMP*  ,n,nx,nsrc,rhosrf0,totflux
 #ifdef TRACERS_WATER
-cccC$OMP*  ,tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1
+C$OMP*  ,tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1
 #endif
 #endif
-cccC$OMP*  )
-cccC$OMP*  SCHEDULE(DYNAMIC,2)
+C$OMP*  )
+C$OMP*  SCHEDULE(DYNAMIC,2)
 C
       DO J=1,JM
       HEMI=1.
@@ -244,11 +244,12 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
 C****
       DO ITYPE=1,3       ! no earth type
       ipbl(i,j,itype)=0
-      SELECT CASE (ITYPE)
+!!!      SELECT CASE (ITYPE)
 C****
 C**** OCEAN
 C****
-      CASE (1)
+!!!      CASE (1)
+      if ( ITYPE == 1 ) then
 
       PTYPE=POCEAN
       IF (PTYPE.gt.0) THEN
@@ -280,7 +281,8 @@ C**** limit on tracer evporation from lake
 C****
 C**** OCEAN ICE
 C****
-      CASE (2)
+!!!      CASE (2)
+      else if ( ITYPE == 2 ) then
 
       PTYPE=POICE
       IF (PTYPE.gt.0) THEN
@@ -323,7 +325,8 @@ C*
 C****
 C**** LAND ICE
 C****
-      CASE (3)
+!!!      CASE (3)
+      else if ( ITYPE == 3 ) then
 
       PTYPE=PLICE
       IF (PTYPE.gt.0) THEN
@@ -340,7 +343,8 @@ C****
       BETA=1.
       ELHX=LHS
       END IF
-      END SELECT
+!!!      END SELECT
+      endif
 C****
       IF (PTYPE.gt.0) THEN
 C****
@@ -366,8 +370,9 @@ C**** they are water or another type of tracer
 #ifdef TRACERS_WATER
         tr_evap_max(nx)=1.
 C**** The select is used to distinguish water from gases or particle
-        select case (tr_wd_TYPE(n))
-        case (nWATER)
+!!!        select case (tr_wd_TYPE(n))
+!!!        case (nWATER)
+        if ( tr_wd_TYPE(n) == nWATER ) then
 #ifdef TRACERS_SPECIAL_O18
           if (ITYPE.eq.1) then   ! liquid water => fractionation
         trgrnd(nx)=gtracer(n,itype,i,j)*QG_SAT*FRACVL(TG1,trname(n))
@@ -380,7 +385,9 @@ C**** The select is used to distinguish water from gases or particle
 C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
-        case (nGAS, nPART)
+!!!        case (nGAS, nPART)
+        else if ( tr_wd_TYPE(n) == nGAS .or.
+     &         tr_wd_TYPE(n) == nPART ) then
 #endif
 C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
 C**** is a non-soluble tracer mixed in.)
@@ -394,7 +401,8 @@ C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
           end do
           trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
 #ifdef TRACERS_WATER
-        end select
+!!!        end select
+        endif
 #endif
       end do
 #endif
@@ -423,9 +431,10 @@ C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2)
       EVHEAT=(LHE+TG1*SHV)*BETAUP*RCDQWS*(QSRF-QG_SAT)
       TRHEAT=TRHR(0,I,J)-STBO*(TG*TG)*(TG*TG)
 C****
-      SELECT CASE (ITYPE)
+!!!      SELECT CASE (ITYPE)
 
-      CASE (1) ! FLUXES USING IMPLICIT TIME STEP FOR OCEAN POINTS
+!!!      CASE (1) ! FLUXES USING IMPLICIT TIME STEP FOR OCEAN POINTS
+      if ( ITYPE == 1) then
         DSHDTG=-RCDHWS*SHA
         dEVdQS = LHE*RCDQWS
         dHS = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/
@@ -438,7 +447,8 @@ C****
         EVHDT=DTSURF*(EVHEAT+dQS*dEVdQS) ! latent heat flux
         TRHDT=DTSURF*TRHEAT
 C****
-      CASE (2) ! FLUXES USING IMPLICIT TIME STEP FOR ICE POINTS
+!!!      CASE (2) ! FLUXES USING IMPLICIT TIME STEP FOR ICE POINTS
+      else if ( ITYPE == 2 ) then
 
 ! heat flux on first/second/third layers (W/m^2)
         F1 = (TG1-TG2)*dF1dTG + SRHEAT*FSRI(1)
@@ -477,7 +487,8 @@ C       dSNdHS = RCDHWS ! d(SHEAT)/dHS - kg/(sec*m^2)
         TG2 = TG2+dT2          ! second layer sea ice temperature (degC)
         TGRN2(ITYPE,I,J) = TG2
 C****
-      CASE (3) ! IMPLICIT TIME STEP OVER LANDICE
+!!!      CASE (3) ! IMPLICIT TIME STEP OVER LANDICE
+      else if ( ITYPE == 3 ) then
 
         F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
         F1=(TG1-CDTERM-F0*Z1BY6L)*CDENOM
@@ -494,7 +505,8 @@ C****
         F1DT=F1DT+DTSURF*(TG1-CDTERM-(F0+DTG*DFDTG)*Z1BY6L)*CDENOM
         TG1=TG1+DTG
 
-      END SELECT
+!!!      END SELECT
+      endif
 
 C**** CALCULATE EVAPORATION
       DQ1X =EVHDT/((LHE+TG1*SHV)*MA1)
@@ -695,8 +707,9 @@ C**** Save surface tracer concentration whether calculated or not
 C****
 C**** SAVE SOME TYPE DEPENDENT FLUXES/DIAGNOSTICS
 C****
-      SELECT CASE (ITYPE)
-      CASE (1)  ! ocean
+!!!      SELECT CASE (ITYPE)
+!!!      CASE (1)  ! ocean
+      if ( ITYPE == 1 ) then
         OA(I,J,6)=OA(I,J,6)+TRHDT
         OA(I,J,7)=OA(I,J,7)+SHDT
         OA(I,J,8)=OA(I,J,8)+EVHDT
@@ -705,7 +718,8 @@ C****
         IF (FOCEAN(I,J).gt.0) AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC) +F0DT
      *       *PTYPE
 C****
-      CASE (2)  ! seaice
+!!!      CASE (2)  ! seaice
+      else if ( ITYPE == 2 ) then
         IF (TG1.GT.TDIURN(I,J,7)) TDIURN(I,J,7) = TG1
         OA(I,J,9)=OA(I,J,9)+TRHDT
         OA(I,J,10)=OA(I,J,10)+SHDT
@@ -713,7 +727,8 @@ C****
         AIJ(I,J,IJ_F0OI) =AIJ(I,J,IJ_F0OI) +F0DT*PTYPE
         AIJ(I,J,IJ_EVAPI)=AIJ(I,J,IJ_EVAPI)+EVAP*PTYPE
 C****
-      CASE (3) ! land ice
+!!!      CASE (3) ! land ice
+      else if ( ITYPE == 3 ) then
         IF (TG1.GT.TDIURN(I,J,8)) TDIURN(I,J,8) = TG1
         IF (MODDSF.eq.0) AIJ(I,J,IJ_TSLI)=AIJ(I,J,IJ_TSLI)+(TS-TF)
         AIJ(I,J,IJ_SHDTLI)=AIJ(I,J,IJ_SHDTLI)+SHDT
@@ -722,7 +737,8 @@ C****
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+F0DT
         AIJ(I,J,IJ_EVAPLI)=AIJ(I,J,IJ_EVAPLI)+EVAP
 C****
-      END SELECT
+!!!      END SELECT
+      endif
 C****
       END IF
       END DO   ! end of itype loop
@@ -730,7 +746,7 @@ C****
       END DO   ! end of I loop
 
       END DO   ! end of J loop
-cccC$OMP  END PARALLEL DO
+C$OMP  END PARALLEL DO
 
       DO J=1,JM
       DO I=1,IMAXJ(J)
