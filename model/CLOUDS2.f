@@ -891,7 +891,7 @@ C**** save plume temperature after possible condensation
         QMP=QMPT
       END IF
       COND(L)=DQSUM
-      CONDMU=100.*COND(L)*PL(L)/(MPLUME*TL(L)*RGAS)
+      CONDMU=100.*COND(L)*PL(L)/(CCM(L-1)*TL(L)*RGAS)
       FLAMW=(1000.d0*PI*CN0/(CONDMU+teeny))**.25
       FLAMG=(400.d0*PI*CN0/(CONDMU+teeny))**.25
       FLAMI=(100.d0*PI*CN0/(CONDMU+teeny))**.25
@@ -925,7 +925,7 @@ C**** save plume temperature after possible condensation
         CONDP(L)=FG*CONDGP+FI*CONDIP
       ENDIF
 c convert condp to the same units as cond
-      CONDP(L)=.01d0*CONDP(L)*MPLUME*TL(L)*RGAS/PL(L)
+      CONDP(L)=.01d0*CONDP(L)*CCM(L-1)*TL(L)*RGAS/PL(L)
 #ifdef TRACERS_WATER
 C**** CONDENSING TRACERS
       WMXTR=DQSUM*BYAM(L)
@@ -2047,7 +2047,8 @@ c precip. tracer evap
           if (wmxtr.lt.0.) wmxtr=0.
 cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *         ,TEMP,LHX,WMXTR,FCLD,L,TM,TRPRBAR,THWASH,pl(l),ntix) !washout
+     *         ,TEMP,LHX,WMXTR,FCLD,L,TM,TRPRBAR,THWASH,pl(l),ntix) !was
+hout
         ELSE
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
@@ -2064,7 +2065,8 @@ cdmk added arguments above; THLAW added below (no way to factor this)
           TMFAC=0.
           TMFAC2=0.
         ENDIF
-        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT,ntix) !precip CLW
+        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT,ntix) !preci
+p CLW
 c ---------------------- calculate fluxes ------------------------
         DTWRT = FWASHT*TM(L,N)
         DTERT = FERT  *TRPRBAR(N,L+1)
