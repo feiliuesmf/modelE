@@ -28,7 +28,12 @@ C**** parameters and constants
       REAL*8, PARAMETER :: SLHE=LHE*BYSHA
       REAL*8, PARAMETER :: SLHS=LHS*BYSHA
 !@param FCLW fraction of condensate in plume that remains as CLW
+!@param CCMUL multiplier for convective cloud cover
+!@param CCMUL1 multiplier for deep anvil cloud cover
+!@param CCMUL2 multiplier for shallow anvil cloud cover
+!@param COETAU multiplier for convective cloud optical thickness
       REAL*8, PARAMETER :: FCLW=0.5
+      REAL*8, PARAMETER :: CCMUL=1.,CCMUL1=5.,CCMUL2=3.,COETAU=.08d0
 
       REAL*8 :: BYBR,BYDTsrc,XMASS
 !@var BYBR factor for converting cloud particle radius to effect. radius
@@ -1051,11 +1056,11 @@ C since a fraction (FCLW) of TRCOND was removed above.
          DPHASE(LMAX)=DPHASE(LMAX)+CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM
       DO 540 L=LMAX-1,1,-1
       IF(PRCP.LE.0.) GO TO 530
-      FCLOUD=CCM(L)*BYAM(L+1)
-      IF(PLE(LMIN)-PLE(L+2).GE.450.) FCLOUD=5.*CCM(L)*BYAM(L+1)
-      IF(L.LT.LMIN) FCLOUD=CCM(LMIN)*BYAM(LMIN+1)
+      FCLOUD=CCMUL*CCM(L)*BYAM(L+1)
+      IF(PLE(LMIN)-PLE(L+2).GE.450.) FCLOUD=CCMUL1*CCM(L)*BYAM(L+1)
+      IF(L.LT.LMIN) FCLOUD=CCMUL*CCM(LMIN)*BYAM(LMIN+1)
       IF(PLE(LMIN)-PLE(LMAX+1).LT.450.) THEN
-        IF(L.EQ.LMAX-1) FCLOUD=3.*CCM(L)*BYAM(L+1)
+        IF(L.EQ.LMAX-1) FCLOUD=CCMUL2*CCM(L)*BYAM(L+1)
         IF(L.LT.LMIN) FCLOUD=0.
       ENDIF
       IF(FCLOUD.GT.1.) FCLOUD=1.
@@ -1208,7 +1213,7 @@ C**** CALCULATE OPTICAL THICKNESS
          TEMWM=(TAUMCL(L)-SVWMXL(L)*AIRM(L))*1.d2*BYGRAV
          IF(TL(L).GE.TF) WMSUM=WMSUM+TEMWM
          IF(CLDMCL(L).GT.0.) THEN
-               TAUMCL(L)=AIRM(L)*.08d0
+               TAUMCL(L)=AIRM(L)*COETAU
             IF(L.EQ.LMCMAX .AND. PLE(LMCMIN)-PLE(LMCMAX+1).LT.450.)
      *         TAUMCL(L)=AIRM(L)*.02d0
             IF(L.EQ.LMCMIN .AND. PLE(LMCMIN)-PLE(LMCMAX+1).GE.450.)
@@ -1265,11 +1270,14 @@ C**** functions
 !@param HEFOLD e-folding length for computing HRISE
 !@param COEFM coefficient for ratio of cloud water amount and WCONST
 !@param COEFT coefficient used in computing PRATM
+!@param COESIG coefficient for equ. 23 of Del Genio et al. (1996)
+!@param COEEC coefficient for computing cloud evaporation
 C**** Adjust COEFT and COEFM to change proportion of super-cooled rain
 C**** to snow. Increasing COEFT reduces temperature range of super
 C**** -cooled rain, increasing COEFM enhances probability of snow.
       REAL*8, PARAMETER :: CM00=1.d-4, AIRM0=100.d0, GbyAIRM0=GRAV/AIRM0
       REAL*8, PARAMETER :: HEFOLD=500.,COEFM=10.,COEFT=2.5
+      REAL*8, PARAMETER :: COESIG=1d-3,COEEC=1000.
       REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
       REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
@@ -1623,7 +1631,7 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
           END IF
           CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
           CK2=1000.*RGAS*TL(L)/(2.4d-3*QSATL(L)*PL(L))
-          TEVAP=1000.*(CK1+CK2)*RCLD*RCLD
+          TEVAP=COEEC*(CK1+CK2)*RCLD*RCLD
           WMX1=WMX(L)-PREP(L)*DTsrc
           ECRATE=(1.-RHF(L))/(TEVAP*FCLD+teeny)
           IF(ECRATE.GT.BYDTsrc) ECRATE=BYDTsrc
@@ -1820,11 +1828,11 @@ C**** CONDENSING MORE TRACERS
       TNEW=TL(L)
       END IF
       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
-      IF(CAREA(L).GT.1.) CAREA(L)=1.                               
-      IF(RH(L).GT.1.) CAREA(L)=0.                                  
-      IF(WMX(L).LE.0.) CAREA(L)=1.                                 
-      IF(CAREA(L).LT.0.) CAREA(L)=0.                                
-      RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))                     
+      IF(CAREA(L).GT.1.) CAREA(L)=1.
+      IF(RH(L).GT.1.) CAREA(L)=0.
+      IF(WMX(L).LE.0.) CAREA(L)=1.
+      IF(CAREA(L).LT.0.) CAREA(L)=0.
+      RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
       IF(RH(L).LE.RHF(L).AND.RH(L).LT..999999.AND.WMX(L).gt.0.) THEN
 C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
 #ifdef TRACERS_WATER
@@ -1893,7 +1901,7 @@ C****
         CK=DSE/(SLHE*DWM)
         SIGK=0.
         IF(CKR.GT.CKM) CYCLE
-        IF(CK.GT.CKR) SIGK=1d-3*((CK-CKR)/(CKM-CKR+teeny))**5
+        IF(CK.GT.CKR) SIGK=COESIG*((CK-CKR)/(CKM-CKR+teeny))**5
         EXPST=EXP(-SIGK*DTsrc)
         IF(L.LE.1) CKIJ=EXPST
         DSEC=DWM*TL(L)/BETA
