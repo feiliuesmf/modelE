@@ -24,7 +24,7 @@ cat <<EOF > Ipd
  &&END_PARAMETERS
   
  &INPUTZ
- ISTART=-1,QCHECK=.true.,
+ ISTART=-1,QDIAG=.true.,
  &END
 EOF
 fi
