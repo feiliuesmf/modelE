@@ -595,7 +595,7 @@ C**** Check for negative tracers
             if (trmo(i,j,l,n).lt.0) then
               write(6,*) "Neg Tracer in ocean after ",subr,i,j,l,
      *             trname(n),trmo(i,j,l,n)
-              QCHECKT=.true.
+              QCHECKO=.true.
             end if
           end if
         end do
