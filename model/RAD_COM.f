@@ -11,8 +11,8 @@
 C**** DEFAULT ORBITAL PARAMETERS FOR EARTH
 C**** Note PMIP runs had specified values that do not necesarily
 C**** coincide with those used as the default, or the output of ORBPAR.
-C****                    OMEGT          OBLIQ        ECCEN       
-C**** DEFAULT (2000 AD): 282.9          23.44        0.0167 
+C****                    OMEGT          OBLIQ        ECCEN
+C**** DEFAULT (2000 AD): 282.9          23.44        0.0167
 C**** PMIP CONTROL:      282.04         23.446       0.016724
 C**** PMIP 6kyr BP:      180.87         24.105       0.018682
 C**** PMIP LGM (21k):    294.42         22.949       0.018994
@@ -20,7 +20,7 @@ C**** PMIP LGM (21k):    294.42         22.949       0.018994
       real*8, parameter :: omegt_def = 282.9d0
 !@param OBLIQ_def obliquity angle  (degrees)
       real*8, parameter :: obliq_def = 23.44d0
-!@param ECCN_def eccentricity 
+!@param ECCN_def eccentricity
       real*8, parameter :: eccn_def  = .0167d0
 !@var OMEGT,OBLIQ,ECCN actual orbital parameters used
       real*8 OMEGT,OBLIQ,ECCN
@@ -28,9 +28,9 @@ C**** PMIP LGM (21k):    294.42         22.949       0.018994
 C**** Database parameters to control orbital parameter calculation
 C**** Note: setting calc_orb_par with paleo_orb_yr=2000 does not produce
 C**** exactly the same as ther default values.
-!@dbparam calc_orb_par = 1 to calc orbital parameters 
+!@dbparam calc_orb_par = 1 to calc orbital parameters
       integer :: calc_orb_par = 0
-!@dbparam paleo_orb_yr is paleo year (BP) for orbital calc 
+!@dbparam paleo_orb_yr is paleo year (BP) for orbital calc
       real*8 :: paleo_orb_yr = -50.  ! (i.e. 2000AD)
 
 !@var LM_REQ Extra number of radiative equilibrium layers
@@ -70,14 +70,14 @@ C**** exactly the same as ther default values.
 !@dbparam H2OstratX stratospheric water vapour multiplication factor
       REAL*8 :: H2OstratX = 1.
 !@dbparam H2ObyCH4 if not 0: add CH4 produced H2O into layers 1->LM
-      INTEGER :: H2ObyCH4 = 0
+      REAL*8 :: H2ObyCH4 = 0.
 !@var dH2O  zonal H2O-prod.rate in kg/m^2/ppm_CH4/second in layer L
       REAL*8, DIMENSION(JM,LM) :: dH2O = 0.
 !@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAl*8 :: RSDIST,SIND,COSD
 !@var ALB is SRNFLB(1)/(SRDFLB(1)+1.D-20),PLAVIS,PLANIR,ALBVIS,ALBNIR,
 !@+       SRRVIS,SRRNIR,SRAVIS,SRANIR (see BR00B.COM)
-      REAL*8, DIMENSION(IM,JM,9) :: ALB 
+      REAL*8, DIMENSION(IM,JM,9) :: ALB
 
 C**** Local variables initialised in init_RAD
 !@var COE
