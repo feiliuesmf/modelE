@@ -28,8 +28,8 @@ C****
 C**** Note: W(,,1) is really PIT, the pressure tendency, but is not used
 C****
       USE MODEL_COM, only : im,jm,lm,sig,dsig,sige,psfmpt,byim
-      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE, CHECKSUM, 
-     *                          SOUTH, NORTH, CHECKSUMj, ESMF_BCAST
+      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE,
+     *                          SOUTH, NORTH, ESMF_BCAST
       USE GEOM, only : dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp
       USE  DIAG_COM, only : ajl=>ajl_loc,kajl,kep,pl=>plm
       USE DYNAMICS, only : w=>conv     ! I think this is right....?
@@ -120,10 +120,16 @@ C**** UI(J,L) ... ZONAL AVERAGE U-WIND (m s-1)
 C**** VI(J,L) ... ZONAL AVERAGE V-WIND (m s-1)
 C**** TI(J,L) ... ZONAL AVERAGE POTENTIAL TEMPERATURE (K)
 C**** WI(J,L) ... ZONAL AVERAGE VERTICAL WIND (mb m2 s-1)
+
+      CALL HALO_UPDATE(grid, U    , from = NORTH+SOUTH)
+      CALL HALO_UPDATE(grid, V    , from = NORTH)
+      CALL HALO_UPDATE(grid, W    , from = SOUTH)
+
       CALL AVGVI (U,UI(:,:))
       CALL AVGVI (V,VI(:,:))
       CALL AVGI (W,WI(:,:))
       CALL AVGI (T,TI(:,:))
+
 C****
 C**** STB(J,L) ... DELTA THETA             (PRESSURE EDGES)
 C****
@@ -139,9 +145,6 @@ CW   *     WRITE (*,*) 'STB < .001 AT J,L,STB:',J,L,STB(J,L)
       END DO
       STB(:,1)  = 1d-2
 
-      CALL HALO_UPDATE(grid, U    , from = NORTH)
-      CALL HALO_UPDATE(grid, V    , from = NORTH)
-
 C****
 C**** CORRELATIONS OF VARIOUS QUANTITIES
 C****
@@ -150,7 +153,7 @@ C**** FMY(j,l) .............. (VUdx) NORTHWARD MEAN MOMENTUM TRANSPORT
 C****                         (m3 s-1)
       DO L=1,LM
         CALL HALO_UPDATE(grid, VI(:,L)   , from = NORTH)
-        CALL HALO_UPDATE(grid, UI(:,L)   , from = NORTH)
+        CALL HALO_UPDATE(grid, UI(:,L)   , from = NORTH+SOUTH)
         CALL HALO_UPDATE(grid, WI(:,L)   , from = SOUTH)
         
         IF (HAVE_SOUTH_POLE) FMY(1,L)=0.
@@ -193,7 +196,15 @@ C****                           (m3 mb s-2)
       UW(:,:,1)=0.
       DO L=2,LM
         WXXS(1:IM)=0.
-        IF (HAVE_SOUTH_POLE) UW(1:IM,1,L)=0.
+        IF (HAVE_SOUTH_POLE) THEN
+           UW(1:IM,1,L)=0.
+        ELSE ! need to seed WXXS from lower neighbor
+           I=IM
+           DO IP1=1,IM
+              WXXS(I) = (W(I,J_0-1,L)+W(IP1,J_0-1,L))-2*WI(J_0-1,L)
+              I=IP1
+           END DO
+        END IF
         DO J=J_0STG,J_1STG
           FMZ(J,L) = (WI(J-1,L)*RAPVN(J-1)+WI(J,L)*RAPVS(J))
      *         * (UI(J,L-1)+UI(J,L))
@@ -348,22 +359,23 @@ C****               (U-wind grid, level edges)  (m mb s-1)
      *       (PL(L)-PL(L-1))/(STB(J-1,L)+STB(J,L))
       END DO
       END DO
-      DO J = J_0STG,J_1STG
+      DO J = J_0,J_1
         RX(J,1) = 0
       END DO
 
+      Do L = 1, LM
+         CALL HALO_UPDATE(grid, RX(:,L), FROM=NORTH+SOUTH)
+      END DO
 
 C****
 C**** VR(J,L) ........  TRANSFORMED WIND
 C**** WR(J,L) ........
 C****
       DO L=1,LM-1
-        CALL HALO_UPDATE(grid, RX(:,L), from = NORTH)
       DO J=J_0STG,J_1STG
         VR(J,L)=VI(J,L)+(RX(J,L+1)-RX(J,L))/
      *       (PSFMPT*DSIG(L))
       END DO
-      CALL HALO_UPDATE(grid, RX(:,LM), from = NORTH)
       END DO
       DO J=J_0STG,J_1STG
         VR(J,LM)=VI(J,LM)-RX(J,LM)/(PSFMPT*DSIG(LM))
@@ -421,14 +433,18 @@ C**** TRANSFORMED EDDY FLUXES
 C****
 C**** FEYR(J,L)
 C****
+
       IF (HAVE_SOUTH_POLE) THEN
         DO L=1,LM
           RXCL(L)=RX(2,L)*COSV(2)
           UCL(L)=UI(2,L)*DXV(2)
         END DO
+      ELSE
+        DO L=1,LM
+          RXCL(L)=RX(J_0,L)*COSV(J_0)
+          UCL(L)=UI(J_0,L)*DXV(J_0)
+        END DO
       END IF
-      CALL ESMF_BCAST(grid, RXCL)
-      CALL ESMF_BCAST(grid, UCL)
 
       DO J=J_0S,J_1S
         UCB=(UI(J+1,1)*DXV(J+1)+UCL(1))
@@ -448,11 +464,18 @@ C****
           UCL(L)=UI(J+1,L)*DXV(J+1)
         END DO
       END DO
+
 C****
 C**** FEZR(j,l)
 C****
-      RXCL(:)=0.
-      UCL(:)=0.
+      If (HAVE_SOUTH_POLE) THEN
+         RXCL(:)=0.
+         UCL(:)=0.
+      Else
+         RXCL(:) = RX(J_0-1,:)*COSV(J_0-1)
+         UCL(:)  = UI(J_0-1,:)* DXV(J_0-1)
+      END If
+      
       DO J=J_0S,J_1S
       DO L=2,LM
         RXC = RX(J,L)*COSV(J)
@@ -549,10 +572,8 @@ C****   DUD(j,l),DUR - Delta U by Eulerian and transf. circulation  m s-2
 C****
       USE MODEL_COM, only : im,jm,lm,sig,dsig,dtsrce=>dtsrc,psfmpt,fim
      *     ,idacc,ndaa,ls1,ptop
-      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE, CHECKSUM,
-     *                          SOUTH, NORTH
       USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
-      USE DIAG_COM, only : ajl=>ajl_loc,kajl,kep,apj=>apj_loc
+      USE DIAG_COM, only : ajl,kajl,kep,apj
      &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg
      &     ,jl_dumcdrgm10,jl_dumcdrgp10
      &     ,jl_dumcdrgm40,jl_dumcdrgp40
@@ -585,11 +606,11 @@ C**** this should be in an init_ep routine or something
 
 C**** ARRAYS CALCULATED HERE:
       REAL*8 ONES(JM+LM),PMO(LM),DP(LM)
-      REAL*8 DXCOSV(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      REAL*8 DXCOSV(JM)
 cgsfc      REAL*8, POINTER, DIMENSION(:,:) :: 
 cgsfc /*    *   FMY,FEY,FMZ,FEZ,FMYR,FEYR,FMZR,FEZR,COR,CORR,FER1,ER21 */
 cgsfc /*    *  ,ER22,VR,WR,RX,UI,VI,WI,DUT,DUD */
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
+      REAL*8, DIMENSION(JM,LM) ::
      *   DUDS,DUR,DMF,DEF,DMFR,DEFR
 CW   *  ,DMY,DMZ,DEY,DEZ,DMYR,DMZR,DEYR,DEZR
      *  ,ER1,ER2,BYDPJL
@@ -597,30 +618,16 @@ C**** common needed to pass from XEP to individual arrays (better way??)
 C**** Not clear how many of these are actually used.
 cBMP /*  COMMON /EPCOM/ FMY, FEY, FMZ, FEZ, FMYR, FEYR, FMZR, FEZR, COR, */
 cBMP /* *     CORR, FER1, ER21, ER22, VR, WR, RX, UI, VI, WI, DUT, DUD */
-      REAL*8,DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP) :: XEP
+      REAL*8,DIMENSION(JM,LM,KEP) :: XEP
 cBMP /*  EQUIVALENCE (XEP,FMY) */
       REAL*8 DTAEP,BYDT,SCALEP,SCALE1,BYIAEP
       INTEGER I,J,L,N,JL
-
-      INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0H, J_1H, J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** Initialize constants
       DTAEP = DTsrce*NDAA   ! change of definition of NDAA
       BYIAEP=1./(IDACC(4)+1.D-20)
       BYDT=1./(DTSRCE*IDACC(1)+1.D-20)
-      DO J=J_0STG,J_1STG
+      DO J=2,JM
         DXCOSV(J) = DXV(J)*COSV(J)
       END DO
 
@@ -633,12 +640,12 @@ c GISS-ESMF EXCEPTIONAL CASE
         PMO(L) = PSFMPT*SIG(L)+PTOP
       END DO
       DO L=1,LS1-1
-      DO J=J_0STG,J_1STG
+      DO J=2,JM
         BYDPJL(J,L)=(FIM*IDACC(4))/(0.25*DSIG(L)*APJ(J,2)+1.D-20)
       END DO
       END DO
       DO L=LS1,LM
-      DO J=J_0STG,J_1STG
+      DO J=2,JM
         BYDPJL(J,L)=1./DP(L)
       END DO
       END DO
@@ -646,7 +653,7 @@ C**** Normalize AEP
 C     CALL EPFLXF (U)
       DO N=1,KEP-2
       DO L=1,LM
-      DO J=J_0,J_1
+      DO J=1,JM
         XEP(J,L,N)=AJL(J,L,KAJL-KEP+N)*BYIAEP
 c        XEP(J,L,N)=AEP(J,L,N)*BYIAEP
       END DO
@@ -654,7 +661,7 @@ c        XEP(J,L,N)=AEP(J,L,N)*BYIAEP
       END DO
       DO N=KEP-1,KEP
       DO L=1,LM
-      DO J=J_0,J_1
+      DO J=1,JM
         XEP(J,L,N)=AJL(J,L,KAJL-KEP+N)
 c        XEP(J,L,N)=AEP(J,L,N)
       END DO
@@ -665,12 +672,7 @@ C**** DMF,DEF by horizontal convergence
 C****
 
       DO L=1,LM
-        CALL HALO_UPDATE(grid, FMY(:,L)  , from = SOUTH)
-        CALL HALO_UPDATE(grid, FEY(:,L)  , from = SOUTH)
-        CALL HALO_UPDATE(grid, FMYR(:,L) , from = SOUTH)
-        CALL HALO_UPDATE(grid, FEYR(:,L) , from = SOUTH)
-
-      DO J=J_0STG,J_1STG
+      DO J=2,JM
         DMF(J,L) =(FMY(J-1,L)*COSP(J-1)-FMY(J,L)*COSP(J))/COSV(J)
         DEF(J,L) =(FEY(J-1,L)*COSP(J-1)-FEY(J,L)*COSP(J))/COSV(J)
 C       DMY(J,L) =(FMY(J-1,L)*COSP(J-1)-FMY(J,L)*COSP(J))/COSV(J)
@@ -684,7 +686,7 @@ C       DEYR(J,L)=(FEYR(J-1,L)*COSP(J-1)-FEYR(J,L)*COSP(J))/COSV(J)
 C****
 C**** Add DMF,DEF by vertical convergence
 C****
-      DO J=J_0STG,J_1STG
+      DO J=2,JM
         DMF(J,LM)  = DMF(J,LM)  - FMZ(J,LM)/BYDPJL(J,LM)
         DEF(J,LM)  = DEF(J,LM)  - FEZ(J,LM)/BYDPJL(J,LM)
 CW      DMZ(J,LM)  = - FMZ(J,LM)/BYDPJL(J,LM)
@@ -710,7 +712,7 @@ C****
 C**** ADD COR(j,l),CORR(j,l)
 C****
       DO L=1,LM
-        DO J=J_0STG,J_1STG
+        DO J=2,JM
           DMF(J,L)  = DMF(J,L)  + COR(J,L)
 C         DMY(J,L)  = DMY(J,L)  + COR(J,L)
 C         DMYR(J,L) = DMYR(J,L) + CORR(J,L)
@@ -722,8 +724,7 @@ C**** ER1 by horizontal convergence (m s-2)
 C****
 
       DO L=1,LM
-        CALL HALO_UPDATE(grid, FER1(:,L) , from = SOUTH)
-      DO J=J_0STG,J_1STG
+      DO J=2,JM
         ER1(J,L) = 1./(DYV(J)*COSV(J))*(FER1(J-1,L)-FER1(J,L))
         ER2(J,L) = ER21(J,L)+ER22(J,L)
       END DO
@@ -732,7 +733,7 @@ C****
 C**** DUD(j,l),DUR total change in Eulerian, Transformed wind  (m s-2)
 C****
       DO L=1,LM
-      DO J=J_0STG,J_1STG
+      DO J=2,JM
         DUR(J,L)  = BYDXYV(J)*(DMFR(J,L) +DEFR(J,L))
         DUD(J,L)  = BYDXYV(J)*(DMF(J,L)+DEF(J,L))
       END DO
@@ -753,7 +754,7 @@ C**** note: JLMAP (lname,sname,units,power,Pres,Array,ScalP,ScalJ,ScalL)
 C****          prints maps of  (Array * SCALEP * ScaleJ * ScaleL)
 C****
       DO L=1,LM
-      DO J=J_0STG,J_1STG
+      DO J=2,JM
         DUDS(J,L)=((AJL(J,L,JL_DUDFMDRG)+AJL(J,L,JL_DUMTNDRG))+
      &             (AJL(J,L,JL_DUSHRDRG)+AJL(J,L,JL_DUMCDRGM10))+
      *       ((AJL(J,L,JL_DUMCDRGP10)+AJL(J,L,JL_DUMCDRGM40))+
@@ -764,13 +765,13 @@ C****
       END DO
       SCALE1=1./(FIM*DTSRCE*IDACC(1)+1.D-20)
       DO L=1,LM
-      DO J=J_0STG,J_1STG
+      DO J=2,JM
         DUDS(J,L) = DUDS(J,L)+
      &        (AJL(J,L,JL_DAMDC)+AJL(J,L,JL_DAMMC))*BYDPJL(J,L)
       END DO
       END DO
       DO L=1,LM
-      DO J=J_0STG,J_1STG
+      DO J=2,JM
         DUDS(J,L) = (DUD(J,L)-ER2(J,L)) + DUDS(J,L)*SCALE1
       END DO
       END DO
