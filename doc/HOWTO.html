@@ -698,12 +698,29 @@ and NMONAV in the NAMELIST).</p>
        create longer term means (annual, seasonal, monthly climatologies
        etc.).</p>
 
-       <p>For example, to recreate the printout;
+       <p>For example, to recreate the printout in /u/cmrun/$RUNID;
        <ul>
-  <li>for a single month: pdE JAN1987.acc.$RUNID
-  <li>for all Januaries:  pdE JAN*.acc.$RUNID
-  <li>for a whole year:   pdE *1987.acc.$RUNID
+  <li>for a single month: pdE $RUNID JAN1987.acc$RUNID
+  <li>for all Januaries:  pdE $RUNID JAN*.acc$RUNID
+  <li>for a whole year:   pdE $RUNID *1987.acc$RUNID
        </ul>
+       To work properly, the directory /u/cmrun/$RUNID has to exist 
+       and contain at least ${RUNID}ln  ${RUNID}uln  ${RUNID}.exe .
+       The output files will end up in that directory, the names of
+       the inputfiles are not restricted (as long as their format is
+       compatible with the model ${RUNID}). You need not be in 
+       /u/cmrun/$RUNID to execute pdE $RUNID list_of_files_to_be_processed.
+       
+       It is possible to use pdE to average acc-files from several runs,
+       e.g. average over an ensemble of runs. Although the numbers that
+       are produced are fine, subroutine aPERIOD will not
+       be able to create the proper labels: the runID will be taken from
+       the last file that was read in and the number of runs averaged will
+       be interpreted as successive years, so averaging years 1951-1955
+       of runs runA runB runC runD will produce the label ANN1951-1970.runD
+       rather than  ANN1951-1955.runA-D. Some titles will also suffer from
+       that 'bug', but it should be easy to fix it manually afterwards,
+       if anybody cares.
 </ol>
 <p>Note that the output can be controlled (a little) by the settings in
 'Ipd' (which is produced in the run directory the first time you run
