@@ -82,6 +82,7 @@ C****     *            -  (AIJ16(I,1)/IDACC(1))/916.6)
 c  211 CONTINUE
 c      CALL WRITED (NAME(1),XLABEL,OUTMON,OUTYR)
 
+      IF(QDIAG) then
 C****
 C**** Ocean Potential Temperature (C)
 C****
@@ -102,6 +103,8 @@ C**** Loop over layers
         END IF
       END DO
       END DO
+      Q(2:IM,JM)=Q(1,JM)
+      Q(2:IM,1)=Q(1,1)
       WRITE (LNAME(40:47),'(A5,I3)') 'Level',L
       WRITE (TITLE(40:47),'(A5,I3)') 'Level',L
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
@@ -124,6 +127,8 @@ C**** Loop over layers
      *       *DXYPO(J))
       END DO
       END DO
+      Q(2:IM,JM)=Q(1,JM)
+      Q(2:IM,1)=Q(1,1)
       WRITE (LNAME(40:47),'(A5,I3)') 'Level',L
       WRITE (TITLE(40:47),'(A5,I3)') 'Level',L
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
@@ -148,6 +153,8 @@ C****
           I=IP1
         END DO
       END DO
+      Q(2:IM,JM)=Q(1,JM)
+      Q(2:IM,1)=Q(1,1)
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       IF(LMINMF.eq.LMAXMF) WRITE (TITLE(39:41),'(I3)') LMINMF
       IF(LMINMF.lt.LMAXMF) WRITE (TITLE(39:46),'(I3A2I3)') LMINMF," -"
@@ -173,6 +180,7 @@ C****
           Q(I,J) = 1d2 * 4.* Q(I,J) / (MQ*NDYNO*DXVO(J)+teeny)
         END DO
       END DO
+      Q(2:IM,1)=Q(1,1)
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       IF(LMINMF.eq.LMAXMF) WRITE (TITLE(39:41),'(I3)') LMINMF
       IF(LMINMF.lt.LMAXMF) WRITE (TITLE(39:46),'(I3A2I3)') LMINMF," -"
@@ -196,6 +204,8 @@ c     IF(KVMF(K).le.0)  GO TO 370
             Q(I,J) = 2d2*OIJL(I,J,L,IJL_MFW) / (IDACC(1)*NDYNO*DXYPO(J))
           END DO
         END DO
+        Q(2:IM,JM)=Q(1,JM)
+        Q(2:IM,1)=Q(1,1)
         TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
         WRITE (TITLE(40:47),'(A5I3)') "Level",L
         WRITE (LNAME(40:47),'(A5I3)') "Level",L
@@ -225,6 +235,8 @@ c      IF(.not.QL(K))  GO TO 440
           Q(I,J) = 1d-15*Q(I,J) / (IDACC(1)*DTS)
         END DO
         END DO
+        Q(2:IM,JM)=Q(1,JM)
+        Q(2:IM,1)=Q(1,1)
         TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
         IF(LMINEF.eq.LMAXEF) WRITE (TITLE(39:41),'(I3)') LMINEF
         IF(LMINEF.lt.LMAXEF) WRITE (TITLE(39:46),'(I3A2I3)') LMINEF," -" 
@@ -235,6 +247,7 @@ c      IF(.not.QL(K))  GO TO 440
         TITLE(51:80)=XLB
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
       END DO
+      END IF
 C****
 C**** Calculate zonally averaged global Northward ocean heat transport
 C**** (Including GM component)
@@ -257,6 +270,7 @@ C**** (Including GM component)
 C****
 C**** East-West or North-South Salt Flux (10^6 kg/s)
 C****
+      IF (QDIAG) THEN
       DO K=IJL_SFLX,IJL_SFLX+1
 c      IF(.not.QL(K))  GO TO 540
         IF (K.eq.IJL_SFLX) THEN 
@@ -277,6 +291,8 @@ c      IF(.not.QL(K))  GO TO 540
           Q(I,J) = 1d-6*Q(I,J) / (IDACC(1)*DTS)
         END DO
         END DO
+        Q(2:IM,JM)=Q(1,JM)
+        Q(2:IM,1)=Q(1,1)
         TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
         IF(LMINSF.eq.LMAXSF) WRITE (TITLE(39:41),'(I3)') LMINSF
         IF(LMINSF.lt.LMAXSF) WRITE (TITLE(39:46),'(I3A2I3)') LMINSF," -"
@@ -301,6 +317,8 @@ c      IF(KCMF(K).le.0)  GO TO 620
             Q(I,J) = 1d2*OIJL(I,J,L,IJL_GGMFL)/(IDACC(1)*DTS*DXYPO(J))
         END DO
         END DO
+        Q(2:IM,JM)=Q(1,JM)
+        Q(2:IM,1)=Q(1,1)
         TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
         WRITE (TITLE(40:47),'(A5I3)') "Level",L
         WRITE (LNAME(40:47),'(A5I3)') "Level",L
@@ -322,6 +340,8 @@ C****
      *         Q(I,J)=1d4*.00097d0**2*OIJL(I,J,L,IJL_KVM)/(IDACC(1)*4.)
           END DO
           END DO
+          Q(2:IM,JM)=Q(1,JM)
+          Q(2:IM,1)=Q(1,1)
           TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
           WRITE (TITLE(40:47),'(A5I3)') "Level",L
           WRITE (LNAME(40:47),'(A5I3)') "Level",L
@@ -340,12 +360,15 @@ C****
      *         Q(I,J)=1d4*.00097**2*OIJL(I,J,L,IJL_KVG)/(IDACC(1)*4.)
           END DO
           END DO
+          Q(2:IM,JM)=Q(1,JM)
+          Q(2:IM,1)=Q(1,1)
           TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
           WRITE (TITLE(40:47),'(A5I3)') "Level",L
           WRITE (LNAME(40:47),'(A5I3)') "Level",L
           TITLE(51:80)=XLB
           CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2)
         END DO
+      END IF
       END IF
 C****
 C**** Calculate Horizontal Mass Stream Function and write it
@@ -360,8 +383,8 @@ C****
 
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       TITLE(51:80)=XLB
-      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,SFIJM,QJ,QSUM,IJGRID)
-
+      IF (QDIAG) CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,SFIJM,QJ,QSUM
+     *     ,IJGRID)
 C****
 C**** Calculate Salt Stream Function and write it
 C****
@@ -514,7 +537,7 @@ C****
         END IF
       END DO
 C****
-      call close_ij
+      IF (QDIAG) call close_ij
 c      call close_jl
 C****
       RETURN
