@@ -3,15 +3,15 @@ E001B.R GISS Model E                                 gas 06/00
 E001B: new modelE (based on B402A - coupled version)
 
 Object modules: (in order of decreasing priority)
-RES_M12                             ! horiz/vert resolution 
+RES_M12                             ! horiz/vert resolution
 MODEL_COM GEOM_B FLUXES             ! model modules
 ME001M12                            ! Main and model overhead
-DYNE001 DYNCOM                      ! dynamics 
+MOMEN2ND DYNE001 DYNCOM             ! dynamics
 SOMTQ_COM QUSDEF QUSEM12            ! advection of tracers
 CLD01 CLD01_DRV_E001 CLD01_COM_E001 ! clouds modules
-SE001M12                            ! surface calculation 
-GHYCOM EE001M12 SLE001              ! land surface and soils 
-PBLCOM PBLDRV PBLE001               ! atmospheric pbl 
+SE001M12                            ! surface calculation
+GHYCOM EE001M12 SLE001              ! land surface and soils
+PBLCOM PBLDRV PBLE001               ! atmospheric pbl
 ATURB                               ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
@@ -20,7 +20,7 @@ ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM ! dynamic ocean modules
 OCNDYN OSTRAITS OCNGM OCNKPP ICEDYN    ! dynamic ocean routines
 OCNFUNTAB                           ! ocean function look up table
 snowmodel                           ! snow model
-RADNCB PE001M12 RE001               ! radiation modules 
+RADNCB PE001M12 RE001               ! radiation modules
 DAGCOM DE001M12 DEFACC DAGPRT       ! diagnostics
 const FFT72 UTILDBL RAND~           ! utilities
 POUT                                ! for post-processing
@@ -29,7 +29,7 @@ PARAM PARSER
 Data input files:
 AIC=DEC1958.rsfB394M12.modelE.11
 OIC=OIC4X5LD.Z12.CLEV94.DEC01S  ! ocean initial conditions
-OFTAB=OFTABLE_NEW               ! ocean function table  
+OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=AVR4X5LD.Z12                ! ocean filter
 TOPO_OC=Z72X46N.cor4 ! ocean bdy.cond
 CDN=CD4X500S VEG=V72X46.1.cor

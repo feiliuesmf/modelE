@@ -3,10 +3,10 @@ E001A.R GISS Model E                                 gas 06/00
 E001A: new modelE (Qflux version)
 
 Object modules: (in order of decreasing priority)
-RES_M12                             ! horiz/vert resolution 
+RES_M12                             ! horiz/vert resolution
 MODEL_COM GEOM_B FLUXES             ! model modules
 ME001M12                            ! Main and model overhead
-DYNE001 DYNCOM                      ! dynamics
+MOMEN2ND DYNE001 DYNCOM             ! dynamics
 SOMTQ_COM QUSDEF QUSEM12            ! advection of tracers
 CLD01 CLD01_DRV_E001 CLD01_COM_E001 ! clouds modules
 SE001M12                            ! surface calculation
