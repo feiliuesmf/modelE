@@ -28,7 +28,7 @@ C**** ice dynamics input/output/work variables
      *     ,BYDXDY
       REAL*8, DIMENSION(NX1) :: DXT,DXU,BYDX2,BYDXR
       REAL*8, DIMENSION(NY1) :: DYT,DYU,BYDY2,BYDYR,CST,CSU,TNGT,TNG
-     *     ,SINE,BYCSU
+     *     ,BYCSU
 !@var RATIC,RICAT area ratios for atmospheric tracer grid to ice grid
       REAL*8, DIMENSION(NY1) :: RATIC, RICAT
 
@@ -45,7 +45,7 @@ C**** ice dynamics input/output/work variables
       REAL*8, PARAMETER :: PSTAR=2.75d4
 
 !@var BYDTS reciprocal of timestep in ice dynamics code
-      REAl*8 :: BYDTS
+      REAL*8 :: BYDTS
 
       END MODULE ICEDYN
 
@@ -97,7 +97,7 @@ C**** Dynamic sea ice should be on the ocean grid
       USE OCEAN, only : im,jm,focean,lmu,lmv,uo,vo,dxyno,dxyso,dxyvo
      *     ,dxypo,bydxypo,ratoc,rocat,dxpo,dyvo,opress,ogeoz,imaxj
       USE ICEDYN, only : rsix,rsiy,usi,vsi,nx1,ny1,press,heffm,uvm
-     *     ,dwatn,cor,sinen,dxt,dxu,dyt,dyu,cst,csu,tngt,tng,sine,usidt
+     *     ,dwatn,cor,sinen,dxt,dxu,dyt,dyu,cst,csu,tngt,tng,usidt
      *     ,vsidt,bydx2,bydxr,bydxdy,bydy2,bydyr,dts,sinwat,coswat,oiphi
      *     ,ratic,ricat,bydts,rsisave,omega,bycsu
       USE FLUXES, only : dmua,dmva,dmui,dmvi,UI2rho
@@ -162,8 +162,7 @@ c****
        cst(j) = cos(phit)
        csu(j) = cos(phiu)
        bycsu(j) = 1./csu(j)
-       sine(j) = sin(phiu)
-       tng(j) = sine(j)/csu(j)
+       tng(j) = sin(phiu)/csu(j)
        TNGT(J)=SIN(PHIT)/CST(J)
        DO I=1,NX1
          SINEN(I,J)=SIN(PHIU)
@@ -424,6 +423,7 @@ c**** read in sea ice velocity
       END DO
 
 C KKI LOOP IS FOR PSEUDO-TIMESTEPPING
+      rms=0.
       KKI=0.
  10   KKI=KKI+1
 
@@ -847,7 +847,7 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
           FORCEY(I,J)=FORCEY(I,J)*UVM(I,J)
         END DO
       END DO
-C MUST UPDATE HEFF BEFORE CALLING RELAC
+C MUST UPDATE HEFF BEFORE CALLING RELAX
 C FIRST SET U(2)=U(1)
       DO J=1,NY1
         DO I=1,NX1
@@ -1842,9 +1842,8 @@ C****
       END SUBROUTINE IT2AT
 
       SUBROUTINE init_icedyn(iniOCEAN)
-!@sum  init_STRAITS initializes strait variables
-!@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
+!@sum  init_icedyn initializes ice dynamics variables
+!@auth Gavin Schmidt
       USE ICEDYN, only : RSIX,RSIY,USI,VSI
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
