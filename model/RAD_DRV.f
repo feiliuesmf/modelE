@@ -284,8 +284,9 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE CONSTANT, only : grav,bysha,twopi
       USE MODEL_COM, only : jm,lm,dsig,sige,psfmpt,ptop,dtsrc,nrad
       USE GEOM, only : dlat
-      USE RADNCB, only : s0x,co2,ch4,h2ostrat,lm_req,llow,lmid,lhi,coe
-     *     ,sinj,cosj
+      USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
+     *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
+     *     ,lm_req,llow,lmid,lhi,coe,sinj,cosj
       USE RE001, only : setnew,rcomp1,writer             ! routines
      &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLE=>PLB, PTOPTR
      *     ,KCLDEM,KVEGA6,MOZONE
@@ -293,7 +294,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE PARAM
       IMPLICIT NONE
 
-      INTEGER J,L,LR,JYFIX,JDFIX,MADVEL
+      INTEGER J,L,LR,MADVEL
       REAL*8 COEX,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS
 !@var NRFUN indices of unit numbers for radiation routines
       INTEGER NRFUN(14),IU
@@ -308,9 +309,17 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 
 C**** sync radiation parameters from input
       call sync_param( "S0X", S0X )
-      call sync_param( "CO2", CO2 )
-      call sync_param( "CH4", CH4 )
-      call sync_param( "H2Ostrat", H2Ostrat )
+      call sync_param( "CO2X", CO2X )
+      call sync_param( "CH4X", CH4X )
+      call sync_param( "H2OstratX", H2OstratX )
+      call sync_param( "S0_yr", S0_yr )
+      call sync_param( "ghg_yr", ghg_yr )
+      call sync_param( "ghg_day", ghg_day )
+      call sync_param( "S0_day", S0_day )
+      call sync_param( "volc_yr", volc_yr )
+      call sync_param( "volc_day", volc_day )
+      call sync_param( "aero_yr", aero_yr )
+      call sync_param( "O3_yr", O3_yr )
       call sync_param( "MOZONE", MOZONE )
 
 C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
@@ -353,24 +362,25 @@ C****
         COE(LR)=DTsrc*NRAD*COEX/(PLE(LR)-PLE(LR+1))
       END DO
       PTLISO=15.
-      IF(CO2.LT.0.) KTREND=-NINT(CO2)
-C**** Default: time-dependent So/GHG/O3/Trop-Aeros/Dust/Volc-Aeros
-C****     For control runs e.g. with Jul 1,1951 atmosphere use
-      JYFIX=1951
-      JDFIX=182       !  Julian day (if JDFIX=0, annual cycle is used)
-      CALL SETNEW(11,JYFIX,JDFIX, 1,0,0.D0) ! fix sol.const. - KSOLAR
-      CALL SETNEW( 2,JYFIX,JDFIX, 0,0,0.D0) ! fix GHG (trend KTREND)
-      CALL SETNEW(13,0    ,0    , 0,0,0.D0) ! no GHG-resets - MADGAS
-      CALL SETNEW( 3,JYFIX,0    , 0,0,0.D0) ! quasi-fix O3 (ann.cycle)
-      CALL SETNEW( 4,JYFIX,0    , 0,0,0.D0) ! quasi-fix Trop. Aerosols
-      CALL SETNEW( 5,JYFIX,0    , 0,0,0.D0) ! quasi-fix Desert Dust
-      CALL SETNEW( 6,JYFIX,JDFIX, 0,0,0.D0) ! fix Volc. Aerosols
-C     An annual cycle is used for the data below, to prevent this, use
-CnoAC CALL SETNEW(7, 0,JDFIX, 0,0,0.D0) ! cloud heterogeneity - KCLDEP
-CnoAC CALL SETNEW(8, 0,JDFIX, 0,0,0.D0) !  surface albedo
+      KTREND=1   !  GHgas trends are determined by input file
+!note KTREND=0 is a possible but virtually obsolete option
+C****
+C**** Radiative forcings are either constant = obs.value at given yr/day
+C****    or time dependent (year=0); if day=0 an annual cycle is used
+C****                                         even if the year is fixed
+      CALL SETNEW(11,s0_yr ,s0_day , 1,0,0.D0) ! also sets KSOLAR (arg4)
+      CALL SETNEW( 2,ghg_yr,ghg_day, 0,0,0.D0)     ! well-mixed GHGases
+      if(ghg_yr.gt.0) CALL SETNEW(13,0,0,0,0,0.D0) ! skip GHG-updating
+      CALL SETNEW( 3,O3_yr   ,0 ,0,0,0.D0)  ! ozone (ann.cycle)
+      CALL SETNEW( 4,Aero_yr, 0 ,0,0,0.D0)  ! trop. aerosols (ann.cycle)
+      CALL SETNEW( 6,Volc_yr,Volc_day, 0,0,0.D0)   ! Volc. Aerosols
+C     Except for ann.cycle, got NO time history (yet) for forcings below
+CnoAC CALL SETNEW(5, 0, 0   , 0,0,0.D0) ! Desert dust
+CnoAC CALL SETNEW(7, 0, 0   , 0,0,0.D0) ! cloud heterogeneity - KCLDEP
+CnoAC CALL SETNEW(8, 0, 0   , 0,0,0.D0) !  surface albedo
 C**** New options (currently not used)
-      KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme  -  KCLDEM
-      KVEGA6=0  ! 0:2-band 1:6-band veg.albedo            -  KVEGA6
+      KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme
+      KVEGA6=0  ! 0:2-band 1:6-band veg.albedo (not usable)
       MADVEL=123456         ! suppress reading i-th time series by i->0
       if (ktrend.ne.0) then
 C****   Read in time history of well-mixed greenhouse gases
@@ -389,9 +399,9 @@ C**** set up unit numbers for 14 more radiation input files
         call closeunit(NRFUN(IU))
       END DO
 C**** Optionally scale selected greenhouse gases
-      IF(CO2.GE.0.) FULGAS(2)=FULGAS(2)*CO2
-      IF(CH4.GE.0.) FULGAS(7)=FULGAS(7)*CH4
-      IF(H2Ostrat.GE.0.) FULGAS(1)=FULGAS(1)*H2Ostrat
+      IF(ghg_yr.gt.0) FULGAS(2)=FULGAS(2)*CO2X
+      if(ghg_yr.gt.0) FULGAS(7)=FULGAS(7)*CH4X
+      IF(H2OstratX.GE.0.) FULGAS(1)=FULGAS(1)*H2OstratX
 C**** write out now occurs after first pass to ensure correct ppm values
 c      CALL WRITER (6,0)
 C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
@@ -419,7 +429,7 @@ C****
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
       USE MODEL_COM
       USE GEOM
-      USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,co2,rsdist,lm_req
+      USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,llow,lmid,lhi,coe
       USE RE001
      &  , only : writer,rcompx,rcompt ! routines
@@ -993,6 +1003,7 @@ C**** daily diagnostics
       if(title(1:2).eq.'--') read(iu,'(a)') title ! older format
 
       read(title,*) ghgyr1,(ghgam(k,1),k=1,nghg)
+      ghgyr2=ghgyr1
       do n=2,nyrsghg
         read(iu,*,end=20) ghgyr2,(ghgam(k,n),k=1,nghg)
         do k=1,nghg

@@ -5,8 +5,8 @@ c-----------------------------------------------------------------------
       use DAGCOM
       implicit none
       integer :: k
-      call iparm_defs
-      call dparm_defs
+!     call iparm_defs
+!     call dparm_defs
       call tsf_defs
       call j_defs
       name_reg=name_j
@@ -26,130 +26,130 @@ c-----------------------------------------------------------------------
       return
       end subroutine def_acc
 
-      subroutine iparm_defs
-      use MODEL_COM
-      use DAGCOM
-      implicit none
-      integer :: k
+!     subroutine iparm_defs
+!     use MODEL_COM
+!     use DAGCOM
+!     implicit none
+!     integer :: k
 c
-      niparm=0
-      do k=1,niparm_max
-         iparm_name(k) = 'nowrite'
-      enddo
+!     niparm=0
+!     do k=1,niparm_max
+!        iparm_name(k) = 'nowrite'
+!     enddo
 c contents of iparmb common block
-      call set_iparm('LS1',LS1)
-      call set_iparm('Itime',Itime)
-      call set_iparm('ItimeI',ItimeI)
-      call set_iparm('ItimeE',ItimeE)
-      call set_iparm('Itime0',Itime0)
-      call set_iparm('KOCEAN',KOCEAN)
-      call set_iparm('KDISK',KDISK)
-      call set_iparm('KEYCT',KEYCT)
-      call set_iparm('KCOPY',KCOPY)
-      call set_iparm('IRAND',IRAND)
-      call set_iparm('MFILTR',MFILTR)
-      call set_iparm('Ndisk',Ndisk)
-      call set_iparm('Kvflxo',Kvflxo)
-      call set_iparm('Nslp',Nslp)
-      call set_iparm('NIdyn',NIdyn)
-      call set_iparm('NRAD',NRAD)
-      call set_iparm('NIsurf',NIsurf)
-      call set_iparm('NFILTR',NFILTR)
-      call set_iparm('NDAY',NDAY)
-      call set_iparm('NDAA',NDAA)
-      call set_iparm('NDA5D',NDA5D)
-      call set_iparm('NDA5K',NDA5K)
-      call set_iparm('NDA5S',NDA5S)
-      call set_iparm('NDA4',NDA4)
-      call set_iparm('NDASF',NDASF)
-      call set_iparm('MDYN',MDYN)
-      call set_iparm('MCNDS',MCNDS)
-      call set_iparm('MRAD',MRAD)
-      call set_iparm('MSURF',MSURF)
-      call set_iparm('MDIAG',MDIAG)
-      call set_iparm('MELSE',MELSE)
-      call set_iparm('MODRD',MODRD)
-      call set_iparm('MODD5K',MODD5K)
-      call set_iparm('MODD5S',MODD5S)
-      call set_iparm('IYEAR1',IYEAR1)
-      call set_iparm('JYEAR',JYEAR)
-      call set_iparm('JYEAR0',JYEAR0)
-      call set_iparm('JMON',JMON)
-      call set_iparm('JMON0',JMON0)
-      call set_iparm('JDATE',JDATE)
-      call set_iparm('JDATE0',JDATE0)
-      call set_iparm('JHOUR',JHOUR)
-      call set_iparm('JHOUR0',JHOUR0)
-      call set_iparm('JDAY',JDAY)
-      call set_iparm('NSSW',NSSW)
-      call set_iparm('NSTEP',NSTEP)
-      call set_iparm('MRCH',MRCH)
-      call set_iparm('NIPRNT',NIPRNT)
-      call set_iparm('NMONAV',NMONAV)
+!     call set_iparm('LS1',LS1)
+!     call set_iparm('Itime',Itime)
+!     call set_iparm('ItimeI',ItimeI)
+!     call set_iparm('ItimeE',ItimeE)
+!     call set_iparm('Itime0',Itime0)
+!     call set_iparm('KOCEAN',KOCEAN)
+!     call set_iparm('KDISK',KDISK)
+!     call set_iparm('KEYCT',KEYCT)
+!     call set_iparm('KCOPY',KCOPY)
+!     call set_iparm('IRAND',IRAND)
+!     call set_iparm('MFILTR',MFILTR)
+!     call set_iparm('Ndisk',Ndisk)
+!     call set_iparm('Kvflxo',Kvflxo)
+!     call set_iparm('Nslp',Nslp)
+!     call set_iparm('NIdyn',NIdyn)
+!     call set_iparm('NRAD',NRAD)
+!     call set_iparm('NIsurf',NIsurf)
+!     call set_iparm('NFILTR',NFILTR)
+!     call set_iparm('NDAY',NDAY)
+!     call set_iparm('NDAA',NDAA)
+!     call set_iparm('NDA5D',NDA5D)
+!     call set_iparm('NDA5K',NDA5K)
+!     call set_iparm('NDA5S',NDA5S)
+!     call set_iparm('NDA4',NDA4)
+!     call set_iparm('NDASF',NDASF)
+!     call set_iparm('MDYN',MDYN)
+!     call set_iparm('MCNDS',MCNDS)
+!     call set_iparm('MRAD',MRAD)
+!     call set_iparm('MSURF',MSURF)
+!     call set_iparm('MDIAG',MDIAG)
+!     call set_iparm('MELSE',MELSE)
+!     call set_iparm('MODRD',MODRD)
+!     call set_iparm('MODD5K',MODD5K)
+!     call set_iparm('MODD5S',MODD5S)
+!     call set_iparm('IYEAR1',IYEAR1)
+!     call set_iparm('JYEAR',JYEAR)
+!     call set_iparm('JYEAR0',JYEAR0)
+!     call set_iparm('JMON',JMON)
+!     call set_iparm('JMON0',JMON0)
+!     call set_iparm('JDATE',JDATE)
+!     call set_iparm('JDATE0',JDATE0)
+!     call set_iparm('JHOUR',JHOUR)
+!     call set_iparm('JHOUR0',JHOUR0)
+!     call set_iparm('JDAY',JDAY)
+!     call set_iparm('NSSW',NSSW)
+!     call set_iparm('NSTEP',NSTEP)
+!     call set_iparm('MRCH',MRCH)
+!     call set_iparm('NIPRNT',NIPRNT)
+!     call set_iparm('NMONAV',NMONAV)
 c
-      return
-      end subroutine iparm_defs
+!     return
+!     end subroutine iparm_defs
 
-      subroutine set_iparm(parm_str,ival)
-      use DAGCOM
-      implicit none
-      character(len=20) :: parm_str
-      integer :: ival
-      if(niparm.eq.niparm_max) stop 'set_iparm: too many iparms'
-      niparm = niparm + 1
-      iparm_name(niparm) = parm_str
-      iparm(niparm) = ival
-      return
-      end subroutine set_iparm
-
-      subroutine dparm_defs
-      use CONSTANT
-      use MODEL_COM
-      use DAGCOM
-      use RADNCB, only : co2
-      use CLOUDS, only : u00wtr,u00ice
-      implicit none
-      integer :: k
+!     subroutine set_iparm(parm_str,ival)
+!     use DAGCOM
+!     implicit none
+!     character(len=20) :: parm_str
+!     integer :: ival
+!     if(niparm.eq.niparm_max) stop 'set_iparm: too many iparms'
+!     niparm = niparm + 1
+!     iparm_name(niparm) = parm_str
+!     iparm(niparm) = ival
+!     return
+!     end subroutine set_iparm
+!
+!     subroutine dparm_defs
+!     use CONSTANT
+!     use MODEL_COM
+!     use DAGCOM
+c     use RADNCB, only : co2
+!     use CLOUDS, only : u00wtr,u00ice
+!     implicit none
+!     integer :: k
 c
-      ndparm=0
-      do k=1,ndparm_max
-         dparm_name(k) = 'nowrite'
-      enddo
+!     ndparm=0
+!     do k=1,ndparm_max
+!        dparm_name(k) = 'nowrite'
+!     enddo
 c contents of rparmb common block
-      call set_dparm('DTsrc',DTsrc)
-      call set_dparm('DT',DT)
-      call set_dparm('PTOP',PTOP)
-      call set_dparm('PSF',PSF)
-      call set_dparm('PSFMPT',PSFMPT)
-      call set_dparm('PSTRAT',PSTRAT)
+!     call set_dparm('DTsrc',DTsrc)
+!     call set_dparm('DT',DT)
+!     call set_dparm('PTOP',PTOP)
+!     call set_dparm('PSF',PSF)
+!     call set_dparm('PSFMPT',PSFMPT)
+!     call set_dparm('PSTRAT',PSTRAT)
 !!    call set_dparm('SKIPSE',SKIPSE)
 c from constants module
-      call set_dparm('SDAY',SDAY)
-      call set_dparm('GRAV',GRAV)
-      call set_dparm('OMEGA',OMEGA)
-      call set_dparm('RGAS',RGAS)
-      call set_dparm('KAPA',KAPA)
-      call set_dparm('TF',TF)
+!     call set_dparm('SDAY',SDAY)
+!     call set_dparm('GRAV',GRAV)
+!     call set_dparm('OMEGA',OMEGA)
+!     call set_dparm('RGAS',RGAS)
+!     call set_dparm('KAPA',KAPA)
+!     call set_dparm('TF',TF)
 c cloud parameters
-      call set_dparm('U00wtr',U00wtr)
-      call set_dparm('U00ice',U00ice)
+!     call set_dparm('U00wtr',U00wtr)
+!     call set_dparm('U00ice',U00ice)
 c radiation parameters
-      call set_dparm('CO2',CO2)
+c     call set_dparm('CO2',CO2)
 c
-      return
-      end subroutine dparm_defs
-
-      subroutine set_dparm(parm_str,dval)
-      use DAGCOM
-      implicit none
-      character(len=20) :: parm_str
-      double precision :: dval
-      if(ndparm.eq.ndparm_max) stop 'set_dparm: too many dparms'
-      ndparm = ndparm + 1
-      dparm_name(ndparm) = parm_str
-      dparm(ndparm) = dval
-      return
-      end subroutine set_dparm
+!     return
+!     end subroutine dparm_defs
+!
+!     subroutine set_dparm(parm_str,dval)
+!     use DAGCOM
+!     implicit none
+!     character(len=20) :: parm_str
+!     double precision :: dval
+!     if(ndparm.eq.ndparm_max) stop 'set_dparm: too many dparms'
+!     ndparm = ndparm + 1
+!     dparm_name(ndparm) = parm_str
+!     dparm(ndparm) = dval
+!     return
+!     end subroutine set_dparm
 
       subroutine j_defs
       use CONSTANT, only : grav,sday,shw,rgas,omega,bygrav,gamd
@@ -1149,16 +1149,16 @@ c
       ir_ij(k) = ir_m5300_1900
       end if
 c
-      k=k+1 !  
-      IJ_P850 = k ! 
+      k=k+1 !
+      IJ_P850 = k !
       lname_ij(k) = 'FREQUENCY OF 850mb PRESSURE'  ! weighting function
       units_ij(k) = '%'
       name_ij(k) = 'P850'
       ia_ij(k) = ia_dga
       scale_ij(k) = 100.
 c
-      k=k+1 !  
-      IJ_T300 = k ! 
+      k=k+1 !
+      IJ_T300 = k !
       lname_ij(k) = 'TEMPERATURE AT 300mb'
       units_ij(k) = 'C'
       name_ij(k) = 'T300'
@@ -1166,8 +1166,8 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
 c
-      k=k+1 !  
-      IJ_T500 = k ! 
+      k=k+1 !
+      IJ_T500 = k !
       lname_ij(k) = 'TEMPERATURE AT 500mb'
       units_ij(k) = 'C'
       name_ij(k) = 'T500'
@@ -1176,7 +1176,7 @@ c
       ir_ij(k) = ir_m80_28
 c
       k=k+1 !  'AIJ016'
-      IJ_T850 = k ! 
+      IJ_T850 = k !
       lname_ij(k) = 'TEMPERATURE AT 850mb x P850'
       units_ij(k) = 'C'
       name_ij(k) = 'T850'
@@ -1184,8 +1184,8 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
 c
-      k=k+1 
-      IJ_Q300 = k 
+      k=k+1
+      IJ_Q300 = k
       lname_ij(k) = 'SPECIFIC HUMIDITY AT 300mb'
       units_ij(k) = 'g/kg'
       name_ij(k) = 'Q300'
@@ -1193,8 +1193,8 @@ c
       scale_ij(k) = 1d3
       ir_ij(k) = ir_0_18
 c
-      k=k+1 
-      IJ_Q500 = k 
+      k=k+1
+      IJ_Q500 = k
       lname_ij(k) = 'SPECIFIC HUMIDITY AT 500mb'
       units_ij(k) = 'g/kg'
       name_ij(k) = 'Q500'
@@ -1202,7 +1202,7 @@ c
       scale_ij(k) = 1d3
       ir_ij(k) = ir_0_18
 c
-      k=k+1 
+      k=k+1
       IJ_Q850 = k
       lname_ij(k) = 'SPECIFIC HUMIDITY AT 850mb x P850'
       units_ij(k) = 'g/kg'
@@ -1338,8 +1338,8 @@ c
       iw_ij(k) = iw_soil
       ir_ij(k) = ir_0_18
 c
-      k=k+1 
-      IJ_TDCOMP = k 
+      k=k+1
+      IJ_TDCOMP = k
       lname_ij(k) = 'DIURNAL SURF AIR TEMP'
       units_ij(k) = 'C'
       name_ij(k) = 'TDCOMP'
@@ -2321,24 +2321,24 @@ c
       END IF
 
       if (isccp_diags.eq.1) then
-      k=k+1 !  
-      IJ_LCLDI = k 
+      k=k+1 !
+      IJ_LCLDI = k
       lname_ij(k) = 'LOW LEVEL CLOUDINESS (ISCCP)'
       units_ij(k) = '%'
       name_ij(k) = 'LCLDI'
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
 c
-      k=k+1 !  
-      IJ_MCLDI = k 
+      k=k+1 !
+      IJ_MCLDI = k
       lname_ij(k) = 'MIDDLE LEVEL CLOUDINESS (ISCCP)'
       units_ij(k) = '%'
       name_ij(k) = 'MCLDI'
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
 c
-      k=k+1 !  
-      IJ_HCLDI = k 
+      k=k+1 !
+      IJ_HCLDI = k
       lname_ij(k) = 'HIGH LEVEL CLOUDINESS (ISCCP)'
       units_ij(k) = '%'
       name_ij(k) = 'HCLDI'
@@ -2350,16 +2350,16 @@ C**** summing the low+ mid+high diagnostics). Instead, this is the
 C**** fraction of time that a cloud appears in the grid box (which may
 C**** well cover less than 100% of the box). This is needed for
 C**** weighting the cloud top pressure and optical depth
-      k=k+1 !  
-      IJ_TCLDI = k 
+      k=k+1 !
+      IJ_TCLDI = k
       lname_ij(k) = 'FRACTION OF TIME FOR ISCCP CLOUD'
       units_ij(k) = '%'
       name_ij(k) = 'TCLDI'
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
 c
-      k=k+1 !  
-      IJ_CTPI = k 
+      k=k+1 !
+      IJ_CTPI = k
       lname_ij(k) = 'CLOUD TOP PRESSURE (ISCCP) x TOTAL ISCCP CLOUD'
       units_ij(k) = 'mb'
       name_ij(k) = 'CTPI'
@@ -2367,8 +2367,8 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_0_1775
 c
-      k=k+1 !  
-      IJ_TAUI = k 
+      k=k+1 !
+      IJ_TAUI = k
       lname_ij(k) = 'CLOUD OPTICAL DEPTH (ISCCP) x TOTAL ISCCP CLOUD'
       units_ij(k) = ''
       name_ij(k) = 'TAUI'
@@ -2377,8 +2377,8 @@ c
 
 C**** Also include MSU radiation diagnotsics here
 
-c      k=k+1 !  
-c      IJ_MSU2 = k 
+c      k=k+1 !
+c      IJ_MSU2 = k
 c      lname_ij(k) = 'MSU CHANNEL 2'
 c      units_ij(k) = 'C'
 c      name_ij(k) = 'MSU2'
@@ -2386,8 +2386,8 @@ c      ia_ij(k) = ia_inst
 c      ir_ij(k) = ir_m80_28
 c      scale_ij(k) = 1.
 
-c      k=k+1 !  
-c      IJ_MSU2R = k 
+c      k=k+1 !
+c      IJ_MSU2R = k
 c      lname_ij(k) = 'MSU CHANNEL 2R'
 c      units_ij(k) = 'C'
 c      name_ij(k) = 'MSU2R'
@@ -2395,8 +2395,8 @@ c      ia_ij(k) = ia_inst
 c      ir_ij(k) = ir_m80_28
 c      scale_ij(k) = 1.
 
-c      k=k+1 !  
-c      IJ_MSU3 = k 
+c      k=k+1 !
+c      IJ_MSU3 = k
 c      lname_ij(k) = 'MSU CHANNEL 3'
 c      units_ij(k) = 'C'
 c      name_ij(k) = 'MSU3'
@@ -2404,8 +2404,8 @@ c      ia_ij(k) = ia_inst
 c      ir_ij(k) = ir_m80_28
 c      scale_ij(k) = 1.
 
-c      k=k+1 !  
-c      IJ_MSU4 = k 
+c      k=k+1 !
+c      IJ_MSU4 = k
 c      lname_ij(k) = 'MSU CHANNEL 4'
 c      units_ij(k) = 'C'
 c      name_ij(k) = 'MSU4'
@@ -2415,8 +2415,8 @@ c      scale_ij(k) = 1.
 
       end if
 
-      k=k+1 
-      IJ_PTROP = k 
+      k=k+1
+      IJ_PTROP = k
       lname_ij(k) = 'TROPOPAUSE PRESSURE (WMO)'
       units_ij(k) = 'mb'
       name_ij(k) = 'PTROP'
@@ -2669,7 +2669,7 @@ c
       jl_sshr = k
       sname_jl(k) = 'lscond_heat' !'AJL11'
       lname_jl(k) = 'HEATING BY LARGE SCALE CONDENSATION' !'DTX(SS)*P'
-      units_jl(k) = 'W/(m^2*mb)' 
+      units_jl(k) = 'W/(m^2*mb)'
       pow_jl(k) = -2
       scale_jl(k) = 100.*BYGRAV*SHA/DTsrc
       ia_jl(k) = ia_src
@@ -2679,7 +2679,7 @@ c
       jl_trbhr = k
       sname_jl(k) = 'turb_heat' !'AJL12'
       lname_jl(k) = 'HEATING BY TURBULENCE' !'DT(DC)*P'
-      units_jl(k) = 'W/(m^2*mb)' 
+      units_jl(k) = 'W/(m^2*mb)'
       pow_jl(k) = -2
       scale_jl(k) = 100.*BYGRAV*SHA/DTsrc
       ia_jl(k) = ia_src
@@ -2734,7 +2734,7 @@ c
       jl_dumtndrg = k
       sname_jl(k) = 'dudt_mtndrg' !'AJL20'
       lname_jl(k) = 'DU/DT BY STRAT MTN DRAG'
-      units_jl(k) = 'm/s^2' 
+      units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
       scale_jl(k) = 1./(FIM*DTsrc)
       ia_jl(k) = ia_src
@@ -3055,7 +3055,7 @@ c
 c
       k=k+1
       jl_zmfvtlh = k     ! used in DIAGJK but not printed
-      sname_jl(k) = 'jl_zmf_vt_lh' 
+      sname_jl(k) = 'jl_zmf_vt_lh'
       lname_jl(k) = 'MEAN MERIDIONAL VERTICAL TRANS. OF LATENT HEAT'
       units_jl(k) = 'W/m^2'
       scale_jl(k) = 100.*BYGRAV*LHE*XWON*byim/DTsrc
@@ -3435,7 +3435,7 @@ c
       scale_jk(k) = -.25*100.*BYGRAV*BYIM
       ia_jk(k) = ia_dga
       jgrid_jk(k) = 2
-c 
+c
       k=k+1
       jk_totvtam = k
       sname_jk(k) = 'tot_vt_u' !'AJK38'

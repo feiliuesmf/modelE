@@ -21,12 +21,22 @@
       DOUBLE PRECISION, DIMENSION(IM,JM) :: COSZ1
 !@dbparam S0X solar constant multiplication factor
       REAL*8 :: S0X = 1.
-!@dbparam CO2 carbon dioxide multiplication factor
-      REAL*8 :: CO2 = 1.
-!@dbparam CH4 methane  multiplication factor
-      REAL*8 :: CH4 = 1.
+!@dbparam S0_yr,S0_day obs.date of solar constant (if 0: time var)
+      INTEGER :: S0_yr = 1951 , S0_day = 182
+!@dbparam CO2X carbon dioxide multiplication factor
+      REAL*8 :: CO2X = 1.
+!@dbparam GHG_yr,GHG_day obs.date of well-mixed GHgases (if 0: time var)
+      INTEGER :: GHG_yr = 1951 , GHG_day = 182
+!@dbparam CH4X methane  multiplication factor
+      REAL*8 :: CH4X = 1.
+!@dbparam Volc_yr,Volc_day obs.date of Volc.Aerosols (if 0: time var)
+      INTEGER :: Volc_yr = 1951 , Volc_day = 182
+!@dbparam Aero_yr obs.year of troposph.Aerosols (if 0: time var)
+      INTEGER :: Aero_yr = 1951    ! always use annual cycle
+!@dbparam O3_yr obs.year of Ozone (if 0: time var)
+      INTEGER :: O3_yr = 1951      ! always use annual cycle
 !@dbparam H2Ostrat stratospheric water vapour multiplication factor
-      REAL*8 :: H2Ostrat = 1.
+      REAL*8 :: H2OstratX = 1.
 !@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAl*8 :: RSDIST,SIND,COSD
 
