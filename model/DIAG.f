@@ -2477,6 +2477,8 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       CHARACTER*64 :: subdd = "SLP"
 !@dbparam Nsubdd: DT_save_SUBDD =  Nsubdd*DTsrc sub-daily diag freq.
       INTEGER :: Nsubdd = 0
+!@dbparam LmaxSUBDD: the max L when writing "ALL" levels
+      INTEGER :: LmaxSUBDD = LM
      
       contains
 
@@ -2485,11 +2487,12 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 !@auth Gavin Schmidt
       implicit none
       character*14, intent(in) :: adate
-      character*11 name
+      character*12 name
       integer :: i,j,k,kunit,kk
 
       call sync_param( "subdd" ,subdd)
       call sync_param( "Nsubdd",Nsubdd)
+      call sync_param( "LmaxSUBDD",LmaxSUBDD)
 
       if (nsubdd.ne.0) then
 C**** calculate how many names
@@ -2517,18 +2520,12 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
           if (namedd(k)(len_trim(namedd(k))-2:len_trim(namedd(k))).eq.
      *         "ALL") then
             select case (namedd(k)(1:1))
-            case ("U", "V")     ! velocities on model layers
-              do kk=1,lm
-                kunit=kunit+1
-                if (kk.lt.10) then
-                  write(name,'(A1,I1,A7)') namedd(k)(1:1),kk,aDATE(1:7)
-                else
-                  write(name,'(A1,I2,A7)') namedd(k)(1:1),kk,aDATE(1:7)
-                end if
-                call openunit(name,iu_SUBDD(kunit),.true.,.false.)
-                call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
-              end do
-            case ("Z", "T", "R") ! heights, temps, rel hum on PMB levels
+            case ("U", "V", "W")! velocities on model layers
+              kunit=kunit+1
+              write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
+              call openunit(name,iu_SUBDD(kunit),.true.,.false.)
+              call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
+            case ("Z", "T", "R")! heights, temps, rel hum on PMB levels
               do kk=1,kgz_max
                 kunit=kunit+1
                 call openunit(namedd(k)(1:1)//trim(PMNAME(kk))//
@@ -2537,16 +2534,10 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
               end do
 #ifdef TRACERS_SPECIAL_Shindell
             case ("O")  ! Ox tracer
-              do kk=1,lm
-                kunit=kunit+1
-                if (kk.lt.10) then
-                  write(name,'(A2,I1,A7)') namedd(k)(1:2),kk,aDATE(1:7)
-                else
-                  write(name,'(A2,I2,A7)') namedd(k)(1:2),kk,aDATE(1:7)
-                end if
-                call openunit(name,iu_SUBDD(kunit),.true.,.false.)
-                call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
-              end do
+              kunit=kunit+1
+              write(name,'(A2,A3,A7)') namedd(k)(1:2),'ALL',aDATE(1:7)
+              call openunit(name,iu_SUBDD(kunit),.true.,.false.)
+              call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
 #endif
             end select
           else                  ! single file per name
@@ -2566,7 +2557,7 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
 !@auth Gavin Schmidt
       implicit none
       character*14, intent(in) :: adate
-      character*10 name
+      character*12 name
       integer :: k,kunit,kk
 
       if (nsubdd.ne.0) then
@@ -2577,17 +2568,11 @@ C**** close and re-open units
           if (namedd(k)(len_trim(namedd(k))-2:len_trim(namedd(k))).eq.
      *         "ALL") then
             select case (namedd(k)(1:1))
-            case ("U", "V")     ! velocities on model layers
-              do kk=1,lm
-                kunit=kunit+1
-                if (kk.lt.10) then
-                  write(name,'(A1,I1,A7)') namedd(k)(1:1),kk,aDATE(1:7)
-                else
-                  write(name,'(A1,I2,A7)') namedd(k)(1:1),kk,aDATE(1:7)
-                end if
-                call openunit(name,iu_SUBDD(kunit),.true.,.false.)
-              end do
-            case ("Z", "T", "R") ! heights, temps, rel hum on PMB levels
+            case ("U", "V", "W")! velocities on model layers
+              kunit=kunit+1
+              write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
+              call openunit(name,iu_SUBDD(kunit),.true.,.false.)
+            case ("Z", "T", "R")! heights, temps, rel hum on PMB levels
               do kk=1,kgz_max
                 kunit=kunit+1
                 call openunit(namedd(k)(1:1)//trim(PMNAME(kk))//
@@ -2595,15 +2580,9 @@ C**** close and re-open units
               end do
 #ifdef TRACERS_SPECIAL_Shindell
             case ("O")  ! Ox tracer
-              do kk=1,lm
-                kunit=kunit+1
-                if (kk.lt.10) then
-                  write(name,'(A2,I1,A7)') namedd(k)(1:2),kk,aDATE(1:7)
-                else
-                  write(name,'(A2,I2,A7)') namedd(k)(1:2),kk,aDATE(1:7)
-                end if
-                call openunit(name,iu_SUBDD(kunit),.true.,.false.)
-              end do
+              kunit=kunit+1
+              write(name,'(A2,A3,A7)') namedd(k)(1:2),'ALL',aDATE(1:7)
+              call openunit(name,iu_SUBDD(kunit),.true.,.false.)
 #endif
             end select
           else                  ! single file per name
@@ -2624,7 +2603,7 @@ C****
 !@+                    QLAT, QSEN, SWDN, SWUP, LWDN, STAUX, STAUY,
 !@+                    ICEF, SNOWD
 !@+                    Z*, R*, T*  (on any fixed pressure level)
-!@+                    U*, V*      (on any model level)
+!@+                    U*, V*, W*  (on any model level)
 !@+                    Ox*         (on any model level with chemistry)
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
@@ -2635,7 +2614,7 @@ C****
       USE GEOM, only : imaxj,dxyp
       USE PBLCOM, only : tsavg,qsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc
-      USE DYNAMICS, only : ptropo,am
+      USE DYNAMICS, only : ptropo,am,wsave
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
@@ -2786,15 +2765,17 @@ C**** write out
             end do
             cycle
           end if
-        case ("U","V")        ! velocity levels
+        case ("U","V","W")    ! velocity levels
           if (namedd(k)(2:4) .eq. "ALL") then
-            do kp=1,lm
-              kunit=kunit+1
+            kunit=kunit+1
+            do kp=1,LmaxSUBDD
               select case (namedd(k)(1:1))
               case ("U")        ! E-W velocity
                 data=u(:,:,kp)
               case ("V")        ! N-S velocity
                 data=v(:,:,kp)
+              case ("W")
+                data=wsave(:,:,kp) ! vertical velocity
               end select
 C**** fix polar values
               data(2:im,1) =data(1,1)
@@ -2818,6 +2799,8 @@ C**** get model level
                 data=u(:,:,l)
               case ("V")        ! V velocity
                 data=v(:,:,l)
+              case ("W")        ! W velocity
+                data=wsave(:,:,l)
               end select
               call writei(iu_subdd(kunit),itime,data,im*jm)
               cycle
@@ -2826,11 +2809,11 @@ C**** get model level
 #ifdef TRACERS_SPECIAL_Shindell
         case ("O")        ! Ox ozone tracer (ppmv)
           if (namedd(k)(3:5) .eq. "ALL") then
-            do kp=1,lm
-              kunit=kunit+1
+            kunit=kunit+1
+            do kp=1,LmaxSUBDD
               do j=1,jm
                 do i=1,imaxj(j)
-                  data(i,j)=1d6*trm(i,j,kp,n_Ox)*mair/
+                  data(i,j)=1.d6*trm(i,j,kp,n_Ox)*mair/
      *                 (tr_mm(n_Ox)*am(kp,i,j)*dxyp(j))
                 end do
               end do
