@@ -81,7 +81,8 @@ C**** have to wait.
       return
       end subroutine close_jl
 
-      subroutine POUT_JL(TITLE,J1,KLMAX,XJL,PM,CX,CY)
+      subroutine POUT_JL(TITLE,LNAME,SNAME,UNITS_IN,
+     &     J1,KLMAX,XJL,PM,CX,CY)
 !@sum  POUT_JL output lat-height binary records
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -91,6 +92,12 @@ C**** have to wait.
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
+!@var LNAME long name of field
+      CHARACTER, INTENT(IN) :: LNAME*50
+!@var SNAME short name of field
+      CHARACTER, INTENT(IN) :: SNAME*30
+!@var UNITS units of field
+      CHARACTER, INTENT(IN) :: UNITS_IN*50
 !@var KLMAX max level to output
 !@var J1 minimum j value to output (needed for secondary grid fields)
       INTEGER, INTENT(IN) :: KLMAX,J1
@@ -103,12 +110,12 @@ C**** have to wait.
       REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM
 
       CHARACTER*16, INTENT(IN) :: CX,CY
-      CHARACTER*16, PARAMETER :: CBLANK = ' '
+      CHARACTER*16, PARAMETER :: CBLANK = '                '
       REAL*8 XCOOR(JM)
       INTEGER J,L,JXMAX
 
-      XCOOR(1:JM-J1) = LAT_DG(J1:JM,J1)
       JXMAX = JM-J1+1
+      XCOOR(1:JXMAX) = LAT_DG(J1:JM,J1)
 
       WRITE (iu_jl) TITLE,JXMAX,KLMAX,1,1,
      *     ((SNGL(XJL(J1+J-1,L)),J=1,JXMAX),L=1,KLMAX)
@@ -195,7 +202,7 @@ C**** have to wait.
       return
       end subroutine close_j
 
-      subroutine open_j(filename)
+      subroutine open_j(filename,ntypes)
 !@sum  OPEN_J opens the latitudinal budget-page ascii output file
 !@auth M. Kelley
 !@ver  1.0
@@ -204,12 +211,15 @@ C**** have to wait.
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
+!@var ntypes number of surface types to be output
+      integer, intent(in) :: ntypes
 
       call openunit(filename,iu_j,.false.,.false.)
       return
       end subroutine open_j
 
-      subroutine POUT_J(TITLE,SNAME,LNAME,UNITS,BUDG,KMAX,TERRAIN)
+      subroutine POUT_J(TITLE,SNAME,LNAME,UNITS,BUDG,KMAX,TERRAIN,
+     *     iotype)
 !@sum  POUT_J output zonal budget ascii file (aplot format)
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -225,7 +235,7 @@ C**** have to wait.
       CHARACTER*50, DIMENSION(KAJ),INTENT(IN) :: UNITS
       CHARACTER*16, INTENT(IN) :: TERRAIN
       REAL*8, DIMENSION(JM+3,KAJ), INTENT(IN) :: BUDG
-      INTEGER, INTENT(IN) :: KMAX
+      INTEGER, INTENT(IN) :: KMAX,iotype
       INTEGER K,N,J,n1
 
 C**** Convert spaces in TITLE to underscore
@@ -296,11 +306,11 @@ C**** output hemispheric and global means
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
 !@var SNAME short name of field
-      CHARACTER, DIMENSION(LM), INTENT(IN) :: SNAME*30
+      CHARACTER, INTENT(IN) :: SNAME*30
 !@var LNAME long name of field
-      CHARACTER, DIMENSION(LM), INTENT(IN) :: LNAME*50
+      CHARACTER, INTENT(IN) :: LNAME*50
 !@var UNITS units of field
-      CHARACTER, DIMENSION(LM), INTENT(IN) :: UNITS*50
+      CHARACTER, INTENT(IN) :: UNITS*50
 !@var XIJK lat/lon/height output field
       REAL*8, DIMENSION(IM,JM-1,LM), INTENT(IN) :: XIJK
 !@var XJK lat sum/mean of output field

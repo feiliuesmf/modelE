@@ -295,14 +295,32 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var IA_IJ IDACC indexes for lat/lon IJ diagnostics
       integer, dimension(kaij) :: ia_ij
 
-      character(len=20), dimension(kajl) :: name_jl,units_jl
-      character(len=80), dimension(kajl) :: lname_jl
+!@var NAME_JL Names of lat-sigma JL diagnostics
+      character(len=30), dimension(kajl) :: name_jl
+!@var LNAME_JL,UNITS_JL Descriptions/Units of JL diagnostics
+      character(len=50), dimension(kajl) :: lname_jl,units_jl
+!@var SCALE_JL printout scaling factors for JL diagnostics
+      double precision, dimension(kajl) :: scale_jl
+!@var IA_JL,JGRID_JL idacc-numbers,gridtypes for JL diagnostics
+      integer, dimension(kajl) :: ia_jl,jgrid_jl
 
-      character(len=20), dimension(kasjl) :: name_sjl,units_sjl
-      character(len=80), dimension(kasjl) :: lname_sjl
+!@var NAME_SJL Names of radiative-layer-only SJL diagnostics
+      character(len=30), dimension(kasjl) :: name_sjl
+!@var LNAME_SJL,UNITS_SJL Descriptions/Units of SJL diagnostics
+      character(len=50), dimension(kasjl) :: lname_sjl,units_sjl
+!@var SCALE_SJL printout scaling factors for SJL diagnostics
+      double precision, dimension(kasjl) :: scale_sjl
+!@var IA_SJL idacc-numbers for SJL diagnostics
+      integer, dimension(kasjl) :: ia_sjl
 
-      character(len=20), dimension(kajk) :: name_jk,units_jk
-      character(len=80), dimension(kajk) :: lname_jk
+!@var NAME_JK Names of lat-pressure JK diagnostics
+      character(len=30), dimension(kajl) :: name_jk
+!@var LNAME_JK,UNITS_JK Descriptions/Units of JK diagnostics
+      character(len=50), dimension(kajl) :: lname_jk,units_jk
+!@var SCALE_JK printout scaling factors for JK diagnostics
+      double precision, dimension(kajk) :: scale_jk
+!@var IA_JK,JGRID_JK idacc-numbers,gridtypes for JK diagnostics
+      integer, dimension(kajk) :: ia_jk,jgrid_jk
 
 !@var IJK_xxx AIJK diagnostic names
       INTEGER :: IJK_U, IJK_V, IJK_DSE, IJK_DP, IJK_T, IJK_Q
@@ -311,8 +329,10 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var OFF_IJK offset for weighted AIJK diagnostics
       REAL*8, DIMENSION(KAIJK) :: OFF_IJK
 
-      character(len=20), dimension(kaijk) :: name_ijk,units_ijk
-      character(len=80), dimension(kaijk) :: lname_ijk
+!@var NAME_IJK Names of lon-lat-pressure IJK diagnostics
+      character(len=30), dimension(kaijk) :: name_ijk
+!@var LNAME_IJK,UNITS_IJK Descriptions/Units of IJK diagnostics
+      character(len=50), dimension(kaijk) :: lname_ijk,units_ijk
 
       character(len=20), dimension(kaijl) :: name_ijl,units_ijl
       character(len=80), dimension(kaijl) :: lname_ijl

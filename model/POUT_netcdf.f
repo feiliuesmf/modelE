@@ -11,6 +11,8 @@ C**** Note: it would be nice to amalgamate IL and JL, but that will
 C**** have to wait.
 
       module ncout
+!@sum  ncout handles the writing of output fields in netcdf-format
+!@auth M. Kelley
       use MODEL_COM, only : xlabel,lrunid
       use DAGCOM, only : acc_period
       implicit none
@@ -27,29 +29,46 @@ C**** have to wait.
      &    ,disk_dtype,prog_dtype
 
       character(len=80) :: outfile
+!@var status_out return code from netcdf calls
+!@var out_fid ID-number of output file
       integer :: status_out,out_fid
+!@var ndims_out number of dimensions of current output field
       integer :: ndims_out
+!@var varid_out variable ID-number of current output field
       integer :: varid_out
+!@var dimids_out dimension ID-numbers (1:ndims_out) of output field
       integer, dimension(7) :: dimids_out
-      character(len=30) :: units=''
-      character(len=80) :: long_name=''
+!@var units string containing units of current output field
+      character(len=30) :: units='' ! is reset to '' after each write
+!@var long_name description of current output field
+      character(len=80) :: long_name='' ! is reset to '' after each write
 
-      integer, parameter :: ndfmax=100 ! max dims in file
+!@param ndfmax maximum number of allowed dimensions in output file
+      integer, parameter :: ndfmax=100
+!@var ndims_file current number of dimensions declared in output file
       integer :: ndims_file=0
+!@var file_dimids dimension ID-numbers of all dimensions in file
       integer, dimension(ndfmax) :: file_dimids
+!@var file_dimids dimension sizes of all dimensions in file
       integer, dimension(ndfmax) :: file_dimlens
+!@var file_dimnames dimension names of all dimensions in file
       character(len=20), dimension(ndfmax) :: file_dimnames
 
+!@param missing value to substitute for missing data
       real, parameter :: missing=-1.e30
 
       integer, parameter :: real_att_max_size=100
+!@var real_att_name name of real attribute to write to output file
       character(len=30) :: real_att_name=''
+!@var real_att value(s) of real attribute to write to output file
       real, dimension(real_att_max_size) :: real_att = missing
 
 c netcdf library will convert prog_dtype to disk_dtype 
 c these are the defaults for converting GCM real*8 to real*4 on disk
-      integer :: disk_dtype = nf_real
-      integer :: prog_dtype = nf_double
+!@var disk_dtype data type to write to output file
+      integer :: disk_dtype = nf_real ! is reset to this after each write
+!@var prog_dtype data type of array being written to disk
+      integer :: prog_dtype = nf_double  ! is reset to this after each write
 
       contains
       
@@ -426,7 +445,8 @@ c restore defaults
       return
       end subroutine close_jl
 
-      subroutine POUT_JL(TITLE,J1,KLMAX,XJL,PM,CX,CY)
+      subroutine POUT_JL(TITLE,LNAME,SNAME,UNITS_IN,
+     &     J1,KLMAX,XJL,PM,CX,CY)
 !@sum  POUT_JL output lat-height binary records
 !@auth M. Kelley
 !@ver  1.0
@@ -434,13 +454,15 @@ c restore defaults
       USE DAGCOM, only : lm_req,iu_jl
       USE DAGPCOM, only : plm,ple,ple_dn
       USE NCOUT
-      USE BDJL, title_jl=>title,units_jl=>units,
-     &          lname_jl=>lname,sname_jl=>sname
-      USE BDJK, title_jk=>title,units_jk=>units,
-     &          lname_jk=>lname,sname_jk=>sname
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
+!@var LNAME long name of field
+      CHARACTER, INTENT(IN) :: LNAME*50
+!@var SNAME short name of field
+      CHARACTER, INTENT(IN) :: SNAME*30
+!@var UNITS units of field
+      CHARACTER, INTENT(IN) :: UNITS_IN*50
 !@var KLMAX max level to output
 !@var J1 minimum j value to output (needed for secondary grid fields)
       INTEGER, INTENT(IN) :: KLMAX,J1
@@ -490,17 +512,10 @@ c restore defaults
       endif
       call set_dim_out(dim_name,2)
 
-      if(in_jlmap) then
-         var_name=sname_jl(nt_jl)
-         long_name=lname_jl(nt_jl)
-         units=units_jl(nt_jl)
-      else if(in_jkmap) then
-         var_name=sname_jk(nt_jk)
-         long_name=lname_jk(nt_jk)
-         units=units_jk(nt_jk)
-      else
-         stop 'pout_jl: unknown output list'
-      endif
+      var_name=sname
+      long_name=lname
+      units=units_in
+
       real_att_name='g-nh-sh_sums-means'
       real_att(1:3)=XJL(JM+1:JM+3,LM+LM_REQ+1)
 
@@ -655,7 +670,7 @@ c restore defaults
       return
       end
 
-      subroutine open_j(filename)
+      subroutine open_j(filename,ntypes)
 !@sum  OPEN_J opens the latitudinal binary output file
 !@auth M. Kelley
 !@ver  1.0
@@ -663,10 +678,12 @@ c restore defaults
       USE GEOM, only : lat_dg
       USE DAGCOM, only : iu_j
       USE NCOUT
-      USE BDJ, only : nstype_out
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
+!@var ntypes number of surface types to be output
+      integer, intent(in) :: ntypes
+
       character(len=30) :: var_name,dim_name
 
       outfile = filename
@@ -674,7 +691,7 @@ c restore defaults
       iu_j = out_fid
 
       dim_name='latitude'; call def_dim_out(dim_name,jm)
-      dim_name='stype'; call def_dim_out(dim_name,nstype_out)
+      dim_name='stype'; call def_dim_out(dim_name,ntypes)
       dim_name='stype_clen'; call def_dim_out(dim_name,16)
 
       ndims_out = 1
@@ -699,7 +716,7 @@ c restore defaults
       return
       end subroutine close_j
 
-      subroutine POUT_J(TITLE,SNAME,LNAME,UNITS,BUDG,KMAX,TERRAIN,
+      subroutine POUT_J(TITLE,SNAME,LNAME,UNITS_IN,BUDG,KMAX,TERRAIN,
      *     iotype)
 !@sum  POUT_J output zonal budget file
 !@auth M. Kelley
@@ -713,13 +730,13 @@ c temporary, to see nf_char
       include '/usr/local/netcdf-3.4/include/netcdf.inc'
 c
       CHARACTER*16, DIMENSION(KAJ),INTENT(INOUT) :: TITLE
-!@var LNAME,SNAME,UNITS information strings for netcdf
+!@var LNAME,SNAME,UNITS_IN information strings for netcdf
       CHARACTER*50, DIMENSION(KAJ),INTENT(IN) :: LNAME
       CHARACTER*30, DIMENSION(KAJ),INTENT(IN) :: SNAME
-      CHARACTER*50, DIMENSION(KAJ),INTENT(IN) :: UNITS
+      CHARACTER*50, DIMENSION(KAJ),INTENT(IN) :: UNITS_IN
       CHARACTER*16, INTENT(IN) :: TERRAIN
       REAL*8, DIMENSION(JM+3,KAJ), INTENT(IN) :: BUDG
-      INTEGER, INTENT(IN) :: KMAX
+      INTEGER, INTENT(IN) :: KMAX,iotype
       INTEGER K,N,J
 
       character(len=30) :: var_name,dim_name
@@ -741,7 +758,7 @@ c
       DO K=1,KMAX
         var_name=sname(k)
         long_name=lname(k)
-        units=units(k)
+        units=units_in(k)
         call wrtarrn(var_name,budg(1,k),iotype)
       END DO
 
@@ -812,11 +829,11 @@ c
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
 !@var SNAME short name of field
-      CHARACTER, DIMENSION(LM), INTENT(IN) :: SNAME*30
+      CHARACTER, INTENT(IN) :: SNAME*30
 !@var LNAME long name of field
-      CHARACTER, DIMENSION(LM), INTENT(IN) :: LNAME*50
+      CHARACTER, INTENT(IN) :: LNAME*50
 !@var UNITS units of field
-      CHARACTER, DIMENSION(LM), INTENT(IN) :: UNITS_IN*50
+      CHARACTER, INTENT(IN) :: UNITS_IN*50
 !@var XIJK lat/lon/height output field 
       REAL*8, DIMENSION(IM,JM-1,LM), INTENT(IN) :: XIJK
 !@var XJK lat sum/mean of output field 
