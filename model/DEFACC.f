@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       subroutine def_acc
 c-----------------------------------------------------------------------
 c define acc names, units, etc
@@ -23,6 +25,9 @@ c-----------------------------------------------------------------------
       call jk_defs
       call ijk_defs
       call diurn_defs
+#ifdef TRACERS_ON
+      call init_tracer
+#endif
       return
       end subroutine def_acc
 

@@ -1,3 +1,205 @@
+#include "rundeck_opts.h"
+
+      SUBROUTINE DYNAM
+!@sum  DYNAM Integrate dynamic terms
+!@auth Original development team
+!@ver  1.0
+      USE CONSTANT, only : by3
+      USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
+     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,lsdrag
+      USE GEOM, only : dyv,dxv
+      USE SOMTQ_COM, only : tmom,qmom,mz
+      USE DYNAMICS, only : ptold,pu,pv,pit,sd,phi,dut,dvt
+     &    ,pua,pva,sda,ps,mb
+      USE DAGCOM, only : aij,ij_fpeu,ij_fpev,ij_fqu,ij_fqv,ij_fmv,ij_fmu
+     *     ,ij_fgzu,ij_fgzv
+      IMPLICIT NONE
+
+      REAL*8, DIMENSION(IM,JM) :: PRAT
+      REAL*8, DIMENSION(IM,JM,LM) :: UT,VT,TT,TZ,TZT,MA
+      REAL*8, DIMENSION(IM,JM,LM) :: UX,VX,PIJL
+      REAL*8 PA(IM,JM),PB(IM,JM),PC(IM,JM),FPEU(IM,JM),FPEV(IM,JM),
+     *          FWVU(IM,JM),FWVV(IM,JM)
+
+      REAL*8 DTFS,DTLF,PP,UU,VV
+      INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
+      INTEGER NS, NSOLD,MODDA    !? ,NIdynO
+
+!?    NIdynO=MOD(NIdyn,2)   ! NIdyn odd is currently not an option
+      DTFS=DT*2./3.
+      DTLF=2.*DT
+      NS=0
+      NSOLD=0                            ! strat
+      PTOLD(:,:) = P(:,:)
+C**** Initialize mass fluxes used by tracers and Q
+      PS (:,:)   = P(:,:)
+      PUA(:,:,:) = 0.
+      PVA(:,:,:) = 0.
+      SDA(:,:,:) = 0.
+C**** Leap-frog re-initialization: IF (NS.LT.NIdyn) 
+  300 CONTINUE
+      UX(:,:,:)  = U(:,:,:)
+      UT(:,:,:)  = U(:,:,:)
+      VX(:,:,:)  = V(:,:,:)
+      VT(:,:,:)  = V(:,:,:)
+!     copy z-moment of temperature into contiguous memory
+      tz(:,:,:) = tmom(mz,:,:,:)
+      PA(:,:) = P(:,:)
+      PB(:,:) = P(:,:)
+      PC(:,:) = P(:,:)
+C**** INITIAL FORWARD STEP, QX = Q + .667*DT*F(Q)
+      MRCH=0
+C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
+      CALL CALC_PIJL(LM,P,PIJL)
+      CALL AFLUX (U,V,PIJL)
+      CALL ADVECM (P,PB,DTFS)
+      CALL GWDRAG (PB,UX,VX,T,TZ,DTFS)   ! strat
+      CALL VDIFF (PB,UX,VX,T,DTFS)       ! strat
+      CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
+      CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
+      CALL FLTRUV(UX,VX)
+C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
+      MRCH=-1
+C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
+      CALL CALC_PIJL(LS1-1,PB,PIJL)
+      CALL AFLUX (UX,VX,PIJL)
+      CALL ADVECM (P,PA,DT)
+      CALL GWDRAG (PA,UT,VT,T,TZ,DT)   ! strat
+      CALL VDIFF (PA,UT,VT,T,DT)       ! strat
+      CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
+      CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
+      CALL FLTRUV(UT,VT)
+      GO TO 360
+C**** ODD LEAP FROG STEP, QT = QT + 2*DT*F(Q)
+  340 MRCH=-2
+C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
+      CALL CALC_PIJL(LS1-1,P,PIJL)
+      CALL AFLUX (U,V,PIJL)
+      CALL ADVECM (PA,PB,DTLF)
+      CALL GWDRAG (PB,UT,VT,T,TZ,DTLF)   ! strat
+      CALL VDIFF (PB,UT,VT,T,DTLF)       ! strat
+      CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
+      CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
+      CALL FLTRUV(UT,VT)
+      PA(:,:) = PB(:,:)     ! LOAD PB TO PA
+C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
+  360 NS=NS+2
+         MODD5K=MOD(NSTEP+NS-NIdyn+NDA5K*NIdyn+2,NDA5K*NIdyn+2)
+      MRCH=2
+C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
+      CALL CALC_PIJL(LS1-1,PA,PIJL)
+      CALL AFLUX (UT,VT,PIJL)
+      CALL ADVECM (PC,P,DTLF)
+      CALL GWDRAG (P,U,V,T,TZ,DTLF)   ! strat
+      CALL ADVECV (PC,U,V,P,UT,VT,Pijl,DTLF)     !PA->pijl
+         MODDA=MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2)  ! strat
+         IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
+C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q
+         PUA(:,:,:)=PUA(:,:,:)+PU(:,:,:)
+         PVA(:,:,:)=PVA(:,:,:)+PV(:,:,:) 
+         SDA(:,:,1:LM-1)=SDA(:,:,1:LM-1)+SD(:,:,1:LM-1)
+C**** ADVECT Q AND T
+         FPEU(:,:) = 0.
+         FPEV(:,:) = 0.
+      TT(:,:,:) = T(:,:,:)
+      TZT(:,:,:)= TZ(:,:,:)
+      call calc_amp(pc,ma)
+      CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
+         AIJ(:,:,IJ_FPEU) = AIJ(:,:,IJ_FPEU)+FPEU(:,:)
+         AIJ(:,:,IJ_FPEV) = AIJ(:,:,IJ_FPEV)+FPEV(:,:)
+         FWVU(:,:) = 0.
+         FWVV(:,:) = 0.
+!     save z-moment of temperature in contiguous memory for later
+      tz(:,:,:) = tmom(mz,:,:,:) 
+      call calc_amp(pc,ma)
+      CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE. ,FWVU,FWVV)
+         AIJ(:,:,IJ_FQU)  = AIJ(:,:,IJ_FQU )+FWVU(:,:)
+         AIJ(:,:,IJ_FQV)  = AIJ(:,:,IJ_FQV )+FWVV(:,:)
+      CALL VDIFF (P,U,V,T,DTLF)          ! strat
+      PC(:,:)    = .5*(P(:,:)+PC(:,:))
+      TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
+      TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
+         DO L=1,LM
+           AIJ(:,2:JM,IJ_FMV)  = AIJ(:,2:JM,IJ_FMV )+PV(:,2:JM,L)*DTLF
+           AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PU(:, 1,L)*DTLF*BY3
+           AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+PU(:,JM,L)*DTLF*BY3
+           AIJ(:,2:JM-1,IJ_FMU)=AIJ(:,2:JM-1,IJ_FMU)+PU(:,2:JM-1,L)*DTLF
+         END DO
+      CALL CALC_PIJL(LS1-1,PC,PIJL)
+      CALL PGF (U,V,P,UT,VT,TT,TZT,Pijl,DTLF)    !PC->pijl
+         DO L=1,LM
+         DO J=2,JM
+         IM1=IM
+         DO I=1,IM
+           PP=.5*(PHI(I,J-1,L)+PHI(I,J,L))
+           UU=.5*(U(I,J,L)+U(IM1,J,L))
+           AIJ(I,J,IJ_FGZU)=AIJ(I,J,IJ_FGZU)+PP*UU*DYV(J)*DTLF
+           VV=.5*(V(I,J,L)+V(IM1,J,L))
+           AIJ(I,J,IJ_FGZV)=AIJ(I,J,IJ_FGZV)+PP*VV*DXV(J)*DTLF
+         IM1=I
+         END DO
+         END DO
+         END DO
+      CALL FLTRUV(U,V)
+      PC(:,:) = P(:,:)      ! LOAD P TO PC
+         IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
+           CALL CALC_AMPK(LS1-1)
+           CALL DIAGA
+           CALL DIAGB
+           CALL EPFLUX (U,V,T,P)
+         ENDIF
+C**** Restart after 8 steps due to divergence of solutions
+C**** STRATOSPHERIC MOMENTUM DRAG must be called at least once
+      IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
+      CALL CALC_AMPK(LS1-1)
+      CALL SDRAG (LSDRAG,DT*(NS-NSOLD))
+      NSOLD=NS
+      IF (NS.LT.NIdyn) GO TO 300
+C**** Scale WM mixing ratios to conserve liquid water
+      PRAT(:,:)=PTOLD(:,:)/P(:,:)
+      DO L=1,LS1-1
+        WM(:,:,L)=WM(:,:,L)*PRAT(:,:)
+      END DO
+      RETURN
+      END SUBROUTINE DYNAM
+
+
+#ifdef TRACERS_ON
+      SUBROUTINE TDYNAM
+!@sum  TDYNAM is the driver to integrate tracer dynamic terms
+!@auth J. Lerner
+!@ver  1.0
+      USE MODEL_COM, only: itime,dt
+      USE TRACER_COM
+      USE DYNAMICS, only: ps,mb
+      USE TRACER_ADV
+      USE TRACER_DIAG_COM, only:
+     &  jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,TAJLN
+      IMPLICIT NONE
+      REAL*8 DTLF,byncyc
+      INTEGER N
+
+      DTLF=2.*DT
+      CALL CALC_AMP(PS,MB)
+      CALL AADVQ0 (DTLF)  ! uses the fluxes pua,pva,sda from DYNAM
+      DO N=1,NTM
+        IF (itime.LT.itime_tr0(N)) cycle
+        sfbm = 0.; sbm = 0.; sbf = 0.
+        sfcm = 0.; scm = 0.; scf = 0.
+        CALL AADVQ (TRM(1,1,1,n),TrMOM(1,1,1,1,n),t_qlimit(n),trname(n))
+        byncyc = 1./ncyc
+        TAJLN(:,:,jlnt_nt_tot,n) = TAJLN(:,:,jlnt_nt_tot,n) + sbf(:,:)
+        TAJLN(:,:,jlnt_nt_mm, n) = TAJLN(:,:,jlnt_nt_mm, n)
+     &    + sbm(:,:)*sfbm(:,:)*byim*byncyc
+        TAJLN(:,:,jlnt_vt_tot,n) = TAJLN(:,:,jlnt_vt_tot,n) + scf(:,:)
+        TAJLN(:,:,jlnt_vt_mm, n) = TAJLN(:,:,jlnt_vt_mm, n)
+     &    + scm(:,:)*sfcm(:,:)*byim*byncyc
+      ENDDO
+      RETURN
+      END SUBROUTINE TDYNAM
+#endif
+
+
       SUBROUTINE AFLUX (U,V,PIJL)
 !@sum  AFLUX Calculates horizontal/vertical air mass fluxes
 !@auth Original development team
@@ -125,6 +327,7 @@ C****
       RETURN
       END SUBROUTINE AFLUX
 
+
       SUBROUTINE ADVECM (P,PA,DT1)
 !@sum  ADVECM Calculates updated column pressures using mass fluxes
 !@auth Original development team
@@ -158,6 +361,7 @@ C****
      *   '     V(I,J)   V(I-1,J+1)    V(I,J+1)     T(I,J)     Q(I,J)'/
      *  (1X,9F12.3,F12.6))
       END SUBROUTINE ADVECM
+
 
       SUBROUTINE PGF (UT,VT,PB,U,V,T,SZ,P,DT1)
 !@sum  PGF Adds pressure gradient forces to momentum
@@ -322,12 +526,13 @@ C****
       RETURN
       END SUBROUTINE PGF
 
+
       SUBROUTINE AVRX (X)
 !@sum  AVRX Smoothes zonal mass flux and geopotential near the poles
 !@auth Original development team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,imh
-      USE GEOM, only : dlon,dxp,dyp
+      USE GEOM, only : dlon,dxp,dyp,bydyp
       USE DYNAMICS, only : xAVRX
 C**** THIS VERSION OF AVRX DOES SO BY TRUNCATING THE FOURIER SERIES.
       IMPLICIT NONE
@@ -346,7 +551,7 @@ C     CALL FFT0(IM)
         BYSN(N)=xAVRX/SIN(.5*DLON*N)
       END DO
       DO 50 J=2,JM-1
-        DRAT(J) = DXP(J)/DYP(3)
+        DRAT(J) = DXP(J)*BYDYP(3)
         DO 40 N=IMH,1,-1
           SM(N,J) = BYSN(N)*DRAT(J)
           IF(SM(N,J).GT.1.) THEN
@@ -370,6 +575,7 @@ C****
       RETURN
       END SUBROUTINE AVRX
 
+
       SUBROUTINE FILTER
 !@sum  FILTER Performs 8-th order shapiro filter in zonal direction
 !@auth Original development team
@@ -381,16 +587,19 @@ C****        3  SMOOTH P AND T
 C****
       USE CONSTANT, only : bbyg,gbyrb,kapa
       USE MODEL_COM, only : im,jm,lm,ls1,t,p,q,wm,mfiltr,zatmo,ptop
-     *     ,byim,sig
+     *     ,byim,sig,itime
       USE SOMTQ_COM, only : tmom,qmom
       USE PBLCOM, only : tsavg
+#ifdef TRACERS_ON
+      USE TRACER_COM, only: ntm,trname,ITIME_TR0,trm,trmom
+#endif
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM) :: X,Y
       REAL*8 PSUMO(JM)
 
       REAL*8 POLD(IM,JM),PRAT(IM,JM)
       REAL*8 PSUMN,PDIF,AKAP
-      INTEGER I,J,L  !@var I,J,L  loop variables
+      INTEGER I,J,L,N  !@var I,J,L  loop variables
 
       IF (MOD(MFILTR,2).NE.1) GO TO 200
 C****
@@ -430,7 +639,22 @@ C**** Scale mixing ratios (incl moments) to conserve mass/heat
           END DO
         END DO
       END DO
-
+#ifdef TRACERS_ON
+C**** In general, only an air tracer is affected by the filter
+C**** Thus, this code slows model and should be removed if not wanted
+C**** Instead of if(trname...) could use n=n_air and avoid the IF-test
+C**** But if n_air=0 this will cause problems...
+      do n=1,ntm
+      if (trname(n).ne.'Air') cycle
+!     if (itime.lt.itime_tr0(n)) cycle   !probably not needed
+      DO L=1,LS1-1
+        DO J=2,JM-1
+          DO I=1,IM
+             trm(I,J,L,n)=  trm(I,J,L,n)*PRAT(I,J)
+             trmom(:,I,J,L,n)=trmom(:,I,J,L,n)*PRAT(I,J)
+      end do; end do; end do
+      end do
+#endif
       CALL CALC_AMPK(LS1-1)
 
   200 IF (MFILTR.LT.2) RETURN
@@ -458,6 +682,7 @@ C****
   280 T(I,J,L)=X(I,J)
       RETURN
       END SUBROUTINE FILTER
+
 
       SUBROUTINE FLTRUV(U,V)
 !@sum  FLTRUV Filters 2 gridpoint noise from the velocity fields
@@ -551,7 +776,7 @@ C****
 C**** Filtering in north-south direction
 C****
       IF(.NOT.QFILY) GOTO 651
-  400 Y4TO8 = 1./(4.**NSHAP)
+      Y4TO8 = 1./(4.**NSHAP)
 C**** Filter U component of momentum
       DO 650 L=1,LM
       DO 540 I=1,IM
@@ -594,6 +819,7 @@ C****
   651 RETURN
       END SUBROUTINE FLTRUV
 
+
       SUBROUTINE SHAP1D (NORDER,X)
 !@sum  SHAP1D Smoothes in zonal direction use n-th order shapiro filter
 !@auth Original development team
@@ -624,6 +850,7 @@ C****
       END DO
       RETURN
       END SUBROUTINE SHAP1D
+
 
       SUBROUTINE CALC_PIJL(lmax,p,pijl)
 !@sum  CALC_PIJL Fills in P as 3-D
@@ -700,7 +927,7 @@ c               BYAM(L,I,J) = 1./AM(L,I,J)
       RETURN
       END SUBROUTINE CALC_AMPK
 
- 
+
       SUBROUTINE CALC_AM(LMAX)
 !@sum  CALC_AM calculate air mass in (kg/m^2); also the reciprocal
 !@auth Jean Lerner/Gavin Schmidt
@@ -763,158 +990,6 @@ C****
 C****
       end subroutine calc_amp
 
-      SUBROUTINE DYNAM
-!@sum  DYNAM Integrate dynamic terms
-!@auth Original development team
-!@ver  1.0
-      USE CONSTANT, only : by3
-      USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
-     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,lsdrag
-      USE GEOM, only : dyv,dxv
-      USE SOMTQ_COM, only : tmom,qmom,mz
-      USE DYNAMICS, only : ptold,pu,pv,pit,sd,phi,dut,dvt
-      USE DAGCOM, only : aij,ij_fpeu,ij_fpev,ij_fqu,ij_fqv,ij_fmv,ij_fmu
-     *     ,ij_fgzu,ij_fgzv
-      IMPLICIT NONE
-
-      REAL*8, DIMENSION(IM,JM) :: PRAT
-      REAL*8, DIMENSION(IM,JM,LM) :: UT,VT,TT,TZ,TZT,MA
-      REAL*8, DIMENSION(IM,JM,LM) :: UX,VX,PIJL
-      REAL*8 PA(IM,JM),PB(IM,JM),PC(IM,JM),FPEU(IM,JM),FPEV(IM,JM),
-     *          FWVU(IM,JM),FWVV(IM,JM)
-
-      REAL*8 DTFS,DTLF,PP,UU,VV
-      INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
-      INTEGER NS, NSOLD,MODDA    !? ,NIdynO
-
-!?    NIdynO=MOD(NIdyn,2)   ! NIdyn odd is currently not an option
-      DTFS=DT*2./3.
-      DTLF=2.*DT
-      NS=0
-      NSOLD=0                            ! strat
-      PTOLD(:,:) = P(:,:)
-  300 CONTINUE
-      UX(:,:,:)  = U(:,:,:)
-      UT(:,:,:)  = U(:,:,:)
-      VX(:,:,:)  = V(:,:,:)
-      VT(:,:,:)  = V(:,:,:)
-C*** copy z-moment of temperature into contiguous memory
-      tz(:,:,:) = tmom(mz,:,:,:)
-      PA(:,:) = P(:,:)
-      PB(:,:) = P(:,:)
-      PC(:,:) = P(:,:)
-C**** INITIAL FORWARD STEP, QX = Q + .667*DT*F(Q)
-      MRCH=0
-C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
-      CALL CALC_PIJL(LM,P,PIJL)
-      CALL AFLUX (U,V,PIJL)
-      CALL ADVECM (P,PB,DTFS)
-      CALL GWDRAG (PB,UX,VX,T,TZ,DTFS)   ! strat
-      CALL VDIFF (PB,UX,VX,T,DTFS)       ! strat
-      CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
-      CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
-      CALL FLTRUV(UX,VX)
-C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
-      MRCH=-1
-C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
-      CALL CALC_PIJL(LS1-1,PB,PIJL)
-      CALL AFLUX (UX,VX,PIJL)
-      CALL ADVECM (P,PA,DT)
-      CALL GWDRAG (PA,UT,VT,T,TZ,DT)   ! strat
-      CALL VDIFF (PA,UT,VT,T,DT)       ! strat
-      CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
-      CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
-      CALL FLTRUV(UT,VT)
-      GO TO 360
-C**** ODD LEAP FROG STEP, QT = QT + 2*DT*F(Q)
-  340 MRCH=-2
-C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
-      CALL CALC_PIJL(LS1-1,P,PIJL)
-      CALL AFLUX (U,V,PIJL)
-      CALL ADVECM (PA,PB,DTLF)
-      CALL GWDRAG (PB,UT,VT,T,TZ,DTLF)   ! strat
-      CALL VDIFF (PB,UT,VT,T,DTLF)       ! strat
-      CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
-      CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
-      CALL FLTRUV(UT,VT)
-C**** LOAD PB TO PA
-      PA(:,:) = PB(:,:)
-C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
-  360 NS=NS+2
-         MODD5K=MOD(NSTEP+NS-NIdyn+NDA5K*NIdyn+2,NDA5K*NIdyn+2)
-      MRCH=2
-C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
-      CALL CALC_PIJL(LS1-1,PA,PIJL)
-      CALL AFLUX (UT,VT,PIJL)
-      CALL ADVECM (PC,P,DTLF)
-      CALL GWDRAG (P,U,V,T,TZ,DTLF)   ! strat
-      CALL ADVECV (PC,U,V,P,UT,VT,Pijl,DTLF)     !PA->pijl
-         MODDA=MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2)  ! strat
-         IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
-         FPEU(:,:) = 0.
-         FPEV(:,:) = 0.
-         FWVU(:,:) = 0.
-         FWVV(:,:) = 0.
-      TT(:,:,:) = T(:,:,:)
-      TZT(:,:,:)= TZ(:,:,:)
-      call calc_amp(pc,ma)
-      CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
-C*** copy z-moment of temperature into contiguous memory
-      tz(:,:,:) = tmom(mz,:,:,:)
-      call calc_amp(pc,ma)
-      CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE. ,FWVU,FWVV)
-      CALL VDIFF (P,U,V,T,DTLF)          ! strat
-      PC(:,:)    = .5*(P(:,:)+PC(:,:))
-      TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
-      TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
-         AIJ(:,:,IJ_FPEU) = AIJ(:,:,IJ_FPEU)+FPEU(:,:)
-         AIJ(:,:,IJ_FPEV) = AIJ(:,:,IJ_FPEV)+FPEV(:,:)
-         AIJ(:,:,IJ_FQU)  = AIJ(:,:,IJ_FQU )+FWVU(:,:)
-         AIJ(:,:,IJ_FQV)  = AIJ(:,:,IJ_FQV )+FWVV(:,:)
-         DO L=1,LM
-           AIJ(:,2:JM,IJ_FMV)  = AIJ(:,2:JM,IJ_FMV )+PV(:,2:JM,L)*DTLF
-           AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PU(:, 1,L)*DTLF*BY3
-           AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+PU(:,JM,L)*DTLF*BY3
-           AIJ(:,2:JM-1,IJ_FMU)=AIJ(:,2:JM-1,IJ_FMU)+PU(:,2:JM-1,L)*DTLF
-         END DO
-      CALL CALC_PIJL(LS1-1,PC,PIJL)
-      CALL PGF (U,V,P,UT,VT,TT,TZT,Pijl,DTLF)    !PC->pijl
-         DO L=1,LM
-         DO J=2,JM
-         IM1=IM
-         DO I=1,IM
-           PP=.5*(PHI(I,J-1,L)+PHI(I,J,L))
-           UU=.5*(U(I,J,L)+U(IM1,J,L))
-           AIJ(I,J,IJ_FGZU)=AIJ(I,J,IJ_FGZU)+PP*UU*DYV(J)*DTLF
-           VV=.5*(V(I,J,L)+V(IM1,J,L))
-           AIJ(I,J,IJ_FGZV)=AIJ(I,J,IJ_FGZV)+PP*VV*DXV(J)*DTLF
-         IM1=I
-         END DO
-         END DO
-         END DO
-      CALL FLTRUV(U,V)
-C**** LOAD P TO PC
-      PC(:,:)=P(:,:)
-         IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
-           CALL CALC_AMPK(LS1-1)
-           CALL DIAGA
-           CALL DIAGB
-           CALL EPFLUX (U,V,T,P)
-         ENDIF
-C**** Restart after 8 steps due to divergence of solutions
-C**** STRATOSPHERIC MOMENTUM DRAG must be called at least once
-      IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
-      CALL CALC_AMPK(LS1-1)
-      CALL SDRAG (LSDRAG,DT*(NS-NSOLD))
-      NSOLD=NS
-      IF (NS.LT.NIdyn) GO TO 300
-C**** Scale WM mixing ratios to conserve liquid water
-      PRAT(:,:)=PTOLD(:,:)/P(:,:)
-      DO L=1,LS1-1
-        WM(:,:,L)=WM(:,:,L)*PRAT(:,:)
-      END DO
-      RETURN
-      END SUBROUTINE DYNAM
 
       SUBROUTINE PGRAD_PBL
 !@sum  PGRAD_PBL calculates surface/layer 1 pressure gradients for pbl
@@ -925,7 +1000,7 @@ C**** after DYNAM (since it uses pk/pmid). It would be better if it used
 C**** SPA and PU directly from the dynamics. (Future work).
       USE CONSTANT, only : rgas
       USE MODEL_COM, only : im,jm,t,p,zatmo,sig
-      USE GEOM, only : dyp,dxp
+      USE GEOM, only : dyp,dxp,bydyp,bydxp
       USE DYNAMICS, only : phi,pu,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
      *     ,dpdx_by_rho_0,pmid,pk
       IMPLICIT NONE
@@ -941,11 +1016,11 @@ C**** to be used in the PBL
       DO I=1,IM
         DO J=2,JM
           rho1=100.*pmid(1,i,j)/(rgas*t(i,j,1)*pk(1,i,j))
-          FLUX=(PHI(I,J,1)-PHI(I,J-1,1))/DYP(J)
+          FLUX=(PHI(I,J,1)-PHI(I,J-1,1))*BYDYP(J)
      2         +100.*(P(I,J)-P(I,J-1))*SIG(1)/(rho1*DYP(J))
           DPDY_BY_RHO(I,J)=DPDY_BY_RHO(I,J)+FLUX
           DPDY_BY_RHO(IM1,J)=DPDY_BY_RHO(IM1,J)+FLUX
-          FLUX=(ZATMO(I,J)-ZATMO(I,J-1))/DYP(J)
+          FLUX=(ZATMO(I,J)-ZATMO(I,J-1))*BYDYP(J)
      2         +100.*(P(I,J)-P(I,J-1))/(rho1*DYP(J))
           DPDY_BY_RHO_0(I,J)=DPDY_BY_RHO_0(I,J)+FLUX
           DPDY_BY_RHO_0(IM1,J)=DPDY_BY_RHO_0(IM1,J)+FLUX
@@ -963,9 +1038,9 @@ c
         PU0(I,JM,1)=0.
         DO J=2,JM-1
           rho1=100.*pmid(1,i,j)/(rgas*t(i,j,1)*pk(1,i,j))
-          PU(I,J,1)=(PHI(IP1,J,1)-PHI(I,J,1))/DXP(J)
+          PU(I,J,1)=(PHI(IP1,J,1)-PHI(I,J,1))*BYDXP(J)
      2              +100.*(P(IP1,J)-P(I,J))*SIG(1)/(rho1*DXP(J))
-          PU0(I,J,1)=(ZATMO(IP1,J)-ZATMO(I,J))/DXP(J)
+          PU0(I,J,1)=(ZATMO(IP1,J)-ZATMO(I,J))*BYDXP(J)
      2               +100.*(P(IP1,J)-P(I,J))/(rho1*DXP(J))
         END DO
         I=IP1
@@ -981,6 +1056,7 @@ c
       END DO
 C****
       END SUBROUTINE PGRAD_PBL
+
 
       SUBROUTINE SDRAG(LMIN,DT1)
 !@sum  SDRAG puts a drag on the winds on the top layers of atmosphere
@@ -1034,6 +1110,7 @@ C**** only top two layers are done (unless LMIN=LM i.e. only top layer)
       RETURN
       END
 
+
       SUBROUTINE CALC_TROP
 !@sum  CALC_TROP (to calculate tropopause height and layer)
 !@auth J. Lerner
@@ -1057,6 +1134,7 @@ C**** Find WMO Definition of Tropopause to Nearest L
       end do
       end do
       END SUBROUTINE CALC_TROP
+
 
       subroutine tropwmo(ptm1, papm1, pk, ptropo, ltropp)
 !@sum  tropwmo calculates tropopasue height according to WMO formula
@@ -1208,6 +1286,3 @@ c****
 c****
       return
       end subroutine tropwmo
-
-
-

@@ -115,7 +115,7 @@ c-----------------------------------------------------------
             f(nm1) = fnm1
             smom(mx,ns) = sxn
             smom(mxx,ns) = sxxn
-           nm1 = n
+            nm1 = n
          enddo
       endif
 c--------------------------------------------------------------------
@@ -146,7 +146,7 @@ c--------------------------------------------------------------------
          fmom(myy,n) = fracm*smom(myy,ns)
          fmom(mzz,n) = fracm*smom(mzz,ns)
          fmom(myz,n) = fracm*smom(myz,ns)
-        n = np1
+         n = np1
       enddo
 c-------------------------------------------------------------------
 c update tracer mass, moments of tracer mass, air mass distribution
@@ -191,7 +191,7 @@ c------------------------------------------------------------------
             smom(:,ns)=0.
          endif
 c-----------------------------------------------------------------
-        nm1 = n
+         nm1 = n
       enddo
       return
       end subroutine adv1d
@@ -317,10 +317,10 @@ c**** upstream division is negative
         return
       end subroutine limitq
 
-C****
+
       SUBROUTINE CTMIX (RM,RMOM,FMAIR,FMIX,FRAT)
 !@sum CTMIX  Cloud top mixing of tracer moments (incl. q,t) from CONDSE
-!@auth Jean Lerner
+!@auth Gary Russell, Jean Lerner, Gavin Schmidt
 !@ver 1.0
 !@var RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX mean and moments of tracer
       USE QUSDEF
