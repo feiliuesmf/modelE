@@ -10,13 +10,9 @@
 !@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
       INTEGER iu_ij,iu_jl,iu_il,iu_j,iu_ijk
 C**** Accumulating_period information
-!ny   INTEGER, PARAMETER :: NSAMPL  !@var NSAMPL # of sampling schemes
-!ny   INTEGER, DIMENSION(nsampl) :: IDACC   !@var IDACC acc-counters
       INTEGER, DIMENSION(12) :: MONACC  !@var MONACC(1)=#Januaries, etc
       CHARACTER*12 ACC_PERIOD           !@var string MONyyr1-yyr2
 !@var AMON0,JMON0,JDATE0,JYEAR0,JHOUR0,Itime0  beg.of acc-period
-!ny   CHARACTER*4 AMON0
-!ny   INTEGER JMON0,JDATE0,JYEAR0,JHOUR0,Itime0
 
 C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@param KAJ number of accumulated zonal budget diagnostics
@@ -115,15 +111,17 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 
 !@param HR_IN_DAY hours in day
       INTEGER, PARAMETER :: HR_IN_DAY=24
-!@param NDLYVAR number of daily diagnostics
-      INTEGER, PARAMETER :: NDLYVAR=63
-!@param NDLYPT number of points where daily diagnostics are kept
-      INTEGER, PARAMETER :: NDLYPT=4
-!@var IJD6,NAMD6 (i,j)-coord.,4-char names of boxes w/diurnal cycle diag
-!ny   INTEGER, DIMENSION(2,NDLYPT) :: IJD6
-!ny   CHARACTER*4, DIMENSION(NDLYPT) :: NAMD6
-!@var ADIURN daily diagnostics (24 hour cycles at selected points)
-      DOUBLE PRECISION, DIMENSION(HR_IN_DAY,NDLYVAR,NDLYPT) :: ADIURN
+!@param NDIUVAR number of diurnal diagnostics
+      INTEGER, PARAMETER :: NDIUVAR=63
+!@param NDIUPT number of points where diurnal diagnostics are kept
+      INTEGER, PARAMETER :: NDIUPT=4
+!@dbparam IJDD,NAMDD (i,j)-coord.,names of boxes w/diurnal cycle diag
+      INTEGER, DIMENSION(2,NDIUPT) :: IJDD
+      CHARACTER*4, DIMENSION(NDIUPT) :: NAMDD
+      DATA        IJDD    /  63,17,  17,34,  37,27,  13,23 /
+      DATA        NAMDD   / 'AUSD', 'MWST', 'SAHL', 'EPAC' /
+!@var ADIURN diurnal diagnostics (24 hour cycles at selected points)
+      DOUBLE PRECISION, DIMENSION(HR_IN_DAY,NDIUVAR,NDIUPT) :: ADIURN
 
 !@param KAJK number of zonal constant pressure diagnostics
       INTEGER, PARAMETER :: KAJK=51
@@ -161,7 +159,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ
      *     + JM*KAPJ + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +
      *     IM*LM*KAIL + NEHIST*HIST_DAYS + JM*KCON +
-     *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDLYVAR*NDLYPT
+     *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
      *     IM*JM*LM*KAIJK + IM*JM*LM*KAIJL + JM*LM*(1+NWAV_DAG)*KAJLSP
 
@@ -327,11 +325,11 @@ C****      names, indices, units, idacc-numbers, etc.
       character(len=20), dimension(kail) :: name_il,units_il
       character(len=80), dimension(kail) :: lname_il
 
-      character(len=20), dimension(ndlyvar) :: name_dd,units_dd
-      character(len=80), dimension(ndlyvar) :: lname_dd
-      real*8, dimension(ndlyvar) :: scale_dd
+      character(len=20), dimension(ndiuvar) :: name_dd,units_dd
+      character(len=80), dimension(ndiuvar) :: lname_dd
+      real*8, dimension(ndiuvar) :: scale_dd
 
-!@var IDD_xxx names for daily diagnostics
+!@var IDD_xxx names for diurnal diagnostics
       INTEGER :: IDD_ISW, IDD_PALB, IDD_GALB, IDD_ABSA, IDD_ECND,
      *     IDD_SPR, IDD_PT5, IDD_PT4, IDD_PT3, IDD_PT2, IDD_PT1, IDD_TS,
      *     IDD_TG1, IDD_Q5, IDD_Q4, IDD_Q3, IDD_Q2, IDD_Q1, IDD_QS,

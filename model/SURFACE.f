@@ -22,7 +22,7 @@ C****
      *     ,byrhoi,deltx,byrt3
       USE MODEL_COM, only : im,jm,lm,fim,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
-     *     ,fearth,nday,modrd,ijd6,itime,jhour,sige,byim,itocean
+     *     ,fearth,nday,modrd,itime,jhour,sige,byim,itocean
      *     ,itoice,itlake,itlkice,itlandi,vt_on
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : dxyp,imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv
@@ -31,11 +31,11 @@ C****
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
      &     ,uflux,vflux,tflux,qflux
       USE SOCPBL, only : zgs
-      USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndlypt,jreg
+      USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt,j_f1dt
-     *     ,idd_spr,idd_pt5,idd_pt4,idd_pt3,idd_pt2,idd_pt1,idd_ts
+     *     ,ijdd,idd_spr,idd_pt5,idd_pt4,idd_pt3,idd_pt2,idd_pt1,idd_ts
      *     ,idd_tg1,idd_q5,idd_q4,idd_q3,idd_q2,idd_q1,idd_qs,idd_qg
      *     ,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
      *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
@@ -45,7 +45,7 @@ C****
       USE LANDICE_COM, only : snowli
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,rhos,kiext
-     *     ,ksext 
+     *     ,ksext
       USE LAKES_COM, only : mwl,mldlk,gml,flake
       USE LAKES, only : minmld
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,runoe,erunoe
@@ -53,7 +53,7 @@ C****
       USE SOIL_DRV, only: earth
       IMPLICIT NONE
 
-      INTEGER I,J,K,IM1,IP1,KR,JR,NS,NSTEPS,MODDSF,MODD6
+      INTEGER I,J,K,IM1,IP1,KR,JR,NS,NSTEPS,MODDSF,MODDD
      *     ,KMAX,IMAX,ITYPE,NGRNDZ,NG,IH
       REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1,P1K,H0M1,HZM1
      *     ,PGK,HS,PKDN,DXYPJ,BETAS,EVHDTS,CDMS,CDHS,CDQS,EDS1S,PPBLS
@@ -82,7 +82,7 @@ C**** Interface to PBL
       COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,PPBL,UG,VG,WG,ZMIX
 
       REAL*8, PARAMETER :: qmin=1.d-12
-      REAL*8, PARAMETER :: S1BYG1 = BYRT3, 
+      REAL*8, PARAMETER :: S1BYG1 = BYRT3,
      *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
       REAL*8 QSAT,DQSATDT,TOFREZ
 C****
@@ -127,7 +127,7 @@ C****
       DO NS=1,NIsurf
          MODDSF=MOD(NSTEPS+NS-1,NDASF*NIsurf+1)
          IF(MODDSF.EQ.0) IDACC(3)=IDACC(3)+1
-         MODD6=MOD(1+ITime/NDAY+NS,NIsurf)   ! 1+ not really needed ??
+         MODDD=MOD(1+ITime/NDAY+NS,NIsurf)   ! 1+ not really needed ??
          TIMEZ=JDAY+(MOD(Itime,nday)+(NS-1.)/NIsurf)/NDAY ! -1 ??
          IF(JDAY.LE.31) TIMEZ=TIMEZ+365.
 C**** ZERO OUT LAYER 1 WIND INCREMENTS
@@ -276,11 +276,11 @@ C**** fraction of solar radiation leaving layer 1 and 2
       IF (SRHEAT.gt.0) THEN ! don't bother if there is no sun
         HSNOW = SNOW/RHOS
         HICE  = ACE1I*BYRHOI
-        IF (ACE1I*XSI(1).gt.SNOW*XSI(2)) THEN 
+        IF (ACE1I*XSI(1).gt.SNOW*XSI(2)) THEN
 C**** first thermal layer is snow and ice
           HICE1 = (ACE1I-XSI(2)*(SNOW+ACE1I))*BYRHOI
-	  FSRI(1) = EXP(-KSEXT*HSNOW-KIEXT*HICE1)
-        ELSE ! all snow			   
+          FSRI(1) = EXP(-KSEXT*HSNOW-KIEXT*HICE1)
+        ELSE ! all snow
           HSNOW1 = (ACE1I+SNOW)*XSI(1)/RHOS
           FSRI(1) = EXP(-KSEXT*HSNOW1)
         END IF
@@ -448,7 +448,7 @@ C**** CALCULATE EVAPORATION
  3700 CONTINUE
       DQ1X =EVHDT/((LHE+TG1*SHV)*RMBYA)
       EVHDT0=EVHDT
-C**** Limit evaporation if lake mass is at minimum 
+C**** Limit evaporation if lake mass is at minimum
       IF (ITYPE.EQ.1 .and. PLK.GT.0 .and.
      *     (EVAPOR(I,J,1)-DQ1X*RMBYA).gt.EVAPLIM) THEN
         WRITE(99,*) "Lake EVAP limited: I,J,EVAP,MWL",I,J,EVAPOR(I,J,1)
@@ -585,10 +585,10 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
          AIJ(I,J,IJ_TAUUS)=AIJ(I,J,IJ_TAUUS)+RTAUUS
          AIJ(I,J,IJ_TAUVS)=AIJ(I,J,IJ_TAUVS)+RTAUVS
          AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QSS
-C**** QUANTITIES ACCUMULATED HOURLY FOR DIAG6
- 5800    IF(MODD6.EQ.0) THEN
-         DO KR=1,NDLYPT
-            IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
+C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
+ 5800    IF(MODDD.EQ.0) THEN
+         DO KR=1,NDIUPT
+            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
               ADIURN(IH,IDD_SPR,KR)=ADIURN(IH,IDD_SPR,KR)+PS
               ADIURN(IH,IDD_PT5,KR)=ADIURN(IH,IDD_PT5,KR)+PSK*T(I,J,5)
               ADIURN(IH,IDD_PT4,KR)=ADIURN(IH,IDD_PT4,KR)+PSK*T(I,J,4)
@@ -633,7 +633,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAG6
 C****
 C**** EARTH
 C****
-      CALL EARTH(NS,MODDSF,MODD6)
+      CALL EARTH(NS,MODDSF,MODDD)
 C****
 C**** UPDATE FIRST LAYER QUANTITIES
 C****
@@ -692,13 +692,13 @@ C**** Call dry convection or aturb depending on rundeck
 C****
 C**** ACCUMULATE SOME ADDITIONAL BOUNDARY LAYER DIAGNOSTICS
 C****
-      IF(MODD6.EQ.0) THEN
+      IF(MODDD.EQ.0) THEN
         DO KR=1,4
 C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
-          IF(DCLEV(IJD6(1,KR),IJD6(2,KR)).GT.1.) THEN
+          IF(DCLEV(IJDD(1,KR),IJDD(2,KR)).GT.1.) THEN
             ADIURN(IH,IDD_DCF,KR)=ADIURN(IH,IDD_DCF,KR)+1.
             ADIURN(IH,IDD_LDC,KR)=ADIURN(IH,IDD_LDC,KR)
-     *           +DCLEV(IJD6(1,KR),IJD6(2,KR))
+     *           +DCLEV(IJDD(1,KR),IJDD(2,KR))
           END IF
         END DO
       END IF

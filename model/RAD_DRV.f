@@ -433,13 +433,13 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     cldmc,cldss,csizmc,csizss
       USE PBLCOM, only : wsavg,tsavg
       USE DAGCOM, only : aj,areg,jreg,aij,ail,ajl,asjl,adiurn,
-     *     iwrite,jwrite,itwrite,ndlypt,j_pcldss,j_pcldmc,ij_pmccld,
+     *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,
      *     j_cdldep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
      *     ij_cldtppr,lm_req,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
      *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,j_plavis,ij_trnfp0,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref,
      *     j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp,
-     *     idd_cl7,idd_cl6,idd_cl5,idd_cl4,idd_cl3,idd_cl2,idd_cl1,
+     *     ijdd,idd_cl7,idd_cl6,idd_cl5,idd_cl4,idd_cl3,idd_cl2,idd_cl1,
      *     idd_ccv,idd_isw,idd_palb,idd_galb,idd_absa
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig
       USE SEAICE_COM, only : rsi,snowi
@@ -604,8 +604,8 @@ C****
          AIJ(I,J,IJ_CLDTPPR)=AIJ(I,J,IJ_CLDTPPR)+SIGE(L+1)*PIJ+PTOP
          GO TO 285
   280    CONTINUE
-  285    DO KR=1,NDLYPT
-           IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
+  285    DO KR=1,NDIUPT
+           IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              DO INCH=1,NRAD
                IF (IH.GT.24) IH=IH-24
                ADIURN(IH,IDD_CL7,KR)=ADIURN(IH,IDD_CL7,KR)+TOTCLD(7)
@@ -640,9 +640,9 @@ C---- TL(L)=T(I,J,L)*PK(L,I,J)     ! already defined
 C**** MOISTURE VARIABLES
 C---- QL(L)=Q(I,J,L)        ! already defined
   340 CONTINUE
-C**** 
+C****
 C**** Find WMO Definition of Tropopause to Nearest L
-C**** 
+C****
       CALL TROPWMO(TL,PLL,PKL,PTROPO,LTROPO)
 C****
 C**** RADIATION, SOLAR AND THERMAL
@@ -750,8 +750,8 @@ C****
            ASJL(J,LR,3)=ASJL(J,LR,3)+SRHRS(LR,I,J)*COSZ
            ASJL(J,LR,4)=ASJL(J,LR,4)+TRHRS(LR,I,J)
          END DO
-         DO KR=1,NDLYPT
-           IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
+         DO KR=1,NDIUPT
+           IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              DO INCH=1,NRAD
                IF (IH.GT.24) IH=IH-24
                ADIURN(IH,IDD_PALB,KR)=ADIURN(IH,IDD_PALB,KR)+
@@ -858,9 +858,9 @@ C****
         END DO
       END DO
 C**** daily diagnostics
-      DO KR=1,NDLYPT
+      DO KR=1,NDIUPT
         ADIURN(IH,IDD_ISW,KR)=ADIURN(IH,IDD_ISW,KR)+
-     *       S0*COSZ1(IJD6(1,KR),IJD6(2,KR))
+     *       S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
       END DO
 
       RETURN
@@ -886,7 +886,7 @@ C**** daily diagnostics
 
 c      zkappa = 0.286
 c      zzkap=1./zkappa
-c      zfaktor = (-1.)*g/rd		! -9.81/287.0
+c      zfaktor = (-1.)*g/rd  ! -9.81/287.0
       zfaktor = -GRAV/RGAS              ! 9.81/287.0
       zgwmo  = -0.002d0
       zdeltaz = 2000.0
@@ -901,8 +901,8 @@ c****  -----------------------------------------
 c****
 c****  2.1 compute dt/dz
 c****  -----------------
-c****       ztm 	lineare Interpolation in p**kappa
-c****     gamma 	dt/dp = a * kappa + papm1(jx,jk)**(kappa-1.)
+c****       ztm  lineare Interpolation in p**kappa
+c****     gamma  dt/dp = a * kappa + papm1(jx,jk)**(kappa-1.)
 
       do jk=iplimb+1,iplimt-1
         zpmk(jk)=0.5*(pk(jk-1)+pk(jk))
@@ -924,18 +924,18 @@ c****
 
         if (zdtdz(jk).gt.zgwmo .and. ! dt/dz > -2K/km
      &       zpm(jk).le.zplimb) then ! zpm not too low
-          ltropp = jk 
+          ltropp = jk
 c****
 c****  2.3 dtdz is valid > something in German
 c****  ----------------------------------------
-c****	   1.lineare in p^kappa (= Dieters neue Methode)
+c****    1.lineare in p^kappa (= Dieters neue Methode)
 
           zag = (zdtdz(jk)-zdtdz(jk+1))/
      &         (zpmk(jk)-zpmk(jk+1)) ! a-gamma
           zbg = zdtdz(jk+1) - zag*zpmk(jk+1) ! b-gamma
           if(((zgwmo-zbg)/zag).lt.0.) then
             zptf=0.
-          else 
+          else
             zptf=1.
           end if
           zptph = zptf*abs((zgwmo-zbg)/zag)**zzkap
@@ -962,8 +962,8 @@ c****
             if(zaquer.le.zgwmo) goto 1000 ! dt/dz above < 2K/1000
                                           ! discard it
           end do                ! test next level
-          goto 2000 
-        endif 
+          goto 2000
+        endif
  1000 continue                  ! next level
  2000 continue
 

@@ -7,19 +7,19 @@ c**** coded to use new soc pbl routines.
       implicit none
       private
       save
-      
+
       public daily_earth, ground_e, init_gh, earth, conserv_wtg
      $     ,conserv_htg
 
       real*8 cosday,sinday
 !@var gdeep keeps average (2:n) values of temperature, water and ice
-      real*8, dimension(im,jm,3) :: gdeep 
+      real*8, dimension(im,jm,3) :: gdeep
 
       real*8 spgsn !@var specific gravity of snow
 
 
       contains
-      subroutine earth (ns,moddsf,modd6)
+      subroutine earth (ns,moddsf,moddd)
 c****
 c**** this subroutine calculates surface fluxes of sensible heat,
 c**** evaporation, thermal radiation, and momentum drag.
@@ -27,7 +27,7 @@ c****
       use constant, only : grav,rgas,lhe,lhs
      *     ,sha,tf,rhow
       use model_com, only : t,p,q,dtsrc,nisurf,dsig
-     *     ,jday,jhour,nday,itime,jeq,fearth,modrd,ijd6,itearth
+     *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
       use geom, only : imaxj,dxyp
       use radncb, only : trhr,fsf,cosz1
       use ghycom, only : wbare,wvege,htbare,htvege,snowbv,
@@ -60,16 +60,16 @@ c****
      *     ij_g05,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,
      *     ij_g16,ij_g17,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,
      *     ij_g24,ij_g25,ij_g26,ij_g27,
-     *     idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg,idd_lwg,idd_sh,idd_lh,
-     *     idd_hz0,idd_ug,idd_vg,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,
-     *     idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl,idd_ev
+     *     ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg,idd_lwg,idd_sh,
+     *     idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us,idd_vs,idd_ws,
+     *     idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl,idd_ev
       use dynamics, only : pk,pek,pedn,pdsig !,pmid
       use fluxes, only : dth1,dq1,du1,dv1,e0,e1,evapor,prec,eprec,runoe
      *     ,erunoe,gtemp
 
       implicit none
 
-      integer, intent(in) :: ns,moddsf,modd6
+      integer, intent(in) :: ns,moddsf,moddd
       integer i,j,l,kr,jr,itype,imax,ih
       real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws
      *     ,rcdhws,dhgs,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype
@@ -135,7 +135,7 @@ c****
 c****
 c**** outside loop over j and i, executed once for each grid point
 c****
-         
+
       loop_j: do j=1,jm
       hemi=1.
       if(j.le.jm/2) hemi=-1.
@@ -379,7 +379,7 @@ c****
 c**** accumulate diagnostics
 c****
 c**** quantities accumulated for regions in diagj
-      if ( jr /= 24 ) then 
+      if ( jr /= 24 ) then
         areg(jr,j_trhdt)=areg(jr,j_trhdt)+trhdt*ptype*dxypj
         areg(jr,j_shdt )=areg(jr,j_shdt )+shdt*ptype*dxypj
         areg(jr,j_evhdt)=areg(jr,j_evhdt)+evhdt*ptype*dxypj
@@ -411,11 +411,11 @@ c**** quantities accumulated for latitude-longitude maps in diagij
         aij(i,j,ij_qs)=aij(i,j,ij_qs)+qs*ptype
 chyd       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)
 chyd      *  +   (40.6*psoil+.72*(2.*(tss-tfs)-(qsatss-qss)*lhe/sha))
-c**** quantities accumulated hourly for diag6
+c**** quantities accumulated hourly for diagDD
       endif
-      if ( modd6 == 0 ) then
+      if ( moddd == 0 ) then
         do kr=1,4
-          if(i.eq.ijd6(1,kr).and.j.eq.ijd6(2,kr)) then
+          if(i.eq.ijdd(1,kr).and.j.eq.ijdd(2,kr)) then
             adiurn(ih,idd_ts,kr)=adiurn(ih,idd_ts,kr)+ts*ptype
             adiurn(ih,idd_tg1,kr)=adiurn(ih,idd_tg1,kr)+(tg1+tf)*ptype
             adiurn(ih,idd_qs,kr)=adiurn(ih,idd_qs,kr)+qs*ptype
@@ -493,7 +493,7 @@ c**** modifications needed for split of bare soils into 2 types
      $     (/  1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0/)
       real*8, parameter :: rsar(8) =
      $     (/100d0, 100d0, 200d0, 200d0, 200d0, 300d0,250d0, 125d0/)
-      real*8, parameter :: vhght(8) = 
+      real*8, parameter :: vhght(8) =
      $     (/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0/)
       integer, parameter :: laday(8) =
      $     (/ 196,  196,  196,  196,  196,  196,  196,  196/)

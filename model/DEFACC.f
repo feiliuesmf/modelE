@@ -3224,7 +3224,7 @@ c
       implicit none
       integer :: k
 c
-      do k=1,NDLYVAR
+      do k=1,NDIUVAR
          write(name_dd(k),'(a5,i3.3)') 'DIURN',k
          lname_dd(k) = 'unused'
          units_dd(k) = 'unused'
@@ -3264,7 +3264,7 @@ c
       k=k+1
       IDD_ECND=k
       name_dd(k)='ENRGCND'
-      units_dd(k)='W/M^2'    ! ??? not sure
+      units_dd(k)='W/M^2'  
       scale_dd(k)=100.*SHA/(GRAV*DTsrc)
       lname_dd(k)=' E CNDS '
 c

@@ -29,10 +29,6 @@ c**** not working yet for EARTH
       logical :: VT_ON = .TRUE.
 
 !**** Diagnostic control parameters
-!@dbparam IJD6,NAMD6 coord,names of 4 pts for diurnal cycle diag
-      INTEGER, DIMENSION(2,4)  :: IJD6
-      DATA                        IJD6    /63,17, 17,34, 37,27, 13,23/
-      CHARACTER*4,DIMENSION(4) :: NAMD6=(/'AUSD','MWST','SAHL','EPAC'/)
 !@dbparam KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved
 !@dbparam NMONAV number of months in a diagnostic accuml. period
 !@dbparam Kvflxo if 1 => vert.fluxes into ocean are saved daily
@@ -107,7 +103,7 @@ C**** slightly larger, to sample all points within the cycle
       INTEGER :: MODRD, MODD5K, MODD5S
 !@var MDYN,MCNDS,MRAD,MSURF,MDIAG,MELSE timing-indices
       INTEGER  MDYN,MCNDS,MRAD,MSURF,MDIAG,MELSE
-!@param NSAMPL number of diagnostic smaplig schemes
+!@param NSAMPL number of diagnostic sampling schemes
       INTEGER, PARAMETER :: NSAMPL = 12
 !@var IDACC(NSAMPL) counters for diagn. accumulations
       INTEGER, DIMENSION(NSAMPL) :: IDACC

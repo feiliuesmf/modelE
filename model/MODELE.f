@@ -40,7 +40,7 @@ C****
          IF (KDIAG(3).LT.9) CALL DIAGIJ
          IF (KDIAG(9).LT.9) CALL DIAG9P
          IF (KDIAG(5).LT.9) CALL DIAG5P
-         IF (KDIAG(6).LT.9) CALL DIAG6
+         IF (KDIAG(6).LT.9) CALL DIAGDD
          IF (KDIAG(4).LT.9) CALL DIAG4
          IF (KDIAG(11).LT.9) CALL diag_RIVER
          CALL DIAGKN
@@ -134,7 +134,7 @@ C**** calculate some dynamic variables for the PBL
          CALL CHECKT ('DYNAM ')
          CALL TIMER (MNOW,MDYN)
 
-         IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)             
+         IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)
          IF (MODD5D.EQ.0) CALL DIAG9A (2)
          IF (MOD(Itime,NDAY/2).eq.0) CALL DIAG7A
 C****
@@ -150,13 +150,13 @@ C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE ')
          CALL TIMER (MNOW,MCNDS)
-         IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)             
+         IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)
          IF (MODD5S.EQ.0) CALL DIAG9A (3)
 C**** RADIATION, SOLAR AND THERMAL
       CALL RADIA
          CALL CHECKT ('RADIA ')
          CALL TIMER (MNOW,MRAD)
-         IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)            
+         IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)
          IF (MODD5S.EQ.0) CALL DIAG9A (4)
 C****
 C**** SURFACE INTERACTION AND GROUND CALCULATION
@@ -207,7 +207,7 @@ C**** CALL OCEAN DYNAMIC ROUTINES
          CALL CHECKT ('OCEAN ')
          CALL TIMER (MNOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAG9A (9)
-         IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)            
+         IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)
 C**** SEA LEVEL PRESSURE FILTER
       IF (MFILTR.GT.0.AND.MOD(Itime-ItimeI,NFILTR).EQ.0) THEN
            IDACC(10)=IDACC(10)+1
@@ -238,7 +238,7 @@ C****
         call daily_OCEAN(1)
            CALL CHECKT ('DAILY ')
            CALL TIMER (MNOW,MSURF)
-           CALL DIAG5A (16,NDAY*NIdyn)                        
+           CALL DIAG5A (16,NDAY*NIdyn)
            CALL DIAG9A (10)
         call flush(6)
       END IF
@@ -300,7 +300,7 @@ c       WRITE (6,'("1"/64(1X/))')
         IF (KDIAG(3).LT.9) CALL DIAGIJ
         IF (KDIAG(9).LT.9) CALL DIAG9P
         IF (KDIAG(5).LT.9) CALL DIAG5P
-        IF (KDIAG(6).LT.9) CALL DIAG6
+        IF (KDIAG(6).LT.9) CALL DIAGDD
         IF (KDIAG(4).LT.9) CALL DIAG4
         IF (KDIAG(11).LT.9) CALL diag_RIVER
         CALL DIAGKN
@@ -393,7 +393,7 @@ C**** message and stop
 C**** sync_param( "B", Y ) reads parameter B into variable Y
 C**** if "B" is not in the database, then Y is unchanged and its
 C**** value is saved in the database as "B" (here sync = synchronize)
-      USE MODEL_COM, only : LM,NAMD6,IJD6,NIPRNT,MFILTR,XCDLM,NDASF
+      USE MODEL_COM, only : LM,NIPRNT,MFILTR,XCDLM,NDASF
      *     ,NDA4,NDA5S,NDA5K,NDA5D,NDAA,NFILTR,NRAD,Kvflxo,Nslp
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND,LSDRAG
@@ -403,8 +403,6 @@ C**** value is saved in the database as "B" (here sync = synchronize)
       INTEGER L
 
 C**** Rundeck parameters:
-      call sync_param( "NAMD6", NAMD6, 4 )
-      call sync_param( "IJD6", IJD6(1:8,1), 8)
       call sync_param( "NMONAV", NMONAV )
       call sync_param( "NIPRNT", NIPRNT )
       call sync_param( "MFILTR", MFILTR )
@@ -588,7 +586,7 @@ C***********************************************************************
           call io_rsf(iu_AIC,itime,ioread_single,ioerr)
           call closeunit(iu_AIC)
         end do
-        GO TO 500 
+        GO TO 500
       end if
 
       if (istart.ge.9) go to 400
@@ -845,7 +843,7 @@ C****        perturbation is at most 1 degree C
           WRITE(6,*) 'Current temperatures were perturbed !!',IRANDI
         END IF
         TIMING = 0
-        GO TO 500 
+        GO TO 500
 C****
 C**** RESTART ON DATA SETS 1 OR 2, ISTART=10 or more
 C****
@@ -975,7 +973,7 @@ C****
 
 C**** Initialise some modules before finalising Land/Ocean/Lake/LI mask
 C**** Initialize ice
-      CALL init_ice        
+      CALL init_ice
 C**** Initialise lake variables (including river directions)
       CALL init_LAKES(inilake)
 C**** Initialize ocean variables
@@ -983,7 +981,7 @@ C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor
       CALL init_OCEAN(iniOCEAN)
 C**** Initialize land ice (must come after oceans)
-      CALL init_LI             
+      CALL init_LI
 
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
 C**** as residual terms. (deals with SP=>DP problem)

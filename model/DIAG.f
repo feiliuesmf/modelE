@@ -401,7 +401,7 @@ C****
 !@param KGZ number of pressure levels for geopotential height diag
       INTEGER, PARAMETER :: KGZ = 7   !13
 !@param PMB pressure levels for geopotential heights (extends to strat)
-!@param GHT statndard geopotential heights at PMB level (extends to strat)
+!@param GHT ~mean geopotential heights at PMB level (extends to strat)
       REAL*8, DIMENSION(KGZ), PARAMETER ::
      &     PMB=(/1000d0,850d0,700d0,500d0,300d0,100d0,30d0/),   !10d0,
 !     *     3.4d0,.7d0,.16d0,.07d0,.03d0/),
@@ -715,7 +715,7 @@ C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
 C**** NUMBERS ACCUMULATED OVER THE LOWER STRATOSPHERE
 C**** LSTR is approx. 10mb level. This maintains consistency over
 C**** the different model tops
-CNOST IF (LS1.GT.LSTR) GO TO 551    NEEDED FOR RUNS WITHOUT A STRATOSPHERE
+CNOST IF (LS1.GT.LSTR) SKIP THIS PART !NEEDED FOR NO-STRATOSPHERE MODELS
       DO J=2,JM
         DUDVSQ(J)=0.
         UMAX(J)=0.
@@ -1272,12 +1272,12 @@ C****
       USE MODEL_COM, only :
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,psfmpt,
      &     mdyn,mdiag, ndaa,      !! skipse,
-     &     sig,sige,dsig, Jhour, ijd6
+     &     sig,sige,dsig, Jhour
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DAGCOM, only : ajk,aijk,aijl,ajlsp,speca,adiurn,nspher,
-     &     nwav_dag,ndlypt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
-     *     ,ijk_dse,klayer,idd_w
+     &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
+     *     ,ijk_dse,klayer,idd_w,ijdd
       USE DYNAMICS, only : phi
       IMPLICIT NONE
       SAVE
@@ -1738,8 +1738,8 @@ C**** ACCUMULATE ALL VERTICAL WINDS
   560 IM1=I
       DO 558 J=1,JM
       DO 558 I=1,IM
-      DO KR=1,NDLYPT
-         IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
+      DO KR=1,NDIUPT
+         IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
 C**** Warning:     This diagnostic has 3 flaws   (?)
 C****          1 - It assumes that DTsrc=1hr, (DTsrc=3600.)
 C****          2 - since DTdaa-Ndaa*DTsrc=2*DTdyn rather than 0,
@@ -2752,20 +2752,20 @@ C****
       MAPE=M5
 C****
 C**** Note: KSPHER has been re-arranged from previous models to better
-C****       deal with optionally resolved stratosphere. The higher values
-C****       are only used if the model top is high enough.
+C****       deal with optionally resolved stratosphere. The higher
+C****       values are only used if the model top is high enough.
 C****
 C**** KSPHER=1 SOUTHERN TROPOSPHERE         2 NORTHERN TROPOSPHERE
 C****        3 EQUATORIAL TROPOSPHERE       4 45 DEG NORTH TROPOSPHERE
 C****
 C****        5 SOUTHERN LOW STRATOSPHERE    6 NORTHERN LOW STRATOSPHERE
-C****        7 EQUATORIAL LOW STRATOSPHERE  8 45 DEG NORTH LOW STRATOSPHERE
-C**** 
+C****        7 EQUATORIAL LOW STRATOSPHERE  8 45 DEG NORTH LOW STRATOSPH
+C****
 C****        9 SOUTHERN MID STRATOSPHERE   10 NORTHERN MID STRATOSPHERE
-C****       11 EQUATORIAL MID STRATOSPHERE 12 45 DEG NORTH MID STRATOSPHERE
+C****       11 EQUATORIAL MID STRATOSPHERE 12 45 DEG NORTH MID STRATOSPH
 C****
 C****       13 SOUTHERN UPP STRATOSPHERE   14 NORTHERN UPP STRATOSPHERE
-C****       15 EQUATORIAL UPP STRATOSPHERE 16 45 DEG NORTH UPP STRATOSPHERE
+C****       15 EQUATORIAL UPP STRATOSPHERE 16 45 DEG NORTH UPP STRATOSPH
 C****
       GO TO (200,200,810,810,810,  810,200,810,205,810,
      *       296,205,810,205,810,  205,810,810,810,810),M5
@@ -2839,7 +2839,7 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
       LDN=LUP
       L=LUP
       GO TO 300
-  350 CONTINUE 
+  350 CONTINUE
 
       VAR(2:NM,1:2)=0.
       VAR(1,1)=.5*(THJSP(L)-THGM(L))**2*DXYP(1)*FIM
@@ -2878,7 +2878,7 @@ c      IF (L.GE.LS1) KS=1
         DO N=1,NM
           APE(N,KS)=APE(N,KS)+VAR(N,JHEMI)*GMEAN
         END DO
-        KS=KS+1  
+        KS=KS+1
       END DO
       IF (L.EQ.LM) GO TO 450
       LDN=L
@@ -3063,6 +3063,9 @@ C****
      *     ,ISTART,jday0,jday
       CHARACTER FILENM*100
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
+
+      call sync_param( "NAMDD", NAMDD, 4 )
+      call sync_param( "IJDD", IJDD(1:8,1), 8)
 
 c**** Initialize acc-array names, units, idacc-indices
       call def_acc

@@ -6,7 +6,7 @@
 
       USE CONSTANT, only : bygrav,lhm,rgas,grav
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
-     *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,sig,DTsrc,ftype
+     *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,sig,DTsrc,ftype
      *     ,ntype,itime,fim,airx,lmc
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
@@ -25,7 +25,7 @@
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,j_eprcp,j_prcpmc,j_prcpss,
-     *     idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp
+     *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
       USE SEAICE_COM, only : rsi
       USE GHYCOM, only : snoage
@@ -187,7 +187,7 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
          END DO
          AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
          DO KR=1,4
-            IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
+            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
               ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPMC
               ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDMC
               ADIURN(IH,IDD_MCP ,KR)=ADIURN(IH,IDD_MCP ,KR)+PRCPMC
@@ -278,7 +278,7 @@ C**** Accumulate diagnostics of LSCOND
          END DO
          AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
          DO KR=1,4
-            IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
+            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
               ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPSS
               ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDSS
               ADIURN(IH,IDD_SSP ,KR)=ADIURN(IH,IDD_SSP ,KR)+PRCPSS

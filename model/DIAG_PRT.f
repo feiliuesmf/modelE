@@ -4804,15 +4804,15 @@ C****
   909 FORMAT (/'0TPE',I18,I32,I14,I7,I12,2I13,I20)
       END SUBROUTINE DIAG5P
 
-      SUBROUTINE DIAG6
-!@sum  DIAG6 print out diurnal cycle diagnostics
+      SUBROUTINE DIAGDD
+!@sum  DIAGDD prints out diurnal cycle diagnostics
 !@auth G. Russell
 !@ver  1.0
 c      USE PRTCOM, only :
       USE MODEL_COM, only :
-     &     idacc,IJD6,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,NAMD6,XLABEL
-      USE DAGCOM, only :
-     &     adiurn,kdiag,ndlyvar,hr_in_day,scale_dd,lname_dd,name_dd
+     &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL
+      USE DAGCOM, only :   kdiag,
+     &     adiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd,name_dd
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(HR_IN_DAY+1) :: XHOUR
@@ -4831,8 +4831,8 @@ C****
       IF (KDIAG(6).LT.0) IREGL=IREGF
       DO KR=IREGF,IREGL
         WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
-        WRITE (6,903) NAMD6(KR),IJD6(1,KR),IJD6(2,KR),(I,I=1,HR_IN_DAY)
-        DO KQ=1,NDLYVAR
+        WRITE (6,903) NAMDD(KR),IJDD(1,KR),IJDD(2,KR),(I,I=1,HR_IN_DAY)
+        DO KQ=1,NDIUVAR
           IF (MOD(KQ-1,5).eq.0) WRITE(6,*)
           IF (LNAME_DD(KQ).eq."unused") CYCLE
           SELECT CASE (NAME_DD(KQ))
@@ -4868,7 +4868,7 @@ C****
   901 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
   903 FORMAT ('0',A4,I2,',',I2,' ',I2,23I5,'  AVE')
   904 FORMAT (A8,25I5)
-      END SUBROUTINE DIAG6
+      END SUBROUTINE DIAGDD
 
       SUBROUTINE DIAG4
 !@sum  DIAG4 prints out a time history of the energy diagnostics
