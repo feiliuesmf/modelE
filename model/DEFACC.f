@@ -2055,6 +2055,33 @@ c
       iw_ij(k) = iw_veg
       ir_ij(k) = ir_0_3_15
 c
+      k=k+1 ! nyk 4/25/03
+      IJ_GPP = k    !kg[C]/m2/s
+      lname_ij(k) = 'GROSS PRIMARY PRODUCTIVITY'
+      !from kg[C]/m2/s, typical range to 30 gC/m2/year
+      units_ij(k) = 'g[C]/m2/day'  
+      name_ij(k) = 'GPP'
+      !Scale for mg/m2/day
+      ia_ij(k) = ia_src
+      scale_ij(k) = SDAY*1000./DTsrc    !scale from kg/s to g/day
+      iw_ij(k) = iw_soil     !Weight over land
+c     iw  built-in
+c
+      k=k+1 ! nyk 5/12/03
+      IJ_DLEAF = k    !kg[C]/m2, IJ_DLEAF is accumulated daily.
+!      lname_ij(k) = 'LEAF MASS CHANGE'
+!      units_ij(k) = 'mg[C]/m2/day'  
+!      name_ij(k) = 'DLEAF'
+!      ia_ij(k) = ia_12hr      !Accumulated once daily, put 2.* in scale
+!      scale_ij(k) = 2.*1000000.    !Scale for daily, scale from kg to mg
+      lname_ij(k) = 'ANNUAL LEAF MAX GROWTH'
+      units_ij(k) = 'g[C]/m2/yr'  
+      name_ij(k) = 'DLEAF'
+      ia_ij(k) = ia_inst      !Accumulat instantaneous value for max-min
+      scale_ij(k) = 1000.    !Scale from kg to g
+      iw_ij(k) = iw_soil     !Weight over land
+c     iw  built-in
+c
       k=k+1
       IJ_G21 = k
       name_ij(k) = 'can_temp' !

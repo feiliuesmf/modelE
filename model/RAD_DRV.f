@@ -501,6 +501,7 @@ C****
      &  , only : writer,rcompx,rcompt ! routines
      &          ,lx  ! for threadprivate copyin common block
      &          ,tauwc0,tauic0 ! set in radpar block data
+     &          ,SRXVIS,SRDVIS      ! added by adf, nyk
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY
 C     INPUT DATA  (i,j) dependent
@@ -517,7 +518,7 @@ C     OUTPUT DATA
      &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS
      &          ,BTEMPW
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
-     *     ,coe,plb0,shl0,tchg,alb,fsrdir
+     *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi
@@ -1047,6 +1048,7 @@ C****
       SALBFJ(I,J)=ALB(I,J,1)    ! save surface albedo for chemistry
 #endif
       FSRDIR(I,J)=SRXVIS                  ! added by adf
+      SRVISSURF(I,J)=SRDVIS               ! nyk
 C**** Save clear sky/tropopause diagnostics here
         AIJ(I,J,IJ_CLR_SRINCG)=AIJ(I,J,IJ_CLR_SRINCG)+
      +                                    OPNSKY*SRDFLB(1)*CSZ2

@@ -13,6 +13,9 @@
      $     ,conserv_htg
 
       real*8 cosday,sinday
+      real*8 cosdaym1, sindaym1  !nyk TEMPORARY for jday-1
+      real*8 adlmass             !nyk accumulator for dleafmass in daily_earth
+
 !@var gdeep keeps average (2:n) values of temperature, water and ice
       real*8, dimension(im,jm,3) :: gdeep
 
@@ -36,10 +39,9 @@ c****
       use dynamics, only : pk,pek,pedn,pdsig,am,byam
       use somtq_com, only : mz
       use radncb, only : trhr,fsf,cosz1
-!----------------------------------------------------------------------!
-     &    ,FSRDIR
-!----------------------------------------------------------------------!
-! adf
+     &    ,FSRDIR,SRVISSURF  !adf, nyk
+      use surf_albedo, only: albvnh   !nyk added 5/23/03 from RADIATION.f
+          !albvnh(9,6,2)=albvnh(sand+8veg,6bands,2hemi) - only need 1st band
       use sle001
      &    , only : advnc,evap_limits,
      &    ngm,
@@ -47,7 +49,7 @@ c****
      &    fv,fb,atrg,ashg,alhg,
      &    abetad,abetav,abetat,
      &    abetap,abetab,abeta,
-     &    acna,acnc,
+     &    acna,acnc,agpp,
      &    aevap,aevapw,aevapd,aevapb,
      &    aruns,arunu,aeruns,aerunu,
      &    aepc,aepb,aepp,af0dt,af1dt,zw,tbcs,
@@ -55,10 +57,8 @@ c****
      &    pres,rho,ts,vsm,ch,srht,trht, !cd,snht,
      &    nlsn,nsn,dzsn,wsn,hsn,fr_snow
      &     ,ghy_debug
-!----------------------------------------------------------------------!
-! adf
-     &    ,fdir,Ci,Qf,Cin,Qfn
-!----------------------------------------------------------------------!
+     &    ,fdir,parinc,vegalbedo,sbeta,Ci,Qf,Cin,Qfn ! added by adf, nyk
+     &    ,cond_scheme  !nyk
 #ifdef TRACERS_WATER
      &     ,tr_w,tr_wsn,trpr,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
 #endif
@@ -68,6 +68,7 @@ c****
      *     ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt,
      *     j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2,ij_g05
      *     ,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,ij_g16,ij_g17
+     *     ,ij_gpp, ij_dleaf
      *     ,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,ij_g24,ij_g25
      *     ,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
@@ -103,10 +104,8 @@ c****
      &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
      *     snowe,tearth,wearth,aiearth,afb,
      &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
-!----------------------------------------------------------------------!
-! adf
-     *     ,Cint,Qfol
-!----------------------------------------------------------------------!
+     *     ,Cint,Qfol  ! added by adf
+     &     ,aalbveg    ! nyk
 #ifdef TRACERS_WATER
      &     ,tr_wbare,tr_wvege,tr_wsn_ij
 #endif
@@ -482,12 +481,27 @@ c  define extra variables to be passed in surfc:
       srht  =srheat
       trht  =trheat
 !----------------------------------------------------------------------!
+      if (cond_scheme.eq.2) then  !new conductance scheme
+! Sine of solar elevation (rad).
+        sbeta=cosz1(i,j)
 ! adf Fraction of solar radiation at ground that is direct beam.
-      fdir=FSRDIR(i,j)
+        fdir=FSRDIR(i,j)
+! nyk Calculate incident PAR, photosynthetically active radiation.
+!     *SRVISSURF is from SRDVIS:
+!     = incident visible solar radiation (dir+dif) on the surface 
+!     = estimated as 53% of total solar flux density, 
+!       so wavelength range is UV through ~760 or 770 nm cutoff (not strict)
+!     *SRDVIS is normalized to solar zenith = 0.
+!     *From integrating solar flux density (TOA) over solar spectrum, 
+!       PAR(400-700 nm) is ~ 82% of the flux density of SRDVIS.
+        parinc=0.82*SRVISSURF(i,j)*sbeta
+! nyk Get vegetation grid albedo  (temporary hack until canopy scheme in place
+        vegalbedo = aalbveg(i,j)
 ! Internal foliage CO2 concentration (mol/m3).
-      Ci=Cint(i,j)
+        Ci=Cint(i,j)
 ! Foliage surface mixing ratio (kg/kg).
-      Qf=Qfol(i,j)
+        Qf=Qfol(i,j)
+      end if
 !----------------------------------------------------------------------!
   !    zs    =zgs  !!! will not need after qsbal is replaced
   !    z1    =zmix  !!! will not need after qsbal is replaced
@@ -500,16 +514,17 @@ c     call qsbal
       call ghinij (i,j,wfc1)
       call advnc
       call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
-!----------------------------------------------------------------------!
-! adf Save new CO2 and mixing ratios for next timestep.
-      Cint(i,j)=Cin
-      Qfol(i,j)=Qfn
-!----------------------------------------------------------------------!
+
+      if (cond_scheme.eq.2) then !new conductance scheme only
+        Cint(i,j)=Cin           ! New CO2 for next timestep (adf)
+        Qfol(i,j)=Qfn           ! New mixing ratio for next timestep (adf)
+      end if
+
       tg1=tbcs
       !qg_ij(i,j) = qs  !!! - this seemed to work ok
       !! trying more precise value for qg :  qsat(tg1+tf,elhx,ps)
       qg_sat = qsat(tg1+tf,elhx,ps) ! saturated soil
-      qg_nsat = qs                  ! non-sat soil, no evap
+      qg_nsat = qs              ! non-sat soil, no evap
       if ( rcdhws > 1.d-30 ) then   ! correction to non-sat, due to evap
         qg_nsat = qg_nsat + evap_max_ij(i,j)/(0.001*rcdhws)
       endif
@@ -592,6 +607,7 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       aij(i,j,ij_g11)=aij(i,j,ij_g11)+abeta/nisurf
       aij(i,j,ij_g12)=aij(i,j,ij_g12)+acna/nisurf
       aij(i,j,ij_g13)=aij(i,j,ij_g13)+acnc/nisurf
+      aij(i,j,ij_gpp)=aij(i,j,ij_gpp)+agpp
       aij(i,j,ij_g26)=aij(i,j,ij_g26)+abetav/nisurf
       aij(i,j,ij_g27)=aij(i,j,ij_g27)+abetat/nisurf
       aij(i,j,ij_g14)=aij(i,j,ij_g14)+aepp
@@ -884,6 +900,8 @@ c**** modifications needed for split of bare soils into 2 types
       use fluxes, only : gtemp
       use ghycom
       use dynamics, only : pedn
+      use surf_albedo, only: albvnh  !nyk
+
       implicit none
 
       real*8, intent(in) :: dtsurf
@@ -896,11 +914,9 @@ c**** modifications needed for split of bare soils into 2 types
       integer i, j, k, ibv
       real*8 wfc1
       real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
+      real*8 almass0, almassre, almassim  !nyk
       real*8 slim,slre,svh,z
-!----------------------------------------------------------------------!
-! adf
-      real*8 snm,snf
-!----------------------------------------------------------------------!
+      real*8 snm,snf ! temporary sums (adf)
       integer iv, l
       logical ghy_data_missing
       character conpt(npts)*10
@@ -920,17 +936,24 @@ c**** modifications needed for split of bare soils into 2 types
      $     (/100d0, 100d0, 200d0, 200d0, 200d0, 300d0,250d0, 125d0/)
       real*8, parameter :: vhght(8) =
      $     (/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0/)
-!----------------------------------------------------------------------!
-! adf Mean canopy nitrogen (g/m2) and Rubisco factors for each
-! vegetation type.
+! Mean canopy nitrogen (nmv; g/m2) and Rubisco factors (nfv) for each
+! vegetation type (adf)
       real*8, parameter :: nmv(8) =
      $     (/1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,0.82d0/)
       real*8, parameter :: nfv(8) =
      $     (/1.4d0,1.5d0 ,1.3d0 ,1.3d0 ,1.5d0 ,0.9d0,1.1d0,1.5d0 /)
-!----------------------------------------------------------------------!
       integer, parameter :: laday(8) =
      $     (/ 196,  196,  196,  196,  196,  196,  196,  196/)
 
+! Specific leaf areas (sleafa, kg[C]/m2) (adf, nyk)
+! Values below 1/(m2/kg) to get kg/m2 for multiplying.
+! Sources:  White, M.A., et.al. (2000), Earth Interactions, 4:1-85.
+!           Leonardos, E.D., et.al. (2003), Physiologia Plantarum, 117:521+.
+!               From winter wheat grown at 20 C (20 m2/kg[dry mass])
+!                                      and  5 C (13 m2/kg[dry mass])
+!           Francesco Tubiello, personal communication, crop 18-20 m2/kg.
+      real*8, parameter :: sleafa(8) =
+     $     1./(/30.5d0,49.0d0,30.5d0,40.5d0,32.0d0,8.2d0,32.0d0,18.0d0/)
 
 c****             tundr grass shrub trees decid evrgr rainf crops
 c****
@@ -945,6 +968,9 @@ c**** contents of ala(k,i,j),  lai coefficients
 c****   1  average leaf area index
 c****   2  real amplitude of leaf area index
 c****   3  imaginary amplitude of leaf area index
+c****
+c**** contents of almass(i,j),  leaf mass 
+c****      leaf mass = ala*sleafa = kg[C]/ground area
 c****
 c**** contents of acs(k,i,j),  cs coefficients
 c****   1  average stomatal conductance
@@ -962,6 +988,7 @@ c**** 11*ngm+1           sl
       integer :: ghy_default_data = 0
 ccc temporary code: dumping land surface data
 cddd      integer :: i_def=20, j_def=33
+      integer :: northsouth  !1=south, 2=north hemisphere
 
 c**** set conservation diagnostics for ground water mass and energy
       conpt=conpt0
@@ -979,6 +1006,7 @@ c**** read rundeck parameters
       call sync_param( "snow_cover_coef", snow_cover_coef )
       call sync_param( "snoage_def", snoage_def )
       call sync_param( "ghy_default_data", ghy_default_data )
+      call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03
 
 c**** read land surface parameters or use defaults
       if ( ghy_default_data == 0 ) then ! read from files
@@ -990,13 +1018,10 @@ c**** read in vegetation data set: vdata
 c**** zero-out vdata(11) until it is properly read in
         vdata(:,:,11) = 0.
         call closeunit(iu_VEG)
-!----------------------------------------------------------------------!
-! adf
-        if (istart.le.2) then ! initiallize foliage arrays
-          Cint(:,:)=0.0127D0
-          Qfol(:,:)=3.D-6
+        if (istart.le.2) then ! initialize foliage arrays (adf)
+          Cint(:,:)=0.0127D0  ! internal CO2
+          Qfol(:,:)=3.D-6     ! surface mixing ratio
         end if
-!----------------------------------------------------------------------!
         if (istart.le.0) return ! avoid reading unneeded files
 c**** read soils parameters
         call openunit("SOIL",iu_SOIL,.true.,.true.)
@@ -1082,22 +1107,17 @@ c spgsn is the specific gravity of snow
       spgsn=.1d0
 c
 c****
-c**** initialize global arrays  ala, acs, afb, afr
-!----------------------------------------------------------------------!
-! adf
-!     , anm, anf
-!----------------------------------------------------------------------!
+c**** initialize global arrays  ala, acs, afb, afr, anm, anf
 c****
       ala(:,:,:)=0.
       acs(:,:,:)=0.
       afb(:,:)=0.
       afr(:,:,:)=0.
       acs(1,:,:)=.01d0
-!----------------------------------------------------------------------!
-! adf
-      anm(:,:)=0.
-      anf(:,:)=0.
-!----------------------------------------------------------------------!
+      anm(:,:)=0.0D0            ! Global mean canopy N array (adf)
+      anf(:,:)=0.0D0            ! Global Rubisco factors (adf)
+      almass(:,:,:)=0.0D0       ! Global leaf mass at a time, nyk
+      aalbveg(:,:)=0.08D0        ! Grid vegetation albedo, nyk DUMMY
 
 c**** check whether ground hydrology data exist at this point.
       ghy_data_missing = .false.
@@ -1133,6 +1153,11 @@ c**** check whether ground hydrology data exist at this point.
       endif
 
       do j=1,jm
+        if(j.le.jm/2) then
+          northsouth=1.d0  !southern hemisphere
+        else
+          northsouth=2.d0  !northern hemisphere
+        end if
         do i=1,im
           pearth=fearth(i,j)
           afb(i,j)=vdata(i,j,1)+vdata(i,j,10)
@@ -1143,30 +1168,34 @@ c**** calculate lai, cs coefficicents
           sla0=0.
           slre=0.
           slim=0.
+          almass0=0.  !nyk
+          almassre=0. !nyk
+          almassim=0. !nyk
           scs0=0.
           scsre=0.
           scsim=0.
           svh=0.
-!----------------------------------------------------------------------!
-! adf
-          snm=0.
-          snf=0.
-!----------------------------------------------------------------------!
+          snm=0. ! adf
+          snf=0. ! adf
           do iv=1,8
             phase=twopi*laday(iv)/365.
             if(j.lt.jeq) phase=phase+twopi/2.
             fv=vdata(i,j,iv+1)
             sfv=sfv+fv
             svh=svh+fv*vhght(iv)
-!----------------------------------------------------------------------!
-! adf
-            snm=snm+fv*nmv(iv)
-            snf=snf+fv*nfv(iv)
-!----------------------------------------------------------------------!
+            snm=snm+fv*nmv(iv) ! adf
+            snf=snf+fv*nfv(iv) ! adf
             dif=(alamax(iv) - alamin(iv))
             sla0=sla0+fv*(alamax(iv) + alamin(iv))
             slre=slre+fv*dif*cos(phase)
             slim=slim+fv*dif*sin(phase)
+            !nyk-------------
+            !almaxmin = almaxmin + sleafa(iv)*fv*(alamax(iv) - alamin(iv))
+            almass0 = almass0 + sleafa(iv)*fv*(alamax(iv) - alamin(iv))
+            !almass0 = almass0 + sleafa(iv)*fv*(alamax(iv) + alamin(iv))
+            !almassre = almassre + sleafa(iv)*fv*dif*cos(phase)
+            !almassim = almassim + sleafa(iv)*fv*dif*sin(phase)
+            !----------------
             scs0=scs0+fv*(alamax(iv) + alamin(iv))/rsar(iv)
             scsre=scsre+fv*dif*cos(phase)/rsar(iv)
             scsim=scsim+fv*dif*sin(phase)/rsar(iv)
@@ -1178,11 +1207,15 @@ c**** calculate lai, cs coefficicents
           acs(2,i,j)=.5/sfv*scsre
           acs(3,i,j)=.5/sfv*scsim
           avh(i,j)=svh/sfv
-!----------------------------------------------------------------------!
-! adf
-          anm(i,j)=snm/sfv
-          anf(i,j)=snf/sfv
-!----------------------------------------------------------------------!
+          anm(i,j)=snm/sfv ! adf
+          anf(i,j)=snf/sfv ! adf
+          almass(1,i,j) = almass0  !This just computes total growth for year
+          almass(2,i,j) = 0.       !via difference between max and min.
+          almass(3,i,j) = 0.
+          !almass(1,i,j)= 0.5/sfv*almass0 !nyk
+          !almass(2,i,j)= 0.5/sfv*almassre !nyk
+          !almass(3,i,j)= 0.5/sfv*almassim !nyk
+
 c**** calculate root fraction afr averaged over vegetation types
           do n=1,ngm
             dz(n)=dz_ij(i,j,n)
@@ -1236,6 +1269,8 @@ c**** recompute ground hydrology data if necessary (new soils data)
             htbare(:,i,j)=0.
             htvege(:,i,j)=0.
             snowbv(:,i,j)=0.
+            Cint(i,j)=0.0127D0 ! Internal foliage CO2(adf)
+            Qfol(i,j)=3.D-6    ! Foliage surface mixing ratio (adf)
 
           else
 ccc   ??? remove next 5 lines? -check the old version
@@ -1490,21 +1525,21 @@ c****
      *     ,thets,thetm,ws,thm,nth,shc,shw,htprs,pr !shcap,shtpr,
      *     ,htpr
      *     ,top_index
-!----------------------------------------------------------------------!
-! adf
-     *     ,nm,nf,alai,vh
-!----------------------------------------------------------------------!
+     *     ,nm,nf,alai,vh ! added by adf
       use ghycom, only : dz_ij,sl_ij,q_ij,qk_ij,avh,afr,afb,ala,acs
      *     ,top_index_ij
-!----------------------------------------------------------------------!
-! adf
-     *     ,anm,anf
-!----------------------------------------------------------------------!
+     *     ,anm,anf ! added by adf
+!     *     ,aalbveg ! nyk
+      use model_com, only:  vdata, jm !nyk
+!      use surf_albedo, only: albvnh  !nyk
+
       implicit none
       integer i0,j0
       real*8 wfcap
       integer l,ibv,k,i
       real*8 aa,one
+!      real*8 aalbveg0, sfv  !nyk
+!      integer northsouth,iv  !nyk
 !----------------------------------------------------------------------!
 ! adf
 !      real*8 alaic,vh,shtpr,alai
@@ -1548,25 +1583,43 @@ c**** fr: root fraction in layer l  (1=fr(1)+fr(2)+...+fr(n))
       end do
 c**** vh: vegetation height
       vh=avh(i0,j0)
-!----------------------------------------------------------------------!
-! adf
-! Mean canopy nitrogen (g/m2)
-      nm=anm(i0,j0)
-! Canopy Rubisco factor.
-      nf=anf(i0,j0)
-!----------------------------------------------------------------------!
+      nm=anm(i0,j0) ! mean canopy nitrogen (g/m2) (adf)
+      nf=anf(i0,j0) ! canopy nitrogen factor (adf)
       snowm=vh*spgsn
 c**** fb,fv: bare, vegetated fraction (1=fb+fv)
       fb=afb(i0,j0)
       fv=1.-fb
-c**** alai: leaf area index
+c**** alai: leaf area index 
       alai=ala(1,i0,j0)+cosday*ala(2,i0,j0)+sinday*ala(3,i0,j0)
       alai=max(alai,one)
+
       alaic=5.0
       alaie=alaic*(1.-exp(-alai/alaic))
 c**** rs: minimum stomatal resistance
       rs=alai/(acs(1,i0,j0)+cosday*acs(2,i0,j0)+sinday*acs(3,i0,j0))
 c???  cnc=alai/rs   redefined before being used (qsbal,cond)
+
+      !---------------------------------------------------------
+      !nyk vegetation albedo.  Only really updated daily, but have to
+      !get it initialized somewhere after ALBVNH is calculated.
+      !ALBVNH is unfortunately calculated *after* ground hydr is initialized.
+      !albvnh(9,6,2)=albvnh(1+8veg,6bands,2hemi), band 1 is VIS.
+!      aalbveg0=0.d0               !nyk
+!      sfv=0.d0
+!      if (j0.le.jm/2) then
+!
+!       northsouth=1.d0         !southern hemisphere
+!      else
+!        northsouth=2.d0         !northern hemisphere
+!      end if
+!      do iv=1,8
+!        aalbveg0 = aalbveg0 + fv*(ALBVNH(iv+1,1,northsouth))
+!        sfv = sfv + fv
+!      end do
+!      aalbveg(i0,j0) = aalbveg0/sfv
+!      write (99,*) 'aalbveg ghinij', aalbveg(i0,j0) !nyk
+      !---------------------------------------------------------
+
 c
 cw    write(6,*)'n=',n,'  r=',r
 cw    write(6,91)
@@ -1807,13 +1860,21 @@ c**** check for reasonable temperatures over earth
 !@calls RDLAI
       use constant, only : rhow,twopi,edpery,tf
       use model_com, only : nday,nisurf,jday,fearth,wfcs
+     *     ,vdata !nyk
       use geom, only : imaxj
       use dagcom, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
-     *     ,ij_tdsl,ij_tmnmx,ij_tdcomp
+     *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
       use ghycom, only : snoage, snoage_def
+     *     ,almass,aalbveg       !nyk
+      use sle001, only: cond_scheme !nyk
+      use surf_albedo, only: albvnh  !nyk
+      
+
       implicit none
       real*8 tsavg,wfc1
+      real*8 aleafmass, aleafmasslast, aalbveg0, fv, sfv  !nyk veg
       integer i,j,itype
+      integer northsouth,iv  !nyk
       logical, intent(in) :: end_of_day
 c****
 c**** find leaf-area index & water field capacity for ground layer 1
@@ -1821,15 +1882,60 @@ c****
       cosday=cos(twopi/edpery*jday)
       sinday=sin(twopi/edpery*jday)
       do j=1,jm
+        if(j.le.jm/2) then      !nyk added northsouth
+          northsouth=1.d0       !southern hemisphere
+        else
+          northsouth=2.d0       !northern hemisphere
+        end if
         do i=1,im
           wfcs(i,j)=24.
           if (fearth(i,j).gt.0.) then
+            !-----------------------------------------------------------
+            !nyk Update vegetation albedos.
+            !WARNING:  ALBVNH is not saved in a restart file.
+            !          Must run without restarting.
+            !albvnh(9,6,2)=albvnh(1+8veg,6bands,2hemi), band 1 is VIS.
+            !if RUNDECK selects new conductance scheme
+            if (cond_scheme.eq.2) then
+              aalbveg0 = 0.d0
+              sfv=0.d0
+              do iv=1,8
+                fv=vdata(i,j,iv+1)
+                sfv=sfv+fv
+                aalbveg0 = aalbveg0 + fv*(ALBVNH(iv+1,1,northsouth))
+                !write (99,*) 'fv',fv
+                !write (99,*) 'ALBVNH',ALBVNH(iv+1,1,northsouth)
+              end do
+              aalbveg(i,j) = aalbveg0/sfv !nyk
+             !write (99,*) 'daily aalbveg', aalbveg(i,j)
+            end if
+            !-----------------------------------------------------------
+
             call ghinij(i,j,wfc1)
             wfcs(i,j)=rhow*wfc1 ! canopy part changes
+
+            !-----------------------------------------------------------
+            !nyk - TEMPORARY calculate change in leaf mass per day
+            !get aleafmass(i,j) at jday
+            aleafmass=
+     $           almass(1,i,j)+cosday*almass(2,i,j)+sinday*almass(3,i,j)
+            
+            !Calculate dlmass(i,j) increment from last jday
+            !cosdaym1=cos(twopi/edpery*(jday-1))
+            !sindaym1=sin(twopi/edpery*(jday-1))
+            !aleafmasslast=almass(1,i,j)+cosdaym1*almass(2,i,j)+
+!     $      !     sindaym1*almass(3,i,j)
+            !accumulate dlmass
+            !adlmass = aleafmass - aleafmasslast
+            adlmass = aleafmass
+            !aij(i,j,ij_dleaf)=aij(i,j,ij_dleaf)+adlmass
+            aij(i,j,ij_dleaf)=adlmass  !accumulate just instantaneous value
+            !PRINT '(F4.4)',adlmass                            !DEBUG
+            !call stop_model('Just did adlmass',255)           !DEBUG
           end if
         end do
       end do
-
+      
       if (end_of_day) then
         do j=1,jm
         do i=1,imaxj(j)

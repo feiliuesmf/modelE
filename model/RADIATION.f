@@ -172,7 +172,7 @@ C**** miscellaneous tuning parameters
 
 C**** ALBVNH is set only once a day then saved
 !@var ALBVNH hemispherically varying vegetation albedo
-      real*8, dimension(NV,6,2) :: ALBVNH
+      real*8, dimension(NV,6,2), public :: ALBVNH  !nyk made public for veg
 
 
 !@var GZSNOW asymmetry parameter for snow over three types
@@ -2222,6 +2222,8 @@ C--------------------------------
 
       DATA LMOREF/0/ ; SAVE LMOREF
 
+
+
 C-----------------------------------------------------------------------
 C
 C     SETSOL Parameters:
@@ -2415,6 +2417,7 @@ C                              spectral variations by FXGINT integration
 C                              AO3 is expressed as the absorbed fraction
 C                              of the total solar flux (S00WM2=1366W/m2)
 C                              -----------------------------------------
+
       RETURN
 
 

@@ -51,6 +51,8 @@ C**** exactly the same as the default values.
       REAL*8, DIMENSION(4,IM,JM) :: FSF
 !@var FSRDIR Direct beam solar incident at surface (W/m^2)
       REAL*8, DIMENSION(IM,JM) :: FSRDIR                  ! added by adf
+!@var SRVISSURF Incident solar direct+diffuse incident at surface (W/m^2)
+      REAL*8, DIMENSION(IM,JM) :: SRVISSURF               ! added by nyk
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
       REAL*8, DIMENSION(IM,JM) :: COSZ1
 !@dbparam S0X solar constant multiplication factor
@@ -107,7 +109,7 @@ C**** Local variables initialised in init_RAD
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "RAD02"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "RAD03"
 !@var HEADER_F Character string label for records (forcing runs)
       CHARACTER*80 :: HEADER_F, MODULE_HEADER_F = "RADF"
 
@@ -128,17 +130,17 @@ C**** Local variables initialised in init_RAD
       else
 
       MODULE_HEADER(lhead+1:80) = 'R8 Teq(3,ijm),'//
-     *  ' S0, s+tHr(0:lm,ijm,2),fs(ijm,4),fdir(ijm)'      ! fdir:    adf
+     *  ' S0, s+tHr(0:lm,ijm,2),fs(ijm,4),fdir,SRVIS(ijm)' ! fdir:    adf
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,RQT
-     *    ,S0,SRHR,TRHR,FSF,FSRDIR      ! needed if MODRAD>0 at restart
+     *    ,S0,SRHR,TRHR,FSF,FSRDIR,SRVISSURF  ! needed if MODRAD>0 at restart
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
         CASE (ioread,IRERUN)  ! input for restart, rerun or extension
           READ (kunit,err=10) HEADER,RQT
-     *       ,S0,SRHR,TRHR,FSF,FSRDIR   ! needed if MODRAD>0 at restart
+     *       ,S0,SRHR,TRHR,FSF,FSRDIR,SRVISSURF! needed if MODRAD>0 at restart
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
