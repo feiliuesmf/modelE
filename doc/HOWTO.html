@@ -36,6 +36,11 @@ in adding functionality or diagnostics.</P>
 <P><A HREF="#part1">PART I: Basic user information</A></P>
 <OL>
   <LI><A HREF="#part1_1"> HOW-TO setup and run the GISS GCM</A>
+     <OL>
+       <LI> <A HREF="#part1_1a"> How to select a rundeck name </A>
+       <LI> <A HREF="#part1_1b"> How to interact with CVS to make sure
+	    the run is reproducible</A>
+     </OL>	
   <LI><A HREF="#part1_2"> HOW-TO set rundeck parameters</A>
      <OL>
        <LI> <A HREF="#part1_2a"> How to tune a specified ocean run
@@ -58,7 +63,8 @@ in adding functionality or diagnostics.</P>
   <LI> <A HREF="#part1_9"> HOW-TO move to Wonderland</A>
   <LI> <A HREF="#part1_10"> HOW-TO report a problem</A>
   <LI> <A HREF="#part1_11"> HOW-TO keep up-to-date</A>
-  <LI> <A HREF="#part1_12"> HOW-TO add to this documentation</A>
+  <LI> <A HREF="#part1_12"> HOW-TO move the model offsite</A>
+  <LI> <A HREF="#part1_13"> HOW-TO add to this documentation</A>
 </OL>
 <P><A HREF="#part2">Part II: Getting information from the
 diagnostics</A></P> 
@@ -160,36 +166,138 @@ The sub-directory 'decks' is the main control directory, most commands
 will be issued in this directory. Typing 'gmake' will produce some
 documentation.
 
-There are four sample rundecks: E001.R, E001A.R, E001B.R. and
+There are five sample rundecks: E001.R, E001A.R, E001B.R., E001D.R and
 E001M23.R. These represent a standard fixed SST atmosphere only run, a
-Qflux run, a coupled ocean-atmosphere run and a stratospheric model
-run, respectively. In order to make a rundeck that you can use and
-modify, type 
+Qflux run, a coupled ocean-atmosphere run, a Qflux with deep diffusion
+run and a stratospheric model run, respectively.
 
-     gmake rundeck RUN=E001xyz
+<OL>
+   <LI> <A name="part1_1a"><b> How to select a rundeck name </b></A>
 
-This will make a rundeck E001xyz.R (please use a unique name, based on
-your initials), that will be a copy of E001.R. To make a copy based on
-another of the sample decks, use, for instance,
+<p>In order to make a rundeck that you can use and modify, you must
+first select a unique name for your run. There is a central database
+for storing user's rundecks (along with other pertinent information
+such as the time of compilation, the compiler version, and the current
+CVS branch) in <tt>ra:/u/cmrun/modelE/decks</tt>. This allows us to
+automatically tell whether a rundeck name has already been
+used. However, in order to minimise any confusion, we propose the
+following naming convention: </p>
+	<ul>
+	<li> Each rundeck should start with 'E' (to distinguish it
+             from other models in the building)
+	<li> The next three characters should be a counter (starting
+             at '001') which the individual user will update as they perform
+             successive runs.
+        <li> The next part consists of the users initials (or other
+             unique identifier.
+	<li> If the user is experimenting with variable resolutions,
+             it may be helpful to add 'M12' or 'M23' or 'F32' etc. to
+             the end of the name to distinguish between the Medium
+             resolution 12 or 23 layer model, or the Fine resolution,
+             32 layer model etc.
+	</ul> 
 
+<p> <em>Note that this implies that there would be not necessarily be any
+connection between runs E034xxx and E034yyy, since the numbers now
+refer to the run sequence, rather than the model version sequence.</em></p>
+
+<p> Once a rundeck name has been chosen (for example E001xyz), the
+rundeck will be created using
+
+<pre>
+     gmake rundeck RUN=E001xyz 
+</pre> 
+
+This will make a rundeck E001xyz.R, that will be a copy of E001.R. To
+make a copy based on another of the sample decks, use, for instance,
+<pre>
      gmake rundeck RUN=E001xyz RUNSRC=E001A
+</pre>
 
+A copy of the new rundeck will be stored in the rundeck depository on
+ra. If there is a clash with an existing rundeck name (including
+perhaps one of your previous runs), there will be an error message. If
+you want to insist on overwriting a previous version say, then give
+the command 
+<pre>
+     gmake rundeck RUN=E001xyz OVERWRITE=YES
+</pre>
+If you create a rundeck in any other fashion, ie. by directly copying
+one. There is no chance to verify its uniqueness. However, a secondary
+check is made when you attempt a 'setup' (see below) which should
+catch any inadvertent duplication. </p>
+
+<p>
 The list of fortran files within the rundeck determines which files
 are compiled into the executable. The compilation is automatic, and
 will take account of all dependencies, so that if a file is modified
-it will be re-compiled, along with any files that directly depend on
-modules or routines within it. The executable is made using
-
+it will be re-compiled, along with any files that directly or
+indirectly depend on modules or routines within it. The executable is
+made using
+<pre>
      gmake gcm RUN=E001xyz
-
+</pre>
 To actually run the model, you must first 'setup' the run by running
 the first hour (or specifically the first source time step).
+<pre>
+    gmake setup RUN=E001xyz 
+</pre> 
 
-    gmake setup RUN=E001xyz
+If this runs successfully there will be a message saying so. Likewise
+if there is a problem.</p>
 
-If this runs successfully there will be a message saying so. Once this
-is done, you can "run E001xyz" to set the model running for the
-specified length of time.
+   <LI> <A name="part1_1b"><b> How to interact with CVS to make sure
+	    the run is reproducible</b></A>
+<p>
+
+It is of some importance that runs be reproducible, either by other
+people, or later on by the users themselves. With version control now
+using the CVS system, it implies that CVS <B> MUST </B> know about any
+code variations that make it into any production run (i.e. one that is
+not simply a compilation test or debugging). We know that test runs
+and production runs are not necessarily easily distinguishable a
+priori (i.e. a run is a test run until it works, at which point it
+retroactively turned out to be the production run).  So the best way
+to ensure thats the relevant information is saved is through frequent
+'commits' to the cvs repository of all substantial changes you make to
+the code. By this we mean at minimum all changes that have effects on
+the prognostic variables (as opposed to diagnostic printout).  </P>
+
+<p> There is no cost to this procedure (although you should be careful
+to ensure that code at least compiles before any commits are made.) </p>
+
+<p> At the 'setup' stage (or at the 'exe' stage if you are recreating
+an executable files) further information is added to the rundeck
+depository indicating any changes to the rundeck since it was made,
+along with full CVS information on what was actually compiled. To
+retrieve this exact code, it is sufficient to know the time the run
+was compiled, and the CVS branch that the user was on.</p>
+
+	</ol>
+
+<p> Once a successful 'setup' is done, use the command
+<pre>
+  run E001xyz
+</pre>
+to set the model running for the specified length of the run.</p>
+
+<p> If you need to stop the run at any point, use the 'ssw E001xyz'
+command to do it in a controlled fashion (ensuring that all variables
+are saved correctly, and that no printout gets stuck in a
+buffer). using 'run E001xyz' subsequently picks up from where you left
+off. </p>
+
+<p> If you would like to update the executable (putting in new
+printout, or fixing an error etc.) without starting from 'setup' all
+over again, you can use
+<pre>
+  gmake exe RUN=E001xyz 
+</pre> 
+which will recompile the fortran, and replace the executable file in
+the run directory. Then 'run E001xyz' will pick up from where you
+stopped previously, but with the new code. Any changes to the CVS
+information between the initial setup and the new code will be
+recorded in the central rundeck repository.</p>
 
 <p><A name="part1_2"><b>2) HOW-TO set rundeck parameters</b></a></p>
 
@@ -202,7 +310,7 @@ specified length of time.
        They are tuning or control parameters.
     the nl-params are saved in record 1 (ISTART,IRANDI,IYEAR1) or
        not at all (all others). These others set start and stop
-       date for the run: (YEAR/MONTH/DATE/HOUR)IorE or IHOURE
+       date for the run: (YEAR/MONTH/DATE/HOUR)I or E or IHOURE
        or determine the (debug) printout: KDIAG,IWRITE,...,QCHECK
 
     When a run starts, parameters not set in the rundeck take their
@@ -310,7 +418,7 @@ ocean layer</b></a></p>
       with 1% of unity, there is no need to worry.
 
 <li> After this you will get two files (in the original
-run directory) which you will use as unput data for your Q-flux
+run directory) which you will use as input data for your Q-flux
 model:
        <ol>
        <li> <tt>OTSPEC.RunIDcontrol.M250D.first_year-last_year</tt>
@@ -380,8 +488,9 @@ runs</b></a></p>
 
 <p>Use the command 'ssw E001xyz' to stop the model run in a controlled
 fashion. Restart it with the command 'run E001xyz'. If you would like
-the run-time printout to be surpressed (to save filespace) use the
-command 'runn E001xyz'. The printout can always be recreated if needed.</p>
+the run-time printout to be suppressed (to save filespace) use the
+command 'runn E001xyz'. The monthly/seasonal/annual printout can
+always be recreated if needed.</p>
 
 <p><A name="part1_4"><b>4) HOW-TO change boundary conditions</b></a></p>
 
@@ -395,10 +504,10 @@ command 'runn E001xyz'. The printout can always be recreated if needed.</p>
 instance will give CO2 level three times as high as the default (which
 is the CO2 level on July 1, 1981 = 311.098). Setting CO2 to be a
 negative integer, will allow the CO2 to vary according to a number of
-different scenarios (observations until 1998, various projections
+different scenarios (i.e. observations until 1998, various projections
 subsequently).
 
-<li> Other gases are slightly more probelmatic, although we are working
+<li> Other gases are slightly more problematic, although we are working
 on that. Essentially they should be able to be adjusted using the
 'FULGAS' array in init_RAD in a similar way to CO2. Stratospheric
 water vapour is more complicated and requires hacking about in the
@@ -470,7 +579,37 @@ time. None of your changes will be lost if you upgrade. However, some
 conflicts may occur, though they should be minor. Detailed
 instructions will be given at the time.</p>
 
-<p><A name="part1_12"><b>12) HOW-TO add to this documentation</b></a></p>
+<p><A name="part1_12"><b>12) HOW-TO move the model offsite</b></a></p>
+
+<p>The model code itself is self-contained. Thus it should be
+transportable offsite. However, certain scripts contain references to
+central directories on Ra or the other GISS machines, though we are
+working to increase their portability. Notably, the 'setup_e' script,
+and the location of the 'central rundeck repository' outlined in the
+Makefiles. These will have to edited.  Of course, the input data files
+are not part of the release, and will need to be downloaded
+separately. Some utilities used by 'setup_e' are likewise local and
+should either be commented out or adjusted for the local situation.</P>
+
+<p>The biggest problem will be if the machine you wish to run the code
+on has a different fortran compiler. Some variation has been fully
+allowed for (i.e. the standard SGI or IBM compilers) and some attempts
+have been made to accomodate the DEC version or a couple of Linux
+compilers, however, we do not have a stable test bed for these and
+therefore cannot guarantee they will work.</P>
+
+<p>General problems will arise due to arbitrary compiler decisions on
+what to name compiled module files (which affects the determination of
+the inter-routine dependencies). Edit model/Rules.make to fix this.
+The code is compilable without using the 'static' option, which
+removes many of the problems that used to occur. Most of the compiler
+dependent code (that we have discovered) can be found in the versions
+of RANDxyz.f. These involve system calls to the CPU clock, the
+calculation of pseudo-random numbers, and the setting of exit
+codes. We would be very interested in further compiler dependencies if
+found.</p>
+
+<p><A name="part1_13"><b>13) HOW-TO add to this documentation</b></a></p>
 
 <p>This documentation is part of the model code, and so changes to files
 in the modelE/doc directory can be uploaded to the main repository.
@@ -490,7 +629,7 @@ printout, or using the post-processing program, pDE.</p>
   <li> <p>The run-time printout.</p>
 
        <p>If you run the model using 'run' (as opposed to 'runn' which
-surpresses the printout) the model will produce a $RUNID.PRT file
+suppresses the printout) the model will produce a $RUNID.PRT file
 which can contain copious amounts of diagnostic information. It is
 split into a number of sections: (see next question for a list). This
 is produced each month (but can be contrlled using the KDIAG switches
@@ -504,7 +643,7 @@ and NMONAV in the NAMELIST).</p>
        files and a) creates a printout (as above) for the time period
        concerned and b) creates binary output of many more diagnostics. This
        can be used simply to recreate the monthly printout, but also to
-       create longer term means (annual,seaonal, monthly climatologies
+       create longer term means (annual, seasonal, monthly climatologies
        etc.).</p> 
 
        <p>For example, to recreate the printout;
@@ -530,7 +669,7 @@ ANN or DCD, and nnnn is a year or nrange of years).</p>
 
 <p><A name="part2_2"><b>2) HOW-TO change what is included in the printout</b></a></p>
 
-<p>The swtiches KDIAG which are set in the NAMELIST control which
+<p>The switches KDIAG which are set in the NAMELIST control which
 subgroups of diagnostics are calculated and output. At present, there
 is no simple way to pick and choose exactly which diagnostics appear,
 although we are working on a scheme to do just that. Some of the
@@ -697,7 +836,7 @@ complications in keeping things straight.</p>
 existing code</b></a></p> 
 
 <p>Since all code is now kept within CVS, code history is preserved and
-can be retreived at any time. So for minor modifications to the code
+can be retrieved at any time. So for minor modifications to the code
 (i.e. slightly different formulation of a particular term), go
 straight ahead and modify your version. Compare the results from that
 with the standard control run. As you extend your modifications, make
@@ -708,7 +847,7 @@ functional) point. </p>
 <p><A name="part3_6"><b>6) HOW-TO add functionality - B: introducing new sub-modules</b></a></p>
 
 <p>If you want to add a completely new physical module or radically
-change an exisiting one, you will be best off creating a new 'plug and
+change an existing one, you will be best off creating a new 'plug and
 play' option. Follow the example of the ATURB code (which can replace
 DRYCNV if required). The issue is mainly one of keeping the interface
 clean and consistent. Unless what you propose will directly influence
@@ -716,9 +855,9 @@ multiple parts of the model, it is best to keep your new code as
 modular (single column for instance) as possible, and only interact
 with the main code through the relevant drivers. </p>
 
-<p>In particular, if there is an exisiting call to an equivalent routine,
+<p>In particular, if there is an existing call to an equivalent routine,
 keep the call statement the same for the old and new versions (and you
-can add dummy arguements to the old code if required). If you want to
+can add dummy arguments to the old code if required). If you want to
 add a new call for which there is no analog, you may want to add a
 dummy routine for use in the old version (i.e as in RES_M12.f with
 regard to some of the stratospheric code). Put this in a file that you
@@ -729,7 +868,7 @@ the rundeck. This is not encouraged except where it would make
 inserting a new option much more straightforward. If it is used, limit
 its use to the absolute minimum (i.e. to decide whether to call the
 new routine or not). We specifically do not want multiply threaded
-options with any of the physics routines since that makes maintenence
+options with any of the physics routines since that makes maintenance
 much more problematic. </p>
 
 <p>In any file where the directive is to used, there must be an </p>
@@ -924,7 +1063,7 @@ GCM tracer moments</a> for more details on how to do this
 properly. The CLOUDS.f tracer code is a good example of what to do.</P>
 
 <p><A name="part3_13"><b>13) HOW-TO deal with restart problems
-(non-reprodcuibility of results)</b></a></p> 
+(non-reproducibility of results)</b></a></p> 
 
 <p>Occasionally after making coding changes the model ceases to be able
 to reproduce results. For instance, after a crash, a restart from the
@@ -947,7 +1086,7 @@ bug (one that could change the results).</p>
 <li> out of bounds memory addressing. Occasionally this can also
     result in a restart problem if the memory that is being overwritten is
     used prior to the over-writing. Thus the first time through it is
-    clean, but subsequently has the value from the inccorectly addressed
+    clean, but subsequently has the value from the incorrectly addressed
     array. Unfortunately, you cannot set the compiler to catch this,
     since overwriting of arrays, is sometimes done on purpose in the code
     (though we are trying to eliminate that).
@@ -979,7 +1118,7 @@ aux RUN=E001xyx'). </p>
 CMPE001 rsf1 rsf1a 
 </pre>
 <p>will go through the rsf files array by array and output any
-discrepencies. If no numbers are output, the arrays are identical. If
+discrepancies. If no numbers are output, the arrays are identical. If
 the first hour rsf files are different, the error must be within INPUT
 (or one of the init_XYZ routines). Look at the relevant routine for
 the arrays that are highlighted. If however, the first hour checks out
