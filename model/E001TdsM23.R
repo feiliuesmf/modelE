@@ -109,7 +109,6 @@ RATJ=chem_files/ratj.giss_15
 SPECFJ=chem_files/jv_spec00_15.dat
 ATMFJ=chem_files/jv_atms.dat
 Ox_IC=gsin/Ox_init_cond_M23_4x5 !see README in /usr/people/cmrun/gsin
-Ox_corr=gsin/corrOx_M23         ! see README in /usr/people/cmrun/gsin
 CO_INDUSTRIAL=CO_sources/co_industrial
 CO_BIOMASS=CO_sources/co_biomass_new
 Alkenes_INDUSTRIAL=gsin/alkenes_industrial_4x5   !monthly  KG/hr/grid
