@@ -101,7 +101,7 @@
       integer ind, dims(:)
       ! local
       integer n,i
-
+!!!     write(0,*) 'checking ',name
       do i=1,num
         if ( db(i)%name == name ) exit
       enddo
@@ -194,7 +194,7 @@
       use ghycom, only : snowe,tearth,wearth,aiearth,snoage &
            ,evap_max_ij,fr_sat_ij,qg_ij
       use ghycom, only : wbare,wvege,htbare,htvege,snowbv, &
-        nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
+        nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
       use veg_com, only : Cint,Qfol,cnc_ij
       use landice_com, only : snowli,tlandi
       use pblcom, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg, &
@@ -204,19 +204,18 @@
       use somtq_com, only : tmom,qmom
       use radncb, only : tchg,rqt,s0,srhr,trhr,fsf,fsrdir,srvissurf, &
     srdn,cfrac,rcld,salb,O3_rad_save
-      use icedyn_com, only : rsix,rsiy,usi,vsi
-
+      use icedyn_com, only : rsix,rsiy,usi,vsi,icij
+      use icedyn, only : imic
       use dagcom, only : keynr,tsfrez,tdiurn,oa
       use dagcom, only : aj,areg,apj,ajl,asjl,aij,ail,energy,consrv &
-           ,speca,atpe,adiurn,wave,ajk,aijk,aisccp
+           ,speca,atpe,adiurn,wave,ajk,aijk,aisccp,hdiurn
       use model_com, only : idacc
-      use icedyn_com, only : icij
 
 !ccc  include tracers data here
 #ifdef TRACERS_ON
       use pblcom, only : trabl
       use tracer_com, only : trm,trmom
-      use tracer_diag_com, only: tacc
+      use tracer_diag_com, only: taijln,taijn,taijs,tajln,tajls,tconsrv
 
 #  ifdef TRACERS_WATER
       use lakes_com, only : trlake
@@ -350,7 +349,7 @@
         check("Qfol",Qfol)
         check("cnc_ij",cnc_ij)
         check("nsn_ij",nsn_ij)
-        check("isn_ij",isn_ij)
+!       check("isn_ij",isn_ij)
         check("dzsn_ij",dzsn_ij)
         check("wsn_ij",wsn_ij)
         check("hsn_ij",hsn_ij)
@@ -405,10 +404,12 @@
         check("rcld",rcld)
         check("O3_rad_save",O3_rad_save)
         ! icedyn
-        check("RSIX",RSIX)
-        check("RSIY",RSIY)
-        check("USI",USI)
-        check("VSI",VSI)
+        if(imic.gt.0) then
+          check("RSIX",RSIX)
+          check("RSIY",RSIY)
+          check("USI",USI)
+          check("VSI",VSI)
+        end if
 
         ! diagnostics from dagcom
         check("aj",aj)
@@ -427,6 +428,7 @@
         check("ajk",ajk)
         check("aijk",aijk)
         check("aisccp",aisccp)
+        check("hdiurn",hdiurn)
 
         ! diags
         check("KEYNR",KEYNR)
@@ -436,13 +438,20 @@
         check("OA",OA)
         !check("it",it)
         ! icdiag
-        check("ICIJ",ICIJ)
+        if(imic.gt.0) then
+          check("ICIJ",ICIJ)
+        end if
 
 !ccc    compare tracers data here
 #ifdef TRACERS_ON
         check("TRM",TRM)
         check("TRmom",TRmom)
-        check("tacc",tacc)
+        check("taijln",taijln)
+        check("taijn",taijn)
+        check("taijs",taijs)
+        check("tajln",tajln)
+        check("tajls",tajls)
+        check("tconsrv",tconsrv)
 
 #  ifdef TRACERS_WATER
         check("trlake",trlake)

@@ -3,17 +3,13 @@
 C**** CMPE001.F    CoMPare restartfiles for modelE          6/00
 C****
       USE MODEL_COM, only : im,jm,lm,ntype,imh
-      USE DAGCOM, ONLY: kacc,ktsf,KTD,KOA,kaj,nreg,kapj
-     *  ,kajl,lm_req,KASJL,KAIJ,KAIL,NEHIST,HIST_DAYS,KCON
-     *  ,KSPECA,NSPHER,KTPE,NHEMI,HR_IN_DAY,NDIUVAR,NDIUPT
-     *  ,Max12HR_sequ,NWAV_DAG,KWP,KAJK,KAIJK
+      USE DAGCOM
       USE SLE001, ONLY: NGM,nlsn
-!!!   USE RADNCB, only : LM_REQ
       USE SEAICE_COM, only : lmi
       USE PBLCOM, only : npbl
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm
-      USE TRACER_DIAG_COM, only: ktacc,ktaij,ktaijs,ktajlx,ktajls,ktcon
+      USE TRACER_DIAG_COM, only: ktaij,ktaijs,ktajlx,ktajls,ktcon
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: JPPJ, n_rx
 #endif
@@ -55,7 +51,7 @@ ccc   ice data:
      *               O3_rad_save1(LM,IM,JM),O3_rad_save2(LM,IM,JM)
 ccc   snow data:
       INTEGER, DIMENSION(2,IM,JM)     :: NSN1, NSN2
-      INTEGER, DIMENSION(2,IM,JM)     :: ISN1, ISN2
+!     INTEGER, DIMENSION(2,IM,JM)     :: ISN1, ISN2
       REAL*8, DIMENSION(NLSN,2,IM,JM) :: DZSN1, DZSN2
       REAL*8, DIMENSION(NLSN,2,IM,JM) :: WSN1, WSN2
       REAL*8, DIMENSION(NLSN,2,IM,JM) :: HSN1, HSN2
@@ -85,29 +81,42 @@ ccc   land ice data
      *  htv2(ngm+1,im,jm),snbv2(2,im,jm)
       CHARACTER XLABEL*132,LABEL*16,FILEIN*60,HEADER*80
       EQUIVALENCE (XLABEL,LABEL)
-      REAL*8 DIAG1,DIAG2,TSFREZ1,TSFREZ2,TDIURN1,TDIURN2
-      INTEGER KEYNR
-      COMMON/DAG1/DIAG1(KACC),TSFREZ1(IM,JM,ktsf),TDIURN1(IM,JM,KTD)
-      COMMON/DAG2/DIAG2(KACC),TSFREZ2(IM,JM,ktsf),TDIURN2(IM,JM,KTD)
-      COMMON /KEYS/ KEYNR(1+42*50)  !  also incl. keyct
+      REAL*8 TSFREZ1(IM,JM,ktsf),TDIURN1(IM,JM,KTD)
+      REAL*8 TSFREZ2(IM,JM,ktsf),TDIURN2(IM,JM,KTD)
+      real*8 AJ1(JM*kaj*ntype),AREG1(nreg*kaj),apj1(JM*kapj)
+      real*8 AJ2(JM*kaj*ntype),AREG2(nreg*kaj),apj2(JM*kapj)
+      real*8 AJL1(JM*LM*kajl),ASJL1(JM*lm_req*KASJL),aij1(IM*JM*KAIJ)
+      real*8 AJL2(JM*LM*kajl),ASJL2(JM*lm_req*KASJL),aij2(IM*JM*KAIJ)
+      real*8 AIL1(IM*LM*KAIL),ENER1(NEHIST*HIST_DAYS),CONSRV1(JM*KCON)
+      real*8 AIL2(IM*LM*KAIL),ENER2(NEHIST*HIST_DAYS),CONSRV2(JM*KCON)
+      real*8 SPECA1((IMH+1)*KSPECA*NSPHER),ATPE1(KTPE*NHEMI)
+      real*8 SPECA2((IMH+1)*KSPECA*NSPHER),ATPE2(KTPE*NHEMI)
+      real*8 ADIUR1(HR_IN_DAY*NDIUVAR*NDIUPT)
+      real*8 ADIUR2(HR_IN_DAY*NDIUVAR*NDIUPT)
+      real*8 WAVE1(2*Max12HR_sequ*NWAV_DAG*KWP)
+      real*8 WAVE2(2*Max12HR_sequ*NWAV_DAG*KWP)
+      real*8 AJK1(JM*LM*KAJK),AIJK1(IM*JM*LM*KAIJK)
+      real*8 AJK2(JM*LM*KAJK),AIJK2(IM*JM*LM*KAIJK)
+      real*8 AISCCP1(ntau*npres*nisccp)
+      real*8 AISCCP2(ntau*npres*nisccp)
+      real*8 HDIURN1((HR_IN_MONTH+4)*NDIUVAR*NDIUPT)
+      real*8 HDIURN2((HR_IN_MONTH+4)*NDIUVAR*NDIUPT)
       REAL*8 LAKE1,LAKE2
       COMMON /LAKE/LAKE1(IM,JM,4),LAKE2(IM,JM,4)
 C**** coupled model ocean data (cannot be read in from module for
 C**** compatibility across model configurations)
       INTEGER, PARAMETER :: NMST=12, LMO=13
-      INTEGER, PARAMETER :: KOIJ=6,KOIJL=22,KOL=6,KOLNST=8,
-     *     KACCO=IM*JM*KOIJ + IM*JM*LMO*KOIJL + LMO*KOL + LMO*NMST
-     *     *KOLNST
+      INTEGER, PARAMETER :: KOIJ=6,KOIJL=22,KOL=6,KOLNST=8
       REAL*8 OCEAN1(IM,JM,LMO*11+1),OCEAN2(IM,JM,LMO*11+1)
       REAL*8 STRAITS1(LMO,NMST,7),STRAITS2(LMO,NMST,7)
       REAL*8 STRAITI1(NMST,4+LMI),STRAITI2(NMST,4+LMI)
-      REAL*8 ODIAG1(KACCO),ODIAG2(KACCO),OIJ1,OIJ2,OIJL1,OIJL2,OL1,OL2
-     *     ,OLNST1,OLNST2
+      REAL*8 OIJ1,OIJL1,OL1,OLNST1
+     *      ,OIJ2,OIJL2,OL2,OLNST2
       COMMON /ODAG1/OIJ1(IM,JM,KOIJ),OIJL1(IM,JM,LMO,KOIJL),
      *     OL1(LMO,KOL),OLNST1(LMO,NMST,KOLNST)
       COMMON /ODAG2/OIJ2(IM,JM,KOIJ),OIJL2(IM,JM,LMO,KOIJL),
      *     OL2(LMO,KOL),OLNST2(LMO,NMST,KOLNST)
-      EQUIVALENCE (ODIAG1,OIJ1),(ODIAG2,OIJ2)
+
 C**** ice dynamic data (cannot be read in from module for
 C**** compatibility across model configurations)
       INTEGER, PARAMETER :: KICIJ=12, IMIC=IM,JMIC=JM
@@ -117,15 +126,12 @@ C**** compatibility across model configurations)
       REAL*8 TR1(IM,JM,LM*NTM),TR2(IM,JM,LM*NTM),TRMOM1(9,IM,JM,LM*NTM)
      *     ,TRMOM2(9,IM,JM,LM*NTM),
      *     TRABL1(npbl*ntm,im,jm,4),TRABL2(npbl*ntm,im,jm,4)
-      REAL*8 TRACC1(KTACC),TRACC2(KTACC),TAIJLN1,TAIJN1,TAIJS1,TAJLN1
-     *     ,TAJLS1,TCON1,TAIJLN2,TAIJN2,TAIJS2,TAJLN2,TAJLS2,TCON2 
-      COMMON /TACCUM1/ TAIJLN1(IM,JM,LM,NTM),TAIJN1(IM,JM,KTAIJ,NTM)
-     *     ,TAIJS1(IM,JM,ktaijs),TAJLN1(JM,LM,ktajlx,NTM),TAJLS1(JM,LM
-     *     ,ktajls),TCON1(JM,ktcon,ntm)
-      COMMON /TACCUM2/ TAIJLN2(IM,JM,LM,NTM),TAIJN2(IM,JM,KTAIJ,NTM)
-     *     ,TAIJS2(IM,JM,ktaijs),TAJLN2(JM,LM,ktajlx,NTM),TAJLS2(JM,LM
-     *     ,ktajls),TCON2(JM,ktcon,ntm)
-      EQUIVALENCE (TRACC1,TAIJLN1),(TRACC2,TAIJLN2)
+      REAL*8 TAIJLN1(IM,JM,LM,NTM),TAIJN1(IM,JM,KTAIJ,NTM)
+     *     ,TAIJS1(IM,JM,ktaijs),TAJLN1(JM,LM,ktajlx,NTM)
+     *     ,TAJLS1(JM,LM,ktajls),TCON1(JM,ktcon,ntm)
+      REAL*8 TAIJLN2(IM,JM,LM,NTM),TAIJN2(IM,JM,KTAIJ,NTM)
+     *     ,TAIJS2(IM,JM,ktaijs),TAJLN2(JM,LM,ktajlx,NTM)
+     *     ,TAJLS2(JM,LM,ktajls),TCON2(JM,ktcon,ntm)
 #ifdef TRACERS_WATER
       INTEGER, PARAMETER :: KTICIJ=2
       REAL*8 TRW1(IM,JM,LM*NTM),TRW2(IM,JM,LM*NTM),
@@ -155,14 +161,38 @@ C**** compatibility across model configurations)
 #endif
 #endif
 C****
-      INTEGER DAGPOS,DAGPOS1,DAGPOS2,KOCEAN1,KOCEAN2,IARGC
+      INTEGER KOCEAN1,KOCEAN2,IARGC
       LOGICAL ERRQ,COMP8,COMP8p,COMPI,COMP8LIJp,COMPILIJ
       INTEGER itau1,itau2,idacc1(12),idacc2(12)
 
       real*8 strat1(im,jm),strat2(im,jm)
       integer istrat1(2,im,jm),istrat2(2,im,jm)
-      logical :: debug = .false.
+      logical :: debug = .true. , no_diag = .false.
 C****
+      if(debug) then ! check all diag-dimensions
+        write(0,*) 'aj',JM*kaj*ntype,nreg*kaj,JM*kapj
+        write(0,*) 'AJL',JM*LM*kajl,JM*lm_req*KASJL,IM*JM*KAIJ
+        write(0,*) 'AIL',IM*LM*KAIL,NEHIST*HIST_DAYS,JM*KCON
+        write(0,*) 'SPECA',(IMH+1)*KSPECA*NSPHER,KTPE*NHEMI
+        write(0,*) 'ADIUR',HR_IN_DAY*NDIUVAR*NDIUPT
+        write(0,*) 'WAVE',2*Max12HR_sequ*NWAV_DAG*KWP
+        write(0,*) 'ajk',JM*LM*KAJK,IM*JM*LM*KAIJK
+        write(0,*) 'isccp',ntau*npres*nisccp
+        write(0,*) 'hdiu',(HR_IN_MONTH+4)*NDIUVAR*NDIUPT
+        write(0,*) 'all',JM*kaj*ntype+nreg*kaj+JM*kapj+
+     *  JM*LM*kajl+JM*lm_req*KASJL+IM*JM*KAIJ+IM*LM*KAIL+
+     *  NEHIST*HIST_DAYS+JM*KCON+(IMH+1)*KSPECA*NSPHER+KTPE*NHEMI+
+     *  HR_IN_DAY*NDIUVAR*NDIUPT+2*Max12HR_sequ*NWAV_DAG*KWP+
+     *  JM*LM*KAJK+IM*JM*LM*KAIJK+ntau*npres*nisccp+
+     *  (HR_IN_MONTH+4)*NDIUVAR*NDIUPT
+        write(0,*) 'kacc',JM*KAJ*NTYPE + NREG*KAJ + JM*KAPJ
+     *     + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +
+     *     IM*LM*KAIL + NEHIST*HIST_DAYS + JM*KCON +
+     *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
+     *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
+     *     IM*JM*LM*KAIJK+ntau*npres*nisccp
+     *     + (HR_IN_MONTH+4)*NDIUVAR*NDIUPT
+      end if
       IF(IARGC().NE.2)  GO TO 800
 C****
 C**** Read ReStartFiles
@@ -198,10 +228,13 @@ C**** check which ocean
            if (debug) write(0,*) 'trying to read ocea2'
            READ(1) HEADER,OCEAN1
 #ifdef TRACERS_OCEAN
+           if (debug) write(0,*) 'trying to read TRocn'
            READ(1) HEADER,TROCN1,TRMOCN1
 #endif
+           if (debug) write(0,*) 'trying to read STRAITS'
            READ(1) HEADER,STRAITS1,STRAITI1
 #ifdef TRACERS_OCEAN
+           if (debug) write(0,*) 'trying to read TRSTRAITS'
            READ(1) HEADER,TRSTRTI1,TRSTRT1
 #endif
          END IF
@@ -213,26 +246,30 @@ C**** check which ocean
 #endif
          if (debug) write(0,*) 'trying to read sice'
          READ (1) HEADER,RSI1,HSI1,SNOWI1,MSI1,SSI1,PM1,IFLAG1
-         if (debug) write(0,*) 'trying to read gdata'
 #ifdef TRACERS_WATER
-         READ (1) HEADER,TRSI1 
+         if (debug) write(0,*) 'trying to read TRsice'
+         READ (1) HEADER,TRSI1
 #endif
+         if (debug) write(0,*) 'trying to read gdata'
          READ (1) HEADER,sne1,te1,wtre1,ace1,snag1,fsat1,qge1
          if (debug) write(0,*) 'trying to read soils'
          READ (1) HEADER,wb1,wv1,htb1,htv1,snbv1
 #ifdef TRACERS_WATER
+         if (debug) write(0,*) 'trying to read TRSOIL'
          READ (1) HEADER,TRSOIL1
 #endif
          if (debug) write(0,*) 'trying to read vegetation'
          READ (1) HEADER,ci1,qfol1,cnc1
          if (debug) write(0,*) 'trying to read snow'
-         READ (1) HEADER,NSN1,ISN1,DZSN1,WSN1,HSN1,FR_SNOW1
+         READ (1) HEADER,NSN1,DZSN1,WSN1,HSN1,FR_SNOW1
 #ifdef TRACERS_WATER
+         if (debug) write(0,*) 'trying to read TRsnow'
          READ (1) HEADER,TRSN1
 #endif
          if (debug) write(0,*) 'trying to read landi'
          READ (1) HEADER,SNLI1,TLI1
 #ifdef TRACERS_WATER
+         if (debug) write(0,*) 'trying to read TRlandi'
          READ (1) HEADER,TRLI1
 #endif
          if (debug) write(0,*) 'trying to read bldat'
@@ -240,6 +277,7 @@ C**** check which ocean
          if (debug) write(0,*) 'trying to read pbl'
          READ (1) HEADER,PBL1,pblb1,ipbl1
 #ifdef TRACERS_ON
+         if (debug) write(0,*) 'trying to read TRpbl'
          READ (1) HEADER,TRABL1
 #endif
          if (debug) write(0,*) 'trying to read clds'
@@ -266,15 +304,19 @@ C**** check which ocean
 #endif
 #endif
          if (debug) write(0,*) 'trying to read diag'
-         READ (1,ERR=100) HEADER,KEYNR,TSFREZ1,idacc1,DIAG1,TDIURN1,OA1
+         READ (1,ERR=100) HEADER,keyct,KEYNR,TSFREZ1,idacc1,
+     *  AJ1,AREG1,apj1,AJL1,ASJL1,aij1,AIL1,ENER1,CONSRV1,SPECA1,
+     *  ATPE1,ADIUR1,WAVE1,AJK1,AIJK1,AISCCP1,HDIURN1,TDIURN1,OA1
      *        ,ITAU2
          GOTO 200
  100     BACKSPACE(1)
-         READ (1) HEADER,KEYNR,TSFREZ1,ITAU2
+         if (debug) write(0,*) 'read error, try short'
+          no_diag = .true.
+         READ (1) HEADER,keyct,KEYNR,TSFREZ1,ITAU2
  200     IF (KOCEAN1.gt.0) THEN
            if (debug) write(0,*) 'trying to read ocn3'
            IF (KOCEAN1.eq.2) THEN
-             READ(1) HEADER,ODIAG1,itau2
+             READ(1) HEADER,OIJ1,OIJL1,OL1,OLNST1,itau2
 #ifdef TRACERS_OCEAN
              READ(1) HEADER,TROCDIAG1,TRLNST1,itau2
 #endif
@@ -288,13 +330,13 @@ C**** check which ocean
          END IF
 #ifdef TRACERS_ON
          if (debug) write(0,*) 'trying to read diag tracer'
-         READ (1) HEADER,TRACC1,itau2
+         READ (1) HEADER,TAIJLN1,TAIJN1,TAIJS1,TAJLN1,TAJLS1,TCON1,itau2
 #endif
          if (debug) write(0,*) 'done'
          IF (ITAU1.ne.ITAU2) then
            WRITE (6,*) 'FILE 1 NOT READ CORRECTLY. IHOUR,IHOURB =',itau1
      *          ,itau2
-         STOP
+         if(.not.debug) STOP
       END IF
       CLOSE (1)
 
@@ -302,36 +344,36 @@ C**** check which ocean
 C****
       CALL GETARG (2,FILEIN)
       OPEN (2,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',ERR=810)
-c        if (debug) write(0,*) 'trying to read label'
+         if (debug) write(0,*) 'trying to read label'
          READ (2) ITAU1,XLABEL
-c        if (debug) write(0,*) 'trying to skip label'
+         if (debug) write(0,*) 'trying to skip label'
          READ (2)
-c        if (debug) write(0,*) 'trying to skip param'
+         if (debug) write(0,*) 'trying to skip param'
          READ (2) ! - skip parameters
-c        if (debug) write(0,*) 'trying to read model'
+         if (debug) write(0,*) 'trying to read model'
          READ (2) HEADER,U2,V2,T2,P2,Q2,WM2
 C**** check whether stratosphere
-c        if (debug) write(0,*) 'trying to read stratosphere'
+         if (debug) write(0,*) 'trying to read stratosphere'
          READ (2) HEADER
          BACKSPACE(2)
          IF (HEADER(1:8).eq."STRAT01") THEN
-c        if (debug) write(0,*) 'trying to read stratosphere'
+         if (debug) write(0,*) 'trying to read stratosphere'
            READ(2) HEADER,STRAT2,istrat2
          END IF
 C**** check which ocean
-c        if (debug) write(0,*) 'trying to read ocean'
+         if (debug) write(0,*) 'trying to read ocean'
          READ (2) HEADER
          BACKSPACE(2)
          IF (HEADER(1:8).eq."OCN01") THEN ! Qflux or fixed SST
            KOCEAN2 = 0
-c        if (debug) write(0,*) 'trying to read ocea1'
+         if (debug) write(0,*) 'trying to read ocea1'
            READ(2) HEADER,TOCN2,Z2
          ELSE
            KOCEAN2 = 2
-c        if (debug) write(0,*) 'trying to read ocea2'
+         if (debug) write(0,*) 'trying to read ocea2'
            READ(2) HEADER,OCEAN2
 #ifdef TRACERS_OCEAN
-c        if (debug) write(0,*) 'trying to read tracer ocea2'
+         if (debug) write(0,*) 'trying to read tracer ocea2'
            READ(2) HEADER,TROCN2,TRMOCN2
 #endif
            READ(2) HEADER,STRAITS2,STRAITI2
@@ -339,50 +381,51 @@ c        if (debug) write(0,*) 'trying to read tracer ocea2'
            READ(2) HEADER,TRSTRTI2,TRSTRT2
 #endif
          END IF
-c        if (debug) write(0,*) 'trying to read lake'
+         if (debug) write(0,*) 'trying to read lake'
          READ (2) HEADER,LAKE2
 #ifdef TRACERS_WATER
          READ (2) HEADER,TRLK2
 #endif
-c        if (debug) write(0,*) 'trying to read sice'
+         if (debug) write(0,*) 'trying to read sice'
          READ (2) HEADER,RSI2,HSI2,SNOWI2,MSI2,SSI2,PM2,IFLAG2
 #ifdef TRACERS_WATER
          READ (2) HEADER,TRSI2
 #endif
-c        if (debug) write(0,*) 'trying to read gdata'
+         if (debug) write(0,*) 'trying to read gdata'
          READ (2) HEADER,sne2,te2,wtre2,ace2,snag2,fsat2,qge2
-c        if (debug) write(0,*) 'trying to read soils'
+         if (debug) write(0,*) 'trying to read soils'
          READ (2) HEADER,wb2,wv2,htb2,htv2,snbv2
 #ifdef TRACERS_WATER
          READ (2) HEADER,TRSOIL2
 #endif
-c        if (debug) write(0,*) 'trying to read vegetation'
+         if (debug) write(0,*) 'trying to read vegetation'
          READ (2) HEADER,ci2,qfol2,cnc2
-c        if (debug) write(0,*) 'trying to read snow'
-         READ (2) HEADER,NSN2,ISN2,DZSN2,WSN2,HSN2,FR_SNOW2
+         if (debug) write(0,*) 'trying to read snow'
+         READ (2) HEADER,NSN2,DZSN2,WSN2,HSN2,FR_SNOW2
 #ifdef TRACERS_WATER
+         if (debug) write(0,*) 'trying to twater snow'
          READ (2) HEADER,TRSN2
 #endif
-c        if (debug) write(0,*) 'trying to read landi'
+         if (debug) write(0,*) 'trying to read landi'
          READ (2) HEADER,SNLI2,TLI2
 #ifdef TRACERS_WATER
          READ (2) HEADER,TRLI2
 #endif
-c        if (debug) write(0,*) 'trying to read bldat'
+         if (debug) write(0,*) 'trying to read bldat'
          READ (2) HEADER,BLD2,eg2,we2,tg2,qg2
-c        if (debug) write(0,*) 'trying to read pbl'
+         if (debug) write(0,*) 'trying to read pbl'
          READ (2) HEADER,PBL2,pblb2,ipbl2
 #ifdef TRACERS_ON
          READ (2)  HEADER,TRABL2
 #endif
-c        if (debug) write(0,*) 'trying to read clds'
+         if (debug) write(0,*) 'trying to read clds'
          READ (2) HEADER,CLOUD2
-c        if (debug) write(0,*) 'trying to read mom'
+         if (debug) write(0,*) 'trying to read mom'
          READ (2) HEADER,TMOM2,QMOM2
-c        if (debug) write(0,*) 'trying to read radia'
+         if (debug) write(0,*) 'trying to read radia'
          READ (2) HEADER,RQT2, S02,SRHR2,TRHR2,FSF2,fsd2,rcld2,
      &            O3_rad_save2
-c        if (debug) write(0,*) 'trying to read icedyn'
+         if (debug) write(0,*) 'trying to read icedyn'
          READ (2) HEADER
          BACKSPACE(2)
          IF (HEADER(1:6).eq.'ICEDYN'.and.KOCEAN2.eq.0) KOCEAN2=1
@@ -397,16 +440,18 @@ c        if (debug) write(0,*) 'trying to read icedyn'
      *        ,yAldehyde2,yXO2N2,yRXPAR2,ss2
 #endif
 #endif
-c        if (debug) write(0,*) 'trying to read diag'
-         READ (2,ERR=300) HEADER,KEYNR,TSFREZ2,idacc2,DIAG2,TDIURN2,OA2
-     *        ,ITAU2
+         if (debug) write(0,*) 'trying to read diag'
+         READ (2,ERR=300) HEADER,keyct,KEYNR,TSFREZ2,idacc2,
+     *     AJ2,AREG2,apj2,AJL2,ASJL2,aij2,AIL2,ENER2,CONSRV2,SPECA2,
+     *     ATPE2,ADIUR2,WAVE2,AJK2,AIJK2,AISCCP2,HDIURN2,TDIURN2,OA2
+     *    ,ITAU2
          GOTO 400
  300     BACKSPACE(2)
-         READ (2) HEADER,KEYNR,TSFREZ2,ITAU2
+         READ (2) HEADER,keyct,KEYNR,TSFREZ2,ITAU2
  400     IF (KOCEAN2.gt.0) THEN
-c        if (debug) write(0,*) 'trying to read ocn3'
+         if (debug) write(0,*) 'trying to read ocn3'
            IF (KOCEAN2.eq.2) THEN
-             READ(2) HEADER,ODIAG2,itau2
+             READ(2) HEADER,OIJ2,OIJL2,OL2,OLNST2,itau2
 #ifdef TRACERS_OCEAN
              READ(2) HEADER,TROCDIAG2,TRLNST2,itau2
 #endif
@@ -417,13 +462,13 @@ c        if (debug) write(0,*) 'trying to read ocn3'
 #endif
          END IF
 #ifdef TRACERS_ON
-         READ (2) HEADER,TRACC2
+         READ (2) HEADER,TAIJLN2,TAIJN2,TAIJS2,TAJLN2,TAJLS2,TCON2,itau2
 #endif
 
       IF (itau1.ne.itau2) then
          WRITE (6,*) 'FILE 2 NOT READ CORRECTLY. IHOUR,IHOURB =',itau1
      *        ,itau2
-         STOP
+         if(.not.debug) STOP
       END IF
       CLOSE (2)
 
@@ -485,7 +530,7 @@ C****
       ERRQ=COMP8 ('Qfol  ',IM,JM,1      ,  qfol1,  qfol2) .or. ERRQ
       ERRQ=COMP8 ('CNC  ',IM,JM,1      ,  cnc1,  cnc2) .or. ERRQ
       ERRQ=COMPILIJ ('NSN   ',2,IM,JM       ,NSN1  ,NSN2   ) .or. ERRQ
-      ERRQ=COMPILIJ ('ISN   ',2,IM,JM       ,ISN1  ,ISN2   ) .or. ERRQ
+!     ERRQ=COMPILIJ ('ISN   ',2,IM,JM       ,ISN1  ,ISN2   ) .or. ERRQ
       ERRQ=COMP8LIJp('DZSN  ',2*NLSN,IM,JM  ,DZSN1 ,DZSN2  ) .or. ERRQ
       ERRQ=COMP8LIJp('WSN   ',2*NLSN,IM,JM  ,WSN1  ,WSN2   ) .or. ERRQ
       ERRQ=COMP8LIJp('HSN   ',2*NLSN,IM,JM  ,HSN1  ,HSN2   ) .or. ERRQ
@@ -512,7 +557,7 @@ C****
       ERRQ=COMP8 ('FSdir ',IM,JM,5,        fsd1 , fsd2 ) .or. ERRQ
       ERRQ=COMP8Lijp('RCLD  ',LM,IM,JM,    RCLD1, RCLD2 ) .or. ERRQ
       ERRQ=
-     &COMP8Lijp('O3save',LM,IM,JM,O3_rad_save1,O3_rad_save2).or.ERRQ
+     & COMP8Lijp('O3save',LM,IM,JM,O3_rad_save1,O3_rad_save2).or.ERRQ
 
 #ifdef TRACERS_ON
       ERRQ=COMP8('TR    ',IM,JM,LM*NTM    , TR1  , TR2  ) .or. ERRQ
@@ -529,11 +574,11 @@ C****
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       ERRQ=COMP8('yNO3  ',IM,JM,LM    , yNO31   , yNO32   )  .or. ERRQ
-      ERRQ=COMP8('pHOx  ',IM,JM,LM    , pHOx1   , pHOx2   )  .or. ERRQ 
+      ERRQ=COMP8('pHOx  ',IM,JM,LM    , pHOx1   , pHOx2   )  .or. ERRQ
       ERRQ=COMP8('pNOx  ',IM,JM,LM    , pNOx1   , pNOx2   )  .or. ERRQ
       ERRQ=COMP8('pOx   ',IM,JM,LM    , pOx1    , pOx2    )  .or. ERRQ
-      ERRQ=COMP8('yCH3O2',IM,JM,LM    , yCH3O21 , yCH3O22 )  .or. ERRQ 
-      ERRQ=COMP8('yC2O3 ',IM,JM,LM    , yC2O31  , yC2O32  )  .or. ERRQ   
+      ERRQ=COMP8('yCH3O2',IM,JM,LM    , yCH3O21 , yCH3O22 )  .or. ERRQ
+      ERRQ=COMP8('yC2O3 ',IM,JM,LM    , yC2O31  , yC2O32  )  .or. ERRQ
       ERRQ=COMP8('yROR  ',IM,JM,LM    , yROR1   , yROR2   )  .or. ERRQ
       ERRQ=COMP8('yXO2  ',IM,JM,LM    , yXO21   , yXO22   )  .or. ERRQ
       ERRQ=COMP8('yAldeh',IM,JM,LM    ,yAldehyde1,yAldehyde2).or. ERRQ
@@ -557,46 +602,28 @@ C****
 #endif
 
       print*," Diagnostic variables:"
-c      if(errq) then
-c      write(6,*) 'errors in prognostic vars: not checking diagnostics'
+      if(no_diag) then
+      write(6,*) ' Probably rsf-file: no diagnostics available'
 c only check diagnostics if no prognostic errors
-c      else
-      DAGPOS=1
-      ERRQ=COMP8 ('AJ    ',JM,kaj,ntype,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*kaj*ntype
-      ERRQ=COMP8 ('AREG  ',nreg,kaj,1  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+nreg*kaj
-      ERRQ=COMP8 ('APJ   ',JM,kapj,1   ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*kapj
-      ERRQ=COMP8 ('AJL   ',JM,LM,kajl ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*LM*kajl
-      ERRQ=COMP8 ('ASJL  ',JM,lm_req,KASJL,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*lm_req*KASJL
-      ERRQ=COMP8 ('AIJ   ',IM,JM,KAIJ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+IM*JM*KAIJ
-      ERRQ=COMP8 ('AIL   ',IM,LM,KAIL,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+IM*LM*KAIL
-      ERRQ=COMP8 ('ENERGY',NEHIST,NEHIST,HIST_DAYS
-     *                                  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+NEHIST*HIST_DAYS
-      ERRQ=COMP8 ('CONSRV',JM,KCON,1  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*KCON
-      ERRQ=COMP8 ('SPECA ',IMH+1,KSPECA,NSPHER
-     *                               ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+(IMH+1)*KSPECA*NSPHER
-      ERRQ=COMP8 ('ATPE  ',KTPE,NHEMI,1,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+KTPE*NHEMI
-      ERRQ=COMP8 ('ADAILY',HR_IN_DAY,NDIUVAR,NDIUPT
-     *                              ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+HR_IN_DAY*NDIUVAR*NDIUPT
-      ERRQ=COMP8 ('WAVE  ',2*Max12HR_sequ,NWAV_DAG,KWP
-     *                               ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+2*Max12HR_sequ*NWAV_DAG*KWP
-      ERRQ=COMP8 ('AJK   ',JM,LM,KAJK,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*LM*KAJK
-      ERRQ=COMP8 ('AIJK  ',IM,JM,LM*6,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+IM*JM*LM*6
+       else
+      ERRQ=COMP8 ('AJ    ',JM,kaj,ntype,AJ1,AJ2)
+      ERRQ=COMP8 ('AREG  ',nreg,kaj,1  ,AREG1,AREG2)
+      ERRQ=COMP8 ('APJ   ',JM,kapj,1   ,APJ1,APJ2)
+      ERRQ=COMP8 ('AJL   ',JM,LM,kajl ,AJL1,AJL2)
+      ERRQ=COMP8 ('ASJL  ',JM,lm_req,KASJL,ASJL1,ASJL2)
+      ERRQ=COMP8 ('AIJ   ',IM,JM,KAIJ,AIJ1,AIJ2)
+      ERRQ=COMP8 ('AIL   ',IM,LM,KAIL,AIL1,AIL2)
+      ERRQ=COMP8 ('ENERGY',NEHIST,HIST_DAYS,1, ENER1,ENER2)
+      ERRQ=COMP8 ('CONSRV',JM,KCON,1  ,CONSRV1,CONSRV2)
+      ERRQ=COMP8 ('SPECA ',IMH+1,KSPECA,NSPHER,SPECA1,SPECA2)
+      ERRQ=COMP8 ('ATPE  ',KTPE,NHEMI,1,ATPE1,ATPE2)
+      ERRQ=COMP8 ('ADAILY',HR_IN_DAY,NDIUVAR,NDIUPT,ADIUR1,ADIUR2)
+      ERRQ=COMP8 ('WAVE  ',2*Max12HR_sequ,NWAV_DAG,KWP,WAVE1,WAVE2)
+      ERRQ=COMP8 ('AJK   ',JM,LM,KAJK,AJK1,AJK2)
+      ERRQ=COMP8 ('AIJK  ',IM,JM,LM*6,AIJK1,AIJK2)
       ERRQ=COMP8 ('TSFREZ',IM,JM,ktsf   ,TSFREZ1,TSFREZ2)
+      ERRQ=COMP8 ('AISCCP',ntau,npres,nisccp,AISCCP1,AISCCP2)
+      ERRQ=COMP8 ('HDIURN',HR_IN_MONTH+4,NDIUVAR,NDIUPT,HDIURN1,HDIURN2)
       ERRQ=COMP8 ('TDIURN',IM,JM,KTD    ,TDIURN1,TDIURN2)
       ERRQ=COMP8p('OA    ',IM,JM,KOA    ,OA1,OA2)
 
@@ -609,14 +636,10 @@ c      else
       ERRQ=COMP8('TCONS ',JM,KTCON,NTM    ,TCON1  ,TCON2 ) .or. ERRQ
 #endif
       IF (KOCEAN1.eq.KOCEAN2.and.KOCEAN1.eq.2) THEN ! compare ocn diags
-      DAGPOS=1
-      ERRQ=COMP8('OIJ   ',IM,JM,KOIJ,ODIAG1(DAGPOS),ODIAG2(DAGPOS))
-      DAGPOS=DAGPOS+IM*JM*KOIJ
-      ERRQ=COMP8('OIJL  ',IM,JM,LMO*KOIJL,ODIAG1(DAGPOS),ODIAG2(DAGPOS))
-      DAGPOS=DAGPOS+IM*JM*LMO*KOIJL
-      ERRQ=COMP8('OL    ',LMO,KOL,1   ,ODIAG1(DAGPOS),ODIAG2(DAGPOS))
-      DAGPOS=DAGPOS+LMO*KOL
-      ERRQ=COMP8('OLNST ',LMO,NMST,KOLNST,ODIAG1(DAGPOS),ODIAG2(DAGPOS))
+      ERRQ=COMP8('OIJ   ',IM,JM,KOIJ,OIJ1,OIJ2)
+      ERRQ=COMP8('OIJL  ',IM,JM,LMO*KOIJL,OIJL1,OIJL2)
+      ERRQ=COMP8('OL    ',LMO,KOL,1   ,OL1,OL2)
+      ERRQ=COMP8('OLNST ',LMO,NMST,KOLNST,OLNST1,OLNST2)
 #ifdef TRACERS_WATER
       ERRQ=COMP8('TRICDG',IMIC,JMIC,KTICIJ*NTM,TRICDG1,TRICDG2) .or.
      *     ERRQ
@@ -631,7 +654,7 @@ c      else
 #endif
       END IF
 
-c      endif
+      endif
       STOP
 C****
   800 WRITE (0,*) 'Example: CMPE001 E001.rsf_1 E001.rsf_2   ',
