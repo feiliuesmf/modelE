@@ -24,7 +24,7 @@ c     input data:
 
 C    input: ZS1,TGV,TKV,QG_SAT,HEMI,DTSURF,POLE,UOCEAN,VOCEAN
 C    output:US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
-C          ,UG,VG,WG,ZMIX,W2_1
+C          ,UG,VG,WG,W2_1
 
       use constant, only :  rgas,grav,deltx,twopi ! ,teeny omega2,
       use model_com, only :  t,q,u,v
@@ -37,7 +37,7 @@ C          ,UG,VG,WG,ZMIX,W2_1
       use socpbl, only :  ! npbl=>n ,
      &     zs1,tgv,tkv,qg_sat,hemi,pole    ! rest local
      &     ,us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl,kms,khs,kqs
-     &     ,ug,vg,wg,zmix,zgs,w2_1
+     &     ,ug,vg,wg,zgs,w2_1
       use pblcom
 ccc for simple model:
       use dynamics, only : am,pedn,pek
@@ -167,7 +167,6 @@ cccc ***************  output ************
       w2_1 = 666.
 
 ccc hack to remove dependence on these numbers
-      zmix = zgs
       khs = 1.d0
 
       !print *,i,j,itype, t(i,j,1)*pek(1,i,j), qs, tsv/(1.+qs*deltx)

@@ -54,12 +54,11 @@
 !@var UG     = eastward component of the geostrophic wind (m/s)
 !@var VG     = northward component of the geostrophic wind (m/s)
 !@var WG     = magnitude of the geostrophic wind (m/s)
-!@var ZMIX   = a height used to match ground and surface fluxes
 !@var MDF    = downdraft mass flux (m/s)
 !@var WINT   = integrated surface wind speed over sgs wind distribution
       real*8 :: zs1,tgv,tkv,qg_sat,hemi,dtsurf,w2_1,mdf,wint
       real*8 :: us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl,kms,khs,kqs,ppbl
-     *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wg,zmix,XCDpbl=1d0
+     *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wg,XCDpbl=1d0
       logical :: pole
 
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
@@ -103,7 +102,7 @@ C***
 
       COMMON /PBLPAR/ZS1,TGV,TKV,QG_SAT,HEMI,POLE
       COMMON /PBLOUT/US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL,
-     *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,WG,ZMIX,W2_1,MDF,WINT
+     *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,WG,W2_1,MDF,WINT
 !$OMP  THREADPRIVATE (/PBLPAR/,/PBLOUT/)
 
 CCC !@var bgrid log-linear gridding parameter
@@ -162,7 +161,6 @@ c   output:
 !@var  kqs  surface value of kq
 !@var  wsh  magnitude of surface wind modified by buoyancy flux (m/s)
 !@var  ustar  friction speed
-!@var  zmix  magic quantity needed in surfce
 !@var  cm  dimensionless momentum flux at surface (drag coeff.)
 !@var  ch  dimensionless heat flux at surface (stanton number)
 !@var  cq  dimensionless moisture flux at surface (dalton number)
@@ -254,7 +252,6 @@ C**** end special threadprivate common block
         call abort
         call stop_model("PBL error in advanc",255)
       end if
-      zmix=dzh(1)+zgs
 
       usave(:)=u(:)
       vsave(:)=v(:)

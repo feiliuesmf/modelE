@@ -56,7 +56,7 @@ C**** Tracer input/output common block for PBL
 
 C    input: ZS1,TGV,TKV,QG_SAT,HEMI,DTSURF,POLE,UOCEAN,VOCEAN
 C    output:US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
-C          ,UG,VG,WG,ZMIX,W2_1
+C          ,UG,VG,WG,W2_1
 
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
       USE MODEL_COM
@@ -72,7 +72,7 @@ C          ,UG,VG,WG,ZMIX,W2_1
      &     ,zgs,DTSURF                  ! global
      &     ,ZS1,TGV,TKV,QG_SAT,HEMI,POLE    ! rest local
      &     ,US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
-     &     ,UG,VG,WG,ZMIX,mdf
+     &     ,UG,VG,WG,mdf
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q,w2_1
 #ifdef TRACERS_ON
      *     ,tr

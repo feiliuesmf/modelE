@@ -44,7 +44,6 @@
 !diag !@var UG     = eastward component of the geostrophic wind (m/s)
 !diag !@var VG     = northward component of the geostrophic wind (m/s)
 !diag !@var WG     = magnitude of the geostrophic wind (m/s)
-!@var ZMIX   = a height used to match ground and surface fluxes
 
 !input:
       real*8 :: zs1,tgv,tkv,hemi,qg_sat
@@ -53,14 +52,14 @@
       real*8 :: dtsurf
 !output
       real*8 :: us,vs,ws,wsm,wsh,tsv,qsrf,khs
-     *         ,zmix,w2_1
+     *         ,w2_1
 !output diag
       real*8 :: psi,dbl,ug,vg,wg
 !output compat (not used)
       real*8 :: kms,kqs
 
       common /socpbl_globals/ zs1,tgv,tkv,hemi,qg_sat,pole
-     &   ,us,vs,ws,wsm,wsh,tsv,qsrf,khs,zmix,w2_1
+     &   ,us,vs,ws,wsm,wsh,tsv,qsrf,khs,w2_1
      &   ,psi,dbl,ug,vg,wg,kms,kqs
 
 !$OMP  THREADPRIVATE (/socpbl_globals/)

@@ -115,7 +115,7 @@ c****
       USE SOCPBL, only : dtsurf         ! zgs,     ! global
      &     ,zs1,tgv,tkv,qg_sat,hemi,pole     ! rest local
      &     ,us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl    ! ,edvisc=>kms
-     &     ,khs,ug,vg,wg,zmix,wint   ! ,kq=>kqs ,ppbl
+     &     ,khs,ug,vg,wg,wint   ! ,kq=>kqs ,ppbl
       use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       use pbl_drv, only : pbl, evap_max,fr_sat,uocean,vocean
 #ifdef TRACERS_ON
@@ -459,8 +459,6 @@ c****
       cdq = cqgs(i,j,itype)
 c***********************************************************************
 c**** calculate qs
-c      dhgs=(zmix-zgs)*cdh*wsh
-c      dqgs=(zmix-zgs)*cdq*wsh
       qs=qsrf
       ts=tsv/(1.+qs*deltx)
 c**** calculate rhosrf*cdm*ws
@@ -506,7 +504,6 @@ c  define extra variables to be passed in surfc:
       end if
 !----------------------------------------------------------------------!
   !    zs    =zgs  !!! will not need after qsbal is replaced
-  !    z1    =zmix  !!! will not need after qsbal is replaced
   !    eddy  =khs   !!! will not need after qsbal is replaced
 c     tspass=ts
 c***********************************************************************
