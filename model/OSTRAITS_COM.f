@@ -6,7 +6,7 @@
 !@ver  1.0
       USE OCEAN, only : lmo
       USE SEAICE, only : lmi
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
       IMPLICIT NONE
@@ -84,9 +84,11 @@ C****
       REAL*8, DIMENSION(2,NMST) :: MSIST
       REAL*8, DIMENSION(LMI,NMST) :: HSIST,SSIST
 
+#ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
 !@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)
       REAL*8, DIMENSION(LMO,NMST,NTM) :: TRMST, TXMST, TZMST
+#endif
 !@var TRSIST tracer amount in with strait (kg)      
       REAL*8, DIMENSION(NTM,LMI,NMST) :: TRSIST
 #endif
@@ -107,14 +109,20 @@ C****
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCSTR01"
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCSTR01"
 
+#ifndef TRACERS_OCEAN
       write (TRMODULE_HEADER(lhead+1:80)
-     *     ,'(a7,i3,a1,i3,a1,i3,a,i3,a1,i3,a1,i3,a)')'R8 dim(',lmo,','
-     *     ,nmst,',',NTM,'):TRMST,TXST,TZST,TRSIST(',ntm,',',lmi,','
-     *     ,nmst,')'
+     *     ,'(a10,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',ntm
+     *     ,',',lmi,',',nmst,')'
+#else
+      write (TRMODULE_HEADER(lhead+1:80)
+     *     ,'(a10,i3,a1,i3,a1,i3,a6,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',ntm
+     *     ,',',lmi,',',nmst,') dim(',lmo,',',nmst,',',NTM
+     *     ,'):TRMST,TXST,TZST'
+#endif
 #endif
 
       write (MODULE_HEADER(lhead+1:80),'(a7,i2,a1,i2,a24,i2,a9,i2,a6,
@@ -125,8 +133,11 @@ C****
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,MUST,G0MST,GXMST,GZMST,S0MST
      *       ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
+#ifdef TRACERS_WATER
+        WRITE (kunit,err=10) TRMODULE_HEADER,TRSIST
 #ifdef TRACERS_OCEAN
-        WRITE (kunit,err=10) TRMODULE_HEADER,TRMST,TXMST,TZMST,TRSIST
+     *       ,TRMST,TXMST,TZMST
+#endif
 #endif
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
@@ -139,8 +150,11 @@ C****
      *           ,MODULE_HEADER
             GO TO 10
           END IF
+#ifdef TRACERS_WATER
+          READ (kunit,err=10) TRHEADER,TRSIST
 #ifdef TRACERS_OCEAN
-          READ (kunit,err=10) TRHEADER,TRMST,TXMST,TZMST,TRSIST
+     *       ,TRMST,TXMST,TZMST
+#endif
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",TRHEADER
      *           ,TRMODULE_HEADER

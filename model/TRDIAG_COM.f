@@ -162,6 +162,10 @@ C**** TCONSRV
       INTEGER, DIMENSION(NTM) :: itcon_decay
 !@var itcon_grav Index array for gravitational settling conserv. diags
       INTEGER, DIMENSION(NTM) :: itcon_grav
+!@var itcon_mc Index array for moist convection conserv. diags
+      INTEGER, DIMENSION(NTM) :: itcon_mc
+!@var itcon_grav Index array for large-scale condensation conserv. diags
+      INTEGER, DIMENSION(NTM) :: itcon_ss
 
 C----------------------------------------------------
 !@param KTACC total number of tracer diagnostic words
@@ -175,7 +179,7 @@ C----------------------------------------------------
 C----------------------------------------------------
       END MODULE TRACER_DIAG_COM
 
-      SUBROUTINE SET_TCON(QCON,NAME_CON,INST_UNIT,SUM_UNIT,INST_SC
+      SUBROUTINE SET_TCON(QCON,NAME_CON,QSUM,INST_UNIT,SUM_UNIT,INST_SC
      *     ,CHNG_SC, itr,CONPTs)
 !@sum  SET_TCON assigns conservation diagnostic array indices
 !@auth Gavin Schmidt
@@ -187,8 +191,12 @@ C----------------------------------------------------
      *     ,ntcons
       USE DAGCOM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src,CONPT
       IMPLICIT NONE
-!@var QCON logical variable sets where conservation diags are saved
+!@var QCON denotes at which points conservation diags are saved
       LOGICAL, INTENT(IN),DIMENSION(ktcon-1) :: QCON
+!@var QSUM sets whether each diag is included in final sum
+!@+   should be zero for diags set using DIAGTCB (i.e. using difference)
+      LOGICAL, INTENT(IN),DIMENSION(ktcon-1) :: QSUM
+      LOGICAL, DIMENSION(ktcon-1) :: QSUM_CON   ! local version
 !@var INST_SC scale for instantaneous value
       REAL*8, INTENT(IN) :: INST_SC
 !@var CHNG_SC scale for changes
@@ -205,6 +213,7 @@ C----------------------------------------------------
       INTEGER, INTENT(IN) :: ITR
 !@var CONPTS
       CHARACTER*16, DIMENSION(ntcons) :: CONPTS
+      CHARACTER*11 CHGSTR
       INTEGER NI,NM,NS,N,k
 
 C**** remove spaces in NAME_CON for netcdf names
@@ -221,20 +230,25 @@ C****
       name_tconsrv(NI,itr) ="inst_"//sname
       lname_tconsrv(NI,itr) = "INSTANT "//TRIM(NAME_CON)
       units_tconsrv(NI,itr) = INST_UNIT
+      NSUM_TCON(NI,itr) = -1
       IA_TCON(NI,itr) = 12
       NM=NI
       DO N=2,ktcon-1
         IF (QCON(N)) THEN
           NM = NM + 1
           NOFMT(N,itr) = NM
+          QSUM_CON(NM)=.FALSE.
+          IF (QSUM(N)) QSUM_CON(NM)=.TRUE.
+          CHGSTR=" CHANGE OF "
           if (n.le.npts+1) then
-            TITLE_TCON(NM,itr) = " CHANGE OF "//TRIM(NAME_CON)//" BY "//
+            TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
      *         CONPT(N-1)
             name_tconsrv(NM,itr) =
      *           "chg_"//trim(sname)//"_"//TRIM(CONPT(N-1)(1:3))
           else
-            TITLE_TCON(NM,itr) = " CHANGE OF "//TRIM(NAME_CON)//" BY "//
-     *         CONPTs(N-npts-1)
+            IF (.not. QSUM(N)) CHGSTR="     DELTA "
+            TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
+     *           CONPTs(N-npts-1)
             name_tconsrv(NM,itr) =
      *           "chg_"//trim(sname)//"_"//TRIM(CONPTs(N-npts-1)(1:3))
           end if
@@ -267,14 +281,16 @@ C****
      *       KTCON,NI,NM,NS,NAME_CON
         STOP "Change KTCON in tracer diagnostic common block"
       END IF
+      DO NM=NI+1,NS-1
+        NSUM_TCON(NM,itr) = -1
+        IF (QSUM_CON(NM)) NSUM_TCON(NM,itr) = NS
+      END DO
       TITLE_TCON(NS,itr) = " SUM OF CHANGES "//TRIM(SUM_UNIT)
       name_Tconsrv(NS,itr) ="sum_chg_"//trim(sname)
       lname_Tconsrv(NS,itr) = " SUM OF CHANGES OF "//TRIM(NAME_CON)
       units_Tconsrv(NS,itr) = SUM_UNIT
       SCALE_TCON(NS,itr) = 1.
       IA_TCON(NS,itr) = 12
-      NSUM_TCON(NI,itr) = -1
-      NSUM_TCON(NI+1:NS-1,itr) = NS
       NSUM_TCON(NS,itr) = 0
       RETURN
       END SUBROUTINE set_tcon

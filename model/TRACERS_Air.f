@@ -26,7 +26,7 @@
       integer :: l,k,n
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
       character*10 CMR
-      logical :: qcon(KTCON-1), T=.TRUE. , F=.FALSE.
+      logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
 !@var to_volume_MixRat: For printout of tracer concentration
 !@+   to_volume_MixRat=1: printout is in Volume Mixing Ratio
 !@+   to_volume_MixRat=0: printout is in Mass Mixing Ratio
@@ -232,58 +232,74 @@ C**** To add a new conservation diagnostic:
 C****       Set up a QCON, and call SET_TCON to allocate array numbers,
 C****       set up scales, titles, etc. 
 C**** QCON denotes when the conservation diags should be accumulated
+C**** QSUM says whether that diag is to be used in summation (if the
+C****      routine DIAGCTB is used, this must be false).
 C**** 1:NPTS+1 ==> INST,  DYN,   COND,   RAD,   PREC,   LAND,  SURF,
 C****            FILTER,STRDG/OCEAN, DAILY, OCEAN1, OCEAN2,
 C**** First 12 are standard for all tracers and GCM
       QCON=(/ t,                                           !instant.
-     *        T,  T,  F,  T,  T,  T,  T,  T,  F,  F,  F,   !2-12 (npts)
+     *        T,  T,  F,  F,  T,  T,  T,  T,  F,  F,  F,   !2-12 (npts)
      *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
-     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F  /)   !21-ktcon-1
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F  /)    !21-ktcon-1
+      QSUM=(/ f,                                           !instant.
+     *        T,  T,  F,  F,  T,  T,  T,  T,  F,  F,  F,   !2-12 (npts)
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F  /)    !21-ktcon-1
       do n=1,ntm
         kt_power_inst(n)   = ntm_power(n)+2
         kt_power_change(n) = ntm_power(n)-4
         scale_inst(n)   = 10d0**(-kt_power_inst(n))
         scale_change(n) = 10d0**(-kt_power_change(n))
         inst_unit(n) = unit_string(kt_power_inst(n),  ' kg/m^2)')
-         sum_unit(n) = unit_string(kt_power_change(n),' kg/s/m^2)')
+         sum_unit(n) = unit_string(kt_power_change(n),' kg/m^2 s)')
       end do
       N = n_air
-      CALL SET_TCON(QCON,TRNAME(N),inst_unit(n),
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       N = n_SF6
-      itcon_surf(1,N) = 13
-      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'L1 SOURCE'
-      CALL SET_TCON(QCON,TRNAME(N),inst_unit(n),
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       N = n_Rn222
-      itcon_surf(1,N) = 13
-      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'L1 SOURCE'
-      itcon_decay(n) = 14
-      qcon(itcon_decay(n)) = .true.; conpts(2) = 'DECAY'
-      CALL SET_TCON(QCON,TRNAME(N),inst_unit(n),
+      itcon_decay(n) = 13
+      qcon(itcon_decay(n)) = .true.; conpts(1) = 'DECAY'
+      qsum(itcon_decay(n)) = .true.
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       N = n_CO2
       itcon_surf(1,N) = 13
       qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'FossilFuel'
+      qsum(itcon_surf(1,N)) = .false.
       itcon_surf(2,N) = 14
       qcon(itcon_surf(2,N)) = .true.; conpts(2) = 'Fertilization'
+      qsum(itcon_surf(2,N)) = .false.
       itcon_surf(3,N) = 15
       qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Forest Regrowth'
+      qsum(itcon_surf(3,N)) = .false.
       itcon_surf(4,N) = 16
       qcon(itcon_surf(4,N)) = .true.; conpts(4) = 'Land Use'
+      qsum(itcon_surf(4,N)) = .false.
       itcon_surf(5,N) = 17
       qcon(itcon_surf(5,N)) = .true.; conpts(5) = 'Ecosystem Exch'
+      qsum(itcon_surf(5,N)) = .false.
       itcon_surf(6,N) = 18
       qcon(itcon_surf(6,N)) = .true.; conpts(6) = 'Ocean Exch'
-      CALL SET_TCON(QCON,TRNAME(N),inst_unit(n),
+      qsum(itcon_surf(6,N)) = .false.
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
 C**** Here are some more examples of conservation diag configuration
+C**** Gravitional settling:
 c      n=n_dust
 c      itcon_grav(n) = xx
-c      qcon(itcon_grav(n)) = .true.; conpts(2) = 'SETTLING'
-c      CALL SET_TCON(QCON,TRNAME(N),inst_unit(n),
-c     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+c      qcon(itcon_grav(n)) = .true.; conpts(yy) = 'SETTLING'
+c      qsum(itcon_grav(n)) = .true.
+C**** Separate Moist convection/Large scale condensation 
+c      itcon_mc(n)=xx
+c      qcon(itcon_mc(n))=.true.  ; conpts(yy) = 'MOIST CONV'
+c      qsum(itcon_mc(n)) = .false.
+c      itcon_ss(n)=xx
+c      qcon(itcon_ss(n))=.true.  ; conpts(yy) = 'LS COND'
+c      qsum(itcon_ss(n)) = .false.
 
 
 C**** print out total tracer diagnostic array size
@@ -526,7 +542,7 @@ C****
       USE QUSDEF
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
-      USE FLUXES, only : trsource,trflux1
+      USE FLUXES, only : trsource
       USE SEAICE_COM, only : rsi
       USE CONSTANT, only: tf,sday,hrday,bygrav,mair
       USE PBLCOM, only: tsavg
@@ -659,12 +675,6 @@ C****
         end do
 
       end select
-
-C**** trflux1 is required for PBL calculations
-      trflux1(:,:,n) = 0.
-      do ns=1,ntsurfsrc(n)
-        trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)
-      end do
 
       end do
 C****

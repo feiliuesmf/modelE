@@ -24,7 +24,7 @@
       implicit none
       integer :: l,k,n
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
-      logical :: qcon(KTCON-1), T=.TRUE. , F=.FALSE.
+      logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
       character*50 :: unit_string
 
 C**** Set some diags that are the same regardless
@@ -88,13 +88,19 @@ C**** To add a new conservation diagnostic:
 C****       Set up a QCON, and call SET_TCON to allocate array numbers,
 C****       set up scales, titles, etc. 
 C**** QCON denotes when the conservation diags should be accumulated
+C**** QSUM says whether that diag is to be used in summation (if the
+C****      routine DIAGCTB is used, this must be false).
 C**** 1:NPTS+1 ==> INST,  DYN,   COND,   RAD,   PREC,   LAND,  SURF,
 C****            FILTER,STRDG/OCEAN, DAILY, OCEAN1, OCEAN2,
 C**** First 12 are standard for all tracers and GCM
       QCON=(/ t,                                           !instant.
-     *        T,  T,  F,  T,  T,  T,  T,  T,  F,  F,  F,   !2-12 (npts)
+     *        T,  T,  F,  F,  T,  T,  T,  T,  F,  F,  F,   !2-12 (npts)
      *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
-     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F  /)   !21-ktcon-1
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F  /)    !21-ktcon-1
+      QSUM=(/ f,                                           !instant.
+     *        T,  T,  F,  F,  T,  T,  T,  T,  F,  F,  F,   !2-12 (npts)
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F  /)    !21-ktcon-1
       do n=1,ntm
         kt_power_inst(n)   = ntm_power(n)+2
         kt_power_change(n) = ntm_power(n)-4
@@ -104,7 +110,13 @@ C**** First 12 are standard for all tracers and GCM
          sum_unit(n) = unit_string(kt_power_change(n),' kg/s/m^2)')
       end do
       N = n_Water
-      CALL SET_TCON(QCON,TRNAME(N),inst_unit(n),
+      itcon_mc(n)=13
+      qcon(itcon_mc(n))=.true.  ; conpts(1) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n)=14
+      qcon(itcon_ss(n))=.true.  ; conpts(2) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
 C**** print out total tracer diagnostic array size
@@ -223,7 +235,7 @@ C**** Initialise pbl profile if necessary
       write(6,*) ' Tracer ',trname(n),' initialized at itime=',itime
       end if
       end do
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
 C**** Initialise ocean tracers if necessary
       call tracer_ic_ocean
 #endif
@@ -251,9 +263,9 @@ C****
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: itime
       USE TRACER_COM
-      USE FLUXES, only : trsource,trflux1
+      USE FLUXES, only : trsource
       implicit none
-      integer :: ns,n
+      integer :: n
 
 C**** All sources are saved as kg/s
       do n=1,ntm
@@ -270,12 +282,6 @@ C****
         trsource(:,:,:,n)=0
 
       end select
-
-C**** trflux1 is required for PBL calculations
-      trflux1(:,:,n) = 0.
-      do ns=1,ntsurfsrc(n)
-        trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)
-      end do
 
       end do
 C****

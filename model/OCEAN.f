@@ -602,9 +602,6 @@ C**** Set ftype array for oceans
           FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
           SSS(I,J) = 34.7d0
-#ifdef TRACERS_WATER
-          GTRACER(:,1,I,J)=trw0(:)
-#endif
         ELSE
           SSS(I,J) = 0.
         END IF
@@ -1004,3 +1001,27 @@ C****
 C****
       END SUBROUTINE io_oda
 
+#ifdef TRACERS_WATER
+      subroutine tracer_ic_ocean
+!@sum initialise ocean tracer concentration
+!@auth  Gavin Schmidt
+      USE MODEL_COM, only : im,jm,focean,itime
+      USE GEOM, only : imaxj
+      USE TRACER_COM, only : trw0,ntm,itime_tr0
+      USE FLUXES, only : gtracer
+      IMPLICIT NONE
+      INTEGER i,j,n
+      
+      do n=1,ntm
+        if (itime.eq.itime_tr0(n)) then
+          do j=1,jm
+          do i=1,imaxj(j)
+            if (focean(i,j).gt.0) gtracer(n,1,i,j)=trw0(n)
+          end do
+          end do
+        end if
+      end do
+
+      return
+      end subroutine tracer_ic_ocean
+#endif

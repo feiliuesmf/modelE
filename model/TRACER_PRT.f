@@ -69,7 +69,7 @@ C**** Zonal mean concentration
 !@var TOTAL amount of conserved quantity at this time
       REAL*8, DIMENSION(JM) :: total
       INTEGER :: i,j,l,nm,ni
-      REAL*8 sstm,stm,mnow
+      REAL*8 sstm,stm
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAGCA IS BEING CALLED
 C**** M=1,2...12:  See DIAGCA in DIAG.f
@@ -111,6 +111,45 @@ C**** Save current value in TCONSRV(NI)
       return
       end subroutine diagtca
 
+      SUBROUTINE DIAGTCB (DTRACER,M,NT)
+!@sum  DIAGTCB Keeps track of the conservation properties of tracers
+!@+    This routine takes an already calculated difference
+!@auth Gary Russell/Gavin Schmidt/Jean Lerner
+!@ver  1.0
+      USE MODEL_COM, only: jm,fim
+      USE TRACER_DIAG_COM, only: tconsrv,nofmt,title_tcon
+      IMPLICIT NONE
+
+!@var M index denoting which process changed the tracer
+      INTEGER, INTENT(IN) :: m
+!@var NT index denoting tracer number
+      INTEGER, INTENT(IN) :: nt
+!@var DTRACER change of conserved quantity at this time
+      REAL*8, DIMENSION(JM) :: DTRACER
+      INTEGER :: j,nm
+      REAL*8 stm
+C****
+C**** THE PARAMETER M INDICATES WHEN DIAGCA IS BEING CALLED
+C**** M=1,2...12:  See DIAGCA in DIAG.f
+C****   13+ AFTER Sources and Sinks
+C****
+C**** NOFMT contains the indexes of the TCONSRV array where each
+C**** change is to be stored for each quantity. If NOFMT(M,NT)=0,
+C**** no calculation is done.
+
+      if (nofmt(m,nt).gt.0) then
+C**** Calculate latitudinal mean of chnage DTRACER
+        dtracer(1) = fim*dtracer(1)
+        dtracer(jm)= fim*dtracer(jm)
+        nm=nofmt(m,nt)
+c**** Accumulate difference in TCONSRV(NM)
+        if (m.gt.1) then
+          tconsrv(:,nm,nt) = tconsrv(:,nm,nt) + dtracer(:)
+        end if
+C**** No need to save current value
+      end if
+      return
+      end subroutine diagtcb
 
       SUBROUTINE DIAGTCP
 !@sum  DIAGCP produces tables of the conservation diagnostics

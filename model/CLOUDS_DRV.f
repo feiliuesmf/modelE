@@ -14,7 +14,7 @@
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
      *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss
-      USE CLOUDS, only : kmax,ra,pl,ple,plk
+      USE CLOUDS, only : ra,pl,ple,plk
      *     ,airm,byam,etal,sm,smomij=>smom,qm,qmomij=>qmom
      *     ,tl,ris,ri1,ri2,aj13
      *     ,aj50,aj51,aj52,aj57,aj8,aj11,wml,sdl,u_0,v_0,um,vm,tf
@@ -28,7 +28,8 @@
 #ifdef TRACERS_WATER
      *     ,trwml,trsvwml,trprmc,trprss
 #endif
-      USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond
+      USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
+     *     ,itcon_ss
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
 #ifdef TRACERS_WATER
      *     ,trwm
@@ -56,7 +57,7 @@
 
 #ifdef TRACERS_ON
 !@var tmsave holds tracer value (for diagnostics)
-      REAL*8 tmsave(lm,ntm)
+      REAL*8 tmsave(lm,ntm),dtr_mc(jm,ntm),dtr_ss(jm,ntm)
       INTEGER NX,N
 #endif
 
@@ -69,7 +70,7 @@
       REAL*8,  PARAMETER :: DELTX=.608d0
 
       INTEGER I,J,K,L  !@var I,J,K,L loop variables
-      INTEGER IMAX,JR,KR,ITYPE,IT,IM1,IH
+      INTEGER JR,KR,ITYPE,IT,IM1,IH
 !@var IMAX maximum number of zonal grid points used
 !@var IM1 IM-1
 !@var JR = JREG(I,J)
@@ -107,36 +108,36 @@ C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       VC=V
 C**** COMPUTE ZONAL MEAN U AND V AT POLES
       DO L=1,LM
-       UZM(1,L)=0.
-       UZM(2,L)=0.
-       VZM(1,L)=0.
-       VZM(2,L)=0.
+        UZM(1,L)=0.
+        UZM(2,L)=0.
+        VZM(1,L)=0.
+        VZM(2,L)=0.
       ENDDO
       DO L=1,LM
-       DO I=1,IM
-        UZM(1,L)=UZM(1,L)+UC(I,2,L)
-        UZM(2,L)=UZM(2,L)+UC(I,JM,L)
-        VZM(1,L)=VZM(1,L)+VC(I,2,L)
-        VZM(2,L)=VZM(2,L)+VC(I,JM,L)
-       ENDDO
-       UZM(1,L)=UZM(1,L)/FIM
-       UZM(2,L)=UZM(2,L)/FIM
-       VZM(1,L)=VZM(1,L)/FIM
-       VZM(2,L)=VZM(2,L)/FIM
+        DO I=1,IM
+          UZM(1,L)=UZM(1,L)+UC(I,2,L)
+          UZM(2,L)=UZM(2,L)+UC(I,JM,L)
+          VZM(1,L)=VZM(1,L)+VC(I,2,L)
+          VZM(2,L)=VZM(2,L)+VC(I,JM,L)
+        ENDDO
+        UZM(1,L)=UZM(1,L)/FIM
+        UZM(2,L)=UZM(2,L)/FIM
+        VZM(1,L)=VZM(1,L)/FIM
+        VZM(2,L)=VZM(2,L)/FIM
       ENDDO
       IH=JHOUR+1
 C****
 C**** MAIN J LOOP
 C****
       DO J=1,JM
-
-      KMAX=KMAXJ(J)
-      IMAX=IMAXJ(J)
 C****
 C**** MAIN I LOOP
 C****
+#ifdef TRACERS_ON
+      dtr_mc(j,:)=0. ; dtr_ss(j,:)=0.
+#endif
       IM1=IM
-      DO I=1,IMAX
+      DO I=1,IMAXJ(J)
          JR=JREG(I,J)
 C****
 C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS
@@ -151,37 +152,37 @@ C****
       DCL=DCLEV(I,J)
       LPBL=1
 
-      DO K=1,KMAX
+      DO K=1,KMAXJ(J)
          RA(K)=RAVJ(K,J)
          IDI(K)=IDIJ(K,I,J)
          IDJ(K)=IDJJ(K,J)
       END DO
 C**** PRESSURES, AND PRESSURE TO THE KAPA
-      DO 150 L=1,LM
-      PL(L) =PMID(L,I,J)
-      PLE(L)=PEDN(L,I,J)
-      PLK(L)=PK(L,I,J)
-      AIRM(L)=PDSIG(L,I,J)
-      BYAM(L)=1./AIRM(L)
-      IF(L.LE.LM-2) ETAL(L+1)=.5*ENTCON*(GZ(I,J,L+2)-GZ(I,J,L))*
-     *     1.d-3*BYGRAV
+      DO L=1,LM
+        PL(L) =PMID(L,I,J)
+        PLE(L)=PEDN(L,I,J)
+        PLK(L)=PK(L,I,J)
+        AIRM(L)=PDSIG(L,I,J)
+        BYAM(L)=1./AIRM(L)
+        IF(L.LE.LM-2) ETAL(L+1)=.5*ENTCON*(GZ(I,J,L+2)-GZ(I,J,L))*
+     *       1.d-3*BYGRAV
 C**** TEMPERATURES
-      SM(L)  =T(I,J,L)*AIRM(L)
-      SMOMIJ(:,L) =TMOM(:,I,J,L)*AIRM(L)
-      TL(L)=T(I,J,L)*PLK(L)
+        SM(L)  =T(I,J,L)*AIRM(L)
+        SMOMIJ(:,L) =TMOM(:,I,J,L)*AIRM(L)
+        TL(L)=T(I,J,L)*PLK(L)
 C**** MOISTURE (SPECIFIC HUMIDITY)
-      QM(L)  =Q(I,J,L)*AIRM(L)
-      QMOMIJ(:,L) =QMOM(:,I,J,L)*AIRM(L)
-c      QL(L)=Q(I,J,L)
-      WML(L)=WM(I,J,L)
-      SDL(L)=SD_CLOUDS(I,J,L)*BYDXYP(J)
-      SVLHXL(L)=SVLHX(L,I,J)
-         TTOLDL(L)=TTOLD(L,I,J)
-         CLDSAVL(L)=CLDSAV(L,I,J)
-         RH(L)=RHSAV(L,I,J)
-         DPDT(L)=SIG(L)*(P(I,J)-PTOLD(I,J))*BYDTsrc
-         IF(L.GE.LS1) DPDT(L)=0.
-  150 CONTINUE
+        QM(L)  =Q(I,J,L)*AIRM(L)
+        QMOMIJ(:,L) =QMOM(:,I,J,L)*AIRM(L)
+c       QL(L)=Q(I,J,L)
+        WML(L)=WM(I,J,L)
+        SDL(L)=SD_CLOUDS(I,J,L)*BYDXYP(J)
+        SVLHXL(L)=SVLHX(L,I,J)
+        TTOLDL(L)=TTOLD(L,I,J)
+        CLDSAVL(L)=CLDSAV(L,I,J)
+        RH(L)=RHSAV(L,I,J)
+        DPDT(L)=SIG(L)*(P(I,J)-PTOLD(I,J))*BYDTsrc
+        IF(L.GE.LS1) DPDT(L)=0.
+      END DO
       ETAL(LM)=ETAL(LM-1)
       PLE(LM+1)=PEDN(LM+1,I,J)
 #ifdef TRACERS_ON
@@ -200,12 +201,12 @@ C**** TRACERS: Use only the active ones
 #endif
 C**** SURROUNDING WINDS
       DO L=1,LM
-         DO K=1,KMAX
-            U_0(K,L) = UC(IDI(K),IDJ(K),L)
-            V_0(K,L) = VC(IDI(K),IDJ(K),L)
-            UM(K,L) = U_0(K,L)*AIRM(L)
-            VM(K,L) = V_0(K,L)*AIRM(L)
-         END DO
+        DO K=1,KMAXJ(J)
+          U_0(K,L) = UC(IDI(K),IDJ(K),L)
+          V_0(K,L) = VC(IDI(K),IDJ(K),L)
+          UM(K,L) = U_0(K,L)*AIRM(L)
+          VM(K,L) = V_0(K,L)*AIRM(L)
+        END DO
       END DO
 
 C**** SET PRECIPITATION AND LATENT HEAT
@@ -229,74 +230,81 @@ C**** Error reports
 
 C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
       IF (LMCMIN.GT.0) THEN
-         AIJ(I,J,IJ_PSCLD)=AIJ(I,J,IJ_PSCLD)+CLDSLWIJ
-         AIJ(I,J,IJ_PDCLD)=AIJ(I,J,IJ_PDCLD)+CLDDEPIJ
-         IF(CLDSLWIJ.GT.1e-6) AIJ(I,J,IJ_SCNVFRQ)=AIJ(I,J,IJ_SCNVFRQ)+1.
-         IF(CLDDEPIJ.GT.1e-6) AIJ(I,J,IJ_DCNVFRQ)=AIJ(I,J,IJ_DCNVFRQ)+1.
-         AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
-         HCNDMC=0.
-         DO L=1,LMCMAX
-            HCNDMC=HCNDMC+AJ13(L)+AJ50(L)
-            AJL(J,L,JL_MCHR)=AJL(J,L,JL_MCHR)+AJ13(L)*BYDSIG(L)
-            AJL(J,L,JL_MCHPHAS)=AJL(J,L,JL_MCHPHAS)+AJ50(L)*BYDSIG(L)
-            AJL(J,L,JL_MCDTOTW)=AJL(J,L,JL_MCDTOTW)+AJ51(L)*BYDSIG(L)
-            IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
-     *           (AJ13(L)+AJ50(L))*(DXYP(J)*BYDSIG(L))
-            AJL(J,L,JL_MCHEAT)=AJL(J,L,JL_MCHEAT)+
-     &           (AJ50(L)+AJ13(L))*BYDSIG(L)
-            AJL(J,L,JL_MCDRY)=AJL(J,L,JL_MCDRY)+
-     &           (AJ52(L)-AJ57(L))*BYDSIG(L)
-            AJL(J,L,JL_MCMFLX)=AJL(J,L,JL_MCMFLX)+AJ8(L)
-         END DO
-         DO IT=1,NTYPE
-           AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
-         END DO
-         AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
-         DO KR=1,4
-            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-              ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPMC
-              ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDMC
-              ADIURN(IH,IDD_MCP ,KR)=ADIURN(IH,IDD_MCP ,KR)+PRCPMC
-              ADIURN(IH,IDD_DMC ,KR)=ADIURN(IH,IDD_DMC ,KR)+CLDDEPIJ
-              ADIURN(IH,IDD_SMC ,KR)=ADIURN(IH,IDD_SMC ,KR)+CLDSLWIJ
-            END IF
-         END DO
+        AIJ(I,J,IJ_PSCLD)=AIJ(I,J,IJ_PSCLD)+CLDSLWIJ
+        AIJ(I,J,IJ_PDCLD)=AIJ(I,J,IJ_PDCLD)+CLDDEPIJ
+        IF(CLDSLWIJ.GT.1e-6) AIJ(I,J,IJ_SCNVFRQ)=AIJ(I,J,IJ_SCNVFRQ)+1.
+        IF(CLDDEPIJ.GT.1e-6) AIJ(I,J,IJ_DCNVFRQ)=AIJ(I,J,IJ_DCNVFRQ)+1.
+        AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
+        HCNDMC=0.
+        DO L=1,LMCMAX
+          HCNDMC=HCNDMC+AJ13(L)+AJ50(L)
+          AJL(J,L,JL_MCHR)=AJL(J,L,JL_MCHR)+AJ13(L)*BYDSIG(L)
+          AJL(J,L,JL_MCHPHAS)=AJL(J,L,JL_MCHPHAS)+AJ50(L)*BYDSIG(L)
+          AJL(J,L,JL_MCDTOTW)=AJL(J,L,JL_MCDTOTW)+AJ51(L)*BYDSIG(L)
+          IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
+     *         (AJ13(L)+AJ50(L))*(DXYP(J)*BYDSIG(L))
+          AJL(J,L,JL_MCHEAT)=AJL(J,L,JL_MCHEAT)+
+     &         (AJ50(L)+AJ13(L))*BYDSIG(L)
+          AJL(J,L,JL_MCDRY)=AJL(J,L,JL_MCDRY)+
+     &         (AJ52(L)-AJ57(L))*BYDSIG(L)
+          AJL(J,L,JL_MCMFLX)=AJL(J,L,JL_MCMFLX)+AJ8(L)
+        END DO
+        DO IT=1,NTYPE
+          AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
+        END DO
+        AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
+        DO KR=1,4
+          IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+            ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPMC
+            ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDMC
+            ADIURN(IH,IDD_MCP ,KR)=ADIURN(IH,IDD_MCP ,KR)+PRCPMC
+            ADIURN(IH,IDD_DMC ,KR)=ADIURN(IH,IDD_DMC ,KR)+CLDDEPIJ
+            ADIURN(IH,IDD_SMC ,KR)=ADIURN(IH,IDD_SMC ,KR)+CLDSLWIJ
+          END IF
+        END DO
 
 C**** WRITE TO SOME GLOBAL ARRAYS
-         PREC(I,J)=PRCPMC*100.*BYGRAV
-         DO L=1,LMCMAX
-            T(I,J,L)=  SM(L)*BYAM(L)
-            Q(I,J,L)=  QM(L)*BYAM(L)
-            CSIZMC(L,I,J)=CSIZEL(L)
-         END DO
-         AIRX(I,J) = AIRXL*DXYP(J)
-         LMC(1,I,J) = LMCMIN
-         LMC(2,I,J) = LMCMAX+1
-      END IF   ! should this be after tracers....????
+        PREC(I,J)=PRCPMC*100.*BYGRAV
+        DO L=1,LMCMAX
+          T(I,J,L)=  SM(L)*BYAM(L)
+          Q(I,J,L)=  QM(L)*BYAM(L)
+          CSIZMC(L,I,J)=CSIZEL(L)
+        END DO
+        AIRX(I,J) = AIRXL*DXYP(J)
+        LMC(1,I,J) = LMCMIN
+        LMC(2,I,J) = LMCMAX+1
+      END IF                    ! should this be after tracers....????
 #ifdef TRACERS_ON
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
-      n = ntix(nx)
+        n = ntix(nx)
         do l=1,lm
+          dtr_mc(j,nx)=dtr_mc(j,nx)+(tm(l,nx)-trm(i,j,l,n))
+#ifdef TRACERS_WATER
+     *         + trsvwml(nx,l)
+#endif
           tajln(j,l,jlnt_mc,n) = tajln(j,l,jlnt_mc,n) +
      &          (tm(l,nx)-trm(i,j,l,n))
-          tmsave(l,nx) = tm(l,nx) ! save for tajln(large-scale condense)
 #ifdef TRACERS_WATER
+     *         + trsvwml(nx,l)
           trwml(nx,l) = trwm(i,j,l,n)+trsvwml(nx,l)
-          trprec(n,i,j) = trprmc(nx)
 #endif
+          tmsave(l,nx) = tm(l,nx) ! save for tajln(large-scale condense)
         end do
+#ifdef TRACERS_WATER
+        trprec(n,i,j) = trprmc(nx)
+#endif
       end do
 #endif
 C****
 C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS
 C****
       DO L=1,LM
-         TL(L)=T(I,J,L)*PLK(L)
-         TH(L)=T(I,J,L)
-         QL(L)=Q(I,J,L)
-         WMX(L)=WML(L)+SVWMXL(L)
-         AQ(L)=(QL(L)-QTOLD(L,I,J))*BYDTsrc
+        TL(L)=T(I,J,L)*PLK(L)
+        TH(L)=T(I,J,L)
+        QL(L)=Q(I,J,L)
+        WMX(L)=WML(L)+SVWMXL(L)
+        AQ(L)=(QL(L)-QTOLD(L,I,J))*BYDTsrc
       END DO
 
 C**** COMPUTE RICHARDSON NUMBER FROM SURFACE CONDITIONS WHEN DEPTH OF
@@ -342,9 +350,9 @@ C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
      *         VC(IDI(3),IDJ(3),1)+VC(IDI(4),IDJ(4),1)-
      *         4.*VS)*.25*BYDH1S
         ENDIF
-        DUDZG=.1*US
-        DVDZG=.1*VS
-        DTDZG=.1*(THSV-TGV/PEK(1,I,J))
+        DUDZG=.1d0*US
+        DVDZG=.1d0*VS
+        DTDZG=.1d0*(THSV-TGV/PEK(1,I,J))
         RIS=(GRAV*ALPHAS*DTDZG)/(DUDZG*DUDZG+DVDZG*DVDZG)
         RI1=(GRAV*ALPHA1*DTDZS)/(DUDZS*DUDZS+DVDZS*DVDZS)
         RI2=(GRAV*ALPHA2*DTDZ)/(DUDZ*DUDZ+DVDZ*DVDZ)
@@ -365,11 +373,11 @@ C**** Accumulate diagnostics of LSCOND
          END DO
          AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
          DO KR=1,4
-            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-              ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPSS
-              ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDSS
-              ADIURN(IH,IDD_SSP ,KR)=ADIURN(IH,IDD_SSP ,KR)+PRCPSS
-            END IF
+           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+             ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPSS
+             ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDSS
+             ADIURN(IH,IDD_SSP ,KR)=ADIURN(IH,IDD_SSP ,KR)+PRCPSS
+           END IF
          END DO
 
 C**** TOTAL PRECIPITATION AND AGE OF SNOW
@@ -489,7 +497,7 @@ C**** update moment changes
         WM(I,J,L)=WMX(L)
 
 C**** UPDATE MODEL WINDS
-        DO K=1,KMAX
+        DO K=1,KMAXJ(J)
           U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
      &         +(UM(K,L)*BYAM(L)-UC(IDI(K),IDJ(K),L))
           V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
@@ -503,11 +511,16 @@ C**** TRACERS: Use only the active ones
         n = ntix(nx)
         if (itime.lt.itime_tr0(n)) cycle
         do l=1,lm
+          dtr_ss(j,nx)=dtr_ss(j,nx)+(tm(l,nx)-tmsave(l,nx))
+#ifdef TRACERS_WATER
+     &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(l,nx))
+#endif
           trm(i,j,l,n) = tm(l,nx)
           trmom(:,i,j,l,n) = trmomij(:,l,nx)
           tajln(j,l,jlnt_lscond,n) = tajln(j,l,jlnt_lscond,n) +
      &          (tm(l,nx)-tmsave(l,nx))
 #ifdef TRACERS_WATER
+     &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(l,nx))
           trwm(i,j,l,n) = trwml(nx,l)
 #endif
         end do
@@ -528,6 +541,14 @@ C**** END OF MAIN LOOP FOR INDEX I
       END DO
 C**** END OF MAIN LOOP FOR INDEX J
 C****
+#ifdef TRACERS_ON
+C**** Save the conservation quantities for tracers
+      do nx=1,ntx
+        n=ntix(nx)
+        call diagtcb(dtr_mc(1,nx),itcon_mc(n),n)
+        call diagtcb(dtr_ss(1,nx),itcon_ss(n),n)
+      end do
+#endif
 
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       DO L=1,LM

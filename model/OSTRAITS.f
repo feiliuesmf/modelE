@@ -317,7 +317,7 @@ C****
 !@ver  1.0
       USE OCEAN, only : im,jm,dts,dxypo,bydxypo
       USE SEAICE_COM, only : lmi,rsi,hsi,msi,snowi,ssi
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
       USE SEAICE, only : xsi,ace1i
@@ -328,7 +328,7 @@ C****
 
       REAL*8, SAVE ::  WDST(NMST),BYWDST(NMST)
 !@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
-#ifndef TRACERS_OCEAN
+#ifndef TRACERS_WATER
       INTEGER, PARAMETER :: NTRICE=2+2*LMI
 #else
       INTEGER, PARAMETER :: NTRICE=2+(2+NTM)*LMI
@@ -356,7 +356,7 @@ C**** MHS(1:2) = MASS, MHS(3:6) = HEAT, MHS(7:10)=SALT
         MHS(L+2+LMI,:,:) = SSI(L,:,:)
         MHSIST(L+2,:) = HSIST(L,:)
         MHSIST(L+2+LMI,:) = SSIST(L,:)
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
 C**** add tracers to advected arrays
         DO ITR=1,NTM
           MHS(L+2+(1+ITR)*LMI,:,:)=TRSI(ITR,L,:,:)
@@ -578,7 +578,7 @@ C**** set global variables from local array
         SSI(L,:,:) = MHS(L+2+LMI,:,:)
         HSIST(L,:) = MHSIST(L+2,:)
         SSIST(L,:) = MHSIST(L+2+LMI,:)
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
 C**** add tracers to advected arrays
         DO ITR=1,NTM
           TRSI(ITR,L,:,:)=MHS(L+2+(1+ITR)*LMI,:,:)

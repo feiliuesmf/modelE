@@ -44,11 +44,11 @@ C**** Interface to PBL
       USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
 #ifdef TRACERS_ON
-     *     ,trsrfflx,trflux1
+     *     ,trsrfflx,trsource
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer
 #endif
-      USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom
+      USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
       USE TRACER_DIAG_COM, only : taijn,tij_surf
 #endif
       USE SOIL_DRV, only: earth
@@ -77,8 +77,8 @@ C**** Tracer input/output common block for PBL
 !@var trsfac, trconstflx factors in surface flux boundary cond.
 !@var ntx number of tracers that need pbl calculation
       real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
-      real*8 rhosrf0
-      integer n,nx,ntx
+      real*8 rhosrf0, totflux
+      integer n,nx,ntx,nsrc
       integer, dimension(ntm) :: ntix
       common /trspec/trtop,trs,trsfac,trconstflx,ntx
 #ifdef TRACERS_WATER
@@ -337,7 +337,11 @@ C**** Calculate trsfac (set to zero for const flux)
         trsfac(nx)=0.
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
         rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
-        trconstflx(nx)=trflux1(i,j,ntix(nx))/(dxyp(j)*rhosrf0)
+        totflux=0.
+        do nsrc=1,ntsurfsrc(ntix(nx))
+          totflux = totflux+trsource(i,j,nsrc,ntix(nx))
+        end do
+        trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
 #else
 C**** Set surface boundary conditions for water tracers
 C**** trsfac and trconstflx are multiplied by cq*wsq in PBL
@@ -669,19 +673,18 @@ C**** Diurnal cycle of temperature diagnostics
         if(tsavg(i,j).lt.tdiurn(i,j,9)) tdiurn(i,j,9)=tsavg(i,j)
       END DO
       END DO
-c****
-c**** apply earth fluxes to the first layer of the atmosphere
-c****  (replaced with dummy subroutine when ATURB is used)
-c****
-      call apply_fluxes_to_atm(dtsurf)
-c****
 #ifdef TRACERS_ON
 C****
 C**** Apply tracer surface sources and sinks
 C****
       call apply_tracer_source(dtsurf)
 #endif
-
+c****
+c**** apply earth fluxes to the first layer of the atmosphere
+c****  (replaced with dummy subroutine when ATURB is used)
+c****
+      call apply_fluxes_to_atm(dtsurf)
+c****
 C**** Call dry convection or aturb depending on rundeck
       CALL ATM_DIFFUS(1,1,dtsurf)
 C****

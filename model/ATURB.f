@@ -20,20 +20,20 @@
       USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am
       USE MODEL_COM, only :
      *      im,jm,lm,sig,sige,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,p,itime
-      USE CONSTANT, only : grav,deltx,lhe,sha
-      USE FLUXES, only : uflux1,vflux1,tflux1,qflux1
+      USE CONSTANT, only : grav,deltx,lhe,sha,by3
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux
      *     ,e_3d=>egcm,t2_3d=>t2gcm
+      USE FLUXES, only : uflux1,vflux1,tflux1,qflux1
+#ifdef TRACERS_ON
+     *     ,trflux1
+      USE TRACER_COM, only : ntm,itime_tr0,trm  !,trmom
+      USE TRACER_DIAG_COM, only: tajln,jlnt_turb
+#endif
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,bydxyp,dxyp
       USE DAGCOM, only : ajl,jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
       USE SOCPBL, only : g0,g5,g6,g7,b1,b123,b2,prt,kappa,zgs
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
-#ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm,itime_tr0,trm  !,trmom
-      USE FLUXES, only : trflux1
-      USE TRACER_DIAG_COM, only: tajln,jlnt_turb
-#endif
 
 
       IMPLICIT NONE
@@ -63,7 +63,7 @@ cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
       real*8 :: uflx,vflx,tflx,qflx,tvs
      &   ,ustar2,dbll,t0ijl,rak,alpha1,thes,ustar,qs
      &   ,flux_bot,flux_top,x_surf,dgcdz
-      integer :: imax,kmax,idik,idjk,
+      integer :: idik,idjk,
      &    i,j,l,k,n,iter !@i,j,l,k loop variable
       real*8, save :: cc1,cc2
 #ifdef TRACERS_ON
@@ -161,7 +161,8 @@ cc                trmomij(:,l,n)=trmom(:,i,j,l,n)
 #ifdef TRACERS_ON
           do n=1,ntm
             if (itime_tr0(n).le.itime) then
-              trflx(n)=trflux1(n,i,j)/rhoe_3d(1,i,j)
+C**** minus sign needed for ATURB conventions
+              trflx(n)=-trflux1(i,j,n)*bydxyp(j)/rhoe_3d(1,i,j)
             end if
           end do
 #endif
@@ -209,6 +210,9 @@ cc                trmomij(:,l,n)=trmom(:,i,j,l,n)
      3        ,dqdz,g_alpha,an2,lscale,dz,dze,tvs,non_local,level,lm)
 
           ! integrate differential eqn for e
+          p2(1)=0. ; p2(lm)=0.
+          p3(1)=0. ; p3(lm)=0.
+          p4(1)=0. ; p4(lm)=0.
           do l=2,lm-1
               dgcdz=(gc_ew(l)-gc_ew(l-1))/dz(l-1)
               p2(l)=0.d0
@@ -233,7 +237,7 @@ cc                trmomij(:,l,n)=trmom(:,i,j,l,n)
 c                 p4(l)=-2.d0*wt(l)*dtdz(l)-dgcdz
                   p4(l)=2.d0*kh(l)*dtdz(l)*dtdz(l)-dgcdz
               end do
-              x_surf=tflx*tflx*b2*prt/(ustar2*b1**(1.d0/3.))
+              x_surf=tflx*tflx*b2*prt/(ustar2*b1**by3)
               call de_solver_edge(t2,t20,kt2,p2,p3,p4,
      &        rhobydze,bydzrhoe,x_surf,dtime,lm)
 
@@ -283,13 +287,16 @@ cc        call diff_mom(qmomij)
 
 #ifdef TRACERS_ON
 C**** Use q diffusion coefficient for tracers
+C**** Note that non-local terms for tracers are not properly defined
+C**** and so will not work properly if used.
           do n=1,ntm
-            flux_bot=rhoe(1)*tr0ij(1,n)
-            flux_top=rhoe(lm)*gc_wq(lm)
             if (itime_tr0(n).le.itime) then
+              p2=0. ; p3=0. ; p4=0.
+              flux_bot=rhoe(1)*trflx(n) !tr0ij(1,n)
+              flux_top=0.     !rhoe(lm)*gc_wq(lm)
               call de_solver_main(trij(1,n),tr0ij(1,n),kq,p2,p3,p4,
-     &          rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm)
-cc        call diff_mom(trmomij)
+     &             rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm)
+c     c        call diff_mom(trmomij)
             end if
           end do
 #endif
@@ -398,11 +405,9 @@ cc                trmom(:,i,j,l,n)=trmomij(:,l,n)
 
       ! ACCUMULATE DIAGNOSTICS for u and v
       DO J=1,JM
-        IMAX=IMAXJ(J)
-        KMAX=KMAXJ(J)
-        DO I=1,IMAX
+        DO I=1,IMAXJ(J)
           DO L=1,LM
-            DO K=1,KMAX
+            DO K=1,KMAXJ(J)
               RAK=RAVJ(K,J)
               IDIK=IDIJ(K,I,J)
               IDJK=IDJJ(K,J)
@@ -464,7 +469,7 @@ c
       real*8, dimension(lm,im,jm), intent(out) :: rho,rhoe,dz,dze
 
       real*8 :: temp0,temp1,temp1e,pl1,pl,pl1e,ple,plm1e
-      integer :: imax,i,j,l  !@var i,j,l loop variable
+      integer :: i,j,l  !@var i,j,l loop variable
 
       do j=1,jm
         do i=1,imaxj(j)
@@ -918,17 +923,17 @@ c     at edge: e,lscale,km,kh,gm,gh
           twoby3=2.*by3
           byg5=1./g5
           b2byb1=b2/b1
-          c0=1./2*g1
-          c1=g4*(g3+1./3*g2+1./2*(g6+g7)/g5)
+          c0=0.5d0*g1
+          c1=g4*(g3+by3*g2+0.5d0*(g6+g7)/g5)
           c2=g4/g5
-          c3=(g3**2-1./3*g2**2)
+          c3=(g3**2-by3*g2**2)
           c4=(g2+3*g3)*by3
           c5=2*g2*by3
           c6=2*g4*by3
           c7=(3*g3-g2)*by3
           c8=4*g4*by3
-          c9=(g2+g3)/2.
-          c10=(g6+g7)/2.
+          c9=(g2+g3)*0.5d0
+          c10=(g6+g7)*0.5d0
           ! c11-c14 are for level 3
           c11=g0*byg5
           c12=2*d3_3+s5_3
@@ -1136,18 +1141,16 @@ c    &        ke(j),tmp,tmp,gc_ew(j),tmp,tmp)
       real*8, dimension(lm,im,jm), intent(out) :: u_a,v_a
 
       real*8 :: HEMI,u_t,v_t
-      integer :: i,j,l,k,IMAX,KMAX
+      integer :: i,j,l,k
 
 c     polar boxes
       DO J=1,JM,JM-1
-        IMAX=IMAXJ(J)
-        KMAX=KMAXJ(J)
         HEMI=1.
         IF(J.LE.JM/2) HEMI=-1.
-        DO I=1,IMAX
+        DO I=1,IMAXJ(J)
           DO L=1,LM
             u_t=0.d0; v_t=0.d0
-            DO K=1,KMAX
+            DO K=1,KMAXJ(J)
               u_t=u_t+rapj(k,j)*(u(idij(k,i,j),idjj(k,j),L)*cosiv(k)-
      2                      hemi*v(idij(k,i,j),idjj(k,j),L)*siniv(k))
               v_t=v_t+rapj(k,j)*(v(idij(k,i,j),idjj(k,j),L)*cosiv(k)+
@@ -1160,12 +1163,10 @@ c     polar boxes
       END DO
 c     non polar boxes
       DO J=2,JM-1
-        IMAX=IMAXJ(J)
-        KMAX=KMAXJ(J)
-        DO I=1,IMAX
+        DO I=1,IMAXJ(J)
           DO L=1,LM
             u_t=0.d0; v_t=0.d0
-            DO K=1,KMAX
+            DO K=1,KMAXJ(J)
               u_t=u_t+u(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
               v_t=v_t+v(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
             END DO
@@ -1196,18 +1197,16 @@ C****
       real*8, dimension(im,jm,lm), intent(out) :: u,v
 
       real*8 :: HEMI
-      integer :: i,j,l,k,IMAX,KMAX
+      integer :: i,j,l,k
 
       u=0.d0; v=0.d0
 c     polar boxes
       DO J=1,JM,JM-1
-        IMAX=IMAXJ(J)
-        KMAX=KMAXJ(J)
         HEMI=1.
         IF(J.LE.JM/2) HEMI=-1.
-        DO I=1,IMAX
+        DO I=1,IMAXJ(J)
         DO L=1,LM
-        DO K=1,KMAX
+        DO K=1,KMAXJ(J)
           U(IDIJ(K,I,J),IDJJ(K,J),L)=U(IDIJ(K,I,J),IDJJ(K,J),L)
      *      +RAVJ(K,J)*(U_A(L,I,J)*COSIV(K)+V_A(L,I,J)*SINIV(K)*HEMI)
           V(IDIJ(K,I,J),IDJJ(K,J),L)=V(IDIJ(K,I,J),IDJJ(K,J),L)
@@ -1218,11 +1217,9 @@ c     polar boxes
       END DO
 c     non polar boxes
       DO J=2,JM-1
-        IMAX=IMAXJ(J)
-        KMAX=KMAXJ(J)
-        DO I=1,IMAX
+        DO I=1,IMAXJ(J)
         DO L=1,LM
-        DO K=1,KMAX
+        DO K=1,KMAXJ(J)
           U(IDIJ(K,I,J),IDJJ(K,J),L)=U(IDIJ(K,I,J),IDJJ(K,J),L)
      *          +RAVJ(K,J)*U_A(L,I,J)
           V(IDIJ(K,I,J),IDJJ(K,J),L)=V(IDIJ(K,I,J),IDJJ(K,J),L)
@@ -1250,15 +1247,13 @@ c     non polar boxes
       real*8, dimension(lm,im,jm), intent(in) ::  s
       real*8, dimension(lm,im,jm), intent(out) :: s_b
 
-      integer :: i,j,l,k,IMAX,KMAX
+      integer :: i,j,l,k
 
       S_B=0.d0
       DO J=1,JM
-        IMAX=IMAXJ(J)
-        KMAX=KMAXJ(J)
-        DO I=1,IMAX
+        DO I=1,IMAXJ(J)
         DO L=1,LM
-        DO K=1,KMAX
+        DO K=1,KMAXJ(J)
           S_B(L,IDIJ(K,I,J),IDJJ(K,J))=S_B(L,IDIJ(K,I,J),IDJJ(K,J))
      *          +RAVJ(K,J)*S(L,I,J)
         END DO
@@ -1392,8 +1387,8 @@ c        +m9*dwtdz+m10*dt2dz+(m1+m2+m3)/3*dq2dz
 c     q2w = tau*c/(2*D)*Num
 c         = - Ke*dq2dz + gc_q2w
 c     ew  = - Ke*dedz + gc_ew , where gc_ew=1/2*gc_q2w
-      Ke=-tau*c/(6*D)*(m1+m2+m3)
-      gc_q2w=tau*c/(2*D)*
+      Ke=-tau*c/(6.*D)*(m1+m2+m3)
+      gc_q2w=tau*c/(2.*D)*
      & (m1*(du2dz-dq2dz*by3)+m2*(dv2dz-dq2dz*by3)+m3*(dw2dz-dq2dz*by3)
      & +m4*duvdz+m5*duwdz+m6*dvwdz+m7*dutdz+m8*dvtdz
      & +m9*dwtdz+m10*dt2dz)
@@ -1426,6 +1421,7 @@ c     reference:
 c       /u/acyxc/papers/third/with_V/
 c       3rdm_eqns,3rdm_solve_B,3rdm_solve_B_more,test_tom_B.f
 c
+      USE CONSTANT, only : by3
       implicit none
 
       real*8, parameter :: c=1.d0/8.d0
@@ -1453,14 +1449,14 @@ c     dt2dz == (g*alpha*tau)**2*d<t2>/dz, dimension of d<w2>/dz
 
         ifirst=1
 
-        twoby3=2.d0/3.d0
+        twoby3=2.d0*by3
         d0 = 1500*(5*c+3)*(2*c+1)
         d1 = 25*c*(345*c+216*c**3+656*c**2+27)
         d2 = 15*c**3*(132*c**2+36+115*c)
         d3 = 81*c**5
 
         a0 = -2250*c*(2*c+1)
-        a1 = -75*c**2*(52*c+9)/2.
+        a1 = -75*c**2*(52*c+9)*0.5d0
         a2 = -675*c**5
         a3 = -900*c**2*(2*c+1)
         a4 = 45*c**3*(10*c-3)
@@ -1475,28 +1471,28 @@ c     dt2dz == (g*alpha*tau)**2*d<t2>/dz, dimension of d<w2>/dz
         a13 = -81*c**5
 
         a14 = -2250*c*(2*c+1)
-        a15 = -75./2*c**2*(9+72*c**2+88*c)
-        a16 = -405./2*c**4
+        a15 = -75.*0.5d0*c**2*(9+72*c**2+88*c)
+        a16 = -405.*0.5d0*c**4
         a17 = -900*c**2*(2*c+1)
         a18 = -15*c**3*(9+72*c**2+88*c)
         a19 = -81*c**5
 
         b0 = 3375*c**2*(2*c+1)*(c+1)
-        b1 = 675./4*c**3*(8*c**2+7*c+3)
-        b2 = 405./4*c**5
+        b1 = 675.*0.25d0*c**3*(8*c**2+7*c+3)
+        b2 = 405.*0.25d0*c**5
         b3 = -750*c*(2*c+1)*(5*c+3)
-        b4 = -450./4*c**2*(8*c**2+9*c+3)
-        b5 = -270./4*c**4
+        b4 = -450.*0.25d0*c**2*(8*c**2+9*c+3)
+        b5 = -270.*0.25d0*c**4
         b6 = -1500*c*(2*c+1)*(5*c+3)
         b7 = -225*c**2*(3+12*c**2+8*c**3+9*c)
         b8 = -135*c**4*(c+1)
         b9 = -1300*c**2*(5*c+3)
         b10 = -60*c**4*(13+15*c)
-        b11 = 1./2
-        b12 = 3./20
+        b11 = 0.5d0
+        b12 = 0.15d0
         b13 = -2250*c**3*(2*c+1)
-        b14 = -675./2*c**4
-        b15 = 2./5*c
+        b14 = -675.*0.5d0*c**4
+        b15 = 0.4d0*c
 
         c0 = -3375*c**3*(c+1)
         c1 = -675*c**5
@@ -1507,8 +1503,8 @@ c     dt2dz == (g*alpha*tau)**2*d<t2>/dz, dimension of d<w2>/dz
         c6 = -1500*c*(5*c+3)
         c7 = -900*c**3*(4+3*c)
         c8 = -540*c**5
-        c9 = 1./2
-        c10 = 3./20
+        c9 = 0.5d0
+        c10 = 0.15d0
         c11 = 2250*c**4
         c12 = 900*c**5
 

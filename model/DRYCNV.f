@@ -185,31 +185,38 @@ C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
 !@ver  1.0
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv
       USE DYNAMICS, only : byam
-      USE FLUXES, only : dth1,dq1,uflux1,vflux1
+      USE FLUXES, only : dth1,dq1,uflux1,vflux1,qflux1
+#ifdef TRACERS_ON
+     *     ,trflux1
+      USE TRACER_COM, only : ntm,trm
+#endif
       USE MODEL_COM, only : im,jm,u,v,t,q
       implicit none
-      integer i,j,k,imax,kmax
+      integer i,j,k,n
       real*8, intent(in) :: dt
       real*8 hemi
 
       do j=1,jm
-        imax=imaxj(j)
-        do i=1,imax
-          t(i,j,1)=  t(i,j,1)+dth1(i,j)
-          q(i,j,1)=  q(i,j,1)+dq1(i,j)
+        do i=1,imaxj(j)
+          t(i,j,1) = t(i,j,1) + dth1(i,j)
+          q(i,j,1) = q(i,j,1) + dq1(i,j)
         end do
       end do
+
+#ifdef TRACERS_ON
+      do n=1,ntm
+        trm(:,:,1,n) = trm(:,:,1,n) + trflux1(:,:,n)*dt
+      end do
+#endif
 c****
 c**** add in surface friction to first layer wind
 c****
 c**** polar boxes
       do j=1,jm,jm-1
-        imax=imaxj(j)
-        kmax=kmaxj(j)
         hemi=1.
         if(j.le.jm/2) hemi=-1.
-        do i=1,imax
-        do k=1,kmax
+        do i=1,imaxj(j)
+        do k=1,kmaxj(j)
           u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
      *     ravj(k,j)*(uflux1(i,j)*cosiv(k)+vflux1(i,j)*siniv(k)*hemi)
      *     *dt*byam(1,I,J)
@@ -221,10 +228,8 @@ c**** polar boxes
       end do
 c**** non polar boxes
       do j=2,jm-1
-        imax=imaxj(j)
-        kmax=kmaxj(j)
-        do i=1,imax
-        do k=1,kmax
+        do i=1,imaxj(j)
+        do k=1,kmaxj(j)
           u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
      *           ravj(k,j)*uflux1(i,j)*dt*byam(1,I,J)
           v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -

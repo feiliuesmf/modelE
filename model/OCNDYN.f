@@ -359,8 +359,8 @@ C**** Initialize ocean diagnostics
       call init_ODIAG
 
 #ifdef TRACERS_OCEAN
-C**** Initialize ocean tracers
-c      call init_tracers_ocean
+C**** Set diagnostics for ocean tracers
+      call init_tracer_ocean
 #endif
 
 C**** Set atmospheric surface variables
@@ -648,7 +648,7 @@ C**** Check ocean salinity in each eighth box for the first layer
       END DO
 
 #ifdef TRACERS_OCEAN
-C**** Check conservation of water tracers in sea ice
+C**** Check conservation of water tracers in ocean
       do n=1,ntm
         if (trname(n).eq.'Water') then
           errmax = 0. ; imax=1 ; jmax=1 ; lmax=1

@@ -231,6 +231,7 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
 !@sum apply_tracer_source adds non-interactive surface sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only : jm
+      USE GEOM, only : imaxj
       USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc
       USE QUSDEF, only : mz,mzz
       USE FLUXES, only : trsource,trflux1,trsrfflx
@@ -238,16 +239,19 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
      *     ,itcon_surf
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtsurf
-      INTEGER n,ns,naij,najl,j
+      INTEGER n,ns,naij,najl,j,i
+      REAL*8, DIMENSION(JM) :: dtracer
 
 C**** This is tracer independent coding designed to work for all
 C**** surface sources.
+C**** Note that tracer flux is added to first layer either implicitly
+C**** in ATURB or explcitly in 'apply_fluxes_to_atm' call in SURFACE.
 
       do n=1,ntm
 
+        trflux1(:,:,n) = 0.
 C**** Non-interactive sources
         do ns=1,ntsurfsrc(n)
-          trm(:,:,1,n) = trm(:,:,1,n) + trsource(:,:,ns,n)*dtsurf
 C**** diagnostics
           naij = ijts_source(ns,n)
           taijs(:,:,naij) = taijs(:,:,naij) + trsource(:,:,ns,n)*dtsurf
@@ -255,11 +259,16 @@ C**** diagnostics
           do j=1,jm
             tajls(j,1,najl) = tajls(j,1,najl)+sum(trsource(:,j,ns,n))
      *           *dtsurf
+            dtracer(j)=0.
+            do i=1,imaxj(j)
+              dtracer(j)=dtracer(j)+trsource(i,j,ns,n)*dtsurf
+            end do
           end do
-          call DIAGTCA(itcon_surf(ns,n),n)
+          call DIAGTCB(dtracer,itcon_surf(ns,n),n)
+C**** trflux1 is total flux into first layer
+          trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)
         end do
 C**** Interactive sources
-        trm(:,:,1,n) = trm(:,:,1,n) + trsrfflx(:,:,n)*dtsurf
 C**** diagnostics
 c        naij = ijts_source(ns,n)  ????
 c        taijs(:,:,naij) = taijs(:,:,naij) + trsrfflx(:,:,n)*dtsurf
@@ -270,8 +279,7 @@ c     *         *dtsurf
 c        end do
 c        call DIAGTCA(itcon_surf(ns,n),n)  ????
 
-C**** trflux1 is required for PBL calculations
-C**** Accumulate interactive and non-interactive sources
+C**** Accumulate interactive sources as well
         trflux1(:,:,n) = trflux1(:,:,n)+trsrfflx(:,:,n)
 
 C**** modify vertical moments        

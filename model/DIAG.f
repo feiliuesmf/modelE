@@ -2165,11 +2165,11 @@ C**** GROUND WATER AND ENERGY
       CALL conserv_DIAG(M,conserv_WTG,icon_WTG)
       CALL conserv_DIAG(M,conserv_HTG,icon_HTG)
 
-C**** OCEAN CALLS ARE DEALT WITH SEPERATELY
+C**** OCEAN CALLS ARE DEALT WITH SEPARATELY
       CALL DIAGCO (M)
 
 #ifdef TRACERS_ON
-C**** Tracer CALLS ARE DEALT WITH SEPERATELY
+C**** Tracer calls are dealt with separately
       do nt=1,ntm
         if (itime.ge.itime_tr0(nt)) CALL DIAGTCA(M,NT)
       end do
