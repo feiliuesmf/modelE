@@ -43,7 +43,7 @@ gcm $(BIN_DIR)/$(RUN).exe:
 setup: gcm
 	@echo '---------       Looks like it was compiled OK        ---------'
 	@echo '----- Saving Rundeck and other info to global repository -----'
-	@if [ ! -f $(DECKS_REPOSITORY) ]; then \
+	@if [ ! -d $(DECKS_REPOSITORY) ]; then \
 	  echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---';\
 	else \
 	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R \
