@@ -95,10 +95,7 @@ ccc  *     gamahs=4.7d0/sigma
 C***
 C***  Thread-Private Common
 C***
-      COMMON /PBLTPC/ dpdxr,dpdyr,dpdxr0,dpdyr0
-     * ,g0,d1_3,d2_3,d3_3,d4_3,d5_3
-     * ,s0_3,s1_3,s2_3,s3_3,s4_3,s5_3,s6_3,  g1,g2,g3,g4,g5,g6,g7,g8
-     * ,e   !  ,u,v,t,q
+      COMMON /PBLTPC/ dpdxr,dpdyr,dpdxr0,dpdyr0,e   !  ,u,v,t,q
 #ifdef TRACERS_ON
      * ,tr
 #endif
