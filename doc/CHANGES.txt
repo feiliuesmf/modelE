@@ -70,7 +70,7 @@ Coupled Model:
 
  - Gary's ocean model now fully coupled (plug and play option)
 
- - Ice dynamics now a completey separate module
+ - Ice dynamics now a completely separate module
 
  - Ocean heat transport diagnostic in printout
 

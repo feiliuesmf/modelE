@@ -1196,18 +1196,18 @@ could be chosen, but are probably not very useful.</p>
 <p>Producing more frequent diagnostics is controlled by the SUBDAILY
 module. These diagnostic are currently limited to instantaneous values
 of standard fields (SAT, PREC, SLP, Z500, QS, RH850, RH500, RH300,
-LCLD, MCLD, HCLD). More options can be added as cases in subroutine
-get_subdd in DIAG.f if required. The frequency of saving is controlled
-by the variable <tt>Nsubdd</tt> which is the number of hours between
-each snapshot (i.e. <tt>Nsubdd=1</tt> implies hourly diags, =24
-daily). The variables saved are controlled by the string
-<tt>SUBDD</tt>, this is a space speerated list of names for the
-required diagnostic (i.e. <tt>SUBDD="SLP SAT"</tt> will produce
-diags. of the surface air temperature and sea level pressure. Each
-timeseries will be output one month at a time in files named
-SLPmmmyyyy and SATmmmyyyy for each month and year. Restarts will find
-the appropriate file and continue to append records as would be
-expected.</p>
+T850, T500, T300, UL2, UL4, UL6, VL2, VL4, VL6, LCLD, MCLD,
+HCLD). More options can be added as cases in subroutine get_subdd in
+DIAG.f if required. The frequency of saving is controlled by the
+variable <tt>Nsubdd</tt> which is the number of hours between each
+snapshot (i.e. <tt>Nsubdd=1</tt> implies hourly diags, =24 daily). The
+variables saved are controlled by the string <tt>SUBDD</tt>, this is a
+space speerated list of names for the required diagnostic
+(i.e. <tt>SUBDD="SLP SAT"</tt> will produce diags. of the surface air
+temperature and sea level pressure. Each timeseries will be output one
+month at a time in files named SLPmmmyyyy and SATmmmyyyy for each
+month and year. Restarts will find the appropriate file and continue
+to append records as would be expected.</p>
 
 <p>You can easily keep track of the running average of all the
 printout diagnostics using the NIPRNT switch in the parameter

@@ -76,10 +76,28 @@ The deep diffusion Qflux model also requires: EDDY and TG3M<br>
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM !
 OCNDYN OSTRAITS OCNGM OCNKPP OCNFUNTAB ! - Russell Dynamic Ocean
 ODIAG_PRT                              ! 
-ICEDYN ICEDYN_DRV                      ! - Dynamic sea ice 
 </pre>
 
 <p>In time, other ocean models will also be incorporated.</p>
+
+<li> Dynamic Ice treatment 
+
+<p>The advection of sea ice can be used with all ocean models
+(including the qflux ocean). If a qflux version with advective ice is
+required, the spin-up where the qfluxes are calculated must include
+the dynamic ice modules so that the heat convergence from horizontal
+ice motion can be included in the vertical flux calculations. Ice
+dynamics can be switched off by using the dummy 'plug-and-play'
+option: </p>
+
+<pre>
+ICEDYN_DUM        !  dummy ice dynamics
+ICEDYN_DRV ICEDYN !  ice dynamics 
+</pre>
+
+<p>Please note that for the qflux models, you must be consistent in
+your choice (i.e. if dynamics are in the spin up, they must be in the
+qflux run also).</p>
 
 <li> Atmospheric mixing<P>
 

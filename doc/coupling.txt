@@ -51,6 +51,10 @@ io_oda(kunit,it,iaction,ioerr)
 
   Dummy routine (needed for compatibility with fixed SST runs).
 
+advsi_diag 
+
+  Dummy routine (need for compatibility with qflux ocean)
+
 PRECIP_OC
 
   Called after calculation of precipitation. (May be a dummy routine if
@@ -146,10 +150,12 @@ EVAPOR(:,:,1) (kg/m^2) evaporation (dew) at the surface of the open ocean
 SOLAR (J/m^2) solar radiation recieved over the open ocean (SOLAR(1)),
       and under the ice (SOLAR(3))
 
-FLOWO, EFLOWO, SFLOWO runoff (kg), energy of runoff (J) (and salt in
-      runoff, kg) from rivers into ocean. This array is also used to
-      pass very small amounts of mass/heat/salt that occur when very 
-      small ice fractions (< 0.0001) are automatically removed in MELTSI.
+FLOWO, EFLOWO runoff (kg), energy of runoff (J) from rivers into ocean. 
+
+MELTI, EMELTI, SMELTI mass (kg), heat (J) and salt (kg) of melted ice
+      going into ocean. This array is for the lateral melt (ie. for
+      when sea ice extent is changed, and therefore is applied over
+      the whole box (not just the ice covered portion).
 
 DMUA, DMVA N-S and E-W components of the atmospheric wind stress (kg/ms). 
       Note that these are on the atmospheric tracer grid, and are the
@@ -184,7 +190,7 @@ flux (note that TRPREC is the exception).
 
 Input:	TRPREC(NTM,IM,JM) (kg), TREVAPOR(NTM,NSTYPE,IM,JM) (kg/m^2),
 	TRUNPSI(NTM,IM,JM) (kg/m^2), TRUNOSI(NTM,IM,JM) (kg/m^2),
-	TRFLOWO(NTM,IM,JM) (kg)
+	TRFLOWO(NTM,IM,JM) (kg), TRMELTI(NTM,IM,JM) (kg)
 
 Output: DTRSI(NTM,IM,JM,2) (kg/m^2) tracer amount in formed ice
 
