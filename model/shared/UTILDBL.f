@@ -117,7 +117,7 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       public openunits, closeunits, nameunit
 
 !@param MINUNIT, MAXUNIT - min and max unit number allowed
-      integer, parameter :: MINUNIT = 50, MAXUNIT = 98
+      integer, parameter :: MINUNIT = 50, MAXUNIT = 128
       integer, parameter :: TOTALUNITS = MAXUNIT-MINUNIT+1
 
       type UnitStr
@@ -150,6 +150,7 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       integer, intent(out) :: unit
 
       do unit=MINUNIT,MAXUNIT
+        if ( unit > 98 .and. unit < 103 ) cycle
         if ( .not. Units(unit)%in_use ) return
       enddo
       write(6,*) "FILEMANAGER: Maximum file number reached"
