@@ -136,7 +136,7 @@ it runs?</b></a></P>
 since the accumulated quantities are neither averaged or scaled,
 looking directly at these 'acc' files is not very illuminating. So it
 is a fact that the running output is not 'nice'. However there are a
-number of reasons why we do it this way. Firstly, the accumualted
+number of reasons why we do it this way. Firstly, the accumulated
 arrays are generally the basic model values. The 'nice' diagnostics
 that are required are generally a function of a number of these
 variables. Accumualted arrays and files can be concatenated very
@@ -195,13 +195,14 @@ monthly rsf file and use ISTART=4, ii) change DT to a smaller value
 (like 180 sec), run past the crash for a couple of days, and then
 increase DT back to normal afterwards.</P>
 
-<P>The second option is more straightforward, but can mess up the
-diagnostics at the end of that month. However, the first option is not
-guaranteed to work unless the number of hours that have elapsed from
-the start of the run to the end of the last month are <em>not</em> an
-integer multiple of NRAD. (This is to ensure that the model will
-follow a different path). If there is a problem, then going back to
-the previous months restart file generally works.</P>
+<P>The second option is more straightforward and can be dealt with
+automatically (see <a href="HOWTO.html#part1_2f"> here </a> for more
+details). The first option is not guaranteed to work unless
+the number of hours that have elapsed from the start of the run to the
+end of the last month are <em>not</em> an integer multiple of
+NRAD. (This is to ensure that the model will follow a different
+path). If there is a problem, then going back to the previous months
+restart file generally works.</P>
 
 <P>Please make a note in the rundeck that this happened, and how you
 fixed it.</P>
@@ -217,7 +218,7 @@ why it makes sense for you to make the effort involved in upgrading.
        easy than it was for model II' 
   <LI> adding diagnostics is much more straightforward 
   <LI> acc files now have more information (NOT YET IMPLEMENTED) and
-       thus 'pd'-like programs are now more robust 
+       'pd'-like programs are now more robust 
   <LI> modelE is double precision throughout
   <LI> modelE will eventually be the only model version supported by the
        programmers. 
@@ -228,8 +229,7 @@ why it makes sense for you to make the effort involved in upgrading.
   <LI> modelE is written using a lot of Fortran 90, and a lot less Fortran
        66. 
   <LI> modelE comes with automatic Makefile generation from the rundeck. 
-  <LI> modelE comes ready for parallelisation, coupling and tracers (NOT
-       YET).
+  <LI> modelE comes ready for parallelisation, coupling and tracers.
 </UL>
 </P>
 
@@ -264,9 +264,9 @@ numerator (I think). Thus <tt>1./IM </tt>gives only single precision.
 <tt>REAL*8 :: FIM = IM, BYIM = 1./FIM </tt> gives double precision
 (since the denominator is already double precision).</P>
 
-<P>On some compilers there is a compiler option that removes these
-problems, but not all. Hence for maximum portability we are trying to
-be explicit about writing those 'd0's out.</P>
+<P>On some compilers there is a compiler option (such as -r8) that
+removes these problems, but not all. Hence for maximum portability we
+are trying to be explicit about writing those 'd0's out.</P>
 
 <P><A NAME="Q1_10"><b> 10) Why does GISS use the line number
 format for fortran files?</b></a></P>

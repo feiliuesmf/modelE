@@ -17,7 +17,8 @@ Atmospheric Model:
 
  - changes to boundary layer cloud specifications
 
- - improvements to turbulence calculations
+ - improvements to turbulence calculations (including a fix of a bug
+   that caused problems when the first layer was too thin)
 
  - fix for mass fluxes over topography to prevent unrealistic
    precipitation hotspots
@@ -56,6 +57,8 @@ Diagnostics:
  - Re-arrangement of budget pages to provide more relevant info.
 
  - Conservation diagnostics for AM and KE actually add up.
+
+ - Configurable daily and sub-daily diagnsotic output for selected quantities
 
 Run Envrionment:
 
