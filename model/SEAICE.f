@@ -1766,7 +1766,7 @@ C**** albedo calculations
       USE SEAICE, only : LMI
 
       USE SEAICE_COM, ONLY : RSI, SNOWI, MSI, HSI, SSI, pond_melt, 
-     *				flag_dsws
+     *     flag_dsws
 #ifdef TRACERS_WATER
       USE SEAICE_COM, ONLY : TRSI, TRSI0
 #endif
@@ -1778,21 +1778,21 @@ C**** albedo calculations
 
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
-      ALLOCATE(	RSI(IM, J_0H:J_1H),
-     *		SNOWI(IM, J_0H:J_1H),
-     *		MSI(IM, J_0H:J_1H),
-     *		pond_melt(IM, J_0H:J_1H),
-     *		flag_dsws(IM, J_0H:J_1H),
-     *	    STAT=IER)
+      ALLOCATE( RSI(IM, J_0H:J_1H),
+     *     SNOWI(IM, J_0H:J_1H),
+     *     MSI(IM, J_0H:J_1H),
+     *     pond_melt(IM, J_0H:J_1H),
+     *     flag_dsws(IM, J_0H:J_1H),
+     *     STAT=IER)
 
-      ALLOCATE(	HSI(LMI, IM, J_0H:J_1H),
-     *		SSI(LMI, IM, J_0H:J_1H),
-     *      STAT=IER)
+      ALLOCATE( HSI(LMI, IM, J_0H:J_1H),
+     *     SSI(LMI, IM, J_0H:J_1H),
+     *     STAT=IER)
 
 #ifdef TRACERS_WATER
-      ALLOCATE(	TRSI(NTM, LMI, IM, J_0H:J_1H),
-     *		TRSI0(NTM),
-     *      STAT=IER)
+      ALLOCATE( TRSI(NTM, LMI, IM, J_0H:J_1H),
+     *     TRSI0(NTM),
+     *     STAT=IER)
 #endif
 
       RETURN

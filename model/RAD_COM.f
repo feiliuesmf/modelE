@@ -123,8 +123,8 @@ C**** Local variables initialised in init_RAD
       USE MODEL_COM, ONLY : IM, JM, LM
       USE RADNCB, ONLY : LM_REQ
       USE RADNCB, ONLY : RQT, Tchg, SRHR, TRHR, FSF, FSRDIR, SRVISSURF,
-     *			  SRDN, CFRAC, RCLD, O3_rad_save, COSZ1, dH2O,
-     *			  ALB, SALB, SINJ, COSJ
+     *     SRDN, CFRAC, RCLD, O3_rad_save, COSZ1, dH2O,
+     *     ALB, SALB, SINJ, COSJ
 
       IMPLICIT NONE
       TYPE (DYN_GRID), INTENT(IN) :: grid
@@ -135,22 +135,22 @@ C**** Local variables initialised in init_RAD
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       ALLOCATE( RQT(LM_REQ, IM, J_0H:J_1H),
-     *		Tchg(LM+LM_REQ, IM, J_0H:J_1H),
-     *		SRHR(0:LM, IM, J_0H:J_1H),
-     *		TRHR(0:LM, IM, J_0H:J_1H),
-     *		FSF(4,IM, J_0H:J_1H),
-     *		FSRDIR(IM, J_0H:J_1H),
-     *		SRVISSURF(IM, J_0H:J_1H),
-     *		SRDN(IM, J_0H:J_1H),
-     *		CFRAC(IM, J_0H:J_1H),
-     *		RCLD(LM, IM, J_0H:J_1H),
-     *		O3_rad_save(LM, IM, J_0H:J_1H),
-     *		COSZ1(IM, J_0H:J_1H),
-     *		dH2O(J_0H:J_1H, LM, 12),
-     *		ALB(IM, J_0H:J_1H, 9),
-     *		SINJ(J_0H:J_1H),
-     *		COSJ(J_0H:J_1H),
-     *    STAT=IER)
+     *     Tchg(LM+LM_REQ, IM, J_0H:J_1H),
+     *     SRHR(0:LM, IM, J_0H:J_1H),
+     *     TRHR(0:LM, IM, J_0H:J_1H),
+     *     FSF(4,IM, J_0H:J_1H),
+     *     FSRDIR(IM, J_0H:J_1H),
+     *     SRVISSURF(IM, J_0H:J_1H),
+     *     SRDN(IM, J_0H:J_1H),
+     *     CFRAC(IM, J_0H:J_1H),
+     *     RCLD(LM, IM, J_0H:J_1H),
+     *     O3_rad_save(LM, IM, J_0H:J_1H),
+     *     COSZ1(IM, J_0H:J_1H),
+     *     dH2O(J_0H:J_1H, LM, 12),
+     *     ALB(IM, J_0H:J_1H, 9),
+     *     SINJ(J_0H:J_1H),
+     *     COSJ(J_0H:J_1H),
+     *     STAT=IER)
 
       dH2O = 0.
       SALB => ALB(:,:,1)
