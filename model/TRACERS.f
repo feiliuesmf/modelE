@@ -487,7 +487,7 @@ C****
 !@var MOM true (default) if moments are to be modified
       logical, optional, intent(in) :: momlog
       integer, intent(in) :: n,ns
-      real*8 fr3d,taijsum(im,jm,lm)
+      real*8 fr3d,taijsum(im,grid%j_strt_halo:grid%j_stop_halo,lm)
       logical :: domom
       integer najl,i,j,l,naij
       INTEGER :: J_0, J_1
@@ -558,7 +558,7 @@ C****
       USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
       real*8, save, dimension(ntm) :: expdec = 1.
-      real*8, dimension(im,grid%J_STRT:grid%J_STOP,lm) :: told
+      real*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told
       logical, save :: ifirst=.true.
       integer n,najl,j,l
       integer :: J_0, J_1
@@ -824,11 +824,8 @@ c**** Interpolate two months of data to current day
       CALL GET(GRID, J_STRT=J_0, J_STOP=J_1)
       nj = J_1 - J_0 + 1
 
-      CALL HERE(__FILE__,__LINE__)
       CALL CHECK3(gtracer(1,1,1,J_0:J_1),NTM,4,IM*nJ,SUBR,'GTRACE')
-      CALL HERE(__FILE__,__LINE__)
       do n=1,ntm
-      CALL HERE(__FILE__,__LINE__)
         CALL CHECK3(trmom(1,1,J_0:J_1,1,n),NMOM,IM,nJ*LM,SUBR,
      *       'X'//trname(n))
         CALL CHECK3(trm(1,J_0:J_1,1,n),IM,nJ,LM,SUBR,trname(n))
