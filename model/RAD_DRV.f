@@ -693,7 +693,7 @@ C     OUTPUT DATA
      *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      *     ,ij_clr_srincg,ij_CLDTPT,ij_cldt1t,ij_cldt1p,ij_cldcv1
      *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,ij_swcrf,ij_lwcrf
-     *     ,AFLX_ST
+     *     ,AFLX_ST, hr_in_day,hr_in_month
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -737,7 +737,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(LM) :: TOTCLD
       INTEGER, SAVE :: JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff
-     *     ,LFRC
+     *     ,LFRC,JTIME
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,X,OPNSKY,CSZ2,tauup,taudn
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
@@ -777,7 +777,8 @@ C**** limit optical cloud depth from below: taulim
       taulim=min(tauwc0,tauic0) ! currently both .001
       tauwc0 = taulim ; tauic0 = taulim
 C**** Calculate mean cosine of zenith angle for the current physics step
-      ROT1=(TWOPI*MOD(ITIME,NDAY))/NDAY  ! MOD(ITIME,NDAY)*TWOPI/NDAY ??
+      JTIME=MOD(ITIME,NDAY)
+      ROT1=(TWOPI*JTIME)/NDAY
       ROT2=ROT1+TWOPI*DTsrc/SDAY
       CALL COSZT (ROT1,ROT2,COSZ1)
 
@@ -1065,8 +1066,12 @@ CCC      AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
 
          DO KR=1,NDIUPT
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+C**** Warning: this replication may give inaccurate results for hours
+C****          1->(NRAD-1)*DTsrc (ADIURN) or skip them (HDIURN)
              DO INCH=1,NRAD
-               IH=1+MOD(JHOUR+INCH-1,24)
+               IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
+               IH=IHM
+               IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
                ADIURN(IH,IDD_CL7,KR)=ADIURN(IH,IDD_CL7,KR)+TOTCLD(7)
                ADIURN(IH,IDD_CL6,KR)=ADIURN(IH,IDD_CL6,KR)+TOTCLD(6)
                ADIURN(IH,IDD_CL5,KR)=ADIURN(IH,IDD_CL5,KR)+TOTCLD(5)
@@ -1075,7 +1080,8 @@ CCC      AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
                ADIURN(IH,IDD_CL2,KR)=ADIURN(IH,IDD_CL2,KR)+TOTCLD(2)
                ADIURN(IH,IDD_CL1,KR)=ADIURN(IH,IDD_CL1,KR)+TOTCLD(1)
                ADIURN(IH,IDD_CCV,KR)=ADIURN(IH,IDD_CCV,KR)+CLDCV
-               IHM = JHOUR+INCH+(JDATE-1)*24
+               IHM = IHM+(JDATE-1)*HR_IN_DAY
+               IF(IHM.GT.HR_IN_MONTH) CYCLE
                HDIURN(IHM,IDD_CL7,KR)=HDIURN(IHM,IDD_CL7,KR)+TOTCLD(7)
                HDIURN(IHM,IDD_CL6,KR)=HDIURN(IHM,IDD_CL6,KR)+TOTCLD(6)
                HDIURN(IHM,IDD_CL5,KR)=HDIURN(IHM,IDD_CL5,KR)+TOTCLD(5)
@@ -1503,15 +1509,20 @@ C
          END DO
          DO KR=1,NDIUPT
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+C**** Warning: this replication may give inaccurate results for hours
+C****          1->(NRAD-1)*DTsrc (ADIURN) or skip them (HDIURN)
              DO INCH=1,NRAD
-               IH=1+MOD(JHOUR+INCH-1,24)
+               IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
+               IH=IHM
+               IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
                ADIURN(IH,IDD_PALB,KR)=ADIURN(IH,IDD_PALB,KR)+
      *              (1.-SNFS(3,I,J)/S0)
                ADIURN(IH,IDD_GALB,KR)=ADIURN(IH,IDD_GALB,KR)+
      *              (1.-ALB(I,J,1))
                ADIURN(IH,IDD_ABSA,KR)=ADIURN(IH,IDD_ABSA,KR)+
      *              (SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
-               IHM = JHOUR+INCH+(JDATE-1)*24
+               IHM = IHM+(JDATE-1)*HR_IN_DAY
+               IF(IHM.GT.HR_IN_MONTH) CYCLE
                HDIURN(IHM,IDD_PALB,KR)=HDIURN(IHM,IDD_PALB,KR)+
      *              (1.-SNFS(3,I,J)/S0)
                HDIURN(IHM,IDD_GALB,KR)=HDIURN(IHM,IDD_GALB,KR)+

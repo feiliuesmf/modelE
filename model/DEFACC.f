@@ -4511,12 +4511,12 @@ c
       scale_dd(k)=100.
       lname_dd(k)=' CLD 1  '
 c
-      k=k+1
-      IDD_W=k
-      name_dd(k)='VERTVEL'
-      units_dd(k)='1d-5 m/s'
-      scale_dd(k)=1.
-      lname_dd(k)=' W TO-5 '
+!!    k=k+1
+!!    IDD_W=k
+!!    name_dd(k)='VERTVEL'
+!!    units_dd(k)='1d-5 m/s'
+!!    scale_dd(k)=1.
+!!    lname_dd(k)=' W TO-5 '
 c
       k=k+1
       IDD_CCV=k

@@ -138,7 +138,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       INTEGER, PARAMETER :: HR_IN_MONTH=HR_IN_DAY*31
 !@var HDIURN hourly diagnostics (hourly value at selected points)
 !@+     Same quantities as ADIURN but not averaged over the month
-      REAL*8, DIMENSION(HR_IN_MONTH+4,NDIUVAR,NDIUPT) :: HDIURN
+      REAL*8, DIMENSION(HR_IN_MONTH,NDIUVAR,NDIUPT) :: HDIURN
 
 !@param KAJK number of zonal constant pressure diagnostics
 !@param KAJKX number of zonal constant pressure composit diagnostics
@@ -663,7 +663,7 @@ c idacc-indices of various processes
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
      *     IM*JM*LM*KAIJK+ntau*npres*nisccp
-     *     + (HR_IN_MONTH+4)*NDIUVAR*NDIUPT
+     *     + HR_IN_MONTH*NDIUVAR*NDIUPT
 !@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
       REAL*4 AJ4(JM,KAJ,NTYPE),AREG4(NREG,KAJ),APJ4(JM,KAPJ)
       REAL*4 AJL4(JM,LM,KAJL),ASJL4(JM,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
@@ -673,7 +673,7 @@ c idacc-indices of various processes
       REAL*4 WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP)
       REAL*4 AJK4(JM,LM,KAJK),AIJK4(IM,JM,LM,KAIJK)
       REAL*4 AISCCP4(ntau,npres,nisccp)
-      REAL*4 HDIURN4(HR_IN_MONTH+4,NDIUVAR,NDIUPT)
+      REAL*4 HDIURN4(HR_IN_MONTH,NDIUVAR,NDIUPT)
       REAL*4 TSFREZ4(IM,JM,KTSF),AFLX4(LM+LM_REQ+1,IM,JM,5)
       integer monac1(12),i_ida,i_xtra,it_check
 !@var Kcomb counts acc-files as they are added up

@@ -4642,11 +4642,11 @@ C****
      &   hdiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd,name_dd
      *     ,ia_12hr
       IMPLICIT NONE
-      REAL*8, DIMENSION(HR_IN_MONTH+4) :: XHOUR
-      INTEGER, DIMENSION(HR_IN_MONTH+4) :: MHOUR
+      REAL*8, DIMENSION(HR_IN_MONTH) :: XHOUR
+      INTEGER, DIMENSION(HR_IN_MONTH) :: MHOUR
       INTEGER :: I,IH,IH0,IREGF,IREGL,IS,JD,jdayofm,K,KP,KQ,KR,NDAYS
       CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO,SNAMEO
-      REAL*8, DIMENSION(HR_IN_MONTH+4,NDIUVAR) :: FHOUR
+      REAL*8, DIMENSION(HR_IN_MONTH,NDIUVAR) :: FHOUR
 C****
       NDAYS=IDACC(ia_12hr)/2
       IF (NDAYS.LE.0) RETURN
@@ -4673,17 +4673,17 @@ C**** KP packs the quantities for postprocessing (skipping unused)
           SELECT CASE (NAME_DD(KQ))
           CASE DEFAULT
 C**** NORMAL QUANTITIES
-            DO IH=1,HR_IN_MONTH+4
+            DO IH=1,HR_IN_MONTH
               XHOUR(IH)=HDIURN(IH,KQ,KR)*SCALE_DD(KQ)*(24./NDAY)
             END DO
 C**** RATIO OF TWO QUANTITIES
           CASE ('LDC')
-            DO IH=1,HR_IN_MONTH+4
+            DO IH=1,HR_IN_MONTH
               XHOUR(IH)=HDIURN(IH,KQ,KR)*SCALE_DD(KQ)/
      *             (HDIURN(IH,KQ-1,KR)+1D-20)
             END DO
           END SELECT
-          DO IS=1,HR_IN_MONTH+4
+          DO IS=1,HR_IN_MONTH
             FHOUR(IS,KP)=XHOUR(IS)
             MHOUR(IS)=NINT(XHOUR(IS))
           END DO
@@ -4692,7 +4692,6 @@ C**** RATIO OF TWO QUANTITIES
             WRITE (6,904) LNAME_DD(KQ),(MHOUR(i),i=ih0,ih0+23),jd
             ih0 = ih0+24
           end do
-            WRITE (6,905) LNAME_DD(KQ),(MHOUR(i),i=ih0,ih0+3)
           SNAMEO(KP)=NAME_DD(KQ)(1:16)
           LNAMEO(KP)=LNAME_DD(KQ)(1:16)
           UNITSO(KP)=UNITS_DD(KQ)(1:16)
@@ -4706,7 +4705,6 @@ C****
   901 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
   903 FORMAT ('0',A4,I2,',',I2,' ',I2,23I5,'  Day')
   904 FORMAT (A8,24I5,I5)
-  905 FORMAT (A8,4I5)
       END SUBROUTINE DIAGDH
 
 

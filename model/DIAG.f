@@ -51,7 +51,7 @@ C**** Variables passed from DIAGA to DIAGB
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: TJL0
 
 C**** Variables used in DIAG5 calculations
-!@var FCUVA,FCUVB fourier coefficients for velocities 
+!@var FCUVA,FCUVB fourier coefficients for velocities
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: FCUVA,FCUVB
 
 C**** Some local constants
@@ -88,7 +88,7 @@ C**** Some local constants
      &     STAT = IER)
       ALLOCATE( TJL0(J_0H:J_1H, LM),
      &     STAT = IER)
-      ALLOCATE( FCUVA(0:IMH, J_0H:J_1H, LM, 2), 
+      ALLOCATE( FCUVA(0:IMH, J_0H:J_1H, LM, 2),
      &          FCUVB(0:IMH, J_0H:J_1H, LM, 2),
      &     STAT = IER)
 
@@ -125,15 +125,15 @@ C**** Some local constants
       USE DOMAIN_DECOMP, only : SOUTH, NORTH
       IMPLICIT NONE
       REAL*8, DIMENSION(LM) :: GMEAN
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &        TIL,UI,UMAX,PI,EL,RI,DUDVSQ
-      REAL*8, DIMENSION(NTYPE,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(NTYPE,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &        SPTYPE
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &        THJL,THSQJL,SPI,PHIPI,TPI
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM-1) :: 
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM-1) ::
      &        SDMEAN
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &        PUV
       REAL*8, DIMENSION(LM_REQ) :: TRI
       REAL*8, DIMENSION(IM) :: THSEC,PSEC,SQRTP,PDA
@@ -163,7 +163,7 @@ C**** Some local constants
 
       CALL GETTIME(MBEGIN)
 
-      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1, 
+      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
 
@@ -192,7 +192,7 @@ C****
 C****
 C**** CALCULATE PK AND TX, THE REAL TEMPERATURE
 C****
-     
+
       IF(GRID%HAVE_SOUTH_POLE) THEN
         DO L=1,LM
           TX(1,1,L)=T(1,1,L)*PK(L,1,1)
@@ -201,7 +201,7 @@ C****
             TX(I,1,L)=TX(1,1,L)
           END DO
         END DO
-      ENDIF        ! GRID%HAVE_SOUTH_POLE 
+      ENDIF        ! GRID%HAVE_SOUTH_POLE
       IF(GRID%HAVE_NORTH_POLE) THEN
         DO L=1,LM
           TX(1,JM,L)=T(1,JM,L)*PK(L,1,JM)
@@ -878,7 +878,7 @@ C****
      &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm,km=>lm
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
-      USE DAGCOM, only : ajk,aijk,speca,adiurn,nspher,hdiurn,
+      USE DAGCOM, only : ajk,aijk,speca,nspher,  ! adiurn,hdiurn
      &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
      *     ,ijk_dse,klayer,idd_w,ijdd,
      &      JK_DPA,JK_DPB,JK_TEMP,JK_HGHT,JK_Q,JK_THETA,
@@ -899,7 +899,7 @@ C****
       USE DOMAIN_DECOMP, only : SOUTH, NORTH
       IMPLICIT NONE
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &     ZX,STB
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &     STJK,DPJK,UJK,VJK,WJK,TJK,
@@ -1060,7 +1060,7 @@ C DIAGA may have contained relevant halo calls
 C and since DIAGB is called immediately after DIAGA
 C there may not be a need for these calls if
 C the concerned arrays have not been updated
-C from the previous halo call. 
+C from the previous halo call.
       CALL CHECKSUM(grid, P, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, P, FROM=SOUTH)
       CALL CHECKSUM(grid, TX, __LINE__, __FILE__)
@@ -1346,32 +1346,33 @@ C**** ZERO OUT SUBSURFACE VERTICAL WINDS
       ENDDO
       ENDDO
 C**** ACCUMULATE ALL VERTICAL WINDS
-      DO 558 J=J_0,J_1
-      DO 558 I=1,IM
-      DO KR=1,NDIUPT
-         IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-C**** Warning:     This diagnostic has 3 flaws   (?)
-C****          1 - It assumes that DTsrc=1hr, (DTsrc=3600.)
-C****          2 - since DTdaa-Ndaa*DTsrc=2*DTdyn rather than 0,
-C****              some hours are skipped once in a while
-C****          3 - Some of the first Ndaa hours are skipped at the
-C****              beginning of a month and overcounted at the end;
-C****              this happens to balance out, if and only if
-C****              mod(days_in_month,ndaa)=0  (i.e. February if Ndaa=7)
-            IH=JHOUR+1
-            IHM = IH+(JDATE-1)*24
-            DO INCH=1,NDAA
-              IF(IH.GT.HR_IN_DAY) IH=IH-HR_IN_DAY
-              ADIURN(IH,IDD_W,KR)=ADIURN(IH,IDD_W,KR)+1.E5*W(I,J,3)
-     *             /DXYP(J)
-              HDIURN(IHM,IDD_W,KR)=HDIURN(IHM,IDD_W,KR)+1.E5*W(I,J,3)
-     *             /DXYP(J)
-              IH=IH+1
-              IHM=IHM+1
-            END DO
-         END IF
-      END DO
-  558 CONTINUE
+!!    DO 558 J=J_0,J_1
+!!    DO 558 I=1,IM
+!!    DO KR=1,NDIUPT
+!!       IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+!!*** Warning:     This diagnostic has 3 flaws   (?)
+!!***          1 - It assumes that DTsrc=1hr, (DTsrc=3600.)
+!!***          2 - since DTdaa-Ndaa*DTsrc=2*DTdyn rather than 0,
+!!***              some hours are skipped once in a while
+!!***          3 - Some of the first Ndaa hours are skipped at the
+!!***              beginning of a month and overcounted at the end;
+!!***              this happens to balance out, if and only if
+!!***              mod(days_in_month,ndaa)=0  (i.e. February if Ndaa=7)
+!!***          In addition, IHM occasionally is out-of-bounds.
+!!          IH=JHOUR+1
+!!          IHM = IH+(JDATE-1)*24
+!!          DO INCH=1,NDAA
+!!            IF(IH.GT.HR_IN_DAY) IH=IH-HR_IN_DAY
+!!            ADIURN(IH,IDD_W,KR)=ADIURN(IH,IDD_W,KR)+1.E5*W(I,J,3)
+!!   *             /DXYP(J)
+!!            HDIURN(IHM,IDD_W,KR)=HDIURN(IHM,IDD_W,KR)+1.E5*W(I,J,3)
+!!   *             /DXYP(J)
+!!            IH=IH+1
+!!            IHM=IHM+1
+!!          END DO
+!!       END IF
+!!    END DO
+!!558 CONTINUE
       DO 565 J=J_0,J_1
       DO 565 K=1,KM
       WI=0.
@@ -2671,7 +2672,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       INTEGER :: Nsubdd = 0
 !@dbparam LmaxSUBDD: the max L when writing "ALL" levels
       INTEGER :: LmaxSUBDD = LM
-     
+
       contains
 
       subroutine init_subdd(aDATE)
@@ -2800,7 +2801,7 @@ C****
 !@+                    Z*, R*, T*  (on any fixed pressure level)
 !@+                    U*, V*, W*  (on any model level)
 !@+                    Ox*         (on any model level with chemistry)
-!@+                    SO4         
+!@+                    SO4
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair,sha
@@ -2881,11 +2882,11 @@ C**** simple diags
             end do
           end do
         case ("QLAT")           ! latent heat (W/m^2)
-          data=qflux1*lhe 
+          data=qflux1*lhe
         case ("QSEN")           ! sensible heat flux (W/m^2)
           data=tflux1*sha
         case ("SWD")            ! solar downward flux at surface (W/m^2)
-          data=srdn*cosz1       ! multiply by instant cos zenith angle 
+          data=srdn*cosz1       ! multiply by instant cos zenith angle
         case ("SWU")            ! solar upward flux at surface (W/m^2)
 ! estimating this from the downward x albedo, since that's already saved
           data=srdn*(1.-salb)*cosz1
@@ -3081,7 +3082,7 @@ C**** write out
 #endif
         end select
       end do
-c**** 
+c****
       return
       end subroutine get_subdd
 
@@ -3178,7 +3179,7 @@ C**** From DIAGA:
       LDNA(1)=1
       LUPA(LM)=LM
 
-C**** From DIAGB      
+C**** From DIAGB
       PM(1)=1200.
       DO L=2,LM+1
         PL(L)=PSFMPT*SIGE(L)+PTOP
@@ -3193,7 +3194,7 @@ C**** From DIAG7A
       L850=LM
       L300=LM
       L50=LM
-      DO L=LM-1,1,-1 
+      DO L=LM-1,1,-1
         PLE_tmp=.25*(SIGE(L)+2.*SIGE(L+1)+SIGE(L+2))*PSFMPT+PTOP
         IF (PLE_tmp.LT.850.) L850=L
         IF (PLE_tmp.LT.300.) L300=L

@@ -1356,7 +1356,7 @@ c      var_name='hour';call wrtdarr(hours)
       nhrs = hr_in_day*(idacc(ia_12hr)/2)
       call open_diurn(filename,nhrs,NDIUVAR_gcm)
 ! input arrays will have extra 4 hours b/c radiation end-of-month wraparound
-      im_data=hr_in_month+4
+      im_data=hr_in_month
 
       att_name='note'
       att_str=nl//
