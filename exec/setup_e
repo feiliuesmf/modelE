@@ -14,6 +14,9 @@
 ##   - PROBLEM: $retc does not take STOP nn as the correct return code. Fixed
 ##   - changed files from numbers to names
 ##
+CMRUN="/u/cmrun"     ## these should be set outside (Makefile?)
+EXECDIR="/u/exec"    ## should these program be part of the distribution?
+                      ## ie. $EXECDIR/prt  chop  runpm
    df /raid1 /raid2 /raid3 /raid4 > /dev/null
    job=$( basename $0 )
    if [[ $# -eq 0 ]]
@@ -29,7 +32,7 @@
 
 ## Use arg1 to create the run-directory
    p=`pwd`  # use current directory to avoid conflicts with main code
-            # gas 06/00 originally  p= '/u/cmrun' ;
+            # gas 06/00 originally  p= $CMRUN ;
    cd $p ; RUNID=$1 ;  RFILE=$1.R ; BLANK=' ';
    if [[ ! -s $RFILE ]];
    then  echo File does not exist: $RFILE;  exit 1;  fi
@@ -69,14 +72,14 @@
      if [[ -d $RUNID ]]; then cp -rp $RUNID/* $Xdisk/$RUNID; fi
      rm -rf $RUNID 2> /dev/null ; ln -s $Xdisk/$RUNID $RUNID
    fi
-## Also link to /u/cmrun  (added by gavin)
-   if [[ -L /u/cmrun/$RUNID ]]; then
-     if [[ `ls -l "/u/cmrun/$RUNID" | awk '{print $11}'` != $Xdisk/$RUNID ]]
+## Also link to $CMRUN  (added by gavin)
+   if [[ -L $CMRUN/$RUNID ]]; then
+     if [[ `ls -l "$CMRUN/$RUNID" | awk '{print $11}'` != $Xdisk/$RUNID ]]
      then
-       rm /u/cmrun/$RUNID
-       ln -s $Xdisk/$RUNID /u/cmrun/$RUNID ; fi
+       rm $CMRUN/$RUNID
+       ln -s $Xdisk/$RUNID $CMRUN/$RUNID ; fi
    else
-      ln -s $Xdisk/$RUNID /u/cmrun/$RUNID
+      ln -s $Xdisk/$RUNID $CMRUN/$RUNID
    fi
 
    echo "0Run $RUNID"  > $RUNID/$RUNID.PRT
@@ -116,11 +119,11 @@
       do if [[ $i = '!'* ]] ; then break ; fi
          n=${i%%'='*}
          t=${i##*'='}
-         DIRS="$p/$RUNID $p Ra:/raid1 Ipcc2:/gcm1 Ra:/raid4 Ra:/u/cmrun"
+         DIRS="$p/$RUNID $p Ra:/raid1 Ipcc2:/gcm1 Ra:/raid4 Ra:$CMRUN"
          if [[ -a $t ]] then pt=$t
          elif [[ -a $p'/'$t ]] ; then pt=$p'/'$t
-         elif [[ -a '/HOSTS/Ra/u/cmrun/'$t ]]
-         then pt='/HOSTS/Ra/u/cmrun/'$t
+         elif [[ -a '/HOSTS/Ra'$CMRUN/$t ]]
+         then pt='/HOSTS/Ra'$CMRUN/$t
          elif [[ -a '/HOSTS/Ra/raid1/'$t ]]
          then pt='/HOSTS/Ra/raid1/'$t
          elif [[ -a '/HOSTS/Ipcc2/gcm1/'$t ]]
@@ -184,10 +187,10 @@
    fi
 
 ## move printout to M-disk after successful initialization
-   if [[ $PRT = [Pp]* ]] then /u/exec/prt ${RUNID} ; fi
+   if [[ $PRT = [Pp]* ]] then $EXECDIR/prt ${RUNID} ; fi
 ## prepare output for vi-editor (no lines longer than 133 characters)
    awk '{ print length($0) }' *.PRT | sort -n  | tail -1 | read width
-   if [[ $width -gt 140 ]] ; then /u/exec/chop ${RUNID}.PRT > /dev/null
+   if [[ $width -gt 140 ]] ; then $EXECDIR/chop ${RUNID}.PRT > /dev/null
       mv ${RUNID}.PRT.chop ${RUNID}.PRT ; fi
 
 ## Prepare for restart
@@ -197,7 +200,7 @@
    echo " ${RUNID}.exe < I > ${RUNID}.PRT " >> E
    echo ' rc=$? ' >> E
    echo "$RUNID"uln >> E
-   echo "/u/exec/runpm $RUNID" '$rc' "$( whoami )" >> E
+   echo "$EXECDIR/runpm $RUNID" '$rc' "$( whoami )" >> E
    chmod ugo+x  E
 ## create executable script file RUNID
    echo "$RUNID"ln > $RUNID
@@ -205,7 +208,7 @@
    echo " $RUNID"'.exe < I > /dev/null' >> $RUNID
    echo ' rc=$? ' >> $RUNID
    echo "$RUNID"uln >> $RUNID
-   echo "/u/exec/runpm $RUNID" '$rc' "$( whoami )" >> $RUNID
+   echo "$EXECDIR/runpm $RUNID" '$rc' "$( whoami )" >> $RUNID
    chmod ugo+x  $RUNID
 ## overwrite RUNID.I omitting ISTART=.. line.
    exec < I

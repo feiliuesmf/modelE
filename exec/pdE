@@ -1,0 +1,36 @@
+#!/bin/ksh
+if [[ $# -lt 2 || ! -s /u/cmrun/$1 ]] then 
+    echo 'Usage: pdE runID acc_files (list all; deflt path:/u/cmrun/runID)' 
+    exit
+fi
+
+runID=$1 ; shift
+cd /u/cmrun/$runID
+
+if [[ $# -eq 1 ]] then 
+  echo "processing $*"
+else 
+  echo "The following $# files are added up:"
+  echo $*
+fi
+
+if [[ ! -s Ipd ]] ; then 
+# set up a default file
+cat <<EOF > Ipd
+       
+
+ &&PARAMETERS
+
+ &&END_PARAMETERS
+  
+ &INPUTZ
+ ISTART=-1,QCHECK=.true.,
+ &END
+EOF
+fi
+
+do_uln=0 ; if [[ ! -L TOPO ]] ; then ${runID}ln ; do_uln=1 ; fi
+${runID}.exe $* < Ipd > pd.PRT
+   if [[ ${do_uln} -eq 1 ]] ; then ${runID}uln ; fi
+
+grep Diag pd.PRT  ; # report accumulation period   
