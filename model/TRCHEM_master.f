@@ -2,7 +2,7 @@
       SUBROUTINE masterchem
 !@sum masterchem main chemistry routine
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on masterchem0C9.2_M23p)
+!@ver  1.0 (based on masterchem000_M23p)   
 !@calls photoj,checktracer,Crates,Oxinit,HOxfam,NOxfam,chemstep
 C
 C PLEASE SEE THE WARNINGS IN THE STRATOSPHERIC OVERWRITE SECTION.
@@ -448,7 +448,8 @@ c
          bypfactor=1.D0/pfactor
          RVELN2O5=SQRT(TX(I,J,L)*RKBYPIM)*100.
 C        Calculate sulfate sink, and cap it at 90% of N2O5:
-         wprod_sulf=DT2*sulfate(I,J,L)*y(n_N2O5,L)*RGAMMASULF*RVELN2O5
+         wprod_sulf=
+     &   DT2*sulfate(I,J,L)*y(n_N2O5,L)*RGAMMASULF*RVELN2O5*0.25d0
          if(wprod_sulf.gt.0.9*y(n_N2O5,L))wprod_sulf=0.9d0*y(n_N2O5,L)
          prod_sulf=wprod_sulf*pfactor
          TAJLS(J,L,jls_N2O5sulf)=TAJLS(J,L,jls_N2O5sulf)
@@ -1226,7 +1227,7 @@ c
 !@+   #13 CO+OH->HO2+CO2, #15 HO2+HO2->H2O2+O2, #16 OH+HNO3->H2O+NO3,
 !@+   and reactions #29, and #42.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_master_0C4.2_M23)
+!@ver  1.0 (based on masterchem000_M23p)
 c
 C**** GLOBAL parameters and variables:
 C
@@ -1408,7 +1409,7 @@ c
       SUBROUTINE checktracer(I,J)
 !@sum checktracer for various debugging of tracer chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_master_0C4.2_M23)
+!@ver  1.0 (based on masterchem000_M23p)
 c
 C**** GLOBAL parameters and variables:
 C
