@@ -709,11 +709,6 @@ C****
 C**** Read parameters from the rundeck to the database
 C****
       call parse_params( 8 )
-      REWIND 8
-      do
-        read (8,'(A)') NLREC
-        if ( NLREC .eq. ' &&END_PARAMETERS' ) exit
-      end do
       READ (8,NML=INPUTZ,ERR=900)
       REWIND 8
 
