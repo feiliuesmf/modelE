@@ -935,7 +935,7 @@ C****
       LOGICAL, INTENT(IN) :: QSAVE
       INTEGER, INTENT(IN) :: NS
       REAL*8, INTENT(IN) :: MM(IM,JM,LMO)
-      INTEGER I,J,L,LMIJ
+      INTEGER I,J,L,LMIJ,IMIN,IMAX
       REAL*8, DIMENSION(IM) :: DMVS,DMVN
       REAL*8 BYNSDTO,MUS,MUN,MVS,MVN,ADMVS,ADMVN,SCONV,SMM,BYSIGEO
 C****
@@ -943,10 +943,14 @@ C****
 C**** Compute fluid fluxes for the C grid
 C****
 C**** Smooth the West-East velocity near the poles
-!$OMP PARALLEL DO  PRIVATE(I,L)
-      DO 110 L=1,LMO
-      DO 110 I=IM+1,IM*(JM-1)
-  110   MU(I,1,L) = UO(I,1,L)
+!$OMP PARALLEL DO  PRIVATE(I,J,L)
+      DO L=1,LMO
+        DO J=2,JM-1
+          DO I=1,IM
+            MU(I,J,L) = UO(I,J,L)
+          END DO
+        END DO
+      END DO
 !$OMP END PARALLEL DO
       CALL OPFIL (MU,LMO)
 C**** Compute MU, the West-East mass flux, at non-polar points
@@ -1004,30 +1008,36 @@ C****
 C****
 C**** Compute vertically integrated column convergence and mass
 C****
-!$OMP PARALLEL DO  PRIVATE(I,L,LMIJ,SCONV,SMM,BYSIGEO)
-      DO 440 I=IM,IM*(JM-1)+1
+!$OMP PARALLEL DO  PRIVATE(I,J,L,IMIN,IMAX,LMIJ,SCONV,SMM,BYSIGEO)
+      DO J=1,JM
+        IMIN=1
+        IMAX=IM
+        IF (J.EQ.1) IMIN=IM
+        IF (J.EQ.JM) IMAX=1
+        DO I=IMIN,IMAX
       LMIJ=1
-      IF(LMM(I,1).LE.1)  GO TO 420
-      LMIJ=LMM(I,1)
+      IF(LMM(I,J).LE.1)  GO TO 420
+      LMIJ=LMM(I,J)
       SCONV = 0.
       SMM   = 0.
       DO 310 L=1,LMIJ
-        SCONV = SCONV + CONV(I,1,L)
-  310   SMM   = SMM   +   MM(I,1,L)
+        SCONV = SCONV + CONV(I,J,L)
+  310   SMM   = SMM   +   MM(I,J,L)
       BYSIGEO=1d0/SIGEO(LMIJ)
       SCONV = SCONV*BYSIGEO
       SMM   = SMM  *BYSIGEO
 C****
 C**** Compute MW, the downward fluid flux
 C****
-      MW(I,1,1) = CONV(I,1,1)-SCONV*DSIGO(1) +
-     +           (  MM(I,1,1)-  SMM*DSIGO(1))*BYNSDTO
+      MW(I,J,1) = CONV(I,J,1)-SCONV*DSIGO(1) +
+     +           (  MM(I,J,1)-  SMM*DSIGO(1))*BYNSDTO
       DO 410 L=2,LMIJ-1
-  410   MW(I,1,L) = CONV(I,1,L)-SCONV*DSIGO(L) + MW(I,1,L-1) +
-     +           (  MM(I,1,L)-  SMM*DSIGO(L))*BYNSDTO
+  410   MW(I,J,L) = CONV(I,J,L)-SCONV*DSIGO(L) + MW(I,J,L-1) +
+     +           (  MM(I,J,L)-  SMM*DSIGO(L))*BYNSDTO
   420 DO 430 L=LMIJ,LMO-1
-  430   MW(I,1,L) = 0.
-  440 CONTINUE
+  430   MW(I,J,L) = 0.
+      END DO
+      END DO
 !$OMP END PARALLEL DO
 C****
 C**** Sum mass fluxes to be used for advection of tracers
@@ -1188,21 +1198,27 @@ C****
       REAL*8, INTENT(OUT) :: MM2(IM,JM,LMO)
       REAL*8, INTENT(IN)  :: MM0(IM,JM,LMO)
       REAL*8, INTENT(IN)  :: DT
-      INTEGER I,J,L,LMIJ
+      INTEGER I,J,L,LMIJ,IMIN,IMAX
 C****
 C**** Compute the new mass MM2
 C****
-!$OMP PARALLEL DO  PRIVATE(I)
-      DO 40 I=IM,IM*(JM-1)+1
-      LMIJ=LMM(I,1)
+!$OMP PARALLEL DO  PRIVATE(I,J,IMIN,IMAX,LMIJ)
+      DO J=1,JM
+        IMIN=1
+        IMAX=IM
+        IF (J.EQ.1) IMIN=IM
+        IF (J.EQ.JM) IMAX=1
+        DO I=IMIN,IMAX
+      LMIJ=LMM(I,J)
       IF(LMIJ-1)  40,10,20
-   10 MM2(I,1,1) = MM0(I,1,1) + DT*CONV(I,1,1)
+   10 MM2(I,J,1) = MM0(I,J,1) + DT*CONV(I,J,1)
       GO TO 40
-   20 MM2(I,1,1) = MM0(I,1,1) + DT*(CONV(I,1,1)-MW(I,1,1))
+   20 MM2(I,J,1) = MM0(I,J,1) + DT*(CONV(I,J,1)-MW(I,J,1))
       DO 30 L=2,LMIJ-1
-   30 MM2(I,1,L) = MM0(I,1,L) + DT*(CONV(I,1,L)+(MW(I,1,L-1)-MW(I,1,L)))
-      MM2(I,1,LMIJ) = MM0(I,1,LMIJ) + DT*(CONV(I,1,LMIJ)+MW(I,1,LMIJ-1))
-   40 CONTINUE
+   30 MM2(I,J,L) = MM0(I,J,L) + DT*(CONV(I,J,L)+(MW(I,J,L-1)-MW(I,J,L)))
+      MM2(I,J,LMIJ) = MM0(I,J,LMIJ) + DT*(CONV(I,J,LMIJ)+MW(I,J,LMIJ-1))
+ 40   END DO
+      END DO
 !$OMP END PARALLEL DO
 C**** Fill in values at the poles
       DO 80 L=1,LMO
@@ -1458,11 +1474,14 @@ C
 C****
 C**** Add changes to momentum
 C****
-!$OMP PARALLEL DO  PRIVATE(I,L,DUMS,DUMN)
+!$OMP PARALLEL DO  PRIVATE(I,J,L,DUMS,DUMN)
       DO L=1,LMO
 C**** U component
-        DO 610 I=IM+1,IM*(JM-1)
-  610     UM2(I,1,L) = UM0(I,1,L) + DUM(I,1,L)
+        DO J=2,JM-1
+        DO I=1,IM
+          UM2(I,J,L) = UM0(I,J,L) + DUM(I,J,L)
+        END DO
+        END DO
         DUMS = 0.
         DUMN = 0.
         DO 620 I=1,IM
@@ -1471,8 +1490,11 @@ C**** U component
         UM2(IM,1,L) = UM0(IM,1,L) + DUMS
         UM2(1,JM,L) = UM0(1,JM,L) + DUMN
 C**** V component
-        DO 630 I=1,IM*(JM-1)
-  630     VM2(I,1,L) = VM0(I,1,L) + DVM(I,1,L)
+      DO J=1,JM-1
+        DO I=1,IM
+          VM2(I,J,L) = VM0(I,J,L) + DVM(I,J,L)
+        END DO
+      END DO
       END DO
 !$OMP END PARALLEL DO
       RETURN
@@ -1569,15 +1591,21 @@ C****
 C****
 C**** Add pressure gradient force to momentum
 C****
-!$OMP PARALLEL DO  PRIVATE(I,L)
-      DO 610 I=IM+1,IM*(JM-1)
-      DO 610 L=1,LMU(I,1)
-  610 UM(I,1,L) = UM(I,1,L) + DUM(I,1,L)
+!$OMP PARALLEL DO  PRIVATE(I,J,L)
+      DO J=2,JM-1
+        DO I=1,IM
+      DO 610 L=1,LMU(I,J)
+  610 UM(I,J,L) = UM(I,J,L) + DUM(I,J,L)
+      END DO
+      END DO
 !$OMP END PARALLEL DO
-!$OMP PARALLEL DO  PRIVATE(I,L)
-      DO 630 I=1,IM*(JM-1)
-      DO 630 L=1,LMV(I,1)
-  630 VM(I,1,L) = VM(I,1,L) + DVM(I,1,L)
+!$OMP PARALLEL DO  PRIVATE(I,J,L)
+      DO J=1,JM-1
+        DO I=1,IM
+      DO 630 L=1,LMV(I,J)
+  630 VM(I,J,L) = VM(I,J,L) + DVM(I,J,L)
+      END DO
+      END DO
 !$OMP END PARALLEL DO
       RETURN
 C****
@@ -2104,21 +2132,26 @@ C****
       LOGICAL*4, INTENT(IN) :: QLIMIT
       REAL*8, INTENT(IN) :: DT
       REAL*8, DIMENSION(0:LMO) :: CM,C,FM,FX,FY,FZ
-      INTEGER I,J,L,LMIJ,ICKERR
+      INTEGER I,J,L,LMIJ,ICKERR,IMIN,IMAX
       REAL*8 SBMN,SFMN,SFZN,RXY
 C****
 C**** Loop over latitudes and longitudes
       ICKERR=0
-!$OMP PARALLEL DO  PRIVATE(I,L,LMIJ, C,CM, FM,FX,FY,FZ)
+!$OMP PARALLEL DO  PRIVATE(I,IMIN,IMAX,J,L,LMIJ, C,CM, FM,FX,FY,FZ)
 !$OMP&             REDUCTION(+:ICKERR)
-      DO 330 I=IM,IM*(JM-1)+1
+      DO J=1,JM
+        IMIN=1
+        IMAX=IM
+        IF (J.EQ.1) IMIN=IM
+        IF (J.EQ.JM) IMAX=1
+        DO I=IMIN,IMAX
       CM(0) = 0.
        C(0) = 0.
       FM(0) = 0.
       FX(0) = 0.
       FY(0) = 0.
       FZ(0) = 0.
-      LMIJ=LMM(I,1)
+      LMIJ=LMM(I,J)
       IF(LMIJ.LE.1)  GO TO 330
       CM(LMIJ) = 0.
        C(LMIJ) = 0.
@@ -2130,23 +2163,23 @@ C****
 C**** Calculate FM (kg), FX (kg), FY (kg) and FZ (kg**2)
 C****
       DO 120 L=1,LMIJ-1
-      CM(L) = DT*MW(I,1,L)
+      CM(L) = DT*MW(I,J,L)
       IF(CM(L).LT.0.)  GO TO 110
 C**** Ocean mass flux is positive
-      C(L)  = CM(L)/MO(I,1,L)
-      IF(C(L).GT.1d0)  WRITE (6,*) 'C>1:',I,L,C(L),MO(I,1,L)
-      FM(L) = C(L)*(RM(I,1,L)+(1d0-C(L))*RZ(I,1,L))
-      FX(L) = C(L)*RX(I,1,L)
-      FY(L) = C(L)*RY(I,1,L)
-      FZ(L) = CM(L)*(C(L)*C(L)*RZ(I,1,L)-3d0*FM(L))
+      C(L)  = CM(L)/MO(I,J,L)
+      IF(C(L).GT.1d0)  WRITE (6,*) 'C>1:',I,L,C(L),MO(I,J,L)
+      FM(L) = C(L)*(RM(I,J,L)+(1d0-C(L))*RZ(I,J,L))
+      FX(L) = C(L)*RX(I,J,L)
+      FY(L) = C(L)*RY(I,J,L)
+      FZ(L) = CM(L)*(C(L)*C(L)*RZ(I,J,L)-3d0*FM(L))
       GO TO 120
 C**** Ocean mass flux is negative
-  110 C(L)  = CM(L)/MO(I,1,L+1)
-      IF(C(L).LT.-1d0)  WRITE (6,*) 'C<-1:',I,L,C(L),MO(I,1,L+1)
-      FM(L) = C(L)*(RM(I,1,L+1)-(1d0+C(L))*RZ(I,1,L+1))
-      FX(L) = C(L)*RX(I,1,L+1)
-      FY(L) = C(L)*RY(I,1,L+1)
-      FZ(L) = CM(L)*(C(L)*C(L)*RZ(I,1,L+1)-3d0*FM(L))
+  110 C(L)  = CM(L)/MO(I,J,L+1)
+      IF(C(L).LT.-1d0)  WRITE (6,*) 'C<-1:',I,L,C(L),MO(I,J,L+1)
+      FM(L) = C(L)*(RM(I,J,L+1)-(1d0+C(L))*RZ(I,J,L+1))
+      FX(L) = C(L)*RX(I,J,L+1)
+      FY(L) = C(L)*RY(I,J,L+1)
+      FZ(L) = CM(L)*(C(L)*C(L)*RZ(I,J,L+1)-3d0*FM(L))
   120 CONTINUE
 C****
 C**** Modify the tracer moments so that the tracer mass in each
@@ -2158,12 +2191,12 @@ C****
 C**** Water is leaving through the bottom edge: 2 or 3 divisions
       IF(FM(L-1).LE.0.)  GO TO 210
 C**** Bottom most division is negative, RMB = -FM(L-1) < 0: Case 2 or 4
-      RZ(I,1,L) = RM(I,1,L)/(1d0+C(L-1))
+      RZ(I,J,L) = RM(I,J,L)/(1d0+C(L-1))
       FM(L-1) = 0.
-      FZ(L-1) = CM(L-1)*C(L-1)*C(L-1)*RZ(I,1,L)
+      FZ(L-1) = CM(L-1)*C(L-1)*C(L-1)*RZ(I,J,L)
       IF(C(L).LE.0.)  GO TO 290
-      FM(L) = C(L)*(RM(I,1,L)+(1d0-C(L))*RZ(I,1,L))
-      FZ(L) = CM(L)*(C(L)*C(L)*RZ(I,1,L)-3d0*FM(L))
+      FM(L) = C(L)*(RM(I,J,L)+(1d0-C(L))*RZ(I,J,L))
+      FZ(L) = CM(L)*(C(L)*C(L)*RZ(I,J,L)-3d0*FM(L))
       GO TO 290
 C**** Bottom most division is non-negative, RMB = -FM(L-1) > 0:
 C**** Case 1, 3 or 5
@@ -2171,80 +2204,88 @@ C**** Case 1, 3 or 5
 C**** Water is leaving through the top edge: 3 divisions
       IF(FM(L).GE.0.)  GO TO 290
 C**** Top most division is negative, RMT = FM(L) < 0: Case 3 or 5
-  220 RZ(I,1,L) = -RM(I,1,L)/(1d0-C(L))
+  220 RZ(I,J,L) = -RM(I,J,L)/(1d0-C(L))
       FM(L) = 0.
-      FZ(L) = CM(L)*C(L)*C(L)*RZ(I,1,L)
-      FM(L-1) = C(L-1)*(RM(I,1,L)-(1d0+C(L-1))*RZ(I,1,L))
-      FZ(L-1) = CM(L-1)*(C(L-1)*C(L-1)*RZ(I,1,L)-3d0*FM(L-1))
+      FZ(L) = CM(L)*C(L)*C(L)*RZ(I,J,L)
+      FM(L-1) = C(L-1)*(RM(I,J,L)-(1d0+C(L-1))*RZ(I,J,L))
+      FZ(L-1) = CM(L-1)*(C(L-1)*C(L-1)*RZ(I,J,L)-3d0*FM(L-1))
       GO TO 290
 C**** No water is leaving through the top edge: 2 divisions
-  230 IF(RM(I,1,L)+FM(L-1).GE.0.)  GO TO 290
-C**** Top most division is negative, RMT = RM(I,1,L)+FM(L-1) < 0: Case 3
-      RZ(I,1,L) = RM(I,1,L)/C(L-1)
-      FM(L-1) = -RM(I,1,L)
-      FZ(L-1) = CM(L-1)*(C(L-1)+3d0)*RM(I,1,L)
+  230 IF(RM(I,J,L)+FM(L-1).GE.0.)  GO TO 290
+C**** Top most division is negative, RMT = RM(I,J,L)+FM(L-1) < 0: Case 3
+      RZ(I,J,L) = RM(I,J,L)/C(L-1)
+      FM(L-1) = -RM(I,J,L)
+      FZ(L-1) = CM(L-1)*(C(L-1)+3d0)*RM(I,J,L)
       GO TO 290
 C**** No water is leaving through the bottom edge: 1 or 2 divisions
   240 IF(C(L).LE.0.)  GO TO 290
 C**** Water is leaving through the top edge: 2 divisions
       IF(FM(L).GE.0.)  GO TO 250
 C**** Top most division is negative, RMT = FM(L) < 0: Case 3
-      RZ(I,1,L) = -RM(I,1,L)/(1d0-C(L))
+      RZ(I,J,L) = -RM(I,J,L)/(1d0-C(L))
       FM(L) = 0.
-      FZ(L) = CM(L)*C(L)*C(L)*RZ(I,1,L)
+      FZ(L) = CM(L)*C(L)*C(L)*RZ(I,J,L)
       GO TO 290
 C**** Top most division is non-negative, RMT = FM(L) > 0: Case 1 or 2
-  250 IF(RM(I,1,L)-FM(L).GE.0.)  GO TO 290
-C**** Bottom most division is negative, RMB = RM(I,1,L)-FM(L) < 0: Cas 2
-      RZ(I,1,L) = RM(I,1,L)/C(L)
-      FM(L) = RM(I,1,L)
-      FZ(L) = CM(L)*(C(L)-3d0)*RM(I,1,L)
+  250 IF(RM(I,J,L)-FM(L).GE.0.)  GO TO 290
+C**** Bottom most division is negative, RMB = RM(I,J,L)-FM(L) < 0: Cas 2
+      RZ(I,J,L) = RM(I,J,L)/C(L)
+      FM(L) = RM(I,J,L)
+      FZ(L) = CM(L)*(C(L)-3d0)*RM(I,J,L)
 C****
   290 CONTINUE
 C****
 C**** Calculate new tracer mass and first moments of tracer mass
 C****
   300 DO 310 L=1,LMIJ
-      RM(I,1,L) = RM(I,1,L) + (FM(L-1)-FM(L))
-      RX(I,1,L) = RX(I,1,L) + (FX(L-1)-FX(L))
-      RY(I,1,L) = RY(I,1,L) + (FY(L-1)-FY(L))
-      RZ(I,1,L) = (RZ(I,1,L)*MO(I,1,L) + (FZ(L-1)-FZ(L))
-     *  + 3d0*((CM(L-1)+CM(L))*RM(I,1,L)-MO(I,1,L)*(FM(L-1)+FM(L))))
-     *  / (MO(I,1,L)+CM(L-1)-CM(L))
+      RM(I,J,L) = RM(I,J,L) + (FM(L-1)-FM(L))
+      RX(I,J,L) = RX(I,J,L) + (FX(L-1)-FX(L))
+      RY(I,J,L) = RY(I,J,L) + (FY(L-1)-FY(L))
+      RZ(I,J,L) = (RZ(I,J,L)*MO(I,J,L) + (FZ(L-1)-FZ(L))
+     *  + 3d0*((CM(L-1)+CM(L))*RM(I,J,L)-MO(I,J,L)*(FM(L-1)+FM(L))))
+     *  / (MO(I,J,L)+CM(L-1)-CM(L))
 C****
       if ( QLIMIT ) then ! limit tracer gradients
-        RXY = abs(RX(I,1,L)) + abs(RY(I,1,L))
-        if ( RXY > RM(I,1,L) ) then
-          RX(I,1,L) = RX(I,1,L)*( RM(I,1,L)/(RXY + tiny(RXY)) )
-          RY(I,1,L) = RY(I,1,L)*( RM(I,1,L)/(RXY + tiny(RXY)) )
+        RXY = abs(RX(I,J,L)) + abs(RY(I,J,L))
+        if ( RXY > RM(I,J,L) ) then
+          RX(I,J,L) = RX(I,J,L)*( RM(I,J,L)/(RXY + tiny(RXY)) )
+          RY(I,J,L) = RY(I,J,L)*( RM(I,J,L)/(RXY + tiny(RXY)) )
         end if
-        if ( abs(RZ(I,1,L)) > RM(I,1,L) )
-     *       RZ(I,1,L) = sign(RM(I,1,L), RZ(I,1,L)+0d0)
+        if ( abs(RZ(I,J,L)) > RM(I,J,L) )
+     *       RZ(I,J,L) = sign(RM(I,J,L), RZ(I,J,L)+0d0)
       end if
 C****
-      MO(I,1,L) = MO(I,1,L) +  CM(L-1)-CM(L)
-         IF(MO(I,1,L).LE.0.)              ICKERR=ICKERR+1
-         IF(QLIMIT.AND.RM(I,1,L).LT.0.)   ICKERR=ICKERR+1
+      MO(I,J,L) = MO(I,J,L) +  CM(L-1)-CM(L)
+         IF(MO(I,J,L).LE.0.)              ICKERR=ICKERR+1
+         IF(QLIMIT.AND.RM(I,J,L).LT.0.)   ICKERR=ICKERR+1
   310 CONTINUE
          DO 320 L=1,LMIJ-1
-  320    OIJL(I,1,L) = OIJL(I,1,L) + FM(L)
+  320    OIJL(I,J,L) = OIJL(I,J,L) + FM(L)
   330 CONTINUE
+      END DO
+      END DO
 !$OMP END PARALLEL DO
 
 C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
       IF(ICKERR.EQ.0)  RETURN
-      DO I=IM,IM*(JM-1)+1
-        LMIJ=LMM(I,1)
+      DO J=1,JM
+        IMIN=1
+        IMAX=IM
+        IF (J.EQ.1) IMIN=IM
+        IF (J.EQ.JM) IMAX=1
+        DO I=IMIN,IMAX
+        LMIJ=LMM(I,J)
         DO L=1,LMIJ
-          IF(FOCEAN(I,1)*MO(I,1,L).LE.0.)  GO TO 800
-          IF(QLIMIT .AND. RM(I,1,L).LT.0.) GO TO 810
+          IF(FOCEAN(I,J)*MO(I,J,L).LE.0.)  GO TO 800
+          IF(QLIMIT .AND. RM(I,J,L).LT.0.) GO TO 810
         END DO
+      END DO
       END DO
       WRITE(6,*) 'ERROR CHECK INCONSISTENCY: OADVTZ ',ICKERR
       call stop_model("OAVDTZ",255)
 
-  800 WRITE (6,*) 'MO<0 in OADVTZ:',I,L,MO(I,1,L)
-  810 WRITE (6,*) 'RM in OADVTZ:',I,L,RM(I,1,L)
+  800 WRITE (6,*) 'MO<0 in OADVTZ:',I,J,L,MO(I,J,L)
+  810 WRITE (6,*) 'RM in OADVTZ:',I,J,L,RM(I,J,L)
 c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
       call stop_model("OADVTZ",255)
       END SUBROUTINE OADVTZ
@@ -2264,9 +2305,11 @@ C****
 C**** UO = UO*(1-x/y)  is approximated by  UO*y/(y+x)  for stability
 C****
 C**** Save UO,VO into UT,VT which will be unchanged
-      DO 10 I=1,IM*JM*LMO
-      UT(I,1,1) = UO(I,1,1)
-   10 VT(I,1,1) = VO(I,1,1)
+!$OMP PARALLEL DO  PRIVATE(L)
+      DO 10 L=1,LMO
+        UT(:,:,L) = UO(:,:,L)
+ 10     VT(:,:,L) = VO(:,:,L)
+!$OMP END PARALLEL DO
 C****
 C**** Reduce West-East ocean current
 C****
@@ -2950,9 +2993,11 @@ C****
             VX=     VO(I  ,J  ,L)
             VY=     VO(I  ,J  ,L)
           END IF
-          IF (J.GT.1 .and. L.LE.LMV(I  ,J-1)) THEN
+          IF (J.GT.1) THEN
+            IF  (L.LE.LMV(I  ,J-1)) THEN
             VT=VT + VO(I  ,J-1,L)*TANV(J-1)
             VY=VY - VO(I  ,J-1,L)
+            END IF
           END IF
           IF (L.LE.LMV(IM1,J  )) VX=VX - VO(IM1,J  ,L)
           VT=0.5*VT
@@ -3033,12 +3078,12 @@ C**** Call tridiagonal solver
       CALL TRIDIAG(AU,BU,CU,RU,UU,IIP)
       CALL TRIDIAG(AV,BV,CV,RV,UV,IIP)
       DO II=1,IIP
-c       J= 2 + (II-1)/IM
-c       I= II-(J-2)*IM
-c       UO(I,J,L) = UU(II)
-c       VO(I,J,L) = UV(II)
-        UO(II,2,L) = UU(II)   ! this cycles through correctly
-        VO(II,2,L) = UV(II)
+        J= 2 + (II-1)/IM
+        I= II-(J-2)*IM
+        UO(I,J,L) = UU(II)
+        VO(I,J,L) = UV(II)
+c        UO(II,2,L) = UU(II)   ! this cycles through correctly
+c        VO(II,2,L) = UV(II)
       END DO
       DO I=2,IM
         UO(I,JM,L) = UO(1,JM,L)
@@ -3078,9 +3123,11 @@ C****
             VX=     VO(I  ,J  ,L)
             VY=     VO(I  ,J  ,L)
           END IF
-          IF (J.GT.1 .and. L.LE.LMV(I  ,J-1)) THEN
+          IF (J.GT.1) THEN
+            IF (L.LE.LMV(I  ,J-1)) THEN
             VT=VT + VO(I  ,J-1,L)*TANV(J-1)
             VY=VY - VO(I  ,J-1,L)
+          END IF
           END IF
           IF (L.LE.LMV(IM1,J  )) VX=VX - VO(IM1,J  ,L)
           VT=0.5*VT
