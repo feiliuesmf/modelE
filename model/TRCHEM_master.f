@@ -1219,8 +1219,13 @@ C
          changeL(:,:)=0.d0 ! initilize the change
          do L=LTROPO(I,J)+1,LM    ! >> BEGIN LOOP OVER STRATOSPHERE <<
 c         Update stratospheric ozone to amount set in radiation:
-          changeL(L,n_Ox)=O3_rad_save(L,I,J)*DXYP(J)*O3MULT
-     &    *corrOx(J,L,imonth) - trm(I,J,L,n_Ox)
+          if(correct_strat_Ox) then
+            changeL(L,n_Ox)=O3_rad_save(L,I,J)*DXYP(J)*O3MULT
+     &      *corrOx(J,L,imonth) - trm(I,J,L,n_Ox)
+          else
+            changeL(L,n_Ox)=O3_rad_save(L,I,J)*DXYP(J)*O3MULT
+     &      - trm(I,J,L,n_Ox)
+          end if
           byam75=F75P*byam(L75P,I,J)+F75M*byam(L75M,I,J)
           FACT1=2.0d-9*DXYP(J)*am(L,I,J)*byam75
 C         We think we have too little stratospheric NOx, so, to
