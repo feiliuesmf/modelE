@@ -9,8 +9,8 @@
 !@cont t_eqn_sta,q_eqn_sta,uv_eqn_sta
 !@cont inits,tcheck,ucheck,check1,output,rtsafe
 
-      USE CONSTANT, only : grav,pi,radian,bygrav,teeny,deltx
-     &                     ,by3
+      USE CONSTANT, only : grav,pi,radian,bygrav,teeny,deltx,tf
+     &                     ,by3,lhe,rgas
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trname,trradius
 #ifdef TRACERS_WATER
