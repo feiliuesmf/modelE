@@ -3286,11 +3286,21 @@ C**** This needs to be 'hand coded' depending on circumstances
 #ifdef TRACERS_AEROSOLS_Koch
 c BCI optical thickness
         k = k + 1
-        ijts_tau(n) = k
+        ijts_tau(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI optical thickness'
         sname_ijts(k) = 'tau_BCI'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c BCI clear sky optical thickness
+        k = k + 1
+        ijts_tau(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'BCI clr sky optical thickness'
+        sname_ijts(k) = 'tau_CS_BCI'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3314,6 +3324,26 @@ c BCI longwave radiative forcing
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+c BCI clear sky shortwave radiative forcing
+        k = k + 1
+        ijts_fc(5,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'BCI clr sky SW rad forcing'
+        sname_ijts(k) = 'swrf_CS_BCI'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c BCI longwave radiative forcing
+        k = k + 1
+        ijts_fc(6,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'BCI clr sky LW rad forcing'
+        sname_ijts(k) = 'lwrf_CS_BCI'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
       case ('BCB')
         k = k + 1
@@ -3328,11 +3358,21 @@ c BCI longwave radiative forcing
 #ifdef TRACERS_AEROSOLS_Koch
 c BCB optical thickness
         k = k + 1
-        ijts_tau(n) = k
+        ijts_tau(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB optical thickness'
         sname_ijts(k) = 'tau_BCB'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c BCB clear sky optical thickness
+        k = k + 1
+        ijts_tau(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'BCB clr sky optical thickness'
+        sname_ijts(k) = 'tau_CS_BCB'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3353,6 +3393,26 @@ c BCB longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB LW radiative forcing'
         sname_ijts(k) = 'lwrf_BCB'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c BCB clear sky shortwave radiative forcing
+        k = k + 1
+        ijts_fc(5,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'BCB clr sky SW rad forcing'
+        sname_ijts(k) = 'swrf_CS_BCB'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c BCB clear sky longwave radiative forcing
+        k = k + 1
+        ijts_fc(6,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'BCB clr sky LW rad forcing'
+        sname_ijts(k) = 'lwrf_CS_BCB'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3400,11 +3460,21 @@ c BCB longwave radiative forcing
 #ifdef TRACERS_AEROSOLS_Koch
 c OC optical thickness
         k = k + 1
-        ijts_tau(n) = k
+        ijts_tau(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'OC optical thickness'
         sname_ijts(k) = 'tau_OC'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c OC clear sky optical thickness
+        k = k + 1
+        ijts_tau(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'OC clr sky optical thickness'
+        sname_ijts(k) = 'tau_CS_OC'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3425,6 +3495,26 @@ c OC longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'OC LW radiative forcing'
         sname_ijts(k) = 'lwrf_OC'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c OC clear sky shortwave radiative forcing
+        k = k + 1
+        ijts_fc(5,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'OC clr sky SW rad forcing'
+        sname_ijts(k) = 'swrf_CS_OC'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c OC clear sky longwave radiative forcing
+        k = k + 1
+        ijts_fc(6,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'OC clr sky LW rad forcing'
+        sname_ijts(k) = 'lwrf_CS_OC'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3579,11 +3669,21 @@ c put in loss of SO4 from heter chem
 #ifdef TRACERS_AEROSOLS_Koch
 c SO4 optical thickness
         k = k + 1
-        ijts_tau(n) = k
+        ijts_tau(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 optical thickness'
         sname_ijts(k) = 'tau_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c SO4 clear sky optical thickness
+        k = k + 1
+        ijts_tau(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'SO4 clr sky optical thickness'
+        sname_ijts(k) = 'tau_CS_'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3604,6 +3704,26 @@ c SO4 longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 LW radiative forcing'
         sname_ijts(k) = 'lwrf_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c SO4 clear sky shortwave radiative forcing
+        k = k + 1
+        ijts_fc(5,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'SO4 clr sky SW rad forcing'
+        sname_ijts(k) = 'swrf_CS'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c SO4 clear sky longwave radiative forcing
+        k = k + 1
+        ijts_fc(6,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'SO4 clr sky LW rad forcing'
+        sname_ijts(k) = 'lwrf_CS'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3795,11 +3915,21 @@ c source of Pb210 from Rn222 decay
 #ifdef TRACERS_AEROSOLS_Koch
 c ss1 optical thickness
         k = k + 1
-        ijts_tau(n) = k
+        ijts_tau(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'ss1 optical thickness'
         sname_ijts(k) = 'tau_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c ss1 clear sky optical thickness
+        k = k + 1
+        ijts_tau(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'ss1 clr sky optical thickness'
+        sname_ijts(k) = 'tau_CS_'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3823,6 +3953,26 @@ c SS longwave radiative forcing
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+c SS clear sky shortwave radiative forcing
+        k = k + 1
+        ijts_fc(5,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'SS clr sky SW rad forcing'
+        sname_ijts(k) = 'swrf_CS_SS'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c SS clear sky longwave radiative forcing
+        k = k + 1
+        ijts_fc(6,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'SS clr sky LW rad forcing'
+        sname_ijts(k) = 'lwrf_CS_SS'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
        case ('seasalt2')
         k = k + 1
@@ -3837,11 +3987,21 @@ c SS longwave radiative forcing
 #ifdef TRACERS_AEROSOLS_Koch
 c ss2 optical thickness
         k = k + 1
-        ijts_tau(n) = k
+        ijts_tau(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'ss2 optical thickness'
         sname_ijts(k) = 'tau_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c ss2 clear sky optical thickness
+        k = k + 1
+        ijts_tau(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'ss2 clr sky optical thickness'
+        sname_ijts(k) = 'tau_CS_'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3916,11 +4076,21 @@ C**** Additional Special IJ diagnostics
 #endif
 c dust optical thickness
         k = k + 1
-        ijts_tau(n) = k
+        ijts_tau(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_rad   
         lname_ijts(k) = trim(trname(n))//' optical thickness'
         sname_ijts(k) = 'tau_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c dust clear sky optical thickness
+        k = k + 1
+        ijts_tau(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad   
+        lname_ijts(k) = trim(trname(n))//' CS optical thickness'
+        sname_ijts(k) = 'tau_CS_'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -5634,13 +5804,13 @@ c volcano - continuous
       SO2_src_3D(ii,jj,ll,1)=carbstuff/(sday*30.4d0)/12.d0
       end do
   83  call closeunit(iuc)
-c volcano - continuous 
+c volcano - explosive 
       call openunit('SO2_VOLCANO_EXP',iuc,.false.)
       do mm=1,99999
       read(iuc,*) ii,jj,ll,carbstuff
       if (ii.eq.0.) go to 84
       SO2_src_3D(ii,jj,ll,1)=SO2_src_3D(ii,jj,ll,1)
-     * +carbstuff/(sday*30.4d0)*tr_mm(n_SO2)/32.d0/12.d0
+     * +carbstuff/(sday*30.4d0)/12.d0
       end do
   84  call closeunit(iuc)
       
@@ -5659,8 +5829,11 @@ c Terpenes first
  15   continue
       end do
       call closeunit(mon_unit)
-      OCT_src(:,:,:)=OCT_src(:,:,:)*dtsrc/1.D6*0.1d0
-     *  /30.4d0*1.3d0
+c units are mg Terpene/m2/month
+      do mm=1,12; do j=J_0,J_1; do i=1,im
+       OCT_src(i,j,mm) = OCT_src(i,j,mm)*dxyp(j)*0.1d0
+     *  *1.3d0/(1.D6*3600.d0*24.d0*30.4d0)
+      end do; end do; end do
 c This assumes 10% emission yield (Chin, Penner)
 c 1.3 converts OC to OM
       else ! AEROCOM
@@ -5669,7 +5842,7 @@ c 1.3 converts OC to OM
       read(mon_unit,*) ii,jj,mm,carbstuff
       if (ii.eq.0.) go to 18
       carbstuff=carbstuff/(sday*30.4d0)
-      OCT_src(ii,jj,mm)=carbstuff
+      OCT_src(ii,jj,mm)=carbstuff*1.3d0
       end do
  18   continue
       call closeunit(mon_unit)
@@ -5726,11 +5899,11 @@ c Now industrial and biomass
       ccnv=1.d0/(sday*30.4)  !*dxyp(j))
 c convert from month to second. dxyp??
       BCI_src(i,j)=BCI_src(i,j)*ccnv/12.d0
-      OCI_src(i,j)=OCI_src(i,j)*ccnv/12.d0
+      OCI_src(i,j)=OCI_src(i,j)*ccnv/12.d0*1.3d0
       do m=1,12 
       do l=1,7
       BCB_src(i,j,l,m)=BCB_src(i,j,l,m)*ccnv
-      OCB_src(i,j,l,m)=OCB_src(i,j,l,m)*ccnv
+      OCB_src(i,j,l,m)=OCB_src(i,j,l,m)*ccnv*1.3d0
       end do
       end do
       end do
@@ -6356,10 +6529,8 @@ C****
        call apply_tracer_3Dsource(2,n_H2O2_s) ! H2O2 chem sink
        call apply_tracer_3Dsource(1,n_BCII) ! BCII aging sink 
        call apply_tracer_3Dsource(1,n_BCIA) ! BCIA aging source 
-       call apply_tracer_3Dsource(1,n_BCB) ! BCB biomass source 
        call apply_tracer_3Dsource(1,n_OCII) ! OCII aging sink 
        call apply_tracer_3Dsource(1,n_OCIA) ! OCIA aging source 
-       call apply_tracer_3Dsource(1,n_OCB) ! OCB biomass source 
 
        call heter
        call apply_tracer_3Dsource(6,n_SO2) ! SO2 het chem sink
