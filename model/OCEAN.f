@@ -25,7 +25,8 @@
       IMPLICIT NONE
       SAVE
 
-!@dbparam ocn_cycl 0|1 precribed ocn data don't|do cycle (1 year)
+!@dbparam ocn_cycl determines whether prescribed ocean data repeat
+!@+       after 1 year - 0:yes 1:no 2:seaice repeats,sst does not
       integer :: ocn_cycl = 1
 !@var TOCEAN temperature of the ocean (C)
       REAL*8, DIMENSION(3,IM,JM) :: TOCEAN
@@ -160,11 +161,22 @@ C**** READ IN OBSERVED OCEAN DATA
       IF (JMON.EQ.IMON0) GO TO 400
       IF (IMON0.EQ.0) THEN
 C****   READ IN LAST MONTH'S END-OF-MONTH DATA
-        if (ocn_cycl.eq.1) then
+        if (ocn_cycl.ge.1) then
           LSTMON=JMON-1
           if (lstmon.eq.0) lstmon = 12
-          call readt (iu_OSST,IM*JM,EOST0,IM*JM,EOST0,LSTMON)
           call readt (iu_SICE,IM*JM,ERSI0,IM*JM,ERSI0,LSTMON)
+          if (ocn_cycl.eq.1) then
+            call readt (iu_OSST,IM*JM,EOST0,IM*JM,EOST0,LSTMON)
+          else ! if (ocn_cycl.eq.2) then
+            LSTMON=JMON-1+(JYEAR-IYEAR1)*JMperY
+  290       read (iu_OSST) M
+            if (m.lt.lstmon) go to 290
+            backspace iu_OSST
+            CALL MREAD (iu_OSST, m,IM*JM,EOST0,IM*JM,EOST0)
+            WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M
+            IF(M.NE.LSTMON)
+     &         call stop_model('Read error: ocean data',255)
+          end if
         else   !  if (ocn_cycl.eq.0) then
           LSTMON=JMON-1+(JYEAR-IYEAR1)*JMperY
   300     read (iu_OSST) M
@@ -186,14 +198,21 @@ C****   COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
       END IF
 C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
       IMON0=JMON
-      if (ocn_cycl.eq.1) then
+      if (ocn_cycl.ge.1) then
         if (jmon.eq.1) then
-          rewind iu_OSST
+          if (ocn_cycl.eq.1) rewind iu_OSST
           rewind iu_SICE
           read (iu_SICE)  ! skip over DM-record
         end if
-        call readt (iu_OSST,0,AOST,2*im*jm,AOST,1) ! reads AOST,EOST1
         call readt (iu_SICE,0,ARSI,2*im*jm,ARSI,1) ! reads ARSI,ERSI1
+        if (ocn_cycl.eq.1) then
+          call readt (iu_OSST,0,AOST,2*im*jm,AOST,1) ! reads AOST,EOST1
+        else  ! if (ocn_cycl.eq.2) then
+          CALL MREAD (iu_OSST, M,0,AOST,2*IM*JM,AOST) ! READS AOST,EOST1
+          WRITE(6,*) 'Read in ocean data for month',JMON,M
+          IF(JMON.NE.MOD(M-1,12)+1)
+     &       call stop_model('Error: Ocean data',255)
+        end if
       else   !  if (ocn_cycl.eq.0) then
         CALL MREAD (iu_OSST, M,0,AOST,2*IM*JM,AOST) ! READS AOST,EOST1
         CALL MREAD (iu_SICE,M1,0,ARSI,2*IM*JM,ARSI) ! READS ARSI,ERSI1
@@ -550,7 +569,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 C****   set up unit numbers for ocean climatologies
         call openunit("OSST",iu_OSST,.true.,.true.)
         call openunit("SICE",iu_SICE,.true.,.true.)
-        if (ocn_cycl.eq.0) then
+        if (ocn_cycl.ne.1) then
           write(6,*) '********************************************'
           write(6,*) '* Make sure that IYEAR1 is consistent with *'
           write(6,*) '*    the ocean data files OSST and SICE    *'
