@@ -1951,10 +1951,9 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : sha,mb2kg
-      USE MODEL_COM, only : im,jm,lm,fim,dsig,ls1,t,p,ptop,psfmpt
-     *     ,zatmo
+      USE MODEL_COM, only : im,jm,lm,fim,t,p,ptop,zatmo
       USE GEOM, only : imaxj
-      USE DYNAMICS, only : pk
+      USE DYNAMICS, only : pk,pdsig
       IMPLICIT NONE
       REAL*8, DIMENSION(JM) :: TPE
       INTEGER :: I,J,L
@@ -1967,13 +1966,9 @@ C****
         DO L=1,LM
           TPEI=0.
           DO I=1,IMAXJ(J)
-            IF(L.LT.LS1) THEN
-              TPEI=TPEI+T(I,J,L)*PK(L,I,J)*P(I,J)
-            ELSE
-              TPEI=TPEI+T(I,J,L)*PK(L,I,J)*PSFMPT
-            END IF
+            TPEI=TPEI+T(I,J,L)*PK(L,I,J)*PDSIG(L,I,J)
           END DO
-          TPEIL=TPEIL+TPEI*DSIG(L)
+          TPEIL=TPEIL+TPEI
         END DO
         SGEOI=0.
         DO I=1,IMAXJ(J)
@@ -2021,15 +2016,16 @@ C****
 !@sum  conserv_EWM calculates total atmospheric water energy
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : mb2kg,shv,grav
+      USE CONSTANT, only : mb2kg,shv,grav,lhe
       USE MODEL_COM, only : im,jm,lm,fim,wm,t,q,p
       USE GEOM, only : imaxj
       USE DYNAMICS, only : pdsig, pmid, pk
+      USE CLOUDS_COM, only : svlhx
       IMPLICIT NONE
-      REAL*8, PARAMETER :: HSCALE = 7.8 ! km ?????
+      REAL*8, PARAMETER :: HSCALE = 7.8d0 ! km 
       REAL*8, DIMENSION(JM) :: EWATER
       INTEGER :: I,J,L
-      REAL*8 W
+      REAL*8 W,EL
 C****
 C**** TOTAL WATER ENERGY (J/m^2)
 C****
@@ -2037,10 +2033,12 @@ C****
         EWATER(J) = 0.
         DO L=1,LM
           DO I=1,IMAXJ(J)
-            W = (Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)*mb2kg
-c this calculation needs to be checked!
-            EWATER(J)=EWATER(J)+SHV*W*T(I,J,L)*PK(L,I,J)+W*GRAV*HSCALE
-     *           *LOG(P(I,J)/PMID(L,I,J))
+c this calculation currently only calculates latent heat
+            W =(Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)*mb2kg
+            EL=(Q(I,J,L)*LHE+WM(I,J,L)*(LHE-SVLHX(L,I,J)))*PDSIG(L,I,J)
+     *           *mb2kg
+            EWATER(J)=EWATER(J)+EL !+W*(SHV*T(I,J,L)*PK(L,I,J)+GRAV
+!     *           *HSCALE*LOG(P(I,J)/PMID(L,I,J))) 
           END DO
         END DO
       END DO
@@ -2728,12 +2726,11 @@ C**** Atmospheric water mass
       QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
       CALL SET_CON(QCON,CONPT,"ATM WAT ","(10**-2 KG/M^2) ",
      *     "(10**-8 KG/SM^2)",1d2,1d8,icon_WM)
-C**** Atmospheric water energy
-C**** This is not currently a conserved quantity, but it should be.
-C**** Hence this diagnostic gives the error
+C**** Atmospheric water latent heat (at some point should include
+C**** sensible + potential energy associated with water mass as well)
       QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
-      CALL SET_CON(QCON,CONPT,"ENRG WAT","(J/M^2)         ",
-     *     "(10**-6 W/M^2)  ",1d0,1d6,icon_EWM)
+      CALL SET_CON(QCON,CONPT,"ENRG WAT","(10**3 J/M^2)   ",
+     *     "(10**-2 W/M^2)  ",1d-3,1d2,icon_EWM)
 
 C**** Initialize layering for spectral diagnostics
 C**** add in epsilon=1d-5 to avoid roundoff mistakes
