@@ -51,7 +51,7 @@ C**** Local variables initialised in init_RAD
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "RAD01"
 !@var RADDUM dummy variable
-      REAL*8, DIMENSION(6) :: RADDUM
+      REAL*8, DIMENSION(4) :: RADDUM
 
       MODULE_HEADER(lhead+1:80) = 'R8 S0,SunE,sinD,cosD,Teq(3,im,jm),'//
      *  's+tHr(0:lm,im,jm,2),fs(im,jm,4)'

@@ -24,7 +24,7 @@ C**** parameters and constants
 !@var BYBR factor for converting cloud particle radius to effect. radius
 !@var XMASS dummy variable
 
-C**** Set-able variables 
+C**** Set-able variables
 !@var LMCM max level for originating MC plumes                  DB-param
       INTEGER :: LMCM = -1 ! defaults to LS1-1 if not set in rundeck
 !@var U00wtr critical humidity for water cloud condensation     DB-param

@@ -395,7 +395,7 @@ C**** if "B" is not in the database, then Y is unchanged and its
 C**** value is saved in the database as "B" (here sync = synchronize)
       USE MODEL_COM, only : LM,NAMD6,IJD6,NIPRNT,MFILTR,XCDLM,NDASF
      *     ,NDA4,NDA5S,NDA5K,NDA5D,NDAA,NFILTR,NRAD,Kvflxo,Nslp
-     *     ,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
+     *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND
      $     ,ItimeI,PSFMPT,PSTRAT,SIG,SIGE
 cc?   USE DAGCOM, only : KDIAG
@@ -406,6 +406,7 @@ cc?   USE DAGCOM, only : KDIAG
 C**** Rundeck parameters:
       call sync_param( "NAMD6", NAMD6, 4 )
       call sync_param( "IJD6", IJD6(1:8,1), 8)
+      call sync_param( "NMONAV", NMONAV )
       call sync_param( "NIPRNT", NIPRNT )
       call sync_param( "MFILTR", MFILTR )
       call sync_param( "XCDLM", XCDLM, 2 )
