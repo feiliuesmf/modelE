@@ -1274,7 +1274,7 @@ C**** Actual array is set from restart file.
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FLICE ,1) ! Land ice fraction
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,ZATMO ,1) ! Topography
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,HLAKE ,2) ! Lake Depths
-      ZATMO = ZATMO*GRAV                                     ! Geopotential
+      ZATMO(:,J_0:J_1) = ZATMO(:,J_0:J_1)*GRAV                  ! Geopotential
       call closeunit(iu_TOPO)
 
 C**** Initialise some modules before finalising Land/Ocean/Lake/LI mask
