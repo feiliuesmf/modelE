@@ -730,8 +730,12 @@ C**** NEW ICE IS FORMED ON OPEN OCEAN AND POSSIBLY BELOW OLD SEA ICE
         ROICEN=ROICE+DRSI
 C**** New formulation:
 C**** Split all upper mass layer fields into ice and snow components
-        HSNOW = HSIL(1)*MIN(SNOW/(XSI(1)*MSI1),1d0) +
-     *          HSIL(2)*MAX(1.-ACE1I/(XSI(2)*MSI1),0d0)
+        IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+          HSNOW = (HSIL(1)-LHM*SSIL(1))*SNOW/(XSI(1)*MSI1)
+        ELSE
+          HSNOW = HSIL(1) + (HSIL(2)-LHM*SSIL(2))*(SNOW-XSI(1)*MSI1)
+     *         /(XSI(2)*MSI1)
+        END IF
         HICE  = HSIL(1)+HSIL(2)-HSNOW
 CC      SSNOW = 0.   ! always zero
         SICE  = SSIL(1)+SSIL(2)
@@ -845,8 +849,12 @@ C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
         FRI(3:4)=XSI(3:4)*MSI2/(ACE1I+MSI2)
 C**** New formulation:
 C**** Split all upper mass layer fields into ice and snow components
-        HSNOW = HSIL(1)*MIN(SNOW/(XSI(1)*MSI1),1d0) +
-     *          HSIL(2)*MAX(1.-ACE1I/(XSI(2)*MSI1),0d0)
+        IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+          HSNOW = (HSIL(1)-LHM*SSIL(1))*SNOW/(XSI(1)*MSI1)
+        ELSE
+          HSNOW = HSIL(1) + (HSIL(2)-LHM*SSIL(2))*(SNOW-XSI(1)*MSI1)
+     *         /(XSI(2)*MSI1)
+        END IF
         HICE  = HSIL(1)+HSIL(2)-HSNOW
 CC      SSNOW = 0.   ! always zero
         SICE  = SSIL(1)+SSIL(2)
@@ -923,7 +931,7 @@ C**** Ensure that MSI2 does not get too small for fixed-SST case.
 C**** Calculate temperatures for diagnostics and radiation
       TSIL(1:2)=((HSIL(1:2)-SSIL(1:2)*LHM)/(XSI(1:2)*MSI1)+LHM)*BYSHI
       TSIL(3:4)=((HSIL(3:4)-SSIL(3:4)*LHM)/(XSI(3:4)*MSI2)+LHM)*BYSHI
-
+      
       RETURN
       END SUBROUTINE ADDICE
 
@@ -1059,8 +1067,12 @@ C**** salinity in sea ice decays if it is above threshold level ssi0
 C**** check first layer (default ice and snow)
 C**** New formulation:
 C**** Split all upper mass layer fields into ice and snow components
-      HSNOW = HSIL(1)*MIN((MSI1-ACE1I)/(XSI(1)*MSI1),1d0) +
-     *        HSIL(2)*MAX(1.-ACE1I/(XSI(2)*MSI1),0d0)
+      IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+        HSNOW = (HSIL(1)-LHM*SSIL(1))*(MSI1-ACE1I)/(XSI(1)*MSI1)
+      ELSE
+        HSNOW = HSIL(1) + (HSIL(2)-LHM*SSIL(2))*(XSI(2)*MSI1-ACE1I)
+     *       /(XSI(2)*MSI1)
+      END IF
       HICE  = HSIL(1)+HSIL(2)-HSNOW
 CC    SSNOW = 0.   ! always zero
       SICE  = SSIL(1)+SSIL(2)

@@ -920,8 +920,8 @@ C**** regional diagnostics
 C**** Store mass and energy fluxes for formation of sea ice
 C**** Note ACEFO/I is the freshwater amount of ice.
 C**** Add salt for total mass
-          DMSI(1,I,J)=ACEFO*(1.+SSI0)
-          DMSI(2,I,J)=ACEFI*(1.+SSI0)
+          DMSI(1,I,J)=ACEFO/(1.-SSI0)
+          DMSI(2,I,J)=ACEFI/(1.-SSI0)
           DHSI(1,I,J)=ENRGFO
           DHSI(2,I,J)=ENRGFI
           DSSI(1,I,J)=SSI0*DMSI(1,I,J)
