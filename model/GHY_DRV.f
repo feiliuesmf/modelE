@@ -609,7 +609,8 @@ c**** or these
               print*,"No topo data: i,j=",i,j,top_index_ij(i,j)
               top_index_ij(i,j)=top_index_ij(10,40)
             end if
-            if (sum(dz_ij(i,j,1:ngm)).eq.0) then
+            if (sum(dz_ij(i,j,1:ngm)).eq.0 
+     &                .or. wbare(1,i,j) < 1.d-10) then
               print*,"No soil data: i,j=",i,j,dz_ij(i,j,1:ngm)
               dz_ij(i,j,1:ngm)=dz_ij(10,40,1:ngm)
               q_ij(i,j,1:imt,1:ngm)=q_ij(10,40,1:imt,1:ngm)
