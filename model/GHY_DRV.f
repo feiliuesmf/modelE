@@ -134,7 +134,7 @@ c****
       implicit none
 
       integer, intent(in) :: ns,moddsf,moddd
-      integer i,j,l,kr,jr,itype,ih,ihm,ibv
+      integer i,j,kr,jr,itype,ih,ihm,ibv
       real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws,rcdhws
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat,wtr2av    !,dhgs
      *     ,wfc1,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij,psoil,pearth
@@ -161,7 +161,6 @@ ccc new vars
 #endif
 #ifdef TRACERS_DRYDEP
       real*8 tdryd, tdd, td1
-      integer k
 #endif
 #endif
       real*8 qsat
@@ -230,7 +229,7 @@ c****
 
 !$OMP  PARALLEL DO PRIVATE
 !$OMP*  (ACE2AV, ELHX,EVAP,EVHDT, CDM,CDH,CDQ,
-!$OMP*   I,ITYPE, J, KR, L,MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
+!$OMP*   I,ITYPE, J, KR, MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
 !$OMP*   QG_NSAT,QSATS, RHOSRF,RHOSRF0,RCDMWS,RCDHWS, SRHDT,SRHEAT,SHDT,
 !$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TRHDT,TG2AV, WARMER,WFC1,WTR2AV,q1
 #ifdef TRACERS_ON
@@ -376,17 +375,17 @@ cddd            trsnowd(nx,ibv) = TRSNOWBV(n,ibv,i,j)
 cddd            trsoil_tot(nx)=trsoil_tot(nx)+trsnowd(nx,ibv)*frac
 cddd          end if
 cddd        end do
-cddd        do l= 2-ibv,ngm
-cddd          wsoil_tot=wsoil_tot+w(l,ibv)*frac
+cddd        do k= 2-ibv,ngm
+cddd          wsoil_tot=wsoil_tot+w(k,ibv)*frac
 cddd          do nx=1,ntx
 cddd            n=ntix(nx)
 cddd            if (tr_wd_TYPE(n).eq.nWATER) THEN
 cddd              if (ibv.eq.1) then
-cddd                trw(nx,l,ibv)= TRBARE(n,l,i,j)
+cddd                trw(nx,k,ibv)= TRBARE(n,k,i,j)
 cddd              else
-cddd                trw(nx,l,ibv)= TRVEGE(n,l,i,j)
+cddd                trw(nx,k,ibv)= TRVEGE(n,k,i,j)
 cddd              end if
-cddd              trsoil_tot(nx)=trsoil_tot(nx)+trw(nx,l,ibv)*frac
+cddd              trsoil_tot(nx)=trsoil_tot(nx)+trw(nx,k,ibv)*frac
 cddd            end if
 cddd          end do
 cddd        end do
@@ -938,7 +937,6 @@ c**** modifications needed for split of bare soils into 2 types
       real*8 slim,slre,svh,z
       real*8 snm,snf  ! temporary sums (adf)
       real*8 cwc_sum
-      integer iv, l
       logical ghy_data_missing
       character conpt(npts)*10
 #ifdef TRACERS_WATER
@@ -1319,7 +1317,7 @@ c****
       implicit none
       integer i0,j0
       real*8 wfcap
-      integer l,ibv,k,i
+      integer k,ibv,i
       real*8 alaic,shtpr
 !----------------------------------------------------------------------!
       real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
@@ -1352,12 +1350,12 @@ c**** set up layers
 
 c**** calculate the boundaries, based on the thicknesses.
       zb(1)=0.
-      do l=1,n
-        zb(l+1)=zb(l)-dz(l)
+      do k=1,n
+        zb(k+1)=zb(k)-dz(k)
       end do
 c**** calculate the layer centers, based on the boundaries.
-      do l=1,n
-        zc(l)=.5*(zb(l)+zb(l+1))
+      do k=1,n
+        zc(k)=.5*(zb(k)+zb(k+1))
       end do
 c**** fb,fv: bare, vegetated fraction (1=fb+fv)
       fb=afb(i0,j0)
@@ -1365,14 +1363,14 @@ c**** fb,fv: bare, vegetated fraction (1=fb+fv)
 
 c****
       do ibv=1,2
-        do l=1,n
-          thets(l,ibv)=0.
-          thetm(l,ibv)=0.
+        do k=1,n
+          thets(k,ibv)=0.
+          thetm(k,ibv)=0.
           do i=1,imt-1
-            thets(l,ibv)=thets(l,ibv)+q(i,l)*thm(0,i)
-            thetm(l,ibv)=thetm(l,ibv)+q(i,l)*thm(nth,i)
+            thets(k,ibv)=thets(k,ibv)+q(i,k)*thm(0,i)
+            thetm(k,ibv)=thetm(k,ibv)+q(i,k)*thm(nth,i)
           end do
-          ws(l,ibv)=thets(l,ibv)*dz(l)
+          ws(k,ibv)=thets(k,ibv)*dz(k)
         end do
       end do
 !veg      ws(0,2)=.0001d0*alai
@@ -1382,12 +1380,12 @@ c****
       call xklh0
 c****
       do ibv=1,2
-        do l=1,n
-          shc(l,ibv)=0.
+        do k=1,n
+          shc(k,ibv)=0.
           do i=1,imt
-            shc(l,ibv)=shc(l,ibv)+q(i,l)*shcap(i)
+            shc(k,ibv)=shc(k,ibv)+q(i,k)*shcap(i)
           end do
-          shc(l,ibv)=(1.-thets(l,ibv))*shc(l,ibv)*dz(l)
+          shc(k,ibv)=(1.-thets(k,ibv))*shc(k,ibv)*dz(k)
         end do
       end do
 c****
@@ -1427,14 +1425,14 @@ c**** based on combination of layers 2-n, as in retp2
 
       real*8 snowdp,tg1,tg2,wtr1,wtr2,ace1,ace2
       real*8 wfc1, wfc2, wet1, wet2, wmin, fbv
-      integer l, ibv, ll
+      integer k, ibv, ll
 
       wfc1=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
       wfc2=0.
       fbv=fb
       do 30 ibv=1,2
-      do 20 l=2,n
-      wfc2=wfc2+fbv*ws(l,ibv)
+      do 20 k=2,n
+      wfc2=wfc2+fbv*ws(k,ibv)
    20 continue
       fbv=fv
    30 continue
@@ -1454,13 +1452,13 @@ c**** w = snow(if top layer) + wmin + (wmax-wmin)*(wtr+ice)/wfc
         w(1,ibv)=w(1,ibv)+wmin+(ws(1,ibv)-wmin)*wet1
         snowd(ibv)=snowdp
         tp(1,ibv)=tg1
-        do l=2,n
-          fice(l,ibv)=ace2/(wtr2+ace2+1.d-20)
-          wmin=thetm(l,ibv)*dz(l)
+        do k=2,n
+          fice(k,ibv)=ace2/(wtr2+ace2+1.d-20)
+          wmin=thetm(k,ibv)*dz(k)
           wet2=(wtr2+ace2)/(wfc2+1.d-20)
           if(wet2.gt.1.) wet2=1.
-          w(l,ibv)=wmin+(ws(l,ibv)-wmin)*wet2
-          tp(l,ibv)=tg2
+          w(k,ibv)=wmin+(ws(k,ibv)-wmin)*wet2
+          tp(k,ibv)=tg2
         end do
       end do
 c****
@@ -1469,13 +1467,13 @@ c****
 c**** compute ht (heat w/m+2)
       do ibv=1,2
         ll=2-ibv
-        do l=ll,n
-          if(tp(l,ibv)) 2,4,6
- 2        ht(l,ibv)=tp(l,ibv)*(shc(l,ibv)+w(l,ibv)*shi)-w(l,ibv)*fsn
+        do k=ll,n
+          if(tp(k,ibv)) 2,4,6
+ 2        ht(k,ibv)=tp(k,ibv)*(shc(k,ibv)+w(k,ibv)*shi)-w(k,ibv)*fsn
           cycle
- 4        ht(l,ibv)=-fice(l,ibv)*w(l,ibv)*fsn
+ 4        ht(k,ibv)=-fice(k,ibv)*w(k,ibv)*fsn
           cycle
- 6        ht(l,ibv)=tp(l,ibv)*(shc(l,ibv)+w(l,ibv)*shw)
+ 6        ht(k,ibv)=tp(k,ibv)*(shc(k,ibv)+w(k,ibv)*shw)
         end do
       end do
       if(ijdebug.eq.0)then
@@ -1510,7 +1508,7 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
       use sle001
       implicit none
       real*8 tg2av,wtr2av,ace2av, wc,htc,shcc,tpc,ficec,ftp
-      integer l, ibv
+      integer k, ibv
       tg2av=0.
       wtr2av=0.
       ace2av=0.
@@ -1518,10 +1516,10 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
       wc=0.
       htc=0.
       shcc=0.
-      do l=2,n
-        wc=wc+w(l,ibv)
-        htc=htc+ht(l,ibv)
-        shcc=shcc+shc(l,ibv)
+      do k=2,n
+        wc=wc+w(k,ibv)
+        htc=htc+ht(k,ibv)
+        shcc=shcc+shc(k,ibv)
       end do
       tpc=0.
       ficec=0.
@@ -1554,7 +1552,7 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
       implicit none
 
       real*8 x,tgl,wtrl,acel
-      integer i,j,k
+      integer i,j
 !@var subr identifies where check was called from
       character*6, intent(in) :: subr
 
