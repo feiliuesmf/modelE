@@ -92,6 +92,12 @@ DEPENDFILE = $(OBJ_DIR)/.depend.$(RUN)
 RUN_H = rundeck_opts.h
 RUN_H_TMP = tmp_cpp.h
 
+# getting options from configuration files
+# default modelE configuration file:
+include $(SCRIPTS_DIR)/modelErc
+# configuration file with user-defined options:
+sinclude ~/.modelErc
+
 #
 # Lists of objects and dependencies
 # 
@@ -101,11 +107,12 @@ ifeq ($(shell [ -s $(RUNDECK) ] && echo yes),yes)
 OBJ_LIST = $(shell [ -s $(RUNDECK) ] && perl \
 	-e 'while(<> !~ /^Object +modules/ ){};' \
 	-e 'while(($$_=<>) !~ /(^Data +input)|(^ *$$)/)' \
-	-e '{chop; s/ *(!.*)*$$//; s/~/$(MACHINE)/g;print " $$_";}' \
+	-e '{chop; s/ *(!.*)*$$//; print " $$_";}' \
 	< $(RUNDECK))
 
 sinclude $(DEPENDFILE)
 FSRCS = $(OBJ_LIST:=.f)
+FSRCS_CPP = $(OBJ_LIST:=.cpp)
 OBJS = $(OBJ_LIST:=.o)
 
 MODS = $(sort $(shell perl \
@@ -202,9 +209,10 @@ newstart:
         exit 1; fi
 	rm -i /u/cmrun/$(RUN)/*
 
-htmldoc:
+htmldoc: $(FSRCS_CPP)
 	[ -d $(DOC_DIR) ] || mkdir $(DOC_DIR)
-	$(SCRIPTS_DIR)/gcmdoc.pl -O $(DOC_DIR) -R $(RUN) $(FSRCS)
+	$(SCRIPTS_DIR)/gcmdoc.pl -O $(DOC_DIR) -R $(RUN) -cpp $(FSRCS)
+	rm -f $(FSRCS_CPP)
 
 clean:
 	rm -f *.LST *~ *.ERR *.CHK *.L

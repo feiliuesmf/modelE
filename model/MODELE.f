@@ -566,7 +566,7 @@ C****
         WRITE (8,'(A)') NLREC
       END DO
       REWIND 8
-      READ (8,NML=INPUTZ)
+      READ (8,NML=INPUTZ,ERR=900)
       REWIND 8
 C****
 C**** Read parameters from the rundeck to the database
@@ -1071,6 +1071,8 @@ C****
       STOP 'INPUT: ERRORS ON BOTH RESTART FILES'
   890 WRITE (6,'(A,I5)') '0INCORRECT VALUE OF ISTART',ISTART
       STOP 'INPUT: ISTART-SPECIFICATION INVALID'
+  900 write (6,*) 'Incompatible NAMELIST parameters'
+      stop 'Incompatible NAMELIST parameters'
       END SUBROUTINE INPUT
 
       SUBROUTINE DAILY(IEND)

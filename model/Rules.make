@@ -1,5 +1,5 @@
 #
-# this files contains rules shared by Makefiles in "model" and "aux"
+# this file contains rules shared by Makefiles in "model" and "aux"
 #
 
 .PHONY: FORCE
@@ -18,17 +18,12 @@ EXTRA_FFLAGS =
 # -DCOMPILER=Absoft    - compile code that is specific to Absoft
 CPPFLAGS =
 
-# COMP_OUTPUT, LINK_OUTPUT specify if you want to send error output 
-# to the screen or to a file ( no arg = screen )
-#COMP_OUTPUT =   
-#LINK_OUTPUT =
-COMP_OUTPUT = > $*.ERR 2>&1 || { r=$$? ; cat $*.ERR ; exit $$r ; }
-LINK_OUTPUT = > $(RUN).ERR 2>&1 || { r=$$? ; cat $(RUN).ERR ; exit $$r ; }
-
-# overwriting above options if environment var MODELE_MAKE_OUTPUT=SCREEN
-ifeq ($(MODELE_MAKE_OUTPUT),SCREEN)
-COMP_OUTPUT =
-LINK_OUTPUT =
+ifeq ($(OUTPUT_TO_FILES),YES)
+  COMP_OUTPUT = > $*.ERR 2>&1 || { r=$$? ; cat $*.ERR ; exit $$r ; }
+  LINK_OUTPUT = > $(RUN).ERR 2>&1 || { r=$$? ; cat $(RUN).ERR ; exit $$r ; }
+else
+  COMP_OUTPUT =
+  LINK_OUTPUT =
 endif
 
 # if -s specified enable some extra messages
@@ -48,8 +43,10 @@ FMAKEDEP = $(NO_COMMAND)
 F =  $(NO_COMMAND)
 U = $(NO_COMMAND)
 SETUP = $(SCRIPTS_DIR)/setup_e
+CPP = $(NO_COMMAND)
 MACHINE = not_specified
 COMPILER = not_specified
+LIBS =
 
 UNAME = $(shell uname)
 
@@ -57,10 +54,10 @@ UNAME = $(shell uname)
 ifeq ($(UNAME),IRIX64)
 MACHINE = SGI
 F90 = f90
+CPP = /lib/cpp -P
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -H
 F       = $(SCRIPTS_DIR)/fco2_90
 U	= $(SCRIPTS_DIR)/uco2_f90
-LIBS	= -L/usr/local/netcdf-3.4/lib64 -lnetcdf 
 FFLAGS = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745
 LFLAGS = -64 -O2 -mips4 -lfastm -mp -OPT:reorg_common=OFF -Wl,-woff,134 -Wl,-woff,15
 endif
@@ -79,6 +76,7 @@ MACHINE = Linux
 #LFLAGS = -O2
 COMPILER = Absoft
 F90 = f90
+CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
 CPPFLAGS= -DCONVERT_BIGENDIAN
 FFLAGS = -O -B100 
@@ -89,12 +87,23 @@ endif
 ifeq ($(UNAME),AIX)
 MACHINE = IBM
 F90 = xlf90_r
+CPP = /lib/cpp -P
 FMAKEDEP = perl $(SCRIPTS_DIR)/sfmakedepend
 FFLAGS = -O2 -qfixed
 LFLAGS = -O2
 endif
 
+CPPFLAGS += -DMACHINE_$(MACHINE)
+
 # end of machine - specific options
+
+#
+# Check for extra options specified in modelErc
+#
+
+ifdef NETCDFHOME
+  LIBS += -L$(NETCDFHOME) -lnetcdf
+endif
 
 #
 # Pattern  rules
@@ -115,25 +124,28 @@ FORCE:
 # .timestemp is a hack to set proper times on .o and .mod
 # For the Absoft compiler, we need to force a cpp run through
 %.o: %.f
-	@echo compiling $@ $(MSG)
+	@echo -n compiling $< ... $(MSG)
 	@touch .timestamp
-	@echo -n Compiling $<...
-	@if [ $(COMPILER) = Absoft ] ; then cpp -traditional -E $(CPPFLAGS) $< $*.F ; $(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $*.F  $(COMP_OUTPUT) ; rm $*.F ; else $(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $*.f  $(COMP_OUTPUT) ; fi
-	-@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; do if [ ! -s $$i.sig ] || [ $$i -nt $$i.sig ] ; then echo $@ > $$i.sig; fi; done; fi 
+ifeq ($(COMPILER),Absoft)
+	cp $*.f $*.F
+	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $*.F  $(COMP_OUTPUT)
+	rm -f $*.F
+else
+	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $*.f  $(COMP_OUTPUT)
+endif
+	-@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
+	  do if [ ! -s $$i.sig ] || [ $$i -nt $$i.sig ] ; then \
+	  echo $@ > $$i.sig; fi; done; fi 
 	@touch -r .timestamp $@
+	@if [ -s $*.ERR ] ; then echo $(MSG); else echo Done $(MSG); fi
 ifdef COMP_OUTPUT
-	@if [ -s $*.ERR ] ; then echo ; cat $*.ERR; else echo Done ; rm -f $*.ERR; fi
+	@if [ -s $*.ERR ] ; then cat $*.ERR; else  rm -f $*.ERR; fi
 endif
 
-%.o: %.F
-	@echo compiling $@ $(MSG)
-	@touch .timestamp
-	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $<  $(COMP_OUTPUT)
-	-@if [ -s *.mod ] ; then for i in *.mod; do if [ ! -s $$i.sig ] || [ $$i -nt $$i.sig ] ; then echo $@ > $$i.sig; fi; done; fi
-	@touch -r .timestamp $@
-ifdef COMP_OUTPUT
-	@if [ -s $*.ERR ] ; then cat $*.ERR; else rm -f $*.ERR; fi
-endif
+# cpp preprocessing
+%.cpp: %.f
+	@echo preprocessing $<  $(MSG)
+	$(CPP) $(CPPFLAGS) $*.f > $*.cpp
 
 # Update files
 %.o: %.U
@@ -150,17 +162,6 @@ endif
 # FUNTABLE.OCN
 %.o: %.OCN
 	$(F) $<
-
-# RADIATION.f
-#RADIATION.o: RADIATION.f
-#	@touch .timestamp
-#	$(F90) -c -static $(FFLAGS) $(EXTRA_FFLAGS) $<  $(COMP_OUTPUT)
-#	-@if [ -s *.mod ] ; then for i in *.mod; do if [ ! -s $$i.sig ] || [ $$i -nt $$i.sig ] ; then echo $@ > $$i.sig; fi; done; fi
-#	@touch -r .timestamp $@
-#ifdef COMP_OUTPUT
-#	@if [ -s $*.ERR ] ; then cat $*.ERR; else rm -f $*.ERR; fi
-#endif
-
 
 
 # end of Pattern  rules

@@ -25,7 +25,7 @@ OCEAN ODEEP                         ! ocean modules
 SNOW                                ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
-CONST FFT72 UTILDBL RAND~           ! utilities
+CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
