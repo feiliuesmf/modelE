@@ -80,6 +80,10 @@ C****    The following are set in tracer_IC
       integer, dimension(ntm) :: itime_tr0
 !@var MTRACE: timing index for tracers
       integer mtrace
+#ifdef TRACERS_SPECIAL_Shindell
+!@var MCHEM: timing index for chemistry
+      integer mchem
+#endif
 
 #ifdef TRACERS_ON
 !@var NTM_POWER: Power of 10 associated with each tracer (for printing)

@@ -611,11 +611,10 @@ c
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm,lm,ptop
+      USE MODEL_COM, only: itime,jday,JDperY,im,jm,lm,ptop,psf,sig
       USE CONSTANT, only: sday,hrday
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       USE FLUXES, only: tr3Dsource
-      USE DYNAMICS, only   : PMID
       USE GEOM, only       : dxyp
       USE TRACER_COM, only: itime_tr0,trname,n_NOx
       use TRACER_SOURCES, only: nAircraft,Laircr
@@ -673,12 +672,8 @@ C====
        DO I=1,IM
         DO L=1,LM
           tr3Dsource(i,j,l,nAircraft,n_NOx) = 0.
-          if(L.LT.LM) then
-            PRES(L)=PMID(L+1,I,J) !Pressure @ layer top?
-          else
-            PRES(L)=PTOP
-          endif
-        ENDDO   ! L
+          PRES(L)=SIG(L)*(PSF-PTOP)+PTOP !Pressure @ layer top?
+        ENDDO                   ! L
         tr3Dsource(i,j,1,nAircraft,n_NOx) = SRC(I,J,1,1)*dxyp(j)
         DO LL=2,Laircr
           LINJECT=.TRUE.

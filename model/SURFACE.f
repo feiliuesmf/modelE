@@ -35,11 +35,14 @@ C**** Interface to PBL
      &     ,US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KHS,KQS !,PPBL ! ,KMS
      &     ,UG,VG,WG,ZMIX
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,dclev
-      USE PBL_DRV, only : pbl,evap_max,fr_sat,uocean,vocean
+      USE PBL_DRV, only : pbl,evap_max,fr_sat,uocean,vocean,psurf,trhr0
 #ifdef TRACERS_ON
      *     ,trtop,trs,trsfac,trconstflx,ntx,ntix
 #ifdef TRACERS_WATER
-     *     ,tr_evap_max,psurf,trhr0
+     *     ,tr_evap_max
+#endif
+#ifdef TRACERS_DRYDEP
+     *     ,dep_vel
 #endif
 #endif
       USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndiupt,jreg
@@ -70,7 +73,7 @@ C**** Interface to PBL
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
-      USE tracers_DRYDEP, only : dtr_dd,dep_vel
+      USE tracers_DRYDEP, only : dtr_dd
 #endif
       USE TRACER_DIAG_COM, only : taijn,tij_surf
 #ifdef TRACERS_WATER
@@ -397,6 +400,8 @@ C****
       QG_SAT=QSAT(TG,ELHX,PS)
       IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG_SAT=0.98d0*QG_SAT
       TGV=TG*(1.+QG_SAT*deltx)
+      psurf=PS   ! extra values to pass to PBL, possibly temporary
+      trhr0 = TRHR(0,I,J) 
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
       do nx=1,ntx
@@ -405,8 +410,6 @@ C**** Set surface boundary conditions for tracers depending on whether
 C**** they are water or another type of tracer
 #ifdef TRACERS_WATER
         tr_evap_max(nx)=1.
-        psurf=PS
-        trhr0 = TRHR(0,I,J)
 C**** The select is used to distinguish water from gases or particle
 !!!        select case (tr_wd_TYPE(n))
 !!!        case (nWATER)
@@ -426,7 +429,7 @@ C**** Calculate trsfac (set to zero for const flux)
           rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) then
-            trsfac(nx)=rhosrf0 
+            trsfac(nx)=1. ! rhosrf0 
      &      !then multiplied by deposition velocity in PBL
 #ifdef TRACERS_WATER
             tr_evap_max(nx)=1.d30
@@ -912,7 +915,7 @@ C****
 #ifdef TRACERS_DRYDEP
 C**** Save for tracer dry deposition conservation quantity:
       do n=1,ntm   
-        if(dodrydep(n))call diagtcb(dtr_dd(1,n),itcon_dd(n),n)     
+        if(dodrydep(n)) call diagtcb(dtr_dd(1,n),itcon_dd(n),n)     
       end do
 #endif      
       RETURN

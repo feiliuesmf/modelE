@@ -13,9 +13,11 @@
      &                     ,by3,shv,sha,shw,lhe,stbo,rhow,rgas
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trname
+#ifdef TRACERS_WATER
+     &     ,tr_wd_TYPE, nWATER
+#endif
 #ifdef TRACERS_DRYDEP
-     & ,dodrydep
-      USE tracers_DRYDEP, only: dep_vel
+     &     ,dodrydep
 #endif
 #endif
       IMPLICIT NONE
@@ -121,10 +123,13 @@ CCC      real*8 :: bgrid
 #ifdef TRACERS_ON
      *     trs,trtop,trsfac,trconstflx,ntx,ntix,
 #ifdef TRACERS_WATER
-     *     tr_evap_max,psurf,trhr0,
+     *     tr_evap_max,
+#endif
+#ifdef TRACERS_DRYDEP
+     *     dep_vel,
 #endif
 #endif
-     4     ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,
+     4     psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,
      5     uocean,vocean,ts_guess,ilong,jlat,itype)
 !@sum  advanc  time steps the solutions for the boundary layer variables
 !@auth  Ye Cheng/G. Hartke
@@ -163,6 +168,8 @@ c   output:
 !@var  z0m  roughness height for momentum (if itype=1 or 2)
 !@var  z0h  roughness height for heat
 !@var  z0q  roughness height for moisture
+!@var  psurf surface pressure
+!@var  trhr0 incident long wave radiation 
 #ifdef TRACERS_ON
 !@var  trtop  tracer conc. at the top of the layer
 !@var  trs  surface tracer conc.
@@ -172,8 +179,6 @@ c   output:
 !@var  ntix index of tracers used in pbl
 #ifdef TRACERS_WATER
 !@var  tr_evap_max max amount of possible tracer evaporation
-!@var  psurf surface pressure
-!@var  trhr0 incident long wave radiation 
 #endif
 #endif
 c  internals:
@@ -195,6 +200,7 @@ c  internals:
       real*8, intent(in) :: tgrnd,qgrnd,evap_max,fr_sat,ztop,dtime
       real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
       integer, intent(in) :: ilong,jlat,itype
+      real*8, intent(in) :: psurf,trhr0
 #ifdef TRACERS_ON
       real*8, intent(in), dimension(ntm) :: trtop
       real*8, intent(in), dimension(ntm) :: trconstflx,trsfac
@@ -202,15 +208,17 @@ c  internals:
       integer, intent(in) :: ntx
       integer, intent(in), dimension(ntm) :: ntix
       real*8, dimension(n,ntm) :: trsave
-      real*8 trcnst,trsf,cqsave
+      real*8 trcnst,trsf,cqsave,ts
       real*8, dimension(n-1) :: kqsave
       integer itr
 #ifdef TRACERS_WATER
       real*8, intent(in), dimension(ntm) :: tr_evap_max
-      real*8, intent(in) :: psurf,trhr0
 #ifdef TRACERS_SPECIAL_O18
       real*8 fk,fraclk,fracvl,fracvs,tg1,tg,frac,qnet,rhosrf
 #endif
+#endif
+#ifdef TRACERS_DRYDEP
+      real*8 , intent(out), dimension(ntm) :: dep_vel
 #endif
 #endif
       real*8 :: lmonin,tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
@@ -329,52 +337,53 @@ c     write(97,*) "iter=",iter,ustar
 #ifdef TRACERS_ON
 C**** tracer calculations are passive and therefore do not need to
 C**** be inside the iteration. Use moisture diffusivity
+
+#ifdef TRACERS_DRYDEP
+C**** Get tracer deposition velocity (= 1 / bulk sfc resistance)
+C**** for all dry deposited tracers
+      ts=t(1)/(1.+q(1)*deltx)   ! surface air temp (K)
+      call get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar,ts,dep_vel)
+#endif
+
       do itr=1,ntx
         trcnst=trconstflx(itr)
         trsf=trsfac(itr)
 #ifdef TRACERS_WATER
-C**** Tracers need to multiply trsfac and trconstflx by cq*Usurf
-        trcnst=trconstflx(itr)*cqsave*wsh
-        trsf=trsfac(itr)*cqsave*wsh
+C**** Water tracers need to multiply trsfac and trconstflx by cq*Usurf
+        if (tr_wd_TYPE(ntix(itr)).eq.nWATER) then
+          trcnst=trconstflx(itr)*cqsave*wsh
+          trsf=trsfac(itr)*cqsave*wsh
 #ifdef TRACERS_SPECIAL_O18
 C**** Isotope tracers have different fractionations dependent on
 C**** type and direction of flux
-        tg1 =tgrnd/(1.+qgrnd*deltx)-tf ! re-calculate ground T (C)
-        tg =tg1+tf
-        select case (itype)
-        case (1)                ! ocean: kinetic fractionation
-          fk = fraclk(wsm,trname(ntix(itr)))
-          trcnst = trcnst * fk * fracvl(tg1,trname(ntix(itr)))
-          trsf = trsf * fk
-        case (2:4)              ! other types
+          tg1 =tgrnd/(1.+qgrnd*deltx)-tf ! re-calculate ground T (C)
+          tg =tg1+tf
+          select case (itype)
+          case (1)              ! ocean: kinetic fractionation
+            fk = fraclk(wsm,trname(ntix(itr)))
+            trcnst = trcnst * fk * fracvl(tg1,trname(ntix(itr)))
+            trsf = trsf * fk
+          case (2:4)          ! other types
 C**** tracers are now passive, so use 'upstream' concentration
-          if (q(1)-qgrnd.gt.0.) then  ! dew
-            trcnst = 0.
-            if (tg1.gt.0) then
-              frac=fracvl(tg1,trname(ntix(itr)))
+            if (q(1)-qgrnd.gt.0.) then ! dew
+              trcnst = 0.
+              if (tg1.gt.0) then
+                frac=fracvl(tg1,trname(ntix(itr)))
+              else
+                frac=fracvs(tg1,trname(ntix(itr)))
+              end if
+              trsf=trsf*(q(1)-qgrnd)/(q(1)*frac)
             else
-              frac=fracvs(tg1,trname(ntix(itr)))
+              trcnst = trcnst*(1.-q(1)/qgrnd)
+              trsf = 0.
             end if
-            trsf=trsf*(q(1)-qgrnd)/(q(1)*frac)
-          else
-            trcnst = trcnst*(1.-q(1)/qgrnd)
-            trsf = 0.
-          end if
-        end select
+          endx select
 #endif
+        end if
 #endif
 #ifdef TRACERS_DRYDEP
-C**** Get tracer deposition velocity (= 1 / bulk sfc resistance):
-        CALL get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar)
-C  
-C       I am resetting trsf & trcnst here because the TRACERS_WATER
-C       Gavin's code section above needs to be fixed to not operate on
-C       non-water tracers... 10/7/02 gsf
-        trcnst=trconstflx(itr)   ! reset
-        trsf=trsfac(itr)         ! reset
-C       Tracer Dry Deposition boundary condition for dry dep tracers:
-        if(dodrydep(ntix(itr)))
-     &  trsf=trsfac(itr)*dep_vel(ntix(itr))
+C**** Tracer Dry Deposition boundary condition for dry dep tracers:
+        if(dodrydep(ntix(itr))) trsf=trsfac(itr)*dep_vel(ntix(itr))
 #endif
         call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
      *       ,trcnst,trtop(itr),

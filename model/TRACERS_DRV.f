@@ -3619,7 +3619,7 @@ C         (lightning called from tracer_3Dsource)
 
 C****
 C**** Initialize tracers here to allow for tracers that 'turn on'
-C****  at any time
+C**** at the start of any day
       call tracer_IC
 
       return
@@ -3921,7 +3921,7 @@ C****
      &                          nChemistry
 #endif
       implicit none
-      INTEGER n,ns,najl,i,j,l
+      INTEGER n,ns,najl,i,j,l,mnow
 
 C**** All sources are saved as kg/s
       do n=1,ntm
@@ -3985,6 +3985,7 @@ C (Note: using this method, tracer moments are changed just like they
 C are done for chemistry.  It might be better to do it like surface
 C sources are done? -- GSF 11/26/02)
 c
+      CALL TIMER (MNOW,MTRACE) 
       call apply_tracer_3Dsource(nAircraft,n_NOx)
       tr3Dsource(:,:,:,nLightning,n_NOx) = 0.
       call get_lightning_NOx
@@ -4005,6 +4006,7 @@ C**** Apply chemistry and stratosphere overwrite changes:
         call apply_tracer_3Dsource(nChemistry,n)
         call apply_tracer_3Dsource(nStratwrite,n)
       end do
+      CALL TIMER (MNOW,MCHEM) 
 #endif
 
       return

@@ -14,14 +14,8 @@ c     input data:
 !@var evap_max maximal evaporation from unsaturated soil
 !@var  fr_sat fraction of saturated soil
       real*8 :: evap_max,fr_sat
-#ifdef TRACERS_WATER
-      real*8, dimension(ntm) :: tr_evap_max
       real*8 :: psurf, trhr0
-#endif
-      common/pbl_loc/evap_max,fr_sat,uocean,vocean
-#ifdef TRACERS_WATER
-     *     ,tr_evap_max,psurf,trhr0
-#endif
+      common/pbl_loc/evap_max,fr_sat,uocean,vocean,psurf,trhr0
 
 !$OMP  THREADPRIVATE (/pbl_loc/)
 
@@ -34,7 +28,21 @@ C**** Tracer input/output common block for PBL
       real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
       integer ntx
       integer, dimension(ntm) :: ntix
+#ifdef TRACERS_WATER
+!@var tr_evap_max maximum amount of tracer available in ground reservoir
+      real*8, dimension(ntm) :: tr_evap_max
+#endif
+#ifdef TRACERS_DRYDEP
+!@var dep_vel the deposition velocity = 1/bulk sfc. res. (m/s)
+      real*8, dimension(ntm) :: dep_vel
+#endif
       common /trspec/trtop,trs,trsfac,trconstflx,ntx,ntix
+#ifdef TRACERS_WATER
+     *     ,tr_evap_max
+#endif
+#ifdef TRACERS_DRYDEP
+     *     ,dep_vel
+#endif
 
 !$OMP  THREADPRIVATE (/trspec/)
 #endif
@@ -67,11 +75,8 @@ C          ,UG,VG,WG,ZMIX,W2_1
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q,w2_1
 #ifdef TRACERS_ON
      *     ,tr
-#ifdef TRACERS_DRYDEP
-      USE tracers_DRYDEP, only: TS_drydep
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only: PBLH
-#endif
 #endif
 #endif
 
@@ -184,12 +189,6 @@ C        roughness lengths from Brutsaert for rough surfaces
       do nx=1,ntx
         tr(:,nx)=trabl(:,ntix(nx),i,j,itype)
       end do
-#ifdef TRACERS_DRYDEP
-C**** Convert surface virtual potential temperature to actual surface
-C**** temperature.  Note that at the surface, potential temperature =
-C**** actual temperature, so in practice, just convert from virtual:
-      TS_drydep=tpbl(1)/(1.+qpbl(1)*deltx) 
-#endif
 #endif
 
       cm=cmgs(i,j,itype)
@@ -207,10 +206,13 @@ C**** actual temperature, so in practice, just convert from virtual:
 #ifdef TRACERS_ON
      *     trs,trtop,trsfac,trconstflx,ntx,ntix,
 #ifdef TRACERS_WATER
-     *     tr_evap_max,psurf,trhr0,
+     *     tr_evap_max,
+#endif
+#ifdef TRACERS_DRYDEP
+     *     dep_vel,
 #endif
 #endif
-     4     ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,
+     4     psurf,trhr0,ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,
      5     uocean,vocean,ts_guess,i,j,itype)
 
       uabl(:,i,j,itype)=upbl(:)

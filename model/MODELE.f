@@ -565,6 +565,9 @@ C****
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM,only: MTRACE,NTM,TRNAME
+#ifdef TRACERS_SPECIAL_Shindell
+     *     ,mchem
+#endif
 #endif
       USE DAGCOM, only : acc_period,monacc,kacc,jreg,titreg,namreg
      &  ,hr_in_day,iwrite,jwrite,itwrite,kdiag,qdiag,qdiag_ratios,oa
@@ -649,6 +652,9 @@ C**** Other speciality descriptions can be added/used locally
       CALL SET_TIMER("       OTHER",MELSE)
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       CALL SET_TIMER("     TRACERS",MTRACE)
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      CALL SET_TIMER("   CHEMISTRY",MCHEM)
 #endif
 C****
 C**** Set some documentary parameters in the database

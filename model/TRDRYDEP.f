@@ -74,19 +74,15 @@ C
 !@var DRYCOEFF polynomial fittings coeffcients  
 !@var CZ Altitude (m) at which deposition velocity would be computed
 !@var CFRAC fractional cloud cover
-!@var dep_vel the deposition velocity = 1/bulk sfc. res. (m/s)
 !@var trdrydep_rad Solar radiation in W m-2 reaching surface?
 !@var dtr_dd to save drydep change for conservation quantities
-!@var TS_drydep surface temperature (K)
 c
       INTEGER, PARAMETER :: NPOLY   = 20,
      &                      NTYPE   = 16,
      &                      NVEGTYPE= 74
-      REAL*8                                 TS_drydep
-      REAL*8,  DIMENSION(IM,JM)           :: CFRAC,trdrydep_rad                   
+      REAL*8,  DIMENSION(IM,JM)           :: CFRAC,trdrydep_rad
       REAL*8,  DIMENSION(IM,JM,NTYPE)     :: XYLAI,XLAI,XLAI2
       REAL*8,  DIMENSION(NPOLY)           :: DRYCOEFF
-      REAL*8,  DIMENSION(ntm)             :: dep_vel
       REAL*8,  DIMENSION(JM,ntm)          :: dtr_dd
       INTEGER, DIMENSION(IM,JM)           :: IJREG,IREG
       INTEGER, DIMENSION(IM,JM,NTYPE)     :: IJLAND,IJUSE
@@ -94,14 +90,11 @@ c
       INTEGER, DIMENSION(NTYPE)           :: IRI,IRLU,IRAC,IRGSS,
      &                                       IRGSO,IRCLS,IRCLO,IVSMAX
        
-      common/drydep_loc/ TS_drydep,dep_vel
-!$OMP  THREADPRIVATE (/drydep_loc/)
-
       END MODULE tracers_DRYDEP
 C
 C      
 #ifdef TRACERS_DRYDEP
-      SUBROUTINE get_dep_vel(I,J,ITYPE,OBK,ZHH,USTARR)
+      SUBROUTINE get_dep_vel(I,J,ITYPE,OBK,ZHH,USTARR,TEMPK,DEP_VEL)
 !@sum  get_dep_vel computes the Bulk surface reistance to
 !@+    tracer dry deposition using a resistance-in-series model
 !@+    from a portion of the Harvard CTM dry deposition routine.
@@ -119,15 +112,16 @@ C
       USE GEOM,       only : imaxj
       USE CONSTANT,   only : tf     
       USE RADNCB,     only : COSZ1
-      USE TRACER_COM, only : ntm,tr_wd_TYPE,nPART,trname,tr_mm,
-     & dodrydep,F0,HSTAR ! tr_wd_TYPE,nPART are defined if drydep on
+ ! tr_wd_TYPE,nPART are defined if drydep on
+      USE TRACER_COM, only : ntm, tr_wd_TYPE, nPART, trname, tr_mm,
+     &     dodrydep, F0_glob=>F0, HSTAR_glob=>HSTAR
 #ifdef TRACERS_SPECIAL_Shindell
-     & ,n_NOx
+     &     , n_NOx
       USE TRCHEM_Shindell_COM, only : pNOx
 #endif
       USE tracers_DRYDEP, only: NPOLY,IJREG,IJLAND,XYLAI,
      & DRYCOEFF,IJUSE,NTYPE,IDEP,IRI,IRLU,IRAC,IRGSS,IRGSO,
-     & IRCLS,IRCLO,IVSMAX,CFRAC,dep_vel,trdrydep_rad,TS_drydep
+     & IRCLS,IRCLO,IVSMAX,CFRAC,trdrydep_rad
      
       IMPLICIT NONE
 c
@@ -175,12 +169,14 @@ C
 !@var IOLSON integer index for olson surface types?
 !@var VD deposition velocity temp array   (s m-1)
       REAL*8,  DIMENSION(ntm,NTYPE) :: RSURFACE
-      REAL*8,  DIMENSION(ntm)   :: TOTA,VD
+      REAL*8,  DIMENSION(ntm)   :: TOTA,VD,HSTAR,F0
       REAL*8,  DIMENSION(NTYPE) :: RI,RLU,RAC,RGSS,RGSO,RCLS,RCLO
       REAL*8 RT,RAD0,RIX,GFACT,GFACI,RDC,RIXX,RLUXX,RGSX,RCLX,VDS,
      &       DTMP1,DTMP2,DTMP3,DTMP4,CZH,DUMMY1,DUMMY2,DUMMY3,DUMMY4,
-     &       TEMPC,TEMPK,byTEMPC,BIOFIT,DIFFG,tr_mm_temp,SUNCOS
-      REAL*8, INTENT(IN) :: OBK,ZHH,USTARR
+     &       TEMPC,byTEMPC,BIOFIT,DIFFG,tr_mm_temp,SUNCOS
+      REAL*8, INTENT(IN) :: OBK,ZHH,USTARR,TEMPK
+!@var dep_vel the deposition velocity = 1/bulk sfc. res. (m/s)
+      REAL*8, INTENT(OUT), DIMENSION(NTM) :: dep_vel
       INTEGER k,n,LDT,II,IW,IOLSON
       INTEGER, INTENT(IN) :: I,J,ITYPE  
       LOGICAL problem_point
@@ -203,7 +199,7 @@ C* Initialize VD and RSURFACE and reciprocal:
       END DO    
 C
 C** TEMPK and TEMPC are surface air temperatures in K and in C  
-      TEMPK = TS_drydep ! was BLDATA(I,J,2)
+ccc      TEMPK was BLDATA(I,J,2) now input as argument
       TEMPC = TEMPK-tf
       byTEMPC = 1.D0/TEMPC    
       RAD0 = trdrydep_rad(I,J)
@@ -219,13 +215,15 @@ C
 C  Check for species-dependant corrections to drydep parameters:      
       DO K = 1,ntm
        if(dodrydep(K)) then
+         HSTAR(K)=HSTAR_glob(K)
+         F0(K)=F0_glob(K)
 #ifdef TRACERS_SPECIAL_Shindell
 c       For NOx, sum deposition for NO and NO2
 c       HSTAR: NO2 = 0.01, NO = 0.002, F0: NO2 = 0.1, NO = 0.0
-        if(trname(K).eq.'NOx')then
-          HSTAR(K)=pNOx(i,j,1)*0.01+(1.-pNOx(i,j,1))*.002
-          F0(K)=pNOx(i,j,1)*0.1
-        endif 
+         if(trname(K).eq.'NOx')then
+           HSTAR(K)=pNOx(i,j,1)*0.01d0+(1.-pNOx(i,j,1))*.002d0
+           F0(K)=pNOx(i,j,1)*0.1d0
+         endif 
 #endif
        end if
       END DO
@@ -466,7 +464,6 @@ C       Please see comments in land case above:
         RCLS(LDT) = 1.E12
         RCLO(LDT) = REAL(IRCLO(II)) + RT
         IF (RCLO(LDT) .GE. 9999.) RCLO(LDT) = 1.E12
-        RAD0 = trdrydep_rad(I,J)
         RIX = RI(LDT)  
         IF (RIX .LT. 9999.) THEN
           IF (TEMPC.GT.0. .AND. TEMPC.LT.40.) THEN

@@ -94,7 +94,7 @@ c****
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
-      use tracers_DRYDEP, only : dtr_dd,dep_vel
+      use tracers_DRYDEP, only : dtr_dd
 #endif
 #endif
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
@@ -124,6 +124,9 @@ c****
 #ifdef TRACERS_WATER
      *     ,tr_evap_max
 #endif
+#ifdef TRACERS_DRYDEP
+     *     ,dep_vel
+#endif
 #endif
       implicit none
 
@@ -142,7 +145,7 @@ c****
       integer n,nx,nsrc
       real*8 totflux
 #ifdef TRACERS_WATER
-      real*8, dimension(ntm) :: trgrnd,trsoil_tot,tevapw,tevapd,
+      real*8, dimension(ntm) :: trsoil_tot,tevapw,tevapd,
      *     tevapb,trruns,trrunu,trsoil_rat  ! trpr,
       real*8, dimension(ntm,0:ngm,2) :: trw
       real*8, dimension(ntm,2) :: trsnowd
@@ -229,7 +232,7 @@ c****
 #ifdef TRACERS_ON
 !$OMP*   ,n,nx,totflux,nsrc
 #ifdef TRACERS_WATER
-!$OMP*   ,trgrnd,trsoil_tot,tevapw,tevapd,tevapb,trruns,trrunu,
+!$OMP*   ,trsoil_tot,tevapw,tevapd,tevapb,trruns,trrunu,
 !$OMP*   trsoil_rat,trw,trsnowd,tdp, tdt1, wsoil_tot,frac,tevap,ibv
 #endif
 #ifdef TRACERS_DRYDEP
@@ -419,7 +422,7 @@ C**** Calculate trsfac (set to zero for const flux)
           trsfac(nx)=0.
           rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
 #ifdef TRACERS_DRYDEP
-          if(dodrydep(n)) trsfac(nx) = rhosrf0
+          if(dodrydep(n)) trsfac(nx) = 1.   ! rhosrf0
           !then multiplied by deposition velocity in PBL 
 #endif
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
@@ -680,29 +683,6 @@ ccc accumulate tracer dry deposition
         end if
       end do
 #endif
-cddd#ifdef TRACERS_WATER_OLD
-cdddC****
-cdddC**** Calculate Water Tracer Evaporation
-cdddC****
-cddd      do nx=1,ntx
-cddd        n=ntix(nx)
-cddd        if (tr_wd_TYPE(n).eq.nWATER) THEN
-cddd          tevap = tevapw(nx) ! +tevapd(nx)+tevapb(nx)
-cddd          tdp = tevap*dxyp(j)*ptype
-cddd          tdt1 = trsrfflx(i,j,n)*dtsurf
-cddd          if (trm(i,j,1,n)+tdt1+tdp.lt.0.and.tdp.lt.0) then
-cddd            if (qcheck) write(99,*) "limiting trdew earth",i,j,n,tdp
-cddd     *           ,trm(i,j,1,n)
-cddd            tevap=- (trm(i,j,1,n)+tdt1)/(dxyp(j)*ptype)
-cddd            trsrfflx(i,j,n)= - trm(i,j,1,n)/dtsurf
-cddd          else
-cddd            trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdp/dtsurf
-cddd          end if
-cddd          trevapor(n,itype,i,j)=trevapor(n,itype,i,j)+tevap
-cddd          trunoe(n,i,j) = trunoe(n,i,j)+trruns(nx)+trrunu(nx)
-cddd        end if
-cddd      end do
-cddd#endif
 c****
 c**** accumulate diagnostics
 c****
@@ -719,17 +699,6 @@ C**** Save surface tracer concentration whether calculated or not
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
      *           *bydxyp(j),0d0)*ptype
           end if
-cddd#ifdef TRACERS_WATER_OLD
-cddd!!! old
-cddd          taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
-cddd     *         trevapor(n,itype,i,j)*ptype
-cddd          taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
-cddd     *         gtracer(n,itype,i,j)*ptype/nisurf
-cddd!         taijn(i,j,tij_soil,n)=taijn(i,j,tij_soil,n)+trsoil_tot(nx)
-cddd !    *         /nisurf
-cddd          tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
-cddd     *         +trevapor(n,itype,i,j)*ptype
-cddd#endif
         end if
       end do
 #endif
