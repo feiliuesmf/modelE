@@ -1566,8 +1566,8 @@ C****
       END SUBROUTINE set_tracer_2Dsource
 
 
-      SUBROUTINE set_tracer_3Dsource
-!@sum set_tracer_3Dsource calculates interactive sources for tracers
+      SUBROUTINE tracer_3Dsource
+!@sum tracer_3Dsource calculates interactive sources for tracers
 !@auth Jean Lerner
       USE TRACER_COM
       USE MODEL_COM, only: itime
@@ -1611,7 +1611,7 @@ C****
 
       end do
       return
-      END SUBROUTINE set_tracer_3Dsource
+      END SUBROUTINE tracer_3Dsource
 
 
       SUBROUTINE get_14CO2_IC(CO2IJL)
