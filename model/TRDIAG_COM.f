@@ -95,9 +95,12 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER ijs_Oxloss, ijs_Oxprod
 #endif
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      INTEGER, DIMENSION(LM) :: ijs_OH,ijs_NO3,ijs_HO2,ijs_JH2O2
+#endif
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
-      integer, parameter :: ktaijs=90
+      integer, parameter :: ktaijs= 182
 
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, DIMENSION(IM,JM,ktaijs) :: TAIJS
