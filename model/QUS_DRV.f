@@ -270,7 +270,7 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
 c**** loop over layers
       ICKERR=0
 C$OMP  PARALLEL DO PRIVATE(I,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZZM_SP,
-C$OMP*             BM,F_J,FMOM_J,RZM_NP,RZZM_NP,BM,IERR,NERR)
+C$OMP*             F_J,FMOM_J,RZM_NP,RZZM_NP,BM,IERR,NERR)
       do l=1,lm
 c**** scale polar boxes to their full extent
       mass(:,1:jm:jm-1,l)=mass(:,1:jm:jm-1,l)*im

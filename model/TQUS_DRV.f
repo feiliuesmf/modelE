@@ -517,7 +517,7 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
 
 c**** loop over latitudes and longitudes
       ICKERR=0.
-C$OMP  PARALLEL DO PRIVATE (I,J,L,NS,FQW,CM,F_L,FMOM_L,FQW,IERR,NERR)
+C$OMP  PARALLEL DO PRIVATE (I,J,L,NS,CM,F_L,FMOM_L,FQW,IERR,NERR)
       do j=1,jm
       do i=1,imaxj(j)
       fqw(:) = 0.

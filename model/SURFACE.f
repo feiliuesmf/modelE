@@ -24,8 +24,8 @@
 #endif
 #endif
 C**** Interface to PBL
-      USE SOCPBL, only : zgs,ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
-     &     ,US,VS,WS,WSH,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
+      USE SOCPBL, only : zgs,ZS1,TGV,TKV,QG_SAT,HEMI,DTSURF,POLE
+     &     ,US,VS,WS,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
      &     ,UG,VG,WG,ZMIX
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
@@ -350,9 +350,9 @@ C****
       F1DT=0.
 
       TG=TG1+TF
-      QG=QSAT(TG,ELHX,PS)
-      IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG=0.98d0*QG
-      TGV=TG*(1.+QG*deltx)
+      QG_SAT=QSAT(TG,ELHX,PS)
+      IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG_SAT=0.98d0*QG_SAT
+      TGV=TG*(1.+QG_SAT*deltx)
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
       do nx=1,ntx
@@ -366,12 +366,12 @@ C**** The select is used to distinguish water from gases or particle
         case (nWATER)
 #ifdef TRACERS_SPECIAL_O18
           if (ITYPE.eq.1) then   ! liquid water => fractionation
-            trgrnd(nx)=gtracer(n,itype,i,j)*QG*FRACVL(TG1,trname(n))
+        trgrnd(nx)=gtracer(n,itype,i,j)*QG_SAT*FRACVL(TG1,trname(n))
           else   ! ice, no fractionation
-            trgrnd(nx)=gtracer(n,itype,i,j)*QG
+            trgrnd(nx)=gtracer(n,itype,i,j)*QG_SAT
           end if
 #else
-            trgrnd(nx)=gtracer(n,itype,i,j)*QG
+            trgrnd(nx)=gtracer(n,itype,i,j)*QG_SAT
 #endif
 C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
           trsfac(nx)=1.
@@ -405,7 +405,7 @@ C =====================================================================
       DQGS=(ZMIX-ZGS)*CQ*WSH
       DGS =DQGS
 C =====================================================================
-      TS=TSV/(1.+QS*deltx)
+      TS=TSV/(1.+QSRF*deltx)
 C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
       RHOSRF=100.*PS/(RGAS*TSV)
       RCDMWS=CM*WS*RHOSRF
@@ -415,8 +415,8 @@ C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
 C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2)
       SHEAT=SHA*RCDHWS*(TS-TG)
       BETAUP = BETA
-      IF (QS .GT. QG) BETAUP = 1.
-      EVHEAT=(LHE+TG1*SHV)*BETAUP*RCDQWS*(QS-QG)
+      IF (QSRF .GT. QG_SAT) BETAUP = 1.
+      EVHEAT=(LHE+TG1*SHV)*BETAUP*RCDQWS*(QSRF-QG_SAT)
       TRHEAT=TRHR(0,I,J)-STBO*(TG*TG)*(TG*TG)
 C****
       SELECT CASE (ITYPE)
@@ -439,10 +439,10 @@ C****
 ! heat flux on first/second/third layers (W/m^2)
         F1 = (TG1-TG2)*dF1dTG + SRHEAT*FSRI(1)
         F2 = SRHEAT*FSRI(2)
-        EVHEAT = LHE*RCDQWS*(QS-QG) ! latent heat flux (W/m^2)
+        EVHEAT = LHE*RCDQWS*(QSRF-QG_SAT) ! latent heat flux (W/m^2)
         F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
         dSNdTG=-RCDHWS*KHS*SHA/(DHGS+KHS)
-        dQGdTG=QG*DQSATDT(TG,ELHX) ! d(QG)/dTG
+        dQGdTG=QG_SAT*DQSATDT(TG,ELHX) ! d(QG)/dTG
         dEVdTG = -dQGdTG*LHE*RCDQWS*KHS/(DGS+KHS) ! d(EVHEAH)/dTG
         dTRdTG = -4*STBO*TG*TG*TG ! d(TRHEAT)/dTG
         dF0dTG = dSNdTG+dEVdTG+dTRdTG ! d(F0)/dTG
@@ -478,7 +478,7 @@ C****
         F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
         F1=(TG1-CDTERM-F0*Z1BY6L)*CDENOM
         DSHDTG=-RCDHWS*KHS*SHA/(DHGS+KHS)
-        DQGDTG=QG*DQSATDT(TG,ELHX)
+        DQGDTG=QG_SAT*DQSATDT(TG,ELHX)
         DEVDTG=-RCDQWS*KHS*LHE*BETAUP*DQGDTG/(DQGS+KHS)
         DTRDTG=-4.*STBO*TG*TG*TG
         DF0DTG=DSHDTG+DEVDTG+DTRDTG
@@ -531,12 +531,12 @@ C**** do calculation implicitly for TQS
           ELSE                  ! ICE AND LAND ICE
 C**** tracer flux is set by source tracer concentration
             IF (EVAP.GE.0) THEN ! EVAPORATION
-              TEVAP=EVAP*trgrnd(nx)/QG
+              TEVAP=EVAP*trgrnd(nx)/QG_SAT
             ELSE                ! DEW (fractionates)
 #ifdef TRACERS_SPECIAL_O18
-              TEVAP=EVAP*trs(nx)/(QS*FRACVL(TG1,trname(n))+teeny)
+              TEVAP=EVAP*trs(nx)/(QSRF*FRACVL(TG1,trname(n))+teeny)
 #else
-              TEVAP=EVAP*trs(nx)/(QS+teeny)
+              TEVAP=EVAP*trs(nx)/(QSRF+teeny)
 #endif
             END IF
           END IF
@@ -627,7 +627,7 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
           AIJ(I,J,IJ_TAUS)=AIJ(I,J,IJ_TAUS)+RCDMWS*WS*PTYPE
           AIJ(I,J,IJ_TAUUS)=AIJ(I,J,IJ_TAUUS)+RCDMWS*US*PTYPE
           AIJ(I,J,IJ_TAUVS)=AIJ(I,J,IJ_TAUVS)+RCDMWS*VS*PTYPE
-          AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QS*PTYPE
+          AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QSRF*PTYPE
           AIJ(I,J,IJ_TG1)=AIJ(I,J,IJ_TG1)+TG1*PTYPE
         END IF
 C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
@@ -636,8 +636,8 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
             IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
               ADIURN(IH,IDD_TS,KR)=ADIURN(IH,IDD_TS,KR)+TS*PTYPE
               ADIURN(IH,IDD_TG1,KR)=ADIURN(IH,IDD_TG1,KR)+(TG1+TF)*PTYPE
-              ADIURN(IH,IDD_QS,KR)=ADIURN(IH,IDD_QS,KR)+QS*PTYPE
-              ADIURN(IH,IDD_QG,KR)=ADIURN(IH,IDD_QG,KR)+QG*PTYPE
+              ADIURN(IH,IDD_QS,KR)=ADIURN(IH,IDD_QS,KR)+QSRF*PTYPE
+              ADIURN(IH,IDD_QG,KR)=ADIURN(IH,IDD_QG,KR)+QG_SAT*PTYPE
               ADIURN(IH,IDD_SWG,KR)=ADIURN(IH,IDD_SWG,KR)+SRHEAT*DTSURF
      *             *PTYPE
               ADIURN(IH,IDD_LWG,KR)=ADIURN(IH,IDD_LWG,KR)+TRHDT*PTYPE

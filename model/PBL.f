@@ -50,8 +50,8 @@ CCC   SAVE
 !@var WG     = magnitude of the geostrophic wind (m/s)
 !@var ZMIX   = a height used to match ground and surface fluxes
 
-      real*8 :: zs1,tgv,tkv,qg,hemi,dtsurf
-      real*8 :: us,vs,ws,wsh,tsv,qs,psi,dbl,kms,khs,kqs,ppbl
+      real*8 :: zs1,tgv,tkv,qg_sat,hemi,dtsurf
+      real*8 :: us,vs,ws,wsh,tsv,qsrf,psi,dbl,kms,khs,kqs,ppbl
      *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wg,zmix
       logical :: pole
 
@@ -74,20 +74,20 @@ C**** boundary layer parameters
 !@var  t  local potential temperature
 !@var  q  local specific humidity (a passive scalar)
 !@var  e  local turbulent kinetic energy
-      real*8, dimension(n) :: u,v,t,q
+c     real*8, dimension(n) :: u,v,t,q
       real*8, dimension(n-1) :: e
 
 C***
 C***  Thread-Private Common
 C***
-      COMMON /PBLTPC/ dpdxr,dpdyr,dpdxr0,dpdyr0,
-     * g0,d1_3,d2_3,d3_3,d4_3,d5_3,
-     * s0_3,s1_3,s2_3,s3_3,s4_3,s5_3,s6_3,  g1,g2,g3,g4,g5,g6,g7,g8,
-     * u,v,t,q,e
+      COMMON /PBLTPC/ dpdxr,dpdyr,dpdxr0,dpdyr0
+     * ,g0,d1_3,d2_3,d3_3,d4_3,d5_3
+     * ,s0_3,s1_3,s2_3,s3_3,s4_3,s5_3,s6_3,  g1,g2,g3,g4,g5,g6,g7,g8
+     * ,e   !  ,u,v,t,q 
 C$OMP  THREADPRIVATE (/PBLTPC/)
 
-      COMMON /PBLPAR/ZS1,TGV,TKV,QG,HEMI,POLE
-      COMMON /PBLOUT/US,VS,WS,WSH,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL,
+      COMMON /PBLPAR/ZS1,TGV,TKV,QG_SAT,HEMI,POLE
+      COMMON /PBLOUT/US,VS,WS,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL,
      *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,WG,ZMIX
 C$OMP  THREADPRIVATE (/PBLPAR/,/PBLOUT/)
 
@@ -142,7 +142,7 @@ c   output:
 !@var  us  x component of the surface wind (i.e., due east)
 !@var  vs  y component of the surface wind (i.e., due north)
 !@var  tsv  virtual potential surface temperature
-!@var  qs  surface specific moisture
+!@var  qsrf  surface specific moisture
 !@var  kms  surface value of km
 !@var  khs  surface value of kh
 !@var  kqs  surface value of kq
@@ -211,11 +211,17 @@ c  internals:
      *     ,esave
       integer :: i,j,iter  !@var i,j,iter loop variable
 
+c**** special threadprivate common block (compaq compiler stupidity)
+      real*8, dimension(n) :: u,v,t,q
+      common/pbluvtq/u,v,t,q
+C$OMP  THREADPRIVATE (/pbluvtq/)
+C**** end special threadprivate common block
+
       !print *,"PBL ::: ", evap_max,fr_sat
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
-        print*,"In advanc: i,j,itype =",ilong,jlat,itype,us,vs,tsv,qs
+        print*,"In advanc: i,j,itype =",ilong,jlat,itype,us,vs,tsv,qsrf
         call abort
         stop "PBL error in advanc"
       end if
@@ -382,7 +388,7 @@ C**** tracers are now passive, so use 'upstream' concentration
       us  = u(1)
       vs  = v(1)
       tsv = t(1)
-      qs  = q(1)
+      qsrf  = q(1)
       kms = km(1)
       khs = kh(1)
       kqs = kq(1)
@@ -1753,6 +1759,12 @@ c     integer, parameter ::  n=8
       integer, parameter ::  iprint=0,jprint=33 ! set iprint>0 to debug
       real*8, parameter ::  w=0.50,tol=1d-4
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
+
+c**** special threadprivate common block (compaq compiler stupidity)
+      real*8, dimension(n) :: u,v,t,q
+      common/pbluvtq/u,v,t,q
+C$OMP  THREADPRIVATE (/pbluvtq/)
+C**** end special threadprivate common block
 
       z0m=zgrnd
       z0h=z0m

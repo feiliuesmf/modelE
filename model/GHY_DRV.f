@@ -37,19 +37,18 @@ c****
       use sle001
      &    , only : reth,retp,advnc,evap_limits,
      &    ngm,
-     &    pr,htpr,prs,htprs,gw=>w,ht,snowd,tp,fice,ghour=>hour,
+     &    pr,htpr,prs,htprs,w,ht,snowd,tp,fice,
      &    fv,fb,atrg,ashg,alhg,
-     &    betad=>abetad,betav=>abetav,betat=>abetat,
-     &    betap=>abetap,betab=>abetab,beta=>abeta,
+     &    abetad,abetav,abetat,
+     &    abetap,abetab,abeta,
      &    acna,acnc,
-     &    evapw=>aevapw,evapd=>aevapd,evapb=>aevapb,
+     &    aevapw,aevapd,aevapb,
      &    aruns,arunu,aeruns,aerunu,
-     &    difs=>adifs,edifs=>aedifs,
      &    aepc,aepb,aepp,afhg,af0dt,af1dt,zw,tbcs,
      &    qm1,q1,qs,
-     &    pres,rho,tspass=>ts,vsm,ch,srht,trht,zs, !cd,snht,
-     &    zmixe=>z1, !cn=>cdn,p1,pblp=>ppbl,
-     &    tgpass=>tg,tkpass=>t1,vgm=>vg,eddy,
+     &    pres,rho,ts,vsm,ch,srht,trht,zs, !cd,snht,
+     &           z1,
+     &    eddy,
      &    nlsn,isn,nsn,dzsn,wsn,hsn,fr_snow
 
       use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,
@@ -88,9 +87,9 @@ c****
      *     ,trvege,trbare,trsnowbv
 #endif
       USE SOCPBL, only : zgs,dtsurf              ! global
-     &     ,zs1,tgv,tkv,qg_sat=>qg,hemi,pole     ! rest local
-     &     ,us,vs,ws,wsh,tsv,qsrf=>qs,psi,dbl,edvisc=>kms
-     &     ,eds1=>khs,kq=>kqs,ppbl,ug,vg,wg,zmix
+     &     ,zs1,tgv,tkv,qg_sat,hemi,pole     ! rest local
+     &     ,us,vs,ws,wsh,tsv,qsrf,psi,dbl    ! ,edvisc=>kms
+     &     ,khs,ppbl,ug,vg,wg,zmix   ! ,kq=>kqs
       use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       use pbl_drv, only : pbl, evap_max,fr_sat
 #ifdef TRACERS_WATER
@@ -102,8 +101,8 @@ c****
       integer i,j,l,kr,jr,itype,ih
       real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws,rcdhws,dhgs
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat,wtr2av
-     *     ,wfc1,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ts,ps,pij,psoil,pearth
-     *     ,warmer,brun0,berun0,bdifs,bedifs,bts,bevhdt,brunu,berunu
+     *     ,wfc1,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij,psoil,pearth
+     *     ,warmer,brun0,berun0,bts,bevhdt,brunu,berunu
      *     ,bshdt,btrhdt,timez,spring,zs1co
 
       real*8, dimension(im,jm) :: prcss
@@ -170,7 +169,6 @@ c**** outside loop over time steps, executed nisurf times every hour
 c****
       timez=jday+(mod(itime,nday)+(ns-1.)/nisurf)/nday ! -1 ??
       if(jday.le.31) timez=timez+365.
-      ghour=(itime+(ns-1.)/nisurf) ! *(24./nday)
 c
       aregij = 0.
 c****
@@ -181,7 +179,7 @@ C$OMP  PARALLEL DO PRIVATE
 C$OMP*  (ACE2AV, ELHX,EVAP,EVHDT, CDM,CDH,CDQ,
 C$OMP*   I,ITYPE, J, KR, L,MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
 C$OMP*   QG_NSAT,QSATS, RHOSRF,RHOSRF0,RCDMWS,RCDHWS, SRHDT,SRHEAT,SHDT,
-C$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TS,TRHDT,TG2AV, WARMER,WFC1,WTR2AV
+C$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TRHDT,TG2AV, WARMER,WFC1,WTR2AV
 #ifdef TRACERS_ON
 C$OMP*   ,trtop,trs,trsfac,trconstflx,n,nx,ntx,ntix,totflux,nsrc
 #ifdef TRACERS_WATER
@@ -246,9 +244,9 @@ c**** new quantities to be zeroed out over ground timesteps
          arunu=0.
          aeruns=0.
          aerunu=0.
-      evapw=0.
-      evapd=0.
-      evapb=0.
+      aevapw=0.
+      aevapd=0.
+      aevapb=0.
          alhg=0.
          aepc=0.
          aepb=0.
@@ -271,8 +269,8 @@ c****
       prs=prcss(i,j)/(dtsrc*rhow)
       htpr=eprec(i,j)/dtsrc
 !!! insert htprs here
-      gw(1:ngm,1) =  wbare(1:ngm,i,j)
-      gw(0:ngm,2) =  wvege(0:ngm,i,j)
+      w(1:ngm,1) =  wbare(1:ngm,i,j)
+      w(0:ngm,2) =  wvege(0:ngm,i,j)
       ht(0:ngm,1) = htbare(0:ngm,i,j)
       ht(0:ngm,2) = htvege(0:ngm,i,j)
       snowd(1:2)  = snowbv(1:2,i,j)
@@ -326,7 +324,7 @@ C**** Calculate mean tracer ratio
           end if
         end do
         do l= 2-ibv,ngm
-          wsoil_tot=wsoil_tot+gw(l,ibv)*frac
+          wsoil_tot=wsoil_tot+w(l,ibv)*frac
           do nx=1,ntx
             n=ntix(nx)
             if (tr_wd_TYPE(n).eq.nWATER) THEN
@@ -425,12 +423,9 @@ c  define extra variables to be passed in surfc:
       srht  =srheat
       trht  =trheat
       zs    =zgs  !!! will not need after qsbal is replaced
-      zmixe =zmix  !!! will not need after qsbal is replaced
-      vgm   =wg  !!! eliminate - used in outw only
-      eddy  =eds1  !!! will not need after qsbal is replaced
-      tgpass=tg !!! eliminate - used in outw only
-      tspass=ts
-      tkpass=tkv/(1.+q(i,j,1)*deltx) !!! eliminate - used in outw only
+      z1    =zmix  !!! will not need after qsbal is replaced
+      eddy  =khs   !!! will not need after qsbal is replaced
+c     tspass=ts
 c **********************************************************************
 c *****
 c**** calculate ground fluxes
@@ -450,8 +445,8 @@ c     call qsbal
       qg_ij(i,j) = fr_sat_ij(i,j) * qg_sat
      &     + (1.d0 -fr_sat_ij(i,j)) * qg_nsat
 
-      wbare(1:ngm,i,j) = gw(1:ngm,1)
-      wvege(0:ngm,i,j) = gw(0:ngm,2)
+      wbare(1:ngm,i,j) = w(1:ngm,1)
+      wvege(0:ngm,i,j) = w(0:ngm,2)
       htbare(0:ngm,i,j) = ht(0:ngm,1)
       htvege(0:ngm,i,j) = ht(0:ngm,2)
       snowbv(1:2,i,j)   = snowd(1:2)
@@ -465,18 +460,18 @@ c**** fix outputs to mean ratio (TO BE REPLACED BY WITHIN SOIL TRACERS)
         trruns(nx)=aruns * trsoil_rat(nx) ! kg/m^2
         trrunu(nx)=arunu * trsoil_rat(nx)
 #ifdef TRACERS_SPECIAL_O18
-        tevapw(nx)=evapw * trsoil_rat(nx)*fracvl(tp(1,1),trname(n))
+        tevapw(nx)=aevapw * trsoil_rat(nx)*fracvl(tp(1,1),trname(n))
 #else
-        tevapw(nx)=evapw * trsoil_rat(nx)
+        tevapw(nx)=aevapw * trsoil_rat(nx)
 #endif
-        tevapd(nx)=evapd * trsoil_rat(nx)
-        tevapb(nx)=evapb * trsoil_rat(nx)
+        tevapd(nx)=aevapd * trsoil_rat(nx)
+        tevapb(nx)=aevapb * trsoil_rat(nx)
 c**** update ratio
         trsoil_rat(nx)=(trsoil_tot(nx)+dtsurf*trpr(nx)-
      *       (tevapw(nx)+tevapd(nx)+tevapb(nx)+trruns(nx)+trrunu(nx)))/
      *      (rhow*(wsoil_tot+dtsurf*pr)-(evapw+evapd+evapb+aruns+arunu))
-        trbare(n,1:ngm,i,j) = trsoil_rat(nx)*gw(1:ngm,1)*rhow
-        trvege(n,:,i,j) = trsoil_rat(nx)*gw(:,2)*rhow
+        trbare(n,1:ngm,i,j) = trsoil_rat(nx)*w(1:ngm,1)*rhow
+        trvege(n,:,i,j) = trsoil_rat(nx)*w(:,2)*rhow
         trsnowbv(n,:,i,j)=trsoil_rat(nx)*snowd(:)*rhow
 c       trbare(n,:,i,j) = trw(nx,:,1)
 c       trvege(n,:,i,j) = trw(nx,:,2)
@@ -493,16 +488,16 @@ ccc copy snow variables back to storage
       hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
       fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
 
-      aij(i,j,ij_g18)=aij(i,j,ij_g18)+evapb
-      aij(i,j,ij_g19)=aij(i,j,ij_g19)+evapd
-      aij(i,j,ij_g20)=aij(i,j,ij_g20)+evapw
-      aij(i,j,ij_g05)=aij(i,j,ij_g05)+betab/nisurf
-      aij(i,j,ij_g06)=aij(i,j,ij_g06)+betap/nisurf
-      aij(i,j,ij_g11)=aij(i,j,ij_g11)+beta/nisurf
+      aij(i,j,ij_g18)=aij(i,j,ij_g18)+aevapb
+      aij(i,j,ij_g19)=aij(i,j,ij_g19)+aevapd
+      aij(i,j,ij_g20)=aij(i,j,ij_g20)+aevapw
+      aij(i,j,ij_g05)=aij(i,j,ij_g05)+abetab/nisurf
+      aij(i,j,ij_g06)=aij(i,j,ij_g06)+abetap/nisurf
+      aij(i,j,ij_g11)=aij(i,j,ij_g11)+abeta/nisurf
       aij(i,j,ij_g12)=aij(i,j,ij_g12)+acna/nisurf
       aij(i,j,ij_g13)=aij(i,j,ij_g13)+acnc/nisurf
-      aij(i,j,ij_g26)=aij(i,j,ij_g26)+betav/nisurf
-      aij(i,j,ij_g27)=aij(i,j,ij_g27)+betat/nisurf
+      aij(i,j,ij_g26)=aij(i,j,ij_g26)+abetav/nisurf
+      aij(i,j,ij_g27)=aij(i,j,ij_g27)+abetat/nisurf
       aij(i,j,ij_g14)=aij(i,j,ij_g14)+aepp
       if (moddsf.eq.0) then
         aij(i,j,ij_g15)=aij(i,j,ij_g15)+tp(1,1)
@@ -519,10 +514,10 @@ c           for radiation find composite values over earth
 c           for diagnostic purposes also compute gdeep 1 2 3
       snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
       tearth(i,j)=tg1
-      wearth(i,j)=1000.*( fb*gw(1,1)*(1.-fice(1,1)) +
-     &     fv*(gw(1,2)*(1.-fice(1,2))+gw(0,2)*(1.-fice(0,2))) )
-      aiearth(i,j)=1000.*( fb*gw(1,1)*fice(1,1) +
-     &     fv*(gw(1,2)*fice(1,2)+gw(0,2)*fice(0,2)) )
+      wearth(i,j)=1000.*( fb*w(1,1)*(1.-fice(1,1)) +
+     &     fv*(w(1,2)*(1.-fice(1,2))+w(0,2)*(1.-fice(0,2))) )
+      aiearth(i,j)=1000.*( fb*w(1,1)*fice(1,1) +
+     &     fv*(w(1,2)*fice(1,2)+w(0,2)*fice(0,2)) )
       call retp2 (tg2av,wtr2av,ace2av)
       gdeep(i,j,1)=tg2av
       gdeep(i,j,2)=wtr2av
@@ -532,7 +527,7 @@ c**** calculate fluxes using implicit time step for non-ocean points
       uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*us
       vflux1(i,j)=vflux1(i,j)+ptype*rcdmws*vs
 c**** accumulate surface fluxes and prognostic and diagnostic quantities
-      evap=evapw+evapd+evapb
+      evap=aevapw+aevapd+aevapb
       evapor(i,j,4)=evapor(i,j,4)+evap
       evhdt=-alhg
       shdt=-ashg
@@ -635,7 +630,7 @@ ccc  $     areg(jr,j_tsrf )=areg(jr,j_tsrf )+(ts-tf)*ptype*dxyp(j)
       end if
 c**** quantities accumulated for latitude-longitude maps in diagij
       aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdt*ptype
-      aij(i,j,ij_beta)=aij(i,j,ij_beta)+betad/nisurf
+      aij(i,j,ij_beta)=aij(i,j,ij_beta)+abetad/nisurf
       if(modrd.eq.0)aij(i,j,ij_trnfp0)=aij(i,j,ij_trnfp0)+trhdt*ptype
      *     /dtsrc
       aij(i,j,ij_srtr)=aij(i,j,ij_srtr)+(srhdt+trhdt)*ptype
@@ -678,7 +673,7 @@ c**** quantities accumulated hourly for diagDD
             adiurn(ih,idd_cm,kr)=adiurn(ih,idd_cm,kr)+cdm*ptype
             adiurn(ih,idd_ch,kr)=adiurn(ih,idd_ch,kr)+cdh*ptype
             adiurn(ih,idd_cq,kr)=adiurn(ih,idd_cq,kr)+cdq*ptype
-            adiurn(ih,idd_eds,kr)=adiurn(ih,idd_eds,kr)+eds1*ptype
+            adiurn(ih,idd_eds,kr)=adiurn(ih,idd_eds,kr)+khs*ptype
             adiurn(ih,idd_dbl,kr)=adiurn(ih,idd_dbl,kr)+dbl*ptype
             adiurn(ih,idd_ev,kr)=adiurn(ih,idd_ev,kr)+evap*ptype
           end if

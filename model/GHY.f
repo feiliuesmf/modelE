@@ -119,7 +119,7 @@ c**** public variables:
      *     ,htpr
      *     ,top_index
       public
-     &    pr,prs,htprs,w,ht,snowd,tp,fice,hour,
+     &    pr,prs,htprs,w,ht,snowd,tp,fice,
      &    fv,fb,atrg,ashg,alhg,
      &    abetad,abetav,abetat,
      &    abetap,abetab,abeta,
@@ -142,7 +142,7 @@ c**** public variables:
       integer, parameter :: ngm=6, ng=ngm+1, imt=5
       integer, parameter :: igcm=5  !?? do we really need it ?
       real*8 pr,htpr,prs,htprs,w(0:ngm,2),ht(0:ngm,2)
-     & ,snowd(2),ws(0:ngm,2),tp(0:ngm,2),fice(0:ngm,2),hour
+     & ,snowd(2),ws(0:ngm,2),tp(0:ngm,2),fice(0:ngm,2)
      & ,dz(ngm),q(imt,ngm),qk(imt,ngm),sl,fv,fb,alai,atrg,ashg,alhg
      & ,abetad,abetav,abetat,abetap,abetab,abeta,acna,acnc,aevapw,aevapd
      & ,aevapb,aruns,arunu,aeruns,aerunu,adifs,aedifs,aepc,aepb,aepp
@@ -785,7 +785,7 @@ c**** soils28   common block     9/25/90
       real*8 evap_max(2)
 ccc   added declarations for local vars:
       real*8 qm1dt, xkf, tbs1, tcs1, qcv, qcs, epcs
-      real*8 cna,dd,ed,qso,rho3,xl  
+      real*8 cna,dd,ed,qso,rho3,xl
       integer ibv,l,itr
       real*8 qc
 
@@ -1998,17 +1998,10 @@ c**** prints current state of soil for one grid box
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
       use filemanager, only: openunit
-      real*8 day,scnds
-      integer i,l,iday,ihour
+      integer i,l
       integer, save :: ichn = 0
       call wtab
       if( ichn == 0 ) call openunit("soil_outw", ichn)
-c     scnds=i*dt  !??? doesn't make any sense
-c     day=int(scnds/86400.d0)
-c     iday=day
-c     hour=int((scnds-86400.d0*day)/86400.d0)
-c     ihour=hour
-c     print 1001
       write(ichn,1000)
       write(ichn,*)'general quantities (bare soil or vegetation)'
       write(ichn,*)'dts,tag',dts,i,' after qsbal(0),retp(1),advnc(2)'

@@ -28,8 +28,8 @@ C$OMP  THREADPRIVATE (/pbl_loc/)
 !@auth Greg. Hartke/Ye Cheng
 !@ver  1.0
 
-C    input: ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
-C    output:US,VS,WS,WSH,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
+C    input: ZS1,TGV,TKV,QG_SAT,HEMI,DTSURF,POLE
+C    output:US,VS,WS,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
 C          ,UG,VG,WG,ZMIX
 
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
@@ -41,17 +41,17 @@ C          ,UG,VG,WG,ZMIX
 #ifdef TRACERS_ON
       USE TRACER_COM, only : needtrs,itime_tr0
 #endif
-      USE SOCPBL, only : uij=>u,vij=>v,tij=>t,qij=>q,eij=>e
-     &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
-     &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
+      USE SOCPBL, only : npbl=>n,e
+     &     ,dpdxr,dpdyr
+     &     ,dpdxr0,dpdyr0
      &     ,advanc                      ! subroutine
      &     ,zgs,DTSURF                  ! global
-     &     ,ZS1,TGV,TKV,QG,HEMI,POLE    ! rest local
-     &     ,US,VS,WS,WSH,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
+     &     ,ZS1,TGV,TKV,QG_SAT,HEMI,POLE    ! rest local
+     &     ,US,VS,WS,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
      &     ,UG,VG,WG,ZMIX
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q
 #ifdef TRACERS_ON
-     &     ,trij=>tr
+     &     tr
 #endif
       USE PBLCOM
       IMPLICIT NONE
@@ -77,6 +77,11 @@ c
      *     ,tfluxs,qfluxs,psitop,psisrf
       INTEGER LDC,L,k
 
+c**** special threadprivate common block (compaq compiler stupidity)
+      real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
+      common/pbluvtq/upbl,vpbl,tpbl,qpbl
+C$OMP  THREADPRIVATE (/pbluvtq/)
+C**** end special threadprivate common block
 
 C        ocean and ocean ice are treated as rough surfaces
 C        roughness lengths from Brutsaert for rough surfaces
@@ -163,7 +168,7 @@ C *********************************************************************
       ttop=tkv
       qtop=q(i,j,1)
       tgrndv=tgv
-      qgrnd=qg
+      qgrnd=qg_sat
 
       utop=0. ; vtop=0. ;  ug=0. ; vg=0.
       if (pole) then
@@ -186,17 +191,17 @@ C *********************************************************************
         end do
       endif
 
-      uij(:)=uabl(:,i,j,itype)
-      vij(:)=vabl(:,i,j,itype)
-      tij(:)=tabl(:,i,j,itype)
-      qij(:)=qabl(:,i,j,itype)
-      eij(1:npbl-1)=eabl(1:npbl-1,i,j,itype)
+      upbl(:)=uabl(:,i,j,itype)
+      vpbl(:)=vabl(:,i,j,itype)
+      tpbl(:)=tabl(:,i,j,itype)
+      qpbl(:)=qabl(:,i,j,itype)
+      e(1:npbl-1)=eabl(1:npbl-1,i,j,itype)
 #ifdef TRACERS_ON
       n=0
       do itr=1,ntm
         if (itime_tr0(itr).le.itime.and.needtrs(itr)) then
           n=n+1
-          trij(:,n)=trabl(:,itr,i,j,itype)
+          tr(:,n)=trabl(:,itr,i,j,itype)
         end if
       end do
 #endif
@@ -205,12 +210,12 @@ C *********************************************************************
       ch=chgs(i,j,itype)
       cq=cqgs(i,j,itype)
 
-      dpdxrij  = DPDX_BY_RHO(i,j)
-      dpdyrij  = DPDY_BY_RHO(i,j)
-      dpdxr0ij = DPDX_BY_RHO_0(i,j)
-      dpdyr0ij = DPDY_BY_RHO_0(i,j)
+      dpdxr  = DPDX_BY_RHO(i,j)
+      dpdyr  = DPDY_BY_RHO(i,j)
+      dpdxr0 = DPDX_BY_RHO_0(i,j)
+      dpdyr0 = DPDY_BY_RHO_0(i,j)
 
-c     write(67,1003) "p-gradients: ",dpdxrij,dpdyrij,dpdxr0ij,dpdyr0ij
+c     write(67,1003) "p-gradients: ",dpdxr,dpdyr,dpdxr0,dpdyr0
 c1003 format(a,4(1pe14.4))
       call advanc(
      3     coriol,utop,vtop,ttop,qtop,tgrndv,qgrnd,evap_max,fr_sat,
@@ -222,17 +227,17 @@ c1003 format(a,4(1pe14.4))
 #endif
      4     ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,i,j,itype)
 
-      uabl(:,i,j,itype)=uij(:)
-      vabl(:,i,j,itype)=vij(:)
-      tabl(:,i,j,itype)=tij(:)
-      qabl(:,i,j,itype)=qij(:)
-      eabl(1:npbl-1,i,j,itype)=eij(1:npbl-1)
+      uabl(:,i,j,itype)=upbl(:)
+      vabl(:,i,j,itype)=vpbl(:)
+      tabl(:,i,j,itype)=tpbl(:)
+      qabl(:,i,j,itype)=qpbl(:)
+      eabl(1:npbl-1,i,j,itype)=e(1:npbl-1)
 #ifdef TRACERS_ON
       n=0
       do itr=1,ntm
         if (itime_tr0(itr).le.itime.and.needtrs(itr)) then
           n=n+1
-          trabl(:,itr,i,j,itype)=trij(:,n)
+          trabl(:,itr,i,j,itype)=tr(:,n)
         end if
       end do
 #endif
@@ -250,10 +255,10 @@ c1003 format(a,4(1pe14.4))
       psi   =psisrf-psitop
       ustar_pbl(i,j,itype)=ustar
 C ******************************************************************
-      TS=TSV/(1.+QS*deltx)
+      TS=TSV/(1.+QSRF*deltx)
       WSAVG(I,J)=WSAVG(I,J)+WS*PTYPE
       TSAVG(I,J)=TSAVG(I,J)+TS*PTYPE
-      if(itype.ne.4) QSAVG(I,J)=QSAVG(I,J)+QS*PTYPE
+      if(itype.ne.4) QSAVG(I,J)=QSAVG(I,J)+QSRF*PTYPE
       USAVG(I,J)=USAVG(I,J)+US*PTYPE
       VSAVG(I,J)=VSAVG(I,J)+VS*PTYPE
       TAUAVG(I,J)=TAUAVG(I,J)+CM*WS*WS*PTYPE
@@ -264,7 +269,7 @@ C ******************************************************************
       qflux(I,J)=qflux(I,J)+qfluxs*PTYPE
 
       tgvAVG(I,J)=tgvAVG(I,J)+tgv*PTYPE
-      qgAVG(I,J)=qgAVG(I,J)+qg*PTYPE
+      qgAVG(I,J)=qgAVG(I,J)+qg_sat*PTYPE
 
       RETURN
       END SUBROUTINE PBL
@@ -286,9 +291,9 @@ c -------------------------------------------------------------
       USE MODEL_COM
       USE GEOM, only : idij,idjj,imaxj,kmaxj,rapj,cosiv,siniv,sinp
       USE SOCPBL, only : npbl=>n,zgs,bgrid,inits,ccoeff0
-     & ,  uinit=>u,vinit=>v,tinit=>t,qinit=>q,einit=>e
-     &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
-     &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
+     &     ,e
+     &     ,dpdxr,dpdyr
+     &     ,dpdxr0,dpdyr0
       USE PBLCOM
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
@@ -311,6 +316,12 @@ c -------------------------------------------------------------
      *     ztop,elhx,coriol,tgrndv,pij,ps,psk,qgrnd
      *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar
       real*8 qsat
+
+c**** special threadprivate common block (compaq compiler stupidity)
+      real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
+      common/pbluvtq/upbl,vpbl,tpbl,qpbl
+C$OMP  THREADPRIVATE (/pbluvtq/)
+C**** end special threadprivate common block
 
 C things to be done regardless of inipbl
       call openunit("CDN",iu_CDN,.TRUE.,.true.)
@@ -410,10 +421,10 @@ c ******************************************************************
             ttop=t(i,j,1)*(1.+qtop*deltx)*psk
             if (itype.gt.2) zgrnd=30./(10.**roughl(i,j))
 
-            dpdxrij  = DPDX_BY_RHO(i,j)
-            dpdyrij  = DPDY_BY_RHO(i,j)
-            dpdxr0ij = DPDX_BY_RHO_0(i,j)
-            dpdyr0ij = DPDY_BY_RHO_0(i,j)
+            dpdxr  = DPDX_BY_RHO(i,j)
+            dpdyr  = DPDY_BY_RHO(i,j)
+            dpdxr0 = DPDX_BY_RHO_0(i,j)
+            dpdyr0 = DPDY_BY_RHO_0(i,j)
 
             call inits(tgrndv,qgrnd,zgrnd,zgs,ztop,utop,vtop,
      2                 ttop,qtop,coriol,cm,ch,cq,bgrid,ustar,
@@ -423,14 +434,14 @@ c ******************************************************************
             cqgs(i,j,itype)=cq
 
             do lpbl=1,npbl
-              uabl(lpbl,i,j,itype)=uinit(lpbl)
-              vabl(lpbl,i,j,itype)=vinit(lpbl)
-              tabl(lpbl,i,j,itype)=tinit(lpbl)
-              qabl(lpbl,i,j,itype)=qinit(lpbl)
+              uabl(lpbl,i,j,itype)=upbl(lpbl)
+              vabl(lpbl,i,j,itype)=vpbl(lpbl)
+              tabl(lpbl,i,j,itype)=tpbl(lpbl)
+              qabl(lpbl,i,j,itype)=qpbl(lpbl)
             end do
 
             do lpbl=1,npbl-1
-              eabl(lpbl,i,j,itype)=einit(lpbl)
+              eabl(lpbl,i,j,itype)=e(lpbl)
             end do
 
             ipbl(i,j,itype)=1
