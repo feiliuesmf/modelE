@@ -365,7 +365,7 @@ C****
 
       LOGICAL inilake
 !@var I,J,I72,IU,JU,ID,JD loop variables
-      INTEGER I,J,I72,IU,JU,ID,JD,INM
+      INTEGER I,J,I72,IU,JU,ID,JD,INM,KD
       INTEGER iu_RVR  !@var iu_RVR unit number for river direction file
       CHARACTER TITLEI*80, CDIREC(IM,JM)*1
       REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1,MLK1
@@ -473,15 +473,19 @@ C**** Create integral direction array KDIREC from CDIREC
       INM=0
       DO J=1,JM
       DO I=1,IM
-        IF (FOCEAN(I,J).le.0.and.CDIREC(I,J).eq." ") THEN
+C**** KD: -16 = blank, 0-8 directions >8 named rivers
+        KD= ICHAR(CDIREC(I,J)) - 48    
+C**** If land but no ocean, and no direction, print warning
+        IF (FLAND(I,J).gt.0 .and. FOCEAN(I,J).le.0 .and.
+     *       (KD.gt.8 .or. KD.lt.0)) THEN
           WRITE(6,*) "Land box has no river direction I,J: ",I,J
-     *     ,FLAND(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH(I,J)
+     *     ,FOCEAN(I,J),FLAND(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH(I,J)
         END IF
-        KDIREC(I,J) = ICHAR(CDIREC(I,J)) - 48
-        IF(KDIREC(I,J).lt.0 .or. KDIREC(I,J).gt.8)  KDIREC(I,J) = 0
+        KDIREC(I,J) = KD
+C**** Default direction is down (if ocean box), or no outlet (if not)
+        IF(KD.lt.0 .or. KD.gt.8)  KDIREC(I,J) = 0
 C**** Check for specified river mouths
-        IF (ICHAR(CDIREC(I,J)).GE.65 .AND. ICHAR(CDIREC(I,J)).LE.90)
-     *       THEN
+        IF (KD.GE.17 .AND. KD.LE.42) THEN
           INM=INM+1
           IRVRMTH(INM)=I
           JRVRMTH(INM)=J
@@ -491,6 +495,11 @@ C**** Check for specified river mouths
             WRITE(6,*) "INM, CDIREC, NAMERVR = ",INM,CDIREC(I,J)
      *           ," ",NAMERVR(INM)
             NAMERVR(INM)=CDIREC(I,J)  ! set default
+          END IF
+          IF (FOCEAN(I,J).le.0) THEN
+            WRITE(6,*) "Warning: Named river outlet must be in ocean",i
+     *           ,j,NAMERVR(INM),FOCEAN(I,J),FLAND(I,J),FLICE(I,J)
+     *           ,FLAKE0(I,J),FEARTH(I,J) 
           END IF
         END IF
       END DO
@@ -581,6 +590,8 @@ C****
             IF(SPEED.lt.SPMIN)  SPEED = SPMIN
             IF(SPEED.gt.SPMAX)  SPEED = SPMAX
             RATE(IU,JU) = DTsrc*SPEED/DHORZ(IU,JU)
+          ELSE
+            RATE(IU,JU) = 1.
           END IF
         END DO
       END DO
@@ -605,7 +616,7 @@ C****
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : grav,shw,rhow,teeny
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
-     *     ,itocean,itoice
+     *     ,itocean,itoice,fland
       USE GEOM, only : dxyp,bydxyp
       USE DAGCOM, only : aij,ij_ervr,ij_mrvr,ij_f0oc,aj,areg,jreg,j_rvrd
      *     ,j_ervr
@@ -645,7 +656,9 @@ c      TRFLOWO = 0.              ! array now initialised in MELTSI
 #endif
       DO JU=2,JM-1
         DO IU=1,IM
-          IF(KDIREC(IU,JU).gt.0)  THEN
+C**** Also allow flow into ocean fraction of same box if KDIREC=0
+          IF (KDIREC(IU,JU).gt.0 .or.
+     *       (FLAND(IU,JU).gt.0 .and. FOCEAN(IU,JU).gt.0))  THEN 
             JD=JFLOW(IU,JU)
             ID=IFLOW(IU,JU)
 C**** Only overflow if lake mass is above sill height (HLAKE (m))
