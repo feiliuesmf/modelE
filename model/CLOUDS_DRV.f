@@ -31,7 +31,6 @@
      *     ,trwm,trw0
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,trname
-      USE AEROSOL_SOURCES, only: MDF
       USE FILEMANAGER, only: openunit,closeunit
 #endif
 #endif
@@ -770,24 +769,23 @@ C**** TRACERS: Use only the active ones
           trm(i,j,l,n) = tm(l,nx)
           trmom(:,i,j,l,n) = tmom(:,l,nx)
           tajln(j,l,jlnt_lscond,n) = tajln(j,l,jlnt_lscond,n) +
-     &          (tm(l,nx)-tmsave(l,nx))
+     &         (tm(l,nx)-tmsave(l,nx))
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
           trwm(i,j,l,n) = trwml(nx,l)
 #ifdef TRACERS_AEROSOLS_Koch
-        tajls(j,l,jls_3Dsource(2,n))=tajls(j,l,jls_3Dsource(2,n))+
-     *   dt_sulf_mc(l,n)
-        tajls(j,l,jls_3Dsource(3,n))=tajls(j,l,jls_3Dsource(3,n))+
-     *   dt_sulf_ss(l,n)
+          tajls(j,l,jls_3Dsource(2,n))=tajls(j,l,jls_3Dsource(2,n))+
+     *         dt_sulf_mc(l,n)
+          tajls(j,l,jls_3Dsource(3,n))=tajls(j,l,jls_3Dsource(3,n))+
+     *         dt_sulf_ss(l,n)
 c save for cloud-sulfate correlation
-       select case (trname(n))
-       case('SO4')
-c      if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,n)
-       MDF(i,j)=airxl/3.d0
-       end select
+c          select case (trname(n))
+c          case('SO4')
+cc     if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,n)
+c          end select
 #endif
 #endif
-        end do
+      end do
 #ifdef TRACERS_WATER
         trprec(n,i,j) = trprec(n,i,j)+trprss(nx)
 C**** diagnostics

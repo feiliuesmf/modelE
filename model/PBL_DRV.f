@@ -144,7 +144,7 @@ C        roughness lengths from Brutsaert for rough surfaces
         dbl=zpbl
       endif
 #if (defined TRACERS_DRYDEP) && (defined TRACERS_AEROSOLS_Koch)
-       PBLH(I,J)=dbl
+      IF (ITYPE.eq.1) PBLH(I,J)=dbl
 #endif
       ppbl=pedn(l,i,j)
       coriol=sinp(j)*omega2

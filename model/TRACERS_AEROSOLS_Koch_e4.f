@@ -14,7 +14,7 @@
       real*8 SO2_src_3d(im,jm,lm,nso2src_3d)
 !@var PBLH boundary layer height
 !@var MDF is the mass of the downdraft flux
-      real*8, DIMENSION(IM,JM):: PBLH,MDF,shdtt
+      real*8, DIMENSION(IM,JM):: PBLH = 0,shdtt = 0.   ! ,MDF
 c      common /SGWSP/ PBLH,MDF,SHDTT
 c!$OMP  THREADPRIVATE (/SGWSP/)
 c note that tno3,tno3r had dimension (im,jm,lm,12) for Wang source
@@ -27,14 +27,14 @@ c note that tno3,tno3r had dimension (im,jm,lm,12) for Wang source
 !@sum reads in industrial and biomass SO2 sources
 !@auth Koch
 c want kg SO2/m2/s
+      USE CONSTANT, only: sday
       USE MODEL_COM, only: im,jm,jmon,jday,dtsrc,zatmo,t
+      USE GEOM, only: dxyp
       USE TRACER_COM
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
       USE FILEMANAGER, only: openunit,closeunit
       USE AEROSOL_SOURCES, only: SO2_src,SO2_src_3d,nso2src,
      * nso2src_3d
-      USE GEOM, only: dxyp
-      USE CONSTANT, only: sday
       USE DYNAMICS, only: pmid,pk
       implicit none
 c biomass burning parameters:
@@ -240,17 +240,17 @@ c Monthly DMS ocean concentration sources are read in and combined
 c  with wind and ocean temperature functions to get DMS air surface
 c  concentrations
 c want kg DMS/m2/s
-      USE MODEL_COM, only: im,jm,jmon,focean,t,dtsrc
+      USE CONSTANT, only: sday,grav,rgas,teeny
+      USE MODEL_COM, only: im,jm,jmon,focean,t,dtsrc,airx
+      USE GEOM, only: bydxyp
       USE TRACER_COM
       USE TRACER_DIAG_COM, only: tajls,jls_source
       USE FILEMANAGER, only: openunit,closeunit
-      USE STATIC_OCEAN, only: tocean 
       USE SEAICE_COM, only:rsi
       USE PBLCOM, only: wsavg,eabl,tsavg
-      USE AEROSOL_SOURCES, only: DMS_src,PBLH,MDF,SHDTT
-      USE CONSTANT, only: sday,grav,rgas,teeny
+      USE FLUXES, only : gtemp
+      USE AEROSOL_SOURCES, only: DMS_src,PBLH,SHDTT ! ,MDF
       USE DYNAMICS, only: BYAM,pmid,pk
-      USE GEOM, only: bydxyp
       implicit none
       logical :: ifirst=.true.
       integer, parameter :: nanns=0, nmons=1
@@ -283,8 +283,10 @@ c I don't know what to do with the moments
       end do
   8   CONTINUE  
         call closeunit(mon_unit)                       
+        ifirst=.false.
  901  FORMAT(3X,2(I4),E11.3,5F9.2)  
        endif
+
         steppd = 1./sday
       dms1(:)=0.d0
       dms2(:)=0.d0
@@ -303,7 +305,7 @@ c
        erate2=0.d0
        erate=0.d0
          swind=wsavg(i,j)  !m/s
-         ot=tocean(1,i,j)   !mixed layer temp, C
+         ot=gtemp(1,1,i,j)   !mixed layer temp, C
          foc=focean(i,j) !fraction of gridbox with water
          f_ice_free=1.-rsi(i,j)
 c Liss and Merlivat         
@@ -362,7 +364,9 @@ c I'm not sure about the sign here
         wd=0.d0
         endif
 c moist convection contribution
-        wm=200.d0*MDF(i,j)/dtsrc/arho*100.d0/grav
+c        wm=200.d0*MDF(i,j)/dtsrc/arho*100.d0/grav
+C**** use already saved AIRX array - are you sure this is what you want????
+        wm=200.d0*(AIRX(i,j)/3d0)/dtsrc/arho*100.d0/grav
 c sigma
         sig=wm+wd+wtke
 c integrate

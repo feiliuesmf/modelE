@@ -431,6 +431,7 @@ C**** Calculate trsfac (set to zero for const flux)
      &      !then multiplied by deposition velocity in PBL
 #ifdef TRACERS_WATER
             tr_evap_max(nx)=1.d30
+            trgrnd(nx)=0.
 #endif
           end if
 #endif
