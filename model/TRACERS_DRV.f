@@ -2053,9 +2053,9 @@ c photolysis rate
 #endif
       case ('BCII')
         k = k + 1
-        jls_3Dsource(1,n) = k
-        sname_jls(k) = 'Aging_sink_of'//trname(n)
-        lname_jls(k) = 'BCII aging sink'
+        jls_3Dsource(1,n) = k   ! defined but not output
+        sname_jls(k) = 'unused'   ! 'Aging_sink_of'//trname(n)
+        lname_jls(k) = 'unused'   ! 'BCII aging sink'
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -2074,6 +2074,14 @@ c gravitational settling of BCII
         jls_ltop(k) = LM
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Indust_src_'//trname(n)
+        lname_jls(k) = 'BCII Industrial source'
+        jls_ltop(k) = 1
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
       case ('BCIA')
         k = k + 1
         jls_3Dsource(1,n) = k
@@ -2090,6 +2098,7 @@ c gravitational settling of BCIA
         jls_ltop(k) = LM
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+
       case ('BCB')
 c gravitational settling of BCB 
         k = k + 1
@@ -2098,6 +2107,13 @@ c gravitational settling of BCB
         lname_jls(k) = 'Gravitational Settling of BCB'
         jls_ltop(k) = LM
         jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'biomass_src_'//trname(n)
+        lname_jls(k) = 'BCB Biomass source'
+        jls_ltop(k) = 1
+        jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       case ('OCII')
@@ -2109,12 +2125,34 @@ c gravitational settling of OCII
         jls_ltop(k) = LM
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(1,n) = k   ! defined but not output
+        sname_jls(k) = 'unused'    ! 'Aging_sink_'//trname(n)
+        lname_jls(k) = 'unused'    ! 'OCIA aging sink'
+        jls_ltop(k) = LM
+        jls_power(k) = 1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'indust_src_'//trname(n)
+        lname_jls(k) = 'OCIA Industrial source'
+        jls_ltop(k) = 1
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(2,n) = k
+        sname_jls(k) = 'terpene_src_'//trname(n)
+        lname_jls(k) = 'OCIA Terpene source'
+        jls_ltop(k) = 1
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
       case ('OCIA')
         k = k + 1
-        jls_isrc(1,n) = k
-        sname_jls(k) = 'Aging source of'//trname(n)
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'Aging_source_'//trname(n)
         lname_jls(k) = 'OCIA aging source'
-        jls_ltop(k) = 1
+        jls_ltop(k) = LM
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 c gravitational settling of OCIA 
@@ -2133,6 +2171,13 @@ c gravitational settling of OCB
         lname_jls(k) = 'Gravitational Settling of OCB'
         jls_ltop(k) = LM
         jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'biomass_src_'//trname(n)
+        lname_jls(k) = 'OCIA Biomass source'
+        jls_ltop(k) = 1
+        jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       case ('seasalt1')
@@ -3183,11 +3228,29 @@ C**** This needs to be 'hand coded' depending on circumstances
 
       case ('BCII')
         k = k + 1
-        ijts_isrc(1,n) = k
+        ijts_source(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BC Industrial source'
         sname_ijts(k) = 'BC_Industrial_source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        k = k + 1
+        ijts_3Dsource(1,n) = k   ! defined but not output
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'unused'    ! 'BCII Aging sink'
+        sname_ijts(k) = 'unused'    ! 'BCII_Aging_sink'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        k = k + 1
+        ijts_3Dsource(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'BCII Aircraft source'
+        sname_ijts(k) = 'BCII_Aircraft_src'
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -3202,7 +3265,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
 #ifdef TRACERS_AEROSOLS_Koch
 c BCI optical thickness
         k = k + 1
@@ -3237,7 +3299,7 @@ c BCI longwave radiative forcing
 #endif
       case ('BCB')
         k = k + 1
-        ijts_isrc(1,n) = k
+        ijts_source(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BC Biomass source'
@@ -3245,7 +3307,6 @@ c BCI longwave radiative forcing
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
 #ifdef TRACERS_AEROSOLS_Koch
 c BCB optical thickness
         k = k + 1
@@ -3281,7 +3342,7 @@ c BCB longwave radiative forcing
 
       case ('OCII')
         k = k + 1
-        ijts_isrc(1,n) = k
+        ijts_source(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'OC Industrial source'
@@ -3290,11 +3351,20 @@ c BCB longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
-        ijts_isrc(2,n) = k
+        ijts_source(2,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Terpene source'
         sname_ijts(k) = 'OC_Terpene_source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        k = k + 1
+        ijts_3Dsource(1,n) = k   ! defined but not output
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'unused'       ! 'OCII Aging sink'
+        sname_ijts(k) = 'unused'       ! 'OCII_Aging_Sink'
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -3343,7 +3413,7 @@ c OC longwave radiative forcing
 #endif
       case ('OCB')
         k = k + 1
-        ijts_isrc(1,n) = k
+        ijts_source(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'OC Biomass source'
@@ -3351,6 +3421,7 @@ c OC longwave radiative forcing
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
       case ('DMS')
         k = k + 1
         ijts_isrc(1,n) = k

@@ -322,10 +322,10 @@ C**** initialise source arrays
         tr3Dsource(:,:,l,1,n_H2O2_s)=0. ! H2O2 chem source
         tr3Dsource(:,:,l,2,n_H2O2_s)=0. ! H2O2 chem sink
 #ifdef TRACERS_HETCHEM
-       tr3Dsource(:,:,l,1,n_SO4_d1) =0. ! SO4 on dust
-       tr3Dsource(:,:,l,1,n_SO4_d2) =0. ! SO4 on dust
-       tr3Dsource(:,:,l,1,n_SO4_d3) =0. ! SO4 on dust
-       tr3Dsource(:,:,l,1,n_SO4_d4) =0. ! SO4 on dust
+        tr3Dsource(:,:,l,1,n_SO4_d1) =0. ! SO4 on dust
+        tr3Dsource(:,:,l,1,n_SO4_d2) =0. ! SO4 on dust
+        tr3Dsource(:,:,l,1,n_SO4_d3) =0. ! SO4 on dust
+        tr3Dsource(:,:,l,1,n_SO4_d4) =0. ! SO4 on dust
 #endif
         tr3Dsource(:,:,l,1,n_BCII)=0. ! BCII sink
         tr3Dsource(:,:,l,1,n_BCIA)=0. ! BCIA source
@@ -391,14 +391,12 @@ c    Aging of industrial carbonaceous aerosols
         case ('BCII')
         bciage=1.D-5*trm(i,j,l,n)        
         tr3Dsource(i,j,l,1,n)=-bciage        
-        case ('BCIA')
-        tr3Dsource(i,j,l,1,n)=bciage        
+        tr3Dsource(i,j,l,1,n_BCIA)=bciage        
 
         case ('OCII')
         ociage=5.D-5*trm(i,j,l,n)        
         tr3Dsource(i,j,l,1,n)=-ociage        
-        case ('OCIA')
-        tr3Dsource(i,j,l,1,n)=ociage        
+        tr3Dsource(i,j,l,1,n_OCIA)=ociage        
 
         case ('DMS')
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA

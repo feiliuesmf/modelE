@@ -555,7 +555,7 @@ c tracer 1 is sulfate, tracers 2 and 3 are seasalt
       KRHTRA=(/1,1,1,1, 0,0,1,1/)
 C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics
-      NTRIX=(/ n_sO4, n_seasalt1, n_seasalt2, n_OCB, n_BCII, n_BCB,0,0/)
+      NTRIX=(/ n_sO4,n_seasalt1,n_seasalt2,n_OCIA,n_BCIA,n_BCB,0,0/)
 #endif
 
       if (ktrend.ne.0) then
@@ -1094,10 +1094,10 @@ C**** more than one tracer is lumped together for radiation purposes
       do n=1,NTRACE
         if (NTRIX(n).gt.0) then
           select case (trname(NTRIX(n)))
-          case ("OCB")
+          case ("OCIA")
             TRACER(L,n)=(trm(i,j,l,n_OCB)+trm(i,j,l,n_OCII)+
      *           trm(i,j,l,n_OCIA))*BYDXYP(J)
-          case ("BCII")
+          case ("BCIA")
             TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYDXYP(J)
           case default
             TRACER(L,n)=trm(i,j,l,NTRIX(n))*BYDXYP(J)
@@ -1203,12 +1203,12 @@ C**** Aerosols:
       if (NTRACE.gt.0) then
         FSTOPX(:)=onoff ; FTTOPX(:)=onoff
         do n=1,NTRACE
-          IF (trname(NTRIX(n)).eq."seasalt1") CYCLE ! not for seasalt1
+          IF (trname(NTRIX(n)).eq."seasalt2") CYCLE ! not for seasalt2
           FSTOPX(n)=1-onoff ; FTTOPX(n)=1-onoff ! turn on/off tracer
 C**** Warning: small bit of hardcoding assumes that seasalt1 is
 C**** one before seasalt2 in NTRACE array
-          IF (trname(NTRIX(n)).eq."seasalt2") THEN ! add seasalt1 to seasalt2
-            FSTOPX(n-1)=1-onoff ; FTTOPX(n-1)=1-onoff
+          IF (trname(NTRIX(n)).eq."seasalt1") THEN ! add seasalt1 to seasalt2
+            FSTOPX(n+1)=1-onoff ; FTTOPX(n+1)=1-onoff
           END IF
           CALL RCOMPX
           SNFST(NTRIX(n),I,J)=SRNFLB(LFRC)
