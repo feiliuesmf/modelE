@@ -756,6 +756,11 @@ C
       REAL*8  RDSS(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,RDMC(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,AREGIJ(7,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8, DIMENSION(size(adiurn,1),size(adiurn,3),8,
+     &        GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ADIURN_part
+      REAL*8, DIMENSION(size(hdiurn,1),size(hdiurn,3),8,
+     &        GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: HDIURN_part
+      REAL*8 :: ADIURNSUM,HDIURNSUM
       INTEGER ICKERR,JCKERR,KCKERR
       INTEGER :: I_0, I_1, J_0, J_1
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
@@ -918,6 +923,7 @@ C****
       ICKERR=0
       JCKERR=0
       KCKERR=0
+      ADIURN_part=0.; HDIURN_part=0.
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
 !$OMP*   I,INCH,IH,IHM,IT, J, K,KR, L,LR,LFRC, N, onoff,OPNSKY,
 !$OMP*   CSZ2, PLAND,tauex5,tauex6,tausct,taugcb,
@@ -1079,23 +1085,39 @@ CCC      AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              DO INCH=1,NRAD
                IH=1+MOD(JHOUR+INCH-1,24)
-               ADIURN(IH,IDD_CL7,KR)=ADIURN(IH,IDD_CL7,KR)+TOTCLD(7)
-               ADIURN(IH,IDD_CL6,KR)=ADIURN(IH,IDD_CL6,KR)+TOTCLD(6)
-               ADIURN(IH,IDD_CL5,KR)=ADIURN(IH,IDD_CL5,KR)+TOTCLD(5)
-               ADIURN(IH,IDD_CL4,KR)=ADIURN(IH,IDD_CL4,KR)+TOTCLD(4)
-               ADIURN(IH,IDD_CL3,KR)=ADIURN(IH,IDD_CL3,KR)+TOTCLD(3)
-               ADIURN(IH,IDD_CL2,KR)=ADIURN(IH,IDD_CL2,KR)+TOTCLD(2)
-               ADIURN(IH,IDD_CL1,KR)=ADIURN(IH,IDD_CL1,KR)+TOTCLD(1)
-               ADIURN(IH,IDD_CCV,KR)=ADIURN(IH,IDD_CCV,KR)+CLDCV
+C****               ADIURN(IH,IDD_CL7,KR)=ADIURN(IH,IDD_CL7,KR)+TOTCLD(7)
+               ADIURN_part(IH,KR,1,J)=ADIURN_part(IH,KR,1,J)+TOTCLD(7)
+C****               ADIURN(IH,IDD_CL6,KR)=ADIURN(IH,IDD_CL6,KR)+TOTCLD(6)
+               ADIURN_part(IH,KR,2,J)=ADIURN_part(IH,KR,2,J)+TOTCLD(6)
+C****               ADIURN(IH,IDD_CL5,KR)=ADIURN(IH,IDD_CL5,KR)+TOTCLD(5)
+               ADIURN_part(IH,KR,3,J)=ADIURN_part(IH,KR,3,J)+TOTCLD(5)
+C****               ADIURN(IH,IDD_CL4,KR)=ADIURN(IH,IDD_CL4,KR)+TOTCLD(4)
+               ADIURN_part(IH,KR,4,J)=ADIURN_part(IH,KR,4,J)+TOTCLD(4)
+C****               ADIURN(IH,IDD_CL3,KR)=ADIURN(IH,IDD_CL3,KR)+TOTCLD(3)
+               ADIURN_part(IH,KR,5,J)=ADIURN_part(IH,KR,5,J)+TOTCLD(3)
+C****               ADIURN(IH,IDD_CL2,KR)=ADIURN(IH,IDD_CL2,KR)+TOTCLD(2)
+               ADIURN_part(IH,KR,6,J)=ADIURN_part(IH,KR,6,J)+TOTCLD(2)
+C****               ADIURN(IH,IDD_CL1,KR)=ADIURN(IH,IDD_CL1,KR)+TOTCLD(1)
+               ADIURN_part(IH,KR,7,J)=ADIURN_part(IH,KR,7,J)+TOTCLD(1)
+C****               ADIURN(IH,IDD_CCV,KR)=ADIURN(IH,IDD_CCV,KR)+CLDCV
+               ADIURN_part(IH,KR,8,J)=ADIURN_part(IH,KR,8,J)+CLDCV
                IHM = JHOUR+INCH+(JDATE-1)*24
-               HDIURN(IHM,IDD_CL7,KR)=HDIURN(IHM,IDD_CL7,KR)+TOTCLD(7)
-               HDIURN(IHM,IDD_CL6,KR)=HDIURN(IHM,IDD_CL6,KR)+TOTCLD(6)
-               HDIURN(IHM,IDD_CL5,KR)=HDIURN(IHM,IDD_CL5,KR)+TOTCLD(5)
-               HDIURN(IHM,IDD_CL4,KR)=HDIURN(IHM,IDD_CL4,KR)+TOTCLD(4)
-               HDIURN(IHM,IDD_CL3,KR)=HDIURN(IHM,IDD_CL3,KR)+TOTCLD(3)
-               HDIURN(IHM,IDD_CL2,KR)=HDIURN(IHM,IDD_CL2,KR)+TOTCLD(2)
-               HDIURN(IHM,IDD_CL1,KR)=HDIURN(IHM,IDD_CL1,KR)+TOTCLD(1)
-               HDIURN(IHM,IDD_CCV,KR)=HDIURN(IHM,IDD_CCV,KR)+CLDCV
+C****               HDIURN(IHM,IDD_CL7,KR)=HDIURN(IHM,IDD_CL7,KR)+TOTCLD(7)
+               HDIURN_part(IHM,KR,1,J)=HDIURN_part(IHM,KR,1,J)+TOTCLD(7)
+C****               HDIURN(IHM,IDD_CL6,KR)=HDIURN(IHM,IDD_CL6,KR)+TOTCLD(6)
+               HDIURN_part(IHM,KR,2,J)=HDIURN_part(IHM,KR,2,J)+TOTCLD(6)
+C****               HDIURN(IHM,IDD_CL5,KR)=HDIURN(IHM,IDD_CL5,KR)+TOTCLD(5)
+               HDIURN_part(IHM,KR,3,J)=HDIURN_part(IHM,KR,3,J)+TOTCLD(5)
+C****               HDIURN(IHM,IDD_CL4,KR)=HDIURN(IHM,IDD_CL4,KR)+TOTCLD(4)
+               HDIURN_part(IHM,KR,4,J)=HDIURN_part(IHM,KR,4,J)+TOTCLD(4)
+C****               HDIURN(IHM,IDD_CL3,KR)=HDIURN(IHM,IDD_CL3,KR)+TOTCLD(3)
+               HDIURN_part(IHM,KR,5,J)=HDIURN_part(IHM,KR,5,J)+TOTCLD(3)
+C****               HDIURN(IHM,IDD_CL2,KR)=HDIURN(IHM,IDD_CL2,KR)+TOTCLD(2)
+               HDIURN_part(IHM,KR,6,J)=HDIURN_part(IHM,KR,6,J)+TOTCLD(2)
+C****               HDIURN(IHM,IDD_CL1,KR)=HDIURN(IHM,IDD_CL1,KR)+TOTCLD(1)
+               HDIURN_part(IHM,KR,7,J)=HDIURN_part(IHM,KR,7,J)+TOTCLD(1)
+C****               HDIURN(IHM,IDD_CCV,KR)=HDIURN(IHM,IDD_CCV,KR)+CLDCV
+               HDIURN_part(IHM,KR,8,J)=HDIURN_part(IHM,KR,8,J)+CLDCV
              END DO
            END IF
          END DO
@@ -1453,6 +1475,62 @@ C**** END OF MAIN LOOP FOR J INDEX
 C****
 !$OMP  END DO
 !$OMP  END PARALLEL
+      DO KR=1,NDIUPT
+        DO IH=1,size(ADIURN,1)
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,1,:),ADIURNSUM,
+     &                   ALL=.TRUE.)
+          ADIURN(IH,IDD_CL7,KR)=ADIURN(IH,IDD_CL7,KR)+ADIURNSUM
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,2,:),ADIURNSUM,
+     &                   ALL=.TRUE.)
+          ADIURN(IH,IDD_CL6,KR)=ADIURN(IH,IDD_CL6,KR)+ADIURNSUM
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,3,:),ADIURNSUM,
+     &                   ALL=.TRUE.)
+          ADIURN(IH,IDD_CL5,KR)=ADIURN(IH,IDD_CL5,KR)+ADIURNSUM
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,4,:),ADIURNSUM,
+     &                   ALL=.TRUE.)
+          ADIURN(IH,IDD_CL4,KR)=ADIURN(IH,IDD_CL4,KR)+ADIURNSUM
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,5,:),ADIURNSUM,
+     &                   ALL=.TRUE.)
+          ADIURN(IH,IDD_CL3,KR)=ADIURN(IH,IDD_CL3,KR)+ADIURNSUM
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,6,:),ADIURNSUM,
+     &                   ALL=.TRUE.)
+          ADIURN(IH,IDD_CL2,KR)=ADIURN(IH,IDD_CL2,KR)+ADIURNSUM
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,7,:),ADIURNSUM,
+     &                   ALL=.TRUE.)
+          ADIURN(IH,IDD_CL1,KR)=ADIURN(IH,IDD_CL1,KR)+ADIURNSUM
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,8,:),ADIURNSUM,
+     &                   ALL=.TRUE.)
+          ADIURN(IH,IDD_CCV,KR)=ADIURN(IH,IDD_CCV,KR)+ADIURNSUM
+        ENDDO
+
+        DO IHM=1,size(HDIURN,1)
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,1,:),HDIURNSUM,
+     &                   ALL=.TRUE.)
+          HDIURN(IHM,IDD_CL7,KR)=HDIURN(IHM,IDD_CL7,KR)+HDIURNSUM
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,2,:),HDIURNSUM,
+     &                   ALL=.TRUE.)
+          HDIURN(IHM,IDD_CL6,KR)=HDIURN(IHM,IDD_CL6,KR)+HDIURNSUM
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,3,:),HDIURNSUM,
+     &                   ALL=.TRUE.)
+          HDIURN(IHM,IDD_CL5,KR)=HDIURN(IHM,IDD_CL5,KR)+HDIURNSUM
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,4,:),HDIURNSUM,
+     &                   ALL=.TRUE.)
+          HDIURN(IHM,IDD_CL4,KR)=HDIURN(IHM,IDD_CL4,KR)+HDIURNSUM
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,5,:),HDIURNSUM,
+     &                   ALL=.TRUE.)
+          HDIURN(IHM,IDD_CL3,KR)=HDIURN(IHM,IDD_CL3,KR)+HDIURNSUM
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,6,:),HDIURNSUM,
+     &                   ALL=.TRUE.)
+          HDIURN(IHM,IDD_CL2,KR)=HDIURN(IHM,IDD_CL2,KR)+HDIURNSUM
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,7,:),HDIURNSUM,
+     &                   ALL=.TRUE.)
+          HDIURN(IHM,IDD_CL1,KR)=HDIURN(IHM,IDD_CL1,KR)+HDIURNSUM
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,8,:),HDIURNSUM,
+     &                   ALL=.TRUE.)
+          HDIURN(IHM,IDD_CCV,KR)=HDIURN(IHM,IDD_CCV,KR)+HDIURNSUM
+        END DO
+      ENDDO
+
       if(kradia.gt.0) return
 C**** Stop if temperatures were out of range
 C**** Now only warning messages are printed for temp errors
@@ -1488,6 +1566,7 @@ C       delayed accumulation to preserve order of summation
          END DO
          END DO
 C
+         ADIURN_part=0.; HDIURN_part=0.
          DO 780 J=J_0,J_1
          DXYPJ=DXYP(J)
          DO L=1,LM
@@ -1507,18 +1586,15 @@ C
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              DO INCH=1,NRAD
                IH=1+MOD(JHOUR+INCH-1,24)
-               ADIURN(IH,IDD_PALB,KR)=ADIURN(IH,IDD_PALB,KR)+
-     *              (1.-SNFS(3,I,J)/S0)
-               ADIURN(IH,IDD_GALB,KR)=ADIURN(IH,IDD_GALB,KR)+
-     *              (1.-ALB(I,J,1))
-               ADIURN(IH,IDD_ABSA,KR)=ADIURN(IH,IDD_ABSA,KR)+
+               ADIURN_part(IH,KR,1,J)=(1.-SNFS(3,I,J)/S0)
+               ADIURN_part(IH,KR,2,J)=(1.-ALB(I,J,1))
+               ADIURN_part(IH,KR,3,J)=
      *              (SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
                IHM = JHOUR+INCH+(JDATE-1)*24
-               HDIURN(IHM,IDD_PALB,KR)=HDIURN(IHM,IDD_PALB,KR)+
-     *              (1.-SNFS(3,I,J)/S0)
-               HDIURN(IHM,IDD_GALB,KR)=HDIURN(IHM,IDD_GALB,KR)+
-     *              (1.-ALB(I,J,1))
-               HDIURN(IHM,IDD_ABSA,KR)=HDIURN(IHM,IDD_ABSA,KR)+
+
+               HDIURN_part(IHM,KR,1,J)=(1.-SNFS(3,I,J)/S0)
+               HDIURN_part(IHM,KR,2,J)=(1.-ALB(I,J,1))
+               HDIURN_part(IHM,KR,3,J)=
      *              (SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
              END DO
            END IF
@@ -1617,6 +1693,32 @@ c longwave forcing at surface (if required)
          AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
   770    CONTINUE
   780    CONTINUE
+      DO KR=1,NDIUPT
+        DO IH=1,size(ADIURN,1)
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,1,:),ADIURNSUM,
+     &                   ALL=.TRUE.)
+          ADIURN(IH,IDD_PALB,KR)=ADIURN(IH,IDD_PALB,KR)+ADIURNSUM
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,2,:),ADIURNSUM,
+     &                   ALL=.TRUE.)
+          ADIURN(IH,IDD_GALB,KR)=ADIURN(IH,IDD_GALB,KR)+ADIURNSUM
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,3,:),ADIURNSUM,
+     &                   ALL=.TRUE.)
+          ADIURN(IH,IDD_ABSA,KR)=ADIURN(IH,IDD_ABSA,KR)+ADIURNSUM
+        ENDDO
+
+        DO IHM=1,size(HDIURN,1)
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,1,:),HDIURNSUM,
+     &                   ALL=.TRUE.)
+          HDIURN(IHM,IDD_PALB,KR)=HDIURN(IHM,IDD_PALB,KR)+HDIURNSUM
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,2,:),HDIURNSUM,
+     &                   ALL=.TRUE.)
+          HDIURN(IHM,IDD_GALB,KR)=HDIURN(IHM,IDD_GALB,KR)+HDIURNSUM
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,3,:),HDIURNSUM,
+     &                   ALL=.TRUE.)
+          HDIURN(IHM,IDD_ABSA,KR)=HDIURN(IHM,IDD_ABSA,KR)+HDIURNSUM
+        ENDDO
+      ENDDO
+
          DO L=1,LM
            DO I=1,IM
 C ESMF: GLOBAL SUM EXCEPTION:
@@ -1676,14 +1778,31 @@ C****
         END DO
       END DO
 C**** daily diagnostics
+      ADIURN_part=0.; HDIURN_part=0.
       IH=1+JHOUR
       IHM = IH+(JDATE-1)*24
+      DO J=J_0,J_1
+        DO KR=1,NDIUPT
+          IF(J .EQ. IJDD(2,KR)) THEN
+C****            ADIURN(IH,IDD_ISW,KR)=ADIURN(IH,IDD_ISW,KR)+
+C****     *           S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
+            ADIURN_part(IH,KR,1,J)=S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
+C****            HDIURN(IHM,IDD_ISW,KR)=HDIURN(IHM,IDD_ISW,KR)+
+C****     *           S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
+            HDIURN_part(IHM,KR,1,J)=S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
+          ENDIF
+        ENDDO
+      ENDDO
+
       DO KR=1,NDIUPT
-        ADIURN(IH,IDD_ISW,KR)=ADIURN(IH,IDD_ISW,KR)+
-     *       S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
-        HDIURN(IHM,IDD_ISW,KR)=HDIURN(IHM,IDD_ISW,KR)+
-     *       S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
-      END DO
+        CALL GLOBALSUM(grid,ADIURN_part(IH,KR,1,:),ADIURNSUM,
+     &                 ALL=.TRUE.)
+        ADIURN(IH,IDD_ISW,KR)=ADIURN(IH,IDD_ISW,KR)+ADIURNSUM
+
+        CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,1,:),HDIURNSUM,
+     &                 ALL=.TRUE.)
+        HDIURN(IHM,IDD_ISW,KR)=HDIURN(IHM,IDD_ISW,KR)+HDIURNSUM
+      ENDDO
 
       RETURN
       END
