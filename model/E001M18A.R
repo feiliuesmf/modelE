@@ -21,7 +21,7 @@ DOMAIN_DECOMP                       ! domain decomposition
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
-CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
+CLOUDS2 CLOUDS2_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
@@ -46,6 +46,8 @@ AIC=AIC.RES_M18A.D771201          ! initial conditions (atm.)
 GIC=GIC.rsfB357M12.1DEC1956.1.ext ! initial conditions (ground)
 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
+! OSST=OST4X5.B.1990-99avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
+! SICE=SICE4X5.B.1990-99avg.Hadl1.1 ! prescr. climatological sea ice
     ! if the prescr. ocean varies from year to year use instead:
 ! OSST=OST4X5.B.1950.M02.Hadl1.1  ! ocean data   Feb 1950 - 1999
 ! SICE=SICE4X5.B.1950.M02.Hadl1.1 ! ocean data   Feb 1950 - 1999
@@ -105,10 +107,17 @@ P_CSDRAG=1.    ! increase CSDRAG above P_CSDRAG to approach lin. drag
 Wc_JDRAG=30.   ! crit.wind speed for J-drag (Judith/Jim)
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 
+PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
+
 xCDpbl=1.
-U00ice=.60      ! U00ice up  => nethtz0 down (alb down) goals: nethtz0=0 (ann.
-U00wtrX=.84     ! U00wtrX up => nethtz0 up   (alb down)           global mean)
-HRMAX=500.      ! HRMAX up   => nethtz0 down (alb up  )        plan.alb 30%
+cond_scheme=2    ! more elaborate conduction scheme
+
+U00ice=.60      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
+U00wtrX=1.12    ! U00wtrX up => nethtz0 up  (alb down);        for global annual mean
+! U00wtrX=1.08    ! use with 1995 atmosphere/ocean
+! U00wtrX=1.21    ! use with RES_M20AT and 1880 atmosphere/ocean
+! U00wtrX=1.16    ! use with RES_M20AT and 1995 atmosphere/ocean
+! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
 
 RWCLDOX=1.5  !  wtr cld particle size *3/2 over ocean
 RICLDX=.3333 !  ice cld particle size * 1(at 0mb)->1/3(at 1000mb)
