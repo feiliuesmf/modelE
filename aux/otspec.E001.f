@@ -83,7 +83,7 @@ C**** Extra array needed for dealing with advected ice
 C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
 C****
 !AOO calls to init routines for dynamically allocated arrays:part 2 of 3
-      call init_decomp(im,jm)
+      call init_decomp(grid,im,jm)
 !!    call init_dynamics(grid)
       call init_model_com(grid)
 !!    call init_smomtq(grid)

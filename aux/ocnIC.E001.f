@@ -38,7 +38,7 @@ C****
       CHARACTER*80 TITLE
       data month_day /31,28,31,30,31,30,31,31,30,31,30,31/
 !AOO calls to init routines for dynamically allocated arrays:part 2 of 3
-      call init_decomp(im,jm)
+      call init_decomp(grid,im,jm)
 !!    call init_dynamics(grid)
       call init_model_com(grid)
 !!    call init_smomtq(grid)
