@@ -271,7 +271,7 @@ c -------------------------------------------------------------
       USE CONSTANT, only : lhe,lhs
       USE E001M12_COM
       USE PBLCOM, ustar_type=>ustar
-      USE SOCPBL, only : npbl=>n,zgs,bgrid,inits
+      USE SOCPBL, only : npbl=>n,zgs,bgrid,inits,ccoeff0
      & ,  uinit=>u,vinit=>v,tinit=>t,qinit=>q,einit=>e
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
@@ -301,6 +301,7 @@ c@var inipbl whether to init prog vars
 C things to be done regardless of inipbl
       call readt (iunit,0,roughl,im*jm,roughl,1)
       rewind iunit
+      call ccoeff0
       call getb(zgs,ztop,bgrid)
 
       if(.not.inipbl) return

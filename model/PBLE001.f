@@ -904,15 +904,10 @@ c      write(99,*) "gmmax0=",gmmax0
       real*8 u(n),v(n),t(n),e(n-1),dzh(n-1)
       real*8 lscale(n-1)
 
-      integer :: ifirst = 1
       real*8 an2,dudz,dvdz,as2,ell,den,qturb,tau,gh,gm,gmmax,sm,sh
       integer i,j,iter  !@var i,j,iter loop variable 
 
 c-----------------------------------------------------------------------
-      if(ifirst.eq.1) then  !this loop is called only once
-          call ccoeff0
-          ifirst=0
-      endif
       do i=1,n-1
         an2=2.*grav*(t(i+1)-t(i))/((t(i+1)+t(i))*dzh(i))
         dudz=(u(i+1)-u(i))/dzh(i)
