@@ -216,7 +216,7 @@
 #ifdef TRACERS_ON
       use pblcom, only : trabl
       use tracer_com, only : trm,trmom
-      use tracer_diag_com, only: taijln,taijn,taijs,tajln,tajls,tconsrv
+      use trdiag_com, only: taijln,taijn,taijs,tajln,tajls,tconsrv
 
 #  ifdef TRACERS_WATER
       use lakes_com, only : trlake
