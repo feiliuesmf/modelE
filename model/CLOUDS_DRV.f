@@ -14,8 +14,8 @@
      *     ,jyear,jmon
 #endif
       USE DOMAIN_DECOMP, only : HALO_UPDATE,GRID,GET
-      USE DOMAIN_DECOMP, only : CHECKSUM, NORTH,SOUTH
-      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN,CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP, only : NORTH,SOUTH
+      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP, only : GLOBALSUM,AM_I_ROOT
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
@@ -37,7 +37,7 @@
      *     ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags,
      *     ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,hdiurn,
      *     ntau,npres,aisccp,isccp_reg,ij_precmc,ij_cldw,ij_cldi,
-     *     ij_fwoc,p_acc
+     *     ij_fwoc,p_acc,NDIUVAR
 #ifdef CLD_AER_CDNC
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
@@ -56,7 +56,7 @@
 #ifdef TRACERS_WATER
      *     ,jls_prec,taijn=>taijn_loc,tajls=>tajls_loc,tij_prec  !use trdiag_com
 #ifdef TRACERS_AEROSOLS_Koch
-     *     ,jls_incloud,ijts_aq,taijs                 !use trdiag_com
+     *     ,jls_incloud,ijts_aq,taijs=>taijs_loc                 !use trdiag_com
 #endif
 #endif
       USE CLOUDS, only : tm,tmom ! local  (i,j)
@@ -166,7 +166,7 @@ Cred*                   end Reduced Arrays 1
       INTEGER ICKERR, JCKERR, JERR, seed, NR
       REAL*8  RNDSS(3,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
 !     REAL*8  AJEQIL(J5N-J5S+1,IM,LM),
-      REAL*8  AJEQIL(GRID%J_STRT_HALO:GRID%J_STOP_HALO,IM,LM),
+      REAL*8  AJEQIL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
@@ -179,8 +179,26 @@ Cred*                   end Reduced Arrays 1
      &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3 )
      &        :: AREG_part
       REAL*8 :: randxx
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUVAR, NDIUPT) :: hdiurn_part
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUVAR, NDIUPT) :: adiurn_part
+      REAL*8 :: HDIURNSUM, ADIURNSUM
+      INTEGER, PARAMETER :: n_idx1 = 5
+      INTEGER, PARAMETER :: n_idx2 = 3
+      INTEGER, PARAMETER :: n_idx3 = 6
+      INTEGER :: idx1(n_idx1), idx2(n_idx2), idx3(n_idx3)
+      REAL*8 :: tmp(NDIUVAR)
+      INTEGER :: ii, ivar
+
 C**** Initialize
       AJEQIL(:,:,:)=0.
+      hdiurn_part = 0
+      adiurn_part = 0
+      idx1 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC /)
+      idx2 = (/ IDD_PR, IDD_ECND, IDD_SSP /)
+      idx3 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC, IDD_SSP /)
+
 C**** define local grid
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_HALO=J_0H,    J_STOP_HALO=J_1H,
@@ -213,13 +231,22 @@ C     Burn random numbers from latitudes to the south
 C     Do not bother to save random numbers for isccp_clouds
       END DO
       END DO
+
+      DO J=J_1+1, JM
+        DO I=1,IMAXJ(J)
+          DO L=LP50,1,-1
+            DO NR=1,3
+              RANDXX = RANDU(xx)
+            END DO
+          END DO
+        END DO
+      END DO
+
 C     But save the current seed in case isccp_routine is activated
       if (isccp_diags.eq.1) CALL RFINAL(seed)
 C
 C**** UDATE HALOS of U and V FOR DISTRIBUTED PARALLELIZATION
-      CALL CHECKSUM   (grid, U, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, U, from= NORTH)
-      CALL CHECKSUM   (grid, V, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, V, from= NORTH)
 C 
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
@@ -266,8 +293,6 @@ C**** Make sure the NOx from lightning is initialized:
       RNOx_lgt=0.
 #endif
 #endif
-      CALL CHECKSUM(grid, UC, __LINE__,__FILE__,STGR=.true.)
-      CALL CHECKSUM(grid, VC, __LINE__,__FILE__,STGR=.true.)
       CALL HALO_UPDATE(grid, UC, FROM=NORTH)
       CALL HALO_UPDATE(grid, VC, FROM=NORTH)
 
@@ -491,8 +516,8 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
           AJL(J,L,JL_MCDTOTW)=AJL(J,L,JL_MCDTOTW)+DTOTW(L)*BYDSIG(L)
 CCC       IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
 CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
-          IF(J.GE.J5S.AND.J.LE.J5N)     ! add in after parallel region
-     *      AJEQIL(J,I,L) = (DGDSM(L)+DPHASE(L))*
+          IF(J.GE.J5S.AND.J.LE.J5N)  ! accumulate after parallel region
+     *      AJEQIL(I,J,L) = (DGDSM(L)+DPHASE(L))*
      *                            (DXYP(J)*BYDSIG(L))
           AJL(J,L,JL_MCHEAT)=AJL(J,L,JL_MCHEAT)+
      &         (DPHASE(L)+DGDSM(L))*BYDSIG(L)
@@ -509,16 +534,15 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
         AREGIJ(I,J,1)=PRCPMC*DXYP(J)  ! add in after parallel region
         DO KR=1,NDIUPT
           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-            ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPMC
-            ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDMC
-            ADIURN(IH,IDD_MCP ,KR)=ADIURN(IH,IDD_MCP ,KR)+PRCPMC
-            ADIURN(IH,IDD_DMC ,KR)=ADIURN(IH,IDD_DMC ,KR)+CLDDEPIJ
-            ADIURN(IH,IDD_SMC ,KR)=ADIURN(IH,IDD_SMC ,KR)+CLDSLWIJ
-            HDIURN(IHM,IDD_PR  ,KR)=HDIURN(IHM,IDD_PR  ,KR)+PRCPMC
-            HDIURN(IHM,IDD_ECND,KR)=HDIURN(IHM,IDD_ECND,KR)+HCNDMC
-            HDIURN(IHM,IDD_MCP ,KR)=HDIURN(IHM,IDD_MCP ,KR)+PRCPMC
-            HDIURN(IHM,IDD_DMC ,KR)=HDIURN(IHM,IDD_DMC ,KR)+CLDDEPIJ
-            HDIURN(IHM,IDD_SMC ,KR)=HDIURN(IHM,IDD_SMC ,KR)+CLDSLWIJ
+            tmp(IDD_PR)  =+PRCPMC
+            tmp(IDD_ECND)=+HCNDMC  
+            tmp(IDD_MCP) =+PRCPMC  
+            tmp(IDD_DMC) =+CLDDEPIJ
+            tmp(IDD_SMC) =+CLDSLWIJ
+            hdiurn_part(J,idx1(:),kr)=hdiurn_part(J,idx1(:),kr)+
+     &           tmp(idx1(:))
+            adiurn_part(J,idx1(:),kr)=adiurn_part(J,idx1(:),kr)+
+     &           tmp(idx1(:))
           END IF
         END DO
 #ifdef CLD_AER_CDNC
@@ -705,12 +729,13 @@ CCC      AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
          AREGIJ(I,J,2)=PRCPSS*DXYP(J)  ! add in after parallel region
          DO KR=1,NDIUPT
            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-             ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPSS
-             ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDSS
-             ADIURN(IH,IDD_SSP ,KR)=ADIURN(IH,IDD_SSP ,KR)+PRCPSS
-             HDIURN(IHM,IDD_PR  ,KR)=HDIURN(IHM,IDD_PR  ,KR)+PRCPSS
-             HDIURN(IHM,IDD_ECND,KR)=HDIURN(IHM,IDD_ECND,KR)+HCNDSS
-             HDIURN(IHM,IDD_SSP ,KR)=HDIURN(IHM,IDD_SSP ,KR)+PRCPSS
+             tmp(IDD_PR)  =+PRCPSS
+             tmp(IDD_ECND)=+HCNDSS  
+             tmp(IDD_SSP) =+PRCPSS  
+             hdiurn_part(J,idx2(:),kr)=hdiurn_part(J,idx2(:),kr)+
+     &            tmp(idx2(:))
+             adiurn_part(J,idx2(:),kr)=adiurn_part(J,idx2(:),kr)+
+     &            tmp(idx2(:))
            END IF
          END DO
 
@@ -1027,19 +1052,25 @@ C**** Save the conservation quantities for tracers
 !ESMF-GLOBAL SUM accumulated into AIL!!!
 ! note that sum is only over l<lmc(2,i,j) with each addition inside an if block
 C**** Delayed summations (to control order of summands)
-!     DO J=MAX(J_0,J5S),MIN(J_1,J5N)
-      DO J=J_0,J_1
-      DO I=1,IM
-        IF(LMC(1,I,J).GT.0) THEN
-          DO L=1,LMC(2,I,J)-1
-            AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+AJEQIL(J,I,L)
-          END DO
-        END IF
+      DO J=MAX(J_0,J5S),MIN(J_1,J5N)
+        DO I=1,IM
+          IF(LMC(1,I,J).LE.0) THEN
+            AJEQIL(I,J,:)=0.
+          ELSE
+            AJEQIL(I,J,LMC(2,I,J):)=0.
+          END IF
+        END DO
       END DO
-      END DO
-C****EXCEPTION: partial-global sum above!
-C     CALL GLOBAL_SUM(AIL.....)
-C 
+      CALL GLOBALSUM(GRID, AJEQIL, AJEQIL_SUM,jband=(/J5S,J5N/))
+
+      If (AM_I_ROOT()) THEN
+         DO I=1,IM
+            DO L=1,LM ! restrictions on L handled in accumulation of AJEQIL above
+               AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+AJEQIL_SUM(I,L)
+            END DO
+         END DO
+      END IF
+         
 C***EXCEPTION: Indirect addressing [JREG(I,J)]
       AREG_part(:,J_0H:J_1H,1:3) = 0
       DO J=J_0,J_1
@@ -1065,11 +1096,21 @@ C***EXCEPTION: Indirect addressing [JREG(I,J)]
         CALL GLOBALSUM(GRID, AREG_part(JR,:,3), AREG_SUM, ALL=.TRUE.)
         AREG(JR,J_EPRCP ) = AREG(JR,J_EPRCP ) + AREG_SUM
       END DO
+      DO kr = 1, ndiupt
+        DO ii = 1, N_IDX3
+          ivar = idx3(ii)
+          CALL GLOBALSUM(grid, ADIURN_part(:,ivar,kr), ADIURNSUM)
+          CALL GLOBALSUM(grid, HDIURN_part(:,ivar,kr), HDIURNSUM)
+          IF (AM_I_ROOT()) THEN
+            ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM
+            HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM
+          END IF
+        END DO
+      END DO
+
 C 
 C     NOW REALLY UPDATE THE MODEL WINDS
 C 
-      CALL CHECKSUM_COLUMN(grid, UKM,__LINE__,__FILE__,SKIP=.true.)
-      CALL CHECKSUM_COLUMN(grid, VKM,__LINE__,__FILE__,SKIP=.true.)
 
       CALL HALO_UPDATE_COLUMN(grid, UKM, from=SOUTH)
       CALL HALO_UPDATE_COLUMN(grid, VKM, from=SOUTH)
