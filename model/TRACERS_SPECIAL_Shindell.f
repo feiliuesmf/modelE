@@ -33,8 +33,42 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
      & Alkenes_src(im,jm,nAlkenessrc),Paraffin_src(im,jm,nParaffinsrc),
      & Isoprene_src(im,jm,nIsoprenesrc),NOx_src(im,jm,nNOxsrc)
       END MODULE TRACER_SOURCES
+      
+      
+      MODULE LIGHTNING
+!@sum  LIGHTNING_COM model variables lightning parameterization
+!@auth Colin Price (modelEification by Greg Faluvegi)
+!@ver  1.0 (taken from CB436Tds3M23)
+      USE RESOLUTION, only : IM,JM,LM,LS1
 
+      IMPLICIT NONE
+      SAVE
+      
+!@var i_lgt for saving current i index from CLOUDS_DRV
+!@var j_lgt for saving current j index from CLOUDS_DRV
+!@var JN J at 30 N
+!@var JS J at 30 S
+!@var I dummy
 
+      INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
+      INTEGER i_lgt, j_lgt, I
+      REAL*8, DIMENSION(IM,JM) :: RNOx_lgt
+      REAL*8, DIMENSION(LS1+1) :: SRCLIGHT
+      
+!@var HGT Pickering vertical lightning distributions (1998)
+      REAL*8 HGT(2,2,16)
+      DATA (HGT(1,1,I),I=1,16)/8.2,1.9,2.1,1.6,1.1,1.6,3.0,5.8,
+     &  7.6,9.6,10.5,12.3,11.8,12.5,8.1,2.3/
+      DATA (HGT(1,2,I),I=1,16)/5.8,2.9,2.6,2.4,2.2,2.1,2.3,6.1,
+     & 16.5,14.1,13.7,12.8,12.5,2.8,0.9,0.3/
+      DATA (HGT(2,1,I),I=1,16)/20.1,2.3,0.8,1.5,3.4,5.3,3.6,3.8,
+     &    5.4,6.6,8.3,9.6,12.8,10.0,6.2,0.3/
+      DATA (HGT(2,2,I),I=1,16)/5.8,2.9,2.6,2.4,2.2,2.1,2.3,6.1,
+     & 16.5,14.1,13.7,12.8,12.5,2.8,0.9,0.3/ 
+          
+      END MODULE LIGHTNING 
+      
+          
       subroutine read_CH4_sources(nt,iact)
 !@sum reads in CH4 surface sources and sinks
 !@auth Jean Lerner
@@ -860,40 +894,6 @@ c     L={21,22,23} on 0.32mb obs (average of mar,jun,sep,dec).
       RETURN
       end subroutine get_CH4_IC
    
-
-      MODULE LIGHTNING
-!@sum  LIGHTNING_COM model variables lightning parameterization
-!@auth Colin Price (modelEification by Greg Faluvegi)
-!@ver  1.0 (taken from CB436Tds3M23)
-      USE RESOLUTION, only : IM,JM,LM,LS1
-
-      IMPLICIT NONE
-      SAVE
-      
-!@var i_lgt for saving current i index from CLOUDS_DRV
-!@var j_lgt for saving current j index from CLOUDS_DRV
-!@var JN J at 30 N
-!@var JS J at 30 S
-!@var I dummy
-
-      INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
-      INTEGER i_lgt, j_lgt, I
-      REAL*8, DIMENSION(IM,JM) :: RNOx_lgt
-      REAL*8, DIMENSION(LS1+1) :: SRCLIGHT
-      
-!@var HGT Pickering vertical lightning distributions (1998)
-      REAL*8 HGT(2,2,16)
-      DATA (HGT(1,1,I),I=1,16)/8.2,1.9,2.1,1.6,1.1,1.6,3.0,5.8,
-     &  7.6,9.6,10.5,12.3,11.8,12.5,8.1,2.3/
-      DATA (HGT(1,2,I),I=1,16)/5.8,2.9,2.6,2.4,2.2,2.1,2.3,6.1,
-     & 16.5,14.1,13.7,12.8,12.5,2.8,0.9,0.3/
-      DATA (HGT(2,1,I),I=1,16)/20.1,2.3,0.8,1.5,3.4,5.3,3.6,3.8,
-     &    5.4,6.6,8.3,9.6,12.8,10.0,6.2,0.3/
-      DATA (HGT(2,2,I),I=1,16)/5.8,2.9,2.6,2.4,2.2,2.1,2.3,6.1,
-     & 16.5,14.1,13.7,12.8,12.5,2.8,0.9,0.3/ 
-          
-      END MODULE LIGHTNING      
-
       
       SUBROUTINE calc_lightning(LMAX,LFRZ,IC)
 !@sum calc_lightning to calculate lightning flash amount and cloud-
