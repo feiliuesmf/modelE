@@ -15,8 +15,8 @@ C**** must be compiled after the model
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
       USE DAGCOM, only : keynr,tsfrez
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq
-     *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
-     *     ,egcm,tgvavg,qgavg
+     *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,
+     *     ustar_pbl,egcm,tgvavg,qgavg
       USE STATIC_OCEAN, only : tocean,z1o,tfo
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
       USE SEAICE, only : ace1i,xsi,ac2oim,ssi0
@@ -60,8 +60,8 @@ c??   OPEN(iu_AIC,FILE=trim(infile),FORM="UNFORMATTED",STATUS="OLD")
      *     (((htbare(L,I,J),I=1,IM),J=1,JM),L=0,NGM),
      *     (((htvege(L,I,J),I=1,IM),J=1,JM),L=0,NGM),
      *     (((snowbv(L,I,J),I=1,IM),J=1,JM),L=1,2),
-     *     wsavg,tsavg,qsavg,dclev,Z1O,usavg,vsavg,tauavg
-     *     ,ustar,uabl,vabl,tabl,qabl,eabl,cm,ch,cq,ipbl,(((TTOLD(L,I,J)
+     *     wsavg,tsavg,qsavg,dclev,Z1O,usavg,vsavg,tauavg,  ustar_pbl
+     *           ,uabl,vabl,tabl,qabl,eabl,cm,ch,cq,ipbl,(((TTOLD(L,I,J)
      *     ,I=1,IM),J=1,JM),L=1,LM),(((QTOLD(L,I,J),I=1,IM),J=1,JM),L=1
      *     ,LM),(((SVLHX(L,I,J),I=1,IM),J=1,JM),L=1,LM),(((RHSAV(L,I,J)
      *     ,I=1,IM),J=1,JM),L=1,LM),WM,(((CLDSAV(L,I,J),I=1,IM),J=1,JM)
