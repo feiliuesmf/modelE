@@ -175,12 +175,11 @@ open RUNIDULN, ">$runID"."uln" or die "can't open ${runID}ln for writing\n";
 
 foreach $_ ( @data_files ) {
     ($name, $dest) = split /\s*=\s*/;
-    $name =~ s/^(\d+)$/fort.$1/;      # n:=>fort.n - do we need it?
     if ( ! -e "$GCMSEARCHPATH/$dest" ) {
 	print "$dest not found in $GCMSEARCHPATH\n";
 	exit 1;
     }
-    if ( $name !~ /^(AIC|OIC|GIC|fort.9)$/ ) {
+    if ( $name !~ /^(AIC|OIC|GIC)$/ ) {
 	print RUNIDLN "ln -s $GCMSEARCHPATH/$dest $name\n";
 	print RUNIDULN "rm $name\n";
     } else {
@@ -234,13 +233,20 @@ if ( ! defined $pid ) {
     print "Fork failed. Continuing in foreground.\n";
 }
 
-`touch lock`;
-`./"$runID"ln`;
-`umask $umask_str; ./"$runID".exe < I >> ${runID}.PRT` ;
+## Running the model
+print <<`EOC`;
+    umask $umask_str
+    touch lock
+    ./"$runID"ln
+    ./"$runID".exe < I >> ${runID}.PRT
+    rc=\$?
+    rm -f AIC GIC OIC
+    ./"$runID"uln
+    rm -f lock
+    exit \$rc
+EOC
+
 $rcode = $? >> 8;
-`rm -f AIC GIC OIC`;  #fort.[789] - do we need those?
-`./"$runID"uln`;
-`rm -f lock`;
 if ( $rcode != 13 && $rcode != 12 ) {
     print " Problem encountered while running hour 1\n"; 
     exit 4 ;
@@ -248,22 +254,24 @@ if ( $rcode != 13 && $rcode != 12 ) {
     print "1st hour completed sucessfully\n";
 }
 
-## create executable script file RUNID
+## Create executable script file RUNID
 open RUNID, ">$runID" or die "can't open $runID for writing\n";
-print RUNID "#!/bin/sh\n";
-print RUNID "umask $umask_str\n";
-print RUNID "if [ -f lock ] ; then\n";
-print RUNID "  echo 'lock file present - aborting' ; exit 1 ; fi\n";
-print RUNID "touch lock\n";
-print RUNID "PRTFILE=${runID}.PRT\n";
-print RUNID "if [ \$# -ge 1 ] && [ $1='-q' ]; then\n";
-print RUNID "  PRTFILE='/dev/null'; fi\n";
-print RUNID "./${runID}ln \n";
-print RUNID "./${runID}.exe < I > \$PRTFILE\n";
-print RUNID "rc=\$?\n";
-print RUNID "./${runID}uln\n";
-print RUNID "rm -f lock\n";
-print RUNID "exec $EXECDIR/runpmE $runID \$rc $MAILTO\n";
+print RUNID <<EOF;
+\#!/bin/sh
+    umask $umask_str
+    if [ -f lock ] ; then
+      echo 'lock file present - aborting' ; exit 1 ; fi
+    touch lock
+    PRTFILE=${runID}.PRT
+    if [ \$\# -ge 1 ] && [ $1='-q' ]; then
+      PRTFILE='/dev/null'; fi
+    ./${runID}ln
+    ./${runID}.exe < I > \$PRTFILE
+    rc=\$?
+    ./${runID}uln
+    rm -f lock
+    exec $EXECDIR/runpmE $runID \$rc $MAILTO
+EOF
 close RUNID;
 chmod 0777 & $umask_inv, $runID;
 ## end of RUNID script
@@ -271,5 +279,4 @@ chmod 0777 & $umask_inv, $runID;
 
 ## overwrite RUNID.I omitting ISTART=.. line.
 `umask $umask_str; grep -v "ISTART=" I > I.tmp; mv -f I.tmp I`;
-
 
