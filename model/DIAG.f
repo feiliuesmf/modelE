@@ -2167,7 +2167,7 @@ C****
 C****
 C**** TOTAL POTENTIAL ENERGY (J/m^2)
 C****
- 400  DO J=1,JM
+      DO J=1,JM
         TPEIL=0.
         DO L=1,LM
           TPEI=0.
@@ -2803,7 +2803,7 @@ C****
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
       USE GHYCOM, only : snowe
-      USE RADNCB, only : trhr,srdn,salb,cfrac
+      USE RADNCB, only : trhr,srdn,salb,cfrac,cosz1
       USE DAGCOM, only : z_inst,rh_inst,t_inst,kgz_max,pmname
       IMPLICIT NONE
       REAL*4, DIMENSION(IM,JM) :: DATA
@@ -2871,10 +2871,10 @@ C**** simple diags
         case ("QSEN")           ! sensible heat flux (W/m^2)
           data=tflux1*sha
         case ("SWD")           ! solar downward flux at surface (W/m^2)
-          data=srdn
+          data=srdn*cosz1      ! multiply by instant cos zenith angle 
         case ("SWU")     ! solar upward flux at surface (W/m^2)
 ! estimating this from the downward x albedo, since that's already saved
-          data=srdn*salb
+          data=srdn*salb*cosz1
         case ("LWD")     ! thermal downward flux at surface (W/m^2)
           data=TRHR(0,:,:)
         case ("ICEF")           ! ice fraction over open water (%)

@@ -199,7 +199,7 @@ C** TEMPK and TEMPC are surface air temperatures in K and in C
 ccc      TEMPK was BLDATA(I,J,2) now input as argument
       TEMPC = TEMPK-tf
       byTEMPC = 1.D0/TEMPC    
-      RAD0 = srdn(I,J)
+      RAD0 = srdn(I,J)*suncos
 C               
 C* Compute bulk surface resistance for gases.
 C*   
