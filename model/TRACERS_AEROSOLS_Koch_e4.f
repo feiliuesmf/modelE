@@ -6,11 +6,14 @@
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: ndmssrc  = 1
-!@var DMS_src           DMS ocean source (kg/s)
-      real*8 DMS_src(im,jm),DMSinput(im,jm,12)
+!@var DMS_src           DMS ocean source (kg/s/m2)
+      real*8 DMSinput(im,jm,12)
       INTEGER, PARAMETER :: nso2src  = 2
-!@var SO2_src    SO2 industry, biomass: surface sources (kg/s)
+!@var SO2_src    SO2 industry, biomass: surface sources (kg/s/m2)
       real*8 SO2_src(im,jm,nso2src)
+!@var ss_src  Seasalt sources in 2 bins (kg/s/m2)
+      INTEGER, PARAMETER :: nsssrc = 2
+      real*8 ss_src(im,jm,nsssrc)
       INTEGER, PARAMETER :: nso2src_3d  = 2
 !@var SO2_src_3d SO2 volcanic and aircraft sources (kg/s)
       real*8 SO2_src_3d(im,jm,lm,nso2src_3d)
@@ -20,6 +23,7 @@
 c note that tno3,tno3r had dimension (im,jm,lm,12) for Wang source
       real*8, DIMENSION(IM,JM,LM):: ohr,dho2r,perjr,
      *   tno3r,oh,dho2,perj,tno3
+      real*8, DIMENSION(IM,JM,ntm):: aer_tau
       END MODULE AEROSOL_SOURCES
 
       subroutine read_SO2_source(nt,iact)
@@ -66,7 +70,7 @@ Cewg Between 24N and 40N, allow biomass burning from September to April.
       call openunit('SO2_IND',iuc,.false.)
       so2_ind_input(:,:)=0.   ! initiallise
       DO 10 ij = 1,9999
-      read(iuc,902)   I,J,TMAS,TX,TXX,TY,TYY,TXY      
+      read(iuc,902)   I,J,TMAS !,TX,TXX,TY,TYY,TXY      
  902  FORMAT(3X,2(I4),E11.3,5F9.2)  
       if (i.eq.0) goto 12     
       so2_ind_input(i,j)=tmas
@@ -85,7 +89,6 @@ c We need kg SO2/m2/s
 
 c??      DTT=REAL(NDYN)*DT/(86400.*30.) (ADDTC=TB*B60N*DTT)
 
-      so2_src(:,:,2)=0.
 C  Read in emissions from biomass burning 
       call openunit('SO2_BIOMASS',iuc2,.false.)
       so2_src(:,:,2)=0.   ! initiallise
@@ -95,10 +98,10 @@ Cewg  SDDAY -- first day (as day of the year) of the 90 driest days
       READ (iuc2,9051) IB,JB,TB,TBX,TBXX,TBY,TBYY,TBXY,SDDAY   
  9051  FORMAT(4X,2I5,6E10.3,F5.0)   
       IF (IB.EQ.0) GO TO 155     
-C Flux is tons SO2 / 4x5 box / year. Convert to kg SO2 / 4x5 box / year 6369.1  
 C Flux is tons SO2 / 4x5 box / year. Convert to kg SO2 / 4x5 box /sec
 c Must be tons SO2/4x5 box/month. Convert to kg SO2/4x5 box/sec
-       TB = TB * 1.e3/30.4d0/24.d0/3600.d0  
+c Must be tons S/4x5 box/month. Convert to kg SO2/4x5 box/sec
+       TB = TB * 907.2d0/30.4d0/24.d0/3600.d0/32.d0*64.d0
         IF ((SDDAY+89.) .LE. 365.) THEN     
           ENDDAY = SDDAY + 89.    
         ELSE       
@@ -141,7 +144,6 @@ Cewg Allow burning south of 32N on the 90 driest days of the year
 
 c continuously erupting volcanic emissions 
 c     from GEIA (Andres and Kasgnoc, 1998)
-      if (ifirst) then
       so2_src_3d(:,:,:,1)=0.
       call openunit('SO2_VOLCANO',iuc2,.false.)
       do 116 ir=1,49                        
@@ -167,12 +169,9 @@ C ZH is height in meters of top of layer above sea level
        GO TO 100     
  24    CONTINUE   
        so2_src_3d(iv,jv,l,1)=so2_src_3d(iv,jv,l,1)+vemis
-c        vtot=vemis*dtsrc+vtot
-c        write(6,*) 'volcsrc',l,iv,jv,vemis,zg,sday,vtot
  100   CONTINUE    
  116  CONTINUE                                                         
       call closeunit(iuc2) 
-      endif
 c Aircraft emissions
       if (ifirst) then
       so2_src_3d(:,:,:,2)=0.
@@ -208,47 +207,75 @@ c (for BC multiply this by 0.1)
 
       end subroutine read_SO2_source
 
-
-      subroutine read_DMS_sources(nt,iact)
-!@sum reads in DMS ocean source
+      subroutine read_DMS_sources(swind,itype,i,j,DMS_flux)
+!@sum generates DMS ocean source
 !@auth Koch
 c Monthly DMS ocean concentration sources are read in and combined
 c  with wind and ocean temperature functions to get DMS air surface
 c  concentrations
 c want kg DMS/m2/s
       USE CONSTANT, only: sday
-      USE MODEL_COM, only: im,jm,jmon,focean
-      USE GEOM, only: imaxj
+c     USE MODEL_COM, only: focean,jmon
+      USE MODEL_COM, only: jmon
       USE TRACER_COM
       USE SEAICE_COM, only:rsi
-      USE PBLCOM, only: wsavg
-      USE AEROSOL_SOURCES, only: DMSinput,DMS_src
+c     USE PBLCOM, only: wsavg
+      USE AEROSOL_SOURCES, only: DMSinput
       implicit none
-      REAL*8 swind,akw,erate,steppd,
-     *  foc,f_ice_free
-      integer i,j,nt,iact
+      REAL*8 akw,erate,f_ice_free
+c    *  foc
+      real*8, INTENT(OUT) :: DMS_flux
+      real*8, INTENT(IN) :: swind
+      integer, INTENT(IN) :: itype,i,j
 
-      steppd = 1./sday
-c
-      do j=1,jm
-      do i=1,imaxj(j)
-       DMS_src(i,j)=0
+       DMS_flux=0
+      if (itype.eq.1) then
        erate=0.d0
-         swind=wsavg(i,j)  !m/s
-         foc=focean(i,j) !fraction of gridbox with water
+c        foc=focean(i,j) !fraction of gridbox with water
          f_ice_free=1.-rsi(i,j)
 c Nightingale et al
       akw = 0.23d0*swind*swind + 0.1d0 * swind
       akw = akw * 0.24d0
-      erate=akw*dmsinput(i,j,jmon)*1.d-9*tr_mm(nt)*
-     *  steppd*foc*f_ice_free  !*dtsrc
-      DMS_src(i,j)=erate                 
-c source -> return
-      end do
-      end do
-
+      erate=akw*dmsinput(i,j,jmon)*1.d-9*62.d0  !*tr_mm(nt)
+     *  /sday*f_ice_free   !*foc  
+      DMS_flux=erate  ! units are kg/m2/s               
+      endif
+c 
       return
       end subroutine read_DMS_sources
+      
+      subroutine read_seasalt_sources(swind,itype,ibin,i,j,ss)
+!@sum determines wind-speed dependent oceanic seasalt source
+!@auth Koch
+c want kg seasalt/m2/s, for now in 2 size bins
+c     USE MODEL_COM, only: focean
+      USE TRACER_COM
+      USE SEAICE_COM, only:rsi
+c     USE PBLCOM, only: wsavg
+      implicit none
+      REAL*8 swind,erate,f_ice_free !,foc
+      integer, INTENT(IN)::itype,ibin,i,j
+      REAL*8, INTENT(IN)::swind
+      REAL*8, INTENT(OUT)::ss
+c
+       ss=0.
+       if (itype.eq.1) then
+       erate=0.d0
+c      swind=wsavg(i,j)  !m/s
+c      foc=focean(i,j) !fraction of gridbox with water
+       f_ice_free=1.-rsi(i,j)
+c Monahan 1971, bubble source, important for small (<10um)
+c      particles
+       erate= 1.373 * swind**(3.41)*f_ice_free ! * foc 
+      if (ibin.eq.1) then
+      ss=erate*2.11d-14 ! submicron (0.1 < r_d < 1.)
+      else 
+      ss=erate*7.78d-14 ! supermicron (1. < r_d < 4.)
+      endif
+c units are kg salt/m2/s
+      endif
+      return
+      end subroutine read_seasalt_sources
 
 
       subroutine aerosol_gas_chem
@@ -1034,3 +1061,116 @@ c diagnostic
 
       return
       END subroutine HETER
+
+      SUBROUTINE GET_TAU
+!@sum  calculate aerosol optical thickness
+!@auth Dorothy Koch
+      USE TRACER_COM, only:
+     *     trname,ntm,trm
+      USE MODEL_COM, only: im,jm,lm
+      USE CLOUDS_COM, only:rhsav
+      USE GEOM, only: imaxj,dxyp
+      USE AEROSOL_SOURCES, only: aer_tau
+
+      IMPLICIT NONE
+      integer i,j,l,n,najl
+      real*8 rhh,tf
+c For now we are using the hydrated extinction efficiencies
+c   from Chin et al 2002. 
+c No need to divide by dxyp here because it is done in TRACER_PRT
+      DO J=1,JM  
+      DO I=1,IMAXJ(J)
+      DO L=1,LM
+      rhh=rhsav(l,i,j)*100.d0
+      DO N=1,NTM
+       select case (trname(n))
+       case('SO4')
+       if (rhh.le.10.) then
+       tf=5.
+       else if (rhh.le.20.) then
+       tf=6.
+       else if (rhh.le.30.) then
+       tf=7.
+       else if (rhh.le.40.) then
+       tf=8.
+       else if (rhh.le.50.) then
+       tf=10.
+       else if (rhh.le.60.) then
+       tf=12.
+       else if (rhh.le.70.) then
+       tf=14.
+       else if (rhh.le.80.) then
+       tf=17.
+       else if (rhh.le.85.) then
+       tf=18.
+       else if (rhh.le.90.) then
+       tf=20.
+       else if (rhh.le.95.) then
+       tf=26.
+       else 
+       tf=36.
+       endif
+       aer_tau(i,j,n)=aer_tau(i,j,n)
+     *    +trm(i,j,l,n)*1000.*tf
+       case ('seasalt1')
+       if (rhh.le.10.) then
+       tf=1.
+       else if (rhh.le.20.) then
+       tf=2.
+       else if (rhh.le.30.) then
+       tf=2.5
+       else if (rhh.le.40.) then
+       tf=3.
+       else if (rhh.le.50.) then
+       tf=3.3
+       else if (rhh.le.60.) then
+       tf=3.6
+       else if (rhh.le.70.) then
+       tf=4.
+       else if (rhh.le.80.) then
+       tf=4.5
+       else if (rhh.le.85.) then
+       tf=5.
+       else if (rhh.le.90.) then
+       tf=6.
+       else if (rhh.le.95.) then
+       tf=8.
+       else
+       tf=20.
+       endif
+       aer_tau(i,j,n)=aer_tau(i,j,n)
+     *     +trm(i,j,l,n)*1000.*tf
+       case ('seasalt2')
+      if (rhh.le.10.) then
+       tf=0.1
+       else if (rhh.le.30.) then
+       tf=.2
+       else if (rhh.le.40.) then
+       tf=.3
+       else if (rhh.le.50.) then
+       tf=.35
+       else if (rhh.le.60.) then
+       tf=.4
+       else if (rhh.le.70.) then
+       tf=.45
+       else if (rhh.le.80.) then
+       tf=.5
+       else if (rhh.le.85.) then
+       tf=.6
+       else if (rhh.le.90.) then
+       tf=.7
+       else if (rhh.le.95.) then
+       tf=1.
+       else
+       tf=2.5
+       endif
+       aer_tau(i,j,n)=aer_tau(i,j,n)
+     *     +trm(i,j,l,n)*1000.*tf
+       end select
+      END DO
+      END DO
+      END DO
+      END DO
+      return
+      END subroutine GET_TAU
+
