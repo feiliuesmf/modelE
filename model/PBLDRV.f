@@ -583,7 +583,7 @@ c ******* itype=4: Land
 
       subroutine pgrads1
       USE CONSTANT, only : rgas
-      USE E001M12_COM
+      USE E001M12_COM, only : im,jm,t,p,sig,zatmo
       USE GEOM, only : dyp,dxp
       USE PBLCOM, only : dpdxr,dpdyr,phi,dpdxr0,dpdyr0,iq1,iq2,iq3
       USE DYNAMICS, only : pmid,pk,pedn
@@ -705,7 +705,7 @@ c     at the surface:
 
       subroutine geopot
       USE CONSTANT, only : rgas,grav
-      USE E001M12_COM
+      USE E001M12_COM, only : im,jm,t,p,dsig,zatmo
       USE PBLCOM, only : phi
       USE SOCPBL, only : zgs
       USE DYNAMICS, only : pmid,pk,pedn

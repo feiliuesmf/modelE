@@ -99,12 +99,12 @@ C****
 C****
 C**** RESTRUCTURE OCEAN LAYERS
 C****
-      DO 200 J=1,JM
+      DO J=1,JM
       IMAX=IMAXJ(J)
-      DO 200 I=1,IMAX
-      IF (FLAND(I,J).GE.1.) GO TO 200
+      DO I=1,IMAX
+      IF (FLAND(I,J).GE.1.) CYCLE
       IF (Z1OOLD(I,J).GE.Z12O(I,J)) GO TO 140
-      IF (Z1O(I,J).EQ.Z1OOLD(I,J)) GO TO 200
+      IF (Z1O(I,J).EQ.Z1OOLD(I,J)) CYCLE
       WTR1O=RHOW*Z1O(I,J)-ODATA(I,J,2)*(GDATA(I,J,1)+ACE1I+ODATA(I,J,3))
       DWTRO=RHOW*(Z1O(I,J)-Z1OOLD(I,J))
       WTR2O=RHOW*(Z12O(I,J)-Z1O(I,J))
@@ -112,7 +112,7 @@ C****
 C**** MIX LAYER DEPTH IS GETTING SHALLOWER
       ODATA(I,J,4)=ODATA(I,J,4)
      *  +((ODATA(I,J,4)-ODATA(I,J,1))*DWTRO/WTR2O+TTRUNC)
-      GO TO 200
+      CYCLE
 C**** MIX LAYER DEPTH IS GETTING DEEPER
   120 TGAVE=(ODATA(I,J,4)*DWTRO+(2.*ODATA(I,J,4)-ODATA(I,J,5))*WTR2O)
      *  /(WTR2O+DWTRO)
@@ -121,97 +121,99 @@ C**** MIX LAYER DEPTH IS GETTING DEEPER
       IF (Z1O(I,J).GE.Z12O(I,J)) GO TO 140
       ODATA(I,J,4)=ODATA(I,J,4)
      *  +((ODATA(I,J,5)-ODATA(I,J,4))*DWTRO/(WTR2O+DWTRO)+TTRUNC)
-      GO TO 200
+      CYCLE
 C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
   140 ODATA(I,J,4)=ODATA(I,J,1)
       ODATA(I,J,5)=ODATA(I,J,1)
-  200 CONTINUE
+      END DO
+      END DO
 C****
 C**** REDUCE THE HORIZONTAL EXTENT OF ICE IF OCEAN TEMPERATURE IS WARM
 C****
-      DO 300 J=1,JM
-      IMAX=IMAXJ(J)
-      DO 300 I=1,IMAX
-      IF (FLAKE(I,J) .GT. 0.) GO TO 300 ! no melting in lakes
-      IF (ODATA(I,J,2).LE.0.) GO TO 300
-      IF (FLAND(I,J).GE.1.) GO TO 300
+      DO J=1,JM
+        IMAX=IMAXJ(J)
+        DO I=1,IMAX
+          IF (FLAKE(I,J) .GT. 0.) CYCLE ! no melting in lakes
+          IF (ODATA(I,J,2).LE.0.) CYCLE
+          IF (FLAND(I,J).GE.1.) CYCLE
 C**** REDUCE ICE EXTENT IF OCEAN TEMPERATURE IS GREATER THAN TFO
-      IF (ODATA(I,J,1).LE.0.) GO TO 300
-      TGW=ODATA(I,J,1)
-      ROICE=ODATA(I,J,2)
-      MSI2=ODATA(I,J,3)
-      ACE=GDATA(I,J,1)+ACE1I+MSI2
-        SNOW=GDATA(I,J,1) ! snow mass
-        MSI1 = SNOW + ACE1I
-        TG1 = GDATA(I,J,3)  ! first layer sea ice temperature
-        TG2 = GDATA(I,J,7)  ! second layer sea ice temperature
-        TG3 = GDATA(I,J,15) ! third layer sea ice temperature
-        TG4 = GDATA(I,J,16) ! fourth layer sea ice temperature
+          IF (ODATA(I,J,1).LE.0.) CYCLE
+          TGW=ODATA(I,J,1)
+          ROICE=ODATA(I,J,2)
+          MSI2=ODATA(I,J,3)
+          ACE=GDATA(I,J,1)+ACE1I+MSI2
+          SNOW=GDATA(I,J,1)     ! snow mass
+          MSI1 = SNOW + ACE1I
+          TG1 = GDATA(I,J,3)    ! first layer sea ice temperature
+          TG2 = GDATA(I,J,7)    ! second layer sea ice temperature
+          TG3 = GDATA(I,J,15)   ! third layer sea ice temperature
+          TG4 = GDATA(I,J,16)   ! fourth layer sea ice temperature
 C***  CONVERT SEA ICE TEMPERATURE INTO ENTHALPY MINUS LATENT HEAT
-        HSI1 = (SHI*TG1-LHM)*XSI1*MSI1
-        HSI2 = (SHI*TG2-LHM)*XSI2*MSI1
-        HSI3 = (SHI*TG3-LHM)*XSI3*MSI2
-        HSI4 = (SHI*TG4-LHM)*XSI4*MSI2
-      ENRGI = HSI1+HSI2+HSI3+HSI4 ! energy is sea ice [J/m^2]
-      WTRO=Z1O(I,J)*RHOW
-      WTRW=WTRO-ROICE*ACE
-      EW_FREZ = WTRW*TFO*SHW ! energy of water at freezing temperature
-      ENRGW=WTRW*TGW*SHW
-      ENRG = ENRGW ! energy of water
-      IF (ROICE*ENRGI+ENRG.LT.0.) GO TO 230
+          HSI1 = (SHI*TG1-LHM)*XSI1*MSI1
+          HSI2 = (SHI*TG2-LHM)*XSI2*MSI1
+          HSI3 = (SHI*TG3-LHM)*XSI3*MSI2
+          HSI4 = (SHI*TG4-LHM)*XSI4*MSI2
+          ENRGI = HSI1+HSI2+HSI3+HSI4 ! energy is sea ice [J/m^2]
+          WTRO=Z1O(I,J)*RHOW
+          WTRW=WTRO-ROICE*ACE
+          EW_FREZ = WTRW*TFO*SHW ! energy of water at freezing temperature
+          ENRGW=WTRW*TGW*SHW
+          ENRG = ENRGW          ! energy of water
+          IF (ROICE*ENRGI+ENRG.LT.0.) GO TO 230
 C**** THE WARM OCEAN MELTS ALL THE SNOW AND ICE
-      ODATA(I,J,1)=(ROICE*ENRGI+ENRGW)/(WTRO*SHW)
-      GO TO 270
+          ODATA(I,J,1)=(ROICE*ENRGI+ENRGW)/(WTRO*SHW)
+          GO TO 270
 C**** THE WARM OCEAN COOLS TO 0 DEGREES MELTING SOME SNOW AND ICE
 C**** Reduce the ice depth
-  230 ODATA(I,J,1)=0. ! ODATA(I,J,1)=(ENRGW-ENRG)/(WTRO*SHW)
-      PWATER = 1. - FLAND(I,J) ! water fraction
-      POICE = ROICE*PWATER       ! sea ice fraction
-      H_C = 1.                   ! critical ice thickness [m]
-      H_ICE = ACE/RHOI           ! sea ice thickness [m]
-      IF (H_ICE .GT. 1.) THEN
-         GAMMA = H_ICE/H_C
-      ELSE
-         GAMMA = 1.
-      END IF
-      E_BOTTOM = ENRG*(POICE/(1.+GAMMA)) ! for bottom melting
-      E_SIDE = ENRG*(PWATER+(POICE*GAMMA)/(1.+GAMMA)) ! for side melt.
-      E_SIDE = ENRG-E_BOTTOM
+ 230      ODATA(I,J,1)=0.       ! ODATA(I,J,1)=(ENRGW-ENRG)/(WTRO*SHW)
+          PWATER = 1. - FLAND(I,J) ! water fraction
+          POICE = ROICE*PWATER  ! sea ice fraction
+          H_C = 1.              ! critical ice thickness [m]
+          H_ICE = ACE/RHOI      ! sea ice thickness [m]
+          IF (H_ICE .GT. 1.) THEN
+            GAMMA = H_ICE/H_C
+          ELSE
+            GAMMA = 1.
+          END IF
+          E_BOTTOM = ENRG*(POICE/(1.+GAMMA)) ! for bottom melting
+          E_SIDE = ENRG*(PWATER+(POICE*GAMMA)/(1.+GAMMA)) ! for side melt.
+          E_SIDE = ENRG-E_BOTTOM
 C***  MELT ICE VERTICALLY, AND THEN HORIZONTALLY
-        MELT = -XSI4*MSI2*ENRG/HSI4 ! melted ice at the bottom
-        IF (MSI2-MELT .LT. AC2OIM) MELT = MSI2-AC2OIM
-C       FMSI3 = XSI3*MELT ! > 0.
-        FHSI3 = HSI3*MELT/MSI2
-        FHSI4 = HSI4*MELT*R4/MSI2
+          MELT = -XSI4*MSI2*ENRG/HSI4 ! melted ice at the bottom
+          IF (MSI2-MELT .LT. AC2OIM) MELT = MSI2-AC2OIM
+C         FMSI3 = XSI3*MELT ! > 0.
+          FHSI3 = HSI3*MELT/MSI2
+          FHSI4 = HSI4*MELT*R4/MSI2
 C***  MELT SOME ICE HORIZONTALLY
-        DRSI = (ENRG+ROICE*FHSI4)/(HSI1+HSI2+HSI3+HSI4-FHSI4) ! < 0.
-        ROICEN = ROICE+DRSI ! new sea ice concentration
-c       SNOW = SNOW*(ROICE/ROICEN) ! new snow ice mass
-        MSI2 = MSI2-MELT
-        HSI3 = HSI3-FHSI3
-        HSI4 = HSI4+FHSI3-FHSI4
+          DRSI = (ENRG+ROICE*FHSI4)/(HSI1+HSI2+HSI3+HSI4-FHSI4) ! < 0.
+          ROICEN = ROICE+DRSI   ! new sea ice concentration
+c     SNOW = SNOW*(ROICE/ROICEN) ! new snow ice mass
+          MSI2 = MSI2-MELT
+          HSI3 = HSI3-FHSI3
+          HSI4 = HSI4+FHSI3-FHSI4
 C***  CONVERT SEA ICE ENTHALPY MINUS LATENT HEAT INTO TEMPERATURE
-        TG1 = (HSI1/(XSI1*MSI1) +LHM)/SHI ! temperatute of layer 1
-        TG2 = (HSI2/(XSI2*MSI1) +LHM)/SHI ! temperatute of layer 2
-        TG3 = (HSI3/(XSI3*MSI2) +LHM)/SHI ! temperatute of layer 3
-        TG4 = (HSI4/(XSI4*MSI2) +LHM)/SHI ! temperatute of layer 4
+          TG1 = (HSI1/(XSI1*MSI1) +LHM)/SHI ! temperatute of layer 1
+          TG2 = (HSI2/(XSI2*MSI1) +LHM)/SHI ! temperatute of layer 2
+          TG3 = (HSI3/(XSI3*MSI2) +LHM)/SHI ! temperatute of layer 3
+          TG4 = (HSI4/(XSI4*MSI2) +LHM)/SHI ! temperatute of layer 4
 C**** RESAVE PROGNOSTIC QUANTITIES
-        ODATA(I,J,2)=ROICEN
-        ODATA(I,J,3)=MSI2
-        GDATA(I,J,1)  = SNOW
-        GDATA(I,J,3)  = TG1
-        GDATA(I,J,7)  = TG2
-        GDATA(I,J,15) = TG3
-        GDATA(I,J,16) = TG4
-      GO TO 300
-  270 ODATA(I,J,2)=0.
-      ODATA(I,J,3)=0.
-      GDATA(I,J,1)=0.
-      GDATA(I,J,3)=0.
-      GDATA(I,J,7)=0.
-      GDATA(I,J,15) = 0.
-      GDATA(I,J,16) = 0.
-  300 CONTINUE
+          ODATA(I,J,2)=ROICEN
+          ODATA(I,J,3)=MSI2
+          GDATA(I,J,1)=SNOW
+          GDATA(I,J,3)=TG1
+          GDATA(I,J,7)=TG2
+          GDATA(I,J,15)=TG3
+          GDATA(I,J,16)=TG4
+          CYCLE
+ 270      ODATA(I,J,2)=0.
+          ODATA(I,J,3)=0.
+          GDATA(I,J,1)=0.
+          GDATA(I,J,3)=0.
+          GDATA(I,J,7)=0.
+          GDATA(I,J,15)=0.
+          GDATA(I,J,16)=0.
+        END DO
+      END DO
       RETURN
       END SUBROUTINE OSTRUC
 
@@ -271,9 +273,8 @@ C****    READ IN LAST MONTH'S END-OF-MONTH DATA
          CALL READT (iu_SICE,IM*JM,ERSI0,IM*JM,ERSI0,LSTMON)
       ELSE
 C****    COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
-         DO 320 I=1,IM*JM
-         EOST0(I,1)=EOST1(I,1)
-  320    ERSI0(I,1)=ERSI1(I,1)
+        EOST0=EOST1
+        ERSI0=ERSI1
       END IF
 C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
       MONTHO=MONTH
@@ -285,94 +286,98 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
       CALL READT (iu_OSST,0,AOST,2*IM*JM,AOST,1) ! READS AOST,EOST1
       CALL READT (iu_SICE,0,ARSI,2*IM*JM,ARSI,1) ! READS ARSI,ERSI1
 C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
-      DO 330 J=1,JM
-      IMAX=IMAXJ(J)
-      DO 330 I=1,IMAX
-      BOST(I,J)=EOST1(I,J)-EOST0(I,J)
-      COST(I,J)=3.*(EOST1(I,J)+EOST0(I,J)) - 6.*AOST(I,J)
-      BRSI(I,J)=0.
-      CRSI(I,J)=0.                                   ! extreme cases
-      KRSI(I,J)=0                                    ! ice constant
-      IF(ARSI(I,J).LE.0.) GO TO 330
-      IF(ARSI(I,J).GT.1.) GO TO 330
-      BRSI(I,J)=ERSI1(I,J)-ERSI0(I,J)                ! quadratic fit
-      CRSI(I,J)=3.*(ERSI1(I,J)+ERSI0(I,J)) - 6.*ARSI(I,J)
-      MD=MDMAX+JDATE-16
-      IF(ABS(CRSI(I,J)) .GT. ABS(BRSI(I,J))) THEN    ! linear fits
-        RSICSQ=CRSI(I,J)*
-     *  (ARSI(I,J)*CRSI(I,J) - .25*BRSI(I,J)**2 - CRSI(I,J)**2/12.)
-        IF(RSICSQ.lt.0.)  then
+      DO J=1,JM
+        IMAX=IMAXJ(J)
+        DO I=1,IMAX
+          BOST(I,J)=EOST1(I,J)-EOST0(I,J)
+          COST(I,J)=3.*(EOST1(I,J)+EOST0(I,J)) - 6.*AOST(I,J)
+          BRSI(I,J)=0.
+          CRSI(I,J)=0.          ! extreme cases
+          KRSI(I,J)=0           ! ice constant
+          IF(ARSI(I,J).LE.0. .or. ARSI(I,J).GT.1.) CYCLE
+          BRSI(I,J)=ERSI1(I,J)-ERSI0(I,J) ! quadratic fit
+          CRSI(I,J)=3.*(ERSI1(I,J)+ERSI0(I,J)) - 6.*ARSI(I,J)
+          MD=MDMAX+JDATE-16
+          IF(ABS(CRSI(I,J)) .GT. ABS(BRSI(I,J))) THEN ! linear fits
+            RSICSQ=CRSI(I,J)*(ARSI(I,J)*CRSI(I,J) - .25*BRSI(I,J)**2 -
+     *           CRSI(I,J)**2/12.)
+            IF(RSICSQ.lt.0.) THEN
 C**** RSI uses piecewise linear fit because quadratic fit at apex < 0
-          KRSI(I,J) = -1
-          BRSI(I,J) = .5*(ERSI0(I,J)**2 + ERSI1(I,J)**2) / ARSI(I,J)
-        ELSEIF(RSICSQ.gt.CRSI(I,J)**2)  then
+              KRSI(I,J) = -1
+              BRSI(I,J) = .5*(ERSI0(I,J)**2 + ERSI1(I,J)**2) / ARSI(I,J)
+            ELSEIF(RSICSQ.gt.CRSI(I,J)**2)  then
 C**** RSI uses piecewise linear fit because quadratic fit at apex > 1
-          KRSI(I,J) = 1
-          BRSI(I,J) = .5*((ERSI0(I,J)-1.)**2 + (ERSI1(I,J)-1.)**2) /
-     /                (ARSI(I,J)-1.)
-        END IF
-      END IF
-  330 CONTINUE
+              KRSI(I,J) = 1
+              BRSI(I,J) = .5*((ERSI0(I,J)-1.)**2 + (ERSI1(I,J)-1.)**2) /
+     /             (ARSI(I,J)-1.)
+            END IF
+          END IF
+        END DO
+      END DO
 C**** Calculate OST, RSI and MSI for current day
   400 TIME=(JDATE-.5)/(JDOFM(MONTH+1)-JDOFM(MONTH))-.5 ! -.5 < TIME < .5
-      DO 450 J=1,JM
-      ZIMIN=.5
-      ZIMAX=2.
-      IF(J.GT.JM/2) ZIMAX=3.5
-      IMAX=IMAXJ(J)
-      DO 450 I=1,IMAX
-      IF(FLAND(I,J).GE.1.)  GO TO 450
+      DO J=1,JM
+        ZIMIN=.5
+        ZIMAX=2.
+        IF(J.GT.JM/2) ZIMAX=3.5
+        IMAX=IMAXJ(J)
+        DO I=1,IMAX
+          IF(FLAND(I,J).GE.1.) CYCLE
 C**** OST always uses quadratic fit
-      ODATA(I,J,1) = AOST(I,J) + BOST(I,J)*TIME +
-     +               COST(I,J)*(TIME*TIME - 1./12.d0)
-      IF(KRSI(I,J)) 410,430,420
+          ODATA(I,J,1) = AOST(I,J) + BOST(I,J)*TIME +
+     +         COST(I,J)*(TIME*TIME - 1./12.d0)
+          IF(KRSI(I,J)) 410,430,420
 C**** RSI uses piecewise linear fit because quadratic fit at apex < 0
-  410 IF(ERSI0(I,J)-BRSI(I,J)*(TIME+.5) .gt. 0.)  then
-        RSINEW = ERSI0(I,J) - BRSI(I,J)*(TIME+.5)  !  TIME < T0
-      ELSEIF(ERSI1(I,J)-BRSI(I,J)*(.5-TIME) .gt. 0.)  then
-        RSINEW = ERSI1(I,J) - BRSI(I,J)*(.5-TIME)  !  T1 < TIME
-      ELSE
-        RSINEW = 0.                                !  T0 < TIME < T1
-          endif
-      GO TO 440
+ 410      IF(ERSI0(I,J)-BRSI(I,J)*(TIME+.5) .gt. 0.)  then
+            RSINEW = ERSI0(I,J) - BRSI(I,J)*(TIME+.5) !  TIME < T0
+          ELSEIF(ERSI1(I,J)-BRSI(I,J)*(.5-TIME) .gt. 0.)  then
+            RSINEW = ERSI1(I,J) - BRSI(I,J)*(.5-TIME) !  T1 < TIME
+          ELSE
+            RSINEW = 0.         !  T0 < TIME < T1
+          END IF
+          GO TO 440
 C**** RSI uses piecewise linear fit because quadratic fit at apex > 1
-  420 IF(ERSI0(I,J)-BRSI(I,J)*(TIME+.5) .lt. 1.)  then
-        RSINEW = ERSI0(I,J) - BRSI(I,J)*(TIME+.5)  !  TIME < T0
-      ELSEIF(ERSI1(I,J)-BRSI(I,J)*(.5-TIME) .lt. 1.)  then
-        RSINEW = ERSI1(I,J) - BRSI(I,J)*(.5-TIME)  !  T1 < TIME
-      ELSE
-        RSINEW = 1.                                !  T0 < TIME < T1
-          endif
-      GO TO 440
+ 420      IF(ERSI0(I,J)-BRSI(I,J)*(TIME+.5) .lt. 1.)  then
+            RSINEW = ERSI0(I,J) - BRSI(I,J)*(TIME+.5) !  TIME < T0
+          ELSEIF(ERSI1(I,J)-BRSI(I,J)*(.5-TIME) .lt. 1.)  then
+            RSINEW = ERSI1(I,J) - BRSI(I,J)*(.5-TIME) !  T1 < TIME
+          ELSE
+            RSINEW = 1.         !  T0 < TIME < T1
+          END IF
+          GO TO 440
 C**** RSI uses quadratic fit
-  430 RSINEW = ARSI(I,J) + BRSI(I,J)*TIME +
+ 430      RSINEW = ARSI(I,J) + BRSI(I,J)*TIME +
      +         CRSI(I,J)*(TIME*TIME - 1./12.d0)
-  440 ODATA(I,J,2)=RSINEW
-      ODATA(I,J,3)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+ 440      ODATA(I,J,2)=RSINEW
+          ODATA(I,J,3)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
 C**** WHEN TGO IS NOT DEFINED, MAKE IT A REASONABLE VALUE
-      IF (ODATA(I,J,1).LT.-1.8) ODATA(I,J,1)=-1.8
+          IF (ODATA(I,J,1).LT.-1.8) ODATA(I,J,1)=-1.8
 C**** REDUCE THE RATIO OF OCEAN ICE TO WATER BY .1*RHOI/ACEOI
 c     IF (ODATA(I,J,2).GT.0.) THEN
 c        BYZICE=RHOI/(Z1I*RHOI+ODATA(I,J,3))
 c        ODATA(I,J,2)=ODATA(I,J,2)*(1.-.06*(BYZICE-1./5.))
 c     END IF
 C**** ZERO OUT SNOWOI, TG1OI, TG2OI IF THERE IS NO OCEAN ICE
-      IF (ODATA(I,J,2).GT.0.) GO TO 450
-      GDATA(I,J,1)=0.
-      GDATA(I,J,3)=0.
-      GDATA(I,J,7)=0.
-      GDATA(I,J,15)=0.
-      GDATA(I,J,16)=0.
-  450 CONTINUE
+          IF (ODATA(I,J,2).LE.0.) THEN
+            GDATA(I,J,1)=0.
+            GDATA(I,J,3)=0.
+            GDATA(I,J,7)=0.
+            GDATA(I,J,15)=0.
+            GDATA(I,J,16)=0.
+          END IF
+        END DO
+      END DO
 C**** REPLICATE VALUES AT POLE
-      DO 460 I=2,IM
-      GDATA(I,JM,1)=GDATA(1,JM,1)
-      GDATA(I,JM,3)=GDATA(1,JM,3)
-      GDATA(I,JM,7)=GDATA(1,JM,7)
-      GDATA(I,JM,15)=GDATA(1,JM,15)
-      GDATA(I,JM,16)=GDATA(1,JM,16)
-      DO 460 K=1,3
-  460 ODATA(I,JM,K)=ODATA(1,JM,K)
+      DO I=2,IM
+        GDATA(I,JM,1)=GDATA(1,JM,1)
+        GDATA(I,JM,3)=GDATA(1,JM,3)
+        GDATA(I,JM,7)=GDATA(1,JM,7)
+        GDATA(I,JM,15)=GDATA(1,JM,15)
+        GDATA(I,JM,16)=GDATA(1,JM,16)
+        DO K=1,3
+          ODATA(I,JM,K)=ODATA(1,JM,K)
+        END DO
+      END DO
       RETURN
 C****
 C**** CALCULATE DAILY OCEAN MIXED LAYER DEPTHS FROM CLIMATOLOGY
@@ -414,18 +419,18 @@ C**** Read in climatological ocean mixed layer depths efficiently
       REWIND iu_OCNML
 C**** INTERPOLATE OCEAN DATA TO CURRENT DAY
       FRAC = DBLE(IDOFM(IMON)-JDAY)/(IDOFM(IMON)-IDOFM(IMON-1))
-      DO 610 J=1,JM
-      DO 610 I=1,IM
+      DO J=1,JM
+      DO I=1,IM
       Z1O(I,J)=FRAC*XZO(I,J)+(1.-FRAC)*XZN(I,J)
 
-      IF (ODATA(I,J,2)*FOCEAN(I,J).le.0) GO TO 610
+      IF (ODATA(I,J,2)*FOCEAN(I,J).le.0) CYCLE
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
       Z1OMIN=1.+(RHOI*Z1I+GDATA(I,J,1)+ODATA(I,J,3))/RHOW
       IF (Z1O(I,J).GE.Z1OMIN) GO TO 605
       WRITE(6,602) TAU,I,J,MONTH,Z1O(I,J),Z1OMIN
   602 FORMAT (' INCREASE OF MIXED LAYER DEPTH ',F9.0,3I4,2F10.3)
       Z1O(I,J)=Z1OMIN
-  605 IF (Z1OMIN.LE.Z12O(I,J)) GO TO 610
+  605 IF (Z1OMIN.LE.Z12O(I,J)) CYCLE
 C**** ICE DEPTH+1>MAX MIXED LAYER DEPTH : CHANGE OCEAN TO LAND ICE
       PLICE=FLICE(I,J)
       PLICEN=1.-FEARTH(I,J)
@@ -465,12 +470,14 @@ C**** Transfer PBL-quantities
       WRITE(6,606) 100.*POICE,100.*POCEAN,TAU,I,J
   606 FORMAT(F6.1,'% OCEAN ICE AND',F6.1,'% OPEN OCEAN WERE',
      *  ' CHANGED TO LAND ICE AT TAU,I,J',F10.1,2I4)
-  610 CONTINUE
+      END DO
+      END DO
 C**** PREVENT Z1O, THE MIXED LAYER DEPTH, FROM EXCEEDING Z12O
-      DO 630 J=1,JM
-      DO 630 I=1,IM
-      IF (Z1O(I,J).GT.Z12O(I,J)-.01) Z1O(I,J)=Z12O(I,J)
-  630 CONTINUE
+      DO J=1,JM
+        DO I=1,IM
+          IF (Z1O(I,J).GT.Z12O(I,J)-.01) Z1O(I,J)=Z12O(I,J)
+        END DO
+      END DO
 C**** SET MARKER INDICATING THAT Z1O HAS BEEN SET
       Z1O(IM,1)=-9999.
       RETURN
@@ -712,11 +719,7 @@ C**** ADVECT ICE (usually downwards)
 
       IMPLICIT NONE
 
-      REAL*8, PARAMETER :: ALAMI=2.1762, ALAMS=0.35, ! J/(m*degC*sec)
-     *        RHOS = 300.0, ! kg/m^3 (snow density) 
-     *        BYRLI = 1./(RHOI*ALAMI), 
-     *        BYRLS = 1./(RHOS*ALAMS), ! (m^4*degC*sec)/(J*kg)
-     *        ALPHA = 1.0, dSNdML =0. 
+      REAL*8, PARAMETER :: ALPHA = 1.0, dSNdML =0. 
       REAL*8, PARAMETER :: YSI1 = XSI1*ACE1I/(ACE1I+AC2OIM),
      *                     YSI2 = XSI2*ACE1I/(ACE1I+AC2OIM),
      *                     YSI3 = XSI3*AC2OIM/(ACE1I+AC2OIM), 

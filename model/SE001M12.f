@@ -19,17 +19,21 @@ C**** SURFACE SPECIFIC HUMIDITY, AND SURFACE WIND COMPONENTS.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6
-      USE E001M12_COM, only : im,jm,fim,dt,nsurf,nstep,ndyn,u,v,t,p,q
+      USE E001M12_COM, only : im,jm,lm,fim,dt,nsurf,nstep,ndyn,u,v,t,p,q
      *     ,idacc,dsig,jday,gdata,tofday,ndasf,iday,jeq,fland,flice
      *     ,fearth,ngrnd,modrd,ijd6,tau,sige,byim
-      USE SOMTQ_COM
+      USE SOMTQ_COM, only : tx,ty,tz,txx,tyy,tzz,txy,tzx,tyz,qx,qy,qz
+     *     ,qxx,qyy,qzz,qxy,qzx,qyz
       USE GEOM, only : dxyp,imaxj,kmaxj,raj,idij,idjj,rapvn,rapvs,sini
      *     ,cosi
       USE RADNCB, only : trhr,fsf,cosz1
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
       USE SOCPBL, only : zgs
-      USE DAGCOM  !, only : aij,tdiurn,aj,bj,cj,areg,ajl,adaily,jreg
+      USE DAGCOM, only : aij,tdiurn,aj,bj,cj,areg,ajl,adaily,jreg
+     *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
+     *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
+     *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
       USE LANDICE, only : hc2li,hc1de,z1e,z2li
       USE OCEAN, only : oa,odata,xsi1,xsi2,z1i,ace1i,tfo,hc1i,alami
@@ -53,7 +57,7 @@ C****
      *     ,TG1,SRHEAT,SNOW,TG2,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS
      *     ,RCDHWS,RCDQWS,SHEAT,TRHEAT,QSDEN,QSCON,QSMUL,T2DEN,T2CON
      *     ,T2MUL,TGDEN,FQEVAP,THPKMS,TXS,TYS,TXXS,TYYS,TXYS,QMS,QXS,QYS
-     *     ,QXXS,QYYS,QXYS,TVMS,THETA,RDP,THM,Z1IBYL,Z2LI3L,ZS1CO,WARMER
+     *     ,QXXS,QYYS,QXYS,TVMS,THETA,RDP,THM,ZS1CO,WARMER
      *     ,USS,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L
      *     ,THZ1,QZ1
 

@@ -7179,9 +7179,9 @@ C****
 !@sum  init_DIAG initiallises the diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM
+      USE E001M12_COM, only : lm,tau,taui,sige,sig,psf,ptop
       USE DAGCOM
-      USE DAGPCOM
+      USE DAGPCOM, only : ple,plm,pmtop
       IMPLICIT NONE
       INTEGER L
 
@@ -7583,7 +7583,8 @@ C**** Initialize certain arrays used by more than one print routine
 !@sum  reset_DIAG resets/initiallises diagnostics
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM
+      USE E001M12_COM, only : tau,iday,tofday,jdate,jmonth,jyear,tau0
+     *     ,iday0,tofdy0,jdate0,jmnth0,jyear0,idacc
       USE DAGCOM
       IMPLICIT NONE
 
@@ -7610,8 +7611,8 @@ C**** Initialize certain arrays used by more than one print routine
 !@sum  daily_DIAG resets diagnostics at beginning of each day
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM
-      USE DAGCOM
+      USE E001M12_COM, only : im,jm,jday,fearth
+      USE DAGCOM, only : tsfrez,tdiurn
       IMPLICIT NONE
 
       INTEGER I,J

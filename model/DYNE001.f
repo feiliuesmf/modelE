@@ -966,12 +966,14 @@ C****
 C**** INTEGRATE DYNAMIC TERMS
 C****
       USE CONSTANT, only : by3
-      USE E001M12_COM
-      USE GEOM
+      USE E001M12_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,ndyn,dt,MODD5K
+     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1
+      USE GEOM, only : dyp,dxv,dxyp
       USE SOMTQ_COM
-      USE DYNAMICS, only : PTOLD,ADVECM,ADVECV,AFLUX,PGF,FLTRUV
+      USE DYNAMICS, only : ptold,advecm,advecv,aflux,pgf,fltruv
 
-      USE DAGCOM !, only : aij
+      USE DAGCOM, only : aij,ij_fpeu,ij_fpev,ij_fqu,ij_fqv,ij_fmv,ij_fmu
+     *     ,ij_fgzu,ij_fgzv
 
       IMPLICIT NONE
       REAL*8 UT,VT,TT,TZT,WMT,PRAT

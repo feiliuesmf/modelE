@@ -9,8 +9,9 @@ C**** evaporation, thermal radiation, and momentum drag.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,edpery
-      USE E001M12_COM
-      USE GEOM
+      USE E001M12_COM, only : im,jm,lm,t,p,q,gdata,ndyn,dt,nsurf,dsig
+     *     ,jday,tofday,tau,jeq,fearth,modrd,ijd6
+      USE GEOM, only : imaxj,dxyp
       USE RADNCB, only : trhr,fsf,cosz1
       USE GHYCOM, only : wbare,wvege,htbare,htvege,snowbv
       USE SLE001
@@ -29,15 +30,14 @@ C****
      &    PRES,RHO,TSPASS=>TS,VSM,CH,CD,SNHT,SRHT,TRHT,ZS,
      &    ZMIXE=>Z1,CN=>CDN,P1,PBLP=>PPBL,
      &    TGPASS=>TG,TKPASS=>T1,VGM=>VG,EDDY
-      USE CLD01_COM_E001, only : PREC,TPREC
+      USE CLD01_COM_E001, only : prec,tprec
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       USE SOCPBL, only : zgs
       USE DAGCOM , only : aijg,aij,tsfrez,tdiurn,bj,areg,adaily,jreg,
-     *     IJ_RUNE, IJ_ARUNU, IJ_PEVAP, IJ_SHDT, IJ_BETA, IJ_TRNFP0,
-     *     IJ_SRTR, IJ_NETH, IJ_WS, IJ_TS, IJ_US, IJ_VS, IJ_TAUS,
-     *     IJ_TAUUS, IJ_TAUVS, IJ_QS, J_EDIFS, J_TRHDT, J_SHDT, J_EVHDT,
-     *     J_EVAP, J_ERUN1, J_DIFS, J_RUN2, J_DWTR2, J_RUN1, J_TSRF 
-
+     *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
+     *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
+     *     ij_tauus, ij_tauvs, ij_qs, j_edifs, j_trhdt, j_shdt, j_evhdt,
+     *     j_evap, j_erun1, j_difs, j_run2, j_dwtr2, j_run1, j_tsrf 
       USE DYNAMICS, only : pmid,pk,pek,pedn,pdsig
       USE LAKES_COM, only : mwl,gml
 
@@ -57,7 +57,7 @@ C****
       REAL*8, DIMENSION(IM,JM) :: DTH1,DQ1,DU1,DV1
       COMMON /WORK1d/DTH1,DQ1
       REAL*8, DIMENSION(IM,JM,LM) :: UT,VT
-      COMMON/WORK2/UT,VT,DU1,DV1
+      COMMON /WORK2/UT,VT,DU1,DV1
       REAL*8, DIMENSION(IM,JM,4) :: E0,E1,EVAPOR,TGRND
       COMMON/WORK3/E0,E1,EVAPOR,TGRND
       REAL*8, DIMENSION(IM,JM,3) :: GDEEP
@@ -122,7 +122,7 @@ C****
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
-      DO 7000 J=1,JM
+      DO J=1,JM
       HEMI=1.
       IF(J.LE.JM/2) HEMI=-1.
       IMAX=IMAXJ(J)
@@ -150,7 +150,7 @@ c         JEQ=1+JM/2
          IF(J.LT.JEQ) WARMER=-SPRING
          IF(J.GE.JEQ) WARMER=SPRING
       IM1=IM
-      DO 6000 I=1,IMAX
+      DO I=1,IMAX
 C****
 C**** DETERMINE SURFACE CONDITIONS
 C****
@@ -492,7 +492,8 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAG6
                ADAILY(IHOUR,50,KR)=ADAILY(IHOUR,50,KR)+EVAPS
             END IF
          END DO
- 6000 IM1=I
+ 6000    IM1=I
+      END DO
 C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
          BJ(J,J_TRHDT)=BJ(J,J_TRHDT)+BTRHDT
          BJ(J,J_SHDT)=BJ(J,J_SHDT)+BSHDT
@@ -503,9 +504,8 @@ C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
          BJ(J,J_RUN2)=BJ(J,J_RUN2)+BRUNU
          BJ(J,J_DWTR2)=BJ(J,J_DWTR2)+BERUNU
          BJ(J,J_RUN1)=BJ(J,J_RUN1)+BRUN0
-         IF(MODDSF.NE.0) GO TO 7000
-         BJ(J,J_TSRF)=BJ(J,J_TSRF)+BTS
- 7000 CONTINUE
+         IF(MODDSF.EQ.0) BJ(J,J_TSRF)=BJ(J,J_TSRF)+BTS
+      END DO
       RETURN
       END
 
@@ -554,7 +554,6 @@ C READ SOILS PARAMETERS
       CLOSE (iu_SOIL)
 C
       ONE=1.
-   10 CONTINUE
 C****
 C**** INITIALIZE CONSTANTS
 C****
@@ -599,70 +598,73 @@ C
 C****
 C**** Initialize global arrays  ALA, ACS, AFB, AFR
 C****
-      TWOPI=6.283185
+      TWOPI=6.283185    ! should be taken from CONSTANT
 
       ALA(:,:,:)=0.
       ACS(:,:,:)=0.
       AFB(:,:)=0.
       AFR(:,:,:)=0.
-      DO 220 J=1,JM
-      DO 220 I=1,IM
-  220 ACS(1,I,J)=.01
-      DO 400 J=1,JM
-      DO 400 I=1,IM
-      PEARTH=FEARTH(I,J)
-      AFB(I,J)=VDATA(I,J,1)+VDATA(I,J,10)
-      IF(AFB(I,J).GT..999) AFB(I,J)=1.
-      IF(PEARTH.LE.0..OR.AFB(I,J).GE.1.) GO TO 400
+      ACS(1,:,:)=.01
+      DO J=1,JM
+        DO I=1,IM
+          PEARTH=FEARTH(I,J)
+          AFB(I,J)=VDATA(I,J,1)+VDATA(I,J,10)
+          IF(AFB(I,J).GT..999) AFB(I,J)=1.
+          IF(PEARTH.LE.0..OR.AFB(I,J).GE.1.) CYCLE
 C**** CALCULATE LAI, CS COEFFICICENTS
-      SFV=0.
-      SLA0=0.
-      SLRE=0.
-      SLIM=0.
-      SCS0=0.
-      SCSRE=0.
-      SCSIM=0.
-      SVH=0.
-      DO 250 IV=1,8
-      PHASE=TWOPI*LADAY(IV)/365.
-      IF(J.LT.JEQ) PHASE=PHASE+TWOPI/2.
-      FV=VDATA(I,J,IV+1)
-      SFV=SFV+FV
-      SVH=SVH+FV*VHGHT(IV)
-      DIF=(ALAMAX(IV) - ALAMIN(IV))
-      SLA0=SLA0+FV*(ALAMAX(IV) + ALAMIN(IV))
-      SLRE=SLRE+FV*DIF*COS(PHASE)
-      SLIM=SLIM+FV*DIF*SIN(PHASE)
-      SCS0=SCS0+FV*(ALAMAX(IV) + ALAMIN(IV))/RSAR(IV)
-      SCSRE=SCSRE+FV*DIF*COS(PHASE)/RSAR(IV)
-  250 SCSIM=SCSIM+FV*DIF*SIN(PHASE)/RSAR(IV)
-      ALA(1,I,J)=.5/SFV*SLA0
-      ALA(2,I,J)=.5/SFV*SLRE
-      ALA(3,I,J)=.5/SFV*SLIM
-      ACS(1,I,J)=.5/SFV*SCS0
-      ACS(2,I,J)=.5/SFV*SCSRE
-      ACS(3,I,J)=.5/SFV*SCSIM
-      AVH(I,J)=SVH/SFV
+          SFV=0.
+          SLA0=0.
+          SLRE=0.
+          SLIM=0.
+          SCS0=0.
+          SCSRE=0.
+          SCSIM=0.
+          SVH=0.
+          DO IV=1,8
+            PHASE=TWOPI*LADAY(IV)/365.
+            IF(J.LT.JEQ) PHASE=PHASE+TWOPI/2.
+            FV=VDATA(I,J,IV+1)
+            SFV=SFV+FV
+            SVH=SVH+FV*VHGHT(IV)
+            DIF=(ALAMAX(IV) - ALAMIN(IV))
+            SLA0=SLA0+FV*(ALAMAX(IV) + ALAMIN(IV))
+            SLRE=SLRE+FV*DIF*COS(PHASE)
+            SLIM=SLIM+FV*DIF*SIN(PHASE)
+            SCS0=SCS0+FV*(ALAMAX(IV) + ALAMIN(IV))/RSAR(IV)
+            SCSRE=SCSRE+FV*DIF*COS(PHASE)/RSAR(IV)
+            SCSIM=SCSIM+FV*DIF*SIN(PHASE)/RSAR(IV)
+          END DO
+          ALA(1,I,J)=.5/SFV*SLA0
+          ALA(2,I,J)=.5/SFV*SLRE
+          ALA(3,I,J)=.5/SFV*SLIM
+          ACS(1,I,J)=.5/SFV*SCS0
+          ACS(2,I,J)=.5/SFV*SCSRE
+          ACS(3,I,J)=.5/SFV*SCSIM
+          AVH(I,J)=SVH/SFV
 C**** CALCULATE ROOT FRACTION AFR AVERAGED OVER VEGETATION TYPES
-      DO 310 N=1,NGM
-      DZ(N)=DZ_IJ(I,J,N)
-      IF(DZ(N).LE.0.) GO TO 320
-  310 CONTINUE
-  320 N=N-1
-      DO 350 IV=1,8
-      FV=VDATA(I,J,IV+1)
-      Z=0.
-      FRUP=0.
-      DO 350 L=1,N
-      Z=Z+DZ(L)
-      FRDN=AROOT(IV)*Z**BROOT(IV)
-      FRDN=MIN(FRDN,ONE)
-      IF(L.EQ.N)FRDN=1.
-      AFR(I,J,L) = AFR(I,J,L) + FV*(FRDN-FRUP)
-  350 FRUP=FRDN
-      DO 370 L=1,N
-  370 AFR(I,J,L) = AFR(I,J,L)/(1.-AFB(I,J))
-  400 CONTINUE
+          DO N=1,NGM
+            DZ(N)=DZ_IJ(I,J,N)
+            IF(DZ(N).LE.0.) GO TO 320
+          END DO
+ 320      N=N-1
+          DO IV=1,8
+            FV=VDATA(I,J,IV+1)
+            Z=0.
+            FRUP=0.
+            DO L=1,N
+              Z=Z+DZ(L)
+              FRDN=AROOT(IV)*Z**BROOT(IV)
+              FRDN=MIN(FRDN,ONE)
+              IF(L.EQ.N)FRDN=1.
+              AFR(I,J,L) = AFR(I,J,L) + FV*(FRDN-FRUP)
+              FRUP=FRDN
+            END DO
+          END DO
+          DO L=1,N
+            AFR(I,J,L) = AFR(I,J,L)/(1.-AFB(I,J))
+          END DO
+        END DO
+      END DO
 C****
       SDSTNC=100.
       PRINT *,'SDSTNC:',SDSTNC
@@ -679,8 +681,8 @@ C**** Recompute GHDATA if necessary (new soils data)
         COSDAY=COS(TWOPIx/EDPERY*JDAY)
         SINDAY=SIN(TWOPIx/EDPERY*JDAY)
 
-        DO 930 J=1,JM
-        DO 930 I=1,IM
+        DO J=1,JM
+        DO I=1,IM
         PEARTH=FEARTH(I,J)
         IF(PEARTH.LE.0.) THEN
 
@@ -708,7 +710,8 @@ C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
           HTVEGE(I,J,0:NGM) = HT(0:NGM,2)
           SNOWBV(I,J,1:2) = SNOWD(1:2)
         END IF
-  930   CONTINUE
+      END DO
+      END DO
       END IF
 
       RETURN
@@ -723,11 +726,16 @@ C**** VH - VEGETATION HEIGHT
 C**** SNOWM - SNOW MASKING DEPTH
 C**** WFCAP - WATER FIELD CAPACITY OF TOP SOIL LAYER, M
 C****
-      USE GHYCOM
-      USE SLE001
+      USE GHYCOM, only : dz_ij,sl_ij,q_ij,qk_ij,avh,afr,afb,ala,acs
+      USE SLE001, only : dz,qk,ngm,imt,ng,zb,zc,fr,spgsn,q,sl,xklh0
+     *     ,fb,fv,snowm,vh,alai,alaic,alaie,cost,sint,rs,prs,id,n
+     *     ,thets,thetm,ws,thm,nth,shc,shcap,shw,shtpr,htprs,pr
+     *     ,htpr
       IMPLICIT NONE
       INTEGER I0,J0
       REAL*8 WFCAP
+      INTEGER L,IBV,K,I
+      REAL*8 AA,ONE
 
       ONE=1.
       ID=I0*100+J0
@@ -736,9 +744,9 @@ C**** SET UP LAYERS
       Q(1:IMT,1:NGM)=Q_IJ(I0,J0,1:IMT,1:NGM)
       QK(1:IMT,1:NGM)=QK_IJ(I0,J0,1:IMT,1:NGM)
       SL=SL_IJ(I0,J0)
-      DO 20 N=1,NGM
-      IF(DZ(N).LE.0.) GO TO 21
-   20 CONTINUE
+      DO N=1,NGM
+        IF(DZ(N).LE.0.) GO TO 21
+      END DO
    21 N=N-1
       IF(N.LE.0) THEN
          WRITE (99,*) 'GHINIJ:  N <= 0:  I,J,N=',I0,J0,N,(DZ(K),K=1,43)
@@ -746,15 +754,17 @@ C**** SET UP LAYERS
       END IF
 C**** CALCULATE THE BOUNDARIES, BASED ON THE THICKNESSES.
       ZB(1)=0.
-      DO 30 L=1,N
-   30 ZB(L+1)=ZB(L)-DZ(L)
+      DO L=1,N
+        ZB(L+1)=ZB(L)-DZ(L)
+      END DO
 C**** CALCULATE THE LAYER CENTERS, BASED ON THE BOUNDARIES.
-      DO 40 L=1,N
-   40 ZC(L)=.5*(ZB(L)+ZB(L+1))
+      DO L=1,N
+        ZC(L)=.5*(ZB(L)+ZB(L+1))
+      END DO
 C**** FR: ROOT FRACTION IN LAYER L  (1=FR(1)+FR(2)+...+FR(N))
-      DO 45 L=1,N
-      FR(L)=AFR(I0,J0,L)
-   45 CONTINUE
+      DO L=1,N
+        FR(L)=AFR(I0,J0,L)
+      END DO
 C**** VH: VEGETATION HEIGHT
       VH=AVH(I0,J0)
       SNOWM=VH*SPGSN
@@ -779,29 +789,31 @@ CW    WRITE(6,100)ZB(N+1)
 CW100 FORMAT(1X,3F7.3)
 CW    WRITE(6,*)
 C****
-      DO 60 IBV=1,2
-      DO 60 L=1,N
-      THETS(L,IBV)=0.
-      THETM(L,IBV)=0.
-      DO 50 I=1,IMT-1
-      THETS(L,IBV)=THETS(L,IBV)+Q(I,L)*THM(0,I)
-      THETM(L,IBV)=THETM(L,IBV)+Q(I,L)*THM(NTH,I)
-   50 CONTINUE
-      WS(L,IBV)=THETS(L,IBV)*DZ(L)
-   60 CONTINUE
+      DO IBV=1,2
+        DO L=1,N
+          THETS(L,IBV)=0.
+          THETM(L,IBV)=0.
+          DO I=1,IMT-1
+            THETS(L,IBV)=THETS(L,IBV)+Q(I,L)*THM(0,I)
+            THETM(L,IBV)=THETM(L,IBV)+Q(I,L)*THM(NTH,I)
+          END DO
+          WS(L,IBV)=THETS(L,IBV)*DZ(L)
+        END DO
+      END DO
       WS(0,2)=.0001*ALAI
       WFCAP=FB*WS(1,1)+FV*(WS(0,2)+WS(1,2))
 C****
       CALL XKLH0
 C****
-      DO 90 IBV=1,2
-      DO 90 L=1,N
-      SHC(L,IBV)=0.
-      DO 80 I=1,IMT
-      SHC(L,IBV)=SHC(L,IBV)+Q(I,L)*SHCAP(I)
-   80 CONTINUE
-      SHC(L,IBV)=(1.-THETS(L,IBV))*SHC(L,IBV)*DZ(L)
-   90 CONTINUE
+      DO IBV=1,2
+        DO L=1,N
+          SHC(L,IBV)=0.
+          DO I=1,IMT
+            SHC(L,IBV)=SHC(L,IBV)+Q(I,L)*SHCAP(I)
+          END DO
+          SHC(L,IBV)=(1.-THETS(L,IBV))*SHC(L,IBV)*DZ(L)
+        END DO
+      END DO
 C****
 C SHC(0,2) IS THE HEAT CAPACITY OF THE CANOPY
       AA=ALA(1,I0,J0)
@@ -856,36 +868,38 @@ C**** BASED ON COMBINATION OF LAYERS 2-N, AS IN RETP2
       TP(0,2)=TG1
 C**** W = SNOW(IF TOP LAYER) + WMIN + (WMAX-WMIN)*(WTR+ICE)/WFC
       W(0,2)=0.
-      DO 1 IBV=1,2
-      W(1,IBV)=SNOWDP
-      WMIN=THETM(1,IBV)*DZ(1)
-      WET1=(WTR1+ACE1)/(WFC1+1.D-20)
-      IF(WET1.GT.1.) WET1=1.
-      W(1,IBV)=W(1,IBV)+WMIN+(WS(1,IBV)-WMIN)*WET1
-      SNOWD(IBV)=SNOWDP
-      TP(1,IBV)=TG1
-      DO 1 L=2,N
-      FICE(L,IBV)=ACE2/(WTR2+ACE2+1.D-20)
-      WMIN=THETM(L,IBV)*DZ(L)
-      WET2=(WTR2+ACE2)/(WFC2+1.D-20)
-      IF(WET2.GT.1.) WET2=1.
-      W(L,IBV)=WMIN+(WS(L,IBV)-WMIN)*WET2
-      TP(L,IBV)=TG2
-    1 CONTINUE
+      DO IBV=1,2
+        W(1,IBV)=SNOWDP
+        WMIN=THETM(1,IBV)*DZ(1)
+        WET1=(WTR1+ACE1)/(WFC1+1.D-20)
+        IF(WET1.GT.1.) WET1=1.
+        W(1,IBV)=W(1,IBV)+WMIN+(WS(1,IBV)-WMIN)*WET1
+        SNOWD(IBV)=SNOWDP
+        TP(1,IBV)=TG1
+        DO L=2,N
+          FICE(L,IBV)=ACE2/(WTR2+ACE2+1.D-20)
+          WMIN=THETM(L,IBV)*DZ(L)
+          WET2=(WTR2+ACE2)/(WFC2+1.D-20)
+          IF(WET2.GT.1.) WET2=1.
+          W(L,IBV)=WMIN+(WS(L,IBV)-WMIN)*WET2
+          TP(L,IBV)=TG2
+        END DO
+      END DO
 C****
       ENTRY GHEXHT
 C****
 C**** COMPUTE HT (HEAT W/M+2)
-      DO 10 IBV=1,2
-      LL=2-IBV
-      DO 10 L=LL,N
-      IF(TP(L,IBV))2,4,6
-    2 HT(L,IBV)=TP(L,IBV)*(SHC(L,IBV)+W(L,IBV)*SHI)-W(L,IBV)*FSN
-      GO TO 10
-    4 HT(L,IBV)=-FICE(L,IBV)*W(L,IBV)*FSN
-      GO TO 10
-    6 HT(L,IBV)=TP(L,IBV)*(SHC(L,IBV)+W(L,IBV)*SHW)
-   10 CONTINUE
+      DO IBV=1,2
+        LL=2-IBV
+        DO L=LL,N
+          IF(TP(L,IBV)) 2,4,6
+ 2        HT(L,IBV)=TP(L,IBV)*(SHC(L,IBV)+W(L,IBV)*SHI)-W(L,IBV)*FSN
+          CYCLE
+ 4        HT(L,IBV)=-FICE(L,IBV)*W(L,IBV)*FSN
+          CYCLE
+ 6        HT(L,IBV)=TP(L,IBV)*(SHC(L,IBV)+W(L,IBV)*SHW)
+        END DO
+      END DO
       IF(ID.EQ.0)THEN
        WRITE(99,*)'GHINHT ID CHECK',ID
        WRITE(99,*)'TG1,TG2',TG1,TG2
@@ -926,10 +940,11 @@ C**** WTR2AV - WATER IN LAYERS 2 TO NGM, KG/M+2
       WC=0.
       HTC=0.
       SHCC=0.
-      DO 3420 L=2,N
-      WC=WC+W(L,IBV)
-      HTC=HTC+HT(L,IBV)
- 3420 SHCC=SHCC+SHC(L,IBV)
+      DO L=2,N
+        WC=WC+W(L,IBV)
+        HTC=HTC+HT(L,IBV)
+        SHCC=SHCC+SHC(L,IBV)
+      END DO
       TPC=0.
       FICEC=0.
       IF(WC.NE.0.)  FICEC=-HTC/(FSN*WC)
@@ -954,12 +969,12 @@ C**** WTR2AV - WATER IN LAYERS 2 TO NGM, KG/M+2
 !@sum  CHECKE Checks whether gdata are reasonable over earth
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM
-      USE GEOM
-      USE GHYCOM
+      USE E001M12_COM, only : im,jm,fearth,gdata,tau,wfcs
+      USE GEOM, only : imaxj
+      USE GHYCOM, only : ghdata
       IMPLICIT NONE
 
-      REAL*8 X,TGL,WTRL,ACEL,PEARTH
+      REAL*8 X,TGL,WTRL,ACEL
       INTEGER I,J,K,IMAX
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
@@ -970,20 +985,19 @@ C**** Check for NaN/INF in earth data
 C**** Check for reasonable temperatures over earth
       X=1.001
       DO J=1,JM
-         IMAX=IMAXJ(J)
-         DO I=1,IMAX
-            PEARTH = FEARTH(I,J)
-            IF (PEARTH.GT.0.) THEN
-               TGL=GDATA(I,J,4)
-               WTRL=GDATA(I,J,5)
-               ACEL=GDATA(I,J,6)
-               IF ((TGL+60.)*(60.-TGL).LE.0.) WRITE (6,901) SUBR,I,J,TAU
-     *              ,PEARTH,'TG1 ',(GDATA(I,J,K),K=2,6)
-               IF (WTRL.LT.0..OR.ACEL.LT.0..OR.(WTRL+ACEL).GT.X*WFCS(I
-     *              ,J)) WRITE(6,901) SUBR,I,J,TAU,PEARTH,'WTR '
-     *              ,(GDATA(I,J,K),K=2,6),WFCS(I,J)
-            END IF
-         END DO
+        IMAX=IMAXJ(J)
+        DO I=1,IMAX
+          IF (FEARTH(I,J).GT.0.) THEN
+            TGL=GDATA(I,J,4)
+            WTRL=GDATA(I,J,5)
+            ACEL=GDATA(I,J,6)
+            IF ((TGL+60.)*(60.-TGL).LE.0.) WRITE (6,901) SUBR,I,J,TAU
+     *           ,FEARTH(I,J),'TG1 ',(GDATA(I,J,K),K=2,6)
+            IF (WTRL.LT.0..OR.ACEL.LT.0..OR.(WTRL+ACEL).GT.X*WFCS(I
+     *           ,J)) WRITE(6,901) SUBR,I,J,TAU,FEARTH(I,J),'WTR '
+     *           ,(GDATA(I,J,K),K=2,6),WFCS(I,J)
+          END IF
+        END DO
       END DO
 
       RETURN

@@ -38,9 +38,9 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : shi,lhm
-      USE E001M12_COM, only : IM,JM,GDATA,FLAKE,ZATMO,DT,FLICE,HLAKE
-      USE OCEAN, only : ODATA,ACE1I,KOCEAN
-      USE GEOM
+      USE E001M12_COM, only : im,jm,gdata,flake,zatmo,dt,flice,hlake
+      USE OCEAN, only : odata,ace1i,kocean
+      USE GEOM, only : dxyp,dxv,dyv,dxp,imaxj
       USE LAKES
       USE LAKES_COM
       USE FILEMANAGER
@@ -232,11 +232,11 @@ C**** RIVERF transports lake water from each GCM grid box to its
 C**** downstream neighbor according to the river direction file.
 C****
       USE CONSTANT, only : shi,lhm,grav,shw
-      USE E001M12_COM, only : IM,JM,FLAKE,DT,FOCEAN,ZATMO,HLAKE
-      USE GEOM
+      USE E001M12_COM, only : im,jm,flake,dt,focean,zatmo,hlake
+      USE GEOM, only : dxyp
       USE LAKES
       USE LAKES_COM
-      USE DAGCOM, only : AIJ,IJ_ERVR,IJ_MRVR
+      USE DAGCOM, only : aij,ij_ervr,ij_mrvr
      
       IMPLICIT NONE
 !@var I,J,IU,JU,ID,JD loop variables

@@ -16,6 +16,8 @@ C**** Numerical constants
       real*8,parameter :: pi = 3.1415926535897932d0 !@param pi    pi
       real*8,parameter :: twopi = 2d0*pi           !@param twopi 2*pi
       real*8,parameter :: radian = pi/180d0        !@param radian pi/180
+!@param zero,one 0 and 1 for occasional use as arguments
+      real*8,parameter :: zero = 0d0, one=1d0
 !@param rt2,byrt2   sqrt(2), 1/sqrt(2)
       real*8,parameter :: rt2 = 1.4142135623730950d0
       real*8,parameter :: byrt2 = 1./rt2

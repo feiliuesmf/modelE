@@ -1113,7 +1113,7 @@ c ----------------------------------------------------------------------
      3                  ug,vg,n)
 c ----------------------------------------------------------------------
 c this routine computes the matrices for the solutions of the u and v
-c  fields as well as appling the boundary conditions.
+c  fields as well as applying the boundary conditions.
 c  the boundary conditions at the bottom are:
 c
 c     km * du/dz = cm * usurf * u

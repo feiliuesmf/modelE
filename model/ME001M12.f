@@ -445,9 +445,16 @@ C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
      *     ,rhow
-      USE E001M12_COM
+      USE E001M12_COM, only : im,jm,lm,wm,u,v,t,p,q,gdata,fearth,fland
+     *     ,focean,flake,flice,hlake,zatmo,tau,sig,dsig,sige,dsigo
+     *     ,bydsig,xlabel,jc,rc,clabel,NAMD6,IJD6,NDPRNT,NDZERO,KCOPY
+     *     ,USET,USEP,USESLP,SKIPSE,KEYCT,MFILTR,IRAND,PTRUNC,PSF,PTOP
+     *     ,XCDLM,IYEAR,XINT,DT,NDASF,NDA4,NDA5S,NDA5K,NDA5D,NDAA,NFILTR
+     *     ,NGRND,NSURF,NRAD,NCNDS,NDYN,TAUO,TAUT,TAUE,TAUI,TAUP,KDISK
+     *     ,KOCEAN,LS1,PSFMPT,PSTRAT,KACC0,KTACC0,IDACC,IM0,JM0,LM0
+     *     ,VDATA
       USE SOMTQ_COM
-      USE GEOM
+      USE GEOM, only : geom_b
       USE GHYCOM
      &  , only : ghdata
       USE RANDOM
