@@ -5,9 +5,10 @@
       USE MODEL_COM
       USE TIMINGS
       USE PARAM
+      USE FILEMANAGER
       IMPLICIT NONE
       CHARACTER*80 FILEIN
-      INTEGER N,NARGS,K,iargc,KFILE,I,days_togo,itm
+      INTEGER N,NARGS,K,iargc,KFILE,I,days_togo,itm,iu_RSF
       INTEGER :: ioerr=0, KSTART=1, ItimeMax=0
       REAL*8 TOT,yrs_togo,FAC,FACT,xfac
       LOGICAL :: QCALL = .FALSE., QCMIN=.FALSE., QCRESTART=.FALSE.
@@ -35,11 +36,13 @@ C**** check for arguments
       DO K=KSTART,NARGS
       if (qcall .and. k.gt.kstart) write (6,*)
       CALL GETARG (K,FILEIN)
-      OPEN (10,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',err=850)
+      !OPEN (10,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',err=850)
       ioerr=0
-      call io_label(10,Itime,itm,ioread,ioerr)
+      call openunit(FILEIN,iu_RSF,.true.,.true.)
+      call io_label(iu_RSF,Itime,itm,ioread,ioerr)
+      call closeunit(iu_RSF)
       if (ioerr.eq.1) go to 860
-      CLOSE (10)
+      !CLOSE (10)
 
       if ( QCRESTART ) then ! find max Itime; skip the rest of the loop
         ItimeMax = max ( ItimeMax, Itime )
