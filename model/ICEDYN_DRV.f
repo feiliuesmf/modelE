@@ -1228,11 +1228,14 @@ C**** sea ice prognostic variables
 C**** ensure that salinity is only associated with ice
             SICE=MHS(1+2+LMI,I,J)+MHS(2+2+LMI,I,J)
             IF (SNOWI(I,J).gt.XSI(2)*(ACE1I+SNOWI(I,J))) THEN
-               SSI(1,I,J)=0.
+              SSI(1,I,J)=0.
             ELSE
-               SSI(1,I,J)=SICE*(XSI(1)*ACE1I-XSI(2)*SNOWI(I,J))/ACE1I
+              SSI(1,I,J)=SICE*(XSI(1)*ACE1I-XSI(2)*SNOWI(I,J))/ACE1I
             END IF
             SSI(2,I,J)=SICE-SSI(1,I,J)
+C**** correction of heat energy to compensate for salinity fix            
+            HSI(1,I,J)=HSI(1,I,J)-(MHS(1+2+LMI,I,J)-SSI(1,I,J))*LHM
+            HSI(2,I,J)=HSI(2,I,J)+(MHS(1+2+LMI,I,J)-SSI(1,I,J))*LHM
             DO L=3,LMI
                SSI(L,I,J) = MHS(L+2+LMI,I,J)
             END DO
