@@ -96,12 +96,6 @@
      *       dtr_mc(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm),
      *       dtr_ss(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm)
       INTEGER NX
-#ifdef TRACERS_AEROSOLS_Koch
-      real*8, save, dimension(im,jm) :: a_sulf=0. ,cc_sulf=0.
-      real*8 cm_sulft  !nu ,cm_sulf (? not defined/used, only redefined)
-      integer, save :: iuc_s
-      logical, save :: ifirst=.true.
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
 !@var Lfreeze Lowest level where temperature is below freezing (TF)
       INTEGER Lfreeze
@@ -259,9 +253,6 @@ C****
 !$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IDI,IDJ,
 #ifdef TRACERS_SPECIAL_Shindell
 !$OMP*  Lfreeze,
-#endif
-#ifdef TRACERS_AEROSOLS_Koch
-!$OMP*  cm_sulft,
 #endif
 !$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
@@ -853,9 +844,6 @@ CCC     ENDDO
       ENDDO
 
 #ifdef TRACERS_ON
-#ifdef TRACERS_AEROSOLS_Koch
-      cm_sulft=0.
-#endif
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
         n = ntix(nx)
@@ -879,23 +867,8 @@ C**** TRACERS: Use only the active ones
             tajls(j,l,jls_incloud(2,n))=tajls(j,l,jls_incloud(2,n))+
      *           dt_sulf_ss(n,l)
            taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+
-     *           dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
+     *           dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
           end if
-c save for cloud-sulfate correlation
-          if (trname(n).eq.'SO4') then
-#ifdef TRACERS_HETCHEM
-            if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,nx)/24.
-     *                                    +tm(l,n_SO4_d1)/24. 
-     *                                    +tm(l,n_SO4_d2)/24. 
-     *                                    +tm(l,n_SO4_d3)/24. 
-     *                                    +tm(l,n_SO4_d4)/24. 
-#else
-            if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,nx)/24.
-#endif
-            cm_sulft=cldmcl(l)+cldssl(l)
-            if (cm_sulft.gt.1.) cm_sulft=1.
-!nu ??      if (cm_sulft.gt.cm_sulf) cm_sulf=cm_sulft
-           end if
 #endif
 #endif
         end do
@@ -912,9 +885,6 @@ C**** diagnostics
         end if
 #endif
       end do
-#ifdef TRACERS_AEROSOLS_Koch
-      cc_sulf(i,j)=cc_sulf(i,j)+cm_sulft/24.
-#endif
 #endif
 
       END DO
@@ -959,22 +929,6 @@ C**** Save the conservation quantities for tracers
         if (itcon_mc(n).gt.0) call diagtcb(dtr_mc(1,nx),itcon_mc(n),n)
         if (itcon_ss(n).gt.0) call diagtcb(dtr_ss(1,nx),itcon_ss(n),n)
       end do
-#ifdef TRACERS_AEROSOLS_Koch
-      if (jhour.eq.23) then
-       if (ifirst) then
-       call openunit("CLD_SO4",iuc_s,.true.,.false.)
-       ifirst=.false.
-       endif
-       if (jyear.eq.1950.and.jmon.ge.3.and.jmon.le.5) then
-       write(iuc_s) jyear,jmon,jdate,
-     *(SNGL(a_sulf(I,1)),I=1,IM*JM),
-     *(SNGL(cc_sulf(I,1)),I=1,IM*JM)
-       endif
-c      call closeunit(iuc_s)
-       a_sulf(:,:)=0.
-       cc_sulf(:,:)=0.
-      endif
-#endif
 #endif
 
 C**** Delayed summations (to control order of summands)
