@@ -174,7 +174,7 @@ ccc   input fluxes
 !@var parinc Incident photosynthetically active (visible solar, dir+dif)
 !     radiation on the surface (W/m2) (nyk)
       real*8, public :: parinc
-!@var vegalbedo  Vegetation canopy albedo averaged over the grid cell. 
+!@var vegalbedo  Vegetation canopy albedo averaged over the grid cell.
 !     This is a temporary hack to keep the prescribed albedos until
 !     a canopy radiation scheme is in place. (nyk)
       real*8, public :: vegalbedo
@@ -1141,7 +1141,7 @@ c**** adjust canopy conductance for incoming solar radiation
 !----------------------------------------------------------------------!
       implicit none
 !----------------------------------------------------------------------!
-      integer JMAX,J
+      integer JMAX,J,it
       real*8 A,B,S,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,m1,msat
       real*8 sigma,temp,rhor,kdf,kbl
       real*8 EPS,OST,OS,ST,ERROR
@@ -1151,9 +1151,10 @@ c**** adjust canopy conductance for incoming solar radiation
       A=0.0D0
       OST=-1.D30
       OS= -1.D30
+      it=1
       do 11 J=1,JMAX
          CALL TRAPZD(A,B,ST,J,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,
-     &               n2,m1,msat,sigma,temp,rhor,kdf,kbl)
+     &               n2,m1,msat,sigma,temp,rhor,kdf,kbl,it)
          S=(4.D0*ST-OST)/3.D0
          ERROR=ABS(S-OS)
 !   IF (ABS(S-OS).lt.EPS*ABS(OS)) RETURN
@@ -1162,6 +1163,7 @@ c**** adjust canopy conductance for incoming solar radiation
          endif
          OS=S
          OST=ST
+         if(j.gt.1) it=it*2
    11 enddo
 !      write(99,*) 'Too many steps.'
 !      write(99,*) S,ERROR,100.0D0*ERROR/S
@@ -1169,7 +1171,7 @@ c**** adjust canopy conductance for incoming solar radiation
       end subroutine qsimp
 !----------------------------------------------------------------------!
       subroutine trapzd(A,B,S,N,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,
-     &n1,n2,m1,msat,sigma,temp,rhor,kdf,kbl)
+     &n1,n2,m1,msat,sigma,temp,rhor,kdf,kbl,it)
 !----------------------------------------------------------------------!
 ! Integrates canopy photosynthesis over canopy layers using Simpson's
 ! Rule (Press et al., 19??).
@@ -1184,16 +1186,12 @@ c**** adjust canopy conductance for incoming solar radiation
       real*8 func1
 !@var func2 Mean net photosynthesis at Lc (umol[CO2]/m2/s).
       real*8 func2
-!----------------------------------------------------------------------!
-      common/saveIT/IT
-!----------------------------------------------------------------------!
       if(N.eq.1)then
          call phot(A,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,m1,
      &             msat,sigma,temp,rhor,kdf,kbl,B,func1)
          call phot(B,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,m1,
      &             msat,sigma,temp,rhor,kdf,kbl,B,func2)
          S=0.5D0*(B-A)*(func1+func2)
-         IT=1
       else
          TNM=IT
          DEL=(B-A)/float(TNM)
@@ -1206,7 +1204,6 @@ c**** adjust canopy conductance for incoming solar radiation
            X=X+DEL
    11    continue
          S=0.5D0*(S+(B-A)*SUM/float(TNM))
-         IT=2*IT
       endif
       return
       end subroutine trapzd
