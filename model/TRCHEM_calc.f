@@ -7,7 +7,7 @@
 c
 C**** GLOBAL parameters and variables:
 C
-CCCCC USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only       : im,jm,lm
 #if (defined regional_Ox_tracers) || (defined SHINDELL_STRAT_CHEM)
      &                            ,ptop,psf,sig
