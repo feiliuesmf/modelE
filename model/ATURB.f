@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      Subroutine atm_diffus(lbase_min,lbase_max,dtime)
+      subroutine atm_diffus(lbase_min,lbase_max,dtime)
 !@sum  atm_diffus updates u,v,t,q due to
 !@+  turbulent transport throughout all GCM layers
 !@+  using a second order closure (SOC)
@@ -16,6 +16,8 @@
 !@var itest longitude at which to call dout
 !@var jtest latitude at which to call dout
 !@var call_diag logical variable whether dout is called
+!@var level the turb. model level, 25 is to solve e differential eqn
+!@var non_local logical variable, true is to turn on non-local calc.
 
       USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am
       USE MODEL_COM, only :
@@ -60,11 +62,11 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       real*8, dimension(im,jm) :: tvsurf,uflux_bgrid,vflux_bgrid
 cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 
-      real*8 :: uflx,vflx,tflx,qflx,tvs
-     &   ,ustar2,dbll,t0ijl,rak,alpha1,thes,ustar,qs
+      real*8 :: uflx,vflx,tvflx,qflx,tvs
+     &   ,ustar2,dbll,t0ijl,rak,alpha1,ustar
      &   ,flux_bot,flux_top,x_surf,dgcdz
       integer :: idik,idjk,
-     &    i,j,l,k,n,iter !@i,j,l,k loop variable
+     &    i,j,l,k,n,iter !@i,j,l,k,n,iter loop variable
       real*8, save :: cc1,cc2
 #ifdef TRACERS_ON
 !@var tr0ij initial vertical tracer concentration profile (kg/kg)
@@ -151,10 +153,12 @@ cc                trmomij(:,l,n)=trmom(:,i,j,l,n)
 
           ! tvs is surface virtual potential temp. referenced at 1 mb
           tvs=tvsurf(i,j)/pek(1,i,j)
-          uflx=uflux1(i,j)/rhoe_3d(1,i,j)
-          vflx=vflux1(i,j)/rhoe_3d(1,i,j)
-          tflx=tflux1(i,j)/(rhoe_3d(1,i,j)*pek(1,i,j)) !reference: 1 mb
-          qflx=qflux1(i,j)/rhoe_3d(1,i,j)
+          uflx=uflux1(i,j)/rhoe(1)
+          vflx=vflux1(i,j)/rhoe(1)
+          qflx=qflux1(i,j)/rhoe(1)
+          ! tvflx is virtual, potential temp. flux referenced at 1 mb
+          tvflx=tflux1(i,j)*(1.d0+deltx*qsavg(i,j))/(rhoe(1)*pek(1,i,j))
+     &         +deltx*t_3d(i,j,1)*qflx
           ! redefine uflux1,vflux1 for later use
           uflux1(i,j)=uflx
           vflux1(i,j)=vflx
@@ -162,7 +166,7 @@ cc                trmomij(:,l,n)=trmom(:,i,j,l,n)
           do n=1,ntm
             if (itime_tr0(n).le.itime) then
 C**** minus sign needed for ATURB conventions
-              trflx(n)=-trflux1(i,j,n)*bydxyp(j)/rhoe_3d(1,i,j)
+              trflx(n)=-trflux1(i,j,n)*bydxyp(j)/rhoe(1)
             end if
           end do
 #endif
@@ -174,12 +178,11 @@ C**** minus sign needed for ATURB conventions
           ! calculate z-derivatives at the surface
 
           ! @var zgs height of surface layer (m), imported from SOCPBL
-          thes=tflx*prt/ustar
-          qs=qflx*prt/ustar
           dudz(1)=ustar/(kappa*zgs)*cos(alpha1)
           dvdz(1)=ustar/(kappa*zgs)*sin(alpha1)
-          dtdz(1)=thes/(kappa*zgs)
-          dqdz(1)=qs/(kappa*zgs)
+          dtdz(1)=(tvflx*prt/ustar)/(kappa*zgs)
+          dqdz(1)=(qflx*prt/ustar)/(kappa*zgs)
+
           g_alpha(1)=grav/tvs
 
           ! calculate z-derivatives on the edges of the layers
@@ -207,7 +210,7 @@ C**** minus sign needed for ATURB conventions
           call kgcm(km,kh,kq,ke,kt2,kwt,gc_wt,gc_wq,gc_ew,gc_w2t,gc_wt2
      1        ,gc_wt_by_t2,gm,gh
      2        ,uw,vw,wt,wq,tau,u,v,t,e,qturb,t2,dudz,dvdz,as2,dtdz
-     3        ,dqdz,g_alpha,an2,lscale,dz,dze,tvs,non_local,level,lm)
+     3        ,dqdz,g_alpha,an2,lscale,dz,dze,non_local,level,lm)
 
           ! integrate differential eqn for e
           p2(1)=0. ; p2(lm)=0.
@@ -237,7 +240,7 @@ C**** minus sign needed for ATURB conventions
 c                 p4(l)=-2.d0*wt(l)*dtdz(l)-dgcdz
                   p4(l)=2.d0*kh(l)*dtdz(l)*dtdz(l)-dgcdz
               end do
-              x_surf=tflx*tflx*b2*prt/(ustar2*b1**by3)
+              x_surf=tvflx*tvflx*b2*prt/(ustar2*b1**by3)
               call de_solver_edge(t2,t20,kt2,p2,p3,p4,
      &        rhobydze,bydzrhoe,x_surf,dtime,lm)
 
@@ -250,7 +253,7 @@ c                 p3(l)=g5/tau(l)-cc2*tau(l)*(dudz(l)+dvdz(l))
 c                 p4(l)=-w2(l)*dtdz(l)+g0*g_alpha(l)*t2(l)
 c    &            +cc1*tau(l)*(uw(l)+vw(l))*dtdz(l)-dgcdz
 c             end do
-c             x_surf=-tflx
+c             x_surf=-tvflx
 c             call de_solver_edge(wt,wt0,kwt,p2,p3,p4,
 c    &            rhobydze,bydzrhoe,x_surf,dtime,lm)
 
@@ -261,7 +264,7 @@ c    &            rhobydze,bydzrhoe,x_surf,dtime,lm)
               p3(l)=0.d0
               p4(l)=-(gc_wt(l+1)-gc_wt(l))/dze(l)
           end do
-          flux_bot=rhoe(1)*(tflx+gc_wt(2)-gc_wt(1))
+          flux_bot=rhoe(1)*(tvflx+gc_wt(2)-gc_wt(1))
           flux_top=rhoe(lm)*gc_wt(lm)
           call de_solver_main(t,t0,kh,p2,p3,p4,
      &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm)
@@ -341,7 +344,7 @@ cc                trmom(:,i,j,l,n)=trmomij(:,l,n)
           if (call_diag.and.(i.eq.itest).and.(j.eq.jtest)) then
             call dout(u,v,t,q,e,t2,dz,dze,dudz,dvdz,as2,dtdz,g_alpha,
      1      an2,dqdz,rho,rhoe,km,kh,kq,ke,kt2,gc_wt,gc_wq,gc_ew,
-     2      gc_w2t,gc_wt2,gm,gh,lscale,tvs,uflx,vflx,tflx,qflx,
+     2      gc_w2t,gc_wt2,gm,gh,lscale,tvs,uflx,vflx,tvflx,qflx,
      3      i,j,iter,non_local,level,lm)
           endif
 
@@ -429,6 +432,9 @@ cc                trmom(:,i,j,l,n)=trmomij(:,l,n)
 !@ver  1.0
 !@var  dz(l,i,j) z(l+1,i,j) - z(l,i,j)
 !@var  dze(l,i,j) ze(l+1,i,j) - ze(l,i,j)
+!@var  rho,rhoe air density at the main/edge grids
+!@var  tvsurf surface virtual temperature
+!@var  im,jm,lm 3-d grids
 !@var  z vertical coordinate associated with SIG(l)
 !@var  ze vertical coordinate associated with SIGE(l)
 !@var  temp0 virtual temperature (K) at (i,j) and SIG(l)
@@ -506,7 +512,7 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
 
       subroutine dout(u,v,t,q,e,t2,dz,dze,dudz,dvdz,as2,dtdz,g_alpha,
      1      an2,dqdz,rho,rhoe,km,kh,kq,ke,kt2,gc_wt,gc_wq,gc_ew,
-     2      gc_w2t,gc_wt2,gm,gh,lscale,tvs,uflx,vflx,tflx,qflx,
+     2      gc_w2t,gc_wt2,gm,gh,lscale,tvs,uflx,vflx,tvflx,qflx,
      3      i,j,iter,non_local,level,n)
 !@sum dout writes out diagnostics at i,j
 !@auth  Ye Cheng/G. Hartke
@@ -542,7 +548,7 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
 !@var tvs surface virtual temperature
 !@var uflx momentun flux -uw at surface, ze(1)
 !@var vflx momentun flux -vw at surface, ze(1)
-!@var tflx heat flux -wt at surface, ze(1)
+!@var tvflx heat flux -wt at surface, ze(1)
 !@var qflx moisture flux -wq at surface, ze(1)
 !@var i/j location at which the output is wriiten
 !@var n number of vertical main layers
@@ -559,7 +565,7 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
      &   u,v,t,q,e,t2,dz,dze,dudz,dvdz,as2,dtdz,g_alpha,
      &   an2,dqdz,rho,rhoe,km,kh,kq,ke,kt2,gc_wt,gc_wq,
      &   gc_ew,gc_w2t,gc_wt2,gm,gh,lscale
-      real*8, intent(in) :: tvs,uflx,vflx,tflx,qflx
+      real*8, intent(in) :: tvs,uflx,vflx,tvflx,qflx
       logical, intent(in) :: non_local
       integer, intent(in) :: level,n,iter,i,j
 
@@ -579,7 +585,7 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
       Write (67,1000) "iter=",iter, "i=",i,"j=",j
       Write (67,1100) "pe(1)=",pe(1)
       Write (67,1100) "uflx=",uflx,"vflx=",vflx
-      Write (67,1100) "tflx=",tflx*pek(1,i,j),"qflx=",qflx
+      Write (67,1100) "tvflx=",tvflx*pek(1,i,j),"qflx=",qflx
 
       ! Fields on main vertical grid:
       z=(rgas/grav)*0.5d0*(tvs*pek(1,i,j)+t(1)*pk(1,i,j))
@@ -704,8 +710,8 @@ c     d/dt T = -d/dz wt where
 c     d/dt T = (T(1)-T0(1))/dtime
 c     -d/dz wt = -(wt(2)-wt(1))/dze(1), dze(1)=ze(2)-ze(1)
 c     wt(2)=-p1(2)*(T(2)-T(1))/dz(1)+gc(2), dz(1)=z(2)-z(1)
-c     wt(1)=-tflx+gc(1)
-c     flux_bot==rhoe(1)*(tflx+gc(2)-gc(1))
+c     wt(1)=-tvflx+gc(1)
+c     flux_bot==rhoe(1)*(tvflx+gc(2)-gc(1))
 c     rhoebydz and bydzerho are in place to balance mass flux
 
       alpha=dtime*p1(2)*rhoebydz(2)*bydzerho(1)
@@ -800,7 +806,7 @@ c
 !@var as2 z-profle of dudz^2+dvdz^2
 !@var an2 z-profle of g_alpha*dtdz
 !@var dze(j) ze(j+1)-ze(j)
-!@var rhoe the z-profile of the density
+!@var rhoe the z-profile of the density at the layer edge
 !@var n number of GCM layers
 !@var zgs height of surface layer (m), imported from SOCPBL
 
@@ -859,7 +865,7 @@ c     trapezoidal rule
       subroutine kgcm(km,kh,kq,ke,kt2,kwt,gc_wt,gc_wq,gc_ew,gc_w2t
      2    ,gc_wt2,gc_wt_by_t2
      3    ,gm,gh,uw,vw,wt,wq,tau,u,v,t,e,qturb,t2,dudz,dvdz,as2
-     4    ,dtdz,dqdz,g_alpha,an2,lscale,dz,dze,tvs,non_local,level,n)
+     4    ,dtdz,dqdz,g_alpha,an2,lscale,dz,dze,non_local,level,n)
 c     dz(j)==z(j+1)-z(j), dze(j)==ze(j+1)-ze(j)
 c     at main: u,v,t,q,ke
 c     at edge: e,lscale,km,kh,gm,gh
@@ -881,7 +887,6 @@ c     at edge: e,lscale,km,kh,gm,gh
 !@var an2 Brunt-Vaisala frequency, grav/T*dTdz
 !@var se stability constant for e, adjustable
 !@var st2 stability constant for t2, adjustable
-!@var tvs surface virtual temperature
       USE CONSTANT, only : grav,teeny,by3
       USE SOCPBL, only :prt,ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
      *     ,s0,s1,s2,s4,s5,s6,b1,b2
@@ -898,7 +903,6 @@ c     at edge: e,lscale,km,kh,gm,gh
       real*8, dimension(n), intent(out) ::
      &     km,kh,kq,ke,kt2,kwt,gc_wt,gc_wq,gc_ew,gc_w2t,gc_wt2
      &    ,gc_wt_by_t2,gm,gh,uw,vw,wt,wq,tau
-      real*8, intent(in) :: tvs
       logical, intent(in) :: non_local
 
       real*8, parameter :: se=0.1d0,st2=0.06d0,kmax=600.d0
@@ -906,7 +910,7 @@ c     at edge: e,lscale,km,kh,gm,gh
      &  ,kemin=1.5d-5,kt2min=1.5d-5
 
       real*8, dimension(n) :: u2,v2,w2,uv,ut,vt
-      real*8 :: ell,byden,tau,ghj,gmj,gmmax
+      real*8 :: ell,byden,ghj,gmj,gmmax
      &    ,sm,sh,sq,taue,e_lpbl
      &    ,kh_canuto,c8,sig,sw,tpj,tpjm1,tppj,w3pj,taupj,m
      &    ,g_alphaj,tauj,dudzj,dvdzj,as2j,an2j,dtdzj
