@@ -11,7 +11,9 @@ c******************   TRACERS             ******************************
 #ifdef TRACERS_SPECIAL_O18
      &     ,tr_name
 #endif
-
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      use sle001,ONLY : aevap
+#endif
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
 #ifdef TRACERS_DRYDEP
      &     ,dodrydep
@@ -49,7 +51,7 @@ c******************   TRACERS             ******************************
      *     ,trevapor,trunoe,gtracer,trprec
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-     &     ,pprec,pevap
+     &     ,prec,pprec,pevap
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
@@ -230,16 +232,16 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       end subroutine ghy_tracers_set_cell
 
 
-      subroutine ghy_tracers_save_cell(i,j,ptype,dtsurf)
+      subroutine ghy_tracers_save_cell(i,j,ptype,dtsurf,rhosrf)
 !@sum tracers code to be called after the i,j cell is processed
-      use model_com, only : itime
+      use model_com, only : itime,qcheck
       use somtq_com, only : mz
  !     use socpbl, only : dtsurf
       use geom, only : dxyp
       use sle001, only : nsn,fb,fv
       implicit none
       integer, intent(in) :: i,j
-      real*8, intent(in) :: ptype,dtsurf
+      real*8, intent(in) :: ptype,dtsurf,rhosrf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       integer n1
 #endif
@@ -257,7 +259,7 @@ ccc tracers
         tr_wsn_ij(n,1:nlsn, 1:2, i, j) = tr_wsn(nx,1:nlsn,1:2)
       enddo
 #endif
-#ifdef (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 c     saves precipitation for dust emission calculation at next time step
       pprec(i,j)=prec(i,j)
 c     saves evaporation for dust emission calculation at next time step
@@ -831,7 +833,7 @@ c****
 
 c**** update tracers
 #ifdef TRACERS_ON
-      call ghy_tracers_save_cell(i,j,ptype,pbl_args%dtsurf)
+      call ghy_tracers_save_cell(i,j,ptype,pbl_args%dtsurf,rhosrf)
 #endif
 
       end do loop_i
