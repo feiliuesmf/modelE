@@ -1456,8 +1456,6 @@ C**** TOTAL THE KINETIC ENERGIES
  2020 I=IP1
       DO 2140 K=1,KM
         KSPHER=KLAYER(K)
-c      KSPHER=2
-c      IF (K.GE.KS1) KSPHER=1
       IF (J.GT.JEQ) KSPHER=KSPHER+1
       DO 2140 KX=IZERO,LM,LM
       DO 2090 I=1,IM
@@ -2069,8 +2067,6 @@ C**** TRANSFER RATES FOR KINETIC ENERGY IN THE DYNAMICS
 
       DO 170 L=1,LM
         KSPHER=KLAYER(L)
-c      KSPHER=2
-c      IF (L.GE.LS1) KSPHER=1
       DO 170 J=2,JM
       DO 170 KUV=1,2 ! loop over u,v
       IF(KUV.EQ.1) CALL FFT(DUT(1,J,L),FA,FB)
@@ -2212,8 +2208,6 @@ C****
 C**** CURRENT KINETIC ENERGY
       DO 240 L=1,LM
         KSPHER=KLAYER(L)
-c      KSPHER=2
-c      IF (L.GE.LS1) KSPHER=1
       DO 240 J=2,JM
       DO 240 K=IZERO,LM,LM
       IF(K.EQ.IZERO) X(1:IM)=U(1:IM,J,L)*SQRTM(1:IM,J)
@@ -2298,8 +2292,6 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
  388  CONTINUE
       GMEAN=DSIG(L)*AREAG*(SIG(LDN)-SIG(LUP))/GMEAN
       KS=KLAYER(L)
-c      KS=2
-c      IF (L.GE.LS1) KS=1
       DO JHEMI=1,4
         DO N=1,NM
           APE(N,KS)=APE(N,KS)+VAR(N,JHEMI)*GMEAN
@@ -2622,7 +2614,7 @@ C**** add in epsilon=1d-5 to avoid roundoff mistakes
         IF (PTOP+PSFMPT*SIGE(L+1)+1d-5.lt.PSPEC(KL) .and.
      *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.PSPEC(KL)) THEN
           IF (KL.eq.2) LSTR = L  ! approx. 10mb height
-          IF (KL.lt.3) KL=KL+1
+          KL=KL+1
         END IF
         KLAYER(L)=4*(KL-1)+1
       END DO
