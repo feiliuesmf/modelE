@@ -508,8 +508,8 @@ C     INPUT DATA  (i,j) dependent
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC
      &             ,POCEAN,PEARTH,POICE,PLICE,PLAKE,COSZ,PVT
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
-     &             ,AGESN,SNOWE,SNOWOI,SNOWLI
-     &             ,hsn,hin,hmp,fmp,flags,LS1_loc,snow_frac,lkdepth
+     &             ,AGESN,SNOWE,SNOWOI,SNOWLI, ZSNWOI,ZOICE
+     &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
@@ -554,8 +554,8 @@ C     OUTPUT DATA
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8 U0GAS,taulim
-      COMMON/RADCOM_hybrid/U0GAS(LX,12)
-!$OMP  THREADPRIVATE(/RADCOM_hybrid/)
+      COMMON/RADPAR_hybrid/U0GAS(LX,12)
+!$OMP  THREADPRIVATE(/RADPAR_hybrid/)
 
       REAL*8, DIMENSION(IM,JM) :: COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
       REAL*8, DIMENSION(4,IM,JM) :: SNFS,TNFS
@@ -708,7 +708,7 @@ C****
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
 !$OMP*   I,INCH,IH,IT, J, K,KR, L,LR,icc1, OPNSKY, CSZ2, PLAND,
 !$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
-!$OMP*   COPYIN(/RADCOM_hybrid/)
+!$OMP*   COPYIN(/RADPAR_hybrid/)
 !$OMP*   SHARED(ITWRITE)
 !$OMP    DO SCHEDULE(DYNAMIC,2)
 !$OMP*   REDUCTION(+:ICKERR,JCKERR,KCKERR)
@@ -938,9 +938,9 @@ C**** Zenith angle and GROUND/SURFACE parameters
       AGESN(3)=SNOAGE(2,I,J)    ! land ice
 c      print*,"snowage",i,j,SNOAGE(1,I,J)
 C**** set up parameters for new sea ice and snow albedo
-      hsn=snowoi/rhos
+      zsnwoi=snowoi/rhos
       if (poice.gt.0.) then
-        hin=(ace1i+msi(i,j))/rhoi
+        zoice=(ace1i+msi(i,j))/rhoi
         flags=flag_dsws(i,j)
         if (kradia .le. 0) then
           fmp=min(1.118d0*sqrt(pond_melt(i,j)/rhow),1d0)
@@ -948,13 +948,13 @@ C**** set up parameters for new sea ice and snow albedo
         else
           fmp = fmp_com(i,j)
         end if
-        hmp=min(0.8d0*fmp,0.9d0*hin)
+        zmp=min(0.8d0*fmp,0.9d0*zoice)
       else
-        hin=0. ; flags=.FALSE. ; fmp=0. ; hmp=0.
+        zoice=0. ; flags=.FALSE. ; fmp=0. ; zmp=0.
       endif
 C**** set up new lake depth parameter to incr. albedo for shallow lakes
       if (plake.gt.0) then
-        lkdepth = MWL(I,J)/(RHOW*PLAKE*DXYP(J))
+        zlake = MWL(I,J)/(RHOW*PLAKE*DXYP(J))
       end if
 C****
       if (kradia .le. 0) then

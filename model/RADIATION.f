@@ -313,35 +313,35 @@ C----------------
 !@dbparm KZSNOW =1 for snow/ice albedo zenith angle dependence
       integer :: KZSNOW=1
 !     Additional info for Schramm/Schmidt/Hansen sea ice albedo
-!@var hsn           depth of snow (m)
-!@var hin           depth of ice (m)
-!@var hmp           depth of melt pond (m)
+!@var ZSNWOI        depth of snow over ocean ice (m)
+!@var zoice         depth of ocean ice (m)
+!@var zmp           depth of melt pond (m)
 !@var fmp           fraction of melt pond area (1)
-!@var lkdepth       lake depth (m)
+!@var zlake       lake depth (m)
 !@var flags         true if snow is wet
 !@var snow_frac(2)  fraction of snow over bare,vegetated soil
 !@dbparm snoage_fac_max  max snow age reducing-factor for sea ice albedo
       REAL*8 :: snoage_fac_max=.5d0
 
-      REAL*8    :: hsn,hin,hmp,fmp,lkdepth ! etc,etc
+      REAL*8    :: zsnwoi,zoice,zmp,fmp,zlake ! etc,etc
       integer   :: JLAT,ILON,NL,NLP, LS1_loc
       LOGICAL*4 :: flags
 
-      COMMON/RADCOM_INPUT_IJDATA/    !              Input data to RCOMPX
+      COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX
      A              PLB(LX),HLB(LX),TLB(LX),TLT(LX),TLM(LX),ULGAS(LX,12)
      B             ,TAUWC(LX),TAUIC(LX),SIZEWC(LX),SIZEIC(LX),CLDEPS(LX)
      C             ,SHL(LX),RHL(LX),TRACER(LX,8),SRBALB(15),SRXALB(15)
      D             ,PVT(11),AGESN(3),SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG
      E             ,POCEAN,PEARTH,POICE,PLICE,TGO,TGE,TGOI,TGLI,TSL,COSZ
-     X             ,hsn,hin,hmp,fmp,snow_frac(2),lkdepth, PLAKE
+     X             ,zsnwoi,zoice,zmp,fmp,snow_frac(2),zlake, PLAKE
 C                     integer variables start here, followed by logicals
      Y             ,JLAT,ILON,NL,NLP, LS1_loc,flags
-!$OMP  THREADPRIVATE(/RADCOM_INPUT_IJDATA/)
+!$OMP  THREADPRIVATE(/RADPAR_INPUT_IJDATA/)
 
 C     array with local and global entries: repeat this section in driver
       REAL*8 U0GAS
-      COMMON/RADCOM_hybrid/U0GAS(LX,12)
-!$OMP THREADPRIVATE(/RADCOM_hybrid/)
+      COMMON/RADPAR_hybrid/U0GAS(LX,12)
+!$OMP THREADPRIVATE(/RADPAR_hybrid/)
 C     end of section to be repeated in driver (needed for 'copyin')
 
 C--------------------------------------------------------
@@ -359,7 +359,7 @@ C--------------------------------------------------------
       real*8  :: TRDFLB,TRUFLB,TRNFLB ! etc,etc
       integer :: LBOTCL,LTOPCL
 
-      COMMON/RADCOM_OUTPUT_IJDATA/
+      COMMON/RADPAR_OUTPUT_IJDATA/
      A              TRDFLB(LX),TRUFLB(LX),TRNFLB(LX),TRFCRL(LX)
      B             ,SRDFLB(LX),SRUFLB(LX),SRNFLB(LX),SRFHRL(LX)
      C             ,SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,SRXATM(4)
@@ -373,7 +373,7 @@ C--------------------------------------------------------
 !nu  K             ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV   !nu = not used
 !sl  K             ,TRSLTS,TRSLTG,TRSLBS
      L             ,LBOTCL,LTOPCL
-!$OMP  THREADPRIVATE(/RADCOM_OUTPUT_IJDATA/)
+!$OMP  THREADPRIVATE(/RADPAR_OUTPUT_IJDATA/)
       EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
 !nu   EQUIVALENCE (SRXATM(3),XXAVIS),(SRXATM(4),XXANIR)  !nu = not used
 
@@ -1040,9 +1040,7 @@ C     ------------------------------------------------------------------
 C              Initialize variables that might not otherwise get defined
 C              ---------------------------------------------------------
 
-      IF(NLP.GT.LX)   call stop_model('increase LX',255)
-      IF(LASTVC.GT.0) CALL SETATM
-      DO 110 L=1,NLP
+      DO 110 L=1,LX
       TAUWC(L)=0.D0
       TAUIC(L)=0.D0
       SIZEWC(L)=0.D0
@@ -1094,6 +1092,9 @@ C              ---------------------------------------------------------
   104 CONTINUE
   110 CONTINUE
 
+      IF(LASTVC.GT.0) CALL SETATM
+      IF(NLP.GT.LX)   call stop_model('increase LX',255)
+
 C**** Use (global mean) pressures to get standard mid-latitude summer
 C**** values for height, density, temperature, ozone, water vapor
       DO 120 L=1,NLP
@@ -1119,7 +1120,7 @@ C       ----------------------------------------------------------------
 
       NRFU=NRFUN(1)
       READ (NRFU) GTAU,TGDATA
-      IF(KANORM.gt.1.or.KCNORM.gt.1.or.KZSNOW.gt.0) CALL SETGTS
+      CALL SETGTS
 
 
 C-----------------------------------------------------------------------
@@ -1735,7 +1736,7 @@ C     IFIRST=1     Read in 2 Files of Tropospheric Aerosol and Dust Data
 C                  Apply Multiplicative Scaling Factors: for Aerosol and
 C                  and Desert Dust Optical Depths, and Single Scattering
 C                  Albedos using (FSAERO,FTAERO,PI0MAX, & FSDUST,FTDUST)
-C                  defined in RADPAR COMMON/AERCOM (defaults)
+C                  defined in RADPAR (defaults)
 C
 C        NOTE:     Scaling Factors Multiply the Appropriate Aerosol  MIE
 C                  Radiative Parameters (QXAERO,QSAERO, & QXDUST,QSDUST)
@@ -1971,7 +1972,7 @@ C                ----------------------------------------------------
 
 C             -------------------------------------------------------
 C             Set Solar Constant for Default Reference Time: Jan 1950
-C             Default used for KSOLAR(=1) is that specified in RADCOM
+C             Default used for KSOLAR(=1) is that specified in RADPAR
 C             -------------------------------------------------------
 
       JJDAYS=1
@@ -1985,7 +1986,7 @@ C----------------------------------------------
 
 C             -------------------------------------------------------
 C             Set Default Greenhouse Gas Reference Year to:  Mid 1980
-C             Default used for KTREND(=1) is that specified in RADCOM
+C             Default used for KTREND(=1) is that specified in RADPAR
 C             -------------------------------------------------------
 
       JJDAYG=184
@@ -2039,7 +2040,7 @@ C     Time Trend Selection Parameters and Options:
 C     -------------------------------------------
 C
 C             The Nominal Default Values are KYEARX = 0, and KJDAYX = 0,
-C             in which case RADCOM supplied Time JYEAR and JDAY are used
+C             in which case RADPAR supplied Time JYEAR and JDAY are used
 C
 C             When Non-Zero Values are specified for  KYEARX and KJDAYX,
 C             the JYEAR,JDAY Time Dependence of the Specified Process is
@@ -2526,7 +2527,7 @@ C     ---------------------------------------------------------------
 C     SETGHG  Sets Default Greenhouse Gas Reference Year (for FULGAS)
 C
 C     Control Parameter:
-C                     KTREND (specified in RADCOM) activates GH Trend
+C                     KTREND (specified in RADPAR) activates GH Trend
 C               Default
 C     KTREND  =   1
 C     Selects   GTREND
@@ -3284,7 +3285,7 @@ C                  Use PLB to fix Standard Heights for Gas Distributions
 C                  -----------------------------------------------------
 
       NL1=NL0+1
-CCC   PS0=PLB0(1)
+!nu   PS0=PLB0(1)
 
       DO 100 L=1,NL0
       DPL(L)=PLB0(L)-PLB0(L+1)
@@ -3611,8 +3612,6 @@ C-----------------
 
       SAVE  SFWM2,SIGMA,WTKO2,NL0,NL1,IFIRST
 
-CCC   DATA STPMOL/2.68714D+19/,S00/1367.0/
-CCC   DATA NW/18/,NZ/11/,NKO2/6/
       PARAMETER(STPMOL=2.68714D+19,S00=1367.0)
       PARAMETER(NW=18,NZ=11,NKO2=6)
       DATA IFIRST/1/
@@ -3954,19 +3953,19 @@ C     GISS MONTHLY-MEAN AEROSOL (1950-1990) & DESERT DUST CLIMATOLOGY
 C     ---------------------------------------------------------------
 C
 C     Modification of Aerosol Composition Amounts and/or of Radiative
-C     Parameters is via RADPAR Parameters in COMMON/AERCOM
+C     Parameters is via RADPAR Parameters
 C
 C     UPDAER INPUT: via ENTRY UPDAER Arguments:   IYEAR, IMONTH, IDAY
 C                   specifies the time of Global Aerosol Distribution
 C
-C     GETAER INPUT: via ILON and JLAT set in radCOMMON for 72x46 grid
+C     GETAER INPUT: via ILON and JLAT set in RADPAR for 72x46 grid
 C
 C           OUTPUT: via SRAEXT(L,K)  Aerosol Extinction Optical Depth
 C                       SRASCT(L,K)  Aerosol Scattering Optical Depth
 C                       SRAGCB(L,K)  Aerosol Asymmetry Parameter  g
 C                       TRAALK(L,K)  Thermal Absorption Optical Depth
 C
-C     Defining Parameters are required for GETAER INPUT via radCOMMON
+C     Defining Parameters are required for GETAER INPUT via RADPAR
 C
 C                          NL  = Number of Model Layers
 C                         NLP  = Number of Model Layers + 1
@@ -4222,7 +4221,7 @@ C     Tropospheric Aerosol and Mineral Dust Data are on 72X46 Grid
 C     with a Nominal 5 deg Longitude and 4 deg Latitude Resolution
 C     with 12 Layer Vertical Distribution of Aerosol Optical Depth
 C
-C     Geographic Location is specified by: ILON and JLAT in RADCOM
+C     Geographic Location is specified by: ILON and JLAT in RADPAR
 C     ------------------------------------------------------------
 C
 C                  -----------------------------------------------
@@ -4235,7 +4234,7 @@ C
 C     IF(KVRAER.EQ.0) 12 Layer Vertical Distribution is used as is
 C
 C     IF(KVRAER.EQ.1) Aerosol Height Distribution is Repartitioned
-C                             Using PLB in RADCOM
+C                             Using PLB in RADPAR
 C                     (This takes Surface Topography into account)
 C     ------------------------------------------------------------
 
@@ -4379,19 +4378,19 @@ C     GISS MONTHLY-MEAN AEROSOL (1950-1990) & DESERT DUST CLIMATOLOGY
 C     ---------------------------------------------------------------
 C
 C     Modification of Aerosol Composition Amounts and/or of Radiative
-C     Parameters is via RADPAR Parameters in COMMON/AERCOM
+C     Parameters is via RADPAR Parameters
 C
 C     UPDDST INPUT: via ENTRY UPDDST Arguments:   IYEAR, IMONTH, IDAY
 C                     specifies the time of Dust Aerosol Distribution
 C
-C     GETDST INPUT: via ILON and JLAT set in radCOMMON for 72x46 grid
+C     GETDST INPUT: via ILON and JLAT set in RADPAR for 72x46 grid
 C
 C           OUTPUT: via SRDEXT(L,K)   D Dust Extinction Optical Depth
 C                       SRDSCT(L,K)   D Dust Scattering Optical Depth
 C                       SRDGCB(L,K)   D Dust Asymmetry Parameter  g
 C                       TRDALK(L,K)  Thermal Absorption Optical Depth
 C
-C     Defining Parameters are required for GETdst INPUT via radCOMMON
+C     Defining Parameters are required for GETdst INPUT via RADPAR
 C
 C                          NL  = Number of Model Layers
 C                         NLP  = Number of Model Layers + 1
@@ -4430,7 +4429,7 @@ C     Pbot 984  934  854  720  550  390  285  255  150  100   60   30
       DIMENSION SRAX12(12),SRAS12(12),SRAG12(12),TRAX12(12)
 
       DIMENSION FRACD1(9),FRACD2(9),FRACDL(9),LFRACD(9)
-CCC   DIMENSION FRACD1(9),FRACD2(9),FRACDL(9),LFRACD(9),TAUCON(8)
+!nu   DIMENSION TAUCON(8)
 
       DATA FRACD1/105.0, 30.0, 60.0, 50.0, 30.0, 30.0, 20.0, 3.0, 1.0/
       DATA FRACD2/135.0,135.0,105.0, 80.0, 80.0, 60.0, 60.0, 4.0, 6.0/
@@ -4468,7 +4467,7 @@ C     ------------------------------------------------------------------
       CALL SDDUST
      +(QXDUST(1,N),QSDUST(1,N),QCDUST(1,N),QDST55(N),REDUST(N),FNDUST)
       CALL TDDUST(ATDUST(1,N),REDUST(N),FTDUST(N))
-CCC   TAUCON(N)=0.75E+03*QDST55(N)/(RODUST(N)*REDUST(N))
+!nu   TAUCON(N)=0.75E+03*QDST55(N)/(RODUST(N)*REDUST(N))
   120 CONTINUE
 
       M=13
@@ -4560,7 +4559,7 @@ C     Wind-blown Mineral Dust data are represented on a 72X46 Grid
 C     with a nominal 5 deg longitude and 4 deg latitude resolution
 C     with 12 layer vertical distribution of aerosol optical depth
 C
-C     Geographic Location is specified by: ILON and JLAT in RADCOM
+C     Geographic Location is specified by: ILON and JLAT in RADPAR
 C
 C                  For Model Resolution other than 72X36, Redefine
 C                  ILON and JLAT appropriately
@@ -4570,7 +4569,7 @@ C
 C     IF(KVRAER.EQ.0) 12 Layer Vertical Distribution is used as is
 C
 C     IF(KVRAER.EQ.1) Aerosol Height Distribution is Repartitioned
-C                             Using PLB in RADCOM
+C                             Using PLB in RADPAR
 C                     (This takes Surface Topography into account)
 C     ------------------------------------------------------------
 
@@ -5000,7 +4999,7 @@ C     ------------------------------------------------------------------
 
 
 C-----------------------------------------------------------------------
-C     Control Parameters used in SETCLD,GETCLD,GETEPS: defined in RADCOM
+C     Control Parameters used in SETCLD,GETCLD,GETEPS: defined in RADPAR
 C
 C             ICE012  Selects Water, Non-Mie, Mie  Ice Cloud Qex,Qsc,Pi0
 C             TAUWC0  Minimum Optical Depth for Water Clouds
@@ -5041,10 +5040,6 @@ C-----------------------------------------------------------------------
 
 C                          Initialize  GETCLD Output Parameters to Zero
 C                          --------------------------------------------
-CCC   LBOTCW=0
-CCC   LTOPCW=0
-CCC   LBOTCI=0
-CCC   LTOPCI=0
       DO 150 K=1,33
       TRCTCA(K)=0.D0
   150 CONTINUE
@@ -5349,8 +5344,6 @@ C                     --------------------------------------------------
   530 CONTINUE
       ENDIF
       IF(KCLDEP.EQ.4) THEN
-CCC   LOWCLD=0
-CCC   MIDCLD=0
       DO 540 L=1,NL
       CLDEPS(L)=EPMID(I,J)
       IF(PLB(L).GT.750.D0) CLDEPS(L)=EPLOW(I,J)
@@ -6453,16 +6446,15 @@ C                 NIR   Designates solar near-IR wavelengths (770>   nm)
 C                       VIS comprises .53 of S0, NIR comprises .47 of S0
 C     ------------------------------------------------------------------
 C
-CCC   SAVE
 C     ------------------------------------------------------------------
 C         Fractional solar flux k-distribution/pseudo-spectral intervals
 C
 C         KSLAM=    1     1     2     2     5     5     5     5
 C             K=    1     2     3     4     5     6     7     8
-CCC   DATA DKS0/ .010, .030, .040, .040, .040, .002, .004, .013,
+C     DATA DKS0/ .010, .030, .040, .040, .040, .002, .004, .013,
 C         KSLAM=    1     1     1     3     4     6     6     1
 C             K=    9    10    11    12    13    14    15    16
-CCC  +           .002, .003, .003, .072, .200, .480, .050, .011/
+C    +           .002, .003, .003, .072, .200, .480, .050, .011/
 C
 C     ------------------------------------------------------------------
 C     The nominal spectral order for k-dist/pseudo-spectral intervals is
@@ -7289,9 +7281,7 @@ CCC   SUBROUTINE GTSALB(GIN,TAUIN,RBBOUT,RBBIN,EGIN,TAUOUT,KGTAUR)
       DIMENSION GVALUE(14)
       DATA GVALUE/.0,.25,.45,.50,.55,.60,.65,.70,.75,.80,.85,.90,.95,1./
       SAVE GVALUE
-CCC   DATA IFIRST/1/
 
-CCC   IF(IFIRST.EQ.1) THEN
       DO 100 I=1,122
       TAUTGD(I)=(I-1)*0.1D0
       IF(I.GT.24) TAUTGD(I)=(I-24)*0.2D0+2.2D0
@@ -7340,11 +7330,9 @@ CCC   IF(IFIRST.EQ.1) THEN
       SALBTG(I,14)=SALBTG(I,13)*2.D0-SALBTG(I,12)
   170 CONTINUE
       DO 180 I=1,1001
-CCC   SALBI=(I-1)*0.001D0
+!nu   SALBI=(I-1)*0.001D0
       TAUGSA(I,14)=TAUGSA(I,13)*2.D0-TAUGSA(I,12)
   180 CONTINUE
-CCC   IFIRST=0
-CCC   ENDIF
       RETURN
 
       ENTRY GTSALB(GIN,TAUIN,RBBOUT,RBBIN,EGIN,TAUOUT,KGTAUR)
@@ -7694,25 +7682,25 @@ C                            -----------------------------------------
       IT=TI
       WTJ=TI-IT
       IT0=0
-CCC   GO TO 100
+
       ELSEIF(TAU.LT.20.D0) THEN
       TI=(TAU-6.D0)*2.00D0+2.D0
       IT=TI
       WTJ=TI-IT
       IT0=62
-CCC   GO TO 100
+
       ELSEIF(TAU.LT.100.D0) THEN
       TI=(TAU-20.D0)*0.20D0+2.D0
       IT=TI
       WTJ=TI-IT
       IT0=93
-CCC   GO TO 100
+
       ELSEIF(TAU.LT.1000.D0) THEN
       TI=(TAU-100.D0)*0.02D0+2.D0
       IT=TI
       WTJ=TI-IT
       IT0=112
-CCC   GO TO 100
+
       ELSE
       TI=TAU*0.001D0+1.D-6
       IT=TI
@@ -7720,7 +7708,7 @@ CCC   GO TO 100
       IF(IT.GT.9) IT=9
       IT0=133
       ENDIF
-C 100 CONTINUE
+
       WTI=1.D0-WTJ
       IT=IT+IT0
       JT=IT+1
@@ -8082,8 +8070,8 @@ C     TDDUST   Selects Thermal Mie Scattering Parameters for Desert Dust
 C                                     and applies FTDUST Scaling Factors
 C                                     ----------------------------------
 
-      DIMENSION QDDUST(33),SDDUST(33),           ADDUST(33)
-CCC   DIMENSION QDDUST(33),SDDUST(33),GDDUST(33),ADDUST(33)
+      DIMENSION QDDUST(33),SDDUST(33),ADDUST(33)
+!nu   DIMENSION GDDUST(33)
 
       RDI=0.0
       DO 110 J=1,25
@@ -8103,7 +8091,7 @@ CCC   DIMENSION QDDUST(33),SDDUST(33),GDDUST(33),ADDUST(33)
       DO 140 K=1,33
       QDDUST(K)=(WTI*TRDQEX(K,I)+WTJ*TRDQEX(K,J))*FNDUST
       SDDUST(K)=(WTI*TRDQSC(K,I)+WTJ*TRDQSC(K,J))*FNDUST
-CCC   GDDUST(K)=(WTI*TRDQCB(K,I)+WTJ*TRDQCB(K,J))
+!nu   GDDUST(K)=(WTI*TRDQCB(K,I)+WTJ*TRDQCB(K,J))
       ADDUST(K)=QDDUST(K)-SDDUST(K)
   140 CONTINUE
 
@@ -8157,9 +8145,9 @@ C     WRITER Radiative Input/Output Cloud/Aerosol Data/Conrol Parameters
 C
 C         INDEX
 C           0     control parameter defaults in RADPAR
-C           1     RADCOM Radiative conrol/scaling parameter GHG defaults
-C           2     RADCOM Atmospheric composition P,H,T,Cld,Aer  profiles
-C           3     RADCOM Computed LW SW fluxes cooling and heating rates
+C           1     RADPAR Radiative control/scaling param's; GHG defaults
+C           2     RADPAR Atmospheric composition P,H,T,Cld,Aer  profiles
+C           3     RADPAR Computed LW SW fluxes cooling and heating rates
 C           4     Aerosol and Cloud: Mie scattering radiative parameters
 C                 A  SW aerosol Mie scattering Qx,Qs,g in use parameters
 C                 B  SW  cloud  Mie scattering Qx,Qs,g in use parameters
@@ -8216,7 +8204,6 @@ C
       DATA GHG/'   H2O','   CO2','    O3','    O2','   NO2','   N2O'
      +        ,'   CH4','CCL3P1','CCL2P2','    N2',' CFC-Y',' CFC-Z'/
       character*1,dimension(4) :: AUXGAS = (/'0','L','X','X'/)
-CCC   DATA P0/1013.25/
       PARAMETER(P0=1013.25)
       SAVE  KSLAMW,IORDER,FTYPE,AUXGAS
 C
@@ -8394,7 +8381,7 @@ C    +              ,FULGAS(11),FULGAS(12),   (FGOLDH(I+9),I=1,5)
      +             ,ITR(8),FSVAER,FTVAER,KSOLAR,NORMS0
 C
  6101 FORMAT(' (1)FUL:  1',7X,'2',8X,'3',7X,'6',7X,'7',8X,'8',8X,'9'
-     +      ,8X,'11',7X,'12',4X,'RADCOM 1/F: (Control/Default'
+     +      ,8X,'11',7X,'12',4X,'RADPAR 1/F: (Control/Default'
      +      ,'/Scaling Parameters)')
  6102 FORMAT(4X,'GAS: ','H2O',5X,'CO2',7X,'O3'
      +      ,5X,'N2O',5X,'CH4',5X,'CFC-11',3X,'CFC-12'
@@ -8504,12 +8491,12 @@ C
       TGMEAN=SQRT(TGMEAN)
       WRITE(KW,6203) (SUM0(I),I=1,3),(SUM0(I),I=6,9),SUM0(5)
      +               ,SUM0(10),SUM0(11),SUM0(12)
-      WRITE(KW,6204) POCEAN,TGO,PLAKE,LKDEPTH,SUM0(13),JYEAR
+      WRITE(KW,6204) POCEAN,TGO,PLAKE,zlake,SUM0(13),JYEAR
      +             ,BXA(4:5),LASTVC
-      WRITE(KW,6205) PEARTH,TGE,SNOWE,HSN,SUM0(14),JDAY,BXA(6:7)
-      WRITE(KW,6206) POICE,TGOI,SNOWOI,hin,  SUM0(15),JLAT
+      WRITE(KW,6205) PEARTH,TGE,SNOWE,ZSNWOI,SUM0(14),JDAY,BXA(6:7)
+      WRITE(KW,6206) POICE,TGOI,SNOWOI,ZOICE,SUM0(15),JLAT
      +             ,(SRBALB(I),I=1,6)
-      WRITE(KW,6207) PLICE,TGLI,SNOWLI,hmp,SUM0(16),ILON
+      WRITE(KW,6207) PLICE,TGLI,SNOWLI,zmp,SUM0(16),ILON
      +             ,(SRXALB(I),I=1,6)
       PSUM=POCEAN+PEARTH+POICE+PLICE
       snotyp='DRY' ; if(flags) snotyp='WET'
@@ -8522,7 +8509,7 @@ C
      +      ' FULGAS[ 4=O2:',F3.1,' 5=NO2:',F3.1,' 10=N2C:',F3.1,']')
       WRITE(KW,6209) (PRNB(1:2,I),PRNX(1:2,I),I=1,4),BXA(1:3)
       WRITE(KW,6210)
- 6201 FORMAT(' (2) RADCOM G/L: (Input Data)'
+ 6201 FORMAT(' (2) RADPAR G/L: (Input Data)'
      +      ,2X,'Absorber Amount per Layer:'
      +      ,'  U',1A1,'GAS(L,K) in cm**3(STP)/cm**2',2X,'S00WM2=',F9.4
      +      ,1X,'S0=',F9.4,2X,'COSZ=',F6.4
@@ -8636,7 +8623,7 @@ C
      +             ,SRANIR
 C
 C
- 6301 FORMAT(/' (3) RADCOM M/S: (Output Data)'
+ 6301 FORMAT(/' (3) RADPAR M/S: (Output Data)'
      +      ,T37,'Thermal Fluxes (W/M**2)',4X,'Solar Fluxes (W/M**2)'
      +      ,1X,'NORMS0=',I1,'  Energy  Input  Heat/Cool Deg/Day Alb'
      +      ,'do'/' LN     PLB   HLB    TLB    TLT '
@@ -11628,7 +11615,6 @@ C     ------------------------------------------------------------------
       SUBROUTINE FXGINT(F,X,NX,G,Y,NY,ALIM,BLIM,ABINT)
       IMPLICIT REAL*8(A-H,O-Z)
       DIMENSION F(NX),X(NX),G(NY),Y(NY)
-CCC   DATA DELTA/1.D-07/
       PARAMETER (DELTA=1.D-07)
 
 C     ------------------------------------------------------------------
@@ -11800,8 +11786,8 @@ C**** config data
 C**** input from radiation
      *     COSZ,PLANCK,ITNEXT,ITPFT0,
 C**** input from driver
-     *     AGESN,ILON,JLAT,POCEAN,POICE,PEARTH,PLICE,PLAKE,LKDEPTH,
-     *     TGO,TGOI,TGE,TGLI,TSL,HIN,FLAGS,FMP,HSN,HMP,
+     *     AGESN,ILON,JLAT,POCEAN,POICE,PEARTH,PLICE,PLAKE,zlake,
+     *     TGO,TGOI,TGE,TGLI,TSL,ZOICE,FLAGS,FMP,ZSNWOI,zmp,
      *     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC,WEARTH,WMAG,PVT,
 C**** output
      *     BXA,PRNB,PRNX,SRBALB,SRXALB,TRGALB,BGFEMD,BGFEMT,
@@ -11936,12 +11922,12 @@ C**** For lakes increase albedo if lakes are very shallow
 C**** This is a fix to prevent lakes from overheating when they
 C**** are not allowed to evaporate away. We assume that departing
 C**** lakes would leave bare soil behind.
-      if (PLAKE.gt.0 .and. lkdepth.lt.1.) then  ! < 1m
+      if (PLAKE.gt.0 .and. zlake.lt.1.) then  ! < 1m
         DO L=1,6
-          BOCVN(L)=(BOCVN(L)*(lkdepth-0.4d0)+
-     *         (1.-lkdepth)*ALBVNH(1,L,1))/0.6d0
-          XOCVN(L)=(XOCVN(L)*(lkdepth-0.4d0)+
-     *         (1.-lkdepth)*ALBVNH(1,L,1))/0.6d0
+          BOCVN(L)=(BOCVN(L)*(zlake-0.4d0)+
+     *         (1.-zlake)*ALBVNH(1,L,1))/0.6d0
+          XOCVN(L)=(XOCVN(L)*(zlake-0.4d0)+
+     *         (1.-zlake)*ALBVNH(1,L,1))/0.6d0
         END DO
       end if
 C
@@ -12151,17 +12137,17 @@ C                                         ------------------------------
 C**** This albedo specification comes from Schramm et al 96 (4 spectral
 C**** bands). Depending on KVEGA6 we either average to 2 or 6 bands
 C**** Bare ice:
-        if(hin.lt.1.)then         ! hin=ice depth is at least Z1I(=.1m)
-          ali(1)=.76d0+.14d0*log(hin)
-          ali(2)=.247d0+.029d0*log(hin)
+        if(ZOICE.lt.1.)then         ! ZOICE is at least Z1I(=.1m)
+          ali(1)=.76d0+.14d0*log(zoice)
+          ali(2)=.247d0+.029d0*log(zoice)
           ali(3)=.055d0
           ali(4)=.036d0
-        elseif (hin.ge.1. .and. hin.lt.2.) then
-          ali(1)=.77d0+.018d0*(hin-1.)
-          ali(2)=.247d0+.196d0*(hin-1.)
+        elseif (zoice.ge.1. .and. zoice.lt.2.) then
+          ali(1)=.77d0+.018d0*(zoice-1.)
+          ali(2)=.247d0+.196d0*(zoice-1.)
           ali(3)=.055d0
           ali(4)=.036d0
-        elseif (hin.ge.2.) then
+        elseif (zoice.ge.2.) then
           ali(1)=.778d0
           ali(2)=.443d0
           ali(3)=.055d0
@@ -12171,11 +12157,11 @@ C**** Bare ice:
         albtr(1:4)=ali(1:4)
 C**** Snow:
         patchy=0.
-        if(hsn.gt.0.)then
-          if(hsn.ge.0.1d0)then
+        if(zsnwoi.gt.0.)then
+          if(zsnwoi.ge.0.1d0)then
             patchy=1d0
           else
-            patchy=hsn/0.1d0
+            patchy=zsnwoi/0.1d0
           endif
           if(flags)then         ! wet snow
             alsf(1)=.871d0
@@ -12200,7 +12186,7 @@ C****  Dry, Wet(thick), Wet(thin) snow decreases by
 C**** 0.006,  0.015 and 0.071 per day, respectively (for mean)
 C**** assume decrease for each band is proportional
           if (flags) then
-            if (hsn.gt.0.25) then     ! hsn: snow depth (m)
+            if (zsnwoi.gt.0.25) then     ! zsnwoi: snow depth (m)
               snagfac = 0.015d0/0.7d0
             else
               snagfac = 0.071d0/0.7d0
@@ -12217,9 +12203,9 @@ C****
           albtr(1:4)=albtr(1:4)*(1.-patchy)+alsd(1:4)*patchy
         endif
 C**** Melt ponds:
-        almp(1)=.15d0+exp(-8.1d0*hmp-.47d0)
-        almp(2)=.054d0+exp(-31.8d0*hmp-.94d0)
-        almp(3)=.033d0+exp(-2.6d0*hmp-3.82d0)
+        almp(1)=.15d0+exp(-8.1d0*zmp-.47d0)
+        almp(2)=.054d0+exp(-31.8d0*zmp-.94d0)
+        almp(3)=.033d0+exp(-2.6d0*zmp-3.82d0)
         almp(4)=.03d0
 
 c**** combined sea ice albedo
@@ -12306,7 +12292,7 @@ C**** Set snow albedo over sea ice
 C**** set ice albedo
       AHMZOI=ASHZOI
       IF(JLAT.GT.JNORTH) AHMZOI=ANHZOI
-      FDZICE=hin/(hin+AHMZOI)   ! hin = ZOICE = ice depth (m)
+      FDZICE=zoice/(zoice+AHMZOI)   ! ZOICE = ice depth (m)
       IF (KVEGA6.le.0) THEN     ! 2 band
       BOIVIS=FDZICE*AOIVIS*EXPSNO+BSNVIS*(1.D0-EXPSNO)
       BOINIR=FDZICE*AOINIR*EXPSNO+BSNNIR*(1.D0-EXPSNO)
@@ -12364,16 +12350,16 @@ C**** end of original versions
 C**** J. Hansen's sea ice albedo formulas (6 spectral bands)
 C**** Bare ice:
         BOIVN(1:6) = aoimax(1:6)
-        if(hin.lt.1.)then       ! hin: ice depth (at least Z1I=.1m)
-          BOIVN(1:4)=aoimin(1:4)+(aoimax(1:4)-aoimin(1:4))*sqrt(hin)
+        if(zoice.lt.1.)then       ! zoice: ice depth (at least Z1I=.1m)
+          BOIVN(1:4)=aoimin(1:4)+(aoimax(1:4)-aoimin(1:4))*sqrt(zoice)
         endif
 C**** Snow:    patchy: snow_cover_fraction (<1 if snow depth < .1m)
-        patchy = 0.       !  max(0.d0 , min(1.d0, 10.d0*hsn) )
-        if(hsn.gt.0.)then
-          if(hsn.ge.0.1d0)then      ! snow deeper than .1m
+        patchy = 0.       !  max(0.d0 , min(1.d0, 10.d0*zsnwoi) )
+        if(zsnwoi.gt.0.)then
+          if(zsnwoi.ge.0.1d0)then      ! snow deeper than .1m
             patchy=1d0
           else
-            patchy=hsn/0.1d0
+            patchy=zsnwoi/0.1d0
           endif
           if(flags)then         ! wet snow
             alsf6(1:6)=asnwet(1:6)
@@ -12385,7 +12371,7 @@ C       Dry, Wet(thick), Wet(thin) snow decreases by
 C       0.006,  0.015 and 0.071 per day, respectively (for mean)
 C       assume decrease for each band is proportional
           if (flags) then
-            if (hsn.gt.0.25) then
+            if (zsnwoi.gt.0.25) then
               snagfac = 0.015d0/0.7d0 * AGESN(2)
             else
               snagfac = 0.071d0/0.7d0 * AGESN(2)
@@ -12401,8 +12387,8 @@ C       combine bare ice and snow albedos
         endif
 C**** Melt ponds:
         almp6(1:6)=ampmin(1:6)    ! used if melt pond deeper than .5m
-        if(hmp.gt.0. .and. hmp.lt.0.5)then
-          almp6(1:6)=almp6(1:6)+(aoimax(1:6)-almp6(1:6))*(1.-2.*hmp)**2
+        if(zmp.gt.0. .and. zmp.lt.0.5)then
+          almp6(1:6)=almp6(1:6)+(aoimax(1:6)-almp6(1:6))*(1.-2.*zmp)**2
         end if
 c**** combined sea ice albedo
         BOIVN(1:6)=BOIVN(1:6)*(1.-fmp)+almp6(1:6)*fmp
