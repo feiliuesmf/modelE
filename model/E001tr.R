@@ -82,6 +82,7 @@ U00wtr=.47
 U00ice=.50
 
 DT=450.,        ! from default: DTsrc=3600.,
+to_volume_MixRat=1   ! for tracer printout
 NSLP=12         ! saving SLP 12hrly
 Kvflxo=1        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
@@ -91,6 +92,5 @@ KCOPY=2         ! saving acc + rsf
    YEARI=1950,MONTHI=1,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
    YEARE=1950,MONTHE=2,
-   to_volume_MixRat=1   ! for tracer printout
    ISTART=7,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,
  &END
