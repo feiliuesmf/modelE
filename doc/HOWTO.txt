@@ -53,11 +53,12 @@ Part III: The model code
 5) HOW-TO add functionality - A: variations on existing code
 6) HOW-TO add functionality - B: introducing new sub-modules
 7) HOW-TO add functionality - C: introducing a new NAMELIST parameter
-8) HOW-TO read in an external file
-9) HOW-TO add new variabiles to the restart files
-10) HOW-TO access variables that are already calculated somewhere else
-11) HOW-TO deal with the inevitable bugs you introduce
-12) HOW-TO get an innovation included in everybody's versions
+8) HOW-TO add functionality - D: adding new diagnostics
+9) HOW-TO read in an external file
+10) HOW-TO add new variabiles to the restart files
+11) HOW-TO access variables that are already calculated somewhere else
+12) HOW-TO deal with the inevitable bugs you introduce
+13) HOW-TO get an innovation included in everybody's versions
 	 
 =====================================================================
 
@@ -186,7 +187,27 @@ the variable can be added to the NAMELIST. You will probably also need
 to add this parameter to the rsf/acc files for future reference - see
 Q9 for details.
 
-8) HOW-TO read in an external file
+8) HOW-TO add functionality - D: adding new diagnostics
+
+The diagnostic system that the GCM uses is very sophisticated and is
+almost certainly sufficient fro any new need for diagnostics that
+arises. However, it can seem complex and difficult to use. As
+improvements in ease of use occur, it will get easier to modify.
+
+a) Adding a new conservation diagnostic: These arrays keep track of
+the zonal average of any quantity, and note which routines change
+those values. They are useful in undestanding the overall
+mass/energy/tracer budgets. To add a new conservation quantity, first
+write a routine that returns the zonally averaged quantity in
+question. Secondly, in the 'init' subroutine for the relevant physical
+module, insert a call to 'SET_CON' this sets up the points at which
+the diagnostic is called, and how it is output. (see init_DIAG for
+more detailed instructions). Thridly, you must increase NQUANT by 1,
+and KCON by 2+number of points at which you are saving the value. 
+
+Other diagnostics will be explained if and when I work them out.
+
+9) HOW-TO read in an external file
 
 ModelE has introduced a FILEMANAGER system that controls the
 assignment of unit numbers and the opening of files. To add a new file
@@ -200,13 +221,14 @@ gave it. ie.
      USE FILEMANAGER
      INTEGER iu_trc1
      ....
-     call getunit("TRSRC",iu_trc1,.TRUE.)
+     call getunit("TRSRC",iu_trc1,.TRUE.,.TRUE.)
      READ(iu_trc1) DATA1,DATA2.... 
 
-The logical variable argument is true if the file is to be opened for
-unformatted (binary) read/write, .FALSE. for ASCII input. The line in
-the rundeck should look something like (depending on the filename of
-course):
+The first logical variable argument is true if the file is to be
+opened for unformatted (binary) read/write, .FALSE. for ASCII
+input. The second logical variable denotes whether this is an already
+existing file or not. The line in the rundeck should look something
+like (depending on the filename of course):
 
 TRSRC=tracer_sources.1970_1980.dat 
 
@@ -214,7 +236,7 @@ The setup script looks automatically in /u/cmrun, /u/raid and in the
 current directory. If the file is elsewhere an absolute or relative
 pathname is needed.
  
-9) HOW-TO add new variabiles to the restart files
+10) HOW-TO add new variabiles to the restart files
 
 Each module now has only one place that needs to be changed to
 accomodate extra variables in the rsf files: io_xyz (where xyz is a
@@ -255,7 +277,7 @@ use the 'points-to' feature to map the PHYS_COM variable to a new name
 The arrow should be read as 'points to', and thus var2_phys will be an
 alias for var2 in this routine/module only.
 
-11) HOW-TO deal with the inevitable bugs you introduce
+12) HOW-TO deal with the inevitable bugs you introduce
 
 Nobody's code is perfect (least of all ours) and so when coding it is
 inevitable that errors are introduced. Some are minor and cause no
@@ -266,8 +288,9 @@ Let's say you've changed something in the model that seemed innocuous,
 and then the model crashes. There are three common points that seem to
 trap errors: the dynamics, the radiation and the PBL scheme. These
 errors will be flagged as either "A>1 in AADVTX" or similar (for
-crashes in the dynamics), "In Radia: TL out of range"  or similar (in
-the radiation), and finally "stop zbrent", for a crash in the PBL. 
+crashes in the dynamics), "In Radia: TL out of range" or similar (in
+the radiation), and finally "stop zbrent" or "stop rtsafe", for a
+crash in the PBL.
 
 Do not go looking for errors in any of these routines. What has
 generally happened is that you have introduced some wild fluctuation
@@ -277,7 +300,7 @@ like. Check that coming out of the routine you modified, everything is
 as it should be (set QCHECK in the rundeck, and include a call to
 CHECKT immediately before and after). Also do not bother commenting
 out the routine that actually crashed to see if the model can continue
-on okay. This routine is the sympton, not the disease.
+on okay. This routine is the symptom, not the disease.
 
 One additional problem that arises mainly with tracer code is that the
 advection code can sometimes produce wild oscillations of the tracer
@@ -292,6 +315,6 @@ reduced in some process. See the document "Using the GISS GCM tracer
 moments" for more details on how to do this properly. The CLD01.f
 tracer code is a good example of what to do.
 
-12) HOW-TO get an innovation included in everybody's versions
+13) HOW-TO get an innovation included in everybody's versions
 
 Still working on this one!
