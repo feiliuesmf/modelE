@@ -36,7 +36,6 @@ in adding functionality or diagnostics.</P>
   <LI><A HREF="#part0_1"> HOW-TO get the code from the CVS repository</A>
   <LI><A HREF="#part0_2"> HOW-TO configure modelE on your machine</A>
   <LI><A HREF="#part0_3"> System requirements</A>
-  <LI><A HREF="#part0_4"> ModelE Tracer Code Usage policy</A>
 </OL>
 <P><A HREF="#part1">PART I: Basic user information</A></P>
 <OL>
@@ -167,11 +166,7 @@ be checked-out to your home directory using the following commands:</p>
 will correspond to modelE-2-3-4. Please check to see if this is the
 latest release. It will be tagged with your own tag name so that your
 developments can be maintained by CVS, without conflicting with the
-main development branch. Please note that if you intend to commit code
-at some point for everyone else to use, you must be on the main
-development branch i.e. you should be editing a version of the code
-that you checked-out but without having performed the <tt>cvs tag/cvs
-update</tt> commands above.</P>
+main development branch.</P>
 
 <p>Please subscribe to the mailing list 'giss-gcm-users-l@giss.nasa.gov'
 by sending a message to Majordomo@giss.nasa.gov with a line</P>
@@ -294,99 +289,6 @@ multi-processing on a distributed memory platform (such as a Beowlf
 cluster). For machines that share a number of processors per board, 
 the OpenMP directives will work up to that number of processors.</p>
 
-
-<p><A name="part0_4"><b>3) ModelE Tracer Code Usage policy</b></a></p>
-
-<p> Most of modelE is open source and freely available to the wider
-scientific community (properly attributed of course). However some
-parts of the code, while within the main code repository are
-proprietory to the scientists developing it. This mainly involves
-tracer applications. To prevent any unfortunate mis-understandings
-from developing, we have outlined the following policy in regard to
-this code that any potential users are requested to follow.</p>
-
-<h4> GISS ModelE Tracer Code Usage Policy  -- July 21, 2003</h4>
-
-<p>As the GISS ModelE tracer code nears completion of its development
-stage, we believe it is appropriate to describe the usage policy for
-this supplemental portion of the GISS climate model. This policy
-represents an initial attempt to outline fair usage of the work of
-GISS scientists, and comments and suggestions from external users are
-welcomed. </p>
-
-<p>While interactive tracers are a useful diagnostic of model they are
-not an intrinsic part of a climate model. In the new modelE, in
-addition to the simple tracers for diagnostic purposes, we have
-created the capability for tracers which are fully interactive with
-the global hydrologic cycle and with the land-surface portion of the
-GCM (for our purposes, "interactive tracers" refers to these
-interactions, rather than the simpler interactions with the radiation
-scheme, for example). The enhancements to modelE include an improved
-dry deposition scheme which is now physically consistent with the
-physics of the boundary layer, a cloud liquid water budget for soluble
-tracers, improved diagnostic capabilities for tracers, and a new
-interface for altering factors important to individual tracers. These
-capabilities have been developed by GISS scientists for specific
-purposes, e.g.  aerosols, chemistry, isotopes. The development of the
-modelE interactive tracer codes by scientists interested in problems
-such as aerosol and chemical modelling has ensured that all the main
-physical processes relevant to those issues are included in the codes
-and have been adequately tested. This provides a vast improvement over
-a generic, non-interactive tracer package.  Additionally, this implies
-that collaboration with those scientists would be highly valuable, as
-they are clearly the most familiar with the physics included in the
-tracer-climate interactions. This does not, of course, preclude
-collaboration with other GISS scientists on more general climate
-issues. </p>
-
-<p>GISS scientists have spent an enormous amount of time and resources
-on these efforts, from 1 to 2 years of development work, and wish to
-ensure that those efforts are appropriately acknowledged and that they
-are able to use their work for scientific purposes themselves and not
-become de facto programmers for outside groups. This policy has been
-developed with that goal in mind.  It is not intended to discourage
-others from using this code in any way. This policy does not cover
-codes for specific tracers including their sources, sinks, and
-transformations (chemical or otherwise), which remain the proprietary
-codes of the individual developers. </p>
-
-<p>As such, we propose to put these general rules into place
-immediately. The general ModelE climate model will be made freely
-available to all GISS collaborators, as will the ModelE generic,
-non-interactive tracer code. The following conditions apply to the use
-of the ModelE interactive tracer code: </p>
-
-<p>The ModelE tracer interactive tracer code may only be used by those
-groups that agree to: </p>
-
-<ul>
-<li> Collaborate scientifically with the GISS scientist(s) responsible
-for this code working in the same area (e.g. aerosols, chemistry,
-isotopes)
-
-<li> Refrain from submission of modeling results making use of this code
-until an initial paper describing the results of modelE simulations
-pertaining to the area of interest (e.g. aerosols, chemistry,
-isotopes) by the GISS scientist working in the same area has been
-accepted.
-
-<li> Include the GISS scientist(s) responsible for this code who are
-working in the same area (e.g. aerosols, chemistry, isotopes) as a
-funded collaborator in future grant proposals.
-</ul>
-
-<p>These restrictions do not apply to previous GISS models (e.g. model
-II). Additionally, other groups are of course free to develop their
-own interactive tracer codes for modelE, but it would not be practical
-to include these as part of the GISS development given that this
-functionality is already present. </p>
-
-<p>The GISS scientists to contact in regard to the modelE interactive
-tracer code are: 
-Aerosols: <a href="mailto:dorothy.koch@yale.edu">D. Koch</a>, 
-Isotopes: <a href="mailto:gschmidt@giss.nasa.gov">G. Schmidt</a>, 
-Chemistry: <a href="mailto:dshindell@giss.nasa.gov">D. Shindell</a></p>
-
 <hr>
 
 <h3><A name="part1">Part I: Basic user tasks</a></h3>
@@ -430,7 +332,7 @@ following naming convention: </p>
              at '001') which the individual user will update as they perform
              successive runs.
         <li> The next part consists of the users initials (or other
-             unique identifier).
+             unique identifier.
  <li> If the user is experimenting with variable resolutions,
              it may be helpful to add 'M12' or 'M23' or 'F32' etc. to
              the end of the name to distinguish between the Medium
@@ -475,10 +377,8 @@ The list of fortran files within the rundeck determines which files
 are compiled into the executable. The compilation is automatic, and
 will take account of all dependencies, so that if a file is modified
 it will be re-compiled, along with any files that directly or
-indirectly depend on modules or routines within it. Please note that
-there cannot be any blank lines in the list of object modules, since
-the script will assume that is the end and not perform a proper
-dependency check or compilation. The executable is made using
+indirectly depend on modules or routines within it. The executable is
+made using
 <pre>
      gmake gcm RUN=E001xyz
 </pre>
@@ -489,8 +389,7 @@ the first hour (or specifically the first source time step).
 </pre>
 
 If this runs successfully there will be a message saying so. Likewise
-if there is a problem. The first 'gcm' step can be neglected since
-'setup' will automatically force this. </p>
+if there is a problem.</p>
 
    <LI> <A name="part1_1c"><b> How to interact with CVS to make sure
      the run is reproducible</b></A>
@@ -1039,16 +938,7 @@ always be recreated if needed.</p>
     <p>To summarize, when using a non-standard land mask one has to replace
     the above mentioned files in the rundeck with their <tt>.ext</tt> 
     equivalents. One also has to use ISTART=6 (instead of ISTART=7) to
-    force regeneration of PBL data. If an ISTART=2 is used, this is
-    done automatically. </p>
-
-    <p> One further diagnostic problem can emerge. The river runoff diags use 
-    named river mouths in the (ascii) river direction file. These
-    named river mouths must be in ocean boxes (and a warning will be
-    printed if not). If you decide to move them, you may change the order
-    of the rivers as they are read in. The list of river names at the
-    bottom of the river direction file must be in the correct order
-    (reading from left to right, starting at the bottom (J=1)).</p>
+    force regeneration of PBL data.
 </ol>
 
 <p><A name="part1_5"><b>5) HOW-TO change trace gas amounts</b></a></p>
@@ -1220,6 +1110,31 @@ the model since your last update until the release modelE-a-b. Automatic
 update doesn't mean automatic resolution of all conflicts. If such arise
 they have to be checked and fixed manually.</p>
 
+
+<p><A name="part1_14"><b>9) HOW-TO nudge the model </b></a></p>
+
+<p>The model can be run in a nudged mode, whereby the horizontal 
+wind components are nudged towards reanalysis data sets (NUDGE.f).
+The following nudging formular is used:
+f(n+1) = f(n) + a delta b / (1 + a delta)
+where f(n+1) is the variable to be nudged at the new timestep (n+1) 
+and at the old timestep f(n), respectively. delta is the model time 
+step and b is the reanalysis value. a is the nudging coefficient.
+a depents on the model timestep and a nudging timescale ANUDGEU, 
+ANUDGEV (for the u and v-velocities, respectively) 
+
+ANUDGEU and ANUDGEV are set in the input parameter list in the rundeck file.
+ANUDGEU=0.01 ANUDGEV=0.01 was tested to give resonable results.
+The preprocessor directive #define NUDGE_ON must be set to turn the nudging on.
+
+The reanalysis data sets must be available at the horizontal grid 
+resolution of the model an a 6 hourly time step. The vertical interpolation 
+is done in the model, so that the same reanalysis input files can be used 
+for different vertical model resolutions.
+Netcfd input is required.
+</p>
+
+
 <hr>
 
 <h3><A name="part2"><b>Part II: Getting information from the
@@ -1311,15 +1226,9 @@ title being shortened to "q1" (default).</p>
 <p>Current options are:
 <pre>
 KDIAG(1)  < 9 print Zonal/Regional budget pages
-   = 0 print all budget pages
-   = 1 print all zonal diagnostics
-   = 2 only print global zonal means
-   = 3 only print open ocean zonal means
-   = 4 only print ocean ice zonal means
-   = 5 only print land zonal means
-   = 6 only print land ice zonal means
-   = 7 only print lakes zonal means
    = 8 only print regional diagnostics
+   2-7 only print global zonal means
+   = 1 print all zonal diagnostics
 
 KDIAG(2)  = 0 print Latitude-height diagnostics
           = 1 print at most fields listed in file Ijk
@@ -1358,10 +1267,6 @@ KDIAG(9)  < 9 print out conservation diagnostics
 KDIAG(10) < 9 print out Longitude-height diagnostics
 KDIAG(11) < 9 print out river runoff diagnostics
 KDIAG(12) < 9 print out ocean diagnostics (if there is an ocean)
-
-KDIAG(13) < 9 print hourly diurnal diagnostics at selected points (up to 4)
-          1-4 print out for first 4-KDIAG(13) points (will soon be obsolete)
-        -1 - -4 print out for -KDIAG(13) point only.
 </pre>
 
 <p>There is also one section of special lat-lon diagnostics which can
