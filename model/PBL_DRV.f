@@ -205,14 +205,14 @@ C        roughness lengths from Brutsaert for rough surfaces
 
       call advanc(
      3     coriol,utop,vtop,ttop,qtop,tgrndv,qgrnd,evap_max,fr_sat,
-#ifdef TRACERS_ON
+#if defined(TRACERS_ON)
      *     trs,trtop,trsfac,trconstflx,ntx,ntix,
-#ifdef TRACERS_WATER
+#endif
+#if defined(TRACERS_ON) && defined(TRACERS_WATER)
      *     tr_evap_max,
 #endif
-#ifdef TRACERS_DRYDEP
+#if defined(TRACERS_ON) && defined(TRACERS_DRYDEP)
      *     dep_vel,
-#endif
 #endif
      4     psurf,trhr0,ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,
      5     uocean,vocean,ts_guess,i,j,itype)
