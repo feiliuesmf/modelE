@@ -13,28 +13,30 @@ amend the response to make it clearer or more complete.</P>
 
 <H3><A HREF="#Q1">1. General questions</A></H3>
 <OL>
-  <LI><A HREF="#Q1_5">Why has all the coding been moved out of main?
+  <LI><A HREF="#Q1_1">Why has all the coding been moved out of main?
        </A>
-  <LI><A HREF="#Q1_6">Why is modular code so great anyway? </A>
-  <LI><A HREF="#Q1_7">Why are there three files for every module,
+  <LI><A HREF="#Q1_2">Why is modular code so great anyway? </A>
+  <LI><A HREF="#Q1_3">Why are there three files for every module,
        why not just one?</A>
-  <LI><A HREF="#Q1_8">How do I know where do find definitions and
+  <LI><A HREF="#Q1_4">How do I know where do find definitions and
        declarations then?</A>
-  <LI><A HREF="#Q1_9">Why doesn't the model produce 'nice' output as
+  <LI><A HREF="#Q1_5">Why doesn't the model produce 'nice' output as
        it runs? </A>
-  <LI><A HREF="#Q1_10">Something is wrong with the advection, my
+  <LI><A HREF="#Q1_6">Something is wrong with the advection, my
        tracers are going haywire! </A>
-  <LI><A HREF="#Q1_11">Why should I switch to using modelE? </A>
-  <LI><A HREF="#Q1_12">Why do I get single precision answers from
+  <LI><A HREF="#Q1_7">The model crashed in the dynamics near the
+       pole. What should I do?</A>
+  <LI><A HREF="#Q1_8">Why should I switch to using modelE? </A>
+  <LI><A HREF="#Q1_9">Why do I get single precision answers from
        double precision variables?, and what are all those 'd0'
        doing?</A>
-  <LI><A HREF="#Q1_1"> Why does GISS sometimes use the line number
+  <LI><A HREF="#Q1_10"> Why does GISS sometimes use the line number
        format for fortran files?</A> 
-  <LI><A HREF="#Q1_2"> Is line number format is 'harder' to
+  <LI><A HREF="#Q1_11"> Is line number format is 'harder' to
        edit?</A>
-  <LI><A HREF="#Q1_3"> Don't revision control systems (rcs or cvs)
+  <LI><A HREF="#Q1_12"> Don't revision control systems (rcs or cvs)
        provide equal functionality?</A>
-  <LI><A HREF="#Q1_4">Will the update system ever change? </A>
+  <LI><A HREF="#Q1_13">Will the update system ever change? </A>
 </OL>
 
 <H3><A HREF="#Q2">2. FAQs about the Parameter database</A></H3>
@@ -62,7 +64,7 @@ amend the response to make it clearer or more complete.</P>
 
 <H3><A NAME="Q1"> General Questions </A></H3> 
 
-<P><A NAME="Q1_5"><b> 1) Why has all the coding been moved out of main?
+<P><A NAME="Q1_1"><b> 1) Why has all the coding been moved out of main?
 </b></a> </P>
 
 <P> In order to increase the modularity of the code, many tasks that
@@ -74,7 +76,7 @@ variables, the functionality etc.) should now only concern that module
 and not the rest of the model. This should make it easier to 'plug and
 play' new functionality.  </P>
 
-<P><A NAME="Q1_6"><b> 2) Why is modular code so great anyway?</b></a></P>
+<P><A NAME="Q1_2"><b> 2) Why is modular code so great anyway?</b></a></P>
 
 <P>
 So that if you want to change something, you only need to do it in
@@ -82,7 +84,7 @@ the part of the code directly affected. There should be much less
 unforseen consequences to seemingly minor changes.
 </P>
 
-<P><A NAME="Q1_7"><b> 3) Why are there three files for every module, why
+<P><A NAME="Q1_3"><b> 3) Why are there three files for every module, why
 not just one?</b></a></P>
 
 <P>
@@ -108,7 +110,7 @@ drivers or common block changes. However, sometimes the local physics
 is in the same file as the COM module.
 </P>
 
-<P><A NAME="Q1_8"><b> 4) How do I know where do find definitions and
+<P><A NAME="Q1_4"><b> 4) How do I know where do find definitions and
 declarations then?</b></a></P> 
 
 <P>The rules are relatively simple (but not yet implemented 100% of
@@ -127,7 +129,7 @@ and only accessed through COM. - Drivers can USE both the COM
 variables and the local physics parameters.
 </P>
 
-<P><A NAME="Q1_9"><b> 5) Why doesn't the model produce 'nice' output as
+<P><A NAME="Q1_5"><b> 5) Why doesn't the model produce 'nice' output as
 it runs?</b></a></P> 
 
 <P>The GISS GCM output is of the form of accumulation files, and
@@ -148,7 +150,7 @@ can be derived after the fact, without having to have thought about
 them ahead of time. 
 </P>
 
-<P><A NAME="Q1_10"><b> 6) Something is wrong with the advection, my
+<P><A NAME="Q1_6"><b> 6) Something is wrong with the advection, my
 tracers are going haywire!</b></a></P>
 
 <P>This is not a problem in the advection. The GISS dynamical core is
@@ -180,7 +182,31 @@ profile that is not positive definite. Please read the document
 moments in the GISS GCM </A> for further
 information on how to use the moments in a useful fashion.</P>
 
-<P><A NAME="Q1_11"><b> 7) Why should I switch to using modelE?</b></a></P>
+<p><A NAME="#Q1_7"><b> 7) The model crashed in the dynamics near the
+pole. What should I do?</b></A></p>
+
+<P>Occasionally (every 15-20 model years), the model will produce very
+fast velocities in the lower stratosphere near the pole (levels 7 or 8
+for the standard layering). This will produce a number of warnings
+from the advection (such as <tt>limitq warning: abs(a)>1</tt>) and then
+finally a crash (<tt>limitq error: new sn &lt; 0</tt>"). There are a number of
+things you can do to get past such an error: i) Go back to the last
+monthly rsf file and use ISTART=4, ii) change DT to a smaller value
+(like 180 sec), run past the crash for a couple of days, and then
+increase DT back to normal afterwards.</P>
+
+<P>The second option is more straightforward, but can mess up the
+diagnostics at the end of that month. However, the first option is not
+guaranteed to work unless the number of hours that have elapsed from
+the start of the run to the end of the last month are <em>not</em> an
+integer multiple of NRAD. (This is to ensure that the model will
+follow a different path). If there is a problem, then going back to
+the previous months restart file generally works.</P>
+
+<P>Please make a note in the rundeck that this happened, and how you
+fixed it.</P>
+
+<P><A NAME="Q1_8"><b> 8) Why should I switch to using modelE?</b></a></P>
 
 <P>It is of course up to you. However, there are a number of reasons
 why it makes sense for you to make the effort involved in upgrading.
@@ -207,7 +233,7 @@ why it makes sense for you to make the effort involved in upgrading.
 </UL>
 </P>
 
-<P><A NAME="Q1_1"><b> 8) Why do I get single precision answers from
+<P><A NAME="Q1_9"><b> 9) Why do I get single precision answers from
 double precision variables?, and what are all those 'd0'
 doing?</b></a></P>
 
@@ -242,7 +268,7 @@ numerator (I think). Thus <tt>1./IM </tt>gives only single precision.
 problems, but not all. Hence for maximum portability we are trying to
 be explicit about writing those 'd0's out.</P>
 
-<P><A NAME="Q1_1"><b> 9) Why does GISS use the line number
+<P><A NAME="Q1_10"><b> 10) Why does GISS use the line number
 format for fortran files?</b></a></P>
 
 <P>Line number format is the practive of using the first 8 characters
@@ -265,7 +291,7 @@ In modelE line number format has been replaced by the CVS revision
 control system and preprocessing options. 
 </P>
 
-<P><A NAME="Q1_2"><b>10) Is line number format is 'harder' to edit?</b></a></P>
+<P><A NAME="Q1_11"><b>11) Is line number format is 'harder' to edit?</b></a></P>
 
 <P>
 Since the format is written in ASCII is just as easy as any other
@@ -279,7 +305,7 @@ format you like to edit (.U file, a .f file (line numbers first or
 last)) with options to upd
 </P>
 
-<P><A NAME="Q1_3"><b>11) Don't revision control systems (rcs or cvs)
+<P><A NAME="Q1_12"><b>12) Don't revision control systems (rcs or cvs)
 provide equal functionality?</b></a></P> 
 
 <P>
@@ -300,7 +326,7 @@ either to describe what is going on, or to refer to specific lines,
 for instance, when a bug is discovered. 
 </P>
 
-<P><A NAME="Q1_4"><b>12) Will the update system ever change?</b></a></P>
+<P><A NAME="Q1_13"><b>13) Will the update system ever change?</b></a></P>
 <P>
 We have already seen an increase in functionality of the update
 system that have made it much more useful for precisely the functions
