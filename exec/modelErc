@@ -50,7 +50,7 @@ OUTPUT_TO_FILES=YES
 VERBOSE_OUTPUT=NO
 
 # MP - multiprocessing support. If set to YES gmake will compile the 
-# code with OpenMP instructions. This option has effect only on SGI.
+# code with OpenMP instructions. This option has effect only on SGI and Compaq.
 MP=NO
 
 # UMASK - the value of 'umask' you want to use for model runs. The files
@@ -59,6 +59,6 @@ MP=NO
 UMASK=002
 
 # COMPILER - this option has effect only on Linux machines. It specifies
-# your f90 compiler. Currently supported: Absoft, Lahey.
+# your f90 compiler. Currently supported: Absoft, Lahey, Portland Group.
 # default is Absoft.
 # COMPILER=Absoft
