@@ -13,9 +13,10 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: LMO=13  !@param LMO no. of ocean levels
+      INTEGER, PARAMETER :: LMO=13 !@param LMO max no. of ocean levels
+      INTEGER :: LMO_min = 1 !@dbparam LMO_min min no. of ocean levels
 !@param LSRPD level of solar radiation penetration depth
-      INTEGER, PARAMETER :: LSRPD=3 
+      INTEGER, PARAMETER :: LSRPD=3
 !@param ZE1,ZERAT control the grid spacing in the vertical
       REAL*8, PARAMETER :: ZE1=12d0,ZERAT=1.5d0
 
@@ -38,7 +39,7 @@ C**** ocean geometry (should this be in a separate module?)
 !@var RATOC,ROCAT Ratio of areas for converting atm. fluxes to ocean
       REAL*8, DIMENSION(JM) :: RATOC,ROCAT
 !@var J40S max. grid box below 40S (used in OPFIL)
-      INTEGER :: J40S 
+      INTEGER :: J40S
 
       REAL*8, DIMENSION(IM,JM) :: HATMO,HOCEAN,FOCEAN
 C**** ocean related parameters
@@ -56,7 +57,7 @@ C**** ocean related parameters
       REAL*8, DIMENSION(IM,JM) :: OPBOT
 
 #ifdef TRACERS_OCEAN
-!@var TRMO,TXMO,TYMO,TZMO tracer amount (+moments) in ocean (kg)      
+!@var TRMO,TXMO,TYMO,TZMO tracer amount (+moments) in ocean (kg)
       REAL*8, DIMENSION(IM,JM,LMO,NTM) :: TRMO,TXMO,TYMO,TZMO
 #endif
 
@@ -73,7 +74,7 @@ C**** variables for the pressure gradient terms
 !@var PO ocean pressure field
 !@var PHI ocean geopotential
 !@var DH height of each ocean layer
-!@var DZGDP 
+!@var DZGDP
 !@var VBAR mean specific volume of each layer
       REAL*8,DIMENSION(IM,JM,LMO) :: PO,PHI,DH,DZGDP,VBAR
 
@@ -82,7 +83,7 @@ C**** momentum and mass fluxes
       REAL*8, DIMENSION(IM,JM,LMO) :: MMI
 !@var SMU,SMV,SMW integrated mass fluxes
       REAL*8, DIMENSION(IM,JM,LMO) :: SMU,SMV,SMW
-!@var CONV mass flux convergence 
+!@var CONV mass flux convergence
       REAL*8, DIMENSION(IM,JM,LMO) :: CONV
 !@var MU,MV,MW instantaneous mass fluxes
       REAL*8, DIMENSION(IM,JM,LMO) :: MU,MV,MW

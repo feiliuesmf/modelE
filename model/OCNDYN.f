@@ -120,7 +120,7 @@ C**** Advection of Potential Enthalpy and Salt
           DO I=1,IMAXJ(J)
             OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)
             OIJ(I,J,IJ_PB)  = OIJ(I,J,IJ_PB)  + (OPBOT(I,J)-ZE(LMM(I,J))
-     *           *RHOWS*GRAV) 
+     *           *RHOWS*GRAV)
           END DO
         END DO
 
@@ -180,12 +180,12 @@ c        CALL CHECKO ('STADVI')
       USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : timing,ntimeacc
       USE PARAM
-      USE CONSTANT, only : twopi,radius,by3,grav
+      USE CONSTANT, only : twopi,radius,by3,grav,rhow
       USE MODEL_COM, only : dtsrc,kocean
       USE OCEAN, only : im,jm,lmo,focean,ze1,zerat,sigeo,dsigo,sigo,lmm
      *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
-     *     ,ndyno,imaxj,bydxypo,ogeoz_sv,bydts
+     *     ,ndyno,imaxj,bydxypo,ogeoz_sv,bydts,lmo_min
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE SW2OCEAN, only : init_solar
       USE FLUXES, only : ogeoza, uosurf, vosurf
@@ -254,11 +254,12 @@ C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
       call closeunit(iu_TOPO)
 
 C**** Calculate LMM and modify HOCEAN
+      call sync_param("LMO_min",LMO_min)
       DO 170 J=1,JM
       DO 170 I=1,IM
       LMM(I,J) =0
       IF(FOCEAN(I,J).LE.0.)  GO TO 170
-      DO 150 L=1,LMO-1
+      DO 150 L=LMO_min,LMO-1
   150 IF(HATMO(I,J)+HOCEAN(I,J) .le. 5d-1*(ZE(L)+ZE(L+1)))  GO TO 160
 C     L=LMO
   160 LMM(I,J)=L
@@ -371,6 +372,30 @@ C**** Initiallise geopotential field (needed by KPP)
       OGEOZ_SV = 0.
 
       END IF
+
+C**** Extend ocean data to added layers at bottom if necessary
+      if (lmo_min .gt. 1) then
+        do j=2,jm-1
+        do i=1,im
+          if (lmm(i,j).eq.lmo_min .and. MO(i,j,lmo_min).eq.0.) then
+            do l=2,lmo_min
+              if (MO(i,j,l).eq.0.) then
+                MO(i,j,l)   = (ZE(L)-ZE(L-1))*RHOW*
+     *                     (1.+S0M(i,j,l-1)/(MO(i,j,l-1)*DXYPO(J)))
+                G0M(i,j,l)  = G0M(i,j,l-1) *(MO(i,j,l)/MO(i,j,l-1))
+                GXMO(i,j,l) = GXMO(i,j,l-1)*(MO(i,j,l)/MO(i,j,l-1))
+                GYMO(i,j,l) = GYMO(i,j,l-1)*(MO(i,j,l)/MO(i,j,l-1))
+                GZMO(i,j,l) = 0.
+                S0M(i,j,l)  = S0M(i,j,l-1) *(MO(i,j,l)/MO(i,j,l-1))
+                SXMO(i,j,l) = SXMO(i,j,l-1)*(MO(i,j,l)/MO(i,j,l-1))
+                SYMO(i,j,l) = SYMO(i,j,l-1)*(MO(i,j,l)/MO(i,j,l-1))
+                SZMO(i,j,l) = 0.
+              end if
+            end do
+          end if
+        end do
+        end do
+      end if
 
 C**** Initialize straits arrays
       call init_STRAITS(iniOCEAN)
@@ -2537,7 +2562,7 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
         TRO1(:) = TRMO(I,J,1,:)
 #ifdef TRACERS_WATER
         TRUNO(:)=(TRFLOWO(:,I,J)+TRMELTI(:,I,J))/(DXYPJ)-
-     *       RATOC(J)*TREVAPOR(:,1,I,J) 
+     *       RATOC(J)*TREVAPOR(:,1,I,J)
 #ifdef TRACERS_DRYDEP
      *       + RATOC(J)*trdrydep(:,1,i,j)
 #endif
@@ -2576,7 +2601,7 @@ C**** Store mass and energy fluxes for formation of sea ice
 
 C**** Calculate pressure anomaly at ocean surface (and scale for areas)
 C**** Updated using latest sea ice (this ensures that total column mass
-C**** is consistent for OGEOZ calculation). 
+C**** is consistent for OGEOZ calculation).
         OPRESS(I,J) = RATOC(J)*(APRESS(I,J))+GRAV*(
      *       (1.-RSI(I,J))*DMSI(1,I,J) + RSI(I,J)*DMSI(2,I,J))
 
