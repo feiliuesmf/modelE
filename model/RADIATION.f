@@ -3836,6 +3836,9 @@ C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
      +                 (CWTI*OCIDD(I,J,L,M,IYC)+CWTJ*OCIDD(I,J,L,M,JYC))
       A6YEAR(I,J,L,M,5)=A6YEAR(I,J,L,M,5)+AERMIX(11)*1000.D0*DRYM2G(5)*
      +                 (CWTI*BCIDD(I,J,L,M,IYC)+CWTJ*BCIDD(I,J,L,M,JYC))
+      IF(A6YEAR(I,J,L,M,1).LT.0.) A6YEAR(I,J,L,M,1)=0.
+      IF(A6YEAR(I,J,L,M,4).LT.0.) A6YEAR(I,J,L,M,4)=0.
+      IF(A6YEAR(I,J,L,M,5).LT.0.) A6YEAR(I,J,L,M,5)=0.
   141 CONTINUE
   142 CONTINUE
   143 CONTINUE
@@ -3852,6 +3855,9 @@ C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
      +                 (CWTI*OCIDD(I,J,L,M,IYC)+CWTJ*OCIDD(I,J,L,M,JYC))
       A6YEAR(I,J,L,0,5)=A6YEAR(I,J,L,0,5)+AERMIX(11)*1000.D0*DRYM2G(5)*
      +                 (CWTI*BCIDD(I,J,L,M,IYC)+CWTJ*BCIDD(I,J,L,M,JYC))
+      IF(A6YEAR(I,J,L,0,1).LT.0.) A6YEAR(I,J,L,0,1)=0.
+      IF(A6YEAR(I,J,L,0,4).LT.0.) A6YEAR(I,J,L,0,4)=0.
+      IF(A6YEAR(I,J,L,0,5).LT.0.) A6YEAR(I,J,L,0,5)=0.
   145 CONTINUE
   146 CONTINUE
   147 CONTINUE
