@@ -7,7 +7,7 @@
 
       USE E001M12_COM, only : im,jm,lm,imh,sig,sige,dsig,psf,ptop,ls1,u
      *     ,v,t,q,p,wm,ptrunc,mfiltr,zatmo,fim,mrch,fland,flice
-     *     ,gdata,modd5k 
+     *     ,gdata,modd5k,psfmpt 
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE SOMTQ_COM
       USE PBLCOM, only : tsavg
@@ -250,7 +250,7 @@ C****
       INTEGER IFIRST
       DATA IFIRST/1/
       INTEGER I,J,IP1,IM1,L,K  !@var I,J,IP1,IM1,L,K  loop variables
-      REAL*8 VMASS,RVMASS,ALPH,PDT4,SDU,PSFMPT,DT1,DT2,DT4,DT8,DT12,DT24
+      REAL*8 VMASS,RVMASS,ALPH,PDT4,SDU,DT1,DT2,DT4,DT8,DT12,DT24
      *     ,FLUX,FLUXU,FLUXV
 C****
          IF(MODD5K.LT.MRCH) CALL DIAG5F (U,V)
@@ -260,7 +260,7 @@ c      JMM2=JM-2
 c      IJL2=IM*JM*LM*2
       DO 10 J=2,JM
    10 SMASS(J)=(PSF-PTOP)*DXYV(J)
-      PSFMPT=PSF-PTOP
+
    50 CONTINUE
       DT2=DT1/2.
       DT4=DT1/4.
@@ -443,20 +443,17 @@ C****
      *  PA(IM,JM),PB(IM,JM),QT(IM,JM,LM)
 
       REAL*8 PKE(LM+1)
-      REAL*8 KAPAP1,KAPAP2,SZ(IM,JM,LM),DT4,DT1,PSFMPT,PSMPT2
+      REAL*8 KAPAP1,KAPAP2,SZ(IM,JM,LM),DT4,DT1,PSMPT2
       REAL*8 PIJ,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,X
       REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDUX,RFDU,PHIDN
       REAL*8 EXPBYK
       INTEGER I,J,L,IM1,IP1,IMAX  !@var I,J,IP1,IM1,L,IMAX  loop variables
 C****
-c      SHA=RGAS/KAPA
       KAPAP1=KAPA+1.
-c      JMM2=JM-2
       DT4=DT1/4.
       KAPAP2=KAPA+2.
       DO 10 L=1,LM+1
    10 PKE(L)=(SIGE(L)*(PSF-PTOP)+PTOP)**KAPA
-      PSFMPT=PSF-PTOP
       PSMPT2=2.*PSFMPT
 C****
 C**** VERTICAL DIFFERENCING

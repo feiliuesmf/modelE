@@ -336,7 +336,7 @@ C****   8  MAX TG1 OVER LAND ICE FOR CURRENT DAY (C)
 C****
       USE CONSTANT, only : grav,rgas,kapa,lhe,sha
       USE E001M12_COM, only :
-     &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop,
+     &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop,psfmpt,
      &     mdyn,mdiag,
      &     sig,sige,dsig,dsigo,
      &     zatmo,fland,flice,fearth, gdata
@@ -414,7 +414,7 @@ C**** QSAT=(RAIR/RVAPOR)*6.1071*EXP((L/RVAPOR)*(1/TF-1/T))/P
       IF (IFIRST.NE.1) GO TO 50
       IFIRST=0
 C**** INITIALIZE CERTAIN QUANTITIES
-      PMTOP=SIGE(LM+1)*(PSF-PTOP)+PTOP
+      PMTOP=SIGE(LM+1)*PSFMPT+PTOP
       L=LM+1
     3 L=L-1
       IF (L.EQ.1) GO TO 4
@@ -1396,7 +1396,7 @@ C****
 
       INTEGER :: MCLOCK ! external
       INTEGER ::
-     &     I,IH,IHOUR,IM1,IMAX,INCH,INCHM,IP1,IZERO,J,J45N,JEQM1,
+     &     I,IH,IHOUR,IM1,IMAX,INCH,INCHM,IP1,IZERO,J,J45N,
      &     JET,JHEMI,K,KDN,KM,KMM1,KR,KS,KS1,KSPHER,KUP,KX,L,LMP1,
      &     LUP,MBEGIN,MEND,N,NM
 
@@ -2125,8 +2125,6 @@ C**** SPECTRAL ANALYSIS OF KINETIC ENERGIES AT CONSTANT PRESSURE
 C****
       IZERO=0
       NM=1+IM/2
-c      JEQ=1+JM/2
-      JEQM1=JEQ-1
       J45N=2+.75*(JM-1.)
       KS1=LS1
 C**** TOTAL THE KINETIC ENERGIES
@@ -5470,7 +5468,7 @@ C****
 C****
 C**** TITLES FOR SUBROUTINE DIAG9
 C****
-      COMMON/D9COM/TITLE1,TITLE2,TITLE3,TITLE4
+      COMMON/D9COM/TITLE1,TITLE2,TITLE3,TITLE4,TITLE5
       CHARACTER*32 TITLE1(11)
       DATA TITLE1/
      *  ' INSTANTANE AM (10**9 J*S/M**2) ',
@@ -5515,56 +5513,46 @@ C****
      *  ' CHANGE OF TPE BY FILTER        ',
      *  ' CHANGE OF TPE BY DAILY RESTOR  ',
      *  ' SUM OF CHANGES (10**-2 W/M**2) '/
+      CHARACTER*32 TITLE5(6)
+      DATA TITLE5/ 
+     *  '0INSTANT WATER (10**-2 KG/M**2) ',
+     *  ' CHANGE OF WATER BY DYNAMICS    ',
+     *  ' CHANGE OF WATER BY CLOUDS      ',
+     *  ' CHANGE OF WATER BY SURFACE EVAP',
+     *  ' CHANGE OF WATER BY DAILY RESTOR',
+     *  ' SUM CHANGES (10**-8 KG/S/M**2) '/
       END BLOCK DATA BDCNS
 
       SUBROUTINE DIAG9A (M)
-C****
-C**** THIS DIAGNOSTIC ROUTINE KEEPS TRACK OF THE CONSERVATION
-C**** PROPERTIES OF ANGULAR MOMENTUM, KINETIC ENERGY, MASS, AND
-C**** TOTAL POTENTIAL ENERGY
-C****
+!@sum  DIAG9A Keeps track of the conservation properties of angular 
+!@sum  momentum, kinetic energy, mass, total potential energy and water
+!@auth Gary Russell
+!@ver  1.0
+
       USE CONSTANT, only : kapa,omega,sha
-
       USE E001M12_COM, only : im,jm,lm,fim,
-     &     DSIG,LS1,MDIAG,P,PSF,PTOP,SIG,SIGE,T,U,V,ZATMO
-
+     &     DSIG,LS1,MDIAG,P,PTOP,T,U,V,ZATMO,Q,WM,PSFMPT,PSTRAT
       USE GEOM, only :
      &     COSV,DXYN,DXYS,DXYV,IMAXJ,RADIUS
-
       USE DYNAMICS, only : pk
       USE DAGCOM, only : consrv
       IMPLICIT NONE
 
-      INTEGER :: M
-
+!@var M index denoting from where DIAG9A is called
+      INTEGER, INTENT(IN) :: M
+!@var NAMOFM,NKEOFM,NMSOFM,NPEOFM,NWVOFM indices for CONSRV array 
       INTEGER :: NAMOFM(8) = (/1,6,1,1,7,8,9,10/)
       INTEGER :: NKEOFM(8) = (/1,17,18,1,19,20,21,22/)
       INTEGER :: NMSOFM(8) = (/1,25,1,1,1,1,26,27/)
       INTEGER :: NPEOFM(8) = (/1,30,31,32,33,1,34,35/)
+      INTEGER :: NWVOFM(8) = (/1,38,39,1,40,1,1,41/)
 
-      DOUBLE PRECISION, DIMENSION(LM) :: PKS
-
-      DOUBLE PRECISION, DIMENSION(JM) :: PI,AM,RKE,RMASS,TPE
-
-      INTEGER ::
-     &     I,IMAX,IP1,J,L,MINC,MNOW,N
-
-      DOUBLE PRECISION ::
-     &     PSFMPT,PSTRAT,RKEI,RKEIL,SGEOI,TPEI,TPEIL,UMI,UMIL
-
-      INTEGER :: IFIRST
-      DATA IFIRST/1/
-
-      IF(IFIRST.NE.1) GO TO 50
-      IFIRST=0
-      DO 10 L=LS1,LM
-   10 PKS(L)=(SIG(L)*(PSF-PTOP)+PTOP)**KAPA
-      PSFMPT=PSF-PTOP
-      PSTRAT=(PSF-PTOP)*(SIGE(LS1)-SIGE(LM+1))
-   50 CONTINUE
+      DOUBLE PRECISION, DIMENSION(JM) :: PI,AM,RKE,RMASS,TPE,VAPOR
+      INTEGER :: I,IMAX,IP1,J,L,MINC,MNOW,N
+      DOUBLE PRECISION :: RKEI,RKEIL,SGEOI,TPEI,TPEIL,UMI,UMIL
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAG9A IS BEING CALLED
-C**** M=1  INITIALIZE CURRENT A.M., K.E., MASS, AND T.P.E.
+C**** M=1  INITIALIZE CURRENT A.M., K.E., MASS, T.P.E. AND W.V.
 C****   2  AFTER DYNAMICS
 C****   3  AFTER CONDENSATION
 C****   4  AFTER RADIATION
@@ -5579,185 +5567,252 @@ C**** ANGULAR MOMENTUM
 C****
   100 PI(1)=FIM*P(1,1)
       PI(JM)=FIM*P(1,JM)
-      DO 120 J=2,JM-1
-      PI(J)=0.
-      DO 120 I=1,IM
-  120 PI(J)=PI(J)+P(I,J)
-      DO 150 J=2,JM
-      UMIL=0.
-      DO 140 L=1,LM
-      UMI=0.
-      I=IM
-      DO 130 IP1=1,IM
-      IF(L.GE.LS1) GO TO 125
-      UMI=UMI+U(I,J,L)*((P(I,J-1)+P(IP1,J-1))*DXYN(J-1)
-     *  +(P(I,J)+P(IP1,J))*DXYS(J))
-      GO TO 130
-  125 UMI=UMI+U(I,J,L)*(2.*PSFMPT*DXYV(J))
-  130 I=IP1
-  140 UMIL=UMIL+UMI*DSIG(L)
-  150 AM(J)=RADIUS*OMEGA*COSV(J)*((PI(J-1)*DXYN(J-1)+PI(J)*DXYS(J))
-     *  +FIM*PSTRAT*DXYV(J))+.5*UMIL
-      IF (M.LE.1) GO TO 180
-      N=NAMOFM(M)
-      DO 160 J=2,JM
-  160 CONSRV(J,N)=CONSRV(J,N)+(AM(J)-CONSRV(J,1))
-  180 DO 190 J=2,JM
-  190 CONSRV(J,1)=AM(J)
+      DO J=2,JM-1
+         PI(J)=0.
+         DO I=1,IM
+            PI(J)=PI(J)+P(I,J)
+         END DO
+      END DO
+      DO J=2,JM
+         UMIL=0.
+         DO L=1,LM
+            UMI=0.
+            I=IM
+            DO IP1=1,IM
+               IF(L.LT.LS1) THEN
+                  UMI=UMI+U(I,J,L)*((P(I,J-1)+P(IP1,J-1))*DXYN(J-1)
+     *                 +(P(I,J)+P(IP1,J))*DXYS(J))
+               ELSE
+                  UMI=UMI+U(I,J,L)*(2.*PSFMPT*DXYV(J))
+               END IF
+               I=IP1
+            END DO
+            UMIL=UMIL+UMI*DSIG(L)
+         END DO
+         AM(J)=RADIUS*OMEGA*COSV(J)*((PI(J-1)*DXYN(J-1)+PI(J)*DXYS(J))
+     *        +FIM*PSTRAT*DXYV(J))+.5*UMIL
+      END DO
+      IF (M.GT.1) THEN
+         N=NAMOFM(M)
+         DO J=2,JM
+            CONSRV(J,N)=CONSRV(J,N)+(AM(J)-CONSRV(J,1))
+         END DO
+      END IF
+      DO J=2,JM
+         CONSRV(J,1)=AM(J)
+      END DO
 C****
 C**** KINETIC ENERGY
 C****
-  200 DO 240 J=2,JM
-      RKEIL=0.
-      DO 230 L=1,LM
-      RKEI=0.
-      I=IM
-      DO 220 IP1=1,IM
-      IF(L.GE.LS1) GO TO 215
-      RKEI=RKEI+(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
-     *  *((P(I,J-1)+P(IP1,J-1))*DXYN(J-1)+(P(I,J)+P(IP1,J))*DXYS(J))
-      GO TO 220
-  215 RKEI=RKEI+(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))*
-     *  (2.*PSFMPT*DXYV(J))
-  220 I=IP1
-  230 RKEIL=RKEIL+RKEI*DSIG(L)
-  240 RKE(J)=RKEIL
-      IF (M.LE.1) GO TO 280
-      N=NKEOFM(M)
-      DO 260 J=2,JM
-  260 CONSRV(J,N)=CONSRV(J,N)+(RKE(J)-CONSRV(J,12))
-  280 DO 290 J=2,JM
-  290 CONSRV(J,12)=RKE(J)
+ 200  DO J=2,JM
+         RKEIL=0.
+         DO L=1,LM
+            RKEI=0.
+            I=IM
+            DO IP1=1,IM
+               IF(L.LT.LS1) THEN
+                  RKEI=RKEI+(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
+     *                 *((P(I,J-1)+P(IP1,J-1))*DXYN(J-1)+(P(I,J)+P(IP1,J
+     *                 ))*DXYS(J))
+               ELSE
+                  RKEI=RKEI+(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))*
+     *                 (2.*PSFMPT*DXYV(J))
+               END IF
+               I=IP1
+            END DO
+            RKEIL=RKEIL+RKEI*DSIG(L)
+            RKE(J)=RKEIL
+         END DO
+      END DO
+      IF (M.GT.1) THEN
+         N=NKEOFM(M)
+         DO J=2,JM
+            CONSRV(J,N)=CONSRV(J,N)+(RKE(J)-CONSRV(J,12))
+         END DO
+      END IF
+      DO J=2,JM
+         CONSRV(J,12)=RKE(J)
+      END DO
       IF (M.EQ.6) GO TO 495
       IF (M.EQ.3.OR.M.EQ.5) GO TO 400
-C****
+C**** 
 C**** MASS
-C****
-  300 RMASS(1)=FIM*(P(1,1)+PSTRAT)
+C**** 
+ 300  RMASS(1)=FIM*(P(1,1)+PSTRAT)
       RMASS(JM)=FIM*(P(1,JM)+PSTRAT)
-      DO 320 J=2,JM-1
-      RMASS(J)=FIM*PSTRAT
-      DO 320 I=1,IM
-  320 RMASS(J)=RMASS(J)+P(I,J)
-      IF (M.LE.1) GO TO 380
-      N=NMSOFM(M)
-      DO 360 J=1,JM
-  360 CONSRV(J,N)=CONSRV(J,N)+(RMASS(J)-CONSRV(J,24))
-  380 DO 390 J=1,JM
-  390 CONSRV(J,24)=RMASS(J)
-C****
+      DO J=2,JM-1
+         RMASS(J)=FIM*PSTRAT
+         DO I=1,IM
+            RMASS(J)=RMASS(J)+P(I,J)
+         END DO
+      END DO
+      IF (M.GT.1) THEN
+         N=NMSOFM(M)
+         DO J=1,JM
+            CONSRV(J,N)=CONSRV(J,N)+(RMASS(J)-CONSRV(J,24))
+         END DO
+      END IF
+      DO J=1,JM
+         CONSRV(J,24)=RMASS(J)
+      END DO
+C**** 
 C**** TOTAL POTENTIAL ENERGY
-C****
- 400  CONTINUE
-c  400 SHA=RGAS/KAPA
-  420 DO 460 J=1,JM
-      IMAX=IMAXJ(J)
-      TPEIL=0.
-      DO 440 L=1,LM
-      TPEI=0.
-      DO 430 I=1,IMAX
-      IF(L.GE.LS1) GO TO 425
-      TPEI=TPEI+T(I,J,L)*PK(L,I,J)*P(I,J)
-      GO TO 430
-  425 TPEI=TPEI+T(I,J,L)*PK(L,I,J)*PSFMPT
-  430 CONTINUE
-  440 TPEIL=TPEIL+TPEI*DSIG(L)
-      SGEOI=0.
-      DO 450 I=1,IMAX
-  450 SGEOI=SGEOI+ZATMO(I,J)*(P(I,J)+PTOP)
-  460 TPE(J)=SGEOI+TPEIL*SHA
+C**** 
+ 400  DO J=1,JM
+         IMAX=IMAXJ(J)
+         TPEIL=0.
+         DO L=1,LM
+            TPEI=0.
+            DO I=1,IMAX
+               IF(L.LT.LS1) THEN
+                  TPEI=TPEI+T(I,J,L)*PK(L,I,J)*P(I,J)
+               ELSE
+                  TPEI=TPEI+T(I,J,L)*PK(L,I,J)*PSFMPT
+               END IF
+            END DO
+            TPEIL=TPEIL+TPEI*DSIG(L)
+         END DO
+         SGEOI=0.
+         DO I=1,IMAX
+            SGEOI=SGEOI+ZATMO(I,J)*(P(I,J)+PTOP)
+         END DO
+         TPE(J)=SGEOI+TPEIL*SHA
+      END DO
       TPE(1)=FIM*TPE(1)
       TPE(JM)=FIM*TPE(JM)
-      IF (M.LE.1) GO TO 480
-      N=NPEOFM(M)
-      DO 470 J=1,JM
-  470 CONSRV(J,N)=CONSRV(J,N)+(TPE(J)-CONSRV(J,29))
-  480 DO 490 J=1,JM
-  490 CONSRV(J,29)=TPE(J)
+      IF (M.GT.1) THEN
+         N=NPEOFM(M)
+         DO J=1,JM
+            CONSRV(J,N)=CONSRV(J,N)+(TPE(J)-CONSRV(J,29))
+         END DO
+      END IF
+      DO J=1,JM
+         CONSRV(J,29)=TPE(J)
+      END DO
+      IF (M.EQ.4.OR.M.EQ.7) GO TO 495
+C**** 
+C**** TOTAL WATER MASS
 C****
-  495 CALL TIMER (MNOW,MINC,MDIAG)
+      DO J=1,JM
+         IMAX=IM
+         IF(J.EQ.1 .OR. J.EQ.JM)  IMAX=1
+         VAPOR(J) = 0.
+         DO L=1,LS1-1
+            DO I=1,IMAX
+               VAPOR(J) = VAPOR(J) + (Q(I,J,L)+WM(I,J,L))*P(I,J)*DSIG(L)
+            END DO
+         END DO
+         DO L=LS1,LM
+            DO I=1,IMAX
+               VAPOR(J) = VAPOR(J) + (Q(I,J,L)+WM(I,J,L))*PSFMPT*DSIG(L)
+            END DO
+         END DO
+      END DO
+      VAPOR(1) = VAPOR( 1)*IM
+      VAPOR(JM)= VAPOR(JM)*IM
+      IF (M.GT.1) THEN    
+         N=NWVOFM(M)
+         DO J=1,JM
+            CONSRV(J,N) = CONSRV(J,N) + (VAPOR(J)-CONSRV(J,37))
+         END DO
+      END IF
+      DO J=1,JM
+         CONSRV(J,37) = VAPOR(J)
+      END DO
+C**** 
+ 495  CALL TIMER (MNOW,MINC,MDIAG)
       RETURN
       END SUBROUTINE DIAG9A
-C****
-C****
+      
       SUBROUTINE DIAG9D (M,DT1,UX,VX,DUT,DVT,PIT)
+!@sum  DIAG9D Keeps track of the conservation properties of angular 
+!@sum  momentum and kinetic energy inside dynamics routines
+!@auth Gary Russell
+!@ver  1.0
 
       USE CONSTANT, only : omega
-
       USE E001M12_COM, only : im,jm,lm,fim,mdiag,mdyn
-
-      USE GEOM, only :
-     &     COSV,RADIUS,RAVPN,RAVPS
+      USE GEOM, only : COSV,RADIUS,RAVPN,RAVPS
       USE DAGCOM, only : consrv
       IMPLICIT NONE
-
-      INTEGER :: M
-      DOUBLE PRECISION :: DT1
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: UX,VX
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: DUT,DVT
-      DOUBLE PRECISION, DIMENSION(IM,JM) :: PIT
-
-      DOUBLE PRECISION, DIMENSION(JM) :: PI
-
-      INTEGER :: MCLOCK ! external
-
-      INTEGER ::
-     &     I,J,L,MBEGIN,MEND
-
-      DOUBLE PRECISION ::
-     &     DUTI,DUTIL,RKEI,RKEIL
-
-      MBEGIN = MCLOCK ()
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAG9D IS BEING CALLED
 C**** M=1  AFTER ADVECTION IN DYNAMICS
 C****   2  AFTER CORIOLIS FORCE IN DYNAMICS
 C****   3  AFTER PRESSURE GRADIENT FORCE IN DYNAMICS
 C****
-      GO TO (500,600,600),M
+!@var M index denoting from where DIAG9D is called
+      INTEGER, INTENT(IN) :: M
+!@var DT1 current time step 
+      DOUBLE PRECISION, INTENT(IN) :: DT1
+!@var UX,VX current velocities 
+      DOUBLE PRECISION, INTENT(IN), DIMENSION(IM,JM,LM) :: UX,VX
+!@var DUT,DVT current momentum changes
+      DOUBLE PRECISION, INTENT(IN), DIMENSION(IM,JM,LM) :: DUT,DVT
+!@var PIT current pressure tendency
+      DOUBLE PRECISION, INTENT(IN), DIMENSION(IM,JM) :: PIT
+
+      DOUBLE PRECISION, DIMENSION(JM) :: PI
+
+      INTEGER :: MCLOCK ! external
+      INTEGER :: I,J,L,MBEGIN,MEND
+
+      DOUBLE PRECISION :: DUTI,DUTIL,RKEI,RKEIL
+
+      MBEGIN = MCLOCK ()
 C****
 C**** CHANGE OF ANGULAR MOMENTUM AND KINETIC ENERGY BY ADVECTION
 C****
-  500 PI(1)=FIM*PIT(1,1)
-      PI(JM)=FIM*PIT(1,JM)
-      DO 520 J=2,JM-1
-      PI(J)=0.
-      DO 520 I=1,IM
-  520 PI(J)=PI(J)+PIT(I,J)
-      DO 580 J=2,JM
-      DUTIL=0.
-      RKEIL=0.
-      DO 560 L=1,LM
-      DUTI=0.
-      RKEI=0.
-      DO 540 I=1,IM
-      DUTI=DUTI+DUT(I,J,L)
-  540 RKEI=RKEI+(UX(I,J,L)*DUT(I,J,L)+VX(I,J,L)*DVT(I,J,L))
-      DUTIL=DUTIL+DUTI
-  560 RKEIL=RKEIL+RKEI
-      CONSRV(J,2)=CONSRV(J,2)+(DUTIL
-     *  +DT1*RADIUS*OMEGA*COSV(J)*(PI(J-1)*RAVPN(J-1)+PI(J)*RAVPS(J)))
-  580 CONSRV(J,13)=CONSRV(J,13)+RKEIL
-      GO TO 680
-C****
+      IF (M.eq.1) THEN
+         PI(1)=FIM*PIT(1,1)
+         PI(JM)=FIM*PIT(1,JM)
+         DO J=2,JM-1
+            PI(J)=0.
+            DO I=1,IM
+               PI(J)=PI(J)+PIT(I,J)
+            END DO
+         END DO
+         DO J=2,JM
+            DUTIL=0.
+            RKEIL=0.
+            DO L=1,LM
+               DUTI=0.
+               RKEI=0.
+               DO I=1,IM
+                  DUTI=DUTI+DUT(I,J,L)
+                  RKEI=RKEI+(UX(I,J,L)*DUT(I,J,L)+VX(I,J,L)*DVT(I,J,L))
+               END DO
+               DUTIL=DUTIL+DUTI
+               RKEIL=RKEIL+RKEI
+            END DO
+            CONSRV(J,2)=CONSRV(J,2)+(DUTIL+DT1*RADIUS*OMEGA*COSV(J)*
+     *           (PI(J-1)*RAVPN(J-1)+PI(J)*RAVPS(J)))
+            CONSRV(J,13)=CONSRV(J,13)+RKEIL
+         END DO
+      ELSE
+C**** 
 C**** CHANGE OF ANGULAR MOMENTUM AND KINETIC ENERGY BY CORIOLIS AND
 C**** PRESSURE GRADIENT FORCES
 C****
-  600 DO 660 J=2,JM
-      DUTIL=0.
-      RKEIL=0.
-      DO 640 L=1,LM
-      DUTI=0.
-      RKEI=0.
-      DO 620 I=1,IM
-      DUTI=DUTI+DUT(I,J,L)
-  620 RKEI=RKEI+(UX(I,J,L)*DUT(I,J,L)+VX(I,J,L)*DVT(I,J,L))
-      DUTIL=DUTIL+DUTI
-  640 RKEIL=RKEIL+RKEI
-      CONSRV(J,2*M-1)=CONSRV(J,2*M-1)+DUTIL
-  660 CONSRV(J,2*M+10)=CONSRV(J,2*M+10)+RKEIL
+         DO J=2,JM
+            DUTIL=0.
+            RKEIL=0.
+            DO L=1,LM
+               DUTI=0.
+               RKEI=0.
+               DO I=1,IM
+                  DUTI=DUTI+DUT(I,J,L)
+                  RKEI=RKEI+(UX(I,J,L)*DUT(I,J,L)+VX(I,J,L)*DVT(I,J,L))
+               END DO
+               DUTIL=DUTIL+DUTI
+               RKEIL=RKEIL+RKEI
+            END DO
+            CONSRV(J,2*M-1)=CONSRV(J,2*M-1)+DUTIL
+            CONSRV(J,2*M+10)=CONSRV(J,2*M+10)+RKEIL
+         END DO
+      END IF
 C****
-  680 MEND = MCLOCK ()
+      MEND = MCLOCK ()
       MDIAG = MDIAG + (MEND-MBEGIN)
       MDYN  = MDYN  - (MEND-MBEGIN)
       RETURN
@@ -5792,15 +5847,16 @@ C****
       COMMON/D9COM/TITLE(KCON)
 
       INTEGER ::
-     &     IHOUR,IHOUR0,INC,J,JEQM1,JHEMI,JNH,
+     &     IHOUR,IHOUR0,INC,J,JHEMI,JNH,
      &     JP1,JPM,JSH,JV1,JVM,JX,N,NDAYS
 
       DOUBLE PRECISION ::
      &     AGLOB,AHEM,DTSRCE,FEQ,FNH,FSH,TAUDIF,XWON
 
-      DO 720 J=1,JM
-      JLATP(J)=INT(.5+(J-1.)*180./(JM-1))-90
-  720 JLATV(J)=INT(.5+(J-1.5)*180./(JM-1))-90
+      DO J=1,JM
+         JLATP(J)=INT(.5+(J-1.)*180./(JM-1))-90
+         JLATV(J)=INT(.5+(J-1.5)*180./(JM-1))-90
+      END DO
 C**** CALCULATE SCALING FACTORS
       XWON=TWOPI/(DLON*FIM)
       IF (IDACC(12).LT.1) IDACC(12)=1
@@ -5842,78 +5898,91 @@ C**** CALCULATE SCALING FACTORS
       SCALE(34)=100.E2/(NFILTR*DT*GRAV*IDACC(10)+1.D-20)
       SCALE(35)=100.E2/(SDAY*GRAV*NDAYS+1.D-20)
       SCALE(36)=1.
+      SCALE(37)=100.E2/(GRAV*IDACC(12))
+      SCALE(38)=100.E8/(DTSRCE*GRAV*IDACC(7)+1.D-20)
+      SCALE(39)=SCALE(38)
+      SCALE(40)=SCALE(38)
+      SCALE(41)=100.E8/(SDAY*GRAV*NDAYS+1.D-20)
+      SCALE(42)=1.
 C**** CALCULATE SUMMED QUANTITIES
-      DO 740 J=1,JM
-      CONSRV(J,4)=CONSRV(J,2)+CONSRV(J,3)
-      CONSRV(J,11)=CONSRV(J,6)*SCALE(6)+CONSRV(J,7)*SCALE(7)
-     *  +CONSRV(J,8)*SCALE(8)+CONSRV(J,9)*SCALE(9)
-     *  +CONSRV(J,10)*SCALE(10)
-      CONSRV(J,15)=CONSRV(J,13)+CONSRV(J,14)
-      CONSRV(J,23)=CONSRV(J,17)*SCALE(17)+CONSRV(J,18)*SCALE(18)
-     *  +CONSRV(J,19)*SCALE(19)+CONSRV(J,20)*SCALE(20)
-     *  +CONSRV(J,21)*SCALE(21)+CONSRV(J,22)*SCALE(22)
-      CONSRV(J,28)=CONSRV(J,25)*SCALE(25)+CONSRV(J,26)*SCALE(26)
-     *  +CONSRV(J,27)*SCALE(27)
-  740 CONSRV(J,36)=CONSRV(J,30)*SCALE(30)+CONSRV(J,31)*SCALE(31)
-     *  +CONSRV(J,32)*SCALE(32)+CONSRV(J,33)*SCALE(33)
-     *  +CONSRV(J,34)*SCALE(34)+CONSRV(J,35)*SCALE(35)
+      DO J=1,JM
+         CONSRV(J,4)=CONSRV(J,2)+CONSRV(J,3)
+         CONSRV(J,11)=CONSRV(J,6)*SCALE(6)+CONSRV(J,7)*SCALE(7)
+     *        +CONSRV(J,8)*SCALE(8)+CONSRV(J,9)*SCALE(9)
+     *        +CONSRV(J,10)*SCALE(10)
+         CONSRV(J,15)=CONSRV(J,13)+CONSRV(J,14)
+         CONSRV(J,23)=CONSRV(J,17)*SCALE(17)+CONSRV(J,18)*SCALE(18)
+     *        +CONSRV(J,19)*SCALE(19)+CONSRV(J,20)*SCALE(20)
+     *        +CONSRV(J,21)*SCALE(21)+CONSRV(J,22)*SCALE(22)
+         CONSRV(J,28)=CONSRV(J,25)*SCALE(25)+CONSRV(J,26)*SCALE(26)
+     *        +CONSRV(J,27)*SCALE(27)
+         CONSRV(J,36)=CONSRV(J,30)*SCALE(30)+CONSRV(J,31)*SCALE(31)
+     *        +CONSRV(J,32)*SCALE(32)+CONSRV(J,33)*SCALE(33)
+     *        +CONSRV(J,34)*SCALE(34)+CONSRV(J,35)*SCALE(35)
+         CONSRV(J,42)=CONSRV(J,38)*SCALE(38)+CONSRV(J,39)*SCALE(39)
+     *        +CONSRV(J,40)*SCALE(40)+CONSRV(J,41)*SCALE(41)
+      END DO
 C**** CALCULATE FINAL ANGULAR MOMENTUM
-C      JEQ=1+JM/2
-      JEQM1=JEQ-1
-      DO 760 N=1,11
-      FEQ=CONSRV(JEQ,N)*SCALE(N)*COSV(JEQ)
-      FGLOB(N)=FEQ
-      FHEM(1,N)=.5*FEQ
-      FHEM(2,N)=.5*FEQ
-      CNSLAT(JEQ,N)=FEQ/(FIM*DXYV(JEQ))
-      DO 750 JSH=2,JEQM1
-      JNH=2+JM-JSH
-      FSH=CONSRV(JSH,N)*SCALE(N)*COSV(JSH)
-      FNH=CONSRV(JNH,N)*SCALE(N)*COSV(JNH)
-      FGLOB(N)=FGLOB(N)+(FSH+FNH)
-      FHEM(1,N)=FHEM(1,N)+FSH
-      FHEM(2,N)=FHEM(2,N)+FNH
-      CNSLAT(JSH,N)=FSH/(FIM*DXYV(JSH))
-  750 CNSLAT(JNH,N)=FNH/(FIM*DXYV(JNH))
-      FGLOB(N)=FGLOB(N)/AREAG
-      FHEM(1,N)=FHEM(1,N)/(.5*AREAG)
-  760 FHEM(2,N)=FHEM(2,N)/(.5*AREAG)
+      DO N=1,11
+         FEQ=CONSRV(JEQ,N)*SCALE(N)*COSV(JEQ)
+         FGLOB(N)=FEQ
+         FHEM(1,N)=.5*FEQ
+         FHEM(2,N)=.5*FEQ
+         CNSLAT(JEQ,N)=FEQ/(FIM*DXYV(JEQ))
+         DO JSH=2,JEQ-1
+            JNH=2+JM-JSH
+            FSH=CONSRV(JSH,N)*SCALE(N)*COSV(JSH)
+            FNH=CONSRV(JNH,N)*SCALE(N)*COSV(JNH)
+            FGLOB(N)=FGLOB(N)+(FSH+FNH)
+            FHEM(1,N)=FHEM(1,N)+FSH
+            FHEM(2,N)=FHEM(2,N)+FNH
+            CNSLAT(JSH,N)=FSH/(FIM*DXYV(JSH))
+            CNSLAT(JNH,N)=FNH/(FIM*DXYV(JNH))
+         END DO
+         FGLOB(N)=FGLOB(N)/AREAG
+         FHEM(1,N)=FHEM(1,N)/(.5*AREAG)
+         FHEM(2,N)=FHEM(2,N)/(.5*AREAG)
+      END DO
 C**** CALCULATE FINAL KINETIC ENERGY
-      DO 780 N=12,23
-      FEQ=CONSRV(JEQ,N)*SCALE(N)
-      FGLOB(N)=FEQ
-      FHEM(1,N)=.5*FEQ
-      FHEM(2,N)=.5*FEQ
-      CNSLAT(JEQ,N)=FEQ/(FIM*DXYV(JEQ))
-      DO 770 JSH=2,JEQM1
-      JNH=2+JM-JSH
-      FSH=CONSRV(JSH,N)*SCALE(N)
-      FNH=CONSRV(JNH,N)*SCALE(N)
-      FGLOB(N)=FGLOB(N)+(FSH+FNH)
-      FHEM(1,N)=FHEM(1,N)+FSH
-      FHEM(2,N)=FHEM(2,N)+FNH
-      CNSLAT(JSH,N)=FSH/(FIM*DXYV(JSH))
-  770 CNSLAT(JNH,N)=FNH/(FIM*DXYV(JNH))
-      FGLOB(N)=FGLOB(N)/AREAG
-      FHEM(1,N)=FHEM(1,N)/(.5*AREAG)
-  780 FHEM(2,N)=FHEM(2,N)/(.5*AREAG)
-C**** CALCUALTE FINAL MASS AND TOTAL POTENTIAL ENERGY
-      DO 800 N=24,36
-      FGLOB(N)=0.
-      FHEM(1,N)=0.
-      FHEM(2,N)=0.
-      DO 790 JSH=1,JEQM1
-      JNH=1+JM-JSH
-      FSH=CONSRV(JSH,N)*SCALE(N)
-      FNH=CONSRV(JNH,N)*SCALE(N)
-      FGLOB(N)=FGLOB(N)+(FSH+FNH)*DXYP(JSH)
-      FHEM(1,N)=FHEM(1,N)+FSH*DXYP(JSH)
-      FHEM(2,N)=FHEM(2,N)+FNH*DXYP(JNH)
-      CNSLAT(JSH,N)=FSH/FIM
-  790 CNSLAT(JNH,N)=FNH/FIM
-      FGLOB(N)=FGLOB(N)/AREAG
-      FHEM(1,N)=FHEM(1,N)/(.5*AREAG)
-  800 FHEM(2,N)=FHEM(2,N)/(.5*AREAG)
+      DO N=12,23
+         FEQ=CONSRV(JEQ,N)*SCALE(N)
+         FGLOB(N)=FEQ
+         FHEM(1,N)=.5*FEQ
+         FHEM(2,N)=.5*FEQ
+         CNSLAT(JEQ,N)=FEQ/(FIM*DXYV(JEQ))
+         DO JSH=2,JEQ-1
+            JNH=2+JM-JSH
+            FSH=CONSRV(JSH,N)*SCALE(N)
+            FNH=CONSRV(JNH,N)*SCALE(N)
+            FGLOB(N)=FGLOB(N)+(FSH+FNH)
+            FHEM(1,N)=FHEM(1,N)+FSH
+            FHEM(2,N)=FHEM(2,N)+FNH
+            CNSLAT(JSH,N)=FSH/(FIM*DXYV(JSH))
+            CNSLAT(JNH,N)=FNH/(FIM*DXYV(JNH))
+         END DO
+         FGLOB(N)=FGLOB(N)/AREAG
+         FHEM(1,N)=FHEM(1,N)/(.5*AREAG)
+         FHEM(2,N)=FHEM(2,N)/(.5*AREAG)
+      END DO
+C**** CALCUALTE FINAL MASS, TOTAL POTENTIAL ENERGY AND WATER
+      DO N=24,KCON
+         FGLOB(N)=0.
+         FHEM(1,N)=0.
+         FHEM(2,N)=0.
+         DO JSH=1,JEQ-1
+            JNH=1+JM-JSH
+            FSH=CONSRV(JSH,N)*SCALE(N)
+            FNH=CONSRV(JNH,N)*SCALE(N)
+            FGLOB(N)=FGLOB(N)+(FSH+FNH)*DXYP(JSH)
+            FHEM(1,N)=FHEM(1,N)+FSH*DXYP(JSH)
+            FHEM(2,N)=FHEM(2,N)+FNH*DXYP(JNH)
+            CNSLAT(JSH,N)=FSH/FIM
+            CNSLAT(JNH,N)=FNH/FIM
+         END DO
+         FGLOB(N)=FGLOB(N)/AREAG
+         FHEM(1,N)=FHEM(1,N)/(.5*AREAG)
+         FHEM(2,N)=FHEM(2,N)/(.5*AREAG)
+      END DO
       AGLOB=1.D-10*AREAG*XWON
       AHEM=1.D-10*(.5*AREAG)*XWON
 C**** LOOP OVER HEMISPHERES
@@ -5921,43 +5990,48 @@ C**** LOOP OVER HEMISPHERES
       IHOUR0=TOFDY0+.5
       IHOUR=TOFDAY+.5
       TAUDIF=TAU-TAU0
-      DO 810 N=1,KCON
-      DO 805 J=1,JM
-  805 MLAT(J,N)=NINT(CNSLAT(J,N))
+      DO N=1,KCON
+         DO J=1,JM
+            MLAT(J,N)=NINT(CNSLAT(J,N))
+         END DO
          CNSLAT(JM+1,N)=FHEM(1,N)
          CNSLAT(JM+2,N)=FHEM(2,N)
          CNSLAT(JM+3,N)=FGLOB(N)
-  810 CONTINUE
-      DO 870 JHEMI=2,1,-1
-      WRITE (6,901) XLABEL
-      WRITE (6,902) IDAY0,IHOUR0,JDATE0,JMNTH0,JYEAR0,TAU0,IDAY,IHOUR,
-     *  JDATE,JMONTH,JYEAR,TAU,TAUDIF
-      JP1=1+(JHEMI-1)*(JEQ-1)
-      JPM=JHEMI*(JEQ-1)
-      JV1=2+(JHEMI-1)*(JEQ-2)
-      JVM=JEQ+(JHEMI-1)*(JEQ-2)
+      END DO
+      DO JHEMI=2,1,-1
+         WRITE (6,901) XLABEL
+         WRITE (6,902) IDAY0,IHOUR0,JDATE0,JMNTH0,JYEAR0,TAU0,IDAY,IHOUR
+     *        ,JDATE,JMONTH,JYEAR,TAU,TAUDIF
+         JP1=1+(JHEMI-1)*(JEQ-1)
+         JPM=JHEMI*(JEQ-1)
+         JV1=2+(JHEMI-1)*(JEQ-2)
+         JVM=JEQ+(JHEMI-1)*(JEQ-2)
 C**** PRODUCE TABLES FOR ANGULAR MOMENTUM AND KINETIC ENERGY
-      WRITE (6,903) (DASH,J=JV1,JVM,INC)
-      WRITE (6,904) HEMIS(JHEMI),(JLATV(JX),JX=JVM,JV1,-INC)
-      WRITE (6,903) (DASH,J=JV1,JVM,INC)
-      DO 820 N=1,23
-  820 WRITE (6,905) TITLE(N),FGLOB(N),FHEM(JHEMI,N),
-     *  (MLAT(JX,N),JX=JVM,JV1,-INC)
-      DO 830 J=JV1,JVM
-  830 MAREA(J)=1.D-10*XWON*FIM*DXYV(J)+.5
-      WRITE (6,906) AGLOB,AHEM,(MAREA(JX),JX=JVM,JV1,-INC)
-C**** PRODUCE TABLES FOR MASS AND TOTAL POTENTIAL ENERGY
-      WRITE (6,907)
-      WRITE (6,903) (DASH,J=JP1,JPM,INC)
-      WRITE (6,904) HEMIS(JHEMI),(JLATP(JX),JX=JPM,JP1,-INC)
-      WRITE (6,903) (DASH,J=JP1,JPM,INC)
-      DO 840 N=24,36
-  840 WRITE (6,905) TITLE(N),FGLOB(N),FHEM(JHEMI,N),
-     *  (MLAT(JX,N),JX=JPM,JP1,-INC)
-      DO 850 J=JP1,JPM
-  850 MAREA(J)=1.D-10*XWON*FIM*DXYP(J)+.5
-      WRITE (6,906) AGLOB,AHEM,(MAREA(JX),JX=JPM,JP1,-INC)
-  870 CONTINUE
+         WRITE (6,903) (DASH,J=JV1,JVM,INC)
+         WRITE (6,904) HEMIS(JHEMI),(JLATV(JX),JX=JVM,JV1,-INC)
+         WRITE (6,903) (DASH,J=JV1,JVM,INC)
+         DO N=1,23
+            WRITE (6,905) TITLE(N),FGLOB(N),FHEM(JHEMI,N),
+     *           (MLAT(JX,N),JX=JVM,JV1,-INC)
+         END DO
+         DO J=JV1,JVM
+            MAREA(J)=1.D-10*XWON*FIM*DXYV(J)+.5
+         END DO
+         WRITE (6,906) AGLOB,AHEM,(MAREA(JX),JX=JVM,JV1,-INC)
+C**** PRODUCE TABLES FOR MASS, TOTAL POTENTIAL ENERGY AND WATER
+         WRITE (6,907)
+         WRITE (6,903) (DASH,J=JP1,JPM,INC)
+         WRITE (6,904) HEMIS(JHEMI),(JLATP(JX),JX=JPM,JP1,-INC)
+         WRITE (6,903) (DASH,J=JP1,JPM,INC)
+         DO N=24,KCON
+            WRITE (6,905) TITLE(N),FGLOB(N),FHEM(JHEMI,N),
+     *           (MLAT(JX,N),JX=JPM,JP1,-INC)
+         END DO
+         DO J=JP1,JPM
+            MAREA(J)=1.D-10*XWON*FIM*DXYP(J)+.5
+         END DO
+         WRITE (6,906) AGLOB,AHEM,(MAREA(JX),JX=JPM,JP1,-INC)
+      END DO
       RETURN
 C****
   901 FORMAT ('1',A)
@@ -6098,8 +6172,6 @@ C****
       USE DYNAMICS, only : sqrtp,pk
       IMPLICIT NONE
 
-      DOUBLE PRECISION, DIMENSION(LM) :: PKS
-
       INTEGER :: M5,NDT
 
       DOUBLE PRECISION, DIMENSION(IM) :: X
@@ -6118,7 +6190,7 @@ C****
 
       INTEGER ::
      &     I,IJL2,IP1,J,J45N,
-     &     JEQM1,JH,JHEMI,JP,K,KS,KSPHER,L,LDN,
+     &     JH,JHEMI,JP,K,KS,KSPHER,L,LDN,
      &     LUP,MAPE,MBEGIN,MEND,MINC,MKE,MNOW,MTPE,N,
      &     NM
 
@@ -6130,16 +6202,12 @@ C****
 
       IF(IFIRST.NE.1) GO TO 50
       IFIRST=0
-      DO 10 L=LS1,LM
-   10 PKS(L)=(SIG(L)*(PSF-PTOP)+PTOP)**KAPA
       SQRTPG = SQRT(PSF-PTOP)
       NM=1+IM/2
-C      JEQ=1+JM/2
-      JEQM1=JEQ-1
       J45N=2.+.75*(JM-1.)
       IJL2=IM*JM*LM*2
-c      SHA=RGAS/KAPA
    50 CONTINUE
+
       MKE=M5
       MAPE=M5
 C****
@@ -6267,8 +6335,8 @@ C**** CURRENT TOTAL POTENTIAL ENERGY
   455 SUMT=SUMT+T(1,JP,L)*PK(L,1,JP)*DSIG(L)
       TPE(JHEMI)=FIM*DXYP(JP)*(ZATMO(1,JP)*(P(1,JP)+PTOP)+
      *  SUMT*SHA*P(1,JP))
-      DO 480 JH=2,JEQM1
-      J=JH+(JEQM1-1)*(JHEMI-1)
+      DO 480 JH=2,JEQ-1
+      J=JH+(JEQ-2)*(JHEMI-1)
       SUMI=0.
       DO 470 I=1,IM
       SUMT=0.
