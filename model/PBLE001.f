@@ -105,7 +105,7 @@ C --------------------------------------------------------------------
       USE CONSTANT, only :  rgas,grav
       USE E001M12_COM
      &     , only : IM,JM, bldata, t,q,u,v,p,ptop,ls1,psf
-     *     ,pmid,pk,pedn
+      USE DYNAMICS, only : pmid,pk,pedn
       
       IMPLICIT NONE
 
@@ -2362,6 +2362,7 @@ c -------------------------------------------------------------
       USE E001M12_COM
       USE SOCPBL, only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
      *     ,ipbl,getb,zgs,iq1,iq2,iq3,inits
+      USE DYNAMICS, only : pmid,pk,pedn,pek
       IMPLICIT NONE
 
       real*8, parameter :: ohmega=7.292e-5,rvx=0.
@@ -2661,6 +2662,7 @@ c ******* itype=4: Land
       USE E001M12_COM
       USE GEOM, only : dyp,dxp
       USE SOCPBL, only : dpdxr,dpdyr,phi,dpdxr0,dpdyr0,iq1,iq2,iq3
+      USE DYNAMICS, only : pmid,pk,pedn
       IMPLICIT NONE
 
       integer i,j,iter  !@var i,j,iter loop variable 
@@ -2781,6 +2783,7 @@ c     at the surface:
       USE CONSTANT, only : rgas,grav
       USE E001M12_COM
       USE SOCPBL, only : phi,zgs
+      USE DYNAMICS, only : pmid,pk,pedn
       IMPLICIT NONE
 
 c      real*8 expbyk

@@ -34,21 +34,18 @@ C**** THERE ARE 100 INTEGER PARAMETERS IN COMMON (JC-ARRAY)
 C**** THERE ARE 161 REAL NUMBERS IN COMMON (RC-ARRAY)
       DOUBLE PRECISION ::
      *  TAU,TAU0,TOFDAY,TOFDY0,DT,      TAUP,TAUI,TAUE,TAUT,TAUO,
-     *  TWOPIx,SDAYx,LHEx,LHMx,LHSx, RADIUSx,GRAVx,RGASx,KAPAx,OMEGAx,
-     *  CCMCX,U00,S0X,CO2,SRCOR,        PTOP,PSF,PSDRAG,PTRUNC,AREAGx,
-     *            XINT,DLATx,DLONx,       SKIPSE,USESLP,USEP,USET,FIM,
-     *  RSDIST,SIND,COSD,DOPK
+     *  CCMCX,U00,S0X,CO2,SRCOR,        PTOP,PSF,PSDRAG,PTRUNC,XINT,
+     *  SKIPSE,USESLP,USEP,USET,FIM,    RSDIST,SIND,COSD
       DOUBLE PRECISION, DIMENSION(2) :: XCDNST
       DOUBLE PRECISION, DIMENSION(36) :: SIG
       DOUBLE PRECISION, DIMENSION(37) :: SIGE
       DOUBLE PRECISION, DIMENSION(4) :: TAUTR0
-      DOUBLE PRECISION, DIMENSION(40) :: RDM2
+      DOUBLE PRECISION, DIMENSION(54) :: RDM2
       COMMON /RPARMB/
      *  TAU,TAU0,TOFDAY,TOFDY0,DT,      TAUP,TAUI,TAUE,TAUT,TAUO,
-     *  TWOPIx,SDAYx,LHEx,LHMx,LHSx,  RADIUSx,GRAVx,RGASx,KAPAx,OMEGAx,
-     *  CCMCX,U00,S0X,CO2,SRCOR,        PTOP,PSF,PSDRAG,PTRUNC,AREAGx,
-     *  XCDNST   ,XINT,DLATx,DLONx,       SKIPSE,USESLP,USEP,USET,FIM,
-     *  RSDIST,SIND,COSD,DOPK,     SIG    ,SIGE    ,TAUTR0   ,RDM2    
+     *  CCMCX,U00,S0X,CO2,SRCOR,        PTOP,PSF,PSDRAG,PTRUNC,
+     *  XCDNST,XINT,                    SKIPSE,USESLP,USEP,USET,FIM,
+     *  RSDIST,SIND,COSD,       SIG    ,SIGE    ,TAUTR0   ,RDM2    
 
 ! handle for referring to real parameters
       DOUBLE PRECISION, DIMENSION(161) :: RC
@@ -62,15 +59,6 @@ C**** THERE ARE 161 REAL NUMBERS IN COMMON (RC-ARRAY)
       CHARACTER CLABEL*4
       DIMENSION CLABEL(39)
       EQUIVALENCE (CLABEL,XLABEL,LABEL1)
-
-c      DOUBLE PRECISION, DIMENSION(JM) ::
-c     *  RAPVS,RAPVN,RAVPS,RAVPN,FCOR,
-c     *  DXYP,DXP,DYP,DXYS,SINP,LAT,
-c     *  DXYV,DXV,DYV,DXYN,COSP,COSV
-c      COMMON /GEOMCB/
-c     *  RAPVS,RAPVN,RAVPS,RAVPN,FCOR,
-c     *  DXYP,DXP,DYP,DXYS,SINP,LAT,
-c     *  DXYV,DXV,DYV,DXYN,COSP,COSV
 
       DOUBLE PRECISION, DIMENSION(IM,JM) :: FLAND,FOCEAN,FLICE,FLAKE
      *     ,FEARTH,ZATMO
@@ -86,25 +74,30 @@ c     *  DXYV,DXV,DYV,DXYN,COSP,COSV
       DOUBLE PRECISION, DIMENSION(35) :: DSIGO
       COMMON /LAYACB/ DSIG,DSIGO
 
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: U,V,T,Q
+      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: U,V,T,Q,WM
       DOUBLE PRECISION, DIMENSION(IM,JM) :: P
-      COMMON /UVTPQ/ U,V,T,P,Q
+      COMMON /UVTPQ/ U,V,T,P,Q,WM
 
-C**** Some helpful arrays (arrays should be L first)
-
-!@var  AM  Air mass of each box (kg/m^2)
-!      REAL*8, DIMENSION(LM,IM,JM) :: AM
-!@var  BYAM  1/Air mass (m^2/kg)
-!      REAL*8, DIMENSION(LM,IM,JM) :: BYAM
-!@var  PMID  Pressure at mid point of box (mb)
-      REAL*8, DIMENSION(LM,IM,JM) :: PMID
-!@var  PK   PMID**KAPA 
-      REAL*8, SAVE,DIMENSION(LM,IM,JM) :: PK
-!@var  PEUP  Pressure at lower edge of box (incl. surface) (mb)
-      REAL*8, DIMENSION(LM+1,IM,JM) :: PEDN
-!@var  PEK  PEUP**KAPA
-      REAL*8, DIMENSION(LM+1,IM,JM) :: PEK
-!@var  SQRTP  square root of P (used in diagnostics)
-      REAL*8, DIMENSION(IM,JM) :: SQRTP
+c      CONTAINS
+c
+c      SUBROUTINE io_model(iunit,irw)
+c
+c      INTEGER iunit  !@var iunit unit number of read/write
+c      INTEGER irw    !@var irw   read or write flag
+c      INTEGER, PARAMETER :: iwrite=1,iread=2
+c      CHARACTER*20 HEADER,MODULE_HEADER
+c      DATA MODULE_HEADER/"E001M12"
+c 
+c      select case (irw)
+c      case (iwrite)
+c         write(iunit) TAU,MODULE_HEADER,JC,CLABEL,RC,KEYNR,U,V,T,P,Q 
+c      case (iread)
+c         read(iunit) TAU,HEADER,JC,CLABEL,RC,KEYNR,U,V,T,P,Q 
+c         if (HEADER.ne.MODULE_HEADER)
+c     &      print*, "Discrepency in module version",HEADER,MODULE_HEADER
+c      end select
+c
+c      RETURN
+c      END SUBROUTINE io_model
 
       END MODULE E001M12_COM

@@ -864,6 +864,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE CLOUDS, only : TAUSS,TAUMC,SVLHX,RHSAV,SVLAT,CLDSAV,
      *     CLDSS,CLDMC,CSIZE
       USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,ail,ajl,asjl,adaily
+      USE DYNAMICS, only : pk,pedn
       IMPLICIT REAL*8 (A-H,O-Z)
 
       COMMON/WORK1d/COSZ2(IM,JM),COSZA(IM,JM),
@@ -2452,6 +2453,7 @@ C****
       USE GEOM
       USE SOMTQ_COM
       USE DAGCOM, only : ajl
+      USE DYNAMICS, only : pk
       IMPLICIT REAL*8 (A-H,O-Z)
 c      COMMON/WORK1/CONV(IM,JM,LM),PK(LM,IM,JM)
       COMMON/WORK2/UT(IM,JM,LM),VT(IM,JM,LM),
@@ -2617,6 +2619,7 @@ C****
       USE E001M12_COM
       USE GEOM
       USE DAGCOM, only : aij
+      USE DYNAMICS, only : pk
       IMPLICIT REAL*8 (A-H,O-Z)
 c      COMMON/WORK1/CONV(IM,JM,LM),PK(LM,IM,JM)
       DIMENSION XCDLM(2)

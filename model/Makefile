@@ -20,6 +20,7 @@ RCOM    = BR00B.COM # will eventually be contained in RE001.f,RADNCB.f
 
 # Model object files
 MOBJ	= ME001M12.o
+DYOBJ   = DYNE001.o
 QOBJ    = QUSEM12.o SUBSIDEM12.o
 DOBJ	= DE001M12.o
 PBLOBJ	= PBLE001.o
@@ -32,7 +33,7 @@ ROBJ	= RE001.o
 UOBJ    = UTILDBL.o
 FFTOBJ  = FFT72.o
 RNDOBJ  = RANDSGI.o
-OBJ	= $(MOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) $(SOBJ) $(COBJ) $(ROBJ) $(UOBJ) \
+OBJ	= $(MOBJ) $(DYOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) $(SOBJ) $(COBJ) $(ROBJ) $(UOBJ) \
           $(FFTOBJ) $(RNDOBJ) $(COM) $(EOBJ) $(GHYCOM) $(DAGCOM) $(RADCOM)
 
 # Make rules for generating object files from GISS-Fortran files
@@ -69,14 +70,15 @@ $(GEOCOM):	$(MCOM)
 $(GHYCOM):	$(MCOM) $(SLOBJ)
 $(DAGCOM):	$(MCOM) $(RADCOM)
 $(RADCOM):	$(MCOM)
-$(MOBJ):	$(COM) $(GHYCOM) $(DAGCOM) $(RNDOBJ) $(COBJ) $(PBLOBJ) $(RADCOM)
-$(POBJ):	$(COM) $(DAGCOM) $(ROBJ)  $(RNDOBJ) $(COBJ) $(RADCOM)
-$(PBLOBJ):	$(COM) 
+$(DYOBJ):	$(COM)
+$(MOBJ):	$(COM) $(GHYCOM) $(DAGCOM) $(RNDOBJ) $(COBJ) $(PBLOBJ) $(DYOBJ) $(RADCOM)
+$(POBJ):	$(COM) $(DAGCOM) $(ROBJ)  $(RNDOBJ) $(COBJ) $(RADCOM) $(DYOBJ)
+$(PBLOBJ):	$(COM) $(DYOBJ)
 $(SOBJ):	$(COM) $(DAGCOM) $(PBLOBJ) $(RADCOM)
-$(EOBJ):	$(COM) $(DAGCOM) $(GHYCOM) $(COBJ) $(PBLOBJ) $(RADCOM)
-$(DOBJ):	$(COM) $(DAGCOM) $(RADCOM)
+$(EOBJ):	$(COM) $(DAGCOM) $(GHYCOM) $(COBJ) $(PBLOBJ) $(RADCOM) $(DYOBJ)
+$(DOBJ):	$(COM) $(DYOBJ) $(DAGCOM) $(RADCOM)
 $(QOBJ):	$(COM) 
-$(COBJ):	$(COM) $(DAGCOM) $(RNDOBJ)
+$(COBJ):	$(COM) $(DAGCOM) $(RNDOBJ) $(DYOBJ)
 $(ROBJ):	$(RCOM)
 
 # Compile the gcm

@@ -17,26 +17,27 @@ C**** Subsid only works on non-plume portion of column (properly!)
       USE RANDOM
       USE GEOM
       USE DAGCOM, only : aj,bj,cj,dj,aij,ajl,ail,adaily,jreg
+      USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold
       
       IMPLICIT NONE
 
-      REAL*8, SAVE :: SD_CLOUDS,PREC,TPREC,TAUSS,TAUMC,UC,VC,PRECSS
-      DIMENSION SD_CLOUDS(IM,JM,LM),PREC(IM,JM),
+      REAL*8, SAVE :: PREC,TPREC,TAUSS,TAUMC,UC,VC,PRECSS
+      DIMENSION PREC(IM,JM),
      *  TPREC(IM,JM),TAUSS(IM,JM,LM),TAUMC(IM,JM,LM),
      *  UC(IM,JM,LM),VC(IM,JM,LM),PRECSS(IM,JM)
 
-      REAL*8, SAVE :: TTOLD,QTOLD,PTOLD,WM,SVLHX,RHSAV,PBLTOP,SVWMX
+      REAL*8, SAVE :: TTOLD,QTOLD,SVLHX,RHSAV,PBLTOP,SVWMX
      *     ,SVLAT,CLDSAV
       DIMENSION TTOLD(IM,JM,LM),QTOLD(IM,JM,LM),
-     *  PTOLD(IM,JM),WM(IM,JM,LM),SVLHX(IM,JM,LM),
+     *  SVLHX(IM,JM,LM),
      *  RHSAV(IM,JM,LM),PBLTOP(IM,JM),
      *  SVWMX(IM,JM,LM),SVLAT(IM,JM,LM),CLDSAV(IM,JM,LM)
 
       REAL*8, SAVE :: CLDSS,CLDMC,CSIZE
       DIMENSION CLDSS(IM,JM,LM),CLDMC(IM,JM,LM),CSIZE(IM,JM,LM,2)
 
-      REAL*8, SAVE :: GZ,PRECNV,VSUB
-      DIMENSION GZ(IM,JM,LM),PRECNV(IM,JM,LM+1),VSUB(IM,JM,LM)
+      REAL*8, SAVE :: PRECNV,VSUB
+      DIMENSION PRECNV(IM,JM,LM+1),VSUB(IM,JM,LM)
 
       REAL*8, PARAMETER :: TF=273.16d0   !@param TF freezing point (K)
       REAL*8, PARAMETER :: BYTF=1./TF    !@param BYTF recip. of TF

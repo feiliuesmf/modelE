@@ -25,6 +25,7 @@ C****
       USE RADNCB, only : trhr,fsf,cosz1
       USE SOCPBL, only : ipbl,pbl,omega2,zgs
       USE DAGCOM, only : aij,tdiurn,aj,bj,cj,dj,ajl,adaily,jreg
+      USE DYNAMICS, only : pmid,pk,pedn,pek
       IMPLICIT REAL*8 (A-H,O-Z)
 C*
       REAL*8 KM, KH, MSUM, MA1, MSI1, MSI2

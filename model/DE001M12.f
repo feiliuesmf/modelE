@@ -339,8 +339,8 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
      *     ,sha
       USE E001M12_COM
-     &     , uhide=>u, vhide=>v, thide=>t, phide=>p, qhide=>q,
-     *     sqrtpx=>sqrtp
+     &     , uhide=>u, vhide=>v, thide=>t, phide=>p, qhide=>q
+      USE DYNAMICS, only : pk
       USE GEOM
       USE RADNCB, only : rqt
       USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,apj,ajl,asjl,ail
@@ -1333,7 +1333,8 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
      *     ,sha
       USE E001M12_COM
-     &     , uhide=>u, vhide=>v, thide=>t, phide=>p, qhide=>q
+     &     , uhide=>u, vhide=>v, thide=>t, phide=>p, qhide=>q,
+     *     wmhide=>wm
       USE GEOM
       USE DAGCOM, only : ajk,aijk,aijl,ajlsp,speca,adaily
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -5255,6 +5256,7 @@ C****
       USE E001M12_COM
       USE GEOM
       USE DAGCOM, only : consrv
+      USE DYNAMICS, only : pk
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION UX(IM,JM,LM),VX(IM,JM,LM)
       COMMON/WORK1/PIT(IM,JM)
@@ -5664,6 +5666,7 @@ C****
       USE E001M12_COM
       USE GEOM
       USE DAGCOM, only : speca,atpe,ajk,aijk
+      USE DYNAMICS, only : sqrtp,pk
       IMPLICIT REAL*8 (A-H,O-Z)
       REAL*8 KE
       DOUBLE PRECISION TPE,SUMI,SUMT

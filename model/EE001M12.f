@@ -32,7 +32,7 @@ C****
       USE CLOUDS, only : PREC,TPREC
       USE SOCPBL, only : ipbl,pbl,zgs
       USE DAGCOM, only : aijg,aij,tsfrez,tdiurn,bj,dj,adaily,jreg
-
+      USE DYNAMICS, only : pmid,pk,pek,pedn
       IMPLICIT REAL*8 (A-H,O-Z)
 
       COMMON /WORK1d/DTH1(IM,JM),DQ1(IM,JM)
