@@ -610,7 +610,7 @@ C****
      *       (AJL(J,L,JL_DUMCDRGP20)+AJL(J,L,JL_DUDTSDIF)))
       END DO
       END DO
-      SCALEP1=1./(FIM*DTSRCE*IDACC(1)+1.D-20)
+      SCALE1=1./(FIM*DTSRCE*IDACC(1)+1.D-20)
       DO L=1,LM
       DO J=2,JM
         DUDS(J,L) = DUDS(J,L)+
