@@ -37,8 +37,8 @@ C**** variables saved for radiation calculations
       REAL*8, DIMENSION(LM,IM,JM) :: CLDSS
 !@var CLDMC moist convective cloud cover area (percent)
       REAL*8, DIMENSION(LM,IM,JM) :: CLDMC
-!@var CSIZE effective cloud droplet radius (microns) 1:mc 2:ss
-      REAL*8, DIMENSION(2,LM,IM,JM) :: CSIZE
+!@var CSIZMC,CSIZSS mc,ss effective cloud droplet radius (microns)
+      REAL*8, DIMENSION(LM,IM,JM) :: CSIZMC,CSIZSS
 
       END MODULE CLD01_COM_E001
 

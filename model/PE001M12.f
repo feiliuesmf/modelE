@@ -150,7 +150,7 @@ C****
         CALL PREC_OC(TGW,WTRO,PRCP,ENRGP,ERUN4)
         ODATA(I,J,1)=TGW
         GO TO 400
-      END IF 
+      END IF
 C****
   100 IF (POICE.LE.0.) GO TO 400
 C****
@@ -200,7 +200,7 @@ C**** CALCULATE THE COMPOSITE WATER MASS AND WATER ENERGY
         ENRGW=ENRGW0-ROICE*ERUN4+(1.-ROICE)*ENRGP
         TGW=ENRGW/(WTRW*SHW)    ! mixed layer temperature
         ODATA(I,J,1)=TGW
-      END IF 
+      END IF
 C**** If lake ice, add runoff to lake amount (E. of runoff always = 0)
       IF (PLKICE.gt.0) THEN
         MWL(I,J) = MWL(I,J) + RUN0*POICE*DXYP(J)
@@ -599,7 +599,7 @@ c    &             ,QAER55 ,REAERO ,VEAERO ,ROAERO ,PI0MAX
 c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE RANDOM
       USE CLD01_COM_E001, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
-     *     cldss,cldmc,csize
+     *     cldmc,cldss,csizmc,csizss
       USE PBLCOM, only : wsavg,tsavg
       USE DAGCOM, only : aj,bj,cj,areg,jreg,aij,ail,ajl,asjl,adaily,
      *     iwrite,jwrite,itwrite,ndlypt,j_pcldss,j_pcldmc,ij_pmccld,
@@ -794,8 +794,8 @@ C****
       TAUMCL=0.
       TAUWC(L)=0.
       TAUIC(L)=0.
-      SIZEWC(L)=CSIZE(1,L,I,J)
-      SIZEIC(L)=CSIZE(1,L,I,J)
+      SIZEWC(L)=CSIZMC(L,I,J)
+      SIZEIC(L)=CSIZMC(L,I,J)
          TOTCLD(L)=0.
       IF (CLDSS(L,I,J).LT.RANDSS.OR.TAUSS(L,I,J).LE.0.) GO TO 220
       TAUSSL=TAUSS(L,I,J)
@@ -824,10 +824,10 @@ C****
          ELSE
            IF(SVLHX(I,J,L).EQ.LHE) THEN
              TAUWC(L)=TAUSSL
-             SIZEWC(L)=CSIZE(2,L,I,J)
+             SIZEWC(L)=CSIZSS(L,I,J)
            ELSE
              TAUIC(L)=TAUSSL
-             SIZEIC(L)=CSIZE(2,L,I,J)
+             SIZEIC(L)=CSIZSS(L,I,J)
            END IF
          END IF
       END IF
@@ -1172,7 +1172,7 @@ C****
      *     ,ERUN4,DIFSI,EDIFSI,DIFS,EDIFS,ENRGFO,ACEFO,ACE2M,ACE2F
      *     ,ENRGFI,F2DT,POLAKE,PLKICE,MSI1,HSI1,HSI2
      *     ,HSI3,HSI4,EIW0,WTRW0,ENRGW0,WTRI0
-!@var QFIXR  true if RSI and MSI2 are fixed (ie. for fixed SST run)     
+!@var QFIXR  true if RSI and MSI2 are fixed (ie. for fixed SST run)
       LOGICAL QFIXR
 !@var QCMPR  true if ice should be compressed due to leads etc.
       LOGICAL QCMPR
@@ -1340,7 +1340,7 @@ C***  CALL SEA ICE SUBROUTINE
       F0DT=E0(I,J,2) ! heat flux to the top ice surface (J/m^2)
       F1DT=E1(I,J,2) ! heat flux between 1st and 2nd ice layers (J/m^2)
       EVAP=EVAPOR(I,J,2) ! evaporation/dew at the ice surface (kg/m^2)
-      MSI2= ODATA(I,J,3) 
+      MSI2= ODATA(I,J,3)
       SNOW= GDATA(I,J,1)  ! snow mass (kg/m^2)
       TG1 = GDATA(I,J,3)  ! first layer sea ice temperature
       TG2 = GDATA(I,J,7)  ! second layer sea ice temperature
@@ -1360,13 +1360,13 @@ c     IF (FLAKE(I,J).gt.0) QFIXR=.FALSE.   ! will soon be implemented
 
       IF (KOCEAN .EQ. 1) THEN
         WTRI0=WTRO-(SNOW+ACE1I+MSI2) ! mixed layer mass below ice (kg/m^2)
-        EIW0=WTRI0*TGW*SHW      ! energy of mixed layer below ice (J/m^2) 
+        EIW0=WTRI0*TGW*SHW      ! energy of mixed layer below ice (J/m^2)
         WTRW0=WTRO-ROICE*(SNOW+ACE1I+MSI2)
         ENRGW0=WTRW0*TGW*SHW
         RUN4=-EVAP
         WTRW0 = WTRW0-ROICE*RUN4 ! water mass "+-" dew/evaporation
         ERUN4=TGW*RUN4*SHW
-      END IF 
+      END IF
 
       CALL SEA_ICE(DTSRCE,SNOW,ROICE,TG1,TG2,TG3,TG4,MSI1,MSI2
      *     ,F0DT,F1DT,EVAP,HSI1,HSI2,HSI3,HSI4,TGW,RUN0
@@ -1394,7 +1394,7 @@ C****
 
       IF (PLKICE.GT.0.) THEN ! Add mass/energy fluxes to lake variables
         MWL(I,J) = MWL(I,J) +
-     *       ((RUN0+ACE2M-ACE2F)*PLKICE - ACEFO*POLAKE)*DXYP(J) 
+     *       ((RUN0+ACE2M-ACE2F)*PLKICE - ACEFO*POLAKE)*DXYP(J)
         GML(I,J) = GML(I,J) +
      *       ((F2DT-ENRGFI)*PLKICE - ENRGFO*POLAKE)*DXYP(J)
       END IF

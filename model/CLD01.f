@@ -47,7 +47,7 @@ C**** input variables
       REAL*8, DIMENSION(LM) :: SDL,WML
 !new arrays must be set to model arrays in driver (after MC)
       REAL*8, DIMENSION(LM) :: TAUMCL,SVLATL,CLDMCL,SVLHXL,SVWMXL
-      REAL*8, DIMENSION(LM,2) :: CSIZEL
+      REAL*8, DIMENSION(LM) :: CSIZEL
 !new arrays must be set to model arrays in driver (before COND)
       REAL*8, DIMENSION(LM) :: TTOLDL,CLDSAVL
 !new arrays must be set to model arrays in driver (after COND)
@@ -170,7 +170,7 @@ C**** initiallise arrays of computed ouput
       CLDDEPIJ=0
       PRCPMC=0.
       SVTP=0
-      CSIZEL(:,1)=10.
+      CSIZEL=10.              !  effective droplet radius in stem 
 C**** zero out diagnostics
          AJ8 =0.
          AJ13=0.
@@ -1021,8 +1021,8 @@ C**** CALCULATE OPTICAL THICKNESS
             IF(SVLATL(L).EQ.LHE) RCLD=(10.*(1.-PEARTH)+7.0*PEARTH)*
      *           (WTEM*4.)**BY3
             IF(SVLATL(L).EQ.LHS) RCLD=25.0*(WTEM/4.2d-3)**BY3
-            RCLDE=RCLD/BYBR
-            CSIZEL(L,1)=RCLDE   !  Anvil of moist convective clouds
+            RCLDE=RCLD/BYBR   !  effective droplet radius in anvil
+            CSIZEL(L)=RCLDE   !  effective droplet radius in anvil
             TAUMCL(L)=1.5*TEM/(FCLD*RCLDE+1.E-20)
             IF(TAUMCL(L).GT.100.) TAUMCL(L)=100.
          END IF
@@ -1533,7 +1533,7 @@ C    *  WTEM=1.E5*WCONST*1.E-3*PL(L)/(TL(L)*RGAS)
       ENDIF
       IF(LHX.EQ.LHS) RCLD=25.0*(WTEM/4.2d-3)**BY3
       RCLDE=RCLD/BYBR
-      CSIZEL(L,2)=RCLDE
+      CSIZEL(L)=RCLDE
       TEM=AIRM(L)*WMX(L)*1.d2*BYGRAV
       TAUSSL(L)=1.5d3*TEM/(FCLD*RCLDE+1.E-20)
       IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.

@@ -34,7 +34,7 @@
 
       INTEGER I,J,K,L  !@var I,J,K,L loop variables
       INTEGER IHOUR,IMAX,JR,KR
-      INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID 
+      INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
 
       REAL*8 :: HCNDMC,PRCP
 
@@ -163,11 +163,12 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
             END IF
          END DO
 
-C**** UPDATE MODEL TEMPERATURE, SPECIFIC HUMIDITY AND PRECIPITATION
+C**** WRITE TO SOME GLOBAL ARRAYS
          PREC(I,J)=PRCPMC*100.*BYGRAV
          DO L=1,LMCMAX
             T(I,J,L)=  SM(L)*BYAM(L)
             Q(I,J,L)=  QM(L)*BYAM(L)
+            CSIZMC(L,I,J)=CSIZEL(L)
          END DO
       END IF
 C****
@@ -215,13 +216,12 @@ C**** WRITE TO GLOBAL ARRAYS
          TAUMC(L,I,J)=TAUMCL(L)
          CLDMC(L,I,J)=CLDMCL(L)
          SVLAT(I,J,L)=SVLATL(L)
-         CSIZE(1,L,I,J)=CSIZEL(L,1)
 
          TAUSS(L,I,J)=TAUSSL(L)
          CLDSS(L,I,J)=CLDSSL(L)
          CLDSAV(I,J,L)=CLDSAVL(L)
          SVLHX(I,J,L)=SVLHXL(L)
-         CSIZE(2,L,I,J)=CSIZEL(L,2)
+         CSIZSS(L,I,J)=CSIZEL(L)
          AJL(J,L,11)=AJL(J,L,11)+AJ11(L)
          AJL(J,L,55)=AJL(J,L,55)+AJ55(L)
 
