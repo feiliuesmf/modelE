@@ -41,6 +41,8 @@ C**** Set-able variables
       REAL*8 :: U00wtr = .7d0       ! default
 !@dbparam U00ice critical humidity for ice cloud condensation
       REAL*8 :: U00ice = .7d0       ! default
+!@dbparam HRMAX maximum distance an air parcel rises from surface
+      REAL*8 :: HRMAX = 1000.d0     ! default (in meter)
 
 #ifdef TRACERS_ON
 !@var ntx,NTIX: Number and Indices of active tracers used in convection
@@ -1202,9 +1204,10 @@ C**** functions
 !@var DQSATDT dQSAT/dT
 
 !@param CM00 upper limit for autoconversion rate
-!@param AIRM0 scaling factor for computing rain evaporation
+!@param AIRM0 scaling factor for computing rain evapration
+!@param HEFOLD e-folding length for computing HRISE 
       REAL*8, PARAMETER :: CM00=1.d-4, AIRM0=100.d0, GbyAIRM0=GRAV/AIRM0
-
+      REAL*8, PARAMETER :: HEFOLD=500. 
       REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
       REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
@@ -1256,14 +1259,14 @@ C**** functions
       REAL*8 Q1,AIRMR,BETA,BMAX
      *     ,CBF,CBFC0,CK,CKIJ,CK1,CK2,CKM,CKR,CM,CM0,CM1,DFX,DQ,DQSDT
      *     ,DQSUM,DQUP,DRHDT,DSE,DSEC,DSEDIF,DWDT,DWDT1,DWM,ECRATE,EXPST
-     *     ,FCLD,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI
+     *     ,FCLD,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI,HRISE 
      *     ,FUNIL,FUNIO,HCHANG,HDEP,HPHASE,OLDLAT,OLDLHX,PFR,PMI,PML
      *     ,HDEP1,PRATIO,QCONV,QHEATC,QLT1,QLT2,QMN1,QMN2,QMO1,QMO2,QNEW
      *     ,QNEWU,QOLD,QOLDU,QSATC,QSATE,RANDNO,RCLDE,RHI,RHN,RHO,RHT1
      *     ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1
      *     ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
      *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD,FCOND,HDEPx
-!@var Q1,BETA,BMAX,CBFC0,CKIJ,CK1,CK2 dummy variables
+!@var Q1,BETA,BMAX,CBFC0,CKIJ,CK1,CK2,HRISE dummy variables
 !@var AIRMR
 !@var CBF enhancing factor for precip conversion
 !@var CK ratio of cloud top jumps in moist static energy and total water
@@ -1443,7 +1446,7 @@ C**** PHASE CHANGE OF CLOUD WATER CONTENT
       ATH(L)=(TH(L)-TTOLDL(L))*BYDTsrc
 C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
       RHI=QL(L)/QSAT(TL(L),LHS,PL(L))
-      RH00(L)=U00wtr
+      RH00(L)=U00ice
       IF(LHX.EQ.LHS) RH00(L)=U00ice
       IF(L.EQ.1) THEN
         HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
@@ -1465,10 +1468,13 @@ C**** integrated HDEP over pbl depth
           HDEP=HDEP+AIRM(LN)*TL(LN)*RGAS/(GRAV*PL(LN))
         END DO
         IF(L.EQ.DCL) HDEP=HDEP+0.5*AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
+        HRISE=HRMAX 
+        IF(HDEP.LT.10.*HEFOLD) HRISE=HRMAX*(1.-1./EXP(HDEP/HEFOLD))   
+        IF(HRISE.GT.HDEP) HRISE=HDEP
 C**** hdep is simply layer dependent (removed due to resolution dependence)
 c        HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
 c        IF(L.EQ.DCL) HDEP=0.5*HDEP
-        RH00(L)=1.-GAMD*LHE*HDEP/(RVAP*TS*TS)
+        RH00(L)=1.-GAMD*LHE*HRISE/(RVAP*TS*TS)
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF
 C****

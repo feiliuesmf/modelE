@@ -776,6 +776,7 @@ C$OMP  END PARALLEL DO
       USE CONSTANT, only : grav,by3
       USE MODEL_COM, only : dtsrc,ls1
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtr,U00ice
+     *  ,HRMAX
       USE PARAM
 
       IMPLICIT NONE
@@ -783,6 +784,7 @@ C$OMP  END PARALLEL DO
       call sync_param( 'U00wtr', U00wtr )
       call sync_param( 'U00ice', U00ice )
       call sync_param( "LMCM", LMCM )
+      call sync_param( "HRMAX", HRMAX )
 
       IF(LMCM.LT.0) LMCM = LS1-1
       call set_param( "LMCM", LMCM, 'o' )
