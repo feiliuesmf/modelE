@@ -176,7 +176,7 @@ c  internals:
      *     ,wstar2q
       real*8, parameter ::  tol=1d-4
       integer :: itmax, ierr
-      integer, parameter :: iprint=52,jprint=33  ! set iprint>0 to debug
+      integer, parameter :: iprint=0,jprint=33  ! set iprint>0 to debug
       real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave
       real*8, dimension(n-1) :: lscale,zhat,dzh,xihat,km,kh,kq,ke,gm,gh
      *     ,esave
