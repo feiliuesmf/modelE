@@ -126,6 +126,8 @@ C note, tr_evap_fact is not dimensioned as NTM:
 #ifdef TRACERS_OCEAN
 !@var TRGLAC tracer ratio in glacial runoff to ocean (kg/kg)
       real*8, dimension(ntm) :: trglac
+!@var NTROCN scaling power factor for ocean tracer concentrations
+      integer, dimension(ntm) :: ntrocn
 #endif
 
 #endif

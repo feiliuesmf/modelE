@@ -101,7 +101,16 @@ C****
       REAL*4, DIMENSION(IM,JM,LMO,KOIJL) :: OIJL4
       REAL*4, DIMENSION(LMO,KOL)   :: OL4
       REAL*4, DIMENSION(LMO,NMST,KOLNST):: OLNST4
+#ifdef TRACERS_OCEAN
+      REAL*4, DIMENSION(IM,JM,LMO,KTOIJL,NTM)  :: TOIJL4
+      REAL*4, DIMENSION(LMO,NMST,KOLNST,NTM):: TLNST4
+!@var TR_HEADER Character string label for individual tracer records
+      CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TROCDIAG01"
 
+      write(TR_MODULE_HEADER(lhead+1:80),'(a20,i2,a1,i4,a9,i4,
+     *  a4)') 'R8 Toijl(im,jm,lmo,',ktoijl,',',ntm,'), Tlnst(',
+     *     LMO*NMST*KOLNST*NTM,'),it'
+#endif
       write(MODULE_HEADER(lhead+1:80),'(a13,i2,a13,i2,a1,  i2,a5,i2,
      *  a1,i2,a8,i4,a)') 'R8 Oij(im,jm,',koij,'),Oijl(im,jm,',lmo,',',
      *  koijl,'),Ol(',lmo,   ',',kol,'),OLNST(',LMO*NMST*KOLNST,'),it'
@@ -109,10 +118,18 @@ C****
       SELECT CASE (IACTION)
       CASE (IOWRITE,IOWRITE_MON)  ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,OIJ,OIJL,OL,OLNST,it
+#ifdef TRACERS_OCEAN
+        WRITE (kunit,err=10) TR_MODULE_HEADER,TOIJL,TLNST,it
+#endif
       CASE (IOWRITE_SINGLE)    ! output to acc file
         MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
         WRITE (kunit,err=10) MODULE_HEADER,REAL(OIJ,KIND=4),
      *        REAL(OIJL,KIND=4),REAL(OL,KIND=4),REAL(OLNST,KIND=4),it
+#ifdef TRACERS_OCEAN
+        TR_MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
+        WRITE (kunit,err=10) TR_MODULE_HEADER,REAL(TOIJL,KIND=4),
+     *       REAL(TLNST,KIND=4),it
+#endif
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
         CASE (IRSFIC)           ! initial conditions
@@ -124,10 +141,21 @@ C**** accumulate diagnostics
           OL=OL+OL4
           OLNST=OLNST+OLNST4
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version",HEADER
+            PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
             GO TO 10
           END IF
+#ifdef TRACERS_OCEAN
+          READ (kunit,err=10) TR_HEADER,TOIJL4,TLNST4,it
+C**** accumulate diagnostics
+          TOIJL=TOIJL+TOIJL4
+          TLNST=TLNST+TLNST4
+          IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",TR_HEADER
+     *           ,TR_MODULE_HEADER
+            GO TO 10
+          END IF
+#endif
         CASE (ioread,irerun)    ! restarts
           READ (kunit,err=10) HEADER,OIJ,OIJL,OL,OLNST,it
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
@@ -135,6 +163,14 @@ C**** accumulate diagnostics
      *           ,MODULE_HEADER
             GO TO 10
           END IF
+#ifdef TRACERS_OCEAN
+          READ (kunit,err=10) TR_HEADER,TOIJL,TLNST,it
+          IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",TR_HEADER
+     *           ,TR_MODULE_HEADER
+            GO TO 10
+          END IF
+#endif
         END SELECT
       END SELECT
 

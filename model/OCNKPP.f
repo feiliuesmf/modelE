@@ -2008,12 +2008,12 @@ C**** Tracers are diffused after iteration (GHAT always zero)
       END DO
 #endif
 C**** Implicitly apply interpolated KV to linear profile
-C**** No surface fluxes (now set to zero at top, prevents odd values)
+C**** No surface fluxes 
       DTBYDZ2 = 12d0*DTBYDZ(1)**2*BYDTS
-      GZML(1,IQ)=0.  ! (GZML(1,IQ)+3d0*FLG(1))/(1d0+DTBYDZ2*AKVG(1))
-      SZML(1,IQ)=0.  ! (SZML(1,IQ)+3d0*FLS(1))/(1d0+DTBYDZ2*AKVS(1))
+      GZML(1,IQ)=(GZML(1,IQ)+3d0*FLG(1))/(1d0+DTBYDZ2*AKVG(1))
+      SZML(1,IQ)=(SZML(1,IQ)+3d0*FLS(1))/(1d0+DTBYDZ2*AKVS(1))
 #ifdef TRACERS_OCEAN
-      TZML(1,:,IQ)=0. !(TZML(1,:,IQ)+3d0*FLT(1,:))/(1d0+DTBYDZ2*AKVS(1))
+      TZML(1,:,IQ)=(TZML(1,:,IQ)+3d0*FLT(1,:))/(1d0+DTBYDZ2*AKVS(1))
 #endif
       DO L=2,LMIJ-1
         DTBYDZ2 = 6d0*DTBYDZ(L)**2*BYDTS

@@ -62,6 +62,7 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       tr_H2ObyCH4 = 0.
 #ifdef TRACERS_OCEAN
       trglac = 0.
+      ntrocn = 0
 #endif
 #endif
 C**** Define individual tracer characteristics
@@ -160,6 +161,7 @@ C**** Get solar variability coefficient from namelist if it exits
           tr_H2ObyCH4(n) = 1.
 #ifdef TRACERS_OCEAN
           trglac(n) = 1.
+          ntrocn(n)= 0
 #endif
 
 #ifdef TRACERS_SPECIAL_O18
@@ -175,6 +177,7 @@ C**** Get solar variability coefficient from namelist if it exits
           tr_H2ObyCH4(n) = trw0(n)*1.023d0 ! d=+23 (ie. no frac from O2)
 #ifdef TRACERS_OCEAN
           trglac(n) = trw0(n)*0.98d0   ! d=-20
+          ntrocn(n) = -3
 #endif
 
       case ('HDO')
@@ -189,6 +192,7 @@ C**** Get solar variability coefficient from namelist if it exits
           tr_H2ObyCH4(n) = trw0(n)*0.93d0  ! d=-70
 #ifdef TRACERS_OCEAN
           trglac(n) = trw0(n)*0.84d0   ! d=-160
+          ntrocn(n) = -4
 #endif
 
       case ('HTO')
@@ -204,6 +208,7 @@ C**** Get solar variability coefficient from namelist if it exits
           trdecay(n) = 1.77d-9      ! =5.59d-2 /yr
 #ifdef TRACERS_OCEAN
           trglac(n) = 0.
+          ntrocn(n) = -18
 #endif
 #endif
 #endif
