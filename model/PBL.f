@@ -171,12 +171,12 @@ c   Step 1:
      2            ustar,cm,z0m,utop,vtop,dtime,coriol,
      3            ug,vg,n)
  
-c     if ((itype.eq.4).or.(itype.eq.3)) then
-c       if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
-c         call tfix(t,z,ttop,tgrnd,lmonin,n) !why should we do this?
-c         itmax=2
-c       endif
-c     endif
+      if ((itype.eq.4).or.(itype.eq.3)) then
+        if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
+          call tfix(t,z,ttop,tgrnd,lmonin,n) !why should we do this?
+          itmax=2
+        endif
+      endif
 c
 c     call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
 c
@@ -186,34 +186,34 @@ c   condition obtains if ustar remains stable to a defined limit
 c   between iterations.
 c   e_eqn is called if level 2.5 is used, level2 for level 2 model
 c   Step 2:
-c
-c     do iter=1,itmax
-c
-c       call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
-c       call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
-c    2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
-c    3             km,kh,kq,dzh,itype,n)
-c
-c       test=abs((ustar-ustar0)/(ustar+ustar0))
-c       if (test.lt.tol) exit
-c       ustar0=ustar
-c
-c       call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
-c    2                 ustar,dtime,n)
-c       call t_eqn(u,v,tsave,qsave,t,q,z,kh,dz,dzh,
-c    2              ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
-c    3              ttop,qtop,dtime,n)
-c       call q_eqn(u,v,tsave,qsave,t,q,z,kq,dz,dzh,
-c    2              ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
-c    3              ttop,qtop,dtime,n)
-c
-c       call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
-c    2              ustar,cm,z0m,utop,vtop,dtime,coriol,
-c    3              ug,vg,n)
-c
-c       call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
-c
-c     end do
+ 
+      do iter=1,itmax
+ 
+        call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
+        call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
+     2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
+     3             km,kh,kq,dzh,itype,n)
+ 
+        test=abs((ustar-ustar0)/(ustar+ustar0))
+        if (test.lt.tol) exit
+        ustar0=ustar
+ 
+        call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
+     2                 ustar,dtime,n)
+        call t_eqn(u,v,tsave,qsave,t,q,z,kh,dz,dzh,
+     2              ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
+     3              ttop,qtop,dtime,n)
+        call q_eqn(u,v,tsave,qsave,t,q,z,kq,dz,dzh,
+     2              ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
+     3              ttop,qtop,dtime,n)
+ 
+        call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
+     2              ustar,cm,z0m,utop,vtop,dtime,coriol,
+     3              ug,vg,n)
+ 
+        call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
+ 
+      end do
 
       us    = u(1)
       vs    = v(1)
@@ -861,14 +861,13 @@ c-----------------------------------------------------------------------
         den=1+d1*gh+d2*gm+d3*gh*gh+d4*gh*gm+d5*gm*gm
         sm=(s0+s1*gh+s2*gm)/den
         sh=(s4+s5*gh+s6*gm)/den
-c       km(i)=min(max(tau*e(i)*sm,1.5d-5),100.d0)
-c       kh(i)=min(max(tau*e(i)*sh,2.5d-5),100.d0)
-c       kq(i)=2.*kh(i)
-c       ke(i)=min(max(tau*e(i)*sq,1.5d-5),100.d0)
-        km(i)=max(tau*e(i)*sm,1.5d-5)
-        kh(i)=max(tau*e(i)*sh,2.5d-5)
+        km(i)=min(max(tau*e(i)*sm,1.5d-5),100.d0)
+        kh(i)=min(max(tau*e(i)*sh,2.5d-5),100.d0)
+        ke(i)=min(max(tau*e(i)*sq,1.5d-5),100.d0)
+c       km(i)=max(tau*e(i)*sm,1.5d-5)
+c       kh(i)=max(tau*e(i)*sh,2.5d-5)
+c       ke(i)=max(tau*e(i)*sq,1.5d-5)
         kq(i)=kh(i)
-        ke(i)=max(tau*e(i)*sq,1.5d-5)
         gma(i)=gm
         gha(i)=gh
       end do
