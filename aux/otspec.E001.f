@@ -5,6 +5,7 @@
 !@+   of each of those quantities.  The spectral coefficients are
 !@+   used to calculate the zeroeth and first harmonics of the
 !@+   ocean transports.
+!@+   Now creates two files. One with and one without ice dynamics
 C****
 C**** Input: RSFIC - restart file of a run with prescribed sst
 C****        VFLX - flux data from fixed sst run
@@ -39,16 +40,16 @@ C****
       integer first_month, first_year, last_month,
      *        last_year, years, year, i, j, k,m,iok
       integer months, monthe, itime1, month, kday, last_day
-      REAL*8 COT(IM,JM),AOT(IM,JM,4),BOT(IM,JM,4)
-      REAL*4 AMPOT(IM,JM),PHAOT(IM,JM),COTS(IM,JM),TAU4
-      REAL*8 ARG,COSDAY(4),SINDAY(4),VFX, XCORR, SYEARS, OMEG, OE,
-     *  CV(IM,JM),AV(IM,JM,4),BV(IM,JM,4),AE(IM,JM,4),BE(IM,JM,4)
+      REAL*8 COT(IM,JM,2),AOT(IM,JM,4,2),BOT(IM,JM,4,2)
+      REAL*4 AMPOT(IM,JM,2),PHAOT(IM,JM,2),COTS(IM,JM,2),TAU4
+      REAL*8 ARG,COSDAY(4),SINDAY(4),VFX(2), XCORR(2), SYEARS, OMEG, OE,
+     *  CV(IM,JM,2),AV(IM,JM,4,2),BV(IM,JM,4,2),AE(IM,JM,4),BE(IM,JM,4)
       CHARACTER*80 TITLE(5),TITLE0, RunID, file_name
       REAL*4 month_day(12)
       INTEGER iu_AIC,ioerr,iu_TOPO,iu_MLMAX,iu_VFLX,iu_OHTLP,iu_OCNOUT
      *     ,iu_XCORR,iu_OHT
       INTEGER ItimeX
-      REAL*8 onht(jm),toceansv(3,IM,JM)
+      REAL*8 onht(jm,2),toceansv(3,IM,JM)
       real*8 z1ox(im,jm),z12o_max
 C****
       character*4 month_name(12), tmonth, tyear
@@ -125,6 +126,7 @@ C*
 C**** Zero out spectral coefficients
 C*
       CV = 0. ; AV = 0. ; BV = 0. ; AE = 0. ; BE = 0.
+      AMPOT = 0. ; PHAOT = 0. ; COTS = 0.
       FLAND = 1. - FOCEAN
 C****
 C**** Calculate spherical geometry
@@ -211,11 +213,15 @@ C****
             DO J=1,JM
               DO I=1,IMAXJ(J)
                 IF(FOCEAN(I,J).LE.0.)  CYCLE
-                VFX = OA(I,J,4)
+                VFX(1) = OA(I,J,4)
      *               + (1.-RSI(I,J))*(OA(I,J,6)+OA(I,J,7)+OA(I,J,8)
-     *               +XCORR*OA(I,J,5))+ RSI(I,J)*(OA(I,J,9)+OA(I,J,10)
-     *               +OA(I,J,11)+XCORR*OA(I,J,12))
+     *               +XCORR(1)*OA(I,J,5))+ RSI(I,J)*(OA(I,J,9)
+     *               +OA(I,J,10)+OA(I,J,11)+XCORR(1)*OA(I,J,12))
      *               +OA(I,J,13)
+                VFX(2) = OA(I,J,4)   ! no ice dyn
+     *               + (1.-RSI(I,J))*(OA(I,J,6)+OA(I,J,7)+OA(I,J,8)
+     *               +XCORR(2)*OA(I,J,5))+ RSI(I,J)*(OA(I,J,9)
+     *               +OA(I,J,10)+OA(I,J,11)+XCORR(2)*OA(I,J,12))
 C*
                 OE = RSI(I,J)*OA(I,J,3)
      *               + ((Z1O(I,J)*RHOWS-OA(I,J,2))*TOCEAN(1,I,J)+
@@ -223,10 +229,10 @@ C*
 C*
 C**** Accumulate the spectral coefficients
 C*
-                CV(I,J) = CV(I,J) + VFX
+                CV(I,J,:) = CV(I,J,:) + VFX(:)
                 DO K=1,4
-                  AV(I,J,K) = AV(I,J,K) + VFX*COSDAY(K)
-                  BV(I,J,K) = BV(I,J,K) + VFX*SINDAY(K)
+                  AV(I,J,K,:) = AV(I,J,K,:) + VFX(:)*COSDAY(K)
+                  BV(I,J,K,:) = BV(I,J,K,:) + VFX(:)*SINDAY(K)
                   AE(I,J,K) = AE(I,J,K) + OE *COSDAY(K)
                   BE(I,J,K) = BE(I,J,K) + OE *SINDAY(K)
                 END DO
@@ -242,10 +248,10 @@ C**** SCALE AV TO W/M**2 , AE TO J/M**2 TO CALCULATE SPECTRAL COEFF
 C****
       DO J=1,JM
       DO I=1,IM
-        CV(I,J) = CV(I,J)/SYEARS
+        CV(I,J,:) = CV(I,J,:)/SYEARS
         DO K=1,4
-          AV(I,J,K) = AV(I,J,K)*2./SYEARS
-          BV(I,J,K) = BV(I,J,K)*2./SYEARS
+          AV(I,J,K,:) = AV(I,J,K,:)*2./SYEARS
+          BV(I,J,K,:) = BV(I,J,K,:)*2./SYEARS
           AE(I,J,K) = AE(I,J,K)*2./(365.*years)
           BE(I,J,K) = BE(I,J,K)*2./(365.*years)
         END DO
@@ -258,10 +264,10 @@ C****
       DO J=1,JM
       DO I=1,IMAXJ(J)
         IF(FOCEAN(I,J).LE.0.)  CYCLE
-        COT(I,J) =  -CV(I,J)
+        COT(I,J,:) =  -CV(I,J,:)
         DO K=1,4
-          AOT(I,J,K) =  BE(I,J,K)*K*OMEG - AV(I,J,K)
-          BOT(I,J,K) = -AE(I,J,K)*K*OMEG - BV(I,J,K)
+          AOT(I,J,K,:) =  BE(I,J,K)*K*OMEG - AV(I,J,K,:)
+          BOT(I,J,K,:) = -AE(I,J,K)*K*OMEG - BV(I,J,K,:)
         END DO
       END DO
       END DO
@@ -269,21 +275,43 @@ C**** Compute phase and amplitude of ocean transports
       DO J=1,JM
       DO I=1,IMAXJ(J)
         IF(FOCEAN(I,J).LE.0.) CYCLE
-        AMPOT(I,J) = SQRT(AOT(I,J,1)*AOT(I,J,1)+BOT(I,J,1)*BOT(I,J,1))
-        PHAOT(I,J) = ATAN2(BOT(I,J,1),AOT(I,J,1))*365./TWOPI
-        COTS(I,J)  = COT(I,J)
+        AMPOT(I,J,:) = SQRT(AOT(I,J,1,:)*AOT(I,J,1,:)+
+     *       BOT(I,J,1,:)*BOT(I,J,1,:))
+        PHAOT(I,J,:) = ATAN2(BOT(I,J,1,:),AOT(I,J,1,:))*365./TWOPI
+        COTS(I,J,:)  = COT(I,J,:)
       END DO
+      END DO
+C**** fix diagnostic polar boxes
+      DO I=2,IM
+        AMPOT(I, 1,:)=AMPOT(1, 1,:)
+        AMPOT(I,JM,:)=AMPOT(1,JM,:)
+        PHAOT(I, 1,:)=PHAOT(1, 1,:)
+        PHAOT(I,JM,:)=PHAOT(1,JM,:)
+        COTS(I, 1,:) = COTS(1, 1,:)
+        COTS(I,JM,:) = COTS(1,JM,:)
       END DO
       TAU4 = itime
-      CALL MAP1 (IM,JM,ITIME,TITLE(1),AMPOT,SNGL(FOCEAN),1.,0.,0)
-      CALL MAP1 (IM,JM,ITIME,TITLE(2),PHAOT,SNGL(FOCEAN),1.,0.,0)
-      CALL MAP1 (IM,JM,ITIME,TITLE(3),COTS ,SNGL(FOCEAN),1.,0.,0)
+      CALL MAP1 (IM,JM,ITIME,TITLE(1),AMPOT(1,1,1),SNGL(FOCEAN),1.,0.,0)
+      CALL MAP1 (IM,JM,ITIME,TITLE(2),PHAOT(1,1,1),SNGL(FOCEAN),1.,0.,0)
+      CALL MAP1 (IM,JM,ITIME,TITLE(3),COTS(1,1,1) ,SNGL(FOCEAN),1.,0.,0)
+C**** no ice dyn
+      do i=1,3
+        TITLE(i)=trim(TITLE(i))//" no IceD"
+      end do
+      CALL MAP1 (IM,JM,ITIME,TITLE(1),AMPOT(1,1,2),SNGL(FOCEAN),1.,0.,0)
+      CALL MAP1 (IM,JM,ITIME,TITLE(2),PHAOT(1,1,2),SNGL(FOCEAN),1.,0.,0)
+      CALL MAP1 (IM,JM,ITIME,TITLE(3),COTS(1,1,2) ,SNGL(FOCEAN),1.,0.,0)
 C****
 C**** Write ocean transports spectral coefficients to disk
 C****
       call openunit("OHT",iu_OHT,.true.,.false.)
-      WRITE (iu_OHT) BOT,AOT,COT,z12o_max
-      print*,"OHT comp:",BOT(71,23,1:4),AOT(71,23,1:4),COT(71,23)
+      WRITE (iu_OHT) BOT(:,:,:,1),AOT(:,:,:,1),COT(:,:,1),z12o_max
+      print*,"OHT comp:",BOT(71,23,1:4,1),AOT(71,23,1:4,1),COT(71,23,1)
+      call closeunit(iu_OHT)
+
+      call openunit("OHTnoID",iu_OHT,.true.,.false.)
+      WRITE (iu_OHT) BOT(:,:,:,2),AOT(:,:,:,2),COT(:,:,2),z12o_max
+      print*,"OHT comp:",BOT(71,23,1:4,2),AOT(71,23,1:4,2),COT(71,23,2)
       call closeunit(iu_OHT)
 
 C**** save tocean data
@@ -312,12 +340,12 @@ C*
 C**** Output aplot format file of ocean heat transports
       print*,"Calculating global northward heat transport..."
 
-      onht(jm)=cot(1,jm)*im*dxyp(jm)*focean(1,jm)
-      write(*,*) cot(1,jm),1.d-15*onht(jm),dxyp(jm)
+      onht(jm,:)=cot(1,jm,:)*im*dxyp(jm)*focean(1,jm)
+      write(*,*) cot(1,jm,:),1.d-15*onht(jm,:),dxyp(jm)
       do j=jm-1,2,-1
-        onht(j)=onht(j+1)
+        onht(j,:)=onht(j+1,:)
         do i=1,im
-          onht(j)=onht(j)+COT(i,j)*dxyp(j)*focean(i,j)
+          onht(j,:)=onht(j,:)+COT(i,j,:)*dxyp(j)*focean(i,j)
         end do
       end do
 
@@ -326,9 +354,9 @@ C**** Output aplot format file of ocean heat transports
       write(iu_OHTLP,*) 'Global Northward Ocean Heat Transport '
       write(iu_OHTLP,*) 'Latitude'
       write(iu_OHTLP,*) '10**15 W'
-      write(iu_OHTLP,*) ' lat  ',RunID
+      write(iu_OHTLP,*) ' lat  ',trim(RunID),' ',trim(RunID)//"_noIceD"
       do j=2,jm
-        write(iu_OHTLP,*) lat_dg(j,2),1d-15*onht(j)
+        write(iu_OHTLP,*) lat_dg(j,2),1d-15*onht(j,:)
       end do
       write(iu_OHTLP,*) ' '
 

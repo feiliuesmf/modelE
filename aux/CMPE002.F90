@@ -156,8 +156,8 @@
             nn = mod( nn, db(m)%im*db(m)%jm )
             j = nn/(db(m)%im)
             i = mod( nn, db(m)%im )
-            print '(i6,": ",i6,3i4,"    ",3e24.16)', &
-               n, i+1,j+1,k+1,l+1, v1,v2,err
+            print '(i6,": ",i6,3i4,"    ",4e24.16)', &
+               n, i+1,j+1,k+1,l+1, v1,v2,err,rel_err
             nerr = nerr+1
             if ( nerr > 10 ) exit
           endif
@@ -280,7 +280,7 @@
            print *, 'There was an error while reading input file.'
            print *, 'You are probably using incompatible version'
            print *, 'of CMPE002. Try to recompile it.'
-           stop
+           ! stop
         endif
         print *,"read file: ", trim(file_name(i)),"  time= ",Itime(i)
         ! data from model_com

@@ -90,17 +90,17 @@ qc.o: $(GCMLIB)
 $(BIN_DIR)/qc: qc.o $(GCMLIB)
 	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
-vertflux.E001.o: $(GCMLIB)
+vertflux.E001.o: $(GCMLIB) MAPS.o
 
 $(BIN_DIR)/vertflux.exe: vertflux.E001.o MAPS.o $(GCMLIB)
 	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
-ocnIC.E001.o: $(GCMLIB)
+ocnIC.E001.o: $(GCMLIB) MAPS.o
 
 $(BIN_DIR)/ocnIC.exe: ocnIC.E001.o MAPS.o $(GCMLIB)
 	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
-otspec.E001.o: $(GCMLIB)
+otspec.E001.o: $(GCMLIB) MAPS.o
 
 $(BIN_DIR)/otspec.E001.exe: otspec.E001.o MAPS.o $(GCMLIB)
 	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
