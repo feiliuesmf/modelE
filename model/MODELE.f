@@ -611,7 +611,7 @@ C****
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b,imaxj
       USE RANDOM
-      USE RADNCB, only : rqt,lm_req
+      USE RADNCB, only : rqt,lm_req,cloud_rad_forc
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM,only: MTRACE,NTM,TRNAME
@@ -1303,7 +1303,7 @@ C**** Recompute Ground hydrology data if redoGH (new soils data)
 C****
       if (Kradia.gt.0) then   !  radiative forcing run
         CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
-        if(istart.gt.0) CALL init_RAD
+        CALL init_RAD(istart)
         if(istart.lt.0) CALL init_DIAG(ISTART,num_acc_files)
         WRITE (6,INPUTZ)
         call print_param( 6 )
@@ -1333,7 +1333,7 @@ C****
       CALL UPDTYPE
       if(istart.gt.0) CALL init_QUS(im,jm,lm)
       if(istart.gt.0) CALL init_MOM
-      if(istart.gt.0) CALL init_RAD
+      CALL init_RAD(istart)
       WRITE (6,INPUTZ)
       call print_param( 6 )
       WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)

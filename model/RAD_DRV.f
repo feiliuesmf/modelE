@@ -298,7 +298,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       RETURN
       END
 
-      SUBROUTINE init_RAD
+      SUBROUTINE init_RAD(istart)
 !@sum  init_RAD initialises radiation code
 !@auth Original Development Team
 !@ver  1.0
@@ -333,7 +333,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 #endif
       IMPLICIT NONE
 
-      INTEGER J,L,LR,LONR,LATR,n1
+      INTEGER J,L,LR,LONR,LATR,n1,istart
       REAL*8 COEX,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS,PLBx(LM+1)
      *     ,pyear
 !@var NRFUN indices of unit numbers for radiation routines
@@ -392,6 +392,7 @@ C**** sync radiation parameters from input
       call sync_param( "rad_interact_tr", rad_interact_tr )
       call sync_param( "rad_forc_lev", rad_forc_lev )
       call sync_param( "cloud_rad_forc", cloud_rad_forc )
+      if (istart.le.0) return
 
 C**** Set orbital parameters appropriately
       if (calc_orb_par.eq.1) then ! calculate from paleo-year
