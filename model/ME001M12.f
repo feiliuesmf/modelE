@@ -20,6 +20,7 @@ C**** f90 changes
       USE GHYCOM
      &   , only : ghdata
       USE RANDOM
+      USE RADNCB, only : RQT,SRHR,TRHR,FSF
       USE CLOUDS, only : TTOLD,QTOLD,WM,SVLHX,RHSAV
      *     ,CLDSAV,MSTCNV,CONDSE
       USE SOCPBL, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
@@ -528,6 +529,7 @@ C****
       USE GHYCOM
      &  , only : ghdata
       USE RANDOM
+      USE RADNCB, only : RQT,SRHR,TRHR,FSF
       USE CLOUDS, only : TTOLD,QTOLD,WM,SVLHX,RHSAV,CLDSAV
       USE SOCPBL
      &     , only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq=>cqgs

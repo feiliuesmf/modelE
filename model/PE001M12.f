@@ -838,6 +838,7 @@ C****
      *     ,tf
       USE E001M12_COM
       USE GEOM
+      USE RADNCB
       USE RE001
      &  , only : setnew,rcomp1,writer,rcompx,rcompt ! routines
      &             ,lx
@@ -865,7 +866,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,ail,ajl,asjl,adaily
       IMPLICIT REAL*8 (A-H,O-Z)
 
-      COMMON/WORK1d/COSZ1(IM,JM),COSZ2(IM,JM),COSZA(IM,JM),
+      COMMON/WORK1d/COSZ2(IM,JM),COSZA(IM,JM),
      *  TRINCG(IM,JM),BTMPW(IM,JM),SNFS(IM,JM,4),TNFS(IM,JM,4),
      *  TRHRS(IM,JM,3),SRHRS(IM,JM,3),ALB(IM,JM,9)
       COMMON/WORK2c/ TOTCLD(LM)

@@ -4,7 +4,8 @@ C**** DIAGNOSTICS COMMON BLOCK
       MODULE DAGCOM
 
       USE E001M12_COM, only : im,jm,lm,imh
-     &   ,lm_req ! lm_req will come from a radiation module
+
+      USE RADNCB, only : LM_REQ
 
       IMPLICIT NONE
       

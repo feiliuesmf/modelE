@@ -22,12 +22,13 @@ C****
       USE E001M12_COM
       USE SOMTQ_COM
       USE GEOM
+      USE RADNCB, only : trhr,fsf,cosz1
       USE SOCPBL, only : ipbl,pbl,omega2,zgs
       USE DAGCOM, only : aij,tdiurn,aj,bj,cj,dj,ajl,adaily,jreg
       IMPLICIT REAL*8 (A-H,O-Z)
 C*
       REAL*8 KM, KH, MSUM, MA1, MSI1, MSI2
-      COMMON/WORK1d/COSZ1(IM,JM),DTH1(IM,JM),DQ1(IM,JM)
+      COMMON/WORK1d/DTH1(IM,JM),DQ1(IM,JM)
       COMMON/WORK2/UT(IM,JM,LM),VT(IM,JM,LM),DU1(IM,JM),
      *  DV1(IM,JM)
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID

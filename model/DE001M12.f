@@ -342,6 +342,7 @@ C****
      &     , uhide=>u, vhide=>v, thide=>t, phide=>p, qhide=>q,
      *     sqrtpx=>sqrtp
       USE GEOM
+      USE RADNCB, only : rqt
       USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,apj,ajl,asjl,ail
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION U(IM,JM,LM),V(IM,JM,LM),T(IM,JM,LM),P(IM,JM),Q(IM,JM,LM)

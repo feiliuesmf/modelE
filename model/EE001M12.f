@@ -11,6 +11,7 @@ C****
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,edpery
       USE E001M12_COM
       USE GEOM
+      USE RADNCB, only : trhr,fsf,cosz1
       USE GHYCOM, only : wbare,wvege,htbare,htvege,snowbv
       USE SLE001
      &    , only : reth,retp,retp2,advnc,
@@ -34,7 +35,7 @@ C****
 
       IMPLICIT REAL*8 (A-H,O-Z)
 
-      COMMON /WORK1d/COSZ1(IM,JM),DTH1(IM,JM),DQ1(IM,JM)
+      COMMON /WORK1d/DTH1(IM,JM),DQ1(IM,JM)
       COMMON/WORK2/UT(IM,JM,LM),VT(IM,JM,LM),DU1(IM,JM),
      *  DV1(IM,JM)
       COMMON/WORK3/E0(IM,JM,4),E1(IM,JM,4),EVAPOR(IM,JM,4),
