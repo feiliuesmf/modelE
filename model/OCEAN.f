@@ -26,7 +26,7 @@
       SAVE
 
 !@dbparam ocn_cycl determines whether prescribed ocean data repeat
-!@+       after 1 year - 0:yes 1:no 2:seaice repeats,sst does not
+!@+       after 1 year - 0:no 1:yes 2:seaice repeats,sst does not
       integer :: ocn_cycl = 1
 !@var TOCEAN temperature of the ocean (C)
       REAL*8, DIMENSION(3,IM,JM) :: TOCEAN
