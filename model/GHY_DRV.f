@@ -423,7 +423,6 @@ c****
      &    qm1,qs,
      &    pres,rho,ts,vsm,ch,srht,trht
 
-
       use veg_drv, only: veg_save_cell,veg_set_cell
 
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
@@ -772,6 +771,7 @@ c**** update tracers
 #ifdef TRACERS_ON
       call ghy_tracers_save_cell(i,j,ptype,pbl_args%dtsurf)
 #endif
+
       end do loop_i
       end do loop_j
 !$OMP  END PARALLEL DO
@@ -1950,7 +1950,7 @@ c**** check for reasonable temperatures over earth
       use ghy_com, only : snoage, snoage_def
       use veg_com, only : almass,aalbveg       !nyk
       use vegetation, only: crops_yr,cond_scheme,vegCO2X_off !nyk
-      use surf_albedo, only: albvnh  !nyk
+      use surf_albedo, only: albvnh, updsur  !nyk
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       use sle001, only : fb,fv,ws
       use veg_drv, only : veg_set_cell

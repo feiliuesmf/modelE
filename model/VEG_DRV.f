@@ -28,7 +28,7 @@
       use ghy_com, only : ngm
       use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       use ghy_com, only : dz_ij
-      use surf_albedo, only: albvnh  !nyk !!! not used? i.a.
+!      use surf_albedo, only: albvnh  !nyk !!! not used? i.a.
 
       implicit none
 
@@ -369,6 +369,8 @@ C****
 !      integer northsouth,iv  !nyk
 !      real*8 alaic,vh,shtpr,alai  ! adf
       real*8 alaic
+
+      ! call stop_model("veg_set_cell called", 255)
 
 c**** fr: root fraction in layer l  (1=fr(1)+fr(2)+...+fr(n))
       do l=1,ngm
