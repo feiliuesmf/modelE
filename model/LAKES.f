@@ -1009,8 +1009,20 @@ C**** Check total lake mass ( <0.4 m, >20x orig depth)
       END DO
 
 #ifdef TRACERS_WATER
-C**** Check conservation of water tracers in lake
       do n=1,ntm
+C**** Check for neg tracers in lake
+          do j=1,jm
+          do i=1,imaxj(j)
+            if (fearth(i,j).gt.0) then
+              if (trlake(n,1,i,j).lt.0 .or. trlake(n,2,i,j).lt.0) then
+                print*,"Neg tracer in lake after ",SUBR,i,j,trname(n)
+     *               ,trlake(n,:,i,j) 
+                QCHECKL=.TRUE.
+              end if
+            end if
+          end do
+        end do
+C**** Check conservation of water tracers in lake
         if (trname(n).eq.'Water') then
           errmax = 0. ; imax=1 ; jmax=1
           do j=1,jm
@@ -1369,7 +1381,7 @@ C**** Resave prognostic variables
           TLK2    = TLAKE(I,J)
         END IF
 #ifdef TRACERS_WATER
-        IF (MLAKE(2).eq.0.) THEN
+        IF (MLAKE(2).eq.0. .and. MLAKE(1)-MLDLK(I,J)*RHOW.gt.1d-10) THEN
           TOTTRL(:)=TRLAKEL(:,1)
           TRLAKEL(:,2)=(MLAKE(1)-MLDLK(I,J)*RHOW)*TRLAKEL(:,1)/MLAKE(1)
           TRLAKEL(:,1)=TOTTRL(:)-TRLAKEL(:,2)
