@@ -4250,7 +4250,7 @@ c
 c
       k=k+1
       IJK_PF=k
-      name_ijk(k) = 'p' 
+      name_ijk(k) = 'pf' 
       lname_ijk(k) = 'FRAC ABOVE SURF'
       units_ijk(k) = '%' 
       scale_ijk(k) = 100.0
