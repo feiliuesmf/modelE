@@ -2449,17 +2449,22 @@ C****
       module subdaily
 !@sum SUBDAILY defines variables associated with the sub-daily diags
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : im,jm,itime
+      USE MODEL_COM, only : im,jm,lm,itime
       USE FILEMANAGER, only : openunit, closeunits
+      USE DAGCOM, only : kgz_max,pmname
       USE PARAM
       IMPLICIT NONE
       SAVE
+!@var kddmax maximum number of sub-daily diags
+      INTEGER, PARAMETER :: kddmax = 30
 !@var kdd total number of sub-daily diags
       INTEGER :: kdd
+!@var kddunit total number of sub-daily files
+      INTEGER :: kddunit
 !@var namedd array of names of sub-daily diags
-      CHARACTER*10, DIMENSION(10) :: namedd
+      CHARACTER*10, DIMENSION(kddmax) :: namedd
 !@var iu_subdd array of unit numbers for sub-daily diags output
-      INTEGER, DIMENSION(10) :: iu_subdd
+      INTEGER, DIMENSION(kddmax) :: iu_subdd
 !@dbparam subdd string contains variables to save for sub-daily diags
 C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       CHARACTER*64 :: subdd = "SLP"
@@ -2473,7 +2478,8 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 !@auth Gavin Schmidt
       implicit none
       character*14, intent(in) :: adate
-      integer :: i,j,k
+      character*10 name
+      integer :: i,j,k,kunit,kk
 
       call sync_param( "subdd" ,subdd)
       call sync_param( "Nsubdd",Nsubdd)
@@ -2491,18 +2497,45 @@ C**** calculate how many names
         end if
         if (i.lt.len(subdd)) goto 10
         kdd=k
-        if (kdd.gt.10)
-     *    call stop_model("Number of sub-daily diagnostics too big",255)
+        if (kdd.gt.kddmax) call stop_model
+     *       ("Increase kddmax: No. of sub-daily diags too big",255)
 
 C**** make array of names
         read(subdd,*) namedd(1:kdd)
 
 C**** open units and position
+C**** Some names have more than one unit associated (i.e. "ZALL")
+        kunit=0
         do k=1,kdd
-          call openunit(trim(namedd(k))//aDATE(1:7),iu_SUBDD(k),.true.,
-     *         .false.)
-          call io_POS(iu_SUBDD(k),Itime,im*jm,Nsubdd)
+          if (namedd(k)(2:4).eq."ALL") then 
+            select case (namedd(k)(1:1))
+            case ("U", "V")     ! velocities on model layers
+              do kk=1,lm
+                kunit=kunit+1
+                if (kk.lt.10) then
+                  write(name,'(A1I1A7)') namedd(k)(1:1),kk,aDATE(1:7)
+                else 
+                  write(name,'(A1I2A7)') namedd(k)(1:1),kk,aDATE(1:7)
+                end if
+                call openunit(name,iu_SUBDD(kunit),.true.,.false.)
+                call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
+              end do
+            case ("Z", "T", "R") ! heights, temps, rel hum on PMB levels
+              do kk=1,kgz_max
+                kunit=kunit+1
+                call openunit(namedd(k)(1:1)//trim(PMNAME(kk))//
+     *               aDATE(1:7),iu_SUBDD(kunit),.true.,.false.)
+                call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
+              end do
+            end select
+          else                  ! single file per name
+            kunit=kunit+1
+            call openunit(trim(namedd(k))//aDATE(1:7),iu_SUBDD(kunit),
+     *           .true.,.false.)
+            call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
+          endif
         end do
+        kddunit=kunit
       end if
       return
       end subroutine init_subdd
@@ -2512,14 +2545,38 @@ C**** open units and position
 !@auth Gavin Schmidt
       implicit none
       character*14, intent(in) :: adate
-      integer :: k
+      character*10 name
+      integer :: k,kunit,kk
 
       if (nsubdd.ne.0) then
 C**** close and re-open units
-        call closeunits ( iu_SUBDD, kdd )
+        call closeunits ( iu_SUBDD, kddunit )
+        kunit=0
         do k=1,kdd
-          call openunit(trim(namedd(k))//aDATE(1:7),iu_SUBDD(k),.true.,
-     *         .false.)
+          if (namedd(k)(2:4).eq."ALL") then 
+            select case (namedd(k)(1:1))
+            case ("U", "V")     ! velocities on model layers
+              do kk=1,lm
+                kunit=kunit+1
+                if (kk.lt.10) then
+                  write(name,'(A1I1A7)') namedd(k)(1:1),kk,aDATE(1:7)
+                else 
+                  write(name,'(A1I2A7)') namedd(k)(1:1),kk,aDATE(1:7)
+                end if
+                call openunit(name,iu_SUBDD(kunit),.true.,.false.)
+              end do
+            case ("Z", "T", "R") ! heights, temps, rel hum on PMB levels
+              do kk=1,kgz_max
+                kunit=kunit+1
+                call openunit(namedd(k)(1:1)//trim(PMNAME(kk))//
+     *               aDATE(1:7),iu_SUBDD(kunit),.true.,.false.)
+              end do
+            end select
+          else                  ! single file per name
+            kunit=kunit+1
+            call openunit(trim(namedd(k))//aDATE(1:7),iu_SUBDD(kunit),
+     *           .true.,.false.)
+          endif
         end do
       end if
 C****
@@ -2543,9 +2600,10 @@ C****
       USE DAGCOM, only : z_inst,rh_inst,t_inst,kgz_max,pmname
       IMPLICIT NONE
       REAL*4, DIMENSION(IM,JM) :: DATA
-      INTEGER :: I,J,K,L,kp
+      INTEGER :: I,J,K,L,kp,kunit
       CHARACTER namel*3
 
+      kunit=0
 C**** depending on namedd string choose what variables to output
       do k=1,kdd
 
@@ -2597,11 +2655,13 @@ C**** simple diags
         case default
           goto 10
         end select
+        kunit=kunit+1
 C**** fix polar values
         data(2:im,1) =data(1,1)
         data(2:im,jm)=data(1,jm)
 C**** write out
-        call writei(iu_subdd(k),itime,data,im*jm)
+        print*,"subdd",k,kunit,namedd(k)
+        call writei(iu_subdd(kunit),itime,data,im*jm)
         cycle
 
 C**** diags on fixed pressure levels or velocity
@@ -2610,6 +2670,7 @@ C**** diags on fixed pressure levels or velocity
 C**** get pressure level
           do kp=1,kgz_max
             if (namedd(k)(2:5) .eq. PMNAME(kp)) then
+              kunit=kunit+1
               select case (namedd(k)(1:1)) 
               case ("Z")        ! geopotential heights
                 data=z_inst(kp,:,:)
@@ -2621,29 +2682,72 @@ C**** get pressure level
 C**** fix polar values
               data(2:im,1) =data(1,1)
               data(2:im,jm)=data(1,jm)
-              exit
+C**** write out
+              print*,"subdd",k,kunit,namedd(k)
+              call writei(iu_subdd(kunit),itime,data,im*jm)
+              cycle
             end if
           end do
+          if (namedd(k)(2:4) .eq. "ALL") then
+            do kp=1,kgz_max
+              kunit=kunit+1
+              select case (namedd(k)(1:1)) 
+              case ("Z")        ! geopotential heights
+                data=z_inst(kp,:,:)
+              case ("R")        ! relative humidity (wrt water)
+                data=rh_inst(kp,:,:)
+              case ("T")        ! temperature (C)
+                data=t_inst(kp,:,:)
+              end select
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+C**** write out
+              print*,"subdd",k,kunit,namedd(k)
+              call writei(iu_subdd(kunit),itime,data,im*jm)
+            end do
+            cycle
+          end if
         case ("U","V")        ! velocity levels
+          if (namedd(k)(2:4) .eq. "ALL") then
+            do kp=1,lm
+              kunit=kunit+1
+              select case (namedd(k)(1:1))
+              case ("U")        ! geopotential heights
+                data=u(:,:,kp)
+              case ("V")        ! relative humidity (wrt water)
+                data=v(:,:,kp)
+              end select
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+C**** write out
+              print*,"subdd",k,kunit,namedd(k)
+              call writei(iu_subdd(kunit),itime,data,im*jm)
+            end do
+            cycle
+          end if
 C**** get model level
           do l=1,lm
-            write(namel,'(I3)') l
+            if (l.lt.10) then
+              write(namel,'(I1)') l
+            else
+              write(namel,'(I2)') l
+            end if
             if (trim(namedd(k)(2:5)) .eq. trim(namel)) then
+              kunit=kunit+1
               select case (namedd(k)(1:1)) 
               case ("U")        ! U velocity
                 data=u(:,:,l)
               case ("V")        ! V velocity
                 data=v(:,:,l)
               end select
-              exit
+              print*,"subdd",k,kunit,namedd(k)
+              call writei(iu_subdd(kunit),itime,data,im*jm)
+              cycle
             end if
           end do
-        case default
-          cycle
         end select
-C**** write out
-        call writei(iu_subdd(k),itime,data,im*jm)
-
       end do
 c****
       return
