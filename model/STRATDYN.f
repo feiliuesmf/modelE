@@ -42,7 +42,7 @@ C**** accumulated in the routines contained herein
       END SUBROUTINE init_GWDRAG
 
 
-      SUBROUTINE VDIFF (P,U,V,T,Q,DT1)
+      SUBROUTINE VDIFF (P,U,V,T,DT1)
 !@sum VDIFF Vertical Diffusion in stratosphere
 !@auth Bob Suozzo/Jean Lerner
 !@ver  1.0
@@ -69,12 +69,12 @@ c      COMMON /WORK3/ RHO(IM,JM,LM)
 c      COMMON /WORK03/ VKEDDY(IM,JM,LM+1)  ! WORK03 is used in AADVT
       REAL*8, DIMENSION(IM,JM,LM+1) :: VKEDDY
       REAL*8, DIMENSION(IM,JM,LM) :: RHO
-      REAL*8, DIMENSION(0:LDIFM+1) :: UL,VL,TL,QL,PL,RHOL
+      REAL*8, DIMENSION(0:LDIFM+1) :: UL,VL,TL,PL,RHOL
       REAL*8, DIMENSION(LDIFM) :: AIRM,AM,AL,AU,B,DU,DV,DTEMP,DQ
       REAL*8, DIMENSION(LDIFM+1) :: TE,PLE,RHOE,DPE,DFLX,KMEDGE,KHEDGE
      *     ,LMEDGE,LHEDGE
       REAL*8, PARAMETER :: MU=1.
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: U,V,T,Q
+      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: U,V,T
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM) :: P
       REAL*8, INTENT(IN) :: DT1
       REAL*8 G2DT,PIJ,TPHYS
@@ -103,13 +103,11 @@ C**** Calculate RHO(I,J,L)
       END DO
       END DO
       END DO
-C**** Fill in T,Q,RHO at poles (again shouldn't this be done already?)
+C**** Fill in T,RHO at poles (again shouldn't this be done already?)
       DO L=1,LM
       DO I=1,IM
         T(I,1,L)=T(1,1,L)
         T(I,JM,L)=T(1,JM,L)
-        Q(I,1,L)=Q(1,1,L)
-        Q(I,JM,L)=Q(1,JM,L)
         RHO(I,1,L)=RHO(1,1,L)
         RHO(I,JM,L)=RHO(1,JM,L)
       END DO
@@ -130,7 +128,6 @@ C**** Surface values are used for F(0)
      *               USURF(I  ,J)   + USURF(IP1,J))
       VL(0)    =.25*(VSURF(I  ,J-1) + VSURF(IP1,J-1) +
      *               VSURF(I  ,J  ) + VSURF(IP1,J  ))
-      QL(0)    =QSURF(I,J)
       TPHYS    =.25*(TSURF(I  ,J-1) + TSURF(IP1,J-1) +
      *               TSURF(I  ,J)   + TSURF(IP1,J))
       TL(0)    =TPHYS*PL(0)**KAPA
@@ -371,7 +368,6 @@ c     *   PDEF,LDEF,LDEFM
      *     ,EXCESS,ALFA,XDIFF,DFT,DWT,FDEFRM,WSRC,WCHECK,DUTN,PDN
      *     ,YDN,FLUXUD,FLUXVD,PUP,YUP,DX,DLIMIT,FLUXU,FLUXV,DKEX,MDN
      *     ,MUP,MUR,BVFSQ,PLEV,PLEVE,EKS,EK1,EK2,EKX
-C     LOGICAL QWRITE
 C****
       IF (IFIRST.EQ.1) THEN
 C**** sync gwdrag parameters from input
@@ -588,7 +584,6 @@ C**** WIND SHEAR: USE SHEAR BETWEEN 7 AND 8 UNLESS CRIT. LEVEL ABOVE..
       VR(2)=DV/(DW+ ERR)
       CN(2)=.5*((UL(L+1)+UL(L))*UR(2)+(VL(L+1)+VL(L))*VR(2))
       MU(2)=-FCORU*PLE(L+1)*DW*DW/(240.*H0*(BVF(L+1)))
-C     IF (QWRITE) WRITE (6,997) I,J,L,LN,DU2K,MU(2),BVF(L+1)
 C**** MOIST CONVECTIVE MASS FLUX BEGINS TWO LEVELS ABOVE CLOUD...
 C**** AMPLITUDE DEPENDS ON |U(SOURCE)-C|.
 C**** NOTE:  NM LE 2, NM EQ 4, NM GE 8  ARE ALLOWED FOR MC DRAG
@@ -606,7 +601,6 @@ C**** Note: LMC1 was defined in CB245M31 as LMAX+1
      *  LMC(2,I,J)*AIRX(I,J)+LMC(2,IP1,J)*AIRX(IP1,J))/(AIRX4+ ERR)
       IF (LMC1.LE.4) GO TO 200
       NMX=4
-Cwmc     IF(M.EQ.0.AND.J.EQ.23) QWRITE=.TRUE.
       CLDDEP=PIJ*(SIGE(LMC0)-SIGE(LMC1))
       FPLUME=AIRXS/(DXYV(J)*CLDDEP)
       CLDHT=H0*LOG((PIJ*SIGE(LMC0)+PTOP)/(PIJ*SIGE(LMC1)+PTOP))
@@ -634,10 +628,6 @@ Cwmc     IF(M.EQ.0.AND.J.EQ.23) QWRITE=.TRUE.
       LD(4)=10
       WT(3)=WTX
       WT(4)=WTX
-C     IF (QWRITE) WRITE (6,998) I,J,LMC0,LMC1,CLDHT,WT(3),
-C    *  MU(3),CN(3),USRC,VSRC
-C     IF (QWRITE) WRITE (*,'(''AIRX,FPL,WTX,CLDDP,DXYV='',1P,5E12.2)')
-C    *      AIRXS,FPLUME,WTX,CLDDEP,DXYV(J)
       IF (LMC1.GT.9.AND.NM.GE.8) THEN
       NMX=8
       DO 182 N=3,NMX
@@ -651,8 +641,6 @@ C    *      AIRXS,FPLUME,WTX,CLDDEP,DXYV(J)
       MU(N)=MU(3)
       UR(N)=UR(3)
   184 VR(N)=VR(3)
-C     ELSE
-Cwmc  QWRITE=.FALSE.
       ENDIF
   190 WCHECK=UL(LD(3))*UR(3)+VL(LD(3))*VR(3)
       DO 195 N=3,NMX
@@ -749,8 +737,6 @@ C****
       WMC(L)=.5*(WMC(L-1)+WMC(L))
       IF (WMC(L).LT..01) WMC(L)=.01d0
   270 CONTINUE
-Cd    IF (QWRITE) WRITE (6,988) LD1,LTOP,RAREA
-C 988 FORMAT (1X,'LD1=',I6,4X,'LTOP=',I6,4X,'RAREA=',1P,E12.3)
       DO 300 L=LD1,LTOP
       IF (L.EQ.LM.AND.MRCH.EQ.2)
      *   AIJ(I,J,IJ_GW9)=AIJ(I,J,IJ_GW9)+MU(N)*UR(N)*DTHR  *WT(N)
@@ -771,9 +757,6 @@ C**** MECHANICAL (TURBULENT) DRAG
          IF (MUR.LT.MUB(L+1,N)) MU(N)=0.     ! sensitivity test
       ENDIF
       DFM(L)=MUR-MU(N)
-C     IF (QWRITE) WRITE (6,986) L,N,WMC(L),DFR(L),DFM(L),MU(N),DP(L)
-C 986 FORMAT (1X,'L,N=',2I4,' WMC=',F9.1,' DFR,DFM,MU=',1P,3E12.3,
-C    *  '  DP=',E12.3)
   300 CONTINUE
 C**** LIMIT THE CONVERGENCE TO XLIMIT*(U-C)
   320 DO 350 L=LTOP,LD1,-1
@@ -813,10 +796,6 @@ C**** SHEAR AND MOUNTAIN ORIENTATION
       DUTN=DWT*UR(N)*WT(N)
       DUT(L)=DUT(L)+DUTN
       DVT(L)=DVT(L)+DWT*VR(N)
-C     GO TO 380
-C 380 IF (QWRITE) WRITE (6,985) L,N,DWT,UL(L),VL(L),WL(L),DFT
-C 985 FORMAT (1X,'L,N=',2I4,'  DWT=',1P,E12.3,'  UL,VL,WL=',
-C    *  3E12.3,'  DFT=',E12.3)
       IF (MRCH.NE.2) GO TO 390
         IF (N.LT.9) THEN
          AJL(J,L,N+JL_gwFirst)=AJL(J,L,N+JL_gwFirst)+DUTN
@@ -825,9 +804,6 @@ C    *  3E12.3,'  DFT=',E12.3)
         ENDIF
   390 CONTINUE
   400 CONTINUE
-C     IF (QWRITE) WRITE (6,987) (L,DUT(L),DVT(L),DL(L),L=LDRAG,LM)
-C 987 FORMAT (1H0,'  L      DUT         DVT         DL'/
-C    *  (1X,I4,1P,3E12.3))
 C****
 C**** MOMENTUM DIFFUSION   (DOUBLED)
 C****    (limited to XLIMIT per timestep)

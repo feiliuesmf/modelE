@@ -1,5 +1,4 @@
 C**** QUSEM12 E001M12 SOMTQ QUSB261AM12
-C**** cannot use OPT(3)
 C**** QUSBM9=QUSB140M9 with correction to second order moment calc.
 C**** Changes for constant pressure above LS1 + double precision
 C**** QUS   is Russell quadratic upstream scheme for temperature
@@ -133,20 +132,6 @@ C****
       enddo
       enddo
       enddo
-C**** CHECK MA(I,J,L)   (debugging only)
-c     DO 340 L=1,LS1-1
-c     DO 340 J=1,JM
-c     DO 340 I=1,IM
-c     CHECK=P(I,J)-MA(I,J,L)/DSIG(L)/DXYP(J)
-c 340 IF(ABS(CHECK).GT..01)WRITE(6,9000)I,J,L,MA(I,J,L),PC(I,J),DSIG(L)
-c    *     ,DXYP(J),CHECK
-c     DO 345 L=LS1,LM
-c     DO 345 J=1,JM
-c     DO 345 I=1,IM
-c     CHECK=PSFMPT-MA(I,J,L)/DSIG(L)/DXYP(J)
-c 345 IF(ABS(CHECK).GT..01)WRITE(6,9000)I,J,L,MA(I,J,L),PSFMPT,DSIG(L)
-c    *     ,DXYP(J),CHECK
-c 9000 FORMAT(' MA DIFFERS FROM P*DSIG*DXYP BY TOO MUCH',3I3,5E11.3)
       RETURN
       END
 
@@ -280,6 +265,7 @@ c**** average and unscale polar boxes
 c****
       end subroutine aadvty
 
+
       subroutine aadvtz(rm,rmom,mass,mw,qlimit)
 !@sum  AADVTZ advection driver for z-direction
 !@auth Maxwell Kelley
@@ -323,5 +309,3 @@ c****
       return
 c****
       end subroutine aadvtz
-
-

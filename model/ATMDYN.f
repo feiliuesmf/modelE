@@ -772,7 +772,7 @@ C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
       CALL AFLUX (U,V,PIJL)
       CALL ADVECM (P,PB,DTFS)
       CALL GWDRAG (PB,UX,VX,T,TZ,DTFS)   ! strat
-      CALL VDIFF (PB,UX,VX,T,Q,DTFS)     ! strat
+      CALL VDIFF (PB,UX,VX,T,DTFS)       ! strat
       CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
       CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
       CALL FLTRUV(UX,VX)
@@ -783,7 +783,7 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
       CALL AFLUX (UX,VX,PIJL)
       CALL ADVECM (P,PA,DT)
       CALL GWDRAG (PA,UT,VT,T,TZ,DT)   ! strat
-      CALL VDIFF (PA,UT,VT,T,Q,DT)     ! strat
+      CALL VDIFF (PA,UT,VT,T,DT)       ! strat
       CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
       CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
       CALL FLTRUV(UT,VT)
@@ -795,7 +795,7 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
       CALL AFLUX (U,V,PIJL)
       CALL ADVECM (PA,PB,DTLF)
       CALL GWDRAG (PB,UT,VT,T,TZ,DTLF)   ! strat
-      CALL VDIFF (PB,UT,VT,T,Q,DTLF)     ! strat
+      CALL VDIFF (PB,UT,VT,T,DTLF)       ! strat
       CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
       CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
       CALL FLTRUV(UT,VT)
@@ -825,7 +825,7 @@ C*** copy z-moment of temperature into contiguous memory
       tz(:,:,:) = tmom(mz,:,:,:)
       call calc_amp(pc,ma)
       CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE. ,FWVU,FWVV)
-      CALL VDIFF (P,U,V,T,Q,DTLF)        ! strat
+      CALL VDIFF (P,U,V,T,DTLF)          ! strat
       PC(:,:)    = .5*(P(:,:)+PC(:,:))
       TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
       TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))

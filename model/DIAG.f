@@ -353,7 +353,7 @@ C****
      *     ,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst,j_rictr,j_rostr,j_ltro
      *     ,j_ricst,j_rosst,j_lstr,j_gamm,j_gam,j_gamc,lstr,il_ueq
      *     ,il_veq,il_weq,il_teq,il_qeq,il_w50n,il_t50n,il_u50n,il_w70n
-     *     ,il_t70n,il_u70n,   kgz,pmb,ght,
+     *     ,il_t70n,il_u70n,KGZ_max,pmb,ght,
      &     JL_DTDYN,JL_ZMFNTMOM,JL_TOTNTMOM,JL_APE,JL_UEPAC,
      &     JL_VEPAC,JL_UWPAC,JL_VWPAC,JL_WEPAC,JL_WWPAC,
      &     JL_EPFLXN,JL_EPFLXV
@@ -411,11 +411,6 @@ C**** INITIALIZE CERTAIN QUANTITIES
   888 FORMAT (' JET WIND LEVEL FOR DIAG',I3)
       BYSDSG=1./(1.-SIGE(LM+1))
       EPSLON=1.
-      KM=0
-      DO 5 K=1,KGZ
-      IF (PMTOP.GT.PMB(K)) GO TO 6
-    5 KM=KM+1
-    6 CONTINUE
       I150E = IM*(180+150)/360+1   ! WEST EDGE OF 150 EAST
       I110W = IM*(180-110)/360+1   ! WEST EDGE OF 110 WEST
       I135W = IM*(180-135)/360+1   ! WEST EDGE OF 135 WEST
@@ -495,14 +490,14 @@ C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
      *     -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)*GRAV)
       IF (K.EQ.2) AIJ(I,J,IJ_T850)=AIJ(I,J,IJ_T850)+(TX(I,J,L)-TF
      *     +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
-      IF (K.GE.KM) GO TO 180
+      IF (K.GE.KGZ_max) GO TO 180
       K=K+1
       IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
       GO TO 174
  176  AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
      *     -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
       IF (K.EQ.2) AIJ(I,J,IJ_T850)=AIJ(I,J,IJ_T850)+(TX(I,J,L)-TF)
-      IF (K.GE.KM) GO TO 180
+      IF (K.GE.KGZ_max) GO TO 180
       K=K+1
       IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
       GO TO 176
