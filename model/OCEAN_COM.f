@@ -27,7 +27,7 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
       REAL*8, DIMENSION(IM,JM,LMO) :: MO, UO, VO,
      *     G0M,GXMO,GYMO,GZMO, S0M,SXMO,SYMO,SZMO
 
-C**** ocean geometry (should this be in a seperate module?)
+C**** ocean geometry (should this be in a separate module?)
       REAL*8, DIMENSION(JM) :: DXYPO,DXPO,DYPO,DXVO,DYVO
      *     ,COSPO,SINPO,DXYVO,DXYSO,DXYNO,RAMVS,RAMVN,RLAT,BYDXYPO
       REAL*8, DIMENSION(0:JM) :: COSVO

@@ -36,7 +36,7 @@ c      COMMON /WORK1/ W(IM,JM,LM),WORKX(IM,JM,7*LM+3)
       REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: U,V,T
       REAL*8, INTENT(IN), DIMENSION(IM,JM) :: P
 
-C**** NOTE: AEP was a seperate array but is now saved in AJL (pointer?)
+C**** NOTE: AEP was a separate array but is now saved in AJL (pointer?)
 c      REAL*8, DIMENSION(JM,LM,KEP) :: AEP
 
 C**** ARRAYS CALCULATED HERE:
@@ -432,7 +432,7 @@ C****
      &     ,jl_dudtsdif,jl_damdc,jl_dammc
       USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
       IMPLICIT NONE
-C**** NOTE: AEP was a seperate array but is now saved in AJL (pointer?)
+C**** NOTE: AEP was a separate array but is now saved in AJL (pointer?)
 c      REAL*8, DIMENSION(JM,LM,KEP) :: AEP
 
 c      COMMON /PROGCB/ U,V,T,SX,SY,SZ,P,Q   !not used?
