@@ -214,6 +214,8 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
 !$OMP  THREADPRIVATE (/CLDPRV/)
 
+      INTEGER,PARAMETER :: ncol =20    !@var ncol number of subcolumns
+
       CONTAINS
 
       SUBROUTINE MSTCNV(IERR,LERR,i_debug,j_debug)
@@ -2629,6 +2631,7 @@ C-----------------------------------------------------------------------
       USE CONSTANT, only : bygrav, wtmair=>mair, bymrat,avog
       USE RANDOM, only : rinit,rfinal,randu
       USE MODEL_COM, only : nlev=>lm,qcheck
+      USE CLOUDS, only : ncol
       implicit none
 !@var  overlap type: 1=max, 2=rand,  3=max/rand
 !@var  top_height 1 = adjust top height, that is compute infrared
@@ -2638,7 +2641,6 @@ C-----------------------------------------------------------------------
       INTEGER, PARAMETER :: top_height=1, overlap=3
 !@var  emsfc_lw    longwave emissivity of surface at 10.5 microns
       REAL*8, PARAMETER :: emsfc_lw=0.99d0
-      INTEGER,PARAMETER :: ncol =20    !@var ncol number of subcolumns
       REAL*8, PARAMETER :: byncol = 1d0/ncol
 !@var pc1bylam Planck constant c1 by wavelength (10.5 microns)
       REAL*8, PARAMETER :: pc1bylam = 1.439d0/10.5d-4

@@ -1162,6 +1162,8 @@ C****
       USE DIAG_COM, only : ij_tgo2,aij
       USE SEAICE_COM, only : rsi,msi,hsi,ssi
       USE STATIC_OCEAN, only : tocean
+      USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP, ONLY : AM_I_ROOT
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -1171,12 +1173,16 @@ C****
 !@var it input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
       INTEGER I,J
+      REAL*8 :: AIJ_tmp_glob(IM,JM)
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output
-        WRITE (kunit,err=10) it,((AIJ(I,J,IJ_TGO2),I=1,IM),J=1,JM)
+        CALL PACK_DATA(grid, AIJ(:,:,IJ_TGO2), AIJ_tmp_glob)
+        IF (AM_I_ROOT()) WRITE (kunit,err=10) it,AIJ_tmp_glob
       CASE (IOREAD:)            ! input
         READ (kunit,err=10) it,((AIJ(I,J,IJ_TGO2),I=1,IM),J=1,JM)
+        CALL UNPACK_DATA(grid, AIJ_tmp_glob, AIJ(:,:,IJ_TGO2), 
+     *       local=.true.)
       END SELECT
 
       RETURN

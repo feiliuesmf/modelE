@@ -59,6 +59,7 @@ C
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
@@ -244,6 +245,12 @@ C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
 C
 C     NOW REALLY UPDATE THE MODEL WINDS
 C
+C***  ...first update halo (J_0-1 values) of UKM,VKM, and PLIJ.
+      call halo_update_column(grid, UKM, from=SOUTH) 
+      call halo_update_column(grid, VKM, from=SOUTH) 
+      call halo_update_column(grid,PLIJ, from=SOUTH) 
+      call halo_update_column(grid,LRANG,from=SOUTH)
+
       IF (HAVE_SOUTH_POLE) then
        J=1
        DO K=1,KMAXJ(J)
@@ -260,6 +267,27 @@ C
           AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
      *       UKP1(K,L)*PLIJ(L,1,J)*RA(K)
        END DO ; END DO
+      ElSE ! need contribution from southern neighbor
+        J=J_0H
+        KMAX=KMAXJ(J)
+        DO K=1,KMAX
+           IDJ(K)=IDJJ(K,J)
+           RA(K) =RAVJ(K,J)
+        END DO
+        DO I=1,IM
+          LMIN=LRANG(1,I,J)
+          LMAX=LRANG(2,I,J)
+          DO L=LMIN,LMAX
+          DO K=1,KMAX
+            IF (IDJ(K) == J_0) THEN
+              IDI(K)=IDIJ(K,I,J)
+              U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)*RA(K)
+              V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)*RA(K)
+              AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
+     *             UKM(K,I,J,L)*PLIJ(L,I,J)*RA(K)
+            END IF
+          END DO ; END DO
+        END DO
       END IF   !END SOUTH POLE
 C
       DO J=J_0S, J_1-1       !J_1S computed below
@@ -327,17 +355,6 @@ C**** First half of loop cycle for j=j_1 for internal blocks
 C**** Second half of southern neighbor's j=j_1 cycle (equivalent to j=j_0-1
 C**** in this block).
       if (.not. HAVE_SOUTH_POLE) then
-
-C***  ...first update halo (J_0-1 values) of UKM,VKM, and PLIJ.
-        call checksum_column(grid, UKM, __LINE__, __FILE__)
-        call checksum_column(grid, VKM, __LINE__, __FILE__)
-        call checksum_column(grid,PLIJ, __LINE__, __FILE__)
-        call checksum_column(grid,LRANG,__LINE__, __FILE__)
-   
-        call halo_update_column(grid, UKM, from=SOUTH) 
-        call halo_update_column(grid, VKM, from=SOUTH) 
-        call halo_update_column(grid,PLIJ, from=SOUTH) 
-        call halo_update_column(grid,LRANG,from=SOUTH)
 
 C**** ....then, accumulate neighbors contribution to 
 C**** U,V,AJL at the J=J_0 (B-grid) corners --i.e.do a

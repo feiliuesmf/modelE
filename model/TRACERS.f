@@ -392,12 +392,16 @@ C**** Tracers dry deposition flux.
       USE FLUXES, only : trsource,trflux1,trsrfflx
       USE TRDIAG_COM, only : taijs,tajls,ijts_source,jls_source
      *     ,itcon_surf,ijts_isrc,jls_isrc
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
       INTEGER n,ns,naij,najl,j,i
-      REAL*8, DIMENSION(JM) :: dtracer
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: dtracer
       REAL*8 ftr1
 
+      INTEGER :: J_0, J_1
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 C**** This is tracer independent coding designed to work for all
 C**** surface sources.
 C**** Note that tracer flux is added to first layer either implicitly
@@ -412,7 +416,7 @@ C**** diagnostics
           naij = ijts_source(ns,n)
           taijs(:,:,naij) = taijs(:,:,naij) + trsource(:,:,ns,n)*dtstep
           najl = jls_source(ns,n)
-          do j=1,jm
+          do j=J_0,J_1
             tajls(j,1,najl) = tajls(j,1,najl)+
      *           sum(trsource(1:imaxj(j),j,ns,n))*dtstep
             dtracer(j)=0.
@@ -449,7 +453,7 @@ C**** Accumulate interactive sources as well
 C**** Technically speaking the vertical moments should be modified here 
 C**** as well. But for consistency with water vapour we only modify
 C**** moments for dew.
-        do j=1,jm
+        do j=J_0,J_1
           do i=1,imaxj(j)
             if (trsrfflx(i,j,n).lt.0 .and. trm(i,j,1,n).gt.0) then
               ftr1=-trsrfflx(i,j,n)*dtstep/trm(i,j,1,n)
@@ -477,6 +481,7 @@ C****
       USE FLUXES, only : tr3Dsource
       USE TRDIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs
+      USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
 !@var MOM true (default) if moments are to be modified
       logical, optional, intent(in) :: momlog
@@ -484,6 +489,9 @@ C****
       real*8 fr3d,taijsum(im,jm,lm)
       logical :: domom
       integer najl,i,j,l,naij
+      INTEGER :: J_0, J_1
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 C**** Ensure that this is a valid tracer and source
       if (n.eq.0 .or. ns.eq.0) return
@@ -499,7 +507,7 @@ C**** Modify tracer amount, moments, and diagnostics
       naij = ijts_3Dsource(ns,n)
 !$OMP PARALLEL DO PRIVATE (L,I,J,fr3d)
       do l=1,lm
-      do j=1,jm
+      do j=j_0,j_1
       do i=1,imaxj(j)
 C**** calculate fractional loss
         fr3d=0.
@@ -518,7 +526,7 @@ C**** update tracer mass and diagnostics
       end do; end do; end do
 !$OMP END PARALLEL DO
       if (naij.gt.0) then
-      do j=1,jm
+      do j=j_0,j_1
         do i=1,imaxj(j)
           taijs(i,j,naij) = taijs(i,j,naij) + sum(taijsum(i,j,:))
         end do
@@ -546,11 +554,15 @@ C****
       USE GHY_COM, only : tr_wbare,tr_wvege,tr_wsn_ij
 #endif
       USE TRDIAG_COM, only : tajls,jls_decay,itcon_decay
+      USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
       real*8, save, dimension(ntm) :: expdec = 1.
-      real*8, dimension(im,jm,lm) :: told
+      real*8, dimension(im,grid%J_STRT:grid%J_STOP,lm) :: told
       logical, save :: ifirst=.true.
       integer n,najl,j,l
+      integer :: J_0, J_1
+
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
       if (ifirst) then               
         do n=1,ntm
@@ -592,7 +604,7 @@ C**** ...land surface tracers
 C**** atmospheric diagnostics
           najl = jls_decay(n)
           do l=1,lm
-          do j=1,jm
+          do j=J_0,J_1
             tajls(j,l,najl)=tajls(j,l,najl)+sum(trm(1:imaxj(j),j,l,n)
 #ifdef TRACERS_WATER
      *           +trwm(1:imaxj(j),j,l,n)
@@ -740,11 +752,18 @@ C****
 !@+   Output: interpolated data array + two monthly data arrays
 !@auth Jean Lerner and others
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP, only : GRID, READT_PARALLEL, REWIND_PARALLEL
+      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : READT_PARALLEL, REWIND_PARALLEL
       USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
       implicit none
-      real*8 tlca(im,jm),tlcb(im,jm),data(im,jm),frac
+      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+     &     tlca,tlcb,data
+      real*8 :: frac
       integer imon,iu,jdlast
+
+      integer :: J_0, J_1
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
       if (jdlast.EQ.0) then ! NEED TO READ IN FIRST MONTH OF DATA
         imon=1          ! imon=January
@@ -776,7 +795,7 @@ C****
   130 continue
 c**** Interpolate two months of data to current day
       frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
-      data(:,:) = tlca(:,:)*frac + tlcb(:,:)*(1.-frac)
+      data(:,J_0:J_1) = tlca(:,J_0:J_1)*frac + tlcb(:,J_0:J_1)*(1.-frac)
       return
       end subroutine read_monthly_sources
 
@@ -792,28 +811,35 @@ c**** Interpolate two months of data to current day
       USE DYNAMICS, only : am
       USE FLUXES, only : gtracer
       USE TRACER_COM
+      USE DOMAIN_DECOMP, ONLY: GRID, GET, HERE
       IMPLICIT NONE
       LOGICAL QCHECKT
       INTEGER I,J,L,N,m, imax,jmax,lmax
       REAL*8 relerr, errmax,errsc
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
+      INTEGER :: J_0, J_1, nj
 
+      CALL GET(GRID, J_STRT=J_0, J_STOP=J_1)
+      nj = J_1 - J_0 + 1
 
-      CALL CHECK3(gtracer(1,1,1,1),NTM,4,IM*JM,SUBR,'GTRACE')
+      CALL HERE(__FILE__,__LINE__)
+      CALL CHECK3(gtracer(1,1,1,J_0:J_1),NTM,4,IM*nJ,SUBR,'GTRACE')
+      CALL HERE(__FILE__,__LINE__)
       do n=1,ntm
-        CALL CHECK3(trmom(1,1,1,1,n),NMOM,IM,JM*LM,SUBR,
+      CALL HERE(__FILE__,__LINE__)
+        CALL CHECK3(trmom(1,1,J_0:J_1,1,n),NMOM,IM,nJ*LM,SUBR,
      *       'X'//trname(n))
-        CALL CHECK3(trm(1,1,1,n),IM,JM,LM,SUBR,trname(n))
+        CALL CHECK3(trm(1,J_0:J_1,1,n),IM,nJ,LM,SUBR,trname(n))
 #ifdef TRACERS_WATER
-        CALL CHECK3(trwm(1,1,1,n),IM,JM,LM,SUBR,'WM'//trname(n))
+        CALL CHECK3(trwm(1,J_0:J_1,1,n),IM,nJ,LM,SUBR,'WM'//trname(n))
 #endif
 
 C**** check for negative tracer amounts (if t_qlimit is set)
         if (t_qlimit(n)) then
           QCHECKT=.false.
           do l=1,lm
-          do j=1,jm
+          do j=j_0,j_1
           do i=1,imaxj(j)
             if (trm(i,j,l,n).lt.0) then
               write(6,*) "Negative mass for ",trname(n),i,j,l,trm(i,j,l
@@ -832,7 +858,7 @@ C**** check whether air mass is conserved
         if (trname(n).eq.'Air') then
           errmax = 0. ; lmax=1 ; imax=1 ; jmax=1 
           do l=1,lm
-          do j=1,jm
+          do j=j_0,j_1
           do i=1,imaxj(j)
             relerr=abs(trm(i,j,l,n)-am(l,i,j)*dxyp(j))/
      *           (am(l,i,j)*dxyp(j))
@@ -851,7 +877,7 @@ C**** check whether air mass is conserved
         if (trname(n).eq.'Water') then
           errmax = 0. ; lmax=1 ; imax=1 ; jmax=1
           do l=1,lm
-          do j=1,jm
+          do j=j_0,j_1
           do i=1,imaxj(j)
             errsc=(q(i,j,l)+sum(abs(qmom(:,i,j,l))))*am(l,i,j)*dxyp(j)
             if (errsc.eq.0.) errsc=1.

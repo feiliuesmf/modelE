@@ -93,7 +93,7 @@ C**** Zonal mean cloud water concentration
 !@sum  DIAGTCA Keeps track of the conservation properties of tracers
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
 !@ver  1.0
-      USE DOMAIN_DECOMP, only : GRID
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only : jm
       USE TRDIAG_COM, only: tconsrv,nofmt,title_tcon
       IMPLICIT NONE
@@ -104,6 +104,9 @@ C**** Zonal mean cloud water concentration
 !@var TOTAL amount of conserved quantity at this time
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: total
       INTEGER :: nm,ni
+      INTEGER :: J_0, J_1
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAGCA IS BEING CALLED
 C**** M=1,2...12:  See DIAGCA in DIAG.f
@@ -122,11 +125,11 @@ C**** Calculate current value TOTAL
         ni=nofmt(1,nt)
 c**** Accumulate difference from last time in TCONSRV(NM)
         if (m.gt.1) then
-          tconsrv(:,nm,nt) =
-     &    tconsrv(:,nm,nt)+(total(:)-tconsrv(:,ni,nt))  !do 1,jm
+          tconsrv(J_0:J_1,nm,nt) =
+     &    tconsrv(J_0:J_1,nm,nt)+(total(J_0:J_1)-tconsrv(J_0:J_1,ni,nt))  !do 1,jm
         end if
 C**** Save current value in TCONSRV(NI)
-        tconsrv(:,ni,nt)=total(:)   !do 1,jm
+        tconsrv(J_0:J_1,ni,nt)=total(J_0:J_1)   !do 1,jm
       end if
       return
       end subroutine diagtca
@@ -206,12 +209,14 @@ C****
       INTEGER :: j,nm
       REAL*8 stm
 
+      INTEGER :: J_0, J_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE,
+     &               J_STRT = J_0, J_STOP = J_1)
 
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAGCA IS BEING CALLED
@@ -229,7 +234,7 @@ C**** Calculate latitudinal mean of chnage DTRACER
         nm=nofmt(m,nt)
 c**** Accumulate difference in TCONSRV(NM)
         if (m.gt.1) then
-          tconsrv(:,nm,nt) = tconsrv(:,nm,nt) + dtracer(:)
+          tconsrv(J_0:J_1,nm,nt)=tconsrv(J_0:J_1,nm,nt)+dtracer(J_0:J_1)
         end if
 C**** No need to save current value
       end if

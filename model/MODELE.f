@@ -9,6 +9,7 @@
       USE PARAM
       USE MODEL_COM
       USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT
+      USE DOMAIN_DECOMP, ONLY : HERE
       USE DYNAMICS
       USE RAD_COM, only : dimrad_sv
       USE RANDOM
@@ -120,9 +121,11 @@ C**** write restart information alternatingly onto 2 disk files
       IF (MOD(Itime-ItimeI,Ndisk).eq.0) THEN
          CALL RFINAL (IRAND)
          call set_param( "IRAND", IRAND, 'o' )
-         call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
+         IF (AM_I_ROOT()) 
+     *        call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
+         CALL HERE(__FILE__//'::io_rsf',__LINE__ + 10000*KDISK)
          call io_rsf(iu_RSF,Itime,iowrite,ioerr)
-         call closeunit(iu_RSF)
+         IF (AM_I_ROOT()) call closeunit(iu_RSF)
          WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     '0Restart file written on fort.',KDISK,'Year',
      *     JYEAR,aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
@@ -398,25 +401,28 @@ C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
             if(m.gt.12) m = m-12
             monacc(m) = 1
           end do
-          call openunit(aDATE(1:7)//'.acc'//XLABEL(1:LRUNID),iu_ACC,
-     *         .true.,.false.)
+          If (AM_I_ROOT()) 
+     *       call openunit(aDATE(1:7)//'.acc'//XLABEL(1:LRUNID),iu_ACC,
+     *        .true.,.false.)
           call io_rsf (iu_ACC,Itime,iowrite_single,ioerr)
-          call closeunit(iu_ACC)
+          If (AM_I_ROOT()) call closeunit(iu_ACC)
 C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
           IF (KCOPY.GT.1) THEN
             CALL RFINAL (IRAND)
             call set_param( "IRAND", IRAND, 'o' )
-            call openunit('1'//aDATE(8:14)//'.rsf'//XLABEL(1:LRUNID)
+            IF (AM_I_ROOT()) 
+     *          call openunit('1'//aDATE(8:14)//'.rsf'//XLABEL(1:LRUNID)
      *           ,iu_RSF,.true.,.false.)
             call io_rsf(iu_RSF,Itime,iowrite_mon,ioerr)
-            call closeunit(iu_RSF)
+            IF (AM_I_ROOT()) call closeunit(iu_RSF)
           END IF
 C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
           IF (KCOPY.GT.2) THEN
-            call openunit(aDATE(1:7)//'.oda'//XLABEL(1:LRUNID)
+            If (AM_I_ROOT())
+     *           call openunit(aDATE(1:7)//'.oda'//XLABEL(1:LRUNID)
      *           ,iu_ODA,.true.,.false.)
             call io_oda(iu_ODA,Itime,iowrite,ioerr)
-            call closeunit(iu_ODA)
+            IF (AM_I_ROOT()) call closeunit(iu_ODA)
           END IF
         END IF
 
@@ -458,9 +464,11 @@ C****
 C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       CALL RFINAL (IRAND)
       call set_param( "IRAND", IRAND, 'o' )
-      call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
+      IF (AM_I_ROOT())
+     *     call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
+      CALL HERE(__FILE__//'::io_rsf',__LINE__ + 10000*KDISK)
       call io_rsf(iu_RSF,Itime,iowrite,ioerr)
-      call closeunit(iu_RSF)
+      IF (AM_I_ROOT()) call closeunit(iu_RSF)
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *  '0Restart file written on fort.',KDISK,'Year',JYEAR,
      *     aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
@@ -636,7 +644,7 @@ C****
       USE FLUXES, only : gtemp   ! tmp. fix
       USE SOIL_DRV, only: init_gh
       USE DOMAIN_DECOMP, only : grid, GET, READT_PARALLEL
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE
       IMPLICIT NONE
       CHARACTER(*) :: ifile
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF unit numbers for input files
@@ -1149,6 +1157,7 @@ C**** CHOOSE DATA SET TO RESTART ON
       END SELECT
   430 continue
       call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.true.)
+      CALL HERE(__FILE__//'::io_rsf',__LINE__ + 10000*KDISK)
       call io_rsf(iu_RSF,Itime,ioread,ioerr)
       call closeunit(iu_RSF)
       if (ioerr.eq.1) then

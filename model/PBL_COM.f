@@ -162,7 +162,7 @@
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
-      USE DOMAIN_DECOMP, only : GET, grid, ARRAYGATHER
+      USE DOMAIN_DECOMP, only : GET, grid, ARRAYGATHER, AM_I_ROOT
       USE DOMAIN_DECOMP, only : CHECKSUM, CHECKSUM_COLUMN
       USE PBLCOM
       IMPLICIT NONE
@@ -204,10 +204,12 @@
           CALL ARRAYGATHER(grid, egcm(L,:,:), egcm_glob(L,:,:))
           CALL ARRAYGATHER(grid, w2gcm(L,:,:), w2gcm_glob(L,:,:))
         END DO
-        WRITE (kunit,err=10) MODULE_HEADER,wsavg_glob,tsavg_glob
-     *       ,qsavg_glob,dclev_glob,usavg_glob,vsavg_glob,tauavg_glob
-     *       ,ustar_pbl_glob,egcm_glob,w2gcm_glob,tgvavg_glob
-     *       ,qgavg_glob
+        IF (AM_I_ROOT()) THEN
+          WRITE (kunit,err=10) MODULE_HEADER,wsavg_glob,tsavg_glob
+     *         ,qsavg_glob,dclev_glob,usavg_glob,vsavg_glob,tauavg_glob
+     *         ,ustar_pbl_glob,egcm_glob,w2gcm_glob,tgvavg_glob
+     *         ,qgavg_glob
+        END IF
 
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,wsavg_glob,tsavg_glob,

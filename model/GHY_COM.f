@@ -282,7 +282,7 @@ c$$$     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        CALL PACK_DATA(grid  , WBARE ,  WBARE_GLOB)
+        CALL PACK_COLUMN(grid  , WBARE ,  WBARE_GLOB)
         CALL PACK_COLUMN(grid, SNOWBV, SNOWBV_GLOB)
         CALL PACK_COLUMN(grid, WVEGE ,  WVEGE_GLOB)
         CALL PACK_COLUMN(grid, HTBARE, HTBARE_GLOB)
@@ -316,12 +316,6 @@ c$$$        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
         htbare(:,:,J_0:J_1) = htbare_glob(:,:,J_0:J_1)
         htvege(:,:,J_0:J_1) = htvege_glob(:,:,J_0:J_1)
         snowbv(:,:,J_0:J_1) = snowbv_glob(:,:,J_0:J_1)
-
-c$$$        CALL CHECKSUM_COLUMN(grid,wbare,__LINE__,__FILE__)
-c$$$        CALL CHECKSUM_COLUMN(grid,wvege,__LINE__,__FILE__)
-c$$$        CALL CHECKSUM_COLUMN(grid,htbare,__LINE__,__FILE__)
-c$$$        CALL CHECKSUM_COLUMN(grid,htvege,__LINE__,__FILE__)
-c$$$        CALL CHECKSUM_COLUMN(grid,snowbv,__LINE__,__FILE__)
 
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)

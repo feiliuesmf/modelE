@@ -810,10 +810,11 @@ C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE CONSTANT, only: sday
       USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,fearth
-      USE DOMAIN_DECOMP, only: GRID, GET
+      USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel
       USE TRACER_COM, only: itime_tr0,trname
       USE LAKES_COM, only: flake
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE FILEMANAGER, only: nameunit
       USE CH4_SOURCES, only: src=>ch4_src,nsrc=>nch4src
       implicit none
       character*80 title
@@ -871,7 +872,8 @@ C****
         call openunits(ann_files,ann_units,ann_bins,nanns-3)
         do iu = ann_units(1),ann_units(nanns-3)
           k = k+1
-          call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
+          call readt_parallel (grid,iu,nameunit(iu),0,src(:,:,k),1)
+!ref      call readt          (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
           src(:,:,k) = src(:,:,k)*adj(k)/(sday*JDperY)
         end do
         call closeunits(ann_units,nanns-3)
@@ -896,8 +898,8 @@ C****
       do k = nanns+1,nsrc
         j = j+1
         call read_monthly_sources(mon_units(j),jdlast,
-     *    tlca(1,1,j),tlcb(1,1,j),src(1,1,k),frac,imon(j))
-        src(:,:,k) = src(:,:,k)*adj(k)
+     *    tlca(:,:,j),tlcb(:,:,j),src(:,:,k),frac,imon(j))
+        src(:,J_0:J_1,k) = src(:,J_0:J_1,k)*adj(k)
       end do
       jdlast = jday
       write(6,*) trname(nt),'Sources interpolated to current day',frac
@@ -928,9 +930,12 @@ C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE CONSTANT, only: sday
       USE MODEL_COM, only: itime,jday,JDperY,im,jm
+      USE DOMAIN_DECOMP, only : grid, GET
+      USE DOMAIN_DECOMP, only : READT_PARALLEL
       USE TRACER_COM, only: itime_tr0,trname
       USE CO2_SOURCES, only: src=>co2_src,nsrc=>nco2src
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE FILEMANAGER, only: nameunit
       implicit none
       character*80 title
 !@var adj Factors that tune the total amount of individual sources
@@ -946,12 +951,15 @@ C**** Monthly sources are interpolated each day
       logical :: mon_bins(nmons)=(/.true.,.true./)
 
 c GISS-ESMF EXCEPTIONAL CASE - SAVE and I/O issues
-      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
+      real*8, Allocatable, DIMENSION(:,:,:) :: tlca, tlcb ! for monthly sources
       real*8 frac
       integer i,j,nt,iact,iu,k,imon(nmons)
       logical :: ifirst=.true.
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
+      integer :: J_0, J_1
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
       if (itime.lt.itime_tr0(nt)) return
 C****
@@ -961,12 +969,15 @@ C**** Annual sources are in KG C/M2/Y
 C**** Sources need to be kg/m^2 s; convert /year to /s
 C****
       if (ifirst) then
+        Allocate(tlca(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons),
+     &           tlcb(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons))
         call openunits(ann_files,ann_units,ann_bins,nanns)
         k = 0
         do iu = ann_units(1),ann_units(nanns)
           k = k+1
-          call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          src(:,:,k) = src(:,:,k)*adj(k)/(sday*JDperY)
+          call readt_parallel (grid,iu,nameunit(iu),0,src(:,:,k),1)
+!ref      call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
+          src(:,J_0:J_1,k) = src(:,J_0:J_1,k)*adj(k)/(sday*JDperY)
         end do
         call closeunits(ann_units,nanns)
 
@@ -982,8 +993,8 @@ C**** Monthly sources are in KG C/M2/S => src in kg/m^2 s
       do k=nanns+1,nsrc
         j = j+1
         call read_monthly_sources(mon_units(j),jdlast,
-     *    tlca(1,1,j),tlcb(1,1,j),src(1,1,k),frac,imon(j))
-        src(:,:,k) = src(:,:,k)*adj(k)
+     *    tlca(:,:,j),tlcb(:,:,j),src(:,:,k),frac,imon(j))
+        src(:,J_0:J_1,k) = src(:,J_0:J_1,k)*adj(k)
       end do
       jdlast = jday
       write(6,*) trname(nt),'Sources interpolated to current day',frac
@@ -1436,14 +1447,19 @@ c   Usage of J-index issue
 C**** Keep step function except at two transition points (+/1 15 deg)
       DO 210 K=29,90
       do j=1,19
-        GASJK(J,     K) = GASW(1,K-28)
-        GASJK(JM+1-j,K) = GASW(3,K-28)
+        If ((J>=J_0).and.(J<=J_1)) GASJK(J,     K) = GASW(1,K-28)
+        If ((JM+1-j>=J_0).and.(JM+1-j<=J_1)) 
+     &       GASJK(JM+1-j,K) = GASW(3,K-28)
       end do
-        GASJK(21:26,K)  = GASW(2,K-28)
+      DO j = 21,26
+        If ((J>=J_0).and.(J<=J_1)) GASJK(J,K)  = GASW(2,K-28)
+      END DO
       DO J=20,27,7
-        W = 1. + (J-1)*2./(JM-1)
-        JW=W
-        GASJK(J,K) = GASW(JW,K-28)*(JW+1-W) + GASW(JW+1,K-28)*(W-JW)
+        If ((J>=J_0).and.(J<=J_1)) THEN
+          W = 1. + (J-1)*2./(JM-1)
+          JW=W
+          GASJK(J,K) = GASW(JW,K-28)*(JW+1-W) + GASW(JW+1,K-28)*(W-JW)
+        End If
       END DO
   210 continue
 C**** Above, extend

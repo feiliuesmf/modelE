@@ -294,7 +294,7 @@ C**** Local variables initialised in init_RAD
           CALL UNPACK_DATA( grid, SRDN_glob     ,   SRDN)
           CALL UNPACK_DATA( grid, CFRAC_glob    ,  CFRAC)
   
-          CALL UNPACK_COLUMN(grid, RCLD_glob          , RCLD_GLOB)
+          CALL UNPACK_COLUMN(grid, RCLD_glob          ,RCLD_GLOB)
           CALL UNPACK_COLUMN(grid, O3_rad_save_glob   ,O3_rad_save_GLOB)
           CALL UNPACK_COLUMN(grid, O3_tracer_save_glob,
      &         O3_tracer_save_GLOB)

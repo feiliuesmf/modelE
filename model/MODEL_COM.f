@@ -366,7 +366,7 @@ C****
       CASE (:IOWRITE)           ! output to end-of-month restart file
         IF (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) it,XLABEL,nday,iyear1,itimei,itimee,
-     *          itime0,NTIMEACC,TIMING(1:NTIMEACC),TIMESTR(1:NTIMEACC)
+     *         itime0,NTIMEACC,TIMING(1:NTIMEACC),TIMESTR(1:NTIMEACC)
 C**** doc line: basic model parameters
           write(label2,'(a13,4i4,a)') 'IM,JM,LM,LS1=',im,jm,lm,ls1,' '
           WRITE (kunit,err=10) LABEL2

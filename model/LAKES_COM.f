@@ -99,11 +99,13 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
         CALL PACK_DATA(grid, MWL  ,   MWL_GLOB)
         CALL PACK_DATA(grid, TLAKE, TLAKE_GLOB)
         CALL PACK_DATA(grid, GML  ,   GML_GLOB)
+#ifdef TRACERS_WATER
+          CALL PACK_BLOCK(grid, TRLAKE, TRLAKE_glob)
+#endif
         IF (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,MLDLK_glob,MWL_glob,
      &                         TLAKE_glob,GML_glob !,FLAKE
 #ifdef TRACERS_WATER
-          CALL PACK_BLOCK(grid, TRLAKE, TRLAKE_glob)
           WRITE (kunit,err=10) TRMODULE_HEADER,TRLAKE_glob
 #endif
         END IF

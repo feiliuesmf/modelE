@@ -72,7 +72,7 @@
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl,dgdqm
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
-     *     ,kmax,ra,pl,ple,plk,rndssl,lhp,pland,debug,ddmflx
+     *     ,kmax,ra,pl,ple,plk,rndssl,lhp,pland,debug,ddmflx,ncol
 #ifdef CLD_AER_CDNC
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
      *     ,nlsw,nlsi,nmcw,nmci
@@ -146,7 +146,7 @@ C**** parameters and variables for isccp diags
       real*8 pfull(lm),at(lm),cc(lm),dtau_s(lm),dtau_c(lm)
       real*8 dem_s(lm),dem_c(lm),phalf(lm+1)
       real*8 fq_isccp(ntau,npres),ctp,tauopt
-      integer itau,itrop,nbox
+      integer itau,itrop,nbox,ibox
 C****
 
 C 
@@ -165,7 +165,7 @@ Cred*                   end Reduced Arrays 1
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
-
+      REAL*8 :: randxx
 C**** Initialize
       AJEQIL(:,:,:)=0.
 C**** define local grid
@@ -179,6 +179,17 @@ C**** define local grid
 C 
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
 C 
+C     Burn random numbers from latitudes to the south
+      DO J=1,J_0-1
+        DO I=1,IMAXJ(J)
+          DO L=LP50,1,-1
+            DO NR=1,3
+              RANDXX = RANDU(xx)
+            END DO
+          END DO
+        END DO
+      END DO
+
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         DO L=LP50,1,-1
@@ -242,11 +253,30 @@ C**** Make sure the NOx from lightning is initialized:
       RNOx_lgt=0.
 #endif
 #endif
+      CALL CHECKSUM(grid, UC, __LINE__,__FILE__,STGR=.true.)
+      CALL CHECKSUM(grid, VC, __LINE__,__FILE__,STGR=.true.)
+      CALL HALO_UPDATE(grid, UC, FROM=NORTH)
+      CALL HALO_UPDATE(grid, VC, FROM=NORTH)
+
 C****
 C**** MAIN J LOOP
 C****
        ICKERR=0
        JCKERR=0
+
+       ! Burn random numbers for earlier latitudes here.
+       ! Actuall generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
+      if (isccp_diags.eq.1) then
+       DO J = 1, J_0-1
+         DO I = 1, IMAXJ(J)
+           DO ibox = 1, (NCOL+1)*LM
+             randxx = RANDU(xx) ! burn random numbers
+           END DO
+         END DO
+       END DO
+      end if
+
+
 !$OMP  PARALLEL DO PRIVATE (
 #ifdef TRACERS_ON
 !$OMP*  NX,tmsave,
@@ -590,15 +620,13 @@ C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
         BYDH12=1./DH12
         DTDZS=(THV1-THSV)*BYDH1S
         DTDZ=(THV2-THV1)*BYDH12
-CAOO        IF (J.EQ.1) THEN
-        IF(HAVE_SOUTH_POLE .AND. J.EQ.J_0) THEN
+        IF (J.EQ.1) THEN ! I have south pole
           DUDZ=(UZM(1,2)-UZM(1,1))*BYDH12
           DVDZ=(VZM(1,2)-VZM(1,1))*BYDH12
           DUDZS=(UZM(1,1)-US)*BYDH1S
           DVDZS=(VZM(1,1)-VS)*BYDH1S
         ENDIF
-CAOO        IF (J.EQ.JM) THEN
-        IF(HAVE_NORTH_POLE .AND. J.EQ.J_1) THEN
+        IF (J.EQ.JM) THEN ! I have north pole
           DUDZ=(UZM(2,2)-UZM(2,1))*BYDH12
           DVDZ=(VZM(2,2)-VZM(2,1))*BYDH12
           DUDZS=(UZM(2,1)-US)*BYDH1S
@@ -949,8 +977,8 @@ C
 C**** Save the conservation quantities for tracers
       do nx=1,ntx
         n=ntix(nx)
-        if (itcon_mc(n).gt.0) call diagtcb(dtr_mc(1,nx),itcon_mc(n),n)
-        if (itcon_ss(n).gt.0) call diagtcb(dtr_ss(1,nx),itcon_ss(n),n)
+        if (itcon_mc(n).gt.0)call diagtcb(dtr_mc(j_0h,nx),itcon_mc(n),n)
+        if (itcon_ss(n).gt.0)call diagtcb(dtr_ss(j_0h,nx),itcon_ss(n),n)
       end do
 #endif
 
@@ -982,7 +1010,12 @@ C
 C 
 C     NOW REALLY UPDATE THE MODEL WINDS
 C 
-CAOO      J=1
+      CALL CHECKSUM_COLUMN(grid, UKM,__LINE__,__FILE__,SKIP=.true.)
+      CALL CHECKSUM_COLUMN(grid, VKM,__LINE__,__FILE__,SKIP=.true.)
+
+      CALL HALO_UPDATE_COLUMN(grid, UKM, from=SOUTH)
+      CALL HALO_UPDATE_COLUMN(grid, VKM, from=SOUTH)
+
       IF(HAVE_SOUTH_POLE) THEN
         DO K=1,IM ! KMAXJ(J)
           IDI(K)=IDIJ(K,1,1)
@@ -1000,6 +1033,20 @@ C**** Initialize dummy work arrays
 
 !$OMP  PARALLEL DO PRIVATE(I,J,K,L,IDI,IDJ)
       DO L=1,LM
+        IF (.not. HAVE_SOUTH_POLE) THEN
+          J=J_0H ! contribution from south halo regio
+          DO K=3,4              !  KMAXJ(J)
+            IDJ(K)=IDJJ(K,J)
+          END DO
+          DO I=1,IM
+             DO K=3,4           ! KMAXJ(J)
+               IDI(K)=IDIJ(K,I,J)
+               U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
+               V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
+             END DO
+           END DO
+         END IF
+
         DO J=J_0S,J_1-1
            DO K=1,4  !  KMAXJ(J)
              IDJ(K)=IDJJ(K,J)
@@ -1026,32 +1073,6 @@ C**** First half of loop cycle for j=j_1 for internal blocks
             END DO
           END DO
         ENDIF
-
-C**** Second half of southern neighbor's j=j_1 cycle (equivalent to j=j_0-1
-C**** in this block).
-
-        if (.not. HAVE_SOUTH_POLE) then
-          CALL CHECKSUM_COLUMN(grid, UKM, __LINE__, __FILE__)
-          CALL CHECKSUM_COLUMN(grid, VKM, __LINE__, __FILE__)
-
-          CALL HALO_UPDATE_COLUMN(grid, UKM, from=SOUTH)
-          CALL HALO_UPDATE_COLUMN(grid, VKM, from=SOUTH)
-
-C**** ....then, accumulate neighbors contribution to
-C**** U,V, at the J=J_0 (B-grid) corners --i.e.do a
-C**** K=3,4 iterations on the newly updated J=J_0-1 box.
-          J=J_0-1
-          DO K=3,4  !  KMAXJ(J)
-            IDJ(K)=IDJJ(K,J)
-          END DO
-          DO I=1,IM
-            DO K=3,4 ! KMAXJ(J)
-              IDI(K)=IDIJ(K,I,J)
-              U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
-              V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
-            END DO
-          END DO
-        end if           !NOT SOUTH POLE
       END DO       !LM
 !$OMP  END PARALLEL DO
 C 

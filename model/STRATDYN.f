@@ -70,7 +70,7 @@ C**** accumulated in the routines contained herein
       USE PARAM
       USE CONSTANT, only : twopi,kapa
       USE MODEL_COM, only : im,jm,lm,ls1,do_gwdrag,ptop,sig,psfmpt,sige
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE, CHECKSUM,
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH,
      *                          DREAD_PARALLEL,
      *                          READT_PARALLEL
@@ -83,7 +83,7 @@ C**** accumulated in the routines contained herein
       REAL*8 :: TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,4)
       INTEGER I,J,L,iu_zvar
 
-      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: I_0, I_1, J_1, J_0, J_0H, J_1H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -93,6 +93,7 @@ C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
@@ -144,16 +145,12 @@ C****
         ZWT(:,:) = TEMP_LOCAL(:,:,4)
       call closeunit(iu_ZVAR)
 
-      CALL CHECKSUM(GRID, ZVART, __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, ZVARX, __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, ZVARY, __LINE__, __FILE__)
-      CALL CHECKSUM(GRID,   ZWT, __LINE__, __FILE__)
-      CALL HALO_UPDATE(GRID, ZVART, from=NORTH)
-      CALL HALO_UPDATE(GRID, ZVARX, from=NORTH)
-      CALL HALO_UPDATE(GRID, ZVARY, from=NORTH)
-      CALL HALO_UPDATE(GRID,   ZWT, from=NORTH)
+      CALL HALO_UPDATE(GRID, ZVART, from=SOUTH)
+      CALL HALO_UPDATE(GRID, ZVARX, from=SOUTH)
+      CALL HALO_UPDATE(GRID, ZVARY, from=SOUTH)
+      CALL HALO_UPDATE(GRID,   ZWT, from=SOUTH)
 
-      DO J=J_1S,J_0,-1
+      DO J=J_1S,J_0H,-1
       DO I=1,IM
         ZVART(I,J+1)=ZVART(I,J)
         ZVARX(I,J+1)=ZVARX(I,J)
@@ -169,14 +166,17 @@ C**** define wave number array EK for GWDRAG
 C**** EKX is the mean wave number for wave lengths between a 1x1 degree
 C**** box and a model grid box weighted by 1/EK; wave_length=root(area)
       EKS=0.
-      DO J=J_0STG,J_1STG
+      ! full grid for generating the global sum
+      DO J=2,JM ! _NOT_ J_0STG,J_1STG
         EK1=TWOPI/SQRT(DXYV(J))                ! 2pi/grid_box_size
         EK2=EK1*SQRT((360./IM)*DLAT_DG)        ! 2pi/1x1deg_box_size
         EKX=0.
         if(EK2.gt.EK1) EKX=(EK2-EK1)/LOG(EK2/EK1) ! weighted mean
         EKS=EKS+EKX*DXYV(J)
-        EK(1,J)=EKX
-        EK(2,J)=EKX
+        If ((J >= J_0) .and. (J <= J_1)) THEN
+          EK(1,J)=EKX
+          EK(2,J)=EKX
+        END IF
       END DO
       EKS=EKS*IM/AREAG
       EK(3:NM,J_0:J_1)=EKS
@@ -200,7 +200,7 @@ C****
       USE CONSTANT, only : rgas,grav,twopi,kapa,sha
       USE MODEL_COM, only : im,jm,lm,psfmpt,sig,ptop,ls1
      *     ,sige,mrch
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE, CHECKSUM,
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj,rapvn,rapvs,dxyv
      *     ,kmaxj,idij,idjj,rapj
@@ -296,12 +296,6 @@ C**** Fill in T,RHO at poles (again shouldn't this be done already?)
 C**** Get Vertical Diffusion Coefficient for this timestep
       CALL GETVK (U,V,VKEDDY,LDIFM)
 
-      CALL CHECKSUM(GRID, P     , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, USURF , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, VSURF , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, TSURF , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, RHO   , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, T     , __LINE__, __FILE__)
       CALL HALO_UPDATE(GRID, P     , from=SOUTH)
       CALL HALO_UPDATE(GRID, USURF , from=SOUTH)
       CALL HALO_UPDATE(GRID, VSURF , from=SOUTH)
@@ -414,7 +408,6 @@ C**** conservation diagnostic
       IF (MRCH.gt.0) THEN
         CALL DIAGCD (6,UT,VT,DUT,DVT,DT1)
 
-        CALL CHECKSUM   (grid, DKE, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, DKE, from=NORTH)
 
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
@@ -470,7 +463,7 @@ C****
 !@auth Bob Suozzo/Jean Lerner
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
-      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE, CHECKSUM,
+      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE PBLCOM, only : usurf=>usavg,vsurf=>vsavg
       IMPLICIT NONE
@@ -499,8 +492,6 @@ C****
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
-      CALL CHECKSUM(GRID, USURF , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, VSURF , __LINE__, __FILE__)
       CALL HALO_UPDATE(GRID, USURF , from=SOUTH)
       CALL HALO_UPDATE(GRID, VSURF , from=SOUTH)
 
@@ -583,9 +574,9 @@ C****
       USE CONSTANT, only : grav,sha,twopi,kapa,rgas
       USE MODEL_COM, only : im,jm,lm,byim,nidyn,sig,sige
      *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
-      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE, CHECKSUM,
+      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH
-      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN, CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN
       USE CLOUDS_COM, only : airx,lmc
       USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm
      *     ,lbreak,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv
@@ -675,18 +666,12 @@ C****
             AIRX(I,1)=AIRX(1,1)
             LMC(1,I,1)=LMC(1,1,1)
             LMC(2,I,1)=LMC(2,1,1)
-            AIRX(I,JM)=AIRX(1,JM)
-            LMC(1,I,JM)=LMC(1,1,JM)
-            LMC(2,I,JM)=LMC(2,1,JM)
          END DO
          DO L=1,LM
          DO I=2,IM
             T(I,1,L)=T(1,1,L)
             SZ(I,1,L)=SZ(1,1,L)
             PK(I,1,L)=PK(1,1,L)
-            T(I,JM,L)=T(1,JM,L)
-            SZ(I,JM,L)=SZ(1,JM,L)
-            PK(I,JM,L)=PK(1,JM,L)
          END DO
          END DO
       ENDIF
@@ -705,12 +690,6 @@ C****
          END DO
       ENDIF
 
-      CALL CHECKSUM(GRID, PK    , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, SZ    , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, T     , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, P     , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, AIRX  , __LINE__, __FILE__)
-      CALL CHECKSUM_COLUMN(GRID, LMC   , __LINE__, __FILE__)
       CALL HALO_UPDATE(GRID, PK    , from=SOUTH)
       CALL HALO_UPDATE(GRID, SZ    , from=SOUTH)
       CALL HALO_UPDATE(GRID, T     , from=SOUTH)
@@ -1196,7 +1175,6 @@ C****
 C**** conservation diagnostic
         CALL DIAGCD (6,UT,VT,DUT3,DVT3,DT1)
 
-        CALL CHECKSUM   (grid, DKE, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, DKE, from=NORTH)
 
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
@@ -1248,7 +1226,7 @@ C**** and DEFRM2 like CURL (i.e., like FLUX and CIRCULATION),
 C**** except the "V" signs are switched.  DEFRM is RMS on u,v grid
 C****
       USE MODEL_COM, only : im,jm,lm,psfmpt,ptop,sig,dsig
-      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE, CHECKSUM,
+      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE DYNAMICS, only : pu,pv
       USE GEOM, only : bydxyv,dxyv,dxv,dyp
@@ -1265,7 +1243,7 @@ C****
       INTEGER I,J,L,IP1,IM1
       REAL*8 UDXN
 
-      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: I_0, I_1, J_1, J_0, J_0H, J_1H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -1274,6 +1252,7 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -1285,9 +1264,6 @@ C**** and DEFRM2 like CURL (i.e., like FLUX and CIRCULATION),
 C**** except the "V" signs are switched
 C****
 
-      CALL CHECKSUM(GRID, U  , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, V  , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, PV , __LINE__, __FILE__)
       CALL HALO_UPDATE(GRID, U  , from=NORTH)
       CALL HALO_UPDATE(GRID, V  , from=NORTH)
       CALL HALO_UPDATE(GRID, PV , from=NORTH)
@@ -1301,6 +1277,16 @@ C**** U-terms
    91 IM1=I
       DO 92 I=1,IM
    92 UDXS(I)=0.
+      ! Need to seed the recursion if not southern most PE.
+      If (.not. HAVE_SOUTH_POLE) THEN
+        J=J_0H
+        IM1=IM
+        DO I=1,IM
+          UDXS(I)=.5*(U(IM1,J+1,L)+U(I,J+1,L))*DXV(J+1)
+          IM1=I
+        END DO
+      END IF
+
       IM1=IM
       DO 93 J=J_0,J_1S
       DO 93 I=1,IM
@@ -1328,13 +1314,13 @@ C**** V-terms
      *                                   (V(I,JM,L)-V(IM1,JM,L))*DYP(JM)
    98 IM1=I
 C**** Convert to UV-grid
+      CALL HALO_UPDATE(grid,DEFRM1,FROM=SOUTH)
+      CALL HALO_UPDATE(grid,DEFRM2,FROM=SOUTH)
       I=IM
-      IF (HAVE_SOUTH_POLE) THEN
-         DO 99 IP1=1,IM
-         DUMS1(I)=DEFRM1(I,1)+DEFRM1(IP1,1)
-         DUMS2(I)=DEFRM2(I,1)+DEFRM2(IP1,1)
-   99    I=IP1
-      ENDIF
+      DO 99 IP1=1,IM
+        DUMS1(I)=DEFRM1(I,J_0H)+DEFRM1(IP1,J_0H)
+        DUMS2(I)=DEFRM2(I,J_0H)+DEFRM2(IP1,J_0H)
+ 99     I=IP1
       DO 110 J=J_0STG,J_1STG
       I=IM
       DO 100 IP1=1,IM
@@ -1348,6 +1334,8 @@ C**** Convert to UV-grid
       DUMS1(I)=DUMN1(I)
       DUMS2(I)=DUMN2(I)
   110 CONTINUE
+      CALL HALO_UPDATE(GRID, P,FROM=SOUTH)
+
       DO 120 J=J_0STG,J_1STG
       I=IM
       DO 120 IP1=1,IM
@@ -1370,7 +1358,6 @@ C**** Set deformation to zero near the poles
          END DO
       ENDIF
 
-      CALL CHECKSUM(GRID, DEFRM , __LINE__, __FILE__)
 
 C****
 C**** Print Deformation terms

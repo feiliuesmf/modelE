@@ -187,6 +187,7 @@ C**** parse options
 
       call findunit( iunit )
 
+      write(6,*) "FILEMANAGER: Before Opening file ",trim(filename) !RKF debug
       if ( form == "FORMATTED" ) then
         open( iunit, FILE=filename, FORM=form, STATUS=status,
 #ifdef CONVERT_BIGENDIAN
@@ -200,6 +201,8 @@ C**** parse options
 #endif
      *       ERR=10 )
       endif
+
+      write(6,*) "FILEMANAGER: Opened file ",trim(filename) !RKF debug
 
       Units(iunit)%in_use = .true.
       name_len = len_trim(filename)

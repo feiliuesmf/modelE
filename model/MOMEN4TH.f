@@ -51,7 +51,7 @@ c$$$      REAL*8, ALLOCATABLE:: FLUXU2(:,:,:), FLUXV2(:,:,:)
 !**** ESMF: Work arrays FLUX_U,FLUX_V added for distributed parallelization
       REAL*8, DIMENSION(IM , grid%J_STRT_HALO:grid%J_STOP_HALO      ) :: 
      &                  FLUX_U, FLUX_V
-      REAL*8 ASDU(IM,grid%J_STRT_STGR:grid%J_STOP_STGR,LM-1)
+      REAL*8 ASDU(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM-1)
 
       INTEGER :: I_0, I_1, J_0, J_1
       INTEGER :: J_0S, J_1S, J_0SG, J_1SG, J_0H, J_1H
@@ -111,8 +111,7 @@ C****
           FD(:,JM+1) = 0.
         endif
 
-        call CHECKSUM( grid, FD, __LINE__, __FILE__ )
-        call HALO_UPDATE( grid, FD(:,J_0H:), from=SOUTH )
+        call HALO_UPDATE( grid, FD(:,J_0H:J_1H), from=SOUTH )
         I=IM
         DO J = J_0, J_STP
         DO IP1=1,IM
@@ -123,8 +122,7 @@ C****
 
         I=IM
         IM1=I-1
-        call CHECKSUM( grid, FDU1, __LINE__, __FILE__ )
-        call HALO_UPDATE( grid, FDU1(:,J_0H:), from=NORTH+SOUTH )
+        call HALO_UPDATE( grid, FDU1(:,J_0H:J_1H), from=NORTH+SOUTH )
         DO J = J_0SG, J_1SG
         DO IP1=1,IM
          FDU2(I,J)=.25*(FDU1(IP1,J)+FDU1(I,J+1)+FDU1(I,J-1)+FDU1(IM1,J))
@@ -174,8 +172,7 @@ C**** CONSIDER P TO BE ZERO BEYOND THE POLES
         FD(:,JM+1)  = 0.
       ENDIF
 
-      call CHECKSUM( grid, FD, __LINE__, __FILE__ )
-      call HALO_UPDATE( grid, FD(:,J_0H:), from=SOUTH )
+      call HALO_UPDATE( grid, FD(:,J_0H:J_1H), from=SOUTH )
       I=IM
       DO J = J_0, J_STP
         DO IP1=1,IM
@@ -184,10 +181,8 @@ C**** CONSIDER P TO BE ZERO BEYOND THE POLES
         END DO
       END DO
 
-      call CHECKSUM( grid, FDU1, __LINE__, __FILE__ )
-      CALL HERE(__FILE__,__LINE__)
-      call HALO_UPDATE( grid, FDU1(:,J_0H:), from=NORTH )
-      CALL HERE(__FILE__,__LINE__)
+      call HALO_UPDATE( grid, FDU1(:,J_0H:J_1H), from=NORTH+SOUTH)
+
       I=IM
       IM1=I-1
       DO J = J_0SG, J_1SG
@@ -220,8 +215,10 @@ C     DUT=0.
 C     DVT=0.
 !$COMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM
-        DUT(:,1,L)=0.
-        DVT(:,1,L)=0.
+        If (HAVE_SOUTH_POLE) THEN
+          DUT(:,1,L)=0.
+          DVT(:,1,L)=0.
+        END IF
         DO J = J_0SG, J_1SG
           DO I=1,IM
             UT(I,J,L)=UT(I,J,L)*FDU(I,J,L)
@@ -232,7 +229,6 @@ C     DVT=0.
         END DO
       END DO
 C$COMP  END PARALLEL DO
-      CALL HERE(__FILE__,__LINE__)
 C****
 C**** BEGINNING OF LAYER LOOP : FIND HORIZONTAL FLUXES
 C****
@@ -251,7 +247,6 @@ C****
   175   CONTINUE
         CALL HERE(__FILE__,__LINE__)
 C****
-      call CHECKSUM( grid, PV(:,:,L), __LINE__, __FILE__ )
       call HALO_UPDATE( grid, PV(:,:,L), from=NORTH )
       DO 180 J = J_0S, J_1S
       DO 180 I=1,IM
@@ -259,22 +254,19 @@ C****
   180 CONTINUE
 C**** ASSUME FLUXES PU AND PV ARE ZERO BEYOND POLE
       if (HAVE_SOUTH_POLE) then
-C**** This is just in case the south pole is the only point on a processor.
-      CALL HALO_UPDATE( grid, PV(:,:,L), from=NORTH)
       DO 185 I=1,IM
-      GY(I,J_0)=.5*PV(I,J_0+1,L)
-      FX(I,J_0-1)=0.
+      GY(I,1)=.5*PV(I,2,L)
+      FX(I,0)=0.
   185 CONTINUE
       ENDIF
       if (HAVE_NORTH_POLE) then
       DO 186 I=1,IM
-      GY(I,J_1)=.5*PV(I,J_1,L)
-      FX(I,J_1+1)=0.
+      GY(I,JM)=.5*PV(I,JM,L)
+      FX(I,JM+1)=0.
  186  CONTINUE
       ENDIF
 C****
-      call CHECKSUM( grid, FX, __LINE__, __FILE__ )
-      call HALO_UPDATE( grid, FX(:,J_0H:), from=SOUTH+NORTH )
+      call HALO_UPDATE( grid, FX(:,J_0H:J_1H), from=SOUTH+NORTH )
       I=IM
       IM1=I-1
       DO 192 J = J_0, J_1
@@ -283,8 +275,9 @@ C****
       IM1=I
   190 I=IP1
   192 CONTINUE
-      call CHECKSUM( grid, GY, __LINE__, __FILE__ )
       call HALO_UPDATE( grid, GY, from=SOUTH+NORTH )
+      I=IM
+      IM1=I-1
       DO 195 J = J_0S, J_1S
       DO 193 IP1=1,IM
       GY1(I,J)=.25*(GY(IP1,J)+GY(IM1,J)+GY(I,J+1)+GY(I,J-1))
@@ -294,8 +287,7 @@ C****
 C****
 C**** HORIZONTAL ADVECTION OF MOMENTUM
 C****
-      call CHECKSUM( grid, FX, __LINE__, __FILE__ )
-      call HALO_UPDATE( grid, FX(:,J_0H:), from=SOUTH )
+      call HALO_UPDATE( grid, FX(:,J_0H:J_1H), from=SOUTH )
       I=IM
 C**** Contribution from the West-East mass flux
       DO 215 J = J_0SG, J_1SG
@@ -309,19 +301,42 @@ C**** Contribution from the West-East mass flux
       DVT(I,J,L)   = DVT(I,J,L)   - FLUXV
   210 I = IP1
   215 CONTINUE
-C****
-C****
-C**** ESMF: Loop limits J=J_START,J_0S replace J=2,JM-1.
-C**** Necesary because update of dut(..,j,..),etc. is done on both the
-C**** j=j-1 and j=j "passes" of the loop. J_START insures that
-C**** dut(:,J_0,:),etc.  are  updated properly in internal blocks. 
-      IF (HAVE_SOUTH_POLE) THEN
-        J_START=J_0S
-      ELSE
-        J_START=J_0H
-      END IF 
 
-      DO 230 J=J_START,J_1S
+      CALL HALO_UPDATE(grid, GY, from=SOUTH)
+      CALL HALO_UPDATE(grid, GY1, from=+SOUTH)
+      CALL HALO_UPDATE(grid, FX(:,J_0H:J_1H), from=SOUTH)
+      CALL HALO_UPDATE(grid, FX1, from=SOUTH)
+      CALL HALO_UPDATE(grid, U(:,:,L), from=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid, V(:,:,L), from=NORTH+SOUTH)
+
+      If (.not. HAVE_SOUTH_POLE) THEN
+        J=J_0-1
+        I = IM
+        DO IP1=1,IM
+C****   Contribution from the South-North mass flux
+          FLUX = DT3*(GY(I,J)+GY(IP1,J))
+          FLUXU = FLUX*(U(I,J,L)+U(I,J+1,L))
+          DUT(I,J+1,L) = DUT(I,J+1,L) + FLUXU
+          FLUXV = FLUX*(V(I,J,L)+V(I,J+1,L))
+          DVT(I,J+1,L) = DVT(I,J+1,L) + FLUXV
+C****   Contribution from the Southwest-Northeast mass flux
+          FLUX = DT6*(FX(I,J)+GY(IP1,J)-FX1(I,J)-GY1(IP1,J))
+          FLUXU = FLUX*(U(IP1,J+1,L)+U(I,J,L))
+          DUT(IP1,J+1,L) = DUT(IP1,J+1,L) + FLUXU
+          FLUXV = FLUX*(V(IP1,J+1,L)+V(I,J,L))
+          DVT(IP1,J+1,L) = DVT(IP1,J+1,L) + FLUXV
+C****   Contribution from the Southeast-Northwest mass flux
+          FLUX = DT6*(-FX(I,J)+GY(IP1,J)+FX1(I,J)-GY1(IP1,J))
+          FLUXU = FLUX*(U(I,J+1,L)+U(IP1,J,L))
+          DUT(I,J+1,L) = DUT(I,J+1,L) + FLUXU
+          FLUXV = FLUX*(V(I,J+1,L)+V(IP1,J,L))
+          DVT(I,J+1,L) = DVT(I,J+1,L) + FLUXV
+          I=IP1
+        END DO
+      END IF
+
+      I = IM
+      DO 230 J=J_0S,J_1S
       DO 220 IP1=1,IM
 C**** Contribution from the South-North mass flux
       FLUX = DT3*(GY(I,J)+GY(IP1,J))
@@ -351,6 +366,8 @@ C**** Contribution from the Southeast-Northwest mass flux
   230 CONTINUE
 C****
 C****
+
+      call HALO_UPDATE( grid, PU(:,:,L), from=SOUTH )
       I=IM
       IM1=I-1
 C**** CONTRIBUTION FROM THE BIG STEP WEST-EAST MASS FLUX
@@ -366,8 +383,6 @@ C**** CONTRIBUTION FROM THE BIG STEP WEST-EAST MASS FLUX
       IM1=I
   240 I=IP1
   245 CONTINUE
-      call CHECKSUM( grid, DUT(:,:,L), __LINE__, __FILE__ )
-      call CHECKSUM( grid, DVT(:,:,L), __LINE__, __FILE__ )
 C****
 C****
 C**** CONTRIBUTION FROM THE BIG STEP SOUTH-NORTH MASS FLUX
@@ -419,8 +434,6 @@ C**** ESMF: update latitudes "behind" (j-1) next.
       END DO
 
 
-      call CHECKSUM( grid, DUT(:,:,L), __LINE__, __FILE__ )
-      call CHECKSUM( grid, DVT(:,:,L), __LINE__, __FILE__ )
 C****
 C**** GISS/ESMF exception above.
 C****
@@ -440,16 +453,16 @@ C     DUT(I,J,L+1)=DUT(I,J,L+1)-SDU*(U(I,J,L)+U(I,J,L+1))
 C     DVT(I,J,L)  =DVT(I,J,L)  +SDU*(V(I,J,L)+V(I,J,L+1))
 C     DVT(I,J,L+1)=DVT(I,J,L+1)-SDU*(V(I,J,L)+V(I,J,L+1))
 C 310 I=IP1
-      call CHECKSUM( grid, SD, __LINE__, __FILE__ )
       call HALO_UPDATE( grid, SD, from=SOUTH )
 !$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM-1
 c$$$      DO J=2,JM
       DO J = J_0SG, J_1SG
          DO I=1,IM-1
-            ASDU(I,J,L)=DT2*((SD(I,JJ(J-1),L)+SD(I+1,JJ(J-1),L))
-     *                  *RAVPN(J-1)+
-     *                  (SD(I,JJ(J),L)+SD(I+1,JJ(J),L))*RAVPS(J))
+            ASDU(I,J,L)=DT2*((SD(I,JJ(J-1),L)+
+     *                        SD(I+1,JJ(J-1),L))
+     *      *RAVPN(J-1) +
+     *      (SD(I,JJ(J),L)+SD(I+1,JJ(J),L))*RAVPS(J))
          END DO
          ASDU(IM,J,L)=DT2*((SD(IM,JJ(J-1),L)+SD(1,JJ(J-1),L))
      *                *RAVPN(J-1)+
@@ -457,7 +470,6 @@ c$$$      DO J=2,JM
       END DO
       END DO
 !$OMP  END PARALLEL DO
-      call CHECKSUM( grid, ASDU, __LINE__, __FILE__, stgr=.true. )
       L=1
       DO J = J_0SG, J_1SG
         DUT(:,J,L)  =DUT(:,J,L)  +ASDU(:,J,L)  *(U(:,J,L)+U(:,J,L+1))
@@ -492,10 +504,13 @@ C**** CALL DIAGNOSTICS
       END DO
       END DO
       END DO
+
 !$OMP  END PARALLEL DO
 C****
 C**** CORIOLIS FORCE
 C****
+
+      call HALO_UPDATE( grid,  P, from=SOUTH )
 !$OMP  PARALLEL DO PRIVATE (I,IM1,J,L,FD,PDT4,ALPH)
       DO 430 L=1,LM
       IM1=IM
@@ -503,13 +518,16 @@ C****
 C     FD(I,1)=FCOR(1)*2.-.5*(SPA(IM1,1,L)+SPA(I,1,L))*DXV(2)
 C     FD(I,JM)=FCOR(JM)*2.+.5*(SPA(IM1,JM,L)+SPA(I,JM,L))*DXV(JM)
 C**** Set the Coriolis term to zero at the Poles:
-      FD(I,1)=  -.5*(SPA(IM1,1,L)+SPA(I,1,L))*DXV(2)
-      FD(I,JM)=  .5*(SPA(IM1,JM,L)+SPA(I,JM,L))*DXV(JM)
+        If (HAVE_SOUTH_POLE)
+     &       FD(I,1) = -.5*(SPA(IM1,1,L)+SPA(I,1,L))*DXV(2)
+        If (HAVE_NORTH_POLE)
+     &       FD(I,JM)=  .5*(SPA(IM1,JM,L)+SPA(I,JM,L))*DXV(JM)
   405 IM1=I
       DO 410 J = J_0S, J_1S
       DO 410 I=1,IM
       FD(I,J)=FCOR(J)+.25*(SPA(IM1,J,L)+SPA(I,J,L))*(DXV(J)-DXV(J+1))
   410 IM1=I
+      call HALO_UPDATE( grid, FD(:,J_0H:J_1H), from=SOUTH )
   415 CONTINUE
       DO 425 J = J_0SG, J_1SG
       DO 420 I=1,IM
@@ -528,7 +546,7 @@ C**** CALL DIAGNOSTICS, ADD CORIOLIS FORCE INCREMENTS TO UT AND VT
          IF(MRCH.GT.0) CALL DIAGCD (2,U,V,DUT,DVT,DT1)
 !$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM
-      DO J=2,JM
+      DO J=J_0SG,J_1SG
       DO I=1,IM
         UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)
         VT(I,J,L)=VT(I,J,L)+DVT(I,J,L)
@@ -548,21 +566,19 @@ C****
       END DO
 
       J_START = J_0
-      J_STP  = J_1
+      J_STP   = J_1
 
       IF (HAVE_SOUTH_POLE) then
-      FD(:,0)     = 0.
-      FD(:,1)     = 2.*PB(1,1)*DXYP(1)
+        FD(:,0)     = 0.
+        FD(:,1)     = 2.*PB(1,1)*DXYP(1)
       ENDIF
       IF (HAVE_NORTH_POLE) then
-      FD(:,JM)    = 2.*PB(1,JM)*DXYP(JM)
-      FD(:,JM+1)  = 0.
-
-      J_STP = J_1 + 1
+        FD(:,JM)    = 2.*PB(1,JM)*DXYP(JM)
+        FD(:,JM+1)  = 0.
+        J_STP = J_1 + 1
       ENDIF
 
-      call CHECKSUM( grid, FD, __LINE__, __FILE__ )
-      call HALO_UPDATE( grid, FD(:,J_0H:), from=SOUTH )
+      call HALO_UPDATE( grid, FD(:,J_0H:J_1H), from=SOUTH )
       I=IM
       DO J = J_START, J_STP
       DO IP1=1,IM
@@ -571,8 +587,7 @@ C****
       END DO
       END DO
 
-      call CHECKSUM( grid, FDU1, __LINE__, __FILE__ )
-      call HALO_UPDATE( grid, FDU1(:,J_0H:), from=NORTH+SOUTH )
+      call HALO_UPDATE( grid, FDU1(:,J_0H:J_1H), from=NORTH+SOUTH )
       I=IM
       IM1=I-1
       DO J = J_0SG, J_1SG
@@ -582,13 +597,13 @@ C****
         I=IP1
       END DO
       END DO
-      call CHECKSUM( grid, FDU2, __LINE__, __FILE__ )
 
       DO J = J_0SG, J_1SG
       DO I=1,IM
         FDU2(I,J)=(5.*FDU1(I,J)-2.*FDU2(I,J))*by3
       END DO
       END DO
+
 
       DO L=1,LS1-1
       DO J = J_0SG, J_1SG
@@ -598,12 +613,15 @@ C****
       END DO
       END DO
 
+
 C     DUT=0.
 C     DVT=0.
 !$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM
-        DUT(:,1,L)=0.
-        DVT(:,1,L)=0.
+        If (HAVE_SOUTH_POLE) THEN
+          DUT(:,1,L)=0.
+          DVT(:,1,L)=0.
+        End If
       DO J = J_0SG, J_1SG
       DO I=1,IM
         UT(I,J,L)=UT(I,J,L)/FDU(I,J,L)
@@ -615,6 +633,5 @@ C     DVT=0.
       END DO
 !$OMP  END PARALLEL DO
 
-      
       RETURN
       END SUBROUTINE ADVECV

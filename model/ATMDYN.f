@@ -509,7 +509,7 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
         IF (itime.LT.itime_tr0(N)) cycle
         sfbm = 0.; sbm = 0.; sbf = 0.
         sfcm = 0.; scm = 0.; scf = 0.
-        CALL AADVQ (TRM(1,1,1,n),TrMOM(1,1,1,1,n),t_qlimit(n),trname(n))
+        CALL AADVQ (TRM(:,:,:,n),TrMOM(:,:,:,:,n),t_qlimit(n),trname(n))
         byncyc = 1./ncyc
         TAJLN(:,:,jlnt_nt_tot,n) = TAJLN(:,:,jlnt_nt_tot,n) + sbf(:,:)
         TAJLN(:,:,jlnt_nt_mm, n) = TAJLN(:,:,jlnt_nt_mm, n)

@@ -659,6 +659,10 @@ c idacc-indices of various processes
      *    ,iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
      *    ,Kradia
       USE DIAG_COM
+      USE DOMAIN_DECOMP, Only : grid, GET, PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP, Only : PACK_DATAj, UNPACK_DATAj
+      USE DOMAIN_DECOMP, Only : PACK_COLUMN, UNPACK_COLUMN
+      USE DOMAIN_DECOMP, Only : AM_I_ROOT, CHECKSUM
       IMPLICIT NONE
 
 !@param KACC total number of diagnostic elements
@@ -693,6 +697,22 @@ c idacc-indices of various processes
       CHARACTER*80 :: HEADER, MODULE_HEADER = "DIAG01"
 !@var it input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
+      REAL*8 :: AFLX_ST_GLOB(LM+LM_REQ+1,IM,JM,5)
+
+      REAL*8 :: APJ_glob   (JM, KAPJ)
+      REAL*8 :: CONSRV_glob(JM, KCON)
+      REAL*8 :: AJ_glob    (JM, KAJ, NTYPE)
+      REAL*8 :: AJL_glob   (JM, LM,  KAJL)
+      REAL*8 :: ASJL_glob  (JM, LM_REQ, KASJL)
+      REAL*8 :: AIJ_glob   (IM, JM, KAIJ)
+      REAL*8 :: AJK_glob   (JM, LM, KAJK)
+      REAL*8 :: AIJK_glob  (IM, JM, LM, KAIJK)
+      REAL*8 :: TSFREZ_glob(IM, JM, KTSF)
+      REAL*8 :: TDIURN_glob(IM, JM, KTD)
+      REAL*8 :: OA_glob    (IM, JM, KOA)
+      INTEGER :: J_0, J_1
+
+      CALL GET( grid, J_STRT=J_0, J_STOP=J_1  )
 
       if(kradia.gt.0) then
         write (MODULE_HEADER(LHEAD+1:80),'(a6,i8,a20,i3,a7)')
@@ -700,24 +720,35 @@ c idacc-indices of various processes
 
         SELECT CASE (IACTION)
         CASE (IOWRITE)            ! output to standard restart file
-          WRITE (kunit,err=10) MODULE_HEADER,idacc(2),AFLX_ST,it
+          CALL PACK_COLUMN(grid, AFLX_ST, AFLX_ST_glob)
+          IF (AM_I_ROOT()) THEN
+            WRITE (kunit,err=10) MODULE_HEADER,idacc(2),AFLX_ST_glob,it
+          END IF
         CASE (IOWRITE_SINGLE)     ! output in single precision
           MODULE_HEADER(LHEAD+18:LHEAD+18) = '4'
           MODULE_HEADER(LHEAD+44:80) = ',monacc(12)'
-          WRITE (kunit,err=10) MODULE_HEADER,idacc(2),
-     *          REAL(AFLX_ST,KIND=4), monacc,it
+          CALL PACK_COLUMN(grid, AFLX_ST, AFLX_ST_glob)
+          IF (AM_I_ROOT()) THEN
+            WRITE (kunit,err=10) MODULE_HEADER,idacc(2),
+     *           REAL(AFLX_ST_glob,KIND=4), monacc,it
+          END IF
         CASE (IOWRITE_MON)        ! output to end-of-month restart file
           MODULE_HEADER(LHEAD+1:80) = 'itime '
-          WRITE (kunit,err=10) MODULE_HEADER,it
+          IF (AM_I_ROOT()) THEN
+            WRITE (kunit,err=10) MODULE_HEADER,it
+          END IF
         CASE (ioread)           ! input from restart file
-          READ (kunit,err=10) HEADER,idacc(2),AFLX_ST,it
+          READ (kunit,err=10) HEADER,idacc(2),AFLX_ST_glob,it
+          CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST, local=.true.)
+          
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
           END IF
         CASE (IOREAD_SINGLE)      !
           READ (kunit,err=10) HEADER,idac1(2),AFLX4,monac1
-          AFLX_ST=AFLX_ST+AFLX4
+          CALL UNPACK_COLUMN(grid, REAL(AFLX4,KIND=8),
+     *         AFLX_ST, local=.true.)
           IDACC(2) = IDACC(2) + IDAC1(2)
           monacc = monacc + monac1
         END SELECT
@@ -740,30 +771,79 @@ C**** The regular model (Kradia le 0)
       CASE (IOWRITE)            ! output to standard restart file
         write (MODULE_HEADER(i_xtra:80),             '(a7,i2,a)')
      *   ',x(IJM,',KTD+KOA,')'  ! make sure that i_xtra+7+2 < 80
-        WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
-     *     idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,CONSRV,
-     *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
-     *     TDIURN,OA,it
+
+        CALL PACK_DATA(grid,  TSFREZ, TSFREZ_glob)
+        CALL PACK_DATAj(grid, AJ, AJ_glob)
+        CALL PACK_DATAj(grid, APJ, APJ_glob)
+        CALL PACK_DATAj(grid, AJL, AJL_glob)
+        CALL PACK_DATAj(grid, ASJL, ASJL_glob)
+        CALL PACK_DATA(grid,  AIJ, AIJ_glob)
+        CALL PACK_DATAj(grid, CONSRV, CONSRV_glob)
+        CALL PACK_DATAj(grid, AJK, AJK_glob)
+        CALL PACK_DATA(grid,  AIJK, AIJK_glob)
+        CALL PACK_DATA(grid,  TDIURN, TDIURN_glob)
+        CALL PACK_DATA(grid,  OA, OA_glob)
+
+        If (AM_I_ROOT()) THEN
+          WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ_glob,
+     *     idacc, AJ_glob,AREG,APJ_glob,AJL_glob,ASJL_glob,AIJ_glob,
+     *     AIL, ENERGY,CONSRV_glob,
+     *     SPECA,ATPE,ADIURN,WAVE,AJK_glob,AIJK_glob,AISCCP,HDIURN,
+     *     TDIURN_glob,OA_glob,it
+        END IF
       CASE (IOWRITE_SINGLE)     ! output in single precision
         MODULE_HEADER(LHEAD+1:LHEAD+4) = 'I/R4'
         MODULE_HEADER(i_xtra:80) = ',monacc(12)'
-        WRITE (kunit,err=10) MODULE_HEADER,
-     *     keyct,KEYNR,REAL(TSFREZ,KIND=4),   idacc,
-     *     REAL(AJ,KIND=4),REAL(AREG,KIND=4),REAL(APJ,KIND=4),
-     *     REAL(AJL,KIND=4),REAL(ASJL,KIND=4),REAL(AIJ,KIND=4),
-     *     REAL(AIL,KIND=4),REAL(ENERGY,KIND=4),REAL(CONSRV,KIND=4),
+
+        CALL PACK_DATA(grid,  TSFREZ, TSFREZ_glob)
+        CALL PACK_DATAj(grid, AJ, AJ_glob)
+        CALL PACK_DATAj(grid, APJ, APJ_glob)
+        CALL PACK_DATAj(grid, AJL, AJL_glob)
+        CALL PACK_DATAj(grid, ASJL, AJL_glob)
+        CALL PACK_DATA(grid,  AIJ, AIJ_glob)
+        CALL PACK_DATAj(grid, CONSRV, CONSRV_glob)
+        CALL PACK_DATAj(grid, AJK, AJK_glob)
+        CALL PACK_DATA(grid,  AIJK, AIJK_glob)
+
+        If (AM_I_ROOT()) THEN
+          WRITE (kunit,err=10) MODULE_HEADER,
+     *     keyct,KEYNR,REAL(TSFREZ_glob,KIND=4),   idacc,
+     *     REAL(AJ_glob,KIND=4),REAL(AREG,KIND=4),REAL(APJ_glob,KIND=4),
+     *     REAL(AJL_glob,KIND=4),REAL(ASJL_glob,KIND=4),
+     *     REAL(AIJ_glob,KIND=4),REAL(AIL,KIND=4),
+     *     REAL(ENERGY,KIND=4), REAL(CONSRV_glob,KIND=4),
      *     REAL(SPECA,KIND=4),REAL(ATPE,KIND=4),REAL(ADIURN,KIND=4),
-     *     REAL(WAVE,KIND=4),REAL(AJK,KIND=4),REAL(AIJK,KIND=4),
+     *     REAL(WAVE,KIND=4),REAL(AJK_glob,KIND=4),
+     *     REAL(AIJK_glob,KIND=4),
      *     REAL(AISCCP,KIND=4),REAL(HDIURN,KIND=4),
      *     monacc,it
+        END IF
       CASE (IOWRITE_MON)        ! output to end-of-month restart file
         MODULE_HEADER(i_ida:80) = ',it '
-        WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,it
+
+        CALL PACK_DATA(grid, TSFREZ, TSFREZ_glob)
+        If (AM_I_ROOT()) THEN
+          WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,it
+        END IF
       CASE (ioread)           ! input from restart file
-        READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
-     *     idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,CONSRV,
-     *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
-     *     TDIURN,OA,it
+        READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ_glob,
+     *     idacc, AJ_glob,AREG,APJ_glob,AJL_glob,ASJL_glob,AIJ_glob,AIL,
+     *     ENERGY,CONSRV_glob,
+     *     SPECA,ATPE,ADIURN,WAVE,AJK_glob,AIJK_glob,AISCCP,HDIURN,
+     *     TDIURN_glob,OA_glob,it
+
+        CALL UNPACK_DATA(grid,  TSFREZ_glob, TSFREZ, local=.true.)
+        CALL UNPACK_DATAj(grid, AJ_glob,     AJ,     local=.true.)
+        CALL UNPACK_DATAj(grid, APJ_glob,    APJ,    local=.true.)
+        CALL UNPACK_DATAj(grid, AJL_glob,    AJL,    local=.true.)
+        CALL UNPACK_DATAj(grid, ASJL_glob,   ASJL,   local=.true.)
+        CALL UNPACK_DATA(grid,  AIJ_glob,    AIJ,    local=.true.)
+        CALL UNPACK_DATAj(grid, CONSRV_glob, CONSRV, local=.true.)
+        CALL UNPACK_DATAj(grid, AJK_glob,    AJK,    local=.true.)
+        CALL UNPACK_DATA(grid,  AIJK_glob,   AIJK,   local=.true.)
+        CALL UNPACK_DATA(grid,  TDIURN_glob, TDIURN, local=.true.)
+        CALL UNPACK_DATA(grid,  OA_glob,     OA,     local=.true.)
+        
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
@@ -777,12 +857,20 @@ C**** The regular model (Kradia le 0)
           PRINT*,"io_diags: compare aj,aj4, ... dimensions"
           GO TO 10 ! or should that be just a warning ??
         end if
-        TSFREZ=TSFREZ4
-        AJ=AJ+AJ4 ; AREG=AREG+AREG4 ; APJ=APJ+APJ4 ; AJL=AJL+AJL4
-        ASJL=ASJL+ASJL4 ; AIJ=AIJ+AIJ4 ; AIL=AIL+AIL4
-        ENERGY=ENERGY+ENERGY4 ; CONSRV=CONSRV+CONSRV4
+        TSFREZ(:,J_0:J_1,:)=TSFREZ4(:,J_0:J_1,:)
+        AJ(J_0:J_1,:,:)=AJ(J_0:J_1,:,:)+AJ4(J_0:J_1,:,:)
+        AREG=AREG+AREG4
+        APJ(J_0:J_1,:)=APJ(J_0:J_1,:)+APJ4(J_0:J_1,:)
+        AJL(J_0:J_1,:,:)=AJL(J_0:J_1,:,:)+AJL4(J_0:J_1,:,:)
+        ASJL(J_0:J_1,:,:)=ASJL(J_0:J_1,:,:)+ASJL4(J_0:J_1,:,:)
+        AIJ(:,J_0:J_1,:)=AIJ(:,J_0:J_1,:)+AIJ4(:,J_0:J_1,:)
+        AIL=AIL+AIL4
+        ENERGY=ENERGY+ENERGY4
+        CONSRV(J_0:J_1,:)=CONSRV(J_0:J_1,:)+CONSRV4(J_0:J_1,:)
         SPECA=SPECA+SPECA4 ; ATPE=ATPE+ATPE4 ; ADIURN=ADIURN+ADIURN4
-        WAVE=WAVE+WAVE4 ; AJK=AJK+AJK4 ; AIJK=AIJK+AIJK4
+        WAVE=WAVE+WAVE4
+        AJK(J_0:J_1,:,:)=AJK(J_0:J_1,:,:)+AJK4(J_0:J_1,:,:)
+        AIJK(:,J_0:J_1,:,:)=AIJK(:,J_0:J_1,:,:)+AIJK4(:,J_0:J_1,:,:)
         AISCCP=AISCCP+AISCCP4 ; HDIURN=HDIURN+HDIURN4
         IDACC = IDACC + IDAC1
 !@var idacc(5) is the length of a time series (daily energy history).

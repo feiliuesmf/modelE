@@ -1,26 +1,141 @@
 #include "rundeck_opts.h"
 
       MODULE WORKJK
-      USE MODEL_COM, ONLY : LM
-      USE DOMAIN_DECOMP, ONLY : grid
+      USE MODEL_COM, ONLY : JM,LM
 !!!
 !Replaces:
 !!!      COMMON/WORKJK/DPJK,DPHEM,DPGLOB
 
-      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: DPJK
+      REAL*8, DIMENSION(JM,LM,2):: DPJK
       REAL*8, DIMENSION(2,LM,2) :: DPHEM
       REAL*8, DIMENSION(LM,2) :: DPGLOB
       
-      CONTAINS 
-
-      SUBROUTINE ALLOC_WORKJK(grid)
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
-      TYPE(DIST_GRID), INTENT(IN) :: grid
-      ALLOCATE(DPJK(grid%J_STRT_HALO:grid%J_STOP_HALO,LM,2))
-
-      END SUBROUTINE ALLOC_WORKJK
-
       END MODULE WORKJK
+
+
+      MODULE SERIAL
+      USE MODEL_COM, ONLY : JM
+      USE DOMAIN_DECOMP, only : grid, DIST_GRID, AM_I_ROOT
+
+      PUBLIC :: GLOBALSUM
+      INTERFACE GLOBALSUM
+        MODULE PROCEDURE GLOBALSUM_J
+        MODULE PROCEDURE GLOBALSUM_JK
+      END INTERFACE
+
+
+      CONTAINS
+
+      SUBROUTINE GLOBALSUM_J(grd_dum, garr, gsum,
+     &                       hsum, istag, iskip, polefirst,all)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      REAL*8,            INTENT(IN) :: garr(grd_dum%jm_world)
+      REAL*8,            INTENT(OUT):: gsum
+      REAL*8, OPTIONAL,  INTENT(OUT):: hsum(2)
+      INTEGER,OPTIONAL,  INTENT(IN) :: istag
+      INTEGER,OPTIONAL,  INTENT(IN) :: iskip
+      LOGICAL,OPTIONAL,  INTENT(IN) :: polefirst
+      LOGICAL,OPTIONAL,  INTENT(IN) :: all
+
+      INTEGER :: IM, JM, J, ier
+      LOGICAL :: istag_, iskip_
+
+
+      IM   = grd_dum%IM_WORLD
+      JM   = grd_dum%JM_WORLD
+
+      istag_ = .false.
+      If (Present(istag)) Then
+        If (istag == 1) istag_ = .true.
+      End If
+
+      iskip_ = .false.
+      If (Present(iskip)) Then
+        If (iskip == 1) iskip_ = .true.
+      End If
+
+
+      If (AM_I_ROOT()) then
+         If (Present(polefirst)) Then
+            If (polefirst) Then
+               gsum = garr(1) + garr(JM)
+               DO J = 2, JM-1
+                  gsum = gsum + garr(J)
+               END DO
+            End IF
+         Else
+         If (istag_) then
+           gsum = sum(garr(2:JM),1)
+         ElseIf (iskip_) then
+           gsum = sum(garr(2:JM-1),1)
+         Else
+           gsum = sum(garr(1:JM),1)
+         EndIf
+         If (Present(hsum)) then
+            If (istag_) then
+               hsum(1)   = Sum( garr(2     :JM/2),1   )
+               hsum(2)   = Sum( garr(2+JM/2:JM  ),1   )
+               hsum(1)   = hsum(1) + 0.5*garr(1+JM/2)
+               hsum(2)   = hsum(2) + 0.5*garr(1+JM/2)
+            Else
+               hsum(1)   = Sum( garr(1     :JM/2),1   )
+               hsum(2)   = Sum( garr(1+JM/2:JM  ),1   )
+            EndIf
+         EndIf
+         Endif
+      EndIf
+
+      END SUBROUTINE GLOBALSUM_J
+
+
+      SUBROUTINE GLOBALSUM_JK(grd_dum, garr, gsum, hsum, istag, all)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      REAL*8,            INTENT(IN) :: garr(              : ,:)
+!     REAL*8,            INTENT(IN) :: garr(grd_dum%jm_world,:)
+      REAL*8,            INTENT(OUT):: gsum(size(garr,2))
+      REAL*8, OPTIONAL,  INTENT(OUT):: hsum(2,size(garr,2))
+      INTEGER,OPTIONAL,  INTENT(IN) :: istag
+      LOGICAL,OPTIONAL,  INTENT(IN) :: all
+
+      INTEGER :: k
+      INTEGER :: ier
+      INTEGER :: IM, JM
+      LOGICAL :: istag_
+
+      IM   = grd_dum%IM_WORLD
+      JM   = grd_dum%JM_WORLD
+      istag_ = .false.
+      If (Present(istag)) Then
+        If (istag == 1) istag_ = .true.
+      End If
+
+
+      If (AM_I_ROOT()) then
+         If (istag_) then
+           gsum = sum(garr(2:JM,:),1)
+         Else
+           gsum = sum(garr(1:JM,:),1)
+         EndIf
+         If (Present(hsum)) then
+            If (istag_) then
+               hsum(1,:)   = Sum( garr(2     :JM/2,:),1   )
+               hsum(2,:)   = Sum( garr(2+JM/2:JM  ,:),1   )
+               hsum(1,:)   = hsum(1,:) + 0.5*garr(1+JM/2,:)
+               hsum(2,:)   = hsum(2,:) + 0.5*garr(1+JM/2,:)
+            Else
+               hsum(1,:)   = Sum( garr(1     :JM/2,:),1   )
+               hsum(2,:)   = Sum( garr(1+JM/2:JM  ,:),1   )
+            EndIf
+         EndIf
+      EndIf
+
+
+      END SUBROUTINE GLOBALSUM_JK
+
+      END MODULE SERIAL
+
       
       subroutine print_diags(ipos)
 !@sum print_diag prints out binary and ascii diag output.
@@ -207,7 +322,8 @@ c
 !@auth G. Schmidt/R. Reto/G. Russell
       use filemanager
       USE CONSTANT, only : teeny
-      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM, WRITE_PARALLEL
+      USE DOMAIN_DECOMP, only : GRID
+      USE SERIAL, only : GLOBALSUM
       USE MODEL_COM, only : im,jm,lm,fim,flice,
      &     dtsrc,fland,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,ls1,sige,itime,itime0,nday,xlabel,lrunid,ntype
@@ -277,17 +393,6 @@ C**** weighting functions for surface types
       CHARACTER*200    :: fmt903
       CHARACTER*200    :: fmt918
 
-C**** define local grid
-      integer J_0, J_1
-      logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
 
       fmt903 = "('0',131('-')/20X,'G      NH     SH   ',24I4)"
       fmt918 = "('0',16X,23(1X,A4)/17X,23(1X,A4)/1X,131('-'))"
@@ -297,15 +402,15 @@ C****
 C**** INITIALIZE CERTAIN QUANTITIES
         call j_titles
         SAREA=0.
-        DO J=J_0,J_1
+        DO J=1,JM
           S1(J)=IM
           DO I=1,IM
             JR=JREG(I,J)
             SAREA(JR)=SAREA(JR)+DXYP(J)
           END DO
         END DO
-        IF (HAVE_SOUTH_POLE) S1(1)=1.
-        IF (HAVE_NORTH_POLE) S1(JM)=1.
+        S1(1)=1.
+        S1(JM)=1.
         inquire(file='Ibp',exist=qIbp)
         Qbp=.true.
         if(.not.qIbp) then
@@ -348,7 +453,7 @@ C**** CALCULATE THE DERIVED QUANTTIES
         AREG(JR,J_HZ1)=AREG(JR,J_HZ0)+AREG(JR,J_ERVR)
         AREG(JR,J_HZ2)=AREG(JR,J_HZ1)-AREG(JR,J_ERUN)-AREG(JR,J_IMPLH)
       END DO
-      DO J=J_0,J_1
+      DO J=1,JM
       DO IT=1,NTYPE
         SPTYPE(IT,J) =AJ(J,J_TYPE,IT)*BYA1
         AJ(J,J_TRNFP0,IT)=AJ(J,J_HSURF,IT)+A2BYA1*AJ(J,J_TRHDT,IT)/DTSRC
@@ -371,15 +476,11 @@ C****
       IF (KDIAG(1).GT.7) GO TO 510
       DO M=0,NTYPE_OUT-1
       if(.not.Qbp(M)) cycle
-      WRITE (out_line,901) XLABEL
-      CALL WRITE_PARALLEL(TRIM(out_line),UNIT=6)
-      WRITE (out_line,902) TERRAIN(M),JYEAR0,AMON0,JDATE0,JHOUR0,
+      WRITE (6,901) XLABEL
+      WRITE (6,902) TERRAIN(M),JYEAR0,AMON0,JDATE0,JHOUR0,
      *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
-      CALL WRITE_PARALLEL(TRIM(out_line),UNIT=6)
-      CALL WRITE_PARALLEL(NINT(LAT_DG(JM:INC:-INC,1)), 
-     *                    UNIT=6, format=fmt903)
-      WRITE (out_line,905)
-      CALL WRITE_PARALLEL(TRIM(out_line),UNIT=6)
+      write(6,fmt=fmt903) NINT(LAT_DG(JM:INC:-INC,1))
+      WRITE (6,905)
       NDER=1
       KDER=1
       DO N=1,k_j_out
@@ -387,8 +488,8 @@ C****
 C**** set weighting for denominator (different only for J_TYPE)
       MD=M
       IF (name_j(N).eq.'J_surf_type_frac') MD=0
-      print *, __LINE__, __FILE__, j_0,j_1,M
-      DO J=J_0,J_1
+      print *, __LINE__, __FILE__, M
+      DO J=1,JM
 C**** Sum over types
           QJ=0
           WTX=0
@@ -423,26 +524,22 @@ C**** Save BUDG for full output
 C**** select output format depending on field name
       SELECT CASE (name_j(N)(3:len_trim(name_j(N))))
       CASE ('sstab_trop')
-        WRITE (out_line,906) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
+        WRITE (6,906) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
      *       (FLAT(J),J=JM,INC,-INC)
-        CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
       CASE ('evap','prec','ross_num_strat','ross_num_trop'
      *       ,'ross_radius_strat','ross_radius_trop','ht_runoff'
      *       ,'river_discharge','ice_melt','impl_m_flux','ht_rvr_disch',
      *       'wat_runoff','ssprec','mcprec','h2o_from_ch4'
      *       ,'lapse_rate','lapse_rate_m','lapse_rate_c'
      *       ,'ht_thermocline','salt_runoff','s_ice_melt')
-        WRITE (out_line,911) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
+        WRITE (6,911) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
      *       (FLAT(J),J=JM,INC,-INC)
-        CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
       CASE ('ocn_ht_trans','prec_ht_flx','ht_ice_melt')
-        WRITE (out_line,912) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
+        WRITE (6,912) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
      *       (MLAT(J),J=JM,INC,-INC)
-        CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
       CASE DEFAULT
-        WRITE (out_line,907) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
+        WRITE (6,907) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
      *       (MLAT(J),J=JM,INC,-INC)
-        CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
       END SELECT
       IF (NDER.le.NDMAX) THEN   ! needed to avoid out of bounds address
       if (name_j(N)(3:len_trim(name_j(N))).EQ.DERPOS(NDER)) THEN
@@ -452,7 +549,7 @@ C**** CALCULATE AND PRINT DERIVED RATIOS
         ND=IDEN_J_O(KA)
 C**** differentiate normal ratios from albedo calculations
         QALB=(name_j_o(ka).eq.'plan_alb'.or.name_j_o(ka).eq.'surf_alb')
-        DO J=J_0,J_1
+        DO J=1,JM
 C**** Sum over types
             QNUM=0
             QDEN=0
@@ -488,13 +585,11 @@ C**** Save BUDG for full output
 C****
       SELECT CASE (name_j_o(ka))
       CASE ('mc_clddp')
-        WRITE (out_line,907) STITLE_J_O(KA),FGLOB,FHEM(2),FHEM(1),
+        WRITE (6,907) STITLE_J_O(KA),FGLOB,FHEM(2),FHEM(1),
      *       (MLAT(J),J=JM,INC,-INC)
-        CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
       CASE DEFAULT
-        WRITE (out_line,912) STITLE_J_O(KA),FGLOB,FHEM(2),FHEM(1),
+        WRITE (6,912) STITLE_J_O(KA),FGLOB,FHEM(2),FHEM(1),
      *       (MLAT(J),J=JM,INC,-INC)
-        CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
       END SELECT
       END DO
       KDER=KDER+NDERN(NDER)
@@ -502,10 +597,8 @@ C****
       END IF
       END IF
       END DO
-      CALL WRITE_PARALLEL (NINT(LAT_DG(JM:INC:-INC,1)), 
-     *                     UNIT=6, format=fmt903)
-      WRITE (out_line,905)
-      CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
+      write(6,fmt=(fmt903)) NINT(LAT_DG(JM:INC:-INC,1))
+      WRITE (6,905)
       IF (QDIAG) CALL POUT_J(TITLEO,SNAMEO,LNAMEO,UNITSO,BUDG,k_j_out
      *     +nj_out,TERRAIN(M),M+1) ! the +1 is because M starts at 0
       END DO
@@ -515,15 +608,13 @@ C****
 C****
 C**** PRODUCE REGIONAL STATISTICS
 C****
-      WRITE (out_line,901) XLABEL
-      CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
-      WRITE (out_line,902) '   (REGIONS)    ',
+      WRITE (6,901) XLABEL
+      WRITE (6,902) '   (REGIONS)    ',
      *               JYEAR0,AMON0,JDATE0,JHOUR0,
      *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
-      CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
-      CALL WRITE_PARALLEL (RESHAPE( (/NAMREG(1,1:23),NAMREG(2,1:23)/), 
-     *                              (/23*2/) ), UNIT=6, format=fmt918)
-c      CALL WRITE_PARALLEL (NAMREG(1,1:23), UNIT=6, format=fmt918)
+      write(6,fmt=fmt918) RESHAPE( (/NAMREG(1,1:23),NAMREG(2,1:23)/),
+     *                              (/23*2/) )
+c      write(6,fmt=fmt918) NAMREG(1,1:23)
       NDER=1
       KDER=1
       DO N=1,k_j_out
@@ -541,8 +632,7 @@ C**** select output format based on field name
      *     ,'ht_rvr_disch','ice_g1','snowdp','wat_runoff','ssprec'
      *     ,'mcprec','atmh2o','ht_thermocline','salt_runoff'
      *     ,'s_ice_melt')
-        WRITE (out_line,910) STITLE_J(N),(FLAT(JR),JR=1,23)
-        CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
+        WRITE (6,910) STITLE_J(N),(FLAT(JR),JR=1,23)
       CASE ('sstab_trop','sstab_strat','ross_num_strat'
      *       ,'ross_num_trop','ross_radius_strat','ross_radius_trop'
      *       ,'surf_type_frac','lapse_rate','lapse_rate_m'
@@ -550,8 +640,7 @@ C**** select output format based on field name
      *       ,'dtdlat_strat','dtdlat_trop')
         CONTINUE     ! no output for not-calculated quantities
       CASE DEFAULT
-        WRITE (out_line,909) STITLE_J(N),(MLAT(JR),JR=1,23)
-        CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
+        WRITE (6,909) STITLE_J(N),(MLAT(JR),JR=1,23)
       END SELECT
       IF (NDER.le.NDMAX) THEN   ! needed to avoid out of bounds address
       IF (name_j(N)(3:len_trim(name_j(N))).EQ.DERPOS(NDER)) THEN
@@ -566,18 +655,16 @@ C**** differentiate normal ratios from albedo calculations
           IF (QALB) FLAT(JR)=100.-FLAT(JR)
           MLAT(JR)=FLAT(JR)+.5
         END DO
-        WRITE (out_line,909) STITLE_J_O(KA),(MLAT(JR),JR=1,23)
-        CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
+        WRITE (6,909) STITLE_J_O(KA),(MLAT(JR),JR=1,23)
       END DO
       KDER=KDER+NDERN(NDER)
       NDER=NDER+1
       END IF
       END IF
       END DO
-      WRITE (out_line,905)
-      CALL WRITE_PARALLEL (RESHAPE( (/NAMREG(1,1:23),NAMREG(2,1:23)/),
-     *                              (/23*2/) ), UNIT=6, format=fmt918)
-      CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
+      write(6,fmt=fmt918) RESHAPE( (/NAMREG(1,1:23),NAMREG(2,1:23)/),
+     *                              (/23*2/) )
+      WRITE (6,905)
       RETURN
 C****
   901 FORMAT ('1',A)
@@ -624,7 +711,6 @@ C****
 !@ver  1.0
       use filemanager
       USE CONSTANT, only : sday,bygrav,sha,lhe
-      USE DOMAIN_DECOMP, only : WRITE_PARALLEL
       USE MODEL_COM, only : byim,DTsrc
       USE BDjkjl
       USE DIAG_COM
@@ -729,19 +815,16 @@ c
 
 c Check the count
       if (k .gt. KAJLx) then
-        write (out_line,*) 'Increase KAJLx=',KAJLx,' to at least ',k
-        CALL WRITE_PARALLEL(TRIM(out_line), UNIT=6)
+        write (*,*) 'Increase KAJLx=',KAJLx,' to at least ',k
         call stop_model('JL_TITLES: KAJLx too small',255)
       end if
 
       inquire(file='Ijk',exist=qIjk)
       if(.not.qIjk) then
          call openunit('Ijk',iu_Ijk,.false.,.false.)
-         CALL WRITE_PARALLEL 
-     *      ('list of JL-fields', UNIT=iu_Ijk, FORMAT='(a)')
+         write(iu_Ijk, FMT='(a)') 'list of JL-fields'
          do kk = 1,k
-           write(out_line, '(i3,1x,a)') kk,lname_jl(kk)
-           CALL WRITE_PARALLEL (TRIM(out_line), UNIT=iu_Ijk)
+           write(iu_Ijk, '(i3,1x,a)') kk,lname_jl(kk)
          end do
       else if(kdiag(2).gt.0) then
          Ql=.false.
@@ -1007,17 +1090,14 @@ c      units_jk(k) = '10**11 JOULES/METER/UNIT SIGMA'
       pow_jk(k) = -2
 c Check the count
       if (k .gt. KAJKx) then
-        write (out_line,*) 'Increase KAJKx=',KAJKx,' to at least ',k
-        CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
+        write (6,*) 'Increase KAJKx=',KAJKx,' to at least ',k
         call stop_model('JK_TITLES: KAJKx too small',255)
       end if
 
       if(.not.qIjk) then
-         CALL WRITE_PARALLEL 
-     *        ('list of JK-fields', UNIT=iu_Ijk, FORMAT='(a)') 
+         write(iu_Ijk, FMT='(a)') 'list of JK-fields'
          do kk = 1,k
-           write (out_line, '(i3,1x,a)') kk,lname_jk(kk)
-           CALL WRITE_PARALLEL (TRIM(out_line), UNIT=iu_Ijk)
+           write (iu_Ijk, '(i3,1x,a)') kk,lname_jk(kk)
          end do
          call closeunit(iu_Ijk)
       else if(kdiag(2).gt.0) then
@@ -1039,7 +1119,8 @@ c Check the count
       SUBROUTINE DIAGJK
       USE CONSTANT, only :
      &     grav,rgas,kapa,sday,lhe,twopi,omega,sha,bygrav,tf,teeny
-      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM, WRITE_PARALLEL
+      USE DOMAIN_DECOMP, only : GRID
+      USE SERIAL, only : GLOBALSUM
       USE MODEL_COM, only :
      &     im,jm,lm,fim, xlabel,lrunid,DO_GWDRAG,
      &     BYIM,DSIG,BYDSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,nidyn,
@@ -1062,7 +1143,7 @@ c Check the count
       REAL*8, DIMENSION(LM_REQ) :: BYDPS,BYPKS
       REAL*8, DIMENSION(0:IMH) :: AN,BN
 
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,LM,2) :: DSJK
+      REAL*8, DIMENSION(JM,LM,2) :: DSJK
       REAL*8, DIMENSION(2,LM,2) :: DSHEM
       REAL*8, DIMENSION(LM,2) :: DSGLOB
 c$$$      COMMON/WORK5/DSJK,DSHEM,DSGLOB
@@ -1095,18 +1176,6 @@ Cbmp - ADDED
 
       CHARACTER*200    :: out_line
 
-      INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** avoid printing out diagnostics that are not yet defined
       if (IDACC(ia_dga).eq.0) RETURN
@@ -1130,27 +1199,25 @@ C**** INITIALIZE CERTAIN QUANTITIES
       BYPKS(2)=1./(.35*PMTOP)**KAPA
       BYPKS(3)=1./(.1*PMTOP)**KAPA
       ONES=1.
-      DO 40 J=J_0,J_1
+      DO 40 J=1,JM
       DXYPPO(J)=DXYP(J)
       ONESPO(J)=1.
 c      BYDXYP(J)=1./DXYP(J)
       BYDAPO(J)=BYDXYP(J)
       BYDASQR(J)=BYDXYP(J)*BYDXYP(J)
    40 CONTINUE
-      IF (HAVE_SOUTH_POLE) THEN
-         DXYPPO(1)=DXYP(1)*FIM
-         ONESPO(1)=FIM
-         BYDAPO(1)=BYDAPO(1)*BYIM
-      ENDIF
-      IF (HAVE_NORTH_POLE) THEN
-         DXYPPO(JM)=DXYP(JM)*FIM
-         ONESPO(JM)=FIM
-         BYDAPO(JM)=BYDAPO(JM)*BYIM
-      ENDIF
-      DO 50 J=J_0STG,J_1STG
+
+      DXYPPO(1)=DXYP(1)*FIM
+      ONESPO(1)=FIM
+      BYDAPO(1)=BYDAPO(1)*BYIM
+      DXYPPO(JM)=DXYP(JM)*FIM
+      ONESPO(JM)=FIM
+      BYDAPO(JM)=BYDAPO(JM)*BYIM
+
+      DO 50 J=2,JM
       DXCOSV(J)=DXV(J)*COSV(J)
    50 CONTINUE
-      DO J=J_0,J_1
+      DO J=1,JM
         BYP(J,1)=IDACC(ia_dga)/(APJ(J,1)+teeny)
         BYPV(J,1)=IDACC(ia_dga)/(.25*APJ(J,2)+teeny)
       ENDDO
@@ -1167,14 +1234,12 @@ c      BYDXYP(J)=1./DXYP(J)
         BYPVDSIG(:,L) = BYPV(:,L)*BYDSIG(L)
       ENDDO
       LINECT=65
-C      WRITE (out_line,901)
-      CALL WRITE_PARALLEL
-     * (' DEG K/DAY  = 0.01*SDAY*GRAV/SHA (= 8.445) W/(m^2*mb)',UNIT=6)
-      CALL WRITE_PARALLEL
-     * (' 10**18 JOULES = .864 * 10**30 GM*cm^2/s/DAY', UNIT=6)
+C      WRITE (6,901)
+      write(6,*) ' DEG K/DAY  = 0.01*SDAY*GRAV/SHA (= 8.445) W/(m^2*mb)'
+      write(6,*) ' 10**18 JOULES = .864 * 10**30 GM*cm^2/s/DAY'
       BYIADA=1./(IDACC(ia_dga)+teeny)
       BYIMDA=BYIADA*BYIM
-      DO J=J_0,J_1
+      DO J=1,JM
         PJ(J,1)=0
         PJ(J,2)=0
         DO K=1,KM
@@ -1199,7 +1264,7 @@ C
       DO J1=1,2
          if (J1==1) then
            DO K=1,KM
-            DO J=J_0,J_1
+            DO J=1,JM
                DPJK(J,K,J1) = AJK(J,K,J1)
                DSJK(J,K,J1)=AJK(J,K,J1)/(PJ(J,J1)+teeny)
                DPHJK(J,K) = AJK(J,K,J1)*WTJ(J,2,J1)
@@ -1214,7 +1279,7 @@ C
            DSGLOB(:,J1)  =  DPGLOB(:,J1) /(DGtemp+teeny)
          else
            DO K=1,KM
-            DO J=J_0STG,J_1STG
+            DO J=2,JM
                DPJK(J,K,J1) = AJK(J,K,J1)
                DSJK(J,K,J1)=AJK(J,K,J1)/(PJ(J,J1)+teeny)
                DPHJK(J,K) = AJK(J,K,J1)*WTJ(J,2,J1)
@@ -2372,7 +2437,8 @@ C****
       SUBROUTINE JKMAP(LNAME,SNAME,UNITS,POW10P,
      &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1)
       USE CONSTANT, only : teeny
-      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM, WRITE_PARALLEL
+      USE DOMAIN_DECOMP, only : GRID
+      USE SERIAL, only : GLOBALSUM
       USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
       USE WORKJK
@@ -2418,18 +2484,7 @@ C****
 
       CHARACTER*200 :: out_line
 
-      INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
       if(sname.eq.'skip') return
 C form title string
@@ -2447,13 +2502,11 @@ C**** PRODUCE A LATITUDE BY LAYER TABLE OF THE ARRAY A
 C****
    10 LINECT=LINECT+KMAX+7
       IF (LINECT.LE.60) GO TO 20
-      WRITE (out_line,907) 
+      WRITE (6,907) 
      *  XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
-      CALL WRITE_PARALLEL (TRIM(out_line),UNIT=6) 
       LINECT=KMAX+8
    20 WRITE (6,901) TITLE,(DASH,J=J1,JM,INC)
-      WRITE (out_line,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
-      CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
+      WRITE (6,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
       WRITE (6,905) (DASH,J=J1,JM,INC)
          DO 40 L=1,LM+LM_REQ+1
          DO 40 J=1,JM+3
@@ -2468,7 +2521,7 @@ C**** HORIZONTAL SUMS AND TABLE ENTRIES
       AHEM(:) = 0.
       DO K=KMAX,1,-1
          If (J1==1) then  ! Standard Grid
-            DO J=J_0,J_1
+            DO J=1,JM
                FLAT(J)  = CX(J,K)/(DPJK(J,K,J1)+teeny) 
                XJL(J,K) = FLAT(J)*PRTFAC
                FLAT(J)  = FLAT(J)*PRTFAC
@@ -2478,7 +2531,7 @@ C**** HORIZONTAL SUMS AND TABLE ENTRIES
             CALL GLOBALSUM(GRID, CX(:,K)*WTJ(:,JWT,J1)*PRTFAC, 
      *                     AGLOB, AHEML)
          Else             ! Staggered Grid
-            DO J=J_0STG,J_1STG
+            DO J=2,JM
                FLAT(J)  = CX(J,K)/(DPJK(J,K,J1)+teeny)
                XJL(J,K) = FLAT(J)*PRTFAC
                FLAT(J)  = FLAT(J)*PRTFAC
@@ -2543,14 +2596,6 @@ C****
      *  ARQX,SCALER,SCALJR,SCALLR)
       if(sname.eq.'skip') return
 
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C form title string
       units_with_scale = units
@@ -2568,20 +2613,18 @@ C form title string
   205    XJL(J,L) = -1.E30
       LINECT=LINECT+KMAX+10
       IF (LINECT.LE.60) GO TO 230
-      WRITE (out_line,907) 
+      WRITE (6,907) 
      *  XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
-      CALL WRITE_PARALLEL (TRIM(out_line),UNIT=6) 
       LINECT=KMAX+11
   230 CONTINUE
 C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       WRITE (6,901) TITLE,(DASH,J=J1,JM,INC)
-      WRITE (out_line,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
-      CALL WRITE_PARALLEL (TRIM(out_line), UNIT=6)
+      WRITE (6,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
       WRITE (6,905) (DASH,J=J1,JM,INC)
 
       DO L=LM_REQ,1,-1
          If (J1==1) then   ! Standard Grid
-            DO J=J_0,J_1
+            DO J=1,JM
                FLATJ=ARQX(J,L)*SCALER*SCALJR(J)*SCALLR(L)
                XJL(J,L+KMAX) = FLATJ
 c              FLATJ=FLATJ*PRTFAC
@@ -2592,7 +2635,7 @@ C               MLAT(J)=NINT(FLATJ)
             CALL GLOBALSUM(GRID, FLAT(:), FGLOB, AHEM)
             FGLOB=FGLOB/JWT
          Else              ! Staggered Grid
-            DO J=J_0STG,J_1STG
+            DO J=2,JM
                FLATJ=ARQX(J,L)*SCALER*SCALJR(J)*SCALLR(L)
                XJL(J,L+KMAX) = FLATJ
 c              FLATJ=FLATJ*PRTFAC
@@ -2633,7 +2676,8 @@ C**** J1 INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
-      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP, only : GRID
+      USE SERIAL, only : GLOBALSUM
       USE MODEL_COM, only :
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
@@ -2675,18 +2719,6 @@ C****
       CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80,TPOW*8
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
 
-      INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
       if(sname.eq.'skip') return
 C form title string
@@ -2730,7 +2762,7 @@ C****
       FLAT = 0.0
       DO L=LMAX,1,-1
          If (J1==1) then      ! Standard Grid
-            DO J=J_0,J_1
+            DO J=1,JM
                FLAT(J)=AX(J,L)*SCALET*SCALEJ(J)*SCALEL(L)
                XJL(J,L) = FLAT(J)   *PRTFAC
                FLAT(J)=FLAT(J)*PRTFAC
@@ -2740,7 +2772,7 @@ C****
      *                           FGLOB, FHEM)
             FGLOB=FGLOB/JWT
          Else                 ! Staggered Grid
-            DO J=J_0STG,J_1STG
+            DO J=2,JM
                FLAT(J)=AX(J,L)*SCALET*SCALEJ(J)*SCALEL(L)
                XJL(J,L) = FLAT(J)   *PRTFAC
                FLAT(J)=FLAT(J)*PRTFAC
@@ -2783,12 +2815,6 @@ C****
      &     PL,AX,SCALET,SCALEJ,SCALEL,LMAX,JWT,J1,
      *  ARQX,SCALER,SCALJR,SCALLR)
 
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
       if(sname.eq.'skip') return
 C form title string
       units_with_scale = units
@@ -2815,7 +2841,7 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       WRITE (6,905) (DASH,J=J1,JM,INC)
       DO L=LM_REQ,1,-1
          If (J1==1) then     ! Standard Grid
-            DO J=J_0,J_1
+            DO J=1,JM
                FLAT(J)=ARQX(J,L)*SCALER*SCALJR(J)*SCALLR(L)
                XJL(J,L+LMAX) = FLAT(J)
 c              FLAT(J)=FLAT(J)*PRTFAC
@@ -2824,7 +2850,7 @@ c              FLAT(J)=FLAT(J)*PRTFAC
      *                           FGLOB, FHEM)
             FGLOB=FGLOB/JWT
          Else                ! Staggered Grid
-            DO J=J_0STG,J_1STG
+            DO J=2,JM
                FLAT(J)=ARQX(J,L)*SCALER*SCALJR(J)*SCALLR(L)
                XJL(J,L+LMAX) = FLAT(J)
 c              FLAT(J)=FLAT(J)*PRTFAC
@@ -2860,7 +2886,8 @@ C**** WHEN JWT=2, ALL NUMBERS ARE PER UNIT AREA.
 C**** J1 INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED USING VWT(J,L) AS VERTICAL WEIGHTS
 C****
-      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP, only : GRID
+      USE SERIAL, only : GLOBALSUM
       USE CONSTANT, only : teeny
       USE MODEL_COM, only :
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
@@ -2905,18 +2932,6 @@ cBMP - added
       CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80,TPOW*8
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
 
-      INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
       if(sname.eq.'skip') return
 C form title string
@@ -2950,7 +2965,7 @@ C****
       ASUM=0. ; SVWTJ=0.
       DO L=LMAX,1,-1
          If (J1==1) then     ! Standard Grid
-            DO J=J_0,J_1
+            DO J=1,JM
                FLAT(J)=AX(J,L)*SCALET*SCALEJ(J)*SCALEL(L)
                XJL(J,L) = FLAT(J)   *PRTFAC
                FLAT(J)=FLAT(J)*PRTFAC
@@ -2969,7 +2984,7 @@ C****
      *                           FGLOB, FHEM)
             FGLOB=FGLOB/JWT
          Else                ! Staggered Grid
-            DO J=J_0STG,J_1STG
+            DO J=2,JM
                FLAT(J)=AX(J,L)*SCALET*SCALEJ(J)*SCALEL(L)
                XJL(J,L) = FLAT(J)   *PRTFAC
                FLAT(J)=FLAT(J)*PRTFAC
@@ -3985,7 +4000,8 @@ c**** fill in some key numbers
 !@sum ij_avg finds num/den and various averages from num and den
 !@auth R.Ruedy
 !@ver  1.0
-      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP, only : GRID
+      USE SERIAL, only : GLOBALSUM
       USE CONSTANT, only :  undef
       USE MODEL_COM, only :  im,jm,fim,jeq
       USE GEOM, only : wtj,Jrange_hemi
@@ -4003,25 +4019,13 @@ cBMP - added
 
       integer k,i,j,jgrid,isumz,isumg,jhemi
 
-      INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 c**** find smap,smapj  from the numerators and denominators
       smap = undef ; smapj = undef
       znumh = 0. ; zdenh = 0.
 
       If (Jgrid==1) then     ! Standard Grid
-         DO j=J_0,J_1
+         DO J=1,JM
             sumj = 0. ; wt = 0.
             DO i=1,im
                sumj = sumj + anum(i,j)*wtij(i,j)
@@ -4037,7 +4041,7 @@ c**** find smap,smapj  from the numerators and denominators
          CALL GLOBALSUM(GRID, sumjA(:), gm, znumh)
          CALL GLOBALSUM(GRID,   wtA(:), gm, zdenh)
       Else                   ! Staggered Grid
-         DO j=J_0STG,J_1STG
+         DO J=2,JM
             sumj = 0. ; wt = 0.
             DO i=1,im
                sumj = sumj + anum(i,j)*wtij(i,j)
@@ -4074,7 +4078,8 @@ c**** find hemispheric and global means
 !@auth Gary Russell,Maxwell Kelley,Reto Ruedy
 !@ver   1.0
       USE CONSTANT, only : sha,teeny
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : GRID
+      USE SERIAL, only : GLOBALSUM
       USE MODEL_COM, only :
      &     im,jm,lm,byim,
      &     FLAND,FLICE,FEARTH,FOCEAN,
@@ -4109,18 +4114,6 @@ c**** find hemispheric and global means
      &     DAYS,ZNDE16,DPTI,PVTI,gm,
      &     DE4TI,BYDPK,SZNDEG
 
-      INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG) call open_ij(trim(acc_period)//'.ij'//XLABEL(1:LRUNID)
@@ -4205,7 +4198,7 @@ c**** always skip unused fields
 C****
       DAYS=(Itime-Itime0)/FLOAT(nday)
 C**** Collect the appropriate weight-arrays in WT_IJ
-      do j=J_0,J_1
+      do J=1,JM
       do i=1,im
         wt_ij(i,j,1) = 1.
         wt_ij(i,j,2) = focean(i,j)
@@ -4221,7 +4214,7 @@ C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)
 C**** CACULATE STANDING AND TRANSIENT EDDY NORTHWARD TRANSPORT OF DSE
       SENTDSE = 0
       TENTDSE = 0
-      DO J=J_0STG, J_1STG
+      DO J=2,JM
       DO K=1,LM
         DPTI=0.
         PVTI=0.
@@ -4242,7 +4235,7 @@ C**** CACULATE STANDING AND TRANSIENT EDDY NORTHWARD TRANSPORT OF DSE
         END DO
       END DO
       END DO
-      DO J=J_0STG, J_1STG
+      DO J=2,JM
         ZNDE16=0.
         DO L=1,LM
           ZNDE16=ZNDE16+(SHA*AJK(J,L,JK_ZMFNTSH)+AJK(J,L,JK_ZMFNTGEO))
@@ -4257,16 +4250,12 @@ C**** CACULATE STANDING AND TRANSIENT EDDY NORTHWARD TRANSPORT OF DSE
 C**** Fill in the undefined pole box duplicates
       DO N=1,KAIJ
       IF (JGRID_ij(N).EQ.2) CYCLE
-      IF (HAVE_SOUTH_POLE) THEN
-         DO I=1,IM
-            AIJ(I,1,N)=AIJ(1,1,N)
-         END DO
-      ENDIF
-      IF (HAVE_NORTH_POLE) THEN
-         DO I=1,IM
-            AIJ(I,JM,N)=AIJ(1,JM,N)
-         END DO
-      ENDIF
+      DO I=1,IM
+         AIJ(I,1,N)=AIJ(1,1,N)
+      END DO
+      DO I=1,IM
+         AIJ(I,JM,N)=AIJ(1,JM,N)
+      END DO
       END DO
 
 C**** Print out 6-map pages
@@ -4579,7 +4568,8 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
 !@sum  DIAGCP produces tables of the conservation diagnostics
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP, only : GRID
+      USE SERIAL, only : GLOBALSUM
       USE MODEL_COM, only :
      &     jm,fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,nday,jeq,itime,itime0,xlabel
@@ -4602,17 +4592,6 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
       INTEGER :: j,jhemi,jnh,jp1,jpm,jsh,jv1,jvm,jx,n
       REAL*8 :: aglob,ahem,feq,fnh,fsh,days
 
-C**** define local grid
-      INTEGER :: J_0, J_1
-      INTEGER :: J_0STG, J_1STG
-      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
-     *               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     *               HAVE_NORTH_POLE=HAVE_NORTH_POLE, 
-     *               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE )
 
 C**** CALCULATE SCALING FACTORS
       IF (IDACC(ia_inst).LT.1) IDACC(ia_inst)=1
@@ -4630,16 +4609,14 @@ C**** LOOP BACKWARDS SO THAT INITIALISATION IS DONE BEFORE SUMMATION!
       END DO
 C**** CALCULATE FINAL ANGULAR MOMENTUM + KINETIC ENERGY ON VELOCITY GRID
       DO N=1,25
-         IF (HAVE_SOUTH_POLE) THEN
-            CSJ(1,N)=0.
-            CNSLAT(1,N)=0.
-         ENDIF
-         DO J=J_0STG,J_1STG
-            CSJ(J,N)=CONSRV(J,N)*SCALE_CON(N)/
-     *                           (IDACC(IA_CON(N))+1d-20)
-            CNSLAT(J,N)=CSJ(J,N)/(FIM*DXYV(J)) 
-            CSJ(J,N)=CSJ(J,N)*WTJ(J,1,2)
-         END DO
+        CSJ(1,N)=0.
+        CNSLAT(1,N)=0.
+        DO J=2,JM
+          CSJ(J,N)=CONSRV(J,N)*SCALE_CON(N)/
+     *                         (IDACC(IA_CON(N))+1d-20)
+          CNSLAT(J,N)=CSJ(J,N)/(FIM*DXYV(J)) 
+          CSJ(J,N)=CSJ(J,N)*WTJ(J,1,2)
+        END DO
       END DO
 
       CALL GLOBALSUM(GRID, CSJ(:,1:25),
@@ -4650,7 +4627,7 @@ C**** CALCULATE FINAL ANGULAR MOMENTUM + KINETIC ENERGY ON VELOCITY GRID
 
 C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
       DO N=26,KCMX
-         DO J=J_0,J_1
+         DO J=1,JM
             CSJ(J,N)    = CONSRV(J,N)*SCALE_CON(N)/
      &                           (IDACC(IA_CON(N))+1d-20)
             CNSLAT(J,N) = CSJ(J,N)/FIM

@@ -27,7 +27,7 @@ C**** Note: W(,,1) is really PIT, the pressure tendency, but is not used
 C****
       USE MODEL_COM, only : im,jm,lm,sig,dsig,sige,psfmpt,byim
       USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE, CHECKSUM, 
-     *                          SOUTH, NORTH
+     *                          SOUTH, NORTH, CHECKSUMj, ESMF_BCAST
       USE GEOM, only : dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp
       USE  DIAG_COM, only : ajl,kajl,kep,pl=>plm
       USE DYNAMICS, only : w=>conv     ! I think this is right....?
@@ -46,10 +46,10 @@ c     *                                                            AEP
 C**** ARRAYS CALCULATED HERE:
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                                        UV,UW
-      REAL*8, POINTER, DIMENSION(:,:) :: 
-C**** The following quantities are added into AEP(,,1..19)
-     *        FMY,FEY,FMZ,FEZ,FMYR,FEYR,FMZR,FEZR,COR,CORR,
-     *        FER1,ER21,ER22,VR,WR,RX,UI,VI,WI
+c$$$      REAL*8, POINTER, DIMENSION(:,:) :: 
+c$$$C**** The following quantities are added into AEP(,,1..19)
+c$$$     *        FMY,FEY,FMZ,FEZ,FMYR,FEYR,FMZR,FEZR,COR,CORR,
+c$$$     *        FER1,ER21,ER22,VR,WR,RX,UI,VI,WI
 C**** End of quantities added into AEP
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *        STB,TI,DUT,AX
@@ -59,8 +59,34 @@ C**** The following quantities are added into AEP(,,1..19)
 C**** (equivalenced to XEP)
 cBMP  COMMON /EPCOM1/ FMY, FEY,  FMZ, FEZ, FMYR, FEYR, FMZR, FEZR, COR,
 cBMP *     CORR, FER1, ER21, ER22, VR, WR, RX, UI, VI,  WI
-      REAL*8, TARGET :: XEP(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP)
+c$$$      REAL*8, TARGET :: XEP(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP)
 cBMP EQUIVALENCE replaced by pointers      EQUIVALENCE (XEP,FMY)
+
+      REAL*8 :: XEP(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP)
+
+c Use CPP to alias into XEP
+#define FMY(j,k)  XEP(j,k, 1)
+#define FEY(j,k)  XEP(j,k, 2)
+#define FMZ(j,k)  XEP(j,k, 3)
+#define FEZ(j,k)  XEP(j,k, 4)
+#define FMYR(j,k) XEP(j,k, 5)
+#define FEYR(j,k) XEP(j,k, 6)
+#define FMZR(j,k) XEP(j,k, 7)
+#define FEZR(j,k) XEP(j,k, 8)
+#define COR(j,k)  XEP(j,k, 9)
+#define CORR(j,k) XEP(j,k,10)
+#define FER1(j,k) XEP(j,k,11)
+#define ER21(j,k) XEP(j,k,12)
+#define ER22(j,k) XEP(j,k,13)
+#define VR(j,k)   XEP(j,k,14)
+#define WR(j,k)   XEP(j,k,15)
+#define RX(j,k)   XEP(j,k,16)
+#define UI(j,k)   XEP(j,k,17)
+#define VI(j,k)   XEP(j,k,18)
+#define WI(j,k)   XEP(j,k,19)
+#define DUT(j,k)  XEP(j,k,20)
+#define DUD(j,k)  XEP(j,k,21)
+
 
       INTEGER I,J,L,N,IM1,IP1
       REAL*8 UCB,UCT,UCM,ALPH,RXC
@@ -79,50 +105,11 @@ C****
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
-      ALLOCATE ( FMY  (J_0H:J_1H,LM),
-     &           FEY  (J_0H:J_1H,LM),
-     &           FMZ  (J_0H:J_1H,LM),
-     &           FEZ  (J_0H:J_1H,LM),
-     &           FMYR (J_0H:J_1H,LM),
-     &           FEYR (J_0H:J_1H,LM),
-     &           FMZR (J_0H:J_1H,LM),
-     &           FEZR (J_0H:J_1H,LM),
-     &           COR  (J_0H:J_1H,LM),
-     &           CORR (J_0H:J_1H,LM),
-     &           FER1 (J_0H:J_1H,LM),
-     &           ER21 (J_0H:J_1H,LM),
-     &           ER22 (J_0H:J_1H,LM),
-     &           VR   (J_0H:J_1H,LM),
-     &           WR   (J_0H:J_1H,LM),
-     &           RX   (J_0H:J_1H,LM),
-     &           UI   (J_0H:J_1H,LM),
-     &           VI   (J_0H:J_1H,LM),
-     &           WI   (J_0H:J_1H,LM) )
-
-      FMY  => XEP(:,:,1 )
-      FEY  => XEP(:,:,2 )
-      FMZ  => XEP(:,:,3 )
-      FEZ  => XEP(:,:,4 )
-      FMYR => XEP(:,:,5 )
-      FEYR => XEP(:,:,6 )
-      FMZR => XEP(:,:,7 )
-      FEZR => XEP(:,:,8 )
-      COR  => XEP(:,:,9 )
-      CORR => XEP(:,:,10)
-      FER1 => XEP(:,:,11)
-      ER21 => XEP(:,:,12)
-      ER22 => XEP(:,:,13)
-      VR   => XEP(:,:,14)
-      WR   => XEP(:,:,15)
-      RX   => XEP(:,:,16)
-      UI   => XEP(:,:,17)
-      VI   => XEP(:,:,18)
-      WI   => XEP(:,:,19)
 
 C     Use IDACC(4) for calling frequency
 
 C**** Initialise for this call
-      XEP = 0
+      xep = 0
 
 C****
 C**** ZONAL AVERAGE QUANTITIES
@@ -131,10 +118,10 @@ C**** UI(J,L) ... ZONAL AVERAGE U-WIND (m s-1)
 C**** VI(J,L) ... ZONAL AVERAGE V-WIND (m s-1)
 C**** TI(J,L) ... ZONAL AVERAGE POTENTIAL TEMPERATURE (K)
 C**** WI(J,L) ... ZONAL AVERAGE VERTICAL WIND (mb m2 s-1)
-      CALL AVGVI (U,UI)
-      CALL AVGVI (V,VI)
-      CALL AVGI (W,WI)
-      CALL AVGI (T,TI)
+      CALL AVGVI (U,UI(:,:))
+      CALL AVGVI (V,VI(:,:))
+      CALL AVGI (W,WI(:,:))
+      CALL AVGI (T,TI(:,:))
 C****
 C**** STB(J,L) ... DELTA THETA             (PRESSURE EDGES)
 C****
@@ -150,14 +137,6 @@ CW   *     WRITE (*,*) 'STB < .001 AT J,L,STB:',J,L,STB(J,L)
       END DO
       STB(:,1)  = 1d-2
 
-      Call CHECKSUM(grid, VI   , __LINE__, __FILE__)
-      Call CHECKSUM(grid, UI   , __LINE__, __FILE__)
-      Call CHECKSUM(grid, WI   , __LINE__, __FILE__)
-      Call CHECKSUM(grid, U    , __LINE__, __FILE__)
-      Call CHECKSUM(grid, V    , __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, VI   , from = NORTH)
-      CALL HALO_UPDATE(grid, UI   , from = NORTH)
-      CALL HALO_UPDATE(grid, WI   , from = SOUTH)
       CALL HALO_UPDATE(grid, U    , from = NORTH)
       CALL HALO_UPDATE(grid, V    , from = NORTH)
 
@@ -168,6 +147,10 @@ C****
 C**** FMY .............. (VUdx) NORTHWARD MEAN MOMENTUM TRANSPORT
 C****                         (m3 s-1)
       DO L=1,LM
+        CALL HALO_UPDATE(grid, VI(:,L)   , from = NORTH)
+        CALL HALO_UPDATE(grid, UI(:,L)   , from = NORTH)
+        CALL HALO_UPDATE(grid, WI(:,L)   , from = SOUTH)
+        
         IF (HAVE_SOUTH_POLE) FMY(1,L)=0.
         IF (HAVE_NORTH_POLE) FMY(JM,L)=0.
         DO J=J_0S,J_1S
@@ -186,15 +169,16 @@ C****                           (m3 s-2)
           I=IM
           DO IP1=1,IM
             UV(I,J,L) = (
-     *           DXV(J)*(V(IM1,J,L)+2*V(I,J,L)+V(IP1,J,L)-4*VI(J,L)) +
-     *           DXV(J+1)*(V(IM1,J+1,L)+2*V(I,J+1,L)+V(IP1,J+1,L)-4*VI(J
-     *           +1,L)))* (U(I,J,L)+U(I,J+1,L)-(UI(J,L)+UI(J+1,L)))
+     *        DXV(J)*(V(IM1,J,L)+2*V(I,J,L)+V(IP1,J,L)-4*VI(J,L))+
+     *        DXV(J+1)*(V(IM1,J+1,L)+2*V(I,J+1,L)+V(IP1,J+1,L)-
+     *        4*VI(J+1,L)))* 
+     *       (U(I,J,L)+U(I,J+1,L)-(UI(J,L)+UI(J+1,L)))
             IM1=I
             I=IP1
           END DO
         END DO
       END DO
-      CALL AVGI (UV,FEY)
+      CALL AVGI (UV,FEY(:,:))
       DO L=1,LM
       DO J=J_0,J_1
         FEY(J,L)=.0625d0*FEY(J,L)
@@ -207,7 +191,7 @@ C****                           (m3 mb s-2)
       UW(:,:,1)=0.
       DO L=2,LM
         WXXS(1:IM)=0.
-        UW(1:IM,1,L)=0.
+        IF (HAVE_SOUTH_POLE) UW(1:IM,1,L)=0.
         DO J=J_0STG,J_1STG
           FMZ(J,L) = (WI(J-1,L)*RAPVN(J-1)+WI(J,L)*RAPVS(J))
      *         * (UI(J,L-1)+UI(J,L))
@@ -221,11 +205,13 @@ C****                           (m3 mb s-2)
           END DO
         END DO
       END DO
-      CALL AVGI (UW,FEZ)
+      CALL AVGI (UW,FEZ(:,:))
       FMZ(:,1)=0.
       FEZ(:,1)=0.
-      FMZ(1,2:LM)=0.
-      FEZ(1,2:LM)=0.
+      If (HAVE_SOUTH_POLE) THEN
+        FMZ(1,2:LM)=0.
+        FEZ(1,2:LM)=0.
+      End If
       DO L=1,LM
       DO J=J_0,J_1
         FEZ(J,L)=.5*FEZ(J,L)
@@ -235,21 +221,14 @@ C****
 C**** COR(J,L) .......... CORIOLIS FORCE
 C****                        (m3 s-2)
       DO L=1,LM
-        IF (HAVE_SOUTH_POLE) THEN
-            COR( 2,L)=.5*(2.*FCOR( 1)+FCOR(   2))*VI(2,L)
-        ELSE
-            COR(J_0S,L)=.5*(FCOR(J_0)+FCOR(J_0S))*VI(J_0S,L)
-        END IF
+        IF (HAVE_SOUTH_POLE) 
+     *      COR( 2,L)=.5*(2.*FCOR( 1)+FCOR(   2))*VI(2,L)
         IF (HAVE_NORTH_POLE) 
      *      COR(JM,L)=.5*(2.*FCOR(JM)+FCOR(JM-1))*VI(JM,L)
-        DO J=J_0S+1,JM-1
+        DO J=MAX(3,J_0S),J_1S
           COR(J,L)=.5*(FCOR(J-1)+FCOR(J))*VI(J,L)
         END DO
       END DO
-
-      Call CHECKSUM(grid, UV  , __LINE__, __FILE__)
-      Call CHECKSUM(grid, UW  , __LINE__, __FILE__)
-      Call CHECKSUM(grid, COR , __LINE__, __FILE__)
 
 cBMP FD calc moved out of next loop for ghosting purposes
       DO L=1,LM
@@ -264,7 +243,7 @@ cBMP FD calc moved out of next loop for ghosting purposes
           IM1=I
         END DO
       END DO
-      Call CHECKSUM(grid, FD , __LINE__, __FILE__)
+
       CALL HALO_UPDATE(grid, FD , from = SOUTH)
 cBMP
 
@@ -275,7 +254,7 @@ C****
         FER1(:,L)=0.
         ER21(:,L)=0.
         ER22(:,L)=0.
-C**** ERROR TERM 1 IS DIVERGENCE OF FER1 (m2 s-2)
+C**** ERROR TERM 1 IS DIVERGENCE OF FER1: (m2 s-2)
         IM1=IM-1
         I=IM
         DO IP1=1,IM
@@ -284,7 +263,7 @@ C**** ERROR TERM 1 IS DIVERGENCE OF FER1 (m2 s-2)
           IF (HAVE_NORTH_POLE)
      *        FER1(JM,L)=FER1(JM,L)+(U(IM1,JM,L)**2- U(IP1,JM,L)**2)
           DO J=J_0S,J_1S
-C? FER1 does not include COSP, yet ER1 = 1/COSV*(FER1(J)-FER1(J-1))
+C? FER1 does not include COSP, yet ER1 = 1/COSV*(FER1(J,)-FER1(J-1,))
             FER1(J,L)= FER1(J,L) + ((U(IM1,J,L)+U(I,J+1,L))**2
      *           - (U(IP1,J,L)+U(I,J+1,L))**2)
           END DO
@@ -306,7 +285,7 @@ c         END DO
           END DO
           IM1=I
         END DO
-CE*** ERROR TERM 2, PART 2  -  ER22  (m s-2)
+CE*** ERROR TERM 2, PART 2  -  ER22:  (m s-2)
 CE    IM1=IM-1
 CE    I=IM
 CE    DO IP1=1,IM
@@ -341,55 +320,56 @@ C****
 C****  TRANSFORMED CIRCULATION
 C****
 
-      Call CHECKSUM(grid, FER1  , __LINE__, __FILE__)
-      Call CHECKSUM(grid, ER22  , __LINE__, __FILE__)
-
 C****
 C**** RX(J,L) ..... ([V'TH']/[DTH/DP]) TRANSFORMATION GAUGE
 C****               (U-wind grid, level edges)  (m mb s-1)
 
-      CALL CHECKSUM(grid, T   , __LINE__, __FILE__)
-      CALL CHECKSUM(grid, TI  , __LINE__, __FILE__)
-      CALL CHECKSUM(grid, STB , __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, T   , from = SOUTH)
-      CALL HALO_UPDATE(grid, TI  , from = SOUTH)
-      CALL HALO_UPDATE(grid, STB , from = SOUTH)
+      CALL HALO_UPDATE(grid, T, from = SOUTH)
 
+
+      CALL HALO_UPDATE(grid, TI(:,1)  , from = SOUTH)
       DO L=2,LM
+        CALL HALO_UPDATE(grid, TI(:,L)  , from = SOUTH)
+        CALL HALO_UPDATE(grid, STB(:,L) , from = SOUTH)
       DO J=J_0STG,J_1STG
         RX(J,L) = 0.
         I=IM
         DO IP1=1,IM
-          RX(J,L) = RX(J,L) + (V(I,J,L)+V(IP1,J,L)-2*VI(J,L))
-     *         * (T(I,J-1,L)+T(I,J,L) - (TI(J-1,L)+TI(J,L)))
-     *         +              (V(I,J,L-1)+V(IP1,J,L-1)-2*VI(J,L-1))
-     *         * (T(I,J-1,L-1)+T(I,J,L-1) - (TI(J-1,L-1)+TI(J,L-1)))
+          RX(J,L) = RX(J,L)+(V(I,J,L)+V(IP1,J,L)-2*VI(J,L))
+     *      * (T(I,J-1,L)+T(I,J,L) - (TI(J-1,L)+TI(J,L)))
+     *      +        (V(I,J,L-1)+V(IP1,J,L-1)-2*VI(J,L-1))
+     *       * (T(I,J-1,L-1)+T(I,J,L-1)-
+     *         (TI(J-1,L-1)+TI(J,L-1)))
           I=IP1
         END DO
         RX(J,L) = .25*BYIM * RX(J,L) *
      *       (PL(L)-PL(L-1))/(STB(J-1,L)+STB(J,L))
       END DO
       END DO
-      RX(2:JM,1)=0.
+      DO J = J_0STG,J_1STG
+        RX(J,1) = 0
+      END DO
 
-      CALL CHECKSUM(grid, RX, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, RX, from = NORTH)
 
 C****
 C**** VR(J,L) ........  TRANSFORMED WIND
 C**** WR(J,L) ........
 C****
       DO L=1,LM-1
+        CALL HALO_UPDATE(grid, RX(:,L), from = NORTH)
       DO J=J_0STG,J_1STG
-        VR(J,L)=VI(J,L)+(RX(J,L+1)-RX(J,L))/(PSFMPT*DSIG(L))
+        VR(J,L)=VI(J,L)+(RX(J,L+1)-RX(J,L))/
+     *       (PSFMPT*DSIG(L))
       END DO
+      CALL HALO_UPDATE(grid, RX(:,LM), from = NORTH)
       END DO
       DO J=J_0STG,J_1STG
         VR(J,LM)=VI(J,LM)-RX(J,LM)/(PSFMPT*DSIG(LM))
       END DO
       DO L=1,LM
       DO J=J_0S,J_1S
-        WR(J,L)=WI(J,L)+(RX(J+1,L)*DXV(J+1)-RX(J,L)*DXV(J))
+        WR(J,L)=WI(J,L)+
+     *       (RX(J+1,L)*DXV(J+1)-RX(J,L)*DXV(J))
       END DO
       END DO
       IF (HAVE_SOUTH_POLE) THEN
@@ -403,11 +383,6 @@ C****
          END DO
       ENDIF
 
-      CALL CHECKSUM(grid, VR  , __LINE__, __FILE__)
-      CALL CHECKSUM(grid, WR  , __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, VR  , from = NORTH)
-      CALL HALO_UPDATE(grid, WR  , from = SOUTH)
-
 C****
 C**** TRANSFORMED MEAN FLUXES
 C****
@@ -416,6 +391,9 @@ C**** FMZR(J,L)     (m3 mb s-2)
 C**** CORR(J,L)     (m3 s-2)
 C****
       DO L=1,LM
+        CALL HALO_UPDATE(grid, VR(:,L)  , from = NORTH)
+        CALL HALO_UPDATE(grid, WR(:,L)  , from = SOUTH)
+
       DO J=J_0S,J_1S
         FMYR(J,L)=.25*(VR(J,L)*DXV(J)+VR(J+1,L)*DXV(J+1))
      *       *  (UI(J,L)+UI(J+1,L))
@@ -428,14 +406,11 @@ C****
       END DO
       END DO
       DO L=1,LM
-        IF (HAVE_SOUTH_POLE) THEN 
-            CORR( 2,L)=.5*(2.*FCOR( 1)+FCOR(   2))*VR(2,L) 
-        ELSE
-            CORR(J_0S,L)=.5*(FCOR(J_0)+FCOR(J_0S))*VR(J_0S,L)
-        END IF
+        IF (HAVE_SOUTH_POLE) 
+     *      CORR( 2,L)=.5*(2.*FCOR( 1)+FCOR(   2))*VR(2,L)
         IF (HAVE_NORTH_POLE) 
      *      CORR(JM,L)=.5*(2.*FCOR(JM)+FCOR(JM-1))*VR(JM,L)
-        DO J=J_0S+1,J_1S
+        DO J=MAX(3,J_0S),J_1S
           CORR(J,L)=.5*(FCOR(J-1)+FCOR(J))*VR(J,L)
         END DO
       END DO
@@ -444,10 +419,15 @@ C**** TRANSFORMED EDDY FLUXES
 C****
 C**** FEYR(J,L)
 C****
-      DO L=1,LM
-        RXCL(L)=RX(2,L)*COSV(2)
-        UCL(L)=UI(2,L)*DXV(2)
-      END DO
+      IF (HAVE_SOUTH_POLE) THEN
+        DO L=1,LM
+          RXCL(L)=RX(2,L)*COSV(2)
+          UCL(L)=UI(2,L)*DXV(2)
+        END DO
+      END IF
+      CALL ESMF_BCAST(grid, RXCL)
+      CALL ESMF_BCAST(grid, UCL)
+
       DO J=J_0S,J_1S
         UCB=(UI(J+1,1)*DXV(J+1)+UCL(1))
         UCM=(UI(J+1,2)*DXV(J+1)+UCL(2))
@@ -477,9 +457,9 @@ C****
         UCB = (UI(J,L)+UI(J,L-1))*DXV(J)
         FEZR(J,L) = -.5*(FCOR(J-1)+FCOR(J))*RX(J,L)
      *       + .125d0/COSV(J)* ((RXC+RXCL(L))
-     *       *     ((UI(J,L)+UI(J,L-1))*DXV(J) - (UCL(L)+UCL(L-1)))
-     *       +     (RX(J+1,L)*COSV(J+1)+RXC)
-     *       *     ((UI(J+1,L)+UI(J+1,L-1))*DXV(J+1) - UCB))
+     *       *   ((UI(J,L)+UI(J,L-1))*DXV(J)-(UCL(L)+UCL(L-1)))
+     *       +   (RX(J+1,L)*COSV(J+1)+RXC)
+     *       *   ((UI(J+1,L)+UI(J+1,L-1))*DXV(J+1)-UCB))
       END DO
       DO L=1,LM
         RXCL(L)=RX(J,L)*COSV(J)
@@ -504,11 +484,6 @@ C**** Add Eulerian circulation to transformed eddy components
       END DO
       END DO
 
-      CALL CHECKSUM(grid, FMYR, __LINE__, __FILE__)
-      CALL CHECKSUM(grid, FMYR, __LINE__, __FILE__)
-      CALL CHECKSUM(grid, FEYR, __LINE__, __FILE__)
-      CALL CHECKSUM(grid, FEZR, __LINE__, __FILE__)
-
 C****
 C**** ACCUMULATE EP FLUXES
 C****
@@ -523,7 +498,8 @@ c        AEP(J,L,N)=AEP(J,L,N)+XEP(J,L,N)
       RETURN
 C****
       ENTRY EPFLXI (U)
-      CALL AVGVI (U,AJL(1,1,KAJL))
+      CALL GET(grid, J_STRT_HALO=J_0H)
+      CALL AVGVI (U,AJL(J_0H,1,KAJL))
 c      CALL AVGVI (U,AEP(1,1,KEP))
 CW          WRITE (36,'('' TAU='',F12.0)') TAU
 CW          CALL WRITJL ('U - INITIAL     ',AEP(1,1,KEP),1.)
@@ -606,9 +582,9 @@ C**** this should be in an init_ep routine or something
 C**** ARRAYS CALCULATED HERE:
       REAL*8 ONES(JM+LM),PMO(LM),DP(LM)
       REAL*8 DXCOSV(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
-      REAL*8, POINTER, DIMENSION(:,:) :: 
-     *   FMY,FEY,FMZ,FEZ,FMYR,FEYR,FMZR,FEZR,COR,CORR,FER1,ER21
-     *  ,ER22,VR,WR,RX,UI,VI,WI,DUT,DUD
+c$$$      REAL*8, POINTER, DIMENSION(:,:) :: 
+c$$$     *   FMY,FEY,FMZ,FEZ,FMYR,FEYR,FMZR,FEZR,COR,CORR,FER1,ER21
+c$$$     *  ,ER22,VR,WR,RX,UI,VI,WI,DUT,DUD
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *   DUDS,DUR,DMF,DEF,DMFR,DEFR
 CW   *  ,DMY,DMZ,DEY,DEZ,DMYR,DMZR,DEYR,DEZR
@@ -617,8 +593,7 @@ C**** common needed to pass from XEP to individual arrays (better way??)
 C**** Not clear how many of these are actually used.
 cBMP  COMMON /EPCOM/ FMY, FEY, FMZ, FEZ, FMYR, FEYR, FMZR, FEZR, COR,
 cBMP *     CORR, FER1, ER21, ER22, VR, WR, RX, UI, VI, WI, DUT, DUD
-      REAL*8, TARGET, 
-     *        DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP) :: XEP
+      REAL*8,DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP) :: XEP
 cBMP  EQUIVALENCE (XEP,FMY)
       REAL*8 DTAEP,BYDT,SCALEP,SCALE1,BYIAEP
       INTEGER I,J,L,N,JL
@@ -636,50 +611,6 @@ C****
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
-      ALLOCATE ( FMY  (J_0H:J_1H,LM),
-     &           FEY  (J_0H:J_1H,LM),
-     &           FMZ  (J_0H:J_1H,LM),
-     &           FEZ  (J_0H:J_1H,LM),
-     &           FMYR (J_0H:J_1H,LM),
-     &           FEYR (J_0H:J_1H,LM),
-     &           FMZR (J_0H:J_1H,LM),
-     &           FEZR (J_0H:J_1H,LM),
-     &           COR  (J_0H:J_1H,LM),
-     &           CORR (J_0H:J_1H,LM),
-     &           FER1 (J_0H:J_1H,LM),
-     &           ER21 (J_0H:J_1H,LM),
-     &           ER22 (J_0H:J_1H,LM),
-     &           VR   (J_0H:J_1H,LM),
-     &           WR   (J_0H:J_1H,LM),
-     &           RX   (J_0H:J_1H,LM),
-     &           UI   (J_0H:J_1H,LM),
-     &           VI   (J_0H:J_1H,LM),
-     &           WI   (J_0H:J_1H,LM),
-     &           DUT  (J_0H:J_1H,LM),
-     &           DUD  (J_0H:J_1H,LM) )
-
-      FMY  => XEP(:,:,1 )
-      FEY  => XEP(:,:,2 )
-      FMZ  => XEP(:,:,3 )
-      FEZ  => XEP(:,:,4 )
-      FMYR => XEP(:,:,5 )
-      FEYR => XEP(:,:,6 )
-      FMZR => XEP(:,:,7 )
-      FEZR => XEP(:,:,8 )
-      COR  => XEP(:,:,9 )
-      CORR => XEP(:,:,10)
-      FER1 => XEP(:,:,11)
-      ER21 => XEP(:,:,12)
-      ER22 => XEP(:,:,13)
-      VR   => XEP(:,:,14)
-      WR   => XEP(:,:,15)
-      RX   => XEP(:,:,16)
-      UI   => XEP(:,:,17)
-      VI   => XEP(:,:,18)
-      WI   => XEP(:,:,19)
-      DUT  => XEP(:,:,20)
-      DUD  => XEP(:,:,21)
 
 C**** Initialize constants
       DTAEP = DTsrce*NDAA   ! change of definition of NDAA
@@ -729,25 +660,21 @@ C****
 C**** DMF,DEF by horizontal convergence
 C****
 
-      Call CHECKSUM(grid, FMY  , __LINE__, __FILE__)
-      Call CHECKSUM(grid, FEY  , __LINE__, __FILE__)
-      Call CHECKSUM(grid, FMYR , __LINE__, __FILE__)
-      Call CHECKSUM(grid, FEYR , __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, FMY  , from = SOUTH)
-      CALL HALO_UPDATE(grid, FEY  , from = SOUTH)
-      CALL HALO_UPDATE(grid, FMYR , from = SOUTH)
-      CALL HALO_UPDATE(grid, FEYR , from = SOUTH)
-
       DO L=1,LM
+        CALL HALO_UPDATE(grid, FMY(:,L)  , from = SOUTH)
+        CALL HALO_UPDATE(grid, FEY(:,L)  , from = SOUTH)
+        CALL HALO_UPDATE(grid, FMYR(:,L) , from = SOUTH)
+        CALL HALO_UPDATE(grid, FEYR(:,L) , from = SOUTH)
+
       DO J=J_0STG,J_1STG
-        DMF(J,L)  = (FMY(J-1,L)*COSP(J-1)-FMY(J,L)*COSP(J))/COSV(J)
-        DEF(J,L)  = (FEY(J-1,L)*COSP(J-1)-FEY(J,L)*COSP(J))/COSV(J)
-C       DMY(J,L)  = (FMY(J-1,L)*COSP(J-1)-FMY(J,L)*COSP(J))/COSV(J)
-C       DEY(J,L)  = (FEY(J-1,L)*COSP(J-1)-FEY(J,L)*COSP(J))/COSV(J)
-C       DMYR(J,L) = (FMYR(J-1,L)*COSP(J-1)-FMYR(J,L)*COSP(J))/COSV(J)
-C       DEYR(J,L) = (FEYR(J-1,L)*COSP(J-1)-FEYR(J,L)*COSP(J))/COSV(J)
-        DMFR(J,L) = (FMYR(J-1,L)*COSP(J-1)-FMYR(J,L)*COSP(J))/COSV(J)
-        DEFR(J,L) = (FEYR(J-1,L)*COSP(J-1)-FEYR(J,L)*COSP(J))/COSV(J)
+        DMF(J,L) =(FMY(J-1,L)*COSP(J-1)-FMY(J,L)*COSP(J))/COSV(J)
+        DEF(J,L) =(FEY(J-1,L)*COSP(J-1)-FEY(J,L)*COSP(J))/COSV(J)
+C       DMY(J,L) =(FMY(J-1,L)*COSP(J-1)-FMY(J,L)*COSP(J))/COSV(J)
+C       DEY(J,L) =(FEY(J-1,L)*COSP(J-1)-FEY(J,L)*COSP(J))/COSV(J)
+C       DMYR(J,L)=(FMYR(J-1,L)*COSP(J-1)-FMYR(J,L)*COSP(J))/COSV(J)
+C       DEYR(J,L)=(FEYR(J-1,L)*COSP(J-1)-FEYR(J,L)*COSP(J))/COSV(J)
+        DMFR(J,L)=(FMYR(J-1,L)*COSP(J-1)-FMYR(J,L)*COSP(J))/COSV(J)
+        DEFR(J,L)=(FEYR(J-1,L)*COSP(J-1)-FEYR(J,L)*COSP(J))/COSV(J)
       END DO
       END DO
 C****
@@ -763,14 +690,16 @@ CW      DEZR(J,LM) = - FEZR(J,LM)/BYDPJL(J,LM)
         DMFR(J,LM) = DMFR(J,LM) - FMZR(J,LM)/BYDPJL(J,LM)
         DEFR(J,LM) = DEFR(J,LM) - FEZR(J,LM)/BYDPJL(J,LM)
         DO L=1,LM-1
-          DMF(J,L)  = DMF(J,L)  + (FMZ(J,L+1)-FMZ(J,L))*BYDPJL(J,L)
-          DEF(J,L)  = DEF(J,L)  + (FEZ(J,L+1)-FEZ(J,L))*BYDPJL(J,L)
+          DMF(J,L)  = DMF(J,L)+(FMZ(J,L+1)-FMZ(J,L))*BYDPJL(J,L)
+          DEF(J,L)  = DEF(J,L)+(FEZ(J,L+1)-FEZ(J,L))*BYDPJL(J,L)
 CW        DMZ(J,L)  = (FMZ(J,L+1)-FMZ(J,L))*BYDPJL(J,L)
 CW        DEZ(J,L)  = (FEZ(J,L+1)-FEZ(J,L))*BYDPJL(J,L)
 CW        DMZR(J,L) = (FMZR(J,L+1)-FMZR(J,L))*BYDPJL(J,L)
 CW        DEZR(J,L) = (FEZR(J,L+1)-FEZR(J,L))*BYDPJL(J,L)
-          DMFR(J,L) = DMFR(J,L) + (FMZR(J,L+1)-FMZR(J,L))*BYDPJL(J,L)
-          DEFR(J,L) = DEFR(J,L) + (FEZR(J,L+1)-FEZR(J,L))*BYDPJL(J,L)
+          DMFR(J,L) = DMFR(J,L) + 
+     &         (FMZR(J,L+1)-FMZR(J,L))*BYDPJL(J,L)
+          DEFR(J,L) = DEFR(J,L) + 
+     &         (FEZR(J,L+1)-FEZR(J,L))*BYDPJL(J,L)
         END DO
       END DO
 C****
@@ -788,10 +717,8 @@ C****
 C**** ER1 by horizontal convergence (m s-2)
 C****
 
-      Call CHECKSUM(grid, FER1 , __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, FER1 , from = SOUTH)
-
       DO L=1,LM
+        CALL HALO_UPDATE(grid, FER1(:,L) , from = SOUTH)
       DO J=J_0STG,J_1STG
         ER1(J,L) = 1./(DYV(J)*COSV(J))*(FER1(J-1,L)-FER1(J,L))
         ER2(J,L) = ER21(J,L)+ER22(J,L)
