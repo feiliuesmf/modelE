@@ -258,8 +258,8 @@ C**** RESAVE PROGNOSTIC QUANTITIES
           RSI(I,J)=ROICE
           MSI(I,J)=MSI2
 C**** set ftype arrays
-          FTYPE(ITYPE ,I,J)=RSI(I,J)*(1.-FLAND(I,J))
-          FTYPE(ITYPEO,I,J)=1.-FLAND(I,J)-FTYPE(ITYPE,I,J)
+          FTYPE(ITYPE ,I,J)=(1.-FLAND(I,J))*RSI(I,J)
+          FTYPE(ITYPEO,I,J)=(1.-FLAND(I,J))-FTYPE(ITYPE,I,J)
         END IF
 C**** set gtemp array
         GTEMP(1:2,2,I,J)=TSIL(1:2)
@@ -332,7 +332,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm
-      USE E001M12_COM, only : im,jm
+      USE E001M12_COM, only : im,jm,kocean
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
       USE SEAICE, only : xsi,ace1i,ac2oim
       USE FLUXES, only : gtemp
@@ -340,20 +340,26 @@ C****
       INTEGER I,J
       REAL*8 MSI1
 
-      DO J=1,JM
+      IF (KOCEAN.EQ.0) THEN
+C****   set defaults for no ice case
+        DO J=1,JM
         DO I=1,IM
-C**** set defaults for no ice case
-          IF (RSI(I,J).eq.0) THEN
-            MSI1        =ACE1I
-            MSI(I,J)    =AC2OIM
-            SNOWI(I,J)  =0.
-            HSI(1:2,I,J)=-LHM*XSI(1:2)*MSI1
-            HSI(3:4,I,J)=-LHM*XSI(3:4)*AC2OIM
-          END IF
-C**** set GTEMP array for ice
-          MSI1=SNOWI(I,J)+ACE1I
-          GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI
+           IF (RSI(I,J).eq.0) THEN
+             MSI1        =ACE1I
+             MSI(I,J)    =AC2OIM
+             SNOWI(I,J)  =0.
+             HSI(1:2,I,J)=-LHM*XSI(1:2)*MSI1
+             HSI(3:4,I,J)=-LHM*XSI(3:4)*AC2OIM
+           END IF
         END DO
+        END DO
+      END IF
+C**** set GTEMP array for ice
+      DO J=1,JM
+      DO I=1,IM
+        MSI1=SNOWI(I,J)+ACE1I
+        GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI
+      END DO
       END DO
 
 C**** Set conservation diagnostics for ice mass and energy

@@ -78,8 +78,8 @@ C**** Set FTYPE array for lakes
       DO J=1,JM
         DO I=1,IM
           IF (FLAKE(I,J).gt.0) THEN
-            FTYPE(ITLAKE ,I,J)=FLAKE(I,J)*(1.-RSI(I,J))
             FTYPE(ITLKICE,I,J)=FLAKE(I,J)*    RSI(I,J)
+            FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
             GTEMP(1,1,I,J)=TLAKE(I,J)
             GTEMP(2,1,I,J)=0.
           END IF
@@ -455,15 +455,15 @@ c     QCHECKL = .TRUE.
             RSI(I,J)=RSINEW
             MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
 C**** adjust enthalpy so that temperature remains constant
-            HSI(3:4,I,J)=HSI(3:4,I,J)*MSINEW/MSI(I,J)
+            HSI(3:4,I,J)=HSI(3:4,I,J)*(MSINEW/MSI(I,J))
             MSI(I,J)=MSINEW
             IF (RSINEW.LE.0.) THEN
               SNOWI(I,J)=0.
               GTEMP(1:2,2,I,J)=0.
             END IF
 C**** set ftype arrays
-            FTYPE(ITLAKE ,I,J)= FLAKE(I,J)*(1.-RSI(I,J))
             FTYPE(ITLKICE,I,J)= FLAKE(I,J)*    RSI(I,J)
+            FTYPE(ITLAKE ,I,J)= FLAKE(I,J)-FTYPE(ITLKICE,I,J)
           END IF
         END DO
       END DO

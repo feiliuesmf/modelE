@@ -258,15 +258,15 @@ C**** RSI uses quadratic fit
           RSI(I,J)=RSINEW
           MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
 C**** adjust enthalpy so that temperature remains constant
-          HSI(3:4,I,J)=HSI(3:4,I,J)*MSINEW/MSI(I,J)
+          HSI(3:4,I,J)=HSI(3:4,I,J)*(MSINEW/MSI(I,J))
           MSI(I,J)=MSINEW
 C**** set ftype arrays
           IF (FOCEAN(I,J).gt.0) THEN
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
-            FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)*(1.-RSI(I,J))
+            FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
           ELSE
             FTYPE(ITLKICE,I,J)= FLAKE(I,J)*    RSI(I,J)
-            FTYPE(ITLAKE ,I,J)= FLAKE(I,J)*(1.-RSI(I,J))
+            FTYPE(ITLAKE ,I,J)= FLAKE(I,J)-FTYPE(ITLKICE,I,J)
           END IF
 C**** WHEN TGO IS NOT DEFINED, MAKE IT A REASONABLE VALUE
           IF (TOCEAN(1,I,J).LT.TFO) TOCEAN(1,I,J)=TFO
@@ -285,22 +285,22 @@ C**** ZERO OUT SNOWOI, TG1OI, TG2OI IF THERE IS NO OCEAN ICE
           END IF
         END DO
       END DO
-C**** REPLICATE VALUES AT POLE
+C**** REPLICATE VALUES AT POLE (for prescribed data only)
       DO I=2,IM
-        SNOWI(I,JM)=SNOWI(1,JM)
+c       SNOWI(I,JM)=SNOWI(1,JM)
         TOCEAN(1,I,JM)=TOCEAN(1,1,JM)
         TLAKE(I,JM)=TLAKE(1,JM)
         RSI(I,JM)=RSI(1,JM)
         MSI(I,JM)=MSI(1,JM)
-        HSI(:,I,JM)=HSI(:,1,JM)
-        GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
+c       HSI(:,I,JM)=HSI(:,1,JM)
+c       GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
 C**** set ftype arrays
         IF (FOCEAN(1,JM).gt.0) THEN
           FTYPE(ITOICE ,I,JM)=FOCEAN(1,JM)*    RSI(1,JM)
-          FTYPE(ITOCEAN,I,JM)=FOCEAN(1,JM)*(1.-RSI(1,JM))
+          FTYPE(ITOCEAN,I,JM)=FOCEAN(1,JM)-FTYPE(ITOICE ,I,JM)
         ELSE
           FTYPE(ITLKICE,I,JM)= FLAKE(1,JM)*    RSI(1,JM)
-          FTYPE(ITLAKE ,I,JM)= FLAKE(1,JM)*(1.-RSI(1,JM))
+          FTYPE(ITLAKE ,I,JM)= FLAKE(1,JM)-FTYPE(ITLKICE,I,JM)
         END IF
       END DO
       RETURN
@@ -573,7 +573,7 @@ C**** Set ftype array for oceans
       DO I=1,IM
         IF (FOCEAN(I,J).gt.0) THEN
           FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*RSI(I,J)
-          FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)*(1.-RSI(I,J))
+          FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
         END IF
       END DO
@@ -656,8 +656,8 @@ C**** RESAVE PROGNOSTIC QUANTITIES
             SNOWI(I,J)=SNOW
             HSI(:,I,J)=HSIL(:)
 C**** set ftype/gtemp arrays
-            FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)*(1.-RSI(I,J))
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
+            FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
             GTEMP(1:2,2,I,J) = TSIL(1:2)
             END IF
           END DO
