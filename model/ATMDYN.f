@@ -34,7 +34,7 @@
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -299,7 +299,7 @@ C**** mb*m2/s and convert to WSAVE, units of m/s):
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
 
 
@@ -399,28 +399,57 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
 C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 !@var U,V input velocities (m/s)
 !@var PIJL input 3-D pressure field (mb) (no DSIG)
-      REAL*8, INTENT(IN),    DIMENSION(IM,JM,LM) :: U,V
+c      REAL*8, INTENT(IN),    DIMENSION(IM,JM,LM) :: U,V
+      REAL*8, DIMENSION(IM,JM,LM) :: U,V
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: PIJL
       REAL*8, DIMENSION(IM) :: DUMMYS,DUMMYN
       INTEGER I,J,L,IP1,IM1,IPOLE
       REAL*8 PUS,PUN,PVS,PVN,PBS,PBN
       REAL*8 WT,DXDSIG,DYDSIG,PVSA(LM),PVNA(LM),xx,twoby3
+      real*8, dimension(im,2) :: usv0,vsv0
+      integer :: jvs,jvn,jv
+      real*8 :: wts
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C****
 C**** BEGINNING OF LAYER LOOP
 C****
 !$OMP  PARALLEL DO PRIVATE (I,J,L,IM1,IP1,DXDSIG,DYDSIG,DUMMYS,DUMMYN,
-!$OMP*                      PUS,PUN,PVS,PVN,PBS,PBN)
+!$OMP*                      PUS,PUN,PVS,PVN,PBS,PBN,
+!$OMP*                      IPOLE,JV,JVS,JVN,WTS,USV0,VSV0)
       DO 2000 L=1,LM
+
+c
+c interpolate polar velocities to the appropriate latitude
+c
+      do ipole=1,2
+      if(grid%have_south_pole .and. ipole.eq.1) then
+         jv = J_0S ! why not staggered grid
+         jvs = J_0S ! jvs is the southernmost velocity row
+         jvn = jvs + 1 ! jvs is the northernmost velocity row
+         wts = polwt
+      else if(grid%have_north_pole .and. ipole.eq.2) then
+         jv = J_1 ! why not staggered grid
+         jvs = jv - 1
+         jvn = jvs + 1
+         wts = 1.-polwt
+      else
+         cycle
+      endif
+      usv0(:,ipole) = u(:,jv,l)
+      vsv0(:,ipole) = v(:,jv,l)
+      u(:,jv,l) = wts*u(:,jvs,l) + (1.-wts)*u(:,jvn,l)
+      v(:,jv,l) = wts*v(:,jvs,l) + (1.-wts)*v(:,jvn,l)
+      enddo
+
 C****
 C**** COMPUTATION OF MASS FLUXES     P,T  PU     PRIMARY GRID ROW
 C**** ARAKAWA'S SCHEME B             PV   U,V    SECONDARY GRID ROW
@@ -448,6 +477,20 @@ C**** COMPUTE PV, THE SOUTH-NORTH MASS FLUX
 
  2170 IM1=I
  2172 CONTINUE
+
+c restore uninterpolated values of u,v at the pole
+      do ipole=1,2
+      if(grid%have_south_pole .and. ipole.eq.1) then
+         jv = J_0S ! why not staggered grid
+      else if(grid%have_north_pole .and. ipole.eq.2) then
+         jv = J_1 ! why not staggered grid
+      else
+         cycle
+      endif
+      u(:,jv,l) = usv0(:,ipole)
+      v(:,jv,l) = vsv0(:,ipole)
+      enddo
+
 C**** COMPUTE PU*3 AT THE POLES
       IF (HAVE_SOUTH_POLE) THEN
         PUS=0.
@@ -695,7 +738,7 @@ C****
       INTEGER I,J,L  !@var I,J,L  loop variables
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S)
 
@@ -738,7 +781,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,sige,ptop
      *     ,zatmo,sig,modd5k,bydsig
      &     ,do_polefix
-      USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp
+      USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp,acor,acor2
       USE DYNAMICS, only : gz,pu,pit,phi,spa,dut,dvt
       USE DIAG, only : diagcd
       USE DOMAIN_DECOMP, Only : grid, GET
@@ -762,10 +805,10 @@ C****
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 C****
       DT4=DT1/4.
@@ -897,7 +940,7 @@ C
  3300 CONTINUE
 !$OMP  END PARALLEL DO
 
-c temporary: correct for erroneous dxyv in 4x5 model with a polar half box
+c correct for erroneous dxyv at the poles
       if(do_polefix.eq.1) then
          do ipole=1,2
             if(grid%have_south_pole .and. ipole.eq.1) then
@@ -907,8 +950,8 @@ c temporary: correct for erroneous dxyv in 4x5 model with a polar half box
             else
                cycle
             endif
-            dut(:,j,:) = dut(:,j,:)*1.25
-            dvt(:,j,:) = dvt(:,j,:)*1.25
+            dut(:,j,:) = dut(:,j,:)*acor
+            dvt(:,j,:) = dvt(:,j,:)*acor2
          enddo
       endif
 C
@@ -989,7 +1032,7 @@ CCC   INTEGER, SAVE :: IFIRST = 1
       LOGICAL, SAVE :: init = .false.
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 C
 C
@@ -1015,7 +1058,7 @@ C       CALL FFT0(IM)
 C****
       ENTRY AVRX (X)
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 
       DO 140 J=J_0S,J_1S
@@ -1054,14 +1097,14 @@ C****
       USE DOMAIN_DECOMP, Only : grid, GET
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: X,Y
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *        POLD, PRAT
       REAL*8 PSUMO,PSUMN,PDIF,AKAP,TE0,TE,ediff
       INTEGER I,J,L,N  !@var I,J,L  loop variables
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 
       IF (MOD(MFILTR,2).NE.1) GO TO 200
@@ -1082,6 +1125,7 @@ C****
       END DO
 !$OMP  END PARALLEL DO
       CALL SHAP1D (8,X)
+      call isotropslp(x,.15d0)
 !$OMP  PARALLEL DO PRIVATE(I,J,PSUMO,PSUMN,PDIF)
       DO J=J_0S,J_1S
         PSUMO=0.
@@ -1209,9 +1253,9 @@ C**********************************************************************
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
      *     INTENT(INOUT) :: U,V
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM), 
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
      *     INTENT(IN) :: UT,VT
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: 
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      *     DUT,DVT,USAVE,VSAVE,DKE
       REAL*8 X(IM),YV(max(2*JM,IM)),DP(IM)
       REAL*8 XUby4toN,XVby4toN,YVby4toN,YUby4toN
@@ -1224,9 +1268,9 @@ C**********************************************************************
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG
       logical :: have_north_pole, have_south_pole
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 C****
       USAVE=U ; VSAVE=V
@@ -1347,8 +1391,9 @@ C****   be re-thought for others.
       END IF
 
       if(do_polefix.eq.1) then
-         if(have_south_pole) call isotropuv(u,v,-1)
-         if(have_north_pole) call isotropuv(u,v,+1)
+         call isotropuv(u,v,.15d0)
+c         if(have_south_pole) call isotropuv(u,v,-1)
+c         if(have_north_pole) call isotropuv(u,v,+1)
       endif
 
 C**** Conserve angular momentum along latitudes
@@ -1380,10 +1425,10 @@ C**** Conserve angular momentum along latitudes
       END DO
 !$OMP  END PARALLEL DO
 
-C**** Call diagnostics and KE dissipation only for even time step 
+C**** Call diagnostics and KE dissipation only for even time step
       IF (MRCH.eq.2) THEN
         CALL DIAGCD(5,UT,VT,DUT,DVT,DT1)
-        
+
         CALL CHECKSUM   (grid, DKE, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, DKE, from=NORTH)
 
@@ -1406,57 +1451,138 @@ C**** Add in dissipiated KE as heat locally
       RETURN
       END SUBROUTINE FLTRUV
 
-      subroutine isotropuv(u,v,pole)
+      subroutine isotropslp(slp,coscut)
+      use MODEL_COM, only : im,jm,dt
+      USE DOMAIN_DECOMP, Only : grid
+      use GEOM, only : cosp,dxp
+      implicit none
+      real*8, parameter :: k=1d3
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: slp
+      real*8 :: coscut,fac
+      integer :: ipole,j,jcut,jinc,jp
+
+      do ipole=1,2
+      if(grid%have_south_pole .and. ipole.eq.1) then
+         jp = 1
+         jinc = 1
+      else if(grid%have_north_pole .and. ipole.eq.2) then
+         jp = jm
+         jinc = -1
+      else
+         cycle
+      endif
+c find cutoff latitude
+      j = jp
+      do while(cosp(j+jinc).lt.coscut)
+         j = j+jinc
+      enddo
+      jcut = j
+      do j=jp+jinc,jcut,jinc ! +jinc because of polar cap
+         fac = k*dt/(dxp(j)*dxp(j))
+         call shap1(slp(1,j),im,fac)
+      enddo
+      enddo
+      return
+      end subroutine isotropslp
+
+      subroutine isotropuv(u,v,coscut)
 !@sum  isotropuv isotropizes the velocity field in the near-polar row(s)
-!@sum            by imposing a linear x-y variation across the pole
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : im,imh,jm,lm,fim
-      USE DOMAIN_DECOMP, only : GRID,GET
-      USE GEOM, only : cosi=>cosiv,sini=>siniv
+      USE MODEL_COM, only : im,imh,jm,lm,dt
+      USE DOMAIN_DECOMP, Only : grid
+      USE GEOM, only : cosv,dxv,cosi=>cosiv,sini=>siniv
       implicit none
+      real*8, parameter :: klo=1d3,khi=1d7
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      *  U, V
-      integer, intent(in) :: pole
+      real*8 :: coscut,fac,k
       real*8, dimension(im) :: ua,va
-      real*8 :: sumc2,sums2
-      integer :: i,j,l,hemi,J_0STG,J_1STG
-      CALL GET(grid, J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
-      if(pole.eq.-1) then
-         hemi = -1
-         j = J_0STG
-      else if(pole.eq.+1) then
-         hemi = +1
-         j = J_1STG
-      else
-         return
-      endif
+      real*8, dimension(0:imh) :: an,bn
+      integer :: i,j,l,hemi,jp,jinc,jcut,ipole
 
-      sumc2 = imh ! sum(cosi(:)*cosi(:))
-      sums2 = imh ! sum(sini(:)*sini(:))
+
+      do ipole=1,2
+      if(grid%have_south_pole .and. ipole.eq.1) then
+         jp = 2
+         jinc = 1
+         hemi = -1
+      else if(grid%have_north_pole .and. ipole.eq.2) then
+         jp = jm
+         jinc = -1
+         hemi = +1
+      else
+         cycle
+      endif
+c find cutoff latitude
+      j = jp
+      do while(cosv(j+jinc).lt.coscut)
+         j = j+jinc
+      enddo
+      jcut = j
 
       do l=1,lm
+
+      do j=jp,jcut,jinc
 c compute xy velocities
       do i=1,im
          ua(i) = cosi(i)*u(i,j,l)-hemi*sini(i)*v(i,j,l)
          va(i) = cosi(i)*v(i,j,l)+hemi*sini(i)*u(i,j,l)
       enddo
 c filter the xy velocities
-      ua(:) = sum(ua(:))/fim
-     &     + cosi(:)*sum(ua(:)*cosi(:))/sumc2
-     &     + sini(:)*sum(ua(:)*sini(:))/sums2
-      va(:) = sum(va(:))/fim
-     &     + cosi(:)*sum(va(:)*cosi(:))/sumc2
-     &     + sini(:)*sum(va(:)*sini(:))/sums2
+      k = maxval(abs(u(:,j,l)))*2.*dt/dxv(j)
+      if(k.lt.0.5) then
+         k = klo
+      else if(k.gt.1d0) then
+         k = khi
+      else
+         k = klo + 2d0*(k-0.5)*(khi-klo)
+      endif
+      fac = k*dt/(dxv(j)*dxv(j))
+      call shap1(ua,im,fac)
+      call shap1(va,im,fac)
+      if(j.eq.jp) then ! really strong filtering right at the pole
+         call fft(ua,an,bn)
+         an(2:imh) = 0.
+         bn(2:imh) = 0.
+         call ffti(an,bn,ua)
+         call fft(va,an,bn)
+         an(2:imh) = 0.
+         bn(2:imh) = 0.
+         call ffti(an,bn,va)
+      endif
 c convert xy velocities back to polar coordinates
       do i=1,im
          u(i,j,l) = cosi(i)*ua(i)+hemi*sini(i)*va(i)
          v(i,j,l) = cosi(i)*va(i)-hemi*sini(i)*ua(i)
       enddo
+      enddo ! j
       enddo ! l
-
+      enddo ! ipole
       return
       end subroutine isotropuv
+
+      subroutine shap1(x,im,fac)
+      implicit none
+      integer :: im
+      real*8, dimension(im) :: x
+      real*8 :: fac,facby4,x1,xim1,xi
+      integer :: i,n,nn
+      n = int(fac) + 1
+      facby4 = fac*.25d0/n
+      do nn=1,n
+      x1 = x(1)
+      xim1 = x(im)
+      do i=1,im-1
+         xi = x(i)
+         x(i) = x(i) + facby4*(xim1-xi-xi+x(i+1))
+         xim1 = xi
+      enddo
+      i = im
+      x(i) = x(i) + facby4*(xim1-x(i)-x(i)+x1)
+      enddo
+      return
+      end subroutine shap1
 
       SUBROUTINE SHAP1D (NORDER,X)
 !@sum  SHAP1D Smoothes in zonal direction use n-th order shapiro filter
@@ -1467,14 +1593,14 @@ c convert xy velocities back to polar coordinates
       IMPLICIT NONE
 !@var NORDER order of shapiro filter (must be even)
       INTEGER, INTENT(IN) :: NORDER
-      REAL*8, INTENT(INOUT), 
+      REAL*8, INTENT(INOUT),
      *        DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: X
       REAL*8, DIMENSION(IM)::XS
       REAL*8 by4toN,XS1,XSIM1,XSI
       INTEGER I,J,N   !@var I,J,N  loop variables
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 
       by4toN=1./4.**NORDER
@@ -1531,9 +1657,9 @@ C****
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** Calculate air mass, layer pressures, P**K, and sqrt(P)
@@ -1641,9 +1767,9 @@ C**** SPA and PU directly from the dynamics. (Future work).
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 
@@ -1754,12 +1880,12 @@ C**** regime (but not above P_CSDRAG)
       REAL*8 WL,TL,RHO,CDN,X,BYPIJU,DP,DPL(LM),du
 !@var DUT,DVT change in momentum (mb m^3/s)
 !@var DKE change in kinetic energy (m^2/s^2)
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: 
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      *        DUT,DVT,DKE
       INTEGER I,J,L,IP1,K,Lmax
       logical cd_lin
 !@var ang_mom is the sum of angular momentun at layers LS1 to LM
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)    :: 
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)    ::
      *        ang_mom, sum_airm
 !@param wmax imposed limit for stratospheric winds (m/s)
       real*8, parameter :: wmax = 200.d0 , wmaxp = wmax*3.d0/4.d0
@@ -1767,10 +1893,10 @@ C**** regime (but not above P_CSDRAG)
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
       ang_mom=0. ;  sum_airm=0. ; dke=0. ; dut=0.
@@ -1888,10 +2014,10 @@ C**** (technically we should use U,V from before but this is ok)
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 
@@ -1936,10 +2062,10 @@ C**** Find WMO Definition of Tropopause to Nearest L
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** DKE (m^2/s^2) is saved from surf,dry conv,aturb and m.c

@@ -4062,8 +4062,8 @@ C                              ----------------------------------------
       REAL*8, SAVE :: E24LAT(25),EJMLAT(47)
       REAL*8  HLATTF(4)
       REAL*8, PARAMETER :: HLATKM(5) = (/15.0, 20.0, 25.0, 30.0, 35.0/)
-      INTEGER, SAVE :: LATVOL = 0
-
+cx    INTEGER, SAVE :: LATVOL = 0   ! not ok for grids finer than 72x46
+                                                               
       real*8, parameter :: htplim=1.d-3
       REAL*8, SAVE :: FSXTAU,FTXTAU
       INTEGER, SAVE :: NJ25,NJJM
@@ -4159,12 +4159,12 @@ C-----------------
       ENTRY GETVOL
 C-----------------
 
-      IF(MRELAY.GT.0)    GO TO 300
-      IF(JLAT.EQ.LATVOL) GO TO 350
+cx    IF(MRELAY.GT.0)    GO TO 300
+cx    IF(JLAT.EQ.LATVOL) GO TO 350  ! not ok for grids finer than 72x46
 
 C                      Set JLAT Dependent Aerosol Distribution and Size
 C                      ------------------------------------------------
-  300 CONTINUE
+cx300 CONTINUE
 
       DO 310 K=1,4
       HLATTF(K)=HTFLAT(JLAT,K)
@@ -4192,8 +4192,8 @@ C------------------------
       CALL GETQVA(SIZVOL)
 C------------------------
 
-      LATVOL=JLAT
-  350 CONTINUE
+cx    LATVOL=JLAT
+cx350 CONTINUE
 C                                  ------------------------------------
 C                                  H2SO4 Thermal Contribution in TRVALK
 C                                  ------------------------------------

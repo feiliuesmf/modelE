@@ -14,14 +14,14 @@
      &     ,do_polefix
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH
       USE GEOM, only : fcor,dxyv,dxyn,dxys,dxv,ravpn,ravps
-     &     ,sini=>siniv,cosi=>cosiv
+     &     ,sini=>siniv,cosi=>cosiv,acor,polwt
       USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt
       USE DIAG, only : diagcd
       IMPLICIT NONE
       REAL*8 U(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      * V(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      * P(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
-      REAL*8 UT(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM), 
+      REAL*8 UT(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      * VT(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      * PA(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      * PB(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
@@ -38,9 +38,9 @@
      *         ASDU(IM,GRID%J_STRT_SKP:GRID%J_STOP_HALO,LM-1)
 c pole fix variables
       integer :: hemi,jpo,jns,jv,jvs,jvn,jj,ipole
-      real*8 :: utmp,vtmp
+      real*8 :: utmp,vtmp,wts
       real*8, dimension(im) :: dmt
-      real*8, dimension(im,2) :: usv,vsv
+      real*8, dimension(im,2) :: usv,vsv,usv0,vsv0
 C****
       J_0 =GRID%J_STRT
       J_1 =GRID%J_STOP
@@ -115,8 +115,32 @@ C
 C****
 C**** BEGINNING OF LAYER LOOP
 C****
-!$OMP  PARALLEL DO PRIVATE(I,IP1,J,L,FLUX,FLUXU,FLUXV)
+!$OMP  PARALLEL DO PRIVATE(I,IP1,J,L,FLUX,FLUXU,FLUXV,
+!$OMP*      IPOLE,JV,JVS,JVN,WTS,USV0,VSV0)
       DO 300 L=1,LM
+
+c
+c interpolate polar velocities to the appropriate latitude
+c
+      do ipole=1,2
+      if(grid%have_south_pole .and. ipole.eq.1) then
+         jv = J_0S ! why not staggered grid
+         jvs = J_0S ! jvs is the southernmost velocity row
+         jvn = jvs + 1 ! jvs is the northernmost velocity row
+         wts = polwt
+      else if(grid%have_north_pole .and. ipole.eq.2) then
+         jv = J_1 ! why not staggered grid
+         jvs = jv - 1
+         jvn = jvs + 1
+         wts = 1.-polwt
+      else
+         cycle
+      endif
+      usv0(:,ipole) = u(:,jv,l)
+      vsv0(:,ipole) = v(:,jv,l)
+      u(:,jv,l) = wts*u(:,jvs,l) + (1.-wts)*u(:,jvn,l)
+      v(:,jv,l) = wts*v(:,jvs,l) + (1.-wts)*v(:,jvn,l)
+      enddo
 C****
 C**** HORIZONTAL ADVECTION OF MOMENTUM
 C****
@@ -163,6 +187,20 @@ C**** CONTRIBUTION FROM THE SOUTHEAST-NORTHWEST MASS FLUX
       DVT(I,J+1,L)=DVT(I,J+1,L)+FLUXV
   220 DVT(IP1,J,L)=DVT(IP1,J,L)-FLUXV
   230 I=IP1
+
+c restore uninterpolated values of u,v at the pole
+      do ipole=1,2
+      if(grid%have_south_pole .and. ipole.eq.1) then
+         jv = J_0S ! why not staggered grid
+      else if(grid%have_north_pole .and. ipole.eq.2) then
+         jv = J_1 ! why not staggered grid
+      else
+         cycle
+      endif
+      u(:,jv,l) = usv0(:,ipole)
+      v(:,jv,l) = vsv0(:,ipole)
+      enddo
+
   300 CONTINUE
 !$OMP  END PARALLEL DO
 
@@ -176,6 +214,7 @@ c are discarded since they produce erroneous tendencies at the pole
 c in models with a polar half-box.
 c Explicit cross-polar advection will be ignored until issues with
 c corner fluxes and spherical geometry can be resolved.
+
       do ipole=1,2
       if(grid%have_south_pole .and. ipole.eq.1) then
          hemi = -1
@@ -184,6 +223,7 @@ c corner fluxes and spherical geometry can be resolved.
          jv = J_0S ! why not staggered grid
          jvs = J_0S ! jvs is the southernmost velocity row
          jvn = jvs + 1 ! jvs is the northernmost velocity row
+         wts = polwt
       else if(grid%have_north_pole .and. ipole.eq.2) then
          hemi = +1
          jpo = J_1
@@ -191,6 +231,7 @@ c corner fluxes and spherical geometry can be resolved.
          jv = J_1 ! why not staggered grid
          jvs = jv - 1
          jvn = jvs + 1
+         wts = 1.-polwt
       else
          cycle
       endif
@@ -208,6 +249,12 @@ c
             v(i,j,l) = cosi(i)*vsv(i,jj)+hemi*sini(i)*usv(i,jj)
          enddo
       enddo
+c
+c interpolate polar velocities to the appropriate latitude
+c
+      u(:,jv,l) = wts*u(:,jvs,l) + (1.-wts)*u(:,jvn,l)
+      v(:,jv,l) = wts*v(:,jvs,l) + (1.-wts)*v(:,jvn,l)
+
 c
 c Compute advective tendencies of xy momentum in the polar rows
 c
@@ -240,8 +287,10 @@ c correct for the too-large dxyv in the polar row
 c and convert dut,dvt from xy to polar coordinates
 c
       do i=1,im
-         dut(i,jv,l) = dut(i,jv,l) + 0.25*(dut(i,jv,l)-dmt(i)*u(i,jv,l))
-         dvt(i,jv,l) = dvt(i,jv,l) + 0.25*(dvt(i,jv,l)-dmt(i)*v(i,jv,l))
+         dut(i,jv,l) = dut(i,jv,l) +
+     &        (acor-1d0)*(dut(i,jv,l)-dmt(i)*u(i,jv,l))
+         dvt(i,jv,l) = dvt(i,jv,l) +
+     &        (acor-1d0)*(dvt(i,jv,l)-dmt(i)*v(i,jv,l))
          utmp = dut(i,jv,l)
          vtmp = dvt(i,jv,l)
          dut(i,jv,l) = cosi(i)*utmp+hemi*sini(i)*vtmp
@@ -444,3 +493,4 @@ C****
 C
       RETURN
       END SUBROUTINE ADVECV
+

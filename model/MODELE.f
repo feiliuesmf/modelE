@@ -577,11 +577,11 @@ C**** Determine if FLTRUV is called.
          end if
       end if
 c Warn if polar fixes requested for a model not having a half polar box
-      if(do_polefix.eq.1 .and. jm.ne.46) then
-         do_polefix = 0
-         write(6,*) 'Polar fixes are currently applicable only to'//
-     &           'models having a half polar box; no fixes applied'
-      endif
+c     if(do_polefix.eq.1 .and. jm.ne.46) then
+c        do_polefix = 0
+c        write(6,*) 'Polar fixes are currently applicable only to'//
+c    &           'models having a half polar box; no fixes applied'
+c     endif
       RETURN
 C****
       end subroutine init_Model

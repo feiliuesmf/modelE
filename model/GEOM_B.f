@@ -86,6 +86,8 @@ C**** of the 1D array are needed by all processes.
 !@var  FCOR latitudinally varying coriolis parameter
       REAL*8, ALLOCATABLE, DIMENSION(:) :: FCOR
 
+      real*8 :: acor,acor2,polwt
+
       CONTAINS
 
       SUBROUTINE GEOM_B
@@ -151,6 +153,7 @@ C****Update halos for arrays cosp, dxp, and lat
 C**** The following corrections have no effect for half polar boxes
 C**** but are important for full and quarter polar box cases.
         IF (J.eq.2) THEN
+          polwt = cosv(j)
           COSV(J) = .5*(COSP1+COSP(J))
           DXV(J)  = .5*(DXP1+DXP(J))
         END IF
@@ -160,6 +163,7 @@ C**** but are important for full and quarter polar box cases.
         END IF
 C****
       END DO
+      polwt = (cosv(3)-cosv(2))/(cosv(3)-polwt)
 C****POLES
       IF (grid%HAVE_SOUTH_POLE) THEN
         DYP(1)  = RADIUS*(LAT(2)-LAT(1)-0.5*DLAT)
@@ -178,7 +182,7 @@ C****POLES
       AREAG = DXYP(1)+DXYP(JM)
 
       DO J=J_0S,J_1S
-        DYP(J)  = .5*(DYV(J)+DYV(J+1))
+        DYP(J)  = radius*dlat !.5*(DYV(J)+DYV(J+1))
         DXYP(J) = .5*(DXV(J)+DXV(J+1))*DYP(J)
         BYDXYP(J) = 1./DXYP(J)
         DXYS(J) = .5*DXYP(J)
@@ -207,6 +211,8 @@ C****POLES
         RAPVS(J)   = .5*DXYS(J)/DXYV(J)
         RAVPS(J)   = .5*DXYS(J)/DXYP(J)
       END DO
+      acor = dxyv(2)/(.5*dxp(2)*dyv(2)) ! gridbox area correction factor
+      acor2 = dxyv(2)/(dxv(2)*dyv(2))
       CALL CHECKSUM(grid,RAPVN, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid,RAPVN, from=NORTH)
       DO J=J_0,J_1S
