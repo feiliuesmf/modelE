@@ -470,6 +470,8 @@ c      USE PRTCOM, only :
      &     j_hsurf,j_trhdt,j_trnfp1,j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,
      &     j_rhdt,j_hz1,j_edifs,j_f1dt,j_prcp,j_prcpss,j_prcpmc,j_hz0,
      &     j_shdt,j_evhdt,j_eprcp,j_erun1,j_hz2,j_f2dt,j_erun2,j_type
+      USE DAGPCOM, only :
+     *     P1000K
       USE BDJ, only :
      &     nt_j,nstype_out,iotype
       IMPLICIT NONE
@@ -566,7 +568,6 @@ c     *     (/NTYPE_OUT+1,NTYPE/) )
       INTEGER :: I,IACC,INC,J,JH,JHEMI,JMHALF,JR,K,KA,KD1M,M,MD,N,ND,NN
      *     ,IT
       INTEGER :: IFIRST = 1
-      DOUBLE PRECISION, PARAMETER :: P1000=1000.
       IF (IFIRST.EQ.1) THEN
       IFIRST=0
 C**** INITIALIZE CERTAIN QUANTITIES  (KD1M LE 69)
@@ -594,7 +595,7 @@ C**** INITIALIZE CERTAIN QUANTITIES  (KD1M LE 69)
       SCALE(16)=1./DTSRC
       SCALE(19)=SDAY/DTSRC
       SCALE(20)=100.*SDAY/(DTsrc*GRAV)
-      SCALE(24)=1.D3*GRAV*(P1000**KAPA)
+      SCALE(24)=1.D3*GRAV*P1000K
       SCALE(25)=SCALE(24)
       SCALE(26)=16.*RGAS
       SCALE(27)=16.*RGAS
@@ -1087,7 +1088,7 @@ c      USE PRTCOM, only :
       USE GEOM, only :
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
       USE DAGPCOM, only :
-     &     PLM
+     &     PLM,P1000K
       USE DAGCOM, only :
      &     ajk,ajl,asjl,ajlsp,kdiag,aijl,aijk,nwav_dag,kajlsp,LM_REQ
      &     ,qcheck, acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
@@ -1118,7 +1119,7 @@ c      USE PRTCOM, only :
       DOUBLE PRECISION, DIMENSION(LM) :: PM,PKM,PME
       DOUBLE PRECISION, DIMENSION(JM,2) :: PJ
       INTEGER, PARAMETER, DIMENSION(5) :: MW=(/1,2,3,6,9/)
-      DOUBLE PRECISION, PARAMETER :: ONE=1.,P1000=1000.
+      DOUBLE PRECISION, PARAMETER :: ONE=1.
 
       INTEGER ::
      &     I,J,J0,J1,JH,JHEMI,K,K1,KDN,KM,KMM1,KUP,L,LMP1,LR,M,N
@@ -1129,7 +1130,7 @@ c      USE PRTCOM, only :
      &     BYRCOS,DALPHA,DE4TI,DP,DPG,DPH,DPTI,
      &     DSSIG,DTHDP,DTHETA,EL4QI,
      &     FIMDA,GBYRSQ,GSQ,
-     &     P1000K,PDN,PIG,PIH,PMK,
+     &     PDN,PIG,PIH,PMK,
      &     PUP,PUTI,PVTI,SCALE,SCALES,SDDP,
      &     SKEI,SMALL,SN,SNAMI,SNDEGI,SNELGI,SQM,SQN,SZNDEG,SZNELG,
      &     THDN,THETA,THUP,TX,UDXN,UDXS,UX,WTKP1,WTN,WTNK,
@@ -1150,7 +1151,6 @@ C**** INITIALIZE CERTAIN QUANTITIES
       INC=1+(JM-1)/24
       JMHALF=JM/2
       BY100G=.01*BYGRAV
-      P1000K=P1000**KAPA
       DO 30 L=1,LM
       PKM(L)=PLM(L)**KAPA
       PME(L)=PSFMPT*SIGE(L)+PTOP
@@ -2612,13 +2612,12 @@ c      USE PRTCOM, only :
 
       DOUBLE PRECISION, DIMENSION(7), PARAMETER ::
      &     PMB=(/999.9,850.,700.,500.,300.,100.,30./)
-      DOUBLE PRECISION, PARAMETER :: P1000=1000.
 
       INTEGER :: J,K,KM,L,LDN,LS,LUP,N
 
       DOUBLE PRECISION ::
      &     BDN,BUP,BY100G,BYIACN,BYIADA,BYIARD,BYIMDA,
-     &     DAM4,DXCVN,DXCVS,ELOFIM,FIMDA,P1000K,
+     &     DAM4,DXCVN,DXCVS,ELOFIM,FIMDA,
      &     SCALE,SCALE2,SCALES,SCALEV,XWON
 
 C**** INITIALIZE CERTAIN QUANTITIES
@@ -2626,7 +2625,6 @@ C**** INITIALIZE CERTAIN QUANTITIES
       INC=1+(JM-1)/24
       JMHALF=JM/2
       BY100G=.01*BYGRAV
-      P1000K=P1000**KAPA
       KM=0
       DO 5 K=1,7
       IF (PMTOP.GT.PMB(K)) GO TO 6
@@ -3926,6 +3924,8 @@ C****
      &     ajk,kdiag,aij,kaij,aijk,tsfrez,ia_ij,
      *     ijk_v,ijk_dse,ijk_u,ijk_dp,
      &     IJ_PEV,IJ_TRNFP0,IJ_SRNFP0,IJ_SLP,IJ_TS !not a generic subr.
+      USE DAGPCOM, only :
+     *     P1000K
       USE BDIJ, only :
      &     title,nt_ij,legend,achar,bchar,cchar,dchar,echar
       IMPLICIT NONE
@@ -3969,7 +3969,6 @@ C**** IA now set from DEFACC
      &     1000.,850.,700.,500.,300.,100.,30. /)
       DOUBLE PRECISION, DIMENSION(7), PARAMETER :: GHT=(/
      &     0.,1500.,3000.,5600.,9500.,16400.,24000. /)
-      DOUBLE PRECISION, PARAMETER :: P1000=1000.
 
       INTEGER ::
      &     I,IFRSTP,ILINE,INC,IQ1,IQ2,IQ3,J,K,
@@ -4002,7 +4001,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       SCALE(16)=1E3*BYGRAV
       SCALE(26)=1./DTSRC
       SCALE(32)=1./DTSRC
-      SCALE(33)=1.D3*GRAV*(P1000**KAPA)
+      SCALE(33)=1.D3*GRAV*P1000K
       SCALE(34)=6.25E-14*BYGRAV
       SCALE(35)=SCALE(34)
       SCALE(36)=SCALE(34)
@@ -4929,14 +4928,16 @@ c      USE PRTCOM, only :
      &     energy,nehist,hist_days
       IMPLICIT NONE
 
-      DOUBLE PRECISION, DIMENSION(NEHIST) :: SUM,SCALE
-      INTEGER, DIMENSION(NEHIST) :: IK
+      DOUBLE PRECISION, DIMENSION(2) :: FAC
+      DOUBLE PRECISION, DIMENSION(10) :: SCALE
+      DOUBLE PRECISION, DIMENSION(20) :: SUM
+      INTEGER, DIMENSION(20) :: IK
       DOUBLE PRECISION, DIMENSION(NEHIST,HIST_DAYS+1) :: EHIST
 
       INTEGER ::
-     &     I,IDACC5,ItimeX,IDAYX,IDAYXM,K,K0
+     &     I,IDACC5,ItimeX,IDAYX,IDAYXM,K,K0,KS,KN,KSPHER
       DOUBLE PRECISION ::
-     &     TOFDYX, FAC
+     &     TOFDYX
 
       IDACC5=IDACC(5)
       IF (IDACC5.LE.0) RETURN
@@ -4951,28 +4952,21 @@ c      USE PRTCOM, only :
       SCALE(8)=SCALE(7)
       SCALE(9)=SCALE(7)
       SCALE(10)=SCALE(7)
-      SCALE(11)=SCALE(1)
-      SCALE(12)=SCALE(1)
-      SCALE(13)=SCALE(1)
-      SCALE(14)=SCALE(1)
-      SCALE(15)=SCALE(5)
-      SCALE(16)=SCALE(5)
-      SCALE(17)=SCALE(7)
-      SCALE(18)=SCALE(7)
-      SCALE(19)=SCALE(7)
-      SCALE(20)=SCALE(7)
-      DO 60 K=1,NEHIST
-   60 SCALE(K)=(TWOPI/(DLON*FIM))*SCALE(K)/IDACC(12)
+      DO K=1,10
+        SCALE(K)=(TWOPI/(DLON*FIM))*SCALE(K)/IDACC(12)
+      END DO
 C****
       DO K0=1,MIN(1+ISTRAT,2)
         WRITE (6,901) XLABEL
         IF (K0.eq.1) THEN
-          FAC = 1.
+          FAC(1) = 1.
+          FAC(2) = 10.
           WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE
      *         ,JHOUR
           WRITE (6,903)
         ELSE
-          FAC = 10.
+          FAC(1) = 100.
+          FAC(2) = 1000.
           WRITE (6,906) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE
      *         ,JHOUR
           WRITE (6,907)
@@ -4983,16 +4977,32 @@ C****
           IDAYX=1+ItimeX/NDAY
           IDAYXM=MOD(IDAYX,100000)
           TOFDYX=MOD(ItimeX,NDAY)*24./NDAY
-          DO K=1,MIN((K0-1)*20,NEHIST)
-            EHIST(K,I)=ENERGY(K,I)*SCALE(K)*FAC
-            IK(K)=EHIST(K,I)+.5
-            SUM(K)=SUM(K)+ENERGY(K,I)
-          END DO 
+          DO KSPHER=1,2
+            DO K=1,10
+              KS=K+(KSPHER-1)*10
+              KN=KS+(K0-1)*10
+              IF (KN.le.NEHIST) THEN
+                EHIST(KN,I)=ENERGY(KN,I)*SCALE(K)*FAC(KSPHER)
+                IK(KS)=EHIST(KN,I)+.5
+                SUM(KS)=SUM(KS)+ENERGY(KN,I)
+              ELSE
+                IK(KS)=-999
+              END IF
+            END DO 
+          END DO
           WRITE (6,904) IDAYXM,TOFDYX,IK
         END DO
-        DO K=1,NEHIST
-          EHIST(K,101)=SUM(K)*SCALE(K)*FAC/IDACC5
-          IK(K)=EHIST(K,101)+.5
+        DO KSPHER=1,2
+          DO K=1,10
+            KS=K+(KSPHER-1)*10
+            KN=KS+(K0-1)*10
+            IF (KN.le.NEHIST) THEN
+              EHIST(KN,HIST_DAYS+1)=SUM(KS)*SCALE(K)*FAC(KSPHER)/IDACC5
+              IK(KS)=EHIST(KN,HIST_DAYS+1)+.5
+            ELSE
+              IK(KS)=-999
+            END IF
+          END DO
         END DO
         WRITE (6,905) IK
         IF (K0.eq.1) CALL KEYD4 (IK)
@@ -5012,9 +5022,9 @@ C****
   904 FORMAT (I6,F6.1,1X,3(I6,I5),2(I7,I6),2X,3(I6,I5),2(I7,I6))
   905 FORMAT (1X,132('=')/8X,'MEAN ',3(I6,I5),2(I7,I6),2X,3(I6,I5),
      *  2(I7,I6))
-  906 FORMAT ('0** ENERGY HISTORY **   DAY',I6,', HR',I3,' (',I2,A5,I5,
-     *  ')    TO    DAY',I5,', HR',I3,' (',I2,A5,I5,
-     *  ')    UNITS OF 10**17 JOULES')
+  906 FORMAT ('0** ENERGY HISTORY **      From:',I6,A6,I2,',  Hr',I3,
+     *  6X,'To:',I6,A6,I2,', Hr',I3,
+     *  '    UNITS OF 10**17 JOULES')
   907 FORMAT ('0',15X,19('-'),' MID STRATOSPHERE ',19('-'),5X,18('-'),
      *  ' HIGH STRAT. * 10  ',19('-')/8X,2(11X,'ZKE',8X,'EKE',7X,
      *   'NHKE',9X,

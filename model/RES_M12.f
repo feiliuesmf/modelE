@@ -54,11 +54,15 @@ C**** models.
 
       SUBROUTINE DUMMY_STRAT
 !@sum DUMMY dummy routines for non-stratospheric models
+C**** Dummy routines in place of STRATDYN
       ENTRY GWDRAG
       ENTRY VDIFF
+      ENTRY io_strat
+C**** Dummy routines in place of STRAT_DIAG (EP flux calculations)
+C**** Note that KEP=0 is set to zero above for the dummy versions.
       ENTRY EPFLUX
       ENTRY EPFLXI
       ENTRY EPFLXP
-      ENTRY io_strat
+C****
       RETURN
       END SUBROUTINE DUMMY_STRAT

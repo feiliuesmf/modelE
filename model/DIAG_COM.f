@@ -102,6 +102,8 @@ C NEHIST = (TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 C**** 1000 - 150: troposphere           150 - 10 : low strat.
 C****   10 - 1: mid strat               1 and up : upp strat.
       REAL*8, DIMENSION(3), PARAMETER :: PSPEC = (/ 150., 10., 1. /) 
+!@var LSTR level of interface between low and mid strat. (approx 10 mb)
+      INTEGER :: LSTR = LM   ! defaults to model top.  
 
 !@param KTPE number of spectral diagnostics for pot. enthalpy
       INTEGER, PARAMETER :: KTPE=8

@@ -16,6 +16,8 @@ C****
       DOUBLE PRECISION, DIMENSION(LM) :: PLE
       DOUBLE PRECISION, DIMENSION(LM) :: PLE_DN
       DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PLM
+!@var P1000K scaling to change reference pressure from 1mb to 1000mb
+      DOUBLE PRECISION :: P1000K
       END MODULE DAGPCOM
 
 C****                                                             IDACC
@@ -357,6 +359,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,bbyg,gbyrb,tf
+     *     ,rvap
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
@@ -365,7 +368,8 @@ C****
      &     aij,ij_dtdp,ij_pev,ij_phi1k,ij_pres,ij_puq,ij_pvq,
      &     ij_slp,ij_t850,ij_ujet,ij_vjet,j_tx1,
      *     j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst,j_rictr,
-     *     j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam,j_gamc
+     *     j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam,j_gamc,
+     *     lstr
       USE DYNAMICS, only : pk,phi
       USE RADNCB, only : rqt,lm_req
       USE PBLCOM, only : tsavg
@@ -670,88 +674,91 @@ C****
 C**** RICHARDSON NUMBER , ROSSBY NUMBER , RADIUS OF DEFORMATION
 C****
 C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
-      DO 506 J=2,JM
-      DUDVSQ(J)=0.
-      UMAX(J)=0.
-      DO 504 I=1,IM
-      DU=U(I,J,LS1-1)-U(I,J,1)
-      DV=V(I,J,LS1-1)-V(I,J,1)
-      DUDVSQ(J)=DUDVSQ(J)+(DU*DU+DV*DV)*PUV(I,J)
-  504 CONTINUE
-  506 CONTINUE
-      DO 510 J=2,JM-1
-      PIBYIM=PI(J)*BYIM
-      DLNP=LOG((SIG(1)*PIBYIM+PTOP)/(SIG(LS1-1)*PIBYIM+PTOP))
-      DLNS=LOG(SPI(J,LS1-1)/SPI(J,1))
-      DS=SPI(J,LS1-1)-SPI(J,1)
-      EL(J)=SQRT(DLNS/DLNP)
-      RI(J)=DS*DLNP/(.5*(DUDVSQ(J)+DUDVSQ(J+1)))
-  510 CONTINUE
-      DO 515 L=1,LS1-1
-      DO 514 J=2,JM
-      UI(J)=0.
-      DO 512 I=1,IM
-  512 UI(J)=UI(J)+U(I,J,L)
-  514 CONTINUE
-      DO 515 J=2,JM-1
-      UAMAX=ABS(UI(J)+UI(J+1))
-      IF (UAMAX.GT.UMAX(J)) UMAX(J)=UAMAX
-  515 CONTINUE
-      DO 520 J=2,JM-1
-      ROSSX=DYP(J)/(DXYP(J)*SINP(J))
-      ELX=1./SINP(J)
-      DO IT=1,NTYPE
-        AJ(J,J_RICTR,IT)=AJ(J,J_RICTR,IT)+RI(J)  *SPTYPE(IT,J)
-        AJ(J,J_ROSTR,IT)=AJ(J,J_ROSTR,IT)+UMAX(J)*SPTYPE(IT,J)*ROSSX
-        AJ(J,J_LTRO ,IT)=AJ(J,J_LTRO ,IT)+EL(J)  *SPTYPE(IT,J)*ELX
+      DO J=2,JM
+        DUDVSQ(J)=0.
+        UMAX(J)=0.
+        DO I=1,IM
+          DU=U(I,J,LS1-1)-U(I,J,1)
+          DV=V(I,J,LS1-1)-V(I,J,1)
+          DUDVSQ(J)=DUDVSQ(J)+(DU*DU+DV*DV)*PUV(I,J)
+        END DO
       END DO
-  520 CONTINUE
-C**** NUMBERS ACCUMULATED OVER THE STRATOSPHERE
-CNOST IF (LS1.GT.LM) GO TO 551    NEEDED FOR RUNS WITHOUT A STRATOSPHERE
-      DO 532 J=2,JM
-      DUDVSQ(J)=0.
-      UMAX(J)=0.
-  532 CONTINUE
-      DO 536 J=2,JM
-      DO 534 I=1,IM
-      DU=U(I,J,LM)-U(I,J,LS1-1)
-      DV=V(I,J,LM)-V(I,J,LS1-1)
-      DUDVSQ(J)=DUDVSQ(J)+(DU*DU+DV*DV)*PUV(I,J)
-  534 CONTINUE
-  536 CONTINUE
-      DO 540 J=2,JM-1
-      PIBYIM=PI(J)*BYIM
-      DLNP=LOG((SIG(LS1-1)*PIBYIM+PTOP)/(SIG(LM)*PSFMPT+PTOP))
-      DLNS=LOG(SPI(J,LM)/SPI(J,LS1-1))
-      DS=SPI(J,LM)-SPI(J,LS1-1)
-      EL(J)=SQRT(DLNS/DLNP)
-      RI(J)=DS*DLNP/(.5*(DUDVSQ(J)+DUDVSQ(J+1)))
-  540 CONTINUE
-      DO 545 L=LS1,LM
-      DO 544 J=2,JM
-      UI(J)=0.
-      DO 542 I=1,IM
-  542 UI(J)=UI(J)+U(I,J,L)
-  544 CONTINUE
-      DO 545 J=2,JM-1
-      UAMAX=ABS(UI(J)+UI(J+1))
-      IF (UAMAX.GT.UMAX(J)) UMAX(J)=UAMAX
-  545 CONTINUE
-      DO 550 J=2,JM-1
-      ROSSX=DYP(J)/(DXYP(J)*SINP(J))
-      ELX=1./SINP(J)
-      DO IT=1,NTYPE
-        AJ(J,J_RICST,IT)=AJ(J,J_RICST,IT)+RI(J)  *SPTYPE(IT,J)
-        AJ(J,J_ROSST,IT)=AJ(J,J_ROSST,IT)+UMAX(J)*SPTYPE(IT,J)*ROSSX
-        AJ(J,J_LSTR ,IT)=AJ(J,J_LSTR ,IT)+EL(J)  *SPTYPE(IT,J)*ELX
+      DO J=2,JM-1
+        PIBYIM=PI(J)*BYIM
+        DLNP=LOG((SIG(1)*PIBYIM+PTOP)/(SIG(LS1-1)*PIBYIM+PTOP))
+        DLNS=LOG(SPI(J,LS1-1)/SPI(J,1))
+        DS=SPI(J,LS1-1)-SPI(J,1)
+        EL(J)=SQRT(DLNS/DLNP)
+        RI(J)=DS*DLNP/(.5*(DUDVSQ(J)+DUDVSQ(J+1)))
       END DO
-  550 CONTINUE
-CN551 CONTINUE
+      DO L=1,LS1-1
+        DO J=2,JM
+          UI(J)=0.
+          DO I=1,IM
+            UI(J)=UI(J)+U(I,J,L)
+          END DO
+        END DO
+        DO J=2,JM-1
+          UAMAX=ABS(UI(J)+UI(J+1))
+          IF (UAMAX.GT.UMAX(J)) UMAX(J)=UAMAX
+        END DO
+      END DO
+      DO J=2,JM-1
+        ROSSX=DYP(J)/(DXYP(J)*SINP(J))
+        ELX=1./SINP(J)
+        DO IT=1,NTYPE
+          AJ(J,J_RICTR,IT)=AJ(J,J_RICTR,IT)+RI(J)  *SPTYPE(IT,J)
+          AJ(J,J_ROSTR,IT)=AJ(J,J_ROSTR,IT)+UMAX(J)*SPTYPE(IT,J)*ROSSX
+          AJ(J,J_LTRO ,IT)=AJ(J,J_LTRO ,IT)+EL(J)  *SPTYPE(IT,J)*ELX
+        END DO
+      END DO
+C**** NUMBERS ACCUMULATED OVER THE LOWER STRATOSPHERE
+C**** LSTR is approx. 10mb level. This maintains consistency over
+C**** the different model tops
+CNOST IF (LS1.GT.LSTR) GO TO 551    NEEDED FOR RUNS WITHOUT A STRATOSPHERE
+      DO J=2,JM
+        DUDVSQ(J)=0.
+        UMAX(J)=0.
+        DO I=1,IM
+          DU=U(I,J,LSTR)-U(I,J,LS1-1)
+          DV=V(I,J,LSTR)-V(I,J,LS1-1)
+          DUDVSQ(J)=DUDVSQ(J)+(DU*DU+DV*DV)*PUV(I,J)
+        END DO
+      END DO
+      DO J=2,JM-1
+        PIBYIM=PI(J)*BYIM
+        DLNP=LOG((SIG(LS1-1)*PIBYIM+PTOP)/(SIG(LSTR)*PSFMPT+PTOP))
+        DLNS=LOG(SPI(J,LSTR)/SPI(J,LS1-1))
+        DS=SPI(J,LSTR)-SPI(J,LS1-1)
+        EL(J)=SQRT(DLNS/DLNP)
+        RI(J)=DS*DLNP/(.5*(DUDVSQ(J)+DUDVSQ(J+1)))
+      END DO
+      DO L=LS1,LSTR
+        DO J=2,JM
+          UI(J)=0.
+          DO I=1,IM
+            UI(J)=UI(J)+U(I,J,L)
+          END DO
+        END DO
+        DO J=2,JM-1
+          UAMAX=ABS(UI(J)+UI(J+1))
+          IF (UAMAX.GT.UMAX(J)) UMAX(J)=UAMAX
+        END DO
+      END DO
+      DO J=2,JM-1
+        ROSSX=DYP(J)/(DXYP(J)*SINP(J))
+        ELX=1./SINP(J)
+        DO IT=1,NTYPE
+          AJ(J,J_RICST,IT)=AJ(J,J_RICST,IT)+RI(J)  *SPTYPE(IT,J)
+          AJ(J,J_ROSST,IT)=AJ(J,J_ROSST,IT)+UMAX(J)*SPTYPE(IT,J)*ROSSX
+          AJ(J,J_LSTR ,IT)=AJ(J,J_LSTR ,IT)+EL(J)  *SPTYPE(IT,J)*ELX
+        END DO
+      END DO
 C****
 C**** MEAN TROPOSPHERIC LAPSE RATES:  MOIST CONVECTIVE, ACTUAL,
 C****    DRY ADIABATIC
 C****
-      X=RGAS*LHE*LHE/(SHA*461.5)
+      X=RGAS*LHE*LHE/(SHA*RVAP)
       DO 570 J=1,JM
       GAMM=0.
       DO 560 L=1,LS1-1
@@ -3040,14 +3047,14 @@ C****
 !@sum  init_DIAG initiallises the diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : sday
+      USE CONSTANT, only : sday,kapa
       USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,sige,sig,ptop
      *     ,pmtop,psfmpt,nfiltr,dtsrc,jhour,jdate,jmon,amon,jyear
      *     ,jhour0,jdate0,jmon0,amon0,jyear0,idacc,ioread_single
      *     ,xlabel,iowrite_single,iyear1,nday,dtsrc,dt,nmonav
      *     ,ItimeE,lrunid
       USE DAGCOM
-      USE DAGPCOM, only : ple,ple_dn,plm
+      USE DAGPCOM, only : ple,ple_dn,plm,p1000k
       USE PARAM
       USE FILEMANAGER
       IMPLICIT NONE
@@ -3107,9 +3114,10 @@ C**** Initialize certain arrays used by more than one print routine
         PLE_DN(L)=SIGE(L)*PSFMPT+PTOP
         PLM(L)=SIG(L)*PSFMPT+PTOP
       END DO
-      PLM(LM+1)=.75*PMTOP
-      PLM(LM+2)=.35*PMTOP
-      PLM(LM+3)=.1*PMTOP
+      PLM(LM+1)=.75d0*PMTOP
+      PLM(LM+2)=.35d0*PMTOP
+      PLM(LM+3)=.1d0*PMTOP
+      p1000k=1000.0**kapa
 
 C**** Initialize conservation diagnostics
 C**** NCON=1:23 are special cases: Angular momentum and kinetic energy
@@ -3199,7 +3207,10 @@ C**** add in epsilon=1d-5 to avoid roundoff mistakes
       KL=1
       DO L=1,LM
         IF (PTOP+PSFMPT*SIGE(L+1)+1d-5.lt.PSPEC(KL) .and.
-     *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.PSPEC(KL)) KL=KL+1
+     *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.PSPEC(KL)) THEN
+          IF (KL.eq.2) LSTR = L  ! approx. 10mb height
+          KL=KL+1
+        END IF
         KLAYER(L)=4*(KL-1)+1
       END DO
       IF (KL*4 .gt. NSPHER) THEN
