@@ -389,7 +389,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       INTEGER :: N              !@var  N      loop variable
 
       read (iunit,end=10,err=50) it1,(it2,n=1,len4+1)
-      if(it.gt.it1) go to 30
+      if(it.ge.it1) go to 30
    10 write(6,*) "Starting a new file ",TRIM(NAME(IUNIT)),", time=",it
       rewind iunit
       return
@@ -478,7 +478,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       function unit_string (pow10,ending)
 !@sum Construct a units string with nice properties (no embedded blanks)
 !@auth G. Schmidt, J. Lerner
-C**** If a trailing ')' is supplied, it is assumed that a leading 
+C**** If a trailing ')' is supplied, it is assumed that a leading
 C****      '(' is required, so it is inserted
       character*(*) ending,unit_string
       character*10 tpow
@@ -487,7 +487,7 @@ C****      '(' is required, so it is inserted
       tpow = ' '
       if(pow10.ne.0) then
          write(tpow,'(i3)') pow10
-         if (index(ending,')') .ne.0) then 
+         if (index(ending,')') .ne.0) then
            tpow='(10^'//trim(adjustl(tpow))
          else
            tpow= '10^'//trim(adjustl(tpow))

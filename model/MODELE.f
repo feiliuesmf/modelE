@@ -1221,7 +1221,9 @@ C**** CALCULATE THE CURRENT GLOBAL MEAN PRESSURE
       END DO
       PBAR=SMASS/AREAG+PTOP
 C**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
+C****   except if it was just done (restart from itime=itimei)
       DELTAP=PSF-PBAR
+      if(itime.eq.itimei .and. abs(deltap).lt.1.d-10) return
       P=P+DELTAP
 
       CALL CALC_AMPK(LS1-1)
