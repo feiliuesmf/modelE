@@ -728,7 +728,7 @@ c
       k = k + 1
       jk_tot_vt_se = k                        ; jgrid_jk(k) = 1
       sname_jk(k) = 'tot_vt_se'
-      lname_jk(k) = 
+      lname_jk(k) =
      &    'TOTAL LARGE SCALE VERT. TRANS. OF STATIC ENRG (CP)'
       units_jk(k) = 'W/m^2'
       scale_jk(k) = -100.*BYGRAV*BYIM
@@ -774,7 +774,7 @@ c
       jk_dyn_conv_dse = k                     ; jgrid_jk(k) = 1
       sname_jk(k) = 'dyn_conv_dse'
       lname_jk(k) = 'DYNAMIC CONVERGENCE OF DRY STATIC ENERGY'
-      units_jk(k) = 'W/(m^2*mb)' 
+      units_jk(k) = 'W/(m^2*mb)'
       scale_jk(k) = 1d2*BYGRAV
       pow_jk(k) = -2
       k = k + 1
@@ -1262,7 +1262,7 @@ C**** POTENTIAL TEMPERATURE, POTENTIAL VORTICITY
       SCALET = SCALE_JK(n)
       SCALES = P1000K
       CALL JKMAPS(LNAME_JK(N),SNAME_JK(N),UNITS_JK(N),POW_JK(n),
-     &     PLM,AJK(1,1,N),SCALET,ONES,ONES,KM,2,JGRID_JK(N), 
+     &     PLM,AJK(1,1,N),SCALET,ONES,ONES,KM,2,JGRID_JK(N),
      &     ARQX,SCALES,ONES,BYPKS)
       N = JK_POTVORT
       SCALET = SCALE_JK(n)/IDACC(IA_JK(n))
@@ -1300,7 +1300,7 @@ C**** Individual wave transports commented out. (gas - 05/2001)
       CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_JK(n),POW_JK(n),
      &     PLM,BX,SCALET,DXV,ONES,KM,2,JGRID_jk(n))
 C**** NORTHWARD TRANSPORT OF LATENT HEAT BY STAND. EDDY, EDDIES AND TOTA
-C**** New way!  
+C**** New way!
       n = jl_nt_lh_e
       dx = 0.
       DX(2:jm,:)=AJL(2:jm,:,Jl_TOTNTLH)-AJL(2:jm,:,Jl_ZMFNTLH)
@@ -1347,7 +1347,7 @@ C**** NORTHWARD TRANSPORT OF KINETIC ENERGY
       SCALET = SCALE_JK(n)
       CALL JKMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
      &     PLM,AJK(1,1,n),SCALET,DXV,ONES,KM,2,JGRID_JK(n))
-C**** NOR. TRANS. OF MOM, BY STANDING EDDIES, EDDIES, AND TOTAL ANG. MOM.
+C**** NOR. TRANS. OF MOM, BY STANDING EDDIES, EDDIES, AND TOTAL ANG. MOM
       n = jk_nt_am_stand_eddy
       SCALET = scale_jk(n)
       CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_JK(n),POW_JK(n),
@@ -1428,7 +1428,7 @@ C**** VERTICAL TRANSPORT OF DRY STATIC ENERGY BY EDDIES AND TOTAL
       CALL JLMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
      &     PM,AJK(1,1,n),SCALET,BYDAPO,ONES,KM-1,2,JGRID_JK(n))
 C**** VERTICAL TRANSPORT OF LATENT HEAT BY EDDIES AND TOTAL
-C**** New way! 
+C**** New way!
       n = jl_vt_lh_e
       dx = 0.
       DX(:,1:lm-1)=AJL(:,1:lm-1,Jl_totvtlh)-AJL(:,1:lm-1,Jl_zmfvtlh)
@@ -1440,7 +1440,7 @@ C**** New way!
       CALL jlMAP(LNAME_jl(n),SNAME_jl(n),UNITS_jl(n),POW_jl(n),
      &     PM,Ajl(1,1,n),SCALET,BYDAPO,ONES,lm-1,2,JGRID_jl(n))
 C**** VERTICAL TRANSPORT OF LATENT HEAT BY EDDIES AND TOTAL
-C**** Old way! 
+C**** Old way!
       n = jk_vt_lh_eddy
       SCALET = SCALE_JK(n)/IDACC(IA_JK(n))
       CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_JK(n),POW_JK(n),
@@ -1956,7 +1956,7 @@ C****
       SCALET = scale_jl(n)/idacc(ia_jl(n))
 C**** scale with density for m^2/s^2 unit. Note that RHO is really a JK.
       AX = 0.
-      DO L=1,LM-1  
+      DO L=1,LM-1
       DO J=1,JM
         AX(J,L)=AJL(J,L,n)/RHO(J,L)
       END DO
@@ -2566,7 +2566,7 @@ C**** THIS ENTRY PRINTS THE TABLES
 C****
       USE DAGCOM, only : qdiag,
      &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ,acc_period
-      USE MODEL_COM, only :  
+      USE MODEL_COM, only :
      &     im,IDACC,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,lrunid
       IMPLICIT NONE
 
@@ -2575,9 +2575,9 @@ C****
       DOUBLE PRECISION, DIMENSION(43) :: XPOWER
       DOUBLE PRECISION, DIMENSION(13) :: FPE
 !     Arrays for pdE
-      DOUBLE PRECISION, DIMENSION(43+1,NWAV_DAG+1) :: FPOWER 
-      DOUBLE PRECISION, DIMENSION(41,2) :: period_e       
-      DOUBLE PRECISION, DIMENSION(nwav_dag) :: xnwav     
+      DOUBLE PRECISION, DIMENSION(43+1,NWAV_DAG+1) :: FPOWER
+      DOUBLE PRECISION, DIMENSION(41,2) :: period_e
+      DOUBLE PRECISION, DIMENSION(nwav_dag) :: xnwav
       CHARACTER XLB*14,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80,TPOW*8
       DATA CLAT/'PERIOD EASTWARD'/,CPRES/'N'/,CBLANK/' '/
       character lname*50,sname*30,units*50
@@ -3363,10 +3363,10 @@ C**** standard printout
      *  ij_gwtr,    ij_wmsum,   ij_dcnvfrq,  !        row 2
      *  ij_scnvfrq, ij_pdcld,   ij_pscld,    ! pg  7  row 1
      *  ij_pcldl,   ij_pcldm,   ij_pcldh/)   !        row 2
-    
-C**** include ISCCP diags if requested     
+
+C**** include ISCCP diags if requested
       if (isccp_diags.eq.1) then
-        iord(kmaplets+1:kmaplets+3) = (/ij_lcldi,ij_mcldi,ij_hcldi/) 
+        iord(kmaplets+1:kmaplets+3) = (/ij_lcldi,ij_mcldi,ij_hcldi/)
         kmaplets=kmaplets+3
       end if
 
