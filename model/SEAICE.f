@@ -34,8 +34,8 @@
 
       CONTAINS
 
-      SUBROUTINE PREC_SI(SNOW,MSI2,MSI1,TG1,TG2,TG3,TG4,PRCP,TPRCP
-     *     ,EPRCP,RUN0,DIFS,EDIFS,ERUN2,QFIXR)
+      SUBROUTINE PREC_SI(SNOW,MSI2,TG1,TG2,TG3,TG4,PRCP,ENRGP
+     *     ,RUN0,DIFS,EDIFS,ERUN2,QFIXR)
 !@sum  PREC_SI Adds the precipitation to sea/lake ice
 !@auth Gary Russell
 !@ver  1.0
@@ -43,15 +43,15 @@
 !@param SNOMAX maximum allowed snowdepth (1m equivalent) (kg/m^2)
 !@param dSNdRN
       REAL*8, PARAMETER :: SNOMAX=1d0*RHOS, dSNdRN=0.
-!@var TRRCP,EPRCP temperature and energy of precip (C),(J/m^2)
+!@var ENRGP total energy of precip (C),(J/m^2)
 !@var PRCP amount of precip (kg/m^2)
-      REAL*8, INTENT(IN) :: TPRCP, EPRCP, PRCP
+      REAL*8, INTENT(IN) :: ENRGP, PRCP
 !@var QFIXR true if RSI and MSI2 are fixed (ie. for a fixed SST run)
       LOGICAL, INTENT(IN) :: QFIXR
 !@var SNOW snow mass (kg/m^2)
 !@var MSI1 first layer ice mass (= SNOW + ACE1I) (kg/m^2)
 !@var MSI2 second layer ice mass (kg/m^2)
-      REAL*8, INTENT(INOUT) :: SNOW, MSI1, MSI2
+      REAL*8, INTENT(INOUT) :: SNOW, MSI2
 !@var TG1,TG2,TG3,TG4 temperature of ice layers (C)
       REAL*8, INTENT(INOUT) :: TG1, TG2, TG3, TG4
 !@var DIFS  upward ice mass into layer 2  (kg/m^2)
@@ -62,21 +62,22 @@
       REAL*8, INTENT(OUT) :: RUN0
 
       REAL*8 :: HSI1, HSI2, HSI3, HSI4, BYMSI2,FMSI1, FMSI2, FHSI1,
-     *     FHSI2,FHSI3, CMPRS, SNWF, FHSI2U, MELT1, RAIN, FREZ1
+     *     FHSI2,FHSI3, CMPRS, SNWF, FHSI2U, MELT1, RAIN, FREZ1, MSI1
 
 C**** initialize fluxes
       RUN0=0. ; FMSI2=0. ; FHSI1=0 ; FHSI2=0. ; FHSI3=0. ; FHSI2U=0.
 C**** reciprocal of ice thickness for efficiency
       BYMSI2=1./MSI2
+      MSI1=SNOW+ACE1I
 
 C**** CONVERT SEA ICE TEMPERATURE INTO ENTHALPY MINUS LATENT HEAT
       HSI1 = (SHI*TG1-LHM)*XSI1*MSI1
       HSI2 = (SHI*TG2-LHM)*XSI2*MSI1
       HSI3 = (SHI*TG3-LHM)*XSI3*MSI2
       HSI4 = (SHI*TG4-LHM)*XSI4*MSI2
-      HSI1 = HSI1+EPRCP-PRCP*LHM ! add total energy of precipitation
-      IF (TPRCP.LT.0.) GO TO 180
-      IF (EPRCP.LT.-TG1*XSI1*MSI1*SHI) GO TO 160
+      HSI1 = HSI1+ENRGP  ! add total energy of precipitation
+      IF (ENRGP.LE. -PRCP*LHM) GO TO 180
+      IF (ENRGP.LE. 0.) GO TO 160
 C**** ALL PRECIPITATION IS RAIN ABOVE 0degC
 C**** RAIN COMPRESSES SNOW INTO ICE
       RAIN = PRCP
@@ -129,7 +130,7 @@ C     FMSI1 = XSI1*CMPRS+FREZ1 ! downward ice mass flux from layer 1
   160 CONTINUE
 C**** PRECIPITATION IS A MIXTURE OF RAIN AND SNOW AT 0 degC
 C**** RAIN COMRESSES SNOW INTO ICE, SOME RAIN WILL FREEZE
-      SNWF = -EPRCP/LHM ! snow fall
+      SNWF = -ENRGP/LHM ! snow fall
       RAIN = PRCP-SNWF  ! rain fall
       CMPRS = MIN(dSNdRN*RAIN, MSI1+SNWF-ACE1I) ! compression
       IF (-HSI1/LHM-XSI1*MSI1-SNWF .LT. RAIN) GO TO 170
@@ -196,7 +197,7 @@ C**** components so that the code is valid for fixed sea ice runs also
       RETURN
       END SUBROUTINE PREC_SI
 
-      SUBROUTINE SEA_ICE(DTSRCE,SNOW,ROICE,TG1,TG2,TG3,TG4,MSI1,MSI2
+      SUBROUTINE SEA_ICE(DTSRCE,SNOW,ROICE,TG1,TG2,TG3,TG4,MSI2
      *     ,F0DT,F1DT,EVAP,HSI1,HSI2,HSI3,HSI4,TGW,RUN0
      *     ,DIFSI,EDIFSI,DIFS,EDIFS,ACE2M,F2DT,QFIXR)
 !@sum  SEA_ICE applies surface fluxes to ice covered areas
@@ -218,15 +219,18 @@ C**** components so that the code is valid for fixed sea ice runs also
 !@var TGW temperature of water below ice (C)
       REAL*8, INTENT(IN) :: TGW
 
-      REAL*8 ROICE, SNOW, MSI1, MSI2, ACE2M, MELT1, MELT4, DEW, CMPRS
-      REAL*8 TG1, TG2, TG3, TG4, HSI1, HSI2, HSI3, HSI4,
-     *       FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4
+      REAL*8, INTENT(IN) :: ROICE, TG1, TG2, TG3, TG4
+      REAL*8, INTENT(INOUT) :: SNOW, MSI2
+      REAL*8, INTENT(OUT) :: ACE2M, HSI1, HSI2, HSI3, HSI4
+      REAL*8, INTENT(OUT) :: EDIFSI, F2DT, RUN0, DIFSI, DIFS, EDIFS
+      REAL*8 MSI1, MELT1, MELT4, DEW, CMPRS
+      REAL*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4
       REAL*8 HC1, HC2, HC3, HC4
       REAL*8 dF1dTI, dF2dTI, dF3dTI, dF4dTI, F1, F2, F3
-      REAL*8, INTENT(OUT) :: EDIFSI, F2DT, RUN0, DIFSI, DIFS, EDIFS
 C**** Initiallise output
       F2DT=0. ; RUN0=0.  ; DIFSI=0. ; EDIFSI=0.
       DIFS=0. ; EDIFS=0. ; ACE2M=0.
+      HSI1=0 ; HSI2=0 ; HSI3=0 ; HSI4=0
 
       IF (ROICE .EQ. 0.) RETURN
       FMSI2=0 ; FHSI2=0 ; MELT1=0. ; MELT4=0.
@@ -331,6 +335,7 @@ C**** (if dew is greater than melting)
       HSI1 = HSI1-FHSI1
       HSI2 = HSI2+(FHSI1-FHSI2)
       MSI1 = ACE1I
+      SNOW = 0.    ! necessary?
       IF (.not.QFIXR) GO TO 210
       GO TO 370
   150 CONTINUE
@@ -442,7 +447,7 @@ C**** save output diagnostics
       RETURN
       END SUBROUTINE SEA_ICE
 
-      SUBROUTINE ADDICE (SNOW,ROICE,TG1,TG2,TG3,TG4,MSI1,MSI2,HSI1,HSI2
+      SUBROUTINE ADDICE (SNOW,ROICE,TG1,TG2,TG3,TG4,MSI2,HSI1,HSI2
      *     ,HSI3,HSI4,DIFSI,EDIFSI,ENRGFO,ACEFO,ACE2F,ENRGFI,TFW,FLEAD
      *     ,QFIXR,QCMPR)
 !@sum  ADDICE adds ice formed in the ocean to ice variables
@@ -464,15 +469,18 @@ C**** save output diagnostics
       REAL*8, INTENT(IN) :: TFW
 !@var FLEAD minimum lead fraction for ice (%)
       REAL*8, INTENT(IN) :: FLEAD
-
-      REAL*8 ROICE, ROICEN, OPNOCN, SNOW, MSI1, MSI2, DRSI, DRI
-      REAL*8, INTENT(OUT) :: TG1, TG2, TG3, TG4
-      REAL*8, INTENT(INOUT) :: HSI1, HSI2, HSI3, HSI4
-      REAl*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4
       REAL*8, INTENT(IN) ::  ENRGFI, ENRGFO, ACEFO, ACE2F
-      REAL*8, INTENT(INOUT) :: EDIFSI, DIFSI
+!@var ROICE,SNOW,MSI1,MSI2
+      REAL*8, INTENT(INOUT) :: ROICE, SNOW, MSI2
+      REAL*8, INTENT(INOUT) :: HSI1, HSI2, HSI3, HSI4
+      REAL*8, INTENT(OUT) :: EDIFSI, DIFSI
+      REAL*8, INTENT(OUT) :: TG1, TG2, TG3, TG4
+
+      REAl*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4
+      REAL*8 ROICEN, OPNOCN, DRSI, DRI, MSI1
       REAL*8 DIFS1
 
+      EDIFSI=0. ; DIFSI=0.
       IF (.not.QFIXR .and. ROICE.LE.0. .and. ACEFO.gt.0) THEN
         ROICE=ACEFO/(ACE1I+AC2OIM)
         SNOW=0.
@@ -484,8 +492,10 @@ C**** save output diagnostics
         RETURN
       END IF
 C****
+      TG1=0 ; TG2=0. ; TG3=0. ; TG4=0. 
       IF (ROICE.le.0) RETURN
 
+      MSI1=SNOW+ACE1I
       IF (QFIXR) GO TO 370
       IF (ACE2F.le.0) GO TO 250 ! go to no freezing case
 C**** CALCULATE ADVECTIVE HEAT FLUX FROM LAYER 3 TO LAYER 4 OF ICE
@@ -550,8 +560,8 @@ C     FMSI3 = XSI3*FMSI4 ! < 0. upward ice mass flux into layer 3
       MSI2 = MSI2-FMSI4 ! new ice mass of second physical layer
 C     SNOW = SNOW   ! snow thickness is conserved
       DIFS1 = DRI*ACE1I/ROICE
-      EDIFSI = EDIFSI+ROICE*(HSI1+HSI2)*(DIFS1/MSI1)*0.5
-      DIFSI = DIFSI+ROICE*DIFS1
+      EDIFSI = ROICE*(HSI1+HSI2)*(DIFS1/MSI1)*0.5
+      DIFSI = ROICE*DIFS1
       ROICE = ROICEN
       END IF
 C**** RESAVE PROGNOSTIC QUANTITIES

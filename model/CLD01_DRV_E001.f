@@ -4,7 +4,7 @@
 !@ver   1.0 (taken from CB265)
 !@calls MSTCNV and LSCOND
 
-      USE CONSTANT, only : bygrav
+      USE CONSTANT, only : bygrav,lhm
       USE E001M12_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,gdata,sig,DTsrc
       USE SOMTQ_COM, only : tmom,qmom
@@ -21,7 +21,8 @@
      *     prcpss,hcndss,aj55,BYDTsrc,lscond
       USE PBLCOM, only : tsavg
       USE DAGCOM, only : aj,bj,cj,areg,aij,ajl,ail,adaily,jreg,ij_pscld
-     *     ,ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,j_prcpmc,j_prcpss
+     *     ,ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec
+     *     ,ij_neth,j_eprcp,j_prcpmc,j_prcpss
       USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold,pdsig
       USE SEAICE_COM, only : rsi
 
@@ -36,7 +37,7 @@
       INTEGER IMAX,JR,KR
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
 
-      REAL*8 :: HCNDMC,PRCP
+      REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP
 
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
@@ -168,7 +169,7 @@ C**** LARGE-SCALE CLOUDS AND PRECIPITATION
 
       CALL LSCOND(I,J)
 
-C**** Accumulate diagnostics of CONDSE
+C**** Accumulate diagnostics of LSCOND
          AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
          AJ(J,J_PRCPSS)=AJ(J,J_PRCPSS)+PRCPSS*(1.-FLAND(I,J))*
      *        (1.-RSI(I,J))
@@ -183,10 +184,30 @@ C**** Accumulate diagnostics of CONDSE
                ADAILY(JHOUR+1,62,KR)=ADAILY(JHOUR+1,62,KR)+PRCPSS
             END IF
          END DO
+
 C**** TOTAL PRECIPITATION AND AGE OF SNOW
       PREC(I,J)=PREC(I,J)+PRCPSS*100.*BYGRAV
       PRCP=PREC(I,J)
       PRECSS(I,J)=PRCPSS*100.*BYGRAV
+C**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
+      TPRCP=TPREC(I,J)
+      IF (TPRCP.GE.0.) THEN
+C       EPRCP=PRCP*TPRCP*SHW
+        EPRCP=0.
+        ENRGP=EPRCP
+      ELSE
+C       EPRCP=PRCP*TPRCP*SHI
+        EPRCP=0.
+        ENRGP=EPRCP-PRCP*LHM
+        AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCP
+      END IF
+      EPREC(1,I,J)=EPRCP  ! assuming liquid water
+      EPREC(2,I,J)=ENRGP  ! including latent heat
+C**** PRECIPITATION DIAGNOSTICS
+        AREG(JR,J_EPRCP)=AREG(JR,J_EPRCP)+ENRGP*DXYP(J)
+        AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
+        AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
+
       IF(TPREC(I,J).GE.0.) PRCP=0.
 C**** MODIFY SNOW AGES AFTER SNOW FALL
       GDATA(I,J,9)=GDATA(I,J,9)*EXP(-PRCP)

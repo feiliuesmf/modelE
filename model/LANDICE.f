@@ -22,7 +22,7 @@
       SUBROUTINE PRECLI(SNOW,TG1,TG2,PRCP,EPRCP,TPRCP,EDIFS,DIFS,ERUN2
      *     ,RUN0)
 !@sum  PRECLI apply precipitation to land ice fraction
-!@auth Original Development team
+!@auth Original Development Team
 !@ver  1.0
       REAL*8, INTENT(INOUT) :: SNOW,TG1,TG2
       REAL*8, INTENT(IN) :: PRCP,EPRCP,TPRCP
@@ -33,7 +33,6 @@ C**** initiallize output
       EDIFS=0. ; DIFS=0. ; ERUN2=0. ; RUN0=0.
 
       HC1=HC1LI+SNOW*SHI
-      RUN0=0.
       IF (TPRCP.GE.0.) THEN
         IF (EPRCP.GE.-TG1*HC1) THEN
 C**** RAIN HEATS UP TG1 TO FREEZING POINT AND MELTS SOME SNOW OR ICE
@@ -43,37 +42,37 @@ C**** RAIN HEATS UP TG1 TO FREEZING POINT AND MELTS SOME SNOW OR ICE
           IF (DWATER.LE.SNOW) THEN
 C**** RAIN MELTS SOME SNOW
             SNOW=SNOW-DWATER
-            RETURN
-          END IF
+          ELSE
 C**** RAIN MELTS ALL SNOW AND SOME ICE, ICE MOVES UP THROUGH THE LAYERS
-          DIFS=SNOW-DWATER
-          SNOW=0.
-          TG1=-TG2*DIFS/ACE1LI
-          EDIFS=DIFS*(TG2*SHI-LHM)
-          ERUN2=EDIFS
-          RETURN
-        END IF
+            DIFS=SNOW-DWATER
+            SNOW=0.
+            TG1=-TG2*DIFS/ACE1LI
+            EDIFS=DIFS*(TG2*SHI-LHM)
+            ERUN2=EDIFS
+          END IF
+        ELSE
 C**** RAIN COOLS TO FREEZING POINT AND HEATS UP TG1
-        TG1=TG1+EPRCP/HC1
-        RUN0=PRCP
-        RETURN
-      END IF
+          TG1=TG1+EPRCP/HC1
+          RUN0=PRCP
+        END IF
+      ELSE
 C**** SNOW INCREASES SNOW AMOUNT AND SNOW TEMPERATURE RECOMPUTES TG1
-      TG1=(TG1*HC1+EPRCP)/(HC1+PRCP*SHI)
-      SNOW=SNOW+PRCP
-      IF (SNOW.gt.ACE1LI) THEN
+        TG1=(TG1*HC1+EPRCP)/(HC1+PRCP*SHI)
+        SNOW=SNOW+PRCP
+        IF (SNOW.gt.ACE1LI) THEN
 C**** SNOW IS COMPACTED INTO ICE, ICE MOVES DOWN THROUGH THE LAYERS
-        DIFS=SNOW-.9d0*ACE1LI
-        SNOW=.9d0*ACE1LI
-        EDIFS=DIFS*(TG1*SHI-LHM)
-        ERUN2=DIFS*(TG2*SHI-LHM)
-        TG2=TG2+(TG1-TG2)*DIFS/ACE2LI
+          DIFS=SNOW-.9d0*ACE1LI
+          SNOW=.9d0*ACE1LI
+          EDIFS=DIFS*(TG1*SHI-LHM)
+          ERUN2=DIFS*(TG2*SHI-LHM)
+          TG2=TG2+(TG1-TG2)*DIFS/ACE2LI
+        END IF
       END IF
       RETURN
       END SUBROUTINE PRECLI
 
       SUBROUTINE LNDICE(SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0)
-!@sum  PRECLI apply precipitation to land ice fraction
+!@sum  LNDICE apply surface fluxes to land ice fraction
 !@auth Original Development team
 !@ver  1.0
       REAL*8, INTENT(INOUT) :: SNOW,TG1,TG2

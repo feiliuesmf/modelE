@@ -400,3 +400,204 @@ c     QCHECKL = .TRUE.
       RETURN
       END SUBROUTINE daily_LAKE
 
+      SUBROUTINE PRECIP_LK
+!@sum  PRECIP_LK driver for applying precipitation/melt to lake fraction
+!@auth Original Development team
+!@ver  1.0
+      USE CONSTANT, only : rhow,shw
+      USE E001M12_COM, only : im,jm,fland,flice,flake,kocean,gdata
+      USE GEOM, only : imaxj,dxyp
+      USE CLD01_COM_E001, only : prec,tprec,eprec
+      USE FLUXES, only : runosi,runoli
+      USE OCEAN, only : oa,tocean,z1o
+      USE SEAICE, only : ace1i
+      USE SEAICE_COM, only : rsi,msi
+      USE LAKES_COM, only : mwl,gml
+      USE DAGCOM, only : aj,cj,aij,j_eprcp,ij_f0oc,j_run2,j_dwtr2
+      IMPLICIT NONE
+
+      REAL*8 PRCP,ENRGP,DXYPJ,PLICE,PLKICE,RUN0,ERUN0,POLAKE,ROICE
+     *     ,TGW,WTRO,ERUN4,ENRGO,SNOW,SMSI,ENGRW,WTRW0,WTRW,RUN4,ENRGW
+      INTEGER I,J,IMAX
+
+      DO J=1,JM
+      IMAX=IMAXJ(J)
+      DXYPJ=DXYP(J)
+      DO I=1,IMAX
+      POLAKE=(1.-RSI(I,J))*FLAKE(I,J)
+      PLKICE=RSI(I,J)*FLAKE(I,J)
+      PLICE=FLICE(I,J)
+      ROICE=RSI(I,J)
+      PRCP=PREC(I,J)
+      ENRGP=EPREC(2,I,J)        ! including latent heat
+      IF (FLAKE(I,J)+FLICE(I,J).gt.0) THEN
+
+        IF (FLAKE(I,J).gt.0) THEN
+          OA(I,J,4)=OA(I,J,4)+ENRGP
+          AJ(J,J_EPRCP)=AJ(J,J_EPRCP)+ENRGP*POLAKE
+          AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+ENRGP*POLAKE
+        END IF
+
+        RUN0 =POLAKE*PRCP  + PLKICE* RUNOSI(I,J) + PLICE* RUNOLI(I,J)
+        ERUN0=POLAKE*ENRGP ! PLKICE*ERUNOSI(I,J) + PLICE*ERUNOLI(I,J) = 0
+        
+        MWL(I,J) = MWL(I,J) +  RUN0*DXYP(J)
+        GML(I,J) = GML(I,J) + ERUN0*DXYP(J)
+
+C**** This is here for continuity only
+        IF (FLAKE(I,J).gt.0 .and. KOCEAN .EQ. 1) THEN
+          TGW=TOCEAN(1,I,J)
+          WTRO=Z1O(I,J)*RHOW
+          RUN0=RUNOSI(I,J)
+          SNOW=GDATA(I,J,1)
+          SMSI=MSI(I,J)+ACE1I+SNOW
+          RUN4=PRCP
+          ERUN4=RUN4*TGW*SHW
+
+          IF (PLKICE.LE.0.) THEN
+            ENRGW=TGW*WTRO*SHW + ENRGP - ERUN4
+            WTRW =WTRO
+          ELSE
+            WTRW0=WTRO -ROICE*SMSI
+            ENRGW=WTRW0*TGW*SHW + (1.-ROICE)*ENRGP - ERUN4   
+            WTRW =WTRW0+ROICE*(RUN0-RUN4)
+          END IF
+          TGW=ENRGW/(WTRW*SHW)
+          TOCEAN(1,I,J)=TGW
+          AJ(J,J_RUN2) =AJ(J,J_RUN2) +RUN4 *POLAKE
+          AJ(J,J_DWTR2)=AJ(J,J_DWTR2)+ERUN4*POLAKE
+          CJ(J,J_RUN2) =CJ(J,J_RUN2) +RUN4 *PLKICE
+          CJ(J,J_DWTR2)=CJ(J,J_DWTR2)+ERUN4*PLKICE
+        END IF
+
+      END IF
+      END DO
+      END DO
+C****
+      END SUBROUTINE PRECIP_LK
+
+      SUBROUTINE GROUND_LK
+!@sum  GROUND_LK driver for applying surface fluxes to lake fraction
+!@auth Original Development Team
+!@ver  1.0
+!@calls 
+      USE CONSTANT, only : twopi,rhow,shw,edpery
+      USE E001M12_COM, only : im,jm,flake,flice,kocean,gdata,fland
+      USE GEOM, only : imaxj,dxyp
+      USE FLUXES, only : runosi, erunosi, e0,e1,evapor, dmsi,dhsi,
+     *     runoli
+      USE OCEAN, only : oa,tocean,z1o,tfo,osourc
+      USE SEAICE_COM, only : rsi,msi
+      USE SEAICE, only : ace1i
+      USE PBLCOM, only : tsavg
+      USE DAGCOM, only : aj,cj,aij,areg,jreg,j_eprcp,ij_f0oc,j_run2
+     *     ,j_dwtr2,j_tg1,j_tg2,j_evap,j_oht,j_omlt,j_erun2,j_imelt
+     *     ,ij_tgo,ij_tg1,ij_evap,ij_evapo
+      USE LAKES_COM, only : mwl,gml,t50
+      IMPLICIT NONE
+      REAL*8 TGW, PRCP, WTRO, ENRGP, ERUN4, ENRGO, POLAKE,PLKICE
+     *     ,SMSI,ENGRW,WTRW0,WTRW,RUN0,RUN4,DXYPJ,ENRGW,ROICE,EVAP,EVAPI
+     *     ,F2DT,F0DT,WTRI0,EIW0,ENRGW0,ENRGFO,ACEFO,ACE2F,ENRGFI
+      REAL*8 FACT_T50,FACT_TSAVG,OTDT,RUNLI,PLICE
+      INTEGER I,J,IMAX,JR
+
+      FACT_T50 = 1.-1./(24.*50.)
+      FACT_TSAVG = 1./(24.*50.)
+      DO J = 1,JM
+        DO I = 1,IM
+          T50(I,J) = T50(I,J)*FACT_T50
+     *             + (TSAVG(I,J)-273.16)*FACT_TSAVG
+        END DO
+      END DO
+
+      DO J=1,JM
+      IMAX=IMAXJ(J)
+      DXYPJ=DXYP(J)
+      DO I=1,IMAX
+      JR=JREG(I,J)
+      ROICE=RSI(I,J)
+      PLKICE=FLAKE(I,J)*RSI(I,J)
+      POLAKE=FLAKE(I,J)*(1.-RSI(I,J))
+      ACEFO=0 ; ACE2F=0. ; ENRGFO=0. ; ENRGFI=0.
+
+      IF (FLAKE(I,J).gt.0) THEN
+
+        TGW  =TOCEAN(1,I,J)
+        EVAP =EVAPOR(I,J,1)
+        EVAPI=EVAPOR(I,J,2) ! evaporation/dew at the ice surface (kg/m^2)
+        SMSI =MSI(I,J)+ACE1I+GDATA(I,J,1)
+C**** get ice-ocean fluxes from sea ice routine
+        RUN0=RUNOSI(I,J)        ! includes ACE2M term 
+                                ! + RUN0LI ?
+        F2DT=ERUNOSI(I,J)
+
+        AJ(J,J_TG1) =AJ(J,J_TG1) +TGW *POLAKE
+        AJ(J,J_EVAP)=AJ(J,J_EVAP)+EVAP*POLAKE
+        IF (JR.ne.24) AREG(JR,J_TG1)=AREG(JR,J_TG1)+TGW*POLAKE*DXYPJ
+        AIJ(I,J,IJ_TGO)  =AIJ(I,J,IJ_TGO)  +TGW
+        AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TGW*POLAKE
+        AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAP*POLAKE
+        AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAP*POLAKE
+        
+        MWL(I,J) = MWL(I,J) - EVAP*POLAKE*DXYPJ
+        GML(I,J) = GML(I,J) + E0(I,J,1)*POLAKE*DXYPJ
+
+        IF (KOCEAN .EQ. 1) THEN
+          WTRO=Z1O(I,J)*RHOW
+          F0DT=E0(I,J,1)
+
+          RUN4=-EVAP
+          ERUN4=RUN4*TGW*SHW
+          ENRGO=F0DT-ERUN4
+C**** Open Ocean diagnostics 
+          AJ(J,J_TG2)  =AJ(J,J_TG2)  +TOCEAN(2,I,J)*POLAKE
+          AJ(J,J_RUN2) =AJ(J,J_RUN2) +RUN4         *POLAKE
+          AJ(J,J_OMLT) =AJ(J,J_OMLT) +TOCEAN(3,I,J)*POLAKE
+          AJ(J,J_DWTR2)=AJ(J,J_DWTR2)+ERUN4        *POLAKE
+          IF (JR.ne.24) AREG(JR,J_TG2)=AREG(JR,J_TG2)+TOCEAN(2,I,J)
+     *         *POLAKE*DXYPJ
+          AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+F0DT*POLAKE
+
+          RUN4=-EVAPI
+          ERUN4=TGW*RUN4*SHW
+          OTDT=0.
+          CALL OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,ENRGO,RUN0,RUN4,EVAPI
+     *         ,ERUN4,ENRGFO,ACEFO,ACE2F,ENRGFI,F2DT,TFO)
+
+C**** Resave prognostic variables
+          TOCEAN(1,I,J)=TGW
+C**** Ice-covered ocean diagnostics
+          AJ(J,J_ERUN2)=AJ(J,J_ERUN2)-ENRGFO*POLAKE
+          AJ(J,J_IMELT)=AJ(J,J_IMELT)-ACEFO *POLAKE
+          CJ(J,J_RUN2) =CJ(J,J_RUN2) +RUN4  *PLKICE
+          CJ(J,J_DWTR2)=CJ(J,J_DWTR2)+ERUN4 *PLKICE
+          CJ(J,J_ERUN2)=CJ(J,J_ERUN2)-ENRGFI*PLKICE
+          CJ(J,J_IMELT)=CJ(J,J_IMELT)-ACE2F *PLKICE
+        ELSE
+          AJ(J,J_TG2)  =AJ(J,J_TG2)  +TGW   *POLAKE
+          IF (JR.ne.24) AREG(JR,J_TG2)=AREG(JR,J_TG2)+TGW*POLAKE*DXYPJ
+        END IF
+      END IF
+      IF (FLAND(I,J).gt.0) THEN
+        RUNLI=RUNOLI(I,J)
+        PLICE=FLICE(I,J)
+C**** Add mass/energy fluxes to lake variables
+        MWL(I,J) = MWL(I,J) + ((RUN0-ACE2F) *PLKICE - ACEFO*POLAKE +
+     *       RUNLI*PLICE)*DXYPJ
+        GML(I,J) = GML(I,J) + ((F2DT-ENRGFI)*PLKICE - ENRGFO*POLAKE)
+     *       *DXYPJ
+
+C**** Store mass and energy fluxes for formation of sea ice
+        DMSI(1,I,J)=ACEFO
+        DMSI(2,I,J)=ACE2F
+        DHSI(1,I,J)=ENRGFO
+        DHSI(2,I,J)=ENRGFI
+      END IF
+      END DO
+      END DO
+      END SUBROUTINE GROUND_LK
+
+
+
+
+

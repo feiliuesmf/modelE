@@ -148,21 +148,32 @@ C**** RADIATION, SOLAR AND THERMAL
          IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)          ! ?
          IF (MODD5S.EQ.0) CALL DIAG9A (4)
 C**** SURFACE INTERACTION AND GROUND CALCULATION
-      CALL PRECIP
+c      CALL PRECIP
+      CALL PRECIP_SI
+      CALL PRECIP_LI
+      CALL PRECIP_LK
+      CALL PRECIP_OC
+      CALL PRECIP_E    ! diagnostic only - should be merged
          CALL CHECKT ('PRECIP')
       CALL SURFCE
          CALL CHECKT ('SURFCE')
-      CALL GROUND
+c      CALL GROUND
+      CALL GROUND_SI
+      CALL GROUND_LI
+      CALL GROUND_LK
+      CALL GROUND_OC
+      CALL GROUND_E    ! diagnostic only - should be merged
+      CALL FORM_SI
          CALL CHECKT ('GROUND')
-C**** Calculate river runoff from lake mass
+C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
       CALL RIVERF
          CALL CHECKT ('RIVERF')
-      CALL DRYCNV (2,lm-1)
+      CALL DRYCNV (2,LM-1)
          CALL CHECKT ('DRYCNV')
          CALL TIMER (MNOW,MINC,MSURF)
          IF (MODD5S.EQ.0) CALL DIAG9A (5)
 C**** STRATOSPHERIC MOMENTUM DRAG
-      CALL SDRAG
+      CALL SDRAG(DTSRC)
          CALL CHECKT ('SDRAG ')
          CALL TIMER (MNOW,MINC,MSURF)
          IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)          ! ?

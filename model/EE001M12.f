@@ -42,6 +42,7 @@ C****
      *     j_evap, j_erun1, j_difs, j_run2, j_dwtr2, j_run1, j_tsrf
       USE DYNAMICS, only : pmid,pk,pek,pedn,pdsig
       USE LAKES_COM, only : mwl,gml
+      USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor
 
       IMPLICIT NONE
 
@@ -56,11 +57,11 @@ C****
      *     ,BERUN0,BDIFS,BEDIFS,BTS,BEVHDT,BRUNU,BERUNU,BSHDT,BTRHDT
      *     ,TIMEZ,SPRING,ZS1CO,RVX
 
-      REAL*8, DIMENSION(IM,JM) :: DTH1,DQ1,DU1,DV1
-      COMMON /WORK1d/DTH1,DQ1
-      COMMON /WORK2/DU1,DV1
-      REAL*8, DIMENSION(IM,JM,4) :: E0,E1,EVAPOR,TGRND
-      COMMON/WORK3/E0,E1,EVAPOR,TGRND
+c      REAL*8, DIMENSION(IM,JM) :: DTH1,DQ1,DU1,DV1
+c      COMMON /WORK1d/DTH1,DQ1
+c      COMMON /WORK2/DU1,DV1
+c      REAL*8, DIMENSION(IM,JM,4) :: E0,E1,EVAPOR,TGRND
+c      COMMON/WORK3/E0,E1,EVAPOR,TGRND
       REAL*8, DIMENSION(IM,JM,3) :: GDEEP
       COMMON/oldDAG/GDEEP
 C****
@@ -1134,3 +1135,108 @@ C****
 
       RETURN
       END SUBROUTINE daily_EARTH
+
+      SUBROUTINE PRECIP_E
+!@sum  PRECIP_E driver for applying precipitation to land fraction
+!@auth Original Development team
+!@ver  1.0
+      USE E001M12_COM, only : im,jm,fearth
+      USE GEOM, only : imaxj
+      USE CLD01_COM_E001, only : prec,eprec
+      USE DAGCOM, only : bj,aij,j_eprcp,ij_f0e
+      IMPLICIT NONE
+
+      REAL*8 PRCP,ENRGP,PEARTH
+      INTEGER I,J,IMAX
+
+      DO J=1,JM
+      IMAX=IMAXJ(J)
+      DO I=1,IMAX
+        PEARTH=FEARTH(I,J)
+        PRCP=PREC(I,J)
+        ENRGP=EPREC(2,I,J)      ! including latent heat
+        IF (PEARTH.gt.0) THEN
+          BJ(J,J_EPRCP)=BJ(J,J_EPRCP)+ENRGP*PEARTH
+          AIJ(I,J,IJ_F0E)=AIJ(I,J,IJ_F0E)+ENRGP
+        END IF
+      END DO
+      END DO
+C****
+      END SUBROUTINE PRECIP_E
+
+      SUBROUTINE GROUND_E
+!@sum  GROUND_E driver for applying surface fluxes to land fraction
+!@auth Original Development team
+!@ver  1.0
+      USE E001M12_COM, only : im,jm,fearth,gdata  ! temp
+      USE GEOM, only : imaxj,dxyp
+      USE GHYCOM, only : ghdata
+      USE DAGCOM, only : bj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
+     *     ,ij_gwtr,ij_tg1,j_tg2,j_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
+     *     ,j_snow,j_f2dt,j_f1dt,j_evap,aijg
+      USE FLUXES, only : e0,e1,evapor
+      IMPLICIT NONE
+
+      REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,DXYPJ
+     *     ,WTR1,WTR2,ACE1,ACE2,PEARTH
+      INTEGER I,J,IMAX,JR,K
+      REAL*8, DIMENSION(IM,JM,3) :: GDEEP
+      COMMON/oldDAG/GDEEP
+
+      DO J=1,JM
+      IMAX=IMAXJ(J)
+      DXYPJ=DXYP(J)
+      DO I=1,IMAX
+      PEARTH=FEARTH(I,J)
+      JR=JREG(I,J)
+      IF (PEARTH.gt.0) THEN
+
+        SNOW=GDATA(I,J,2)
+        TG1=GDATA(I,J,4)
+        WTR1=GDATA(I,J,5)
+        ACE1=GDATA(I,J,6)
+        TG2=GDEEP(I,J,1)
+        WTR2=GDEEP(I,J,2)
+        ACE2=GDEEP(I,J,3)
+        F0DT=E0(I,J,4)
+        F1DT=E1(I,J,4)
+        EVAP=EVAPOR(I,J,4)
+
+C**** ACCUMULATE DIAGNOSTICS
+        BJ(J,J_WTR1) =BJ(J,J_WTR1) +WTR1 *PEARTH
+        BJ(J,J_ACE1) =BJ(J,J_ACE1) +ACE1 *PEARTH
+        BJ(J,J_WTR2) =BJ(J,J_WTR2) +WTR2 *PEARTH
+        BJ(J,J_ACE2) =BJ(J,J_ACE2) +ACE2 *PEARTH
+        BJ(J,J_TG1)  =BJ(J,J_TG1)  +TG1  *PEARTH
+        BJ(J,J_TG2)  =BJ(J,J_TG2)  +TG2  *PEARTH
+        BJ(J,J_SNOW) =BJ(J,J_SNOW) +SNOW *PEARTH
+        BJ(J,J_F1DT) =BJ(J,J_F1DT) +F1DT *PEARTH
+        BJ(J,J_EVAP) =BJ(J,J_EVAP) +EVAP *PEARTH
+        IF (JR.ne.24) THEN
+        AREG(JR,J_TG1) =AREG(JR,J_TG1) +TG1 *PEARTH*DXYPJ
+        AREG(JR,J_TG2) =AREG(JR,J_TG2) +TG2 *PEARTH*DXYPJ
+        AREG(JR,J_SNOW)=AREG(JR,J_SNOW)+SNOW*PEARTH*DXYPJ
+        AREG(JR,J_WTR1)=AREG(JR,J_WTR1)+WTR1*PEARTH*DXYPJ
+        AREG(JR,J_ACE1)=AREG(JR,J_ACE1)+ACE1*PEARTH*DXYPJ
+        AREG(JR,J_WTR2)=AREG(JR,J_WTR2)+WTR2*PEARTH*DXYPJ
+        AREG(JR,J_ACE2)=AREG(JR,J_ACE2)+ACE2*PEARTH*DXYPJ
+        END IF
+        AIJ(I,J,IJ_F0E)  =AIJ(I,J,IJ_F0E)  +F0DT
+        AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TG1 *PEARTH
+        AIJ(I,J,IJ_GWTR) =AIJ(I,J,IJ_GWTR)+(WTR1+ACE1+WTR2+ACE2)
+        AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAP*PEARTH
+        AIJ(I,J,IJ_EVAPE)=AIJ(I,J,IJ_EVAPE)+EVAP
+      END IF
+C**** 
+      DO K=1,4
+        AIJG(I,J,K)=AIJG(I,J,K)+GHDATA(I,J,K)
+      END DO
+      DO K=7,10
+        AIJG(I,J,K)=AIJG(I,J,K)+GHDATA(I,J,K)
+      END DO
+      AIJG(I,J,28)=AIJG(I,J,28)+GHDATA(I,J,28)
+      AIJG(I,J,29)=AIJG(I,J,29)+GHDATA(I,J,29)
+C****
+      END DO
+      END DO
+      END SUBROUTINE GROUND_E

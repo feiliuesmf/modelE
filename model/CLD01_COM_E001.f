@@ -14,6 +14,8 @@ C**** to be able to pass them to INPUT and io_clouds
       REAL*8, DIMENSION(IM,JM) :: PREC
 !@var TPREC temperature of preciptiation (C)
       REAL*8, DIMENSION(IM,JM) :: TPREC
+!@var EPREC energy of preciptiation (J/m^2)
+      REAL*8, DIMENSION(2,IM,JM) :: EPREC
 !@var PRECSS precipitation from super-saturation (kg/m^2)
       REAL*8, DIMENSION(IM,JM) :: PRECSS
 !@var TTOLD,QTOLD previous potential temperature, humidity

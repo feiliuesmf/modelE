@@ -37,7 +37,7 @@ C****
       USE OCEAN, only : tocean,oa,tfo
       USE SEAICE_COM, only : rsi,msi
       USE SEAICE, only : xsi1,xsi2,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
-
+      USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor
       IMPLICIT NONE
 
       INTEGER I,J,K,IM1,IP1,KR,JR,NS,NSTEPS,MODDSF,MODD6
@@ -60,12 +60,13 @@ C****
      *     ,THZ1,QZ1
 
       REAL*8 MSUM, MA1, MSI1, MSI2
-      REAL*8, DIMENSION(IM,JM) :: DTH1,DQ1,DU1,DV1
-      COMMON /WORK1d/DTH1,DQ1
-      COMMON/WORK2/DU1,DV1
+c      REAL*8, DIMENSION(IM,JM) :: DTH1,DQ1,DU1,DV1
+c      COMMON /WORK1d/DTH1,DQ1
+c      COMMON/WORK2/DU1,DV1
 
-      REAL*8, DIMENSION(IM,JM,4) :: E0,E1,EVAPOR,TGRND,TGRN2
-      COMMON/WORK3/E0,E1,EVAPOR,TGRND
+c      REAL*8, DIMENSION(IM,JM,4) :: E0,E1,EVAPOR,TGRND,TGRN2
+c      COMMON/WORK3/E0,E1,EVAPOR,TGRND
+      REAL*8, DIMENSION(IM,JM,4) :: TGRND,TGRN2
 
 C**** Interface to PBL
       REAL*8 ZS1,TGV,TKV,QG,HEMI,DTSURF,US,VS,WS,TSV,QS,PSI,DBL,KM,KH,
@@ -663,19 +664,14 @@ C****
 C**** ACCUMULATE SOME ADDITIONAL BOUNDARY LAYER DIAGNOSTICS
 C****
       IF(MODD6.EQ.0) THEN
-        DO J=1,JM
-        IMAX=IMAXJ(J)
-        DO I=1,IMAX
-        if(dclev(i,j).gt.1.) then ! dry conv has happened in this gridbox
-           DO KR=1,4
-              IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-                 ADAILY(JHOUR+1,47,KR)=ADAILY(JHOUR+1,47,KR)+1.
-                 ADAILY(JHOUR+1,48,KR)=ADAILY(JHOUR+1,48,KR)+DCLEV(I,J)
-              END IF
-           END DO
-        endif
-      END DO
-      END DO
+        DO KR=1,4
+C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
+          IF(DCLEV(IJD6(1,KR),IJD6(2,KR)).GT.1.) THEN 
+            ADAILY(JHOUR+1,47,KR)=ADAILY(JHOUR+1,47,KR)+1.
+            ADAILY(JHOUR+1,48,KR)=ADAILY(JHOUR+1,48,KR)
+     *           +DCLEV(IJD6(1,KR),IJD6(2,KR))
+          END IF
+        END DO
       END IF
 C****
       END DO
