@@ -1,10 +1,10 @@
-E001M18A.R GISS Model E  2002 modelE version 2              rar  6/20/02
+E001M18A.R GISS Model E  2002 modelE cm*2/3                 rar  6/20/02
 
-modelE with 18 lyrs, top at .1 mb - 1951 atmosphere/ocean
+modelE with 18 lyrs, top at .1 mb - 1979 atmosphere/ocean
 no gravity wave drag;     uses dry convection (rather than turbulence)
 Sdrag: weak linear strat. drag in top layer, near poles down to 20 mb
        const drag above 150mb, lost ang.mom is added in below 150 mb
-6-band oice albedo; Businger(1971) pbl drag, reduced mom.drag (x 2/3)
+6-band oice albedo; Hogstrom(1984) pbl drag, mom.drag*2/3
 Note: Most of these choices may be changed using the PARAMETERs below.
 
 Preprocessor Options
@@ -42,8 +42,8 @@ GIC=GIC.E005gasA.1DEC1956x ! initial conditions (ground)
 ! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp.  not needed if ocn prescribed
 OCNML=Z1O.B4X5.cor         ! mixed layer depth,needed for post-processing only
 MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp.,needed for post-processing only
-OSST=OST4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
-SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
+OSST=OST4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
+SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
 CDN=CD4X500S VEG=V72X46.1.cor
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
@@ -58,7 +58,7 @@ RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 ! RADN9=solar.lean99.uvflux          ! need KSOLAR<2
 RADN9=solar.lean02.ann.uvflux    ! need KSOLAR=2
-RADNA=o3trend.1850-2050
+RADNA=O3.1850-2050.rec
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Mar2002
@@ -66,7 +66,7 @@ dH2O=dH2O_by_CH4
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
-E001M18A (2002 standard model)
+E001M18A (pbl cm*2/3 - 1979 atm/ocn)
 R=00BG/B
 DTFIX=180
 
@@ -78,7 +78,7 @@ PP_sdrag=20.    ! linear SDRAG above PP_sdrag mb near poles
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 
 KOCEAN=0
-XCDpbl=.666     ! tune surface mom.drag to get reas. SLP (990mb at 65S)
+xCDpbl=.666 !  tune surface mom.drag to get reas. SLP (990mb at 65S)
 U00ice=.60      ! then tune this to get ann.alb near 30% (range: .4-.6)
 HRMAX=500.      ! then tune this to get rad.balance (net heat zo=0 over ocn)
 
@@ -96,10 +96,19 @@ KCOPY=2         ! saving acc + rsf
 isccp_diags=0   ! use =1 to activate coll. of ISCCP cloud data
 nda5d=7         ! use =1 to get more precise conservation diagnostics
 nda5s=7         ! use =1 to get more precise conservation diagnostics
+
+s0_yr=1979
+ghg_yr=1979
+ghg_day=182
+s0_day=182
+volc_yr=1979
+volc_day=182
+aero_yr=1979
+o3_yr=1979
 &&END_PARAMETERS
 
  &INPUTZ
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
-   YEARE=1961,MONTHE=1,DATEE=1,HOURE=0,
+   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
    ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,HOURE=1,
  &END

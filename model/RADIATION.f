@@ -1,4 +1,4 @@
-   
+       
       MODULE RE001
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
@@ -1066,6 +1066,12 @@ C
       IF(L.LT.15) PLB50(L)=PLB14(L)
       IF(L.GT.14) PLB50(L)=1382.D0*EXP(-(L+5.5D0)/6.2D0)
   432 CONTINUE
+      IF(PLB(NL1).lt.PLB50(NLO3)) then
+C****   extend Ozone to model top - constant concentration
+        rptop=(PLB50(NLO3)-PLB(NL1))/(PLB50(NLO3-1)-PLB50(NLO3))
+        PLB50(NLO3+1)=PLB(NL1)
+        NLO3=46
+      end if
       NL1=NL+1
       DO M=1,MO3X
       MM=M-((M-1)/12)*12
@@ -1074,6 +1080,7 @@ C
       DO 434 L=1,44
       OZON50(L)=OZONLJ(L,J)*1.D-03
   434 CONTINUE
+      if(NLO3.eq.46) ozon50(45)=ozon50(44)*rptop
 C
       IF(MOZONE.GT.4) THEN
 C        ---------------------------------------------------------------
@@ -1100,6 +1107,7 @@ C
       OZON50(25+LL)=WBOT*OZONXX(25+LL)+WTOP*TOPO3(LL+1,J,MM)
   437 CONTINUE
       ENDIF
+
       CALL REPART(OZON50,PLB50,NLO3,OZONNL,PLB,NL1)
       DO 438 L=1,NL
       O3CLIM(M,L,J)=OZONNL(L)
@@ -2464,7 +2472,7 @@ C--------------------------------
 C--------------------------------
 C
       XJDAY=JJDAYO-0.999D0           ! needed for MOZONE<2 and MOZONE>7
-      XPMO=XJDAY/30.5D0+1.D0/24.D0
+      XPMO=XJDAY/30.5D0+.5D0
       MPI=XPMO
       WTMPJ=XPMO-MPI
       WTMPI=1.D0-WTMPJ
@@ -2566,7 +2574,7 @@ C
       IF(MONTHZ.LT.0)  MONTHZ=0
       IF(MONTHZ.GT.MO3X-12) MONTHZ=MO3X-12
       XJDAY=JJDAYO-0.999D0
-      XMMO=XJDAY/30.5D0+1.D0/24.D0
+      XMMO=XJDAY/30.5D0+.5D0
       MMI=XMMO
       WTMMJ=XMMO-MMI
       WTMMI=1.D0-WTMMJ
@@ -5074,7 +5082,7 @@ C                 Select ISCCP-Based Cloud Heterogeneity Time Dependence
 C                 ------------------------------------------------------
 C
       XJDAY=JJDAYE-0.999D0
-      XMO=XJDAY/30.5D0+1.D0/24.D0
+      XMO=XJDAY/30.5D0+.5D0
       MI=XMO
       WTMJ=XMO-MI
       WTMI=1.D0-WTMJ
@@ -9853,7 +9861,7 @@ C
       IF(KAEROS.EQ.3.OR.KAEROS.GT.3) CALL UPDVOL(JYRREF,JJDAY)
 C
       DO 650 J=1,46
-      DO 610 L=1,15
+      DO 610 L=1,NL
       QX(J,L)=0.D0
       QS(J,L)=0.D0
       QG(J,L)=0.D0
@@ -9864,7 +9872,7 @@ C
       IF(KAEROS.EQ.1.OR.KAEROS.GT.3) CALL GETAER
       IF(KAEROS.EQ.2.OR.KAEROS.GT.3) CALL GETDST
       IF(KAEROS.EQ.3.OR.KAEROS.GT.3) CALL GETVOL
-      DO 620 L=1,15
+      DO 620 L=1,NL
       IF(KAEROS.EQ.1.OR.KAEROS.GT.3) QX(J,L)=QX(J,L)+SRAEXT(L,K)/72.D0
       IF(KAEROS.EQ.2.OR.KAEROS.GT.3) QX(J,L)=QX(J,L)+SRDEXT(L,K)/72.D0
       IF(KAEROS.EQ.3.OR.KAEROS.GT.3) QX(J,L)=QX(J,L)+SRVEXT(L,K)/72.D0
@@ -9882,7 +9890,7 @@ C
       SUMXL=1.D-10
       SUMSL=1.D-20
       SUMGL=1.D-20
-      DO 640 L=1,15
+      DO 640 L=1,NL
       SUMXL=SUMXL+QX(J,L)
       SUMSL=SUMSL+QS(J,L)
       SUMGL=SUMGL+QG(J,L)
@@ -9919,7 +9927,7 @@ C
       QGCOL(47)=QGSH
       QGCOL(48)=QGNH
       QGCOL(49)=QGGL
-      DO 660 L=1,15
+      DO 660 L=1,NL
       CALL BOXAV1(DLAT46,QX(1,L),46, 1,23,QXSH)
       CALL BOXAV1(DLAT46,QX(1,L),46,24,46,QXNH)
       CALL BOXAV1(DLAT46,QX(1,L),46, 1,46,QXGL)
@@ -10617,7 +10625,7 @@ C
       DATA   KSOLAR/1/,       KTREND/1/,    MADBAK/0/,        NV/11/
       DATA   KEEPRH/0/,       KEEP10/0/,    NO3COL/0/
       DATA   KCNORM/0/,       KEEPAL/0/,    MRELAY/0/
-      DATA   KCLDEP/4/,       KO3LON/0/,    MOZONE/5/
+      DATA   KCLDEP/4/,       KO3LON/0/,    MOZONE/4/
       DATA   MADGHG/1/,       MADSUR/1/,    ICE012/1/,    MLAT46/46/
       DATA   KWVCON/1/,       KSNORM/0/,    NORMS0/1/,    MLON72/72/
 C

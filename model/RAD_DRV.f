@@ -453,7 +453,7 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
       WRITE (6,47) LLOW,LLOW+1,LMID,LMID+1,LHI
  47   FORMAT (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN',
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
-C**** write trend table for forcing 'itwrite' for years iwrite->jwrite 
+C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
 C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
       if(jwrite.gt.1500) call writet (6,itwrite,iwrite,jwrite,1,0)
 C****
@@ -978,8 +978,8 @@ CcOMP  END PARALLEL DO
       if(kradia.gt.0) return
 C**** Stop if temperatures were out of range
       IF(ICKERR.GT.0)
-     &     call stop_model('In Radia: Temperature out of range',255)
-      IF(JCKERR.GT.0)  call stop_model('In Radia: RQT out of range',255)
+     &     call stop_model('In Radia: Temperature out of range',11)
+      IF(JCKERR.GT.0)  call stop_model('In Radia: RQT out of range',11)
 
 C**** save all input data to disk if kradia<0
       if (kradia.lt.0) write(iu_rad) itime,T,RQT,TsAvg,QR,P,CLDinfo
