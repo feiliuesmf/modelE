@@ -130,7 +130,7 @@
 
       do m=1,num
         nerr = 0
-        print '(" dims=  ",4i4,"  name=  ",a16,"     tot. points= ",i6)', &
+        print '(" dims=  ",i6,3i4,"  name=  ",a16,"     tot. points= ",i7)', &
            db(m)%im, db(m)%jm, db(m)%km,  db(m)%lm, trim(db(m)%name), &
            db(m)%n
         do n=1,db(m)%n
@@ -156,7 +156,7 @@
             nn = mod( nn, db(m)%im*db(m)%jm )
             j = nn/(db(m)%im)
             i = mod( nn, db(m)%im )
-            print '(i6,": ",4i4,"    ",3e24.16)', &
+            print '(i6,": ",i6,3i4,"    ",3e24.16)', &
                n, i+1,j+1,k+1,l+1, v1,v2,err
             nerr = nerr+1
             if ( nerr > 10 ) exit
@@ -177,15 +177,67 @@
       use filemanager
       use model_com, only : ioread
 !ccc  modules with data to compare
+      use model_com, only : u,v,t,q,p
+      use model_com, only : airx,lmc
+#ifdef CHECK_OCEAN
+      use ocean, only : mo,uo,vo,g0m,gxmo,gymo,gzmo,s0m,sxmo,symo,szmo &
+           ,ogeoz,ogeoz_sv
+      use straits, only : must,g0mst,gxmst,gzmst,s0mst,sxmst,szmst &
+           ,rsist,rsixst,msist,hsist,ssist
+#endif
+      use lakes_com, only : mldlk,mwl,tlake,gml
+      use seaice_com, only : rsi,hsi,snowi,msi,ssi,pond_melt,flag_dsws
+      use ghycom, only : snowe,tearth,wearth,aiearth,snoage &
+           ,evap_max_ij,fr_sat_ij,qg_ij
       use ghycom, only : wbare,wvege,htbare,htvege,snowbv,Cint,Qfol, &
         nsn_ij,isn_ij,dzsn_ij,hsn_ij,fr_snow_ij
-      use model_com, only : u,v,t,q,p
-      use pblcom, only : uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
+      use landice_com, only : snowli,tlandi
+      use pblcom, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg, &
+           ustar_pbl,egcm,w2gcm,tgvavg,qgavg
+      use pblcom, only : uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs,ipbl
+      use clouds_com, only : ttold,qtold,svlhx,rhsav,cldsav
+      use somtq_com, only : tmom,qmom
+      use radncb, only : tchg,rqt,s0,srhr,trhr,fsf,fsrdir
+      use icedyn_com, only : rsix,rsiy,usi,vsi
+
+      use dagcom, only : keynr,tsfrez,tdiurn,oa
+      use dagcom, only : aj,areg,apj,ajl,asjl,aij,ail,energy,consrv &
+           ,speca,atpe,adiurn,wave,ajk,aijk,aisccp
+      use model_com, only : idacc
+      use icedyn_com, only : icij
       use dagcom, only : aj, areg, apj, ajl, asjl, aij, ail
+
 !ccc  include tracers data here
 #ifdef TRACERS_ON
       use pblcom, only : trabl
+      use tracer_com, only : trm,trmom
+      use tracer_diag_com, only: tacc
+
+#  ifdef TRACERS_WATER
+      use lakes_com, only : trlake
+      use seaice_com, only : trsi
       use ghycom, only : tr_wbare, tr_wvege, tr_wsn_ij
+      use landice_com, only : trsnowli,trlndi
+      use tracer_com, only : trwm
+      use icedyn_com, only : ticij
+#  endif
+
+#  ifdef TRACERS_SPECIAL_Shindell
+      use TRCHEM_Shindell_COM, only : &
+           yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2 &
+           ,yAldehyde,yXO2N,yRXPAR,OxIC,corrOx
+#  endif
+          
+#  ifdef CHECK_OCEAN
+#    ifdef TRACERS_WATER
+       use straits, only : trsist
+#      ifdef TRACERS_OCEAN
+         use ocean, only : trmo,txmo,tymo,tzmo
+         use straits, only : trmst,txmst,tzmst
+#      endif
+#    endif
+#  endif
+
 #endif
 
       implicit none
@@ -218,7 +270,61 @@
         check("t",t)
         check("q",q)
         check("p",p)
-         ! ground hydrology data from ghycom
+        ! strat
+        check("airx",airx)
+        check("lmc",lmc)
+        ! ocean
+#ifdef CHECK_OCEAN
+        check("mo",mo)
+        check("uo",uo)
+        check("vo",vo)
+        check("g0m",g0m)
+        check("gxmo",gxmo)
+        check("gymo",gymo)
+        check("gzmo",gzmo)
+        check("s0m",s0m)
+        check("sxmo",sxmo)
+        check("symo",symo)
+        check("szmo",szmo)
+        check("ogeoz",ogeoz)
+        check("ogeoz_sv",ogeoz_sv)
+        ! straits
+        check("must",must)
+        check("g0mst",g0mst)
+        check("gxmst",gxmst)
+        check("gzmst",gzmst)
+        check("s0mst",s0mst)
+        check("sxmst",sxmst)
+        check("szmst",szmst)
+        check("rsist",rsist)
+        check("rsixst",rsixst)
+        check("msist",msist)
+        check("hsist",hsist)
+        check("ssist",ssist)
+#endif
+        ! lakes
+        check("mldlk",mldlk)
+        check("mwl",mwl)
+        check("tlake",tlake)
+        check("gml",gml)
+        ! sea ice
+        check("rsi",rsi)
+        check("hsi",hsi)
+        check("snowi",snowi)
+        check("msi",msi)
+        check("ssi",ssi)
+        check("pond_melt",pond_melt)
+        !check("flag_dsws",flag_dsws)
+        ! earth
+        check("snowe",snowe)
+        check("tearth",tearth)
+        check("wearth",wearth)
+        check("aiearth",aiearth)
+        check("snoage",snoage)
+        check("evap_max_ij",evap_max_ij)
+        check("fr_sat_ij",fr_sat_ij)
+        check("qg_ij",qg_ij)
+        ! ground hydrology data from ghycom
         check("wbare",wbare)
         check("wvege",wvege)
         check("htbare",htbare)
@@ -231,14 +337,22 @@
         check("dzsn_ij",dzsn_ij)
         check("hsn_ij",hsn_ij)
         check("fr_snow_ij",fr_snow_ij)
-        ! diagnostics from dagcom
-        check("aj",aj)
-        check("areg",areg)
-        check("apj",apj)
-        check("ajl",ajl)
-        check("asjl",asjl)
-        check("aij",aij)
-        check("ail",ail)
+        ! land ice
+        check("snowli",snowli)
+        check("tlandi",tlandi)
+        ! bldat
+        check("wsavg",wsavg)
+        check("tsavg",tsavg)
+        check("qsavg",qsavg)
+        check("dclev",dclev)
+        check("usavg",usavg)
+        check("vsavg",vsavg)
+        check("tauavg",tauavg)
+        check("ustar_pbl",ustar_pbl)
+        check("egcm",egcm)
+        check("w2gcm",w2gcm)
+        check("tgvavg",tgvavg)
+        check("qgavg",qgavg)
         ! pbl data from pblcom
         check("uabl",uabl)
         check("vabl",vabl)
@@ -248,13 +362,110 @@
         check("cmgs",cmgs)
         check("chgs",chgs)
         check("cqgs",cqgs)
+        check("ipbl",ipbl)
+        ! clouds
+        check("ttold",ttold)
+        check("qtold",qtold)
+        check("svlhx",svlhx)
+        check("rhsav",rhsav)
+        check("cldsav",cldsav)
+        ! somtq
+        check("tmom",tmom)
+        check("qmom",qmom)
+        ! radiation
+        check("Tchg",Tchg)
+        check("rqt",rqt)
+        !check("s0",s0)
+        check("srhr",srhr)
+        check("trhr",trhr)
+        check("fsf",fsf)
+        check("fsrdir",fsrdir)
+        ! icedyn
+        check("RSIX",RSIX)
+        check("RSIY",RSIY)
+        check("USI",USI)
+        check("VSI",VSI)
+
+        ! diagnostics from dagcom
+        check("aj",aj)
+        check("areg",areg)
+        check("apj",apj)
+        check("ajl",ajl)
+        check("asjl",asjl)
+        check("aij",aij)
+        check("ail",ail)
+        check("energy",energy)
+        check("consrv",consrv)
+        check("speca",speca)
+        check("atpe",atpe)
+        check("adiurn",adiurn)
+        check("wave",wave)
+        check("ajk",ajk)
+        check("aijk",aijk)
+        check("aisccp",aisccp)
+
+        ! diags
+        check("KEYNR",KEYNR)
+        check("TSFREZ",TSFREZ)
+        check("idacc",idacc)
+        check("TDIURN",TDIURN)
+        check("OA",OA)
+        !check("it",it)
+        ! icdiag
+        check("ICIJ",ICIJ)
 
 !ccc    compare tracers data here
 #ifdef TRACERS_ON
-        check("trabl",trabl)
+        check("TRM",TRM)
+        check("TRmom",TRmom)
+        check("tacc",tacc)
+
+#  ifdef TRACERS_WATER
+        check("trlake",trlake)
+        check("trsi",trsi)
         check("tr_wbare",tr_wbare)
         check("tr_wvege",tr_wvege)
         check("tr_wsn_ij",tr_wsn_ij)
+        check("trsnowli",trsnowli)
+        check("trlndi",trlndi)
+        check("trabl",trabl)
+        check("trwm",trwm)
+        check("ticij",ticij)
+#  endif
+
+#ifdef TRACERS_SPECIAL_Shindell
+        check("yNO3",yNO3)
+        check("pHOx",pHOx)
+        check("pNOx",pNOx)
+        check("pOx",pOx)
+        check("yCH3O2",yCH3O2)
+        check("yC2O3",yC2O3)
+        check("yROR",yROR)
+        check("yXO2",yXO2)
+        check("yAldehyde",yAldehyde)
+        check("yXO2N",yXO2N)
+        check("yRXPAR",yRXPAR)
+        check("OxIC",OxIC)
+        check("corrOx",corrOx)
+#endif
+
+#  ifdef CHECK_OCEAN
+#    ifdef TRACERS_WATER
+       check("trsist",trsist)
+#      ifdef TRACERS_OCEAN
+         trmo,txmo,tymo,tzmo
+         trmst,txmst,tzmst
+         check("trmo",trmo)
+         check("txmo",txmo)
+         check("tymo",tymo)
+         check("tzmo",tzmo)
+         check("trmst",trmst)
+         check("txmst",txmst)
+         check("tymo",tymo)
+         check("tzmo",tzmo)
+#      endif
+#    endif
+#  endif
 #endif
 
      enddo
