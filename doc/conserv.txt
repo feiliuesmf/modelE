@@ -141,7 +141,7 @@ lost from total potential energy is gained by the kinetic
 energy. There is a fix to put in this energy term (calculated a
 posteriori) at the end of DYNAM. Similarly, dissipation of KE is added
 in locally after surface friction, dry convection, atmopsheric
-turbulence and oist convection. There is similar coding in the FILTER,
+turbulence and moist convection. There is similar coding in the FILTER,
 SDRAG and GWDRAG. If all of these energy changes are in place, then
 the total energy (KE+TPE+ENRG WAT) should be conserved.
 
