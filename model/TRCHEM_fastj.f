@@ -42,7 +42,7 @@ C
         CALL CTM_ADJ(NSLON,NSLAT) !define pres & aerosol profiles
         CALL INT_PROF(NSLON,NSLAT)!define    T &      O3 profiles
         IF(prnrts.and.NSLON.eq.iprn.and.NSLAT.eq.jprn)
-     &  CALL PRTATM(NSLON,NSLAT)  ! Print out atmosphere 
+     &  CALL PRTATM(NSLON,NSLAT)  ! Print out atmosphere
         CALL JVALUE(NSLON,NSLAT)  ! Calculate Actinic flux
         CALL JRATET(NSLON,NSLAT)  ! Calculate photolysis rates
         JFASTJ(:,:)= zj(:,:)      ! photolysis rates returned
@@ -366,8 +366,8 @@ C---Print out atmosphere
      $  TJ(I),PFASTJ(I),AER(I),COLO3(I),COLAX(I),COLO2(I),COLBC(I)
       ENDDO
       RETURN
- 1000 format(5X,3HZkm,3X,2HZ*,8X,1HM,8X,2HO3,6X,4Hf-O3,5X,1HT,7X,1HP,
-     $    7X,5HAER-X,4X,6Hcol-O3,2X,7Hcol-AER,3X,6Hcol-O2,3X,6Hcol-BC)
+ 1000 format(5X,'Zkm',3X,'Z*',8X,'M',8X,'O3',6X,'f-O3',5X,'T',7X,'P',
+     $    7X,'AER-X',4X,'col-O3',2X,'col-AER',3X,'col-O2',3X,'col-BC')
  1100 format(1X,I2,0P,2F6.2,1P,2E10.3,0P,F7.3,F8.2,F10.4,1P,5E9.2)
  1200 format(A,F8.1,A,F8.4,A,1pE10.3)
       END SUBROUTINE PRTATM
