@@ -8,7 +8,7 @@
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
       USE MODEL_COM
-      USE DOMAIN_DECOMP, ONLY : init_decomp, grid, finish_decomp
+      USE DOMAIN_DECOMP, ONLY : init_decomp,grid,finish_decomp
       USE DYNAMICS
       USE RADNCB, only : dimrad_sv
       USE RANDOM
@@ -18,10 +18,6 @@
       USE DAGCOM, only : oa,monacc,koa
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
-c$$$      USE FLUXES, only : init_fluxes
-      USE CLOUDS_COM, only : init_clouds_com
-      USE ICEDYN,     only : alloc_icedyn
-      USE ICEDYN_COM, only : alloc_icedyn_com
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
@@ -35,15 +31,8 @@ c$$$      USE FLUXES, only : init_fluxes
       external sig_stop_model
       LOGICAL :: qcrestart
 
-!RKF   Allocate arrays
-!
         call init_decomp(grid,im,jm)
-        call init_dynamics(grid)
-        call init_model_com(grid)
-c$$$        call init_fluxes(grid)
-        call init_clouds_com(grid)
-        call alloc_icedyn(grid)
-        call alloc_icedyn_com(grid)
+        call alloc_drv()
 C****
 C**** Processing command line options
 C****
@@ -589,7 +578,7 @@ C****
      *     ,irsficno,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name
       USE DOMAIN_DECOMP, only : grid
-      USE SOMTQ_COM, only : init_smomtq,tmom,qmom
+      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b,imaxj
       USE RANDOM
       USE RADNCB, only : rqt,lm_req
@@ -636,9 +625,6 @@ C****
      *     ,IHOURE, HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
-
-CRKF Allocate the arrays tmom and qmom
-      call init_smomtq(grid)
 
 C****
 C**** Default setting for ISTART : restart from latest save-file (10)
