@@ -179,14 +179,8 @@
 !AOO use statements added for domain_decomp and dynamics to pull in
 !AOO dynamically allocated arrays
       use domain_decomp, only : init_decomp, grid, finish_decomp
-      use dynamics, only : init_dynamics
       use model_com, only : ioread
-      use model_com, only : im,jm,init_model_com
-      use somtq_com, only: init_smomtq
-!!$$      use fluxes, only : init_fluxes
-      use clouds_com, only : init_clouds_com
-      use icedyn,     only : alloc_icedyn
-      use icedyn_com, only : alloc_icedyn_com
+      use model_com, only : im,jm
 !ccc  modules with data to compare
       use model_com, only : u,v,t,q,p
 #ifdef CHECK_OCEAN
@@ -267,13 +261,7 @@
 
 !AOO added calls ti init routines for dynamically allocated arrays.
       call init_decomp(grid,im,jm)
-      call init_dynamics(grid)
-      call init_model_com(grid)
-      call init_smomtq(grid)
-!!$$      call init_fluxes(grid)
-      call init_clouds_com(grid)
-      call alloc_icedyn(grid)
-      call alloc_icedyn_com(grid)
+      call alloc_drv()
 
 !C****
 !C**** Read ReStartFiles
