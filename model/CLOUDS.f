@@ -1575,7 +1575,7 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
         PREP(L)=WMX(L)*CM
         IF(TL(L).LT.TF.AND.LHX.EQ.LHE) THEN ! check snowing pdf
           PRATM=1.d5*COEFM*WMX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
-          PRATM=MIN(PRATM,1.D0)*(1.-EXP(MAX(-100.,(TL(L)-TF)/COEFT)))
+          PRATM=MIN(PRATM,1.D0)*(1.-EXP(MAX(-1d2,(TL(L)-TF)/COEFT)))
           IF(PRATM.GT.RNDSS1L(L)) LHP(L)=LHS
         END IF
       ELSE
@@ -1733,7 +1733,7 @@ c ---------------------- initialize fractions ------------------------
         FWTOQT=0.
 c ----------------------- calculate fractions --------------------------
 c precip. tracer evap
-        CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FER,FERT)
+        CALL GET_EVAP_FACTOR(N,TL(L),LHP(L),.FALSE.,1d0,FER,FERT)
 c clw tracer evap
         CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FWTOQ,FWTOQT)
         IF(BELOW_CLOUD) THEN
@@ -1861,157 +1861,157 @@ C**** ACCUMULATE SOME DIAGNOSTICS
 C****
 C**** CLOUD-TOP ENTRAINMENT INSTABILITY
 C****
-      DO 382 L=LP50-1,1,-1
-      SM(L)=TH(L)*AIRM(L)*PLK(L)
-      QM(L)=QL(L)*AIRM(L)
-      WMXM(L)=WMX(L)*AIRM(L)
-      SM(L+1)=TH(L+1)*AIRM(L+1)*PLK(L+1)
-      QM(L+1)=QL(L+1)*AIRM(L+1)
-      WMXM(L+1)=WMX(L+1)*AIRM(L+1)
-      TOLD=TL(L)
-      TOLDU=TL(L+1)
-         QOLD=QL(L)
-         QOLDU=QL(L+1)
-      FCLD=1.-CAREA(L)+1d-30
-      IF(CAREA(L).EQ.1.) GO TO 382
-      IF(CAREA(L).LT.1..AND.CAREA(L+1).LT.1.) GO TO 382
-      SEDGE=THBAR(TH(L+1),TH(L))
-      DSE=(TH(L+1)-SEDGE)*PLK(L+1)+(SEDGE-TH(L))*PLK(L)+
-     *  SLHE*(QL(L+1)-QL(L))
-      DWM=QL(L+1)-QL(L)+(WMX(L+1)-WMX(L))/FCLD
-      DQSDT=DQSATDT(TL(L),LHE)*QL(L)/(RH(L)+1d-30)
-      BETA=(1.+BYMRAT*TL(L)*DQSDT)/(1.+SLHE*DQSDT)
-      CKM=(1.+SLHE*DQSDT)*(1.+.392d0*TL(L)/SLHE)/
-     *  (2.+(1.+BYMRAT*TL(L)/SLHE)*SLHE*DQSDT)
-      CKR=TL(L)/(BETA*SLHE)
-      CK=DSE/(SLHE*DWM)
-      SIGK=0.
-      IF(CKR.GT.CKM) GO TO 382
-      IF(CK.GT.CKR) SIGK=1d-3*((CK-CKR)/(CKM-CKR+teeny))**5.
-      EXPST=EXP(-SIGK*DTsrc)
-      IF(L.LE.1) CKIJ=EXPST
-      DSEC=DWM*TL(L)/BETA
-      IF(CK.LT.CKR) GO TO 382
-      FPMAX=1.-EXPST
-      IF(FPMAX.LE.0.) GO TO 382
-      IF(FPMAX.GT.1.) FPMAX=1.
-      IF(DSE.GE.DSEC) GO TO 382
+      DO L=LP50-1,1,-1
+        SM(L)=TH(L)*AIRM(L)*PLK(L)
+        QM(L)=QL(L)*AIRM(L)
+        WMXM(L)=WMX(L)*AIRM(L)
+        SM(L+1)=TH(L+1)*AIRM(L+1)*PLK(L+1)
+        QM(L+1)=QL(L+1)*AIRM(L+1)
+        WMXM(L+1)=WMX(L+1)*AIRM(L+1)
+        TOLD=TL(L)
+        TOLDU=TL(L+1)
+        QOLD=QL(L)
+        QOLDU=QL(L+1)
+        FCLD=1.-CAREA(L)+1d-30
+        IF(CAREA(L).EQ.1. .OR. (CAREA(L).LT.1..AND.CAREA(L+1).LT.1.))
+     *       CYCLE
+        SEDGE=THBAR(TH(L+1),TH(L))
+        DSE=(TH(L+1)-SEDGE)*PLK(L+1)+(SEDGE-TH(L))*PLK(L)+
+     *       SLHE*(QL(L+1)-QL(L))
+        DWM=QL(L+1)-QL(L)+(WMX(L+1)-WMX(L))/FCLD
+        DQSDT=DQSATDT(TL(L),LHE)*QL(L)/(RH(L)+1d-30)
+        BETA=(1.+BYMRAT*TL(L)*DQSDT)/(1.+SLHE*DQSDT)
+        CKM=(1.+SLHE*DQSDT)*(1.+(1.-DELTX)*TL(L)/SLHE)/
+     *       (2.+(1.+BYMRAT*TL(L)/SLHE)*SLHE*DQSDT)
+        CKR=TL(L)/(BETA*SLHE)
+        CK=DSE/(SLHE*DWM)
+        SIGK=0.
+        IF(CKR.GT.CKM) CYCLE
+        IF(CK.GT.CKR) SIGK=1d-3*((CK-CKR)/(CKM-CKR+teeny))**5
+        EXPST=EXP(-SIGK*DTsrc)
+        IF(L.LE.1) CKIJ=EXPST
+        DSEC=DWM*TL(L)/BETA
+        IF(CK.LT.CKR) CYCLE
+        FPMAX=MIN(1d0,1.-EXPST)
+        IF(FPMAX.LE.0.) CYCLE
+        IF(DSE.GE.DSEC) CYCLE
 C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
-      AIRMR=(AIRM(L+1)+AIRM(L))*BYAM(L+1)*BYAM(L)
-      SMO1=SM(L)
-      QMO1=QM(L)
-      WMO1=WMXM(L)
-      SMO2=SM(L+1)
-      QMO2=QM(L+1)
-      WMO2=WMXM(L+1)
-      DO K=1,KMAX
-        UMO1(K)=UM(K,L)
-        VMO1(K)=VM(K,L)
-        UMO2(K)=UM(K,L+1)
-        VMO2(K)=VM(K,L+1)
-      ENDDO
-      FPLUME=FPMAX
-      DFX=FPMAX
-      DO 320 ITER=1,9
-      DFX=DFX*0.5
-      FMIX=FPLUME*FCLD
-      FMASS=FMIX*AIRM(L)
-      FMASS=MIN(FMASS,(AIRM(L+1)*AIRM(L))/(AIRM(L+1)+AIRM(L)))
-      FMIX=FMASS*BYAM(L)
-      FRAT=FMASS*BYAM(L+1)
-      SMN1=SMO1*(1.-FMIX)+FRAT*SMO2
-      QMN1=QMO1*(1.-FMIX)+FRAT*QMO2
-      WMN1=WMO1*(1.-FMIX)+FRAT*WMO2
-      SMN2=SMO2*(1.-FRAT)+FMIX*SMO1
-      QMN2=QMO2*(1.-FRAT)+FMIX*QMO1
-      WMN2=WMO2*(1.-FRAT)+FMIX*WMO1
-      THT1=SMN1*BYAM(L)/PLK(L)
-      QLT1=QMN1*BYAM(L)
-      TLT1=THT1*PLK(L)
-      LHX=SVLHXL(L)
-      RHT1=QLT1/(QSAT(TLT1,LHX,PL(L)))
-      WMT1=WMN1*BYAM(L)
-      THT2=SMN2*BYAM(L+1)/PLK(L+1)
-      QLT2=QMN2*BYAM(L+1)
-      WMT2=WMN2*BYAM(L+1)
-      SEDGE=THBAR(THT2,THT1)
-      DSE=(THT2-SEDGE)*PLK(L+1)+(SEDGE-THT1)*PLK(L)+SLHE*(QLT2-QLT1)
-      DWM=QLT2-QLT1+(WMT2-WMT1)/FCLD
-      DQSDT=DQSATDT(TLT1,LHE)*QLT1/(RHT1+1d-30)
-      BETA=(1.+BYMRAT*TLT1*DQSDT)/(1.+SLHE*DQSDT)
-      CKM=(1.+SLHE*DQSDT)*(1.+.392d0*TLT1/SLHE)/
-     *  (2.+(1.+BYMRAT*TLT1/SLHE)*SLHE*DQSDT)
-      DSEC=DWM*TLT1/BETA
-      DSEDIF=DSE-DSEC
-      IF(DSEDIF.GT.1d-3) FPLUME=FPLUME-DFX
-      IF(DSEDIF.LT.-1d-3) FPLUME=FPLUME+DFX
-      IF(ABS(DSEDIF).LE.1d-3.OR.FPLUME.GT.FPMAX) GO TO 380
-  320 CONTINUE
+        AIRMR=(AIRM(L+1)+AIRM(L))*BYAM(L+1)*BYAM(L)
+        SMO1=SM(L)
+        QMO1=QM(L)
+        WMO1=WMXM(L)
+        SMO2=SM(L+1)
+        QMO2=QM(L+1)
+        WMO2=WMXM(L+1)
+        DO K=1,KMAX
+          UMO1(K)=UM(K,L)
+          VMO1(K)=VM(K,L)
+          UMO2(K)=UM(K,L+1)
+          VMO2(K)=VM(K,L+1)
+        ENDDO
+        FPLUME=FPMAX
+        DFX=FPMAX
+        DO ITER=1,9
+          DFX=DFX*0.5
+          FMIX=FPLUME*FCLD
+          FMASS=FMIX*AIRM(L)
+          FMASS=MIN(FMASS,(AIRM(L+1)*AIRM(L))/(AIRM(L+1)+AIRM(L)))
+          FMIX=FMASS*BYAM(L)
+          FRAT=FMASS*BYAM(L+1)
+          SMN1=SMO1*(1.-FMIX)+FRAT*SMO2
+          QMN1=QMO1*(1.-FMIX)+FRAT*QMO2
+          WMN1=WMO1*(1.-FMIX)+FRAT*WMO2
+          SMN2=SMO2*(1.-FRAT)+FMIX*SMO1
+          QMN2=QMO2*(1.-FRAT)+FMIX*QMO1
+          WMN2=WMO2*(1.-FRAT)+FMIX*WMO1
+          THT1=SMN1*BYAM(L)/PLK(L)
+          QLT1=QMN1*BYAM(L)
+          TLT1=THT1*PLK(L)
+          LHX=SVLHXL(L)
+          RHT1=QLT1/(QSAT(TLT1,LHX,PL(L)))
+          WMT1=WMN1*BYAM(L)
+          THT2=SMN2*BYAM(L+1)/PLK(L+1)
+          QLT2=QMN2*BYAM(L+1)
+          WMT2=WMN2*BYAM(L+1)
+          SEDGE=THBAR(THT2,THT1)
+          DSE=(THT2-SEDGE)*PLK(L+1)+(SEDGE-THT1)*PLK(L)+SLHE*(QLT2-QLT1)
+          DWM=QLT2-QLT1+(WMT2-WMT1)/FCLD
+          DQSDT=DQSATDT(TLT1,LHE)*QLT1/(RHT1+1d-30)
+          BETA=(1.+BYMRAT*TLT1*DQSDT)/(1.+SLHE*DQSDT)
+          CKM=(1.+SLHE*DQSDT)*(1.+(1.-DELTX)*TLT1/SLHE)/
+     *         (2.+(1.+BYMRAT*TLT1/SLHE)*SLHE*DQSDT)
+          DSEC=DWM*TLT1/BETA
+          DSEDIF=DSE-DSEC
+          IF(DSEDIF.GT.1d-3) FPLUME=FPLUME-DFX
+          IF(DSEDIF.LT.-1d-3) FPLUME=FPLUME+DFX
+          IF(ABS(DSEDIF).LE.1d-3.OR.FPLUME.GT.FPMAX) EXIT
+        END DO
 C**** UPDATE TEMPERATURE, SPECIFIC HUMIDITY AND MOMENTUM DUE TO CTEI
-  380 TH(L)=SMN1*BYAM(L)/PLK(L)
-      TL(L)=TH(L)*PLK(L)
-      QL(L)=QMN1*BYAM(L)
-      LHX=SVLHXL(L)
-      RH(L)=QL(L)/QSAT(TL(L),LHX,PL(L))
-      WMX(L)=WMN1*BYAM(L)
-      TH(L+1)=SMN2*BYAM(L+1)/PLK(L+1)
-      QL(L+1)=QMN2*BYAM(L+1)
-      WMX(L+1)=WMN2*BYAM(L+1)
+        TH(L)=SMN1*BYAM(L)/PLK(L)
+        TL(L)=TH(L)*PLK(L)
+        QL(L)=QMN1*BYAM(L)
+        LHX=SVLHXL(L)
+        RH(L)=QL(L)/QSAT(TL(L),LHX,PL(L))
+        WMX(L)=WMN1*BYAM(L)
+        TH(L+1)=SMN2*BYAM(L+1)/PLK(L+1)
+        QL(L+1)=QMN2*BYAM(L+1)
+        WMX(L+1)=WMN2*BYAM(L+1)
 C**** need to scale SM moments for conservation purposes
-      SMOM(:,L)=SMOM(:,L)*PLK(L)
-      SMOM(:,L+1)=SMOM(:,L+1)*PLK(L+1)
-      CALL CTMIX (SM(L),SMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
-      SMOM(:,L)=SMOM(:,L)/PLK(L)
-      SMOM(:,L+1)=SMOM(:,L+1)/PLK(L+1)
-C****
-      CALL CTMIX (QM(L),QMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
+        SMOM(:,L)=SMOM(:,L)*PLK(L)
+        SMOM(:,L+1)=SMOM(:,L+1)*PLK(L+1)
+        CALL CTMIX (SM(L),SMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
+        SMOM(:,L)=SMOM(:,L)/PLK(L)
+        SMOM(:,L+1)=SMOM(:,L+1)/PLK(L+1)
+C**** 
+        CALL CTMIX (QM(L),QMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
 #ifdef TRACERS_ON
-      DO N=1,NTX
-        CALL CTMIX (TM(L,N),TMOM(1,L,N),FMASS*AIRMR,FMIX,FRAT)
+        DO N=1,NTX
+          CALL CTMIX (TM(L,N),TMOM(1,L,N),FMASS*AIRMR,FMIX,FRAT)
 #ifdef TRACERS_WATER
 C**** mix cloud liquid water tracers as well
-        TWMTMP      = TRWML(N,L  )*(1.-FMIX)+FRAT*TRWML(N,L+1)
-        TRWML(N,L+1)= TRWML(N,L+1)*(1.-FRAT)+FMIX*TRWML(N,L  )
-        TRWML(N,L)  = TWMTMP
+          TWMTMP      = TRWML(N,L  )*(1.-FMIX)+FRAT*TRWML(N,L+1)
+          TRWML(N,L+1)= TRWML(N,L+1)*(1.-FRAT)+FMIX*TRWML(N,L  )
+          TRWML(N,L)  = TWMTMP
 #endif
-      END DO
+        END DO
 #endif
-      DO K=1,KMAX
-        UMN1(K)=(UMO1(K)*(1.-FMIX)+FRAT*UMO2(K))
-        VMN1(K)=(VMO1(K)*(1.-FMIX)+FRAT*VMO2(K))
-        UMN2(K)=(UMO2(K)*(1.-FRAT)+FMIX*UMO1(K))
-        VMN2(K)=(VMO2(K)*(1.-FRAT)+FMIX*VMO1(K))
-        UM(K,L)=UM(K,L)+(UMN1(K)-UMO1(K))*RA(K)
-        VM(K,L)=VM(K,L)+(VMN1(K)-VMO1(K))*RA(K)
-        UM(K,L+1)=UM(K,L+1)+(UMN2(K)-UMO2(K))*RA(K)
-        VM(K,L+1)=VM(K,L+1)+(VMN2(K)-VMO2(K))*RA(K)
-      END DO
+        DO K=1,KMAX
+          UMN1(K)=(UMO1(K)*(1.-FMIX)+FRAT*UMO2(K))
+          VMN1(K)=(VMO1(K)*(1.-FMIX)+FRAT*VMO2(K))
+          UMN2(K)=(UMO2(K)*(1.-FRAT)+FMIX*UMO1(K))
+          VMN2(K)=(VMO2(K)*(1.-FRAT)+FMIX*VMO1(K))
+          UM(K,L)=UM(K,L)+(UMN1(K)-UMO1(K))*RA(K)
+          VM(K,L)=VM(K,L)+(VMN1(K)-VMO1(K))*RA(K)
+          UM(K,L+1)=UM(K,L+1)+(UMN2(K)-UMO2(K))*RA(K)
+          VM(K,L+1)=VM(K,L+1)+(VMN2(K)-VMO2(K))*RA(K)
+        END DO
 C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
-      QL(L+1)=QL(L+1)+WMX(L+1)
-      TH(L+1)=TH(L+1)-(LHX*BYSHA)*WMX(L+1)/PLK(L+1)
-      TL(L+1)=TH(L+1)*PLK(L+1)
-      RH(L+1)=QL(L+1)/QSAT(TL(L+1),LHX,PL(L+1))
-      WMX(L+1)=0.
+        QL(L+1)=QL(L+1)+WMX(L+1)
+        TH(L+1)=TH(L+1)-(LHX*BYSHA)*WMX(L+1)/PLK(L+1)
+        TL(L+1)=TH(L+1)*PLK(L+1)
+        RH(L+1)=QL(L+1)/QSAT(TL(L+1),LHX,PL(L+1))
+        WMX(L+1)=0.
 #ifdef TRACERS_WATER
-      TM(L+1,1:NTX)=TM(L+1,1:NTX)+TRWML(1:NTX,L+1)
-      TRWML(1:NTX,L+1)=0.
+        TM(L+1,1:NTX)=TM(L+1,1:NTX)+TRWML(1:NTX,L+1)
+        TRWML(1:NTX,L+1)=0.
 #endif
-      IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
-      IF(CAREA(L).GT.1.) CAREA(L)=1.
-      IF(RH(L).GT.1.) CAREA(L)=0.
-      CLDSSL(L)=1.-CAREA(L)
-      TNEW=TL(L)
-      TNEWU=TL(L+1)
-      QNEW=QL(L)
-      QNEWU=QL(L+1)
-      HCNDSS=HCNDSS+(TNEW-TOLD)*AIRM(L)+(TNEWU-TOLDU)*AIRM(L+1)
-      SSHR(L)=SSHR(L)+(TNEW-TOLD)*AIRM(L)
-      SSHR(L+1)=SSHR(L+1)+(TNEWU-TOLDU)*AIRM(L+1)
-      DCTEI(L)=DCTEI(L)+(QNEW-QOLD)*AIRM(L)*LHX*BYSHA
-      DCTEI(L+1)=DCTEI(L+1)+(QNEWU-QOLDU)*AIRM(L+1)*LHX*BYSHA
- 382  CONTINUE
-      WMSUM=0.
+        IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+        IF(CAREA(L).GT.1.) CAREA(L)=1.
+        IF(RH(L).GT.1.) CAREA(L)=0.
+        CLDSSL(L)=1.-CAREA(L)
+        TNEW=TL(L)
+        TNEWU=TL(L+1)
+        QNEW=QL(L)
+        QNEWU=QL(L+1)
+        HCNDSS=HCNDSS+(TNEW-TOLD)*AIRM(L)+(TNEWU-TOLDU)*AIRM(L+1)
+        SSHR(L)=SSHR(L)+(TNEW-TOLD)*AIRM(L)
+        SSHR(L+1)=SSHR(L+1)+(TNEWU-TOLDU)*AIRM(L+1)
+        DCTEI(L)=DCTEI(L)+(QNEW-QOLD)*AIRM(L)*LHX*BYSHA
+        DCTEI(L+1)=DCTEI(L+1)+(QNEWU-QOLDU)*AIRM(L+1)*LHX*BYSHA
+      END DO
+
 C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
+      WMSUM=0.
       DO L=1,LP50
         FCLD=CLDSSL(L)+teeny
         WTEM=1.d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
