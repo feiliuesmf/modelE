@@ -926,6 +926,7 @@ C**** check whether air mass is conserved
       USE DOMAIN_DECOMP, only : grid, AM_I_ROOT
       USE DOMAIN_DECOMP, only :   PACK_DATA,   PACK_COLUMN
       USE DOMAIN_DECOMP, only : UNPACK_DATA, UNPACK_COLUMN
+      USE domain_decomp, ONLY : esmf_bcast
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
