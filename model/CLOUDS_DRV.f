@@ -45,9 +45,9 @@
 #endif
       USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subroutines
      *     ,airm,byam,etal,sm,smom,qm,qmom,isc
-     *     ,tl,ris,ri1,ri2,aj8,aj11,aj13,aj50,aj51,aj52,aj53,aj57
+     *     ,tl,ris,ri1,ri2,mcflx,sshr,dgdsm,dphase,dtotw,dqcond,dctei
      *     ,wml,sdl,u_0,v_0,um,vm,qs,us,vs,dcl,airxl,prcpss,hcndss
-     *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl
+     *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl,dgdqm
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
      *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l,pphase,debug
@@ -354,7 +354,7 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
 CCC       IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
 CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
           IF(J.GE.J5S.AND.J.LE.J5N)     ! add in after parallel region
-     *      AJEQIL(J-J5S+1,I,L) = (DGDSM(L)+DPHASE(L))*                 
+     *      AJEQIL(J-J5S+1,I,L) = (DGDSM(L)+DPHASE(L))*
      *                            (DXYP(J)*BYDSIG(L))
           AJL(J,L,JL_MCHEAT)=AJL(J,L,JL_MCHEAT)+
      &         (DPHASE(L)+DGDSM(L))*BYDSIG(L)
