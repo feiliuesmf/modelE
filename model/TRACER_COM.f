@@ -15,24 +15,45 @@
       SAVE
 
 C**** Each tracer has a variable name and a unique index
-!@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
-#ifndef TRACERS_WATER
 !@param NTM number of tracers
+!@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
+#ifdef TRACERS_SPECIAL_O18
+      integer, parameter :: ntm=5
+      character*8, parameter :: trname(ntm)=(/
+     *     'Air     ','Water   ','H2O18   ','HDO     ','HTO     '/)
+#else     
+#ifdef TRACERS_SPECIAL_Lerner     
+     !@param NTM number of tracers
       integer, parameter :: ntm=9
       character*8, parameter :: trname(ntm)= (/
      *     'Air     ','SF6     ','Rn222   ','CO2     ','N2O     ',
      *     'CFC11   ','14CO2   ','CH4     ','O3      '/)
 #else
-!@param NTM number of tracers
-      integer, parameter :: ntm=5
+#ifdef TRACERS_SPECIAL_Shindell
+      integer, parameter :: ntm=15
       character*8, parameter :: trname(ntm)=(/
-     *     'Air     ','Water   ','H2O18   ','HDO     ','HTO     '/)
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin'/)
+#else ! default:
+#ifdef TRACERS_WATER
+      integer, parameter :: ntm=2
+      character*8, parameter :: trname(ntm)=(/'Air     ','Water   '/)
+#else
+      integer, parameter :: ntm=1
+      character*8, parameter :: trname(ntm)=(/'Air     '/)
+#endif
+#endif
+#endif
 #endif
 !@var N_XXX: variable names of indices for tracers
       integer :: 
-     *     n_Air,   n_SF6,   n_Rn222, n_CO2, n_N2O,
-     *     n_CFC11, n_14CO2, n_CH4,   n_O3 , n_water,
-     *     n_H2O18, n_HDO, n_HTO
+     *     n_Air,    n_SF6,   n_Rn222, n_CO2,      n_N2O,
+     *     n_CFC11,  n_14CO2, n_CH4,   n_O3,       n_water,
+     *     n_H2O18,  n_HDO,   n_HTO,   n_Ox,       n_NOx, 
+     *     n_N2O5,   n_HNO3,  n_H2O2,  n_CH3OOH,   n_HCHO,
+     *     n_HO2NO2, n_CO,    n_PAN,   n_Isoprene, n_AlkylNit,
+     *     n_Alkenes,n_Paraffin 
 
 C****    The following are set in tracer_IC
 !@var NTM_POWER: Power of 10 associated with each tracer (for printing)
@@ -70,8 +91,11 @@ C****
 !@var ntsurfsrc no. of non-interactive surface sources for each tracer
       integer, dimension(ntm) :: ntsurfsrc 
 !@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
+#ifdef TRACERS_SPECIAL_Shindell
+      integer, parameter :: nt3Dsrcmax=4
+#else
       integer, parameter :: nt3Dsrcmax=3
-    
+#endif    
 
 #ifdef TRACERS_WATER
 !@param nWD_TYPES number of tracer types for wetdep purposes
