@@ -151,17 +151,17 @@ C ----------------------------------------------
 C     
       REAL*8, PARAMETER ::  O3MULT       = 2.14D-2,
      &                      BYO3MULT     = 1./O3MULT,
-     &                      pfix_O2      = 0.209476,
-     &                      pfix_H2      = 560.E-9,
-     &                      pfix_Aldehyde= 2.E-9,
-     &                      pfix_CH4_S   = 1.75E-6,
-     &                      pfix_CH4_N   = 1.855E-6,
+     &                      pfix_O2      = 0.209476d0,
+     &                      pfix_H2      = 560.d-9,
+     &                      pfix_Aldehyde= 2.d-9,
+     &                      pfix_CH4_S   = 1.75d-6,
+     &                      pfix_CH4_N   = 1.855d-6,
      &                      MWabyMWw     = mair/mwat,
-     &                      O3_1_fact    = 0.972,
-     &                      RGAMMASULF   = 0.1,
-     &                      RKBYPIM      = 1.961E2,
+     &                      O3_1_fact    = 0.972d0,
+     &                      RGAMMASULF   = 0.1d0,
+     &                      RKBYPIM      = 1.961d2,
      &                      cboltz       = 1.3806d-19,
-     &                      dlogp        = 7.49894209E-1, !=10^(-.125)
+     &                      dlogp        = 7.49894209d-1, !=10^(-.125)
      &                      szamax       = 98.0d0,
      &                      dtaumax      = 1.0d0,
      &                      ZZHT         = 5.d5,
@@ -314,8 +314,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var O3_FASTJ ozone sent to fastj
 !@var FASTJLAT,FASTJLON latitude & LONGITUDE (degrees) for use in fastj
 !@var SZA the solar zenith angle (degrees)
-!@var ILIMIT maximum of main I-loop (1 or IM)
-!@var I,J,L,N,igas,inss,LL,Lqq,JJ,J3 dummy loop variables
 !@var JFASTJ photolysis rates
 !@var RVELN2O5, prod_sulf unknown
 !@var sulfate N2O5 sulfate sink (formerly SRC(I,J,L,20) variable)   
@@ -339,8 +337,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var MDOFM cumulative days at end of each month
 !@var OxIC initial conditions for Ox in KG read from file (Jan 1st?)
 !@var corrOx correction factor to tweak inital Ox in stratosphere 
-      INTEGER nr,nr2,nr3,nmm,nhet,MODPHOT,ILIMIT,igas,LL,I,J,L,N,
-     & inss,Lqq,JJ,J3,lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,
+      INTEGER nr,nr2,nr3,nmm,nhet,MODPHOT, 
+     & lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,
      & NWWW,NK,nlbatm,NCFASTJ                                 
       INTEGER, DIMENSION(n_fam)        :: nfam
       INTEGER, DIMENSION(p_1,p_2)      :: nn, nnr, kss
@@ -442,8 +440,8 @@ C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
      &           ,125.,140.,165.,175.,180.,170.,165.,150./
 C Multiplier of free trop [CO] by layer Badr & Probert 94 fig10 & 11,
 C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
-      DATA COalt/2.,1.5625,1.375,1.25,1.125,1.0625,1.,1.,1.,
-     &           1.,1.,.5,.375,.20,.20,.20,.20,.20,.25,.4,2.5,12.,60./
+      DATA COalt/2.,1.5625d0,1.375d0,1.25,1.125,1.0625d0,1.,1.,1.,
+     &     1.,1.,.5,.375,.2d0,.2d0,.2d0,.2d0,.2d0,.25,.4d0,2.5,12.,60./
       DATA MDOFM/31,59,90,120,151,181,212,243,273,304,334,365/
 C
       END MODULE TRCHEM_Shindell_COM

@@ -639,7 +639,7 @@ C****
           td1 = trsrfflx(i,j,n)*dtsurf                 ! kg
           if (trm(i,j,1,n)+td1+tdd.lt.0.and.tdd.lt.0) then
             if (qcheck) write(99,*) "limiting tdryd surfce",i,j,n,tdd
-     *           ,trm(i,j,1,n)
+     *           ,trm(i,j,1,n),td1
             tdd= -(trm(i,j,1,n)+td1)
             tdryd=tdd/(dxyp(j)*ptype)
             trsrfflx(i,j,n)= - trm(i,j,1,n)/dtsurf

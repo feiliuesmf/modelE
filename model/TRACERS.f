@@ -747,9 +747,6 @@ C**** check whether air mass is conserved
 !@ver  1.0
 #ifdef TRACERS_ON      
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
-#ifdef TRACERS_SPECIAL_Shindell      
-     & ,im,jm,lm
-#endif
       USE TRACER_COM
 #ifdef TRACERS_DRYDEP
       USE tracers_DRYDEP, only: CFRAC,trdrydep_rad
@@ -807,9 +804,9 @@ C**** check whether air mass is conserved
      *       ,TRWM
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     *     ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
-     *     ,yXO2N,yRXPAR,OxIC,corrOx,SALBFJ,RCLOUDFJ,O3DLJI
-     &     ,O3DLJI_clim,((ss(K1,K2,1,1),K1=1,jppj),K2=1,IM*JM*LM)
+     *       ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
+     *       ,yXO2N,yRXPAR,OxIC,corrOx,SALBFJ,RCLOUDFJ,O3DLJI
+     &       ,O3DLJI_clim,((ss(K1,K2,1,1),K1=1,jppj),K2=1,IM*JM*LM)
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,CFRAC,trdrydep_rad
