@@ -296,10 +296,10 @@ C****
       END SUBROUTINE apply_tracer_2Dsource
 
 
-      SUBROUTINE apply_tracer_3Dsource(dtstep)
+      SUBROUTINE apply_tracer_3Dsource(n,ns)
 !@sum apply_tracer_3Dsource adds 3D sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE MODEL_COM, only : jm,im,lm
+      USE MODEL_COM, only : jm,im,lm,dtsrc
       USE CONSTANT, only : teeny
       USE GEOM, only : imaxj
       USE TRACER_COM, only : ntm,trm,trmom,nt3Dsrc
@@ -307,7 +307,6 @@ C****
       USE FLUXES, only : tr3Dsource
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
       IMPLICIT NONE
-      REAL*8, INTENT(IN) :: dtstep
       REAL*8 fr3d
       INTEGER n,ns,najl,i,j,l
 
@@ -315,25 +314,21 @@ C**** This is tracer independent coding designed to work for all
 C**** 3D sources.
 C**** Modify tracer amount, moments, and diagnostics
 C**** tracer moments are modified elsewhere
-      do n=1,ntm
-        do ns=1,nt3Dsrc(n)
-          najl = jls_3Dsource(ns,n)
-          do l=1,lm
-          do j=1,jm
-          do i=1,imaxj(j)
+      najl = jls_3Dsource(ns,n)
+      do l=1,lm
+      do j=1,jm
+      do i=1,imaxj(j)
 C**** calculate fractional loss
-            if (tr3Dsource(i,j,l,ns,n).lt.0.) then
-              fr3d = -tr3Dsource(i,j,l,ns,n)*dtstep/(trm(i,j,l,n)+teeny)
-              trmom(1:nmom,i,j,l,n) = trmom(1:nmom,i,j,l,n)*(1.-fr3d)
-            end if
+        if (tr3Dsource(i,j,l,ns,n).lt.0.) then
+          fr3d = -tr3Dsource(i,j,l,ns,n)*dtsrc/(trm(i,j,l,n)+teeny)
+          trmom(1:nmom,i,j,l,n) = trmom(1:nmom,i,j,l,n)*(1.-fr3d)
+        end if
 C**** update tracer mass and diagnostics
-            trm(i,j,l,n) = trm(i,j,l,n)+tr3Dsource(i,j,l,ns,n)*dtstep
-            tajls(j,l,najl) = tajls(j,l,najl)+
-     *                                  tr3Dsource(i,j,l,ns,n)*dtstep
-          end do; end do; end do
-          call DIAGTCA(itcon_3Dsrc(ns,n),n)
-        end do
-      end do
+        trm(i,j,l,n) = trm(i,j,l,n)+tr3Dsource(i,j,l,ns,n)*dtsrc
+        tajls(j,l,najl) = tajls(j,l,najl)+
+     *                              tr3Dsource(i,j,l,ns,n)*dtsrc
+      end do; end do; end do
+      call DIAGTCA(itcon_3Dsrc(ns,n),n)
 C****
       RETURN
       END SUBROUTINE apply_tracer_3Dsource
