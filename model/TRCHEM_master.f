@@ -811,8 +811,8 @@ C
 c
       IF(i.eq.1.and.j.eq.1)
      & WRITE(6,*) 'WARNING: checktracer call is active.'
-      IF(checkmax)call stop_model(
-     &     'checktracer: set tlimit for tracers 11->15',255)
+      IF(checkmax)
+     & call stop_model('checktracer: set tlimit for tracers 11->15',255)
 C     please (re)set tlimit values for tracers 11 through 15 in the
 C     data statement above. Then, please delete the above stop.
 C
@@ -820,9 +820,8 @@ C check if ozone gets really big in the troposphere:
        IF(checkOx) THEN
        do L=1,LS1-1
          if(y(n_Ox,L)/y(nM,L).gt.1.E-5) then
-           write(600,*)'Ox @ I,J,L,Ox,tau:',I,J,L,y(n_Ox,L),Itime
-           call stop_model(
-     &          'checktracer: Ox really big in troposphere',255)
+           write(6,*)'Ox @ I,J,L,Ox,tau:',I,J,L,y(n_Ox,L),Itime
+           call stop_model('checktracer: Ox too big in tropo.',255)
          end if
        end do
        END IF
@@ -832,7 +831,7 @@ c general check on maximum of tracers:
        do igas=1,ntm
         if(y(igas,L)/y(nM,L).gt.tlimit(igas)) then
           write(6,*) trname(igas),'@ I,J,L,Ox :',I,J,L,y(igas,L)
-          call stop_model('checktracer: tracer upper limit reached',255)
+          call stop_model('checktracer: tracer upper limit',255)
         end if
        end do
       end do

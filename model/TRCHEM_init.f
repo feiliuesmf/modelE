@@ -114,8 +114,7 @@ C
          end if
        else                     ! read heterogeneous reactions
          if(i.eq.nr-(nhet-1))read(iu_data,22)ate
-         call stop_model(
-     &    'jplrts is not totally set up to read heterogenous rxns.',255)
+         call stop_model('jplrts not set up to read hetero. rxns.', 255)
 c        read(iu_data,31)ate
 c        write(*,30) i,ate(1,1),ate(2,1),' + ',ate(1,2),' --> ',
 c    *   ate(1,3),ate(2,3),' + ',ate(1,4),ate(2,4)
@@ -200,8 +199,8 @@ C     Read in photolysis parameters:
       call openunit('JPLPH',iu_data,.false.,.true.)
       read(iu_data,121)nss,nabs,al,nll,nhu,o2up,o3up
 C     check on the number of photolysis reactions:
-      IF(nss.ne.JPPJ) call stop_model(
-     &     'WARNING: nss.ne.JPPJ, check # photo rxns',255)
+      IF(nss.ne.JPPJ)
+     & call stop_model('WARNING: nss.ne.JPPJ, check # photo rxns',255)
 C
 c     assign ks and kss gas numbers of photolysis reactants from list
       write(6,*) ' '
@@ -545,7 +544,7 @@ c Read in quantum yield jfacta and fastj label jlabel
  20   close(iu_data)
       if(ipr.ne.jppj) then
          write(6,1000) ipr,jppj
-         call stop_model('stopped in TRCHEM_init.f',255)
+         call stop_model('problem with # photolysis reactions',255)
       endif
  1000 format(' Error: ',i3,' photolysis labels but ',i3,' reactions')
 c
@@ -610,7 +609,7 @@ C------read in-------spectral data------------------------------------
       IF(NJVAL.ne.NJVAL2) THEN
         WRITE(6,*)'NJVAL (constant)= ',NJVAL,' but it is ', NJVAL2,
      &  'when read in from SPECFJ file.  Please reconcile.'
-        call stop_model('NJVAL in RD_TJPL',255)
+        call stop_model('NJVAL problem in RD_TJPL',255)
       END IF
       NQQQ = NJVAL-3
       READ(NJ1,102) (WBIN(IW),IW=1,NWWW)
@@ -675,7 +674,7 @@ C---Set mapping index
             jind(k)=1
           else
             write(6,*) 'Which J-rate for photolysis reaction ',k,' ?'
-            call stop_model('stopped in TRCHEM_init.f',255)
+            call stop_model('J-rate problem in RD_TJPL',255)
           endif
         endif
       enddo
