@@ -1076,8 +1076,13 @@ c      BYDXYP(J)=1./DXYP(J)
           PJ(J,1)=PJ(J,1)+AJK(J,K,JK_DPA)
           PJ(J,2)=PJ(J,2)+AJK(J,K,JK_DPB)
         END DO
-        COSBYPV(J)=COSV(J)/(PJ(J,2)+teeny)
-        COSBYPDA(J)=COSV(J)*BYDXYP(J)/(PJ(J,1)+teeny)
+        IF (J.eq.1) THEN
+          COSBYPV(J)=0.   ! are these values used?
+          COSBYPDA(J)=0.
+        ELSE
+          COSBYPV(J)=COSV(J)/(PJ(J,2)+teeny)
+          COSBYPDA(J)=COSV(J)*BYDXYP(J)/(PJ(J,1)+teeny)
+        END IF
       END DO
 C****
 C**** INITIALIZE DELTA SIGMA IN PRESSURE COORDINATES

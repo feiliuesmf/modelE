@@ -199,6 +199,7 @@ C****
      *              qgavg(im,J_0H:J_1H),
      *              w2_l1(im,J_0H:J_1H),
      *         STAT=IER)
+      w2_l1(:,J_0H:J_1H) =0.
 
       ALLOCATE(    ustar_pbl(im,J_0H:J_1H,4),
      *         STAT=IER)
@@ -213,6 +214,10 @@ C****
      *            tflux(im,J_0H:J_1H),
      *            qflux(im,J_0H:J_1H),
      *         STAT=IER)
+      uflux(:,J_0H:J_1H) = 0. ! define defaults
+      vflux(:,J_0H:J_1H) = 0. 
+      tflux(:,J_0H:J_1H) = 0. 
+      qflux(:,J_0H:J_1H) = 0. 
 
       END SUBROUTINE ALLOC_PBL_COM
 

@@ -1793,6 +1793,7 @@ C**** albedo calculations
       ALLOCATE( TRSI(NTM, LMI, IM, J_0H:J_1H),
      *     TRSI0(NTM),
      *     STAT=IER)
+      TRSI(:, :, :, J_0H:J_1H) = 0.  ! default to prevent unecessary crash
 #endif
 
       RETURN
