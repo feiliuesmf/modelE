@@ -891,6 +891,11 @@ c****   ngm+1 - 6*ngm   q(is,ngm)
 c**** 6*ngm+1 - 11*ngm   qk(is,ngm)
 c**** 11*ngm+1           sl
       real*8, external :: qsat
+!@dbparam ghy_default_data if == 1 reset all GHY data to defaults
+!@+ (do not read it from files)
+      integer :: ghy_default_data = 0
+ccc temporary code: dumping land surface data
+cddd      integer :: i_def=20, j_def=33
 
 c**** set conservation diagnostics for ground water mass and energy
       conpt=conpt0
@@ -904,29 +909,63 @@ c**** set conservation diagnostics for ground water mass and energy
       call set_con(qcon,conpt,"GRND ENG","(10**6 J/m^2)   ",
      *     "(10^-3 W/m^2)   ",1d-6,1d3,icon_htg)
 
-c**** read in vegetation data set: vdata
-      call openunit("VEG",iu_VEG,.true.,.true.)
-      do k=1,10  !  11 ????
-        call readt (iu_VEG,0,vdata(1,1,K),im*jm,vdata(1,1,k),1)
-      end do
-c**** zero-out vdata(11) until it is properly read in
-      vdata(:,:,11) = 0.
-
-      call closeunit(iu_VEG)
-      if (istart.le.0) return
-c**** read soils parameters
-      call openunit("SOIL",iu_SOIL,.true.,.true.)
-      call dread (iu_SOIL,dz_ij,im*jm*(11*ngm+1),dz_ij)
-      call closeunit (iu_SOIL)
-c**** read topmodel parameters
-      call openunit("TOP_INDEX",iu_TOP_INDEX,.true.,.true.)
-      call readt(iu_TOP_INDEX,0,top_index_ij,im*jm,top_index_ij,1)
-      call readt(iu_TOP_INDEX,0,top_dev_ij,  im*jm,top_dev_ij,  1)
-      call closeunit (iu_TOP_INDEX)
 c**** read rundeck parameters
       call sync_param( "snow_cover_coef", snow_cover_coef )
       call sync_param( "snoage_def", snoage_def )
+      call sync_param( "ghy_default_data", ghy_default_data )
 
+c**** read land surface parameters or use defaults
+      if ( ghy_default_data == 0 ) then ! read from files
+c**** read in vegetation data set: vdata
+        call openunit("VEG",iu_VEG,.true.,.true.)
+        do k=1,10               !  11 ????
+          call readt (iu_VEG,0,vdata(1,1,K),im*jm,vdata(1,1,k),1)
+        end do
+c**** zero-out vdata(11) until it is properly read in
+        vdata(:,:,11) = 0.
+        call closeunit(iu_VEG)
+        if (istart.le.0) return ! Why ?
+c**** read soils parameters
+        call openunit("SOIL",iu_SOIL,.true.,.true.)
+        call dread (iu_SOIL,dz_ij,im*jm*(11*ngm+1),dz_ij)
+        call closeunit (iu_SOIL)
+c**** read topmodel parameters
+        call openunit("TOP_INDEX",iu_TOP_INDEX,.true.,.true.)
+        call readt(iu_TOP_INDEX,0,top_index_ij,im*jm,top_index_ij,1)
+        call readt(iu_TOP_INDEX,0,top_dev_ij,  im*jm,top_dev_ij,  1)
+        call closeunit (iu_TOP_INDEX)
+      else  ! reset to default data
+        if ( istart>0 .and. istart<10 ) then ! reset all
+          call reset_gh_to_defaults( .true. )
+        else   ! do not reset ghy prognostic variables
+          call reset_gh_to_defaults( .false. )
+        endif
+      endif
+        
+ccc temporary code: dump all land surface data here
+cddd      print 7,'**** land surface data here ****'
+cddd      print 7,'vdata(i,j,1:11)= ', vdata( i_def, j_def, 1:11 )
+cddd      print 7,'dz_ij(i,j,1:ngm)= ', dz_ij( i_def, j_def, 1:ngm )
+cddd      print 7,'q_ij(i,j,1:imt,1:ngm)= ',
+cddd     &     q_ij( i_def, j_def, 1:imt, 1:ngm )
+cddd      print 7,'qk_ij(i,j,1:imt,1:ngm)= ',
+cddd     &     qk_ij( i_def, j_def, 1:imt, 1:ngm )
+cddd      print 7,'sl_ij(i,j)= ', sl_ij( i_def, j_def )
+cddd      print 7,'top_index_ij(i,j)= ', top_index_ij( i_def, j_def )
+cddd      print 7,'top_dev_ij(i,j)= ', top_dev_ij( i_def, j_def )
+cddd
+cddd      print 7,'snowe(i,j)=', snowe(i_def,j_def)
+cddd      print 7,'tearth(i,j)=', tearth(i_def,j_def)
+cddd      print 7,'wearth(i,j)=', wearth(i_def,j_def)
+cddd      print 7,'aiearth(i,j)=', aiearth(i_def,j_def)
+cddd      print 7,'wbare(:,i,j) =',  wbare(:,i_def,j_def)
+cddd      print 7,'wvege(:,i,j) =',  wvege(:,i_def,j_def)
+cddd      print 7,'htbare(:,i,j)=',  htbare(:,i_def,j_def)
+cddd      print 7,'htvege(:,i,j)=',  htvege(:,i_def,j_def)
+cddd      print 7,'snowbv(:,i,j)=',  snowbv(:,i_def,j_def)
+cddd      print 7,'**** land surface data end ****'
+cddd
+cddd 7    format( '      ', a, '(/', 100(d16.8,','), '/)' )
 c****
 c**** initialize constants
 c****
@@ -1266,6 +1305,77 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
 
       return
       end subroutine init_gh
+
+
+      subroutine reset_gh_to_defaults( reset_prognostic )
+      use model_com, only: vdata
+      use ghycom
+      logical, intent(in) :: reset_prognostic
+      integer i,j
+
+      do j=1,jm
+      do i=1,im
+
+      vdata(i,j,1:11)= (/  0.00000000d+00,  0.00000000d+00,
+     &     0.00000000d+00,  0.00000000d+00,  0.00000000d+00,
+     &     0.62451148d+00,  0.00000000d+00,  0.00000000d+00,
+     &     0.37548852d+00,  0.00000000d+00,  0.00000000d+00 /)
+      dz_ij(i,j,1:ngm)= (/  0.99999964d-01,  0.17254400d+00,
+     &     0.29771447d+00,  0.51368874d+00,  0.88633960d+00,
+     &     0.15293264d+01 /)
+      q_ij(i,j,1:imt,1:ngm)=
+     &     reshape( (/  0.33491623d+00,  0.52958947d+00,
+     &     0.13549370d+00,  0.00000000d+00,  0.00000000d+00,
+     &     0.32995611d+00,  0.52192056d+00,  0.14812243d+00,
+     &     0.00000000d+00,  0.00000000d+00,  0.32145596d+00,
+     &     0.48299056d+00,  0.19555295d+00,  0.00000000d+00,
+     &     0.00000000d+00,  0.47638881d+00,  0.40400982d+00,
+     &     0.11959970d+00,  0.00000000d+00,  0.00000000d+00,
+     &     0.99985123d-01,  0.95771909d-01,  0.41175738d-01,
+     &     0.00000000d+00,  0.76306665d+00,  0.00000000d+00,
+     &     0.00000000d+00,  0.00000000d+00,  0.00000000d+00,
+     &     0.10000000d+01 /), (/imt,ngm/) )
+      qk_ij(i,j,1:imt,1:ngm)=
+     &     reshape( (/  0.34238762d+00,  0.52882469d+00,
+     &     0.12878728d+00,  0.00000000d+00,  0.00000000d+00,
+     &     0.32943058d+00,  0.52857041d+00,  0.14199871d+00,
+     &     0.00000000d+00,  0.00000000d+00,  0.30698991d+00,
+     &     0.52528000d+00,  0.16772974d+00,  0.00000000d+00,
+     &     0.00000000d+00,  0.39890009d+00,  0.43742162d+00,
+     &     0.16367787d+00,  0.00000000d+00,  0.00000000d+00,
+     &     0.46536058d+00,  0.39922065d+00,  0.13541836d+00,
+     &     0.00000000d+00,  0.00000000d+00,  0.00000000d+00,
+     &     0.00000000d+00,  0.00000000d+00,  0.00000000d+00,
+     &     0.10000000d+01 /), (/imt,ngm/) )
+      sl_ij(i,j)= 0.22695422d+00
+      top_index_ij(i,j)= 0.10832934d+02
+      top_dev_ij(i,j)= 0.21665636d+03
+
+      if ( .not. reset_prognostic ) cycle
+
+      snowe(i,j)= 0.65458111d-01
+      tearth(i,j)= -0.12476520d+00
+      wearth(i,j)=  0.29203081d+02
+      aiearth(i,j)=  0.93720329d-01
+      wbare(:,i,j) = (/  0.17837750d-01,  0.40924843d-01,
+     &     0.77932012d-01,  0.11919649d+00,  0.57237469d-01,
+     &     0.10000000d-11 /)
+      wvege(:,i,j) = (/  0.10000000d-11,  0.29362259d-01,
+     &     0.50065177d-01,  0.82533140d-01,  0.10383620d+00,
+     &     0.31552459d-01,  0.10000000d-11 /)
+      htbare(:,i,j)= (/  0.00000000d+00, -0.15487181d+07,
+     &     -0.50720067d+07,  0.18917623d+07,  0.77174974d+07,
+     &     0.21716040d+08,  0.44723067d+08 /)
+      htvege(:,i,j)= (/ -0.13991376d+05, -0.53165599d+05,
+     &     0.65443775d+06,  0.29276050d+07,  0.81455096d+07,
+     &     0.21575081d+08,  0.45952255d+08 /)
+      snowbv(:,i,j)= (/  0.00000000d+00,  0.65458111d-04 /)
+
+      enddo
+      enddo
+
+      end subroutine reset_gh_to_defaults
+
 
       subroutine ghinij (i0,j0, wfcap)
 c**** input:
