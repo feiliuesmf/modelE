@@ -924,7 +924,7 @@ C****
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifdef TRACERS_SPECIAL_Shindell
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH4 BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -932,7 +932,7 @@ C****
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH4 BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
@@ -1054,7 +1054,7 @@ C**** special unique to HTO
 
       case ('Ox')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Ox BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -1062,7 +1062,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Ox BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
@@ -1072,35 +1072,36 @@ C**** special unique to HTO
 
       case ('NOx')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF NOx BY CHEMISTRY'
         jls_ltop(k) = LTOP
         jls_power(k) = -1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_3Dsource(2,n) = k
-        sname_jls(k) = 'lightning_source_of'//trname(n)
-        lname_jls(k) = 'CHANGE OF NOx BY LIGHTNING'
-        jls_ltop(k) = LM
-        jls_power(k) = -2.
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_3Dsource(3,n) = k
-        sname_jls(k) = 'aircraft_source_of'//trname(n)
-        lname_jls(k) = 'CHANGE OF NOx BY AIRCRAFT'
-        jls_ltop(k) = LM
-        jls_power(k) = -2.
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(4,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF NOx BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
+        k = k + 1
+        jls_3Dsource(nLightning,n) = k
+        sname_jls(k) = 'lightning_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF NOx BY LIGHTNING'
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(nAircraft,n) = k
+        sname_jls(k) = 'aircraft_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF NOx BY AIRCRAFT'
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
         k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'Fossil_Fuel_Source_of_'//trname(n)
@@ -1125,7 +1126,7 @@ C**** special unique to HTO
 
       case ('N2O5')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF N2O5 BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -1133,7 +1134,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF N2O5 BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
@@ -1143,7 +1144,7 @@ C**** special unique to HTO
 
       case ('HNO3')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HNO3 BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -1151,7 +1152,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HNO3 BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
@@ -1161,7 +1162,7 @@ C**** special unique to HTO
 
       case ('H2O2')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF H2O2 BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -1169,7 +1170,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF H2O2 BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
@@ -1179,7 +1180,7 @@ C**** special unique to HTO
 
        case ('CH3OOH')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH3OOH BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -1187,7 +1188,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH3OOH BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
@@ -1197,7 +1198,7 @@ C**** special unique to HTO
 
        case ('HCHO')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HCHO BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -1205,7 +1206,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HCHO BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
@@ -1215,7 +1216,7 @@ C**** special unique to HTO
 
        case ('HO2NO2')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HO2NO2 BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -1223,7 +1224,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HO2NO2 BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
@@ -1233,7 +1234,7 @@ C**** special unique to HTO
 
        case ('CO')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CO BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -1241,7 +1242,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CO BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
@@ -1265,7 +1266,7 @@ C**** special unique to HTO
 
       case ('PAN')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF PAN BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -1273,7 +1274,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF PAN BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
@@ -1283,7 +1284,7 @@ C**** special unique to HTO
 
       case ('Isoprene')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Isoprene BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -1291,7 +1292,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Isoprene BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
@@ -1308,7 +1309,7 @@ C**** special unique to HTO
 
       case ('AlkylNit')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF AlkylNit BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -1316,7 +1317,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF AlkylNit BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
@@ -1326,7 +1327,7 @@ C**** special unique to HTO
 
       case ('Alkenes')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Alkenes BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -1334,7 +1335,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Alkenes BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
@@ -1365,7 +1366,7 @@ C**** special unique to HTO
 
       case ('Paraffin')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Paraffin BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -1373,7 +1374,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Paraffin BY STRATOSPHERIC OVERWRITE'
         jls_ltop(k) = LM
@@ -1405,7 +1406,7 @@ C**** special unique to HTO
       case ('ClOx','BrOx','HCl','HOCl','ClONO2',
      &      'HBr','HOBr','BrONO2','CFC')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
         jls_ltop(k) = LM
@@ -1414,7 +1415,7 @@ C**** special unique to HTO
 
       case ('OxREG1','OxREG2','OxREG3','OxREG4','OxREG5','OxREG6')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
         jls_ltop(k) = LTOP
@@ -1422,7 +1423,7 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) =
      &  'CHANGE OF '//trname(n)//' BY STRATOSPHERIC OVERWRITE'
@@ -2037,7 +2038,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
-        ijts_3Dsource(1,n) = k
+        ijts_3Dsource(nChemistry,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'NOx Chemistry'
@@ -2045,27 +2046,9 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k + 1
-        ijts_3Dsource(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'NOx Lightning Source'
-        sname_ijts(k) = 'NOx_lightning'
-        ijts_power(k) = -12.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k + 1
-        ijts_3Dsource(3,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'NOx Aircraft Source'
-        sname_ijts(k) = 'NOx_aircraft'
-        ijts_power(k) = -12.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifndef Shindell_Strat_chem
       k = k + 1
-        ijts_3Dsource(4,n) = k
+        ijts_3Dsource(nStratwrite,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'NOx Stratospheric Overwrite'
@@ -2074,6 +2057,24 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif   
+      k = k + 1
+        ijts_3Dsource(nLightning,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'NOx Lightning Source'
+        sname_ijts(k) = 'NOx_lightning'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      k = k + 1
+        ijts_3Dsource(nAircraft,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'NOx Aircraft Source'
+        sname_ijts(k) = 'NOx_aircraft'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('CO')
       k = k+1
@@ -2095,7 +2096,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
-        ijts_3Dsource(1,n) = k
+        ijts_3Dsource(nChemistry,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CO Chemistry'
@@ -2105,7 +2106,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifndef Shindell_Strat_chem
       k = k + 1
-        ijts_3Dsource(2,n) = k
+        ijts_3Dsource(nStratwrite,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CO Stratospheric Overwrite'
@@ -2244,7 +2245,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_SPECIAL_Shindell
       k = k + 1
-        ijts_3Dsource(1,n) = k
+        ijts_3Dsource(nChemistry,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Chemistry'
@@ -2254,7 +2255,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifndef Shindell_Strat_chem
       k = k + 1
-        ijts_3Dsource(2,n) = k
+        ijts_3Dsource(nStratwrite,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Stratospheric Overwrite'
@@ -2324,7 +2325,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
-        ijts_3Dsource(1,n) = k
+        ijts_3Dsource(nChemistry,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Isoprene Chemistry'
@@ -2334,7 +2335,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifndef Shindell_Strat_chem
       k = k + 1
-        ijts_3Dsource(2,n) = k
+        ijts_3Dsource(nStratwrite,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Isoprene Stratospheric Overwrite'
@@ -2373,7 +2374,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
-        ijts_3Dsource(1,n) = k
+        ijts_3Dsource(nChemistry,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Alkenes Chemistry'
@@ -2383,7 +2384,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifndef Shindell_Strat_chem
       k = k + 1
-        ijts_3Dsource(2,n) = k
+        ijts_3Dsource(nStratwrite,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Alkenes Stratospheric Overwrite'
@@ -2422,7 +2423,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
-        ijts_3Dsource(1,n) = k
+        ijts_3Dsource(nChemistry,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Paraffin Chemistry'
@@ -2432,7 +2433,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifndef Shindell_Strat_chem
       k = k + 1
-        ijts_3Dsource(2,n) = k
+        ijts_3Dsource(nStratwrite,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Paraffin Stratospheric Overwrite'
@@ -2445,7 +2446,7 @@ C**** This needs to be 'hand coded' depending on circumstances
       case ('ClOx','BrOx','HCl','HOCl','ClONO2',
      &      'HBr','HOBr','BrONO2','CFC')
       k = k + 1
-        ijts_3Dsource(1,n) = k
+        ijts_3Dsource(nChemistry,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
@@ -2458,7 +2459,7 @@ C**** This needs to be 'hand coded' depending on circumstances
      &      'HO2NO2','PAN','AlkylNit','OxREG1','OxREG2',
      &      'OxREG3','OxREG4','OxREG5','OxREG6')
       k = k + 1
-        ijts_3Dsource(1,n) = k
+        ijts_3Dsource(nChemistry,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
@@ -2468,7 +2469,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifndef Shindell_Strat_chem
       k = k + 1
-        ijts_3Dsource(2,n) = k
+        ijts_3Dsource(nStratwrite,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Stratospheric Overwrite'
@@ -2857,13 +2858,14 @@ C**** set some defaults
       kt_power_change(n) = -13
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12)= 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) =.true.; conpts(g-12)='Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N))=.true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
       g=g+1; itcon_surf(1,N) = g
       qcon(itcon_surf(1,N)) = .true.; conpts(g-12)= 'Animal source'
@@ -2964,13 +2966,15 @@ C**** set some defaults
       kt_power_change(n) = -12
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
 #ifdef TRACERS_DRYDEP
       if(dodrydep(n)) then
@@ -2988,20 +2992,24 @@ C**** set some defaults
       kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
-      g=g+1; itcon_3Dsrc(3,N) = g
-      qcon(itcon_3Dsrc(3,N)) = .true.; conpts(g-12) = 'Lightning'
-      qsum(itcon_3Dsrc(3,N)) = .true.
-      g=g+1; itcon_3Dsrc(4,N) = g
-      qcon(itcon_3Dsrc(4,N)) = .true.; conpts(g-12) = 'Aircraft'
-      qsum(itcon_3Dsrc(4,N)) = .true.
+      g=g+1; itcon_3Dsrc(nLightning,N) = g
+      qcon(itcon_3Dsrc(nLightning,N)) = .true.
+      conpts(g-12) = 'Lightning'
+      qsum(itcon_3Dsrc(nLightning,N)) = .true.
+      g=g+1; itcon_3Dsrc(nAircraft,N) = g
+      qcon(itcon_3Dsrc(nAircraft,N)) = .true.
+      conpts(g-12) = 'Aircraft'
+      qsum(itcon_3Dsrc(nAircraft,N)) = .true.
       g=g+1; itcon_surf(1,N) = g
       qcon(itcon_surf(1,N)) = .true.; conpts(g-12) = 'Fossil Fuels'
       qsum(itcon_surf(1,N)) = .false.
@@ -3027,13 +3035,15 @@ C**** set some defaults
       kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
 #ifdef TRACERS_DRYDEP
       if(dodrydep(n)) then
@@ -3051,13 +3061,15 @@ C**** set some defaults
       kt_power_change(n) = -13
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
       g=g+1; itcon_mc(n) = g
       qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
@@ -3081,13 +3093,15 @@ C**** set some defaults
       kt_power_change(n) = -13
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
       g=g+1; itcon_mc(n) = g
       qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
@@ -3111,13 +3125,15 @@ C**** set some defaults
       kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
 #ifdef TRACERS_DRYDEP
       if(dodrydep(n)) then
@@ -3135,13 +3151,15 @@ C**** set some defaults
       kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
       g=g+1; itcon_mc(n) = g
       qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
@@ -3165,13 +3183,15 @@ C**** set some defaults
       kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
 #ifdef TRACERS_DRYDEP
       if(dodrydep(n)) then
@@ -3189,13 +3209,15 @@ C**** set some defaults
       kt_power_change(n) = -13
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
       g=g+1; itcon_surf(1,N) = g
       qcon(itcon_surf(1,N)) = .true.; conpts(g-12) = 'Industrial'
@@ -3219,13 +3241,15 @@ C**** set some defaults
       kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
 #ifdef TRACERS_DRYDEP
       if(dodrydep(n)) then
@@ -3243,13 +3267,15 @@ C**** set some defaults
       kt_power_change(n) = -13
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
       g=g+1; itcon_surf(1,N) = g
       qcon(itcon_surf(1,N)) = .true.; conpts(g-12) = 'Vegetation'
@@ -3270,13 +3296,15 @@ C**** set some defaults
       kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
 #ifdef TRACERS_DRYDEP
       if(dodrydep(n)) then
@@ -3294,13 +3322,15 @@ C**** set some defaults
       kt_power_change(n) = -13
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
       g=g+1; itcon_surf(1,N) = g
       qcon(itcon_surf(1,N)) = .true.; conpts(g-12) = 'Industrial'
@@ -3327,13 +3357,15 @@ C**** set some defaults
       kt_power_change(n) = -13
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
 #ifndef Shindell_Strat_chem
-      g=g+1; itcon_3Dsrc(2,N) = g
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12)='Strat Overwrite'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Strat Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
       g=g+1; itcon_surf(1,N) = g
       qcon(itcon_surf(1,N)) = .true.; conpts(g-12) = 'Industrial'
@@ -3361,9 +3393,10 @@ C**** set some defaults
       kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
       g=g+1; itcon_mc(n) = g
       qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
       qsum(itcon_mc(n)) = .false.
@@ -4255,14 +4288,13 @@ c I'm not using the moments
 !@auth Jean Lerner
 C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only: jmon,itime,coupled_chem
-      USE TRACER_COM, only: ntm,trname,itime_tr0
+      USE TRACER_COM, only: ntm,trname,itime_tr0,nLightning,nAircraft
 #ifdef TRACERS_SPECIAL_Lerner
       USE TRACER_MPchem_COM, only: n_MPtable,tcscale,STRATCHEM_SETUP
       USE LINOZ_CHEM_COM, only: LINOZ_SETUP
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE FLUXES, only: tr3Dsource
-      USE TRACER_SOURCES, only: nLightning, nAircraft
 #endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only: be7_src_3d
@@ -4676,12 +4708,6 @@ C****
       USE GEOM, only: dxyp,bydxyp
       USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
       USE apply3d, only : apply_tracer_3Dsource
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRACER_SOURCES, only: nLightning, nAircraft, nChemistry
-#ifndef Shindell_Strat_chem
-     &                         ,nStratwrite
-#endif
-#endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only: be7_src_3d
 #endif
