@@ -1,4 +1,4 @@
-      subroutine diffus(lbase_min,lbase_max,dtime)
+      Subroutine diffus(lbase_min,lbase_max,dtime)
 !@sum  diffus updates u,v,t,q due to
 !@+  turbulent transport throughout all GCM layers
 !@+  using a second order closure (SOC)
@@ -6,7 +6,7 @@
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@ver  1.0 (from diffB347D6M20)
 !@cont diffus,getdz,dout,diff_uv,diff_t,diff_q,diff_e
-!@cont lgcm,kgcm,ave_uv_to_tcell,ave_to_ucell
+!@cont lgcm,kgcm,ave_uv_to_agrid,ave_to_bgrid
 !@var u 3d west-east wind component
 !@var v 3d south-north wind component
 !@var t 3d potential temperature
@@ -14,19 +14,19 @@
 !@var p 2-d pressure
 !@var dtime time step
 !@var lbase_min/max levels through which to apply turbulence (dummy)
-!@var mout 0:don't call dout; 1:call dout
+!@var call_diag logical variable whether dout is called
 !@var itest longitude at which to call dout
 !@var jtest latitude at which to call dout
-      USE DYNAMICS, only : pmid,pk,pedn,pdsig,plij
+      USE DYNAMICS, only : pmid,pk,pedn,pdsig,plij,pek
       USE MODEL_COM, only :
      *      im,jm,lm,sig,sige,u,v,t,q,p
       USE CONSTANT, only : grav,kapa,deltx,lhe,sha
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux,egcm
-     *     ,t2gcm
+     *     ,t2gcm,uflux1,vflux1,tflux1,qflux1
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj
-      USE DAGCOM, only : p1000k,ajl,
+      USE DAGCOM, only : ajl,
      &     jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
-      USE SOCPBL, only : nlevel
+      USE SOCPBL, only : b2,prt,kappa,nlevel
 
       IMPLICIT NONE
 
@@ -36,30 +36,32 @@
       real*8, dimension(lm) :: uij,vij,tij,pij,qij,eij,t2ij
       real*8, dimension(lm) :: u0ij,v0ij,t0ij,q0ij,e0ij,t20ij
       real*8, dimension(lm) :: dudz,dvdz,dtdz,dqdz,g_alpha,as2,an2
-      real*8, dimension(lm) :: rhoebydz,bydzerho,gc_t2
+      real*8, dimension(lm) :: rhoebydz,bydzerho,gc_t2,ew_rest
       real*8, dimension(lm) :: km,kh,kq,ke,kt2,gc,lscale,gm,gh
       real*8, dimension(lm) :: rhoij,rhoeij,dzij,dzeij
       real*8, dimension(im,jm,lm) :: uold
       real*8, dimension(lm,im,jm) :: rho,rhoe
       real*8, dimension(lm,im,jm) :: dz,dzedge
       real*8, dimension(lm) :: peij
-      real*8, dimension(lm,im,jm) :: u_tcell,v_tcell,tv_ucell,t_virtual
-      real*8, dimension(lm,im,jm) :: km_gcm,km_gcm_ucell
-     2        ,dz_ucell,dzedge_ucell,rho_ucell,rhoe_ucell
-      real*8, dimension(im,jm) :: p_ucell,tsavg_ucell,qsavg_ucell
-      real*8, dimension(im,jm) :: tvsurf,uflux_ucell,vflux_ucell
+      real*8, dimension(lm,im,jm) :: u_agrid,v_agrid,tv_bgrid,t_virtual
+      real*8, dimension(lm,im,jm) :: km_gcm,km_gcm_bgrid
+     2        ,dz_bgrid,dzedge_bgrid,rho_bgrid,rhoe_bgrid
+      real*8, dimension(im,jm) :: p_bgrid,tsavg_bgrid,qsavg_bgrid
+      real*8, dimension(im,jm) :: tvsurf,uflux_bgrid,vflux_bgrid
 
-      integer, parameter :: mout=0,itest=52,jtest=33
-      real*8, parameter :: tol=1.d-4,qmin=1.d-20
-      real*8 :: uflx,vflx,tflx,qflx,pl,tsv
+      integer, parameter :: itest= 1,jtest=11
+      Real*8, parameter :: tol=1.d-4,qmin=1.d-20
+      real*8 :: uflx,vflx,tflx,qflx,pl,tvs
       real*8 :: temp0,ustar2,dbll,reserv,test,check,t0ijl,rak
+      real*8 :: alpha1,thes,ustar,tmp1,tmp2
       integer :: loc,icount,imax,kmax,idik,idjk
-      integer :: i,j,l,k,iter,ifirst !@i,j,l,k loop variable
-      data ifirst/0/
-
+      integer :: i,j,l,k,iter !@i,j,l,k loop variable
+      integer, SAVE :: ifirst=0
+      logical, parameter :: call_diag=.false.
 C**** Note that lbase_min/max are here for backwards compatibility with
 C**** original drycnv. They are only used to determine where the
 C**** routine has been called from.
+
       if (lbase_min.eq.2) return       ! quit if called from main
 
       !  convert input T to virtual T
@@ -72,40 +74,42 @@ C**** routine has been called from.
         end do
       end do
 
-      ! integrate T,Q equations at tcells
+      ! integrate T,Q equations at agrids
 
-      ! get u_tcell and v_tcell at t-cells
-      call ave_uv_to_tcell1(u,v,u_tcell,v_tcell,im,jm,lm)
+      ! get u_agrid and v_agrid at t-cells
+      call ave_uv_to_agrid(u,v,u_agrid,v_agrid,im,jm,lm)
 
       call getdz(t_virtual,p,dz,dzedge,rho,rhoe,tvsurf,im,jm,lm)
  
-      if(ifirst.eq.0) then
-        ifirst=1
-        do j=1,jm
-          do i=1,imaxj(j)
-            do l=1,lm
-               t2gcm(l,i,j)=egcm(l,i,j)*1.d-3
-            end do
-          end do
-        end do
-      endif
+c     if(ifirst.eq.0) then
+c       ifirst=1
+c       do j=1,jm
+c         do i=1,imaxj(j)
+c           do l=1,lm
+c              t2gcm(l,i,j)=egcm(l,i,j)*1.d-3
+c           end do
+c         end do
+c       end do
+c     endif
 
       loop_j_tq: do j=1,jm
         loop_i_tq: do i=1,imaxj(j)
+
           do l=1,lm
-            uij(l)=u_tcell(l,i,j)
-            vij(l)=v_tcell(l,i,j)
-            tij(l)=t_virtual(l,i,j)*p1000k  !virtual,potential temp.
+            uij(l)=u_agrid(l,i,j)
+            vij(l)=v_agrid(l,i,j)
+            tij(l)=t_virtual(l,i,j) !virtual,potential temp.
             pij(l)=100.d0*pmid(l,i,j)
+            if(q(i,j,l).lt.0.d0) q(i,j,l)=qmin
             qij(l)=q(i,j,l)
             eij(l)=egcm(l,i,j)
-            t2ij(l)=t2gcm(l,i,j)
+c           t2ij(l)=t2gcm(l,i,j)
             rhoeij(l)=rhoe(l,i,j)
             rhoij(l)=rho(l,i,j)
             t0ij(l)=tij(l)
             q0ij(l)=qij(l)
             e0ij(l)=eij(l)
-            t20ij(l)=t2ij(l)
+c           t20ij(l)=t2ij(l)
           end do
           do l=1,lm-1
             dzij(l)=dz(l,i,j)
@@ -127,40 +131,64 @@ C**** routine has been called from.
             as2(l)=dudz(l)*dudz(l)+dvdz(l)*dvdz(l)
           end do
 
-          tsv=tvsurf(i,j)
-          uflx=uflux(i,j)
-          vflx=vflux(i,j)
-          tflx=tflux(i,j)
-          qflx=qflux(i,j)
-          ustar2=sqrt(uflx*uflx+vflx*vflx)
+          tvs=tvsurf(i,j)/pek(1,i,j)
+          uflx=uflux1(i,j)/rhoe(1,i,j)
+          vflx=vflux1(i,j)/rhoe(1,i,j)
+          tflx=tflux1(i,j)/(rhoe(1,i,j)*pek(1,i,j))
+          qflx=qflux1(i,j)/rhoe(1,i,j)
+          tmp1=uflux(i,j)
+          tmp2=vflux(i,j)
+          uflux(i,j)=uflx
+          vflux(i,j)=vflx
 
-          call lgcm(lscale,uij,vij,tij,eij,dudz,dvdz,as2,an2,
-     2              dzij,dzeij,rhoij,lm)
-c          call init_t2(uij,vij,tij,eij,t2ij,t20ij,
-c    2          dudz,dvdz,as2,dtdz,g_alpha,an2,lscale,dzij,lm)
-          call kgcm(km,kh,kq,ke,kt2,gc,gc_t2,gm,gh,uij,vij,tij,
+c         if ((i.eq.itest).and.(j.eq.jtest)) then
+c         write(99,*) i,j
+c         write(99,1001) "uflux: ", tmp1,uflx,tmp1/uflx
+c         write(99,1001) "vflux: ", tmp2,vflx,tmp2/vflx
+c         write(99,1001) "tflux: ", tflux(i,j)/pek(1,i,j),tflx
+c    &                            , tflux(i,j)/pek(1,i,j)/tflx
+c         write(99,1001) "qflux: ", qflux(i,j),qflx,qflux(i,j)/qflx
+c         write(99,*) 
+c         endif
+
+          ustar2=sqrt(uflx*uflx+vflx*vflx)
+          ustar=sqrt(ustar2)
+          alpha1=atan2(vflx,uflx)
+          thes=tflx*prt/ustar
+          dudz(1)=ustar/(kappa*10.d0)*cos(alpha1)
+          dvdz(1)=ustar/(kappa*10.d0)*sin(alpha1)
+          dtdz(1)=thes/(kappa*10.d0)
+          dqdz(1)=qflx*prt/(ustar*kappa*10.d0)
+          g_alpha(1)=grav/tvs
+          an2(1)=g_alpha(1)*dtdz(1)
+          as2(1)=dudz(1)*dudz(1)+dvdz(1)*dvdz(1)
+
+          call lgcm(lscale,eij,as2,an2,dzij,dzeij,rhoeij,lm)
+          call kgcm(km,kh,kq,ke,kt2,gc,gc_t2,ew_rest,gm,gh,uij,vij,tij,
      2             eij,t20ij,dudz,dvdz,as2,dtdz,g_alpha,an2,
-     3             lscale,dzij,dzeij,tsv,lm)
-          call diff_e(e0ij,eij,km,kh,ke,gc,lscale,uij,vij,tij,
+     3             lscale,dzij,dzeij,tvs,lm)
+          call diff_e(e0ij,eij,km,kh,ke,gc,ew_rest,lscale,uij,vij,tij,
      2         dzij,dzeij,dudz,dvdz,as2,dtdz,g_alpha,an2,
      3         rhoij,rhoeij,ustar2,dtime,lm)
-          if(nlevel.eq.3) call diff_t2(t20ij,t2ij,eij,kh,kt2,gc,gc_t2,
-     2      lscale,tij,dtdz,dzij,dzeij,rhoij,rhoeij,
-     3      ustar2,tflx,dtime,lm)
+c         if(nlevel.eq.3) call diff_t2(t20ij,t2ij,eij,kh,kt2,gc,gc_t2,
+c    2      lscale,tij,dtdz,dzij,dzeij,rhoij,rhoeij,
+c    3      ustar2,tflx,dtime,lm)
           call diff_t(t0ij,tij,kh,gc,dzij,dzeij,
      2                 rhoij,rhoeij,rhoebydz,bydzerho,tflx,dtime,lm)
           call diff_q(q0ij,qij,kq,dzij,dzeij,
-     2                 rhoij,rhoeij,rhoebydz,bydzerho,qflx,dtime,lm)
+     2         rhoij,rhoeij,rhoebydz,bydzerho,qflx,qmin,dtime,lm)
 
+          !@var dbll PBL top layer number counted from below, real*8
           call find_pbl_top(eij,dbll,lm)
+          dclev(i,j)=dbll
 
           do l=1,lm
             ! update 3-d q,t,egcm,t2gcm and km_gcm
             q(i,j,l)=max(qij(l),qmin)
             t0ijl=t(i,j,l)
-            t(i,j,l)=tij(l)/(p1000k*(1.d0+deltx*Q(i,j,l)))
+            t(i,j,l)=tij(l)/(1.d0+deltx*Q(i,j,l))
             egcm(l,i,j)=eij(l)
-            t2gcm(l,i,j)=t2ij(l)
+c           t2gcm(l,i,j)=t2ij(l)
             km_gcm(l,i,j)=km(l)
             ! ACCUMULATE DIAGNOSTICS for t and q
             AJL(J,L,JL_TRBHR)=AJL(J,L,JL_TRBHR)
@@ -169,38 +197,74 @@ c    2          dudz,dvdz,as2,dtdz,g_alpha,an2,lscale,dzij,lm)
      2                 +(Q(I,J,L)-q0ij(l))*PDSIG(L,I,J)*LHE/SHA
             AJL(J,L,JL_TRBKE)=AJL(J,L,JL_TRBKE)+eij(l)
           end do
-          ! update pbl height (layer number counted from below, real*8)
-          dclev(i,j)=dbll
 
           ! Write out diagnostics if at selected grid point:
 
-          if (mout.eq.1.and.(i.eq.itest).and.(j.eq.jtest)) then
+          if (call_diag.and.(i.eq.itest).and.(j.eq.jtest)) then
             do l=1,lm
                 peij(l)=100.d0*pedn(l,i,j)
+                tij(l)=tij(l)*pek(1,i,j)
+                t0ij(l)=t0ij(l)*pek(1,i,j)
+                dtdz(l)=dtdz(l)*pek(1,i,j)
+                t2ij(l)=b2*lscale(l)/sqrt(2.d0*eij(l))*kh(l)*dtdz(l)**2
             end do
-            call dout(uij,vij,tij,pij,peij,qij,eij,t2ij,dzij,dzeij,
-     1           dudz,dvdz,as2,dtdz,g_alpha,an2,dqdz,
+            tflx=tflx*pek(1,i,j)
+            tvs=tvs*pek(1,i,j)
+            iter=1
+            call dout(uij,vij,tij,pij,peij,qij,eij,ew_rest,t2ij,
+     1           dzij,dzeij,dudz,dvdz,as2,dtdz,g_alpha,an2,dqdz,
      2           rhoij,rhoeij,t0ij,q0ij,
-     3           km,kh,kq,ke,kt2,gc,gm,gh,lscale,reserv,tsv,
+     3           km,kh,kq,ke,kt2,gc,gm,gh,lscale,reserv,tvs,
      4           uflx,vflx,tflx,qflx,itest,jtest,iter,lm)
           endif
 
         end do loop_i_tq
       end do loop_j_tq
 
-      ! integrate U,V equations at ucells
+      ! integrate U,V equations at bgrids
 
-      ! average some quantities at u-cells
-c     call ave_to_ucell(p,p_ucell,im,jm,1)
-c     call ave_to_ucell(tsavg,tsavg_ucell,im,jm,1)
-c     call ave_to_ucell(qsavg,qsavg_ucell,im,jm,1)
+cccc testing:
+cccc testing:
+c     do j=1,jm
+c       do i=1,imaxj(j)
+c         uflux(i,j)=1.d0
+c         vflux(i,j)=1.d0
+c         do l=1,lm
+c           rho(l,i,j)=1.d0
+c         end do
+c       end do
+c     end do
+c     call ave_uv_to_bgrid(uflux,vflux,uflux_bgrid,vflux_bgrid,im,jm,1)
+c     call ave_S_to_bgrid(rho,rho_bgrid,im,jm,lm)
+c     do j=2,jm
+c       do i=1,im
+c         if(abs(uflux_bgrid(i,j)-1.d0).gt.1.d-4.or.
+c    &       abs(vflux_bgrid(i,j)-1.d0).gt.1.d-4) then
+c            write(70,1003) i,j,uflux_bgrid(i,j),vflux_bgrid(i,j)
+c         endif
+c         if(abs(rho_bgrid(1,i,j)-1.d0).gt.1.d-4.or.
+c    &       abs(rho_bgrid(2,i,j)-1.d0).gt.1.d-4.or.
+c    &       abs(rho_bgrid(3,i,j)-1.d0).gt.1.d-4.or.
+c    &       abs(rho_bgrid(lm-1,i,j)-1.d0).gt.1.d-4.or.
+c    &       abs(rho_bgrid(lm,i,j)-1.d0).gt.1.d-4) then
 
-      call ave_ufvf_to_ucell(uflux,vflux,uflux_ucell,vflux_ucell,im,jm)
-      call ave_to_ucell1(km_gcm,km_gcm_ucell,im,jm,lm)
-      call ave_to_ucell1(dz,dz_ucell,im,jm,lm)
-      call ave_to_ucell1(dzedge,dzedge_ucell,im,jm,lm)
-      call ave_to_ucell1(rho,rho_ucell,im,jm,lm)
-      call ave_to_ucell1(rhoe,rhoe_ucell,im,jm,lm)
+c           write(71,1003) i,j,rho_bgrid(1,i,j),rho_bgrid(2,i,j),
+c    &       rho_bgrid(3,i,j), rho_bgrid(lm-1,i,j),rho_bgrid(lm,i,j)
+c         endif
+c       end do
+c     end do
+c1003 format(2x,i4,2x,i4,2x,9(1pe14.4))
+c
+c     stop
+cccc end testing:
+cccc end testing:
+
+      call ave_uv_to_bgrid(uflux,vflux,uflux_bgrid,vflux_bgrid,im,jm,1)
+      call ave_s_to_bgrid(km_gcm,km_gcm_bgrid,im,jm,lm)
+      call ave_s_to_bgrid(dz,dz_bgrid,im,jm,lm)
+      call ave_s_to_bgrid(dzedge,dzedge_bgrid,im,jm,lm)
+      call ave_s_to_bgrid(rho,rho_bgrid,im,jm,lm)
+      call ave_s_to_bgrid(rhoe,rhoe_bgrid,im,jm,lm)
 
       loop_j_uv: do j=2,jm
         loop_i_uv: do i=1,im
@@ -208,22 +272,22 @@ c     call ave_to_ucell(qsavg,qsavg_ucell,im,jm,1)
           do l=1,lm
             uij(l)=u(i,j,l)
             vij(l)=v(i,j,l)
-            rhoeij(l)=rhoe_ucell(l,i,j)
-            rhoij(l)=rho_ucell(l,i,j)
+            rhoeij(l)=rhoe_bgrid(l,i,j)
+            rhoij(l)=rho_bgrid(l,i,j)
             u0ij(l)=uij(l)
             v0ij(l)=vij(l)
             uold(i,j,l)=uij(l)
-            dzeij(l)=dzedge_ucell(l,i,j)
+            dzeij(l)=dzedge_bgrid(l,i,j)
             bydzerho(l)=1.d0/(dzeij(l)*rhoij(l))
-            km(l)=km_gcm_ucell(l,i,j)
+            km(l)=km_gcm_bgrid(l,i,j)
           end do
           do l=1,lm-1
-            dzij(l)=dz_ucell(l,i,j)
+            dzij(l)=dz_bgrid(l,i,j)
             rhoebydz(l+1)=rhoeij(l+1)/dzij(l)
           end do
 
-          uflx  =uflux_ucell(i,j)
-          vflx  =vflux_ucell(i,j)
+          uflx  =uflux_bgrid(i,j)
+          vflx  =vflux_bgrid(i,j)
 
           call diff_uv(u0ij,v0ij,uij,vij,km,dzij,dzeij,rhoij,rhoeij,
      2                 rhoebydz,bydzerho,uflx,vflx,dtime,lm)
@@ -254,6 +318,7 @@ c     call ave_to_ucell(qsavg,qsavg_ucell,im,jm,1)
         ENDDO
       ENDDO
 
+ 1001 format(a,3(1pe14.4))
       return
       end subroutine diffus
 
@@ -343,107 +408,119 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
       return
       end subroutine getdz
 
-      subroutine dout(u,v,t,pres,prese,q,e,t2,dz,dzedge,
+      subroutine dout(u,v,t,p,pe,q,e,ew_rest,t2,dz,dze,
      1                dudz,dvdz,as2,dtdz,g_alpha,an2,dqdz,
      2                rho,rhoe,t0,q0,
-     3                km,kh,kq,ke,kt2,gc,gm,gh,lscale,reserv,tsv,
+     3                km,kh,kq,ke,kt2,gc,gm,gh,lscale,reserv,tvs,
      4                uflx,vflx,tflx,qflx,itest,jtest,iter,n)
 !@sum dout writes out diagnostics at i=itest, j=jtest
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
-!@var u z-profle of west-east   velocity component
-!@var v z-profle of south-north velocity component
-!@var t z-profle of potential temperature T
-!@var q z-profle of potential temperature Q
-!@var e z-profle of turbulent kinetic energy
-!@var t0 z-profle of t at previous time step
-!@var q0 z-profle of q at previous time step
-!@var pres 1-d pressure at z
-!@var prese 1-d pressure at zedge
+!@var u z-profile of west-east   velocity component
+!@var v z-profile of south-north velocity component
+!@var t z-profile of virt. pot. temperature T (referenced to surf. p)
+!@var p z-profile of pressure at main grid z
+!@var pe z-profile of pressure at secondary grid zedge
+!@var q z-profile of relative humidity Q
+!@var e z-profile of turbulent kinetic energy
+!@var t2 z-profile of turbulent virt. pot. temperature variance
+!@var dz(j) z(j+1)-z(j)
+!@var dze(j) zedge(j+1)-zedge(j)
+!@var dudz z-derivative of u at secondary grid zedge
+!@var dvdz z-derivative of v at secondary grid zedge
+!@var as2 dudz^2+dvdz^2
+!@var dtdz z-derivative of t at secondary grid zedge
+!@var g_alpha grav*(thermal expansion coefficient)
+!@var an2 g_alpha*dtdz, brunt-vasala frequency
+!@var dqdz z-derivative of q at secondary grid zedge
+!@var rho z-profile of density at z
+!@var rhoe z-profile of density at zedge
+!@var t0 z-profile of t at previous time step
+!@var q0 z-profile of q at previous time step
 !@var km turbulent viscosity for u and v equations
 !@var kh turbulent diffusivity for t
 !@var kq turbulent diffusivity for q
-!@var ke turbulent diffusivity for e equation
+!@var ke turbulent diffusivity for e
+!@var kt2 turbulent diffusivity for t2
+!@var gc countergradient term is vertical heat flux (at model level 3)
 !@var gm normalized velocity gradient, tau**2*as2
 !@var gh normalized temperature gradient, tau**2*an2
 !@var lscale z-profile of turbulent length scale
-!@var dz(j) z(j+1)-z(j)
-!@var dzedge(j) zedge(j+1)-zedge(j)
-!@var rho z-profile of density at z
-!@var rhoe z-profile of density at zedge
-!@var ps surface pressure
-!@var reserv reserved for furture use
-!@var tsv surface virtual temperature
+!@var tvs surface virtual temperature
 !@var uflx momentun flux -uw at surface, zedge(1)
 !@var vflx momentun flux -vw at surface, zedge(1)
 !@var tflx heat flux -wt at surface, zedge(1)
 !@var qflx moisture flux -wq at surface, zedge(1)
 !@var itest,jtest (i,j) location at which the output is wriiten
-!@var dtime time step
 !@var n number of vertical main layers
 
       USE CONSTANT, only : grav,rgas
+      USE SOCPBL, only : b1,b2
+      USE MODEL_COM, only : sig,sige
+      USE RESOLUTION, only : PTOP
+      USE DYNAMICS, only : plij
+
       implicit none
 
       integer, intent(in) :: n,iter,itest,jtest
-      real*8, dimension(n), intent(in) :: u,v,t,pres,prese,q,e,t2
+      real*8, dimension(n), intent(in) :: u,v,t,p,pe,q,e,ew_rest,t2
       real*8, dimension(n), intent(in) :: dudz,dvdz,as2
       real*8, dimension(n), intent(in) :: dtdz,g_alpha,an2,dqdz
       real*8, dimension(n), intent(in) :: rho,rhoe,t0,q0
       real*8, dimension(n), intent(in) :: km,kh,kq,ke,kt2,gc,gm,gh
-      real*8, dimension(n), intent(in) :: lscale,dz,dzedge
-      real*8, intent(in) :: reserv,tsv
+      real*8, dimension(n), intent(in) :: lscale,dz,dze
+      real*8, intent(in) :: reserv,tvs
       real*8, intent(in) :: uflx,vflx,tflx,qflx
 
       real*8 :: z,utotal,dt,dq,zedge,qturb,dmdz
       real*8 :: uf,hf,qf
-      real*8 :: ri,rif,sigmat,reserv2,ps,wt1
+      real*8 :: ri,rif,sigmat,reserv2,wt1
       integer :: i,j,l  !@var i,j,l loop variable
 
-c     Fields on main vertical grid:
-      ps=prese(1)
-      z=(rgas/grav)*0.5d0*(tsv+t(1))*log(ps/pres(1))+10.d0
-      Write (67,1001) "iter=",iter
-      Write (67,1000) itest,jtest,reserv,ps,uflx,vflx,tflx,qflx
+      Write (67,1000) "iter=",iter, "itest=",itest,"jtest=",jtest
+      Write (67,1100) "pe(1)=",pe(1)
+      Write (67,1100) "uflx=",uflx,"vflx=",vflx
+      Write (67,1100) "tflx=",tflx,"qflx=",qflx
+
+      ! Fields on main vertical grid:
+      z=(rgas/grav)*0.5d0*(tvs+t(1))*log(pe(1)/p(1))+10.d0
+      write (67,1500)
       do l=1,n-1
-        utotal=sqrt(u(l)*u(l)+v(l)*v(l))
-        dt=t(l)-t0(l)
-c       dq=q(l)-q0(l)
-        write (67,2000) l,z,pres(l),dz(l),u(l),v(l),t(l),q(l),utotal,
-     2                    rho(l),rhoe(l),dt
+        write (67,2000) l,z,p(l),dz(l),u(l),v(l),t(l),q(l),ke(l),
+     2                    rho(l),rhoe(l),ew_rest(l)
         z=z+dz(l)
       end do
       utotal=sqrt(u(n)*u(n)+v(n)*v(n))
-        dt=t(n)-t0(n)
-c       dq=q(n)-q0(n)
-      write (67,2500) l,z,pres(n),u(n),v(n),t(n),q(n),utotal,
-     2                  rho(n),rhoe(n),dt
-      write (67,9000)
-c
-c Fields on secondary vertical grid:
-c
+      write (67,2500) l,z,p(n),u(n),v(n),t(n),q(n),0.,
+     2                  rho(n),rhoe(n),0.
+      write (67,*)
+ 
+      do l=1,n
+        write(68,1001) plij(l,itest,jtest)*sig(l)+ptop,
+     &       t(l),t(l)/(1.+0.61*q(l)),q(l)
+      end do
+
+      ! Fields on secondary vertical grid:
+ 
       write (67,3000)
       l=1
       zedge=10.d0
-      qturb=sqrt(2.d0*e(l))
-      dq=q(1)-q0(1)
-      write (67,2100) l,zedge,prese(l),
-     2                lscale(l),e(l),t2(l)
-      zedge=10.d0+dzedge(1)
+      write (67,2100) l,zedge,pe(l),lscale(l),e(l),t2(l)
+      zedge=10.d0+dze(1)
       do l=2,n
-        wt1=-kh(l)*(t(l)-t(l-1))/dz(l-1)
-        write (67,2000) l,zedge,prese(l),gc(l),wt1,kh(l),kt2(l),
+        wt1=-kh(l)*dtdz(l)
+        write (67,2000) l,zedge,pe(l),gc(l),wt1,kh(l),kt2(l),
      2                  gm(l),gh(l),lscale(l),e(l),t2(l)
-        zedge=zedge+dzedge(l)
+        zedge=zedge+dze(l)
       end do
-      write (67,9000)
-c
-c Fluxes on the secondary grid:
-c
+      write (67,*)
+ 
+      ! Fluxes on the secondary grid:
+ 
       zedge=10.d0
       write (67,4000)
       do l=2,n
-        zedge=zedge+dzedge(l-1)
+        zedge=zedge+dze(l-1)
         dmdz=sqrt(as2(l))
         uf=km(l)*dmdz
         hf=kh(l)*dtdz(l)
@@ -455,24 +532,21 @@ c
         write (67,2000) l,zedge,uf,hf,qf,dmdz,dtdz(l),dqdz(l),
      2                  ri,rif,sigmat,reserv2
       end do
-c
-      write (67,9000)
-      write (67,9000)
+ 
+      write (67,*) "------------"
+      write (67,*)
+
       return
-1001  format(a,i4)
-1000  format (1h ,'i    = ',9x,i2,/,1x,
-     2            'j    = ',9x,i2,/,1x,
-     3            'reserv = ',1pe11.4,/,1x,
-     3            'ps   = ',1pe11.4,/,1x,
-     3            'uflx = ',1pe11.4,/,1x,
-     3            'vflx = ',1pe11.4,/,1x,
-     3            'tflx = ',1pe11.4,/,1x,
-     3            'qflx = ',1pe11.4,//,1x,' l',1x,
-     4            '     z     ',1x,
-     5            '     p     ',1x,'     dz    ',1x,'     u     ',1x,
-     6            '     v     ',1x,'     t     ',1x,'     q     ',1x,
-     7            '   utotal  ',1x,'    rho   ',1x,'   rhoe   ',1x,
-     8            '     dt    ',/)
+  
+1000  format(3(4x,a,i4))
+1001  format(9(1pe14.4))
+1100  format(2(4x,a,1pe14.4))
+1500  format (1h ,' l',1x,
+     1            '     z     ',1x,
+     2            '     p     ',1x,'     dz    ',1x,'     u     ',1x,
+     3            '     v     ',1x,'     t     ',1x,'     q     ',1x,
+     4            '    ke     ',1x,'    rho   ',1x,'   rhoe   ',1x,
+     5            '   ew_rest ',/)
 2000  format (1h ,i2,1x,1pe11.4,9(1x,1pe11.4),1x,1pe10.3)
 2100  format (1h ,i2,2(1x,1pe11.4),24x,1x,11x,36x,2(1x,1pe11.4),
      2           ,1x,1pe10.3)
@@ -489,7 +563,7 @@ c
      4            '     dmdz  ',1x,'    dtdz   ',1x,'    dqdz   ',1x,
      5            '     Ri    ',1x,'     Rif   ',1x,'   Sigmat  ',1x,
      6            '  reserve  ',/)
-9000  format (1h )
+
       end subroutine dout
 
       subroutine diff_uv(u0,v0,u,v,km,dz,dzedge,rho,rhoe
@@ -555,6 +629,7 @@ c     from the above, the following follow
 c
       alpha=dtime*km(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
 c     alpha=dtime*km(2)*rhoebydz(2)*bydzerho(1)
+c     alpha=0.d0
       dia(1)=1.d0+alpha
       sup(1)=-alpha
       rhs(1)=u0(1)
@@ -609,7 +684,7 @@ c
       real*8, intent(in) :: tflx,dtime
 
       real*8, dimension(n) :: sub,dia,sup,rhs
-      real*8 :: alpha,p4j,dgcdz
+      Real*8 :: alpha,p4j,dgcdz
       integer :: j  !@var j loop variable
 
 c     sub(j)*t_jm1_kp1+dia(j)*t_j_kp1+sup(j)*t_jp1_kp1 = rhs(j)
@@ -619,10 +694,11 @@ c         sub(j)=-dtime*kh(j)/(dz(j-1)*dzedge(j)*rho(j))*rhoe(j)
 c         sup(j)=-dtime*kh(j+1)/(dz(j)*dzedge(j)*rho(j))*rhoe(j+1)
           sub(j)=-dtime*kh(j)*rhoebydz(j)*bydzerho(j)
           sup(j)=-dtime*kh(j+1)*rhoebydz(j+1)*bydzerho(j)
-          dgcdz=(gc(j+1)-gc(j))/dzedge(j)
-          p4j=-dgcdz
+c         dgcdz=(gc(j+1)-gc(j))/dzedge(j)
+c         p4j=-dgcdz
           dia(j)=1.d0-(sub(j)+sup(j))
-          rhs(j)=t0(j)+dtime*p4j
+          rhs(j)=t0(j)
+c         rhs(j)=t0(j)+dtime*p4j
       end do
 c
 c     Lower boundary conditions:
@@ -639,10 +715,11 @@ c     from the above, the following follow
 c
       alpha=dtime*kh(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
 c     alpha=dtime*kh(2)*rhoebydz(2)*bydzerho(1)
+c     alpha=0.d0
       dia(1)=1.d0+alpha
       sup(1)=-alpha
-c     rhs(1)=t0(1)
-      rhs(1)=t0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*gc(2)
+      rhs(1)=t0(1)
+c     rhs(1)=t0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*gc(2)
 c     rhs(1)=t0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*(gc(2)+tflx)
 c
 c     Upper boundary conditions:
@@ -665,7 +742,7 @@ c
       end subroutine diff_t
 
       subroutine diff_q(q0,q,kq,dz,dzedge,rho,rhoe
-     2                   ,rhoebydz,bydzerho,qflx,dtime,n)
+     2                   ,rhoebydz,bydzerho,qflx,qmin,dtime,n)
 !@sum diff_q integrates differential eqns for q (tridiag. method)
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
@@ -686,7 +763,7 @@ c
       real*8, dimension(n), intent(in) :: q0,kq,dz,dzedge
      2        ,rho,rhoe,rhoebydz,bydzerho
       real*8, dimension(n), intent(out) :: q
-      real*8, intent(in) :: qflx,dtime
+      real*8, intent(in) :: qflx,qmin,dtime
 
       real*8, dimension(n) :: sub,dia,sup,rhs
       real*8 :: alpha
@@ -717,6 +794,7 @@ c     from the above, the following follow
 c
       alpha=dtime*kq(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
 c     alpha=dtime*kq(2)*rhoebydz(2)*bydzerho(1)
+c     alpha=0.d0
       dia(1)=1.d0+alpha
       sup(1)=-alpha
       rhs(1)=q0(1)
@@ -738,11 +816,15 @@ c     alpha=dtime*kq(n)/(dzedge(n)*dz(n-1)*rho(n))*rhoe(n)
 c
       call tridiag(sub,dia,sup,rhs,q,n)
 c
+      do j=1,n
+         if(q(j).lt.qmin) q(j)=qmin
+      end do
+
       return
       end subroutine diff_q
 
-      subroutine diff_e(e0,e,km,kh,ke,gc,lscale,u,v,t,dz,dzedge,
-     1           dudz,dvdz,as2,dtdz,g_alpha,an2,
+      subroutine diff_e(e0,e,km,kh,ke,gc,ew_rest,lscale,u,v,t,
+     1           dz,dzedge,dudz,dvdz,as2,dtdz,g_alpha,an2,
      2           rho,rhoe,ustar2,dtime,n)
 !@sum diff_e integrates differential eqns for e (tridiagonal method)
 !@auth  Ye Cheng/G. Hartke
@@ -770,7 +852,7 @@ c
       implicit none
 
       integer, intent(in) :: n
-      real*8, dimension(n), intent(in) :: e0,km,kh,ke,gc,lscale
+      real*8, dimension(n), intent(in) :: e0,km,kh,ke,gc,ew_rest,lscale
       real*8, dimension(n), intent(in) :: u,v,t,dz,dzedge,rho,rhoe
       real*8, dimension(n), intent(in) :: dudz,dvdz,as2
       real*8, dimension(n), intent(in) :: dtdz,g_alpha,an2
@@ -778,7 +860,7 @@ c
       real*8, intent(in) :: ustar2,dtime
 
       real*8, dimension(n) :: sub,dia,sup,rhs
-      real*8 :: qturb,tmp
+      real*8 :: qturb,tmp,d_ew_rest_dz
       integer :: j  !@var j loop variable
 
       real*8, parameter :: emin=1.d-20,emax=100.d0
@@ -786,15 +868,18 @@ c
 c     sub(j)*e_jm1_kp1+dia(j)*e_j_kp1+sup(j)*e_jp1_kp1 = rhs(j)
 c     j refers to the layer edge
 c     except ke(j) which is defined on the layer middle
+
       do j=2,n-1
+          d_ew_rest_dz=(ew_rest(j)-ew_rest(j-1))/dz(j-1)
           qturb=sqrt(2.d0*e0(j))
           tmp=rho(j-1)/rhoe(j)
           sub(j)=-dtime*ke(j-1)/(dz(j-1)*dzedge(j-1))*tmp
           tmp=rho(j)/rhoe(j)
           sup(j)=-dtime*ke(j)/(dz(j-1)*dzedge(j))*tmp
           dia(j)=1.d0-(sub(j)+sup(j))+dtime*2*qturb/(b1*lscale(j))
-          rhs(j)=e0(j)+dtime*(km(j)*as2(j)-kh(j)*an2(j)
-     2           +g_alpha(j)*gc(j))
+          rhs(j)=e0(j)+dtime*(km(j)*as2(j)-kh(j)*an2(j)-d_ew_rest_dz)
+c         rhs(j)=e0(j)+dtime*(km(j)*as2(j)-kh(j)*an2(j)
+c    2           +g_alpha(j)*gc(j))
       end do
 c
 c     Boundary conditions:
@@ -894,28 +979,28 @@ c
       return
       end subroutine diff_t2
 
-      subroutine lgcm(lscale,u,v,t,e,dudz,dvdz,as2,an2,dz,dzedge,rho,n)
+      subroutine lgcm(lscale,e,as2,an2,dz,dzedge,rhoe,n)
 !@sum lgcm calculates the z-profle of the turbulent length scale
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var lscale z-profle of turbulent length scale
-!@var u z-profle of due-east wind component
-!@var v z-profle of due-north wind component
-!@var t z-profle of potential temperature
 !@var e z-profle of pturbulent kinetic energy
+!@var as2 z-profle of dudz^2+dvdz^2
+!@var an2 z-profle of g_alpha*dtdz
 !@var dz(j) z(j+1)-z(j)
 !@var dzedge(j) zedge(j+1)-zedge(j)
 !@var rho the z-profile of the density
 !@var n number of GCM layers
 !@var zgs height of surface layer (m), imported from SOCPBL
+
       USE CONSTANT, only : grav
       USE SOCPBL, only : kappa,zgs
 
       implicit none
 
       integer, intent(in) :: n
-      real*8, dimension(n), intent(in) :: u,v,t,e,rho
-      real*8, dimension(n), intent(in) :: dudz,dvdz,as2,an2
+      real*8, dimension(n), intent(in) :: e,rhoe
+      real*8, dimension(n), intent(in) :: as2,an2
       real*8, dimension(n), intent(out) :: lscale
       real*8, dimension(n), intent(in) :: dz,dzedge
 
@@ -938,25 +1023,25 @@ c     trapezoidal rule
       do j=2,n
         qj=sqrt(2.d0*e(j))
         qjm1=sqrt(2.d0*e(j-1))
-        sum1=sum1+.5d0*dzedge(j-1)*(qj+qjm1)*rho(j-1)
-        sum2=sum2+.5d0*dzedge(j-1)*(qj*zedge(j)+qjm1*zedge(j-1))
-     &           *rho(j-1)
+        sum1=sum1+dzedge(j-1)*(qj*rhoe(j)+qjm1*rhoe(j-1))
+        sum2=sum2+dzedge(j-1)*(qj*rhoe(j)*zedge(j)+
+     &                         qjm1*rhoe(j-1)*zedge(j-1))
       end do
       l0=alpha0*sum2/sum1
 
       kz=kappa*zedge(1)
       lscale(1)=l0*kz/(l0+kz)
-      if (lscale(1).gt.dzedge(1)) lscale(1)=dzedge(1)
+       ! if (lscale(1).gt.dzedge(1)) lscale(1)=dzedge(1)
       do j=2,n
         kz=kappa*zedge(j)
         l1=l0*kz/(l0+kz)
-        if (t(j).gt.t(j-1)) then
+        if (an2(j).gt.0.d0) then
           lmax  =0.53d0*sqrt(2.d0*e(j)/(an2(j)+1.d-40))
           lmax2 =1.95d0*sqrt(2.d0*e(j)/(as2(j)+1.d-40))
           lmax=min(lmax,lmax2)
           if (l1.gt.lmax) l1=lmax
         endif
-        if (l1.gt.dzedge(j)) l1=dzedge(j)
+        ! if (l1.gt.dzedge(j)) l1=dzedge(j)
         lscale(j)=l1
       end do
 
@@ -1009,57 +1094,9 @@ c     trapezoidal rule
       return
       end subroutine level2
 
-      subroutine init_t2(u,v,t,e,t2,t20,dudz,dvdz,as2,
-     2                   dtdz,g_alpha,an2,lscale,dz,n)
-!@auth  Ye Cheng/G. Hartke
-!@ver   1.0
-!@var u,v,t,e,lscale z-profiles
-!@var dz(j) z(j+1)-z(j)
-!@var n number of GCM layers
-!@var tau B1*lscale/sqrt(2*e)
-!@var as2 shear squared, (dudz)**2+(dvdz)**2
-!@var an2 Brunt-Vaisala frequency, grav/T*dTdz
-!@var se stability constant for e, adjustable
-!@var st2 stability constant for t2, adjustable
-      USE CONSTANT, only : grav
-      USE SOCPBL, only : ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
-     *     ,s0,s1,s2,s4,s5,s6,b1,b2
-
-      implicit none
-
-      integer, intent(in) :: n    !@var n  array dimension
-      real*8, dimension(n), intent(in) :: u,v,t,e,lscale,dz
-      real*8, dimension(n), intent(in) :: dudz,dvdz,as2
-      real*8, dimension(n), intent(in) :: dtdz,g_alpha,an2
-      real*8, dimension(n), intent(out) :: t2,t20
-
-      real*8 :: ell,den,qturb,tau,ghj,gmj,gmmax
-      real*8 :: sm,sh,taue,e_lpbl,t21,tmp
-      integer :: j  !@var j loop variable
-
-      do j=2,n
-        ell=lscale(j)
-        qturb=sqrt(2.d0*e(j))
-        tau=B1*ell/qturb
-        ghj=tau*tau*an2(j)
-        gmj=tau*tau*as2(j)
-        if(ghj.lt.ghmin) ghj=ghmin
-        if(ghj.gt.ghmax) ghj=ghmax
-        gmmax=(1+d1*ghj+d3*ghj*ghj)/(d2+d4*ghj)
-        gmmax=min(gmmax,gmmax0)
-        if(gmj.gt.gmmax) gmj=gmmax
-        den=1+d1*ghj+d2*gmj+d3*ghj*ghj+d4*ghj*gmj+d5*gmj*gmj
-        sh=(s4+s5*ghj+s6*gmj)/den
-        t2(j)=0.5d0*b1*b2*sh*(ell*dtdz(j))**2
-        t20(j)=t2(j)
-      end do
-
-      return
-      end subroutine init_t2 
-
-      subroutine kgcm(km,kh,kq,ke,kt2,gc,gc_t2,
+      subroutine kgcm(km,kh,kq,ke,kt2,gc,gc_t2,ew_rest,
      2                gm,gh,u,v,t,e,t2,dudz,dvdz,as2,
-     3                dtdz,g_alpha,an2,lscale,dz,dze,tsv,n)
+     3                dtdz,g_alpha,an2,lscale,dz,dze,tvs,n)
 c
 c     Grids:
 c
@@ -1095,34 +1132,41 @@ c     at edge: e,lscale,km,kh,gm,gh
 !@var an2 Brunt-Vaisala frequency, grav/T*dTdz
 !@var se stability constant for e, adjustable
 !@var st2 stability constant for t2, adjustable
-!@var tsv surface virtual temperature
+!@var tvs surface virtual temperature
       USE CONSTANT, only : grav
       USE SOCPBL, only : ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
-     *     ,s0,s1,s2,s4,s5,s6,b1
+     *     ,s0,s1,s2,s4,s5,s6,b1,b2
      *     ,g0,d1_3,d2_3,d3_3,d4_3,d5_3
      *     ,s0_3,s1_3,s2_3,s3_3,s4_3,s5_3,s6_3
-     *     ,g2,g3,g4,g5,nlevel
+     *     ,g2,g3,g4,g5,g6,g7,nlevel
 
       implicit none
 
       integer, intent(in) :: n    !@var n  array dimension
-      real*8, dimension(n), intent(in) :: u,v,t,e,t2,lscale
+      real*8, dimension(n), intent(in) :: u,v,t,e,lscale
       real*8, dimension(n), intent(in) :: dudz,dvdz,as2
       real*8, dimension(n), intent(in) :: dtdz,g_alpha,an2
       real*8, dimension(n), intent(in) :: dz,dze
+      real*8, dimension(n), intent(inout) :: t2
       real*8, dimension(n), intent(out) :: km,kh,kq,ke,kt2,gc,gm,gh
-     2                                    ,gc_t2
-      real*8, intent(in) :: tsv
+     2                                    ,gc_t2,ew_rest
+      real*8, intent(in) :: tvs
 
       ! note e *tau = b1/2 *lscale * qturb
       real*8, parameter ::  se=0.1d0,st2=0.06d0
       real*8 :: ell,den,qturb,tau,ghj,gmj,gmmax
       real*8 :: sm,sh,taue,e_lpbl,t21,tmp
       real*8 :: kh_canuto,c8,sig,sw,tpj,tpjm1,tppj,w3pj,taupj,m
-      real*8, dimension(n) :: taua,delta,w2,w3
+      real*8, dimension(n) :: taua,uw,vw,w2,wt
+      real*8, dimension(n) :: u2,v2,uv,ut,vt
+      real*8 :: g_alphaj,tauj,dudzj,dvdzj,as2j,an2j,dtdzj
+      real*8 :: uwj,vwj,w2j,wtj,du2dz,dv2dz,dw2dz 
+      real*8 :: duvdz,duwdz,dvwdz,dutdz,dvtdz,dwtdz,dt2dz,ke0
       integer :: j  !@var j loop variable
 
-      do j=2,n
+      logical, parameter :: non_local=.false.
+
+      do j=1,n
         ell=lscale(j)
         qturb=sqrt(2.d0*e(j))
         tau=B1*ell/qturb
@@ -1149,60 +1193,71 @@ c     at edge: e,lscale,km,kh,gm,gh
           gc(j)=tmp*g0*g_alpha(j)*tau*t2(j)
         endif
         taue=tau*e(j)
-        km(j)=max(taue*sm,1.d-30)
-        kh(j)=max(taue*sh,1.d-30)
+        km(j)=min(max(taue*sm,1.d-30),300.d0)
+        kh(j)=min(max(taue*sh,1.d-30),300.d0)
         kq(j)=kh(j)
-        ke(j)=max(taue*se,1.d-30)
-        kt2(j)=max(taue*st2,1.d-30)
+        ke(j)=min(max(taue*se,1.d-30),300.d0)
+        kt2(j)=min(max(taue*st2,1.d-30),300.d0)
+        taua(j)=tau
         gm(j)=gmj
         gh(j)=ghj
-
-c!! Canuto modifications (6-01):
-c        w2(j)=2./3.*e(j)+tau/3.*(-(3*g3-g2)*km(j)*as2(j)
-c    2        +4*g4*g_alpha(j)*(-kh(j)*dtdz(j)+gc(j)))
-c        taua(j)=tau
-c        delta(j)=-2./3.*g_alpha(j)*dtdz(j)*0.82/11.04*tau*tau
-c!! end of Canuto modifications (6-01):
-
-       end do
-       
-c!! Canuto modifications (6-01):
-c      sig=0.2d0
-c      sw=(1-2*sig)/sqrt(sig*(1-sig))
-c      do j=2,n
-c        w3(j)=sw*abs(w2(j))**1.5d0
-c      end do
-c      w3(1)=0.d0
-c      c8=7.
-c      do j=2,n-1
-c        tpj=(t(j+1)-t(j-1))/(dz(j-1)+dz(j))
-c        if(j.eq.2) then
-c          tpjm1=(0.5d0*(t(2)+t(1))-tsv)/dz(1)
-c        else
-c          tpjm1=(t(j)-t(j-2))/(dz(j-2)+dz(j-1))
-c        endif
-c        tppj=(tpj-tpjm1)/dz(j-1)
-c        w3pj=(w3(j+1)-w3(j-1))/(dze(j-1)+dze(j))
-c        taupj=(taua(j+1)-taua(j-1))/(dze(j-1)+dze(j))
-c        m=1./(2*c8*(1.-delta(j)))*taua(j)*taua(j)/(11.04*kh(j))
-c    2    *(tppj/dtdz(j)*w3(j)+w3pj+w3(j)/taua(j)*taupj)
-c        kh_canuto=taua(j)/11.04*w2(j)/(1-delta(j))
-c        write(68,1001) j,m,kh(j),kh_canuto
-c        kh(j)=max(kh(j)*(1.-m),1.d-20)
-c        kq(j)=kh(j)
-c      end do
-c      kh(n)=kh(n-1)
-c      kq(n)=kq(n-1)
-c     
-c1001 format(i4,1x,9(1pe14.4))
-c!! end of Canuto modifications (6-01):
-
-      ke(1)=b1*lscale(1)*sqrt(0.5d0*e(1))*se
-      kt2(1)=ke(1)*st2/se
+        ew_rest(j)=0.d0
+      end do
       do j=1,n-1
         ke(j)=0.5d0*(ke(j)+ke(j+1)) !defined on main levels
         kt2(j)=0.5d0*(kt2(j)+kt2(j+1)) !defined on main levels
       end do
+
+      if(non_local) then
+
+        do j=1,n
+          tau=taua(j)
+          uw(j)=-km(j)*dudz(j)
+          vw(j)=-km(j)*dvdz(j)
+          wt(j)=-kh(j)*dtdz(j)
+          u2(j)=2.d0/3*e(j)-tau/3*((g2+3*g3)*dudz(j)*uw(j)
+     2        -2*g2*dvdz(j)*vw(j)+2*g4*g_alpha(j)*wt(j))
+          v2(j)=2.d0/3*e(j)-tau/3*((g2+3*g3)*dvdz(j)*vw(j)
+     2        -2*g2*dudz(j)*uw(j)+2*g4*g_alpha(j)*wt(j))
+          w2(j)=2.d0/3*e(j)+tau/3*((3*g3-g2)*(
+     2     dudz(j)*uw(j)+dvdz(j)*vw(j))+4*g4*g_alpha(j)*wt(j))
+          uv(j)=-(g2+g3)/2*tau*(dvdz(j)*uw(j)+dudz(j)*vw(j))
+          ut(j)=-tau/g5*(dtdz(j)*uw(j)+(g6+g7)/2*dudz(j)*wt(j))
+          vt(j)=-tau/g5*(dtdz(j)*vw(j)+(g6+g7)/2*dvdz(j)*wt(j))
+          t2(j)=b2*lscale(j)/sqrt(2.d0*e(j))*kh(j)*dtdz(j)**2
+        end do
+      
+        do j=1,n-1  ! on main grids
+          g_alphaj=0.5d0*(g_alpha(j)+g_alpha(j+1))
+          tauj=0.5d0*(taua(j)+taua(j+1))
+          dudzj=0.5d0*(dudz(j)+dudz(j+1))
+          dvdzj=0.5d0*(dvdz(j)+dvdz(j+1))
+          dtdzj=0.5d0*(dtdz(j)+dtdz(j+1))
+          as2j=dudzj*dudzj+dvdzj*dvdzj
+          an2j=g_alphaj*dtdzj
+c         if(an2j.lt.0.d0) tauj=tauj/(1.d0-0.04d0*an2j*tauj*tauj)
+          uwj=0.5d0*(uw(j)+uw(j+1))
+          vwj=0.5d0*(vw(j)+vw(j+1))
+          w2j=0.5d0*(w2(j)+w2(j+1))
+          wtj=0.5d0*(wt(j)+wt(j+1))
+          du2dz=(u2(j+1)-u2(j))/dze(j)
+          dv2dz=(v2(j+1)-v2(j))/dze(j)
+          dw2dz=(w2(j+1)-w2(j))/dze(j)
+          duvdz=(uv(j+1)-uv(j))/dze(j)
+          duwdz=(uw(j+1)-uw(j))/dze(j)
+          dvwdz=(vw(j+1)-vw(j))/dze(j)
+          dutdz=(ut(j+1)-ut(j))/dze(j)
+          dvtdz=(vt(j+1)-vt(j))/dze(j)
+          dwtdz=(wt(j+1)-wt(j))/dze(j)
+          dt2dz=(t2(j+1)-t2(j))/dze(j)
+          call find_ew(g_alphaj,tauj,dudzj,dvdzj,as2j,an2j,
+     &      uwj,vwj,w2j,wtj,du2dz,dv2dz,dw2dz,
+     &      duvdz,duwdz,dvwdz,dutdz,dvtdz,dwtdz,dt2dz,
+     &      Ke(j),ew_rest(j))
+          ke(j)=min(max(ke(j),1.d-30),300.d0)
+        end do
+      
+      endif
 
       return
       end subroutine kgcm
@@ -1228,18 +1283,139 @@ c!! end of Canuto modifications (6-01):
       do j=2,n
         if (e(j).lt.e1p) exit
       end do
-      dbll=j   ! dbll is real*8
+      dbll=j-1   ! dbll is real*8
       return
       end subroutine find_pbl_top
 
-      subroutine ave_uv_to_tcell(u,v,u_tcell,v_tcell,im,jm,lm)
-!@sum ave_uv_to_tcell Computes u_tcell,v_tcell from u and v,
-!@+   the x and y components of a vector defined on the secondary grid
-!@+   Note that u_tcell,v_tcell are of dimension (lm,im,jm)
-!@var u an x-component at secondary grids (ucell)
-!@var v a  y-component at secondary grids (ucell)
-!@var u_tcell an x-component at primary grids (tcell)
-!@var v_tcell a  y-component at primary grids (tcell)
+      subroutine find_ew(ga,tau,dudz,dvdz,as2,an2,uw,vw,w2,wt,
+     &   du2dz,dv2dz,dw2dz,duvdz,duwdz,dvwdz,dutdz,dvtdz,dwtdz,dt2dz,
+     &   Ke,ew_rest)
+c
+c      q2w  = - K*dq2dz + q2w_rest    
+c      ew  = - K*dedz + ew_rest, ew_rest = q2w_rest/2    
+c output of 3m_eqns,3m_solve_sb0,3m_solve_sb0_more,more2,more3,more31,
+c more32, more33 on kirk:/u/acyxc/papers/third/3m_publication
+c tau=q2/epsilon=B1*ell/q, ell->0.4*z for small z (height)
+c each t obsorbs a lamda=g*alpha*tau, ga==g*alpha       --- 04/6/00
+c also, pay attention to the negative sign here in N2 definition!
+c
+      implicit none
+
+      real*8, intent(in) :: ga,tau,dudz,dvdz,as2,an2,uw,vw,w2
+      real*8, intent(in) :: du2dz,dv2dz,dw2dz,duvdz,duwdz,dvwdz 
+      real*8, intent(inout) :: wt,dutdz,dvtdz,dwtdz,dt2dz 
+      real*8, intent(out) :: Ke,ew_rest
+     
+      real*8, parameter :: c=1.d0/6.d0
+      real*8, SAVE :: c0,c1,c2,c3,c4,c5,c6,c7,c8,c9
+      real*8, SAVE :: c10,c11,c12,c13,c14,c15
+      real*8, SAVE :: c16,c17,c18,c19,c20,c21,c22,c23,c24,c25,c26,c27
+      real*8, SAVE :: d0,d1,d2,d3,d4,d5,d6,d7,d8
+      real*8 :: U,V,S2,N2
+      real*8 :: n0,n1,s1,b1,b2,b3,b4,b5,d
+      real*8 :: m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,num_rest,q2w_rest
+      integer, SAVE :: ifirst=0
+
+      U=dudz*tau
+      V=dvdz*tau
+      S2=as2*tau*tau
+      N2=-an2*tau*tau
+      wt    = ga*tau * wt
+      dutdz = ga*tau * dutdz
+      dvtdz = ga*tau * dvtdz
+      dwtdz = ga*tau * dwtdz
+      dt2dz = (ga*tau)**2 * dt2dz
+
+      if (ifirst.eq.0) then
+          ifirst=1
+          c0 = -2*c**2*(13*c+9)
+          c1 = -900
+          c2 = -30*c*(44*c + 3)
+          c3 = -54*c**3
+          c4 = 25*c
+          c5 = 5*c**3
+          c6 = 25*c + 15
+          c7 =  5*c**3
+          c8 =  6*c**2*(3*c+2)
+          c9   =  1500*(5*c+3)
+          c10   = 750*c**2*(7*c+3)
+          c11   = 50*c*(268*c**2+183*c+9)
+          c12   = 25*c**3*(146*c**2+63*c+9)
+          c13   = 30*c**3*(242*c**2+181*c+15)
+          c14   = 30*c**5*(57*c**2+28*c-3)
+          c15   = 36*c**5*(3*c+2)*(10*c+1)
+          c16   = 4500*(5*c+3)
+          c17   = 1500*c**2*(17*c+9)
+          c18   = 50*c*(394*c**2+303*c+27)
+          c19   = 50*c**3*(-17*c**2+24*c+27)
+          c20   = 30*c**3*( 84*c**2+125*c+45 )
+          c21   = 45*c**5*(7*c+3)
+          c22   = 108*c**5*(3*c+2)
+          c23   = 2050*c+1230
+          c24   = 90*c**2*(29*c+16)
+          c25   = 6*c**2*(321*c+209)
+          c26   = 9*c**4*(57*c+31)
+          c27   = 108*c**4*(3*c+2)
+    
+          d0 = 7500*(5*c+3)**2
+          d1 = 3750*c**3*(23*c+18)
+          d2 = 250*c*(5*c+3)*(292*c**2+237*c+9)
+          d3 = 125*c**4*(526*c**2+645*c+54)
+          d4 = 150*c**3*(1254*c**3+2081*c**2+933*c+72)
+          d5 = 1350*c**6*(19*c**2+17*c+1)
+          d6 = 90*c**5*(180*c**3+438*c**2+299*c+57)
+          D7 = 405*c**8
+          d8 = 324*c**7*(3*c+2)
+      endif
+
+      n0 = c1 + c2*N2 + c3*N2**2
+      n1 = c4 + c5*N2
+      s1 = -2*c5*U*V
+      b1 = c6 +  c7*V**2 + c8*N2
+      b2 = c6 +  c7*U**2 + c8*N2
+      b3 = c9+c10*S2+(c11+c12*S2)*N2+(c13+c14*S2)*N2**2+c15*N2**3
+      b4 = c16+c17*S2+(c18+c19*S2)*N2+(c20+c21*S2)*N2**2+c22*N2**3
+      b5 = c23 + c24*S2 + (c25 + c26*S2)*N2 + c27*N2**2
+      D = (d0 + d1*S2) + (d2 + d3*S2)*N2 + (d4 + d5*S2)*N2**2 + 
+     &    (d6 + d7*S2)*N2**3 + d8*N2**4
+
+      m1 = n0*(n1*c*(3*U*uw+V*vw)+b1*(5*w2+2*c*wt))
+      m2 = n0*(n1*c*(3*V*vw+U*uw)+b2*(5*w2+2*c*wt))
+
+      m3 = -n0*n1*(4*c+3)*( U*uw+V*vw )-45*b3*w2-6*b4*c*wt
+      m4 = n0*(2*n1*c*(V*uw+U*vw)+s1*(5*w2+2*c*wt))
+
+      m5 = n0*(10*b1*uw+5*s1*vw-2*n1*(4*c+3)*U*w2+5*c0*U*wt)
+      m6 = n0*(10*b2*vw+5*s1*uw-2*n1*(4*c+3)*V*w2+5*c0*V*wt)
+
+      m7 = n0*(2*c*(2*b1*uw+s1*vw)+c0*U*(5*w2+4*c*wt))
+      m8 = n0*(2*c*(2*b2*vw+s1*uw)+c0*V*(5*w2+4*c*wt))
+
+      m9 = 5*n0*c0*(U*uw+V*vw)+12*c*(-b4*w2-10*b5*c*wt)
+      m10 = 2*c*(n0*c0*(U*uw+V*vw)-6*c*b5*(5*w2+wt))
+
+c     Num = m1*du2dz+m2*dv2dz+m3*dw2dz+m4*duvdz+m5*duwdz+
+c    &      m6*dvwdz+m7*dutdz+m8*dvtdz+m9*dwtdz+m10*dt2dz 
+c     q2w = tau*c/(2*D)*Num
+c         = tau*c/(2*D)*(m3*dq2dz + Num_rest)
+c         = - Ke*dq2dz + q2w_rest    
+      Num_rest = (m1-m3)*du2dz+(m2-m3)*dv2dz+m4*duvdz+m5*duwdz+
+     &      m6*dvwdz+m7*dutdz+m8*dvtdz+m9*dwtdz+m10*dt2dz 
+      Ke   = -tau*c/(2*D)*m3
+      q2w_rest = tau*c/(2*D)*Num_rest
+      ew_rest  = q2w_rest/2.d0
+c     note: if you don't want q2w itself, but just want Ke and 
+c           q2w_rest, then dw2dz is not actually used.
+
+      return
+      end subroutine find_ew
+
+      subroutine ave_uv_to_agrid(u,v,u_a,v_a,im,jm,lm)
+!@sum Computes u_a,v_a from u and v
+!@var u x-component at secondary grids (B_grid)
+!@var v y-component at secondary grids (B_grid)
+!@var u_a x-component at primary grids (A_grid)
+!@var v_a y-component at primary grids (A_grid)
 !@auth Ye Cheng
 !@ver  1.0
       USE GEOM, only : imaxj,idij,idjj,kmaxj,rapj,cosiv,siniv
@@ -1247,7 +1423,7 @@ c!! end of Canuto modifications (6-01):
 
       integer, intent(in) :: im,jm,lm
       real*8, dimension(im,jm,lm), intent(in) ::  u,v
-      real*8, dimension(lm,im,jm), intent(out) :: u_tcell,v_tcell
+      real*8, dimension(lm,im,jm), intent(out) :: u_a,v_a
 
       real*8 :: HEMI,u_t,v_t
       integer :: i,j,l,k,IMAX,KMAX
@@ -1267,8 +1443,8 @@ c     polar boxes
               v_t=v_t+rapj(k,j)*(v(idij(k,i,j),idjj(k,j),L)*cosiv(k)+
      2                      hemi*u(idij(k,i,j),idjj(k,j),L)*siniv(k))
             END DO
-            u_tcell(l,i,j)=u_t
-            v_tcell(l,i,j)=v_t
+            u_a(l,i,j)=u_t
+            v_a(l,i,j)=v_t
           END DO
         END DO
       END DO
@@ -1283,35 +1459,36 @@ c     non polar boxes
               u_t=u_t+u(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
               v_t=v_t+v(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
             END DO
-            u_tcell(l,i,j)=u_t
-            v_tcell(l,i,j)=v_t
+            u_a(l,i,j)=u_t
+            v_a(l,i,j)=v_t
           END DO
         END DO
       END DO
 C****
       return
-      end subroutine ave_uv_to_tcell
+      end subroutine ave_uv_to_agrid
 
-      subroutine ave_ufvf_to_ucell(uf,vf,uf_ucell,vf_ucell,im,jm)
-!@sum ave_ufvf_to_ucell Computes uf_ucell and vf_ucell from uf and vf,
-!@+   the x and y components of a vector defined on the primary grid
-!@var uf an x-component at primary grids (tcell)
-!@var vf a  y-component at primary grids (tcell)
-!@var uf_ucell an x-component at secondary grids (ucell)
-!@var vf_ucell an y-component at secondary grids (ucell)
+      subroutine ave_uv_to_bgrid(u_a,v_a,u,v,im,jm,lm)
+!@sum Computes u and v from u_a and v_a
+!@var u_a x-component of wind at primary grids (A_grid)
+!@var v_a y-component of wind at primary grids (A_grid)
+!@var u x-component of wind at secondary grids (B_grid)
+!@var v y-component of wind at secondary grids (B_grid)
 !@auth Ye Cheng
 !@ver  1.0
+
       USE GEOM, only : imaxj,idij,idjj,kmaxj,ravj,cosiv,siniv
+
       implicit none
 
-      integer, intent(in) :: im,jm
-      real*8, dimension(im,jm), intent(in) ::  uf,vf
-      real*8, dimension(im,jm), intent(out) :: uf_ucell,vf_ucell
+      integer, intent(in) :: im,jm,lm
+      real*8, dimension(lm,im,jm), intent(in) ::  u_a,v_a
+      real*8, dimension(im,jm,lm), intent(out) :: u,v
 
       real*8 :: HEMI
       integer :: i,j,l,k,IMAX,KMAX
 
-      uf_ucell=0.d0; vf_ucell=0.d0
+      u=0.d0; v=0.d0
 c     polar boxes
       DO J=1,JM,JM-1
         IMAX=IMAXJ(J)
@@ -1319,13 +1496,13 @@ c     polar boxes
         HEMI=1.
         IF(J.LE.JM/2) HEMI=-1.
         DO I=1,IMAX
+        DO L=1,LM
         DO K=1,KMAX
-          uf_ucell(IDIJ(K,I,J),IDJJ(K,J))=
-     *    uf_ucell(IDIJ(K,I,J),IDJJ(K,J)) -
-     *      RAVJ(K,J)*(uf(I,J)*COSIV(K)+vf(I,J)*SINIV(K)*HEMI)
-          vf_ucell(IDIJ(K,I,J),IDJJ(K,J))=
-     *    vf_ucell(IDIJ(K,I,J),IDJJ(K,J)) -
-     *      RAVJ(K,J)*(vf(I,J)*COSIV(K)-uf(I,J)*SINIV(K)*HEMI)
+          U(IDIJ(K,I,J),IDJJ(K,J),L)=U(IDIJ(K,I,J),IDJJ(K,J),L)
+     *      +RAVJ(K,J)*(U_A(L,I,J)*COSIV(K)+V_A(L,I,J)*SINIV(K)*HEMI)
+          V(IDIJ(K,I,J),IDJJ(K,J),L)=V(IDIJ(K,I,J),IDJJ(K,J),L)
+     *      +RAVJ(K,J)*(V_A(L,I,J)*COSIV(K)-U_A(L,I,J)*SINIV(K)*HEMI)
+        END DO
         END DO
         END DO
       END DO
@@ -1334,165 +1511,50 @@ c     non polar boxes
         IMAX=IMAXJ(J)
         KMAX=KMAXJ(J)
         DO I=1,IMAX
+        DO L=1,LM
         DO K=1,KMAX
-          uf_ucell(IDIJ(K,I,J),IDJJ(K,J))=
-     *    uf_ucell(IDIJ(K,I,J),IDJJ(K,J)) -
-     *           RAVJ(K,J)*uf(I,J)
-          vf_ucell(IDIJ(K,I,J),IDJJ(K,J))=
-     *    vf_ucell(IDIJ(K,I,J),IDJJ(K,J)) -
-     *           RAVJ(K,J)*vf(I,J)
+          U(IDIJ(K,I,J),IDJJ(K,J),L)=U(IDIJ(K,I,J),IDJJ(K,J),L)
+     *          +RAVJ(K,J)*U_A(L,I,J)
+          V(IDIJ(K,I,J),IDJJ(K,J),L)=V(IDIJ(K,I,J),IDJJ(K,J),L)
+     *          +RAVJ(K,J)*V_A(L,I,J)
+        END DO
         END DO
         END DO
       END DO
-C****
 
       return
-      end subroutine ave_ufvf_to_ucell
+      end subroutine ave_uv_to_bgrid
 
-      subroutine ave_to_ucell(s,s_ucell,im,jm,lm)
-!@sum ave_to_ucell Computes s_ucell from s
-!@+   Note that all arrays here are of dimension (lm,im,jm)
-!@var s a scalar at primary grids (tcell)
-!@var s_ucell a scalar at secondary grids (ucell)
-!@auth Ye Cheng/G. Hartke
+      subroutine ave_s_to_bgrid(s,s_b,im,jm,lm)
+!@sum Computes s_b from s
+!@var s scalar at primary grid (A_grid)
+!@var s_b scalar at secondary grid (B_grid)
+!@auth Ye Cheng
 !@ver  1.0
-      USE CONSTANT, only : by3
+
       USE GEOM, only : imaxj,idij,idjj,kmaxj,ravj
+
       implicit none
 
       integer, intent(in) :: im,jm,lm
-      real*8, dimension(lm,im,jm), intent(in) :: s
-      real*8, dimension(lm,im,jm), intent(out) :: s_ucell
+      real*8, dimension(lm,im,jm), intent(in) ::  s
+      real*8, dimension(lm,im,jm), intent(out) :: s_b
 
-      real*8 :: s_u
-      integer :: i,j,l,k,ip1
+      integer :: i,j,l,k,IMAX,KMAX
 
-      ! ucell is from j=2 to j=jm, no ucell on the poles
-      DO J=3,JM-1
-        DO I=1,IMAXJ(J)
-          DO L=1,LM
-            s_u=0.d0
-            DO K=1,KMAXJ(J)
-              s_u=s_u+s(l,idij(k,i,j),idjj(k,j))*ravj(k,j)
-            END DO
-            s_ucell(l,i,j)=s_u
-          END DO
+      S_B=0.d0
+      DO J=1,JM
+        IMAX=IMAXJ(J)
+        KMAX=KMAXJ(J)
+        DO I=1,IMAX
+        DO L=1,LM
+        DO K=1,KMAX
+          S_B(L,IDIJ(K,I,J),IDJJ(K,J))=S_B(L,IDIJ(K,I,J),IDJJ(K,J))
+     *          +RAVJ(K,J)*S(L,I,J)
+        END DO
+        END DO
         END DO
       END DO
-      ! for j = 2 and j = jm
-        do i=1,im
-          if(i.eq.im) then
-             ip1=1
-          else
-             ip1=i+1
-          endif
-          do l=1,lm
-            s_ucell(l,i,2)=(s(l,1,1)+s(l,i,2)+s(l,ip1,2))*by3
-            s_ucell(l,i,jm)=(s(l,1,jm)+s(l,i,jm-1)+s(l,ip1,jm-1))*by3
-          end do
-        end do
-
+1003  format(4(i4,1x),3(1pe14.4))
       return
-      end subroutine ave_to_ucell
-
-ccccccccccccccccccccccccccccc
-
-      subroutine ave_uv_to_tcell1(u,v,u_tcell,v_tcell,im,jm,lm)
-!@sum ave_uv_to_tcell1 Computes u_tcell,v_tcell from u,v
-!@+   u_tcell is the average of 4 nearest u
-!@+   v_tcell is the average of 4 nearest v
-!@auth  Ye Cheng
-!@ver   1.0
-!@var u west-east   velocity component at secondary grids (ucell)
-!@var v south-north velocity component at secondary grids (ucell)
-!@var u_tcell u at primary grids (tcell)
-!@var v_tcell v at primary grids (tcell)
-      implicit none
-
-      integer, intent(in) :: im,jm,lm
-      real*8, dimension(im,jm,lm), intent(in) :: u,v
-      real*8, dimension(lm,im,jm), intent(out) :: u_tcell,v_tcell
-
-      integer :: im1,iq1,iq2,iq3
-      integer :: i,j,l
-
-      do j=2,jm-1
-        do i=1,im
-          if(i.eq.1) then
-             im1=im
-          else
-             im1=i-1
-          endif
-
-          do l=1,lm
-            u_tcell(l,i,j)=0.25d0*(u(im1,j+1,l)+u(i,j+1,l)
-     2                          +u(im1,j,l)+u(i,j,l))
-            v_tcell(l,i,j)=0.25d0*(v(im1,j+1,l)+v(i,j+1,l)
-     2                          +v(im1,j,l)+v(i,j,l))
-          end do
-        end do
-      end do
-
-      ! for j=1 (south pole) and j=jm (north pole)
-      iq1=nint(0.25d0*im)+1
-      iq2=nint(0.50d0*im)+1
-      iq3=nint(0.75d0*im)+1
-      do l=1,lm
-            u_tcell(l,1,1)=0.25d0*(u(1,2,l)-u(iq2,2,l)
-     2                            +v(iq1,2,l)-v(iq3,2,l))
-            u_tcell(l,1,jm)=0.25d0*(u(1,jm,l)-u(iq2,jm,l)
-     2                             -v(iq1,jm,l)+v(iq3,jm,l))
-            v_tcell(l,1,1)=0.25d0*(v(1,2,l)-v(iq2,2,l)
-     2                            -u(iq1,2,l)+u(iq3,2,l))
-            v_tcell(l,1,jm)=0.25d0*(v(1,jm,l)-v(iq2,jm,l)
-     2                             +u(iq1,jm,l)-u(iq3,jm,l))
-      end do
-
-      return
-      end subroutine ave_uv_to_tcell1
-
-      subroutine ave_to_ucell1(s,s_ucell,im,jm,lm)
-!@sum ave_to_ucell1 Computes s_ucell from s
-!@+   s_ucell is the average of 4 nearest s
-!@var s scalar at primary grids (tcell)
-!@var s_ucell s at secondary grids (ucell)
-!@auth Ye Cheng/G. Hartke
-!@ver  1.0
-      use constant, only : by3
-      implicit none
-
-      integer, intent(in) :: im,jm,lm
-      real*8, dimension(lm,im,jm), intent(in) :: s
-      real*8, dimension(lm,im,jm), intent(out) :: s_ucell
-
-      integer :: ip1
-      integer :: i,j,l
-      ! ucell is from j=2 to j=jm, no ucell on the poles
-      do j=3,jm-1
-        do i=1,im
-          if(i.eq.im) then
-             ip1=1
-          else
-             ip1=i+1
-          endif
-          do l=1,lm
-            s_ucell(l,i,j)=0.25d0*(s(l,i,j)+s(l,ip1,j)
-     2                         + s(l,i,j-1)+s(l,ip1,j-1))
-          end do
-        end do
-      end do
-      ! for j = 2 and j = jm
-        do i=1,im
-          if(i.eq.im) then
-             ip1=1
-          else
-             ip1=i+1
-          endif
-          do l=1,lm
-            s_ucell(l,i,2)=(s(l,1,1)+s(l,i,2)+s(l,ip1,2))*by3
-            s_ucell(l,i,jm)=(s(l,1,jm)+s(l,i,jm-1)+s(l,ip1,jm-1))*by3
-          end do
-        end do
-
-      return
-      end subroutine ave_to_ucell1
+      end subroutine ave_s_to_bgrid

@@ -39,8 +39,12 @@
 !@var egcm  3-d turbulent kinetic energy in the whole atmosphere
       real*8, dimension(lm,im,jm) :: egcm,t2gcm
 
-!@var egcm  2-d turbulent fluxes
+!@var uflux surface turbulent u-flux (=-<uw>)
+!@var vflux surface turbulent v-flux (=-<vw>)
+!@var tflux surface turbulent t-flux (=-<tw>)
+!@var qflux surface turbulent q-flux (=-<qw>)
       real*8, dimension(im,jm) :: uflux,vflux,tflux,qflux
+      real*8, dimension(im,jm) :: uflux1,vflux1,tflux1,qflux1
 
       END MODULE PBLCOM
 

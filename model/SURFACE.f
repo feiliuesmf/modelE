@@ -30,6 +30,7 @@ C****
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
      &     ,uflux,vflux,tflux,qflux
+     &     ,uflux1,vflux1,tflux1,qflux1
       USE SOCPBL, only : zgs
       USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
@@ -70,7 +71,7 @@ C****
      *     ,PLK,PLKI,EVAPLIM,F1DTS,HICE,HSNOW,HICE1,HSNOW1,F2,FSRI(2)
      *     ,PSIS,HTLIM
 
-      REAL*8 MSUM, MA1, MSI1, MSI2
+      REAL*8 MSUM, MA1, MSI1, MSI2,tmp
       REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
 
 C**** Interface to PBL
@@ -657,10 +658,16 @@ C****
         QMOM(:,I,J,1) = QMOM(:,I,J,1)*(1.-FQEVAP)
         IF (Q(I,J,1).LT.qmin) THEN
           WRITE(99,*) ITime,'I,J:',I,J,' Q1:',Q(I,J,1),'->',qmin
+          tmp=q(i,j,1)
           Q(I,J,1)=qmin
+          dq1(i,j)=qmin-tmp
           QMOM(:,I,J,1)=0.
         ENDIF
-
+c****   retrieve fluxes
+        RMBYA=100.*PDSIG(1,I,j)/GRAv
+        P1K=PK(1,I,J)     ! EXPBYK(P1)
+        tflux1(i,j)=dth1(i,j)*(-RMBYA*P1K)/(dtsurf)
+        qflux1(i,j)=dq1(i,j)*(-RMBYA)/(dtsurf)
 C**** Diurnal cycle of temperature diagnostics
         tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
         if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
@@ -698,6 +705,15 @@ C**** non polar boxes
         END DO
         END DO
       END DO
+c****
+      DO J=1,JM
+      IMAX=IMAXJ(J)
+      DO I=1,IMAX
+        RMBYA=100.*PDSIG(1,I,j)/GRAV
+        uflux1(i,j)=du1(i,j)*RMBYA/(dtsurf)
+        vflux1(i,j)=dv1(i,j)*RMBYA/(dtsurf)
+      end do
+      end do
 C**** Call dry convection or aturb depending on rundeck
       CALL DIFFUS(1,1,dtsurf)
 C****
