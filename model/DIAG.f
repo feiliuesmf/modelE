@@ -194,6 +194,8 @@ C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
         DO I=1,IMAXJ(J)
           K=1
           L=1
+          rh_inst(i,j,1:3) = undef
+          z500(i,j) = undef
  172      L=L+1
           PDN=PMID(L-1,I,J)
           PL=PMID(L,I,J)
@@ -202,8 +204,6 @@ C**** Select pressure levels on which to save temperature and humidity
 C**** Use masking for 850 mb temp/humidity
  174      qpress = .false.
           q500=.false.
-          rh_inst(i,j,1:3) = undef
-          z500(i,j) = undef
           SELECT CASE (NINT(PMB(K)))
           CASE (850)            ! 850 mb
             nT = IJ_T850 ; nQ = IJ_Q850 ; nRH = IJ_RH850 ; qpress=.true.
