@@ -46,8 +46,8 @@ in adding functionality or diagnostics.</P>
        <LI> <A HREF="#part1_1c"> How to interact with CVS to make sure
        the run is reproducible</A>
        <LI> <A HREF="#part1_1d"> How to run the model </A>
-       <LI> <A HREF="#part1_1e"> How to run the model on multiple 
-       processors</A> 
+       <LI> <A HREF="#part1_1e"> How to run the model on multiple
+       processors</A>
        <LI> <A HREF="#part1_1f"> How to specify individual compilation
        options for certain files</A>
        <LI> <A HREF="#part1_1g"> How to specify the stack size for a
@@ -65,7 +65,7 @@ in adding functionality or diagnostics.</P>
      instabilities </A>
        <LI> <A HREF="#part1_2e"> How to use IRANDI to create an
      ensemble of runs </A>
-       <LI> <A HREF="#part1_2f"> How to fall back to a smaller time step 
+       <LI> <A HREF="#part1_2f"> How to fall back to a smaller time step
      automatically</A>
        <LI> <A HREF="#part1_2g"> How to choose which ISTART to use</A>
      </OL>
@@ -139,7 +139,7 @@ diagnostics</A></P>
   <LI>For ongoing development (who to blame for the current shambles):<BR>
        Gavin Schmidt, Reto Ruedy, Jean Lerner, Max Kelley,
        Igor Aleinov, Gary Russell, Ye Cheng, Andy Lacis, Valdar Oinas,
-       M. S. Yao., Larissa Nazarenko, Nick Tausnev, Shan Sun, Greg Faluvegi, 
+       M. S. Yao., Larissa Nazarenko, Nick Tausnev, Shan Sun, Greg Faluvegi,
        Susanne Bauer, Dorothy, Koch, Nadine Bell, Jan Perlwitz
   <LI>Historical development (stuff we haven't rewritten yet):<BR>
        Bob Suozzo, Suki Sheth, Hans-Peter Zinn, Rick Healy,
@@ -206,13 +206,13 @@ directory <tt>modelE/decks</tt> and execute:</p>
 <tt>
 gmake config<br>
 </tt>
-<p>This will create <tt>.modelErc</tt> file in your home directory. 
+<p>This will create <tt>.modelErc</tt> file in your home directory.
 It will contain default settings, which
 are adjusted for <tt>ra.giss.nasa.gov</tt>. So if you are working on
 GISS <tt>ra</tt> or <tt>poncho</tt> then you are set. On all other
 machines you should edit the file <tt>~/.modelErc</tt> to describe your
-working environment. <tt>.modelErc</tt> also allows you to set some 
-personal preferences like to which email address you want the notifications 
+working environment. <tt>.modelErc</tt> also allows you to set some
+personal preferences like to which email address you want the notifications
 to be sent when the program stops or whether you want a verbose
 output during the compilation. It contains short descriptions for all
 configurable parameters.</p>
@@ -220,12 +220,12 @@ configurable parameters.</p>
 which one can set in <tt>~/.modelErc</tt>:</p>
 <UL>
 <li><tt>DECKS_REPOSITORY</tt> - a directory for permanent storage of run info.
-  All rundecks that you create will be copied to this directory. This 
+  All rundecks that you create will be copied to this directory. This
   directory exists mostly for archival purposes.<br>
   (default: <tt>DECKS_REPOSITORY=/u/cmrun/modelE/decks</tt>)<br>
 
 <li>  <tt>CMRUNDIR</tt> - directory to which all run directories will be linked.
-  This directory will be searched by most scripts for locations of 
+  This directory will be searched by most scripts for locations of
   specific runs. It can coincide with <tt>SAVEDISK</tt><br>
   (default: <tt>CMRUNDIR=/u/cmrun</tt>)<br>
 
@@ -233,20 +233,20 @@ which one can set in <tt>~/.modelErc</tt>:</p>
   All necessary input files should be copied or linked to this directory.<br>
   (default: <tt>GCMSEARCHPATH=/u/cmrun</tt>)<br>
 
-<li>  <tt>EXECDIR</tt> - path to directory with modelE scripts. This directory 
-  should contain the scripts from <tt>modelE/exec</tt>. Auxiliary binaries 
+<li>  <tt>EXECDIR</tt> - path to directory with modelE scripts. This directory
+  should contain the scripts from <tt>modelE/exec</tt>. Auxiliary binaries
   which are not run-dependent should also be put into this directory.<br>
   (default: <tt>EXECDIR=/u/exec</tt>)<br>
 
-<li>  <tt>NETCDFHOME</tt> - path to directory which contains netcdf library. 
-  If netcdf is not installed on your computer you should leave it blank. 
-  modelE will work fine without netcdf but you will not able to compile some 
+<li>  <tt>NETCDFHOME</tt> - path to directory which contains netcdf library.
+  If netcdf is not installed on your computer you should leave it blank.
+  modelE will work fine without netcdf but you will not able to compile some
   auxiliary binaries.<br>
   (default: <tt>NETCDFHOME=/usr/local/netcdf-3.4/lib64</tt>)<br>
 
-<li>  <tt>SAVEDISK</tt> - a directory where all run directories will be created. 
+<li>  <tt>SAVEDISK</tt> - a directory where all run directories will be created.
   These run directories will contain all files written by the model during the
-  run (i.e. rsf, acc, PRT etc.). So <tt>SAVEDISK</tt> should be big enough to 
+  run (i.e. rsf, acc, PRT etc.). So <tt>SAVEDISK</tt> should be big enough to
   accommodate all model output.<br>
   (default: <tt>SAVEDISK=/raid1</tt>)<br>
 
@@ -255,35 +255,35 @@ which one can set in <tt>~/.modelErc</tt>:</p>
   `whoami` will be used.<br>
   (default: <tt>MAILTO=</tt> )<br>
 
-<li>  <tt>OVERWRITE</tt> - if set to <tt>YES</tt> it will allow gmake to 
-  overwrite certain files (like rundecks in repository) which by default 
-  are protected. It may be useful when you do a lot of testing and don't 
-  want to add <tt>OVERWRITE=YES</tt> on the command line all the time. 
-  In general it should be always set to <tt>NO</tt>. Leave it at its 
+<li>  <tt>OVERWRITE</tt> - if set to <tt>YES</tt> it will allow gmake to
+  overwrite certain files (like rundecks in repository) which by default
+  are protected. It may be useful when you do a lot of testing and don't
+  want to add <tt>OVERWRITE=YES</tt> on the command line all the time.
+  In general it should be always set to <tt>NO</tt>. Leave it at its
   default unless you know what you are doing.<br>
   (default: <tt>OVERWRITE=NO</tt>)<br>
 
-<li>  <tt>OUTPUT_TO_FILES</tt> - if set to <tt>YES</tt> all errors and warnings 
-  will be sent to files with the names <tt>source_name.ERR</tt>. This is 
+<li>  <tt>OUTPUT_TO_FILES</tt> - if set to <tt>YES</tt> all errors and warnings
+  will be sent to files with the names <tt>source_name.ERR</tt>. This is
   user's preference and can be set according to personal taste.<br>
   (default: <tt>OUTPUT_TO_FILES=YES</tt>)<br>
 
-<li>  <tt>VERBOSE_OUTPUT</tt> - if set to <tt>YES</tt> gmake will show 
-  compilation commands and some other information while compilation is in 
-  process. Otherwise most of the output will be suppressed. Set it according 
+<li>  <tt>VERBOSE_OUTPUT</tt> - if set to <tt>YES</tt> gmake will show
+  compilation commands and some other information while compilation is in
+  process. Otherwise most of the output will be suppressed. Set it according
   to your taste.<br>
   (default: <tt>VERBOSE_OUTPUT=NO</tt>)<br>
 
-<li>  <tt>MP</tt> - multiprocessing support. If set to <tt>YES</tt> gmake will 
-  compile the code with OpenMP instructions. Don't set it to <tt>YES</tt> 
-  unless you are really planning to run the model on several processors, 
-  otherwise it will be unnecessary waste of resources (and your model can 
-  actually run slower on one cpu). Also keep in mind that one can not compile 
+<li>  <tt>MP</tt> - multiprocessing support. If set to <tt>YES</tt> gmake will
+  compile the code with OpenMP instructions. Don't set it to <tt>YES</tt>
+  unless you are really planning to run the model on several processors,
+  otherwise it will be unnecessary waste of resources (and your model can
+  actually run slower on one cpu). Also keep in mind that one can not compile
   OpenMP objects with an non-OpenMP linker, so if you change from
   <tt>MP=YES</tt> to <tt>MP=NO</tt> you have to recompile the entire
   model. This option has effect currently on SGI and Compaq only, but
   can be set to work for dual-processor Linux systems depending on the
-  compiler.<br> (default: <tt>MP=NO</tt>)<br> 
+  compiler.<br> (default: <tt>MP=NO</tt>)<br>
 </UL>
 
 <p><A name="part0_3"><b>3) System requirements</b></a></p>
@@ -317,12 +317,12 @@ functional.</p>
 a part of the computer's memory known in computer parlance as the "stack."
 It is essential that a user's stack size be large enough to accommodate these
 arrays.
-It is recommended that the stack is set to at least 32768 KB for the 
+It is recommended that the stack is set to at least 32768 KB for the
 basic 12 layer 4x5 grid run. Runs with higher resolutions and/or
 tracers may require bigger stack.
 Default stack sizes vary among different computing environments, but
 can be easily adjusted. Stack size is set by commands native to a
-user's  $SHELL; for example, a <tt>bash</tt> user would type 
+user's  $SHELL; for example, a <tt>bash</tt> user would type
 <tt>ulimit -s 32768</tt> to set  a stack size of 32768 kb. Mysterious
 crashes in the radiation are  quite often related to
 a too small stack. It is possible to declare the required stack size
@@ -348,13 +348,19 @@ The sub-directory 'decks' is the main control directory, most commands
 will be issued in this directory. Typing 'gmake' will produce some
 documentation.
 
-There are a number of sample rundecks in the model/ directory
-(E001*.R). These represent runs with the standard fixed SST atmosphere
-only run (E001.R), a Qflux run (E001q.R), a coupled ocean-atmosphere
-run (E001o.R), a varying SST (AMIP style) run (E001a.R), a Qflux with
+There are a number of sample rundecks in the model/ directory:
+The default rundeck E1M20.R may be used after a little editing 
+for a standard fixed SST atmosphere (1880 or 1979) or for a
+annually varying SST (AMIP style) run starting in 1880 or 1979;
+it may also be used for a Qflux run (based on a preliminary
+fixed SST run) (M20 indicates, that it uses a Medium, i.e.
+4x5 degree horizontal resolution and 20 atmospheric layers).
+E1F20 uses a 2x2.5 (fine) horizontal grid, and E1oM20 is the coupled
+ocean-atmosphere version. Further examples represent qflux models with
 deep diffusion (E001qd.R), a stratospheric model (E001M23.R), a tracer
 model (E001tr.R) etc. These can be used as templates for any runs
-you do.
+you do; unlike the E1... examples, the E0... are not tested for
+radiative balance.
 
 <OL>
    <LI> <A name="part1_1a"><b> How to select a rundeck name </b></A>
@@ -398,10 +404,10 @@ rundeck will be created using
      gmake rundeck RUN=E001xyz
 </pre>
 
-This will make a rundeck E001xyz.R, that will be a copy of E001.R. To
+This will make a rundeck E001xyz.R, that will be a copy of E1M20.R. To
 make a copy based on another of the sample decks, use, for instance,
 <pre>
-     gmake rundeck RUN=E001xyz RUNSRC=E001q
+     gmake rundeck RUN=E001xyz RUNSRC=E1oM20
 </pre>
 
 A copy of the new rundeck will be stored in the rundeck depository on
@@ -496,7 +502,7 @@ stopped previously, but with the new code. Any changes to the CVS
 information between the initial setup and the new code will be
 recorded in the central rundeck repository.</p>
 
-   <LI> <A name="part1_1e"><b> How to run the model on multiple 
+   <LI> <A name="part1_1e"><b> How to run the model on multiple
        processors</b></A>
 
 <p>ModelE uses OpenMP application program interface. It consists in a set
@@ -505,14 +511,14 @@ how to parallelize the code. To be able to run the model on multiple
 processors one has to compile it with enabled OpenMP. This is done by
 appending <tt>MP=YES</tt> to the compile line, i.e.
 <pre>
-  gmake gcm RUN=E001xyz MP=YES 
-</pre> 
+  gmake gcm RUN=E001xyz MP=YES
+</pre>
 It is important to keep in mind that one can't mix OpenMP objects with
 a non-OpenMP compilation. This means that one has to do <tt>gmake
 vclean</tt> when switching from OpenMP to non-OpenMP compilation. The
 option <tt>MP=YES</tt> can be set in <tt>~/.modelErc</tt> file (see <A
 HREF="#part0_2"> Part 0.2</A>).  In that case one can skip it on the
-command line.</p> 
+command line.</p>
 
 <p> In the setup stage, the number of processors is defined by the
 relevant environmental variable <tt>$MP_SET_NUMTHREADS</tt>. However,
@@ -521,8 +527,8 @@ non-OpenMP model, except that one has to specify the number of
 processors as a second argument to <tt>runE</tt>. For instance if one
 wants to run the model E001xyz on 4 processors one starts it with
 <pre>
-  runE E001xyz 4 
-</pre> 
+  runE E001xyz 4
+</pre>
 On batch systems (such as halem or charney),
 the number of processors is more automatic, and currently, only four
 can be used (since that is the number of processors per shared-memeory
@@ -533,18 +539,18 @@ possible queues.<p>
    <LI> <A name="part1_1f"><b> How to specify individual compilation
        options for certain files </b></A>
 
-<p>In some circumstances you may need to specify individual compilation 
+<p>In some circumstances you may need to specify individual compilation
 options for certain files. For example, you may want to compile some
-files with debugging information or with <tt>REAL*8</tt> for default 
+files with debugging information or with <tt>REAL*8</tt> for default
 reals etc. This can be done inside the rundeck by adding all necessary
 options in vertical slashes (<tt>||</tt>) right after the name of the file.
-All options specified between the slashes will be appended to the 
+All options specified between the slashes will be appended to the
 compile line during compilation. For instance, the following line in
 the rundeck
 <pre>
   GHY_COM GHY_DRV|-g| GHY|-g -r8|
 </pre>
-will tell gmake to compile <tt>GHY_COM.f</tt> with default options, compile 
+will tell gmake to compile <tt>GHY_COM.f</tt> with default options, compile
 <tt>GHY_DRV.f</tt> with debugging information and compile <tt>GHY.f</tt>
 with debugging information and with default reals set to <tt>REAL*8</tt>.</p>
 
@@ -561,7 +567,7 @@ big enough for the allocation of all temporary (automatic) arrays and
 variables. One can set it for the current SHELL session by executing
 <tt>ulimit -s stack_size_in_KB</tt>, but one should keep in mind that
 once the stack size is set it can not be increased (one has to start a
-new SHELL session to increase the numbers set by <tt>ulimit</tt>). 
+new SHELL session to increase the numbers set by <tt>ulimit</tt>).
 The GCM scripts provide an option to specify the stack size which will
 be set for a particular model run at the execution time. To utilize this
 option one should add to the rundeck
@@ -637,14 +643,14 @@ U00ice/HRMAX)</b></a></p>
 <p>    Run the model for a year and find the annual mean net heating at
        the ground (GLOBAL: NET HEAT AT Z0, or OCEAN: NET HEAT Z0+RVR
        budget pages). That quantity can change from year to year within
-       .5 W/m<sup>2</sup>. Increasing U00ice by .01 decreases the cloud 
+       .5 W/m<sup>2</sup>. Increasing U00ice by .01 decreases the cloud
        cover and planetary albedo. Increasing U00wtrX to be larger
-       than 1 reduces cloud cover in the low latitudes. 
+       than 1 reduces cloud cover in the low latitudes.
        HRMAX can vary between 200 and 1000 m. Increasing HRMAX
        increases the cloud cover in the boundary layer
        which has a warming effect. Note HRMAX is only affective if the
-       do_BLU00 option is set (which is not be default). Rerun that year with 
-       the new values and hope that the annual mean net heating at the ground averages  
+       do_BLU00 option is set (which is not be default). Rerun that year with
+       the new values and hope that the annual mean net heating at the ground averages
        out to less than .3 W/m<sup>2</sup> in absolute value over the next
        few years.</P>
 
@@ -695,7 +701,7 @@ ocean layer</b></a></p>
 
   <li> Go to the ../aux directory and run the script
 <pre>
-    mkOTSPEC.E001.M250D RunIDcontrol first_month first_year last_month last_year
+    mkOTSPEC RunIDcontrol first_month first_year last_month last_year
 </pre>
       where months and years are integers and span the months
       that you wish to be used for the heat transport calculation.
@@ -704,56 +710,52 @@ ocean layer</b></a></p>
       starting Jan.1 1950. Note that the surface heat imbalance number
       is the ratio of the incoming energy to the outgoing. A number
       less than one denotes a net heating of the ocean. If the number is
-      with 1% of unity, there is no need to worry.
+      with 1% of unity, there is no need to worry. You will be asked
+      to enter the desired mixed layer depth (in m). Recommended values
+      are  65 for sensitivity runs, 250 to prepare for runs with
+      diffusion into the deep ocean.
 
 <li> After this you will get two files (in the original
 run directory) which you will use as input data for your Q-flux
 model:
        <ol>
-       <li> <tt>OTSPEC.RunIDcontrol.M250D.first_year-last_year</tt>
+       <li> <tt>OTSPEC.RunIDcontrol.MXL65m.first_year-last_year</tt>
           This file is the implied ocean heat transport data. In your
           Q-flux run-deck the input file OHT has to have this name, in
-          other words OHT=OTSPEC.RunIDcontrol.M250D.first_year-last_year.
+          other words OHT=OTSPEC.RunIDcontrol.MXL65m.first_year-last_year.
           You should move this file to /u/cmrun directory.
-       <li> <tt>IMJAN.RunIDcontrol.O250D </tt> is the modified restart for the
+       <li> <tt>IMJAN.RunIDcontrol.MXL65m </tt> is the modified restart for the
           Q-flux model. This restart is basically is the same restart as your
           control model restart but it also has corrected temperatures of
           the ocean which were not used in the control run. These
           temperatures are the temperature between the mixed layer and the
           annual maximal mixed layer depths (TOCEAN(2,im,jm)) and the
           temperature at annual maximal mixed layer depth (TOCEAN(3,im,jm)).
-          You have to specify AIC=IMJAN.RunIDcontrol.O250D in your Q-flux
+          You have to specify AIC=IMJAN.RunIDcontrol.MXL65m in your Q-flux
           run-deck. You have to move this file to /u/cmrun directory as well.
-       <LI> In your aux directory you will also get the line-plot
+       <LI> In your control run directory you will also get the line-plot
    file <tt>ohtRunIDcontrol.first_year-last_year.lpl </tt>
           which you can plot and compare with observational data if you like.
    You will also get few PRT files which you can remove.
      </ol>
-     In your Q-flux model run-decks, you have to
+     In your Q-flux model run-decks (modified copy of control rundeck), you have to
      <ol>
+       <LI> change runID e.g. from E001...M20 to E001...qM20 (in 3 places)
        <LI> specify KOCEAN=1;
+       <LI> specify Kvflxo=0;
        <LI> make sure that U00ice/HRMAX are the same as in your
      control run. Then your Q-flux model will be as well balanced
      as your control run.
        <LI> specify AIC and OHT as described above.
+       <LI> use ISTART=8, etc as indicated in the sample rundeck E1M20.R
      </ol>
 
-<p> 
+<p>
     During the first few years of the q-flux run, monitor the time
     series of global annual means of Ocean Ice Cover and Surface Air
     Temperature.  Hopefully, they will no longer change after a few years
     (10-25).  The model is said to be in balance as soon as that
-    happens. If this is not the case, it may be possible to adjust some of
-    the ice-related parameters to improve the sea ice distribution and
-    hence the stability. Two parameters can be used 'oi_ustar0' and
-    'silmfac'. These control the basal and lateral melt of sea ice. Since
-    they are not used in a fixed SST/sea ice run they can be used to tune
-    the q-flux model. Increasing 'oi_ustar0' (default=5d-3) reduces the
-    temperature difference between the ocean and sea ice and increases the
-    basal heat flux, decreasing ice thickness and ice extent. Increasing
-    'silmfac' (default=1.4d-8) increases lateral melt and therefore ice
-    concentration. Note that 'oi_ustar0' is only effective with
-    non-dynamic ice.</p>
+    happens. </p>
 
 </ol>
 
@@ -772,9 +774,9 @@ into a deep ocean </b></a></p>
 
 <p> The deep ocean layers 2-LMOM (currently = 12) start at the annual
 maximal mixed layer depth. The thickness of layer 2 (DZ2) is 10m and
-the layer thicknesses increase geometrically s.t. 
+the layer thicknesses increase geometrically s.t.
 DZ1X+DZ2+DZ3+...+DZlmom=5000m (lmom=12); i.e. DZ1X=10/Q,
-DZ3=10*Q, DZ4=DZ3*Q, ...  and DZ1=ann.max.mixed layer depth 
+DZ3=10*Q, DZ4=DZ3*Q, ...  and DZ1=ann.max.mixed layer depth
 DZ1X is not used; the dzo's to compute the vertical gradients are
 given by : dzo1=10/sqrt(Q) , dzo2=dzo1*Q , dzo3=dzo2*Q , etc Q=1.701...</p>
 
@@ -791,13 +793,13 @@ T3 = temperature at annual maximal mixed layer depth.     =TOCEAN(3)
 
 RTGO(L=1->lmom) is set to 0 at the beginning of the run
 
-RTGO(L=2->LMOM) = temperature anomaly for deep ocean layer L 
+RTGO(L=2->LMOM) = temperature anomaly for deep ocean layer L
 RTGO(1)=12-month-mean anomaly of T3 w.r. to climatology, i.e.:
     before the diffusion computation it is reset to the difference
     dT3ann="mean_T3_over_last_12_full_months - 10year_mean_of_prel.run";
     dT3ann is kept constant throughout the month. The diffusion
     computation changes RTGO(1); that change is added to T1,T2,T3,
-    Before the next diffusion computation, RTGO(1) is reset to dT3ann.  
+    Before the next diffusion computation, RTGO(1) is reset to dT3ann.
 
 The heat flux at interface of layers L and L+1 is given by
     EDO*(RTGO(L)-RTGO(L+1))/dzo(L)  L=1,...,8
@@ -805,7 +807,7 @@ however, a semi-implicit scheme is used to compute these fluxes.
 
 The following auxiliary arrays are used to carry out this scheme:
 STG3 is set to 0 at the beginning of each month, at the end of
-    each day  T3  is added; i.e. STG3=SumD_T3 (summed over days) 
+    each day  T3  is added; i.e. STG3=SumD_T3 (summed over days)
 
 TG3M(M) initially contains a 10-year mean of SumD_T3 for month M
     (the sum is taken over each day of month M, not averaged yet)
@@ -852,12 +854,12 @@ runs</b></a></p>
        so it will not affect later extensions or reruns, since it is
        then automatically removed from the file 'I'.</p>
 
-<p><A name="part1_2f"><b>F: How to fall back to a smaller time step 
+<p><A name="part1_2f"><b>F: How to fall back to a smaller time step
 automatically</b></a></p>
 <p>    The atmospheric dynamics code uses a fixed time step which is
        defined by the rundeck parameter DT. If the program stops because
-       of the atmospheric instability due to the fact that DT is too big, 
-       one has to restart it with a smaller time step, then stop and restart 
+       of the atmospheric instability due to the fact that DT is too big,
+       one has to restart it with a smaller time step, then stop and restart
        it again with a normal time step.</p>
 <p>    This process can be done automatically. To set the model for an
        automatic restart one has to add to the rundeck a line</p>
@@ -876,47 +878,47 @@ automatically</b></a></p>
 conditions to start the run. We have a number of options depending on
 how much information is already available.</P>
 
-<ol> 
-	<li> <tt>ISTART=1</tt> Default start. This sets atmospheric
-	variables to constants and requires input files for ground values (a
-	GIC file), and ocean values (OIC) if required.
-	<li> <tt>ISTART=2</tt> Observed start. This sets atmospheric
+<ol>
+ <li> <tt>ISTART=1</tt> Default start. This sets atmospheric
+ variables to constants and requires input files for ground values (a
+ GIC file), and ocean values (OIC) if required.
+ <li> <tt>ISTART=2</tt> Observed start. This sets atmospheric
 values to observations, based on a particular format of AIC file. As
 for ISTART=1, input files are required for ground and ocean variables.
-	<li> <tt>ISTART=3</tt> Not used.
-	<li> <tt>ISTART=4</tt> A restart from an rsf file from a
+ <li> <tt>ISTART=3</tt> Not used.
+ <li> <tt>ISTART=4</tt> A restart from an rsf file from a
 previous run, but the ocean is reinitialised. Needs an initial OIC
 file (for fully coupled models).
-	<li> <tt>ISTART=5</tt> A restart from an rsf file from a
+ <li> <tt>ISTART=5</tt> A restart from an rsf file from a
 previous run, but no tracers. This is only useful for tracer runs that
 need to be initialised with a particular model state.
-	<li> <tt>ISTART=6</tt> A restart from an rsf file from a
+ <li> <tt>ISTART=6</tt> A restart from an rsf file from a
 previous run that might not have had the same land-ocean mask. This
 makes sure to reset snow values, pbl values and ocean values
 accordingly.
-	<li> <tt>ISTART=7</tt> A restart from an rsf file from a
+ <li> <tt>ISTART=7</tt> A restart from an rsf file from a
 previous run with the same land-ocean mask. This still makes sure to
 set snow values and ocean values. This is used mainly for converted
 model II' data.
-	<li> <tt>ISTART=8</tt> This is a restart from a model
+ <li> <tt>ISTART=8</tt> This is a restart from a model
 configuration identical to the run now starting. This is for
 perturbation experiments etc.
-	<li> <tt>ISTART=9</tt> This is a restart from this model
+ <li> <tt>ISTART=9</tt> This is a restart from this model
 run. (i.e. a continuation, or a backtrack to an older rsf file).
-	<li> <tt>ISTART=10</tt> This is used internally to pick up
+ <li> <tt>ISTART=10</tt> This is used internally to pick up
 from the instantaneous rsf file (the later of fort.1 and fort.2). Does
 not ever need to be set in the rundeck.
-	<li> <tt>ISTART=11</tt> This is used internally to pick up
+ <li> <tt>ISTART=11</tt> This is used internally to pick up
 from an instantaneous rsf file (fort.1). Only rarely used.
-	<li> <tt>ISTART=12</tt> This is used internally to pick up
+ <li> <tt>ISTART=12</tt> This is used internally to pick up
 from an instantaneous rsf file (fort.2). Only rarely used.
-	<li> <tt>ISTART=13</tt> This is used internally to pick up
+ <li> <tt>ISTART=13</tt> This is used internally to pick up
 from the instantaneous rsf file (the earlier of fort.1 and
 fort.2). Only rarely used.
-	<li> <tt>ISTART<0</tt> This option is used by the
+ <li> <tt>ISTART<0</tt> This option is used by the
 post-processing program to run the model to generate nice
-diagnostics. This should never need to be set manually.  
-</ol> 
+diagnostics. This should never need to be set manually.
+</ol>
 
 Please note that if you get this wrong i.e. you use an ISTART that is
 not compatible with the AIC, GIC or OIC files in the rundeck, the
@@ -964,7 +966,7 @@ always be recreated if needed.</p>
          FLAND=1.-FOCEAN(I,J)
        ELSE
          FLAND=1.-FLAKE(I,J)
-	 HLAKE(I,J)=MAX(1.,HLAKE(I,J))
+  HLAKE(I,J)=MAX(1.,HLAKE(I,J))
        END IF
        FGRND(I,J)=MAX(0.,FLAND-FGICE(I,J))! land ice fraction takes precedence over ground
        FGICE(I,J)=FLAND-FGRND(I,J)
@@ -981,12 +983,12 @@ always be recreated if needed.</p>
     <p>If you changed the topography file you may have created new land cells.
     These cells are missing both boundary conditions and prognostic variables
     related to the land surface model. One has to extend the land surface
-    data to these cells before the model can run. 
+    data to these cells before the model can run.
 
     <p>To remedy this problem we created a set of &quot;extended&quot; boundary
     conditions files. These files are the same as original ones except
     the data was spread all over the ocean cells using a nearest-neighbor
-    algorithm, so that each cell contains some reasonable land surface 
+    algorithm, so that each cell contains some reasonable land surface
     data. If you are working on Ra then these files are at the same location
     and have the same name as originals with the suffix <tt>.ext</tt> appended
     to them. Here is the list of the files which needed extension as they
@@ -1004,12 +1006,12 @@ always be recreated if needed.</p>
     AIC=DEC1958.rsfB394M12.modelE.17.ext  ! - initial conditions
     </pre>
     One should keep in mind that the data should be extended in a compatible
-    way. At least the data in <tt>SOIL</tt> and <tt>AIC</tt> should be 
-    extended from the same &quot;nearest neighbors&quot;. To preserve the 
-    information about this &quot;extension&quot; process the file 
+    way. At least the data in <tt>SOIL</tt> and <tt>AIC</tt> should be
+    extended from the same &quot;nearest neighbors&quot;. To preserve the
+    information about this &quot;extension&quot; process the file
     <tt>conv_index.ext</tt> was created (located on Ra in <tt>/u/cmrun</tt>).
-    It contains the coordinates of &quot;nearest neighbors&quot; used when 
-    extending the data. More precisely, the data <tt>array</tt> is extended 
+    It contains the coordinates of &quot;nearest neighbors&quot; used when
+    extending the data. More precisely, the data <tt>array</tt> is extended
     as follows:
     <pre>
     integer :: conv_index(im,jm,2)
@@ -1034,7 +1036,7 @@ always be recreated if needed.</p>
     </pre>
 
     <p>To summarize, when using a non-standard land mask one has to replace
-    the above mentioned files in the rundeck with their <tt>.ext</tt> 
+    the above mentioned files in the rundeck with their <tt>.ext</tt>
     equivalents. One also has to use ISTART=6 (instead of ISTART=7) to
     force regeneration of PBL data.
 </ol>
@@ -1048,7 +1050,7 @@ multiples of the default values in order to look at equilibrium
 sensitivities for instance.
 
 <ol>
-<li> Setting the Trace Gas Year: 
+<li> Setting the Trace Gas Year:
 
 <p> The file GHG in the rundeck can be used to define a trace gas
 scenario (the default file gives observed values from 1850 to
@@ -1094,9 +1096,9 @@ will be no seasonality there). Possibly there is another way....</p>
 
 <ol>
   <li> orbital parameters. These can be changed directly in CONST.f,
-	or by setting 'calc_orb_par=1' in the rundeck, and then using
-	'paleo_orb_yr' to define a year (Before Present (i.e. 1950)) from 
-	which the values can be calculated. 
+ or by setting 'calc_orb_par=1' in the rundeck, and then using
+ 'paleo_orb_yr' to define a year (Before Present (i.e. 1950)) from
+ which the values can be calculated.
   <li> trace gas amounts. (see Q6) Note that for really large changes,
        the mean atmospheric composition will change (and thus so will RVAP
        etc. See CONST.f for details)
@@ -1184,12 +1186,12 @@ in the modelE/doc directory can be uploaded to the main repository.
 Please contact one of the developers if you have some changes that you
 would like to commit.</p>
 
-<p><A name="part1_14"><b>14) HOW-TO keep up-to-date with the latest 
+<p><A name="part1_14"><b>14) HOW-TO keep up-to-date with the latest
 releases of the model</b></a></p>
 
-<p> From time to time relatively stable versions of the model will be 
-&quot;released&quot;, i.e. that they will be marked and assigned some 
-specific name, or &quot;tag&quot; by which they can be checked out from CVS. 
+<p> From time to time relatively stable versions of the model will be
+&quot;released&quot;, i.e. that they will be marked and assigned some
+specific name, or &quot;tag&quot; by which they can be checked out from CVS.
 The typical name for such released versions will be &quot;modelE-x-y&quot;,
 where x and y are some numbers. It is recommended that those who are
 not involved into active development on the main trunk of the CVS use
@@ -1197,7 +1199,7 @@ only these &quot;released&quot; versions. </p>
 
 <p> If you are currently working on your private branch and want to upgrade
 the model to a new release, you can do it automatically, provided that for
-your previous update you also used a &quot;released&quot; version. To 
+your previous update you also used a &quot;released&quot; version. To
 upgrade your model to the release modelE-a-b go to <tt>decks</tt> directory
 and execute
 <pre>
@@ -1211,16 +1213,16 @@ they have to be checked and fixed manually.</p>
 
 <p><A name="part1_14"><b>9) HOW-TO nudge the model </b></a></p>
 
-<p>The model can be run in a nudged mode, whereby the horizontal 
+<p>The model can be run in a nudged mode, whereby the horizontal
 wind components are nudged towards reanalysis data sets (NUDGE.f).
 The following nudging formula is used:
 <pre>
 f(n+1) = f(n) + a delta b / (1 + a delta)
 </pre>
-where f(n+1) is the variable to be nudged at the new timestep (n+1) 
-and at the old timestep f(n), respectively. delta is the model time 
+where f(n+1) is the variable to be nudged at the new timestep (n+1)
+and at the old timestep f(n), respectively. delta is the model time
 step and b is the reanalysis value. a is the nudging coefficient.
-a depends on the model timestep and a nudging timescale ANUDGEU, 
+a depends on the model timestep and a nudging timescale ANUDGEU,
 ANUDGEV (for the u and v-velocities, respectively) </P>
 
 <p>ANUDGEU and ANUDGEV are set in the input parameter list in the rundeck file.
@@ -1270,14 +1272,14 @@ and NMONAV in the NAMELIST).</p>
   <li>for a whole year:   pdE $RUNID *1987.acc$RUNID
        </ul>
        <p>
-       For pdE to work properly, the directory /u/cmrun/$RUNID has to exist 
+       For pdE to work properly, the directory /u/cmrun/$RUNID has to exist
        and contain at least ${RUNID}ln  ${RUNID}uln  ${RUNID}.exe .
        The output files will end up in the PRESENT WORKING DIRECTORY which
        may be /u/cmrun/$RUNID or any other directory;
-       names and order of the inputfiles are irrelevant (as long as the 
-       format of the files is compatible with the model ${RUNID}).  
+       names and order of the inputfiles are irrelevant (as long as the
+       format of the files is compatible with the model ${RUNID}).
        </p>
-       
+
        <p>It is possible to use pdE to average acc-files from several runs,
        e.g. average over an ensemble of runs. Although the numbers that
        are produced are fine, subroutine aPERIOD will not
@@ -1292,7 +1294,7 @@ and NMONAV in the NAMELIST).</p>
 <p>Note that the output can be controlled (a little) by the settings in
 'Ipd' (which is created if it does not yet exist in the present working
 directory). A number of files will be created whose names contain the
-accumulated time period.  (monyear[-year] where mon is a 3-letter acronym 
+accumulated time period.  (monyear[-year] where mon is a 3-letter acronym
 for a period of 1-12 consecutive months).</p>
 <pre>
         monyear.PRT      the printout
@@ -1303,7 +1305,7 @@ for a period of 1-12 consecutive months).</p>
         monyear.wp$RUNID Wave power binary file
         monyear.oij$RUNID lat-lon binary file for ocean diagnostics
         monyear.ojl$RUNID lat-depth binary file for ocean diagnostics
-        monyear.oht$RUNID lat ASCII file for ocean heat transports 
+        monyear.oht$RUNID lat ASCII file for ocean heat transports
 </pre>
 <p>which can be read using the appropriate graphical software. </p>
 
@@ -1681,9 +1683,9 @@ components to a new AIJ diagnostic: the declaration, the definition,
 and the accumulation. Everything else is done automatically. First of
 all, define a variable in DIAG_COM.f which will be an index for this
 diagnostic such as ij_xyz (where xyz is some clear mnemonic for your
-new diagnostic). Secondly, in DEFACC.f (subroutine ij_defs), add a definition: 
+new diagnostic). Secondly, in DEFACC.f (subroutine ij_defs), add a definition:
 <pre>
-      k=k+1 ! new diagnostic XYZ 
+      k=k+1 ! new diagnostic XYZ
       ij_xyz = k
       lname_ij(k) = 'XYZ DIAGNOSTIC'
       units_ij(k) = 'XYZ_UNIT'
@@ -1756,8 +1758,8 @@ give the diagnostic. Ratios are a little more complicated.</p>
   <li><A name="part3_5f"><b>F: Coupling an ocean model</b></a>
 
        <p> Please read <a href="coupling.txt">the coupling
-       	documentation</a> for details of the fluxes, fields and entry points
-	required for any ocean code.  </p> 
+        documentation</a> for details of the fluxes, fields and entry points
+ required for any ocean code.  </p>
 </ul>
 
 <p><A name="part3_9"><b>9) HOW-TO read in an external file</b></a></p>
@@ -1973,7 +1975,7 @@ href="#part1_1">Part I</a>). Use a branch name such as
 <tt>update-x</tt>. Once you are on the branch, make the fixes that you
 require and commit them. Then, declare a revision (with a suitable
 revision name).</b>
- 
+
 <tt>
    cvs tag modelE-x-1<br>
 </tt>
