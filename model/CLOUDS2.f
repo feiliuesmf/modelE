@@ -452,7 +452,9 @@ C**** save initial values (which will be updated after subsid)
       VLAT=LHE
 #ifdef TRACERS_ON
       TM1(:,1:NTX) = TM(:,1:NTX)
+#ifdef TRACERS_WATER
       CLDSAVT=0.
+#endif
 #endif
 C**** SAVE ORIG PROFILES
       SMOLD(:) = SM(:)
@@ -2182,7 +2184,7 @@ C**** CONDENSING MORE TRACERS
         IF(CLDSAVT.LT.0.) CLDSAVT=0.
         IF(RH(L).GT.1.) CLDSAVT=1.
         IF (CLDSAVT.GT.1.) CLDSAVT=1.
-        IF (WMX(L).LE.0.) CLDSAVT=0. 
+        IF (WMX(L).LE.0.) CLDSAVT=0.
         CLDSAVT=CLDSAVT*FSSL(L)
 cdmks  I took out some code above this that was for below cloud
 c   processes - this should be all in-cloud
