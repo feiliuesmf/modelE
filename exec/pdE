@@ -28,7 +28,7 @@ cat <<EOF > Ipd
  &&END_PARAMETERS
 
  &INPUTZ
- ISTART=-1,QDIAG=.true.,KDIAG=12*0,
+ ISTART=-1,QDIAG=.true.,KDIAG=13*0,
  &END
 EOF
 fi
