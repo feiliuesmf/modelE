@@ -93,7 +93,7 @@
 
       return
       end subroutine store_i
-      
+
 
       subroutine guess_dims(ind, name, dims )
       implicit none
@@ -117,7 +117,7 @@
       n = n/dims(3)
       if ( n<=1 ) return
       db(i)%lm = dims(4)
-      
+
       return
       end subroutine guess_dims
 
@@ -171,7 +171,7 @@
 
 #define check(y,x) call store(i,y,pack(x,tt),size(x)); \
                    call guess_dims(i,y,shape(x))
-     
+
       program compare
       use CMP
       use filemanager
@@ -204,7 +204,6 @@
            ,speca,atpe,adiurn,wave,ajk,aijk,aisccp
       use model_com, only : idacc
       use icedyn_com, only : icij
-      use dagcom, only : aj, areg, apj, ajl, asjl, aij, ail
 
 !ccc  include tracers data here
 #ifdef TRACERS_ON
@@ -226,7 +225,7 @@
            yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2 &
            ,yAldehyde,yXO2N,yRXPAR,OxIC,corrOx
 #  endif
-          
+
 #  ifdef CHECK_OCEAN
 #    ifdef TRACERS_WATER
        use straits, only : trsist
@@ -473,4 +472,4 @@
       call do_compare
 
       end
- 
+
