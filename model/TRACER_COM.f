@@ -122,6 +122,11 @@ C note, tr_evap_fact is not dimensioned as NTM:
       real*8, dimension(ntm) :: trw0
 !@var TRWM tracer in cloud liquid water amount (kg)
       real*8, dimension(im,jm,lm,ntm) :: trwm
+#ifdef TRACERS_SPECIAL_O18
+!@dbparam supsatfac factor controlling super saturation for isotopes
+      real*8 :: supsatfac = 2d-3
+#endif
+
 
 #ifdef TRACERS_OCEAN
 !@var TRGLAC tracer ratio in glacial runoff to ocean (kg/kg)

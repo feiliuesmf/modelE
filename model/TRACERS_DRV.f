@@ -3158,6 +3158,9 @@ C**** GLOBAL parameters and variables:
 #ifdef TRACERS_SPECIAL_Shindell
      &     ,t_qlimit
 #endif
+#ifdef TRACERS_SPECIAL_O18
+     &     ,supsatfac
+#endif
       USE CLOUDS, only: PL, NTIX
 c
       IMPLICIT NONE
@@ -3220,7 +3223,7 @@ C**** calculate condensate in equilibrium with source vapour
               alph=1./fracvs(tdegc,trname(ntix(n)))
 C**** kinetic fractionation can occur as a function of supersaturation
 C**** this is a parameterisation from Georg Hoffmann
-              supsat=1d0-8d-3*tdegc
+              supsat=1d0-supsatfac*tdegc
               if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
      *             ,trname(ntix(n)))
             end if

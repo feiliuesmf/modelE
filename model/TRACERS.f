@@ -36,6 +36,10 @@ C**** Get to_volume_MixRat from rundecks if it exists
 C**** Decide on water tracer conc. units from rundeck if it exists
       call sync_param("to_per_mil",to_per_mil,ntm)
 #endif
+#ifdef TRACERS_SPECIAL_O18
+C**** set super saturation parameter for isotopes if needed
+      call sync_param("supsatfac",supsatfac)
+#endif
 
 C**** Get factor to convert from mass mixing ratio to volume mr
       do n=1,ntm
