@@ -7,7 +7,7 @@
       SAVE
       INTEGER, PARAMETER :: ndmssrc  = 1
 !@var DMS_src           DMS ocean source (kg/s)
-      real*8 DMS_src(im,jm,ndmssrc),DMSinput(im,jm,12)
+      real*8 DMS_src(im,jm),DMSinput(im,jm,12)
       INTEGER, PARAMETER :: nso2src  = 2
 !@var SO2_src    SO2 industry, biomass: surface sources (kg/s)
       real*8 SO2_src(im,jm,nso2src)
@@ -52,7 +52,7 @@ Cewg Between 24N and 40N, allow biomass burning from September to April.
 
       logical :: ifirst=.true.
       REAL*8 tx,txx,ty,tyy,txy,tmas,
-     *  so2_ind_input(im,jm,6),cfac,
+     *  so2_ind_input(im,jm),cfac,
      *  tb,tbx,tbxx,tby,tbyy,tbxy,sdday,endday,fdry,addtc
      *  ,vemis,zg,vht,zh,pl1,pl2,te,hight,vtot
       real*4 craft(im,jm,lm)
@@ -64,17 +64,12 @@ Cewg Between 24N and 40N, allow biomass burning from September to April.
 
       if (ifirst) then
       call openunit('SO2_IND',iuc,.false.)
-      so2_ind_input(:,:,:)=0.   ! initiallise
+      so2_ind_input(:,:)=0.   ! initiallise
       DO 10 ij = 1,9999
       read(iuc,902)   I,J,TMAS,TX,TXX,TY,TYY,TXY      
  902  FORMAT(3X,2(I4),E11.3,5F9.2)  
       if (i.eq.0) goto 12     
-      so2_ind_input(i,j,1)=tmas
-      so2_ind_input(i,j,2)=tx  
-      so2_ind_input(i,j,3)=ty  
-      so2_ind_input(i,j,4)=txx 
-      so2_ind_input(i,j,5)=tyy 
-      so2_ind_input(i,j,6)=txy   
+      so2_ind_input(i,j)=tmas
  10    continue  
  12   continue  
       call closeunit(iuc)
@@ -84,12 +79,13 @@ c We need kg SO2/m2/s
       cfac=tr_mm(nt)/32.d0/365.d0/sday  !*dtsrc
       do j=1,jm
       do i=1,im
-      so2_src(i,j,1)=so2_ind_input(i,j,1)*cfac
+      so2_src(i,j,1)=so2_ind_input(i,j)*cfac
       end do
       end do
 
 c??      DTT=REAL(NDYN)*DT/(86400.*30.) (ADDTC=TB*B60N*DTT)
 
+      so2_src(:,:,2)=0.
 C  Read in emissions from biomass burning 
       call openunit('SO2_BIOMASS',iuc2,.false.)
       so2_src(:,:,2)=0.   ! initiallise
@@ -210,44 +206,8 @@ c (for BC multiply this by 0.1)
      *  /2.3d0/sday
       endif
 
-
       end subroutine read_SO2_source
 
-
-
-cg      subroutine apply_SO2_3Dsrc
-cg      USE MODEL_COM, only: im,jm,dtsrc
-cg      USE TRACER_COM
-cg      USE TRACER_DIAG_COM, only: jls_3Dsource,tajls,itcon_3Dsrc
-cg      USE AEROSOL_SOURCES, only: SO2_src_3d
-cg      integer najl,i,j,l
-cg      real*8 vtot
-cg
-cg        najl = jls_3Dsource(1,n_SO2)
-cg        do l=1,lm
-cg        do j=1,jm
-cg        do i=1,imaxj(j)
-cg        tajls(j,l,najl)=tajls(j,l,najl)+so2_src_3d(i,j,l,1)*dtsrc
-cg        trm(i,j,l,n_so2)=trm(i,j,l,n_so2)
-cg     *       +so2_src_3d(i,j,l,1)*dtsrc
-cg        end do
-cg        end do
-cg        end do
-cg      call DIAGTCA(itcon_3Dsrc(1,n_SO2),n_SO2)
-cg
-cg        najl = jls_3Dsource(2,n_SO2)
-cg        do l=1,lm
-cg        do j=1,jm
-cg        do i=1,imaxj(j)
-cg        tajls(j,l,najl)=tajls(j,l,najl)+so2_src_3d(i,j,l,2)*dtsrc
-cg        trm(i,j,l,n_so2)=trm(i,j,l,n_so2)
-cg     *       +so2_src_3d(i,j,l,2)*dtsrc
-cg        end do
-cg        end do
-cg        end do
-cg      call DIAGTCA(itcon_3Dsrc(2,n_SO2),n_SO2)
-cg
-cg      end subroutine apply_SO2_3Dsrc
 
       subroutine read_DMS_sources(nt,iact)
 !@sum reads in DMS ocean source
@@ -256,199 +216,39 @@ c Monthly DMS ocean concentration sources are read in and combined
 c  with wind and ocean temperature functions to get DMS air surface
 c  concentrations
 c want kg DMS/m2/s
-      USE CONSTANT, only: sday,grav,rgas,teeny
-      USE MODEL_COM, only: im,jm,jmon,focean,t,dtsrc
-      USE GEOM, only: bydxyp,imaxj
+      USE CONSTANT, only: sday
+      USE MODEL_COM, only: im,jm,jmon,focean
+      USE GEOM, only: imaxj
       USE TRACER_COM
-      USE TRACER_DIAG_COM, only: tajls,jls_source
-      USE FILEMANAGER, only: openunit,closeunit
       USE SEAICE_COM, only:rsi
-      USE PBLCOM, only: wsavg,eabl,tsavg
-      USE CLOUDS_COM, only : airx
-      USE FLUXES, only : gtemp
-      USE AEROSOL_SOURCES, only: DMSinput,DMS_src,PBLH,SHDTT ! ,MDF
-      USE DYNAMICS, only: BYAM,pmid,pk
+      USE PBLCOM, only: wsavg
+      USE AEROSOL_SOURCES, only: DMSinput,DMS_src
       implicit none
-      logical :: ifirst=.true.
-      integer, parameter :: nanns=0, nmons=1
-      integer najl
-      REAL*8 swind,ot,schm,scrat,akw,erate,conc,steppd,
-     *  foc,f_ice_free,grdi,dms1(jm)
-      real*8 wt,aa,wtke,wd,arho,cp,wm,sig,wdf,
-     * x,bess,dydx,yy,erate2,w1,w2,besf,bessi0,exx
-
-      integer i,j,jj,nt,iact,iu,k,m,mont,ii
-
-       cp=1005.20d0 !J/kg/K
+      REAL*8 swind,akw,erate,steppd,
+     *  foc,f_ice_free
+      integer i,j,nt,iact
 
       steppd = 1./sday
-      dms1(:)=0.d0
 c
-      do j=1,jm
-      do i=1,im
-      if (dmsinput(i,j,jmon).gt.teeny) then
-      dms1(j)=dms1(j)+1
-      endif
-      end do
-      end do
-
       do j=1,jm
       do i=1,imaxj(j)
-       DMS_src(i,j,1)=0
-       erate2=0.d0
+       DMS_src(i,j)=0
        erate=0.d0
          swind=wsavg(i,j)  !m/s
-         ot=gtemp(1,1,i,j)   !mixed layer temp, C
          foc=focean(i,j) !fraction of gridbox with water
          f_ice_free=1.-rsi(i,j)
-c Liss and Merlivat         
-         schm = 2674.d0-147.12d0*ot+3.726d0*ot**2-0.038d0*ot**3d0   
-         scrat = 600.d0/schm 
-         IF (swind.LE.3.6d0) THEN                  
-          akw = 0.041d0*swind*(scrat**0.667d0)      
-         ELSE IF (swind.GT.3.6d0.AND.swind.LE.13.d0) THEN   
-          akw = (0.68d0*swind - 2.31d0)*SQRT(scrat)     
-         ELSE                           
-          akw = (1.42d0*swind - 11.8d0)*SQRT(scrat) 
-         ENDIF         
-c My function  
-c     AKW=0.0  
-c     IF (SWIND.GT.2.) AKW=0.86*(SWIND-2.)*(1.-ot)*SQRT(SCRAT)
-c Wanninkov                           
-c     SCRAT = 660./SCHM     
-c     AKW = 0.074*SWIND*SWIND*SQRT(SCRAT)*(1.-ot) 
+c Nightingale et al
+      akw = 0.23d0*swind*swind + 0.1d0 * swind
+      akw = akw * 0.24d0
       erate=akw*dmsinput(i,j,jmon)*1.d-9*tr_mm(nt)*
      *  steppd*foc*f_ice_free  !*dtsrc
-c use this for Tans et al. source     
-c     AKW = 0.0                     
-c     IF (SWIND.GT.3.0)          
-c    *  AKW = 0.016*(SWIND -3.)  
-c     ERATE = AKW*CONC*1.d-6*TCMASS(5)*NDYN*DT/(3600.*24.*365.)  
-c    *      *(1.-ODATA(I,J,2))*(ODATA(I,J,1)+273.15)*.082 
-cccccccccccccccccccccc   
-c Subgrid surface wind parameterization, using Liss and Merlivat 
-         IF (swind.LE.3.6d0) THEN
-         wt=0d0
-         aa=0.041d0*(scrat**0.667d0)
-         w1=0d0
-         w2=3.6d0
-         ELSE IF (swind.GT.3.6d0.AND.swind.LE.13.d0) THEN
-         wt=3.40d0
-         aa=0.68d0*SQRT(scrat)
-         w1=3.6d0
-         w2=13.d0
-         ELSE 
-         wt=8.31d0
-         aa=1.42d0*SQRT(scrat)
-         w1=13.d0
-         w2=50.d0
-         ENDIF
-c TKE contribution
-c        wtke=sqrt(2d0/3d0*eabl(1,i,j,1)*byam(1,i,j)*bydxyp(j))
-         wtke=sqrt(2d0/3d0*eabl(1,i,j,1))
-c dry convection contribution
-         arho=1d2*PMID(1,I,J)/(RGAS*T(I,J,1)*PK(1,I,J))   !kg/m3
-c I'm not sure about the sign here
-         if (shdtt(i,j).lt.0d0) then
-         wdf=(-shdtt(i,j)*1000.d0*grav*PBLH(I,J)
-     *              /arho/cp/tsavg(I,J))
-        wd=wdf**(0.33333333333d0)
-        else
-        wd=0.d0
-        endif
-c moist convection contribution
-c        wm=200.d0*MDF(i,j)/dtsrc/arho*100.d0/grav
-C**** use already saved AIRX array - are you sure this is what you want????
-        wm=200.d0*(AIRX(i,j)/3d0)/dtsrc/arho*100.d0/grav
-c sigma
-        sig=wm+wd+wtke
-c integrate
-         yy=0d0
-         do ii=1,100
-         x=w1+(w2-w1)*(ii-1)/99.d0
-         if (sig.eq.0) go to 22   ! added by gavin to prevent NaN
-         besf=x*swind/(sig*sig)
-         if (besf.gt.700.d0) go to 22
-         exx=dexp(-(x*x+swind*swind)/(2.d0*sig*sig))
-         bess=BESSI0(besf,i,j,exx)
-         dydx=x*(x-wt)/(sig*sig)*bess
-
-         yy=yy+dydx*(w2-w1)/99.d0
-         if (bess.lt.teeny) go to 23
-         enddo
- 23    continue
-       erate2=aa*yy*dmsinput(i,j,jmon)*1.d-9*tr_mm(nt)*
-     *  steppd*foc*f_ice_free
-c we can augment this by a factor of order 1
-       erate2=erate2*4.d0
-c       if (erate2.gt.erate) write(6,*) 'SubDMS!',
-c    * erate2,erate
-c       if (dmsinput(i,j,1,jmon).gt.15.) then
-c       write(6,*) 'DMSdiag',erate,erate2,sig,
-c    * wm,wd,wtke,mdf(i,j)
-c       endif
-c       if (dmsinput(i,j,1,jmon).gt.5.and.mdf(i,j).gt.teeny) then
-c       write(6,*) 'DMS WD',sig,
-c    * wm,wd,wtke,mdf(i,j),arho
-c       endif
-c       write(6,*) 'DMSwind',swind,yy,sig,
-c    *  dmsinput(i,j,1,jmon),i,j,wtke,wd,wm
-c       write(6,*) aa,tr_mm(nt),foc,f_ice_free
-c       write(6,*) mdf(i,j),arho,
-c    *  shdtt(i,j),pblh(i,j),tsavg(i,j),wdf
-c
-        if (sig.gt.teeny.and.dmsinput(i,j,jmon).gt.teeny) then 
-        najl = jls_source(2,nt)
-        tajls(j,1,najl) = tajls(j,1,najl)+wtke/sig*100.d0/dms1(j)
-        najl = jls_source(3,nt)
-        tajls(j,1,najl) = tajls(j,1,najl)+wm/sig*100.d0/dms1(j)
-        najl = jls_source(4,nt)
-        tajls(j,1,najl) = tajls(j,1,najl)+wd/sig*100.d0/dms1(j)
-        endif
-        najl = jls_source(5,nt)
-        if (erate2.gt.erate.and.dmsinput(i,j,jmon).gt.teeny) then
-        tajls(j,1,najl)=tajls(j,1,najl)
-     *      +(erate2*1.D12-erate*1.D12)/(1.D12*erate)*100.d0/dms1(j)
-        erate=erate2
-        endif
-
- 22    continue
-ccccccccccccccccccccccccc
-          DMS_src(i,j,1)=erate                 
+      DMS_src(i,j)=erate                 
 c source -> return
       end do
       end do
 
       return
       end subroutine read_DMS_sources
-
-      REAL*8 FUNCTION BESSI0(X,i,j,exx)
-      IMPLICIT NONE
-      real*8 ax,y
-      real*8, parameter:: P1=1.0D0,P2=3.5156229D0,
-     * P3=3.0899424D0,
-     * P4=1.2067492D0,
-     * P5=0.2659732D0,P6=0.360768D-1,P7=0.45813D-2
-      real*8, parameter:: Q1=0.39894228D0,Q2=0.1328592D-1,
-     *   Q3=0.225319D-2,Q4=-0.157565D-2,Q5=0.916281D-2,
-     *   Q6=-0.2057706D-1,
-     *    Q7=0.2635537D-1,Q8=-0.1647633D-1,Q9=0.392377D-2
-      real*8, intent(in)::x,exx
-      integer i,j
-      IF (ABS(X).LT.3.75d0) THEN
-        Y=(X/3.75d0)**2.d0
-        BESSI0=exx*(P1+Y*(P2+Y*(P3+Y*(P4+Y*(P5+Y*(P6+Y*P7))))))
-      ELSE
-        AX=ABS(X)
-        Y=3.75d0/AX
-        BESSI0=(dEXP(AX)/dSQRT(AX))*exx*
-     *     (Q1+Y*(Q2+Y*(Q3+Y*(Q4
-     *      +Y*(Q5+Y*(Q6+Y*(Q7+Y*(Q8+Y*Q9))))))))
-      ENDIF
-c     if (i.eq.1.and.j.eq.4) write(6,*) 'DMSbug1',
-c    * Y,BESSI0,X,AX
-      end function bessi0
-
 
 
       subroutine aerosol_gas_chem
@@ -470,7 +270,6 @@ c Aerosol chemistry
       implicit none
       logical :: ifirst=.true.
       real*8 ohx(36,24,lm),dho2x(36,24,lm),perjx(36,24,lm) 
-cg      real*8 told(im,jm,lm,ntm),ttemp(im,jm,lm)
       real*8 ppres,te,tt,mm,dmm,ohmc,r1,d1,r2,d2,ttno3,r3,d3,
      * ddno3,dddms,ddno3a,fmom,dtt
       real*8 rk4,ek4,r4,d4
@@ -502,101 +301,6 @@ c Set h2o2_s =0 and use on-line h2o2 from chemistry
             end do
             endif
 
-
-c Do I need special treatment at the poles (like before?)
-
-cg       told(:,:,:,:) = trm(:,:,:,:)
-ccccccccccccccccc
-c Use these for Wang NO3 and Spivakovsky for others
-c open and read in NO3 file
-c       if(ifirst) then
-c       call openunit('AER_NO3',iuc2,.true.)
-c       read(iuc2) tno3r
-c       call closeunit(iuc2)
-c       endif
-c 204   format(8(E9.3,x))
-c read in chemistry;Leave OH, HO2 in units of molecules/cm^3
-c
-c       itau=(jday-1)*24+jhour 
-c 3     IF (itau.LT.13200) THEN  
-c       itau = itau + 8760    
-c       GO TO 3     
-c       ENDIF  
-c       ixx1=MOD(itau,8760)    
-c       ixx2=INT(REAL(ixx1)/120.)   
-c       ichemi = 120*ixx2+8760    
-c 4     IF (ichemi.LT.13200) THEN     
-c       ichemi = ichemi + 8760   
-c       GO TO 4    
-c       ENDIF                       
-c 5     IF (ichemi.GT.21840) THEN    
-c       ichemi = ichemi - 8760   
-c       GO TO 5           
-c       ENDIF     
-c      write(6,*) 'hourly S',jhour,itau,ixx1,ixx2,
-c    * ichemi,itopen
-c       IF (itopen.EQ.ichemi) GO TO 27  
-c       write(6,*) 'S opening',jhour,ichemi,itau
-c      if(ifirst) call openunit('AER_CHEM',iuc,.true.)
-c        call openunit('AER_CHEM',iuc,.true.)
-c       ifirst = .false.
-c       DO I=1,im*jm*lm  
-c        ohr(I,1,1)=0.0      
-c        perjr(I,1,1)=0.0    
-c        dho2r(I,1,1)=0.0   
-c       END DO   
-c       DO 334 itt=1,73   
-c       READ(iuc) ittime  
-c      write(6,*) ittime,ichemi
-c       IF (ittime.NE.ichemi) THEN 
-c        READ(iuc) (ohx(i,1,1),i=1,36*24*lm)
-c        READ(iuc) (dho2x(i,1,1),i=1,36*24*lm)
-c        READ(iuc) (perjx(i,1,1),i=1,36*24*lm)
-c        GO TO 334    
-c       ELSE    
-c        READ(iuc) (ohx(i,1,1),i=1,36*24*lm)
-c        READ(iuc) (dho2x(i,1,1),i=1,36*24*lm)
-c        READ(iuc) (perjx(i,1,1),i=1,36*24*lm)
-c        do ll=1,lm
-c        do ii=1,36
-c        do jj=1,24
-c        IF (jj.EQ.1) THEN   
-c         ohr(2*ii,1,ll)=ohx(ii,jj,ll)    
-c         ohr(2*ii-1,1,ll)=ohx(ii,jj,ll)
-c         dho2r(2*ii,1,ll)=dho2x(ii,jj,ll)
-c         dho2r(2*ii-1,1,ll)=dho2x(ii,jj,ll)
-c         perjr(2*ii,1,ll)=perjx(ii,jj,ll)
-c         perjr(2*ii-1,1,ll)=perjx(ii,jj,ll)
-c        else if (jj.eq.24) then   
-c         ohr(2*ii,46,ll)=ohx(ii,jj,ll)
-c         ohr(2*ii-1,46,ll)=ohx(ii,jj,ll)    
-c         dho2r(2*ii,46,ll)=dho2x(ii,jj,ll)    
-c         dho2r(2*ii-1,46,ll)=dho2x(ii,jj,ll)   
-c         perjr(2*ii,46,ll)=perjx(ii,jj,ll)  
-c         perjr(2*ii-1,46,ll)=perjx(ii,jj,ll)   
-c        else           
-c         ohr(2*ii,2*jj-1,ll)=ohx(ii,jj,ll) 
-c         ohr(2*ii-1,2*jj-1,ll)=ohx(ii,jj,ll)   
-c         ohr(2*ii,2*jj-2,ll)=ohx(ii,jj,ll)
-c         ohr(2*ii-1,2*jj-2,ll)=ohx(ii,jj,ll)   
-c         dho2r(2*ii,2*jj-1,ll)=dho2x(ii,jj,ll)    
-c         dho2r(2*ii-1,2*jj-1,ll)=dho2x(ii,jj,ll)    
-c         dho2r(2*ii,2*jj-2,ll)=dho2x(ii,jj,ll)  
-c         dho2r(2*ii-1,2*jj-2,ll)=dho2x(ii,jj,ll)   
-c         perjr(2*ii,2*jj-1,ll)=perjx(ii,jj,ll) 
-c         perjr(2*ii-1,2*jj-1,ll)=perjx(ii,jj,ll)    
-c         perjr(2*ii,2*jj-2,ll)=perjx(ii,jj,ll) 
-c         perjr(2*ii-1,2*jj-2,ll)=perjx(ii,jj,ll)   
-c        endif       
-c        end do    
-c        end do
-c        end do
-c       endif  
-c 334   continue    
-c 203    FORMAT(X,3I3,X,3(E9.3,1X))    
-c 999   call closeunit(iuc)
-c       itopen=ichemi 
-cccccccccccccc
            if (coupled_chem.eq.0) then
 c Use this for chem inputs from B4360C0M23, from Drew
 
@@ -618,7 +322,6 @@ c need to scale TNO3, OH and PERJ using cosine of zenith angle
       do 20 l=1,ltopn       
       do 21 j=1,jm   
       do 22 i=1,imaxj(j)    
-
 C**** initialise source arrays
        tr3Dsource(i,j,l,1,n_DMS)=0.  ! DMS chem sink
        tr3Dsource(i,j,l,1,n_MSA)=0.  ! MSA chem sink
@@ -627,25 +330,12 @@ C**** initialise source arrays
        tr3Dsource(i,j,l,1,n_SO4)=0.  ! SO4 chem source
        tr3Dsource(i,j,l,1,n_H2O2_s)=0. ! H2O2 chem source      
        tr3Dsource(i,j,l,2,n_H2O2_s)=0. ! H2O2 chem sink
-
-c ptop,psf(surface),psfmpt,sige,sig
-c I used to have to treat these differently above the tropopause??
-c pmid=plij*sig(l)+ptop ;plij=p or psf-ptop 
-c pk=pmid**kapa 
+c
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
       mm=am(l,i,j)*dxyp(j)
       tt = 1.d0/te         
-c here are the old ones, in case I have a problem
-c      IF (L.GE.LS1) THEN               
-c      PPRES = (SIG(L)*(PSF-PTOP)+PTOP)*9.869d-4 !in atm   
-c      TE = T(I,J,L)*(SIG(L)*(PSF-PTOP)+PTOP)**KAPA 
-c      MM = (PSF-PTOP)*DSIG(L)*100./GRAV*DXYP(J) 
-c      ELSE                      
-c      PPRES = (SIG(L)*P(I,J) + PTOP)*9.869d-4 !in atm   
-c      TE = EXPBYK(SIG(L)*P(I,J) + PTOP)*T(I,J,L)  
-c      MM = P(I,J)*DSIG(L)*100./GRAV*DXYP(J)   
-c      ENDIF               
+
 c DMM is number density of air in molecules/cm3  
       dmm=ppres/(.082d0*te)*6.02d20          
        ohmc = oh(i,j,l)  !oh is alread in units of molecules/cm3 
@@ -675,64 +365,32 @@ c - not necessary for Shindell source
        ddno3=r3*trm(i,j,l,n)/tr_mm(n)*1000.d0*dtsrc     
        dddms=trm(i,j,l,n)/tr_mm(n)*1000.d0    
        if (ddno3.gt.dddms) ddno3=dddms    
-c      if (l.gt.7) then      
-c      ddno3a=0.0    
-c      go to 89   
-c      endif   
-c       ddno3a=tno3(i,j,l,jmon)*mm/.2897d0   
-c 89    if (ddno3.gt.ddno3a) ddno3=ddno3a   
+
        ddno3=ddno3*0.9      
 C DMS losses: eqns 1, 2 ,3  
 
-cg       trm(i,j,l,n) = trm(i,j,l,n)*d1*d2   
        tr3Dsource(i,j,l,1,n) = trm(i,j,l,n)*(d1*d2-1.)/dtsrc
 
        dmssink=ddno3*tr_mm(n)/1000.d0
-cg       if (dmssink.gt.trm(i,j,l,n)) dmssink=trm(i,j,l,n)
-cg       trm(i,j,l,n)=trm(i,j,l,n)-dmssink  
-cg       if (trm(i,j,l,n).lt.0.) write(6,*)'sssdmschem',i,j,l,
-cg     * d1,d2,dmssink,trm(i,j,l,n),ddno3
 
        if (dmssink.gt.trm(i,j,l,n)+tr3Dsource(i,j,l,1,n)*dtsrc)
      *      dmssink=trm(i,j,l,n)+tr3Dsource(i,j,l,1,n)*dtsrc
        tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) - dmssink/dtsrc
 
-c  31   TSUM(8) = TSUM(8) + TrM(I,J,L,n) - TCO(n)   
- 
-cg this is now done automatically in apply_tracer_3Dsource
-cg        najl = jls_3Dsource(1,n)
-cg        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
-
         case ('MSA')
 C MSA gain: eqn 1                
-cg       TrM(I,J,L,n) = TrM(I,J,L,n) +      
-cg     *0.25d0*Tr_mm(n)/Tr_mm(n_dms)*told(i,j,l,n_dms)*(1.d0 -D1)*SQRT(D2)   
 
           tr3Dsource(i,j,l,1,n) = 0.25d0*Tr_mm(n)/Tr_mm(n_dms)*trm(i,j
      *         ,l,n_dms)*(1.d0 -D1)*SQRT(D2)/dtsrc
 
-cg this is now done automatically in apply_tracer_3Dsource
-cg        najl = jls_3Dsource(1,n)
-cg        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
-
        case ('SO2')
 c SO2 production from DMS
-cg       trm(i,j,l,n) = trm(i,j,l,n)     
-cg     * +0.75*tr_mm(n)/tr_mm(n_dms)*told(i,j,l,n_dms)
-cg     * *(1.d0 - d1)*sqrt(d2)    
-cg     * + tr_mm(n)/tr_mm(n_dms)*told(i,j,l,n_dms)*(1.d0 - d2)*sqrt(d1)   
-cg       trm(i,j,l,n)=trm(i,j,l,n)+dmssink*tr_mm(n)/tr_mm(n_dms)    
-
          tr3Dsource(i,j,l,3,n) = (0.75*tr_mm(n)/tr_mm(n_dms)*trm(i,j,l
      *        ,n_dms)*(1.d0 - d1)*sqrt(d2)+ tr_mm(n)/tr_mm(n_dms)*trm(i
      *        ,j,l,n_dms)*(1.d0 - d2)*sqrt(d1)+dmssink*tr_mm(n)
      *        /tr_mm(n_dms))/dtsrc
 
-cg this is now done automatically in apply_tracer_3Dsource
-cg       najl = jls_3Dsource(3,n)
-cg       tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
-   
-cg this stays since it is a simple local diagnostic
+
          najl = jls_NO3
          tajls(j,l,najl) = tajls(j,l,najl)+ttno3
        end select
@@ -771,7 +429,6 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 c      IF (I.EQ.30.AND.J.EQ.30.and.L.EQ.2) WRITE(6,*)'msulf',TE,DMM, 
 c    *  PPRES,RK4,EK4,R4,D4,ohmc
        IF (d4.GE.1.) d4=0.99999d0   
-cg       trm(i,j,l,n) = trm(i,j,l,n)-told(i,j,l,n)*(1.d0-d4) 
 
        tr3Dsource(i,j,l,4,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
 
@@ -783,17 +440,11 @@ c diagnostics to save oxidant fields
 
        case('SO4')
 C SO4 production   
-cg       trm(i,j,l,n) = trm(i,j,l,n) + tr_mm(n)/tr_mm(n_so2)               
-cg     *   *told(i,j,l,n_so2)*(1.d0 -d4)    
-cg        najl = jls_3Dsource(1,n)
-cg        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
 
          tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n)+tr_mm(n)
      *        /tr_mm(n_so2)*trm(i,j,l,n_so2)*(1.d0 -d4)/dtsrc
 
-c      if (i.eq.30.and.j.eq.40.and.l.eq.2) 
-c    *   write(6,*)'mkso4',te,dmm,ppres,rk4,ek4,r4,d4,ohmc,
-c    *   told(i,j,l,n_so2)
+
        case('H2O2_s')
 
        if (coupled_chem.eq.1) go to 140
@@ -818,32 +469,15 @@ C     HO2 + HO2 + H2O + M ->
        eeee = eh2o*(ek9+ek9t)*dtt*dho2mc  
        xk9 = dho2kg*eeee       
 c H2O2 production: eqn 9       
-cg       trm(i,j,l,n) = trm(i,j,l,n) + tr_mm(n)*xk9       
 
        tr3Dsource(i,j,l,1,n) = tr_mm(n)*xk9/dtsrc
 
-cg       ttemp(i,j,l)=trm(i,j,l,n)
-cg        najl = jls_3Dsource(1,n)
-cg        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
 c H2O2 losses:5 and 6        
        r5 = perj(i,j,l)        
        d5 = exp(-r5*dtsrc)  
-cg       trm(i,j,l,n) = trm(i,j,l,n)*d5*d6  
-cg        najl = jls_3Dsource(2,n)
-cg        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-ttemp(i,j,l))
-
-c      tr3Dsource(i,j,l,2,n)=(trm(i,j,l,n)+tr_mm(n)*xk9)*(d5*d6-1.d0)
-c    *      /dtsrc
        
        tr3Dsource(i,j,l,2,n)=(trm(i,j,l,n))*(d5*d6-1.d0)
      *      /dtsrc
-
-c      if (i.eq.30.and.j.eq.35.and.l.eq.2) write(6,*) 'hchemn',
-c    * d5,d6,r5,r6,xk9,dho2kg,eeee,eh2o,ek9,ek9t,dho2mc,
-c    * dho2(i,j,l),mm,te,ppres,q(i,j,l)
-c      if (i.eq.30.and.j.eq.10.and.l.eq.2) write(6,*) 'hchems',
-c    * d5,d6,r5,r6,xk9,dho2kg,eeee,eh2o,ek9,ek9t,dho2mc,
-c    * dho2(i,j,l),mm,te,ppres,q(i,j,l)
 
         najl = jls_phot
         tajls(j,l,najl) = tajls(j,l,najl)+perj(i,j,l)
@@ -852,37 +486,12 @@ c    * dho2(i,j,l),mm,te,ppres,q(i,j,l)
 
  140     CONTINUE
 
-cgc adjust moments  DONE IN APPLY_TRACER_3DSOURCE
-cg       if (trm(i,j,l,n).lt.0.0) trm(i,j,l,n)=0.0  
-cg       if (told(i,j,l,n).gt.trm(i,j,l,n).and.
-cg     *      told(i,j,l,n).gt.1.d-10) then  
-cg       fmom = trm(i,j,l,n)/told(i,j,l,n)      
-cg       else         
-cg       fmom=1.d0      
-cg       endif     
-cg       do nm=1,nmom
-cg        trmom(nm,i,j,l,n)=trmom(nm,i,j,l,n)*fmom
-cg      end do
+
     
  33    CONTINUE
  32    CONTINUE                 
  31    CONTINUE            
  30    CONTINUE       
-
-cg       call DIAGTCA(itcon_3Dsrc(1,n_DMS),n_DMS)
-cg       call DIAGTCA(itcon_3Dsrc(1,n_MSA),n_MSA)
-cg       call DIAGTCA(itcon_3Dsrc(4,n_SO2),n_SO2)
-cg       call DIAGTCA(itcon_3Dsrc(1,n_SO4),n_SO4)
-cg       call DIAGTCA(itcon_3Dsrc(1,n_H2O2_s),n_H2O2_s)
-
-c BC: insoluble -> soluble                                              6643.4  
-c      DBC=10.*DSO4*TCMASS(6)/TCMASS(3)                                 6643.5  
-c      DBC=T0M(I,J,L,6)*(1.-DEXP(-9.9d-6*DT*NDYN))                      6643.55 
-c      DBC=T0M(I,J,L,6)*9.736d-6*DT*NDYN  !this used last               6643.56 
-c      IF (DBC.GT.T0M(I,J,L,6)) DBC=T0M(I,J,L,6)*.985                   6643.6  
-c      T0M(I,J,L,6)=T0M(I,J,L,6)-DBC  !0.95*DBC                         6643.7  
-c      T0M(I,J,L,7)=T0M(I,J,L,7)+DBC  !0.95*DBC                         6643.8  
-
    
        RETURN          
        END subroutine aerosol_gas_chem    
@@ -891,10 +500,11 @@ c      T0M(I,J,L,7)=T0M(I,J,L,7)+DBC  !0.95*DBC                         6643.8
       SUBROUTINE SCALERAD     
       use MODEL_COM, only: im,jm,lm,jday,jhour,jmon
       use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
-      use CONSTANT, only: radian
+      use CONSTANT, only: radian,teeny
+      use RADNCB, only: cosz1
       implicit none
       real*8 ang1,xnair,vlon,vlat,ctime,timec,p1,p2,p3,fact,rad,
-     *  rad1,rad2,rad3
+     *  rad1,rad2,rad3,stfac
       real*8 suncos(im,jm),tczen(im,jm)
       integer i,j,hrstrt,jdstrt,ihr,l
       integer nradn(im,jm)
@@ -977,7 +587,7 @@ c
 c                          
                  rad = (rad1 + 2.d0*rad2 + rad3)/4.d0   
                  tczen(i,j) = tczen(i,j) + rad     
-                 if(tczen(i,j).eq.0.) tczen(i,j) = 1.d-32     
+                 if(tczen(i,j).eq.0.) tczen(i,j) = teeny     
               end do             
            end do        
         end do      
@@ -992,104 +602,35 @@ c        if (I.EQ.1.AND.L.EQ.1) write(6,*)'NO3R',TAU,J,NRADN(I,J)
             else        
             tno3(i,j,l)=0.d0     
             endif      
-  88          if (tczen(i,j).eq.1.d-32) then       
+  88          if (tczen(i,j).eq.teeny) then       
                  oh(i,j,l) = 0.d0        
                  perj(i,j,l)=0.d0      
                  dho2(i,j,l)=0.d0   
               else    
-                 oh(i,j,l)=ohr(i,j,l)*6.d0*suncos(i,j)/tczen(i,j)     
-                 perj(i,j,l)=perjr(i,j,l)*6.d0*suncos(i,j)/tczen(i,j)  
+                stfac=suncos(i,j)/tczen(i,j)
+                if (stfac.gt.1) then
+c                write (6,*) 'SCALERAD problem',jday,jhour,i,j,
+c    *               suncos(i,j),tczen(i,j)
+                 stfac=1.
+                endif
+                 oh(i,j,l)=ohr(i,j,l)*6.d0*stfac     
+                 perj(i,j,l)=perjr(i,j,l)*6.d0*stfac  
 c     if (i.eq.30.and.j.eq.40.and.l.eq.2) write(6,*) 'ohrad2',
 c    *  suncos(i,j),tczen(i,j)
-                 dho2(i,j,l)=dho2r(i,j,l)*6.d0*suncos(i,j)/tczen(i,j) 
+                 dho2(i,j,l)=dho2r(i,j,l)*6.d0*stfac 
               end if         
+c     if ((i.eq.11.or.i.eq.13.or.i.eq.15).and.j.eq.4.) then
+c      if (l.eq.2) 
+c    *  write(6,*) 
+c    *  'HO2 SCALE',jday,jhour,
+c    * i,l,dho2r(i,j,l),dho2(i,j,l),suncos(i,j),cosz1(i,j),tczen(i,j)
+c     endif
            end do      
          end do   
       end do    
       RETURN    
       END subroutine SCALERAD
 
-
-      subroutine simple_dry_dep
-!@sum simple dry deposition for aerosols
-!@auth Dorothy Koch
-      USE TRACER_COM
-      USE TRACER_DIAG_COM, only : tajls,jls_source,itcon_dd
-      USE MODEL_COM, only: im,jm,dtsrc,fland,flice,t,p
-      USE DYNAMICS, only: pmid,pk
-      USE GEOM, only: dxyp
-c Constant dep velocity:
-      implicit none
-      integer i,j,nm,n
-      real*8 dvz,p1,p2,te,thik,dryloss,tarea,
-     * dvz_l,dvz_o,dvz_i
-
-      real*8, parameter :: dvz_p_l=0.002
-      real*8, parameter :: dvz_p_o=0.001
-      real*8, parameter :: dvz_p_i=0.0003
-
-      real*8, parameter :: dvz_so2_l=0.003
-      real*8, parameter :: dvz_so2_o=0.01
-      real*8, parameter :: dvz_so2_i=0.003
-
-      real*8, parameter :: dvz_h2o2_l=0.002
-      real*8, parameter :: dvz_h2o2_o=0.002
-      real*8, parameter :: dvz_h2o2_i=0.002
-
-      DO 21 J=1,JM  
-      DO 20 I=1,IM  
-c dvz is the dep vel in m/s
-      do 22 n=1,ntm
-        dvz_l=0.
-        dvz_o=0.
-        dvz_i=0.
-
-
-      SELECT CASE(tr_wd_TYPE(N))
-        CASE(nPart) 
-        dvz_l=dvz_p_l
-        dvz_o=dvz_p_o
-        dvz_i=dvz_p_i
-      END SELECT
-       select case (trname(n))
-       case('SO2')
-        dvz_l=dvz_so2_l
-        dvz_o=dvz_so2_o
-        dvz_i=dvz_so2_i
-
-       case('H2O2_s')
-        dvz_l=dvz_h2o2_l
-        dvz_o=dvz_h2o2_o
-        dvz_i=dvz_h2o2_i
-
-       end select
-
-       dvz=fland(i,j)*(1.-flice(i,j))*dvz_l  !over ice-free land
-     *     +(1.-fland(i,j))*dvz_o            ! over ocean
-     *     +fland(i,j)*flice(i,j)*dvz_i      !over icy land
-       tarea=fland(i,j)*(1.-flice(i,j))+(1.-fland(i,j))
-     *  +fland(i,j)*flice(i,j)
-      if (tarea.ne.1.) write(6,*)'lfrac',tarea,fland(i,j),flice(i,j)
-      p1=pmid(1,i,j)
-      p2=pmid(2,i,j)
-      te=pk(1,i,j)*t(i,j,1)
-      THIK = 2.9271d+01*TE*LOG(P1/P2)     
-       DRYLOSS = dtsrc/THIK*DVZ*2.  
-       trm(i,j,1,n)=trm(i,j,1,n)*(1.-dryloss)
-       do nm=1,nmom
-        trmom(nm,i,j,1,n)=trmom(nm,i,j,1,n)*(1.-dryloss)
-       end do
- 22   CONTINUE 
- 20   CONTINUE  
- 21   CONTINUE  
-
-       call DIAGTCA(itcon_dd(n_MSA),n_MSA)
-       call DIAGTCA(itcon_dd(n_SO2),n_SO2)
-       call DIAGTCA(itcon_dd(n_SO4),n_SO4)
-       call DIAGTCA(itcon_dd(n_h2o2_s),n_h2o2_s)
-
-      RETURN
-      END subroutine simple_dry_dep
 
       SUBROUTINE GET_SULFATE(L,temp,fcloud,
      *  wa_vol,wmxtr,sulfin,sulfinc,sulfout,tr_left,
@@ -1509,38 +1050,21 @@ c can't be more than moles going in:
        sulfin=0.
        sulfout=tr_mm(n)/1000.*(dso4g*tso2*th2o2) !kg
 c diagnostic
-cg        najl = jls_3Dsource(4,n)
-cg        tajls(j,l,najl)=tajls(j,l,najl)+sulfout
-cg        trm(i,j,l,n)=trm(i,j,l,n)+sulfout
-
        tr3Dsource(i,j,l,2,n)=sulfout/dtsrc
 
-c      tt1=tt1+sulfout 
-c      if (l.eq.2.and.j.eq.34) write(6,*)'Het',i,sulfout,
-c    * tv,pn,wv,y,ss
        sulfin=0.
        case('SO2')
        sulfin=-dso4g*th2o2*tr_mm(n)/1000. !dimnless
        sulfin=max(-1d0,sulfin)
-cg       trm(i,j,l,n)=trm(i,j,l,n)*(1.d0+sulfin)
-cg       trmom(:,i,j,l,n)=trmom(:,i,j,l,n)*trm(i,j,l,n)/tso2
-       if (sulfin.eq.-1d0) sulfin = -.998d0
+
        tr3Dsource(i,j,l,5,n)=trm(i,j,l,n)*sulfin/dtsrc
-c       tt2=tt2+trm(i,j,l,n)-tso2 
-       sulfin=0.
 
        case('H2O2_s')
         if (coupled_chem.eq.1) GO TO 406
        sulfin=-dso4g*tso2*tr_mm(n)/1000. !dimnless
        sulfin=max(-1d0,sulfin)
-cg       trm(i,j,l,n)=trm(i,j,l,n)*(1.d0+sulfin)
-cg       trmom(:,i,j,l,n)=trmom(:,i,j,l,n)*trm(i,j,l,n)/th2o2
 
        tr3Dsource(i,j,l,3,n)=trm(i,j,l,n)*sulfin/dtsrc
-
-c      if (l.eq.2.and.j.eq.34) write(6,*)'H2O2',i,sulfin,th2o2,
-c    * trm(i,j,l,n)
-c      tt3=tt3+trm(i,j,l,n)-th2o2 
 
  406    CONTINUE
 
@@ -1557,10 +1081,6 @@ c Check this change is applied - hardwire nChemistry.eq.1
 
        tr3Dsource(i,j,l,1,n)=trm(i,j,l,n)*sulfin/dtsrc
 
-c      if (l.eq.2.and.j.eq.34) write(6,*)'H2O2',i,sulfin,th2o2,
-c    * trm(i,j,l,n)
-c      tt3=tt3+trm(i,j,l,n)-th2o2 
-
  407   CONTINUE
 
       end select
@@ -1572,9 +1092,6 @@ c      tt3=tt3+trm(i,j,l,n)-th2o2
   20  CONTINUE
   21  CONTINUE
   19  CONTINUE
-c     write(6,*)'Hethet',tt1,tt2,tt3
-cg      call DIAGTCA(itcon_3Dsrc(4,n_SO4),n_SO4)
-cg      call DIAGTCA(itcon_3Dsrc(6,n_SO2),n_SO2)
-cg      call DIAGTCA(itcon_3Dsrc(5,n_H2O2_s),n_H2O2_s)
+
       return
       END subroutine HETER
