@@ -255,14 +255,16 @@ c     real*4 DMS_AER
       integer, INTENT(IN) :: itype,i,j
 
       DMS_flux=0
-      if (itype.eq.1) then
+c     if (itype.eq.1) then
         erate=0.d0
         if (imAER.eq.0) then
+        if (itype.eq.1) then
 c Nightingale et al
         akw = 0.23d0*swind*swind + 0.1d0 * swind
         akw = akw * 0.24d0
         erate=akw*DMSinput(i,j,jmon)*1.d-9*62.d0 !*tr_mm(nt)
      *       /sday
+        endif
         else !AEROCOM run, prescribed flux
 
 c         status=NF_OPEN('DMS_SEA',NCNOWRIT,ncidu)
@@ -285,7 +287,7 @@ c if after Feb 28 skip the leapyear day
          erate=DMS_AER(i,j,jread)/sday/dxyp(j)*tr_mm(n_DMS)/32.d0
         endif
         DMS_flux=erate          ! units are kg/m2/s
-      endif
+c     endif
 c
       return
       end subroutine read_DMS_sources
@@ -307,9 +309,9 @@ c want kg seasalt/m2/s, for now in 2 size bins
       REAL*8, INTENT(OUT)::ss
 c
       ss=0.
-      if (itype.eq.1) then
         erate=0.d0
        if (imAER.eq.0) then
+       if (itype.eq.1) then
 c Monahan 1971, bubble source, important for small (<10um) particles
         erate= 1.373d0 * swind**(3.41d0)
         if (ibin.eq.1) then
@@ -318,6 +320,7 @@ c Monahan 1971, bubble source, important for small (<10um) particles
           ss=erate*7.78d-14     ! supermicron (1. < r_d < 4.)
         endif
 c     units are kg salt/m2/s
+       endif
        else
 c if after Feb 28 skip the leapyear day
          jread=jday
@@ -328,7 +331,7 @@ c if after Feb 28 skip the leapyear day
          ss=SS2_AER(i,j,jread)/sday/dxyp(j)
         endif
        endif
-      endif
+c     endif
       return
       end subroutine read_seasalt_sources
 
@@ -462,12 +465,12 @@ c DMM is number density of air in molecules/cm3
         select case (trname(n))
 c    Aging of industrial carbonaceous aerosols 
         case ('BCII')
-        bciage=1.D-5*trm(i,j,l,n)        
+        bciage=4.3D-6*dtsrc*trm(i,j,l,n) !efold of 3 day?        
         tr3Dsource(i,j,l,1,n)=-bciage        
         tr3Dsource(i,j,l,1,n_BCIA)=bciage        
 
         case ('OCII')
-        ociage=5.D-5*trm(i,j,l,n)        
+        ociage=7.3D-6*dtsrc*trm(i,j,l,n)        
         tr3Dsource(i,j,l,1,n)=-ociage        
         tr3Dsource(i,j,l,1,n_OCIA)=ociage        
 
@@ -476,7 +479,7 @@ C***1.DMS + OH -> 0.75SO2 + 0.25MSA
 C***2.DMS + OH -> SO2
 C***3.DMS + NO3 -> HNO3 + SO2
 
-          r1=rsulf1(i,j,l)*ohmc  
+          r1=rsulf1(i,j,l)*ohmc 
           d1 = exp(-r1*dtsrc)
           r2=rsulf2(i,j,l)*ohmc
           d2 = exp(-r2*dtsrc)
@@ -613,7 +616,6 @@ C SO4 production
           tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n)+tr_mm(n)
      *         /tr_mm(n_so2)*trm(i,j,l,n_so2)*(1.d0 -d4)/dtsrc
 
-
         case('H2O2_s')
 
           if (coupled_chem.eq.1) go to 140
@@ -666,7 +668,7 @@ C Number density (molecule/cm3) of DMS,SO2,SO4
           so4_dens(i,j,l)=trm(I,J,L,n_SO4)*dmm*(28.0D0/96.0D0)*
      *   BYDXYP(J)*BYAM(L,I,J)
 
-        endif           ! end troposphere 
+        endif           ! end troposphere
 
 C Accumulate diagnostics for chemistry
           taijs(i,j,ijs_dms_dens(l))=taijs(i,j,ijs_dms_dens(l))
@@ -1342,8 +1344,8 @@ c No need to divide by dxyp here because it is done in TRACER_PRT
 
        end select
 C**** diagnostics
-       if (ijts_tau(n).gt.0) then
-         naijs=ijts_tau(n)
+       if (ijts_tau(1,n).gt.0) then
+         naijs=ijts_tau(1,n)
          taijs(i,j,naijs)=taijs(i,j,naijs)+aer_tau(i,j,l,n)
        end if
       END DO
