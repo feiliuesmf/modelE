@@ -491,7 +491,7 @@ c    &             ,BTEMPW
       REAL*8, DIMENSION(LM) :: TOTCLD
 
       INTEGER, SAVE :: JDLAST = -9
-      INTEGER I,J,L,K,KR,LR,IMAX,JR,IH,INCH,JK,IT,iy
+      INTEGER I,J,L,K,KR,LR,JR,IH,INCH,JK,IT,iy
       REAL*8 ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS,CMC,DEPTH,QSS,TAUSSL
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY
      *     ,MSTRAT,STRATQ,STRJ,MSTJ
@@ -575,8 +575,7 @@ C
 C     GET THE RANDOM NUMBERS OUTSIDE PARALLEL REGIONS
 C
       DO J=1,JM
-      IMAX=IMAXJ(J)
-      DO I=1,IMAX
+      DO I=1,IMAXJ(J)
          RANDSS    = RANDU(X)
          RDMC(I,J) = RANDU(X)
          DO L=1,LM
@@ -591,17 +590,16 @@ C****
       ICKERR=0
       JCKERR=0
 C$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH, ELHX,
-C$OMP*   I,IMAX,INCH,IH,IT, J, K,KR, L,LR, OPNSKY,
+C$OMP*   I,INCH,IH,IT, J, K,KR, L,LR, OPNSKY,
 C$OMP*   PLAND,PIJ, QSS, RANDSS,RANDMC, TOTCLD,TAUSSL,TAUMCL)
 C$OMP*   COPYIN(/RADCOM_local/,/RADCOM_out/,/WORKER1/)
 C$OMP    DO REDUCTION(+:ICKERR,JCKERR)  SCHEDULE(DYNAMIC,2)
       DO 600 J=1,JM
-      IMAX=IMAXJ(J)
       JLAT=NINT(1.+(J-1.)*45./(JM-1.))  !  j w.r.to 72x46 grid
 C****
 C**** MAIN I LOOP
 C****
-      DO I=1,IMAX
+      DO I=1,IMAXJ(J)
 CCC      JR=JREG(I,J)
 C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PLAND=FLAND(I,J)
@@ -856,8 +854,7 @@ C
       IF(JCKERR.GT.0)  STOP 'In Radia: RQT out of range'
 C
       DO J=1,JM
-      IMAX=IMAXJ(J)
-      DO I=1,IMAX
+      DO I=1,IMAXJ(J)
          JR=JREG(I,J)
          AREG(JR,J_PCLDSS)=AREG(JR,J_PCLDSS)+AREGIJ(I,J,1)
          AREG(JR,J_PCLDMC)=AREG(JR,J_PCLDMC)+AREGIJ(I,J,2)
@@ -877,14 +874,13 @@ C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C****
          DO 780 J=1,JM
          DXYPJ=DXYP(J)
-         IMAX=IMAXJ(J)
          DO L=1,LM
-           DO I=1,IMAX
+           DO I=1,IMAXJ(J)
              AJL(J,L,JL_SRHR)=AJL(J,L,JL_SRHR)+SRHR(L+1,I,J)*COSZ2(I,J)
              AJL(J,L,JL_TRCR)=AJL(J,L,JL_TRCR)+TRHR(L+1,I,J)
            END DO
          END DO
-         DO 770 I=1,IMAX
+         DO 770 I=1,IMAXJ(J)
          COSZ=COSZ2(I,J)
          JR=JREG(I,J)
          DO LR=1,LM_REQ
@@ -977,8 +973,7 @@ C****
 C**** Update radiative equilibrium temperatures
 C****
       DO J=1,JM
-        IMAX=IMAXJ(J)
-        DO I=1,IMAX
+        DO I=1,IMAXJ(J)
           DO LR=1,LM_REQ
             RQT(LR,I,J)=RQT(LR,I,J)+(SRHRS(LR,I,J)*COSZ2(I,J)
      *           +TRHRS(LR,I,J))*COE(LR+LM)
@@ -989,8 +984,7 @@ C****
 C**** Update other temperatures every physics time step
 C****
   900 DO J=1,JM
-        IMAX=IMAXJ(J)
-        DO I=1,IMAX
+        DO I=1,IMAXJ(J)
           DO L=1,LM
             T(I,J,L)=T(I,J,L)+(SRHR(L+1,I,J)*COSZ1(I,J)+TRHR(L+1,I,J))*
      *           COE(L)/(PLIJ(L,I,J)*PK(L,I,J))

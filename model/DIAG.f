@@ -480,7 +480,7 @@ C**** Use masking for 850 mb temp/humidity
             nT = IJ_T850 ; nQ = IJ_Q850 ; qpress = .true.
             if (pmb(k).gt.pedn(l-1,i,j)) qpress = .false.
             if (qpress) aij(i,j,ij_p850) = aij(i,j,ij_p850) + 1.
-          CASE (500)            ! 500 mb 
+          CASE (500)            ! 500 mb
             nT = IJ_T500 ; nQ = IJ_Q500 ; qpress = .true.
           CASE (300)            ! 300 mb
             nT = IJ_T300 ; nQ = IJ_Q300 ; qpress = .true.
@@ -2107,7 +2107,7 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
      *     ,icon_WM,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG
      *     ,icon_MSI,icon_HSI,icon_SSI,title_con
       USE SOIL_DRV, only: conserv_WTG,conserv_HTG
-#ifdef TRACERS_ON 
+#ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,ntm
 #endif
       IMPLICIT NONE
@@ -2220,7 +2220,7 @@ C****
 C****
 C**** PRESSURE TENDENCY FOR CHANGE BY ADVECTION
 C****
-      IF (M.eq.1) THEN 
+      IF (M.eq.1) THEN
         dopit=.true.
         PI(1)=FIM*PIT(1,1)
         PI(JM)=FIM*PIT(1,JM)
@@ -2255,7 +2255,7 @@ C****
         N=NKEOFM(M)
         CONSRV(J,N)=CONSRV(J,N)+RKEIL*mb2kg
       END DO
-C**** 
+C****
       CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
       RETURN
       END SUBROUTINE DIAGCD
@@ -2846,7 +2846,7 @@ C**** ACCUMULATE MEAN KINETIC ENERGY AND MEAN POTENTIAL ENERGY
       RETURN
       END SUBROUTINE DIAG5A
 
-      
+
       SUBROUTINE DIAG5F(UX,VX)
 C**** FOURIER COEFFICIENTS FOR CURRENT WIND FIELD
 C****
@@ -2990,7 +2990,7 @@ C****
           XLABEL(128:132)='     '
           XLABEL(120:132)=acc_period(1:3)//' '//acc_period(4:Ldate)
           call openunit(acc_period(1:Ldate)//'.acc'//XLABEL(1:LRUNID)
-     *         ,iu_ACC,.true.,.false.) 
+     *         ,iu_ACC,.true.,.false.)
           call io_rsf (iu_ACC,Itime,iowrite_single,ioerr)
           call closeunit(iu_ACC)
         end if
@@ -3104,14 +3104,6 @@ C**** Hence this diagnostic gives the error
       CALL SET_CON(QCON,"ENRG WAT","(J/M**2)        ",
      *     "(10^-6 J/S/M^2) ",1d0,1d6,icon_EWM)
 
-C**** Initialize longitudinal diagnostic special latitudes
-      J50N=(50.+90.)*(JM-1)/180.+1.5
-      J70N=(70.+90.)*(JM-1)/180.+1.5
-      J5NUV = (90.+5.)*(JM-1.)/180.+2.
-      J5SUV = (90.-5.)*(JM-1.)/180.+2.
-      J5N   = (90.+5.)*(JM-1.)/180.+1.5
-      J5S   = (90.-5.)*(JM-1.)/180.+1.5
-
 C**** Initialize layering for spectral diagnostics
 C**** add in epsilon=1d-5 to avoid roundoff mistakes
       KL=1
@@ -3171,7 +3163,7 @@ C**** Ensure that diagnostics are reset at the beginning of the run
       APJ=0   ; AJL=0  ; ASJL=0   ; AIJ=0
       AIL=0   ; ENERGY=0 ; CONSRV=0
       SPECA=0 ; ATPE=0 ; ADIURN=0 ; WAVE=0
-      AJK=0   ; AIJK=0 
+      AJK=0   ; AIJK=0
       call reset_ODIAG(isum)
 #ifdef TRACERS_ON
       TACC=0.

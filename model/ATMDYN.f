@@ -246,7 +246,7 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
 !@+            SD   sigma dot (mb m^2/s)
 !@+            PU,PV horizontal mass fluxes (mb m^2/s)
 !@+            CONV  horizontal mass convergence (mb m^2/s)
-!@+            SPA   
+!@+            SPA
 !@auth Original development team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,ls1,psfmpt,dsig,bydsig,byim
@@ -426,7 +426,7 @@ C****
       REAL*8, INTENT(IN) :: P(IM,JM)
       REAL*8, INTENT(OUT) :: PA(IM,JM)
       REAL*8, INTENT(IN) :: DT1
-      INTEGER I,J,L,K,IMAX  !@var I,J,L,K  loop variables
+      INTEGER I,J,L,K  !@var I,J,L,K  loop variables
 
 C**** COMPUTE PA, THE NEW SURFACE PRESSURE
       DO J=1,JM
@@ -476,7 +476,7 @@ C****
       REAL*8 PIJ,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,X
      *     ,BYDP
       REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDU,PHIDN,FACTOR
-      INTEGER I,J,L,IM1,IP1,IMAX  !@var I,J,IP1,IM1,L,IMAX loop variab.
+      INTEGER I,J,L,IM1,IP1  !@var I,J,IP1,IM1,L loop variab.
 C****
       DT4=DT1/4.
       DO 10 L=1,LM+1
@@ -814,7 +814,7 @@ C        CALL FFT0(IM)
          ISIGN  = (-1.0)**(NSHAP-1)
          by4toN  = 1./(4.**NSHAP)
       ENDIF
-C**** 
+C****
       IF (MRCH.eq.2) THEN
         USAVE=U ; VSAVE=V
       END IF
@@ -1000,7 +1000,7 @@ C****
       USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
       IMPLICIT NONE
 
-      INTEGER :: I,J,IMAX,L  !@var I,J,IMAX,L  loop variables
+      INTEGER :: I,J,L  !@var I,J,L  loop variables
       INTEGER, INTENT(IN) :: LMAX !@var LMAX max. level for update
 
 C**** Calculate air mass, layer pressures, P**K, and sqrt(P)
@@ -1107,7 +1107,7 @@ C**** to be used in the PBL
         END DO
         IM1=I
       END DO
-c   
+c
       DPDX_BY_RHO=0.
       DPDX_BY_RHO_0=0.
       I=IM
@@ -1195,7 +1195,7 @@ C**** adjust diags for possible difference between DT1 and DTSRC
       END IF
       END DO
       END DO
-C**** conservation diagnostic 
+C**** conservation diagnostic
 C**** (technically we should use U,V from before but this is ok)
       CALL DIAGCD (4,U,V,DUT,DVT,DT1)
       RETURN

@@ -54,7 +54,12 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@var AIL longitude/height diagnostics
       DOUBLE PRECISION, DIMENSION(IM,LM,KAIL) :: AIL
 !@var J50N,J70N,J5NUV,J5SUV,J5S,J5N special latitudes for AIL diags
-      INTEGER :: J50N,J70N,J5NUV,J5SUV,J5S,J5N
+      INTEGER, PARAMETER :: J50N  = (50.+90.)*(JM-1)/180.+1.5
+      INTEGER, PARAMETER :: J70N  = (70.+90.)*(JM-1)/180.+1.5
+      INTEGER, PARAMETER :: J5NUV = (90.+5.)*(JM-1.)/180.+2.
+      INTEGER, PARAMETER :: J5SUV = (90.-5.)*(JM-1.)/180.+2.
+      INTEGER, PARAMETER :: J5N   = (90.+5.)*(JM-1.)/180.+1.5
+      INTEGER, PARAMETER :: J5S   = (90.-5.)*(JM-1.)/180.+1.5
 
 C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param NED number of different energy history diagnostics

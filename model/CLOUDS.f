@@ -15,7 +15,7 @@
      & ,nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD, tr_evap_fact
 #endif
 #endif
-      USE RANDOM
+CCC   USE RANDOM
       IMPLICIT NONE
       SAVE
 C**** parameters and constants
@@ -28,20 +28,27 @@ C**** parameters and constants
       REAL*8, PARAMETER :: SLHE=LHE*BYSHA
       REAL*8, PARAMETER :: SLHS=LHS*BYSHA
 !@param FCLW fraction of condensate in plume that remains as CLW
-      REAL*8, PARAMETER :: FCLW=0.5 
+      REAL*8, PARAMETER :: FCLW=0.5
 
       REAL*8 :: BYBR,BYDTsrc,XMASS
 !@var BYBR factor for converting cloud particle radius to effect. radius
 !@var XMASS dummy variable
 
 C**** Set-able variables
-!@dbparam LMCM max level for originating MC plumes          
+!@dbparam LMCM max level for originating MC plumes
       INTEGER :: LMCM = -1 ! defaults to LS1-1 if not set in rundeck
-!@dbparam U00wtr critical humidity for water cloud condensation   
+!@dbparam U00wtr critical humidity for water cloud condensation
       REAL*8 :: U00wtr = .7d0       ! default
-!@dbparam U00ice critical humidity for ice cloud condensation     
+!@dbparam U00ice critical humidity for ice cloud condensation
       REAL*8 :: U00ice = .7d0       ! default
 
+#ifdef TRACERS_ON
+!@var ntx,NTIX: Number and Indices of active tracers used in convection
+      integer, dimension(ntm) :: ntix
+      integer ntx
+#endif
+
+CCC   start of piece to be repeated in CLOUDS_DRV (old OpenMP version)
 C**** input variables
 !@var RA ratio of primary grid box to secondary gridbox
       REAL*8, DIMENSION(IM) :: RA
@@ -68,11 +75,11 @@ C**** input variables
 !@var DPDT time change rate of pressure (mb/s)
       REAL*8, DIMENSION(LM+1) :: PRECNVL
 !@var PRECNVL convective precip entering the layer top
-!new arrays must be set to model arrays in driver (before MC)
+C**** new arrays must be set to model arrays in driver (before MSTCNV)
       REAL*8, DIMENSION(LM) :: SDL,WML
 !@var SDL vertical velocity in sigma coordinate
 !@var WML cloud water mixing ratio (kg/Kg)
-C**** new arrays must be set to model arrays in driver (after MC)
+C**** new arrays must be set to model arrays in driver (after MSTCNV)
       REAL*8, DIMENSION(LM) :: TAUMCL,SVLATL,CLDMCL,SVLHXL,SVWMXL
 !@var TAUMCL convective cloud optical thickness
 !@var SVLATL saved LHX for convective cloud
@@ -81,11 +88,11 @@ C**** new arrays must be set to model arrays in driver (after MC)
 !@var SVWMXL saved detrained convective cloud water
       REAL*8, DIMENSION(LM) :: CSIZEL
 !@var CSIZEL cloud particle radius (micron)
-C**** new arrays must be set to model arrays in driver (before COND)
+C**** new arrays must be set to model arrays in driver (before LSCOND)
       REAL*8, DIMENSION(LM) :: TTOLDL,CLDSAVL
 !@var TTOLDL previous potential temperature
 !@var CLDSAVL saved large-scale cloud cover
-C**** new arrays must be set to model arrays in driver (after COND)
+C**** new arrays must be set to model arrays in driver (after LSCOND)
       REAL*8, DIMENSION(LM) :: AJ11,AJ53,TAUSSL,CLDSSL
 !@var AJ11,AJ53 height diagnostics of dry and latent heating by MC
 !@var TAUSSL large-scale cloud optical thickness
@@ -99,12 +106,11 @@ C**** new arrays must be set to model arrays in driver (after COND)
 !@var TM Vertical profiles of tracers
       DOUBLE PRECISION, DIMENSION(LM,NTM) :: TM
       DOUBLE PRECISION, DIMENSION(nmom,lm,ntm) :: TMOM
-!@var NTIX: Indicies of tracers used in convection
-      integer, dimension(ntm) :: ntix 
-      integer ntx
+      COMMON/CLD_TRCCOM/TM,TMOM
+C$OMP  THREADPRIVATE (/CLD_TRCCOM/)
 #ifdef TRACERS_WATER
 !@var TRWML Vertical profile of liquid water tracers (kg)
-!@var TRSVWML New liquid water tracers from m.c. (kg) 
+!@var TRSVWML New liquid water tracers from m.c. (kg)
       REAL*8, DIMENSION(NTM,LM) :: TRWML, TRSVWML
 !@var TRPRSS super-saturated tracer precip (kg)
 !@var TRPRMC moist convective tracer precip (kg)
@@ -115,10 +121,13 @@ C**** new arrays must be set to model arrays in driver (after COND)
 !@var FWASHT  fraction of tracer scavenged by below-cloud precipitation
       REAL*8, DIMENSION(NTM) :: FQCONDT, FWASHT, FPRCPT, FQEVPT
 !@var WMXTR available water mixing ratio for tracer condensation ( )?
-!@var b_beta_DT precipitating grid box fraction from lowest percipitating
+!@var b_beta_DT precipitating gridbox fraction from lowest precipitating
 !@+   layer. The name was chosen to correspond to Koch et al. p. 23,802.
-!@var precip_mm precipitation (in mm) from the grid box above for washout
+!@var precip_mm precipitation (mm) from the grid box above for washout
       REAL*8 WMXTR, b_beta_DT, precip_mm
+      COMMON/CLD_WTRTRCCOM/TRWML, TRSVWML,TRPRSS,TRPRMC
+     *  ,FQCONDT, FWASHT, FPRCPT, FQEVPT,WMXTR, b_beta_DT, precip_mm
+C$OMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
 #endif
 #endif
 
@@ -126,10 +135,10 @@ C**** new arrays must be set to model arrays in driver (after COND)
       INTEGER ::  KMAX
 !@var PEARTH fraction of land in grid box
 !@var TS average surface temperture (C)
-!@var RIS, RI1, RI2 Richardson numbers 
-      REAL*8 :: PEARTH,TS,QS,US,VS,TGV,QG,DCL,RIS,RI1,RI2
-!@var LPBL max level of planetary boundary layer
-      INTEGER :: LPBL
+!@var RIS, RI1, RI2 Richardson numbers
+      REAL*8 :: PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2
+!obsolete !@var LPBL max level of planetary boundary layer
+!obso INTEGER :: LPBL
 
 C**** output variables
       REAL*8 :: PRCPMC,PRCPSS,HCNDSS,WMSUM
@@ -145,6 +154,23 @@ C**** output variables
 !@var LMCMIN lowerest convective layer
 !@var AIRXL is convective mass flux (kg/m*m)
       REAL*8 AIRXL
+!@var RNDSS1L,RNDSS2L stored random number sequences
+      REAL*8  RNDSS1L(LM),RNDSS2L(LM-1)
+CCOMP  does not work yet:
+CCOMP  THREADPRIVATE (RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
+CCOMP*  ,TL,QL,TH,RH,WMX,VSUBL,AJ8,AJ11,AJ13,AJ50,AJ51,AJ52,AJ53,AJ57
+CCOMP*  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL
+CCOMP*  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
+CCOMP*  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
+CCOMP* ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX,LMCMIN,KMAX)
+      COMMON/CLDPRV/RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
+     *  ,TL,QL,TH,RH,WMX,VSUBL,AJ8,AJ11,AJ13,AJ50,AJ51,AJ52,AJ53,AJ57
+     *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL
+     *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
+     *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
+     *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX,LMCMIN,KMAX
+C$OMP  THREADPRIVATE (/CLDPRV/)
+CCC   end of piece to be repeated in CLOUDS_DRV
 
       CONTAINS
 
@@ -209,8 +235,8 @@ C**** functions
 !@var DDM downdraft mass
 
 !@var IERRT,LERRT error reports from advection
-      INTEGER :: IERRT,LERRT 
-      INTEGER LDRAFT,LEVAP,LMAX,LMIN,MCCONT,MAXLVL
+      INTEGER :: IERRT,LERRT
+      INTEGER LDRAFT,LMAX,LMIN,MCCONT,MAXLVL  ! ,LEVAP obsolete
      *     ,MINLVL,ITER,IC,LFRZ,NSUB,LDMIN
 !@var LDRAFT the layer the downdraft orginates
 !@var LEVAP the layer evaporation of precip starts
@@ -292,7 +318,7 @@ C**** functions
       INTEGER K,L,N  !@var K,L,N loop variables
       INTEGER ITYPE  !@var convective cloud types
 !@var IERR,LERR error reports from advection
-      INTEGER, INTENT(OUT) :: IERR,LERR 
+      INTEGER, INTENT(OUT) :: IERR,LERR
 !@var DUM, DVM changes of UM,VM
       REAL*8, DIMENSION(IM,LM) :: DUM,DVM
 
@@ -306,6 +332,7 @@ C**** EVAPORATION AND PRECIPITATION ARE COMPUTED AT THE END OF THIS
 C**** CYCLE.  THE WHOLE PROCESS MAY BE REPEATED FROM A NEW LOWEST
 C**** UNSTABLE LEVEL.
 C****
+      ierr=0 ; lerr=0
       LMCMIN=0
       LMCMAX=0
       MCCONT=0
@@ -320,6 +347,7 @@ C**** initiallise arrays of computed ouput
       CLDDEPIJ=0
       PRCPMC=0.
       SVTP=0
+      TPSAV=0
       CSIZEL=10.    !  effective droplet radius in stem of convection
 #ifdef TRACERS_WATER
       trsvwml = 0.
@@ -622,7 +650,7 @@ C**** Reduce EPLUME so that mass flux is less than mass in box
       QMP=QMP+EPLUME*QUP
        QMOMP(xymoms)= QMOMP(xymoms)+ QMOM(xymoms,L)*FENTRA
 #ifdef TRACERS_ON
-      DTMR(L,1:NTX) = DTMR(L,1:NTX)-TM(L,1:NTX)*FENTRA  
+      DTMR(L,1:NTX) = DTMR(L,1:NTX)-TM(L,1:NTX)*FENTRA
       DTMOMR(:,L,1:NTX) = DTMOMR(:,L,1:NTX)-TMOM(:,L,1:NTX)*FENTRA
       TMP(1:NTX) = TMP(1:NTX)+TM(L,1:NTX)*FENTRA
       TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)+TMOM(xymoms,L,1:NTX)
@@ -728,7 +756,7 @@ C**** CONDENSING TRACERS
         TRCOND(N,L) = FQCONDT(N) * TMP(N)
         TMP(N)         = TMP(N)         *(1.-FQCONDT(N))
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT(N))
-      END DO 
+      END DO
 #endif
       TAUMCL(L)=TAUMCL(L)+DQSUM
       CDHEAT(L)=SLH*COND(L)
@@ -763,7 +791,7 @@ C**** UPDATE CHANGES CARRIED BY THE PLUME IN THE TOP CLOUD LAYER
 #ifdef TRACERS_ON
 C**** Add plume tracers at LMAX
       DTM(LMAX,1:NTX) = DTM(LMAX,1:NTX) + TMPMAX(1:NTX)
-      DTMOM(xymoms,LMAX,1:NTX) = 
+      DTMOM(xymoms,LMAX,1:NTX) =
      *   DTMOM(xymoms,LMAX,1:NTX) + TMOMPMAX(xymoms,1:NTX)
 #endif
       CCM(LMAX)=0.
@@ -823,7 +851,7 @@ C     DQEVP=DQ*DDRAFT
       CDHEAT(L)=CDHEAT(L)-DQEVP*SLH
       EVPSUM=EVPSUM+DQEVP*SLH
 #ifdef TRACERS_WATER
-C**** RE-EVAPORATION OF TRACERS IN DOWNDRAFTS 
+C**** RE-EVAPORATION OF TRACERS IN DOWNDRAFTS
 C     (If 100% evaporation, allow all tracers to evaporate completely.)
       DO N=1,NTX
         IF(FQEVP.eq.1.) THEN                 ! total evaporation
@@ -982,7 +1010,7 @@ C**** diagnostics
         AJ57(L)=AJ57(L)+SLHE*(QM(L)-QMT(L))
       END DO
 #ifdef TRACERS_ON
-C**** Subsidence of tracers by Quadratic Upstream Scheme 
+C**** Subsidence of tracers by Quadratic Upstream Scheme
       DO N=1,NTX
       ML(LDMIN:LMAX) =  AIRM(LDMIN:LMAX) +    DMR(LDMIN:LMAX)
       TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)
@@ -1014,12 +1042,9 @@ C 383 SM(L)=SM(L)-DIFSUM/SUMDP/PLK(L)
 C****
 C**** REEVAPORATION AND PRECIPITATION
 C****
-C     LEVAP=LMAX-1
       IF(MC1.AND.PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
-C     IF(LMAX-LEVAP.GT.1) THEN
         DO L=LMAX,LMIN,-1
           IF (PLE(L+1).GT.550.) EXIT
-C         AJ52(L)=AJ52(L)+CDHEAT(L)
           SVWMXL(L)=FCLW*COND(L)*BYAM(L)
           COND(L)=COND(L)*(1.-FCLW)
 #ifdef TRACERS_WATER
@@ -1030,15 +1055,17 @@ C**** Note that TRSVWML is in mass units unlike SVWMX
 #endif
         END DO
       END IF
-      LEVAP=LMAX-1
-C     IF(LMAX-LMIN.LE.2) GO TO 700
-      PRCP=COND(LEVAP+1)
-      PRHEAT=CDHEAT(LEVAP+1)
+C     LEVAP=LMAX-1
+C     PRCP=COND(LEVAP+1)
+      PRCP=COND(LMAX)
+C     PRHEAT=CDHEAT(LEVAP+1)
+      PRHEAT=CDHEAT(LMAX)
 #ifdef TRACERS_WATER
 C**** Tracer precipiation
-C Note that all of the tracers that condensed do not precipitate here, since
-C a fraction (FCLW) of TRCOND was removed above. 
-      TRPRCP(1:NTX) = TRCOND(1:NTX,LEVAP+1)
+C Note that all of the tracers that condensed do not precipitate here,
+C since a fraction (FCLW) of TRCOND was removed above.
+C     TRPRCP(1:NTX) = TRCOND(1:NTX,LEVAP+1)
+      TRPRCP(1:NTX) = TRCOND(1:NTX,LMAX)
 #endif
 C     FEVAP=.5*FPLUME
 C     IF(FEVAP.GT.1.) FEVAP=1.
@@ -1046,7 +1073,8 @@ C     IF(FEVAP.GT.1.) FEVAP=1.
 C        IF(LMAX.EQ.LDEP) AJ50(LMAX)=AJ50(LMAX)+CDHM
 C        AJ52(LEVAP+1)=AJ52(LEVAP+1)+CDHEAT(LEVAP+1)
       DO 540 L=LMAX-1,1,-1
-      IF(L.LE.LEVAP.AND.PRCP.LE.0.) GO TO 530
+C     IF(L.LE.LEVAP.AND.PRCP.LE.0.) GO TO 530  ! L.LE.LEVAP always true
+      IF(PRCP.LE.0.) GO TO 530
       FCLOUD=CCM(L)*BYAM(L+1)
       IF(PLE(LMIN)-PLE(L+2).GE.450.) FCLOUD=5.*CCM(L)*BYAM(L+1)
       IF(L.LT.LMIN) FCLOUD=CCM(LMIN)*BYAM(LMIN+1)
@@ -1070,7 +1098,7 @@ C     EVAP=PRCP
 C     PRCP=0.
 C**** FORWARD STEP COMPUTES HUMIDITY CHANGE BY RECONDENSATION
 C**** Q = Q + F(TOLD,PRHEAT,QOLD+EVAP)
-      IF(L.GT.LEVAP) GO TO 540
+C     IF(L.GT.LEVAP) GO TO 540  ! currently impossible
       PRECNVL(L+1)=PRECNVL(L+1)+PRCP*BYGRAV
       MCLOUD=0.
       IF(L.LE.LMIN) MCLOUD=2.*FEVAP*AIRM(L)
@@ -1130,15 +1158,15 @@ C**** CONDENSING and WASHOUT of TRACERS BELOW CLOUD
       IF(L.lt.LMIN) THEN ! BELOW CLOUD
         WMXTR = PRCPMC*BYAM(L)
         precip_mm = PRCPMC*100.*bygrav
-        b_beta_DT = FPLUME 
+        b_beta_DT = FPLUME
         DO N=1,NTX
           CALL GET_COND_FACTOR(L,N,WMXTR,FPLUME,0.,FQCONDT(N))
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT(N))
           TRCOND(N,L) = FPLUME * FQCONDT(N) * TM(L,N)
-          TRPRCP(N)=TRPRCP(N) + TM(L,N)*FWASHT(N)  
+          TRPRCP(N)=TRPRCP(N) + TM(L,N)*FWASHT(N)
           TM(L,N)=TM(L,N) * (1.-FPLUME*FQCONDT(N)-FWASHT(N))
           TMOM(xymoms,L,N)=TMOM(xymoms,L,N) *
-     &                       (1.-FPLUME*FQCONDT(N)-FWASHT(N))   
+     &                       (1.-FPLUME*FQCONDT(N)-FWASHT(N))
         END DO
       END IF
 #endif
@@ -1194,13 +1222,13 @@ C**** CALCULATE OPTICAL THICKNESS
          TL(L)=(SM(L)*BYAM(L))*PLK(L)
          TEMWM=(TAUMCL(L)-SVWMXL(L)*AIRM(L))*1.d2*BYGRAV
          IF(TL(L).GE.TF) WMSUM=WMSUM+TEMWM
-         IF (CLDMCL(L).GT.0.) TAUMCL(L)=AIRM(L)*.08d0
-         IF(PLE(LMCMIN)-PLE(LMCMAX+1).LT.450..AND.(CLDMCL(L).GT.0.))THEN
-            IF(L.EQ.LMCMAX) TAUMCL(L)=AIRM(L)*.02d0
-         ENDIF
-         IF(PLE(LMCMIN)-PLE(LMCMAX+1).GE.450..AND.(CLDMCL(L).GT.0.))THEN
-            IF(L.EQ.LMCMIN) TAUMCL(L)=AIRM(L)*.02d0
-         ENDIF
+         IF(CLDMCL(L).GT.0.) THEN
+               TAUMCL(L)=AIRM(L)*.08d0
+            IF(L.EQ.LMCMAX .AND. PLE(LMCMIN)-PLE(LMCMAX+1).LT.450.)
+     *         TAUMCL(L)=AIRM(L)*.02d0
+            IF(L.EQ.LMCMIN .AND. PLE(LMCMIN)-PLE(LMCMAX+1).GE.450.)
+     *         TAUMCL(L)=AIRM(L)*.02d0
+         END IF
          IF(SVLATL(L).EQ.0.) THEN
             SVLATL(L)=LHE
             IF(SVTP(L).LT.TF) SVLATL(L)=LHS
@@ -1214,9 +1242,11 @@ C**** CALCULATE OPTICAL THICKNESS
             IF(SVLATL(L).EQ.LHS.AND.SVWMXL(L)/FCLD.GE.WMUI*1.d-3)
      *           WTEM=1.E5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
             IF(WTEM.LT.1.d-10) WTEM=1.d-10
-            IF(SVLATL(L).EQ.LHE) RCLD=(10.*(1.-PEARTH)+7.0*PEARTH)*
-     *           (WTEM*4.)**BY3
-            IF(SVLATL(L).EQ.LHS) RCLD=25.0*(WTEM/4.2d-3)**BY3
+            IF(SVLATL(L).EQ.LHE)  THEN
+               RCLD=(10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
+             ELSE
+               RCLD=25.0*(WTEM/4.2d-3)**BY3
+            END IF
             RCLDE=RCLD/BYBR   !  effective droplet radius in anvil
             CSIZEL(L)=RCLDE   !  effective droplet radius in anvil
             TAUMCL(L)=1.5*TEM/(FCLD*RCLDE+1.E-20)
@@ -1284,9 +1314,9 @@ C**** functions
 !@var DTWRT tracer-specific change of tracer by washout (kg)
 !@var DTQWT tracer-specific change of tracer by condensation (kg)
 !@var FWTOQT tracer-specific fraction of tracer in CLW that evaporates
-!@var FQTOWT tracer-sepcific fraction of gas tracer that condenses in CLW
+!@var FQTOWT tracer-specific fraction of gas tracer condensing in CLW
 !@var FPRT tracer-specific fraction of tracer in CLW that precipitates
-!@var FERT tracer-specific fraction of tracer in precipitate that evaporates
+!@var FERT tracer-specific fraction of tracer in precipitate evaporating
       REAL*8,DIMENSION(NTM)::DTWRT,DTPRT,DTERT,DTQWT,
      &                       FWTOQT,FQTOWT,FPRT,FERT
 !@var BELOW_CLOUD logical- is the current level below cloud?
@@ -1365,6 +1395,7 @@ C**** functions
       INTEGER K,L,N  !@var K,L,N loop variables
 
       REAL*8 THBAR !@var THBAR potential temperature at layer edge
+
 C****
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
 C**** THE LIQUID WATER CONTENT IS PREDICTED
@@ -1411,10 +1442,13 @@ C****
       OLDLAT=SVLATL(L)
 C**** COMPUTE VERTICAL VELOCITY IN CM/S
       TEMP=100.*RGAS*TL(L)/(PL(L)*GRAV)
-      IF(L.EQ.1) VVEL=-SDL(L+1)*TEMP
-      IF(L.EQ.LM) VVEL=-SDL(L)*TEMP
-      IF(L.GT.1.AND.L.LT.LM)
-     *     VVEL=-.5*(SDL(L)+SDL(L+1))*TEMP
+      IF(L.EQ.1)  THEN
+         VVEL=-SDL(L+1)*TEMP
+      ELSE IF(L.EQ.LM)  THEN
+         VVEL=-SDL(L)*TEMP
+      ELSE
+         VVEL=-.5*(SDL(L)+SDL(L+1))*TEMP
+      END IF
 C**** COMPUTE THE LIMITING AUTOCONVERSION RATE FOR CLOUD WATER CONTENT
       CM0=CM00
       VDEF=VVEL-VSUBL(L)
@@ -1440,13 +1474,14 @@ C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
       FUNI=FUNIO*(1.-PEARTH)+FUNIL*PEARTH
       IF(TL(L).LE.TI) FUNI=1.
       IF(TL(L).LT.TI) LHX=LHS
-      IF(TL(L).GE.TI.AND.RANDU(XY).LT.FUNI) LHX=LHS
+      RANDNO=RNDSS1L(L)   !  RANDNO=RANDU(XY)
+      IF(TL(L).GE.TI.AND.RANDNO.LT.FUNI) LHX=LHS
       IF((OLDLHX.EQ.LHS.OR.OLDLAT.EQ.LHS).AND.TL(L).LT.TF) THEN
         IF(LHX.EQ.LHE) BANDF=.TRUE.
         LHX=LHS
       ENDIF
       IF(L.LT.LM) THEN
-      RANDNO=RANDU(XY)
+      RANDNO=RNDSS2L(L)  !  RANDNO=RANDU(XY)
       IF(PFR.GT.RANDNO.AND.TL(L).LT.TF) THEN
         IF(LHX.EQ.LHE) BANDF=.TRUE.
         LHX=LHS
@@ -1498,7 +1533,7 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
         RH00(L)=1.-9.8d0*LHE*HDEP/(RVAP*TS*TS)
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF
-C     IF(L.LE.LPBL) RH00(L)=.75
+!obso IF(L.LE.LPBL) RH00(L)=.75
       IF(RH00(L).GT.1.) RH00(L)=1.
       RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
       IF(WMX(L).GT.0.) THEN
@@ -1529,10 +1564,15 @@ C**** COMPUTE EVAPORATION OF RAIN WATER, ER
       IF(RHF(L).GT.RH(L)) RHN=RH(L)
 C     QCONV0=LHX*AQ(L)-RHN*SQ(L)*SHA*PLK(L)*ATH(L)
 C    *  -TEM*QSATL(L)*RHN
-      IF(WMX(L).GT.0.) ER(L)=(1.-RHN)*LHX*PREBAR(L+1)*GRAV/AIRM0
-      IF(WMX(L).LE.0.) ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GRAV/AIRM0
-      IF(WMX(L).LE.0..AND.PREICE(L+1).GT.0..AND.TL(L).LT.TF)
-     *  ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GRAV/AIRM0
+      IF(WMX(L).GT.0.)  THEN
+          ER(L)=(1.-RHN)*LHX*PREBAR(L+1)*GRAV/AIRM0
+      ELSE     !  WMX(l).le.0.
+        IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)  THEN
+          ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GRAV/AIRM0
+        ELSE
+          ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GRAV/AIRM0
+        END IF
+      END IF
       ERMAX=LHX*PREBAR(L+1)*GRAV*BYAM(L)
       IF(ER(L).GT.ERMAX) ER(L)=ERMAX
       IF(ER(L).LT.0.) ER(L)=0.
@@ -1544,9 +1584,11 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
       IF(LHX.EQ.LHS.AND.WMX(L)/FCLD.GE.WMUI*1d-3)
      *  WTEM=1d5*WMUI*1d-3*PL(L)/(TL(L)*RGAS)
       IF(WTEM.LT.1d-10) WTEM=1d-10
-      IF(LHX.EQ.LHE) RCLD=1d-6*(10.*(1.-PEARTH)+7.0*PEARTH)*
-     *  (WTEM*4.)**BY3
-      IF(LHX.EQ.LHS) RCLD=25.d-6*(WTEM/4.2d-3)**BY3
+      IF(LHX.EQ.LHE)  THEN
+         RCLD=1d-6*(10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
+       ELSE
+         RCLD=25.d-6*(WTEM/4.2d-3)**BY3
+      END IF
       CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
       CK2=1000.*RVAP*TL(L)/(2.4d-3*QSATL(L)*PL(L)/.622d0)
 c      CK2=1000.*RGAS*TL(L)/(2.4d-3*QSATL(L)*PL(L))    ! new
@@ -1640,8 +1682,8 @@ C**** adjust gradients down if Q decreases
       QSATC=QSAT(TL(L),LHX,PL(L))
       RH(L)=QL(L)/QSATC
 #ifdef TRACERS_WATER
-C**** update tracers from cloud formation (in- and below-cloud precipitation,
-C**** evaporation, condensation, and washout)
+C**** update tracers from cloud formation (in- and below-cloud
+C****    precipitation, evaporation, condensation, and washout)
       DO N=1,NTX
 c ---------------------- initialize fractions ------------------------
         FPRT(N)  =0.
@@ -1649,28 +1691,28 @@ c ---------------------- initialize fractions ------------------------
         FWASHT(N)=0.
         FQTOWT(N)=0.
         FWTOQT(N)=0.
-c ----------------------- calculate fractions ------------------------
-        CALL GET_EVAP_FACTOR(N,FER,FERT(N))       !precip. tracer evaporation
+c ----------------------- calculate fractions --------------------------
+        CALL GET_EVAP_FACTOR(N,FER,FERT(N))  !precip. tracer evaporation
 C       When cloud water evaporates, all tracers evaporate at same rate:
-        FWTOQT(N) = FWTOQ                       !condensed tracer evaporation
-        IF(BELOW_CLOUD) THEN                                  
+        FWTOQT(N) = FWTOQ                  !condensed tracer evaporation
+        IF(BELOW_CLOUD) THEN
           precip_mm = PREBAR(L+1)
-          CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT(N))!washout
+          CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT(N)) !washout
           WMXTR = PREBAR(L+1)*grav*BYAM(L)*dtsrc
         ELSE
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
-          b_beta_DT = FCLD*CM*dtsrc           
-        END IF  
-        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT(N))!precipitation
-        CALL GET_COND_FACTOR(L,N,WMXTR,FCLD,FQTOW,FQTOWT(N))   !condensation
+          b_beta_DT = FCLD*CM*dtsrc
+        END IF
+        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT(N))  !precip
+        CALL GET_COND_FACTOR(L,N,WMXTR,FCLD,FQTOW,FQTOWT(N))    !condens
 c ---------------------- calculate fluxes ------------------------
         DTWRT(N) = FWASHT(N)*TM(L,N)
         DTERT(N) = FERT(N)  *TRPRBAR(N,L+1)
         DTPRT(N) = FPRT(N)  *TRWML(N,L)
-        DTQWT(N) = 
-     &   FQTOWT(N)*(TM(L,N)+DTERT(N)) - FWTOQT(N)*(TRWML(N,L)-DTPRT(N)) 
+        DTQWT(N) =
+     &   FQTOWT(N)*(TM(L,N)+DTERT(N)) - FWTOQT(N)*(TRWML(N,L)-DTPRT(N))
 c ---------------------- apply fluxes ------------------------
         TRWML(N,L)   =
      &  TRWML(N,L)     - DTPRT(N)                       + DTQWT(N)
@@ -1699,15 +1741,15 @@ C**** adjust gradients down if Q decreases
        QMOM(:,L)= QMOM(:,L)*(1.-FCOND)
 #ifdef TRACERS_WATER
 C**** CONDENSING MORE TRACERS
-      IF(BELOW_CLOUD) THEN 
+      IF(BELOW_CLOUD) THEN
         WMXTR = PREBAR(L+1)*grav*BYAM(L)*dtsrc
       ELSE
-        WMXTR = WMX(L)  
+        WMXTR = WMX(L)
       END IF
       DO N=1,NTX
         CALL GET_COND_FACTOR(L,N,WMXTR,FCLD,FCOND,FQCONDT(N))
         TRWML(N,L)  =TRWML(N,L)+ FQCONDT(N)*TM(L,N)
-        TM(L,N)     =TM(L,N)    *(1.-FQCONDT(N)) 
+        TM(L,N)     =TM(L,N)    *(1.-FQCONDT(N))
         TMOM(:,L,N) =TMOM(:,L,N)*(1.-FQCONDT(N))
       END DO
 #endif
@@ -1737,7 +1779,7 @@ C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       CLDSSL(L)=1.-CAREA(L)
 #ifdef TRACERS_WATER
        IF(CLDSSL(L).eq.0.) BELOW_CLOUD=.true.
-#endif   
+#endif
       TOLDUP=TOLD
       LHXUP=LHX
 C**** ACCUMULATE SOME DIAGNOSTICS
@@ -1950,10 +1992,10 @@ C**** CALCULATE OPTICAL THICKNESS
       END MODULE CLOUDS
 
 
-C-----------------------------------------------------------------------------
+C-----------------------------------------------------------------------
 
       SUBROUTINE ISCCP_CLOUD_TYPES(pfull,phalf,qv,cc,conv,dtau_s,dtau_c
-     *     ,skt,at,dem_s,dem_c,itrop,fq_isccp,ctp,tauopt,nbox)
+     *  ,skt,at,dem_s,dem_c,itrop,fq_isccp,ctp,tauopt,nbox,jerr)
 !@sum  ISCCP_CLOUD_TYPES calculate isccp cloud diagnostics in a column
 !@auth G. Tselioudis (modifications by Gavin Schmidt)
 !@ver  1.0
@@ -1968,35 +2010,35 @@ C-----------------------------------------------------------------------------
 !@+     pressure is the actual cloud top pressure in the model
       INTEGER, PARAMETER :: top_height=1, overlap=3
 !@var  emsfc_lw    longwave emissivity of surface at 10.5 microns
-      REAL*8, PARAMETER :: emsfc_lw=0.99d0 
+      REAL*8, PARAMETER :: emsfc_lw=0.99d0
       INTEGER,PARAMETER :: ncol =20    !@var ncol number of subcolumns
       REAL*8, PARAMETER :: byncol = 1d0/ncol
       REAL*8, PARAMETER :: Navo = 6.023d23 !@var Navo Avogardos Numbers
 !@var pc1bylam Planck constant c1 by wavelength (10.5 microns)
       REAL*8, PARAMETER :: pc1bylam = 1.439d0/10.5d-4
 !@var t0 ave temp  (K)
-      REAL*8, PARAMETER :: t0 = 296. 
-!@var t0bypstd ave temp by sea level press 
+      REAL*8, PARAMETER :: t0 = 296.
+!@var t0bypstd ave temp by sea level press
       REAL*8, PARAMETER :: t0bypstd = t0/1.013250d6
       real*8, parameter :: bywc = 1./2.56d0 , byic= 1./2.13d0
 !     -----
-!     Input 
+!     Input
 !     -----
 !@var pfull pressure of full model levels (Pascals)
       REAL*8 pfull(nlev)  ! pfull(1) is top level, pfull(nlev) is bottom
 !@var phalf pressure of half model levels (Pascals)
       REAL*8 phalf(nlev+1) ! phalf(1) is top, phalf(nlev+1) is surf pres
-!@var qv  water vapor specific humidity (kg vapor/ kg air) 
-      REAL*8 qv(nlev)      
-!@var cc  input cloud cover in each model level (fraction) 
-      REAL*8 cc(nlev)           ! NOTE: This is the HORIZONTAL area of 
+!@var qv  water vapor specific humidity (kg vapor/ kg air)
+      REAL*8 qv(nlev)
+!@var cc  input cloud cover in each model level (fraction)
+      REAL*8 cc(nlev)           ! NOTE: This is the HORIZONTAL area of
                                 ! each grid box covered by clouds
 !@var conv input convective cloud cover in each model level(frac)
       REAL*8 conv(nlev)         ! NOTE: This is the HORIZONTAL area of
                                 ! each box covered by convective clouds
-!@var dtau_s mean 0.67 micron optical depth of stratiform clouds each level
-!@var dtau_c mean 0.67 micron optical depth of convective clouds each level
-      REAL*8 dtau_s(nlev), dtau_c(nlev)      
+!@var dtau_s mean 0.67 micron optical depth of stratiform cloud level
+!@var dtau_c mean 0.67 micron optical depth of convective cloud level
+      REAL*8 dtau_s(nlev), dtau_c(nlev)
            !  NOTE:  these cloud optical depths are only for the
            !         cloudy part of the grid box, they are not weighted
            !         with the 0 cloud optical depth of the clear
@@ -2005,33 +2047,33 @@ C-----------------------------------------------------------------------------
       INTEGER :: itrop    !@var itrop tropopause level (WMO definition)
 
 !     The following input variables are used only if top_height = 1
-      REAL*8 skt                !@var skt skin Temperature (K)
-      REAL*8 at(nlev)           !@var at temperature in each model level (K)
-!@var dem_s 10.5 micron longwave emissivity of stratiform clouds 
+      REAL*8 skt            !@var skt skin Temperature (K)
+      REAL*8 at(nlev)       !@var at temperature in each model level (K)
+!@var dem_s 10.5 micron longwave emissivity of stratiform clouds
 !@var dem_c 10.5 micron longwave emissivity of convective clouds
-      REAL*8 dem_s(nlev),dem_c(nlev)        
+      REAL*8 dem_s(nlev),dem_c(nlev)
 !     ------
 !     Output
 !     ------
 !@var fq_isccp the fraction of the model grid box covered by each
 !@+   of the 49 ISCCP D level cloud types
-      REAL*8 fq_isccp(7,7)      
+      REAL*8 fq_isccp(7,7)
 !@var ctp cloud top pressure averaged over grid box (mb)
-      REAL*8 ctp 
+      REAL*8 ctp
 !@var tauopt cloud optical thickness averaged over grid box
-      REAL*8 tauopt 
+      REAL*8 tauopt
 !@var nbox number of boxes with clouds (used as a flag)
-      INTEGER nbox  
+      INTEGER nbox
 !     ------
-! Working variables 
+! Working variables
 !     ------
 !@var frac_out boxes gridbox divided up into
-      REAL*8 frac_out(ncol,nlev) ! Equivalent of BOX in original version, but
-                                 ! indexed by column then row, rather than
-                                 ! by row then column
-!@var tca total cloud cover (fraction) with extra layer of zeroes on top
-      REAL*8 tca(ncol,0:nlev)   ! in this version this just contains the
-                           ! values input from cc but replicated across ncol
+      REAL*8 frac_out(ncol,nlev) ! Equivalent of BOX in orig. version,
+                                 ! but indexed by column then row,
+                                 ! rather than by row then column
+!@var tca total cloud cover (fraction) with extra layer of zeros on top
+      REAL*8 tca(ncol,0:nlev)  ! in this version this just contains the
+                      ! values input from cc but replicated across ncol
 !@var cca convect. cloud cover each model level(frac)
       REAL*8 cca(ncol,nlev)  ! from conv but replicated across ncol
 !@var threshold pointer to position in gridbox
@@ -2040,54 +2082,58 @@ C-----------------------------------------------------------------------------
 !@var boxpos ordered pointer to position in gridbox
 !@var threshold_min min. allowed value of threshold
       REAL*8, dimension(ncol) :: threshold,maxocc,maxosc,boxpos,
-     *     threshold_min 
+     *     threshold_min
 !@var dem,bb,bbs working variables for 10.5 micron longwave emissivity
 !@+ in part of gridbox under consideration
-      real*8 dem(ncol),bb(nlev),bbs  
+      real*8 dem(ncol),bb(nlev),bbs
       integer seed  !@var seed saved value for random number generator
 !@var dtautmp,demtmp temporary variables for dtau,dem
-      real*8, dimension(ncol) :: dtautmp, demtmp 
+      real*8, dimension(ncol) :: dtautmp, demtmp
       real*8 ptrop,attrop,atmax,atmin,btcmin,transmax
       integer ilev,ibox,ipres,itau,ilev2
       integer acc(nlev,ncol),match(nlev-1),nmatch,levmatch(ncol)
-      
+
       !variables needed for water vapor continuum absorption
       real*8 fluxtop_clrsky,trans_layers_above_clrsky,taumin
       real*8 dem_wv(nlev)
       real*8 press, dpress, atmden, rvh20, wk, rhoave, rh20s, rfrgn
-      real*8 tmpexp,tauwv, XX 
+      real*8 tmpexp,tauwv, XX
 
       real*8, dimension(ncol) :: tau,tb,ptop,emcld,fluxtop,
      *     trans_layers_above
       real*8, parameter :: isccp_taumin = 0.1d0
 
+      INTEGER  JERR
+
       character*1 cchar(6),cchar_realtops(6)
       data cchar / ' ','-','1','+','I','+'/
       data cchar_realtops / ' ',' ','1','1','I','I'/
 
+      JERR=0
+
 !     assign 2d tca array using 1d input array cc
       do ilev=0,nlev
         do ibox=1,ncol
-	  if (ilev.eq.0) then
-	    tca(ibox,ilev)=0
-	  else
-	    tca(ibox,ilev)=cc(ilev)
-	  endif
+          if (ilev.eq.0) then
+            tca(ibox,ilev)=0
+          else
+            tca(ibox,ilev)=cc(ilev)
+          endif
         enddo
       enddo
 !     assign 2d cca array using 1d input array conv
       do ilev=1,nlev
         do ibox=1,ncol
-	  cca(ibox,ilev)=conv(ilev)
+          cca(ibox,ilev)=conv(ilev)
         enddo
       enddo
 
 C**** In order to ensure that the model does not go down a different
 C**** path depending on whether this routine is used, we save current
 C**** seed and reset it afterwards
-      CALL RFINAL(SEED)
+cc    CALL RFINAL(SEED)
 
-      if (top_height .eq. 1) then 
+      if (top_height .eq. 1) then
         ptrop = pfull(itrop)
         attrop = at(itrop)
         atmin = 400.
@@ -2104,45 +2150,45 @@ C**** seed and reset it afterwards
       do ilev=1,nlev
         if (cc(ilev) .lt. 0.) then
           print*, ' error = cloud fraction less than zero'
-          STOP
+          JERR=1 ; return; ! stop
         end if
         if (cc(ilev) .gt. 1.) then
           print*,' error = cloud fraction greater than 1'
-          STOP
-        end if 
+          JERR=1 ; return; ! stop
+        end if
         if (conv(ilev) .lt. 0.) then
           print*,' error = convective cloud fraction less than zero'
-          STOP
+          JERR=1 ; return; ! stop
         end if
         if (conv(ilev) .gt. 1.) then
           print*,' error = convective cloud fraction greater than 1'
-          STOP
-        end if 
-        
+          JERR=1 ; return; ! stop
+        end if
+
         if (dtau_s(ilev) .lt. 0.) then
           print*,' error = stratiform cloud opt. depth less than zero'
-          STOP
+          JERR=1 ; return; ! stop
         end if
         if (dem_s(ilev) .lt. 0.) then
           print*,' error = stratiform cloud emissivity less than zero'
-          STOP
+          JERR=1 ; return; ! stop
         end if
         if (dem_s(ilev) .gt. 1.) then
           print*,' error = stratiform cloud emissivity greater than 1'
-          STOP
-        end if 
-        
+          JERR=1 ; return; ! stop
+        end if
+
         if (dtau_c(ilev) .lt. 0.) then
           print*, ' error = convective cloud opt. depth less than zero'
-          STOP
+          JERR=1 ; return; ! stop
         end if
         if (dem_c(ilev) .lt. 0.) then
           print*,' error = convective cloud emissivity less than zero'
-          STOP
+          JERR=1 ; return; ! stop
         end if
         if (dem_c(ilev) .gt. 1.) then
           print*,' error = convective cloud emissivity greater than 1'
-          STOP
+          JERR=1 ; return; ! stop
         end if
       end do
 
@@ -2153,33 +2199,33 @@ C**** seed and reset it afterwards
 !     Initialised frac_out to zero
       frac_out(:,:)=0.0
       do ibox=1,ncol
-	boxpos(ibox)=(ibox-.5)/ncol
+        boxpos(ibox)=(ibox-.5)/ncol
       enddo
 
 !     ---------------------------------------------------!
 !     ALLOCATE CLOUD INTO BOXES, FOR NCOLUMNS, NLEVELS
-!     frac_out is the array that contains the information 
+!     frac_out is the array that contains the information
 !     where 0 is no cloud, 1 is a stratiform cloud and 2 is a
 !     convective cloud
-      
+
       !loop over vertical levels
       do ilev = 1,nlev
-                                  
+
 !     Initialise threshold
 
         if (ilev.eq.1) then
           do ibox=1,ncol
-	    ! if max overlap 
-	    if (overlap.eq.1) then
-	      ! select pixels spread evenly
-	      ! across the gridbox
+            ! if max overlap
+            if (overlap.eq.1) then
+              ! select pixels spread evenly
+              ! across the gridbox
               threshold(ibox)=boxpos(ibox)
-	    else
-	      ! select random pixels from the non-convective
-	      ! part the gridbox ( some will be converted into
-	      ! convective pixels below )
+            else
+              ! select random pixels from the non-convective
+              ! part the gridbox ( some will be converted into
+              ! convective pixels below )
               threshold(ibox)=
-     *        cca(ibox,ilev)+(1-cca(ibox,ilev))*randu(xx) 
+     *        cca(ibox,ilev)+(1-cca(ibox,ilev))*randu(xx)
             endif
           enddo
         endif
@@ -2209,54 +2255,54 @@ C**** seed and reset it afterwards
               maxosc(ibox)= 0
             end if
           end select
-          ! Reset threshold 
+          ! Reset threshold
           threshold(ibox)=
                                 !if max overlapped conv cloud
      &         maxocc(ibox) * boxpos(ibox) +
                                 !else
-     &         (1-maxocc(ibox)) * (                                   
+     &         (1-maxocc(ibox)) * (
                                 !if max overlapped strat cloud
-     &         (maxosc(ibox)) * (                                 
+     &         (maxosc(ibox)) * (
                                 !threshold=boxpos
      &         threshold(ibox) ) +
                                 !else
-     &         (1-maxosc(ibox)) * (                               
+     &         (1-maxosc(ibox)) * (
                                 !threshold_min=random[thrmin,1]
      &         threshold_min(ibox)+(1-threshold_min(ibox))*RANDU(XX)))
         end do
 
-!          Fill frac_out with 1's where tca is greater than the threshold
+!       Fill frac_out with 1's where tca is greater than the threshold
 
         do ibox=1,ncol
           if (tca(ibox,ilev).gt.threshold(ibox)) then
             frac_out(ibox,ilev)=1
           else
             frac_out(ibox,ilev)=0
-          end if               
+          end if
         end do
 
-!	   Code to partition boxes into startiform and convective parts
-!	   goes here
-        
+!    Code to partition boxes into stratiform and convective parts
+!    goes here
+
         do ibox=1,ncol
           if (threshold(ibox).le.cca(ibox,ilev)) then
-                                ! = 2 IF threshold le cca(ibox)
-            frac_out(ibox,ilev) = 2 
+                              ! = 2 IF threshold le cca(ibox)
+            frac_out(ibox,ilev) = 2
           else
-                                ! = the same IF NOT threshold le cca(ibox) 
+                              ! = the same IF NOT threshold le cca(ibox)
             frac_out(ibox,ilev) = frac_out(ibox,ilev)
           end if
         end do
-      end do                    !loop over nlev
+      end do                  !loop over nlev
 !
 !     ---------------------------------------------------!
 !     COMPUTE CLOUD OPTICAL DEPTH FOR EACH COLUMN and
 !     put into vector tau
- 
+
       !initialize tau to zero
       tau(:)=0.
 
-      !compute total cloud optical depth for each column     
+      !compute total cloud optical depth for each column
       do ilev=1,nlev
             !increment tau for each of the boxes
         do ibox=1,ncol
@@ -2267,7 +2313,7 @@ C**** seed and reset it afterwards
           else
             dtautmp(ibox)= 0.
           end if
-          
+
           tau(ibox)=tau(ibox)+dtautmp(ibox)
         end do
       end do
@@ -2284,21 +2330,21 @@ C**** seed and reset it afterwards
 !     fluxtop_clrsky and trans_layers_above_clrsky are the clear
 !             sky versions of these quantities.
       if (top_height .eq. 1) then
-        
-        !----------------------------------------------------------------------
-        !    
+
+        !---------------------------------------------------------------
+        !
         !             DO CLEAR SKY RADIANCE CALCULATION FIRST
         !
         !compute water vapor continuum emissivity
         !this treatment follows Schwarkzopf and Ramasamy
         !JGR 1999,vol 104, pages 9467-9499.
-        !the emissivity is calculated at a wavenumber of 955 cm-1, 
-        !or 10.47 microns 
+        !the emissivity is calculated at a wavenumber of 955 cm-1,
+        !or 10.47 microns
         do ilev=1,nlev
-                                !press and dpress are dyne/cm2 = Pascals *10
+                            !press and dpress are dyne/cm2 = Pascals *10
           press = pfull(ilev)*10.
           dpress = (phalf(ilev+1)-phalf(ilev))*10.
-                                !atmden = g/cm2 = kg/m2 / 10 
+                                !atmden = g/cm2 = kg/m2 / 10
           atmden = dpress*bygrav
           rvh20 = qv(ilev)*bymrat    !wtmair/wtmh20
           wk = rvh20*Navo*atmden/wtmair
@@ -2307,7 +2353,7 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
           rh20s = rvh20*rhoave
           rfrgn = rhoave-rh20s
           tmpexp = exp(-0.02d0*(at(ilev)-t0))
-          tauwv = wk*1d-20*( (0.0224697d0*rh20s*tmpexp) + 
+          tauwv = wk*1d-20*( (0.0224697d0*rh20s*tmpexp) +
      &         (3.41817d-7*rfrgn)         )*0.98d0
           dem_wv(ilev) = 1. - exp(-tauwv)
         end do
@@ -2319,23 +2365,23 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
         do ilev=1,nlev
             ! Black body emission at temperature of the layer
           bb(ilev)=1 / ( exp(pc1bylam/at(ilev)) - 1. )
-          
-                                ! increase TOA flux by flux emitted from layer
-                                ! times total transmittance in layers above
-          fluxtop_clrsky = fluxtop_clrsky 
-     &         + dem_wv(ilev) * bb(ilev) * trans_layers_above_clrsky 
-          
-                                ! update trans_layers_above with transmissivity
-                                ! from this layer for next time around loop
-          
+
+                          ! increase TOA flux by flux emitted from layer
+                          !    times total transmittance in layers above
+          fluxtop_clrsky = fluxtop_clrsky
+     &         + dem_wv(ilev) * bb(ilev) * trans_layers_above_clrsky
+
+                         ! update trans_layers_above with transmissivity
+                         !     from this layer for next time around loop
+
           trans_layers_above_clrsky=
      &         trans_layers_above_clrsky*(1.-dem_wv(ilev))
         end do                  !loop over level
-        
+
         !add in surface emission
         bbs=1/( exp(pc1bylam/skt) - 1. )
 
-        fluxtop_clrsky = fluxtop_clrsky + emsfc_lw * bbs 
+        fluxtop_clrsky = fluxtop_clrsky + emsfc_lw * bbs
      &       * trans_layers_above_clrsky
 !           END OF CLEAR SKY CALCULATION
 !
@@ -2347,21 +2393,21 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
           do ibox=1,ncol
                                 ! emissivity for point in this layer
             if (frac_out(ibox,ilev).eq.1) then
-              dem(ibox)= 1. - 
+              dem(ibox)= 1. -
      &             ( (1. - dem_wv(ilev)) * (1. -  dem_s(ilev)) )
             else if (frac_out(ibox,ilev).eq.2) then
-              dem(ibox)= 1. - 
+              dem(ibox)= 1. -
      &             ( (1. - dem_wv(ilev)) * (1. -  dem_c(ilev)) )
             else
               dem(ibox)=  dem_wv(ilev)
             end if
                 ! increase TOA flux by flux emitted from layer
-	        ! times total transmittance in layers above
-            fluxtop(ibox) = fluxtop(ibox) 
+         ! times total transmittance in layers above
+            fluxtop(ibox) = fluxtop(ibox)
      &           + dem(ibox) * bb(ilev)
-     &           * trans_layers_above(ibox) 
+     &           * trans_layers_above(ibox)
                 ! update trans_layers_above with transmissivity
-	        ! from this layer for next time around loop
+         ! from this layer for next time around loop
             trans_layers_above(ibox)=
      &           trans_layers_above(ibox)*(1.-dem(ibox))
 
@@ -2370,39 +2416,39 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
 
                                 !add in surface emission
         do ibox=1,ncol
-          fluxtop(ibox) = fluxtop(ibox) 
-     &         + emsfc_lw * bbs * trans_layers_above(ibox) 
+          fluxtop(ibox) = fluxtop(ibox)
+     &         + emsfc_lw * bbs * trans_layers_above(ibox)
         end do
 
         do ibox=1,ncol
             !now that you have the top of atmosphere radiance account
             !for ISCCP procedures to determine cloud top temperature
 
-            !account for partially transmitting cloud recompute flux 
+            !account for partially transmitting cloud recompute flux
             !ISCCP would see assuming a single layer cloud
             !note choice here of 2.13, as it is primarily ice
-            !clouds which have partial emissivity and need the 
+            !clouds which have partial emissivity and need the
             !adjustment performed in this section
             !
-            !Note that this is discussed on pages 85-87 of 
+            !Note that this is discussed on pages 85-87 of
             !the ISCCP D level documentation (Rossow et al. 1996)
-           
+
             !compute minimum brightness temperature and optical depth
-          btcmin = 1. /  ( exp(pc1bylam/(attrop-5.)) - 1. ) 
+          btcmin = 1. /  ( exp(pc1bylam/(attrop-5.)) - 1. )
           transmax = (fluxtop(ibox)-btcmin)/(fluxtop_clrsky-btcmin)
           taumin = -log(max(min(transmax,0.9999999d0),0.001d0))
-          
+
           if (transmax .gt. 0.001 .and. transmax .le. 0.9999999) then
             emcld(ibox) = 1. - exp(-tau(ibox)*byic)
-            fluxtop(ibox) = fluxtop(ibox) -   
+            fluxtop(ibox) = fluxtop(ibox) -
      &           ((1.-emcld(ibox))*fluxtop_clrsky)
             fluxtop(ibox)=max(1d-6,(fluxtop(ibox)/emcld(ibox)))
           end if
 
-          if (tau(ibox) .gt.  1d-7) then 
+          if (tau(ibox) .gt.  1d-7) then
                 !cloudy box
             tb(ibox)= pc1bylam/(log(1. + (1./fluxtop(ibox))))
-                
+
             if (tau(ibox) .lt. taumin) then
               tb(ibox) = attrop - 5.
             end if
@@ -2412,7 +2458,7 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
           end if
         enddo                   ! ibox
       end if
-!     
+!
 !     ---------------------------------------------------!
 !     DETERMINE CLOUD TOP PRESSURE
 !
@@ -2422,22 +2468,22 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
 !
       !compute cloud top pressure
       do ibox=1,ncol
-        
+
                !segregate according to optical thickness
         if (tau(ibox) .le. 1d-7) then
           ptop(ibox)=0.
-          levmatch(ibox)=0      
-        else 
-          if (top_height .eq. 1) then  
-                                !find level whose temperature
-                                !most closely matches brightness temperature
+          levmatch(ibox)=0
+        else
+          if (top_height .eq. 1) then
+                               ! find level whose temperature most
+                               ! closely matches brightness temperature
             nmatch=0
             do ilev=1,nlev-1
-              if ((at(ilev)   .ge. tb(ibox) .and. 
+              if ((at(ilev)   .ge. tb(ibox) .and.
      &             at(ilev+1) .lt. tb(ibox)) .or.
-     &             (at(ilev) .le. tb(ibox) .and. 
-     &             at(ilev+1) .gt. tb(ibox))) then 
-                
+     &             (at(ilev) .le. tb(ibox) .and.
+     &             at(ilev+1) .gt. tb(ibox))) then
+
                 nmatch=nmatch+1
                 if(abs(at(ilev)-tb(ibox)) .lt.
      &               abs(at(ilev+1)-tb(ibox))) then
@@ -2445,12 +2491,12 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
                 else
                   match(nmatch)=ilev+1
                 end if
-              end if                        
+              end if
             end do
-            
+
             if (nmatch .ge. 1) then
               ptop(ibox)=pfull(match(nmatch))
-              levmatch(ibox)=match(nmatch)   
+              levmatch(ibox)=match(nmatch)
             else
               if (tb(ibox) .lt. atmin) then
                 ptop(ibox)=ptrop
@@ -2459,27 +2505,27 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
               if (tb(ibox) .gt. atmax) then
                 ptop(ibox)=pfull(nlev)
                 levmatch(ibox)=nlev
-              end if                                
+              end if
             end if
-          else             
+          else
             ptop(ibox)=0.
             ilev=1
-            do while(ptop(ibox) .eq. 0. 
+            do while(ptop(ibox) .eq. 0.
      &           .and. ilev .lt. nlev+1)
               if (frac_out(ibox,ilev) .ne. 0) then
                 ptop(ibox)=pfull(ilev)
                 levmatch(ibox)=ilev
               end if
-              ilev=ilev+1              
+              ilev=ilev+1
             end do
-          end if                            
+          end if
         end if
       end do
-!     
+!
 !     ---------------------------------------------------!
 !     DETERMINE ISCCP CLOUD TYPE FREQUENCIES
 !
-!     Now that ptop and tau have been determined, 
+!     Now that ptop and tau have been determined,
 !     determine amount of each of the 49 ISCCP cloud
 !     types
 !
@@ -2492,7 +2538,7 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
       do ibox=1,ncol
             !convert ptop to millibars
         ptop(ibox)=ptop(ibox)*1d-2
-            
+
         if (tau(ibox) .gt. 1d-7 .and. ptop(ibox) .gt. 0.) then
             !reset itau, ipres
           itau = 0
@@ -2530,11 +2576,11 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
             ipres=6
           else if(ptop(ibox) .ge. 800.) then
             ipres=7
-          end if 
-          
+          end if
+
             !update frequencies
           if(ipres .gt. 0.and.itau .gt. 0) then
-            fq_isccp(itau,ipres)=fq_isccp(itau,ipres)+byncol !(1./dble(ncol))
+            fq_isccp(itau,ipres)=fq_isccp(itau,ipres)+byncol ! 1.d0/ncol
           end if
 
 C**** accumulate ptop/tauopt over columns for output
@@ -2550,24 +2596,24 @@ C**** accumulate ptop/tauopt over columns for output
         ctp = ctp/dble(nbox)
         tauopt=tauopt/dble(nbox)
       end if
-      CALL RINIT(SEED)   ! reset seed to original value
+cc    CALL RINIT(SEED)   ! reset seed to original value
 
-!     
+!
 !     ---------------------------------------------------!
 !     OPTIONAL PRINTOUT OF DATA TO CHECK PROGRAM
 !
       RETURN   ! this is too much information!
-      if (QCHECK) then 
+      if (QCHECK) then
         do ilev=1,nlev
           do ibox=1,ncol
             acc(ilev,ibox)=frac_out(ibox,ilev)*2
-            if (levmatch(ibox) .eq. ilev) 
+            if (levmatch(ibox) .eq. ilev)
      &           acc(ilev,ibox)=acc(ilev,ibox)+1
           end do
         end do
-        
+
         do ilev=1,nlev
-          write(6,'(i2,1X,8(f7.2,1X),50(a1))') 
+          write(6,'(i2,1X,8(f7.2,1X),50(a1))')
      &         ilev,pfull(ilev)/100.,at(ilev),
      &         cc(ilev)*100.0,dem_wv(ilev),dem_s(ilev),dtau_s(ilev)
      *         ,dem_c(ilev),dtau_c(ilev),(cchar(acc(ilev,ibox)+1),ibox=1
@@ -2582,7 +2628,7 @@ C**** accumulate ptop/tauopt over columns for output
         write (6,'(a)') 'ptop:'
         write (6,'(8f7.2)') (ptop(ibox),ibox=1,ncol)
         print*, 'ctp,tauopt,nbox =',ctp,tauopt,nbox
-      end if 
+      end if
       return
-      end 
-    
+      end
+
