@@ -1024,6 +1024,33 @@ C**** Find WMO Definition of Tropopause to Nearest L
 !@auth D. Nodorp/T. Reichler/C. Land
 !@+    GISS Modifications by Jean Lerner/Gavin Schmidt
 !@ver  1.0
+!@alg  WMO Tropopause Definition
+!@+
+!@+ From A Temperature Lapse Rate Definition of the Tropopause Based on
+!@+ Ozone, J. M. Roe and W. H. Jasperson, 1981
+!@+
+!@+ In the following discussion the lapse rate is defined as -dT/dz.
+!@+
+!@+ The main features of the WMO tropopause definition are as follows:
+!@+ * The first tropopause (i.e., the conventional tropopause) is
+!@+   defined as the lowest level at which the lapse rate decreases to 2
+!@+   K/km or less, and the average lapse rate from this level to any
+!@+   level within the next higher 2 km does not exceed 2 K/km.
+!@+ * If above the first tropopause the average lapse rate between any
+!@+   level and all higher levels within 1 km exceed 3 K/km, then a
+!@+   second tropopause is defined by the same criterion as under the
+!@+   statement above. This tropopause may be either within or above the
+!@+   1 km layer.
+!@+ * A level otherwise satisfying the definition of tropopause, but
+!@+   occuring at an altitude below that of the 500 mb level will not be
+!@+   designated a tropopause unless it is the only level satisfying the
+!@+   definition and the average lapse rate fails to exceed 3 K/km over
+!@+   at least 1 km in any higher layer.
+!@+ * (GISS failsafe) Some cases occur when the lapse rate never falls
+!@+   below 2 K/km. In such cases the failsafe level is that where the
+!@+   lapse rate first falls below 3 K/km. If this still doesn't work 
+!@+   (ever?), the level is set to the pressure level below 30mb.
+!@+ 
       USE MODEL_COM, only : klev=>lm
       USE CONSTANT, only : zkappa=>kapa,zzkap=>bykapa,grav,rgas
       implicit none
@@ -1032,26 +1059,30 @@ C**** Find WMO Definition of Tropopause to Nearest L
       real*8, intent(out) :: ptropo
       integer, intent(out) :: ltropp
       real*8, dimension(klev) :: zpmk, zpm, za, zb, ztm, zdtdz
-      real*8 zplimb, zplimt, zgwmo, zdeltaz, zptph, zp2km, zag, zbg,
-     *     zasum,zaquer, zfaktor,zptf
+!@param zgwmo min lapse rate (* -1) needed for trop. defn. (-K/km)
+!@param zgwmo2 GISS failsafe minimum lapse rate (* -1) (-K/km)
+!@param zdeltaz distance to check for lapse rate changes (km)
+!@param zfaktor factor for caluclating height from pressure (-rgas/grav)
+!@param zplimb min pressure at which to define tropopause (mb)
+      real*8, parameter :: zgwmo  = -2d-3, zgwmo2=-3d-3,
+     *     zdeltaz = 2000.0, zfaktor = -GRAV/RGAS, zplimb=500.
+      real*8 zplimb, zptph, zp2km, zag, zbg, zasum, zaquer, zptf
       integer iplimb,iplimt, jk, jj, kcount, ltset,l
       logical ldtdz
-
-c      zkappa = 0.286
-c      zzkap=1./zkappa
-c      zfaktor = (-1.)*g/rd  ! -9.81/287.0
-      zfaktor = -GRAV/RGAS              ! 9.81/287.0
-      zgwmo  = -0.002d0
-      zdeltaz = 2000.0
-      iplimb=4
-      iplimt=klev
 c****
 c****  2. Calculate the height of the tropopause
 c****  -----------------------------------------
-       ltset = -999
-       ptropo  = -999.0
-       zplimb=papm1(iplimb)
-       zplimt=papm1(iplimt)
+      ltset = -999
+      iplimb=1
+c**** set limits based on pressure
+      do jk=2,klev-1
+        if (papm1(jk-1).gt.600d0) then
+          iplimb=jk
+        else
+          if (papm1(jk).lt.30d0) exit
+        end if
+      end do
+      iplimt=jk
 c****
 c****  2.1 compute dt/dz
 c****  -----------------
@@ -1060,22 +1091,27 @@ c****     gamma  dt/dp = a * kappa + papm1(jx,jk)**(kappa-1.)
 
       do jk=iplimb+1,iplimt-1
         zpmk(jk)=0.5*(pk(jk-1)+pk(jk))
-
-        zpm(jk)=zpmk(jk)**zzkap      ! p mitte
+        
+        zpm(jk)=zpmk(jk)**zzkap ! p mitte
 
         za(jk)=(ptm1(jk-1)-ptm1(jk))/(pk(jk-1)-pk(jk))
         zb(jk) = ptm1(jk)-(za(jk)*pk(jk))
-
+          
         ztm(jk)=za(jk)*zpmk(jk)+zb(jk) ! T mitte
         zdtdz(jk)=zfaktor*zkappa*za(jk)*zpmk(jk)/ztm(jk)
       end do
-
 c****
 c****  2.2 First test: valid dt/dz ?
 c****  -----------------------------
 c****
       do 1000 jk=iplimb+1,iplimt-1
 
+c**** GISS failsafe test
+        if (zdtdz(jk).gt.zgwmo2.and.ltset.ne.1) then
+          ltropp=jk
+          ltset =1
+        end if
+c****
         if (zdtdz(jk).gt.zgwmo .and. ! dt/dz > -2K/km
      &       zpm(jk).le.zplimb) then ! zpm not too low
           ltropp = jk
@@ -1123,9 +1159,11 @@ c****
  2000 continue
 
       if (ltset.eq.-999) then
-        print*,"In tropwmo: ltropp not set"
-        print*,"Tropopause:",(l,ptm1(l),papm1(l),pk(l),zdtdz(l),zpm(l),l
-     *       =1,klev) 
+        ltropp=iplimt-1  ! default = last level below 30mb
+        print*,"In tropwmo ltropp not set, using default: ltropp ="
+     *       ,ltropp
+        write(6,'(12(I4,5F10.5,/))') (l,ptm1(l),papm1(l),pk(l),zdtdz(l)
+     *       ,zpm(l),l=iplimb+1,iplimt-1) 
       end if
       ptropo = papm1(ltropp)
 c****
