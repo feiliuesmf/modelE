@@ -1,4 +1,4 @@
- 
+#include "rundeck_opts.h" 
       MODULE AEROSOL_SOURCES
 !@sum repository for Koch aerosol sources, features, etc.
 !@auth Dorothy Koch
@@ -301,6 +301,9 @@ c Aerosol chemistry
       real*8 ppres,te,tt,mm,dmm,ohmc,r1,d1,r2,d2,ttno3,r3,d3,
      * ddno3,dddms,ddno3a,fmom,dtt
       real*8 rk4,ek4,r4,d4
+#ifdef TRACERS_HETCHEM
+     *       ,d41,d42,d43,d44
+#endif
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
      * r5,d5,dmssink
       real*8 bciage,ociage
@@ -318,6 +321,12 @@ C**** initialise source arrays
         tr3Dsource(:,:,l,1,n_SO4)=0. ! SO4 chem source
         tr3Dsource(:,:,l,1,n_H2O2_s)=0. ! H2O2 chem source
         tr3Dsource(:,:,l,2,n_H2O2_s)=0. ! H2O2 chem sink
+#ifdef TRACERS_HETCHEM
+       tr3Dsource(:,:,l,1,n_SO4_d1) =0. ! SO4 on dust
+       tr3Dsource(:,:,l,1,n_SO4_d2) =0. ! SO4 on dust
+       tr3Dsource(:,:,l,1,n_SO4_d3) =0. ! SO4 on dust
+       tr3Dsource(:,:,l,1,n_SO4_d4) =0. ! SO4 on dust
+#endif
         tr3Dsource(:,:,l,1,n_BCII)=0. ! BCII sink
         tr3Dsource(:,:,l,1,n_BCIA)=0. ! BCIA source
         tr3Dsource(:,:,l,1,n_OCII)=0. ! OCII sink
@@ -354,6 +363,10 @@ c need to scale TNO3, OH and PERJ using cosine of zenith angle
         CALL SCALERAD
       endif
 
+#ifdef TRACERS_HETCHEM
+c calculation of heterogeneous reaction rates: SO2 on dust 
+      CALL SULFDUST
+#endif
       dtt=dtsrc
 C**** THIS LOOP SHOULD BE PARALLELISED
       do 20 l=1,LM
@@ -475,8 +488,20 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 c     IF (I.EQ.30.AND.J.EQ.30.and.L.EQ.2) WRITE(6,*)'msulf',TE,DMM,
 c     *  PPRES,RK4,EK4,R4,D4,ohmc
           IF (d4.GE.1.) d4=0.99999d0
-          
-          tr3Dsource(i,j,l,4,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc
+#ifdef TRACERS_HETCHEM
+       d41 = exp(-rxts1(i,j,l)*dtsrc)     
+       d42 = exp(-rxts2(i,j,l)*dtsrc)     
+       d43 = exp(-rxts3(i,j,l)*dtsrc)     
+       d44 = exp(-rxts4(i,j,l)*dtsrc)     
+       tr3Dsource(i,j,l,4,n) = (-trm(i,j,l,n)*(1.d0-d41)/dtsrc)
+     .                       + ( -trm(i,j,l,n)*(1.d0-d4)/dtsrc)
+     .                       + ( -trm(i,j,l,n)*(1.d0-d42)/dtsrc)
+     .                       + ( -trm(i,j,l,n)*(1.d0-d43)/dtsrc)
+     .                       + ( -trm(i,j,l,n)*(1.d0-d44)/dtsrc)
+ 
+#else
+       tr3Dsource(i,j,l,4,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
+#endif         
           
 c diagnostics to save oxidant fields
           najl = jls_OHconk
@@ -484,6 +509,32 @@ c diagnostics to save oxidant fields
           najl = jls_HO2con
           tajls(j,l,najl) = tajls(j,l,najl)+dho2(i,j,l)
 
+#ifdef TRACERS_HETCHEM
+       case ('SO4_d1')
+c sulfate production from SO2 on mineral dust aerosol
+
+       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
+     *             tr_mm(n_so2)*(1.d0-d41)*trm(i,j,l,n_so2)/dtsrc
+
+       case ('SO4_d2')
+c sulfate production from SO2 on mineral dust aerosol
+
+       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
+     *             tr_mm(n_so2)*(1.d0-d42)*trm(i,j,l,n_so2)/dtsrc
+
+       case ('SO4_d3')
+c sulfate production from SO2 on mineral dust aerosol
+
+       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
+     *             tr_mm(n_so2)*(1.d0-d43)*trm(i,j,l,n_so2)/dtsrc
+
+       case ('SO4_d4')
+c sulfate production from SO2 on mineral dust aerosol
+
+       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
+     *             tr_mm(n_so2)*(1.d0-d44)*trm(i,j,l,n_so2)/dtsrc
+
+#endif
         case('SO4')
 C SO4 production
 

@@ -663,6 +663,45 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 
+#ifdef TRACERS_HETCHEM
+      case ('SO4_d1')
+      n_SO4_d1 = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 96.   !!!! WELCHE MASSE????? das ist sulfat atommasse.. nicht dust!!!
+          trpdens(n)=2.5d3   !kg/m3 this is sulfate value
+          trradius(n)=1.5d-6 !m
+          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+      case ('SO4_d2')
+      n_SO4_d2 = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 96.
+          trpdens(n)=2.65d3   !kg/m3 this is sulfate value
+          trradius(n)=2.5d-6 !m
+          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+      case ('SO4_d3')
+      n_SO4_d3 = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 96.
+          trpdens(n)=2.65d3   !kg/m3 this is sulfate value
+          trradius(n)=3.d-6 !m
+          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+      case ('SO4_d4')
+      n_SO4_d4 = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 96.
+          trpdens(n)=2.65d3   !kg/m3 this is sulfate value
+          trradius(n)=8.d-6 !m
+          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+#endif
+
       case ('BCII')  !Insoluble industrial BC
       n_BCII = n
           ntm_power(n) = -12
@@ -717,6 +756,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           trradius(n)=3.d-7 !m
           fq_aer(n)=0.8   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
+
       case ('Be7')
       n_Be7 = n
           ntm_power(n) = -23        ! power of ten for tracer
@@ -1787,6 +1827,80 @@ c gravitational settling of SO4
         jls_ltop(k) = LM
         jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+#ifdef TRACERS_HETCHEM
+        case ('SO4_d1')
+c gas phase source of SO4_d1
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'gas_phase_source_of'//trname(n)
+        lname_jls(k) = 'SO4_d1 gas phase source'
+        jls_ltop(k) = LM
+        jls_power(k) = 1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c gravitational settling of SO4_d1
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of SO4_d1'
+        jls_ltop(k) = LM
+        jls_power(k) = -3
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+        case ('SO4_d2')
+c gas phase source of SO4_d2
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'gas_phase_source_of'//trname(n)
+        lname_jls(k) = 'SO4_d2 gas phase source'
+        jls_ltop(k) = LM
+        jls_power(k) = 1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c gravitational settling of SO4_d2
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of SO4_d2'
+        jls_ltop(k) = LM
+        jls_power(k) = -3
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+        case ('SO4_d3')
+c gas phase source of SO4_d3
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'gas_phase_source_of'//trname(n)
+        lname_jls(k) = 'SO4_d3 gas phase source'
+        jls_ltop(k) = LM
+        jls_power(k) = 1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c gravitational settling of SO4_d3
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of SO4_d3'
+        jls_ltop(k) = LM
+        jls_power(k) = -3
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+        case ('SO4_d4')
+c gas phase source of SO4_d4
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'gas_phase_source_of'//trname(n)
+        lname_jls(k) = 'SO4_d4 gas phase source'
+        jls_ltop(k) = LM
+        jls_power(k) = 1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c gravitational settling of SO4_d4
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of SO4_d4'
+        jls_ltop(k) = LM
+        jls_power(k) = -3
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif
 
         case ('Be7')
 c cosmogenic source from file
@@ -3361,6 +3475,112 @@ c SO4 longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
+#ifdef TRACERS_HETCHEM
+      case ('SO4_d1')
+c chemical production of SO4 from SO2 on dust
+        k = k + 1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO4d1 Chemical source'
+        sname_ijts(k) = 'SO4d1_Chemical_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c SO4 dry dep
+        k = k + 1
+        ijts_source(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO4d1 Dry Dep'
+        sname_ijts(k) = 'SO4d1_Dry_Dep'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c SO4 wet dep
+        k = k + 1
+        ijts_source(3,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO4d1 Wet Dep'
+        sname_ijts(k) = 'SO4d1_Wet_Dep'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c SO4 settling
+        k = k + 1
+        ijts_source(4,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Gravitational settling of '//trname(n)
+        sname_ijts(k) = 'Grav_Settle_of_'//trname(n)
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      case ('SO4_d2')
+c chemical production of SO4 from SO2 on dust
+        k = k + 1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO4d2 Chemical source'
+        sname_ijts(k) = 'SO4d2_Chemical_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c SO4 dry dep
+        k = k + 1
+        ijts_source(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO4d2 Dry Dep'
+        sname_ijts(k) = 'SO4d2_Dry_Dep'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      case ('SO4_d3')
+c chemical production of SO4 from SO2 on dust
+        k = k + 1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO4d3 Chemical source'
+        sname_ijts(k) = 'SO4d3_Chemical_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c SO4 dry dep
+        k = k + 1
+        ijts_source(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO4d3 Dry Dep'
+        sname_ijts(k) = 'SO4d3_Dry_Dep'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      case ('SO4_d4')
+c chemical production of SO4 from SO2 on dust
+        k = k + 1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO4d4 Chemical source'
+        sname_ijts(k) = 'SO4d4_Chemical_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c SO4 dry dep
+        k = k + 1
+        ijts_source(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO4d4 Dry Dep'
+        sname_ijts(k) = 'SO4d4_Dry_Dep'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
       case ('H2O2_s')
 c put in production of H2O2 from gas phase
         k = k + 1
@@ -4357,6 +4577,115 @@ C**** set some defaults
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
+
+#ifdef TRACERS_HETCHEM
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('SO4_d1')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_grav(n) = 14
+      qcon(itcon_grav(n)) = .true.; conpts(1) = 'SETTLING'
+      qsum(itcon_grav(n)) = .true.
+      itcon_mc(n) =15
+      qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =16
+      qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(7) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+
+
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('SO4_d2')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_grav(n) = 14
+      qcon(itcon_grav(n)) = .true.; conpts(1) = 'SETTLING'
+      qsum(itcon_grav(n)) = .true.
+      itcon_mc(n) =15
+      qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =16
+      qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(7) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('SO4_d3')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_grav(n) = 14
+      qcon(itcon_grav(n)) = .true.; conpts(1) = 'SETTLING'
+      qsum(itcon_grav(n)) = .true.
+      itcon_mc(n) =15
+      qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =16
+      qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(7) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('SO4_d4')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_grav(n) = 14
+      qcon(itcon_grav(n)) = .true.; conpts(1) = 'SETTLING'
+      qsum(itcon_grav(n)) = .true.
+      itcon_mc(n) =15
+      qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =16
+      qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(7) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+#endif
+
+
       case ('OCB')
       itcon_surf(1,N) = 13
       qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Biomass src'
@@ -4377,6 +4706,7 @@ C**** set some defaults
         qsum(itcon_dd(n)) = .false.
       end if
 #endif
+
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
@@ -5071,6 +5401,24 @@ C         AM=kg/m2, and DXYP=m2:
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
+#ifdef TRACERS_HETCHEM
+        case('SO4_d1')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+        case('SO4_d2')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+        case('SO4_d3')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+        case('SO4_d4')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+#endif
 
         case('BCII')
           do l=1,lm; do j=J_0,J_1; do i=1,im
@@ -5827,6 +6175,16 @@ C****
        call apply_tracer_3Dsource(5,n_SO2) ! SO2 het chem sink
        call apply_tracer_3Dsource(2,n_SO4) ! SO4 het chem source
        call apply_tracer_3Dsource(3,n_H2O2_s) ! H2O2 het chem sink
+
+#ifdef TRACERS_HETCHEM
+       call apply_tracer_3Dsource(1,n_SO4_d1) ! SO4 chem prod on dust
+       call apply_tracer_3Dsource(2,n_SO4_d1) ! SO4 Dry Dep
+       call apply_tracer_3Dsource(3,n_SO4_d1) ! SO4 Wet Dep
+       call apply_tracer_3Dsource(4,n_SO4_d1) ! SO4 Grav Settling
+       call apply_tracer_3Dsource(1,n_SO4_d2) ! SO4 chem prod on dust
+       call apply_tracer_3Dsource(1,n_SO4_d3) ! SO4 chem prod on dust
+       call apply_tracer_3Dsource(1,n_SO4_d4) ! SO4 chem prod on dust
+#endif
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
