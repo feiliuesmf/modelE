@@ -1435,24 +1435,34 @@ C****
 C****
 C**** UPDATE THE TEMPERATURES BY RADIATION
 C****
-  800 DO 820 J=1,JM
-      IMAX=IMAXJ(J)
-      DO 820 LR=1,3
-      DO 820 I=1,IMAX
-  820 RQT(I,J,LR)=RQT(I,J,LR)+(SRHRS(I,J,LR)*COSZ2(I,J)
-     *  +TRHRS(I,J,LR))*COE(LR+LM)
-  840 DO 860 J=1,JM
-      IMAX=IMAXJ(J)
-      DO 860 L=1,LS1-1
-      DO 860 I=1,IMAX
-  860 T(I,J,L)=T(I,J,L)+(SRHR(I,J,L+1)*COSZ1(I,J)+TRHR(I,J,L+1))
-     *  *COE(L)/(P(I,J)*PK(L,I,J))
-      DO 870 J=1,JM
-      IMAX=IMAXJ(J)
-      DO 870 L=LS1,LM
-      DO 870 I=1,IMAX
-  870 T(I,J,L)=T(I,J,L)+(SRHR(I,J,L+1)*COSZ1(I,J)+TRHR(I,J,L+1))
-     *  *COE(L)/((PSF-PTOP)*PK(L,I,J))
+      DO LR=1,3
+         DO J=1,JM
+            IMAX=IMAXJ(J)
+            DO I=1,IMAX
+               RQT(I,J,LR)=RQT(I,J,LR)+(SRHRS(I,J,LR)*COSZ2(I,J)
+     *              +TRHRS(I,J,LR))*COE(LR+LM)
+            END DO
+         END DO
+      END DO
+  840 DO L=1,LS1-1
+         DO J=1,JM
+            IMAX=IMAXJ(J)
+            DO I=1,IMAX
+               T(I,J,L)=T(I,J,L)+(SRHR(I,J,L+1)*COSZ1(I,J)+TRHR(I,J,L+1)
+     *              )*COE(L)/(P(I,J)*PK(L,I,J))
+            END DO
+         END DO
+      END DO
+      DO L=LS1,LM
+         DO J=1,JM
+            IMAX=IMAXJ(J)
+            DO I=1,IMAX
+               T(I,J,L)=T(I,J,L)+(SRHR(I,J,L+1)*COSZ1(I,J)+TRHR(I,J,L+1)
+     *              )*COE(L)/((PSF-PTOP)*PK(L,I,J))
+            END DO
+         END DO
+      END DO
+
       RETURN
       END
       SUBROUTINE GROUND
