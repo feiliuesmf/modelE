@@ -1472,7 +1472,7 @@ C****
 !@ver  1.0
       USE MODEL_COM, only : im,jm,fland,fearth,fim
       USE GEOM, only : imaxj,bydxyp
-      USE LAKES_COM, only : mwl
+      USE LAKES_COM, only : mwl,flake
       IMPLICIT NONE
       REAL*8, DIMENSION(JM) :: LKM
       INTEGER :: I,J
@@ -1497,7 +1497,7 @@ C****
 !@ver  1.0
       USE MODEL_COM, only : im,jm,zatmo,fim,fland,fearth
       USE GEOM, only : imaxj,bydxyp
-      USE LAKES_COM, only : gml,mwl
+      USE LAKES_COM, only : gml,mwl,flake
       IMPLICIT NONE
       REAL*8, DIMENSION(JM) :: LKE
       INTEGER :: I,J
