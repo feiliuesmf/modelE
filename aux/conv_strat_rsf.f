@@ -23,6 +23,7 @@ C**** must be compiled after the model
       USE SEAICE, only : ace1i,xsi,ac2oim,ssi0
       USE LANDICE_COM, only : tlandi,snowli
       USE LAKES_COM, only : flake
+      USE FILEMANAGER
       IMPLICIT NONE
       CHARACTER infile*60, outfile*60               ,clabel*156
       INTEGER IARGC,iu_AIC,I,J,L,N,ioerr,iu_TOPO    ,jc(100)
@@ -41,8 +42,9 @@ C**** must be compiled after the model
       CALL GETARG(1,infile)
       CALL GETARG(2,outfile)
 
-      iu_AIC=9
-      OPEN(iu_AIC,FILE=trim(infile),FORM="UNFORMATTED",STATUS="OLD")
+c??   iu_AIC=9
+c??  OPEN(iu_AIC,FILE=trim(infile),FORM="UNFORMATTED",STATUS="OLD")
+      call openunit (trim(infile), iu_AIC, .true. , .true. )
 
       READ (iu_AIC,ERR=800,END=810) TAUX,JC,CLABEL,RC,KEYNR,
      *     U,V,T,P,Q,
@@ -69,7 +71,7 @@ C**** must be compiled after the model
      *     ,J),I=1,IM),J=1,JM),L=1,LM_REQ)
      *     ,(x,I=1,IM*JM*(2*lm+8)),AIRX,
      *    (((LMC(l,i,j),i=1,IM),J=1,JM),L=1,2)
-      CLOSE (iu_AIC)
+      call closeunit (iu_AIC)    !       CLOSE (iu_AIC)
 
       XLABEL=CLABEL(1:132)
       ItimeX=NINT(TAUX)
@@ -81,12 +83,13 @@ C**** must be compiled after the model
       print*,iyear1,ItimeX,xlabel
 
 C**** read in FLAKE/FOCEAN data
-      iu_TOPO=10
-      OPEN(iu_TOPO,FILE="/u/cmrun/Z72X46N.cor4",FORM="UNFORMATTED"
-     *     ,STATUS="OLD")
+c??   iu_TOPO=10
+c??   OPEN(iu_TOPO,FILE="/u/cmrun/Z72X46N.cor4",FORM="UNFORMATTED"
+c??  *     ,STATUS="OLD")
+      call openunit ("/u/cmrun/Z72X46N.cor4", iu_TOPO, .true., .true.)
       CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! ocean fraction
       CALL READT (iu_TOPO,0,FLAKE,IM*JM,FLAKE,1) ! Lake fraction
-      close (iu_TOPO)
+      call closeunit (iu_TOPO)   !   close (iu_TOPO)
 
 C**** convert sea ice temperatures into enthalpy
 C**** and initialize sea ice salinity to 3.2 ppt (0 in snow & lake ice).
@@ -144,8 +147,9 @@ C**** initialize TSFREZ to defaults
       TSFREZ(:,:,3:4)=-999.
 
 
-      OPEN(iu_AIC,FILE=trim(outfile),
-     *     FORM="UNFORMATTED",STATUS="UNKNOWN")
+c??   OPEN(iu_AIC,FILE=trim(outfile),
+c??  *     FORM="UNFORMATTED",STATUS="UNKNOWN")
+      call openunit (trim(outfile),iu_AIC, .true.,.false.)
 
       call io_rsf(iu_AIC,ItimeX,iowrite_mon,ioerr)
       close (iu_AIC)
