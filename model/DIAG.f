@@ -1537,7 +1537,7 @@ C****
      &     GHT=(/500.,2600.,5100.,8500.,15400.,30000./)
       REAL*8 :: PIJ50N,PL,PLE,PLM1,SLOPE
       INTEGER I,IDACC9,JLK,K,KQ,L,LX,MNOW,N
-      INTEGER, SAVE, DIMENSION(KM) :: JLKDEX
+      INTEGER, SAVE, DIMENSION(3) :: LDEX
       INTEGER, SAVE :: L300,L50,L850
       INTEGER, SAVE :: IFIRST = 1
 
@@ -1560,25 +1560,21 @@ C****
         WRITE (6,889) L850,L300,L50
  889    FORMAT (' LEVELS FOR WIND WAVE POWER DIAG  L850=',I3,
      *       ' L300=',I3,' L50=',I3)
-        JLKDEX(1)=JEQ+JM*(L850-1)
-        JLKDEX(2)=JEQ+JM*(L850-1+LM)
-        JLKDEX(3)=JEQ+JM*(L300-1)
-        JLKDEX(4)=JEQ+JM*(L300-1+LM)
-        JLKDEX(5)=JEQ+JM*(L50-1)
-        JLKDEX(6)=JEQ+JM*(L50-1+LM)
+        LDEX(1)=L850
+        LDEX(2)=L300
+        LDEX(3)=L50
       END IF
 
-      DO KQ=1,5,2
-        JLK=JLKDEX(KQ)
-        CALL FFT (U(1,JLK,1),AN,BN)
+      DO KQ=1,3
+        CALL FFT (U(1,JEQ,LDEX(KQ)),AN,BN)
         DO N=1,NMAX
-          WAVE(1,IDACC9,N,KQ)=AN(N)
-          WAVE(2,IDACC9,N,KQ)=BN(N)
+          WAVE(1,IDACC9,N,2*KQ-1)=AN(N)
+          WAVE(2,IDACC9,N,2*KQ-1)=BN(N)
         ENDDO
-        CALL FFT (V(1,JLK,1),AN,BN)
+        CALL FFT (V(1,JEQ,LDEX(KQ)),AN,BN)
         DO N=1,NMAX
-          WAVE(1,IDACC9,N,KQ+1)=AN(N)
-          WAVE(2,IDACC9,N,KQ+1)=BN(N)
+          WAVE(1,IDACC9,N,2*KQ)=AN(N)
+          WAVE(2,IDACC9,N,2*KQ)=BN(N)
         ENDDO
       ENDDO
       DO 150 I=1,IM

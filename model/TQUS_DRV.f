@@ -727,20 +727,21 @@ C
       REAL*8, dimension(lm) :: ml
       REAL*8, dimension(0:lm) :: c,cm
       integer, dimension(im*jm) :: nstepz
-      integer :: nstep,ns,l,i,ICKERR
+      integer :: nstep,ns,l,i,j,ICKERR
       REAL*8 :: courmax,byn
 
 C**** decide how many timesteps to take
       ICKERR=0
-C$OMP  PARALLEL DO PRIVATE (I,L,NS,NSTEP,COURMAX,BYN,C,CM,ML)
-      DO I=1,IM*JM
+C$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,C,CM,ML)
+      DO J=1,JM
+      DO I=1,IM
       nstep=0
       courmax = 2.
       do while(courmax.gt.1.)
         nstep = nstep+1   !(1+int(courmax))
         byn = 1./nstep
-        cm(1:lm) = mw(i,1,1:lm)*byn
-        ml(:)  = m(i,1,:)
+        cm(1:lm) = mw(i,j,1:lm)*byn
+        ml(:)  = m(i,j,:)
         CM(LM)= 0. ! VERY IMPORTANT TO SET THIS TO ZERO
         CM( 0)= 0. ! VERY IMPORTANT TO SET THIS TO ZERO
         courmax = 0.
@@ -766,10 +767,11 @@ C$OMP  PARALLEL DO PRIVATE (I,L,NS,NSTEP,COURMAX,BYN,C,CM,ML)
         end if
       enddo      ! while(courmax.gt.1.)
 C**** Correct air mass
-      m(i,1,:) = ml(:)
-      NSTEPZ(I) = NSTEP
+      m(i,j,:) = ml(:)
+      NSTEPZ(I+JM*(J-1)) = NSTEP
 c     if(nstep.gt.1 .and. nTRACER.eq.1) write(6,'(a,2i7,f7.4)')
-c    *   'aadvqz: i,nstep,courmax=',i,nstep,courmax
+c    *   'aadvqz: i,j,nstep,courmax=',i,j,nstep,courmax
+      END DO
       END DO
 C$OMP  END PARALLEL DO
 C

@@ -189,9 +189,11 @@ C**** weighting functions for surface types
      *     (/NTYPE_OUT+1,NTYPE/) )
 !@var DERPOS character array that determines where derived arrays go
 !@var NDERN how many of the derived arrays go in
-      INTEGER, DIMENSION(2), PARAMETER ::  ! currently only two points
+!@var NDMAX max number of derived array place holders
+      INTEGER, PARAMETER :: NDMAX=2
+      INTEGER, DIMENSION(NDMAX), PARAMETER :: ! currently only two points
      *     NDERN = (/10, 1/)    ! 10 rad/alb diags and 1 cld diag
-      CHARACTER*20, DIMENSION(2), PARAMETER ::
+      CHARACTER*20, DIMENSION(NDMAX), PARAMETER ::
      *     DERPOS = (/'inc_sw','totcld'/)
 
       REAL*8 :: A1BYA2,A2BYA1,BYA1,BYIACC,FGLOB,GSUM,GSUM2,GWT
@@ -328,7 +330,8 @@ C**** select output format depending on field name
         WRITE (6,907) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
      *       (MLAT(J),J=JM,INC,-INC)
       END SELECT
-      IF (name_j(N)(3:len_trim(name_j(N))).EQ.DERPOS(NDER)) THEN
+      IF (NDER.le.NDMAX) THEN   ! needed to avoid out of bounds address
+      if (name_j(N)(3:len_trim(name_j(N))).EQ.DERPOS(NDER)) THEN
 C**** CALCULATE AND PRINT DERIVED RATIOS
       DO KA=KDER,KDER+NDERN(NDER)-1
         NN=INUM_J_O(KA)
@@ -386,6 +389,7 @@ C****
       KDER=KDER+NDERN(NDER)
       NDER=NDER+1
       END IF
+      END IF
       END DO
       WRITE (6,903) (NINT(LAT_DG(J,1)),J=JM,INC,-INC)
       WRITE (6,905)
@@ -428,6 +432,7 @@ C**** select output format based on field name
       CASE DEFAULT
         WRITE (6,909) STITLE_J(N),(MLAT(JR),JR=1,23)
       END SELECT
+      IF (NDER.le.NDMAX) THEN   ! needed to avoid out of bounds address
       IF (name_j(N)(3:len_trim(name_j(N))).EQ.DERPOS(NDER)) THEN
 C**** CALCULATE AND PRINT DERIVED RATIOS FOR REGIONAL STATISTICS
       DO KA=KDER,KDER+NDERN(NDER)-1
@@ -444,6 +449,7 @@ C**** differentiate normal ratios from albedo calculations
       END DO
       KDER=KDER+NDERN(NDER)
       NDER=NDER+1
+      END IF
       END IF
       END DO
       WRITE (6,905)
