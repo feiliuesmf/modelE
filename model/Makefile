@@ -134,7 +134,7 @@ ifneq ($(NETCDFHOME)blank,blank)
 OBJSA += 
 endif
 # extracting list of modules from from DEPENDFILE
-MODS = $(shell perl \
+MODS = $(shell [ -s $(DEPENDFILE) ] && perl \
 	-e 'while(<>){ push @a, /(\S+\.mod)\s*:/gi; } print join " ",@a;' \
 	$(DEPENDFILE) )
 endif
