@@ -314,6 +314,9 @@ ccc tracers output:
 !@var tr_evap flux of tracers to atm due to evaporation
 !@var tr_evap flux of tracers due to runoff
       real*8, public :: atr_evap(ntgm),atr_rnff(ntgm),atr_g(ntgm)
+#ifdef TRACERS_SPECIAL_O18
+      character*8, public :: tr_name(ntgm)
+#endif
 #endif
 
 ccc the data below this line is not in GHYTPC yet !
@@ -2562,11 +2565,14 @@ ccc internal vars:
 !@var flux_snow_tot water flux between snow layers * fr_snow (m/s)
       real*8 flux_snow_tot(0:nlsn,2)
 !@var flux_dt amount of water moved in current context (m)
-      real*8 flux_dt, err
+      real*8 flux_dt, err, evap_tmp(ntgm)
       integer ibv,i
 !@var m = ntg number of ground tracers (to make notations shorter)
-      integer m
+      integer m,mc
       real*8, parameter :: EPSF = 1.d-20 ! 1.d-11
+#ifdef TRACERS_SPECIAL_O18
+      real*8, external :: fracvl
+#endif
 
 ccc for debug
       real*8 tr_w_o(ntgm,0:ngm,2), tr_wsn_o(ntgm,nlsn,2)
@@ -2598,11 +2604,11 @@ cddd      print *, 'tr_wsn 2 ', tr_wsn(1,:,2)
  !     tr_wsn(1,:,2) = wsn_for_tr(:,2) * fr_snow(2) * 1000.d0
 
 
-      tr_w_o(:m,:,:) = tr_w(:m,:,:)
-      tr_wsn_o(:m,:,:) = tr_wsn(:m,:,:)
+      tr_w_o(:m,:,i_bare:i_vege) = tr_w(:m,:,i_bare:i_vege)
+      tr_wsn_o(:m,:,i_bare:i_vege) = tr_wsn(:m,:,i_bare:i_vege)
 
 ccc set internal vars
-      do ibv=1,2
+      do ibv=i_bare,i_vege
         wi(0:n,ibv) = w(0:n,ibv)
         wsni(1:nlsn,ibv) = wsn_for_tr(1:nlsn,ibv) ! *fr_snow(ibv)
         flux_snow_tot(0:nlsn,ibv) = flux_snow(0:nlsn,ibv)*fr_snow(ibv)
@@ -2617,16 +2623,27 @@ ccc canopy
  !test
  !>     tr_wcc(:m,:) = 1000.d0
 
+      if ( process_vege ) then
       ! +precip
-      tr_w(:m,0,2) = tr_w(:m,0,2) + trpr(:m)*dts
-      wi(0,2) = wi(0,2) + pr*dts
-      if ( wi(0,2) > 0.d0 ) tr_wcc(:m,2) = tr_w(:m,0,2)/wi(0,2)
-      call check_wc(tr_wcc(1,2))
+        tr_w(:m,0,2) = tr_w(:m,0,2) + trpr(:m)*dts
+        wi(0,2) = wi(0,2) + pr*dts
+        if ( wi(0,2) > 0.d0 ) tr_wcc(:m,2) = tr_w(:m,0,2)/wi(0,2)
+        call check_wc(tr_wcc(1,2))
 
       ! +- evap
       if ( evapvw >= 0.d0 ) then  ! no dew
-        tr_evap(:m,2) = tr_evap(:m,2) + (fc(0)+pr)*tr_wcc(:m,2)
-        tr_w(:m,0,2) = tr_w(:m,0,2) - (fc(0)+pr)*tr_wcc(:m,2)*dts
+        evap_tmp(:m) = fc(0)+pr
+#ifdef TRACERS_SPECIAL_O18
+        if ( evap_tmp(1)*dts < wi(0,2) ) then
+        do mc=1,m
+ccc tr_name - loop over string comparisons deep inside the nested
+ccc loops...
+          evap_tmp(mc) = evap_tmp(mc) * fracvl( tp(0,2),tr_name(mc) )
+        enddo
+        endif
+#endif
+        tr_evap(:m,2) = tr_evap(:m,2) + evap_tmp(:m)*tr_wcc(:m,2)
+        tr_w(:m,0,2) = tr_w(:m,0,2) - evap_tmp(:m)*tr_wcc(:m,2)*dts
       else  ! dew adds tr_surf to canopy
         tr_evap(:m,2) = tr_evap(:m,2) + (fc(0)+pr)*tr_surf(:m)
         tr_w(:m,0,2) = tr_w(:m,0,2) - (fc(0)+pr)*tr_surf(:m)*dts
@@ -2636,12 +2653,12 @@ ccc canopy
       call check_wc(tr_wcc(1,2))
 
       ! -drip
-      tr_w(:m,0,2) = tr_w(:m,0,2) + fc(1)*tr_wcc(:m,2)*dts
+        tr_w(:m,0,2) = tr_w(:m,0,2) + fc(1)*tr_wcc(:m,2)*dts
+      endif
 
       ! trivial value for bare soil
       if ( pr > 0.d0 ) tr_wcc(:m,1) = trpr(:m)/pr
       call check_wc(tr_wcc(1,1))
-
 ccc end canopy
 
 ccc snow
@@ -2649,20 +2666,20 @@ ccc snow
   !>    tr_wsnc(:m,:,:) = 1000.d0 !!! was 0
 
       ! dew
-      if ( evapbs < 0.d0 ) then
+      if ( process_bare .and. evapbs < 0.d0 ) then
         flux_dt = - evapbs*fr_snow(1)*dts
         tr_evap(:m,1) = tr_evap(:m,1) - flux_dt/dts*tr_surf(:m)
         tr_wsn(:m,1,1) = tr_wsn(:m,1,1) + flux_dt*tr_surf(:m)
         wsni(1,1) = wsni(1,1) + flux_dt
       endif
-      if ( evapvs < 0.d0 ) then
+      if ( process_vege .and. evapvs < 0.d0 ) then
         flux_dt = - evapvs*fm*fr_snow(2)*dts
         tr_evap(:m,2) = tr_evap(:m,2) - flux_dt/dts*tr_surf(:m)
         tr_wsn(:m,1,2) = tr_wsn(:m,1,2) + flux_dt*tr_surf(:m)
         wsni(1,2) = wsni(1,2) + flux_dt
       endif
 
-      do ibv=1,2
+      do ibv=i_bare,i_vege
         ! init tr_wsnc
         do i=1,nlsn
           if ( wsni(i,ibv) > 0.d0 ) then
@@ -2757,14 +2774,14 @@ ccc soil layers
   !>    tr_wc(:m,1:n,1:2) = 1000.d0  !!! was 0
 
       ! add dew to bare soil
-      if ( evapb < 0.d0 ) then
+      if ( process_bare .and. evapb < 0.d0 ) then
         flux_dt = - evapb*(1.d0-fr_snow(1))*dts
         tr_evap(:m,1) = tr_evap(:m,1) - flux_dt/dts*tr_surf(:m)
         tr_w(:m,1,1) = tr_w(:m,1,1) + flux_dt*tr_surf(:m)
         wi(1,1) = wi(1,1) + flux_dt
       endif
 
-      do ibv=1,2
+      do ibv=i_bare,i_vege
         ! initial tr_wc
         do i=1,n
           if ( wi(i,ibv) > 0.d0 ) then
@@ -2809,14 +2826,23 @@ ccc soil layers
       enddo
 
 ccc evap from bare soil
-      if ( evapb >= 0.d0 ) then
-        flux_dt = evapb*(1.d0-fr_snow(1))*dts
-        tr_w(:m,1,1) = tr_w(:m,1,1) - tr_wc(:m,1,1)*flux_dt
-        tr_evap(:m,1) = tr_evap(:m,1) + tr_wc(:m,1,1)*flux_dt/dts
+      if ( process_bare .and. evapb >= 0.d0 ) then        
+        evap_tmp(:m) = evapb*(1.d0-fr_snow(1))
+#ifdef TRACERS_SPECIAL_O18
+        if ( evap_tmp(1)*dts < wi(1,1) ) then
+        do mc=1,m
+ccc tr_name - loop over string comparisons deep inside the nested
+ccc loops...
+          evap_tmp(mc) = evap_tmp(mc) * fracvl( tp(1,1),tr_name(mc) )
+        enddo
+        endif
+#endif
+        tr_w(:m,1,1) = tr_w(:m,1,1) - evap_tmp(:m)*tr_wc(:m,1,1)*dts
+        tr_evap(:m,1) = tr_evap(:m,1) + evap_tmp(:m)*tr_wc(:m,1,1)
       endif
 
 ccc runoff
-      do ibv=1,2
+      do ibv=i_bare,i_vege
         tr_rnff(:m,ibv) = tr_rnff(:m,ibv) + tr_wc(:m,1,ibv)*rnf(ibv)
         tr_w(:m,1,ibv) = tr_w(:m,1,ibv) - tr_wc(:m,1,ibv)*rnf(ibv)*dts
         do i=1,n
@@ -2830,11 +2856,13 @@ ccc runoff
 ccc !!! include surface runoff !!!
 
 ccc transpiration
-      do i=1,n
-        flux_dt = fd*(1.-fr_snow(2)*fm)*evapdl(i,2)*dts
-        tr_evap(:m,2) = tr_evap(:m,2) + tr_wc(:m,i,2)*flux_dt/dts
-        tr_w(:m,i,2) = tr_w(:m,i,2) - tr_wc(:m,i,2)*flux_dt
-      enddo
+      if ( process_vege ) then
+        do i=1,n
+          flux_dt = fd*(1.-fr_snow(2)*fm)*evapdl(i,2)*dts
+          tr_evap(:m,2) = tr_evap(:m,2) + tr_wc(:m,i,2)*flux_dt/dts
+          tr_w(:m,i,2) = tr_w(:m,i,2) - tr_wc(:m,i,2)*flux_dt
+        enddo
+      endif
 
 
 
@@ -2847,7 +2875,7 @@ cddd      print *, 'tr_wsn 2 ', tr_wsn(1,:,2)
 cddd      print *, 'evap ', tr_evap(1,:)*dts
 cddd      print *, 'runoff ', tr_rnff(1,:)*dts
 
-      do ibv=1,2
+      do ibv=i_bare,i_vege
         do i=1,n
           if ( tr_w(1,i,ibv) < 0.d0 ) then
 c            print *,'EEEEG ', tr_w(1,i,ibv), ibv, i

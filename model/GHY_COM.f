@@ -33,9 +33,7 @@ C containing its contents in a contiguous real*4 block
       COMMON/SDATA/ DZ_IJ,Q_IJ,QK_IJ,SL_IJ
 
 ccc the following arrays contain prognostic variables for the snow model
-ccc ( ISN can be eliminated later, since FR_SNOW contains similar info )
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:)     :: NSN_IJ
-      INTEGER, ALLOCATABLE, DIMENSION(:,:,:)     :: ISN_IJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: DZSN_IJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: WSN_IJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: HSN_IJ
@@ -118,7 +116,6 @@ C****
      *         STAT=IER)
 
       ALLOCATE(      NSN_IJ(     2,IM,J_0H:J_1H),
-     *               ISN_IJ(     2,IM,J_0H:J_1H),
      *              DZSN_IJ(NLSN,2,IM,J_0H:J_1H),
      *               WSN_IJ(NLSN,2,IM,J_0H:J_1H),
      *               HSN_IJ(NLSN,2,IM,J_0H:J_1H),
@@ -291,17 +288,17 @@ C**** Initialize to zero
 #endif
 
       write (MODULE_HEADER(lhead+1:80),'(a29,I1,a)') 'I dim(2,ijm):'//
-     *  'Nsn,Isn, R8 dim(',NLSN,',2,ijm):dz,w,ht, Fsn(2,ijm)'
+     *  'Nsn, R8 dim(',NLSN,',2,ijm):dz,w,ht, Fsn(2,ijm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ
+        WRITE (kunit,err=10) MODULE_HEADER,NSN_IJ,DZSN_IJ,WSN_IJ
      *       ,HSN_IJ,FR_SNOW_IJ
 #ifdef TRACERS_WATER
         WRITE (kunit,err=10) TRMODULE_HEADER,TR_WSN_IJ
 #endif
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ
+        READ (kunit,err=10) HEADER,NSN_IJ,DZSN_IJ,WSN_IJ
      *       ,HSN_IJ,FR_SNOW_IJ
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER

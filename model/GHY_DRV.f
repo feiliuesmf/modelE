@@ -59,6 +59,9 @@ c****
 #ifdef TRACERS_WATER
      &     ,tr_w,tr_wsn,trpr,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
 #endif
+#ifdef TRACERS_SPECIAL_O18
+     &     ,tr_name
+#endif
       use veg_drv, only: veg_save_cell
       use vegetation, only: update_veg_locals
 
@@ -101,7 +104,7 @@ c****
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
      *     ,runoe,erunoe,gtemp,precss
       use ghycom, only : gdeep,wbare,wvege,htbare,htvege,snowbv,
-     &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
+     &     nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
      *     canopy_temp_ij,snowe,tearth,wearth,aiearth,
      &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
 #ifdef TRACERS_WATER
@@ -221,6 +224,9 @@ ccc set i,j - independent stuff for tracers
             ntg = ntg + 1
             if ( ntg > ntgm ) call stop_model("ghy_drv: ntg > ntgm",255)
             ntixw(ntg) = n
+#ifdef TRACERS_SPECIAL_O18
+            tr_name(ntg) = trname(n)
+#endif
           endif
 #endif
         end if
