@@ -60,8 +60,8 @@ GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ! pick exactly one of the next 2 choices: ATURB or DRYCNV
-ATURB                             ! turbulence in whole atmosphere
-! DRYCNV                              ! drycnv
+ATURB                               ! turbulence in whole atmosphere
+! DRYCNV                            ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules

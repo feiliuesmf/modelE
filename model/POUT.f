@@ -178,7 +178,7 @@ C**** set dimensions
 !@ver  1.0
       USE GISSOUT
       IMPLICIT NONE
-      close(iu_jl)
+      call closeunit(iu_jl)
       return
       end subroutine close_jl
 

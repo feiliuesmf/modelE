@@ -752,6 +752,9 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
       write(6,*) '...and Drew Shindell tracers and chemistry'
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+      write(6,*) '...and Dorothy Koch aerosols'
+#endif
 #ifdef TRACERS_DRYDEP
       write(6,*) '...and tracer dry deposition'
 #endif
