@@ -1,6 +1,6 @@
 E001B.R GISS Model E                                 gas 06/00
 
-E001B: new modelE (based on B402A - coupled version)
+E001B: new modelE (v.1.3.1 - coupled version)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -54,6 +54,7 @@ RADN9=solar.lean99.uvflux
 RADNA=o3trend.1951-2050
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
+GHG=GHG.1850-2050.Oct2000
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
