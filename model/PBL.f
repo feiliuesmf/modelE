@@ -111,8 +111,9 @@ CCC !@var bgrid log-linear gridding parameter
 CCC      real*8 :: bgrid
 
 !@var smax,smin,cmax,cmin limits on drag coeffs.
+!@var emax limit on turbulent kinetic energy
       real*8, parameter :: smax=0.25d0,smin=0.005d0,cmax=smax*smax,
-     *     cmin=smin*smin
+     *     cmin=smin*smin,emax=1.d5
 
 !@param twoby3 2/3 constant
       real*8, parameter :: twoby3 = 2d0/3d0
@@ -562,8 +563,8 @@ c     To compute the drag coefficient,Stanton number and Dalton number
           dudz=(u(i+1)-u(i))/dzh(i)
           dvdz=(v(i+1)-v(i))/dzh(i)
           as2=dudz*dudz+dvdz*dvdz
-          lmax  =0.53d0*sqrt(2.*e(i)/(an2+teeny))
-          lmax2 =1.95d0*sqrt(2.*e(i)/(as2+teeny))
+          lmax  =0.53d0*sqrt(2.*e(i)/max(an2,teeny))
+          lmax2 =1.95d0*sqrt(2.*e(i)/max(as2,teeny))
           lmax=min(lmax,lmax2)
           if (lscale(i).gt.lmax) lscale(i)=lmax
         endif
@@ -1160,7 +1161,7 @@ c
       endif
       sub(n-1)=0.
       dia(n-1)=1.
-      rhs(n-1)=max(0.5*(B1*lscale(j))**2*as2/(gm+teeny),teeny)
+      rhs(n-1)=max(0.5*(B1*lscale(j))**2*as2/max(gm,teeny),teeny)
 
 c     sub(n-1)=-1.
 c     dia(n-1)=1.
@@ -1169,7 +1170,7 @@ c     rhs(n-1)=0.
       call TRIDIAG(sub,dia,sup,rhs,e,n-1)
 
       do j=1,n-1
-         if(e(j).lt.teeny) e(j)=teeny
+         e(j)=min(max(e(j),teeny),emax)
       end do
 
       Return
@@ -1723,8 +1724,8 @@ c       rhs1(i)=-coriol*(u(i)-ug)
           tmp=bb*bb-4.*aa*cc
           gm=(-bb-sqrt(tmp))/(2.*aa)
         endif
-        e(i)=0.5*(B1*lscale(i))**2*as2/(gm+teeny)
-        if(e(i).le. teeny)  e(i)=teeny
+        e(i)=0.5*(B1*lscale(i))**2*as2/max(gm,teeny)
+        e(i)=min(max(e(i),teeny),emax)
       end do
 
       return
@@ -2129,9 +2130,6 @@ c  set the wind magnitude to that given by similarity theory:
       implicit none
       real*8, parameter :: degree=1./radian
 
-      real*8, parameter :: betah=8./sigma
-      real*8, parameter :: betam=4.8d0
-
       integer, intent(in) :: n,itype,iter,jlat,ilong
       real*8,  intent(in) :: lscale(n-1),lmonin
 
@@ -2202,8 +2200,8 @@ c  set the wind magnitude to that given by similarity theory:
           phim = 1./((1.-gamamu*zhat(i)/lmonin)**0.25)
           phih = sigma/sqrt(1.-gamahu*zhat(i)/lmonin)
           else
-          phim = 1.+betam*zhat(i)/lmonin
-          phih = sigma*(1.+betah*zhat(i)/lmonin)
+          phim = 1.+gamams*zhat(i)/lmonin
+          phih = sigma*(1.+gamahs*zhat(i)/lmonin)
         endif
         dudzs=ustar*phim/(kappa*zhat(i))
         dtdzs=tstar*phih/(kappa*zhat(i))
