@@ -145,7 +145,8 @@ c     &  AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,
 c     &  AJK,AIJK,AIJL,AJLSP
 
 !@var TSFREZ freezing temperature diagnostics
-      DOUBLE PRECISION, DIMENSION(IM,JM,2) :: TSFREZ
+      integer, parameter :: ktsf=2
+      DOUBLE PRECISION, DIMENSION(IM,JM,KTSF) :: TSFREZ
 
 !@param KTD number of diurnal temperature diagnostics
       INTEGER, PARAMETER :: KTD=8
@@ -207,6 +208,68 @@ c     &  AJK,AIJK,AIJL,AJLSP
       CHARACTER*7 NAME_J(KAIJ)
 !@var IA_J IDACC indexes for zonal J diagnostics
       INTEGER IA_J(KAIJ)
+
+! beginning of section transplanted from ACCDEF module
+      integer, parameter :: niparm_max=100
+      character(len=20), dimension(niparm_max) :: iparm_name
+      integer, dimension(niparm_max) :: iparm
+      integer :: niparm=0
+      integer, parameter :: ndparm_max=100
+      character(len=20), dimension(ndparm_max) :: dparm_name
+      double precision, dimension(ndparm_max) :: dparm
+      integer :: ndparm=0
+
+      character(len=20), dimension(ktsf) :: tsf_name,tsf_units
+      character(len=80), dimension(ktsf) :: tsf_lname
+
+      character(len=20), dimension(ktd) :: tdn_name,tdn_units
+      character(len=80), dimension(ktd) :: tdn_lname
+
+      character(len=20), dimension(kaj) :: aj_name,aj_units
+      character(len=80), dimension(kaj) :: aj_lname
+      character(len=20), dimension(kaj) :: dj_name
+      integer, dimension(kaj) :: aj_ia
+
+      character(len=20), dimension(kapj) :: apj_name,apj_units
+      character(len=80), dimension(kapj) :: apj_lname
+
+      character(len=20), dimension(kaij) :: aij_name,aij_units
+      character(len=80), dimension(kaij) :: aij_lname
+      integer, dimension(kaij) :: aij_ia
+
+      character(len=20), dimension(kaijg) :: aijg_name,aijg_units
+      character(len=80), dimension(kaijg) :: aijg_lname
+
+      character(len=20), dimension(kajl) :: ajl_name,ajl_units
+      character(len=80), dimension(kajl) :: ajl_lname
+
+      character(len=20), dimension(kasjl) :: asjl_name,asjl_units
+      character(len=80), dimension(kasjl) :: asjl_lname
+
+      character(len=20), dimension(kajk) :: ajk_name,ajk_units
+      character(len=80), dimension(kajk) :: ajk_lname
+
+      character(len=20), dimension(kaijk) :: aijk_name,aijk_units
+      character(len=80), dimension(kaijk) :: aijk_lname
+
+      character(len=20), dimension(kaijl) :: aijl_name,aijl_units
+      character(len=80), dimension(kaijl) :: aijl_lname
+
+      character(len=20), dimension(kwp) :: wave_name,wave_units
+      character(len=80), dimension(kwp) :: wave_lname
+
+      character(len=20), dimension(kajlsp) :: ajlsp_name,ajlsp_units
+      character(len=80), dimension(kajlsp) :: ajlsp_lname
+
+      character(len=20), dimension(kcon) :: consrv_name,consrv_units
+      character(len=80), dimension(kcon) :: consrv_lname
+
+      character(len=20), dimension(kail) :: ail_name,ail_units
+      character(len=80), dimension(kail) :: ail_lname
+
+      character(len=8), dimension(ntype) :: stype_names=
+     &     (/ 'OCEAN   ','OCEANICE','EARTH   ',
+     &        'LANDICE ','LAKE    ','LAKEICE ' /)
 
       END MODULE DAGCOM
 

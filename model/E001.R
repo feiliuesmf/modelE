@@ -17,6 +17,7 @@ snowmodel                           ! snow model
 RE001                               ! setsur  rad.subr_incl._forcings
 DE001M12  FFT72  UTILDBL RAND~      ! diag,utilities
 POUT                                ! for post-processing
+DEFACC                              ! acc file definitions
 
 Data input files:
 AIC=DEC1958.rsfB394M12.modelE.2
