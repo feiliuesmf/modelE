@@ -72,7 +72,7 @@ R=00BG/B
 XCDLM=.00025,.000025
 KOCEAN=0
 ocn_cycl=0
-U00ice=.50   ! use same values as in corr. run with climatological ocean
+U00ice=.55   ! use same values as in corr. run with climatological ocean
 HRMAX=1000.  ! use same values as in corr. run with climatological ocean
 KSOLAR=1
 DT=450.,        ! from default: DTsrc=3600.,

@@ -70,7 +70,7 @@ R=00BG/B
 &&PARAMETERS
 XCDLM=.00025,.000025
 KOCEAN=1
-U00ice=.50   ! use same as preliminary run w/ prescribed ocean
+U00ice=.55   ! use same as preliminary run w/ prescribed ocean
 HRMAX=1000.  ! use same as preliminary run w/ prescribed ocean
 KSOLAR=1
 DT=450.         ! from default: DTsrc=3600.,
