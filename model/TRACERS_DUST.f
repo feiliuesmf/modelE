@@ -2,6 +2,8 @@
       SUBROUTINE tracers_dust
 !@sum soil dust sources and sinks
 !auth Reha Cakmur, Jan Perlwitz, Ina Tegen
+
+#ifdef TRACERS_DUST
       USE resolution,ONLY : Im,Jm
       USE tracers_dust_com,ONLY : dryhr,frclay,frsilt,vtrsh,hbaij
       USE filemanager,ONLY : openunit,closeunit
@@ -48,6 +50,7 @@ c      enddo
       CALL dust_grav
       CALL dust_wet
       CALL dust_turb
+#endif
 
       RETURN
       END SUBROUTINE tracers_dust
@@ -55,6 +58,8 @@ c      enddo
       SUBROUTINE dust_emission
 !@sum  dust source flux
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
+
+#ifdef TRACERS_DUST
       USE resolution, ONLY : Im,Jm
       USE model_com,ONLY : Dtsrc,fearth
       USE fluxes,ONLY : prec,evapor,trsrfflx
@@ -152,6 +157,7 @@ c        WRITE(*,*) 'naij,najl:',naij,najl
           tajls(j,1,najl)=tajls(j,1,najl)+SUM(trsrfflx(:,j,n1))*Dtsrc
         END DO
       END DO
+#endif
             
       RETURN
       END SUBROUTINE dust_emission
@@ -161,6 +167,7 @@ c        WRITE(*,*) 'naij,najl:',naij,najl
 !@sum  local dust source flux physics according to Ina's old cubic scheme
 !@auth Ina Tegen, Jan Perlwitz, Reha Cakmur
 
+#ifdef TRACERS_DUST
       USE tracer_com,ONLY : Ntm_dust
       USE tracers_dust_com,ONLY : Fracn,Uplfac
 
@@ -190,6 +197,7 @@ c     dsrcflx  dust source flux for Ntm_dust tracers [kg/s]
         END SELECT
 
       END DO
+#endif
 
       RETURN
       END SUBROUTINE loc_dsrcflx_cub_sah
@@ -218,6 +226,8 @@ c     dsrcflx  dust source flux for Ntm_dust tracers [kg/s]
       SUBROUTINE dust_wet
 !@sum  Computes dust wet deposition
 !@auth Reha Cakmur, Jan Perlwitz, Ina Tegen
+
+#ifdef TRACERS_DUST
       USE resolution,ONLY : Im,Jm,Lm
       USE model_com,ONLY : Dtsrc
       USE fluxes,ONLY : prec,trsrfflx,tr3Dsource
@@ -289,11 +299,15 @@ c**** Wet Deposition
           END DO
         END DO
       END DO
+#endif
 
+      RETURN
       END SUBROUTINE dust_wet
 
       SUBROUTINE dust_grav
 !@sum  Computes dust gravitational deposition
+
+#ifdef TRACERS_DUST
       USE CONSTANT,ONLY : visc_air,grav
       USE resolution,ONLY : Jm,Lm
       USE MODEL_COM,ONLY: Dtsrc
@@ -355,6 +369,7 @@ c        WRITE(*,*) 'n1,taijs(:,:,naij):',n1,taijs(:,:,naij)
         END DO
 c        WRITE(*,*) 'n1,tajls(:,:,najl):',n1,tajls(:,:,najl)
       END DO
+#endif
 
       RETURN
       END SUBROUTINE dust_grav
@@ -362,6 +377,8 @@ c        WRITE(*,*) 'n1,tajls(:,:,najl):',n1,tajls(:,:,najl)
       SUBROUTINE stoke_sahdust(stokevdt)
 !@sum  gravitational settling velocity for Sahara dust case
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
+
+#ifdef TRACERS_DUST
       USE constant,ONLY : Grav,Visc_air
       USE model_com,ONLY : Dtsrc
       USE tracer_com,ONLY : Ntm_dust,trpdens
@@ -377,6 +394,7 @@ c        WRITE(*,*) 'n1,tajls(:,:,najl):',n1,tajls(:,:,najl)
 c        stokevdt(n)=2D0*Grav*trpdens(n)*dradius(n)**2D0/(9D0*Visc_air)
       END DO
 c      WRITE(*,*) 'stokevdt:',stokevdt
+#endif
 
       RETURN
       END SUBROUTINE stoke_sahdust
@@ -384,11 +402,14 @@ c      WRITE(*,*) 'stokevdt:',stokevdt
 
       SUBROUTINE stoke_mindust8(stokevdt)
 !@sum  gravitational settling velocity for 8 minerals case
+
+#ifdef TRACERS_DUST
       USE tracer_com,ONLY : Ntm_dust
 
       IMPLICIT NONE
 
       REAL*8 :: stokevdt(Ntm_dust)
+#endif
 
       RETURN
       END SUBROUTINE stoke_mindust8
@@ -396,6 +417,8 @@ c      WRITE(*,*) 'stokevdt:',stokevdt
       SUBROUTINE dust_turb
 !@sum  Computes turbulent dust deposition
 c*****dry deposition (turbulent mixing) 1cm/s (Giorgi (86), JGR)
+
+#ifdef TRACERS_DUST
       USE resolution,ONLY : Jm
       USE MODEL_COM, only: dtsrc
       USE fluxes,ONLY : trsrfflx
@@ -424,6 +447,9 @@ c*****dry deposition (turbulent mixing) 1cm/s (Giorgi (86), JGR)
         END DO
         trsrfflx(:,:,n1)=0D0
       END DO
+#endif
 
       RETURN
       END SUBROUTINE dust_turb
+
+

@@ -2,6 +2,8 @@
       MODULE tracers_dust_com
 !@sum  dust tracer parameters and variables
 !@auth Reha Cakmur, Jan Perlwitz, Ina Tegen
+
+#ifdef TRACERS_DUST
       USE constant,ONLY : By6
       USE resolution,ONLY : Im,Jm,Lm
       USE tracer_com,ONLY : Ntm_dust
@@ -45,5 +47,6 @@
 !@var frsilt fraction of silt
 !@var vtrsh  threshold wind speed above which dust emission is allowed
       REAL*4 :: dryhr(im,jm),frclay(im,jm),frsilt(im,jm),vtrsh(im,jm)
+#endif
 
       END MODULE tracers_dust_com
