@@ -387,8 +387,9 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
 !@+            SPA
 !@auth Original development team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,ls1,psfmpt,dsig,bydsig,byim
+      USE MODEL_COM, only : im,imh,jm,lm,ls1,psfmpt,dsig,bydsig,byim
      &     ,zatmo,sige
+     &     ,do_polefix
       USE GEOM
       USE DYNAMICS, only : pit,sd,conv,pu,pv,sd_clouds,spa
       USE DOMAIN_DECOMP, only : grid, GET
@@ -401,9 +402,9 @@ C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
       REAL*8, INTENT(IN),    DIMENSION(IM,JM,LM) :: U,V
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: PIJL
       REAL*8, DIMENSION(IM) :: DUMMYS,DUMMYN
-      INTEGER I,J,L,IP1,IM1
+      INTEGER I,J,L,IP1,IM1,IPOLE
       REAL*8 PUS,PUN,PVS,PVN,PBS,PBN
-      REAL*8 WT,DXDSIG,DYDSIG,PVSA(LM),PVNA(LM),xx
+      REAL*8 WT,DXDSIG,DYDSIG,PVSA(LM),PVNA(LM),xx,twoby3
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -513,6 +514,25 @@ c     IF (HAVE_SOUTH_POLE) CONV(1,1,L)=-PVS
 c     IF (HAVE_NORTH_POLE) CONV(1,JM,L)=PVN
  2000 CONTINUE
 !$OMP  END PARALLEL DO
+
+      if(do_polefix.eq.1) then
+c To maintain consistency with subroutine ADVECV,
+c adjust pu at the pole if no corner fluxes are used there
+c in ADVECV.
+      do ipole=1,2
+        if(grid%have_south_pole .and. ipole.eq.1) then
+          j = J_0
+        else if(grid%have_north_pole .and. ipole.eq.2) then
+          j = J_1
+        else
+          cycle
+        endif
+        twoby3 = 2d0/3d0
+        do l=1,lm
+           pu(:,j,l) = pu(:,j,l)*twoby3
+        enddo
+      enddo
+      endif
 C****
 C**** END OF HORIZONTAL ADVECTION LAYER LOOP
 C****
@@ -717,6 +737,7 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
       USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,sige,ptop
      *     ,zatmo,sig,modd5k,bydsig
+     &     ,do_polefix
       USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp
       USE DYNAMICS, only : gz,pu,pit,phi,spa,dut,dvt
       USE DIAG, only : diagcd
@@ -737,7 +758,7 @@ C****
       REAL*8 PIJ,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,X
      *     ,BYDP
       REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDU,PHIDN,FACTOR
-      INTEGER I,J,L,IM1,IP1  !@var I,J,IP1,IM1,L loop variab.
+      INTEGER I,J,L,IM1,IP1,IPOLE  !@var I,J,IP1,IM1,L,IPOLE loop variab.
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -875,6 +896,21 @@ C
  3294 DUT(I,J,L)=DUT(I,J,L)+FACTOR*(PU(I,J,L)+PU(I,J-1,L))
  3300 CONTINUE
 !$OMP  END PARALLEL DO
+
+c temporary: correct for erroneous dxyv in 4x5 model with a polar half box
+      if(do_polefix.eq.1) then
+         do ipole=1,2
+            if(grid%have_south_pole .and. ipole.eq.1) then
+               j = J_0STG
+            else if(grid%have_north_pole .and. ipole.eq.2) then
+               j = J_1STG
+            else
+               cycle
+            endif
+            dut(:,j,:) = dut(:,j,:)*1.25
+            dvt(:,j,:) = dvt(:,j,:)*1.25
+         enddo
+      endif
 C
 C**** CALL DIAGNOSTICS
       IF(MRCH.GT.0) THEN
@@ -1157,6 +1193,7 @@ C
       USE CONSTANT, only : sha
       USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,t,ang_uv
      *  ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter
+     &  ,do_polefix
       USE GEOM, only : dxyn,dxys,idij,idjj,rapj,imaxj,kmaxj
       USE DYNAMICS, only : pdsig,pk
       USE DIAG, only : diagcd
@@ -1186,8 +1223,11 @@ C**********************************************************************
       REAL*8 ediff,angm,dpt
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG
+      logical :: have_north_pole, have_south_pole
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
-     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
+     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
+     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 C****
       USAVE=U ; VSAVE=V
       if (DT_XUfilter.gt.0.) then
@@ -1306,6 +1346,10 @@ C****   be re-thought for others.
 !$OMP  END PARALLEL DO
       END IF
 
+      if(do_polefix.eq.1) then
+         if(have_south_pole) call isotropuv(u,v,-1)
+         if(have_north_pole) call isotropuv(u,v,+1)
+      endif
 
 C**** Conserve angular momentum along latitudes
       CALL CHECKSUM(grid, DXYN, __LINE__, __FILE__)
@@ -1361,6 +1405,58 @@ C**** Add in dissipiated KE as heat locally
 
       RETURN
       END SUBROUTINE FLTRUV
+
+      subroutine isotropuv(u,v,pole)
+!@sum  isotropuv isotropizes the velocity field in the near-polar row(s)
+!@sum            by imposing a linear x-y variation across the pole
+!@auth M. Kelley
+!@ver  1.0
+      USE MODEL_COM, only : im,imh,jm,lm,fim
+      USE DOMAIN_DECOMP, only : GRID,GET
+      USE GEOM, only : cosi=>cosiv,sini=>siniv
+      implicit none
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
+     *  U, V
+      integer, intent(in) :: pole
+      real*8, dimension(im) :: ua,va
+      real*8 :: sumc2,sums2
+      integer :: i,j,l,hemi,J_0STG,J_1STG
+      CALL GET(grid, J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
+      if(pole.eq.-1) then
+         hemi = -1
+         j = J_0STG
+      else if(pole.eq.+1) then
+         hemi = +1
+         j = J_1STG
+      else
+         return
+      endif
+
+      sumc2 = imh ! sum(cosi(:)*cosi(:))
+      sums2 = imh ! sum(sini(:)*sini(:))
+
+      do l=1,lm
+c compute xy velocities
+      do i=1,im
+         ua(i) = cosi(i)*u(i,j,l)-hemi*sini(i)*v(i,j,l)
+         va(i) = cosi(i)*v(i,j,l)+hemi*sini(i)*u(i,j,l)
+      enddo
+c filter the xy velocities
+      ua(:) = sum(ua(:))/fim
+     &     + cosi(:)*sum(ua(:)*cosi(:))/sumc2
+     &     + sini(:)*sum(ua(:)*sini(:))/sums2
+      va(:) = sum(va(:))/fim
+     &     + cosi(:)*sum(va(:)*cosi(:))/sumc2
+     &     + sini(:)*sum(va(:)*sini(:))/sums2
+c convert xy velocities back to polar coordinates
+      do i=1,im
+         u(i,j,l) = cosi(i)*ua(i)+hemi*sini(i)*va(i)
+         v(i,j,l) = cosi(i)*va(i)-hemi*sini(i)*ua(i)
+      enddo
+      enddo ! l
+
+      return
+      end subroutine isotropuv
 
       SUBROUTINE SHAP1D (NORDER,X)
 !@sum  SHAP1D Smoothes in zonal direction use n-th order shapiro filter

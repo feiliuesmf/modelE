@@ -483,13 +483,14 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 !@+   sync_param( "B", Y ) reads parameter B into variable Y
 !@+   if "B" is not in the database, then Y is unchanged and its
 !@+   value is saved in the database as "B" (here sync = synchronize)
-      USE MODEL_COM, only : LM,NIPRNT,MFILTR,NFILTR,NRAD
+      USE MODEL_COM, only : JM,LM,NIPRNT,MFILTR,NFILTR,NRAD
      *     ,NDASF,NDA4,NDA5S,NDA5K,NDA5D,NDAA,Kvflxo,kradia
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND,ItimeI,PSFMPT,PSTRAT,SIG,SIGE,UOdrag
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
      $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,COUPLED_CHEM,dt
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
+     &     ,do_polefix
       USE PARAM
       implicit none
       INTEGER L,LCSDRAG
@@ -509,6 +510,7 @@ C**** Rundeck parameters:
       call sync_param( "PP_SDRAG", PP_SDRAG )
       call sync_param( "ANG_SDRAG", ANG_SDRAG )
       call sync_param( "Wc_Jdrag", Wc_Jdrag )
+      call sync_param( "do_polefix", do_polefix )
       call sync_param( "NDASF", NDASF )
       call sync_param( "NDA4", NDA4 ) !!
       call sync_param( "NDA5S", NDA5S ) !!
@@ -574,6 +576,12 @@ C**** Determine if FLTRUV is called.
              WRITE(6,*) "DT_YVfilter too small; reset to :",DT_YVfilter
          end if
       end if
+c Warn if polar fixes requested for a model not having a half polar box
+      if(do_polefix.eq.1 .and. jm.ne.46) then
+         do_polefix = 0
+         write(6,*) 'Polar fixes are currently applicable only to'//
+     &           'models having a half polar box; no fixes applied'
+      endif
       RETURN
 C****
       end subroutine init_Model

@@ -10,9 +10,11 @@
 !@sum  ADVECV Advects momentum (incl. coriolis) using mass fluxes
 !@auth Original development team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
+      USE MODEL_COM, only : im,imh,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
+     &     ,do_polefix
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH
       USE GEOM, only : fcor,dxyv,dxyn,dxys,dxv,ravpn,ravps
+     &     ,sini=>siniv,cosi=>cosiv
       USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt
       USE DIAG, only : diagcd
       IMPLICIT NONE
@@ -29,11 +31,16 @@
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S
       INTEGER,SAVE :: IFIRST = 1
       INTEGER I,J,IP1,IM1,L  !@var I,J,IP1,IM1,L  loop variables
-      REAL*8 VMASS,RVMASS,ALPH,PDT4,SDU,DT1,DT2,DT4,DT8,DT12,DT24
+      REAL*8 VMASS,RVMASS,ALPH,PDT4,DT1,DT2,DT4,DT8,DT12,DT24
      *     ,FLUX,FLUXU,FLUXV
 
       REAL*8   VMASS2(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      *         ASDU(IM,GRID%J_STRT_SKP:GRID%J_STOP_HALO,LM-1)
+c pole fix variables
+      integer :: hemi,jpo,jns,jv,jvs,jvn,jj,ipole
+      real*8 :: utmp,vtmp
+      real*8, dimension(im) :: dmt
+      real*8, dimension(im,2) :: usv,vsv
 C****
       J_0 =GRID%J_STRT
       J_1 =GRID%J_STOP
@@ -158,6 +165,102 @@ C**** CONTRIBUTION FROM THE SOUTHEAST-NORTHWEST MASS FLUX
   230 I=IP1
   300 CONTINUE
 !$OMP  END PARALLEL DO
+
+      if(do_polefix.eq.1) then
+c Horizontal advection for the polar row is performed upon
+c x-y momentum rather than spherical-coordinate momentum,
+c eliminating the need for the metric term (and for the latter
+c to be exactly consistent with the advection scheme).
+c Southwest-Northeast and Southeast-Northwest corner fluxes
+c are discarded since they produce erroneous tendencies at the pole
+c in models with a polar half-box.
+c Explicit cross-polar advection will be ignored until issues with
+c corner fluxes and spherical geometry can be resolved.
+      do ipole=1,2
+      if(grid%have_south_pole .and. ipole.eq.1) then
+         hemi = -1
+         jpo = J_0
+         jns = jpo + 1
+         jv = J_0S ! why not staggered grid
+         jvs = J_0S ! jvs is the southernmost velocity row
+         jvn = jvs + 1 ! jvs is the northernmost velocity row
+      else if(grid%have_north_pole .and. ipole.eq.2) then
+         hemi = +1
+         jpo = J_1
+         jns = jpo - 1
+         jv = J_1 ! why not staggered grid
+         jvs = jv - 1
+         jvn = jvs + 1
+      else
+         cycle
+      endif
+c loop over layers
+      do l=1,lm
+c
+c Copy u,v into temporary storage and transform u,v to x-y coordinates
+c
+      do j=jvs,jvn
+         jj = j-jvs+1
+         do i=1,im
+            usv(i,jj) = u(i,j,l)
+            vsv(i,jj) = v(i,j,l)
+            u(i,j,l) = cosi(i)*usv(i,jj)-hemi*sini(i)*vsv(i,jj)
+            v(i,j,l) = cosi(i)*vsv(i,jj)+hemi*sini(i)*usv(i,jj)
+         enddo
+      enddo
+c
+c Compute advective tendencies of xy momentum in the polar rows
+c
+      dmt(:) = 0.
+      dut(:,jv,l) = 0.
+      dvt(:,jv,l) = 0.
+c
+      i = im
+      do ip1=1,im
+C**** CONTRIBUTION FROM THE WEST-EAST MASS FLUX
+      FLUX=DT8*(PU(IP1,JPO,L)+PU(I,JPO,L)+PU(IP1,JNS,L)+PU(I,JNS,L))
+      FLUXU=FLUX*(U(IP1,JV,L)+U(I,JV,L))
+      DUT(IP1,JV,L)=DUT(IP1,JV,L)+FLUXU
+      DUT(I,JV,L)  =DUT(I,JV,L)  -FLUXU
+      FLUXV=FLUX*(V(IP1,JV,L)+V(I,JV,L))
+      DVT(IP1,JV,L)=DVT(IP1,JV,L)+FLUXV
+      DVT(I,JV,L)  =DVT(I,JV,L)  -FLUXV
+      DMT(IP1)=DMT(IP1)+FLUX+FLUX
+      DMT(I)  =DMT(I)  -FLUX-FLUX
+C**** CONTRIBUTION FROM THE SOUTH-NORTH MASS FLUX
+      FLUX=DT8*(PV(I,JVS,L)+PV(IP1,JVS,L)+PV(I,JVN,L)+PV(IP1,JVN,L))
+      FLUX=FLUX*HEMI
+      DUT(I,JV,L)=DUT(I,JV,L)+FLUX*(U(I,JVS,L)+U(I,JVN,L))
+      DVT(I,JV,L)=DVT(I,JV,L)+FLUX*(V(I,JVS,L)+V(I,JVN,L))
+      DMT(I)=DMT(I)+FLUX+FLUX
+      i = ip1
+      enddo ! i
+c
+c correct for the too-large dxyv in the polar row
+c and convert dut,dvt from xy to polar coordinates
+c
+      do i=1,im
+         dut(i,jv,l) = dut(i,jv,l) + 0.25*(dut(i,jv,l)-dmt(i)*u(i,jv,l))
+         dvt(i,jv,l) = dvt(i,jv,l) + 0.25*(dvt(i,jv,l)-dmt(i)*v(i,jv,l))
+         utmp = dut(i,jv,l)
+         vtmp = dvt(i,jv,l)
+         dut(i,jv,l) = cosi(i)*utmp+hemi*sini(i)*vtmp
+         dvt(i,jv,l) = cosi(i)*vtmp-hemi*sini(i)*utmp
+      enddo
+c
+c get the untransformed u,v back from storage space
+c
+      do j=jvs,jvn
+         jj = j-jvs+1
+         do i=1,im
+            u(i,j,l) = usv(i,jj)
+            v(i,j,l) = vsv(i,jj)
+         enddo
+      enddo
+      enddo ! loop over layers
+      enddo ! loop over poles
+      endif
+
 C****
 C**** VERTICAL ADVECTION OF MOMENTUM
 C****
@@ -267,6 +370,40 @@ C****     Set the Coriolis term to zero at the Poles:
         END DO
       END DO
 !$OMP  END PARALLEL DO
+
+      if(do_polefix.eq.1) then
+c apply the full coriolis force at the pole and ignore the metric term
+c which has already been included in advective form
+         do ipole=1,2
+            if(grid%have_south_pole .and. ipole.eq.1) then
+               jpo = J_0
+               jns = jpo + 1
+               j = J_0S!STG ! why not staggered grid index?
+            else if(grid%have_north_pole .and. ipole.eq.2) then
+               jpo = J_1
+               jns = jpo - 1
+               j = J_1!STG ! why not staggered grid index?
+            else
+               cycle
+            endif
+            do l=1,lm
+               dut(:,j,l) = 0.
+               dvt(:,j,l) = 0.
+               im1=im
+               do i=1,im
+                  pdt4=dt8*(p(i,jpo,l)+p(i,jns,l))
+                  if(l.ge.ls1) pdt4=dt4*psfmpt
+                  alph=pdt4*(2.*fcor(jpo) + fcor(jns))*dsig(l)
+                  dut(i  ,j,l)=dut(i  ,j,l)+alph*v(i  ,j,l)
+                  dut(im1,j,l)=dut(im1,j,l)+alph*v(im1,j,l)
+                  dvt(i  ,j,l)=dvt(i  ,j,l)-alph*u(i  ,j,l)
+                  dvt(im1,j,l)=dvt(im1,j,l)-alph*u(im1,j,l)
+                  im1=i
+               enddo
+            enddo
+         enddo
+      endif
+
 C**** CALL DIAGNOSTICS
          IF(MODD5K.LT.MRCH) CALL DIAG5D (5,MRCH,DUT,DVT)
          IF(MRCH.GT.0) CALL DIAGCD (2,U,V,DUT,DVT,DT1)
