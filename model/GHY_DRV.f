@@ -586,10 +586,10 @@ c****
 ccc accumulate tracer evaporation and runoff
       do nx=1,ntg
         n=ntixw(nx)
-        !trevapor(n,itype,i,j) = trevapor(n,itype,i,j) + atr_evap(nx)
-        trevapor(n,itype,i,j) = trevapor(n,itype,i,j) + aevap  !*rhow
-        !trunoe(n,i,j) = trunoe(n,i,j) + atr_rnff(nx)
-        trunoe(n,i,j) = trunoe(n,i,j) + (aruns+arunu)  !*rhow
+        trevapor(n,itype,i,j) = trevapor(n,itype,i,j) + atr_evap(nx)
+        !trevapor(n,itype,i,j) = trevapor(n,itype,i,j) + aevap  !*rhow
+        trunoe(n,i,j) = trunoe(n,i,j) + atr_rnff(nx)
+        !trunoe(n,i,j) = trunoe(n,i,j) + (aruns+arunu)  !*rhow
         gtracer(n,itype,i,j) = atr_g(nx)/dtsurf
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &       atr_evap(nx)/dtsurf *dxyp(j)*ptype
