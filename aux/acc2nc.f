@@ -21,7 +21,7 @@ c             /usr/local/netcdf-3.4/lib64/libnetcdf.a -o acc2nc
      &           k11,k12,k13,k14,k15,k16,k17,k18,k19   
       real ::
      &     aj_odd,areg_odd,apj_odd,ajl_odd,asjl_odd,aij_odd,
-     &     ail_odd,aijg_odd,energy_odd,consrv_odd,speca_odd,
+     &     ail_odd,energy_odd,consrv_odd,speca_odd,
      &     atpe_odd,adaily_odd,wave_odd,ajk_odd,aijk_odd,
      &     aijl_odd,ajlsp_odd,tsfrez_odd
 
@@ -50,7 +50,6 @@ C**** and the acc arrays no longer stored adjacent in a common block
       k05 = size(asjl)
       k06 = size(aij)
       k07 = size(ail)
-      k08 = size(aijg)
       k09 = size(energy)
       k10 = size(consrv)
       k11 = size(speca)
@@ -77,7 +76,6 @@ C**** and the acc arrays no longer stored adjacent in a common block
      &     (asjl(k,1,1)   ,k=1,k05/2) ,(asjl_odd   ,k=1,mod(k05,2)),
      &     (aij(k,1,1)    ,k=1,k06/2) ,(aij_odd    ,k=1,mod(k06,2)),
      &     (ail(k,1,1)    ,k=1,k07/2) ,(ail_odd    ,k=1,mod(k07,2)),
-     &     (aijg(k,1,1)   ,k=1,k08/2) ,(aijg_odd   ,k=1,mod(k08,2)),
      &     (energy(k,1)   ,k=1,k09/2) ,(energy_odd ,k=1,mod(k09,2)),
      &     (consrv(k,1)   ,k=1,k10/2) ,(consrv_odd ,k=1,mod(k10,2)),
      &     (speca(k,1,1)  ,k=1,k11/2) ,(speca_odd  ,k=1,mod(k11,2)),
@@ -99,7 +97,6 @@ C**** Convert ACC single to double precision
       call CNV428(asjl    ,asjl_odd    ,k05)
       call CNV428(aij     ,aij_odd     ,k06)
       call CNV428(ail     ,ail_odd     ,k07)
-      call CNV428(aijg    ,aijg_odd    ,k08)
       call CNV428(energy  ,energy_odd  ,k09)
       call CNV428(consrv  ,consrv_odd  ,k10)
       call CNV428(speca   ,speca_odd   ,k11)
