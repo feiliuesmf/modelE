@@ -1264,7 +1264,7 @@ c**** modifications needed for split of bare soils into 2 types
       real*8 trsoil_tot,wsoil_tot,fm
 #endif
 c****
-c$$$      REAL*8::TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,11*NGM+1)
+cgsfc      REAL*8::TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,11*NGM+1)
       REAL*8, Allocatable, DIMENSION(:,:,:) :: TEMP_LOCAL
 c**** contents of TEMP_LOCAL used for reading the following in a block:
 c****       1 -   ngm   dz(ngm)

@@ -147,12 +147,12 @@ c!!!                may be ice*max_fract_water ??
       real*8, optional :: tr_flux(0:TOTAL_NL), dt
       integer i
 
-c$$$      if( fract_cover_new .lt. MIN_FRACT_COVER ) then
-c$$$        print *, 'snow_redistr: fract_cover_new < MIN_FRACT_COVER'
-c$$$        print *, 'fract_cover_new = ', fract_cover_new
-c$$$        call stop_model(
-c$$$     &       'snow_redistr: fract_cover_new < MIN_FRACT_COVER',255)
-c$$$      endif
+cc      if( fract_cover_new .lt. MIN_FRACT_COVER ) then
+cc        print *, 'snow_redistr: fract_cover_new < MIN_FRACT_COVER'
+cc        print *, 'fract_cover_new = ', fract_cover_new
+cc        call stop_model(
+cc     &       'snow_redistr: fract_cover_new < MIN_FRACT_COVER',255)
+cc      endif
 
       if ( dz(1) == 0.d0 ) return  ! no snow - nothing to redistribute
 
@@ -304,10 +304,10 @@ ccc checking if the model conserves energy (part 2) (for debugging)
      &    call stop_model('snow_adv: water conservation error',255)
       end if
 
-c$$$    if( fr_type .lt. 1.d-6 .and. abs(total_energy) .gt. 1.d-6 ) then
-c$$$      print*, "total energy error",i_earth, j_earth,total_energy
-c$$$      call abort
-c$$$    endif
+cc    if( fr_type .lt. 1.d-6 .and. abs(total_energy) .gt. 1.d-6 ) then
+cc      print*, "total energy error",i_earth, j_earth,total_energy
+cc      call abort
+cc    endif
 
 ccc for tracers
       !!!tr_flux(0) = tr_flux(0) + pr - evaporation

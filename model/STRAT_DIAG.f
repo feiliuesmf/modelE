@@ -48,10 +48,10 @@ c     *                                                            AEP
 C**** ARRAYS CALCULATED HERE:
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                                        UV,UW
-c$$$      REAL*8, POINTER, DIMENSION(:,:) :: 
-c$$$C**** The following quantities are added into AEP(,,1..19)
-c$$$     *        FMY,FEY,FMZ,FEZ,FMYR,FEYR,FMZR,FEZR,COR,CORR,
-c$$$     *        FER1,ER21,ER22,VR,WR,RX,UI,VI,WI
+cgsfc      REAL*8, POINTER, DIMENSION(:,:) :: 
+cgsfcC**** The following quantities are added into AEP(,,1..19)
+cgsfc     *        FMY,FEY,FMZ,FEZ,FMYR,FEYR,FMZR,FEZR,COR,CORR,
+cgsfc     *        FER1,ER21,ER22,VR,WR,RX,UI,VI,WI
 C**** End of quantities added into AEP
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *        STB,TI,DUT,AX
@@ -61,7 +61,7 @@ C**** The following quantities are added into AEP(,,1..19)
 C**** (equivalenced to XEP)
 cBMP  COMMON /EPCOM1/ FMY, FEY,  FMZ, FEZ, FMYR, FEYR, FMZR, FEZR, COR,
 cBMP *     CORR, FER1, ER21, ER22, VR, WR, RX, UI, VI,  WI
-c$$$      REAL*8, TARGET :: XEP(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP)
+cgsfc      REAL*8, TARGET :: XEP(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP)
 cBMP EQUIVALENCE replaced by pointers      EQUIVALENCE (XEP,FMY)
 
       REAL*8 :: XEP(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP)
@@ -586,9 +586,9 @@ C**** this should be in an init_ep routine or something
 C**** ARRAYS CALCULATED HERE:
       REAL*8 ONES(JM+LM),PMO(LM),DP(LM)
       REAL*8 DXCOSV(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
-c$$$      REAL*8, POINTER, DIMENSION(:,:) :: 
-c$$$ /*    *   FMY,FEY,FMZ,FEZ,FMYR,FEYR,FMZR,FEZR,COR,CORR,FER1,ER21 */
-c$$$ /*    *  ,ER22,VR,WR,RX,UI,VI,WI,DUT,DUD */
+cgsfc      REAL*8, POINTER, DIMENSION(:,:) :: 
+cgsfc /*    *   FMY,FEY,FMZ,FEZ,FMYR,FEYR,FMZR,FEZR,COR,CORR,FER1,ER21 */
+cgsfc /*    *  ,ER22,VR,WR,RX,UI,VI,WI,DUT,DUD */
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *   DUDS,DUR,DMF,DEF,DMFR,DEFR
 CW   *  ,DMY,DMZ,DEY,DEZ,DMYR,DMZR,DEYR,DEZR

@@ -221,8 +221,8 @@ C**** Initialize to zero
      *       ,WEARTH_glob,AIEARTH_glob
      *       ,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij_glob,qg_ij_glob
       CASE (IOREAD:)            ! input from restart file
-c$$$        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
-c$$$     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
+cgsfc        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
+cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         READ (kunit,err=10) HEADER,SNOWE_glob,TEARTH_glob,WEARTH_glob
      &       ,AIEARTH_glob,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij_glob
      &       ,qg_ij_glob
@@ -310,7 +310,7 @@ c$$$     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       CASE (IOREAD:)            ! input from restart file
         READ(kunit,err=10) HEADER,wbare_glob,wvege_glob,htbare_glob,
      &                            htvege_glob,snowbv_glob
-c$$$        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
+cgsfc        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
         IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10

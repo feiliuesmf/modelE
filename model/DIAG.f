@@ -2701,7 +2701,7 @@ C**** CURRENT KINETIC ENERGY
                 KE_part(N,KSPHER+1,J)=KE_part(N,KSPHER+1,J)+
      &                                .5D0*X(N)*DSIG(L)
               ENDDO
-c$$$              IF(K.EQ.LM)KSPHER=KSPHER+1
+cgsfc              IF(K.EQ.LM)KSPHER=KSPHER+1
             ELSE
               DO N=1,NM
                 KE_part(N,KSPHER,J)=KE_part(N,KSPHER,J)+X(N)*DSIG(L)

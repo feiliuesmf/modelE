@@ -195,8 +195,8 @@ C**** WTJ: area weighting for JKMAP, JLMAP hemispheres
         WTJ(J,1,2)=1.
         WTJ(J,2,2)=2.*FIM*DXYV(J)/AREAG
       END DO
-c$$$      WTJ(JMHALF+1,1,2)=.5
-c$$$      WTJ(JMHALF+1,2,2)=WTJ(JMHALF+1,2,2)/2.
+cgsfc      WTJ(JMHALF+1,1,2)=.5
+cgsfc      WTJ(JMHALF+1,2,2)=WTJ(JMHALF+1,2,2)/2.
       WTJ(1,1,2)=0.
       WTJ(1,2,2)=0.
 C**** CALCULATE CORIOLIS PARAMETER

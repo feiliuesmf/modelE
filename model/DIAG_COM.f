@@ -34,7 +34,7 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@var TITREG,NAMREG title and names of regions for AREG diagnostics
       CHARACTER*4 TITREG*80,NAMREG(2,23)
 !@var JREH lat/lon array defining regions for AREG diagnostics
-c$$$      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: JREG
+cgsfc      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: JREG
       INTEGER, DIMENSION(IM,JM) :: JREG
 
 !@param KAPJ number of zonal pressure diagnostics

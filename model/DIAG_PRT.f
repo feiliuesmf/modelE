@@ -1304,7 +1304,7 @@ c Check the count
       REAL*8, DIMENSION(JM,LM,2) :: DSJK
       REAL*8, DIMENSION(2,LM,2) :: DSHEM
       REAL*8, DIMENSION(LM,2) :: DSGLOB
-c$$$      COMMON/WORK5/DSJK,DSHEM,DSGLOB
+cgsfc      COMMON/WORK5/DSJK,DSHEM,DSGLOB
 
 Cbmp - ADDED
       REAL*8, DIMENSION(JM,LM) :: DPHJK
@@ -4268,12 +4268,12 @@ C**** Collect the appropriate weight-arrays in WT_IJ
       do J=1,JM
       do i=1,im
         wt_ij(i,j,1) = 1.
-c$$$        wt_ij(i,j,2) = focean(i,j)
-c$$$        wt_ij(i,j,3) = flake(i,j)
-c$$$        wt_ij(i,j,4) = flice(i,j)
-c$$$        wt_ij(i,j,5) = fearth(i,j)
-c$$$        wt_ij(i,j,6) = fearth(i,j)*(vdata(i,j,1)+vdata(i,j,10))
-c$$$        wt_ij(i,j,7) = fearth(i,j)*(1.-(vdata(i,j,1)+vdata(i,j,10)))
+cgsfc        wt_ij(i,j,2) = focean(i,j)
+cgsfc        wt_ij(i,j,3) = flake(i,j)
+cgsfc        wt_ij(i,j,4) = flice(i,j)
+cgsfc        wt_ij(i,j,5) = fearth(i,j)
+cgsfc        wt_ij(i,j,6) = fearth(i,j)*(vdata(i,j,1)+vdata(i,j,10))
+cgsfc        wt_ij(i,j,7) = fearth(i,j)*(1.-(vdata(i,j,1)+vdata(i,j,10)))
       end do
       end do
 C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)

@@ -42,7 +42,7 @@ C****  FD, FX and FDU1 original global dimensions (IM,0:JM+1) or (IM,JM+1)
       REAL*8 FDU1(IM,grid%J_STRT_HALO:grid%J_STOP+1)
 
       REAL*8, ALLOCATABLE, SAVE :: FDU(:,:,:)
-c$$$      REAL*8, ALLOCATABLE:: FLUXU2(:,:,:), FLUXV2(:,:,:)
+cgsfc      REAL*8, ALLOCATABLE:: FLUXU2(:,:,:), FLUXV2(:,:,:)
 
       INTEGER,SAVE :: IFIRST = 1
       INTEGER I,J,IP1,IM1,L,K  !@var I,J,IP1,IM1,L,K  loop variables
@@ -68,8 +68,8 @@ c$$$      REAL*8, ALLOCATABLE:: FLUXU2(:,:,:), FLUXV2(:,:,:)
      &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
 
-c$$$      allocate (FLUXU(IM, J_0H:J_1H, LM)) 
-c$$$      allocate (FLUXV(IM, J_0H:J_1H, LM)) 
+cgsfc      allocate (FLUXU(IM, J_0H:J_1H, LM)) 
+cgsfc      allocate (FLUXV(IM, J_0H:J_1H, LM)) 
 
 !****  ESMF special case:
 !****  FDU original global dimension:  (IM,JM+1,LM)
@@ -213,7 +213,7 @@ C**** CONSIDER P TO BE ZERO BEYOND THE POLES
 
 C     DUT=0.
 C     DVT=0.
-!$COMP  PARALLEL DO PRIVATE (I,J,L)
+!$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM
         If (HAVE_SOUTH_POLE) THEN
           DUT(:,1,L)=0.
@@ -228,7 +228,7 @@ C     DVT=0.
           END DO
         END DO
       END DO
-C$COMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C****
 C**** BEGINNING OF LAYER LOOP : FIND HORIZONTAL FLUXES
 C****
@@ -456,7 +456,7 @@ C 310 I=IP1
       call HALO_UPDATE( grid, SD, from=SOUTH )
 !$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM-1
-c$$$      DO J=2,JM
+cgsfc      DO J=2,JM
       DO J = J_0SG, J_1SG
          DO I=1,IM-1
             ASDU(I,J,L)=DT2*((SD(I,JJ(J-1),L)+

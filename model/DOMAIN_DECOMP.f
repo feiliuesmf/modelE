@@ -1901,9 +1901,9 @@ C****  convert from real*4 to real*8
      &       local_array, recvcount,  MPI_DOUBLE_PRECISION,
      &       root, MPI_COMM_WORLD, status)
       
-c$$$      if (deId == root) then
+cgsfc      if (deId == root) then
         deallocate(VAR, stat=status)
-c$$$      endif
+cgsfc      endif
       
       deallocate(sendcounts, displs, stat=status)
 #else
@@ -3726,27 +3726,27 @@ c)
         END IF
 
       END IF
-c$$$      IF(FILL(EAST) .OR. FILL(WEST)) THEN
-c$$$        LAST = SIZE(A,1)-1
-c$$$        LEN2 = 1
-c$$$        STR = SIZE(A,1)
-c$$$        LEN1 = SIZE(A)/STR
-c$$$        
-c$$$!       Fill EASTERN ghost region
-c$$$        
-c$$$        IF(FILL(EAST)) THEN
-c$$$          CALL COMM_BSR(layout, A(last+1,:  ),
-c$$$     &         A(2   ,:  ), NN_WEST, LEN1,LEN2,STR,STR)
-c$$$        ENDIF
-c$$$
-c$$$! Fill WESTERN ghost region
-c$$$
-c$$$        IF(FILL(WEST)) THEN
-c$$$          CALL COMM_BSR( layout, A(1   ,:  ), 
-c$$$     &         A(last ,:  ), NN_EAST, LEN1,LEN2,STR,STR)
-c$$$        ENDIF
-c$$$
-c$$$      ENDIF
+cgsfc      IF(FILL(EAST) .OR. FILL(WEST)) THEN
+cgsfc        LAST = SIZE(A,1)-1
+cgsfc        LEN2 = 1
+cgsfc        STR = SIZE(A,1)
+cgsfc        LEN1 = SIZE(A)/STR
+cgsfc        
+cgsfc!       Fill EASTERN ghost region
+cgsfc        
+cgsfc        IF(FILL(EAST)) THEN
+cgsfc          CALL COMM_BSR(layout, A(last+1,:  ),
+cgsfc     &         A(2   ,:  ), NN_WEST, LEN1,LEN2,STR,STR)
+cgsfc        ENDIF
+cgsfc
+cgsfc! Fill WESTERN ghost region
+cgsfc
+cgsfc        IF(FILL(WEST)) THEN
+cgsfc          CALL COMM_BSR( layout, A(1   ,:  ), 
+cgsfc     &         A(last ,:  ), NN_EAST, LEN1,LEN2,STR,STR)
+cgsfc        ENDIF
+cgsfc
+cgsfc      ENDIF
 
       RETURN
 
@@ -3853,27 +3853,27 @@ c$$$      ENDIF
         END IF
 
       END IF
-c$$$      IF(FILL(EAST) .OR. FILL(WEST)) THEN
-c$$$        LAST = SIZE(A,1)-1
-c$$$        LEN2 = 1
-c$$$        STR = SIZE(A,1)
-c$$$        LEN1 = SIZE(A)/STR
-c$$$        
-c$$$!       Fill EASTERN ghost region
-c$$$        
-c$$$        IF(FILL(EAST)) THEN
-c$$$          CALL COMM_BSR(layout, A(:,last+1,:  ),
-c$$$     &         A(:,2   ,:  ), NN_WEST, LEN1,LEN2,STR,STR)
-c$$$        ENDIF
-c$$$
-c$$$! Fill WESTERN ghost region
-c$$$
-c$$$        IF(FILL(WEST)) THEN
-c$$$          CALL COMM_BSR( layout, A(:,1   ,:  ), 
-c$$$     &         A(:, last ,:  ), NN_EAST, LEN1,LEN2,STR,STR)
-c$$$        ENDIF
-c$$$
-c$$$      ENDIF
+cgsfc      IF(FILL(EAST) .OR. FILL(WEST)) THEN
+cgsfc        LAST = SIZE(A,1)-1
+cgsfc        LEN2 = 1
+cgsfc        STR = SIZE(A,1)
+cgsfc        LEN1 = SIZE(A)/STR
+cgsfc        
+cgsfc!       Fill EASTERN ghost region
+cgsfc        
+cgsfc        IF(FILL(EAST)) THEN
+cgsfc          CALL COMM_BSR(layout, A(:,last+1,:  ),
+cgsfc     &         A(:,2   ,:  ), NN_WEST, LEN1,LEN2,STR,STR)
+cgsfc        ENDIF
+cgsfc
+cgsfc! Fill WESTERN ghost region
+cgsfc
+cgsfc        IF(FILL(WEST)) THEN
+cgsfc          CALL COMM_BSR( layout, A(:,1   ,:  ), 
+cgsfc     &         A(:, last ,:  ), NN_EAST, LEN1,LEN2,STR,STR)
+cgsfc        ENDIF
+cgsfc
+cgsfc      ENDIF
 
       RETURN
 
