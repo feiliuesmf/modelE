@@ -67,7 +67,13 @@ C**** calculate SINI/COSI terms for C grid
         SINIC(I) = SIN((I-.5)*TWOPI/IM)
         COSIC(I) = COS((I-.5)*TWOPI/IM)
       END DO
+C**** calculate the grid box at 40S (for use with OPFIL)
+      DO J=1,JM/2
+        IF (RLAT(J).gt.-40.*TWOPI/360.) THEN
+          J40S=J-1
+          EXIT
+        END IF
+      END DO
 C****
       RETURN
       END
-C****

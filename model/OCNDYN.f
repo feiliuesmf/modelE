@@ -444,10 +444,8 @@ C**** Calculate freezing temperature (on atmos. grid)
      *           TRSIL,TRUN0,
 #endif
      *           ENRGUSED,RUN0,SALT)
-C**** accumulate diagnostics
-            if (i.eq.41.and.j.eq.11) print*,"simelt",i,j,ENRGUSED,RUN0
-     *           ,SALT
 
+C**** accumulate diagnostics
             AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-ENRGUSED
             AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+    SALT
             AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+    RUN0
@@ -587,7 +585,7 @@ C****
       USE SEAICE_COM, only : msi,rsi
       USE OCEAN
       IMPLICIT NONE
-      REAL*8 SALIM,GO1,relerr,errmax
+      REAL*8 SALIM,GO1,SO1,relerr,errmax
       LOGICAL QCHECKO
       INTEGER I,J,L,n,imax,jmax,lmax
 !@var SUBR identifies where CHECK was called from
@@ -618,12 +616,17 @@ C**** Check for varaibles out of bounds
       DO J=2,JM
       DO I=1,IMAXJ(J)
         IF(FOCEAN(I,J).gt.0.) THEN
-C**** Check potential specific enthalpy of first layer over open ocean
+C**** Check potential specific enthalpy/salinity 
           DO L=1,LMM(I,J)
           GO1 = G0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
+          SO1 = S0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
           IF(GO1.lt.-10000. .or. GO1.gt.200000.) THEN
             WRITE (6,*) 'After ',SUBR,': I,J,L,GO=',I,J,L,GO1
             IF (GO1.lt.-20000. .or. GO1.gt.200000.) QCHECKO=.TRUE.
+          END IF
+          IF(SO1.gt.0.045 .or. SO1.lt.0.) THEN
+            WRITE (6,*) 'After ',SUBR,': I,J,L,SO=',I,J,L,1d3*SO1
+            IF (SO1.gt.0.05 .or. SO1.lt.0.) QCHECKO=.TRUE.
           END IF
           END DO
 C**** Check all ocean currents
@@ -1062,30 +1065,32 @@ C****
 C**** OPFIL smoothes X in zonal direction by reducing coefficients
 C**** of its Fourier series for high wave numbers near the poles.
 C**** INDM for polar ocean filter set to work with AVR4X5LD.Z12.
-C****
+C****            Now AVR4X5LD.Z12.gas1
       USE CONSTANT, only : twopi
       USE OCEAN, only : im,jm,lmo,dxyp=>dxypo,dxp=>dxpo,dyp=>dypo,dxv
-     *     =>dxvo,dyv=>dyvo
+     *     =>dxvo,dyv=>dyvo,j40s
       USE FILEMANAGER, only : openunit, closeunit
       IMPLICIT NONE
       REAL*8, PARAMETER :: DLON=TWOPI/IM
       INTEGER, INTENT(IN) :: LMAX
-      INTEGER, PARAMETER :: NMAX=IM/2, NSEGM=7, INDM=90365
-      INTEGER*2, SAVE :: NSEG(LMO,4:25),IMIN(NSEGM,LMO,4:25),
-     *     ILEN(NSEGM,LMO,4:25)
-      INTEGER*4, SAVE :: INDX(IM,2:13)
-      REAL*4, SAVE :: REDUCO(INDM)
       REAL*8, INTENT(INOUT) :: X(IM,JM,LMO)
-      CHARACTER*80 TITLE
+      INTEGER, PARAMETER :: NMAX=IM/2
+      INTEGER, SAVE :: NSEGM,INDM, JXMAX, JNOF
+      INTEGER*2, SAVE, DIMENSION(:,:), ALLOCATABLE :: NSEG
+      INTEGER*4, SAVE, DIMENSION(:,:), ALLOCATABLE :: INDX
+      INTEGER*2, SAVE, DIMENSION(:,:,:), ALLOCATABLE :: IMIN,ILEN
+      REAL*4, SAVE, DIMENSION(:), ALLOCATABLE :: REDUCO
       REAL*8, SAVE :: AVCOS(IM,NMAX),AVSIN(IM,NMAX)
-      REAl*8  AN(0:NMAX),BN(0:NMAX), Y(IM)
       INTEGER, SAVE :: IFIRST=1
+      REAl*8  AN(0:NMAX),BN(0:NMAX), Y(IM)
       INTEGER I,J,L,N,JA,JX,NS,I0,IL,IND,K,iu_AVR,IN
       REAL*8 :: REDUC,DRATM,SM
+      CHARACTER*80 TITLE
 C****
       IF (IFIRST.EQ.1) THEN
       IFIRST=0
-      IF(JM.NE.46)  STOP 'JM not equal to 46 in OPFIL.'
+      JXMAX=2*J40S-1
+      JNOF=JM-2*J40S 
 C**** Calculate  cos(TWOPI*N*I/IM)  and  sin(TWOPI*N*I/IM)
       DO 10 I=1,NMAX
       AVCOS(I,1) = COS(DLON*I)
@@ -1099,6 +1104,14 @@ C**** Calculate  cos(TWOPI*N*I/IM)  and  sin(TWOPI*N*I/IM)
    20 AVSIN(I,N) = AVSIN(IN,1)
 C**** Read in reduction contribution matrices from disk
       call openunit("AVR",iu_AVR,.TRUE.,.TRUE.)
+C**** read in size of arrays and allocate space
+      READ  (iu_AVR) TITLE,NSEGM,INDM
+      ALLOCATE(IMIN(NSEGM,LMO,4:JXMAX))
+      ALLOCATE(ILEN(NSEGM,LMO,4:JXMAX))
+      ALLOCATE(NSEG(LMO,4:JXMAX))
+      ALLOCATE(INDX(IM,2:J40S))
+      ALLOCATE(REDUCO(INDM))
+C**** read in arrays
       READ  (iu_AVR) TITLE,NSEG,IMIN,ILEN,INDX,REDUCO
       call closeunit (iu_AVR)
       WRITE (6,*) 'Read on unit ',iu_AVR,': ',TITLE
@@ -1106,11 +1119,11 @@ C**** Read in reduction contribution matrices from disk
 C****
 C**** Loop over J and L.  J = latitude, JA = absolute latitude.
 C****
-  100 DO 330 JX=4,25
+  100 DO 330 JX=4,JXMAX
       J =JX
       JA=JX
-      IF(JX.GT.13)  J =20+JX
-      IF(JX.GT.13)  JA=27-JX
+      IF(JX.GT.J40S)  J =JNOF+JX
+      IF(JX.GT.J40S)  JA=2*J40S+1-JX
       DO 330 L=1,LMAX
       IF(ILEN(1,L,JX).GE.IM)  GO TO 300
 C****
@@ -1159,11 +1172,6 @@ C**** perform standard polar filter
 C****
   300 CALL FFT (X(1,J,L),AN,BN)
       DRATM = NMAX*DXP(J)/DYP(3)
-C****      DO 320 N=NMAX,1,-1
-C****      SM = 1. - DRATM/N
-C****      IF(SM.LE.0.)  GO TO 330
-C****      DO 320 I=1,IM
-C****  320 X(I,J,L) = X(I,J,L) - SM*(AN(N)*AVCOS(I,N)+BN(N)*AVSIN(I,N))
       DO N=NMAX,INT(DRATM)+1,-1   ! guarantees that SM > 0
         SM = 1. - DRATM/N
         DO I=1,IM
