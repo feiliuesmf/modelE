@@ -81,6 +81,9 @@ C**** Zonal mean cloud water concentration
       USE GEOM, only: imaxj
       USE TRACER_COM
       USE TRACER_DIAG_COM, only: tconsrv,nofmt,title_tcon
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: LS1J
+#endif
       IMPLICIT NONE
 
 !@var M index denoting which process changed the tracer
@@ -107,7 +110,15 @@ C**** Calculate current value TOTAL
         do j=1,jm
           sstm = 0.
           ltop=lm
-          if(trname(nt).eq.'Ox'.or.trname(nt).eq.'NOx')ltop=LS1-1
+#ifdef TRACERS_SPECIAL_Shindell
+          if(trname(nt).eq.'Ox')then
+#ifdef Shindell_Strat_chem
+            ltop=LS1-1     ! nominal tropopause
+#else
+            ltop=LS1J(J)-1 ! defined tropopause
+#endif
+          end if
+#endif
           do l=1,ltop
             stm = 0.
             do i=1,imaxj(j)
