@@ -377,7 +377,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,ftrsi_io,trevapor,trunosi
 #endif
-      USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix
+      USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix,debug
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -399,6 +399,7 @@ C****
       REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap,trrun
 #endif
 
+      debug=.false.
       DO J=1,JM
       DO I=1,IMAXJ(J)
       PWATER=FOCEAN(I,J)+FLAKE(I,J)   ! 1.-FLAND(I,J)
