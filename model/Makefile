@@ -9,8 +9,10 @@ RUN	= E001
 EXECDIR = /u/cmrun/modelE/exec
 LIBS	= -L/u/cmrun -lGCM -lgP 
 # Model common blocks 
-COM	= E001M12_COM.o SOMTQ_COM.o GEOM_B.o
-SCOM    = soils45.COM 
+MCOM	= E001M12_COM.o
+GCOM	= GEOM_B.o
+QCOM	= SOMTQ_COM.o
+COM	= $(MCOM) $(QCOM) $(GCOM)
 RCOM    = BR00B.COM
 
 # Model object files
@@ -59,12 +61,14 @@ OBJ	= $(MOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) $(SOBJ) $(COBJ) $(ROBJ)
 	$(EXECDIR)/$(F) $<
 
 # Make object files dependent on relevant modules
+$(QCOM):	$(MCOM)
+$(GCOM):	$(MCOM)
 $(MOBJ):	$(COM) $(SLOBJ) $(RNDOBJ) $(COBJ) $(PBLOBJ)
 $(POBJ):	$(COM) $(ROBJ)  $(RNDOBJ) $(COBJ)
 $(PBLOBJ):	$(COM) 
 $(SOBJ):	$(COM) $(SLOBJ) $(PBLOBJ)
 $(EOBJ):	$(COM) $(SLOBJ) $(COBJ) $(PBLOBJ)
-$(SLOBJ):	$(COM) $(SCOM)
+$(SLOBJ):	$(COM)
 $(DOBJ):	$(COM)
 $(QOBJ):	$(COM) 
 $(COBJ):	$(COM) $(RNDOBJ)
