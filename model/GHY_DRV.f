@@ -942,7 +942,7 @@ c***********************************************************************
      *     ,idd_eds,idd_dbl,idd_ev,tf_day1,tf_last,ndiupt
      *     ,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu
-     &     ,ij_htsoil,ij_htsnow,ij_aintrcp
+     &     ,ij_htsoil,ij_htsnow,ij_aintrcp,ij_trsdn,ij_trsup
 
 
 
