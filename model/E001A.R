@@ -14,6 +14,7 @@ PBLDRV                              ! surfce and its subr
 OCNE001                             ! ocean and sea ice modules
 RE001                               ! setsur  rad.subr_incl._forcings 
 DE001M12  FFT72  UTILDBL            ! diag,utilities
+POUT                                ! for post-processing
 
 Data input files:
 9=DEC1958.rsfB394M12
