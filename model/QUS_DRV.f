@@ -200,15 +200,57 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       logical ::  qlimit
       REAL*8, INTENT(OUT), DIMENSION(IM,JM) :: FQU
       REAL*8  AM(IM), F_I(IM), FMOM_I(NMOM,IM)
-      integer :: i,j,l,ierr,nerr,ICKERR
+     &     ,MASS_I(IM), COURMAX, BYNSTEP
+      integer :: i,ip1,j,l,ierr,nerr,ICKERR,ns,nstep
 c**** loop over layers and latitudes
       ICKERR=0
-!$OMP  PARALLEL DO PRIVATE(J,L,AM,F_I,FMOM_I,IERR,NERR)
+!$OMP  PARALLEL DO PRIVATE(J,L,AM,F_I,FMOM_I,IERR,NERR,
+!$OMP*             I,IP1,NS,NSTEP,BYNSTEP,COURMAX,MASS_I)
 !$OMP* SHARED(IM,QLIMIT,XSTRIDE)
 !$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
       do j=2,jm-1
-      am(:) = mu(:,j,l)
+c****
+c**** decide how many timesteps to take
+c****
+      nstep=0
+      courmax = 2.
+      do while(courmax.gt.1. .and. nstep.lt.20)
+        nstep = nstep+1
+        bynstep = 1d0/real(nstep,kind=8)
+        am(:) = mu(:,j,l)*bynstep
+        mass_i(:)  = mass(:,j,l)
+        courmax = 0.
+        do ns=1,nstep
+          i = im
+          do ip1=1,im
+            if(am(i).gt.0.) then
+               courmax = max(courmax,+am(i)/mass_i(i))
+            else
+               courmax = max(courmax,-am(i)/mass_i(ip1))
+            endif
+            i = ip1
+          enddo
+          if(ns.lt.nstep) then
+             i = im
+             do ip1=1,im
+                mass_i(ip1) = mass_i(ip1) + (am(i)-am(ip1))
+                i = ip1
+             enddo
+          endif
+        enddo
+      enddo
+      if(courmax.gt.1.) then
+         write(6,*) 'aadvtx: j,l,courmax=',j,l,courmax
+         ICKERR=ICKERR+1
+      endif
+
+c      am(:) = mu(:,j,l)*bynstep ! am already set
+      hfqu(:,j,l)  = 0.
+c****
+c**** loop over timesteps
+c****
+      do ns=1,nstep
 c****
 c**** call 1-d advection routine
 c****
@@ -226,7 +268,8 @@ c****
 c**** store tracer flux in fqu array
 c****
 CCC   fqu(:,j)  = fqu(:,j) + f_i(:)
-      hfqu(:,j,l)  = f_i(:)
+      hfqu(:,j,l)  = hfqu(:,j,l) + f_i(:)
+      enddo ! ns
       enddo ! j
       enddo ! l
 !$OMP  END PARALLEL DO
@@ -381,8 +424,9 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       REAL*8, dimension(im,jm,lm) :: rm,mass,mw
       REAL*8, dimension(NMOM,IM,JM,LM) :: rmom
       logical ::  qlimit
-      REAL*8  CM(LM),F_L(LM),FMOM_L(NMOM,LM)
-      integer :: i,j,l,ierr,nerr,ICKERR
+      REAL*8  CM(LM),F_L(LM),FMOM_L(NMOM,LM),MASS_L(LM)
+      real*8 bynstep,courmax
+      integer :: i,j,l,ierr,nerr,ICKERR,ns,nstep
 c**** loop over latitudes and longitudes
       ICKERR=0
 !$OMP  PARALLEL DO PRIVATE(I,J,CM,F_L,FMOM_L,IERR,NERR)
@@ -390,8 +434,46 @@ c**** loop over latitudes and longitudes
 !$OMP* REDUCTION(+:ICKERR)
       do j=1,jm
       do i=1,im
-      cm(:) = mw(i,j,:)
-      cm(lm)= 0.
+c****
+c**** decide how many timesteps to take
+c****
+      nstep=0
+      courmax = 2.
+      do while(courmax.gt.1. .and. nstep.lt.20)
+        nstep = nstep+1
+        bynstep = 1d0/real(nstep,kind=8)
+        cm(:) = mw(i,j,:)*bynstep
+        cm(lm) = 0.
+        mass_l(:)  = mass(i,j,:)
+        courmax = 0.
+        do ns=1,nstep
+          do l=1,lm-1
+            if(cm(l).gt.0.) then
+               courmax = max(courmax,+cm(l)/mass_l(l))
+            else
+               courmax = max(courmax,-cm(l)/mass_l(l+1))
+            endif
+          enddo
+          if(ns.lt.nstep) then
+            do l=1,lm-1
+               mass_l(l  ) = mass_l(l  ) - cm(l)
+               mass_l(l+1) = mass_l(l+1) + cm(l)
+            enddo
+          endif
+        enddo
+      enddo
+      if(courmax.gt.1.) then
+         write(6,*) 'aadvtz: i,j,courmax=',i,j,courmax
+         ICKERR=ICKERR+1
+      endif
+
+c      cm(:) = mw(i,j,:)*bynstep ! cm already set
+c      cm(lm)= 0.
+
+c****
+c**** loop over timesteps
+c****
+      do ns=1,nstep
 c****
 c**** call 1-d advection routine
 c****
@@ -405,6 +487,7 @@ ccc       call stop_model('Error in qlimit: abs(c) > 1',11)
           ICKERR=ICKERR+1
         endif
       end if
+      enddo ! ns
       enddo ! i
       enddo ! j
 !$OMP  END PARALLEL DO
