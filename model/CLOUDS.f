@@ -1199,7 +1199,7 @@ C**** LOAD MASS EXCHANGE ARRAY FOR GWDRAG
         END DO
       END IF
 C**** CALCULATE OPTICAL THICKNESS
-      WCONST=1.d-3*(WMU*(1.-PEARTH)+WMUL*PEARTH)
+      WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
       WMSUM=0.
       DO L=1,LMCMAX
          TL(L)=(SM(L)*BYAM(L))*PLK(L)
@@ -1220,8 +1220,8 @@ C**** CALCULATE OPTICAL THICKNESS
             FCLD=CLDMCL(L)+1.E-20
             TEM=1.d5*SVWMXL(L)*AIRM(L)*BYGRAV
             WTEM=1.d5*SVWMXL(L)*PL(L)/(FCLD*TL(L)*RGAS)
-            IF(SVLATL(L).EQ.LHE.AND.SVWMXL(L)/FCLD.GE.WCONST)
-     *           WTEM=1.d5*WCONST*PL(L)/(TL(L)*RGAS)
+            IF(SVLATL(L).EQ.LHE.AND.SVWMXL(L)/FCLD.GE.WCONST*1.d-3)
+     *           WTEM=1.d5*WCONST*1.d-3*PL(L)/(TL(L)*RGAS)
             IF(SVLATL(L).EQ.LHS.AND.SVWMXL(L)/FCLD.GE.WMUI*1.d-3)
      *           WTEM=1.E5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
             IF(WTEM.LT.1.d-10) WTEM=1.d-10
@@ -1316,8 +1316,8 @@ C**** functions
      *     ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1
      *     ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
      *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD,FCOND,HDEPx
-     *     ,PMW,PRATW
-!@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,HRISE,PMW,PRATW dummy variables
+     *     ,PMW,PRATW,PRATM
+!@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,HRISE,PMW,PRATW,PRATM dummy variables
 !@var AIRMR
 !@var CBF enhancing factor for precip conversion
 !@var CK ratio of cloud top jumps in moist static energy and total water
@@ -1473,8 +1473,16 @@ C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
           LHX=LHS
         ENDIF
         PFR=(1.-EXP(-(PRATW*PRATW)))*(1.-EXP(-(CBFC0*CBFC0)))
-        IF(PFR.GT.RANDNO.AND.LHX.EQ.LHS) BANDF=.TRUE.
-        IF(LHXUP.EQ.LHE.AND.PFR.LE.RANDNO) THEN  
+        PRATM=2.d5*WMX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
+        IF(LHX.EQ.LHS) PRATM=2.d5*WMX(L)*PL(L)/
+     *    (WMUI*FCLD*TL(L)*RGAS+teeny)
+        IF(PRATM.GT.PFR) PFR=PRATM
+        IF(PFR.GT.1.) PFR=1.
+        IF(PFR.GT.RANDNO.AND.TL(L).LT.TF) THEN
+          BANDF=.TRUE.
+          LHX=LHS
+        ENDIF
+        IF(LHXUP.EQ.LHE.AND.PFR.LE.RANDNO) THEN
           LHX=LHE
           BANDF=.FALSE.
         ENDIF
@@ -1840,12 +1848,12 @@ C**** (and so rain always falls as 0 degrees) we need to freeze it
 C**** prior to leaving the atmosphere. This fix also deals with
 C**** possibility that super-cooled water would actual freeze before
 C**** falling until this is specifically dealt with.
-      IF (TL(1).lt.TF .AND. SVLHXL(1).eq.LHE) THEN
-        HPHASE=-LHM*PREBAR(1)*GRAV*BYAM(1)
-        TL(1)=TL(1)-DTsrc*HPHASE/SHA
-        TH(1)=TL(1)/PLK(1)
-        PPHASE=LHS
-      END IF
+C     IF (TL(1).lt.TF .AND. SVLHXL(1).eq.LHE) THEN
+C       HPHASE=-LHM*PREBAR(1)*GRAV*BYAM(1)
+C       TL(1)=TL(1)-DTsrc*HPHASE/SHA
+C       TH(1)=TL(1)/PLK(1)
+C       PPHASE=LHS
+C     END IF
       PRCPSS=MAX(0d0,PREBAR(1)*GRAV*DTsrc) ! fix small round off err
 #ifdef TRACERS_WATER
       TRPRSS(1:NTX)=MAX(0d0,TRPRBAR(1:NTX,1))
