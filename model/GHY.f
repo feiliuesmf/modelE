@@ -204,8 +204,16 @@ ccc   tsn1 is private
       real*8 tsn1(2)
 
       real*8 betat,betad
-      real*8 gpp,  fd,fw,fm,dts
+      real*8 gpp,dts
 !xxx      real*8, public :: cnc
+
+ccc fractions of dry,wet,covered by snow canopy
+!@var fd effective fraction of dry canopy (=0 if dew)
+!@var fv effective fraction of wet canopy (=1 if dew)
+!@var fd0 actual fraction of dry canopy
+!@var fv0 actual fraction of wet canopy
+!@var fm snow masking fraction for canopy (=1 if all snow)
+      real*8 fd,fw,fd0,fw0,fm
 
 !@var theta fraction of water in the soil ( 1 = 100% )
 !@var f water flux between the layers ( > 0 is up ) (m/s)
@@ -281,6 +289,7 @@ ccc   i.e. they are not multiplied by any fr_...
 !@var snsh_tot total sens. heat(weighted with fr_snow,fm)(bare/veg)(m/s)
 !@var thrm_tot total T^4 heat (weighted with fr_snow,fm)(bare/veg)(m/s)
       real*8 evap_tot(2), snsh_tot(2), thrm_tot(2)
+      public evap_tot ! for debug only !
 
 ccc data for tracers
 !@var flux_snow water flux between snow layers (>0 down) (m/s)
@@ -324,8 +333,8 @@ C***
      &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb  ! dt dlm
      &     ,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
      &     ,evapbs,evapdl,evapvd,evapvs,evapvw,f !evapor,
-     &     ,fb,fc,fch,fd,fh,fhsng,fhsng_scale,fice,flmlt,flmlt_scale,fm
-     &     ,fr,fr_sat,fr_snow,fv,fw,h,hsn,ht !hlm
+     &     ,fb,fc,fch,fd,fd0,fh,fhsng,fhsng_scale,fice,flmlt,flmlt_scale
+     &     ,fm,fr,fr_sat,fr_snow,fv,fw,fw0,h,hsn,ht !hlm
      &     ,htdrips,htdripw,htpr,htprs,pr,pres,prs,q,qk,qm1,qs
      &     ,rho,rnf,rnff,shc,sl,snowd,snowm,snsh,snsh_tot !veg rs,
      &     ,snshs,srht,tbcs,theta,thetm,thets,thrm_tot,thrmsn !thm
@@ -404,6 +413,8 @@ c**** determine fm from snowd depth and masking depth
 c**** correct fraction of wet canopy by snow fraction
       !fw=fw+fm*(1.d0-fw)  !!! no idea what does this formula mean (IA)
       fd=1.d0-fw
+      fw0=fw
+      fd0=fd
       return
       end subroutine reth
 
@@ -856,6 +867,9 @@ c     evapvw is wet evaporation from canopy (from interception)
         evapvs = max( evapvs, -qm1dt )
 !      evapor(2) = fr_snow(2)*fm*evapvs + (1.-fr_snow(2)*fm)*
 !     &     ( theta(0,2)*evapvw + (1.-theta(0,2))*evapvd )
+        if ( evapvw < 0.d0 ) then  ! we have dew
+          fw = 1.d0 ; fd = 0.d0    ! let dew fall on entire canopy
+        endif
       else
         evapvw = 0.d0; evapvd = 0.d0; evapvs = 0.d0
       endif
@@ -947,7 +961,7 @@ c     snowfs is the large scale snow fall.
         ptmp=pr-prs-(snowf-snowfs)
 c     use effects of subgrid scale precipitation to calculate drip
         pm=1d-6
-        pmax=fd*pm
+        pmax=fd0*pm
         drs=max(ptmps-pmax,zero)
         dr=drs
         if(ptmp.gt.0.d0)then
@@ -1768,13 +1782,13 @@ ccc   accumulate tracer fluxes
      &     + ( tr_rnff(:ntg,1)*fb + tr_rnff(:ntg,2)*fv )*dts
       tot_w1 = fb*( w(1,1)*(1.d0-fr_snow(1))
      &     + wsn(1,1)*fr_snow(1) )
-     &     + fv*( w(0,2)*(1.d0-fm*fr_snow(2))*fw  !! remove fw ?
+     &     + fv*( w(0,2)*(1.d0-fm*fr_snow(2))*fw0  !! remove fw ?
      &     + wsn(1,2)*fm*fr_snow(2) )
       if ( tot_w1 > 1.d-30 ) then
         atr_g(:ntg) = atr_g(:ntg) +
      &       ( fb*( tr_w(:ntg,1,1)*(1.d0-fr_snow(1))
      &       + tr_wsn(:ntg,1,1)*fr_snow(1) )
-     &       + fv*( tr_w(:ntg,0,2)*(1.d0-fm*fr_snow(2))*fw !! remove fw?
+     &       + fv*( tr_w(:ntg,0,2)*(1.d0-fm*fr_snow(2))*fw0 !! remove fw?
      &       + tr_wsn(:ntg,1,2)*fm*fr_snow(2) ) ) /
      &       tot_w1 * dts
       endif
