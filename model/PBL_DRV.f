@@ -312,7 +312,7 @@ C ******************************************************************
       qflux(I,J)=qflux(I,J)+qfluxs*PTYPE
 
       tgvAVG(I,J)=tgvAVG(I,J)+tgv*PTYPE
-      qgAVG(I,J)=qgAVG(I,J)+qg_sat*PTYPE
+      qgAVG(I,J)=qgAVG(I,J)+qgrnd*PTYPE
       w2_l1(I,J)=w2_l1(I,J)+w2_1*PTYPE
 
       RETURN

@@ -148,6 +148,7 @@ c    input:
 !@var  qtop  moisture at the top of the layer
 !@var  tgrnd  virt. pot. temp. of the ground, at the roughness height
 !@var  qgrnd  moisture at the ground, at the roughness height
+!@var  qgrnd_sat saturated moisture at the ground, at the roughness height
 !@var  evap_max maximal evaporation from unsaturated soil
 !@var  fr_sat fraction of saturated soil
 !@var  ztop height of the first model layer, approx 200 m if lm=9
@@ -287,7 +288,7 @@ C**** end special threadprivate common block
         endif
 
         call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
-        call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd_sat,
+        call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
      3             km,kh,kq,dzh,itype,n)
 #ifdef TRACERS_ON
@@ -480,7 +481,7 @@ c Diagnostics printed at a selected point:
       if ((ilong.eq.iprint).and.(jlat.eq.jprint)) then
         call output(u,v,t,q,e,lscale,z,zhat,dzh,
      2              km,kh,kq,ke,gm,gh,cm,ch,cq,z0m,z0h,z0q,
-     3              ustar,tstar,qstar,lmonin,tgrnd,qgrnd_sat,
+     3              ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      4              utop,vtop,ttop,qtop,
      5              dtime,bgrid,ilong,jlat,iter,itype,n)
       endif
