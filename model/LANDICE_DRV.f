@@ -292,8 +292,6 @@ c       AREG_PART(JR,J,2)=AREG_PART(JR,J,2)+ERUN0*PLICE*DXYPJ ! (Tg=0)
       END IF
       END DO
       END DO
-      CALL CHECKSUM(grid, SNOWLI,__LINE__,__FILE__)
-      CALL CHECKSUM_COLUMN(grid, TLANDI,__LINE__,__FILE__)
 
 C**** Finish summing and store total accumulations into AREG.
       DO JR=1,SIZE(AREG,1)
