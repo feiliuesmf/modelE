@@ -168,8 +168,8 @@ C****     1/2 x-direction
           do i=1,im
             ma(i,j,l) = ma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
             if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-              write(6,900)'ma(i,j,l) x1: nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
-     *             ,nc
+    !         write(6,900)'ma(i,j,l) x1: nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
+    !*             ,nc
               mneg=.true.
               go to 595
             endif
@@ -183,7 +183,7 @@ C****         y-direction
         do i=1,im
           ma(i,j,l) = ma(i,j,l) + (mv(i,j-1,l)-mv(i,j,l))*byn
           if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-            write(6,900)'ma(i,j,l) y: nc=',i,j,l,ma(i,j,l)/mb(i,j,l),nc
+    !       write(6,900)'ma(i,j,l) y: nc=',i,j,l,ma(i,j,l)/mb(i,j,l),nc
             mneg=.true.
             go to 595
           endif
@@ -196,12 +196,12 @@ C****         y-direction
           ma(:,1 ,l) = ssp
           ma(:,jm,l) = snp
           if (ma(1,1,l)/mb(1,1,l).lt.0.5) then
-            write(6,910)'ma(1,1,l) ysp: nc=',l,ma(1,1,l)/mb(1,1,l),nc
+    !       write(6,910)'ma(1,1,l) ysp: nc=',l,ma(1,1,l)/mb(1,1,l),nc
             mneg=.true.
             go to 595
           endif
           if (ma(1,jm,l)/mb(1,jm,l).lt.0.5) then
-            write(6,910)'ma(1,jm,l) ynp: nc=',l,ma(1,jm,l)/mb(1,jm,l),nc
+    !       write(6,910)'ma(1,jm,l) ynp: nc=',l,ma(1,jm,l)/mb(1,jm,l),nc
             mneg=.true.
             go to 595
           endif
@@ -212,7 +212,7 @@ C****         z-direction
         do i=1,im
           ma(i,j,l) = ma(i,j,l)+(mw(i,j,l-1)-mw(i,j,l))*byn
           if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-            write(6,900)'ma(i,j,l) z : nc=',i,j,l,ma(i,j,l)/mb(i,j,l),nc
+    !       write(6,900)'ma(i,j,l) z : nc=',i,j,l,ma(i,j,l)/mb(i,j,l),nc
             mneg=.true.
             go to 595
           endif
@@ -224,8 +224,8 @@ C****         z-direction
         do i=1,im
           ma(i,j,l) = ma(i,j,l)-mw(i,j,l)*byn
           if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-            write(6,900)'ma(i,j,l) z1 : nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
-     *           ,nc
+    !       write(6,900)'ma(i,j,l) z1 : nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
+    !*           ,nc
             mneg=.true.
             go to 595
           endif
@@ -236,8 +236,8 @@ C****         z-direction
         do i=1,im
           ma(i,j,l) = ma(i,j,l)+mw(i,j,l-1)*byn
           if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-            write(6,900)'ma(i,j,l) zlm: nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
-     *           ,nc
+    !       write(6,900)'ma(i,j,l) zlm: nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
+    !*           ,nc
             mneg=.true.
             go to 595
           endif
@@ -250,8 +250,8 @@ C****     1/2 x-direction
           do i=1,im
             ma(i,j,l) = ma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
             if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-              write(6,900)'ma(i,j,l) x2: nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
-     *             ,nc
+    !         write(6,900)'ma(i,j,l) x2: nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
+    !*             ,nc
               mneg=.true.
               go to 595
             endif
