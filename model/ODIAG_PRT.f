@@ -36,13 +36,7 @@ C**** Calculate longitudes
       DO I=1,IM
         FLON(I,2)  = -180.+DLON*I        ! secondary grid
       END DO
-C**** Calculate ocean depths
-      DO L=1,LMO   ! primary grid
-        FLEV(L,1) = 5d-1*(ZE(L)+ZE(L-1))
-      END DO
-      DO L=0,LMO   ! secondary grid
-        FLEV(L,2) = ZE(L)
-      END DO
+
 C**** determine label to be added to all titles
       KXLB = INDEX(XLABEL(1:11),'(')-1
       IF(KXLB.le.0) KXLB = 10
@@ -581,7 +575,7 @@ C****
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,dxypo,ndyno,dts,dto,imaxj
-      USE DAGCOM, only : qdiag,acc_period
+      USE DAGCOM, only : qdiag,acc_period,zoc1
       USE ODIAG
       IMPLICIT NONE
       REAL*8, DIMENSION(JM-1,0:LMO,0:4) :: SFM,SFS
@@ -608,18 +602,18 @@ C****
         units='Sv'
         XJL(2:JM,1:LMO+1)=SFM(1:JM-1,0:LMO,KB)
         IF (QDIAG) CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LMO+1,XJL
-     *       ,FLEV(0,2),"Latitude","Depth (m)")
+     *       ,ZOC1,"Latitude","Depth (m)")
 C****
 C**** Write data to PRinT file
 C****
 c        WRITE (6,921) 'Southern Hemisphere',(NINT(FLAT(J,2)),J=1,JEQ)
 c        DO L=0,LMO
-c          WRITE (6,922) FLEV(L,2),(NINT(SFM(J,L,KB)),J=1,JEQ)
+c          WRITE (6,922) ZOC1(L+1),(NINT(SFM(J,L,KB)),J=1,JEQ)
 c        END DO
 c        WRITE (6,921) 'Northern Hemisphere',(NINT(FLAT(J,2)),J=JEQ,
 c    *     JM-1)
 c        DO L=0,LMO
-c          WRITE (6,922) FLEV(L,2),(NINT(SFM(J,L,KB)),J=JEQ,JM-1)
+c          WRITE (6,922) ZOC1(L+1),(NINT(SFM(J,L,KB)),J=JEQ,JM-1)
 c        END DO
       END DO
 
@@ -654,7 +648,7 @@ c        sname='salt_sf_'//trim(BASIN(KB))
 c        units='Sv'
 c        XJL(2:JM,1:LMO+1)=SFS(1:JM-1,0:LMO,KB)
 c        IF (QDIAG) CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LMO+1,XJL
-c     *       ,FLEV(0,2),"Latitude","Depth (m)")
+c     *       ,ZOC1,"Latitude","Depth (m)")
 c      END DO
 C****
       RETURN
@@ -1062,7 +1056,7 @@ C**** Correct SF for mean E-W drift (SF over topography --> 0)
 #endif
       USE OCEAN, only : im,jm,lmo,ze,imaxj,focean,ndyno,dypo,dts,dxvo
      *     ,dxypo
-      USE DAGCOM, only : qdiag
+      USE DAGCOM, only : qdiag,zoc
       USE ODIAG
 #ifdef TRACERS_OCEAN
       USE TRACER_DIAG_COM, only : to_per_mil
@@ -1172,14 +1166,14 @@ C****
         SNAME(1:4)="Temp"
         UNITS="C"
         XJL(1:JM,1:LMO)=XBG(1:JM,1:LMO,KB)
-        CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,FLEV(1,1)
+        CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,ZOC
      *       ,"Latitude","Depth (m)")
         TITLE(1:20)="Salinity  (ppt)"
         LNAME(1:20)="Salinity"
         SNAME(1:4)="Salt"
         UNITS="ppt"
         XJL(1:JM,1:LMO)=XBS(1:JM,1:LMO,KB)
-        CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,FLEV(1,1)
+        CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,ZOC
      *       ,"Latitude","Depth (m)")
 #ifdef TRACERS_OCEAN
         DO N=1,NTM
@@ -1192,7 +1186,7 @@ C****
           LNAME(1:20)=trim(trname(n))
           SNAME(1:4)=trname(n)(1:4)
           XJL(1:JM,1:LMO)=XBT(1:JM,1:LMO,KB,N)
-          CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,FLEV(1,1)
+          CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,ZOC
      *         ,"Latitude","Depth (m)")
         END DO
 #endif
@@ -1247,7 +1241,7 @@ C****
           SNAME="Temp_"//adjustl(labi)
           UNITS="C"
           XJL(1:JM,1:LMO)=XBG(1:JM,1:LMO,1)
-          CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,FLEV(1,1)
+          CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,ZOC
      *         ,"Latitude","Depth (m)")
           TITLE(1:50)="Salinity Section            (ppt)"
           WRITE(TITLE(21:25),'(I3,A1)') ILAT,EW
@@ -1255,7 +1249,7 @@ C****
           SNAME="Salt_"//adjustl(labi)
           UNITS="ppt"
           XJL(1:JM,1:LMO)=XBS(1:JM,1:LMO,1)
-          CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,FLEV(1,1)
+          CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,ZOC
      *         ,"Latitude","Depth (m)")
 #ifdef TRACERS_OCEAN
           DO N=1,NTM
@@ -1269,7 +1263,7 @@ C****
           LNAME(1:25)=TITLE(1:25)
           SNAME=trim(trname(n))//"_"//adjustl(labi)
           XJL(1:JM,1:LMO)=XBT(1:JM,1:LMO,1,N)
-          CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,FLEV(1,1)
+          CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,ZOC
      *         ,"Latitude","Depth (m)")
           END DO
 #endif
@@ -1302,7 +1296,7 @@ C**** GM fluxes are also saved, so add the GM heat and salt fluxes here
           SNAME="EWmflx_"//adjustl(labi)
           UNITS="kg/s m^2"
           XJL(2:JM,1:LMO)=XB0(1:JM-1,1:LMO,1)
-          CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LMO,XJL,FLEV(1,1)
+          CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LMO,XJL,ZOC
      *         ,"Latitude","Depth (m)")
           TITLE(1:50)=" EW Heat Flux            (10^6 J/s m^2)"
           WRITE(TITLE(21:25),'(I3,A1)') ILAT,EW
@@ -1310,7 +1304,7 @@ C**** GM fluxes are also saved, so add the GM heat and salt fluxes here
           SNAME="EWhflx_"//adjustl(labi)
           UNITS="10^6 J/s m^2"
           XJL(2:JM,1:LMO)=XBG(1:JM-1,1:LMO,1)
-          CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LMO,XJL,FLEV(1,1)
+          CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LMO,XJL,ZOC
      *         ,"Latitude","Depth (m)")
           TITLE(1:50)=" EW Salt Flux            (10^6 kg/s m^2)"
           WRITE(TITLE(21:25),'(I3,A1)') ILAT,EW
@@ -1318,7 +1312,7 @@ C**** GM fluxes are also saved, so add the GM heat and salt fluxes here
           SNAME="EWsflx_"//adjustl(labi)
           UNITS="10^6 kg/s m^2"
           XJL(2:JM,1:LMO)=XBS(1:JM-1,1:LMO,1)
-          CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LMO,XJL,FLEV(1,1)
+          CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LMO,XJL,ZOC
      *         ,"Latitude","Depth (m)")
         END IF
       END DO
@@ -1375,14 +1369,14 @@ C****
           SNAME="Temp_"//adjustl(labj)
           UNITS="C"
           CALL POUT_IL(TITLE,sname,lname,units,I1,1,LMO,XG
-     *         ,FLEV(1,1),"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
+     *         ,ZOC,"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
           TITLE(1:50)="Salinity Section                 (ppt)"
           WRITE(TITLE(21:25),'(I3,A1)') JLON,NS
           LNAME(1:25)=TITLE(1:25)
           SNAME="Salt_"//adjustl(labj)
           UNITS="ppt"
           CALL POUT_IL(TITLE,sname,lname,units,I1,1,LMO,XS
-     *         ,FLEV(1,1),"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
+     *         ,ZOC,"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
 #ifdef TRACERS_OCEAN
           DO N=1,NTM
           if (to_per_mil(n).gt.0) then 
@@ -1395,7 +1389,7 @@ C****
           LNAME(1:25)=TITLE(1:25)
           SNAME=trim(trname(n))//"_"//adjustl(labj)
           CALL POUT_IL(TITLE,sname,lname,units,I1,1,LMO,XT(1,1,N)
-     *         ,FLEV(1,1),"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
+     *         ,ZOC,"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
           END DO
 #endif
 C**** Fluxes
@@ -1425,21 +1419,21 @@ C**** Fluxes
           SNAME="NSmflx_"//adjustl(labj)
           UNITS="kg/s m^2"
           CALL POUT_IL(TITLE,sname,lname,units,I1,2,LMO,X0
-     *         ,FLEV(1,1),"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
+     *         ,ZOC,"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
           TITLE(1:50)=" NS Heat Flux            (10^6  J/s m^2)"
           WRITE(TITLE(21:25),'(I3,A1)') JLON,NS
           LNAME(1:25)=TITLE(1:25)
           SNAME="NShflx_"//adjustl(labj)
           UNITS="10^6 W/m^2"
           CALL POUT_IL(TITLE,sname,lname,units,I1,2,LMO,XG
-     *         ,FLEV(1,1),"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
+     *         ,ZOC,"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
           TITLE(1:50)=" NS Salt Flux            (10^6 kg/s m^2)"
           WRITE(TITLE(21:25),'(I3,A1)') JLON,NS
           LNAME(1:25)=TITLE(1:25)
           SNAME="NSsflx_"//adjustl(labj)
           UNITS="10^6 kg/s m^2"
           CALL POUT_IL(TITLE,sname,lname,units,I1,2,LMO,XS
-     *         ,FLEV(1,1),"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
+     *         ,ZOC,"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
         END IF
       END DO
       END IF

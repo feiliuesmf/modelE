@@ -562,13 +562,18 @@ c idacc-indices of various processes
 !@var XWON scale factor for diag. printout needed for Wonderland model
       REAL*8 :: XWON = TWOPI/(DLON*FIM)
 
+!@var LMOMAX max no. of layers in any ocean
+      INTEGER, PARAMETER :: LMOMAX=50  
+!@var ZOC, ZOC1 ocean depths for diagnostics (m) (ONLY FOR DEEP OCEAN)
+      REAL*8 :: ZOC(LMOMAX) = 0. , ZOC1(LMOMAX+1) = 0.
+
       END MODULE DAGCOM
 
       SUBROUTINE io_diags(kunit,it,iaction,ioerr)
 !@sum  io_diag reads and writes diagnostics to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,ioread_single,irerun,irsfic
+      USE MODEL_COM, only : ioread,ioread_single,irerun
      *    ,iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
      *    ,Kradia
       USE DAGCOM
@@ -607,7 +612,7 @@ c idacc-indices of various processes
         CASE (ioread)           ! input from restart file
           READ (kunit,err=10) HEADER,idacc(2),AFLX_ST,it
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
           END IF
         CASE (IOREAD_SINGLE)      !
@@ -615,8 +620,6 @@ c idacc-indices of various processes
           AFLX_ST=AFLX_ST+AFLXS
           IDACC(2) = IDACC(2) + IDAC1(2)
           monacc = monacc + monac1
-        CASE (irerun)      ! no diag-info needed
-        CASE (Irsfic)      ! no diag-info needed
         END SELECT
         return
       end if
@@ -654,7 +657,7 @@ C**** The regular model (Kradia le 0)
      *      idacc, ACC,
      *      TDIURN,OA,it
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
       CASE (IOREAD_SINGLE)      !
@@ -674,10 +677,9 @@ C**** The regular model (Kradia le 0)
       CASE (irerun)      ! only keynr,tsfrez needed at beg of acc-period
         READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ  ! 'it' not read
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
-      CASE (Irsfic)      ! no diag-info at beginning of new run needed
       END SELECT
 
       RETURN

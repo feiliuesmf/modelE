@@ -406,7 +406,7 @@ C**** set dimensions
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : sig,sige
-      USE DAGCOM, only : plm,ple,ple_dn,pmb,kgz_max
+      USE DAGCOM, only : plm,ple,ple_dn,pmb,kgz_max,zoc,zoc1
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name
@@ -436,6 +436,8 @@ C**** set dimensions
       dim_name='ple_int'; call def_dim_out(dim_name,lm-1)
       dim_name='pgz'; call def_dim_out(dim_name,kgz_max)
       dim_name='p1'; call def_dim_out(dim_name,1)
+      dim_name='odepth'; call def_dim_out(dim_name,lm)
+      dim_name='odepth1'; call def_dim_out(dim_name,lm+1)
 
 ! put lat,ht into output file
       ndims_out = 1
@@ -466,6 +468,12 @@ C**** set dimensions
       dim_name='p1'; call set_dim_out(dim_name,1)
       units='mb'
       var_name='p1'; call wrtarr(var_name,pmb(1))
+      dim_name='odepth'; call set_dim_out(dim_name,1)
+      units='m'
+      var_name='odepth'; call wrtarr(var_name,zoc)
+      dim_name='odepth1'; call set_dim_out(dim_name,1)
+      units='m'
+      var_name='odepth1'; call wrtarr(var_name,zoc1)
 
       return
       end subroutine open_jl
@@ -489,7 +497,7 @@ C**** set dimensions
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : LS1
-      USE DAGCOM, only : plm,ple,ple_dn,kgz_max
+      USE DAGCOM, only : plm,ple,ple_dn,kgz_max,zoc,zoc1
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -547,6 +555,10 @@ C**** set dimensions
          dim_name='pgz'
       else if(klmax.eq.1) then
          dim_name='p1'
+       else if(klmax.eq.lm .and. all(pm(1:lm).eq.zoc(1:lm))) then
+         dim_name='odepth'
+       else if(klmax.eq.lm+1 .and. all(pm(1:lm+1).eq.zoc1(1:lm+1))) then
+         dim_name='odepth1'
       else
          write(6,*) 'klmax =',klmax,title,pm(1:klmax),ple(1:klmax)
          call stop_model('pout_jl: unrecognized vertical grid',255)

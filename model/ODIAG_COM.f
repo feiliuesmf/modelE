@@ -57,8 +57,6 @@
       REAL*8, DIMENSION(JM,2) :: FLAT
 !@var FLON longitude values on primary and secondary ocean grids
       REAL*8, DIMENSION(IM,2) :: FLON
-!@var FLEV depth values on primary and secondary ocean grids
-      REAL*8, DIMENSION(0:LMO,2) :: FLEV
 !@var iu_otj unit number for ascii output of ocean transports
       INTEGER iu_otj
 !@var BASIN names of ocean basins for diag output
@@ -83,7 +81,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
-     *     ,irsfic,irerun,ioread_single,lhead
+     *     ,irsfic,irerun,irsficno,ioread_single,lhead
       USE ODIAG
       IMPLICIT NONE
 
@@ -131,7 +129,7 @@ C****
 #endif
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
-        CASE (IRSFIC)           ! initial conditions
+        CASE (IRSFICNO)         ! initial conditions
         CASE (ioread_single)    ! accumulate diagnostic files
           READ (kunit,err=10) HEADER,OIJ4,OIJL4,OL4,OLNST4,it
 C**** accumulate diagnostics
@@ -158,7 +156,7 @@ C**** accumulate diagnostics
         CASE (ioread,irerun)    ! restarts
           READ (kunit,err=10) HEADER,OIJ,OIJL,OL,OLNST,it
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version",HEADER
+            PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
             GO TO 10
           END IF
@@ -215,7 +213,8 @@ C****
 !@ver  1.0
       USE CONSTANT, only : bygrav
       USE MODEL_COM, only : dtsrc
-      USE DAGCOM, only : ia_src,conpt0
+      USE OCEAN, only : ze
+      USE DAGCOM, only : ia_src,conpt0,zoc,zoc1
       USE ODIAG
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T = .TRUE. , F = .FALSE.
@@ -321,6 +320,10 @@ C**** Oceanic salt mass
      *     "(10**-9 KG/SM^2)",1d-1,1d9,icon_OSL)
 C**** Initialise ocean basins
       CALL OBASIN
+
+C**** Define ocean depths for diagnostic output
+      ZOC1(1:LMO+1) = ZE(0:LMO)
+      ZOC(1:LMO) = 0.5*(ZE(1:LMO)+ZE(0:LMO-1))
 
 C****
       RETURN

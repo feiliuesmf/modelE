@@ -113,7 +113,7 @@ C**** data MUST be initialised by setting iniOCEAN=.TRUE. in init_ODEEP.
         CASE DEFAULT            ! restart file
           READ (kunit,err=10) HEADER,TOCEAN,Z1O,STG3,DTG3,RTGO,TG3M
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
           END IF
         END SELECT
@@ -160,7 +160,7 @@ C**** no output required for rsf files. Only acc files
 C**** sum RTGO over input files
           RTGO=RTGO+RTGO4
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version",HEADER
+            PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
             GO TO 10
           END IF
@@ -385,11 +385,11 @@ C**** Check for reasonable values for ocean variables
       USE MODEL_COM, only : jm,lrunid,xlabel,idacc
       USE GEOM, only : imaxj,lat_dg
       USE ODEEP_COM, only : lmom,rtgo,dz
-      USE DAGCOM, only : acc_period,qdiag
+      USE DAGCOM, only : acc_period,qdiag,zoc
       IMPLICIT NONE
       CHARACTER LNAME*50,SNAME*30,UNITS*50
       INTEGER I,J,L
-      REAL*8 ATGO(JM,LMOM),SCALED,ONES(JM),Z(LMOM)
+      REAL*8 ATGO(JM,LMOM),SCALED,ONES(JM)
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG) call open_jl(trim(acc_period)//'.o'//XLABEL(1:LRUNID),
@@ -407,14 +407,14 @@ C**** calculate zonal average
         END DO
       END DO
 C**** depths are calculated from base of the mixed layer
-      Z(1)=0.
+      ZOC(1)=0.
       DO L=2,LMOM
-        Z(L)=Z(L-1)+DZ(L)
+        ZOC(L)=ZOC(L-1)+DZ(L)
       END DO
       SCALED=1./IDACC(12)
       ONES(1:JM)=1.
 C**** Print out a depth/latitude plot of the deep ocean temp anomaly
-      CALL JLMAP(LNAME,SNAME,UNITS,1,Z,ATGO,SCALED,ONES,ONES,LMOM,2,1)
+      CALL JLMAP(LNAME,SNAME,UNITS,1,ZOC,ATGO,SCALED,ONES,ONES,LMOM,2,1)
 C****
       if(qdiag) call close_jl
 
