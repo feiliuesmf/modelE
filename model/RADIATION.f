@@ -11972,7 +11972,11 @@ C****
       if (ksialb.ne.1) then
       IF( JLAT.LT.NINT(MLAT46/6.) .OR.
      *   (JLAT.LT.45.AND.JLAT.GT.38.AND.ILON.LT.33.AND.ILON.GT.23)) THEN
-        AMEAN=.8d0
+        IF (KKZSNO.GT.0) THEN
+          AMEAN=.78d0  ! compensate for zenith angle effects in the mean
+        ELSE
+          AMEAN=.8d0
+        END IF
         BLIVIS=.95d0
         BLINIR=(AMEAN-.585d0*BLIVIS)/.415d0
         DO L=3,6  ! fill in higher bands
