@@ -56,7 +56,7 @@
 !@var Z12O annual maximum ocean mixed layer depth
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: Z12O
 
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) ::DM,AOST,EOST1,EOST0,BOST, 
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) ::DM,AOST,EOST1,EOST0,BOST,
      *     COST,ARSI,ERSI1,ERSI0,BRSI,CRSI
       INTEGER, ALLOCATABLE, DIMENSION(:,:) ::  KRSI
 C      COMMON/OOBS/DM,AOST,EOST1,EOST0,BOST,COST,ARSI,ERSI1,ERSI0,BRSI
@@ -69,7 +69,7 @@ C     *     ,CRSI,KRSI
 !@dbparam qflux_fix an energy leak (default=0; no fix for continuity)
       INTEGER :: qflux_fix=0
 
-!@dbparam qfluxX multiplying factor for qfluxes 
+!@dbparam qfluxX multiplying factor for qfluxes
       REAL*8 :: qfluxX=1.
 
       CONTAINS
@@ -151,7 +151,8 @@ C now allocated from ALLOC_STATIC OCEAN      REAL*8, SAVE :: XZO(IM,JM),XZN(IM,J
       INTEGER, SAVE :: IMON0 = 0
 !@var IMON current month for ocean mixed layer climatology reading
       INTEGER, SAVE :: IMON = 0
-!@var TEMP_LOCAL stores AOST+EOST1 or ARSI+ERST1 to avoid the use of common block OOBS in MODULE STATIC_OCEAN
+!@var TEMP_LOCAL stores AOST+EOST1 or ARSI+ERST1 to avoid the use
+!@+        of common block OOBS in MODULE STATIC_OCEAN
       REAL*8 :: TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
       REAL*8 :: AREG_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO,NREG,KAJ)
       REAL*8 :: gsum
@@ -185,7 +186,7 @@ C****  RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****  MSI  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
 C**** READ IN OBSERVED OCEAN DATA
-      
+
       IF (JMON.EQ.IMON0) GO TO 400
       IF (IMON0.EQ.0) THEN
 C****   READ IN LAST MONTH'S END-OF-MONTH DATA
@@ -235,7 +236,7 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
         if (jmon.eq.1) then
           if (ocn_cycl.eq.1) CALL REWIND_PARALLEL( iu_OSST )
           CALL REWIND_PARALLEL( iu_SICE )
-          read (iu_SICE)  
+          read (iu_SICE)
         end if
         CALL READT_PARALLEL
      *           (grid,iu_SICE,NAMEUNIT(iu_SICE),0,TEMP_LOCAL,1)
@@ -685,7 +686,10 @@ C****   set conservation diagnostic for ocean heat
      *       "(W/M^2)         ",1d-6,1d0,icon_OCE)
       end if
 
-      if (istart.le.0) return
+      if (istart.le.0) then 
+        if(kocean.ge.1) call init_ODEEP(.false.)
+        return
+      end if
 
       call sync_param( "qflux_fix",qflux_fix)
 
@@ -1218,7 +1222,7 @@ C****
         IF (AM_I_ROOT()) WRITE (kunit,err=10) it,AIJ_tmp_glob
       CASE (IOREAD:)            ! input
         READ (kunit,err=10) it,((AIJ(I,J,IJ_TGO2),I=1,IM),J=1,JM)
-        CALL UNPACK_DATA(grid, AIJ_tmp_glob, AIJ(:,:,IJ_TGO2), 
+        CALL UNPACK_DATA(grid, AIJ_tmp_glob, AIJ(:,:,IJ_TGO2),
      *       local=.true.)
       END SELECT
 

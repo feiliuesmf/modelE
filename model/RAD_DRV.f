@@ -950,7 +950,7 @@ C****   Find arrays derived from P : PEdn and PK (forcing experiments)
         do j=j_0,j_1
         do i=1,imaxj(j)
           pedn(LM+1,i,j) = SIGE(LM+1)*PSFMPT+PTOP
-        do l=1,lm
+        do l=lm,1,-1
           pij=p(i,j)
           if(l.ge.ls1) pij=psfmpt
           pedn(l,i,j) = SIGE(L)*PIJ+PTOP
@@ -988,7 +988,7 @@ C*********************************************************
 c**** find scaling factors for surface albedo reduction
       IF (HAVE_SOUTH_POLE) THEN
          sumda_psum(1)=im*dxyp(1)
-         tauda_psum(1)=im*dxyp(1)*depobc_1990(1,1) 
+         tauda_psum(1)=im*dxyp(1)*depobc_1990(1,1)
       End If
       do j=J_0S,J_1S
          JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)
@@ -999,7 +999,7 @@ c**** find scaling factors for surface albedo reduction
            fsnow = flice(i,j) + rsi(i,j)*(1-fland(i,j))
            if(SNOWE_COM(I,J).gt.0.) fsnow = fsnow+fearth(i,j)
            sumda_psum(j) = sumda_psum(j) + dxyp(j)*fsnow
-           tauda_psum(j) = tauda_psum(j) + 
+           tauda_psum(j) = tauda_psum(j) +
      &          dxyp(j)*fsnow*depobc_1990(ilon,jlat)
          end do
       end do
@@ -1009,7 +1009,7 @@ c**** find scaling factors for surface albedo reduction
       END IF
       CALL GLOBALSUM(grid, sumda_psum,sumda,polefirst=.true.,all=.true.)
       CALL GLOBALSUM(grid, tauda_psum,tauda,polefirst=.true.,all=.true.)
-      
+
       xdalbs=-dalbsnX*sumda/tauda
       IF(QCHECK) write(6,*) 'coeff. for snow alb reduction',xdalbs
 

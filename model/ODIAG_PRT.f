@@ -233,7 +233,7 @@ C**** Loop over layers
       END DO
 #ifdef TRACERS_OCEAN
 C****
-C**** Ocean Tracers 
+C**** Ocean Tracers
 C****
       DO N=1,NTM
       LNAME="OCEAN "//trname(n)
@@ -274,7 +274,7 @@ c     *         *DXYPO(J)-OIJL(I,J,L,IJL_S0M))*trw0(n))-1.)
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
       END DO
-#endif      
+#endif
 C****
 C**** East-West or North-South Velocities (cm/s)
 C****
@@ -448,9 +448,9 @@ c      IF(.not.QL(K))  GO TO 540
 C****
 C**** Gent-McWilliams fluxes (10^-2 kg/s*m)
 C****
-      DO K=1,3 
+      DO K=1,3
         L =KCMF(K)
-        DO KK=0,2 
+        DO KK=0,2
           SELECT CASE (KK)
           CASE (0)      ! E-W fluxes
             LNAME="GM/EDDY E-W HEAT FLUX"
@@ -464,7 +464,7 @@ C****
               DO I=1,IMAXJ(J)
                 Q(I,J) = 1d-15*OIJL(I,J,L,KK+IJL_GGMFL)/(IDACC(1)*DTS)
               END DO
-            END DO    
+            END DO
           CASE (1)  ! N-S fluxes
             LNAME="GM/EDDY N-S HEAT FLUX"
             UNITS="10^-15 W"
@@ -477,7 +477,7 @@ C****
               DO I=1,IMAXJ(J)
                 Q(I,J) = 1d-15*OIJL(I,J,L,KK+IJL_GGMFL)/(IDACC(1)*DTS)
               END DO
-            END DO    
+            END DO
           CASE (2)    !  Vertical fluxes
             LNAME="GM/EDDY VERTICAL HEAT FLUX"
             UNITS="W/m^2"
@@ -490,7 +490,7 @@ C****
               DO I=1,IMAXJ(J)
                 Q(I,J)=OIJL(I,J,L,KK+IJL_GGMFL)/(IDACC(1)*DTS*DXYPO(J))
               END DO
-            END DO    
+            END DO
           END SELECT
 
           Q(2:IM,JM)=Q(1,JM)
@@ -505,7 +505,7 @@ C****
 C****
 C**** Vertical Diffusion Coefficients (cm/s)
 C****
-      DO K=1,3 
+      DO K=1,3
         L =KCMF(K)
         LNAME="VERT. MOM. DIFF."
         UNITS="cm^2/s"
@@ -529,8 +529,8 @@ C****
         TITLE(51:80)=XLB
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
       END DO
-      
-      DO K=1,3 
+
+      DO K=1,3
         L =KCMF(K)
         LNAME="VERT. HEAT DIFF."
         UNITS="cm^2/s"
@@ -649,6 +649,37 @@ C**** Output Key diagnostics: Gulf Stream, ACC, Kuroshio
       END DO
       WRITE(6,'(a,F10.3)') " ACC               (Drakes Passage):", ACMAX
      *     -ACMIN
+C****
+      IF (QDIAG) THEN
+C****
+C**** Ocean Heat Content (J/m^2)
+C****
+      LNAME="OCEAN HEAT CONTENT"
+      UNITS="J/m^2"
+      TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
+      TITLE(51:80)=XLB
+C**** Loop over layers
+      DO L=1,LMO
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
+        Q(I,J) = UNDEF
+        IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)  THEN
+          Q(I,J) = OIJL(I,J,L,IJL_G0M) / (DXYPO(J)*IDACC(1))
+        END IF
+      END DO
+      END DO
+      Q(2:IM,JM)=Q(1,JM)
+      Q(2:IM,1)=Q(1,1)
+      WRITE (LNAME(40:47),'(A5,I3)') 'Level',L
+      WRITE (TITLE(40:47),'(A5,I3)') 'Level',L
+      IF (L.lt.10) THEN
+        SNAME="oc_ht_L"//char(l+48)
+      ELSE
+        SNAME="oc_ht_L1"//char(mod(l,10)+48)
+      END IF
+      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
+      END DO
+      END IF
 C****
       RETURN
       END SUBROUTINE OIJOUT
@@ -1271,7 +1302,7 @@ c     *               ((XB0(J,L,KB)*DXYPO(J)-XBS(J,L,KB))*trw0(n))-1.)
      *       ,"Latitude","Depth (m)")
 #ifdef TRACERS_OCEAN
         DO N=1,NTM
-          if (to_per_mil(n).gt.0) then 
+          if (to_per_mil(n).gt.0) then
             UNITS="permil"
           else
             UNITS=unit_string(ntrocn(n),'kg/kg')
@@ -1311,10 +1342,10 @@ C****
                 do n=1,ntm
                   if (to_per_mil(n).gt.0) then
                     XBT(j,l,1,n)=1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
-     *              (TOIJL(I,J,L,TOIJL_CONC,n_water)*trw0(n))-1.) 
+     *              (TOIJL(I,J,L,TOIJL_CONC,n_water)*trw0(n))-1.)
 c                    XBT(j,l,1,n)=1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
 c     *              ((OIJL(I,J,L,IJL_MO)*DXYPO(J)-OIJL(I,J,L,IJL_S0M))
-c     *                   *trw0(n))-1.) 
+c     *                   *trw0(n))-1.)
                   else
                     XBT(j,l,1,n)= 10.**(-ntrocn(n))*TOIJL(I,J,L
      *                   ,TOIJL_CONC,n)/(OIJL(I,J,L,IJL_MO)*DXYPO(J))
@@ -1349,7 +1380,7 @@ c     *                   *trw0(n))-1.)
      *         ,"Latitude","Depth (m)")
 #ifdef TRACERS_OCEAN
           DO N=1,NTM
-          if (to_per_mil(n).gt.0) then 
+          if (to_per_mil(n).gt.0) then
             UNITS="permil"
           else
             UNITS=unit_string(ntrocn(n),'kg/kg')
@@ -1478,7 +1509,7 @@ c     *                   *trw0(n))-1.)
      *         ,ZOC,"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
 #ifdef TRACERS_OCEAN
           DO N=1,NTM
-          if (to_per_mil(n).gt.0) then 
+          if (to_per_mil(n).gt.0) then
             UNITS="permil"
           else
             UNITS=unit_string(ntrocn(n),'kg/kg')

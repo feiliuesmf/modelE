@@ -417,7 +417,7 @@ C**** depths are calculated from base of the mixed layer
       SCALED=1./IDACC(12)
       ONES(1:JM)=1.
 C**** Print out a depth/latitude plot of the deep ocean temp anomaly
-      CALL JLMAP(LNAME,SNAME,UNITS,1,ZOC,ATGO,SCALED,ONES,ONES,LMOM,2,1)
+      CALL JLMAP(LNAME,SNAME,UNITS,0,ZOC,ATGO,SCALED,ONES,ONES,LMOM,2,1)
 C****
       if(qdiag) call close_jl
 
