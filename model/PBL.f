@@ -828,7 +828,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       real*8 z1pass,znpass,b,xipass,lznbyz1
       common /grids_99/z1pass,znpass,b,xipass,lznbyz1
 C$OMP  THREADPRIVATE(/GRIDS_99/)
-      real*8, external :: fgrid,fgrid2
+      real*8, external :: fgrid2
       real*8 rtsafe
       integer i,j,iter  !@var i,j,iter loop variable
       real*8 dxi,zmin,zmax,dxidz,dxidzh

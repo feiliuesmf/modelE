@@ -3071,7 +3071,9 @@ C**** Done!
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm
+#ifdef TRACERS_OCEAN
       USE TRACER_COM, only : trw0
+#endif
       USE OCEAN, only : im,jm,imaxj,g0m,s0m,mo,dxypo,focean,lmm
 #ifdef TRACERS_OCEAN
      *     ,trmo

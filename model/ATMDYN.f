@@ -103,9 +103,13 @@ C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
          MODDA=MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2)  ! strat
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
 C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q
-         PUA(:,:,:)=PUA(:,:,:)+PU(:,:,:)
-         PVA(:,:,:)=PVA(:,:,:)+PV(:,:,:)
-         SDA(:,:,1:LM-1)=SDA(:,:,1:LM-1)+SD(:,:,1:LM-1)
+C$OMP  PARALLEL DO PRIVATE (L)
+      DO L=1,LM
+        PUA(:,:,L)=PUA(:,:,L)+PU(:,:,L)
+        PVA(:,:,L)=PVA(:,:,L)+PV(:,:,L)
+        IF (L.LE.LM-1) SDA(:,:,L)=SDA(:,:,L)+SD(:,:,L)
+      END DO
+C$OMP  END PARALLEL DO
 C**** ADVECT Q AND T
 CCC   TT(:,:,:) = T(:,:,:)
 CCC   TZT(:,:,:)= TZ(:,:,:)

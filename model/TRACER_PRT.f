@@ -53,7 +53,7 @@ C**** Zonal mean concentration
 
 
       SUBROUTINE DIAGTCA (M,NT)
-!@sum  DIAGCAT Keeps track of the conservation properties of tracers
+!@sum  DIAGTCA Keeps track of the conservation properties of tracers
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
 !@ver  1.0
       USE MODEL_COM, only: im,jm,lm,fim
@@ -82,6 +82,7 @@ C**** NOFMT(1,NT) is the index for the instantaneous value.
 
       if (nofmt(m,nt).gt.0) then
 C**** Calculate current value TOTAL
+!$OMP PARALLEL DO PRIVATE (J,L,I,SSTM,STM)
         do j=1,jm
           sstm = 0.
           do l=1,lm
@@ -96,6 +97,7 @@ C**** Calculate current value TOTAL
           end do
           total(j) = sstm
         end do
+!$OMP END PARALLEL DO
         total(1) = fim*total(1)
         total(jm)= fim*total(jm)
         nm=nofmt(m,nt)
