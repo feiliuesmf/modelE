@@ -1844,7 +1844,7 @@ C**** End of outside loop over straits
       SUBROUTINE VDIFF(U,K,GHAT,DTBYDZ,BYDZ2,LMIJ,U0)
 !@sum  VDIFF Implicit vertical diff + non local transport for velocity
 !@auth Gavin Schmidt
-!@var  1.0
+!@ver  1.0
       USE OCEAN, only : LMO
       IMPLICIT NONE
       REAL*8, DIMENSION(LMO), INTENT(IN) :: U0,K,GHAT,DTBYDZ,BYDZ2
@@ -1884,7 +1884,7 @@ C**** Calculate operators for tridiagonal solver
       SUBROUTINE VDIFFS(U,K,GHAT,DTBYDZ,BYDZ2,DT,LMIJ,U0,FL)
 !@sum  VDIFFS Implicit vertical diff + non local transport for tracers
 !@auth Gavin Schmidt
-!@var  1.0
+!@ver  1.0
       USE OCEAN, only : LMO
       IMPLICIT NONE
       REAL*8, DIMENSION(LMO), INTENT(IN) :: U0,K,GHAT,DTBYDZ,BYDZ2
