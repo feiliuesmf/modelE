@@ -311,7 +311,7 @@ C****
      *     ,trmelti
 #endif
       USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP, only : GET, GLOBALSUM
       IMPLICIT NONE
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 MSI2,ROICE,SNOW,ENRGUSED,RUN0,SALT,POCEAN,TFO
@@ -322,6 +322,10 @@ C****
 #endif
       INTEGER I,J,ITYPE,JR,ITYPEO
       integer :: J_0, J_1
+      REAL*8, DIMENSION(
+     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3)
+     &       :: AREG_part
+      REAL*8 :: AREG_sum
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -334,6 +338,7 @@ C**** add fluxes to oceans/lakes.
 cc      IF (MOD(ITIME,NDAY).eq.0) THEN
 cc        DT=SDAY    ! if called more frequently this should change
         DT=DTsrc    ! now do this every physics time step
+        AREG_part = 0
         DO J=J_0, J_1
         DO I=1,IMAXJ(J)
           PWATER=FOCEAN(I,J)+FLAKE(I,J)
@@ -382,9 +387,9 @@ C**** accumulate diagnostics
      *          *PWATER
            AJ(J,J_IMELT,ITYPEO)=AJ(J,J_IMELT,ITYPEO)+    RUN0*(1.-ROICE)
      *          *PWATER
-           AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ENRGUSED*PWATER*DXYP(J)
-           AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+    SALT*PWATER*DXYP(J)
-           AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+    RUN0*PWATER*DXYP(J)
+           AREG_part(JR,J,1)= AREG_part(JR,J,1)-ENRGUSED*PWATER*DXYP(J)     ! HMELT
+           AREG_part(JR,J,2)= AREG_part(JR,J,2)+SALT*PWATER*DXYP(J)         ! SMELT
+           AREG_part(JR,J,3)= AREG_part(JR,J,3)+RUN0*PWATER*DXYP(J)         ! IMELT
 C**** Update prognostic sea ice variables
             RSI(I,J)=ROICE
             MSI(I,J)=MSI2
@@ -404,6 +409,16 @@ C**** Save fluxes (in kg, J etc.), positive into ocean
 #endif
         END DO
         END DO
+
+        DO JR = 1, SIZE(AREG,1)
+          CALL GLOBALSUM(grid, AREG_part(JR,:,1), AREG_sum)
+          AREG(JR,J_HMELT) = AREG(JR,J_HMELT) + AREG_sum
+          CALL GLOBALSUM(grid, AREG_part(JR,:,2), AREG_sum)
+          AREG(JR,J_SMELT) = AREG(JR,J_SMELT) + AREG_sum
+          CALL GLOBALSUM(grid, AREG_part(JR,:,3), AREG_sum)
+          AREG(JR,J_IMELT) = AREG(JR,J_IMELT) + AREG_sum
+        END DO
+
 cc      ELSE
 cc        MELTI=0. ; EMELTI=0. ; SMELTI=0.
 cc#ifdef TRACERS_WATER
