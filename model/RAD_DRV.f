@@ -750,6 +750,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     ,tauex5,tauex6,tausct,taugcb
      *     ,QR(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,CLDinfo(LM,3,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8 RANDXX ! temporary
       REAL*8 QSAT
       LOGICAL NO_CLOUD_ABOVE
 C
@@ -926,9 +927,10 @@ C force random number generation for all latitudes for parallel consistency
         DO L=LM,1,-1
           IF(TAUSS(L,I,J).le.taulim) CLDSS(L,I,J)=0.
           IF(TAUMC(L,I,J).le.taulim) CLDMC(L,I,J)=0.
-          RANDSS = RANDU(X)
+          RANDXX = RANDU(X)
           IF(CLDSS(L,I,J).GT.0.) THEN
             IF (NO_CLOUD_ABOVE) THEN
+              RANDSS = RANDXX
               NO_CLOUD_ABOVE = .FALSE.
             END IF
           ELSE
