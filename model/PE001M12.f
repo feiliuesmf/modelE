@@ -285,6 +285,7 @@ C**** by time or by sun light.
 C****
       USE CONSTANT, only : kapa,lhe,twopi
       USE E001M12_COM
+      USE GEOM, only : DLAT,DLON
       USE RADNCB, only : COSD,SIND
       IMPLICIT NONE
 
@@ -307,7 +308,7 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       SPHIS=-1.
       CPHIS=0.
       DO 20 J=1,JM-1
-      PHIN=(TWOPI/(2*JM-2))*(J-.5*JM)
+      PHIN=DLAT*(J-.5*JM)
       SPHIN=SIN(PHIN)
       CPHIN=COS(PHIN)
       PHIM=(PHIN*SPHIN+CPHIN-PHIS*SPHIS-CPHIS)/(SPHIN-SPHIS)
@@ -324,7 +325,7 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       COSJ(JM)=COS(PHIM)
 C**** COMPUTE THE SINES AND COSINES OF LONGITUDE
       DO 40 I=1,IM
-      RI(I)=(TWOPI/IM)*(I-.5)
+      RI(I)=DLON*(I-.5)
       SINI(I)=SIN(RI(I))
    40 COSI(I)=COS(RI(I))
       RETURN
@@ -639,7 +640,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     "RADN4","RADN5","RADN6","RADN7","RADN8",
      *     "RADN9","RADNA","RADNB","RADNC","RADND",
      *     "RADNE"/)
-!@var QBIN true if files for radiation routines are binary
+!@var QBIN true if files for radiation input files are binary
       LOGICAL :: QBIN(14)=(/.TRUE.,.TRUE.,.FALSE.,.FALSE.,.TRUE.,.TRUE.
      *     ,.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.,.TRUE.,.TRUE./)
 C****
