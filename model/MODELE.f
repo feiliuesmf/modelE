@@ -195,8 +195,9 @@ C**** APPLY ICE FORMED IN THE OCEAN/LAKES TO ICE VARIABLES
 C**** ADVECT ICE
       CALL ADVSI
          CALL CHECKT ('ADVSI ')
-C**** if aturb_on=.false., CALCULATE DRY CONVECTION ABOVE PBL
-      if(.not. aturb_on) CALL DRYCNV (2,LM-1)
+C**** IF ATURB is used in rundeck then this is a dummy call
+C**** CALCULATE DRY CONVECTION ABOVE PBL 
+      CALL DIFFUS (2,LM-1,dtsrc)
          IF (MODD5S.EQ.0) CALL DIAG9A (7)
          CALL CHECKT ('DRYCNV')
          CALL TIMER (MNOW,MSURF)

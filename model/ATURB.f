@@ -1,4 +1,4 @@
-      subroutine diffus(dtime)
+      subroutine diffus(lbase_min,lbase_max,dtime)
 !@sum  diffus updates u,v,t,q due to 
 !@+  turbulent transport throughout all GCM layers
 !@+  using a second order closure (SOC)
@@ -13,20 +13,22 @@
 !@var q 3d relative humidity
 !@var p 2-d pressure
 !@var dtime time step
+!@var lbase_min/max levels through which to apply turbulence (dummy)
 !@var mout 0:don't call dout; 1:call dout
 !@var itest longitude at which to call dout
 !@var jtest latitude at which to call dout
       USE DYNAMICS, only : pmid,pk,pedn,pdsig,plij
       USE MODEL_COM, only :
-     *      im,jm,lm,sig,sige,u,v,t,q,p
-     *     ,vt_on      
+     *      im,jm,lm,sig,sige,u,v,t,q,p,vt_on      
       USE CONSTANT, only : kapa,deltx,lhe,sha
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux,egcm
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj
       USE DAGCOM, only : ajl
+      USE DAGPCOM, only : p1000k
 
       IMPLICIT NONE
 
+      integer, intent(in) :: lbase_min,lbase_max
       real*8, intent(in) :: dtime
 
       real*8, dimension(lm) :: uij,vij,tij,pij,qij,eij
@@ -45,18 +47,16 @@
       real*8, dimension(im,jm) :: uflux_ucell,vflux_ucell
 
       integer, parameter :: mout=0,itest=52,jtest=33,itmax=2
-      real*8, parameter :: tol=1.d-4,qmin=1.d-20,p00=1000.d0
-      integer, save :: ifirst=1
-      real*8, save :: p1000k=1.d0
+      real*8, parameter :: tol=1.d-4,qmin=1.d-20
       real*8 :: uflx,vflx,tflx,qflx,pijgcm,pl,rvx
       real*8 :: temp0,ustar2,dbll,reserv,test,check,t0ijl,rak
       integer :: loc,icount,imax,kmax,idik,idjk
       integer :: i,j,l,k,iter  !@var i,j,l,iter loop variable
 
-      if (ifirst.eq.1) then
-        p1000k=p00**kapa
-        ifirst=0
-      endif
+C**** Note that lbase_min/max are here for backwards compatibility with
+C**** original drycnv. They are only used to determine where the
+C**** routine has been called from.
+      if (lbase_min.eq.2) return       ! quit if called from main
 
       if(.not. vt_on) then
           rvx=0.d0
