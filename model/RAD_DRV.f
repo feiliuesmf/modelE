@@ -995,6 +995,7 @@ C**** set up parameters for new sea ice and snow albedo
         zoice=0. ; flags=.FALSE. ; fmp=0. ; zmp=0.
       endif
 C**** set up new lake depth parameter to incr. albedo for shallow lakes
+      zlake=0.
       if (plake.gt.0) then
         zlake = MWL(I,J)/(RHOW*PLAKE*DXYP(J))
       end if
@@ -1144,7 +1145,6 @@ C**** END OF MAIN LOOP FOR J INDEX
 C****
 !$OMP  END DO
 !$OMP  END PARALLEL
-CcOMP  END PARALLEL DO
       if(kradia.gt.0) return
 C**** Stop if temperatures were out of range
       IF(ICKERR.GT.0)
