@@ -77,6 +77,8 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       INTEGER N
 #endif
 #endif
+!@var emin min energy deficit required before ice forms (J/m^2)
+      REAL*8, PARAMETER :: emin=-1d-10 
       REAL*8 ENRGF1, ACEF1, ENRGF2, ACEF2, FHO, FHI, FH0, FH1, FH2, FSR2
       REAL*8 ENRGI, ENRGI2, ENRGO, ENRGO2, RUNO, RUNI, TLK2, DM2, DH2
       REAL*8 FRATO,FRATI,E2O,E2I
@@ -136,7 +138,7 @@ C**** Apply fluxes to 2nd layer
 C**** Calculate energy in mixed layer (open ocean)
       IF (ROICE.LT.1d0) THEN
         FHO=ELAKE(1)+ENRGO+DH2-(MLAKE(1)+DM2+RUNO)*TFL*SHW
-        IF (FHO.LT.0) THEN ! FLUXES COOL WATER TO FREEZING, FORM ICE
+        IF (FHO.LT.emin) THEN ! FLUXES COOL WATER TO FREEZING, FORM ICE
           ACEFO =FHO/(TFL*(SHI-SHW)-LHM)
           ACEFO =MIN(ACEFO,MAX(MLAKE(1)+DM2+RUNO-MINMLD*RHOW,0d0))
           ENRGFO=ACEFO*(TFL*SHI-LHM)
@@ -147,7 +149,7 @@ C**** Calculate energy in mixed layer (open ocean)
       IF (ROICE.GT.0) THEN
 C**** Calculate energy in mixed layer (under ice)
         FHI=ELAKE(1)+DH2+ENRGI-(MLAKE(1)+DM2+RUNI)*TFL*SHW
-        IF (FHI.LT.0) THEN ! FLUXES COOL WATER TO FREEZING, FORM ICE
+        IF (FHI.LT.emin) THEN ! FLUXES COOL WATER TO FREEZING, FORM ICE
           ACEFI =FHI/(TFL*(SHI-SHW)-LHM)
           ACEFI =MIN(ACEFI,MAX(MLAKE(1)+DM2+RUNI-MINMLD*RHOW,0d0))
           ENRGFI=ACEFI*(TFL*SHI-LHM)
@@ -171,7 +173,7 @@ C**** Update first layer variables
       ACEF1=0. ; ACEF2=0. ; ENRGF1=0. ; ENRGF2=0.
 C**** Take remaining energy and start to freeze second layer
       FH2= ELAKE(1)-MLAKE(1)*TFL*SHW
-      IF (FH2.LT.0) THEN
+      IF (FH2.LT.emin) THEN
         IF (MLAKE(2).gt.0) THEN
 C**** FH2=-ACEF2*(TLK2-TFL)*SHW+ACEF2*LHM
           TLK2    =ELAKE(2)/(MLAKE(2)*SHW)
@@ -183,7 +185,7 @@ C**** FH2=-ACEF2*(TLK2-TFL)*SHW+ACEF2*LHM
           MLAKE(2)=MLAKE(2)-ACEF2
         END IF
         FH1= ELAKE(1)-MLAKE(1)*TFL*SHW
-        IF (FH1.lt.0) THEN      ! all layer 2 froze, freeze layer 1
+        IF (FH1.lt.emin) THEN      ! all layer 2 froze, freeze layer 1
           ACEF1   =FH1/(TFL*(SHI-SHW)-LHM)
 C**** limit freezing if lake is between 50 and 20cm depth
           IF (MLAKE(1).lt.0.5d0*RHOW) THEN

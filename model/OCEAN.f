@@ -452,6 +452,8 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
      *     , ERUN4O, ERUN4I, WTRW
       REAL*8 EIW0, ENRGIW, WTRI1, EFIW, ENRGO0, EOFRZ, ENRGO
       REAL*8 WTRW0, ENRGW0, ENRGW, WTRI0, SMSI0
+!@var emin min energy deficit required before ice forms (J/m^2)
+      REAL*8, PARAMETER :: emin=-1d-10
 C**** initiallize output
       ENRGFO=0. ; ACEFO=0. ; ACEFI=0. ; ENRGFI=0. ; WTRW=WTRO
 
@@ -471,7 +473,7 @@ C**** Calculate heat fluxes to ocean
 C**** Calculate energy in mixed layer (open ocean)
       ENRGO0=WTRO*TGW*SHW
       EOFRZ=WTRO*TFW*SHW
-      IF (ENRGO0+ENRGO.GE.EOFRZ) THEN
+      IF (ENRGO0+ENRGO.GE.EOFRZ+emin) THEN
 C**** FLUXES RECOMPUTE TGW WHICH IS ABOVE FREEZING POINT FOR OCEAN
         IF (ROICE.LE.0.) THEN
           TGW=TGW+ENRGO/(WTRO*SHW)
@@ -500,7 +502,7 @@ C**** CALCULATE THE ENERGY OF THE WATER BELOW THE ICE AT FREEZING POINT
 C**** AND CHECK WHETHER NEW ICE MUST BE FORMED
       WTRI1 = WTRO-SMSI         ! new mass of ocean (kg/m^2)
       EFIW = WTRI1*TFW*SHW ! freezing energy of ocean mass WTRI1
-      IF (EIW0+ENRGIW .LE. EFIW) THEN ! freezing case
+      IF (EIW0+ENRGIW .LE. EFIW+emin) THEN ! freezing case
 C**** FLUXES WOULD COOL TGW TO FREEZING POINT AND FREEZE SOME MORE ICE
         ACEFI = (EIW0+ENRGIW-EFIW)/(TFW*(SHI-SHW)-LHM)
         ENRGFI = ACEFI*(TFW*SHI/(1.-SSI0)-LHM) ! energy of frozen ice
