@@ -143,7 +143,7 @@ C
      & nM=        53,     !you must always put nM last (highest number)
      & JPPJ   =   28,
      & NJVAL  =   27,     !formerly read in from jv_spec00_15.dat
-     & NLFASTJ=  400,     !300 is arbitrary for now
+     & NLFASTJ=  400,     !400 is arbitrary for now
      & NWFASTJ=   18, 
      & JPNL   =   23,
      & NCFASTJ2 = 2*LM+2,  ! fastj2
@@ -188,7 +188,7 @@ C
      & nM=        35,     !you must always put nM last (highest number)
      & JPPJ   =   16,
      & NJVAL  =   16,     !formerly read in from jv_spec00_15.dat
-     & NLFASTJ=  350,     !300 is arbitrary for now
+     & NLFASTJ=  350,     !350 is arbitrary for now
      & NWFASTJ=   15, 
      & JPNL   =   12,
      & n_fam =     4,
@@ -465,7 +465,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var DU_O3 total column ozone in latitude band
 !@var SF3 is H2O photolysis in Schumann-Runge Bands
 !@var AER2 fastj2 aerosol profile?
-!@var dtausub fastj2 ?
 !@var odcol Optical depth at each model level
 !@var AMF Air mass factor for slab between level and level above
       INTEGER nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M, 
