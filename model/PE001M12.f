@@ -25,7 +25,8 @@ C****
      *     ,ij_f0li,ij_f1li,ij_erun2,ij_runli,ij_f0e,j_eprcp,j_difs
      *     ,j_run1,ij_prec,ij_neth,j_edifs,j_erun2,j_imelt,j_run2
      *     ,j_dwtr2
-      USE OCEAN, only : odata,oa,z1o,ace1i,prec_si,prec_oc
+      USE OCEAN, only : odata,oa,z1o,prec_oc
+      USE SEAICE, only : ace1i,prec_si
       USE LAKES_COM, only : mwl,gml
       USE LANDICE, only : precli
       IMPLICIT NONE
@@ -1145,9 +1146,9 @@ C****
      *     j_ace2,j_snow,j_run1,j_f2dt,j_evap,j_oht,j_omlt,j_edifs,
      *     j_f1dt,j_erun2,j_imelt,j_run2,j_dwtr2
 
-      USE OCEAN, only : odata,z1o,ace1i,ota,otb,otc,t50,sea_ice,tfo
-     *     ,fleadoc,osourc
-      USE LAKES_COM, only : mwl,gml,tfl,fleadlk
+      USE OCEAN, only : odata,z1o,ota,otb,otc,tfo,fleadoc,osourc
+      USE SEAICE, only : ace1i,sea_ice,addice
+      USE LAKES_COM, only : mwl,gml,tfl,fleadlk,t50
       USE LANDICE, only : ace2li,lndice
       IMPLICIT NONE
 
@@ -1370,14 +1371,17 @@ c     IF (FLAKE(I,J).gt.0) QFIXR=.FALSE.   ! will soon be implemented
 
       CALL SEA_ICE(DTSRCE,SNOW,ROICE,TG1,TG2,TG3,TG4,MSI1,MSI2
      *     ,F0DT,F1DT,EVAP,HSI1,HSI2,HSI3,HSI4,TGW,RUN0
-     *     ,DIFSI,EDIFSI,DIFS,EDIFS,ACE2M,F2DT,TFO,QFIXR)
+     *     ,DIFSI,EDIFSI,DIFS,EDIFS,ACE2M,F2DT,QFIXR)
 
       IF (KOCEAN.EQ.1) WTRW0 = (WTRW0+ROICE*RUN0)+ROICE*ACE2M
+      ACEFO=0 ; ACE2F=0. ; ENRGFO=0. ; ENRGFI=0.  
+      IF (.not.QFIXR) CALL OSOURC (ROICE,MSI1,MSI2,TGW,WTRO,EIW0
+     *       ,OTDT,ENRGO,ERUN4,ENRGFO,ACEFO,ACE2F,WTRW0,ENRGW0,ENRGFI
+     *       ,F2DT,TFO)
 
-      CALL OSOURC(SNOW,ROICE,TG1,TG2,TG3,TG4,MSI1,MSI2,HSI1,HSI2,
-     *     HSI3,HSI4,TGW,WTRO,EIW0,OTDT,ENRGO,ERUN4,DIFSI,EDIFSI,
-     *     ENRGFO,ACEFO,ACE2F,WTRW0,ENRGW0,ENRGFI,F2DT,TFO,
-     *     FLEADOC,QFIXR,QCMPR)
+      CALL ADDICE (SNOW,ROICE,TG1,TG2,TG3,TG4,MSI1,MSI2,HSI1,HSI2
+     *     ,HSI3,HSI4,DIFSI,EDIFSI,ENRGFO,ACEFO,ACE2F,ENRGFI,TFO,FLEADOC
+     *     ,QFIXR,QCMPR)
 C****
 C**** RESAVE PROGNOSTIC QUANTITIES
 C****

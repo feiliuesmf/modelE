@@ -127,9 +127,7 @@ C****
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG5A (1,0)
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG9A (1)
 C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
-c      CALL MSTCNV
-c      CALL CONDSE
-      CALL MC_COND
+      CALL CONDSE
       CALL CHECKT ('CONDSE ')
       CALL TIMER (MNOW,MINC,MCNDS)
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NCNDS)
@@ -466,7 +464,8 @@ C****
      &  ,ipbl,bldata,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : aj,kacc,tsfrez,tdiurn,kdiag,keynr,jreg
      &  ,TITREG,NAMREG,iwrite,jwrite,itwrite,qcheck
-      USE OCEAN, only : odata,OA,T50
+      USE OCEAN, only : odata,OA
+      USE LAKES_COM, only : T50
       USE FILEMANAGER, only : getunit
 
       IMPLICIT NONE
@@ -1114,8 +1113,8 @@ C**** Temporary io_rsf
      *     cq=>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg
      *        ,tauavg,ustar
       USE DAGCOM
-      USE OCEAN, only : ODATA,OA,T50,Z1O
-      USE LAKES_COM, only : MWL,TSL,GML
+      USE OCEAN, only : ODATA,OA,Z1O
+      USE LAKES_COM, only : MWL,TLAKE,GML,T50
 
       IMPLICIT NONE
 !@var iaction flag for reading or writing rsf file
@@ -1142,7 +1141,7 @@ C**** tell whether the version of the model variables is current
 C**** need a blank line to fool 'qrsfnt' etc.
          WRITE (kunit,err=10)
          WRITE (kunit,err=10) "E001M12",U,V,T,P,Q,WM
-         WRITE (kunit,err=10) "OCN01  ",ODATA,OA,T50,MWL,TSL,GML
+         WRITE (kunit,err=10) "OCN01  ",ODATA,OA,T50,MWL,TLAKE,GML
          WRITE (kunit,err=10) "ERT01  ",GDATA
          WRITE (kunit,err=10) "SOL01  ",wbare,wvege,htbare,htvege,snowbv
          WRITE (kunit,err=10) "BLD01  ",wsavg,tsavg,qsavg,dclev,Z1O
@@ -1163,7 +1162,7 @@ C**** need a blank line to fool 'qrsfnt' etc.
          READ (kunit,err=10) TAU1,JC,CLABEL,RC
          READ (kunit,err=10)
          READ (kunit,err=10) HEADER,U,V,T,P,Q,WM
-         READ (kunit,err=10) HEADER,ODATA,OA,T50,MWL,TSL,GML
+         READ (kunit,err=10) HEADER,ODATA,OA,T50,MWL,TLAKE,GML
          READ (kunit,err=10) HEADER,GDATA
          READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
          READ (kunit,err=10) HEADER,wsavg,tsavg,qsavg,dclev,Z1O,usavg

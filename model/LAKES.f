@@ -7,7 +7,7 @@
       
 C**** 
 C**** Changes from Model III: MO -> MWL (kg), G0M -> GML (J), 
-C****    GZM -> TSL (deg C),  RSI -> RLI (fract),
+C****    GZM -> TLAKE (deg C),  RSI -> RLI (fract),
 C****    MSI -> MLI (kg/m^2), HSI -> HLI (J/m^2)
 C****
 !@var LMLI Number of layers of lake ice model
@@ -35,7 +35,9 @@ C****
 !@ver  1.0
       USE CONSTANT, only : shi,lhm
       USE E001M12_COM, only : im,jm,gdata,flake,zatmo,dt,flice,hlake
-      USE OCEAN, only : odata,ace1i,kocean
+     *     ,kocean
+      USE OCEAN, only : odata
+      USE SEAICE, only : ace1i
       USE GEOM, only : dxyp,dxv,dyv,dxp,imaxj
       USE LAKES
       USE LAKES_COM
@@ -53,7 +55,7 @@ C****
 C**** 
 C**** LAKECB  MWL      Mass of water in lake (kg)
 C****         GML      Liquid lake enthalpy (J)
-C****         TSL      Temperature of lake surface (C)
+C****         TLAKE      Temperature of lake surface (C)
 C****         RLI      Horizontal ratio of lake ice to lake (1)
 C****         MLI      Mass of sea ice (kg/m**2)
 C****         HLI      Heat including latent of sea ice (J/m**2)
@@ -72,7 +74,7 @@ C**** This is just an estimate for the initiallisation
       DO J=2,JM-1
        DO I=1,IM
          IF (FLAKE(I,J).gt.0) THEN
-           TSL(I,J)   = ODATA(I,J,1)
+           TLAKE(I,J)   = ODATA(I,J,1)
 c           RLI(I,J)   = ODATA(I,J,2)
 c           MLI(I,J,2) = ODATA(I,J,3)
 c           MLI(I,J,1) = GDATA(I,J,1) + ACE1I
@@ -83,12 +85,12 @@ c           HLI2=(SHI*GDATA(I,J,7)-LHM)*MLI(I,J,2)
 c           HLI(I,J,3) = XLI3*HLI2
 c           HLI(I,J,4) = XLI4*HLI2
            MWL(I,J) = 1d3*HLAKE(I,J)*FLAKE(I,J)*DXYP(J)
-           GML(I,J) = MWL(I,J)*MAX(TSL(I,J),4d0)
+           GML(I,J) = MWL(I,J)*MAX(TLAKE(I,J),4d0)
 C**** reset GDATA correctly
 c           GDATA(I,J,3) = (HLI(I,J,1)/(XLI1*MLI(I,J,1))+LHM)/SHI
 c           GDATA(I,J,7) = (HLI(I,J,2)/(XLI2*MLI(I,J,1))+LHM)/SHI
          ELSE
-           TSL(I,J)   = 0.
+           TLAKE(I,J)   = 0.
 c           RLI(I,J)   = 0.
 c           MLI(I,J,1:2) = 0.
 c           HLI(I,J,1:4) = 0.
@@ -208,7 +210,7 @@ C**** Set runoff temperature of glacial ice to be 0 (C)
 C****
       DO J=1,JM
         DO I=1,IM
-          IF(FLICE(I,J).GT.0.)  TSL(I,J) = 0
+          IF(FLICE(I,J).GT.0.)  TLAKE(I,J) = 0
         END DO
       END DO
 
@@ -247,7 +249,7 @@ c     *     YK/.707107d0,1., .707107d0, 0.,-.707107d0,-1.,-.707107d0,0./
 C****
 C**** LAKECB  MWL  Liquid lake mass  (kg)
 C****         GML  Liquid lake enthalpy  (J)
-C****         TSL  Lake surface temperature (C)
+C****         TLAKE  Lake surface temperature (C)
 C****
 C**** Calculate net mass and energy changes due to river flow
 C****
@@ -263,7 +265,7 @@ C**** Only overflow if lake mass is above sill height (HLAKE (m))
             IF(MWL(IU,JU).gt.MWLSILL) THEN
               DMM = (MWL(IU,JU)-MWLSILL)*RATE(IU,JU)
 C             DGM = GML(IU,JU)*DMM/MWL(IU,JU)
-              DGM = TSL(IU,JU)*DMM*SHW
+              DGM = TLAKE(IU,JU)*DMM*SHW
               FLOW(IU,JU) =  FLOW(IU,JU) - DMM
               EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
               AIJ(IU,JU,IJ_MRVR)=AIJ(IU,JU,IJ_MRVR) +  DMM
@@ -305,7 +307,7 @@ C**** Only overflow if lake mass is above sill height (HLAKE (m))
       IF(MWL(1,1).gt.MWLSILL) THEN
         DMM = (MWL(1,1)-MWLSILL)*RATE(1,1)
 C       DGM = GML(1,1)*DMM/MWL(1,1)
-        DGM = TSL(1,1)*DMM*SHW
+        DGM = TLAKE(1,1)*DMM*SHW
         FLOW(1,1) =  FLOW(1,1) - DMM
         EFLOW(1,1) = EFLOW(1,1) - DGM
           AIJ(1,1,IJ_MRVR)=AIJ(1,1,IJ_MRVR) +  DMM
@@ -353,8 +355,8 @@ C****
         DO I=1,IM
           IF(FLAKE(I,J).gt.0.) THEN
 C**** check for reasonable lake surface temps
-            IF (TSL(I,J).ge.40 .or. TSL(I,J).le.-80) THEN
-              WRITE(6,*) 'After ',SUBRN,': I,J,TSL=',I,J,TSL(I,J)
+            IF (TLAKE(I,J).ge.40 .or. TLAKE(I,J).le.-80) THEN
+              WRITE(6,*) 'After ',SUBRN,': I,J,TSL=',I,J,TLAKE(I,J)
               QCHECKL = .TRUE.
             END IF
 C**** Check potential specific enthalpy of first lake layer
@@ -392,7 +394,9 @@ c     QCHECKL = .TRUE.
       USE E001M12_COM, only : IM,JM,FLAKE,GDATA,KOCEAN,TAU,TAUI,DT
       USE GEOM, only : IMAXJ
 !      USE LAKES, only : ZIMIN,ZIMAX,T_ICE,T_NOICE,DRSIDT
-      USE OCEAN, only : ODATA,T50,Z1I,DM
+      USE LAKES_COM, only : T50
+      USE OCEAN, only : ODATA,DM
+      USE SEAICE, only : Z1I
       IMPLICIT NONE
       REAL*8  ZIMIN,ZIMAX,T_ICE,T_NOICE,DRSIDT
       INTEGER I,J,K,IMAX,IEND

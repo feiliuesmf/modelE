@@ -29,21 +29,39 @@ C****
       RETURN
       END
 
-
       FUNCTION QSAT_NEW (TM,QL,PR)
 !@sum   QSAT calculates saturation vapour mixing ratio
 !@auth  Gary Russell
 !@ver   1.0
+      USE CONSTANT, only : mrat,rvap,tf
       IMPLICIT NONE
 !@var A,B,C   expansion coefficients for QSAT
-      REAL*8, PARAMETER :: A=3.797915d0
-      REAL*8, PARAMETER :: B=7.93252d-6  ! = 1./(rvap*tf)
-      REAL*8, PARAMETER :: C=2.166847d-3 ! = 1./rvap
+      REAL*8, PARAMETER :: A=6.108d0*MRAT    !3.797915d0
+      REAL*8, PARAMETER :: B= 1./(RVAP*TF)   !7.93252d-6  
+      REAL*8, PARAMETER :: C= 1./RVAP        !2.166847d-3 
       REAL*8, INTENT(IN) :: TM  !@var TM   potential temperature (K)
-      REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap. (J/kg)
+      REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap./sub. (J/kg)
       REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)
       REAL*8 :: QSAT_NEW        !@var QSAT sat. vapour mixing ratio
       QSAT_NEW = A*EXP(QL*(B-C/TM))/PR
+      RETURN
+      END
+
+      FUNCTION DQSATDT (TM,QL)
+!@sum   DQSATDT calculates change of sat. vapour mixing ratio with temp.
+!@auth  Gary Russell
+!@ver   1.0
+C**** Note that d(qsat)/dt = qsat * ql * c / T*T  
+C**** Only the factor of qsat is given here
+      USE CONSTANT, only : rvap
+      IMPLICIT NONE
+!@var C expansion coefficient for QSAT
+      REAL*8, PARAMETER :: C= 1./RVAP        !2.166847d-3 
+      REAL*8, INTENT(IN) :: TM  !@var TM   potential temperature (K)
+      REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap./sub. (J/kg)
+      REAL*8 :: DQSATDT         !@var DQSATDT d(qsat)/dT factor only.
+      REAL*8 :: QSAT            !@var QSAT sat. vapour mixing ratio
+      DQSATDT = QL*C/(TM*TM)   ! * QSAT(TM,QL,PR)
       RETURN
       END
 
