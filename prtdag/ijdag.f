@@ -135,7 +135,7 @@ C****
       var_name='t850'; call wrtarr(var_name,acc)
 
 ! ACCUMULATED CONVECTIVE CLOUD COVER units = '1'
-      acc_name='PCLDMC'; call getacc(acc_name,acc)
+      acc_name='PMCCLD'; call getacc(acc_name,acc)
       acc(:,:) = acc(:,:)/idacc(ia)
       var_name='pcldmc'; call wrtarr(var_name,acc)
 
@@ -145,7 +145,7 @@ C****
       var_name='cldtppr'; call wrtarr(var_name,acc)
 
 ! ACCUMULATED CLOUD COVER units = '1'
-      acc_name='PCLD'; call getacc(acc_name,acc)
+      acc_name='CLDCV'; call getacc(acc_name,acc)
       acc(:,:) = acc(:,:)/idacc(ia)
       var_name='pcld'; call wrtarr(var_name,acc)
 

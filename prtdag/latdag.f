@@ -99,7 +99,7 @@ c  AJ69
       var_name = 'ptype'
       long_name = 'SURF TYPE FRACT'
       units = '1'
-      acc_name='SPTYPE'; call getaj(acc_name,acc,accsum,jm,wtype,ntype)
+      acc_name='PTYPE'; call getaj(acc_name,acc,accsum,jm,wtype,ntype)
       scale = 1. / idacc(ia)
       sptype = accsum*scale
       fj = sptype/im
@@ -763,7 +763,7 @@ c
       integer :: itype
       character(len=20) :: aj_name
 
-      aj_name='aj_'//trim(acc_name)
+      aj_name='J_'//trim(acc_name)
       call getacc(aj_name,acc)
 
       acc_sum = 0.
