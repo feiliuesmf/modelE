@@ -552,10 +552,11 @@ C$OMP  THREADPRIVATE(/RADCOM_hybrid/)
 
       INTEGER, SAVE :: JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JR,IH,INCH,JK,IT,iy,iend
-      REAL*8 ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS,CMC,DEPTH,QSS,TAUSSL
+      REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY,CSZ2
      *     ,MSTRAT,STRATQ,STRJ,MSTJ,QR(LM,IM,JM),CLDinfo(LM,3,IM,JM)
       REAL*8 QSAT
+      LOGICAL NO_CLOUD_ABOVE
 C
       REAL*8  RDSS(LM,IM,JM),RDMC(IM,JM), AREGIJ(7,IM,JM)
       INTEGER ICKERR,JCKERR
@@ -644,19 +645,33 @@ C****   Calculate mean strat water conc
      *       /(18.*MSTRAT),PMTOP+1d-2*GRAV*MSTRAT/AREAG
       END IF
 C
-C     GET THE RANDOM NUMBERS OUTSIDE PARALLEL REGIONS
-C
+C**** GET THE RANDOM NUMBERS OUTSIDE PARALLEL REGIONS
+C**** but keep MC calculation seperate from SS clouds     
+C**** MC clouds are considered as a block for each I,J grid point
       DO J=1,JM
       DO I=1,IMAXJ(J)
-         RANDSS    = RANDU(X)
-         RDMC(I,J) = RANDU(X)
-         DO L=1,LM
-           IF(CLDSS(L,I,J).EQ.0.)  RANDSS=RANDU(X)
-           RDSS(L,I,J) = RANDSS
-         END DO
+        RDMC(I,J) = RANDU(X)
       END DO
       END DO
-        end if ! kradia le 0
+C**** SS clouds are considered as a block for each continuous cloud
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
+        NO_CLOUD_ABOVE = .TRUE.
+        DO L=LM,1,-1
+          IF(CLDSS(L,I,J).GT.0.) THEN
+            IF (NO_CLOUD_ABOVE) THEN
+              RANDSS = RANDU(X)
+              NO_CLOUD_ABOVE = .FALSE.
+            END IF
+          ELSE
+            RANDSS = 1.
+            NO_CLOUD_ABOVE = .TRUE.
+          END IF
+          RDSS(L,I,J) = RANDSS
+        END DO
+      END DO
+      END DO
+      end if                    ! kradia le 0
 C****
 C**** MAIN J LOOP
 C****
@@ -664,7 +679,7 @@ C****
       JCKERR=0
 C$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH, ELHX,
 C$OMP*   I,INCH,IH,IT, J, K,KR, L,LR, OPNSKY, CSZ2,
-C$OMP*   PLAND,PIJ, QSS, RANDSS,RANDMC, TOTCLD,TAUSSL,TAUMCL)
+C$OMP*   PLAND,PIJ, QSS, TOTCLD,TAUSSL,TAUMCL)
 C$OMP*   COPYIN(/RADCOM_hybrid/)
 C$OMP*   SHARED(ITWRITE)
 C$OMP    DO SCHEDULE(DYNAMIC,2)
@@ -687,78 +702,76 @@ C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PEARTH=FEARTH(I,J)
 C****
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
-        if (kradia.gt.0) then     ! rad forcing model
-           do l=1,lm
-             tlm(l) = T(i,j,l)*pk(l,i,j)
-             shl(l) = QR(l,i,j)
-             tauwc(l) = CLDinfo(l,1,i,j)
-             tauic(l) = CLDinfo(l,2,i,j)
-             SIZEWC(L)= CLDinfo(l,3,i,j)
-             SIZEIC(L)= SIZEWC(L)
-           end do
-        else                      ! full model
+      if (kradia.gt.0) then     ! rad forcing model
+        do l=1,lm
+          tlm(l) = T(i,j,l)*pk(l,i,j)
+          shl(l) = QR(l,i,j)
+          tauwc(l) = CLDinfo(l,1,i,j)
+          tauic(l) = CLDinfo(l,2,i,j)
+          SIZEWC(L)= CLDinfo(l,3,i,j)
+          SIZEIC(L)= SIZEWC(L)
+        end do
+      else                      ! full model
 C****
 C**** DETERMINE CLOUDS (AND THEIR OPTICAL DEPTHS) SEEN BY RADIATION
 C****
-CCC   RANDSS=RANDU(X)   ! may be layer dependent
-CCC   RANDMC=RANDU(X)
-      RANDMC=RDMC(I,J)
-         CSS=0.
-         CMC=0.
-         DEPTH=0.
-      DO 240 L=1,LM
-      PIJ=PLIJ(L,I,J)
-      QSS=Q(I,J,L)/(RHSAV(L,I,J)+1.D-20)
-      shl(L)=QSS
-      IF(CLDSAV(L,I,J).LT.1.)
-     *  shl(L)=(Q(I,J,L)-QSS*CLDSAV(L,I,J))/(1.-CLDSAV(L,I,J))
-      TLm(L)=T(I,J,L)*PK(L,I,J)
-CCC   IF(CLDSS(L,I,J).EQ.0.) RANDSS=RANDU(X)
-      RANDSS=RDSS(L,I,J)
-      TAUSSL=0.
-      TAUMCL=0.
-      TAUWC(L)=0.
-      TAUIC(L)=0.
-      SIZEWC(L)=0.
-      SIZEIC(L)=0.
-         TOTCLD(L)=0.
-      IF (CLDSS(L,I,J).LT.RANDSS.OR.TAUSS(L,I,J).LE.0.) GO TO 220
-      TAUSSL=TAUSS(L,I,J)
-      shl(L)=QSS
-         CSS=1.
-         AJL(J,L,JL_SSCLD)=AJL(J,L,JL_SSCLD)+CSS
-         TOTCLD(L)=1.
-  220 IF (CLDMC(L,I,J).LT.RANDMC.OR.TAUMC(L,I,J).LE.0.) GO TO 230
-         CMC=1.
-         AJL(J,L,JL_MCCLD)=AJL(J,L,JL_MCCLD)+CMC
-         TOTCLD(L)=1.
-         DEPTH=DEPTH+PDSIG(L,I,J)
-      IF(TAUMC(L,I,J).LE.TAUSSL) GO TO 230
-      TAUMCL=TAUMC(L,I,J)
-      ELHX=LHE
-      IF(TLm(L).LE.TF) ELHX=LHS
-      shl(L)=QSAT(TLm(L),ELHX,PMID(L,I,J))
-  230    AJL(J,L,JL_TOTCLD)=AJL(J,L,JL_TOTCLD)+TOTCLD(L)
-      IF(TAUSSL+TAUMCL.GT.0.) THEN
-        IF(TAUMCL.GT.TAUSSL) THEN
-          SIZEWC(L)=CSIZMC(L,I,J)
-          SIZEIC(L)=CSIZMC(L,I,J)
-          IF(SVLAT(L,I,J).EQ.LHE) THEN
-            TAUWC(L)=TAUMCL
-          ELSE
-            TAUIC(L)=TAUMCL
-          END IF
-        ELSE
-          SIZEWC(L)=CSIZSS(L,I,J)
-          SIZEIC(L)=CSIZSS(L,I,J)
-          IF(SVLHX(L,I,J).EQ.LHE) THEN
-            TAUWC(L)=TAUSSL
-          ELSE
-            TAUIC(L)=TAUSSL
+      CSS=0. ; CMC=0. ; DEPTH=0.
+      DO L=1,LM
+        PIJ=PLIJ(L,I,J)
+        QSS=Q(I,J,L)/(RHSAV(L,I,J)+1.D-20)
+        shl(L)=QSS
+        IF(CLDSAV(L,I,J).LT.1.)
+     *       shl(L)=(Q(I,J,L)-QSS*CLDSAV(L,I,J))/(1.-CLDSAV(L,I,J))
+        TLm(L)=T(I,J,L)*PK(L,I,J)
+        TAUSSL=0.
+        TAUMCL=0.
+        TAUWC(L)=0.
+        TAUIC(L)=0.
+        SIZEWC(L)=0.
+        SIZEIC(L)=0.
+        TOTCLD(L)=0.
+C**** Determine large scale and moist convective cloud cover for radia
+        IF (CLDSS(L,I,J).GE.RDSS(L,I,J).AND.TAUSS(L,I,J).GT.0.) THEN
+          TAUSSL=TAUSS(L,I,J)
+          shl(L)=QSS
+          CSS=1.
+          AJL(J,L,JL_SSCLD)=AJL(J,L,JL_SSCLD)+CSS
+          TOTCLD(L)=1.
+        END IF
+        IF (CLDMC(L,I,J).GE.RDMC(I,J).AND.TAUMC(L,I,J).GT.0.) THEN
+          CMC=1.
+          AJL(J,L,JL_MCCLD)=AJL(J,L,JL_MCCLD)+CMC
+          TOTCLD(L)=1.
+          DEPTH=DEPTH+PDSIG(L,I,J)
+          IF(TAUMC(L,I,J).GT.TAUSSL) THEN
+            TAUMCL=TAUMC(L,I,J)
+            ELHX=LHE
+            IF(TLm(L).LE.TF) ELHX=LHS
+            shl(L)=QSAT(TLm(L),ELHX,PMID(L,I,J))
           END IF
         END IF
-      END IF
-  240 CONTINUE
+        AJL(J,L,JL_TOTCLD)=AJL(J,L,JL_TOTCLD)+TOTCLD(L)
+        IF(TAUSSL+TAUMCL.GT.0.) THEN
+          IF(TAUMCL.GT.TAUSSL) THEN
+            SIZEWC(L)=CSIZMC(L,I,J)
+            SIZEIC(L)=CSIZMC(L,I,J)
+            IF(SVLAT(L,I,J).EQ.LHE) THEN
+              TAUWC(L)=TAUMCL
+            ELSE
+              TAUIC(L)=TAUMCL
+            END IF
+          ELSE
+            SIZEWC(L)=CSIZSS(L,I,J)
+            SIZEIC(L)=CSIZSS(L,I,J)
+            IF(SVLHX(L,I,J).EQ.LHE) THEN
+              TAUWC(L)=TAUSSL
+            ELSE
+              TAUIC(L)=TAUSSL
+            END IF
+          END IF
+        END IF
+      END DO
+C**** effective cloud cover diagnostics 
          CLDCV=CMC+CSS-CMC*CSS
          OPNSKY=1.-CLDCV
          DO IT=1,NTYPE
@@ -814,25 +827,25 @@ CCC      AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
              END DO
            END IF
          END DO
-        end if ! kradia le 0 (full model)
+      end if ! kradia le 0 (full model)
 C****
 C**** SET UP VERTICAL ARRAYS OMITTING THE I AND J INDICES
 C****
 C**** EVEN PRESSURES
       PLB(LM+1)=PEDN(LM+1,I,J)
-      DO 340 L=1,LM
-      PLB(L)=PEDN(L,I,J)
+      DO L=1,LM
+        PLB(L)=PEDN(L,I,J)
 C**** TEMPERATURES
 C---- TLm(L)=T(I,J,L)*PK(L,I,J)     ! already defined
-      IF(TLm(L).LT.130..OR.TLm(L).GT.370.) THEN
-         WRITE(99,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TLm(L)
-         WRITE(99,*) 'GTEMP:',GTEMP(:,:,I,J)
-CCC      STOP 'In Radia: Temperature out of range'
-         ICKERR=ICKERR+1
-      END IF
+        IF(TLm(L).LT.130..OR.TLm(L).GT.370.) THEN
+          WRITE(99,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TLm(L)
+          WRITE(99,*) 'GTEMP:',GTEMP(:,:,I,J)
+CCC       STOP 'In Radia: Temperature out of range'
+          ICKERR=ICKERR+1
+        END IF
 C**** MOISTURE VARIABLES
 C---- shl(L)=Q(I,J,L)        ! already defined
-  340 CONTINUE
+      END DO
 C**** Radiative Equilibrium Layer data
       DO K=1,LM_REQ
         IF(RQT(K,I,J).LT.130..OR.RQT(K,I,J).GT.370.) THEN

@@ -240,9 +240,9 @@ C****
       DCL=INT(DCLEV(I,J)+.5)
 
       DO K=1,KMAX
-         RA(K)=RAVJ(K,J)
-         IDI(K)=IDIJ(K,I,J)
-         IDJ(K)=IDJJ(K,J)
+        RA(K)=RAVJ(K,J)
+        IDI(K)=IDIJ(K,I,J)
+        IDJ(K)=IDJJ(K,J)
       END DO
 C**** PRESSURES, AND PRESSURE TO THE KAPA
       PL(:) =PMID(:,I,J)
@@ -482,7 +482,7 @@ C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
         ALPHA2=2./(TH(1)+TH(2))
         DH1S=(PLE(1)-PL(1))*TL(1)*RGAS/(GRAV*PL(1))
         BYDH1S=1./DH1S
-        DH12=(GZ(I,J,2)-GZ(I,J,1))*BYGRAV
+        DH12=(GZIL(I,2)-GZIL(I,1))*BYGRAV
         BYDH12=1./DH12
         DTDZS=(THV1-THSV)*BYDH1S
         DTDZ=(THV2-THV1)*BYDH12

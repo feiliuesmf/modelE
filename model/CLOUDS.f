@@ -23,7 +23,7 @@ C**** parameters and constants
 !@param WMU critical cloud water content for rapid conversion (g m**-3)
       REAL*8, PARAMETER :: WMU=.25
       REAL*8, PARAMETER :: WMUL=.5       !@param WMUL WMU over land
-      REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI WMU over ice
+      REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI WMU for ice clouds
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD for cal. BYBR
       REAL*8, PARAMETER :: SLHE=LHE*BYSHA
       REAL*8, PARAMETER :: SLHS=LHS*BYSHA
@@ -1482,7 +1482,7 @@ C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
           BANDF=.TRUE.
           LHX=LHS
         ENDIF
-        IF(LHXUP.EQ.LHE.AND.PFR.LE.RANDNO) THEN
+        IF(LHXUP.EQ.LHE.AND.PFR.LE.RANDNO.AND.WMX(L+1).gt.0) THEN
           LHX=LHE
           BANDF=.FALSE.
         ENDIF
@@ -1842,18 +1842,14 @@ C**** ACCUMULATE SOME DIAGNOSTICS
       END DO  ! end of loop over L
 
 C**** Set final precip value and fix phase if necessary.
-C**** Super-cooled precipitation should freeze on impact with
-C**** sub-zero surfaces, but since rain temperature is not conserved
-C**** (and so rain always falls as 0 degrees) we need to freeze it
-C**** prior to leaving the atmosphere. This fix also deals with
-C**** possibility that super-cooled water would actual freeze before
-C**** falling until this is specifically dealt with.
-C     IF (TL(1).lt.TF .AND. SVLHXL(1).eq.LHE) THEN
-C       HPHASE=-LHM*PREBAR(1)*GRAV*BYAM(1)
-C       TL(1)=TL(1)-DTsrc*HPHASE/SHA
-C       TH(1)=TL(1)/PLK(1)
-C       PPHASE=LHS
-C     END IF
+C**** This fix deals with the possibility that super-cooled water would
+C**** actual freeze before falling until this is specifically dealt with.
+c      IF (TL(1).lt.TF .AND. SVLHXL(1).eq.LHE) THEN
+c        HPHASE=-LHM*PREBAR(1)*GRAV*BYAM(1)
+c        TL(1)=TL(1)-DTsrc*HPHASE/SHA
+c        TH(1)=TL(1)/PLK(1)
+c        PPHASE=LHS
+c      END IF
       PRCPSS=MAX(0d0,PREBAR(1)*GRAV*DTsrc) ! fix small round off err
 #ifdef TRACERS_WATER
       TRPRSS(1:NTX)=MAX(0d0,TRPRBAR(1:NTX,1))
