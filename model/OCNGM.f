@@ -40,10 +40,9 @@
       END MODULE GM_COM
 
       SUBROUTINE GMKDIF
-C****
-C**** GMKDIF calculates density gradients and tracer operators
-C**** for Redi and GM isopycnal skew fluxes
-C****
+!@sum GMKDIF calculates density gradients and tracer operators
+!@+   for Redi and GM isopycnal skew fluxes
+!@auth Dan Collins/Gavin Schmidt
       USE GM_COM
       IMPLICIT NONE
       INTEGER I,J,L,IM1
@@ -57,6 +56,7 @@ C**** Initialize SLOPES common block of coefficients
         AIY0(:,:,L)=0. ;AIY1(:,:,L)=0. ; AIY2(:,:,L)=0. ; AIY3(:,:,L)=0.
         S2X0(:,:,L)=0. ;S2X1(:,:,L)=0. ; S2X2(:,:,L)=0. ; S2X3(:,:,L)=0.
         S2Y0(:,:,L)=0. ;S2Y1(:,:,L)=0. ; S2Y2(:,:,L)=0. ; S2Y3(:,:,L)=0.
+         BXX(:,:,L)=0. ; BYY(:,:,L)=0. ;  BZZ(:,:,L)=0.
       END DO
 !$OMP END PARALLEL DO
 
@@ -219,9 +219,9 @@ C**** END of FX
 C**** Loop for Fluxes in Y-direction
       IF(LMV(I,J).lt.L) GO TO 520
 C**** Calculate fluxes in Y-direction
-C**** Diagonal:  Must be divided by DYPO(J) of divF!
+C**** Diagonal:  Must be divided by DYPO(J) for divF!
       FYY(I,J,L) = DT4*BYY(I,J,L)*(TR(I,J,L) - TR(I,J+1,L))*BYDYV(J)
-C**** Off-diagonal:   Divide by DYPO(J) of divF!
+C**** Off-diagonal:   Divide by DYPO(J) for divF!
 C**** YZ terms are divided by appropriate DZV for Z-gradient of T
       IF (QCROSS) THEN
         IF(L.gt.1) FYZ(I,J,L) = FYZ(I,J,L) +
@@ -284,38 +284,57 @@ C**** Loop for Fluxes in X-direction
       IF(LMU(IM1,J).ge.L) THEN
         MOFX = (MO(IM1,J,L) +  MO(I  ,J,L)) * DXYPO(J) *BYDXP(J) *0.5
         RFXT =(FXX(IM1,J,L) + FXZ(IM1,J,L))*MOFX
+        IF (QLIMIT) THEN  
+C**** If fluxes are more than 95% of tracer amount, limit fluxes
+          IF (RFXT.gt.0.95d0*TRM(IM1,J,L).and.ABS(RFXT).gt.1d-20) THEN
+c            print*,"GMlimit1x",i,j,l,RFXT,FXX(IM1,J,L),FXZ(IM1,J,L)
+c     *           ,BXX(I,J,L),TR(IM1,J,L),TR(I,J,L)
+            RFXT = 0.95d0*TRM(IM1,J,L)
+          ELSEIF (RFXT.lt.-0.95d0*TRM(I,J,L).and.ABS(RFXT).gt.1d-20)
+     *           THEN
+c            print*,"GMlimit2x",i,j,l,RFXT,FXX(IM1,J,L),FXZ(IM1,J,L)
+c     *           ,BXX(I,J,L),TR(IM1,J,L),TR(I,J,L)
+            RFXT = -0.95d0*TRM(I,J,L)
+          END IF
+        END IF
 C**** Add and Subtract horizontal X flux
         TRM(I  ,J,L) = TRM(I  ,J,L) + RFXT
         TRM(IM1,J,L) = TRM(IM1,J,L) - RFXT
-        IF (QLIMIT) THEN  ! eliminate round off problems
-          TRM(I  ,J,L) = MAX(0d0,TRM(I  ,J,L))
-          TRM(IM1,J,L) = MAX(0d0,TRM(IM1,J,L))
-        END IF
 C**** Save Diagnostic, GIJL(1) = RFXT
         GIJL(I,J,L,1) = GIJL(I,J,L,1) + RFXT
       END IF
+C**** Gradient fluxes in X direction affected by diagonal terms
+      IF (L.le.LMM(I,J)) TXM(I,J,L) = (TXM(I,J,L) -
+     *     3.*(FXX(IM1,J,L)+FXX(I,J,L))*MO(I,J,L)*DXYPO(J)*BYDXP(J))/
+     *     (1.+6.*DT4*(BXX(IM1,J,L)+BXX(I,J,L))*BYDXP(J)**2)
 C**** Loop for Fluxes in Y-direction
       IF(LMV(I,J-1).ge.L) THEN
         MOFY =((MO(I,J-1,L)*BYDYP(J-1)*DXYPO(J-1)) +
      *         (MO(I,J  ,L)*BYDYP(J  )*DXYPO(J  )))*0.5
         RFYT =(FYY(I,J-1,L) + FYZ(I,J-1,L))*MOFY
+        IF (QLIMIT) THEN  
+C**** If fluxes are more than 95% of tracer amount, limit fluxes
+          IF (RFYT.gt.0.95d0*TRM(I,J-1,L).and.ABS(RFYT).gt.1d-20) THEN
+c            print*,"GMlimit1y",i,j,l,RFYT,FYY(I,J-1,L),FYZ(I,J-1,L)
+c     *           ,BYY(I,J-1,L),TR(I,J-1,L),TR(I,J,L)
+            RFYT = 0.95d0*TRM(I,J-1,L)
+          ELSEIF (RFYT.lt.-0.95d0*TRM(I,J,L).and.ABS(RFYT).gt.1d-20)
+     *           THEN
+c            print*,"GMlimit2y",i,j,l,RFYT,FYY(I,J-1,L),FYZ(I,J-1,L)
+c     *           ,BYY(I,J-1,L),TR(I,J-1,L),TR(I,J,L)
+            RFYT = -0.95d0*TRM(I,J,L)
+          END IF
+        END IF
 C**** Add and Subtract horizontal Y fluxes
         TRM(I,J  ,L) = TRM(I,J  ,L) + RFYT
         TRM(I,J-1,L) = TRM(I,J-1,L) - RFYT
-        IF (QLIMIT) THEN  ! eliminate round off problems
-          TRM(I,J  ,L) = MAX(0d0,TRM(I,J  ,L))
-          TRM(I,J-1,L) = MAX(0d0,TRM(I,J-1,L))
-        END IF
 C**** Save Diagnostic, GIJL(2) = RFYT
         GIJL(I,J,L,2) = GIJL(I,J,L,2) + RFYT
       END IF
-C**** Gradient fluxes in all directions. NOT QUITE CORRECT
-c      TXM(IM1,J,L) = TXM(IM1,J,L)* (1.-((BXX(I,J,L)+BXX(IM1,J,L)) *
-c     *              DTS * BYDXP(J) * BYDXP(J)))
-c      TYM(I,J,L) = TYM(I,J,L)* (1.- ((BYY(I,J,L)+BYY(I,J-1,L)) *
-c     *              DTS * BYDYP(J) * BYDYP(J)))
-c      TZM(I,J,L) = TZM(I,J,L)* (1.- ((BZZ(I,J,L)+BZZ(I,J,L-1)) *
-c     *              DTS * BYDH(I,J,L) * BYDH(I,J,L)))
+C**** Gradient fluxes in Y direction affected by diagonal terms
+      IF (L.le.LMM(I,J)) TYM(I,J,L) = (TYM(I,J,L) - 
+     *     3.*(FYY(I,J-1,L)+FYY(I,J,L))*MO(I,J,L)*DXYPO(J)*BYDYP(J))/
+     *     (1.+6.*DT4*(BYY(I,J-1,L)+BYY(I,J,L))*BYDYP(J)**2) 
 C**** END of I and J loops
   610 IM1 = I
       END DO
@@ -326,21 +345,29 @@ C**** Fluxes in Y-direction
         MOFY =((MO(1,JM-1,L)*BYDYP(JM-1)*DXYPO(JM-1)) +
      *         (MO(1,JM  ,L)*BYDYP(JM  )*DXYPO(JM  )))*0.5
         RFYT =(FYY(1,JM-1,L) + FYZ(1,JM-1,L))*MOFY
+        IF (QLIMIT) THEN  
+C**** If fluxes are more than 95% of tracer amount, limit fluxes
+          IF (RFYT.gt.0.95d0*TRM(1,JM-1,L).and.ABS(RFYT).gt.1d-20) THEN
+c            print*,"GMlimit3y",1,jm,l,RFYT,FYY(1,JM-1,L),FYZ(1,JM-1,L)
+c     *           ,BYY(1,JM-1,L),TR(1,JM-1,L),TR(1,JM,L)
+            RFYT = 0.95d0*TRM(1,JM-1,L)
+          ELSEIF (RFYT.lt.-0.95d0*TRM(1,JM,L)*IM.and.ABS(RFYT).gt.1d-20)
+     *           THEN
+c            print*,"GMlimit4y",1,jm,l,RFYT,FYY(1,JM-1,L),FYZ(1,JM-1,L)
+c     *           ,BYY(1,JM-1,L),TR(1,JM-1,L),TR(1,JM,L)
+            RFYT = -0.95d0*TRM(1,JM,L)*IM
+          END IF
+        END IF
 C**** Add and Subtract horizontal Y fluxes
         TRM(1,JM  ,L) = TRM(1,JM  ,L) + RFYT/IM
         TRM(1,JM-1,L) = TRM(1,JM-1,L) - RFYT
-        IF (QLIMIT) THEN  ! eliminate round off problems
-          TRM(1,JM  ,L) = MAX(0d0,TRM(1,JM  ,L))
-          TRM(1,JM-1,L) = MAX(0d0,TRM(1,JM-1,L))
-        END IF
 C**** Save Diagnostic, GIJL(2) = RFYT
-        GIJL(1,JM  ,L,2) = GIJL(1,JM  ,L,2) + RFYT/IM
+        GIJL(1,JM,L,2) = GIJL(1,JM,L,2) + RFYT/IM
       END IF
-C**** Gradient fluxes in all directions. NOT QUITE CORRECT
-c      TYM(1,JM,L) = TYM(1,JM,L)* (1.- ((BYY(1,JM,L)+BYY(1,JM-1,L)) *
-c     *              DTS * BYDYP(J) * BYDYP(J)))
-c      TZM(1,JM,L) = TZM(1,JM,L)* (1.- ((BZZ(1,JM,L)+BZZ(1,JM,L-1)) *
-c     *              DTS * BYDH(1,JM,L) * BYDH(1,JM,L)))
+C**** Gradient fluxes in Y direction affected by diagonal terms
+      IF (L.le.LMM(1,JM)) TYM(1,JM,L) = (TYM(1,JM,L) - 
+     *     3.*FYY(1,JM-1,L)*MO(1,JM,L)*DXYPO(JM)*BYDYP(JM)/IM)/
+     *     (1.+12.*DT4*BYY(1,JM-1,L)*BYDYP(JM)**2)
  620  END DO
 !$OMP END PARALLEL DO
 
@@ -360,15 +387,33 @@ C**** Calculate new tracer/salinity/enthalpy
         MOFZ =((MO(I,J,L+1)*BYDH(I,J,L+1)) +
      *         (MO(I,J,L  )*BYDH(I,J,L  ))) * DXYPO(J) *0.5
         RFZT =(FZZ(I,J,L) +(FZX(I,J,L)+FZY(I,J,L))*(1.d0+ARAI))*MOFZ
+        IF (QLIMIT) THEN  
+C**** If fluxes are more than 95% of tracer amount, limit fluxes
+          IF (RFZT.gt.0.95d0*TRM(I,J,L+1).and.ABS(RFZT).gt.1d-20) THEN
+c            print*,"GMlimit1z",i,j,l,RFZT,FZZ(i,J,L),FZX(i,j,l),FZY(I,J
+c     *           ,L),BZZ(I,J,L),TR(I,J,L+1),TR(I,J,L)
+            RFZT = 0.95d0*TRM(I,J,L+1)
+          ELSEIF (RFZT.lt.-0.95d0*TRM(I,J,L).and.ABS(RFZT).gt.1d-20)
+     *           THEN
+c            print*,"GMlimit2z",i,j,l,RFZT,FZZ(i,J,L),FZX(i,j,l),FZY(I,J
+c     *           ,L),BZZ(I,J,L),TR(I,J,L+1),TR(I,J,L)
+            RFZT = -0.95d0*TRM(I,J,L)
+          END IF
+        END IF
 C**** Add and Subtract vertical flux. Note +ve upward flux
         TRM(I,J,L  ) = TRM(I,J,L  ) + RFZT
         TRM(I,J,L+1) = TRM(I,J,L+1) - RFZT
-        IF (QLIMIT) THEN  ! eliminate round off problems
-          TRM(I,J,L)   = MAX(0d0,TRM(I,J,L))
-          TRM(I,J,L+1) = MAX(0d0,TRM(I,J,L+1))
-        END IF
 C**** Save Diagnostic, GIJL(3) = RFZT
         GIJL(I,J,L,3) = GIJL(I,J,L,3) + RFZT
+      END IF
+C**** Gradient fluxes in Z direction affected by diagonal terms
+      IF (L.gt.1) THEN
+        TZM(I,J,L) = (TZM(I,J,L) - 3.*(FZZ(I,J,L)+FZZ(I,J,L-1))*
+     *       MO(I,J,L)*DXYPO(J)*BYDH(I,J,L))/(1.+6.*DT4*(BZZ(I,J,L)
+     *       +BZZ(I,J,L-1))*BYDH(I,J,L)**2)
+      ELSE
+        TZM(I,J,L) = (TZM(I,J,L) - 3.*FZZ(I,J,L)*MO(I,J,L)*DXYPO(J)
+     *       *BYDH(I,J,L))/(1.+12.*DT4*BZZ(I,J,L)*BYDH(I,J,L)**2)
       END IF
 C**** END of I and J loops
  710  CONTINUE
@@ -383,15 +428,33 @@ C**** Calculate new tracer/salinity/enthalpy
         MOFZ =((MO(1,JM,L+1)*BYDH(1,JM,L+1)) +
      *         (MO(1,JM,L  )*BYDH(1,JM,L  ))) * DXYPO(JM) *0.5
         RFZT =(FZZ(1,JM,L)+FZY(1,JM,L)*(1d0+ARAI))*MOFZ
+        IF (QLIMIT) THEN  
+C**** If fluxes are more than 95% of tracer amount, limit fluxes
+          IF (RFZT.gt.0.95d0*TRM(1,JM,L+1).and.ABS(RFZT).gt.1d-20) THEN
+c            print*,"GMlimit3z",1,jm,l,RFZT,FZZ(1,JM,L),FZY(1,JM
+c     *           ,L),BZZ(1,JM,L),TR(1,JM,L+1),TR(1,JM,L)
+            RFZT = 0.95d0*TRM(1,JM,L+1)
+          ELSEIF (RFZT.lt.-0.95d0*TRM(1,JM,L).and.ABS(RFZT).gt.1d-20)
+     *           THEN
+c            print*,"GMlimit4z",1,jm,l,RFZT,FZZ(1,JM,L),FZY(1,JM
+c     *           ,L),BZZ(1,JM,L),TR(1,JM,L+1),TR(1,JM,L)
+            RFZT = -0.95d0*TRM(1,JM,L)
+          END IF
+        END IF
 C**** Add and Subtract vertical flux. Note +ve upward flux
         TRM(1,JM,L  ) = TRM(1,JM,L  ) + RFZT
         TRM(1,JM,L+1) = TRM(1,JM,L+1) - RFZT
-        IF (QLIMIT) THEN  ! eliminate round off problems
-          TRM(1,JM,L)   = MAX(0d0,TRM(1,JM,L))
-          TRM(1,JM,L+1) = MAX(0d0,TRM(1,JM,L+1))
-        END IF
 C**** Save Diagnostic, GIJL(3) = RFZT
-        GIJL(1,JM,L  ,3) = GIJL(1,JM,L  ,3) + RFZT
+        GIJL(1,JM,L,3) = GIJL(1,JM,L,3) + RFZT
+      END IF
+C**** Gradient fluxes in Z direction affected by diagonal terms
+      IF (L.gt.1) THEN
+        TZM(1,JM,L) = (TZM(1,JM,L) - 3.*(FZZ(1,JM,L)+FZZ(1,JM,L-1))*
+     *       MO(1,JM,L)*DXYPO(JM)*BYDH(1,JM,L))/(1.+6.*DT4*(BZZ(1,JM,L)
+     *       +BZZ(1,JM,L-1))*BYDH(1,JM,L)**2)
+      ELSE
+        TZM(1,JM,L) = (TZM(1,JM,L) - 3.*FZZ(1,JM,L)*MO(1,JM,L)*DXYPO(JM)
+     *       *BYDH(1,JM,L))/(1.+12.*DT4*BZZ(1,JM,L)*BYDH(1,JM,L)**2)
       END IF
  720  CONTINUE
       END DO
