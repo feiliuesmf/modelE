@@ -105,7 +105,7 @@ C**** Files for an accumulation period (1-12 months)
         call io_POS(iu_VFLXO,Itime,2*im*jm*koa,Nday) ! real*8-dim -> 2*
       end if
 C**** Initiallise file for sub-daily diagnostics, controlled by
-C**** space-seperated string segments in SUBDD & SUBDD1 in the rundeck
+C**** space-separated string segments in SUBDD & SUBDD1 in the rundeck
       call init_subdd(aDATE)
 
 C****
@@ -114,7 +114,7 @@ C****
       DO WHILE (Itime.lt.ItimeE)
 
 C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
-C**** write restart information alternatingly onto 2 disk files
+C**** write restart information alternately onto 2 disk files
       IF (MOD(Itime-ItimeI,Ndisk).eq.0) THEN
          CALL RFINAL (IRAND)
          call set_param( "IRAND", IRAND, 'o' )
@@ -304,6 +304,13 @@ C**** Accumulate tracer distribution diagnostics
          CALL CHECKT ('T3DSRC')
 #endif
       end if                                  ! full model,kradia le 0
+
+C****
+C**** WRITE SUB-DAILY DIAGNOSTICS EVERY NSUBDD hours
+C****
+      if (Nsubdd.ne.0) then
+        if (mod(Itime+1,Nsubdd).eq.0) call get_subdd
+      end if
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
@@ -352,12 +359,6 @@ C**** ZERO OUT INTEGRATED QUANTITIES
          END IF
          CALL TIMER (MNOW,MELSE)
       END IF
-C****
-C**** WRITE SUB-DAILY DIAGNOSTICS EVERY NSUBDD hours
-C****
-      if (Nsubdd.ne.0) then
-        if (mod(Itime,Nsubdd).eq.0) call get_subdd
-      end if
 C****
 C**** CALL DIAGNOSTIC ROUTINES
 C****

@@ -206,7 +206,9 @@ C**** Instantaneous constant pressure level fields
 !@var Z_inst saved instantaneous height field (at PMB levels)
 !@var RH_inst saved instantaneous relative hum (at PMB levels)
 !@var T_inst saved instantaneous temperature(at PMB levels)
+!@var P_acc accumulated precip (special for SUBDD)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: Z_inst,RH_inst,T_inst
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: P_acc
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: AFLX_ST
 
@@ -605,7 +607,7 @@ c idacc-indices of various processes
       USE RADNCB, only : LM_REQ
       USE DAGCOM, ONLY : AJ,JREG,APJ,AJL,ASJL,AIJ,CONSRV,AJK,AIJK,
      &        AFLX_ST,isccp_reg,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ,OA,
-     &        wt_ij
+     &        wt_ij,P_acc
 
       IMPLICIT NONE
       TYPE (DYN_GRID), INTENT(IN) :: grid
@@ -639,6 +641,7 @@ c idacc-indices of various processes
      &         Z_inst(KGZ,IM,J_0H:J_1H),
      &         RH_inst(KGZ,IM,J_0H:J_1H),
      &         T_inst(KGZ,IM,J_0H:J_1H),
+     &         P_acc(IM,J_0H:J_1H),
      &         TSFREZ(IM,J_0H:J_1H,KTSF),
      &         TDIURN(IM,J_0H:J_1H,KTD),
      &         OA(IM,J_0H:J_1H,KOA),

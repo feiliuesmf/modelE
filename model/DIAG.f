@@ -2645,7 +2645,7 @@ C****
 !@auth Gavin Schmidt
       USE MODEL_COM, only : im,jm,lm,itime
       USE FILEMANAGER, only : openunit, closeunits
-      USE DAGCOM, only : kgz_max,pmname
+      USE DAGCOM, only : kgz_max,pmname,P_acc
       USE PARAM
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
       USE TRACER_COM, only : trm,tr_mm
@@ -2734,7 +2734,7 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
               write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
               call openunit(name,iu_SUBDD(kunit),.true.,.false.)
               call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
-            case ("Z", "T", "R")! heights, temps, rel hum on PMB levels
+            case ("Z", "T", "R", "Q")! heights, temps, rel/spec hum,PMB levels
               do kk=1,kgz_max
                 kunit=kunit+1
                 call openunit(namedd(k)(1:1)//trim(PMNAME(kk))//
@@ -2765,6 +2765,9 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
         end do
         kddunit=kunit
       end if
+C**** initialise special subdd accumulation
+      P_acc=0.
+
       return
       end subroutine init_subdd
 
@@ -2788,7 +2791,7 @@ C**** close and re-open units
               kunit=kunit+1
               write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
               call openunit(name,iu_SUBDD(kunit),.true.,.false.)
-            case ("Z", "T", "R")! heights, temps, rel hum on PMB levels
+            case ("Z", "T", "R", "Q")! heights, temps, rel/spec hum PMB levels
               do kk=1,kgz_max
                 kunit=kunit+1
                 call openunit(namedd(k)(1:1)//trim(PMNAME(kk))//
@@ -2820,11 +2823,12 @@ C****
 
       subroutine get_subdd
 !@sum get_SUBDD saves instantaneous variables at sub-daily frequency
-!@+   every ABS(NSUBDD) hours.
+!@+   every ABS(NSUBDD) 
+!@+   Note that TMIN, TMAX can only be output once a day
 !@+   Current options: SLP, PS, SAT, PREC, QS, LCLD, MCLD, HCLD, PTRO
-!@+                    QLAT, QSEN, SWD, SWU, LWD, STX, STY,
-!@+                    ICEF, SNOWD, TCLD, SST, SIT
-!@+                    Z*, R*, T*  (on any fixed pressure level)
+!@+                    QLAT, QSEN, SWD, SWU, LWD, LWU, LWT, STX, STY,
+!@+                    ICEF, SNOWD, TCLD, SST, SIT, US, VS, TMIN, TMAX
+!@+                    Z*, R*, T*, Q*  (on any fixed pressure level)
 !@+                    U*, V*, W*, C*  (on any model level)
 !@+                    Ox*         (on any model level with chemistry)
 !@+                    D*          (HDO on any model level)
@@ -2836,11 +2840,11 @@ C****
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair,sha
-     *     ,lhe,rhow,undef
+     *     ,lhe,rhow,undef,stbo
       USE MODEL_COM, only : lm,p,ptop,zatmo,dtsrc,u,v,focean,fearth
-     *     ,flice
+     *     ,flice,nday
       USE GEOM, only : imaxj,dxyp
-      USE PBLCOM, only : tsavg,qsavg
+      USE PBLCOM, only : tsavg,qsavg,usavg,vsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc,taumc,tauss,fss
 #ifdef CLD_AER_CDNC
      *           ,ctem,cd3d,cl3d,cdn3d,cre3d,clwp
@@ -2853,12 +2857,13 @@ C****
       USE LAKES_COM, only : flake
       USE GHYCOM, only : snowe
       USE RADNCB, only : trhr,srdn,salb,cfrac,cosz1
-      USE DAGCOM, only : z_inst,rh_inst,t_inst,kgz_max,pmname
+      USE DAGCOM, only : z_inst,rh_inst,t_inst,kgz_max,pmname,tdiurn
+     *     ,p_acc,pmb
       IMPLICIT NONE
       REAL*4, DIMENSION(IM,JM) :: DATA
       INTEGER :: I,J,K,L,kp,kunit
       CHARACTER namel*3
-      REAL*8 POICE,PEARTH,PLANDI
+      REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT
 
       kunit=0
 C**** depending on namedd string choose what variables to output
@@ -2866,22 +2871,26 @@ C**** depending on namedd string choose what variables to output
 
 C**** simple diags
         select case (namedd(k))
-        case ("SLP")      ! sea level pressure (mb)
+        case ("SLP")            ! sea level pressure (mb)
           do j=1,jm
           do i=1,imaxj(j)
             data(i,j)=(p(i,j)+ptop)*(1.+bbyg*zatmo(i,j)/tsavg(i,j))
      *           **gbyrb
           end do
           end do
-        case ("PS")      ! surface pressure (mb)
+        case ("PS")             ! surface pressure (mb)
           do j=1,jm
           do i=1,imaxj(j)
             data(i,j)=p(i,j)+ptop
           end do
           end do
-        case ("SAT")      ! surf. air temp (C)
+        case ("SAT")            ! surf. air temp (C)
           data=tsavg-tf
-        case ("SST")      ! sea surface temp (C)
+        case ("US")             ! surf. u wind (m/s)
+          data=usavg
+        case ("VS")             ! surf. v wind (m/s)
+          data=vsavg
+        case ("SST")            ! sea surface temp (C)
           do j=1,jm
             do i=1,imaxj(j)
               if (FOCEAN(I,J)+FLAKE(I,J).gt.0) then
@@ -2891,7 +2900,7 @@ C**** simple diags
               end if
             end do
           end do
-        case ("SIT")      ! surface ice temp (C)
+        case ("SIT")            ! surface ice temp (C)
           do j=1,jm
             do i=1,imaxj(j)
               if (RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J)).gt.0) then
@@ -2901,11 +2910,13 @@ C**** simple diags
               end if
             end do
           end do
-        case ("QS")       ! surf humidity (kg/kg)
+        case ("QS")             ! surf humidity (kg/kg)
           data=qsavg
-        case ("PREC")     ! precip (mm/day)
-          data=sday*prec/dtsrc
-        case ("SNOWD")     ! snow depth (w.e. mm)
+        case ("PREC")           ! precip (mm/day)
+c          data=sday*prec/dtsrc
+          data=sday*P_acc/dtsrc ! use accumulated value over Nsubdd steps
+          P_acc=0.
+        case ("SNOWD")          ! snow depth (w.e. mm)
           do j=1,jm
             do i=1,imaxj(j)
               POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
@@ -2926,6 +2937,25 @@ C**** simple diags
           data=srdn*(1.-salb)*cosz1
         case ("LWD")            ! LW downward flux at surface (W/m^2)
           data=TRHR(0,:,:)
+        case ("LWU")            ! LW upward flux at surface (W/m^2)
+          do j=1,jm
+            do i=1,imaxj(j)
+              POCEAN=(.1-RSI(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
+              POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
+              PEARTH=FEARTH(I,J)
+              PLANDI=FLICE(I,J)
+              data(i,j)=STBO*(POCEAN*(GTEMP(1,1,I,J)+TF)**4+
+     *             POICE *(GTEMP(1,2,I,J)+TF)**4+
+     *             PLANDI*(GTEMP(1,3,I,J)+TF)**4+
+     *             PEARTH*(GTEMP(1,4,I,J)+TF)**4)
+            end do
+          end do
+        case ("LWT")            ! LW upward flux at TOA (P1) (W/m^2)
+          do j=1,jm
+            do i=1,imaxj(j)
+              data(i,j)=-TRHR(LM,I,J)
+            end do
+          end do
         case ("ICEF")           ! ice fraction over open water (%)
           data=RSI*100.
         case ("STX")            ! E-W surface stress (N/m^2)
@@ -2966,6 +2996,18 @@ C**** simple diags
           data=cfrac*100.
         case ("PTRO")           ! tropopause pressure (mb)
           data = ptropo
+        case ("TMIN")           ! min daily temp (C)
+          if (mod(itime+1,Nday).ne.0) then ! only at end of day
+            kunit=kunit+1
+            cycle
+          end if
+          data=tdiurn(:,:,9)    
+        case ("TMAX")           ! max daily temp (C)
+          if (mod(itime+1,Nday).ne.0) then ! only at end of day
+            kunit=kunit+1
+            cycle
+          end if
+          data=tdiurn(:,:,6)    
 #ifdef TRACERS_AEROSOLS_Koch
         case ("SO4")      ! sulfate in L=1
           do j=1,jm
@@ -2996,7 +3038,7 @@ C**** write out
 
 C**** diags on fixed pressure levels or velocity
  10     select case (namedd(k)(1:1))
-        case ("Z","R","T")      ! heights, relative humidity or temp
+        case ("Z","R","T","Q")  ! heights, rel/spec humidity or temp
 C**** get pressure level
           do kp=1,kgz_max
             if (namedd(k)(2:5) .eq. PMNAME(kp)) then
@@ -3006,6 +3048,13 @@ C**** get pressure level
                 data=z_inst(kp,:,:)
               case ("R")        ! relative humidity (wrt water)
                 data=rh_inst(kp,:,:)
+              case ("Q")        ! specific humidity 
+                do j=1,jm
+                do i=1,imaxj(j)
+                  data(i,j)=rh_inst(kp,i,j)*qsat(t_inst(kp,i,j),lhe
+     *                 ,PMB(kp))
+                end do
+                end do
               case ("T")        ! temperature (C)
                 data=t_inst(kp,:,:)
               end select
@@ -3025,6 +3074,13 @@ C**** write out
                 data=z_inst(kp,:,:)
               case ("R")        ! relative humidity (wrt water)
                 data=rh_inst(kp,:,:)
+              case ("Q")        ! specific humidity 
+                do j=1,jm
+                do i=1,imaxj(j)
+                  data(i,j)=rh_inst(kp,i,j)*qsat(t_inst(kp,i,j),lhe
+     *                 ,PMB(kp))
+                end do
+                end do
               case ("T")        ! temperature (C)
                 data=t_inst(kp,:,:)
               end select
@@ -3045,12 +3101,12 @@ C**** write out
                 data=u(:,:,kp)
               case ("V")        ! N-S velocity
                 data=v(:,:,kp)
-              case ("W")
-                data=wsave(:,:,kp) ! vertical velocity
+              case ("W")        ! vertical velocity
+                data=wsave(:,:,kp)
 C**** fix polar values for W only (calculated on tracer points)
                 data(2:im,1) =data(1,1)
                 data(2:im,jm)=data(1,jm)
-              case ("C")
+              case ("C")        ! estimate of cloud optical depth
                 do j=1,jm
                   do i=1,imaxj(j)
                     data(i,j)=(1.-fss(kp,i,j))*taumc(kp,i,j)+fss(kp,i,j)
