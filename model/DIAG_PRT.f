@@ -4442,7 +4442,7 @@ C**** RATIO OF TWO QUANTITIES
         IF (QDIAG) CALL POUT_DIURN(LNAMEO,UNITSO,FHOUR,
      *     NAMDD(KR),IJDD(1,KR),IJDD(2,KR),HR_IN_DAY,KP)
       END DO
-      call close_diurn
+      IF (QDIAG) call close_diurn
       RETURN
 C****
   901 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
