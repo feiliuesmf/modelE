@@ -266,10 +266,10 @@ FORCE:
 	@echo $(ECHO_FLAGS)  compiling $< ... $(MSG) \\c
 	@touch .timestamp
 ifeq ($(COMPILER),Absoft)
-	cp $*.f $*.F
-	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.F \
-	  $(COMP_OUTPUT)
-	rm -f $*.F
+	$(CPP) $(CPPFLAGS) $*.f $*_cpp.f
+	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.f \
+	  -o $*.o $(COMP_OUTPUT)
+	rm -f $*_cpp.f
 else
 ifeq ($(COMPILER),Lahey)
 	cp $*.f $*.F
