@@ -60,6 +60,8 @@ C**** exactly the same as the default values.
       REAL*8, DIMENSION(IM,JM) :: CFRAC ! saved in rsf
 !@var RCLD Total cloud optical depth as seen be radiation 
       REAL*8, DIMENSION(LM,IM,JM) :: RCLD ! saved in rsf
+!@var O3_rad_save 3D ozone saved from radiation for use elsewhere
+      REAL*8, DIMENSION(LM,IM,JM) :: O3_rad_save ! saved in rsf
 
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
       REAL*8, DIMENSION(IM,JM) :: COSZ1
@@ -147,12 +149,14 @@ C**** Local variables initialised in init_RAD
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,RQT
      *    ,S0,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,SALB,SRDN,CFRAC,RCLD
+     *    ,O3_rad_save
   ! needed if MODRAD>0 at restart
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
         CASE (ioread,IRERUN)  ! input for restart, rerun or extension
           READ (kunit,err=10) HEADER,RQT
      *       ,S0,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,SALB,SRDN,CFRAC,RCLD
+     *       ,O3_rad_save
   ! needed if MODRAD>0 at restart
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
