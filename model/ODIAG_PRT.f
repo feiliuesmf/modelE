@@ -148,7 +148,6 @@ C**** Ocean Potential Temperature (C)
 C****
       LNAME="OCEAN POTENTIAL TEMPERATURE"
       UNITS="C"
-      SNAME="oc_temp"
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       TITLE(51:80)=XLB
 C**** Loop over layers
@@ -167,6 +166,11 @@ C**** Loop over layers
       Q(2:IM,1)=Q(1,1)
       WRITE (LNAME(40:47),'(A5,I3)') 'Level',L
       WRITE (TITLE(40:47),'(A5,I3)') 'Level',L
+      IF (L.lt.10) THEN
+        SNAME="oc_temp_L"//char(l+48)
+      ELSE
+        SNAME="oc_temp_L1"//char(mod(l,10)+48)
+      END IF
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
 C****
@@ -174,7 +178,6 @@ C**** Ocean Salinity (per mil)
 C****
       LNAME="OCEAN SALINITY"
       UNITS="psu"
-      SNAME="oc_salt"
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       TITLE(51:80)=XLB
 C**** Loop over layers
@@ -191,6 +194,11 @@ C**** Loop over layers
       Q(2:IM,1)=Q(1,1)
       WRITE (LNAME(40:47),'(A5,I3)') 'Level',L
       WRITE (TITLE(40:47),'(A5,I3)') 'Level',L
+      IF (L.lt.10) THEN
+        SNAME="oc_salt_L"//char(l+48)
+      ELSE
+        SNAME="oc_salt_L1"//char(mod(l,10)+48)
+      END IF
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
 #ifdef TRACERS_OCEAN
@@ -204,7 +212,6 @@ C****
       ELSE
         UNITS=unit_string(ntrocn(n),'kg/kg')
       END IF
-      SNAME="oc_"//trim(trname(n))
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       TITLE(51:80)=XLB
 C**** Loop over layers
@@ -227,6 +234,11 @@ C**** Loop over layers
       Q(2:IM,1)=Q(1,1)
       WRITE (LNAME(40:47),'(A5,I3)') 'Level',L
       WRITE (TITLE(40:47),'(A5,I3)') 'Level',L
+      IF (L.lt.10) THEN
+        SNAME="oc_"//trim(trname(n))//"_L"//char(l+48)
+      ELSE
+        SNAME="oc_"//trim(trname(n))//"_L1"//char(mod(l,10)+48)
+      END IF
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
       END DO
@@ -237,7 +249,6 @@ C****
   300 K=IJL_MFU
       LNAME="EAST-WEST VELOCITY"
       UNITS="cm/s"
-      SNAME="uvel"//char(l+48)
       Q = 0.
       DO J=1,JM
         I=IM
@@ -254,19 +265,24 @@ C****
       Q(2:IM,JM)=Q(1,JM)
       Q(2:IM,1)=Q(1,1)
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
-      IF(LMINMF.eq.LMAXMF) WRITE (TITLE(39:41),'(I3)') LMINMF
-      IF(LMINMF.lt.LMAXMF) WRITE (TITLE(39:46),'(I3,A2,I3)') LMINMF," -"
-     *     ,LMAXMF
-      IF(LMINMF.eq.LMAXMF) WRITE (LNAME(39:41),'(I3)') LMINMF
-      IF(LMINMF.lt.LMAXMF) WRITE (LNAME(39:46),'(I3,A2,I3)') LMINMF," -"
-     *     ,LMAXMF
+      IF(LMINMF.eq.LMAXMF) THEN
+        WRITE (TITLE(39:41),'(I3)') LMINMF
+        WRITE (LNAME(39:41),'(I3)') LMINMF
+      ELSEIF(LMINMF.lt.LMAXMF) THEN
+        WRITE (TITLE(39:46),'(I3,A2,I3)') LMINMF," -",LMAXMF
+        WRITE (LNAME(39:46),'(I3,A2,I3)') LMINMF," -",LMAXMF
+      END IF
+      IF (LMINEF.lt.10) THEN
+        SNAME="uvel_L"//char(lminef+48)
+      ELSE
+        SNAME="uvel_L1"//char(mod(lminef,10)+48)
+      END IF
       TITLE(51:80)=XLB
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
 
       K=IJL_MFV
       LNAME="NORTH-SOUTH VELOCITY"
       UNITS="cm/s"
-      SNAME="vvel"//char(l+48)
       Q = 0.
       DO J=1,JM-1
         DO I=1,IMAXJ(J)
@@ -280,12 +296,18 @@ C****
       END DO
       Q(2:IM,1)=Q(1,1)
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
-      IF(LMINMF.eq.LMAXMF) WRITE (TITLE(39:41),'(I3)') LMINMF
-      IF(LMINMF.lt.LMAXMF) WRITE (TITLE(39:46),'(I3,A2,I3)') LMINMF," -"
-     *     ,LMAXMF
-      IF(LMINMF.eq.LMAXMF) WRITE (LNAME(39:41),'(I3)') LMINMF
-      IF(LMINMF.lt.LMAXMF) WRITE (LNAME(39:46),'(I3,A2,I3)') LMINMF," -"
-     *     ,LMAXMF
+      IF(LMINMF.eq.LMAXMF) THEN
+        WRITE (TITLE(39:41),'(I3)') LMINMF
+        WRITE (LNAME(39:41),'(I3)') LMINMF
+      ELSEIF(LMINMF.lt.LMAXMF) THEN
+        WRITE (TITLE(39:46),'(I3,A2,I3)') LMINMF," -",LMAXMF
+        WRITE (LNAME(39:46),'(I3,A2,I3)') LMINMF," -",LMAXMF
+      END IF
+      IF (LMINEF.lt.10) THEN
+        SNAME="vvel_L"//char(lminef+48)
+      ELSE
+        SNAME="vvel_L1"//char(lminef/10+48)
+      END IF
       TITLE(51:80)=XLB
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
 C****
@@ -296,7 +318,11 @@ c     IF(KVMF(K).le.0)  GO TO 370
         L =KVMF(K)
         LNAME="VERTICAL MASS FLUX"
         UNITS="10^-2 kg/s*m^2"
-        SNAME="vert_mflx"//char(L+48)
+        IF (L.lt.10) THEN
+          SNAME="vert_mflx_L"//char(l+48)
+        ELSE
+          SNAME="vert_mflx_L"//char(mod(l,10)+48)
+        END IF
         DO J=1,JM
           DO I=1,IMAXJ(J)
             Q(I,J) = 2d2*OIJL(I,J,L,IJL_MFW) / (IDACC(1)*NDYNO*DXYPO(J))
@@ -390,7 +416,11 @@ C****
           CASE (0)      ! E-W fluxes
             LNAME="GM/EDDY E-W HEAT FLUX"
             UNITS="10^-15 W"
-            SNAME="gm_ew_hflx"//char(l+48)
+            IF (L.lt.10) THEN
+              SNAME="gm_ew_hflx_L"//char(l+48)
+            ELSE
+              SNAME="gm_ew_hflx_L1"//char(mod(l,10)+48)
+            END IF
             DO J=1,JM
               DO I=1,IMAXJ(J)
                 Q(I,J) = 1d-15*OIJL(I,J,L,KK+IJL_GGMFL)/(IDACC(1)*DTS)
@@ -399,7 +429,11 @@ C****
           CASE (1)  ! N-S fluxes
             LNAME="GM/EDDY N-S HEAT FLUX"
             UNITS="10^-15 W"
-            SNAME="gm_ns_hflx"//char(l+48)
+            IF (L.lt.10) THEN
+              SNAME="gm_ns_hflx_L"//char(l+48)
+            ELSE
+              SNAME="gm_ns_hflx_L1"//char(mod(l,10)+48)
+            END IF
             DO J=1,JM
               DO I=1,IMAXJ(J)
                 Q(I,J) = 1d-15*OIJL(I,J,L,KK+IJL_GGMFL)/(IDACC(1)*DTS)
@@ -408,7 +442,11 @@ C****
           CASE (2)    !  Vertical fluxes
             LNAME="GM/EDDY VERTICAL HEAT FLUX"
             UNITS="W/m^2"
-            SNAME="gm_vt_hflx"//char(l+48)
+            IF (L.lt.10) THEN
+              SNAME="gm_vt_hflx_L"//char(l+48)
+            ELSE
+              SNAME="gm_vt_hflx_L1"//char(mod(l,10)+48)
+            END IF
             DO J=1,JM
               DO I=1,IMAXJ(J)
                 Q(I,J)=OIJL(I,J,L,KK+IJL_GGMFL)/(IDACC(1)*DTS*DXYPO(J))
@@ -432,7 +470,11 @@ C****
         L =KCMF(K)
         LNAME="VERT. MOM. DIFF."
         UNITS="cm^2/s"
-        SNAME="kvm"//char(l+48)
+        IF (L.lt.10) THEN
+          SNAME="kvm_L"//char(l+48)
+        ELSE
+          SNAME="kvm_L1"//char(mod(l,10)+48)
+        END IF
         Q=UNDEF
         DO J=1,JM
         DO I=1,IMAXJ(J)
@@ -453,7 +495,11 @@ C****
         L =KCMF(K)
         LNAME="VERT. HEAT DIFF."
         UNITS="cm^2/s"
-        SNAME="kvh"//char(l+48)
+        IF (L.lt.10) THEN
+          SNAME="kvh_L"//char(l+48)
+        ELSE
+          SNAME="kvh_L1"//char(mod(l,10)+48)
+        END IF
         Q=UNDEF
         DO J=1,JM
         DO I=1,IMAXJ(J)
