@@ -1,7 +1,7 @@
-C**** RE001 BR00B R00B R00B (from rad00b.radcode1.F) ccaal/cdrar 11/99
-C**** Weak puddling; Land Ice Alb set to 80% (95% vis) in Greenl/Antarct
 
       MODULE RE001
+!@sum radiation module based originally on rad00b.radcode1.F
+!@auth A. Lacis/V. Oinas/R. Ruedy
 
       INCLUDE 'BR00B.COM'
       REAL*4 yr1S0,yr2S0
