@@ -178,7 +178,6 @@
       use model_com, only : ioread
 !ccc  modules with data to compare
       use model_com, only : u,v,t,q,p
-      use model_com, only : airx,lmc
 #ifdef CHECK_OCEAN
       use ocean, only : mo,uo,vo,g0m,gxmo,gymo,gzmo,s0m,sxmo,symo,szmo &
            ,ogeoz,ogeoz_sv
@@ -195,7 +194,7 @@
       use pblcom, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg, &
            ustar_pbl,egcm,w2gcm,tgvavg,qgavg
       use pblcom, only : uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs,ipbl
-      use clouds_com, only : ttold,qtold,svlhx,rhsav,cldsav
+      use clouds_com, only : ttold,qtold,svlhx,rhsav,cldsav,airx,lmc
       use somtq_com, only : tmom,qmom
       use radncb, only : tchg,rqt,s0,srhr,trhr,fsf,fsrdir
       use icedyn_com, only : rsix,rsiy,usi,vsi
