@@ -5188,9 +5188,9 @@ C****
   902 FORMAT ('0',15X,'DAY',I6,', HR',I2,' (',I2,A5,I4,')',F9.0,
      *      '   TO   DAY',I6,', HR',I2,' (',I2,A5,I4,')',F9.0,
      *  '    DIF',F5.0,' HR')
-  910 FORMAT('0LAT  J/I  ',117A1)
-  920 FORMAT(2I4,3X,117A1)
-  925 FORMAT('+',10X,108A1)
+  910 FORMAT('0LAT  J/I  ',36A3,A9)
+  920 FORMAT(2I4,3X,36A3,A9)
+  925 FORMAT('+',10X,36A3)
   930 FORMAT('0  LONG',19I6)
   940 FORMAT(' ')
       END
