@@ -244,7 +244,7 @@ C**** functions
 #endif
 #endif
 
-      REAL*8, DIMENSION(LM) :: 
+      REAL*8, DIMENSION(LM) ::
      *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,SVTP,DDM
 !@var DM change in air mass
 !@var COND condensate
@@ -1502,15 +1502,15 @@ C**** Decide whether precip initiates B-F process
           PMI=PREICE(L+1)*DTsrc
           RANDNO=RNDSSL(2,L)     !  RANDNO=RANDU(XY)
 C**** Calculate probability of ice precip seeding a water cloud
-c          IF (LHX.EQ.LHE.AND.PMI.gt.0) THEN
-c            PRATIO=MIN(PMI/(PML+1.E-20),10d0)
-c            CBFC0=.5*CM0*CBF*DTsrc
-c            PFR=(1.-EXP(-(PRATIO*PRATIO)))*(1.-EXP(-(CBFC0*CBFC0)))
-c            IF(PFR.GT.RANDNO) THEN
-c              BANDF=.TRUE.
-c              LHX=LHS
-c            END IF
-c          END IF
+           IF (LHX.EQ.LHE.AND.PMI.gt.0) THEN
+             PRATIO=MIN(PMI/(PML+1.E-20),10d0)
+             CBFC0=.5*CM0*CBF*DTsrc
+             PFR=(1.-EXP(-(PRATIO*PRATIO)))*(1.-EXP(-(CBFC0*CBFC0)))
+             IF(PFR.GT.RANDNO) THEN
+               BANDF=.TRUE.
+               LHX=LHS
+             END IF
+           END IF
 C**** If liquid rain falls into an ice cloud, B-F must occur
           IF (LHP(L+1).EQ.LHE .AND. LHX.EQ.LHS .AND. PML.GT.0.)
      *         BANDF=.TRUE.
@@ -1545,13 +1545,13 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
       IF(L.EQ.1) THEN
         HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
         RH00(L)=1.-GAMD*LHE*HDEP/(RVAP*TS*TS)
-cc      IF(DCL.LE.1) THEN
-cc       IF(RIS.GT.1.) HDEP1=10d0
-cc       IF(RIS.LE.1..AND.RI1.GT.1.) HDEP1=50d0
-cc       IF(RIS.LE.1..AND.RI1.LE.1..AND.RI2.GT.1.) HDEP1=100d0
-cc       IF(RIS.LE.1..AND.RI1.LE.1..AND.RI2.LE.1.) HDEP1=HDEP
-cc       RH00(L)=1.-GAMD*LHE*HDEP1/(RVAP*TS*TS)
-cc      ENDIF
+        IF(DCL.LE.1) THEN
+         IF(RIS.GT.1.) HDEP1=10d0
+         IF(RIS.LE.1..AND.RI1.GT.1.) HDEP1=50d0
+         IF(RIS.LE.1..AND.RI1.LE.1..AND.RI2.GT.1.) HDEP1=100d0
+         IF(RIS.LE.1..AND.RI1.LE.1..AND.RI2.LE.1.) HDEP1=HDEP
+         RH00(L)=1.-GAMD*LHE*HDEP1/(RVAP*TS*TS)
+        ENDIF
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF
 C**** Special formulation for PBL layers
@@ -1951,7 +1951,7 @@ C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
           SMN2=SMO2*(1.-FRAT)+FMIX*SMO1
           QMN2=QMO2*(1.-FRAT)+FMIX*QMO1
           WMN2=WMO2*(1.-FRAT)+FMIX*WMO1
-          THT1=SMN1*BYAM(L)/PLK(L) 
+          THT1=SMN1*BYAM(L)/PLK(L)
           QLT1=QMN1*BYAM(L)
           TLT1=THT1*PLK(L)
           LHX=SVLHXL(L)
