@@ -583,13 +583,14 @@ c tracer 7 is dust
       KRHTRA(n1:NTRACE)= 0.  ! no deliq for dust
 C**** particle size for dust  (from trradius?)
 c      TRRDRY(n1:NTRACE)=(/ .75d0, 2.2d0, 4.4d0, 6.7d0/)
-      TRRDRY(n1:NTRACE)=(/.1d0, .2d0, .4d0, .8d0, 1.d0, 2.d0, 4.d0/)
+      TRRDRY(n1:NTRACE)=(/0.132D0,0.23D0,0.416D0,0.766D0,1.386D0,
+     &     2.773D0,5.545D0/)
 C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics. Adjust if number of dust tracers changes.
       NTRIX(n1:NTRACE)=(/n_clay,n_clay,n_clay,n_clay,n_silt1,n_silt2,
      &     n_silt3/)
 C**** define weighting for different clays
-      WTTR(n1:NTRACE)=(/0.01d0,0.08d0,0.23d0,0.66d0,1d0,1d0,1d0/)
+      WTTR(n1:NTRACE)=(/0.009D0,0.081D0,0.234D0,0.676D0,1D0,1D0,1D0/)
 C**** If some tracers are not being used reduce NTRACE accordingly
       NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #endif
