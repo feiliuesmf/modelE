@@ -1631,7 +1631,8 @@ C**** Add new ice
 #ifdef TRACERS_WATER
 C**** need to be careful with fractionation for tracers
         Tri(:)=Tralpha(:)*Trm(:)
-        TRICE(:)=TRICE(:)+MAXM*Tri(:)+DSNOW*TRSNOW(:)/SNOW
+        TRICE(:)=TRICE(:)+MAXM*(1.-0.001d0*Si)*Tri(:)+DSNOW*TRSNOW(:)
+     *       /SNOW
 #endif
         FSSI2 = FMSI2*SICE/(ACE1I+FMSI2)
         FHSI2 = FMSI2*HICE/(ACE1I+FMSI2)
@@ -1690,7 +1691,7 @@ C**** output flux (positive down)
         HSNWIC = MSNWIC*Eoc
         SSNWIC = 0.001d0*Si*MSNWIC
 #ifdef TRACERS_WATER
-        TRSNWIC(:) = Tri(:)*MSNWIC
+        TRSNWIC(:) = Tri(:)*MSNWIC*(1.-0.001d0*Si)
 #endif
       ELSE
         MSNWIC = 0. ; HSNWIC = 0. ; SSNWIC = 0.
