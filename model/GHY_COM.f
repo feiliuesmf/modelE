@@ -36,8 +36,8 @@ C containing its contents in a contiguous real*4 block
 !----------------------------------------------------------------------!
 
       REAL*8, DIMENSION(NGM,IM,JM) :: AFR
-      REAL*8, DIMENSION(3,IM,JM) :: ALA,ACS
-      REAL*8, DIMENSION(IM,JM) :: AFB,AVH
+      REAL*8, DIMENSION(3,IM,JM) :: ALA,ACS,ALMASS !nyk almass
+      REAL*8, DIMENSION(IM,JM) :: AFB,AVH,AALBVEG !nyk aalbveg
 !----------------------------------------------------------------------!
 ! adf
       REAL*8, DIMENSION(IM,JM) :: ANM,ANF

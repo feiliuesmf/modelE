@@ -95,7 +95,9 @@ c**** soils30 6/4/92
 c**** 1) uses actual final snow depth in flux limit calculations,
 c**** instead of upper and lower limits.  fixes spurious drying
 c**** of first layer.
-c****
+c**** Added gpp, GPP terms  4/25/03 nyk
+c**** Added decks parameter cond_scheme  5/1/03 nyk
+
 #include "rundeck_opts.h"
 
       module sle001
@@ -106,13 +108,22 @@ c****
 ! adf
      &     ,gasc
 !----------------------------------------------------------------------!
+
+
       implicit none
       save
+
 
       private
 
 c**** public functions:
       public hl0, set_snow, advnc, evap_limits, xklh0
+
+ccc   rundeck parameters  5/1/03 nyk
+!@dbparam cond_scheme selects which vegetation conductance scheme to use:
+!@+       = 1     default, original conductance scheme.
+!@+       = 2     conductance scheme of Andrew Friend
+      integer, public :: cond_scheme = 1
 
 
 ccc   physical constants and global model parameters
@@ -145,6 +156,7 @@ ccc   main accumulators
 
 ccc   diagnostics accumulatars
       real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,af0dt,af1dt
+     &      , agpp      
 ccc   some accumulators that are currently not computed:
      &     ,acna,acnc
 ccc   beta''s
@@ -157,10 +169,27 @@ ccc   private accumulators:
 
 ccc   input fluxes
       real*8, public :: pr,htpr,prs,htprs,srht,trht
-!----------------------------------------------------------------------!
-! adf
-      real*8, public :: fdir,Ci,Qf,Cin,Qfn,qv
-!----------------------------------------------------------------------!
+!@var fdir Fraction of surface visible radiation that is direct (adf)
+      real*8, public :: fdir
+!@var parinc Incident photosynthetically active (visible solar, dir+dif)
+!     radiation on the surface (W/m2) (nyk)
+      real*8, public :: parinc
+!@var vegalbedo  Vegetation canopy albedo averaged over the grid cell. (nyk)
+!     This is a temporary hack to keep the prescribed albedos until
+!     a canopy radiation scheme is in place.
+      real*8, public :: vegalbedo
+!@var sbeta Sine of solar zenith angle (rad).
+      real*8, public :: sbeta
+!@var Ci Original internal foliage CO2 (mol/m3) (adf)
+      real*8, public :: Ci
+!@var Qf Original foliage surface mixing ratio (kg/kg) (adf)
+      real*8, public :: Qf
+!@var Cin Updated internal foliage CO2 (adf)
+      real*8, public :: Cin
+!@var Qfn Updated foliage surface mixing ratio (kg/kg) (adf)
+      real*8, public :: Qfn
+!@var qv Canopy saturated mixing ratio (kg/kg)
+      real*8, public :: qv
 ccc   input bc''s
       real*8, public :: ts,qs,pres,rho,vsm,ch,qm1
 !@var dt earth time step (s)
@@ -177,10 +206,7 @@ ccc   soil internal variables wchich need to be passed from/to ghinij
       real*8, public :: zb(ng),zc(ng),fr(ng),alaie,rs,snowm
      &     ,thets(0:ng,2),thetm(0:ng,2),ws(0:ngm,2),shc(0:ng,2)
      &     ,thm(0:64,imt-1)
-!----------------------------------------------------------------------!
-! adf
-     &     ,nm,nf,alai,vh
-!----------------------------------------------------------------------!
+     &     ,alai,nm,nf,vh ! added by adf
 !@var n the worst choice for global name: number of soil layers
 !@var nth some magic number computed in hl0, used in ghinij and hydra
       integer, public :: n,nth
@@ -198,7 +224,7 @@ ccc   tsn1 is private
       real*8 tsn1(2)
 
       real*8 betat,betad
-      real*8 cnc,fd,fw,fm,dts
+      real*8 cnc, GPP, fd,fw,fm,dts
 
 !@var theta fraction of water in the soil ( 1 = 100% )
 !@var f water flux between the layers ( > 0 is up ) (m/s)
@@ -313,10 +339,10 @@ C***
 C***   Thread Private Common Block GHYTPC
 C***
       COMMON /GHYTPC/
-     &     abeta,abetab,abetad,abetap,abetat,abetav,acna,acnc
+     &     abeta,abetab,abetad,abetap,abetat,abetav,acna,acnc,agpp
      &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
      &     ,aevapd,aevapw,af0dt,af1dt,alaie,alhg,aruns,arunu
-     &     ,ashg,atrg,betad,betat,ch,cnc,d,devapbs_dt,devapvs_dt
+     &     ,ashg,atrg,betad,betat,ch,cnc,gpp,d,devapbs_dt,devapvs_dt
      &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb  ! dt dlm
      &     ,epb_dt,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
      &     ,evapbs,evapdl,evaps_dt,evapvd,evapvs,evapvw,f !evapor,
@@ -329,11 +355,8 @@ C***
      &     ,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
      &     ,ijdebug,n,nsn !nth
      &     ,flux_snow,wsn_for_tr
-!----------------------------------------------------------------------!
-! adf
-     &     ,fdir,Ci,Qf,nm,nf,alai
-! added by ia
-     &     ,Cin,Qfn,qv,vh
+     &     ,fdir,sbeta,Ci,Qf,nm,nf,alai ! added by adf
+     &     ,Cin,Qfn,qv,vh               ! added by ia
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
 #ifdef TRACERS_WATER
@@ -688,6 +711,7 @@ ccc   local variables
       real*8 betadl(ngm) ! used in evaps_limits only
       real*8 pot_evap_can
 
+
 c     cna is the conductance of the atmosphere
       cna=ch*vsm
       rho3=rho/rhow ! i.e divide by rho_water to get flux in m/s
@@ -751,12 +775,20 @@ c     fr(l) is the fraction of roots in layer l
           betad=betad+betadl(l)
  30     continue
         abetad=betad            ! return to old diagnostics
-c     canopy conductivity cnc
-        call cond
+c     Get canopy conductivity cnc and gpp
+        if ( cond_scheme.eq.1 ) then !if switch added by nyk 5/1/03
+!         call stop_model("cond_scheme=1",255)  !nyk DEBUG TEMP
+          call cond
+          gpp=0                   ! dummy value for GPP if old cond_scheme
+        else                      ! cond_scheme=2 or anything else
+!         call stop_model("cond_scheme=2",255)  !nyk DEBUG TEMP
+          call veg                ! added by adf
+        endif
         betat=cnc/(cnc+cna+1d-12)
         abetat=betat            ! return to old diagnostics
         acna=cna                ! return to old diagnostics
         acnc=cnc                ! return to old diagnostics
+!        agpp=gpp                !nyk 4/25/03.  Put in subroutine accm.
         pot_evap_can = betat*rho3*cna*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
         evap_max_dry(ibv) = 0.d0
         if ( betad > 0.d0 ) then
@@ -769,7 +801,7 @@ c     canopy conductivity cnc
 !        evap_max_dry(ibv) = min( evap_max(ibv),
 !     &       betat*rho3*cna*( qsat(tp(0,2)+tfrz,lhe,pres) - qs ) )
                    ! may be pr should be included somehow in e_m_d
-      endif
+      endif  !process_vege
 
       !! now we have to add the fluxes according to fractions
       ! bare soil
@@ -793,8 +825,10 @@ ccc set variables for output
 ccc not sure if all this should be in one subroutine, but otherwise
 ccc one has to pass all these flux limits
 
-      if ( .not. ( evap_max_out > 0. .or.  evap_max_out <= 0. ) )
-     &     call stop_model("GHY::evap_limits: evap_max_out = NaN",255)
+      if ( .not. ( evap_max_out > 0. .or.  evap_max_out <= 0. ) )then
+        write(99,*)evap_max_out,CNC,evap_max(2)
+        call stop_model("GHY::evap_limits: evap_max_out = NaN",255)
+      endif
 
       if ( .not. compute_evap ) return
 
@@ -881,36 +915,144 @@ c**** adjust canopy conductance for soil water potential
 !@var c1 canopy conductance related parameter
       real*8, parameter :: c1 = 90.d0
       real*8 srht0
-!----------------------------------------------------------------------!
-! adf
-      real*8 I0dr,I0df,tk,CiPa,prpa,pcp,Kc,Oi,Ko,n1,n2,Acan,Amax,dqs
-      real*8 cncn,Ntot,Rcan,Anet,Amax_net,dcnc,dcnc_max,gt,Ca
-!----------------------------------------------------------------------!
       cnc=betad*alaie/rs
 c**** adjust canopy conductance for incoming solar radiation
       srht0=max(srht,zero)
       cnc=cnc*(srht0/c1)/(1.d0+srht0/c1)
       cnc=cnc/(1.d0+((tp(0,2)+tfrz-296.d0)/15.d0)**4)
+      return
+      end subroutine cond
+
 !----------------------------------------------------------------------!
-! adf
-! Direct beam photosynthetically active radiation incident on canopy
-! (umol/m2/s).
-      I0dr=fdir*2.3*srht0
-! Diffuse photosynthetically active radiation incident on canopy
-! (umol/m2/s).
-      I0df=(1.0-fdir)*2.3*srht0
-! Canopy temperature (K).
+      subroutine veg
+!----------------------------------------------------------------------!
+! Vegetation dynamics routine (adf). Currently (April, 2003)
+! calculates canopy stomatal conductance (CNC, m/s) using a
+! biologically-based formulation, along with canopy CO2 fluxes (GPP;
+! kg[C]/m2/s). Vegetation growth will be included next.
+!----------------------------------------------------------------------!
+      implicit none
+!----------------------------------------------------------------------!
+!@var Ca Atmospheric CO2 concentration at surface height (mol/m3).
+      real*8 :: Ca=0.0127D0
+!@var sigma Leaf scattering coefficient (?unitless).
+      real*8 :: sigma=0.2D0,temp
+!@var kdf Canopy extinction coeff. for diffuse radiation (unitless).
+      real*8 :: kdf=0.71D0
+!@var Oi Internal foliage O2 partial pressure (kPa).
+      real*8 :: Oi=20.9D0
+!@var k Canopy nitrogen extinction coefficient (?unitless).
+      real*8 :: k=0.11D0
+!@var srht0 Incident shortwave radiation >0 (W/m2).
+      real*8 srht0
+!@var PAR Incident photosynthetically active radiation (umol/m2/s).
+      real*8 PAR
+!@var tk Canopy temperature (K).
+      real*8 tk
+!@var prpa Atmospheric pressure (Pa).
+      real*8 prpa
+!@var I0dr Direct beam PAR incident on canopy (umol/m2/s).
+      real*8 I0dr
+!@var I0df Diffuse PAR incident on canopy (umol/m2/s).
+      real*8 I0df
+!@var rho Canopy reflectivity (?unitless).
+      real*8 rhor
+!@var kbl Canopy extinction coeff. for direct radiation (unitless).
+      real*8 kbl
+!@var CiPa Internal foliage CO2 partial pressure (Pa).
+      real*8 CiPa
+!@var pcp Photorespiratory compensation point (Pa).
+      real*8 pcp
+!@var Kc Rubisco Michaelis-Menten constant for CO2 (Pa).
+      real*8 Kc
+!@var Ko Rubisco Michaelis-Menten constant for O2 (Pa).
+      real*8 Ko
+!@var n1 Proportionality between Jmax and N (umol[CO2]/mmol[N]/s).
+      real*8 n1
+!@var n2 Proportionality between Vcmax and N (umol[CO2]/mmol[N]/s).
+      real*8 n2
+!@var m1 CO2 dependence of light-limited photosynthesis (?units).
+      real*8 m1
+!@var m2 CO2 dependence of light-saturated photosynthesis (?units).
+      real*8 m2
+!@var msat Nitrogen dependence of photosynthesis (?units).
+      real*8 msat
+!@var Ntot Total canopy nitrogen (g/m[ground]2).
+      real*8 Ntot
+!@var N0 Foliage nitrogen at top of canopy (mmol/m2).
+      real*8 N0
+!@var Acan Canopy A (umol[CO2]/m[ground]2/s).
+      real*8 Acan
+!@var Acan Canopy net A (umol[CO2]/m[ground]2/s).
+      real*8 Anet
+!@var Acan Canopy A at saturating CiPa (umol[CO2]/m[ground]2/s).
+      real*8 Amax
+!@var Acan Canopy net A at saturating CiPa (umol[CO2]/m[ground]2/s).
+      real*8 Anet_max
+!@var Rcan Canopy mitochondrial respiration (umol/m2/s).
+      real*8 Rcan
+!@var dqs Humidity deficit across canopy surface (kg/kg).
+      real*8 dQs
+!@var CNCN New equilibrium canopy conductance to water (m/s).
+      real*8 CNCN
+!@var dCNC Change in canopy conductance to reach equilibrium (m/s).
+      real*8 dCNC
+!@var dCNC_max Maximum possible change in CNC over timestep (m/s).
+      real*8 dCNC_max
+!@var gt Conductance from inside foliage to surface height at 30m (m/s).
+      real*8 gt
+!@var EPS to stop dbzs
+      real*8, parameter :: EPS = 1.d-8
+!@var GPP Gross primary productivity (kg[C]/m2/s).
+!      real*8 GPP    !moved to public, nyk 04/25/03
+!----------------------------------------------------------------------!
+! Make sure is some leaf area (m2/m2).
+      if(alai.le.EPS)alai=EPS
+! Make sure radiation is not negative.
+      srht0=max(srht,zero)
+! Convert radiation from W/m2 (total shortwave) to umol/m2/s (PAR).
+! Really want incident here, but I think srht is absorbed. Based on
+! Hansen et al. (1983), assume vegetation albedo is about 0.08, and
+! so allow for this here.  2.3 umol/J for conversion from shortwave to
+! fraction that is PAR (Monteith & Unsworth).
+      !PAR=2.3d0*srht0/(1.0D0-0.08D0)
+! Replaced back-calculation with actual incident PAR at surface.
+! nyk  For 400-700 nm, energy is 3.3-6 umol photons/J.
+!      Top-of-atmosphere flux-weighted average of energy is 4.54 umol/J.
+!      Univ. Maryland, Dept. of Met., PAR Project, suggests nominal 485 nm 
+!      for conversion, which gives 4.05 umol/J.       
+      PAR=4.05d0*parinc          !W/m2 to umol/m2/s
+!      write (99,*) 'PAR umol/m2/s',PAR,'PARsrht', 
+!     $     2.3d0*srht0/(1.0D0-0.08D0)
+      !DEBUG
+! Convert canopy temperature from oC to K.
       tk=tp(0,2)+tfrz
-! Internal foliage CO2 partial pressure (Pa).
-      CiPa=Ci*(gasc*tk)
-! Atmospheric pressure (Pa).
+! Convert atmospheric pressure from mbar to Pa.
       prpa=100.0D0*pres
+! Internal foliage CO2 partial pressure from concentration (Pa).
+      CiPa=Ci*(gasc*tk)
+! Direct beam PAR incident on canopy (umol/m2/s).
+      I0dr=fdir*PAR
+! Diffuse PAR incident on canopy (umol/m2/s).
+      I0df=(1.0D0-fdir)*PAR
+! Canopy reflectivity depends on sun angle. Or take prescribed albedos.
+      temp=sqrt(1.0D0-sigma)
+      !Hack canopy reflectivity
+      if (vegalbedo.eq.0) then !because radiation gets initialized late
+        rhor=((1.0D0-temp)/(1.0D0+temp))*(2.0D0/(1.0D0+1.6D0*sbeta))
+        !write (99,*) 'rhor', rhor
+      else
+       !Temporary - keep prescribed veg albedos until have canopy scheme.
+        rhor = vegalbedo
+        !write (99,*) 'vegalbedo', vegalbedo
+      end if
+! Canopy extinction coefficient for direct beam radiation depends on
+! sun angle (unitless).
+      kbl=0.5D0*kdf/(0.8D0*temp*sbeta+EPS)
 ! Photorespiratory compensation point (Pa).
       pcp=exp(19.02D0-37.83D3/(gasc*tk))*prpa/1.0D6
 ! Rubisco Michaelis-Menten constant for CO2 (Pa).
       Kc=exp(38.05D0-79.43D3/(gasc*tk))*prpa/1.0D6
-! Internal foliage O2 partial pressure (kPa).
-      Oi=20.9
 ! Rubisco Michaelis-Menten constant for O2 (Pa).
       Ko=exp(20.30D0-36.38D3/(gasc*tk))*prpa/1.0D6
 ! Proportionality coefficient between Jmax and N (umol[CO2]/mmol[N]/s).
@@ -918,79 +1060,271 @@ c**** adjust canopy conductance for incoming solar radiation
      1    (1.0D0+exp((650.0D0*tk-199.0D3)/(gasc*tk)))
 ! Proportionality coefficient between Vcmax and N (umol[CO2]/mmol[N]/s).
       n2=nf*0.23D0*exp(26.35D0-65.33D3/(gasc*tk))
+! CO2 dependence of light-limited photosynthesis (?units).
+      m1=CiPa/(CiPa+2.0D0*pcp)
+! CO2 dependence of light-saturated photosynthesis (?units).
+      m2=CiPa/(CiPa+kc*(1.0D0+Oi/ko))
+! Nitrogen dependence of photosynthesis (?units).
+      msat=min(m1*n1,m2*n2)
 ! Total canopy nitrogen (g/m[ground]2).
       Ntot=nm*alai
+! Top of canopy nitrogen (mmol/m[foliage]2).
+      N0=(1000.0D0/14.0D0)*k*Ntot/(1.0D0-exp(-k*alai))
 ! Canopy photosynthesis (Acan: umol/m2/s).
-      call qsimp(alai,Acan,I0dr,I0df,CiPa,tk,prpa,nf,pcp,Kc,Oi,Ko,Ntot,
-     1n1,n2)
-! Total canopy mitochondrial respiration (umol/m2/s).
-      Rcan=0.20*Ntot*exp(18.72D0-46.39D3/(gasc*tk))
-! Canopy net photosynthesis (umol/m2/s).
-      Anet=Acan-Rcan
-! Foliage surface mixing ratio gradient (kg/kg).
-      dqs=qv-qf
-      if(dqs.lt.0.d0)dqs=0.d0
-! Canopy photosynthesis at saturating CO2 (Amax: umol/m2/s).
+      call qsimp(alai,Acan,I0dr,I0df,CiPa,tk,prpa,nf,pcp,Kc,Oi,Ko,N0,
+     1k,n1,n2,m1,msat,sigma,temp,rhor,kdf,kbl)
+!      write(99,*)'sbeta,Acan',sbeta,Acan
+!----------------------------------------------------------------------!
+! Saturating Ci to calculate canopy conductance (mol/m3).
       CiPa=1.0D6
-      call qsimp(alai,Amax,I0dr,I0df,CiPa,tk,prpa,nf,pcp,Kc,Oi,Ko,Ntot,
-     1n1,n2)
-! Canopy net photosynthesis at saturating CO2 (umol/m2/s).
-      Amax_net=Amax-Rcan
-! Canopy conductance to moisture (m/s)
-      cncn=(1.0-0.0075*vh)*betad*650.0D-6*amax*((Ci+0.004)/Ci)*
-     1      2.8**(-80.0*dqs)
-! Change in canopy conductance (m/s).
-      dcnc=cncn-cnc
-! Limit cnc change over timestep (m/s).
-      dcnc_max=dt*alai*(0.006-0.00006)/1800.0
-      if( dcnc.gt.dcnc_max)cncn=cnc+dcnc_max
-      IF(-dcnc.gt.dcnc_max)cncn=cnc-dcnc_max
-! Biological limits of absolute cnc (m/s).
-      if(cncn.gt.0.006*alai)cncn=0.006*alai
-      if(cncn.lt.0.00006*alai)cncn=0.00006*alai
+! CO2 dependence of light-limited photosynthesis (?units).
+      m1=CiPa/(CiPa+2.0D0*pcp)
+! CO2 dependence of light-saturated photosynthesis (?units).
+      m2=CiPa/(CiPa+kc*(1.0D0+Oi/ko))
+! Nitrogen dependence of photosynthesis (?units).
+      msat=min(m1*n1,m2*n2)
+! Canopy photosynthesis at saturating CiPa (Amax: umol/m[ground]2/s).
+      call qsimp(alai,Amax,I0dr,I0df,CiPa,tk,prpa,nf,pcp,Kc,Oi,Ko,N0,
+     1k,n1,n2,m1,msat,sigma,temp,rhor,kdf,kbl)
+!----------------------------------------------------------------------!
+! Canopy mitochondrial respiration (umol/m[ground]2/s).
+      Rcan=0.20D0*Ntot*exp(18.72D0-46.39D3/(gasc*tk))
+! Net canopy photosynthesis (umol/m[ground]2/s).
+      Anet=Acan-Rcan
+! Net canopy photosynthesis at saturating CiPa (umol/m[ground]2/s).
+      Anet_max=Amax-Rcan
+!----------------------------------------------------------------------!
+! Humidity deficit across canopy surface (kg/kg).
+      dQs=Qv-Qf
+      if(dQs.lt.zero)dQs=zero
+!----------------------------------------------------------------------!
+! New equilibrium canopy conductance to moisture (m/s). betaD removed
+! from here to allow Ci to be calculated.
+      CNCN=(1.0D0-0.0075D0*vh)*650.0D-6*Anet_max*
+     &   ((Ci+0.004D0)/(Ci+EPS))*2.8D0**(-80.0D0*dQs)
+! Required change in canopy conductance to reach equilibrium (m/s).
+      dCNC=CNCN-CNC
+! Limit CNC change over timestep because of guard cell mechanics (m/s).
+      dCNC_max=dt*alai*(0.006D0-0.00006D0)/1800.0D0
+      if( dCNC.gt.dCNC_max)CNCN=CNC+dCNC_max
+      IF(-dCNC.gt.dCNC_max)CNCN=CNC-dCNC_max
+! Biological limits of absolute CNC (m/s).
+      if(CNCN.gt.0.006*alai)CNCN=0.006*alai
+! Following should be included, but causes the GCM to crash. Need to ask
+! Igor about this (seems to result in transpiration of non-existent
+! soil water). This left in to allow Ci to be calculated, and so
+! betaD moved from CNCN above to CNC below.
+      if(CNCN.lt.0.00006*alai)CNCN=0.00006*alai
 ! Total conductance from inside foliage to surface height at 30m (m/s),
 ! where CO2 is assumed at Ca.
-      gt=1.0/(1.42/cncn+1.65/(ch*vsm))
-! CO2 concentration at surface height (mol/m3).
-      Ca=0.0127
-! New internal foliage CO2 concentration (mol/m3).
+      gt=1.0D0/(1.42D0/CNCN+1.65D0/(ch*vsm+EPS))
+!----------------------------------------------------------------------!
+! Foliage internal CO2 concentration for next timestep (mol/m3).
       Cin=Ca-1.0D-6*Anet/gt
-! Limit Cin to physical realism.
-!?ok ok ok???work this up next...
-      if(Cin.lt.0.0D0)Cin=0.5D0*Ci
-      if(Cin.lt.0.0001D0)Cin=0.0001D0
-!      ACAN=1.0D-6*ACAN
-! Development diagnostics.
-!      write(99,*)cnc,cncn
-      Cin=0.0141
+! Limit Cin to physical realism (mol/m3). It is possible that
+! oscilliations could occur due the Ci<>CNC feedback. Also, something
+! to watch out for is that setting Ci like this does not conserve CO2.
+      if(Cin.lt.EPS)Cin=EPS
+! Gross primary productivity (kg[C]/m2/s).
+      GPP=0.012D-6*Anet
+! Canopy conductance for next timestep (m/s). betaD put in here to
+! stop crash in GCM. ###
+      CNC=betad*CNCN
 !----------------------------------------------------------------------!
       return
-      end subroutine cond
-
+      end subroutine veg
 !----------------------------------------------------------------------!
-! adf
-      subroutine qsimp(B,S,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,Ntot,n1,n2)
-! Returns canopy gross photosynthesis (S; umol[CO2]/m2/s) as the
-! integral of ...
+      subroutine qsimp(B,S,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,
+     &                 m1,msat,sigma,temp,rhor,kdf,kbl)
+!----------------------------------------------------------------------!
+! qsimp calculates canopy photosynthesis by increasing the number of
+! layers in the integration until the result (S) changes by less than
+! 0.1 umol[CO2]/m2/s.
 !----------------------------------------------------------------------!
       implicit none
 !----------------------------------------------------------------------!
-      real*8 B,S,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,Ntot,n1,n2
-      real*8 A,K,N0,m1,m2,msat
+      integer JMAX,J
+      real*8 A,B,S,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,m1,msat
+      real*8 sigma,temp,rhor,kdf,kbl
+      real*8 EPS,OST,OS,ST,ERROR
+!----------------------------------------------------------------------!
+      parameter (EPS=1.D-3,JMAX=6)
 !----------------------------------------------------------------------!
       A=0.0D0
-      K=0.11D0
-      N0=(1000.0D0/14.0D0)*K*Ntot/(1.0D0-exp(-K*B))
-      m1=Ci/(Ci+2.0*pcp)
-      m2=Ci/(Ci+Kc*(1.0+Oi/Ko))
-      msat=min(m1*n1,m2*n2)
-!----------------------------------------------------------------------!
-ccc "qsimp" is supposed to return S, isn't it ? - I.A.
-      s = 1.d0 ! hack - have no idea what this value is ...
+      OST=-1.D30
+      OS= -1.D30
+      do 11 J=1,JMAX
+         CALL TRAPZD(A,B,ST,J,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,
+     &               n2,m1,msat,sigma,temp,rhor,kdf,kbl)
+         S=(4.D0*ST-OST)/3.D0
+         ERROR=ABS(S-OS)
+!   IF (ABS(S-OS).lt.EPS*ABS(OS)) RETURN
+         IF (ERROR.lt.0.1D0) then
+           RETURN
+         endif
+         OS=S
+         OST=ST
+   11 enddo
+!      write(99,*) 'Too many steps.'
+!      write(99,*) S,ERROR,100.0D0*ERROR/S
       return
       end subroutine qsimp
 !----------------------------------------------------------------------!
-
+      subroutine trapzd(A,B,S,N,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,
+     &n1,n2,m1,msat,sigma,temp,rhor,kdf,kbl)
+!----------------------------------------------------------------------!
+! Integrates canopy photosynthesis over canopy layers using Simpson's
+! Rule (Press et al., 19??).
+!----------------------------------------------------------------------!
+      implicit none
+!----------------------------------------------------------------------!
+      integer IT,TNM,N,J
+      real*8 A,B,S,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,m1,msat
+      real*8 sigma,temp,rhor,kdf,kbl
+      real*8 DEL,X,SUM
+!@var func1 Mean net photosynthesis at Lc (umol[CO2]/m2/s).
+      real*8 func1
+!@var func2 Mean net photosynthesis at Lc (umol[CO2]/m2/s).
+      real*8 func2
+!----------------------------------------------------------------------!
+      common/saveIT/IT
+!----------------------------------------------------------------------!
+      if(N.eq.1)then
+         call phot(A,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,m1,
+     &             msat,sigma,temp,rhor,kdf,kbl,B,func1)
+         call phot(B,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,m1,
+     &             msat,sigma,temp,rhor,kdf,kbl,B,func2)
+         S=0.5D0*(B-A)*(func1+func2)
+         IT=1
+      else
+         TNM=IT
+         DEL=(B-A)/float(TNM)
+         X=A+0.5D0*DEL
+         SUM=0.D0
+         do 11 J=1,IT
+           call phot(X,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,m1,
+     &               msat,sigma,temp,rhor,kdf,kbl,B,func1)
+           SUM=SUM+func1
+           X=X+DEL
+   11    continue
+         S=0.5D0*(S+(B-A)*SUM/float(TNM))
+         IT=2*IT
+      endif
+      return
+      end subroutine trapzd
+!----------------------------------------------------------------------!
+      subroutine phot(Lc,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,
+     &                m1,msat,sigma,temp,rhor,kdf,kbl,alai,func)
+!----------------------------------------------------------------------!
+! Calculate mean leaf photosynthesis at cumulative leaf area index Lc
+! (from top of canopy), returning result as func (umol[CO2]/m2/s).
+!----------------------------------------------------------------------!
+      implicit none
+!----------------------------------------------------------------------!
+      real*8 func,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,m1,msat
+      real*8 sigma,temp,rhor,kdf,kbl,alai
+!----------------------------------------------------------------------!
+!@var alpha Intrinsic quantum efficiency (?units).
+      real*8 :: alpha=0.08D0
+!@var ka Chlorophyll extinction coefficient (?units).
+      real*8 :: ka=0.005D0
+!@var n3 Ratio of foliage chlorophyll to N (?units).
+      real*8 n3
+!@var Lc Cumulative LAI from top of canopy (m2/m2).
+      real*8 Lc
+!@var Np Foliage nitrogen content (mmol/m2).
+      real*8 Np
+!@var Idfa Diffuse PAR in canopy at Lc (umol/m[ground]2/s).
+      real*8 Idfa
+!@var Idra Direct PAR in canopy at Lc (umol/m[ground]2/s).
+      real*8 Idra
+!@var Idrdra Direct PAR at Lc that remains direct (umol/m[ground]2/s).
+      real*8 Idrdra
+!@var Isha PAR penetrating shaded foliage at Lc (umol/m[foliage]2/s).
+      real*8 Isha
+!@var Isla PAR penetrating sunlit foliage at Lc (umol/m[foliage]2/s).
+      real*8 Isla
+!@var fsl Fraction of sunlit foliage in layer at Lc (unitless).
+      real*8 fsl
+!@var Nlim Theoretical cumulative N for light-saturated A (mmol/m2).
+      real*8 Nlim
+!@var Nsat Actual cumulative N for light-saturated A (mmol/m2).
+      real*8 Nsat
+!@var fabs Absorbed radiation in light-limited chloroplasts (fraction).
+      real*8 fabs
+!@var FUNCsl Photosynthesis in sunlit foliage (umol/m2/s).
+      real*8 FUNCsl
+!@var FUNCsh Photosynthesis in shaded foliage (umol/m2/s).
+      real*8 FUNCsh
+!@var To stop dbzs.
+      real*8, parameter :: EPS = 1.d-8
+!----------------------------------------------------------------------!
+! Check following OK. n3 is ratio of chlorophyll to foliage N (units?).
+      n3=6.0D0-3.6D0*exp(-0.7D0*Lc)
+! Foliage N at canopy depth Lc (mmol/m2).
+      Np=N0*exp(-k*Lc)
+! Following conditional required as canopy radiation profile only works
+! when sun is above the horizon.
+      if(sbeta.gt.zero)then
+! Diffuse PAR in canopy at Lc (umol/m[ground]2/s).
+        Idfa=(1.0D0-rhor)*I0df*kdf*exp(-kdf*Lc)
+! Direct PAR in canopy at Lc (umol/m[ground]2/s).
+        Idra=(1.0D0-rhor)*I0dr*temp*kbl*exp(-temp*kbl*Lc)
+! Direct PAR at Lc that remains direct (umol/m[ground]2/s).
+        Idrdra=(1.0D0-sigma)*I0dr*kbl*exp(-temp*kbl*Lc)
+! PAR penetrating shaded foliage at Lc (umol/m[foliage]2/s).
+        Isha=Idfa+(Idra-Idrdra)
+! PAR penetrating sunlit foliage at Lc (umol/m[foliage]2/s).
+        Isla=Isha+(1.0D0-sigma)*kbL*I0dr
+! Fraction of sunlit foliage in layer at Lc (unitless).
+        fsl=exp(-kbL*Lc)
+        if(Isha.lt.0.1D0)Isha=0.1D0
+        if(Isla.lt.0.1D0)Isla=0.1D0
+        if(fsl.lt.zero)fsl=zero
+      else
+        Isha=0.1D0
+        Isla=0.1D0
+        fsl=zero
+      endif
+!----------------------------------------------------------------------!
+! Cumulative nitrogen concentration at which photosynthesis becomes
+! light-limited in sunlit foliage (mmol/m2).
+      Nlim=-dlog(msat/(alpha*Isla*ka*n3*m1+EPS))/(ka*n3)
+! Impose limits on Nsat based on actual foliage nitrogen (mmol/m2).
+      if(Nlim.lt.zero)then
+        Nsat=zero
+      elseif(Nlim.gt.Np)then
+        Nsat=Np
+      else
+        Nsat=Nlim
+      endif
+! Absorbed radiation in light-limited chloroplasts (fraction).
+      fabs=exp(-ka*n3*Nsat)-exp(-ka*n3*Np)
+! Photosynthesis in sunlit foliage (umol/m2/s).
+      FUNCsl=(1.0D0-PCP/(Ci+EPS))*(msat*Nsat+alpha*m1*Isla*fabs)
+!----------------------------------------------------------------------!
+! Cumulative nitrogen concentration at which photosynthesis becomes
+! light-limited in shaded foliage (mmol/m2).
+      Nlim=-alog(msat/(alpha*Isha*ka*n3*m1+EPS))/(ka*n3)
+! Impose limits on Nsat based on actual foliage nitrogen (mmol/m2).
+      if(Nlim.lt.0.0D0)then
+        Nsat=0.0D0
+      elseif(Nlim.gt.Np)then
+        Nsat=Np
+      else
+        Nsat=Nlim
+      endif
+! Absorbed radiation in light-limited chloroplasts (fraction).
+      fabs=exp(-ka*n3*Nsat)-exp(-ka*n3*Np)
+! Photosynthesis in shaded foliage (umol/m2/s).
+      FUNCsh=(1.0D0-PCP/(Ci+EPS))*(msat*Nsat+alpha*m1*Isha*fabs)
+!----------------------------------------------------------------------!
+! Mean photosynthesis in layer (umol/m2/s).
+      func=fsl*FUNCsl+(1.0D0-fsl)*FUNCsh
+!----------------------------------------------------------------------!
+      return
+      end subroutine phot
+!----------------------------------------------------------------------!
 
       subroutine sensible_heat
 !@sum computes sensible heat for bare/vegetated soil and snow
@@ -1840,6 +2174,8 @@ ccc   the rest of the fluxes (mostly for diagnostics)
 !!! I guess we need to accumulate evap from snow here
       aepc=aepc+(epv*fv*dts)
       aepb=aepb+(epb*fb*dts)
+      !Accumulate GPP, nyk, like evap_tot(2)
+      agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
 
       dedifs=f(2,1)*tp(2,1)
       if(f(2,1).lt.0.d0) dedifs=f(2,1)*tp(1,1)
@@ -1926,6 +2262,7 @@ c zero out accumulations
       abeta=0.d0  ! not accumulated : do we need it?
       acna=0.d0   ! not accumulated : do we need it?
       acnc=0.d0   ! not accumulated : do we need it?
+      agpp=0.d0   ! new accumulator, nyk 4/25/03
       aevapw=0.d0              ! evap from wet canopy
       aevapd=0.d0              ! evap from dry canopy
       aevapb=0.d0              ! evap from bare soil (no snow)
@@ -2973,8 +3310,11 @@ c     &           ibv, i, flmlt(ibv), fr_snow(ibv)
      &       - pr + evap_tot(2) + sum(rnff(1:n,2)) + rnf(2)
         if (abs(error_water)>1.d-15)
      $       write(99,*)'vege',ijdebug,error_water
-        if ( abs( error_water ) > 1.d-14 ) call stop_model(
+        if ( abs( error_water ) > 1.d-14 ) then
+          write(99,*)'evap_tot(2)',evap_tot(2)
+          call stop_model(
      &       'GHY: water conservation problem in veg. soil',255)
+        endif
       endif
 
       ghy_debug%water(:) = total_water(:)
