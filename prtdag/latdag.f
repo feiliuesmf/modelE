@@ -1,4 +1,4 @@
-c left to do: divide by sum of ptypes for each longitude (=im right now)
+c
       program latdag
 
       use ncinp
@@ -11,13 +11,14 @@ c left to do: divide by sum of ptypes for each longitude (=im right now)
       real :: scale,A1BYA2,A2BYA1,BYA1
       real :: dtday,dtsec
 
-      integer :: ntype
+      integer :: ntype,stype_clen
+      integer :: itype,ic
       real, dimension(:), allocatable :: lats,sige,dxyp
       real, dimension(:,:), allocatable :: acc
       real, dimension(:), allocatable :: acc1,acc2,acc3,acc4,acc5,accsum
       real, dimension(:), allocatable :: fj,sptype
       real, dimension(:), allocatable :: wtype
-
+      character, dimension(:,:), allocatable :: stype_names
       real, parameter :: P1000=1000.
       character(len=20) :: var_name,acc_name,dim_name,type_name
 
@@ -36,6 +37,7 @@ c left to do: divide by sum of ptypes for each longitude (=im right now)
       call open_acc
 
 ! get ntype dimensions
+      dim_name='STYPE_CLEN'; call get_dim_size(dim_name,stype_clen)
       dim_name='NTYPE'; call get_dim_size(dim_name,ntype)
       if(nargs-2.gt.ntype) stop 'too many surface types in arguments'
 ! allocate space using these dimensions
@@ -45,10 +47,43 @@ c left to do: divide by sum of ptypes for each longitude (=im right now)
       allocate (acc1(jm),acc2(jm),acc3(jm),acc4(jm),acc5(jm),accsum(jm))
       allocate(fj(jm),sptype(jm))
       allocate(wtype(ntype))
+      allocate(stype_names(stype_clen,ntype))
 ! get lon,ht coordinates
       acc_name='latitude'; call getacc(acc_name,lats)
       acc_name='area'; call getacc(acc_name,dxyp)
       acc_name='sige'; call getacc(acc_name,sige)
+
+! get names of surface types
+      acc_name='STYPE_NAMES'; call gettxt(acc_name,stype_names)
+
+C**** determine surface type weightings from arguments
+      wtype=0.
+      if(nargs.eq.2) then ! composite of all types
+         wtype = 1.
+      else
+         do iarg=3,nargs
+            type_name=''
+            call getarg(iarg,type_name)
+            itype = 1
+            do while(itype.le.ntype)
+               ic=1
+               do while(ic.le.stype_clen .and.
+     &                  type_name(ic:ic).eq.stype_names(ic,itype))
+                  ic = ic +1
+               enddo
+               if(ic.le.stype_clen) then
+                  itype = itype + 1
+               else
+                  exit
+               endif
+            enddo
+            if(itype.gt.ntype) then
+               write(6,*) 'invalid type: ',trim(type_name)
+               stop
+            endif
+            wtype(itype)=1.
+         enddo
+      endif
 
 ! define output file
       call open_out
@@ -67,33 +102,7 @@ C****
       BYA1=1./(IDACC(1)+1.E-20)
       A2BYA1=DBLE(IDACC(2))/DBLE(IDACC(1))
       A1BYA2=IDACC(1)/(IDACC(2)+1.E-20)
-C**** determine surface type weightings from arguments
-C**** indices of types are hard-coded for now
-      wtype=0.
-      if(nargs.eq.2) then ! composite of all types
-         wtype = 1.
-      else
-         do iarg=3,nargs
-            call getarg(iarg,type_name)
-            select case ( type_name )
-            case ( 'OCEAN'   )
-               wtype(1)=1.
-            case ( 'OCEANICE')
-               wtype(2)=1.
-            case ( 'EARTH'   )
-               wtype(3)=1.
-            case ( 'LANDICE' )
-               wtype(4)=1.
-            case ( 'LAKE'    )
-               wtype(5)=1.
-            case ( 'LAKEICE' )
-               wtype(6)=1.
-            case default
-               write(6,*) 'invalid type: ',trim(type_name)
-               stop
-            end select
-         enddo
-      endif
+
 C****
 c  AJ69
       var_name = 'ptype'

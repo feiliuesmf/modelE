@@ -111,3 +111,15 @@
       status = nf_get_att_int(acc_fid,varid,'idacc',ia)
       return
       end subroutine getacc
+
+      subroutine gettxt(acc_name,text)
+      use ncinp
+      implicit none
+      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      integer :: varid
+      character(len=20) :: acc_name
+      character :: text
+      status = nf_inq_varid(acc_fid,trim(acc_name),varid)
+      status = nf_get_var_text(acc_fid,varid,text)
+      return
+      end subroutine gettxt
