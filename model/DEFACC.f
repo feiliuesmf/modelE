@@ -1736,7 +1736,7 @@ c
       IJ_AINTRCP = k ! aintercep
       lname_ij(k) = 'PRECIPITATION INTERCEPTED BY CANOPY'
       units_ij(k) = 'mm/day'
-      name_ij(k) = 'runoff_ugrnd'
+      name_ij(k) = 'prec_int_canopy'
       ia_ij(k) = ia_src
       scale_ij(k) = SDAY/DTsrc
       iw_ij(k) = iw_veg
