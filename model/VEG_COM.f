@@ -21,6 +21,8 @@
       real*8, dimension(im,jm) :: Cint
 !@var Qfol Foliage surface mixing ratio (kg/kg)
       real*8, dimension(im,jm) :: Qfol
+!@var cnc_ij canopy conductance
+      real*8, dimension(im,jm) :: cnc_ij
 
 !---  work arrays (recomputed for each restart)
       real*8, dimension(ngm,im,jm) :: afr
@@ -37,7 +39,7 @@
 !@auth I. Aleinov
 !@ver  1.0
       use model_com, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
-      use veg_com, only : Cint, Qfol
+      use veg_com, only : Cint, Qfol, cnc_ij
       implicit none
 
       integer kunit   !@var kunit unit number of read/write
@@ -47,13 +49,13 @@
 !@var header character string label for individual records
       character*80 :: header, module_header = "vegetation01"
 
-      write(module_header(lhead+1:80),'(a)') 'cint,qfol'
+      write(module_header(lhead+1:80),'(a)') 'cint,qfol,cnc_ij'
 
       select case (iaction)
       case (:iowrite)            ! output to standard restart file
-        write (kunit,err=10) module_header,cint,qfol
+        write (kunit,err=10) module_header,cint,qfol,cnc_ij
       case (ioread:)            ! input from restart file
-        read (kunit,err=10) header,cint,qfol
+        read (kunit,err=10) header,cint,qfol,cnc_ij
         if (header(1:lhead).ne.module_header(1:lhead)) then
           print*,"discrepancy in module version ",header,module_header
           go to 10

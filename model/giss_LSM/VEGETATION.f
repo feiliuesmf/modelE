@@ -71,27 +71,30 @@ ccc   rundeck parameters  5/1/03 nyk
 
 
       subroutine veg_conductance(
-     &      cnc_out 
+     &      cnc_in_out 
      &     ,gpp_out 
      &     ,betad_in ! evaporation efficiency
      &     ,tcan_in ! canopy temperature C
      &     ,qv_in
+     $     ,dt_in  ! GHY time step
      &     )
       implicit none
-      real*8, intent(out) :: cnc_out,gpp_out
-      real*8, intent(in) :: betad_in,tcan_in,qv_in
+      real*8, intent(inout) :: cnc_in_out
+      real*8, intent(out) :: gpp_out
+      real*8, intent(in) :: betad_in,tcan_in,qv_in,dt_in
 
       betad = betad_in
       tcan = tcan_in
       qv = qv_in
+      cnc = cnc_in_out
 
       if ( cond_scheme.eq.1 ) then !if switch added by nyk 5/1/03
         gpp=0                   ! dummy value for GPP if old cond_scheme
         call cond
       else         ! cond_scheme=2 or anything else
-        call veg                ! added by adf
+        call veg(dt_in)                ! added by adf
       endif
-      cnc_out = cnc
+      cnc_in_out = cnc
       gpp_out = gpp
       end subroutine veg_conductance
 
@@ -122,7 +125,7 @@ c**** adjust canopy conductance for incoming solar radiation
       end subroutine cond
 
 !----------------------------------------------------------------------!
-      subroutine veg
+      subroutine veg( dt )
 !----------------------------------------------------------------------!
 ! Vegetation dynamics routine (adf). Currently (April, 2003)
 ! calculates canopy stomatal conductance (CNC, m/s) using a
@@ -142,6 +145,7 @@ c**** adjust canopy conductance for incoming solar radiation
       real*8, parameter :: Oi=20.9D0
 !@var k Canopy nitrogen extinction coefficient (?unitless).
       real*8, parameter :: k=0.11D0
+      real*8, intent(in) :: dt
 !@var PAR Incident photosynthetically active radiation (umol/m2/s).
       real*8 PAR
 !@var tk Canopy temperature (K).
@@ -193,9 +197,9 @@ c**** adjust canopy conductance for incoming solar radiation
 !@var CNCN New equilibrium canopy conductance to water (m/s).
       real*8 CNCN
 !nu@var dCNC Change in canopy conductance to reach equilibrium (m/s).
-!nu   real*8 dCNC
+      real*8 dCNC
 !nu@var dCNC_max Maximum possible change in CNC over timestep (m/s).
-!nu   real*8 dCNC_max
+      real*8 dCNC_max
 !@var gt Conductance from inside foliage to surface height at 30m (m/s).
       real*8 gt
 !@var EPS to stop dbzs

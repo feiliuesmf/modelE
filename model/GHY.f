@@ -204,7 +204,8 @@ ccc   tsn1 is private
       real*8 tsn1(2)
 
       real*8 betat,betad
-      real*8 cnc,gpp,  fd,fw,fm,dts
+      real*8 gpp,  fd,fw,fm,dts
+      real*8, public :: cnc
 
 !@var theta fraction of water in the soil ( 1 = 100% )
 !@var f water flux between the layers ( > 0 is up ) (m/s)
@@ -709,7 +710,7 @@ ccc make sure that important vars are initialized (needed for ibv hack)
       betadl(:) = 0.d0
       betad = 0.d0
       abetad = 0.d0
-      cnc = 0.
+      ! cnc = 0.  ! is set in GHY_DRV for cond_scheme=2
       acna = 0.d0
       acnc = 0.d0
 
@@ -769,6 +770,7 @@ c     Get canopy conductivity cnc and gpp
      &       ,betad          ! evaporation efficiency
      &       ,tp(0,2)          ! canopy temperature C
      &       ,qv
+     &       ,dts
      &       )
 cddd        if ( cond_scheme.eq.1 ) then !if switch added by nyk 5/1/03
 cddd          gpp=0       ! dummy value for GPP if old cond_scheme
@@ -1597,6 +1599,7 @@ c**** soils28   common block     9/25/90
       limit=300   ! 200 increase to avoid a few more stops
       nit=0
       dtr=dt
+      dts=dt ! make sure that dts is always initialized
 ccc trying to skip fb==0 and fv==0 fractions of the cell
 ccc reset main water/heat fluxes, so they are always initialized
       f(:,:) = 0.d0

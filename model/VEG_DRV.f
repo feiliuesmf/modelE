@@ -127,6 +127,7 @@ C**** Update vegetation file if necessary (i.e. crops_yr =0 or >0)
       if (istart.le.2 .or. redogh) then     ! initialize foliage arrays (adf)
         Cint(:,:)=0.0127D0      ! internal CO2
         Qfol(:,:)=3.D-6         ! surface mixing ratio
+        cnc_ij(:,:) = 0.d0
       end if
       if (istart.le.0) return   ! avoid reading unneeded files
 
@@ -266,6 +267,7 @@ c**** recompute ground hydrology data if necessary (new soils data)
       if (redogh) then
         Cint(:,:)=0.0127D0      ! Internal foliage CO2(adf)
         Qfol(:,:)=3.D-6         ! Foliage surface mixing ratio (adf)
+        cnc_ij(:,:) = 0.d0
         print *, 'reset vegetation prognostic variables to defaults'
       end if
 

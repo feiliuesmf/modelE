@@ -9,9 +9,9 @@
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
-#define VEGETATION_OLD
+!  #define VEGETATION_OLD
 #ifdef VEGETATION_OLD
-      use veg_com, only : Cint, Qfol
+      use veg_com, only : Cint, Qfol, cnc_ij
 #endif
 
       IMPLICIT NONE
@@ -173,14 +173,14 @@ ccc TRSNOWBV is not used
 
       write(MODULE_HEADER(lhead+1:80),'(a6,i1,a11,i1,a,a)') 'R8 Wb(',
      *   ngm,',ijm), dim(',ngm+1,',ijm):Wv,HTb,HTv, SNWbv(2,ijm),'
-     *     ,'Cint,Qfol'
+     *     ,'Cint,Qfol,cnc'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,wbare,wvege,htbare,htvege
      *       ,snowbv
 #ifdef VEGETATION_OLD
-     &       ,Cint,Qfol
+     &       ,Cint,Qfol,cnc_ij
 #endif
 #ifdef TRACERS_WATER
         WRITE (kunit,err=10) TRMODULE_HEADER,TR_WBARE,TR_WVEGE,TRSNOWBV0
@@ -188,7 +188,8 @@ ccc TRSNOWBV is not used
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
 #ifdef VEGETATION_OLD
-     *     ,Cint,Qfol
+     *     ,Cint,Qfol ! ,cnc_ij
+        cnc_ij = 0.d0
 #endif
         IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER

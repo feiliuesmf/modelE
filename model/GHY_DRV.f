@@ -60,7 +60,7 @@ c****
      &     ,ghy_debug
 !veg     &    ,fdir,parinc,vegalbedo,sbeta,Ci,Qf,Cin,Qfn ! added by adf, nyk
 !veg     &    ,cond_scheme  !nyk
-     &     ,Qfn
+     &     ,Qfn,cnc
 #ifdef TRACERS_WATER
      &     ,tr_w,tr_wsn,trpr,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
 #endif
@@ -114,6 +114,7 @@ c****
 !#endif
       use veg_com, only : afb
      &     ,Cint,Qfol           ! added by adf
+     $     ,cnc_ij
      &     ,aalbveg    ! nyk
       use vegetation, only :
      &     fdir,parinc,vegalbedo,sbeta,Ci,Qf,Cin     ! added by adf, nyk
@@ -514,6 +515,7 @@ c  define extra variables to be passed in surfc:
 ! Foliage surface mixing ratio (kg/kg).
         Qf=Qfol(i,j)
         Qfn = Qf  ! initialize it for cases when "veg" is not called
+        cnc = cnc_ij(i,j)
       end if
 !----------------------------------------------------------------------!
   !    zs    =zgs  !!! will not need after qsbal is replaced
@@ -530,6 +532,7 @@ c     call qsbal
       if (cond_scheme.eq.2) then            !new conductance scheme only
         Cint(i,j)=Cin                  ! New CO2 for next timestep (adf)
         Qfol(i,j)=Qfn         ! New mixing ratio for next timestep (adf)
+        cnc_ij(i,j)=cnc
       end if
 
       tg1=tbcs
