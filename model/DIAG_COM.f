@@ -482,7 +482,7 @@ c??? *     idacc,AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,CONSRV,SPECA,ATPE,
 c??? *     ADIURN,WAVE,AJK,AIJK
      *     TDIURN,OA,it
       CASE (IOWRITE_SINGLE)     ! output in single precision
-        MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
+        MODULE_HEADER(LHEAD+1:LHEAD+4) = 'I/R4'
         MODULE_HEADER(i_xtra:80) = ',monacc(12)'
         WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,SNGL(TSFREZ),
      *     idacc,SNGL(ACC),
