@@ -979,19 +979,6 @@ C****
 !$OMP  END PARALLEL DO
 
 
-      DO kr = 1, ndiupt
-        DO ii = 1, N_IDX4
-          ivar = idx4(ii)
-          CALL GLOBALSUM(grid, ADIURN_part(:,ivar,kr), ADIURNSUM)
-          CALL GLOBALSUM(grid, HDIURN_part(:,ivar,kr), HDIURNSUM)
-          IF (AM_I_ROOT()) THEN
-            ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM
-            HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM
-          END IF
-        END DO
-      END DO
-
-      
       DO JR = 1, NREG
         CALL GLOBALSUM(grid, AREG_part(1,:,JR), AREGSUM)
         AREG(JR,J_TRHDT) = AREG(JR,J_TRHDT) + AREGSUM
@@ -1010,6 +997,18 @@ C****
           AREG(JR,J_TG2) = AREG(JR,J_TG2) + AREGSUM
         End IF
       End Do
+
+      DO kr = 1, ndiupt
+        DO ii = 1, N_IDX4
+          ivar = idx4(ii)
+          CALL GLOBALSUM(grid, ADIURN_part(:,ivar,kr), ADIURNSUM)
+          CALL GLOBALSUM(grid, HDIURN_part(:,ivar,kr), HDIURNSUM)
+          IF (AM_I_ROOT()) THEN
+            ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM
+            HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM
+          END IF
+        END DO
+      END DO
 
 C****
 C**** EARTH
