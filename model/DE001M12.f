@@ -5535,7 +5535,7 @@ C**** LOOP BACKWARDS SO THAT INITIALISATION IS DONE BEFORE SUMMATION!
             CONSRV(J,N)=0.
           ELSEIF (NSUM_CON(N).gt.0) THEN
             CONSRV(J,NSUM_CON(N))=CONSRV(J,NSUM_CON(N))+CONSRV(J,N)
-     *           *SCALE_CON(N)/(IDACC(IA_CON(N))+1d-20)
+     *           *SCALE_CON(N)*IDACC(12)/(IDACC(IA_CON(N))+1d-20)
           END IF
         END DO
       END DO
@@ -7379,10 +7379,10 @@ C**** NCON=1:23 are special cases: Angular momentum and kinetic energy
       NOFM(:,icon_AM) = (/  1, 6, 0, 0, 0, 0, 7, 8, 9,10 /)
       icon_KE=2
       NOFM(:,icon_KE) = (/ 12,17,18, 0, 0, 0,19,20,21,22 /)
-      NSUM_CON(1:23) = (/-1, 4, 4,0,-1,11,11,11,11,11,0,
-     *                   -1,15,15,0,-1,23,23,23,23,23,23,0/)
-      IA_CON(1:23) = (/12,6,6,6,6,7,8,8,10, 9,12,
-     *                 12,6,6,6,6,7,8,8, 8,10, 9,12/)
+      NSUM_CON(1:23) = (/-1, 4, 4, 0,-1,11,11,11,11,11, 0,
+     *                   -1,15,15, 0,-1,23,23,23,23,23,23, 0/)
+      IA_CON(1:23) =   (/12, 6, 6,12, 6, 7, 8, 8,10, 9,12,
+     *                   12, 6, 6,12, 6, 7, 8, 8, 8,10, 9,12/)
       SCALE_CON(1)              = 1d-9
       SCALE_CON((/2,3,5,6,7,8/))= 1d-2/DTSRC
       SCALE_CON((/4,11,15,23/)) = 1.
