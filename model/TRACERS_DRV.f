@@ -793,7 +793,7 @@ C****
         sname_jls(k) = 'Decay_of_'//trname(n)
         lname_jls(k) = 'LOSS OF RADON-222 BY DECAY'
         jls_ltop(k) = lm
-        jls_power(k) = -12.
+        jls_power(k) = -10.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(1,n) = k
@@ -1726,7 +1726,7 @@ c radioactive decay
         sname_jls(k) = 'Decay_of_'//trname(n)
         lname_jls(k) = 'Loss of Be7 by decay'
         jls_ltop(k) = lm
-        jls_power(k) = -2.
+        jls_power(k) = -13
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 c gravitational settling
         k = k + 1
@@ -1734,7 +1734,7 @@ c gravitational settling
         sname_jls(k) = 'Grav_Settle_of_'//trname(n)
         lname_jls(k) = 'Loss of Be7 by grav settling'
         jls_ltop(k) = lm
-        jls_power(k) = -5.
+        jls_power(k) = -13
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
 
@@ -1745,7 +1745,7 @@ c cosmogenic source from file/same as Be7
         sname_jls(k) = 'Cosmogenic_src_of'//trname(n)
         lname_jls(k) = 'Be10 cosmogenic src'
         jls_ltop(k) = lm
-        jls_power(k) = -13.  !may need changing around
+        jls_power(k) = -13  !may need changing around
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 c gravitational settling
         k = k + 1
@@ -1753,7 +1753,7 @@ c gravitational settling
         sname_jls(k) = 'Grav_Settle_of_'//trname(n)
         lname_jls(k) = 'Loss of Be10 by grav settling'
         jls_ltop(k) = lm
-        jls_power(k) = -5.
+        jls_power(k) = -13
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
         case ('Pb210')
@@ -1763,7 +1763,7 @@ c source of Pb210 from Rn222 decay
         sname_jls(k) = 'Radioactive_src_of'//trname(n)
         lname_jls(k) = 'Pb210 radioactive src'
         jls_ltop(k) = lm
-        jls_power(k) =-8.  !may need to be changed
+        jls_power(k) =-10  !may need to be changed
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 c radioactive decay
         k = k + 1
@@ -1771,7 +1771,7 @@ c radioactive decay
         sname_jls(k) = 'Decay_of_'//trname(n)
         lname_jls(k) = 'Loss of Pb210 by decay'
         jls_ltop(k) = lm
-        jls_power(k) = -11.
+        jls_power(k) = -12
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 c gravitational settling
         k = k + 1
@@ -1779,7 +1779,7 @@ c gravitational settling
         sname_jls(k) = 'Grav_Settle_of_'//trname(n)
         lname_jls(k) = 'Loss of Pb210 by grav settling'
         jls_ltop(k) = lm
-        jls_power(k) = -11.
+        jls_power(k) = -12
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
         case ('H2O2_s')
@@ -2836,7 +2836,7 @@ c cosmogenic source from file
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Cosmogenic source of '//trname(n)
         sname_ijts(k) = 'Be7_cosmo_src'
-        ijts_power(k) = -13.
+        ijts_power(k) = -25
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -2848,7 +2848,7 @@ c cosmogenic source from file
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Cosmogenic source of '//trname(n)
         sname_ijts(k) = 'Be10_cosmo_src'
-        ijts_power(k) = -13.
+        ijts_power(k) = -25
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -2860,7 +2860,7 @@ c source of Pb210 from Rn222 decay
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Radioactive source of '//trname(n)
         sname_ijts(k) = 'Pb210_radio_src'
-        ijts_power(k) = -8.
+        ijts_power(k) = -24
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
