@@ -4,7 +4,7 @@
 !@ver   1.0 (taken from CB265)
 !@calls MSTCNV and LSCOND
 
-      USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
+      USE CONSTANT, only : bygrav
       USE E001M12_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,gdata,sig,DTsrc
       USE SOMTQ_COM, only : tmom,qmom
@@ -14,7 +14,7 @@
      *     ,airm,byam,etal,sm,smomij=>smom,qm,qmomij=>qmom
      *     ,tl,aj13
      *     ,aj50,aj51,aj52,aj57,aj8,aj11,wml,sdl,u_0,v_0,um,vm,tf
-     *     ,prcpmc,pearth,ts,bygrav,taumcl,cldmcl,svwmxl,svlatl,svlhxl
+     *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,mstcnv
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,lpbl,taussl,cldssl,cldsavl,

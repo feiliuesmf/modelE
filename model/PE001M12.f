@@ -17,7 +17,7 @@ C**** WATER, GROUND ICE, SNOW COVER, AND RUNOFF
 C****
 C**** RUN1 IS NOT ACUMULATED IN ADAILY FOR DIAG6
 C****
-      USE CONSTANT, only : kapa,lhm,lhe,rhow,shw,shi
+      USE CONSTANT, only : lhm,rhow,shw,shi
       USE E001M12_COM
       USE GEOM
       USE CLD01_COM_E001, only : prec,tprec
@@ -36,10 +36,8 @@ C****
       LOGICAL QFIXR
 
       INTEGER I,J,L,K,IMAX,JR
-      REAL*8 AENRGP,BENRGP,CENRGP,BEDIFS,CEDIFS,AEFO
-     *     ,BERUN0,BERUN2,CERUN2,AERUN4,CERUN4,BDIFS,CDIFS,AIFO,BRUN0
-     *     ,CRUN0,BRUN2,CRUN2,ARUN4,CRUN4,PLAND,PWATER,PLICE,PEARTH
-     *     ,ROICE,POICE,POCEAN,DXYPJ,RUN0S,DIFSS,PRCP,TPRCP,EPRCP
+      REAL*8 PLAND,PWATER,PLICE,PEARTH
+     *     ,ROICE,POICE,POCEAN,DXYPJ,PRCP,TPRCP,EPRCP
      *     ,ENRGP,TGW,WTRO,RUN4,ERUN4,SNOW,WTRW0,ENRGW0,DIFS,EDIFS,WTRW
      *     ,ENRGW,TG1,TG2,TG3,TG4,RUN0,ERUN2,POLAKE,PLKICE
 C****
@@ -79,26 +77,6 @@ C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
       DO J=1,JM
       IMAX=IMAXJ(J)
-         AENRGP=0.
-         BENRGP=0.
-         CENRGP=0.
-         BEDIFS=0.
-         CEDIFS=0.
-         AEFO=0.
-         BERUN0=0.
-         BERUN2=0.
-         CERUN2=0.
-         AERUN4=0.
-         CERUN4=0.
-         BDIFS=0.
-         CDIFS=0.
-         AIFO=0.
-         BRUN0=0.
-         CRUN0=0.
-         BRUN2=0.
-         CRUN2=0.
-         ARUN4=0.
-         CRUN4=0.
       DO I=1,IMAX
       IF (PREC(I,J).LE.0.) CYCLE
 C****
@@ -115,8 +93,6 @@ C****
       PLKICE=FLAKE(I,J)*ROICE
          JR=JREG(I,J)
          DXYPJ=DXYP(J)
-         RUN0S=0.
-         DIFSS=0.
 C**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
       PRCP=PREC(I,J)
       TPRCP=TPREC(I,J)
@@ -130,12 +106,16 @@ C       EPRCP=PRCP*TPRCP*SHI
         ENRGP=EPRCP-PRCP*LHM
           AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCP
       END IF
+C**** Precipitation diagnostics (put in cloud driver?)
+         AREG(JR,J_EPRCP)=AREG(JR,J_EPRCP)+ENRGP*DXYPJ
+         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
+         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
       IF (PWATER.LE.0.) GO TO 400
 C****
 C**** OCEAN AND LAKE
 C****
         OA(I,J,4)=OA(I,J,4)+ENRGP
-        AENRGP=AENRGP+ENRGP*POCEAN
+        AJ(J,J_EPRCP)=AJ(J,J_EPRCP)+ENRGP*POCEAN
         AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+ENRGP*POCEAN
       IF (POLAKE.GT.0.) THEN
         MWL(I,J) = MWL(I,J) +  PRCP*POLAKE*DXYP(J)
@@ -146,8 +126,8 @@ C****
         WTRO=Z1O(I,J)*RHOW
         RUN4=PRCP
         ERUN4=RUN4*TGW*SHW
-          AERUN4=AERUN4+ERUN4*POCEAN
-          ARUN4=ARUN4+RUN4*POCEAN
+        AJ(J,J_DWTR2)=AJ(J,J_DWTR2)+ERUN4*POCEAN
+        AJ(J,J_RUN2)=AJ(J,J_RUN2)+RUN4*POCEAN
         IF (ROICE.GT.0.) GO TO 110
         CALL PREC_OC(TGW,WTRO,PRCP,ENRGP,ERUN4)
         TOCEAN(1,I,J)=TGW
@@ -162,11 +142,11 @@ C****
       SNOW=GDATA(I,J,1)
       MSI2=MSI(I,J)
       MSI1 = SNOW + ACE1I
-         CENRGP=CENRGP+ENRGP*POICE
+         CJ(J,J_EPRCP)=CJ(J,J_EPRCP)+ENRGP*POICE
          AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
       IF (KOCEAN .EQ. 1) THEN
-          CERUN4=CERUN4+ERUN4*POICE
-          CRUN4=CRUN4+RUN4*POICE
+        CJ(J,J_DWTR2)=CJ(J,J_DWTR2)+ERUN4*POICE
+        CJ(J,J_RUN2)=CJ(J,J_RUN2)+RUN4*POICE
         WTRW0=WTRO-ROICE*(MSI1+MSI2)
         ENRGW0=WTRW0*TOCEAN(1,I,J)*SHW
       END IF
@@ -182,7 +162,7 @@ C***  CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
       CALL PREC_SI(SNOW,MSI2,MSI1,TG1,TG2,TG3,TG4,PRCP,TPRCP,EPRCP
      *     ,RUN0,DIFS,EDIFS,ERUN2,QFIXR)
 
-      IF (KOCEAN.EQ.1) THEN
+      IF (.not. QFIXR) THEN
         MSI(I,J)=MSI2
         GDATA(I,J,15)=TG3
         GDATA(I,J,16)=TG4
@@ -193,9 +173,9 @@ C***  CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
 
 C***  ACCUMULATE DIAGNOSTICS
       IF (KOCEAN .NE. 1) THEN
-          DIFSS=DIFSS+DIFS*POICE
-          CERUN2=CERUN2+ERUN2*POICE
-          CRUN2=CRUN2+DIFS*POICE
+        AREG(JR,J_DIFS)=AREG(JR,J_DIFS)+DIFS*POICE*DXYPJ
+        CJ(J,J_ERUN2)=CJ(J,J_ERUN2)+ERUN2*POICE
+        CJ(J,J_IMELT)=CJ(J,J_IMELT)+DIFS*POICE
       ELSE
 C**** CALCULATE THE COMPOSITE WATER MASS AND WATER ENERGY
         WTRW=WTRW0+ROICE*(RUN0-RUN4)
@@ -207,10 +187,10 @@ C**** If lake ice, add runoff to lake amount (E. of runoff always = 0)
       IF (PLKICE.gt.0) THEN
         MWL(I,J) = MWL(I,J) + RUN0*POICE*DXYP(J)
       END IF
-         CEDIFS=CEDIFS+EDIFS*POICE
-         CDIFS=CDIFS+DIFS*POICE
-         CRUN0=CRUN0+RUN0*POICE
-         RUN0S=RUN0S+RUN0*POICE
+         CJ(J,J_EDIFS)=CJ(J,J_EDIFS)+EDIFS*POICE
+         CJ(J,J_DIFS)=CJ(J,J_DIFS)+DIFS*POICE
+         CJ(J,J_RUN1)=CJ(J,J_RUN1)+RUN0*POICE
+         AREG(JR,J_RUN1)=AREG(JR,J_RUN1)+RUN0*POICE*DXYPJ
 C****
   400 IF (PLICE.LE.0.) GO TO 600
 C****
@@ -219,7 +199,7 @@ C****
       SNOW=GDATA(I,J,12)
       TG1=GDATA(I,J,13)
       TG2=GDATA(I,J,14)
-         BENRGP=BENRGP+ENRGP*PLICE
+         BJ(J,J_EPRCP)=BJ(J,J_EPRCP)+ENRGP*PLICE
          AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP
 
       CALL PRECLI(SNOW,TG1,TG2,PRCP,EPRCP,TPRCP,EDIFS,DIFS,ERUN2,RUN0)
@@ -227,54 +207,29 @@ C****
       GDATA(I,J,12)=SNOW
       GDATA(I,J,13)=TG1
       GDATA(I,J,14)=TG2
-         BEDIFS=BEDIFS+EDIFS*PLICE
-         BDIFS=BDIFS+DIFS*PLICE
-         BERUN2=BERUN2+ERUN2*PLICE
-         BRUN2=BRUN2+DIFS*PLICE
-         BRUN0=BRUN0+RUN0*PLICE
-         DIFSS=DIFSS+DIFS*PLICE
-         RUN0S=RUN0S+RUN0*PLICE
+         BJ(J,J_EDIFS)=BJ(J,J_EDIFS)+EDIFS*PLICE
+         BJ(J,J_DIFS)=BJ(J,J_DIFS)+DIFS*PLICE
+         BJ(J,J_ERUN2)=BJ(J,J_ERUN2)+ERUN2*PLICE
+         BJ(J,J_IMELT)=BJ(J,J_IMELT)+DIFS*PLICE
+         BJ(J,J_RUN1)=BJ(J,J_RUN1)+RUN0*PLICE
+C        BJ(J,J_ERUN1)=BJ(J,J_ERUN1)+ERUN0*PLICE ! land ice (Tg=0)
+         AREG(JR,J_DIFS)=AREG(JR,J_DIFS)+DIFS*PLICE*DXYPJ
+         AREG(JR,J_RUN1)=AREG(JR,J_RUN1)+RUN0*PLICE*DXYPJ
          AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+ERUN2
          AIJ(I,J,IJ_F1LI)=AIJ(I,J,IJ_F1LI)+EDIFS
          AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0
 C**** Add runoff to lake amount (E. of runoff always = 0)
       MWL(I,J) = MWL(I,J) +  RUN0*PLICE*DXYP(J)
 C****
-  600 IF (PEARTH.LE.0.) GO TO 940
+  600 IF (PEARTH.GT.0.) THEN
 C****
 C**** EARTH  (all else is done in subroutine EARTH, called from SURFCE)
 C****
-         BENRGP=BENRGP+ENRGP*PEARTH
-         AIJ(I,J,IJ_F0E)=AIJ(I,J,IJ_F0E)+ENRGP
-C****
-C**** ACCUMULATE DIAGNOSTICS (ocean, ocean ice, land ice only)
-C****
-  940    AREG(JR,J_EPRCP)=AREG(JR,J_EPRCP)+ENRGP*DXYPJ
-         AREG(JR,J_DIFS)=AREG(JR,J_DIFS)+DIFSS*DXYPJ ! ocn/land ice cont
-         AREG(JR,J_RUN1)=AREG(JR,J_RUN1)+RUN0S*DXYPJ
-         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PREC(I,J)
-         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
+        BJ(J,J_EPRCP)=BJ(J,J_EPRCP)+ENRGP*PEARTH
+        AIJ(I,J,IJ_F0E)=AIJ(I,J,IJ_F0E)+ENRGP
+      END IF
+C**** 
       END DO
-         AJ(J,J_EPRCP)=AJ(J,J_EPRCP)+AENRGP
-         BJ(J,J_EPRCP)=BJ(J,J_EPRCP)+BENRGP
-         CJ(J,J_EPRCP)=CJ(J,J_EPRCP)+CENRGP
-C        BJ(J,J_ERUN1)=BJ(J,J_ERUN1)+BERUN0 ! land ice (Tg=0)
-         BJ(J,J_EDIFS)=BJ(J,J_EDIFS)+BEDIFS ! land ice contribution
-         CJ(J,J_EDIFS)=CJ(J,J_EDIFS)+CEDIFS
-         AJ(J,J_ERUN2)=AJ(J,J_ERUN2)+AEFO
-         BJ(J,J_ERUN2)=BJ(J,J_ERUN2)+BERUN2 ! land ice contribution
-         CJ(J,J_ERUN2)=CJ(J,J_ERUN2)+CERUN2
-         BJ(J,J_DIFS)=BJ(J,J_DIFS)+BDIFS ! land ice contribution
-         CJ(J,J_DIFS)=CJ(J,J_DIFS)+CDIFS
-         BJ(J,J_RUN1)=BJ(J,J_RUN1)+BRUN0 ! land ice contribution
-         CJ(J,J_RUN1)=CJ(J,J_RUN1)+CRUN0
-         AJ(J,J_IMELT)=AJ(J,J_IMELT)+AIFO
-         BJ(J,J_IMELT)=BJ(J,J_IMELT)+BRUN2 ! land ice contribution
-         CJ(J,J_IMELT)=CJ(J,J_IMELT)+CRUN2
-         AJ(J,J_RUN2)=AJ(J,J_RUN2)+ARUN4
-         CJ(J,J_RUN2)=CJ(J,J_RUN2)+CRUN4
-         AJ(J,J_DWTR2)=AJ(J,J_DWTR2)+AERUN4
-         CJ(J,J_DWTR2)=CJ(J,J_DWTR2)+CERUN4
       END DO
       RETURN
       END
@@ -283,7 +238,7 @@ C****
 C**** calculates the Earth's zenith angle, weighted either
 C**** by time or by sun light.
 C****
-      USE CONSTANT, only : kapa,lhe,twopi
+      USE CONSTANT, only : twopi
       USE E001M12_COM
       USE GEOM, only : DLAT,DLON
       USE RADNCB, only : COSD,SIND
@@ -1392,7 +1347,7 @@ C****
       GDATA(I,J,7) =TG2
       GDATA(I,J,15)=TG3
       GDATA(I,J,16)=TG4
-      IF (KOCEAN.eq.1) THEN
+      IF (.not. QFIXR) THEN
          TOCEAN(1,I,J)=TGW
          RSI(I,J)=ROICE
          MSI(I,J)=MSI2

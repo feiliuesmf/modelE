@@ -423,8 +423,7 @@ C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
 C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
-      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
-     *     ,rhow
+      USE CONSTANT, only : grav,kapa,sday
       USE E001M12_COM, only : im,jm,lm,wm,u,v,t,p,q,gdata,fearth,fland
      *     ,focean,flake,flice,hlake,zatmo,sig,dsig,sige,dsigo
      *     ,bydsig,xlabel,jc,rc,clabel,namd6,ijd6,niprnt,nmonav
@@ -445,7 +444,7 @@ C****
      *     U00wtr,U00ice,lmcm
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
-      USE DAGCOM, only : aj,kacc,tsfrez,tdiurn,kdiag,keynr,jreg
+      USE DAGCOM, only : kacc,tsfrez,kdiag,keynr,jreg
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck
       USE DYNAMICS, only : filter,calc_ampk
       USE OCEAN, only : tocean,oa
