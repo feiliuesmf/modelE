@@ -220,7 +220,7 @@ C****
       USE ICEDYN_COM, only : usi,vsi,usidt,vsidt,rsisave,icij,ij_usi
      *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi
       USE FLUXES, only : dmua,dmva,dmui,dmvi,UI2rho,ogeoza,uosurf,vosurf
-     *     ,apress
+     *     ,apress,uisurf,visurf
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       IMPLICIT NONE
@@ -509,6 +509,9 @@ C**** calculate mass fluxes for the ice advection
       ICIJ(1,JM,IJ_DMUI)=ICIJ(1,JM,IJ_DMUI)+DMUI(1,JM)
       ICIJ(1,JM,IJ_RSI) =ICIJ(1,JM,IJ_RSI) +RSI(1,JM)
       ICIJ(1,JM,IJ_PICE)=ICIJ(1,JM,IJ_PICE)+RSI(1,JM)*press(1,JM)
+C**** Set uisurf,visurf for use in atmospheric drag calculations
+      uisurf=usi
+      visurf=vsi
 C****
       END SUBROUTINE DYNSI
 
@@ -990,6 +993,7 @@ C****
       USE DAGCOM, only : ia_src
       USE ICEDYN_COM
       USE ICEDYN, only : setup_icedyn_grid,focean
+      USE FLUXES, only : uisurf,visurf
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER k,i,j
@@ -1013,6 +1017,10 @@ C**** Initiallise ice dynamics if ocean model needs initialising
         USI=0.
         VSI=0.
       end if
+
+C**** set uisurf,visurf for atmopsherice drag calculations
+      uisurf=usi
+      visurf=vsi
 
 C**** set properties for ICIJ diagnostics
       k=0

@@ -464,7 +464,7 @@ C**** value is saved in the database as "B" (here sync = synchronize)
       USE MODEL_COM, only : LM,NIPRNT,dt_UVfilter,MFILTR,NFILTR,NRAD
      *     ,NDASF,NDA4,NDA5S,NDA5K,NDA5D,NDAA,Kvflxo,kradia
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
-     $     ,PTOP,LS1,IRAND,ItimeI,PSFMPT,PSTRAT,SIG,SIGE
+     $     ,PTOP,LS1,IRAND,ItimeI,PSFMPT,PSTRAT,SIG,SIGE,UOdrag
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
       USE PARAM
       implicit none
@@ -495,6 +495,7 @@ C**** Rundeck parameters:
       call sync_param( "KOCEAN", KOCEAN )
       call sync_param( "KRADIA", KRADIA )
       call sync_param( "NIsurf", NIsurf )
+      call sync_param( "UOdrag", UOdrag )
       call sync_param( "IRAND", IRAND )
 
 C**** Non-Rundeck parameters

@@ -8,13 +8,16 @@
 ccc   save
 
 c     input data:
+!@var uocean,vocean ocean/ice velocities for use in drag calulation
+      real*8 uocean,vocean
+
 !@var evap_max maximal evaporation from unsaturated soil
 !@var  fr_sat fraction of saturated soil
       real*8 :: evap_max,fr_sat
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: tr_evap_max(ntm)
 #endif
-      common/pbl_loc/evap_max,fr_sat
+      common/pbl_loc/evap_max,fr_sat,uocean,vocean
 #ifdef TRACERS_WATER
      *     ,tr_evap_max
 #endif
@@ -42,8 +45,8 @@ C**** Tracer input/output common block for PBL
 !@auth Greg. Hartke/Ye Cheng
 !@ver  1.0
 
-C    input: ZS1,TGV,TKV,QG_SAT,HEMI,DTSURF,POLE
-C    output:US,VS,WS,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
+C    input: ZS1,TGV,TKV,QG_SAT,HEMI,DTSURF,POLE,UOCEAN,VOCEAN
+C    output:US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
 C          ,UG,VG,WG,ZMIX
 
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
@@ -58,7 +61,7 @@ C          ,UG,VG,WG,ZMIX
      &     ,advanc                      ! subroutine
      &     ,zgs,DTSURF                  ! global
      &     ,ZS1,TGV,TKV,QG_SAT,HEMI,POLE    ! rest local
-     &     ,US,VS,WS,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
+     &     ,US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
      &     ,UG,VG,WG,ZMIX
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q,w2_1
 #ifdef TRACERS_ON
@@ -73,7 +76,6 @@ C          ,UG,VG,WG,ZMIX
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
 
       REAL*8, parameter :: dbl_max=3000. ! meters
-      REAL*8, parameter :: uocean=0.,vocean=0.
       REAL*8 Ts
 
 #ifdef TRACERS_ON
@@ -293,6 +295,7 @@ c -------------------------------------------------------------
 
       IMPLICIT NONE
 
+C**** ignore ocean currents for initialisation.
       real*8, parameter :: uocean=0.,vocean=0.
 !@var inipbl whether to init prog vars
       logical, intent(in) :: inipbl

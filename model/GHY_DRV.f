@@ -63,7 +63,7 @@ c****
      *     ,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
-     *     ,idd_ev,tf_day1,tf_last
+     *     ,idd_ev,tf_day1,tf_last,ndiupt
 #ifdef TRACERS_ON
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
 #ifdef TRACERS_WATER
@@ -89,10 +89,10 @@ c****
 #endif
       USE SOCPBL, only : zgs,dtsurf              ! global
      &     ,zs1,tgv,tkv,qg_sat,hemi,pole     ! rest local
-     &     ,us,vs,ws,wsh,tsv,qsrf,psi,dbl    ! ,edvisc=>kms
+     &     ,us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl    ! ,edvisc=>kms
      &     ,khs,ppbl,ug,vg,wg,zmix   ! ,kq=>kqs
       use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
-      use pbl_drv, only : pbl, evap_max,fr_sat
+      use pbl_drv, only : pbl, evap_max,fr_sat,uocean,vocean
 #ifdef TRACERS_ON
      *     ,trtop,trs,trsfac,trconstflx,ntx,ntix
 #ifdef TRACERS_WATER
@@ -301,6 +301,9 @@ c**** loop over ground time steps
       qg = qg_ij(i,j)
       tgv=tg*(1.+qg*deltx)
       rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
+C**** Obviously there are no ocean currents for earth points, but 
+C**** variables set for consistency with surfce
+      uocean=0 ; vocean=0
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
 #ifdef TRACERS_WATER
@@ -410,7 +413,7 @@ c      dqgs=(zmix-zgs)*cdq*wsh
       ts=tsv/(1.+qs*deltx)
 c**** calculate rhosrf*cdm*ws
       rhosrf=100.*ps/(rgas*tsv)
-      rcdmws=cdm*ws*rhosrf
+      rcdmws=cdm*wsm*rhosrf
       rcdhws=cdh*wsh*rhosrf
 c**** calculate fluxes of sensible heat, latent heat, thermal
 c****   radiation, and conduction heat (watts/m**2)
@@ -536,8 +539,8 @@ c           for diagnostic purposes also compute gdeep 1 2 3
       gdeep(i,j,3)=ace2av
       gtemp(1,4,i,j)=tearth(i,j)
 c**** calculate fluxes using implicit time step for non-ocean points
-      uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*us
-      vflux1(i,j)=vflux1(i,j)+ptype*rcdmws*vs
+      uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*(us-uocean)
+      vflux1(i,j)=vflux1(i,j)+ptype*rcdmws*(vs-vocean)
 c**** accumulate surface fluxes and prognostic and diagnostic quantities
       evap=aevapw+aevapd+aevapb
       evapor(i,j,4)=evapor(i,j,4)+evap
@@ -656,9 +659,9 @@ c**** quantities accumulated for latitude-longitude maps in diagij
         aij(i,j,ij_ts)=aij(i,j,ij_ts)+(ts-tf)*ptype
         aij(i,j,ij_us)=aij(i,j,ij_us)+us*ptype
         aij(i,j,ij_vs)=aij(i,j,ij_vs)+vs*ptype
-        aij(i,j,ij_taus)=aij(i,j,ij_taus)+rcdmws*ws*ptype
-        aij(i,j,ij_tauus)=aij(i,j,ij_tauus)+rcdmws*us*ptype
-        aij(i,j,ij_tauvs)=aij(i,j,ij_tauvs)+rcdmws*vs*ptype
+        aij(i,j,ij_taus)=aij(i,j,ij_taus)+rcdmws*wsm*ptype
+        aij(i,j,ij_tauus)=aij(i,j,ij_tauus)+rcdmws*(us-uocean)*ptype
+        aij(i,j,ij_tauvs)=aij(i,j,ij_tauvs)+rcdmws*(vs-vocean)*ptype
         aij(i,j,ij_qs)=aij(i,j,ij_qs)+qs*ptype
         aij(i,j,ij_tg1)=aij(i,j,ij_tg1)+tg1*ptype
 chyd       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)
@@ -666,7 +669,7 @@ chyd      *  +   (40.6*psoil+.72*(2.*(tss-tfs)-(qsatss-qss)*lhe/sha))
 c**** quantities accumulated hourly for diagDD
       endif
       if ( moddd == 0 ) then
-        do kr=1,4
+        do kr=1,ndiupt
           if(i.eq.ijdd(1,kr).and.j.eq.ijdd(2,kr)) then
             adiurn(ih,idd_ts,kr)=adiurn(ih,idd_ts,kr)+ts*ptype
             adiurn(ih,idd_tg1,kr)=adiurn(ih,idd_tg1,kr)+(tg1+tf)*ptype

@@ -165,6 +165,10 @@ C**** Variables specific for stratosphere and/or strat diagnostics
 !@var iDO_GWDRAG number if AIJ Gravity wave diagnostics
       INTEGER :: iDO_GWDRAG = 0
 
+!@dbparam UOdrag parameter that decides whether ocean.ice velocities
+!@+   feed into drag calculation in surface (default = 0)
+      INTEGER :: UOdrag = 0
+
 !@nlparam QCHECK TRUE for running diagnostic checks
       LOGICAL :: QCHECK = .FALSE.
 

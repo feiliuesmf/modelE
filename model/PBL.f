@@ -27,6 +27,7 @@
 !@var US     = x component of surface wind, postive eastward (m/s)
 !@var VS     = y component of surface wind, positive northward (m/s)
 !@var WS     = magnitude of the surface wind (m/s)
+!@var WSM    = magnitude of the surface wind - ocean currents (m/s)
 !@var WSH    = magnitude of surface wind modified by buoyancy flux(m/s)
 !@var TSV    = virtual potential temperature of the surface (K)
 !@var QS     = surface value of the specific moisture
@@ -50,7 +51,7 @@
 !@var ZMIX   = a height used to match ground and surface fluxes
 
       real*8 :: zs1,tgv,tkv,qg_sat,hemi,dtsurf,w2_1
-      real*8 :: us,vs,ws,wsh,tsv,qsrf,psi,dbl,kms,khs,kqs,ppbl
+      real*8 :: us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl,kms,khs,kqs,ppbl
      *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wg,zmix,XCDpbl=1d0
       logical :: pole
 
@@ -104,7 +105,7 @@ C***
 C$OMP  THREADPRIVATE (/PBLTPC/)
 
       COMMON /PBLPAR/ZS1,TGV,TKV,QG_SAT,HEMI,POLE
-      COMMON /PBLOUT/US,VS,WS,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL,
+      COMMON /PBLOUT/US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL,
      *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,WG,ZMIX
 C$OMP  THREADPRIVATE (/PBLPAR/,/PBLOUT/)
 
@@ -210,7 +211,7 @@ c  internals:
 #ifdef TRACERS_WATER
       real*8, intent(in), dimension(ntm) :: tr_evap_max
 #ifdef TRACERS_SPECIAL_O18
-      real*8 fk,fraclk,fracvl,fracvs,ws1,tg1,frac
+      real*8 fk,fraclk,fracvl,fracvs,tg1,frac
 #endif
 #endif
 #endif
@@ -356,6 +357,8 @@ C**** For heat and mositure
 
       end do
 
+      wsm = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
+
 #ifdef TRACERS_ON
 C**** tracer calculations are passive and therefore do not need to
 C**** be inside the iteration. Use moisture diffusivity
@@ -371,8 +374,7 @@ C**** Isotope tracers have different fractionations dependent on
 C**** type and direction of flux
         select case (itype)
         case (1)                ! ocean: kinetic fractionation
-          ws1 = sqrt(u(1)*u(1)+v(1)*v(1))
-          fk = fraclk(ws1,trname(ntix(itr)))
+          fk = fraclk(wsm,trname(ntix(itr)))
           trcnst = trcnst * fk
           trsf = trsf * fk
         case (2:4)              ! other types

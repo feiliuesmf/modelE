@@ -12,8 +12,9 @@
       USE MODEL_COM, only : im,jm,lm,fim,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,itime,jhour,sige,byim,itocean
-     *     ,itoice,itlake,itlkice,itlandi,qcheck
-      USE GEOM, only : dxyp,imaxj,bydxyp
+     *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag
+      USE GEOM, only : dxyp,imaxj,bydxyp,idjj,idij,rapj,kmaxj,sinip
+     *     ,cosip
       USE SOMTQ_COM, only : tmom,qmom,mz,nmom
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij,am,byam
       USE RADNCB, only : trhr,fsf,cosz1
@@ -25,10 +26,10 @@
 #endif
 C**** Interface to PBL
       USE SOCPBL, only : zgs,ZS1,TGV,TKV,QG_SAT,HEMI,DTSURF,POLE
-     &     ,US,VS,WS,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
+     &     ,US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
      &     ,UG,VG,WG,ZMIX
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,dclev
-      USE PBL_DRV, only : pbl,evap_max,fr_sat
+      USE PBL_DRV, only : pbl,evap_max,fr_sat,uocean,vocean
 #ifdef TRACERS_ON
      *     ,trtop,trs,trsfac,trconstflx,ntx,ntix
 #ifdef TRACERS_WATER
@@ -55,6 +56,7 @@ C**** Interface to PBL
       USE LAKES, only : minmld
       USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe,sss
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
+     *     ,uosurf,vosurf,uisurf,visurf 
 #ifdef TRACERS_ON
      *     ,trsrfflx,trsource
 #ifdef TRACERS_WATER
@@ -68,7 +70,7 @@ C**** Interface to PBL
       USE SOIL_DRV, only: earth
       IMPLICIT NONE
 
-      INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IDTYPE
+      INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IDTYPE,IM1
       REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1K,PGK,PKDN
      *     ,BETA,ELHX,ACE2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
      *     ,CM,CH,CQ,DHGS,DQGS,DGS,BETAUP,EVHEAT,F0,F1,DSHDTG,DQGDTG
@@ -144,7 +146,7 @@ C$OMP*  CDTERM,CDENOM, DGS,DSHDTG,DQGDTG,DEVDTG,DTRDTG,
 C$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DHGS,DQGS,DSNDTG,DEVDQS,
 C$OMP*  DHS,DQS,DT2,DTS, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0,
 C$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HCG1,HCG2,HSDEN,HSCON,
-C$OMP*  HSMUL,HTLIM,I,ITYPE,IDTYPE, J,
+C$OMP*  HSMUL,HTLIM,I,ITYPE,IDTYPE,IM1, J,K,
 C$OMP*  KR, MSUM,MA1,MSI1, PS,P1K,PLAND,PWATER,
 C$OMP*  PLICE,PIJ,POICE,POCEAN,PGK,PKDN,PTYPE,PSK, Q1,QSDEN,
 C$OMP*  QSCON,QSMUL, RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT,
@@ -164,6 +166,7 @@ C
       IF(J.LE.JM/2) HEMI=-1.
       POLE= (J.EQ.1 .or. J.EQ.JM)
 
+      IM1=IM
       DO I=1,IMAXJ(J)
 
       EVAPLIM = 0. ; HTLIM=0.  ! need initialisation
@@ -225,7 +228,7 @@ C****
       ipbl(i,j,itype)=0
 !!!      SELECT CASE (ITYPE)
 C****
-C**** OCEAN
+C**** OPEN OCEAN/LAKE
 C****
 !!!      CASE (1)
       if ( ITYPE == 1 ) then
@@ -248,8 +251,29 @@ C**** limit on tracer evporation from lake
 #endif
         HTLIM = GML(I,J)/(FLAKE(I,J)*DXYP(J)) + 0.5*LHM*EVAPLIM
         IDTYPE=ITLAKE
+        uocean = 0. ; vocean = 0. ! no velocities for lakes
       ELSE
         IDTYPE=ITOCEAN
+        if (UOdrag.eq.1) then ! use uocean for drag calculation
+C**** Convert UOSURF,VOSURF from C grid to A grid
+C**** Note that uosurf,vosurf start with j=1, (not j=2 as in atm winds)
+          if (pole) then
+            uocean = 0. ; vocean = 0. 
+            do k=1,kmaxj(j)
+              uocean = uocean + rapj(k,j)*(uosurf(idij(k,i,j),idjj(k,j)
+     *             -1)*cosip(k)-hemi*vosurf(idij(k,i,j),idjj(k,j)-1)
+     *             *sinip(k))
+              vocean = vocean + rapj(k,j)*(vosurf(idij(k,i,j),idjj(k,j)
+     *             -1)*cosip(k)+hemi*uosurf(idij(k,i,j),idjj(k,j)-1)
+     *             *sinip(k))
+            end do
+          else
+            uocean = 0.5*(uosurf(i,j)+uosurf(im1,j))
+            vocean = 0.5*(vosurf(i,j)+vosurf(i,j-1))  
+          end if
+        else
+          uocean=0. ; vocean=0.
+        end if
       END IF
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       SOLAR(1,I,J)=SOLAR(1,I,J)+DTSURF*SRHEAT
@@ -258,7 +282,7 @@ C**** limit on tracer evporation from lake
       ELHX=LHE
       END IF
 C****
-C**** OCEAN ICE
+C**** OCEAN/LAKE ICE
 C****
 !!!      CASE (2)
       else if ( ITYPE == 2 ) then
@@ -267,8 +291,29 @@ C****
       IF (PTYPE.gt.0) THEN
       IF (FLAKE(I,J).gt.0) THEN
         IDTYPE=ITLKICE
+        uocean = 0. ; vocean = 0. ! no dynamic ice for lakes
       ELSE
         IDTYPE=ITOICE
+        if (UOdrag.eq.1) then ! use ice velcoities in drag calculation
+C**** Convert UISURF,VISURF from C grid to A grid
+C**** Note that uisurf,visurf start with j=1, (not j=2 as in atm winds)
+          if (pole) then
+            uocean = 0. ; vocean = 0. 
+            do k=1,kmaxj(j)
+              uocean = uocean + rapj(k,j)*(uisurf(idij(k,i,j),idjj(k,j)
+     *             -1)*cosip(k)-hemi*visurf(idij(k,i,j),idjj(k,j)-1)
+     *             *sinip(k))
+              vocean = vocean + rapj(k,j)*(visurf(idij(k,i,j),idjj(k,j)
+     *             -1)*cosip(k)+hemi*uisurf(idij(k,i,j),idjj(k,j)-1)
+     *             *sinip(k))
+            end do
+          else
+            uocean = 0.5*(uisurf(i,j)+uisurf(im1,j))
+            vocean = 0.5*(visurf(i,j)+visurf(i,j-1))  
+          end if
+        else
+          uocean = 0. ; vocean =0.
+        end if
       END IF
       SNOW=SNOWI(I,J)
       TG1=TGRND(2,I,J)
@@ -289,6 +334,7 @@ C**** fraction of solar radiation leaving layer 1 and 2
             OA(I,J,12)=OA(I,J,12)+SRHEAT*DTSURF
       BETA=1.
       ELHX=LHS
+
       END IF
 C****
 C**** LAND ICE
@@ -309,6 +355,7 @@ C****
       HCG1=HC1LI+SNOW*SHI
       BETA=1.
       ELHX=LHS
+      uocean = 0. ; vocean = 0. ! no land ice velocity
       END IF
 !!!      END SELECT
       endif
@@ -387,7 +434,7 @@ C =====================================================================
       TS=TSV/(1.+QSRF*deltx)
 C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
       RHOSRF=100.*PS/(RGAS*TSV)
-      RCDMWS=CM*WS*RHOSRF
+      RCDMWS=CM*WSM*RHOSRF
       RCDHWS=CH*WSH*RHOSRF
       RCDQWS=CQ*WSH*RHOSRF
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
@@ -502,8 +549,8 @@ C****
           IF (ITYPE.EQ.1) THEN  ! OCEAN
 C**** do calculation implicitly for TQS
 #ifdef TRACERS_SPECIAL_O18
-            TEV=-RCDQWS*(trs(nx)-trgrnd(nx))*FRACLK(WS,trname(n))
-            dTEVdTQS =-RCDQWS*FRACLK(WS,trname(n))
+            TEV=-RCDQWS*(trs(nx)-trgrnd(nx))*FRACLK(WSM,trname(n))
+            dTEVdTQS =-RCDQWS*FRACLK(WSM,trname(n))
 #else
             TEV=-RCDQWS*(trs(nx)-trgrnd(nx))
             dTEVdTQS =-RCDQWS
@@ -566,10 +613,10 @@ C**** Limit heat fluxes out of lakes if near minimum depth
       TGRND(ITYPE,I,J)=TG1
       DTH1(I,J)=DTH1(I,J)-SHDT*PTYPE/(SHA*MA1*P1K)
       DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
-      DMUA(I,J,ITYPE)=DMUA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*US
-      DMVA(I,J,ITYPE)=DMVA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*VS
-      uflux1(i,j)=uflux1(i,j)+PTYPE*RCDMWS*US
-      vflux1(i,j)=vflux1(i,j)+PTYPE*RCDMWS*VS
+      DMUA(I,J,ITYPE)=DMUA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(US-UOCEAN)
+      DMVA(I,J,ITYPE)=DMVA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(VS-VOCEAN)
+      uflux1(i,j)=uflux1(i,j)+PTYPE*RCDMWS*(US-UOCEAN)
+      vflux1(i,j)=vflux1(i,j)+PTYPE*RCDMWS*(VS-UOCEAN)
 C****
 C**** ACCUMULATE DIAGNOSTICS FOR EACH SURFACE TIME STEP AND ITYPE
 C****
@@ -613,9 +660,9 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
           AIJ(I,J,IJ_TS)=AIJ(I,J,IJ_TS)+(TS-TF)*PTYPE
           AIJ(I,J,IJ_US)=AIJ(I,J,IJ_US)+US*PTYPE
           AIJ(I,J,IJ_VS)=AIJ(I,J,IJ_VS)+VS*PTYPE
-          AIJ(I,J,IJ_TAUS)=AIJ(I,J,IJ_TAUS)+RCDMWS*WS*PTYPE
-          AIJ(I,J,IJ_TAUUS)=AIJ(I,J,IJ_TAUUS)+RCDMWS*US*PTYPE
-          AIJ(I,J,IJ_TAUVS)=AIJ(I,J,IJ_TAUVS)+RCDMWS*VS*PTYPE
+          AIJ(I,J,IJ_TAUS)=AIJ(I,J,IJ_TAUS)+RCDMWS*WSM*PTYPE
+          AIJ(I,J,IJ_TAUUS)=AIJ(I,J,IJ_TAUUS)+RCDMWS*(US-UOCEAN)*PTYPE
+          AIJ(I,J,IJ_TAUVS)=AIJ(I,J,IJ_TAUVS)+RCDMWS*(VS-VOCEAN)*PTYPE
           AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QSRF*PTYPE
           AIJ(I,J,IJ_TG1)=AIJ(I,J,IJ_TG1)+TG1*PTYPE
         END IF
@@ -715,9 +762,9 @@ C****
 C****
       END IF
       END DO   ! end of itype loop
-
+      IM1=I
       END DO   ! end of I loop
-
+      
       END DO   ! end of J loop
 C$OMP  END PARALLEL DO
 
@@ -790,7 +837,7 @@ C****
 C**** ACCUMULATE SOME ADDITIONAL BOUNDARY LAYER DIAGNOSTICS
 C****
       IF(MODDD.EQ.0) THEN
-        DO KR=1,4
+        DO KR=1,NDIUPT
 C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
           IF(DCLEV(IJDD(1,KR),IJDD(2,KR)).GT.1.) THEN
             ADIURN(IH,IDD_DCF,KR)=ADIURN(IH,IDD_DCF,KR)+1.
