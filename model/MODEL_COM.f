@@ -24,8 +24,13 @@
 !@dbparam KOCEAN: if 0 => specified, if 1 => predicted ocean
 !@dbparam MFILTR: if 1 => SLP, if 2 => T, if 3 => SLP&T is filtered
       integer :: KOCEAN = 1, MFILTR = 1
+
 !@dbparam XCDLM.  SDRAG ~XCDLM(1)+XCDLM(2)*wind_magnitude
       double precision, DIMENSION(2) :: XCDLM = (/5.D-4,5.D-5/)
+!@dbparam P_SDRAG pressure level above which SDRAG may be applied (mb)
+      double precision :: P_SDRAG = 1.d0 ! default=1mb
+!@var LSDRAG level above which SDRAG is applied (above P_SDRAG mb)
+      INTEGER :: LSDRAG=LM  ! default=LM
 
 !**** Diagnostic control parameters
 !@dbparam KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved
@@ -154,9 +159,6 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       LOGICAL :: DO_GWDRAG = .false.
 !@var iDO_GWDRAG number if AIJ Gravity wave diagnostics
       INTEGER :: iDO_GWDRAG = 0
-
-!@var LSDRAG level above which SDRAG is applied (above 1 mb)
-      INTEGER :: LSDRAG=LM  ! default=LM
 
 !@nlparam QCHECK TRUE for running diagnostic checks
       LOGICAL :: QCHECK = .FALSE.

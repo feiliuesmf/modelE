@@ -452,7 +452,7 @@ C**** value is saved in the database as "B" (here sync = synchronize)
       USE MODEL_COM, only : LM,NIPRNT,MFILTR,XCDLM,NDASF
      *     ,NDA4,NDA5S,NDA5K,NDA5D,NDAA,NFILTR,NRAD,Kvflxo,Nslp
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
-     $     ,PTOP,LS1,IRAND,LSDRAG
+     $     ,PTOP,LS1,IRAND,LSDRAG,P_SDRAG
      $     ,ItimeI,PSFMPT,PSTRAT,SIG,SIGE
       USE PARAM
       implicit none
@@ -479,14 +479,15 @@ C**** Rundeck parameters:
       call sync_param( "KOCEAN", KOCEAN )
       call sync_param( "NIsurf", NIsurf )
       call sync_param( "IRAND", IRAND )
+      call sync_param( "P_SDRAG", P_SDRAG )
 
 C**** Non-Rundeck parameters
 
 C**** Calculate level for application of SDRAG
-C**** All levels above and including 1 mb, or LM for trop model
+C**** All levels above and including P_SDRAG mb, or LM 
       DO L=1,LM
-        IF (PTOP+PSFMPT*SIGE(L+1)+1d-5.lt.1d0 .and.
-     *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.1d0) EXIT
+        IF (PTOP+PSFMPT*SIGE(L+1)+1d-5.lt.P_SDRAG .and.
+     *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.P_SDRAG) EXIT
       END DO
       LSDRAG=MIN(L,LM)
       WRITE(6,*) "Level for SDRAG = ",LSDRAG
@@ -622,7 +623,7 @@ C****
 #ifdef TRACERS_ON
       write(6,*) 'This program includes tracers code'
 #endif
-#ifdef TRACERS_WATER 
+#ifdef TRACERS_WATER
       write(6,*) 'This program includes water tracer code'
 #ifndef TRACERS_ON
       STOP 'Water tracers need TRACERS_ON as well as TRACERS_WATER'
@@ -802,7 +803,7 @@ C**** REPLACE TEMPERATURE BY POTENTIAL TEMPERATURE
             TTOLD(L,I,J)=T(I,J,L)
             QTOLD(L,I,J)=Q(I,J,L)
           END DO
-C**** initialize egcm to be used in ATURB.f      
+C**** initialize egcm to be used in ATURB.f
           DO L=1,LM
             egcm(l,i,j)=egcm_init_max/(float(l)**2)
           END DO
@@ -1123,7 +1124,7 @@ C****
       if(istart.gt.0) CALL init_QUS(im,jm,lm)
       if(istart.gt.0) CALL init_MOM
 #ifdef TRACERS_ON
-C**** Initialise tracer parameters and diagnostics  
+C**** Initialise tracer parameters and diagnostics
       call init_tracer
 #endif
       CALL init_RAD
