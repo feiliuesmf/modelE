@@ -182,6 +182,7 @@
       use dynamics, only : init_dynamics
       use model_com, only : ioread
       use model_com, only : im,jm,init_model_com
+      use somtq_com, only: init_smomtq
 !ccc  modules with data to compare
       use model_com, only : u,v,t,q,p
 #ifdef CHECK_OCEAN
@@ -264,6 +265,7 @@
       call init_decomp(im,jm)
       call init_dynamics(grid)
       call init_model_com(grid)
+      call init_smomtq(grid)
 !C****
 !C**** Read ReStartFiles
 !C****
