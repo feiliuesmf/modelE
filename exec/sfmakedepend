@@ -1,5 +1,8 @@
 #!/usr/bin/perl 
 #
+# Added support for intel compiler (-int) option.
+# (module info contained in module file that has same name 
+# as object file, different extension.
 # Modified by Igor Aleinov to remove a bug, or better
 # say "incompatibility problem with SGI make"
 # the bug consisted in appending .// to object files
@@ -9,7 +12,7 @@
 # in suffixes)
 #
 # Usage: sfmakedepend [-s] [-e ext] [-f file] [-i incdir]
-#                     [-m mod_ext] [-c] [-p] [-g] [-h] [-o obj_ext]
+#                     [-m mod_ext] [-c] [-p] [-g] [-h] [-int] [-o obj_ext]
 #                     [-a add_ext] file ...
 #
 # This is a makedepend script for Fortran, including Fortran 90.
@@ -35,7 +38,7 @@
 # The [-f file] switch is used to change the name of the current
 # Makefile.
 #
-# The [-I incdir] option tells sfmakedepend to look in alternate
+# The [-Iincdir] option tells sfmakedepend to look in alternate
 # directories for the include files.  There can be several "-I dir"
 # options used at once.  The current directory is still searched
 # first.
@@ -53,6 +56,10 @@
 # The [-p] option specifies that the Parasoft compiler is being used.
 # This compiler requires a "-module file.o" option for each object file
 # that contains a module used by your current source file.
+#
+# The [-int] option specifies that the Intel compiler is being used.
+# This compiler puts the module information in a file with a '.d' 
+# extension, but with the same root name as the object file. 
 #
 # The [-g] option specifies that the SGI compiler is being used.
 # This compiler names the module file in uppercase with the extension
@@ -302,8 +309,16 @@ sub find_mods {
 		warn "Don't know where module $modname lives.\n";
 	    }
 	} else {
-	    $modname .= "." . $main::mod_ext;
-	    push(@module_files, $modname);
+	    if ($main::intel) {
+		if ($file = $main::mod_files{$modname}) {
+		    $base = (&main::fileparse($file, @main::suffixes))[0];
+		    $file = $base . "." . $main::mod_ext;
+		    push(@module_files, $file);
+		}
+	    } else {
+		$modname .= "." . $main::mod_ext;
+		push(@module_files, $modname);
+	    }
 	}
     }
     sort(@module_files);
@@ -401,7 +416,7 @@ use File::Basename;
 use Getopt::Long;
 @suffixes = qw( \.c \.C \.cc \.cxx \.cpp \.f \.F \.fcm \.FCM \.f90 \.F90 \.for);
 
-GetOptions("s", "e=s", "f=s", "I=s@", "m=s", "c", "p", "g", "h", "o=s", "a=s")
+GetOptions("s", "e=s", "f=s", "I=s@", "m=s", "c", "p", "g", "h", "int", "o=s", "a=s")
 		       || die "problem in GetOptions";
 
 # For compilers that don't invoke cpp for you
@@ -445,6 +460,10 @@ if ($opt_c) {
 
 if ($opt_p) {
     $parasoft = 1;
+}
+
+if ($opt_int) {
+    $intel = 1;
 }
 
 if ($opt_g) {
@@ -508,7 +527,7 @@ foreach $target (sort keys(%sources)) {
 }
 
 # print out module dependencies
-if ( !( $cray || $parasoft) ) {
+if ( !( $cray || $parasoft || $intel ) ) {
     foreach $modname (sort keys(%mod_files)) {
         ($name, $path, $suffix) =
 		&fileparse($sources{$mod_files{$modname}}->{'filepath'}, @suffixes);
@@ -521,6 +540,18 @@ if ( !( $cray || $parasoft) ) {
 #	print "\tmake $object\n\n";
 #	print "\t\@echo requested $modname.$mod_ext\n\n";
     }
+} else {
+    if ( $intel ) {
+    foreach $modname (sort keys(%mod_files)) {
+        ($name, $path, $suffix) =
+	    &fileparse($sources{$mod_files{$modname}}->{'filepath'}, @suffixes);
+	$object = $path . "/" . $name . "." . $obj_ext;
+	$modfile = $path . "/" . $name . "." . $mod_ext;
+### some stuff added by I.A.
+        $object =~ s/^\.\/\///;
+	print "$modfile: $object\n";
+    }
+}
 }
 
 # Sort out the Makefiles
