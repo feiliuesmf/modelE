@@ -2561,17 +2561,20 @@ c****
 !@sum  init_DIAG initializes the diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : sday,kapa
+      USE CONSTANT, only : sday,kapa,undef
       USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,sige,sig,ptop
      *     ,pmtop,psfmpt,nfiltr,jhour,jdate,jmon,amon,jyear
      *     ,jhour0,jdate0,jmon0,amon0,jyear0,idacc,ioread_single
      *     ,xlabel,iowrite_single,iyear1,nday,dtsrc,dt,nmonav
-     *     ,ItimeE,lrunid
+     *     ,ItimeE,lrunid,focean
+      USE GEOM, only : imaxj
+      USE SEAICE_COM, only : rsi
+      USE LAKES_COM, only : flake
       USE DAGCOM
       USE PARAM
       USE FILEMANAGER
       IMPLICIT NONE
-      INTEGER L,K,KL,iargc,ioerr,months,years,mswitch,ldate,iu_AIC
+      INTEGER I,J,L,K,KL,iargc,ioerr,months,years,mswitch,ldate,iu_AIC
      *     ,ISTART,jday0,jday,moff,kb,iu_ACC
       CHARACTER FILENM*100
       CHARACTER CONPT(NPTS)*10
@@ -2761,6 +2764,25 @@ c**** Initialize acc-array names, units, idacc-indices
 C**** Ensure that diagnostics are reset at the beginning of the run
       IF (Itime.le.ItimeI .and. ISTART.gt.0) THEN
         CALL reset_DIAG(0)
+C**** Initiallise ice freeze diagnostics at beginning of run
+        DO J=1,JM
+          DO I=1,IMAXJ(J)
+            TSFREZ(I,J,TF_DAY1)=365.
+            TSFREZ(I,J,TF_LAST)=365.
+            IF (FOCEAN(I,J)+FLAKE(I,J).gt.0) then 
+              IF (RSI(I,J).gt.0) then
+                TSFREZ(I,J,TF_LKON) = JDAY-1
+                TSFREZ(I,J,TF_LKOFF) = JDAY
+              ELSE
+                TSFREZ(I,J,TF_LKON) = JDAY
+                TSFREZ(I,J,TF_LKOFF) = undef
+              END IF
+            ELSE
+              TSFREZ(I,J,TF_LKON) = undef
+              TSFREZ(I,J,TF_LKOFF) = undef
+            END IF
+          END DO
+        END DO
         CALL daily_DIAG
       END IF
 
@@ -2818,30 +2840,88 @@ C**** Ensure that diagnostics are reset at the beginning of the run
 !@sum  daily_DIAG resets diagnostics at beginning of each day
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,jday,fearth
-      USE DAGCOM, only : tsfrez,tdiurn
+      USE CONSTANT, only : undef
+      USE MODEL_COM, only : im,jm,jday,fearth,focean
+      USE GEOM, only : imaxj
+      USE SEAICE_COM, only : rsi
+      USE LAKES_COM, only : flake
+      USE DAGCOM, only : aij,ij_lkon,ij_lkoff,ij_lkice,tsfrez,tdiurn
+     *     ,tf_lkon,tf_lkoff,tf_day1,tf_last
       IMPLICIT NONE
-
       INTEGER I,J
+
 C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       IF (JDAY.EQ.32) THEN
          DO J=1+JM/2,JM
             DO I=1,IM
-               TSFREZ(I,J,1)=JDAY
+               TSFREZ(I,J,TF_DAY1)=JDAY
             END DO
          END DO
          DO J=1,JM/2
             DO I=1,IM
-               TSFREZ(I,J,2)=JDAY
+               TSFREZ(I,J,TF_LAST)=JDAY
             END DO
          END DO
       ELSEIF (JDAY.EQ.213) THEN
          DO J=1,JM/2
             DO I=1,IM
-              TSFREZ(I,J,1)=JDAY
+              TSFREZ(I,J,TF_DAY1)=JDAY
             END DO
          END DO
       END IF
+
+C**** set and initiallise freezing diagnostics
+C**** Note that TSFREZ saves the last day of no-ice and some-ice.
+C**** The AIJ diagnostics are set once a year (zero otherwise)
+      DO J=1,JM
+        DO I=1,IMAXJ(J)
+          IF (J.le.JM/2) THEN
+C**** initiallise/save South. Hemi. on Feb 28
+            IF (JDAY.eq.59 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) THEN
+              print*,"aijlk0",i,j,jday,TSFREZ(I,J,TF_LKOFF),TSFREZ(I,J
+     *             ,TF_LKON)
+              AIJ(I,J,IJ_LKICE)=1.
+              AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +307,365)
+              AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+306,365)
+     *             +1
+              IF (RSI(I,J).gt.0) THEN
+                TSFREZ(I,J,TF_LKON) = JDAY-1
+              ELSE
+                TSFREZ(I,J,TF_LKOFF) = undef
+              END IF
+              print*,"aijlk1",i,j,TSFREZ(I,J,TF_LKOFF),TSFREZ(I,J
+     *             ,TF_LKON),AIJ(I,J,IJ_LKICE), AIJ(I,J,IJ_LKON),AIJ(I,J
+     *             ,IJ_LKOFF)
+            END IF
+          ELSE
+C**** initiallise/save North. Hemi. on Aug 31
+C**** Note that for continuity across the new year, the julian days
+C**** are counted from Sep 1 (NH only).
+            IF (JDAY.eq.243 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) THEN
+              AIJ(I,J,IJ_LKICE)=1.
+              AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +123,365)
+              AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+122,365)
+     *             +1
+              IF (RSI(I,J).gt.0) THEN
+                TSFREZ(I,J,TF_LKON) = JDAY-1
+              ELSE
+                TSFREZ(I,J,TF_LKOFF) = undef
+              END IF
+            END IF
+          END IF
+C**** set ice on/off days
+          IF (FOCEAN(I,J)+FLAKE(I,J).gt.0) THEN
+            IF (RSI(I,J).eq.0.and.TSFREZ(I,J,TF_LKOFF).eq.undef)
+     *           TSFREZ(I,J,TF_LKON)=JDAY
+            IF (RSI(I,J).gt.0) TSFREZ(I,J,TF_LKOFF)=JDAY
+          END IF
+          if (i.eq.10.and.(j.ge.38.or.j.lt.10)) print*,"tsfrez",i,j,JDAY
+     *         ,RSI(I,J),TSFREZ(i,j,TF_LKON),TSFREZ(I,J,TF_LKOFF),AIJ(I
+     *         ,J,IJ_LKICE),AIJ(I,J,IJ_LKON),AIJ(I,J,IJ_LKOFF),FOCEAN(I
+     *         ,J)+FLAKE(I,J)
+        END DO
+      END DO
+
 C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       DO J=1,JM
          DO I=1,IM
@@ -2855,8 +2935,8 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
             TDIURN(I,J,8)=-1000.
             TDIURN(I,J,9)= 1000.
             IF (FEARTH(I,J).LE.0.) THEN
-               TSFREZ(I,J,1)=365.
-               TSFREZ(I,J,2)=365.
+               TSFREZ(I,J,TF_DAY1)=365.
+               TSFREZ(I,J,TF_LAST)=365.
             END IF
          END DO
       END DO

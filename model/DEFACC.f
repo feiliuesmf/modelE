@@ -1833,21 +1833,24 @@ c     ir_ij(k) = ir_m190_530
 c
       k=k+1 !
       IJ_LKON = k
-      lname_ij(k) = 'LAST DAY OF ICE-FREE LAKE (NH-181)'
+      lname_ij(k) = 'LAST ICE-FREE DAY (SH-58,NH-242) x LKICE'
       units_ij(k) = 'JULIAN DAY'
       name_ij(k) = 'LKONDAY'
-      ia_ij(k) = ia_inst        ! only works for ann.means w/ NMONAV=1 ?
-      iw_ij(k) = iw_lake
-      ir_ij(k) = ir_0_180
+      ia_ij(k) = ia_inst 
 c
       k=k+1 !
       IJ_LKOFF = k
-      lname_ij(k) = 'LAST DAY OF ICED-UP LAKE (NH-181)'
+      lname_ij(k) = 'LAST ICED-UP DAY (SH-58,NH-242) x LKICE'
       units_ij(k) = 'JULIAN DAY'
       name_ij(k) = 'LKOFFDAY'
-      ia_ij(k) = ia_inst        ! only works for ann.means w/ NMONAV=1 ?
-      iw_ij(k) = iw_lake
-      ir_ij(k) = ir_0_180
+      ia_ij(k) = ia_inst 
+c
+      k=k+1 !
+      IJ_LKICE = k
+      lname_ij(k) = 'LAKE ICE WEIGHTING' ! for lake freeze/thaw diags
+      units_ij(k) = ' '
+      name_ij(k) = 'LKICEWT'
+      ia_ij(k) = ia_inst
 c
 C**** Here I am adding all the previous AIJG to AIJ
 C**** actual number for Gxx = 100 + xx

@@ -5,7 +5,7 @@
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi,teeny
-      USE MODEL_COM, only : IM,JM
+      USE MODEL_COM, only : im,jm
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trname,ntm
 #endif
@@ -351,9 +351,9 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE FILEMANAGER
-      USE CONSTANT, only : rhow,shw,tf,pi,grav,undef
+      USE CONSTANT, only : rhow,shw,tf,pi,grav
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
-     *     ,focean,fearth,fland
+     *     ,focean,fearth,fland,jday
       USE GEOM, only : dxyp,dxv,dyv,dxp,dyp,imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
@@ -364,8 +364,7 @@ C****
       USE PBLCOM, only : tsavg
       USE LAKES
       USE LAKES_COM
-      USE DAGCOM, only : npts,icon_LKM,icon_LKE,tsfrez,tf_lkon,tf_lkoff
-     *     ,title_con,conpt0
+      USE DAGCOM, only : npts,icon_LKM,icon_LKE,title_con,conpt0
       IMPLICIT NONE
 
       LOGICAL inilake
@@ -427,7 +426,6 @@ c            FLAKE(I,J) = FLAKE0(I,J)
               TRLAKE(:,:,I,J)=0.
 #endif
             END IF
-            TSFREZ(I,J,3:4) = undef
           END DO
         END DO
       END IF
@@ -1080,52 +1078,10 @@ C****
       END SUBROUTINE CHECKL
 
       SUBROUTINE daily_LAKE
-!@sum  daily_LAKE does lake things at the end of every day
+!@sum  daily_LAKE does lake things at the beginning of every day
 !@auth G. Schmidt
 !@ver  1.0
-      USE CONSTANT, only : undef
-      USE MODEL_COM, only : im,jm,jday
-      USE GEOM, only : imaxj
-      USE SEAICE_COM, only : rsi
-      USE LAKES_COM, only : flake
-      USE DAGCOM, only : tsfrez,tf_lkon,tf_lkoff,aij,ij_lkon,ij_lkoff
       IMPLICIT NONE
-      INTEGER I,J,L,JR
-
-C**** set and initiallise freezing diagnostics
-C**** Note that TSFREZ saves the last day of no-ice and some-ice.
-C**** The AIJ diagnostics are set once a year (zero otherwise)
-C**** To ensure correct averaging they are multiplied by the number of
-C**** months in a year.
-      DO J=1,JM
-        DO I=1,IMAXJ(J)
-          IF (J.le.JM/2) THEN
-C**** initiallise/save South. Hemi. on Jan 1
-            IF (JDAY.eq.1 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) THEN
-              AIJ(I,J,IJ_LKON)  = 12.*TSFREZ(I,J,TF_LKON)
-              AIJ(I,J,IJ_LKOFF) = 12.*TSFREZ(I,J,TF_LKOFF)
-              TSFREZ(I,J,TF_LKOFF) = undef
-            END IF
-          ELSE
-C**** initiallise/save North. Hemi. on Jul 1
-C**** Note that for continuity across the new year, the julian days
-C**** are counted from July 1 (NH only).
-            IF (JDAY.eq.182 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) THEN
-              AIJ(I,J,IJ_LKON)  = 12.*MOD(NINT(TSFREZ(I,J,TF_LKON))+184
-     *             ,365)
-              AIJ(I,J,IJ_LKOFF) = 12.*MOD(NINT(TSFREZ(I,J,TF_LKOFF))+184
-     *             ,365)
-              TSFREZ(I,J,TF_LKOFF) = undef
-            END IF
-          END IF
-C**** set ice on/off days
-          IF (FLAKE(I,J).gt.0) THEN
-            IF (RSI(I,J).eq.0.and.TSFREZ(I,J,TF_LKOFF).eq.undef)
-     *           TSFREZ(I,J,TF_LKON)=JDAY
-            IF (RSI(I,J).gt.0) TSFREZ(I,J,TF_LKOFF)=JDAY
-          END IF
-        END DO
-      END DO
 
 C**** Experimental code: not yet functional
 C**** Update lake fraction as a function of lake mass at end of day

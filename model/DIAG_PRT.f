@@ -3076,6 +3076,13 @@ c**** ratios (the denominators)
      *             +teeny)
             end do
             end do
+          else if (index(lname_ij(k),' x LKICE') .gt. 0) then
+            do j=1,jm
+            do i=1,im
+              adenom(i,j)=aij(i,j,ij_lkice)/(idacc(ia_ij(ij_lkice))
+     *             +teeny)
+            end do
+            end do
           end if
           lname_ij(k)(k1:80) = ' '    ; lname = lname_ij(k)
         end if
@@ -3192,7 +3199,7 @@ c**** length of growing season   (not quite right ???)
         byiacc = 1./(idacc(ia_inst)+teeny) ; irange = ir_0_180
         do j=1,jm
         do i=1,im
-          anum(i,j)=(tsfrez(i,j,2)-tsfrez(i,j,1))*byiacc
+          anum(i,j)=(tsfrez(i,j,tf_last)-tsfrez(i,j,tf_day1))*byiacc
         end do
         end do
 
@@ -3274,10 +3281,6 @@ c**** find hemispheric and global means
      &     NDAY,Itime,Itime0,XLABEL,LRUNID,iDO_GWDRAG
       USE LAKES_COM, only : flake
       USE GEOM, only : DXV
-c     USE DAGCOM, only :
-c    &     ajk,kdiag,aij,kaij,aijk,tsfrez,ia_ij,
-c    *     ijk_v,ijk_dse,ijk_u,ijk_dp,
-c    &     IJ_DSEV,IJ_TRNFP0,IJ_SRNFP0,IJ_SLP,IJ_TS !not a generic subr.
       USE DAGCOM
       USE BDIJ
 

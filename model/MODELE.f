@@ -538,7 +538,7 @@ C****
 #ifdef TRACERS_ON
       USE TRACER_COM,only: MTRACE,NTM,TRNAME
 #endif
-      USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,jreg
+      USE DAGCOM, only : acc_period,monacc,kacc,kdiag,jreg
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qdiag,oa
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar_pbl
@@ -850,8 +850,6 @@ C**** initialize egcm to be used in ATURB.f
           END DO
         END DO
         END DO
-C**** INITIALIZE TSFREZ
-        TSFREZ(:,:,1:2)=365.
 C**** Initialize surface friction velocity
         DO ITYPE=1,4
         DO J=1,JM

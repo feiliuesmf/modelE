@@ -63,7 +63,7 @@ c****
      *     ,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
-     *     ,idd_ev
+     *     ,idd_ev,tf_day1,tf_last
 #ifdef TRACERS_ON
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
 #ifdef TRACERS_WATER
@@ -611,11 +611,11 @@ C**** Save surface tracer concentration whether calculated or not
       aij(i,j,ij_pevap)=aij(i,j,ij_pevap)+(aepc+aepb)
 
       if ( warmer >= 0 ) then
-        if(ts.lt.tf) tsfrez(i,j,1)=timez
-        tsfrez(i,j,2)=timez
+        if(ts.lt.tf) tsfrez(i,j,tf_day1)=timez
+        tsfrez(i,j,tf_last)=timez
       else
-        if ( tsfrez(i,j,2)+.03 >= timez .and. ts >= tf )
-     $       tsfrez(i,j,2)=timez
+        if ( tsfrez(i,j,tf_last)+.03 >= timez .and. ts >= tf )
+     $       tsfrez(i,j,tf_last)=timez
       endif
 
       if(tg1.lt.tdiurn(i,j,1)) tdiurn(i,j,1)=tg1
