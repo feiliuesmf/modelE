@@ -466,7 +466,7 @@ C****
         IF (n.eq.0 .or. itime.LT.itime_tr0(n))  cycle
         scalet = scale_jls(k)*10.**(-jls_power(k))/idacc(ia_jls(k))
         CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),
-     *    plm,tajls(1,1,k),scalet,ones,ones,jls_ltop(k),2,jgrid_jls(k))
+     *    plm,tajls(1,1,k),scalet,ones,ones,jls_ltop(k),1,jgrid_jls(k))
       end do
 
       if (qdiag) call close_jl

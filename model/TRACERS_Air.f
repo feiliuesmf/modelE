@@ -7,8 +7,6 @@
 !@+        Diagnostic specs: init_tracer
 !@+        Tracer initialisation + sources: tracer_ic, set_tracer_source
 !@+        Entry points: daily_tracer
-!@+      Those that are unique for specific tracers: 
-!@+        read_co2_sources, read_ch4_sources
 !@auth Jean Lerner/Gavin Schmidt
 !@ver  1.0
 
@@ -21,14 +19,13 @@
       USE TRACER_COM
       USE TRACER_DIAG_COM
       USE CONSTANT, only: mair,mwat,sday
-#ifdef TRACERS_SPECIAL_Lerner
       USE PARAM
+#ifdef TRACERS_SPECIAL_Lerner
       USE TRACER_MPchem_COM, only: n_MPtable,tcscale
 !@dbparam dsol describes portion of solar cycle being modeled for linoz
 !@+      +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
       USE LINOZ_CHEM_COM, only: dsol
 #endif
-      USE PARAM
 #ifdef TRACERS_WATER
       USE LANDICE_COM, only : trli0    ! should these be in tracer_com?
       USE SEAICE_COM, only : trsi0
@@ -100,9 +97,9 @@ C**** Define individual tracer characteristics
       n_N2O = n
           ntm_power(n) = -9
           tr_mm(n) = 44.d0
-          nt3Dsrc(n) = 1
           ntsurfsrc(n) = 1
 #ifdef TRACERS_SPECIAL_Lerner
+          nt3Dsrc(n) = 1
           n_MPtable(n) = 1
           tcscale(n_MPtable(n)) = 1.
 #endif
@@ -112,9 +109,9 @@ C**** Define individual tracer characteristics
           itime_tr0(n) = 0.
           ntm_power(n) = -12
           tr_mm(n) = 137.4d0
-          nt3Dsrc(n) = 1
           ntsurfsrc(n) = 1
 #ifdef TRACERS_SPECIAL_Lerner
+          nt3Dsrc(n) = 1
           n_MPtable(n) = 2
           tcscale(n_MPtable(n)) = 1.
 #endif
@@ -130,9 +127,9 @@ C**** Define individual tracer characteristics
       n_CH4 = n
           ntm_power(n) = -9
           tr_mm(n) = 16.d0
-          nt3Dsrc(n) = 2
           ntsurfsrc(n) = 14
 #ifdef TRACERS_SPECIAL_Lerner
+          nt3Dsrc(n) = 2
           n_MPtable(n) = 3
           tcscale(n_MPtable(n)) = 1.
 #endif
@@ -141,8 +138,8 @@ C**** Define individual tracer characteristics
       n_O3 = n
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
-          nt3Dsrc(n) = 2
 #ifdef TRACERS_SPECIAL_Lerner
+          nt3Dsrc(n) = 2
 C**** Get solar variability coefficient from namelist if it exits
           dsol = 0.
           call sync_param("dsol",dsol)
@@ -330,7 +327,7 @@ C****
         lname_jls(k) = 'CHANGE OF CFC-11 BY CHEMISTRY IN STRATOS'
         jls_index(k) = n
         jls_ltop(k) = lm
-        jls_power(k) = -4
+        jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       case ('14CO2')   !!! should start 10/16
@@ -457,17 +454,25 @@ C****
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'Stratos_Chem_change_'//trname(n)
+        lname_jls(k) = 'CHANGE OF CH4 BY CHEMISTRY IN STRATOS'
+        jls_index(k) = n
+        jls_ltop(k) = lm
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),' kg/s')
+       k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Tropos_Chem_change_'//trname(n)
-        lname_jls(k) = 'CHANGE OF CH4 BY CHEMISTRY IN TROPOSHPERE'
+        lname_jls(k) = 'CHANGE OF CH4 BY CHEMISTRY IN TROPOSPHERE'
         jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
-        jls_3Dsource(2,n) = k
-        sname_jls(k) = 'Stratos_Chem_change_'//trname(n)
-        lname_jls(k) = 'CHANGE OF CH4 BY CHEMISTRY IN STRATOS'
+        jls_3Dsource(3,n) = k
+        sname_jls(k) = 'Total_Chem_change'//trname(n)
+        lname_jls(k) = 'TOTAL CHANGE OF CH4 BY CHEMISTRY'
         jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -1
@@ -475,17 +480,25 @@ C****
 
       case ('O3')
        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'Stratos_Chem_change_'//trname(n)
+        lname_jls(k) = 'CHANGE OF O3 BY CHEMISTRY IN STRATOS'
+        jls_index(k) = n
+        jls_ltop(k) = lm
+        jls_power(k) = 1
+        units_jls(k) = unit_string(jls_power(k),' kg/s')
+       k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Tropos_Chem_change_'//trname(n)
-        lname_jls(k) = 'CHANGE OF O3 BY CHEMISTRY IN TROPOSHPERE'
+        lname_jls(k) = 'CHANGE OF O3 BY CHEMISTRY IN TROPOSPHERE'
         jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
-        jls_3Dsource(2,n) = k
-        sname_jls(k) = 'Stratos_Chem_change_'//trname(n)
-        lname_jls(k) = 'CHANGE OF O3 BY CHEMISTRY IN STRATOS'
+        jls_3Dsource(3,n) = k
+        sname_jls(k) = 'Total_Chem_change'//trname(n)
+        lname_jls(k) = 'TOTAL CHANGE OF O3 BY CHEMISTRY'
         jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = 1
@@ -1094,7 +1107,7 @@ C**** print out total tracer diagnostic array size
       SUBROUTINE tracer_IC
 !@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner
-      USE MODEL_COM, only: itime,im,jm,lm,ls1
+      USE MODEL_COM, only: itime,im,jm,lm
 #ifdef TRACERS_WATER
      *  ,q,wm,flice,fearth
       USE SOMTQ_COM, only : qmom
@@ -1119,7 +1132,8 @@ C**** print out total tracer diagnostic array size
      *  ,trwm,trw0
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
-      USE LINOZ_CHEM_COM, only: TLT0M,TLTZM, TLTZZM
+      USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
+      USE PRATHER_CHEM_COM, only: nstrtc
       USE QUSDEF, only : mz,mzz
 #endif
       USE FILEMANAGER, only: openunit,closeunit
@@ -1230,15 +1244,17 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
             trm(:,j,l,n) = am(l,:,j)*dxyp(j)*20.d-9*tr_mm(n)/mair
           enddo; enddo
 #ifdef TRACERS_SPECIAL_Lerner
-          do l=lm,ls1+1,-1
+          do l=lm,lm+1-nstrtc,-1
           lr = lm+1-l
             do j=1,jm
+            if (tlt0m(j,lr,5) /= 0.) then
             trm(:,j,l,n) = 
      *          tlt0m(j,lr,1)*am(l,:,j)*dxyp(j)*tr_mm(n)/mair
             trmom(mz,:,j,l,n)  =
      *          tltzm(j,lr,1)*am(l,:,j)*dxyp(j)*tr_mm(n)/mair
             trmom(mzz,:,j,l,n)  =
      *         tltzzm(j,lr,1)*am(l,:,j)*dxyp(j)*tr_mm(n)/mair
+            end if
             end do
           end do
 #endif
@@ -1370,7 +1386,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only: jmon,itime
       USE TRACER_COM, only: ntm,trname,itime_tr0
 #ifdef TRACERS_SPECIAL_Lerner
-      USE TRACER_MPchem_COM, only: n_MPtable,tcscale
+      USE TRACER_MPchem_COM, only: n_MPtable,tcscale,STRATCHEM_SETUP
       USE LINOZ_CHEM_COM, only: LINOZ_SETUP
 #endif
       IMPLICIT NONE
@@ -1413,7 +1429,6 @@ C**** Prather StratChem tracers and linoz tables change each month
           end if
         end do
         last_month = JMON
-         WRITE(*,*) ' DEBUGGING O3 in daily_tracer', JMON,LAST_MONTH
       END IF
 
 C**** Tracer specific call for CO2
@@ -1462,9 +1477,9 @@ C****  at any time
       implicit none
       integer :: i,j,ns,l,ky,n
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
-     *  steph,stepx,stepp,tmon,by_dt,tnew
+     *  steph,stepx,stepp,tmon,bydt,tnew
 
-      by_dt = 1./DTsrc
+      bydt = 1./DTsrc
 C**** All sources are saved as kg/s
       do n=1,ntm
 
@@ -1484,15 +1499,13 @@ C**** Distribute source over ice-free land
         steppy = 1./(sday*JDperY)
         if (trname(n).eq.'SF6') then
 C         Make sure index KY=1 in year that tracer turns on
-            ky = 1 + (itime-itime_tr0(n))/(hrday*JDperY)
-!           WRITE (6,'(A,I2,A,I9)')
-!    *        ' >> KY FOR SF6 IS',KY,' AT itime',itime
-            base = (0.3d-12)*tr_mm(n)/mair !pptm
-            x = base*ky*steppy
-            airm = (psf-pmtop)*100.*bygrav*AREAG !(kg/m**2 X m**2 = kg)
-            anngas = x*airm/steppy
+          ky = 1 + (itime-itime_tr0(n))/(hrday*JDperY)
+          base = (0.3d-12)*tr_mm(n)/mair !pptm
+          x = base*ky*steppy
+          airm = (psf-pmtop)*100.*bygrav*AREAG !(kg/m**2 X m**2 = kg)
+          anngas = x*airm/steppy
         else
-            anngas = 310.d6
+          anngas = 310.d6
         endif
 C**** Source over United States and Canada
         source = .37d0*anngas*steppy
@@ -1610,7 +1623,7 @@ C****
       case ('N2O')
       do j=1,jm
         trsource(:,j,1,n) = (am(1,:,j)*dxyp(j)*462.2d-9
-     *   -trm(:,j,1,n))*by_dt
+     *   -trm(:,j,1,n))*bydt
       end do
 
 C****
@@ -1627,7 +1640,7 @@ C****
         tnew = am(1,i,j)*dxyp(j)*(4.82d-18*46./mair)*
      *   (44.5 + tmon*(1.02535d0 - tmon*(2.13565d-2 - tmon*8.61853d-5)))
         if (tnew.lt.trm(i,j,1,n)) 
-     *         trsource(i,j,1,n) = (tnew-trm(i,j,1,n))*by_dt
+     *         trsource(i,j,1,n) = (tnew-trm(i,j,1,n))*bydt
       end do
       end do
       do j=1+jm/2,jm
@@ -1635,7 +1648,7 @@ C****
         tnew = am(1,i,j)*dxyp(j)*(4.82d-18*46./mair)*
      *   (73.0 - tmon*(0.27823d0 + tmon*(3.45648d-3 - tmon*4.21159d-5)))
         if (tnew.lt.trm(i,j,1,n)) 
-     *         trsource(i,j,1,n) = (tnew-trm(i,j,1,n))*by_dt
+     *         trsource(i,j,1,n) = (tnew-trm(i,j,1,n))*bydt
       end do
       end do
 
@@ -1657,6 +1670,7 @@ C****
 !@auth Jean Lerner
       USE TRACER_COM
       USE MODEL_COM, only: itime
+      USE TRACER_DIAG_COM, only: itcon_3Dsrc,tajls,jls_3Dsource
       USE FLUXES, only: tr3Dsource
       implicit none
       integer n
@@ -1672,24 +1686,33 @@ C**** All sources are saved as kg/s
 C****
       case ('CH4')
       tr3Dsource(:,:,:,:,n) = 0.
-      call Trop_chem_CH4(n,1)
-      call apply_tracer_3Dsource(n,1)
-      call Strat_chem_Prather(n,2)
+      call Trop_chem_CH4(1,n)
+      call apply_tracer_3Dsource(1,n)
+      call Strat_chem_Prather(2,n)
+      call DIAGTCA(itcon_3Dsrc(2,n),n)
+      tajls(:,:,jls_3Dsource(3,n)) = 
+     *  tajls(:,:,jls_3Dsource(1,n))+tajls(:,:,jls_3Dsource(2,n))
 C****
       case ('O3')
       tr3Dsource(:,:,:,:,n) = 0.
-      call Trop_chem_O3(n,1)
-   !  call apply_tracer_3Dsource(n,1)
-      call Strat_chem_O3(n,2)
-   !  call apply_tracer_3Dsource(n,2)
+      call Trop_chem_O3(1,n)
+   !  call apply_tracer_3Dsource(1,n)
+      call DIAGTCA(itcon_3Dsrc(1,n),n)
+      call Strat_chem_O3(2,n)
+   !  call apply_tracer_3Dsource(2,n)
+      call DIAGTCA(itcon_3Dsrc(2,n),n)
+      tajls(:,:,jls_3Dsource(3,n)) = 
+     *  tajls(:,:,jls_3Dsource(1,n))+tajls(:,:,jls_3Dsource(2,n))
 C****
       case ('N2O')
       tr3Dsource(:,:,:,:,n) = 0.
-      call Strat_chem_Prather(n,1)
+      call Strat_chem_Prather(1,n)
+      call DIAGTCA(itcon_3Dsrc(1,n),n)
 C****
       case ('CFC11')
       tr3Dsource(:,:,:,:,n) = 0.
-      call Strat_chem_Prather(n,1)
+      call Strat_chem_Prather(1,n)
+      call DIAGTCA(itcon_3Dsrc(1,n),n)
 C****
 #endif
       end select
@@ -1794,7 +1817,7 @@ c needed from the wet deposition code, then the aerosol formation code
 c should probably go here... If you add this, please make appropriate
 c changes in the subroutine's name/summary above. GSF 1/4/02. 
         CASE DEFAULT                                ! error
-          STOP 'tr_wd_TYPE(NTIX(N)) out of range in SCAVENGE_TRACER'            
+          STOP 'tr_wd_TYPE(NTIX(N)) out of range in SCAVENGE_TRACER'
       END SELECT
 c      
       RETURN
@@ -1804,7 +1827,7 @@ c
       SUBROUTINE GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FQ0,fq)
 !@sum  GET_PREC_FACTOR calculation of the precipitation scavenging
 !@+    fraction for tracers WITHIN large scale clouds. Current version
-!@+    uses the first order removal rate based on [Giorgi and 
+!@+    uses the first order removal rate based on [Giorgi and
 !@+    Chameides, 1986], for gaseous and particulate tracers.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on CB436TdsM23 RAINOUT subroutine)
@@ -1846,7 +1869,7 @@ c           minus preserves FPRT sign convention in LSCOND
             fq = -(CM*DTsrc*(EXP(-CM*DTsrc)- 1.0)*FCLD)
           END IF
         CASE DEFAULT                          ! error
-          STOP 'tr_wd_TYPE(NTIX(N)) out of range in GET_FPRT'                              
+          STOP 'tr_wd_TYPE(NTIX(N)) out of range in GET_FPRT'
       END SELECT
 c
       RETURN
@@ -1886,7 +1909,7 @@ C
         CASE(nPART)                           ! aerosols
           fq = b_beta_DT*(DEXP(-PREC*rc_wash)-1.)
         CASE DEFAULT                          ! error
-          STOP 'tr_wd_TYPE(NTIX(N)) out of range in WASHOUT_TRACER'                              
+          STOP 'tr_wd_TYPE(NTIX(N)) out of range in WASHOUT_TRACER'
       END SELECT   
 c      
       RETURN

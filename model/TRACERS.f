@@ -197,8 +197,8 @@ C**** Surface concentration
         scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/
      *                 REAL(NIsurf,KIND=8)
 #ifdef TRACERS_WATER
-C**** the following diagnostics are set assuming that the particular tracer
-C**** exists in water. 
+C**** the following diagnostics are set assuming that the particular
+C**** tracer exists in water. 
 C**** Tracers in precipitation
       k = k+1
       tij_prec = k
@@ -345,7 +345,7 @@ C****
       END SUBROUTINE apply_tracer_2Dsource
 
 
-      SUBROUTINE apply_tracer_3Dsource(n,ns)
+      SUBROUTINE apply_tracer_3Dsource(ns,n)
 !@sum apply_tracer_3Dsource adds 3D sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only : jm,im,lm,dtsrc
@@ -501,19 +501,20 @@ C****
       end subroutine trgrav
 
 
-      SUBROUTINE read_monthly_sources(iu,jdlast,tlca,tlcb,data)
+      SUBROUTINE read_monthly_sources(iu,jdlast,tlca,tlcb,data,
+     *  frac,imon)
 !@sum Read in monthly sources and interpolate to current day
 !@+   Calling routine must have the lines:
-!@+      real*8 tlca(im,jm),tlcb(im,jm)
+!@+      real*8 tlca(im,jm,nm),tlcb(im,jm,nm)
+!@+      integer imon(nm)   ! nm=number of files that will be read
 !@+      data jdlast /0/
-!@+      save jdlast,tlca,tlcb
+!@+      save jdlast,tlca,tlcb,imon
 !@+   Input: iu, the fileUnit#; jdlast
 !@+   Output: interpolated data array + two monthly data arrays
 !@auth Jean Lerner and others
       USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
       implicit none
-      real*8 frac
-      real*8 tlca(im,jm),tlcb(im,jm),data(im,jm)
+      real*8 tlca(im,jm),tlcb(im,jm),data(im,jm),frac
       integer imon,iu,jdlast
 
       if (jdlast.EQ.0) then ! NEED TO READ IN FIRST MONTH OF DATA

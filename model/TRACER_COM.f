@@ -70,7 +70,7 @@ C****
 !@var ntsurfsrc no. of non-interactive surface sources for each tracer
       integer, dimension(ntm) :: ntsurfsrc 
 !@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
-      integer, parameter :: nt3Dsrcmax=2
+      integer, parameter :: nt3Dsrcmax=3
 !@var nt3Dsrc no. of 3D sources for each tracer
       integer, dimension(ntm) :: nt3Dsrc
     

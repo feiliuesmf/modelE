@@ -3824,14 +3824,12 @@ C****
 !@sum  DIAG5P PRINTS THE SPECTRAL ANALYSIS TABLES
 !@auth Gary Russell
 !@ver  1.0
-      USE CONSTANT, only :
-     &     grav,rgas,teeny
+      USE CONSTANT, only : grav,rgas,teeny
       USE MODEL_COM, only :
      &     im,jm,lm,fim,
      &     DT,IDACC,JHOUR,JHOUR0,JDATE,JDATE0,
      &     AMON,AMON0,JYEAR,JYEAR0,LS1,JEQ,XLABEL,istrat
-      USE GEOM, only :
-     &     DLON,DXYV
+      USE GEOM, only : DLON,DXYV
       USE DAGCOM, only :
      &     speca,atpe,ajk,aijk,kspeca,ktpe,nhemi,nspher,ijk_u,klayer
      &    ,JK_DPB,xwon
@@ -3860,8 +3858,7 @@ C****
      &     K,KPAGE,KROW,KSPHER,L,
      &     M,MAPE,MTPE,N,NM,NM1
 
-      REAL*8 ::
-     &     FACTOR,FNM
+      REAL*8 :: FACTOR,FNM
 
       NM=1+IM/2
       IF (IDACC(12).LT.1) IDACC(12)=1
@@ -4073,8 +4070,7 @@ C****
 
       INTEGER ::
      &     I,IDACC5,ItimeX,IDAYX,IDAYXM,K,K0,KS,KN,KSPHER
-      REAL*8 ::
-     &     TOFDYX
+      REAL*8 :: TOFDYX
 
       IDACC5=IDACC(5)
       IF (IDACC5.LE.0) RETURN
