@@ -6,10 +6,10 @@
 !@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6
      *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow
-      USE MODEL_COM, only : im,lm,dtsrc,itime
+      USE MODEL_COM, only : im,lm,dtsrc,itime,coupled_chem
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: ntm
+      USE TRACER_COM, only: ntm,trname
 #ifdef TRACERS_WATER
      &     ,nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD,
      *     tr_evap_fact
@@ -883,11 +883,21 @@ C**** CONDENSING TRACERS
 #ifdef TRACERS_AEROSOLS_Koch
       WA_VOL=COND(L)*1.d2*BYGRAV
       DO N=1,NTX
+      select case (trname(ntx))
+      case('SO2','SO4','H2O2_s','H2O2')
+      if (trname(ntx).eq."H2O2" .and. coupled_chem.eq.0) goto 400
+      if (trname(ntx).eq."H2O2_s" .and. coupled_chem.eq.1) goto 400
+
         IF (FPLUME.GT.teeny) then
           TMP_SUL(L,N)=TMP(N)/FPLUME
         else
           TMP_SUL(L,N)=0.
         ENDIF
+
+ 400   CONTINUE
+
+      end select
+
       END DO
       CALL GET_SULFATE(L,TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN,
      *     SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND,AIRM,LHX,
@@ -895,12 +905,22 @@ C**** CONDENSING TRACERS
 #endif
       DO N=1,NTX
 #ifdef TRACERS_AEROSOLS_Koch
+      select case (trname(ntx))
+      case('SO2','SO4','H2O2_s','H2O2')
+      if (trname(ntx).eq."H2O2" .and. coupled_chem.eq.0) goto 401
+      if (trname(ntx).eq."H2O2_s" .and. coupled_chem.eq.1) goto 401
+
 c first apply chemistry
 c removal of precursers
         TMP(N)=TMP(N)*(1.+SULFIN(N))
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFIN(N))
 c formation of sulfate
         TRCOND(N,L) = TRCOND(N,L)+SULFOUT(N)
+
+ 401    CONTINUE
+
+      end select
+
 #endif
         TR_LEF=1.D0
         CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
@@ -1297,10 +1317,20 @@ C**** WASHOUT of TRACERS BELOW CLOUD
 #endif
         DO N=1,NTX
 #ifdef TRACERS_AEROSOLS_Koch
+      select case (trname(ntx))
+      case('SO2','SO4','H2O2_s','H2O2')
+      if (trname(ntx).eq."H2O2" .and. coupled_chem.eq.0) goto 402
+      if (trname(ntx).eq."H2O2_s" .and. coupled_chem.eq.1) goto 402
+
           TRCOND(N,L)=TRCOND(N,L)*(1.+SULFINC(N))
           TM(L,N)=TM(L,N)*(1.+SULFIN(N))
           TMOM(xymoms,L,N)=TMOM(xymoms,L,N) *(1.+SULFIN(N))
           TRCOND(N,L) = TRCOND(N,L)+SULFOUT(N)
+
+ 402      CONTINUE
+
+      end select
+
 #endif
 cdmk Here I took out GET_COND, since we are below cloud.
 cdmk GET_WASH now has gas dissolution, extra arguments
@@ -1942,7 +1972,14 @@ C****    precipitation, evaporation, condensation, and washout)
       CALL GET_SULFATE(L,TL(L),FCLD,WA_VOL
      *     ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML,AIRM,LHX
      *     ,DT_SULF_SS(1,L))
+
+
       DO N=1,NTX
+      select case (trname(ntx))
+      case('SO2','SO4','H2O2_s','H2O2')
+      if (trname(ntx).eq."H2O2" .and. coupled_chem.eq.0) goto 403
+      if (trname(ntx).eq."H2O2_s" .and. coupled_chem.eq.1) goto 403
+
         TRWML(N,L)=TRWML(N,L)*(1.+SULFINC(N))
         TM(L,N)=TM(L,N)*(1.+SULFIN(N))
         TMOM(:,L,N)  = TMOM(:,L,N)*(1. +SULFIN(N))
@@ -1951,7 +1988,13 @@ C****    precipitation, evaporation, condensation, and washout)
         else
           TRWML(N,L) = TRWML(N,L)+SULFOUT(N)
         endif
+
+ 403    CONTINUE
+
+      end select
+
       END DO
+
 #endif
       DO N=1,NTX
 c ---------------------- initialize fractions ------------------------
@@ -1968,7 +2011,16 @@ c precip. tracer evap
         CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FWTOQ,FWTOQT,ntix)
         TR_LEF=1.D0
 #ifdef TRACERS_AEROSOLS_Koch
+      select case (trname(ntx))
+      case('SO2','SO4','H2O2_s','H2O2')
+      if (trname(ntx).eq."H2O2" .and. coupled_chem.eq.0) goto 404
+      if (trname(ntx).eq."H2O2_s" .and. coupled_chem.eq.1) goto 404
+
         TR_LEF=TR_LEFT(N)
+ 404    CONTINUE
+
+      end select
+
 #endif
         IF(BELOW_CLOUD.and.WMX(L).lt.teeny) THEN
           precip_mm = PREBAR(L+1)*100.*dtsrc
@@ -2060,11 +2112,21 @@ c   processes - this should be all in-cloud
       DO N=1,NTX
         TR_LEF=1.
 #ifdef TRACERS_AEROSOLS_Koch
+      select case (trname(ntx))
+      case('SO2','SO4','H2O2_s','H2O2')
+      if (trname(ntx).eq."H2O2" .and. coupled_chem.eq.0) goto 405
+      if (trname(ntx).eq."H2O2_s" .and. coupled_chem.eq.1) goto 405
+
         TRWML(N,L)=TRWML(N,L)*(1.+SULFINC(N))
         TM(L,N)=TM(L,N)*(1.+SULFIN(N))
         TMOM(:,L,N) =TMOM(:,L,N)*(1.+SULFIN(N))
         TRWML(N,L) = TRWML(N,L)+SULFOUT(N)
         TR_LEF=TR_LEFT(N)
+
+ 405    CONTINUE
+
+      end select
+
 #endif
 c below TR_LEFT(N) limits the amount of available tracer in gridbox
 cdmkf and below, extra arguments for GET_COND, addition of THLAW
