@@ -303,7 +303,7 @@ C**** accumulate diagnostics
      *             *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*RSI(I,J)
               AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)-FOCEAN(I,J)
      *             *(RSINEW-RSI(I,J))*(MSINEW+ACE1I+SNOWI(I,J)
-     *             -SUM(SSI(1:2,I,J)
+     *             -SUM(SSI(1:2,I,J))
      *             -SUM(SSI(3:4,I,J))*(MSINEW/MSI(I,J)))
               AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)-FOCEAN(I,J)
      *             *(RSINEW-RSI(I,J))*(SUM(HSI(1:2,I,J))+

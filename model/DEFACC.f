@@ -359,7 +359,8 @@ C**** qflux runs. Over land, it is always used for landice changes.
       k=k+1
       J_IMPLM = k               !                                 1 GP
       name_j(k) = 'impl_m_flux'
-      lname_j(k) = 'DOWNWARD IMPLICIT FRESHWATER FLUX AT ICE BASE/OCN ML'
+      lname_j(k) =
+     *     'DOWNWARD IMPLICIT FRESHWATER FLUX AT ICE BASE/OCN ML'
       units_j(k) = 'mm/day'
       stitle_j(k)= ' DWN IMPL WT FLX'
       scale_j(k) = SDAY/DTSRC
