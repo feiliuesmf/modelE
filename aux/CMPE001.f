@@ -72,12 +72,13 @@ ccc   land ice data
       common /socabl2/pbl2(npbl,im,jm,5*4),pblb2(im,jm,3*4),ipbl2(im,jm
      *     ,4)
       COMMON/CLDCOM/CLOUD2(IM,JM,5*LM),CLOUD1(IM,JM,5*LM)
-      REAL*8 wb1,wv1,htb1,htv1,snbv1,ci1,qfol1,wb2,wv2,htb2,htv2,snbv2
-     *     ,ci2,qfol2
+      REAL*8 wb1,wv1,htb1,htv1,snbv1,wb2,wv2,htb2,htv2,snbv2
+      real*8 ci1(im,jm),qfol1(im,jm),cnc1(im,jm)
+     $     ,ci2(im,jm),qfol2(im,jm),cnc2(im,jm)
       COMMON/SOILS1/wb1(ngm,IM,JM),wv1(ngm+1,im,jm),htb1(ngm+1,im,jm),
-     *  htv1(ngm+1,im,jm),snbv1(2,im,jm),ci1(im,jm),qfol1(im,jm)
+     *  htv1(ngm+1,im,jm),snbv1(2,im,jm)
       COMMON/SOILS2/wb2(ngm,IM,JM),wv2(ngm+1,im,jm),htb2(ngm+1,im,jm),
-     *  htv2(ngm+1,im,jm),snbv2(2,im,jm),ci2(im,jm),qfol2(im,jm)
+     *  htv2(ngm+1,im,jm),snbv2(2,im,jm)
       CHARACTER XLABEL*132,LABEL*16,FILEIN*60,HEADER*80
       EQUIVALENCE (XLABEL,LABEL)
       REAL*8 DIAG1,DIAG2,TSFREZ1,TSFREZ2,TDIURN1,TDIURN2
@@ -201,7 +202,9 @@ C**** check which ocean
 #endif
          READ (1) HEADER,sne1,te1,wtre1,ace1,snag1,fsat1,qge1
          if (debug) write(0,*) 'trying to read soils'
-         READ (1) HEADER,wb1,wv1,htb1,htv1,snbv1,ci1,qfol1
+         READ (1) HEADER,wb1,wv1,htb1,htv1,snbv1
+         if (debug) write(0,*) 'trying to read vegetation'
+         READ (1) HEADER,ci1,qfol1,cnc1
 #ifdef TRACERS_WATER
          READ (1) HEADER,TRSOIL1
 #endif
@@ -316,7 +319,9 @@ c        if (debug) write(0,*) 'trying to read sice'
 c        if (debug) write(0,*) 'trying to read gdata'
          READ (2) HEADER,sne2,te2,wtre2,ace2,snag2,fsat2,qge2
 c        if (debug) write(0,*) 'trying to read soils'
-         READ (2) HEADER,wb2,wv2,htb2,htv2,snbv2,ci2,qfol2
+         READ (2) HEADER,wb2,wv2,htb2,htv2,snbv2
+c        if (debug) write(0,*) 'trying to read vegetation'
+         READ (2) HEADER,ci2,qfol2,cnc2
 #ifdef TRACERS_WATER
          READ (2) HEADER,TRSOIL2
 #endif
@@ -440,6 +445,7 @@ C****
       ERRQ=COMP8LIJp ('SNOWbv',2    ,IM,JM,   snbv1,  snbv2).or.ERRQ
       ERRQ=COMP8 ('Cint  ',IM,JM,1      ,    ci1,    ci2) .or. ERRQ
       ERRQ=COMP8 ('Qfol  ',IM,JM,1      ,  qfol1,  qfol2) .or. ERRQ
+      ERRQ=COMP8 ('CNC  ',IM,JM,1      ,  cnc1,  cnc2) .or. ERRQ
       ERRQ=COMPILIJ ('NSN   ',2,IM,JM       ,NSN1  ,NSN2   ) .or. ERRQ
       ERRQ=COMPILIJ ('ISN   ',2,IM,JM       ,ISN1  ,ISN2   ) .or. ERRQ
       ERRQ=COMP8LIJp('DZSN  ',2*NLSN,IM,JM  ,DZSN1 ,DZSN2  ) .or. ERRQ
