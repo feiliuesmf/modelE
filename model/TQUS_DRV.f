@@ -28,6 +28,7 @@ c****   rmom = moments of tracer mass
 c****     ma (kg) = fluid mass
 c****
       USE MODEL_COM, only : fim
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE QUSCOM, ONLY : MFLX,nmom
       USE DYNAMICS, ONLY: pu=>pua, pv=>pva, sd=>sda, mb,ma
       IMPLICIT NONE
@@ -38,19 +39,44 @@ c****
       character*8 tname          !tracer name
       integer :: I,J,L,n,nx
 
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 C**** Fill in values at the poles
+      if (HAVE_SOUTH_POLE) then
 !$OMP  PARALLEL DO PRIVATE (I,L,N)
       do l=1,lm
          do i=2,im
            rm(i,1 ,l) = rm(1,1 ,l)
-           rm(i,jm,l) = rm(1,jm,l)
            do n=1,nmom
              rmom(n,i,1 ,l) = rmom(n,1,1 ,l)
-             rmom(n,i,jm,l) = rmom(n,1,jm,l)
            enddo
          enddo
       enddo
 !$OMP  END PARALLEL DO
+      endif
+      if (HAVE_NORTH_POLE) then
+!$OMP  PARALLEL DO PRIVATE (I,L,N)
+        do l=1,lm
+          do i=2,im
+            rm(i,jm,l) = rm(1,jm,l)
+            do n=1,nmom
+              rmom(n,i,jm,l) = rmom(n,1,jm,l)
+            enddo
+          enddo
+        enddo
+!$OMP  END PARALLEL DO
+      endif
 C****
 C**** Load mass after advection from mass before advection
 C****
@@ -105,16 +131,24 @@ ccc   mflx(:,:,:)=pu(:,:,:)
       end do
 
 C**** deal with vertical polar box diagnostics outside ncyc loop
+      if (HAVE_SOUTH_POLE) then
 !$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm-1
         sfcm(1 ,l) = fim*sfcm(1 ,l)
-        sfcm(jm,l) = fim*sfcm(jm,l)
         scm (1 ,l) = fim*scm (1 ,l)
-        scm (jm,l) = fim*scm (jm,l)
         scf (1 ,l) = fim*scf (1 ,l)
-        scf (jm,l) = fim*scf (jm,l)
       end do
 !$OMP  END PARALLEL DO
+      endif
+      if (HAVE_NORTH_POLE) then
+!$OMP  PARALLEL DO PRIVATE (L)
+        do l=1,lm-1
+          sfcm(jm,l) = fim*sfcm(jm,l)
+          scm (jm,l) = fim*scm (jm,l)
+          scf (jm,l) = fim*scf (jm,l)
+      end do
+!$OMP  END PARALLEL DO
+      endif
 
       return
       end SUBROUTINE AADVQ
@@ -127,6 +161,7 @@ C**** deal with vertical polar box diagnostics outside ncyc loop
 c****
 C**** The MA array space is temporarily put to use in this section
       USE DYNAMICS, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
       USE QUSCOM, ONLY : IM,JM,LM
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DT
@@ -134,31 +169,56 @@ C**** The MA array space is temporarily put to use in this section
       INTEGER :: i,j,l,n,nc,im1
       REAL*8 :: byn,ssp,snp
 
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 ccc   mu(:,:,:) = mu(:,:,:)*(.5*dt)
-ccc   mv(:,1:jm-1,:) = mv(:,2:jm,:)*dt
+ccc   mv(:,J_0:J_1S,:) = mv(:,2:jm,:)*dt
 ccc   mv(:,jm,:) = 0.
 ccc   mw(:,:,1:lm-1) = mw(:,:,1:lm-1)*(-dt)
 C
 !$OMP  PARALLEL DO PRIVATE (J,L)
       DO L=1,LM
-         MU(:,1,L) = 0.
-         DO J=2,JM-1
+         IF (HAVE_SOUTH_POLE) MU(:,1,L) = 0.
+         DO J=J_0S,J_1S
             MU(:,J,L) = MU(:,J,L)*(.5*DT)
          ENDDO
-         MU(:,JM,L) = 0.
+         IF (HAVE_NORTH_POLE) MU(:,JM,L) = 0.
       ENDDO
 !$OMP  END PARALLEL DO
 C
+      IF (HAVE_NORTH_POLE) THEN
 !$OMP  PARALLEL DO PRIVATE (J,L,I)
-      DO L=1,LM
-        DO J=1,JM-1
-          DO I=1,IM
-            MV(I,J,L) = MV(I,J+1,L)*DT
+        DO L=1,LM
+          DO J=J_0,J_1S
+            DO I=1,IM
+              MV(I,J,L) = MV(I,J+1,L)*DT
+            END DO
+          END DO
+          MV(:,JM,L) = 0.
+        END DO
+!$OMP  END PARALLEL DO
+      ELSE
+!$OMP  PARALLEL DO PRIVATE (J,L,I)
+        DO L=1,LM
+          DO J=J_0,J_1
+            DO I=1,IM
+              MV(I,J,L) = MV(I,J+1,L)*DT
+            END DO
           END DO
         END DO
-        MV(:,JM,L) = 0.
-      END DO
 !$OMP  END PARALLEL DO
+      ENDIF
 C
 !$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM-1
@@ -180,7 +240,7 @@ C**** Set things up
       do nc=1,ncyc
 C****     1/2 x-direction
         do l=1,lm
-        do j=1,jm
+        do j=J_0,J_1
           im1 = im
           do i=1,im
             ma(i,j,l) = ma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
@@ -196,7 +256,7 @@ C****     1/2 x-direction
         end do
 C****         y-direction
         do l=1,lm              !Interior
-        do j=2,jm-1
+        do j=J_0S,J_1S
         do i=1,im
           ma(i,j,l) = ma(i,j,l) + (mv(i,j-1,l)-mv(i,j,l))*byn
           if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
@@ -207,25 +267,32 @@ C****         y-direction
         end do
         end do
         end do
-        do l=1,lm              !Poles
-          ssp = sum(ma(:, 1,l)-mv(:,   1,l)*byn)*byim
-          snp = sum(ma(:,jm,l)+mv(:,jm-1,l)*byn)*byim
-          ma(:,1 ,l) = ssp
-          ma(:,jm,l) = snp
-          if (ma(1,1,l)/mb(1,1,l).lt.0.5) then
-    !       write(6,910)'ma(1,1,l) ysp: nc=',l,ma(1,1,l)/mb(1,1,l),nc
-            mneg=.true.
-            go to 595
-          endif
-          if (ma(1,jm,l)/mb(1,jm,l).lt.0.5) then
-    !       write(6,910)'ma(1,jm,l) ynp: nc=',l,ma(1,jm,l)/mb(1,jm,l),nc
-            mneg=.true.
-            go to 595
-          endif
-        end do
+
+        if (HAVE_SOUTH_POLE) then
+          do l=1,lm              !Poles
+            ssp = sum(ma(:, 1,l)-mv(:,   1,l)*byn)*byim
+            ma(:,1 ,l) = ssp
+            if (ma(1,1,l)/mb(1,1,l).lt.0.5) then
+    !         write(6,910)'ma(1,1,l) ysp: nc=',l,ma(1,1,l)/mb(1,1,l),nc
+              mneg=.true.
+              go to 595
+            endif
+          end do
+        endif
+        if (HAVE_NORTH_POLE) then
+          do l=1,lm		!Poles
+            snp = sum(ma(:,jm,l)+mv(:,jm-1,l)*byn)*byim
+            ma(:,jm,l) = snp
+            if (ma(1,jm,l)/mb(1,jm,l).lt.0.5) then
+    !	      write(6,910)'ma(1,jm,l) ynp: nc=',l,ma(1,jm,l)/mb(1,jm,l),nc
+              mneg=.true.
+              go to 595
+            endif
+          end do
+        endif
 C****         z-direction
         do l=2,lm-1
-        do j=1,jm
+        do j=J_0,J_1
         do i=1,im
           ma(i,j,l) = ma(i,j,l)+(mw(i,j,l-1)-mw(i,j,l))*byn
           if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
@@ -237,7 +304,7 @@ C****         z-direction
         end do
         end do
         l = 1
-        do j=1,jm
+        do j=J_0,J_1
         do i=1,im
           ma(i,j,l) = ma(i,j,l)-mw(i,j,l)*byn
           if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
@@ -249,7 +316,7 @@ C****         z-direction
         end do
         end do
         l = lm
-        do j=1,jm
+        do j=J_0,J_1
         do i=1,im
           ma(i,j,l) = ma(i,j,l)+mw(i,j,l-1)*byn
           if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
@@ -262,7 +329,7 @@ C****         z-direction
         end do
 C****     1/2 x-direction
         do l=1,lm
-        do j=1,jm
+        do j=J_0,J_1
           im1 = im
           do i=1,im
             ma(i,j,l) = ma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
@@ -287,7 +354,7 @@ C****     1/2 x-direction
 C**** Divide the mass fluxes by the number of cycles
       byn = 1./ncyc
 ccc   mu(:,:,:)=mu(:,:,:)*byn
-ccc   mv(:,1:jm-1,:)=mv(:,1:jm-1,:)*byn
+ccc   mv(:,J_0:J_1S,:)=mv(:,J_0:J_1S,:)*byn
 ccc   mw(:,:,:)=mw(:,:,:)*byn
 !$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
@@ -296,7 +363,7 @@ ccc   mw(:,:,:)=mw(:,:,:)*byn
 !$OMP  END PARALLEL DO
 !$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
-         mv(:,1:jm-1,l)=mv(:,1:jm-1,l)*byn
+         mv(:,J_0:J_1S,l)=mv(:,J_0:J_1S,l)*byn
       ENDDO
 !$OMP  END PARALLEL DO
 !$OMP  PARALLEL DO PRIVATE (L)
@@ -345,6 +412,7 @@ c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
       use QUSDEF
+      USE DOMAIN_DECOMP, only : GRID, GET
 ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       use QUSCOM, only : im,jm,lm, xstride
       implicit none
@@ -355,13 +423,26 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       character*8 tname
       integer :: i,j,l,ierr,nerr,ns,nstep(jm,lm),ICKERR
 
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 c**** loop over layers and latitudes
       ICKERR=0
 !$OMP  PARALLEL DO PRIVATE (J,L,NS,AM,F_I,FMOM_I,IERR,NERR)
 !$OMP* SHARED(IM,QLIMIT,XSTRIDE)
 !$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
-      do j=2,jm-1
+      do j=J_0S,J_1S
       am(:) = mu(:,j,l)/nstep(j,l)
 c****
 c**** call 1-d advection routine
@@ -404,21 +485,50 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
+      USE DOMAIN_DECOMP, only : GRID, GET
       use CONSTANT, only : teeny
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
       use QUSCOM, only : im,jm,lm, ystride,               byim
       implicit none
-      REAL*8, dimension(im,jm,lm) :: rm,mass,mv
-      REAL*8, dimension(nmom,im,jm,lm) :: rmom
+      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
+     &                                         rm,mass,mv
+      REAL*8, dimension(nmom,im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
+     &                                         rmom
       logical ::  qlimit
-      REAL*8, dimension(im,jm) :: fqv
-      REAL*8, intent(out), dimension(jm,lm) :: sfbm,sbm,sbf
-      REAL*8  BM(JM),F_J(JM),FMOM_J(NMOM,JM)
+c      REAL*8, ALLOCATABLE, dimension(:,:)   :: fqv
+      REAL*8, intent(out), 
+     &        dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
+     &                                         sfbm,sbm,sbf
+c      REAL*8, ALLOCATABLE, dimension(:)     :: BM,F_J
+c      REAL*8, ALLOCATABLE, dimension(:,:)   :: FMOM_J
       character*8 tname
       integer :: i,j,l,ierr,nerr,ns,nstep(lm),ICKERR
       REAL*8 ::
      &     m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
+
+      REAL*8, dimension(im,jm) :: fqv
+      REAL*8  BM(JM),F_J(JM)
+      REAL*8  FMOM_J(NMOM,JM)
+
+      INTEGER J_0, J_1
+      INTEGER J_0H, J_1H
+      INTEGER J_0S, J_1S
+      LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1, 
+     *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     *               J_STRT_SKP=J_0S,  J_STOP_SKP=J_1S,
+     *               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     *               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+c      ALLOCATE (    fqv(IM,J_0H:J_1H) )
+c      ALLOCATE (     BM(J_0H:J_1H) )
+c      ALLOCATE (    F_J(J_0H:J_1H) )
+c      ALLOCATE ( FMOM_J(NMOM,J_0H:J_1H) )
 
 c**** loop over layers
       ICKERR=0
@@ -433,20 +543,28 @@ c**** loop over timesteps
       do ns=1,nstep(l)
 
 c**** scale polar boxes to their full extent
-      mass(:,1:jm:jm-1,l)=mass(:,1:jm:jm-1,l)*im
-      m_sp = mass(1,1 ,l)
-      m_np = mass(1,jm,l)
-      rm(:,1:jm:jm-1,l)=rm(:,1:jm:jm-1,l)*im
-      rm_sp = rm(1,1 ,l)
-      rm_np = rm(1,jm,l)
-      do i=1,im
-         rmom(:,i,1 ,l)=rmom(:,i,1 ,l)*im
-         rmom(:,i,jm,l)=rmom(:,i,jm,l)*im
-      enddo
-      rzm_sp  = rmom(mz ,1,1 ,l)
-      rzzm_sp = rmom(mzz,1,1 ,l)
-      rzm_np  = rmom(mz ,1,jm,l)
-      rzzm_np = rmom(mzz,1,jm,l)
+      if (HAVE_SOUTH_POLE) then
+        mass(:,1,l)=mass(:,1,l)*im
+        m_sp = mass(1,1 ,l)
+        rm(:,1,l)=rm(:,1,l)*im
+        rm_sp = rm(1,1 ,l)
+        do i=1,im
+           rmom(:,i,1 ,l)=rmom(:,i,1 ,l)*im
+        enddo
+        rzm_sp  = rmom(mz ,1,1 ,l)
+        rzzm_sp = rmom(mzz,1,1 ,l)
+      endif
+      if (HAVE_NORTH_POLE) then
+        mass(:,jm,l)=mass(:,jm,l)*im
+        m_np = mass(1,jm,l)
+        rm(:,jm,l)=rm(:,jm,l)*im
+        rm_np = rm(1,jm,l)
+        do i=1,im
+          rmom(:,i,jm,l)=rmom(:,i,jm,l)*im
+        enddo
+        rzm_np  = rmom(mz ,1,jm,l)
+        rzzm_np = rmom(mzz,1,jm,l)
+      endif
 
 c**** loop over longitudes
       do i=1,im
@@ -454,38 +572,42 @@ c****
 c**** load 1-dimensional arrays
 c****
       bm (:) = mv(i,:,l)/nstep(l)
-      bm(jm) = 0.
-      rmom(ihmoms,i,1 ,l) = 0.! horizontal moments are zero at pole
-      rmom(ihmoms,i,jm,l) = 0.
+      if (HAVE_NORTH_POLE) bm(jm) = 0.
+      if (HAVE_SOUTH_POLE) rmom(ihmoms,i,1 ,l) = 0.! horizontal moments are zero at pole
+      if (HAVE_NORTH_POLE) rmom(ihmoms,i,jm,l) = 0.
 c****
 c**** call 1-d advection routine
 c****
-      call adv1d(rm(i,1,l),rmom(1,i,1,l), f_j,fmom_j, mass(i,1,l),
-     &     bm, jm,qlimit,ystride,ydir,ierr,nerr)
+      call adv1d(rm(i,J_0H,l),rmom(1,i,J_0H,l), f_j,fmom_j,
+     &     mass(i,J_0H,l), bm, J_1H-J_0H+1, qlimit,ystride,
+     &     ydir,ierr,nerr)
       if (ierr.gt.0) then
         write(6,*) "Error in aadvQy: i,j,l=",i,nerr,l,' ',tname
         if (ierr.eq.2) write(6,*) "Error in qlimit: abs(b) > 1"
         if (ierr.eq.2) ICKERR=ICKERR+1
       end if
       fqv(i,:) = fqv(i,:) + f_j(:)  !store tracer flux in fqv array
-      fqv(i,jm) = 0.   ! play it safe
-      rmom(ihmoms,i,1 ,l) = 0.! horizontal moments are zero at pole
-      rmom(ihmoms,i,jm,l) = 0.
+      if (HAVE_NORTH_POLE) fqv(i,jm) = 0.   ! play it safe
+      if (HAVE_SOUTH_POLE) rmom(ihmoms,i,1 ,l) = 0.! horizontal moments are zero at pole
+      if (HAVE_NORTH_POLE) rmom(ihmoms,i,jm,l) = 0.
 c     sbfijl(i,:,l) = sbfijl(i,:,l)+f_j(:)
       enddo  ! end loop over longitudes
 c**** average and unscale polar boxes
-      mass(:,1 ,l) = (m_sp + sum(mass(:,1 ,l)-m_sp))*byim
-      mass(:,jm,l) = (m_np + sum(mass(:,jm,l)-m_np))*byim
-      rm(:,1 ,l) = (rm_sp + sum(rm(:,1 ,l)-rm_sp))*byim
-      rm(:,jm,l) = (rm_np + sum(rm(:,jm,l)-rm_np))*byim
-      rmom(mz ,:,1 ,l) = (rzm_sp  + sum(rmom(mz ,:,1 ,l)-rzm_sp ))*byim
-      rmom(mzz,:,1 ,l) = (rzzm_sp + sum(rmom(mzz,:,1 ,l)-rzzm_sp))*byim
-      rmom(mz ,:,jm,l) = (rzm_np  + sum(rmom(mz ,:,jm,l)-rzm_np ))*byim
-      rmom(mzz,:,jm,l) = (rzzm_np + sum(rmom(mzz,:,jm,l)-rzzm_np))*byim
-
+      if (HAVE_SOUTH_POLE) then
+        mass(:,1 ,l) = (m_sp + sum(mass(:,1 ,l)-m_sp))*byim
+        rm(:,1 ,l) = (rm_sp + sum(rm(:,1 ,l)-rm_sp))*byim
+        rmom(mz ,:,1,l) = (rzm_sp +sum(rmom(mz ,:,1,l)-rzm_sp ))*byim
+        rmom(mzz,:,1,l) = (rzzm_sp+sum(rmom(mzz,:,1,l)-rzzm_sp))*byim
+      endif
+      if (HAVE_NORTH_POLE) then
+        mass(:,jm,l) = (m_np + sum(mass(:,jm,l)-m_np))*byim
+        rm(:,jm,l) = (rm_np + sum(rm(:,jm,l)-rm_np))*byim
+        rmom(mz ,:,jm,l) = (rzm_np +sum(rmom(mz ,:,jm,l)-rzm_np ))*byim
+        rmom(mzz,:,jm,l) = (rzzm_np+sum(rmom(mzz,:,jm,l)-rzzm_np))*byim
+      endif
       enddo  ! end loop over timesteps
 
-      do j=1,jm-1   !diagnostics
+      do j=J_0,J_1S   !diagnostics
         sfbm(j,l) = sfbm(j,l) + sum(fqv(:,j)/(mv(:,j,l)+teeny))
         sbm (j,l) = sbm (j,l) + sum(mv(:,j,l))
         sbf (j,l) = sbf (j,l) + sum(fqv(:,j))
@@ -496,6 +618,12 @@ c**** average and unscale polar boxes
 C
       IF(ICKERR.NE.0)  call stop_model('Stopped in aadvQy',11)
 C
+
+c      DEALLOCATE (    fqv )
+c      DEALLOCATE (     BM )
+c      DEALLOCATE (    F_J )
+c      DEALLOCATE ( FMOM_J )
+
       return
 c****
       end subroutine aadvQy
@@ -521,6 +649,7 @@ c****   mass (kg) = fluid mass
 c****
       use CONSTANT, only : teeny
       use GEOM, only : imaxj
+      USE DOMAIN_DECOMP, only : GRID, GET
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use QUSCOM, only : im,jm,lm, zstride
@@ -535,12 +664,25 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       REAL*8  CM(LM),F_L(LM),FMOM_L(NMOM,LM)
       integer :: i,j,l,ierr,nerr,ns,ICKERR
 
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 c**** loop over latitudes and longitudes
       ICKERR=0.
 !$OMP  PARALLEL DO PRIVATE (I,J,L,NS,CM,F_L,FMOM_L,FQW,IERR,NERR)
 !$OMP* SHARED(LM,QLIMIT,ZSTRIDE)
 !$OMP* REDUCTION(+:ICKERR)
-      do j=1,jm
+      do j=J_0,J_1
       do i=1,imaxj(j)
       fqw(:) = 0.
       cm(:) = mw(i,j,:)/nstep(i,j)
@@ -589,6 +731,7 @@ c****
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
 !@ver  1.0
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mu=>pua
       IMPLICIT NONE
@@ -598,13 +741,26 @@ c****
       integer :: l,j,i,ip1,im1,nstep,ns,ICKERR
       REAL*8 :: courmax
 
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 C**** Decide how many timesteps to take by computing Courant limits
 C
       ICKERR = 0
 !$OMP  PARALLEL DO PRIVATE (I,IP1,IM1,J,L,NSTEP,NS,COURMAX,A,AM,MI)
 !$OMP* REDUCTION(+:ICKERR)
       DO 420 L=1,LM
-      DO 420 J=2,JM-1
+      DO 420 J=J_0S,J_1S
       nstep=0
       courmax = 2.
       do while(courmax.gt.1.)
@@ -658,6 +814,7 @@ C
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
 !@ver  1.0
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mv=>pva
       IMPLICIT NONE
@@ -668,6 +825,19 @@ C
       integer :: jprob,iprob,nstep,ns,i,j,l,ICKERR
       REAL*8 :: courmax,byn,sbms,sbmn
 
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 C**** decide how many timesteps to take (all longitudes at this level)
       ICKERR=0
 !$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,B,BM,MIJ,
@@ -675,8 +845,8 @@ C**** decide how many timesteps to take (all longitudes at this level)
 !$OMP* REDUCTION(+:ICKERR)
       DO 440 L=1,LM
 C**** Scale poles
-      m(:, 1,l) =   m(:, 1,l)*im !!!!! temporary
-      m(:,jm,l) =   m(:,jm,l)*im !!!!! temporary
+      if (HAVE_SOUTH_POLE) m(:, 1,l) =   m(:, 1,l)*im !!!!! temporary
+      if (HAVE_NORTH_POLE) m(:,jm,l) =   m(:,jm,l)*im !!!!! temporary
 C**** begin computation
       nstep=0
       courmax = 2.
@@ -686,7 +856,7 @@ C**** begin computation
         courmax = 0.
         mij(:,:) = m(:,:,l)
         do ns=1,nstep
-          do j=1,jm-1
+          do j=J_0,J_1S
           do i=1,im
             bm(j) = mv(i,j,l)*byn
             if(bm(j).gt.0.) then
@@ -703,12 +873,16 @@ C**** begin computation
           enddo
           enddo
 C**** Update air mass at poles
-          sbms = sum(mv(:,   1,l))*byn
-          sbmn = sum(mv(:,jm-1,l))*byn
-          mij(:, 1) = mij(:, 1)-sbms
-          mij(:,jm) = mij(:,jm)+sbmn
+          if (HAVE_SOUTH_POLE) then
+            sbms = sum(mv(:,   1,l))*byn
+            mij(:, 1) = mij(:, 1)-sbms
+          endif
+          if (HAVE_NORTH_POLE) then
+            sbmn = sum(mv(:,jm-1,l))*byn
+            mij(:,jm) = mij(:,jm)+sbmn
+          endif
 C**** Update air mass in the interior
-          do j=2,jm-1
+          do j=J_0S,J_1S
             mij(:,j) = mij(:,j)+(mv(:,j-1,l)-mv(:,j,l))*byn
           enddo
         enddo    ! ns=1,nstep
@@ -725,8 +899,8 @@ C**** Correct air mass
 c       if(nstep.gt.1. and. nTRACER.eq.1) write(6,'(a,2i3,f7.4)')
 c    *    'aadvqy: l,nstep,courmax=',l,nstep,courmax
 C**** Unscale poles
-      m(:, 1,l) =   m(:, 1,l)*byim !!! undo temporary
-      m(:,jm,l) =   m(:,jm,l)*byim !!! undo temporary
+      if (HAVE_SOUTH_POLE) m(:, 1,l) =   m(:, 1,l)*byim !!! undo temporary
+      if (HAVE_NORTH_POLE) m(:,jm,l) =   m(:,jm,l)*byim !!! undo temporary
   440 CONTINUE
 !$OMP  END PARALLEL DO
 C
@@ -741,6 +915,7 @@ C
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
 !@ver  1.0
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mw=>sda
       IMPLICIT NONE
@@ -751,11 +926,24 @@ C
       integer :: nstep,ns,l,i,j,ICKERR
       REAL*8 :: courmax,byn
 
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 C**** decide how many timesteps to take
       ICKERR=0
 !$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,C,CM,ML)
 !$OMP* REDUCTION(+:ICKERR)
-      DO J=1,JM
+      DO J=J_0,J_1
       DO I=1,IM
       nstep=0
       courmax = 2.
