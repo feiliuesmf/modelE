@@ -29,11 +29,11 @@ C**** have to wait.
      &    ,disk_dtype,prog_dtype,lat_dg
      &    ,iu_ij,im,jm,lm,lm_req,im_data
      &    ,iu_ijk,iu_il,iu_j,iu_jc,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
-     &    ,def_missing,srt,cnt,write_whole_array
+     &    ,iu_wp,def_missing,srt,cnt,write_whole_array
 
 !@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
       integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
-     &     ,iu_jc
+     &     ,iu_jc,iu_wp
 !@var im,jm,lm,lm_req local dimensions set in open_* routines
 !@var im_data inner dimension of arrays passed to pout_*
 !     it will differ from im because of array padding to hold means, etc.
@@ -395,7 +395,7 @@ C**** set dimensions
       end subroutine open_ij
 
       subroutine close_ij
-!@sum  OPEN_IJ closes the lat-lon binary output file
+!@sum  CLOSE_IJ closes the lat-lon binary output file
 !@auth M. Kelley
 !@ver  1.0
       USE NCOUT
@@ -460,6 +460,77 @@ C**** set dimensions
       endif
       return
       end
+
+      subroutine open_wp(filename,jm_gcm,lm_gcm,lm_req_gcm,lat_dg_gcm)
+!@sum  OPEN_WP opens the wave power binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE NCOUT
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+!@var LM_GCM,JM_GCM,lm_req_gcm dimensions for jl output
+      INTEGER, INTENT(IN) :: lm_gcm,jm_gcm,lm_req_gcm
+!@var lat_dg_gcm latitude of mid points of grid boxs (deg)
+      REAL*8, INTENT(IN), DIMENSION(JM_GCM,2) :: lat_dg_gcm
+!
+      character(len=30) :: att_name
+      integer, parameter :: lenatt=300
+      character(len=lenatt) :: att_str
+      character(len=1), parameter :: nl=achar(10)
+
+      outfile = trim(filename)//".nc"
+      call open_out
+      iu_wp = out_fid
+
+      att_name='note'
+      att_str=nl//
+     & 'Wave power diagnostics are not yet available in netcdf'//nl//
+     & 'format.  If you are interested in this capability, please'//nl//
+     & 'contact the Model E development team.'
+      call wrtgattc(att_name,att_str,lenatt)
+
+      return
+      end subroutine open_wp
+
+      subroutine close_wp
+!@sum  CLOSE_WP closes the wave power binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE NCOUT
+      IMPLICIT NONE
+
+      out_fid = iu_wp
+      call close_out
+
+      return
+      end subroutine close_wp
+
+      subroutine POUT_WP(TITLE,LNAME,SNAME,UNITS_IN,
+     &     J1,KLMAX,XJL,PM,CX,CY)
+!@sum  POUT_WP output wave power in binary format
+!@auth M. Kelley
+!@ver  1.0
+      USE NCOUT
+      IMPLICIT NONE
+!@var TITLE 80 byte title including description and averaging period
+      CHARACTER, INTENT(IN) :: TITLE*80
+!@var LNAME long name of field
+      CHARACTER, INTENT(IN) :: LNAME*50
+!@var SNAME short name of field
+      CHARACTER, INTENT(IN) :: SNAME*30
+!@var UNITS units of field
+      CHARACTER, INTENT(IN) :: UNITS_IN*50
+!@var J1,KLMAX variables required by pout_jl
+      INTEGER, INTENT(IN) :: KLMAX,J1
+!@var XJL output field, dimensioned to accomodate pout_jl expectations
+      REAL*8, DIMENSION(JM+3,LM+LM_REQ+1), INTENT(IN) :: XJL
+!@var PM the "vertical" coordinate for pout_jl
+      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM
+!@var CX,CY x,y coordinate names
+      CHARACTER*16, INTENT(IN) :: CX,CY
+      return
+      end subroutine pout_wp
 
       subroutine open_jl(filename,jm_gcm,lm_gcm,lm_req_gcm,lat_dg_gcm)
 !@sum  OPEN_JL opens the lat-height binary output file
@@ -539,7 +610,7 @@ C**** set dimensions
       end subroutine open_jl
 
       subroutine close_jl
-!@sum  OPEN_JL closes the lat-height binary output file
+!@sum  CLOSE_JL closes the lat-height binary output file
 !@auth M. Kelley
 !@ver  1.0
       USE NCOUT
@@ -706,7 +777,7 @@ C**** set units
       end subroutine open_il
 
       subroutine close_il
-!@sum  OPEN_IL closes the lon-height binary output file
+!@sum  CLOSE_IL closes the lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
       USE NCOUT
@@ -838,7 +909,7 @@ C**** set dimensions
       end subroutine open_j
 
       subroutine close_j
-!@sum  OPEN_J closes the latitudinal binary output file
+!@sum  CLOSE_J closes the latitudinal binary output file
 !@auth M. Kelley
 !@ver  1.0
       USE NCOUT
@@ -941,7 +1012,7 @@ C**** set dimensions
       end subroutine open_ijk
 
       subroutine close_ijk
-!@sum  OPEN_IJK closes the lat-lon-height binary output file
+!@sum  CLOSE_IJK closes the lat-lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
       USE NCOUT
@@ -1266,7 +1337,7 @@ c      var_name='hour';call wrtdarr(hours)
       end subroutine open_hdiurn
 
       subroutine close_hdiurn
-!@sum  OPEN_HDIURN closes the hour-by-hour history netcdf output file
+!@sum  CLOSE_HDIURN closes the hour-by-hour history netcdf output file
 !@auth M. Kelley
 !@ver  1.0
       IMPLICIT NONE
@@ -1328,7 +1399,7 @@ C**** set dimensions
       end subroutine open_jc
 
       subroutine close_jc
-!@sum  OPEN_J closes the latitudinal binary output file
+!@sum  CLOSE_JC closes the conservation quantity binary output file
 !@auth M. Kelley
 !@ver  1.0
       USE NCOUT

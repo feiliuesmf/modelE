@@ -92,6 +92,60 @@ C**** set dimensions
       return
       end subroutine POUT_IJ
 
+      subroutine open_wp(filename,jm_gcm,lm_gcm,lm_req_gcm,lat_dg_gcm)
+!@sum  OPEN_WP uses OPEN_JL to open the wave power binary output file
+!@auth M. Kelley
+!@ver  1.0
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+!@var LM_GCM,JM_GCM,lm_req_gcm dimensions for jl output
+      INTEGER, INTENT(IN) :: lm_gcm,jm_gcm,lm_req_gcm
+!@var lat_dg_gcm the "horizontal" coordinate for pout_jl
+      REAL*8, INTENT(IN), DIMENSION(JM_GCM,2) :: lat_dg_gcm
+
+      call open_jl(filename,jm_gcm,lm_gcm,lm_req_gcm,lat_dg_gcm)
+
+      return
+      end subroutine open_wp
+
+      subroutine close_wp
+!@sum  CLOSE_WP uses CLOSE_JL to close the wave power binary output file
+!@auth M. Kelley
+!@ver  1.0
+      IMPLICIT NONE
+      call close_jl
+      return
+      end subroutine close_wp
+
+      subroutine POUT_WP(TITLE,LNAME,SNAME,UNITS_IN,
+     &     J1,KLMAX,XJL,PM,CX,CY)
+!@sum  POUT_WP calls POUT_JL to output wave power binary records
+!@auth M. Kelley
+!@ver  1.0
+      USE GISSOUT
+      IMPLICIT NONE
+!@var TITLE 80 byte title including description and averaging period
+      CHARACTER, INTENT(IN) :: TITLE*80
+!@var LNAME long name of field
+      CHARACTER, INTENT(IN) :: LNAME*50
+!@var SNAME short name of field
+      CHARACTER, INTENT(IN) :: SNAME*30
+!@var UNITS units of field
+      CHARACTER, INTENT(IN) :: UNITS_IN*50
+!@var J1,KLMAX variables required by pout_jl
+      INTEGER, INTENT(IN) :: KLMAX,J1
+!@var XJL output field, dimensioned to accomodate pout_jl expectations
+      REAL*8, DIMENSION(JM+3,LM+LM_REQ+1), INTENT(IN) :: XJL
+!@var PM the "vertical" coordinate for pout_jl
+      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM
+!@var CX,CY x,y coordinate names
+      CHARACTER*16, INTENT(IN) :: CX,CY
+      call POUT_JL(TITLE,LNAME,SNAME,UNITS_IN,
+     &     J1,KLMAX,XJL,PM,CX,CY)
+      return
+      end subroutine pout_wp
+
       subroutine open_jl(filename,jm_gcm,lm_gcm,lm_req_gcm,lat_dg_gcm)
 !@sum  OPEN_JL opens the lat-height binary output file
 !@auth M. Kelley

@@ -2872,7 +2872,7 @@ C**** Save inverse period (day) so coordinate is monotonic
           period_e(41+1-k,1) = (k-25)  !/60.
           period_e(41+1-k,2) = (k-17)  !/60.
         end do
-          call open_jl(trim(acc_period)//'.wp'//XLABEL(1:LRUNID)
+          call open_wp(trim(acc_period)//'.wp'//XLABEL(1:LRUNID)
      *     ,41,NMAX,0,period_e)
       do n=1,nmax
         xnwav(n) = n
@@ -2923,7 +2923,7 @@ C****
   380 WRITE (6,902) N,(IPOWER(NS),NS=1,43)
       WRITE (6,903) (FPE(M),M=1,MMAXP1)
       TITLEO=TITLE(KQ)//'*60day'//XLB
-      IF(QDIAG) CALL POUT_JL(TITLEO,LNAME(KQ),SNAME(KQ),UNITS(KQ),
+      IF(QDIAG) CALL POUT_WP(TITLEO,LNAME(KQ),SNAME(KQ),UNITS(KQ),
      *     1,NMAX,FPOWER,xnwav,CLAT,CPRES)
   390 CONTINUE
   400 CONTINUE
@@ -2971,11 +2971,11 @@ C****
   480 WRITE (6,902) N,(IPOWER(NS),NS=1,43)
       WRITE (6,903) (FPE(M),M=1,MMAXP1)
       TITLEO=TITLE(KQ)//'*60day'//XLB
-      IF(QDIAG) CALL POUT_JL(TITLEO,LNAME(KQ),SNAME(KQ),UNITS(KQ),
+      IF(QDIAG) CALL POUT_WP(TITLEO,LNAME(KQ),SNAME(KQ),UNITS(KQ),
      *     2,NMAX,FPOWER,xnwav,CLAT,CPRES)
   490 CONTINUE
   500 CONTINUE
-      if(qdiag) call close_jl
+      if(qdiag) call close_wp
       RETURN
 C****
   901 FORMAT ('0',30X,A64,8X,'*1/60 (1/DAY)'/'   PERIOD EASTWARD--',
