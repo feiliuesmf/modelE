@@ -2704,7 +2704,7 @@ C**** (not necessary associated with a particular tracer)
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Lightning Flash Rate'
         sname_ijts(k) = 'lightning_flash'
-        ijts_power(k) = -10.
+        ijts_power(k) = 0.
         units_ijts(k) = unit_string(ijts_power(k),'flash/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k+1
