@@ -3020,7 +3020,7 @@ cc    CALL RFINAL(SEED)
           press = pfull(ilev)*10.
           dpress = (phalf(ilev+1)-phalf(ilev))*10.
                                 !atmden = g/cm2 = kg/m2 / 10
-          atmden = dpress*bygrav
+          atmden = dpress*bygrav*0.01d0   ! correct for unit difference
           rvh20 = qv(ilev)*bymrat    !wtmair/wtmh20
           wk = rvh20*avog*atmden/wtmair
 c          rhoave = (press/pstd)*(t0/at(ilev))
@@ -3261,7 +3261,7 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
 C**** accumulate ptop/tauopt over columns for output
           if (itau.gt.1) then
             ctp   = ctp  +ptop(ibox)
-            tauopt=tauopt+ tau(ibox)
+            tauopt=tauopt+ exp(-tau(ibox))
             nbox = nbox + 1
           end if
         end if
@@ -3269,7 +3269,7 @@ C**** accumulate ptop/tauopt over columns for output
 
       if (nbox.gt.0) then
         ctp = ctp/REAL(nbox,KIND=8)
-        tauopt=tauopt/REAL(nbox,KIND=8)
+        tauopt=-log(tauopt/REAL(nbox,KIND=8))
       end if
 cc    CALL RINIT(SEED)   ! reset seed to original value
 
