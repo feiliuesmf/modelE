@@ -5564,7 +5564,7 @@ c read in AEROCOM seasalt
           status=NF_CLOSE('SALT2',NCNOWRIT,ncidu)
       endif
 c read in AEROCOM SO2 emissions
-       if (imAER.eq.1) then
+      if (imAER.eq.1) then
       SO2_src(:,:,:)=0.d0
       SO2_biosrc_3D(:,:,:,:)=0.d0
       SO2_src_3D(:,:,:,:)=0.d0
@@ -6216,16 +6216,16 @@ C**** three 3D sources (aircraft, volcanos and biomass) read in from files
       call apply_tracer_3Dsource(1,n) ! volcanos
       tr3Dsource(:,J_0:J_1,:,2,n) = SO2_src_3d(:,J_0:J_1,:,2)
       if (imAER.eq.0) call apply_tracer_3Dsource(2,n) ! aircraft
-      tr3Dsource(:,J_0:J_1,1:6,3,n)
-     *=SO2_biosrc_3D(:,J_0:J_1,1:6,jmon)*0.975d0
+      tr3Dsource(:,J_0:J_1,1:7,3,n) = SO2_biosrc_3D(:,J_0:J_1,1:7,jmon)
+     *     *0.975d0
       call apply_tracer_3Dsource(3,n) ! biomass
 
       case ('SO4')
 C**** three 3D sources ( volcanos and biomass) read in from files
       tr3Dsource(:,J_0:J_1,:,3,n) = SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
       call apply_tracer_3Dsource(3,n) ! volcanos
-      tr3Dsource(:,J_0:J_1,1:6,4,n)
-     &  =SO2_biosrc_3D(:,J_0:J_1,1:6,jmon)*0.0375d0
+      tr3Dsource(:,J_0:J_1,1:7,4,n) = SO2_biosrc_3D(:,J_0:J_1,1:7,jmon)
+     *     *0.0375d0
       call apply_tracer_3Dsource(4,n) ! biomass
 
        case ('BCII')

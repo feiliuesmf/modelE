@@ -36,7 +36,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !@var SO2_src_3D SO2 volcanic, aircraft sources (and biomass) (kg/s)
       real*8 SO2_src_3D(im,jm,lm,nso2src_3D)
 !@var SO2_biosrc_3D SO2  biomass(kg/s)
-      real*8 SO2_biosrc_3D(im,jm,6,12)
+      real*8 SO2_biosrc_3D(im,jm,7,12)
 !@var PBLH boundary layer height
 !@var MDF is the mass of the downdraft flux
       real*8, DIMENSION(IM,JM):: PBLH = 0,shdtt = 0.   ! ,MDF
