@@ -279,7 +279,7 @@ C NOW SET VISCOSITIES AND PRESSURE EQUAL TO ZERO AT OUTFLOW PTS
 
 C NOW CALCULATE PRESSURE FORCE AND ADD TO EXTERNAL FORCE
 C**** Update halo of PRESS for distributed memory implementation
-      CALL CHECKSUM(grid, PRESS,  __LINE__, __FILE__)
+c      CALL CHECKSUM(grid, PRESS,  __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, PRESS, FROM=NORTH)
        DO J=J_0,J_1S
         DO I=1,NX1-1
@@ -325,9 +325,9 @@ C****
 
 
 C EVALUATE STRAIN RATES
-      CALL CHECKSUM(grid, UICE, __LINE__, __FILE__)
+c      CALL CHECKSUM(grid, UICE, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, UICE, FROM=SOUTH)
-      CALL CHECKSUM(grid, VICE, __LINE__, __FILE__)
+c      CALL CHECKSUM(grid, VICE, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, VICE, FROM=SOUTH)
       DO J=J_0S,J_1S
         DO I=2,NX1-1
@@ -483,14 +483,14 @@ C FIRST DO UICE
 C THE FIRST HALF
 
 C**Update halos for arrays eta,zeta,vicec,bycsu as needed in the next loop
-      CALL CHECKSUM(grid, ETA, __LINE__, __FILE__)
+c      CALL CHECKSUM(grid, ETA, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, ETA, FROM=NORTH)
-      CALL CHECKSUM(grid, ZETA, __LINE__, __FILE__)
+c      CALL CHECKSUM(grid, ZETA, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, ZETA, FROM=NORTH)
-      CALL CHECKSUM(grid, VICEC, __LINE__, __FILE__)
+c      CALL CHECKSUM(grid, VICEC, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, VICEC, FROM=NORTH)
         CALL HALO_UPDATE(grid, VICEC, FROM=SOUTH)
-      CALL CHECKSUM(grid, BYCSU, __LINE__, __FILE__)
+c      CALL CHECKSUM(grid, BYCSU, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH)
         CALL HALO_UPDATE(grid, BYCSU, FROM=SOUTH)
 
@@ -561,10 +561,10 @@ c      CU(2,J)=CU(2,J)/BU(2,J)  ! absorbed into TRIDIAG
 
 C**Update halos for UICE and TNG as needed for loop 1200
 C**(ETA and ZETA were updted above)
-      CALL CHECKSUM(grid, UICE, __LINE__, __FILE__)
+c      CALL CHECKSUM(grid, UICE, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, UICE, FROM=SOUTH)
         CALL HALO_UPDATE(grid, UICE, FROM=NORTH)
-      CALL CHECKSUM(grid, TNG, __LINE__, __FILE__)
+c      CALL CHECKSUM(grid, TNG, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, TNG, FROM=SOUTH)
         CALL HALO_UPDATE(grid, TNG, FROM=NORTH)
 
@@ -725,7 +725,7 @@ c      END DO
 C NOW DO VICE
 C THE FIRST HALF
 
-      CALL CHECKSUM(grid, UICEC, __LINE__, __FILE__)
+c      CALL CHECKSUM(grid, UICEC, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, UICEC, FROM=NORTH)
 
       DO I=2,NXLCYC
@@ -889,7 +889,7 @@ C NOW THE SECOND HALF
 c       CU(2,J)=CU(2,J)/BU(2,J)   ! absorbed into TRIDIAG
       END DO
 
-      CALL CHECKSUM(grid, VICE, __LINE__, __FILE__)
+c      CALL CHECKSUM(grid, VICE, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, VICE, FROM=SOUTH)
       CALL HALO_UPDATE(grid, VICE, FROM=NORTH)
 
@@ -1045,7 +1045,7 @@ C**** Set land masks for tracer and velocity points
         heffm(nx1,j)=heffm(2,j)  
       enddo
 C**** define velocity points (including exterior corners)
-      CALL CHECKSUM(grid, HEFFM, __LINE__, __FILE__)
+c      CALL CHECKSUM(grid, HEFFM, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, HEFFM, FROM=NORTH)
       do j=j_0,j_1s
         do i=1,nx1-1
@@ -1056,7 +1056,7 @@ c          if (sumk.ge.3) uvm(i,j)=1  ! includes exterior corners
         end do
       end do
 C**** reset tracer points to surround velocity points (except for single
-      CALL CHECKSUM(grid, UVM, __LINE__, __FILE__)
+c      CALL CHECKSUM(grid, UVM, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, UVM, FROM=SOUTH)
 c     CALL HALO_UPDATE(grid, UVM, FROM=NORTH)
       do j=j_0s,j_1s
@@ -1085,7 +1085,7 @@ c set lateral boundary conditions
       enddo
 
 C**** Update halo of PHI for distributed memory implementation
-      CALL CHECKSUM(grid, HEFFM, __LINE__, __FILE__)
+c      CALL CHECKSUM(grid, HEFFM, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, HEFFM, FROM=NORTH)
       do j=j_0,j_1s
         do i=1,nx1-1
