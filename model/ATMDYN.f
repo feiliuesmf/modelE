@@ -221,9 +221,9 @@ C****
       REAL*8 DTLF,byncyc
       INTEGER N
 
-      DTLF=2.*DT
-      CALL CALC_AMP(PS,MB)
-      CALL AADVQ0 (DTLF)  ! uses the fluxes pua,pva,sda from DYNAM
+!     DTLF=2.*DT
+!     CALL CALC_AMP(PS,MB)
+!     CALL AADVQ0 (DTLF)  ! uses the fluxes pua,pva,sda from DYNAM
       DO N=1,NTM
         IF (itime.LT.itime_tr0(N)) cycle
         sfbm = 0.; sbm = 0.; sbf = 0.
@@ -683,6 +683,8 @@ C**** Scale mixing ratios (incl moments) to conserve mass/heat
       END DO
 #ifdef TRACERS_ON
 C**** In general, only an air tracer is affected by the filter
+C**** This fix conserves tracer concentration, BUT NOT MASS!
+C****   It is not wanted for most tracers.
 C**** Thus, this code slows model and should be removed if not wanted
 C**** Instead of if(trname...) could use n=n_air and avoid the IF-test
 C**** But if n_air=0 this will cause problems...
@@ -692,8 +694,8 @@ C**** But if n_air=0 this will cause problems...
       DO L=1,LS1-1
         DO J=2,JM-1
           DO I=1,IM
-             trm(I,J,L,n)=  trm(I,J,L,n)*PRAT(I,J)
-             trmom(:,I,J,L,n)=trmom(:,I,J,L,n)*PRAT(I,J)
+             trm(I,J,L,n)=  trm(I,J,L,n)/PRAT(I,J)
+             trmom(:,I,J,L,n)=trmom(:,I,J,L,n)/PRAT(I,J)
       end do; end do; end do
       end do
 #endif

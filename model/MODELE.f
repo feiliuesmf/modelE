@@ -149,6 +149,11 @@ C****
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
       CALL DYNAM
       CALL QDYNAM  ! Advection of Q by average fluxes
+         CALL TIMER (MNOW,MDYN)
+#ifdef TRACERS_ON
+      CALL TrDYNAM   ! tracer dynamics
+         CALL TIMER (MNOW,MTRACE)
+#endif
 C****
 C**** Calculate tropopause level and pressure
 C****
@@ -158,11 +163,7 @@ C**** calculate some dynamic variables for the PBL
       CALL PGRAD_PBL
 
          CALL CHECKT ('DYNAM ')
-         CALL TIMER (MNOW,MDYN)
-#ifdef TRACERS_ON
-      CALL TrDYNAM   ! tracer dynamics
-         CALL TIMER (MNOW,MTRACE)
-#endif
+         CALL TIMER (MNOW,MELSE)
 
          IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)
          IF (MODD5D.EQ.0) CALL DIAGCA (2)

@@ -583,7 +583,7 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 
 C**** INITIALIZE CERTAIN QUANTITIES
 C**** standard printout
-      nmaplets = ktmax   ! ktaijln+ktaijkn+ktaijs
+!     nmaplets = ktmax   ! ktaijln+ktaijkn+ktaijs
       nmaps = 0
 
 C**** Fill in maplet indices for tracer concentrations
@@ -614,6 +614,7 @@ C**** Fill in maplet indices for sources and sinks
         ijtype(k) = 3
       end do
 
+      nmaplets = k
 c**** always skip unused fields
       Qk = .true.
       do k=1,ktmax
