@@ -6,7 +6,7 @@ C****                      -OPT:reorg_comm=off -w2 -listing
 C**** Note that since it uses modules and routines from the model, it
 C**** must be compiled after the model
       USE CONSTANT, only : lhm,shi,by3
-      USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,xlabel
+      USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,xlabel,iowrite
      *     ,iowrite_mon,focean,nday,itime,itimei,itimee,itime0,iyear1
       USE SOMTQ_COM
       USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
@@ -33,27 +33,41 @@ C**** must be compiled after the model
 !@ egcm_init_max maximum initial vaule of egcm
       real*8, parameter :: egcm_init_max=0.5
       integer :: conv_index(im,jm,2)
-      character*120 cindex_file
-      integer iu_CI, i0, j0
-      logical :: extend_gh = .false.
+      character*120 cindex_file, gic_file, argv
+      integer iu_GIC, iu_CI, i0, j0
+      logical :: extend_gh = .false., dump_gic = .false.
 
       IF (IARGC().lt.2) THEN
         PRINT*,"Convert rsf files from old format to new"
         PRINT*,"To create a restart file for the standard land mask:"
-        PRINT*,"conv_rsf filename output_file"
+        PRINT*,"conv_rsf in_file rsf_file [-g gic_file] [-e ind_file]" 
         PRINT*,"To create a restart file with the extended land"
         PRINT*,"surface data (which can be used with any land mask):"
-        PRINT*,"conv_rsf filename output_file conv_indices_file"
+        PRINT*,"use '-e conv_indices_file' option"
+        PRINT*,"To create a GIC file use '-g gic_file' option"
         STOP
       END IF
-
-      IF (IARGC() >= 3 ) extend_gh = .true.
 
       CALL GETARG(1,infile)
       CALL GETARG(2,outfile)
 
+      i = 3
+      do while (i <= IARGC())
+        call getarg(i,argv); i = i+1
+        if ( argv == "-e" ) then
+          extend_gh = .true.
+          call getarg(i,cindex_file); i = i+1
+          cycle
+        endif
+        if ( argv == "-g" ) then
+          dump_gic = .true.
+          call getarg(i,gic_file); i = i+1
+          cycle
+        endif
+      enddo
+        
+
       if ( extend_gh ) then
-        CALL GETARG(3,cindex_file)
         call openunit (trim(cindex_file), iu_CI, .true. , .true. )
         read(iu_CI) conv_index
         call closeunit (iu_CI)
@@ -196,9 +210,23 @@ C**** set default foliage values
       call openunit (trim(outfile),iu_AIC, .true.,.false.)
 
       call io_rsf(iu_AIC,ItimeX,iowrite_mon,ioerr)
-      close (iu_AIC)
+      call closeunit (iu_AIC)
       print*,ioerr
       print*,"New rsf file written out to ",trim(outfile)
+
+      if ( dump_gic ) then
+        call openunit (trim(gic_file),iu_GIC, .true.,.false.)
+        ioerr=-1
+        call io_ocean  (iu_GIC,iowrite,ioerr)
+        call io_seaice (iu_GIC,iowrite,ioerr)
+        call io_earth  (iu_GIC,iowrite,ioerr)
+        call io_soils  (iu_GIC,iowrite,ioerr)
+        call io_landice(iu_GIC,iowrite,ioerr)
+        call closeunit(iu_GIC)
+        print *,ioerr
+        print*,"New GIC file written out to ",trim(gic_file)
+      endif
+
       stop
  800  print*,"Error reading in AIC file "
       stop
