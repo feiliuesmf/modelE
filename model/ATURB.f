@@ -281,8 +281,8 @@ cc        call diff_mom(tmomij)
 C****         check on physicality of non-local fluxes....
               if ( p4(l)*dtime+q0(l).lt.0 ) then
                 p4(l)=-q(l)/dtime
-                wt_nl(l+1)=(q0(l)/(dtime*bydzerho(l))+rhoe(l)
-     *               *wt_nl(l))/rhoe(l+1)
+                wq_nl(l+1)=(q0(l)/(dtime*bydzerho(l))+rhoe(l)
+     *               *wq_nl(l))/rhoe(l+1)
               end if
           end do
           flux_bot=rhoe(1)*qflx+rhoe(2)*wq_nl(2)
