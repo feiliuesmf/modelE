@@ -8582,7 +8582,7 @@ C
      A      /5X,I2,' = REFSET = ',F7.3,'                 0.000         '
      B      /5X,I2,' = VEFSET = ',F7.3,'                 0.000         '
      C      /5X,I2,' = O3WJT0 = ',F7.5,'                 0.001         '
-     D      /5X,I2,' = SNOLIM = ',F7.5,'                 0.367         '
+     D      /5X,I2,' = SNOLIM = ',F7.5,' reset to 0 (was 0.367 )       '
      E      /5X,I2,' = X0YBCI = ',F7.3,'                 0.001         '
      F      /5X,I2,' = X0YOCI = ',F7.3,'                 0.001         '
      G      /5X,I2,' = X0YSUI = ',F7.3,'                 0.0001        '
