@@ -707,10 +707,10 @@ C**** set dimensions
       real_att(1:3)=XJL(JM+1:JM+3,LM+LM_REQ+1)
 
       if(j1.eq.1) then
-         xjl0(1:jm,1:klmax) = xjl(1:jm,1:klmax)
+         xjl0(1:jm,1:lm+lm_req) = xjl(1:jm,1:lm+lm_req)
          call wrtdarr(xjl0)
       else
-         xjl0b(1:jm-1,1:klmax) = xjl(2:jm,1:klmax)
+         xjl0b(1:jm-1,1:lm+lm_req) = xjl(2:jm,1:lm+lm_req)
          call wrtdarr(xjl0b)
       endif
 
