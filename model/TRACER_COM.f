@@ -277,11 +277,12 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *     n_OxREG1=0,n_OxREG2=0,n_OxREG3=0,
      *     n_OxREG4=0,n_OxREG5=0,n_OxREG6=0,
      &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0, n_silt4=0,
-     &     n_clayilli,n_claykaol,n_claysmec,n_claycalc,n_clayquar,
-     &     n_sil1quar,n_sil1feld,n_sil1calc,n_sil1hema,n_sil1gyps,
-     &     n_sil2quar,n_sil2feld,n_sil2calc,n_sil2hema,n_sil2gyps,
-     &     n_sil3quar,n_sil3feld,n_sil3calc,n_sil3hema,n_sil3gyps,
-     &     n_clayquhe,n_sil1quhe,n_sil2quhe,n_sil3quhe
+     &     n_clayilli=0,n_claykaol=0,n_claysmec=0,n_claycalc=0,
+     &     n_clayquar=0,n_sil1quar=0,n_sil1feld=0,n_sil1calc=0,
+     &     n_sil1hema=0,n_sil1gyps=0,n_sil2quar=0,n_sil2feld=0,
+     &     n_sil2calc=0,n_sil2hema=0,n_sil2gyps=0,n_sil3quar=0,
+     &     n_sil3feld=0,n_sil3calc=0,n_sil3hema=0,n_sil3gyps=0,
+     &     n_clayquhe=0,n_sil1quhe=0,n_sil2quhe=0,n_sil3quhe=0
 
 !@var 3D on-line radical array for interactive aerosol and gas
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oh_live

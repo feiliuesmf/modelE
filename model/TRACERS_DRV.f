@@ -4479,13 +4479,13 @@ C**** Additional Special IJ diagnostics
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-        CASE('Clay','Silt1','Silt2','Silt3','Silt4',
-     &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &       'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
-      k=k+1
+      CASE('Clay','Silt1','Silt2','Silt3','Silt4',
+     &   'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &   'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &   'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &   'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &   'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+        k=k+1
         ijts_source(nDustEmij,n)=k
         lname_ijts(k)='Emission of '//trname(n)
         sname_ijts(k)=TRIM(trname(n))//'_emission'
@@ -4516,66 +4516,297 @@ C**** Additional Special IJ diagnostics
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
+        SELECT CASE (trname(n))
+        CASE ('Clay')
+c dust optical thickness of four clay sub size classes
+          k = k + 1
+          ijts_tausub(1,n,1) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'1 optical thickness'
+          sname_ijts(k) = 'tau_'//trim(trname(n))//'1'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tausub(1,n,2) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'2 optical thickness'
+          sname_ijts(k) = 'tau_'//trim(trname(n))//'2'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tausub(1,n,3) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'3 optical thickness'
+          sname_ijts(k) = 'tau_'//trim(trname(n))//'3'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tausub(1,n,4) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'4 optical thickness'
+          sname_ijts(k) = 'tau_'//trim(trname(n))//'4'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+c dust clear sky optical thickness of four clay sub size classes
+          k = k + 1
+          ijts_tausub(2,n,1) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'1 CS optical thickness'
+          sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'1'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tausub(2,n,2) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'2 CS optical thickness'
+          sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'2'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tausub(2,n,3) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'3 CS optical thickness'
+          sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'3'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tausub(2,n,4) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'4 CS optical thickness'
+          sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'4'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+c dust shortwave radiative forcing of four clay sub size classes
+          k = k + 1
+          ijts_fcsub(1,n,1) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'1 SW radiative forcing'
+          sname_ijts(k) = 'swf_'//trim(trname(n))//'1'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fcsub(1,n,2) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'2 SW radiative forcing'
+          sname_ijts(k) = 'swf_'//trim(trname(n))//'2'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fcsub(1,n,3) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'3 SW radiative forcing'
+          sname_ijts(k) = 'swf_'//trim(trname(n))//'3'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fcsub(1,n,4) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'4 SW radiative forcing'
+          sname_ijts(k) = 'swf_'//trim(trname(n))//'4'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+c dust longwave radiative forcing of four clay sub size classes
+          k = k + 1
+          ijts_fcsub(2,n,1) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'1 LW radiative forcing'
+          sname_ijts(k) = 'lwf_'//trim(trname(n))//'1'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fcsub(2,n,2) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'2 LW radiative forcing'
+          sname_ijts(k) = 'lwf_'//trim(trname(n))//'2'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fcsub(2,n,3) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'3 LW radiative forcing'
+          sname_ijts(k) = 'lwf_'//trim(trname(n))//'3'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fcsub(2,n,4) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'4 LW radiative forcing'
+          sname_ijts(k) = 'lwf_'//trim(trname(n))//'4'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+c dust shortwave radiative forcing at surface of four clay sub size classes
+          k = k + 1
+          ijts_fcsub(3,n,1) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'1 SW Surf radiative forcing'
+          sname_ijts(k) = 'swf_surf_'//trim(trname(n))//'1'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fcsub(3,n,2) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'2 SW Surf radiative forcing'
+          sname_ijts(k) = 'swf_surf_'//trim(trname(n))//'2'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fcsub(3,n,3) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'3 SW Surf radiative forcing'
+          sname_ijts(k) = 'swf_surf_'//trim(trname(n))//'3'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fcsub(3,n,4) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'4 SW Surf radiative forcing'
+          sname_ijts(k) = 'swf_surf_'//trim(trname(n))//'4'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+c dust longwave radiative forcing at surface of four sub size classes
+          k = k + 1
+          ijts_fcsub(4,n,1) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'1 LW Surf radiative forcing'
+          sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//'1'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fcsub(4,n,2) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'2 LW Surf radiative forcing'
+          sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//'2'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fcsub(4,n,3) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'3 LW Surf radiative forcing'
+          sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//'3'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fcsub(4,n,4) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trim(trname(n))//'4 LW Surf radiative forcing'
+          sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//'4'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        CASE('Silt1','Silt2','Silt3','Silt4',
+     &     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &     'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &     'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &     'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
 c dust optical thickness
-        k = k + 1
-        ijts_tau(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad   
-        lname_ijts(k) = trim(trname(n))//' optical thickness'
-        sname_ijts(k) = 'tau_'//trim(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(1,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad   
+          lname_ijts(k) = trim(trname(n))//' optical thickness'
+          sname_ijts(k) = 'tau_'//trim(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c dust clear sky optical thickness
-        k = k + 1
-        ijts_tau(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad   
-        lname_ijts(k) = trim(trname(n))//' CS optical thickness'
-        sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(2,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad   
+          lname_ijts(k) = trim(trname(n))//' CS optical thickness'
+          sname_ijts(k) = 'tau_CS_'//trim(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c dust shortwave radiative forcing
-        k = k + 1
-        ijts_fc(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad  
-        lname_ijts(k) = trim(trname(n))//' SW radiative forcing'
-        sname_ijts(k) = 'swf_'//trim(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fc(1,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad  
+          lname_ijts(k) = trim(trname(n))//' SW radiative forcing'
+          sname_ijts(k) = 'swf_'//trim(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c dust longwave radiative forcing
-        k = k + 1
-        ijts_fc(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad  
-        lname_ijts(k) = trim(trname(n))//' LW radiative forcing'
-        sname_ijts(k) = 'lwf_'//trim(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fc(2,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad  
+          lname_ijts(k) = trim(trname(n))//' LW radiative forcing'
+          sname_ijts(k) = 'lwf_'//trim(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c dust shortwave radiative forcing at surface
-        k = k + 1
-        ijts_fc(3,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad  
-        lname_ijts(k) = trim(trname(n))//' SW Surf radiative forcing'
-        sname_ijts(k) = 'swf_surf_'//trim(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fc(3,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad  
+          lname_ijts(k) = trim(trname(n))//' SW Surf radiative forcing'
+          sname_ijts(k) = 'swf_surf_'//trim(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c dust longwave radiative forcing at surface
-        k = k + 1
-        ijts_fc(4,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad  
-        lname_ijts(k) = trim(trname(n))//' LW Surf radiative forcing'
-        sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fc(4,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad  
+          lname_ijts(k) = trim(trname(n))//' LW Surf radiative forcing'
+          sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        END SELECT
 #endif
 
       end select
@@ -5565,8 +5796,13 @@ C**** set some defaults
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
-      case ('seasalt1', 'seasalt2', 'Clay', 'Silt1', 'Silt2', 'Silt3',
-     &      'Silt4')
+      CASE('seasalt1','seasalt2',
+     &     'Clay','Silt1','Silt2','Silt3','Silt4',
+     &     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &     'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &     'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &     'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
       itcon_mc(n) =13
       qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
       qsum(itcon_mc(n)) = .false.
@@ -6510,6 +6746,8 @@ c     prescribed AEROCOM dust emissions
           countd(2)=Jm
           countd(3)=1
 
+          d_dust=0.D0
+
           DO k=1,JDperY
 
             IF (k > 59) THEN
@@ -7313,7 +7551,7 @@ C**** Apply chemistry and stratosphere overwrite changes:
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-c      CALL tracers_dust_old
+      CALL tracers_dust_old
 #endif
 
       return

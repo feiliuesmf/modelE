@@ -848,7 +848,8 @@ C     OUTPUT DATA
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
      *     ,n_OCIA,N_OCII,n_clay
-      USE TRDIAG_COM, only: taijs=>taijs_loc,ijts_fc,ijts_tau
+      USE TRDIAG_COM, only: taijs=>taijs_loc,ijts_fc,ijts_tau,
+     &     ijts_tausub,ijts_fcsub
 #endif
       IMPLICIT NONE
 C
@@ -868,7 +869,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
 #ifdef TRACERS_ON
 !@var SNFST,TNFST like SNFS/TNFS but with/without specific tracers for
 !@+   radiative forcing calculations
-      REAL*8, DIMENSION(2,NTM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      REAL*8,DIMENSION(2,NTRACE,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)::
      *     SNFST,TNFST
 #endif
       REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -879,7 +880,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
       INTEGER, SAVE :: JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff
-     *     ,LFRC,JTIME
+     *     ,LFRC,JTIME,n1
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,X,OPNSKY,CSZ2,tauup,taudn
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
@@ -888,8 +889,8 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     ,CLDinfo(LM,3,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8 RANDXX ! temporary
       REAL*8 QSAT
-      LOGICAL NO_CLOUD_ABOVE, set_clay,set_clayilli,set_claykaol,
-     &     set_claysmec,set_claycalc,set_clayquar
+      LOGICAL NO_CLOUD_ABOVE, set_clayilli,set_claykaol,set_claysmec,
+     &     set_claycalc,set_clayquar
 C
       REAL*8  RDSS(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,RDMC(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
@@ -1137,9 +1138,9 @@ C****
       ADIURN_part=0.; HDIURN_part=0.
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
 !$OMP*   I,INCH,IH,IHM,IT, J, K,KR, L,LR,LFRC, N, onoff,OPNSKY,
-!$OMP*   CSZ2, PLAND,tauex5,tauex6,tausct,taugcb,set_clay,
+!$OMP*   CSZ2, PLAND,tauex5,tauex6,tausct,taugcb,
 !$OMP*   set_clayilli,set_claykaol,set_claysmec,set_claycalc,
-!$OMP*   set_clayquar,dcc_cdncl,dod_cdncl,dCDNC,
+!$OMP*   set_clayquar,dcc_cdncl,dod_cdncl,dCDNC,n1,
 !$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
 !$OMP*   COPYIN(/RADPAR_hybrid/)
 !$OMP*   SHARED(ITWRITE)
@@ -1491,7 +1492,6 @@ C**** or not.
 C**** Aerosols incl. Dust:
       if (NTRACE.gt.0) then
         FSTOPX(:)=onoff ; FTTOPX(:)=onoff
-        set_clay=.false.
         set_clayilli=.FALSE.
         set_claykaol=.FALSE.
         set_claysmec=.FALSE.
@@ -1499,7 +1499,6 @@ C**** Aerosols incl. Dust:
         set_clayquar=.FALSE.
         do n=1,NTRACE
           IF (trname(NTRIX(n)).eq."seasalt2") CYCLE ! not for seasalt2
-          IF (trname(ntrix(n)) == 'Clay' .AND. set_clay) cycle
           IF (trname(ntrix(n)) == 'ClayIlli' .AND. set_clayilli) cycle
           IF (trname(ntrix(n)) == 'ClayKaol' .AND. set_claykaol) cycle
           IF (trname(ntrix(n)) == 'ClaySmec' .AND. set_claysmec) cycle
@@ -1514,9 +1513,6 @@ C**** one before seasalt2 in NTRACE array
 C**** Do radiation calculations for all clay classes at once
 C**** Assumes that 4 clay tracers are adjacent in NTRACE array
           SELECT CASE (trname(ntrix(n)))
-          CASE ('Clay')
-            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
-            set_clay=.true.
           CASE ('ClayIlli')
             fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
             set_clayilli=.true.
@@ -1535,17 +1531,16 @@ C**** Assumes that 4 clay tracers are adjacent in NTRACE array
           END SELECT
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
           CALL RCOMPX
-          SNFST(1,NTRIX(n),I,J)=SRNFLB(1) ! surface forcing
-          TNFST(1,NTRIX(n),I,J)=TRNFLB(1)
-          SNFST(2,NTRIX(n),I,J)=SRNFLB(LFRC)
-          TNFST(2,NTRIX(n),I,J)=TRNFLB(LFRC)
+          SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
+          TNFST(1,n,I,J)=TRNFLB(1)
+          SNFST(2,n,I,J)=SRNFLB(LFRC)
+          TNFST(2,n,I,J)=TRNFLB(LFRC)
           FSTOPX(n)=onoff ; FTTOPX(n)=onoff ! back to default
           IF (trname(NTRIX(n)).eq."seasalt1") THEN ! for seasalt2 as well
             FSTOPX(n+1)=onoff ; FTTOPX(n+1)=onoff
           END IF
           SELECT CASE (trname(ntrix(n)))
-          CASE ('Clay','ClayIlli','ClayKaol','ClaySmec','ClayCalc',
-     &           'ClayQuar')
+          CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar')
             fstopx(n+1:n+3)=onoff ; fttopx(n+1:n+3)=onoff  ! for clays as well
           END SELECT
         end do
@@ -1595,10 +1590,24 @@ C*****************************************************
     (defined TRACERS_MINERALS)
 C**** Save optical depth diags
       do n=1,NTRACE
-        if (ijts_tau(1,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(1,NTRIX(n)))
-     *       =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
-        if (ijts_tau(2,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(2,NTRIX(n)))
-     *       =taijs(i,j,ijts_tau(2,NTRIX(n)))+SUM(TTAUSV(1:lm,n))*OPNSKY
+        SELECT CASE (trname(ntrix(n)))
+        CASE ('Clay')
+          n1=n-n_clay+1
+          IF (ijts_tausub(1,ntrix(n),n1) > 0)
+     &         taijs(i,j,ijts_tausub(1,ntrix(n),n1))
+     &         =taijs(i,j,ijts_tausub(1,ntrix(n),n1))
+     &         +SUM(ttausv(1:Lm,n))
+          IF (ijts_tausub(2,ntrix(n),n1) > 0)
+     &         taijs(i,j,ijts_tausub(2,ntrix(n),n1))
+     &         =taijs(i,j,ijts_tausub(2,ntrix(n),n1))
+     &         +SUM(ttausv(1:Lm,n))*OPNSKY
+        CASE DEFAULT
+          if (ijts_tau(1,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(1,NTRIX(n)))
+     *         =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
+          if (ijts_tau(2,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(2,NTRIX(n)))
+     *         =taijs(i,j,ijts_tau(2,NTRIX(n)))
+     &         +SUM(TTAUSV(1:lm,n))*OPNSKY
+        END SELECT
       end do
 #endif
 
@@ -1997,27 +2006,114 @@ C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          LFRC=3                 ! TOA
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
          if (ntrace.gt.0 .or. n_Ox.gt.0 ) then
-           do n=1,ntm
+#ifdef TRACERS_AEROSOLS_Koch
+           snfst0(:,:,i,j)=0.D0
+           tnfst0(:,:,i,j)=0.D0
+#endif
+           set_clayilli=.FALSE.
+           set_claykaol=.FALSE.
+           set_claysmec=.FALSE.
+           set_claycalc=.FALSE.
+           set_clayquar=.FALSE.
+           do n=1,ntrace
+             SELECT CASE (trname(ntrix(n)))
+             CASE ('Clay')
+               n1=n-n_clay+1
+c shortwave forcing (TOA or TROPO) of Clay sub size classes
+               if (ijts_fcsub(1,ntrix(n),n1) > 0)
+     &              taijs(i,j,ijts_fcsub(1,ntrix(n),n1))
+     &              =taijs(i,j,ijts_fcsub(1,ntrix(n),n1))
+     &              +rsign*(snfst(2,n,i,j)-snfs(lfrc,i,j))*csz2
+c longwave forcing  (TOA or TROPO) of Clay size sub classes
+               if (ijts_fcsub(2,ntrix(n),n1) > 0)
+     &              taijs(i,j,ijts_fcsub(2,ntrix(n),n1))
+     &              =taijs(i,j,ijts_fcsub(2,ntrix(n),n1))
+     &              -rsign*(tnfst(2,n,i,j)-tnfs(lfrc,i,j))
+c shortwave forcing (TOA or TROPO) clear sky of Clay sub size classes
+               if (ijts_fcsub(5,ntrix(n),n1) > 0)
+     &              taijs(i,j,ijts_fcsub(5,ntrix(n),n1))
+     &              =taijs(i,j,ijts_fcsub(5,ntrix(n),n1))
+     &              +rsign*(snfst(2,n,i,j)-snfs(lfrc,i,j))*csz2
+     &              *(1.D0-cfrac(i,j))
+c longwave forcing  (TOA or TROPO) clear sky of Clay sub size classes
+               if (ijts_fcsub(6,ntrix(n),n1) > 0)
+     &              taijs(i,j,ijts_fcsub(6,ntrix(n),n1))
+     &              =taijs(i,j,ijts_fcsub(6,ntrix(n),n1))
+     &              -rsign*(tnfst(2,n,i,j)-tnfs(lfrc,i,j))
+     &              *(1.D0-cfrac(i,j))
+c shortwave forcing at surface (if required) of Clay sub size classes
+               if (ijts_fcsub(3,ntrix(n),n1) > 0)
+     &              taijs(i,j,ijts_fcsub(3,ntrix(n),n1))
+     &              =taijs(i,j,ijts_fcsub(3,ntrix(n),n1))
+     &              +rsign*(snfst(1,n,i,j)-snfs(1,i,j))*csz2
+c longwave forcing at surface (if required) of Clay sub size classes
+               if (ijts_fcsub(4,ntrix(n),n1) > 0)
+     &              taijs(i,j,ijts_fcsub(4,ntrix(n),n1))
+     &              =taijs(i,j,ijts_fcsub(4,ntrix(n),n1))
+     &              -rsign*(tnfst(1,n,i,j)-tnfs(1,i,j))
+             CASE DEFAULT
+               SELECT CASE (trname(ntrix(n)))
+               CASE ('seasalt2')
+                 CYCLE
+               CASE ('ClayIlli')
+                 IF (set_clayilli) CYCLE
+                 set_clayilli=.TRUE.
+               CASE ('ClayKaol')
+                 IF (set_claykaol) CYCLE
+                 set_claykaol=.TRUE.
+               CASE ('ClaySmec')
+                 IF (set_claysmec) CYCLE
+                 set_claysmec=.TRUE.
+               CASE ('ClayCalc')
+                 IF (set_claycalc) CYCLE
+                 set_claycalc=.TRUE.
+               CASE ('ClayQuar')
+                 IF (set_clayquar) CYCLE
+                 set_clayquar=.TRUE.
+               END SELECT
 c shortwave forcing (TOA or TROPO)
-             if (ijts_fc(1,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
-     *         ,ijts_fc(1,n))+rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
+               if (ijts_fc(1,ntrix(n)).gt.0)
+     &              taijs(i,j,ijts_fc(1,ntrix(n)))
+     &              =taijs(i,j,ijts_fc(1,ntrix(n)))
+     &              +rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
 c longwave forcing  (TOA or TROPO)
-             if (ijts_fc(2,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
-     *         ,ijts_fc(2,n))-rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
+               if (ijts_fc(2,ntrix(n)).gt.0)
+     &              taijs(i,j,ijts_fc(2,ntrix(n)))
+     &              =taijs(i,j,ijts_fc(2,ntrix(n)))
+     &              -rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
 c shortwave forcing (TOA or TROPO) clear sky
-             if (ijts_fc(5,n).gt.0) taijs(i,j,ijts_fc(5,n))=taijs(i,j
-     *         ,ijts_fc(5,n))+rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
-     *         *(1.d0-CFRAC(I,J))
+               if (ijts_fc(5,ntrix(n)).gt.0)
+     &              taijs(i,j,ijts_fc(5,ntrix(n)))
+     &              =taijs(i,j,ijts_fc(5,ntrix(n)))
+     &              +rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
+     &              *(1.d0-CFRAC(I,J))
 c longwave forcing  (TOA or TROPO) clear sky
-             if (ijts_fc(6,n).gt.0) taijs(i,j,ijts_fc(6,n))=taijs(i,j
-     *         ,ijts_fc(6,n))-rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
-     *         *(1.d0-CFRAC(I,J))
+               if (ijts_fc(6,ntrix(n)).gt.0)
+     &              taijs(i,j,ijts_fc(6,ntrix(n)))
+     &              =taijs(i,j,ijts_fc(6,ntrix(n)))
+     &              -rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
+     &              *(1.d0-CFRAC(I,J))
 c shortwave forcing at surface (if required)
-             if (ijts_fc(3,n).gt.0) taijs(i,j,ijts_fc(3,n))=taijs(i,j
-     *         ,ijts_fc(3,n))+rsign*(SNFST(1,N,I,J)-SNFS(1,I,J))*CSZ2
+               if (ijts_fc(3,ntrix(n)).gt.0)
+     &              taijs(i,j,ijts_fc(3,ntrix(n)))
+     &              =taijs(i,j,ijts_fc(3,ntrix(n)))
+     &              +rsign*(SNFST(1,N,I,J)-SNFS(1,I,J))*CSZ2
 c longwave forcing at surface (if required)
-             if (ijts_fc(4,n).gt.0) taijs(i,j,ijts_fc(4,n))=taijs(i,j
-     *         ,ijts_fc(4,n))-rsign*(TNFST(1,N,I,J)-TNFS(1,I,J))
+               if (ijts_fc(4,ntrix(n)).gt.0)
+     &              taijs(i,j,ijts_fc(4,ntrix(n)))
+     &              =taijs(i,j,ijts_fc(4,ntrix(n)))
+     &              -rsign*(TNFST(1,N,I,J)-TNFS(1,I,J))
+             END SELECT
+#ifdef TRACERS_AEROSOLS_Koch
+             SNFST0(1,ntrix(n),I,J)=SNFST0(1,ntrix(n),I,J)
+     &            +rsign*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2
+             SNFST0(2,ntrix(n),I,J)=SNFST0(2,ntrix(n),I,J)
+     &            +rsign*(SNFST(1,n,I,J)-SNFS(1,I,J))*CSZ2
+             TNFST0(1,ntrix(n),I,J)=TNFST0(1,ntrix(n),I,J)
+     &            -rsign*(TNFST(2,n,I,J)-TNFS(LFRC,I,J))
+             TNFST0(2,ntrix(n),I,J)=TNFST0(2,ntrix(n),I,J)
+     &            -rsign*(TNFST(1,n,I,J)-TNFS(1,I,J))
+#endif
            end do
          end if
 #endif

@@ -118,6 +118,8 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER,PARAMETER :: nDustEmij=1
 #endif
 
+!@param MaxSubCl Maximum number of sub classes of tracers for rad. diagnostics
+      INTEGER,PARAMETER :: MaxSubCl=4
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, DIMENSION(IM,JM,ktaijs)       :: TAIJS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS_loc
@@ -129,8 +131,12 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER ijts_aq(ntm)
 !@var ijts_tau tracer independent array for TAIJS hydrated opt. thick.
       INTEGER ijts_tau(2,ntm)
+!@var ijts_tausub index for TAIJS opt. thick. for tracer sub classes
+      INTEGER ijts_tausub(2,Ntm,MaxSubCl)
 !@var ijts_fc tracer independent array for TAIJS SW/LW rad. forcings
       INTEGER ijts_fc(6,ntm)
+!@var ijts_fcsub index for TAIJS SW/LW rad. forc. for tracer sub classes
+      INTEGER ijts_fcsub(6,Ntm,MaxSubCl)
 !@var ijts_3Dsource tracer independent array for TAIJS 3D src. diags
       INTEGER ijts_3Dsource(nt3Dsrcmax,ntm)
 !@var SNAME_IJTS, UNITS_IJTS: Names & units of lat-sigma tracer diags
