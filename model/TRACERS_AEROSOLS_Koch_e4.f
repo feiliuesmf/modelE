@@ -60,7 +60,7 @@ C
 C**** Local parameters and variables and arguments:
 c
 !@var nanns,nmons: number of annual and monthly input files
-      integer, parameter :: nanns=0,nmons=1
+      integer, parameter :: nanns=0,nmons=1,levo3=23
       integer ann_units(nanns),mon_units(nmons),imon(nmons)
       integer i,j,iu,k,l
       integer      :: jdlast=0  
@@ -68,9 +68,9 @@ c
       character*80 title   
       character*10 :: mon_files(nmons) = (/'O3_FIELD'/)
       logical      :: mon_bins(nmons)=(/.true./) ! binary file?
-      real*8 tlca(im,jm,lm,nmons),tlcb(im,jm,lm,nmons),frac
-      REAL*8, DIMENSION(IM,JM,LM,1) :: src
-      save jdlast,tlca,tlcb,mon_units,imon,ifirst
+      real*8 frac
+      REAL*8, DIMENSION(IM,JM,levo3,1) :: src
+      save jdlast,mon_units,imon,ifirst
 
 
 C initialise
@@ -78,13 +78,15 @@ c      o3_offline(:,:,:)=0.0d0
 c
 C     Read it in here and interpolated each day.
 C
+      jdlast = jday -1
       if (ifirst) call openunits(mon_files,mon_units,mon_bins,nmons)
+      if (ifirst.and.jday.gt.0) jdlast = jday -1
       ifirst = .false.
       j = 0
       do k=nanns+1,1
         j = j+1
-        call read_monthly_O3_3D_source(LM,mon_units(j),jdlast,
-     *    tlca(1,1,1,j),tlcb(1,1,1,j),src(1,1,1,k),frac,imon(j))
+        call read_monthly_O3_3D_source(levo3,mon_units(j),jdlast,
+     *   src(1,1,1,k),frac,imon(j))
       end do
       jdlast = jday
 
@@ -102,8 +104,8 @@ C
 
       END SUBROUTINE get_O3_offline
 
-      SUBROUTINE read_monthly_O3_3D_source(Ldim,iu,jdlast,tlca,
-     * tlcb,data1,frac,imon)
+      SUBROUTINE read_monthly_O3_3D_source(Ldim,iu,jdlast,
+     * data1,frac,imon)
 !@sum Read in monthly sources and interpolate to current day
 !@ Author Greg Faluvegi 
 !@+   Calling routine must have the lines:
@@ -123,6 +125,7 @@ C
       integer imon,iu,jdlast
 C
       if (jdlast.EQ.0) then   ! NEED TO READ IN FIRST MONTH OF DATA
+           read(iu)
         imon=1                ! imon=January
         if (jday.le.16)  then ! JDAY in Jan 1-15, first month is Dec
           do L=1,LDim*11
@@ -479,7 +482,8 @@ c     endif
       USE FILEMANAGER, only: openunit,closeunit
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
      & dho2,perj,
-     * tno3
+     * tno3,o3_offline
+       USE CONSTANT, only : mair
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: which_trop
 #endif
@@ -494,7 +498,7 @@ c Aerosol chemistry
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
      * r5,d5,dmssink
 #ifdef TRACERS_HETCHEM
-     *       ,d41,d42,d43,d44,d45,d46
+     *       ,d41,d42,d43,d44,d45,d46,d40,o3mc,rsulfo3
 #endif
       real*8 bciage,ociage
       integer i,j,l,n,iuc,iun,itau,ixx1,ixx2,ichemi,itopen,itt,
@@ -576,6 +580,7 @@ c calculation of heterogeneous reaction rates: SO2 on dust
       CALL SULFDUST
 c calculation of heterogeneous reaction rates: SO2 on seasalt
       CALL SULFSEAS 
+      CALL GET_O3_OFFLINE
 #endif
       dtt=dtsrc
 C**** THIS LOOP SHOULD BE PARALLELISED
@@ -699,7 +704,9 @@ cg       call DIAGTCA(itcon_3Dsrc(3,n_SO2),n_SO2)
       tt = 1.d0/te
       dmm=ppres/(.082d0*te)*6.02d20
       ohmc = oh(i,j,l)          !oh is alread in units of molecules/cm3
-
+#ifdef TRACERS_HETCHEM
+      o3mc = o3_offline(i,j,l)*dmm*(28.0D0/48.0D0)*BYDXYP(J)*BYAM(L,I,J)
+#endif
       do 33 n=1,ntm
 
         select case (trname(n))
@@ -715,23 +722,24 @@ c     IF (I.EQ.30.AND.J.EQ.30.and.L.EQ.2) WRITE(6,*)'msulf',TE,DMM,
 c     *  PPRES,RK4,EK4,R4,D4,ohmc
           IF (d4.GE.1.) d4=0.99999d0
 #ifdef TRACERS_HETCHEM
-        d41 = exp(-rxts1(i,j,l)*dtsrc)     
-        d42 = exp(-rxts2(i,j,l)*dtsrc)     
-        d43 = exp(-rxts3(i,j,l)*dtsrc)     
-        d44 = exp(-rxts4(i,j,l)*dtsrc)     
-        d45 = exp(-rxtss1(i,j,l)*dtsrc)     
-        d46 = exp(-rxtss2(i,j,l)*dtsrc)    
-       tr3Dsource(i,j,l,5,n) = (-trm(i,j,l,n)*(1.d0-d4)/dtsrc)
-     *                       + ( -trm(i,j,l,n)*(1.d0-d41)/dtsrc)
-     *                       + ( -trm(i,j,l,n)*(1.d0-d42)/dtsrc)
-     *                       + ( -trm(i,j,l,n)*(1.d0-d43)/dtsrc)
-     *                       + ( -trm(i,j,l,n)*(1.d0-d44)/dtsrc)
-     *                       + ( -trm(i,j,l,n)*(1.d0-d45)/dtsrc)
-     *                       + ( -trm(i,j,l,n)*(1.d0-d46)/dtsrc)
- 
+      rsulfo3 = 4.39d11*exp(-4131/te)+( 2.56d3*exp(-966/te)) * 10.d5 !assuming pH=5
+      rsulfo3 = exp(-rsulfo3*o3mc *dtsrc) !O3 oxidation Maahs '83
+       d41 = exp(-rxts1(i,j,l)*dtsrc)     
+       d42 = exp(-rxts2(i,j,l)*dtsrc)     
+       d43 = exp(-rxts3(i,j,l)*dtsrc)     
+       d44 = exp(-rxts4(i,j,l)*dtsrc)     
+       d45 = (exp(-rxtss1(i,j,l)*dtsrc)) *(1.d0-rsulfo3)   
+       d46 = (exp(-rxtss2(i,j,l)*dtsrc)) *(1.d0-rsulfo3)
+       tr3Dsource(i,j,l,5,n) = (-trm(i,j,l,n)*(1.d0-d41)/dtsrc)
+     .                       + ( -trm(i,j,l,n)*(1.d0-d4)/dtsrc)
+     .                       + ( -trm(i,j,l,n)*(1.d0-d42)/dtsrc)
+     .                       + ( -trm(i,j,l,n)*(1.d0-d43)/dtsrc)
+     .                       + ( -trm(i,j,l,n)*(1.d0-d44)/dtsrc)
+     .                       + ( -trm(i,j,l,n)*(1.d0-d45)/dtsrc)
+     .                       + ( -trm(i,j,l,n)*(1.d0-d46)/dtsrc)
 #else
-       tr3Dsource(i,j,l,5,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc
-#endif         
+       tr3Dsource(i,j,l,5,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
+#endif        
           
 c diagnostics to save oxidant fields
           najl = jls_OHconk
@@ -741,40 +749,48 @@ c diagnostics to save oxidant fields
 
 #ifdef TRACERS_HETCHEM
        case ('SO4_d1')
-c sulfate production from SO2 on mineral dust aerosol
+c sulfate production from SO2 on mineral dust aerosol due to O3 oxidation
 
-       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
-     *             tr_mm(n_so2)*(1.d0-d41)*trm(i,j,l,n_so2)/dtsrc
-
+       tr3Dsource(i,j,l,1,n)=tr3Dsource(i,j,l,1,n)+tr_mm(n)/tr_mm(n_so2)
+     *         *(1.d0-d41)*trm(i,j,l,n_so2)            !  SO2
+     *         * (1.d0-rsulfo3)                              !+ O3
+     *           /dtsrc
        case ('SO4_d2')
 c sulfate production from SO2 on mineral dust aerosol
 
        tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
-     *             tr_mm(n_so2)*(1.d0-d42)*trm(i,j,l,n_so2)/dtsrc
-
+     *             tr_mm(n_so2)*(1.d0-d42)*trm(i,j,l,n_so2)
+     *         * (1.d0-rsulfo3)                              !+ O3
+     *           /dtsrc
        case ('SO4_d3')
 c sulfate production from SO2 on mineral dust aerosol
 
        tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
-     *             tr_mm(n_so2)*(1.d0-d43)*trm(i,j,l,n_so2)/dtsrc
-
+     *             tr_mm(n_so2)*(1.d0-d43)*trm(i,j,l,n_so2)
+     *         * (1.d0-rsulfo3)                              !+ O3
+     *           /dtsrc
        case ('SO4_d4')
 c sulfate production from SO2 on mineral dust aerosol
 
        tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
-     *             tr_mm(n_so2)*(1.d0-d44)*trm(i,j,l,n_so2)/dtsrc
-
+     *             tr_mm(n_so2)*(1.d0-d44)*trm(i,j,l,n_so2)
+     *         * (1.d0-rsulfo3)                              !+ O3
+     *           /dtsrc
        case ('SO4_s1')
 c sulfate production from SO2 on seasalt1
 
        tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
-     *             tr_mm(n_so2)*(1.d0-d45)*trm(i,j,l,n_so2)/dtsrc
+     *             tr_mm(n_so2)*(1.d0-d45)*trm(i,j,l,n_so2)
+     *         * (1.d0-rsulfo3)                              !+ O3
+     *           /dtsrc
 
        case ('SO4_s2')
 c sulfate production from SO2 on seasalt2
 
        tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
-     *             tr_mm(n_so2)*(1.d0-d46)*trm(i,j,l,n_so2)/dtsrc
+     *             tr_mm(n_so2)*(1.d0-d46)*trm(i,j,l,n_so2)
+     *         * (1.d0-rsulfo3)                              !+ O3
+     *           /dtsrc
 
 #endif
         case('SO4')

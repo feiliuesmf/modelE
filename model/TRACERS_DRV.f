@@ -6910,8 +6910,7 @@ c      CALL tracers_dust_old
 #ifdef TRACERS_WATER
 C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 
-      SUBROUTINE GET_COND_FACTOR(II,J,L,N,WMXTR,TEMP,TEMP0,LHX
-     *  ,FCLOUD,FQ0,fq,
+      SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,TEMP0,LHX,FCLOUD,FQ0,fq,
      *  TR_CONV,TRWML,TM,THLAW,TR_LEF,pl,ntix,CLDSAVT)
 !@sum  GET_COND_FACTOR calculation of condensate fraction for tracers
 !@+    within or below convective or large-scale clouds. Gas
@@ -6969,7 +6968,7 @@ c     *     , by3 /)
       REAL*8,  INTENT(IN), DIMENSION(ntm,lm) :: trwml
       REAL*8,  INTENT(IN), DIMENSION(lm,ntm) :: TM
       REAL*8,  INTENT(OUT):: fq,thlaw
-      INTEGER, INTENT(IN) :: II,J,L, N, ntix(ntm)
+      INTEGER, INTENT(IN) :: L, N, ntix(ntm)
       LOGICAL TR_CONV
       REAL*8 :: SUPSAT
 c
@@ -7056,39 +7055,36 @@ C**** this is a parameterisation from Georg Hoffmann
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST)
 c only dissolve if the cloud has grown
-#ifdef TRACERS_HETCHEM
-c      print*, trname(ntix(n)) ,ntix, n, ' NAME'
-      select case(trname(ntix(n)))
-      case('Clay')
-c       if (ii.eq.28.and.j.eq.36) 
-c     *  print*, ' SO4_D1' ,trm(ii,j,l,n_SO4_d1)/dtsrc , l
-         if (trm(ii,j,l,n_SO4_d1)/dtsrc  > 0.1 ) then
-            fq_aer(NTIX(N))  = 1.
-         else
-            fq_aer(NTIX(N))  = 0.
-         endif
+c#ifdef TRACERS_HETCHEM
+c      select case(trname(ntix(n)))
+c      case('Clay')
+c         if (trm(ii,j,l,n_SO4_d1)  > 0.1 ) then
+c            fq_aer(NTIX(N))  = 1.
+c         else
+c            fq_aer(NTIX(N))  = 0.
+c         endif
     
-      case('Silt1')
-         if (trm(ii,j,l,n_SO4_d2)/dtsrc  > 0.1 ) then
-            fq_aer(NTIX(N))  = 1.
-         else
-            fq_aer(NTIX(N))  = 0.
-         endif
+c      case('Silt1')
+c         if (trm(ii,j,l,n_SO4_d2)  > 0.1 ) then
+c            fq_aer(NTIX(N))  = 1.
+c         else
+c            fq_aer(NTIX(N))  = 0.
+c         endif
    
-      case('Silt2')
-         if (trm(ii,j,l,n_SO4_d3)/dtsrc  > 0.1 ) then
-            fq_aer(NTIX(N))  = 1.
-         else
-            fq_aer(NTIX(N))  = 0.
-         endif
-      case('Silt3')
-         if (trm(ii,j,l,n_SO4_d4)/dtsrc  > 0.1 ) then
-            fq_aer(NTIX(N))  = 1.
-         else
-            fq_aer(NTIX(N))  = 0.
-         endif
-      end select
-#endif
+c      case('Silt2')
+c         if (trm(ii,j,l,n_SO4_d3)  > 0.1 ) then
+c            fq_aer(NTIX(N))  = 1.
+c         else
+c            fq_aer(NTIX(N))  = 0.
+c         endif
+c      case('Silt3')
+c         if (trm(ii,j,l,n_SO4_d4)  > 0.1 ) then
+c            fq_aer(NTIX(N))  = 1.
+c         else
+c            fq_aer(NTIX(N))  = 0.
+c         endif
+c      end select
+c#endif
            CLDINC=CLDSAVT-FCLOUD 
           if (fq0.gt.0.and.CLDINC.gt.0.) then 
           if(LHX.EQ.LHE) then !liquid cloud
