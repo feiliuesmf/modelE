@@ -119,7 +119,7 @@ cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 U00ice=.59      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
 U00wtrX=1.40    ! U00wtrX+.01=>nethtz0+.7                for global annual mean
-!?1979 U00wtrX=1.39    
+!?1979 U00wtrX=1.39
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
 
 CO2X=1.
@@ -143,7 +143,7 @@ od_cdncx=0.        ! don't include 1st indirect effect
 cc_cdncx=0.0036    ! include 2nd indirect effect
 albsn_yr=1880 !? 1979
 dalbsnX=.015
-o3_yr=1880    !? 1979
+o3_yr=-1880    !? 1979
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)

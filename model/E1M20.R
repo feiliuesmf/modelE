@@ -147,10 +147,9 @@ volc_day=182
 aero_yr=1880                                       ! =1979 , also change OSST,SICE,U00wtrX
 od_cdncx=0.        ! don't include 1st indirect effect
 cc_cdncx=0.0036    ! include 2nd indirect effect
-albsn_yr=1880
+albsn_yr=1880                                      ! =1979 , also change OSST,SICE,U00wtrX
 dalbsnX=.015
-o3_yr=1880
-o3_yr=1880                                         ! =1979 , also change OSST,SICE,U00wtrX
+o3_yr=-1880                                        ! =1979 , also change OSST,SICE,U00wtrX
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)

@@ -140,7 +140,7 @@ od_cdncx=0.        ! don't include 1st indirect effect
 cc_cdncx=0.0036    ! include 2nd indirect effect
 albsn_yr=1880
 dalbsnX=.015
-o3_yr=1880
+o3_yr=-1880
 &&END_PARAMETERS
 
  &INPUTZ

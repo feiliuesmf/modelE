@@ -121,7 +121,7 @@ ghg_day=182
 volc_yr=1979
 volc_day=182
 aero_yr=1979
-o3_yr=1979
+o3_yr=-1979
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)
