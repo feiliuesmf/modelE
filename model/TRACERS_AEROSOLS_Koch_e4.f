@@ -1075,9 +1075,7 @@ c
       real*8, parameter :: rk=6.357E14    !1/(M*M*s)
       real*8, parameter :: ea=3.95E4 !J/mol
       REAL*8,  INTENT(IN) :: fcloud,temp,wa_vol,wmxtr,LHX
-      real*8 tm(lm,ntm),
-     *  tmcl(ntm,lm),
-     *  airm(lm),wa_vol
+      real*8 tm(lm,ntm), tmcl(ntm,lm), airm(lm)
 c     REAL*8,  INTENT(OUT):: 
       real*8 sulfin(ntm),sulfout(ntm),tr_left(ntm)
      *  ,sulfinc(ntm)

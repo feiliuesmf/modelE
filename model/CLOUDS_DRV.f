@@ -77,7 +77,7 @@
 #ifdef TRACERS_ON
 !@var tmsave holds tracer value (for diagnostics)
       REAL*8 tmsave(lm,ntm),dtr_mc(jm,ntm),dtr_ss(jm,ntm)
-      INTEGER NX,N
+      INTEGER NX
 #ifdef TRACERS_AEROSOLS_Koch
 c       real*8 a_sulf(im,jm),cc_sulf(im,jm)
 c       integer nc_tr,id,ixx,ix1,ixm1,iuc_s
@@ -201,9 +201,6 @@ C****
 !$OMP*  DH1S,DH12,DTDZ,DTDZG,DTDZS,DUDZ,DUDZG,DUDZS,DVDZ,DVDZG,DVDZS,
 !$OMP*  DTAU_S,DTAU_C,DEM_S,DEM_C, FQ_ISCCP, ENRGP,EPRCP,
 !$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IDI,IDJ,
-#ifdef TRACERS_SPECIAL_Shindell
-!$OMP*  i_lgt,j_lgt,
-#endif
 !$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 !$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT, WMERR,

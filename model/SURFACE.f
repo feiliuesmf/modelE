@@ -114,7 +114,6 @@ c
 #endif
 #ifdef TRACERS_DRYDEP
       real*8 tdryd, tdd, td1
-      integer k
 #endif
 #endif
 
