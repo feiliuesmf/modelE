@@ -297,15 +297,14 @@ C**** accumulate diagnostics
               AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+
      *           (SNOWI(I,J)+ACE1I)*(RSINEW-RSI(I,J))+
      *           RSINEW*MSINEW-RSI(I,J)*MSI(I,J)
-              AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-
-     *             (MSINEW-MSI(I,J))*RSI(I,J)*FOCEAN(I,J)
-              AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-SUM(HSI(3:4,I,J)
-     *             )*(MSINEW/MSI(I,J)-1.)*RSI(I,J)*FOCEAN(I,J)
-              AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)-(1.-RSI(I,J))
-     *             *FOCEAN(I,J)*(RSINEW-RSI(I,J))*(MSINEW+ACE1I+SNOWI(I
-     *             ,J))
-              AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)-(1.-RSI(I,J))
-     *             *FOCEAN(I,J)*(RSINEW-RSI(I,J))*SUM(HSI(1:4,I,J))
+              AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-FOCEAN(I,J)
+     *             *(MSINEW-MSI(I,J))*RSI(I,J)
+              AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
+     *             *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*RSI(I,J)
+              AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)-FOCEAN(I,J)
+     *             *(RSINEW-RSI(I,J))*(MSINEW+ACE1I+SNOWI(I,J))
+              AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)-FOCEAN(I,J)
+     *             *(RSINEW-RSI(I,J))*SUM(HSI(1:4,I,J)) 
             END IF
 C**** adjust enthalpy and salt so temperature/salinity remain constant
             HSI(3:4,I,J)=HSI(3:4,I,J)*(MSINEW/MSI(I,J))
@@ -462,7 +461,7 @@ C**** PREVENT Z1O, THE MIXED LAYER DEPTH, FROM EXCEEDING Z12O
       END SUBROUTINE OCLIM
 
       SUBROUTINE OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,RUN0,FODT,FIDT,RVRRUN
-     *     ,RVRERUN,SIMELT,ESIMELT,EVAPO,EVAPI,TFW,RUN4O,ERUN4O,RUN4I
+     *     ,RVRERUN,EVAPO,EVAPI,TFW,RUN4O,ERUN4O,RUN4I
      *     ,ERUN4I,ENRGFO,ACEFO,ACEFI,ENRGFI)
 !@sum  OSOURC applies fluxes to ocean in ice-covered and ice-free areas
 !@auth Gary Russell
@@ -474,8 +473,7 @@ C**** PREVENT Z1O, THE MIXED LAYER DEPTH, FROM EXCEEDING Z12O
 !@var TGW mixed layer temp.(C)
       REAL*8, INTENT(INOUT) :: TGW
       REAL*8, INTENT(IN) :: ROICE, SMSI, WTRO, EVAPO, EVAPI, RUN0
-      REAL*8, INTENT(IN) :: FODT, FIDT, OTDT, RVRRUN, RVRERUN, SIMELT,
-     *     ESIMELT
+      REAL*8, INTENT(IN) :: FODT, FIDT, OTDT, RVRRUN, RVRERUN
       REAL*8, INTENT(OUT) :: ENRGFO, ACEFO, ENRGFI, ACEFI, RUN4O, RUN4I
      *     , ERUN4O, ERUN4I
       REAL*8 EIW0, ENRGIW, WTRI1, EFIW, ENRGO0, EOFRZ, ENRGO
@@ -485,12 +483,6 @@ C**** initiallize output
 
 C**** Calculate previous ice mass (before fluxes applied)
       SMSI0=SMSI+RUN0+EVAPI
-
-C**** Calculate effect of lateral melt of sea ice
-      IF (SIMELT.gt.0) THEN
-        TGW=TGW + (ESIMELT-SIMELT*TGW*SHW)/
-     *       (SHW*((1-ROICE)*WTRO+ROICE*(WTRO-SMSI0)))
-      END IF
 
 C**** Calculate extra mass flux to ocean, balanced by deep removal
       RUN4O=-EVAPO+RVRRUN  ! open ocean
@@ -714,13 +706,13 @@ C****
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,dxyp
       USE DAGCOM, only : aj,j_implm,j_implh,oa,areg,jreg
-      USE FLUXES, only : runpsi,prec,eprec,gtemp,mlhc
+      USE FLUXES, only : runpsi,prec,eprec,gtemp,mlhc,melti,emelti
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE STATIC_OCEAN, only : tocean,z1o
       IMPLICIT NONE
       REAL*8 TGW,PRCP,WTRO,ENRGP,ERUN4,ENRGO,POCEAN,POICE,SNOW
-     *     ,SMSI,ENRGW,WTRW0,WTRW,RUN0,RUN4,ROICE
+     *     ,SMSI0,ENRGW,WTRW0,WTRW,RUN0,RUN4,ROICE,SIMELT,ESIMELT
       INTEGER I,J,JR
 
       DO J=1,JM
@@ -730,17 +722,28 @@ C****
         POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
         JR=JREG(I,J)
         IF (FOCEAN(I,J).gt.0) THEN
-
           PRCP=PREC(I,J)
           ENRGP=EPREC(I,J)
-          RUN0=RUNPSI(I,J)
           OA(I,J,4)=OA(I,J,4)+ENRGP
 
           IF (KOCEAN .EQ. 1) THEN
             TGW=TOCEAN(1,I,J)
             WTRO=Z1O(I,J)*RHOW
+            RUN0=RUNPSI(I,J)
             SNOW=SNOWI(I,J)
-            SMSI=MSI(I,J)+ACE1I+SNOW
+            SMSI0=MSI(I,J)+ACE1I+SNOW+RUN0-PRCP ! initial ice 
+
+            SIMELT = MELTI(I,J)/(FOCEAN(I,J)*DXYP(J))
+            ESIMELT=EMELTI(I,J)/(FOCEAN(I,J)*DXYP(J))
+c           SSIMELT=SMELTI(I,J)/(FOCEAN(I,J)*DXYP(J))
+
+C**** Calculate effect of lateral melt of sea ice
+            IF (SIMELT.gt.0) THEN
+              TGW=TGW + (ESIMELT-SIMELT*TGW*SHW)/
+     *             (SHW*(WTRO-ROICE*SMSI0))
+            END IF
+
+C**** Additional mass (precip) is balanced by deep removal
             RUN4=PRCP
             ERUN4=RUN4*TGW*SHW
 
@@ -748,7 +751,7 @@ C****
               ENRGW=TGW*WTRO*SHW + ENRGP - ERUN4
               WTRW =WTRO
             ELSE
-              WTRW0=WTRO -ROICE*SMSI
+              WTRW0=WTRO -ROICE*SMSI0
               ENRGW=WTRW0*TGW*SHW + (1.-ROICE)*ENRGP - ERUN4
               WTRW =WTRW0+ROICE*(RUN0-RUN4)
             END IF
@@ -779,10 +782,9 @@ C****
       USE MODEL_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
      *     ,itoice
       USE GEOM, only : imaxj,dxyp
-      USE DAGCOM, only : aj,areg,jreg,j_implm,j_implh,
-     *     j_oht,j_imelt,j_hmelt,j_smelt,oa
+      USE DAGCOM, only : aj,areg,jreg,j_implm,j_implh,j_oht,oa
       USE FLUXES, only : runosi,erunosi,srunosi,e0,e1,evapor,dmsi,dhsi
-     *     ,dssi,flowo,eflowo,gtemp,sss,melti,emelti
+     *     ,dssi,flowo,eflowo,gtemp,sss
 #ifdef TRACERS_WATER
      *     ,dtrsi
 #endif
@@ -800,7 +802,7 @@ C**** prognostic variables
       REAL*8 TGW, WTRO, SMSI, ROICE
 C**** fluxes
       REAL*8 EVAPO, EVAPI, FIDT, FODT, OTDT, RVRRUN, RVRERUN, RUN0, 
-     *     SALT, SIMELT, ESIMELT
+     *     SALT
 C**** output from OSOURC
       REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACEFI, ENRGFI
 
@@ -827,15 +829,7 @@ C**** get ice-ocean fluxes from sea ice routine
 C**** get river runoff/simelt flux
           RVRRUN = FLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
           RVRERUN=EFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
-          SIMELT = MELTI(I,J)/(FOCEAN(I,J)*DXYPJ)
-          ESIMELT=EMELTI(I,J)/(FOCEAN(I,J)*DXYPJ)
-c         SSIMELT=SMELTI(I,J)/(FOCEAN(I,J)*DXYPJ)
           OA(I,J,4)=OA(I,J,4)+RVRERUN ! add rvr E to surf. energy budget
-
-          AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+RUN0   *POICE
-          AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+SALT   *POICE
-          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+RUN0*POICE*DXYP(J)
-          AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+SALT*POICE*DXYP(J)
 
           IF (KOCEAN .EQ. 1) THEN
             WTRO=Z1O(I,J)*RHOW
@@ -846,7 +840,7 @@ c         SSIMELT=SMELTI(I,J)/(FOCEAN(I,J)*DXYPJ)
 
 C**** Calculate the amount of ice formation
             CALL OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,RUN0,FODT,FIDT,RVRRUN
-     *           ,RVRERUN,SIMELT,ESIMELT,EVAPO,EVAPI,TFO,RUN4O,ERUN4O
+     *           ,RVRERUN,EVAPO,EVAPI,TFO,RUN4O,ERUN4O
      *           ,RUN4I,ERUN4I,ENRGFO,ACEFO,ACEFI,ENRGFI)
 
 C**** Resave prognostic variables
