@@ -495,7 +495,7 @@ C**** COMPUTE PU*3 AT THE POLES
         END DO
         PBN=PBN*BYIM
         DO  I=1,IM
-          PV(I,1,L)=0.
+          PV(I,JM,L)=0.
           SPA(I,JM,L)=4.*(DUMMYN(I)-PBN+PUN)/(DYP(JM-1)*PIJL(1,JM,L))
           PU(I,JM,L)=3.*(DUMMYN(I)-PBN+PUN)*DSIG(L)
         END DO
