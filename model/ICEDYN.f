@@ -921,9 +921,8 @@ c        END DO
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
       USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, CHECKSUM
       IMPLICIT NONE
-      REAL*8 :: dlat,dlon,phit,phiu,hemi,rms
+      REAL*8 :: dlat,dlon,phit,phiu,hemi,rms,fjeq,acor,acoru
       INTEGER I,J,n,k,kki,sumk,l
-
       INTEGER :: J_0,J_1,J_0S,J_1S
 
 C****
@@ -933,8 +932,20 @@ C****
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 C****
 C**** calculate grid and initialise arrays
-c****
-      dlat=nint(180./(ny1-1))*radian
+C****
+      acor=1.  ; acoru=1.
+      dlat=nint(180./(ny1-1))*radian ! 1/2 box at pole (default)
+! full box at pole for 2x2.5
+      if (ny1.eq.90) then   ! HARD-CODED DIMENSION
+        acor=1.5d0 ; acoru=2.
+        dlat=nint(180./ny1)*radian
+      end if
+! 1/4 box at pole, 'real' 8x10
+      if (ny1.eq.24) then   ! HARD-CODED DIMENSION
+        acor=0.75d0 ; acoru=0.5d0
+        dlat=nint(180./(ny1-1.5))*radian
+      end if
+
       dlon=nint(360./(nx1-2))*radian
       bydts = 1./dts
 c****
@@ -942,6 +953,17 @@ c****
         dyt(j) = dlat*radius
         dyu(j) = dlat*radius
       enddo
+
+C**** polar box corrections 
+      IF (grid%HAVE_NORTH_POLE) THEN
+        dyt(ny1)=dyt(ny1)*acor
+        dyu(ny1)=dyu(ny1)*acoru
+      END IF
+      IF (grid%HAVE_SOUTH_POLE) THEN
+        dyt(1)=dyt(1)*acor
+        dyu(1)=dyu(1)*acoru
+      END IF
+
       do i=1,nx1
         dxt(i) = dlon*radius
         dxu(i) = dlon*radius
@@ -963,24 +985,45 @@ c****
         end do
       end do
 
-      do j = j_0,j_1
-       phit = (-90.+(j-1)*4.)*radian
-       phiu = (-88.+(j-1)*4.)*radian
+      fjeq=0.5*(ny1+1)  ! equatorial index
+      IF (grid%HAVE_NORTH_POLE) THEN
+       phit = 90.*radian
+       cst(ny1) = cos(phit)
+c       tngt(ny1)= sin(phit)/cst(ny1)
+      END IF
+      IF (grid%HAVE_SOUTH_POLE) THEN
+       phit = -90.*radian
+       cst(1) = cos(phit)
+c       tngt(1)= sin(phit)/cst(1)
+      END IF
+
+      do j = j_0S,j_1S
+       phit = (j-fjeq)*dlat
        cst(j) = cos(phit)
+       tngt(j)= sin(phit)/cst(j)
+      enddo
+
+      do j = j_0,j_1
+       phiu = (j-fjeq+0.5)*dlat
        csu(j) = cos(phiu)
        bycsu(j) = 1./csu(j)
        tng(j) = sin(phiu)/csu(j)
-       TNGT(J)=SIN(PHIT)/CST(J)
-       DO I=1,NX1
-         SINEN(I,J)=SIN(PHIU)
+       do i=1,nx1
+         sinen(i,j)=sin(phiu)
        enddo
       enddo
-      if (grid%have_north_pole) then
-        TNGT(NY1)=TNGT(NY1-1)
-        TNG(NY1)=TNG(NY1-1)
-        CSU(NY1)=CSU(NY1-1)
-        bycsu(NY1) = 1./csu(NY1)
-      end if
+
+C**** fix some polar fields 
+C**** (can't use 'have_north_pole', needs adjacent boxes too!)
+      TNGT(NY1)=TNGT(NY1-1)
+      tng(ny1)=tng(ny1-1)
+      csu(ny1)=csu(ny1-1)
+      bycsu(ny1) = 1./csu(ny1)
+      
+      TNGT(1)=TNGT(2)
+      tng(1) =tng(2)
+      csu(1) =csu(2)
+      bycsu(1) = 1./csu(1)
 
 C**** sin/cos ice-ocean turning angle
       SINWAT=SIN(OIPHI)
