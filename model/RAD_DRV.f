@@ -289,7 +289,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE GEOM, only : dlat,lat_dg
       USE RADPAR, only : rcomp1,writer,writet       ! routines
      &     ,FULGAS ,PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR
-     *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, SHL, snoage_fac_max, KZSNOW
+     *     ,KCLDEM,KSIALB,KSOLAR, SHL, snoage_fac_max, KZSNOW
      *     ,KYEARS,KJDAYS,MADLUV, KYEARG,KJDAYG,MADGHG
      *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER
      *     ,KYEARD,KJDAYD,MADDST, KYEARV,KJDAYV,MADVOL
@@ -331,9 +331,8 @@ C**** sync radiation parameters from input
       call sync_param( "volc_day", volc_day )
       call sync_param( "aero_yr", aero_yr )
       call sync_param( "O3_yr", O3_yr )
-      call sync_param( "MOZONE", MOZONE )
       call sync_param( "KSOLAR", KSOLAR )
-      call sync_param( "KVEGA6", KVEGA6 )
+      call sync_param( "KSIALB", KSIALB )
       call sync_param( "KZSNOW", KZSNOW )
       call sync_param( "calc_orb_par", calc_orb_par )
       call sync_param( "paleo_orb_yr", paleo_orb_yr )
@@ -418,7 +417,7 @@ C****
 !note KTREND=0 is a possible but virtually obsolete option
 C****
 C             Model Add-on Data of Extended Climatology Enable Parameter
-C     MADO3M  =  1   Reads            1951-1997 Ozone climatology RFILEA
+C     MADO3M  = -1   Reads                      Ozone data the GCM way
 C     MADAER  =  1   Reads   Aerosol 50y tropospheric climatology RFILE5
 C     MADDST  =  1   Reads   Dust-windblown mineral climatology   RFILE6
 C     MADVOL  =  1   Reads   Volcanic 1950-00 aerosol climatology RFILE7
@@ -430,7 +429,7 @@ C****                                         even if the year is fixed
       KYEARS=s0_yr   ; KJDAYS=s0_day ;  MADLUV=1   ! solar 'constant'
       KYEARG=ghg_yr  ; KJDAYG=ghg_day              ! well-mixed GHGases
       if(ghg_yr.gt.0)  MADGHG=0                    ! skip GHG-updating
-      KYEARO=O3_yr   ; KJDAYO=0 ;       MADO3M=1   ! ozone (ann.cycle)
+      KYEARO=O3_yr   ; KJDAYO=0 ;       MADO3M=-1  ! ozone (ann.cycle)
       KYEARA=Aero_yr ; KJDAYA=0 ;       MADAER=1 !trop.aeros (ann.cycle)
       KYEARV=Volc_yr ; KJDAYV=Volc_day; MADVOL=1   ! Volc. Aerosols
 C**** NO time history (yet), except for ann.cycle, for forcings below;
@@ -454,7 +453,8 @@ C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
       end if
 C**** set up unit numbers for 14 more radiation input files
       DO IU=1,14
-        IF (IU.EQ.12.OR.IU.EQ.13) CYCLE ! not used in GCM
+        IF (IU.EQ.12.OR.IU.EQ.13) CYCLE            ! not used in GCM
+        IF (IU.EQ.4.OR.IU.EQ.10.OR.IU.EQ.11) CYCLE ! obsolete O3 data
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
       END DO
 C***********************************************************************
@@ -464,7 +464,8 @@ C     ------------------------------------------------------------------
       CALL WRITER(6,0)  ! print out ispare/fspare control parameters
 C***********************************************************************
       DO IU=1,14
-        IF (IU.EQ.12.OR.IU.EQ.13) CYCLE ! not used in GCM
+        IF (IU.EQ.12.OR.IU.EQ.13) CYCLE            ! not used in GCM
+        IF (IU.EQ.4.OR.IU.EQ.10.OR.IU.EQ.11) CYCLE ! obsolete O3 data
         call closeunit(NRFUN(IU))
       END DO
 C**** Save initial (currently permanent and global) Q in rad.layers
@@ -546,7 +547,7 @@ C     OUTPUT DATA
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8 U0GAS,taulim
-      COMMON/RADPAR_hybrid/U0GAS(LX,12)
+      COMMON/RADPAR_hybrid/U0GAS(LX,13)
 !$OMP  THREADPRIVATE(/RADPAR_hybrid/)
 
       REAL*8, DIMENSION(IM,JM) :: COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
