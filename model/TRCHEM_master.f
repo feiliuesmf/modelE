@@ -1204,9 +1204,9 @@ c
           FACT1=2.0d-9*DXYP(J)*am(L,I,J)*byam75
 C         We think we have too little stratospheric NOx, so, to
 C         increase the flux into the troposphere, increasing
-C         previous stratospheric value by 80% here: GSF/DTS 9.12.03: 
+C         previous stratospheric value by 70% here: GSF/DTS 9.15.03: 
           change(I,J,L,n_NOx)=
-     &    trm(I,J,L,n_Ox)*2.3d-4*1.8d0 - trm(I,J,L,n_NOx)
+     &    trm(I,J,L,n_Ox)*2.3d-4*1.7d0 - trm(I,J,L,n_NOx)
           change(I,J,L,n_N2O5)=  FACT1            - trm(I,J,L,n_N2O5)
           change(I,J,L,n_HNO3)=trm(I,J,L,n_Ox)*4.2d-3-trm(I,J,L,n_HNO3)
           change(I,J,L,n_H2O2)=  FACT1            - trm(I,J,L,n_H2O2)
