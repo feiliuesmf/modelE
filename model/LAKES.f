@@ -350,8 +350,6 @@ C****
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake,ftype
      *     ,itlake,itlkice,focean,fearth,fland
       USE GEOM, only : dxyp,dxv,dyv,dxp,imaxj
-      USE DAGCOM, only : npts,icon_LKM,icon_LKE,tsfrez,tf_lkon,tf_lkoff
-     *     ,title_con
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
@@ -361,6 +359,8 @@ C****
       USE PBLCOM, only : tsavg
       USE LAKES
       USE LAKES_COM
+      USE DAGCOM, only : npts,icon_LKM,icon_LKE,tsfrez,tf_lkon,tf_lkoff
+     *     ,title_con
       IMPLICIT NONE
 
       LOGICAL inilake
@@ -834,7 +834,6 @@ C****
       USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
      *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
       USE GEOM, only : bydxyp
-      USE DAGCOM, only : aij,ij_mrvr
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm,trname,trw0,n_water,itime_tr0
      *     ,tr_wd_type,nwater
@@ -842,6 +841,7 @@ C****
      *     ,scale_tij
 #endif
       USE LAKES, only : irvrmth,jrvrmth,namervr,nrvr
+      USE DAGCOM, only : aij,ij_mrvr
       IMPLICIT NONE
       REAL*8 RVROUT(6), SCALERVR, DAYS
       INTEGER INM,I,N

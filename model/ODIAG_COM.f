@@ -4,12 +4,12 @@
 !@sum  ODIAG ocean diagnostic arrays (incl. dynamic sea ice)
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE DAGCOM, only : npts  ! needed for conservation diags
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : ntm
 #endif
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst
+      USE DAGCOM, only : npts  ! needed for conservation diags
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: KOIJ=11,KOIJL=22,KOL=6,KOLNST=8,

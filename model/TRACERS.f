@@ -15,11 +15,11 @@
 !@sum set_generic_tracer_diags init trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param, SET_TCON
-      use DAGCOM, only: ia_src,ia_12hr,ir_log2
+      USE CONSTANT, only: mair,sday
       USE MODEL_COM, only: dtsrc,nisurf
+      USE DAGCOM, only: ia_src,ia_12hr,ir_log2
       USE TRACER_COM
       USE TRACER_DIAG_COM
-      USE CONSTANT, only: mair,sday
       USE PARAM
       implicit none
       integer :: l,k,n
@@ -271,8 +271,8 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only : jm
       USE GEOM, only : imaxj
-      USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc
       USE QUSDEF, only : mz,mzz
+      USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc
       USE FLUXES, only : trsource,trflux1,trsrfflx
       USE TRACER_DIAG_COM, only : taijs,tajls,ijts_source,jls_source
      *     ,itcon_surf
@@ -348,11 +348,11 @@ C****
       SUBROUTINE apply_tracer_3Dsource(ns,n)
 !@sum apply_tracer_3Dsource adds 3D sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE MODEL_COM, only : jm,im,lm,dtsrc
       USE CONSTANT, only : teeny
+      USE MODEL_COM, only : jm,im,lm,dtsrc
       USE GEOM, only : imaxj
-      USE TRACER_COM, only : ntm,trm,trmom
       USE QUSDEF, only: nmom
+      USE TRACER_COM, only : ntm,trm,trmom
       USE FLUXES, only : tr3Dsource
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
       IMPLICIT NONE
@@ -440,10 +440,10 @@ C****
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo
       USE GEOM, only : imaxj
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
+      USE DYNAMICS, only : gz
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius,trpdens
       USE TRACER_DIAG_COM, only : tajls,jls_grav,itcon_grav
       USE FLUXES, only : trgrdep
-      USE DYNAMICS, only : gz
       IMPLICIT NONE
       real*8, save, dimension(ntm) :: stokevdt = 0.
       logical, save :: ifirst=.true.
@@ -558,9 +558,9 @@ c**** Interpolate two months of data to current day
 !@ver  1.0
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : ls1,im,jm,lm,q,wm
+      USE GEOM, only : dxyp,imaxj
       USE SOMTQ_COM, only : qmom
       USE DYNAMICS, only : am
-      USE GEOM, only : dxyp,imaxj
       USE TRACER_COM
       IMPLICIT NONE
       LOGICAL QCHECKT

@@ -1613,12 +1613,12 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : mdiag,itime
-      USE DAGCOM, only : icon_AM,icon_KE,icon_MS,icon_TPE
-     *     ,icon_WM,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG
-     *     ,icon_MSI,icon_HSI,icon_SSI,title_con
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,ntm
 #endif
+      USE DAGCOM, only : icon_AM,icon_KE,icon_MS,icon_TPE
+     *     ,icon_WM,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG
+     *     ,icon_MSI,icon_HSI,icon_SSI,title_con
       USE SOIL_DRV, only: conserv_WTG,conserv_HTG
       IMPLICIT NONE
 !@var M index denoting from where DIAGCA is called

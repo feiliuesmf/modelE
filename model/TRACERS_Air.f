@@ -14,11 +14,11 @@
 !@sum init_tracer initializes trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param, SET_TCON
-      use DAGCOM, only: ia_src,ia_12hr,ir_log2
+      USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim
+      USE DAGCOM, only: ia_src,ia_12hr,ir_log2
       USE TRACER_COM
       USE TRACER_DIAG_COM
-      USE CONSTANT, only: mair,mwat,sday
       USE PARAM
 #ifdef TRACERS_SPECIAL_Lerner
       USE TRACER_MPchem_COM, only: n_MPtable,tcscale
@@ -1112,29 +1112,29 @@ C**** print out total tracer diagnostic array size
       SUBROUTINE tracer_IC
 !@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner
+      USE CONSTANT, only: mair,rhow
       USE MODEL_COM, only: itime,im,jm,lm,ls1
 #ifdef TRACERS_WATER
      *  ,q,wm,flice,fearth
-      USE SOMTQ_COM, only : qmom
-      USE LANDICE, only : ace1li,ace2li
-      USE LANDICE_COM, only : trli0,trsnowli,trlndi,snowli
-      USE SEAICE_COM, only : rsi,msi,snowi,trsi,trsi0,ssi
-      USE SEAICE, only : xsi,ace1i
-      USE LAKES_COM, only : trlake,mwl,mldlk,flake
-      USE GHYCOM, only : trbare,trvege,trsnowbv,wbare,wvege,snowbv
-      USE FLUXES, only : gtracer
-#endif
-      USE GEOM, only: dxyp,bydxyp
-      USE CONSTANT, only: mair,rhow
-      USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
-      USE PBLCOM, only: npbl,trabl
-#ifdef TRACERS_WATER
-     *  ,qabl
 #endif
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
      *   tr_mm
 #ifdef TRACERS_WATER
      *  ,trwm,trw0
+      USE SOMTQ_COM, only : qmom
+      USE LANDICE, only : ace1li,ace2li
+      USE LANDICE_COM, only : trli0,trsnowli,trlndi,snowli
+      USE SEAICE, only : xsi,ace1i
+      USE SEAICE_COM, only : rsi,msi,snowi,trsi,trsi0,ssi
+      USE LAKES_COM, only : trlake,mwl,mldlk,flake
+      USE GHYCOM, only : trbare,trvege,trsnowbv,wbare,wvege,snowbv
+      USE FLUXES, only : gtracer
+#endif
+      USE GEOM, only: dxyp,bydxyp
+      USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
+      USE PBLCOM, only: npbl,trabl
+#ifdef TRACERS_WATER
+     *  ,qabl
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
       USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
@@ -1673,8 +1673,8 @@ C****
       SUBROUTINE tracer_3Dsource
 !@sum tracer_3Dsource calculates interactive sources for tracers
 !@auth Jean Lerner
-      USE TRACER_COM
       USE MODEL_COM, only: itime
+      USE TRACER_COM
       USE TRACER_DIAG_COM, only: itcon_3Dsrc,tajls,jls_3Dsource
       USE FLUXES, only: tr3Dsource
       implicit none
@@ -1740,10 +1740,10 @@ C---SUBROUTINES FOR TRACER WET DEPOSITION----------------------------
 !@ver  1.0 (based on CB436TdsM23 CLOUDCHCC and CLOUDCHEM subroutines)
 c
 C**** GLOBAL parameters and variables:
-      USE CLOUDS, only: PL, NTIX
+      USE CONSTANT, only: TF, BYGASC, MAIR,teeny
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,nGAS,nPART,tr_wd_TYPE
      *     ,trname
-      USE CONSTANT, only: TF, BYGASC, MAIR,teeny
+      USE CLOUDS, only: PL, NTIX
 c      
       IMPLICIT NONE
 c      
@@ -1838,9 +1838,9 @@ c
 !@ver  1.0 (based on CB436TdsM23 RAINOUT subroutine)
 c
 C**** GLOBAL parameters and variables:
-      USE CLOUDS, only: NTIX
       USE MODEL_COM, only: dtsrc
       USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE
+      USE CLOUDS, only: NTIX
 c
       IMPLICIT NONE
 c      
@@ -1928,9 +1928,9 @@ c
 !@ver  1.0 (based on CB436TdsM23 EVAPD and WASH_EVAP routines)
 c
 C**** GLOBAL parameters and variables:
-      USE CLOUDS, only: NTIX
-      USE TRACER_COM, only: tr_evap_fact, tr_wd_TYPE,nwater,trname
       USE CONSTANT, only : tf
+      USE TRACER_COM, only: tr_evap_fact, tr_wd_TYPE,nwater,trname
+      USE CLOUDS, only: NTIX
 c
       IMPLICIT NONE
 c      

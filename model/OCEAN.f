@@ -531,7 +531,6 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE CONSTANT, only : rhow
       USE MODEL_COM, only : im,jm,fland,flice,kocean,ftype,focean
      *     ,itocean,itoice,itearth,itlandi,fearth,iyear1
-      USE DAGCOM, only : npts,icon_OCE
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
@@ -541,6 +540,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE SEAICE_COM, only : snowi,rsi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
      *     ,iu_ocnml,tocean,ocn_cycl
+      USE DAGCOM, only : npts,icon_OCE
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       LOGICAL, INTENT(IN) :: iniOCEAN  ! true if starting from ic.

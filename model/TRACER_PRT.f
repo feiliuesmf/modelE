@@ -57,9 +57,9 @@ C**** Zonal mean concentration
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
 !@ver  1.0
       USE MODEL_COM, only: im,jm,lm,fim
+      USE GEOM, only: imaxj
       USE TRACER_COM
       USE TRACER_DIAG_COM, only: tconsrv,nofmt,title_tcon
-      USE GEOM, only: imaxj
       IMPLICIT NONE
 
 !@var M index denoting which process changed the tracer
@@ -160,10 +160,10 @@ C**** No need to save current value
      &     jm,fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,nday,jeq,itime,itime0,xlabel
       USE GEOM, only:
-     &     areag,dlon,dxyp,LAT_DG
+     &     areag,dlon,dxyp,lat_dg
       USE TRACER_COM, only: ntm ,itime_tr0
-      USE tracer_DIAG_COM, only:
-     &     TCONSRV,ktcon,scale_TCON,title_TCON,nsum_TCON,ia_TCON,nofmt
+      USE TRACER_DIAG_COM, only:
+     &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt
       USE DAGCOM, only: inc=>incj,xwon,kdiag
       IMPLICIT NONE
 
@@ -323,12 +323,12 @@ C****
 C**** THIS ROUTINE PRODUCES LATITUDE BY LAYER TABLES OF TRACERS
 C****
       USE CONSTANT, only : undef
-      USE GEOM, only: BYDXYP,dxyp,LAT_DG
-      USE DAGCOM, only: linect,plm,acc_period,qdiag,lm_req
-      USE TRACER_COM
-      USE TRACER_DIAG_COM
-      USE MODEL_COM, only: jm,lm,fim,itime,idacc,xlabel,LRUNID,psfmpt
+      USE MODEL_COM, only: jm,lm,fim,itime,idacc,xlabel,lrunid,psfmpt
      &   ,sige,ptop
+      USE GEOM, only: bydxyp,dxyp,lat_dg
+      USE TRACER_COM
+      USE DAGCOM, only: linect,plm,acc_period,qdiag,lm_req
+      USE TRACER_DIAG_COM
       USE BDJLT
       IMPLICIT NONE
 
@@ -487,12 +487,10 @@ C**** JG INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE 
 C****
-      USE DAGCOM, only: QDIAG,acc_period,inc=>incj,linect,jmby2,LM_REQ
-      USE RESOLUTION, only: dsig,sige
-      USE MODEL_COM, only:
-     &     jm,lm,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL
-      USE GEOM, only:
-     &     WTJ,JRANGE_HEMI,LAT_DG
+      USE MODEL_COM, only: jm,lm,jdate,jdate0,amon,amon0,jyear,jyear0
+     *     ,xlabel,dsig,sige 
+      USE GEOM, only: wtj,jrange_hemi,lat_dg
+      USE DAGCOM, only: qdiag,acc_period,inc=>incj,linect,jmby2,lm_req
       IMPLICIT NONE
 
 !@var units string containing output field units
@@ -614,11 +612,10 @@ C****
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
 !@auth Jean Lerner (adapted from work of G. Russell,M. Kelley,R. Ruedy)
 !@ver   1.0
-      USE DAGCOM                         !kdiag
-      USE MODEL_COM, only: im,jm,lm,
-     &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
-     &     NDAY,Itime,Itime0,XLABEL,LRUNID
+      USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
+     *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid
       USE TRACER_COM
+      USE DAGCOM
       USE TRACER_DIAG_COM
       IMPLICIT NONE
 
@@ -794,11 +791,11 @@ C****
      *     ,scale,iacc,irange,name,lname,units)
 !@sum ijt_MAPk returns the map data and related terms for the k-th field
 !@+   for tracers and tracer sources/sinks
-      USE DAGCOM
       USE CONSTANT, only: teeny
+      USE MODEL_COM, only:im,jm, idacc
       USE GEOM, only: dxyp
-      USE MODEL_COM, only:im,jm, IDACC
-      use TRACER_DIAG_COM
+      USE DAGCOM
+      USE TRACER_DIAG_COM
 
       IMPLICIT NONE
 
@@ -867,7 +864,7 @@ c**** Find final field and zonal, global, and hemispheric means
 !@ver  1.0
       USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irsfic,irerun,ioread_single,lhead
-      USE TRACER_DIAG_COM, only: TACC,ktacc
+      USE TRACER_DIAG_COM, only: tacc,ktacc
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write

@@ -12,10 +12,10 @@
       USE GEOM, only : dxyp
       USE RADNCB, only : dimrad_sv
       USE RANDOM
-      USE DAGCOM, only : keyct,keynr,kdiag,oa,monacc,koa
 #ifdef TRACERS_ON
       USE TRACER_COM, only: mtrace
 #endif
+      USE DAGCOM, only : keyct,keynr,kdiag,oa,monacc,koa
       USE SOIL_DRV, only: daily_earth, ground_e
       IMPLICIT NONE
 
@@ -572,11 +572,11 @@ C****
       USE RANDOM
       USE RADNCB, only : rqt,lm_req
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
-      USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,jreg
-     &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qdiag,oa
 #ifdef TRACERS_ON
       USE TRACER_COM,only: MTRACE,NTM,TRNAME
 #endif
+      USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,jreg
+     &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qdiag,oa
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar_pbl
      &  ,egcm

@@ -124,13 +124,13 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
 !@var nsc index for chemical tracer number (to access tables)
 !@var T0L is the amount 'lost' to chemistry this time step
 !@var facbb: APPLY AN AD-HOC FACTOR TO BRING CH4 INTO BALANCE
-      USE TRACER_COM
-      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
+      USE CONSTANT, only: by3
       USE MODEL_COM, only: im,jm,lm,dtsrc
       USE GEOM, only: imaxj
-      USE DYNAMICS, only: ltropo
-      USE CONSTANT, only: by3
       USE QUSDEF, only : mz,mzz
+      USE DYNAMICS, only: ltropo
+      USE TRACER_COM
+      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
       USE TRACER_MPchem_COM, only: tltrm,tltzm,tltzzm,n_MPtable,tcscale
       USE PRATHER_CHEM_COM, only: nstrtc
       implicit none
@@ -240,10 +240,10 @@ C---- CTM layers LM down
 !@sum Trop_chem_CH4 calculates tropospheric chemistry for CH4
 !@+     by applying a pre-determined chemical loss rate
 !@auth Jean Lerner
-      USE TRACER_COM
-      USE DYNAMICS, only: ltropo
       USE MODEL_COM, only: im,jm,lm,byim,jyear,jhour,jday,itime
       USE GEOM, only: imaxj
+      USE DYNAMICS, only: ltropo
+      USE TRACER_COM
       USE FLUXES, only: tr3Dsource
       USE FILEMANAGER, only: openunit,closeunit
       implicit none
@@ -313,10 +313,10 @@ C     NCTABLE=# of linoz tables (includes solar UV)
 C     n_O3=tracer number for linoz O3
 !@dbparam dsol describes portion of solar cycle being modeled for linoz
 !@+      +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
+      USE CONSTANT, only: mair
       USE MODEL_COM, only: im,jm,lm,ptop,psfmpt,sige,dtsrc
       USE TRACER_COM, only: ntm,tr_mm
       USE PRATHER_CHEM_COM, only: set_prather_constants
-      USE CONSTANT, only: mair
       implicit none
 !@param lz_linoz Number of heights in linoz tables
       integer, PARAMETER :: lz_linoz=25,nctable=8,lz_lx=lz_linoz+5
@@ -401,10 +401,10 @@ c-----------------------------------------------------------------------
 c   Lower boundary conditions for Linearized Strat. Chem.
 c-----------------------------------------------------------------------
 c
-      USE DYNAMICS, only: am   ! Air mass of each box (kg/m^2)
-      USE TRACER_COM
       USE MODEL_COM, only: jm,itime
       USE GEOM, only: imaxj,dxyp
+      USE DYNAMICS, only: am   ! Air mass of each box (kg/m^2)
+      USE TRACER_COM
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
       USE LINOZ_CHEM_COM, only: lbc,dtchem,tmmvv
       USE FLUXES, only: tr3Dsource
@@ -480,10 +480,9 @@ c
 !@+ use dsol=0.0 for 'standard linoz' runs
 
       USE MODEL_COM, only: itime,im,jm,lm,t
-      USE DYNAMICS, only: am,ltropo   ! Air mass of each box (kg/m^2)
+      USE DYNAMICS, only: pk,am,ltropo   ! Air mass of each box (kg/m^2)
       USE GEOM, only: imaxj,dxyp
       USE TRACER_COM
-      USE DYNAMICS, only: pk
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
       USE PRATHER_CHEM_COM, only: nstrtc
       USE LINOZ_CHEM_COM, only: dtchem,tmmvv,tlT0M,TLTZM,TLTZZM,dsol
@@ -572,10 +571,10 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c-------- monthly fixup of chemistry PARAM'S
 c
+      USE MODEL_COM, only: jmon,jm,lm
       USE PRATHER_CHEM_COM, only: jlatmd,p0l,NSTRTC
       USE LINOZ_CHEM_COM, only: nctable,TLPARM,
      *    tlt0m,tltzm,tltzzm,lz_linoz,lz_lx,ps
-      USE MODEL_COM, only: jmon,jm,lm
       implicit none
       real*8  STRT0L(LM),STRT1L(LM),STRT2L(LM),STRTX(lz_linoz)
       real*8 f(lz_lx)
@@ -739,12 +738,12 @@ C****
 C**** There are 3 monthly sources and 11 annual sources
 C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,fearth
-      USE LAKES_COM, only: flake
       USE CONSTANT, only: sday
-      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,fearth
       USE TRACER_COM, only: itime_tr0,trname
-      use CH4_SOURCES, only: src=>ch4_src,nsrc=>nch4src
+      USE LAKES_COM, only: flake
+      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE CH4_SOURCES, only: src=>ch4_src,nsrc=>nch4src
       implicit none
       character*80 title
 !@var adj Factors that tune the total amount of individual sources
@@ -841,11 +840,11 @@ C****
 C**** There are two monthly sources and 4 annual sources
 C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm
       USE CONSTANT, only: sday
-      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE MODEL_COM, only: itime,jday,JDperY,im,jm
       USE TRACER_COM, only: itime_tr0,trname
-      use CO2_SOURCES, only: src=>co2_src,nsrc=>nco2src
+      USE CO2_SOURCES, only: src=>co2_src,nsrc=>nco2src
+      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       implicit none
       character*80 title
 !@var adj Factors that tune the total amount of individual sources
