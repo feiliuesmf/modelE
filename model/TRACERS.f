@@ -462,6 +462,8 @@ C****
       logical :: domom
       integer najl,i,j,l,naij
 
+C**** Ensure that this is a valid tracer and source
+      if (n.eq.0 .or. ns.eq.0) return
 C**** parse options
       domom=.true.
       if( present(momlog) ) then
