@@ -535,7 +535,7 @@ c column ozone feedback:
             dco3=(colo3(i,j,l)-tlT0M(j,lr,3))
 c temperature feedback: T is potential temp, need to convert
             dertmp=tlT0M(j,lr,6)/tmmvv(n)*am(l,i,j)*dxyp(j)
-            dtmp=(t(i,j,l)*PK(I,J,L)-tlT0M(j,lr,2))
+            dtmp=(t(i,j,l)*PK(L,I,J)-tlT0M(j,lr,2))
 c define sol.flux. derivative and convert from mixing ratio to mass
             dersol = tlT0M(j,lr,8)/tmmvv(n)*am(l,i,j)*dxyp(j)
 c calulate steady-state ozone:
