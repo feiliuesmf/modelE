@@ -210,30 +210,30 @@ Cewg Between 24N and 40N, allow biomass burning from September to April.
      *  iv,jv,ivht,ir,l,najl
       save ifirst,so2_ind_input
       if (imPI.eq.1) go to 88
-      if (ifirst) then
-      call openunit('SO2_IND',iuc,.false.)
-      so2_ind_input(:,:)=0.   ! initiallise
-      DO 10 ij = 1,9999
-      read(iuc,902)   I,J,TMAS !,TX,TXX,TY,TYY,TXY
- 902  FORMAT(3X,2(I4),E11.3,5F9.2)
-      if (i.eq.0) goto 12
-      so2_ind_input(i,j)=tmas
- 10    continue
- 12   continue
-      call closeunit(iuc)
-      endif
+c Switch to LLASA AEROCOM industrial SO2 emission
+c  in TRACERS_DRV.f
+c     if (ifirst) then
+c     call openunit('SO2_IND',iuc,.false.)
+c     so2_ind_input(:,:)=0.   ! initiallise
+c     DO 10 ij = 1,9999
+c     read(iuc,902)   I,J,TMAS !,TX,TXX,TY,TYY,TXY
+c902  FORMAT(3X,2(I4),E11.3,5F9.2)
+c     if (i.eq.0) goto 12
+c     so2_ind_input(i,j)=tmas
+c10    continue
+c12   continue
+c     call closeunit(iuc)
+c     endif
 c I think units are: Kg S/box/yr
 c We need kg SO2/m2/s
 c     cfac=tr_mm(nt)/32.d0/365.d0/sday  !*dtsrc
 c Actually they are kg SO2/box/yr:
-      cfac=1.d0/365.d0/sday
-      do j=1,jm
-      do i=1,im
-      so2_src(i,j,1)=so2_ind_input(i,j)*cfac
-      end do
-      end do
-
-c??      DTT=REAL(NDYN)*DT/(86400.*30.) (ADDTC=TB*B60N*DTT)
+c     cfac=1.d0/365.d0/sday
+c     do j=1,jm
+c     do i=1,im
+c     so2_src(i,j,1)=so2_ind_input(i,j)*cfac
+c     end do
+c     end do
 
 c Aircraft emissions
       if (ifirst) then
@@ -324,37 +324,37 @@ Cewg Allow burning south of 32N on the 90 driest days of the year
  400  CONTINUE
  154  CONTINUE
  155  call closeunit(iuc2)
-
+c Switch to the AEROCOM volcanic emissions, in TRACERS_DRV.f
 c continuously erupting volcanic emissions
 c     from GEIA (Andres and Kasgnoc, 1998)
-      so2_src_3D(:,:,:,1)=0.
-      call openunit('SO2_VOLCANO',iuc2,.false.)
-      do 116 ir=1,49
-      read(iuc2,*) iv,jv,ivht,vemis
+c     so2_src_3D(:,:,:,1)=0.
+c     call openunit('SO2_VOLCANO',iuc2,.false.)
+c     do 116 ir=1,49
+c     read(iuc2,*) iv,jv,ivht,vemis
 C Convert emissions from Mg SO2/day to Kg/sec
-       vemis = vemis * 1.e3 /sday
+c      vemis = vemis * 1.e3 /sday
 C Find layer to put emissions in
 C ZG is height of ground above sea level, in meters
-       zg = zatmo(iv,jv)
+c      zg = zatmo(iv,jv)
 C VHT is height in meters of volcanic plume above sea level
 C Assume all emissions occur at top of plume.
-       vht = real(ivht)
-       zh = zg
-       do 21 l=1,lm-1
-        pl1=pmid(l,iv,jv)
-        pl2=pmid(l+1,iv,jv)
-        te=pk(l,iv,jv)*t(iv,jv,l)
-        HIGHT = 2.9271d+01*TE*LOG(PL1/PL2)
+c      vht = real(ivht)
+c      zh = zg
+c      do 21 l=1,lm-1
+c       pl1=pmid(l,iv,jv)
+c       pl2=pmid(l+1,iv,jv)
+c       te=pk(l,iv,jv)*t(iv,jv,l)
+c       HIGHT = 2.9271d+01*TE*LOG(PL1/PL2)
 C ZH is height in meters of top of layer above sea level
-        ZH = ZH + HIGHT
-        IF (VHT .LT. ZH) GO TO 24
- 21    CONTINUE
-       GO TO 100
- 24    CONTINUE
-       so2_src_3D(iv,jv,l,1)=so2_src_3D(iv,jv,l,1)+vemis
- 100   CONTINUE
- 116  CONTINUE
-      call closeunit(iuc2)
+c       ZH = ZH + HIGHT
+c       IF (VHT .LT. ZH) GO TO 24
+c21    CONTINUE
+c      GO TO 100
+c24    CONTINUE
+c      so2_src_3D(iv,jv,l,1)=so2_src_3D(iv,jv,l,1)+vemis
+c100   CONTINUE
+c116  CONTINUE
+c     call closeunit(iuc2)
 
       end subroutine read_SO2_source
 
@@ -608,16 +608,16 @@ c DMM is number density of air in molecules/cm3
         select case (trname(n))
 c    Aging of industrial carbonaceous aerosols 
         case ('BCII')
-c       bciage=4.3D-6*trm(i,j,l,n) !used this first        
+        bciage=4.3D-6*trm(i,j,l,n) !used this first        
 c       bciage=1.0D-6*trm(i,j,l,n)  !2nd
-        bciage=1.0D-7*trm(i,j,l,n)
+c       bciage=1.0D-7*trm(i,j,l,n)
         tr3Dsource(i,j,l,1,n)=-bciage        
         tr3Dsource(i,j,l,1,n_BCIA)=bciage        
 
         case ('OCII')
-c       ociage=7.3D-6*trm(i,j,l,n)       !used this first 
+        ociage=7.3D-6*trm(i,j,l,n)       !used this first 
 c       ociage=3.6D-6*trm(i,j,l,n)     !2nd
-        ociage=3.D-7*trm(i,j,l,n)
+c       ociage=3.D-7*trm(i,j,l,n)
         tr3Dsource(i,j,l,1,n)=-ociage        
         tr3Dsource(i,j,l,1,n_OCIA)=ociage        
 

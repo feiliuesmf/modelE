@@ -5942,11 +5942,9 @@ c read in AEROCOM seasalt
           status=NF_CLOSE('SALT2',NCNOWRIT,ncidu)
       endif
 c read in AEROCOM SO2 emissions
-      if (imAER.eq.1) then
-      SO2_src(:,:,:)=0.d0
-      SO2_biosrc_3D(:,:,:,:)=0.d0
-      SO2_src_3D(:,:,:,:)=0.d0
 c Industrial
+      SO2_src(:,:,:)=0.d0
+      SO2_src_3D(:,:,:,:)=0.d0
       if (imPI.eq.0) then
       call openunit('SO2_IND',iuc,.false.)
       do mm=1,9999
@@ -5956,6 +5954,16 @@ c Industrial
       end do
   81  call closeunit(iuc)
       endif
+c volcano - continuous 
+      call openunit('SO2_VOLCANO',iuc,.false.)
+      do mm=1,99999
+      read(iuc,*) ii,jj,ll,carbstuff
+      if (ii.eq.0.) go to 83
+      SO2_src_3D(ii,jj,ll,1)=carbstuff/(sday*30.4d0)/12.d0
+      end do
+  83  call closeunit(iuc)
+      if (imAER.eq.1) then
+      SO2_biosrc_3D(:,:,:,:)=0.d0
 c Biomass 
       call openunit('SO2_BIOMASS',iuc,.false.)
       do mm=1,99999
@@ -5965,14 +5973,6 @@ c Biomass
       SO2_biosrc_3D(ii,jj,ll,mmm)=carbstuff/(sday*30.4d0)
       end do
   82  call closeunit(iuc)
-c volcano - continuous 
-      call openunit('SO2_VOLCANO',iuc,.false.)
-      do mm=1,99999
-      read(iuc,*) ii,jj,ll,carbstuff
-      if (ii.eq.0.) go to 83
-      SO2_src_3D(ii,jj,ll,1)=carbstuff/(sday*30.4d0)/12.d0
-      end do
-  83  call closeunit(iuc)
 c volcano - explosive 
       call openunit('SO2_VOLCANO_EXP',iuc,.false.)
       do mm=1,99999
@@ -6048,6 +6048,14 @@ c Now industrial and biomass
       OCI_src(ii,jj)=OCI_src(ii,jj)+carbstuff
       end do
  12   call closeunit(iuc)
+      do i=1,im
+      do j=j_0,J_1
+      ccnv=1.d0/(sday*30.4)  !*dxyp(j))
+c convert from month to second. dxyp??
+      BCI_src(i,j)=BCI_src(i,j)*ccnv/12.d0
+      OCI_src(i,j)=OCI_src(i,j)*ccnv/12.d0*1.3d0
+      end do
+      end do
       endif
       BCB_src(:,:,:,:)=0.d0
       OCB_src(:,:,:,:)=0.d0
@@ -6084,10 +6092,7 @@ c Now industrial and biomass
  14   call closeunit(iuc)
       do i=1,im
       do j=j_0,J_1
-      ccnv=1.d0/(sday*30.4)  !*dxyp(j))
-c convert from month to second. dxyp??
-      BCI_src(i,j)=BCI_src(i,j)*ccnv/12.d0
-      OCI_src(i,j)=OCI_src(i,j)*ccnv/12.d0*1.3d0
+      ccnv=1.d0/(sday*30.4) 
       do m=1,12 
       do l=1,7
       BCB_src(i,j,l,m)=BCB_src(i,j,l,m)*ccnv
@@ -6663,11 +6668,13 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
          end do
       case ('BCII')
          do j=J_0,J_1
-            trsource(:,j,1,n) = BCI_src(:,j)
+            trsource(:,j,1,n) = BCI_src(:,j)*3.d0
+c arbitrary factor of 3
          end do
       case ('OCII')
          do j=J_0,J_1
-            trsource(:,j,1,n) = OCI_src(:,j)
+            trsource(:,j,1,n) = OCI_src(:,j)*2.d0
+c arbitrary factor of 2
             trsource(:,j,2,n) = OCT_src(:,j,jmon)
          end do
 #endif
@@ -7094,11 +7101,11 @@ c complete dissolution in convective clouds
 c with double dissolution if partially soluble
           if (TR_CONV) then
            if (LHX.EQ.LHE) then !liquid cloud
-c              fq=(1.d0+fq_aer(ntix(n)))/2.d0
-               fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0
+               fq=(1.d0+fq_aer(ntix(n)))/2.d0
+c              fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0
            else
-c              fq=(1.d0+fq_aer(ntix(n)))/2.d0*0.05d0
-               fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0*0.05d0
+               fq=(1.d0+fq_aer(ntix(n)))/2.d0*0.05d0
+c              fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0*0.05d0
            endif
           endif
           if (FCLOUD.LT.1.D-16) fq=0.d0
