@@ -47,7 +47,7 @@ c         enddo
 c      enddo
 
       CALL dust_emission
-      CALL dust_grav
+c      CALL dust_grav
 #ifndef TRACERS_WATER
       CALL dust_wet
 #endif
@@ -311,19 +311,22 @@ c**** Wet Deposition
 
 #ifdef TRACERS_DUST
       USE CONSTANT,ONLY : visc_air,grav
-      USE resolution,ONLY : Jm,Lm
-      USE MODEL_COM,ONLY: Dtsrc
+      USE resolution,ONLY : Im,Jm,Lm
+      USE MODEL_COM,ONLY : Dtsrc
+      USE geom, ONLY : dxyp
       USE qusdef,ONLY : zmoms
       USE fluxes,ONLY : tr3Dsource,trgrdep
       USE TRACER_COM,ONLY : n_clay,Ntm_dust,trpdens,trm,trmom
-      USE TRACER_DIAG_COM, only : ijts_source,jls_3Dsource,taijs,tajls
-      USE tracers_dust_com, only: zld,dradius,nDustGravij,nDustGrav3Djl
+      USE TRACER_DIAG_COM, only : ijts_grav,jls_grav,jls_3Dsource,taijs,
+     &     tajls
+      USE tracers_dust_com, only: zld,dradius,nDustGrav3Djl
 
       IMPLICIT NONE
 
       INTEGER :: j,l,n,n1,naij,najl
       REAL*8,DIMENSION(Ntm_dust) :: stokevdt
       REAL*8 :: stokefac1,stokefac2
+      REAL*8 :: work(Im,Jm,Ntm_dust)
 
 #ifdef TRACERS_DUST_MINERAL8
       CALL stoke_mindust8(stokevdt)
@@ -334,10 +337,11 @@ c     default case
 
       DO n=1,Ntm_dust
         n1=n_clay+n-1
-        stokefac1=stokevdt(n)/zld(1)*Dtsrc
-        trgrdep(n1,:,:)=stokefac1*trm(:,:,1,n1)
-c        WRITE(*,*) 'n1,stokefac1,trgrdep(n1,:,:):',n1,stokefac1,
-c     &       trgrdep(n1,:,:)
+        DO j=1,Jm
+          stokefac1=stokevdt(n)/zld(1)*Dtsrc
+          work(:,j,n)=stokefac1*trm(:,j,1,n1)
+          trgrdep(n1,:,j)=work(:,j,n)/dxyp(j)
+        END DO
         DO l=1,Lm-1
           stokefac1=stokevdt(n)/zld(l)
           stokefac2=stokevdt(n)/zld(l+1)
@@ -358,14 +362,14 @@ c     &       trgrdep(n1,:,:)
 
       DO n=1,Ntm_dust
         n1=n_clay+n-1
-        naij=ijts_source(nDustGravij,n1)
-        najl=jls_3Dsource(nDustGrav3Djl,n1)
+        naij=ijts_grav(n1)
+        najl=jls_grav(n1)
 c        WRITE(*,*) 'naij,najl:',naij,najl
-        taijs(:,:,naij)=taijs(:,:,naij)+trgrdep(n1,:,:)
+        taijs(:,:,naij)=taijs(:,:,naij)+work(:,:,n)
 c        WRITE(*,*) 'n1,taijs(:,:,naij):',n1,taijs(:,:,naij)
         DO l=1,Lm
           DO j=1,Jm
-            tajls(j,l,najl)=tajls(j,l,najl)+
+            tajls(j,l,najl)=tajls(j,l,najl)-
      &           SUM(tr3Dsource(:,j,l,nDustGrav3Djl,n1))*Dtsrc
           END DO
         END DO
