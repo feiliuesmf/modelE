@@ -38,9 +38,15 @@ C**** currently saved - should be replaced by fluxed quantities
 !@var DTH1,DQ1 momentum flux from sea ice over each type (?) 
       REAL*8, DIMENSION(IM,JM) :: DTH1,DQ1
 
-!@var FLOWOC river runoff output to the ocean (kg)
-!@var EFLOWOC energy of river runoff output to ocean (J)
-c      REAL*8, DIMENSION(IM,JM) :: FLOWOC,EFLOWOC
+!@var FLOWO,EFLOWO runoff and energy of runoff into ocean
+      REAL*8, DIMENSION(IM,JM) :: FLOWO,EFLOWO
+
+!@var PREC precipitation (kg/m^2)
+      REAL*8, DIMENSION(IM,JM) :: PREC
+!@var EPREC energy of preciptiation (J/m^2)
+      REAL*8, DIMENSION(IM,JM) :: EPREC
+!@var PRECSS precipitation from super-saturation (kg/m^2)
+      REAL*8, DIMENSION(IM,JM) :: PRECSS
 
       END MODULE FLUXES
 

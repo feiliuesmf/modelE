@@ -33,7 +33,6 @@ C****
      &    ZMIXE=>Z1,CN=>CDN,P1,PBLP=>PPBL,
      &    TGPASS=>TG,TKPASS=>T1,VGM=>VG,EDDY,
      &    NLSN,ISN,NSN,DZSN,WSN,HSN,FR_SNOW
-      USE CLD01_COM_E001, only : prec,tprec
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       USE SOCPBL, only : zgs
       USE DAGCOM , only : aijg,aij,tsfrez,tdiurn,bj,areg,adaily,jreg,
@@ -43,7 +42,7 @@ C****
      *     j_evap, j_erun1, j_difs, j_run2, j_dwtr2, j_run1, j_tsrf
       USE DYNAMICS, only : pmid,pk,pek,pedn,pdsig
       USE LAKES_COM, only : mwl,gml
-      USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor
+      USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,prec,eprec
 
       IMPLICIT NONE
 
@@ -227,8 +226,7 @@ c      ZGS=10.
       PTYPE=PEARTH
       PR=PREC(I,J)/(DTsrc*RHOW)
       PRS=PRCSS(I,J)/(DTsrc*RHOW)
-      HTPR=0.
-      IF(TPREC(I,J).LT.0.) HTPR=-LHM*PREC(I,J)/DTsrc
+      HTPR=EPREC(I,J)/DTsrc
       GW(1:NGM,1) = WBARE(I,J,1:NGM)
       GW(0:NGM,2) = WVEGE(I,J,0:NGM)
       HT(0:NGM,1) = HTBARE(I,J,0:NGM)
@@ -1144,7 +1142,7 @@ C****
 !@ver  1.0
       USE E001M12_COM, only : im,jm,fearth
       USE GEOM, only : imaxj
-      USE CLD01_COM_E001, only : prec,eprec
+      USE FLUXES, only : prec,eprec
       USE DAGCOM, only : bj,aij,j_eprcp,ij_f0e
       IMPLICIT NONE
 
@@ -1156,7 +1154,7 @@ C****
       DO I=1,IMAX
         PEARTH=FEARTH(I,J)
         PRCP=PREC(I,J)
-        ENRGP=EPREC(2,I,J)      ! including latent heat
+        ENRGP=EPREC(I,J)      ! including latent heat
         IF (PEARTH.gt.0) THEN
           BJ(J,J_EPRCP)=BJ(J,J_EPRCP)+ENRGP*PEARTH
           AIJ(I,J,IJ_F0E)=AIJ(I,J,IJ_F0E)+ENRGP

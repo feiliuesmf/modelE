@@ -2,7 +2,7 @@
 !@sum  SEAICE contains all the sea ice related subroutines
 !@auth Original Development Team
 !@ver  1.0
-!@cont PREC_SI,SEA_ICE.
+!@cont PREC_SI,SEA_ICE,ADDICE,SIMELT
       USE CONSTANT, only : lhm,rhoi,rhow,shi,shw,byshi
       IMPLICIT NONE
 
@@ -448,7 +448,7 @@ C**** save output diagnostics
       END SUBROUTINE SEA_ICE
 
       SUBROUTINE ADDICE (SNOW,ROICE,TSIL,MSI2,HSI,DIFSI,EDIFSI,ENRGFO
-     *     ,ACEFO,ACE2F,ENRGFI,TFW,FLEAD,QFIXR,QCMPR)
+     *     ,ACEFO,ACE2F,ENRGFI,FLEAD,QFIXR,QCMPR)
 !@sum  ADDICE adds ice formed in the ocean to ice variables
 !@auth Gary Russell
 !@ver  1.0
@@ -463,8 +463,6 @@ C**** save output diagnostics
       LOGICAL, INTENT(IN) :: QFIXR
 !@var QCMPR  true if ice should be compressed due to leads etc.
       LOGICAL, INTENT(IN) :: QCMPR
-!@var TFW freezing temperature for water underlying ice (C)
-      REAL*8, INTENT(IN) :: TFW
 !@var FLEAD minimum lead fraction for ice (%)
       REAL*8, INTENT(IN) :: FLEAD
       REAL*8, INTENT(IN) ::  ENRGFI, ENRGFO, ACEFO, ACE2F
@@ -482,7 +480,7 @@ C**** save output diagnostics
       IF (.not.QFIXR .and. ROICE.LE.0. .and. ACEFO.gt.0) THEN
         ROICE=ACEFO/(ACE1I+AC2OIM)
         SNOW=0.
-        TSIL=TFW
+        TSIL=(ENRGFO/ACEFO + LHM)*BYSHI
         MSI2=AC2OIM
         RETURN
       END IF
@@ -584,7 +582,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
 !@var ENRGUSED energy used to melt ice (J/m^2)
       REAL*8, INTENT(OUT) :: ENRGUSED
       REAL*8, DIMENSION(LMI) :: HSI
-      REAL*8 MSI1,MSI2,MELT,DRSI,ROICEN,FHSI4,FHSI3,ENRGI
+      REAL*8 MSI1,MELT,DRSI,ROICEN,FHSI4,FHSI3,ENRGI
 c      REAL*8 E_BOTTOM,GAMMA,HCRIT,HICE,ACE
 
       MSI1 = SNOW + ACE1I

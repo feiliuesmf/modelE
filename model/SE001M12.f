@@ -20,7 +20,7 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6
       USE E001M12_COM, only : im,jm,lm,fim,DTsrc,NIsurf,u,v,t,p,q
-     *     ,idacc,dsig,jday,ndasf,jeq,fland,flice
+     *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : dxyp,imaxj,kmaxj,raj,idij,idjj,sini,cosi
@@ -36,6 +36,7 @@ C****
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : tlandi,snowli
       USE OCEAN, only : tocean,oa,tfo
+      USE LAKES_COM, only : tlake
       USE SEAICE_COM, only : rsi,msi,snowi,tsi
       USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor
@@ -256,7 +257,11 @@ C****
       ITYPE=1
       PTYPE=POCEAN
       NGRNDZ=1
-      TG1=TOCEAN(1,I,J)
+      IF (FOCEAN(I,J).gt.0) THEN
+        TG1=TOCEAN(1,I,J)
+      ELSE
+        TG1=TLAKE(I,J)
+      END IF
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
             OA(I,J,5)=OA(I,J,5)+SRHEAT*DTSURF
       BETA=1.

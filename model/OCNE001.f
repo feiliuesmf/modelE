@@ -13,11 +13,28 @@
       USE SEAICE_COM, only : rsi,msi,tsi,snowi
       USE SEAICE, only : xsi,ace1i,z1i
       USE LANDICE_COM, only : snowli,tlandi
+      USE LAKES_COM, only : tlake,tfl
 
       IMPLICIT NONE
 !@param LMOM number of layers for deep ocean diffusion
       INTEGER, PARAMETER :: LMOM = 9
 !@var OA generic array for ocean heat transport calculations
+C****
+C****       DATA SAVED IN ORDER TO CALCULATE OCEAN TRANSPORTS
+C****
+C****       1  ACE1I+SNOWOI  (INSTANTANEOUS AT NOON GMT)
+C****       2  TG1OI  (INSTANTANEOUS AT NOON GMT)
+C****       3  TG2OI  (INSTANTANEOUS AT NOON GMT)
+C****       4  ENRGP  (INTEGRATED OVER THE DAY)
+C****       5  SRHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
+C****       6  TRHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
+C****       7  SHDT   (FOR OCEAN, INTEGRATED OVER THE DAY)
+C****       8  EVHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
+C****       9  TRHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
+C****      10  SHDT   (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
+C****      11  EVHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
+C****      12  SRHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
+C****
       REAL*8, SAVE,DIMENSION(IM,JM,12) :: OA
 
 !@var TFO temperature of freezing ocean (C)
@@ -206,8 +223,13 @@ C**** Calculate OST, RSI and MSI for current day
         DO I=1,IMAX
           IF(FLAND(I,J).GE.1.) CYCLE
 C**** OST always uses quadratic fit
-          TOCEAN(1,I,J)=AOST(I,J)+BOST(I,J)*TIME
-     *                 +COST(I,J)*(TIME**2-BY12)
+          IF (FOCEAN(I,J).gt.0) THEN
+            TOCEAN(1,I,J)=AOST(I,J)+BOST(I,J)*TIME
+     *                   +COST(I,J)*(TIME**2-BY12)
+          ELSE
+            TLAKE(I,J)=AOST(I,J)+BOST(I,J)*TIME
+     *                +COST(I,J)*(TIME**2-BY12)
+          END IF
           SELECT CASE (KRSI(I,J))
 C**** RSI uses piecewise linear fit because quadratic fit at apex < 0
           CASE (-1)
@@ -234,7 +256,8 @@ C**** RSI uses quadratic fit
           RSI(I,J)=RSINEW
           MSI(I,J)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
 C**** WHEN TGO IS NOT DEFINED, MAKE IT A REASONABLE VALUE
-          IF (TOCEAN(1,I,J).LT.-1.8d0) TOCEAN(1,I,J)=TFO
+          IF (TOCEAN(1,I,J).LT.TFO) TOCEAN(1,I,J)=TFO
+          IF (TLAKE(I,J).LT.TFL) TLAKE(I,J)=TFL
 C**** REDUCE THE RATIO OF OCEAN ICE TO WATER BY .1*RHOI/ACEOI
 c     IF (RSI(I,J).GT.0.) THEN
 c        BYZICE=RHOI/(Z1I*RHOI+MSI(I,J))
@@ -252,6 +275,7 @@ C**** REPLICATE VALUES AT POLE
         SNOWI(I,JM)=SNOWI(1,JM)
         TSI(:,I,JM)=TSI(:,1,JM)
         TOCEAN(1,I,JM)=TOCEAN(1,1,JM)
+        TLAKE(I,JM)=TLAKE(1,JM)
         RSI(I,JM)=RSI(1,JM)
         MSI(I,JM)=MSI(1,JM)
       END DO
@@ -500,7 +524,7 @@ C**** BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
 !@ver  1.0
       USE CONSTANT, only : rhow,shw,twopi,edpery
       USE E001M12_COM, only : im,jm,kocean,focean,jday
-      USE OCEAN, only : tocean,ostruc,oclim,tfo,z1O,
+      USE OCEAN, only : tocean,ostruc,oclim,z1O,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE DAGCOM, only : aij,ij_toc2,ij_tgo2
       USE SEAICE_COM, only : rsi,msi,tsi,snowi
@@ -619,8 +643,7 @@ C****
       USE CONSTANT, only : rhow,shw
       USE E001M12_COM, only : im,jm,focean,kocean
       USE GEOM, only : imaxj,dxyp
-      USE CLD01_COM_E001, only : prec,eprec
-      USE FLUXES, only : runosi
+      USE FLUXES, only : runosi,prec,eprec
       USE OCEAN, only : oa,tocean,z1o
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
@@ -637,10 +660,10 @@ C****
         ROICE=RSI(I,J)
         POICE=FOCEAN(I,J)*RSI(I,J)
         POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
-        PRCP=PREC(I,J)
-        ENRGP=EPREC(2,I,J)
         IF (FOCEAN(I,J).gt.0) THEN
 
+          PRCP=PREC(I,J)
+          ENRGP=EPREC(I,J)
           OA(I,J,4)=OA(I,J,4)+ENRGP
           AJ(J,J_EPRCP)=AJ(J,J_EPRCP)+ENRGP*POCEAN
           AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+ENRGP*POCEAN
@@ -684,8 +707,9 @@ C****
       USE CONSTANT, only : rhow,shw
       USE E001M12_COM, only : im,jm,focean,kocean,jday,dtsrc
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : runosi, erunosi, e0,e1,evapor, dmsi,dhsi
-      USE OCEAN, only : oa,tocean,z1o,ota,otb,otc,tfo,osourc,
+      USE FLUXES, only : runosi, erunosi, e0,e1,evapor, dmsi,dhsi,
+     *     flowo,eflowo
+      USE OCEAN, only : tocean,z1o,oa,ota,otb,otc,tfo,osourc,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
@@ -713,9 +737,10 @@ C****
           EVAPI=EVAPOR(I,J,2)   ! evaporation/dew at the ice surface (kg/m^2)
           SMSI =MSI(I,J)+ACE1I+SNOWI(I,J)
 C**** get ice-ocean fluxes from sea ice routine
-          RUN0=RUNOSI(I,J)      ! includes ACE2M term
-          F2DT=ERUNOSI(I,J)
-          
+          RUN0=RUNOSI(I,J)  !+FLOWO(I,J)  !includes ACE2M and river runoff
+          F2DT=ERUNOSI(I,J) !+EFLOWO(I,J)   
+
+c         OA(I,J,4)=OA(I,J,4)+EFLOWO(I,J) ! add to surface energy budget?
           AJ(J,J_TG1) =AJ(J,J_TG1) +TGW *POCEAN
           AJ(J,J_EVAP)=AJ(J,J_EVAP)+EVAP*POCEAN
           IF (JR.ne.24) AREG(JR,J_TG1)=AREG(JR,J_TG1)+TGW*POCEAN*DXYPJ
@@ -731,7 +756,7 @@ C**** get ice-ocean fluxes from sea ice routine
      *           +OTA(I,J,3)*SN3ANG+OTB(I,J,3)*CS3ANG
      *           +OTA(I,J,2)*SN2ANG+OTB(I,J,2)*CS2ANG
      *           +OTA(I,J,1)*SINANG+OTB(I,J,1)*COSANG+OTC(I,J))
-            RUN4=-EVAP
+            RUN4=-EVAP    !+FLOWO(I,J) riverf runoff is extra mass
             ERUN4=RUN4*TGW*SHW
             ENRGO=F0DT+OTDT-ERUN4
 C**** Open Ocean diagnostics 

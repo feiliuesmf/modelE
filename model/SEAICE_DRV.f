@@ -10,8 +10,7 @@
 !@calls PRECSI
       USE E001M12_COM, only : im,jm,fland,kocean
       USE GEOM, only : imaxj,dxyp
-      USE CLD01_COM_E001, only : prec,tprec,eprec
-      USE FLUXES, only : runosi
+      USE FLUXES, only : runosi,prec,eprec
       USE SEAICE_COM, only : rsi,msi,snowi,tsi   !,hsi soon
       USE SEAICE, only : prec_si, ace1i, lmi
       USE DAGCOM, only : cj,areg,aij,jreg,ij_f0oi,ij_erun2,j_eprcp
@@ -19,8 +18,7 @@
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: TSIL
-      REAL*8 SNOW,MSI2,PRCP,TPRCP,ENRGP
-     *     ,RUN0,DIFS,EDIFS,ERUN2,DXYPJ,POICE
+      REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,DIFS,EDIFS,ERUN2,DXYPJ,POICE
       LOGICAL QFIXR
       INTEGER I,J,IMAX,JR
 
@@ -28,14 +26,13 @@
       IMAX=IMAXJ(J)
       DXYPJ=DXYP(J)
       DO I=1,IMAX
-      POICE=RSI(I,J)*(1.-FLAND(I,J))
-      PRCP=PREC(I,J)
         JR=JREG(I,J)
+      POICE=RSI(I,J)*(1.-FLAND(I,J))
       RUNOSI(I,J)=0
       IF (POICE.gt.0) THEN
 
-        TPRCP=TPREC(I,J)
-        ENRGP=EPREC(2,I,J)      ! including latent heat
+        PRCP=PREC(I,J)
+        ENRGP=EPREC(I,J)      ! energy of precip
         SNOW=SNOWI(I,J)
         MSI2=MSI(I,J)
         CJ(J,J_EPRCP)=CJ(J,J_EPRCP)+ENRGP*POICE
@@ -119,8 +116,11 @@ C****
         SNOW= SNOWI(I,J)  ! snow mass (kg/m^2)
         MSI2= MSI(I,J)
         TSIL(:) = TSI(:,I,J)  ! first layer sea ice temperature
-        TGW = TOCEAN(1,I,J) ! ocean temperature
-c        TGW = TLAKE(I,J) ! lake temperature
+        IF (FOCEAN(I,J).gt.0) THEN
+          TGW = TOCEAN(1,I,J)   ! ocean temperature
+        ELSE
+          TGW = TLAKE(I,J)      ! lake temperature
+        END IF
 
         AIJ(I,J,IJ_RSOI) =AIJ(I,J,IJ_RSOI) +POICE
         AIJ(I,J,IJ_MSI2) =AIJ(I,J,IJ_MSI2) +MSI2*POICE
@@ -145,7 +145,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
         RUNOSI(I,J) = RUN0+ACE2M
         ERUNOSI(I,J)= F2DT
 C**** ACCUMULATE DIAGNOSTICS
-        IF (KOCEAN .EQ. 1) THEN
+        IF (.not. QFIXR) THEN
           CJ(J,J_DIFS) =CJ(J,J_DIFS) +DIFSI *PWATER
           CJ(J,J_EDIFS)=CJ(J,J_EDIFS)+EDIFSI*PWATER
 c     AJ(J,J_IMELT)=AJ(J,J_IMELT)+ACE2M *POICE  ???
@@ -183,14 +183,14 @@ C****
       USE SEAICE, only : ace1i,addice,lmi
       USE DAGCOM, only : cj,areg,aij,jreg,j_difs,j_tg1,j_tg2,j_rsi
      *     ,j_ace1,j_ace2,j_snow,j_edifs,ij_tg1,j_rsi
-      USE OCEAN, only : tfo, fleadoc
-c      USE LAKES, only : tfl, fleadlk
+      USE OCEAN, only : fleadoc
+      USE LAKES_COM, only : fleadlk
       USE FLUXES, only : dmsi,dhsi
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSI,TSIL
       REAL*8 SNOW,ROICE,MSI2,DIFSI,EDIFSI,ENRGFO,ACEFO,ACE2F,ENRGFI
-     *     ,DXYPJ,POICE,PWATER
+     *     ,DXYPJ,POICE,PWATER,FLEAD
       LOGICAL QFIXR,QCMPR
       INTEGER I,J,IMAX,JR
 
@@ -208,6 +208,11 @@ c      USE LAKES, only : tfl, fleadlk
         MSI2= MSI(I,J)
 c        update HSI... (temporary assignment)
         HSI(:) = TSI(:,I,J)      ! sea ice temperatures
+        IF (FOCEAN(I,J).gt.0) THEN
+          FLEAD=FLEADOC
+        ELSE
+          FLEAD=FLEADLK
+        END IF
 
         ACEFO=DMSI(1,I,J)
         ACE2F=DMSI(2,I,J)
@@ -217,10 +222,11 @@ c        update HSI... (temporary assignment)
         QFIXR = .TRUE.
         QCMPR = .FALSE.
         IF (KOCEAN.eq.1) QFIXR=.FALSE.
+c       IF (FLAKE(I,J).gt.0) QFIXR=.FALSE   ! soon to be implemented.
         IF (KOCEAN.eq.1.and.FLAKE(I,J).le.0) QCMPR=.TRUE.
 
         CALL ADDICE (SNOW,ROICE,TSIL,MSI2,HSI,DIFSI,EDIFSI
-     *       ,ENRGFO,ACEFO,ACE2F,ENRGFI,TFO,FLEADOC,QFIXR,QCMPR)
+     *       ,ENRGFO,ACEFO,ACE2F,ENRGFI,FLEAD,QFIXR,QCMPR)
 
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J) =SNOW
@@ -231,7 +237,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
         END IF
 
 C**** ACCUMULATE DIAGNOSTICS
-        IF (KOCEAN .EQ. 1) THEN
+        IF (QCMPR) THEN
           CJ(J,J_DIFS) =CJ(J,J_DIFS) +DIFSI *PWATER
           CJ(J,J_EDIFS)=CJ(J,J_EDIFS)+EDIFSI*PWATER
           IF (JR.ne.24) AREG(JR,J_DIFS)=AREG(JR,J_DIFS)+DIFSI*PWATER
@@ -262,7 +268,7 @@ C****
 !@sum  vflx_OCEAN saves quantities for OHT calculations
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm
+      USE E001M12_COM, only : im,jm,focean
       USE OCEAN, only : oa
       USE SEAICE, only : ace1i,xsi
       USE SEAICE_COM, only : tsi,snowi
@@ -274,22 +280,15 @@ C****
 C****       1  ACE1I+SNOWOI  (INSTANTANEOUS AT NOON GMT)
 C****       2  TG1OI  (INSTANTANEOUS AT NOON GMT)
 C****       3  TG2OI  (INSTANTANEOUS AT NOON GMT)
-C****       4  ENRGP  (INTEGRATED OVER THE DAY)
-C****       5  SRHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
-C****       6  TRHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
-C****       7  SHDT   (FOR OCEAN, INTEGRATED OVER THE DAY)
-C****       8  EVHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
-C****       9  TRHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
-C****      10  SHDT   (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
-C****      11  EVHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
-C****      12  SRHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
 C****
       DO J=1,JM
-         DO I=1,IM
+        DO I=1,IM
+          IF (FOCEAN(I,J).gt.0) THEN
             OA(I,J,1)=ACE1I+SNOWI(I,J)
             OA(I,J,2)=TSI(1,I,J)*XSI(1)+TSI(2,I,J)*XSI(2)
             OA(I,J,3)=TSI(3,I,J)*XSI(3)+TSI(4,I,J)*XSI(4)
-         END DO
+          END IF
+        END DO
       END DO
 
       RETURN

@@ -9,7 +9,8 @@
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,sig,DTsrc
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,raj,idij,idjj
-      USE CLD01_COM_E001
+      USE CLD01_COM_E001, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
+     *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss
       USE CLD01, only : kmax,ra,pl,ple,plk
      *     ,airm,byam,etal,sm,smomij=>smom,qm,qmomij=>qmom
      *     ,tl,aj13
@@ -26,6 +27,7 @@
       USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold,pdsig
       USE SEAICE_COM, only : rsi
       USE GHYCOM, only : snoage
+      USE FLUXES, only : prec,eprec,precss
 
       IMPLICIT NONE
 
@@ -107,7 +109,7 @@ C**** SURROUNDING WINDS
 
 C**** SET PRECIPITATION AND LATENT HEAT
       PREC(I,J)=0.
-      TPREC(I,J)=T(I,J,1)*PK(1,I,J)-TF
+      TPRCP=T(I,J,1)*PK(1,I,J)-TF
 
 C**** MOIST CONVECTION
       CALL MSTCNV
@@ -191,7 +193,6 @@ C**** TOTAL PRECIPITATION AND AGE OF SNOW
       PRCP=PREC(I,J)
       PRECSS(I,J)=PRCPSS*100.*BYGRAV
 C**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
-      TPRCP=TPREC(I,J)
       IF (TPRCP.GE.0.) THEN
 C       EPRCP=PRCP*TPRCP*SHW
         EPRCP=0.
@@ -202,14 +203,13 @@ C       EPRCP=PRCP*TPRCP*SHI
         ENRGP=EPRCP-PRCP*LHM
         AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCP
       END IF
-      EPREC(1,I,J)=EPRCP  ! assuming liquid water
-      EPREC(2,I,J)=ENRGP  ! including latent heat
+      EPREC(I,J)=ENRGP  ! energy of precipitation
 C**** PRECIPITATION DIAGNOSTICS
         AREG(JR,J_EPRCP)=AREG(JR,J_EPRCP)+ENRGP*DXYP(J)
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
 
-      IF(TPREC(I,J).LT.0.) THEN ! MODIFY SNOW AGES AFTER SNOW FALL
+      IF(TPRCP.LT.0.) THEN ! MODIFY SNOW AGES AFTER SNOW FALL
         DO ITYPE=1,3
           SNOAGE(ITYPE,I,J)=SNOAGE(ITYPE,I,J)*EXP(-PRCP)
         END DO

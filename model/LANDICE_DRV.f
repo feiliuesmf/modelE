@@ -10,8 +10,7 @@
 !@calls PRECLI
       USE E001M12_COM, only : im,jm,flice
       USE GEOM, only : imaxj,dxyp
-      USE CLD01_COM_E001, only : prec,tprec,eprec
-      USE FLUXES, only : runoli
+      USE FLUXES, only : runoli,prec,eprec
       USE LANDICE_COM, only : snowli,tlandi
       USE LANDICE, only : precli
       USE DAGCOM, only : bj,areg,aij,jreg,
@@ -19,8 +18,7 @@
      *     ,j_run1,j_edifs,j_erun2,j_imelt
       IMPLICIT NONE
 
-      REAL*8 SNOW,TG1,TG2,PRCP,EPRCP,ENRGP,TPRCP,EDIFS,DIFS,ERUN2,RUN0
-     *     ,PLICE,DXYPJ
+      REAL*8 SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0,PLICE,DXYPJ
       INTEGER I,J,IMAX,JR
 
       DO J=1,JM
@@ -33,16 +31,14 @@
       RUNOLI(I,J)=0
       IF (PLICE.gt.0) THEN
         
-        TPRCP=TPREC(I,J)
-        EPRCP=EPREC(1,I,J)      ! assuming liquid water
-        ENRGP=EPREC(2,I,J)      ! including latent heat
+        ENRGP=EPREC(I,J)      ! energy of precipitation
         SNOW=SNOWLI(I,J)
         TG1=TLANDI(1,I,J)
         TG2=TLANDI(2,I,J)
         BJ(J,J_EPRCP)=BJ(J,J_EPRCP)+ENRGP*PLICE
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP
         
-        CALL PRECLI(SNOW,TG1,TG2,PRCP,EPRCP,TPRCP,EDIFS,DIFS,ERUN2,RUN0)
+        CALL PRECLI(SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0)
         
 C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         SNOWLI(I,J)=SNOW

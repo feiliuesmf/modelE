@@ -7,14 +7,13 @@ C**** Using 5 harmonics for horizontal ocean heat transport, thinner ice
 C**** Routines included:   COSZ0, RADIA, DRYCNV, SDRAG
 *****
       SUBROUTINE COSZ0
-C****
-C**** calculates the Earth's zenith angle, weighted either
-C**** by time or by sun light.
-C****
+!@sum  COSZ0 calculates Earth's zenith angle, weighted by time/sunlight
+!@auth Original Development Team
+!@ver  1.0
       USE CONSTANT, only : twopi
       USE E001M12_COM
-      USE GEOM, only : DLAT,DLON
-      USE RADNCB, only : COSD,SIND
+      USE GEOM, only : dlat,dlon
+      USE RADNCB, only : cosd,sind
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM) :: LT1,LT2,SLT1,SLT2,S2LT1,S2LT2
@@ -24,8 +23,7 @@ C****
       COMMON/WORK5/LT1,LT2,SLT1,SLT2,S2LT1,S2LT2
 C**** ZERO1 HAS TO EQUAL THE CUT-OFF VALUE FOR COSZ USED IN SOLAR
 C**** COSZS WORKS CORRECTLY ONLY IF ZERO1 >> 1.D-3
-      REAL*8 ZERO1
-      DATA ZERO1/1.D-2/
+      REAL*8, PARAMETER :: ZERO1=1.D-2
       INTEGER I,J,L
       REAL*8 PHIS,PSHIS,CPHIS,SPHIS,PHIN,SPHIN,CPHIN,PHIM,S2DAWN,S2DUSK
      *     ,ECOSZ,ECOSQZ,CLT1,CLT2,ZERO2,CDUSK,DUSK,DAWN,SDUSK,SDAWN
@@ -35,16 +33,17 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       PHIS=-.25*TWOPI
       SPHIS=-1.
       CPHIS=0.
-      DO 20 J=1,JM-1
-      PHIN=DLAT*(J-.5*JM)
-      SPHIN=SIN(PHIN)
-      CPHIN=COS(PHIN)
-      PHIM=(PHIN*SPHIN+CPHIN-PHIS*SPHIS-CPHIS)/(SPHIN-SPHIS)
-      SINJ(J)=SIN(PHIM)
-      COSJ(J)=COS(PHIM)
-      PHIS=PHIN
-      SPHIS=SPHIN
-   20 CPHIS=CPHIN
+      DO J=1,JM-1
+        PHIN=DLAT*(J-.5*JM)
+        SPHIN=SIN(PHIN)
+        CPHIN=COS(PHIN)
+        PHIM=(PHIN*SPHIN+CPHIN-PHIS*SPHIS-CPHIS)/(SPHIN-SPHIS)
+        SINJ(J)=SIN(PHIM)
+        COSJ(J)=COS(PHIM)
+        PHIS=PHIN
+        SPHIS=SPHIN
+        CPHIS=CPHIN
+      END DO
       PHIN=.25*TWOPI
       SPHIN=1.
       CPHIN=0.
@@ -52,10 +51,11 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       SINJ(JM)=SIN(PHIM)
       COSJ(JM)=COS(PHIM)
 C**** COMPUTE THE SINES AND COSINES OF LONGITUDE
-      DO 40 I=1,IM
-      RI(I)=DLON*(I-.5)
-      SINI(I)=SIN(RI(I))
-   40 COSI(I)=COS(RI(I))
+      DO I=1,IM
+        RI(I)=DLON*(I-.5)
+        SINI(I)=SIN(RI(I))
+        COSI(I)=COS(RI(I))
+      END DO
       RETURN
 C****
 C****
@@ -68,46 +68,49 @@ C**** ROT1+2*PI.  I=1 MUST LIE ON THE INTERNATIONAL DATE LINE.
 C****
       DROT=ROT2-ROT1
 C**** COMPUTE THE SINES AND COSINES OF THE INITIAL AND FINAL GMT'S
-  100 SR1=SIN(ROT1)
+      SR1=SIN(ROT1)
       CR1=COS(ROT1)
       SR2=SIN(ROT2)
       CR2=COS(ROT2)
 C**** COMPUTE THE INITIAL AND FINAL LOCAL TIMES (MEASURED FROM NOON TO
 C****   NOON) AND THEIR SINES AND COSINES
-      DO 120 I=1,IM
-      LT1(I)=ROT1+RI(I)
-      SLT1(I)=SR1*COSI(I)+CR1*SINI(I)
-      LT2(I)=ROT2+RI(I)
-  120 SLT2(I)=SR2*COSI(I)+CR2*SINI(I)
+      DO I=1,IM
+        LT1(I)=ROT1+RI(I)
+        SLT1(I)=SR1*COSI(I)+CR1*SINI(I)
+        LT2(I)=ROT2+RI(I)
+        SLT2(I)=SR2*COSI(I)+CR2*SINI(I)
+      END DO
 C****
 C**** CALCULATION FOR POLAR GRID BOXES
 C****
-      DO 200 J=1,JM,JM-1
-      SJSD=SINJ(J)*SIND
-      CJCD=COSJ(J)*COSD
-      IF (SJSD+CJCD.LE.ZERO1) GO TO 180
-      IF (SJSD-CJCD.GE.0.) GO TO 160
+      DO J=1,JM,JM-1
+        SJSD=SINJ(J)*SIND
+        CJCD=COSJ(J)*COSD
+        IF (SJSD+CJCD.GT.ZERO1) THEN
+          IF (SJSD-CJCD.LT.0.) THEN
 C**** AVERAGE COSZ FROM DAWN TO DUSK NEAR THE POLES
-      DUSK=ACOS(-SJSD/CJCD)
-      SDUSK=SQRT(CJCD*CJCD-SJSD*SJSD)/CJCD
-      DAWN=-DUSK
-      SDAWN=-SDUSK
-      COSZ(1,J)=(SJSD*(DUSK-DAWN)+CJCD*(SDUSK-SDAWN))/TWOPI
-      GO TO 200
+            DUSK=ACOS(-SJSD/CJCD)
+            SDUSK=SQRT(CJCD*CJCD-SJSD*SJSD)/CJCD
+            DAWN=-DUSK
+            SDAWN=-SDUSK
+            COSZ(1,J)=(SJSD*(DUSK-DAWN)+CJCD*(SDUSK-SDAWN))/TWOPI
+          ELSE
 C**** CONSTANT DAYLIGHT NEAR THE POLES
-  160 COSZ(1,J)=SJSD
-      GO TO 200
+            COSZ(1,J)=SJSD
+          END IF
+        ELSE
 C**** CONSTANT NIGHTIME NEAR THE POLES
-  180 COSZ(1,J)=0.
-  200 CONTINUE
+          COSZ(1,J)=0.
+        END IF
+      END DO
 C****
 C**** LOOP OVER NON-POLAR LATITUDES
 C****
       DO 500 J=2,JM-1
       SJSD=SINJ(J)*SIND
       CJCD=COSJ(J)*COSD
-      IF (SJSD+CJCD.LE.ZERO1) GO TO 460
-      IF (SJSD-CJCD.GE.0.) GO TO 420
+      IF (SJSD+CJCD.GT.ZERO1) THEN
+      IF (SJSD-CJCD.LT.0.) THEN
 C**** COMPUTE DAWN AND DUSK (AT LOCAL TIME) AND THEIR SINES
       DUSK=ACOS(-SJSD/CJCD)
       SDUSK=SQRT(CJCD*CJCD-SJSD*SJSD)/CJCD
@@ -145,14 +148,16 @@ C**** NIGHT AT INITIAL TIME AND DAYLIGHT AT FINAL TIME
 C**** NIGHTIME AT INITIAL AND FINAL TIMES WITH DAYLIGHT IN BETWEEN
   320 COSZ(I,J)=(SJSD*(DUSK-DAWN)+CJCD*(SDUSK-SDAWN))/DROT
   400 CONTINUE
-      GO TO 500
+      ELSE
 C**** CONSTANT DAYLIGHT AT THIS LATITUDE
-  420 DO 440 I=1,IM
-  440 COSZ(I,J)=SJSD+CJCD*(SLT2(I)-SLT1(I))/DROT
-      GO TO 500
+        DO I=1,IM
+          COSZ(I,J)=SJSD+CJCD*(SLT2(I)-SLT1(I))/DROT
+        END DO
+      END IF
+      ELSE
 C**** CONSTANT NIGHTIME AT THIS LATITUDE
-  460 DO 480 I=1,IM
-  480 COSZ(I,J)=0.
+        COSZ(1:IM,J)=0.
+      END IF
   500 CONTINUE
       RETURN
 C****
@@ -172,55 +177,58 @@ C**** COMPUTE THE SINES AND COSINES OF THE INITIAL AND FINAL GMT'S
       CR2=COS(ROT2)
 C**** COMPUTE THE INITIAL AND FINAL LOCAL TIMES (MEASURED FROM NOON TO
 C****   NOON) AND THEIR SINES AND COSINES
-      DO 520 I=1,IM
-      LT1(I)=ROT1+RI(I)
-      SLT1(I)=SR1*COSI(I)+CR1*SINI(I)
-      CLT1=CR1*COSI(I)-SR1*SINI(I)
-      S2LT1(I)=2.*SLT1(I)*CLT1
-      LT2(I)=ROT2+RI(I)
-      SLT2(I)=SR2*COSI(I)+CR2*SINI(I)
-      CLT2=CR2*COSI(I)-SR2*SINI(I)
-  520 S2LT2(I)=2.*SLT2(I)*CLT2
+      DO I=1,IM
+        LT1(I)=ROT1+RI(I)
+        SLT1(I)=SR1*COSI(I)+CR1*SINI(I)
+        CLT1=CR1*COSI(I)-SR1*SINI(I)
+        S2LT1(I)=2.*SLT1(I)*CLT1
+        LT2(I)=ROT2+RI(I)
+        SLT2(I)=SR2*COSI(I)+CR2*SINI(I)
+        CLT2=CR2*COSI(I)-SR2*SINI(I)
+        S2LT2(I)=2.*SLT2(I)*CLT2
+      END DO
 C****
 C**** CALCULATION FOR POLAR GRID BOXES
 C****
-      DO 600 J=1,JM,JM-1
-      SJSD=SINJ(J)*SIND
-      CJCD=COSJ(J)*COSD
-      IF (SJSD+CJCD.LE.ZERO1) GO TO 580
-      IF (SJSD-CJCD.GE.0.) GO TO 560
+      DO J=1,JM,JM-1
+        SJSD=SINJ(J)*SIND
+        CJCD=COSJ(J)*COSD
+        IF (SJSD+CJCD.GT.ZERO1) THEN
+          IF (SJSD-CJCD.LT.0.) THEN
 C**** AVERAGE COSZ FROM DAWN TO DUSK NEAR THE POLES
-      CDUSK=-SJSD/CJCD
-      DUSK=ACOS(CDUSK)
-      SDUSK=SQRT(CJCD*CJCD-SJSD*SJSD)/CJCD
-      S2DUSK=2.*SDUSK*CDUSK
-      DAWN=-DUSK
-      SDAWN=-SDUSK
-      S2DAWN=-S2DUSK
-      ECOSZ=SJSD*(DUSK-DAWN)+CJCD*(SDUSK-SDAWN)
-      ECOSQZ=SJSD*ECOSZ+CJCD*(SJSD*(SDUSK-SDAWN)+
-     *  .5*CJCD*(DUSK-DAWN+.5*(S2DUSK-S2DAWN)))
-      COSZ(1,J)=ECOSZ/TWOPI
-      COSZA(1,J)=ECOSQZ/ECOSZ
-      GO TO 600
+            CDUSK=-SJSD/CJCD
+            DUSK=ACOS(CDUSK)
+            SDUSK=SQRT(CJCD*CJCD-SJSD*SJSD)/CJCD
+            S2DUSK=2.*SDUSK*CDUSK
+            DAWN=-DUSK
+            SDAWN=-SDUSK
+            S2DAWN=-S2DUSK
+            ECOSZ=SJSD*(DUSK-DAWN)+CJCD*(SDUSK-SDAWN)
+            ECOSQZ=SJSD*ECOSZ+CJCD*(SJSD*(SDUSK-SDAWN)+
+     *           .5*CJCD*(DUSK-DAWN+.5*(S2DUSK-S2DAWN)))
+            COSZ(1,J)=ECOSZ/TWOPI
+            COSZA(1,J)=ECOSQZ/ECOSZ
+          ELSE
 C**** CONSTANT DAYLIGHT NEAR THE POLES
-  560 ECOSZ=SJSD*TWOPI
-      ECOSQZ=SJSD*ECOSZ+.5*CJCD*CJCD*TWOPI
-      COSZ(1,J)=ECOSZ/TWOPI
-      COSZA(1,J)=ECOSQZ/ECOSZ
-      GO TO 600
+            ECOSZ=SJSD*TWOPI
+            ECOSQZ=SJSD*ECOSZ+.5*CJCD*CJCD*TWOPI
+            COSZ(1,J)=ECOSZ/TWOPI
+            COSZA(1,J)=ECOSQZ/ECOSZ
+          END IF
+        ELSE
 C**** CONSTANT NIGHTIME NEAR THE POLES
-  580 COSZ(1,J)=0.
-      COSZA(1,J)=0.
-  600 CONTINUE
+          COSZ(1,J)=0.
+          COSZA(1,J)=0.
+        END IF
+      END DO
 C****
 C**** LOOP OVER NON-POLAR LATITUDES
 C****
       DO 900 J=2,JM-1
       SJSD=SINJ(J)*SIND
       CJCD=COSJ(J)*COSD
-      IF (SJSD+CJCD.LE.ZERO1) GO TO 860
-      IF (SJSD-CJCD.GE.0.) GO TO 820
+      IF (SJSD+CJCD.GT.ZERO1) THEN
+      IF (SJSD-CJCD.LT.0.) THEN
 C**** COMPUTE DAWN AND DUSK (AT LOCAL TIME) AND THEIR SINES
       CDUSK=-SJSD/CJCD
       DUSK=ACOS(CDUSK)
@@ -268,34 +276,37 @@ C**** DAYLIGHT AT INITIAL AND FINAL TIMES WITH NIGHTIME IN BETWEEN
       COSZ(I,J)=ECOSZ/DROT
       COSZA(I,J)=ECOSQZ/ECOSZ
       GO TO 800
-  700 IF (DUSK.LT.LT2(I)) GO TO 720
+  700 IF (DUSK.GE.LT2(I)) THEN
 C**** NIGHT AT INITIAL TIME AND DAYLIGHT AT FINAL TIME
-      ECOSZ=SJSD*(LT2(I)-DAWN)+CJCD*(SLT2(I)-SDAWN)
-      ECOSQZ=SJSD*ECOSZ+CJCD*(SJSD*(SLT2(I)-SDAWN)+
-     *  .5*CJCD*(LT2(I)-DAWN+.5*(S2LT2(I)-S2DAWN)))
-      COSZ(I,J)=ECOSZ/DROT
-      COSZA(I,J)=ECOSQZ/ECOSZ
-      GO TO 800
+        ECOSZ=SJSD*(LT2(I)-DAWN)+CJCD*(SLT2(I)-SDAWN)
+        ECOSQZ=SJSD*ECOSZ+CJCD*(SJSD*(SLT2(I)-SDAWN)+
+     *       .5*CJCD*(LT2(I)-DAWN+.5*(S2LT2(I)-S2DAWN)))
+        COSZ(I,J)=ECOSZ/DROT
+        COSZA(I,J)=ECOSQZ/ECOSZ
+      ELSE
 C**** NIGHTIME AT INITIAL AND FINAL TIMES WITH DAYLIGHT IN BETWEEN
-  720 ECOSZ=SJSD*(DUSK-DAWN)+CJCD*(SDUSK-SDAWN)
-      ECOSQZ=SJSD*ECOSZ+CJCD*(SJSD*(SDUSK-SDAWN)+
-     *  .5*CJCD*(DUSK-DAWN+.5*(S2DUSK-S2DAWN)))
-      COSZ(I,J)=ECOSZ/DROT
-      COSZA(I,J)=ECOSQZ/ECOSZ
+        ECOSZ=SJSD*(DUSK-DAWN)+CJCD*(SDUSK-SDAWN)
+        ECOSQZ=SJSD*ECOSZ+CJCD*(SJSD*(SDUSK-SDAWN)+
+     *       .5*CJCD*(DUSK-DAWN+.5*(S2DUSK-S2DAWN)))
+        COSZ(I,J)=ECOSZ/DROT
+        COSZA(I,J)=ECOSQZ/ECOSZ
+      END IF
   800 CONTINUE
-      GO TO 900
+      ELSE
 C**** CONSTANT DAYLIGHT AT THIS LATITUDE
-  820 DO 840 I=1,IM
-      ECOSZ=SJSD*DROT+CJCD*(SLT2(I)-SLT1(I))
-      ECOSQZ=SJSD*ECOSZ+CJCD*(SJSD*(SLT2(I)-SLT1(I))+
-     *  .5*CJCD*(DROT+.5*(S2LT2(I)-S2LT1(I))))
-      COSZ(I,J)=ECOSZ/DROT
-  840 COSZA(I,J)=ECOSQZ/ECOSZ
-      GO TO 900
+        DO I=1,IM
+          ECOSZ=SJSD*DROT+CJCD*(SLT2(I)-SLT1(I))
+          ECOSQZ=SJSD*ECOSZ+CJCD*(SJSD*(SLT2(I)-SLT1(I))+
+     *         .5*CJCD*(DROT+.5*(S2LT2(I)-S2LT1(I))))
+          COSZ(I,J)=ECOSZ/DROT
+          COSZA(I,J)=ECOSQZ/ECOSZ
+        END DO
+      END IF
 C**** CONSTANT NIGHTIME AT THIS LATITUDE
-  860 DO 880 I=1,IM
-      COSZ(I,J)=0.
-  880 COSZA(I,J)=0.
+      ELSE
+        COSZ(1:IM,J)=0.
+        COSZA(1:IM,J)=0.
+      END IF
   900 CONTINUE
       RETURN
       END
@@ -341,6 +352,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig
       USE OCEAN, only : tocean
+      USE LAKES_COM, only : tlake
       USE SEAICE_COM, only : rsi,snowi,tsi
       USE GHYCOM, only : snowe_com=>snowe,snoage,tearth,
      *     wearth_com=>wearth,aiearth
@@ -398,7 +410,7 @@ C**** VDATA  1-11 RATIOS FOR THE 11 VEGETATION TYPES (1)
 C****
       REAL*8 QSAT
       IF (MODRD.EQ.0) IDACC(2)=IDACC(2)+1
-      IF (IFIRST.NE.1) GO TO 50
+      IF (IFIRST.EQ.1) THEN
       IFIRST=0
       CALL COSZ0
 C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
@@ -445,7 +457,6 @@ C**** set up unit numbers for 14 radiation input files
       CO2REF=FULGAS(2)
       IF(CO2.GE.0.) FULGAS(2)=CO2REF*CO2
          CALL WRITER (6,0)
-c         JEQ=1+JM/2
          J50N=(50.+90.)*(JM-1)/180.+1.5
          J70N=(70.+90.)*(JM-1)/180.+1.5
 C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
@@ -464,8 +475,8 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
          WRITE (6,47) LLOW,LMID1,LMID,LHI1,LHI
    47    FORMAT (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN',
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
+      END IF
 C**** Calculate mean cosine of zenith angle for the current physics step
-   50 CONTINUE
       ROT1=(TWOPI*MOD(ITIME,NDAY))/NDAY  ! MOD(ITIME,NDAY)*TWOPI/NDAY ??
       ROT2=ROT1+TWOPI*DTsrc/SDAY
       CALL COSZT (ROT1,ROT2,COSZ1)
@@ -654,7 +665,11 @@ C****
         TL(LM+K)=RQT(K,I,J)
       END DO
       COSZ=COSZA(I,J)
-      TGO =TOCEAN(1,I,J)+TF
+      IF (FOCEAN(I,J).gt.0) THEN
+        TGO =TOCEAN(1,I,J)+TF
+      ELSE
+        TGO =TLAKE(I,J)+TF
+      END IF
       TGOI=TSI   (1,I,J)+TF
       TGLI=TLANDI(1,I,J)+TF
       TGE =TEARTH(  I,J)+TF
@@ -897,11 +912,7 @@ C****
 C**** LOAD U,V INTO UT,VT.  UT,VT WILL BE FIXED DURING DRY CONVECTION
 C****   WHILE U,V WILL BE UPDATED.
 
-      DO 50 L=1,LM
-      DO 50 J=2,JM
-      DO 50 I=1,IM
-      UT(I,J,L)=U(I,J,L)
-   50 VT(I,J,L)=V(I,J,L)
+      UT=U ; VT=V
 C**** OUTSIDE LOOPS OVER J AND I
       JLOOP: DO J=1,JM
       POLE=.FALSE.
@@ -966,7 +977,7 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       RDP=1./(PIJBOT*SIGE(LMIN)-PIJ*SIGE(LMAX+1))
       THM=THPKMS/PKMS
       QMS=QMS*RDP
-      DO 180 L=LMIN,LMAX
+      DO L=LMIN,LMAX
          AJL(J,L,12)=AJL(J,L,12)+(THM-T(I,J,L))*PK(L,I,J)*PLIJ(L,I,J)
          AJL(J,L,55)=AJL(J,L,55)+(QMS-Q(I,J,L))*PDSIG(L,I,J)*LHE/SHA
       T(I,J,L)=THM
@@ -975,7 +986,7 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       Q(I,J,L)=QMS
       QMOM(XYMOMS,I,J,L)=QMOMS(XYMOMS)*RDP
       QMOM(ZMOMS,I,J,L)=0.
-  180 CONTINUE
+      END DO
 C**** MIX MOMENTUM THROUGHOUT UNSTABLE LAYERS
       UMS(1:KMAX)=0.
       VMS(1:KMAX)=0.
@@ -1009,48 +1020,51 @@ C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
       RETURN
       END
 
-      SUBROUTINE SDRAG(DT1) 
-C****
-C**** THIS SUBROUTINE PUTS A DRAG ON THE WINDS ON THE TOP LAYER OF
-C**** THE ATMOSPHERE
-C****
+      SUBROUTINE SDRAG(LMIN,DT1)
+!@sum  SDRAG puts a drag on the winds on the top layers of atmosphere
+!@auth Original Development Team
+!@ver  1.0
       USE CONSTANT, only : grav,rgas
       USE E001M12_COM, only : im,jm,lm,psfmpt,u,v,sige,ptop,t,xcdlm
      *     ,bydsig,itime
-c      USE GEOM
       USE DAGCOM, only : aij, ij_wlm,ajl,ij_sdrag
       USE DYNAMICS, only : pk
       IMPLICIT NONE
 
-      INTEGER I,J,IP1,L
-      REAL*8 PIJU,WL,RHO,CDN,X,BYPIJU
 !@var DT1 time step (s)
       REAL*8, INTENT(IN) :: DT1
+!@var LMIN lowest level at which SDRAG is applied
+      INTEGER, INTENT(IN) :: LMIN
+      REAL*8 WL,RHO,CDN,X,PIJU,BYPIJU
+      INTEGER I,J,IP1,L
 
       PIJU = PSFMPT
       BYPIJU=1./PSFMPT
-      DO L=LM,LM
-      DO 100 J=2,JM
+
+      DO L=LMIN,LM
+      DO J=2,JM
       I=IM
-      DO 100 IP1=1,IM
-      WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
-      RHO=(PIJU*SIGE(L+1)+PTOP)/(RGAS*T(I,J,L)*PK(L,I,J))
-      CDN=XCDLM(1)+XCDLM(2)*WL
-         AIJ(I,J,IJ_WLM)=AIJ(I,J,IJ_WLM)+WL
-      X=DT1*RHO*CDN*WL*GRAV*BYDSIG(L)*BYPIJU
-      IF(X.GT.1) THEN
-        write(99,*) 'SDRAG: ITime,I,J,PIJU,X,RHO,CDN,U(I,J,L),V(I,J,L)',
-     *   ITime,I,J,PIJU,X,RHO,CDN,U(I,J,L),V(I,J,L),
-     *   ' If problem persists, winds are too high! ',
-     *   'Try setting XCDLM smaller.'
-        X=1.
-      END IF
-         AJL(J,L,52) = AJL(J,L,52)-U(I,J,L)*X
-c        IF(L.EQ.LM) AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
-         AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
-      U(I,J,L)=U(I,J,L)*(1.-X)
-      V(I,J,L)=V(I,J,L)*(1.-X)
-  100 I=IP1
+      DO IP1=1,IM
+        WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
+        RHO=(PIJU*SIGE(L+1)+PTOP)/(RGAS*T(I,J,L)*PK(L,I,J))
+        CDN=XCDLM(1)+XCDLM(2)*WL
+        AIJ(I,J,IJ_WLM)=AIJ(I,J,IJ_WLM)+WL
+        X=DT1*RHO*CDN*WL*GRAV*BYDSIG(L)*BYPIJU
+        IF(X.GT.1) THEN
+          write(99,*)'SDRAG: ITime,I,J,PIJU,X,RHO,CDN,U,V'
+     *         ,ITime,I,J,PIJU,X,RHO,CDN,U(I,J,L),V(I,J,L)
+     *         ,' If problem persists, winds are too high! '
+     *         ,'Try setting XCDLM smaller.'
+          X=1.
+        END IF
+        AJL(J,L,52) = AJL(J,L,52)-U(I,J,L)*X
+c     IF(L.EQ.LM) AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
+        AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
+        U(I,J,L)=U(I,J,L)*(1.-X)
+        V(I,J,L)=V(I,J,L)*(1.-X)
+        I=IP1
+      END DO
+      END DO
       END DO
       RETURN
       END

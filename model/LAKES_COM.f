@@ -13,9 +13,9 @@
 !@var TLAKE temperature of lake (C)
       REAL*8, DIMENSION(IM,JM) :: TLAKE 
 !@var TFL freezing temperature for lakes (=0 C)
-      REAL*8, PARAMETER :: TFL = 0
+      REAL*8, PARAMETER :: TFL = 0.
 !@var FLEADLK lead fraction for lakes
-      REAL*8, PARAMETER :: FLEADLK=.05d0   ! = 0?
+      REAL*8, PARAMETER :: FLEADLK = 0.
 !@var T50 50 day mean temperature (used for estimating lake ice cover)
       REAL*8, SAVE,DIMENSION(IM,JM) :: T50
 

@@ -15,8 +15,6 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 !@var RATE rate of river flow downslope (m/s)
 !@var DHORZ horizontal distance to downstream box (m)
       REAL*8, DIMENSION(IM,JM) :: RATE,DHORZ
-!@var FLOWO,EFLOWO runoff and energy of runoff into ocean
-      REAL*8, DIMENSION(IM,JM) :: FLOWO,EFLOWO
 
       END MODULE LAKES
 
@@ -43,7 +41,7 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 C****
 C**** LAKECB  MWL      Mass of water in lake (kg)
 C****         GML      Liquid lake enthalpy (J)
-C****         TLAKE      Temperature of lake surface (C)
+C****         TLAKE    Temperature of lake surface (C)
 C****         RLI      Horizontal ratio of lake ice to lake (1)
 C****         MLI      Mass of sea ice (kg/m**2)
 C****         HLI      Heat including latent of sea ice (J/m**2)
@@ -176,12 +174,12 @@ C****
       END DO
 C****
 C**** Set runoff temperature of glacial ice to be 0 (C)
-C****
-      DO J=1,JM
-        DO I=1,IM
-          IF(FLICE(I,J).GT.0.)  TLAKE(I,J) = 0
-        END DO
-      END DO
+C**** Is this necessary? ERUN0==0 already from FLICE
+c      DO J=1,JM
+c        DO I=1,IM
+c          IF(FLICE(I,J).GT.0.)  TLAKE(I,J) = 0
+c        END DO
+c      END DO
 
       RETURN
 C****
@@ -203,6 +201,7 @@ C****
       USE GEOM, only : dxyp
       USE LAKES
       USE LAKES_COM
+      USE FLUXES, only : flowo,eflowo
       USE DAGCOM, only : aij,ij_ervr,ij_mrvr
 
       IMPLICIT NONE
@@ -233,8 +232,8 @@ C**** Only overflow if lake mass is above sill height (HLAKE (m))
             MWLSILL = RHOW*HLAKE(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
             IF(MWL(IU,JU).gt.MWLSILL) THEN
               DMM = (MWL(IU,JU)-MWLSILL)*RATE(IU,JU)
-C             DGM = GML(IU,JU)*DMM/MWL(IU,JU)
-              DGM = TLAKE(IU,JU)*DMM*SHW
+C             DGM = GML(IU,JU)*DMM/MWL(IU,JU)   ! if well mixed 
+              DGM = TLAKE(IU,JU)*DMM*SHW        ! surface only flow
               FLOW(IU,JU) =  FLOW(IU,JU) - DMM
               EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
               AIJ(IU,JU,IJ_MRVR)=AIJ(IU,JU,IJ_MRVR) +  DMM
@@ -402,14 +401,13 @@ c     QCHECKL = .TRUE.
 !@auth Original Development team
 !@ver  1.0
       USE CONSTANT, only : rhow,shw
-      USE E001M12_COM, only : im,jm,fland,flice,flake,kocean
+      USE E001M12_COM, only : im,jm,fland,flice,flake,kocean,hlake
       USE GEOM, only : imaxj,dxyp
-      USE CLD01_COM_E001, only : prec,tprec,eprec
-      USE FLUXES, only : runosi,runoli
-      USE OCEAN, only : oa,tocean,z1o
+      USE FLUXES, only : runosi,runoli,prec,eprec
+c      USE OCEAN, only : oa
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
-      USE LAKES_COM, only : mwl,gml
+      USE LAKES_COM, only : mwl,gml,tlake
       USE DAGCOM, only : aj,cj,aij,j_eprcp,ij_f0oc,j_run2,j_dwtr2
       IMPLICIT NONE
 
@@ -426,11 +424,11 @@ c     QCHECKL = .TRUE.
       PLICE=FLICE(I,J)
       ROICE=RSI(I,J)
       PRCP=PREC(I,J)
-      ENRGP=EPREC(2,I,J)        ! including latent heat
+      ENRGP=EPREC(I,J)        ! energy of precipitation
       IF (FLAKE(I,J)+FLICE(I,J).gt.0) THEN
 
         IF (FLAKE(I,J).gt.0) THEN
-          OA(I,J,4)=OA(I,J,4)+ENRGP
+c          OA(I,J,4)=OA(I,J,4)+ENRGP  ! not needed
           AJ(J,J_EPRCP)=AJ(J,J_EPRCP)+ENRGP*POLAKE
           AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+ENRGP*POLAKE
         END IF
@@ -443,8 +441,8 @@ c     QCHECKL = .TRUE.
 
 C**** This is here for continuity only
         IF (FLAKE(I,J).gt.0 .and. KOCEAN .EQ. 1) THEN
-          TGW=TOCEAN(1,I,J)
-          WTRO=Z1O(I,J)*RHOW
+          TGW=TLAKE(I,J)
+          WTRO=HLAKE(I,J)*RHOW   != MLD
           RUN0=RUNOSI(I,J)
           SNOW=SNOWI(I,J)
           SMSI=MSI(I,J)+ACE1I+SNOW
@@ -460,7 +458,7 @@ C**** This is here for continuity only
             WTRW =WTRW0+ROICE*(RUN0-RUN4)
           END IF
           TGW=ENRGW/(WTRW*SHW)
-          TOCEAN(1,I,J)=TGW
+          TLAKE(I,J)=TGW
           AJ(J,J_RUN2) =AJ(J,J_RUN2) +RUN4 *POLAKE
           AJ(J,J_DWTR2)=AJ(J,J_DWTR2)+ERUN4*POLAKE
           CJ(J,J_RUN2) =CJ(J,J_RUN2) +RUN4 *PLKICE
@@ -479,18 +477,18 @@ C****
 !@ver  1.0
 !@calls 
       USE CONSTANT, only : twopi,rhow,shw,edpery
-      USE E001M12_COM, only : im,jm,flake,flice,kocean,fland
+      USE E001M12_COM, only : im,jm,flake,flice,kocean,fland,hlake
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi, erunosi, e0,e1,evapor, dmsi,dhsi,
      *     runoli
-      USE OCEAN, only : oa,tocean,z1o,tfo,osourc
+      USE OCEAN, only : osourc
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
       USE PBLCOM, only : tsavg
       USE DAGCOM, only : aj,cj,aij,areg,jreg,j_eprcp,ij_f0oc,j_run2
      *     ,j_dwtr2,j_tg1,j_tg2,j_evap,j_oht,j_omlt,j_erun2,j_imelt
      *     ,ij_tgo,ij_tg1,ij_evap,ij_evapo
-      USE LAKES_COM, only : mwl,gml,t50
+      USE LAKES_COM, only : mwl,gml,t50,tlake,tfl
       IMPLICIT NONE
       REAL*8 TGW, PRCP, WTRO, ENRGP, ERUN4, ENRGO, POLAKE,PLKICE
      *     ,SMSI,ENGRW,WTRW0,WTRW,RUN0,RUN4,DXYPJ,ENRGW,ROICE,EVAP,EVAPI
@@ -519,7 +517,7 @@ C****
 
       IF (FLAKE(I,J).gt.0) THEN
 
-        TGW  =TOCEAN(1,I,J)
+        TGW  =TLAKE(I,J)
         EVAP =EVAPOR(I,J,1)
         EVAPI=EVAPOR(I,J,2) ! evaporation/dew at the ice surface (kg/m^2)
         SMSI =MSI(I,J)+ACE1I+SNOWI(I,J)
@@ -540,18 +538,18 @@ C**** get ice-ocean fluxes from sea ice routine
         GML(I,J) = GML(I,J) + E0(I,J,1)*POLAKE*DXYPJ
 
         IF (KOCEAN .EQ. 1) THEN
-          WTRO=Z1O(I,J)*RHOW
+          WTRO=HLAKE(I,J)*RHOW  !should be MWL?
           F0DT=E0(I,J,1)
 
           RUN4=-EVAP
           ERUN4=RUN4*TGW*SHW
           ENRGO=F0DT-ERUN4
-C**** Open Ocean diagnostics 
-          AJ(J,J_TG2)  =AJ(J,J_TG2)  +TOCEAN(2,I,J)*POLAKE
-          AJ(J,J_RUN2) =AJ(J,J_RUN2) +RUN4         *POLAKE
-          AJ(J,J_OMLT) =AJ(J,J_OMLT) +TOCEAN(3,I,J)*POLAKE
-          AJ(J,J_DWTR2)=AJ(J,J_DWTR2)+ERUN4        *POLAKE
-          IF (JR.ne.24) AREG(JR,J_TG2)=AREG(JR,J_TG2)+TOCEAN(2,I,J)
+C**** Open lake diagnostics 
+          AJ(J,J_TG2)  =AJ(J,J_TG2)  +TLAKE(I,J)*POLAKE
+          AJ(J,J_RUN2) =AJ(J,J_RUN2) +RUN4      *POLAKE
+          AJ(J,J_OMLT) =AJ(J,J_OMLT) +TLAKE(I,J)*POLAKE
+          AJ(J,J_DWTR2)=AJ(J,J_DWTR2)+ERUN4     *POLAKE
+          IF (JR.ne.24) AREG(JR,J_TG2)=AREG(JR,J_TG2)+TLAKE(I,J)
      *         *POLAKE*DXYPJ
           AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+F0DT*POLAKE
 
@@ -559,10 +557,10 @@ C**** Open Ocean diagnostics
           ERUN4=TGW*RUN4*SHW
           OTDT=0.
           CALL OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,ENRGO,RUN0,RUN4,EVAPI
-     *         ,ERUN4,ENRGFO,ACEFO,ACE2F,ENRGFI,F2DT,TFO)
+     *         ,ERUN4,ENRGFO,ACEFO,ACE2F,ENRGFI,F2DT,TFL)
 
 C**** Resave prognostic variables
-          TOCEAN(1,I,J)=TGW
+          TLAKE(I,J)=TGW
 C**** Ice-covered ocean diagnostics
           AJ(J,J_ERUN2)=AJ(J,J_ERUN2)-ENRGFO*POLAKE
           AJ(J,J_IMELT)=AJ(J,J_IMELT)-ACEFO *POLAKE
@@ -593,8 +591,4 @@ C**** Store mass and energy fluxes for formation of sea ice
       END DO
       END DO
       END SUBROUTINE GROUND_LK
-
-
-
-
 

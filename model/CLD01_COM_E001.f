@@ -10,14 +10,6 @@ C**** to be able to pass them to INPUT and io_clouds
 
       IMPLICIT NONE
       SAVE
-!@var PREC precipitation (kg/m^2)
-      REAL*8, DIMENSION(IM,JM) :: PREC
-!@var TPREC temperature of preciptiation (C)
-      REAL*8, DIMENSION(IM,JM) :: TPREC
-!@var EPREC energy of preciptiation (J/m^2)
-      REAL*8, DIMENSION(2,IM,JM) :: EPREC
-!@var PRECSS precipitation from super-saturation (kg/m^2)
-      REAL*8, DIMENSION(IM,JM) :: PRECSS
 !@var TTOLD,QTOLD previous potential temperature, humidity
       REAL*8, DIMENSION(LM,IM,JM) :: TTOLD,QTOLD
 !@var SVLHX,SVLAT previous latent heat of evaporation
