@@ -331,7 +331,7 @@ C----------------
       REAL*8 :: zsnwoi,zoice,zmp,fmp,zlake,snow_frac(2)
       REAL*8 :: snoage_fac_max=.5d0
 
-!@var ITRMAX maximum number of optional tracers 
+!@var ITRMAX maximum number of optional tracers
       integer, parameter :: ITRMAX=20
 !@var TRACER array to add up to ITRMAX additional aerosol species
       real*8    :: TRACER(LX,ITRMAX)
@@ -663,7 +663,7 @@ C***  alternate sources to get WSOLAR,FSOLAR:
 C            RADMAD8_RELHUM_AERDATA     (user SETAER,SETREL)    radfileH
 !nu   KRHAER(4) -1/0/1 flag to base aeros.sizes on 70%/0%/model rel.humi
 !nu   integer, dimension(4) :: KRHAER=(/1,1,1,1/) ! SO4,SSalt,NO3,OC
-!@var KRHTRA(ITRMAX) 0/1 to base tracer aeros.sizes on fixed/model rel.humid
+!@var KRHTRA(ITRMAX) 0/1 to make tracer aerosols rel.humid dependent
       integer, dimension(ITRMAX) :: KRHTRA= 1
       real*8 ::
      A               SRHQEX(6,190,4),SRHQSC(6,190,4),SRHQCB( 6,190,4)
@@ -990,12 +990,12 @@ C     GAS  NUMBER         8         9   10        11        12
 C---------------------
 C     Optional Tracers    used via setbak/getbak
 C---------------------
-      integer, dimension(ITRMAX) :: ITR=0
+      integer, dimension(ITRMAX) :: ITR=1
       integer :: NTRACE=0
 
       real*8, dimension(ITRMAX) ::
 C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
-     *  TRRDRY= .1d0 
+     *  TRRDRY= .1d0
 !nu  * ,TRVEFF= .2d0
 !nu  * ,TRADEN= 1.d0
 !loc * ,FSTOPX= 1.d0
