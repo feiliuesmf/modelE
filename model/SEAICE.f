@@ -1041,7 +1041,7 @@ C****
 !@+ -lam_i(Ti,Si)(Ti-Tb)/dh + rho_m shw g_T (Tb-Tm) = -m Lh(Tib,Sib)
 !@+                                                  + m shw (Tib-Tb)(2)
 !@+                           rho_m     g_S (Sb-Sm) =  m (Sib-Sb )   (3)
-!@+  with  Sib=Si, Tib=Ti m>0,  or Sib = fsss Sm, Tib=Tb m<0        (4)
+!@+  with  Sib=Si, Tib=Ti m>0,  or Sib = fsss Sb, Tib=Tb m<0        (4)
 !@+ This routine iteratively solves for m, Tb, Sb and Sib, Tib using
 !@+ Newton's method. The form of the latent heat and conductivity
 !@+ can optionally include salinity effects.

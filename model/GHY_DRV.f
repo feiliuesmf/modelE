@@ -135,14 +135,10 @@ c****
 c****
 c**** fearth    soil covered land fraction (1)
 c****
-c**** snowi     ocean ice snow amount (kg/m**2)
 c**** snowe     earth snow amount (kg/m**2)
-c**** tsi(1:2)  ocean ice temperature of first/second layer (c)
-c****        4  earth temperature of first layer (c)
-c****        5  earth water of first layer (kg/m**2)
-c****        6  earth ice of first layer (kg/m**2)
-c**** snowli      land ice snow amount (kg/m**2)
-c**** tlandi(1:2) land ice temperature of first/second layer (c)
+c**** tearth    earth temperature of first layer (c)
+c**** wearth    earth water of first layer (kg/m**2)
+c**** aiearth   earth ice of first layer (kg/m**2)
 c****
 c**** wbare  1-6 water of bare soil layer 1-6 (m)
 c**** wvege   0  water of vegetation canopy (m)

@@ -981,7 +981,7 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
       END DO
 C****
       RETURN
-      END
+      END SUBROUTINE ADVSI
 
       SUBROUTINE init_icedyn(iniOCEAN)
 !@sum  init_icedyn initializes ice dynamics variables
