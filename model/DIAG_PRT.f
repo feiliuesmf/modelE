@@ -587,7 +587,7 @@ c
       ia_jl(k) = ia_src
       k = k + 1
       jl_vt_lh_e = k
-      sname_jl(k) = 'vt_lh_eddy'        ; jgrid_jl(k) = 1
+      sname_jl(k) = 'vt_lh_eddy1'        ; jgrid_jl(k) = 1
       lname_jl(k) = 'V. TRANSPORT OF LATENT HEAT BY EDDIES'
       units_jl(k) = 'W/m^2'
       scale_jl(k) = 100.*bygrav*xwon*lhe*byim/DTsrc
@@ -1126,7 +1126,7 @@ c    & (100.*XWON*BYIADA*BYGRAV)*DXV(jmby2)/(RHO(J,K)*XWON*FIM*DXYV(J))
       n = jk_Wstar
       SCALET=SCALE_JK(n)
       CALL JLMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
-     &  PME,BX,SCALET,ONES,ONES,KM-1,2,JGRID_JK(n))
+     &  PME,BX,SCALET,ONES,ONES,KM,2,JGRID_JK(n))
 C**** VERTICAL WINDS
       n = JK_VVEL
       SCALET = SCALE_JK(n)/IDACC(IA_JK(n))
@@ -1635,7 +1635,7 @@ C**** output full or approximate version
         n = jk_dudt_econv
         SCALET = scale_jk(n)
         CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_JK(n),POW_JK(n),
-     &       PLM,AX,SCALET,ONES,ONES,KM-1,2,jgrid_jk(n))
+     &       PLM,AX,SCALET,ONES,ONES,KM,2,jgrid_jk(n))
 C**** WIND: TRANSFORMED ADVECTION, LAGRANGIAN CONVERGENCE (DEL.F)
         n = jk_dudttem
         SCALET = SCALE_JK(n)/IDACC(IA_JK(n))
@@ -2480,22 +2480,32 @@ C****
 C****
 C**** TITLES FOR SUBROUTINE DIAG7
 C****
-      COMMON/D7COM/TITLE
-      CHARACTER*66 TITLE(12)
-      DATA TITLE/
-     1'WAVE POWER FOR U NEAR 850 MB AND EQUATOR (DAY*(m/s)^2)    ',
-     2'WAVE POWER FOR V NEAR 850 MB AND EQUATOR (DAY*(m/s)^2)    ',
-     3'WAVE POWER FOR U NEAR 300 MB AND EQUATOR (10 DAY*(m/s)^2) ',
-     4'WAVE POWER FOR V NEAR 300 MB AND EQUATOR (DAY*(m/s)^2)    ',
-     5'WAVE POWER FOR U NEAR 50 MB AND EQUATOR (10 DAY*(m/s)^2)  ',
-     6'WAVE POWER FOR V NEAR 50 MB AND EQUATOR (DAY*(m/s)^2)     ',
-     7'WAVE POWER FOR PHI AT 922 MB AND 50 DEG N. (10**3 DAY*m^2)',
-     8'WAVE POWER FOR PHI AT 700 MB AND 50 DEG N. (10**3 DAY*m^2)',
-     9'WAVE POWER FOR PHI AT 500 MB AND 50 DEG N. (10**3 DAY*m^2)',
-     A'WAVE POWER FOR PHI AT 300 MB AND 50 DEG N. (10**3 DAY*m^2)',
-     B'WAVE POWER FOR PHI AT 100 MB AND 50 DEG N. (10**4 DAY*m^2)',
-     C'WAVE POWER FOR PHI AT 10 MB AND 50 DEG N. (10**4 DAY*m^2) '/
+      COMMON/D7COM/LNAME,SNAME,UNITS
+      CHARACTER LNAME(12)*50,SNAME(12)*30,UNITS(12)*50
+      DATA LNAME/
+     1'WAVE POWER FOR U NEAR 850 MB AND EQUATOR  ',
+     2'WAVE POWER FOR V NEAR 850 MB AND EQUATOR  ',
+     3'WAVE POWER FOR U NEAR 300 MB AND EQUATOR  ',
+     4'WAVE POWER FOR V NEAR 300 MB AND EQUATOR  ',
+     5'WAVE POWER FOR U NEAR 50 MB AND EQUATOR   ',
+     6'WAVE POWER FOR V NEAR 50 MB AND EQUATOR   ',
+     7'WAVE POWER FOR PHI AT 922 MB AND 50 DEG N.',
+     8'WAVE POWER FOR PHI AT 700 MB AND 50 DEG N.',
+     9'WAVE POWER FOR PHI AT 500 MB AND 50 DEG N.',
+     A'WAVE POWER FOR PHI AT 300 MB AND 50 DEG N.',
+     B'WAVE POWER FOR PHI AT 100 MB AND 50 DEG N.',
+     C'WAVE POWER FOR PHI AT 10 MB AND 50 DEG N. '/
 !      .........1.........2.........3.........4.........5.........6
+      DATA UNITS/
+     1'DAY*(m/s)^2   ','DAY*(m/s)^2   ','10 DAY*(m/s)^2',
+     4'DAY*(m/s)^2   ','10 DAY*(m/s)^2','DAY*(m/s)^2   ',
+     7'10**3 DAY*m^2 ','10**3 DAY*m^2 ','10**3 DAY*m^2 ',
+     A'10**3 DAY*m^2 ','10**4 DAY*m^2 ','10**4 DAY*m^2 '/
+      DATA SNAME/
+     1'WPU850EQU'   ,'WPV850EQU'   ,'WPU300EQU'   ,'WPV300EQU'   ,
+     5'WPU50EQU'    ,'WPV50EQU'    ,'WPPHI922_50N','WPPHI700_50N',
+     9'WPPHI500_50N','WPPHI300_50N','WPPHI100_50N','WPPHI10_50N' /
+
       END BLOCK DATA BDWP
 
 
@@ -2519,12 +2529,11 @@ C****
       REAL*8, DIMENSION(nwav_dag) :: xnwav
       CHARACTER XLB*14,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80,TPOW*8
       DATA CLAT/'PERIOD EASTWARD'/,CPRES/'N'/,CBLANK/' '/
-      character lname*50,sname*30,units*50
 
       INTEGER, PARAMETER :: MMAX=12,NUAMAX=120,NUBMAX=15
 
-      COMMON/D7COM/TITLE
-      CHARACTER*66 TITLE(12)
+      COMMON/D7COM/LNAME,SNAME,UNITS
+      CHARACTER TITLE(12)*66,LNAME(12)*50,SNAME(12)*30,UNITS(12)*50
 
       REAL*8, DIMENSION(12) :: SCALET
       DATA SCALET/1.,1., .1,1., .1,1., 4*1.D-3,1.D-4,1.D-5/
@@ -2570,6 +2579,7 @@ C****
       WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
       DO 390 KTABLE=1,3
       KQ=3*(KPAGE-1)+KTABLE
+      TITLE(KQ)=TRIM(LNAME(KQ))//" ("//TRIM(UNITS(KQ))//") "
       WRITE (6,901) TITLE(KQ)
       DO 380 NX=1,NMAX
       N=NMAX+1-NX
@@ -2604,8 +2614,8 @@ C****
   380 WRITE (6,902) N,(IPOWER(NS),NS=1,43)
       WRITE (6,903) (FPE(M),M=1,MMAXP1)
       TITLEO=TITLE(KQ)//'*60day'//XLB
-      IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
-     *         1,NMAX,FPOWER,xnwav,CLAT,CPRES)
+      IF(QDIAG) CALL POUT_JL(TITLEO,LNAME(KQ),SNAME(KQ),UNITS(KQ),
+     *     1,NMAX,FPOWER,xnwav,CLAT,CPRES)
   390 CONTINUE
   400 CONTINUE
 C****
@@ -2615,6 +2625,7 @@ C****
       WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
       DO 490 KTABLE=1,3
       KQ=3*(KPAGE-1)+KTABLE
+      TITLE(KQ)=TRIM(LNAME(KQ))//" ("//TRIM(UNITS(KQ))//") "
   410 WRITE (6,911) TITLE(KQ)
       DO 480 NX=1,NMAX
       N=NMAX+1-NX
@@ -2651,8 +2662,8 @@ C****
   480 WRITE (6,902) N,(IPOWER(NS),NS=1,43)
       WRITE (6,903) (FPE(M),M=1,MMAXP1)
       TITLEO=TITLE(KQ)//'*60day'//XLB
-      IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
-     *         2,NMAX,FPOWER,xnwav,CLAT,CPRES)
+      IF(QDIAG) CALL POUT_JL(TITLEO,LNAME(KQ),SNAME(KQ),UNITS(KQ),
+     *     2,NMAX,FPOWER,xnwav,CLAT,CPRES)
   490 CONTINUE
   500 CONTINUE
       if(qdiag) call close_jl

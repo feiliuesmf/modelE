@@ -26,7 +26,8 @@ C**** have to wait.
      &    ,status_out,varid_out,out_fid
      &    ,ndims_out,dimids_out,file_dimlens
      &    ,units,long_name,missing,real_att_name,real_att
-     &    ,disk_dtype,prog_dtype
+     &    ,disk_dtype,prog_dtype, LAT_DG
+     &    ,iu_ij,im,jm,lm,lm_req,iu_ijk,iu_il,iu_j,iu_jl
 
 !@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
       integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl
@@ -127,8 +128,11 @@ c-----------------------------------------------------------------------
          endif
          idim = idim + 1
       enddo
-      if(idim.gt.ndims_file) call stop_model(
-     &     'set_dim_out: invalid dim_name',255)
+      if(idim.gt.ndims_file) then
+         print*,idim,dim_name,ndims_file,file_dimnames(:)
+         call stop_model(
+     &        'set_dim_out: invalid dim_name',255)
+      end if
       return
       end subroutine set_dim_out
 
@@ -288,7 +292,7 @@ c restore defaults
 !@sum  OPEN_IJ opens the lat-lon binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE GEOM, only : lon_dg,lat_dg
+      USE GEOM, only : lon_dg
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name
@@ -401,7 +405,7 @@ C**** set dimensions
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : sig,sige
-      USE DAGCOM, only : plm,ple,ple_dn
+      USE DAGCOM, only : plm,ple,ple_dn,pmb,kgz_max
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name
@@ -429,6 +433,7 @@ C**** set dimensions
       dim_name='ple_up'; call def_dim_out(dim_name,lm)
       dim_name='ple_dn'; call def_dim_out(dim_name,lm)
       dim_name='ple_int'; call def_dim_out(dim_name,lm-1)
+      dim_name='pgz'; call def_dim_out(dim_name,kgz_max)
 
 ! put lat,ht into output file
       ndims_out = 1
@@ -453,6 +458,9 @@ C**** set dimensions
       dim_name='ple_int'; call set_dim_out(dim_name,1)
       units='mb'
       var_name='ple_int'; call wrtarr(var_name,ple)
+      dim_name='pgz'; call set_dim_out(dim_name,1)
+      units='mb'
+      var_name='pgz'; call wrtarr(var_name,pmb(1:kgz_max))
 
       return
       end subroutine open_jl
@@ -476,7 +484,7 @@ C**** set dimensions
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : LS1
-      USE DAGCOM, only : lm_req,plm,ple,ple_dn
+      USE DAGCOM, only : plm,ple,ple_dn,kgz_max
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -530,8 +538,10 @@ C**** set dimensions
          dim_name='ple_dn'
       else if(klmax.eq.lm-1 .and. all(pm(1:lm-1).eq.ple(1:lm-1))) then
          dim_name='ple_int'
+      else if(klmax.eq.kgz_max) then
+         dim_name='pgz'
       else
-         write(6,*) 'klmax =',klmax,title,pm(1:klmax)
+         write(6,*) 'klmax =',klmax,title,pm(1:klmax),ple(1:klmax)
          call stop_model('pout_jl: unrecognized vertical grid',255)
       endif
       call set_dim_out(dim_name,2)
@@ -545,6 +555,8 @@ C**** set dimensions
 
       if(j1.eq.1) then
          xjl0(1:jm,1:klmax) = xjl(1:jm,1:klmax)
+         print*,sname,lname,units,title,jm,klmax
+         call sys_flush(6)
          call wrtarr(var_name,xjl0)
       else
          xjl0b(1:jm-1,1:klmax) = xjl(2:jm,1:klmax)
@@ -639,10 +651,10 @@ C**** set units
       CHARACTER, INTENT(IN) :: TITLE*80
 !@var KLMAX max level to output
 !@var ISHIFT flag for secondary grid
- !@var I1 coordinate index associated with first long. (for wrap-around)
-     INTEGER, INTENT(IN) :: KLMAX,ISHIFT,I1
+!@var I1 coordinate index associated with first long. (for wrap-around)
+      INTEGER, INTENT(IN) :: KLMAX,ISHIFT,I1
 !@var XIL output field
-      REAL*8, DIMENSION(IM,LM+LM_REQ+1), INTENT(IN) :: XIL
+      REAL*8, DIMENSION(IM,LM+LM_REQ+1), INTENT(INOUT) :: XIL
 !@var PM pressure levels (MB)
       REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM
 !@var ASUM vertical mean/sum
@@ -807,7 +819,7 @@ c
 !@sum  OPEN_IJK opens the lat-lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE GEOM, only : lon_dg,lat_dg
+      USE GEOM, only : lon_dg
       USE DAGCOM, only : plm
       USE NCOUT
       IMPLICIT NONE
