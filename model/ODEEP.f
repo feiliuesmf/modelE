@@ -10,7 +10,8 @@
       SAVE
 
 !@param LMOM number of layers for deep ocean diffusion
-      INTEGER, PARAMETER :: LMOM = 9
+c      INTEGER, PARAMETER :: LMOM = 9    ! good for 1000m
+      INTEGER, PARAMETER :: LMOM = 12    ! good for 5015m
 !@var TG3M Monthly accumulation of temperatures at base of mixed layer
       REAL*8, DIMENSION(IM,JM,12) :: TG3M
 !@var RTGO Temperature anomaly in thermocline
@@ -41,9 +42,11 @@
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER :: iu_tg3m,iu_EDDY,L
 
-!@param FAC ratio of adjacent deep ocean layers so total depth is 1000m
-C**** NOTE: This assumes that LMOM is 9. For any different number of
-C**** layers, the equation 1000=(1-x^(LMOM-1))/(1-x) should be solved.
+!@param FAC ratio of adjacent deep ocean layers 
+C**** NOTE: For LMOM is 9 this value gives a total depth of 1000m
+C**** For any different number of layers, the effective depth is given
+C**** by the equation Z=10*(1-x^(LMOM-1))/(1-x). 
+C**** In particular, for LMOM=12, the total depth is 5015m
       REAL*8, PARAMETER :: FAC=1.705357255658901d0
 
 C**** READ IN EDDY DIFFUSIVITY AT BASE OF MIXED LAYER
