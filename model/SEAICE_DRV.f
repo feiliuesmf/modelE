@@ -139,10 +139,12 @@ C****
           ITYPE=ITLKICE
           QFIXR=.FALSE.
           TFO = 0.
-C**** Limit lake-to-ice flux if lake is too shallow (< 20cm)
-          IF (MWL(I,J).lt.0.2d0*RHOW*FLAKE(I,J)*DXYP(J)) THEN
+C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
+          IF (MWL(I,J).lt.0.4d0*RHOW*FLAKE(I,J)*DXYP(J)) THEN
             QFLUXLIM=.TRUE.
             FLUXLIM= -GML(I,J)/(FLAKE(I,J)*DXYP(J))
+            if (qcheck) print*,"Flux limiting",I,J,MWL(I,J)/
+     *           (RHOW*FLAKE(I,J)*DXYP(J)),FLUXLIM
           END IF
         END IF
 

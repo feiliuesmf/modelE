@@ -39,7 +39,7 @@ C****
      *     ,idd_tg1,idd_q5,idd_q4,idd_q3,idd_q2,idd_q1,idd_qs,idd_qg
      *     ,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
      *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
-     *     ,idd_eds,idd_dbl,idd_ev,idd_ldc,idd_dcf
+     *     ,idd_eds,idd_dbl,idd_ev,idd_ldc,idd_dcf,qcheck
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
@@ -68,7 +68,7 @@ C****
      *     ,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,ZS1CO,USS
      *     ,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L,THZ1,QZ1,POC,POI
      *     ,PLK,PLKI,EVAPLIM,F1DTS,HICE,HSNOW,HICE1,HSNOW1,F2,FSRI(2)
-     *     ,rvx,PSIS
+     *     ,rvx,PSIS,HTLIM
 
       REAL*8 MSUM, MA1, MSI1, MSI2
       REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
@@ -240,13 +240,14 @@ C****
       NGRNDZ=1
       TG1=GTEMP(1,1,I,J)
       IF (FLAKE(I,J).gt.0) THEN
-C**** limit evap if between MINMLD and 40cm, no evap below 40cm
+C**** limit evap/cooling if between MINMLD and 40cm, no evap below 40cm
         IF (MWL(I,J).lt.MINMLD*RHOW*FLAKE(I,J)*DXYP(J)) THEN
           EVAPLIM=MAX(0.5*(MWL(I,J)/(FLAKE(I,J)*DXYP(J))-0.4d0*RHOW),
      *         0d0)
         ELSE
           EVAPLIM=MWL(I,J)/(FLAKE(I,J)*DXYP(J))-(0.5*MINMLD+0.2d0)*RHOW
         END IF
+        HTLIM = GML(I,J)/(FLAKE(I,J)*DXYP(J)) + 0.5*LHM*EVAPLIM
       END IF
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       SOLAR(1,I,J)=SOLAR(1,I,J)+DTSURF*SRHEAT
@@ -451,8 +452,9 @@ C**** CALCULATE EVAPORATION
 C**** Limit evaporation if lake mass is at minimum
       IF (ITYPE.EQ.1 .and. PLK.GT.0 .and.
      *     (EVAPOR(I,J,1)-DQ1X*RMBYA).gt.EVAPLIM) THEN
-c        WRITE(99,*) "Lake EVAP limited: I,J,EVAP,MWL",I,J,EVAPOR(I,J,1)
-c     *       -DQ1X*RMBYA, MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J))
+        if (QCHECK) WRITE(99,*) "Lake EVAP limited: I,J,EVAP,MWL",I,J
+     *       ,EVAPOR(I,J,1)-DQ1X*RMBYA, MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J
+     *       ))
         DQ1X=(EVAPOR(I,J,1)-EVAPLIM)/RMBYA
       ELSEIF (DQ1X.GT.Q1+DQ1(I,J)) THEN
         DQ1X=(Q1+DQ1(I,J))
@@ -464,6 +466,15 @@ c     *       -DQ1X*RMBYA, MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J))
  3720 EVAP=-DQ1X*RMBYA
 C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       F0DT=DTSURF*SRHEAT+TRHDT+SHDT+EVHDT
+C**** Limit heat fluxes out of lakes if near minimum depth
+      IF (ITYPE.eq.1 .and. PLK.gt.0 .and. E0(I,J,1)+F0DT+HTLIM.lt.0)
+     *     THEN
+        if (QCHECK) write(6,*) "Limiting heat flux from lake",i,j,SHDT
+     *       ,F0DT,E0(I,J,1),DTSURF*SRHEAT,TRHDT,EVHDT,HTLIM
+        SHDT = -(HTLIM+E0(I,J,1)+DTSURF*SRHEAT+TRHDT+EVHDT)
+        F0DT = -E0(I,J,1)-HTLIM
+        if (QCHECK) write(6,*) "New SHDT,F0DT",i,j,SHDT,F0DT
+      END IF
       E0(I,J,ITYPE)=E0(I,J,ITYPE)+F0DT
       E1(I,J,ITYPE)=E1(I,J,ITYPE)+F1DT
       EVAPOR(I,J,ITYPE)=EVAPOR(I,J,ITYPE)+EVAP
