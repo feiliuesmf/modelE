@@ -1,4 +1,3 @@
-#include "rundeck_opts.h"
         
       MODULE SURF_ALBEDO
 !@sum SURF_ALBEDO contains parameters/variables needed for albedo calc
@@ -193,12 +192,6 @@ C       VIS     NIR1    NIR2     NIR3     NIR4     NIR5    NIRT
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
-c#ifdef TRACERS_ON
-#ifdef TRACERS_AEROSOLS_Koch
-      USE AEROSOL_SOURCES, only: aer_tau,ITRSW
-      USE TRACER_COM, only: n_SO4,n_seasalt1,n_seasalt2
-#endif
-c#endif
       IMPLICIT NONE
 
 C-----------------------------------------
@@ -758,6 +751,8 @@ C                    6      7      8       9      10    11    12    13
 !@+          1: total 2:background 3: AClim? 4:dust 5:volcanic
       real*8, dimension(5) ::  FSXAER=(/1.,1.,1.,1.,1./)
       real*8, dimension(5) ::  FTXAER=(/1.,1.,1.,1.,1./)
+!@var FXAERS, allows to zero out climatology aerosol subtypes
+      real*8, dimension(10) :: FXAERS=(/1.,1.,1.,1.,1.,1.,1.,1.,1.,1./)
       real*8 FSTAER,FSBAER,FSAAER,FSDAER,FSVAER
      *      ,FTTAER,FTBAER,FTAAER,FTDAER,FTVAER
       EQUIVALENCE (FSXAER(1),FSTAER),  (FTXAER(1),FTTAER)
@@ -3187,7 +3182,6 @@ C                        -----------------------------------------------
 C     ------------------------------------------------------------------
 C     Thermal: Set (5) Aerosol Type Compositions & Vertical Distribution
 C     ------------------------------------------------------------------
-
       IF(IFIRST.EQ.1) THEN
       NL0=NL
       IFIRST=0
@@ -3724,10 +3718,7 @@ C                                                -----------------
       CSUM=SSUM*QCAERO(K,10)
       DO 310 N=1,3
       VDTAU=TAUCOL(ILON,JLAT,N)*VDAERO(JLAT,L,N)*VDFAER(L,N)*FSAERO(N)
-#ifdef TRACERS_AEROSOLS_Koch
-c I put all sulfate into the 'natural' sulfate type (N=5) below
-      IF (N.eq.3) VDTAU=0.
-#endif
+     * *FXAERS(N)
       QSUM=QSUM+VDTAU*QXAERO(K,N)
       VDQS=VDTAU*QSAERO(K,N)
       SSUM=SSUM+VDQS
@@ -3739,47 +3730,13 @@ c I put all sulfate into the 'natural' sulfate type (N=5) below
   320 CONTINUE
   330 CONTINUE
 c
-c#ifdef TRACERS_ON
-#ifdef TRACERS_AEROSOLS_Koch
-c Added loops for interactive sulfate and sea salt
-      DO  K=1,6
-      DO  L=1,12
-      QSUM=QAERO(L,K) !?
-      SSUM=SAERO(L,K) !? 
-      CSUM=CAERO(L,K)*SSUM
-      DO N=4,5
-      IF (N.eq.4) THEN
-       VDTAU=AER_TAU(ILON,JLAT,L,N_seasalt1)+
-     *    AER_TAU(ILON,JLAT,L,N_seasalt2)
-       IF (ITRSW(N_seasalt1).eq.1) VDTAU=0.
-      ENDIF
-      IF (N.eq.5) THEN
-       VDTAU=AER_TAU(ILON,JLAT,L,N_SO4)
-       IF (ITRSW(N_SO4).eq.1) VDTAU=0.
-      ENDIF
-      QSUM=QSUM+VDTAU*QXAERO(K,N)
-      VDQS=VDTAU*QSAERO(K,N)
-      SSUM=SSUM+VDQS
-      CSUM=CSUM+VDQS*QCAERO(K,N)
-      END DO
-      QAERO(L,K)=QSUM
-      SAERO(L,K)=SSUM
-      CAERO(L,K)=CSUM/SSUM
-      END DO
-      END DO 
-#endif
-c#endif
-c
       DO 360 K=1,6
       DO 350 L=1,6
       QSUM=QAERO(L,K)
       SSUM=SAERO(L,K)
       CSUM=CAERO(L,K)*SSUM
       DO 340 N=4,9
-      VDTAU=TAUCOL(ILON,JLAT,N)*VDGAER(L,N)*FSAERO(N)
-#ifdef TRACERS_AEROSOLS_Koch
-      IF (N.GE.4.or.N.LE.5) VDTAU=0.
-#endif
+      VDTAU=TAUCOL(ILON,JLAT,N)*VDGAER(L,N)*FSAERO(N)*FXAERS(N)
       QSUM=QSUM+VDTAU*QXAERO(K,N)
       VDQS=VDTAU*QSAERO(K,N)
       SSUM=SSUM+VDQS
@@ -3799,40 +3756,18 @@ C                                              -------------------
       ASUM=VDTAU*ATAERO(K,10)
       DO 410 N=1,3
       VDTAU=TAUCOL(ILON,JLAT,N)*VDAERO(JLAT,L,N)*VDFAER(L,N)*FTAERO(N)
-#ifdef TRACERS_AEROSOLS_Koch
-c I put all sulfate into the 'natural' sulfate type (N=5) below
-      IF (N.eq.3) VDTAU=0.
-#endif
+     * *FXAERS(N)
       ASUM=ASUM+VDTAU*ATAERO(K,N)
   410 CONTINUE
       AAERO(L,K)=ASUM
   420 CONTINUE
   430 CONTINUE
 c
-#ifdef TRACERS_AEROSOLS_Koch
-c Added loops for interactive sulfate and sea salt
-      DO  K=1,33
-      DO  L=1,12
-      ASUM=AAERO(L,K)
-      DO N=4,5
-      IF (N.eq.4) VDTAU=AER_TAU(ILON,JLAT,L,N_seasalt1)+
-     *    AER_TAU(ILON,JLAT,L,N_seasalt2)
-      IF (N.eq.5) VDTAU=AER_TAU(ILON,JLAT,L,N_SO4)
-      ASUM=ASUM+VDTAU*ATAERO(K,N)
-      END DO
-      AAERO(L,K)=ASUM
-      END DO
-      END DO 
-#endif
-c
       DO 460 K=1,33
       DO 450 L=1,6
       ASUM=AAERO(L,K)
       DO 440 N=4,9
-      VDTAU=TAUCOL(ILON,JLAT,N)*VDGAER(L,N)*FTAERO(N)
-#ifdef TRACERS_AEROSOLS_Koch
-      IF (N.GE.4.or.N.LE.5) VDTAU=0.
-#endif
+      VDTAU=TAUCOL(ILON,JLAT,N)*VDGAER(L,N)*FTAERO(N)*FXAERS(N)
       ASUM=ASUM+VDTAU*ATAERO(K,N)
   440 CONTINUE
       AAERO(L,K)=ASUM
