@@ -53,7 +53,7 @@ ccc   land ice data
       REAL*8 LAKE1,LAKE2
       COMMON /LAKE/T501(IM,JM),T502(IM,JM),LAKE1(IM,JM,3),LAKE2(IM,JM,3)
       INTEGER DAGPOS,DAGPOS1,DAGPOS2
-      LOGICAL ERRQ,COMP8,COMPI
+      LOGICAL ERRQ,COMP8,COMP8p,COMPI,COMP8LIJp,COMPILIJ
       INTEGER itau1,itau2
 C****
       IF(IARGC().NE.2)  GO TO 800
@@ -129,29 +129,30 @@ C****
       ERRQ=COMP8 ('Q     ',IM,JM,LM     ,Q1 ,Q2 ) .or. ERRQ
       ERRQ=COMP8 ('P     ',IM,JM,1      ,P1 ,P2 ) .or. ERRQ
 
-      ERRQ=COMP8 ('TOCEAN',3,IM,JM      ,TOCEAN1,TOCEAN2) .or. ERRQ
+      ERRQ=COMP8LIJp('TOCEAN',3,IM,JM      ,TOCEAN1,TOCEAN2) .or. ERRQ
       ERRQ=COMP8 ('Z10   ',IM,JM,1      ,     Z1,     Z2) .or. ERRQ
       ERRQ=COMP8 ('RSI   ',IM,JM,1      ,   RSI1,   RSI2) .or. ERRQ
-      ERRQ=COMP8 ('TEMPSI',LMI,IM,JM    ,   TSI1,   TSI2) .or. ERRQ
-      ERRQ=COMP8 ('MSI   ',IM,JM,2      ,   MSI1,   MSI2) .or. ERRQ
+      ERRQ=COMP8LIJp('TEMPSI',LMI,IM,JM    ,   TSI1,   TSI2) .or. ERRQ
+      ERRQ=COMP8p('SNOWI ',IM,JM,1      , SNOWI1, SNOWI2) .or. ERRQ
+      ERRQ=COMP8 ('MSI2  ',IM,JM,1      ,   MSI1,   MSI2) .or. ERRQ
       ERRQ=COMP8 ('GDATA ',IM,JM,7      ,GDATA1 ,GDATA2 ) .or. ERRQ
       ERRQ=COMP8 ('GHDATA',IM,JM,4*NGM+5,GHDATA1,GHDATA2) .or. ERRQ
       ERRQ=COMP8 ('BLDATA',IM,JM,12     ,BLDATA1,BLDATA2) .or. ERRQ
-      ERRQ=COMPI ('NSN   ',2,IM,JM       ,NSN1  ,NSN2   ) .or. ERRQ
-      ERRQ=COMPI ('ISN   ',4,IM,JM       ,ISN1  ,ISN2   ) .or. ERRQ
-      ERRQ=COMP8 ('DZSN  ',2*NLSN,IM,JM  ,DZSN1 ,DZSN2  ) .or. ERRQ
-      ERRQ=COMP8 ('WSN   ',2*NLSN,IM,JM  ,WSN1  ,WSN2   ) .or. ERRQ
-      ERRQ=COMP8 ('HSN   ',2*NLSN,IM,JM  ,HSN1  ,HSN2   ) .or. ERRQ
-      ERRQ=COMP8 ('FR_SNO',2  ,IM,JM  ,FR_SNOW1,FR_SNOW2) .or. ERRQ
+      ERRQ=COMPILIJ ('NSN   ',2,IM,JM       ,NSN1  ,NSN2   ) .or. ERRQ
+      ERRQ=COMPILIJ ('ISN   ',4,IM,JM       ,ISN1  ,ISN2   ) .or. ERRQ
+      ERRQ=COMP8LIJp('DZSN  ',2*NLSN,IM,JM  ,DZSN1 ,DZSN2  ) .or. ERRQ
+      ERRQ=COMP8LIJp('WSN   ',2*NLSN,IM,JM  ,WSN1  ,WSN2   ) .or. ERRQ
+      ERRQ=COMP8LIJp('HSN   ',2*NLSN,IM,JM  ,HSN1  ,HSN2   ) .or. ERRQ
+      ERRQ=COMP8LIJp('FR_SNO',2  ,IM,JM  ,FR_SNOW1,FR_SNOW2) .or. ERRQ
       ERRQ=COMP8 ('LANDI ',IM,JM,3      ,LANDI1 ,LANDI2 ) .or. ERRQ
 
       ERRQ=COMP8 ('PBL   ',npbl,IM*JM,5*4,PBL1  ,PBL2  ) .or. ERRQ
       ERRQ=COMP8 ('PBLB  ',IM,JM,3*4     ,PBLB1 ,PBLB2 ) .or. ERRQ
-      ERRQ=COMP8 ('CLOUD ',5*LM,IM,JM    ,CLOUD1,CLOUD2) .or. ERRQ
+      ERRQ=COMP8LIJp('CLOUD ',5*LM,IM,JM    ,CLOUD1,CLOUD2) .or. ERRQ
       ERRQ=COMP8 ('WM    ',IM,JM,LM      ,WM1   ,WM2   ) .or. ERRQ
       ERRQ=COMP8 ('TMOM  ',IM,JM,9*LM    ,TMOM1 ,TMOM2 ) .or. ERRQ
       ERRQ=COMP8 ('QMOM  ',IM,JM,9*LM    ,QMOM1 ,QMOM2 ) .or. ERRQ
-      ERRQ=COMP8 ('RADN  ',9+2*LM,IM,JM  ,RADN1 ,RADN2 ) .or. ERRQ
+      ERRQ=COMP8LIJp('RADN  ',9+2*LM,IM,JM  ,RADN1 ,RADN2 ) .or. ERRQ
       ERRQ=COMP8 ('T50   ',IM,JM,1       ,T501  ,T502  ) .or. ERRQ
       ERRQ=COMP8 ('LAKE  ',IM,JM,3       ,LAKE1 ,LAKE2 ) .or. ERRQ
 
@@ -361,3 +362,171 @@ c     IF(ICNT.GT.0) WRITE(6,*) '#pts = ',ICNT
   900 FORMAT (' ',A6)
   901 FORMAT (3I4,2I30,E30.20)
       END FUNCTION COMPI
+
+      FUNCTION COMP8LIJp(LABEL,LM,IM,JM,X1,X2)
+C****
+C**** COMP8LIJp compares two arrays and prints any discrepancies to the
+C**** line printer.
+C**** RETURNS .FALSE. IF NO DISCREPANCIES
+C****
+      LOGICAL COMP8LIJp
+      REAL*8 X1(LM,IM,JM),X2(LM,IM,JM), DIF,DIFMAX,X2MAX,X1MAX
+      CHARACTER*6 LABEL
+      COMP8LIJp = .FALSE.
+      NP = 0
+      ICNT = 0
+      WRITE (6,900) LABEL
+      DO 20 L=1,LM
+      DIFMAX = 0.
+      IMAX=0
+      JMAX=0
+      LMAX=0
+      X1MAX=0.
+      X2MAX=0.
+      DO 10 J=1,JM
+      IMofJ=IM
+      if(j.eq.1.or.j.eq.jm) IMofJ=1
+      DO 10 I=1,IMofJ
+      IF (X2(L,I,J)*X1(L,I,J).EQ.0 .AND. X2(L,I,J)+X1(L,I,J).NE.0
+     *        .and. X2(L,I,J).NE.X1(L,I,J)) THEN
+         WRITE (6,901) L,I,J,X1(L,I,J),X2(L,I,J)
+         NP = NP+1
+         IF(NP.GE.10)  RETURN
+      ELSE
+         DIF = ABS(X2(L,I,J)-X1(L,I,J)) / (ABS(X1(L,I,J)) + 1.D-30)
+c         IF (DIF.NE.0.) PRINT*,L,I,J,DIF
+         IF(DIF.NE.0.) ICNT = ICNT + 1
+         IF(DIF.LE.DIFMAX)  GO TO 10
+         DIFMAX = DIF
+         IMAX=I
+         JMAX=J
+         LMAX=L
+         X1MAX=X1(L,I,J)
+         X2MAX=X2(L,I,J)
+c      WRITE (6,901) L,I,J,X1(L,I,J),X2(L,I,J),DIF
+c      NP = NP+1
+c      IF(NP.GE.10)  RETURN
+      END IF
+ 10   CONTINUE
+      IF (IMAX.ne.0) then
+         WRITE (6,901) IMAX,JMAX,LMAX,X1MAX,X2MAX,DIFMAX
+         COMP8LIJp = .TRUE.
+      endif
+ 20   CONTINUE
+c     IF(ICNT.GT.0) WRITE(6,*) '#pts = ',ICNT
+      RETURN
+  900 FORMAT (' ',A6)
+  901 FORMAT (3I4,E30.20,2E30.20)
+      END FUNCTION COMP8LIJp
+
+      FUNCTION COMPILIJ (LABEL,LM,IM,JM,I1,I2)
+C****
+C**** COMPILIJ compares two integer arrays and prints any discrepancies
+C**** to the line printer.
+C**** RETURNS .FALSE. IF NO DISCREPANCIES
+C****
+      LOGICAL COMPILIJ
+      INTEGER I1(LM,IM,JM),I2(LM,IM,JM),I2MAX,I1MAX
+      REAL*8 DIF,DIFMAX
+      CHARACTER*6 LABEL
+      COMPILIJ = .FALSE.
+      NP = 0
+      ICNT = 0
+      WRITE (6,900) LABEL
+      DO 20 L=1,LM
+      DIFMAX = 0.
+      IMAX=0
+      JMAX=0
+      LMAX=0
+      I1MAX=0
+      I2MAX=0
+      DO 10 J=1,JM
+      DO 10 I=1,IM
+c     write(0,*) L,I,J,I2(L,I,J),I1(L,I,J)
+      IF (I2(L,I,J)*I1(L,I,J).EQ.0 .AND. I2(L,I,J)+I1(L,I,J).NE.0
+     *        .and. I2(L,I,J).NE.I1(L,I,J)) THEN
+         WRITE (6,901) L,I,J,I1(L,I,J),I2(L,I,J)
+         NP = NP+1
+         IF(NP.GE.10)  RETURN
+      ELSE
+         DIF = ABS(I2(L,I,J)-I1(L,I,J)) / (ABS(I1(L,I,J)) + 1.D-30)
+c        IF (DIF.NE.0.) PRINT*,L,I,J,DIF
+         IF(DIF.NE.0.) ICNT = ICNT + 1
+         IF(DIF.LE.DIFMAX)  GO TO 10
+         DIFMAX = DIF
+         IMAX=I
+         JMAX=J
+         LMAX=L
+         I1MAX=I1(L,I,J)
+         I2MAX=I2(L,I,J)
+c      WRITE (6,901) L,I,J,I1(L,I,J),I2(L,I,J),DIF
+c      NP = NP+1
+c      IF(NP.GE.10)  RETURN
+      END IF
+ 10   CONTINUE
+      IF (IMAX.ne.0) then
+         WRITE (6,901) IMAX,JMAX,LMAX,I1MAX,I2MAX,DIFMAX
+         COMPILIJ = .TRUE.
+      endif
+ 20   CONTINUE
+c     IF(ICNT.GT.0) WRITE(6,*) '#pts = ',ICNT
+      RETURN
+  900 FORMAT (' ',A6)
+  901 FORMAT (3I4,2I30,E30.20)
+      END FUNCTION COMPILIJ
+
+      FUNCTION COMP8p (LABEL,IM,JM,LM,X1,X2)
+C****
+C**** COMP8p compares two arrays and prints any discrepancies to the
+C**** line printer.
+C**** RETURNS .FALSE. IF NO DISCREPANCIES
+C****
+      LOGICAL COMP8p
+      REAL*8 X1(IM,JM,LM),X2(IM,JM,LM), DIF,DIFMAX,X2MAX,X1MAX
+      CHARACTER*6 LABEL
+      COMP8p = .FALSE.
+      NP = 0
+      ICNT = 0
+      WRITE (6,900) LABEL
+      DO 20 L=1,LM
+      DIFMAX = 0.
+      IMAX=0
+      JMAX=0
+      LMAX=0
+      X1MAX=0.
+      X2MAX=0.
+      DO 10 J=1,JM
+      IMofJ=IM
+      IF(J.EQ.1.or.J.eq.JM) IMofJ=1
+      DO 10 I=1,IMofJ
+      IF (X2(I,J,L)*X1(I,J,L).EQ.0 .AND. X2(I,J,L)+X1(I,J,L).NE.0
+     *        .and. X2(I,J,L).NE.X1(I,J,L)) THEN
+         WRITE (6,901) I,J,L,X1(I,J,L),X2(I,J,L)
+         NP = NP+1
+         IF(NP.GE.10)  RETURN
+      ELSE
+         DIF = ABS(X2(I,J,L)-X1(I,J,L)) / (ABS(X1(I,J,L)) + 1.D-30)
+c         IF (DIF.NE.0.) PRINT*,I,J,L,DIF
+         IF(DIF.NE.0.) ICNT = ICNT + 1
+         IF(DIF.LE.DIFMAX)  GO TO 10
+         DIFMAX = DIF
+         IMAX=I
+         JMAX=J
+         LMAX=L
+         X1MAX=X1(I,J,L)
+         X2MAX=X2(I,J,L)
+c      WRITE (6,901) I,J,L,X1(I,J,L),X2(I,J,L),DIF
+c      NP = NP+1
+c      IF(NP.GE.10)  RETURN
+      END IF
+ 10   CONTINUE
+      IF (IMAX.ne.0) then
+         WRITE (6,901) IMAX,JMAX,LMAX,X1MAX,X2MAX,DIFMAX
+         COMP8p = .TRUE.
+      endif
+ 20   CONTINUE
+c     IF(ICNT.GT.0) WRITE(6,*) '#pts = ',ICNT
+      RETURN
+  900 FORMAT (' ',A6)
+  901 FORMAT (3I4,E30.20,2E30.20)
+      END FUNCTION COMP8p

@@ -29,7 +29,7 @@ FFLAGS += -I $(MODEL_DIR)
 #
 
 cmp:    CMPE001.f 
-	$(F90) $(FFLAGS) -o $(BIN_DIR)/CMPE001 CMPE001.f
+	$(F90) $(FFLAGS) -o CMPE001 CMPE001.f
 
 conv_rsf: conv_rsf.o $(MODEL_DIR)/gcmlib.a
 	$(F90) $(FFLAGS) -o $(BIN_DIR)/conv_rsf $^
