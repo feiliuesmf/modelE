@@ -29,7 +29,11 @@
       REAL*8, DIMENSION(IM) :: UMS,VMS !@var
       LOGICAL POLE
       INTEGER I,J,L,K,IMAX,KMAX,IM1,LMAX,LMIN
-
+C
+      REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
+      REAL*8  UKM(4,IM,2:JM-1,LM), VKM(4,IM,2:JM-1,LM)
+      INTEGER  LRANG(2,IM,JM)
+C
       DOUBLE PRECISION, DIMENSION(NMOM) :: TMOMS,QMOMS
       REAL*8 DOK,PIJBOT,PIJ,PKMS,THPKMS,QMS
      *     ,TVMS,THETA,RDP,THM
@@ -46,6 +50,13 @@ C****   WHILE U,V WILL BE UPDATED.
 
       UT=U ; VT=V
 C**** OUTSIDE LOOPS OVER J AND I
+C$OMP  PARALLEL DO PRIVATE (I,IM1,IMAX,J,K,KMAX,L,LMIN,LMAX,IDI,IDJ,
+C$OMP*   DP,PIJ,POLE,PIJBOT,PKMS, QMS,QMOMS, RA,RDP,
+#ifdef TRACERS_ON
+C$OMP*   TRMS,TRMOMS,SDPL,BYSDPL,
+#endif
+C$OMP*   THM,TVMS,THETA,TMOMS,THPKMS, UMS,VMS)
+C$OMP*   SCHEDULE(DYNAMIC,2)
       JLOOP: DO J=1,JM
       POLE=.FALSE.
       IF (J.EQ.1.OR.J.EQ.JM) POLE=.TRUE.
@@ -62,6 +73,10 @@ C****
             IDI(K)=IDIJ(K,I,J)
             IDJ(K)=IDJJ(K,J)
          END DO
+C
+         LRANG(1,I,J)=-1
+         LRANG(2,I,J)=-2
+C
       LMAX=LBASE_MIN-1
       lbase_loop: do while(lmax.lt.lbase_max)
       LMIN=LMAX+1
@@ -87,7 +102,7 @@ C**** sum moments to mix over unstable layers
      &     QMOM(XYMOMS,I,J,LMIN+1)*(DP(LMIN+1))
 #ifdef TRACERS_ON
       TRMS(:) = TRM(I,J,LMIN,:)+TRM(I,J,LMIN+1,:)
-      TRMOMS(XYMOMS,:) = 
+      TRMOMS(XYMOMS,:) =
      &     TRMOM(XYMOMS,I,J,LMIN,:)+TRMOM(XYMOMS,I,J,LMIN+1,:)
 #endif
       IF (LMIN+1.GE.LM) GO TO 150
@@ -156,17 +171,37 @@ C**** MIX MOMENTUM THROUGHOUT UNSTABLE LAYERS
       ENDDO
       UMS(1:KMAX)=UMS(1:KMAX)*RDP
       VMS(1:KMAX)=VMS(1:KMAX)*RDP
+      LRANG(1,I,J)=LMIN
+      LRANG(2,I,J)=LMAX
+c     DO L=LMIN,LMAX
+c        DO K=1,KMAX
+c           U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
+c    &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*RA(K)
+c           V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
+c    &           +(VMS(K)-VT(IDI(K),IDJ(K),L))*RA(K)
+c           AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)
+c    &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*PLIJ(L,I,J)*RA(K)
+c        ENDDO
+c     ENDDO
       DO L=LMIN,LMAX
-         DO K=1,KMAX
-            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
-     &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*RA(K)
-            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
-     &           +(VMS(K)-VT(IDI(K),IDJ(K),L))*RA(K)
-c the following line gives bytewise different ajl
-            AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)
-     &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*PLIJ(L,I,J)*RA(K)
-         ENDDO
+         IF(J.EQ.1)  THEN
+            DO K=1,KMAX
+               UKP1(K,L)=(UMS(K)-UT(IDI(K),IDJ(K),L))
+               VKP1(K,L)=(VMS(K)-VT(IDI(K),IDJ(K),L))
+            END DO 
+         ELSE IF(J.EQ.JM)  THEN
+            DO K=1,KMAX
+               UKPJM(K,L)=(UMS(K)-UT(IDI(K),IDJ(K),L))
+               VKPJM(K,L)=(VMS(K)-VT(IDI(K),IDJ(K),L))
+            END DO 
+         ELSE
+            DO K=1,KMAX
+               UKM(K,I,J,L)=(UMS(K)-UT(IDI(K),IDJ(K),L))
+               VKM(K,I,J,L)=(VMS(K)-VT(IDI(K),IDJ(K),L))
+            END DO 
+         END IF
       ENDDO
+C
       enddo lbase_loop
 C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
       if(lbase_min.eq.1) then ! was called from surfce
@@ -175,6 +210,63 @@ C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
       IM1=I
       ENDDO ILOOP
       ENDDO JLOOP
+C$OMP  END PARALLEL DO
+C
+C     NOW REALLY UPDATE THE MODEL WINDS
+C
+      J=1
+      DO K=1,KMAXJ(J)
+        IDI(K)=IDIJ(K,1,J)
+        IDJ(K)=IDJJ(K,J)
+        RA(K) =RAVJ(K,J)
+      END DO 
+      LMIN=LRANG(1,1,J)
+      LMAX=LRANG(2,1,J)
+      DO L=LMIN,LMAX
+      DO K=1,KMAXJ(J)
+        U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKP1(K,L)*RA(K)
+        V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKP1(K,L)*RA(K)
+        AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
+     *     UKP1(K,L)*PLIJ(L,1,J)*RA(K)
+      END DO ; END DO
+C
+      DO J=2,JM-1
+        KMAX=KMAXJ(J)
+        DO K=1,KMAX
+           IDJ(K)=IDJJ(K,J)
+           RA(K) =RAVJ(K,J)
+        END DO 
+        DO I=1,IM
+          LMIN=LRANG(1,I,J)
+          LMAX=LRANG(2,I,J)
+          DO L=LMIN,LMAX
+          DO K=1,KMAX
+            IDI(K)=IDIJ(K,I,J)
+            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)*RA(K)
+            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)*RA(K)
+            AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
+     *            UKM(K,I,J,L)*PLIJ(L,I,J)*RA(K)
+          END DO ; END DO
+        END DO 
+      END DO 
+C
+      J=JM
+      KMAX=KMAXJ(J)
+      DO K=1,KMAX
+        IDI(K)=IDIJ(K,1,J)
+        IDJ(K)=IDJJ(K,J)
+        RA(K) =RAVJ(K,J)
+      END DO 
+      LMIN=LRANG(1,1,J)
+      LMAX=LRANG(2,1,J)
+      DO L=LMIN,LMAX
+      DO K=1,KMAX
+        U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKPJM(K,L)*RA(K)
+        V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKPJM(K,L)*RA(K)
+        AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
+     *      UKPJM(K,L)*PLIJ(L,1,J)*RA(K)
+      END DO ; END DO
+C
       RETURN
       END SUBROUTINE ATM_DIFFUS
 

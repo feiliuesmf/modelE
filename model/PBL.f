@@ -14,7 +14,8 @@
       USE TRACER_COM, only : ntm
 #endif
       IMPLICIT NONE
-      SAVE
+CCC   SAVE
+      SAVE  BGRID
 
       integer, parameter :: n=8  !@param n  no of pbl. layers
 
@@ -61,7 +62,7 @@
 
       !for level 3 model only:
       real*8 :: g0,d1_3,d2_3,d3_3,d4_3,d5_3
-     *         ,s0_3,s1_3,s2_3,s3_3,s4_3,s5_3,s6_3          
+     *         ,s0_3,s1_3,s2_3,s3_3,s4_3,s5_3,s6_3
      *         ,g1,g2,g3,g4,g5,g6,g7,g8
 
 C**** boundary layer parameters
@@ -75,7 +76,23 @@ C**** boundary layer parameters
 !@var  e  local turbulent kinetic energy
       real*8, dimension(n) :: u,v,t,q
       real*8, dimension(n-1) :: e
-#ifdef TRACERS_ON 
+
+C***
+C***  Thread-Private Common
+C***
+      COMMON /PBLTPC/ dpdxr,dpdyr,dpdxr0,dpdyr0,
+     * g0,d1_3,d2_3,d3_3,d4_3,d5_3,
+     * s0_3,s1_3,s2_3,s3_3,s4_3,s5_3,s6_3,  g1,g2,g3,g4,g5,g6,g7,g8,
+     * u,v,t,q,e
+C$OMP  THREADPRIVATE (/PBLTPC/)
+
+      COMMON /PBLPAR/ZS1,TGV,TKV,QG,HEMI,POLE
+      COMMON /PBLOUT/US,VS,WS,WSH,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL,
+     *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,WG,ZMIX
+C$OMP  THREADPRIVATE (/PBLPAR/,/PBLOUT/)
+
+
+#ifdef TRACERS_ON
 !@var  tr local tracer profile (passive scalars)
       real*8, dimension(n,ntm) :: tr
 #endif
@@ -234,16 +251,16 @@ C**** For heat and mositure
         wstar2h = 0.
       endif
       wsh = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
-      
+
       call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,wsh,tgrnd,ttop,dtime,n)
-      
+
       call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd,qtop,dtime,n
      &     ,evap_max,fr_sat)
-        
+
       call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
      2            ustar,cm,z0m,utop,vtop,dtime,coriol,
      3            ug,vg,n)
- 
+
       if ((itype.eq.4).or.(itype.eq.3)) then
         if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
           call tfix(t,z,ttop,tgrnd,lmonin,n) !why should we do this?
@@ -265,14 +282,14 @@ c   condition obtains if ustar remains stable to a defined limit
 c   between iterations.
 c   e_eqn is called if level 2.5 is used, level2 for level 2 model
 c   Step 2:
- 
+
       do iter=1,itmax
- 
+
         call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
         call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
      3             km,kh,kq,dzh,itype,n)
- 
+
         test=abs((ustar-ustar0)/(ustar+ustar0))
         if (test.lt.tol) exit
         ustar0=ustar
@@ -284,7 +301,7 @@ c   Step 2:
         call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
      2                 ustar,dtime,n)
 
-C**** Calculate wstar term 
+C**** Calculate wstar term
 C**** M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
         wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
 C**** For heat and mositure
@@ -294,22 +311,22 @@ C**** For heat and mositure
           wstar2h = 0.
         endif
         wsh  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
-        
+
         call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,wsh,tgrnd,ttop,dtime,n)
 
         call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd,qtop,dtime,n
      &       ,evap_max,fr_sat)
-        
+
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
      2              ustar,cm,z0m,utop,vtop,dtime,coriol,
      3              ug,vg,n)
 
         call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
- 
+
       end do
 
 #ifdef TRACERS_ON
-C**** tracer calculations are passive and therefore do not need to 
+C**** tracer calculations are passive and therefore do not need to
 C**** be inside the iteration. Use moisture diffusivity
       do itr=1,ntx
         trcnst=trconstflx(itr)
@@ -320,7 +337,7 @@ C**** Tracers need to multiply trsfac and trconstflx by cq*Usurf
         trsf=trsfac(itr)*cqsave*wsh
 #endif
         call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
-     *       ,trcnst,trtop(itr),dtime,n) 
+     *       ,trcnst,trtop(itr),dtime,n)
         trs(itr) = tr(1,itr)
       end do
 #endif
@@ -740,7 +757,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
 !@var  dz   dxi/(dxi/dz)
 !@var  dzh  dxi/(dxi/dzh)
 !@var  dxi  (ztop - zbottom)/(n-1)
-!@var  ierr Error reporting flag  
+!@var  ierr Error reporting flag
       implicit none
 
       integer, intent(in) :: n    !@var n  array dimension
@@ -752,6 +769,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       real*8, parameter ::  tolz=1d-3
       real*8 z1pass,znpass,b,xipass,lznbyz1
       common /grids_99/z1pass,znpass,b,xipass,lznbyz1
+C$OMP  THREADPRIVATE(/GRIDS_99/)
       real*8, external :: fgrid,fgrid2
       real*8 rtsafe
       integer i,j,iter  !@var i,j,iter loop variable
@@ -859,7 +877,7 @@ c
       s5=2*g4/(3*g5**2)
       s6=2/(3*g5)*(g3**2-g2**2/3)-g1/(2*g5)*(g3-g2/3)
      &   +g1/(4*g5**2)*(g6-g7)
- 
+
 c     find rimax:
 
       c1=s5+2*d3
@@ -870,9 +888,9 @@ c     find rimax:
 
       rimax=(c2+sqrt(c2**2-4*c1*c3))/(2*c1)
       rimax=int(rimax*1000.)/1000.
- 
+
 c     find ghmin,ghmax,gmmax0:
- 
+
       del=(s4+2*d1)**2-8*(s5+2*d3)
       ghmin=(-s4-2*d1+sqrt(del))/(2*(s5+2*d3))
       ghmin=int(ghmin*10000.)/10000.
@@ -893,7 +911,7 @@ c     find ghmin,ghmax,gmmax0:
       s4_3=s4
       s5_3=s5
       s6_3=s6
-   
+
       return
       end subroutine ccoeff0
 
@@ -1168,7 +1186,7 @@ c     rhs(n-1)=max(0.5*(B1*lscale(j))**2*as2/(gm+teeny),teeny)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
 !@+   kq * dq/dz = min ( cq * usurf * (q - qg) ,
-!@+          fr_sat * cq * usurf * (q - qg) + ( 1 - fr_sat ) * flux_max )
+!@+         fr_sat * cq * usurf * (q - qg) + ( 1 - fr_sat ) * flux_max )
 !@+   at the top, the moisture is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
@@ -1229,13 +1247,13 @@ c     for unsaturated fraction
 
 c     Flux is too high, have to recompute with the following boundary
 c     conditions at the bottom:
-c     kq * dq/dz = fr_sat * cq * usurf * (q - qg) 
+c     kq * dq/dz = fr_sat * cq * usurf * (q - qg)
 c                  + ( 1 - fr_sat ) * flux_max
 
       dia(1) = 1. + fr_sat*factq
       sup(1) = -1.
       rhs(1)= fr_sat*factq*qgrnd + (1.-fr_sat)*flux_max*dzh(1)/kq(1)
-      
+
       call TRIDIAG(sub,dia,sup,rhs,q,n)
 
       return
@@ -1245,9 +1263,9 @@ c                  + ( 1 - fr_sat ) * flux_max
 !@sum tr_eqn integrates differential eqn for tracers (tridiag. method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
-!@+   kq * dtr/dz = sfac * trs - constflx 
+!@+   kq * dtr/dz = sfac * trs - constflx
 !@+   i.e. for moisture, sfac=cq*usurf, constflx=cq*usurf*qg
-!@+        to get:  kq * dq/dz = cq * usurf * (qs - qg)  
+!@+        to get:  kq * dq/dz = cq * usurf * (qs - qg)
 !@+   This should be flexible enough to deal with most situations.
 !@+   at the top, the tracer conc. is prescribed.
 !@auth Ye Cheng/G. Hartke
@@ -1766,7 +1784,7 @@ C**** For heat and mositure
         endif
         usurfh  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
         usurfq  = usurfh
-      
+
         call t_eqn_sta(t,kh,dz,dzh,ch,usurfh,tgrnd,ttop,n)
 
         call q_eqn_sta(q,kq,dz,dzh,cq,usurfq,qgrnd,qtop,n)
@@ -2165,6 +2183,7 @@ c ----------------------------------------------------------------------
       real*8, intent(out) :: f,df
       real*8 z1,zn,bgrid,xi,lznbyz1
       common /grids_99/z1,zn,bgrid,xi,lznbyz1
+C$OMP  THREADPRIVATE(/GRIDS_99/)
 
       f=z+bgrid*((zn-z1)*log(z/z1)-(z-z1)*lznbyz1)-xi
       df=1.-bgrid*lznbyz1+bgrid*(zn-z1)/z
@@ -2183,7 +2202,7 @@ c ----------------------------------------------------------------------
       external funcd
       integer j
       real*8 df,dx,dxold,f,fh,fl,temp,xh,xl
-      
+
       ierr = 0
       call funcd(x1,fl,df)
       call funcd(x2,fh,df)

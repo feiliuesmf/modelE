@@ -107,11 +107,11 @@ C**** parameters and variables for isccp diags
 C****
 
 C
-Cred**                      Reduced Arrays 1                 *********
+Cred*                       Reduced Arrays 1                 *********
 C        not clear yet whether they still speed things up
       REAL*8  GZIL(IM,LM), SD_CLDIL(IM,LM), WMIL(IM,LM)
       REAL*8  TMOMIL(NMOM,IM,LM),  QMOMIL(NMOM,IM,LM)
-Cred                    end Reduced Arrays 1
+Cred*                   end Reduced Arrays 1
       INTEGER ICKERR, JCKERR, JERR, seed
       REAL*8  RNDSS1(LM,IM,JM), RNDSS2(LM-1,IM,JM),xx
       REAL*8  AJEQIL(J5N-J5S+1,IM,JM), AREGIJ(IM,JM,3)

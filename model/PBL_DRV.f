@@ -2,12 +2,14 @@
 
       module PBL_DRV
       implicit none
-      save
+ccc   save
 
 c     input data:
 !@var evap_max maximal evaporation from unsaturated soil
 !@var  fr_sat fraction of saturated soil
       real*8 :: evap_max,fr_sat
+      common/pbl_loc/evap_max,fr_sat
+C$OMP  THREADPRIVATE (/pbl_loc/)
 
       contains
 
@@ -30,8 +32,9 @@ C          ,UG,VG,WG,ZMIX
       USE SOCPBL, only : uij=>u,vij=>v,tij=>t,qij=>q,eij=>e
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
-     &     ,zgs,advanc
-     &     ,ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
+     &     ,advanc                      ! subroutine
+     &     ,zgs,DTSURF                  ! global
+     &     ,ZS1,TGV,TKV,QG,HEMI,POLE    ! rest local
      &     ,US,VS,WS,WSH,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
      &     ,UG,VG,WG,ZMIX
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q
@@ -40,7 +43,7 @@ C          ,UG,VG,WG,ZMIX
       USE TRACER_COM, only : ntm,needtrs,itime_tr0
 #endif
       IMPLICIT NONE
-     
+
       INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
       INTEGER, INTENT(IN) :: ITYPE  !@var ITYPE surface type
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
@@ -55,11 +58,13 @@ C**** Tracer input/output common block
       integer itr,n,ntx
       common /trspec/trtop,trs,trsfac,trconstflx,ntx
 #endif
+c
 
       REAL*8 ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
       REAL*8 ttop,qtop,tgrndv,qgrnd,utop,vtop,ufluxs,vfluxs
      *     ,tfluxs,qfluxs,psitop,psisrf
       INTEGER LDC,L,k
+
 
 C        ocean and ocean ice are treated as rough surfaces
 C        roughness lengths from Brutsaert for rough surfaces

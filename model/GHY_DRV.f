@@ -7,7 +7,7 @@
       use model_com, only : im,jm
       implicit none
       private
-      save
+ccc   save
 
       public daily_earth, ground_e, init_gh, earth, conserv_wtg
      $     ,conserv_htg
@@ -58,11 +58,11 @@ c****
      &    tgpass=>tg,tkpass=>t1,vgm=>vg,eddy,
      &    nlsn,isn,nsn,dzsn,wsn,hsn,fr_snow
       use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
-      use socpbl, only : zgs
-      USE SOCPBL, only : zgs
-     &     ,zs1,tgv,tkv,qg_sat=>qg,hemi,dtsurf,pole
+      USE SOCPBL, only : zgs,dtsurf              ! global
+     &     ,zs1,tgv,tkv,qg_sat=>qg,hemi,pole     ! rest local
      &     ,us,vs,ws,wsh,tsv,qsrf=>qs,psi,dbl,edvisc=>kms
      &     ,eds1=>khs,kq=>kqs,ppbl,ug,vg,wg,zmix
+      use socpbl, only : zgs,dtsurf
       use pbl_drv, only : pbl, evap_max,fr_sat
 
       use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,
@@ -122,6 +122,7 @@ C**** Tracer input/output common block for PBL
 #endif
       real*8 qsat
       real*8 srhdt
+      real*8 aregij(im,jm,7)
 !@var qg rel. humidity at the ground, defined: total_evap = Cq V (qg-qs)
 !@var qg_nsat rel. humidity at non-saturated fraction of soil
       real*8 qg, qg_nsat
@@ -160,9 +161,29 @@ c****
       timez=jday+(mod(itime,nday)+(ns-1.)/nisurf)/nday ! -1 ??
       if(jday.le.31) timez=timez+365.
       ghour=(itime+(ns-1.)/nisurf) ! *(24./nday)
+c
+      aregij = 0.0d0
 c****
 c**** outside loop over j and i, executed once for each grid point
 c****
+
+C$OMP  PARALLEL DO PRIVATE
+C$OMP*  (ACE2AV, ELHX,EVAP,EVHDT, CDM,CDH,CDQ,
+C$OMP*   I,ITYPE, J, KR, L,MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
+C$OMP*   QG_NSAT,QSATS, RHOSRF,RHOSRF0,RCDMWS,RCDHWS, SRHDT,SRHEAT,SHDT,
+C$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TS,TRHDT,TG2AV, WARMER,WFC1,WTR2AV,
+#ifndef TRACERS_ON
+C$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TS,TRHDT,TG2AV, WARMER,WFC1,WTR2AV)
+C$OMP*   SCHEDULE(DYNAMIC,2)
+#else
+C$OMP*   trtop,trs,trsfac,trconstflx,n,nx,ntx,ntix,
+#ifdef TRACERS_WATER
+C$OMP*   trgrnd,trsoil_tot,tevapw,tevapd,tevapb,trruns,trrunu,trpr,
+C$OMP*   trsoil_rat,trw,trsnowd,tdp, tdt1, wsoil_tot,frac,tevap,ibv,
+#endif
+C$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TS,TRHDT,TG2AV, WARMER,WFC1,WTR2AV)
+C$OMP*   SCHEDULE(DYNAMIC,2)
+#endif
 
       loop_j: do j=1,jm
       hemi=1.
@@ -170,8 +191,13 @@ c****
 c**** conditions at the south/north pole
       pole= ( j.eq.1 .or. j.eq.jm )
 
-      if(j.lt.jeq) warmer=-spring
-      if(j.ge.jeq) warmer=spring
+ccc   if(j.lt.jeq) warmer=-spring
+ccc   if(j.ge.jeq) warmer=spring
+      if(j.lt.jeq)  then
+         warmer=-spring
+       else
+         warmer=spring
+      end if
       loop_i: do i=1,imaxj(j)
 c****
 c**** determine surface conditions
@@ -191,7 +217,7 @@ c****
       qm1=q1*ma1
 c     rhosrf=100.*ps/(rgas*tsv)
 c     rhosrf=100.*ps/(rgas*tkv)
-      jr=jreg(i,j)
+ccc   jr=jreg(i,j)
 #ifdef TRACERS_ON
 C**** Set up tracers for PBL calculation if required
       nx=0
@@ -533,14 +559,21 @@ C**** Save surface tracer concentration whether calculated or not
       if(ts.gt.tdiurn(i,j,4)) tdiurn(i,j,4)=ts
 
 c**** quantities accumulated for regions in diagj
-      areg(jr,j_trhdt)=areg(jr,j_trhdt)+trhdt*ptype*dxyp(j)
-      areg(jr,j_shdt )=areg(jr,j_shdt )+shdt*ptype*dxyp(j)
-      areg(jr,j_evhdt)=areg(jr,j_evhdt)+evhdt*ptype*dxyp(j)
-      areg(jr,j_evap )=areg(jr,j_evap )+evap*ptype*dxyp(j)
-      areg(jr,j_erun)=areg(jr,j_erun)+(aeruns+aerunu)*pearth*dxyp(j)
-      areg(jr,j_run )=areg(jr,j_run )+(aruns+arunu)*pearth*dxyp(j)
-      if ( moddsf == 0 )
-     $     areg(jr,j_tsrf )=areg(jr,j_tsrf )+(ts-tf)*ptype*dxyp(j)
+ccc   areg(jr,j_trhdt)=areg(jr,j_trhdt)+trhdt*ptype*dxyp(j)
+ccc   areg(jr,j_shdt )=areg(jr,j_shdt )+shdt*ptype*dxyp(j)
+ccc   areg(jr,j_evhdt)=areg(jr,j_evhdt)+evhdt*ptype*dxyp(j)
+ccc   areg(jr,j_evap )=areg(jr,j_evap )+evap*ptype*dxyp(j)
+ccc   areg(jr,j_erun)=areg(jr,j_erun)+(aeruns+aerunu)*pearth*dxyp(j)
+ccc   areg(jr,j_run )=areg(jr,j_run )+(aruns+arunu)*pearth*dxyp(j)
+ccc   if ( moddsf == 0 )
+ccc  $     areg(jr,j_tsrf )=areg(jr,j_tsrf )+(ts-tf)*ptype*dxyp(j)
+      AREGIJ(I,J,1)  = trhdt*ptype*dxyp(j)
+      AREGIJ(I,J,2)  = shdt*ptype*dxyp(j)
+      AREGIJ(I,J,3)  = evhdt*ptype*dxyp(j)
+      AREGIJ(I,J,4)  = evap*ptype*dxyp(j)
+      AREGIJ(I,J,5)  = (aeruns+aerunu)*pearth*dxyp(j)
+      AREGIJ(I,J,6)  = (aruns+arunu)*pearth*dxyp(j)
+      if ( moddsf == 0 )  AREGIJ(I,J,7)  = (ts-tf)*ptype*dxyp(j)
 c**** quantities accumulated for latitude-longitude maps in diagij
       aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdt*ptype
       aij(i,j,ij_beta)=aij(i,j,ij_beta)+betad/nisurf
@@ -601,6 +634,22 @@ c**** quantities accumulated for surface type tables in diagj
 
       end do loop_i
       end do loop_j
+C$OMP  END PARALLEL DO
+C
+C
+      DO 825 J=1,JM
+      DO 825 I=1,IMAXJ(J)
+         IF(FEARTH(I,J).LE.0.0)  GO TO 825
+         JR=JREG(I,J)
+         areg(jr,j_trhdt)=areg(jr,j_trhdt)+AREGIJ(I,J,1)
+         areg(jr,j_shdt )=areg(jr,j_shdt )+AREGIJ(I,J,2)
+         areg(jr,j_evhdt)=areg(jr,j_evhdt)+AREGIJ(I,J,3)
+         areg(jr,j_evap )=areg(jr,j_evap )+AREGIJ(I,J,4)
+         areg(jr,j_erun )=areg(jr,j_erun )+AREGIJ(I,J,5)
+         areg(jr,j_run ) =areg(jr,j_run  )+AREGIJ(I,J,6)
+         if( moddsf == 0 ) areg(jr,j_tsrf)=areg(jr,j_tsrf)+AREGIJ(I,J,7)
+  825 CONTINUE
+C
       return
       end subroutine earth
 

@@ -48,7 +48,6 @@ C**** Set-able variables
       integer ntx
 #endif
 
-CCC   start of piece to be repeated in CLOUDS_DRV (old OpenMP version)
 C**** input variables
 !@var RA ratio of primary grid box to secondary gridbox
       REAL*8, DIMENSION(IM) :: RA
@@ -171,7 +170,6 @@ CCOMP* ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX,LMCMIN,KMAX)
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
      *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX,LMCMIN,KMAX
 C$OMP  THREADPRIVATE (/CLDPRV/)
-CCC   end of piece to be repeated in CLOUDS_DRV
 
       CONTAINS
 

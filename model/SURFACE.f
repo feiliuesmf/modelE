@@ -71,6 +71,9 @@ C**** Interface to PBL
       REAL*8, PARAMETER :: S1BYG1 = BYRT3,
      *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
       REAL*8 QSAT,DQSATDT,TOFREZ
+      REAL*8 AREGIJ(3,IM,JM,5)
+c
+
 
 #ifdef TRACERS_ON
 C**** Tracer input/output common block for PBL
@@ -86,6 +89,7 @@ C**** Tracer input/output common block for PBL
       real*8  TEV, dTEVdTQS, dTQS, TDP, TDT1
 #endif
 #endif
+
 
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
@@ -105,6 +109,7 @@ C       TGRND(4,I,J)=GTEMP(1,4,I,J)
 C**** Zero out fluxes summed over type and surface time step
       E0=0. ; E1=0. ; EVAPOR=0. ; RUNOE=0. ; ERUNOE=0.
       DMUA=0. ; DMVA=0. ; SOLAR=0.
+      AREGIJ = 0.0D0
 #ifdef TRACERS_WATER
       TREVAPOR = 0. ; TRUNOE = 0.
 #endif
@@ -126,6 +131,28 @@ C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
+C$OMP   PARALLEL DO PRIVATE (ACE2, BETA,BETAUP,   CM,CH,CQ,
+C$OMP*  CDTERM,CDENOM, DGS,DSHDTG,DQGDTG,DEVDTG,DTRDTG,
+C$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DHGS,DQGS,DSNDTG,DEVDQS,
+C$OMP*  DHS,DQS,DT2,DTS, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0,
+C$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HC1,HCG1,HCG2,HSDEN,HSCON,
+C$OMP*  HSMUL,HTLIM,HSNOW,HSNOW1,HICE,HICE1, I,ITYPE,IDTYPE, J,
+C$OMP*  KR, MSUM,MA1,MSI1,MSI2, PS,PXSOIL,P1,P1K,PLAND,PWATER,
+C$OMP*  PLICE,PIJ,POICE,POCEAN,PGK,PKDN,PTYPE,PSK, Q1,QSDEN,
+C$OMP*  QSCON,QSMUL, RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT,
+C$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TGDEN,TH1,TFS,TS,
+#ifndef TRACERS_ON
+C$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,Z2BY4L)
+C$OMP*  SCHEDULE(DYNAMIC,2)
+#else
+C$OMP*  trtop,trsfac,trconstflx,n,nx,ntx,nsrc,ntix,
+#ifdef TRACERS_WATER
+C$OMP*  tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1,
+#endif
+C$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,Z2BY4L)
+C$OMP*  SCHEDULE(DYNAMIC,2)
+#endif
+C
       DO J=1,JM
       HEMI=1.
       IF(J.LE.JM/2) HEMI=-1.
@@ -170,7 +197,7 @@ C****
       Q1=Q(I,J,1)
       THV1=TH1*(1.+Q1*deltx)
       TFS=TF*PXSOIL
-      JR=JREG(I,J)
+CCC   JR=JREG(I,J)
       MA1=AM(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
       MSUM = (PS*100.)/GRAV !@var MSUM total mass of atmosphere (kg/m^2)
       PGK = (PS*100.)**KAPA
@@ -535,13 +562,19 @@ C****
         IF(MODDSF.EQ.0)
      *       AJ(J,J_TSRF,IDTYPE)=AJ(J,J_TSRF,IDTYPE)+(TS-TF)*PTYPE
 C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
-        AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+TRHDT*PTYPE*DXYP(J)
-        AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+SHDT *PTYPE*DXYP(J)
-        AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+EVHDT*PTYPE*DXYP(J)
-        AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+EVAP *PTYPE*DXYP(J)
+CCC     AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+TRHDT*PTYPE*DXYP(J)
+CCC     AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+SHDT *PTYPE*DXYP(J)
+CCC     AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+EVHDT*PTYPE*DXYP(J)
+CCC     AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+EVAP *PTYPE*DXYP(J)
+CCC     IF(MODDSF.EQ.0)
+CCC  *       AREG(JR,J_TSRF)=AREG(JR,J_TSRF)+(TS-TF)*PTYPE*DXYP(J)
+        AREGIJ(ITYPE,I,J,1)=TRHDT*PTYPE*DXYP(J)
+        AREGIJ(ITYPE,I,J,2)=SHDT *PTYPE*DXYP(J)
+        AREGIJ(ITYPE,I,J,3)=EVHDT*PTYPE*DXYP(J)
+        AREGIJ(ITYPE,I,J,4)=EVAP *PTYPE*DXYP(J)
         IF(MODDSF.EQ.0)
-     *       AREG(JR,J_TSRF)=AREG(JR,J_TSRF)+(TS-TF)*PTYPE*DXYP(J)
-
+     *       AREGIJ(ITYPE,I,J,5)=(TS-TF)*PTYPE*DXYP(J)
+C
         IF (PLICE.gt.0) THEN
           AIJ(I,J,IJ_TSLI)=AIJ(I,J,IJ_TSLI)+(TS-TF)
           AIJ(I,J,IJ_SHDTLI)=AIJ(I,J,IJ_SHDTLI)+SHDT
@@ -637,6 +670,21 @@ C****
       END DO   ! end of I loop
 
       END DO   ! end of J loop
+C$OMP  END PARALLEL DO
+C
+      DO 825 J=1,JM
+      DO 825 I=1,IMAXJ(J)
+         JR=JREG(I,J)
+         DO 820 K=1,3
+            AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+AREGIJ(K,I,J,1)
+            AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+AREGIJ(K,I,J,2)
+            AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+AREGIJ(K,I,J,3)
+            AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+AREGIJ(K,I,J,4)
+            IF(MODDSF.EQ.0)
+     *         AREG(JR,J_TSRF )=AREG(JR,J_TSRF )+AREGIJ(K,I,J,5)
+  820    CONTINUE
+  825 CONTINUE
+C
 C****
 C**** EARTH
 C****
@@ -644,6 +692,8 @@ C****
 C****
 C**** UPDATE FIRST LAYER QUANTITIES
 C****
+C$OMP  PARALLEL DO PRIVATE (I,J,FTEVAP,FQEVAP,P1K)
+C$OMP*          SCHEDULE(DYNAMIC,2)
       DO J=1,JM
       DO I=1,IMAXJ(J)
         FTEVAP=0
@@ -669,6 +719,7 @@ C**** Diurnal cycle of temperature diagnostics
         if(tsavg(i,j).lt.tdiurn(i,j,9)) tdiurn(i,j,9)=tsavg(i,j)
       END DO
       END DO
+C$OMP  END PARALLEL DO
 #ifdef TRACERS_ON
 C****
 C**** Apply tracer surface sources and sinks
