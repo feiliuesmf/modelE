@@ -438,10 +438,9 @@ ccc         if((zatmo(ip1,j)-zatmo(i,j))*pu(i,j,l).gt.0.) then
                else
                   wt = (pijl(i,j,l)/pijl(ip1,j,l)-sige(l+1))/dsig(l)
                endif
-               if(wt.lt.1.) then
-                  if(wt.lt.0.) wt=0.
-                  pu(i,j,l+1) = pu(i,j,l+1) + pu(i,j,l)*(1.-wt)
-                  pu(i,j,l) = pu(i,j,l)*wt
+               if(wt.le.0.) then
+                  pu(i,j,l+1) = pu(i,j,l+1) + pu(i,j,l)
+                  pu(i,j,l) = 0.
                else
                   go to 2007
                endif
@@ -464,10 +463,9 @@ ccc         if((zatmo(i,j)-zatmo(i,j-1))*pv(i,j,l).gt.0.) then
                else
                   wt = (pijl(i,j-1,l)/pijl(i,j,l)-sige(l+1))/dsig(l)
                endif
-               if(wt.lt.1.) then
-                  if(wt.lt.0.) wt=0.
-                  pv(i,j,l+1) = pv(i,j,l+1) + pv(i,j,l)*(1.-wt)
-                  pv(i,j,l) = pv(i,j,l)*wt
+               if(wt.le.0.) then
+                  pv(i,j,l+1) = pv(i,j,l+1) + pv(i,j,l)
+                  pv(i,j,l) = 0.
                else
                   go to 2035
                endif
