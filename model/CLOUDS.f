@@ -1267,7 +1267,7 @@ C**** functions
 
 !@param CM00 upper limit for autoconversion rate
 !@param AIRM0 scaling factor for computing rain evaporation
-!@param HEFOLD e-folding length for computing HRISE
+!@param HEFOLD e-folding length for computing HDEP
 !@param COEFM coefficient for ratio of cloud water amount and WCONST
 !@param COEFT coefficient used in computing PRATM
 !@param COESIG coefficient for equ. 23 of Del Genio et al. (1996)
@@ -1325,15 +1325,15 @@ C**** -cooled rain, increasing COEFM enhances probability of snow.
       REAL*8 AIRMR,BETA,BMAX
      *     ,CBF,CBFC0,CK,CKIJ,CK1,CK2,CKM,CKR,CM,CM0,CM1,DFX,DQ,DQSDT
      *     ,DQSUM,DQUP,DRHDT,DSE,DSEC,DSEDIF,DWDT,DWDT1,DWM,ECRATE,EXPST
-     *     ,FCLD,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI,HRISE
+     *     ,FCLD,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI
      *     ,FUNIL,FUNIO,HCHANG,HDEP,HPHASE,OLDLAT,OLDLHX,PFR,PMI,PML
-     *     ,HDEP1,PRATIO,QCONV,QHEATC,QLT1,QLT2,QMN1,QMN2,QMO1,QMO2,QNEW
+     *     ,HPBL,PRATIO,QCONV,QHEATC,QLT1,QLT2,QMN1,QMN2,QMO1,QMO2,QNEW
      *     ,QNEWU,QOLD,QOLDU,QSATC,QSATE,RANDNO,RCLDE,RHI,RHN,RHO,RHT1
      *     ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1
      *     ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
      *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD,FCOND,HDEPx
      *     ,PRATW,PRATM
-!@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,HRISE,PRATW,PRATM dummy variables
+!@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,PRATW,PRATM dummy variables
 !@var AIRMR
 !@var CBF enhancing factor for precip conversion
 !@var CK ratio of cloud top jumps in moist static energy and total water
@@ -1361,7 +1361,7 @@ C**** -cooled rain, increasing COEFM enhances probability of snow.
 !@var FUNI the probablity for ice cloud to form
 !@var FUNIL,FUNIO FUNI over land, ocean
 !@var HCHANG,HPHASE latent heats for changing phase
-!@var HDEP,HDEP1 layer depth (m)  (note change of unit km-->m)
+!@var HDEP,HPBL layer depth (m)  (note change of unit km-->m)
 !@var OLDLAT,OLDLHX previous LHX
 !@var PFR PROBABLITY OF GLACIATION OF SUPER-COOLED WATER
 !@var PMI icy precip entering the layer top
@@ -1532,35 +1532,24 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
     ! this formulation is used for consistency with current practice
       RH00(L)=U00wtrX*U00ice
       IF(LHX.EQ.LHS) RH00(L)=U00ice
-      IF(L.EQ.1) THEN
-        HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
-        RH00(L)=1.-GAMD*LHE*HDEP/(RVAP*TS*TS)
-        IF(DCL.LE.1) THEN
-         IF(RIS.GT.1.) HDEP1=10d0
-         IF(RIS.LE.1..AND.RI1.GT.1.) HDEP1=50d0
-         IF(RIS.LE.1..AND.RI1.LE.1..AND.RI2.GT.1.) HDEP1=100d0
-         IF(RIS.LE.1..AND.RI1.LE.1..AND.RI2.LE.1.) HDEP1=HDEP
-         RH00(L)=1.-GAMD*LHE*HDEP1/(RVAP*TS*TS)
-        ENDIF
-        IF(RH00(L).LT.0.) RH00(L)=0.
-      ENDIF
-C**** Special formulation for PBL layers
-      IF(L.GT.1.AND.L.LE.DCL) THEN
-C**** integrated HDEP over pbl depth
-        HDEP=0.
+      IF (L.LE.DCL) THEN   ! boundary layer clouds
+C**** calculate total pbl depth
+        HPBL=0.
         DO LN=1,DCL
-          HDEP=HDEP+AIRM(LN)*TL(LN)*RGAS/(GRAV*PL(LN))
+          HPBL=HPBL+AIRM(LN)*TL(LN)*RGAS/(GRAV*PL(LN))
         END DO
-c       IF(L.EQ.DCL) HDEP=HDEP+0.5*AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
-        HRISE=HRMAX
-        IF(HDEP.LT.10.*HEFOLD) HRISE=HRMAX*(1.-EXP(-HDEP/HEFOLD))
-        IF(HRISE.GT.HDEP) HRISE=HDEP
-C**** hdep is simply layer dependent (not used: resolution sensitive)
-c        HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
-c        IF(L.EQ.DCL) HDEP=0.5*HDEP
-        RH00(L)=1.-GAMD*LHE*HRISE/(RVAP*TS*TS)
+C**** Scale HPBL by HRMAX to provide tuning control for PBL clouds
+        HDEP = MIN(HPBL,HRMAX*(1.-EXP(-HPBL/HEFOLD)))
+C**** Special conditions for boundary layer contained wholly in layer 1
+        IF (DCL.LE.1) THEN
+          IF (RIS.GT.1.) HDEP=10d0
+          IF (RIS.LE.1..AND.RI1.GT.1.) HDEP=50d0
+          IF (RIS.LE.1..AND.RI1.LE.1..AND.RI2.GT.1.) HDEP=100d0
+        END IF
+C**** Estimate critical rel. hum. based on parcel lifting argument
+        RH00(L)=1.-GAMD*LHE*HDEP/(RVAP*TS*TS)
         IF(RH00(L).LT.0.) RH00(L)=0.
-      ENDIF
+      END IF
 C****
       IF(RH00(L).GT.1.) RH00(L)=1.
       RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
