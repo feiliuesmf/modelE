@@ -1226,7 +1226,7 @@ C****  G_mole_S = 12.5 * 2432d0**(2d0/3d0) - 6. = 2255d0
 !@var Ti,Tm temperatures in ice and mixed layer (C)
 !@var dh distance from center of bottom ice layer to base of ice (m)
       real*8, intent(in) :: Ti,Si,Tm,Sm,dh
-!@var coriol Corilos parameter (used in turbulent flux calc) (1/s)
+!@var coriol Coriolis parameter (used in turbulent flux calc) (1/s)
 !@var ustar friction velocity at ice-ocean interface (m/s)
       real*8, intent(in) :: ustar,Coriol
 !@var dtsrc source time step (s)
@@ -1275,8 +1275,8 @@ C**** Diffusive flux is implicit in ice !  + ml temperature (not used)
 c no salinity effects
       alamdh = alami/(dh+alpha*dtsrc*alami*byshi/(2.*dh*rhoi))
 c S thermo
-c      alamdh = (alami*Ti+alamdS*Si)/(dh*Ti+alpha*dtsrc*
-c     *          (alami*Ti+alamdS*Si)*byshi/(2.*rhoi*dh))
+c      alamdh = (alami+alamdS*Si)/(dh+alpha*dtsrc*
+c     *          (alami+alamdS*Si)*byshi/(2.*rhoi*dh))
 
 C**** solve for boundary values (uses Newton-Rapheson with bounds)
 C**** Estimate initial boundary salinity
@@ -1291,7 +1291,7 @@ C**** ice salinity or is a function of the boundary salinity.
 C**** Similarly for temperature Tib
         if (left2.gt.0) then    ! freezing
           if (qsfix) then   ! keep salinity in ice constant
-            Sib = ssi0
+            Sib = ssi0*1d3
           else              ! it is a function of boundary value
             Sib = Sb0*fsss
           end if
@@ -1308,7 +1308,7 @@ c          dmdTb = (left2*(shw-shi)-lh*(alamdh + rsg))/(lh*lh)
 c          dmdSi = 0.
 c salinity effects only mass
           dmdTb = (left2*(shw-shi)-lh*(alamdh + rsg))/(lh*lh)
-          dmdSi = left2*lhm*1d-3/(lh*lh)
+          dmdSi = -left2*lhm*1d-3/(lh*lh)
 c S thermo
 c         dmdTb = (left2*(-lhm*mu*Sib/Tb**2+shw-shi)-lh*(alamdh + rsg
 c    *       ))/(lh*lh)
@@ -1328,7 +1328,7 @@ c         dmdSi = (left2*mu*(lhm/Tb+shw-shi))/(lh*lh)
 c no salinity effects
 c         lh = lhm + Tb*shw - Ti*shi
 c salinity effects only mass
-          lh = lhm*(1.-Sib*1d-3) + Tb*(shw-shi)
+          lh = lhm*(1.-Sib*1d-3) + Tb*shw - Ti*shi
 c S thermo
 c         lh = lhm*(1.+mu*Sib/Ti) + (Ti+mu*Sib)*(shw-shi) - shw*(Ti-Tb)
           m = -left2/lh
