@@ -19,9 +19,11 @@ C**** SURFACE SPECIFIC HUMIDITY, AND SURFACE WIND COMPONENTS.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap
-      USE E001M12_COM
+      USE E001M12_COM, only : im,jm,fim,dt,nsurf,nstep,ndyn,u,v,t,p,q
+     *     ,idacc,dsig,jday,gdata,tofday,ndasf,iday,jeq,fland,flice
+     *     ,fearth,ngrnd,modrd,ijd6,tau,sige
       USE SOMTQ_COM
-      USE GEOM
+      USE GEOM, only : dxyp,imaxj,kmaxj,raj,idij,idjj,rapvn,rapvs
       USE RADNCB, only : trhr,fsf,cosz1
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
@@ -33,7 +35,7 @@ C****
       IMPLICIT NONE
 
       INTEGER I,J,L,K,IM1,IP1,LMAX,KR,JR,IHOUR,NS,NSTEPS,MODDSF,MODD6
-     *     ,KMAX,IMAX,JVPO,ITYPE,NGRNDZ,NG
+     *     ,KMAX,IMAX,ITYPE,NGRNDZ,NG
       REAL*8 DTSRCE,BYRLI,BYRLS,HC1I,HC2LI,HC1DE,HC2DE,ATRHDT,BTRHDT
      *     ,CTRHDT,ASHDT,BSHDT,CSHDT,AEVHDT,BEVHDT,CEVHDT,ATS,BTS,CTS
      *     ,PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1,P1K,H0M1,HZM1,PGK,HS,PKDN
@@ -42,7 +44,7 @@ C****
      *     ,EVHDT,F1DT,CM,CH,CQ,DHGS,DQGS,DGS,BETAUP,EVHEAT,F0
      *     ,F1,DSHDTG,DQGDTG,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG
      *     ,dEVdQS,HSDEN,HSCON,HSMUL,dHS,dQS,dT2,dTS,DQ1X,EVHDT0,EVAP
-     *     ,F0DT,FTEVAP,VAP,PKMS,SHCD,RVX,SPRING,TIMEZ,RAPO,PWATER
+     *     ,F0DT,FTEVAP,VAP,PKMS,SHCD,RVX,SPRING,TIMEZ,PWATER
      *     ,PXSOIL,PSK,TH1,Q1,THV1,TFS,RMBYA,HZM1,Q0M1,QZM1,TSS,QSS,TAUS
      *     ,RTAUS,RTAUUS,RTAUVS,TG1S,QGS,SRHDTS,TRHDTS,SHDTS,UGS,PTYPE
      *     ,TG1,SRHEAT,SNOW,TG2,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS
@@ -64,8 +66,6 @@ C****
       REAL*8, DIMENSION(IM,JM,4) :: E0,E1,EVAPOR,TGRND
       COMMON/WORK3/E0,E1,EVAPOR,TGRND
 
-      REAL*8 PI,RADIAN,DEGREE
-      COMMON /CIRCLE/PI,RADIAN,DEGREE
       REAL*8 SINI(IM),COSI(IM),TGRN2(IM,JM,4)
 
 C**** Interface to PBL
@@ -112,9 +112,6 @@ C****       15  OCEAN ICE TEMPERATURE OF THIRD LAYER (C)
 C****       16  OCEAN ICE TEMPERATURE OF FOURTH LAYER (C)
 C****
       NSTEPS=NSURF*NSTEP/NDYN
-      PI=ACOS(-1.D0)
-      DEGREE=180./PI
-      RADIAN=PI/180.
       OMEGA2=2.*OMEGA
       DTSURF=NDYN*DT/NSURF
       DTSRCE=DT*NDYN
@@ -140,35 +137,33 @@ C*
          SPRING=-1.
          IF((JDAY.GE.32).AND.(JDAY.LE.212)) SPRING=1.
 C**** ZERO OUT ENERGY AND EVAPORATION FOR GROUND AND INITIALIZE TGRND
-      DO 40 J=1,JM
-      DO 40 I=1,IM
-      TGRND(I,J,2)=GDATA(I,J,3)
-      TGRND(I,J,3)=GDATA(I,J,13)
-C     TGRND(I,J,4)=GDATA(I,J,4)
-      TGRN2(I,J,2) = GDATA(I,J,7)
-      TGRN2(I,J,3) = GDATA(I,J,14)
+      DO J=1,JM
+        DO I=1,IM
+          TGRND(I,J,2)=GDATA(I,J,3)
+          TGRND(I,J,3)=GDATA(I,J,13)
+C         TGRND(I,J,4)=GDATA(I,J,4)
+          TGRN2(I,J,2) = GDATA(I,J,7)
+          TGRN2(I,J,3) = GDATA(I,J,14)
+        END DO
+      END DO   
 C*
-C*
-      DO 40 K=1,12
-   40 E0(I,J,K)=0.
+C**** Zero out fluxes summed over type
+      E0=0. ; E1=0. ; EVAPOR=0. 
+
          IHOUR=1.5+TOFDAY
       call pgrads1
 C****
 C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NSURF TIMES EVERY HOUR
 C****
-      DO 9000 NS=1,NSURF
+      DO NS=1,NSURF
          MODDSF=MOD(NSTEPS+NS-1,NDASF)
          IF(MODDSF.EQ.0) IDACC(3)=IDACC(3)+1
          MODD6=MOD(IDAY+NS,NSURF)
          TIMEZ=JDAY+(TOFDAY+(NS-1.)/NSURF)/24.
          IF(JDAY.LE.31) TIMEZ=TIMEZ+365.
 C**** ZERO OUT LAYER 1 WIND INCREMENTS
-      DO 60 J=1,JM
-      DO 60 I=1,IM
-      DTH1(I,J)=0.
-      DQ1(I,J) =0.
-      DU1(I,J)=0.
-   60 DV1(I,J)=0.
+      DTH1=0. ;  DQ1 =0. ;  DU1=0. ; DV1=0.
+
       call loadbl
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
@@ -178,26 +173,10 @@ C****
          IMAX=IMAXJ(J)
       HEMI=1.
       IF(J.LE.JM/2) HEMI=-1.
-      IF(J.EQ.1) THEN
-C**** CONDITIONS AT THE SOUTH POLE
-        POLE=.TRUE.
-        IMAX=1
-        JVPO=2
-        RAPO=2.*RAPVN(1)
-        GO TO 100
-      ENDIF
-      IF(J.EQ.JM) THEN
-C**** CONDITIONS AT THE NORTH POLE
-        POLE=.TRUE.
-        IMAX=1
-        JVPO=JM
-        RAPO=2.*RAPVS(JM)
-        GO TO 100
-      ENDIF
       POLE=.FALSE.
-      IMAX=IM
+      IF(J.EQ.1 .or. J.EQ.JM) POLE = .TRUE.
 C**** ZERO OUT SURFACE DIAGNOSTICS WHICH WILL BE SUMMED OVER LONGITUDE
-  100    ATRHDT=0.
+         ATRHDT=0.
          BTRHDT=0.
          CTRHDT=0.
          ASHDT=0.
@@ -209,11 +188,10 @@ C**** ZERO OUT SURFACE DIAGNOSTICS WHICH WILL BE SUMMED OVER LONGITUDE
          ATS=0.
          BTS=0.
          CTS=0.
-c         JEQ=1+JM/2
          IF(J.LT.JEQ) WARMER=-SPRING
          IF(J.GE.JEQ) WARMER=SPRING
       IM1=IM
-      DO 6000 I=1,IMAX
+      DO I=1,IMAX
 
       ! until pbl loops over i,j,itype
       WSAVG(I,J)=0.
@@ -619,7 +597,7 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
          AIJ(I,J,IJ_TAUVS)=AIJ(I,J,IJ_TAUVS)+RTAUVS
          AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QSS
 C**** QUANTITIES ACCUMULATED HOURLY FOR DIAG6
- 5800    IF(MODD6.NE.0) GO TO 6000
+ 5800    IF(MODD6.EQ.0) THEN
          DO KR=1,4
             IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
                ADAILY(IHOUR,6,KR)=ADAILY(IHOUR,6,KR)+PS
@@ -657,7 +635,9 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAG6
                ADAILY(IHOUR,50,KR)=ADAILY(IHOUR,50,KR)+EVAPS
             END IF
          END DO
- 6000 IM1=I
+       END IF
+       IM1=I
+      END DO
 C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
          AJ(J,9)=AJ(J,9)+ATRHDT
          BJ(J,9)=BJ(J,9)+BTRHDT
@@ -680,9 +660,9 @@ C****
 C****
 C**** UPDATE FIRST LAYER QUANTITIES
 C****
-      DO 7205 J=1,JM
+      DO J=1,JM
         IMAX=IMAXJ(J)
-        DO 7200 I=1,IMAX
+        DO I=1,IMAX
           FTEVAP=0
           IF (DTH1(I,J)*T(I,J,1).lt.0) FTEVAP=-DTH1(I,J)/T(I,J,1)
           FQEVAP=0
@@ -720,53 +700,49 @@ C****
              QYZ(I,J,1)=0.
              QZX(I,J,1)=0.
           ENDIF
-7200    CONTINUE
-7205  CONTINUE
+        END DO
+      END DO
 C****
 C**** ADD IN SURFACE FRICTION TO FIRST LAYER WIND
 C****
-      DO 7600 I=1,IM
+      DO I=1,IM
       U(I,2,1)=U(I,2,1)-2.*(DU1(1,1)*COSI(I)-DV1(1,1)*SINI(I))*RAPVN(1)
       V(I,2,1)=V(I,2,1)-2.*(DV1(1,1)*COSI(I)+DU1(1,1)*SINI(I))*RAPVN(1)
       U(I,JM,1)=U(I,JM,1)
      *  -2.*(DU1(1,JM)*COSI(I)+DV1(1,JM)*SINI(I))*RAPVS(JM)
- 7600 V(I,JM,1)=V(I,JM,1)
+      V(I,JM,1)=V(I,JM,1)
      *  -2.*(DV1(1,JM)*COSI(I)-DU1(1,JM)*SINI(I))*RAPVS(JM)
-      DO 7700 J=2,JM-1
-      I=IM
-      DO 7700 IP1=1,IM
-      U(I,J,1)=U(I,J,1)-(DU1(I,J)+DU1(IP1,J))*RAPVS(J)
-      V(I,J,1)=V(I,J,1)-(DV1(I,J)+DV1(IP1,J))*RAPVS(J)
-      U(I,J+1,1)=U(I,J+1,1)-(DU1(I,J)+DU1(IP1,J))*RAPVN(J)
-      V(I,J+1,1)=V(I,J+1,1)-(DV1(I,J)+DV1(IP1,J))*RAPVN(J)
- 7700 I=IP1
+      END DO
+      DO J=2,JM-1
+        I=IM
+        DO IP1=1,IM
+          U(I,J,1)=U(I,J,1)-(DU1(I,J)+DU1(IP1,J))*RAPVS(J)
+          V(I,J,1)=V(I,J,1)-(DV1(I,J)+DV1(IP1,J))*RAPVS(J)
+          U(I,J+1,1)=U(I,J+1,1)-(DU1(I,J)+DU1(IP1,J))*RAPVN(J)
+          V(I,J+1,1)=V(I,J+1,1)-(DV1(I,J)+DV1(IP1,J))*RAPVN(J)
+          I=IP1
+        END DO
+      END DO
 C****
 C**** DRY CONVECTION ORIGINATING FROM THE FIRST LAYER
 C****
 C**** LOAD U,V INTO UT,VT.  UT,VT WILL BE FIXED DURING DRY CONVECTION
 C****   WHILE U,V WILL BE UPDATED.
-      DO 8050 L=1,LM
-      DO 8050 J=2,JM
-      DO 8050 I=1,IM
-      UT(I,J,L)=U(I,J,L)
- 8050 VT(I,J,L)=V(I,J,L)
+      UT=U ; VT=V
 C**** OUTSIDE LOOPS OVER J AND I
-      DO 8500 J=1,JM
-      POLE=.FALSE.
-      IF(J.EQ.1.OR.J.EQ.JM) POLE=.TRUE.
+      DO J=1,JM
       IMAX=IMAXJ(J)
       KMAX=KMAXJ(J)
 
-      IM1=IM
-      DO 8500 I=1,IMAX
-         DO K=1,KMAX
-            RA(K)=RAJ(K,J)
-            IDI(K)=IDIJ(K,I,J)
-            IDJ(K)=IDJJ(K,J)
-         END DO
+      DO I=1,IMAX
+        DO K=1,KMAX
+          RA(K)=RAJ(K,J)
+          IDI(K)=IDIJ(K,I,J)
+          IDJ(K)=IDJJ(K,J)
+        END DO
       DCLEV(I,J)=1.
-      IF(T(I,J,1)*(1.+Q(I,J,1)*RVX).LE.
-     *   T(I,J,2)*(1.+Q(I,J,2)*RVX)) GO TO 8500
+      IF(T(I,J,1)*(1.+Q(I,J,1)*RVX).GT.
+     *   T(I,J,2)*(1.+Q(I,J,2)*RVX)) THEN
 C**** MIX HEAT AND MOISTURE THROUGHOUT THE BOUNDARY LAYER
       PIJ=P(I,J)
       PKMS=(PK(1,I,J)*DSIG(1)+PK(2,I,J)*DSIG(2))*PIJ
@@ -792,7 +768,7 @@ C**** MIX HEAT AND MOISTURE THROUGHOUT THE BOUNDARY LAYER
      *     +T(I,J,2)*(1.+Q(I,J,2)*RVX)*(PK(2,I,J)*DSIG(2)))*PIJ
       THETA=TVMS/PKMS
 C**** MIX THROUGH SUMSEQUENT LAYERS
-      DO 8140 L=3,LM
+      DO L=3,LM
       IF(THETA.LT.T(I,J,L)*(1.+Q(I,J,L)*RVX)) GO TO 8160
       PIJ=PLIJ(L,I,J)
       PKMS=PKMS+(PK(L,I,J)*PDSIG(L,I,J))
@@ -809,7 +785,8 @@ C**** MIX THROUGH SUMSEQUENT LAYERS
       QYYS = QYYS + QYY(I,J,L)*PDSIG(L,I,J)
       QXYS = QXYS + QXY(I,J,L)*PDSIG(L,I,J)
       TVMS=TVMS+T(I,J,L)*(1.+Q(I,J,L)*RVX)*(PK(L,I,J)*PDSIG(L,I,J))
- 8140 THETA=TVMS/PKMS
+      THETA=TVMS/PKMS
+      END DO
       L=LM+1
  8160 LMAX=L-1
       RDP=1./(P(I,J)*SIGE(1)-PIJ*SIGE(LMAX+1))
@@ -860,19 +837,22 @@ C**** MIX MOMENTUM THROUGHOUT THE BOUNDARY LAYER
 c the following line gives bytewise different ajl
             AJL(IDJ(K),L,38)=AJL(IDJ(K),L,38)
      &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*PIJ*RA(K)
-         ENDDO
-      ENDDO
-C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
- 8400    IF(MODD6.NE.0) GO TO 8500
-         DO KR=1,4
-            IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-               ADAILY(IHOUR,47,KR)=ADAILY(IHOUR,47,KR)+1.
-               ADAILY(IHOUR,48,KR)=ADAILY(IHOUR,48,KR)+LMAX
-            END IF
          END DO
- 8500 IM1=I
+      END DO
+C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
+ 8400   IF(MODD6.EQ.0) THEN
+        DO KR=1,4
+          IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
+            ADAILY(IHOUR,47,KR)=ADAILY(IHOUR,47,KR)+1.
+            ADAILY(IHOUR,48,KR)=ADAILY(IHOUR,48,KR)+LMAX
+          END IF
+        END DO
+      END IF
+      END IF
+      END DO
+      END DO
 C****
- 9000 CONTINUE
+      END DO
       RETURN
  9991 FORMAT ('0SURFACE ',4I4,5F10.4,3F11.7)
  9992 FORMAT ('0',I2,10F10.4/23X,4F10.4,10X,2F10.4/
