@@ -712,6 +712,7 @@ always be recreated if needed.</p>
          FLAND=1.-FOCEAN(I,J)
        ELSE
          FLAND=1.-FLAKE(I,J)
+	 HLAKE(I,J)=MAX(1.,HLAKE(I,J))
        END IF
        FGRND(I,J)=MAX(0.,FLAND-FGICE(I,J))! land ice fraction takes precedence over ground
        FGICE(I,J)=FLAND-FGRND(I,J)
@@ -721,19 +722,9 @@ always be recreated if needed.</p>
        FGRND, FLAKE, and HLAKE to zero. Note as well that the polar
        boxes must be homogenous (i.e. FOCEAN(2:IM,JM)=FOCEAN(1,JM)
        etc.)  </p>
-<!-- 
-       <p>Some other external file data may not be consistent with the
-       new land/ocean mask but the model code will extrapolate from a
-       nearest neighbour to fill those points in. Make sure that the
-       model is started with ISTART=6 in order to ensure that this is
-       the case.</p>
 
-       <p>It may also be necessary to adjust the initial conditions to
-	ensure that the initial values are consistent with the new
-	topography. We are working on this to make sure that defaults are
-	resaonable regardless of the topography file, but this is not yet
-	finished.</p>
- -->
+       <p>Note that if FLAKE(I,J)>0, then HLAKE must be greater than 1.</p>
+
   <li><A name="part1_4b"><b>HOW-TO run the model with a new land mask</b></a>
     <p>If you changed the topography file you may have created new land cells.
     These cells are missing both boundary conditions and prognostic variables
