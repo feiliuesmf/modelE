@@ -99,7 +99,7 @@ endif
 # Linux - specific options here
 # If COMPILER is set will use options for that compiler, otherwise will
 # use the default (Absoft). The following compilers are recognized:
-# Absoft, Lahey, Intel (not working yet), Vast (not working yet).
+# Absoft, Lahey, PGI, Intel (not working yet), Vast (not working yet).
 ifeq ($(UNAME),Linux)
 MACHINE = Linux
 ifndef COMPILER
@@ -143,8 +143,24 @@ LFLAGS = -lf90math -lV77 -lU77
 #FFLAGS += -g -trap=INVALID,DIVBYZERO,OVERFLOW -B111
 #LFLAGS += -lefence -g
 endif
-endif
 
+## This is for the Portland Group Compiler (PGI)
+ifeq ($(COMPILER),PGI)
+F90 = pgf90 -Mbyteswapio
+CPP = /usr/bin/cpp -P -traditional
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
+CPPFLAGS = -DMACHINE_Linux
+FFLAGS = -O2
+LFLAGS = 
+ifeq ($(MP),YES)   # edit for PGI OpenMP compatability???
+FFLAGS += -Msmp
+LFLAGS += -Msmp
+endif
+# uncomment next two lines for extensive debugging
+#FFLAGS += 
+#LFLAGS += 
+endif
+endif
 
 # IBM - specific options here
 ifeq ($(UNAME),AIX)
@@ -219,7 +235,7 @@ FORCE:
 
 # Standard fortran
 # .timestemp is a hack to set proper times on .o and .mod
-# For the Absoft/Lahey compilers, we need to force a cpp run through
+# For the Absoft/Lahey/PGI compilers, we need to force a cpp run through
 %.o: %.f
 	@echo -n compiling $< ... $(MSG)
 	@touch .timestamp
@@ -235,8 +251,15 @@ ifeq ($(COMPILER),Lahey)
 	  $(COMP_OUTPUT)
 	rm -f $*.F
 else
+ifeq ($(COMPILER),PGI)
+	cp $*.f $*.F
+	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.F \
+	  $(COMP_OUTPUT)
+	rm -f $*.F
+else
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.f \
 	  $(COMP_OUTPUT)
+endif
 endif
 endif
 	-@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \

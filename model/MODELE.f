@@ -530,7 +530,7 @@ C****
       USE PARSER
       USE CONSTANT, only : grav,kapa,sday,shi,lhm,by3
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
-     *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige,kradia
+     *     ,focean,flake0,flice,hlake,zatmo,plbot,sig,dsig,sige,kradia
      *     ,bydsig,xlabel,lrunid,nmonav,qcheck,irand,psf,ptop
      *     ,nisurf,nidyn,nday,dt,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
@@ -588,6 +588,13 @@ C**** Default setting for ISTART : restart from latest save-file (10)
 C****
       ISTART=10
 C****
+C**** Set dependent vertical resolution variables
+C****
+      SIGE(:) = (PLbot(:)-PTOP)/PSFMPT
+      SIG(:)  = (sige(1:lm)+sige(2:lm+1))*0.5d0
+      DSIG(:) =  sige(1:lm)-sige(2:lm+1)
+      byDSIG  =  1./DSIG
+C****
 C**** default settings for prog. variables etc
 C****
       TEMP=250.
@@ -601,7 +608,7 @@ C**** Advection terms for first and second order moments
       TMOM(:,:,:,:)=0.
       QMOM(:,:,:,:)=0.
 C**** Auxiliary clouds arrays
-      RHSAV (:,:,:)=.85
+      RHSAV (:,:,:)=.85d0
       CLDSAV(:,:,:)=0.
       SVLHX (:,:,:)=0.
       WM    (:,:,:)=0.
@@ -628,7 +635,7 @@ C****
       call set_param("JM",JM)
       call set_param("LM",LM)
       call set_param("LS1",LS1)
-      call set_param("PLBOT",PSFMPT*SIGE(1:LM+1)+PTOP,LM+1)
+      call set_param("PLBOT",Plbot,LM+1)
 #ifdef TRACERS_ON
       call set_param("NTM",NTM)
       call set_param("TRNAME",TRNAME,ntm)
@@ -1177,7 +1184,7 @@ C****
         WRITE (6,INPUTZ)
         call print_param( 6 )
         WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
-        WRITE (6,*) "PLbot=",PTOP+PSFMPT*SIGE
+        WRITE (6,*) "PLbot=",PLbot
         if(istart.lt.0)
      &       CALL stop_model ('Terminated normally, istart<0',13)
         return
@@ -1203,7 +1210,7 @@ C****
       WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
       WRITE (6,'(A14,2I8)') "KACC=",KACC
       WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
-      WRITE (6,*) "PLbot=",PTOP+PSFMPT*SIGE
+      WRITE (6,*) "PLbot=",PLbot
 C****
       RETURN
 C****
@@ -1370,12 +1377,12 @@ C**** CORRECTED.
 
       IF (QCHECK) THEN
 C**** Check all prog. arrays for Non-numbers
-        CALL CHECK3(U,IM,JM,LM,SUBR,'u ')
-        CALL CHECK3(V,IM,JM,LM,SUBR,'v ')
-        CALL CHECK3(T,IM,JM,LM,SUBR,'t ')
-        CALL CHECK3(Q,IM,JM,LM,SUBR,'q ')
-        CALL CHECK3(P,IM,JM,1,SUBR,'p ')
-        CALL CHECK3(WM,IM,JM,LM,SUBR,'wm')
+        CALL CHECK3(U,IM,JM,LM,SUBR,'u     ')
+        CALL CHECK3(V,IM,JM,LM,SUBR,'v     ')
+        CALL CHECK3(T,IM,JM,LM,SUBR,'t     ')
+        CALL CHECK3(Q,IM,JM,LM,SUBR,'q     ')
+        CALL CHECK3(P,IM,JM,1,SUBR,'p     ')
+        CALL CHECK3(WM,IM,JM,LM,SUBR,'wm    ')
 
         DO J=1,JM
         DO I=1,IM

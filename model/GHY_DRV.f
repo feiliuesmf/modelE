@@ -748,7 +748,7 @@ ccc                               currently using only topography part
 c**** modifications needed for split of bare soils into 2 types
       use filemanager
       use param
-      use constant, only : twopi,rhow,edpery,sha,lhe,tf
+      use constant, only : twopi,rhow,edpery,sha,lhe,tf,one
       use model_com, only : fearth,vdata,itime,nday,jeq
       use dagcom, only : npts,icon_wtg,icon_htg,conpt0
       use sle001
@@ -769,7 +769,7 @@ c**** modifications needed for split of bare soils into 2 types
       real*8 snowdp,wtr1,wtr2,ace1,ace2,tg1,tg2
       logical :: qcon(npts)
       integer i, j, k, ibv
-      real*8 one,wfc1
+      real*8 wfc1
       real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
       real*8 slim,slre,svh,z
       integer iv, l
@@ -853,7 +853,6 @@ c**** read rundeck parameters
       call sync_param( "snow_cover_coef", snow_cover_coef )
       call sync_param( "snoage_def", snoage_def )
 
-      one=1.
 c****
 c**** initialize constants
 c****

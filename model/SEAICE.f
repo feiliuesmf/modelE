@@ -16,7 +16,8 @@
 !@param XSI fractions of mass layer in each temp. layer
 !@param BYXSI recipricol of XSI
       REAL*8, PARAMETER, DIMENSION(LMI) ::
-     *     XSI= (/0.5d0, 0.5d0, 0.5d0, 0.5d0/), BYXSI=1./XSI
+     *     XSI= (/0.5d0, 0.5d0, 0.5d0, 0.5d0/), 
+     *     BYXSI= (/ 1./XSI(1), 1./XSI(2), 1./XSI(3), 1./XSI(4) /)
 !@param Z1I thickness of first layer ice (m)
       REAL*8, PARAMETER :: Z1I = .1d0
 !@param ACE1I ice mass first layer (kg/m^2)

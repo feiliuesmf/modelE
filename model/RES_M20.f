@@ -19,21 +19,13 @@
 !@var PSFMPT,PSTRAT pressure due to troposhere,stratosphere
       REAL*8, PARAMETER :: PSFMPT=PSF-PTOP, PSTRAT=PTOP-PMTOP
 
-!@var SIGE sigma levels at layer interfaces (1)
-      REAL*8, PARAMETER, DIMENSION(LM+1) :: SIGE = ((/
+!@var PLbot pressure levels at bottom of layers (mb)
+      REAL*8, PARAMETER, DIMENSION(LM+1) :: PLbot = (/
      t     PSF,    974.d0, 959.d0, 934.d0, 900.d0, 857.d0,
      *     804.d0, 744.d0, 677.d0, 607.d0, 535.d0, 463.d0,
      *     393.d0, 327.d0, 264.d0, 205.d0,       ! Pbot L=1,16
      1     PTOP,                                 !      L=LS1
      s     100.d0,    60.d0,   30.d0,   PMTOP /) !      L=..,LM+1
-     *     - PTOP)/(PSF-PTOP)
-!!!!  Note:   sige(1)=1,  sige(ls1)=0,  sige(lm+1)=-pstrat/psfmpt
-
-!@var SIG,DSIG,byDSIG mid point, depth, 1/depth of sigma levels (1)
-      REAL*8, dimension(lm), parameter ::
-     &     SIG    = (sige(1:lm)+sige(2:lm+1))*0.5d0,
-     &     DSIG   =  sige(1:lm)-sige(2:lm+1),
-     &     byDSIG =  1./DSIG
 
 C**** KEP depends on whether stratos. EP flux diagnostics are calculated
 C**** If dummy EPFLUX is used set KEP=0, otherwise KEP=21

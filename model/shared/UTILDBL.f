@@ -125,8 +125,7 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
         character*16 filename              ! the name on the file
       end type UnitStr
 
-      type (UnitStr) :: Units( MINUNIT : MAXUNIT )
-      data  Units  / TOTALUNITS*UnitStr(.false.," ") /
+      type (UnitStr) :: Units( MINUNIT:MAXUNIT ) = UnitStr(.false.," ")
 
       contains
 
@@ -453,6 +452,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       LOGICAL :: QCHECK3 = .FALSE.
       INTEGER I,J,L !@var I,J,L loop variables
 
+C$OMP PARALLEL DO PRIVATE (L,J,I) SHARED (QCHECK3)
       DO L=1,LN
       DO J=1,JN
       DO I=1,IN
@@ -463,6 +463,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       END DO
       END DO
       END DO
+C$OMP END PARALLEL DO
       CALL SYS_FLUSH(6)
       IF (QCHECK3) call stop_model('CHECK3',255)
       RETURN

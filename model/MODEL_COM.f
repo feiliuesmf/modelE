@@ -3,7 +3,7 @@
 !@auth Original Development Team
 !@ver  1.0
       USE RESOLUTION, only : im,jm,lm,ls1,kep,istrat,
-     *     psf,pmtop,ptop,psfmpt,pstrat,sig,sige,dsig,bydsig
+     *     psf,pmtop,ptop,psfmpt,pstrat,plbot
       IMPLICIT NONE
       SAVE
 
@@ -17,6 +17,16 @@
       CHARACTER*132 XLABEL !@var XLABEL=runID+brief description of run
       INTEGER :: LRUNID    !@var Run name stored in XLABEL(1:LRUNID)
       INTEGER :: LHEAD=15  !@var length of crucial beg of module_headers
+
+!**** Vertical resolution dependent variables (set in INPUT)
+!@var SIGE sigma levels at layer interfaces (1)
+!!!!  Note:   sige(1)=1,  sige(ls1)=0,  sige(lm+1)=-pstrat/psfmpt
+      REAL*8, DIMENSION(LM+1) :: SIGE
+!@var SIG,DSIG,byDSIG mid point, depth, 1/depth of sigma levels (1)
+      REAL*8, DIMENSION(LM) ::
+     &     SIG,    ! = (sige(1:lm)+sige(2:lm+1))*0.5d0,
+     &     DSIG,   ! =  sige(1:lm)-sige(2:lm+1),
+     &     byDSIG  ! =  1./DSIG
 
 !**** Model control parameters:
 !@dbparam KOCEAN: if 0 => specified, if 1 => predicted ocean
