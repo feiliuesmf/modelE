@@ -812,7 +812,7 @@ C**** add tracers to advected arrays
           MHS(1+2+(1+ITR)*LMI,I,J)=TRSNOW(ITR)
           MHS(2+2+(1+ITR)*LMI,I,J)=TRICE(ITR)
           DO L=3,LMI
-            MHS(L+2+(1+ITR)*LMI,:,:)=TRSI(ITR,L,:,:)
+            MHS(L+2+(1+ITR)*LMI,I,J)=TRSI(ITR,L,I,J)
           END DO
           END DO
         END DO
