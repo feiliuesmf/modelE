@@ -147,7 +147,7 @@ C        not clear yet whether they still speed things up
 Cred*                   end Reduced Arrays 1
       INTEGER ICKERR, JCKERR, JERR, seed, NR
       REAL*8  RNDSS(3,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
-      REAL*8  AJEQIL(J5N-J5S+1,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+      REAL*8  AJEQIL(J5N-J5S+1,IM,LM),
      *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
