@@ -233,11 +233,13 @@ CCC   fqu(:,j)  = fqu(:,j) + f_i(:)
 c
 c     now sum into fqu
 c
-      do l=1,lm
+!$OMP  PARALLEL DO PRIVATE(J,L)
       do j=2,jm-1
+      do l=1,lm
          fqu(:,j)  = fqu(:,j) + hfqu(:,j,l)
       enddo ! j
       enddo ! l
+!$OMP  END PARALLEL DO
 C
       IF(ICKERR.GT.0)  CALL stop_model('Stopped in aadvtx',11)
 C
@@ -339,12 +341,14 @@ c**** average and unscale polar boxes
 c
 c     sum into fqv
 c
+!$OMP  PARALLEL DO PRIVATE(J,L)
+      do j=1,jm
       do l=1,lm
-      do i=1,im
-         fqv(i,:) = fqv(i,:) + hfqv(i,:,l)
-         fqv(i,jm) = 0.
-      enddo
-      enddo
+         fqv(:,j)  = fqv(:,j) + hfqv(:,j,l)
+      enddo ! j
+      enddo ! l
+!$OMP  END PARALLEL DO
+      fqv(:,jm) = 0. ! not really needed
 C
       IF(ICKERR.GT.0)  CALL stop_model('Stopped in aadvty',11)
 C
