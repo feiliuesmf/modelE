@@ -121,14 +121,20 @@ C**** Some local constants
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn
       USE PBLCOM, only : tsavg
       USE DIAG_LOC, only : w,tx,lupa,ldna,jet,tjl0
+      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP, only : SOUTH, NORTH
       IMPLICIT NONE
       REAL*8, DIMENSION(LM) :: GMEAN
-      REAL*8, DIMENSION(JM) :: TIL,UI,UMAX,PI,EL,RI,DUDVSQ
-      REAL*8, DIMENSION(NTYPE,JM) :: SPTYPE
-      REAL*8, DIMENSION(JM,LM) ::
-     &     THJL,THSQJL,SPI,PHIPI,TPI
-      REAL*8, DIMENSION(JM,LM-1) :: SDMEAN
-      REAL*8, DIMENSION(IM,JM) :: PUV
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+     &        TIL,UI,UMAX,PI,EL,RI,DUDVSQ
+      REAL*8, DIMENSION(NTYPE,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+     &        SPTYPE
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
+     &        THJL,THSQJL,SPI,PHIPI,TPI
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM-1) :: 
+     &        SDMEAN
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+     &        PUV
       REAL*8, DIMENSION(LM_REQ) :: TRI
       REAL*8, DIMENSION(IM) :: THSEC,PSEC,SQRTP,PDA
       CHARACTER*16 TITLE
@@ -153,8 +159,14 @@ C**** Some local constants
      *     I135W = IM*(180-135)/360+1  ! WEST EDGE OF 135 WEST
 
       REAL*8 QSAT
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
 
       CALL GETTIME(MBEGIN)
+
+      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1, 
+     &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
+
       IDACC(4)=IDACC(4)+1
 
       BYSDSG=1./(1.-SIGE(LM+1))
@@ -163,25 +175,44 @@ C**** Some local constants
 C****
 C**** FILL IN HUMIDITY AND SIGMA DOT ARRAYS AT THE POLES
 C****
-      DO L=1,LM
-        DO I=2,IM
-          Q(I,1,L)=Q(1,1,L)
-          Q(I,JM,L)=Q(1,JM,L)
+      IF(GRID%HAVE_SOUTH_POLE) THEN
+        DO L=1,LM
+          DO I=2,IM
+            Q(I,1,L)=Q(1,1,L)
+          END DO
         END DO
-      END DO
+      ENDIF        ! GRID%HAVE_SOUTH_POLE
+      IF(GRID%HAVE_NORTH_POLE) THEN
+        DO L=1,LM
+          DO I=2,IM
+            Q(I,JM,L)=Q(1,JM,L)
+          END DO
+        END DO
+      ENDIF        ! GRID%HAVE_NORTH_POLE
 C****
 C**** CALCULATE PK AND TX, THE REAL TEMPERATURE
 C****
-      DO L=1,LM
-        TX(1,1,L)=T(1,1,L)*PK(L,1,1)
-        TX(1,JM,L)=T(1,JM,L)*PK(L,1,JM)
-        DO I=2,IM
-          T(I,1,L)=T(1,1,L)
-          T(I,JM,L)=T(1,JM,L)
-          TX(I,1,L)=TX(1,1,L)
-          TX(I,JM,L)=TX(1,JM,L)
+     
+      IF(GRID%HAVE_SOUTH_POLE) THEN
+        DO L=1,LM
+          TX(1,1,L)=T(1,1,L)*PK(L,1,1)
+          DO I=2,IM
+            T(I,1,L)=T(1,1,L)
+            TX(I,1,L)=TX(1,1,L)
+          END DO
         END DO
-        DO J=2,JM-1
+      ENDIF        ! GRID%HAVE_SOUTH_POLE 
+      IF(GRID%HAVE_NORTH_POLE) THEN
+        DO L=1,LM
+          TX(1,JM,L)=T(1,JM,L)*PK(L,1,JM)
+          DO I=2,IM
+            T(I,JM,L)=T(1,JM,L)
+            TX(I,JM,L)=TX(1,JM,L)
+          END DO
+        END DO
+      ENDIF          ! GRID%HAVE_NORTH_POLE
+      DO L=1,LM
+        DO J=J_0S,J_1S
           DO I=1,IM
             TX(I,J,L)=T(I,J,L)*PK(L,I,J)
           END DO
@@ -190,7 +221,10 @@ C****
 C****
 C**** CALCULATE PUV, THE MASS WEIGHTED PRESSURE
 C****
-      DO J=2,JM
+      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+
+      DO J=J_0STG,J_1STG
         I=IM
         DO IP1=1,IM
           PUV(I,J)=RAVPN(J-1)*(P(I,J-1)+P(IP1,J-1))+
@@ -201,7 +235,7 @@ C****
 C****
 C**** J LOOPS FOR ALL PRIMARY GRID ROWS
 C****
-      DO J=1,JM
+      DO J=J_0,J_1
         DXYPJ=DXYP(J)
 C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
         PI(J)=0.
@@ -286,7 +320,7 @@ C****
         END DO
       END DO
 C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
-      DO J=1,JM
+      DO J=J_0,J_1
         DXYPJ=DXYP(J)
         DO L=1,LM
           TPI(J,L)=0.
@@ -317,7 +351,11 @@ C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
 C****
 C**** NORTHWARD GRADIENT OF TEMPERATURE: TROPOSPHERIC AND STRATOSPHERIC
 C****
-      DO J=2,JM-1
+      CALL CHECKSUM(grid, TX, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, TX, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, TX, FROM=NORTH)
+
+      DO J=J_0S,J_1S
 C**** MEAN TROPOSPHERIC NORTHWARD TEMPERATURE GRADIENT
         DO L=1,LS1-1
         DO I=1,IM
@@ -340,7 +378,7 @@ C**** MEAN STRATOSPHERIC NORTHWARD TEMPERATURE GRADIENT
 C****
 C**** STATIC STABILITIES: TROPOSPHERIC AND STRATOSPHERIC
 C****
-      DO J=1,JM
+      DO J=J_0,J_1
       DXYPJ=DXYP(J)
 C**** OLD TROPOSPHERIC STATIC STABILITY
       DO I=1,IMAXJ(J)
@@ -387,7 +425,7 @@ C****
 C**** RICHARDSON NUMBER , ROSSBY NUMBER , RADIUS OF DEFORMATION
 C****
 C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
-      DO J=2,JM
+      DO J=J_0STG,J_1STG
         DUDVSQ(J)=0.
         UMAX(J)=0.
         DO I=1,IM
@@ -396,7 +434,11 @@ C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
           DUDVSQ(J)=DUDVSQ(J)+(DU*DU+DV*DV)*PUV(I,J)
         END DO
       END DO
-      DO J=2,JM-1
+
+      CALL CHECKSUM(grid, DUDVSQ, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, DUDVSQ, FROM=NORTH)
+
+      DO J=J_0S,J_1S
         PIBYIM=PI(J)*BYIM
         DLNP=LOG((SIG(1)*PIBYIM+PTOP)/(SIG(LS1-1)*PIBYIM+PTOP))
         DLNS=LOG(SPI(J,LS1-1)/SPI(J,1))
@@ -405,18 +447,22 @@ C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
         RI(J)=DS*DLNP/(.5*(DUDVSQ(J)+DUDVSQ(J+1)))
       END DO
       DO L=1,LS1-1
-        DO J=2,JM
+        DO J=J_0STG,J_1STG
           UI(J)=0.
           DO I=1,IM
             UI(J)=UI(J)+U(I,J,L)
           END DO
         END DO
-        DO J=2,JM-1
+
+        CALL CHECKSUM(grid, UI, __LINE__, __FILE__)
+        CALL HALO_UPDATE(grid, UI, FROM=NORTH)
+
+        DO J=J_0S,J_1S
           UAMAX=ABS(UI(J)+UI(J+1))
           IF (UAMAX.GT.UMAX(J)) UMAX(J)=UAMAX
         END DO
       END DO
-      DO J=2,JM-1
+      DO J=J_0S,J_1S
         ROSSX=DYP(J)/(DXYP(J)*SINP(J))
         ELX=1./SINP(J)
         DO IT=1,NTYPE
@@ -428,7 +474,7 @@ C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
 C**** NUMBERS ACCUMULATED OVER THE LOWER STRATOSPHERE
 C**** LSTR is approx. 10mb level. This maintains consistency over
 C**** the different model tops
-      DO J=2,JM
+      DO J=J_0STG,J_1STG
         DUDVSQ(J)=0.
         UMAX(J)=0.
         DO I=1,IM
@@ -437,7 +483,11 @@ C**** the different model tops
           DUDVSQ(J)=DUDVSQ(J)+(DU*DU+DV*DV)*PUV(I,J)
         END DO
       END DO
-      DO J=2,JM-1
+
+      CALL CHECKSUM(grid, DUDVSQ, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, DUDVSQ, FROM=NORTH)
+
+      DO J=J_0S,J_1S
         PIBYIM=PI(J)*BYIM
         DLNP=LOG((SIG(LS1-1)*PIBYIM+PTOP)/(SIG(LSTR)*PSFMPT+PTOP))
         DLNS=LOG(SPI(J,LSTR)/SPI(J,LS1-1))
@@ -446,18 +496,22 @@ C**** the different model tops
         RI(J)=DS*DLNP/(.5*(DUDVSQ(J)+DUDVSQ(J+1)))
       END DO
       DO L=LS1,LSTR
-        DO J=2,JM
+        DO J=J_0STG,J_1STG
           UI(J)=0.
           DO I=1,IM
             UI(J)=UI(J)+U(I,J,L)
           END DO
         END DO
-        DO J=2,JM-1
+
+        CALL CHECKSUM(grid, UI, __LINE__, __FILE__)
+        CALL HALO_UPDATE(grid, UI, FROM=NORTH)
+
+        DO J=J_0S,J_1S
           UAMAX=ABS(UI(J)+UI(J+1))
           IF (UAMAX.GT.UMAX(J)) UMAX(J)=UAMAX
         END DO
       END DO
-      DO J=2,JM-1
+      DO J=J_0S,J_1S
         ROSSX=DYP(J)/(DXYP(J)*SINP(J))
         ELX=1./SINP(J)
         DO IT=1,NTYPE
@@ -471,7 +525,7 @@ C**** MEAN TROPOSPHERIC LAPSE RATES:  MOIST CONVECTIVE, ACTUAL,
 C****    DRY ADIABATIC
 C****
       X=RGAS*LHE*LHE/(SHA*RVAP)
-      DO J=1,JM
+      DO J=J_0,J_1
         GAMM=0.
         DO L=1,LS1-1
           TZL=TPI(J,L)/PI(J)+TF
@@ -486,14 +540,19 @@ C****
         END DO
       END DO
 C**** DRY ADIABATIC LAPSE RATE
-      DO J=1,JM
+      DO J=J_0,J_1
         TPIL=0.
         DO L=1,LS1-1
           TPIL=TPIL+TPI(J,L)*DSIG(L)
         END DO
         TIL(J)=TPIL/(PI(J)*(SIGE(1)-SIGE(LS1)))
       END DO
-      DO J=2,JM-1
+
+      CALL CHECKSUM(grid, TIL, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, TIL, FROM=NORTH)
+      CALL HALO_UPDATE(grid, TIL, FROM=SOUTH)
+
+      DO J=J_0S,J_1S
         X=SINP(J)*GRAV/(COSP(J)*RGAS*2.*DLAT)
         DT2=TIL(J+1)-TIL(J-1)
         GAMC=GAMD+X*DT2/(TIL(J)+TF)
@@ -504,9 +563,13 @@ C**** DRY ADIABATIC LAPSE RATE
 C****
 C**** EASTWARD TRANSPORTS
 C****
+
+      CALL CHECKSUM(grid, U, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, U, FROM=NORTH)
+
       I=IM
       DO L=1,LM
-      DO J=2,JM-1
+      DO J=J_0S,J_1S
       DO IP1=1,IM
         AIJ(I,J,IJ_PUQ)=AIJ(I,J,IJ_PUQ)+(PLIJ(L,I,J)+PLIJ(L,IP1,J))*
      *       (U(I,J,L)+U(I,J+1,L))*(Q(I,J,L)+Q(IP1,J,L))*DSIG(L)
@@ -517,7 +580,17 @@ C****
 C****
 C**** MOMENTUM, KINETIC ENERGY, NORTHWARD TRANSPORTS, ANGULAR MOMENTUM
 C****
-      DO J=2,JM
+
+!Not necessary here, done above      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
+!Not necessary here, done above      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+      CALL CHECKSUM(grid, PLIJ, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, PLIJ, FROM=SOUTH)
+!Not necessary here, done above      CALL CHECKSUM(grid, TX, __LINE__, __FILE__)
+!Not necessary here, done above      CALL HALO_UPDATE(grid, TX, FROM=SOUTH)
+      CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
+
+      DO J=J_0STG,J_1STG
       P4I=0.
       I=IM
       DO IP1=1,IM
@@ -556,7 +629,7 @@ C****
 C**** EVEN LEVEL GEOPOTENTIALS, VERTICAL WINDS AND VERTICAL TRANSPORTS
 C****
       DO L=1,LM-1
-      DO J=1,JM
+      DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         PIJ=PLIJ(L,I,J)
         PE=SIGE(L+1)*PIJ+PTOP
@@ -572,7 +645,7 @@ C****
 C**** SET UP FOR CALCULATION
       DO 710 L=1,LM
   710 GMEAN(L)=0.
-      DO 740 J=1,JM
+      DO 740 J=J_0,J_1
       DO 720 I=1,IMAXJ(J)
   720 SQRTP(I)=SQRT(P(I,J))
 C**** GMEAN CALCULATED FOR EACH LAYER, THJL, THSQJL ARRAYS FILLED
@@ -591,16 +664,20 @@ C**** CALCULATE APE
       DO 760 L=1,LM
       LP1=LUPA(L)
       LM1=LDNA(L)
-      THJL(1,L)=THJL(1,L)*FIM
-      THJL(JM,L)=THJL(JM,L)*FIM
-      THSQJL(1,L)=THSQJL(1,L)*FIM
-      THSQJL(JM,L)=THSQJL(JM,L)*FIM
+      IF(GRID%HAVE_SOUTH_POLE) THEN
+        THJL(1,L)=THJL(1,L)*FIM
+        THSQJL(1,L)=THSQJL(1,L)*FIM
+      ENDIF
+      IF(GRID%HAVE_NORTH_POLE) THEN
+        THJL(JM,L)=THJL(JM,L)*FIM
+        THSQJL(JM,L)=THSQJL(JM,L)*FIM
+      ENDIF
       THGM=0.
-      DO 750 J=1,JM
+      DO 750 J=J_0,J_1
   750 THGM=THGM+THJL(J,L)*DXYP(J)
       THGM=THGM/AREAG
       GMEANL=GMEAN(L)/((SIG(LM1)-SIG(LP1))*AREAG)
-      DO 760 J=1,JM
+      DO 760 J=J_0,J_1
   760 AJL(J,L,JL_APE)=AJL(J,L,JL_APE)+
      &        (THSQJL(J,L)-2.*THJL(J,L)*THGM+THGM*THGM*
      *  FIM)/GMEANL
@@ -608,7 +685,7 @@ C****
 C**** CERTAIN HORIZONTAL WIND AVERAGES
 C****
       DO L=1,LM
-      DO J=2,JM
+      DO J=J_0STG,J_1STG
       DO I=I135W,I110W      ! EAST PACIFIC
         AJL(J,L,JL_UEPAC)=AJL(J,L,JL_UEPAC)+U(I,J,L)
         AJL(J,L,JL_VEPAC)=AJL(J,L,JL_VEPAC)+V(I,J,L)
@@ -618,31 +695,39 @@ C****
         AJL(J,L,JL_VWPAC)=AJL(J,L,JL_VWPAC)+V(I,J,L)
       END DO
       END DO
-      DO J=J5SUV,J5NUV
+      DO J=MAX(J_0,J5SUV),MIN(J_1,J5NUV)
       DO I=1,IM
         AIL(I,L,IL_UEQ)=AIL(I,L,IL_UEQ)+U(I,J,L)
         AIL(I,L,IL_VEQ)=AIL(I,L,IL_VEQ)+V(I,J,L)
       END DO
       END DO
-      DO J=J5S,J5N
+      DO J=MAX(J_0,J5S),MIN(J_1,J5N)
       DO I=1,IM
         AIL(I,L,IL_TEQ)=AIL(I,L,IL_TEQ)+(TX(I,J,L)-TF)
         AIL(I,L,IL_QEQ)=AIL(I,L,IL_QEQ)+Q(I,J,L)/QSAT(TX(I,J,L),LHE
      *       ,PMID(L,I,J))
       END DO
       END DO
-      DO I=1,IM
-        AIL(I,L,IL_T50N)=AIL(I,L,IL_T50N)+(TX(I,J50N,L)-TF)
-        AIL(I,L,IL_U50N)=AIL(I,L,IL_U50N)+(U(I,J50N,L)+U(I,J50N+1,L))
-        AIL(I,L,IL_T70N)=AIL(I,L,IL_T70N)+(TX(I,J70N,L)-TF)
-        AIL(I,L,IL_U70N)=AIL(I,L,IL_U70N)+(U(I,J70N,L)+U(I,J70N+1,L))
-      END DO
+        IF(J_0 <= J50N .and. J_1 >= J50N) THEN
+          DO I=1,IM
+            AIL(I,L,IL_T50N)=AIL(I,L,IL_T50N)+(TX(I,J50N,L)-TF)
+            AIL(I,L,IL_U50N)=AIL(I,L,IL_U50N)+(U(I,J50N,L)+
+     *                       U(I,J50N+1,L))
+          END DO
+        ENDIF
+        IF(J_0 <= J70N .and. J_1 >= J70N) THEN
+          DO I=1,IM
+            AIL(I,L,IL_T70N)=AIL(I,L,IL_T70N)+(TX(I,J70N,L)-TF)
+            AIL(I,L,IL_U70N)=AIL(I,L,IL_U70N)+(U(I,J70N,L)+
+     *                       U(I,J70N+1,L))
+          END DO
+        ENDIF
       END DO
 C****
 C**** CERTAIN VERTICAL WIND AVERAGES
 C****
       DO L=1,LM-1
-      DO J=2,JM-1
+      DO J=J_0S,J_1S
         DO I=I135W,I110W        ! EAST PACIFIC
           AJL(J,L,JL_WEPAC)=AJL(J,L,JL_WEPAC)+W(I,J,L)
         END DO
@@ -651,18 +736,27 @@ C****
         END DO
       END DO
       DO I=1,IM
-        DO J=J5S,J5N        ! +/- 5 DEG (APPROX.)
+        DO J=MAX(J_0,J5S),MIN(J_1,J5N)      ! +/- 5 DEG (APPROX.)
           AIL(I,L,IL_WEQ) =AIL(I,L,IL_WEQ)+W(I,J,L)
         END DO
-        AIL(I,L,IL_W50N)=AIL(I,L,IL_W50N)+W(I,J50N,L)
-        AIL(I,L,IL_W70N)=AIL(I,L,IL_W70N)+W(I,J70N,L)
+        IF(J_0 <= J50N .and. J_1 >= J50N)
+     &  AIL(I,L,IL_W50N)=AIL(I,L,IL_W50N)+W(I,J50N,L)
+        IF(J_0 <= J70N .and. J_1 >= J70N)
+     &  AIL(I,L,IL_W70N)=AIL(I,L,IL_W70N)+W(I,J70N,L)
       END DO
       END DO
 C****
 C**** ELIASSEN PALM FLUX
 C****
 C**** NORTHWARD TRANSPORT
-      DO 868 J=2,JM
+!Not necessary here, done above      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
+!Not necessary here, done above      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+      CALL CHECKSUM(grid, DXYN, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, DXYN, FROM=SOUTH)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, T, FROM=SOUTH)
+
+      DO 868 J=J_0STG,J_1STG
       I=IM
       DO 862 IP1=1,IM
       PDA(I)=.5*((P(I,J)+P(IP1,J))*DXYS(J)+(P(I,J-1)+P(IP1,J-1))*
@@ -697,7 +791,12 @@ c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
      *   -U(I,J,L)+UMN)
   868 AJL(J,L,JL_EPFLXN)=AJL(J,L,JL_EPFLXN)+FPHI
 C**** VERTICAL TRANSPORT
-      DO 878 J=2,JM-1
+!Not necessary here, done above      CALL CHECKSUM(grid, U, __LINE__, __FILE__)
+!Not necessary here, done above      CALL HALO_UPDATE(grid, U, FROM=NORTH)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, V, FROM=NORTH)
+
+      DO 878 J=J_0S,J_1S
       PITMN=0.
       DO 870 I=1,IM
   870 PITMN=PITMN+PIT(I,J)
@@ -748,8 +847,10 @@ C**** ACCUMULATE TIME USED IN DIAGA
 C****
 C**** INITIALIZE TJL0 ARRAY (FROM PRIOR TO ADVECTION)
 C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
       DO L=1,LM
-      DO J=1,JM
+      DO J=J_0,J_1
         THI=0.
         DO I=1,IMAXJ(J)
           THI=THI+T(I,J,L)
@@ -794,10 +895,13 @@ C****
      &      JK_TOTDTDT,JK_EDDVTPT,JK_CLDH2O
       USE DYNAMICS, only : phi,dut,dvt,plij
       USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
+      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP, only : SOUTH, NORTH
       IMPLICIT NONE
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE
-      REAL*8, DIMENSION(IM,JM,LM) :: ZX,STB
-      REAL*8, DIMENSION(JM,LM) ::
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+     &     ZX,STB
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &     STJK,DPJK,UJK,VJK,WJK,TJK,
      &     PSIJK,UP,TY,PSIP,WTJK,UVJK,WUJK
       REAL*8, DIMENSION(IM) :: PSEC,X1
@@ -822,13 +926,18 @@ C****
 
       REAL*8, PARAMETER :: BIG=1.E20
       REAL*8 :: QSAT
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
 
       CALL GETTIME(MBEGIN)
+
+      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
+     &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
 C****
 C**** INTERNAL QUANTITIES T,TH,Q,RH
 C****
       QLH=LHE
-      DO 170 J=1,JM
+      DO 170 J=J_0,J_1
       DO 170 K=1,KM
       DPI=0.
       TPI=0.
@@ -891,7 +1000,7 @@ CW169 FORMAT(1X,'1616--',3I5,3E15.2)
 C****
 C**** CALCULATE STABILITY AT ODD LEVELS ON PU GRID
 C****
-      DO 230 J=1,JM
+      DO 230 J=J_0,J_1
       I=IMAXJ(J)
       DO 230 IP1=1,IMAXJ(J)
       SP2=P(I,J)+P(IP1,J)
@@ -924,7 +1033,7 @@ C**** SPECIAL CASES,  L=2, L=LM
   220 CONTINUE
   230 I=IP1
 C**** CALCULATE STJK; THE MEAN STATIC STABILITY
-      DO 260 J=1,JM
+      DO 260 J=J_0,J_1
       DO 260 K=1,KM
       STJK(J,K)=0.
       DPJK(J,K)=0.
@@ -942,8 +1051,34 @@ C**** CALCULATE STJK; THE MEAN STATIC STABILITY
 C****
 C**** CONSTANT PRESSURE DIAGNOSTICS:  FLUX, ENERGY, ANGULAR MOMENTUM
 C****
-      ZX(:,1,:)=0.
-      DO 390 J=2,JM
+      IF(GRID%HAVE_SOUTH_POLE) THEN
+        ZX(:,1,:)=0.
+      ENDIF
+
+C Needs to check later if all these halo calls are necessary.
+C DIAGA may have contained relevant halo calls
+C and since DIAGB is called immediately after DIAGA
+C there may not be a need for these calls if
+C the concerned arrays have not been updated
+C from the previous halo call. 
+      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+      CALL CHECKSUM(grid, TX, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, TX, FROM=SOUTH)
+      CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
+      CALL CHECKSUM(grid, Q, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, Q, FROM=SOUTH)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, T, FROM=SOUTH)
+      CALL CHECKSUM(grid, ZX, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, ZX, FROM=SOUTH)
+      CALL CHECKSUM(grid, STJK, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, STJK, FROM=SOUTH)
+      CALL CHECKSUM(grid, DXYN, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, DXYN, FROM=SOUTH)
+
+      DO 390 J=J_0STG,J_1STG
       I=IM
       DO 280 IP1=1,IM
       PSEC(I)=.25*(P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J))
@@ -1096,13 +1231,17 @@ C****
 C**** VERTICAL MASS FLUXES  W(I,J,K)
 C****
       DO 400 I=1,IM
-      DO 400 J=1,JM
+      DO 400 J=J_0,J_1
       DO 400 K=1,KM
       DUT(I,J,K)=0.
       DVT(I,J,K)=0.
   400 W(I,J,K)=0.
+
+      CALL CHECKSUM(grid, U, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, U, FROM=NORTH)
+
 C**** EASTWARD MASS FLUX DUT (PU POINTS)
-      DO 460 J=2,JM-1
+      DO 460 J=J_0S,J_1S
       DO 460 K=1,KM
       I=IM
       DO 460 IP1=1,IM
@@ -1133,7 +1272,10 @@ C**** CALCULATE HERE
       GO TO 450
   460 I=IP1
 C**** NORTHWARD MASS FLUX DVT (PV POINTS)
-      DO 520 J=2,JM
+C P already halo'ed; no need      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
+C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+
+      DO 520 J=J_0STG,J_1STG
       DO 520 K=1,KM
       IM1=IM
       DO 520 I=1,IM
@@ -1163,18 +1305,29 @@ C**** CALCULATE HERE
       PDN=PL(L)
       GO TO 510
   520 IM1=I
+
+      CALL CHECKSUM(grid, DVT, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, DVT, FROM=NORTH)
+
 C**** POLAR VERTICAL MASS FLUX
       DO 560 K=KM,1,-1
-      W(1,1,K)=0.
-      IF (K.LT.KM) W(1,1,K)=W(1,1,K+1)
-      W(1,JM,K)=0.
-      IF (K.LT.KM) W(1,JM,K)=W(1,JM,K+1)
-  530 DO 540 I=1,IM
-      W(1,1,K)=W(1,1,K)-.5*DVT(I,2,K)
-  540 W(1,JM,K)=W(1,JM,K)+.5*DVT(I,JM,K)
+        IF(GRID%HAVE_SOUTH_POLE) THEN
+          W(1,1,K)=0.
+          IF (K.LT.KM) W(1,1,K)=W(1,1,K+1)
+          DO I=1,IM
+            W(1,1,K)=W(1,1,K)-.5*DVT(I,2,K)
+          ENDDO
+        ENDIF
+        IF(GRID%HAVE_NORTH_POLE) THEN
+          W(1,JM,K)=0.
+          IF (K.LT.KM) W(1,JM,K)=W(1,JM,K+1)
+          DO I=1,IM
+            W(1,JM,K)=W(1,JM,K)+.5*DVT(I,JM,K)
+          ENDDO
+        ENDIF
 C**** NON-POLAR VERTICAL MASS FLUX
       WUP=0.
-      DO 560 J=2,JM-1
+      DO 560 J=J_0S,J_1S
       IM1=IM
       DO 560 I=1,IM
       IF (K.LT.KM) WUP=W(I,J,K+1)
@@ -1182,11 +1335,11 @@ C**** NON-POLAR VERTICAL MASS FLUX
      *  DVT(I,J,K)-DVT(I,J+1,K))
 C**** ACCUMULATE ALL VERTICAL WINDS
   560 IM1=I
-      DO 558 J=1,JM
+      DO 558 J=J_0,J_1
       DO 558 I=1,IM
       DO KR=1,NDIUPT
          IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-C**** Warning:     This diagnostic has 3 flaws : (?)
+C**** Warning:     This diagnostic has 3 flaws   (?)
 C****          1 - It assumes that DTsrc=1hr, (DTsrc=3600.)
 C****          2 - since DTdaa-Ndaa*DTsrc=2*DTdyn rather than 0,
 C****              some hours are skipped once in a while
@@ -1208,14 +1361,14 @@ C****              mod(days_in_month,ndaa)=0  (i.e. February if Ndaa=7)
          END IF
       END DO
   558 CONTINUE
-      DO 565 J=1,JM
+      DO 565 J=J_0,J_1
       DO 565 K=1,KM
       WI=0.
       DO 562 I=1,IMAXJ(J)
   562 WI=WI+W(I,J,K)
   565 AJK(J,K,JK_VVEL)=AJK(J,K,JK_VVEL)+WI
 C**** ZERO OUT SUBSURFACE VERTICAL WINDS
-      DO 568 J=1,JM
+      DO 568 J=J_0,J_1
       DO 568 I=1,IM
       PS=P(I,J)+PTOP
       K=2
@@ -1227,7 +1380,7 @@ C**** ZERO OUT SUBSURFACE VERTICAL WINDS
 C****
 C**** ACCUMULATE T,Z,Q VERTICAL TRANSPORTS
 C****
-      DO 610 J=1,JM
+      DO 610 J=J_0,J_1
       DO 610 K=2,KM
       WI=0.
       TKI=0.
@@ -1293,7 +1446,7 @@ C     AJK(J,K-1,JK_BAREKEGEN)=AJK(J,K-1,JK_BAREKEGEN)+WTI-BYFIM*WI*TKI
 C****
 C**** BAROCLINIC EDDY KINETIC ENERGY GENERATION
 C****
-      DO 630 J=1,JM
+      DO 630 J=J_0,J_1
       DO 630 K=1,KM
       FIMI=0.
       W2I=0.
@@ -1345,12 +1498,24 @@ C**** ACCUMULATE UV VERTICAL TRANSPORTS
 C****
 C**** DOUBLE POLAR WINDS
       DO 640 K=1,KM
-      WSP=2.*W(1,1,K)/FIM
-      WNP=2.*W(1,JM,K)/FIM
-      DO 640 I=1,IM
-      W(I,1,K)=WSP
-  640 W(I,JM,K)=WNP
-      DO 710 J=2,JM
+        IF(GRID%HAVE_SOUTH_POLE) THEN
+          WSP=2.*W(1,1,K)/FIM
+          DO I=1,IM
+            W(I,1,K)=WSP
+          ENDDO
+        ENDIF
+        IF(GRID%HAVE_NORTH_POLE) THEN
+          WNP=2.*W(1,JM,K)/FIM
+          DO I=1,IM
+            W(I,JM,K)=WNP
+          ENDDO
+        ENDIF
+  640 CONTINUE
+
+C P already halo'ed; no need      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
+C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+
+      DO 710 J=J_0STG,J_1STG
       UEARTH=RADIUS*OMEGA*COSV(J)
       I=IM
       DO 650 IP1=1,IM
@@ -1400,7 +1565,7 @@ C**** MERIDIONAL AVERAGING
 C****
 C**** POTENTIAL VORTICITY AND VERTICAL TRANSPORT OF POT. VORT.
 C****
-      DO 760 J=2,JM-1
+      DO 760 J=J_0S,J_1S
       JHEMI=1
       IF (J.LT.1+JM/2) JHEMI=-1
       DO 730 K=1,KM
@@ -1431,7 +1596,7 @@ C****
 C****
 C**** SPECIAL MEAN/EDDY DIAGNOSTICS ARE CALCULATED
 C****
-      DO 770 J=2,JM
+      DO 770 J=J_0STG,J_1STG
       DO 765 K=2,KM
       DPE=PMO(K)-PMO(K-1)
       UP(J,K)=(UJK(J,K)-UJK(J,K-1))/DPE
@@ -1444,14 +1609,36 @@ C****
       IF (K.EQ.KM) KUP=KM
       KDN=K-1
       IF (K.EQ.1) KDN=1
-      DO 780 J=2,JM
+
+      CALL CHECKSUM(grid, TJK, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, TJK, FROM=SOUTH)
+
+      DO 780 J=J_0STG,J_1STG
       TY(J,K)=(TJK(J,K)-TJK(J-1,K))/DYV(J)
 C**** E-P FLUX NORTHWARD COMPONENT
       AJK(J,K,JK_EPFLXNCP)=AJK(J,K,JK_EPFLXNCP)+
      &     PSIJK(J,K)*(UJK(J,KUP)-UJK(J,KDN))/
      *  (PMO(KUP)-PMO(KDN))-UVJK(J,K)
   780 CONTINUE
-      DO 800 J=2,JM-1
+
+      CALL CHECKSUM(grid, UJK, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, UJK, FROM=NORTH)
+      CALL CHECKSUM(grid, PSIJK, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, PSIJK, FROM=NORTH)
+      CALL CHECKSUM(grid, DXV, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, DXV, FROM=NORTH)
+      CALL CHECKSUM(grid, VJK, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, VJK, FROM=NORTH)
+      CALL CHECKSUM(grid, UP, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, UP, FROM=NORTH)
+      CALL CHECKSUM(grid, TY, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, TY, FROM=NORTH)
+      CALL CHECKSUM(grid, WJK, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, WJK, FROM=NORTH)
+      CALL CHECKSUM(grid, PSIP, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, PSIP, FROM=NORTH)
+
+      DO 800 J=J_0S,J_1S
       DO 800 K=2,KM-1
       UY=(UJK(J+1,K)*DXV(J+1)-UJK(J,K)*DXV(J)-FCOR(J))/DXYP(J)
       PSIY=(PSIJK(J+1,K)*DXV(J+1)-PSIJK(J,K)*DXV(J))/DXYP(J)
@@ -1488,7 +1675,11 @@ C****
 c      KS1=LS1
 C**** TOTAL THE KINETIC ENERGIES
       KE(:,:)=0.
-      DO 2140 J=2,JM
+
+C P already halo'ed; no need      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
+C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+
+      DO 2140 J=J_0STG,J_1STG
       I=IM
       DO 2020 IP1=1,IM
       PSEC(I)=.25*(P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J))
@@ -2469,7 +2660,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       INTEGER :: Nsubdd = 0
 !@dbparam LmaxSUBDD: the max L when writing "ALL" levels
       INTEGER :: LmaxSUBDD = LM
-
+     
       contains
 
       subroutine init_subdd(aDATE)
@@ -2675,7 +2866,7 @@ C**** simple diags
             end do
           end do
         case ("QLAT")           ! latent heat (W/m^2)
-          data=qflux1*lhe
+          data=qflux1*lhe 
         case ("QSEN")           ! sensible heat flux (W/m^2)
           data=tflux1*sha
         case ("SWD")           ! solar downward flux at surface (W/m^2)
@@ -2864,7 +3055,7 @@ C**** write out
 #endif
         end select
       end do
-c****
+c**** 
       return
       end subroutine get_subdd
 
@@ -2960,7 +3151,7 @@ C**** From DIAGA:
       LDNA(1)=1
       LUPA(LM)=LM
 
-C**** From DIAGB
+C**** From DIAGB      
       PM(1)=1200.
       DO L=2,LM+1
         PL(L)=PSFMPT*SIGE(L)+PTOP
@@ -2975,7 +3166,7 @@ C**** From DIAG7A
       L850=LM
       L300=LM
       L50=LM
-      DO L=LM-1,1,-1
+      DO L=LM-1,1,-1 
         PLE_tmp=.25*(SIGE(L)+2.*SIGE(L+1)+SIGE(L+2))*PSFMPT+PTOP
         IF (PLE_tmp.LT.850.) L850=L
         IF (PLE_tmp.LT.300.) L300=L

@@ -31,9 +31,13 @@
       REAL*8 ediff,TE0,TE
 
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0STG, J_1STG
+      INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
-     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
+     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
+     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 !?    NIdynO=MOD(NIdyn,2)   ! NIdyn odd is currently not an option
       DTFS=DT*2./3.
@@ -170,10 +174,14 @@ CCC   TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
       ENDDO
 !$OMP  END PARALLEL DO
          DO L=1,LM
-           AIJ(:,2:JM,IJ_FMV)  = AIJ(:,2:JM,IJ_FMV )+PV(:,2:JM,L)*DTLF
-           AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PU(:, 1,L)*DTLF*BY3
-           AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+PU(:,JM,L)*DTLF*BY3
-           AIJ(:,2:JM-1,IJ_FMU)=AIJ(:,2:JM-1,IJ_FMU)+PU(:,2:JM-1,L)*DTLF
+           AIJ(:,J_0STG:J_1STG,IJ_FMV)  = 
+     &         AIJ(:,J_0STG:J_1STG,IJ_FMV )+PV(:,J_0STG:J_1STG,L)*DTLF
+           If (HAVE_SOUTH_POLE) 
+     &        AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PU(:, 1,L)*DTLF*BY3
+           If (HAVE_NORTH_POLE) 
+     &        AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+PU(:,JM,L)*DTLF*BY3
+           AIJ(:,J_0S:J_1S,IJ_FMU)=
+     &        AIJ(:,J_0S:J_1S,IJ_FMU)+PU(:,J_0S:J_1S,L)*DTLF
          END DO
       CALL CALC_PIJL(LS1-1,PC,PIJL)
       CALL PGF (U,V,P,UT,VT,TT,TZT,Pijl,DTLF)    !PC->pijl

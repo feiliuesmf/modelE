@@ -3,6 +3,7 @@
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
+      USE DOMAIN_DECOMP, only : grid
       USE RADPAR, only : S0
 !@var S0 solar 'constant' needs to be saved between calls to radiation
       IMPLICIT NONE
@@ -38,33 +39,33 @@ C**** exactly the same as the default values.
 !@var dimrad_sv dimension sum of input fields saved for radia_only runs
       INTEGER, PARAMETER :: dimrad_sv=IM*JM*(7*LM+3*LM_REQ+23)
 !@var RQT Radiative equilibrium temperatures above model top
-      REAL*8, DIMENSION(LM_REQ,IM,JM) :: RQT
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: RQT
 !@var Tchg Total temperature change in adjusted forcing runs
-      REAL*8, DIMENSION(LM+LM_REQ,IM,JM) :: Tchg
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: Tchg
 !@var SRHR(0) Solar   raditive net flux into the ground          (W/m^2)
 !@var TRHR(0) Thermal raditive net flux into ground(W/O -StB*T^4)(W/m^2)
 !@*   Note: -StB*T^4 is MISSING, since T may vary a lot betw. rad. calls
 !@var SRHR(1->LM) Solar   raditive heating rate (W/m^2)  (short wave)
 !@var TRHR(1->LM) Thermal raditive heating rate (W/m^2)  (long wave)
-      REAL*8, DIMENSION(0:LM,IM,JM) :: SRHR,TRHR
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SRHR,TRHR
 !@var FSF Solar Forcing over each type (W/m^2)
-      REAL*8, DIMENSION(4,IM,JM) :: FSF
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: FSF
 !@var FSRDIR Direct beam solar incident at surface (W/m^2)
-      REAL*8, DIMENSION(IM,JM) :: FSRDIR
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FSRDIR
 !@var SRVISSURF Incident solar direct+diffuse visible at surface (W/m^2)
-      REAL*8, DIMENSION(IM,JM) :: SRVISSURF
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRVISSURF
 !@var SRDN Total incident solar at surface (W/m^2)
-      REAL*8, DIMENSION(IM,JM) :: SRDN  ! saved in rsf 
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRDN  ! saved in rsf 
 
 !@var CFRAC Total cloud fraction as seen be radiation 
-      REAL*8, DIMENSION(IM,JM) :: CFRAC ! saved in rsf
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CFRAC ! saved in rsf
 !@var RCLD Total cloud optical depth as seen be radiation 
-      REAL*8, DIMENSION(LM,IM,JM) :: RCLD ! saved in rsf
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: RCLD ! saved in rsf
 !@var O3_rad_save 3D ozone saved from radiation for use elsewhere
-      REAL*8, DIMENSION(LM,IM,JM) :: O3_rad_save ! saved in rsf
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: O3_rad_save ! saved in rsf
 
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
-      REAL*8, DIMENSION(IM,JM) :: COSZ1
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: COSZ1
 !@dbparam S0X solar constant multiplication factor
       REAL*8 :: S0X = 1.
 !@dbparam S0_yr,S0_day obs.date of solar constant (if 0: time var)
@@ -88,15 +89,16 @@ C**** exactly the same as the default values.
 !@dbparam H2ObyCH4 if not 0: add CH4 produced H2O into layers 1->LM
       REAL*8 :: H2ObyCH4 = 0.
 !@var dH2O  zonal H2O-prod.rate in kg/m^2/ppm_CH4/second in layer L
-      REAL*8, DIMENSION(JM,LM,12) :: dH2O = 0.
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: dH2O
 !@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAL*8 :: RSDIST,SIND,COSD
 !@var ALB is SRNFLB(1)/(SRDFLB(1)+1.D-20),PLAVIS,PLANIR,ALBVIS,ALBNIR,
 !@+       SRRVIS,SRRNIR,SRAVIS,SRANIR (see RADIATION)
-      REAL*8, DIMENSION(IM,JM,9) :: ALB
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), TARGET :: ALB
+
 !@var SALB broadband surface albedo saved in rsf
-      REAL*8, DIMENSION(IM,JM) :: SALB   ! = ABL(:,:,1)
-      EQUIVALENCE (SALB,ALB)
+      REAL*8, POINTER, DIMENSION(:,:) :: SALB   ! = ABL(:,:,1)
+!      EQUIVALENCE (SALB,ALB)
 !@dbparam rad_interact_tr =1 for radiatively active tracers (default=0)
       INTEGER :: rad_interact_tr = 0
 
@@ -106,9 +108,54 @@ C**** Local variables initialised in init_RAD
 !@var PLE0,QL0 global parts of local arrays (to avoid OMP-copyin)
       REAL*8, DIMENSION(LM_REQ)       :: PLB0,SHL0
 !@var SINJ,COSJ sines and cosines for zenith angle calculation
-      REAL*8, DIMENSION(JM) :: SINJ,COSJ
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: SINJ,COSJ
 
       END MODULE RADNCB
+
+      SUBROUTINE ALLOC_RAD_COM(grid)
+!@sum  To allocate arrays who sizes now need to be determined at
+!@+    run-time
+!@auth Rodger Abel
+!@ver  1.0
+
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE DOMAIN_DECOMP, ONLY : GET
+      USE MODEL_COM, ONLY : IM, JM, LM
+      USE RADNCB, ONLY : LM_REQ
+      USE RADNCB, ONLY : RQT, Tchg, SRHR, TRHR, FSF, FSRDIR, SRVISSURF,
+     *			  SRDN, CFRAC, RCLD, O3_rad_save, COSZ1, dH2O,
+     *			  ALB, SALB, SINJ, COSJ
+
+      IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+
+      INTEGER :: J_0H, J_1H
+      INTEGER :: IER
+
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      ALLOCATE( RQT(LM_REQ, IM, J_0H:J_1H),
+     *		Tchg(LM+LM_REQ, IM, J_0H:J_1H),
+     *		SRHR(0:LM, IM, J_0H:J_1H),
+     *		TRHR(0:LM, IM, J_0H:J_1H),
+     *		FSF(4,IM, J_0H:J_1H),
+     *		FSRDIR(IM, J_0H:J_1H),
+     *		SRVISSURF(IM, J_0H:J_1H),
+     *		SRDN(IM, J_0H:J_1H),
+     *		CFRAC(IM, J_0H:J_1H),
+     *		RCLD(LM, IM, J_0H:J_1H),
+     *		O3_rad_save(LM, IM, J_0H:J_1H),
+     *		COSZ1(IM, J_0H:J_1H),
+     *		dH2O(J_0H:J_1H, LM, 12),
+     *		ALB(IM, J_0H:J_1H, 9),
+     *		SINJ(J_0H:J_1H),
+     *		COSJ(J_0H:J_1H),
+     *    STAT=IER)
+
+      dH2O = 0.
+      SALB => ALB(:,:,1)
+      RETURN
+      END SUBROUTINE ALLOC_RAD_COM
 
       SUBROUTINE io_rad(kunit,iaction,ioerr)
 !@sum  io_rad reads and writes radiation arrays to file

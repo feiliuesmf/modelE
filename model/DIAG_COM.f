@@ -19,7 +19,7 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@param KAJ number of accumulated zonal budget diagnostics
       INTEGER, PARAMETER :: KAJ=80
 !@var AJ zonal budget diagnostics for each surface type
-      REAL*8, DIMENSION(JM,KAJ,NTYPE) :: AJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJ
 
 !@param NREG number of regions for budget diagnostics
       INTEGER, PARAMETER :: NREG=24
@@ -28,27 +28,27 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@var TITREG,NAMREG title and names of regions for AREG diagnostics
       CHARACTER*4 TITREG*80,NAMREG(2,23)
 !@var JREH lat/lon array defining regions for AREG diagnostics
-      INTEGER, DIMENSION(IM,JM) :: JREG
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: JREG
 
 !@param KAPJ number of zonal pressure diagnostics
       INTEGER, PARAMETER :: KAPJ=2
 !@var APJ zonal pressure diagnostics
-      REAL*8, DIMENSION(JM,KAPJ) :: APJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: APJ
 
 !@param KAJL,KAJLX number of AJL diagnostics,KAJLX includes composites
       INTEGER, PARAMETER :: KAJL=70+KEP, KAJLX=KAJL+50
 !@var AJL latitude/height diagnostics
-      REAL*8, DIMENSION(JM,LM,KAJL) :: AJL
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJL
 
 !@param KASJL number of ASJL diagnostics
       INTEGER, PARAMETER :: KASJL=4
 !@var ASJL latitude/height supplementary diagnostics (merge with AJL?)
-      REAL*8, DIMENSION(JM,LM_REQ,KASJL) :: ASJL
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: ASJL
 
 !@param KAIJ,KAIJX number of AIJ diagnostics, KAIJX includes composites
       INTEGER, PARAMETER :: KAIJ=180 , KAIJX=KAIJ+100
 !@var AIJ latitude/longitude diagnostics
-      REAL*8, DIMENSION(IM,JM,KAIJ) :: AIJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AIJ
 
 !@param KAIL number of AIL diagnostics
       INTEGER, PARAMETER :: KAIL=15
@@ -78,7 +78,7 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param KCON number of conservation diagnostics
       INTEGER, PARAMETER :: KCON=170
 !@var CONSRV conservation diagnostics
-      REAL*8, DIMENSION(JM,KCON) :: CONSRV
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CONSRV
 !@var SCALE_CON scales for conservation diagnostics
       REAL*8, DIMENSION(KCON) :: SCALE_CON
 !@var TITLE_CON titles for conservation diagnostics
@@ -143,12 +143,12 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@param KAJKX number of zonal constant pressure composit diagnostics
       INTEGER, PARAMETER :: KAJK=51, KAJKX=KAJK+100
 !@var AJK zonal constant pressure diagnostics
-      REAL*8, DIMENSION(JM,LM,KAJK) :: AJK
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJK
 
 !@param KAIJK,KAIJX number of lat/lon constant pressure diagnostics
       INTEGER, PARAMETER :: KAIJK=6 , kaijkx=kaijk+100
 !@var KAIJK lat/lon constant pressure diagnostics
-      REAL*8, DIMENSION(IM,JM,LM,KAIJK) :: AIJK
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: AIJK
 
 !@param NWAV_DAG number of components in spectral diagnostics
       INTEGER, PARAMETER :: NWAV_DAG=min(9,imh)
@@ -181,7 +181,7 @@ C**** parameters and variables for ISCCP diags
      &  isccp_late(nisccp+1)=(/-60,-30,-15,15,30,60/)
      & ,isccp_lat(nisccp)=(/-45.,-22.5,0.,22.5,45./)
 !@var isccp_reg latitudinal index for ISCCP histogram regions
-      integer :: isccp_reg(JM)
+      integer, ALLOCATABLE  :: isccp_reg(:)
 !@var AISCCP accumlated array of ISCCP histogram
       real*8 :: AISCCP(ntau,npres,nisccp)
 
@@ -205,9 +205,9 @@ C**** Instantaneous constant pressure level fields
 !@var Z_inst saved instantaneous height field (at PMB levels)
 !@var RH_inst saved instantaneous relative hum (at PMB levels)
 !@var T_inst saved instantaneous temperature(at PMB levels)
-      REAL*8, DIMENSION(KGZ,IM,JM) :: Z_inst,RH_inst,T_inst
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: Z_inst,RH_inst,T_inst
 
-      REAL*8, DIMENSION(LM+LM_REQ+1,IM,JM,5) :: AFLX_ST
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: AFLX_ST
 
 !@param KTSF number of freezing temperature diagnostics
       integer, parameter :: ktsf=4
@@ -216,7 +216,7 @@ C****   1  FIRST DAY OF GROWING SEASON (JULIAN DAY)
 C****   2  LAST DAY OF GROWING SEASON (JULIAN DAY)
 C****   3  LAST DAY OF ICE-FREE LAKE (JULIAN DAY)
 C****   4  LAST DAY OF ICED-UP LAKE  (JULIAN DAY)
-      REAL*8, DIMENSION(IM,JM,KTSF) :: TSFREZ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TSFREZ
 
 !@param KTD number of diurnal temperature diagnostics
       INTEGER, PARAMETER :: KTD=9
@@ -230,7 +230,7 @@ C****   6  MAX COMPOSITE TS FOR CURRENT DAY (K)
 C****   7  MAX TG1 OVER OCEAN ICE FOR CURRENT DAY (C)
 C****   8  MAX TG1 OVER LAND ICE FOR CURRENT DAY (C)
 C****   9  MIN COMPOSITE TS FOR CURRENT DAY (K)
-      REAL*8, DIMENSION(IM,JM,KTD) :: TDIURN
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TDIURN
 
 !@nlparam KDIAG array of flags to control diagnostics printout
       INTEGER, DIMENSION(13) :: KDIAG
@@ -273,7 +273,7 @@ C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
 C****
 !@param KOA number of diagnostics needed for ocean heat transp. calcs
       INTEGER, PARAMETER :: KOA = 13  ! 12
-      REAL*8, DIMENSION(IM,JM,KOA) :: OA
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OA
 
 C****
 C**** Information about acc-arrays:
@@ -425,7 +425,7 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var nwts_ij = number of weight-ij-arrays used in IJ-diagnostics
       integer, parameter :: nwts_ij = 7
 !@var wt_ij various weight-arrays use in ij-diagnostics
-      real*8, dimension(im,jm,nwts_ij) :: wt_ij
+      real*8, ALLOCATABLE, dimension(:,:,:) :: wt_ij
 !@var IW_xxx index for weight-array
       integer, parameter :: iw_all=1 , iw_ocn=2 , iw_lake=3,
      *   iw_lice=4 , iw_soil=5 , iw_bare=6 , iw_veg=7
@@ -576,6 +576,67 @@ c idacc-indices of various processes
       REAL*8 :: ZOC(LMOMAX) = 0. , ZOC1(LMOMAX+1) = 0.
 
       END MODULE DAGCOM
+
+      SUBROUTINE ALLOC_DAGCOM(grid)
+!@sum  To allocate arrays whose sizes now need to be determined at
+!@+    run time
+!@auth NCCS (Goddard) Development Team
+!@ver  1.0
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE DOMAIN_DECOMP, ONLY : GET
+      USE RESOLUTION, ONLY : IM,LM
+      USE MODEL_COM, ONLY : NTYPE
+      USE DAGCOM, ONLY : KAJ,KAPJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
+     &                   KGZ,KOA,KTSF,nwts_ij,KTD
+      USE RADNCB, only : LM_REQ
+      USE DAGCOM, ONLY : AJ,JREG,APJ,AJL,ASJL,AIJ,CONSRV,AJK,AIJK,
+     &        AFLX_ST,isccp_reg,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ,OA,
+     &        wt_ij
+
+      IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+      INTEGER :: J_1H, J_0H
+      INTEGER :: IER
+      LOGICAL, SAVE :: init = .false.
+
+
+      If (init) Then
+         Return ! Only invoke once
+      End If
+      init = .true.
+
+      CALL GET( grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
+
+      ALLOCATE( isccp_reg(J_0H:J_1H),
+     &         STAT = IER)
+
+      ALLOCATE( JREG(IM, J_0H:J_1H),
+     &         STAT = IER)
+
+      ALLOCATE( APJ(J_0H:J_1H, KAPJ),
+     &         CONSRV(J_0H:J_1H, KCON),
+     &         STAT = IER)
+
+      ALLOCATE(AJ(J_0H:J_1H, KAJ, NTYPE),
+     &         AJL(J_0H:J_1H, LM, KAJL),
+     &         ASJL(J_0H:J_1H,LM_REQ,KASJL),
+     &         AIJ(IM,J_0H:J_1H,KAIJ),
+     &         AJK(J_0H:J_1H,LM,KAJK),
+     &         Z_inst(KGZ,IM,J_0H:J_1H),
+     &         RH_inst(KGZ,IM,J_0H:J_1H),
+     &         T_inst(KGZ,IM,J_0H:J_1H),
+     &         TSFREZ(IM,J_0H:J_1H,KTSF),
+     &         TDIURN(IM,J_0H:J_1H,KTD),
+     &         OA(IM,J_0H:J_1H,KOA),
+     &         wt_ij(IM,J_0H:J_1H,nwts_ij),
+     &         STAT = IER)
+
+      ALLOCATE( AIJK(IM,J_0H:J_1H,LM,KAIJK),
+     &         AFLX_ST(LM+LM_REQ+1,IM,J_0H:J_1H,5),
+     &         STAT = IER)
+
+      RETURN
+      END SUBROUTINE ALLOC_DAGCOM
 
       SUBROUTINE io_diags(kunit,it,iaction,ioerr)
 !@sum  io_diag reads and writes diagnostics to file

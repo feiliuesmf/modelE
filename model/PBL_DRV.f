@@ -350,7 +350,8 @@ C**** ignore ocean currents for initialisation.
       integer :: iu_CDN
       integer :: ilong  !@var ilong  longitude identifier
       integer :: jlat   !@var jlat  latitude identifier
-      real*8, allocatable, dimension(:,:,:) :: tgvdat
+      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,4) ::
+     *                                                      tgvdat
 
       integer :: itype  !@var itype surface type
       integer i,j,k,iter,lpbl !@var i,j,k,iter loop variable
@@ -374,8 +375,6 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               J_STRT=J_0,       J_STOP=J_1)
-
-      allocate ( tgvdat(im,J_0H:J_1H,4) )
 
 C things to be done regardless of inipbl
       call openunit("CDN",iu_CDN,.TRUE.,.true.)
@@ -509,8 +508,6 @@ c ******************************************************************
  200      end do
         end do
       end do
-
-      deallocate ( tgvdat )
 
       return
  1000 format (1x,//,1x,'completed initialization, itype = ',i2,//)

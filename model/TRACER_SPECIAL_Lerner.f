@@ -8,24 +8,35 @@ C**** These variables are used by both ozone and strat chem routines
       USE MODEL_COM, only: jm,lm
 !@var NSTRTC=# of strat chem layers (counting top down)
       integer, parameter :: nstrtc=lm-1
-      integer jlatmd(jm)
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: jlatmd
       real*8 p0l(lm+1)
 
       contains
       subroutine set_prather_constants
       USE MODEL_COM, only: jm,lm,psfmpt,sige,ptop
+      USE DOMAIN_DECOMP, only : GRID, GET
       implicit none
-      real*8 yedge(jm+1),yedge1,yedgen,xlatmd
+      real*8 yedge(GRID%J_STRT_HALO:GRID%J_STOP_HALO+1)
+      real*8 yedge1,yedgen,xlatmd
       integer j,jxxx,l,lr
+
+      INTEGER :: J_1,  J_0
+      INTEGER :: J_1H, J_0H
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,  J_STOP     =J_1,
+     *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
 C---calculate nearest latitude to std lat's
       yedge1=-90.
       yedgen= 90.
-      do j=1,jm+1
+c GISS-ESMF EXCEPTIONAL CASE
+      do j=J_0,J_1+1
         yedge(j)=yedge1*float(jm+1-j)/float(jm) +
      *           yedgen*float(j-1)/float(jm)
       end do
-      do j=1,jm
+      do j=J_0,J_1
         xlatmd = 0.5*(yedge(j)+yedge(j+1))
         jxxx = xlatmd/10. + 10.
         jlatmd(j) = min(18,max(1,jxxx))
@@ -57,7 +68,7 @@ C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
 !@var tscparm: Contains mean loss prequency in grid box
       real*4 tscparm(lz_schem,18,12,n_MPtable_max)
 !@var TLtrm,TLtzm,TLtzzm: loss freq and moments of loss freq from tables
-      real*8, dimension (jm,lm,n_MPtable_max) :: tltrm,tltzm,tltzzm
+      real*8, ALLOCATABLE, DIMENSION (:,:,:) :: tltrm,tltzm,tltzzm
 !@var PS Used in STRT2M
       real*8 ps(lz_sx+1)
 
@@ -124,6 +135,7 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
 !@var facbb: APPLY AN AD-HOC FACTOR TO BRING CH4 INTO BALANCE
       USE CONSTANT, only: by3
       USE MODEL_COM, only: im,jm,lm,dtsrc
+      USE DOMAIN_DECOMP, only: GRID, GET
       USE GEOM, only: imaxj
       USE QUSDEF, only : mz,mzz
       USE DYNAMICS, only: ltropo
@@ -135,8 +147,14 @@ cc      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
       implicit none
       integer i,j,l,lr,n,ns,najl,nsc
       real*8, parameter :: by7=1./7.d0
-      real*8 told(im,jm,lm)
+      real*8 told(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm)
       real*8 f0l,f1l,f2l,g0l,g1l,g2l,t0l,t1l,t2l,facbb
+
+      INTEGER :: J_1, J_0
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
       nsc = n_MPtable(n)
       facbb = 1.
@@ -150,7 +168,7 @@ C-----NOTE that TLTRM(J,LR,N) stored from top (=LM) down
       told(:,:,:) = trm(:,:,:,n)
       do 150 l=lm,lm+1-nstrtc,-1
       lr = lm+1-l
-      do 140 j=1,jm
+      do 140 j=J_0,J_1
 C-----TSCPARM->TLtrm contains mean loss freq in grid box:
         f0l = max(TLtrm(j,lr,nsc),0d0)
         if (f0l.le.0.) go to 140
@@ -188,7 +206,7 @@ C**** moments ARE NOT modified in apply_tracer_3Dsource
   150   CONTINUE
 cc      najl = jls_3Dsource(ns,n)
 cc      do l=1,lm
-cc      do j=1,jm
+cc      do j=J_0,J_1
 cc      do i=1,imaxj(j)
 cc        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l))
 cc      end do
@@ -202,6 +220,7 @@ cc      end do
 C**** This is called at the beginning of each month
 C**** Prather strat chem
       USE MODEL_COM, only: jm,lm,jmon
+      USE DOMAIN_DECOMP, only: GRID, GET
       USE PRATHER_CHEM_COM, only: nstrtc,jlatmd,p0l
       USE TRACER_MPchem_COM, only: tscparm,n_MPtable_max,
      *    tltrm,tltzm,tltzzm,lz_schem,lz_sx,ps
@@ -217,8 +236,14 @@ C----  do NOT interpolate, just pick nearest latitude
 C---assume given MONTH = month #, NTM=# tracers, JM=#lats, etc.
       integer n,j,jj,k,lr
 
+      INTEGER :: J_1, J_0
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
       DO 800 N=1,n_MPtable_max
-        DO 700 J=1,JM
+        DO 700 J=J_0,J_1
           JJ = JLATMD(J)
           DO K=1,lz_schem
             STRTX(K) = tscparm(K,JJ,jmon,N)
@@ -243,6 +268,7 @@ C---- CTM layers LM down
 !@+     by applying a pre-determined chemical loss rate
 !@auth Jean Lerner
       USE MODEL_COM, only: im,jm,lm,byim,jyear,jhour,jday,itime
+      USE DOMAIN_DECOMP, only: GRID, GET
       USE GEOM, only: imaxj
       USE DYNAMICS, only: ltropo
       USE TRACER_COM
@@ -251,11 +277,19 @@ C---- CTM layers LM down
       implicit none
       integer n,ns,i,j,l,FRQfile,infile
       REAL*4 taux
-      REAL*8 frqlos(im,jm,lm)
       real*8 tauy,tune
       parameter (tune = 445./501.)
       logical, save :: ifirst=.true.
-      save frqlos,tauy,infile,FRQfile
+      save tauy,infile,FRQfile
+
+      INTEGER :: J_1, J_0
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
 C**** Create interpolated table for this resolution
       if (ifirst ) then
@@ -288,15 +322,22 @@ C**** FOR END OF YEAR, USE FIRST RECORD
      * ' *** Chemical Loss Rates in Trop_chem_CH4 read for',
      * ' taux,tauy,itime,jyear=', taux,tauy,itime,jyear
 C**** AVERAGE POLES
-      do l=1,lm
-        frqlos(1, 1,l) = sum(frqlos(:, 1,l))*byim
-        frqlos(1,jm,l) = sum(frqlos(:,jm,l))*byim
-      end do
+      IF (HAVE_SOUTH_POLE) THEN
+         do l=1,lm
+            frqlos(1, 1,l) = sum(frqlos(:, 1,l))*byim
+         end do
+      ENDIF
+      IF (HAVE_NORTH_POLE) THEN
+         do l=1,lm
+            frqlos(1,jm,l) = sum(frqlos(:,jm,l))*byim
+         end do
+      ENDIF
+
 C**** APPLY AN AD-HOC FACTOR TO BRING INTO BALANCE
       frqlos(:,:,:) = frqlos(:,:,:)*tune
 C**** Apply the chemistry
   550 continue
-      do j=1,jm
+      do j=J_0,J_1
       do i=1,imaxj(j)
         do l=1,ltropo(i,j)
           tr3Dsource(i,j,l,ns,n) = -frqlos(i,j,l)*trm(i,j,l,n)
@@ -324,8 +365,8 @@ C     n_O3=tracer number for linoz O3
 !@param lz_linoz Number of heights in linoz tables
       integer, PARAMETER :: lz_linoz=25,nctable=8,lz_lx=lz_linoz+5
 C****    lz_linoz heights, 18 lats, 12 months, nctable parameters
-      real*8 TLPARM(lz_linoz,18,12,nctable),TLT0M(JM,LM,nctable),
-     *   TLTZM(JM,LM,nctable),TLTZZM(JM,LM,nctable)
+      real*8 TLPARM(lz_linoz,18,12,nctable)
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: TLT0M, TLTZM, TLTZZM
       real*8 tmmvv(ntm),dsol
 !@var lbc Top layer for ozone boundary conditions in troposphere
       integer lbc
@@ -404,6 +445,7 @@ c   Lower boundary conditions for Linearized Strat. Chem.
 c-----------------------------------------------------------------------
 c
       USE MODEL_COM, only: jm,itime
+      USE DOMAIN_DECOMP, only: GRID, GET
       USE GEOM, only: imaxj,dxyp
       USE DYNAMICS, only: am   ! Air mass of each box (kg/m^2)
       USE TRACER_COM
@@ -416,6 +458,12 @@ cc      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
       integer i,j,l,n,najl,ns
       real*8 coeff,ratio,T0Mold,dmass,sdmass,scalmom
 
+      INTEGER :: J_1, J_0
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
 c lower boundary condition : relax each species to tmrbc(n)
 c using a lifetime of taubc(n) for lowest lbc levels
 
@@ -423,7 +471,7 @@ c using a lifetime of taubc(n) for lowest lbc levels
       ratio = tmrbc / tmmvv(n)
 cc      najl = jls_3Dsource(ns,n)
         do l=1,lbc
-        do j=1,jm
+        do j=J_0,J_1
         sdmass = 0.
         do i=1,imaxj(j)
           T0Mold=trm(i,j,l,n)
@@ -482,6 +530,7 @@ c
 !@+ use dsol=0.0 for 'standard linoz' runs
 
       USE MODEL_COM, only: itime,im,jm,lm,t
+      USE DOMAIN_DECOMP, only: GRID, GET
       USE DYNAMICS, only: pk,am,ltropo   ! Air mass of each box (kg/m^2)
       USE GEOM, only: imaxj,dxyp
       USE TRACER_COM
@@ -490,17 +539,24 @@ cc      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
       USE LINOZ_CHEM_COM, only: dtchem,tmmvv,tlT0M,TLTZM,TLTZZM,dsol
       USE FLUXES, only: tr3Dsource
       implicit none
-      real*8 dero3,scalmom,dcolo3(im,jm,lm),
-     &  pmltot,dertmp,dtmp,derco3,colo3(im,jm,lm),dco3,sso3,
+      real*8 dcolo3(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm),
+     &  colo3(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm),
+     &  dero3,scalmom,pmltot,dertmp,dtmp,derco3,dco3,sso3,
      &  climo3,climpml,dersol
       real*8 dmass,T0Mold
       integer i,j,l,lr,n,ns,najl   ,kx
+
+      INTEGER :: J_1, J_0
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 cc      najl = jls_3Dsource(ns,n)
 c start at top layer and continue to lowest layer for strat. chem
       DO 330 l = lm,lm+1-nstrtc,-1
         LR = LM+1-L
-        DO 320 J = 1,JM
+        DO 320 J=J_0,J_1
             if (tlT0M(j,lr,5) == 0.) then
               go to 320
             end if
@@ -574,6 +630,7 @@ c-----------------------------------------------------------------------
 c-------- monthly fixup of chemistry PARAM'S
 c
       USE MODEL_COM, only: jmon,jm,lm
+      USE DOMAIN_DECOMP, only: GRID, GET
       USE PRATHER_CHEM_COM, only: jlatmd,p0l,NSTRTC
       USE LINOZ_CHEM_COM, only: nctable,TLPARM,
      *    tlt0m,tltzm,tltzzm,lz_linoz,lz_lx,ps
@@ -581,6 +638,12 @@ c
       real*8  STRT0L(LM),STRT1L(LM),STRT2L(LM),STRTX(lz_linoz)
       real*8 f(lz_lx)
       integer j,jj,k,lr,n
+
+      INTEGER :: J_1, J_0
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 c-------- TLPARM(25,18,12,N) defined for -----------------------------
 c lz_linoz  25 layers from 58 km to 10 km by 2 km intervals
@@ -590,7 +653,7 @@ c            N tables = NCTABLE
 c-------- skip interpolating, pick nearest latitude --------------------
 
       DO N = 1,NCTABLE
-      DO J = 1,JM
+      DO J = J_0,J_1
         JJ = JLATMD(J)
         DO K = 1,lz_linoz
           STRTX(K) = TLPARM(K,JJ,jmon,N)
@@ -730,7 +793,7 @@ c -=-=- cae: apply sign
       USE TRACER_COM
 !@var CH4_src CH4 surface sources and sinks (kg/s)
       integer, parameter :: nch4src=14
-      real*8 CH4_src(im,jm,nch4src)
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: CH4_src
       END MODULE CH4_SOURCES
 
       subroutine read_CH4_sources(nt,iact)
@@ -742,6 +805,7 @@ C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE CONSTANT, only: sday
       USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,fearth
+      USE DOMAIN_DECOMP, only: GRID, GET
       USE TRACER_COM, only: itime_tr0,trname
       USE LAKES_COM, only: flake
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
@@ -764,16 +828,31 @@ C**** Monthly sources are interpolated each day
      *        .true.,.true.,.true.,.true./)
       character*8 :: mon_files(nmons) =
      *   (/'CH4_BURN','CH4_RICE','CH4_WETL'/)
-      real*8 adj_wet(jm) 
-      data adj_wet/15*0.6585,16*1.761,15*0.6585/ !zonal adj FOR WETLANDS
+      real*8 adj_wet(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       integer :: kwet=14         !!! position of wetlands array in src
       logical :: mon_bins(nmons)=(/.true.,.true.,.true./)
-      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
+
+c GISS-ESMF EXCEPTIONAL CASE - SAVE variable, I/O
+      real*8 tlca(im,jm,nmons), tlcb(im,jm,nmons)   ! for monthly sources
       real*8 frac
       integer i,j,nt,iact,iu,k,imon(nmons)
       logical :: ifirst=.true.
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
+
+      INTEGER :: J_1, J_0
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      do J=J_0,J_1
+         if ( (J>15) .AND. (J<=JM-15) ) then
+            adj_wet(J) = 1.761
+         else
+            adj_wet(J) = 0.6585
+         endif
+      end do
 
       if (itime.lt.itime_tr0(nt)) return
 C****
@@ -821,7 +900,7 @@ C****
 C****
 C**** Zonal adjustment for combined wetlands and tundra
 C****
-      do j=1,jm
+      do j=J_0,J_1
         src(:,j,kwet) = src(:,j,kwet)*adj_wet(j)
       end do
       return
@@ -832,7 +911,7 @@ C****
       USE TRACER_COM
 !@var co2_src C02 surface sources and sinks (kg/s)
       integer, parameter :: nco2src=6
-      real*8 co2_src(im,jm,nco2src)
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: co2_src
       END MODULE CO2_SOURCES
 
       subroutine read_CO2_sources(nt,iact)
@@ -860,6 +939,8 @@ C**** Monthly sources are interpolated each day
       logical :: ann_bins(nanns)=(/.true.,.true.,.true.,.true./)
       character*9 :: mon_files(nmons) = (/'CO2_VEG  ','CO2_OCEAN'/)
       logical :: mon_bins(nmons)=(/.true.,.true./)
+
+c GISS-ESMF EXCEPTIONAL CASE - SAVE and I/O issues
       real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
       real*8 frac
       integer i,j,nt,iact,iu,k,imon(nmons)
@@ -915,15 +996,31 @@ C**** October 1963 14CO2 Concentrations for GCM  2/26/99
 C**** 2/2/2: generalized code for modelE
 C****
       USE MODEL_COM, ONLY: im,jm,lm,ls1,sige,psf,ptop
+      USE DOMAIN_DECOMP, only: GRID, GET
       USE DYNAMICS, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
       integer,PARAMETER :: kmwco2=60
       REAL*4 CO2W(37,0:30)
-      real*8 p(0:60),CO2JK(JM,0:kmwco2),CO2IJL(IM,JM,LM)
+      real*8 p(0:60)
+      real*8 CO2JK(GRID%J_STRT_HALO:GRID%J_STOP_HALO,0:kmwco2)
+      real*8 CO2IJL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       CHARACTER*80 TITLE
       integer i,j,jw,k,l,n,iu_in,iu_out
       real*8 pup,cup,pdn,cdn,psum,csum,psurf,ptrop,w,zk !,stratm
+
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 C****
 C**** Read in CO2 concentrations from workshop
 C****
@@ -951,9 +1048,9 @@ C****
         CO2JK(:,K) = 250.
       end do
       DO K=0,30
-        CO2JK( 1,K) = CO2W( 1,K)
-        CO2JK(JM,K) = CO2W(37,K)
-        DO J=2,JM-1
+        IF (HAVE_SOUTH_POLE) CO2JK( 1,K) = CO2W( 1,K)
+        IF (HAVE_NORTH_POLE) CO2JK(JM,K) = CO2W(37,K)
+        DO J=J_0S,J_1S
           W = 1. + (J-1)*36./(JM-1)
           JW=W
           CO2JK(J,K) = CO2W(JW,K)*(JW+1-W) + CO2W(JW+1,K)*(W-JW)
@@ -963,7 +1060,7 @@ C**** Interpoate CO2J to CO2IJL on GCM grid conserving vertical means
 C****
 C**** psf, ptrop, pdn ..... in pascals (mb*100)
       ptrop = ptop*100.
-      DO 440 J=1,JM
+      DO 440 J=J_0,J_1
       DO 440 I=1,IM
       PDN = pedn(1,i,j)*100.
       psurf = pdn
@@ -1152,6 +1249,7 @@ C**** Output: temporary file for this vertical resolution
 C**** WARNING: RESULTS ARE INTENDED FOR USE TO ABOUT 26.5 mb ONLY
 C****    CHECK IT with checkfile=.true.!!!
       USE MODEL_COM, only: im,jm,lm,ptop,psf,psfmpt,sige,sig
+      USE DOMAIN_DECOMP, only: GRID, GET
       USE FILEMANAGER, only: openunit,closeunit
       USE lhntr_com, only: LHNTR,LHNTR0
       implicit none
@@ -1165,6 +1263,12 @@ C****    CHECK IT with checkfile=.true.!!!
      *  fnew(km,lm),pold(lmo),pnew(lm),ain(lmo),aout(lm)
       real*8 :: sigo(lmo) = (/.974264d0,.907372d0,.796957d0,.640124d0,
      *    .470418d0,.318899d0,.195759d0,.094938d0,.016897d0/)
+
+      INTEGER :: J_1, J_0
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 !     initialize
       pold(:) = sigo(:)*(psf-10.)+10.
@@ -1209,7 +1313,7 @@ C**** confirmation check at i=1 for last tau
      *   ((fold(j,l),j=1,kmo,imo),l=1,lmo),(rlat(j),j=1,jmo),
      *   sngl(pold),1.,1.
         call closeunit(ifileA)
-        do j=1,jm;  rlat(j) = j;  end do
+        do j=J_0,J_1;  rlat(j) = j;  end do
         title = 'new'
         call openunit('OHCH4_FRQ_check_out',ifilea,.true.)
         write (ifileA) title,jm,lm,1,1,
@@ -1263,16 +1367,25 @@ C****    But what WOULD be correct???
 C**** Input data are from Wofsy
 C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
       USE MODEL_COM, ONLY: im,jm,lm,ls1,sige,psf,ptop,jmon0
+      USE DOMAIN_DECOMP, only: GRID, GET
       USE DYNAMICS, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
       implicit none
       integer j,jw,k,kstart,l,n,iu
       integer, parameter :: kmw=200
       real*4 GASX(3,62),xj,t
-      REAL*8 GASW(3,62),GASJK(JM,0:kmw),GASJL(JM,lm),P(0:kmw),
-     *  pup,cup,pdn,cdn,psum,csum,psurf,w,zk,scale
+      REAL*8 GASW(3,62),
+     *  GASJK(GRID%J_STRT_HALO:GRID%J_STOP_HALO,0:kmw),
+     *  GASJL(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm),
+     *  P(0:kmw),pup,cup,pdn,cdn,psum,csum,psurf,w,zk,scale
       CHARACTER*80 card,titlew,dfile*24
       character*(*) cgas
+
+      INTEGER :: J_1, J_0
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 C****
 C**** Read in GAS concentrations from Wofsy
@@ -1310,6 +1423,10 @@ C****
 C**** Interpolate data GASW to GASJK on GCM latitudes
 C****
 C**** Below 14 km set all equal
+
+c GISS-ESMF EXCEPTIONAL CASE
+c   Usage of J-index issue
+
       GASJK(:,0:28) = GASW(1,1)
 C**** Keep step function except at two transition points (+/1 15 deg)
       DO 210 K=29,90
@@ -1325,7 +1442,7 @@ C**** Keep step function except at two transition points (+/1 15 deg)
       END DO
   210 continue
 C**** Above, extend
-      do j=1,jm
+      do j=J_0,J_1
         GASJK(j,91:kmw) = GASJK(j,90)
       end do
 C**** Calculate data pressure levels (Pa)
@@ -1340,7 +1457,7 @@ C**** Interpoate GASJ to GASJL on GCM grid boxes conserving vertical
 C**** means
 C****
       GASJL = 0.
-      DO 440 J=1,JM
+      DO 440 J=J_0,J_1
       PDN = pedn(1,1,j)
       psurf = psf
       CDN = GASJK(J,0)
@@ -1380,3 +1497,66 @@ C****
 
       RETURN
       END SUBROUTINE get_wofsy_gas_IC
+
+
+      SUBROUTINE ALLOC_TRACER_SPECIAL_Lerner_COM(grid)
+!@sum  To allocate arrays whose sizes now need to be determined at
+!@+    run time
+!@auth NCCS (Goddard) Development Team
+!@ver  1.0
+      USE PRATHER_CHEM_COM
+      USE TRACER_MPchem_COM
+      USE CO2_SOURCES
+      USE CH4_SOURCES
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID, GET
+      IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+
+      INTEGER :: J_1H, J_0H
+      INTEGER :: IER
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      ALLOCATE( jlatmd(J_0H:J_1H),
+     *          STAT=IER )
+
+      ALLOCATE(  tltrm(J_0H:J_1H,lm,n_MPtable_max),
+     *           tltzm(J_0H:J_1H,lm,n_MPtable_max),
+     *          tltzzm(J_0H:J_1H,lm,n_MPtable_max),
+     *          STAT=IER )
+
+      ALLOCATE(	 CH4_src(im,J_0H:J_1H,nch4src),
+     *           CO2_src(im,J_0H:J_1H,nco2src),
+     *           STAT=IER )
+
+      END SUBROUTINE ALLOC_TRACER_SPECIAL_Lerner_COM
+
+      SUBROUTINE ALLOC_LINOZ_CHEM_COM(grid)
+!@sum  To allocate arrays whose sizes now need to be determined at
+!@+    run time
+!@auth NCCS (Goddard) Development Team
+!@ver  1.0
+      USE LINOZ_CHEM_COM
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID, GET
+      IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+
+      INTEGER :: J_1H, J_0H
+      INTEGER :: IER
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      ALLOCATE(	 TLT0M(J_0H:J_1H,lm,nctable),
+     *           TLTZM(J_0H:J_1H,lm,nctable),
+     *          TLTZZM(J_0H:J_1H,lm,nctable),
+     *          STAT=IER )
+
+      END SUBROUTINE ALLOC_LINOZ_CHEM_COM
+
+

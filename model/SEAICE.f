@@ -1718,6 +1718,7 @@ C**** output flux (positive down)
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm
+      USE DOMAIN_DECOMP, only : grid
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -1725,31 +1726,77 @@ C**** output flux (positive down)
 
       IMPLICIT NONE
 !@var RSI fraction of open water area covered in ice
-      REAL*8, DIMENSION(IM,JM) :: RSI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RSI
 !@var SNOWI snow amount on sea ice (kg/m^2)
-      REAL*8, DIMENSION(IM,JM) :: SNOWI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SNOWI
 !@var MSI mass of ice second layer (layer 1=const) (kg/m^2)
 C**** Note that MSI includes the mass of salt in sea ice
-      REAL*8, DIMENSION(IM,JM) :: MSI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: MSI
 !@var HSI enthalpy of each ice layer (J/m^2)
-      REAL*8, DIMENSION(LMI,IM,JM) :: HSI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: HSI
 !@var SSI sea ice salt content (kg/m^2)
-      REAL*8, DIMENSION(LMI,IM,JM) :: SSI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SSI
 !@var pond_melt amount of melt pond mass (kg/m^2)
 C**** Note this is a virtual meltpond and is only used for
 C**** albedo calculations
-      REAL*8, DIMENSION(IM,JM) :: pond_melt
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: pond_melt
 !@var flag_dsws true if snow on ice is wet (ie. rain or surface melt)
-      LOGICAL, DIMENSION(IM,JM) :: flag_dsws
+      LOGICAL, ALLOCATABLE, DIMENSION(:,:) :: flag_dsws
 
 #ifdef TRACERS_WATER
 !@var TRSI tracer amount in sea ice (kg/m^2)
-      REAL*8, DIMENSION(NTM,LMI,IM,JM) :: TRSI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRSI
 !@var TRSI0 default tracer conc. in sea ice (kg/m^2)
-      REAL*8, DIMENSION(NTM) :: TRSI0
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: TRSI0
 #endif
 
       END MODULE SEAICE_COM
+
+      SUBROUTINE ALLOC_SEAICE_COM(grid)
+!@sum  To allocate arrays whose sizes now need to be determined at 
+!@+    run-time
+!@auth Rodger Abel
+!@ver  1.0
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE DOMAIN_DECOMP, ONLY : GET
+      USE MODEL_COM, ONLY : IM, JM
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only : NTM
+#endif
+      USE SEAICE, only : LMI
+
+      USE SEAICE_COM, ONLY : RSI, SNOWI, MSI, HSI, SSI, pond_melt, 
+     *				flag_dsws
+#ifdef TRACERS_WATER
+      USE SEAICE_COM, ONLY : TRSI, TRSI0
+#endif
+      IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+
+      INTEGER :: J_1H, J_0H
+      INTEGER :: IER
+
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      ALLOCATE(	RSI(IM, J_0H:J_1H),
+     *		SNOWI(IM, J_0H:J_1H),
+     *		MSI(IM, J_0H:J_1H),
+     *		pond_melt(IM, J_0H:J_1H),
+     *		flag_dsws(IM, J_0H:J_1H),
+     *	    STAT=IER)
+
+      ALLOCATE(	HSI(LMI, IM, J_0H:J_1H),
+     *		SSI(LMI, IM, J_0H:J_1H),
+     *      STAT=IER)
+
+#ifdef TRACERS_WATER
+      ALLOCATE(	TRSI(NTM, LMI, IM, J_0H:J_1H),
+     *		TRSI0(NTM),
+     *      STAT=IER)
+#endif
+
+      RETURN
+      END SUBROUTINE ALLOC_SEAICE_COM
 
       SUBROUTINE io_seaice(kunit,iaction,ioerr)
 !@sum  io_seaice reads and writes seaice variables to file
@@ -1826,6 +1873,8 @@ C**** albedo calculations
 #endif
       USE LAKES_COM, only : flake
       USE FLUXES
+      USE DOMAIN_DECOMP, only : GRID
+      USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -1839,6 +1888,12 @@ C**** albedo calculations
       real*8 relerr,errmax
 #endif
 
+      integer :: J_0, J_1
+C**** 
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+
 C**** Check for NaN/INF in ice data
       CALL CHECK3(RSI,IM,JM,1,SUBR,'rsi')
       CALL CHECK3(MSI,IM,JM,1,SUBR,'msi')
@@ -1848,7 +1903,7 @@ C**** Check for NaN/INF in ice data
 
       QCHECKI = .FALSE.
 C**** Check for reasonable values for ice variables
-      DO J=1,JM
+      DO J=J_0, J_1
         DO I=1,IMAXJ(J)
           IF (RSI(I,J).lt.0 .or. RSI(I,j).gt.1 .or. MSI(I,J).lt.0) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,RSI,MSI=',I,J,RSI(I,J)
@@ -1889,7 +1944,7 @@ c            QCHECKI = .TRUE.
       do n=1,ntm
 C**** check negative tracer mass
         if (t_qlimit(n)) then
-        do j=1,jm
+        do j=J_0, J_1
           do i=1,imaxj(j)
             if ((focean(i,j)+flake(i,j))*rsi(i,j).gt.0) then
               do l=1,lmi
@@ -1907,7 +1962,7 @@ C**** check negative tracer mass
 C**** Check conservation of water tracers in sea ice
         if (trname(n).eq.'Water') then
           errmax = 0. ; imax=1 ; jmax=1
-          do j=1,jm
+          do j=J_0, J_1
           do i=1,imaxj(j)
             if ((focean(i,j)+flake(i,j))*rsi(i,j).gt.0) then
               relerr=max(

@@ -34,10 +34,12 @@ C**** momentum passes through model top.
 
 !@var ZVART,ZVARX,ZVARY,ZWT topogrpahic variance
 C**** (must be in common due to read statement)
+cBMP      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ZVART,ZVARX,ZVARY,ZWT
+c GISS-ESMF EXCEPTIONAL CASE
       REAL*8, DIMENSION(IM,JM) :: ZVART,ZVARX,ZVARY,ZWT
       COMMON/ZVARCB/ZVART,ZVARX,ZVARY,ZWT
 !@var DEFRM deformation field
-      REAL*8, DIMENSION(IM,JM) :: DEFRM
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DEFRM
 !@var LDEF,LDEFM deformation levels
       INTEGER LDEF,LDEFM
 !@var LBREAK,LSHR,LD2 levels for various GW drag terms
@@ -53,11 +55,12 @@ C**** (must be in common due to read statement)
       INTEGER :: ang_gwd = 1 ! default: GWDRAG does conserve AM
 
 !@var PK local P**Kapa array - should be done by DYNAMICS?
-      REAL*8, DIMENSION(IM,JM,LM) :: PK
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PK
 !@param NM number of gravity wave drag sources
       INTEGER, PARAMETER :: NM=9
 !@var Arrays needed for GWDRAG
-      REAL*8 :: EK(NM,JM),PKS(LM)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: EK
+      REAL*8 :: PKS(LM)
 
       END MODULE
 
@@ -71,6 +74,8 @@ C**** accumulated in the routines contained herein
       USE PARAM
       USE CONSTANT, only : twopi,kapa
       USE MODEL_COM, only : im,jm,lm,ls1,do_gwdrag,ptop,sig,psfmpt,sige
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE, CHECKSUM,
+     *                          NORTH, SOUTH
       USE GEOM, only : areag,dxyv,dlat_dg
       USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
      *     ,ld2,lshr,ldef,ldefm,zvarx,zvary,zvart,zwt,pks,nm,ek, cmtn
@@ -78,6 +83,19 @@ C**** accumulated in the routines contained herein
       IMPLICIT NONE
       REAL*8 PLEV,PLEVE,EKS,EK1,EK2,EKX
       INTEGER I,J,L,iu_zvar
+
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** define flag for optional diagnostics
       DO_GWDRAG = .true.
@@ -123,7 +141,16 @@ C****
       CALL READT (iu_ZVAR,0,ZVART,IM*JM*4,ZVART,1)
       call closeunit(iu_ZVAR)
 
-      DO J=JM-1,1,-1
+      CALL CHECKSUM(GRID, ZVART, __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, ZVARX, __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, ZVARY, __LINE__, __FILE__)
+      CALL CHECKSUM(GRID,   ZWT, __LINE__, __FILE__)
+      CALL HALO_UPDATE(GRID, ZVART, from=NORTH)
+      CALL HALO_UPDATE(GRID, ZVARX, from=NORTH)
+      CALL HALO_UPDATE(GRID, ZVARY, from=NORTH)
+      CALL HALO_UPDATE(GRID,   ZWT, from=NORTH)
+
+      DO J=J_1S,J_0,-1
       DO I=1,IM
         ZVART(I,J+1)=ZVART(I,J)
         ZVARX(I,J+1)=ZVARX(I,J)
@@ -139,7 +166,7 @@ C**** define wave number array EK for GWDRAG
 C**** EKX is the mean wave number for wave lengths between a 1x1 degree
 C**** box and a model grid box weighted by 1/EK; wave_length=root(area)
       EKS=0.
-      DO J=2,JM
+      DO J=J_0STG,J_1STG
         EK1=TWOPI/SQRT(DXYV(J))                ! 2pi/grid_box_size
         EK2=EK1*SQRT((360./IM)*DLAT_DG)        ! 2pi/1x1deg_box_size
         EKX=0.
@@ -149,8 +176,8 @@ C**** box and a model grid box weighted by 1/EK; wave_length=root(area)
         EK(2,J)=EKX
       END DO
       EKS=EKS*IM/AREAG
-      EK(3:NM,1:JM)=EKS
-      WRITE (6,970) (J,EK(1,J),J=2,JM)
+      EK(3:NM,J_0:J_1)=EKS
+      WRITE (6,970) (J,EK(1,J),J=J_0STG,J_1STG)
       WRITE (6,971) EKS
   970 FORMAT ('0  J,EK:',9X,1P,7(I4,E12.2)/,9(1X,8(I4,E12.2)/))
   971 FORMAT ('   AVG EK: ',4X,E12.2)
@@ -170,6 +197,8 @@ C****
       USE CONSTANT, only : rgas,grav,twopi,kapa,sha
       USE MODEL_COM, only : im,jm,lm,psfmpt,sig,ptop,ls1
      *     ,sige,mrch
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE, CHECKSUM,
+     *                          NORTH, SOUTH
       USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj,rapvn,rapvs,dxyv
      *     ,kmaxj,idij,idjj,rapj
       USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
@@ -180,30 +209,57 @@ C****
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
       REAL*8, PARAMETER :: BYRGAS = 1./RGAS
-      REAL*8, DIMENSION(IM,JM,LM+1) :: VKEDDY
-      REAL*8, DIMENSION(IM,JM,LM) :: RHO, DUT, DVT, DKE
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM+1) :: 
+     *                                                         VKEDDY
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+     *                                             RHO, DUT, DVT, DKE
       REAL*8, DIMENSION(0:LDIFM+1) :: UL,VL,TL,PL,RHOL
       REAL*8, DIMENSION(LDIFM) :: AIRM,AM,AL,AU,B,DU,DV,DTEMP,DQ
       REAL*8, DIMENSION(LDIFM+1) :: TE,PLE,RHOE,DPE,DFLX,KMEDGE,KHEDGE
      *     ,LMEDGE,LHEDGE
       REAL*8, PARAMETER :: MU=1.
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: U,V,T
-      REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: UT,VT
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM) :: P
+      REAL*8, INTENT(INOUT), 
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+     *                                                        U,V,T
+      REAL*8, INTENT(IN), 
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+     *                                                        UT,VT
+      REAL*8, INTENT(INOUT), 
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: P
       REAL*8, INTENT(IN) :: DT1
       REAL*8 G2DT,PIJ,TPHYS,ediff,ANGM,DPT,DUANG
       INTEGER I,J,K,L,IP1,NDT,N,LMAX
 
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
       G2DT=GRAV*GRAV*DT1
 C**** Fill in USURF,VSURF at poles (Shouldn't this be done already?)
-      DO 60 I=2,IM
-      USURF(I,1)=USURF(1,1)*COSI(I)-VSURF(1,1)*SINI(I)
-      VSURF(I,1)=VSURF(1,1)*COSI(I)+USURF(1,1)*SINI(I)
-      USURF(I,JM)=USURF(1,JM)*COSI(I)+VSURF(1,JM)*SINI(I)
-   60 VSURF(I,JM)=VSURF(1,JM)*COSI(I)-USURF(1,JM)*SINI(I)
+      IF (HAVE_SOUTH_POLE) THEN
+         DO I=2,IM
+            USURF(I,1)=USURF(1,1)*COSI(I)-VSURF(1,1)*SINI(I)
+            VSURF(I,1)=VSURF(1,1)*COSI(I)+USURF(1,1)*SINI(I)
+         END DO
+      ENDIF
+      IF (HAVE_NORTH_POLE) THEN
+         DO I=2,IM
+            USURF(I,JM)=USURF(1,JM)*COSI(I)+VSURF(1,JM)*SINI(I)
+            VSURF(I,JM)=VSURF(1,JM)*COSI(I)-USURF(1,JM)*SINI(I)
+         END DO
+      ENDIF
 C**** Calculate RHO(I,J,L)
       DO L=1,LS1-1
-      DO J=1,JM
+      DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         RHO(I,J,L)=   BYRGAS*(P(I,J)*SIG(L)+PTOP)/(T(I,J,L)*PK(I,J,L))
       END DO
@@ -211,28 +267,52 @@ C**** Calculate RHO(I,J,L)
       END DO
 
       DO L=LS1,LM
-      DO J=1,JM
+      DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         RHO(I,J,L)=   BYRGAS*(PSFMPT*SIG(L)+PTOP)/(T(I,J,L)*PK(I,J,L))
       END DO
       END DO
       END DO
 C**** Fill in T,RHO at poles (again shouldn't this be done already?)
-      DO L=1,LM
-      DO I=1,IM
-        T(I,1,L)=T(1,1,L)
-        T(I,JM,L)=T(1,JM,L)
-        RHO(I,1,L)=RHO(1,1,L)
-        RHO(I,JM,L)=RHO(1,JM,L)
-      END DO
-      END DO
+      IF (HAVE_SOUTH_POLE) THEN
+         DO L=1,LM
+         DO I=1,IM
+            T(I,1,L)=T(1,1,L)
+            RHO(I,1,L)=RHO(1,1,L)
+         END DO
+         END DO
+      ENDIF
+      IF (HAVE_NORTH_POLE) THEN
+         DO L=1,LM
+         DO I=1,IM
+            T(I,JM,L)=T(1,JM,L)
+            RHO(I,JM,L)=RHO(1,JM,L)
+         END DO
+         END DO
+      ENDIF
 C**** Get Vertical Diffusion Coefficient for this timestep
       CALL GETVK (U,V,VKEDDY,LDIFM)
+
+      CALL CHECKSUM(GRID, P     , __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, RAPVN , __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, USURF , __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, VSURF , __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, TSURF , __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, RHO   , __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, T     , __LINE__, __FILE__)
+      CALL HALO_UPDATE(GRID, P     , from=SOUTH)
+      CALL HALO_UPDATE(GRID, RAPVN , from=SOUTH)
+      CALL HALO_UPDATE(GRID, USURF , from=SOUTH)
+      CALL HALO_UPDATE(GRID, VSURF , from=SOUTH)
+      CALL HALO_UPDATE(GRID, TSURF , from=SOUTH)
+      CALL HALO_UPDATE(GRID, RHO   , from=SOUTH)
+      CALL HALO_UPDATE(GRID, T     , from=SOUTH)
+
 C****
 C**** U,V Diffusion
 C****
       DUT=0 ; DVT=0.
-      DO 300 J=2,JM
+      DO 300 J=J_0STG,J_1STG
       I=IM
       DO 300 IP1=1,IM
 C**** Surface values are used for F(0)
@@ -336,7 +416,7 @@ C**** conservation diagnostic
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
 !$OMP  PARALLEL DO PRIVATE(I,J,L,K,ediff)
         DO L=1,LM
-          DO J=1,JM
+          DO J=J_0,J_1
             DO I=1,IMAXJ(J)
               ediff=0.
               DO K=1,KMAXJ(J)   ! loop over surrounding vel points
@@ -386,19 +466,43 @@ C****
 !@auth Bob Suozzo/Jean Lerner
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
+      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE, CHECKSUM,
+     *                          NORTH, SOUTH
       USE PBLCOM, only : usurf=>usavg,vsurf=>vsavg
       IMPLICIT NONE
 !@var Vert. Diffusion coefficent
-      REAL*8, INTENT(OUT), DIMENSION(IM,JM,LM+1) :: VKEDDY
-      REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: U,V
+      REAL*8, INTENT(OUT), 
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM+1) :: 
+     *                                                         VKEDDY
+      REAL*8, INTENT(IN), 
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+     *                                                          U,V
       INTEGER, INTENT(IN) :: LDIFM
       REAL*8, PARAMETER :: XEDDY = 10., DV2MAX = 25.**2
       INTEGER I,J,L,IP1
       REAL*8 US1,VS1,DELV2
 
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+      CALL CHECKSUM(GRID, USURF , __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, VSURF , __LINE__, __FILE__)
+      CALL HALO_UPDATE(GRID, USURF , from=SOUTH)
+      CALL HALO_UPDATE(GRID, VSURF , from=SOUTH)
+
 C**** Calculate surface winds on velocity grid (rewrite!)
 C**** Is this calculated in PBL?
-      DO J=2,JM
+      DO J=J_0STG,J_1STG
         I=IM
         DO IP1=1,IM
           US1=.25*(USURF(I,J-1)+USURF(IP1,J-1)+USURF(I,J)+USURF(IP1,J))
@@ -411,7 +515,7 @@ C**** Is this calculated in PBL?
       END DO
 
       DO L=2,MIN(LDIFM+1,LM)
-      DO J=2,JM
+      DO J=J_0STG,J_1STG
       DO I=1,IM
         DELV2   =(U(I,J,L)-U(I,J,L-1))**2 + (V(I,J,L)-V(I,J,L-1))**2
         VKEDDY(I,J,L)=0.
@@ -420,13 +524,13 @@ C**** Is this calculated in PBL?
       END DO
       END DO
       IF (LDIFM.EQ.LM) THEN
-        DO J=2,JM
+        DO J=J_0STG,J_1STG
           DO I=1,IM
             VKEDDY(I,J,LM+1)=0.
           END DO
         END DO
       ENDIF
-      DO J=2,JM
+      DO J=J_0STG,J_1STG
         DO I=1,IM
           VKEDDY(I,J,1)=0.
           VKEDDY(I,J,2)=0.
@@ -475,6 +579,8 @@ C****
       USE CONSTANT, only : grav,sha,twopi,kapa,rgas
       USE MODEL_COM, only : im,jm,lm,byim,nidyn,sig,sige
      *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
+      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE, CHECKSUM,
+     *                          NORTH, SOUTH
       USE CLOUDS_COM, only : airx,lmc
       USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm
      *     ,lbreak,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv
@@ -488,9 +594,14 @@ C****
       IMPLICIT NONE
 !@var BVF(LMC1) is Brunt-Vaissala frequency at top of convection
 !@var CLDHT is height of cloud = 8000*LOG(P(cloud bottom)/P(cloud top)
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: T,U,V,SZ
-      REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: UT,VT
-      REAL*8, INTENT(IN), DIMENSION(IM,JM) :: P
+      REAL*8, INTENT(INOUT), 
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+     *                                                      T,U,V,SZ
+      REAL*8, INTENT(IN), 
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+     *                                                        UT,VT
+      REAL*8, INTENT(INOUT), 
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: P
       REAL*8, INTENT(IN) :: DT1
       REAL*8, PARAMETER :: ERR=1d-20, H0=8000., XFROUD=1.
 !@var XLIMIT per timestep limit on mixing and drag
@@ -498,9 +609,10 @@ C****
 !@var ROTK should this be set from CONSTANT?
       REAL*8, PARAMETER :: ROTK = 1.5, RKBY3= ROTK*ROTK*ROTK
 
-      REAL*8, DIMENSION(IM,JM,LM) :: DUT3,DVT3,DKE,TLS,THLS,BVS
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+     *                                    DUT3,DVT3,DKE,TLS,THLS,BVS
       REAL*8, DIMENSION(IM,LM) :: UIL,VIL,TLIL,THIL,BVIL
-      REAL*8, DIMENSION(JM,LM) :: DUJL
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: DUJL
       REAL*8, DIMENSION(LM) :: PL,DP,TL,THL,RHO,BVF,UL,VL,DL,DUT,DVT,
      *     DQT,DTT,RDI,DFTL,DFM,DFR,WMC,UEDGE,VEDGE,BYFACS,CN
       REAL*8 MUB(LM+1,NM),PLE(LM+1),MU(NM),UR(NM),VR(NM),WT(NM)
@@ -513,6 +625,20 @@ C****
      *     ,EXCESS,ALFA,XDIFF,DFT,DWT,FDEFRM,WSRC,WCHECK,DUTN,PDN
      *     ,YDN,FLUXUD,FLUXVD,PUP,YUP,DX,DLIMIT,FLUXU,FLUXV,MDN
      *     ,MUP,MUR,BVFSQ,ediff,ANGM,DPT,DUANG
+
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 C****
       DTHR=2./NIdyn
       BYDT1 = 1./DT1
@@ -521,14 +647,14 @@ C****
       DO L=1,LM
         IF (L.GE.LS1) THEN
 C**** P**KAPA IN THE STRATOSPHERE
-          DO J=1,JM
+          DO J=J_0,J_1
           DO I=1,IMAXJ(J)
             PK(I,J,L)=PKS(L)
           END DO
           END DO
         ELSE
 C**** P**KAPA IN THE TROPOSPHERE
-          DO J=1,JM
+          DO J=J_0,J_1
           DO I=1,IMAXJ(J)
             PK(I,J,L)=(P(I,J)*SIG(L)+PTOP)**KAPA
           END DO
@@ -539,24 +665,56 @@ C**** P**KAPA IN THE TROPOSPHERE
 C****
 C**** FILL IN QUANTITIES AT POLES
 C****
-      DO I=2,IM
-        AIRX(I,1)=AIRX(1,1)
-        LMC(1,I,1)=LMC(1,1,1)
-        LMC(2,I,1)=LMC(2,1,1)
-        AIRX(I,JM)=AIRX(1,JM)
-        LMC(1,I,JM)=LMC(1,1,JM)
-        LMC(2,I,JM)=LMC(2,1,JM)
-      END DO
-      DO L=1,LM
-      DO I=2,IM
-        T(I,1,L)=T(1,1,L)
-        SZ(I,1,L)=SZ(1,1,L)
-        PK(I,1,L)=PK(1,1,L)
-        T(I,JM,L)=T(1,JM,L)
-        SZ(I,JM,L)=SZ(1,JM,L)
-        PK(I,JM,L)=PK(1,JM,L)
-      END DO
-      END DO
+      IF (HAVE_SOUTH_POLE) THEN
+         DO I=2,IM
+            AIRX(I,1)=AIRX(1,1)
+            LMC(1,I,1)=LMC(1,1,1)
+            LMC(2,I,1)=LMC(2,1,1)
+            AIRX(I,JM)=AIRX(1,JM)
+            LMC(1,I,JM)=LMC(1,1,JM)
+            LMC(2,I,JM)=LMC(2,1,JM)
+         END DO
+         DO L=1,LM
+         DO I=2,IM
+            T(I,1,L)=T(1,1,L)
+            SZ(I,1,L)=SZ(1,1,L)
+            PK(I,1,L)=PK(1,1,L)
+            T(I,JM,L)=T(1,JM,L)
+            SZ(I,JM,L)=SZ(1,JM,L)
+            PK(I,JM,L)=PK(1,JM,L)
+         END DO
+         END DO
+      ENDIF
+      IF (HAVE_NORTH_POLE) THEN
+         DO I=2,IM
+            AIRX(I,JM)=AIRX(1,JM)
+            LMC(1,I,JM)=LMC(1,1,JM)
+            LMC(2,I,JM)=LMC(2,1,JM)
+         END DO
+         DO L=1,LM
+         DO I=2,IM
+            T(I,JM,L)=T(1,JM,L)
+            SZ(I,JM,L)=SZ(1,JM,L)
+            PK(I,JM,L)=PK(1,JM,L)
+         END DO
+         END DO
+      ENDIF
+
+      CALL CHECKSUM(GRID, PK    , __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, SZ    , __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, T     , __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, P     , __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, AIRX  , __LINE__, __FILE__)
+cBMP      CALL CHECKSUM(GRID, LMC   , __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, RAPVN , __LINE__, __FILE__)
+      CALL HALO_UPDATE(GRID, PK    , from=SOUTH)
+      CALL HALO_UPDATE(GRID, SZ    , from=SOUTH)
+      CALL HALO_UPDATE(GRID, T     , from=SOUTH)
+      CALL HALO_UPDATE(GRID, P     , from=SOUTH)
+      CALL HALO_UPDATE(GRID, AIRX  , from=SOUTH)
+cBMP      CALL HALO_UPDATE(GRID, LMC   , from=SOUTH)
+      CALL HALO_UPDATE(GRID, RAPVN , from=SOUTH)
+
 C****
 C**** DEFORMATION
 C****
@@ -568,7 +726,7 @@ C****
 !$OMP  END PARALLEL DO
 !$OMP  PARALLEL DO PRIVATE(I,IP1,J,L)
       DO L=1,LM
-      DO J=2,JM
+      DO J=J_0STG,J_1STG
       I=IM
       DO IP1=1,IM
          TLS(I,J,L) =
@@ -594,7 +752,7 @@ C****
 !$OMP*  UL,U0,UR,USRC,UEDGE, VL,V0,VR,VSRC,VEDGE, W0,WSRC,WCHECK,
 !$OMP*  WMCE,WMC, XDIFF, YDN,YUP, ZVAR,WTX,WT,AIRXS,CLDDEP,CLDHT,FPLUME,
 !$OMP*  UIL,VIL, TLIL,THIL,BVIL)
-      DO J=2,JM
+      DO J=J_0STG,J_1STG
 C**** parallel reductions
          UIL(:,:)=U(:,J,:)
          VIL(:,:)=V(:,J,:)
@@ -1038,7 +1196,7 @@ C**** conservation diagnostic
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
 !$OMP  PARALLEL DO PRIVATE(I,J,L,K,ediff)
         DO L=1,LM
-          DO J=1,JM
+          DO J=J_0,J_1
             DO I=1,IMAXJ(J)
               ediff=0.
               DO K=1,KMAXJ(J)   ! loop over surrounding vel points
@@ -1084,17 +1242,35 @@ C**** and DEFRM2 like CURL (i.e., like FLUX and CIRCULATION),
 C**** except the "V" signs are switched.  DEFRM is RMS on u,v grid
 C****
       USE MODEL_COM, only : im,jm,lm,psfmpt,ptop,sig,dsig
+      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE, CHECKSUM,
+     *                          NORTH, SOUTH
       USE DYNAMICS, only : pu,pv
       USE GEOM, only : bydxyv,dxyv,dxv,dyp
       USE STRAT, only : ldef,ldefm,defrm
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: U,V
-      REAL*8, DIMENSION(IM,JM), INTENT(INOUT) :: P
+      REAL*8, INTENT(INOUT), 
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: U,V
+      REAL*8, INTENT(INOUT), 
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: P
       REAL*8, DIMENSION(IM) :: UDXS,DUMS1,DUMS2,DUMN1,DUMN2
-      REAL*8, DIMENSION(IM,JM) ::  DEFRM1,DEFRM2,DEF1A,DEF2A
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     *                                      DEFRM1,DEFRM2,DEF1A,DEF2A
       CHARACTER*80 TITLE
       INTEGER I,J,L,IP1,IM1
       REAL*8 UDXN
+
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C****
 C**** Deformation terms  DEFRM1=du/dx-dv/dy   DEFRM2=du/dy+dv/dx
@@ -1102,9 +1278,19 @@ C**** For spherical coordinates, we are treating DEFRM1 like DIV
 C**** and DEFRM2 like CURL (i.e., like FLUX and CIRCULATION),
 C**** except the "V" signs are switched
 C****
+
+      CALL CHECKSUM(GRID, U  , __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, V  , __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, DXV, __LINE__, __FILE__)
+      CALL CHECKSUM(GRID, PV , __LINE__, __FILE__)
+      CALL HALO_UPDATE(GRID, U  , from=NORTH)
+      CALL HALO_UPDATE(GRID, V  , from=NORTH)
+      CALL HALO_UPDATE(GRID, DXV, from=NORTH)
+      CALL HALO_UPDATE(GRID, PV , from=NORTH)
+
       L=LDEF
 C**** U-terms
-      DO 91 J=1,JM
+      DO 91 J=J_0,J_1
       IM1=IM
       DO 91 I=1,IM
       DEFRM1(I,J) = PU(I,J,L)-PU(IM1,J,L)
@@ -1112,34 +1298,40 @@ C**** U-terms
       DO 92 I=1,IM
    92 UDXS(I)=0.
       IM1=IM
-      DO 93 J=1,JM-1
+      DO 93 J=J_0,J_1S
       DO 93 I=1,IM
       UDXN=.5*(U(IM1,J+1,L)+U(I,J+1,L))*DXV(J+1)
       DEFRM2(I,J ) = UDXN-UDXS(I)
       UDXS(I)=UDXN
    93 IM1=I
-      DO 94 I=1,IM
-   94 DEFRM2(I,JM) =     -UDXS(I)
+      IF (HAVE_NORTH_POLE) THEN
+         DO 94 I=1,IM
+   94    DEFRM2(I,JM) =     -UDXS(I)
+      ENDIF
 C**** V-terms
       IM1=IM
       DO 98 I=1,IM
-      DO 96 J=1,JM-1
+      DO 96 J=J_0,J_1S
    96 DEFRM1(I,J ) = DEFRM1(I,J ) + (PV(I,J+1,L)-PV(I,J ,L))
-      DEFRM1(I,1 ) = DEFRM1(I,1 ) + (PV(I,2  ,L)           )
-      DEFRM1(I,JM) = DEFRM1(I,JM) + (           -PV(I,JM,L))
-      DO 97 J=2,JM-1
+      IF (HAVE_SOUTH_POLE) DEFRM1(I,1 ) = DEFRM1(I,1 ) + ( PV(I,2 ,L))
+      IF (HAVE_NORTH_POLE) DEFRM1(I,JM) = DEFRM1(I,JM) + (-PV(I,JM,L))
+      DO 97 J=J_0S,J_1S
    97 DEFRM2(I,J ) = DEFRM2(I,J ) +
      *  .5*((V(I,J,L)+V(I,J+1,L))-(V(IM1,J,L)+V(IM1,J+1,L)))*DYP(J)
-      DEFRM2(I,1 ) = DEFRM2(I,1 ) + (V(I,2 ,L)-V(IM1,2 ,L))*DYP(1)
-      DEFRM2(I,JM) = DEFRM2(I,JM) + (V(I,JM,L)-V(IM1,JM,L))*DYP(JM)
+      IF (HAVE_SOUTH_POLE) DEFRM2(I,1 ) = DEFRM2(I,1 ) + 
+     *                                   (V(I,2 ,L)-V(IM1,2 ,L))*DYP(1)
+      IF (HAVE_NORTH_POLE) DEFRM2(I,JM) = DEFRM2(I,JM) + 
+     *                                   (V(I,JM,L)-V(IM1,JM,L))*DYP(JM)
    98 IM1=I
 C**** Convert to UV-grid
       I=IM
-      DO 99 IP1=1,IM
-      DUMS1(I)=DEFRM1(I,1)+DEFRM1(IP1,1)
-      DUMS2(I)=DEFRM2(I,1)+DEFRM2(IP1,1)
-   99 I=IP1
-      DO 110 J=2,JM
+      IF (HAVE_SOUTH_POLE) THEN
+         DO 99 IP1=1,IM
+         DUMS1(I)=DEFRM1(I,1)+DEFRM1(IP1,1)
+         DUMS2(I)=DEFRM2(I,1)+DEFRM2(IP1,1)
+   99    I=IP1
+      ENDIF
+      DO 110 J=J_0STG,J_1STG
       I=IM
       DO 100 IP1=1,IM
       DUMN1(I)=DEFRM1(I,J)+DEFRM1(IP1,J)
@@ -1152,7 +1344,7 @@ C**** Convert to UV-grid
       DUMS1(I)=DUMN1(I)
       DUMS2(I)=DUMN2(I)
   110 CONTINUE
-      DO 120 J=2,JM
+      DO 120 J=J_0STG,J_1STG
       I=IM
       DO 120 IP1=1,IM
       DEFRM1(I,J)=DEFRM1(I,J)/
@@ -1161,11 +1353,21 @@ C**** Convert to UV-grid
       DEFRM(I,J)=SQRT(DEFRM1(I,J)**2+DEFRM2(I,J)**2)
   120 I=IP1
 C**** Set deformation to zero near the poles
-      DO 130 I=1,IM
-      DEFRM(I,2)=0.
-      DEFRM(I,3)=0.
-      DEFRM(I,JM-1)=0.
-  130 DEFRM(I,JM  )=0.
+      IF (HAVE_SOUTH_POLE) THEN
+         DO I=1,IM
+            DEFRM(I,2)=0.
+            DEFRM(I,3)=0.
+         END DO
+      ENDIF
+      IF (HAVE_NORTH_POLE) THEN
+         DO I=1,IM
+            DEFRM(I,JM-1)=0.
+            DEFRM(I,JM  )=0.
+         END DO
+      ENDIF
+
+      CALL CHECKSUM(GRID, DEFRM , __LINE__, __FILE__)
+
 C****
 C**** Print Deformation terms
 C****
@@ -1229,4 +1431,29 @@ C****
  10   IOERR=1
       RETURN
       END SUBROUTINE io_strat
+
+      SUBROUTINE ALLOC_STRAT_COM(grid)
+!@sum  To allocate arrays whose sizes now need to be determined at
+!@+    run time
+!@auth NCCS (Goddard) Development Team
+!@ver  1.0
+      USE STRAT
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID, GET
+      IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+
+      INTEGER :: J_1H, J_0H
+      INTEGER :: IER
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      ALLOCATE(    DEFRM(im,J_0H:J_1H),
+     *                PK(im,J_0H:J_1H,lm),
+     *                EK(nm,J_0H:J_1H),
+     *         STAT=IER)
+
+      END SUBROUTINE ALLOC_STRAT_COM
 

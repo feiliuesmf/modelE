@@ -13,7 +13,7 @@
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,jyear,jmon
 #endif
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH
+      USE DOMAIN_DECOMP, only : HALO_UPDATE,GRID,GET
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
@@ -152,17 +152,12 @@ Cred*                   end Reduced Arrays 1
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
-      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0SG,J_1SG
+      INTEGER :: J_0,J_1,J_0S,J_1S,J_0STG,J_1STG
 
 C**** define local grid
-      J_0  =GRID%J_STRT
-      J_1  =GRID%J_STOP
-      J_0H =GRID%J_STRT_HALO
-      J_1H =GRID%J_STOP_HALO
-      J_0S =GRID%J_STRT_SKP
-      J_1S =GRID%J_STOP_SKP
-      J_0SG=GRID%J_STRT_STGR
-      J_1SG=GRID%J_STOP_STGR
+      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
+     &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
 
 C 
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
@@ -993,7 +988,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 C**** and save changes in KE for addition as heat later
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
-      DO J=J_0SG,J_1SG
+      DO J=J_0STG,J_1STG
       DO I=1,IM
          AJL(J,L,JL_DAMMC)=AJL(J,L,JL_DAMMC)+
      &         (U(I,J,L)-UC(I,J,L))*PDSIG(L,I,J)

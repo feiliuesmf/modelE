@@ -22,6 +22,7 @@
       use filemanager
       use param
       use constant, only : twopi,one
+      use DOMAIN_DECOMP, only : GRID, GET
       use model_com, only : fearth,jeq,jyear
       use veg_com !, only : vdata,Cint,Qfol
       use sle001, only : ngm
@@ -109,6 +110,19 @@ c****
       integer :: ghy_default_data = 0
       integer :: northsouth  !1=south, 2=north hemisphere
 
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 c**** read rundeck parameters
       call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03
       call sync_param( "crops_yr", crops_yr)
@@ -136,7 +150,7 @@ C**** Update vegetation file if necessary (i.e. crops_yr =0 or >0)
 
 c**** check whether ground hydrology data exist at this point.
       veg_data_missing = .false.
-      do j=1,jm
+      do j=J_0,J_1
         do i=1,im
           if (fearth(i,j).gt.0) then
             if ( sum(vdata(i,j,1:10)).eq.0 ) then
@@ -172,7 +186,7 @@ c****
 !rar  aalbveg(:,:)=0.08D0 ! no need, it is set in daily_earth
       can_w_capacity(:,:) = 0.d0
 
-      do j=1,jm
+      do j=J_0,J_1
         if(j.le.jm/2) then
           northsouth=1.d0  !southern hemisphere
         else
@@ -291,11 +305,25 @@ c**** recompute ground hydrology data if necessary (new soils data)
 
       subroutine reset_veg_to_defaults( reset_prognostic )
       use veg_com, only: vdata
+      use DOMAIN_DECOMP, only : GRID, GET
       !use ghycom
       logical, intent(in) :: reset_prognostic
       integer i,j
 
-      do j=1,jm
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+      do j=J_0,J_1
       do i=1,im
 
       vdata(i,j,1:11)= (/  0.00000000d+00,  0.00000000d+00,
@@ -444,6 +472,7 @@ c shc(0,2) is the heat capacity of the canopy
 !@ver  1.0
       USE FILEMANAGER
       USE MODEL_COM, only : im,jm
+      USE DOMAIN_DECOMP, only : GRID, GET
       use veg_com, only : vdata
       USE GEOM, only : imaxj
       use veg_drv, only : upd_gh
@@ -454,11 +483,26 @@ c shc(0,2) is the heat capacity of the canopy
       real*8 wt,crops         ! temporary vars ! ,crop(im,jm)
 
       integer :: year1,year2,year_old=-1, iu, i,j,k
-      real*8 vdata0(im,jm,11),crop1(im,jm),crop2(im,jm)  ! to limit i/o
-      save   year1,year2,year_old,vdata0,crop1,crop2,iu  ! to limit i/o
+      real*8 vdata0(im,jm,11) ! to limit i/o
+      real*8  crop1(im,jm)    ! to limit i/o
+      real*8  crop2(im,jm)    ! to limit i/o
+      save   year1,year2,year_old,vdata0,crop1,crop2,iu      ! to limit i/o
 
       character*80 title
-      real*4 crop4(im,jm)
+      real*4 crop4(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** check whether update is needed
       if (year.eq.year_old) return
@@ -466,7 +510,7 @@ C**** check whether update is needed
 C**** first iteration actions:
       if (year_old.lt.0) then
 C****     check whether a no-crops vege-file was used
-        do j=2,jm-1
+        do j=J_0S,J_1S
         do i=1,im
            if(vdata(i,j,9).gt.0.)
      *     call stop_model('updveg: use no_crops_VEG_file',255)
@@ -494,7 +538,7 @@ C****     save orig. (no-crop) vdata to preserve restart-independence
       write(6,*) 'Using crops data from year',year1+wt*(year2-year1)
 
 C**** Modify the vegetation fractions
-      do j=1,jm
+      do j=J_0,J_1
       do i=1,imaxj(j)
          if (crop1(i,j).ge.0.) then
             crops = crop1(i,j) + wt*(crop2(i,j)-crop1(i,j))

@@ -4,7 +4,7 @@
 !@ver  1.0
       USE RESOLUTION, only : im,jm,lm,ls1,kep,istrat,
      *     psf,pmtop,ptop,psfmpt,pstrat,plbot
-      USE DOMAIN_DECOMP, only : grid
+!      USE DOMAIN_DECOMP, only : grid
       IMPLICIT NONE
       SAVE
 

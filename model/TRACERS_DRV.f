@@ -4090,10 +4090,14 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       REAL*8 CFC11ic,conv
       REAL*8 :: trinit =1., tmominit=0.
 
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: ic14CO2
-      REAL*4, ALLOCATABLE, DIMENSION(:,:,:) :: CO2ic
-      REAL*4, ALLOCATABLE, DIMENSION(:,:) :: N2Oic
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CH4ic
+      REAL*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
+     *                                                    ic14CO2 
+      REAL*4, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
+     *                                                      CO2ic
+      REAL*4, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
+     *                                                      N2Oic
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
+     *                                                      CH4ic
 
 !@param bymair 1/molecular wt. of air = 1/mair
 !@param byjm 1./JM
@@ -4122,11 +4126,6 @@ C****
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      *               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
-      ALLOCATE( ic14CO2(im,J_0H:J_1H,lm) )
-      ALLOCATE( CO2ic(im,J_0H:J_1H,lm) )
-      ALLOCATE( N2Oic(J_0H:J_1H,lm) )
-      ALLOCATE( CH4ic(J_0H:J_1H,lm) )
 
 #ifdef regional_Ox_tracers
       byNregOx=1.d0/float(NregOx)
@@ -4654,11 +4653,6 @@ c I'm not using the moments
         call closeunit(mon_unit)
  901  FORMAT(3X,2(I4),E11.3,5F9.2)
 #endif
-
-      DEALLOCATE( ic14CO2 )
-      DEALLOCATE( CO2ic )
-      DEALLOCATE( N2Oic )
-      DEALLOCATE( CH4ic )
 
       end subroutine tracer_IC
 

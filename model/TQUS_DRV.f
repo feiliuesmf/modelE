@@ -4,9 +4,11 @@
       USE MODEL_COM, ONLY : IM,JM,LM,byim
       SAVE
       INTEGER, PARAMETER :: ncmax=10
-      INTEGER NSTEPX1(JM,LM,NCMAX),NSTEPX2(JM,LM,NCMAX),
-     *        NSTEPY(LM,NCMAX),NSTEPZ(IM*JM,NCMAX), NCYC
-      REAL*8, dimension(jm,lm) :: sfbm,sbm,sbf,sfcm,scm,scf
+      INTEGER, ALLOCATABLE, DIMENSION(:,:,:) :: NSTEPX1, NSTEPX2
+      INTEGER, ALLOCATABLE, DIMENSION(:,:)   :: NSTEPZ
+      INTEGER NSTEPY(LM,NCMAX), NCYC
+      REAL*8,  ALLOCATABLE, DIMENSION(:,:)   :: sfbm,sbm,sbf,
+     *                                          sfcm,scm,scf
 
       contains
 
@@ -33,13 +35,15 @@ c****
       USE DYNAMICS, ONLY: pu=>pua, pv=>pva, sd=>sda, mb,ma
       IMPLICIT NONE
 
-      REAL*8, dimension(im,jm,lm) :: rm
-      REAL*8, dimension(nmom,im,jm,lm) :: rmom
+      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: rm
+      REAL*8, dimension(nmom,im,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: rmom
       logical, intent(in) :: qlimit
       character*8 tname          !tracer name
       integer :: I,J,L,n,nx
 
       INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0H, J_1H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -47,6 +51,7 @@ C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -170,6 +175,7 @@ C**** The MA array space is temporarily put to use in this section
       REAL*8 :: byn,ssp,snp
 
       INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0H, J_1H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -177,6 +183,7 @@ C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -381,10 +388,10 @@ ccc   MA(:,:,:) = MB(:,:,:)
       ENDDO
 !$OMP  END PARALLEL DO
       do n=1,ncyc
-        call xstep (MA,nstepx1(1,1,n))
+        call xstep (MA,nstepx1(J_0H,1,n))
         call ystep (MA,nstepy(1,n))
         call zstep (MA,nstepz(1,n))
-        call xstep (MA,nstepx2(1,1,n))
+        call xstep (MA,nstepx2(J_0H,1,n))
       end do
       RETURN
   900 format (1x,a,3i4,f10.4,i5)
@@ -416,12 +423,15 @@ c****
 ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       use QUSCOM, only : im,jm,lm, xstride
       implicit none
-      REAL*8, dimension(im,jm,lm) :: rm,mass,mu
-      REAL*8, dimension(nmom,im,jm,lm) :: rmom
+      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
+     &                                         rm,mass,mu
+      REAL*8, dimension(nmom,im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
+     &                                         rmom
       logical ::  qlimit
       REAL*8  AM(IM), F_I(IM), FMOM_I(NMOM,IM)
       character*8 tname
-      integer :: i,j,l,ierr,nerr,ns,nstep(jm,lm),ICKERR
+      integer :: nstep(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm)
+      integer :: i,j,l,ierr,nerr,ns,ICKERR
 
       INTEGER :: I_0, I_1, J_1, J_0
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
@@ -496,20 +506,17 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
       REAL*8, dimension(nmom,im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
      &                                         rmom
       logical ::  qlimit
-c      REAL*8, ALLOCATABLE, dimension(:,:)   :: fqv
       REAL*8, intent(out), 
      &        dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
      &                                         sfbm,sbm,sbf
-c      REAL*8, ALLOCATABLE, dimension(:)     :: BM,F_J
-c      REAL*8, ALLOCATABLE, dimension(:,:)   :: FMOM_J
       character*8 tname
       integer :: i,j,l,ierr,nerr,ns,nstep(lm),ICKERR
       REAL*8 ::
      &     m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
 
-      REAL*8, dimension(im,jm) :: fqv
-      REAL*8  BM(JM),F_J(JM)
-      REAL*8  FMOM_J(NMOM,JM)
+      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: fqv
+      REAL*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::  BM,F_J
+      REAL*8  FMOM_J(NMOM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
       INTEGER J_0, J_1
       INTEGER J_0H, J_1H
@@ -524,11 +531,6 @@ C****
      *               J_STRT_SKP=J_0S,  J_STOP_SKP=J_1S,
      *               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      *               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
-c      ALLOCATE (    fqv(IM,J_0H:J_1H) )
-c      ALLOCATE (     BM(J_0H:J_1H) )
-c      ALLOCATE (    F_J(J_0H:J_1H) )
-c      ALLOCATE ( FMOM_J(NMOM,J_0H:J_1H) )
 
 c**** loop over layers
       ICKERR=0
@@ -619,11 +621,6 @@ C
       IF(ICKERR.NE.0)  call stop_model('Stopped in aadvQy',11)
 C
 
-c      DEALLOCATE (    fqv )
-c      DEALLOCATE (     BM )
-c      DEALLOCATE (    F_J )
-c      DEALLOCATE ( FMOM_J )
-
       return
 c****
       end subroutine aadvQy
@@ -654,12 +651,16 @@ c****
 ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use QUSCOM, only : im,jm,lm, zstride
       implicit none
-      REAL*8, dimension(im,jm,lm) :: rm,mass,mw
-      REAL*8, dimension(nmom,im,jm,lm) :: rmom
-      integer, dimension(im,jm) :: nstep
+      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
+     &                                         rm,mass,mw
+      REAL*8, dimension(nmom,im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
+     &                                         rmom
+      INTEGER, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: nstep
+      REAL*8, intent(out),
+     &               dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
+     &                                         sfcm,scm,scf
       logical ::  qlimit
       REAL*8, dimension(lm) :: fqw
-      REAL*8, intent(out), dimension(jm,lm) :: sfcm,scm,scf
       character*8 tname
       REAL*8  CM(LM),F_L(LM),FMOM_L(NMOM,LM)
       integer :: i,j,l,ierr,nerr,ns,ICKERR
@@ -735,9 +736,9 @@ c****
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mu=>pua
       IMPLICIT NONE
-      REAL*8, dimension(im,jm,lm) :: m
+      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: m
       REAL*8, dimension(im) :: a,am,mi
-      integer, dimension(jm,lm) :: nstepx
+      integer, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: nstepx
       integer :: l,j,i,ip1,im1,nstep,ns,ICKERR
       REAL*8 :: courmax
 
@@ -818,10 +819,10 @@ C
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mv=>pva
       IMPLICIT NONE
-      REAL*8, dimension(im,jm,lm) :: m
+      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: m
       REAL*8, dimension(im,jm) :: mij
       REAL*8, dimension(jm) :: b,bm
-      integer, dimension(lm) :: nstepy
+      integer, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: nstepy
       integer :: jprob,iprob,nstep,ns,i,j,l,ICKERR
       REAL*8 :: courmax,byn,sbms,sbmn
 
@@ -919,10 +920,11 @@ C
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mw=>sda
       IMPLICIT NONE
-      REAL*8, dimension(im,jm,lm) :: m
+      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: m
       REAL*8, dimension(lm) :: ml
       REAL*8, dimension(0:lm) :: c,cm
-      integer, dimension(im*jm) :: nstepz
+      integer, dimension(im*(GRID%J_STOP_HALO-GRID%J_STRT_HALO+1)) :: 
+     &                                                         nstepz
       integer :: nstep,ns,l,i,j,ICKERR
       REAL*8 :: courmax,byn
 
@@ -989,3 +991,36 @@ C
 C
       RETURN
       END
+
+      SUBROUTINE ALLOC_TRACER_ADV(grid)
+!@sum  To allocate arrays whose sizes now need to be determined at
+!@+    run time
+!@auth NCCS (Goddard) Development Team
+!@ver  1.0
+      USE TRACER_ADV
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID, GET
+      IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+
+      INTEGER :: J_1H, J_0H
+      INTEGER :: IER
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      ALLOCATE(  NSTEPX1(J_0H:J_1H,LM,NCMAX),
+     *           NSTEPX2(J_0H:J_1H,LM,NCMAX),
+     *            NSTEPZ(IM*(J_1H-J_0H+1),NCMAX) )
+  
+      ALLOCATE( sfbm(J_0H:J_1H,LM),
+     *           sbm(J_0H:J_1H,LM),
+     *           sbf(J_0H:J_1H,LM),
+     *          sfcm(J_0H:J_1H,LM),
+     *           scm(J_0H:J_1H,LM),
+     *           scf(J_0H:J_1H,LM) )
+
+      END SUBROUTINE ALLOC_TRACER_ADV
+
+

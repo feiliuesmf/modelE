@@ -5,6 +5,8 @@
 !@cont GEOM_B
       USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY,radian
       USE MODEL_COM, only : IM,JM,LM,FIM,BYIM
+!     USE DOMAIN_DECOMP, only : grid, get
+!     USE DOMAIN_DECOMP, only : halo_update, north, south, checksum
       IMPLICIT NONE
 C**** The primary grid is the A grid (including both poles)
 C**** The secondary grid is for the B grid velocities, located on the
@@ -27,54 +29,60 @@ c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
      *  (/1,JM/2,  1+JM/2,JM,  J1U,J1U-1+JM/2, J1U-1+JM/2,JM+J1U-2/),
      *  (/2,2,2/))
 !@var  LAT latitude of mid point of primary grid box (radians)
-      REAL*8, DIMENSION(JM) :: LAT
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: LAT
 !@var  LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
-      REAL*8, DIMENSION(JM,2) :: LAT_DG
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: LAT_DG
 !@var  LON longitude of mid points of primary grid box (radians)
-      REAL*8, DIMENSION(IM) :: LON
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: LON
 !@var  LON_DG longitude of mid points of prim. and sec. grid boxes (deg)
-      REAL*8, DIMENSION(IM,2) :: LON_DG
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: LON_DG
 !@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
 C**** Note that this is not the exact area, but is what is required for
 C**** some B-grid conservation quantities
-      REAL*8, DIMENSION(JM) :: DXYP,BYDXYP
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: 
+     &                  DXYP,BYDXYP
 !@var AREAG global integral of area (m^2)
       REAL*8 :: AREAG
 !@var WTJ area weighting used in JLMAP, JKMAP (for hemispheric means)
-      REAL*8, DIMENSION(JM,2,2) :: WTJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WTJ
 
 !@var DXYV,BYDXYV area of grid box around velocity point (recip.)(m^2)
-      REAL*8, DIMENSION(JM) :: DXYV,BYDXYV
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: 
+     &                  DXYV,BYDXYV
 
 !@var  DXP,DYP,BYDXP,BYDYP distance between points on primary grid
 !@+     (+inverse)
-      REAL*8, DIMENSION(JM) :: DXP,DYP,BYDXP,BYDYP
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: 
+     &                  DXP,DYP,BYDXP,BYDYP
 !@var  DXV,DYV distance between velocity points (secondary grid)
-      REAL*8, DIMENSION(JM) :: DXV,DYV
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: DXV,DYV
 !@var  DXYN,DXYS half box areas to the North,South of primary grid point
-      REAL*8, DIMENSION(JM) :: DXYS,DXYN
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: DXYS,DXYN
 !@var  SINP sin of latitude at primary grid points
-      REAL*8, DIMENSION(JM) :: SINP
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: SINP
 !@var  COSP, COSV cos of latitude at primary, secondary latitudes
-      REAL*8, DIMENSION(JM) :: COSP,COSV
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: COSP,COSV
 !@var  RAPVS,RAPVN,RAVPS,RAVPN area scalings for primary and sec. grid
-      REAL*8, DIMENSION(JM) :: RAPVS,RAPVN,RAVPS,RAVPN
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: 
+     &                  RAPVS,RAPVN,RAVPS,RAVPN
 
 !@var SINIV,COSIV,SINIP,COSIP longitud. sin,cos for wind,pressure grid
-      REAL*8, DIMENSION(IM) :: SINIV,COSIV,SINIP,COSIP
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: SINIV,COSIV,SINIP,COSIP
 !@var  RAVJ scaling for A grid U/V to B grid points (func. of lat. j)
 !@var  RAPJ scaling for B grid -> A grid conversion (1/4,1/im at poles)
-      REAL*8, DIMENSION(IM,JM) :: RAPJ,RAVJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: 
+     &                  RAPJ,RAVJ
 !@var  IDJJ J index of adjacent U/V points for A grid (func. of lat. j)
-      INTEGER, DIMENSION(IM,JM) :: IDJJ
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: IDJJ
 !@var  IDIJ I index of adjacent U/V points for A grid (func. of lat/lon)
-      INTEGER, DIMENSION(IM,IM,JM) :: IDIJ
+      INTEGER, ALLOCATABLE, DIMENSION(:,:,:) :: 
+     &                  IDIJ
 !@var  KMAXJ varying number of adjacent velocity points
-      INTEGER, DIMENSION(JM) :: KMAXJ
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: KMAXJ
 !@var  IMAXJ varying number of used longitudes
-      INTEGER, DIMENSION(JM) :: IMAXJ
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: IMAXJ
 !@var  FCOR latitudinally varying coriolis parameter
-      REAL*8, DIMENSION(JM) :: FCOR
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: FCOR
 
       CONTAINS
 
@@ -82,12 +90,15 @@ C**** some B-grid conservation quantities
 !@sum  GEOM_B Calculate spherical geometry for B grid
 !@auth Original development team (modifications by G. Schmidt)
 !@ver  1.0 (B grid version)
+      USE DOMAIN_DECOMP, only : grid, get
+      USE DOMAIN_DECOMP, only : halo_update, north, south, checksum
       IMPLICIT NONE
       REAL*8, PARAMETER :: EDPERD=1.,EDPERY = 365.
 
       INTEGER :: I,J,K,IM1  !@var I,J,K,IM1  loop variables
       INTEGER :: JVPO,JMHALF
       REAL*8  :: RAVPO
+      INTEGER J_0,J_1,J_0S,J_1S,J_0STG,J_1STG
 
 C**** latitudinal spacing depends on whether you have even spacing or
 C**** a partial box at the pole
@@ -96,40 +107,69 @@ C**** a partial box at the pole
 cc    IF (JM.eq.24) DLAT_DG=180./(JM-1)   ! 1/2 box at pole, orig 8x10
       IF (JM.eq.24) DLAT_DG=180./(JM-1.5) ! 1/4 box at pole, 'real' 8x10
       DLAT=DLAT_DG*radian
-      LAT(1)  = -.25*TWOPI
-      LAT(JM) = -LAT(1)
-      SINP(1)  = -1.
-      SINP(JM) = 1.
-      COSP(1)  = 0.
-      COSP(JM) = 0.
-      DXP(1)  = 0.
-      DXP(JM) = 0.
-      DO J=2,JM-1
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, j_STOP_STGR=J_1STG)
+
+      write(*,*)'In geom_b: J_0,J_1=',j_0,j_1
+      write(*,*)'In geom_b: J_0S,J_1S=',j_0S,j_1S
+      write(*,*)'In geom_b: J_0STG,J_1STG=',j_0STG,j_1STG
+
+      IF (grid%HAVE_SOUTH_POLE) THEN
+          LAT(1)  = -.25*TWOPI
+          SINP(1)  = -1.
+          COSP(1)  = 0.
+          DXP(1)  = 0.
+      END IF
+      IF (grid%HAVE_NORTH_POLE) THEN
+          LAT(JM) = .25*TWOPI
+          SINP(JM) = 1.
+          COSP(JM) = 0.
+          DXP(JM) = 0.
+      END IF
+      DO J=J_0S,J_1S
         LAT(J)  = DLAT*(J-FJEQ)
         SINP(J) = SIN(LAT(J))
         COSP(J) = COS(LAT(J))
         DXP(J)  = RADIUS*DLON*COSP(J)
       END DO
-      BYDXP(2:JM-1) = 1.D0/DXP(2:JM-1)
-      DO J=2,JM
+      BYDXP(J_0S:J_1S) = 1.D0/DXP(J_0S:J_1S)
+C****Update halos for arrays cosp, dxp, and lat
+      CALL CHECKSUM(grid, COSP, __LINE__, __FILE__)
+      CALL CHECKSUM(grid, DXP , __LINE__, __FILE__)
+      CALL CHECKSUM(grid, LAT , __LINE__, __FILE__)
+      CALL HALO_UPDATE( grid, COSP, from=SOUTH)
+      CALL HALO_UPDATE( grid, DXP , from=SOUTH)
+      CALL HALO_UPDATE( grid, LAT , from=SOUTH)
+      DO J=J_0STG,J_1STG
         COSV(J) = .5*(COSP(J-1)+COSP(J))
         DXV(J)  = .5*(DXP(J-1)+DXP(J))
         DYV(J)  = RADIUS*(LAT(J)-LAT(J-1))
       END DO
-      DYP(1)  = RADIUS*(LAT(2)-LAT(1)-0.5*DLAT)
-      DYP(JM) = RADIUS*(LAT(JM)-LAT(JM-1)-0.5*DLAT)
-      DXYP(1) = .5*DXV(2)*DYP(1)
-      BYDXYP(1) = 1./DXYP(1)
-      DXYP(JM)= .5*DXV(JM)*DYP(JM)
-      BYDXYP(JM) = 1./DXYP(JM)
-      DXYS(1)  = 0.
-      DXYS(JM) = DXYP(JM)
-      DXYN(1)  = DXYP(1)
-      DXYN(JM) = 0.
+C****POLES
+      IF (grid%HAVE_SOUTH_POLE) THEN
+        DYP(1)  = RADIUS*(LAT(2)-LAT(1)-0.5*DLAT)
+        DXYP(1) = .5*DXV(2)*DYP(1)
+        BYDXYP(1) = 1./DXYP(1)
+        DXYS(1)  = 0.
+        DXYN(1)  = DXYP(1)
+      ENDIF
+      IF (grid%HAVE_NORTH_POLE) THEN
+        DYP(JM) = RADIUS*(LAT(JM)-LAT(JM-1)-0.5*DLAT)
+        DXYP(JM)= .5*DXV(JM)*DYP(JM)
+        BYDXYP(JM) = 1./DXYP(JM)
+        DXYS(JM) = DXYP(JM)
+        DXYN(JM) = 0.
+      END IF
       AREAG = DXYP(1)+DXYP(JM)
-      DO J=2,JM-1
+
+      DO J=J_0S,J_1S
         DYP(J)  = .5*(DYV(J)+DYV(J+1))
         DXYP(J) = .5*(DXV(J)+DXV(J+1))*DYP(J)
+        write(*,*)'In geom_b:j=',j,' dxv(j),dxv(j+1)=',dxv(j),dxv(j+1)
+        write(*,*)'In geom_b:j=',j,' dyp(j)',dyp(j)
+        write(*,*)'In geom_b:j=',j,
+     &             'dxyp(j)=.5*(DXV(J)+DXV(J+1))*DYP(J)=',dxyp(j)
         BYDXYP(J) = 1./DXYP(J)
         DXYS(J) = .5*DXYP(J)
         DXYN(J) = .5*DXYP(J)
@@ -137,17 +177,26 @@ cc    IF (JM.eq.24) DLAT_DG=180./(JM-1)   ! 1/2 box at pole, orig 8x10
       END DO
       BYDYP(:) = 1.D0/DYP(:)
       AREAG = AREAG*FIM
-      RAVPS(1)  = 0.
-      RAPVS(1)  = 0.
-      RAVPN(JM) = 0.
-      RAPVN(JM) = 0.
-      DO J=2,JM
+C****POLES
+      IF (grid%HAVE_SOUTH_POLE) THEN
+        RAVPS(1)  = 0.
+        RAPVS(1)  = 0.
+      END IF
+      IF (grid%HAVE_NORTH_POLE) THEN
+        RAVPN(JM) = 0.
+        RAPVN(JM) = 0.
+      END IF
+      DO J=J_0STG,J_1STG
         DXYV(J) = DXYN(J-1)+DXYS(J)
         BYDXYV(J) = 1./DXYV(J)
         RAPVS(J)   = .5*DXYS(J)/DXYV(J)
-        RAPVN(J-1) = .5*DXYN(J-1)/DXYV(J)
         RAVPS(J)   = .5*DXYS(J)/DXYP(J)
-        RAVPN(J-1) = .5*DXYN(J-1)/DXYP(J-1)
+      END DO
+      CALL CHECKSUM(grid,RAPVN, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid,RAPVN, from=NORTH)
+      DO J=J_0,J_1S
+        RAPVN(J) = .5*DXYN(J)/DXYV(J+1)
+        RAVPN(J) = .5*DXYN(J)/DXYP(J)
       END DO
 C**** LONGITUDES (degrees); used in ILMAP
       LON_DG(1,1) = -180.+360./(2.*FLOAT(IM))
@@ -157,33 +206,45 @@ C**** LONGITUDES (degrees); used in ILMAP
         LON_DG(I,2) = LON_DG(I-1,2)+360./FLOAT(IM)
       END DO
 C**** LATITUDES (degrees); used extensively in the diagn. print routines
-      LAT_DG(1,1:2)=-90.
-      LAT_DG(JM,1)=90.
-      DO J=2,JM-1
+      IF (grid%HAVE_SOUTH_POLE) LAT_DG(1,1:2)=-90.
+      IF (grid%HAVE_NORTH_POLE) LAT_DG(JM,1)=90.
+      DO J=J_0S,J_1S
         LAT_DG(J,1)=DLAT_DG*(J-FJEQ)    ! primary (tracer) latitudes
       END DO
-      DO J=2,JM
+      DO J=J_0STG,J_1STG
         LAT_DG(J,2)=DLAT_DG*(J-JM/2-1)  ! secondary (velocity) latitudes
       END DO
 C**** WTJ: area weighting for JKMAP, JLMAP hemispheres
       JMHALF= JM/2
-      DO J=1,JM
+      DO J=J_0,J_1
         WTJ(J,1,1)=1.
         WTJ(J,2,1)=2.*FIM*DXYP(J)/AREAG
       END DO
-      DO J=2,JM
+      DO J=J_0STG,J_1STG
         WTJ(J,1,2)=1.
         WTJ(J,2,2)=2.*FIM*DXYV(J)/AREAG
       END DO
-      WTJ(JMHALF+1,1,2)=.5
-      WTJ(JMHALF+1,2,2)=WTJ(JMHALF+1,2,2)/2.
-      WTJ(1,1,2)=0.
-      WTJ(1,2,2)=0.
+C****EQUATOR
+      IF (grid%HAVE_EQUATOR) THEN
+        WTJ(JMHALF+1,1,2)=.5
+        WTJ(JMHALF+1,2,2)=WTJ(JMHALF+1,2,2)/2.
+      END IF
+C****POLE
+      IF (grid%HAVE_SOUTH_POLE) THEN
+        WTJ(1,1,2)=0.
+        WTJ(1,2,2)=0.
+      END IF
+
 C**** CALCULATE CORIOLIS PARAMETER
 c      OMEGA = TWOPI*(EDPERD+EDPERY)/(EDPERD*EDPERY*SDAY)
-      FCOR(1)  = -RADIUS*OMEGA*.5*COSP(2)*DXV(2)
-      FCOR(JM) = -FCOR(1)
-      DO J=2,JM-1
+      IF (grid%HAVE_SOUTH_POLE)
+     &      FCOR(1)  = -RADIUS*OMEGA*.5*COSP(2)*DXV(2)
+      IF (grid%HAVE_NORTH_POLE)
+     &      FCOR(JM) = -FCOR(1)
+C****Update halo for DXV array
+      CALL CHECKSUM(grid,DXV, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid,DXV, from=NORTH)
+      DO J=J_0S,J_1S
         FCOR(J) = OMEGA*(DXV(J)*DXV(J)-DXV(J+1)*DXV(J+1))/DLON
       END DO
 
@@ -201,24 +262,27 @@ C**** Calculate relative directions of polar box to nearby U,V points
 
 C**** Conditions at the poles
       DO J=1,JM,JM-1
-        IF(J.EQ.1) THEN
-          JVPO=2
-          RAVPO=2.*RAPVN(1)
-        ELSE
-          JVPO=JM
-          RAVPO=2.*RAPVS(JM)
-        END IF
-        KMAXJ(J)=IM
-        IMAXJ(J)=1
-        RAVJ(1:KMAXJ(J),J)=RAVPO
-        RAPJ(1:KMAXJ(J),J)=BYIM
-        IDJJ(1:KMAXJ(J),J)=JVPO
-        DO K=1,KMAXJ(J)
+        IF (((J .EQ. 1) .AND. (grid%HAVE_SOUTH_POLE)) .OR.
+     &      ((J .EQ.JM) .AND. (grid%HAVE_NORTH_POLE))) THEN
+          IF(J.EQ.1) THEN
+            JVPO=2
+            RAVPO=2.*RAPVN(1)
+          ELSE
+            JVPO=JM
+            RAVPO=2.*RAPVS(JM)
+          END IF
+          KMAXJ(J)=IM
+          IMAXJ(J)=1
+          RAVJ(1:KMAXJ(J),J)=RAVPO
+          RAPJ(1:KMAXJ(J),J)=BYIM
+          IDJJ(1:KMAXJ(J),J)=JVPO
+          DO K=1,KMAXJ(J)
           IDIJ(K,1:IM,J)=K
         END DO
+        END IF
       END DO
 C**** Conditions at non-polar points
-      DO J=2,JM-1
+      DO J=J_0S,J_1S
         KMAXJ(J)=4
         IMAXJ(J)=IM
         DO K=1,2
@@ -244,3 +308,72 @@ C**** Conditions at non-polar points
 
       END MODULE GEOM
 
+      SUBROUTINE ALLOC_GEOM(grd_dum)
+      USE MODEL_COM, only : IM
+      USE DOMAIN_DECOMP, only: DYN_GRID, get
+      USE GEOM, only: LAT,LAT_DG,
+     &                LON,LON_DG,
+     &                DXYP,BYDXYP,WTJ,
+     &                DXYV,BYDXYV,
+     &                DXP,DYP,BYDXP,BYDYP,
+     &                DXV,DYV,DXYS,DXYN,
+     &                SINP,COSP,COSV,
+     &                RAPVS,RAPVN,RAVPS,RAVPN,
+     &                SINIV,COSIV,SINIP,COSIP,
+     &                RAPJ,RAVJ,
+     &                IDJJ,IDIJ,KMAXJ,IMAXJ,
+     &                FCOR
+
+      TYPE (DYN_GRID),   INTENT(IN)    :: grd_dum
+
+      CALL GET(grd_dum,J_STRT_HALO=J_0H,
+     &                 J_STOP_HALO=J_1H)
+
+      write(*,*)'J_0H=',j_0h,' J_1H=',j_1h
+      ALLOCATE( LAT       (J_0H:J_1H), 
+     &          LAT_DG    (J_0H:J_1H, 2),
+     &          LON    (IM),
+     &          LON_DG (IM,           2),
+     &                                    STAT = IER)
+      write(*,*)'size of lat is ', size(lat)
+      write(*,*)'size of lat_dg is ', size(lat_dg)
+      write(*,*)'size of lon is ', size(lon)
+      write(*,*)'size of lon_dg is ', size(lon_dg)
+      ALLOCATE(
+     &          DXYP      (J_0H:J_1H),
+     &          BYDXYP    (J_0H:J_1H),
+     &          WTJ       (J_0H:J_1H, 2, 2),
+     &          DXYV      (J_0H:J_1H),
+     &          BYDXYV    (J_0H:J_1H),
+     &          DXP       (J_0H:J_1H),
+     &          DYP       (J_0H:J_1H),
+     &          BYDXP     (J_0H:J_1H),
+     &          BYDYP     (J_0H:J_1H),
+     &          DXV       (J_0H:J_1H),
+     &          DYV       (J_0H:J_1H),
+     &          DXYS      (J_0H:J_1H),
+     &          DXYN      (J_0H:J_1H),
+     &          SINP      (J_0H:J_1H),
+     &          COSP      (J_0H:J_1H),
+     &          COSV      (J_0H:J_1H),
+     &          RAPVS     (J_0H:J_1H),
+     &          RAPVN     (J_0H:J_1H),
+     &          RAVPS     (J_0H:J_1H),
+     &          RAVPN     (J_0H:J_1H),
+     &                                    STAT = IER)
+      ALLOCATE(
+     &          SINIV  (IM),
+     &          COSIV  (IM),
+     &          SINIP  (IM),
+     &          COSIP  (IM),
+     &          RAPJ   (IM,J_0H:J_1H),
+     &          RAVJ   (IM,J_0H:J_1H),
+     &          IDJJ   (IM,J_0H:J_1H),
+     &          IDIJ(IM,IM,J_0H:J_1H),
+     &          KMAXJ     (J_0H:J_1H),
+     &          IMAXJ     (J_0H:J_1H),
+     &          FCOR      (J_0H:J_1H),
+     &                                    STAT = IER)
+
+      RETURN
+      END SUBROUTINE ALLOC_GEOM

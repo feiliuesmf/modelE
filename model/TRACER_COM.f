@@ -41,12 +41,14 @@ C**** Each tracer has a variable name and a unique index
       character*8, parameter :: trname(ntm)= (/
      *     'Air     ','SF6     ','Rn222   ','CO2     ','N2O     ',
      *     'CFC11   ','14CO2   ','CH4     ','O3      ','Water   '/)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: frqlos
 #else 
 #if defined TRACERS_SPECIAL_Lerner
       integer, parameter :: ntm=9
       character*8, parameter :: trname(ntm)= (/
      *     'Air     ','SF6     ','Rn222   ','CO2     ','N2O     ',
      *     'CFC11   ','14CO2   ','CH4     ','O3      '/)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: frqlos
 #else
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
 !@var ntm_chem number of drew-only tracers
@@ -309,6 +311,11 @@ C****
   
 #ifdef TRACERS_WATER
       ALLOCATE(        trwm(IM,J_0H:J_1H,LM,NTM) )
+#endif
+
+#ifdef TRACERS_SPECIAL_Lerner
+      ALLOCATE(	frqlos(IM,J_0H:J_1H,LM),
+     *          STAT=IER)
 #endif
 
       END SUBROUTINE ALLOC_TRACER_COM

@@ -11,6 +11,7 @@
 !@sum TRACEA accumulates tracer concentration diagnostics (IJL, JL)
 !@auth J.Lerner
 !@ver  1.0
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only: im,jm,lm,itime,wm
       USE GEOM, only: imaxj,bydxyp
       USE SOMTQ_COM, only: mz
@@ -21,6 +22,19 @@
 
       integer i,j,l,k,n
       real*8 tsum,asum
+
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C****
 C**** Accumulate concentration for all tracers
@@ -35,7 +49,7 @@ C**** Latitude-longitude by layer concentration
 !$OMP END PARALLEL DO
 C**** Average concentration; surface concentration; total mass
 !$OMP PARALLEL DO PRIVATE (J,I,TSUM,ASUM)
-      do j=1,jm
+      do j=J_0,J_1
       do i=1,im
         tsum = sum(trm(i,j,:,n))*bydxyp(j)  !sum over l
         asum = sum(am(:,i,j))     !sum over l
@@ -46,7 +60,7 @@ C**** Average concentration; surface concentration; total mass
 C**** Zonal mean concentration and mass
 !$OMP PARALLEL DO PRIVATE (L,J,TSUM,ASUM)
       do l=1,lm
-      do j=1,jm
+      do j=J_0,J_1
         tsum = sum(trm(1:imaxj(j),j,l,n)) !sum over i
         asum = sum(am(l,1:imaxj(j),j))    !sum over i
         tajln(j,l,jlnt_conc,n) = tajln(j,l,jlnt_conc,n)+tsum/asum
@@ -59,7 +73,7 @@ C**** Zonal mean cloud water concentration
       if (dowetdep(n)) then
 !$OMP PARALLEL DO PRIVATE (L,J,TSUM,ASUM)
       do l=1,lm
-      do j=1,jm
+      do j=J_0,J_1
         tsum = sum(trwm(1:imaxj(j),j,l,n)) !sum over i
         asum = sum(wm(1:imaxj(j),j,l)*am(l,1:imaxj(j),j))    !sum over i
         if (asum.gt.0) tajln(j,l,jlnt_cldh2o,n) =
@@ -78,6 +92,7 @@ C**** Zonal mean cloud water concentration
 !@sum  DIAGTCA Keeps track of the conservation properties of tracers
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
 !@ver  1.0
+      USE DOMAIN_DECOMP, only : GRID
       USE MODEL_COM, only : jm
       USE TRACER_DIAG_COM, only: tconsrv,nofmt,title_tcon
       IMPLICIT NONE
@@ -86,7 +101,7 @@ C**** Zonal mean cloud water concentration
 !@var NT index denoting tracer number
       INTEGER, INTENT(IN) :: nt
 !@var TOTAL amount of conserved quantity at this time
-      REAL*8, DIMENSION(JM) :: total
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: total
       INTEGER :: nm,ni
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAGCA IS BEING CALLED
@@ -118,6 +133,7 @@ C**** Save current value in TCONSRV(NI)
       subroutine consrv_tr(nt,total)
 !@sum consrv_tr calculate total zonal tracer amount (kg)
 !@auth Gavin Schmidt
+      USE DOMAIN_DECOMP, only : GRID, GET
       use model_com, only : lm,ls1,jm,fim
       use geom, only : imaxj
       use tracer_com, only : trm,trname
@@ -127,12 +143,26 @@ C**** Save current value in TCONSRV(NI)
       implicit none
       integer, intent(in) :: nt
 !@var total = zonal total of tracer (kg)
-      real*8, dimension(jm),intent(out) :: total
+      real*8, intent(out), 
+     *        dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: total
       real*8 :: sstm,stm
       integer :: i,j,l,ltop
 
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 !$OMP PARALLEL DO PRIVATE (J,L,I,SSTM,STM,ltop)
-      do j=1,jm
+      do j=J_0,J_1
         sstm = 0.
         ltop=lm
 #ifdef TRACERS_SPECIAL_Shindell
@@ -151,8 +181,8 @@ C**** Save current value in TCONSRV(NI)
         total(j) = sstm
       end do
 !$OMP END PARALLEL DO
-      total(1) = fim*total(1)
-      total(jm)= fim*total(jm)
+      IF (HAVE_SOUTH_POLE) total(1) = fim*total(1)
+      IF (HAVE_NORTH_POLE) total(jm)= fim*total(jm)
       return
       end subroutine consrv_tr
 
@@ -161,6 +191,7 @@ C**** Save current value in TCONSRV(NI)
 !@+    This routine takes an already calculated difference
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
 !@ver  1.0
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only: jm,fim
       USE TRACER_DIAG_COM, only: tconsrv,nofmt,title_tcon
       IMPLICIT NONE
@@ -170,9 +201,17 @@ C**** Save current value in TCONSRV(NI)
 !@var NT index denoting tracer number
       INTEGER, INTENT(IN) :: nt
 !@var DTRACER change of conserved quantity at this time
-      REAL*8, DIMENSION(JM) :: DTRACER
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DTRACER
       INTEGER :: j,nm
       REAL*8 stm
+
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAGCA IS BEING CALLED
 C**** M=1,2...12:  See DIAGCA in DIAG.f
@@ -184,8 +223,8 @@ C**** no calculation is done.
 
       if (nofmt(m,nt).gt.0) then
 C**** Calculate latitudinal mean of chnage DTRACER
-        dtracer(1) = fim*dtracer(1)
-        dtracer(jm)= fim*dtracer(jm)
+        IF (HAVE_SOUTH_POLE) dtracer(1) = fim*dtracer(1)
+        IF (HAVE_NORTH_POLE) dtracer(jm)= fim*dtracer(jm)
         nm=nofmt(m,nt)
 c**** Accumulate difference in TCONSRV(NM)
         if (m.gt.1) then
@@ -201,6 +240,7 @@ C**** No need to save current value
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only: teeny, twopi
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only:
      &     jm,fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,nday,jeq,itime,itime0,xlabel,lrunid
@@ -213,9 +253,11 @@ C**** No need to save current value
       USE DAGCOM, only: inc=>incj,xwon,kdiag,qdiag,acc_period
       IMPLICIT NONE
 
-      INTEGER, DIMENSION(JM) :: MAREA
+      INTEGER, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: MAREA
       REAL*8, DIMENSION(KTCON) :: FGLOB
       REAL*8, DIMENSION(2,KTCON) :: FHEM
+c GISS-ESMF EXCEPTIONAL CASE
+c   JM+3 used for Lat, N-Hemi, S-Hemi, and Global Sums Storage
       REAL*8, DIMENSION(JM+3,KTCON) :: CNSLAT
       CHARACTER*4, PARAMETER :: HEMIS(2) = (/' SH ',' NH '/),
      *     DASH = ('----')
@@ -227,11 +269,24 @@ C**** Arrays needed for full output and pdE
       CHARACTER*30, DIMENSION(KTCON) :: SNAMEO
       CHARACTER*50, DIMENSION(KTCON) :: UNITSO
 
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
       if (kdiag(8).ge.2) return
 C**** CALCULATE SCALING FACTORS
       IF (IDACC(12).LT.1) IDACC(12)=1
 C**** Calculate areas
-      DO J=1,JM
+      DO J=J_0,J_1
         MAREA(J)=1.D-10*XWON*FIM*DXYP(J)+.5
       END DO
       AGLOB=1.D-10*AREAG*XWON
@@ -248,7 +303,7 @@ C****
       IF (itime.LT.itime_tr0(N)) cycle
 C**** CALCULATE SUM OF CHANGES
 C**** LOOP BACKWARDS SO THAT INITIALIZATION IS DONE BEFORE SUMMATION!
-      DO J=1,JM
+      DO J=J_0,J_1
         DO K=KTCON,1,-1
           IF (NSUM_TCON(K,N).eq.0) THEN
             TCONSRV(J,K,N)=0.
@@ -265,6 +320,11 @@ C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
         FGLOB(K)=0.
         FHEM(1,K)=0.
         FHEM(2,K)=0.
+
+c GISS-ESMF EXCEPTIONAL CASE
+c     GLobal/Hemi Sums
+c     J-loop usage N-Hemi vs S-Hemi
+
         DO JSH=1,JEQ-1
           JNH=1+JM-JSH
           FSH=TCONSRV(JSH,K,N)*SCALE_TCON(K,N)/(IDACC(IA_TCON(K,N))
@@ -280,6 +340,8 @@ C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
         FGLOB (K)=FGLOB (K)/AREAG
         FHEM(1,K)=FHEM(1,K)/(.5*AREAG)
         FHEM(2,K)=FHEM(2,K)/(.5*AREAG)
+c GISS-ESMF EXCEPTIONAL CASE
+c     Storage of Hemi/Global Sums
         CNSLAT(JM+1,K)=FHEM(1,K)
         CNSLAT(JM+2,K)=FHEM(2,K)
         CNSLAT(JM+3,K)=FGLOB (K)
@@ -386,6 +448,7 @@ C****
 C**** THIS ROUTINE PRODUCES LATITUDE BY LAYER TABLES OF TRACERS
 C****
       USE CONSTANT, only : undef,teeny
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only: jm,lm,fim,itime,idacc,xlabel,lrunid,psfmpt
      &   ,sige,ptop
       USE GEOM, only: bydxyp,dxyp,lat_dg
@@ -395,14 +458,28 @@ C****
       USE BDJLT
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(JM) :: ONESPO
-      REAL*8, DIMENSION(JM+LM) :: ONES
-      REAL*8, DIMENSION(JM,LM) :: A
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ONESPO
+      REAL*8, DIMENSION((GRID%J_STOP_HALO-GRID%J_STRT_HALO+1)+LM) :: 
+     &                                                          ONES
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: A
       REAL*8, DIMENSION(LM) :: PM
       REAL*8 :: scalet
       INTEGER :: J,L,N,K,jtpow,kw,n1,n2
       CHARACTER :: lname*80,sname*30,units*50
       REAL*8 :: dD, d18O
+
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG) call open_jl(trim(acc_period)//'.jlt'//XLABEL(1:LRUNID)
@@ -416,9 +493,9 @@ C****
       do l=1,lm
         pm(l)=psfmpt*sige(l+1)+ptop
       end do
-      onespo(2:jm-1)  = 1.d0
-      onespo(1)  = fim
-      onespo(jm) = fim
+      onespo(J_0S:J_1S)  = 1.d0
+      IF (HAVE_SOUTH_POLE) onespo(1)  = fim
+      IF (HAVE_NORTH_POLE) onespo(jm) = fim
       ones(:) = 1.d0
       linect = 65
 C****
@@ -437,7 +514,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       scalet = 1.
       jtpow = 0.
       do l=1,lm
-      do j=1,jm
+      do j=J_0,J_1
         if (tajln(j,l,k,n_water).gt.0) then
           a(j,l)=1d3*(tajln(j,l,k,n)/(trw0(n)*tajln(j,l,k,n_water))-1.)
         else
@@ -488,7 +565,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
         scalet = 1.
         jtpow = 0.
         do l=1,lm
-        do j=1,jm
+        do j=J_0,J_1
         if (tajln(j,l,k,n_water).gt.0) then
           a(j,l)=1d3*(tajln(j,l,k,n)/(trw0(n)*tajln(j,l,k,n_water))-1.)
         else
@@ -513,7 +590,7 @@ C****
       a(:,:) = 0.
       k = jlnt_nt_tot
       do 205 l=1,lm
-      do 205 j=1,jm-1
+      do 205 j=J_0,J_1S
   205 a(j+1,l) = tajln(j,l,k,n)
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
       jtpow = ntm_power(n)+jlq_power(k)
@@ -521,7 +598,7 @@ C****
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
      *  plm,a,scalet,ones,ones,lm,1,jgrid_jlq(k))
       do 210 l=1,lm
-      do 210 j=1,jm-1
+      do 210 j=J_0,J_1S
   210 a(j+1,l) = tajln(j,l,k,n) -tajln(j,l,jlnt_nt_mm,n)
       k = jlnt_nt_eddy
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
@@ -540,7 +617,7 @@ C****
      *  pm,tajln(1,1,k,n),scalet,ones,ones,lm-1,1,jgrid_jlq(k))
       a(:,:) = 0.
       do 260 l=1,lm-1
-      do 260 j=1,jm
+      do 260 j=J_0,J_1
   260 a(j,l) = tajln(j,l,k,n)-tajln(j,l,jlnt_vt_mm,n)
       k = jlnt_vt_eddy
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
@@ -617,7 +694,7 @@ C**** some special JL diags for chemistry
       kw=jls_day
       scalet = scale_jls(k)*10.**(-jls_power(k))
       do l=1,lm
-        do j=1,jm
+        do j=J_0,J_1
           a(j,l)=tajls(j,l,k)/(tajls(j,1,kw)+teeny)
         end do
       end do
@@ -633,7 +710,7 @@ C**** ratios : Be7/Pb210 and Be10/Be7
 C*** ratio Be10/Be7
         k=jlnt_conc
         do l=1,lm
-          do j=1,jm
+          do j=J_0,J_1
             if (tajln(j,l,k,n_Be7).gt.0) then
               a(j,l)=tajln(j,l,k,n_Be10)/tajln(j,l,k,n_Be7)
             else
@@ -650,7 +727,7 @@ C*** ratio Be10/Be7
 C*** ratio Be7/Pb210
         k=jlnt_conc
         do l=1,lm
-          do j=1,jm
+          do j=J_0,J_1
             if (tajln(j,l,k,n_Pb210).gt.0) then
               a(j,l)=tajln(j,l,k,n_Be7)/tajln(j,l,k,n_Pb210)
 C*** scale by (Be7decay/mm_Be7)/(Pb210decay/mm_Pb210) to convert to mBq
@@ -686,7 +763,7 @@ C****
 C**** Concentration in water vapour
         k=jlnt_conc
         do l=1,lm
-          do j=1,jm
+          do j=J_0,J_1
             if (tajln(j,l,k,n_water).gt.0) then
               d18O=1d3*(tajln(j,l,k,n1)/(trw0(n1)*tajln(j,l,k,n_water))
      *             -1.)
@@ -707,7 +784,7 @@ C**** Concentration in water vapour
 C**** Concentration in cloud water
         k=jlnt_cldh2o
         do l=1,lm
-          do j=1,jm
+          do j=J_0,J_1
             if (tajln(j,l,k,n_water).gt.0) then
               d18O=1d3*(tajln(j,l,k,n1)/(trw0(n1)*tajln(j,l,k,n_water))
      *             -1.)
@@ -805,6 +882,11 @@ C****
       GSUM = 0.
       DO 240 L=LMAX,1,-1
       FGLOB = 0.
+
+c GISS-ESMF EXCEPTIONAL CASE
+c   Hemisphere specific Loops and I/O issues, plus
+c   N-Hemi, S-Hemi, and Global Sums 
+
       DO 230 JHEMI=1,2
       FHEM(JHEMI) = 0.
       DO 220 J=JRANGE_HEMI(1,JHEMI,JG),JRANGE_HEMI(2,JHEMI,JG)
@@ -1172,6 +1254,7 @@ C****
 !@sum ijt_MAPk returns the map data and related terms for the k-th field
 !@+   for tracers and tracer sources/sinks
       USE CONSTANT, only: teeny
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only:im,jm, idacc
       USE GEOM, only: dxyp
       USE TRACER_COM
@@ -1188,6 +1271,19 @@ C****
 !@var isumz,isumg = 1 or 2 if zon,glob sums or means are appropriate
       integer isumz,isumg,k1
 
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
       isumz = 2 ; isumg = 2  !  default: in most cases MEANS are needed
       iwt = 1 ; jgrid = 1
 
@@ -1195,7 +1291,7 @@ C****
       byiacc = 1./(idacc(iacc)+teeny)
 c**** tracer amounts (divide by area) and Sources and sinks
       if (nmap.eq.1) then
-        do j=1,jm
+        do j=J_0,J_1
         do i=1,im
           anum(i,j)=aij1(i,j)*byiacc*scale/dxyp(j)
         end do
@@ -1207,7 +1303,7 @@ c**** tracer sums and means (no division by area)
           adenom(:,:)=aij(:,:,ij_rsoi)*byiacc
           lname(k1:80)=''
         end if
-        do j=1,jm
+        do j=J_0,J_1
         do i=1,im
           anum(i,j)=aij1(i,j)*byiacc*scale
         end do
@@ -1218,7 +1314,7 @@ c**** ratios (i.e. per mil diags)
           k1 = index(lname,' x ')
           lname(k1:80)=''
         end if
-        do j=1,jm
+        do j=J_0,J_1
         do i=1,im
           anum(i,j)=aij1(i,j)
           adenom(i,j)=aij2(i,j)

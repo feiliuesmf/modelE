@@ -25,6 +25,8 @@
 #endif
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,j_imelt
      *     ,j_smelt
+      USE DOMAIN_DECOMP, only : GRID
+      USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
@@ -35,8 +37,13 @@
 #endif
       INTEGER I,J,JR,ITYPE,N
       LOGICAL WETSNOW
+      integer :: J_0, J_1
+C**** 
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
-      DO J=1,JM
+      DO J=J_0, J_1
       DO I=1,IMAXJ(J)
         JR=JREG(I,J)
       POICE=    RSI(I,J) *(1.-FLAND(I,J))
@@ -143,6 +150,8 @@ C****
 #ifdef TRACERS_WATER
      *     ,trlake
 #endif
+      USE DOMAIN_DECOMP, only : GRID
+      USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
       INTEGER I,J,N
       REAL*8 coriol,ustar,Tm,Sm,Si,Ti,dh,mflux,hflux,sflux,fluxlim
@@ -153,8 +162,13 @@ C****
       REAL*8 fracls
 #endif
 #endif
+      integer :: J_0, J_1
+C**** 
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
-      DO J=1,JM
+      DO J=J_0, J_1
 C**** Coriolis parameter (on tracer grid)
         coriol = ABS(2.*OMEGA*SINP(J))
         DO I=1,IMAXJ(J)
@@ -265,6 +279,8 @@ C****
 #ifdef TRACERS_WATER
      *     ,trmelti
 #endif
+      USE DOMAIN_DECOMP, only : GRID
+      USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 MSI2,ROICE,SNOW,ENRGUSED,RUN0,SALT,POCEAN,TFO
@@ -274,6 +290,12 @@ C****
       REAL*8, DIMENSION(NTM) :: TRUN0
 #endif
       INTEGER I,J,ITYPE,JR,ITYPEO
+      integer :: J_0, J_1
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
 C**** CALCULATE LATERAL MELT ONCE A DAY (ALSO ELIMINATE SMALL AMOUNTS)
 C**** We could put this in daily but it then we need an extra routine to
@@ -281,7 +303,7 @@ C**** add fluxes to oceans/lakes.
 cc      IF (Jhour.eq.0) THEN
 cc        DT=SDAY    ! if called more frequently this should change
         DT=DTsrc    ! now do this every hour
-        DO J=1,JM
+        DO J=J_0, J_1
         DO I=1,IMAXJ(J)
           PWATER=FOCEAN(I,J)+FLAKE(I,J)
           POCEAN=FOCEAN(I,J)
@@ -388,6 +410,8 @@ C****
       USE DAGCOM, only : aj,areg,aij,jreg,ij_erun2,ij_rsoi,ij_msi2
      *     ,j_imelt,j_hmelt,j_smelt,j_rsnow,ij_rsit,ij_rsnw,ij_snow
      *     ,ij_mltp
+      USE DOMAIN_DECOMP, only : GRID
+      USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,SSIL
@@ -402,9 +426,14 @@ C****
       REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap,trrun,trsnwic,trm
      *     ,tralpha
 #endif
+      integer :: J_0, J_1
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
       debug=.false.
-      DO J=1,JM
+      DO J=J_0, J_1
       DO I=1,IMAXJ(J)
       PWATER=FOCEAN(I,J)+FLAKE(I,J)   ! 1.-FLAND(I,J)
       ROICE=RSI(I,J)
@@ -576,6 +605,8 @@ C****
      *     ,dtrsi,gtracer
 #endif
       USE LAKES_COM, only : flake
+      USE DOMAIN_DECOMP, only : GRID
+      USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
@@ -587,9 +618,14 @@ C****
 #endif
       LOGICAL QFIXR
       INTEGER I,J,JR,ITYPE,ITYPEO,N
+      integer :: J_0, J_1
+C****
+C**** Extract useful local domain parmeters from "grid"
+C****
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
       debug=.false.
-      DO J=1,JM
+      DO J=J_0, J_1
       DO I=1,IMAXJ(J)
       PWATER=FOCEAN(I,J)+FLAKE(I,J)
       ROICE=RSI(I,J)
@@ -739,8 +775,15 @@ C****
       USE DAGCOM, only : oa
       USE SEAICE_COM, only : hsi,snowi
       USE FLUXES, only : fwsim
+      USE DOMAIN_DECOMP, only : GRID
+      USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
       INTEGER I,J
+      integer :: J_0, J_1
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 C****
 C****       DATA SAVED IN ORDER TO CALCULATE OCEAN TRANSPORTS
 C****
@@ -748,7 +791,7 @@ C****       1  SNOWOI (INSTANTANEOUS AT NOON GMT)
 C****       2  FWSIM  (INSTANTANEOUS AT NOON GMT)
 C****       3  HSIT   (INSTANTANEOUS AT NOON GMT)
 C****
-      DO J=1,JM
+      DO J=J_0, J_1
         DO I=1,IM
           IF (FOCEAN(I,J).gt.0) THEN
             OA(I,J,1)=SNOWI(I,J)
@@ -781,11 +824,18 @@ C****
       USE DAGCOM, only : npts,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI
      *     ,icon_LHSI,conpt0
       USE PARAM
+      USE DOMAIN_DECOMP, only : GRID
+      USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE. , iniOCEAN
       CHARACTER CONPT(NPTS)*10
       INTEGER I,J
       REAL*8 MSI1,TFO
+      integer :: J_0, J_1
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
 C**** set up a default ice-ocean stress field. This can be changed by
 C**** adjusting oi_ustar0 in the parameter list. If ice dynamics
@@ -801,14 +851,14 @@ C**** Decide whether snow_ice formation is allowed
       call sync_param("snow_ice",snow_ice)
 
 C**** clean up ice fraction that is possibly incorrect in I.C.
-      DO J=1,JM
+      DO J=J_0, J_1
       DO I=1,IM
         IF (FOCEAN(I,J)+FLAKE0(I,J).eq.0 .and. RSI(i,j).gt.0) RSI(I,J)=0
       END DO
       END DO
       IF (KOCEAN.EQ.0.and.iniOCEAN) THEN
 C****   set defaults for no ice case
-        DO J=1,JM
+        DO J=J_0, J_1
         DO I=1,IM
           IF (RSI(I,J).le.0) THEN
             MSI1        =ACE1I
@@ -834,7 +884,7 @@ C****   set defaults for no ice case
         END DO
       END IF
 C**** set GTEMP etc. array for ice
-      DO J=1,JM
+      DO J=J_0, J_1
       DO I=1,IM
         MSI1=SNOWI(I,J)+ACE1I
         GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
@@ -1005,11 +1055,18 @@ C****
       USE MODEL_COM, only : jm,jday
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : flag_dsws,pond_melt
+      USE DOMAIN_DECOMP, only : GRID
+      USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
       INTEGER I,J
+      integer :: J_0, J_1
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
 C**** Every day adjust pond-melt
-      DO J=1,JM
+      DO J=J_0, J_1
       DO I=1,IMAXJ(J)
 
 C**** pond_melt decreases linearly in shoulder season

@@ -115,6 +115,14 @@ C**** Local parameters and variables and arguments:
 #else
      &                              ntm_chem
 #endif
+
+      INTEGER J_0H, J_1H
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+
 C
 C     TROPOSPHERIC CHEMISTRY ONLY or TROP+STRAT:
 #ifdef SHINDELL_STRAT_CHEM

@@ -14,24 +14,24 @@
 
 !---  boundary conditions (read from file)
 !@var vdata(:,:,k)  fraction of gridbox of veg.type k=1-11
-      real*8, dimension(im,jm,11) :: vdata
+      real*8, ALLOCATABLE, dimension(:,:,:) :: vdata
 
 !---  prognostic variables (saved to restart file)
 !@var Cint Internal foliage CO2 concentration (mol/m3)
-      real*8, dimension(im,jm) :: Cint
+      real*8, ALLOCATABLE, dimension(:,:) :: Cint
 !@var Qfol Foliage surface mixing ratio (kg/kg)
-      real*8, dimension(im,jm) :: Qfol
+      real*8, ALLOCATABLE, dimension(:,:) :: Qfol
 !@var cnc_ij canopy conductance
-      real*8, dimension(im,jm) :: cnc_ij
+      real*8, ALLOCATABLE, dimension(:,:) :: cnc_ij
 
 !---  work arrays (recomputed for each restart)
-      real*8, dimension(ngm,im,jm) :: afr
-      real*8, dimension(3,im,jm) :: ala,acs,almass !nyk almass=leaf mass
-      real*8, dimension(3,8,im,jm) :: alaf     !nyk lai components by vegtype
-      real*8, dimension(8,im,jm) :: alaif   !nyk lai by vegtype (not * vdata!)
-      real*8, dimension(im,jm) :: afb,avh,aalbveg !nyk aalbveg
-      real*8, dimension(im,jm) :: can_w_capacity
-      real*8, dimension(im,jm) :: anm,anf ! adf
+      real*8, ALLOCATABLE, dimension(:,:,:) :: afr
+      real*8, ALLOCATABLE, dimension(:,:,:) :: ala,acs,almass !nyk almass=leaf mass
+      real*8, ALLOCATABLE, dimension(:,:,:,:) :: alaf     !nyk lai components by vegtype
+      real*8, ALLOCATABLE, dimension(:,:,:) :: alaif   !nyk lai by vegtype (not * vdata!)
+      real*8, ALLOCATABLE, dimension(:,:) :: afb,avh,aalbveg !nyk aalbveg
+      real*8, ALLOCATABLE, dimension(:,:) :: can_w_capacity
+      real*8, ALLOCATABLE, dimension(:,:) :: anm,anf ! adf
 
       end module veg_com
 
@@ -69,4 +69,45 @@
       return
       end subroutine io_vegetation
 
+      SUBROUTINE ALLOC_VEG_COM(grid)
+!@sum  To allocate arrays whose sizes now need to be determined at
+!@+    run time
+!@auth NCCS (Goddard) Development Team
+!@ver  1.0
+      USE VEG_COM
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID, GET
+      IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+
+      INTEGER :: J_1H, J_0H
+      INTEGER :: IER
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      ALLOCATE(    vdata(im,J_0H:J_1H,11),
+     *              Cint(im,J_0H:J_1H),
+     *              Qfol(im,J_0H:J_1H),
+     *            cnc_ij(im,J_0H:J_1H),
+     *               afr(ngm,im,J_0H:J_1H),
+     *         STAT=IER)
+
+      ALLOCATE(    ala(3,  im,J_0H:J_1H),
+     *             acs(3,  im,J_0H:J_1H),
+     *          almass(3,  im,J_0H:J_1H),
+     *            alaf(3,8,im,J_0H:J_1H),
+     *           alaif(8,  im,J_0H:J_1H),
+     *         STAT=IER)
+
+      ALLOCATE(   afb(im,J_0H:J_1H),
+     *            avh(im,J_0H:J_1H),
+     *            aalbveg(im,J_0H:J_1H),
+     *            can_w_capacity(im,J_0H:J_1H),
+     *            anm(im,J_0H:J_1H),
+     *            anf(im,J_0H:J_1H),
+     *         STAT=IER)
+
+      END SUBROUTINE ALLOC_VEG_COM
 

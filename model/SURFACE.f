@@ -104,12 +104,14 @@ C**** Interface to PBL
      *     ,Z1BY6L,QZ1,EVAPLIM,F2,FSRI(2),HTLIM
 
       REAL*8 MA1, MSI1
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TGRND,TGRN2
+      REAL*8, DIMENSION(NSTYPE,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     *                                                       TGRND,TGRN2
       REAL*8, PARAMETER :: qmin=1.d-12
       REAL*8, PARAMETER :: S1BYG1 = BYRT3,
      *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
       REAL*8 QSAT,DQSATDT
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: AREGIJ
+      REAL*8, DIMENSION(7,3,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+     *                                                         AREGIJ
 c
 #ifdef TRACERS_ON
       real*8 rhosrf0, totflux(ntm)
@@ -132,10 +134,6 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H, 
      *               J_STRT=J_0,        J_STOP=J_1)
-
-      ALLOCATE ( TGRND(NSTYPE,IM,J_0H:J_1H) )
-      ALLOCATE ( TGRN2(NSTYPE,IM,J_0H:J_1H) )
-      ALLOCATE ( AREGIJ(7,3,IM,J_0H:J_1H) )
 
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
@@ -1035,10 +1033,6 @@ C**** Save for tracer dry deposition conservation quantity:
      *       call diagtcb(dtr_dd(1,n),itcon_dd(n),n)
       end do
 #endif
-
-      DEALLOCATE ( TGRND )
-      DEALLOCATE ( TGRN2 )
-      DEALLOCATE ( AREGIJ )
 
       RETURN
 C****

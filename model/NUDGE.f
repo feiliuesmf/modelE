@@ -4,12 +4,13 @@ c *****************************************************************
 !@auth 
 !@ver  
       USE MODEL_COM, only : im,jm,lm
+      USE DOMAIN_DECOMP, only : grid
       IMPLICIT NONE
       SAVE
 !@var  U1, V1 NCEP U wind at prior ncep timestep (m/s)
       REAL*4, DIMENSION(IM,JM,LM) :: U1,V1
 !@var  U2, V2 NCEP U wind at the following ncep timestep (m/s)
-      REAL*4, DIMENSION(IM,JM,LM) :: U2,V2
+      REAL*4, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: U2,V2
 !@var netcdf integer
       INTEGER :: ncidu,ncidv,uid,vid,plid,step_rea=1,zirk=0
 !@var tau nuding time interpoltation
@@ -28,14 +29,30 @@ c******************************************************************
 !@auth Susanne
 !@ver  
       USE MODEL_COM, only : im,jm,lm
+      USE DOMAIN_DECOMP, only : grid
       USE NUDGE_COM, only : U1,V1,U2,V2,tau,anudgeu,anudgev
       IMPLICIT NONE
 
-      REAL*8 UGCM(IM,JM,LM),VGCM(IM,JM,LM)
+      REAL*8 DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: UGCM, VGCM
 
 c     LOCAL
       INTEGER i,j,l
       REAL  alphau,alphav,a,dtstep
+
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0SG, J_1SG
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      J_0 = grid%J_STRT
+      J_1 = grid%J_STOP
+      J_0S = grid%J_STRT_SKP
+      J_1S = grid%J_STOP_SKP
+      J_0SG = grid%J_STRT_STGR
+      J_1SG = grid%J_STOP_STGR
 
 
 c - - - - - - - - - - - - - - - - - - - - - - - - - |
@@ -47,7 +64,7 @@ C----------------------------------------------------
              alphav=dtstep * anudgev !alphav !nudgev
 c             print*, ' A L P H A ', alphau, alphav,anudgeu,anudgev
          do l=1,lm
-         do j=2,jm
+         do j= J_0SG, J_1SG
          do i=1,im
             a=(1.-tau)*u1(i,j,l)+tau*u2(i,j,l)         !time interpolation
 c            ugcm(i,j,l)=alphau*ugcm(i,j,l)+(1-alphau)*a 
@@ -183,13 +200,14 @@ c******************************************************************
 !@ver  
       USE MODEL_COM, only : im,jm,lm
       USE NUDGE_COM, only : nlevnc,ncidu,ncidv,uid,vid,plid
+      USE DOMAIN_DECOMP, only : grid
       IMPLICIT NONE
       include 'netcdf.inc'
 
       integer timestep,l
 
       REAL*4 U(IM,JM-1,nlevnc),V(IM,JM-1,nlevnc),PL(nlevnc)
-      REAL*4 UN(IM,JM,LM),VN(IM,JM,LM)
+      REAL*4 DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: UN, VN
 
       integer start(4),count(4),status
 
@@ -226,6 +244,7 @@ c**********************************************************
 !@ver  
       USE MODEL_COM, only : im,jm,lm
       USE DYNAMICS, only : PMID  ! Pressure at mid point of box (mb)
+      USE DOMAIN_DECOMP, only : grid
        IMPLICIT NONE
 c 
 c ==============
@@ -235,12 +254,27 @@ c ==============
 
         real po(lmo)! pressure levels in millibars of the input
         REAL varo(im,jm-1,lmo)!  Variable on the old grid (input)
-        REAL varn(im,jm  ,lm) !  Variable on the new grid (output)
+        REAL varn(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) !  Variable on the new grid (output)
         real coef
+
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0SG, J_1SG
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      J_0 = grid%J_STRT
+      J_1 = grid%J_STOP
+      J_0S = grid%J_STRT_SKP
+      J_1S = grid%J_STOP_SKP
+      J_0SG = grid%J_STRT_STGR
+      J_1SG = grid%J_STOP_STGR
 
 
         do i=1,im
-        do j=2,jm
+        do j= J_OSG, J_1SG
            do ln=1,lm
               if (pmid(ln,i,j).ge.po(1))then
                  varn(i,j,ln) =  varo(i,j-1,1)
