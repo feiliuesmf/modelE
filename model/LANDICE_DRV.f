@@ -11,7 +11,7 @@
 !@ver  1.0
       USE CONSTANT, only : edpery,sday,lhm
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc
-      USE LANDICE, only: ace1li,ace2li
+      USE LANDICE, only: ace1li,ace2li,glmelt_on
       USE LANDICE_COM, only : tlandi,snowli
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,trli0
@@ -21,6 +21,7 @@
      *     ,gtracer,trgmelt
 #endif
       USE DAGCOM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
+      USE PARAM
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
 C**** The net accumulation from IPCC2 report is 2016x10**12 kg/year
@@ -54,6 +55,7 @@ C**** set GTEMP array for landice
       END DO
 
 C**** Calculate (fixed) iceberg melt terms from Antarctica and Greenland
+      call sync_param("glmelt_on",glmelt_on)
 
 C**** Note these parameters are highly resolution dependent!
 C**** Around Antarctica, fresh water is added from 78S to 62S 
@@ -84,7 +86,7 @@ C**** This information could be read in from a file.
         do_glmelt=.false.
       END IF
 
-      if (do_glmelt) then
+      if (do_glmelt .and. glmelt_on.eq.1) then
 C****  Note that water goes in with as if it is ice at 0 deg.
 C****  Possibly this should be a function of in-situ freezing temp?
 C****
