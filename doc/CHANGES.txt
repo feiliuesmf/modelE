@@ -1,3 +1,25 @@
+Major changes from version modelE-2-0-1 to modelE-2-1
+=====================================================
+
+- Energy conservation now guaranteed
+
+- New physics for deciding on phase of precip (i.e. how quickly
+  super-cooled precip turns to ice)
+
+- New coding for ground hydrology
+
+- Small corrections for q-flux/seaice modules
+
+- Improved conservation diagnostics (including new text demonstrating
+  conservation properties "conserv.txt")
+
+- Extension to sub-daily diagnostics to include cloud cover (low, mid, high) 
+  and relative humidity values.
+
+- Enhanced diagnostics of cloud radiative properties
+
+- Code is now compatible with PGI (Portland Group) compiler.
+
 Major changes from version modelE-2-0 to modelE-2-0-1
 =====================================================
 
