@@ -5765,7 +5765,7 @@ C         AM=kg/m2, and DXYP=m2:
         case ('CFC')
 #ifdef SHINDELL_STRAT_CHEM
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(I,J,L,n) = CFCIC(I,J,L)
+            trm(I,J,L,n) = CFCIC(I,J,L)*4.25d0 ! note factor
           end do   ; end do   ; end do
 #endif
 
