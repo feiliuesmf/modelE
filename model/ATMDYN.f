@@ -103,8 +103,6 @@ C**** ADVECT Q AND T
       CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
 !     save z-moment of temperature in contiguous memory for later
       tz(:,:,:) = tmom(mz,:,:,:) 
-!     call calc_amp(pc,ma)
-!     CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE. ,FWVU,FWVV)
       CALL VDIFF (P,U,V,T,DTLF)          ! strat
       PC(:,:)    = .5*(P(:,:)+PC(:,:))
       TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))

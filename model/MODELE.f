@@ -11,9 +11,12 @@
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
       USE SOIL_DRV, only: daily_earth, ground_e
+#ifdef TRACERS_ON
+      USE TRACER_COM
+#endif
       IMPLICIT NONE
 
-      INTEGER I,J,L,K,M,KSS6,MSTART,MNOW,MODD5D,months,ioerr,Ldate
+      INTEGER I,J,L,K,M,KSS6,MSTART,MNOW,MODD5D,months,ioerr,Ldate,n
       INTEGER iu_VFLXO,iu_SLP,iu_ACC,iu_RSF,iu_ODA
       INTEGER :: MDUM = 0
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
@@ -44,6 +47,13 @@ c        WRITE (6,'("1"/64(1X/))')
          IF (KDIAG(11).LT.9) CALL diag_RIVER
          IF (KDIAG(12).LT.9) CALL diag_OCEAN
          CALL DIAGKN
+#ifdef TRACERS_ON
+         IF (KDIAG(8).LT.9) then
+            CALL DIAGJLT
+            CALL DIAGIJT
+            CALL DIAGTCP
+         end if
+#endif
          CALL exit_rc (13)  ! no output files are affected
       END IF
       WRITE (3) OFFSSW
@@ -62,6 +72,9 @@ C**** INITIALIZE TIME PARAMETERS
       CALL daily_OCEAN(0)
       CALL CALC_AMPK(LS1-1)
          CALL CHECKT ('INPUT ')
+#ifdef TRACERS_ON
+      CALL read_CO2_sources(n_co2,0)  ! THIS IS A TRACER-SPECIFIC CALL
+#endif
 
       WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
      *   '0NASA/GISS Climate Model (re)started',
@@ -118,6 +131,14 @@ C**** CHECK FOR BEGINNING OF EACH MONTH => RESET DIAGNOSTICS
         end if
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
         call daily_DIAG
+#ifdef TRACERS_ON
+!**** Initialize tracers here to allow for tracers that 'turn on'
+!****  at any time; This could be moved out of MAIN loop, depending
+      do n=1,ntm
+        call tracer_IC(trname(n))
+      end do
+      call read_CO2_sources(n_co2,1)  ! a tracer-specific call
+#endif
       END IF
 C****
 C**** INTEGRATE DYNAMIC TERMS (DIAGA AND DIAGB ARE CALLED FROM DYNAM)
@@ -138,6 +159,10 @@ C**** calculate some dynamic variables for the PBL
 
          CALL CHECKT ('DYNAM ')
          CALL TIMER (MNOW,MDYN)
+#ifdef TRACERS_ON
+      CALL TrDYNAM   ! tracer dynamics
+         CALL TIMER (MNOW,MTRACE)
+#endif
 
          IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)
          IF (MODD5D.EQ.0) CALL DIAGCA (2)
@@ -227,6 +252,14 @@ C**** SEA LEVEL PRESSURE FILTER
            CALL DIAG5A (14,NFILTR*NIdyn)
            CALL DIAGCA (8)
       END IF
+#ifdef TRACERS_ON
+C**** Tracer sources and sinks
+      do n=1,ntm
+        call tracer_source(trname(n))
+      end do
+C**** Accumulate tracer distribution diagnostics
+      CALL TRACEA
+#endif
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
@@ -290,6 +323,13 @@ C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
          ELSE ! RESET THE UNUSED KEYNUMBERS TO ZERO
             KEYNR(1:42,KEYCT)=0
          END IF
+#ifdef TRACERS_ON
+         IF (KDIAG(8).LT.9) then
+            CALL DIAGJLT
+            CALL DIAGIJT
+            CALL DIAGTCP
+         end if
+#endif
          NIPRNT=NIPRNT-1
          call set_param( "NIPRNT", NIPRNT, 'o' )
       END IF
@@ -311,6 +351,13 @@ c       WRITE (6,'("1"/64(1X/))')
         IF (KDIAG(4).LT.9) CALL DIAG4
         IF (KDIAG(11).LT.9) CALL diag_RIVER
         IF (KDIAG(12).LT.9) CALL diag_OCEAN
+#ifdef TRACERS_ON
+         IF (KDIAG(8).LT.9) then
+            CALL DIAGJLT
+            CALL DIAGIJT
+            CALL DIAGTCP
+         end if
+#endif
         CALL DIAGKN
 
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
@@ -353,7 +400,7 @@ C**** PRINT AND ZERO OUT THE TIMING NUMBERS
           PERCENT(M) = TIMING(M)/(TOTALT+.00001)
         END DO
         DTIME = NDAY*TOTALT/(60.*(Itime-Itime0))  ! minutes/day
-        WRITE (6,'(/A,F7.2,A,10(A13,F5.1)//)')
+        WRITE (6,'(/A,F7.2,A,(6(A13,F5.1/))//)')
      *   '0TIME',DTIME,'(MINUTES) ',(TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
         TIMING = 0
         MSTART= MNOW
@@ -478,6 +525,10 @@ C****
       USE PARSER
       USE SOIL_DRV, only: init_gh
       USE FLUXES, only : gtemp   ! tmp. fix
+#ifdef TRACERS_ON
+      USE TRACER_COM,only: MTRACE,NTM,TRNAME
+      USE TRACER_DIAG_COM,only: KTACC
+#endif
       IMPLICIT NONE
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG unit numbers for input files
       INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG
@@ -535,6 +586,9 @@ C**** Other speciality descriptions can be added/used locally
       CALL SET_TIMER("     SURFACE",MSURF)
       CALL SET_TIMER(" DIAGNOSTICS",MDIAG)
       CALL SET_TIMER("       OTHER",MELSE)
+#ifdef TRACERS_ON
+      CALL SET_TIMER("     TRACERS",MTRACE)
+#endif
 C****
 C**** Set some documentary parameters in the database
 C****
@@ -543,6 +597,10 @@ C****
       call set_param("LM",LM)
       call set_param("LS1",LS1)
       call set_param("PLBOT",PSFMPT*SIGE(1:LM+1)+PTOP,LM+1)
+#ifdef TRACERS_ON
+      call set_param("NTM",NTM)
+      call set_param("TRNAME",TRNAME,ntm)
+#endif
 C****
 C**** Print Header and Label (2 lines) from rundeck
 C****
@@ -1054,6 +1112,9 @@ C****
       call print_param( 6 )
       WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
       WRITE (6,'(A14,2I8)') "KACC=",KACC
+#ifdef TRACERS_ON
+      WRITE (6,'(A14,2I8)') "KTACC=",KTACC
+#endif
       WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
       WRITE (6,*) "PLbot=",PTOP+PSFMPT*SIGE
 C****
