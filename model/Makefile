@@ -131,6 +131,10 @@ OBJSA = $(OBJS)
 ifneq ($(NETCDFHOME)blank,blank)
 OBJSA += NCACC.o
 endif
+# extracting list of modules from from DEPENDFILE
+MODS = $(shell perl \
+	-e 'while(<>){ push @a, /(\S+\.mod)\s*:/gi; } print join " ",@a;' \
+	$(DEPENDFILE) )
 endif
 endif
 
@@ -141,12 +145,6 @@ endif
 
 sinclude $(MODEL_DIR)/Rules.make
 
-#
-# extract list of modules from fortran files
-#
-MODS = $(shell perl \
-	-e 'while(<>){ push @a, /(\S+\.mod)\s*:/gi; } print join " ",@a;' \
-	$(DEPENDFILE) )
 
 #########             TARGETS               ########
 
