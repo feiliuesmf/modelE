@@ -690,8 +690,8 @@ C
       END SUBROUTINE get_aircraft_NOx
 C
 C
-      SUBROUTINE get_sulfate
-!@sum  get_sulfate to parameterize N2O5 sink on sulfate.  The sulfate( )
+      SUBROUTINE get_sulfate_N2O5
+!@sum  get_sulfate_N2O5 parameterize N2O5 sink on sulfate. sulfate( )
 !@+    array is then used in the chemistry to calculate a chemical
 !@+    change.  I.e. this source is not applied directly to the tracer
 !@+    mass like other 3D sources are.
@@ -765,7 +765,7 @@ C====
       end do        ; END DO   ; END DO     
 C
       return
-      END SUBROUTINE get_sulfate
+      END SUBROUTINE get_sulfate_N2O5
 C
 C
       SUBROUTINE read_monthly_3Dsources(Ldim,iu,jdlast,tlca,tlcb,data1,
