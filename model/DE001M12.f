@@ -4795,11 +4795,6 @@ C
       CHARACTER*32 TITLE4
       DATA TITLE4/
      5   'DU/DT BY SDRAG (10**-6 M S-2)  ',
-c    * 5*'                               ',
-C
-c    * 6*'                               ',
-C
-c    * 5*'                               ',
      * 4*'                               ',
      *   '                               '/
 C****
