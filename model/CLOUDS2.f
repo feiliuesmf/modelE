@@ -292,8 +292,7 @@ c for sulfur chemistry
 #endif
 
       REAL*8, DIMENSION(LM) ::
-     *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,DDM
-     *    ,CONDP
+     *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,DDM,CONDP
       REAL*8 :: CONDGP,CONDIP
 !@var DM change in air mass
 !@var COND,CONDGP,CONDIP condensate
@@ -343,7 +342,6 @@ c for sulfur chemistry
 !@var SMO1,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE dummy variables
 !@var WMDN,WMUP,SVDN,SVUP,WMEDG,SVEDG,DDRUP dummy variables
 !@var DMSE difference in moist static energy
-!@var CONDMU convective condensate in Kg/m^3
 !@var FPLUME fraction of convective plume
 !@var DFP an iterative increment
 !@var FMP2,FRAT1,FRAT2,SMN1,QMN1,SMN2,QMN2 dummy variables
@@ -386,12 +384,6 @@ c for sulfur chemistry
 !@var TOLD,TOLD1 old temperatures
 !@var TEMWM,TEM,WTEM,WCONST dummy variables
 !@var WORK work done on convective plume
-!@var WMAX specified maximum convective vertical velocity
-!@var WV convetive vertical velocity
-!@var VT precip terminal velocity
-!@var DCW,DCG,DCI critical cloud particle sizes
-!@var FG, FI fraction for graupel and ice
-!@var FITMAX set to ITMAX
 
       LOGICAL MC1  !@var MC1 true for the first convective event
 
@@ -716,8 +708,7 @@ C**** TEST FOR CONDENSATION ALSO DETERMINES IF PLUME REACHES UPPER LAYER
       LHX=LHS
       QSATMP=MPLUME*QSAT(TP,LHX,PL(L))
   290 CONTINUE
-C**** this is commented out until all the energy conservation issues are
-C**** dealt with.
+C**** DEFINE VLAT TO AVOID PHASE DISCREPANCY BETWEEN TWO PLUMES
       IF (VLAT(L).EQ.LHS) LHX=LHS
       VLAT(L)=LHX
       SLH=LHX*BYSHA
@@ -913,7 +904,7 @@ C**** save plume temperature after possible condensation
         CONDP(L)=RHOW*(PI*by6)*CN0*EXP(-FLAMW*DCW)*
      *     (DCW*DCW*DCW/FLAMW+3.*DCW*DCW/(FLAMW*FLAMW)+
      *     6.*DCW/(FLAMW*FLAMW*FLAMW)+6./FLAMW**4)
-         CONDP(L)=.01d0*CONDP(L)*AIRM(L)*TL(L)*RGAS/PL(L)
+        CONDP(L)=.01d0*CONDP(L)*AIRM(L)*TL(L)*RGAS/PL(L)
       ENDIF
       IF (TP.LE.TI) THEN
         CONDP(L)=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
@@ -926,7 +917,7 @@ C**** save plume temperature after possible condensation
         FI=1.-FG
         CONDIP=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
-     *     6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
+     *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
         CONDGP=RHOG*(PI*by6)*CN0*EXP(-FLAMG*DCG)*
      *    (DCG*DCG*DCG/FLAMG+3.*DCG*DCG/(FLAMG*FLAMG)+
      *    6.*DCG/(FLAMG*FLAMG*FLAMG)+6./FLAMG**4)
@@ -957,13 +948,12 @@ c removal of precursers
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFIN(N))
 c formation of sulfate
         TRCOND(N,L) = TRCOND(N,L)+SULFOUT(N)
-c below TR_LEFT(N) limits the amount of available tracer in gridbox
 #endif
         TR_LEF=1.D0
         CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
      *       ,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF)
 
-        TRCOND(N,L) = FQCONDT * TMP(N)
+        TRCOND(N,L) = FQCONDT * TMP(N) + TRCOND(N,L)
         TMP(N)         = TMP(N)         *(1.-FQCONDT)
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT)
       END DO
@@ -975,8 +965,8 @@ c below TR_LEFT(N) limits the amount of available tracer in gridbox
 C****
 C**** UPDATE ALL QUANTITIES CARRIED BY THE PLUME
 C****
-C     MCCONT=MCCONT+1                   !!!
-C     IF(MCCONT.EQ.1) MC1=.TRUE.        !!!
+C     MCCONT=MCCONT+1
+C     IF(MCCONT.EQ.1) MC1=.TRUE.
 C     IF(MC1.AND.PLE(LMIN)-PLE(L+2).GE.450.) SVLATL(L)=LHX
       SVLATL(L)=VLAT(L)
       SMPMAX=SMP

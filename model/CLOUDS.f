@@ -34,12 +34,10 @@ C**** parameters and constants
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD for cal. BYBR
       REAL*8, PARAMETER :: SLHE=LHE*BYSHA
       REAL*8, PARAMETER :: SLHS=LHS*BYSHA
-!@param FCLW fraction of condensate in plume that remains as CLW
 !@param CCMUL multiplier for convective cloud cover
 !@param CCMUL1 multiplier for deep anvil cloud cover
 !@param CCMUL2 multiplier for shallow anvil cloud cover
 !@param COETAU multiplier for convective cloud optical thickness
-      REAL*8 :: FCLW
       REAL*8, PARAMETER :: CCMUL=1.,CCMUL1=5.,CCMUL2=3.,COETAU=.08d0
 
       REAL*8 :: BYBR,BYDTsrc,XMASS,PLAND,FLAMW,FLAMG,FLAMI
@@ -286,8 +284,7 @@ c for sulfur chemistry
 #endif
 
       REAL*8, DIMENSION(LM) ::
-     *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,DDM
-     *     ,CONDP
+     *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,DDM,CONDP
       REAL*8 :: CONDGP,CONDIP
 !@var DM change in air mass
 !@var COND,CONDGP,CONDIP condensate
@@ -299,6 +296,8 @@ c for sulfur chemistry
 !@var SMT, QMT dummy variables
 !@var TPSAV array to save plume temperature
 !@var DDM downdraft mass
+!@param FCLW fraction of condensate in plume that remains as CLW
+      REAL*8 :: FCLW
 
 !@var IERRT,LERRT error reports from advection
       INTEGER :: IERRT,LERRT
@@ -549,8 +548,8 @@ C     IF(LMIN.LE.2) ITYPE=2          ! entraining & non-entraining
 C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       DO L=1,LM
         COND(L)=0.
-        CONDP(L)=0.
         CDHEAT(L)=0.
+        CONDP(L)=0.
         DM(L)=0.
         DMR(L)=0.
         CCM(L)=0.
@@ -610,8 +609,8 @@ C     FPLUM0=FMP1*BYAM(LMIN)
       DQMOMR(zmoms,LMIN)=-QMOMOLD(zmoms,LMIN)*FPLUME
 #ifdef TRACERS_ON
 C**** This is a fix to prevent very occasional plumes that take out
-C**** too much tracer mass. Should not affect water tracers, but
-C**** can impact tracers with very sharp vertical gradients
+C**** too much tracer mass. This can impact tracers with very sharp
+C**** vertical gradients
       TMP(1:NTX) = MIN(TMOLD(LMIN,1:NTX)*FPLUME,0.95d0*TM(LMIN,1:NTX))
       TMOMP(xymoms,1:NTX)=TMOMOLD(xymoms,LMIN,1:NTX)*FPLUME
         DTMR(LMIN,1:NTX)=-TMP(1:NTX)
@@ -1187,7 +1186,7 @@ C     IF(MC1.AND.PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
 #ifdef TRACERS_WATER
 C**** Apportion cloud tracers and condensation
 C**** Note that TRSVWML is in mass units unlike SVWMX
-          TRSVWML(1:NTX,L) = FCLW*TRCOND(1:NTX,L)
+          TRSVWML(1:NTX,L) = TRSVWML(1:NTX,L) + FCLW*TRCOND(1:NTX,L)
           TRCOND(1:NTX,L) = (1.-FCLW)*TRCOND(1:NTX,L)
 #endif
         END DO
@@ -1345,9 +1344,9 @@ C****
 #endif
       IF(LMCMIN.GT.LDMIN) LMCMIN=LDMIN
 C****
-      MC1=.FALSE.                        !!!
 C**** END OF LOOP OVER CLOUD TYPES
 C****
+      MC1=.FALSE.                        !!!
   570 CONTINUE
 C****
 C**** END OF OUTER LOOP OVER CLOUD BASE
