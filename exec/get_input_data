@@ -57,8 +57,24 @@ foreach $str (@a) {
     #print "$str\n";
     ($tag,$filename) = split / *= */, $str;
     print "Copying:     $filename\n";
+    create_path( "$data_dir/$filename" );
     copy( "$GCMSEARCHPATH/$filename", "$data_dir/$filename") or
 	die "Can't copy $GCMSEARCHPATH/$filename\n";
 }
 
 
+sub create_path {
+    my $path = shift;
+    my @dirs = split /\//, $path;
+    pop @dirs;
+    if ( $path =~ /^\// ) { $dir = ""; }
+    else {  $dir = "."; }
+    foreach my $name ( @dirs ) {
+	$dir .= '/'.$name;
+	if ( ! -e $dir ) {
+	    print "creating dir: $dir\n";
+	    mkdir $dir, 0755 or die "can't create dir: $dir\n";
+	}
+    }
+
+}

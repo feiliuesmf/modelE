@@ -169,11 +169,14 @@ while (<RFILE>) {
 open RUNIDLN, ">$runID"."ln" or die "can't open ${runID}ln for writing\n";
 open RUNIDULN, ">$runID"."uln" or die "can't open ${runID}ln for writing\n";
 
+$flag_missing_data_files = 0;
+
 foreach $_ ( @data_files ) {
     ($name, $dest) = split /\s*=\s*/;
     if ( ! -e "$GCMSEARCHPATH/$dest" ) {
 	print "$dest not found in $GCMSEARCHPATH\n";
-	exit 1;
+	$flag_missing_data_files = 1;
+	#exit 1;
     }
     if ( $name !~ /^(AIC|OIC|GIC)$/ ) {
 	print RUNIDLN "ln -s $GCMSEARCHPATH/$dest $name\n";
@@ -183,6 +186,8 @@ foreach $_ ( @data_files ) {
 	print "using $GCMSEARCHPATH/$dest for IC only\n";
     }
 }
+
+if ( $flag_missing_data_files ) { exit 1; }
 
 ## Architecture-dependent settings
 $uname = `uname`;
