@@ -121,7 +121,7 @@ c  internals:
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
-        print*,"In advanc: i,j =",ilong,jlat,us,vs,tsv,qs
+        print*,"In advanc: i,j,itype =",ilong,jlat,itype,us,vs,tsv,qs
         stop "PBL error in advanc"
       end if
       zmix=dzh(1)+zgs
@@ -1506,7 +1506,7 @@ c     integer, parameter ::  n=8
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
-        print*,"In inits: i,j =",ilong,jlat,tgrnd,qgrnd
+        print*,"In inits: i,j,itype =",ilong,jlat,itype,tgrnd,qgrnd
         stop "PBL error in inits"
       end if
 

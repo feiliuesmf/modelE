@@ -747,7 +747,7 @@ C**** INITIALIZE VERTICAL SLOPES OF T,Q
         call tq_zmom_init(t,q)
       END IF
 C****
-C**** I.C FROM OLDER INCOMPLETE MODEL OUTPUT, ISTART=3-6    just hints
+C**** I.C FROM OLDER INCOMPLETE MODEL OUTPUT, ISTART=3-5    just hints
 C****
 C**** Read what's there and substitute rest as needed (as above)
 C**** To be implemented as needed. Sometimes it is safer to
@@ -758,8 +758,17 @@ C     redoGH=.TRUE.
 C**** Set flag to initialise pbl/snow variables if they are not in I.C.
 C     iniPBL=.TRUE.  ; iniSNOW = .TRUE.
       SELECT CASE (ISTART)
-      CASE (3:6)
+      CASE (3:5)
          go to 890   !  not available
+C****
+C**** I.C FROM RESTART FILE that may not match land-ocean mask  ISTART=6
+C****
+      CASE (6)             ! converted model II' (B399) format (no snow)
+        call io_rsf(iu_AIC,IhrX,irsfic,ioerr)
+        if (ioerr.eq.1) goto 800
+        iniSNOW = .TRUE.      ! extract snow data from first soil layer
+        inipbl  = .TRUE.      ! initialise pbl profiles
+        iniOCEAN = .TRUE. ! read in ocean ic
 C****
 C**** I.C FROM RESTART FILE WITH almost COMPLETE DATA    ISTART=7
 C****
