@@ -16,10 +16,7 @@
       USE DOMAIN_DECOMP, only : GRID, GET
       USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim,ptop,psf,sig,lm,jm
-      USE DAGCOM, only: ia_src,ia_12hr,ir_log2,npts
-#ifdef TRACERS_AEROSOLS_Koch
-     * ,ia_rad
-#endif
+      USE DAGCOM, only: ia_src,ia_12hr,ir_log2,npts,ia_rad
       USE TRACER_COM
 #ifdef TRACERS_ON
       USE TRACER_DIAG_COM
@@ -3136,6 +3133,27 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
+        select case(trname(n))
+        case('Ox')
+        k = k + 1
+          ijts_fc(1,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad   !?
+          lname_ijts(k) = trname(n)//' SW radiative forcing'
+          sname_ijts(k) = trname(n)//'SWRF'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        k = k + 1
+          ijts_fc(2,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad   !?
+          lname_ijts(k) = trname(n)//' LW radiative forcing'
+          sname_ijts(k) = trname(n)//'LWRF'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        end select
 
       case ('BCII')
         k = k + 1
