@@ -52,9 +52,13 @@ C**** Initialise total energy (J/m^2)
       TE0=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
 C**** Initialize mass fluxes used by tracers and Q
       PS (:,:)   = P(:,:)
-      PUA(:,:,:) = 0.
-      PVA(:,:,:) = 0.
-      SDA(:,:,:) = 0.
+!$OMP  PARALLEL DO PRIVATE (L)
+      DO L=1,LM
+         PUA(:,:,L) = 0.
+         PVA(:,:,L) = 0.
+         SDA(:,:,L) = 0.
+      ENDDO
+!$OMP  END PARALLEL DO
 C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
   300 CONTINUE
 c     UX(:,:,:)  = U(:,:,:)

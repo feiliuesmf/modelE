@@ -158,11 +158,11 @@ C**** deal with vertical polar box diagnostics outside ncyc loop
       return
       end SUBROUTINE AADVQ
 
-
       SUBROUTINE AADVQ0(DT)
 !@sum AADVQ0 initialises advection of tracer.
 !@+   Decide how many cycles to take such that mass does not become
-!@+   negative during any of the operator splitting steps of each cycle
+!@+   too small during any of the operator splitting steps of each cycle
+!@auth Maxwell Kelley
 c****
 C**** The MA array space is temporarily put to use in this section
       USE DYNAMICS, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
@@ -170,8 +170,7 @@ C**** The MA array space is temporarily put to use in this section
       USE QUSCOM, ONLY : IM,JM,LM
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DT
-      LOGICAL :: mneg
-      INTEGER :: i,j,l,n,nc,im1
+      INTEGER :: i,j,l,n,nc,im1,nbad
       REAL*8 :: byn,ssp,snp
 
       INTEGER :: I_0, I_1, J_1, J_0
@@ -237,126 +236,136 @@ c     for some reason mu is not zero at the poles...
 ccc   mu(:,1,:) = 0.
 ccc   mu(:,jm,:) = 0.
 C**** Set things up
-      mneg=.true.
+      nbad = 1
       ncyc = 0
-      do while(mneg)
+      do while(nbad.gt.0)
       ncyc = ncyc + 1
       byn = 1./ncyc
-      mneg=.false.
-      ma(:,:,:) = mb(:,:,:)
+      nbad = 0
+!$OMP  PARALLEL DO PRIVATE (L)
+      do l=1,lm
+         ma(:,:,l) = mb(:,:,l)
+      enddo
+!$OMP  END PARALLEL DO
       do nc=1,ncyc
+
 C****     1/2 x-direction
-        do l=1,lm
+!$OMP  PARALLEL DO PRIVATE (I,IM1,J,L)
+!$OMP* REDUCTION(+:NBAD)
+        lloopx1: do l=1,lm
         do j=J_0,J_1
           im1 = im
           do i=1,im
             ma(i,j,l) = ma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
-            if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-    !         write(6,900)'ma(i,j,l) x1: nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
-    !*             ,nc
-              mneg=.true.
-              go to 595
+            if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
+               nbad = nbad + 1
+c               exit lloopx1 ! saves time in single-processor mode
             endif
             im1 = i
           end do
         end do
-        end do
+        end do lloopx1
+!$OMP  END PARALLEL DO
+        IF(NBAD.GT.0) exit ! nc loop
+
 C****         y-direction
-        do l=1,lm              !Interior
+!$OMP  PARALLEL DO PRIVATE (I,J,L,SSP,SNP)
+!$OMP* REDUCTION(+:NBAD)
+        lloopy: do l=1,lm              !Interior
         do j=J_0S,J_1S
         do i=1,im
           ma(i,j,l) = ma(i,j,l) + (mv(i,j-1,l)-mv(i,j,l))*byn
-          if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-    !       write(6,900)'ma(i,j,l) y: nc=',i,j,l,ma(i,j,l)/mb(i,j,l),nc
-            mneg=.true.
-            go to 595
+          if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
+             nbad = nbad + 1
+c             exit lloopy ! saves time in single-processor mode
           endif
         end do
         end do
-        end do
-
         if (HAVE_SOUTH_POLE) then
-          do l=1,lm              !Poles
-            ssp = sum(ma(:, 1,l)-mv(:,   1,l)*byn)*byim
-            ma(:,1 ,l) = ssp
-            if (ma(1,1,l)/mb(1,1,l).lt.0.5) then
-    !         write(6,910)'ma(1,1,l) ysp: nc=',l,ma(1,1,l)/mb(1,1,l),nc
-              mneg=.true.
-              go to 595
-            endif
-          end do
+           ssp = sum(ma(:, 1,l)-mv(:,   1,l)*byn)*byim
+           ma(:,1 ,l) = ssp
+           if (ma(1,1,l).lt.0.5*mb(1,1,l)) then
+              nbad = nbad + 1
+c              exit lloopy ! saves time in single-processor mode
+           endif
         endif
         if (HAVE_NORTH_POLE) then
-          do l=1,lm              !Poles
-            snp = sum(ma(:,jm,l)+mv(:,jm-1,l)*byn)*byim
-            ma(:,jm,l) = snp
-            if (ma(1,jm,l)/mb(1,jm,l).lt.0.5) then
-    !	      write(6,910)'ma(1,jm,l) ynp: nc=',l,ma(1,jm,l)/mb(1,jm,l),nc
-              mneg=.true.
-              go to 595
-            endif
-          end do
+           snp = sum(ma(:,jm,l)+mv(:,jm-1,l)*byn)*byim
+           ma(:,jm,l) = snp
+           if (ma(1,jm,l).lt.0.5*mb(1,jm,l)) then
+              nbad = nbad + 1
+c              exit lloopy ! saves time in single-processor mode
+           endif
         endif
+        end do lloopy
+!$OMP  END PARALLEL DO
+        IF(NBAD.GT.0) exit ! nc loop
+
 C****         z-direction
-        do l=2,lm-1
-        do j=J_0,J_1
-        do i=1,im
-          ma(i,j,l) = ma(i,j,l)+(mw(i,j,l-1)-mw(i,j,l))*byn
-          if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-    !       write(6,900)'ma(i,j,l) z : nc=',i,j,l,ma(i,j,l)/mb(i,j,l),nc
-            mneg=.true.
-            go to 595
-          endif
-        end do
-        end do
-        end do
-        l = 1
+!$OMP  PARALLEL DO PRIVATE (I,J,L)
+!$OMP* REDUCTION(+:NBAD)
+        lloopz: do l=1,lm
+        if(l.eq.1) then ! lowest layer
         do j=J_0,J_1
         do i=1,im
           ma(i,j,l) = ma(i,j,l)-mw(i,j,l)*byn
-          if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-    !       write(6,900)'ma(i,j,l) z1 : nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
-    !*           ,nc
-            mneg=.true.
-            go to 595
+          if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
+             nbad = nbad + 1
+c             exit lloopz ! saves time in single-processor mode
           endif
         end do
         end do
-        l = lm
+        else if(l.eq.lm) then ! topmost layer
         do j=J_0,J_1
         do i=1,im
           ma(i,j,l) = ma(i,j,l)+mw(i,j,l-1)*byn
-          if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-    !       write(6,900)'ma(i,j,l) zlm: nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
-    !*           ,nc
-            mneg=.true.
-            go to 595
+          if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
+             nbad = nbad + 1
+c             exit lloopz ! saves time in single-processor mode
           endif
         end do
         end do
+        else ! interior layers
+        do j=J_0,J_1
+        do i=1,im
+          ma(i,j,l) = ma(i,j,l)+(mw(i,j,l-1)-mw(i,j,l))*byn
+          if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
+             nbad = nbad + 1
+c             exit lloopz ! saves time in single-processor mode
+          endif
+        end do
+        end do
+        endif
+        end do lloopz
+!$OMP  END PARALLEL DO
+        IF(NBAD.GT.0) exit ! nc loop
+
 C****     1/2 x-direction
-        do l=1,lm
+!$OMP  PARALLEL DO PRIVATE (I,IM1,J,L)
+!$OMP* REDUCTION(+:NBAD)
+        lloopx2: do l=1,lm
         do j=J_0,J_1
           im1 = im
           do i=1,im
             ma(i,j,l) = ma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
-            if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-    !         write(6,900)'ma(i,j,l) x2: nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
-    !*             ,nc
-              mneg=.true.
-              go to 595
+            if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
+               nbad = nbad + 1
+c               exit lloopx2 ! saves time in single-processor mode
             endif
             im1 = i
           end do
         end do
-        end do
-      end do
- 595  continue
+        end do lloopx2
+!$OMP  END PARALLEL DO
+        IF(NBAD.GT.0) exit ! nc loop
+
+      end do ! nc loop
+
       if(ncyc.ge.10) then
         write(6,*) 'stop: ncyc=10 in AADVQ0'
         call stop_model('AADVQ0: ncyc>=10',11)
       end if
- 600  enddo
+      enddo ! while(nbad.gt.0)
       if(ncyc.gt.2) write(6,*) 'AADVQ0: ncyc>2',ncyc
 C**** Divide the mass fluxes by the number of cycles
       byn = 1./ncyc
