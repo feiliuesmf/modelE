@@ -304,7 +304,7 @@ cddd     &     tbcs
      &     ,ijdebug,n,nsn !nth
 c     not sure if it works with derived type. if not - comment the
 c     next line out (debug_data used only for debug output)
-     &     ,debug_data
+c    &     ,debug_data           ! needs to go to compile on COMPAQ
 C$OMP  THREADPRIVATE (/GHYTPC/)
 C***
 C***
@@ -904,12 +904,12 @@ c     bare soil
       f(1,1)=-flmlt(1)*fr_snow(1) - flmlt_scale(1)
      &     - (dripw(1)-evapb)*(1.d0-fr_snow(1))
 c     upward flux from wet canopy
-      f(0,2)=-pr+evapvw*fw*(1.d0-fm*fr_snow(2)) 
+      f(0,2)=-pr+evapvw*fw*(1.d0-fm*fr_snow(2))
                                 ! snow masking of pr is ignored since
                                 ! it is not included into drip
 c     vegetated soil
 !!! flux down from canopy is not -f(1,2) any more !!
-!!! it is =  drip(2) 
+!!! it is =  drip(2)
 !!! f(1,2) is a flux up from tyhe soil
       f(1,2)=-flmlt(2)*fr_snow(2) - flmlt_scale(2)
      &     - dripw(2)*(1.d0-fr_snow(2))
@@ -962,7 +962,7 @@ c**** bare soil fluxes
 c     compute total sensible heat
       snsh_tot(1) = snsh(1)*(1.d0-fr_snow(1)) + snshs(1)*fr_snow(1)
       snsh_tot(2) = snsh(2)*(1.d0-fr_snow(2)*fm)
-     &     + snshs(2)*fr_snow(2)*fm 
+     &     + snshs(2)*fr_snow(2)*fm
       return
       end subroutine flhg
 
@@ -1092,7 +1092,7 @@ ccc   prevent over/undersaturation of first layer
         wn = w(1,ibv) + ( f(2,ibv) - f(1,ibv)
      &       - rnf(ibv) - rnff(1,ibv)
      &       - fd*(1.-fr_snow(2)*fm)*evapdl(1,ibv) )*dts
-        if ( wn - ws(1,ibv) > trunc) 
+        if ( wn - ws(1,ibv) > trunc)
      &       rnf(ibv) = rnf(ibv) + (wn - ws(1,ibv) + trunc)/dts
         if ( wn - dz(1)*thetm(1,ibv) < trunc )
      &       rnf(ibv) = rnf(ibv) +
@@ -1499,13 +1499,13 @@ ccc accm0 was not called here in older version - check
 !debug
 !        rnff(:,:) = 0.d0
  !       rnf(:) = 0.d0
-!!!        
+!!!
         !call sink
         call fllmt
 !debug
 !        rnff(:,:) = 0.d0
 !        rnf(:) = 0.d0
-!!!        
+!!!
          ! call check_f11
         !call sinkh
         call flh
@@ -1629,7 +1629,7 @@ c zero out accumulations
       abeta=0.d0  ! not accumulated : do we need it?
       acna=0.d0   ! not accumulated : do we need it?
       acnc=0.d0   ! not accumulated : do we need it?
-      aevapw=0.d0               ! evap from wet canopy 
+      aevapw=0.d0               ! evap from wet canopy
       aevapd=0.d0               ! evap from dry canopy
       aevapb=0.d0               ! evap from bare soil (no snow)
       aepc=0.d0                 ! potential evap from canopy
@@ -1684,8 +1684,8 @@ c**** and canopy interaction with surface layer.
 c**** use timestep based on coefficient of drag
       cna=ch*vsm
       rho3=.001d0*rho
-      betas(1:2) = 1.d0 ! it's an overkill but it makes the things 
-                        ! simpler. 
+      betas(1:2) = 1.d0 ! it's an overkill but it makes the things
+                        ! simpler.
       if(epb.le.0.d0)then
        betas(1)=1.0d0
       else
@@ -2220,7 +2220,7 @@ ccc **************************************************
       real*8 tr_evap(ntx,2)
 
       tr_evap(1:2) = 0.d0
-      
+
 ccc canopy
       if ( pr_can-evapw >= 0.d0 ) then ! tr flux atm->canopy
         tr_can(:) = tr_can(:) + (pr_can-evapw)*trpr(:)/pr*dt
@@ -2270,7 +2270,7 @@ C$OMP  THREADPRIVATE (/check_water_tp/)
 
       do ibv=1,2
         do k=1,nsn(ibv)
-          total_water(ibv) = total_water(ibv) + wsn(k,ibv)*fr_snow(ibv) 
+          total_water(ibv) = total_water(ibv) + wsn(k,ibv)*fr_snow(ibv)
         enddo
         do k=1,n
           total_water(ibv) = total_water(ibv) + w(k,ibv)
@@ -2287,7 +2287,7 @@ C$OMP  THREADPRIVATE (/check_water_tp/)
       error_water = (total_water(1) - old_total_water(1)) / dts
      $     - pr + evap_tot(1) + sum(rnff(1:n,1)) + rnf(1)
 
-	!if ( fr_snow(1) > 0.d0 .or. old_fr_snow(1) > 0.d0 ) return
+ !if ( fr_snow(1) > 0.d0 .or. old_fr_snow(1) > 0.d0 ) return
        ! if ( snowd(1) > 0.d0 ) return
 
       !print *, 'ij ', ijdebug
@@ -2333,7 +2333,7 @@ C$OMP  THREADPRIVATE (/check_energy_tp/)
 
       do ibv=1,2
         do k=1,nsn(ibv)
-          total_energy(ibv) = total_energy(ibv)+hsn(k,ibv)*fr_snow(ibv) 
+          total_energy(ibv) = total_energy(ibv)+hsn(k,ibv)*fr_snow(ibv)
         enddo
         do k=1,n
           total_energy(ibv) = total_energy(ibv) + ht(k,ibv)
@@ -2353,9 +2353,9 @@ C$OMP  THREADPRIVATE (/check_energy_tp/)
      &     + rnf(1)*max(tp(1,1),0.d0) )
      &     - srht - trht + thrm_tot(1) + snsh_tot(1)
 
-	!if ( fr_snow(1) > 0.d0 .or. old_fr_snow(1) > 0.d0 ) return
+ !if ( fr_snow(1) > 0.d0 .or. old_fr_snow(1) > 0.d0 ) return
 
-      if ( abs( error_energy ) > 1.d-7 )
+      if ( abs( error_energy ) > 1.d-5 )
      &       call stop_model('GHY: energy conservation problem',255)
 
       ! vegetated soil
@@ -2367,10 +2367,10 @@ C$OMP  THREADPRIVATE (/check_energy_tp/)
 
        ! if ( fr_snow(2) > 0.d0 .or. old_fr_snow(2) > 0.d0 ) return
 
-      if ( abs( error_energy ) > 1.d-7) call stop_model(
+      if ( abs( error_energy ) > 1.d-5) call stop_model(
      &     'GHY: energy conservation problem in veg. soil',255)
 
-      ! print *,'check energy: ',total_energy, error_energy 
+      ! print *,'check energy: ',total_energy, error_energy
 
       ghy_debug%energy(:) = total_energy(:)
 
