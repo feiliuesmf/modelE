@@ -130,6 +130,19 @@ c$$$      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
      $          PS(I_0H:I_1H,J_0H:J_1H),
      $   STAT = IER)
 
+! correct or wrong, but being static all arrays were initialized
+! to zero by default. They have to be initialized to something now 
+! to avoid floating point exceptions...
+      DPDX_BY_RHO(I_0H:I_1H,J_0H:J_1H) = 0.d0
+      DPDY_BY_RHO(I_0H:I_1H,J_0H:J_1H) = 0.d0
+      DPDX_BY_RHO_0(I_0H:I_1H,J_0H:J_1H) = 0.d0
+      DPDY_BY_RHO_0(I_0H:I_1H,J_0H:J_1H) = 0.d0
+
+      PU(I_0H:I_1H,J_0H:J_1H,1:LM) = 0.d0
+      PV(I_0H:I_1H,J_0H:J_1H,1:LM) = 0.d0
+
+      SD_CLOUDS(I_0H:I_1H,J_0H:J_1H,1:LM) = 0.d0
+      PIT(:,:) = 0.d0
 
       END SUBROUTINE INIT_DYNAMICS
 
