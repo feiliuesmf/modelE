@@ -859,7 +859,7 @@ sub parse_file {
 	if ( /^\s*end\s+module\b/i ) { #end module
 	    $current_module = "";
 	}
-	if ( /^\s*(subroutine|(?:$some_decl\s+)?function|program)\s+(\w+)/i ) {
+	if ( /^\s*(subroutine|(?:$some_decl\s+)?function|program|entry)\s+(\w+)/i ) {
 	    $current_sub = lc($2);
 	    $db_subs{"$current_module:$current_sub"}{file} = $current_file;
 	    if ( $current_module ) {
@@ -869,7 +869,7 @@ sub parse_file {
 		#push @{$db_modules{"\@GLOBAL"}{subs}}, $current_sub;
 	    }
 	}
-	if ( /^\s*end\s+(subroutine|function|program)\b/i 
+	if ( /^\s*end\s+(subroutine|function|program|entry)\b/i 
 	     || /^\s*end\s*$/i ) {
 	    $current_sub = "";
 	}
@@ -967,7 +967,7 @@ sub parse_fort_str {
     }
 
     # subroutine/function declaration
-    if ( $fstr =~ /^\s*(subroutine|function)/i ) {
+    if ( $fstr =~ /^\s*(subroutine|function|entry)/i ) {
 	my $decl = lc($fstr);
 	$decl =~ s/^\s*//; $decl =~ s/\s*$//;
 	$decl =~ s/\s*,\s*/, /g;
@@ -997,7 +997,7 @@ while ($filename = shift) {
         #print "FUCTTION:: $function\n";
         $print_header = 1;
       }
-      if ( $str =~ /^\s*(subroutine|function|program)\s+(\w+)/i ) {
+      if ( $str =~ /^\s*(subroutine|function|program|entry)\s+(\w+)/i ) {
         $function = $2;
         #print "FUCTTION:: $function\n";
         $print_header = 1;
