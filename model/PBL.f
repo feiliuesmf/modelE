@@ -271,7 +271,7 @@ C**** end special threadprivate common block
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
         print*,"In advanc: i,j,itype =",ilong,jlat,itype,us,vs,tsv,qsrf
-        call abort
+c        call abort
         call stop_model("PBL error in advanc",255)
       end if
 
@@ -935,7 +935,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       real*8 z1pass,znpass,b,xipass,lznbyz1
       common /grids_99/z1pass,znpass,b,xipass,lznbyz1
 !$OMP  THREADPRIVATE(/GRIDS_99/)
-      real*8, external :: fgrid2
+      external :: fgrid2
       real*8 rtsafe
       integer i,j,iter  !@var i,j,iter loop variable
       real*8 dxi,zmin,zmax,dxidz,dxidzh

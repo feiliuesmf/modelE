@@ -33,7 +33,7 @@ C**** x-x, x-y, x-z switches
      &     zdir=(/mz,my,mx,mzz,myy,mxx,myz,mxy,mzx/)
 
 !@dbparam prather_limits forces +ve sub-grid scale profiles (default=0)
-      integer :: prather_limits = 0.
+      integer :: prather_limits = 0
 
       END MODULE QUSDEF
 

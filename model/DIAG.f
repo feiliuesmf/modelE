@@ -1956,7 +1956,7 @@ C****  10  AFTER DAILY
 C****  11  AFTER OCEAN DYNAMICS (from ODYNAM)
 C****  12  AFTER OCEAN SUB-GRIDSCALE PHYS
 C****
-      REAL*8, EXTERNAL :: conserv_AM,conserv_KE,conserv_MS,conserv_PE
+      EXTERNAL :: conserv_AM,conserv_KE,conserv_MS,conserv_PE
      *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_OMSI
      *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI
      *     ,conserv_MLI,conserv_HLI
@@ -3645,7 +3645,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       USE DIAG_COM
       USE PARAM
 #ifdef TRACERS_ON
-      USE TRACER_DIAG_COM, only: TAIJLN,TAIJN,TAIJS,TAJLN,TAJLS,TCONSRV
+      USE TRDIAG_COM, only: TAIJLN,TAIJN,TAIJS,TAJLN,TAJLS,TCONSRV
 #endif
       IMPLICIT NONE
       INTEGER :: isum !@var isum if =1 preparation to add up acc-files

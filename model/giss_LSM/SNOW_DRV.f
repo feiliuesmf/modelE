@@ -192,7 +192,7 @@ ccc                               currently using only topography part
       if ( fract_snow < MIN_FRACT_COVER ) fract_snow = 0.d0
 
       if ( .not. fract_snow >= 0.d0 )
-     &     call stop_model("NaN in snow_fraction1, 255")
+     &     call stop_model("NaN in snow_fraction1", 255)
       
       end subroutine snow_fraction1
 
