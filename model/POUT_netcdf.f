@@ -297,7 +297,6 @@ c Does not currently have the capability to write any real_atts.
       if(outer_pos.eq.1) then ! check for missing values
          prog_dtype=nf_double
          if(write_whole_array) then
-            write(6,*) 'ndims_out',ndims_out
             n = product(file_dimlens(dimids_out(1:ndims_out)))
             if(any(var(1:n).eq.missing)) def_missing=.true.
          else ! we can only check var(:,...,:,1) at this point,
