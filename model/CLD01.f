@@ -4,7 +4,7 @@
 !@ver  1.0 (taken from CB265)
 !@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
-     *     ,by3,tf,bytf,rvap,bygrav
+     *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat
       USE E001M12_COM, only : IM,LM,DTsrc
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
       USE RANDOM
@@ -12,8 +12,8 @@
       SAVE
 C**** parameters and constants
       REAL*8, PARAMETER :: TI=233.16d0   !@param TI pure ice limit
-      REAL*8, PARAMETER :: WMU=.25
-!@param WMU critical cloud water content for rapid conversion (g m
+!@param WMU critical cloud water content for rapid conversion (g m**-3)
+      REAL*8, PARAMETER :: WMU=.25       
       REAL*8, PARAMETER :: WMUL=.5       !@param WMUL WMU over land
       REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI WMU over ice
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD for cal. BYBR
@@ -33,10 +33,10 @@ C**** Set-able variables from NAMELIST
       REAL*8 :: U00ice = .7d0
 
 C**** input variables
-!@var RA,UM,VM,U_0,V_0 velocity related variables
-      REAL*8, DIMENSION(IM) :: RA
 !@var RA ratio of primary grid box to secondary gridbox
-      REAL*8, DIMENSION(IM,LM) :: UM,VM !@var (UM,VM)=(U,V)*AIRM
+      REAL*8, DIMENSION(IM) :: RA 
+!@var UM,VM,U_0,V_0 velocity related variables (UM,VM)=(U,V)*AIRM
+      REAL*8, DIMENSION(IM,LM) :: UM,VM 
       REAL*8, DIMENSION(IM,LM) :: U_0,V_0
 
 !@var Miscellaneous vertical arrays set in driver
@@ -62,7 +62,7 @@ C**** input variables
       REAL*8, DIMENSION(LM) :: SDL,WML
 !@var SDL vertical velocity in sigma coordinate
 !@var WML cloud water mixing ratio (kg/Kg)
-!new arrays must be set to model arrays in driver (after MC)
+C**** new arrays must be set to model arrays in driver (after MC)
       REAL*8, DIMENSION(LM) :: TAUMCL,SVLATL,CLDMCL,SVLHXL,SVWMXL
 !@var TAUMCL convective cloud optical thickness
 !@var SVLATL saved LHX for convective cloud
@@ -71,11 +71,11 @@ C**** input variables
 !@var SVWMXL saved detrained convective cloud water
       REAL*8, DIMENSION(LM) :: CSIZEL
 !@var CSIZEL cloud particle radius (micron)
-!new arrays must be set to model arrays in driver (before COND)
+C**** new arrays must be set to model arrays in driver (before COND)
       REAL*8, DIMENSION(LM) :: TTOLDL,CLDSAVL
 !@var TTOLDL previous potential temperature
 !@var CLDSAVL saved large-scale cloud cover
-!new arrays must be set to model arrays in driver (after COND)
+C**** new arrays must be set to model arrays in driver (after COND)
       REAL*8, DIMENSION(LM) :: AJ11,AJ55,TAUSSL,CLDSSL
 !@var AJ11, AJ55 dummy variables
 !@var TAUSSL large-scale cloud optical thickness
@@ -228,13 +228,11 @@ C**** output variables
       LOGICAL MC1  !@var MC1 true for the first convective event
 
       REAL*8,  PARAMETER :: CK1 = 1.       !@param CK1 a tunning const.
-      REAL*8,  PARAMETER :: DELTX=.608d0
-!@param DELTX constant for computing virtual tempe
 
       INTEGER K,L,N  !@var K,L,N loop variables
       INTEGER ITYPE  !@var convective cloud types
-      REAL*8, DIMENSION(IM,LM) :: DUM,DVM
 !@var DUM, DVM changes of UM,VM
+      REAL*8, DIMENSION(IM,LM) :: DUM,DVM 
 
       REAL*8 THBAR  !@var THBAR virtual temperature at layer edge
 C****
@@ -1385,9 +1383,9 @@ C     DO 310 L=1,LM
      *  SLHE*(QL(L+1)-QL(L))
       DWM=QL(L+1)-QL(L)+(WMX(L+1)-WMX(L))/FCLD
       DQSDT=DQSATDT(TL(L),LHE)*QL(L)/(RH(L)+1d-30)
-      BETA=(1.+1.608d0*TL(L)*DQSDT)/(1.+SLHE*DQSDT)
+      BETA=(1.+BYMRAT*TL(L)*DQSDT)/(1.+SLHE*DQSDT)
       CKM=(1.+SLHE*DQSDT)*(1.+.392d0*TL(L)/SLHE)/
-     *  (2.+(1.+1.608d0*TL(L)/SLHE)*SLHE*DQSDT)
+     *  (2.+(1.+BYMRAT*TL(L)/SLHE)*SLHE*DQSDT)
       CKR=TL(L)/(BETA*SLHE)
       CK=DSE/(SLHE*DWM)
       SIGK=0.
@@ -1448,9 +1446,9 @@ C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
       DSE=(THT2-SEDGE)*PLK(L+1)+(SEDGE-THT1)*PLK(L)+SLHE*(QLT2-QLT1)
       DWM=QLT2-QLT1+(WMT2-WMT1)/FCLD
       DQSDT=DQSATDT(TLT1,LHE)*QLT1/(RHT1+1d-30)
-      BETA=(1.+1.608d0*TLT1*DQSDT)/(1.+SLHE*DQSDT)
+      BETA=(1.+BYMRAT*TLT1*DQSDT)/(1.+SLHE*DQSDT)
       CKM=(1.+SLHE*DQSDT)*(1.+.392d0*TLT1/SLHE)/
-     *  (2.+(1.+1.608d0*TLT1/SLHE)*SLHE*DQSDT)
+     *  (2.+(1.+BYMRAT*TLT1/SLHE)*SLHE*DQSDT)
       DSEC=DWM*TLT1/BETA
 C     DSEC=.53*SLHE*DWM
       DSEDIF=DSE-DSEC

@@ -94,6 +94,10 @@ c**** defined as R/M_W = 1000* 8.314510 J/mol K /18.015 g/mol
 
 !@param mrat  mass ratio of air to water vapour (0.62197)
       real*8,parameter :: mrat = mwat/mair    ! = 0.62197....
+!@param bymrat 1/mrat (1.6078)
+      real*8,parameter :: bymrat = 1./mrat    ! = 1.6078....
+!@param deltx coeff. of humidity in virtual temperature defn. (0.6078)
+      real*8,parameter :: deltx = bymrat-1.   ! = 0.6078....
 
 !@param srat ratio of specific heats at const. press. and vol. (=1.401)
       real*8,parameter :: srat = 1.401d0
