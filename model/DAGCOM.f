@@ -178,8 +178,9 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param NKEYMO number of months key diagnostics are saved
       INTEGER, PARAMETER :: NKEYMO=50
 !@var KEYNR time-series of key numbers
-      INTEGER, DIMENSION(NKEYNR,NKEYMO) :: KEYNR
-!ny   KEYCT !@var index of next line in KEYNR to be used (1->nkeymo)
+      INTEGER, DIMENSION(NKEYNR,NKEYMO) :: KEYNR = 0
+!@var KEYCT next index in KEYNR to be used (1->nkeymo)
+      INTEGER :: KEYCT = 1
 
 !@var IWRITE,JWRITE,ITWRITE grid point and surface type for diag. output
       INTEGER :: IWRITE = 0, JWRITE = 0, ITWRITE = 0
@@ -325,7 +326,7 @@ c idacc-indices of various processes
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,ioread_single,irerun,irsfic,
-     *     iowrite,iowrite_mon,iowrite_single,lhead, keyct,idacc,nsampl
+     *     iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
       USE DAGCOM
       IMPLICIT NONE
       REAL*4 ACCS(KACC),TSFREZS(IM,JM,KTSF)
@@ -400,7 +401,7 @@ c??? *  add many lines to avoid 'COMMON BLOCK' - do I really have to ???
 !@var idacc(5) is the length of a time series (daily energy history).
 !****   If combining acc-files, rather than concatenating these series,
 !****   we average their beginnings (up to the length of the shortest)
-        Kcomb = Kcomb + 1          ! go back before the adding, take min
+        Kcomb = Kcomb + 1          ! reverse addition, take min instead
         if (Kcomb.gt.1) IDACC(5) = MIN(IDACC(5)-IDAC1(5),IDAC1(5))
         monacc = monacc + monac1
       CASE (irerun)      ! only keynr,tsfrez needed at beg of acc-period

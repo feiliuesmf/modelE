@@ -101,10 +101,9 @@ C**** slightly larger, to sample all points within the cycle
 !**** Accounting variables
 !@var IRAND last seed used by rand.number generator             DB-param
 !@var KDISK next rsf (fort.)1 or 2 to be written to
-!@var KEYCT next index in key-nr-array to be used
 !@var NSTEP number of dynamics steps since start of run
 !@var MRCH  flags position in dynamics cycle (>0 fw, <0 bw step)
-      INTEGER :: IRAND=123456789, KDISK=1, KEYCT=1, NSTEP,MRCH
+      INTEGER :: IRAND=123456789, KDISK=1, NSTEP,MRCH
 !@var MODRD,MODD5K,MODD5S MODxxx=0 indicates: xxx_time_step arrived
       INTEGER :: MODRD, MODD5K, MODD5S
 !@var MDYN,MCNDS,MRAD,MSURF,MDIAG,MELSE timing-indices
@@ -267,7 +266,7 @@ C****
       INTEGER it1,it0,idac1(12),nd1,iy1,iti1,ite1,it01,im0,jm0,lm0,ls10
 
 C**** Possible additions to this file: FTYPE, (remove rsi from seaice?)
-                                 
+
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output to end-of-month restart file
         WRITE (kunit,err=10) it,XLABEL,nday,iyear1,itimei,itimee,itime0,

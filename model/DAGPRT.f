@@ -3812,12 +3812,12 @@ c      USE PRTCOM, only :
       USE MODEL_COM, only :
      &     jm,lm,jeq, JHOUR,JHOUR0,
      &     JDATE,JDATE0,JMON,JMON0,AMON,AMON0,JYEAR,JYEAR0,
-     &     KEYCT,Itime,ItimeI,Itime0,PSF,PTOP,SIG,XLABEL,
+     &     Itime,ItimeI,Itime0,PSF,PTOP,SIG,XLABEL,
      &     PSFMPT,AMONTH,nday
       USE GEOM, only :
      &     DLAT,DXYP,LAT_DG
       USE DAGCOM, only :
-     &     keynr,nehist,nkeynr
+     &     keyct,keynr,nehist,nkeynr
       USE PARAM
       IMPLICIT NONE
       SAVE

@@ -3000,7 +3000,7 @@ C****
       USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,sige,sig,psf,ptop
      *     ,pmtop,nfiltr,dtsrc,jhour,jdate,jmon,amon,jyear
      *     ,jhour0,jdate0,jmon0,amon0,jyear0,idacc,ioread_single
-     *     ,xlabel,keyct,iowrite_single,iyear1,nday,dtsrc,dt,nmonav
+     *     ,xlabel,iowrite_single,iyear1,nday,dtsrc,dt,nmonav
      *     ,ItimeE,lrunid
       USE DAGCOM
       USE DAGPCOM, only : ple,ple_dn,plm

@@ -6,7 +6,7 @@
 !@ver  1.0 (Based originally on B399)
       USE MODEL_COM
       USE RANDOM
-      USE DAGCOM, only : keynr,kdiag,oa,monacc
+      USE DAGCOM, only : keyct,keynr,kdiag,oa,monacc
       USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
@@ -443,7 +443,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
      *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige
      *     ,bydsig,xlabel,lrunid,nmonav
-     *     ,keyct,irand,psf,ptop
+     *     ,irand,psf,ptop
      *     ,nisurf,nidyn,nday,dt,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
      *     ,ls1,psfmpt,pstrat,idacc
@@ -458,7 +458,7 @@ C****
 !     *    ,U00wtr,U00ice,lmcm
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
-      USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,keynr,jreg
+      USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,jreg
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck,oa
      &  ,iu_ij,iu_jl,iu_il,iu_j
       USE LAKES_COM, only : flake
@@ -560,7 +560,6 @@ C**** Get those parameters which are needed in this subroutine
       if(is_set_param("DT"))     call get_param( "DT", DT )
       if(is_set_param("NIsurf")) call get_param( "NIsurf", NIsurf ) !
       if(is_set_param("IRAND"))  call get_param( "IRAND", IRAND )
-C??   if(is_set_param("keyct"))  call get_param( "keyct", keyct )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
       call reset_diag(1)
 
@@ -878,7 +877,6 @@ C**** Get parameters we just read from rsf file. Only those
 C**** parameters which we need in "INPUT" should be extracted here.
       if(is_set_param("DTsrc"))  call get_param( "DTsrc", DTsrc )
       if(is_set_param("DT"))     call get_param( "DT", DT )
-C??   if(is_set_param("keyct"))  call get_param( "keyct", keyct )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
 C??   if(is_set_param("ItimeE")) call get_param( "ItimeE", ItimeE ) !inp
 C??   if(is_set_param("NIdyn"))  call get_param( "NIdyn", NIdyn ) !input
@@ -891,10 +889,17 @@ C****                                                              *****
 C***********************************************************************
   600 CONTINUE
 
-      call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
-      IF (KEYCT.LE.1) KEYNR=0
-C??   IF (KEYCT.LE.1) KEYCT=1
+C**** initialize Lrunid (length of the identifying part of XLABEL)
 C****
+      LRUNID = INDEX(XLABEL(1:16),'(') -1
+      IF (LRUNID.LT.1) LRUNID=16
+      if (index(XLABEL(1:LRUNID),' ').gt.0)
+     *     LRUNID=index(XLABEL(1:LRUNID),' ')-1
+
+C**** Recompute date information related to Itime0
+C****
+      call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
+    
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
       IF (yearE.ge.0) ItimeE = (( (yearE-iyear1)*JDperY +
@@ -902,7 +907,6 @@ C****
 C**** Alternate (old) way of specifying end time
       if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/24
 
-C****
 C**** Recompute dtsrc,dt making NIdyn=dtsrc/dt(dyn) a multiple of 2
 C****
       if (is_set_param("DTsrc") .and. nint(sday/DTsrc).ne.NDAY) then
@@ -910,32 +914,25 @@ C****
         stop 'INPUT: DTsrc inappropriately set'
       end if
       DTsrc = SDAY/NDAY   ! currently 1 hour
-      call set_param( "DTsrc", DTsrc, 'o' )
+      call set_param( "DTsrc", DTsrc, 'o' )   ! copy DTsrc into DB
+
       NIdyn = 2*nint(.5*dtsrc/dt)
       if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
         write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
         stop 'INPUT: DT inappropriately set'
       end if
       DT = DTsrc/NIdyn
-      call set_param( "DT", DT, 'o' )
+      call set_param( "DT", DT, 'o' )         ! copy DT into DB
+
 C**** NMONAV has to be 1(default),2,3,4,6,12, i.e. a factor of 12
       if (NMONAV.lt.1 .or. MOD(12,NMONAV).ne.0) then
         write (6,*) 'NMONAV has to be 1,2,3,4,6 or 12, not',NMONAV
         stop 'INPUT: nmonav inappropriately set'
       end if
       write (6,*) 'Diag. acc. period:',NMONAV,' month(s)'
-C****
-C**** Updating Parameters. If any of them changed beyond this line
-C**** use set_param(.., .., 'o') to update them in the database
-C****
-C**** Overwrite rundeck parameters in the DB that were changed
-C??   call set_param( "keyct", keyct, 'o' )
-C??   call set_param( "NMONAV", NMONAV, 'o' )
-
-C**** Overwrite non-rundeck parameters that were changed
-C??   call set_param( "ItimeE", ItimeE, 'o' ) !input
-C??   call set_param( "NIdyn", NIdyn, 'o' ) !input
-C??   call set_param( "Itime", Itime, 'o' ) !main
+    
+C**** Updating Parameters: If any of them changed beyond this line
+C**** use set_param(.., .., 'o') to update them in the database (DB)
 
 C**** Get the rest of parameters from DB or put defaults to DB
       call init_Model
@@ -1036,12 +1033,6 @@ C****
       WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
       WRITE (6,*) "PLbot=",PTOP+PSFMPT*SIGE
 C****
-C**** initialize lrunid
-C****
-      LRUNID = INDEX(XLABEL(1:16),'(') -1
-      IF (LRUNID.LT.1) LRUNID=16
-      if (index(XLABEL(1:LRUNID),' ').gt.0)
-     *     LRUNID=index(XLABEL(1:LRUNID),' ')-1
       RETURN
 C****
 C**** TERMINATE BECAUSE OF IMPROPER PICK-UP
