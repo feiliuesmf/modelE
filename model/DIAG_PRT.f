@@ -5083,7 +5083,7 @@ c
       k = kaijk
 c
       k = k + 1
-      name_ijk(k) = 'HEIGHT'
+      name_ijk(k) = 'z'
       lname_ijk(k) = 'HEIGHT'
       units_ijk(k) = 'm'
       scale_ijk(k) = 0.25*BYGRAV
@@ -5184,7 +5184,7 @@ C**** Select fields
             WRITE(TITLEX(23:30),'(A)') CPRESS(L)
             TITLEL(L) = TITLEX//XLB
           END DO
-        ELSEIF (name_ijk(K).eq.'HEIGHT') THEN ! special compound case
+        ELSEIF (name_ijk(K).eq.'z') THEN ! special compound case
           DO L=1,LM
             DO J=2,JM
               NI = 0
