@@ -706,7 +706,7 @@ c              END IF
               TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
 #endif
               IF(FOCEAN(ID,JD).le.0.) THEN
-                DPE=DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
+                DPE=0.  ! DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
                 FLOW(ID,JD) =  FLOW(ID,JD) + DMM
                 EFLOW(ID,JD) = EFLOW(ID,JD) + DGM+DPE
 #ifdef TRACERS_WATER
@@ -717,7 +717,9 @@ C**** DPE: also add potential energy change to ocean.
 C**** Normally ocean is at sea level (Duh!), but in some boxes ZATMO
 C**** may not be zero if there is land as well, while in the Caspian,
 C**** the ocean level is below zero.
-                DPE=DMM*(ZATMO(IU,JU)-MIN(0d0,ZATMO(ID,JD)))
+C**** Note: this is diasabled until PE of precip is properly calculated
+C**** in atmosphere as well. Otherwise, there is an energy imbalance.
+                DPE=0.  ! DMM*(ZATMO(IU,JU)-MIN(0d0,ZATMO(ID,JD)))
                 FLOWO(ID,JD)=FLOWO(ID,JD)+DMM
                 EFLOWO(ID,JD)=EFLOWO(ID,JD)+DGM+DPE
 #ifdef TRACERS_WATER
@@ -765,7 +767,7 @@ c         MLM=RHOW*MLDLK(1,1)*FLAKE(1,1)*DXYP(1)
 c         DMM=MIN(DMM,MLM)   ! not necessary since MLM>TOTD-HLAKE
 c        END IF
         DGM=TLAKE(1,1)*DMM*SHW ! TLAKE always defined
-        DPE=DMM*(ZATMO(1,1)-ZATMO(IDPOLE,JDPOLE))
+        DPE=0.  ! DMM*(ZATMO(1,1)-ZATMO(IDPOLE,JDPOLE))
         FLOW(1,1) =  FLOW(1,1) - DMM
         EFLOW(1,1) = EFLOW(1,1) - DGM
 #ifdef TRACERS_WATER
@@ -1470,13 +1472,13 @@ C****
       INTEGER :: I,J
       REAL*8 AREA
 C****
-C**** LAKE ENERGY (J/m^2) (includes potential energy)
+C**** LAKE ENERGY (J/m^2) (includes potential energy (DISABLED))
 C****
       DO J=1,JM
         LKE(J)=0.
         DO I=1,IMAXJ(J)
-          IF (FLAND(I,J).gt.0) LKE(J)=LKE(J)+GML(I,J)+
-     *         ZATMO(I,J)*MWL(I,J)
+          IF (FLAND(I,J).gt.0) LKE(J)=LKE(J)+GML(I,J)
+c     *         +ZATMO(I,J)*MWL(I,J)
         END DO
         LKE(J)=LKE(J)*BYDXYP(J)
       END DO
