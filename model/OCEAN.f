@@ -1155,7 +1155,7 @@ C**** This is here so that a coupled ocean is easier to implement
       DOUBLE PRECISION FUNCTION TOFREZ(I,J)
 !@sum  TOFREZ returns the value of the seawater freezing temp
 !@auth Gavin Schmidt
-!@var  1.0
+!@ver  1.0
       USE OCEAN, only : tfo
 !@var I,J atmospheric grid point
       INTEGER, INTENT(IN) :: I,J

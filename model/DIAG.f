@@ -8,7 +8,7 @@ C****
       MODULE DAGPCOM
 !@sum  DAGCOMP Diagnostic model variables used in the printouts
 !@auth Jean Lerner
-!@var  1.0
+!@ver  1.0
       USE MODEL_COM, only : lm
       USE RADNCB, only : LM_REQ
       IMPLICIT NONE

@@ -360,7 +360,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       USE FILEMANAGER, only : NAME=>nameunit 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: IUNIT        !@var  IUNIT  file unit number
-      INTEGER, INTENT(IN) :: IT         !@var  time_tag, 1st & last word
+      INTEGER, INTENT(IN) :: IT           !@var  IT time_tag, 1st & last word
       INTEGER, INTENT(IN) :: LEN4         !@var  LENGTH size of array
       REAL*4,  INTENT(IN) :: AOUT(LEN4)   !@var  AOUT   real*4 array
 
