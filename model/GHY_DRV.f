@@ -17,6 +17,7 @@ ccc   save
       real*8, dimension(im,jm,3) :: gdeep
 
       real*8 spgsn !@var specific gravity of snow
+      real*8 :: snow_cover_coef = .15d0
 
 
       contains
@@ -81,7 +82,7 @@ c****
       use ghycom, only : wbare,wvege,htbare,htvege,snowbv,
      &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
      *     snowe,tearth,wearth,aiearth,afb,
-     &     evap_max_ij, fr_sat_ij, qg_ij
+     &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
 #ifdef TRACERS_WATER
      *     ,trvege,trbare,trsnowbv
 #endif
@@ -100,7 +101,7 @@ c****
       implicit none
 
       integer, intent(in) :: ns,moddsf,moddd
-      integer i,j,l,kr,jr,itype,ih
+      integer i,j,l,kr,jr,itype,ih,ibv
       real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws,rcdhws,dhgs
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat,wtr2av
      *     ,wfc1,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij,psoil,pearth
@@ -119,7 +120,6 @@ c****
       real*8, dimension(ntm,0:ngm,2) :: trw
       real*8, dimension(ntm,2) :: trsnowd
       real*8  tdp, tdt1, wsoil_tot, frac, tevap
-      integer ibv
 #ifdef TRACERS_SPECIAL_O18
       real*8 fracvl
 #endif
@@ -489,6 +489,15 @@ ccc copy snow variables back to storage
       hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
       fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
 
+c**** set snow fraction for albedo computation (used by RAD_DRV.f)
+      do ibv=1,2
+        call snow_cover(fr_snow_rad_ij(ibv,i,j),
+     &       snowbv(ibv,i,j), top_dev_ij(i,j) )
+        fr_snow_rad_ij(ibv,i,j) = min (
+     &       fr_snow_rad_ij(ibv,i,j), fr_snow_ij(ibv, i, j) )
+      enddo
+
+
       aij(i,j,ij_g18)=aij(i,j,ij_g18)+aevapb
       aij(i,j,ij_g19)=aij(i,j,ij_g19)+aevapd
       aij(i,j,ij_g20)=aij(i,j,ij_g20)+aevapw
@@ -718,9 +727,30 @@ C
       return
       end subroutine earth
 
+      subroutine snow_cover( fract_snow, snow_water, top_dev )
+!@sum computes snow cover from snow water eq. and topography
+!@var fract_snow snow cover fraction (0-1)
+!@var snow_water snow water equivalent (m)
+!@var top_dev standard deviation of the surface elevation
+      use constant, only : teeny
+      real*8, intent(out) :: fract_snow
+      real*8, intent(in) :: snow_water, top_dev
+
+      ! using formula from the paper by A. Roesch et al
+      ! (Climate Dynamics (2001), 17: 933-946)
+      fract_snow = 
+ccc     $     .95d0 * tanh( 100.d0 * snow_water ) *
+ccc                               currently using only topography part
+     $     sqrt ( 1000.d0 * snow_water /
+     $     (1000.d0 * snow_water + teeny + snow_cover_coef * top_dev) )
+
+      end subroutine snow_cover
+
+
       subroutine init_gh(dtsurf,redogh,inisnow,istart)
 c**** modifications needed for split of bare soils into 2 types
       use filemanager
+      use param
       use constant, only : twopi,rhow,edpery,sha,shw_const=>shw,
      *     shi_const=>shi,lhe,lhm
       use model_com, only : fearth,vdata,itime,nday,jeq
@@ -741,7 +771,7 @@ c**** modifications needed for split of bare soils into 2 types
       integer jday
       real*8 snowdp,wtr1,wtr2,ace1,ace2,tg1,tg2
       logical :: qcon(npts)
-      integer i, j, k
+      integer i, j, k, ibv
       real*8 one,wfc1
       real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
       real*8 slim,slre,svh,z
@@ -804,22 +834,26 @@ c**** set conservation diagnostics for ground water mass and energy
       call set_con(qcon,conpt,"GRND ENG","(10**6 J/m^2)   ",
      *     "(10^-3 J/s/m^2) ",1d-6,1d3,icon_htg)
 
-c read in vegetation data set: vdata
+c**** read in vegetation data set: vdata
       call openunit("VEG",iu_VEG,.true.,.true.)
       do k=1,11
         call readt (iu_VEG,0,vdata(1,1,K),im*jm,vdata(1,1,k),1)
       end do
+
       call closeunit(iu_VEG)
       if (istart.le.0) return
-c read soils parameters
+c**** read soils parameters
       call openunit("SOIL",iu_SOIL,.true.,.true.)
       call dread (iu_SOIL,dz_ij,im*jm*(11*ngm+1),dz_ij)
       call closeunit (iu_SOIL)
-ccc read topmodel parameters
+c**** read topmodel parameters
       call openunit("TOP_INDEX",iu_TOP_INDEX,.true.,.true.)
       call readt(iu_TOP_INDEX,0,top_index_ij,im*jm,top_index_ij,1)
+      call readt(iu_TOP_INDEX,0,top_dev_ij,  im*jm,top_dev_ij,  1)
       call closeunit (iu_TOP_INDEX)
-C
+c**** read rundeck parameters
+      call sync_param( "snow_cover_coef", snow_cover_coef )
+
       one=1.
 c****
 c**** initialize constants
@@ -1107,6 +1141,21 @@ c****     copy soils prognostic quantities to model variables
         end do
       end do
       end if
+
+c**** set snow fraction for albedo computation (used by RAD_DRV.f)
+      fr_snow_rad_ij(:,:,:) = 0.d0
+      do j=1,jm
+        do i=1,im
+          if ( fearth(i,j) <= 0.d0 ) then
+            do ibv=1,2
+              call snow_cover(fr_snow_rad_ij(ibv,i,j),
+     &             snowbv(ibv,i,j), top_dev_ij(i,j) )
+              fr_snow_rad_ij(ibv,i,j) = min (
+     &             fr_snow_rad_ij(ibv,i,j), fr_snow_ij(ibv, i, j) )
+            enddo
+          endif
+        enddo
+      enddo
 
       return
       end subroutine init_gh
@@ -1481,7 +1530,7 @@ c****
       use model_com, only : fearth,itearth
       use geom, only : imaxj,dxyp
       use ghycom, only : snowe, tearth,wearth,aiearth,wbare,wvege,snowbv
-     *     ,fr_snow_ij,afb
+     *     ,fr_snow_ij,afb,fr_snow_rad_ij
       use dagcom, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
      *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g28
@@ -1512,9 +1561,15 @@ c****
         enrgp=eprec(i,j)      ! including latent heat
 
 c**** accumulate diagnostics
+c**** the following is the actual snow cover of the snow model
+c        scove = pearth *
+c     *       ( afb(i,j)*fr_snow_ij(1,i,j)
+c     *       + (1.-afb(i,j))*fr_snow_ij(2,i,j) )
+c**** the following computes the snow cover as it is used in RAD_DRV.f
         scove = pearth *
-     *       ( afb(i,j)*fr_snow_ij(1,i,j)
-     *       + (1.-afb(i,j))*fr_snow_ij(2,i,j) )
+     *       ( afb(i,j)*fr_snow_rad_ij(1,i,j)
+     *       + (1.-afb(i,j))*fr_snow_rad_ij(2,i,j) )
+
         !if (snowe(i,j).gt.0.) scove=pearth
         aj(j,j_rsnow,itearth)=aj(j,j_rsnow,itearth)+scove
         areg(jr,j_rsnow)=areg(jr,j_rsnow)+scove*dxyp(j)

@@ -479,7 +479,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,POCEAN,PEARTH,POICE,PLICE,COSZ,PVT
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI,DMOICE,DMLICE
-     &             ,hsn,hin,hmp,fmp,flags,LS1_loc
+     &             ,hsn,hin,hmp,fmp,flags,LS1_loc,snow_frac
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
@@ -507,7 +507,7 @@ C     OUTPUT DATA
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
       USE GHYCOM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
-     *     ,aiearth
+     *     ,aiearth,fr_snow_rad_ij
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake
       USE FLUXES, only : gtemp
@@ -835,7 +835,8 @@ C**** Zenith angle and GROUND/SURFACE parameters
       TSL=TSAVG(I,J)
       SNOWOI=SNOWI(I,J)
       SNOWLI=SNOWLI_COM(I,J)
-      SNOWE=SNOWE_COM(I,J)
+      SNOWE=SNOWE_COM(I,J)                    ! snow depth (kg/m**2)
+      snow_frac(:) = fr_snow_rad_ij(:,i,j)    ! snow cover (1)
       AGESN(1)=SNOAGE(3,I,J)    ! land         ! ? why are these numbers
       AGESN(2)=SNOAGE(1,I,J)    ! ocean ice        so confusing ?
       AGESN(3)=SNOAGE(2,I,J)    ! land ice

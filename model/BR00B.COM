@@ -27,7 +27,7 @@ C     INPUT DATA  (i,j) dependent
      I          ,POCEAN,PEARTH,POICE,PLICE,AGESN(3),SNOWE,SNOWOI,SNOWLI
      J             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      L             ,COSZ,PVT(11),BXA(153),SRBXAL(15,2)   ,DMOICE,DMLICE
-     X             ,hsn,hin,hmp,fmp,flags, LS1_loc
+     X             ,hsn,hin,hmp,fmp,flags, LS1_loc, snow_frac(2)
 !@var LS1_loc local tropopause level
 C**** Additional info passed for new prescription of sea ice albedo
 !@var hsn depth of snow (m)

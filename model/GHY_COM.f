@@ -39,6 +39,10 @@ ccc ( ISN can be eliminated later, since FR_SNOW contains similar info )
       REAL*8, DIMENSION(NLSN,2,IM,JM) :: WSN_IJ
       REAL*8, DIMENSION(NLSN,2,IM,JM) :: HSN_IJ
       REAL*8, DIMENSION(2,IM,JM)      :: FR_SNOW_IJ
+ccc FR_SNOW_RAD_IJ is snow fraction for albedo computations
+ccc actually it should be the same as FR_SNOW_IJ but currently the snow
+ccc model can't handle fractional cover for thick snow (will fix later)
+      REAL*8, DIMENSION(2,IM,JM)      :: FR_SNOW_RAD_IJ
 C**** replacements for GDATA
       REAL*8, DIMENSION(IM,JM) :: SNOWE
       REAL*8, DIMENSION(IM,JM) :: TEARTH
@@ -46,8 +50,8 @@ C**** replacements for GDATA
       REAL*8, DIMENSION(IM,JM) :: AIEARTH
       REAL*8, DIMENSION(3,IM,JM) :: SNOAGE
 
-ccc topmodel input data
-      REAL*8, DIMENSION(IM,JM) :: TOP_INDEX_IJ
+ccc topmodel input data and standard deviation of the elevation
+      REAL*8, DIMENSION(IM,JM) :: TOP_INDEX_IJ, top_dev_ij
 
 ccc evaporation limits from previous time step
       real*8, dimension(IM,JM) :: evap_max_ij=1., fr_sat_ij=1.,

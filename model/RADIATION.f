@@ -12915,6 +12915,9 @@ c  into a separate module.
 c*********************************************************************
 
       SUBROUTINE SETSUR
+!@sum computes surface albedo
+!@ver 1.0
+!@auth Original develpment team
       use RE001, only: MLAT46,ALBVNH,FSPARE,AGESN,BSNVIS,ASNVIS,BSNNIR
      &     ,ASNNIR,ASNALB,EXPSNE,EXPSNO,EXPSNL,BXA,BGFEMD,BGFEMT,DTRUFG
      &     ,COSZ,BOCVIS,AVSCAT,BOCNIR,ANSCAT,AVFOAM,ANFOAM,EOCTRA
@@ -13177,9 +13180,13 @@ C
 C                                          -----------------------------
 C                                          Soil/Veg Albedo Specification
 C                                          -----------------------------
+c**** In the following code when computing albedo for snow covered soil
+c**** we use snow_frac(1:2) which is the snow fraction cover for 
+c**** bare/vegetated soil. It is computed in GHY_DRV.f in accordance 
+c**** with the surface topography.
+c**** The final snow cover is minimum of snow_frac and the snow fraction
+c**** obtained using the vegetation masking.
   400 CONTINUE
-!!! teting with no snow
-!!!   snowe = 0.
       IF(KVEGA6.LE.0) THEN                                      ! 2-band
       DSFRAC=PVT(1)+PVT(10)
       VGFRAC=1.D0-DSFRAC
@@ -13203,18 +13210,13 @@ C                                          -----------------------------
       ENDIF
       GO TO 440
   420 CONTINUE
-cc      VTFRAC=PVT(1)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(1)))
-       VTFRAC=PVT(1)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(1)))
-ccc      EXPSNE=VTFRAC
-ccc      DSFRAC=VTFRAC
-cc      EXPSNE=VTFRAC + PVT(10)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(10)))
+      VTFRAC=PVT(1)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(1)))
       EXPSNE=VTFRAC +
      &      PVT(10)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(10)))
       DSFRAC=EXPSNE
       BEAVIS=VTFRAC*ALBVNH(1,1,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
       BEANIR=VTFRAC*ALBVNH(1,2,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
       DO 430 K=2,NVEG
-cc      VTFRAC=PVT(K)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(K)))
       VTFRAC=PVT(K)*MAX((1.d0-snow_frac(2)),EXP(-SNOWE/VTMASK(K)))
       BEAVIS=BEAVIS+VTFRAC*ALBVNH(K,1,LATHEM)
       BEANIR=BEANIR+VTFRAC*ALBVNH(K,2,LATHEM)
@@ -13258,11 +13260,7 @@ C
       ENDIF
       GO TO 444
   442 CONTINUE
-cc      VTFRAC=PVT(1)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(1)))
       VTFRAC=PVT(1)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(1)))
-ccc      EXPSNE=VTFRAC
-ccc      DSFRAC=VTFRAC
-cc      EXPSNE=VTFRAC + PVT(10)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(10)))
       EXPSNE=VTFRAC +
      &     PVT(10)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(10)))
       DSFRAC=EXPSNE
@@ -13270,7 +13268,6 @@ cc      EXPSNE=VTFRAC + PVT(10)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(10)))
       BEAVN(L)=VTFRAC*ALBVNH(1,L,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
   433 CONTINUE
       DO 443 K=2,NVEG
-cc      VTFRAC=PVT(K)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(K)))
       VTFRAC=PVT(K)*MAX((1.d0-snow_frac(2)),EXP(-SNOWE/VTMASK(K)))
       DO 434 L=1,6
       BEAVN(L)=BEAVN(L)+VTFRAC*ALBVNH(K,L,LATHEM)
