@@ -11,6 +11,9 @@
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm
+#ifdef TRACERS_WATER
+     & ,nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD, tr_evap_fact
+#endif
 #endif
       USE RANDOM
       IMPLICIT NONE
@@ -106,6 +109,16 @@ C**** new arrays must be set to model arrays in driver (after COND)
 !@var TRPRSS super-saturated tracer precip (kg)
 !@var TRPRMC moist convective tracer precip (kg)
       REAL*8, DIMENSION(NTM)    :: TRPRSS,TRPRMC
+!@var FQCONDT fraction of tracer that condenses
+!@var FQEVPT  fraction of tracer that evaporates (in downdrafts)
+!@var FPRCPT fraction of tracer that evaporates (in net re-evaporation)
+!@var FWASHT  fraction of tracer scavenged by below-cloud precipitation
+      REAL*8, DIMENSION(NTM) :: FQCONDT, FWASHT, FPRCPT, FQEVPT
+!@var WMXTR available water mixing ratio for tracer condensation ( )?
+!@var b_beta_DT precipitating grid box fraction from lowest percipitating
+!@+   layer. The name was chosen to correspond to Koch et al. p. 23,802.
+!@var precip_mm precipitation (in mm) from the grid box above for washout
+      REAL*8 WMXTR, b_beta_DT, precip_mm
 #endif
 #endif
 
@@ -709,9 +722,13 @@ C****
       COND(L)=DQSUM
 #ifdef TRACERS_WATER
 C**** CONDENSING TRACERS
-      TRCOND(1:NTX,L) = FQCOND * TMP(1:NTX)
-      TMP(1:NTX)         = TMP(1:NTX)         *(1.-FQCOND)
-      TMOMP(xymoms,1:NTX)= TMOMP(xymoms,1:NTX)*(1.-FQCOND)
+      WMXTR=DQSUM*BYAM(L)
+      DO N=1,NTX
+        CALL GET_COND_FACTOR(L,N,WMXTR,FPLUME,FQCOND,FQCONDT(N))
+        TRCOND(N,L) = FQCONDT(N) * TMP(N)
+        TMP(N)         = TMP(N)         *(1.-FQCONDT(N))
+        TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT(N))
+      END DO 
 #endif
       TAUMCL(L)=TAUMCL(L)+DQSUM
       CDHEAT(L)=SLH*COND(L)
@@ -806,9 +823,18 @@ C     DQEVP=DQ*DDRAFT
       CDHEAT(L)=CDHEAT(L)-DQEVP*SLH
       EVPSUM=EVPSUM+DQEVP*SLH
 #ifdef TRACERS_WATER
-C**** RE-EVAPORATION OF TRACERS IN DOWNDRAFTS
-      TMDN(1:NTX) = TMDN(1:NTX) + FQEVP*TRCOND(1:NTX,L)
-      TRCOND(1:NTX,L) = TRCOND(1:NTX,L)*(1.-FQEVP)
+C**** RE-EVAPORATION OF TRACERS IN DOWNDRAFTS 
+C     (If 100% evaporation, allow all tracers to evaporate completely.)
+      DO N=1,NTX
+        IF(FQEVP.eq.1.) THEN                 ! total evaporation
+          TMDN(N)     = TMDN(N) + TRCOND(N,L)
+          TRCOND(N,L) = 0.D0
+        ELSE ! otherwise, tracers evaporate dependent on type of tracer
+          CALL GET_EVAP_FACTOR(N,FQEVP,FQEVPT(N))
+          TMDN(N)     = TMDN(N)     + FQEVPT(N) * TRCOND(N,L)
+          TRCOND(N,L) = TRCOND(N,L) - FQEVPT(N) * TRCOND(N,L)
+        END IF
+      END DO
 #endif
 C**** ENTRAINMENT OF DOWNDRAFTS
       IF(L.LT.LDRAFT.AND.L.GT.1) THEN
@@ -1009,6 +1035,8 @@ C     IF(LMAX-LMIN.LE.2) GO TO 700
       PRHEAT=CDHEAT(LEVAP+1)
 #ifdef TRACERS_WATER
 C**** Tracer precipiation
+C Note that all of the tracers that condensed do not precipitate here, since
+C a fraction (FCLW) of TRCOND was removed above. 
       TRPRCP(1:NTX) = TRCOND(1:NTX,LEVAP+1)
 #endif
 C     FEVAP=.5*FPLUME
@@ -1086,11 +1114,32 @@ C**** UPDATE TEMPERATURE AND HUMIDITY DUE TO NET REVAPORATION IN CLOUDS
       QM(L)=QM(L)+DQSUM
 #ifdef TRACERS_WATER
 C**** Tracer net re-evaporation
+C (If 100% evaporation, allow all tracers to evaporate completely.)
       DO N=1,NTX
-        DTSUM = FPRCP*TRPRCP(N)
-        TRPRCP(N)= TRPRCP(N)-DTSUM
-        TM(L,N)  = TM(L,N)  +DTSUM
+        IF(FPRCP.eq.1.) THEN                 !total evaporation
+          TM(L,N)   = TM(L,N)  + TRPRCP(N)
+          TRPRCP(N) = 0.D0
+        ELSE ! otherwise, tracers evaporate dependent on type of tracer
+          CALL GET_EVAP_FACTOR(N,FPRCP,FPRCPT(N))
+          TM(L,N) = TM(L,N)     + FPRCPT(N)*TRPRCP(N)
+          TRPRCP(N) = TRPRCP(N) - FPRCPT(N)*TRPRCP(N)
+        END IF
       END DO
+C**** CONDENSING and WASHOUT of TRACERS BELOW CLOUD
+      IF(L.lt.LMIN) THEN ! BELOW CLOUD
+        WMXTR = PRCPMC*BYAM(L)
+        precip_mm = PRCPMC*100.*bygrav
+        b_beta_DT = FPLUME 
+        DO N=1,NTX
+          CALL GET_COND_FACTOR(L,N,WMXTR,FPLUME,0.,FQCONDT(N))
+          CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT(N))
+          TRCOND(N,L) = FPLUME * FQCONDT(N) * TM(L,N)
+          TRPRCP(N)=TRPRCP(N) + TM(L,N)*FWASHT(N)  
+          TM(L,N)=TM(L,N) * (1.-FPLUME*FQCONDT(N)-FWASHT(N))
+          TMOM(xymoms,L,N)=TMOM(xymoms,L,N) *
+     &                       (1.-FPLUME*FQCONDT(N)-FWASHT(N))   
+        END DO
+      END IF
 #endif
          FCDH1=0.
 C        IF(L.EQ.LDEP) FCDH1=FCDH1+CDHM
@@ -1229,6 +1278,18 @@ C**** functions
 !@var FPR fraction of CLW that precipitates
 !@var FER fraction of precipitate that evaporates
       REAL*8 DTPR,DTER,DTQW,TWMTMP,DTSUM,FWTOQ,FPR,FER
+!@var DTPRT tracer-specific change of tracer by precip (kg)
+!@var DTERT tracer-specific change of tracer by evaporation (kg)
+!@var DTWRT tracer-specific change of tracer by washout (kg)
+!@var DTQWT tracer-specific change of tracer by condensation (kg)
+!@var FWTOQT tracer-specific fraction of tracer in CLW that evaporates
+!@var FQTOWT tracer-sepcific fraction of gas tracer that condenses in CLW
+!@var FPRT tracer-specific fraction of tracer in CLW that precipitates
+!@var FERT tracer-specific fraction of tracer in precipitate that evaporates
+      REAL*8,DIMENSION(NTM)::DTWRT,DTPRT,DTERT,DTQWT,
+     &                       FWTOQT,FQTOWT,FPRT,FERT
+!@var BELOW_CLOUD logical- is the current level below cloud?
+      LOGICAL BELOW_CLOUD
 #endif
 
       REAL*8 Q1,AIRMR,BETA,BMAX
@@ -1323,6 +1384,7 @@ C**** initialise vertical arrays
 #ifdef TRACERS_WATER
       TRPRSS = 0.
       TRPRBAR = 0.
+      BELOW_CLOUD=.false.
 #endif
       DO L=1,LM
          CAREA(L)=1.-CLDSAVL(L)
@@ -1577,16 +1639,46 @@ C**** adjust gradients down if Q decreases
       QSATC=QSAT(TL(L),LHX,PL(L))
       RH(L)=QL(L)/QSATC
 #ifdef TRACERS_WATER
-C**** update tracers from cloud formation
-      DO N=1,NTX        
-        DTPR = FPR*TRWML(N,L)
-        TRWML(N,L) =     TRWML(N,L)   - DTPR
-        DTER = FER*TRPRBAR(N,L+1)
-        DTQW = FQTOW*(TM(L,N)+DTER) - FWTOQ*TRWML(N,L)
-        TRWML(N,L) = TRWML(N,L)                     + DTQW
-        TM(L,N) =       TM(L,N)              + DTER - DTQW
-        TRPRBAR(N,L) = TRPRBAR(N,L+1) + DTPR - DTER
-        TMOM(:,L,N) = TMOM(:,L,N)*(1.-FQTOW)
+C**** update tracers from cloud formation (in- and below-cloud precipitation,
+C**** evaporation, condensation, and washout)
+      DO N=1,NTX
+c ---------------------- initialize fractions ------------------------
+        FPRT(N)  =0.
+        FERT(N)  =0.
+        FWASHT(N)=0.
+        FQTOWT(N)=0.
+        FWTOQT(N)=0.
+c ----------------------- calculate fractions ------------------------
+        CALL GET_EVAP_FACTOR(N,FER,FERT(N))       !precip. tracer evaporation
+C       When cloud water evaporates, all tracers evaporate at same rate:
+        FWTOQT(N) = FWTOQ                       !condensed tracer evaporation
+        IF(BELOW_CLOUD) THEN                                  
+          precip_mm = PREBAR(L+1)
+          CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT(N))!washout
+          WMXTR = PREBAR(L+1)*grav*BYAM(L)*dtsrc
+        ELSE
+          WMXTR = WMX(L)
+c         b_beta_DT is needed at the lowest precipitating level,
+c         so saving it here for below cloud case:
+          b_beta_DT = FCLD*CM*dtsrc           
+        END IF  
+        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT(N))!precipitation
+        CALL GET_COND_FACTOR(L,N,WMXTR,FCLD,FQTOW,FQTOWT(N))   !condensation
+c ---------------------- calculate fluxes ------------------------
+        DTWRT(N) = FWASHT(N)*TM(L,N)
+        DTERT(N) = FERT(N)  *TRPRBAR(N,L+1)
+        DTPRT(N) = FPRT(N)  *TRWML(N,L)
+        DTQWT(N) = 
+     &   FQTOWT(N)*(TM(L,N)+DTERT(N)) - FWTOQT(N)*(TRWML(N,L)-DTPRT(N)) 
+c ---------------------- apply fluxes ------------------------
+        TRWML(N,L)   =
+     &  TRWML(N,L)     - DTPRT(N)                       + DTQWT(N)
+        TM(L,N)      =
+     &  TM(L,N)                   + DTERT(N) - DTWRT(N) - DTQWT(N)
+        TRPRBAR(N,L) =
+     &  TRPRBAR(N,L+1) + DTPRT(N) - DTERT(N) + DTWRT(N)
+c
+        TMOM(:,L,N)  = TMOM(:,L,N)*(1. - FQTOWT(N) - FWASHT(N))
       END DO
 #endif
 C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
@@ -1605,11 +1697,17 @@ C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
 C**** adjust gradients down if Q decreases
        QMOM(:,L)= QMOM(:,L)*(1.-FCOND)
 #ifdef TRACERS_WATER
-      DO N=1,NTX        ! condense water vapour to liquid water
-        DTSUM = FCOND*TM(L,N)
-        TRWML(N,L)  =TRWML(N,L)+DTSUM
-        TM(L,N)     =TM(L,N)   -DTSUM
-        TMOM(:,L,N)=TMOM(:,L,N)*(1.-FCOND)
+C**** CONDENSING MORE TRACERS
+      IF(BELOW_CLOUD) THEN 
+        WMXTR = PREBAR(L+1)*grav*BYAM(L)*dtsrc
+      ELSE
+        WMXTR = WMX(L)  
+      END IF
+      DO N=1,NTX
+        CALL GET_COND_FACTOR(L,N,WMXTR,FCLD,FCOND,FQCONDT(N))
+        TRWML(N,L)  =TRWML(N,L)+ FQCONDT(N)*TM(L,N)
+        TM(L,N)     =TM(L,N)    *(1.-FQCONDT(N)) 
+        TMOM(:,L,N) =TMOM(:,L,N)*(1.-FQCONDT(N))
       END DO
 #endif
       ELSE
@@ -1636,6 +1734,9 @@ C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       IF(WMX(L).LE.0.) CAREA(L)=1.
       IF(CAREA(L).LT.0.) CAREA(L)=0.
       CLDSSL(L)=1.-CAREA(L)
+#ifdef TRACERS_WATER
+       IF(CLDSSL(L).eq.0.) BELOW_CLOUD=.true.
+#endif   
       TOLDUP=TOLD
       LHXUP=LHX
 C**** ACCUMULATE SOME DIAGNOSTICS
