@@ -18,12 +18,12 @@ c             /usr/local/netcdf-3.4/lib64/libnetcdf.a -o acc2nc
       REAL :: DUMMY4
       CHARACTER(len=8) :: MODULE_HEADER
       integer :: k01,k02,k03,k04,k05,k06,k07,k08,k09,k10,
-     &           k11,k12,k13,k14,k15,k16,k17,k18,k19,k20
+     &           k11,k12,k13,k14,k15,k16,k17,k18,k19   
       real ::
      &     aj_odd,areg_odd,apj_odd,ajl_odd,asjl_odd,aij_odd,
      &     ail_odd,aijg_odd,energy_odd,consrv_odd,speca_odd,
      &     atpe_odd,adaily_odd,wave_odd,ajk_odd,aijk_odd,
-     &     aijl_odd,ajlsp_odd,tsfrez_odd,tdiurn_odd
+     &     aijl_odd,ajlsp_odd,tsfrez_odd
 
       call getarg(0,cmdstr)
       if(iargc().ne.2) then
@@ -62,7 +62,6 @@ C**** and the acc arrays no longer stored adjacent in a common block
       k17 = size(aijl)
       k18 = size(ajlsp)
       k19 = size(tsfrez)
-      k20 = size(tdiurn)
 
       iunit=30
       open(iunit,file=accfile,form='unformatted')
@@ -89,7 +88,6 @@ C**** and the acc arrays no longer stored adjacent in a common block
      &     (aijk(k,1,1,1) ,k=1,k16/2) ,(aijk_odd   ,k=1,mod(k16,2)),
      &     (aijl(k,1,1,1) ,k=1,k17/2) ,(aijl_odd   ,k=1,mod(k17,2)),
      &     (ajlsp(k,1,1,1),k=1,k18/2) ,(ajlsp_odd  ,k=1,mod(k18,2)),
-     &     (tdiurn(k,1,1) ,k=1,k20/2) ,(tdiurn_odd ,k=1,mod(k20,2)),
      &     it
       close(iunit)
 
@@ -113,7 +111,6 @@ C**** Convert ACC single to double precision
       call CNV428(aijl    ,aijl_odd    ,k17)
       call CNV428(ajlsp   ,ajlsp_odd   ,k18)
       CALL CNV428(tsfrez  ,tsfrez_odd  ,k19)
-      CALL CNV428(tdiurn  ,tsfrez_odd  ,k20)
 
       call geom_b
 
