@@ -1381,10 +1381,10 @@ c**** set up layers
       sl=sl_ij(i0,j0)
 
 
-      do n=1,ngm
-        if(dz(n).le.0.) go to 21
+      do k=1,ngm
+        if(dz(k).le.0.) exit
       end do
-   21 n=n-1
+      n=k-1
    !  print *,'>>>>>> n= ', n
       !n = ngm
       if(n.le.0) then
