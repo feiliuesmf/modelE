@@ -267,14 +267,14 @@ C****
      *     ,trsi,ntm
 #endif
       USE LAKES_COM, only : flake
-      USE FLUXES, only : sss,melti,emelti,smelti,gtemp
+      USE FLUXES, only : sss,melti,emelti,smelti,gtemp,mlhc
 #ifdef TRACERS_WATER
      *     ,trmelti
 #endif
       IMPLICIT NONE
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
-      REAL*8 MSI2,ROICE,SNOW,ENRGW,ENRGUSED,ANGLE,RUN0,SALT,POCEAN,TFO
-     *     ,PWATER,Tm,DT
+      REAL*8 MSI2,ROICE,SNOW,ENRGUSED,RUN0,SALT,POCEAN,TFO
+     *     ,PWATER,Tm,DT,ENRGMAX
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: TRSIL
       REAL*8, DIMENSION(NTM) :: TRUN0
@@ -314,6 +314,7 @@ C**** now include lat melt for lakes and any RSI < 1
             SNOW=SNOWI(I,J)     ! snow mass
             HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
             SSIL(:)= SSI(:,I,J) ! sea ice salt
+            ENRGMAX= (Tm-TFO)*MLHC(I,J) ! max energy available for melt
 #ifdef TRACERS_WATER
             TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice
 #endif
@@ -321,7 +322,7 @@ C**** now include lat melt for lakes and any RSI < 1
 #ifdef TRACERS_WATER
      *           ,TRSIL,TRUN0
 #endif
-     *           ,ENRGUSED,RUN0,SALT)
+     *           ,ENRGMAX,ENRGUSED,RUN0,SALT)
 
 C**** accumulate diagnostics
            AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ENRGUSED*ROICE*PWATER

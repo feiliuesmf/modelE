@@ -941,7 +941,7 @@ C**** Calculate temperatures for diagnostics and radiation
 #ifdef TRACERS_WATER
      &     TRSIL,TRUN0,
 #endif
-     &     ENRGUSED,RUN0,SALT)
+     &     ENRGMAX,ENRGUSED,RUN0,SALT)
 !@sum  SIMELT melts sea ice laterally and if it is too small
 !@+    Note: all amounts are with respect to the ocean/lake fraction
 !@auth Original Development Team
@@ -962,6 +962,8 @@ C**** Calculate temperatures for diagnostics and radiation
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL, SSIL
 !@var TSIL ice temperature (C)
       REAL*8, INTENT(OUT), DIMENSION(LMI) :: TSIL
+!@var ENRGMAX max energy available for melting ice (J/m^2)
+      REAL*8, INTENT(IN) :: ENRGMAX
 !@var ENRGUSED energy used to melt ice (J/m^2)
       REAL*8, INTENT(OUT) :: ENRGUSED
 !@var RUN0 amount of sea ice melt (kg/m^2)
@@ -987,11 +989,12 @@ C**** (via C. Bitz): Rside=dt*pi/(floesize*eta)*(3d-6)*(delT)^(1.36)
         dtemp=MAX(Tm-TFO,0d0)
         DRSI=DT*SILMFAC*dtemp**SILMPOW
         IF (ROICE-DRSI.lt.1d-3) DRSI=ROICE
+        IF (ENRGMAX+DRSI*SUM(HSIL).lt.0) DRSI=-ENRGMAX/SUM(HSIL)
       END IF
 C**** Remove DRSI amount of ice
-      ENRGUSED=-DRSI*(HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4)) !  [J/m^2]
+      ENRGUSED=-DRSI*SUM(HSIL) !  [J/m^2]
       RUN0=DRSI*(SNOW + ACE1I + MSI2)
-      SALT=DRSI*(SSIL(1)+SSIL(2)+SSIL(3)+SSIL(4))
+      SALT=DRSI*SUM(SSIL)
 #ifdef TRACERS_WATER
       TRUN0(:)=DRSI*(TRSIL(:,1)+TRSIL(:,2)+TRSIL(:,3)+TRSIL(:,4))
 #endif
