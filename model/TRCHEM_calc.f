@@ -17,8 +17,8 @@ C
 #ifdef regional_Ox_tracers
      &                            ,LAT_DG,LON_DG
 #endif
-      USE TRACER_DIAG_COM, only : jls_OHcon,jls_H2Omr,jls_day,tajls
-C    &                            ! ,ijs_OxL1
+      USE TRACER_DIAG_COM, only : jls_OHcon,jls_H2Omr,jls_day,tajls,
+     &                           taijs,ijs_NO3,ijs_OH,ijs_HO2 !ijs_OxL1
 #ifdef regional_Ox_tracers
      &  ,jls_Oxloss,jls_Oxprod,ijs_Oxprod,ijs_Oxloss
 #endif
@@ -1222,12 +1222,17 @@ c     No ozone chemistry (for now) at mesospheric levels
 
 C**** special diags not associated with a particular tracer
       DO L=1,maxl
-         if (y(nOH,L).gt.0.d0 .and. y(nOH,L).lt.1.d20) 
-     &   TAJLS(J,L,jls_OHcon)=TAJLS(J,L,jls_OHcon)+y(nOH,L)
+         if (y(nOH,L).gt.0.d0 .and. y(nOH,L).lt.1.d20)then
+           TAJLS(J,L,jls_OHcon)=TAJLS(J,L,jls_OHcon)+y(nOH,L)
+           TAIJS(I,J,ijs_OH(L))=TAIJS(I,J,ijs_OH(L))+y(nOH,L)
+         end if
+         if (y(nNO3,L).gt.0.d0 .and. y(nNO3,L).lt.1.d20)
+     &   TAIJS(I,J,ijs_NO3(L))=TAIJS(I,J,ijs_NO3(L))+y(nNO3,L)
+         if (y(nHO2,L).gt.0.d0 .and. y(nHO2,L).lt.1.d20)
+     &   TAIJS(I,J,ijs_HO2(L))=TAIJS(I,J,ijs_HO2(L))+y(nHO2,L)
          TAJLS(J,L,jls_H2Omr)=TAJLS(J,L,jls_H2Omr)+(y(nH2O,L)/y(nM,L))
       END DO
       TAJLS(J,1,jls_day)=TAJLS(J,1,jls_day)+1.d0 
-CCCC  need to save 3D OH here too...
 
  155  format(1x,a8,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
  156  format(1x,a8,a2,e13.3,a16)
