@@ -11,6 +11,7 @@ RES_M16T  ! horiz/vert resolution: 4x5, 16 lrs->.3mb, NO GWdrag
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
+DOMAIN_DECOMP                       ! domain decomposition
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
