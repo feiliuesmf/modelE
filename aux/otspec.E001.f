@@ -190,7 +190,7 @@ C****
               SINDAY(K) = DSIN(K*ARG)
             END DO
 C*
-            call READi (iu_VFLX, itime,OA,itime1,IM*JM*KOA*2,iok)
+            call READi8 (iu_VFLX, itime,OA,itime1,IM*JM*KOA,iok)
             if(iok.gt.0) go to 555
 C**** Interpolate daily ocean data from the monthly climatology
 C*

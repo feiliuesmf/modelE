@@ -130,7 +130,7 @@ C****
           call openunit(file_name,iu_VFLX,.true.,.true.)
           last_day = month_day(month)
           do kday = 1,last_day
-            call READi (iu_VFLX, itime,OA,itime1,IM*JM*koa*2,iok)
+            call READi8 (iu_VFLX, itime,OA,itime1,IM*JM*koa,iok)
             if(iok.gt.0) go to 555
             jmon = month
             jdate = kday
