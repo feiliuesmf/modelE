@@ -1195,7 +1195,7 @@ C****
       RETURN
       END SUBROUTINE DIAGCO
 
-      SUBROUTINE DUMMY
+      SUBROUTINE DUMMY_OCN
 !@sum  DUMMY necessary entry points for non-dynamic oceans
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -1204,5 +1204,5 @@ C****
       ENTRY ADVSI
 
       RETURN
-      END SUBROUTINE DUMMY
+      END SUBROUTINE DUMMY_OCN
 

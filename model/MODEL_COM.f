@@ -1,12 +1,10 @@
       MODULE MODEL_COM
-!@sum  MODEL_COM Main model variables 4x5 deg Model, 12 layers
+!@sum  MODEL_COM Main model variables, independent of resolution
 !@auth Original Development Team
 !@ver  1.0
+      USE RESOLUTION, only : im,jm,lm
       IMPLICIT NONE
       SAVE
-!@var IM,JM longitudinal and latitudinal number of grid boxes
-!@var LM number of vertical levels (limited to 40 by BR00B.COM)
-      INTEGER, PARAMETER :: IM=72,JM=46,LM=12
 
 !@var IMH half the number of latitudinal boxes
       INTEGER, PARAMETER :: IMH=IM/2
@@ -95,7 +93,7 @@ C**** (Simplified) Calendar Related Terms
       LOGICAL :: aturb_on=.true.
 
 !@var vt_on switches on/off surface and turbulence temperature virtual.
-c**** not working yet for EE001M12.f
+c**** not working yet for EARTH
       LOGICAL :: vt_on=.true.
 
 C**** IO read/write flags used by the io_xyz routines
@@ -244,7 +242,7 @@ C****
       END SUBROUTINE TIMEOUT
 
       SUBROUTINE io_label(kunit,it,iaction,ioerr)
-!@sum  io_model reads and writes label/parameters to file
+!@sum  io_label reads and writes label/parameters to file
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM
@@ -338,7 +336,7 @@ C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
       RETURN
       END SUBROUTINE io_label
 
-      SUBROUTINE io_model(kunit,iaction,ioerr)
+       SUBROUTINE io_model(kunit,iaction,ioerr)
 !@sum  io_model reads and writes model variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -350,7 +348,7 @@ C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "E001M12"
+      CHARACTER*8 :: HEADER, MODULE_HEADER = "MODEL01"
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE) ! output to end-of-month restart file
@@ -366,29 +364,3 @@ C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
  10   IOERR=1
       RETURN
       END SUBROUTINE io_model
-
-      SUBROUTINE GWDRAG
-!@sum Dwdrag dummy routine for non-stratospheric models
-      RETURN
-      END SUBROUTINE GWDRAG
-
-      SUBROUTINE VDIFF
-!@sum VDIFF dummy routine for non-stratospheric models
-      RETURN
-      END SUBROUTINE VDIFF
-
-      SUBROUTINE EPFLUX
-!@sum EPFLUX dummy routine for non-stratospheric models
-      RETURN
-      END SUBROUTINE EPFLUX
-
-      SUBROUTINE EPFLXI
-!@sum EPFLXI dummy routine for non-stratospheric models
-      RETURN
-      END SUBROUTINE EPFLXI
-
-
-      SUBROUTINE diaga0
-!@sum diaga0 dummy routine for non-stratospheric models
-      RETURN
-      END SUBROUTINE diaga0

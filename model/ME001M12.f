@@ -1295,6 +1295,7 @@ C**** Calls to individual i/o routines
       it1=it
       if(iaction.ne.ioread_single.and.iaction.ne.iowrite_single) then
         call io_model  (kunit,iaction,ioerr)
+        call io_strat  (kunit,iaction,ioerr)
         call io_ocean  (kunit,iaction,ioerr)
         call io_lakes  (kunit,iaction,ioerr)
         call io_seaice (kunit,iaction,ioerr)

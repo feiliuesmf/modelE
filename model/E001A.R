@@ -3,7 +3,8 @@ E001A.R GISS Model E                                 gas 06/00
 E001A: new modelE (Qflux version)
 
 Object modules: (in order of decreasing priority)
-E001M12_COM GEOM_B FLUXES           ! model modules
+RES_M12                             ! horiz/vert resolution 
+MODEL_COM GEOM_B FLUXES             ! model modules
 ME001M12                            ! Main and model overhead
 DYNE001 DYNCOM                      ! dynamics
 SOMTQ_COM QUSDEF QUSEM12            ! advection of tracers
@@ -24,7 +25,7 @@ POUT                                ! for post-processing
 PARAM PARSER
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.10
+AIC=DEC1958.rsfB394M12.modelE.11
 OHT=OTSPEC.RB399AM12.M250D OCNML=Z1O.B4X5.cor
 MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
 OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
