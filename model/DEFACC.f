@@ -2735,7 +2735,7 @@ c
 c
       k=k+1
       jl_dtdyn = k
-      sname_jl(k) = 'DT_DYNAMICS' !
+      sname_jl(k) = 'dtempdt_dynamics' !
       lname_jl(k) = 'DTEMP/DT BY DYNAMICS'
       units_jl(k) = 'K/DAY'
       pow_jl(k) = -1
@@ -2891,7 +2891,7 @@ c
 c
       k=k+1
       jl_dtdtsdrg = k
-      sname_jl(k) = 'DT_SDRAG' !
+      sname_jl(k) = 'dtempdt_sdrag' !
       lname_jl(k) = 'DTEMP/DT BY STRATOSPHERIC DRAG'
       units_jl(k) = 'K/DAY'
       pow_jl(k) = -1
