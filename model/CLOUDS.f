@@ -250,7 +250,7 @@ C**** functions
 !@var precip_mm precipitation (mm) from the grid box above for washout
       REAL*8 WMXTR, b_beta_DT, precip_mm
 c for tracers in general, added by Koch
-      REAL*8 THLAW,TR_LEF,TMFAC,TMFAC2,TR_LEFT(ntm)
+      REAL*8 THLAW,TR_LEF,TMFAC,TR_LEFT(ntm)
 !@var TR_LEF limits precurser dissolution following sulfate formation
 !@var THLAW Henry's Law determination of amount of tracer dissolution
 !@var TMFAC used to adjust tracer moments
@@ -1413,7 +1413,7 @@ c for tracers in general, added by Koch
 !@var TR_LEF limits precurser dissolution following sulfate formation
 !@var THLAW Henry's Law determination of amount of tracer dissolution
 !@var THWASH Henry's Law for below cloud dissolution
-!@var TMFAC used to adjust tracer moments
+!@var TMFAC,TMFAC2 used to adjust tracer moments
 #ifdef TRACERS_AEROSOLS_Koch
 c for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
@@ -1894,6 +1894,7 @@ cdmk added arguments above; THLAW added below (no way to factor this)
           TMFAC2=THWASH/TM(L,N)
         ELSE
           TMFAC=0.
+          TMFAC2=0.
         ENDIF
         CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT) !precip CLW
 c ---------------------- calculate fluxes ------------------------
