@@ -219,7 +219,7 @@ C**** Initialize to zero
         IF (AM_I_ROOT())
      *     WRITE (kunit,err=10) MODULE_HEADER,SNOWE_glob,TEARTH_glob
      *       ,WEARTH_glob,AIEARTH_glob
-     *       ,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij,qg_ij_glob
+     *       ,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij_glob,qg_ij_glob
       CASE (IOREAD:)            ! input from restart file
 c$$$        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
 c$$$     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
