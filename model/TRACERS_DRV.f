@@ -2138,13 +2138,6 @@ c photolysis rate
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_3Dsource(2,n) = k
-        sname_jls(k) = 'Aircraft_source_of'//trname(n)
-        lname_jls(k) = 'BCII aircraft source'
-        jls_ltop(k) = LM
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
 c gravitational settling of BCII 
         k = k + 1
         jls_grav(n) = k
@@ -2166,6 +2159,13 @@ c gravitational settling of BCII
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Aging_source_of'//trname(n)
         lname_jls(k) = 'BCIA aging source'
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'Aircraft_source_of'//trname(n)
+        lname_jls(k) = 'BCIA aircraft source'
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -3327,15 +3327,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-        k = k + 1
-        ijts_3Dsource(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'BCII Aircraft source'
-        sname_ijts(k) = 'BCII_Aircraft_src'
-        ijts_power(k) = -12.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('BCIA')
         k = k + 1
@@ -3344,6 +3335,15 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BC Aging source'
         sname_ijts(k) = 'BC_Aging_Source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        k = k + 1
+        ijts_3Dsource(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'BCIA Aircraft source'
+        sname_ijts(k) = 'BCIA_Aircraft_src'
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -6668,12 +6668,12 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
          end do
       case ('BCII')
          do j=J_0,J_1
-            trsource(:,j,1,n) = BCI_src(:,j)*3.d0
+            trsource(:,j,1,n) = BCI_src(:,j)  !*3.d0
 c arbitrary factor of 3
          end do
       case ('OCII')
          do j=J_0,J_1
-            trsource(:,j,1,n) = OCI_src(:,j)*2.d0
+            trsource(:,j,1,n) = OCI_src(:,j)  !*2.d0
 c arbitrary factor of 2
             trsource(:,j,2,n) = OCT_src(:,j,jmon)
          end do
@@ -6775,7 +6775,7 @@ C**** three 3D sources ( volcanos and biomass) read in from files
       tr3Dsource(:,J_0:J_1,lmAER+1:lm,4,n) = 0.
       call apply_tracer_3Dsource(4,n) ! biomass
 
-       case ('BCII')
+       case ('BCIA')
 C**** aircraft source for fresh industrial BC 
       tr3Dsource(:,J_0:J_1,:,2,n) = BCI_src_3d(:,J_0:J_1,:)
       call apply_tracer_3Dsource(2,n) ! aircraft
