@@ -1386,7 +1386,7 @@ C**** (technically we should use U,V from before but this is ok)
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,t
       USE GEOM, only : imaxj
-      USE DAGCOM, only : aij, ij_ptrop
+      USE DAGCOM, only : aij, ij_ptrop, ij_ttrop
       USE DYNAMICS, only : pk, pmid, PTROPO, LTROPO
       IMPLICIT NONE
       INTEGER I,J,L,IERR
@@ -1403,6 +1403,7 @@ C$OMP  PARALLEL DO PRIVATE (I,J,L,TL,IERR)
      *       ,IERR)
         IF (IERR.gt.0) print*,"TROPWMO error: ",i,j
         AIJ(I,J,IJ_PTROP)=AIJ(I,J,IJ_PTROP)+PTROPO(I,J)
+        AIJ(I,J,IJ_TTROP)=AIJ(I,J,IJ_TTROP)+TL(LTROPO(I,J))
       end do
       end do
 C$OMP  END PARALLEL DO

@@ -2325,6 +2325,14 @@ c      scale_ij(k) = 1.
       scale_ij(k) = 1.
 
       k=k+1
+      IJ_TTROP = k
+      lname_ij(k) = 'TROPOPAUSE TEMPERATUPE (WMO)'
+      units_ij(k) = 'K'
+      name_ij(k) = 'TTROP'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+
+      k=k+1
       IJ_TSI = k
       lname_ij(k) = 'SEA ICE TEMPERATURE (MASS LAYER 2) x POICE'
       units_ij(k) = 'C'
