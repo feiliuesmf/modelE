@@ -453,14 +453,14 @@ c      calculating Cl amount, otherwise ignore
        D=y(nO3,L)*rr(49,L)+y(nBrO,L)*rr(75,L)
        F=(rr(53,L)*y(nOH,L)*y(n_HOCl,L)+rr(55,L)*y(nO,L)*
      *   y(n_HOCl,L)+rr(65,L)*y(n_ClONO2,L)*y(nO,L)+rr(93,L)*
-     *   y(nCl2O2,L)*y(nM,L)*2)/y(n_ClOx,L)
+     *   y(nCl2O2,L)*y(nM,L)*2.d0)/y(n_ClOx,L)
        G=rr(62,L)*y(nOH,L)+rr(63,L)*y(nHO2,L)+rr(77,L)*
-     *   y(nBrO,L)+2*rr(102,L)*y(nClO,L)+rr(103,L)*y(nNO2,L)
+     *   y(nBrO,L)+2.d0*rr(102,L)*y(nClO,L)+rr(103,L)*y(nNO2,L)
        Q=rr(56,L)*y(nOH,L)
        V=C-D
        X=rr(51,L)*y(nOH,L)*y(nCl2,L)+rr(54,L)*y(nO,L)*
-     *   y(n_HCl,L)+
-     *   2*ss(18,L,i,j)*y(nCl2,L)+2*ss(20,L,i,j)*y(nCl2O2,L)+
+     *   y(n_HCl,L)+ 2.d0*
+     *   ss(18,L,i,j)*y(nCl2,L)+2.d0*ss(20,L,i,j)*y(nCl2O2,L)+
      *   ss(21,L,i,j)*y(n_HOCl,L)+ss(22,L,i,j)*y(n_ClONO2,L)
        X=X/y(n_ClOx,L)
        YY=rr(57,L)*y(n_HOCl,L)+rr(58,L)*y(n_H2O2,L)+rr(59,L)*
