@@ -88,6 +88,11 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
      *     ,icon_SSI
 !@var KCMX actual number of conservation diagnostics
       INTEGER :: KCMX = 23 ! take up first 23 indexes for special cases
+!@var CONPT titles for each point at which conservation diags. are done
+      CHARACTER*10, DIMENSION(NPTS) :: CONPT = (/
+     *     "DYNAMICS  ","CONDENSATN","RADIATION ","PRECIPITAT",
+     *     "LAND SURFC","SURFACE   ","FILTER    ","OCEAN     ",
+     *     "DAILY     ","OCN DYNAM ","OCEAN PHYS"/)
 
 !@param KSPECA,NSPHER number of spectral diagnostics, and harmonics used
       INTEGER, PARAMETER :: KSPECA=20
