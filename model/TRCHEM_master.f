@@ -57,7 +57,7 @@ C**** Local parameters and variables and arguments:
 !@var average tropospheric ch4 value near 569 hPa level
 !@var PRES2 local nominal pressure for verticle interpolations
 !@var thick thickness of each layer in km
-!@var tempO2, photO2 and sHerzberg for O2->Ox diagnostic
+!@var tempO2 and photO2 for O2->Ox diagnostic
 !@var ClOx_old total ClOx at start of chemical timestep
 !@var ClTOT total chlorine in all forms (reactive and reservoir)
 !@var colmO2 is overhead oxygen column
@@ -95,7 +95,7 @@ C**** Local parameters and variables and arguments:
      & 7.4d0,8.6d0,8.6d0,9.2d0,12.4d0/)
       REAL*8, DIMENSION(JM)      :: tempO2 
       REAL*8, DIMENSION(JM,LM)   :: photO2 
-      REAL*8 sHerzberg,CLTOT,colmO2,changeClONO2,changeClOx,
+      REAL*8 CLTOT,colmO2,changeClONO2,changeClOx,
      *changeHOCl,changeHCl,changehetClONO2,pscX,chg106,chg107,
      *chg108,chg109,rmrClOx,rmrBrOx,rmv,rmrOx
 #endif
