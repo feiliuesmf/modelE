@@ -250,15 +250,16 @@ C**** Loop over layers
       DO I=1,IMAXJ(J)
         Q(I,J) = UNDEF
         IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.) THEN
-        if (to_per_mil(n).gt.0) THEN
-          Q(I,J)=1d3*(TOIJL(I,J,L,TOIJL_CONC,N)/(TOIJL(I,J,L,TOIJL_CONC
-     *         ,n_water)*trw0(n))-1.)
+          if (to_per_mil(n).gt.0 .and. TOIJL(I,J,L,TOIJL_CONC
+     *         ,n_water).gt.0) THEN
+            Q(I,J)=1d3*(TOIJL(I,J,L,TOIJL_CONC,N)/(TOIJL(I,J,L
+     *           ,TOIJL_CONC,n_water)*trw0(n))-1.)
 c          Q(I,J)=1d3*(TOIJL(I,J,L,TOIJL_CONC,N)/((OIJL(I,J,L,IJL_MO)
 c     *         *DXYPO(J)-OIJL(I,J,L,IJL_S0M))*trw0(n))-1.)
-        else
-          Q(I,J)=10.**(-ntrocn(n))*TOIJL(I,J,L,TOIJL_CONC,N)/
-     *         (OIJL(I,J,L,IJL_MO)*DXYPO(J))
-        end if
+          else
+            Q(I,J)=10.**(-ntrocn(n))*TOIJL(I,J,L,TOIJL_CONC,N)/
+     *           (OIJL(I,J,L,IJL_MO)*DXYPO(J))
+          end if
         END IF
       END DO
       END DO
