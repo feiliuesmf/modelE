@@ -444,13 +444,12 @@ C****
       USE CLD01_COM_E001, only : ttold,qtold,svlhx,rhsav,cldsav,
      *     U00wtr,U00ice,lmcm
       USE PBLCOM
-     &     , only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq=>cqgs
-     &     ,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
+     &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : aj,kacc,tsfrez,tdiurn,kdiag,keynr,jreg
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck
       USE DYNAMICS, only : filter,calc_ampk
-      USE OCEAN, only : tocean,oa,z1o
-      USE SEAICE_COM, only : rsi,msi
+      USE OCEAN, only : tocean,oa
+      USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : t50
       USE FILEMANAGER, only : getunit
 
@@ -466,12 +465,7 @@ C****
       REAL*4 XX4
       REAL*8 HOURX   ! ? to restart from older versions
       INTEGER Itime1,Itime2,ItimeX
-      INTEGER JC1(100)
-      REAL*8 RC1(161)
       INTEGER :: LRUNID=4                       ! RUNID longer than 4?
-      CHARACTER*156 CLABEL1
-
-cc?   COMMON/WORK1/SNOAGE(IM,JM,2)
 
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE., inilake = .FALSE.,
      &           iniSNOW = .FALSE.  ! true = restart from "no snow" rsf
@@ -544,8 +538,8 @@ C****                  INITIAL STARTS - ISTART: 1 to 8              ****
 C****                                                               ****
 C****   Current settings: 1 - from defaults                         ****
 C****                     2 - from observed data                    ****
-C****                     3   from orig. E-model M-file, old format ****
-C****         not done  4-7 - from old model M-file - not all data  ****
+C****         not done  3-6 - from old model M-file - not all data  ****
+C****                     7 - from converted M-file - no snow model ****
 C****                     8 - from current model M-file             ****
 C****                                                               ****
 C***********************************************************************
@@ -702,7 +696,7 @@ C**** INITIALIZE VERTICAL SLOPES OF T,Q
         END DO
       END IF
 C****
-C**** I.C FROM OLDER INCOMPLETE MODEL OUTPUT, ISTART=4-7    just hints
+C**** I.C FROM OLDER INCOMPLETE MODEL OUTPUT, ISTART=3-6    just hints
 C****
 C**** Read what's there and substitute rest as needed (as above)
 C**** To be implemented as needed. Sometimes it is safer to
@@ -713,36 +707,23 @@ C     redoGH=.TRUE.
 C**** Set flag to initialise pbl/snow variables if they are not in I.C.
 C     iniPBL=.TRUE.  ; iniSNOW = .TRUE.
       SELECT CASE (ISTART)
-      CASE (4:7)
+      CASE (3:6)
          go to 890   !  not available
 C****
 C**** I.C FROM RESTART FILE WITH COMPLETE DATA        ISTART=3,8
 C****
-      CASE (3)                  ! old format
-C**** Changes to array index orders for greater efficiency (?)
-        READ (iu_AIC,ERR=800,END=810) HOURX,JC1,CLABEL1,RC1,KEYNR,
-     *     U,V,T,P,Q,
-     2     ((TOCEAN(1,I,J),I=1,IM),J=1,JM),RSI,MSI,
-     *     (((TOCEAN(L,I,J),I=1,IM),J=1,JM),L=2,3),
-     *     GDATA,GHDATA,
-     *     wsavg,tsavg,qsavg,dclev,Z1O,usavg,vsavg,tauavg,ustar,
-     *     uabl,vabl,tabl,qabl,eabl,cm,ch,cq,ipbl,
-     A     (((TTOLD(L,I,J),I=1,IM),J=1,JM),L=1,LM),
-     B     (((QTOLD(L,I,J),I=1,IM),J=1,JM),L=1,LM),
-     C     (((SVLHX(L,I,J),I=1,IM),J=1,JM),L=1,LM),
-     D     (((RHSAV(L,I,J),I=1,IM),J=1,JM),L=1,LM),WM,
-     E     (((CLDSAV(L,I,J),I=1,IM),J=1,JM),L=1,LM),
-     4     TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
-     5     QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
-     6     (((RQT(L,I,J),I=1,IM),J=1,JM),L=1,LM_REQ),T50
+      CASE (7)             ! converted model II' (B399) format (no snow)
+        call io_rsf(iu_AIC,ItimeX,irsfic,ioerr)
         CLOSE (iu_AIC)
-C**** New additions
-        iniSNOW = .TRUE.       ! extract snow data from first soil layer
+        HOURX=ItimeX*24/NDAY  ! works only if DTsrc is same in both runs
+        if (ioerr.eq.1) goto 800
+        iniSNOW = .TRUE.      ! extract snow data from first soil layer
 C****
 C****   Data from current type of RESTART FILE     ISTART=8
 C****
       CASE (8)  ! no need to read SRHR,TRHR,FSF.TSFREZ,diag.arrays
         call io_rsf(iu_AIC,ItimeX,irsfic,ioerr)
+        CLOSE (iu_AIC)
         HOURX=ItimeX*24/NDAY  ! works only if DTsrc is same in both runs
         if (ioerr.eq.1) goto 800
       END SELECT
@@ -776,7 +757,7 @@ C****                              perturbation is at most 1 degree C
       write(6,*) 'after  setting amon/0 dtsrc,dt:',dtsrc,dt
       WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)')
      *  '0Model started on',datei,amonth(monthi),yeari,' Hr',houri,
-     *  'ISTART =',ISTART,CLABEL1(1:80)
+     *  'ISTART =',ISTART,CLABEL(1:80)
 
       GO TO 600
 C***********************************************************************
@@ -801,7 +782,6 @@ C****                          used for REPEATS and delayed EXTENSIONS
          WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
      *     ISTART,', HOUR=',ItimeX,' ',CLABEL(1:80)
         MDYN=0 ; MCNDS=0 ; MRAD=0 ; MSURF=0 ; MDIAG=0 ; MELSE=0
-c        CLABEL(1:132)=CLABEL1(1:132)
         GO TO 500
 C****
 C**** RESTART ON DATA SETS 1 OR 2, ISTART=10 or more
@@ -842,11 +822,7 @@ C**** reason not to use ISTART=10 is trouble with the other file.)
       end if
       KDISK=KDISK0
       IF (istart.gt.10) KDISK=3-KDISK
-c     IF (CLABEL1(1:LRUNID).NE.XLABEL(1:LRUNID)) THEN ! used to be vital
-c        WRITE (6,*) 'THIS RESTART FILE IS FOR RUN ', !   when rsfs were
-c    *   XLABEL(1:LRUNID),' NOT RUN ',CLABEL1(1:LRUNID)   ! shared among
-c        STOP 'ERROR: WRONG RESTART FILES, MISMATCHED LABELS'    !  runs
-c     ENDIF
+
       WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT',
      *   KDISK,', HOUR=',ItimeX,' ',CLABEL(1:80)
   500 CONTINUE
@@ -854,11 +830,7 @@ C**** UPDATE C ARRAY FROM INPUTZ
       REWIND 8
       READ (8,NML=INPUTZ)
       REWIND 8
-c     IF (IM0.NE.IM.OR.JM0.NE.JM.OR.LM0.NE.LM) THEN   ! obsolete
-c     WRITE (6,'('' ARRAY-DIMENSIONS IM,JM,LM '',3I3,
-c    *  '' ARE INSUFFICIENT FOR IM,JM,LM='',3I3)') IM0,JM0,LM0,IM,JM,LM
-c     STOP ' ERROR IN GRID SIZE DIMENSIONS '
-c     END IF
+
       IF (NSLP.GT.0) THEN
 C****    REPOSITION THE SEA LEVEL PRESSURE HISTORY DATA SET (UNIT 16)
          REWIND 16
@@ -988,7 +960,7 @@ C****
 C**** TERMINATE BECAUSE OF IMPROPER PICK-UP
 C****
   800 WRITE (6,'(A,I4/" ",A)')
-     *  '0ERROR ENCOUNTERED READING AIC ISTART=', ISTART,CLABEL1(1:80)
+     *  '0ERROR ENCOUNTERED READING AIC ISTART=', ISTART,CLABEL(1:80)
       STOP 'READ ERROR FOR AIC'
   810 WRITE (6,'(A,2F11.2)')
      *  '0EOF ON AIC.  ISTART=', ISTART

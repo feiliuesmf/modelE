@@ -532,6 +532,8 @@ C**** Only do this at end of the day
             AIJ(I,J,IJ_TGO2)=AIJ(I,J,IJ_TGO2)+TOCEAN(3,I,J)
           END DO
         END DO
+C**** DO DEEP DIFFUSION
+c        IF (QDEEP) CALL ODIFS
 C**** RESTRUCTURE THE OCEAN LAYERS
         CALL OSTRUC
 C**** AND ELIMINATE SMALL AMOUNTS OF SEA ICE

@@ -18,7 +18,7 @@ POUT                                ! for post-processing
 snowmodel sweep3d                   ! snow model
 
 Data input files:
-AIC=DEC1958.rsfB394M12
+AIC=DEC1958.rsfB394M12.modelE
 OHT=OTSPEC.RB399AM12.M250D OCNML=Z1O.B4X5.cor
 MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
 OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
@@ -51,5 +51,5 @@ R=00BG/B
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
    YEARE=1950,MONTHE=2,
    DT=450.,        ! from default: DTsrc=3600.,
-   ISTART=3,KCOPY=2,NSLP=-12,Kvflxo=-1,YEARE=1950,MONTHE=1,HOURE=1,
+   ISTART=7,KCOPY=2,NSLP=-12,Kvflxo=-1,YEARE=1950,MONTHE=1,HOURE=1,
  &END
