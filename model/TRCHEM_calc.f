@@ -171,6 +171,7 @@ c     add Br source using CFC photolysis as proxy
 c
 c     Remove some lower strat polar HNO3 in PSCs
       do L=LS1-2,LS1+3
+       stop  ' layer dependence 3 '
        if(ta(L).lt.198)then
        if(J.le.17.or.J.ge.39)dest(n_HNO3,L)=
      *  dest(n_HNO3,L)-0.05*y(n_HNO3,L)
@@ -1185,6 +1186,7 @@ c     No bromine chemistry or HOCl chemistry in troposphere
          if(L.lt.LS1.and.igas.eq.n_HBr.or.igas.eq.n_HOBr)
      *    change(I,J,L,igas)=0.
          if(L.lt.LS1-3.and.igas.eq.n_HOCl)change(I,J,L,igas)=0.
+         stop  ' layer dependence 4 '
 #endif
        end do    ! L
       end do     ! igas
