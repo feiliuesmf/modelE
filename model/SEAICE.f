@@ -524,9 +524,9 @@ C****
       SUBROUTINE ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO
      *     ,ACEFO,ACE2F,ENRGFI,SALTO,SALTI,
 #ifdef TRACERS_WATER
-     *     TRSIL,TRO,TRI,
+     *     TRSIL,TRO,TRI,DTRIMP,
 #endif
-     *     FLEAD,QFIXR)
+     *     DMIMP,DHIMP,DSIMP,FLEAD,QFIXR)
 !@sum  ADDICE adds ice formed in the ocean to ice variables
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
@@ -546,9 +546,11 @@ C****
       REAL*8, INTENT(INOUT) :: ROICE, SNOW, MSI2
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL,SSIL
       REAL*8, INTENT(OUT), DIMENSION(LMI) :: TSIL
+      REAL*8, INTENT(OUT) :: DMIMP,DSIMP,DHIMP
 #ifdef TRACERS_WATER
       REAL*8, INTENT(INOUT), DIMENSION(NTM,LMI) :: trsil
       REAL*8, INTENT(IN), DIMENSION(NTM) :: tro,tri
+      REAL*8, INTENT(OUT), DIMENSION(NTM) :: DTRIMP
       REAL*8, DIMENSION(NTM) :: FTRSI3,FTRSI4
       INTEGER N
 #endif
@@ -556,9 +558,15 @@ C****
       REAL*8 FMSI3, FMSI4, FHSI3, FHSI4, FSSI3, FSSI4
       REAL*8 ROICEN, OPNOCN, DRSI, MSI1
 
+      DMIMP=0. ; DHIMP=0. ; DSIMP=0.
+#ifdef TRACERS_WATER
+      DTRIMP=0.
+#endif
+
       MSI1=SNOW+ACE1I
       IF (.not. QFIXR) THEN
       IF (ROICE.LE.0. .and. ACEFO.gt.0) THEN
+C**** Create new ice in ice-free ocean
         ROICE=ACEFO/(ACE1I+AC2OIM)
         SNOW=0.
 C****   TSIL=(ENRGFO/ACEFO + LHM)*BYSHI ! but hsi is primary var.
@@ -575,7 +583,7 @@ C****   TSIL=(ENRGFO/ACEFO + LHM)*BYSHI ! but hsi is primary var.
         MSI1=ACE1I
         MSI2=AC2OIM
       ELSEIF (ROICE.gt.0) THEN
-
+C**** Create new ice in partially ice-covered ocean
       IF (ACE2F.le.0) GO TO 250 ! go to no freezing case
 C**** CALCULATE ADVECTIVE HEAT FLUX FROM LAYER 3 TO LAYER 4 OF ICE
 CC    FMSI3 = -XSI(3)*ACE2F ! < 0.
@@ -706,6 +714,20 @@ C       SNOW = SNOW   ! snow thickness is conserved
         ROICE = ROICEN
       END IF
       END IF
+      ELSE
+C**** Ensure that MSI2 does not get too small for fixed-SST case.
+        IF (ROICE.gt.0. and. MSI2.lt.AC2OIM) then
+          DMIMP=AC2OIM-MSI2
+          DHIMP=SUM(HSIL(3:4)*XSI(3:4)*DMIMP)
+          DSIMP=SUM(SSIL(3:4)*XSI(3:4)*DMIMP)
+          HSIL(3:4)=HSIL(3:4)*AC2OIM/MSI2
+          SSIL(3:4)=SSIL(3:4)*AC2OIM/MSI2
+#ifdef TRACERS_WATER
+          DTRIMP(:)=(TRSIL(:,3)*XSI(3)+TRSIL(:,4)*XSI(4))*DMIMP
+          TRSIL(:,3:4)=TRSIL(:,3:4)*AC2OIM/MSI2
+#endif
+          MSI2=AC2OIM
+        END IF
       END IF
 C**** Calculate temperatures for diagnostics and radiation
       TSIL(1:2)=(HSIL(1:2)/(XSI(1:2)*MSI1)+LHM)*BYSHI ! temp. layer 1/2

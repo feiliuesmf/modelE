@@ -516,7 +516,8 @@ C****
       USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater
 #endif
       USE DAGCOM, only : aj,areg,aij,jreg,j_rsi,j_ace1,j_ace2,j_snow
-     *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2
+     *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2,j_implh
+     *     ,j_implm,ij_smfx
       USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
 #ifdef TRACERS_WATER
@@ -532,10 +533,10 @@ C****
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 SNOW,ROICE,MSI2,ENRGFO,ACEFO,ACE2F,ENRGFI,SALTO,SALTI
-     *     ,POICE,PWATER,FLEAD,POCEAN
+     *     ,POICE,PWATER,FLEAD,POCEAN,DMIMP,DHIMP,DSIMP
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: trsil
-      REAL*8, DIMENSION(NTM) :: tro,tri
+      REAL*8, DIMENSION(NTM) :: tro,tri,dtrimp
 #endif
       LOGICAL QFIXR
       INTEGER I,J,JR,ITYPE,ITYPEO,N
@@ -603,12 +604,13 @@ C**** regional diagnostics
         CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACE2F,
      *       ENRGFI,SALTO,SALTI,
 #ifdef TRACERS_WATER
-     *       TRSIL,TRO,TRI,
+     *       TRSIL,TRO,TRI,DTRIMP,
 #endif
-     *       FLEAD,QFIXR)
+     *       DMIMP,DHIMP,DSIMP,FLEAD,QFIXR)
 
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J) = SNOW
+        MSI(I,J)=MSI2
         HSI(:,I,J) = HSIL(:)
         SSI(:,I,J) = SSIL(:)
 #ifdef TRACERS_WATER
@@ -616,7 +618,11 @@ C**** RESAVE PROGNOSTIC QUANTITIES
 #endif
         IF (.not. QFIXR) THEN
           RSI(I,J)=ROICE
-          MSI(I,J)=MSI2
+        ELSE
+C**** save implicit mass-flux diagnostics
+          AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+ROICE*DMIMP
+          AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-DMIMP*POICE
+          AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-DHIMP*POICE
         END IF
 C**** set gtemp array
         GTEMP(1:2,2,I,J)=TSIL(1:2)
