@@ -7,7 +7,7 @@
       USE PARAM
       IMPLICIT NONE
       CHARACTER*80 FILEIN
-      INTEGER N,NARGS,K,iargc,KFILE,I,days_togo
+      INTEGER N,NARGS,K,iargc,KFILE,I,days_togo,itm
       INTEGER :: ioerr=0, KSTART=1, ItimeMax=0
       REAL*8 TOT,yrs_togo,FAC,FACT,xfac
       LOGICAL :: QCALL = .FALSE., QCMIN=.FALSE., QCRESTART=.FALSE.
@@ -37,7 +37,7 @@ C**** check for arguments
       CALL GETARG (K,FILEIN)
       OPEN (10,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',err=850)
       ioerr=0
-      call io_label(10,Itime,ioread,ioerr)
+      call io_label(10,Itime,itm,ioread,ioerr)
       if (ioerr.eq.1) go to 860
       CLOSE (10)
 
