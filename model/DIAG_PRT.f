@@ -983,10 +983,11 @@ c Check the count
       IMPLICIT NONE
 
       REAL*8, DIMENSION(JM) ::
-     &     BYP,BYPV,BYPPO,BYDAPO,COSBYPDA,COSBYPV,DXCOSV,ONESPO
+     &     BYDAPO,COSBYPDA,COSBYPV,DXCOSV,ONESPO
      &    ,DXYPPO,BYDASQR
       REAL*8, DIMENSION(JM+LM) :: ONES
       REAL*8, DIMENSION(JM,LM) :: AX,BX,CX,DX,VX,EX
+      REAL*8, DIMENSION(JM,LM) :: BYPDSIG,BYPVDSIG,BYP,BYPV
       REAL*8, DIMENSION(JM,LM_REQ) :: ARQX
       REAL*8, DIMENSION(LM_REQ) :: BYDPS,BYPKS
       REAL*8, DIMENSION(0:IMH) :: AN,BN
@@ -1059,12 +1060,23 @@ c      BYDXYP(J)=1./DXYP(J)
       DXCOSV(J)=DXV(J)*COSV(J)
    50 CONTINUE
       DO J=1,JM
-        BYP(J)=IDACC(ia_dga)/(APJ(J,1)+teeny)
-        BYPV(J)=IDACC(ia_dga)/(.25*APJ(J,2)+teeny)
+        BYP(J,1)=IDACC(ia_dga)/(APJ(J,1)+teeny)
+        BYPV(J,1)=IDACC(ia_dga)/(.25*APJ(J,2)+teeny)
       ENDDO
-      BYPPO(:) = BYP(:)
-      BYPPO(1 ) = BYP(1 )*BYIM
-      BYPPO(JM) = BYP(JM)*BYIM
+      DO L=2,LS1-1
+         BYP(:,L) = BYP(:,1)
+         BYPV(:,L) = BYPV(:,1)
+      ENDDO
+      DO L=1,LS1-1
+        BYPDSIG(:,L) = BYP(:)*BYDSIG(L)
+        BYPVDSIG(:,L) = BYPV(:)*BYDSIG(L)
+      ENDDO
+      DO L=LS1,LM
+        BYP(:,L) = ONESPO(:)*BYIM/PSFMPT
+        BYPDSIG(:,L) = BYDSIG(L)*BYP(:,L)
+        BYPV(:,L) = ONESPO(:)*BYIM/PSFMPT
+        BYPVDSIG(:,L) = BYDSIG(L)*BYPV(:,L)
+      ENDDO
       LINECT=65
       WRITE (6,901)
       BYIADA=1./(IDACC(ia_dga)+teeny)
@@ -1360,12 +1372,14 @@ C**** New way!
       dx = 0.
       DX(2:jm,:)=AJL(2:jm,:,Jl_TOTNTLH)-AJL(2:jm,:,Jl_ZMFNTLH)
       SCALET = scale_jl(n)/idacc(ia_jl(n))
+      dx(1:jm,1:lm) = dx(1:jm,1:lm)*bypvdsig(1:jm,1:lm)
       CALL jlMAP(LNAME_jl(n),SNAME_jl(n),UNITS_jl(n),POW_jl(n),
-     &     PLM,DX,SCALET,bypv,BYDSIG,lm,2,JGRID_jl(n))
+     &     PLM,DX,SCALET,ONES,ONES,lm,2,JGRID_jl(n))
       n = jl_totntlh
       SCALET = SCALE_jl(n)/idacc(ia_jl(n))
+      dx(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypvdsig(1:jm,1:lm)
       CALL jlMAP(LNAME_jl(n),SNAME_jl(n),UNITS_jl(n),POW_jl(n),
-     &     PLM,Ajl(1,1,n),SCALET,bypv,BYDSIG,lm,2,JGRID_jl(n))
+     &     PLM,DX,SCALET,ONES,ONES,lm,2,JGRID_jl(n))
 C**** NORTHWARD TRANSPORT OF LATENT HEAT BY STAND. EDDY, EDDIES AND TOTA
 C**** Old Way!  NOTE:  AX is needed later
       dx=0.
@@ -1875,14 +1889,16 @@ C**** SOLAR AND THERMAL RADIATION HEATING
       n = JL_SRHR
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       SCALES = scale_sjl(3)/idacc(ia_sjl(3))
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypdsig(1:jm,1:lm)
       CALL JLMAPS(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,BYP,BYDSIG,LM,2,JGRID_JL(n),
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n),
      *     ASJL(1,1,3),SCALES,ONESPO,BYDPS)
       n = JL_TRCR
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       SCALES = scale_sjl(4)/idacc(ia_sjl(4))
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypdsig(1:jm,1:lm)
       CALL JLMAPS(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,BYP,BYDSIG,LM,2,JGRID_JL(n),
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n),
      *     ASJL(1,1,4),SCALES,ONESPO,BYDPS)
       DO J=1,JM
         DO LR=1,LM_REQ
@@ -1895,8 +1911,9 @@ C**** SOLAR AND THERMAL RADIATION HEATING
       n = jl_rad_cool
       SCALET = -1./idacc(ia_jl(n))
       SCALES = -1.*1d-2/idacc(ia_sjl(4))
+      ax(1:jm,1:lm) = ax(1:jm,1:lm)*bypdsig(1:jm,1:lm)
       CALL JLMAPS(LNAME_jl(n),SNAME_jl(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AX,SCALET,BYP,BYDSIG,LM,2,JGRID_JL(n),
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n),
      &     ARQX,SCALES,ONESPO,BYDPS)
 
 C**** TOTAL, SUPER SATURATION, CONVECTIVE CLOUD COVER, EFFECTIVE RH
@@ -1969,28 +1986,34 @@ C**** TURBULENT KINETIC ENERGY
 C**** HEATING BY LARGE SCALE COND., MOIST CONVECTION AND TURBULENCE
       n = JL_SSHR
       SCALET = scale_jl(n)/idacc(ia_jl(n))
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypdsig(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,BYP,BYDSIG,LM,2,JGRID_JL(n))
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_TRBHR
       SCALET = scale_jl(n)/idacc(ia_jl(n))
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,BYP,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_TRBDLHT
       SCALET = scale_jl(n)/idacc(ia_jl(n))
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypdsig(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,BYP,BYDSIG,LM,2,JGRID_JL(n))
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = jl_mcldht
       SCALET = scale_jl(n)/idacc(ia_jl(n))
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypdsig(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,BYP,BYDSIG,LM,2,JGRID_JL(n))
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_MCHEAT
       SCALET = scale_jl(n)/idacc(ia_jl(n))
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,BYP,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_MCDRY
       SCALET = scale_jl(n)/idacc(ia_jl(n))
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,BYP,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
 C**** Weighted average cloud sizes
       SCALET = 1.
       DO L=1,LM
@@ -2077,8 +2100,10 @@ C****
 C**** AVAILABLE POTENTIAL ENERGY
       n = JL_APE
       SCALET = scale_jl(n)/idacc(ia_jl(n))
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
+      ax(1:jm:jm-1,1:lm) = ax(1:jm:jm-1,1:lm)*byim
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &      PLM,AJL(1,1,n),SCALET,BYPPO,ONES,LM,2,JGRID_JL(n))
+     &      PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
 C****
 C**** NORTHWARD TRANSPORTS
 C****
@@ -2103,12 +2128,16 @@ C****
 C**** VERTICAL TRANSPORT OF ANGULAR MOMENTUM BY SMALL SCALE MOTIONS
       n = JL_DAMDC
       SCALET = scale_jl(n)/idacc(ia_jl(n))
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
+      ax(1:jm:jm-1,1:lm) = ax(1:jm:jm-1,1:lm)*byim
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,BYPPO,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_DAMMC
       SCALET = scale_jl(n)/idacc(ia_jl(n))
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypdsig(1:jm,1:lm)
+      ax(1:jm:jm-1,1:lm) = ax(1:jm:jm-1,1:lm)*byim
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,BYPPO,BYDSIG,LM,2,JGRID_JL(n))
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
 C****
 C**** MERIDIONAL LUNES
 C****
@@ -2143,8 +2172,9 @@ C**** ELIASSEN-PALM FLUX : NORTHWARD, VERTICAL, DIVERGENCE
 C****
       n = JL_EPFLXN
       SCALET = scale_jl(n)/idacc(ia_jl(n))
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypv(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,BYPV,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_EPFLXV
       SCALET = scale_jl(n)/idacc(ia_jl(n))
 C**** scale with density for m^2/s^2 unit. Note that RHO is really a JK.
