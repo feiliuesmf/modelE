@@ -239,7 +239,7 @@ c      OMEGA = TWOPI*(EDPERD+EDPERY)/(EDPERD*EDPERY*SDAY)
       IF (grid%HAVE_SOUTH_POLE)
      &      FCOR(1)  = -RADIUS*OMEGA*.5*COSP(2)*DXV(2)
       IF (grid%HAVE_NORTH_POLE)
-     &      FCOR(JM) = -FCOR(1)
+     &      FCOR(JM) = RADIUS*OMEGA*.5*COSP(JM-1)*DXV(JM)    ! = -FCOR(1)
 C****Update halo for DXV array
       CALL CHECKSUM(grid,DXV, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid,DXV, from=NORTH)
