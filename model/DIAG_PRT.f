@@ -205,7 +205,7 @@ c          if (n .gt. 13) n = (n+123)/10
       USE MODEL_COM, ONLY : IM, JM
       USE DOMAIN_DECOMP, only : grid, DIST_GRID, AM_I_ROOT
 
-      PRIVATE 
+      PRIVATE
       PUBLIC :: PRINT_DIAGS
       PUBLIC :: JLMAP
       PUBLIC :: MAPTXT
@@ -282,7 +282,7 @@ c          if (n .gt. 13) n = (n+123)/10
           EndIf
         EndIf
       Endif
-      
+
       END SUBROUTINE GLOBALSUM_J
 
 
@@ -324,7 +324,7 @@ c          if (n .gt. 13) n = (n+123)/10
           hsum(2,:)   = Sum( garr(1+JM/2:JM  ,:),1   )
         EndIf
       EndIf
-      
+
       END SUBROUTINE GLOBALSUM_JK
 
 
@@ -4937,7 +4937,7 @@ C****
 !@ver  1.0
       USE MODEL_COM, only :
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID,NDAY
-      USE DIAG_COM, only :   kdiag,qdiag,acc_period,units_dd,
+      USE DIAG_COM, only :   kdiag,qdiag,acc_period,units_dd,ndiupt,
      &     adiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd,name_dd
      *     ,ia_12hr
       IMPLICIT NONE
@@ -4958,10 +4958,9 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 C****
 C**** KP packs the quantities for postprocessing (skipping unused)
       IREGF=1
-      IREGL=4
-      IF (KDIAG(6).GT.0) IREGL=4-KDIAG(6)
-      IF (KDIAG(6).LT.0.AND.KDIAG(6).GT.-5) IREGF=-KDIAG(6)
-      IF (KDIAG(6).LT.0) IREGL=IREGF
+      IREGL=NDIUPT-KDIAG(6)       ! kd6=KDIAG(6)>0: skip last kd6 points
+      IF (KDIAG(6).LT.0.AND.KDIAG(6).GE.-NDIUPT) IREGF=-KDIAG(6)
+      IF (KDIAG(6).LT.0) IREGL=IREGF       ! kd6<0: show only point -kd6
       DO KR=IREGF,IREGL
         WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
         WRITE (6,903) NAMDD(KR),IJDD(1,KR),IJDD(2,KR),(I,I=1,HR_IN_DAY)
@@ -5022,7 +5021,7 @@ C****
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID
       USE DIAG_COM, only :   kdiag,qdiag,acc_period,units_dd,hr_in_month
      *     ,hdiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd
-     *     ,name_dd,ia_12hr
+     *     ,name_dd,ia_12hr,NDIUPT
       IMPLICIT NONE
       REAL*8, DIMENSION(HR_IN_MONTH) :: XHOUR
       INTEGER, DIMENSION(HR_IN_MONTH) :: MHOUR
@@ -5040,10 +5039,9 @@ C****
 C**** KP packs the quantities for postprocessing (skipping unused)
       jdayofM = JDendOfM(jmon)-JDendOfM(jmon-1)
       IREGF=1
-      IREGL=4
-      IF (KDIAG(13).GT.0) IREGL=4-KDIAG(13)
-      IF (KDIAG(13).LT.0.AND.KDIAG(13).GT.-5) IREGF=-KDIAG(13)
-      IF (KDIAG(13).LT.0) IREGL=IREGF
+      IREGL=NDIUPT-KDIAG(13)      ! kd13=KDIAG(13)>0: skip last kd13 pts
+      IF (KDIAG(13).LT.0.AND.KDIAG(13).GE.-NDIUPT) IREGF=-KDIAG(13)
+      IF (KDIAG(13).LT.0) IREGL=IREGF       ! kd13<0: show only pt -kd13    
       DO KR=IREGF,IREGL
         WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
         WRITE (6,903)NAMDD(KR),IJDD(1,KR),IJDD(2,KR),(I,I=1,HR_IN_DAY)
@@ -6035,7 +6033,7 @@ C****
       CALL PACK_DATAj(GRID, TAJLS_loc , TAJLS)
       CALL PACK_DATAj(GRID, TCONSRV_loc, TCONSRV)
 #endif
-      
+
 ! Now the external arrays
       CALL PACK_DATA(GRID, fland, fland_glob)
       CALL PACK_DATA(GRID, fearth, fearth_glob)
@@ -6052,10 +6050,10 @@ C****
       CALL PACK_DATA(GRID, flice,  wt_ij(:,:,4))
       CALL PACK_DATA(GRID, fearth, wt_ij(:,:,5))
 
-      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) * 
+      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) *
      &     (vdata(:,J_0:J_1,1)+vdata(:,J_0:J_1,10))
       CALL PACK_DATA(GRID, tmp, wt_ij(:,:,6))
-      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) * 
+      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) *
      &     (1.-(vdata(:,J_0:J_1,1)+vdata(:,J_0:J_1,10)))
       CALL PACK_DATA(GRID, tmp, wt_ij(:,:,7))
       DEALLOCATE(tmp)

@@ -29,14 +29,14 @@ C**** parameters used for vegetation albedo
 !@var albvnd veg alb by veg type, season and band
       real*8, parameter :: ALBVND(NV,4,6) = RESHAPE( (/
 C     (1)  >SRBALB(6) = VIS  (300 - 770 nm)
-C        1    2    3    4    5    6    7    8    9   10   11    12  
+C        1    2    3    4    5    6    7    8    9   10   11    12
 C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
 C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
      1 .500,.067,.089,.089,.078,.100,.067,.061,.089,.000,.200,.089,
      2 .500,.062,.100,.100,.073,.055,.067,.061,.100,.000,.200,.100,
      3 .500,.085,.091,.139,.085,.058,.083,.061,.091,.000,.200,.091,
      4 .500,.080,.090,.111,.064,.055,.061,.061,.090,.000,.200,.090,
-C                                                                  
+C
 C     (2)  >SRBALB(5) = NIR  (770 - 860 nm)    (ANIR=Ref)
 C        1    2    3    4    5    6    7    8    9   10   11    12
 C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
@@ -45,7 +45,7 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
      2 .500,.206,.350,.300,.241,.218,.200,.183,.350,.000,.200,.350,
      3 .500,.297,.364,.417,.297,.288,.250,.183,.364,.000,.200,.364,
      4 .500,.255,.315,.333,.204,.218,.183,.183,.315,.000,.200,.315,
-C                                                                  
+C
 C     (3)  >SRBALB(4) = NIR  (860 -1250 nm)    (ANIR*1.0)
 C        1    2    3    4    5    6    7    8    9   10   11    12
 C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
@@ -54,7 +54,7 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
      2 .500,.206,.350,.300,.241,.218,.200,.183,.350,.000,.200,.350,
      3 .500,.297,.364,.417,.297,.288,.250,.183,.364,.000,.200,.364,
      4 .500,.255,.315,.333,.204,.218,.183,.183,.315,.000,.200,.315,
-C                                                                  
+C
 C     (4)  >SRBALB(3) = NIR  (1250-1500 nm)    (ANIR*0.4)
 C        1    2    3    4    5    6    7    8    9   10   11    12
 C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
@@ -63,7 +63,7 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
      2 .500,.082,.140,.120,.096,.083,.080,.073,.140,.000,.200,.140,
      3 .500,.119,.145,.167,.119,.115,.100,.073,.145,.000,.200,.145,
      4 .500,.102,.126,.132,.081,.087,.073,.073,.126,.000,.200,.126,
-C                                                                  
+C
 C     (5)  >SRBALB(2) = NIR  (1500-2200 nm)    (ANIR*0.5)
 C        1    2    3    4    5    6    7    8    9   10   11    12
 C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
@@ -72,7 +72,7 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
      2 .500,.103,.175,.150,.120,.109,.100,.091,.175,.000,.200,.175,
      3 .500,.148,.182,.208,.148,.144,.125,.091,.182,.000,.200,.182,
      4 .500,.127,.157,.166,.102,.109,.091,.091,.157,.000,.200,.157,
-C                                                                  
+C
 C     (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
 C        1    2    3    4    5    6    7    8    9   10   11    12
 C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
@@ -203,8 +203,8 @@ C       VIS     NIR1    NIR2     NIR3     NIR4     NIR5    NIRT
      &     ANFOAM_out, WETTRA_out, WETSRA_out, ZOCSRA_out, ZSNSRA_out,
      &     ZICSRA_out, ZDSSRA_out, ZVGSRA_out, EOCTRA_out, ESNTRA_out,
      &     EICTRA_out, EDSTRA_out, EVGTRA_out, AGEXPF_out, ALBDIF_out )
-!@sum returns some internal SURF_ALBEDO data. Needed to provide 
-!@+   corresponding data to WRITER in RADPAR. 
+!@sum returns some internal SURF_ALBEDO data. Needed to provide
+!@+   corresponding data to WRITER in RADPAR.
       implicit none
       real*8, intent(out) ::       AVSCAT_out, ANSCAT_out, AVFOAM_out,
      &     ANFOAM_out, WETTRA_out, WETSRA_out, ZOCSRA_out, ZSNSRA_out,
@@ -230,7 +230,7 @@ C       VIS     NIR1    NIR2     NIR3     NIR4     NIR5    NIRT
       EVGTRA_out = EVGTRA
       AGEXPF_out = AGEXPF
       ALBDIF_out = ALBDIF
-      
+
       return
       end subroutine get_albedo_data
 
@@ -552,8 +552,8 @@ c**** obtained using the vegetation masking.
         XEAVN(L)=BEAVN(L)
       END DO
       DO L=1,2
-        BEAVN(L)=BEAVN(L)+max(0.d0,BSNVN(L)*(1.D0-EXPSNE)+dalbsn/L)
-        XEAVN(L)=XEAVN(L)+max(0.d0,XSNVN(L)*(1.D0-EXPSNE)+dalbsn/L)
+        BEAVN(L)=BEAVN(L)+max(0.d0,BSNVN(L)+dalbsn/L)*(1.D0-EXPSNE)
+        XEAVN(L)=XEAVN(L)+max(0.d0,XSNVN(L)+dalbsn/L)*(1.D0-EXPSNE)
       END DO
       DO L=3,6
         BEAVN(L)=BEAVN(L)+BSNVN(L)*(1.D0-EXPSNE)
