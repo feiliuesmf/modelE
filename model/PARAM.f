@@ -796,7 +796,7 @@
 
 #ifdef MACHINE_DEC
       ! converting it manually to big-endian for COMPAQ compiler
-      do n=1,lnum_param
+      do n=1,num_param
         call swap_bytes_4( Params(n)%indx, 1 )
         call swap_bytes_4( Params(n)%dim,  1 )
       enddo
@@ -811,7 +811,7 @@
 
 #ifdef MACHINE_DEC
       ! and back to little-endian ...
-      do n=1,lnum_param
+      do n=1,num_param
         call swap_bytes_4( Params(n)%indx, 1 )
         call swap_bytes_4( Params(n)%dim,  1 )
       enddo
