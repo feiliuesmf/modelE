@@ -715,7 +715,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
 #ifdef TRACERS_ON
 !@var SNFST,TNFST like SNFS/TNFS but with/without specific tracers for
 !@+   radiative forcing calculations
-      REAL*8, DIMENSION(NTM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      REAL*8, DIMENSION(2,NTM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFST,TNFST
 #endif
       REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -1228,8 +1228,10 @@ C**** one before seasalt2 in NTRACE array
           END IF
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
           CALL RCOMPX
-          SNFST(NTRIX(n),I,J)=SRNFLB(LFRC)
-          TNFST(NTRIX(n),I,J)=TRNFLB(LFRC)
+          SNFST(1,NTRIX(n),I,J)=SRNFLB(1)  ! surface forcing
+          TNFST(1,NTRIX(n),I,J)=TRNFLB(1)
+          SNFST(2,NTRIX(n),I,J)=SRNFLB(LFRC)
+          TNFST(2,NTRIX(n),I,J)=TRNFLB(LFRC)
           FSTOPX(n)=onoff ; FTTOPX(n)=onoff ! back to default
           IF (trname(NTRIX(n)).eq."seasalt1") THEN ! for seasalt2 as well
             FSTOPX(n+1)=onoff ; FTTOPX(n+1)=onoff
@@ -1245,8 +1247,10 @@ C**** Ozone:
       use_tracer_ozone=1-onoff
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
       CALL RCOMPX
-      SNFST(n_Ox,I,J)=SRNFLB(LFRC)
-      TNFST(n_Ox,I,J)=TRNFLB(LFRC)
+      SNFST(1,n_Ox,I,J)=SRNFLB(1)  ! surface
+      TNFST(1,n_Ox,I,J)=TRNFLB(1)
+      SNFST(2,n_Ox,I,J)=SRNFLB(LFRC) 
+      TNFST(2,n_Ox,I,J)=TRNFLB(LFRC)
       use_tracer_ozone=onoff
 #endif
 
@@ -1540,13 +1544,18 @@ C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
          if (ntrace.gt.0 .or. n_Ox.gt.0 ) then
            do n=1,ntm
-c shortwave forcing
+c shortwave forcing (TOA or TROPO)
              if (ijts_fc(1,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
-     *            ,ijts_fc(1,n))+rsign*(SNFST(N,I,J)-SNFS(LFRC,I,J))
-     *            *CSZ2
-c longwave forcing
+     *         ,ijts_fc(1,n))+rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
+c longwave forcing  (TOA or TROPO)
              if (ijts_fc(2,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
-     *            ,ijts_fc(2,n))-rsign*(TNFST(N,I,J)-TNFS(LFRC,I,J))
+     *         ,ijts_fc(2,n))-rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
+c shortwave forcing at surface (if required)
+             if (ijts_fc(3,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
+     *         ,ijts_fc(3,n))+rsign*(SNFST(1,N,I,J)-SNFS(1,I,J))*CSZ2
+c longwave forcing at surface (if required)
+             if (ijts_fc(4,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
+     *         ,ijts_fc(4,n))-rsign*(TNFST(1,N,I,J)-TNFS(1,I,J))
            end do
          end if
 #endif

@@ -3885,6 +3885,26 @@ c dust longwave radiative forcing
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+c dust shortwave radiative forcing at surface
+        k = k + 1
+        ijts_fc(3,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad  
+        lname_ijts(k) = trim(trname(n))//' SW Surf radiative forcing'
+        sname_ijts(k) = 'swrf_surf_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c dust longwave radiative forcing at surface
+        k = k + 1
+        ijts_fc(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad  
+        lname_ijts(k) = trim(trname(n))//' LW Surf radiative forcing'
+        sname_ijts(k) = 'lwrf_surf_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
 
       end select

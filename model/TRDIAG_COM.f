@@ -111,7 +111,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_tau tracer independent array for TAIJS hydrated opt. thick.
       INTEGER ijts_tau(ntm)
 !@var ijts_fc tracer independent array for TAIJS SW/LW rad. forcings
-      INTEGER ijts_fc(2,ntm)
+      INTEGER ijts_fc(4,ntm)
 !@var ijts_3Dsource tracer independent array for TAIJS 3D src. diags
       INTEGER ijts_3Dsource(nt3Dsrcmax,ntm)
 !@var SNAME_IJTS, UNITS_IJTS: Names & units of lat-sigma tracer diags
