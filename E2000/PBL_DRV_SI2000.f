@@ -242,6 +242,8 @@ c           if(L.eq.LDC) exit ! so that L will not increase by one
       ipbl(i,j,itype)=1
 
       ws    =sqrt(us*us+vs*vs)
+      wsh=ws  ! back to SI2000
+      wsm=ws  ! back to SI2000
       wg    =sqrt(ug*ug+vg*vg)
 
       psitop=atan2(vg,ug+teeny)
