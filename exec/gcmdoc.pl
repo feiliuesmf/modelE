@@ -24,8 +24,9 @@ $some_decl = "(?:$some_decl)(?:\\s*\\*\\s*(?:\\d+|\\(\\[0-9 ]+\\)))?";
 $some_decl .= "|double\\s+precision";
 #$some_decl .= "|character(?:\\s*\\*\\s*(?:\\d+|\\([0-9a-z*= ]+\\)))?";
 $some_decl .= "|character(?:\\s*\\*?\\s*(?:\\d+|\\([0-9a-z*= ]+\\)))?";
-$some_decl .= "|type\\s+\\(\\w+\\)";
+$some_decl .= "|type\\s*\\(\\s*\\w+\\s*\\)";
 $some_decl .= "|use\\s*\\w+\\s*,\\s*only\\s*:";
+# $some_decl .= "|interface\\s+\\w+";
 
 $parenth  = "\\([^()]*\\)";
 $parenth2 = "\\((?:[^()]|$parenth)*\\)";
@@ -304,12 +305,20 @@ foreach $name ( keys %db_modules ) {
 	    htm_text("$db_vars{$var_name}{sum}");
 	}
 	if ( $db_vars{$var_name}{value} ) {
-	  print HTM "Initial Value <code> = $db_vars{$var_name}{value}</code>";
+	  print HTM 
+	      "Initial Value <code> = $db_vars{$var_name}{value}</code><BR>";
 	}
 	if ( ! ($db_vars{$var_name}{sum} || $db_vars{$var_name}{value}) ) {
 	    print HTM "<BR>\n";
 	}
 	#print HTM "      <code>$db_vars{$var_name}{decl}</code><BR>\n";
+	my $use_list = $db_vars{$var_name}{used_by};
+	if ( $use_list ) {
+	    $use_list =~ s/^\s*\|\s*//;
+	    print HTM "Used by: \n";
+	    print HTM "$use_list<BR>\n";
+	}
+
     } 
     print HTM "</dl>\n";
     htm_end();
@@ -504,6 +513,14 @@ sub print_index {
 
 
 sub postprocess_lists {
+
+#    print "\n\n>>>>>>>>>before postproc >>>>>>>>>>>>>\n\n\n";
+#    foreach $sub_name ( sort keys %db_subs ) {
+#	print "$sub_name >>\n";
+#	my $use_list = $db_subs{$sub_name}{used_by};
+#	print "<< $use_list<<\n\n"; # if ( ! $db_vars{$var_name}{decl} );
+#    }
+
     # make variable declarations look nicer
     foreach $var_name ( keys %db_vars ) {
 	$decl = $db_vars{$var_name}{decl};
@@ -516,9 +533,42 @@ sub postprocess_lists {
 	    $decl =~ s/^,//;
 	}
 	$decl =~ s/,/, /g;
-	if ( $decl =~ /^use(\w+)/ ) { $decl = "used from $1"; }
+	if ( $decl =~ /^use(\w+)/ ) { 
+	    $decl = "used from $1";
+	    my $var_from = $1;
+	    $var_from =~ tr/a-z/A-Z/;
+	    $var_name =~ /^(.*):([^:]*)$/;
+	    my $var_prefix = $1; my $var_var= $2;
+	    if ( $db_vars{$var_name}{value} =~ />\s*(\w+)/ ) {
+		$var_var = $1;  # var renamed with =>
+	    }
+	    if ( exists $db_vars{"$var_from\:\:$var_var"} ) { #variable
+		$db_vars{"$var_from\:\:$var_var"}{used_by} .= " | $var_prefix";
+	    } elsif ( exists $db_subs{"$var_from\:$var_var"} ) { #sub
+		$db_subs{"$var_from\:$var_var"}{used_by} .= " | $var_prefix";
+	    } else { #no object
+		print 
+		    "USED UNKNOWN: >$var_from\:\:$var_var< in >$var_prefix<\n";
+	    }
+	}
 	$db_vars{$var_name}{decl} = $decl;
     }
+
+#    print "\n\n>>>>>>>>>after postproc >>>>>>>>>>>>>\n\n\n";
+#
+#    foreach $var_name ( sort keys %db_vars ) {
+#	my $use_list = $db_vars{$var_name}{used_by};
+#	next if ( ! $use_list );
+#	print "$var_name >>\n";
+#	print "<< $use_list<<\n\n"; # if ( ! $db_vars{$var_name}{decl} );
+#    }
+#
+#    foreach $sub_name ( sort keys %db_subs ) {
+#	my $use_list = $db_subs{$sub_name}{used_by};
+#	next if ( ! $use_list );
+#	print "$sub_name >>\n";
+#	print "<< $use_list<<\n\n"; # if ( ! $db_vars{$var_name}{decl} );
+#    }
 
     # check @calls info and correct it if necessary
     print "postprocessing calls\n";
@@ -888,7 +938,7 @@ sub parse_file {
 	    #print "$_\n";
 	}
 
-	if (  /^     \S/ ) { # continuation line
+	if (  /^     \S/ || /^\s*$/ ) { # continuation line
 	    s/^     \S/ /;
 	    $fstr .= $_;
 	    next;
@@ -911,7 +961,8 @@ sub parse_file {
 	if ( /^\s*end\s+module\b/i ) { #end module
 	    $current_module = "";
 	}
-	if ( /^\s*(subroutine|(?:$some_decl\s+)?function|program)\s+(\w+)/i ) {
+	if ( 
+/^\s*(subroutine|(?:$some_decl\s+)?function|program|interface)\s+(\w+)/i ) {
 	    $current_sub = lc($2);
 	    $db_subs{"$current_module:$current_sub"}{file} = $current_file;
 	    if ( $current_module ) {
@@ -921,7 +972,7 @@ sub parse_file {
 		#push @{$db_modules{"\@GLOBAL"}{subs}}, $current_sub;
 	    }
 	}
-	if ( /^\s*end\s+(subroutine|function|program)\b/i 
+	if ( /^\s*end\s+(subroutine|function|program|interface)\b/i 
 	     || /^\s*end\s*$/i ) {
 	    $current_sub = "";
 	}
