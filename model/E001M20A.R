@@ -65,7 +65,7 @@ REG=REG4X5                        ! special regions-diag
 RVR=RD4X525.gas2.RVR              ! river direction file
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=radfil33k                   !     8/2003 version
-RADN3=miescatpar.abcdv
+RADN3=miescatpar.abcdv2
 ! RADN4,RADN5,RADNA,RADNB are no longer used
 TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
 TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
