@@ -179,15 +179,17 @@ C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
       END SUBROUTINE ATM_DIFFUS
 
 
-      subroutine apply_fluxes_to_atm
+      subroutine apply_fluxes_to_atm(dt)
 !@sum applies earth fluxes to the first layer of the atmosphere
 !@auth Original Development Team
 !@ver  1.0
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv
-      USE FLUXES, only : dth1,dq1,du1,dv1
+      USE DYNAMICS, only : byam
+      USE FLUXES, only : dth1,dq1,uflux1,vflux1
       USE MODEL_COM, only : im,jm,u,v,t,q
       implicit none
       integer i,j,k,imax,kmax
+      real*8, intent(in) :: dt
       real*8 hemi
 
       do j=1,jm
@@ -209,9 +211,11 @@ c**** polar boxes
         do i=1,imax
         do k=1,kmax
           u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
-     *           ravj(k,j)*(du1(i,j)*cosiv(k)+dv1(i,j)*siniv(k)*hemi)
+     *     ravj(k,j)*(uflux1(i,j)*cosiv(k)+vflux1(i,j)*siniv(k)*hemi)
+     *     *dt*byam(1,I,J)
           v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
-     *           ravj(k,j)*(dv1(i,j)*cosiv(k)-du1(i,j)*siniv(k)*hemi)
+     *     ravj(k,j)*(vflux1(i,j)*cosiv(k)-uflux1(i,j)*siniv(k)*hemi)
+     *     *dt*byam(1,I,J)
         end do
         end do
       end do
@@ -222,9 +226,9 @@ c**** non polar boxes
         do i=1,imax
         do k=1,kmax
           u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
-     *           ravj(k,j)*du1(i,j)
+     *           ravj(k,j)*uflux1(i,j)*dt*byam(1,I,J)
           v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
-     *           ravj(k,j)*dv1(i,j)
+     *           ravj(k,j)*vflux1(i,j)*dt*byam(1,I,J)
         end do
         end do
       end do

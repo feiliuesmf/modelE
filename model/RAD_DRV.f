@@ -416,7 +416,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
 !@calls tropwmo, RE001:rcompt, RE001:rcompx, RE001:writer, coszs, coszt
-      USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow
+      USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
       USE MODEL_COM
       USE GEOM
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,co2,rsdist,lm_req
@@ -455,7 +455,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     ,il_r70n,ijdd,idd_cl7,idd_cl6,idd_cl5,idd_cl4,idd_cl3,idd_cl2
      *     ,idd_cl1,idd_ccv,idd_isw,idd_palb,idd_galb,idd_absa,j5s,j5n
      *     ,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld,ij_frmp
-      USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo
+      USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
       USE SEAICE, only : rhos,ace1i,rhoi
       USE GHYCOM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
@@ -475,6 +475,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       INTEGER I,J,L,K,KR,LR,IMAX,IM1,JR,IH,INCH,JK,IT
       REAL*8 ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS,CMC,DEPTH,QSS,TAUSSL
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY
+     *     ,MSTRAT,STRATQ,STRJ,MSTJ
       REAL*8 QSAT
 C****
 C**** FLAND     LAND COVERAGE (1)
@@ -506,6 +507,29 @@ C****
       IF(JDAY.NE.JDLAST) CALL RCOMPT
       S0=S0X*S00WM2*RATLS0/RSDIST
       JDLAST=JDAY
+C**** Calculate mean strat water conc
+      IF (QCHECK) THEN
+        STRATQ=0.
+        MSTRAT=0.
+        DO J=1,JM
+          STRJ=0.
+          MSTJ=0.
+          DO I=1,IMAXJ(J)
+            DO L=LTROPO(I,J)+1,LM
+              STRJ=STRJ+Q(I,J,L)*AM(L,I,J)*DXYP(J)
+              MSTJ=MSTJ+AM(L,I,J)*DXYP(J)
+            END DO
+          END DO
+          IF (J.eq.1 .or. J.eq.JM) THEN
+            STRJ=STRJ*FIM
+            MSTJ=MSTJ*FIM
+          END IF
+          STRATQ=STRATQ+STRJ
+          MSTRAT=MSTRAT+MSTJ
+        END DO
+        PRINT*,"Strat water vapour (ppmv), mass (mb)",1d6*STRATQ*mair
+     *       /(18.*MSTRAT),PMTOP+1d-2*GRAV*MSTRAT/AREAG 
+      END IF
 C****
 C**** MAIN J LOOP
 C****

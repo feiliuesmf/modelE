@@ -93,7 +93,7 @@ C**** slightly larger, to sample all points within the cycle
 !@dbparam NDA5s:  DT_Diag5s   =  NDA5s*DTsrc     Consrv  SpAnal src
 !@dbparam NDASf:  DT_DiagSrfc =  NDASf*DTsrc + DTsrc/NIsurf
 !@dbparam NDA4:   DT_Diag4    =  NDA4 *DTsrc   Energy history
-      INTEGER :: NDAa=7, NDA5d=7, NDA5k=7, NDA5s=7, NDASf=1, NDA4=24
+      INTEGER :: NDAa=7, NDA5d=1, NDA5k=7, NDA5s=1, NDASf=1, NDA4=24
 
 !**** Accounting variables
 !@dbparam IRAND last seed used by rand.number generator

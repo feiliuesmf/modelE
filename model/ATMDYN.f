@@ -1139,6 +1139,11 @@ C**** Find WMO Definition of Tropopause to Nearest L
         AIJ(I,J,IJ_PTROP)=AIJ(I,J,IJ_PTROP)+PTROPO(I,J)
       end do
       end do
+      PTROPO(2:IM,1) = PTROPO(1,1)
+      LTROPO(2:IM,1) = LTROPO(1,1)
+      PTROPO(2:IM,JM)= PTROPO(1,JM)
+      LTROPO(2:IM,JM)= LTROPO(1,JM)
+        
       END SUBROUTINE CALC_TROP
 
 

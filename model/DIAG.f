@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
 !@sum  DIAG ModelE diagnostic calculations
-!@auth G. Schmidt/J. Lenrer/R. Reto/M. Kelley
+!@auth G. Schmidt/J. Lenrer/R. Ruedy/M. Kelley
 !@ver  1.0
 C****                                                             IDACC
 C**** CONTENTS OF AJ(J,N)  (SUM OVER LONGITUDE AND TIME OF)

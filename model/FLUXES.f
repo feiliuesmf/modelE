@@ -52,10 +52,14 @@ C**** Momemtum stresses are calculated as if they were over whole box
       REAL*8, DIMENSION(IM,JM) :: UI2rho
 
 C**** currently saved - should be replaced by fluxed quantities
-!@var DU1,DV1 momentum flux from atmosphere summed over type (m/s)
-      REAL*8, DIMENSION(IM,JM) :: DU1,DV1
 !@var DTH1,DQ1 heat/water flux from atmos. summed over type (C, kg/kg)
       REAL*8, DIMENSION(IM,JM) :: DTH1,DQ1
+
+!@var uflux1 surface turbulent u-flux (=-<uw>) 
+!@var vflux1 surface turbulent v-flux (=-<vw>)
+!@var tflux1 surface turbulent t-flux (=-<tw>)
+!@var qflux1 surface turbulent q-flux (=-<qw>)
+      real*8, dimension(im,jm) :: uflux1,vflux1,tflux1,qflux1
 
 !@var FLOWO,EFLOWO runoff and energy of runoff into ocean (kg, J)
       REAL*8, DIMENSION(IM,JM) :: FLOWO,EFLOWO
@@ -69,7 +73,7 @@ C**** currently saved - should be replaced by fluxed quantities
 
 !@var GTEMP ground temperature (upper two levels) over surface type (C)
       REAL*8, DIMENSION(2,NSTYPE,IM,JM) :: GTEMP
-!@var SSS sea surface salinity on atmospheric grid (kg/kg)
+!@var SSS sea surface salinity on atmospheric grid (ppt)
       REAL*8, DIMENSION(IM,JM) :: SSS
 !@var MLHC ocean mixed layer heat capacity (J/m^2 C) 
       REAL*8, DIMENSION(IM,JM) :: MLHC

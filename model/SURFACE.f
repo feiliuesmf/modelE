@@ -20,10 +20,8 @@
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
      &     ,uflux,vflux,tflux,qflux
-     &     ,uflux1,vflux1,tflux1,qflux1
 C**** Interface to PBL
-      USE SOCPBL, only : zgs
-     &     ,ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
+      USE SOCPBL, only : zgs,ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
      &     ,US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
      &     ,UG,VG,WG,ZMIX
       USE PBL_DRV, only : pbl,evap_max,fr_sat
@@ -44,32 +42,31 @@ C**** Interface to PBL
      *     ,ksext
       USE LAKES_COM, only : mwl,mldlk,gml,flake
       USE LAKES, only : minmld
-      USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,runoe,erunoe
-     *     ,solar,dmua,dmva,gtemp,nstype
+      USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe
+     *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
 #ifdef TRACERS_ON
      *     ,tot_trsource
+#ifdef TRACERS_WATER
+     *     ,trevapor,trunoe
+#endif
       USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom
       USE TRACER_DIAG_COM, only : taijn,tij_surf
 #endif
       USE SOIL_DRV, only: earth
       IMPLICIT NONE
 
-      INTEGER I,J,K,IM1,IP1,KR,JR,NS,NSTEPS,MODDSF,MODDD
-     *     ,KMAX,IMAX,ITYPE,NGRNDZ,NG,IH
-      REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1,P1K,H0M1
-     *     ,PGK,PKDN,DXYPJ,BETAS,EVHDTS,CDMS,CDHS,CDQS,EDS1S,PPBLS
-     *     ,EVAPS,DBLS,BETA,ELHX,ACE2,CDTERM,CDENOM,HC1,dF1dTG,HCG1,HCG2
-     *     ,DTGRND,EVHDT,F1DT,CM,CH,CQ,DHGS,DQGS,DGS,BETAUP,EVHEAT,F0,F1
-     *     ,DSHDTG,DQGDTG,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG,dEVdQS
-     *     ,HSDEN,HSCON,HSMUL,dHS,dQS,dT2,dTS,DQ1X,EVHDT0,EVAP,F0DT
-     *     ,FTEVAP,VAP,TIMEZ,PWATER,PXSOIL,PSK,TH1,Q1,THV1,TFS
-     *     ,RMBYA,Q0M1,TSS,QSS,TAUS,RTAUS,RTAUUS,RTAUVS,TG1S
-     *     ,QGS,SRHDTS,TRHDTS,SHDTS,UGS,PTYPE,TG1,SRHEAT,SNOW,TG2,SHDT
-     *     ,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT,QSDEN
-     *     ,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,ZS1CO,USS
-     *     ,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L,QZ1,POC,POI
-     *     ,PLK,PLKI,EVAPLIM,F1DTS,HICE,HSNOW,HICE1,HSNOW1,F2,FSRI(2)
-     *     ,PSIS,HTLIM   ! THZ1,HZM1,HS,QZM1,
+      INTEGER I,J,K,IM1,IP1,KR,JR,NS,NSTEPS,MODDSF,MODDD,KMAX,ITYPE
+     *     ,NGRNDZ,NG,IH,IDTYPE 
+      REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1,P1K,H0M1,PGK,PKDN
+     *     ,BETA,ELHX,ACE2,CDTERM,CDENOM,HC1,dF1dTG,HCG1,HCG2,EVHDT,F1DT
+     *     ,CM,CH,CQ,DHGS,DQGS,DGS,BETAUP,EVHEAT,F0,F1,DSHDTG,DQGDTG
+     *     ,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG,dEVdQS,HSDEN,HSCON
+     *     ,HSMUL,dHS,dQS,dT2,dTS,DQ1X,EVHDT0,EVAP,F0DT,FTEVAP,VAP,TIMEZ
+     *     ,PWATER,PXSOIL,PSK,TH1,Q1,THV1,TFS,Q0M1,PTYPE,TG1,SRHEAT,SNOW
+     *     ,TG2,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT
+     *     ,TRHEAT,QSDEN,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP
+     *     ,Z2BY4L,Z1BY6L,QZ1,EVAPLIM,HICE,HSNOW,HICE1,HSNOW1,F2,FSRI(2)
+     *     ,HTLIM
 
       REAL*8 MSUM, MA1, MSI1, MSI2
       REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
@@ -92,8 +89,6 @@ C**** Tracer input/output common block for PBL
       DTSURF=DTsrc/NIsurf
       IH=JHOUR+1
 
-      ZS1CO=.5*DSIG(1)*RGAS*BYGRAV
-
 C**** ZERO OUT ENERGY AND EVAPORATION FOR GROUND AND INITIALIZE TGRND
       DO J=1,JM
       DO I=1,IM
@@ -108,6 +103,9 @@ C       TGRND(4,I,J)=GTEMP(1,4,I,J)
 C**** Zero out fluxes summed over type
       E0=0. ; E1=0. ; EVAPOR=0. ; RUNOE=0. ; ERUNOE=0.
       DMUA=0. ; DMVA=0. ; SOLAR=0.
+#ifdef TRACERS_WATER
+      TREVAPOR = 0. ; TRUNOE = 0.
+#endif
 
 C****
 C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NIsurf TIMES EVERY HOUR
@@ -119,7 +117,7 @@ C****
          TIMEZ=JDAY+(MOD(Itime,nday)+(NS-1.)/NIsurf)/NDAY ! -1 ??
          IF(JDAY.LE.31) TIMEZ=TIMEZ+365.
 C**** ZERO OUT LAYER 1 WIND INCREMENTS
-      DTH1=0. ;  DQ1 =0. ;  DU1=0. ; DV1=0.
+         DTH1=0. ;  DQ1 =0. ;  uflux1=0. ; vflux1=0.
 
       call loadbl
 C****
@@ -127,13 +125,12 @@ C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
       DO 7000 J=1,JM
          KMAX=KMAXJ(J)
-         IMAX=IMAXJ(J)
       HEMI=1.
       IF(J.LE.JM/2) HEMI=-1.
       POLE=.FALSE.
       IF(J.EQ.1 .or. J.EQ.JM) POLE = .TRUE.
       IM1=IM
-      DO I=1,IMAX
+      DO I=1,IMAXJ(J)
 
       ! until pbl loops over i,j,itype
       WSAVG(I,J)=0.
@@ -157,31 +154,22 @@ C****
       PLICE=FLICE(I,J)
       POICE=RSI(I,J)*PWATER
       POCEAN=PWATER-POICE
-      POC =FOCEAN(I,J)*(1.-RSI(I,J))
-      POI =FOCEAN(I,J)*    RSI(I,J)
-      PLK = FLAKE(I,J)*(1.-RSI(I,J))
-      PLKI= FLAKE(I,J)*    RSI(I,J)
       PXSOIL=POCEAN+POICE+PLICE
       PIJ=P(I,J)
-      PS=PEDN(1,I,J)    ! PIJ+PTOP
-      PSK=PEK(1,I,J)    ! EXPBYK(PS)
-      P1=PMID(1,I,J)    ! SIG(1)*PIJ+PTOP
-      P1K=PK(1,I,J)     ! EXPBYK(P1)
+      PS=PEDN(1,I,J)
+      PSK=PEK(1,I,J)
+      P1=PMID(1,I,J)
+      P1K=PK(1,I,J) 
       TH1=T(I,J,1)
       Q1=Q(I,J,1)
       THV1=TH1*(1.+Q1*deltx)
-         TFS=TF*PXSOIL
-      RMBYA=100.*PDSIG(1,I,J)/GRAV
-C      THZ1 = TZ(I,J,1) ! vertical gradient of potential temperature
-C      QZ1 = QZ(I,J,1) ! vertical gradient of specific humidity
-      MSUM = (PS*100.)/GRAV ! total column mass of atmosphere (kg/m^2)
-      MA1 = RMBYA ! mass of lowest atmospheric layer (kg/m^2)
-      H0M1 = TH1*SHA*MA1*DXYP(J) ! mean pot.enthalpy of lowest atm. (J)
-c      HZM1 = THZ1*SHA*MA1*DXYP(J) ! vert. grad. of lowest pot. enth.(J)
-      Q0M1 = Q1*MA1*DXYP(J) ! mean water vapor of lowest atmosphere (kg)
-c      QZM1 = QZ1*MA1*DXYP(J) ! vert. grad. of lowest layer  vapor (kg)
+      TFS=TF*PXSOIL
+      JR=JREG(I,J)
+      MA1=AM(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
+      MSUM = (PS*100.)/GRAV !@var MSUM total column mass of atmosphere (kg/m^2)
+      H0M1 = TH1*SHA*MA1*DXYP(J) !@var H0M1 mean pot.enthalpy of lowest atm. (J)
+      Q0M1 = Q1*MA1*DXYP(J) !@var Q0M1 mean water vapor of lowest atmosphere (kg)
       PGK = (PS*100.)**KAPA
-c      HS = (H0M1-HZM1*S1BYG1)*PGK/(DXYP(J)*MA1) ! pot. spec. enth.(J/kg)
       PKDN = (GRAV*(MSUM-MA1*0.25))**KAPA
 #ifdef TRACERS_ON
 C**** Set up tracers for PBL calculation if required
@@ -195,49 +183,35 @@ C**** Calculate first layer tracer concentration
       end do
       ntx = n
 #endif
-C**** ZERO OUT QUANTITIES TO BE SUMMED OVER SURFACE TYPES
-      USS=0.
-      VSS=0.
-      WSS=0.
-      TSS=0.
-      QSS=0.
-      TAUS=0.
-         RTAUS=0.
-         RTAUUS=0.
-         RTAUVS=0.
-         JR=JREG(I,J)
-         DXYPJ=DXYP(J)
-         TG1S=0.
-         QGS=0.
-         BETAS=0.
-         SRHDTS=0.
-         TRHDTS=0.
-         SHDTS=0.
-         EVHDTS=0.
-         UGS=0.
-         VGS=0.
-         WGS=0.
-         USRS=0.
-         VSRS=0.
-         CDMS=0.
-         CDHS=0.
-         CDQS=0.
-         EDS1S=0.
-         PPBLS=0.
-         EVAPS=0.
-         F1DTS=0.
-         DBLS=0.
-         PSIS=0.
+C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
+         IF(MODDD.EQ.0) THEN
+         DO KR=1,NDIUPT
+           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+             ADIURN(IH,IDD_SPR,KR)=ADIURN(IH,IDD_SPR,KR)+PS
+             ADIURN(IH,IDD_PT5,KR)=ADIURN(IH,IDD_PT5,KR)+PSK*T(I,J,5)
+             ADIURN(IH,IDD_PT4,KR)=ADIURN(IH,IDD_PT4,KR)+PSK*T(I,J,4)
+             ADIURN(IH,IDD_PT3,KR)=ADIURN(IH,IDD_PT3,KR)+PSK*T(I,J,3)
+             ADIURN(IH,IDD_PT2,KR)=ADIURN(IH,IDD_PT2,KR)+PSK*T(I,J,2)
+             ADIURN(IH,IDD_PT1,KR)=ADIURN(IH,IDD_PT1,KR)+PSK*T(I,J,1)
+             ADIURN(IH,IDD_Q5,KR)=ADIURN(IH,IDD_Q5,KR)+Q(I,J,5)
+             ADIURN(IH,IDD_Q4,KR)=ADIURN(IH,IDD_Q4,KR)+Q(I,J,4)
+             ADIURN(IH,IDD_Q3,KR)=ADIURN(IH,IDD_Q3,KR)+Q(I,J,3)
+             ADIURN(IH,IDD_Q2,KR)=ADIURN(IH,IDD_Q2,KR)+Q(I,J,2)
+             ADIURN(IH,IDD_Q1,KR)=ADIURN(IH,IDD_Q1,KR)+Q1
+           END IF
+         END DO
+         END IF
 C****
-      IF (POCEAN.LE.0.) then
-        ipbl(i,j,1)=0.
-        GO TO 2200
-      endif
+      DO ITYPE=1,3       ! no earth type
+      ipbl(i,j,itype)=0
+      SELECT CASE (ITYPE)
 C****
 C**** OCEAN
 C****
-      ITYPE=1
+      CASE (1)
+
       PTYPE=POCEAN
+      IF (PTYPE.gt.0) THEN
       NGRNDZ=1
       TG1=GTEMP(1,1,I,J)
       IF (FLAKE(I,J).gt.0) THEN
@@ -249,23 +223,28 @@ C**** limit evap/cooling if between MINMLD and 40cm, no evap below 40cm
           EVAPLIM=MWL(I,J)/(FLAKE(I,J)*DXYP(J))-(0.5*MINMLD+0.2d0)*RHOW
         END IF
         HTLIM = GML(I,J)/(FLAKE(I,J)*DXYP(J)) + 0.5*LHM*EVAPLIM
+        IDTYPE=ITLAKE
+      ELSE
+        IDTYPE=ITOCEAN
       END IF
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       SOLAR(1,I,J)=SOLAR(1,I,J)+DTSURF*SRHEAT
             OA(I,J,5)=OA(I,J,5)+SRHEAT*DTSURF
       BETA=1.
       ELHX=LHE
-      GO TO 3000
-C****
- 2200 IF (POICE.LE.0.) then
-        ipbl(i,j,2)=0.
-        GO TO 2400
-      endif
+      END IF
 C****
 C**** OCEAN ICE
 C****
-      ITYPE=2
+      CASE (2) 
+
       PTYPE=POICE
+      IF (PTYPE.gt.0) THEN
+      IF (FLAKE(I,J).gt.0) THEN
+        IDTYPE=ITLKICE
+      ELSE
+        IDTYPE=ITOICE
+      END IF
       NGRNDZ=1    ! NIgrnd>1 currently not an option
       SNOW=SNOWI(I,J)
       TG1=TGRND(2,I,J)
@@ -290,8 +269,7 @@ C**** first thermal layer is snow and ice
         FSRI(1:2) = 0
       END IF
             OA(I,J,12)=OA(I,J,12)+SRHEAT*DTSURF
-      Z2=ACE2/RHOI
-      Z2BY4L=Z2/(4.*ALAMI)
+      Z2BY4L=ACE2/(RHOI*(4.*ALAMI))
       Z1BY6L=(Z1IBYL+SNOW*BYRLS)*BY6
       CDTERM=1.5*TG2-.5*TOFREZ(I,J)
       CDENOM=1./(2.*Z1BY6L+Z2BY4L)
@@ -304,18 +282,16 @@ C*
       dF1dTG = 2./(ACE1I*BYRLI+SNOW*BYRLS)
       HCG1 = SHI*XSI(1)*MSI1 ! heat capacity of top ice layer (J/C*m^2)
       HCG2 = SHI*XSI(2)*MSI1 ! heat capacity of second layer ice
-      GO TO 3000
-C****
- 2400 IF (PLICE.LE.0.) then
-        ipbl(i,j,3)=0.
-        GO TO 5000
-      endif
-      NGRNDZ=1    ! NIgrnd>1 currently not an option
+      END IF
 C****
 C**** LAND ICE
 C****
-      ITYPE=3
+      CASE (3)
+
       PTYPE=PLICE
+      IF (PTYPE.gt.0) THEN
+      IDTYPE=ITLANDI
+      NGRNDZ=1
       SNOW=SNOWLI(I,J)
       TG1=TGRND(3,I,J)
       TG2=GTEMP(2,3,I,J)
@@ -327,20 +303,20 @@ C****
       HC1 = HCG1
       BETA=1.
       ELHX=LHS
+      END IF
+      END SELECT
+C****
+      IF (PTYPE.gt.0) THEN
 C****
 C**** BOUNDARY LAYER INTERACTION
 C****
- 3000 TKV=THV1*PSK
-      ZS1=ZS1CO*TKV*PIJ/PS
-      DTGRND=DTSURF/NGRNDZ
+      TKV=THV1*PSK
+      ZS1=.5*DSIG(1)*RGAS*BYGRAV*TKV*PIJ/PS
       SHDT=0.
       EVHDT=0.
       TRHDT=0.
       F1DT=0.
-C**********************************************************************
-C**** LOOP OVER GROUND TIME STEPS *************************************
-C**********************************************************************
-      DO 3600 NG=1,NGRNDZ
+
       TG=TG1+TF
       QG=QSAT(TG,ELHX,PS)
       IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG=0.98d0*QG
@@ -383,108 +359,102 @@ C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2)
       IF (QS .GT. QG) BETAUP = 1.
       EVHEAT=(LHE+TG1*SHV)*BETAUP*RCDQWS*(QS-QG)
       TRHEAT=TRHR(1,I,J)-STBO*(TG*TG)*(TG*TG)
-      IF(ITYPE.EQ.1) GO TO 3620
-C**** CALCULATE FLUXES USING IMPLICIT TIME STEP FOR NON-OCEAN POINTS
-      IF (ITYPE .EQ. 2) GO TO 3550
-C*
-      F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
-      F1=(TG1-CDTERM-F0*Z1BY6L)*CDENOM
-      DSHDTG=-RCDHWS*KHS*SHA/(DHGS+KHS)
-      DQGDTG=QG*DQSATDT(TG,ELHX)
-      DEVDTG=-RCDQWS*KHS*LHE*BETAUP*DQGDTG/(DQGS+KHS)
-      DTRDTG=-4.*STBO*TG*TG*TG
-      DF0DTG=DSHDTG+DEVDTG+DTRDTG
-      DFDTG=DF0DTG-(1.-DF0DTG*Z1BY6L)*CDENOM
-      DTG=(F0-F1)*DTGRND/(HC1-DTGRND*DFDTG)
-      SHDT=SHDT+DTGRND*(SHEAT+DTG*DSHDTG)
-      EVHDT=EVHDT+DTGRND*(EVHEAT+DTG*DEVDTG)
-      TRHDT=TRHDT+DTGRND*(TRHEAT+DTG*DTRDTG)
-      F1DT=F1DT+DTGRND*(TG1-CDTERM-(F0+DTG*DFDTG)*Z1BY6L)*CDENOM
-      DU1(I,J)=DU1(I,J)+PTYPE*DTGRND*RCDMWS*US/RMBYA
-      DV1(I,J)=DV1(I,J)+PTYPE*DTGRND*RCDMWS*VS/RMBYA
-      TG1=TG1+DTG
-      GO TO 3600
-C*
- 3550 CONTINUE
+C****
+      SELECT CASE (ITYPE)
+
+      CASE (1) ! FLUXES USING IMPLICIT TIME STEP FOR OCEAN POINTS
+        DSHDTG=-RCDHWS*SHA
+        dEVdQS = LHE*RCDQWS
+        dHS = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/
+     A       ((1.+2.*S1BYG1)*DTSURF*PGK*RCDHWS+MA1*PKDN)
+        dTS = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/
+     A       (MA1*PKDN*SHA-(1.+2.*S1BYG1)*DTSURF*PGK*DSHDTG)
+        dQS = -(1.+2.*S1BYG1)*DTSURF*EVHEAT/
+     A       ((1.+2.*S1BYG1)*DTSURF*dEVdQS+MA1*LHE)
+        SHDT = DTSURF*(SHEAT-dTS*DSHDTG)
+        EVHDT=DTSURF*(EVHEAT+dQS*dEVdQS) ! latent heat flux
+        TRHDT=DTSURF*TRHEAT
+C**** 
+      CASE (2) ! FLUXES USING IMPLICIT TIME STEP FOR ICE POINTS
+
 ! heat flux on first/second/third layers (W/m^2)
-      F1 = (TG1-TG2)*dF1dTG + SRHEAT*FSRI(1)
-      F2 = SRHEAT*FSRI(2)
-      EVHEAT = LHE*RCDQWS*(QS-QG) ! latent heat flux (W/m^2)
-      F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
-      dSNdTG=-RCDHWS*KHS*SHA/(DHGS+KHS)
-      dQGdTG=QG*DQSATDT(TG,ELHX) ! d(QG)/dTG
-      dEVdTG = -dQGdTG*LHE*RCDQWS*KHS/(DGS+KHS) ! d(EVHEAH)/dTG
-      dTRdTG = -4*STBO*TG*TG*TG ! d(TRHEAT)/dTG
-      dF0dTG = dSNdTG+dEVdTG+dTRdTG ! d(F0)/dTG
-C     dSNdHS = RCDHWS ! d(SHEAT)/dHS - kg/(sec*m^2)
-      dEVdQS = LHE*RCDQWS ! d(EVHEAH)/dQS
-      HSDEN = -(1.+2.*S1BYG1)*DTGRND*PGK*BETA*dSNdTG+MA1*PKDN*SHA
-      HSCON = -(1.+2.*S1BYG1)*DTGRND*PGK*SHEAT/HSDEN ! (J*sec)/kg
-      HSMUL = -(1.+2.*S1BYG1)*DTGRND*PGK*BETA*dSNdTG/HSDEN ! J/(kg*degC)
-      QSDEN = (1.+2.*S1BYG1)*BETA*DTGRND*dEVdQS+MA1*LHE
-      QSCON = -(1.+2.*S1BYG1)*DTGRND*EVHEAT/QSDEN
-      QSMUL = -(1.+2.*S1BYG1)*DTGRND*BETA*dEVdTG/QSDEN
-      T2DEN = HCG2+BETA*DTGRND*dF1dTG
-      T2CON = DTGRND*(F1-F2)/T2DEN
-      T2MUL = BETA*DTGRND*dF1dTG/T2DEN
-      TGDEN = HCG1-BETA*DTGRND*(dF0dTG-dF1dTG-
-     A        HSMUL*dSNdTG+QSMUL*dEVdQS+T2MUL*dF1dTG) ! W/(m^2*degC)
-      dTG = DTGRND*(F0-F1+BETA*
-     A      (QSCON*dEVdQS-HSCON*dSNdTG+T2CON*dF1dTG))/TGDEN ! degC
-      IF (TG1+dTG .GT. 0.) dTG = -TG1
-      dHS = HSCON+HSMUL*dTG ! (J*sec)/kg
-      dQS = QSCON+QSMUL*dTG
-      dT2 = T2CON+T2MUL*dTG
-      SHDT = DTGRND*(SHEAT+BETA*((dTG-dHS)*dSNdTG)) ! sensible
-      EVHDT = DTGRND*(EVHEAT+BETA*(dTG*dEVdTG+dQS*dEVdQS)) ! latent
-      TRHDT = DTGRND*(TRHEAT+BETA*dTG*dTRdTG) ! thermal flux (J/m^2)
-      F1DT = DTGRND*(F1+BETA*(dTG*dF1dTG-dT2*dF1dTG))
-      DU1(I,J)=DU1(I,J)+PTYPE*DTGRND*RCDMWS*US/RMBYA
-      DV1(I,J)=DV1(I,J)+PTYPE*DTGRND*RCDMWS*VS/RMBYA
-      TG1 = TG1+dTG ! first layer sea ice temperature (degC)
-      TG2 = TG2+dT2 ! second layer sea ice temperature (degC)
-      TGRN2(ITYPE,I,J) = TG2
- 3600 CONTINUE
-      GO TO 3700
-C**** CALCULATE FLUXES USING IMPLICIT TIME STEP ALSO FOR OCEAN POINTS
- 3620 CONTINUE
-      DSHDTG=-RCDHWS*SHA
-      dEVdQS = LHE*RCDQWS
-      dHS = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/
-     A      ((1.+2.*S1BYG1)*DTSURF*PGK*RCDHWS+MA1*PKDN)
-      dTS = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/
-     A      (MA1*PKDN*SHA-(1.+2.*S1BYG1)*DTSURF*PGK*DSHDTG)
-      dQS = -(1.+2.*S1BYG1)*DTSURF*EVHEAT/
-     A      ((1.+2.*S1BYG1)*DTSURF*dEVdQS+MA1*LHE)
-      SHDT = DTSURF*(SHEAT-dTS*DSHDTG)
-      EVHDT=DTSURF*(EVHEAT+dQS*dEVdQS) ! latent heat flux
-      TRHDT=DTSURF*TRHEAT
-      DU1(I,J)=DU1(I,J)+PTYPE*DTGRND*RCDMWS*US/RMBYA
-      DV1(I,J)=DV1(I,J)+PTYPE*DTGRND*RCDMWS*VS/RMBYA
-C**** CALCULATE EVAPORATION
- 3700 CONTINUE
-      DQ1X =EVHDT/((LHE+TG1*SHV)*RMBYA)
+        F1 = (TG1-TG2)*dF1dTG + SRHEAT*FSRI(1)
+        F2 = SRHEAT*FSRI(2)
+        EVHEAT = LHE*RCDQWS*(QS-QG) ! latent heat flux (W/m^2)
+        F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
+        dSNdTG=-RCDHWS*KHS*SHA/(DHGS+KHS)
+        dQGdTG=QG*DQSATDT(TG,ELHX) ! d(QG)/dTG
+        dEVdTG = -dQGdTG*LHE*RCDQWS*KHS/(DGS+KHS) ! d(EVHEAH)/dTG
+        dTRdTG = -4*STBO*TG*TG*TG ! d(TRHEAT)/dTG
+        dF0dTG = dSNdTG+dEVdTG+dTRdTG ! d(F0)/dTG
+C       dSNdHS = RCDHWS ! d(SHEAT)/dHS - kg/(sec*m^2)
+        dEVdQS = LHE*RCDQWS     ! d(EVHEAH)/dQS
+        HSDEN = -(1.+2.*S1BYG1)*DTSURF*PGK*BETA*dSNdTG+MA1*PKDN*SHA
+        HSCON = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/HSDEN ! (J*sec)/kg
+        HSMUL = -(1.+2.*S1BYG1)*DTSURF*PGK*BETA*dSNdTG/HSDEN ! J/(kg*degC)
+        QSDEN = (1.+2.*S1BYG1)*BETA*DTSURF*dEVdQS+MA1*LHE
+        QSCON = -(1.+2.*S1BYG1)*DTSURF*EVHEAT/QSDEN
+        QSMUL = -(1.+2.*S1BYG1)*DTSURF*BETA*dEVdTG/QSDEN
+        T2DEN = HCG2+BETA*DTSURF*dF1dTG
+        T2CON = DTSURF*(F1-F2)/T2DEN
+        T2MUL = BETA*DTSURF*dF1dTG/T2DEN
+        TGDEN = HCG1-BETA*DTSURF*(dF0dTG-dF1dTG-
+     A       HSMUL*dSNdTG+QSMUL*dEVdQS+T2MUL*dF1dTG) ! W/(m^2*degC)
+        dTG = DTSURF*(F0-F1+BETA*
+     A       (QSCON*dEVdQS-HSCON*dSNdTG+T2CON*dF1dTG))/TGDEN ! degC
+        IF (TG1+dTG .GT. 0.) dTG = -TG1
+        dHS = HSCON+HSMUL*dTG   ! (J*sec)/kg
+        dQS = QSCON+QSMUL*dTG
+        dT2 = T2CON+T2MUL*dTG
+        SHDT = DTSURF*(SHEAT+BETA*((dTG-dHS)*dSNdTG)) ! sensible
+        EVHDT = DTSURF*(EVHEAT+BETA*(dTG*dEVdTG+dQS*dEVdQS)) ! latent
+        TRHDT = DTSURF*(TRHEAT+BETA*dTG*dTRdTG) ! thermal flux (J/m^2)
+        F1DT = DTSURF*(F1+BETA*(dTG*dF1dTG-dT2*dF1dTG))
+        TG1 = TG1+dTG           ! first layer sea ice temperature (degC)
+        TG2 = TG2+dT2           ! second layer sea ice temperature (degC)
+        TGRN2(ITYPE,I,J) = TG2
+C****
+      CASE (3) ! IMPLICIT TIME STEP OVER LANDICE
+
+        F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
+        F1=(TG1-CDTERM-F0*Z1BY6L)*CDENOM
+        DSHDTG=-RCDHWS*KHS*SHA/(DHGS+KHS)
+        DQGDTG=QG*DQSATDT(TG,ELHX)
+        DEVDTG=-RCDQWS*KHS*LHE*BETAUP*DQGDTG/(DQGS+KHS)
+        DTRDTG=-4.*STBO*TG*TG*TG
+        DF0DTG=DSHDTG+DEVDTG+DTRDTG
+        DFDTG=DF0DTG-(1.-DF0DTG*Z1BY6L)*CDENOM
+        DTG=(F0-F1)*DTSURF/(HC1-DTSURF*DFDTG)
+        SHDT=SHDT+DTSURF*(SHEAT+DTG*DSHDTG)
+        EVHDT=EVHDT+DTSURF*(EVHEAT+DTG*DEVDTG)
+        TRHDT=TRHDT+DTSURF*(TRHEAT+DTG*DTRDTG)
+        F1DT=F1DT+DTSURF*(TG1-CDTERM-(F0+DTG*DFDTG)*Z1BY6L)*CDENOM
+        TG1=TG1+DTG
+
+      END SELECT
+
+CC**** CALCULATE EVAPORATION
+      DQ1X =EVHDT/((LHE+TG1*SHV)*MA1)
       EVHDT0=EVHDT
 C**** Limit evaporation if lake mass is at minimum
-      IF (ITYPE.EQ.1 .and. PLK.GT.0 .and.
-     *     (EVAPOR(I,J,1)-DQ1X*RMBYA).gt.EVAPLIM) THEN
+      IF (ITYPE.EQ.1 .and. FLAKE(I,J).GT.0 .and.
+     *     (EVAPOR(I,J,1)-DQ1X*MA1).gt.EVAPLIM) THEN
         if (QCHECK) WRITE(99,*) "Lake EVAP limited: I,J,EVAP,MWL",I,J
-     *       ,EVAPOR(I,J,1)-DQ1X*RMBYA, MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J
-     *       ))
-        DQ1X=(EVAPOR(I,J,1)-EVAPLIM)/RMBYA
+     *     ,EVAPOR(I,J,1)-DQ1X*MA1,MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J))
+        DQ1X=(EVAPOR(I,J,1)-EVAPLIM)*BYAM(1,I,J)
       ELSEIF (DQ1X.GT.Q1+DQ1(I,J)) THEN
         DQ1X=(Q1+DQ1(I,J))
       ELSE
         GO TO 3720
       END IF
-      EVHDT=DQ1X*(LHE+TG1*SHV)*RMBYA
+      EVHDT=DQ1X*(LHE+TG1*SHV)*MA1
       IF (ITYPE.NE.1) TG1=TG1+(EVHDT-EVHDT0)/HCG1
- 3720 EVAP=-DQ1X*RMBYA
+ 3720 EVAP=-DQ1X*MA1
 C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       F0DT=DTSURF*SRHEAT+TRHDT+SHDT+EVHDT
 C**** Limit heat fluxes out of lakes if near minimum depth
-      IF (ITYPE.eq.1 .and. PLK.gt.0 .and. E0(I,J,1)+F0DT+HTLIM.lt.0)
-     *     THEN
+      IF (ITYPE.eq.1 .and. FLAKE(I,J).gt.0 .and.
+     *     E0(I,J,1)+F0DT+HTLIM.lt.0) THEN
         if (QCHECK) write(6,*) "Limiting heat flux from lake",i,j,SHDT
      *       ,F0DT,E0(I,J,1),DTSURF*SRHEAT,TRHDT,EVHDT,HTLIM
         SHDT = -(HTLIM+E0(I,J,1)+DTSURF*SRHEAT+TRHDT+EVHDT)
@@ -495,38 +465,85 @@ C**** Limit heat fluxes out of lakes if near minimum depth
       E1(I,J,ITYPE)=E1(I,J,ITYPE)+F1DT
       EVAPOR(I,J,ITYPE)=EVAPOR(I,J,ITYPE)+EVAP
       TGRND(ITYPE,I,J)=TG1
-      DTH1(I,J)=DTH1(I,J)-SHDT*PTYPE/(SHA*RMBYA*P1K)
+      DTH1(I,J)=DTH1(I,J)-SHDT*PTYPE/(SHA*MA1*P1K)
       DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
-      DMUA(I,J,ITYPE)=DMUA(I,J,ITYPE)+PTYPE*DTGRND*RCDMWS*US
-      DMVA(I,J,ITYPE)=DMVA(I,J,ITYPE)+PTYPE*DTGRND*RCDMWS*VS
-      USS=USS+US*PTYPE
-      VSS=VSS+VS*PTYPE
-      WSS=WSS+WS*PTYPE
-      TSS=TSS+TS*PTYPE
-      QSS=QSS+QS*PTYPE
-      TAUS=TAUS+CM*WS*WS*PTYPE
-         RTAUS=RTAUS+RCDMWS*WS*PTYPE
-         RTAUUS=RTAUUS+RCDMWS*US*PTYPE
-         RTAUVS=RTAUVS+RCDMWS*VS*PTYPE
-         TG1S=TG1S+TG1*PTYPE
-         QGS=QGS+QG*PTYPE
-         BETAS=BETAS + BETA*PTYPE
-         SRHDTS=SRHDTS+SRHEAT*DTSURF*PTYPE
-         TRHDTS=TRHDTS+TRHDT*PTYPE
-         SHDTS=SHDTS+SHDT*PTYPE
-         EVHDTS=EVHDTS+EVHDT*PTYPE
-         UGS=UGS+UG*PTYPE
-         VGS=VGS+VG*PTYPE
-         WGS=WGS+WG*PTYPE
-         CDMS=CDMS+CM*PTYPE
-         CDHS=CDHS+CH*PTYPE
-         CDQS=CDQS+CQ*PTYPE
-         EDS1S=EDS1S+KHS*PTYPE
-         PPBLS=PPBLS+PPBL*PTYPE
-         EVAPS=EVAPS+EVAP*PTYPE
-         F1DTS=F1DTS+F1DT*PTYPE
-         DBLS=DBLS+DBL*PTYPE
-         PSIS=PSIS+PSI*PTYPE
+      DMUA(I,J,ITYPE)=DMUA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*US
+      DMVA(I,J,ITYPE)=DMVA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*VS
+      uflux1(i,j)=uflux1(i,j)+PTYPE*RCDMWS*US
+      vflux1(i,j)=vflux1(i,j)+PTYPE*RCDMWS*VS
+C****
+C**** ACCUMULATE DIAGNOSTICS FOR EACH SURFACE TIME STEP AND ITYPE
+C****
+        AJ(J,J_EVHDT,IDTYPE)=AJ(J,J_EVHDT,IDTYPE)+EVHDT*PTYPE
+        AJ(J,J_SHDT ,IDTYPE)=AJ(J,J_SHDT ,IDTYPE)+SHDT *PTYPE
+        AJ(J,J_TRHDT,IDTYPE)=AJ(J,J_TRHDT,IDTYPE)+TRHDT*PTYPE
+        IF(MODDSF.EQ.0)
+     *       AJ(J,J_TSRF,IDTYPE)=AJ(J,J_TSRF,IDTYPE)+(TS-TF)*PTYPE
+C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
+        IF(JR.LT.24) THEN
+          AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+TRHDT*PTYPE*DXYP(J)
+          AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+SHDT *PTYPE*DXYP(J)
+          AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+EVHDT*PTYPE*DXYP(J)
+          AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+EVAP *PTYPE*DXYP(J)
+          AREG(JR,J_F1DT )=AREG(JR,J_F1DT )+F1DT *PTYPE*DXYP(J)
+          IF(MODDSF.EQ.0)
+     *         AREG(JR,J_TSRF)=AREG(JR,J_TSRF)+(TS-TF)*PTYPE*DXYP(J)
+        END IF
+        IF (PLICE.gt.0) THEN
+          AIJ(I,J,IJ_TSLI)=AIJ(I,J,IJ_TSLI)+(TS-TF)
+          AIJ(I,J,IJ_SHDTLI)=AIJ(I,J,IJ_SHDTLI)+SHDT
+          AIJ(I,J,IJ_EVHDT)=AIJ(I,J,IJ_EVHDT)+EVHDT
+          AIJ(I,J,IJ_TRHDT)=AIJ(I,J,IJ_TRHDT)+TRHDT
+        END IF
+C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
+        AIJ(I,J,IJ_SHDT)=AIJ(I,J,IJ_SHDT)+SHDT*PTYPE
+        IF(MODRD.EQ.0) AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)+TRHDT
+     *       *PTYPE/DTSRC
+        AIJ(I,J,IJ_SRTR)=AIJ(I,J,IJ_SRTR)+(SRHEAT*DTSURF+TRHDT)*PTYPE
+        AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+(SRHEAT*DTSURF+TRHDT+SHDT
+     *       +EVHDT)*PTYPE
+        IF(MODDSF.EQ.0) THEN
+          AIJ(I,J,IJ_WS)=AIJ(I,J,IJ_WS)+WS*PTYPE ! added 12/29/96 -rar-
+          AIJ(I,J,IJ_TS)=AIJ(I,J,IJ_TS)+(TS-TF)*PTYPE
+          AIJ(I,J,IJ_US)=AIJ(I,J,IJ_US)+US*PTYPE
+          AIJ(I,J,IJ_VS)=AIJ(I,J,IJ_VS)+VS*PTYPE
+          AIJ(I,J,IJ_TAUS)=AIJ(I,J,IJ_TAUS)+RCDMWS*WS*PTYPE
+          AIJ(I,J,IJ_TAUUS)=AIJ(I,J,IJ_TAUUS)+RCDMWS*US*PTYPE
+          AIJ(I,J,IJ_TAUVS)=AIJ(I,J,IJ_TAUVS)+RCDMWS*VS*PTYPE
+          AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QS*PTYPE
+        END IF
+C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
+        IF(MODDD.EQ.0) THEN
+          DO KR=1,NDIUPT
+            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+              ADIURN(IH,IDD_TS,KR)=ADIURN(IH,IDD_TS,KR)+TS*PTYPE
+              ADIURN(IH,IDD_TG1,KR)=ADIURN(IH,IDD_TG1,KR)+(TG1+TF)*PTYPE
+              ADIURN(IH,IDD_QS,KR)=ADIURN(IH,IDD_QS,KR)+QS*PTYPE
+              ADIURN(IH,IDD_QG,KR)=ADIURN(IH,IDD_QG,KR)+QG*PTYPE
+              ADIURN(IH,IDD_SWG,KR)=ADIURN(IH,IDD_SWG,KR)+SRHEAT*DTSURF
+     *             *PTYPE
+              ADIURN(IH,IDD_LWG,KR)=ADIURN(IH,IDD_LWG,KR)+TRHDT*PTYPE
+              ADIURN(IH,IDD_SH,KR)=ADIURN(IH,IDD_SH,KR)+SHDT*PTYPE
+              ADIURN(IH,IDD_LH,KR)=ADIURN(IH,IDD_LH,KR)+EVHDT*PTYPE
+              ADIURN(IH,IDD_HZ0,KR)=ADIURN(IH,IDD_HZ0,KR)
+     *             +(SRHEAT*DTSURF+TRHDT+SHDT+EVHDT)*PTYPE
+              ADIURN(IH,IDD_UG,KR)=ADIURN(IH,IDD_UG,KR)+UG*PTYPE
+              ADIURN(IH,IDD_VG,KR)=ADIURN(IH,IDD_VG,KR)+VG*PTYPE
+              ADIURN(IH,IDD_WG,KR)=ADIURN(IH,IDD_WG,KR)+WG*PTYPE
+              ADIURN(IH,IDD_US,KR)=ADIURN(IH,IDD_US,KR)+US*PTYPE
+              ADIURN(IH,IDD_VS,KR)=ADIURN(IH,IDD_VS,KR)+VS*PTYPE
+              ADIURN(IH,IDD_WS,KR)=ADIURN(IH,IDD_WS,KR)+WS*PTYPE
+              ADIURN(IH,IDD_CIA,KR)=ADIURN(IH,IDD_CIA,KR)+PSI*PTYPE
+              ADIURN(IH,IDD_CM,KR)=ADIURN(IH,IDD_CM,KR)+CM*PTYPE
+              ADIURN(IH,IDD_CH,KR)=ADIURN(IH,IDD_CH,KR)+CH*PTYPE
+              ADIURN(IH,IDD_CQ,KR)=ADIURN(IH,IDD_CQ,KR)+CQ*PTYPE
+              ADIURN(IH,IDD_EDS,KR)=ADIURN(IH,IDD_EDS,KR)+KHS*PTYPE
+              ADIURN(IH,IDD_DBL,KR)=ADIURN(IH,IDD_DBL,KR)+DBL*PTYPE
+              ADIURN(IH,IDD_EV,KR)=ADIURN(IH,IDD_EV,KR)+EVAP*PTYPE
+            END IF
+          END DO
+        END IF
+C****
 #ifdef TRACERS_ON
 C**** Save surface tracer concentration whether calculated or not
       n=0
@@ -542,136 +559,33 @@ C**** Save surface tracer concentration whether calculated or not
         end if
       end do
 #endif
-      GO TO (4000,4100,4400),ITYPE
 C****
-C**** OCEAN
+C**** SAVE SOME TYPE DEPENDENT FLUXES
 C****
- 4000 CONTINUE
-         AJ(J,J_EVHDT,ITOCEAN)=AJ(J,J_EVHDT,ITOCEAN)+EVHDT  *POC
-         AJ(J,J_SHDT ,ITOCEAN)=AJ(J,J_SHDT ,ITOCEAN)+SHDT   *POC
-         AJ(J,J_TRHDT,ITOCEAN)=AJ(J,J_TRHDT,ITOCEAN)+TRHDT  *POC
-         AJ(J,J_TRHDT,ITLAKE) =AJ(J,J_TRHDT,ITLAKE) +TRHDT  *PLK
-         AJ(J,J_SHDT ,ITLAKE) =AJ(J,J_SHDT ,ITLAKE) +SHDT   *PLK
-         AJ(J,J_EVHDT,ITLAKE) =AJ(J,J_EVHDT,ITLAKE) +EVHDT  *PLK
-         IF(MODDSF.EQ.0) THEN
-           AJ(J,J_TSRF,ITOCEAN)=AJ(J,J_TSRF,ITOCEAN)+(TS-TF)*POC
-           AJ(J,J_TSRF,ITLAKE) =AJ(J,J_TSRF,ITLAKE) +(TS-TF)*PLK
-         END IF
-            OA(I,J,6)=OA(I,J,6)+TRHDT
-            OA(I,J,7)=OA(I,J,7)+SHDT
-            OA(I,J,8)=OA(I,J,8)+EVHDT
-      GO TO 2200
+      SELECT CASE (ITYPE)
+      CASE (1)  ! ocean
+        OA(I,J,6)=OA(I,J,6)+TRHDT
+        OA(I,J,7)=OA(I,J,7)+SHDT
+        OA(I,J,8)=OA(I,J,8)+EVHDT
 C****
-C**** OCEAN ICE
+      CASE (2)  ! seaice
+        IF (TG1.GT.TDIURN(I,J,7)) TDIURN(I,J,7) = TG1
+        OA(I,J,9)=OA(I,J,9)+TRHDT
+        OA(I,J,10)=OA(I,J,10)+SHDT
+        OA(I,J,11)=OA(I,J,11)+EVHDT
+C**** 
+      CASE (3) ! land ice
+        IF (TG1.GT.TDIURN(I,J,8)) TDIURN(I,J,8) = TG1
 C****
- 4100    CONTINUE
-         AJ(J,J_EVHDT,ITOICE) =AJ(J,J_EVHDT,ITOICE) +EVHDT  *POI
-         AJ(J,J_SHDT ,ITOICE) =AJ(J,J_SHDT ,ITOICE) +SHDT   *POI
-         AJ(J,J_TRHDT,ITOICE) =AJ(J,J_TRHDT,ITOICE) +TRHDT  *POI
-         AJ(J,J_TRHDT,ITLKICE)=AJ(J,J_TRHDT,ITLKICE)+TRHDT  *PLKI
-         AJ(J,J_SHDT ,ITLKICE)=AJ(J,J_SHDT ,ITLKICE)+SHDT   *PLKI
-         AJ(J,J_EVHDT,ITLKICE)=AJ(J,J_EVHDT,ITLKICE)+EVHDT  *PLKI
-         IF(MODDSF.EQ.0) THEN
-           AJ(J,J_TSRF,ITOICE) =AJ(J,J_TSRF,ITOICE) +(TS-TF)*POI
-           AJ(J,J_TSRF,ITLKICE)=AJ(J,J_TSRF,ITLKICE)+(TS-TF)*PLKI
-         END IF
-         IF (TG1.GT.TDIURN(I,J,7)) TDIURN(I,J,7) = TG1
-            OA(I,J,9)=OA(I,J,9)+TRHDT
-            OA(I,J,10)=OA(I,J,10)+SHDT
-            OA(I,J,11)=OA(I,J,11)+EVHDT
-      GO TO 2400
+      END SELECT
 C****
-C**** LAND ICE
-C****
- 4400    CONTINUE
-         AJ(J,J_EVHDT,ITLANDI) =AJ(J,J_EVHDT,ITLANDI) +EVHDT  *PLICE
-         AJ(J,J_SHDT ,ITLANDI) =AJ(J,J_SHDT ,ITLANDI) +SHDT   *PLICE
-         AJ(J,J_TRHDT,ITLANDI) =AJ(J,J_TRHDT,ITLANDI) +TRHDT  *PLICE
-         IF(MODDSF.EQ.0) AJ(J,J_TSRF,ITLANDI)=AJ(J,J_TSRF,ITLANDI)
-     *        +(TS-TF)*PLICE
-         IF (TG1.GT.TDIURN(I,J,8)) TDIURN(I,J,8) = TG1
-         AIJ(I,J,IJ_TSLI)=AIJ(I,J,IJ_TSLI)+(TS-TF)
-         AIJ(I,J,IJ_SHDTLI)=AIJ(I,J,IJ_SHDTLI)+SHDT
-         AIJ(I,J,IJ_EVHDT)=AIJ(I,J,IJ_EVHDT)+EVHDT
-         AIJ(I,J,IJ_TRHDT)=AIJ(I,J,IJ_TRHDT)+TRHDT
-C**** NON-OCEAN POINTS WHICH ARE NOT MELTING OR FREEZING WATER USE
-C****   IMPLICIT TIME STEPS
-C****
-C**** UPDATE SURFACE AND FIRST LAYER QUANTITIES
-C****
- 5000    CONTINUE
-C****
-C**** ACCUMULATE DIAGNOSTICS
-C****
-C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
-         IF(JR.EQ.24) GO TO 5700
-         AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+TRHDTS*DXYPJ
-         AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+SHDTS*DXYPJ
-         AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+EVHDTS*DXYPJ
-         AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+EVAPS*DXYPJ
-         AREG(JR,J_F1DT )=AREG(JR,J_F1DT )+F1DTS*DXYPJ
-         IF(MODDSF.NE.0) GO TO 5700
-         AREG(JR,J_TSRF)=AREG(JR,J_TSRF)+(TSS-TFS)*DXYPJ
-C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
- 5700    AIJ(I,J,IJ_SHDT)=AIJ(I,J,IJ_SHDT)+SHDTS
-         IF(MODRD.EQ.0) AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)+TRHDTS
-     *        /DTSRC
-         AIJ(I,J,IJ_SRTR)=AIJ(I,J,IJ_SRTR)+(SRHDTS+TRHDTS)
-         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+(SRHDTS+TRHDTS+SHDTS+EVHDTS)
-         IF(MODDSF.NE.0) GO TO 5800
-         AIJ(I,J,IJ_WS)=AIJ(I,J,IJ_WS)+WSS        ! added 12/29/96 -rar-
-         AIJ(I,J,IJ_TS)=AIJ(I,J,IJ_TS)+(TSS-TFS)
-         AIJ(I,J,IJ_US)=AIJ(I,J,IJ_US)+USS
-         AIJ(I,J,IJ_VS)=AIJ(I,J,IJ_VS)+VSS
-         AIJ(I,J,IJ_TAUS)=AIJ(I,J,IJ_TAUS)+RTAUS
-         AIJ(I,J,IJ_TAUUS)=AIJ(I,J,IJ_TAUUS)+RTAUUS
-         AIJ(I,J,IJ_TAUVS)=AIJ(I,J,IJ_TAUVS)+RTAUVS
-         AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QSS
-C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
- 5800    IF(MODDD.EQ.0) THEN
-         DO KR=1,NDIUPT
-            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-              ADIURN(IH,IDD_SPR,KR)=ADIURN(IH,IDD_SPR,KR)+PS
-              ADIURN(IH,IDD_PT5,KR)=ADIURN(IH,IDD_PT5,KR)+PSK*T(I,J,5)
-              ADIURN(IH,IDD_PT4,KR)=ADIURN(IH,IDD_PT4,KR)+PSK*T(I,J,4)
-              ADIURN(IH,IDD_PT3,KR)=ADIURN(IH,IDD_PT3,KR)+PSK*T(I,J,3)
-              ADIURN(IH,IDD_PT2,KR)=ADIURN(IH,IDD_PT2,KR)+PSK*T(I,J,2)
-              ADIURN(IH,IDD_PT1,KR)=ADIURN(IH,IDD_PT1,KR)+PSK*T(I,J,1)
-              ADIURN(IH,IDD_TS,KR)=ADIURN(IH,IDD_TS,KR)+TSS
-              ADIURN(IH,IDD_TG1,KR)=ADIURN(IH,IDD_TG1,KR)+(TG1S+TFS)
-              ADIURN(IH,IDD_Q5,KR)=ADIURN(IH,IDD_Q5,KR)+Q(I,J,5)
-              ADIURN(IH,IDD_Q4,KR)=ADIURN(IH,IDD_Q4,KR)+Q(I,J,4)
-              ADIURN(IH,IDD_Q3,KR)=ADIURN(IH,IDD_Q3,KR)+Q(I,J,3)
-              ADIURN(IH,IDD_Q2,KR)=ADIURN(IH,IDD_Q2,KR)+Q(I,J,2)
-              ADIURN(IH,IDD_Q1,KR)=ADIURN(IH,IDD_Q1,KR)+Q1
-              ADIURN(IH,IDD_QS,KR)=ADIURN(IH,IDD_QS,KR)+QSS
-              ADIURN(IH,IDD_QG,KR)=ADIURN(IH,IDD_QG,KR)+QGS
-              ADIURN(IH,IDD_SWG,KR)=ADIURN(IH,IDD_SWG,KR)+SRHDTS
-              ADIURN(IH,IDD_LWG,KR)=ADIURN(IH,IDD_LWG,KR)+TRHDTS
-              ADIURN(IH,IDD_SH,KR)=ADIURN(IH,IDD_SH,KR)+SHDTS
-              ADIURN(IH,IDD_LH,KR)=ADIURN(IH,IDD_LH,KR)+EVHDTS
-              ADIURN(IH,IDD_HZ0,KR)=ADIURN(IH,IDD_HZ0,KR)
-     *             +(SRHDTS+TRHDTS+SHDTS+EVHDTS)
-              ADIURN(IH,IDD_UG,KR)=ADIURN(IH,IDD_UG,KR)+UGS
-              ADIURN(IH,IDD_VG,KR)=ADIURN(IH,IDD_VG,KR)+VGS
-              ADIURN(IH,IDD_WG,KR)=ADIURN(IH,IDD_WG,KR)+WGS
-              ADIURN(IH,IDD_US,KR)=ADIURN(IH,IDD_US,KR)+USS
-              ADIURN(IH,IDD_VS,KR)=ADIURN(IH,IDD_VS,KR)+VSS
-              ADIURN(IH,IDD_WS,KR)=ADIURN(IH,IDD_WS,KR)+WSS
-              ADIURN(IH,IDD_CIA,KR)=ADIURN(IH,IDD_CIA,KR)+PSIS
-              ADIURN(IH,IDD_CM,KR)=ADIURN(IH,IDD_CM,KR)+CDMS
-              ADIURN(IH,IDD_CH,KR)=ADIURN(IH,IDD_CH,KR)+CDHS
-              ADIURN(IH,IDD_CQ,KR)=ADIURN(IH,IDD_CQ,KR)+CDQS
-              ADIURN(IH,IDD_EDS,KR)=ADIURN(IH,IDD_EDS,KR)+EDS1S
-              ADIURN(IH,IDD_DBL,KR)=ADIURN(IH,IDD_DBL,KR)+DBLS
-              ADIURN(IH,IDD_EV,KR)=ADIURN(IH,IDD_EV,KR)+EVAPS
-            END IF
-         END DO
-       END IF
-       IM1=I
-      END DO
+      END IF
+      END DO   ! end of itype loop
+ 
+      IM1=I
+      END DO   ! end of I loop
 
- 7000 CONTINUE
+ 7000 CONTINUE  ! end of J loop
 C****
 C**** EARTH
 C****
@@ -680,8 +594,7 @@ C****
 C**** UPDATE FIRST LAYER QUANTITIES
 C****
       DO J=1,JM
-      IMAX=IMAXJ(J)
-      DO I=1,IMAX
+      DO I=1,IMAXJ(J)
         FTEVAP=0
         IF (DTH1(I,J)*T(I,J,1).lt.0) FTEVAP=-DTH1(I,J)/T(I,J,1)
         FQEVAP=0
@@ -696,10 +609,9 @@ C****
           QMOM(:,I,J,1)=0.
         ENDIF
 c****   retrieve fluxes
-        RMBYA=100.*PDSIG(1,I,j)/GRAv
         P1K=PK(1,I,J)     ! EXPBYK(P1)
-        tflux1(i,j)=dth1(i,j)*(-RMBYA*P1K)/(dtsurf)
-        qflux1(i,j)=dq1(i,j)*(-RMBYA)/(dtsurf)
+        tflux1(i,j)=dth1(i,j)*(-AM(1,I,J)*P1K)/(dtsurf)
+        qflux1(i,j)=dq1(i,j)*(-AM(1,I,J))/(dtsurf)
 C**** Diurnal cycle of temperature diagnostics
         tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
         if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
@@ -710,7 +622,7 @@ c****
 c**** apply earth fluxes to the first layer of the atmosphere
 c****  (replaced with dummy subroutine when ATURB is used)
 c****
-      call apply_fluxes_to_atm
+      call apply_fluxes_to_atm(dtsurf)
 c****
 #ifdef TRACERS_ON
 C****
@@ -718,15 +630,7 @@ C**** Apply tracer surface sources and sinks
 C****
       call apply_tracer_source(dtsurf)
 #endif
-c****
-      DO J=1,JM
-      IMAX=IMAXJ(J)
-      DO I=1,IMAX
-        RMBYA=100.*PDSIG(1,I,j)/GRAV
-        uflux1(i,j)=du1(i,j)*RMBYA/(dtsurf)
-        vflux1(i,j)=dv1(i,j)*RMBYA/(dtsurf)
-      end do
-      end do
+
 C**** Call dry convection or aturb depending on rundeck
       CALL ATM_DIFFUS(1,1,dtsurf)
 C****
@@ -743,7 +647,7 @@ C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
         END DO
       END IF
 C****
-      END DO
+      END DO   ! end of surface time step
       RETURN
  9991 FORMAT ('0SURFACE ',4I4,5F10.4,3F11.7)
  9992 FORMAT ('0',I2,10F10.4/23X,4F10.4,10X,2F10.4/

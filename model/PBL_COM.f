@@ -53,7 +53,6 @@
 !@var tflux surface turbulent t-flux (=-<tw>)
 !@var qflux surface turbulent q-flux (=-<qw>)
       real*8, dimension(im,jm) :: uflux,vflux,tflux,qflux
-      real*8, dimension(im,jm) :: uflux1,vflux1,tflux1,qflux1
 
       END MODULE PBLCOM
 

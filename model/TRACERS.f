@@ -392,6 +392,7 @@ C****
 !@sum  CHECKTR Checks whether tracer variables are reasonable
 !@auth Gavin Schmidt
 !@ver  1.0
+      USE CONSTANT, only : teeny
       USE MODEL_COM, only : ls1,im,jm,lm,q,wm
       USE DYNAMICS, only : am
       USE GEOM, only : dxyp,imaxj
@@ -438,9 +439,10 @@ C**** check whether air mass is conserved
           do j=1,jm
           do i=1,imaxj(j)
             relerr=max(abs(trm(i,j,l,n)-q(i,j,l)*am(l,i,j)*dxyp(j))/
-     *           (q(i,j,l)*am(l,i,j)*dxyp(j)), abs(trwm(i,j,l,n)-wm(i,j
-     *           ,l)*am(l,i,j)*dxyp(j))/(wm(i,j,l)*am(l,i,j)*dxyp(j)))
-            if (relerr.gt.errmax) then
+     *           (q(i,j,l)*am(l,i,j)*dxyp(j)+teeny), abs(trwm(i,j,l,n)
+     *           -wm(i,j,l)*am(l,i,j)*dxyp(j))/max(trwm(i,j,l,n),wm(i,j
+     *           ,l)*am(l,i,j)*dxyp(j)))
+            if (relerr.gt.errmax .and. trwm(i,j,l,n).gt.1.) then
               lmax=l ; imax=i ; jmax=j ; errmax=relerr
             end if
           end do

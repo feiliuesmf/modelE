@@ -74,8 +74,8 @@ c****
      *     idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us,idd_vs,idd_ws,
      *     idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl,idd_ev
       use dynamics, only : pk,pek,pedn,pdsig,am,byam
-      use fluxes, only : dth1,dq1,du1,dv1,e0,e1,evapor,prec,eprec,runoe
-     *     ,erunoe,gtemp
+      use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
+     *     ,runoe,erunoe,gtemp
 #ifdef TRACERS_ON
      *     ,tot_trsource
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom
@@ -89,7 +89,7 @@ c****
       real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws
      *     ,rcdhws,dhgs,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype
      *     ,dxypj,trheat,wtr2av,wfc1
-     *     ,rhosrf,rmbya
+     *     ,rhosrf,ma1
      *     ,tfs,th1,thv1,p1k,psk,ts,ps,pij,psoil,pearth,warmer,brun0
      *     ,berun0,bdifs,bedifs,bts,bevhdt,brunu,berunu,bshdt,btrhdt
      *     ,timez,spring,zs1co
@@ -173,8 +173,8 @@ c****
       thv1=th1*(1.+q1*deltx)
       tkv=thv1*psk
       tfs=tf*psoil
-      rmbya=100.*pdsig(1,i,j)/grav
-      qm1=q1*rmbya
+      ma1=am(1,i,j)
+      qm1=q1*ma1
 c     rhosrf=100.*ps/(rgas*tsv)
 c     rhosrf=100.*ps/(rgas*tkv)
       jr=jreg(i,j)
@@ -385,15 +385,15 @@ c           for diagnostic purposes also compute gdeep 1 2 3
       gdeep(i,j,3)=ace2av
       gtemp(1,4,i,j)=tearth(i,j)
 c**** calculate fluxes using implicit time step for non-ocean points
-      du1(i,j)=du1(i,j)+ptype*dtsurf*rcdmws*us/rmbya
-      dv1(i,j)=dv1(i,j)+ptype*dtsurf*rcdmws*vs/rmbya
+      uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*us
+      vflux1(i,j)=vflux1(i,j)+ptype*rcdmws*vs
 c**** accumulate surface fluxes and prognostic and diagnostic quantities
       evap=evapw+evapd+evapb
       evapor(i,j,4)=evapor(i,j,4)+evap
       evhdt=-alhg
       shdt=-ashg
-      dth1(i,j)=dth1(i,j)-shdt*ptype/(sha*rmbya*p1k)
-      dq1(i,j) =dq1(i,j)+evap*ptype/rmbya
+      dth1(i,j)=dth1(i,j)-shdt*ptype/(sha*ma1*p1k)
+      dq1(i,j) =dq1(i,j)+evap*ptype/ma1
       qsavg(i,j)=qsavg(i,j)+qs*ptype
       qsats=qsat(ts,elhx,ps)
 c**** save runoff for addition to lake mass/energy resevoirs
