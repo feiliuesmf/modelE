@@ -39,7 +39,7 @@ C**** Set-able variables
       INTEGER :: LMCM = -1 ! defaults to LS1-1 if not set in rundeck
 !@dbparam ISC integer to turn on computation of stratocumulus clouds
       INTEGER :: ISC = 0  ! set ISC=1 to compute stratocumulus clouds
-!@dbparam U00wtrX multiplies U00ice for critical humidity for water clouds
+!@dbparam U00wtrX multiplies U00ice for critical humidity for water clds
       REAL*8 :: U00wtrX = 1.0d0     ! default
 !@dbparam U00ice critical humidity for ice cloud condensation
       REAL*8 :: U00ice = .7d0       ! default
@@ -63,7 +63,7 @@ C**** input variables
 !@var Miscellaneous vertical arrays set in driver
       REAL*8, DIMENSION(LM+1) :: PLE    !@var PLE pressure at layer edge
       REAL*8, DIMENSION(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,WMX
-     *     ,VSUBL,AJ8,AJ13,AJ50,AJ51,AJ52,AJ57,AQ,DPDT,RH1
+     *     ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -75,7 +75,7 @@ C**** input variables
 !@var RH1 relative humidity to compare with the threshold humidity
 !@var WMX cloud water mixing ratio (kg/Kg)
 !@var VSUBL downward vertical velocity due to cumulus subsidence (cm/s)
-!@var AJ8, AJ13, AJ50, AJ52, AJ57 dummy variables
+!@var MCFLX, DGDSM, DPHASE, DQCOND, DGDQM dummy variables
 !@var AQ time change rate of specific humidity (s**-1)
 !@var DPDT time change rate of pressure (mb/s)
       REAL*8, DIMENSION(LM+1) :: PRECNVL
@@ -98,8 +98,8 @@ C**** new arrays must be set to model arrays in driver (before LSCOND)
 !@var TTOLDL previous potential temperature
 !@var CLDSAVL saved large-scale cloud cover
 C**** new arrays must be set to model arrays in driver (after LSCOND)
-      REAL*8, DIMENSION(LM) :: AJ11,AJ53,TAUSSL,CLDSSL
-!@var AJ11,AJ53 height diagnostics of dry and latent heating by MC
+      REAL*8, DIMENSION(LM) :: SSHR,DCTEI,TAUSSL,CLDSSL
+!@var SSHR,DCTEI height diagnostics of dry and latent heating by MC
 !@var TAUSSL large-scale cloud optical thickness
 !@var CLDSSL large-scale cloud cover
 
@@ -154,7 +154,7 @@ C**** output variables
       REAL*8 :: CLDSLWIJ,CLDDEPIJ,PPHASE
 !@var CLDSLWIJ shallow convective cloud cover
 !@var CLDDEPIJ deep convective cloud cover
-!@var PPHASE precip phase of large-scale condensation 
+!@var PPHASE precip phase of large-scale condensation
       INTEGER :: LMCMAX,LMCMIN
 !@var LMCMAX upper-most convective layer
 !@var LMCMIN lowerest convective layer
@@ -164,14 +164,16 @@ C**** output variables
       REAL*8  RNDSS1L(LM),RNDSS2L(LM-1)
 CCOMP  does not work yet:
 CCOMP  THREADPRIVATE (RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
-CCOMP*  ,TL,QL,TH,RH,WMX,VSUBL,AJ8,AJ11,AJ13,AJ50,AJ51,AJ52,AJ53,AJ57
+CCOMP*  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE
+CCOMP*  ,DTOTW,DQCOND,DCTEI,DGDQM
 CCOMP*  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
 CCOMP*  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
 CCOMP*  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
 CCOMP*  ,PRCPMC,PRCPSS,PPHASE,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX
 CCOMP*  ,LMCMIN,KMAX,DEBUG)
       COMMON/CLDPRV/RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
-     *  ,TL,QL,TH,RH,WMX,VSUBL,AJ8,AJ11,AJ13,AJ50,AJ51,AJ52,AJ53,AJ57
+     *  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE,
+     *  ,DTOTW,DQCOND,DCTEI,DGDQM
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
@@ -364,12 +366,12 @@ C**** initiallise arrays of computed ouput
       TRPRMC = 0.
 #endif
 C**** zero out diagnostics
-         AJ8 =0.
-         AJ13=0.
-         AJ50=0.
-         AJ51=0.
-         AJ52=0.
-         AJ57=0.
+         MCFLX =0.
+         DGDSM=0.
+         DPHASE=0.
+         DTOTW=0.
+         DQCOND=0.
+         DGDQM=0.
 C**** save initial values (which will be updated after subsid)
       SM1=SM
       QM1=QM
@@ -994,10 +996,10 @@ C**** diagnostics
         IF(L.EQ.LMAX) FCDH=CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM
         FCDH1=0.
         IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
-        AJ8(L)=AJ8(L)+CCM(L)
-        AJ13(L)=AJ13(L)+PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1
-        AJ51(L)=AJ51(L)+SLHE*(QM(L)-QMT(L)+COND(L))
-        AJ57(L)=AJ57(L)+SLHE*(QM(L)-QMT(L))
+        MCFLX(L)=MCFLX(L)+CCM(L)
+        DGDSM(L)=DGDSM(L)+PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1
+        DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))
+        DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))
       END DO
 #ifdef TRACERS_ON
 C**** Subsidence of tracers by Quadratic Upstream Scheme
@@ -1044,7 +1046,7 @@ C Note that all of the tracers that condensed do not precipitate here,
 C since a fraction (FCLW) of TRCOND was removed above.
       TRPRCP(1:NTX) = TRCOND(1:NTX,LMAX)
 #endif
-         AJ50(LMAX)=AJ50(LMAX)+CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM
+         DPHASE(LMAX)=DPHASE(LMAX)+CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM
       DO 540 L=LMAX-1,1,-1
       IF(PRCP.LE.0.) GO TO 530
       FCLOUD=CCM(L)*BYAM(L+1)
@@ -1145,8 +1147,8 @@ C**** CONDENSING and WASHOUT of TRACERS BELOW CLOUD
 #endif
          FCDH1=0.
          IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
-         AJ50(L)=AJ50(L)-SLH*DQSUM+FCDH1-HEAT1
-         AJ52(L)=AJ52(L)-SLH*DQSUM
+         DPHASE(L)=DPHASE(L)-SLH*DQSUM+FCDH1-HEAT1
+         DQCOND(L)=DQCOND(L)-SLH*DQSUM
 C**** ADD PRECIPITATION AND LATENT HEAT BELOW
   530 PRHEAT=CDHEAT(L)+SLH*PRCP
       PRCP=PRCP+COND(L)
@@ -1184,16 +1186,16 @@ C**** ADJUSTMENT TO CONSERVE CP*T
         SUMDP=0.
         DO L=LMCMIN,LMCMAX
           SUMDP=SUMDP+AIRM(L)
-          SUMAJ=SUMAJ+AJ13(L)
+          SUMAJ=SUMAJ+DGDSM(L)
         END DO
         DO L=LMCMIN,LMCMAX
-          AJ13(L)=AJ13(L)-SUMAJ*AIRM(L)/SUMDP
+          DGDSM(L)=DGDSM(L)-SUMAJ*AIRM(L)/SUMDP
           SM(L)=SM(L)-SUMAJ*AIRM(L)/(SUMDP*PLK(L))
         END DO
 C**** LOAD MASS EXCHANGE ARRAY FOR GWDRAG
         AIRXL = 0.
         DO L=LMCMIN,LMCMAX
-          AIRXL = AIRXL+AJ8(L)
+          AIRXL = AIRXL+MCFLX(L)
         END DO
       END IF
 C**** CALCULATE OPTICAL THICKNESS
@@ -1410,8 +1412,8 @@ C**** initialise vertical arrays
       TOLDUP=TL(LM)
       PREICE(LM+1)=0.
       WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
-         AJ11=0.
-         AJ53=0.
+         SSHR=0.
+         DCTEI=0.
 C****
 C**** MAIN L LOOP FOR LARGE-SCALE CONDENSATION, PRECIPITATION AND CLOUDS
 C****
@@ -1617,7 +1619,7 @@ C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
       WMNEW=0.
   230 CONTINUE
 C**** PHASE CHANGE OF PRECIPITATION, FROM ICE TO WATER
-C**** This occurs if 0 C isotherm is crossed, or ice is falling into 
+C**** This occurs if 0 C isotherm is crossed, or ice is falling into
 C**** a super-cooled water cloud (that has not had B-F occur).
 C**** Note: on rare occasions we have ice clouds even if T>0
 C**** In such a case, no energy of phase change is needed.
@@ -1815,7 +1817,7 @@ C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       LHXUP=LHX
 C**** ACCUMULATE SOME DIAGNOSTICS
          HCNDSS=HCNDSS+(TNEW-TOLD)*AIRM(L)
-         AJ11(L)=AJ11(L)+(TNEW-TOLD)*AIRM(L)
+         SSHR(L)=SSHR(L)+(TNEW-TOLD)*AIRM(L)
       END DO  ! end of loop over L
 C****
 C**** CLOUD-TOP ENTRAINMENT INSTABILITY
@@ -1964,10 +1966,10 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
          QNEW=QL(L)
          QNEWU=QL(L+1)
          HCNDSS=HCNDSS+(TNEW-TOLD)*AIRM(L)+(TNEWU-TOLDU)*AIRM(L+1)
-         AJ11(L)=AJ11(L)+(TNEW-TOLD)*AIRM(L)
-         AJ11(L+1)=AJ11(L+1)+(TNEWU-TOLDU)*AIRM(L+1)
-         AJ53(L)=AJ53(L)+(QNEW-QOLD)*AIRM(L)*LHX*BYSHA
-         AJ53(L+1)=AJ53(L+1)+(QNEWU-QOLDU)*AIRM(L+1)*LHX*BYSHA
+         SSHR(L)=SSHR(L)+(TNEW-TOLD)*AIRM(L)
+         SSHR(L+1)=SSHR(L+1)+(TNEWU-TOLDU)*AIRM(L+1)
+         DCTEI(L)=DCTEI(L)+(QNEW-QOLD)*AIRM(L)*LHX*BYSHA
+         DCTEI(L+1)=DCTEI(L+1)+(QNEWU-QOLDU)*AIRM(L+1)*LHX*BYSHA
   382 CONTINUE
       WMSUM=0.
 C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS

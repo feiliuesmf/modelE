@@ -347,19 +347,20 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
         AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
         HCNDMC=0.
         DO L=1,LMCMAX
-          HCNDMC=HCNDMC+AJ13(L)+AJ50(L)
-          AJL(J,L,JL_MCHR)=AJL(J,L,JL_MCHR)+AJ13(L)*BYDSIG(L)
-          AJL(J,L,JL_MCHPHAS)=AJL(J,L,JL_MCHPHAS)+AJ50(L)*BYDSIG(L)
-          AJL(J,L,JL_MCDTOTW)=AJL(J,L,JL_MCDTOTW)+AJ51(L)*BYDSIG(L)
+          HCNDMC=HCNDMC+DGDSM(L)+DPHASE(L)
+          AJL(J,L,JL_MCHR)=AJL(J,L,JL_MCHR)+DGDSM(L)*BYDSIG(L)
+          AJL(J,L,JL_MCHPHAS)=AJL(J,L,JL_MCHPHAS)+DPHASE(L)*BYDSIG(L)
+          AJL(J,L,JL_MCDTOTW)=AJL(J,L,JL_MCDTOTW)+DTOTW(L)*BYDSIG(L)
 CCC       IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
-CCC  *         (AJ13(L)+AJ50(L))*(DXYP(J)*BYDSIG(L))
+CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
           IF(J.GE.J5S.AND.J.LE.J5N)     ! add in after parallel region
-     *      AJEQIL(J-J5S+1,I,L) = (AJ13(L)+AJ50(L))*(DXYP(J)*BYDSIG(L))
+     *      AJEQIL(J-J5S+1,I,L) = (DGDSM(L)+DPHASE(L))*                 
+     *                            (DXYP(J)*BYDSIG(L))
           AJL(J,L,JL_MCHEAT)=AJL(J,L,JL_MCHEAT)+
-     &         (AJ50(L)+AJ13(L))*BYDSIG(L)
+     &         (DPHASE(L)+DGDSM(L))*BYDSIG(L)
           AJL(J,L,JL_MCDRY)=AJL(J,L,JL_MCDRY)+
-     &         (AJ52(L)-AJ57(L))*BYDSIG(L)
-          AJL(J,L,JL_MCMFLX)=AJL(J,L,JL_MCMFLX)+AJ8(L)
+     &         (DQCOND(L)-DGDQM(L))*BYDSIG(L)
+          AJL(J,L,JL_MCMFLX)=AJL(J,L,JL_MCMFLX)+MCFLX(L)
         END DO
         DO IT=1,NTYPE
           AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
@@ -666,8 +667,8 @@ C**** between kinds of rain in the ground hydrology.
       PRECSS(I,J)=PRCPSS*100.*BYGRAV  ! large scale precip (kg/m^2)
 
       DO L=1,LM
-        AJL(J,L,JL_SSHR)=AJL(J,L,JL_SSHR)+AJ11(L)
-        AJL(J,L,JL_MCLDHT)=AJL(J,L,JL_MCLDHT)+AJ53(L)
+        AJL(J,L,JL_SSHR)=AJL(J,L,JL_SSHR)+SSHR(L)
+        AJL(J,L,JL_MCLDHT)=AJL(J,L,JL_MCLDHT)+DCTEI(L)
         AJL(J,L,JL_RHE)=AJL(J,L,JL_RHE)+RH1(L)
 
         T(I,J,L)=TH(L)
