@@ -4265,17 +4265,12 @@ c           ssfac=RKD*GASC*TEMP*clwc   ! Henry's Law
 #ifdef TRACERS_SPECIAL_O18
           if (fq0.gt.0. .and. fq0.lt.1.) then
 C**** If process occurs at constant temperature, calculate condensate
-C**** in equilibrium with source vapour. Otherwise, integrate rayleigh
-C**** equations from temp0 to temp using simpson's rule.
-C****     fq = 1 - exp( int_t0^t1( alph*(dQ/dt)*(1/Q) dt ))
-C****        = 1 - exp( int_t0^t1( alph*(-fqi) dt ))
+C**** in equilibrium with source vapour. Otherwise, use mid-point
+C**** temperature and estimate instantaneous fractionation. This gives
+C**** a very good estimate to complete integral
 C****
-            if (temp.ne.temp0) then  ! integrate
-              gint=0.
-              do i=1,nstep+1
-                tdegc=temp0 + dble(i-1)*(temp-temp0)/dble(nstep) -tf
-C**** assume that Q changes linearly with temp
-                fqi = fq0/(dble(nstep)-dble(i-1)*fq0)
+            if (temp.ne.temp0) then  ! use instantaneous frac
+              tdegc=0.5*(temp0 + temp) -tf
 C**** Calculate alpha (fractionation coefficient)
                 if (LHX.eq.LHE) then ! cond to water
                   alph=1./fracvl(tdegc,trname(ntix(n)))
@@ -4287,10 +4282,7 @@ C**** this is a parameterisation from Georg Hoffmann
                   if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
      *                 ,trname(ntix(n)))
                 end if
-C**** Simpson's rule
-                gint=gint-wgt(i)*alph*fqi
-              end do
-              fq = 1.-exp(gint)
+                fq = 1.- (1.-fq0)**alph
             else
 C**** assume condensate in equilibrium with vapour at temp
               tdegc=temp -tf
