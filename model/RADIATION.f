@@ -12976,6 +12976,7 @@ C**** Bare ice:
         albtf(1:4)=ali(1:4)
         albtr(1:4)=ali(1:4)
 C**** Snow:
+        patchy=0.
         if(hsn.gt.0.)then
           if(hsn.ge.0.1d0)then
             patchy=1d0
