@@ -877,7 +877,15 @@ C**** TRACERS: Use only the active ones
           end if
 c save for cloud-sulfate correlation
           if (trname(n).eq.'SO4') then
+#ifdef TRACERS_HETCHEM
             if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,nx)/24.
+     *                                    +tm(l,n_SO4_d1)/24. 
+     *                                    +tm(l,n_SO4_d2)/24. 
+     *                                    +tm(l,n_SO4_d3)/24. 
+     *                                    +tm(l,n_SO4_d4)/24. 
+#else
+            if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,nx)/24.
+#endif
             cm_sulft=cldmcl(l)+cldssl(l)
             if (cm_sulft.gt.1.) cm_sulft=1.
 !nu ??      if (cm_sulft.gt.cm_sulf) cm_sulf=cm_sulft
