@@ -85,7 +85,8 @@ C**** exactly the same as the default values.
       INTEGER :: Volc_yr = 1951 , Volc_day = 182
 !@dbparam Aero_yr obs.year of troposph.Aerosols (if 0: time var)
       INTEGER :: Aero_yr = 1951    ! always use annual cycle
-!@dbparam O3_yr obs.year of Ozone (if 0: time var)
+!@dbparam O3_yr obs.year of Ozone (if 0: time var, -yyyy: use decyyyy,
+!@+   janyyyy to find jan1-15,dec16-31,not dec of yyyy-1, jan of yyyy+1)
       INTEGER :: O3_yr = 1951      ! always use annual cycle
 !@dbparam crops_yr obs.year of crops (if 0: time var, -1: default)
       INTEGER :: crops_yr = -1
