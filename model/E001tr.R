@@ -9,10 +9,10 @@ object modules, and input files), should be copied to a more
 functional rundeck.
 
 
-E001tr: ModelE 2.3.4+ (based on B402A with sample tracers)
+E001tr: ModelE1 (3.0) (based on B402A with sample tracers)
  Air mass, SF6, RN222, CO2, 14CO2, CFC-11, CH4, N2O, linearizedO3, Water
-modelE with 23 lyrs, top at 85km - 1979 atmosphere/ocean
-no gravity wave drag;     uses dry convection (rather than turbulence)
+23 lyrs, top at 85km - 1979 atmosphere/ocean
+gravity wave drag;     uses dry convection (rather than turbulence)
 Sdrag: weak linear strat. drag in top layer, near poles down to 20 mb
        lost ang.mom is added in below 150 mb
 sealevel pressure filter applied every hour
@@ -79,7 +79,7 @@ OCNML=Z1O.B4X5.cor                ! mixed layer depth (use for post processing)
 CDN=CD4X500S VEG=V72X46.1.cor2    ! surf.drag - vegetation fractions
 SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
-RVR=RD4X525.RVR.1                   ! river direction file
+RVR=RD4X525.RVR.2                   ! river direction file
 ZVAR=ZVAR4X5         ! topographic variation for gwdrag
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=radfil33k                   !     8/2003 version
@@ -137,7 +137,7 @@ CH4_RICE=methane/gcm_data/CH4RICEC_4X5          ! Monthly
 CH4_WETL=methane/gcm_data/CH4WETL+TUNDRA_4X5    ! Monthly
 
 Label and Namelist:
-E001tr (ModelE 2.3.4+ based on B402A, uses dry adiab. adjustment; tracers)
+E001tr (ModelE1 (3.0) based on B402A, uses dry adiab. adjustment; tracers)
 R=00BG/B
 DTFIX=90
 &&PARAMETERS

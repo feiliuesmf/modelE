@@ -1,6 +1,6 @@
 E001a.R GISS Model E  ann.varying prescr.ocn      rar  6/20/02
 
-E001a: ModelE 2.4 E001 but the prescribed ocean varies annually
+E001a: ModelE1 (3.0) E001 but the prescribed ocean varies annually
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -51,7 +51,7 @@ OCNML=Z1O.B4X5.cor                ! mixed layer depth (use for post processing)
 CDN=CD4X500S VEG=V72X46.1.cor2    ! surf.drag - vegetation fractions
 SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
-RVR=RD4X525.RVR.1                   ! river direction file
+RVR=RD4X525.RVR.2                   ! river direction file
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=radfil33k                   !     8/2003 version
 RADN3=miescatpar.abcdv
@@ -82,7 +82,7 @@ dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
-E001a (ModelE 2.4 annually varying prescribed ocean 'OCEAN A')
+E001a (ModelE1 (3.0) annually varying prescribed ocean 'OCEAN A')
 
 DTFIX=300
 

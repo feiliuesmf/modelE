@@ -1,6 +1,6 @@
 E001q.R GISS Model E                                 gas 06/00
 
-E001q: modelE 2.3.4+ Qflux version based on E001
+E001q: modelE1 (3.0) Qflux version based on E001
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -48,7 +48,7 @@ OCNML=Z1O.B4X5.cor                   ! ocn mixed layer depth
 CDN=CD4X500S VEG=V72X46.1.cor2    ! surf.drag - vegetation fractions
 SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
-RVR=RD4X525.RVR.1                   ! river direction file
+RVR=RD4X525.RVR.2                   ! river direction file
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=radfil33k                   !     8/2003 version
 RADN3=miescatpar.abcdv
@@ -79,7 +79,7 @@ dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
-E001q (ModelE 2.3.4+ Qflux version)
+E001q (ModelE1 (3.0) Qflux version)
 
 DTFIX=300
 &&PARAMETERS

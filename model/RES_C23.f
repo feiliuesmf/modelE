@@ -1,6 +1,4 @@
-!@sum  RES_M16S Resolution info for 16 layer, 4x5 strat model
-!@+    (Same as M12 for troposphere, 2 more layers between 150-10mb
-!@+     plus 2 more layers above 10mb, top at .3mb)
+!@sum  RES_C23 Resolution info for coarse 23 layer, 8x10 strat model
 !@auth Original Development Team
 !@ver  1.0
 
@@ -13,21 +11,23 @@
 !@var IM,JM longitudinal and latitudinal number of grid boxes
 !@var LM number of vertical levels
 !@var LS1 Layers LS1->LM: constant pressure levels, L<LS1: sigma levels
-      INTEGER, PARAMETER :: IM=72,JM=46,LM=16, LS1=9
+      INTEGER, PARAMETER :: IM=36,JM=24,LM=23, LS1=12
 
 !@var PSF,PMTOP global mean surface, model top pressure  (mb)
 !@var PTOP pressure at interface level sigma/const press coord syst (mb)
-      REAL*8, PARAMETER :: PSF=984.d0, PTOP = 150.d0, PMTOP = .3d0
+      REAL*8, PARAMETER :: PSF=984.d0, PMTOP=2.0576514d-3, PTOP = 150.d0
 !@var PSFMPT,PSTRAT pressure due to troposhere,stratosphere
       REAL*8, PARAMETER :: PSFMPT=PSF-PTOP, PSTRAT=PTOP-PMTOP
 
 !@var PLbot pressure levels at bottom of layers (mb)
       REAL*8, PARAMETER, DIMENSION(LM+1) :: PLbot = (/
-     t     PSF,   934.d0,  854.d0,  720.d0,  550.d0,    ! Pbot L=1,5
-     t  390.d0,   285.d0,  210.d0,                      !      L=...
+     t     PSF,   960.d0,  929.d0,  884.d0,  819.d0,    ! Pbot L=1,5
+     t  710.d0,   570.d0,  425.d0,  314.d0,  245.d0,    !      L=6,10
+     t  192.d0,                                         !      L=11
      1    PTOP,                                         !      L=LS1
-     s  110.d0,  80.d0,   55.d0,   35.d0,    20.d0,     !      L=...
-     s  10.d0,    3.d0,   PMTOP /)                      !      L=..,LM+1
+     s  117.d0,   86.2d0,  56.2d0,  31.6d0,  17.8d0,    !      L=13-17
+     s  10.0d0,   4.63d0,  1.46d0,  0.460995258d0,      !      L=18-21
+     s  0.1449994968d0,    3.12002802d-2,    PMTOP /)   !      L=..,LM+1
 
 C**** KEP depends on whether stratos. EP flux diagnostics are calculated
 C**** If dummy EPFLUX is used set KEP=0, otherwise KEP=21

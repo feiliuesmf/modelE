@@ -1,6 +1,5 @@
-!@sum  RES_M18AT Resolution info for 18 layer, 4x5 non-strat model
-!@+    (Same as M12 for troposphere, 2 more layers between 150-10mb
-!@+     plus 4 more layers above 10mb, top at .1mb, NO GWdrag)
+!@sum  RES_C20 Resolution info for 20 layer, 8x10 non-strat model
+!@+    (Same as M20AT top at .1mb, NO GWdrag)
 !@auth Original Development Team
 !@ver  1.0
 
@@ -13,7 +12,7 @@
 !@var IM,JM longitudinal and latitudinal number of grid boxes
 !@var LM number of vertical levels
 !@var LS1 Layers LS1->LM: constant pressure levels, L<LS1: sigma levels
-      INTEGER, PARAMETER :: IM=72,JM=46,LM=18, LS1=9
+      INTEGER, PARAMETER :: IM=36,JM=24,LM=20, LS1=11
 
 !@var PSF,PMTOP global mean surface, model top pressure  (mb)
 !@var PTOP pressure at interface level sigma/const press coord syst (mb)
@@ -23,8 +22,8 @@
 
 !@var PLbot pressure levels at bottom of layers (mb)
       REAL*8, PARAMETER, DIMENSION(LM+1) :: PLbot = (/
-     t     PSF,   934.d0,  854.d0,  720.d0,  550.d0,    ! Pbot L=1,5
-     t  390.d0,   285.d0,  210.d0,                      !      L=...
+     t     PSF, 964.d0, 934.d0, 884.d0, 810.d0, 710.d0, ! Pbot L=1,..
+     t  550.d0, 390.d0, 285.d0, 210.d0,                 !      L=...
      1    PTOP,                                         !      L=LS1
      s  110.d0,  80.d0,   55.d0,   35.d0,    20.d0,     !      L=...
      s  10.d0,    3.d0,    1.d0,     .3d0,   PMTOP /)   !      L=..,LM+1

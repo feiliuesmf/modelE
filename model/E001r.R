@@ -1,6 +1,6 @@
 E001r.R GISS Model E  strat.H2O added inst.frc          rar 2/01/02
 
-E001r: modelE 2.3.4+ radiation only, instantaneous forcing
+E001r: modelE1 (3.0) radiation only, instantaneous forcing
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -43,7 +43,7 @@ CDN=CD4X500S    ! surf.drag coefficient
 VEG=V72X46.1.cor2_no_crops CROPS=CROPS_72X46N.cor4  ! veg. fractions, crops history
 SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
-RVR=RD4X525.RVR.1                   ! river direction file
+RVR=RD4X525.RVR.2                   ! river direction file
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=radfil33k                   !     8/2003 version
 RADN3=miescatpar.abcdv
@@ -86,7 +86,7 @@ RADNOV=E001/RADNOV1950
 RADDEC=E001/RADDEC1950
 
 Label and Namelist:
-E001r (ModelE 2.4 inst.forcing run - control)
+E001r (ModelE1 (3.0) inst.forcing run - control)
 
 
 &&PARAMETERS

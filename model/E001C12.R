@@ -3,7 +3,7 @@ E001C12.R GISS Model E                                 gas 06/00
 WARNING: The boundary conditions used here may not be what you want
          and no tuning has yet been done.
   Please check and see before running
-E001C12: modelE 2.3.4+ 8x10
+E001C12: modelE1 (3.0) 8x10
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -79,7 +79,7 @@ dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_8x10.ij
 
 Label and Namelist:
-E001C12 (modelE 2.3.4+ 8x10)
+E001C12 (modelE1 (3.0) 8x10)
 
 DTFIX=450
 &&PARAMETERS

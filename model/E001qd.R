@@ -1,6 +1,6 @@
 E001qd.R GISS Model E                                 gas 06/00
 
-E001qd: ModelE 2.3.4+ (Qflux version with deep diffusion)
+E001qd: ModelE1 (3.0) (Qflux version with deep diffusion)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -45,7 +45,7 @@ EDDY=ED4X5 ! Eddy diffusivity for deep ocean mixing
 CDN=CD4X500S VEG=V72X46.1.cor2
 SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp ! bdy.cond
 REG=REG4X5           ! special regions-diag
-RVR=RD4X525.RVR.1      ! river direction file
+RVR=RD4X525.RVR.2      ! river direction file
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=radfil33k                   !     8/2003 version
 RADN3=miescatpar.abcdv
@@ -76,7 +76,7 @@ dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
-E001qd (ModelE 2.3.4+ based on B402A - Qflux + deep diffusion)
+E001qd (ModelE1 (3.0) based on B402A - Qflux + deep diffusion)
 
 DTFIX=300
 &&PARAMETERS

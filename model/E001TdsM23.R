@@ -3,7 +3,7 @@ E001TdsM23.R GISS Model E                                 gas 06/00
 WARNING: The boundary conditions used here may not be what you want
          and no tuning has yet been done.
   Please check and see before running
-E001TdsM23: modelE 2.3.4+ strat. version with Shindell tropospheric chemistry
+E001TdsM23: modelE1 (3.0) strat. version with Shindell tropospheric chemistry
 Balanced for 1950 SST + forcings
  T1=Ox
  T2=NOx
@@ -84,7 +84,7 @@ SICE=SICE4X5.B.1990-99avg.Hadl1.1
 CDN=CD4X500S VEG=V72X46.1.cor2
 SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp ! bdy.cond
 REG=REG4X5           ! special regions-diag
-RVR=RD4X525.RVR.1      ! river direction file
+RVR=RD4X525.RVR.2      ! river direction file
 ZVAR=ZVAR4X5         ! topographic variation for gwdrag
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=radfil33k                   !     8/2003 version
@@ -167,7 +167,7 @@ CH4_RICE=methane/gcm_data/CH4RICEC_4X5     ! Monthly 0.7533
 CH4_WETL=methane/gcm_data/CH4WETL+TUNDRA_4X5  ! Monthly 0.9818; zonal also
 
 Label and Namelist:
-E001TdsM23 (modelE 2.3.4+ strat version with tropospheric chemsitry - 1950 conditions)
+E001TdsM23 (modelE1 (3.0) strat version with tropospheric chemsitry - 1950 conditions)
 R=00BG/B
 DTFIX=180
 &&PARAMETERS

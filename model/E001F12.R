@@ -3,7 +3,7 @@ E001F12.R GISS Model E                                 gas 06/00
 WARNING: The boundary conditions used here may not be what you want
          and no tuning has yet been done.
   Please check and see before running
-E001F12: ModelE 2.3.4+ 2x2.5, 12 layer
+E001F12: ModelE1 (3.0) 2x2.5, 12 layer
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -42,8 +42,8 @@ AIC=AIC.RES_F12.D771201  ! observed init cond (atm. only) ISTART=2
 GIC=GIC.144X90.DEC01.1     ! initial ground conditions      ISTART=2
 ! OHT=OTSPEC.RunIDM12.M250D ! hor.heat transp.  for q-flux ocean only
 ! OCNML=Z1O.B144X90         ! mixed layer depth,needed for post-processing only
-OSST=OST144X90.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr data)
-SICE=SICE144X90.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
+OSST=OST_144x90.B.1946_55avg.Hadl1 ! prescr. climatological ocean (1 yr data)
+SICE=SICE_144X90.B.1946-55avg.Hadl1 ! prescr. climatological sea ice
 CDN=CD144X90 VEG=VEG144X90M
 SOIL=S144X900098M TOPO=Z144X90N_nocasp ! bdy.cond
 REG=REG2X2.5_CAFE     ! special regions-diag
@@ -78,7 +78,7 @@ dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_144x90.ij.ext
 
 Label and Namelist:
-E001F12 (modelE 2.3.4+ 2x2.5 version)
+E001F12 (modelE1 (3.0) 2x2.5 version)
 
 DTFIX=112.5
 &&PARAMETERS
@@ -88,7 +88,7 @@ ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 
 KOCEAN=0
 U00ice=.45   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
-HRMAX=1000.  ! tune this to get rad.equilibrium (range: 100.-1500. meters)
+U00wtrX=1.
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=200. ! Shapiro filter on U in E-W direction; usually same as DT (below)
