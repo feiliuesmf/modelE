@@ -31,15 +31,15 @@ c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
       REAL*8, DIMENSION(IM,2) :: LON_DG
 !@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
 C**** Note that this is not the exact area, but is what is required for
-C**** some B-grid conseravtion quantities
+C**** some B-grid conservation quantities
       REAL*8, DIMENSION(JM) :: DXYP,BYDXYP
-!@var  AREAG global integral of area (m^2)
+!@var AREAG global integral of area (m^2)
       REAL*8 :: AREAG
-!@var  WTJ area weighting used in JLMAP, JKMAP (for hemispheric means)
+!@var WTJ area weighting used in JLMAP, JKMAP (for hemispheric means)
       DOUBLE PRECISION, DIMENSION(JM,2,2) :: WTJ
 
-!@var  DXYV area of grid box around a velocity point (m^2)
-      REAL*8, DIMENSION(JM) :: DXYV
+!@var DXYV,BYDXYV area of grid box around velocity point (recip.)(m^2)
+      REAL*8, DIMENSION(JM) :: DXYV,BYDXYV
 
 !@var  DXP,DYP distance between points on primary grid
       REAL*8, DIMENSION(JM) :: DXP,DYP
@@ -131,6 +131,7 @@ c      DLON=TWOPI*BYIM
       RAPVN(JM) = 0.
       DO J=2,JM
          DXYV(J) = DXYN(J-1)+DXYS(J)
+         BYDXYV(J) = 1./DXYV(J)
          RAPVS(J)   = .5*DXYS(J)/DXYV(J)
          RAPVN(J-1) = .5*DXYN(J-1)/DXYV(J)
          RAVPS(J)   = .5*DXYS(J)/DXYP(J)

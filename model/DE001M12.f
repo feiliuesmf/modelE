@@ -357,7 +357,7 @@ C****
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
-     *     ,imaxj,ravpn,ravps,sinp
+     *     ,imaxj,ravpn,ravps,sinp,bydxyv
       USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,
      &     aij,ij_dtdp,ij_pev,ij_phi1k,ij_pres,ij_puq,ij_pvq,
      &     ij_slp,ij_t850,ij_ujet,ij_vjet,j_tx1,
@@ -400,7 +400,7 @@ C****
      &     I150E,I110W,I135W,J5NUV,J5SUV,J5N,J5S,IT
       DOUBLE PRECISION THBAR ! external
       DOUBLE PRECISION ::
-     &     BBYGV,BDTDL,BYDXYV,BYSDSG,CDTDL,DLNP,DLNP12,DLNP23,DBYSD,
+     &     BBYGV,BDTDL,BYSDSG,CDTDL,DLNP,DLNP12,DLNP23,DBYSD,
      &     DLNS,DP,DS,DT2,DTHDP,DU,DUDP,DUDX,DV,DXYPJ,ELX,EPSLON,
      *     ESEPS,FPHI,GAMC,GAMD,GAMM,GAMX,GMEANL,P1,P4,P4I,
      &     PDN,PE,PEQ,PEQM1,PEQM2,PHIRI,PIBYIM,PIJ,PITIJ,PITMN,
@@ -1071,12 +1071,11 @@ C**** ELIASSEN PALM FLUX
 C****
 C**** NORTHWARD TRANSPORT
       DO 868 J=2,JM
-      BYDXYV=1./DXYV(J)
       I=IM
       DO 862 IP1=1,IM
       PDA(I)=.5*((P(I,J)+P(IP1,J))*DXYS(J)+(P(I,J-1)+P(IP1,J-1))*
      *  DXYN(J-1))
-      PSEC(I)=PDA(I)*BYDXYV
+      PSEC(I)=PDA(I)*BYDXYV(J)
   862 I=IP1
       DO 868 L=1,LM
       DUDP=0.

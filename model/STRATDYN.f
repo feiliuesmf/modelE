@@ -1,75 +1,110 @@
-C**** VDIFF: Vertical Diffusion                                         
+!@sum  STRATDYN stratospheric only routines
+!@auth Bob Suozzo/Jean Lerner
+!@ver  1.0
+
+C**** This module now compiles, but I can't check the results. 
+C**** TO DO: 
+C****    i) check that no arrays that are needed are not being passed
+C****   ii) Any common block dependences that I missed?
+C****  iii) A-grid <-> B-grid  should be done with indexes etc.
+C****   iv) PK type variables should be done in dynamics and used here
+
+      MODULE STRAT
+!@sum  STRAT local stratospheric variables for GW drag etc.
+!@auth Bob Suozzo/Jean Lerner
+!@ver  1.0
+      USE MODEL_COM, only : im,jm,lm
+      IMPLICIT NONE
+      SAVE
+!@var XCDNST parameters for GW drag (in param. database)
+      REAL*8, DIMENSION(2) :: XCDNST(2)
+!@var ZVART,ZVARX,ZVARY,ZWT topogrpahic variance 
+C**** (must be in common due to read statement)
+      REAL*8, DIMENSION(IM,JM) :: ZVART,ZVARX,ZVARY,ZWT
+      COMMON/ZVARCB/ZVART,ZVARX,ZVARY,ZWT
+!@var DEFRM deformation field
+      REAL*8, DIMENSION(IM,JM) :: DEFRM 
+!@var LDEF,LDEFM deformation levels
+      INTEGER LDEF,LDEFM
+
+!@var PK local P**Kapa array - should be done by DYNAMICS?
+      REAL*8, DIMENSION(IM,JM,LM) :: PK
+
+      END MODULE
+
+
+      SUBROUTINE VDIFF (P,U,V,T,Q,DT1)
+!@sum VDIFF Vertical Diffusion in stratosphere
+!@auth Bob Suozzo/Jean Lerner
+!@ver  1.0
 C****
 C**** Vertical diffusion coefficient depends on wind shear.
 C**** Uses TRIDIAG for implicit scheme (MU=1) as in diffuse53.
 C**** This version only does diffusion for lowest LDIFM layers.
 C****
-      SUBROUTINE VDIFF (P,U,V,T,Q,DT1)
-      INCLUDE 'BB396M23.COM'
-      PARAMETER (LDIFM=LM)
-      COMMON /DRGCOM/ AIRX(IM,JM),LMC(IM,JM,2),DEFRM(IM,JM)
-      COMMON /WORK3/ PK(IM,JM,LM),UBAR(IM,JM,LM), ! PK is from GWDRAG
-     *   RHO(IM,JM,LM)
-      COMMON /WORK03/ VKEDDY(IM,JM,LM+1)  ! WORK03 is used in AADVT
-      DIMENSION USURF(IM,JM),VSURF(IM,JM)
-      DIMENSION TSURF(IM,JM),QSURF(IM,JM)
-      DIMENSION PL(0:LDIFM+1),RHOL(0:LDIFM+1),AIRM(LDIFM)
-      DIMENSION UL(0:LDIFM+1),VL(0:LDIFM+1),TL(0:LDIFM+1),QL(0:LDIFM+1)
-      DIMENSION TE(LDIFM+1)
-      DIMENSION PLE(LDIFM+1),RHOE(LDIFM+1),DPE(LDIFM+1),DFLX(LDIFM+1)
-      DIMENSION AM(LDIFM),AL(LDIFM),AU(LDIFM),B(LDIFM)
-      DIMENSION DU(LDIFM),DV(LDIFM)
-      DIMENSION DTEMP(LDIFM),DQ(LDIFM)
-      DIMENSION SINI(IM),COSI(IM)
-      REAL*8 KMEDGE(LDIFM+1),KHEDGE(LDIFM+1)
-      REAL*8 LMEDGE(LDIFM+1),LHEDGE(LDIFM+1),MU
-      PARAMETER (MU=1.)
-      EQUIVALENCE (BLDATA(1,1,2),TSURF(1,1))
-      EQUIVALENCE (BLDATA(1,1,3),QSURF(1,1))
-      EQUIVALENCE (BLDATA(1,1,6),USURF(1,1))
-      EQUIVALENCE (BLDATA(1,1,7),VSURF(1,1))
-      DATA IFIRST/1/
-      IF (IFIRST.EQ.1) THEN
-        PSFMPT=PSF-PTOP
-        IFIRST=0
-        DO 20 I=1,IM
-        SINI(I)=SIN((I-1)*TWOPI/FIM)
-   20   COSI(I)=COS((I-1)*TWOPI/FIM)
-        BYRGAS = 1./RGAS
-      ENDIF
-C        WRITE (*,*) ' VDIFF: MRCH=',MRCH
+      USE CONSTANT, only : rgas,grav,twopi
+      USE MODEL_COM, only : im,jm,lm,airx,lmc,psfmpt,sig,ptop,ls1,psf
+     *     ,sige,mrch
+      USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
+     *     vsurf=>vsavg
+      USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj
+      USE DAGCOM, only : ajl
+      USE STRAT, only : defrm,pk
+      IMPLICIT NONE
+      INTEGER, PARAMETER :: LDIFM=LM
+      REAL*8, PARAMETER :: BYRGAS = 1./RGAS
+      REAL*8 RHO,VKEDDY
+c      COMMON /DRGCOM/ AIRX(IM,JM),LMC(IM,JM,2),DEFRM(IM,JM)
+c      COMMON /WORK3/ PK(IM,JM,LM),UBAR(IM,JM,LM), ! PK is from GWDRAG
+c      COMMON /WORK3/ RHO(IM,JM,LM)
+c      COMMON /WORK03/ VKEDDY(IM,JM,LM+1)  ! WORK03 is used in AADVT
+      REAL*8, DIMENSION(IM,JM,LM+1) :: VKEDDY
+      REAL*8, DIMENSION(IM,JM,LM) :: RHO
+      REAL*8, DIMENSION(0:LDIFM+1) :: UL,VL,TL,QL,PL,RHOL
+      REAL*8, DIMENSION(LDIFM) :: AIRM,AM,AL,AU,B,DU,DV,DTEMP,DQ
+      REAL*8, DIMENSION(LDIFM+1) :: TE,PLE,RHOE,DPE,DFLX,KMEDGE,KHEDGE
+     *     ,LMEDGE,LHEDGE
+      REAL*8, PARAMETER :: MU=1.
+      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: U,V,T,Q
+      REAL*8, INTENT(INOUT), DIMENSION(IM,JM) :: P
+      REAL*8, INTENT(IN) :: DT1
+      REAL*8 G2DT,PIJ,TPHYS,EXPBYK
+      INTEGER I,J,L,IP1,NDT,N
+
       G2DT=GRAV*GRAV*DT1
-C**** Fill in USURF,VSURF at poles (really BLDATA(6),BLDATA(7))
+C**** Fill in USURF,VSURF at poles (Shouldn't this be done already?)
       DO 60 I=2,IM
       USURF(I,1)=USURF(1,1)*COSI(I)-VSURF(1,1)*SINI(I)
       VSURF(I,1)=VSURF(1,1)*COSI(I)+USURF(1,1)*SINI(I)
       USURF(I,JM)=USURF(1,JM)*COSI(I)+VSURF(1,JM)*SINI(I)
    60 VSURF(I,JM)=VSURF(1,JM)*COSI(I)-USURF(1,JM)*SINI(I)
 C**** Calculate RHO(I,J,L)
-      DO 115 L=1,LTM
-      DO 115 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
-      DO 110 I=1,IMAX
-  110 RHO(I,J,L)=   BYRGAS*(P(I,J)*SIG(L)+PTOP)/(T(I,J,L)*PK(I,J,L))
-  115 CONTINUE
-      DO 125 L=LS1,LM
-      DO 125 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
-      DO 120 I=1,IMAX
-  120 RHO(I,J,L)=   BYRGAS*(PSFMPT*SIG(L)+PTOP)/(T(I,J,L)*PK(I,J,L))
-  125 CONTINUE
-C**** Fill in T,Q,RHO at poles
-      DO 130 L=1,LM
-      DO 130 I=1,IM
-      T(I,1,L)=T(1,1,L)
-      T(I,JM,L)=T(1,JM,L)
-      Q(I,1,L)=Q(1,1,L)
-      Q(I,JM,L)=Q(1,JM,L)
-      RHO(I,1,L)=RHO(1,1,L)
-      RHO(I,JM,L)=RHO(1,JM,L)
-  130 CONTINUE
+      DO L=1,LS1-1  ! LTM
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
+        RHO(I,J,L)=   BYRGAS*(P(I,J)*SIG(L)+PTOP)/(T(I,J,L)*PK(I,J,L))
+      END DO
+      END DO
+      END DO
+      
+      DO L=LS1,LM
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
+        RHO(I,J,L)=   BYRGAS*(PSFMPT*SIG(L)+PTOP)/(T(I,J,L)*PK(I,J,L))
+      END DO
+      END DO
+      END DO
+C**** Fill in T,Q,RHO at poles (again shouldn't this be done already?)
+      DO L=1,LM
+      DO I=1,IM
+        T(I,1,L)=T(1,1,L)
+        T(I,JM,L)=T(1,JM,L)
+        Q(I,1,L)=Q(1,1,L)
+        Q(I,JM,L)=Q(1,JM,L)
+        RHO(I,1,L)=RHO(1,1,L)
+        RHO(I,JM,L)=RHO(1,JM,L)
+      END DO
+      END DO
 C**** Get Vertical Diffusion Coefficient for this timestep
       CALL GETVK (U,V,VKEDDY,LDIFM)
 C****
@@ -129,89 +164,129 @@ C**** dq/dt by diffusion as tridiagonal matrix
       CALL TRIDIAG(Al,Am,AU,B,DV,LDIFM)
 C**** Update model winds
       IF (MRCH.GT.0) THEN
-         DO 275 L=1,LM
-  275    AJL(J,L,32) = AJL(J,L,32) + DU(L)
+         DO L=1,LM
+           AJL(J,L,32) = AJL(J,L,32) + DU(L)
+         END DO
       ENDIF
-      DO 280 L=1,LM
-      U(I,J,L) = U(I,J,L) + DU(L)
-  280 V(I,J,L) = V(I,J,L) + DV(L)
+      DO L=1,LM
+        U(I,J,L) = U(I,J,L) + DU(L)
+        V(I,J,L) = V(I,J,L) + DV(L)
+      END DO
   290 CONTINUE
   300 I=IP1
+
       RETURN
+C****
       END SUBROUTINE VDIFF
 
       SUBROUTINE DFUSEF(DPE,RHOE,DEDGE,G2DT,DFLX,NDT,LM)
-      IMPLICIT REAL*8 (A-H,O-Z)
-      DIMENSION DPE(LM+1),AIRM(LM),RHOE(LM+1),DEDGE(LM+1),DFLX(LM+1)
-      DATA EPS/.3/
-      DO 190 L=1,LM+1
-  190 DFLX(L)=G2DT*RHOE(L)**2*DEDGE(L)/DPE(L)
+!@sum  DFUSEF calculate diffusive flux
+!@auth Bob Suozzo/Jean Lerner
+!@ver  1.0
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: LM
+      INTEGER, INTENT(OUT) :: NDT
+      REAL*8, INTENT(OUT), DIMENSION(LM+1) :: DFLX
+      REAL*8, INTENT(IN), DIMENSION(LM+1) :: DPE,RHOE,DEDGE
+      REAL*8, INTENT(IN) :: G2DT
+      REAL*8, PARAMETER :: EPS = .3d0
+      INTEGER L
+
+      DO L=1,LM+1
+        DFLX(L)=G2DT*RHOE(L)**2*DEDGE(L)/DPE(L)
+      END DO
       NDT=1
       RETURN
+C****
       END SUBROUTINE DFUSEF
 
       SUBROUTINE DFUSEQ(AIRM,DFLX,F,MU,AM,AL,AU,B,LM)
-      IMPLICIT REAL*8 (A-H,O-Z)
-      REAL*8 MU
-      DIMENSION AIRM(LM),F(0:LM+1),DFLX(LM+1)
-      DIMENSION AM(LM),AL(LM),AU(LM),B(LM)
-      DO 200 L=1,LM
-      BYAIRM = 1./AIRM(L)
-      B(L)=     BYAIRM*(DFLX(L+1)*(F(L+1)-F(L))
-     *                - DFLX(L)*(F(L)-F(L-1)))
-      AM(L)=1.+ (MU*BYAIRM)*(DFLX(L+1)+DFLX(L))
-      if (l.lt.lm) AL(L+1)=-(MU*BYAIRM)*DFLX(L)
-  200 AU(L)=-(MU*BYAIRM)*DFLX(L+1)
+!@sum  DFUSEQ calculate tridiagonal terms
+!@auth Bob Suozzo/Jean Lerner
+!@ver  1.0
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: LM
+      REAL*8, INTENT(IN), DIMENSION(LM) :: AIRM
+      REAL*8, INTENT(IN), DIMENSION(0:LM+1) :: F
+      REAL*8, INTENT(IN), DIMENSION(LM+1) :: DFLX
+      REAL*8, INTENT(OUT), DIMENSION(LM) :: AM,AL,AU,B
+      REAL*8, INTENT(IN) :: MU
+      INTEGER L
+      REAL*8 BYAIRM
+
+      DO L=1,LM
+        BYAIRM = 1./AIRM(L)
+        B(L)=     BYAIRM*(DFLX(L+1)*(F(L+1)-F(L))
+     *       - DFLX(L)*(F(L)-F(L-1)))
+        AM(L)=1.+ (MU*BYAIRM)*(DFLX(L+1)+DFLX(L))
+        if (l.lt.lm) AL(L+1)=-(MU*BYAIRM)*DFLX(L)
+        AU(L)=-(MU*BYAIRM)*DFLX(L+1)
+      END DO
       RETURN
+C****
       END SUBROUTINE DFUSEQ
 
       SUBROUTINE GETVK (U,V,VKEDDY,LDIFM)
-C****
-C**** Generate vertical diffusion coefficient - use high wind shear
-C****
-      INCLUDE 'BB396M23.COM'
-      DIMENSION VKEDDY(IM,JM,LM+1) ! Vert. Diffusion coefficent
-      DIMENSION USURF(IM,JM),VSURF(IM,JM)
-      EQUIVALENCE (USURF,BLDATA(1,1,6)),(VSURF,BLDATA(1,1,7))
-      DATA IFIRST/1/, XEDDY/10./
-      DO 150 J=2,JM
-      I=IM
-      DO 150 IP1=1,IM
-      US=.25*(USURF(I,J-1)+USURF(IP1,J-1)+USURF(I,J)+USURF(IP1,J))
-      VS=.25*(VSURF(I,J-1)+VSURF(IP1,J-1)+VSURF(I,J)+VSURF(IP1,J))
-      DELV2   =(U(I,J,1)-US)**2 + (V(I,J,1)-VS)**2
-      VKEDDY(I,J,1)=0.
-      IF (DELV2.GT.25.**2)  VKEDDY(I,J,1)=XEDDY
-  150 I=IP1
-      DO 200 L=2,MIN(LDIFM+1,LM)
-      DO 200 J=2,JM
-      DO 200 I=1,IM
-      DELV2   =(U(I,J,L)-U(I,J,L-1))**2 + (V(I,J,L)-V(I,J,L-1))**2
-      VKEDDY(I,J,L)=0.
-      IF (DELV2.GT.25.**2) THEN
-         VKEDDY(I,J,L)=XEDDY
-C        WRITE (99,901) I,J,L,DELV2
-  901 FORMAT (1X,'GETVK:  I,J,L =',3I3,4X,'DELV2=',F12.2)
-      ENDIF
-  200 CONTINUE
+!@sum GETVK calculate vertical diff. coefficient (use high wind shear)
+!@auth Bob Suozzo/Jean Lerner
+!@ver  1.0
+      USE MODEL_COM, only : im,jm,lm
+      USE PBLCOM, only : usurf=>usavg,vsurf=>vsavg
+      IMPLICIT NONE
+!@var Vert. Diffusion coefficent
+      REAL*8, INTENT(OUT), DIMENSION(IM,JM,LM+1) :: VKEDDY 
+      REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: U,V
+      INTEGER, INTENT(IN) :: LDIFM
+      REAL*8, PARAMETER :: XEDDY = 10., DV2MAX = 25.**2
+      INTEGER I,J,L,IP1
+      REAL*8 US,VS,DELV2
+
+C**** Calculate surface winds on velocity grid (rewrite!)
+C**** Is this calculated in PBL?
+      DO J=2,JM
+        I=IM
+        DO IP1=1,IM
+          US=.25*(USURF(I,J-1)+USURF(IP1,J-1)+USURF(I,J)+USURF(IP1,J))
+          VS=.25*(VSURF(I,J-1)+VSURF(IP1,J-1)+VSURF(I,J)+VSURF(IP1,J))
+          DELV2   =(U(I,J,1)-US)**2 + (V(I,J,1)-VS)**2
+          VKEDDY(I,J,1)=0.
+          IF (DELV2.GT.DV2MAX) VKEDDY(I,J,1)=XEDDY
+          I=IP1
+        END DO
+      END DO
+
+      DO L=2,MIN(LDIFM+1,LM)
+      DO J=2,JM
+      DO I=1,IM
+        DELV2   =(U(I,J,L)-U(I,J,L-1))**2 + (V(I,J,L)-V(I,J,L-1))**2
+        VKEDDY(I,J,L)=0.
+        IF (DELV2.GT.DV2MAX) VKEDDY(I,J,L)=XEDDY
+      END DO
+      END DO
+      END DO
       IF (LDIFM.EQ.LM) THEN
-        DO 250 J=2,JM
-        DO 250 I=1,IM
-  250   VKEDDY(I,J,LM+1)=0.
+        DO J=2,JM
+          DO I=1,IM
+            VKEDDY(I,J,LM+1)=0.
+          END DO
+        END DO
       ENDIF
-      DO 300 J=2,JM
-      DO 300 I=1,IM
-      VKEDDY(I,J,1)=0.
-      VKEDDY(I,J,2)=0.
-  300 CONTINUE
+      DO J=2,JM
+        DO I=1,IM
+          VKEDDY(I,J,1)=0.
+          VKEDDY(I,J,2)=0.
+        END DO
+      END DO
       RETURN
+C****
       END SUBROUTINE GETVK
 
 
       SUBROUTINE GWDRAG (P,U,V,T,SZ,DT1)
+!@sum  GWDRAG puts a momentum drag in the stratosphere
+!@auth Bob Suozzo/Jean Lerner
+!@ver  1.0
 C****
-C**** THIS SUBROUTINE PUTS A MOMENTUM DRAG IN THE STRATOSPHERE AND
-C**** THE MESOSPHERE.
 C**** GWDRAG is called from DYNAM with arguments:
 C****      P = Pressure (mb) at end of timestep
 C****      U,V,T = wind and Potential Temp. at beginning of timestep
@@ -242,48 +317,68 @@ C**** 2   Shear waves
 C**** 3-8 Convective waves
 C**** 9   Deformation wave
 C****
-      INCLUDE 'BB396M23.COM'
-      PARAMETER (NM=9)
-C     LOGICAL QWRITE
-      REAL*8 MDN,MUP,MU,MUR,MUB
-      DIMENSION SZ(IM,JM,LM)
-      COMMON/WORK3/PK(IM,JM,LM),UBAR(IM,JM,LM),
-     *  DKE(IM,JM,LM),
-     *  PLE(LM+1),PL(LM),DP(LM),TL(LM),THL(LM),RHO(LM),
-     *  BVF(LM),WL(LM),UL(LM),VL(LM),DL(LM),DUT(LM),DVT(LM),
-     *  MUB(LM+1,NM),MU(NM),UR(NM),VR(NM),
-     *  DQT(LM),DTT(LM),
-     *  RDI(LM),DFTL(LM),DFM(LM),DFR(LM),WMC(LM),
-     *  RA(4),VARXS(IM),VARXN(IM),VARYS(IM),VARYN(IM)
-     *  ,LD(NM),IO(4),JO(4),WT(NM)
-     *  ,UEDGE(LM),VEDGE(LM),BYFACS(LM)
-      COMMON/DRGCOM/AIRX(IM,JM),LMC(IM,JM,2),DEFRM(IM,JM),
-     *   ZVART(IM,JM),ZVARX(IM,JM),ZVARY(IM,JM),ZWT(IM,JM),
-     *   PDEF,LDEF,LDEFM
-      DIMENSION EK(NM,JM),CN(NM),PKS(LM)
-      DIMENSION BYDXYV(JM)
+      USE CONSTANT, only : grav,sha,twopi,kapa,rgas
+      USE MODEL_COM, only : im,jm,lm,byim,airx,lmc,nidyn,psf,sig,sige
+     *     ,dsig,ptop,ls1,mrch,zatmo
+      USE STRAT, only : xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm,pk
+C**** Do I need to put the common decalaration here also?
+      USE GEOM, only : dxyv,bydxyv,fcor,areag,imaxj,ravpn,ravps,rapvn
+     *     ,rapvs
+      USE DAGCOM, only : aij,ajl
+      USE FILEMANAGER
+      USE PARAM
+      IMPLICIT NONE
+      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: T,U,V,SZ
+      REAL*8, INTENT(IN), DIMENSION(IM,JM) :: P
+      REAL*8, INTENT(IN) :: DT1
+      INTEGER, PARAMETER :: NM=9
+c      COMMON/WORK3/PK(IM,JM,LM),UBAR(IM,JM,LM),
+c      COMMON/DRGCOM/AIRX(IM,JM),LMC(IM,JM,2),DEFRM(IM,JM),
+c     *   ZVART(IM,JM),ZVARX(IM,JM),ZVARY(IM,JM),ZWT(IM,JM),
+c     *   PDEF,LDEF,LDEFM
+      REAL*8 DKE(IM,JM,LM),PLE(LM+1),PL(LM),DP(LM),TL(LM),THL(LM),
+     *     RHO(LM),BVF(LM),WL(LM),UL(LM),VL(LM),DL(LM),DUT(LM),DVT(LM),
+     *     MUB(LM+1,NM),MU(NM),UR(NM),VR(NM),DQT(LM),DTT(LM),
+     *     RDI(LM),DFTL(LM),DFM(LM),DFR(LM),WMC(LM),
+     *     RA(4),VARXS(IM),VARXN(IM),VARYS(IM),VARYN(IM),
+     *     WT(NM),UEDGE(LM),VEDGE(LM),BYFACS(LM)
+      REAL*8, SAVE :: EK(NM,JM),CN(NM),PKS(LM)
       DATA CN(1)/0./
-      DATA IFIRST/1/
+      REAL*8, SAVE :: ERR,GRAVS,G2DT,DTHR,BYDT1,H0,FMC,VARMIN,XFROUD,USEDEF
+     *     ,XLIMIT,ROTK,RKBY3,EKS,EK1,EK2,EKX
+      INTEGER, SAVE :: IFIRST=1
+      INTEGER, SAVE :: L500,LSHR,LD2
+      INTEGER LD(NM),IO(4),JO(4)
+      INTEGER I,J,L,N,iu_ZVAR,K,LN,LMC0,LMC1,NMX,LDRAG,LD1,LTOP,IP1,IA
+     *     ,JA
+      REAL*8 FCORU,PIJ,SP,U0,V0,W0,BV0,ZVAR,P0,DU,DV,DW,CU,USRC,VSRC
+     *     ,AIRX4,AIRXS,CLDDEP,FPLUME,CLDHT,WTX,TEDGE,WMCE,BVEDGE,DFMAX
+     *     ,EXCESS,ALFA,XDIFF,DFT,DWT,EXPBYK,FDEFRM,WSRC,WCHECK,DUTN,PDN
+     *     ,YDN,FLUXUD,FLUXVD,PUP,YUP,DX,DLIMIT,FLUXU,FLUXV,DKEX,MDN
+     *     ,MUP,MUR,BVFSQ
+C     LOGICAL QWRITE
 C****
-      IF (IFIRST.NE.1) GO TO 50
-      ERR=1.E-20
+      IF (IFIRST.EQ.1) THEN
+
+C**** sync gwdrag parameters from input
+      call sync_param( "XCDNST", XCDNST, 2 )
+
+      ERR=1d-20
       GRAVS=GRAV*GRAV
       G2DT=GRAVS*DT1
-      DTHR=2./NDYN
-      SHA=RGAS/KAPA
+      DTHR=2./NIdyn   !NDYN
       BYDT1 = 1./DT1
-      BYIM=1./IM
       H0=8000.
-      FMC=2.E-7
+      FMC=2d-7
       VARMIN=XCDNST(1)*XCDNST(1)
       XFROUD=1.
 C     USEDEF=1.        ! Use Deformation drag if USEDEF = 1
-      XLIMIT=.1      ! per timestep limit on mixing and drag
+      XLIMIT=.1d0      ! per timestep limit on mixing and drag
       ROTK=1.5
       RKBY3=ROTK*ROTK*ROTK
       EKS=0.
       DO 5 J=2,JM
-      BYDXYV(J)=1./DXYV(J)
+c      BYDXYV(J)=1./DXYV(J)
       EK1=TWOPI/SQRT(DXYV(J))
       EK2=EK1*SQRT((360./IM)*(180./(JM-1)))
       EKX=(EK2-EK1)/LOG(EK2/EK1)
@@ -306,13 +401,15 @@ C**** Coefficients for Radiative Damping (not valid below 500 mb)
    13 L500=L500+1
       WRITE (*,*) ' L500=',L500
 C**** LEVEL FOR WIND SHEAR WAVE GENERATION
-      LSHR=9    ! ~300 MB
+      LSHR=9    ! ~300 MB  ! should these be calculated?
       LD2=19    ! ~0.2 MB
 C****
 C**** TOPOGRAPHY VARIANCE FOR MOUNTAIN WAVES
 C****
-      CALL READT (27,0,ZVART,IM*JM*4,ZVART,1)
-      REWIND 27
+      call getunit("ZVAR",iu_ZVAR,.true.,.true.)
+      CALL READT (iu_ZVAR,0,ZVART,IM*JM*4,ZVART,1)
+      REWIND iu_ZVAR
+
       DO 20 J=JM-1,1,-1
       DO 20 I=1,IM
       ZVART(I,J+1)=ZVART(I,J)
@@ -321,53 +418,48 @@ C****
    20 ZWT(I,J+1)=ZWT(I,J)
       DO 40 L=LS1,LM
    40 PKS(L)=((PSF-PTOP)*SIG(L)+PTOP)**KAPA
-   50 IFIRST=0
+      IFIRST=0
+      END IF
 C**** P**KAPA IN THE STRATOSPHERE
       DO 55 L=LS1,LM
       DO 52 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
-      DO 52 I=1,IMAX
-      PK(I,J,L)=PKS(L)
+      DO 52 I=1,IMAXJ(J)
+        PK(I,J,L)=PKS(L)
    52 CONTINUE
    55 CONTINUE
 C**** P**KAPA IN THE TROPOSPHERE
-C     DOPK??
       DO 65 L=1,LS1-1
       DO 60 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
-      DO 60 I=1,IMAX
-      PK(I,J,L)=EXPBYK(P(I,J)*SIG(L)+PTOP)
+      DO 60 I=1,IMAXJ(J)
+        PK(I,J,L)=EXPBYK(P(I,J)*SIG(L)+PTOP)
    60 CONTINUE
    65 CONTINUE
 C****
 C**** FILL IN QUANTITIES AT POLES
 C****
-      DO 70 I=2,IM
-      AIRX(I,1)=AIRX(1,1)
-      LMC(I,1,1)=LMC(1,1,1)
-      LMC(I,1,2)=LMC(1,1,2)
-      AIRX(I,JM)=AIRX(1,JM)
-      LMC(I,JM,1)=LMC(1,JM,1)
-   70 LMC(I,JM,2)=LMC(1,JM,2)
-      DO 80 L=1,LM
-      DO 80 I=2,IM
-      T(I,1,L)=T(1,1,L)
-      SZ(I,1,L)=SZ(1,1,L)
-      PK(I,1,L)=PK(1,1,L)
-      T(I,JM,L)=T(1,JM,L)
-      SZ(I,JM,L)=SZ(1,JM,L)
-   80 PK(I,JM,L)=PK(1,JM,L)
-C****
+      DO I=2,IM
+        AIRX(I,1)=AIRX(1,1)
+        LMC(I,1,1)=LMC(1,1,1)
+        LMC(I,1,2)=LMC(1,1,2)
+        AIRX(I,JM)=AIRX(1,JM)
+        LMC(I,JM,1)=LMC(1,JM,1)
+        LMC(I,JM,2)=LMC(1,JM,2)
+      END DO 
+      DO L=1,LM
+      DO I=2,IM
+        T(I,1,L)=T(1,1,L)
+        SZ(I,1,L)=SZ(1,1,L)
+        PK(I,1,L)=PK(1,1,L)
+        T(I,JM,L)=T(1,JM,L)
+        SZ(I,JM,L)=SZ(1,JM,L)
+        PK(I,JM,L)=PK(1,JM,L)
+      END DO
+      END DO
+C**** 
 C**** DEFORMATION
 C****
       IF(MRCH.EQ.0)  CALL DEFORM (P,U,V)
-      DO 85 L=1,LM
-      DO 85 J=1,JM
-      DO 85 I=1,IM
-      DKE(I,J,L)=0.
-   85 CONTINUE
+      DKE(:,:,:)=0.
 C****
 C**** BEGINNING OF OUTER LOOP OVER I,J
 C****
@@ -452,9 +544,9 @@ C.... limit ZSD to be consistent with Froude no. (U0/BV0*ZSD) > 1
 C     IF(QWRITE) WRITE (6,996) I,J,U0,MU(1),UL(L500),P0
 C**** DEFORMATION WAVE (X    d cm-2)
       IF (9.GT.NM)  GO TO 155
-      IF (FDATA(I,J,1)/GRAV.GT.1000.) GO TO 155
-      IF (DEFRM(I,J).LT.15.E-6) GO TO 155         !  Threshold= 15e-6
-      FDEFRM=- 3.*GRAV/(1000.*15.E-6)*DEFRM(I,J)  !  3 d cm-2 @ 15e-6
+      IF (ZATMO(I,J)/GRAV.GT.1000.) GO TO 155
+      IF (DEFRM(I,J).LT. 15d-6) GO TO 155         !  Threshold= 15e-6
+      FDEFRM=- 3.*GRAV/(1000.*15d-6)*DEFRM(I,J)  !  3 d cm-2 @ 15e-6
       DU=UL(LDEF +1)-UL(LDEF )
       DV=VL(LDEF +1)-VL(LDEF )
       DW=SQRT(DU**2        + DV**2       )
@@ -579,7 +671,7 @@ C**** DEPOSIT REMAINING MOM. FLUX IN TOP LAYER
   215 MUB(LM+1,N)=0.
 C**** DISTRIBUTE CRIT LEVEL NEAR TOP
       DO 220 N=1,NM
-      IF (MUB(LM,N).EQ.0.) MUB(LM,N)=.3*MUB(LM-1,N)
+      IF (MUB(LM,N).EQ.0.) MUB(LM,N)=.3d0*MUB(LM-1,N)
   220 CONTINUE
 Cw*** APPLY AREA WEIGHTING OF MTN WAVE TO BREAKING MOM. FLUX
 Cw    DO 225 L=LD(1),LM
@@ -617,14 +709,15 @@ C    * 4X,'MU',8X,1P,6E11.2/4X,'LD',10X,6I11)
 C     IF (QWRITE) WRITE (6,994) I,J,(L,UL(L),VL(L),(MUB(L,N),N=1,6),
 C    *  PLE(L),BVF(L),L=1,LM+1)
          IF (MRCH.NE.2) GO TO 251
-         AIJ(I,J,46)=AIJ(I,J,46)+MU(9)*UR(9)*DTHR
-         AIJ(I,J,92)=AIJ(I,J,92)+MU(1)*UR(1)*DTHR  *WT(1)
-         AIJ(I,J,93)=AIJ(I,J,93)+MU(2)*UR(2)*DTHR
-         AIJ(I,J,94)=AIJ(I,J,94)+MU(3)*UR(3)*DTHR  *WT(3)
-         AIJ(I,J,95)=AIJ(I,J,95)+MU(7)*UR(7)*DTHR  *WT(7)
-         AIJ(I,J,96)=AIJ(I,J,96)+MU(5)*UR(5)*DTHR  *WT(5)
-         AIJ(I,J,97)=AIJ(I,J,97)+CN(2)*UR(2)*DTHR
-         AIJ(I,J,98)=AIJ(I,J,98)+USRC*DTHR
+C**** These AIJ need names instead of numbers
+c         AIJ(I,J,46)=AIJ(I,J,46)+MU(9)*UR(9)*DTHR
+c         AIJ(I,J,92)=AIJ(I,J,92)+MU(1)*UR(1)*DTHR  *WT(1)
+c         AIJ(I,J,93)=AIJ(I,J,93)+MU(2)*UR(2)*DTHR
+c         AIJ(I,J,94)=AIJ(I,J,94)+MU(3)*UR(3)*DTHR  *WT(3)
+c         AIJ(I,J,95)=AIJ(I,J,95)+MU(7)*UR(7)*DTHR  *WT(7)
+c         AIJ(I,J,96)=AIJ(I,J,96)+MU(5)*UR(5)*DTHR  *WT(5)
+c         AIJ(I,J,97)=AIJ(I,J,97)+CN(2)*UR(2)*DTHR
+c         AIJ(I,J,98)=AIJ(I,J,98)+USRC*DTHR
 C****
 C**** CALCULATE THE DRAG
 C****
@@ -639,7 +732,7 @@ C****
       WMC(L)=UL(L)*UR(N)+VL(L)*VR(N)-CN(N)
       IF (WMC(L).GT..01) GO TO 255
       WMC(L)=.5*(WMC(L-1)+WMC(L))
-      IF (WMC(L).LT..01) WMC(L)=.01
+      IF (WMC(L).LT..01) WMC(L)=.01d0
   255 LTOP=L
       IF (MUB(L+1,N).EQ.0.) GO TO 270
   260 CONTINUE
@@ -649,18 +742,19 @@ C****
       WMC(L)=UL(L)*UR(N)+VL(L)*VR(N)-CN(N)
       IF (WMC(L).GT..01) GO TO 270
       WMC(L)=.5*(WMC(L-1)+WMC(L))
-      IF (WMC(L).LT..01) WMC(L)=.01
+      IF (WMC(L).LT..01) WMC(L)=.01d0
   270 CONTINUE
 Cd    IF (QWRITE) WRITE (6,988) LD1,LTOP,RAREA
 C 988 FORMAT (1X,'LD1=',I6,4X,'LTOP=',I6,4X,'RAREA=',1P,E12.3)
       DO 300 L=LD1,LTOP
-      IF (L.EQ.LM.AND.MRCH.EQ.2)
-     *   AIJ(I,J,99)=AIJ(I,J,99)+MU(N)*UR(N)*DTHR  *WT(N)
+C**** These AIJ need names instead of numbers
+c      IF (L.EQ.LM.AND.MRCH.EQ.2)
+c     *   AIJ(I,J,99)=AIJ(I,J,99)+MU(N)*UR(N)*DTHR  *WT(N)
 C**** RADIATIVE DAMPING
       MUR=MU(N)
 CRAD  DTW=DP(L)*BVF(L)/(EK(N,J)*WMC(L)*WMC(L)*RHO(L)*GRAV+ ERR)
 CRAD  WAVEM=1.E3*BVF(L)/(ABS(WMC(L))+ ERR)
-CRAD  IF (WAVEM.GT.1.6) WAVEM=1.6
+CRAD  IF (WAVEM.GT.1.6) WAVEM=1.6d0
 CRAD  WM3BY2=WAVEM*SQRT(WAVEM)
 CRAD  DTR=86400./(RDI(L)*(AZ(L)+BZ(L)*WAVEM*WAVEM/(CZ(L)+WM3BY2))+ERR)
 CRAD  MUR=MU(N)*EXP(-2.*DTW/(DTR+ ERR))
@@ -806,9 +900,7 @@ C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
 C****
       DO 600 L=LDRAG-1,LM
       DO 560 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
-      DO 550 I=1,IMAX
+      DO 550 I=1,IMAXJ(J)
       T(I,J,L)=T(I,J,L)-DKE(I,J,L)/(SHA*PK(I,J,L))
   550    AJL(J,L,33)=AJL(J,L,33)-DKE(I,J,L)/(SHA*PK(I,J,L))
   560 CONTINUE
@@ -828,46 +920,54 @@ C****
   998 FORMAT (1X,'MC GEN.: I,J,L0,1,HT,W3,M3,C3,US,VS=',
      *  4I4,2X,-3P,F7.2,0P,F7.3,1P,E12.2,1P,F7.2,2X,2F7.2)
   920 FORMAT (1X)
+C****
       END SUBROUTINE GWDRAG
 
       SUBROUTINE DEFORM (P,U,V)
+!@sum  DEFORM calculate defomation terms
+!@auth Bob Suozzo/Jean Lerner
+!@ver  1.0
 C****
 C**** Deformation terms  DEFRM1=du/dx-dv/dy   DEFRM2=du/dy+dv/dx
 C**** For spherical coordinates, we are treating DEFRM1 like DIV
 C**** and DEFRM2 like CURL (i.e., like FLUX and CIRCULATION),
 C**** except the "V" signs are switched.  DEFRM is RMS on u,v grid
-C**** MUST be called while PIT,SD,PU,PV are still in WORK1 !!!
 C****
-      INCLUDE 'BB396M23.COM'
+      USE MODEL_COM, only : im,jm,lm,airx,lmc,psf,ptop,sig,dsig
+      USE DYNAMICS, only : pu,pv
+      USE GEOM, only : bydxyv,dxyv,dxv,dyp
+      USE STRAT, only : ldef,ldefm,defrm
+      IMPLICIT NONE
+c      COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
+c      COMMON/WORK3/PK(IM,JM,LM),UBAR(IM,JM,LM),WSQ(IM,JM,LM),
+c      COMMON/WORK3/WSQ(IM,JM,LM),UDXS(IM),DUMS1(IM),DUMS2(IM),DUMN1(IM),DUMN2(IM)
+c      COMMON/DRGCOM/AIRX(IM,JM),LMC(IM,JM,2),DEFRM(IM,JM),
+c     *   ZVART(IM,JM),ZVARX(IM,JM),ZVARY(IM,JM),ZWT(IM,JM),
+c     *   PDEF,LDEF,LDEFM
+c??      EQUIVALENCE (WSQ(1,1,1),DEFRM1), (WSQ(1,1,2),DEFRM2)
+c??      EQUIVALENCE (WSQ(1,1,3),DEF1A), (WSQ(1,1,4),DEF2A)
+      REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: U,V 
+      REAL*8, DIMENSION(IM,JM), INTENT(INOUT) :: P 
+      REAL*8, DIMENSION(IM) :: UDXS,DUMS1,DUMS2,DUMN1,DUMN2
+      REAL*8, DIMENSION(IM,JM) ::  DEFRM1,DEFRM2,DEF1A,DEF2A
+      INTEGER, SAVE :: IFIRST = 1
       CHARACTER*80 TITLE
-      COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
-      COMMON/WORK3/PK(IM,JM,LM),UBAR(IM,JM,LM),WSQ(IM,JM,LM),
-     *                UDXS(IM),DUMS1(IM),DUMS2(IM),DUMN1(IM),DUMN2(IM)
-      COMMON/DRGCOM/AIRX(IM,JM),LMC(IM,JM,2),DEFRM(IM,JM),
-     *   ZVART(IM,JM),ZVARX(IM,JM),ZVARY(IM,JM),ZWT(IM,JM),
-     *   PDEF,LDEF,LDEFM
-      DIMENSION DEFRM1(IM,JM),DEFRM2(IM,JM),DEF1A(IM,JM),DEF2A(IM,JM)
-      DIMENSION BYDXYV(JM)
-      EQUIVALENCE (WSQ(1,1,1),DEFRM1), (WSQ(1,1,2),DEFRM2)
-      EQUIVALENCE (WSQ(1,1,3),DEF1A), (WSQ(1,1,4),DEF2A)
-      DATA IFIRST/1/
-      SAVE IFIRST,BYDXYV
+      INTEGER I,J,L,IP1,IM1
+      REAL*8 PL,UDXN,PDEF
+
       IF (IFIRST.EQ.1) THEN
-         DO 10 L=1,LM
-         PL=(PSF-PTOP)*SIG(L)+PTOP
-         IF (PL.GE.700) THEN
-           LDEF=L
-           PDEF=PL
-         ENDIF
-         IF (PL.GE.200.) LDEFM=L
-   10    CONTINUE
-         WRITE (*,*) ' LEVEL FOR DEFORMATION IS: LDEF,PDEF= ',LDEF,PDEF
-     *             ,' LDEFM=',LDEFM
-         DO J=2,JM
-           BYDXYV(J)=1./DXYV(J)
-         END DO
-         IFIRST=0
-      ENDIF
+        DO L=1,LM
+          PL=(PSF-PTOP)*SIG(L)+PTOP
+          IF (PL.GE.700) THEN
+            LDEF=L
+            PDEF=PL
+          ENDIF
+          IF (PL.GE.200.) LDEFM=L
+        END DO
+        WRITE (*,*) ' LEVEL FOR DEFORMATION IS: LDEF,PDEF= ',LDEF,PDEF
+     *       ,' LDEFM=',LDEFM
+        IFIRST=0
+      END IF
 C****
 C**** Deformation terms  DEFRM1=du/dx-dv/dy   DEFRM2=du/dy+dv/dx
 C**** For spherical coordinates, we are treating DEFRM1 like DIV
@@ -967,6 +1067,7 @@ CWF   TITLE='RMS OF DEFORMATION TERMS 1 AND 2     (XXXXXXXX S-1)'
 CWF   WRITE (TITLE(38:45),'(1PE8.0)') SCALE
 CWF   CALL MAP0(IM,JM,IHR,TITLE,DEFRM,SCALE,0., 0)
       RETURN
+C****
       END SUBROUTINE DEFORM
 
       SUBROUTINE io_strat(kunit,iaction,ioerr)
