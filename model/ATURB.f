@@ -24,7 +24,7 @@
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux,egcm
      *     ,t2gcm
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj
-      USE DAGCOM, only : ajl,
+      USE DAGCOM, only : p1000k,ajl,
      &     jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
       USE SOCPBL, only : nlevel
 
@@ -47,11 +47,11 @@
       real*8, dimension(lm,im,jm) :: km_gcm,km_gcm_ucell
      2        ,dz_ucell,dzedge_ucell,rho_ucell,rhoe_ucell
       real*8, dimension(im,jm) :: p_ucell,tsavg_ucell,qsavg_ucell
-      real*8, dimension(im,jm) :: uflux_ucell,vflux_ucell
+      real*8, dimension(im,jm) :: tvsurf,uflux_ucell,vflux_ucell
 
       integer, parameter :: mout=0,itest=52,jtest=33
       real*8, parameter :: tol=1.d-4,qmin=1.d-20
-      real*8 :: uflx,vflx,tflx,qflx,pl,rvx
+      real*8 :: uflx,vflx,tflx,qflx,pl,rvx,tsv
       real*8 :: temp0,ustar2,dbll,reserv,test,check,t0ijl,rak
       integer :: loc,icount,imax,kmax,idik,idjk
       integer :: i,j,l,k,iter,ifirst !@i,j,l,k loop variable
@@ -71,8 +71,9 @@ C**** routine has been called from.
       !  convert input T to virtual T
       do j=1,jm
         do i=1,imaxj(j)
+          tvsurf(i,j)=tsavg(i,j)*(1.d0+rvx*qsavg(i,j))
           do l=1,lm
-            t_virtual(l,i,j)=t(i,j,l)*(1.d0+RVX*Q(i,j,l))
+            t_virtual(l,i,j)=t(i,j,l)*(1.d0+rvx*Q(i,j,l))
           end do
         end do
       end do
@@ -82,8 +83,7 @@ C**** routine has been called from.
       ! get u_tcell and v_tcell at t-cells
       call ave_uv_to_tcell1(u,v,u_tcell,v_tcell,im,jm,lm)
 
-      call getdz(t_virtual,p,dz,dzedge,rho,rhoe,
-     2           tsavg,qsavg,rvx,im,jm,lm)
+      call getdz(t_virtual,p,dz,dzedge,rho,rhoe,tvsurf,im,jm,lm)
  
       if(ifirst.eq.0) then
         ifirst=1
@@ -101,7 +101,7 @@ C**** routine has been called from.
           do l=1,lm
             uij(l)=u_tcell(l,i,j)
             vij(l)=v_tcell(l,i,j)
-            tij(l)=t_virtual(l,i,j)     !virtual,potential temp.
+            tij(l)=t_virtual(l,i,j)*p1000k  !virtual,potential temp.
             pij(l)=100.d0*pmid(l,i,j)
             qij(l)=q(i,j,l)
             eij(l)=egcm(l,i,j)
@@ -133,6 +133,7 @@ C**** routine has been called from.
             as2(l)=dudz(l)*dudz(l)+dvdz(l)*dvdz(l)
           end do
 
+          tsv=tvsurf(i,j)
           uflx=uflux(i,j)
           vflx=vflux(i,j)
           tflx=tflux(i,j)
@@ -145,7 +146,7 @@ c          call init_t2(uij,vij,tij,eij,t2ij,t20ij,
 c    2          dudz,dvdz,as2,dtdz,g_alpha,an2,lscale,dzij,lm)
           call kgcm(km,kh,kq,ke,kt2,gc,gc_t2,gm,gh,uij,vij,tij,
      2             eij,t20ij,dudz,dvdz,as2,dtdz,g_alpha,an2,
-     3             lscale,dzij,dzeij,0,lm)
+     3             lscale,dzij,dzeij,tsv,lm)
           call diff_e(e0ij,eij,km,kh,ke,gc,lscale,uij,vij,tij,
      2         dzij,dzeij,dudz,dvdz,as2,dtdz,g_alpha,an2,
      3         rhoij,rhoeij,ustar2,dtime,lm)
@@ -163,7 +164,7 @@ c    2          dudz,dvdz,as2,dtdz,g_alpha,an2,lscale,dzij,lm)
             ! update 3-d q,t,egcm,t2gcm and km_gcm
             q(i,j,l)=max(qij(l),qmin)
             t0ijl=t(i,j,l)
-            t(i,j,l)=tij(l)/(1.d0+RVX*Q(i,j,l))
+            t(i,j,l)=tij(l)/(p1000k*(1.d0+rvx*Q(i,j,l)))
             egcm(l,i,j)=eij(l)
             t2gcm(l,i,j)=t2ij(l)
             km_gcm(l,i,j)=km(l)
@@ -186,7 +187,7 @@ c    2          dudz,dvdz,as2,dtdz,g_alpha,an2,lscale,dzij,lm)
             call dout(uij,vij,tij,pij,peij,qij,eij,t2ij,dzij,dzeij,
      1           dudz,dvdz,as2,dtdz,g_alpha,an2,dqdz,
      2           rhoij,rhoeij,t0ij,q0ij,
-     3           km,kh,kq,ke,kt2,gc,gm,gh,lscale,reserv,tsavg(i,j),
+     3           km,kh,kq,ke,kt2,gc,gm,gh,lscale,reserv,tsv,
      4           uflx,vflx,tflx,qflx,itest,jtest,iter,lm)
           endif
 
@@ -262,8 +263,7 @@ c     call ave_to_ucell(qsavg,qsavg_ucell,im,jm,1)
       return
       end subroutine diffus
 
-      subroutine getdz(tv,p,dz,dzedge,rho,rhoe,
-     2           tsavg,qsavg,rvx,im,jm,lm)
+      subroutine getdz(tv,p,dz,dzedge,rho,rhoe,tvsurf,im,jm,lm)
 !@sum  getdz computes the 3d finite difference dz and dzedge
 !@+    as well as the 3d density rho and rhoe
 !@+    called at the primary cells (t-cells)
@@ -306,9 +306,8 @@ c
       implicit none
 
       integer, intent(in) :: im,jm,lm
-      real*8, intent(in) :: rvx
       real*8, dimension(lm,im,jm), intent(in) :: tv
-      real*8, dimension(im,jm), intent(in) :: p,tsavg,qsavg
+      real*8, dimension(im,jm), intent(in) :: p,tvsurf
       real*8, dimension(lm,im,jm), intent(out) :: rho,rhoe
       real*8, dimension(lm,im,jm), intent(out) :: dz,dzedge
 
@@ -333,8 +332,7 @@ c
             rhoe(l+1,i,j)=100.d0*(pl-pl1)/(grav*dz(l,i,j))
             rho(l,i,j)=100.d0*(ple-pl1e)/(grav*dzedge(l,i,j))
             if(l.eq.1) then
-              rhoe(1,i,j)=100.d0*ple/(tsavg(i,j)*
-     2                    (1.d0+RVX*qsavg(i,j))*rgas)
+              rhoe(1,i,j)=100.d0*ple/(tvsurf(i,j)*rgas)
 c             rhoe(1,i,j)=2.d0*rho(1,i,j)-rhoe(2,i,j)
             endif
             if(l.eq.lm-1) then
@@ -354,7 +352,7 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
       subroutine dout(u,v,t,pres,prese,q,e,t2,dz,dzedge,
      1                dudz,dvdz,as2,dtdz,g_alpha,an2,dqdz,
      2                rho,rhoe,t0,q0,
-     3                km,kh,kq,ke,kt2,gc,gm,gh,lscale,reserv,tsurf,
+     3                km,kh,kq,ke,kt2,gc,gm,gh,lscale,reserv,tsv,
      4                uflx,vflx,tflx,qflx,itest,jtest,iter,n)
 !@sum dout writes out diagnostics at i=itest, j=jtest
 !@auth  Ye Cheng/G. Hartke
@@ -381,7 +379,7 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
 !@var rhoe z-profile of density at zedge
 !@var ps surface pressure
 !@var reserv reserved for furture use
-!@var tsurf surface temperature
+!@var tsv surface virtual temperature
 !@var uflx momentun flux -uw at surface, zedge(1)
 !@var vflx momentun flux -vw at surface, zedge(1)
 !@var tflx heat flux -wt at surface, zedge(1)
@@ -400,7 +398,7 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
       real*8, dimension(n), intent(in) :: rho,rhoe,t0,q0
       real*8, dimension(n), intent(in) :: km,kh,kq,ke,kt2,gc,gm,gh
       real*8, dimension(n), intent(in) :: lscale,dz,dzedge
-      real*8, intent(in) :: reserv,tsurf
+      real*8, intent(in) :: reserv,tsv
       real*8, intent(in) :: uflx,vflx,tflx,qflx
 
       real*8 :: z,utotal,dt,dq,zedge,qturb,dmdz
@@ -410,7 +408,7 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
 
 c     Fields on main vertical grid:
       ps=prese(1)
-      z=(rgas/grav)*0.5d0*(tsurf+t(1))*log(ps/pres(1))+10.d0
+      z=(rgas/grav)*0.5d0*(tsv+t(1))*log(ps/pres(1))+10.d0
       Write (67,1001) "iter=",iter
       Write (67,1000) itest,jtest,reserv,ps,uflx,vflx,tflx,qflx
       do l=1,n-1
@@ -1067,7 +1065,7 @@ c     trapezoidal rule
 
       subroutine kgcm(km,kh,kq,ke,kt2,gc,gc_t2,
      2                gm,gh,u,v,t,e,t2,dudz,dvdz,as2,
-     3                dtdz,g_alpha,an2,lscale,dz,dze,iter,n)
+     3                dtdz,g_alpha,an2,lscale,dz,dze,tsv,n)
 c
 c     Grids:
 c
@@ -1103,6 +1101,7 @@ c     at edge: e,lscale,km,kh,gm,gh
 !@var an2 Brunt-Vaisala frequency, grav/T*dTdz
 !@var se stability constant for e, adjustable
 !@var st2 stability constant for t2, adjustable
+!@var tsv surface virtual temperature
       USE CONSTANT, only : grav
       USE SOCPBL, only : ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
      *     ,s0,s1,s2,s4,s5,s6,b1
@@ -1112,19 +1111,20 @@ c     at edge: e,lscale,km,kh,gm,gh
 
       implicit none
 
-      integer, intent(in) :: n,iter    !@var n  array dimension
+      integer, intent(in) :: n    !@var n  array dimension
       real*8, dimension(n), intent(in) :: u,v,t,e,t2,lscale
       real*8, dimension(n), intent(in) :: dudz,dvdz,as2
       real*8, dimension(n), intent(in) :: dtdz,g_alpha,an2
       real*8, dimension(n), intent(in) :: dz,dze
       real*8, dimension(n), intent(out) :: km,kh,kq,ke,kt2,gc,gm,gh
      2                                    ,gc_t2
+      real*8, intent(in) :: tsv
 
       ! note e *tau = b1/2 *lscale * qturb
       real*8, parameter ::  se=0.1d0,st2=0.06d0
       real*8 :: ell,den,qturb,tau,ghj,gmj,gmmax
       real*8 :: sm,sh,taue,e_lpbl,t21,tmp
-      real*8 kh_canuto,c8,sig,sw,tpj,tpjm1,tppj,w3pj,taupj,m
+      real*8 :: kh_canuto,c8,sig,sw,tpj,tpjm1,tppj,w3pj,taupj,m
       real*8, dimension(n) :: taua,delta,w2,w3
       integer :: j  !@var j loop variable
 
@@ -1165,10 +1165,11 @@ c     at edge: e,lscale,km,kh,gm,gh
 
 c!! Canuto modifications (6-01):
 c        w2(j)=2./3.*e(j)+tau/3.*(-(3*g3-g2)*km(j)*as2(j)
-c     2        +4*g4*g_alpha(j)*(-kh(j)*dtdz(j)+gc(j)))
+c    2        +4*g4*g_alpha(j)*(-kh(j)*dtdz(j)+gc(j)))
 c        taua(j)=tau
 c        delta(j)=-2./3.*g_alpha(j)*dtdz(j)*0.82/11.04*tau*tau
 c!! end of Canuto modifications (6-01):
+
        end do
        
 c!! Canuto modifications (6-01):
@@ -1177,20 +1178,29 @@ c      sw=(1-2*sig)/sqrt(sig*(1-sig))
 c      do j=2,n
 c        w3(j)=sw*abs(w2(j))**1.5d0
 c      end do
-c      c8=8.
-c      do j=3,n-1
+c      w3(1)=0.d0
+c      c8=7.
+c      do j=2,n-1
 c        tpj=(t(j+1)-t(j-1))/(dz(j-1)+dz(j))
-c        tpjm1=(t(j)-t(j-2))/(dz(j-2)+dz(j-1))
+c        if(j.eq.2) then
+c          tpjm1=(0.5d0*(t(2)+t(1))-tsv)/dz(1)
+c        else
+c          tpjm1=(t(j)-t(j-2))/(dz(j-2)+dz(j-1))
+c        endif
 c        tppj=(tpj-tpjm1)/dz(j-1)
 c        w3pj=(w3(j+1)-w3(j-1))/(dze(j-1)+dze(j))
 c        taupj=(taua(j+1)-taua(j-1))/(dze(j-1)+dze(j))
-c        m=1./(2*c8*(1.-delta(j)))*tau*tau/(11.04*kh(j))
-c     2    *(tppj/dtdz(j)*w3(j)+w3pj+w3(j)/taua(j)*taupj)
+c        m=1./(2*c8*(1.-delta(j)))*taua(j)*taua(j)/(11.04*kh(j))
+c    2    *(tppj/dtdz(j)*w3(j)+w3pj+w3(j)/taua(j)*taupj)
 c        kh_canuto=taua(j)/11.04*w2(j)/(1-delta(j))
-c        write(68,1001) iter,j,m,kh(j),kh_canuto
+c        write(68,1001) j,m,kh(j),kh_canuto
+c        kh(j)=max(kh(j)*(1.-m),1.d-20)
+c        kq(j)=kh(j)
 c      end do
-c        write(68,*)
-c 1001 format(i4,1x,i4,1x,9(1pe14.4))
+c      kh(n)=kh(n-1)
+c      kq(n)=kq(n-1)
+c     
+c1001 format(i4,1x,9(1pe14.4))
 c!! end of Canuto modifications (6-01):
 
       ke(1)=b1*lscale(1)*sqrt(0.5d0*e(1))*se
