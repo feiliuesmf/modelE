@@ -117,10 +117,8 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       do n2=1,ntm; if(trname(n2).eq.'Ox')Ox_a_tracer=.true.; end do
       if(.not.Ox_a_tracer)call stop_model(
      &'Ox must be tracer if using regional Ox tracers; define 1st',255)
-      regOx_t=0.
-      regOx_b=0.
-      regOx_n=0.
-      regOx_s=0.
+      regOx_t=0.d0; regOx_b=0.d0; regOx_n=0.d0
+      regOx_s=0.d0; regOx_e=0.d0; regOx_w=0.d0
       ntemp=0
 #endif
 #endif
@@ -487,6 +485,8 @@ C This number wasn't adjusted when the vegetation source was added.
 #endif
           regOx_n(ntemp)=90.d0  !deg
           regOx_s(ntemp)=30.d0  !deg
+          regOx_w(ntemp)=-180.d0!deg
+          regOx_e(ntemp)= 180.d0!deg
           regOx_t(ntemp)=710.d0 !hPa
           regOx_b(ntemp)=2000.d0 ! intentionally large
 
@@ -501,6 +501,8 @@ C This number wasn't adjusted when the vegetation source was added.
 #endif
           regOx_n(ntemp)=30.d0
           regOx_s(ntemp)=-30.d0
+          regOx_w(ntemp)=-180.d0
+          regOx_e(ntemp)= 180.d0
           regOx_t(ntemp)=710.d0
           regOx_b(ntemp)=2000.d0 ! intentionally large
 
@@ -515,6 +517,8 @@ C This number wasn't adjusted when the vegetation source was added.
 #endif
           regOx_n(ntemp)=-30.d0
           regOx_s(ntemp)=-90.d0
+          regOx_w(ntemp)=-180.d0
+          regOx_e(ntemp)= 180.d0
           regOx_t(ntemp)=710.d0
           regOx_b(ntemp)=2000.d0 ! intentionally large
 
@@ -529,6 +533,8 @@ C This number wasn't adjusted when the vegetation source was added.
 #endif
           regOx_n(ntemp)=90.d0
           regOx_s(ntemp)=30.d0
+          regOx_w(ntemp)=-180.d0
+          regOx_e(ntemp)= 180.d0
           regOx_t(ntemp)=245.d0
           regOx_b(ntemp)=710.d0
 
@@ -543,6 +549,8 @@ C This number wasn't adjusted when the vegetation source was added.
 #endif
           regOx_n(ntemp)=30.d0
           regOx_s(ntemp)=-30.d0
+          regOx_w(ntemp)=-180.d0
+          regOx_e(ntemp)= 180.d0
           regOx_t(ntemp)=150.d0
           regOx_b(ntemp)=710.d0
 
@@ -557,6 +565,8 @@ C This number wasn't adjusted when the vegetation source was added.
 #endif 
           regOx_n(ntemp)=-30.d0
           regOx_s(ntemp)=-90.d0
+          regOx_w(ntemp)=-180.d0
+          regOx_e(ntemp)= 180.d0
           regOx_t(ntemp)=245.d0
           regOx_b(ntemp)=710.d0
 #endif
