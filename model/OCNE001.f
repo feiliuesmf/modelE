@@ -14,10 +14,8 @@
 
       IMPLICIT NONE
 
-      SAVE
-
       integer, parameter :: lmom = 9 ! for deep ocean diffusion
-      REAL*8, DIMENSION(IM,JM,12) :: OA
+      REAL*8, SAVE,DIMENSION(IM,JM,12) :: OA
 c      COMMON/WORKO/OA(IM,JM,12)
 
       REAL*8, PARAMETER :: XSI1=0.5, XSI2=0.5, XSI3=0.5, XSI4=0.5
@@ -56,15 +54,12 @@ c      REAL*8, DIMENSION(IM,JM,LMSI) :: HSI
       CONTAINS
 
       SUBROUTINE OSTRUC
-C****
-C**** THIS SUBROUTINE RESTRUCTURES THE OCEAN TEMPERATURE PROFILE
-C**** WHEN THE MIXED LAYER DEPTHS ARE CHANGED (NORMALLY DONE ONCE
-C**** A DAY).
-C**** THE SUBROUTINE ALSO MELTS ICE WHEN TGO > 0 (C).
-C****
+!@sum  OSTRUC restructures the ocean temperature profile as ML 
+!@sum         depths are changed (generally once a day)
+!@auth Original Development Team
+!@ver  1.0 (Q-flux ocean)
       IMPLICIT NONE
 C*
-      REAL*8, PARAMETER :: FDAILY=0.3333333
       INTEGER I,J,IMAX
 C*
       REAL*8 MSI1, MSI2, MELT,DRSI,ROICEN,FHSI4,FHSI3
@@ -228,7 +223,7 @@ C*
       END SUBROUTINE OSTRUC
 
       SUBROUTINE OCLIM(DOZ1O)
-!@sum  OCLIM reads in the ocean/sea ice climatologies
+!@sum  OCLIM calculates daily ocean data from ocean/sea ice climatologies
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean or fixed SST/fixed lakes)
       IMPLICIT NONE
@@ -488,7 +483,7 @@ C**** SET MARKER INDICATING BLDATA(.,.,5)=Z1O
       END SUBROUTINE OCLIM
 
       SUBROUTINE OCLIM0
-!@sum  OCLIM0 reads in observed ocean data at start
+!@sum  OCLIM0 reads in mixed layer depths at the start
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean or fixed SST/fixed lakes)
       IMPLICIT NONE

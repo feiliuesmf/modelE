@@ -5,7 +5,7 @@ C**** to be used with R99E or later radiation  routines.  carbon/2
 C**** Constant pressure at L=LS1 and above (SIGE(LS1)=0., PLE(LS1)=PTOP)
 C**** Using 5 harmonics for horizontal ocean heat transport, thinner ice
 C**** Routines included:  PRECIP, COSZ0, RADIA,
-C****                     GROUND, DRYCNV, SDRAG, ORBIT, OSTRUC
+C****                     GROUND, DRYCNV, SDRAG, ORBIT
 *****
 C*    Sea ice has four thermal layers
 C*    The lead fraction is ice thickness dependent
@@ -72,11 +72,11 @@ C*
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
-   10 CONTINUE
-C*
       ACE2LI=Z2LI*RHOI
       HC1I=ACE1I*SHI
       HC1DE=Z1E*1129950.
+C*
+   10 CONTINUE
 C*
       DO 980 J=1,JM
       IMAX=IMAXJ(J)
@@ -2639,98 +2639,5 @@ C****
       U(I,J,LM)=U(I,J,LM)*(1.-X)
       V(I,J,LM)=V(I,J,LM)*(1.-X)
   100 I=IP1
-      RETURN
-      END
-      SUBROUTINE ORBIT (OBLIQ,ECCN,OMEGT,DAY,SDIST,SIND,COSD,LAMBDA)
-C****
-C**** ORBIT receives the orbital parameters and time of year, and
-C**** returns the distance from the sun and its declination angle.
-C**** The reference for the following caculations is: V.M.Blanco
-C**** and S.W.McCuskey, 1961, "Basic Physics of the Solar System",
-C**** pages 135 - 151.
-C****
-C**** Program authors: Gary L. Russell and Robert J. Suozzo, 12/13/85
-C****
-C****        All computations are in double-precision;
-C****        but the arguments are single-precision.
-C**** Input: OBLIQ = latitude of tropics in degrees
-C****        ECCEN = eccentricity of the orbital ellipse
-C****        OMEGT = angle from vernal equinox to perihelion in degrees
-C****        DAY   = day of the year in days; 0 = Jan 1, hour 0
-C****
-C**** Constants: EDAYPY = Earth days per year = 365
-C****            VERQNX = occurence of vernal equinox = day 79 = Mar 21
-C****
-C**** Intermediate quantities:
-C****    PERIHE = perihelion during the year in temporal radians
-C****    MA     = mean anomaly in temporal radians = 2J DAY/365 - PERIHE
-C****    EA     = eccentric anomaly in radians
-C****    TA     = true anomaly in radians
-C****    BSEMI  = semi minor axis in units of the semi major axis
-C****    GREENW = longitude of Greenwich in the Earth's reference frame
-C****
-C**** Output: DIST = distance to the sun in units of the semi major axis
-C****        SDIST = square of DIST
-C****         SIND = sine of the declination angle
-C****         COSD = cosine of the declination angle
-C****       LAMBDA = sun longitude in Earth's rotating reference frame
-C****
-      IMPLICIT REAL*8 (A-H,O-Z)
-      REAL*8 MA
-C     REAL*4 SIND,COSD,SDIST,LAMBDA,OBLIQ,ECCN,OMEGT,DAY
-C****
-      PI = 3.14159265358979D0
-      EDAYPY = 365.
-      VERQNX = 79.
-      OMEGA=OMEGT*(PI/180.D0)
-      DOBLIQ=OBLIQ*(PI/180.D0)
-      ECCEN=ECCN
-C****
-C**** Determine time of perihelion using Kepler's equation:
-C**** PERIHE-VERQNX = OMEGA - ECCEN sin(OMEGA)
-C****
-      PERIHE = OMEGA-ECCEN*SIN(OMEGA)+VERQNX*2.*PI/365.
-C     PERIHE = DMOD(PERIHE,2.*PI)
-      MA = 2.*PI*DAY/365.-PERIHE
-      MA = DMOD(MA,2.*PI)
-C****
-C**** Numerically solve Kepler's equation: MA = EA - ECCEN sin(EA)
-C****
-      EA = MA+ECCEN*(SIN(MA)+ECCEN*SIN(2.*MA)/2.)
-  110 DEA = (MA-EA+ECCEN*SIN(MA))/(1.-ECCEN*COS(EA))
-      EA = EA+DEA
-      IF (DABS(DEA).GT.1.D-8)  GO TO 110
-C****
-C**** Calculate the distance to the sun and the true anomaly
-C****
-      BSEMI = DSQRT(1.-ECCEN*ECCEN)
-      COSEA = COS(EA)
-      SINEA = SIN(EA)
-      SDIST  = (1.-ECCEN*COSEA)*(1.-ECCEN*COSEA)
-      TA = DATAN2(SINEA*BSEMI,COSEA-ECCEN)
-C****
-C**** Change the reference frame to be the Earth's equatorial plane
-C**** with the Earth at the center and the positive x axis parallel to
-C**** the ray from the sun to the Earth were it at vernal equinox.
-C**** The distance from the current Earth to that ray (or x axis) is:
-C**** DIST sin(TA+OMEGA).  The sun is located at:
-C****
-C**** SUN    = (-DIST cos(TA+OMEGA),
-C****           -DIST sin(TA+OMEGA) cos(OBLIQ),
-C****            DIST sin(TA+OMEGA) sin(OBLIQ))
-C**** SIND   = sin(TA+OMEGA) sin(OBLIQ)
-C**** COSD   = sqrt(1-SIND**2)
-C**** LAMBDA = atan[tan(TA+OMEGA) cos(OBLIQ)] - GREENW
-C**** GREENW = 2*3.14159 DAY (EDAYPY-1)/EDAYPY
-C****
-      SINDD = SIN(TA+OMEGA)*SIN(DOBLIQ)
-      COSD = DSQRT(1.-SINDD*SINDD)
-      SIND = SINDD
-C     GREENW = 2.*PI*(DAY-VERQNX)*(EDAYPY+1.)/EDAYPY
-C     SUNX = -COS(TA+OMEGA)
-C     SUNY = -SIN(TA+OMEGA)*COS(DOBLIQ)
-C     LAMBDA = DATAN2(SUNY,SUNX)-GREENW
-C     LAMBDA = DMOD(LAMBDA,2.*PI)
-C****
       RETURN
       END
