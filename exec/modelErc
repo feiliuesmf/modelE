@@ -52,3 +52,9 @@ VERBOSE_OUTPUT=NO
 # MP - multiprocessing support. If set to YES gmake will compile the 
 # code with OpenMP instructions. This option has effect only on SGI.
 MP=NO
+
+# UMASK - the value of 'umask' you want to use for model runs. The files
+# inside the run directory will have permissions set according to this
+# mask.
+UMASK=002
+
