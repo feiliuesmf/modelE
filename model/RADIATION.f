@@ -2277,18 +2277,16 @@ C
       RETURN
       END SUBROUTINE SETGHG
 
-!     new Ozone routines
-
       SUBROUTINE UPDO3D(JYEARO,JJDAYO)
-
 
 !!!   use RADPAR, only : IM=>MLON72,JM=>MLAT46,NL,PLB0,U0GAS,MADO3M
       USE FILEMANAGER, only : openunit,closeunit
       IMPLICIT NONE
-      integer, parameter :: im=72,jm=46  ! ??? temporarily
+      integer, parameter :: im=mlon72,jm=mlat46
 
-!     In aug2003, 9 decadal files and an ozone trend data file
-!     have been defined using 18-layer PLB pressure levels
+!     In 2003, 9 decadal files and an ozone trend data file have been
+!     defined using 49-layer PLB pressure levels. Because of strange
+!     discontinuities in the stratosphere, they were replaced in 2004
 
       integer, PARAMETER ::
      *     NFO3x=9,      !  max. number of decadal ozone files used
@@ -2333,7 +2331,7 @@ C**** The data statements below are only used if  MADO3M > -1
 !!!  *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2,
 !!!  *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
 C**** LJTTRO(jm)    could be computed from PLBO3
-      DATA LJTTRO/6*6,7*7,20*8,7*7,6*6/           !   Top of troposphere
+      DATA LJTTRO/6*6,7*7,20*8,7*7,6*6/           !   Top of Drew's data
       INTEGER, SAVE :: IYR=0, JYRNOW=0, IYRDEC=0, IFIRST=1, JYR
 
       save nfo3,iyear,ljttro,otrend,o3year
@@ -2344,7 +2342,10 @@ C**** LJTTRO(jm)    could be computed from PLBO3
       INTEGER I,J,L,M,N,IY,JYEARX,jy,MI,MJ,MK,MN,NLT,ILON,JLAT
       REAL*8 WTTI,WTTJ, WTSI,WTSJ,WTMJ,WTMI, XMI,DSO3
 
-      if(jyearo.gt.O3YR_max) jyearo=-O3YR_max ! cycle through O3YR_max
+C**** Deal with out-of-range years (incl. starts before 1850)
+      if(abs(jyearo).lt.abs(jyrnow)) jyearo=-jyrnow ! keep cycling
+      if(abs(jyearo).gt.O3YR_max) jyearo=-O3YR_max ! cycle thru O3YR_max
+
       IF(IFIRST.EQ.1) THEN
 
       IF(MADO3M.lt.0) then
@@ -2370,6 +2371,9 @@ C****   Find O3 data files and fill array IYEAR from title(1:4)
         OTFILE='O3trend '
       END IF
 
+C**** Prior to first year of data, cycle through first year of data
+      if(abs(jyearo).lt.IYEAR(1)) jyearo=-IYEAR(1)
+
       IY=0
       IF(JYEARO.LT.0) THEN ! 1 year of O3 data is used in a cyclical way
         do n=1,nfo3        ! check whether we need the O3 trend array
@@ -2377,12 +2381,14 @@ C****   Find O3 data files and fill array IYEAR from title(1:4)
         end do
       end if
 
-      if(IY.EQ.0) then ! READ strat O3 time trend for strat O3 interpol.
+      if(IY.LE.1) then ! READ strat O3 time trend for strat O3 interpol.
         call openunit (OTFILE,ifile,qbinary)
         READ (IFILE) OTREND    ! strat O3 time-trend OTREND(JM,18,2412)
         call closeunit (ifile)
         if(MADO3M.lt.0) write(6,'(a,a)') ' read ',OTfile
-      else
+      end if
+
+      if(IY.GT.0) then
         call openunit (ddfile(IY),ifile,qbinary)
         DO 40 M=1,12
         DO 30 L=1,NLO3
@@ -2442,8 +2448,8 @@ C**** Get first decadal file
   140 CONTINUE
       call closeunit (ifile)
 
-      IF(JYEARX.EQ.IYR.AND.IYRDEC.NE.JYEARX-1 .AND.
-     *   IY.GT.1.AND.JYEARO.GT.0.AND.JYEARX.LE.O3YR_max) THEN
+      IF(JYEARX.EQ.IYR.AND.IYRDEC.NE.JYEARX-1 .AND. IY.GT.1 .AND.
+     *   JYEARO.GT.0.AND.JYEARX.LE.O3YR_max) THEN
 C        READ and use prior decadal file to define prior year December
 C        (only when starting up with JYEARO=1890,1910,1930,...1980
 C         and only for non-cyclical cases)
@@ -2516,7 +2522,7 @@ C**** Get next  decadal file
         END DO
         IF(JYEARX.GT.O3YR_max) JYEARX=O3YR_max
         IYRDEC=JYEARX   !  Set flag to indicate December data is current
-      ELSE IF(JYEARO.GT.0) THEN
+      ELSE IF(JYEARO.GT.IYEAR(1)) THEN
 C       Interpolate prior December from the decadal files - start-up
         CALL O3_WTS (IYIO3,LMONTR, IYR,JYR, JYEARX-1,12,        ! in
      *               WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)            ! out
