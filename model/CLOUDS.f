@@ -1177,7 +1177,7 @@ C**** save new 'environment' profile for static stability calc.
 C****
 C**** REEVAPORATION AND PRECIPITATION
 C****
-C     IF(MC1.AND.PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
+      IF(PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
         DO L=LMAX,LMIN,-1
           IF(COND(L).LT.CONDP(L)) CONDP(L)=COND(L)
           FCLW=0.
@@ -1191,7 +1191,7 @@ C**** Note that TRSVWML is in mass units unlike SVWMX
           TRCOND(1:NTX,L) = (1.-FCLW)*TRCOND(1:NTX,L)
 #endif
         END DO
-C     END IF
+      END IF
       PRCP=COND(LMAX)
       PRHEAT=CDHEAT(LMAX)
 #ifdef TRACERS_WATER
@@ -1909,6 +1909,10 @@ C**** Only Calculate fractional changes of Q to W
 C**** adjust gradients down if Q decreases
       QMOM(:,L)= QMOM(:,L)*(1.-FQTOW)
       WMX(L)=WMNEW
+      if(abs(DTsrc*(QHEAT(L)-HPHASE)*BYSHA).gt.100.) then  ! debug
+        write(99,*) 'l,tl,dtl,qht,hph',L,TL(L),
+     *   DTsrc*(QHEAT(L)-HPHASE)*BYSHA,QHEAT(L),HPHASE
+      end if
       TL(L)=TL(L)+DTsrc*(QHEAT(L)-HPHASE)*BYSHA
       TH(L)=TL(L)/PLK(L)
       TNEW=TL(L)

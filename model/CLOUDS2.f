@@ -1198,6 +1198,7 @@ C**** diagnostics
         DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
         DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))*FMC1
         DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
+        IF(QM(L).LT.0.d0) WRITE (99,*) 'negative q: L QM=',L,QM(L)
       END DO
 #ifdef TRACERS_ON
 C**** Subsidence of tracers by Quadratic Upstream Scheme
