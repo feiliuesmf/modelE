@@ -4,7 +4,7 @@
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on various chemistry modules of B436Tds3YM23 model)
 c
-      USE MODEL_COM, only :  im,jm,lm,ls1,istrat,psf,
+      USE MODEL_COM, only :  im,jm,lm,ls1,psf,
      &                       ptop,sig,sige,dsig,bydsig,
      &                       dtsrc,Itime,ItimeI,T,JEQ
       USE CONSTANT, only   : pi, mair, mwat, radian
@@ -82,7 +82,16 @@ C
 !@param PCOalt pressures at LCOalt levels
 !@param PCH4alt pressures at LCH4alt levels
 !@param PcorrOx pressures at LcorrOx levels
+!@param LS1J first strat layer as function of J for chemistry
+!@param LS1Jmax max value in LS1J
+      INTEGER, DIMENSION(JM), PARAMETER ::
+     & LS1J = (/LS1,LS1,LS1,LS1,LS1,LS1,
+     & LS1,LS1,LS1,LS1,LS1,LS1,LS1,LS1,LS1,LS1+1,LS1+1,LS1+1,
+     & LS1+2,LS1+2,LS1+2,LS1+2,LS1+2,LS1+2,LS1+2,LS1+2,LS1+2,
+     & LS1+2,LS1+1,LS1+1,LS1+1,LS1,LS1,LS1,LS1,LS1,LS1,LS1,
+     & LS1,LS1,LS1,LS1,LS1,LS1,LS1,LS1/)
       INTEGER, PARAMETER ::
+     & LS1Jmax=   LS1+2, ! remember to change this too
      & LCOalt =   23,
      & JCOlat =   19,
      & LCH4alt=    6,
@@ -226,6 +235,9 @@ C
 !@+       defaults are for 1990
       REAL*8 :: ch4_init_sh=1.750d0    , ch4_init_nh=1.855d0
 
+C Please note: since PCOalt is essentially the nominal 
+C pressures for the 23-level GCM, I'm going to use it
+C to define BrOx, ClOx, ClONOs, and HCl as well (GSF 8/03):
       REAL*8, PARAMETER, DIMENSION(LCOalt) :: PCOalt = (/
      & 0.9720D+03,0.9445D+03,0.9065D+03,
      & 0.8515D+03,0.7645D+03,0.6400D+03,0.4975D+03,0.3695D+03,
@@ -366,9 +378,17 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var O3DLJI_clim model ozone to radiation (climatological)
 !@var COlat carbon monoxide latitude distribution for init cond (ppbv)
 !@var COaltIN adjustments of COlat by altitude (unitless,LCOalt levels)
+!@var BrOxaltIN altitude dependence BrOx (unitless,LCOalt levels)
+!@var ClOxaltIN altitude dependence ClOx (unitless,LCOalt levels)
+!@var ClONO2altIN altitude dependence ClONO2 (unitless,LCOalt levels)
+!@var HClaltIN altitude dependence HCl (unitless,LCOalt levels)
 !@var CH4altINT tropical strat adjustments to CH4 (LCH4alt levels)
 !@var CH4altINX xtra-tropical strat adjustments to CH4 LCH4alt levels)
 !@var COalt adjustments of COlat by altitude (unitless,LM levels)
+!@var BrOxalt altitude dependence BrOx (unitless,LM levels)
+!@var ClOxalt altitude dependence ClOx (unitless,LM levels)
+!@var ClONO2alt altitude dependence ClONO2 (unitless,LM levels)
+!@var HClalt altitude dependence HCl (unitless,LM levels)
 !@var CH4altT tropical strat adjustments to CH4 (unitless, LM levels)
 !@var CH4altX xtra-tropical strat adjustments to CH4 (LM levels)
 !@var BYFJM = 1/JM
@@ -418,7 +438,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var SF3 is H2O photolysis in Schumann-Runge Bands
       INTEGER nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M, 
      & lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,
-     & NWWW,NK,nlbatm,NCFASTJ                                 
+     & NWWW,NK,nlbatm,NCFASTJ
 #ifdef Shindell_Strat_chem
       INTEGER, DIMENSION(n_fam)        :: nfam = (/37,40,44,50/)
 #else
@@ -496,6 +516,20 @@ C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
      *     (/2d0,1.5625d0,1.375d0,1.25d0,1.125d0,1.0625d0,1d0,1d0,1d0
      *     ,1d0,1d0,.5d0,.375d0,.2d0,.2d0,.2d0,.2d0,.2d0,.25d0,.4d0,
      *     2.5d0,12d0,60d0/)
+#ifdef Shindell_Strat_chem
+     *     ,BrOxaltIN = (/0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
+     *     0.d0,0.d0,0.12d0,0.12d0,0.12d0,0.12d0,0.06d0,0.06d0,0.06d0,
+     *     0.06d0,0.06d0,0.06d0,0.06d0,0.06d0/),
+     *     ,ClOxaltIN = (/0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
+     *     0.d0,0.d0,8.d0,8.d0,8.d0,8.d0,8.d1,8.d1,8.d1,8.d1,8.d0,8.d0,
+     *     8.d0,8.d0/)
+     *     ,ClONO2altIN = (/0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
+     *     0.d0,0.d0,0.d0,0.d0,0.d0,5.d1,5.d1,5.d1,5.d1,5.d1,5.d1,5.d1,
+     *     5.d1,5.d1,5.d1/)
+     *     ,HClaltIN = (/0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
+     *     0.d0,0.d0,2.5d1,4.0d1,9.0d1,1.7d2,1.9d2,2.5d2,2.5d2,2.5d2,
+     *     2.5d2,2.5d2,2.5d2,2.5d2/)
+#endif
 C**** additional levsls for CH4 to avoid extrapolation...
       REAL*8, PARAMETER, DIMENSION(LCH4alt) :: PCH4alt = 
      &     (/569d0, 150d0, 100d0, 32d0, 3.2d0, 0.23d0/)
@@ -504,6 +538,9 @@ C**** additional levsls for CH4 to avoid extrapolation...
      *   CH4altINX =(/1.79d0, 1.75d0, 1.440d0,1.130d0,0.473d0,0.202d0/)    
 
       REAL*8, DIMENSION(LM)            :: COalt,CH4altT,CH4altX
+#ifdef Shindell_Strat_chem
+     *                        ,BrOxalt,ClOxalt,ClONO2alt,HClalt
+#endif
       REAL*8, DIMENSION(NS)            :: VALJ
       REAL*8, DIMENSION(N__)           :: FJFASTJ
       REAL*8, DIMENSION(NWFASTJ,2,NS-3):: QQQ
@@ -516,8 +553,7 @@ C     REAL*8, DIMENSION(LX,JM,IM)       :: O3DLJI, O3DLJI_clim
 #ifdef Shindell_Strat_chem
       REAL*8, DIMENSION(2*(LM))         :: O3_FASTJ
 #else
-      REAL*8, DIMENSION(2*(LS1-1))      :: O3_FASTJ
-
+      REAL*8, DIMENSION(2*(LS1Jmax-1))  :: O3_FASTJ
 #endif
 C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
       REAL*8, DIMENSION(JCOlat), PARAMETER  :: COlat = (/40.,40.,40.,40.
