@@ -1682,10 +1682,12 @@ C****
      *     *BYBETA
       GYMO(I,J,L)=(G0ML(L,2,2)-G0ML(L,2,1)+G0ML(L,1,2)-G0ML(L,1,1))
      *     *BYBETA
-      IF (NSIGG+30.gt.EXPONENT(GXMO(I,J,L))) GXMO(I,J,L) =
-     *     SCALE(REAL(NINT(SCALE(GXMO(I,J,L),-NSIGG)),KIND=8),NSIGG)
-      IF (NSIGG+30.gt.EXPONENT(GYMO(I,J,L))) GYMO(I,J,L) =
-     *     SCALE(REAL(NINT(SCALE(GYMO(I,J,L),-NSIGG)),KIND=8),NSIGG)
+c      IF (NSIGG+30.gt.EXPONENT(GXMO(I,J,L))) GXMO(I,J,L) =
+c     *     SCALE(REAL(NINT(SCALE(GXMO(I,J,L),-NSIGG)),KIND=8),NSIGG)
+      CALL REDUCE_FIG(NSIGG,GXMO(I,J,L))
+c      IF (NSIGG+30.gt.EXPONENT(GYMO(I,J,L))) GYMO(I,J,L) =
+c     *     SCALE(REAL(NINT(SCALE(GYMO(I,J,L),-NSIGG)),KIND=8),NSIGG)
+      CALL REDUCE_FIG(NSIGG,GYMO(I,J,L))
       GZMO(I,J,L)= GZML(L,2,2)+GZML(L,2,1)+GZML(L,1,2)+GZML(L,1,1)
       S0M(I,J,L)= S0ML(L,2,2)+S0ML(L,2,1)+S0ML(L,1,2)+S0ML(L,1,1)
       NSIGS = EXPONENT(S0M(I,J,L)) - 2 - 42 + 4
@@ -1693,10 +1695,12 @@ C****
      *     *BYBETA
       SYMO(I,J,L)=(S0ML(L,2,2)-S0ML(L,2,1)+S0ML(L,1,2)-S0ML(L,1,1))
      *     *BYBETA
-      IF (NSIGS+30.gt.EXPONENT(SXMO(I,J,L))) SXMO(I,J,L) =
-     *     SCALE(REAL(NINT(SCALE(SXMO(I,J,L),-NSIGS)),KIND=8),NSIGS)
-      IF (NSIGS+30.gt.EXPONENT(SYMO(I,J,L))) SYMO(I,J,L) =
-     *     SCALE(REAL(NINT(SCALE(SYMO(I,J,L),-NSIGS)),KIND=8),NSIGS)
+c      IF (NSIGS+30.gt.EXPONENT(SXMO(I,J,L))) SXMO(I,J,L) =
+c     *     SCALE(REAL(NINT(SCALE(SXMO(I,J,L),-NSIGS)),KIND=8),NSIGS)
+      CALL REDUCE_FIG(NSIGS,SXMO(I,J,L))
+c      IF (NSIGS+30.gt.EXPONENT(SYMO(I,J,L))) SYMO(I,J,L) =
+c     *     SCALE(REAL(NINT(SCALE(SYMO(I,J,L),-NSIGS)),KIND=8),NSIGS)
+      CALL REDUCE_FIG(NSIGS,SYMO(I,J,L))
       SZMO(I,J,L)= SZML(L,2,2)+SZML(L,2,1)+SZML(L,1,2)+SZML(L,1,1)
 C**** limit salinity gradients
       TXY = abs(SXMO(I,J,L)) + abs(SYMO(I,J,L))
@@ -1718,10 +1722,12 @@ C****
      *                  TRML(L,N,1,2) - TRML(L,N,1,1))*BYBETA
         TYMO(I,J,L,N) =(TRML(L,N,2,2) - TRML(L,N,2,1) +
      *                  TRML(L,N,1,2) - TRML(L,N,1,1))*BYBETA
-        IF (NSIGT+30.gt.EXPONENT(TXMO(I,J,L,N))) TXMO(I,J,L,N) =
-     *       SCALE(REAL(NINT(SCALE(TXMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
-        IF (NSIGT+30.gt.EXPONENT(TYMO(I,J,L,N))) TYMO(I,J,L,N) =
-     *       SCALE(REAL(NINT(SCALE(TYMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
+c        IF (NSIGT+30.gt.EXPONENT(TXMO(I,J,L,N))) TXMO(I,J,L,N) =
+c     *       SCALE(REAL(NINT(SCALE(TXMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
+        CALL REDUCE_FIG(NSIGT,TXMO(I,J,L,N))
+c        IF (NSIGT+30.gt.EXPONENT(TYMO(I,J,L,N))) TYMO(I,J,L,N) =
+c     *       SCALE(REAL(NINT(SCALE(TYMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
+        CALL REDUCE_FIG(NSIGT,TYMO(I,J,L,N))
         TZMO(I,J,L,N) = TZML(L,N,2,2) + TZML(L,N,2,1) +
      *                  TZML(L,N,1,2) + TZML(L,N,1,1)
 C****
@@ -2056,14 +2062,16 @@ C****
       G0MST(L,N) =  G0ML(L,2) + G0ML(L,1)
       NSIGG = EXPONENT(G0MST(L,N)) -1 - 42
       GXMST(L,N) = (G0ML(L,2) - G0ML(L,1))*BYBETA
-      IF (NSIGG+30.gt.EXPONENT(GXMST(L,N))) GXMST(L,N) =
-     *     SCALE(REAL(NINT(SCALE(GXMST(L,N),-NSIGG)),KIND=8),NSIGG)
+c      IF (NSIGG+30.gt.EXPONENT(GXMST(L,N))) GXMST(L,N) =
+c     *     SCALE(REAL(NINT(SCALE(GXMST(L,N),-NSIGG)),KIND=8),NSIGG)
+      CALL REDUCE_FIG(NSIGG,GXMST(L,N))
       GZMST(L,N) =  GZML(L,2) + GZML(L,1)
       S0MST(L,N) =  S0ML(L,2) + S0ML(L,1)
       NSIGS = EXPONENT(S0MST(L,N)) -1 - 42
       SXMST(L,N) = (S0ML(L,2) - S0ML(L,1))*BYBETA
-      IF (NSIGS+30.gt.EXPONENT(SXMST(L,N))) SXMST(L,N) =
-     *     SCALE(REAL(NINT(SCALE(SXMST(L,N),-NSIGS)),KIND=8),NSIGS)
+c      IF (NSIGS+30.gt.EXPONENT(SXMST(L,N))) SXMST(L,N) =
+c     *     SCALE(REAL(NINT(SCALE(SXMST(L,N),-NSIGS)),KIND=8),NSIGS)
+      CALL REDUCE_FIG(NSIGS,SXMST(L,N))
       SZMST(L,N) =  SZML(L,2) + SZML(L,1)
 C****  limit salinity gradients
       if ( abs(SXMST(L,N)) > S0MST(L,N) )
@@ -2076,8 +2084,9 @@ C****
         TRMST(L,N,ITR) = TRML(L,ITR,2) + TRML(L,ITR,1)
         NSIGT = EXPONENT(TRMST(L,N,ITR)) -1 - 42 + 3
         TXMST(L,N,ITR) =(TRML(L,ITR,2) - TRML(L,ITR,1))*BYBETA
-        IF (NSIGT+30.gt.EXPONENT(TXMST(L,N,ITR))) TXMST(L,N,ITR) =
-     *      SCALE(REAL(NINT(SCALE(TXMST(L,N,ITR),-NSIGT)),KIND=8),NSIGT)
+c        IF (NSIGT+30.gt.EXPONENT(TXMST(L,N,ITR))) TXMST(L,N,ITR) =
+c     *      SCALE(REAL(NINT(SCALE(TXMST(L,N,ITR),-NSIGT)),KIND=8),NSIGT)
+        CALL REDUCE_FIG(NSIGG,TXMST(L,N,ITR))
         TZMST(L,N,ITR) = TZML(L,ITR,2) + TZML(L,ITR,1)
 C****
         if (t_qlimit(itr)) then  ! limit gradients
@@ -2181,3 +2190,16 @@ C****
       RETURN
       END
 
+      SUBROUTINE REDUCE_FIG(NSIG,RX)
+!@sub reduce_fig reduce significant figures if calculation is garbage
+!@+   made separate to avoid OMP compiler bug (due to NINT)
+!@auth Gavin Schmidt
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: NSIG
+      REAL*8, INTENT(INOUT) :: RX
+
+      IF (NSIG+30.gt.EXPONENT(RX)) RX = 
+     *     SCALE(REAL(NINT(SCALE(RX,-NSIG)),KIND=8),NSIG)
+
+      RETURN
+      END SUBROUTINE
