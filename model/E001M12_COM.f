@@ -74,7 +74,7 @@ C**** THERE ARE 161 REAL NUMBERS IN COMMON (RC-ARRAY)
       DOUBLE PRECISION, DIMENSION(LM-1) :: DSIGO
 
 !@var XCDLM.  SDRAG ~XCDLM(1)+XCDLM(2)*wind_magnitude
-      DOUBLE PRECISION, DIMENSION(2) :: XCDLM
+      DOUBLE PRECISION, DIMENSION(2) :: XCDLM = (/5.D-4,5.D-5/)
 
 C**** (Simplified) Calendar Related Terms
 !@VAR JDperY,JMperY    number of days,months per year
@@ -144,10 +144,10 @@ C**** Define surface types (mostly used for weighting diagnostics)
       SUBROUTINE SET_TIMER(STR,MINDEX)
 !@sum  SET_TIMER sets an index of TIMING for a particular description
 !@auth Gavin Schmidt
-!@ver  1.0 
+!@ver  1.0
       USE TIMINGS
       IMPLICIT NONE
-!@var STR string that describes timing accumulator      
+!@var STR string that describes timing accumulator
       CHARACTER*12, INTENT(IN) :: STR
 !@var MINDEX index for that accumulator
       INTEGER, INTENT(OUT) :: MINDEX
@@ -164,7 +164,7 @@ C****
       SUBROUTINE TIMER (MNOW,MSUM)
 !@sum  TIMER keeps track of elapsed CPU time in hundredths of seconds
 !@auth Gary Russell
-!@ver  1.0 
+!@ver  1.0
       USE TIMINGS
       IMPLICIT NONE
       INTEGER, INTENT(OUT) :: MNOW   !@var MNOW current CPU time (.01 s)
@@ -182,7 +182,7 @@ C****
       SUBROUTINE TIMEOUT (MBEGIN,MIN,MOUT)
 !@sum  TIMEOUT redistributes timing info between counters
 !@auth Gary Russell
-!@ver  1.0 
+!@ver  1.0
       USE TIMINGS
       IMPLICIT NONE
 !@var MBEGIN CPU time start of section (.01 s)
