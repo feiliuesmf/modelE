@@ -42,13 +42,14 @@ ccc   ice data:
      *     ,JM),SSI1(LMI,IM,JM),PM1(IM,JM),RSI2(IM,JM),HSI2(LMI,IM,JM)
      *     ,MSI2(IM,JM),SNOWI2(IM,JM),SSI2(LMI,IM,JM),PM2(IM,JM)
       REAL*8 RQT1,RQT2,SRHR1,SRHR2,TRHR1,TRHR2,FSF1,FSF2,FSD1,FSD2,S01
-     *     ,S02,RCLD1,RCLD2
+     *     ,S02,RCLD1,RCLD2,O3_rad_save1,O3_rad_save2
       COMMON/RADNCB1/ RQT1( 3,IM,JM),RQT2( 3,IM,JM),
      *               SRHR1(1+LM,IM,JM),SRHR2(1+LM,IM,JM),
      *               TRHR1(1+LM,IM,JM),TRHR2(1+LM,IM,JM),
      *               FSF1(   4,IM,JM),FSF2(   4,IM,JM),
      *               FSD1(IM,JM,5),FSD2(IM,JM,5),
-     *               RCLD1(LM,IM,JM),RCLD2(LM,IM,JM)
+     *               RCLD1(LM,IM,JM),RCLD2(LM,IM,JM),
+     *               O3_rad_save1(LM,IM,JM),O3_rad_save2(LM,IM,JM)
 ccc   snow data:
       INTEGER, DIMENSION(2,IM,JM)     :: NSN1, NSN2
       INTEGER, DIMENSION(2,IM,JM)     :: ISN1, ISN2
@@ -227,7 +228,8 @@ C**** check which ocean
          if (debug) write(0,*) 'trying to read mom'
          READ (1) HEADER,TMOM1,QMOM1
          if (debug) write(0,*) 'trying to read radia'
-         READ (1) HEADER,RQT1, S01,SRHR1,TRHR1,FSF1,fsd1,RCLD1
+         READ (1) HEADER,RQT1, S01,SRHR1,TRHR1,FSF1,fsd1,RCLD1,
+     &            O3_rad_save1
          if (debug) write(0,*) 'trying to read icedyn'
          READ (1) HEADER
          BACKSPACE(1)
@@ -343,7 +345,8 @@ c        if (debug) write(0,*) 'trying to read clds'
 c        if (debug) write(0,*) 'trying to read mom'
          READ (2) HEADER,TMOM2,QMOM2
 c        if (debug) write(0,*) 'trying to read radia'
-         READ (2) HEADER,RQT2, S02,SRHR2,TRHR2,FSF2,fsd2,rcld2
+         READ (2) HEADER,RQT2, S02,SRHR2,TRHR2,FSF2,fsd2,rcld2,
+     &            O3_rad_save2
 c        if (debug) write(0,*) 'trying to read icedyn'
          READ (2) HEADER
          BACKSPACE(2)
@@ -468,6 +471,8 @@ C****
       ERRQ=COMP8LIJp('FSF   ',4     ,IM,JM  ,FSF1  ,FSF2  ) .or. ERRQ
       ERRQ=COMP8 ('FSdir ',IM,JM,5,        fsd1 , fsd2 ) .or. ERRQ
       ERRQ=COMP8Lijp('RCLD  ',LM,IM,JM,    RCLD1, RCLD2 ) .or. ERRQ
+      ERRQ=
+     &COMP8Lijp('O3save',LM,IM,JM,O3_rad_save1,O3_rad_save2).or.ERRQ
 
 #ifdef TRACERS_ON
       ERRQ=COMP8('TR    ',IM,JM,LM*NTM    , TR1  , TR2  ) .or. ERRQ
