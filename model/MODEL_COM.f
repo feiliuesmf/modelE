@@ -295,6 +295,9 @@ C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
           call read_param(kunit,.false.)
         CASE (IOREAD_SINGLE) ! parameters/label from restart file
                              ! accumulate idacc and keep track of Itmax/min
+          if ( .not. associated (IDACC) ) then
+            call alloc_param( "IDACC", IDACC, (/12*0/), 12)
+          endif
           IDACC0=IDACC
           XLABEL=XLABEL1
           NTIMEACC=NTIM1

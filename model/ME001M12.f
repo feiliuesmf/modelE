@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       PROGRAM GISS_modelE
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
@@ -558,6 +560,12 @@ C****
       IF (XLABEL(73:80).EQ.'        ') NOFF=8   ! for 72-column rundecks
       XLABEL(81-NOFF:132)=NLREC(1:52+NOFF)
       WRITE (6,'(A,A/)') '0',XLABEL
+C****
+C**** Print preprocessing options (if any are defined)
+C****
+#ifdef TRACERS_ON
+      write(6,*) 'This program includes tracers code'
+#endif
 C****
 C**** Print and Copy Namelist parameter changes to disk so they may be
 C**** read in repeatedly. Then read them in to overwrite the defaults

@@ -2,6 +2,10 @@ E001.R GISS Model E                                 gas 06/00
 
 E001: new modelE (based on B402A)
 
+Preprocessor Options
+!#define TRACERS_ON                  ! include tracers code
+End Preprocessor Options
+
 Object modules: (in order of decreasing priority)
 RES_M12                             ! horiz/vert resolution
 MODEL_COM GEOM_B FLUXES             ! model modules

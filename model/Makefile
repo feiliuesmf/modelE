@@ -73,6 +73,8 @@ BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
 
 DEPENDFILE = $(OBJ_DIR)/.depend.$(RUN)
 
+RUN_H = rundeck_opts.h
+RUN_H_TMP = tmp_cpp.h
 
 #
 # Lists of objects and dependencies
@@ -125,6 +127,15 @@ depend $(DEPENDFILE): $(RUNDECK) $(FSRCS)
 	@echo '---------         regenerating them                  ---------'
 	$(FMAKEDEP) -f $(DEPENDFILE) $^
 	@echo '---------         done with dependencies             ---------'
+
+$(RUN_H): $(RUNDECK) FORCE
+	-@rm -f $(RUN_H_TMP)
+	@perl -e 'while(($$_=<>) && ! /^ *Preprocessor +Options/i ){};' \
+	-e 'while(($$_=<>) && ! /^ *End +Preprocessor +Options/i )' \
+	-e '{chop; s/ *(!.*)*$$//; $$_ && print "$$_\n";}' \
+	< $(RUNDECK) > $(RUN_H_TMP)
+	@[ -f $(RUN_H) ] && diff $(RUN_H_TMP) $(RUN_H) >/dev/null 2>&1  \
+	|| ( mv $(RUN_H_TMP) $(RUN_H); echo 'Updated CPP Options' )
 
 $(BIN_DIR):
 	mkdir $(BIN_DIR)
