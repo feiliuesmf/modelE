@@ -1,5 +1,14 @@
 E001tr.R GISS Model E with sample tracers               jal 10/01
 
+WARNING: This rundeck is being used as a template to exercise normally
+unused bits of code. It should not therefore be used for production
+runs. Please look at the other templates for standard
+configurations. If example tracer code is required, the
+tracer-relevant bits used here (pre-processing options, extra TR*
+object modules, and input files), should be copied to a more
+functional rundeck.
+
+
 E001tr: ModelE 2.3.4+ (based on B402A with sample tracers)
  Air mass, SF6, RN222, CO2, 14CO2, CFC-11, CH4, N2O, linearizedO3, Water
 modelE with 23 lyrs, top at 85km - 1979 atmosphere/ocean
@@ -11,7 +20,7 @@ sealevel pressure filter applied every hour
 Note: Many of these choices may be changed using the PARAMETERs below.
 Further Note: This has been extended to 23 layers and some plug and play
 options are different to provide a wider test suite for testing. (i.e.
-4th order momentum, dummy ice dynamics and ATRUB instead of DRYCNV).
+4th order momentum, dummy ice dynamics and DRYCNV instead of ATRUB).
 
 Preprocessor Options
 #define TRACERS_ON          ! include tracers code
