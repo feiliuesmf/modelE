@@ -336,7 +336,7 @@ C****
       end subroutine reset_veg_to_defaults
 
 
-      subroutine veg_set_cell (i0,j0)
+      subroutine veg_set_cell (i0,j0,ghy_data_only)
 !@sum resets the vegetation module to a new cell i0,j0
       use ghycom, only : ngm
       use sle001, only : fr,snowm,ws,shc,shw
@@ -357,6 +357,8 @@ C****
       implicit none
 
       integer, intent(in) :: i0,j0
+!@var ghy_data_only set only ghy data (no call to vegetatin expected)
+      logical, optional :: ghy_data_only
       real*8, parameter :: spgsn=.1d0
       integer l
       real*8 aa
@@ -418,6 +420,15 @@ c???  cnc=alai/rs   redefined before being used (qsbal,cond)
 c shc(0,2) is the heat capacity of the canopy
       aa=ala(1,i0,j0)
       shc(0,2)=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+
+! This is a hack to prevent the program from using uninitialized 
+! radiation arrays at the beginning of the run.
+! If program returns at this point, it sets only the data needed for
+! ground hydrology but not the vegetation which is ok if veg_conductance
+! is not called.
+      if ( present(ghy_data_only) ) then
+        if ( ghy_data_only ) return
+      endif
 
 !----------------------------------------------------------------------!
       if (cond_scheme.eq.2) then  !new conductance scheme

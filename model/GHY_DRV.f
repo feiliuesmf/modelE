@@ -63,7 +63,7 @@ c****
 #ifdef TRACERS_SPECIAL_O18
      &     ,tr_name
 #endif
-      use veg_drv, only: veg_save_cell
+      use veg_drv, only: veg_save_cell,veg_set_cell
       use vegetation, only: update_veg_locals
 
       use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,hdiurn,
@@ -517,6 +517,7 @@ c**** calculate ground fluxes
 c     call qsbal
 
       call ghinij (i,j,wfc1)
+      call veg_set_cell(i,j)
       !call init_localveg
       call advnc
       call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
@@ -1345,7 +1346,7 @@ c****
       use ghycom, only : ngm,imt,dz_ij,sl_ij,q_ij,qk_ij
      *     ,top_index_ij,top_dev_ij
       use veg_com, only: afb
-      use veg_drv, only : veg_set_cell
+!      use veg_drv, only : veg_set_cell
 
 
       implicit none
@@ -1362,7 +1363,7 @@ c****
       j_earth = j0
 
 ccc setting vegetation
-      call veg_set_cell(i0,j0)
+ !     call veg_set_cell(i0,j0)
 
 ccc passing topmodel parameters
       top_index = top_index_ij(i0, j0)
@@ -1411,7 +1412,7 @@ c****
         end do
       end do
 !veg      ws(0,2)=.0001d0*alai  ! from call veg_set_cell above
-      wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
+  !    wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
 c****
       call xklh0
 c****
@@ -1651,11 +1652,12 @@ c**** check for reasonable temperatures over earth
       use veg_com, only : almass,aalbveg       !nyk
       use vegetation, only: crops_yr,cond_scheme !nyk
       use surf_albedo, only: albvnh  !nyk
-
+      use sle001, only : fb,fv,ws
+      use veg_drv, only : veg_set_cell
 
       implicit none
       real*8 tsavg,wfc1
-      real*8 aleafmass, aalbveg0, fv, sfv  !nyk veg ! , aleafmasslast
+      real*8 aleafmass, aalbveg0, fvp, sfv  !nyk veg ! , aleafmasslast
       integer i,j,itype
       integer northsouth,iv  !nyk
       logical, intent(in) :: end_of_day
@@ -1695,10 +1697,10 @@ c****
               aalbveg0 = 0.d0
               sfv=0.d0
               do iv=1,8
-                fv=vdata(i,j,iv+1)
-                sfv=sfv+fv
-                aalbveg0 = aalbveg0 + fv*(ALBVNH(iv+1,1,northsouth))
-                !write (99,*) 'fv',fv
+                fvp=vdata(i,j,iv+1)
+                sfv=sfv+fvp
+                aalbveg0 = aalbveg0 + fvp*(ALBVNH(iv+1,1,northsouth))
+                !write (99,*) 'fvp',fvp
                 !write (99,*) 'ALBVNH',ALBVNH(iv+1,1,northsouth)
               end do
               aalbveg(i,j) = 0.08D0
@@ -1708,6 +1710,8 @@ c****
             !-----------------------------------------------------------
 
             call ghinij(i,j,wfc1)
+            call veg_set_cell(i,j,.true.)
+            wfc1=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
             wfcs(i,j)=rhow*wfc1 ! canopy part changes
 
             !-----------------------------------------------------------
