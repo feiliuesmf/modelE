@@ -31,29 +31,25 @@ C**** Local parameters and variables and arguments:
 !@var bydtsrc reciprocal of the timestep dtsrc
 !@var imonth month index for Ox strat correction factor
 !@var m dummy loop variable for Ox strat correction factor
+!@var local logical for error checking 
       REAL*8 FASTJ_PFACT, FACT1, bydtsrc
       INTEGER imonth, m
+      LOGICAL error
 c
+C Note: mass2vol is no longer hardcoded here, since it does not have
+C to be redefined each hour (It is now done in subroutine init_tracer
+C in TRACERS_DRV.f.)
+C
 C++++ First, some INITIALIZATIONS :
       bydtsrc = 1./dtsrc
       BYFJM=1./float(JM)
 C reset change due to chemistry to zero:
       change = 0.
-c
+C
 C set surface albedo variable used in fastj, based on ALB(..1)
 C from radiation code:
-      DO J=1,JM
-        DO I=1,IM
-          SALBFJ(I,J)= ALB(I,J,1)
-        END DO
-      END DO
-C fill in mass2vol arrays (no longer hard-coded):
-C note: this could be moved out of here, since constant in time:
-      DO n=1,NTM
-        mass2vol(n)  =mair/TR_MM(n)
-        bymass2vol(n)=TR_MM(n)/mair
-      END DO
-c
+      SALBFJ(:,:)= ALB(:,:,1)
+C
 c Set "chemical time step". Really this is a method of applying only
 c a fraction of the chemistry change to the tracer mass for the first
 c 30 hours.  That fraction is: dt2/dtscr.  E.g. in the first hour it
@@ -110,13 +106,14 @@ c      Tracers (converted from mass mixing ratio to number density)
          y(igas,L)=trm(I,J,L,igas)*y(nM,L)*mass2vol(igas)*
      *   BYDXYP(J)*BYAM(L,I,J)
        enddo
-c
-c      Fix methane used in chemistry
-c      if(J.lt.JEQ)then ! SH
-c        y(n_CH4,L)=y(nM,L)*pfix_CH4_S
-c      else             ! NH
-c        y(n_CH4,L)=y(nM,L)*pfix_CH4_N
-c      endif
+c      If desired, fix the methane concentration used in chemistry
+       if(fix_CH4_chemistry) THEN
+         if(J.lt.JEQ)then ! SH
+           y(n_CH4,L)=y(nM,L)*pfix_CH4_S
+         else             ! NH
+           y(n_CH4,L)=y(nM,L)*pfix_CH4_N
+         endif
+       end if
 c
 c Limit N2O5 number density:
        if(y(n_N2O5,L).lt.1.)y(n_N2O5,L)=1.0
@@ -158,10 +155,9 @@ c     [desired number] of hours:
 c      additional SUNLIGHT criterion (see also fam chem criterion):
        if((SALBFJ(I,J).ne.0.).AND.(sza.lt.szamax))then!>>SUNLIGHT<<<
 c
-c       define temperatures to be sent to FASTJ:
-        do L=1,LM
-         TFASTJ(L)   = ta(L)
-        enddo
+c       define column temperatures to be sent to FASTJ:
+        TFASTJ = ta
+c
 c       define pressures to be sent to FASTJ (centers):
         DO LL=2,2*LM,2
           PFASTJ(LL) = PMID(LL/2,I,J)
@@ -213,8 +209,8 @@ C And fill in the photolysis coefficients: ZJ --> ss:
        endif                               ! >>>> SUNLIGHT IF END <<<<
       endif                             !  >>>> PHOTOLYSIS IF END <<<<
 c
-c      calculate the chemical reaction rates:
-       call Crates (I,J)      
+c     calculate the chemical reaction rates:
+      call Crates (I,J)      
 c
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 cc    Main chemistry calculations    cc
@@ -244,21 +240,21 @@ c     * pNOx(I,J,l),pOx(I,J,l)
        write(6,*) 'conc OH = ',y(nOH,l)
        write(6,*)'sun, SALBFJ,sza,I,J,Itime= ',SALBFJ(I,J),sza,I,J,Itime
        do inss=1,JPPJ
-        write(6,195) ' J',inss,ay(1,ks(inss)),ay(2,ks(inss)),' = ',
+        write(6,195) ' J',inss,ay(ks(inss)),' = ',
      *   (ss(inss,I,J,Lqq),Lqq=1,11)
        enddo
        write(6,196) ' RCloud',(RCLOUDFJ(Lqq,I,J),Lqq=1,11)
        write(6,196) ' Ozone ',(y(nO3,Lqq),Lqq=1,11)
        write(6,*) ' '
       endif
- 195  format(a2,i2,1x,2a4,a3,11(1x,e9.2))
+ 195  format(a2,i2,1x,a8,a3,11(1x,e9.2))
  196  format(a7,9x,11(1x,e9.2))
 c
 cc    Non-family chemistry:
 c
       call chemstep(I,J,change)
 c
-      else                       !             D  A  R  K  N  E  S  S
+      else                           !             D A R K N E S S
 c
 C*****************************************************************
 c      >> N2O5 sink on sulfate aerosol :: <<
@@ -493,59 +489,67 @@ c Some More Chemistry Diagnostics:
          if(prnchg.and.J.eq.jprn.and.I.eq.iprn.and.L.eq.lprn)then
           write(6,*) 'dark, SALBFJ,sza,I,J,L,Itime= ',SALBFJ(I,J),sza,I
      &,J,L,Itime
-          write(6,198) ay(1,n_NOx),ay(2,n_NOx),': ',
+          write(6,198) ay(n_NOx),': ',
      *         changeNOx,' molecules produced; ',
      *      100.*(changeNOx)/y(n_NOx,L),' percent of'
      *     ,y(n_NOx,L),'(',1.E9*y(n_NOx,L)/y(nM,L),' ppbv)'
-          write(6,198) ay(1,n_HNO3),ay(2,n_HNO3),': ',
+          write(6,198) ay(n_HNO3),': ',
      *         changeHNO3,' molecules produced; ',
      *     100.*(changeHNO3)/y(n_HNO3,L),' percent of'
      *     ,y(n_HNO3,L),'(',1.E9*y(n_HNO3,L)/y(nM,L),' ppbv)'
-          write(6,198) ay(1,n_N2O5),ay(2,n_N2O5),': ',
+          write(6,198) ay(n_N2O5),': ',
      *         changeN2O5,' net molec produced; ',
      *      100.*(changeN2O5)/y(n_N2O5,L),' percent of'
      *     ,y(n_N2O5,L),'(',1.E9*y(n_N2O5,L)/y(nM,L),' ppbv)'
-          write(6,198) ay(1,n_N2O5),ay(2,n_N2O5),': ',
+          write(6,198) ay(n_N2O5),': ',
      *            gwprodN2O5,' molec prod fm gas;  ',
      *      100.*(gwprodN2O5)/y(n_N2O5,L),' percent of'
      *     ,y(n_N2O5,L),'(',1.E9*y(n_N2O5,L)/y(nM,L),' ppbv)'
-          write(6,198) ay(1,n_N2O5),ay(2,n_N2O5),': ',
+          write(6,198) ay(n_N2O5),': ',
      *         wprodHCHO,' molecules produced; ',
      *      100.*(wprodHCHO)/y(n_HCHO,L),' percent of'
      *     ,y(n_HCHO,L),'(',1.E9*y(n_HCHO,L)/y(nM,L),' ppbv)'
-          write(6,198) 'Alde','hyde',': ',
+          write(6,198) 'Aldehyde',': ',
      *         changeAldehyde,' molecules produced; ',
      *      100.*(changeAldehyde)/yAldehyde(I,J,L),' percent of'
      *     ,yAldehyde(I,J,L),'(',1.E9*yAldehyde(I,J,L)/y(nM,L),' ppbv)'
-          write(6,198) 'Alke','nes ',': ',
+          write(6,198) 'Alkenes ',': ',
      *         changeAlkenes,' molecules produced; ',
      *      100.*(changeAlkenes)/y(n_Alkenes,L),' percent of'
      *     ,y(n_Alkenes,L),'(',1.E9*y(n_Alkenes,L)/y(nM,L),' ppbv)'
-          write(6,198) 'Isop','rene',': ',
+          write(6,198) 'Isoprene',': ',
      *         changeIsoprene,' molecules produced; ',
      *      100.*(changeIsoprene)/y(n_Isoprene,L),' percent of'
      *     ,y(n_Isoprene,L),'(',1.E9*y(n_Isoprene,L)/y(nM,L),' ppbv)'
-          write(6,198) 'Alky','lNit',': ',
+          write(6,198) 'AlkylNit',': ',
      *         changeAlkylNit,' molecules produced; ',
      *      100.*(changeAlkylNit)/y(n_AlkylNit,L),' percent of'
      *     ,y(n_AlkylNit,L),'(',1.E9*y(n_AlkylNit,L)/y(nM,L),' ppbv)'
           write(6,199) 'NO2, NO3  = ',y(nNO2,L),yNO3(I,J,L)
          endif
- 198  format(1x,2a4,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
+ 198  format(1x,a8,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
  199  format(1x,a20,2(2x,e13.3))
 C
 C Make sure nighttime chemistry changes are not too big:
 C
-         if(changeNOx.lt.-1.E15.OR.changeNOx.gt.1.E15)
-     &   write(*,*) 'Big chg@ Itime,I,J,L,NOx ',Itime,I,J,L,changeNOx
-         if(changeHNO3.lt.-1.E15.OR.changeHNO3.gt.1.E15)
-     &   write(*,*) 'Big chg@ Itime,I,J,L,HNO3',Itime,I,J,L,changeHNO3
-         if(changeN2O5.lt.-1.E15.OR.changeN2O5.gt.1.E15)
-     &   write(*,*) 'Big chg@ Itime,I,J,L,N2O5',Itime,I,J,L,changeN2O5
-         if(wprodHCHO.lt.-1.E15.OR.wprodHCHO.gt.1.E15)then
+         error=.false.
+         if(changeNOx.lt.-1.E15.OR.changeNOx.gt.1.E15) then
+          write(*,*) 'Big chg@ Itime,I,J,L,NOx ',Itime,I,J,L,changeNOx
+          error=.true.
+         end if
+         if(changeHNO3.lt.-1.E15.OR.changeHNO3.gt.1.E15) then
+          write(*,*) 'Big chg@ Itime,I,J,L,HNO3',Itime,I,J,L,changeHNO3
+          error=.true.
+         end if
+         if(changeN2O5.lt.-1.E15.OR.changeN2O5.gt.1.E15) then
+          write(*,*) 'Big chg@ Itime,I,J,L,N2O5',Itime,I,J,L,changeN2O5
+          error=.true.
+         end if
+         if(wprodHCHO.lt.-1.E15.OR.wprodHCHO.gt.1.E15) then
           write(*,*)'Big chg@ Itime,I,J,L,HCHO',Itime,I,J,L,wprodHCHO
-          call stop_model('stopped in nighttime with big changes',255)
+          error=.true.
          endif
+         if(error)call stop_model('nighttime chem: big changes',255)
 C
        enddo  ! troposphere loop
 c
@@ -633,7 +637,7 @@ C
 C         note: layer 14 in M23 is between layers 8 and 9 in M9 model:
           FACT1=2.0E-9*DXYP(J)*am(L,I,J)*byam(14,I,J)
           change(I,J,L,n_NOx)=trm(I,J,L,n_Ox)*2.3E-4 - trm(I,J,L,n_NOx)
-C       dts 12/19/01:NOx strat-trop flux too big, alter lower strat NOx:
+C      dts 12/19/01:NOx strat-trop flux too big, alter lower strat NOx:
           if((L.eq.LS1).or.(L.eq.LS1+1)) change(I,J,L,n_NOx)=
      &                      0.9*trm(I,J,L,n_Ox)*2.3E-4-trm(I,J,L,n_NOx)
           change(I,J,L,n_N2O5)=  FACT1            - trm(I,J,L,n_N2O5)
@@ -660,7 +664,7 @@ c         L={21,22,23} on 0.32mb obs (average of mar,jun,sep,dec).
 c
           CH4FACT=avg67(i,jj)*r179m2v
           IF((J.LE.16).OR.(J.GT.30)) THEN                ! extratropics
-            IF((L.GE.LS1).AND.(L.LE.14)) CH4FACT=CH4FACT*  1.700!was1.44
+            IF((L.GE.LS1).AND.(L.LE.14)) CH4FACT=CH4FACT* 1.700!was1.44
             IF((L.GE.15).AND.(L.LE.17))  CH4FACT=CH4FACT*   1.130
             IF((L.GE.18).AND.(L.LE.20))  CH4FACT=CH4FACT*   0.473
             IF((L.GE.21).AND.(L.LE.LM))  CH4FACT=CH4FACT*   0.202
