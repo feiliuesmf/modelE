@@ -342,7 +342,7 @@ C**** use doc-record to check the basic model parameters
           itimee=ite1 ; itime0=it01   ! is changed later if appropriate
           if (iyear1.lt.0) iyear1=iy1 ! rarely changes on restart/reruns
         CASE (IOREAD_SINGLE)    ! parameters/label from 1-many acc files
-          call read_param(kunit,.true.)  ! ignore rundeck
+          call read_param(kunit,.false.)  ! use rundeck
           call sync_param( "kradia",kradia)
           nday=nd1 ; iyear1=iy1 ; itime0=it01
           NTIMEACC=NTIM1                 ! use timing from current file
