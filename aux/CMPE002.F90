@@ -121,12 +121,53 @@
       return
       end subroutine guess_dims
 
+!The detection of NaN''s is based on the following info from
+!Compaq Fortran documentation:
+!(http://h18009.www1.hp.com/
+!     fortran/docs/unix-um/dfumdatarep.htm#sec_fltng_pt_exc)
+!
+!Infinity(+)Z'7FF0000000000000'
+!Infinity(--)Z'FFF0000000000000'
+!Zero(+0)Z'0000000000000000'
+!Zero(-0)Z'8000000000000000'
+!QuietNaN(+)FromZ'7FF8000000000000'toZ'7FFFFFFFFFFFFFFF'
+!QuietNaN(--)FromZ'FFF8000000000000'toZ'FFFFFFFFFFFFFFFF'
+!SignalingNaN(+)FromZ'7FF0000000000001'toZ'7FF7FFFFFFFFFFFF'
+!SignalingNaN(--)FromZ'FFF0000000000001'toZ'FFF7FFFFFFFFFFFF'
+
+      function isNaN(a)
+      real*8 a
+      logical isNaN
+      real*8 b
+      integer*4 c(2),x
+      equivalence (c(1),b)
+      integer*4, parameter :: mask=Z'FFF00000'
+      integer*4, parameter :: nan_1=Z'FFF00000', nan_2=Z'7FF00000'
+
+      isNaN = .false.
+      b = a
+#ifdef CONVERT_BIGENDIAN
+      ! for little-endian machines
+      x = iand( c(2), mask )
+      if ( x==nan_1 .or. x==nan_2 ) isNaN = .true.
+#else
+      ! for big-endian machines
+      x = iand( c(1), mask )
+      if ( x==nan_1 .or. x==nan_2 ) isNaN = .true.
+#endif
+      return
+      end function isNaN
+
 
       subroutine do_compare
       real*8, parameter :: EPS=1.d-36
       integer m, nerr, n
-      real*8 err, rel_err, abs_val, v1,v2
+      real*8 err, rel_err, abs_val
       integer i,j,k,l,nn
+      real*8 v1,v2
+      integer*4 iv1(2), iv2(2)
+      equivalence (v1,iv1(1)), (v2,iv2(1))
+      
 
       do m=1,num
         nerr = 0
@@ -144,10 +185,19 @@
           case default
             call stop_model("wrong type in DB",255)
           end select
-          err = v2 -v1
-          abs_val = .5*( abs(v1) + abs(v2) )
-          rel_err = 0.d0
-          if ( abs_val > 0.d0 ) rel_err = abs(err)/abs_val
+          !if values are binary identical skip the rest of the test
+          !this should work also for NaN's 
+          if ( iv1(1) == iv2(1) .and. iv1(2) == iv2(2) ) cycle
+          if ( isNaN(v1) .or. isNaN(v2) ) then
+            !NaN
+            err = 1.d30 ; rel_err = 1.d30
+          else
+            !normal number
+            err = v2 -v1
+            abs_val = .5*( abs(v1) + abs(v2) )
+            rel_err = 0.d0
+            if ( abs_val > 0.d0 ) rel_err = abs(err)/abs_val
+          endif
           if (rel_err>EPS) then
             nn = n-1
             l = nn/(db(m)%im*db(m)%jm*db(m)%km)
