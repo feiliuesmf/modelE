@@ -606,7 +606,7 @@ c
       k = KAJK
 c
       k = k + 1
-      jk_dudt_econv = k                       ; jgrid_jk(k) = 1
+      jk_dudt_econv = k                       ; jgrid_jk(k) = 2
       sname_jk(k) = 'dudt_eddy_conv'
       lname_jk(k) = 'DU/DT BY EDDY CONVERGENCE (CP)'
       units_jk(k) = '10**-6 m/s^2'

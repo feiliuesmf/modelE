@@ -26,7 +26,7 @@ C**** have to wait.
      &    ,status_out,varid_out,out_fid
      &    ,ndims_out,dimids_out,file_dimlens
      &    ,units,long_name,missing,real_att_name,real_att
-     &    ,disk_dtype,prog_dtype, LAT_DG
+     &    ,disk_dtype,prog_dtype,lat_dg
      &    ,iu_ij,im,jm,lm,lm_req,iu_ijk,iu_il,iu_j,iu_jl
 
 !@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
@@ -292,8 +292,9 @@ c restore defaults
 !@sum  OPEN_IJ opens the lat-lon binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE GEOM, only : lon_dg
-      USE NCOUT
+      USE GEOM, only : lon_dg,lat_dg
+      USE NCOUT, only : iu_ij,im,jm,set_dim_out,def_dim_out,units
+     *     ,outfile,out_fid,ndims_out,open_out
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
@@ -302,7 +303,7 @@ c restore defaults
 !
       character(len=30) :: var_name,dim_name
 
-      outfile = filename
+      outfile = trim(filename)//".nc"
 
 ! define output file
       call open_out
@@ -416,7 +417,7 @@ C**** set dimensions
 !@var lat_dg_gcm latitude of mid points of grid boxs (deg)
       REAL*8, INTENT(IN), DIMENSION(JM_GCM,2) :: lat_dg_gcm
 
-      outfile = filename
+      outfile = trim(filename)//".nc"
       call open_out
       iu_jl = out_fid
 
@@ -581,7 +582,7 @@ C**** set dimensions
 !@var IM_GCM,LM_GCM,lm_req_gcm dimensions for il output
       INTEGER, INTENT(IN) :: im_gcm,lm_gcm,lm_req_gcm
 
-      outfile = filename
+      outfile = trim(filename)//".nc"
       call open_out
       iu_il = out_fid
 
@@ -735,7 +736,7 @@ C**** therefore shift array back to standard order.
 
       character(len=30) :: var_name,dim_name
 
-      outfile = filename
+      outfile = trim(filename)//".nc"
       call open_out
       iu_j = out_fid
 
@@ -819,9 +820,10 @@ c
 !@sum  OPEN_IJK opens the lat-lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE GEOM, only : lon_dg
+      USE GEOM, only : lon_dg,lat_dg
       USE DAGCOM, only : plm
-      USE NCOUT
+      USE NCOUT, only : im,jm,lm,iu_ijk,set_dim_out,def_dim_out,out_fid
+     *     ,outfile,units,ndims_out,open_out
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
@@ -830,7 +832,7 @@ c
 !
       character(len=30) :: var_name,dim_name
 
-      outfile = filename
+      outfile = trim(filename)//".nc"
 
 ! define output file
       call open_out
