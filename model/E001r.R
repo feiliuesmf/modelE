@@ -1,6 +1,6 @@
-E001.R GISS Model E                                 gas 06/00
+E001r.R GISS Model E  strat.H2O added inst.frc          rar 2/01/02
 
-E001: new modelE (based on B402A)
+E001r: radiation only, instantaneous forcing
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -32,8 +32,8 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.15 ! initial conditions (atm. and ground)
-! GIC=GIC.E005gasA.1DEC1956 ! initial ground conditions (needed if ISTART=2)
+AIC=1JAN1951.rsfE001 ! just label records of control run are needed
+! GIC=GIC.E005gasA.1DEC1956 ! initial conditions (ground)
 ! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp.  not needed if ocn prescribed
 OCNML=Z1O.B4X5.cor         ! mixed layer depth,needed for post-processing only
 MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp.,needed for post-processing only
@@ -58,27 +58,49 @@ RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Sep2001
 dH2O=dH2O_by_CH4
 TOP_INDEX=top_index_72x46.ij
+RADJAN=../E001/RADJAN1950    ! replace E001 by the control run
+RADFEB=../E001/RADFEB1950    ! assuming that the saved data are
+RADMAR=../E001/RADMAR1950    ! still in the original directory
+RADAPR=../E001/RADAPR1950    ! and that the forcing run is on
+RADMAY=../E001/RADMAY1950    ! the same file system
+RADJUN=../E001/RADJUN1950
+RADJUL=../E001/RADJUL1950
+RADAUG=../E001/RADAUG1950
+RADSEP=../E001/RADSEP1950
+RADOCT=../E001/RADOCT1950
+RADNOV=../E001/RADNOV1950
+RADDEC=../E001/RADDEC1950
 
 Label and Namelist:
-E001 (new modelE based on B402A, uses dry adiab. adjustment)
+E001r (inst.forcing run - control)
 R=00BG/B
 
 &&PARAMETERS
-XCDLM=.0005,.00005
-KOCEAN=0
-U00wtr=.49
-U00ice=.50
+XCDLM=.0005,.00005  ! irrelevant
+P_sdrag=20.         ! irrelevant
+KOCEAN=0            ! irrelevant
+U00wtr=.50          ! irrelevant
+U00ice=.50          ! irrelevant
 
-DT=450.,        ! from default: DTsrc=3600.,
-NSLP=12         ! saving SLP 12hrly
-Kvflxo=1        ! saving VFLXO (daily)
-KCOPY=2         ! saving acc + rsf
-isccp_diags=1
+NIsurf=2            ! irrelevant
+DT=300.             ! irrelevant
+
+NSLP=0              ! dont change
+Kvflxo=0            ! dont change
+KCOPY=2             ! saving acc + rsf
+isccp_diags=0       ! irrelevant
+Kradia=1            ! use Kradia=2 for adj. forcing run
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
-   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
-   YEARE=1950,MONTHE=2,
-   ISTART=7,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0, ! irrelevant
+   YEARE=1952,MONTHE=1,DATEE=1,HOURE=0,  ! assumed start: 1/1/1951
+   ISTART=8, YEARE=1951,MONTHE=1,HOURE=1,IWRITE=1,JWRITE=1,ITWRITE=23,
  &END
+
+It's important that DTsrc, NIrad, ItimeI are left as in the control
+run so the input data are available when they are needed ! That's
+why in this case ISTART=8 (start) looks more like ISTART=9 (restart).
+The only parameters/input files that matter are the ones that affect
+the radiation. It is their change whose instantaneous/adjusted
+forcing is computed.
