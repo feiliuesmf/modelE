@@ -16,7 +16,7 @@ C**** must be compiled after the model
       USE DAGCOM, only : keynr,tsfrez
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq
      *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
-     *     ,egcm
+     *     ,egcm,tgvavg,qgavg
       USE STATIC_OCEAN, only : tocean,z1o,tfo
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
       USE SEAICE, only : ace1i,xsi,ac2oim,ssi0
