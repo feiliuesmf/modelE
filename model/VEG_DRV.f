@@ -125,7 +125,7 @@ C**** Update vegetation file if necessary (i.e. crops_yr =0 or >0)
       if(crops_yr.eq.0) call updveg(jyear,.false.)
       if(crops_yr.gt.0) call updveg(crops_yr,.false.)
 
-      if (istart.le.2 .or. redogh) then     ! initialize foliage arrays (adf)
+      if (istart.le.2 .or. redogh) then ! initial. foliage arrays (adf)
         Cint(:,:)=0.0127D0      ! internal CO2
         Qfol(:,:)=3.D-6         ! surface mixing ratio
         cnc_ij(:,:) = 0.d0
@@ -169,7 +169,7 @@ c****
       anm(:,:)=0.0D0            ! Global mean canopy N array (adf)
       anf(:,:)=0.0D0            ! Global Rubisco factors (adf)
       almass(:,:,:)=0.0D0       ! Global leaf mass at a time, nyk
-!rar  aalbveg(:,:)=0.08D0 ! no need, it is set in daily_earth 
+!rar  aalbveg(:,:)=0.08D0 ! no need, it is set in daily_earth
       can_w_capacity(:,:) = 0.d0
 
       do j=1,jm
@@ -318,7 +318,7 @@ c**** recompute ground hydrology data if necessary (new soils data)
      &     ,cnc
       use radncb, only : cosz1
      &    ,FSRDIR,SRVISSURF  !adf, nyk
-      use veg_com, only : 
+      use veg_com, only :
      &     Cint,Qfol           ! added by adf
      &     ,cnc_ij
      &     ,aalbveg    ! nyk
@@ -436,7 +436,7 @@ c shc(0,2) is the heat capacity of the canopy
 
       end module veg_drv
 
-!****************************************************************************
+!***********************************************************************
 
       subroutine updveg (year,reset_veg)
 !@sum  reads appropriate crops data and updates the vegetation file

@@ -14,7 +14,7 @@
      $     ,conserv_htg
 
       !real*8 cosday,sinday
-      !real*8 cosdaym1, sindaym1                !nyk TEMPORARY for jday-1
+      !real*8 cosdaym1, sindaym1               !nyk TEMPORARY for jday-1
       real*8 adlmass          ! accumulator for dleafmass in daily_earth
 
 !@var gdeep keeps average (2:n) values of temperature, water and ice
@@ -61,7 +61,7 @@ c****
 #ifdef TRACERS_WATER
      &     ,tr_w,tr_wsn,trpr,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
 #endif
-      use veg_drv, only: veg_set_cell, veg_save_cell
+      use veg_drv, only: veg_save_cell
       use vegetation, only: update_veg_locals
 
       use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,hdiurn,
@@ -495,9 +495,6 @@ c****
 c**** calculate ground fluxes
 c     call qsbal
 
-
-      !call veg_set_cell(i,j)  !moved to inside ghinij (nyk)
-
       call ghinij (i,j,wfc1)
       !call init_localveg
       call advnc
@@ -587,7 +584,7 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
      &         fr_snow_rad_ij(ibv,i,j), fr_snow_ij(ibv, i, j) )
         enddo
       else
-        do ibv=1,2 
+        do ibv=1,2
           fr_snow_rad_ij(ibv,i,j) = fr_snow_ij(ibv, i, j)
         enddo
       endif
@@ -722,7 +719,7 @@ ccc not sure about the code below. hopefully that''s what is meant above
         taijn(i,j,tij_soil,n)=taijn(i,j,tij_soil,n) + (
      &       fb*(sum( tr_w(nx,1:ngm,1) ) + sum( tr_wsn(nx,1:nsn(1),1)))+
      &       fv*(sum( tr_w(nx,0:ngm,2) ) + sum( tr_wsn(nx,1:nsn(2),2) ))
-     *       ) 
+     *       )
         tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
      *       +trevapor(n,itype,i,j)*ptype
       enddo
@@ -1035,7 +1032,7 @@ ccc read and initialize vegetation here
       call init_vegetation(redogh,istart)
 
       ! no need to continue computations for postprocessing
-      if (istart.le.0) return 
+      if (istart.le.0) return
 
       call hl0
 
@@ -1319,12 +1316,12 @@ c****
       real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
 
 
-      call veg_set_cell(i0,j0) !nyk
-
       ijdebug=i0*1000+j0
       i_earth = i0
       j_earth = j0
 
+ccc setting vegetation
+      call veg_set_cell(i0,j0)
 
 ccc passing topmodel parameters
       top_index = top_index_ij(i0, j0)
@@ -1372,8 +1369,7 @@ c****
           ws(k,ibv)=thets(k,ibv)*dz(k)
         end do
       end do
-!veg      ws(0,2)=.0001d0*alai
-!!!      ws(0,2)=can_w_capacity(i0,j0)*alai
+!veg      ws(0,2)=.0001d0*alai  ! from call veg_set_cell above
       wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
 c****
       call xklh0
