@@ -316,6 +316,7 @@ C**** Save additional changes in KE for addition as heat later
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,u,v,t,q,qcheck
+      USE DOMAIN_DECOMP, only : grid, get
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv,dxyp
       USE DYNAMICS, only : byam,am,dke
 #ifdef TRACERS_ON
@@ -332,8 +333,16 @@ C**** Save additional changes in KE for addition as heat later
       real*8, intent(in) :: dt
       real*8 hemi,trmin
       real*8, dimension(im,jm) :: usave,vsave
+      INTEGER :: J_0,J_1,J_0S,J_1S,J_0STG,J_1STG
 
-      do j=1,jm
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
+
+      do j=j_0,j_1
         do i=1,imaxj(j)
           t(i,j,1) = t(i,j,1) + dth1(i,j)
           q(i,j,1) = q(i,j,1) + dq1(i,j)
@@ -342,7 +351,7 @@ C**** Save additional changes in KE for addition as heat later
 
 #ifdef TRACERS_ON
       do n=1,ntm
-        do j=1,jm
+        do j=j_0,j_1
           do i=1,imaxj(j)
             trm(i,j,1,n) = trm(i,j,1,n) + trflux1(i,j,n)*dt
             trmin=0.d0
@@ -392,7 +401,7 @@ c**** non polar boxes
       end do
 
 C**** save change of KE for addition as heat later
-      do j=2,jm
+      do j=J_0STG, J_1STG
         do i=1,im
           dke(i,j,1)=dke(i,j,1)+0.5*(u(i,j,1)*u(i,j,1)+v(i,j,1)*v(i,j,1)
      *         -usave(i,j)*usave(i,j)-vsave(i,j)*vsave(i,j))
