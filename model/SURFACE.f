@@ -450,7 +450,7 @@ C**** Calculate trsfac (set to zero for const flux)
           rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) then
-            trsfac(nx)=1. ! rhosrf0
+            trsfac(nx)=1. 
      &      !then multiplied by deposition velocity in PBL
 #ifdef TRACERS_WATER
             tr_evap_max(nx)=1.d30
@@ -465,14 +465,10 @@ C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
           end do
           trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
 #ifdef TRACERS_AEROSOLS_Koch
-        select case (trname(ntix(nx)))
-	case ('DMS')
-	trconstflx(nx)=1.d0/rhosrf0
-	case ('seasalt1')
-	trconstflx(nx)=1.d0/rhosrf0
-	case ('seasalt2')
-	trconstflx(nx)=1.d0/rhosrf0
-	end select
+          select case (trname(ntix(nx)))
+	  case ('DMS','seasalt1','seasalt2')
+            trconstflx(nx)=1.d0/rhosrf0
+          end select
 #endif
 #ifdef TRACERS_WATER
 !!!        end select
@@ -666,6 +662,16 @@ C**** Limit evaporation if lake mass is at minimum
           TREVAPOR(n,ITYPE,I,J)=TREVAPOR(n,ITYPE,I,J)+TEVAP
         END IF
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+        select case (trname(n))
+	case ('DMS')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+DMS_flux*dxyp(j)*ptype
+	case ('seasalt1')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss1_flux*dxyp(j)*ptype
+	case ('seasalt2')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss2_flux*dxyp(j)*ptype
+	end select
+#endif
 #ifdef TRACERS_DRYDEP
 C****
 C**** Calculate Tracer Dry Deposition
@@ -680,7 +686,7 @@ C****
           td1 = trsrfflx(i,j,n)*dtsurf                 ! kg
           if (trm(i,j,1,n)+td1+tdd.lt.0.and.tdd.lt.0) then
             if (qcheck) write(99,*) "limiting tdryd surfce",i,j,n,tdd
-     *           ,trm(i,j,1,n),td1
+     *           ,trm(i,j,1,n),td1,trs(nx),trgrnd(nx),trtop(nx)
             tdd= -max(trm(i,j,1,n)+td1,0d0)
             tdryd=tdd/(dxyp(j)*ptype)
             trsrfflx(i,j,n)= - trm(i,j,1,n)/dtsurf
@@ -693,16 +699,6 @@ C****
      &       tdryd*ptype
           dtr_dd(j,n)=dtr_dd(j,n)+tdd
         end if
-#endif
-#ifdef TRACERS_AEROSOLS_Koch
-        select case (trname(n))
-	case ('DMS')
-	trsrfflx(i,j,n)=trsrfflx(i,j,n)+DMS_flux*dxyp(j)
-	case ('seasalt1')
-	trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss1_flux*dxyp(j)
-	case ('seasalt2')
-	trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss2_flux*dxyp(j)
-	end select
 #endif
 #ifdef TRACERS_WATER
       END DO
