@@ -119,13 +119,6 @@ c**** Smithsonian Met Tables = 4*rvap + delta = 1858--1869 ????
 c     real*8,parameter :: shv = 4.*rvap  ????
       real*8,parameter :: shv = 0.
 
-C**** Useful conversion factors
-
-!@param pa2mb,mb2pa conversion from Pascals to milli-bars
-      real*8,parameter :: pa2mb = 1d-2, mb2pa = 1d2
-!@param kgpa2mm,mm2kgpa conversion from kg/m^2 water to mm
-      real*8,parameter :: kgpa2mm = 1d0, mm2kgpa = 1d0
-
 C**** Astronomical constants
 
 !@param sday  sec per day (s)
@@ -157,6 +150,13 @@ C**** variables for extrapolating surface pressure to sea level)
       real*8, parameter :: bbyg = bmoist*bygrav
 !@param GBYRB grav divided by rgas and bmoist
       real*8, parameter :: gbyrb = grav/(rgas*bmoist)
+
+C**** Useful conversion factors
+
+!@param kg2mb,mb2kg conversion from milli-bars to kg/m^2
+      real*8,parameter :: kg2mb = 1d-2*grav, mb2kg = 1d2*bygrav
+!@param kgpa2mm,mm2kgpa conversion from kg/m^2 water to mm
+      real*8,parameter :: kgpa2mm = 1d0, mm2kgpa = 1d0
 
       CONTAINS
 

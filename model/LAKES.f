@@ -673,3 +673,48 @@ C**** Store mass and energy fluxes for formation of sea ice
       END DO
       END SUBROUTINE GROUND_LK
 
+
+      SUBROUTINE conserv_LKM(LKM)
+!@sum  conserv_LKM calculates total lake mass
+!@auth Gary Russell/Gavin Schmidt
+!@ver  1.0
+      USE E001M12_COM, only : im,jm
+      USE GEOM, only : imaxj
+      USE LAKES_COM, only : mwl
+      IMPLICIT NONE
+      REAL*8, DIMENSION(JM) :: LKM
+      INTEGER :: I,J
+C****
+C**** LAKE MASS (kg)
+C****
+      DO J=1,JM
+        LKM(J)=0.
+        DO I=1,IMAXJ(J)
+          LKM(J)=LKM(J)+MWL(I,J)
+        END DO
+      END DO
+      RETURN
+      END SUBROUTINE conserv_LKM
+
+      SUBROUTINE conserv_LKE(LKE)
+!@sum  conserv_LKE calculates total lake energy
+!@auth Gary Russell/Gavin Schmidt
+!@ver  1.0
+      USE CONSTANT, only : grav
+      USE E001M12_COM, only : im,jm,zatmo
+      USE GEOM, only : imaxj
+      USE LAKES_COM, only : gml,mwl
+      IMPLICIT NONE
+      REAL*8, DIMENSION(JM) :: LKE
+      INTEGER :: I,J
+C****
+C**** LAKE ENERGY (J) (includes potential energy)
+C****
+      DO J=1,JM
+        LKE(J)=0.
+        DO I=1,IMAXJ(J)
+          LKE(J)=LKE(J)+GML(I,J)+ZATMO(I,J)*MWL(I,J)*GRAV
+        END DO
+      END DO
+      RETURN
+      END SUBROUTINE conserv_LKE

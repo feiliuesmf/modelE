@@ -59,10 +59,23 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@var ENERGY energy diagnostics
       DOUBLE PRECISION, DIMENSION(NEHIST,HIST_DAYS) :: ENERGY
 
+!@var NPTS number of points at which standard conserv. diags are called
+      INTEGER, PARAMETER :: NPTS = 9
+!@param NQUANT Number of conserved quantities in conservation diags
+      INTEGER, PARAMETER :: NQUANT=7   ! 20?
 !@param KCON number of conservation diagnostics
-      INTEGER, PARAMETER :: KCON=42
+      INTEGER, PARAMETER :: KCON=54
 !@var CONSRV conservation diagnostics
       DOUBLE PRECISION, DIMENSION(JM,KCON) :: CONSRV
+!@var SCALE_CON scales for conservation diagnostics
+      DOUBLE PRECISION, DIMENSION(KCON) :: SCALE_CON
+!@var TITLE_CON titles for conservation diagnostics
+      CHARACTER*32, DIMENSION(KCON) :: TITLE_CON
+!@var NSUM_CON indices for summation of conservation diagnostics
+!@var IA_CON IDACC numbers for conservation diagnostics
+      INTEGER, DIMENSION(KCON) :: NSUM_CON, IA_CON
+!@var NOFM indices for CONSRV array
+      INTEGER, DIMENSION(NPTS+1,NQUANT) :: NOFM
 
 !@param KSPECA,NSPHER number of spectral diagnostics, and harmonics used
       INTEGER, PARAMETER :: KSPECA=20
