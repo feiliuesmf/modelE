@@ -19,7 +19,7 @@ c
      &                  n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,n_Isoprene,
      &                  n_AlkylNit,n_Alkenes,n_Paraffin,ntm_chem,
      &                  n_DMS, n_MSA, n_SO2,n_SO4,n_H2O2_s,
-     &                  oh_live,no3_live
+     &                  oh_live,no3_live,nChemistry,nStratwrite
 #ifdef Shindell_Strat_chem
      &                  ,n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,n_BrOx,
      &                  n_BrONO2,n_CFC
@@ -29,7 +29,6 @@ c
 #endif
       USE CONSTANT, only: radian,gasc,mair,mb2kg,pi
       USE TRACER_DIAG_COM, only : jls_N2O5sulf,tajls
-      USE TRACER_SOURCES, only: nChemistry,nStratwrite
       USE TRCHEM_Shindell_COM
 c
       IMPLICIT NONE
@@ -559,19 +558,19 @@ C
      &                  y(n_Isoprene,L)*0.12-2.5E-15*yAldehyde(I,J,L))*
      &                  yNO3(I,J,L)*dt2
          if(-changeAldehyde.gt.0.75*yAldehyde(I,J,L))changeAldehyde=
-     &   0.75*yAldehyde(I,J,L)
+     &   -0.75*yAldehyde(I,J,L)
 C
          changeAlkenes=(rr(32,L)*y(n_Isoprene,L)*0.45d0-rr(36,L)*
      &                y(n_Alkenes,L))*yNO3(I,J,L)*dt2+(rr(31,L)*
      &                y(n_Isoprene,L)-rr(35,L)*y(n_Alkenes,L))*
      &                y(nO3,L)*dt2
          if(-changeAlkenes.gt.0.75*y(n_Alkenes,L))changeAlkenes=
-     &   0.75*y(n_Alkenes,L)
+     &   -0.75*y(n_Alkenes,L)
 C
          changeIsoprene=-(rr(32,L)*yNO3(I,J,L)
      &                  +rr(31,L)*y(nO3,L))*y(n_Isoprene,L)*dt2
          if(-changeIsoprene.gt.0.75*y(n_Isoprene,L))changeIsoprene=
-     &   0.75*y(n_Isoprene,L)
+     &   -0.75*y(n_Isoprene,L)
 C
          changeHCHO=(rr(36,L)*y(n_Alkenes,L)+
      &              rr(32,L)*y(n_Isoprene,L)*0.03)*yNO3(I,J,L)*dt2
@@ -581,7 +580,7 @@ C
          changeAlkylNit=rr(32,L)*y(n_Isoprene,L)*
      &   yNO3(I,J,L)*dt2*0.9d0
          if(-changeAlkylNit.gt.0.75*y(n_AlkylNit,L))changeAlkylNit=
-     &   0.75*y(n_AlkylNit,L)
+     &   -0.75*y(n_AlkylNit,L)
 C
 c        Convert some changes to molecules/cm3/s:
          changeHNO3=gwprodHNO3+2*wprod_sulf  !always positive
