@@ -995,6 +995,10 @@ C**** Fill in maplet indices for sources and sinks
         aij1(:,:,k) = taijs(:,:,kx)
         aij2(:,:,k) = 1.
         scale(k) = scale_ijts(kx)
+#ifdef TRACERS_AEROSOLS_Koch
+       if (name(k).eq.'TAU'.or.name(k).eq.'SWRF'.or
+     *  .name(k).eq.'LWRF') ijtype(k)=2
+#endif
       end do
 
 #ifdef TRACERS_COSMO
