@@ -66,7 +66,7 @@ TOP_INDEX=top_index_72x46.ij
 Label and Namelist:
 E001q (E001 - Qflux version)
 R=00BG/B
-
+DTFIX=300
 &&PARAMETERS
 X_SDRAG=.00025,.000025
 C_SDRAG=0.

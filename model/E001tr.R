@@ -96,7 +96,7 @@ CH4_WETL=methane/gcm_data/CH4WETL+TUNDRA_4X5    ! Monthly
 Label and Namelist:
 E001tr (new modelE based on B402A, uses dry adiab. adjustment; tracers)
 R=00BG/B
-
+DTFIX=300
 &&PARAMETERS
 X_SDRAG=.00025,.000025
 C_SDRAG=0.

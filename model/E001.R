@@ -63,7 +63,7 @@ TOP_INDEX=top_index_72x46.ij
 Label and Namelist:
 E001 (new modelE based on B402A, uses dry adiab. adjustment)
 R=00BG/B
-
+DTFIX=300
 &&PARAMETERS
 X_SDRAG=.00025,.000025
 C_SDRAG=0.

@@ -63,7 +63,7 @@ TOP_INDEX=top_index_72x46.ij
 Label and Namelist:
 E001qd (new modelE based on B402A - Qflux + deep diffusion)
 R=00BG/B
-
+DTFIX=300
 &&PARAMETERS
 X_SDRAG=.00025,.000025
 C_SDRAG=0.

@@ -63,7 +63,7 @@ TOP_INDEX=top_index_72x46.ij
 Label and Namelist:
 E001M16 (strat.H2O - dry cnv - Sdrag->20mb, no GW drag)
 R=00BG/B
-
+DTFIX=180
 &&PARAMETERS
 X_SDRAG=.00025,.000025  ! used above P(P)_sdrag mb (and in top layer)
 C_SDRAG=.000025 ! constant SDRAG above PTOP=150mb
