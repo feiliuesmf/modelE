@@ -362,7 +362,7 @@ C****
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
 #endif
-      USE FLUXES, only : gtemp
+      USE FLUXES, only : gtemp,mlhc
       USE SEAICE_COM, only : rsi
       USE PBLCOM, only : tsavg
       USE LAKES
@@ -463,6 +463,7 @@ C**** Set GTEMP arrays for lakes
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *DXYP(J))
 #endif
+            MLHC(I,J)= SHW*MLDLK(I,J)*RHOW
           END IF
         END DO
       END DO
@@ -652,7 +653,7 @@ C****
       USE TRACER_DIAG_COM, only : taijn,tij_rvr
       USE FLUXES, only : trflowo,gtracer
 #endif
-      USE FLUXES, only : flowo,eflowo,gtemp
+      USE FLUXES, only : flowo,eflowo,gtemp,mlhc
       USE LAKES, only : kdirec,idpole,jdpole,rate,iflow,jflow
       USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake
 #ifdef TRACERS_WATER
@@ -878,6 +879,7 @@ C**** Set GTEMP array for lakes
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *DXYP(J))
 #endif
+            MLHC(I,J) = SHW*MLDLK(I,J)*RHOW
           END IF
         END DO
       END DO
@@ -1408,10 +1410,10 @@ C****
       USE SEAICE_COM, only : rsi,hsi,msi,snowi
       IMPLICIT NONE
       CHARACTER*2, INTENT(IN) :: STR
-      INTEGER, PARAMETER :: NDIAG=3
+      INTEGER, PARAMETER :: NDIAG=1
       INTEGER I,J,N
-      INTEGER, DIMENSION(NDIAG) :: IDIAG = (/ 8,53,62/),
-     *                             JDIAG = (/39,32,41/)
+      INTEGER, DIMENSION(NDIAG) :: IDIAG = (/24/),
+     *                             JDIAG = (/15/)
       REAL*8 HLK2,TLK2, TSIL(4)
 
       IF (.NOT.QCHECK) RETURN

@@ -297,8 +297,8 @@ cc        DT=SDAY    ! if called more frequently this should change
 #endif
 C**** Call simelt if (lake and v. small ice) or (q-flux ocean, some ice)
 C**** now include lat melt for lakes and any RSI < 1
-          IF ( (RSI(I,J).lt.1. .and. FLAKE(I,J)*RSI(I,J).gt.0)
-     *         .or. (KOCEAN.eq.1.and.POCEAN*RSI(I,J).gt.0) ) THEN
+          IF ( (RSI(I,J).lt.1. .and. (FLAKE(I,J).gt.0 .and. RSI(I,J).gt
+     *         .0)) .or. (KOCEAN.eq.1.and.POCEAN*RSI(I,J).gt.0) ) THEN
             JR=JREG(I,J)
             IF (POCEAN.gt.0) THEN
               ITYPE =ITOICE
