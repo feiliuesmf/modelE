@@ -607,7 +607,7 @@ C****
   285    DO KR=1,NDIUPT
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              DO INCH=1,NRAD
-               IH=MOD(JHOUR+INCH,24)
+               IH=1+MOD(JHOUR+INCH-1,24)
                ADIURN(IH,IDD_CL7,KR)=ADIURN(IH,IDD_CL7,KR)+TOTCLD(7)
                ADIURN(IH,IDD_CL6,KR)=ADIURN(IH,IDD_CL6,KR)+TOTCLD(6)
                ADIURN(IH,IDD_CL5,KR)=ADIURN(IH,IDD_CL5,KR)+TOTCLD(5)
@@ -751,7 +751,7 @@ C****
          DO KR=1,NDIUPT
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              DO INCH=1,NRAD
-               IH=MOD(JHOUR+INCH,24) 
+               IH=1+MOD(JHOUR+INCH-1,24) 
                ADIURN(IH,IDD_PALB,KR)=ADIURN(IH,IDD_PALB,KR)+
      *              (1.-SNFS(4,I,J)/S0)
                ADIURN(IH,IDD_GALB,KR)=ADIURN(IH,IDD_GALB,KR)+
