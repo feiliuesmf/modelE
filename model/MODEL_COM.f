@@ -349,7 +349,7 @@ C****
       CHARACTER*12 TSTR1(NTIMEMAX)
 !@var ITmin,ITmax minimal/maximal time in acc periods to be combined
       INTEGER, SAVE :: ITmax=-1, ITmin=-1 ! to protect against long runs
-      INTEGER it1,it0,idac1(12),nd1,iy1,iti1,ite1,it01,im0,jm0,lm0,ls10
+      INTEGER nd1,iy1,iti1,ite1,it01,im0,jm0,lm0,ls10
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output to end-of-month restart file

@@ -20,11 +20,11 @@
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
       IMPLICIT NONE
 
-      INTEGER I,J,L,K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,n,istart
+      INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
       INTEGER iu_VFLXO,iu_ACC,iu_RSF,iu_ODA
       INTEGER :: MDUM = 0
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
-      REAL*8 DTIME,PELSE,PDIAG,PSURF,PRAD,PCDNS,PDYN,TOTALT
+      REAL*8 DTIME,TOTALT
 
       CHARACTER aDATE*14
       CHARACTER*8 :: flg_go='___GO___'      ! green light
@@ -595,7 +595,7 @@ C****
       IMPLICIT NONE
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF unit numbers for input files
       INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF
-      INTEGER I,J,L,K,KLAST,KDISK0,ITYPE,IM1,IR,IREC,NOFF,ioerr
+      INTEGER I,J,L,K,ITYPE,IM1,NOFF,ioerr
 !@nlparam HOURI,DATEI,MONTHI,YEARI        start of model run
 !@nlparam HOURE,DATEE,MONTHE,YEARE,IHOURE   end of model run
 !@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
@@ -605,7 +605,6 @@ C****
 !@nlparam IRANDI  random number seed to perturb init.state (if>0)
      *             ISTART, IRANDI=0
       REAL*8 TIJL,CDM,TEMP,X
-      REAL*4 XX4
       INTEGER Itime1,Itime2,ItimeX,IhrX,iargc
 
 !@ egcm_init_max maximum initial vaule of egcm
@@ -1324,8 +1323,11 @@ C****
       USE DAGCOM, only : aj,j_h2och4
       IMPLICIT NONE
       REAL*8 DELTAP,PBAR,SPRESS,SMASS,LAM,xCH4
-      INTEGER i,j,l,iy,n
+      INTEGER i,j,l,iy
       LOGICAL, INTENT(IN) :: end_of_day
+#ifdef TRACERS_WATER
+      INTEGER n
+#endif
 
 C**** Tasks to be done at end of day and at each start or restart
 C****

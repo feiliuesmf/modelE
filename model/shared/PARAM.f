@@ -152,7 +152,6 @@
       character*1, intent(in) ::  attrib
       type (ParamStr), pointer :: PStr
       logical, intent(in) :: flag
-      integer n
       character*(MAX_NAME_LEN) name
 
       if ( len(name_in) > MAX_NAME_LEN ) then
@@ -720,7 +719,7 @@
       implicit none
       integer, intent(in) :: kunit
       logical, intent(in) :: ovrwrt
-      integer n, np
+      integer n
       type (ParamStr), save :: LParams(MAX_PARAMS)
       real*8, save :: LRdata(MAX_RPARAMS)
       integer, save :: LIdata(MAX_IPARAMS)
@@ -949,7 +948,7 @@
       end type ParamStr_comp01
       integer, intent(in) :: kunit
       logical, intent(in) :: ovrwrt
-      integer n, np
+      integer n
       type (ParamStr_comp01), save :: LParams(MAX_PARAMS)
       real*8, save :: LRdata(MAX_RPARAMS)
       integer, save :: LIdata(MAX_IPARAMS)

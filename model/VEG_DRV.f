@@ -334,7 +334,7 @@ c**** recompute ground hydrology data if necessary (new soils data)
 !      real*8 aalbveg0, sfv  !nyk
 !      integer northsouth,iv  !nyk
 !      real*8 alaic,vh,shtpr,alai  ! adf
-      real*8 alaic,shtpr
+      real*8 alaic
 
 c**** fr: root fraction in layer l  (1=fr(1)+fr(2)+...+fr(n))
       do l=1,ngm
@@ -451,7 +451,7 @@ c shc(0,2) is the heat capacity of the canopy
       integer, intent(in) :: year
       logical, intent(in) :: reset_veg
 
-      real*8 wt,crop(im,jm),crops         ! temporary vars
+      real*8 wt,crops         ! temporary vars ! ,crop(im,jm)
 
       integer :: year1,year2,year_old=-1, iu, i,j,k
       real*8 vdata0(im,jm,11),crop1(im,jm),crop2(im,jm)  ! to limit i/o

@@ -14,7 +14,7 @@
      $     ,conserv_htg
 
       !real*8 cosday,sinday
-      real*8 cosdaym1, sindaym1                !nyk TEMPORARY for jday-1
+      !real*8 cosdaym1, sindaym1                !nyk TEMPORARY for jday-1
       real*8 adlmass          ! accumulator for dleafmass in daily_earth
 
 !@var gdeep keeps average (2:n) values of temperature, water and ice
@@ -138,8 +138,7 @@ c****
       real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws,rcdhws
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat,wtr2av    !,dhgs
      *     ,wfc1,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij,psoil,pearth
-     *     ,warmer,brun0,berun0,bts,bevhdt,brunu,berunu
-     *     ,bshdt,btrhdt,timez,spring,zs1co,q1
+     *     ,warmer,timez,spring,zs1co,q1
 
 !@var rhosrf0 estimated surface air density
       real*8 rhosrf0
@@ -932,11 +931,7 @@ c**** modifications needed for split of bare soils into 2 types
       logical :: qcon(npts)
       integer i, j, ibv
       real*8 wfc1
-      real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
-      real*8 almass0, almassre, almassim  !nyk
-      real*8 slim,slre,svh,z
-      real*8 snm,snf  ! temporary sums (adf)
-      real*8 cwc_sum
+      real*8 pearth
       logical ghy_data_missing
       character conpt(npts)*10
 #ifdef TRACERS_WATER
@@ -1318,7 +1313,7 @@ c****
       integer i0,j0
       real*8 wfcap
       integer k,ibv,i
-      real*8 alaic,shtpr
+      real*8 shtpr
 !----------------------------------------------------------------------!
       real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
 
@@ -1605,7 +1600,7 @@ c**** check for reasonable temperatures over earth
 
       implicit none
       real*8 tsavg,wfc1
-      real*8 aleafmass, aleafmasslast, aalbveg0, fv, sfv  !nyk veg
+      real*8 aleafmass, aalbveg0, fv, sfv  !nyk veg ! , aleafmasslast
       integer i,j,itype
       integer northsouth,iv  !nyk
       logical, intent(in) :: end_of_day
@@ -1846,7 +1841,7 @@ c****
       implicit none
 !@var heatg zonal ground heat (J/m^2)
       real*8, dimension(jm) :: heatg
-      integer i,j,n
+      integer i,j
       real*8 hij,fb,fv
 
       do j=1,jm
@@ -1887,8 +1882,8 @@ ccc of the 'surface' to check water conservation
       integer flag
       real*8 total_water(im,jm), error_water
       real*8, save :: old_total_water(im,jm)
-      real*8 total_energy(im,jm), error_energy
-      real*8, save :: old_total_energy(im,jm)
+!      real*8 total_energy(im,jm), error_energy
+!      real*8, save :: old_total_energy(im,jm)
       integer i,j,n
       real*8 fb,fv
 ccc enrgy check not implemented yet ...

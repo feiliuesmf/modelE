@@ -23,7 +23,6 @@
       subroutine skip_junk( str )
       implicit none
       character*(*) str
-      integer n
 
       do while ( len_trim( str ) > 0 .and. scan( str, ' =,' ) == 1 )
         str = str(2:)
@@ -102,12 +101,10 @@
       implicit none
       integer, parameter :: MAXDIM=64
       integer, intent(in) :: kunit
-      character buf(256)
       character*256 bufs
-      character*256 ttt
       character*32 name
       character*1 type
-      integer np, i
+      integer np
       integer ivars(MAXDIM)
       real*8 rvars(MAXDIM)
       character*64 cvars(MAXDIM)

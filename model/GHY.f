@@ -115,15 +115,6 @@ c**** Added decks parameter cond_scheme  5/1/03 nyk
 c**** public functions:
       public hl0, set_snow, advnc, evap_limits, xklh0
 
-ccc   rundeck parameters  5/1/03 nyk
-!@dbparam cond_scheme selects vegetation conductance scheme:
-!@+       = 1     default, original conductance scheme.
-!@+       = 2     conductance scheme of Andrew Friend
-!veg      integer, public :: cond_scheme = 1
-!@dbparam crops_yr obs.year of crops (if 0: time var, -1: default)
-!veg      INTEGER, public :: crops_yr = -1
-
-
 ccc   physical constants and global model parameters
 ccc   converting constants from 1/kg to 1/m^3
 !@var shw heat capacity of water (J/m^3 C)
@@ -214,7 +205,7 @@ ccc   tsn1 is private
 
       real*8 betat,betad
       real*8 gpp,  fd,fw,fm,dts
-      real*8, public :: cnc
+!xxx      real*8, public :: cnc
 
 !@var theta fraction of water in the soil ( 1 = 100% )
 !@var f water flux between the layers ( > 0 is up ) (m/s)
@@ -251,9 +242,6 @@ ccc   put here some data needed for print-out during the crash
       end type debug_data_str
 
       type (debug_data_str) debug_data
-
-ccc   derivatives of surface fluxes with respect to temperature
-      real*8 epb_dt, evaps_dt
 
 ccc   evaporation limiting data which one needs to pass the pbl
       real*8, public :: evap_max_sat, evap_max_nsat, fr_sat
@@ -334,8 +322,8 @@ C***
      &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu !veg alaie,
      &     ,ashg,atrg,betad,betat,ch,gpp,d,devapbs_dt,devapvs_dt
      &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb  ! dt dlm
-     &     ,epb_dt,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
-     &     ,evapbs,evapdl,evaps_dt,evapvd,evapvs,evapvw,f !evapor,
+     &     ,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
+     &     ,evapbs,evapdl,evapvd,evapvs,evapvw,f !evapor,
      &     ,fb,fc,fch,fd,fh,fhsng,fhsng_scale,fice,flmlt,flmlt_scale,fm
      &     ,fr,fr_sat,fr_snow,fv,fw,h,hsn,ht !hlm
      &     ,htdrips,htdripw,htpr,htprs,pr,pres,prs,q,qk,qm1,qs
@@ -1049,7 +1037,6 @@ c****      and between canopy and vegetated soil.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
 c**** bare soil fluxes
-      integer ibv, k
       real*8 thrm_can, thrm_soil(2)
       thrm_can = stbo * (tp(0,2)+tfrz)**4
       thrm_soil(1:2) = stbo * (tp(1,1:2)+tfrz)**4
@@ -1188,15 +1175,14 @@ c**** snowdl - the lower bound on the snow depth at end of time step
 c**** trunc - fix for truncation on ibm mainframes
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
-      real*8 dflux,drnf,flmt,trunc
-      integer k, ibv, kk
+      real*8 dflux,drnf,trunc
+      integer k, ibv
       real*8 wn
       trunc=1d-6
       trunc=1d-12
       trunc=0.d0 ! works better since at some places thetm=thets=0
 ccc   prevent over/undersaturation of layers 2-n
       do ibv=i_bare,i_vege
-        kk=2-ibv
         do k=n,2,-1
           wn = w(k,ibv) + ( f(k+1,ibv) - f(k,ibv)
      &         - rnff(k,ibv) - fd*(1.-fr_snow(2)*fm)*evapdl(k,ibv) )*dts
@@ -1589,7 +1575,7 @@ c**** soils28   common block     9/25/90
       use vegetation, only: update_veg_locals
 
       real*8 dtm,tb0,tc0,dtr
-      integer ibv,k,limit,nit
+      integer limit,nit
       real*8 dum1, dum2
       limit=300   ! 200 increase to avoid a few more stops
       nit=0
@@ -1736,8 +1722,11 @@ c**** soils28   common block     9/25/90
 c**** the following lines were originally called before retp,
 c**** reth, and hydra.
       real*8 qsats
-      real*8 cpfac,dedifs,dqdt,el0,epen,h0,tot_w1
-      integer ibv,k
+      real*8 cpfac,dedifs,dqdt,el0,epen,h0
+      integer k
+#ifdef TRACERS_WATER
+      real*8 tot_w1
+#endif
 
 ccc   main fluxes which should conserve water/energy
       atrg = atrg + ( thrm_tot(1)*fb + thrm_tot(2)*fv )*dts
