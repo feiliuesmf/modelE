@@ -6214,7 +6214,7 @@ C**** three 3D sources (aircraft, volcanos and biomass) read in from files
       call apply_tracer_3Dsource(1,n) ! volcanos
       tr3Dsource(:,J_0:J_1,:,2,n) = SO2_src_3d(:,J_0:J_1,:,2)
       if (imAER.eq.0) call apply_tracer_3Dsource(2,n) ! aircraft
-      tr3Dsource(:,J_0:J_1,1:lmAER,3,n) = SO2_biosrc_3D(:,J_0:J_1,:,jmon)
+      tr3Dsource(:,J_0:J_1,1:lmAER,3,n)=SO2_biosrc_3D(:,J_0:J_1,:,jmon)
      *     *0.975d0
       tr3Dsource(:,J_0:J_1,lmAER+1:lm,3,n) = 0.
       call apply_tracer_3Dsource(3,n) ! biomass
@@ -6223,7 +6223,7 @@ C**** three 3D sources (aircraft, volcanos and biomass) read in from files
 C**** three 3D sources ( volcanos and biomass) read in from files
       tr3Dsource(:,J_0:J_1,:,3,n) = SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
       call apply_tracer_3Dsource(3,n) ! volcanos
-      tr3Dsource(:,J_0:J_1,1:lmAER,4,n) = SO2_biosrc_3D(:,J_0:J_1,:,jmon)
+      tr3Dsource(:,J_0:J_1,1:lmAER,4,n)=SO2_biosrc_3D(:,J_0:J_1,:,jmon)
      *     *0.0375d0
       tr3Dsource(:,J_0:J_1,lmAER+1:lm,4,n) = 0.
       call apply_tracer_3Dsource(4,n) ! biomass
