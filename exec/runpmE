@@ -11,7 +11,8 @@ $modelerc = (getpwuid($>))[7]."/.modelErc";
 if ( -f $modelerc ) {
   open MODELERC, $modelerc or die "can't open $modelerc";
   while(<MODELERC>) {
-    $CMRUNDIR = $1 if /^ *CMRUNDIR *= *(\S+)/;
+    last if /abc/;
+    ($CMRUNDIR = $1) if /^ *CMRUNDIR *= *(\S+)/;
     $EXECDIR = $1 if /^ *EXECDIR *= *(\S+)/;
   }
   close MODELERC;
@@ -86,7 +87,7 @@ close IX;
 print "rcode = $rcode\n";
 `"$runID"uln; rm -f lock`;
 if ( $rcode == 13 ) {
-  exec "$EXECDIR/runE $runID"; 
+  exec "$EXECDIR/runE $runID $MP_SET_NUMTHREADS"; 
 } else {
   `echo "$runID: fixup failed" >> nohup.out`;
   `cat $runID.PRT.dt$dt.$date nohup.out | tail -100 | Mail -s $runID $owner` if $owner;
