@@ -119,7 +119,7 @@ C**** new arrays must be set to model arrays in driver (after LSCOND)
       REAL*8, DIMENSION(LM,NTM) :: TM
       REAL*8, DIMENSION(nmom,lm,ntm) :: TMOM
       COMMON/CLD_TRCCOM/TM,TMOM
-C$OMP  THREADPRIVATE (/CLD_TRCCOM/)
+!$OMP  THREADPRIVATE (/CLD_TRCCOM/)
 #ifdef TRACERS_WATER
 !@var TRWML Vertical profile of liquid water tracers (kg)
 !@var TRSVWML New liquid water tracers from m.c. (kg)
@@ -139,7 +139,7 @@ C$OMP  THREADPRIVATE (/CLD_TRCCOM/)
       REAL*8 WMXTR, b_beta_DT, precip_mm
       COMMON/CLD_WTRTRCCOM/TRWML, TRSVWML,TRPRSS,TRPRMC
      *  ,FQCONDT, FWASHT, FPRCPT, FQEVPT,WMXTR, b_beta_DT, precip_mm
-C$OMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
+!$OMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
 #endif
 #endif
 
@@ -186,7 +186,7 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
      *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,DEBUG
      *  ,LMCMAX,LMCMIN,KMAX,DCL     ! integers last (alignment)
-C$OMP  THREADPRIVATE (/CLDPRV/)
+!$OMP  THREADPRIVATE (/CLDPRV/)
 
       CONTAINS
 

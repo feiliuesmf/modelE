@@ -91,7 +91,7 @@ C**** Initialise diagnostics
       FQU=0.  ; FQV=0.
 
 C**** Fill in values at the poles
-C$OMP  PARALLEL DO PRIVATE(I,L,N)
+!$OMP  PARALLEL DO PRIVATE(I,L,N)
       DO L=1,LM
          DO I=2,IM
            RM(I,1 ,L) =   RM(1,1 ,L)
@@ -102,11 +102,11 @@ C$OMP  PARALLEL DO PRIVATE(I,L,N)
          enddo
          enddo
       enddo
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C****
 C**** convert from concentration to mass units
 C****
-C$OMP  PARALLEL DO PRIVATE(I,J,L)
+!$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
       DO J=1,JM
       DO I=1,IM
@@ -115,29 +115,29 @@ C$OMP  PARALLEL DO PRIVATE(I,J,L)
       enddo
       enddo
       enddo
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C****
 C**** Advect the tracer using the quadratic upstream scheme
 C****
 CC    mflx(:,:,:)=pu(:,:,:)*(.5*dt)
-C$OMP  PARALLEL DO PRIVATE(L)
+!$OMP  PARALLEL DO PRIVATE(L)
        DO L=1,LM
           mflx(:,:,l)=pu(:,:,l)*(.5*dt)
        ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
       CALL AADVTX (RM,RMOM,MA,MFLX,QLIMIT,FQU)
 CC    mflx(:,1:jm-1,:)=pv(:,2:jm,:)*dt
 CC    mflx(:,jm,:)=0.
-C$OMP  PARALLEL DO PRIVATE(L)
+!$OMP  PARALLEL DO PRIVATE(L)
        DO L=1,LM
           mflx(:,1:jm-1,l)=pv(:,2:jm,l)*dt
           mflx(:,jm,l)=0.
        ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
       CALL AADVTY (RM,RMOM,MA,MFLX,QLIMIT,FQV)
 CC    mflx(:,:,1:lm-1)=sd(:,:,1:lm-1)*(-dt)
 CC    mflx(:,:,lm)=0.
-C$OMP  PARALLEL DO PRIVATE(L)
+!$OMP  PARALLEL DO PRIVATE(L)
       DO L=1,LM
          IF(L.NE.LM)  THEN
             MFLX(:,:,L)=SD(:,:,L)*(-DT)
@@ -145,19 +145,19 @@ C$OMP  PARALLEL DO PRIVATE(L)
             MFLX(:,:,L)=0.
          END IF
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
       CALL AADVTZ (RM,RMOM,MA,MFLX,QLIMIT)
 CC    mflx(:,:,:)=pu(:,:,:)*(.5*dt)
-C$OMP  PARALLEL DO PRIVATE(L)
+!$OMP  PARALLEL DO PRIVATE(L)
        DO L=1,LM
           mflx(:,:,l)=pu(:,:,l)*(.5*dt)
        ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
       CALL AADVTX (RM,RMOM,MA,MFLX,QLIMIT,FQU)
 C****
 C**** convert from mass to concentration units
 C****
-C$OMP  PARALLEL DO PRIVATE(I,J,L,BYMA)
+!$OMP  PARALLEL DO PRIVATE(I,J,L,BYMA)
       DO L=1,LM
       DO J=1,JM
       DO I=1,IM
@@ -167,7 +167,7 @@ C$OMP  PARALLEL DO PRIVATE(I,J,L,BYMA)
       enddo
       enddo
       enddo
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
       RETURN
       END
 
@@ -200,9 +200,9 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       integer :: i,j,l,ierr,nerr,ICKERR
 c**** loop over layers and latitudes
       ICKERR=0
-C$OMP  PARALLEL DO PRIVATE(J,L,AM,F_I,FMOM_I,IERR,NERR)
-C$OMP* SHARED(IM,QLIMIT,XSTRIDE)
-C$OMP* REDUCTION(+:ICKERR)
+!$OMP  PARALLEL DO PRIVATE(J,L,AM,F_I,FMOM_I,IERR,NERR)
+!$OMP* SHARED(IM,QLIMIT,XSTRIDE)
+!$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
       do j=2,jm-1
       am(:) = mu(:,j,l)
@@ -226,7 +226,7 @@ CCC   fqu(:,j)  = fqu(:,j) + f_i(:)
       hfqu(:,j,l)  = f_i(:)
       enddo ! j
       enddo ! l
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 c
 c     now sum into fqu
 c
@@ -273,10 +273,10 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
      &     m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
 c**** loop over layers
       ICKERR=0
-C$OMP  PARALLEL DO PRIVATE(I,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZZM_SP,
-C$OMP*             F_J,FMOM_J,RZM_NP,RZZM_NP,BM,IERR,NERR)
-C$OMP* SHARED(JM,QLIMIT,YSTRIDE)
-C$OMP* REDUCTION(+:ICKERR)
+!$OMP  PARALLEL DO PRIVATE(I,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZZM_SP,
+!$OMP*             F_J,FMOM_J,RZM_NP,RZZM_NP,BM,IERR,NERR)
+!$OMP* SHARED(JM,QLIMIT,YSTRIDE)
+!$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
 c**** scale polar boxes to their full extent
       mass(:,1:jm:jm-1,l)=mass(:,1:jm:jm-1,l)*im
@@ -332,7 +332,7 @@ c**** average and unscale polar boxes
       rmom(mz ,:,jm,l) = (rzm_np  + sum(rmom(mz ,:,jm,l)-rzm_np ))*byim
       rmom(mzz,:,jm,l) = (rzzm_np + sum(rmom(mzz,:,jm,l)-rzzm_np))*byim
       enddo ! end loop over levels
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 c
 c     sum into fqv
 c
@@ -378,9 +378,9 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       integer :: i,j,l,ierr,nerr,ICKERR
 c**** loop over latitudes and longitudes
       ICKERR=0
-C$OMP  PARALLEL DO PRIVATE(I,J,CM,F_L,FMOM_L,IERR,NERR)
-C$OMP* SHARED(LM,QLIMIT,ZSTRIDE)
-C$OMP* REDUCTION(+:ICKERR)
+!$OMP  PARALLEL DO PRIVATE(I,J,CM,F_L,FMOM_L,IERR,NERR)
+!$OMP* SHARED(LM,QLIMIT,ZSTRIDE)
+!$OMP* REDUCTION(+:ICKERR)
       do j=1,jm
       do i=1,im
       cm(:) = mw(i,j,:)
@@ -400,7 +400,7 @@ ccc       call stop_model('Error in qlimit: abs(c) > 1',11)
       end if
       enddo ! i
       enddo ! j
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
       IF(ICKERR.GT.0) call stop_model('Stopped in aadvtz',11)
       return

@@ -426,17 +426,17 @@ cc                trmom(:,i,j,l,n)=trmomij(:,l,n)
       ENDDO
 
 C**** Save additional changes in KE for addition as heat later
-C$OMP  PARALLEL DO PRIVATE (L,I,J)
+!$OMP  PARALLEL DO PRIVATE (L,I,J)
       DO L=1,LM
       DO J=2,JM
       DO I=1,IM
         DKE(I,J,L)=DKE(I,J,L)+0.5*(U_3d(I,J,L)*U_3d(I,J,L)
      *       +V_3d(I,J,L)*V_3d(I,J,L)-U_3d_old(I,J,L)*U_3d_old(I,J,L)
-     *       -V_3d_old(I,J,L)*V_3d_old(I,J,L)) 
+     *       -V_3d_old(I,J,L)*V_3d_old(I,J,L))
       END DO
       END DO
       END DO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
       return
       end subroutine atm_diffus

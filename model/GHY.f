@@ -254,7 +254,7 @@ ccc   i.e. they are not multiplied by any fr_...
       real*8 dripw(2), htdripw(2), drips(2), htdrips(2)
 
 !@var evap_tot total evap. (weighted with fr_snow,fm)(bare/veg)(m/s)
-!@var snsh_tot total sens. heat (weighted with fr_snow,fm)(bare/veg)(m/s)
+!@var snsh_tot total sens. heat(weighted with fr_snow,fm)(bare/veg)(m/s)
 !@var thrm_tot total T^4 heat (weighted with fr_snow,fm)(bare/veg)(m/s)
       real*8 evap_tot(2), snsh_tot(2), thrm_tot(2)
 
@@ -305,7 +305,7 @@ cddd     &     tbcs
 c     not sure if it works with derived type. if not - comment the
 c     next line out (debug_data used only for debug output)
 c    &     ,debug_data           ! needs to go to compile on COMPAQ
-C$OMP  THREADPRIVATE (/GHYTPC/)
+!$OMP  THREADPRIVATE (/GHYTPC/)
 C***
 C***
 
@@ -1165,7 +1165,7 @@ ccc   real*8, save :: xsha(ng,2),xsh(ng,2)
       real*8  :: ba,hcwt(imt-1),hcwta,hcwtb,hcwti,hcwtw
       real*8  :: xsha(ng,2),xsh(ng,2)
       COMMON /XKLHSAV/ BA, HCWTW, HCWTI, HCWTB, XSHA, XSH
-C$OMP  THREADPRIVATE (/XKLHSAV/)
+!$OMP  THREADPRIVATE (/XKLHSAV/)
       integer i, j, ibv, l
 c the alam's are the heat conductivities
       real*8, parameter :: alamw = .573345d0
@@ -1579,8 +1579,8 @@ ccc   the rest of the fluxes (mostly for diagnostics)
       dedifs=f(2,2)*tp(2,2)
       if(f(2,2).lt.0.d0) dedifs=f(2,2)*tp(1,2)
       aedifs=aedifs-dts*shw*dedifs*fv          ! not used ?
-      af0dt=af0dt-dts*(fb*fh(1,1)+fv*fh(0,2)+htpr)  ! why E0 excludes htpr?
-      af1dt=af1dt-dts*(fb*fh(2,1)+fv*fh(2,2))
+      af0dt=af0dt-dts*(fb*fh(1,1)+fv*fh(0,2)+htpr) ! E0 excludes htpr ??
+      af1dt=af1dt-dts*(fb*fh(2,1)+fv*fh(2,2))                          
 
       return
       entry accmf
@@ -1634,14 +1634,14 @@ c zero out accumulations
       abeta=0.d0  ! not accumulated : do we need it?
       acna=0.d0   ! not accumulated : do we need it?
       acnc=0.d0   ! not accumulated : do we need it?
-      aevapw=0.d0               ! evap from wet canopy
-      aevapd=0.d0               ! evap from dry canopy
-      aevapb=0.d0               ! evap from bare soil (no snow)
-      aepc=0.d0                 ! potential evap from canopy
-      aepb=0.d0                 ! potential evap from bare soil (no snow)
-      aedifs=0.d0               ! heat transport by water
-      af0dt=0.d0                ! heat from ground - htpr
-      af1dt=0.d0                ! heat from 2-nd soil layer
+      aevapw=0.d0              ! evap from wet canopy
+      aevapd=0.d0              ! evap from dry canopy
+      aevapb=0.d0              ! evap from bare soil (no snow)
+      aepc=0.d0                ! potential evap from canopy
+      aepb=0.d0                ! potential evap from bare soil (no snow)
+      aedifs=0.d0              ! heat transport by water
+      af0dt=0.d0               ! heat from ground - htpr
+      af1dt=0.d0               ! heat from 2-nd soil layer
       ! aepp=0.d0 ! not accumulated : computed in accmf
 
       return
@@ -1956,7 +1956,7 @@ ccc  local vars:
       srhtsn(1)=srht
       srhtsn(2)=fm*srht
       trhtsn(1)=trht
-      trhtsn(2)=fm*trht+stbo * (tp(0,2)+tfrz)**4 *(1.d0-fm)! i.e. thrm_can
+      trhtsn(2)=fm*trht+stbo*(tp(0,2)+tfrz)**4 *(1.d0-fm)! i.e. thrm_can
 
 ccc!!! xkthsn cthsn are actually not used at the moment - should include
 c!!! should pass ground properties to snow_adv
@@ -2267,7 +2267,7 @@ ccc now we apply sinks due to runoff and evaporation
       real*8 total_water(2), error_water
       real*8 old_total_water(2), old_fr_snow(2) ! save
       COMMON /check_water_tp/ old_total_water, old_fr_snow
-C$OMP  THREADPRIVATE (/check_water_tp/)
+!$OMP  THREADPRIVATE (/check_water_tp/)
       integer k, ibv
 
       total_water(1) = 0.
@@ -2312,7 +2312,7 @@ C$OMP  THREADPRIVATE (/check_water_tp/)
       real*8 total_energy(2), error_energy
       real*8 old_total_energy(2), old_fr_snow(2) !save
       COMMON /check_energy_tp/ old_total_energy, old_fr_snow
-C$OMP  THREADPRIVATE (/check_energy_tp/)
+!$OMP  THREADPRIVATE (/check_energy_tp/)
       integer k, ibv
 
       total_energy(1) = 0.

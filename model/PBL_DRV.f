@@ -22,7 +22,7 @@ c     input data:
      *     ,tr_evap_max
 #endif
 
-C$OMP  THREADPRIVATE (/pbl_loc/)
+!$OMP  THREADPRIVATE (/pbl_loc/)
 
 #ifdef TRACERS_ON
 C**** Tracer input/output common block for PBL
@@ -90,7 +90,7 @@ c
 c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
       common/pbluvtq/upbl,vpbl,tpbl,qpbl
-C$OMP  THREADPRIVATE (/pbluvtq/)
+!$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
 
 C        ocean and ocean ice are treated as rough surfaces
@@ -315,7 +315,7 @@ C**** ignore ocean currents for initialisation.
 c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
       common/pbluvtq/upbl,vpbl,tpbl,qpbl
-C$OMP  THREADPRIVATE (/pbluvtq/)
+!$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
 
 C things to be done regardless of inipbl
@@ -417,7 +417,7 @@ c ******************************************************************
 
             qtop=q(i,j,1)
             ttop=t(i,j,1)*(1.+qtop*deltx)*psk
-            
+
             zgrnd=.1d0 ! formal initialization
             if (itype.gt.2) zgrnd=30./(10.**roughl(i,j))
 

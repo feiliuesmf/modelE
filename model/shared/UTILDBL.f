@@ -452,7 +452,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       LOGICAL :: QCHECK3 = .FALSE.
       INTEGER I,J,L !@var I,J,L loop variables
 
-C$OMP PARALLEL DO PRIVATE (L,J,I) SHARED (QCHECK3)
+!$OMP PARALLEL DO PRIVATE (L,J,I) SHARED (QCHECK3)
       DO L=1,LN
       DO J=1,JN
       DO I=1,IN
@@ -464,7 +464,7 @@ C$OMP PARALLEL DO PRIVATE (L,J,I) SHARED (QCHECK3)
       END DO
       END DO
       END DO
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
       CALL SYS_FLUSH(6)
       IF (QCHECK3) call stop_model('CHECK3',255)
       RETURN
@@ -513,7 +513,7 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
         write (6,*) " Error in PARAM: Can't use sync_param."
         write (6,*) " Will use default dump_core = ", dump_core
       endif
-      
+
       write (6,'(//2(" ",132("*")/))')
       write (6,*) ' Program terminated due to the following reason:'
       write (6,*) ' >>  ', message, '  <<'
@@ -533,7 +533,7 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
       else
         call exit_rc ( retcode )
       endif
-      
+
  10   continue
 c**** something is terribly wrong, writing to stderr instead ...
       write( 0, * ) "Can't write to the error_message file"

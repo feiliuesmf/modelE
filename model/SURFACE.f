@@ -56,7 +56,7 @@ C**** Interface to PBL
       USE LAKES, only : minmld
       USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe,sss
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
-     *     ,uosurf,vosurf,uisurf,visurf 
+     *     ,uosurf,vosurf,uisurf,visurf
 #ifdef TRACERS_ON
      *     ,trsrfflx,trsource
 #ifdef TRACERS_WATER
@@ -141,25 +141,25 @@ C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
-C$OMP   PARALLEL DO PRIVATE (ACE2, BETA,BETAUP,   CM,CH,CQ,
-C$OMP*  CDTERM,CDENOM, DGS,DSHDTG,DQGDTG,DEVDTG,DTRDTG,
-C$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DHGS,DQGS,DSNDTG,DEVDQS,
-C$OMP*  DHS,DQS,DT2,DTS, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0,
-C$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HCG1,HCG2,HSDEN,HSCON,
-C$OMP*  HSMUL,HTLIM,I,ITYPE,IDTYPE,IM1, J,K,
-C$OMP*  KR, MSUM,MA1,MSI1, PS,P1K,PLAND,PWATER,
-C$OMP*  PLICE,PIJ,POICE,POCEAN,PGK,PKDN,PTYPE,PSK, Q1,QSDEN,
-C$OMP*  QSCON,QSMUL, RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT,
-C$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TGDEN,TS,
-C$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L
+!$OMP   PARALLEL DO PRIVATE (ACE2, BETA,BETAUP,   CM,CH,CQ,
+!$OMP*  CDTERM,CDENOM, DGS,DSHDTG,DQGDTG,DEVDTG,DTRDTG,
+!$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DHGS,DQGS,DSNDTG,DEVDQS,
+!$OMP*  DHS,DQS,DT2,DTS, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0,
+!$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HCG1,HCG2,HSDEN,HSCON,
+!$OMP*  HSMUL,HTLIM,I,ITYPE,IDTYPE,IM1, J,K,
+!$OMP*  KR, MSUM,MA1,MSI1, PS,P1K,PLAND,PWATER,
+!$OMP*  PLICE,PIJ,POICE,POCEAN,PGK,PKDN,PTYPE,PSK, Q1,QSDEN,
+!$OMP*  QSCON,QSMUL, RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT,
+!$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TGDEN,TS,
+!$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L
 #ifdef TRACERS_ON
-C$OMP*  ,n,nx,nsrc,rhosrf0,totflux
+!$OMP*  ,n,nx,nsrc,rhosrf0,totflux
 #ifdef TRACERS_WATER
-C$OMP*  ,tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1
+!$OMP*  ,tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1
 #endif
 #endif
-C$OMP*  )
-C$OMP*  SCHEDULE(DYNAMIC,2)
+!$OMP*  )
+!$OMP*  SCHEDULE(DYNAMIC,2)
 C
       DO J=1,JM
       HEMI=1.
@@ -258,7 +258,7 @@ C**** limit on tracer evporation from lake
 C**** Convert UOSURF,VOSURF from C grid to A grid
 C**** Note that uosurf,vosurf start with j=1, (not j=2 as in atm winds)
           if (pole) then
-            uocean = 0. ; vocean = 0. 
+            uocean = 0. ; vocean = 0.
             do k=1,kmaxj(j)
               uocean = uocean + rapj(k,j)*(uosurf(idij(k,i,j),idjj(k,j)
      *             -1)*cosip(k)-hemi*vosurf(idij(k,i,j),idjj(k,j)-1)
@@ -269,7 +269,7 @@ C**** Note that uosurf,vosurf start with j=1, (not j=2 as in atm winds)
             end do
           else
             uocean = 0.5*(uosurf(i,j)+uosurf(im1,j))
-            vocean = 0.5*(vosurf(i,j)+vosurf(i,j-1))  
+            vocean = 0.5*(vosurf(i,j)+vosurf(i,j-1))
           end if
         else
           uocean=0. ; vocean=0.
@@ -298,7 +298,7 @@ C****
 C**** Convert UISURF,VISURF from C grid to A grid
 C**** Note that uisurf,visurf start with j=1, (not j=2 as in atm winds)
           if (pole) then
-            uocean = 0. ; vocean = 0. 
+            uocean = 0. ; vocean = 0.
             do k=1,kmaxj(j)
               uocean = uocean + rapj(k,j)*(uisurf(idij(k,i,j),idjj(k,j)
      *             -1)*cosip(k)-hemi*visurf(idij(k,i,j),idjj(k,j)-1)
@@ -309,7 +309,7 @@ C**** Note that uisurf,visurf start with j=1, (not j=2 as in atm winds)
             end do
           else
             uocean = 0.5*(uisurf(i,j)+uisurf(im1,j))
-            vocean = 0.5*(visurf(i,j)+visurf(i,j-1))  
+            vocean = 0.5*(visurf(i,j)+visurf(i,j-1))
           end if
         else
           uocean = 0. ; vocean =0.
@@ -764,9 +764,9 @@ C****
       END DO   ! end of itype loop
       IM1=I
       END DO   ! end of I loop
-      
+
       END DO   ! end of J loop
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
       DO J=1,JM
       DO I=1,IMAXJ(J)
@@ -791,8 +791,8 @@ C****
 C****
 C**** UPDATE FIRST LAYER QUANTITIES
 C****
-C$OMP  PARALLEL DO PRIVATE (I,J,FTEVAP,FQEVAP,P1K)
-C$OMP*          SCHEDULE(DYNAMIC,2)
+!$OMP  PARALLEL DO PRIVATE (I,J,FTEVAP,FQEVAP,P1K)
+!$OMP*          SCHEDULE(DYNAMIC,2)
       DO J=1,JM
       DO I=1,IMAXJ(J)
         FTEVAP=0
@@ -818,7 +818,7 @@ C**** Diurnal cycle of temperature diagnostics
         if(tsavg(i,j).lt.tdiurn(i,j,9)) tdiurn(i,j,9)=tsavg(i,j)
       END DO
       END DO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 #ifdef TRACERS_ON
 C****
 C**** Apply tracer surface sources and sinks

@@ -49,7 +49,7 @@ c     VX(:,:,:)  = V(:,:,:)
 c     VT(:,:,:)  = V(:,:,:)
 !     copy z-moment of temperature into contiguous memory
 c     tz(:,:,:) = tmom(mz,:,:,:)
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          UX(:,:,L)  = U(:,:,L)
          UT(:,:,L)  = U(:,:,L)
@@ -57,7 +57,7 @@ C$OMP  PARALLEL DO PRIVATE (L)
          VT(:,:,L)  = V(:,:,L)
          TZ(:,:,L)  = TMOM(MZ,:,:,L)
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
       PA(:,:) = P(:,:)
       PB(:,:) = P(:,:)
@@ -110,41 +110,41 @@ C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
          MODDA=MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2)  ! strat
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
 C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
         PUA(:,:,L)=PUA(:,:,L)+PU(:,:,L)
         PVA(:,:,L)=PVA(:,:,L)+PV(:,:,L)
         IF (L.LE.LM-1) SDA(:,:,L)=SDA(:,:,L)+SD(:,:,L)
       END DO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C**** ADVECT Q AND T
 CCC   TT(:,:,:) = T(:,:,:)
 CCC   TZT(:,:,:)= TZ(:,:,:)
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          TT(:,:,L)  = T(:,:,L)
          TZT(:,:,L) = TZ(:,:,L)
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
       call calc_amp(pc,ma)
       CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
 !     save z-moment of temperature in contiguous memory for later
 CCC   tz(:,:,:) = tmom(mz,:,:,:)
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          TZ(:,:,L) = TMOM(MZ,:,:,L)
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
       CALL VDIFF (P,U,V,UT,VT,T,DTLF)          ! strat
       PC(:,:)    = .5*(P(:,:)+PC(:,:))
 CCC   TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
 CCC   TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          TT(:,:,L)  = .5*(T(:,:,L)+TT(:,:,L))
          TZT(:,:,L) = .5*(TZ(:,:,L)+TZT(:,:,L))
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
          DO L=1,LM
            AIJ(:,2:JM,IJ_FMV)  = AIJ(:,2:JM,IJ_FMV )+PV(:,2:JM,L)*DTLF
            AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PU(:, 1,L)*DTLF*BY3
@@ -186,19 +186,19 @@ C**** Currently energy is put in uniformly weighted by mass
       call conserv_KE(KEJ)
       TE=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
       ediff=(TE-TE0)/(PSF*SHA*mb2kg)        ! C
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm
         T(:,:,L)=T(:,:,L)-ediff/PK(L,:,:)
       end do
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
 C**** Scale WM mixing ratios to conserve liquid water
       PRAT(:,:)=PTOLD(:,:)/P(:,:)
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LS1-1
         WM(:,:,L)=WM(:,:,L)*PRAT(:,:)
       END DO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
       RETURN
       END SUBROUTINE DYNAM
@@ -320,8 +320,8 @@ C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 C****
 C**** BEGINNING OF LAYER LOOP
 C****
-C$OMP  PARALLEL DO PRIVATE (I,J,L,IM1,IP1,DXDSIG,DYDSIG,DUMMYS,DUMMYN,
-C$OMP*                      PUS,PUN,PVS,PVN,PBS,PBN)
+!$OMP  PARALLEL DO PRIVATE (I,J,L,IM1,IP1,DXDSIG,DYDSIG,DUMMYS,DUMMYN,
+!$OMP*                      PUS,PUN,PVS,PVN,PBS,PBN)
       DO 2000 L=1,LM
 C****
 C**** COMPUTATION OF MASS FLUXES     P,T  PU     PRIMARY GRID ROW
@@ -393,7 +393,7 @@ c1510 IM1=I
 c     CONV(1,1,L)=-PVS
 c     CONV(1,JM,L)=PVN
  2000 CONTINUE
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C****
 C**** END OF HORIZONTAL ADVECTION LAYER LOOP
 C****
@@ -453,7 +453,7 @@ C     Now Really Do  CONTINUITY EQUATION
 C
 C     COMPUTE CONV, THE HORIZONTAL MASS CONVERGENCE
 C
-C$OMP  PARALLEL DO PRIVATE (I,J,L,IM1)
+!$OMP  PARALLEL DO PRIVATE (I,J,L,IM1)
       DO 2400 L=1,LM
       DO 1510 J=2,JM-1
       IM1=IM
@@ -463,7 +463,7 @@ C$OMP  PARALLEL DO PRIVATE (I,J,L,IM1)
       CONV(1,1,L)=-PVSA(L)
       CONV(1,JM,L)=PVNA(L)
  2400 CONTINUE
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
 C**** COMPUTE PIT, THE PRESSURE TENDENCY
 CC    PIT(I,J)=CONV(I,J,1)
@@ -473,14 +473,14 @@ C     PIT(1,JM)=PIT(1,JM)+CONV(1,JM,L)
 C     DO 2420 J=2,JM-1
 C     DO 2420 I=1,IM
 C2420 PIT(I,J)=PIT(I,J)+CONV(I,J,L)
-C$OMP  PARALLEL DO PRIVATE(I,J,L)
+!$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO 2420 J=1,JM
          DO 2410 I=1,IMAXJ(J)
          DO 2410 L=LM-1,1,-1
             PIT(I,J)=PIT(I,J)+SD(I,J,L)
  2410    CONTINUE
  2420 CONTINUE
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C**** COMPUTE SD, SIGMA DOT                        -------
 C     SD(1, 1,LM-1)=CONV(1, 1,LM)                     |
 C     SD(1,JM,LM-1)=CONV(1,JM,LM)             completely wasteful
@@ -494,14 +494,14 @@ C     DO 2435 J=2,JM-1
 C     DO 2435 I=1,IM
 C     SD(I, J,L)=SD(I, J,L+1)+CONV(I, J,L+1)
 C2435 CONTINUE
-C$OMP  PARALLEL DO PRIVATE(I,J,L)
+!$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO 2435 J=1,JM
          DO 2430 I=1,IMAXJ(J)
          DO 2430 L=LM-2,LS1-1,-1
             SD(I,J,L)=SD(I,J,L+1)+SD(I,J,L)
  2430    CONTINUE
  2435 CONTINUE
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C     DO 2440 L=LS1-2,1,-1
 C     SD(1, 1,L)=SD(1, 1,L+1)+CONV(1, 1,L+1)-DSIG(L+1)*PIT(1, 1)
 C     SD(1,JM,L)=SD(1,JM,L+1)+CONV(1,JM,L+1)-DSIG(L+1)*PIT(1,JM)
@@ -509,14 +509,14 @@ C     DO 2440 J=2,JM-1
 C     DO 2440 I=1,IM
 C     SD(I, J,L)=SD(I, J,L+1)+CONV(I, J,L+1)-DSIG(L+1)*PIT(I, J)
 C2440 CONTINUE
-C$OMP  PARALLEL DO PRIVATE(I,J,L)
+!$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO 2440 J=1,JM
          DO 2438 I=1,IMAXJ(J)
          DO 2438 L=LS1-2,1,-1
             SD(I,J,L)=SD(I,J,L+1)+SD(I,J,L)-DSIG(L+1)*PIT(I,J)
  2438    CONTINUE
  2440 CONTINUE
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
       DO 2450 L=1,LM-1
       DO 2450 I=2,IM
       SD(I,1,L)=SD(1,1,L)
@@ -604,13 +604,13 @@ C****
 C****
 C**** VERTICAL DIFFERENCING
 C****
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=LS1,LM
       SPA(:,:,L)=0.
       END DO
-C$OMP  END PARALLEL DO
-C$OMP  PARALLEL DO PRIVATE(I,J,L,DP,P0,PIJ,PHIDN,TZBYDP,X,
-C$OMP*             BYDP,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP)
+!$OMP  END PARALLEL DO
+!$OMP  PARALLEL DO PRIVATE(I,J,L,DP,P0,PIJ,PHIDN,TZBYDP,X,
+!$OMP*             BYDP,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP)
       DO J=1,JM
       DO I=1,IMAXJ(J)
         PIJ=P(I,J,1)
@@ -658,7 +658,7 @@ C**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
         END DO
       END DO
       END DO
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 C**** SET POLAR VALUES FROM THOSE AT I=1
       DO L=1,LM
         SPA(2:IM,1,L)=SPA(1,1,L)
@@ -666,17 +666,17 @@ C**** SET POLAR VALUES FROM THOSE AT I=1
         PHI(2:IM,1,L)=PHI(1,1,L)
         PHI(2:IM,JM,L)=PHI(1,JM,L)
       END DO
-C$OMP  PARALLEL DO PRIVATE(L)
+!$OMP  PARALLEL DO PRIVATE(L)
       DO L=1,LM
         GZ(:,:,L)=PHI(:,:,L)
       END DO
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 C****
 C**** PRESSURE GRADIENT FORCE
 C****
 C**** NORTH-SOUTH DERIVATIVE AFFECTS THE V-COMPONENT OF MOMENTUM
 C
-C$OMP  PARALLEL DO PRIVATE(I,IM1,J,L,FACTOR,FLUX)
+!$OMP  PARALLEL DO PRIVATE(I,IM1,J,L,FACTOR,FLUX)
       DO 3236 L=1,LM
       DO 3236 J=2,JM
       FACTOR = DT4*DXV(J)*DSIG(L)
@@ -688,11 +688,11 @@ C$OMP  PARALLEL DO PRIVATE(I,IM1,J,L,FACTOR,FLUX)
       DVT(IM1,J,L)=DVT(IM1,J,L)-FLUX
  3234 IM1=I
  3236 CONTINUE
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
 C**** SMOOTHED EAST-WEST DERIVATIVE AFFECTS THE U-COMPONENT
 C
-C$OMP  PARALLEL DO PRIVATE(I,IP1,J,L,FACTOR)
+!$OMP  PARALLEL DO PRIVATE(I,IP1,J,L,FACTOR)
       DO 3300 L=1,LM
       PU(:,1,L)=0.
       PU(:,JM,L)=0.
@@ -709,7 +709,7 @@ C$OMP  PARALLEL DO PRIVATE(I,IP1,J,L,FACTOR)
       DO 3294 I=1,IM
  3294 DUT(I,J,L)=DUT(I,J,L)+FACTOR*(PU(I,J,L)+PU(I,J-1,L))
  3300 CONTINUE
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
 C**** CALL DIAGNOSTICS
       IF(MRCH.GT.0) THEN
@@ -731,16 +731,16 @@ C****
       FD(I, 1)=FDSP
  3520 FD(I,JM)=FDNP
 C
-C$OMP  PARALLEL DO PRIVATE(I,IP1,J)
+!$OMP  PARALLEL DO PRIVATE(I,IP1,J)
       DO 3530 J=2,JM
       I=IM
       DO 3525 IP1=1,IM
       RFDUX(I,J)=4./(FD(I,J)+FD(IP1,J)+FD(I,J-1)+FD(IP1,J-1))
  3525 I = IP1
  3530 CONTINUE
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
-C$OMP  PARALLEL DO PRIVATE(I,J,L,RFDU)
+!$OMP  PARALLEL DO PRIVATE(I,J,L,RFDU)
       DO 3550 L=1,LM
       DO 3550 J=2,JM
       RFDU=1./(PSFMPT*DXYV(J)*DSIG(L))
@@ -750,7 +750,7 @@ C$OMP  PARALLEL DO PRIVATE(I,J,L,RFDU)
       UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)*RFDU
  3540 CONTINUE
  3550 CONTINUE
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
       RETURN
       END SUBROUTINE PGF
@@ -847,7 +847,7 @@ C**** Initialise total energy (J/m^2)
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
-C$OMP  PARALLEL DO PRIVATE(I,J)
+!$OMP  PARALLEL DO PRIVATE(I,J)
       DO J=2,JM-1
         PSUMO(J)=0.
         DO I=1,IM
@@ -857,9 +857,9 @@ C$OMP  PARALLEL DO PRIVATE(I,J)
           X(I,J)=(P(I,J)+PTOP)*Y(I,J)
         END DO
       END DO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
       CALL SHAP1D (8,X)
-C$OMP  PARALLEL DO PRIVATE(I,J,PSUMN,PDIF)
+!$OMP  PARALLEL DO PRIVATE(I,J,PSUMN,PDIF)
       DO J=2,JM-1
         PSUMN=0.
         DO I=1,IM
@@ -873,16 +873,16 @@ C**** reduce large variations (mainly due to topography)
           P(I,J)=P(I,J)-PDIF
         END DO
       END DO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C**** Scale mixing ratios (incl moments) to conserve mass/heat
-C$OMP  PARALLEL DO PRIVATE(I,J)
+!$OMP  PARALLEL DO PRIVATE(I,J)
       DO J=2,JM-1
         DO I=1,IM
           PRAT(I,J)=POLD(I,J)/P(I,J)
         END DO
       END DO
-C$OMP  END PARALLEL DO
-C$OMP  PARALLEL DO PRIVATE (I,J,L)
+!$OMP  END PARALLEL DO
+!$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LS1-1
       DO J=2,JM-1
       DO I=1,IM
@@ -896,7 +896,7 @@ C$OMP  PARALLEL DO PRIVATE (I,J,L)
       END DO
       END DO
       END DO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 #ifdef TRACERS_ON
 C**** In general, only an air tracer is affected by the filter
 C**** This fix conserves tracer concentration, BUT NOT MASS!
@@ -907,14 +907,14 @@ C**** But if n_air=0 this will cause problems...
       do n=1,ntm
       if (trname(n).ne.'Air') cycle
 !     if (itime.lt.itime_tr0(n)) cycle   !probably not needed
-C$OMP  PARALLEL DO PRIVATE (I,J,L)
+!$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LS1-1
         DO J=2,JM-1
           DO I=1,IM
              trm(I,J,L,n)=  trm(I,J,L,n)/PRAT(I,J)
              trmom(:,I,J,L,n)=trmom(:,I,J,L,n)/PRAT(I,J)
       end do; end do; end do
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
       end do
 #endif
       CALL CALC_AMPK(LS1-1)
@@ -924,18 +924,18 @@ C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
       call conserv_KE(KEJ)
       TE=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
       ediff=(TE-TE0)/(PSF*SHA*mb2kg)        ! C
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm
         T(:,:,L)=T(:,:,L)-ediff/PK(L,:,:)
       end do
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
   200 IF (MFILTR.LT.2) RETURN
 C****
 C**** TEMPERATURE STRATIFICATION FILTER ON T
 C****
       AKAP=KAPA-.205d0    ! what is this number?
-C$OMP  PARALLEL DO PRIVATE (J,L,X,Y)
+!$OMP  PARALLEL DO PRIVATE (J,L,X,Y)
       DO L=1,LM
         IF(L.LT.LS1) THEN
           DO J=2,JM-1
@@ -956,7 +956,7 @@ C$OMP  PARALLEL DO PRIVATE (J,L,X,Y)
           END DO
         END IF
       END DO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
       RETURN
       END SUBROUTINE FILTER
@@ -998,7 +998,7 @@ C****
 C****
 C**** Filtering in east-west direction
 C****
-C$OMP  PARALLEL DO PRIVATE (I,J,L,N,X,X1,XI,XIM1,F2D)
+!$OMP  PARALLEL DO PRIVATE (I,J,L,N,X,X1,XI,XIM1,F2D)
       DO 350 L=1,LM
 C**** Filter U component of momentum
 cq    IF(QFIL2D) GOTO 250
@@ -1052,14 +1052,14 @@ C**** Filter V component of momentum
       DO 340 I=1,IM
   340 V(I,J,L) = V(I,J,L) + ISIGN*X(I)*Xby4toN
   350 CONTINUE
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C****
 C**** Filtering in north-south direction
 C****
 cq    IF(QFILY) THEN
 cq    Y4TO8 = 1./(4.**NSHAP)
 C**** Filter U component of momentum
-cqC$OMP  PARALLEL DO PRIVATE (I,J,L,N,Y,YJ,YJM1)
+cq!$OMP  PARALLEL DO PRIVATE (I,J,L,N,Y,YJ,YJM1)
 cq    DO 650 L=1,LM
 cq    DO 540 I=1,IM
 cq    DO 510 J=1,JM
@@ -1097,11 +1097,11 @@ cq630 Y(JM-1)= YJM1-Y(JM-1)
 cq    DO 640 J=1,JM-1
 cq640 V(I,J,L) = V(I,J,L) + ISIGN*Y(J)*Y4TO8
 cq650 CONTINUE
-cqC$OMP  END PARALLEL DO
+cq!$OMP  END PARALLEL DO
 cq    END IF
 C****
       IF (MRCH.eq.2) THEN
-C$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP)
+!$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP)
         DO L=1,LM
         DO J=2,JM
         I=IM
@@ -1116,11 +1116,11 @@ C$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP)
         END DO
         END DO
         END DO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
         CALL DIAGCD(5,UT,VT,DUT,DVT,DT1)
 
 C***** Add in dissipiated KE as heat locally
-C$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
+!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
         DO L=1,LM
           DO J=1,JM
             DO I=1,IMAXJ(J)
@@ -1132,7 +1132,7 @@ C$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
             END DO
           END DO
         END DO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
       END IF
       RETURN
@@ -1214,7 +1214,7 @@ C**** Fill in polar boxes
       P(2:IM,1) = P(1,1)
       P(2:IM,JM)= P(1,JM)
 
-C$OMP  PARALLEL DO PRIVATE (I,J,L)
+!$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO J=1,JM
         DO I=1,IM
           DO L=1,LS1-1
@@ -1244,7 +1244,7 @@ C$OMP  PARALLEL DO PRIVATE (I,J,L)
           SQRTP(I,J) = SQRT(P(I,J))
         END DO
       END DO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
       RETURN
       END SUBROUTINE CALC_AMPK
@@ -1261,7 +1261,7 @@ C****
       REAL*8, dimension(im,jm,lm) :: amp
       integer :: j,l
 C
-C$OMP  PARALLEL DO PRIVATE(J,L)
+!$OMP  PARALLEL DO PRIVATE(J,L)
       DO L=1,LM
         IF(L.LT.LS1) THEN
 ccc   do l=1,ls1-1
@@ -1277,7 +1277,7 @@ ccc   do l=ls1,lm
         END IF
 ccc   enddo
       enddo
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
       return
 C****
@@ -1450,7 +1450,7 @@ C*
       end if
 
 C***** Add in dissipiated KE as heat locally
-C$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
+!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
       DO L=LS1,LM
         DO J=1,JM
           DO I=1,IMAXJ(J)
@@ -1462,7 +1462,7 @@ C$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
           END DO
         END DO
       END DO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
 C**** conservation diagnostic
 C**** (technically we should use U,V from before but this is ok)
@@ -1483,7 +1483,7 @@ C**** (technically we should use U,V from before but this is ok)
       REAL*8, DIMENSION(LM) :: TL
 
 C**** Find WMO Definition of Tropopause to Nearest L
-C$OMP  PARALLEL DO PRIVATE (I,J,L,TL,IERR)
+!$OMP  PARALLEL DO PRIVATE (I,J,L,TL,IERR)
       do j=1,jm
       do i=1,imaxj(j)
         do l=1,lm
@@ -1496,7 +1496,7 @@ C$OMP  PARALLEL DO PRIVATE (I,J,L,TL,IERR)
         AIJ(I,J,IJ_TTROP)=AIJ(I,J,IJ_TTROP)+TL(LTROPO(I,J))
       end do
       end do
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
       PTROPO(2:IM,1) = PTROPO(1,1)
       LTROPO(2:IM,1) = LTROPO(1,1)
       PTROPO(2:IM,JM)= PTROPO(1,JM)
@@ -1517,7 +1517,7 @@ C$OMP  END PARALLEL DO
 
 C**** DKE (m^2/s^2) is saved from surf,dry conv,aturb and m.c
 
-C$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
+!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
       DO L=1,LM
         DO J=1,JM
           DO I=1,IMAXJ(J)
@@ -1529,7 +1529,7 @@ C$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
           END DO
         END DO
       END DO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
       END SUBROUTINE DISSIP
 

@@ -39,7 +39,7 @@ c****
       integer :: I,J,L,n,nx
 
 C**** Fill in values at the poles
-C$OMP  PARALLEL DO PRIVATE (I,L,N)
+!$OMP  PARALLEL DO PRIVATE (I,L,N)
       do l=1,lm
          do i=2,im
            rm(i,1 ,l) = rm(1,1 ,l)
@@ -50,62 +50,62 @@ C$OMP  PARALLEL DO PRIVATE (I,L,N)
            enddo
          enddo
       enddo
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C****
 C**** Load mass after advection from mass before advection
 C****
 ccc   ma(:,:,:) = mb(:,:,:)
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          MA(:,:,L) = MB(:,:,L)
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C****
 C**** Advect the tracer using the quadratic upstream scheme
 C****
 C**** loop over cycles
       do n=1,ncyc
 ccc   mflx(:,:,:)=pu(:,:,:)
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          MFLX(:,:,L) = PU(:,:,L)
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
       call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx1(1,1,n))
 
 ccc   mflx(:,:,:)=pv(:,:,:)
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          MFLX(:,:,L) = PV(:,:,L)
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
       call aadvqy (rm,rmom,ma,mflx,qlimit,tname,nstepy(1,n),
      &    sbf,sbm,sfbm)
 
 ccc   mflx(:,:,:)=sd(:,:,:)
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          MFLX(:,:,L) = SD(:,:,L)
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
       call aadvqz (rm,rmom,ma,mflx,qlimit,tname,nstepz(1,n),
      &    scf,scm,sfcm)
 
 ccc   mflx(:,:,:)=pu(:,:,:)
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          MFLX(:,:,L) = PU(:,:,L)
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
       call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx2(1,1,n))
       end do
 
 C**** deal with vertical polar box diagnostics outside ncyc loop
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm-1
         sfcm(1 ,l) = fim*sfcm(1 ,l)
         sfcm(jm,l) = fim*sfcm(jm,l)
@@ -114,7 +114,7 @@ C$OMP  PARALLEL DO PRIVATE (L)
         scf (1 ,l) = fim*scf (1 ,l)
         scf (jm,l) = fim*scf (jm,l)
       end do
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
       return
       end SUBROUTINE AADVQ
@@ -139,7 +139,7 @@ ccc   mv(:,1:jm-1,:) = mv(:,2:jm,:)*dt
 ccc   mv(:,jm,:) = 0.
 ccc   mw(:,:,1:lm-1) = mw(:,:,1:lm-1)*(-dt)
 C
-C$OMP  PARALLEL DO PRIVATE (J,L)
+!$OMP  PARALLEL DO PRIVATE (J,L)
       DO L=1,LM
          MU(:,1,L) = 0.
          DO J=2,JM-1
@@ -147,22 +147,22 @@ C$OMP  PARALLEL DO PRIVATE (J,L)
          ENDDO
          MU(:,JM,L) = 0.
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
-C$OMP  PARALLEL DO PRIVATE (J,L)
+!$OMP  PARALLEL DO PRIVATE (J,L)
       DO L=1,LM
          DO J=1,JM-1
             MV(:,J,L) = MV(:,J+1,L)*DT
          ENDDO
          MV(:,JM,L) = 0.
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM-1
          MW(:,:,L) = MW(:,:,L)*(-DT)
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
 c     for some reason mu is not zero at the poles...
 ccc   mu(:,1,:) = 0.
@@ -287,30 +287,30 @@ C**** Divide the mass fluxes by the number of cycles
 ccc   mu(:,:,:)=mu(:,:,:)*byn
 ccc   mv(:,1:jm-1,:)=mv(:,1:jm-1,:)*byn
 ccc   mw(:,:,:)=mw(:,:,:)*byn
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          mu(:,:,l)=mu(:,:,l)*byn
       ENDDO
-C$OMP  END PARALLEL DO
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  END PARALLEL DO
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          mv(:,1:jm-1,l)=mv(:,1:jm-1,l)*byn
       ENDDO
-C$OMP  END PARALLEL DO
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  END PARALLEL DO
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          mw(:,:,l)=mw(:,:,l)*byn
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C****
 C**** Decide how many timesteps to take by computing Courant limits
 C****
 ccc   MA(:,:,:) = MB(:,:,:)
-C$OMP  PARALLEL DO PRIVATE (L)
+!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          MA(:,:,L) = MB(:,:,L)
       ENDDO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
       do n=1,ncyc
         call xstep (MA,nstepx1(1,1,n))
         call ystep (MA,nstepy(1,n))
@@ -355,9 +355,9 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
 
 c**** loop over layers and latitudes
       ICKERR=0
-C$OMP  PARALLEL DO PRIVATE (J,L,NS,AM,F_I,FMOM_I,IERR,NERR)
-C$OMP* SHARED(IM,QLIMIT,XSTRIDE)
-C$OMP* REDUCTION(+:ICKERR)
+!$OMP  PARALLEL DO PRIVATE (J,L,NS,AM,F_I,FMOM_I,IERR,NERR)
+!$OMP* SHARED(IM,QLIMIT,XSTRIDE)
+!$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
       do j=2,jm-1
       am(:) = mu(:,j,l)/nstep(j,l)
@@ -375,7 +375,7 @@ c****
       enddo ! ns
       enddo ! j
       enddo ! l
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
       IF(ICKERR.GT.0)  CALL stop_model('Stopped in aadvQx',11)
 C
@@ -420,10 +420,10 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
 
 c**** loop over layers
       ICKERR=0
-C$OMP  PARALLEL DO PRIVATE (I,J,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZM_NP,
-C$OMP*                RZZM_SP,RZZM_NP,BM,F_J,FMOM_J,FQV,NS,IERR,NERR)
-C$OMP* SHARED(JM,QLIMIT,YSTRIDE)
-C$OMP* REDUCTION(+:ICKERR)
+!$OMP  PARALLEL DO PRIVATE (I,J,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZM_NP,
+!$OMP*                RZZM_SP,RZZM_NP,BM,F_J,FMOM_J,FQV,NS,IERR,NERR)
+!$OMP* SHARED(JM,QLIMIT,YSTRIDE)
+!$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
       fqv(:,:) = 0.
 
@@ -490,7 +490,7 @@ c**** average and unscale polar boxes
       enddo
 
       enddo  ! end loop over levels
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
       IF(ICKERR.NE.0)  call stop_model('Stopped in aadvQy',11)
 C
@@ -535,9 +535,9 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
 
 c**** loop over latitudes and longitudes
       ICKERR=0.
-C$OMP  PARALLEL DO PRIVATE (I,J,L,NS,CM,F_L,FMOM_L,FQW,IERR,NERR)
-C$OMP* SHARED(LM,QLIMIT,ZSTRIDE)
-C$OMP* REDUCTION(+:ICKERR)
+!$OMP  PARALLEL DO PRIVATE (I,J,L,NS,CM,F_L,FMOM_L,FQW,IERR,NERR)
+!$OMP* SHARED(LM,QLIMIT,ZSTRIDE)
+!$OMP* REDUCTION(+:ICKERR)
       do j=1,jm
       do i=1,imaxj(j)
       fqw(:) = 0.
@@ -572,7 +572,7 @@ c****
         end do
       end if
       enddo ! j
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
       IF(ICKERR.GT.0)  call stop_model('Stopped in aadvQz',11)
 C
@@ -599,8 +599,8 @@ c****
 C**** Decide how many timesteps to take by computing Courant limits
 C
       ICKERR = 0
-C$OMP  PARALLEL DO PRIVATE (I,IP1,IM1,J,L,NSTEP,NS,COURMAX,A,AM,MI)
-C$OMP* REDUCTION(+:ICKERR)
+!$OMP  PARALLEL DO PRIVATE (I,IP1,IM1,J,L,NSTEP,NS,COURMAX,A,AM,MI)
+!$OMP* REDUCTION(+:ICKERR)
       DO 420 L=1,LM
       DO 420 J=2,JM-1
       nstep=0
@@ -643,7 +643,7 @@ c     if(nstep.gt.2 .and. nx.eq.1)
 c    *  write(6,'(a,3i3,f7.4)')
 c    *  'aadvqx: j,l,nstep,courmax=',j,l,nstep,courmax
   420 CONTINUE
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
       IF(ICKERR.GT.0)  call stop_model('Stopped in XSTEP',11)
 C
@@ -668,9 +668,9 @@ C
 
 C**** decide how many timesteps to take (all longitudes at this level)
       ICKERR=0
-C$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,B,BM,MIJ,
-C$OMP*          IPROB,JPROB,SBMS,SBMN)
-C$OMP* REDUCTION(+:ICKERR)
+!$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,B,BM,MIJ,
+!$OMP*          IPROB,JPROB,SBMS,SBMN)
+!$OMP* REDUCTION(+:ICKERR)
       DO 440 L=1,LM
 C**** Scale poles
       m(:, 1,l) =   m(:, 1,l)*im !!!!! temporary
@@ -726,7 +726,7 @@ C**** Unscale poles
       m(:, 1,l) =   m(:, 1,l)*byim !!! undo temporary
       m(:,jm,l) =   m(:,jm,l)*byim !!! undo temporary
   440 CONTINUE
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
       IF(ICKERR.GT.0)  call stop_model('Stopped in YSTEP',11)
 C
@@ -751,8 +751,8 @@ C
 
 C**** decide how many timesteps to take
       ICKERR=0
-C$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,C,CM,ML)
-C$OMP* REDUCTION(+:ICKERR)
+!$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,C,CM,ML)
+!$OMP* REDUCTION(+:ICKERR)
       DO J=1,JM
       DO I=1,IM
       nstep=0
@@ -793,7 +793,7 @@ c     if(nstep.gt.1 .and. nTRACER.eq.1) write(6,'(a,2i7,f7.4)')
 c    *   'aadvqz: i,j,nstep,courmax=',i,j,nstep,courmax
       END DO
       END DO
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 C
       IF(ICKERR.GT.0)  call stop_model('Stopped in ZSTEP',11)
 C

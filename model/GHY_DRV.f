@@ -17,7 +17,7 @@ ccc   save
       real*8, dimension(im,jm,3) :: gdeep
 
       real*8 spgsn !@var specific gravity of snow
-!@dbparam snow_cover_coef coefficient for topography variance in 
+!@dbparam snow_cover_coef coefficient for topography variance in
 !@+       snow cover parameterisation for albedo
       real*8 :: snow_cover_coef = .15d0
 
@@ -167,20 +167,20 @@ c****
 c**** outside loop over j and i, executed once for each grid point
 c****
 
-C$OMP  PARALLEL DO PRIVATE
-C$OMP*  (ACE2AV, ELHX,EVAP,EVHDT, CDM,CDH,CDQ,
-C$OMP*   I,ITYPE, J, KR, L,MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
-C$OMP*   QG_NSAT,QSATS, RHOSRF,RHOSRF0,RCDMWS,RCDHWS, SRHDT,SRHEAT,SHDT,
-C$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TRHDT,TG2AV, WARMER,WFC1,WTR2AV,q1
+!$OMP  PARALLEL DO PRIVATE
+!$OMP*  (ACE2AV, ELHX,EVAP,EVHDT, CDM,CDH,CDQ,
+!$OMP*   I,ITYPE, J, KR, L,MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
+!$OMP*   QG_NSAT,QSATS, RHOSRF,RHOSRF0,RCDMWS,RCDHWS, SRHDT,SRHEAT,SHDT,
+!$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TRHDT,TG2AV, WARMER,WFC1,WTR2AV,q1
 #ifdef TRACERS_ON
-C$OMP*   ,n,nx,totflux,nsrc
+!$OMP*   ,n,nx,totflux,nsrc
 #ifdef TRACERS_WATER
-C$OMP*   ,trgrnd,trsoil_tot,tevapw,tevapd,tevapb,trruns,trrunu,trpr,
-C$OMP*   trsoil_rat,trw,trsnowd,tdp, tdt1, wsoil_tot,frac,tevap,ibv
+!$OMP*   ,trgrnd,trsoil_tot,tevapw,tevapd,tevapb,trruns,trrunu,trpr,
+!$OMP*   trsoil_rat,trw,trsnowd,tdp, tdt1, wsoil_tot,frac,tevap,ibv
 #endif
 #endif
-C$OMP*   )
-C$OMP*   SCHEDULE(DYNAMIC,2)
+!$OMP*   )
+!$OMP*   SCHEDULE(DYNAMIC,2)
 
       loop_j: do j=1,jm
       hemi=1.
@@ -242,7 +242,7 @@ c****
       itype=4
       ptype=pearth
       pr=prec(i,j)/(dtsrc*rhow)
-C**** This variable was originally assoicated with super-saturated 
+C**** This variable was originally assoicated with super-saturated
 C**** large-scale precip, but has not worked for many moons.
 C**** If you want to reinstate it, uncomment this calculation.
 c      prs=precss(i,j)/(dtsrc*rhow)
@@ -285,7 +285,7 @@ c**** loop over ground time steps
       ! if ( qg > 999.d0 ) qg = qg_sat
       tgv=tg*(1.+qg*deltx)
       rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
-C**** Obviously there are no ocean currents for earth points, but 
+C**** Obviously there are no ocean currents for earth points, but
 C**** variables set for consistency with surfce
       uocean=0 ; vocean=0
 #ifdef TRACERS_ON
@@ -460,8 +460,8 @@ c        tevapb(nx)=aevapb * trsoil_rat(nx)
         tevapw(nx)=aevap * trsoil_rat(nx)
 c**** update ratio
 c        trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+tevapd(nx)+tevapb(nx)
-c     *       +trruns(nx)+trrunu(nx)) 
-        trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+trruns(nx)+trrunu(nx)) 
+c     *       +trruns(nx)+trrunu(nx))
+        trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+trruns(nx)+trrunu(nx))
         trsoil_rat(nx)=trsoil_tot(nx)/(rhow*wsoil_tot)
         trbare(n,1:ngm,i,j) = trsoil_rat(nx)*w(1:ngm,1)*rhow
         trvege(n,:,i,j) = trsoil_rat(nx)*w(:,2)*rhow
@@ -702,7 +702,7 @@ c**** quantities accumulated for surface type tables in diagj
 
       end do loop_i
       end do loop_j
-C$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO
 
       DO 825 J=1,JM
       DO 825 I=1,IMAXJ(J)
@@ -735,7 +735,7 @@ C
 
       ! using formula from the paper by A. Roesch et al
       ! (Climate Dynamics (2001), 17: 933-946)
-      fract_snow = 
+      fract_snow =
 ccc     $     .95d0 * tanh( 100.d0 * snow_water ) *
 ccc                               currently using only topography part
      $     sqrt ( 1000.d0 * snow_water /
@@ -839,7 +839,7 @@ c**** read in vegetation data set: vdata
       end do
 c**** zero-out vdata(11) until it is properly read in
       vdata(:,:,11) = 0.
-      
+
       call closeunit(iu_VEG)
       if (istart.le.0) return
 c**** read soils parameters
@@ -937,7 +937,7 @@ c**** check whether ground hydrology data exist at this point.
         call stop_model(
      &       'Ground Hydrology data is missing at some cells',255)
       endif
- 
+
       do j=1,jm
         do i=1,im
           pearth=fearth(i,j)
@@ -1027,7 +1027,7 @@ c**** recompute ground hydrology data if necessary (new soils data)
             htbare(:,i,j)=0.
             htvege(:,i,j)=0.
             snowbv(:,i,j)=0.
-            
+
           else
 ccc   ??? remove next 5 lines? -check the old version
             w(1:ngm,1) =   wbare(1:ngm,i,j)
@@ -1035,7 +1035,7 @@ ccc   ??? remove next 5 lines? -check the old version
             ht(0:ngm,1) = htbare(0:ngm,i,j)
             ht(0:ngm,2) = htvege(0:ngm,i,j)
             snowd(1:2) =  snowbv(1:2,i,j)
-            
+
 c**** compute soil heat capacity and ground water saturation gws
             call ghinij (i,j,wfc1)
 c**** fill in soils common blocks
@@ -1694,12 +1694,12 @@ ccc      print *,'conserv_htg energy ',
 ccc     &     sum(heatg(1:jm)*dxyp(1:jm))/(sum(dxyp(1:jm))*im)
       end subroutine conserv_htg
 
- 
+
       end module soil_drv
 
 
       subroutine check_ghy_conservation( flag )
-ccc debugging program: cam be put at the beginning and at the end 
+ccc debugging program: cam be put at the beginning and at the end
 ccc of the 'surface' to check water conservation
       use constant, only : rhow
       use geom, only : imaxj
@@ -1746,7 +1746,7 @@ ccc just checking ...
         do i=1,imaxj(j)
 
           !print *,'fearth = ', i, j, fearth(i,j)
- 
+
           if ( fearth(i,j) <= 0.d0 ) cycle
           fb = afb(i,j)
           fv = 1.d0 - fb
@@ -1761,5 +1761,5 @@ ccc just checking ...
 
         end do
       end do
-      
+
       end subroutine check_ghy_conservation

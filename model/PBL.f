@@ -10,7 +10,7 @@
 !@cont inits,tcheck,ucheck,check1,output,rtsafe
 
       USE CONSTANT, only : grav,omega,pi,radian,bygrav,teeny,deltx,tf
-     &                     ,by3      
+     &                     ,by3
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trname
 #endif
@@ -99,12 +99,12 @@ C***
 #ifdef TRACERS_ON
      * ,tr
 #endif
-C$OMP  THREADPRIVATE (/PBLTPC/)
+!$OMP  THREADPRIVATE (/PBLTPC/)
 
       COMMON /PBLPAR/ZS1,TGV,TKV,QG_SAT,HEMI,POLE
       COMMON /PBLOUT/US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL,
      *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,WG,ZMIX,W2_1
-C$OMP  THREADPRIVATE (/PBLPAR/,/PBLOUT/)
+!$OMP  THREADPRIVATE (/PBLPAR/,/PBLOUT/)
 
 CCC !@var bgrid log-linear gridding parameter
 CCC      real*8 :: bgrid
@@ -226,7 +226,7 @@ c  internals:
 c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(n) :: u,v,t,q
       common/pbluvtq/u,v,t,q
-C$OMP  THREADPRIVATE (/pbluvtq/)
+!$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
@@ -712,7 +712,7 @@ c *********************************************************************
       subroutine simil(u,t,q,z,ustar,tstar,qstar,
      2                 z0m,z0h,z0q,lmonin,tg,qg)
 !@sum   simil calculates the similarity solutions for wind speed,
-!@+     virtual potential temperature, and moisture mixing ratio 
+!@+     virtual potential temperature, and moisture mixing ratio
 !@+     at height z.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
@@ -842,7 +842,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
      &  ,byzs=1.d0/10.d0,bydzs=1.d0/4.7914d0
       real*8 z1pass,znpass,b,xipass,lznbyz1
       common /grids_99/z1pass,znpass,b,xipass,lznbyz1
-C$OMP  THREADPRIVATE(/GRIDS_99/)
+!$OMP  THREADPRIVATE(/GRIDS_99/)
       real*8, external :: fgrid2
       real*8 rtsafe
       integer i,j,iter  !@var i,j,iter loop variable
@@ -1804,7 +1804,7 @@ c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(n) :: u,v,t,q
       common/pbluvtq/u,v,t,q
 
-C$OMP  THREADPRIVATE (/pbluvtq/)
+!$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
 
       z0m=zgrnd
@@ -2297,7 +2297,7 @@ c ----------------------------------------------------------------------
       real*8, intent(out) :: f,df
       real*8 z1,zn,bgrid,xi,lznbyz1
       common /grids_99/z1,zn,bgrid,xi,lznbyz1
-C$OMP  THREADPRIVATE(/GRIDS_99/)
+!$OMP  THREADPRIVATE(/GRIDS_99/)
 
       f=z+bgrid*((zn-z1)*log(z/z1)-(z-z1)*lznbyz1)-xi
       df=1.+bgrid*((zn-z1)/z-lznbyz1)

@@ -540,7 +540,7 @@ C
 C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8 U0GAS,FSPARE,taulim
       COMMON/RADCOM_hybrid/U0GAS(LX,12),FSPARE(998)
-C$OMP  THREADPRIVATE(/RADCOM_hybrid/)
+!$OMP  THREADPRIVATE(/RADCOM_hybrid/)
 
       REAL*8, DIMENSION(IM,JM) :: COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
       REAL*8, DIMENSION(4,IM,JM) :: SNFS,TNFS
@@ -681,13 +681,13 @@ C**** MAIN J LOOP
 C****
       ICKERR=0
       JCKERR=0
-C$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
-C$OMP*   I,INCH,IH,IT, J, K,KR, L,LR,icc1, OPNSKY, CSZ2,
-C$OMP*   PLAND,PIJ, QSS, TOTCLD,TAUSSL,TAUMCL)
-C$OMP*   COPYIN(/RADCOM_hybrid/)
-C$OMP*   SHARED(ITWRITE)
-C$OMP    DO SCHEDULE(DYNAMIC,2)
-C$OMP*   REDUCTION(+:ICKERR,JCKERR)
+!$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
+!$OMP*   I,INCH,IH,IT, J, K,KR, L,LR,icc1, OPNSKY, CSZ2,
+!$OMP*   PLAND,PIJ, QSS, TOTCLD,TAUSSL,TAUMCL)
+!$OMP*   COPYIN(/RADCOM_hybrid/)
+!$OMP*   SHARED(ITWRITE)
+!$OMP    DO SCHEDULE(DYNAMIC,2)
+!$OMP*   REDUCTION(+:ICKERR,JCKERR)
       DO 600 J=1,JM
 C**** Radiation input files use a 72x46 grid independent of IM and JM
 C**** (ilon,jlat) is the 4x5 box containing the center of box (i,j)
@@ -1056,8 +1056,8 @@ C****
 C****
 C**** END OF MAIN LOOP FOR J INDEX
 C****
-C$OMP  END DO
-C$OMP  END PARALLEL
+!$OMP  END DO
+!$OMP  END PARALLEL
 CcOMP  END PARALLEL DO
       if(kradia.gt.0) return
 C**** Stop if temperatures were out of range
