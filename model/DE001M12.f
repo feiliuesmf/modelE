@@ -342,6 +342,7 @@ C****
      &     , uhide=>u, vhide=>v, thide=>t, phide=>p, qhide=>q,
      *     sqrtpx=>sqrtp
       USE GEOM
+      USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,apj,ajl,asjl,ail
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION U(IM,JM,LM),V(IM,JM,LM),T(IM,JM,LM),P(IM,JM),Q(IM,JM,LM)
       LOGICAL POLE
@@ -1333,6 +1334,7 @@ C****
       USE E001M12_COM
      &     , uhide=>u, vhide=>v, thide=>t, phide=>p, qhide=>q
       USE GEOM
+      USE DAGCOM, only : ajk,aijk,aijl,ajlsp,speca,adaily
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION U(IM,JM,LM),V(IM,JM,LM),T(IM,JM,LM),P(IM,JM),Q(IM,JM,LM)
       REAL*8 KE
@@ -2244,6 +2246,7 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
+      USE DAGCOM, only : aj,bj,cj,dj,jreg,kdiag
       IMPLICIT REAL*8 (A-H,O-Z)
 CF    COMMON/WORK3/GBUDG(27,80,4),RBUDG(23,80),PAD3(5288)
       DIMENSION CONTJ(JM),CONTO(JM),CONTL(JM),CONTOI(JM)
@@ -2661,6 +2664,7 @@ C****                                                             37-44
      *     ,sha
       USE E001M12_COM
       USE GEOM
+      USE DAGCOM, only : ajk,ajl,asjl,ajlsp,kdiag,aijl,aijk
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK2/SENDEG(IM,JM),CN(2,IMH+1),BYP(JM),BYPV(JM),
      *  BYDAPO(JM),BYPDA(JM),DXCOSV(JM),
@@ -3687,6 +3691,7 @@ C****                                                            143-156
      *     ,sha
       USE E001M12_COM
       USE GEOM
+      USE DAGCOM, only : ajl,apj,asjl,aij,kdiag
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK2/SENDEG(IM,JM),AN(0:IMH),BN(0:IMH),BYP(JM),BYPV(JM),
      *  BYDAPO(JM),BYPDA(JM),DXCOSV(JM),
@@ -4077,6 +4082,7 @@ C****                                                              9-16
      *     ,sha
       USE E001M12_COM
       USE GEOM
+      USE DAGCOM, only : ail
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/DILCOM/JLAT(JM,2),WTJ(JM,2,2),
      *  LINECT,JMHALF,INC,IHOUR0,IHOUR
@@ -4240,6 +4246,7 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
+      USE DAGCOM, only : wave
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK3/PHI(IM,JM,LM),HTRD(IM,6)
       COMMON/WORK4/AN(0:IMH),BN(0:IMH),POWER(120),IPOWER(44),XPOWER(43),
@@ -4688,6 +4695,7 @@ C****
      *     ,sha
       USE E001M12_COM
       USE GEOM
+      USE DAGCOM, only : aij,kaij,ajk,kdiag
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK2/ENDE16(IM,JM,2),PRAVG(IM,JM),PRSD(IM,JM),
      *  FLAT(3),FNH(3),FGLOBE(3),MLAT(3),MGLOBE(3),GNUM(3),GDEN(3)
@@ -5245,6 +5253,7 @@ C****
      *     ,sha
       USE E001M12_COM
       USE GEOM
+      USE DAGCOM, only : consrv
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION UX(IM,JM,LM),VX(IM,JM,LM)
       COMMON/WORK1/PIT(IM,JM)
@@ -5653,6 +5662,7 @@ C****
      *     ,sha
       USE E001M12_COM
       USE GEOM
+      USE DAGCOM, only : speca,atpe,ajk,aijk
       IMPLICIT REAL*8 (A-H,O-Z)
       REAL*8 KE
       DOUBLE PRECISION TPE,SUMI,SUMT
@@ -6064,6 +6074,7 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
+      USE DAGCOM, only : adaily,kdiag
       IMPLICIT REAL*8 (A-H,O-Z)
 CB    COMMON/WORK3/GBUDG(JM+3,80,4),FHOUR(25,50,4)
       DIMENSION SCALE(63),MHOUR(25),XHOUR(25)
@@ -6139,6 +6150,7 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
+      USE DAGCOM, only : energy,speca,ajk,aijk
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK1/SUM(20),IK(20)
       COMMON/WORK3/GBUDG(JM+3,80,4),EHIST(20,101)
@@ -6322,6 +6334,7 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
+      USE DAGCOM, only : keynr
       IMPLICIT REAL*8 (A-H,O-Z)
 CB    COMMON/WORK3/GBUDG(JM+3,80,4),FKEYDS(42)
       COMMON/WORK5/FKEY(JM,LM)

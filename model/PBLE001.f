@@ -937,7 +937,7 @@ c    bgrid = The parameter that determines the strength of the log
 c            term in the log-linear gridding scheme.
 c ----------------------------------------------------------------------
       USE CONSTANT, only : rgas
-      USE E001M12_COM
+      USE E001M12_COM, only : sige,psf,ptop
       IMPLICIT NONE
 
       REAL*8, INTENT(IN) :: ZGS

@@ -22,6 +22,7 @@ C****
       USE E001M12_COM
       USE GEOM
       USE CLOUDS, only : PREC,TPREC
+      USE DAGCOM, only : aj,bj,cj,dj,aij,jreg
       IMPLICIT REAL*8 (A-H,O-Z)
 C*
       PARAMETER (SNOMAX=100.0, dSNdRN=0.,
@@ -861,6 +862,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE RANDOM
       USE CLOUDS, only : TAUSS,TAUMC,SVLHX,RHSAV,SVLAT,CLDSAV,
      *     CLDSS,CLDMC,CSIZE
+      USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,ail,ajl,asjl,adaily
       IMPLICIT REAL*8 (A-H,O-Z)
 
       COMMON/WORK1d/COSZ1(IM,JM),COSZ2(IM,JM),COSZA(IM,JM),
@@ -1464,6 +1466,7 @@ C****
      *     ,rhow,rhoi,shv,shw,shi
       USE E001M12_COM
       USE GEOM
+      USE DAGCOM, only : aj,bj,cj,dj,aij,jreg
       IMPLICIT REAL*8 (A-H,O-Z)
 C*
       PARAMETER (XSI1=0.5, XSI2=0.5, XSI3=0.5, XSI4=0.5,
@@ -2447,6 +2450,7 @@ C****
       USE E001M12_COM
       USE GEOM
       USE SOMTQ_COM
+      USE DAGCOM, only : ajl
       IMPLICIT REAL*8 (A-H,O-Z)
 c      COMMON/WORK1/CONV(IM,JM,LM),PK(LM,IM,JM)
       COMMON/WORK2/UT(IM,JM,LM),VT(IM,JM,LM),
@@ -2611,6 +2615,7 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
+      USE DAGCOM, only : aij
       IMPLICIT REAL*8 (A-H,O-Z)
 c      COMMON/WORK1/CONV(IM,JM,LM),PK(LM,IM,JM)
       DIMENSION XCDLM(2)

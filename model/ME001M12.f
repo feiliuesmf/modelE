@@ -24,6 +24,7 @@ C**** f90 changes
      *     ,CLDSAV,MSTCNV,CONDSE
       USE SOCPBL, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
      *     cq=>cqgs,ipbl
+      USE DAGCOM, only : aj,kacc,aij,aijg,tsfrez,tdiurn,keynr,kdiag
 
       IMPLICIT REAL*8 (A-H,O-Z)
 
@@ -531,6 +532,7 @@ C****
       USE SOCPBL
      &     , only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq=>cqgs
      *     ,ipbl
+      USE DAGCOM, only : aj,kacc,tsfrez,tdiurn,kdiag,keynr,jreg
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION JC1(100),CLABEL1(39),RC1(161)
       CHARACTER*4 CLABEL1,RUNID
@@ -1020,6 +1022,7 @@ C****
       USE SOMTQ_COM
       USE GEOM
       USE CLOUDS, only : PTOLD,WM
+      USE DAGCOM, only : aij
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK6/UT(IM,JM,LM),VT(IM,JM,LM),
      *   TT(IM,JM,LM),TZT(IM,JM,LM),WMT(IM,JM,LM),PRAT(IM,JM)

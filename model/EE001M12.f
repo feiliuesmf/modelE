@@ -30,6 +30,7 @@ C****
      &    TGPASS=>TG,TKPASS=>T1,VGM=>VG,EDDY
       USE CLOUDS, only : PREC,TPREC
       USE SOCPBL, only : ipbl,pbl,zgs
+      USE DAGCOM, only : aijg,aij,tsfrez,tdiurn,bj,dj,adaily,jreg
 
       IMPLICIT REAL*8 (A-H,O-Z)
 

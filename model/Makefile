@@ -13,6 +13,7 @@ MCOM	= E001M12_COM.o const.o
 GEOCOM	= GEOM_B.o
 QUSCOM	= SOMTQ_COM.o
 GHYCOM  = GHYCOM.o
+DAGCOM  = DAGCOM.o
 COM	= $(MCOM) $(QUSCOM) $(GEOCOM)
 RCOM    = BR00B.COM
 
@@ -31,7 +32,7 @@ UOBJ    = UTILDBL.o
 FFTOBJ  = FFT72.o
 RNDOBJ  = RANDSGI.o
 OBJ	= $(MOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) $(SOBJ) $(COBJ) $(ROBJ) $(UOBJ) \
-          $(FFTOBJ) $(RNDOBJ) $(COM) $(EOBJ) $(GHYCOM)
+          $(FFTOBJ) $(RNDOBJ) $(COM) $(EOBJ) $(GHYCOM) $(DAGCOM)
 
 # Make rules for generating object files from GISS-Fortran files
 .SUFFIXES:
@@ -65,14 +66,15 @@ OBJ	= $(MOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) $(SOBJ) $(COBJ) $(ROBJ)
 $(QUSCOM):	$(MCOM)
 $(GEOCOM):	$(MCOM)
 $(GHYCOM):	$(MCOM) $(SLOBJ)
-$(MOBJ):	$(COM) $(GHYCOM) $(RNDOBJ) $(COBJ) $(PBLOBJ)
-$(POBJ):	$(COM) $(ROBJ)  $(RNDOBJ) $(COBJ)
+$(DAGCOM):	$(MCOM)
+$(MOBJ):	$(COM) $(GHYCOM) $(DAGCOM) $(RNDOBJ) $(COBJ) $(PBLOBJ)
+$(POBJ):	$(COM) $(DAGCOM) $(ROBJ)  $(RNDOBJ) $(COBJ)
 $(PBLOBJ):	$(COM) 
-$(SOBJ):	$(COM) $(PBLOBJ)
-$(EOBJ):	$(COM) $(GHYCOM) $(COBJ) $(PBLOBJ)
-$(DOBJ):	$(COM)
+$(SOBJ):	$(COM) $(DAGCOM) $(PBLOBJ)
+$(EOBJ):	$(COM) $(DAGCOM) $(GHYCOM) $(COBJ) $(PBLOBJ)
+$(DOBJ):	$(COM) $(DAGCOM)
 $(QOBJ):	$(COM) 
-$(COBJ):	$(COM) $(RNDOBJ)
+$(COBJ):	$(COM) $(DAGCOM) $(RNDOBJ)
 $(ROBJ):	$(RCOM)
 
 # Compile the gcm

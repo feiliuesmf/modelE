@@ -16,6 +16,7 @@ C**** Subsid only works on non-plume portion of column (properly!)
       USE SOMTQ_COM
       USE RANDOM
       USE GEOM
+      USE DAGCOM, only : aj,bj,cj,dj,aij,ajl,ail,adaily,jreg
       
       IMPLICIT NONE
 
