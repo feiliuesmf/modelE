@@ -411,7 +411,7 @@ C**** ii) change the ocean to land ice.
 C**** Option ii) has big problems in terms of conservation of heat (and
 C**** inability to ever be reversed and so is not recommended.
 C**** Option i) lose excess ice mass
-      MSINEW=MSI(I,J)-RHOW*(Z12O(I,J)-Z1OMIN)
+      MSINEW=MSI(I,J)-RHOW*(Z1O(I,J)-Z12O(I,J))
       HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
       SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
 #ifdef TRACERS_WATER
