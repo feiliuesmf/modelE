@@ -932,8 +932,15 @@ C**** Alternate (old) way of specifying end time
           call getunit(filenm,iu_AIC,.true.,.true.)
           call io_rsf(iu_AIC,itime,ioread_single,ioerr)
           write(6,*) 'read: ',filenm(1:70)
-          call closeunits   !!! - this doesn't look right 
+          call closeunits       !!! - this doesn't look right 
         end do
+        call get_param("NDAY",Nday)
+        call get_param("IYEAR0",Iyear0)
+        call get_param("Itime",Itime)
+        call get_param("Itime0",Itime0)
+        call getdte(Itime,Nday,Iyear0,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+        call getdte(Itime0,Nday,Iyear0,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
+     *       ,amon0)
         months=0 ; years=monacc(jmon0) ; mswitch=0
         do k=1,12
           if (monacc(k).eq.years) then
@@ -1172,15 +1179,7 @@ C**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
 C****
 C**** CALCULATE THE DAILY CALENDAR
 C****
-  200 JYEAR=IYEAR0+Itime/(Nday*JDperY)
-      JDAY=1+Itime/Nday-(JYEAR-IYEAR0)*JDperY
-         JMON=1
-      DO WHILE (JDAY.GT.JDendOfM(JMON))
-         JMON=JMON+1
-      END DO
-      JDATE=JDAY-JDendOfM(JMON-1)
-      Jhour=MOD(Itime*24/NDAY,24)  ! looks like it was not set at Itime=0
-      aMON=aMONTH(JMON)
+  200 call getdte(Itime,Nday,Iyear0,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
       CALL ORBIT (OBLIQ,ECCN,OMEGT,DFLOAT(JDAY)-.5,RSDIST,SIND,COSD,LAM)

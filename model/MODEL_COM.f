@@ -263,7 +263,7 @@ C****
       CHARACTER*12 TSTR1(NTIMEMAX)
 !@var ITmin,ITmax minimal/maximal Itime of acc files to be summed up
       INTEGER, SAVE :: ITmin=999999, ITmax=-1
-      INTEGER it1,idacc0(12) !@var it1,idacc1 dummy variables
+      INTEGER it1,it0,idacc0(12) !@var it1,it0,idacc1 dummy variables
       INTEGER, DIMENSION(11) :: idind = (/1,2,3,4,6,7,8,9,10,11,12/)
 
 C**** Possible additions to this file: FTYPE, (remove rsi from seaice?)
@@ -305,10 +305,16 @@ C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
           IDACC0=IDACC
           call read_param(kunit,.true.)
 
+C**** keep track of min/max time and earliest diagnostic period
           call get_param("Itime",it1)
+          call get_param("Itime0",it0)
           if (it1.gt.ITmax) ITmax=it1
-          if (it1.lt.ITmin) ITmin=it1
+          if (it1.lt.ITmin) THEN
+            ITmin=it1
+            IT0min=it0
+          end if
           call set_param("Itime",ITmax,'o')
+          call set_param("Itime0",IT0min,'o')
 
 C**** This should probably be moved to io_diags
           IDACC(idind) = IDACC(idind) + IDACC0(idind)
@@ -349,3 +355,27 @@ C**** This should probably be moved to io_diags
  10   IOERR=1
       RETURN
       END SUBROUTINE io_model
+
+      subroutine getdte(It,Nday,Iyr0,Jyr,Jmn,Jd,Jdate,Jhour,amn)
+!@sum  getdte gets julian calander info from internal timing info
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE CONSTANT, only : hrday
+      USE MODEL_COM, only : JDperY,JDendOfM,amonth
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: It,Nday,Iyr0
+      INTEGER, INTENT(OUT) :: Jyr,Jmn,Jd,Jdate,Jhour
+      CHARACTER*4, INTENT(OUT) :: amn
+
+      Jyr=Iyr0+It/(Nday*JDperY)
+      Jd=1+It/Nday-(Jyr-Iyr0)*JDperY
+      Jmn=1
+      do while (Jd.GT.JDendOfM(Jmn))
+        Jmn=Jmn+1
+      end do
+      Jdate=Jd-JDendOfM(Jmn-1)
+      Jhour=nint(mod(It*hrday/Nday,hrday))
+      amn=amonth(Jmn)
+
+      return
+      end subroutine getdte
