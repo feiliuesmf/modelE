@@ -58,78 +58,6 @@ C****
       RETURN
       END
 
-      SUBROUTINE DREAD (IUNIT,AIN,LENGTH,AOUT)
-!@sum   DREAD   read in real*4 array and convert to real*8
-!@auth  Reto Ruedy (should become obsolete)
-!@ver   1.0
-      IMPLICIT NONE
-      INTEGER :: IUNIT                    !@var  IUNIT  file unit number
-      INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
-      REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
-      REAL*8, INTENT(OUT) :: AOUT(LENGTH) !@var  AOUT   real*8 array
-      INTEGER :: N                        !@var  N      loop variable
-
-      READ (IUNIT) AIN
-C**** do transfer backwards in case AOUT and AIN are same workspace
-      DO N=LENGTH,1,-1
-         AOUT(N)=AIN(N)
-      END DO
-      RETURN
-      END
-
-      SUBROUTINE MREAD (IUNIT,M,NSKIP,AIN,LENGTH,AOUT)
-!@sum   MREAD   read in integer and real*4 array and convert to real*8
-!@auth  Reto Ruedy (should become obsolete)
-!@ver   1.0
-      IMPLICIT NONE
-      INTEGER :: IUNIT                    !@var  IUNIT  file unit number
-      INTEGER, INTENT(OUT) :: M           !@var  M      initial integer
-      INTEGER, INTENT(IN) :: NSKIP        !@var  NSKIP  words to skip
-      INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
-      REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
-      REAL*8, INTENT(OUT) :: AOUT(LENGTH) !@var  AOUT   real*8 array
-      REAL*4 :: X                         !@var  X      dummy variable
-      INTEGER :: N                        !@var  N      loop variable
-
-      READ (IUNIT) M,(X,N=1,NSKIP),AIN
-C**** do transfer backwards in case AOUT and AIN are same workspace
-      DO N=LENGTH,1,-1
-         AOUT(N)=AIN(N)
-      END DO
-      RETURN
-      END
-
-      SUBROUTINE READT (IUNIT,NSKIP,AIN,LENGTH,AOUT,IPOS)
-!@sum   READT  read in title and real*4 array and convert to real*8
-!@auth  Reto Ruedy (should become obsolete)
-!@ver   1.0
-      IMPLICIT NONE
-      INTEGER :: IUNIT             !@var  IUNIT  file unit number
-      INTEGER, INTENT(IN) :: NSKIP !@var  NSKIP  no. of chars. to skip
-      INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
-      INTEGER, INTENT(IN) :: IPOS  !@var  IPOS   no. of recs. to advance
-      REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
-      REAL*8, INTENT(OUT) :: AOUT(LENGTH) !@var  AOUT   real*8 array
-      REAL*4 :: X                  !@var  X      dummy variable
-      INTEGER :: N                 !@var  N      loop variable
-      CHARACTER*80 TITLE           !@var  TITLE  title of file record
-
-      DO N=1,IPOS-1
-         READ (IUNIT,END=920)
-      END DO
-      READ (IUNIT,ERR=910,END=920) TITLE,(X,N=1,NSKIP),AIN
-C**** do transfer backwards in case AOUT and AIN are same workspace
-      DO N=LENGTH,1,-1
-         AOUT(N)=AIN(N)
-      END DO
-      WRITE(6,'('' Read from Unit '',I3,'':'',A80)') IUNIT,TITLE
-      RETURN
-  910 WRITE(6,*) 'READ ERROR ON UNIT',IUNIT
-      STOP 'READ ERROR'
-  920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON UNIT',IUNIT
-      STOP 'NO DATA TO READ'
-      END
-
       SUBROUTINE TIMER (MNOW,MINC,MSUM)
 !@sum  TIMER keeps track of elapsed CPU time in hundredths of seconds
 !@auth Gary Russell
@@ -184,8 +112,12 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 
 !@param IUNIT0 starting unit for GCM files
       INTEGER, PARAMETER :: IUNIT0 = 50
+!@param IUNITMX maxiumum unit number allowed
+      INTEGER, PARAMETER :: IUNITMX = 98
 !@var NUNIT number of already opened files (initially zero)
       INTEGER, SAVE :: NUNIT = 0 
+!@var NAME name of unit number (or at least first ten characters) 
+      CHARACTER*10 :: NAME(IUNIT0:IUNITMX)
 
       CONTAINS
 
@@ -202,7 +134,8 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 !@var QBIN true if binary file is to be opened (UNFORMATTED)
       LOGICAL, INTENT(IN) :: QBIN
 
-      IF (IUNIT0+NUNIT.gt.200) STOP "Maximum file number reached"
+      IF (IUNIT0+NUNIT.gt.IUNITMX)
+     *     STOP "Maximum file number reached"
 
 C**** Set unit number
       IUNIT = IUNIT0 + NUNIT
@@ -214,6 +147,8 @@ C**** Open file
          OPEN(IUNIT,FILE=FILENM,FORM="FORMATTED",
      *        STATUS="OLD",ERR=10)
       END IF
+C**** set NAME for error tracking purposes
+      NAME (IUNIT) = FILENM
 C**** increment no of files      
       NUNIT = NUNIT + 1
 
@@ -239,7 +174,8 @@ C**** increment no of files
       LOGICAL, INTENT(IN), DIMENSION(*) :: QBIN
       INTEGER I !@var I loop variable
 
-      IF (IUNIT0+NUNIT+NREQ-1.gt.200) STOP "Maximum file number reached"
+      IF (IUNIT0+NUNIT+NREQ-1.gt.IUNITMX)
+     *     STOP "Maximum file number reached"
 
       DO I=1,NREQ 
 C**** Set unit number
@@ -252,6 +188,8 @@ C**** Open file
             OPEN(IUNIT(I),FILE=FILENM(I),FORM="FORMATTED",
      *           STATUS="OLD",ERR=10)
          END IF
+C**** set NAME for error tracking purposes
+         WRITE(NAME(IUNIT(I)),'(A8,I2)') FILENM(1:8),I
 C**** increment no of files      
          NUNIT = NUNIT + 1
       END DO
@@ -277,4 +215,91 @@ C**** increment no of files
       END SUBROUTINE CLOSEUNITS
 
       END MODULE FILEMANAGER
+
+      SUBROUTINE DREAD (IUNIT,AIN,LENGTH,AOUT)
+!@sum   DREAD   read in real*4 array and convert to real*8
+!@auth  Original Development Team
+!@ver   1.0
+      USE FILEMANAGER, only : NAME !@var NAME name of record being read
+      IMPLICIT NONE
+      INTEGER :: IUNIT                    !@var  IUNIT  file unit number
+      INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
+      REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
+      REAL*8, INTENT(OUT) :: AOUT(LENGTH) !@var  AOUT   real*8 array
+      INTEGER :: N                        !@var  N      loop variable
+
+      READ (IUNIT,ERR=910,END=920) AIN
+C**** do transfer backwards in case AOUT and AIN are same workspace
+      DO N=LENGTH,1,-1
+         AOUT(N)=AIN(N)
+      END DO
+      WRITE(6,*) "Sucessful read from file ",NAME(IUNIT)
+      RETURN
+  910 WRITE(6,*) 'READ ERROR ON FILE ',TRIM(NAME(IUNIT))
+      STOP 'READ ERROR IN DREAD'
+  920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON FILE ',TRIM(NAME(IUNIT))
+      STOP 'NO DATA TO READ'
+      RETURN
+      END
+
+      SUBROUTINE MREAD (IUNIT,M,NSKIP,AIN,LENGTH,AOUT)
+!@sum   MREAD   read in integer and real*4 array and convert to real*8
+!@auth  Reto Ruedy (should become obsolete)
+!@ver   1.0
+      USE FILEMANAGER, only : NAME !@var NAME name of record being read
+      IMPLICIT NONE
+      INTEGER :: IUNIT                    !@var  IUNIT  file unit number
+      INTEGER, INTENT(OUT) :: M           !@var  M      initial integer
+      INTEGER, INTENT(IN) :: NSKIP        !@var  NSKIP  words to skip
+      INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
+      REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
+      REAL*8, INTENT(OUT) :: AOUT(LENGTH) !@var  AOUT   real*8 array
+      REAL*4 :: X                         !@var  X      dummy variable
+      INTEGER :: N                        !@var  N      loop variable
+
+      READ (IUNIT,ERR=910,END=920) M,(X,N=1,NSKIP),AIN
+C**** do transfer backwards in case AOUT and AIN are same workspace
+      DO N=LENGTH,1,-1
+         AOUT(N)=AIN(N)
+      END DO
+      WRITE(6,*) "Sucessful read from file ",NAME(IUNIT)
+      RETURN
+  910 WRITE(6,*) 'READ ERROR ON FILE ',NAME(IUNIT)
+      STOP 'READ ERROR IN MREAD'
+  920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON FILE ',NAME(IUNIT)
+      STOP 'NO DATA TO READ'
+      RETURN
+      END
+
+      SUBROUTINE READT (IUNIT,NSKIP,AIN,LENGTH,AOUT,IPOS)
+!@sum   READT  read in title and real*4 array and convert to real*8
+!@auth  Original Development Team
+!@ver   1.0
+      USE FILEMANAGER, only : NAME !@var NAME name of record being read
+      IMPLICIT NONE
+      INTEGER :: IUNIT             !@var  IUNIT  file unit number
+      INTEGER, INTENT(IN) :: NSKIP !@var  NSKIP  no. of chars. to skip
+      INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
+      INTEGER, INTENT(IN) :: IPOS  !@var  IPOS   no. of recs. to advance
+      REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
+      REAL*8, INTENT(OUT) :: AOUT(LENGTH) !@var  AOUT   real*8 array
+      REAL*4 :: X               !@var  X      dummy variable
+      INTEGER :: N              !@var  N      loop variable
+      CHARACTER*80 TITLE        !@var  TITLE  title of file record
+
+      DO N=1,IPOS-1
+         READ (IUNIT,END=920)
+      END DO
+      READ (IUNIT,ERR=910,END=920) TITLE,(X,N=1,NSKIP),AIN
+C**** do transfer backwards in case AOUT and AIN are same workspace
+      DO N=LENGTH,1,-1
+         AOUT(N)=AIN(N)
+      END DO
+      WRITE(6,*) "Read from file ",TRIM(NAME(IUNIT)),": ",TRIM(TITLE)
+      RETURN
+  910 WRITE(6,*) 'READ ERROR ON FILE ',NAME(IUNIT)
+      STOP 'READ ERROR IN READT'
+  920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON FILE ',NAME(IUNIT)
+      STOP 'NO DATA TO READ'
+      END
 
