@@ -1,14 +1,13 @@
       subroutine def_acc
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c define acc names, units, etc
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       use DAGCOM
       implicit none
       integer :: k
       call iparm_defs
       call dparm_defs
       call tsf_defs
-      call tdn_defs
       call aj_defs
       dj_name=aj_name
       do k=1,kaj ! to avoid naming conflicts, put a prefix
@@ -2673,53 +2672,3 @@ c
 c
       return
       end subroutine tsf_defs
-
-      subroutine tdn_defs
-      use DAGCOM
-      implicit none
-      integer :: k
-c
-      k=0
-c
-      k=k+1
-      tdn_name(k) = 'TDIURN1'
-      tdn_lname(k) = 'unknown'
-      tdn_units(k) = 'unknown'
-c
-      k=k+1
-      tdn_name(k) = 'TDIURN2'
-      tdn_lname(k) = 'unknown'
-      tdn_units(k) = 'unknown'
-c
-      k=k+1
-      tdn_name(k) = 'TDIURN3'
-      tdn_lname(k) = 'unknown'
-      tdn_units(k) = 'unknown'
-c
-      k=k+1
-      tdn_name(k) = 'TDIURN4'
-      tdn_lname(k) = 'unknown'
-      tdn_units(k) = 'unknown'
-c
-      k=k+1
-      tdn_name(k) = 'TDIURN5'
-      tdn_lname(k) = 'unknown'
-      tdn_units(k) = 'unknown'
-c
-      k=k+1
-      tdn_name(k) = 'TDIURN6'
-      tdn_lname(k) = 'unknown'
-      tdn_units(k) = 'unknown'
-c
-      k=k+1
-      tdn_name(k) = 'TDIURN7'
-      tdn_lname(k) = 'unknown'
-      tdn_units(k) = 'unknown'
-c
-      k=k+1
-      tdn_name(k) = 'TDIURN8'
-      tdn_lname(k) = 'unknown'
-      tdn_units(k) = 'unknown'
-c
-      return
-      end subroutine tdn_defs

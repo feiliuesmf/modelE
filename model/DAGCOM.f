@@ -116,29 +116,29 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       DOUBLE PRECISION, DIMENSION(IM,JM,LM,KAIJL) :: AIJL
 
 !@param NWAV_DAG number of components in spectral diagnostics
-      INTEGER, PARAMETER :: NWAV_DAG=10
-!@param KAJLSP number of spectral diagnostics
+      INTEGER, PARAMETER :: NWAV_DAG=min(9,imh) 
+!@param KAJLSP number of spectral diagnostics   
       INTEGER, PARAMETER :: KAJLSP=3
 !@var AJLSP spectral diagnostics
-      DOUBLE PRECISION, DIMENSION(JM,LM,NWAV_DAG,KAJLSP) :: AJLSP
+      DOUBLE PRECISION, DIMENSION(JM,LM,0:NWAV_DAG,KAJLSP) :: AJLSP
 
-!@param N12HRS_IN_31DAY number of frequency diagnostics
-      INTEGER, PARAMETER :: N12HRS_IN_31DAY=62
-!@param RE_AND_IM complex components of frequency diagnostics
+!@param Max12HR_sequ,Min12HR_sequ lengths of time series for wave powers
+      INTEGER, PARAMETER :: Max12HR_sequ=2*31, Min12HR_sequ=2*28
+!@param RE_AND_IM complex components of wave power diagnostics
       INTEGER, PARAMETER :: RE_AND_IM=2
-!@param KWP number of frequency diagnostics
+!@param KWP number of wave power diagnostics
       INTEGER, PARAMETER :: KWP=12
-!@var WAVE frequency diagnostics
+!@var WAVE frequency diagnostics (wave power)
       DOUBLE PRECISION,
-     &     DIMENSION(RE_AND_IM,N12HRS_IN_31DAY,NWAV_DAG,KWP) :: WAVE
+     &     DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP) :: WAVE  
 
 !@param KACC total number of diagnostic elements
       INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ
      *     + JM*KAPJ + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +
      *     IM*LM*KAIL + IM*JM*KAIJG + NEHIST*HIST_DAYS + JM*KCON +
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDLYVAR*NDLYPT
-     *     + RE_AND_IM*N12HRS_IN_31DAY*NWAV_DAG*KWP + JM*LM*KAJK +
-     *     IM*JM*LM*KAIJK + IM*JM*LM*KAIJL + JM*LM*NWAV_DAG*KAJLSP
+     *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK + 
+     *     IM*JM*LM*KAIJK + IM*JM*LM*KAIJL + JM*LM*(1+NWAV_DAG)*KAJLSP
 
 c      COMMON /ACCUM/ AJ,BJ,CJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
 c     &  AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,

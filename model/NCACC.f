@@ -32,17 +32,17 @@ c f90 -c -64 NCACC.f
       call def_acc
 
       status = nf_create (trim(fileout), nf_clobber, ncid)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c write global header
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       status = nf_put_att_text(ncid,nf_global,'XLABEL',132,xlabel)
       status = nf_put_att_text(ncid,nf_global,'AMON',  4,amon)
       status = nf_put_att_text(ncid,nf_global,'AMON0',  4,amon0)
       call ncwrt_iparm(iparm_name,ncid,iparm,100)
       call ncwrt_dparm(dparm_name,ncid,dparm,100)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c define some popular dimensions
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'longitude', im,          lon_did)
       status = nf_def_dim(ncid, 'latitude' ,jm,          lat_did)
       status = nf_def_dim(ncid, 'lonb', im,          lonb_did)
@@ -52,9 +52,9 @@ c------------------------------------------------------------------------
       status = nf_def_dim(ncid, 'p',   lm,      plm_did)
       status = nf_def_dim(ncid, 'ple',   lm+1,      ple_did)
       status = nf_def_dim(ncid, 'NTYPE',ntype, ntype_did)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c define some supplemental variables not currently present in acc-file
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c longitudes at a-grid grid box centers
       status = nf_def_var (ncid, 'longitude', nf_real, 1, lon_did,varid)
 c latitudes at a-grid grid box centers
@@ -78,40 +78,33 @@ c global mean layer midpoint pressures
 c global mean layer edge pressures
       status = nf_def_var(ncid, 'ple', nf_real, 1, ple_did, varid)
 
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c idacc
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'NDACC', 12,  dimids(1))
       status = nf_def_var(ncid, 'IDACC', nf_int, 1, dimids, varid)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c surface type names
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       status=nf_def_dim(ncid,'STYPE_CLEN',len(stype_names(1)),dimids(1))
       dimids(2) = ntype_did
       status = nf_def_var(ncid, 'STYPE_NAMES', nf_char, 2,dimids,varid)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c keynr
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'NKEYNR',42, dimids(1))
       status = nf_def_dim(ncid, 'KEYNR2',50, dimids(2))
       status = nf_def_var(ncid, 'KEYNR', nf_int, 2,dimids,varid)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c tsfrez
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       dimids(1) = lon_did
       dimids(2) = lat_did
       call ncdefarr(tsf_name,tsf_lname,tsf_units,
      &     ncid,ktsf,nf_real,2,dimids)
-c------------------------------------------------------------------------
-c tdiurn
-c------------------------------------------------------------------------
-      dimids(1) = lon_did
-      dimids(2) = lat_did
-      call ncdefarr(tdn_name,tdn_lname,tdn_units,
-     &     ncid,ktd,nf_real,2,dimids)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c aj
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       dimids(1)=lat_did
       dimids(1)=ntype_did
       call ncdefarr(aj_name,aj_lname,aj_units,
@@ -122,134 +115,134 @@ c------------------------------------------------------------------------
      &     ncid,kaj,nf_real,1,dimids)
       call ncput_idacc(dj_name,aj_ia,ncid,kaj)
 
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c apj
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       dimids(1)=lat_did
       call ncdefarr(apj_name,apj_lname,apj_units,
      &     ncid,kapj,nf_real,1,dimids)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c ajl
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       dimids(1)=lat_did
       dimids(2)=sig_did
       call ncdefarr(ajl_name,ajl_lname,ajl_units,
      &     ncid,kajl,nf_real,2,dimids)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c asjl
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'str_level', lm_req,  str_levid)
       dimids(1)=lat_did
       dimids(2)=str_levid
       call ncdefarr(asjl_name,asjl_lname,asjl_units,
      &     ncid,kasjl,nf_real,2,dimids)
 
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c aij
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       dimids(1)=lon_did
       dimids(2)=lat_did
       call ncdefarr(aij_name,aij_lname,aij_units,
      &     ncid,kaij,nf_real,2,dimids)
       call ncput_idacc(aij_name,aij_ia,ncid,kaij)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c ail
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       dimids(1)=lon_did
       dimids(2)=sig_did
       call ncdefarr(ail_name,ail_lname,ail_units,
      &     ncid,kail,nf_real,2,dimids)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c aijg
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       dimids(1)=lon_did
       dimids(2)=lat_did
       call ncdefarr(aijg_name,aijg_lname,aijg_units,
      &     ncid,kaijg,nf_real,2,dimids)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c energy
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'ENERGY1', 20, dimids(1))
       status = nf_def_dim(ncid, 'ENERGY2',100, dimids(2))
       status = nf_def_var(ncid, 'ENERGY' ,nf_real,2,dimids,varid)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c consrv
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       dimids(1)=lat_did
       call ncdefarr(consrv_name,consrv_lname,consrv_units,
      &     ncid,kcon,nf_real,1,dimids)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c speca
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'IM_BY2_PLUS1',im/2+1, dimids(1))
       status = nf_def_dim(ncid, 'SP_QUANT'    ,    20, dimids(2))
       status = nf_def_dim(ncid, 'SP_NSPHER'   ,     8, dimids(3))
       status = nf_def_var(ncid, 'SPECA'       ,nf_real,3,dimids,varid)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c atpe
-c------------------------------------------------------------------------
-      status = nf_def_dim(ncid, 'ATPE1', 8, dimids(1)) ! m=1 thru 8 in d5
+c-----------------------------------------------------------------------
+      status = nf_def_dim(ncid, 'ATPE1', 8, dimids(1)) ! m=1->8 in d5
       status = nf_def_dim(ncid, 'NHEMI', 2, dimids(2))
       status = nf_def_var(ncid, 'ATPE', nf_real, 2, dimids, varid)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c adaily
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'HR_IN_DAY', 24, dimids(1))
       status = nf_def_dim(ncid, 'NDLYVAR',   63, dimids(2))
-      status = nf_def_dim(ncid, 'NDLYPT', 4, dimids(3)) 
+      status = nf_def_dim(ncid, 'NDLYPT', 4, dimids(3))
       status = nf_def_var(ncid, 'ADAILY',nf_real,3,dimids,varid)
       status = nf_put_att_text(ncid,varid,'NAMD6',16,namd6)
       status = nf_put_att_int(ncid,varid,'IJD6',nf_int,8,jc(81))
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c wave power
-c------------------------------------------------------------------------
-      status = nf_def_dim(ncid, 'RE_AND_IM',  2,  dimids(1))
-      status = nf_def_dim(ncid, 'N12HRS_IN_31DAY', 62,  dimids(2))
-      status = nf_def_dim(ncid, 'NWAV_DAG', 10,  nwav_dag_id)
+c-----------------------------------------------------------------------
+      status = nf_def_dim(ncid, 'RE_AND_IM', RE_AND_IM, dimids(1))
+      status = nf_def_dim(ncid, 'Max12hr_sequ', Max12hr_sequ, dimids(2))
+      status = nf_def_dim(ncid, 'NWAV_DAG', NWAV_DAG, nwav_dag_id)
       dimids(3)=nwav_dag_id
       call ncdefarr(wave_name,wave_lname,wave_units,
      &     ncid,kwp,nf_real,3,dimids)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c ajk
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       dimids(1)=latb_did
       dimids(2)=sig_did
       call ncdefarr(ajk_name,ajk_lname,ajk_units,
      &     ncid,kajk,nf_real,2,dimids)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c aijk (need to define the b-grid lon_did,lat_did)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       dimids(1)=lonb_did
       dimids(2)=latb_did
       dimids(3)=sig_did
       call ncdefarr(aijk_name,aijk_lname,aijk_units,
      &     ncid,kaijk,nf_real,3,dimids)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c aijl
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       dimids(1)=lon_did
       dimids(2)=lat_did
       dimids(3)=sig_did
       call ncdefarr(aijl_name,aijl_lname,aijl_units,
      &     ncid,kaijl,nf_real,3,dimids)
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c ajlsp_[dse,lht,mom]
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       dimids(1)=lat_did
       dimids(2)=sig_did
-      dimids(3)=nwav_dag_id
+      dimids(3)=nwav_dag_id + 1
       call ncdefarr(ajlsp_name,ajlsp_lname,ajlsp_units,
      &     ncid,kajlsp,nf_real,3,dimids)
 
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c end netcdf definitions
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 
       status = nf_enddef (ncid)
 
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
 c write data to netcdf file
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       var_name='longitude'; call ncwrtdbl1(var_name,ncid,lonab_deg(1,1))
       var_name='latitude';    call ncwrtdbl1(var_name,ncid,lat_deg)
       var_name='area';   call ncwrtdbl1(var_name,ncid,dxyp)
@@ -265,7 +258,6 @@ c------------------------------------------------------------------------
       var_name='STYPE_NAMES';  call ncwrtchar(var_name,ncid,stype_names)
       var_name='KEYNR';  call ncwrtint1(var_name,ncid,keynr)
       call ncwrtdbl(tsf_name,ncid,im*jm,ktsf,tsfrez)
-      call ncwrtdbl(tdn_name,ncid,im*jm,ktd,tdiurn)
       do k=1,kaj
          aj_tmp=aj(:,k,:)
          call ncwrtdbl1(aj_name(k),ncid,aj_tmp)
@@ -282,15 +274,15 @@ c------------------------------------------------------------------------
       var_name='SPECA';  call ncwrtdbl1(var_name,ncid,speca)
       var_name='ATPE';   call ncwrtdbl1(var_name,ncid,atpe)
       var_name='ADAILY'; call ncwrtdbl1(var_name,ncid,adaily)
-      call ncwrtdbl(wave_name,ncid,re_and_im*n12hrs_in_31day*nwav_dag,
+      call ncwrtdbl(wave_name,ncid,re_and_im*Max12hr_sequ*NWAV_DAG,
      &     kwp,wave)
       call ncwrtdbl(ajk_name,ncid,jm*lm,kajk,ajk)
       call ncwrtdbl(aijk_name,ncid,im*jm*lm,kaijk,aijk)
       call ncwrtdbl(aijl_name,ncid,im*jm*lm,kaijl,aijl)
-      call ncwrtdbl(ajlsp_name,ncid,jm*lm*nwav_dag,kajlsp,ajlsp)
-c------------------------------------------------------------------------
+      call ncwrtdbl(ajlsp_name,ncid,jm*lm*(nwav_dag+1),kajlsp,ajlsp)
+c-----------------------------------------------------------------------
 c close netcdf file
-c------------------------------------------------------------------------
+c-----------------------------------------------------------------------
       status = nf_close (ncid)
       return
       end subroutine write_nc_acc
