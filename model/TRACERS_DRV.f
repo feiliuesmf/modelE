@@ -2821,7 +2821,7 @@ C**** (not necessary associated with a particular tracer)
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Cloud to Ground Lightning Flash Rate'
         sname_ijts(k) = 'CtoG_flash'
-        ijts_power(k) = -10.
+        ijts_power(k) = 0.
         units_ijts(k) = unit_string(ijts_power(k),'flash/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef regional_Ox_tracers
