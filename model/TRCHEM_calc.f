@@ -8,7 +8,7 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE DOMAIN_DECOMP, only : GRID, GET
-      USE MODEL_COM, only       : im,jm,lm
+      USE MODEL_COM, only       : im,jm,lm,ls1
 #if (defined regional_Ox_tracers) || (defined SHINDELL_STRAT_CHEM)
      &                            ,ptop,psf,sig
 #endif
@@ -37,7 +37,7 @@ C
      &                   ny,rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
      &                   prnchg,y,bymass2vol,kss,nps,kps,nds,kds,
-     &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O
+     &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,which_trop
 #ifdef SHINDELL_STRAT_CHEM
      &                   ,SF3,ratioNs,ratioN2,rNO2frac,nO,nClO,nBrO
      &                   ,rNOfrac,rNOdenom,nOClO,nCl,nBr,changeCl
@@ -128,9 +128,17 @@ C     TROPOSPHERIC CHEMISTRY ONLY or TROP+STRAT:
 #ifdef SHINDELL_STRAT_CHEM
       maxl=LM
 #else
-      maxl=LTROPO(I,J)
+      select case(which_trop)
+      case(0); maxl=ltropo(I,J)
+      case(1); maxl=ls1-1
+      case default; call stop_model('which_trop problem 1',255)
+      end select
 #endif
-      maxT=LTROPO(I,J)
+      select case(which_trop)
+      case(0); maxT=ltropo(I,J)
+      case(1); maxT=ls1-1
+      case default; call stop_model('which_trop problem 2',255)
+      end select
 
 #if (defined regional_Ox_tracers) || (defined SHINDELL_STRAT_CHEM)
       do L=1,maxL
@@ -1190,9 +1198,9 @@ c*** limit the change due to chemistry ***
            changeL(L,igas) = 0.d0
         endif
         if(-changeL(L,igas).gt.trm(I,J,L,igas)) THEN
-          if(prnchg)
-     &    WRITE(99,*)'change .gt. mass, so use 95%: I,J,L,igas,change'
-     &    ,I,J,L,igas,changeL(L,igas)
+!GSFX     if(prnchg) <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+!    &    WRITE(99,*)'change .gt. mass, so use 95%: I,J,L,igas,change'
+!    &    ,I,J,L,igas,changeL(L,igas)
           changeL(L,igas) = -0.95d0*trm(I,J,L,igas)
         endif
 C surface Ox change diagnostic:
