@@ -482,7 +482,11 @@ sub postprocess_lists {
 	foreach my $call ( @call_list ) {
 	    $call =~ tr/A-Z/a-z/;
 	    #print "CALLS: $sub_name /  $call\n";
-	    if ( $call =~ /:/ ) { next; } # looks good will not change
+	    if ( $call =~ /:/ ) { 
+		($mod_name,$name) = split /:/, $call;
+		$call = uc($mod_name).":".lc($name);
+		next; 
+	    }
 	    my $mod_name = (split /:/, $sub_name)[0];
 	    #print "MOD_NAME:  $mod_name\n";
 	    if ( $db_subs{"$mod_name:$call"}{file} ) {
