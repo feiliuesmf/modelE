@@ -180,6 +180,7 @@ C****   COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
         ERSI0=ERSI1
       END IF
 C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
+      IMON0=JMON
       if (ocn_cycl.eq.1) then
         if (jmon.eq.1) then
           rewind iu_OSST
@@ -189,7 +190,6 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
         call readt (iu_OSST,0,AOST,2*im*jm,AOST,1) ! reads AOST,EOST1
         call readt (iu_SICE,0,ARSI,2*im*jm,ARSI,1) ! reads ARSI,ERSI1
       else   !  if (ocn_cycl.eq.0) then
-        IMON0=JMON
         CALL MREAD (iu_OSST, M,0,AOST,2*IM*JM,AOST) ! READS AOST,EOST1
         CALL MREAD (iu_SICE,M1,0,ARSI,2*IM*JM,ARSI) ! READS ARSI,ERSI1
         WRITE(6,*) 'Read in ocean data for month',JMON,M,M1
