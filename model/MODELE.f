@@ -1034,6 +1034,10 @@ C****
 C**** Initialize pbl (and read in file containing roughness length data)
       if(istart.gt.0) CALL init_pbl(iniPBL)
 C****
+C**** Initialize the use of gravity wave drag diagnostics
+C****
+      CALL init_GWDRAG
+C****
       if(istart.gt.0) CALL RINIT (IRAND)
       CALL FFT0 (IM)
       if(istart.gt.0) CALL init_CLD
