@@ -1988,8 +1988,8 @@ c
 c
       k=k+1
       IJ_G04 = k
-      name_ij(k) = 'bs_wlay4' !
-      lname_ij(k) = 'LAYER 4 BARE SOIL WATER'
+      name_ij(k) = 'bs_wlay6' !
+      lname_ij(k) = 'LAYER 6 BARE SOIL WATER'
       units_ij(k) = 'mm'
       ia_ij(k) = ia_src
       scale_ij(k) = 1000.
@@ -2046,8 +2046,8 @@ c
 c
       k=k+1
       IJ_G10 = k
-      name_ij(k) = 'vs_wlay3' !
-      lname_ij(k) = 'LAYER 3 VEGETATED SOIL WATER'
+      name_ij(k) = 'vs_wlay6' !
+      lname_ij(k) = 'LAYER 6 VEGETATED SOIL WATER'
       units_ij(k) = 'mm'
       ia_ij(k) = ia_src
       scale_ij(k) = 1000.
@@ -2115,8 +2115,8 @@ c
 c
       k=k+1
       IJ_G17 = k
-      name_ij(k) = 'bs_tlay3' !
-      lname_ij(k) = 'BARE SOIL LAYER 3 TEMPERATURE'
+      name_ij(k) = 'bs_tlay6' !
+      lname_ij(k) = 'BARE SOIL LAYER 6 TEMPERATURE'
       units_ij(k) = 'C'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./NIsurf
@@ -2212,8 +2212,8 @@ c
 c
       k=k+1
       IJ_G24 = k
-      name_ij(k) = 'vs_tlay3' !
-      lname_ij(k) = 'VEGETATED SOIL LAYER 3 TEMPERATURE'
+      name_ij(k) = 'vs_tlay6' !
+      lname_ij(k) = 'VEGETATED SOIL LAYER 6 TEMPERATURE'
       units_ij(k) = 'C'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./NIsurf

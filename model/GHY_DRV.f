@@ -574,11 +574,11 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       if (moddsf.eq.0) then
         aij(i,j,ij_g15)=aij(i,j,ij_g15)+tp(1,1)
         aij(i,j,ij_g16)=aij(i,j,ij_g16)+tp(2,1)
-        aij(i,j,ij_g17)=aij(i,j,ij_g17)+tp(3,1)
+        aij(i,j,ij_g17)=aij(i,j,ij_g17)+tp(6,1)
         aij(i,j,ij_g21)=aij(i,j,ij_g21)+tp(0,2)
         aij(i,j,ij_g22)=aij(i,j,ij_g22)+tp(1,2)
         aij(i,j,ij_g23)=aij(i,j,ij_g23)+tp(2,2)
-        aij(i,j,ij_g24)=aij(i,j,ij_g24)+tp(3,2)
+        aij(i,j,ij_g24)=aij(i,j,ij_g24)+tp(6,2)
         aij(i,j,ij_g25)=aij(i,j,ij_g25)+fb*zw(1)+fv*zw(2)
       end if
       trhdt=trheat*dtsurf-atrg
@@ -1022,8 +1022,6 @@ c**** read topmodel parameters
         !!!if (istart.le.0) return
       endif
 
-
-      if (istart.le.0) return
 c****
 c**** initialize constants
 c****
@@ -1031,6 +1029,12 @@ c**** time step for ground hydrology
       dt=dtsurf
 c spgsn is the specific gravity of snow
       spgsn=.1d0
+
+ccc read and initialize vegetation here
+      call init_vegetation(redogh,istart)
+
+      ! no need to continue computations for postprocessing
+      if (istart.le.0) return
 
 c**** check whether ground hydrology data exist at this point.
       ghy_data_missing = .false.
@@ -1060,12 +1064,6 @@ c**** check whether ground hydrology data exist at this point.
         call stop_model(
      &       'Ground Hydrology data is missing at some cells',255)
       endif
-
-ccc read and initialize vegetation here
-      call init_vegetation(redogh,istart)
-
-      ! no need to continue computations for postprocessing
-      if (istart.le.0) return
 
       call hl0
 
@@ -1798,7 +1796,7 @@ c****
       use veg_com, only : afb
       use dagcom, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
-     *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g28
+     *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g04,ij_g10,ij_g28
      *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow
       use fluxes, only : e0,e1,evapor,eprec
       implicit none
@@ -1864,10 +1862,12 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
         aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +f0dt+enrgp
         aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)
         aij(i,j,ij_evape)=aij(i,j,ij_evape)+evap
-        do k=1,4
+        do k=1,3
           aij(i,j,ij_g01+k-1)=aij(i,j,ij_g01+k-1)+wbare(k,i,j)
           aij(i,j,ij_g07+k-1)=aij(i,j,ij_g07+k-1)+wvege(k-1,i,j)
         end do
+        aij(i,j,ij_g04)=aij(i,j,ij_g04)+wbare(6,i,j)
+        aij(i,j,ij_g10)=aij(i,j,ij_g10)+wvege(6,i,j)        
         aij(i,j,ij_g28)=aij(i,j,ij_g28)+snowbv(1,i,j)
         aij(i,j,ij_g29)=aij(i,j,ij_g29)+snowbv(2,i,j)
       end if
