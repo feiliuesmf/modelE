@@ -7,7 +7,7 @@ c
       USE RESOLUTION, only : im,jm,lm,ls1,istrat,psf,
      &                       ptop,sig,sige,dsig,bydsig
       USE MODEL_COM, only  : dtsrc,Itime,ItimeI,T,JEQ
-      USE CONSTANT, only   : pi, mair, mwat
+      USE CONSTANT, only   : pi, mair, mwat, radian
       USE DYNAMICS, only   : am, byam, PMID, PK
       USE GEOM, only       : BYDXYP,dxyp
       USE RE001, only : TAUWC, TAUIC
@@ -74,6 +74,7 @@ C
 !@param RKBYPIM=8.*RBOLTZ/pi/MASSN2O55 =8.*1.38062E-23/3.14159/1.793E-25
 !@param cboltz Boltzman's Constant = 1.3806d-19
 !@param dlogp 10.d0**(-2./16.)
+!@param byradian 1/radian = conversion from radians to degrees
       INTEGER, PARAMETER ::
      & p_1   =     2,
      & p_2   =   111,
@@ -165,7 +166,8 @@ C
      &                      ZZHT         = 5.d5,
      &                      odmax        = 200.d0,
      &                      zlbatm       = 4.d0,
-     &                      CMEQ1        = 0.25D0   
+     &                      CMEQ1        = 0.25D0,
+     &                      byradian     = 1.d0/radian
 C  
       LOGICAL, PARAMETER :: luselb       = .false.
 c
