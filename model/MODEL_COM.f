@@ -306,7 +306,7 @@ C**** use doc-record to check the basic model parameters
         CASE (IRERUN)           ! parameters from rundeck & restart file
           call read_param(kunit,.false.)
           nday=nd1 ; itimei=iti1      ! changeable only at new starts
-          itimee=ite1                 ! is changed later if appropriate
+          itimee=ite1 ; itime0=it01   ! is changed later if appropriate
           if (iyear1.lt.0) iyear1=iy1 ! rarely changes on restart/reruns
         CASE (IOREAD_SINGLE)    ! parameters/label from 1-many acc files
           call read_param(kunit,.true.)  ! ignore rundeck
@@ -428,13 +428,13 @@ C**** Calls to individual i/o routines
         call io_clouds (kunit,iaction,ioerr)
         call io_somtq  (kunit,iaction,ioerr)
         call io_rad    (kunit,iaction,ioerr)
-#ifdef TRACERS_ON        
+#ifdef TRACERS_ON
         call io_tracer (kunit,iaction,ioerr)
 #endif
       end if
       call io_diags  (kunit,it,iaction,ioerr)
       call io_ocdiag (kunit,it,iaction,ioerr)
-#ifdef TRACERS_ON        
+#ifdef TRACERS_ON
       call io_trdiag (kunit,it,iaction,ioerr)
 #endif
 
