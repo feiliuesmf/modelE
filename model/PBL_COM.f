@@ -37,7 +37,7 @@
       double precision, dimension(im,jm,4) :: ustar
 
 !@var egcm  3-d turbulent kinetic energy in the whole atmosphere
-      real*8, dimension(lm,im,jm) :: egcm
+      real*8, dimension(lm,im,jm) :: egcm,t2gcm
 
 !@var egcm  2-d turbulent fluxes
       real*8, dimension(im,jm) :: uflux,vflux,tflux,qflux

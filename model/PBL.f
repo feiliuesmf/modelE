@@ -11,13 +11,19 @@
       IMPLICIT NONE
       SAVE
       integer, parameter :: n=8  !@param n  no of pbl. layers
+      integer, parameter :: nlevel=25  !@param nlevel level of the model
 
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
       real*8, dimension(n) :: sub,dia,sup,rhs,rhs1
 
       real*8 :: rimax,ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
-     *     ,s0,s1,s2,s3,s4,s5,s6,c1,c2,c3,c4,c5,b1,b123,b2
+     *     ,s0,s1,s2,s4,s5,s6,c1,c2,c3,c4,c5,b1,b123,b2,prt
+
+      !for level 3 model only:
+      real*8 :: g0,d1_3,d2_3,d3_3,d4_3,d5_3
+     *         ,s0_3,s1_3,s2_3,s3_3,s4_3,s5_3,s6_3          
+     *         ,g1,g2,g3,g4,g5,g6,g7,g8
 
 C**** boundary layer parameters
       real*8, parameter :: kappa=0.40d0 !@var kappa  Von Karman constant
@@ -164,50 +170,50 @@ c   Step 1:
       call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
      2            ustar,cm,z0m,utop,vtop,dtime,coriol,
      3            ug,vg,n)
-
+ 
 c     if ((itype.eq.4).or.(itype.eq.3)) then
-        if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
-          call tfix(t,z,ttop,tgrnd,lmonin,n) !why should we do this?
-          itmax=2
-        endif
+c       if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
+c         call tfix(t,z,ttop,tgrnd,lmonin,n) !why should we do this?
+c         itmax=2
+c       endif
 c     endif
-
-      call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
-
+c
+c     call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
+c
 c   Second, iteratively recompute the fields.
 c   perform test to see if solution has converged. This
 c   condition obtains if ustar remains stable to a defined limit
 c   between iterations.
 c   e_eqn is called if level 2.5 is used, level2 for level 2 model
 c   Step 2:
-
-      do iter=1,itmax
-
-        call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
-        call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
-     2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
-     3             km,kh,kq,dzh,itype,n)
-
-        test=abs((ustar-ustar0)/(ustar+ustar0))
-        if (test.lt.tol) exit
-        ustar0=ustar
-
-        call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
-     2                 ustar,dtime,n)
-        call t_eqn(u,v,tsave,qsave,t,q,z,kh,dz,dzh,
-     2              ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
-     3              ttop,qtop,dtime,n)
-        call q_eqn(u,v,tsave,qsave,t,q,z,kq,dz,dzh,
-     2              ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
-     3              ttop,qtop,dtime,n)
-
-        call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
-     2              ustar,cm,z0m,utop,vtop,dtime,coriol,
-     3              ug,vg,n)
-
-        call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
-
-      end do
+c
+c     do iter=1,itmax
+c
+c       call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
+c       call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
+c    2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
+c    3             km,kh,kq,dzh,itype,n)
+c
+c       test=abs((ustar-ustar0)/(ustar+ustar0))
+c       if (test.lt.tol) exit
+c       ustar0=ustar
+c
+c       call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
+c    2                 ustar,dtime,n)
+c       call t_eqn(u,v,tsave,qsave,t,q,z,kh,dz,dzh,
+c    2              ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
+c    3              ttop,qtop,dtime,n)
+c       call q_eqn(u,v,tsave,qsave,t,q,z,kq,dz,dzh,
+c    2              ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
+c    3              ttop,qtop,dtime,n)
+c
+c       call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
+c    2              ustar,cm,z0m,utop,vtop,dtime,coriol,
+c    3              ug,vg,n)
+c
+c       call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
+c
+c     end do
 
       us    = u(1)
       vs    = v(1)
@@ -716,7 +722,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       implicit none
 
       ! temperary variable
-      real*8 :: g1,g2,g3,g4,g5,g6,g7,g8,prt,del
+      real*8 :: del
 
       prt=     0.82d0
       b1=     19.3d0
@@ -740,7 +746,6 @@ c
       s0=g1/2
       s1=-g4/(3*g5**2)*(g6+g7)+2*g4/(3*g5)*(g1-g2/3-g3)+g1/(2*g5)*g8
       s2=-g1/(8*g5**2)*(g6**2-g7**2)
-      s3=0.d0
       s4=2/(3*g5)
       s5=2*g4/(3*g5**2)
       s6=2/(3*g5)*(g3**2-g2**2/3)-g1/(2*g5)*(g3-g2/3)
@@ -765,6 +770,21 @@ c     find ghmin,ghmax,gmmax0:
       ghmax=(b1*0.53d0)**2
       gmmax0=(b1*1.95d0)**2
 
+      ! for level 3 model only:
+      g0=2.d0/3
+      d1_3=(7*g4/3)/g5
+      d2_3=d2
+      d3_3=g4/(3*g5**2)*(4*g4)
+      d4_3=g4/(3*g5**2)*(g2*g6-3*g3*g7-g5*(g2**2-g3**2))
+      d5_3=d5
+      s0_3=s0
+      s1_3=-g4/(3*g5**2)*(g6+g7)+2*g4/(3*g5)*(g1-g2/3-g3)
+      s2_3=s2
+      s3_3=g0*g4/g5*(g3+g2/3+1/(2*g5)*(g6+g7))
+      s4_3=s4
+      s5_3=s5
+      s6_3=s6
+   
       return
       end subroutine ccoeff0
 
