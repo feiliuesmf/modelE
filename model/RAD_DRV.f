@@ -509,6 +509,7 @@ C****                                         even if the year is fixed
       KYEARG=ghg_yr  ; KJDAYG=ghg_day              ! well-mixed GHGases
       if(ghg_yr.gt.0)  MADGHG=0                    ! skip GHG-updating
       KYEARO=O3_yr   ; KJDAYO=0 ;       MADO3M=-1  ! ozone (ann.cycle)
+      if(KYEARO.gt.0) KYEARO=-KYEARO              ! use ONLY KYEARO-data
       KYEARA=Aero_yr ; KJDAYA=0 ;       MADAER=1 !trop.aeros (ann.cycle)
       KYEARV=Volc_yr ; KJDAYV=Volc_day; MADVOL=1   ! Volc. Aerosols
 C**** NO time history (yet), except for ann.cycle, for forcings below;
