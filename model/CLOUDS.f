@@ -195,6 +195,8 @@ C**** functions
 !@var TPSAV, SVTP  arrays to save plume temperature
 !@var DDM downdraft mass
 
+!@var IERRT,LERRT error reports from advection
+      INTEGER :: IERRT,LERRT 
       INTEGER LDRAFT,LEVAP,LMAX,LMIN,MCCONT,MAXLVL
      *     ,MINLVL,ITER,IC,LFRZ,NSUB,LDMIN
 !@var LDRAFT the layer the downdraft orginates
@@ -927,17 +929,19 @@ C****
       cmneg(ldmin:lmax)=-cm(ldmin:lmax)
       cmneg(lmax)=0. ! avoid roundoff error (esp. for qlimit)
       call adv1d(sm(ldmin),smom(1,ldmin), f(ldmin),fmom(1,ldmin),
-     &     ml(ldmin),cmneg(ldmin), nsub,.false.,1, zdir,ierr,lerr)
+     &     ml(ldmin),cmneg(ldmin), nsub,.false.,1, zdir,ierrt,lerrt)
       SM(LDMIN:LMAX) =   SM(LDMIN:LMAX) +   DSM(LDMIN:LMAX)
       SMOM(:,LDMIN:LMAX) =  SMOM(:,LDMIN:LMAX) +  DSMOM(:,LDMIN:LMAX)
+      ierr=max(ierrt,ierr) ; lerr=max(lerrt,lerr)
 C****
       ML(LDMIN:LMAX) = AIRM(LDMIN:LMAX) +   DMR(LDMIN:LMAX)
       QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +  DQMR(LDMIN:LMAX)
       QMOM(:,LDMIN:LMAX) =  QMOM(:,LDMIN:LMAX) + DQMOMR(:,LDMIN:LMAX)
       call adv1d(qm(ldmin),qmom(1,ldmin), f(ldmin),fmom(1,ldmin),
-     &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierr,lerr)
+     &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierrt,lerrt)
       QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +   DQM(LDMIN:LMAX)
       QMOM(:,LDMIN:LMAX) =  QMOM(:,LDMIN:LMAX) +  DQMOM(:,LDMIN:LMAX)
+      ierr=max(ierrt,ierr) ; lerr=max(lerrt,lerr)
 C**** diagnostics
       DO L=LDMIN,LMAX
         FCDH=0.
@@ -956,9 +960,10 @@ C**** Subsidence of tracers by Quadratic Upstream Scheme
       TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N)+DTMOMR(:,LDMIN:LMAX,N)
       call adv1d(tm(ldmin,n),tmom(1,ldmin,n), f(ldmin),fmom(1,ldmin),
-     &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierr,lerr)
+     &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierrt,lerrt)
       TM(LDMIN:LMAX,N) = TM(LDMIN:LMAX,N) +   DTM(LDMIN:LMAX,N)
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) +DTMOM(:,LDMIN:LMAX,N)
+      ierr=max(ierrt,ierr) ; lerr=max(lerrt,lerr)
       END DO
 #endif
 c      SUMOLD=0.

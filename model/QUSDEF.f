@@ -109,7 +109,7 @@ c-----------------------------------------------------------
             call limitq(anm1,an,fnm1,fn,sn,sxn,sxxn,ierr)
             if (ierr.gt.0) then
               nerr=n
-              return
+              if (ierr.eq.2) return
             end if
             f(n) = fn
             f(nm1) = fnm1
