@@ -182,6 +182,7 @@ c
 !@sum DIAGJ produces area weighted statistics of zonal budget diags
 !@+   based on settings and quantities found in j_defs
 !@auth G. Schmidt/R. Reto/G. Russell
+      use filemanager
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : im,jm,lm,fim,flice,
      &     dtsrc,fland,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
@@ -204,18 +205,16 @@ c
       REAL*8, DIMENSION(2) :: FHEM
       INTEGER, DIMENSION(JM) :: MLAT
       INTEGER, DIMENSION(2) :: MHEM
-      LOGICAL QALB
+      LOGICAL QALB,qIbp
       INTEGER, PARAMETER :: INC=1+(JM-1)/24,JMHALF=JM/2
 !@param NTYPE_OUT number of output budgets pages
-      INTEGER, PARAMETER :: NTYPE_OUT=NTYPE+2  ! to include composites
+      INTEGER, PARAMETER :: NTYPE_OUT=NTYPE+3  ! to include comp/regio
 C**** Expanded version of surfaces (including composites)
 !@var TERRAIN name of surface type
       CHARACTER*16, DIMENSION(0:NTYPE_OUT), PARAMETER :: TERRAIN = (/
      *     '    (GLOBAL)','(OPEN OCEAN)',' (OCEAN ICE)','     (OCEAN)',
      *     '      (LAND)','  (LAND ICE)',' (OPEN LAKE)','  (LAKE ICE)',
-     *     '     (LAKES)'/)
-!@var Iterr terrain index chosen by kdiag(1) if >1 and <8
-      integer, dimension(2:7) :: Iterr = (/0, 1,2, 4,5, 8/)
+     *     '     (LAKES)','   (REGIONS)'/)
 C**** Arrays needed for full output
       REAL*8, DIMENSION(JM+3,KAJ) :: BUDG
       CHARACTER*16, DIMENSION(KAJ) :: TITLEO
@@ -223,12 +222,12 @@ C**** Arrays needed for full output
       CHARACTER*30, DIMENSION(KAJ) :: SNAMEO
       CHARACTER*50, DIMENSION(KAJ) :: UNITSO
 C**** weighting functions for surface types
-      REAL*8, DIMENSION(0:NTYPE_OUT,NTYPE), PARAMETER ::
+      REAL*8, DIMENSION(0:NTYPE_OUT-1,NTYPE), PARAMETER ::
      *     WT=RESHAPE(          ! separate types + composites
      *     (/1.,1.,0.,1.,0.,0.,0.,0.,0., 1.,0.,1.,1.,0.,0.,0.,0.,0.,
      *       1.,0.,0.,0.,1.,0.,0.,0.,0., 1.,0.,0.,0.,0.,1.,0.,0.,0.,
      *       1.,0.,0.,0.,0.,0.,1.,0.,1., 1.,0.,0.,0.,0.,0.,0.,1.,1./),
-     *     (/NTYPE_OUT+1,NTYPE/) )
+     *     (/NTYPE_OUT,NTYPE/) )
 !@var DERPOS character array that determines where derived arrays go
 !@var NDERN how many of the derived arrays go in
 !@var NDMAX max number of derived array place holders
@@ -240,7 +239,10 @@ C**** weighting functions for surface types
 
       REAL*8 :: A1BYA2,A2BYA1,BYA1,BYIACC,FGLOB,GSUM,GSUM2,GWT
      *     ,HSUM,HSUM2,HWT,QDEN,QJ,QNUM,DAYS,WTX
-      INTEGER :: I,IACC,J,JH,JHEMI,JR,K,KA,M,MD,N,ND,NN,IT,NDER,KDER,PG1
+      INTEGER :: I,IACC,J,JH,JHEMI,JR,K,KA,M,MD,N,ND,NN,IT,NDER,KDER
+     *     ,iu_Ibp
+      character*80 line
+      logical, save :: Qbp(0:NTYPE_OUT)
       INTEGER, SAVE :: IFIRST = 1
       integer, external :: NINTlimit
 
@@ -258,11 +260,30 @@ C**** INITIALIZE CERTAIN QUANTITIES
         END DO
         S1(1)=1.
         S1(JM)=1.
+        inquire(file='Ibp',exist=qIbp)
+        Qbp=.true.
+        if(.not.qIbp) then
+          call openunit('Ibp',iu_Ibp,.false.,.false.)
+          write (iu_Ibp,'(a)') 'List of budget-pages'
+          do m = 0,ntype_out
+            write (iu_Ibp,'(i3,1x,a)') m,terrain(m)
+          end do
+        else if(kdiag(1).gt.0) then
+          Qbp=.false.
+          call openunit('Ibp',iu_Ibp,.false.,.true.)
+          read (iu_Ibp,'(a)',end=20) line
+   10     read (iu_Ibp,'(a)',end=20) line
+          read(line,'(i3)') m
+          Qbp(m)=.true.
+          go to 10
+
+   20     continue
+        end if
       END IF
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      IF (QDIAG)  ! the +1 is because types dimensioned 0:ntype_out
+      IF (QDIAG)  ! excl. regions, but types dimensioned 0:ntype_out
      &     call open_j(trim(acc_period)//'.j'//XLABEL(1:LRUNID)
-     *     ,ntype_out+1,jm,lat_dg)
+     *     ,ntype_out,jm,lat_dg)
 
 C**** CALCULATE THE DERIVED QUANTTIES
       BYA1=1./(IDACC(ia_srf)+teeny)
@@ -302,9 +323,8 @@ C****
 C**** LOOP OVER SURFACE TYPES: 1 TO NTYPE
 C****
       IF (KDIAG(1).GT.7) GO TO 510
-      pg1=0
-      if (KDIAG(1).gt.1) pg1=Iterr(kdiag(1))
-      DO M=pg1,NTYPE_OUT
+      DO M=0,NTYPE_OUT-1
+      if(.not.Qbp(M)) cycle
       WRITE (6,901) XLABEL
       WRITE (6,902) TERRAIN(M),JYEAR0,AMON0,JDATE0,JHOUR0,
      *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
@@ -439,10 +459,10 @@ C****
       WRITE (6,905)
       IF (QDIAG) CALL POUT_J(TITLEO,SNAMEO,LNAMEO,UNITSO,BUDG,k_j_out
      *     +nj_out,TERRAIN(M),M+1) ! the +1 is because M starts at 0
-      IF (KDIAG(1).GT.1) RETURN
       END DO
       if(qdiag) call close_j
-  510 IF (KDIAG(1).GT.0.AND.KDIAG(1).NE.8) RETURN
+      IF (.not.Qbp(ntype_out)) RETURN
+  510 CONTINUE
 C****
 C**** PRODUCE REGIONAL STATISTICS
 C****
@@ -663,7 +683,7 @@ c Check the count
          call openunit('Ijk',iu_Ijk,.false.,.true.)
          read (iu_Ijk,'(a)',end=20) line
    10    read (iu_Ijk,'(a)',end=20) line
-         if(line(1:1).eq.'L') go to 20
+         if(line(1:1).eq.'l') go to 20
          read(line,'(i3)') kk
          Ql(kk)=.true.
          go to 10
@@ -927,7 +947,7 @@ c Check the count
       end if
 
       if(.not.qIjk) then
-         write (iu_Ijk,'(a)') 'List of JK-fields'
+         write (iu_Ijk,'(a)') 'list of JK-fields'
          do kk = 1,k
            write (iu_Ijk,'(i3,1x,a)') kk,lname_jk(kk)
          end do
@@ -1010,7 +1030,6 @@ C**** avoid printing out diagnostics that are not yet defined
 C**** INITIALIZE CERTAIN QUANTITIES
       call JKJL_TITLEX
 
-      IF (KDIAG(2).GE.8) GO TO 120
       KM=LM
       DO 30 L=1,LM
       PKM(L)=PLM(L)**KAPA
@@ -1233,7 +1252,6 @@ C**** VERTICAL WINDS
 C****
 C**** CALCULATIONS FOR STANDING EDDIES
 C****
-  120 CONTINUE
         AX=0.
         BX=0.
         CX=0.
@@ -1270,7 +1288,6 @@ C****
       BX(J,K)=SNDEGI-SZNDEG
       CX(J,K)=SNAMI-PUTI*PVTI/(DPTI+teeny)
   170 CONTINUE
-      IF (KDIAG(2).GE.8) RETURN
 C**** STANDING EDDY, EDDY AND TOTAL KINETIC ENERGY
       n = jk_seke
       SCALET = scale_jk(n)
@@ -1703,7 +1720,7 @@ C**** WIND: RATE OF CHANGE, ADVECTION, EDDY CONVERGENCE
       CALL JLMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
      &     PLM,AJK(1,1,n),SCALET,ONES,ONES,KM,2,JGRID_JK(n))
   730 CONTINUE
-C**** Depending on whether EP fluxes have been specially calcualted
+C**** Depending on whether EP fluxes have been specially calculated
 C**** output full or approximate version
       IF (KEP.gt.0) THEN
         CALL EPFLXP
@@ -4239,7 +4256,7 @@ C****
       USE DAGCOM, only :
      &     speca,atpe,ajk,aijk,kspeca,ktpe,nhemi,nspher,ijk_u,klayer
      &     ,JK_DPB,xwon,ia_d5s,ia_filt,ia_12hr,ia_d5f,ia_d5d,ia_dga
-     *     ,ia_inst
+     *     ,ia_inst,kdiag
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM) :: X
@@ -4263,7 +4280,7 @@ C****
       INTEGER ::
      &     I,IUNITJ,IUNITW,J,J45N,
      &     K,KPAGE,KROW,KSPHER,L,
-     &     M,MAPE,MTPE,N,NM,NM1
+     &     M,MAPE,MTPE,N,NM,NM1, LATF,LATL
 
       REAL*8 :: FACTOR,FNM
 
@@ -4324,7 +4341,12 @@ C****
   605 SCALET(K)=XWON*SCALET(K)
       IUNITJ=17
       IUNITW=12
-      DO 690 KPAGE=1,4   ! one for each loc. SH/NH/EQ/45N
+      LATF=1
+      LATL=4
+      IF (KDIAG(5).GT.0) LATL=4-KDIAG(5)  ! just zones 1->(4-kd5)
+      IF (KDIAG(5).LT.0.AND.KDIAG(5).GT.-5) LATF=-KDIAG(5)
+      IF (KDIAG(5).LT.0) LATL=LATF        ! just 1 zone
+      DO 690 KPAGE=LATF,LATL   ! one for each lat.zone SH/NH/EQ/45N
 C**** WRITE HEADINGS
       WRITE (6,901) XLABEL
       WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE,JHOUR,

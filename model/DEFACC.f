@@ -29,7 +29,7 @@ c-----------------------------------------------------------------------
 !@+   diags are printed out in the order they are defined
 !@auth G. Schmidt/M. Kelley
       use CONSTANT, only : grav,sday,shw,rgas,omega,bygrav,gamd
-      use MODEL_COM, only : jm,lm,ls1,dtsrc,fim,sige,kocean
+      use MODEL_COM, only : jm,lm,ls1,dtsrc,fim,sige,kocean,qcheck
       use DAGCOM
       implicit none
       integer :: k,kk
@@ -779,6 +779,7 @@ c
         call stop_model( 'kaj too small', 255 )
       end if
       write (6,*) 'Number of AJ diagnostics defined: kajmax=',k
+      if(.not.qcheck) return
       do kk=1,k
         write (6,'(i4,'':'',a)') kk,trim(lname_j(kk))
       end do
@@ -2501,6 +2502,7 @@ c
       end if
 
       write (6,*) 'Number of AIJ diagnostics defined: kaijmax=',k
+      if(.not.qcheck) return
       do kk=1,k
         write (6,'(i4,'':'',a)') kk,trim(lname_ij(kk))
       end do
@@ -2509,7 +2511,7 @@ c
 
       subroutine il_defs
       USE CONSTANT, only : grav,rgas,by3,sha,bygrav
-      USE MODEL_COM, only : dtsrc,jeq
+      USE MODEL_COM, only : dtsrc,jeq,qcheck
       USE GEOM, only : dxyp
       use DAGCOM
       implicit none
@@ -2641,6 +2643,7 @@ c
       ia_il(k)    = ia_dga
 c
       write (6,*) 'Number of IL diagnostics defined: kailmax=',k
+      if(.not.qcheck) return
       do kk=1,k
         write (6,'(i4,'':'',a)') kk,trim(lname_il(kk))
       end do
@@ -2650,7 +2653,7 @@ c
 
       subroutine jl_defs
       use CONSTANT, only : sday,grav,twopi,sha,rgas,bygrav,radius,lhe
-      use MODEL_COM, only : fim,dtsrc,nidyn,byim,do_gwdrag
+      use MODEL_COM, only : fim,dtsrc,nidyn,byim,do_gwdrag,qcheck
       use GEOM, only : dlon
       use DAGCOM
       implicit none
@@ -3228,6 +3231,7 @@ c
       end if
 
       write (6,*) 'Number of AJL diagnostics defined: kajlmax=',k
+      if(.not.qcheck) return
       do kk=1,k
         write (6,'(i4,'':'',a)') kk,trim(lname_jl(kk))
       end do
@@ -3236,7 +3240,7 @@ c
 
       subroutine sjl_defs
       use CONSTANT, only : grav,sday,sha,bygrav
-      use MODEL_COM, only : byim
+      use MODEL_COM, only : byim,qcheck
       use DAGCOM
       implicit none
       integer :: k,kk
@@ -3278,6 +3282,7 @@ c
       ia_sjl(k) = ia_rad
 c
       write (6,*) 'Number of ASJL diagnostics defined: kasjlmax=',k
+      if(.not.qcheck) return
       do kk=1,k
         write (6,'(i4,'':'',a)') kk,trim(lname_sjl(kk))
       end do
@@ -3286,7 +3291,7 @@ c
 
       subroutine jk_defs
       use CONSTANT, only : sday,twopi,rgas,lhe,bygrav,bymrat
-      use MODEL_COM, only : fim,byim,dt
+      use MODEL_COM, only : fim,byim,dt,qcheck
       use GEOM, only : dlon
       use DAGCOM
       implicit none
@@ -3664,7 +3669,7 @@ c
       k=k+1
       jk_epflxvcp = k
       sname_jk(k) = 'epflx_vert_cp' !'AJK45'
-      lname_jk(k) = 'NORTHWARD COMP. OF ELIASSEN-PALM FLUX (CP)'
+      lname_jk(k) = 'VERTICAL COMP. OF ELIASSEN-PALM FLUX (CP)'
       units_jk(k) = 'unknown'
 c
       k=k+1
@@ -3711,6 +3716,7 @@ c
       jgrid_jk(k) = 1
 c
       write (6,*) 'Number of AJK diagnostics defined: kajkmax=',k
+      if(.not.qcheck) return
       do kk=1,k
         write (6,'(i4,'':'',a)') kk,trim(lname_jk(kk))
       end do
@@ -3719,6 +3725,7 @@ c
 
       subroutine ijk_defs
       use CONSTANT, only : bygrav,tf
+      use MODEL_COM, only : qcheck
       use DAGCOM
       implicit none
       integer :: k,kk
@@ -3783,6 +3790,7 @@ c
       off_ijk(k)   = 0.
 c
       write (6,*) 'Number of AIJK diagnostics defined: kaijkmax=',k
+      if(.not.qcheck) return
       do kk=1,k
         write (6,'(i4,'':'',a)') kk,trim(lname_ijk(kk))
       end do
@@ -3792,6 +3800,7 @@ c
 
       subroutine wave_defs
       use DAGCOM
+      use MODEL_COM, only : qcheck
       implicit none
       integer :: k,kk
 c
@@ -3864,6 +3873,7 @@ c
       units_wave(k) = 'unknown'
 c
       write (6,*) 'Number of Wave diagnostics defined: kwavemax=',k
+      if(.not.qcheck) return
       do kk=1,k
         write (6,'(i4,'':'',a)') kk,trim(name_wave(kk))
       end do
@@ -3942,7 +3952,7 @@ c
 !@auth G. Schmidt
 !@ver  1.0
       use CONSTANT, only : sha,rgas,twopi,sday,grav
-      use MODEL_COM, only : dtsrc,nisurf
+      use MODEL_COM, only : dtsrc,nisurf,qcheck
       use DAGCOM
       implicit none
       integer :: k,kk
@@ -4349,6 +4359,7 @@ c
       lname_dd(k)=' MCP*100'
 
       write (6,*) 'Number of Diurn diagnostics defined: kaddmax=',k
+      if(.not.qcheck) return
       do kk=1,k
         write (6,'(i4,'':'',a)') kk,trim(lname_dd(kk))
       end do
