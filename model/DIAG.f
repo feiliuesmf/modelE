@@ -2989,9 +2989,6 @@ C**** write out
               case ("W")
                 data=wsave(:,:,kp) ! vertical velocity
               end select
-C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
 C**** write out
               call writei(iu_subdd(kunit),itime,data,im*jm)
             end do
