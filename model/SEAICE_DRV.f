@@ -250,6 +250,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 !@calls SEAICE:SIMELT
+      USE CONSTANT, only : sday
       USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice,jhour
       USE GEOM, only : dxyp,imaxj
       USE DAGCOM, only : aj,j_imelt,j_hmelt,j_smelt,areg,jreg
@@ -266,7 +267,7 @@ C****
       IMPLICIT NONE
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 MSI2,ROICE,SNOW,ENRGW,ENRGUSED,ANGLE,RUN0,SALT,POCEAN,TFO
-     *     ,PWATER,Tm
+     *     ,PWATER,Tm,DT
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: TRSIL
       REAL*8, DIMENSION(NTM) :: TRUN0
@@ -278,6 +279,7 @@ C**** We could put this in daily but it then we need an extra routine to
 C**** add fluxes to oceans/lakes. This is a little more confusing, but
 C**** we can use the S/E/FLOWO arrays to pass the information.
       IF (Jhour.eq.0) THEN
+        DT=SDAY    ! if called more frequently this should change
         DO J=1,JM
         DO I=1,IMAXJ(J)
           PWATER=FOCEAN(I,J)+FLAKE(I,J)
@@ -306,7 +308,7 @@ C**** Call simelt if (lake and v. small ice) or (q-flux ocean, some ice)
 #ifdef TRACERS_WATER
             TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice
 #endif
-            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,Tm,TFO,TSIL
+            CALL SIMELT(DT,ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,Tm,TFO,TSIL
 #ifdef TRACERS_WATER
      *           ,TRSIL,TRUN0
 #endif

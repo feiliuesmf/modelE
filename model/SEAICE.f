@@ -50,7 +50,7 @@
 !@var alpha implicity for heat diffusion in sea ice (1=fully implicit)
       REAL*8, PARAMETER :: ALPHA = 1.0
 !@dbparam oi_ustar0 default ice-ocean friction velocity (m/s) 
-      REAL*8 :: oi_ustar0 = 5d-3  
+      REAL*8 :: oi_ustar0 = 1d-3  ! 5d-3 ! not used if ice dynamics is
 !@dbparam silmfac factor controlling lateral melt of ocean ice
       REAL*8 :: silmfac = 1.4d-8 ! = pi*(3d-6)/0.66/1000
 !@var silmpow exponent for temperature dependence of lateral melt
@@ -714,7 +714,7 @@ C**** Calculate temperatures for diagnostics and radiation
       RETURN
       END SUBROUTINE ADDICE
 
-      SUBROUTINE SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,Tm,TFO,TSIL,
+      SUBROUTINE SIMELT(DT,ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,Tm,TFO,TSIL,
 #ifdef TRACERS_WATER
      *     TRSIL,TRUN0,
 #endif
@@ -732,6 +732,8 @@ C**** Calculate temperatures for diagnostics and radiation
       REAL*8, INTENT(INOUT) :: ROICE, SNOW, MSI2
 !@var Tm mixed layer ocean temperature (C)
       REAL*8, INTENT(IN) :: Tm
+!@var DT time step (s)
+      REAL*8, INTENT(IN) :: DT
 !@var HSIL ice enthalpy  (J/m^2)
 !@var SSIL ice salt (kg/m^2)
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL, SSIL
@@ -759,9 +761,8 @@ C**** Estimate DRSI
       ELSEIF (POCEAN.gt.0) THEN
 C**** Estimate lateral melt using parameterisation from Makyut/Steele
 C**** (via C. Bitz): Rside=dt*pi/(floesize*eta)*(3d-6)*(delT)^(1.36)
-C**** This assumes called only once a day (SDAY-> DTS otherwise)
         dtemp=MAX(Tm-TFO,0d0)
-        DRSI=SDAY*SILMFAC*dtemp**SILMPOW
+        DRSI=DT*SILMFAC*dtemp**SILMPOW
         IF (ROICE-DRSI.lt.1d-4) DRSI=ROICE
       END IF
 C**** Remove DRSI amount of ice
