@@ -6,6 +6,7 @@
 !@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6
      *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow
+     *  ,twopi                                             
       USE MODEL_COM, only : im,lm,dtsrc,itime,coupled_chem
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
@@ -114,10 +115,21 @@ C**** new arrays must be set to model arrays in driver (after MSTCNV)
 !@var SVWMXL saved detrained convective cloud water
       REAL*8, DIMENSION(LM) :: CSIZEL
 !@var CSIZEL cloud particle radius (micron)
+#ifdef CLD_AER_CDNC
+      REAL*8, DIMENSION(LM) :: CDNCWM,CDNCIM
+!@var CDNCWM,CDNCIM -CDNC - warm and cold moist cnv clouds (cm^-3)
+      REAL*8, DIMENSION(LM) :: CDNCWS,CDNCIS
+!@var CDNCWS,CDNCIS -CDNC - warm and cold large scale clouds (cm^-3)
+#endif
 C**** new arrays must be set to model arrays in driver (before LSCOND)
       REAL*8, DIMENSION(LM) :: TTOLDL,CLDSAVL,CLDSV1
 !@var TTOLDL previous potential temperature
 !@var CLDSAVL saved large-scale cloud cover
+#ifdef CLD_AER_CDNC
+      REAL*8, DIMENSION(LM)::OLDCDO,OLDCDL,SMFPML
+!@var OLDCDO and OLDCDL are saved CDNC for land and ocean
+!@var SMFPML saved CTEI for CDNC modulation
+#endif
 C**** new arrays must be set to model arrays in driver (after LSCOND)
       REAL*8, DIMENSION(LM) :: SSHR,DCTEI,TAUSSL,CLDSSL
 !@var SSHR,DCTEI height diagnostics of dry and latent heating by MC
@@ -146,10 +158,16 @@ C**** new arrays must be set to model arrays in driver (after LSCOND)
 c for diagnostics
       REAL*8, DIMENSION(NTM,LM) :: DT_SULF_MC,DT_SULF_SS
 #endif
+!#ifdef CLD_AER_CDNC 
+!     REAL*8, DIMENSION(LM):: DSGL
+!#endif
       COMMON/CLD_WTRTRCCOM/TRWML, TRSVWML,TRPRSS,TRPRMC
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,DT_SULF_MC,DT_SULF_SS
 #endif
+!#ifdef CLD_AER_CDNC 
+!     *     ,DSGL
+!#endif
 !$OMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
 #endif
 #endif
@@ -199,6 +217,10 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,VLAT
      *  ,FSUB,FCONV,FSSL,FMCL
      *  ,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
+#ifdef CLD_AER_CDNC 
+     *  ,CDNCWM,CDNCIM,CDNCWS,CDNCIS
+     *  ,OLDCDL,OLDCDO,SMFPML
+#endif
 !$OMP  THREADPRIVATE (/CLDPRV/)
 
       CONTAINS
@@ -324,6 +346,10 @@ c for sulfur chemistry
      *     ,SUMDP,DDRUP,EDRAFT
      *     ,TOLD,TOLD1,TEMWM,TEM,WTEM,WCONST,WORK
      *     ,FCONV_tmp,FSUB_tmp,FSSL_tmp
+     *     , MNdO,MNdL,MCDNCW   !Menon
+#ifdef CLD_AER_CDNC
+     *     ,MCDNCI
+#endif
 !@var TERM1 contribution to non-entraining convective cloud
 !@var FMP0 non-entraining convective mass
 !@var SMO1,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE dummy variables
@@ -366,6 +392,9 @@ c for sulfur chemistry
 !@var QSATC saturation vapor mixing ratio
 !@var QSATMP plume's saturation vapor mixing ratio
 !@var RCLD,RCLDE cloud particle's radius, effective radius
+#ifdef CLD_AER_CDNC 
+!@var MCDNCW,MCDNCI cloud droplet # for warm,cold moist conv clouds (cm^-3)
+#endif
 !@var SLH LHX/SHA
 !@var EDRAFT entrainment into downdrafts
 !@var TOLD,TOLD1 old temperatures
@@ -434,6 +463,10 @@ C**** initiallise arrays of computed ouput
       trsvwml = 0.
       TRPRCP = 0.
       TRPRMC = 0.
+#endif
+#ifdef CLD_AER_CDNC
+       CDNCWM=0.
+       CDNCIM=0.
 #endif
 C**** zero out diagnostics
          MCFLX =0.
@@ -1492,12 +1525,29 @@ C**** CALCULATE OPTICAL THICKNESS
      *           WTEM=1d2*WMUI*PL(L)/(TL(L)*RGAS)
             IF(WTEM.LT.1.d-10) WTEM=1.d-10
             IF(SVLATL(L).EQ.LHE)  THEN
-               RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
+C**   Set CDNC for moist conv. clds (const at present)
+              MNdO = 59.68d0
+              MNdL=174.d0
+              MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
+
+!              RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
+               RCLD=RWCLDOX*100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCW))**BY3
+
              ELSE
                RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
+
+#ifdef CLD_AER_CDNC   !set Reff for moist conv. clds
+               MCDNCI=0.06d0
+!              RCLD= 100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCI))**BY3
+#endif
+
             END IF
             RCLDE=RCLD/BYBR   !  effective droplet radius in anvil
             CSIZEL(L)=RCLDE   !  effective droplet radius in anvil
+#ifdef CLD_AER_CDNC
+            CDNCWM(L)=MCDNCW  !water cloud droplet number in convective clouds
+            CDNCIM(L)=MCDNCI   !ice cloud droplet number in convective clouds
+#endif
             TAUMCL(L)=1.5*TEM/(FCLD*RCLDE+1.E-20)
             IF(TAUMCL(L).GT.100.) TAUMCL(L)=100.
          END IF
@@ -1617,6 +1667,12 @@ c for sulfur chemistry
      *     ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
      *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD,FCOND,HDEPx
      *     ,PRATW,PRATM,SMN12,SMO12
+       real*8 SNdO,SNdL,SCDNCW
+#ifdef CLD_AER_CDNC
+!@auth Menon  - storing var for cloud droplet number
+       real*8 Repsis,Repsi,Rbeta,CDNL1,CDNO1,QAUT,DSU,QCRIT
+       real*8 SCDNCI,dynvis(LM),DSGL(LM)
+#endif
 !@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,PRATW,PRATM dummy variabls
 !@var SMN12,SMO12 dummy variables
 !@var AIRMR
@@ -1709,6 +1765,10 @@ C**** initialise vertical arrays
 #ifdef TRACERS_AEROSOLS_Koch
       DT_SULF_SS(1:NTM,:)=0.
 #endif
+#endif
+#ifdef CLD_AER_CDNC
+       CDNCWS=0.
+       CDNCIS=0.
 #endif
       DO L=1,LP50
         CAREA(L)=1.-CLDSAVL(L)
@@ -1856,6 +1916,32 @@ C**** is ice and temperatures after ice melt would still be below TFrez
       IF (LHP(L+1).eq.LHS .and.
      *     TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA/(FSSL(L)
      *     +teeny)) LHP(L)=LHP(L+1)
+#ifdef TRACERS_AEROSOLS_Koch
+!@auth Menon  saving aerosols mass for CDNC prediction
+      DO N=1,NTX
+       select case (trname(ntix(n)))
+       case('SO4')
+#ifdef CLD_AER_CDNC 
+       DSGL(L)=tm(l,n)
+#endif
+        end select
+      END DO
+#endif
+C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
+      SNdO = 59.68d0
+      SNdL=174.d0
+#ifdef CLD_AER_CDNC
+      CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPJ,
+     *FCLD,CAREA(L),CLDSAVL(L),DSGL(L),SMFPML(L),OLDCDO(L),OLDCDL(L),
+     *DSU,CDNL1,CDNO1)
+      SNdO=CDNO1
+      SNdL=CDNL1
+      SCDNCI = 0.06d0
+#endif
+      SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
+#ifdef CLD_AER_CDNC
+      IF (SCDNCW.le.40.d0) SCDNCW=40.d0     !set min CDNC, sensitivity test
+#endif
 C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
       IF(WMX(L).GT.0.) THEN
         RHO=1d5*PL(L)/(RGAS*TL(L))
@@ -1866,10 +1952,25 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
         CM1=CM0
         IF(BANDF) CM1=CM0*CBF
         IF(LHX.EQ.LHS) CM1=CM0
+#ifdef CLD_AER_CDNC 
+!routine to get the autoconversion rate
+!     CALL GET_QAUT(L,TL(L),FCLD,WMX(L),SCDNCW,RHO,QCRIT,QAUT)
+!     if ((WMX(L)/(FCLD+1.d-20)).GT.QCRIT) then
+!       CM=QAUT/(WMX(L)+1.d-20)+1.d0*100.d0*(PREBAR(L+1)+
+!    *     PRECNVL(L+1)*BYDTsrc)
+!     else
+!       CM=0.d0
+!     endif
+!end routine for QAUT as a function of N,LWC  check how to integrate
+!and comment out CM below at next stage
+#endif
         CM=CM1*(1.-1./EXP(TEM*TEM))+100.*(PREBAR(L+1)+
      *       PRECNVL(L+1)*BYDTsrc)
         IF(CM.GT.BYDTsrc) CM=BYDTsrc
         PREP(L)=WMX(L)*CM
+#ifdef CLD_AER_CDNC 
+c       if(CM.ne.0.) write(6,*)"QAUT",CM,QAUT,QCRIT,PREP(L),L
+#endif
         IF(TL(L).LT.TF.AND.LHX.EQ.LHE) THEN ! check snowing pdf
           PRATM=1d5*COEFM*WMX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
           PRATM=MIN(PRATM,1d0)*(1.-EXP(MAX(-1d2,(TL(L)-TF)/COEFT)))
@@ -1913,9 +2014,13 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
      *         WTEM=1d2*WMUI*PL(L)/(TL(L)*RGAS)
           IF(WTEM.LT.1d-10) WTEM=1d-10
           IF(LHX.EQ.LHE)  THEN
-            RCLD=1d-6*(RWCLDOX*10.*(1.-PEARTH)+7.*PEARTH)*(WTEM*4.)**BY3
+!           RCLD=1d-6*(RWCLDOX*10.*(1.-PEARTH)+7.*PEARTH)*(WTEM*4.)**BY3
+            RCLD=1d-6*RWCLDOX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           ELSE
             RCLD=25.d-6*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
+#ifdef CLD_AER_CDNC   
+!           RCLD= 100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
+#endif
           END IF
           CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
           CK2=1000.*RGAS*TL(L)/(2.4d-3*QSATL(L)*PL(L))
@@ -2318,6 +2423,9 @@ C****
         DSEC=DWM*TL(L)/BETA
         IF(CK.LT.CKR) CYCLE
         FPMAX=MIN(1d0,1.-EXPST)
+#ifdef CLD_AER_CDNC 
+        SMFPML(L)=FPMAX
+#endif
         IF(FPMAX.LE.0.) CYCLE
         IF(DSE.GE.DSEC) CYCLE
 C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
@@ -2447,15 +2555,55 @@ C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
         IF(LHX.EQ.LHS.AND.WMX(L)/FCLD.GE.WMUI*1d-3)
      *       WTEM=1d5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
         IF(WTEM.LT.1d-10) WTEM=1.d-10
+C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
+      SNdO = 59.68d0
+      SNdL=174.d0
+#ifdef CLD_AER_CDNC
+!@auth Menon for CDNC prediction
+      CALL GET_CDNC_UPD(L,LHX,WCONST,WMUI,WMX(L),FCLD,CLDSSL(L),
+     *CLDSAVL(L),DSU,SMFPML(L),OLDCDO(L),OLDCDL(L),CDNL1,CDNO1)
+      OLDCDL(L) = CDNL1
+      OLDCDO(L) = CDNO1
+      SNdO=CDNO1
+      SNdL=CDNL1
+#endif
+      SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
+#ifdef CLD_AER_CDNC
+      If (SCDNCW.le.40.d0) SCDNCW=40.d0   !set min CDNC sensitivity test
+!      if(SCDNCW.gt.1200.d0)
+!    * write(6,*) "SCND CDNC",SCDNCW,DSU,OLDCDL(l),OLDCDO(l)
+#endif
+
         IF(LHX.EQ.LHE) THEN
-          RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
-          QHEATC=(QHEAT(L)+FSSL(L)*CAREA(L)*(EC(L)+ER(L)))/LHX
+
+!         RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
+          RCLD=RWCLDOX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
+          QHEATC=(QHEAT(L)+CAREA(L)*(EC(L)+ER(L)))/LHX
           IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
         ELSE
           RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
+#ifdef CLD_AER_CDNC
+          SCDNCI=0.06d0
+!         RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
+#endif
         ENDIF
+#ifdef CLD_AER_CDNC
+C** Using the Liu and Daum paramet
+C** for spectral dispersion effects on droplet size distribution
+!     Repsi=1.d0 - 0.7d0*exp(-0.003d0*SCDNCW)
+!     Repsis=Repsi*Repsi
+!     Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**0.333d0)
+!     write(6,*)"RCLD",Rbeta,RCLD,SCDNCW,Repsis
+!     RCLDE=RCLD*Rbeta
+!@auth Menon    end of addition  comment out the RCLDE definition below
+#endif
         RCLDE=RCLD/BYBR
         CSIZEL(L)=RCLDE
+#ifdef CLD_AER_CDNC  !save for diag purposes
+        CDNCWS(L)=SCDNCW
+        CDNCIS(L)=SCDNCI
+!       if(CDNCWS(L).gt.1200.) write(6,*)"CDNC",CDNCWS(L),SCDNCW,L
+#endif
         TEM=AIRM(L)*WMX(L)*1.d2*BYGRAV
         TAUSSL(L)=1.5d3*TEM/(FCLD*RCLDE+teeny)
         IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
