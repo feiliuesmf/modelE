@@ -107,7 +107,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       INTEGER :: IUNIT             !@var  IUNIT  file unit number
       INTEGER, INTENT(IN) :: NSKIP !@var  NSKIP  no. of chars. to skip
       INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
-      INTEGER, INTENT(OUT) :: IPOS !@var  IPOS   no. of recs. to advance
+      INTEGER, INTENT(INT) :: IPOS !@var  IPOS   no. of recs. to advance
       REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
       REAL*8, INTENT(OUT) :: AOUT(LENGTH) !@var  AOUT   real*8 array
       REAL*4 :: X                  !@var  X      dummy variable
