@@ -118,11 +118,12 @@ C**** Rain is remaining precip (0 deg or warmer)
       WETSNOW = RAIN.GT.1d-5*PRCP  ! i.e. a noticeable fraction of prec
 C**** Calculate whether rain causes freezing or melting in first layer
       IF (HSIL(1).le.-LHM*(XSI(1)*MSI1+SNWF-SSIL(1))) THEN
-        FREZ1 = MIN(RAIN,-HSIL(1)*BYLHM-XSI(1)*MSI1-SNWF+SSIL(1))
+        FREZ1 = MIN(RAIN,-HSIL(1)*BYLHM-XSI(1)*MSI1+SSIL(1)-SNWF)
         MELT1 = 0.
       ELSE
         FREZ1 = 0.
-        MELT1 = MAX(0d0,HSIL(1)*BYLHM+XSI(1)*MSI1+SNWF-SSIL(1))
+        MELT1 = MAX(0d0,HSIL(1)*BYLHM/(1.-SSIL(1)/(XSI(1)*MSI1))+XSI(1)
+     *       *MSI1+SNWF)
       END IF
 
 C**** Calculate remaining snow and necessary mass flux using
@@ -394,14 +395,17 @@ C**** SNMELT is the melting that is applied to the snow first
       IF (SNOW*XSI(2).gt.XSI(1)*ACE1I) THEN ! first layer is all snow
         DEW1 = -EVAP1           ! <0 i.e. evaporation from snow
         DEW2 =  MAX(0d0,DEW)    ! >0 i.e. dew to second layer ice
-        MELT1 = MAX(0d0,HSIL(1)*BYLHM+XSI(1)*MSI1-SSIL(1)+DEW1)
-        MELT2 = MAX(0d0,HSIL(2)*BYLHM+XSI(2)*MSI1-SSIL(2)+DEW2)
+        MELT1 = MAX(0d0,HSIL(1)*BYLHM+XSI(1)*MSI1+DEW1)
+        MELT2 = MAX(0d0,HSIL(2)*BYLHM/(1.-SSIL(2)/(XSI(2)*MSI1))+XSI(2)
+     *       *MSI1+DEW2) 
         SNMELT=MELT1+MELT2
       ELSE  ! first layer is snow and some ice
         DEW1 = DEW   ! all fluxes to first layer
         DEW2 = 0.
-        MELT1 = MAX(0d0,HSIL(1)*BYLHM+XSI(1)*MSI1-SSIL(1)+DEW1)
-        MELT2 = MAX(0d0,HSIL(2)*BYLHM+XSI(2)*MSI1-SSIL(2))
+        MELT1 = MAX(0d0,HSIL(1)*BYLHM/(1.-SSIL(1)/(XSI(1)*MSI1))+XSI(1)
+     *       *MSI1+DEW1)
+        MELT2 = MAX(0d0,HSIL(2)*BYLHM/(1.-SSIL(2)/(XSI(2)*MSI1))+XSI(2)
+     *       *MSI1)
         SNMELT=MELT1
       END IF
 #ifdef TRACERS_WATER
@@ -443,8 +447,10 @@ C**** Mass fluxes required to keep first layer ice = ACE1I
       FMSI1 = -XSI(1)*DSNOW+DEW1-MELT1
 
 C**** Check for melting in levels 3 and 4
-      MELT3 = MAX(0d0,HSIL(3)*BYLHM+XSI(3)*MSI2-SSIL(3))
-      MELT4 = MAX(0d0,HSIL(4)*BYLHM+XSI(4)*MSI2-SSIL(4)-FMOC)
+      MELT3 = MAX(0d0,HSIL(3)*BYLHM/(1.-SSIL(3)/(XSI(3)*MSI2))+XSI(3)
+     *     *MSI2)
+      MELT4 = MAX(0d0,HSIL(4)*BYLHM/(1.-SSIL(4)/(XSI(4)*MSI2))+XSI(4)
+     *     *MSI2-FMOC)
       SMELT3 = MELT3*SSIL(3)/(XSI(3)*MSI2)
       SMELT4 = MELT4*SSIL(4)/(XSI(4)*MSI2-FMOC)
 #ifdef TRACERS_WATER
