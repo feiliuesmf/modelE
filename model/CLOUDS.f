@@ -61,9 +61,11 @@ C**** input variables
       REAL*8, DIMENSION(IM,LM) :: U_0,V_0
 
 !@var Miscellaneous vertical arrays set in driver
-      REAL*8, DIMENSION(LM+1) :: PLE    !@var PLE pressure at layer edge
+!@var PLE pressure at layer edge
+!@var LHP array of precip phase ! may differ from LHX
+      REAL*8, DIMENSION(LM+1) :: PLE,LHP
       REAL*8, DIMENSION(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,WMX
-     *     ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1,LHP
+     *     ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -78,7 +80,6 @@ C**** input variables
 !@var MCFLX, DGDSM, DPHASE, DQCOND, DGDQM dummy variables
 !@var AQ time change rate of specific humidity (s**-1)
 !@var DPDT time change rate of pressure (mb/s)
-!@var LHP array of precip phase ! may differ from LHX
       REAL*8, DIMENSION(LM+1) :: PRECNVL
 !@var PRECNVL convective precip entering the layer top
 C**** new arrays must be set to model arrays in driver (before MSTCNV)
@@ -161,14 +162,14 @@ C**** output variables
 !@var LMCMIN lowerest convective layer
 !@var AIRXL is convective mass flux (kg/m*m)
       REAL*8 AIRXL
-!@var RNDSS1L,RNDSS2L stored random number sequences
-      REAL*8  RNDSS1L(LM),RNDSS2L(LM-1)
+!@var RNDSSL stored random number sequences
+      REAL*8  RNDSSL(3,LM)
 CCOMP  does not work yet:
 CCOMP  THREADPRIVATE (RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
 CCOMP*  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE
 CCOMP*  ,DTOTW,DQCOND,DCTEI,DGDQM,dxypj
 CCOMP*  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
-CCOMP*  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
+CCOMP*  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
 CCOMP*  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
 CCOMP*  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX
 CCOMP*  ,LMCMIN,KMAX,DEBUG)
@@ -176,7 +177,7 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE,LHP
      *  ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPJ
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
-     *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
+     *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
      *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,DEBUG
      *  ,LMCMAX,LMCMIN,KMAX,DCL     ! integers last (alignment)
@@ -1468,7 +1469,7 @@ C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
           FUNIL=1.-EXP(-((TL(L)-263.16d0)/15.)**2)
         END IF
         FUNI=FUNIO*(1.-PEARTH)+FUNIL*PEARTH
-        RANDNO=RNDSS1L(L)       !  RANDNO=RANDU(XY)
+        RANDNO=RNDSSL(1,L)       !  RANDNO=RANDU(XY)
         IF(RANDNO.LT.FUNI) LHX=LHS
 
 C**** special case 1) if ice previously then stay as ice (if T<Tf)
@@ -1481,7 +1482,7 @@ C**** special case 1) if ice previously then stay as ice (if T<Tf)
 C**** Decide whether precip initiates B-F process
           PML=WMX(L)*AIRM(L)*BYGRAV
           PMI=PREICE(L+1)*DTsrc
-          RANDNO=RNDSS2L(L)     !  RANDNO=RANDU(XY)
+          RANDNO=RNDSSL(2,L)     !  RANDNO=RANDU(XY)
 C**** Calculate probability of ice precip seeding a water cloud
           IF (LHX.EQ.LHE.AND.PMI.gt.0) THEN
             PRATIO=MIN(PMI/(PML+1.E-20),10d0)
@@ -1576,7 +1577,7 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
         IF(TL(L).LT.TF.AND.LHX.EQ.LHE) THEN ! check snowing pdf
           PRATM=1.d5*COEFM*WMX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
           PRATM=MIN(PRATM,1.D0)*(1.-EXP(MAX(-1d2,(TL(L)-TF)/COEFT)))
-          IF(PRATM.GT.RNDSS1L(L)) LHP(L)=LHS
+          IF(PRATM.GT.RNDSSL(3,L)) LHP(L)=LHS
         END IF
       ELSE
         CM=0.

@@ -837,7 +837,9 @@ c**** read in vegetation data set: vdata
       do k=1,10  !  11 ????
         call readt (iu_VEG,0,vdata(1,1,K),im*jm,vdata(1,1,k),1)
       end do
-
+c**** zero-out vdata(11) until it is properly read in
+      vdata(:,:,11) = 0.
+      
       call closeunit(iu_VEG)
       if (istart.le.0) return
 c**** read soils parameters

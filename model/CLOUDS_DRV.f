@@ -51,7 +51,7 @@
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl,dgdqm
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
-     *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l,lhp,debug
+     *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo,dke
@@ -120,8 +120,8 @@ C        not clear yet whether they still speed things up
       REAL*8  GZIL(IM,LM), SD_CLDIL(IM,LM), WMIL(IM,LM)
       REAL*8  TMOMIL(NMOM,IM,LM),  QMOMIL(NMOM,IM,LM)
 Cred*                   end Reduced Arrays 1
-      INTEGER ICKERR, JCKERR, JERR, seed
-      REAL*8  RNDSS1(LM,IM,JM), RNDSS2(LM-1,IM,JM),xx
+      INTEGER ICKERR, JCKERR, JERR, seed, NR
+      REAL*8  RNDSS(3,LM,IM,JM),xx
       REAL*8  AJEQIL(J5N-J5S+1,IM,JM), AREGIJ(IM,JM,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,2:JM-1,LM), VKM(4,IM,2:JM-1,LM)
@@ -131,10 +131,10 @@ C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
 C
       DO J=1,JM
       DO I=1,IMAXJ(J)
-        RNDSS1(LM,I,J)  = RANDU(xx)
-        DO L=LM-1,1,-1
-          RNDSS1(L,I,J) = RANDU(xx)
-          RNDSS2(L,I,J) = RANDU(xx)
+        DO L=LP50,1,-1
+          DO NR=1,3
+            RNDSS(NR,L,I,J) = RANDU(xx)
+          END DO
         END DO
 C     Do not bother to save random numbers for isccp_clouds
       END DO
@@ -437,8 +437,7 @@ C****
       END DO
       WMX(:)=WML(:)+SVWMXL(:)
       AQ(:)=(QL(:)-QTOLD(:,I,J))*BYDTsrc
-      RNDSS1L(:)=RNDSS1(:,I,J)
-      RNDSS2L(:)=RNDSS2(:,I,J)
+      RNDSSL(:,1:LP50)=RNDSS(:,1:LP50,I,J)
 C****
 C**** COMPUTE STRATOCUMULUS CLOUDS USING PHILANDER'S FORMULA
 C****

@@ -551,7 +551,7 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
         DO I=1,IMAXJ(J)
           PA(I,J)=P(I,J)+(DT1*PIT(I,J)*BYDXYP(J))
           IF (PA(I,J).GT.1160.-PTOP .or. PA(I,J).LT.200.) THEN
-            WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),ZATMO(I,J),
+            WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),ZATMO(I,J),DT1,
      *           (U(I-1,J,L),U(I,J,L),U(I-1,J+1,L),U(I,J+1,L),
      *            V(I-1,J,L),V(I,J,L),V(I-1,J+1,L),V(I,J+1,L),
      *            T(I,J,L),Q(I,J,L),L=1,LM)
@@ -566,7 +566,7 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
 C****
       RETURN
   990 FORMAT (/'0PRESSURE DIAGNOSTIC     I,J,MRCH,P,PA=',3I4,2F10.2/
-     *  '     ZATMO=',F10.3/
+     *  '     ZATMO=',F10.3,' DT=',F6.1/
      *  '0    U(I-1,J)     U(I,J)   U(I-1,J+1)    U(I,J+1)    V(I-1,J)',
      *   '     V(I,J)   V(I-1,J+1)    V(I,J+1)     T(I,J)     Q(I,J)'/
      *  (1X,9F12.3,F12.6))

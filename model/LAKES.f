@@ -24,11 +24,14 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       REAL*8, DIMENSION(IM,JM) :: RATE,DHORZ
 !@var IFLOW,JFLOW grid box indexes for downstream direction
       INTEGER IFLOW(IM,JM),JFLOW(IM,JM)
-      INTEGER, PARAMETER :: NRVR = 42 !@param Number of specified rivers
+!@param NRVRMX Max No. of specified rivers
+      INTEGER, PARAMETER :: NRVRMX = 42 
+!@var NRVR actual No. of specified rivers
+      INTEGER :: NRVR
 !@var IRVRMTH,JRVRMTH indexes for specified river mouths
-      INTEGER, DIMENSION(NRVR) :: IRVRMTH,JRVRMTH
+      INTEGER, DIMENSION(NRVRMX) :: IRVRMTH,JRVRMTH
 !@var NAMERVR Names of specified rivers
-      CHARACTER*8, DIMENSION(NRVR) :: NAMERVR
+      CHARACTER*8, DIMENSION(NRVRMX) :: NAMERVR
 
 !@param MINMLD minimum mixed layer depth in lake (m)
       REAL*8, PARAMETER :: MINMLD = 1.
@@ -471,9 +474,9 @@ C**** Read in CDIREC: Number = octant direction, Letter = river mouth
       READ  (iu_RVR,910) TITLEI
       WRITE (6,*) 'River Direction file read: ',TITLEI
       READ  (iu_RVR,910)
-      DO I72=72,IM,72
+      DO I72=1,1+(IM-1)/72
         DO J=JM,1,-1
-          READ  (iu_RVR,911) (CDIREC(I,J),I=I72-71,I72)
+          READ  (iu_RVR,911) (CDIREC(I,J),I=72*(I72-1)+1,MIN(IM,I72*72))
         END DO
       END DO
 C**** read in named rivers (if any)
@@ -481,8 +484,8 @@ C**** read in named rivers (if any)
       READ (iu_RVR,'(A80)',END=10) TITLEI
       READ (iu_RVR,*,END=10)
       IF (TITLEI.eq."Named River Mouths:") THEN
-        DO I=1,NRVR,5
-          READ(iu_RVR,'(5(A8,X))') NAMERVR(I:MIN(NRVR,I+4))
+        DO I=1,NRVRMX,5
+          READ(iu_RVR,'(5(A8,X))') NAMERVR(I:MIN(NRVRMX,I+4))
         END DO
       END IF
  10   call closeunit (iu_RVR)
@@ -525,6 +528,7 @@ C**** Check for specified river mouths
         END IF
       END DO
       END DO
+      NRVR=INM
 C****
 C**** From each box calculate the downstream river box
 C****
