@@ -59,11 +59,11 @@ OBJ	= $(MOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) $(SOBJ) $(COBJ) $(ROBJ)
 	$(EXECDIR)/$(F) $<
 
 # Make object files dependent on relevant modules
-$(MOBJ):	$(COM) $(SLOBJ) $(RNDOBJ) $(COBJ)
+$(MOBJ):	$(COM) $(SLOBJ) $(RNDOBJ) $(COBJ) $(PBLOBJ)
 $(POBJ):	$(COM) $(ROBJ)  $(RNDOBJ) $(COBJ)
 $(PBLOBJ):	$(COM) 
-$(SOBJ):	$(COM) $(SLOBJ)
-$(EOBJ):	$(COM) $(SLOBJ) $(COBJ)
+$(SOBJ):	$(COM) $(SLOBJ) $(PBLOBJ)
+$(EOBJ):	$(COM) $(SLOBJ) $(COBJ) $(PBLOBJ)
 $(SLOBJ):	$(COM) $(SCOM)
 $(DOBJ):	$(COM)
 $(QOBJ):	$(COM) 

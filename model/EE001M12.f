@@ -25,6 +25,8 @@ C****
      &    ZMIXE=>Z1,CN=>CDN,P1,PBLP=>PPBL,
      &    TGPASS=>TG,TKPASS=>T1,VGM=>VG,EDDY
       USE CLOUDS, only : PREC,TPREC
+      USE SOCPBL, only : ipbl,pbl,zgs
+
       IMPLICIT REAL*8 (A-H,O-Z)
 
       COMMON /WORK1d/COSZ1(IM,JM),DTH1(IM,JM),DQ1(IM,JM)
@@ -37,16 +39,11 @@ C****
 C****
       COMMON /WORKLS/PRCSS(IM,JM)
 C**** Interface to PBL
-      COMMON /PBLPAR/ZGS,ZS1,PIJ,PSK,TGV,TKV,THV1,QG,HEMI,SHA,
-     2               OMEGA2,DTSURF,JVPO,IQ1,IQ2,IQ3,IM1,POLE
+      COMMON /PBLPAR/ZS1,PIJ,PSK,TGV,TKV,THV1,QG,HEMI,
+     2               DTSURF,JVPO,IM1,POLE
+
       COMMON /PBLOUT/US,VS,WS,TSV,QSRF,PSI,DBL,EDVISC,EDS1,
      2               USTAR,PPBL,CDM,CDH,CDQ,UG,VG,WG,ZMIX
-      parameter (npbl=8)
-      common /socabl/uabl(npbl,im,jm,4),vabl(npbl,im,jm,4),
-     2               tabl(npbl,im,jm,4),qabl(npbl,im,jm,4),
-     3               eabl(npbl,im,jm,4),
-     4               cmgs(im,jm,4),chgs(im,jm,4),cqgs(im,jm,4),
-     5               ipbl(im,jm,4)
 
       LOGICAL POLE
       DATA SHV/0./,SHW/4185./,SHI/2060./,RHOW/1000./,RHOI/916.6/,
@@ -97,9 +94,9 @@ C**** ROUGHL    LOG(30./ROUGHNESS LENGTH) (LOGARITHM TO BASE 10)
 C****
       IF(IFIRST.EQ.0) GO TO 30
       IFIRST=0
-      IQ1=IM/4+1
-      IQ2=IM/2+1
-      IQ3=3*IM/4+1
+c      IQ1=IM/4+1
+c      IQ2=IM/2+1
+c      IQ3=3*IM/4+1
       DTSURF=NDYN*DT/NSURF
       DTCNDS=NDYN*DT
          DTSRCE=DT*NDYN
@@ -237,7 +234,7 @@ C****
         go to 5000
       endif
 C     NGRNDZ=NGRND HAS TO BE 1
-      ZGS=10.
+c      ZGS=10.
       ITYPE=4
       PTYPE=PEARTH
       PR=PREC(I,J)/(DTCNDS*RHOW)

@@ -19,6 +19,7 @@ C**** SURFACE SPECIFIC HUMIDITY, AND SURFACE WIND COMPONENTS.
 C****
       USE E001M12_COM
       USE SOMTQ_COM
+      USE SOCPBL, only : ipbl,pbl,omega2,zgs
       IMPLICIT REAL*8 (A-H,O-Z)
 C*
       REAL*8 KM, KH, MSUM, MA1, MSI1, MSI2
@@ -33,19 +34,14 @@ C*
       DIMENSION SINI(IM),COSI(IM),               TGRN2(IM,JM,4)
       LOGICAL POLE
 
-      COMMON /PBLPAR/ZGS,ZS1,PIJ,PSK,TGV,TKV,THV1,QG,HEMI,SHA,
-     2               OMEGA2,DTSURF,JVPO,IQ1,IQ2,IQ3,IM1,POLE
+      COMMON /PBLPAR/ZS1,PIJ,PSK,TGV,TKV,THV1,QG,HEMI,
+     2               DTSURF,JVPO,IM1,POLE
 
       COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,USTAR,PPBL,
      2               CM,CH,CQ,UG,VG,WG,ZMIX
 
       parameter (qmin=1.e-12)
-      parameter (npbl=8)
-      common /socabl/uabl(npbl,im,jm,4),vabl(npbl,im,jm,4),
-     2               tabl(npbl,im,jm,4),qabl(npbl,im,jm,4),
-     3               eabl(npbl,im,jm,4),
-     4               cmgs(im,jm,4),chgs(im,jm,4),cqgs(im,jm,4),
-     5               ipbl(im,jm,4)
+
 C      common /dflux1/fluxu1,fluxv1,fluxt1,fluxq1
 
       DATA RVAP/461.5/
@@ -100,11 +96,11 @@ C****
 c      CALL DREAD (19,ROUGHL,IM*JM,ROUGHL)
       CALL READT (19,0,ROUGHL,IM*JM,ROUGHL,1)
       REWIND 19
-      ZGS=10.
+c      ZGS=10.
       OMEGA2=2.*OMEGA
-      IQ1=IM/4+1
-      IQ2=IM/2+1
-      IQ3=3*IM/4+1
+c      IQ1=IM/4+1
+c      IQ2=IM/2+1
+c      IQ3=3*IM/4+1
       DTSURF=NDYN*DT/NSURF
       DTSRCE=DT*NDYN
       SHA=RGAS/KAPA

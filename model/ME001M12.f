@@ -20,13 +20,11 @@ C**** f90 changes
       USE RANDOM
       USE CLOUDS, only : TTOLD,QTOLD,WM,SVLHX,RHSAV
      *     ,CLDSAV,MSTCNV,CONDSE
+      USE SOCPBL, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
+     *     cq=>cqgs,ipbl
+
       IMPLICIT REAL*8 (A-H,O-Z)
-      parameter (npbl=8)
-      common /socabl/uabl(npbl,im,jm,4),vabl(npbl,im,jm,4),
-     2               tabl(npbl,im,jm,4),qabl(npbl,im,jm,4),
-     3               eabl(npbl,im,jm,4),
-     4               cm(im,jm,4),ch(im,jm,4),cq(im,jm,4),
-     5               ipbl(im,jm,4)
+
 CBUDG COMMON/WORK3/GBUDG(27,80,4),RBUDG(23,80),QMAPS(27,33),
 CBUDG*  QTABLE(27,9,3),EHIST(20),KEYDS(42)
             COMMON/WORKO/OA(IM,JM,12)
@@ -579,15 +577,13 @@ C****
      &           ghinit,ghinij,ghinht
       USE RANDOM
       USE CLOUDS, only : TTOLD,QTOLD,WM,SVLHX,RHSAV,CLDSAV
+      USE SOCPBL
+     &     , only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq=>cqgs
+     *     ,ipbl
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION JC1(100),CLABEL1(39),RC1(161)
       CHARACTER*4 CLABEL1,RUNID
-      parameter (npbl=8)
-      common /socabl/uabl(npbl,im,jm,4),vabl(npbl,im,jm,4),
-     2               tabl(npbl,im,jm,4),qabl(npbl,im,jm,4),
-     3               eabl(npbl,im,jm,4),
-     4               cm(im,jm,4),ch(im,jm,4),cq(im,jm,4),
-     5               ipbl(im,jm,4)
+
             COMMON/WORKO/OA(IM,JM,12)
       COMMON/WORK1/NLREC(256),SNOAGE(IM,JM,2)
 
@@ -2078,6 +2074,10 @@ C****
       USE E001M12_COM
       USE SLE001
      &  , only : ghinij, cosday=>cost, sinday=>sint
+      USE SOCPBL
+     &     , only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
+     *     cq=>cqgs,ipbl
+
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK2/Z1OOLD(IM,JM),XO(IM,JM,3),XZO(IM,JM)
       COMMON/OOBS/DM(IM,JM),    AOST(IM,JM),EOST1(IM,JM),EOST0(IM,JM),
@@ -2100,12 +2100,7 @@ C****                0: quadratic fit
 C****                1: continuous piecewise linear fit at upper limit
 C****
       PARAMETER (XSI1=0.5, XSI2=0.5, XSI3=0.5, XSI4=0.5)
-      parameter (npbl=8)
-      common /socabl/uabl(npbl,im,jm,4),vabl(npbl,im,jm,4),
-     2               tabl(npbl,im,jm,4),qabl(npbl,im,jm,4),
-     3               eabl(npbl,im,jm,4),
-     4               cm(im,jm,4),ch(im,jm,4),cq(im,jm,4),
-     5               ipbl(im,jm,4)
+
       CHARACTER*4 :: AMONTH(12) = (/
      *  'JAN ','FEB ','MAR ','APR ','MAY ','JUNE',
      *  'JULY','AUG ','SEP ','OCT ','NOV ','DEC '/)
