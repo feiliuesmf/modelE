@@ -9,7 +9,7 @@
       CHARACTER*80 FILEIN
       INTEGER N,NARGS,K,iargc,KFILE,I,days_togo
       INTEGER :: ioerr=0, KSTART=1, ItimeMax=0
-      REAL*8 TOT,yrs_togo,FAC,FACT
+      REAL*8 TOT,yrs_togo,FAC,FACT,xfac
       LOGICAL :: QCALL = .FALSE., QCMIN=.FALSE., QCRESTART=.FALSE.
 !@var QCRESTART if TRUE compute max Itime and do printout for "runpm"
 
@@ -23,6 +23,8 @@ C**** check for arguments
           QCALL=.TRUE.
         CASE ("t","T")
           QCMIN=.TRUE.
+          xfac = 1.
+          if (filein(3:3).ne.' ') read(filein(3:80),*) xfac
         CASE ("r","R")
           QCRESTART=.TRUE.
         END SELECT
@@ -39,7 +41,7 @@ C**** check for arguments
       if (ioerr.eq.1) go to 860
       CLOSE (10)
 
-      if ( QCRESTART ) then ! find max Itime and skip the rest of the loop
+      if ( QCRESTART ) then ! find max Itime; skip the rest of the loop
         ItimeMax = max ( ItimeMax, Itime )
         cycle
       endif
@@ -57,7 +59,7 @@ C**** check for arguments
         FACT = 0.
       END IF
       IF (QCMIN) THEN ! output in minutes
-        FAC = FACT
+        FAC = FACT*xfac
       ELSE            ! output in percentages
         FAC = 100./TOT
       END IF
@@ -98,7 +100,7 @@ c        write(6,*)
      *     "(rsf/acc/fort.[12])"
       write(6,*) "  -a  output all header information, otherwise"
       write(6,*) "      only timing info is printed"
-      write(6,*) "  -t  output absolute minutes for each sub-section,"
+      write(6,*) "  -tx output in minutes/x for each sub-section,"
       write(6,*) "      otherwise percentage time is printed"
       write(6,*) "  -r  find maximal Itime and do printout in a format,"
       write(6,*) "      convenient for restart script (runpm)"
