@@ -119,8 +119,9 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'seasalt1','seasalt2'/)
 #else
 #ifdef TRACERS_DUST
-      INTEGER,PARAMETER :: Ntm=4
-      CHARACTER*8,PARAMETER :: trname(Ntm)=(/'Clay    ','Silt1   ',
+!@var Ntm_dust number of dust tracers
+      INTEGER,PARAMETER :: Ntm=4,Ntm_dust=4
+      CHARACTER*8,PARAMETER :: trname(Ntm_dust)=(/'Clay    ','Silt1   ',
      &     'Silt2   ','Silt3   '/)
 #else
 #ifdef TRACERS_WATER
