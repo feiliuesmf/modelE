@@ -200,7 +200,7 @@ C**** APPLY PRECIPITATION AND RUNOFF TO LAKES/OCEANS
          CALL CHECKT ('PRECIP')
 #ifdef TRACERS_ON
 C**** Calculate non-interactive tracer surface sources and sinks
-      call set_tracer_source
+      call set_tracer_2Dsource
          CALL TIMER (MNOW,MTRACE)
 #endif
 C**** CALCULATE SURFACE FLUXES AND EARTH

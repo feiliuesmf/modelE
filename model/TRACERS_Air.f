@@ -1366,7 +1366,7 @@ C****
       end subroutine read_CO2_sources
 
 
-      SUBROUTINE set_tracer_source
+      SUBROUTINE set_tracer_2Dsource
 !@sum tracer_source calculates non-interactive sources for tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: FEARTH,itime,JDperY,fland,psf,pmtop,jmpery
@@ -1562,7 +1562,7 @@ C****
 
       end do
 C****
-      END SUBROUTINE set_tracer_source
+      END SUBROUTINE set_tracer_2Dsource
 
 
       SUBROUTINE set_tracer_3Dsource
