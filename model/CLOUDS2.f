@@ -634,8 +634,8 @@ C**** guard against possibility of too big a plume
 
 C**** adjust MPLUME to take account of restricted area of subsidence
 C**** (i.e. MPLUME is now a greater fraction of the relevant airmass.
-      MPLUME=MPLUME/FMC1
-
+      MPLUME=MIN( MPLUME/FMC1,
+     *   AIRM(LMIN)*0.95d0*QM(LMIN)/(QMOLD(LMIN) + teeny) )
       FPLUME=MPLUME*BYAM(LMIN)
       SMP  =  SMOLD(LMIN)*FPLUME
       SMOMP(xymoms)=SMOMOLD(xymoms,LMIN)*FPLUME
