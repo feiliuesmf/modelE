@@ -114,7 +114,7 @@ C**** sea ice melt and iceberg/glacial melt.
 !@var TRFLUX1 total surface flux for each tracer (kg/s)
       REAL*8, DIMENSION(IM,JM,NTM):: trflux1
 !@var TRGRDEP gravitationally settled tracers at surface (kg)
-      REAL*8, DIMENSION(NTM,IM,JM):: TRGRDEP = 0.  ! initialised to 0.
+      REAL*8, DIMENSION(Im,Jm,Ntm):: TRGRDEP = 0.  ! initialised to 0.
 !@var GTRACER ground concentration of tracer on atmospheric grid (kg/kg)
       REAL*8, DIMENSION(NTM,NSTYPE,IM,JM):: GTRACER
 !@var TR3DSOURCE 3D sources/sinks for tracers (kg/s)

@@ -103,7 +103,11 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       integer, parameter :: ktaijs=76
 #endif
 #else
+#ifdef TRACERS_DUST
+      INTEGER,PARAMETER :: ktaijs=16
+#else
       integer, parameter :: ktaijs=41
+#endif
 #endif
 
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
@@ -187,7 +191,11 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, PARAMETER :: ktajls=94
 #endif
 #else
+#ifdef TRACERS_DUST
+      INTEGER,PARAMETER :: ktajls=16
+#else
       INTEGER, PARAMETER :: ktajls=34
+#endif
 #endif
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
       REAL*8, DIMENSION(JM,LM,ktajls) :: TAJLS

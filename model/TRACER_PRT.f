@@ -242,6 +242,7 @@ C**** Calculate areas
 C****
 C**** Outer loop over tracers
 C****
+      ktcon_max=0
       DO 900 N=1,NTM
       IF (itime.LT.itime_tr0(N)) cycle
 C**** CALCULATE SUM OF CHANGES

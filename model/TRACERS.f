@@ -853,6 +853,9 @@ C**** check whether air mass is conserved
      & ,SF3,pClOx,pOClOx,pBrOx
 #endif
 #endif
+#ifdef TRACERS_DUST
+      USE tracers_dust_com,ONLY : hbaij
+#endif
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -889,6 +892,9 @@ C**** check whether air mass is conserved
      *     ,SF3,pClOx,pOClOx,pBrOx
 #endif
 #endif
+#ifdef TRACERS_DUST
+     &     ,hbaij
+#endif
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
         CASE (ioread,irerun,irsfic,irsficno) ! restarts
@@ -902,6 +908,9 @@ C**** check whether air mass is conserved
 #ifdef Shindell_Strat_chem
      *       ,SF3,pClOx,pOClOx,pBrOx
 #endif
+#endif
+#ifdef TRACERS_DUST
+     &     ,hbaij
 #endif
           IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER

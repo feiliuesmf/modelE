@@ -111,7 +111,12 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
       character*8, parameter :: trname(ntm)=(/
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
      *    'seasalt1','seasalt2'/)
-#else ! default:
+#else
+#ifdef TRACERS_DUST
+      INTEGER,PARAMETER :: Ntm=4
+      CHARACTER*8,PARAMETER :: trname(Ntm)=(/'Clay    ','Silt1   ',
+     &     'Silt2   ','Silt3   '/)
+#else
 #ifdef TRACERS_WATER
       integer, parameter :: ntm=2
       character*8, parameter :: trname(ntm)=(/'Air     ','Water   '/)
@@ -122,6 +127,7 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
 #else ! default for TRACERS_ON
       integer, parameter :: ntm=1
       character*8, parameter :: trname(ntm)=(/'Air     '/)
+#endif
 #endif
 #endif
 #endif
@@ -157,6 +163,9 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *     n_seasalt1=0,  n_seasalt2=0,
      *     n_OxREG1=0,n_OxREG2=0,n_OxREG3=0,
      *     n_OxREG4=0,n_OxREG5=0,n_OxREG6=0
+#ifdef TRACERS_DUST
+     &     ,n_clay,   n_silt1, n_silt2, n_silt3
+#endif
 C****    The following are set in tracer_IC
 !@var T_QLIMIT: if t_qlimit=.true. tracer is maintained as positive
       logical, dimension(ntm) :: t_qlimit

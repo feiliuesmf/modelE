@@ -30,6 +30,10 @@
 !@+      +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
       USE LINOZ_CHEM_COM, only: dsol
 #endif
+#ifdef TRACERS_DUST
+      USE tracers_dust_com,ONLY : nDustEmij,nDustTurbij,nDustGravij,
+     &  nDustWetij,nDustEmjl,nDustTurbjl,nDustGrav3Djl,nDustWet3Djl
+#endif
 #ifdef TRACERS_WATER
       USE LANDICE_COM, only : trli0    ! should these be in tracer_com?
       USE SEAICE_COM, only : trsi0
@@ -687,6 +691,30 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           trradius(n)=1.7d-6 ! This is non-hydrated
           fq_aer(n)=1.0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
+
+#ifdef TRACERS_DUST
+      CASE('Clay')
+      n_clay=n
+        itime_tr0(n)=0
+        ntm_power(n)=-9
+        trpdens(n)=2.5d3
+      CASE('Silt1')
+      n_silt1=n
+        itime_tr0(n)=0
+        ntm_power(n)=-9
+        trpdens(n)=2.65d3
+      CASE('Silt2')
+      n_silt2=n
+        itime_tr0(n)=0
+        ntm_power(n)=-9
+        trpdens(n)=2.65d3
+      CASE('Silt3')
+      n_silt3=n
+        itime_tr0(n)=0
+        ntm_power(n)=-9
+        trpdens(n)=2.65d3
+#endif
+
 #endif
       end select
 
@@ -1828,6 +1856,38 @@ c gravitational settling of ss2
         jls_power(k) =0 
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
+#ifdef TRACERS_DUST
+        CASE('Clay','Silt1','Silt2','Silt3')
+        k=k+1
+          jls_source(nDustEmjl,n)=k
+          lname_jls(k)='Emission of '//trname(n)
+          sname_jls(k)='Emitted_'//trname(n)
+          jls_ltop(k)=1
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        k=k+1
+          jls_source(nDustTurbjl,n)=k
+          lname_jls(k)='Turbulent deposition of '//trname(n)
+          sname_jls(k)='Turb_Depo_of_'//trname(n)
+          jls_ltop(k)=1
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        k=k+1
+          jls_3Dsource(nDustGrav3Djl,n)=k
+          lname_jls(k)='Loss by gravitational settling of '//trname(n)
+          sname_jls(k)='Loss_by_Grav_Settle_of_'//trname(n)
+          jls_ltop(k)=Lm
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        k=k+1
+          jls_3Dsource(nDustWet3Djl,n)=k
+          lname_jls(k)='Loss by wet deposition of '//trname(n)
+          sname_jls(k)='Loss_by_Wet_Depo_of_'//trname(n)
+          jls_ltop(k)=Lm
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+#endif
+
 C**** Here are some more examples of generalised diag. configuration
 c      n = n_dust
 c        k = k + 1
@@ -2855,6 +2915,47 @@ c ss2 optical thickness
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
+
+#ifdef TRACERS_DUST
+      CASE('Clay','Silt1','Silt2','Silt3')
+      k=k+1
+        ijts_source(nDustEmij,n)=k
+        lname_ijts(k)='Emission of '//trname(n)
+        sname_ijts(k)='Emitted_'//trname(n)
+        ijts_index(k)=n
+        ia_ijts(k)=ia_src
+        ijts_power(k) = -13.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      k=k+1
+        ijts_source(nDustTurbij,n)=k
+        lname_ijts(k)='Turbulent Deposition of '//trname(n)
+        sname_ijts(k)='Turbulent loss of '//trname(n)
+        ijts_index(k)=n
+        ia_ijts(k)=ia_src
+        ijts_power(k) = -13.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      k=k+1
+        ijts_source(nDustGravij,n)=k
+        lname_ijts(k)='Gravitational settling of '//trname(n)
+        sname_ijts(k)='Grav_Settle_of_'//trname(n)
+        ijts_index(k)=n
+        ia_ijts(k)=ia_src
+        ijts_power(k) = -13.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      k=k+1
+        ijts_source(nDustWetij,n)=k
+        lname_ijts(k)='Wet deposition of '//trname(n)
+        sname_ijts(k)='Loss_by_Wet_Depo_of_'//trname(n)
+        ijts_index(k)=n
+        ia_ijts(k)=ia_src
+        ijts_power(k) = -13.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
+
       end select
       end do
       
@@ -4464,6 +4565,12 @@ C         AM=kg/m2, and DXYP=m2:
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
+#ifdef TRACERS_DUST
+        CASE('Clay','Silt1','Silt2','Silt3')
+          trm(:,:,:,n)=0d0
+          trmom(:,:,:,:,n)=0d0
+#endif
+
       end select
 
 C**** Initialise pbl profile if necessary
@@ -5077,6 +5184,10 @@ C**** Apply chemistry and stratosphere overwrite changes:
 #endif
       end do
       CALL TIMER (MNOW,MCHEM) 
+#endif
+
+#ifdef TRACERS_DUST
+      CALL tracers_dust
 #endif
 
       return
