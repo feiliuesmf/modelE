@@ -368,7 +368,13 @@ C**** New options (currently not used)
       KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme  -  KCLDEM
       KVEGA6=0  ! 0:2-band 1:6-band veg.albedo            -  KVEGA6
       MADVEL=123456         ! suppress reading i-th time series by i->0
-C**** set up unit numbers for 14 radiation input files
+      if (ktrend.ne.0) then
+C****   Read in time history of well-mixed greenhouse gases
+        call openunit('GHG',iu,.false.,.true.)
+        call ghghst(iu)
+        call closeunit(iu)
+      end if
+C**** set up unit numbers for 14 more radiation input files
       DO IU=1,14
         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE ! not used in GCM
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
@@ -862,3 +868,30 @@ C**** daily diagnostics
 
       RETURN
       END
+
+      SUBROUTINE GHGHST(iu)
+!@sum  reads history for nghg well-mixed greenhouse gases
+!@auth R. Ruedy
+!@ver  1.0
+
+      USE RE001, only : nghg,nyrsghg,ghgyr1,ghgyr2,ghgam
+      INTEGER iu,n,k
+      CHARACTER*80 title
+
+      do n=1,4
+      read(iu,'(a)') title
+      write(*,*) title
+      end do
+
+      read(iu,*) ghgyr1,(ghgam(k,1),k=1,nghg)
+      do n=2,nyrsghg
+        read(iu,*,end=20) ghgyr2,(ghgam(k,n),k=1,nghg)
+        do k=1,nghg
+          if(ghgam(k,n).lt.0.) ghgam(k,n)=ghgam(k,n-1)
+        end do
+      end do
+   20 continue
+      write(*,*) 'read GHG table for years',ghgyr1,' - ',ghgyr2
+      return
+      end SUBROUTINE GHGHST
+

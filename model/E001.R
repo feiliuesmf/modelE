@@ -1,6 +1,6 @@
 E001.R GISS Model E                                 gas 06/00
 
-E001: new modelE (based on B402A)
+E001: new modelE (v.1.3.1 - climatological SST)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -33,8 +33,8 @@ POUT                                ! post-processing output
 Data input files:
 AIC=DEC1958.rsfB394M12.modelE.12 ! initial conditions (atm. and ground)
 ! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp.  not needed if ocn prescribed
-! OCNML=Z1O.B4X5.cor         ! mixed layer depth not needed if ocn prescribed
-! MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp. not needed if ocn prescribed
+OCNML=Z1O.B4X5.cor         ! mixed layer depth,needed for post-processing only
+MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp.,needed for post-processing only
 OSST=OST4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
 CDN=CD4X500S VEG=V72X46.1.cor
@@ -53,6 +53,7 @@ RADN9=solar.lean99.uvflux
 RADNA=o3trend.1951-2050
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
+GHG=GHG.1850-2050.Oct2000
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
