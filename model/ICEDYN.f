@@ -1,4 +1,4 @@
-C*************************************************************
+
 C PLEASE KEEP THIS NOTE OF MODEL-DEVELOPMENT HISTORY
 C Matrix solve uses Thomas algorithm, 10/1991, Jinlun Zhang
 C Spherical coordinate system, 10/27/93, Jinlun Zhang
@@ -78,8 +78,8 @@ C**** Geometry
 !@var DYT,DYU y-direction distances on tracer and velocity grid
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: SINEN,BYDXDY
       REAL*8, DIMENSION(NX1) :: DXT,DXU,BYDX2,BYDXR
-      REAL*8, DIMENSION(:), ALLOCATABLE :: DYT,DYU,BYDY2,BYDYR,CST,
-     &                                     CSU,TNGT,TNG,BYCSU
+      REAL*8, DIMENSION(NY1) :: DYT,DYU,BYDY2,BYDYR,CST,
+     &                          CSU,TNGT,TNG,BYCSU
 
 !@var OIPHI ice-ocean turning angle (25 degrees)
 !@var ECCEN value of eccentricity for yield curve ellipse
@@ -942,7 +942,8 @@ c        END DO
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
       USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
       IMPLICIT NONE
-      REAL*8 :: dlat,dlon,phit,phiu,hemi,rms
+      REAL*8 :: dlat,dlon,phit,     hemi,rms
+      REAL*8, dimension(ny1) :: phiu
       INTEGER I,J,n,k,kki,sumk,l
 
       INTEGER :: J_0,J_1,J_0S,J_1S
@@ -959,7 +960,7 @@ c****
       dlon=nint(360./(nx1-2))*radian
       bydts = 1./dts
 c****
-      do j = j_0,j_1
+      do j = 1,ny1
         dyt(j) = dlat*radius
         dyu(j) = dlat*radius
       enddo
@@ -976,33 +977,37 @@ c****
         bydx2(i)=0.5/(dxu(i)*dxu(i))
         bydxr(i)=0.5/(dxu(i)*radius)
       end do
-       do j=j_0,j_1
+      do j=1,ny1
         bydy2(j)=0.5/(dyu(j)*dyu(j))
         bydyr(j)=0.5/(dyu(j)*radius)
+      end do
+      
+      do j=j_0,j_1
         do i=1,nx1
           bydxdy(i,j) = 0.5/(dxu(i)*dyu(j))
         end do
       end do
 
+      do j = 1,ny1
+        phit = (-90.+(j-1)*4.)*radian
+        phiu(j) = (-88.+(j-1)*4.)*radian
+        cst(j) = cos(phit)
+        csu(j) = cos(phiu(j))
+        bycsu(j) = 1./csu(j)
+        tng(j) = sin(phiu(j))/csu(j)
+        TNGT(J)=SIN(PHIT)/CST(J)
+      end do
       do j = j_0,j_1
-       phit = (-90.+(j-1)*4.)*radian
-       phiu = (-88.+(j-1)*4.)*radian
-       cst(j) = cos(phit)
-       csu(j) = cos(phiu)
-       bycsu(j) = 1./csu(j)
-       tng(j) = sin(phiu)/csu(j)
-       TNGT(J)=SIN(PHIT)/CST(J)
        DO I=1,NX1
-         SINEN(I,J)=SIN(PHIU)
+         SINEN(I,J)=SIN(PHIU(j))
        enddo
       enddo
-      if (grid%have_north_pole) then
+!     if (grid%have_north_pole) then
         TNGT(NY1)=TNGT(NY1-1)
         TNG(NY1)=TNG(NY1-1)
         CSU(NY1)=CSU(NY1-1)
         bycsu(NY1) = 1./csu(NY1)
-      end if
-        CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH+SOUTH)
+!     end if
 
 C**** sin/cos ice-ocean turning angle
       SINWAT=SIN(OIPHI)
@@ -1017,7 +1022,6 @@ C**** Set land masks for tracer and velocity points
         heffm(nx1,j)=heffm(2,j)  
       enddo
 C**** define velocity points (including exterior corners)
-        CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, HEFFM, FROM=NORTH)
       do j=j_0,j_1s
         do i=1,nx1-1
@@ -1028,7 +1032,6 @@ c          if (sumk.ge.3) uvm(i,j)=1  ! includes exterior corners
         end do
       end do
 C**** reset tracer points to surround velocity points (except for single
-        CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, UVM, FROM=SOUTH)
 c     CALL HALO_UPDATE(grid, UVM, FROM=NORTH)
       do j=j_0s,j_1s
@@ -1057,7 +1060,6 @@ c set lateral boundary conditions
       enddo
 
 C**** Update halo of PHI for distributed memory implementation
-        CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, HEFFM, FROM=NORTH)
       do j=j_0,j_1s
         do i=1,nx1-1
@@ -1258,17 +1260,6 @@ C**** to ALLOC_ICEDYN.
 C**** Geometry
       ALLOCATE( SINEN(NX1,J_0H:J_1H),
      &          BYDXDY(NX1,J_0H:J_1H),
-     $   STAT = IER)
-
-      ALLOCATE ( DYT(J_0H:J_1H),
-     &           DYU(J_0H:J_1H),
-     &           BYDY2(J_0H:J_1H),
-     &           BYDYR(J_0H:J_1H),
-     &           CST(J_0H:J_1H),
-     &           CSU(J_0H:J_1H),
-     &           TNGT(J_0H:J_1H),
-     &           TNG(J_0H:J_1H),
-     &           BYCSU(J_0H:J_1H),
      $   STAT = IER)
 
       RETURN
