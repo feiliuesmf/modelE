@@ -18,7 +18,7 @@ Major Changes from Model II'
 
 - Common blocks replaced with physics-related MODULEs
 
-- Model COMMON BLOCK now E001M12_COM MODULE
+- Model COMMON BLOCK now MODEL_COM MODULE
 
 - Each physical submodule (ie. ice, snow, ocean, land, land ice,
   clouds,etc.) has it's own fortran MODULE. As far as possible,
@@ -51,9 +51,12 @@ Major Changes from Model II'
 - Second order moments are condensed to one array. Whether the
   quadratic or linear upstream scheme is required now only requires
   a change in the QUSCOM/QUSDEF modules. Multiple advection routines
-  replaced with one general purpose routines.
+  replaced with one general purpose routine.
 
 - lakes are seperated from ocean variables/code.
+
+- lake temperature/ice cover are now predicted using a two layer
+  energy/mass conserving model.
 
 - Explicit use of B-grid velocity points is now implicit.
 
@@ -61,4 +64,20 @@ Major Changes from Model II'
 
 - Ground temperatures for SURFCE/RADIA and PBL are now saved in the
   GTEMP array.
+
+- pdE (used to print diagnostics) is now just an alternate entry to
+  the model, and thus cannot be out of date.
+
+- parameters for both the model and all sub modules are now saved in a
+  parameter block that is of variable length and self-documenting
+  (replacing JC/RC in the old code).
+
+- Turbulence is now applied throughtout the atmosphere (ATURB.f).
+
+- Sea ice over the ocean is now formed at TFO (=-1.8 deg).
+
+- Solar radiation now penetrates into (and through) the sea ice.
+
+- Sea ice salinity is now a prognostic variable (though not yet
+  fully coupled to the thermodynamics).
 

@@ -20,18 +20,18 @@ code. Part II dealing with examining the diagnostics, while Part III
 deals with more technical issues involved in adding functionality or
 diagnostics.
 
+PART 0: Getting the code
+
 PART I: Basic user information
 
 1) HOW-TO setup and run the GISS GCM:
-   1a: Generalities
-   1b: How to tune a specified ocean run (using U00wtr)
-   1c: How to set up a Q-flux model with a single ocean layer
-   1d: How to set up a Q-flux model with diffusion into a deep ocean
-2) HOW-TO produce a rundeck
-3) HOW-TO use NAMELIST INPUT parameters
+3) HOW-TO set rundeck parameters
    3a: How to set and alter them
    3b: How to use them to control numerical instabilities
    3c: How to use IRAND to create an ensemble of runs
+   1b: How to tune a specified ocean run (using U00wtr)
+   1c: How to set up a Q-flux model with a single ocean layer
+   1d: How to set up a Q-flux model with diffusion into a deep ocean
 4) HOW-TO stop and restart the GCM
 5) HOW-TO change boundary conditions
 6) HOW-TO change trace gas amounts
@@ -67,64 +67,90 @@ Part III: The model code
 12) HOW-TO deal with the inevitable bugs you introduce
 13) HOW-TO get an innovation included in everybody's versions
 
+Finally, CREDITS where CREDITS are due:
+
+For ongoing development (who to blame for the current shambles):
+	Gavin Schmidt,	Reto Ruedy,	Jean Lerner,	Max Kelley,
+	Igor Aleinov,	Gary Russell,	Ye Cheng,	Andy Lacis,
+	M. S. Yao.  
+
+Historical development (stuff we haven't rewritten yet):
+	Bob Suozzo,	Suki Sheth,	Hans-Peter Zinn,	Rick Healy
+
+Inspiration (the people paying for this):
+	David Rind, Jim Hansen, Tony Del Genio
+
 =====================================================================
+
+Part 0: Getting the code
+
+The modelE code including source code, scripts and some documentation. 
+This is stored through the CVS revision control system, and copies can
+be checked-out to your home directory using the following commands:
+   export CVSDIR=/u/cmrun/cvs/repository
+   cvs checkout -r rel-1.0 modelE
+   cvs tag -b your_tag_here
+
+This will create a directory modelE/ in your directory. The code will
+correspond to rel-1.0 - the first release. It will be tagged with your
+own tag name so that your developments can be maintained by CVS, without
+conflicting with the main development branch. 
+
+Please subscribe to the mailing list 'giss-gcm-users-l@giss.nasa.gov' 
+by sending a message to Majordomo@giss.nasa.gov with a line 
+
+SUBSCRIBE giss-gcm-users-l
+
+in the body of the text. This is to ensure that you are notified of
+bug fixes and new releases. Also this is a forum for you to ask
+questions about the model.
 
 Part I: Basic user tasks
 
 1) HOW-TO setup and run the GISS GCM:
-   1b: How to TUNE a specified ocean run (using U00wtr)
-       It is desirable to run a specified ocean model in such a way that
-       it is in RADIATIVE BALANCE, i.e. that the net flux of energy into
-       the ocean (which has no effect, since ocean data are specified)
-       is zero if averaged over a whole year. One way to roughly achieve
-       this goal is to pick the right value for U00wtr. That parameter
-       influences the cloud formation where the temperature is above 0C
-       and can therefore be used to change the radiative balance.
 
-       Run the model for a year and find the annual mean net heating at
-       the ground (budget page). That quantity may change from year to
-       year within 1/2 W/m2 . Increasing U00wtr by .01 increases that
-       quantity by about .3 W/m2 . Rerun that year with a new value of
-       U00wtr hoping that the annual mean net heating at the ground
-       averages out to less than .3 W/m2 in absolut value over the next
-       few years.
+In order to run the GCM a 'rundeck' file (with a suffic .R) must be
+created. This contains information about the run you would like to
+perform, the fortran code that you intend to use, pre-processing
+options that are required, the boundary and initial conditions and any
+run-specific parameters (such as the time step, length of run
+etc.). Most of the specifics have been automated using 'gmake'.
 
-       Increasing U00ice works in the opposite direction but changes
-       the global cloud cover considerably. It could be used to tune
-       the cloud cover (before picking the final U00wtr).
+The sub-directory 'decks' is the main control directory, most commands
+will be issued in this directory. Typing 'gmake' will produce some
+documentation. 
 
-       Other ways to handle the rad.balance problem: Change the solar
-       constant until rad. balance results (most people hate that way),
-       change the solar irradiance into the ocean when running the
-       Qflux model (using the old SRCOR parameter) offsetting the
-       imbalance (advantage: no need to repeat the control run,
-       disadvantage: Jim hated it, no longer part of the code).
+There are three sample rundecks: E001.R, E001A.R and E001B.R. These
+represent a standard fixed SST atmosphere only run, a Qflux run and a
+coupled ocean-atmosphere run, respectively. In order to make a rundeck
+that you can use and modify, type
 
-   1c: How to set up a Q-flux model with a single ocean layer
-       A preliminary run with prescribed climatological ocean has to
-       be run for about 6 years collecting daily fluxes into the ocean
-       (Kvflxo=1). Based on these data, a new input file (OTSPEC...)
-       has to be created that specifies the horizontal heat transports
-       in the ocean; in addition, the ocean temperatures at the annual
-       maximum mixed layer depth and the mean temperature between that
-       level and the bottom of the current mixed layer depth have to be
-       computed for the final time of the preliminary run and added to
-       the final restart file of that preliminary run. That augmented
-       restart file will serve as initial state file for the new run.
-       During the first few years, monitor the time series of global
-       annual means of  Ocean Ice Cover  and  Surface Air Temperature.
-       Hopefully, they will no longer change after a few years (10-25).
-       The model is said to be in balance as soon as that happens.
+     gmake mkrun RUN=E001xyz
 
-   1d: How to set up a Q-flux model with diffusion into a deep ocean
-       Such a run needs a preliminary Q-flux model running for 10 years
-       in equilibrium, saving (KCOPY=3) the data necessary for diffusion
-       computations (see /u/cmrun/model/notes/deep.ocean.doc)
+This will make a rundeck E001xyz.R (please use a unique name, based on
+your initials), that will be a copy of E001.R. To make a copy based on
+another of the sample decks, use, for instance,
 
-2) HOW-TO produce a rundeck
+     gmake mkrun RUN=E001xyz RUNSRC=E001A
 
+The list of fortran files within the rundeck determines which files
+are compiled into the executable. The compilation is automatic, and
+will take account of all dependencies, so that if a file is modified
+it will be re-compiled, along with any files that directly depend on
+modules or routines within it. The executable is made using
 
-3) HOW-TO use NAMELIST parameters
+     gmake gcm RUN=E001xyz
+
+To actually run the model, you must first 'setup' the run by running
+the first hour (or specifically the first source time step).
+
+    gmake setup RUN=E001xyz
+
+If this runs successfully there will be a message saying so. Once this
+is done, you can "run E001xyz" to set the model running for the
+specified length of time.
+
+3) HOW-TO set rundeck parameters
 
    3a: How to set and alter NAMELIST parameters
        Namelist parameters take the default values unless they are
@@ -165,8 +191,59 @@ Part I: Basic user tasks
        LINE as ISTART, so that IRAND=-.... is not kept in the 'I'-file
        and used in restarts.
 
+   1b: How to TUNE a specified ocean run (using U00wtr)
+       It is desirable to run a specified ocean model in such a way that
+       it is in RADIATIVE BALANCE, i.e. that the net flux of energy into
+       the ocean (which has no effect, since ocean data are specified)
+       is zero if averaged over a whole year. One way to roughly achieve
+       this goal is to pick the right value for U00wtr. That parameter
+       influences the cloud formation where the temperature is above 0C
+       and can therefore be used to change the radiative balance.
+
+       Run the model for a year and find the annual mean net heating at
+       the ground (budget page). That quantity may change from year to
+       year within 1/2 W/m2 . Increasing U00wtr by .01 increases that
+       quantity by about .3 W/m2 . Rerun that year with a new value of
+       U00wtr hoping that the annual mean net heating at the ground
+       averages out to less than .3 W/m2 in absolute value over the next
+       few years.
+
+       Increasing U00ice works in the opposite direction but changes
+       the global cloud cover considerably. It could be used to tune
+       the cloud cover (before picking the final U00wtr).
+
+       Other ways to handle the rad. balance problem: Change the solar
+       constant until rad. balance results (most people hate that way),
+       change the solar irradiance into the ocean when running the
+       Qflux model (using the old SRCOR parameter) offsetting the
+       imbalance (advantage: no need to repeat the control run,
+       disadvantage: Jim hated it, no longer part of the code).
+
+   1c: How to set up a Q-flux model with a single ocean layer
+       A preliminary run with prescribed climatological ocean has to
+       be run for about 6 years collecting daily fluxes into the ocean
+       (Kvflxo=1). Based on these data, a new input file (OTSPEC...)
+       has to be created that specifies the horizontal heat transports
+       in the ocean; in addition, the ocean temperatures at the annual
+       maximum mixed layer depth and the mean temperature between that
+       level and the bottom of the current mixed layer depth have to be
+       computed for the final time of the preliminary run and added to
+       the final restart file of that preliminary run. That augmented
+       restart file will serve as initial state file for the new run.
+       During the first few years, monitor the time series of global
+       annual means of  Ocean Ice Cover  and  Surface Air Temperature.
+       Hopefully, they will no longer change after a few years (10-25).
+       The model is said to be in balance as soon as that happens.
+
+   1d: How to set up a Q-flux model with diffusion into a deep ocean
+       Such a run needs a preliminary Q-flux model running for 10 years
+       in equilibrium, saving (KCOPY=3) the data necessary for diffusion
+       computations (see /u/cmrun/model/notes/deep.ocean.doc)
+
 4) HOW-TO stop and restart the GCM
 
+Use the command 'sswB E001xyz' to stop the model run in a controlled
+fashion. Restart it with the command 'run E001xyz'.
 
 5) HOW-TO change boundary conditions
 
@@ -178,14 +255,30 @@ Part I: Basic user tasks
 
 9) HOW-TO move to Mars
 
-10) HOW-TO get help
+10) HOW-TO get help or report a problem
 
-11) HOW-TO report a problem
+There is a mailing list 'giss-gcm-users-l@giss.nasa.gov' where queries,
+problems and comments on the gcm can be aired. Sending a message here
+is probably more likely to get a quick response than emailing any one
+person. 
+Subscribe to this by sending a message to Majordomo@giss.nasa.gov with
+a line "SUBSCRIBE giss-gcm-users-l" in the body of the text.
 
 12) HOW-TO keep up-to-date
 
+Periodically, we will release new, improved versions of the model
+code. You will be notified through the mailing list, and you can
+decide whether to upgrade your code, or wait until a more suitable
+time. None of your changes will be lost if you upgrade. However, some
+conflicts may occur, though they should be minor. Detailed
+instructions will be given at the time.
+
 13) HOW-TO add to this documentation
 
+This documentation is part of the model code, and so changes to files
+in the modelE/doc directory can be uploaded to the main repository. 
+Please contact one of the developers if you have some changes that you
+would like to commit. 
 
 Part II: Getting information from the diagnostics
 
@@ -272,7 +365,7 @@ decide who should own the parameter. That is likely to be one of the
 physics modules. Since it is likely to be a fundamental part of a
 local physics process, it should be declared and defined in the local
 physics module. You now need to USE it in the physics COM block (this
-is to allow the input/ouput routines to access it easily). In INPUT,
+is to allow the input/output routines to access it easily). In INPUT,
 you should then USE this parameter from the COM block. This is a
 little indirect but it cuts down on dependencies and is neater. Then
 the variable can be added to the NAMELIST. You will probably also need
@@ -288,7 +381,7 @@ improvements in ease of use occur, it will get easier to modify.
 
 a) Adding a new conservation diagnostic: These arrays keep track of
 the zonal average of any quantity, and note which routines change
-those values. They are useful in undestanding the overall
+those values. They are useful in understanding the overall
 mass/energy/tracer budgets. To add a new conservation quantity, first
 write a routine that returns the zonally averaged quantity in
 question. Secondly, in the 'init' subroutine for the relevant physical
@@ -331,7 +424,7 @@ pathname is needed.
 10) HOW-TO add new variables to the restart files
 
 Each module now has only one place that needs to be changed to
-accomodate extra variables in the rsf files: io_xyz (where xyz is a
+accommodate extra variables in the rsf files: io_xyz (where xyz is a
 descriptor for the module like ocean, rad, lakes etc.). All
 input/output is controlled by these routines. Thus to add a new
 variable, simply add it to the list of variables for both the read and
@@ -348,7 +441,7 @@ follow.
 10) HOW-TO access variables that are already calculated somewhere else
 
 One of the main changes to modelE was to replace common blocks with
-Fortan 90 modules. The functionality is much the same, but since they
+Fortran 90 modules. The functionality is much the same, but since they
 do not assume anything about where in memory variables are kept, many
 of the problems associated with common blocks are alleviated. In order
 to make use of a variable from somewhere else in the code, that
@@ -381,7 +474,7 @@ and then the model crashes. There are three common points that seem to
 trap errors: the dynamics, the radiation and the PBL scheme. These
 errors will be flagged as either "A>1 in AADVTX" or similar (for
 crashes in the dynamics), "In Radia: TL out of range" or similar (in
-the radiation), and finally "stop zbrent" or "stop rtsafe", for a
+the radiation), and finally a "stop rtsafe", for a
 crash in the PBL.
 
 Do not go looking for errors in any of these routines. What has
@@ -409,4 +502,11 @@ tracer code is a good example of what to do.
 
 13) HOW-TO get an innovation included in everybody's versions
 
-Still working on this one!
+Since you are working on the code within CVS, it is possible to upload
+your changes to the main development branch. However, this is highly
+unrecommended for the average user, and so I am not going to tell you
+how to do it! Instead, please discuss it with one of the development
+team. If you wish to make a lot of changes and be part of the ongoing
+development of modelE, then please read the file
+http://www.giss.nasa.gov/~gavin/gcm_develop.html and then come and
+talk to me (gavin@giss.nasa.gov). 

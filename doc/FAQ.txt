@@ -34,7 +34,10 @@ led to functional updates that allow the 'piggy-backing' of specific
 functionality (such as tracer code, or ocean coupling) on top of the
 underlying model code in a relatively model-version independent way.  
 We have also found it very useful in tracking bugs, notifying users
-about code changes and referencing in general.
+about code changes and referencing in general. 
+
+In modelE line number format has been replaced by the CVS revision
+control system and preprocessing options. 
 
 2) Is line number format is 'harder' to edit?
 
@@ -187,7 +190,7 @@ it makes sense for you to make the effort involved in upgrading.
 - subsequent changes and upgrades for modelE will be significantly
   easy than it was for model II'
 - adding diagnostics is much more straightforward
-- acc files now have more inforamtion and thus 'pd'-like programs are
+- acc files now have more information and thus 'pd'-like programs are
   now more robust
 - modelE is double precision throughout
 - modelE will eventually be the only model version supported by the programmers. 
@@ -232,5 +235,4 @@ gives double precision (since the denominator is already double precision).
 On some compilers there is a compiler option that removes these
 problems, but not all. Hence for maximum portability we are trying to
 be explicit about writing those 'd0's out.
-
 
