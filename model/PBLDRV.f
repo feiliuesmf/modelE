@@ -276,6 +276,8 @@ c -------------------------------------------------------------
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
       USE DYNAMICS, only : pmid,pk,pedn,pek
+      USE OCEAN, only : odata
+
       IMPLICIT NONE
 
 c@var inipbl whether to init prog vars

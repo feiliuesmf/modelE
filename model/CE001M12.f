@@ -19,6 +19,7 @@ C**** Subsid only works on non-plume portion of column (properly!)
       USE PBLCOM, only : tsavg
       USE DAGCOM, only : aj,bj,cj,dj,aij,ajl,ail,adaily,jreg
       USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold
+      USE OCEAN, only : odata
       
       IMPLICIT NONE
 

@@ -23,19 +23,17 @@ C****
       USE GEOM
       USE CLOUDS, only : PREC,TPREC
       USE DAGCOM, only : aj,bj,cj,dj,aij,jreg
+      USE OCEAN, only : ODATA,OA,XSI1,XSI2,XSI3,XSI4,R2,R3,TTRUNC,Z1I
+     *     ,Z2OIM,ACE1I,AC2OIM,TFO
+
       IMPLICIT REAL*8 (A-H,O-Z)
 C*
-      PARAMETER (SNOMAX=100.0, dSNdRN=0.,
-     A           XSI1=0.5, XSI2=0.5, XSI3=0.5, XSI4=0.5,
-     B           R2=1./XSI2, R3=1./XSI3)
+      PARAMETER (SNOMAX=100.0, dSNdRN=0.)
 C*
       REAL*8 MSI1, MSI2, MELT1
 
-            COMMON/WORKO/OA(IM,JM,11)
-c      DATA SHW/4185./,SHI/2060./
-      DATA Z1I/.1/,Z1E/.1/,Z2LI/2.9/
-      DATA Z2OIM/.9/,TFO/-1.80/
-      DATA TTRUNC/0./
+      DATA Z1E/.1/,Z2LI/2.9/
+
       DATA IFIRST/1/
 C****
 C**** FLAND     LAND COVERAGE (1)
@@ -76,8 +74,6 @@ C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
    10 CONTINUE
 C*
-      ACE1I=Z1I*RHOI
-      AC2OIM=Z2OIM*RHOI
       ACE2LI=Z2LI*RHOI
       HC1I=ACE1I*SHI
       HC1DE=Z1E*1129950.
@@ -866,6 +862,8 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE PBLCOM, only : wsavg,tsavg
       USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,ail,ajl,asjl,adaily
       USE DYNAMICS, only : pk,pedn
+      USE OCEAN, only : odata
+
       IMPLICIT REAL*8 (A-H,O-Z)
 
       COMMON/WORK1d/COSZ2(IM,JM),COSZA(IM,JM),
@@ -875,7 +873,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
 
       DIMENSION COE(LM+3)
       LOGICAL POLE
-c      DATA TF/273.16/
+
       DATA TCIR/258.16/,STBO/.567257D-7/,IFIRST/1/,JDLAST/-9/
 C****
 C**** FLAND     LAND COVERAGE (1)
@@ -1467,25 +1465,22 @@ C****
       USE GEOM
       USE PBLCOM, only : tsavg
       USE DAGCOM, only : aj,bj,cj,dj,aij,jreg
+      USE OCEAN, only : odata,XSI1,XSI2,XSI3,XSI4,R1,R2,R3,R4,TTRUNC,Z1I
+     *     ,Z2OIM,ACE1I,AC2OIM,OTA,OTB,OTC,TFO
+
       IMPLICIT REAL*8 (A-H,O-Z)
 C*
-      PARAMETER (XSI1=0.5, XSI2=0.5, XSI3=0.5, XSI4=0.5,
-     A           ALPHA = 1.0, dSNdML = 0.,
-     B           R1 = 1./XSI1,R2 = 1./XSI2,R3 = 1./XSI3,R4 = 1./XSI4,
-     C           FLEAD = 0.10d0)
+      PARAMETER (ALPHA = 1.0, dSNdML = 0.,FLEAD = 0.10d0)
 C*
       REAL*8 MELT1, MELT4, MSI1, MSI2
 C*
       COMMON/WORK3/E0(IM,JM,4),E1(IM,JM,4),EVAPOR(IM,JM,4)
             COMMON/oldDAG/GDEEP(IM,JM,3)
-      COMMON/OT/OTA(IM,JM,4),OTB(IM,JM,4),OTC(IM,JM)
-      COMMON /FLAKE/ T50(IM,JM)
-c      DATA SHV/0./,SHW/4185./,SHI/2060./
-      DATA ALAMI/2.1762/,TFO/-1.80/,Z1I/.1/,Z2LI/2.9/,Z1E/.1/,Z2E/4./
-cRHOW/1000./,RHOI/916.6/,
 
-      DATA Z2OIM/.4/,Z2OIX/4.9/
-      DATA TTRUNC/0./
+      COMMON /FLAKE/ T50(IM,JM)
+
+      DATA ALAMI/2.1762/,Z2LI/2.9/,Z1E/.1/,Z2E/4./,Z2OIX/4.9/
+
       DATA IFIRST/1/
 C****
 C**** FLAND     LAND COVERAGE (1)
@@ -1532,8 +1527,8 @@ C*
 C     CALL DREAD (17,OTA,IM*JM*3,OTA)
       REWIND 12
    10 DTSRCE=NDYN*DT
-      ACE1I=Z1I*RHOI
-      AC2OIM=Z2OIM*RHOI
+c      ACE1I=Z1I*RHOI
+c      AC2OIM=Z2OIM*RHOI
 C*
       YSI1 = XSI1*ACE1I/(ACE1I+AC2OIM)
       YSI2 = XSI2*ACE1I/(ACE1I+AC2OIM)
@@ -2453,18 +2448,17 @@ C****
       USE DAGCOM, only : ajl
       USE DYNAMICS, only : pk
       IMPLICIT REAL*8 (A-H,O-Z)
-c      COMMON/WORK1/CONV(IM,JM,LM),PK(LM,IM,JM)
-      COMMON/WORK2/UT(IM,JM,LM),VT(IM,JM,LM),
-     *  DP(LM)
+
+      COMMON/WORK2/UT(IM,JM,LM),VT(IM,JM,LM),DP(LM)
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
       REAL*8, DIMENSION(IM) :: RA !@var
       REAL*8, DIMENSION(IM) :: UMS,VMS !@var
       LOGICAL POLE
-C     DATA RVAP/461.5/
+
       RVX=0.
 C**** LOAD U,V INTO UT,VT.  UT,VT WILL BE FIXED DURING DRY CONVECTION
 C****   WHILE U,V WILL BE UPDATED.
-c      SHA=RGAS/KAPA
+
       DTSRCE=DT*NDYN
       DO 50 L=1,LM
       DO 50 J=2,JM
@@ -2619,7 +2613,7 @@ C****
       USE DAGCOM, only : aij
       USE DYNAMICS, only : pk
       IMPLICIT REAL*8 (A-H,O-Z)
-c      COMMON/WORK1/CONV(IM,JM,LM),PK(LM,IM,JM)
+
       DIMENSION XCDLM(2)
       NAMELIST/SDRNML/XCDLM
       INTEGER :: IFIRST = 1
@@ -2738,183 +2732,5 @@ C     SUNY = -SIN(TA+OMEGA)*COS(DOBLIQ)
 C     LAMBDA = DATAN2(SUNY,SUNX)-GREENW
 C     LAMBDA = DMOD(LAMBDA,2.*PI)
 C****
-      RETURN
-      END
-      SUBROUTINE OSTRUC
-C****
-C**** THIS SUBROUTINE RESTRUCTURES THE OCEAN TEMPERATURE PROFILE
-C**** WHEN THE MIXED LAYER DEPTHS ARE CHANGED (NORMALLY DONE ONCE
-C**** A DAY).
-C**** THE SUBROUTINE ALSO MELTS ICE WHEN TGO > 0 (C).
-C****
-      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
-     *     ,rhow,rhoi,shw,shi
-      USE E001M12_COM
-      USE GEOM
-      IMPLICIT REAL*8 (A-H,O-Z)
-C*
-      PARAMETER (XSI1=0.5, XSI2=0.5, XSI3=0.5, XSI4=0.5, R4=1./XSI4,
-     *           FDAILY=0.3333333, TFO = -1.8)
-C*
-      REAL*8 MSI1, MSI2, MELT
-C*
-      COMMON/WORK2/Z1OOLD(IM,JM)
-      COMMON /FLAKE/ T50(IM,JM)
-      DATA Z1I/.1/
-c,RHOW/1000./,RHOI/916.6/,SHW/4185./,SHI/2060./,
-      DATA Z2OIM/.4/
-      DATA TTRUNC/0./
-C****
-C**** FLAND     LAND COVERAGE (1)
-C****
-C**** ODATA  1  OCEAN TEMPERATURE OF FIRST LAYER (C)
-C****        2  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
-C****        3  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
-C****        4  MEAN OCEAN TEMPERATURE OF SECOND LAYER (C)
-C****        5  OCEAN TEMPERATURE AT BOTTOM OF SECOND LAYER (C)
-C****
-C**** GDATA  1  OCEAN ICE SNOW AMOUNT (KG/M**2)
-C****        3  OCEAN ICE TEMPERATURE OF FIRST LAYER (C)
-C****        7  OCEAN ICE TEMPERATURE OF SECOND LAYER (C)
-C****
-      ACE1I=Z1I*RHOI
-      AC2OIM=RHOI*Z2OIM
-C****
-C**** RESTRUCTURE OCEAN LAYERS
-C****
-      DO 200 J=1,JM
-      IMAX=IMAXJ(J)
-      DO 200 I=1,IMAX
-      IF (FLAND(I,J).GE.1.) GO TO 200
-      IF (Z1OOLD(I,J).GE.Z12O(I,J)) GO TO 140
-      IF (Z1O(I,J).EQ.Z1OOLD(I,J)) GO TO 200
-      WTR1O=RHOW*Z1O(I,J)-ODATA(I,J,2)*(GDATA(I,J,1)+ACE1I+ODATA(I,J,3))
-      DWTRO=RHOW*(Z1O(I,J)-Z1OOLD(I,J))
-      WTR2O=RHOW*(Z12O(I,J)-Z1O(I,J))
-      IF (DWTRO.GT.0.) GO TO 120
-C**** MIX LAYER DEPTH IS GETTING SHALLOWER
-      ODATA(I,J,4)=ODATA(I,J,4)
-     *  +((ODATA(I,J,4)-ODATA(I,J,1))*DWTRO/WTR2O+TTRUNC)
-      GO TO 200
-C**** MIX LAYER DEPTH IS GETTING DEEPER
-  120 TGAVE=(ODATA(I,J,4)*DWTRO+(2.*ODATA(I,J,4)-ODATA(I,J,5))*WTR2O)
-     *  /(WTR2O+DWTRO)
-      ODATA(I,J,1)=ODATA(I,J,1)+((TGAVE-ODATA(I,J,1))*DWTRO/WTR1O
-     *  +TTRUNC)
-      IF (Z1O(I,J).GE.Z12O(I,J)) GO TO 140
-      ODATA(I,J,4)=ODATA(I,J,4)
-     *  +((ODATA(I,J,5)-ODATA(I,J,4))*DWTRO/(WTR2O+DWTRO)+TTRUNC)
-      GO TO 200
-C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
-  140 ODATA(I,J,4)=ODATA(I,J,1)
-      ODATA(I,J,5)=ODATA(I,J,1)
-  200 CONTINUE
-C****
-C**** REDUCE THE HORIZONTAL EXTENT OF ICE IF OCEAN TEMPERATURE IS WARM
-C****
-      DO 300 J=1,JM
-      IMAX=IMAXJ(J)
-      DO 300 I=1,IMAX
-      IF (FLAKE(I,J) .GT. 0.) GO TO 300 ! no melting in lakes
-      IF (ODATA(I,J,2).LE.0.) GO TO 300
-      IF (FLAND(I,J).GE.1.) GO TO 300
-C**** REDUCE ICE EXTENT IF OCEAN TEMPERATURE IS GREATER THAN TFO
-      IF (ODATA(I,J,1).LE.0.) GO TO 300
-      TGW=ODATA(I,J,1)
-      ROICE=ODATA(I,J,2)
-      MSI2=ODATA(I,J,3)
-      ACE=GDATA(I,J,1)+ACE1I+MSI2
-C*
-        SNOW=GDATA(I,J,1) ! snow mass
-        MSI1 = SNOW + ACE1I
-C*
-        TG1 = GDATA(I,J,3)  ! first layer sea ice temperature
-        TG2 = GDATA(I,J,7)  ! second layer sea ice temperature
-        TG3 = GDATA(I,J,15) ! third layer sea ice temperature
-        TG4 = GDATA(I,J,16) ! fourth layer sea ice temperature
-C*
-C***  CONVERT SEA ICE TEMPERATURE INTO ENTHALPY MINUS LATENT HEAT
-C*
-        HSI1 = (SHI*TG1-LHM)*XSI1*MSI1
-        HSI2 = (SHI*TG2-LHM)*XSI2*MSI1
-        HSI3 = (SHI*TG3-LHM)*XSI3*MSI2
-        HSI4 = (SHI*TG4-LHM)*XSI4*MSI2
-C*
-      ENRGI = HSI1+HSI2+HSI3+HSI4 ! energy is sea ice [J/m^2]
-      WTRO=Z1O(I,J)*RHOW
-      WTRW=WTRO-ROICE*ACE
-      EW_FREZ = WTRW*TFO*SHW ! energy of water at freezing temperature
-      ENRGW=WTRW*TGW*SHW
-      ENRG = ENRGW ! energy of water
-      IF (ROICE*ENRGI+ENRG.LT.0.) GO TO 230
-C**** THE WARM OCEAN MELTS ALL THE SNOW AND ICE
-      ODATA(I,J,1)=(ROICE*ENRGI+ENRGW)/(WTRO*SHW)
-      GO TO 270
-C*
-C**** THE WARM OCEAN COOLS TO 0 DEGREES MELTING SOME SNOW AND ICE
-C**** Reduce the ice depth
-  230 ODATA(I,J,1)=0. ! ODATA(I,J,1)=(ENRGW-ENRG)/(WTRO*SHW)
-C*
-      PWATER = 1. - FLAND(I,J) ! water fraction
-      POICE = ROICE*PWATER       ! sea ice fraction
-      H_C = 1.                   ! critical ice thickness [m]
-      H_ICE = ACE/RHOI           ! sea ice thickness [m]
-C*
-      IF (H_ICE .GT. 1.) THEN
-         GAMMA = H_ICE/H_C
-      ELSE
-         GAMMA = 1.
-      END IF
-C*
-      E_BOTTOM = ENRG*(POICE/(1.+GAMMA)) ! for bottom melting
-      E_SIDE = ENRG*(PWATER+(POICE*GAMMA)/(1.+GAMMA)) ! for side melt.
-      E_SIDE = ENRG-E_BOTTOM
-C*
-C***  MELT ICE VERTICALLY, AND THEN HORIZONTALLY
-C*
-        MELT = -XSI4*MSI2*ENRG/HSI4 ! melted ice at the bottom
-        IF (MSI2-MELT .LT. AC2OIM) MELT = MSI2-AC2OIM
-C       FMSI3 = XSI3*MELT ! > 0.
-        FHSI3 = HSI3*MELT/MSI2
-        FHSI4 = HSI4*MELT*R4/MSI2
-C*
-C***  MELT SOME ICE HORIZONTALLY
-C*
-        DRSI = (ENRG+ROICE*FHSI4)/(HSI1+HSI2+HSI3+HSI4-FHSI4) ! < 0.
-C*
-        ROICEN = ROICE+DRSI ! new sea ice concentration
-c       SNOW = SNOW*(ROICE/ROICEN) ! new snow ice mass
-        MSI2 = MSI2-MELT
-        HSI3 = HSI3-FHSI3
-        HSI4 = HSI4+FHSI3-FHSI4
-C*
-C***  CONVERT SEA ICE ENTHALPY MINUS LATENT HEAT INTO TEMPERATURE
-C*
-        TG1 = (HSI1/(XSI1*MSI1) +LHM)/SHI ! temperatute of layer 1
-        TG2 = (HSI2/(XSI2*MSI1) +LHM)/SHI ! temperatute of layer 2
-        TG3 = (HSI3/(XSI3*MSI2) +LHM)/SHI ! temperatute of layer 3
-        TG4 = (HSI4/(XSI4*MSI2) +LHM)/SHI ! temperatute of layer 4
-C*
-C**** RESAVE PROGNOSTIC QUANTITIES
-C*
-        ODATA(I,J,2)=ROICEN
-        ODATA(I,J,3)=MSI2
-C*
-        GDATA(I,J,1)  = SNOW
-        GDATA(I,J,3)  = TG1
-        GDATA(I,J,7)  = TG2
-        GDATA(I,J,15) = TG3
-        GDATA(I,J,16) = TG4
-C*
-      GO TO 300
-  270 ODATA(I,J,2)=0.
-      ODATA(I,J,3)=0.
-      GDATA(I,J,1)=0.
-      GDATA(I,J,3)=0.
-      GDATA(I,J,7)=0.
-      GDATA(I,J,15) = 0.
-      GDATA(I,J,16) = 0.
-C*
-  300 CONTINUE
       RETURN
       END

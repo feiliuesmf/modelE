@@ -28,6 +28,9 @@ C****
       USE SOCPBL, only : omega2,zgs
       USE DAGCOM, only : aij,tdiurn,aj,bj,cj,dj,ajl,adaily,jreg
       USE DYNAMICS, only : pmid,pk,pedn,pek
+      USE OCEAN, only : OA,ODATA,XSI1,XSI2,Z1I,ACE1I,TFO
+
+
       IMPLICIT REAL*8 (A-H,O-Z)
 C*
       REAL*8 KM, KH, MSUM, MA1, MSI1, MSI2
@@ -39,7 +42,7 @@ C*
       REAL*8, DIMENSION(IM) :: UMS,VMS !@var
       COMMON/WORK3/E0(IM,JM,4),E1(IM,JM,4),EVAPOR(IM,JM,4),
      *  TGRND(IM,JM,4)
-            COMMON/WORKO/OA(IM,JM,12)
+c            COMMON/WORKO/OA(IM,JM,12)
       COMMON /CIRCLE/PI,RADIAN,DEGREE
       DIMENSION SINI(IM),COSI(IM),               TGRN2(IM,JM,4)
       LOGICAL POLE
@@ -51,14 +54,10 @@ C*
 
       parameter (qmin=1.e-12)
 
-C      common /dflux1/fluxu1,fluxv1,fluxt1,fluxq1
-
-c      DATA RVAP/461.5/
       DATA ALAMI/2.1762/,STBO/.5672573E-7/
-c ,TF/273.16/,,RHOW/1000./,RHOI/916.6/,SHV/0./,SHW/4185./,SHI/2060./,
-      DATA TFO/-1.80/
-      DATA Z1I/.1/,Z2LI/2.9/,Z1E/.1/,Z2E/4./,RHOS/300.0/,ALAMS/.35/,
-     A     S1BYG1 /0.57735/, XSI1 /0.5/, XSI2 /0.5/
+
+      DATA Z2LI/2.9/,Z1E/.1/,Z2E/4./,RHOS/300.0/,ALAMS/.35/,
+     A     S1BYG1 /0.57735/
       QSAT(TM,PR,QLH)=3.797915*DEXP(QLH*(7.93252D-6-2.166847D-3/TM))/PR
       DATA IFIRST/1/
 C****
@@ -104,7 +103,7 @@ C*
       BYRLS = 1./(RHOS*ALAMS) ! (m^4*degC*sec)/(J*kg)
 C*
       RVX=0.
-      ACE1I=Z1I*RHOI
+c      ACE1I=Z1I*RHOI
       HC1I=ACE1I*SHI
       HC2LI=Z2LI*RHOI*SHI
       HC1DE=Z1E*1129950.

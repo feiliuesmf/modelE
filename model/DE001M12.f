@@ -345,6 +345,8 @@ C****
       USE RADNCB, only : rqt
       USE PBLCOM, only : tsavg
       USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,apj,ajl,asjl,ail
+      USE OCEAN, only : odata
+
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION U(IM,JM,LM),V(IM,JM,LM),T(IM,JM,LM),P(IM,JM),Q(IM,JM,LM)
       LOGICAL POLE

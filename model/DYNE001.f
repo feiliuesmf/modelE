@@ -6,11 +6,12 @@
 !@cont DYNAM,ADVECM,ADVECV,AFLUX,PGF,SHAP1D,AVRX,FILTER,FLTRUV,CALC_AMPK
 
       USE E001M12_COM, only : im,jm,lm,imh,sig,sige,dsig,psf,ptop,ls1,u
-     *     ,v,t,q,p,wm,ptrunc,mfiltr,zatmo,fim,mrch,fland,flice,odata
+     *     ,v,t,q,p,wm,ptrunc,mfiltr,zatmo,fim,mrch,fland,flice
      *     ,gdata,modd5k 
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE SOMTQ_COM
       USE PBLCOM, only : tsavg
+      USE OCEAN, only : odata
 
       USE GEOM
       IMPLICIT NONE
