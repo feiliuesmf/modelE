@@ -640,7 +640,7 @@ C**** Save initial (currently permanent and global) Q in rad.layers
       RETURN
       END SUBROUTINE init_RAD
 
-      SUBROUTINE daily_RAD
+      SUBROUTINE daily_RAD(end_of_day)
 !@sum  daily_RAD sets radiation parameters that change every day
 !@auth G. Schmidt
 !@calls RADPAR:RCOMPT
@@ -650,20 +650,25 @@ C**** Save initial (currently permanent and global) Q in rad.layers
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
      *     ,ghg_yr,co2ppm
       USE DIAG_COM, only : iwrite,jwrite,itwrite
+      IMPLICIT NONE
+      LOGICAL, INTENT(IN) :: end_of_day
 
       JDAYR=JDAY
       JYEARR=JYEAR
 C**** Update time dependent radiative parameters each day
       CALL RCOMPT
-      if(ghg_yr.eq.0) then
+C**** FULGAS gets set initially, and updated daily for time-varying GHGs
+      if(ghg_yr.eq.0 .or. .not. end_of_day) then
          FULGAS(2)=FULGAS(2)*CO2X
          FULGAS(6)=FULGAS(6)*N2OX
          FULGAS(7)=FULGAS(7)*CH4X
          FULGAS(8)=FULGAS(8)*CFC11X
          FULGAS(9)=FULGAS(9)*CFC12X
          FULGAS(11)=FULGAS(11)*XGHGX
-         IF(H2OstratX.GE.0.) FULGAS(1)=FULGAS(1)*H2OstratX
       end if
+      IF(.not. end_of_day .and. H2OstratX.GE.0.)
+     *     FULGAS(1)=FULGAS(1)*H2OstratX
+
 C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
 C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
       if(jwrite.gt.1500) call writet (6,itwrite,iwrite,jwrite,1,0)
