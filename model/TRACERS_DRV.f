@@ -3139,8 +3139,7 @@ C**** Apply chemistry and stratosphere overwrite changes:
 #ifdef TRACERS_WATER
 C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 
-      SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,SUPSAT,LHX,FCLOUD,FQ0,
-     *     fq)
+      SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,LHX,FCLOUD,FQ0,fq)
 !@sum  GET_COND_FACTOR calculation of condensate fraction for tracers
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
@@ -3179,9 +3178,10 @@ c
 #ifdef TRACERS_SPECIAL_O18
       real*8 tdegc,alph,fracvs,fracvl,kin_cond_ice
 #endif
-      REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP, SUPSAT, LHX
+      REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP, LHX
       REAL*8,  INTENT(OUT):: fq
       INTEGER, INTENT(IN) :: L, N
+      REAL*8 :: SUPSAT
 c
 C**** CALCULATE the fraction of tracer mass that becomes condensate:
 c
@@ -3214,8 +3214,10 @@ C**** calculate condensate in equilibrium with source vapour
             else  ! cond to ice
               alph=1./fracvs(tdegc,trname(ntix(n)))
 C**** kinetic fractionation can occur as a function of supersaturation
-              if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
-     *             ,trname(ntix(n)))
+C**** this is a hack from Georg Hoffmann
+c              supsat=1d0-2d-3*tdegc
+c              if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
+c     *             ,trname(ntix(n)))
             end if
             if (fq0.ne.1.) then ! just to be safe
               fq = alph * fq0/(1.+(alph-1.)*fq0)
@@ -3380,8 +3382,8 @@ c
           if (tdegc.ge.0) then
             alph=fracvl(tdegc,trname(ntix(n)))
 C**** below clouds kinetic effects with evap into unsaturated air
-            if (QBELOW.and.heff.lt.1.) alph=kin_evap_prec(alph,heff
-     *           ,trname(ntix(n)))
+c            if (QBELOW.and.heff.lt.1.) alph=kin_evap_prec(alph,heff
+c     *           ,trname(ntix(n)))
           else
             alph=fracvs(tdegc,trname(ntix(n)))
           end if

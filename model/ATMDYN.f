@@ -1392,17 +1392,19 @@ C**** (technically we should use U,V from before but this is ok)
       USE DAGCOM, only : aij, ij_ptrop
       USE DYNAMICS, only : pk, pmid, PTROPO, LTROPO
       IMPLICIT NONE
-      INTEGER I,J,L
+      INTEGER I,J,L,IERR
       REAL*8, DIMENSION(LM) :: TL
 
 C**** Find WMO Definition of Tropopause to Nearest L
-C$OMP  PARALLEL DO PRIVATE (I,J,L,TL)
+C$OMP  PARALLEL DO PRIVATE (I,J,L,TL,IERR)
       do j=1,jm
       do i=1,imaxj(j)
         do l=1,lm
           TL(L)=T(I,J,L)*PK(L,I,J)
         end do
-        CALL TROPWMO(TL,PMID(1,I,J),PK(1,I,J),PTROPO(I,J),LTROPO(I,J))
+        CALL TROPWMO(TL,PMID(1,I,J),PK(1,I,J),PTROPO(I,J),LTROPO(I,J)
+     *       ,IERR)
+        IF (IERR.gt.0) print*,"TROPWMO error: ",i,j
         AIJ(I,J,IJ_PTROP)=AIJ(I,J,IJ_PTROP)+PTROPO(I,J)
       end do
       end do
@@ -1415,7 +1417,7 @@ C$OMP  END PARALLEL DO
       END SUBROUTINE CALC_TROP
 
 
-      subroutine tropwmo(ptm1, papm1, pk, ptropo, ltropp)
+      subroutine tropwmo(ptm1, papm1, pk, ptropo, ltropp,ierr)
 !@sum  tropwmo calculates tropopasue height according to WMO formula
 !@auth D. Nodorp/T. Reichler/C. Land
 !@+    GISS Modifications by Jean Lerner/Gavin Schmidt
@@ -1453,7 +1455,7 @@ C$OMP  END PARALLEL DO
 
       real*8, intent(in), dimension(klev) :: ptm1, papm1, pk
       real*8, intent(out) :: ptropo
-      integer, intent(out) :: ltropp
+      integer, intent(out) :: ltropp,ierr
       real*8, dimension(klev) :: zpmk, zpm, za, zb, ztm, zdtdz
 !@param zgwmo min lapse rate (* -1) needed for trop. defn. (-K/km)
 !@param zgwmo2 GISS failsafe minimum lapse rate (* -1) (-K/km)
@@ -1469,6 +1471,7 @@ c****
 c****  2. Calculate the height of the tropopause
 c****  -----------------------------------------
       ltset = -999
+      ierr=0
       iplimb=1
 c**** set limits based on pressure
       do jk=2,klev-1
@@ -1560,6 +1563,7 @@ c****
      *       ,ltropp
         write(6,'(12(I4,5F10.5,/))') (l,ptm1(l),papm1(l),pk(l),zdtdz(l)
      *       ,zpm(l),l=iplimb+1,iplimt-1)
+        ierr=1
       end if
       ptropo = papm1(ltropp)
 c****

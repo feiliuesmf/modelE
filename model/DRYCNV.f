@@ -275,7 +275,7 @@ C
 !@sum applies earth fluxes to the first layer of the atmosphere
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,u,v,t,q
+      USE MODEL_COM, only : im,jm,u,v,t,q,qcheck
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv,dxyp
       USE DYNAMICS, only : byam,am
 #ifdef TRACERS_ON
@@ -307,8 +307,8 @@ C
 #ifdef TRACERS_WATER
             if (t_qlimit(n).and.trm(i,j,1,n).lt.qmin*trw0(n)*am(1,i,j)
      *           *dxyp(j)) then
-              write(99,*) trname(n),I,J,' TR1:',trm(i,j,1,n),'->'
-     *             ,qmin*trw0(n)*am(1,i,j)*dxyp(j)
+              if (qcheck) write(99,*) trname(n),I,J,' TR1:',trm(i,j,1,n)
+     *             ,'->',qmin*trw0(n)*am(1,i,j)*dxyp(j)
               trm(i,j,1,n) = qmin*trw0(n)*am(1,i,j)*dxyp(j)
               trmom(:,i,j,1,n)=0.
             end if

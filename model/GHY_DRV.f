@@ -569,7 +569,8 @@ C****
           tdp = tevap*dxyp(j)*ptype
           tdt1 = trsrfflx(i,j,n)*dtsurf
           if (trm(i,j,1,n)+tdt1+tdp.lt.0.and.tdp.lt.0) then
-            write(99,*) "limiting trdew earth",i,j,n,tdp,trm(i,j,1,n)
+            if (qcheck) write(99,*) "limiting trdew earth",i,j,n,tdp
+     *           ,trm(i,j,1,n)
             tevap=- (trm(i,j,1,n)+tdt1)/(dxyp(j)*ptype)
             trsrfflx(i,j,n)= - trm(i,j,1,n)/dtsurf
           else

@@ -542,14 +542,15 @@ C**** tracer flux is set by source tracer concentration
 C**** Limit evaporation if lake mass is at minimum
           IF (ITYPE.EQ.1 .and. FLAKE(I,J).GT.0 .and.
      *         (TREVAPOR(n,1,I,J)+TEVAP.gt.TEVAPLIM(NX))) THEN
-            WRITE(99,*) "Lake TEVAP limited: I,J,TEVAP,TMWL",N
-     *           ,TREVAPOR(n,1,I,J)+TEVAP,TEVAPLIM(NX)
+            IF (QCHECK) WRITE(99,*) "Lake TEVAP limited: I,J,TEVAP,TMWL"
+     *           ,N,TREVAPOR(n,1,I,J)+TEVAP,TEVAPLIM(NX)
             TEVAP= TEVAPLIM(NX)-TREVAPOR(n,1,I,J)
           END IF
           TDP = TEVAP*DXYP(J)*ptype
           TDT1 = trsrfflx(I,J,n)*DTSURF
           IF (TRM(I,J,1,n)+TDT1+TDP.lt.0..and.tdp.lt.0) THEN
-            WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1,n),TDT1
+            IF (QCHECK) WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1
+     *           ,n),TDT1
             TEVAP = -(TRM(I,J,1,n)+TDT1)/(DXYP(J)*ptype)
             trsrfflx(I,J,n)= - TRM(I,J,1,n)/DTSURF
           ELSE

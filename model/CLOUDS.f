@@ -263,7 +263,7 @@ C**** functions
      *     ,PRHEAT,PRCP
      *     ,QMDN,QMIX,QMPMAX,QMPT,QNX,QSATC,QSATMP
      *     ,RCLD,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ
-     *     ,SUMDP,DDRUP,EDRAFT,SUPSAT
+     *     ,SUMDP,DDRUP,EDRAFT
      *     ,TOLD,TOLD1,TEMWM,TEM,WTEM,WCONST,WORK
 !@var TERM1 contribution to non-entraining convective cloud
 !@var FMP0 non-entraining convective mass
@@ -745,9 +745,8 @@ C****
 #ifdef TRACERS_WATER
 C**** CONDENSING TRACERS
       WMXTR=DQSUM*BYAM(L)
-      SUPSAT=1. ! no super-saturation effect here (yet)
       DO N=1,NTX
-        CALL GET_COND_FACTOR(L,N,WMXTR,TP,SUPSAT,LHX,FPLUME,FQCOND
+        CALL GET_COND_FACTOR(L,N,WMXTR,TP,LHX,FPLUME,FQCOND
      *       ,FQCONDT)
         TRCOND(N,L) = FQCONDT * TMP(N)
         TMP(N)         = TMP(N)         *(1.-FQCONDT)
@@ -1122,9 +1121,8 @@ C**** CONDENSING and WASHOUT of TRACERS BELOW CLOUD
         WMXTR = PRCPMC*BYAM(L)
         precip_mm = PRCPMC*100.*bygrav
         b_beta_DT = FPLUME
-        SUPSAT=1.  ! no super-saturation function here (ever)
         DO N=1,NTX
-          CALL GET_COND_FACTOR(L,N,WMXTR,TNX,SUPSAT,LHX,FPLUME,0.
+          CALL GET_COND_FACTOR(L,N,WMXTR,TNX,LHX,FPLUME,0.
      *         ,FQCONDT)
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT)
           TRCOND(N,L) = FPLUME * FQCONDT * TM(L,N)
@@ -1148,7 +1146,7 @@ C**** ADD PRECIPITATION AND LATENT HEAT BELOW
 C**** Isotopic equilibration of liquid precip with water vapour
       IF (TNX.gt.TF) THEN
         DO N=1,NTX
-          CALL ISOEQUIL(NTIX(N),TNX,QM(L),PRCP,TM(L,N),TRPRCP(N),0.5d0)
+          CALL ISOEQUIL(NTIX(N),TNX,QM(L),PRCP,TM(L,N),TRPRCP(N),1d0) !0.5d0)
         END DO
       END IF
 #endif
@@ -1285,8 +1283,7 @@ C**** functions
 !@var FWTOQ fraction of CLW that goes to water vapour
 !@var FPR fraction of CLW that precipitates
 !@var FER fraction of precipitate that evaporates
-!@var SUPSAT super-saturation of water vapour w.r.t. ice
-      REAL*8 DTPR,DTER,DTQW,TWMTMP,DTSUM,FWTOQ,FPR,FER,SUPSAT
+      REAL*8 DTPR,DTER,DTQW,TWMTMP,DTSUM,FWTOQ,FPR,FER
 !@var DTPRT tracer-specific change of tracer by precip (kg)
 !@var DTERT tracer-specific change of tracer by evaporation (kg)
 !@var DTWRT tracer-specific change of tracer by washout (kg)
@@ -1469,18 +1466,12 @@ C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
 C**** COMPUTE RELATIVE HUMIDITY
       QSATL(L)=QSAT(TL(L),LHX,PL(L))
       RH1(L)=QL(L)/QSATL(L)
-#ifdef TRACERS_WATER
-      SUPSAT=1.
-#endif 
       IF(LHX.EQ.LHS) THEN
       QSATE=QSAT(TL(L),LHE,PL(L))
       RHW=.00536d0*TL(L)-.276d0
       RH1(L)=QL(L)/QSATE
       IF(TL(L).LT.238.16) THEN
         RH1(L)=QL(L)/(QSATE*RHW)
-#ifdef TRACERS_WATER
-        SUPSAT=1./RHW
-#endif 
       END IF
       END IF
 C**** PHASE CHANGE OF CLOUD WATER CONTENT
@@ -1707,7 +1698,7 @@ c         so saving it here for below cloud case:
           b_beta_DT = FCLD*CM*dtsrc
         END IF
         CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT) !precip CLW
-        CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),SUPSAT,LHX,FCLD,FQTOW
+        CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),LHX,FCLD,FQTOW
      *       ,FQTOWT)  !condens
 c ---------------------- calculate fluxes ------------------------
         DTWRT = FWASHT*TM(L,N)
@@ -1763,9 +1754,8 @@ C**** CONDENSING MORE TRACERS
       ELSE
         WMXTR = WMX(L)
       END IF
-      SUPSAT=1.  ! no super-saturation effects here (yet)
       DO N=1,NTX
-        CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),SUPSAT,LHX,FCLD,FCOND
+        CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),LHX,FCLD,FCOND
      *       ,FQCONDT)
         TRWML(N,L)  =TRWML(N,L)+ FQCONDT*TM(L,N)
         TM(L,N)     =TM(L,N)    *(1.-FQCONDT)

@@ -27,26 +27,30 @@ C****
       do 600 n=1,ntm
       IF (itime.lt.itime_tr0(n)) cycle
 C**** Latitude-longitude by layer concentration
+!$OMP PARALLEL DO PRIVATE (L)
       do l=1,lm
         taijln(:,:,l,n) = taijln(:,:,l,n) + trm(:,:,l,n)*byam(l,:,:)
       end do
+!$OMP END PARALLEL DO
 C**** Average concentration; surface concentration; total mass
+!$OMP PARALLEL DO PRIVATE (J,I,TSUM,ASUM)
       do j=1,jm
       do i=1,im
         tsum = sum(trm(i,j,:,n))*bydxyp(j)  !sum over l
         asum = sum(am(:,i,j))     !sum over l
         taijn(i,j,tij_mass,n) = taijn(i,j,tij_mass,n)+tsum  !MASS 
         taijn(i,j,tij_conc,n) = taijn(i,j,tij_conc,n)+tsum/asum
-c        taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
-c     * + max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)*bydxyp(j),0.)
       enddo; enddo
+!$OMP END PARALLEL DO
 C**** Zonal mean concentration
+!$OMP PARALLEL DO PRIVATE (L,J,TSUM,ASUM)
       do l=1,lm
       do j=1,jm
         tsum = sum(trm(1:imaxj(j),j,l,n)) !sum over i
         asum = sum(am(l,1:imaxj(j),j))    !sum over i
         tajln(j,l,jlnt_conc,n) = tajln(j,l,jlnt_conc,n)+tsum/asum
       enddo; enddo
+!$OMP END PARALLEL DO
   600 continue
       return
       end SUBROUTINE TRACEA
