@@ -18,25 +18,31 @@ C****
       USE TRCHEM_Shindell_COM, only: JPPJ, n_rx
 #endif
 #endif
-      IMPLICIT REAL*8 (A-H,O-Z)
+      IMPLICIT NONE
       SAVE
 
+      REAL*8 TMOM1,TMOM2,QMOM1,QMOM2,TOCN1,z1,sne1,te1,wtre1,ace1,snag1
+     *     ,evm1,fsat1,qge1,bld1,eg1,we1,tg1,qg1,TOCN2,z2,sne2,te2,wtre2
+     *     ,ace2,snag2,evm2,fsat2,qge2,bld2,eg2,we2,tg2,qg2
       COMMON/TADV/TMOM1(IM,JM,9*LM),TMOM2(IM,JM,9*LM)
       COMMON/QADV/QMOM1(IM,JM,9*LM),QMOM2(IM,JM,9*LM)
       COMMON/BNDYCB1/TOCN1(3,IM,JM),z1(IM,JM)
-     *  ,sne1(IM,JM),te1(im,jm),wtre1(im,jm),ace1(im,jm),snag1(3,im,jm)
-     *  ,evm1(im,jm),fsat1(im,jm),qge1(im,jm)       ,BLD1(IM,JM,11)
-     *  ,ek1(lm,im,jm),ve1(lm,im,jm),tg1(im,jm),qg1(im,jm)
+     *     ,sne1(IM,JM),te1(im,jm),wtre1(im,jm),ace1(im,jm),snag1(3,im
+     *     ,jm),evm1(im,jm),fsat1(im,jm),qge1(im,jm)       ,BLD1(IM,JM
+     *     ,11),eg1(lm,im,jm),we1(lm,im,jm),tg1(im,jm),qg1(im,jm)
       COMMON/BNDYCB2/TOCN2(3,IM,JM),z2(IM,JM)
-     *  ,sne2(IM,JM),te2(im,jm),wtre2(im,jm),ace2(im,jm),snag2(3,im,jm)
-     *  ,evm2(im,jm),fsat2(im,jm),qge2(im,jm)       ,BLD2(IM,JM,11)
-     *  ,ek2(lm,im,jm),ve2(lm,im,jm),tg2(im,jm),qg2(im,jm)
+     *     ,sne2(IM,JM),te2(im,jm),wtre2(im,jm),ace2(im,jm),snag2(3,im
+     *     ,jm),evm2(im,jm),fsat2(im,jm),qge2(im,jm)       ,BLD2(IM,JM
+     *     ,11),eg2(lm,im,jm),we2(lm,im,jm),tg2(im,jm),qg2(im,jm)
 ccc   ice data:
-      REAL*8 MSI1,MSI2
+      REAL*8 MSI1,MSI2,RSI1,RSI2,HSI1,HSI2,SSI1,PM1,SSI2,PM2,SNOWI1
+     *     ,SNOWI2
       LOGICAL IFLAG1(IM,JM),IFLAG2(IM,JM)
       COMMON/SICECB/ RSI1(IM,JM),HSI1(LMI,IM,JM),MSI1(IM,JM),SNOWI1(IM
      *     ,JM),SSI1(LMI,IM,JM),PM1(IM,JM),RSI2(IM,JM),HSI2(LMI,IM,JM)
      *     ,MSI2(IM,JM),SNOWI2(IM,JM),SSI2(LMI,IM,JM),PM2(IM,JM)
+      REAL*8 RQT1,RQT2,SRHR1,SRHR2,TRHR1,TRHR2,FSF1,FSF2,FSD1,FSD2,S01
+     *     ,S02
       COMMON/RADNCB1/ RQT1( 3,IM,JM),RQT2( 3,IM,JM),
      *               SRHR1(1+LM,IM,JM),SRHR2(1+LM,IM,JM),
      *               TRHR1(1+LM,IM,JM),TRHR2(1+LM,IM,JM),
@@ -50,24 +56,31 @@ ccc   snow data:
       REAL*8, DIMENSION(NLSN,2,IM,JM) :: HSN1, HSN2
       REAL*8, DIMENSION(2,IM,JM)      :: FR_SNOW1, FR_SNOW2
 ccc   land ice data
+      REAL*8 SNLI1,TLI1,SNLI2,TLI2,OA1,OA2
       COMMON/LNDICB1/SNLI1(IM,JM),TLI1(2,IM,JM)
       COMMON/LNDICB2/SNLI2(IM,JM),TLI2(2,IM,JM)
       COMMON/WORKO/  OA1(IM,JM,KOA),OA2(IM,JM,KOA)
-      DIMENSION U1(IM,JM,LM),V1(IM,JM,LM),T1(IM,JM,LM),P1(IM,JM),Q1(IM
+      REAL*8 :: U1(IM,JM,LM),V1(IM,JM,LM),T1(IM,JM,LM),P1(IM,JM),Q1(IM
      *     ,JM,LM),WM1(IM,JM,LM)
-      DIMENSION U2(IM,JM,LM),V2(IM,JM,LM),T2(IM,JM,LM),P2(IM,JM),Q2(IM
+      REAL*8 :: U2(IM,JM,LM),V2(IM,JM,LM),T2(IM,JM,LM),P2(IM,JM),Q2(IM
      *     ,JM,LM),WM2(IM,JM,LM)
+      REAL*8 pbl1,pblb1,pbl2,pblb2,CLOUD1,CLOUD2
+      INTEGER ipbl1,ipbl2
       common /socabl1/pbl1(npbl,im,jm,5*4),pblb1(im,jm,3*4),ipbl1(im,jm
      *     ,4)
       common /socabl2/pbl2(npbl,im,jm,5*4),pblb2(im,jm,3*4),ipbl2(im,jm
      *     ,4)
       COMMON/CLDCOM/CLOUD2(IM,JM,5*LM),CLOUD1(IM,JM,5*LM)
+      REAL*8 wb1,wv1,htb1,htv1,snbv1,ci1,qfol1,wb2,wv2,htb2,htv2,snbv2
+     *     ,ci2,qfol2
       COMMON/SOILS1/wb1(ngm,IM,JM),wv1(ngm+1,im,jm),htb1(ngm+1,im,jm),
      *  htv1(ngm+1,im,jm),snbv1(2,im,jm),ci1(im,jm),qfol1(im,jm)
       COMMON/SOILS2/wb2(ngm,IM,JM),wv2(ngm+1,im,jm),htb2(ngm+1,im,jm),
      *  htv2(ngm+1,im,jm),snbv2(2,im,jm),ci2(im,jm),qfol2(im,jm)
       CHARACTER XLABEL*132,LABEL*16,FILEIN*60,HEADER*80
       EQUIVALENCE (XLABEL,LABEL)
+      REAL*8 DIAG1,DIAG2,TSFREZ1,TSFREZ2,TDIURN1,TDIURN2
+      INTEGER KEYNR
       COMMON/DAG1/DIAG1(KACC),TSFREZ1(IM,JM,ktsf),TDIURN1(IM,JM,KTD)
       COMMON/DAG2/DIAG2(KACC),TSFREZ2(IM,JM,ktsf),TDIURN2(IM,JM,KTD)
       COMMON /KEYS/ KEYNR(1+42*50)  !  also incl. keyct
@@ -82,7 +95,8 @@ C**** compatibility across model configurations)
       REAL*8 OCEAN1(IM,JM,LMO*11+1),OCEAN2(IM,JM,LMO*11+1)
       REAL*8 STRAITS1(LMO,NMST,7),STRAITS2(LMO,NMST,7)
       REAL*8 STRAITI1(NMST,4+LMI),STRAITI2(NMST,4+LMI)
-      REAL*8 ODIAG1(KACCO),ODIAG2(KACCO)
+      REAL*8 ODIAG1(KACCO),ODIAG2(KACCO),OIJ1,OIJ2,OIJL1,OIJL2,OL1,OL2
+     *     ,OLNST1,OLNST2
       COMMON /ODAG1/OIJ1(IM,JM,KOIJ),OIJL1(IM,JM,LMO,KOIJL),
      *     OL1(LMO,KOL),OLNST1(LMO,NMST,KOLNST)
       COMMON /ODAG2/OIJ2(IM,JM,KOIJ),OIJL2(IM,JM,LMO,KOIJL),
@@ -97,7 +111,8 @@ C**** compatibility across model configurations)
       REAL*8 TR1(IM,JM,LM*NTM),TR2(IM,JM,LM*NTM),TRMOM1(9,IM,JM,LM*NTM)
      *     ,TRMOM2(9,IM,JM,LM*NTM),
      *     TRABL1(npbl*ntm,im,jm,4),TRABL2(npbl*ntm,im,jm,4)
-      REAL*8 TRACC1(KTACC),TRACC2(KTACC)
+      REAL*8 TRACC1(KTACC),TRACC2(KTACC),TAIJLN1,TAIJN1,TAIJS1,TAJLN1
+     *     ,TAJLS1,TCON1,TAIJLN2,TAIJN2,TAIJS2,TAJLN2,TAJLS2,TCON2 
       COMMON /TACCUM1/ TAIJLN1(IM,JM,LM,NTM),TAIJN1(IM,JM,KTAIJ,NTM)
      *     ,TAIJS1(IM,JM,ktaijs),TAJLN1(JM,LM,ktajlx,NTM),TAJLS1(JM,LM
      *     ,ktajls),TCON1(JM,ktcon,ntm)
@@ -126,11 +141,11 @@ C**** compatibility across model configurations)
       REAL*8, DIMENSION(IM,JM)   :: SALBFJ1,SALBFJ2
       REAL*8, DIMENSION(40,JM,IM):: O3DLJI1,O3DLJI_clim1,
      &     O3DLJI2,O3DLJI_clim2
-      REAL*8, DIMENSION(n_rx,IM,JM,LM) :: ss1,ss2
+      REAL*8, DIMENSION(jppj,IM,JM,LM) :: ss1,ss2
 #endif
 #endif
 C****
-      INTEGER DAGPOS,DAGPOS1,DAGPOS2
+      INTEGER DAGPOS,DAGPOS1,DAGPOS2,KOCEAN1,KOCEAN2,IARGC
       LOGICAL ERRQ,COMP8,COMP8p,COMPI,COMP8LIJp,COMPILIJ
       INTEGER itau1,itau2,idacc1(12),idacc2(12)
 
@@ -184,7 +199,7 @@ c        write(0,*) 'trying to read gdata'
 #ifdef TRACERS_WATER
          READ (1) HEADER,TRSI1 
 #endif
-         READ (1) HEADER,snwe1,te1,wtre1,ace1,snag1,fsat1,qge1
+         READ (1) HEADER,sne1,te1,wtre1,ace1,snag1,fsat1,qge1
 c        write(0,*) 'trying to read soils'
          READ (1) HEADER,wb1,wv1,htb1,htv1,snbv1,ci1,qfol1
 #ifdef TRACERS_WATER
@@ -221,13 +236,12 @@ c        write(0,*) 'trying to read icedyn'
 #ifdef TRACERS_ON
          READ (1) HEADER,TR1,TRMOM1
 #ifdef TRACERS_WATER
-     *        ,TRWM1
+     *        ,TRW1
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     *     ,yNO31,pHOx1,pNOx1,pOx1,yCH3O21,yC2O31,yROR1,yXO21
-     *     ,yAldehyde1,yXO2N1,yRXPAR1,OxIC1,corrOx1,SALBFJ1
-     *     ,RCLOUDFJ1,O3DLJI1,O3DLJI_clim1
-     *     ,((ss1(K1,K2,1,1),K1=1,jppj),K2=1,IM*JM*LM)
+     *        ,yNO31,pHOx1,pNOx1,pOx1,yCH3O21,yC2O31,yROR1,yXO21
+     *        ,yAldehyde1,yXO2N1,yRXPAR1,OxIC1,corrOx1,SALBFJ1
+     *        ,RCLOUDFJ1,O3DLJI1,O3DLJI_clim1,ss1
 #endif
 #endif
 c        write(0,*) 'trying to read diag'
@@ -299,7 +313,7 @@ c        write(0,*) 'trying to read sice'
          READ (2) HEADER,TRSI2
 #endif
 c        write(0,*) 'trying to read gdata'
-         READ (2) HEADER,snwe2,te2,wtre2,ace2,snag2,fsat2,qge2
+         READ (2) HEADER,sne2,te2,wtre2,ace2,snag2,fsat2,qge2
 c        write(0,*) 'trying to read soils'
          READ (2) HEADER,wb2,wv2,htb2,htv2,snbv2,ci2,qfol2
 #ifdef TRACERS_WATER
@@ -336,13 +350,12 @@ c        write(0,*) 'trying to read icedyn'
 #ifdef TRACERS_ON
          READ (2) HEADER,TR2,TRMOM2
 #ifdef TRACERS_WATER
-     *        ,TRWM2
+     *        ,TRW2
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     *     ,yNO32,pHOx2,pNOx2,pOx2,yCH3O22,yC2O32,yROR2,yXO22
-     *     ,yAldehyde2,yXO2N2,yRXPAR2,OxIC2,corrOx2,SALBFJ2
-     *     ,RCLOUDFJ2,O3DLJI2,O3DLJI_clim2
-     *     ,((ss2(K1,K2,1,1),K1=1,jppj),K2=1,IM*JM*LM)
+     *        ,yNO32,pHOx2,pNOx2,pOx2,yCH3O22,yC2O32,yROR2,yXO22
+     *        ,yAldehyde2,yXO2N2,yRXPAR2,OxIC2,corrOx2,SALBFJ2
+     *        ,RCLOUDFJ2,O3DLJI2,O3DLJI_clim2,ss2
 #endif
 #endif
 c        write(0,*) 'trying to read diag'
@@ -436,8 +449,8 @@ C****
       ERRQ=COMP8LIJp('TLI   ',2     ,IM,JM  ,TLI1  ,TLI2  ) .or. ERRQ
 
       ERRQ=COMP8 ('BLDATA',IM,JM,11,BLD1,BLD2) .or. ERRQ
-      ERRQ=COMP8LIJp('KEtrb',LMI,IM,JM    ,    ek1,    ek2) .or. ERRQ
-      ERRQ=COMP8LIJp('KEvrt',LMI,IM,JM    ,    ve1,    ve2) .or. ERRQ
+      ERRQ=COMP8LIJp('KEtrb',LMI,IM,JM    ,    eg1,    eg2) .or. ERRQ
+      ERRQ=COMP8LIJp('KEvrt',LMI,IM,JM    ,    we1,    we2) .or. ERRQ
       ERRQ=COMP8 ('TG1av ',IM,JM,1      ,    tg1,    tg2) .or. ERRQ
       ERRQ=COMP8 ('QG1av ',IM,JM,1      ,    qg1,    qg2) .or. ERRQ
       ERRQ=COMP8 ('PBL   ',npbl,IM*JM,5*4,PBL1  ,PBL2  ) .or. ERRQ
