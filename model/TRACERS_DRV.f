@@ -587,8 +587,10 @@ C This number wasn't adjusted when the vegetation source was added.
           ntm_power(n) = -12
 ! the ocean source of DMS is actually interactive and therefore should
 ! not count for ntsurfsrc....
-          ntsurfsrc(n) = 1   ! ocean DMS concentration 
+          ntsurfsrc(n) = 0   ! ocean DMS concentration 
+          ntisurfsrc(n)=1.
           tr_mm(n) = 62.
+          needtrs(n)=.true.
 
       case ('MSA')
       n_MSA = n
@@ -662,6 +664,26 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           HSTAR(N)=1.D5
           F0(n) = 1.d0
 #endif
+      case ('seasalt1')
+      n_seasalt1 = n
+          ntsurfsrc(n) = 0   ! ocean bubbles 
+          ntisurfsrc(n)=1.
+          ntm_power(n) = -10
+          tr_mm(n) = 75. !Na x 3.256
+          trpdens(n)=2.25d3  !kg/m3 This is for non-hydrated
+          trradius(n)=4.4d-7 ! This is non-hydrated
+          fq_aer(n)=1.0   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+      case ('seasalt2')
+      n_seasalt2 = n
+          ntsurfsrc(n) = 0   ! ocean bubbles 
+          ntisurfsrc(n)=1.
+          ntm_power(n) = -9
+          tr_mm(n) = 75. !Na x 3.256
+          trpdens(n)=2.25d3  !kg/m3 This is for non-hydrated
+          trradius(n)=1.7d-6 ! This is non-hydrated
+          fq_aer(n)=1.0   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
 #endif
       end select
 
@@ -1442,7 +1464,7 @@ C**** special unique to HTO
 
       case ('DMS')
         k = k + 1
-        jls_source(1,n) = k
+        jls_isrc(1,n) = k
         sname_jls(k) = 'Ocean_source_of'//trname(n)
         lname_jls(k) = 'DMS ocean source'
         jls_ltop(k) = 1
@@ -1763,6 +1785,41 @@ c photolysis rate
         jls_power(k) =-8
         units_jls(k) = unit_string(jls_power(k),'/s')
 #endif
+      case ('seasalt1')
+        k = k + 1
+        jls_isrc(1,n) = k
+        sname_jls(k) = 'Ocean_source_of'//trname(n)
+        lname_jls(k) = 'seasalt1 ocean source'
+        jls_ltop(k) = 1
+        jls_power(k) = 1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+	
+c gravitational settling of ss1
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of seasalt1'
+        jls_ltop(k) = LM
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+	
+       case ('seasalt2')
+        k = k + 1
+        jls_isrc(1,n) = k
+        sname_jls(k) = 'Ocean_source_of'//trname(n)
+        lname_jls(k) = 'seasalt2 ocean source'
+        jls_ltop(k) = 1
+        jls_power(k) =1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+	
+c gravitational settling of ss2
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of seasalt2'
+        jls_ltop(k) = LM
+        jls_power(k) =0 
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
 C**** Here are some more examples of generalised diag. configuration
 c      n = n_dust
@@ -2489,7 +2546,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         
       case ('DMS')
         k = k + 1
-        ijts_source(1,n) = k
+        ijts_isrc(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'DMS Ocean source'
@@ -2623,6 +2680,16 @@ c put in loss of SO4 from heter chem
         ijts_power(k) = -10.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c SO4 optical thickness 
+        k = k + 1
+        ijts_tau(n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   !? 
+        lname_ijts(k) = 'SO4 optical thickness'
+        sname_ijts(k) = 'SO4_tau'
+        ijts_power(k) = -3.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('H2O2_s')
 c put in production of H2O2 from gas phase
@@ -2691,7 +2758,48 @@ c source of Pb210 from Rn222 decay
         ijts_power(k) = -8.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
+	
+      case ('seasalt1')
+        k = k + 1
+        ijts_isrc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'seasalt1 Ocean source'
+        sname_ijts(k) = 'seasalt1_Ocean_source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c ss1 optical thickness 
+        k = k + 1
+        ijts_tau(n) = k
+        write(6,*) 'tau scale',k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   !? 
+        lname_ijts(k) = 'ss1 optical thickness'
+        sname_ijts(k) = 'ss1_tau'
+        ijts_power(k) = -3.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+       case ('seasalt2')
+        k = k + 1
+        ijts_isrc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'seasalt2 Ocean source'
+        sname_ijts(k) = 'seasalt2_Ocean_source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c ss2 optical thickness 
+        k = k + 1
+        ijts_tau(n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   !? 
+        lname_ijts(k) = 'ss2 optical thickness'
+        sname_ijts(k) = 'ss2_tau'
+        ijts_power(k) = -3.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       end select
       end do
       
@@ -3688,6 +3796,50 @@ C**** set some defaults
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
+           
+      case ('seasalt1')
+      itcon_grav(n) = 13
+      qcon(itcon_grav(n)) = .true.; conpts(1) = 'SETTLING'
+      qsum(itcon_grav(n)) = .true.
+      itcon_mc(n) =14
+      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =15
+      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=16
+        qcon(itcon_dd(n)) = .true. ; conpts(4) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+      
+      case ('seasalt2')
+      itcon_grav(n) = 13
+      qcon(itcon_grav(n)) = .true.; conpts(1) = 'SETTLING'
+      qsum(itcon_grav(n)) = .true.
+      itcon_mc(n) =14
+      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =15
+      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=16
+        qcon(itcon_dd(n)) = .true. ; conpts(4) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
 
 C**** Here are some more examples of conservation diag configuration
 C**** Gravitional settling:
@@ -4239,6 +4391,18 @@ C         AM=kg/m2, and DXYP=m2:
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
+        case('seasalt1')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+          trmom(:,:,:,:,n) = 0.
+
+        case('seasalt2')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+          trmom(:,:,:,:,n) = 0.
+
       end select
 
 C**** Initialise pbl profile if necessary
@@ -4443,7 +4607,7 @@ C**** at the start of any day
      &                          Alkenes_src,Paraffin_src
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-       USE AEROSOL_SOURCES, only: DMS_src,SO2_src
+       USE AEROSOL_SOURCES, only: SO2_src
 #endif
       implicit none
       integer :: i,j,ns,l,ky,n
@@ -4671,11 +4835,21 @@ C****
         end do
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-      case ('DMS')
-      call read_DMS_sources(n)
-      do j=1,jm
-        trsource(:,j,1,n) = DMS_src(:,j)*dxyp(j)
-      end do
+c     case ('DMS')
+c     call read_DMS_sources(n)
+c        do j=1,jm
+c           trsource(:,j,1,n) = DMS_src(:,j)*dxyp(j)
+c        end do
+
+c     case ('seasalt1')
+c     call read_seasalt_sources
+c        do j=1,jm
+c           trsource(:,j,1,n) = ss_src(:,j,1)*dxyp(j)
+c        end do
+c     case ('seasalt2')
+c        do j=1,jm
+c           trsource(:,j,1,n) = ss_src(:,j,2)*dxyp(j)
+c        end do
 
       case ('SO2')
         do ns=1,ntsurfsrc(n)
@@ -4804,8 +4978,6 @@ C****
        call apply_tracer_3Dsource(1,n_SO4)  ! SO4 chem source
        call apply_tracer_3Dsource(1,n_H2O2_s) ! H2O2 chem source      
        call apply_tracer_3Dsource(2,n_H2O2_s) ! H2O2 chem sink
-
-c       call simple_dry_dep
 
        call heter
        call apply_tracer_3Dsource(5,n_SO2) ! SO2 het chem sink
@@ -4997,6 +5169,7 @@ c complete dissolution in convective clouds
             if (TR_CONV) fq=1.d0
           endif
           if (FCLOUD.LT.1.D-16) fq=0.d0
+          if (fq.ge.1.d0) fq=0.9999
 #endif
 
         CASE DEFAULT                                ! error
@@ -5124,6 +5297,7 @@ C
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO)
           fq = -b_beta_DT*(EXP(-PREC*rc_wash)-1.D0)
           if (FCLOUD.lt.1.D-16) fq=0.d0
+          if (fq.lt.0.) fq=0.d0
 #endif
         CASE DEFAULT                          ! error
           call stop_model(
