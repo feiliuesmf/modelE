@@ -1652,7 +1652,7 @@ C****  12  AFTER OCEAN SUB-GRIDSCALE PHYS
 C****
       REAL*8, EXTERNAL :: conserv_AM,conserv_KE,conserv_MS,conserv_PE
      *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_OMSI
-     *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI 
+     *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI
       REAL*8 MNOW
       INTEGER NT
 
@@ -2022,7 +2022,7 @@ C****
       USE DYNAMICS, only : pdsig, pmid, pk
       USE CLOUDS_COM, only : svlhx
       IMPLICIT NONE
-      REAL*8, PARAMETER :: HSCALE = 7.8d0 ! km 
+      REAL*8, PARAMETER :: HSCALE = 7.8d0 ! km
       REAL*8, DIMENSION(JM) :: EWATER
       INTEGER :: I,J,L
       REAL*8 W,EL
@@ -2038,7 +2038,7 @@ c this calculation currently only calculates latent heat
             EL=(Q(I,J,L)*LHE+WM(I,J,L)*(LHE-SVLHX(L,I,J)))*PDSIG(L,I,J)
      *           *mb2kg
             EWATER(J)=EWATER(J)+EL !+W*(SHV*T(I,J,L)*PK(L,I,J)+GRAV
-!     *           *HSCALE*LOG(P(I,J)/PMID(L,I,J))) 
+!     *           *HSCALE*LOG(P(I,J)/PMID(L,I,J)))
           END DO
         END DO
       END DO
@@ -2480,7 +2480,7 @@ C**** calculate how many names
         end if
         if (i.lt.len(subdd)) goto 10
         kdd=k
-        if (kdd.gt.10) 
+        if (kdd.gt.10)
      *    call stop_model("Number of sub-daily diagnostics too big",255)
 
 C**** make array of names
@@ -2765,13 +2765,15 @@ c**** Initialize acc-array names, units, idacc-indices
 
 C**** Ensure that diagnostics are reset at the beginning of the run
       IF (Itime.le.ItimeI .and. ISTART.gt.0) THEN
+        call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
+     *       ,amon)
         CALL reset_DIAG(0)
 C**** Initiallise ice freeze diagnostics at beginning of run
         DO J=1,JM
           DO I=1,IMAXJ(J)
             TSFREZ(I,J,TF_DAY1)=365.
             TSFREZ(I,J,TF_LAST)=365.
-            IF (FOCEAN(I,J)+FLAKE(I,J).gt.0) then 
+            IF (FOCEAN(I,J)+FLAKE(I,J).gt.0) then
               IF (RSI(I,J).gt.0) then
                 TSFREZ(I,J,TF_LKON) = JDAY-1
                 TSFREZ(I,J,TF_LKOFF) = JDAY
