@@ -257,15 +257,31 @@ C
 !@+       value for methane in the chemistry code
 !@dbparam pfix_CH4_N fixed ratio of CH4/M in North. Hemis. (if used)
 !@dbparam pfix_CH4_S fixed ratio of CH4/M in South. Hemis. (if used)
-      REAL*8 ::             ch4_init_sh= 1.750d0,
-     &                      ch4_init_nh= 1.855d0,
-     &                      pfix_CH4_S = 1.75d-6,
-     &                      pfix_CH4_N = 1.855d-6
-      INTEGER :: fix_CH4_chemistry = 0
+!@dbparam which_trop 1=ls1-1 is tropopause, 0=LTROPO(I,J) is tropopause
+!@dbparam PI_run used to turn on (1) and off (0) use of PI_ratio*
+!@dbparam PIratio_N preindustrial ratio for NOx, HNO3, N2O5, HO2NO2
+!@+       initial conditions and stratospheric overwriting.
+!@dbparam PIratio_CO_T preindustrial ratio for tropospheric CO
+!@dbparam PIratio_CO_S preindustrial ratio for stratospheric CO
+!@dbparam PIratio_other PI ratio: PAN,Isoprene,AlkyNit,Alkenes,Paraffin
+!@dbparam PIratio_indus preindustrial ratio for industrial sources
+!@dbparam PIratio_bburn preindustrial ratio for biomass burning sources
+
+      INTEGER :: fix_CH4_chemistry = 0, which_trop=0, PI_run=0
+      REAL*8 ::             ch4_init_sh   = 1.750d0,
+     &                      ch4_init_nh   = 1.855d0,
+     &                      pfix_CH4_S    = 1.75d-6,
+     &                      pfix_CH4_N    = 1.855d-6,
+     &                      PIratio_N     = 0.667d0,
+     &                      PIratio_CO_T  = 0.667d0,
+     &                      PIratio_CO_S  = 0.500d0,
+     &                      PIratio_other = 0.500d0,
+     &                      PIratio_indus = 0.000d0,
+     &                      PIratio_bburn = 0.100d0
 
 C Please note: since PCOalt is essentially the nominal 
 C pressures for the 23-level GCM, I'm going to use it
-C to define BrOx, ClOx, ClONOs, HCL, and OxIC as well (GSF 8/03):
+C to define BrOx, ClOx, ClONOs, HCL, OxIC, CFCIC, N2OICX as well (GSF):
       REAL*8, PARAMETER, DIMENSION(LCOalt) :: PCOalt = (/
      & 0.9720D+03,0.9445D+03,0.9065D+03,
      & 0.8515D+03,0.7645D+03,0.6400D+03,0.4975D+03,0.3695D+03,
@@ -327,6 +343,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var prnchg logical: print chemical changes?
 !@var prnls logical: print reaction lists by species?
 !@var yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR?
+!@var yCl2,yCl2O2 3D arrays to remember some non-tracer species...
 !@var NCFASTJ number of levels in the fastj atmosphere
 !@var title_aer_pf titles read from aerosol phase function file
 !@var TITLE0 blank title read in I think
@@ -415,6 +432,10 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var COaltIN adjustments of COlat by altitude (unitless,LCOalt levels)
 !@var OxICIN Ox initial conditions (unit=KG,LCOalt levels)
 !@var OxICINL column version of OxICIN
+!@var N2OICIN N2O initial conditions (unit=KG,LCOalt levels)
+!@var N2OICINL column version of N2OICIN
+!@var CFCICIN CFC initial conditions (unit=KG,LCOalt levels)
+!@var CFCICINL column version of CFCICIN
 !@var BrOxaltIN altitude dependence BrOx (unitless,LCOalt levels)
 !@var ClOxaltIN altitude dependence ClOx (unitless,LCOalt levels)
 !@var ClONO2altIN altitude dependence ClONO2 (unitless,LCOalt levels)
@@ -424,6 +445,10 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var COalt adjustments of COlat by altitude (unitless,LM levels)
 !@var OxIC Ox initial conditions (unit=KG,LM levels)
 !@var OxICL column version of OxIC
+!@var N2OICX N2O initial conditions (unit=KG,LM levels) X=not Jean's
+!@var N2OICL column version of N2OICX
+!@var CFCIC CFC initial conditions (unit=KG,LM levels)
+!@var CFCICL column version of CFCIC
 !@var BrOxalt altitude dependence BrOx (unitless,LM levels)
 !@var ClOxalt altitude dependence ClOx (unitless,LM levels)
 !@var ClONO2alt altitude dependence ClONO2 (unitless,LM levels)
@@ -525,10 +550,10 @@ C
       REAL*8, DIMENSION(IM,JM,LM)   :: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &                                yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      &                                TX,sulfate,OxIC,
-     &                                dms_offline,so2_offline,
-     &                                yso2,ydms
+     &                                dms_offline,so2_offline,yso2,ydms
 #ifdef SHINDELL_STRAT_CHEM
-     &                                ,pClOx,pClx,pOClOx,pBrOx
+     &                              ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
+     &                              ,N2OICX,CFCIC
 #endif
       REAL*8, DIMENSION(M__)         :: AFASTJ,C1,HFASTJ,V1
       REAL*8, DIMENSION(M__), PARAMETER ::
@@ -585,7 +610,13 @@ C
      *     2.5d2,2.5d2,2.5d2,2.5d2/)
 #endif
       REAL*8, DIMENSION(IM,JM,LCOalt) :: OxICIN
+#ifdef SHINDELL_STRAT_CHEM
+     &                                  ,N2OICIN,CFCICIN
+#endif
       REAL*8, DIMENSION(      LCOalt) :: OxICINL
+#ifdef SHINDELL_STRAT_CHEM
+     &                                  ,N2OICINL,CFCICINL
+#endif
 C**** additional levsls for CH4 to avoid extrapolation...
       REAL*8, PARAMETER, DIMENSION(LCH4alt) :: PCH4alt = 
      &     (/569d0, 150d0, 100d0, 32d0, 3.2d0, 0.23d0/)
@@ -596,6 +627,7 @@ C**** additional levsls for CH4 to avoid extrapolation...
       REAL*8, DIMENSION(LM)            :: COalt,CH4altT,CH4altX,OxICL
 #ifdef SHINDELL_STRAT_CHEM
      *                        ,BrOxalt,ClOxalt,ClONO2alt,HClalt,odcol                    
+     &                        ,N2OICL,CFCICL
 #endif
       REAL*8, DIMENSION(NS)            :: VALJ
       REAL*8, DIMENSION(N__)           :: FJFASTJ
