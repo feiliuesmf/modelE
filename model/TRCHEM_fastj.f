@@ -28,38 +28,22 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(IN) :: nslon, nslat
       INTEGER i,j,k
 C
-      do i=1,jpnl
-        do j=1,jppj
-          zj(i,j)=0.D0
-          JFASTJ(i,j)=0.D0
-        enddo
-      enddo
-C---Define number of levels to use for clear-sky conditions:
-      NCFASTJ = 2*LM+2
-C
-C---determine actinic flux calc from solar zenith angle:
-C
+      zj(:,:)    =0.d0
+      JFASTJ(:,:)=0.d0
+      NCFASTJ = 2*LM+2 ! number of levels for clear-sky conditions.
       U0 = DCOS(SZA*radian)
 C
-C---only do the rest of this subroutine if SZA<szamax:
-C
       if(SZA.le.szamax) then
-C-----------------------------------------------------------------------
         CALL CTM_ADJ(NSLON,NSLAT) !define pres & aerosol profiles
         CALL INT_PROF(NSLON,NSLAT)!define    T &      O3 profiles
         IF(prnrts.and.NSLON.eq.iprn.and.NSLAT.eq.jprn)
      &  CALL PRTATM(NSLON,NSLAT)  ! Print out atmosphere 
-        CALL JVALUE(NSLON,NSLAT)  !
-        CALL JRATET(NSLON,NSLAT)  !
-C-----------------------------------------------------------------------
-C       "zj" updated in JRATET - pass this back to ASAD as "JFASTJ"
-        do i=1,jpnl
-          do j=1,jppj
-            JFASTJ(i,j)= zj(i,j)
-          enddo
-        enddo
+        CALL JVALUE(NSLON,NSLAT)  ! Calculate Actinic flux
+        CALL JRATET(NSLON,NSLAT)  ! Calculate photolysis rates
+        JFASTJ(:,:)= zj(:,:)      ! photolysis rates returned
       end if ! sza
 c
+      return
       end SUBROUTINE photoj
 C
 C
@@ -181,10 +165,10 @@ c
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only: JM, LS1, month=>JMON
+      USE MODEL_COM, only: JM, month=>JMON
       USE TRCHEM_Shindell_COM, only: O3_FASTJ,cboltz,dlogp,O3J,TJ,DBC,
      &                          OREF,TREF,BREF,DO3,DMFASTJ,NCFASTJ,
-     &                          PFASTJ
+     &                          PFASTJ,LS1J
 c
       IMPLICIT NONE
 c
@@ -250,7 +234,7 @@ c  Ozone  (extrapolate above 60 km)
       enddo
 c
 c     overwrite troposphere lvls of climatological O3 with GISS GCM O3:
-      do i=1,2*(LS1-1)
+      do i=1,2*(LS1J(nslat)-1)
        O3J(i)=O3_FASTJ(i)
       enddo
 c
