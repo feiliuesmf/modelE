@@ -724,9 +724,11 @@ C                  SO4    SEA    ANT    OCX    BCI    BCB    DST   VOL
       real*8, dimension(8) ::
 C                          MINERAL DUST PARAMETERS
 C                         CLAY                  SILT
-     *   REDUST=(/ 0.1, 0.2, 0.4, 0.8,   1.0, 2.0, 4.0, 8.0/)
+     *REDUST=(/0.132D0,0.23D0,0.416D0,0.766D0,1.386D0,2.773D0,5.545D0,
+     &                                        8D0/) ! <- not used; 3 silt only
 !nu  *  ,VEDUST=(/ 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2/)
-     *  ,RODUST=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,2.65D0,2.65D0/)
+     *  ,RODUST=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,2.65D0,
+     &                                        2.65D0/)! <- not used; 3 silt only
 !nu  *  ,FSDUST=(/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/)
 !nu  *  ,FTDUST=(/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/)
 
