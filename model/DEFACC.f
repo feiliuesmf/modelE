@@ -1137,33 +1137,33 @@ c
       scale_ij(k) = 100.
 c
 #ifdef CLD_AER_CDNC
-      k=k+1 
-      IJ_3dNWM = k 
-      lname_ij(k) = '3D Warm Moist Cnv CDNC '    
+      k=k+1
+      IJ_3dNWM = k
+      lname_ij(k) = '3D Warm Moist Cnv CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = '3dNwm'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
 c
-      k=k+1 
-      IJ_3dNIM = k 
-      lname_ij(k) = '3D Cold Moist Cnv CDNC '    
+      k=k+1
+      IJ_3dNIM = k
+      lname_ij(k) = '3D Cold Moist Cnv CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = '3dNim'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
 c
-      k=k+1 
-      IJ_3dNWS = k 
-      lname_ij(k) = '3D Warm Large-scale CDNC '    
+      k=k+1
+      IJ_3dNWS = k
+      lname_ij(k) = '3D Warm Large-scale CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = '3dNws'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
 c
-      k=k+1 
-      IJ_3dNIS = k 
-      lname_ij(k) = '3D Cold Large-scale CDNC '    
+      k=k+1
+      IJ_3dNIS = k
+      lname_ij(k) = '3D Cold Large-scale CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = '3dNis'
       ia_ij(k) = ia_src
@@ -2477,7 +2477,7 @@ c      scale_ij(k) = 1.
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
       ir_ij(k) = ir_0_710
-c
+c                          non-negligible clouds (opt.depth>1)
       k=k+1 !
       IJ_CLDCV1 = k ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
       lname_ij(k) = 'TAU>1 CLOUD COVER'
@@ -2485,10 +2485,10 @@ c
       name_ij(k) = 'pcldt_tau1'
       ia_ij(k) = ia_rad
       scale_ij(k) = 100.
-c
+c     near cloud top P:     P at level down to which cloud opt.depth = 1
       k=k+1 !
       IJ_CLDT1P  = k ! P-CLOUD TOP   (100 PA)                  2 RD
-      lname_ij(k) = 'CLOUD TAU>1 PRESSURE x TAU>1 CLOUD COVER'
+      lname_ij(k) = 'CLOUD TAU=1 PRESSURE x TAU>1 CLOUD COVER'
       units_ij(k) = 'mb'
       name_ij(k) = 'cldtpp_tau1'
       ia_ij(k) = ia_rad
@@ -2505,10 +2505,10 @@ c
       scale_ij(k) = 1.
 cc    iw_ij(k) = iw_cldcv  ! built in
       ir_ij(k) = ir_m80_28
-c
+c     near cloud top T:     T at level down to which cloud opt.depth = 1
       k=k+1 !
       IJ_CLDT1T = k !
-      lname_ij(k) = 'CLOUD TAU>1 TEMPERATURE x TAU>1 CLOUD COVER'
+      lname_ij(k) = 'CLOUD TAU=1 TEMPERATURE x TAU>1 CLOUD COVER'
       units_ij(k) = 'C'
       name_ij(k) = 'cldtpt_tau1'
       ia_ij(k) = ia_rad
@@ -3237,7 +3237,7 @@ c
       scale_jl(k) = byim
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
-c                                    
+c
       k=k+1
       jl_cnumws= k
       sname_jl(k) = 'cnumws'
@@ -3264,7 +3264,7 @@ c
       scale_jl(k) = byim
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
-#endif 
+#endif
 c
       k=k+1
       jl_wcld = k
