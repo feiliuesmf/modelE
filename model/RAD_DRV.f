@@ -586,8 +586,7 @@ c      TRRDRY(n1:NTRACE)=(/ .75d0, 2.2d0, 4.4d0, 6.7d0/)
       TRRDRY(n1:NTRACE)=(/0.132D0,0.23D0,0.416D0,0.766D0,1.386D0,
      &     2.773D0,5.545D0/)
 C**** Particle density of dust
-      TRADEN(n1:NTRACE)=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,2.65D0,
-     &     2.65D0/)
+      TRADEN(n1:NTRACE)=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,2.65D0/)
 C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics. Adjust if number of dust tracers changes.
       NTRIX(n1:NTRACE)=(/n_clay,n_clay,n_clay,n_clay,n_silt1,n_silt2,
