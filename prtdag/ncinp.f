@@ -11,6 +11,7 @@
      &    ,xlabel
      &    ,ia,idacc,im,jm,lm
      &    ,psf,ptop,dtsrc,sday,grav,omega,rgas,kapa,sha,tf,ls1
+     &    ,radius,dlat,dlon
      &    ,twopi
 
       character(len=80) :: accfile
@@ -22,6 +23,7 @@
       integer :: ia ! idacc-number of current variable
 
       real :: psf,ptop,dtsrc,sday,grav,omega,rgas,kapa,sha,tf
+      real :: radius,dlat,dlon
 
       integer :: im,jm,lm
       integer :: ls1
@@ -78,6 +80,9 @@
 
 ! initialize certain constants
       sha=rgas/kapa
+      dlat=twopi/float(jm-1) ! temporary
+      dlon=twopi/float(im) ! temporary
+      radius=6375000. ! temporary
 
       return
       end subroutine open_acc

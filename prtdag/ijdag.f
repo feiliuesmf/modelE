@@ -19,6 +19,7 @@ C****
       endif
       call getarg(1,accfile)
       call getarg(2,outfile)
+      if(accfile.eq.outfile) stop 'cannot overwrite input file'
 
 ! open the acc file
       call open_acc
@@ -26,7 +27,7 @@ C****
 ! allocate space
       allocate(lons(im))
       allocate(lats(jm))
-      allocate(acc(im,jm))
+      allocate(acc(im,jm),acc2(im,jm))
 
 ! get lon,lat coordinates
       acc_name='longitude'; call getacc(acc_name,lons)
@@ -141,7 +142,12 @@ C****
 
 ! ACCUMULATED CLOUD TOP PRESSURE units = '100 PA'
       acc_name='CLDTPPR'; call getacc(acc_name,acc)
-      acc(:,:) = acc(:,:)/idacc(ia)
+      acc_name='CLDCV'; call getacc(acc_name,acc2)
+      where(acc2.gt.0.)
+         acc(:,:) = acc(:,:)/acc2(:,:)
+      elsewhere
+         acc(:,:) = missing
+      end where
       var_name='cldtppr'; call wrtarr(var_name,acc)
 
 ! ACCUMULATED CLOUD COVER units = '1'

@@ -32,6 +32,7 @@ c
       endif
       call getarg(1,accfile)
       call getarg(2,outfile)
+      if(accfile.eq.outfile) stop 'cannot overwrite input file'
 
 ! open the acc file
       call open_acc

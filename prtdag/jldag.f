@@ -20,7 +20,7 @@ c from diagjl/k
       INTEGER :: J,L,N,J1,K,KM,LR,M,N
 
       REAL ::
-     &     BYIACN,BYIADA,BYIARD,BYIMDA,DLON,
+     &     BYIACN,BYIADA,BYIARD,BYIMDA,
      &     SCALE,XWON,BY100G,BYN,P1000K,SDDP,BYIM
 
       REAL, PARAMETER :: ONE=1.,P1000=1000.
@@ -36,6 +36,7 @@ c from diagjl/k
       endif
       call getarg(1,accfile)
       call getarg(2,outfile)
+      if(accfile.eq.outfile) stop 'cannot overwrite input file'
 
 ! open the acc file
       call open_acc
@@ -78,7 +79,6 @@ c from diagjl/k
 
 c**** initialize certain quantities
       byim=1./dble(im)
-      dlon=twopi/im
       xwon=twopi/(dlon*dble(im)) ! for wonderland model?
       km=lm
       bygrav=1./grav
@@ -194,16 +194,20 @@ c****
       call scale2d(ax,scale,onespo,ones,jm,lm)
       var_name='pcldmc'; call wrtarr(var_name,ax)
 c****
-      title='LARGE SCALE CONDENSATION HEATING (WATTS/UNIT SIGMA/M2)'
+      title='LARGE SCALE CONDENSATION HEATING (DEGREES KELVIN/DAY)'
       acc_name='AJL11'; call getacc(acc_name,ax)
-      SCALE=(100./grav)*SHA*BYIACN*BYIM/DTsrc
-      call scale2d(ax,scale,onespo,bydsig,jm,lm)
+      scale=IDACC(4)*BYIACN*SDAY/DTsrc
+      call scale2d(ax,scale,byp,ones,jm,ls1-1)
+      scale=scale*byim/(psf-ptop)
+      call scale2d(ax(1,ls1),scale,ones,ones,jm,lm-ls1+1)
       var_name='cdheat'; call wrtarr(var_name,ax)
 c****
-      title='HEATING BY DRY CONVECTION (WATTS/UNIT SIGMA/M2)'
+      title='HEATING BY DRY CONVECTION (DEGREES KELVIN/DAY)'
       acc_name='AJL12'; call getacc(acc_name,ax)
-      SCALE=(100./grav)*SHA*BYIACN*BYIM/DTsrc
-      call scale2d(ax,scale,onespo,ones,jm,lm)
+      scale=IDACC(4)*BYIACN*SDAY/DTsrc
+      call scale2d(ax,scale,byp,ones,jm,ls1-1)
+      scale=scale*byim/(psf-ptop)
+      call scale2d(ax(1,ls1),scale,ones,ones,jm,lm-ls1+1)
       var_name='dcheat'; call wrtarr(var_name,ax)
 c****
       title='CHANGE OF LATENT HEAT BY DRY CONV. (WATTS/UNIT SIGMA/M2)'
@@ -212,16 +216,20 @@ c****
       call scale2d(ax,scale,onespo,bydsig,jm,lm)
       var_name='dcdry'; call wrtarr(var_name,ax)
 c****
-      title='TOTAL HEATING BY MOIST CONVECTION (Q1) (WATTS/DSIG/M2)'
+      title='TOTAL HEATING BY MOIST CONVECTION (DEGREES KELVIN/DAY)'
       acc_name='AJL56'; call getacc(acc_name,ax)
-      SCALE=(100./grav)*SHA*BYIACN*BYIM/DTsrc
-      call scale2d(ax,scale,onespo,ones,jm,lm)
+      scale=IDACC(4)*BYIACN*SDAY/DTsrc
+      call scale2d(ax,scale,byp,ones,jm,ls1-1)
+      scale=scale*byim/(psf-ptop)
+      call scale2d(ax(1,ls1),scale,ones,ones,jm,lm-ls1+1)
       var_name='mcheat'; call wrtarr(var_name,ax)
 c****
-      title='TOTAL DRYING BY MOIST CONVECTION (Q2) (WATTS/DSIG/M2)'
+      title='TOTAL DRYING BY MOIST CONVECTION (DEG K/DAY EQUIVALENT)'
       acc_name='AJL57'; call getacc(acc_name,ax)
-      SCALE=(100./grav)*SHA*BYIACN*BYIM/DTsrc
-      call scale2d(ax,scale,onespo,ones,jm,lm)
+      scale=IDACC(4)*BYIACN*SDAY/DTsrc
+      call scale2d(ax,scale,byp,ones,jm,ls1-1)
+      scale=scale*byim/(psf-ptop)
+      call scale2d(ax(1,ls1),scale,ones,ones,jm,lm-ls1+1)
       var_name='mcdry'; call wrtarr(var_name,ax)
 c****
 ! (re)set shape of output arrays
