@@ -10,6 +10,9 @@
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice
+#ifdef TRACERS_AEROSOLS_Koch
+     *     ,jyear,jmon,jdate
+#endif
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
@@ -79,8 +82,9 @@
      *       dtr_ss(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm)
       INTEGER NX
 #ifdef TRACERS_AEROSOLS_Koch
-c       real*8 a_sulf(im,jm),cc_sulf(im,jm)
-c       integer nc_tr,id,ixx,ix1,ixm1,iuc_s
+        real*8 a_sulf(im,jm),cc_sulf(im,jm)
+        integer iuc_s
+         logical :: ifirst=.true.
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
 !@var Lfreeze Lowest level where temperature is below freezing (TF)
@@ -145,6 +149,9 @@ Cred*                   end Reduced Arrays 1
       REAL*8  AJEQIL(J5N-J5S+1,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO), 
      *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
+#ifdef TRACERS_AEROSOLS_Koch
+      save ifirst,iuc_s
+#endif
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM), 
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0SG,J_1SG
@@ -693,16 +700,6 @@ c          skt=tf+tg1(i,j)
      *      dem_c(l)=1.-exp(-taumcl(LM+1-L)*byic)
 
           qv(l)=ql(LM+1-L)
-#ifdef TRACERS_AEROSOLS_Koch
-c          ixx=1 +3*(nc_tr-1)
-c          ix1=ixx+1
-c          ixm1=ixx-1
-c          if (ixm1.eq.0) ixm1=72
-c          if (i.eq.ixx.or.i.eq.ix1.or.i.eq.ixm1) then
-c            if (cc_sulf(i,j).lt.cc(l))
-c     *      cc_sulf(i,j)=cc(l)
-c          endif
-#endif
         end do
         phalf(lm+1)=ple(1)*100.
         itrop = LM+1-LTROPO(I,J)
@@ -833,10 +830,11 @@ C**** TRACERS: Use only the active ones
      *           dt_sulf_ss(n,l)
           end if
 c save for cloud-sulfate correlation
-c          select case (trname(n))
-c          case('SO4')
-cc     if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,n)
-c          end select
+           select case (trname(n))
+           case('SO4')
+       if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,n)/24.
+       cc_sulf(i,j)=cc_sulf(i,j)+cc(l)/24.
+           end select
 #endif
 #endif
         end do
@@ -897,16 +895,21 @@ C**** Save the conservation quantities for tracers
       end do
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-c      nc_tr=nc_tr+1
-c     if (nc_tr.eq.25) then
-c      call openunit("CLD_SO4",iuc_s,.true.,.false.)
-c      write(iuc_s) (SNGL(a_sulf(I,1)),I=1,IM*JM),
-c     *(SNGL(cc_sulf(I,1)),I=1,IM*JM)
+      if (jhour.eq.23) then
+       if (ifirst) then
+       call openunit("CLD_SO4",iuc_s,.true.,.false.)
+       ifirst=.false.
+       endif
+       if ((jyear.eq.1950.and.jmon.eq.12).or.
+     *  (jyear.eq.1951.and.jmon.le.11)) then
+       write(iuc_s) jyear,jmon,jdate,
+     *(SNGL(a_sulf(I,1)),I=1,IM*JM),
+     *(SNGL(cc_sulf(I,1)),I=1,IM*JM)
+       endif
 c      call closeunit(iuc_s)
-c      a_sulf(:,:)=0.
-c      cc_sulf(:,:)=0.
-c      nc_tr=1
-c     endif
+       a_sulf(:,:)=0.
+       cc_sulf(:,:)=0.
+      endif
 #endif
 
 C**** Delayed summations (to control order of summands)
