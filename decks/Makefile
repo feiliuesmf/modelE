@@ -43,21 +43,28 @@ gcm $(BIN_DIR)/$(RUN).exe:
 setup: gcm
 	@echo '---------       Looks like it was compiled OK        ---------'
 	@echo '----- Saving Rundeck and other info to global repository -----'
-	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R \
-	-a ! -O $(DECKS_REPOSITORY)/$(RUN).R ]; then \
-	echo 'name $(RUN) is already used by somebody else'; \
-	echo 'please choose a unique one'; exit 1; fi
-	@cp -f $(RUN).R $(DECKS_REPOSITORY)/$(RUN).R
-	@chmod 644 $(DECKS_REPOSITORY)/$(RUN).R
-	@echo '### Information below describes your run. Do not delete! ###'\
-	>> $(DECKS_REPOSITORY)/$(RUN).R
-	@date >> $(DECKS_REPOSITORY)/$(RUN).R
-	@$(F90) -version >> $(DECKS_REPOSITORY)/$(RUN).R 2>&1
-	@if [ -f $(MODEL_DIR)/CVS/Tag ]; then \
-	echo "CVS Repository Tag: `cat $(MODEL_DIR)/CVS/Tag`" \
-	>> $(DECKS_REPOSITORY)/$(RUN).R; else \
-	echo 'CVS Repository: MAIN Branch' \
-	>> $(DECKS_REPOSITORY)/$(RUN).R; fi
+	@if [ ! -f $(DECKS_REPOSITORY) ]; then \
+	  echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---';\
+	else \
+	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R \
+	  -a ! -O $(DECKS_REPOSITORY)/$(RUN).R ]; then \
+	    echo 'name $(RUN) is already used by somebody else'; \
+	    echo 'please choose a unique one'; exit 1; \
+	  else \
+	    cp -f $(RUN).R $(DECKS_REPOSITORY)/$(RUN).R ;\
+	    chmod 644 $(DECKS_REPOSITORY)/$(RUN).R  ;    \
+	    echo '### Information below describes your run. Do not delete! ###'\
+	    >> $(DECKS_REPOSITORY)/$(RUN).R ; \
+	    date >> $(DECKS_REPOSITORY)/$(RUN).R ; \
+	    $(F90) -version >> $(DECKS_REPOSITORY)/$(RUN).R 2>&1 ;\
+	    if [ -f $(MODEL_DIR)/CVS/Tag ]; then \
+	      echo "CVS Repository Tag: `cat $(MODEL_DIR)/CVS/Tag`" \
+	      >> $(DECKS_REPOSITORY)/$(RUN).R; else \
+	      echo 'CVS Repository: MAIN Branch' \
+	      >> $(DECKS_REPOSITORY)/$(RUN).R ;\
+	    fi ;\
+	  fi ;\
+	fi
 	@echo '---------        Starting setup for $(RUN)          ---------'
 	@echo '--------------------------------------------------------------'
 	@$(SETUP) $(RUN)
@@ -116,3 +123,4 @@ unalias:
 htmldoc:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
+# DO NOT DELETE THIS LINE - used by make depend
