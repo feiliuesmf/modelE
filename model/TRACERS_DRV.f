@@ -846,13 +846,12 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       case ('H2O2_s')
       n_H2O2_s = n
           ntm_power(n) = -10
-          tr_mm(n) = 34.
-          tr_RKD(n) = 730. !mole/J or 7.4E4 M/atm (Drew uses 986.9)
+          tr_mm(n) = 34.016
+          tr_RKD(n) = 986.9 
           tr_DHD(n) = -5.52288d4 ! in J/mole = -13.2 kcal/mole.
           tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
-c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
-          HSTAR(N)=1.D5
+          HSTAR(n)=tr_RKD(n)*convert_HSTAR
           F0(n) = 1.d0
 #endif
       case ('seasalt1')
