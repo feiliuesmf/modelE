@@ -402,8 +402,8 @@ C**** limit it to the annual maxmimal mixed layer depth z12o
         Z1OMIN=1.+FWSIM(I,J)/RHOWS
         IF (Z1OMIN.GT.Z1O(I,J)) THEN
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
-          WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN
- 602      FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,2F10.3)
+          WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
+ 602      FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,3F10.3)
           Z1O(I,J)=MIN(Z1OMIN, z12o(i,j))
           IF (Z1OMIN.GT.Z12O(I,J)) THEN
 C****       ICE DEPTH+1>MAX MIXED LAYER DEPTH :
@@ -453,7 +453,7 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
       REAL*8 EIW0, ENRGIW, WTRI1, EFIW, ENRGO0, EOFRZ, ENRGO
       REAL*8 WTRW0, ENRGW0, ENRGW, WTRI0, SMSI0
 C**** initiallize output
-      ENRGFO=0. ; ACEFO=0. ; ACEFI=0. ; ENRGFI=0.
+      ENRGFO=0. ; ACEFO=0. ; ACEFI=0. ; ENRGFI=0. ; WTRW=WTRO
 
 C**** Calculate previous ice mass (before fluxes applied)
       SMSI0=SMSI+RUN0+EVAPI
@@ -922,8 +922,8 @@ C**** Ensure that we don't run out of ocean if ice gets too thick
             Z1OMIN=1.+FWSIM(I,J)/RHOWS
             IF (Z1OMIN.GT.Z1O(I,J)) THEN
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
-              WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN
- 602          FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,2F10.3)
+              WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
+ 602          FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,3F10.3)
               Z1O(I,J)=MIN(Z1OMIN, z12o(i,j))
               IF (Z1OMIN.GT.Z12O(I,J)) THEN
 C****       ICE DEPTH+1>MAX MIXED LAYER DEPTH :
