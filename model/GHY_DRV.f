@@ -366,6 +366,10 @@ c***********************************************************************
 !@auth I. Alienov/F. Abramopolous
       use model_com, only : im,jm
       use veg_drv, only : cosday,sinday
+      use diag_com, only : idd_ts,idd_tg1,idd_qs
+     *     ,idd_qg,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
+     *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
+     *     ,idd_eds,idd_dbl,idd_ev
       implicit none
       private
       save
@@ -386,6 +390,9 @@ c***********************************************************************
 !@+       snow cover parameterisation for albedo
       real*8 :: snow_cover_coef = .15d0
 
+      ! Indexes used for adiurn and hdiurn
+      INTEGER, PARAMETER :: n_idx = 22
+
       contains
 
       subroutine earth (ns,moddsf,moddd)
@@ -400,7 +407,7 @@ c****
      *     ,u,v
       use DOMAIN_DECOMP, only : GRID, GET
       use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
-      use DOMAIN_DECOMP, only : GLOBALSUM
+      use DOMAIN_DECOMP, only : GLOBALSUM, AM_I_ROOT
       use geom, only : imaxj
       use dynamics, only : pmid,pk,pek,pedn,am
       use rad_com, only : trhr,fsf, cosz1
@@ -441,7 +448,8 @@ c****
       use snow_drvm, only : snow_cover_same_as_rad
 
       use diag_com , only : j_trhdt,j_shdt,j_evhdt,j_evap,j_erun,j_run
-     &     ,j_tsrf,j_tg1,j_tg2,areg,jreg
+     &     ,j_tsrf,j_tg1,j_tg2,areg,jreg,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
+     &     ,adiurn,hdiurn,NDIUPT
 #ifdef TRACERS_ON
       use ghy_tracers, only : ghy_tracers_set_step,ghy_tracers_set_cell,
      &     ghy_tracers_save_cell
@@ -495,6 +503,16 @@ C**** Work array for regional diagnostic accumulation
      &        size(AREG,1),grid%J_STRT_HALO:grid%J_STOP_HALO,9 )
      &        :: AREG_PART
 
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUVAR, NDIUPT) :: adiurn_part
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUVAR, NDIUPT) :: hdiurn_part
+      REAL*8 :: ADIURNSUM, HDIURNSUM
+      INTEGER :: ih, ihm, ii, ivar, kr
+      INTEGER :: idx(n_idx)
+
+
+
 C****   define local grid
       integer J_0, J_1, J_0H, J_1H
 
@@ -526,6 +544,15 @@ C**** halo update u and v for distributed parallelization
        call halo_update(grid, U, from=NORTH)
        call checksum   (grid, V, __LINE__, __FILE__,STGR=.true.)
        call halo_update(grid, V, from=NORTH)
+
+       adiurn_part = 0
+       hdiurn_part = 0
+      idx = 
+     &     (/ idd_ts,  idd_tg1, idd_qs,  idd_qg,  idd_swg, 
+     &        idd_lwg, idd_sh,  idd_lh,  idd_hz0, idd_ug,
+     &        idd_vg,  idd_wg,  idd_us,  idd_vs,  idd_ws,
+     &        idd_cia, idd_cm,  idd_ch,  idd_cq,  idd_eds,
+     &        idd_dbl, idd_ev /)
 
 !$OMP  PARALLEL DO PRIVATE
 !$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
@@ -738,7 +765,8 @@ c****
 
       call ghy_diag( i,j,ns,moddsf,moddd
      &     ,rcdmws,cdm,cdh,cdq,qg
-     &     ,aregij, pbl_args, pbl_args%dtsurf )
+     &     ,aregij, pbl_args, pbl_args%dtsurf
+     &     ,adiurn_part, hdiurn_part, idx)
 
 c**** update tracers
 #ifdef TRACERS_ON
@@ -747,6 +775,21 @@ c**** update tracers
       end do loop_i
       end do loop_j
 !$OMP  END PARALLEL DO
+
+! Accumulate contributions to ADIURN and HDIURN
+      ih=1+jhour
+      ihm = ih+(jdate-1)*24
+      DO kr = 1, ndiupt
+        DO ii = 1, N_IDX
+          ivar = idx(ii)
+          CALL GLOBALSUM(grid, ADIURN_part(:,ivar,kr), ADIURNSUM)
+          CALL GLOBALSUM(grid, HDIURN_part(:,ivar,kr), HDIURNSUM)
+          IF (AM_I_ROOT()) THEN
+            ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM
+            HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM
+          END IF
+        END DO
+      END DO
 
 C***Initialize work array 
       areg_part(:,:,1:9) = 0.
@@ -818,10 +861,11 @@ c***********************************************************************
 
       subroutine ghy_diag( i,j,ns,moddsf,moddd
      &     ,rcdmws,cdm,cdh,cdq,qg
-     &     ,aregij, pbl_args, dtsurf )
+     &     ,aregij, pbl_args, dtsurf
+     &     ,adiurn_part, hdiurn_part, idx )
 
       use diag_com , only : aij=>aij_loc
-     *     ,tsfrez=>tsfrez_loc,tdiurn,aj=>aj_loc,areg,adiurn,jreg,hdiurn
+     *     ,tsfrez=>tsfrez_loc,tdiurn,aj=>aj_loc,areg,jreg
      *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0
      *     ,ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus
      *     ,ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt
@@ -832,14 +876,14 @@ c***********************************************************************
      *     ,idd_qg,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
      *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
      *     ,idd_eds,idd_dbl,idd_ev,tf_day1,tf_last,ndiupt
+     *     ,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
 
 
 
       use constant, only : tf
       use model_com, only : dtsrc,nisurf,jdate
      *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
-      use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
-      use DOMAIN_DECOMP, only : GLOBALSUM
+      use DOMAIN_DECOMP, only : grid
       use geom, only : dxyp
       use rad_com, only : trhr,fsf, cosz1
 
@@ -870,12 +914,21 @@ c***********************************************************************
       real*8, intent(out) :: aregij(:,:,:)
       type (t_pbl_args) :: pbl_args
       real*8, intent(in) :: dtsurf
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUVAR, NDIUPT) :: adiurn_part
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUVAR, NDIUPT) :: hdiurn_part
+      INTEGER, INTENT(IN) :: idx(:)
 
       real*8 timez
       real*8 trhdt,tg2av,wtr2av,ace2av,tg1,shdt,ptype,srheat,srhdt
       real*8 warmer,spring,trheat,evhdt
       integer, parameter :: itype=4
       integer kr,ih,ihm,jr
+
+
+
+      REAL*8 :: tmp(NDIUVAR)
 
 ccc the following values are returned by PBL
       real*8 us,vs,ws,wsm,psi,dbl,khs,ug,vg,wg
@@ -890,6 +943,7 @@ ccc the following values are returned by PBL
       ug = pbl_args%ug
       vg = pbl_args%vg
       wg = pbl_args%wg
+
 
       timez=jday+(mod(itime,nday)+(ns-1.)/nisurf)/nday ! -1 ??
       if(jday.le.31) timez=timez+365.
@@ -1016,52 +1070,36 @@ c**** quantities accumulated hourly for diagDD
       if ( moddd == 0 ) then
         do kr=1,ndiupt
           if(i.eq.ijdd(1,kr).and.j.eq.ijdd(2,kr)) then
-            adiurn(ih,idd_ts,kr)=adiurn(ih,idd_ts,kr)+ts*ptype
-            adiurn(ih,idd_tg1,kr)=adiurn(ih,idd_tg1,kr)+(tg1+tf)*ptype
-            adiurn(ih,idd_qs,kr)=adiurn(ih,idd_qs,kr)+qs*ptype
-            adiurn(ih,idd_qg,kr)=adiurn(ih,idd_qg,kr)+qg*ptype
-            adiurn(ih,idd_swg,kr)=adiurn(ih,idd_swg,kr)+srhdt*ptype
-            adiurn(ih,idd_lwg,kr)=adiurn(ih,idd_lwg,kr)+trhdt*ptype
-            adiurn(ih,idd_sh,kr)=adiurn(ih,idd_sh,kr)+shdt*ptype
-            adiurn(ih,idd_lh,kr)=adiurn(ih,idd_lh,kr)+evhdt*ptype
-            adiurn(ih,idd_hz0,kr)=adiurn(ih,idd_hz0,kr)
+            
+            tmp(idd_ts)=+ts*ptype
+            tmp(idd_tg1)=+(tg1+tf)*ptype
+            tmp(idd_qs)=+qs*ptype
+            tmp(idd_qg)=+qg*ptype
+            tmp(idd_swg)=+srhdt*ptype
+            tmp(idd_lwg)=+trhdt*ptype
+            tmp(idd_sh)=+shdt*ptype
+            tmp(idd_lh)=+evhdt*ptype
+            tmp(idd_hz0)=
      *           +(srhdt+trhdt+shdt+evhdt)*ptype
-            adiurn(ih,idd_ug,kr)=adiurn(ih,idd_ug,kr)+ug*ptype
-            adiurn(ih,idd_vg,kr)=adiurn(ih,idd_vg,kr)+vg*ptype
-            adiurn(ih,idd_wg,kr)=adiurn(ih,idd_wg,kr)+wg*ptype
-            adiurn(ih,idd_us,kr)=adiurn(ih,idd_us,kr)+us*ptype
-            adiurn(ih,idd_vs,kr)=adiurn(ih,idd_vs,kr)+vs*ptype
-            adiurn(ih,idd_ws,kr)=adiurn(ih,idd_ws,kr)+ws*ptype
-            adiurn(ih,idd_cia,kr)=adiurn(ih,idd_cia,kr)+psi*ptype
-            adiurn(ih,idd_cm,kr)=adiurn(ih,idd_cm,kr)+cdm*ptype
-            adiurn(ih,idd_ch,kr)=adiurn(ih,idd_ch,kr)+cdh*ptype
-            adiurn(ih,idd_cq,kr)=adiurn(ih,idd_cq,kr)+cdq*ptype
-            adiurn(ih,idd_eds,kr)=adiurn(ih,idd_eds,kr)+khs*ptype
-            adiurn(ih,idd_dbl,kr)=adiurn(ih,idd_dbl,kr)+dbl*ptype
-            adiurn(ih,idd_ev,kr)=adiurn(ih,idd_ev,kr)+aevap*ptype
-            hdiurn(ihm,idd_ts,kr)=hdiurn(ihm,idd_ts,kr)+ts*ptype
-            hdiurn(ihm,idd_tg1,kr)=hdiurn(ihm,idd_tg1,kr)+(tg1+tf)*ptype
-            hdiurn(ihm,idd_qs,kr)=hdiurn(ihm,idd_qs,kr)+qs*ptype
-            hdiurn(ihm,idd_qg,kr)=hdiurn(ihm,idd_qg,kr)+qg*ptype
-            hdiurn(ihm,idd_swg,kr)=hdiurn(ihm,idd_swg,kr)+srhdt*ptype
-            hdiurn(ihm,idd_lwg,kr)=hdiurn(ihm,idd_lwg,kr)+trhdt*ptype
-            hdiurn(ihm,idd_sh,kr)=hdiurn(ihm,idd_sh,kr)+shdt*ptype
-            hdiurn(ihm,idd_lh,kr)=hdiurn(ihm,idd_lh,kr)+evhdt*ptype
-            hdiurn(ihm,idd_hz0,kr)=hdiurn(ihm,idd_hz0,kr)
-     *           +(srhdt+trhdt+shdt+evhdt)*ptype
-            hdiurn(ihm,idd_ug,kr)=hdiurn(ihm,idd_ug,kr)+ug*ptype
-            hdiurn(ihm,idd_vg,kr)=hdiurn(ihm,idd_vg,kr)+vg*ptype
-            hdiurn(ihm,idd_wg,kr)=hdiurn(ihm,idd_wg,kr)+wg*ptype
-            hdiurn(ihm,idd_us,kr)=hdiurn(ihm,idd_us,kr)+us*ptype
-            hdiurn(ihm,idd_vs,kr)=hdiurn(ihm,idd_vs,kr)+vs*ptype
-            hdiurn(ihm,idd_ws,kr)=hdiurn(ihm,idd_ws,kr)+ws*ptype
-            hdiurn(ihm,idd_cia,kr)=hdiurn(ihm,idd_cia,kr)+psi*ptype
-            hdiurn(ihm,idd_cm,kr)=hdiurn(ihm,idd_cm,kr)+cdm*ptype
-            hdiurn(ihm,idd_ch,kr)=hdiurn(ihm,idd_ch,kr)+cdh*ptype
-            hdiurn(ihm,idd_cq,kr)=hdiurn(ihm,idd_cq,kr)+cdq*ptype
-            hdiurn(ihm,idd_eds,kr)=hdiurn(ihm,idd_eds,kr)+khs*ptype
-            hdiurn(ihm,idd_dbl,kr)=hdiurn(ihm,idd_dbl,kr)+dbl*ptype
-            hdiurn(ihm,idd_ev,kr)=hdiurn(ihm,idd_ev,kr)+aevap*ptype
+            tmp(idd_ug)=+ug*ptype
+            tmp(idd_vg)=+vg*ptype
+            tmp(idd_wg)=+wg*ptype
+            tmp(idd_us)=+us*ptype
+            tmp(idd_vs)=+vs*ptype
+            tmp(idd_ws)=+ws*ptype
+            tmp(idd_cia)=+psi*ptype
+            tmp(idd_cm)=+cdm*ptype
+            tmp(idd_ch)=+cdh*ptype
+            tmp(idd_cq)=+cdq*ptype
+            tmp(idd_eds)=+khs*ptype
+            tmp(idd_dbl)=+dbl*ptype
+            tmp(idd_ev)=+aevap*ptype
+            
+            ADIURN_part(J,idx(:),kr)=ADIURN_part(J,idx(:),kr) +
+     *           tmp(idx(:))
+            HDIURN_part(J,idx(:),kr)=HDIURN_part(J,idx(:),kr) +
+     *           tmp(idx(:))     
+
           end if
         end do
       endif
