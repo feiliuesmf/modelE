@@ -210,7 +210,7 @@ c
        enddo
 c
 c      If desired, fix the methane concentration used in chemistry
-       if(fix_CH4_chemistry) THEN
+       if(fix_CH4_chemistry.eq.1) THEN
          if(J.lt.JEQ)then ! SH
            y(n_CH4,L)=y(nM,L)*pfix_CH4_S
          else             ! NH
