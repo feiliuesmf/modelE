@@ -310,8 +310,10 @@ specified length of time.
        Such a run needs a preliminary Q-flux model running for 10 years
        in equilibrium, saving (KCOPY=3) the data necessary for diffusion
        computations (see /u/cmrun/model/notes/deep.ocean.doc). A new
-       file has to be created ('TG3M' in the rundeck) to read in the
-       climatology at the base of the mixed layer before starting.
+       file has to be created ('TG3M' in the rundeck) using 'gmake
+       auxdeep RUN=E001xyz' and then running 'mkdeep *.oda.*'. This
+       creates the initial conditions and climatology at the base of the 
+       mixed layer. Use E001D.R as a rundeck template.
 
    D: How to use parameters to control numerical instabilities
        Parameter   affects:                   depends on:
@@ -510,6 +512,7 @@ KDIAG(7)  < 9 print wave power tables
 KDIAG(9)  < 9 print out conservation diagnostics
 KDIAG(10) = 0 print out Longitude-height diagnostics
 KDIAG(11) < 9 print out river runoff diagnostics
+KDIAG(12) < 9 print out ocean diagnostics (if there is an ocean)
 
 3) HOW-TO produce daily/monthly or seasonal diagnostics
 
