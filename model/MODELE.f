@@ -9,7 +9,6 @@
       USE PARAM
       USE MODEL_COM
       USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT
-      USE DOMAIN_DECOMP, ONLY : HERE, CHECKSUM
       USE DYNAMICS
       USE RADNCB, only : dimrad_sv
       USE RANDOM
@@ -36,15 +35,11 @@ C**** Command line options
       real :: lat_min=-90.,lat_max=90.,longt_min=0.,longt_max=360.
 
         call init_app(grid,im,jm)
-        CALL HERE(__FILE__,__LINE__)
         call alloc_drv()
-        CALL HERE(__FILE__,__LINE__)
-
 C****
 C**** Processing command line options
 C****
       call read_options( qcrestart, ifile )
-        CALL HERE(__FILE__,__LINE__)
       if ( qcrestart ) then
         call print_restart_info
         call stop_model("Terminated normally: printed restart info",13)
@@ -52,13 +47,9 @@ C****
 C****
 C**** INITIALIZATIONS
 C****
-        CALL HERE(__FILE__,__LINE__)
          CALL TIMER (MNOW,MDUM)
 
       CALL INPUT (istart,ifile)
-      CALL HERE(__FILE__,__LINE__)
-      CALL HERE(__FILE__,__LINE__)
-
 C****
 C**** If run is already done, just produce diagnostic printout
 C****
@@ -81,26 +72,17 @@ C****
 C**** INITIALIZE TIME PARAMETERS
       NSTEP=(Itime-ItimeI)*NIdyn
          MODD5K=1000
-      CALL HERE(__FILE__,__LINE__)
-      CALL CHECKSUM(grid,P,__LINE__,__FILE__)
       CALL DAILY(.false.)                  ! not end_of_day
-      CALL CHECKSUM(grid,P,__LINE__,__FILE__)
       if (istart.le.9) call reset_diag(0)
       if (Kradia.le.0) then
-         CALL HERE(__FILE__,__LINE__)
         CALL daily_EARTH(.false.)          ! not end_of_day
-        CALL HERE(__FILE__,__LINE__)
         CALL daily_OCEAN(.false.)          ! not end_of_day
-        CALL HERE(__FILE__,__LINE__)
         CALL CALC_AMPK(LS1-1)
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-        CALL HERE(__FILE__,__LINE__)
         CALL daily_tracer(0)
 #endif
-        CALL HERE(__FILE__,__LINE__)
            if (kradia.le.0) CALL CHECKT ('INPUT ')
       end if
-        CALL HERE(__FILE__,__LINE__)
       CALL UPDTYPE
 
       WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
@@ -126,7 +108,6 @@ C**** Files for an accumulation period (1-12 months)
       end if
 C**** Initiallise file for sub-daily diagnostics, controlled by
 C**** space-seperated string segments in SUBDD & SUBDD1 in the rundeck
-        CALL HERE(__FILE__,__LINE__)
       call init_subdd(aDATE)
 
 C****
@@ -137,7 +118,6 @@ C****
 C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
 C**** write restart information alternatingly onto 2 disk files
       IF (MOD(Itime-ItimeI,Ndisk).eq.0) THEN
-         CALL HERE(__FILE__,__LINE__)
          CALL RFINAL (IRAND)
          call set_param( "IRAND", IRAND, 'o' )
          call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
@@ -217,27 +197,19 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
          CALL UPDTYPE
          CALL TIMER (MNOW,MSURF)
 C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
-         CALL HERE(__FILE__,__LINE__)
       CALL CONDSE
-         CALL HERE(__FILE__,__LINE__)
          CALL CHECKT ('CONDSE')
-         CALL HERE(__FILE__,__LINE__)
          CALL TIMER (MNOW,MCNDS)
-         CALL HERE(__FILE__,__LINE__)
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)
-         CALL HERE(__FILE__,__LINE__)
          IF (MODD5S.EQ.0) CALL DIAGCA (3)
-         CALL HERE(__FILE__,__LINE__)
       end if                                  ! full model,kradia le 0
 C**** RADIATION, SOLAR AND THERMAL
       MODRD=MOD(Itime-ItimeI,NRAD)
-         CALL HERE(__FILE__,__LINE__)
       if (kradia.le.0. or. MODRD.eq.0) then
          CALL RADIA
          if (kradia.le.0) CALL CHECKT ('RADIA ')
       end if
          CALL TIMER (MNOW,MRAD)
-         CALL HERE(__FILE__,__LINE__)
       if (kradia.le.0) then                    ! full model,kradia le 0
          IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)
 C****
@@ -248,21 +220,13 @@ C**** FLUXES FROM ONE MODULE CAN BE SUBSEQUENTLY APPLIED TO THAT BELOW
 C****
          IF (MODD5S.EQ.0) CALL DIAGCA (4)
 C**** APPLY PRECIPITATION TO SEA/LAKE/LAND ICE
-         CALL HERE(__FILE__,__LINE__)
       CALL PRECIP_SI
-         CALL HERE(__FILE__,__LINE__)
       CALL PRECIP_LI
-         CALL HERE(__FILE__,__LINE__)
 C**** APPLY PRECIPITATION AND RUNOFF TO LAKES/OCEANS
-         CALL HERE(__FILE__,__LINE__)
       CALL PRECIP_LK
-         CALL HERE(__FILE__,__LINE__)
       CALL PRECIP_OC
-         CALL HERE(__FILE__,__LINE__)
          CALL TIMER (MNOW,MSURF)
-         CALL HERE(__FILE__,__LINE__)
          CALL CHECKT ('PRECIP')
-         CALL HERE(__FILE__,__LINE__)
 #ifdef TRACERS_ON
 C**** Calculate non-interactive tracer surface sources and sinks
          call set_tracer_2Dsource
@@ -664,7 +628,8 @@ C****
       USE LAKES_COM, only : flake
       USE FLUXES, only : gtemp   ! tmp. fix
       USE SOIL_DRV, only: init_gh
-      USE DOMAIN_DECOMP, only : grid, GET, READT_PARALLEL, HERE
+      USE DOMAIN_DECOMP, only : grid, GET, READT_PARALLEL
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH
       IMPLICIT NONE
       CHARACTER(*) :: ifile
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF unit numbers for input files
@@ -697,12 +662,14 @@ C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
 
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 CCCC      INTEGER :: stdin ! used to read 'I' file
+      INTEGER :: JREG_glob(IM,JM)
 
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
+     &               J_STRT_SKP = J_0S, J_STOP_SKP  = J_1S,
+     &               J_STRT_HALO= J_0H, J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
@@ -720,7 +687,6 @@ C****
       byDSIG  =  1./DSIG
 C**** CALCULATE SPHERICAL GEOMETRY
       CALL GEOM_B
-      CALL HERE(__FILE__,__LINE__)
 C****
 C**** default settings for prog. variables etc
 C****
@@ -762,7 +728,6 @@ C**** Other speciality descriptions can be added/used locally
 C****
 C**** Set some documentary parameters in the database
 C****
-      CALL HERE(__FILE__,__LINE__)
       call set_param("IM",IM)
       call set_param("JM",JM)
       call set_param("LM",LM)
@@ -872,8 +837,6 @@ C***********************************************************************
         end do
         GO TO 500
       end if
-      CALL HERE(__FILE__,__LINE__)
-
       if (istart.ge.9 .or. Kradia.gt.0) go to 400
 C***********************************************************************
 C****                                                               ****
@@ -918,7 +881,6 @@ C**** Check the vertical layering defined in RES_ (is sige(ls1)=0 ?)
 C****
 C**** Get Ground conditions from a separate file - ISTART=1,2
 C****
-      CALL HERE(__FILE__,__LINE__)
       IF (ISTART.LE.2) THEN
 C**** Set flag to initialise pbl and snow variables
         iniPBL=.TRUE.
@@ -942,7 +904,6 @@ C**** Read in ground initial conditions
 C****
 C**** Get primary Atmospheric data from NMC tapes - ISTART=2
 C****
-      CALL HERE(__FILE__,__LINE__)
       IF (ISTART.EQ.2) THEN
 C**** Use title of first record to get the date and make sure  ???
 C**** it is consistent with IHRI (at least equal mod 8760)     ???
@@ -984,6 +945,8 @@ C****                                                    currently
            VSAVG(1:im,JM)=V(1,JM,1)
          End If
 
+         CALL HALO_UPDATE(grid, U, FROM=NORTH)
+         CALL HALO_UPDATE(grid, V, FROM=NORTH)
         DO J=J_0S,J_1S
         IM1=IM
         DO I=1,IM
@@ -1050,8 +1013,6 @@ C**** after changing to a new horizontal grid)
 C     redoGH=.TRUE.
 C**** Set flag to initialise pbl/snow variables if they are not in I.C.
 C     iniPBL=.TRUE.  ; iniSNOW = .TRUE.
-      CALL HERE(__FILE__,__LINE__)
-      CALL HERE(__FILE__,ISTART)
       SELECT CASE (ISTART)
       CASE (3)
         go to 890               !  not available
@@ -1104,7 +1065,6 @@ C**** Set flag to initialise lake variables if they are not in I.C.
 C****
 !**** IRANDI seed for random perturbation of initial conditions (if/=0):
 C****        tropospheric temperatures changed by at most 1 degree C
-      CALL HERE(__FILE__,__LINE__)
       IF (IRANDI.NE.0) THEN
         CALL RINIT (IRANDI)
         DO L=1,LS1-1
@@ -1193,7 +1153,6 @@ C**** CHOOSE DATA SET TO RESTART ON
                                KDISK=ISTART-10
       END SELECT
   430 continue
-      CALL HERE(__FILE__,__LINE__)
       call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.true.)
       call io_rsf(iu_RSF,Itime,ioread,ioerr)
       call closeunit(iu_RSF)
@@ -1214,7 +1173,6 @@ C****     so both files will be fine after the next write execution
 C**** Keep KDISK after reading from the later restart file, so that
 C****     the same file is overwritten first; in case of trouble,
 C****     the earlier restart file will still be available
-      CALL HERE(__FILE__,__LINE__)
 
   500 CONTINUE
 C**** Get parameters we just read from rsf file. Only those
@@ -1241,7 +1199,6 @@ C****
       IF (LRUNID.gt.16) call stop_model
      *     ('INPUT: Rundeck name too long. Shorten to 16 char or less'
      *     ,255)
-      CALL HERE(__FILE__,__LINE__)
       LRUNID = INDEX(XLABEL(1:16),'(') -1
       IF (LRUNID.LT.1) LRUNID=16
       if (index(XLABEL(1:LRUNID),' ').gt.0)
@@ -1264,7 +1221,6 @@ C****
       DTsrc = SDAY/NDAY   ! currently 1 hour
       call set_param( "DTsrc", DTsrc, 'o' )   ! copy DTsrc into DB
 
-      CALL HERE(__FILE__,__LINE__)
       NIdyn = 2*nint(.5*dtsrc/dt)
       if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
         write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
@@ -1284,31 +1240,28 @@ C**** Updating Parameters: If any of them changed beyond this line
 C**** use set_param(.., .., 'o') to update them in the database (DB)
 
 C**** Get the rest of parameters from DB or put defaults to DB
-      CALL HERE(__FILE__,__LINE__)
       call init_Model
 
 C**** Set julian date information
-      CALL HERE(__FILE__,__LINE__)
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
       call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
 
 C****
 C**** READ IN TIME-INDEPENDENT ARRAYS
 C****
-      CALL HERE(__FILE__,__LINE__)
       if (Kradia.le.0) then   !  full model
         CALL CALC_AMPK(LM)
 
 C****   READ SPECIAL REGIONS FROM UNIT 29
         call openunit("REG",iu_REG,.true.,.true.)
-        READ(iu_REG) TITREG,JREG,NAMREG
+        READ(iu_REG) TITREG,JREG_glob,NAMREG
+        JREG(:,J_0H:J_1H) = JREG_glob(:,J_0H:J_1H)
         WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
         call closeunit(iu_REG)
       end if  ! full model: Kradia le 0
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** Initialise tracer parameters and diagnostics
-      CALL HERE(__FILE__,__LINE__)
        call init_tracer
 #endif
 C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
@@ -1324,25 +1277,19 @@ C**** Actual array is set from restart file.
       ZATMO = ZATMO*GRAV                                     ! Geopotential
       call closeunit(iu_TOPO)
 
-      CALL HERE(__FILE__,__LINE__)
 C**** Initialise some modules before finalising Land/Ocean/Lake/LI mask
 C**** Initialize ice
       CALL init_ice(iniOCEAN)
 C**** Initialize lake variables (including river directions)
-      CALL HERE(__FILE__,__LINE__)
       CALL init_LAKES(inilake,istart)
 C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor
-      CALL HERE(__FILE__,__LINE__)
       CALL init_OCEAN(iniOCEAN,istart)
 C**** Initialize ice dynamics code (if required)
-      CALL HERE(__FILE__,__LINE__)
       CALL init_icedyn(iniOCEAN)
 C**** Initialize land ice (must come after oceans)
-      CALL HERE(__FILE__,__LINE__)
       CALL init_LI
-      CALL HERE(__FILE__,__LINE__)
 
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
 C**** as residual terms. (deals with SP=>DP problem)
@@ -1379,7 +1326,6 @@ C**** Ensure that no round off error effects land with ice and earth
          FEARTH(2:IM,JM)=FEARTH(1,JM)
          FLICE(2:IM,JM)=FLICE(1,JM)
       End If
-      CALL HERE(__FILE__,__LINE__)
 C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
 C**** Recompute Ground hydrology data if redoGH (new soils data)
@@ -1396,23 +1342,18 @@ C****
      &       CALL stop_model ('Terminated normally, istart<0',13)
         return
       end if                  !  Kradia>0; radiative forcing run
-      CALL HERE(__FILE__,__LINE__)
       CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART)
 C**** Initialize pbl (and read in file containing roughness length data)
-      CALL HERE(__FILE__,__LINE__)
       if(istart.gt.0) CALL init_pbl(iniPBL)
 C****
 C**** Initialize the use of gravity wave drag diagnostics
 C****
-      CALL HERE(__FILE__,__LINE__)
       CALL init_GWDRAG
 C
 C**** Initialize nuding
 #ifdef NUDGE_ON
-      CALL HERE(__FILE__,__LINE__)
        CALL NUDGE_INIT
 #endif
-      CALL HERE(__FILE__,__LINE__)
 C****
       if(istart.gt.0) CALL RINIT (IRAND)
       CALL FFT0 (IM)
@@ -1428,7 +1369,6 @@ C****
       WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
       WRITE (6,*) "PLbot=",PLbot
 C****
-      CALL HERE(__FILE__,__LINE__)
       RETURN
 C****
 C**** TERMINATE BECAUSE OF IMPROPER PICK-UP

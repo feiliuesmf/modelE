@@ -180,6 +180,7 @@ C**** Local variables initialised in init_RAD
      *         ,lhead,Kradia,irsficnt,irsficno
       USE RADNCB
       USE PARAM
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, UNPACK_COLUMN, PACK_COLUMN
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -191,18 +192,34 @@ C**** Local variables initialised in init_RAD
 !@var HEADER_F Character string label for records (forcing runs)
       CHARACTER*80 :: HEADER_F, MODULE_HEADER_F = "RADF"
 
+      REAL*8 ::Tchg_glob(LM+LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8 ::RQT_glob(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+      INTEGER ::kliq_glob(LM,4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+      INTEGER :: J_0,J_1
+      INTEGER :: k
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
       if (kradia.gt.0) then
         write (MODULE_HEADER_F(lhead+1:80),'(a8,i2,a15,i2,a7)')
      *    'R8 Tchg(',lm+LM_REQ,',ijm), I4 KLIQ(',lm,',4,ijm)'
         SELECT CASE (IACTION)
         CASE (:IOWRITE)            ! output to standard restart file
-          WRITE (kunit,err=10) MODULE_HEADER_F,Tchg,kliq
+          CALL PACK_COLUMN(grid, Tchg, Tchg_glob)
+          ! Next line intentionally broken - need to create interface
+          ! for pack on integers
+          kliq_glob(10000000:,:,:,J_0:J_1) = kliq_glob(:,:,:,J_0:J_1)
+          WRITE (kunit,err=10) MODULE_HEADER_F,Tchg_glob,kliq_glob
         CASE (IOREAD:)
           SELECT CASE  (IACTION)
           CASE (ioread,irerun,ioread_single)  ! input for restart
-            READ (kunit,err=10) HEADER_F,Tchg,kliq
+            READ (kunit,err=10) HEADER_F,Tchg_glob,kliq_glob
+            CALL UNPACK_COLUMN(grid, Tchg_glob, Tchg)
+            kliq(:,:,:,J_0:J_1) = kliq_glob(:,:,:,J_0:J_1)
           CASE (IRSFIC)  ! only way to start frc. runs
-            READ (kunit,err=10) HEADER,RQT,kliq ; Tchg = 0.
+            READ (kunit,err=10) HEADER,RQT_glob,kliq_glob ; Tchg = 0.
+            CALL UNPACK_COLUMN(grid, RQT_glob, RQT)
+            kliq(:,:,:,J_0:J_1) = kliq_glob(:,:,:,J_0:J_1)
             call sync_param( "Ikliq", Ikliq )
             if(Ikliq.eq.1) kliq=1  ! hysteresis init: equilibrium
             if(Ikliq.eq.0) kliq=0  ! hysteresis init: dry

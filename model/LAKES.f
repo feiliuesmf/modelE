@@ -387,7 +387,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE CONSTANT, only : rhow,shw,tf,pi,grav
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
      *     ,focean,fearth,jday
-      USE DOMAIN_DECOMP, only : GRID,CHECKSUM,WRITE_PARALLEL
+      USE DOMAIN_DECOMP, only : GRID,WRITE_PARALLEL
       USE DOMAIN_DECOMP, only : GET,NORTH,SOUTH,HALO_UPDATE
       USE GEOM, only : dxyp,dxv,dyv,dxp,dyp,imaxj
 #ifdef TRACERS_WATER
@@ -418,6 +418,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 
       CALL GET(GRID, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
+     &               J_STRT_HALO= J_0H, J_STOP_HALO= J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
@@ -522,7 +523,7 @@ C**** Read in CDIREC: Number = octant direction, Letter = river mouth
       CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
       READ  (iu_RVR,910)
       DO I72=1,1+(IM-1)/72
-        DO J=J_1, J_0, -1
+        DO J=JM, 1, -1
           READ  (iu_RVR,911) (CDIREC(I,J),I=72*(I72-1)+1,MIN(IM,I72*72))
         END DO
       END DO
@@ -540,7 +541,13 @@ C**** read in named rivers (if any)
 
 C**** Create integral direction array KDIREC from CDIREC
       INM=0
-      DO J=J_0, J_1
+      CALL HALO_UPDATE(grid, FEARTH, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid, FLICE,  FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid, FLAKE0, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid, FOCEAN, FROM=NORTH+SOUTH)
+
+      ! Use unusual loop bounds to fill KDIREC in halo
+      DO J=J_0H,J_1H
       DO I=1,IM
 C**** KD: -16 = blank, 0-8 directions >8 named rivers
         KD= ICHAR(CDIREC(I,J)) - 48
@@ -583,7 +590,8 @@ C**** Check for specified river mouths
 C****
 C**** From each box calculate the downstream river box
 C****
-        DO J=J_0S, J_1S
+      ! odd bounds to fill IFLOW and JFLOW in halo
+        DO J=MAX(2,J_0H), MIN(JM-1,J_1H)
         DO I=1,IM
           SELECT CASE (KDIREC(I,J))
           CASE (0)
@@ -652,8 +660,7 @@ C**** South Pole is a special case
 C****
 C**** Calculate river flow RATE (per source time step)
 C****
-      CALL CHECKSUM(grid, zatmo, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, zatmo, FROM=NORTH)
+      CALL HALO_UPDATE(grid, zatmo, FROM=NORTH+SOUTH)
 
       SPEED0= .35d0
       SPMIN = .15d0
@@ -700,7 +707,7 @@ C****
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
      *     ,itocean,itoice,fland
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET,
-     *        GLOBALSUM
+     *        HALO_UPDATE_COLUMN
       USE GEOM, only : dxyp,bydxyp
       USE DAGCOM, only : aij,ij_ervr,ij_mrvr,ij_f0oc,aj,areg,jreg,
      *        j_rvrd,j_ervr
@@ -718,6 +725,7 @@ C****
       IMPLICIT NONE
 
       INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD,JR,ITYPE
       REAL*8 MWLSILL,DMM,DGM,HLK1,DPE
@@ -729,6 +737,8 @@ C****
      * :: TRFLOW
 #endif
 
+      INTEGER :: J_start, J_stop
+
 C****
 C**** LAKECB  MWL  Liquid lake mass  (kg)
 C****         GML  Liquid lake enthalpy  (J)
@@ -737,7 +747,10 @@ C****
 C**** Calculate net mass and energy changes due to river flow
 C****
       CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
-     &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+     &               J_STRT_SKP =J_0S, J_STOP_SKP =J_1S,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
       FLOW = 0. ; EFLOW = 0.
       FLOWO = 0. ; EFLOWO = 0.
@@ -745,7 +758,26 @@ C****
       TRFLOW = 0.
       TRFLOWO = 0.
 #endif
-        DO JU=J_0S, J_1S
+
+      CALL HALO_UPDATE(grid,  FLAND,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid, FOCEAN,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid,  HLAKE,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid,  FLAKE,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid,    MWL,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid,  TLAKE,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid,  RATE,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid,   FLOW,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid,  EFLOW,FROM=NORTH+SOUTH)
+#ifdef TRACERS_WATER
+      CALL HALO_UPDATE_COLUMN(grid,  GTRACER(:,1,:,:),NORTH+SOUTH)
+      CALL HALO_UPDATE_COLUMN(grid,  TRLAKE(:,1,:,:),NORTH+SOUTH)
+      CALL HALO_UPDATE(grid,  TAIJN(:,:,TIJ_RVR,:),FROM=NORTH+SOUTH)
+#endif
+
+        j_start=Max(2,J_0H)
+        j_stop =Min(JM-1,J_1H)
+
+        DO JU=J_start,J_stop
         DO IU=1,IM
 C**** Also allow flow into ocean fraction of same box if KDIREC=0
           IF (KDIREC(IU,JU).gt.0 .or.
@@ -772,6 +804,8 @@ c              END IF
               end if
               TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
 #endif
+              IF (JD < J_0 .or. JD > J_1) Cycle ! contributes in other pe domain
+
               IF(FOCEAN(ID,JD).le.0.) THEN
                 DPE=0.  ! DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
                 FLOW(ID,JD) =  FLOW(ID,JD) + DMM
@@ -820,6 +854,7 @@ C**** accumulate river runoff diags (moved from ground)
 C****
 C**** Calculate river flow at the South Pole
 C****
+      IF (HAVE_SOUTH_POLE) THEN
        FLOW(1,1) =  FLOW(1,1)/IM
       EFLOW(1,1) = EFLOW(1,1)/IM
 #ifdef TRACERS_WATER
@@ -857,6 +892,7 @@ c        END IF
         TRFLOW(:,ID,JD) = TRFLOW(:,ID,JD) + IM*DTM(:)
 #endif
       END IF
+      END IF ! HAVE_SOUTH_POLE
 C****
 C**** Apply net river flow to continental reservoirs
 C****
@@ -901,18 +937,19 @@ C**** accounting fix to ensure river flow with no lakes is counted
           END IF
         END DO
       END DO
-      MWL(1,1) = MWL(1,1) +  FLOW(1,1)
-      GML(1,1) = GML(1,1) + EFLOW(1,1)
+      IF (HAVE_SOUTH_POLE) THEN
+        MWL(1,1) = MWL(1,1) +  FLOW(1,1)
+        GML(1,1) = GML(1,1) + EFLOW(1,1)
 #ifdef TRACERS_WATER
-      TRLAKE(:,1,1,1) = TRLAKE(:,1,1,1) + TRFLOW(:,1,1)
+        TRLAKE(:,1,1,1) = TRLAKE(:,1,1,1) + TRFLOW(:,1,1)
 #endif
-      IF (MWL(1,1).lt.1d-20) THEN
-        MWL(1,1)=0.
-        GML(1,1)=0.
+        IF (MWL(1,1).lt.1d-20) THEN
+          MWL(1,1)=0.
+          GML(1,1)=0.
 #ifdef TRACERS_WATER
-        TRLAKE(:,1:2,1,1) = 0.
+          TRLAKE(:,1:2,1,1) = 0.
 #endif
-      END IF
+        END IF
       IF (FLAKE(1,1).gt.0) THEN
         HLK1=(MLDLK(1,1)*RHOW)*TLAKE(1,1)*SHW
         MLDLK(1,1)=MLDLK(1,1)+FLOW(1,1)/(RHOW*FLAKE(1,1)*DXYP(1))
@@ -932,6 +969,7 @@ C**** accumulate some diagnostics
         AJ(1,J_RVRD,ITLAKE)=AJ(1,J_RVRD,ITLAKE)+ FLOW(1,1)*BYDXYP(1)
         AJ(1,J_ERVR,ITLAKE)=AJ(1,J_ERVR,ITLAKE)+EFLOW(1,1)*BYDXYP(1)
       END IF
+      END IF ! HAVE_SOUTH_POLE
 
       CALL PRINTLK("RV")
 C**** Set GTEMP array for lakes

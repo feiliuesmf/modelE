@@ -3,8 +3,8 @@
 #
 
 .PHONY: FORCE
-
-
+#VPATH = $(MODULES_CMPLR_OPT)
+VPATH = /usr/local/unsupported/esmf/1.0.3-551/include
 ######  Some user customizable settings:   ########
 
 # EXTRA_FFLAGS specifies some extra flags you want to pass 
@@ -46,8 +46,9 @@ SETUP = $(SCRIPTS_DIR)/setup_e.pl
 SETUP_GFDL = $(SCRIPTS_DIR)/setup_e_gfdl.pl
 CPP = $(NO_COMMAND)
 MACHINE = not_specified
+#LIBS = -lesmf -lmpi
 LIBS =
-INCS =
+INCS = 
 F90_VERSION = 'Unknown compiler version'
 ECHO_FLAGS =
 
@@ -281,10 +282,10 @@ FORCE:
 %.mod: 
 	@echo $(ECHO_FLAGS) checking $@: \\c
 #	@echo 'called rule for $@, depends on $^ built from: '`cat $@.sig`
-	@if [ "$<empty" = "empty" ]; then \
-	echo "No dependency for $@ : ";\
-	echo "Unsupported architecture or Makefile error";\
-	exit 1; fi
+#	@if [ "$<empty" = "empty" ]; then \
+#	echo "No dependency for $@ : ";\
+#	echo "Unsupported architecture or Makefile error";\
+#	exit 1; fi
 	@if [ ! -s $@.sig ] || [ "`cat $@.sig`" != "$<" ]; then \
 	echo "  dependencies for $@ have changed - recompiling"; \
 	rm -f $<; $(MAKE) $< RUN=$(RUN); else echo '  ok'; fi

@@ -330,10 +330,6 @@ C****** Load data into distributed arrays
 !       SNOWLI(    1:IM,J_0H:J_1H) = SNOWLI_GLOB(1:IM,J_0H:J_1H)
 !       TLANDI(1:2,1:IM,J_0H:J_1H) = TLANDI_GLOB(1:2,1:IM,J_0H:J_1H)
 
-C****** Load data into distributed arrays
-        SNOWLI(    1:IM,J_0H:J_1H) = SNOWLI_GLOB(1:IM,J_0H:J_1H)
-        TLANDI(1:2,1:IM,J_0H:J_1H) = TLANDI_GLOB(1:2,1:IM,J_0H:J_1H)
-
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
         CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)    ! from reruns/restarts
@@ -350,11 +346,6 @@ C********* Load data into distributed arrays
 !    &  = TRSNOWLI_GLOB(1:NTM,1:IM,J_0H:J_1H)
 !         TRLNDI(       1:NTM,1:IM,J_0H:J_1H) 
 !    &  = TRLNDI_GLOB(  1:NTM,1:IM,J_0H:J_1H)
-C********* Load data into distributed arrays
-          TRSNOWLI(     1:NTM,1:IM,J_0H:J_1H) 
-     &  = TRSNOWLI_GLOB(1:NTM,1:IM,J_0H:J_1H)
-          TRLNDI(       1:NTM,1:IM,J_0H:J_1H) 
-     &  = TRLNDI_GLOB(  1:NTM,1:IM,J_0H:J_1H)
         END SELECT
 #endif
 

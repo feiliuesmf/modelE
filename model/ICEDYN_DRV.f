@@ -290,7 +290,7 @@ C****
       USE CONSTANT, only : rhoi,grav,omega,rhows
       USE MODEL_COM, only : im,jm,p,ptop,dts=>dtsrc,focean
       USE DOMAIN_DECOMP, only : grid, DIST_GRID, GET
-      USE DOMAIN_DECOMP, only : CHECKSUM, HALO_UPDATE, NORTH, SOUTH
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, SOUTH
       USE GEOM, only : dxyn,dxys,dxyv,dxyp,bydxyp,dxp,dyv,imaxj
       USE ICEDYN, only : imic,jmic,nx1,ny1,press,heffm,uvm,dwatn,cor
      *     ,sinwat,coswat,bydts,sinen,uice,vice,heff,area,gairx,gairy
@@ -376,17 +376,10 @@ c     *           +OGEOZA(IP1,J)-OGEOZA(I,J))/DXP(J)
       END DO
 C**** Fill halos for arrays FOCEAN, RSI,OGEOZA,DYV,MSI,SNOWI
 C**** Commented Halo fill for array APRESS supports commented statement
-      CALL CHECKSUM(   grid, FOCEAN, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, FOCEAN, from=NORTH )
-      CALL CHECKSUM(   grid, RSI   , __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, RSI   , from=NORTH )
-c     CALL CHECKSUM(   grid, APRESS, __LINE__, __FILE__)
-c     CALL HALO_UPDATE(grid, APRESS, from=NORTH )
-      CALL CHECKSUM(   grid, OGEOZA, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, OGEOZA, from=NORTH )
-      CALL CHECKSUM(   grid, MSI   , __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, MSI   , from=NORTH )
-      CALL CHECKSUM(   grid, SNOWI , __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, SNOWI , from=NORTH )
       DO J=J_0,J_1S
         DO I=1,IM
@@ -420,13 +413,6 @@ C**** Convert to stress over ice fraction only (on atmospheric grid)
 
 C**** Set up ice grid variables
 C**** HEFF,AREA on primary (tracer) grid for ice
-C**** Fill halos for RSI, FOCEAN, MSI
-c$$$      CALL CHECKSUM(   grid, RSI   , __LINE__, __FILE__)
-c$$$      CALL HALO_UPDATE(grid, RSI   , from=NORTH+SOUTH )
-c$$$      CALL CHECKSUM(   grid, FOCEAN, __LINE__, __FILE__)
-c$$$      CALL HALO_UPDATE(grid, FOCEAN, from=NORTH+SOUTH )
-c$$$      CALL CHECKSUM(   grid, MSI   , __LINE__, __FILE__)
-c$$$      CALL HALO_UPDATE(grid, MSI   , from=NORTH+SOUTH )
 
       do j=J_0NXY,J_1NXY
         do i=2,NX1-1
@@ -458,7 +444,6 @@ C****
 C**** Set up mass per unit area and coriolis term (on ice grid B)
 C****
 C**** Update halo for HEFF
-      CALL CHECKSUM(grid,    HEFF, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, HEFF, from=NORTH    )
 
       DO J=J_0NXY,J_1NXYS
@@ -481,11 +466,8 @@ C**** This should be more generally from ocean grid to ice grid
 C**** NOTE: UOSURF, VOSURF are expected to be on the C-grid
 
 C**** Update halo for USI,UOSURF,PGFU
-      CALL CHECKSUM(grid,    USI   , __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, USI   , from=NORTH    )
-      CALL CHECKSUM(grid,    UOSURF, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, UOSURF, from=NORTH    )
-      CALL CHECKSUM(grid,    PGFU  , __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, PGFU  , from=NORTH    )
 
       do j=j_0,j_1s
@@ -529,9 +511,7 @@ c**** set north pole
 c**** interpolate air stress from A grid in atmos, to B grid in ice
 C**** change of unit from change of momentum, to flux
 C**** Update halo for USI,UOSURF,PGFU
-      CALL CHECKSUM(grid,    DMUA  , __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, DMUA  , from=NORTH    )
-      CALL CHECKSUM(grid,    DMVA  , __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, DMVA  , from=NORTH    )
 
       do j=j_0,j_1s
@@ -588,9 +568,7 @@ C**** Calculate stress on ice velocity grid (B grid)
 
 C**** interpolate ice velocity and stress from B grid to C grid in atm
 C**** Update halos for UICE and DMU
-      CALL CHECKSUM(   grid,  UICE, __LINE__, __FILE__ )
       CALL HALO_UPDATE(grid,  UICE, from=SOUTH     )
-      CALL CHECKSUM(   grid,   DMU, __LINE__, __FILE__ )
       CALL HALO_UPDATE(grid,   DMU, from=SOUTH     )
       do j=J_0STG,J_1STG
         i=im
@@ -605,12 +583,7 @@ C**** Rescale DMUI to be net momentum into ocean
         enddo
       enddo
 C**** Update halos for FOCEAN, DXYS, DXYV
-      CALL CHECKSUM(   grid,  FOCEAN, __LINE__, __FILE__ )
       CALL HALO_UPDATE(grid,  FOCEAN, from=NORTH     )
-      CALL CHECKSUM(   grid,  DXYS  , __LINE__, __FILE__ )
-      CALL HALO_UPDATE(grid,  DXYS  , from=NORTH     )
-      CALL CHECKSUM(   grid,  DXYV  , __LINE__, __FILE__ )
-      CALL HALO_UPDATE(grid,  DXYV  , from=NORTH     )
 
       do j=j_0,j_1s
         do i=1,im
@@ -637,9 +610,7 @@ C**** Rescale DMVI to be net momentum into ocean
 C**** Calculate ustar*2*rho for ice-ocean fluxes on atmosphere grid
 C**** UI2rho = | tau |
 C**** Update halos for DMU, and DMV
-      CALL CHECKSUM(   grid,  DMU   , __LINE__, __FILE__ )
       CALL HALO_UPDATE(grid,  DMU   , from=SOUTH     )
-      CALL CHECKSUM(   grid,  DMV   , __LINE__, __FILE__ )
       CALL HALO_UPDATE(grid,  DMV   , from=SOUTH     )
 
       do j=J_0,J_1
@@ -674,9 +645,7 @@ C**** set north pole in C grid (atm)
 
 C**** calculate mass fluxes for the ice advection
 C**** Update halos for FOCEAN, and RSI
-      CALL CHECKSUM(   grid,  FOCEAN, __LINE__, __FILE__ )
       CALL HALO_UPDATE(grid,  FOCEAN, from=NORTH     )
-      CALL CHECKSUM(   grid,  RSI   , __LINE__, __FILE__ )
       CALL HALO_UPDATE(grid,  RSI   , from=NORTH     )
 
       DO J=J_0,J_1S
@@ -727,8 +696,8 @@ C****
       USE CONSTANT, only : byshi,lhm,grav
       USE MODEL_COM, only : im,jm,focean,p,ptop,kocean
       USE DOMAIN_DECOMP, only : grid, GET
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, SOUTH, NORTH
-      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN, CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, SOUTH, NORTH
+      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN
       USE GEOM, only : dxyp,dyp,dxp,dxv,bydxyp,imaxj
 c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
       USE ICEDYN_COM, only : usidt,vsidt,rsix,rsiy,rsisave,icij,ij_musi
@@ -771,11 +740,12 @@ C****         FAW    flux of surface water area (m^2) = USIDT*DYP
 C****         FASI   flux of sea ice area (m^2) = USIDT*DYP*RSIedge
 C****         FMSI   flux of sea ice mass (kg) or heat (J) or salt (kg)
 
-      INTEGER J_0, J_1, J_0S, J_1S
+      INTEGER J_0, J_1, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_NORTH_POLE
 C**** Get grid parameters
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S ,
+     &               J_STRT_HALO=J_0H,   J_STOP_HALO =J_1H ,
      &          HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** Regularise ice concentration gradients to prevent advection errors
@@ -853,15 +823,10 @@ C****
 C**** Calculate south-north sea ice fluxes at grid box edges
 C****
 C**** Update halo of DXV,RSIY,RSI,RSIX,FOCEAN,BYDXYP,and MHS
-      CALL CHECKSUM(grid,    RSIY ,  __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, RSIY , FROM=NORTH)
-      CALL CHECKSUM(grid,    RSIX ,  __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, RSIX , FROM=NORTH)
-      CALL CHECKSUM(grid,    RSI  ,  __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, RSI  , FROM=NORTH)
-      CALL CHECKSUM(grid,   FOCEAN,  __LINE__, __FILE__)
       CALL HALO_UPDATE(grid,FOCEAN, FROM=NORTH)
-      CALL CHECKSUM_COLUMN(grid,    MHS  ,  __LINE__, __FILE__)
       CALL HALO_UPDATE_COLUMN(grid, MHS  , FROM=NORTH)
 
       DO 120 J=J_0S,MIN(JM-2,J_1)
@@ -935,20 +900,13 @@ C**** Update sea ice variables due to south-north fluxes
 C****
 
 C****Update halo of VSIDT, FASI, FAW, FOCEAN, FMSI, and FXSI
-      CALL CHECKSUM(grid,    VSIDT,  __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, VSIDT, FROM=SOUTH)
-       CALL CHECKSUM(grid,    FASI,  __LINE__, __FILE__)
-       CALL HALO_UPDATE(grid, FASI, FROM=SOUTH)
-      CALL CHECKSUM(grid,    FAW,  __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, FASI(J_0H:J_1H), FROM=SOUTH)
       CALL HALO_UPDATE(grid, FAW, FROM=SOUTH)
-       CALL CHECKSUM(grid,    FOCEAN,  __LINE__, __FILE__)
-       CALL HALO_UPDATE(grid, FOCEAN, FROM=SOUTH)
-      CALL CHECKSUM_COLUMN(grid,    FMSJ,  __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, FOCEAN, FROM=SOUTH)
       CALL HALO_UPDATE_COLUMN(grid, FMSJ, FROM=SOUTH)
-       CALL CHECKSUM(grid,    FXSI,  __LINE__, __FILE__)
-       CALL HALO_UPDATE(grid, FXSI, FROM=SOUTH)
-       CALL CHECKSUM(grid,    FYSI,  __LINE__, __FILE__)
-       CALL HALO_UPDATE(grid, FYSI, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, FXSI, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, FYSI, FROM=SOUTH)
 
   200 DO 330 J=J_0S, J_1S
       IF(VSIDT(I,J-1)) 240,210,280

@@ -517,7 +517,7 @@ c
 c     sum into fqv
 c
 !$OMP  PARALLEL DO PRIVATE(J,L)
-      do j=1,jm
+      do j=J_0,J_1
       do l=1,lm
          fqv(:,j)  = fqv(:,j) + hfqv(:,j,l)
       enddo ! j

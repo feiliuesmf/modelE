@@ -57,6 +57,7 @@ C**** Check for reasonable values for ocean variables
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCN01"
       REAL*8, DIMENSION(3,IM,JM) :: TOCEAN_g
       REAL*8, DIMENSION(IM,JM)   :: Z1O_g
+      INTEGER :: J_0,J_1
 
       MODULE_HEADER(lhead+1:80) = 'R8 Tocn(3,im,jm),MixLD(im,jm)'
 

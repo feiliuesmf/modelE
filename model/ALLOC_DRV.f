@@ -3,6 +3,7 @@
 c Driver to allocate arrays that become dynamic as a result of
 c set-up for MPI implementation
       USE DOMAIN_DECOMP, ONLY : grid
+      USE WORKJK, only : alloc_workjk
       IMPLICIT NONE
 
       call alloc_dynamics(grid)
@@ -32,5 +33,6 @@ c set-up for MPI implementation
       call alloc_tracer_adv(grid)
       call alloc_veg_com(grid)
       call alloc_static_ocean(grid)
+      call alloc_workjk(grid)
 
       end subroutine alloc_drv

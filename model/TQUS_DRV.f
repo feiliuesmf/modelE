@@ -604,14 +604,14 @@ c**** loop over longitudes
 c****
 c**** load 1-dimensional arrays
 c****
-      bm (:) = mv_glob(i,:)/nstep(l)
-      bm(jm) = 0.
-      rmom_glob(ihmoms,i,1) = 0.! horizontal moments are zero at pole
-      rmom_glob(ihmoms,i,jm) = 0.
 c****
 c**** call 1-d advection routine
 c****
       if (AM_I_ROOT()) then
+        bm (:) = mv_glob(i,:)/nstep(l)
+        bm(jm) = 0.
+        rmom_glob(ihmoms,i,1) = 0. ! horizontal moments are zero at pole
+        rmom_glob(ihmoms,i,jm) = 0.
         call adv1d( rm_glob(i,1), rmom_glob(1,i,1), f_j_glob,
      &       fmom_j_glob, mass_glob(i,1),
      &       bm,jm,qlimit,ystride,ydir,ierr,nerr)

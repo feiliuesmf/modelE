@@ -29,6 +29,9 @@
       INTEGER, PARAMETER :: ESMF_KIND_R8 = Selected_Real_Kind(15)
 #endif
 
+!aoo since DIST_GRID is public ESMF_GRID has to be public
+!aoo (SGI compiler complains)
+      PUBLIC :: ESMF_GRID
 
       TYPE(ESMF_GridComp)  :: compmodelE
       TYPE (ESMF_DELayout) :: ESMF_LAYOUT
@@ -78,10 +81,6 @@
       PUBLIC :: WRITE_PARALLEL
       PUBLIC :: READ_GRID_VAR
       PUBLIC :: WRITE_GRID_VAR
-
-!ia since DIST_GRID is public ESMF_GRID_TYPE has to be public
-!ia (SGI compiler complains)
-!      PUBLIC :: ESMF_GRID_TYPE
 
 !@var HALO_UPDATE Generic wrapper for 2D and 3D routines
       INTERFACE HALO_UPDATE
@@ -147,6 +146,7 @@
 #ifdef USE_ESMF
       INTERFACE ESMF_ARRAYGATHER
         MODULE PROCEDURE ESMF_ARRAYGATHER_J
+        MODULE PROCEDURE ESMF_ARRAYGATHER_J_int
         MODULE PROCEDURE ESMF_ARRAYGATHER_IJ
         MODULE PROCEDURE IESMF_ARRAYGATHER_IJ
       END INTERFACE   
@@ -159,6 +159,7 @@
 
       INTERFACE ARRAYGATHER
         MODULE PROCEDURE ARRAYGATHER_J
+        MODULE PROCEDURE ARRAYGATHER_J_INT
         MODULE PROCEDURE ARRAYGATHER_IJ
         MODULE PROCEDURE IARRAYGATHER_IJ
       END INTERFACE   
@@ -607,7 +608,7 @@
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_4D
 
-      SUBROUTINE CHECKSUM_1D(grd_dum, arr, line, file, unit, STGR)
+      SUBROUTINE CHECKSUM_1D(grd_dum, arr, line, file, unit, STGR, SKIP)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN) :: grd_dum
       REAL*8,            INTENT(IN) :: 
@@ -616,13 +617,14 @@
       CHARACTER(LEN=*),  INTENT(IN) :: file
       INTEGER, OPTIONAL, INTENT(IN) :: unit
       LOGICAL, OPTIONAL, INTENT(IN) :: stgr
+      LOGICAL, OPTIONAL, INTENT(IN) :: skip
 
 
       INTEGER :: unit_
       REAL*8  :: asum, L1norm
       REAL*8  :: t_arr(grd_dum%j_strt_halo:grd_dum%j_stop_halo)
       INTEGER :: J_0, J_1
-      INTEGER :: stgr_
+      INTEGER :: stgr_, skip_
 
 #ifdef DEBUG_DECOMP
       J_0 = grd_dum%J_STRT
@@ -636,10 +638,15 @@
          If (stgr) stgr_=1
       End If
 
+      skip_ = 0
+      If (Present(skip)) THEN
+         If (skip) skip_=1
+      End If
+
       t_arr = arr
-      Call GLOBALSUM(grd_dum, t_arr, asum,istag=stgr_)
+      Call GLOBALSUM(grd_dum, t_arr, asum,istag=stgr_,iskip=skip_)
       t_arr(J_0:J_1) = ABS(t_arr(J_0:J_1))
-      Call GLOBALSUM(grd_dum, t_arr, L1norm,istag=stgr_)
+      Call GLOBALSUM(grd_dum, t_arr, L1norm,istag=stgr_,iskip=skip_)
       
       If (AM_I_ROOT()) Write(unit_,'(a20,1x,i5,1x,2(e22.17,1x))') 
      &     file,line, asum, L1norm
@@ -938,19 +945,20 @@
       END SUBROUTINE GLOBALSUM_INT_REDUCE
 
       SUBROUTINE GLOBALSUM_J(grd_dum, arr, gsum, 
-     &                       hsum, istag, polefirst,all)
+     &                       hsum, istag, iskip, polefirst,all)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       REAL*8,            INTENT(IN) :: arr(grd_dum%j_strt_halo:)
       REAL*8,            INTENT(OUT):: gsum
       REAL*8, OPTIONAL,  INTENT(OUT):: hsum(2)
       INTEGER,OPTIONAL,  INTENT(IN) :: istag
+      INTEGER,OPTIONAL,  INTENT(IN) :: iskip
       LOGICAL,OPTIONAL,  INTENT(IN) :: polefirst
       LOGICAL,OPTIONAL,  INTENT(IN) :: all
 
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM, J, ier
       REAL*8  :: garr(grd_dum%jm_world)
-      LOGICAL :: istag_
+      LOGICAL :: istag_, iskip_
 
     ! now local
 #ifdef USE_ESMF
@@ -967,6 +975,11 @@
       istag_ = .false.
       If (Present(istag)) Then 
         If (istag == 1) istag_ = .true.
+      End If
+
+      iskip_ = .false.
+      If (Present(iskip)) Then 
+        If (iskip == 1) iskip_ = .true.
       End If
 
 #ifdef DEBUG_DECOMP
@@ -998,6 +1011,8 @@
          Else
          If (istag_) then
            gsum = sum(garr(2:JM),1)
+         ElseIf (iskip_) then
+           gsum = sum(garr(2:JM-1),1)
          Else
            gsum = sum(garr(1:JM),1)
          EndIf
@@ -1017,8 +1032,12 @@
 
 #ifdef USE_ESMF
       If (Present(all)) Then
-         If (all) Call MPI_BCAST(gsum,1,MPI_REAL8,root,
-     &        MPI_COMM_WORLD, ier)
+         If (all) THEN
+            Call MPI_BCAST(gsum,1,MPI_REAL8,root,
+     &           MPI_COMM_WORLD, ier)
+            If (Present(hsum)) Call MPI_BCAST(hsum,2,MPI_REAL8,root,
+     &              MPI_COMM_WORLD, ier)
+         End If
       End If
 #endif
 
@@ -1106,8 +1125,12 @@
 
 #ifdef USE_ESMF
       If (Present(all)) Then
-         If (all) Call MPI_BCAST(gsum,1,MPI_REAL8,root,
-     &        MPI_COMM_WORLD, ier)
+         If (all) Then
+            Call MPI_BCAST(gsum,1,MPI_REAL8,root,
+     &           MPI_COMM_WORLD, ier)
+            If (Present(hsum))             Call MPI_BCAST(hsum,2,MPI_REAL8,root,
+     &           MPI_COMM_WORLD, ier)
+         End If
       End If
 #endif
 
@@ -1240,15 +1263,17 @@
 
       END SUBROUTINE GLOBALSUM_IJK_IK
 
-      SUBROUTINE GLOBALSUM_JK(grd_dum, arr, gsum, hsum, istag)
+      SUBROUTINE GLOBALSUM_JK(grd_dum, arr, gsum, hsum, istag, all)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       REAL*8,            INTENT(IN) :: arr(grd_dum%j_strt_halo:,:)
       REAL*8,            INTENT(OUT):: gsum(size(arr,2))
       REAL*8, OPTIONAL,  INTENT(OUT):: hsum(2,size(arr,2))
       INTEGER,OPTIONAL,  INTENT(IN) :: istag
+      LOGICAL,OPTIONAL,  INTENT(IN) :: all
 
       INTEGER :: k
+      INTEGER :: ier
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM
       REAL*8  :: garr(grd_dum%jm_world,size(arr,2))
       LOGICAL :: istag_
@@ -1296,6 +1321,17 @@
             EndIf
          EndIf
       EndIf
+
+#ifdef USE_ESMF
+      If (Present(all)) Then
+         If (all) Then
+            Call MPI_BCAST(gsum,Size(gsum),MPI_REAL8,root,
+     &           MPI_COMM_WORLD, ier)
+            If (Present(hsum))             Call MPI_BCAST(hsum,size(hsum),MPI_REAL8,root,
+     &           MPI_COMM_WORLD, ier)
+         End If
+      End If
+#endif
 
       END SUBROUTINE GLOBALSUM_JK
 
@@ -2048,6 +2084,71 @@ C****  convert from real*4 to real*8
       
       end subroutine Esmf_ArrayGather_J
 
+!---------------------------
+
+      subroutine Esmf_ArrayGather_J_int(grid, local_array, global_array)
+      type (ESMF_Grid)      :: grid
+      INTEGER, dimension (:) :: local_array, global_array
+      
+      type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
+      type (ESMF_DELayout)                          :: layout
+      integer, allocatable, dimension(:)            :: 
+     &     recvcounts, displs
+      integer                                       :: nDEs
+      integer                                       :: status
+      integer                                       :: sendcount
+      
+      integer                                       :: I, J, deId
+      integer                                       :: NY
+      integer                                      :: J1, JN
+      
+      
+      integer, allocatable                    :: var(:)
+      
+      
+      call ESMF_GridGetAllAxisIndex(grid, AI, rc=status)
+      call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
+      
+      
+      call ESMF_DELayoutGetNumDEs(layout, nDEs, rc=status)
+      allocate (recvcounts(nDEs), displs(0:nDEs), stat=status)
+      
+      call ESMF_DELayoutGetDEID(layout, deId, rc=status)
+      allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
+      
+      displs(0) = 0
+      do I = 1,nDEs
+        J = I - 1
+        J1 = AI(I,2)%min
+        JN = AI(I,2)%max
+        
+        recvcounts(I) = (JN - J1 + 1)
+        if (J == deId) then
+          sendcount = recvcounts(I)
+        endif
+        displs(I) = displs(J) + recvcounts(I)
+      enddo
+      
+      
+      call MPI_GatherV(local_array,sendcount,MPI_INTEGER,
+     &     var, recvcounts, displs, 
+     &     MPI_INTEGER, root, MPI_COMM_WORLD, status)
+      
+      if (deId == root) then
+        do I = 1,nDEs
+          J = I - 1
+          J1 = AI(I,2)%min
+          JN = AI(I,2)%max
+          
+          global_array(J1:JN) = var(displs(J):displs(I)-1)
+        enddo
+      endif
+      
+      deallocate(VAR, stat=status)
+      deallocate(recvcounts, displs, stat=status)
+      
+      end subroutine Esmf_ArrayGather_J_int
+
 #endif
 !---------------------------
 
@@ -2065,6 +2166,23 @@ C****  convert from real*4 to real*8
 #endif
 
       end subroutine ArrayGather_J
+
+!---------------------------
+
+      subroutine ArrayGather_J_int(grd_dum, local_array, global_array)
+      type (DIST_GRID)      :: grd_dum
+      INTEGER, dimension (grd_dum%J_STRT_HALO:) :: local_array
+      INTEGER, dimension (:)               :: global_array
+      
+#ifdef USE_ESMF
+      call Esmf_ArrayGather_J_int(grd_dum%ESMF_GRID, 
+     &     local_array(grd_dum%J_STRT:grd_dum%J_STOP),
+     &     global_array)
+#else
+      global_array = local_array
+#endif
+
+      end subroutine ArrayGather_J_int
 
 !---------------------------
 
@@ -3585,13 +3703,22 @@ c$$$      ENDIF
       Integer :: line
 
       INTEGER :: ier
+      Integer, Allocatable :: lines(:)
 
 #ifdef DEBUG_DECOMP
+      CALL LOG_PARALLEL(grid, file, line)
       If (AM_I_ROOT()) Then
          WRITE(CHECKSUM_UNIT,*)'HERE: ',file, line
          CALL SYS_FLUSH(CHECKSUM_UNIT)
-      End If
-      CALL LOG_PARALLEL(grid, file, line)
+       End If
+#ifdef USE_ESMF       
+       ALLOCATE(lines(npes))
+       Call MPI_Allgather(line, 1, MPI_INTEGER, lines, 1, MPI_INTEGER, 
+     &      MPI_COMM_WORLD, ier)
+       If (Any(lines /= line)) 
+     &      call stop_model('HERE: synchronization error -severe.',255)
+       Deallocate(lines)
+#endif
 #endif
 #ifdef USE_ESMF
       CALL MPI_Barrier(MPI_COMM_WORLD, ier)

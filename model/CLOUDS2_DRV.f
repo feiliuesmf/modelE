@@ -76,7 +76,7 @@
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
      *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1
-     *     ,smommc,smomls,qmommc,qmomls,ddmflx
+     *     ,smommc,smomls,qmommc,qmomls,ddmflx,ncol
 #ifdef CLD_AER_CDNC 
      *     ,cdncws,cdncis,cdncwm,cdncim,oldcdo,oldcdl,smfpml
 #endif
@@ -184,6 +184,7 @@ CRKF...FIX
 C**** define local grid
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
+     &               J_STRT_HALO=J_0H,    J_STOP_HALO=J_1H,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE        )

@@ -65,7 +65,6 @@ C     *     ,CRSI,KRSI
 
 !@var iu_OSST,iu_SICE,iu_OCNML unit numbers for climatologies
       INTEGER iu_OSST,iu_SICE,iu_OCNML
-      INTEGER :: J_0,J_1
       LOGICAL :: HAVE_NORTH_POLE
 
       CONTAINS
@@ -80,6 +79,7 @@ C     *     ,CRSI,KRSI
       REAL*8 TGAVE,DWTRO,WTR1O,WTR2O
 !@var QTCHNG true if TOCEAN(1) is changed (needed for qflux calculation)
       LOGICAL, INTENT(IN) :: QTCHNG
+      INTEGER :: J_0, J_1
 C****
 C**** FLAND     LAND COVERAGE (1)
 C****
@@ -149,6 +149,9 @@ C now allocated from ALLOC_STATIC OCEAN      REAL*8, SAVE :: XZO(IM,JM),XZN(IM,J
       INTEGER, SAVE :: IMON = 0
 !@var TEMP_LOCAL stores AOST+EOST1 or ARSI+ERST1 to avoid the use of common block OOBS in MODULE STATIC_OCEAN
       REAL*8 :: TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
+
+      INTEGER :: J_0,J_1
+      LOGICAL :: HAVE_NORTH_POLE
 
       CALL HERE(__FILE__,__LINE__)
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,

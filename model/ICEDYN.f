@@ -100,7 +100,7 @@ C**** Geometry
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
-      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, CHECKSUM
+      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
 
       IMPLICIT NONE
       INTEGER I,J
@@ -214,7 +214,6 @@ C NOW SET VISCOSITIES AND PRESSURE EQUAL TO ZERO AT OUTFLOW PTS
 
 C NOW CALCULATE PRESSURE FORCE AND ADD TO EXTERNAL FORCE
 C**** Update halo of PRESS for distributed memory implementation
-      CALL CHECKSUM(grid, PRESS,  __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, PRESS, FROM=NORTH)
       DO J=J_0,J_1S
         DO I=1,NX1-1
@@ -243,7 +242,7 @@ C NOW PUT IN MINIMAL MASS FOR TIME STEPPING CALCULATIONS
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
-      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, CHECKSUM
+      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
       IMPLICIT NONE
       REAL*8, DIMENSION(NX1,grid%j_strt_halo:grid%j_stop_halo) 
      &        :: E11,E22,E12
@@ -262,9 +261,7 @@ C****
 
 
 C EVALUATE STRAIN RATES
-      CALL CHECKSUM(grid, UICE, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, UICE, FROM=SOUTH)
-      CALL CHECKSUM(grid, VICE, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, VICE, FROM=SOUTH)
       DO J=J_0S,J_1S
         DO I=2,NX1-1
@@ -435,13 +432,9 @@ C FIRST DO UICE
 C THE FIRST HALF
 
 C**Update halos for arrays eta,zeta,vicec,bycsu as needed in the next loop
-      CALL CHECKSUM(grid, ETA, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, ETA, FROM=NORTH)
-      CALL CHECKSUM(grid, ZETA, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, ZETA, FROM=NORTH)
-      CALL CHECKSUM(grid, VICEC, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, VICEC, FROM=NORTH+SOUTH)
-      CALL CHECKSUM(grid, BYCSU, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH+SOUTH)
 
       DO J=J_0S,J_NYP
@@ -511,12 +504,8 @@ c      CU(2,J)=CU(2,J)/BU(2,J)  ! absorbed into TRIDIAG
 
 C**Update halos for UICE and TNG as needed for loop 1200
 C**(ETA and ZETA were updted above)
-      CALL CHECKSUM(grid, UICE, __LINE__, __FILE__)
-        CALL HALO_UPDATE(grid, UICE, FROM=SOUTH)
-        CALL HALO_UPDATE(grid, UICE, FROM=NORTH)
-      CALL CHECKSUM(grid, TNG, __LINE__, __FILE__)
-        CALL HALO_UPDATE(grid, TNG, FROM=SOUTH)
-        CALL HALO_UPDATE(grid, TNG, FROM=NORTH)
+      CALL HALO_UPDATE(grid, UICE, FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(grid, TNG, FROM=SOUTH+NORTH)
 
       DO 1200 J=J_0S,J_NYP
       DO I=2,NXLCYC
@@ -692,8 +681,9 @@ c      END DO
 C NOW DO VICE
 C THE FIRST HALF
 
-      CALL CHECKSUM(grid, UICEC, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, UICEC, FROM=NORTH)
+      CALL HALO_UPDATE(grid, UICEC, FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(GRID,  ETA,FROM=NORTH)
+      CALL HALO_UPDATE(GRID, ZETA,FROM=NORTH)
 
       DO I=2,NXLCYC
       DO J=J_0S,J_NYP
@@ -873,9 +863,7 @@ C NOW THE SECOND HALF
 c       CU(2,J)=CU(2,J)/BU(2,J)   ! absorbed into TRIDIAG
       END DO
 
-      CALL CHECKSUM(grid, VICE, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, VICE, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, VICE, FROM=NORTH)
+      CALL HALO_UPDATE(grid, VICE, FROM=SOUTH+NORTH)
 
       DO J=J_0S,J_NYP
       DO I=2,NXLCYC
@@ -953,7 +941,7 @@ c        END DO
       SUBROUTINE setup_icedyn_grid
       USE MODEL_COM, only : dts=>dtsrc
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
-      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, CHECKSUM
+      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
       IMPLICIT NONE
       REAL*8 :: dlat,dlon,phit,phiu,hemi,rms
       INTEGER I,J,n,k,kki,sumk,l
@@ -1030,7 +1018,6 @@ C**** Set land masks for tracer and velocity points
         heffm(nx1,j)=heffm(2,j)  
       enddo
 C**** define velocity points (including exterior corners)
-      CALL CHECKSUM(grid, HEFFM, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, HEFFM, FROM=NORTH)
       do j=j_0,j_1s
@@ -1042,7 +1029,6 @@ c          if (sumk.ge.3) uvm(i,j)=1  ! includes exterior corners
         end do
       end do
 C**** reset tracer points to surround velocity points (except for single
-      CALL CHECKSUM(grid, UVM, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, UVM, FROM=SOUTH)
 c     CALL HALO_UPDATE(grid, UVM, FROM=NORTH)
@@ -1072,7 +1058,6 @@ c set lateral boundary conditions
       enddo
 
 C**** Update halo of PHI for distributed memory implementation
-      CALL CHECKSUM(grid, HEFFM, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, HEFFM, FROM=NORTH)
       do j=j_0,j_1s
@@ -1098,7 +1083,7 @@ c set cyclic conditions on eastern and western boundary
 !@+    dynamics code
 !@auth Gavin Schmidt (based on code from J. Zhang)
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
-      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, CHECKSUM
+      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
       USE ICEDYN, only : nx1,ny1,form,relax,uice,vice,uicec,vicec
       IMPLICIT NONE
       REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 

@@ -5256,10 +5256,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 
       REAL*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
      *                                                    ic14CO2 
-      REAL*4, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
-     *                                                      CO2ic
-      REAL*4, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
-     *                                                      N2Oic
+      REAL*4, DIMENSION(im,jm,lm) ::  CO2ic   !each proc. reads global array
+      REAL*4, DIMENSION(jm,lm)    ::  N2Oic   !each proc. reads global array
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
      *                                                      CH4ic
 
@@ -5349,6 +5347,7 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
 
         case ('CO2')
           call openunit('CO2_IC',iu_data,.true.,.true.)
+C**** ESMF: Each processor reads the global array co2ic
           read (iu_data) title,co2ic
           call closeunit(iu_data)
           write(6,*) title,' read from CO2_IC'
@@ -5360,6 +5359,7 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
         case ('N2O')
 #ifdef TRACERS_SPECIAL_Lerner
           call openunit('N2O_IC',iu_data,.true.,.true.)
+C**** ESMF: Each processor reads the global array: N2Oic
           read (iu_data) title,N2Oic     ! unit is PPMM/(M*DXYP)
           call closeunit(iu_data)
           write(6,*) title,' read from N2O_IC'

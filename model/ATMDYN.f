@@ -1345,7 +1345,7 @@ C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
       ediff=(TE-TE0)/((PSF-PMTOP)*SHA*mb2kg)        ! C
 !$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm
-        T(:,:,L)=T(:,:,L)-ediff/PK(L,:,:)
+        T(:,J_0:J_1,L)=T(:,:,L)-ediff/PK(L,:,J_0:J_1)
       end do
 !$OMP  END PARALLEL DO
 

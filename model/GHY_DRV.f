@@ -211,12 +211,13 @@ c****         2  snow depth over vegetated soil (m)
 c****
 
 C****   define local grid
-      integer J_0, J_1
+      integer J_0, J_1, J_0H, J_1H
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1       ,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
 
       dtsurf=dtsrc/nisurf
       zs1co=.5*dsig(1)*rgas/grav
@@ -1205,6 +1206,7 @@ C-BMP Global sum on evap_max_ij
 
 ccc if not initialized yet, set evap_max_ij, fr_sat_ij, qg_ij
 ccc to something more appropriate
+       
       if ( sum(evap_max_ij(:,:)) > im*jm-1.d0 ) then ! old default
         do j=J_0,J_1
           do i=1,im
@@ -1867,12 +1869,13 @@ c****
       integer i,j,jr,k
 
 C**** define local grid
-      integer J_0, J_1
+      integer J_0, J_1, J_0H, J_1H
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL GET(grid, J_STRT=J_0      , J_STOP=J_1,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
 
       do j=J_0,J_1
       do i=1,imaxj(j)

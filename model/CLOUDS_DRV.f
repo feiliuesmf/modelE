@@ -16,6 +16,7 @@
       USE DOMAIN_DECOMP, only : HALO_UPDATE,GRID,GET
       USE DOMAIN_DECOMP, only : CHECKSUM, NORTH,SOUTH
       USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN,CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP, only : GLOBALSUM,AM_I_ROOT
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
@@ -169,13 +170,14 @@ Cred*                   end Reduced Arrays 1
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
-      INTEGER :: J_0,J_1,J_0S,J_1S,J_0STG,J_1STG
+      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
 C**** Initialize
       AJEQIL(:,:,:)=0.
 C**** define local grid
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
+     &               J_STRT_HALO=J_0H,    J_STOP_HALO=J_1H,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE,

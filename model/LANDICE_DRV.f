@@ -150,11 +150,13 @@ C**** integrate area (which will depend on resolution/landmask)
       DO N=1,NBOX
         I=IFW(N)
         J=JFW(N)
-        GMELT(I,J)  =  ACCPCG*DXYP(J)*FOCEAN(I,J)   ! kg
-        EGMELT(I,J) = -LHM*ACCPCG*DXYP(J)*FOCEAN(I,J)   ! J
+        If (J >= J_0 .and. J <= J_1) THEN
+          GMELT(I,J)  =  ACCPCG*DXYP(J)*FOCEAN(I,J) ! kg
+          EGMELT(I,J) = -LHM*ACCPCG*DXYP(J)*FOCEAN(I,J) ! J
 #ifdef TRACERS_OCEAN
         TRGMELT(:,I,J) = trglac(:)*ACCPCG*DXYP(J)*FOCEAN(I,J)  ! kg
 #endif
+        End If
       END DO
       end if
 

@@ -1,5 +1,27 @@
 #include "rundeck_opts.h"
 
+      MODULE WORKJK
+      USE MODEL_COM, ONLY : LM
+      USE DOMAIN_DECOMP, ONLY : grid
+!!!
+!Replaces:
+!!!      COMMON/WORKJK/DPJK,DPHEM,DPGLOB
+
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: DPJK
+      REAL*8, DIMENSION(2,LM,2) :: DPHEM
+      REAL*8, DIMENSION(LM,2) :: DPGLOB
+      
+      CONTAINS 
+
+      SUBROUTINE ALLOC_WORKJK(grid)
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID
+      TYPE(DIST_GRID), INTENT(IN) :: grid
+      ALLOCATE(DPJK(grid%J_STRT_HALO:grid%J_STOP_HALO,LM,2))
+
+      END SUBROUTINE ALLOC_WORKJK
+
+      END MODULE WORKJK
+      
       subroutine print_diags(ipos)
 !@sum print_diag prints out binary and ascii diag output.
 !@auth  Original Development Team
@@ -1027,6 +1049,7 @@ c Check the count
      &    ,BYDXYV,lat_dg
       USE DAGCOM
       USE BDjkjl
+      USE WORKJK
       IMPLICIT NONE
 
       REAL*8, DIMENSION(JM) ::
@@ -1039,15 +1062,10 @@ c Check the count
       REAL*8, DIMENSION(LM_REQ) :: BYDPS,BYPKS
       REAL*8, DIMENSION(0:IMH) :: AN,BN
 
-      REAL*8, DIMENSION(JM,LM,2) :: DSJK
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,LM,2) :: DSJK
       REAL*8, DIMENSION(2,LM,2) :: DSHEM
       REAL*8, DIMENSION(LM,2) :: DSGLOB
-      COMMON/WORK5/DSJK,DSHEM,DSGLOB
-
-      REAL*8, DIMENSION(JM,LM,2) :: DPJK
-      REAL*8, DIMENSION(2,LM,2) :: DPHEM
-      REAL*8, DIMENSION(LM,2) :: DPGLOB
-      COMMON/WORKJK/DPJK,DPHEM,DPGLOB
+c$$$      COMMON/WORK5/DSJK,DSHEM,DSGLOB
 
 Cbmp - ADDED
       REAL*8, DIMENSION(JM,LM) :: DPHJK
@@ -2357,6 +2375,7 @@ C****
       USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM, WRITE_PARALLEL
       USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
+      USE WORKJK
       USE GEOM, only :
      &     LAT_DG,WTJ,JRANGE_HEMI
       USE DAGCOM, only : QDIAG,acc_period,lm_req,inc=>incj,linect
@@ -2374,11 +2393,6 @@ C****
       INTEGER, DIMENSION(JM) :: MLAT
       REAL*8, DIMENSION(JM) :: FLAT,ASUM
       REAL*8, DIMENSION(2) :: AHEM,AHEML
-
-      REAL*8, DIMENSION(JM,LM,2) :: DPJK
-      REAL*8, DIMENSION(2,LM,2) :: DPHEM
-      REAL*8, DIMENSION(LM,2) :: DPGLOB
-      COMMON/WORKJK/DPJK,DPHEM,DPGLOB
 
       INTEGER :: J1,JWT,KMAX
       REAL*8 :: SCALET,SCALER,PRTFAC
