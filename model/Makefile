@@ -17,12 +17,13 @@ print_usage help all:
 	echo 'system (unless you are on Linux). If you see error messages'
 	echo 'above or below this message, that means that you are using'
 	echo 'the wrong (not GNU) "make" command.'
-	echo 'This Makefile automatically recognizes and supports three'
-	echo 'types of systems: SGI, IBM workstation and Linux PC. Though'
-	echo '"setup" currently works only on SGIs.'
+	echo 'This Makefile automatically recognizes and supports '
+	echo 'SGI, IBM and DEC workstations, Linux PC and Mac's. Compiler'
+	echo 'support for Absoft, Lahey/Fujitsu and PGI are available'
 	echo
 	echo The following is a list of supported targets:
 	echo
+	echo ' config  - copy the default .modelErc setup to your home directory'
 	echo ' rundeck - create new rundeck'
 	echo ' depend  - create dependencies for specified rundeck'
 	echo ' gcm     - compile object files and build executable for specified rundeck'
@@ -60,7 +61,7 @@ print_usage help all:
 	echo 'gmake outputs to the screen. You can do it with option "-s"'
 	echo 'If you type:'
 	echo '        gmake -s setup RUN=my_run'
-	echo 'the ony information you will see will be compilation progress,'
+	echo 'the only information you will see will be compilation progress,'
 	echo 'warnings and errors.'
 	echo 'By default all warnings and errors are written to files with'
 	echo 'the name "fortran_file_name.ERR". If you prefer them to be'
@@ -168,7 +169,7 @@ depend $(DEPENDFILE): $(RUNDECK) $(FSRCS) $(RUN_H)
 ifeq ($(MACHINE),not_specified)
 	echo '*****      This architecture is not supported yet        *****'
 	echo '*****    Your architecture was detected as: $(UNAME)     *****'
-	echo '***** Corresponding section shoud be added to Rules.make *****'
+	echo '***** Corresponding section should be added to Rules.make ****'
 	exit 1
 endif
 	echo '--------          Rebuilding Dependencies            ---------'
