@@ -27,9 +27,7 @@ C**** Interface to PBL
       USE SOCPBL, only : zgs,ZS1,TGV,TKV,QG_SAT,HEMI,DTSURF,POLE
      &     ,US,VS,WS,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
      &     ,UG,VG,WG,ZMIX
-      USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
-     &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
-     &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg
+      USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,dclev
       USE PBL_DRV, only : pbl,evap_max,fr_sat
 #ifdef TRACERS_ON
      *     ,trtop,trs,trsfac,trconstflx,ntx,ntix
@@ -168,21 +166,6 @@ C
 
       DO I=1,IMAXJ(J)
 
-      ! until pbl loops over i,j,itype
-      WSAVG(I,J)=0.
-      TSAVG(I,J)=0.
-      QSAVG(I,J)=0.
-      USAVG(I,J)=0.
-      VSAVG(I,J)=0.
-      TAUAVG(I,J)=0.
-      TGVAVG(I,J)=0.
-      QGAVG(I,J)=0.
-
-      ! initialize fluxes before calling PBL subroutine
-      uflux(I,J)=0.
-      vflux(I,J)=0.
-      tflux(I,J)=0.
-      qflux(I,J)=0.
       EVAPLIM = 0. ; HTLIM=0.  ! need initialisation
 #ifdef TRACERS_WATER
       tevaplim = 0.

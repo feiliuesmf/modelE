@@ -445,6 +445,8 @@ c     write (99,1000) itype
       end subroutine init_pbl
 
       subroutine loadbl
+!@sum loadbl initiallise boundary layer calc each surface time step
+!@auth Ye Cheng
 c ----------------------------------------------------------------------
 c             This routine checks to see if ice has
 c              melted or frozen out of a grid box.
@@ -482,7 +484,8 @@ c ----------------------------------------------------------------------
       USE MODEL_COM
       USE GEOM, only : imaxj
       USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
-     *     ,ipbl,ustar_pbl
+     *     ,ipbl,ustar_pbl,wsavg,tsavg,qsavg,usavg,vsavg,tauavg
+     &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg
 #ifdef TRACERS_ON
      *     ,trabl
 #endif
@@ -591,6 +594,21 @@ c ******* itype=4: Land
               ustar_pbl(i,j,4)=ustar_pbl(i,j,3)
             endif
           endif
+
+C**** initialise some pbl common variables          
+          WSAVG(I,J)=0.
+          TSAVG(I,J)=0.
+          QSAVG(I,J)=0.
+          USAVG(I,J)=0.
+          VSAVG(I,J)=0.
+          TAUAVG(I,J)=0.
+          TGVAVG(I,J)=0.
+          QGAVG(I,J)=0.
+
+          uflux(I,J)=0.
+          vflux(I,J)=0.
+          tflux(I,J)=0.
+          qflux(I,J)=0.
 
       end do
       end do
