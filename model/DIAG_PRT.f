@@ -189,13 +189,13 @@ C**** weighting functions for surface types
      *     (/NTYPE_OUT+1,NTYPE/) )
 !@var DERPOS character array that determines where derived arrays go
 !@var NDERN how many of the derived arrays go in
-      INTEGER, DIMENSION(2), PARAMETER ::  ! currently only two points  
+      INTEGER, DIMENSION(2), PARAMETER ::  ! currently only two points
      *     NDERN = (/10, 1/)    ! 10 rad/alb diags and 1 cld diag
       CHARACTER*20, DIMENSION(2), PARAMETER ::
      *     DERPOS = (/'inc_sw','totcld'/)
 
       DOUBLE PRECISION :: A1BYA2,A2BYA1,BYA1,BYIACC,FGLOB,GSUM,GSUM2,GWT
-     *     ,HSUM,HSUM2,HWT,QDEN,QJ,QNUM,DAYS,WTX 
+     *     ,HSUM,HSUM2,HWT,QDEN,QJ,QNUM,DAYS,WTX
       INTEGER :: I,IACC,J,JH,JHEMI,JR,K,KA,M,MD,N,ND,NN,IT,NDER,KDER
       INTEGER, SAVE :: IFIRST = 1
       integer, external :: NINTlimit
@@ -330,7 +330,7 @@ C**** select output format depending on field name
       END SELECT
       IF (name_j(N)(3:len_trim(name_j(N))).EQ.DERPOS(NDER)) THEN
 C**** CALCULATE AND PRINT DERIVED RATIOS
-      DO KA=KDER,KDER+NDERN(NDER)-1 
+      DO KA=KDER,KDER+NDERN(NDER)-1
         NN=INUM_J_O(KA)
         ND=IDEN_J_O(KA)
 C**** differentiate normal ratios from albedo calculations
@@ -389,7 +389,7 @@ C****
       END DO
       WRITE (6,903) (NINT(LAT_DG(J,1)),J=JM,INC,-INC)
       WRITE (6,905)
-      IF (QDIAG) CALL POUT_J(TITLEO,SNAMEO,LNAMEO,UNITSO,BUDG,k_j_out 
+      IF (QDIAG) CALL POUT_J(TITLEO,SNAMEO,LNAMEO,UNITSO,BUDG,k_j_out
      *     +nj_out,TERRAIN(M),M+1) ! the +1 is because M starts at 0
       IF (KDIAG(1).GT.1) RETURN
       END DO
@@ -430,7 +430,7 @@ C**** select output format based on field name
       END SELECT
       IF (name_j(N)(3:len_trim(name_j(N))).EQ.DERPOS(NDER)) THEN
 C**** CALCULATE AND PRINT DERIVED RATIOS FOR REGIONAL STATISTICS
-      DO KA=KDER,KDER+NDERN(NDER)-1 
+      DO KA=KDER,KDER+NDERN(NDER)-1
         NN=INUM_J_O(KA)
         ND=IDEN_J_O(KA)
 C**** differentiate normal ratios from albedo calculations
@@ -4588,7 +4588,7 @@ C**** All titles/names etc. implicitly assume that this will be done.
       CHARACTER*80 TITLEL(LM)
       REAL*8 SMAP(IM,JM,LM),SMAPJK(JM,LM)
       REAL*8 flat,press,dp
-      CHARACTER*4 CPRESS(LM)
+      CHARACTER*8 CPRESS(LM)
       INTEGER i,j,l,kxlb,ni,kcomp,k,iu_Iij
       logical, dimension (kaijkx) :: Qk
 
@@ -4630,11 +4630,7 @@ C**** Complete 3D-field titles
 C****
       DO L=1,LM
         PRESS = PTOP+PSFMPT*SIG(L)
-        IF (PRESS.GE.1.) THEN
-          WRITE(CPRESS(L),'(I4)') NINT(PRESS)
-        ELSE
-          WRITE(CPRESS(L),'(F4.3)') PRESS
-        END IF
+        WRITE(CPRESS(L),'(F8.3)') PRESS
       END DO
 
 C**** Select fields
@@ -4659,7 +4655,7 @@ C**** Select fields
               END DO
               IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
             END DO
-            WRITE(TITLEX(27:30),'(A)') CPRESS(L)
+            WRITE(TITLEX(23:30),'(A)') CPRESS(L)
             TITLEL(L) = TITLEX//XLB
           END DO
         ELSEIF (name_ijk(K).eq.'HEIGHT') THEN ! special compound case
@@ -4678,7 +4674,7 @@ C**** Select fields
               END DO
               IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
             END DO
-            WRITE(TITLEX(27:30),'(A)') CPRESS(L)
+            WRITE(TITLEX(23:30),'(A)') CPRESS(L)
             TITLEL(L) = TITLEX//XLB
           END DO
         END IF
