@@ -173,11 +173,12 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'SO4_d4  ','Clay    ','Silt1   ','Silt2   ','Silt3   '/)
 #else
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_DUST)
-      integer, parameter :: ntm=11,ntm_dust=4
+      integer, parameter :: ntm=17,ntm_dust=4,imAER=1
       character*8, parameter :: trname(ntm)=(/
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
-     *    'seasalt1','seasalt2','Clay    ','Silt1   ','Silt2   ',
-     *    'Silt3   '/)
+     *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     ','Clay    ','Silt1   ',
+     *    'Silt2   ','Silt3   '/)
 #else
 #ifdef TRACERS_AEROSOLS_Koch
       integer, parameter :: imAER=1
