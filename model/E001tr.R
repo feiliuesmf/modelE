@@ -71,6 +71,7 @@ CDN=CD4X500S VEG=V72X46.1.cor2    ! surf.drag - vegetation fractions
 SOIL=S4X50093 TOPO=Z72X46N.cor4   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
 RVR=RD4X525.RVR                   ! river direction file
+ZVAR=ZVAR4X5         ! topographic variation for gwdrag
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=radfil33k                   !     8/2003 version
 RADN3=miescatpar.abcdv
