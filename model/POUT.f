@@ -177,6 +177,7 @@ C**** set dimensions
 !@auth M. Kelley
 !@ver  1.0
       USE GISSOUT
+      USE FILEMANAGER
       IMPLICIT NONE
       call closeunit(iu_jl)
       return
