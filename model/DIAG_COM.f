@@ -339,8 +339,8 @@ C****      names, indices, units, idacc-numbers, etc.
      &    ,JL_mcdlht,JL_trbke,JL_trbdlht,JL_mcheat
      &    ,JL_mcdry
 
-!@var NAME_JL Names of lat-sigma JL diagnostics
-      character(len=30), dimension(kajl) :: name_jl
+!@var SNAME_JL Names of lat-sigma JL diagnostics
+      character(len=30), dimension(kajl) :: sname_jl
 !@var LNAME_JL,UNITS_JL Descriptions/Units of JL diagnostics
       character(len=50), dimension(kajl) :: lname_jl,units_jl
 !@var SCALE_JL printout scaling factors for JL diagnostics
@@ -373,8 +373,8 @@ C****      names, indices, units, idacc-numbers, etc.
      &    ,JK_epflxvcp ,JK_uinst ,JK_totdudt ,JK_tinst
      &    ,JK_totdtdt ,JK_eddvtpt ,JK_cldh2o
 
-!@var NAME_JK Names of lat-pressure JK diagnostics
-      character(len=30), dimension(kajl) :: name_jk
+!@var SNAME_JK Names of lat-pressure JK diagnostics
+      character(len=30), dimension(kajl) :: sname_jk
 !@var LNAME_JK,UNITS_JK Descriptions/Units of JK diagnostics
       character(len=50), dimension(kajl) :: lname_jk,units_jk
 !@var SCALE_JK printout scaling factors for JK diagnostics
