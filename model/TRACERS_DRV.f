@@ -3230,7 +3230,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_index(k) = n
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trname(n)//' SW radiative forcing'
-          sname_ijts(k) = 'swrf_'//trim(trname(n))
+          sname_ijts(k) = 'swf_'//trim(trname(n))
           ijts_power(k) = -2.
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3239,7 +3239,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_index(k) = n
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trname(n)//' LW radiative forcing'
-          sname_ijts(k) = 'lwrf_'//trim(trname(n))
+          sname_ijts(k) = 'lwf_'//trim(trname(n))
           ijts_power(k) = -2.
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3311,7 +3311,7 @@ c BCI shortwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI SW radiative forcing'
-        sname_ijts(k) = 'swrf_BCI'
+        sname_ijts(k) = 'swf_BCI'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3321,7 +3321,7 @@ c BCI longwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI LW radiative forcing'
-        sname_ijts(k) = 'lwrf_BCI'
+        sname_ijts(k) = 'lwf_BCI'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3331,7 +3331,7 @@ c BCI clear sky shortwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI clr sky SW rad forcing'
-        sname_ijts(k) = 'swrf_CS_BCI'
+        sname_ijts(k) = 'swf_CS_BCI'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3341,7 +3341,7 @@ c BCI longwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI clr sky LW rad forcing'
-        sname_ijts(k) = 'lwrf_CS_BCI'
+        sname_ijts(k) = 'lwf_CS_BCI'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3383,7 +3383,7 @@ c BCB shortwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB SW radiative forcing'
-        sname_ijts(k) = 'swrf_BCB'
+        sname_ijts(k) = 'swf_BCB'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3393,7 +3393,7 @@ c BCB longwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB LW radiative forcing'
-        sname_ijts(k) = 'lwrf_BCB'
+        sname_ijts(k) = 'lwf_BCB'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3403,7 +3403,7 @@ c BCB clear sky shortwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB clr sky SW rad forcing'
-        sname_ijts(k) = 'swrf_CS_BCB'
+        sname_ijts(k) = 'swf_CS_BCB'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3413,7 +3413,7 @@ c BCB clear sky longwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB clr sky LW rad forcing'
-        sname_ijts(k) = 'lwrf_CS_BCB'
+        sname_ijts(k) = 'lwf_CS_BCB'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3485,7 +3485,7 @@ c OC shortwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'OC SW radiative forcing'
-        sname_ijts(k) = 'swrf_OC'
+        sname_ijts(k) = 'swf_OC'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3495,7 +3495,7 @@ c OC longwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'OC LW radiative forcing'
-        sname_ijts(k) = 'lwrf_OC'
+        sname_ijts(k) = 'lwf_OC'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3505,7 +3505,7 @@ c OC clear sky shortwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'OC clr sky SW rad forcing'
-        sname_ijts(k) = 'swrf_CS_OC'
+        sname_ijts(k) = 'swf_CS_OC'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3515,7 +3515,7 @@ c OC clear sky longwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'OC clr sky LW rad forcing'
-        sname_ijts(k) = 'lwrf_CS_OC'
+        sname_ijts(k) = 'lwf_CS_OC'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3704,7 +3704,7 @@ c SO4 shortwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 SW radiative forcing'
-        sname_ijts(k) = 'swrf_'//trim(trname(n))
+        sname_ijts(k) = 'swf_'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3714,7 +3714,7 @@ c SO4 longwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 LW radiative forcing'
-        sname_ijts(k) = 'lwrf_'//trim(trname(n))
+        sname_ijts(k) = 'lwf_'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3724,7 +3724,7 @@ c SO4 clear sky shortwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 clr sky SW rad forcing'
-        sname_ijts(k) = 'swrf_CS'//trim(trname(n))
+        sname_ijts(k) = 'swf_CS'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3734,7 +3734,7 @@ c SO4 clear sky longwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 clr sky LW rad forcing'
-        sname_ijts(k) = 'lwrf_CS'//trim(trname(n))
+        sname_ijts(k) = 'lwf_CS'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3950,7 +3950,7 @@ c SS shortwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS SW radiative forcing'
-        sname_ijts(k) = 'swrf_SS'
+        sname_ijts(k) = 'swf_SS'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3960,7 +3960,7 @@ c SS longwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS LW radiative forcing'
-        sname_ijts(k) = 'lwrf_SS'
+        sname_ijts(k) = 'lwf_SS'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3970,7 +3970,7 @@ c SS clear sky shortwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS clr sky SW rad forcing'
-        sname_ijts(k) = 'swrf_CS_SS'
+        sname_ijts(k) = 'swf_CS_SS'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3980,7 +3980,7 @@ c SS clear sky longwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS clr sky LW rad forcing'
-        sname_ijts(k) = 'lwrf_CS_SS'
+        sname_ijts(k) = 'lwf_CS_SS'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -4111,7 +4111,7 @@ c dust shortwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad  
         lname_ijts(k) = trim(trname(n))//' SW radiative forcing'
-        sname_ijts(k) = 'swrf_'//trim(trname(n))
+        sname_ijts(k) = 'swf_'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -4121,7 +4121,7 @@ c dust longwave radiative forcing
         ijts_index(k) = n
         ia_ijts(k) = ia_rad  
         lname_ijts(k) = trim(trname(n))//' LW radiative forcing'
-        sname_ijts(k) = 'lwrf_'//trim(trname(n))
+        sname_ijts(k) = 'lwf_'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -4131,7 +4131,7 @@ c dust shortwave radiative forcing at surface
         ijts_index(k) = n
         ia_ijts(k) = ia_rad  
         lname_ijts(k) = trim(trname(n))//' SW Surf radiative forcing'
-        sname_ijts(k) = 'swrf_surf_'//trim(trname(n))
+        sname_ijts(k) = 'swf_surf_'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -4141,7 +4141,7 @@ c dust longwave radiative forcing at surface
         ijts_index(k) = n
         ia_ijts(k) = ia_rad  
         lname_ijts(k) = trim(trname(n))//' LW Surf radiative forcing'
-        sname_ijts(k) = 'lwrf_surf_'//trim(trname(n))
+        sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))

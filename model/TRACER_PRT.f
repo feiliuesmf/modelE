@@ -560,11 +560,17 @@ C**** for Dorothy and Drew for the time being)
 C****
       k=jlnt_mass
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
+#ifdef TRACERS_AEROSOLS_Koch
+      jtpow = ntm_power(n)+jlq_power(k)+13
+      scalet = scalet*10.**(-jtpow)
+      CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
+     *     plm,tajln(1,1,k,n),scalet,ones,ones,lm,1,jgrid_jlq(k))
+#else
       jtpow = ntm_power(n)+jlq_power(k)
       scalet = scalet*10.**(-jtpow)
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
      *     plm,tajln(1,1,k,n),scalet,byapo,ones,lm,2,jgrid_jlq(k))
-
+#endif
 #endif
 
 #ifdef TRACERS_WATER
@@ -1149,8 +1155,16 @@ C**** Fill in maplet indices for sources and sinks
         aij2(:,:,k) = 1.
         scale(k) = scale_ijts(kx)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) || (defined TRACERS_SPECIAL_Shindell)
-       if (name(k)(1:3).eq.'tau'.or.name(k)(1:4).eq.'swrf'.or
-     *  .name(k)(1:4).eq.'lwrf') ijtype(k)=2
+       if (name(k)(1:3).eq.'tau'.or.name(k)(1:3).eq.'swf'.or
+     *  .name(k)(1:3).eq.'lwf') ijtype(k)=2
+       if (name(k)(5:6).eq.'CS') then
+       ijtype(k)=3
+       aij1(:,:,k)=aij1(:,:,k)*scale(k)
+       aij2(:,:,k)=real(idacc(iacc(k)))-aij(:,:,ij_cldcv)
+       scale(k)=1.
+       write(6,*) 'HAHAHA',k,idacc(iacc(k)),aij1(40,:,k)
+       write(6,*) 'HOHOHO',k,idacc(iacc(k)),aij2(40,:,k)
+       endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
        if (name(k).eq.'Ox_loss' .or. name(k).eq.'Ox_prod' .or.

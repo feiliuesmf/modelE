@@ -94,8 +94,13 @@ C**** Tracer mass
         sname_jln(k,n) = trim(trname(n))//'_MASS' 
         lname_jln(k,n) = trim(trname(n))//' MASS' 
         jlq_power(k) = 4
+#ifdef TRACERS_AEROSOLS_Koch
+        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)+13
+     *       ,'kg')
+#else
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)
      *       ,'kg/m^2')
+#endif
         scale_jlq(k) = 1.d0
 
 #ifdef TRACERS_WATER
