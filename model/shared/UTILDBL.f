@@ -179,13 +179,19 @@ C**** parse options
 
       call findunit( iunit )
 
+      if ( form == "FORMATTED" ) then
+        open( iunit, FILE=filename, FORM=form, STATUS=status,
 #ifdef CONVERT_BIGENDIAN
-      open( iunit, FILE=filename, FORM=form, STATUS=status,
-     *     CONVERT='BIG_ENDIAN', ERR=10 )
-#else
-      open( iunit, FILE=filename, FORM=form, STATUS=status,
-     *     ERR=10 )
+     *       CONVERT='BIG_ENDIAN',
 #endif
+     *       RECL=65536, ERR=10 )
+      else
+        open( iunit, FILE=filename, FORM=form, STATUS=status,
+#ifdef CONVERT_BIGENDIAN
+     *       CONVERT='BIG_ENDIAN',
+#endif
+     *       ERR=10 )
+      endif
 
       Units(iunit)%in_use = .true.
       name_len = len_trim(filename)
