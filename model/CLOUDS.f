@@ -1919,7 +1919,7 @@ C    *  WTEM=1d5*WCONST*1d-3*PL(L)/(TL(L)*RGAS)
       TAUSSL(L)=1.5d3*TEM/(FCLD*RCLDE+teeny)
       IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
   388    IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM
-      PRCPSS=PREBAR(1)*GRAV*DTsrc
+      PRCPSS=MAX(0d0,PREBAR(1)*GRAV*DTsrc) ! fix small round off err
 #ifdef TRACERS_WATER
       TRPRSS(1:NTX) = TRPRBAR(1:NTX,1)
 #endif

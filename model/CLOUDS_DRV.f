@@ -16,13 +16,12 @@
      *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss
       USE CLOUDS, only : ra,pl,ple,plk
      *     ,airm,byam,etal,sm,smomij=>smom,qm,qmomij=>qmom
-     *     ,tl,ris,ri1,ri2,aj13
-     *     ,aj50,aj51,aj52,aj57,aj8,aj11,wml,sdl,u_0,v_0,um,vm,tf
-     *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl
-     *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
-     *     ,mstcnv,qs,us,vs,tgv,qg,dcl
-     *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,lpbl,taussl,cldssl,cldsavl,
-     *     prcpss,hcndss,aj53,BYDTsrc,lscond,airxl
+     *     ,tl,ris,ri1,ri2,kmax,aj13,aj50,aj51,aj52,aj57,aj8,aj11,wml
+     *     ,sdl,u_0,v_0,um,vm,tf,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl
+     *     ,svlatl,svlhxl,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax
+     *     ,lmcmin,wmsum,mstcnv,qs,us,vs,tgv,qg,dcl,aq,dpdt,th,ql,wmx
+     *     ,ttoldl,rh,lpbl,taussl,cldssl,cldsavl,prcpss,hcndss,aj53
+     *     ,BYDTsrc,lscond,airxl
 #ifdef TRACERS_ON
      *     ,tm,trmomij=>tmom,ntx,ntix
 #ifdef TRACERS_WATER
@@ -131,6 +130,7 @@ C**** COMPUTE ZONAL MEAN U AND V AT POLES
 C****
 C**** MAIN J LOOP
 C****
+      KMAX=KMAXJ(J)
       DO J=1,JM
 C****
 C**** MAIN I LOOP
@@ -154,7 +154,7 @@ C****
       DCL=DCLEV(I,J)
       LPBL=1
 
-      DO K=1,KMAXJ(J)
+      DO K=1,KMAX
          RA(K)=RAVJ(K,J)
          IDI(K)=IDIJ(K,I,J)
          IDJ(K)=IDJJ(K,J)
@@ -203,7 +203,7 @@ C**** TRACERS: Use only the active ones
 #endif
 C**** SURROUNDING WINDS
       DO L=1,LM
-        DO K=1,KMAXJ(J)
+        DO K=1,KMAX
           U_0(K,L) = UC(IDI(K),IDJ(K),L)
           V_0(K,L) = VC(IDI(K),IDJ(K),L)
           UM(K,L) = U_0(K,L)*AIRM(L)
@@ -499,7 +499,7 @@ C**** update moment changes
         WM(I,J,L)=WMX(L)
 
 C**** UPDATE MODEL WINDS
-        DO K=1,KMAXJ(J)
+        DO K=1,KMAX
           U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
      &         +(UM(K,L)*BYAM(L)-UC(IDI(K),IDJ(K),L))
           V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
