@@ -74,7 +74,7 @@ C**** exactly the same as the default values.
 !@dbparam H2ObyCH4 if not 0: add CH4 produced H2O into layers 1->LM
       REAL*8 :: H2ObyCH4 = 0.
 !@var dH2O  zonal H2O-prod.rate in kg/m^2/ppm_CH4/second in layer L
-      REAL*8, DIMENSION(JM,LM) :: dH2O = 0.
+      REAL*8, DIMENSION(JM,LM,12) :: dH2O = 0.
 !@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAL*8 :: RSDIST,SIND,COSD
 !@var ALB is SRNFLB(1)/(SRDFLB(1)+1.D-20),PLAVIS,PLANIR,ALBVIS,ALBNIR,

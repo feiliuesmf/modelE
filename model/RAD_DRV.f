@@ -1232,13 +1232,14 @@ C**** daily diagnostics
       INTEGER iu,n,k
       CHARACTER*80 title
 
+      write(6,*)
       do n=1,5
       read(iu,'(a)') title
-      write(*,*) title
+      write(6,'(1x,a80)') title
       end do
       if(title(1:2).eq.'--') then                 ! older format
         read(iu,'(a)') title
-        write(*,*) title
+        write(6,'(1x,a80)') title
       end if
 
       read(title,*) ghgyr1,(ghgam(k,1),k=1,nghg)
@@ -1246,103 +1247,106 @@ C**** daily diagnostics
       do n=2,nyrsghg
         read(iu,'(a)',end=20) title
         read(title,*) ghgyr2,(ghgam(k,n),k=1,nghg)
-        if(ghg_yr.eq.0.or.abs(ghg_yr-ghgyr2).le.1) write(*,*) title
+        if(ghg_yr.eq.0.or.abs(ghg_yr-ghgyr2).le.1)
+     *      write(6,'(1x,a80)') title
         do k=1,nghg
           if(ghgam(k,n).lt.0.) ghgam(k,n)=ghgam(k,n-1)
         end do
       end do
    20 continue
-      if(ghg_yr.ne.0.and.ghg_yr.ne.ghgyr2) write(*,*) title
+      if(ghg_yr.ne.0.and.ghg_yr.ne.ghgyr2) write(6,'(1x,a80)') title
       write(*,*) 'read GHG table for years',ghgyr1,' - ',ghgyr2
       return
       end SUBROUTINE GHGHST
 
       subroutine getqma (iu,dglat,plb,dh2o,lm,jm)
-!@sum  reads H2O production rates induced by CH4 (Ian Plumb)
+!@sum  reads H2O production rates induced by CH4 (Tim Hall)
 !@auth R. Ruedy
 !@ver  1.0
       implicit none
-      integer, parameter:: jma=16,lma=21
-      integer iu,jm,lm,j,j1,j2,l,ll,ldn(lm),lup(lm)
-      real*8 PLB(lm+1),dH2O(jm,lm),dglat(jm)
+      integer, parameter:: jma=18,lma=24
+      integer m,iu,jm,lm,j,j1,j2,l,ll,ldn(lm),lup(lm)
+      real*8 PLB(lm+1),dH2O(jm,lm,12),dglat(jm)
       real*4 pb(0:lma+1),h2o(jma,0:lma),xlat(jma),z(lma),dz(0:lma)
       character*100 title
       real*4 pdn,pup,w1,w2,dh,fracl
 
 C**** read headers/latitudes
       read(iu,'(a)') title
-      write(*,*) title
+      write(6,'(''0'',a100)') title
       read(iu,'(a)') title
-      write(*,*) title
+      write(6,'(1x,a100)') title
       read(iu,'(a)') title
-      write(*,*) title
-      read(title(5:100),*) (xlat(j),j=1,jma)
-      read(iu,'(a)') title
-      write(*,*) title
+      write(6,'(1x,a100)') title
+      read(title(10:100),*) (xlat(j),j=1,jma)
 
 C**** read heights z(km) and data (kg/km^3/year)
-      do l=lma,1,-1
+      do m=1,12
         read(iu,'(a)') title
-        write(*,*) title
-        read(title,*) z(l),(H2O(j,l),j=1,jma)
-      end do
-      do j=1,jma
-        h2o(j,0) = 0.
-      end do
+        write(6,'(1x,a100)') title
+        do l=lma,1,-1
+          read(iu,'(a)') title
+          write(6,'(1x,a100)') title
+          read(title,*) z(l),(H2O(j,l),j=1,jma)
+        end do
+        do j=1,jma
+          h2o(j,0) = 0.
+        end do
 
 C**** Find edge heights and pressures
-      dz(0) = 0.
-      dz(1) = z(2)-z(1)
-      do l=2,lma-1
-         dz(l)=.5*(z(l+1)-z(l-1))
-      end do
-      dz(lma) = z(lma)-z(lma-1)
+        dz(0) = 0.
+        dz(1) = z(2)-z(1)
+        do l=2,lma-1
+           dz(l)=.5*(z(l+1)-z(l-1))
+        end do
+        dz(lma) = z(lma)-z(lma-1)
 
-      pb(0) = plb(1)
-      do l=1,lma
-         Pb(l)=1000.*10.**(-(z(l)-.5*dz(l))/16.)
-      end do
+        pb(0) = plb(1)
+        do l=1,lma
+           Pb(l)=1000.*10.**(-(z(l)-.5*dz(l))/16.)
+        end do
 C**** extend both systems vertically to p=0
-      pb(lma+1)=0.
-      plb(lm+1)=0.
+        pb(lma+1)=0.
+        plb(lm+1)=0.
 
 C**** Interpolate vertical resolution to model layers
-      ldn(:) = 0
-      do l=1,lm
-        do while (pb(ldn(l)+1).ge.plb(l) .and. ldn(l).lt.lma)
-          ldn(l)=ldn(l)+1
+        ldn(:) = 0
+        do l=1,lm
+          do while (pb(ldn(l)+1).ge.plb(l) .and. ldn(l).lt.lma)
+            ldn(l)=ldn(l)+1
+          end do
+          lup(l)=ldn(l)
+          do while (pb(lup(l)+1).gt.plb(l+1) .and. lup(l).lt.lma)
+            lup(l)=lup(l)+1
+          end do
         end do
-        lup(l)=ldn(l)
-        do while (pb(lup(l)+1).gt.plb(l+1) .and. lup(l).lt.lma)
-          lup(l)=lup(l)+1
-        end do
-      end do
 
 C**** Interpolate (extrapolate) horizontally and vertically
-      j2=2
-      do j=1,jm
+        j2=2
+        do j=1,jm
 C**** coeff. for latitudinal linear inter/extrapolation
-        do while (j2.lt.jma .and. dglat(j).gt.xlat(j2))
-          j2 = j2+1
-        end do
-        j1 = j2-1
-        w1 = (xlat(j2)-dglat(j))/(xlat(j2)-xlat(j1))
+          do while (j2.lt.jma .and. dglat(j).gt.xlat(j2))
+            j2 = j2+1
+          end do
+          j1 = j2-1
+          w1 = (xlat(j2)-dglat(j))/(xlat(j2)-xlat(j1))
 C**** for extrapolations, only use half the slope
-        if(w1.gt.1.) w1=.5+.5*w1
-        if(w1.lt.0.) w1=.5*w1
-        w2 = 1.-w1
-        do l=1,lm
-          dh = 0.
-          pdn = plb(l)
-          if (lup(l).gt.0) then
-            do ll=ldn(l),lup(l)
-              pup = max(REAL(pb(ll+1),KIND=8),plb(l+1))
-              fracl= (pdn-pup)/(pb(ll)-pb(ll+1))
-              dh = dh+(w1*h2o(j1,ll)+w2*h2o(j2,ll))*fracl*dz(ll)
-              pdn = pup
-            end do
-          end if
-          dh2o(j,l) = 1.d-6*dh/1.7d0/365. ! -> (kg/m^2/ppm_CH4/day)
+          if(w1.gt.1.) w1=.5+.5*w1
+          if(w1.lt.0.) w1=.5*w1
+          w2 = 1.-w1
+          do l=1,lm
+            dh = 0.
+            pdn = plb(l)
+            if (lup(l).gt.0) then
+              do ll=ldn(l),lup(l)
+                pup = max(REAL(pb(ll+1),KIND=8),plb(l+1))
+                fracl= (pdn-pup)/(pb(ll)-pb(ll+1))
+                dh = dh+(w1*h2o(j1,ll)+w2*h2o(j2,ll))*fracl*dz(ll)
+                pdn = pup
+              end do
+            end if
+            dh2o(j,l,m) = 1.d-6*dh/1.74d0/365. !->(kg/m^2/ppm_CH4/day)
+          end do
         end do
       end do
       return

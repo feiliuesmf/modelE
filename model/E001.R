@@ -13,7 +13,7 @@ Preprocessor Options
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
-RES_M12                             ! horiz/vert resolution
+RES_M12                             ! horiz/vert resolution, 4x5deg, 12 layers -> 10mb
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
@@ -30,7 +30,7 @@ DRYCNV                              ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
-ICEDYN_DRV ICEDYN                   !  or:  ICEDYN_DUM
+ICEDYN_DRV ICEDYN  ! or: ICEDYN_DUM ! land ice modules
 OCEAN OCNML                         ! ocean modules
 SNOW                                ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
@@ -39,17 +39,24 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=AIC.RES_M12.D771201   ! initial conditions (atm.)
-GIC=GIC.rsfB357M12.1DEC1956  ! initial conditions (ground)
-! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp. for q-flux ocn
-OCNML=Z1O.B4X5.cor         ! mixed layer depth,needed for post-processing only
-OSST=OST4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
+    ! the first 4 files are specific to prescribed ocean runs
+AIC=AIC.RES_M12.D771201           ! initial conditions (atm.)
+GIC=GIC.rsfB357M12.1DEC1956.1     ! initial conditions (ground)
+OSST=OST4X5.B.1975-84avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
-CDN=CD4X500S VEG=V72X46.1.cor
-SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
-REG=REG4X5           ! special regions-diag
-RVR=RD4X525.RVR      ! river direction file
-RADN1=sgpgxg.table8    ! rad.tables
+    ! if the prescr. ocean varies from year to year use instead:
+! OSST=OST4X5.B.1950.M02.Hadl1.1  ! ocean data   Feb 1950 - 1999
+! SICE=SICE4X5.B.1950.M02.Hadl1.1 ! ocean data   Feb 1950 - 1999
+    ! the next 3 files are specific to q-flux ocean runs
+! AIC=E001/1JAN1956.rsfE001.O250D      ! AIC/OHT made by aux/mkOTSPEC.E001.M250D
+! OHT=E001/OTSPEC.E001.M250D.1951-1955 ! horizontal ocean heat transport
+OCNML=Z1O.B4X5.cor                ! mixed layer depth (use for post processing)
+    ! files needed for all models
+CDN=CD4X500S VEG=V72X46.1.cor     ! surf.drag - vegetation fractions
+SOIL=S4X50093 TOPO=Z72X46N.cor4   ! soil/topography bdy.conds
+REG=REG4X5                        ! special regions-diag
+RVR=RD4X525.RVR                   ! river direction file
+RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=kdist33.tautab8
 RADN3=miescatpar.abcdv
 RADN4=o3Prather1979-80.London1957-70
@@ -57,65 +64,75 @@ RADN5=TROAER.1875-1990.Jun2002
 RADN6=dust8.tau9x8x13
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
-! RADN9=solar.lean99.uvflux          ! need KSOLAR<2
-RADN9=solar.lean02.ann.uvflux    ! need KSOLAR=2
-RADNA=O3.1850-2050.depl.rec       ! with recovery of O3 after 2000
-!  RADNA=O3.1850-2050.depl.con    ! O3 'constant' after 2000
+! RADN9=solar.lean99.uvflux        ! need KSOLAR<2
+RADN9=solar.lean02.ann.uvflux      ! need KSOLAR=2
+RADNA=O3.1850-2050.rec             ! with recovery of O3 after 2000
+!  RADNA=O3.1850-2050.con          ! O3 'constant' after 2000
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Mar2002
-dH2O=dH2O_by_CH4
+dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
-E001 (1979 atm/ocn - reduced opacity)
+E001 (1979 atm/ocn)
 
 DTFIX=300
 
 &&PARAMETERS
+! parameters set for prescribed ocean runs:
+KOCEAN=0        ! ocn is prescribed
+Kvflxo=1        ! save VFLXO (daily) if ocn prescribed
+ocn_cycl=1      ! =0 for ann.varying prescr. ocean
+
+! parameters usually not changed when switching to q-flux ocean:
+
 X_SDRAG=.00025,.000025  ! used above P(P)_sdrag mb (and in top layer)
 C_SDRAG=0.      ! constant SDRAG above PTOP=150mb
 P_sdrag=0.      ! linear SDRAG only in top layer (except near poles)
-! PP_sdrag=20.    ! linear SDRAG above PP_sdrag mb near poles
+! PP_sdrag=20.  ! linear SDRAG above PP_sdrag mb near poles
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 
-KOCEAN=0
-Kvflxo=1        ! saving VFLXO (daily, preparing for q-flux run)
-
-xCDpbl=1.       ! tune surface mom.drag to get reas. SLP (990mb at 65S)
+xCDpbl=1.
 U00ice=.60      ! U00ice up  => nethtz0 down (alb down) goals: nethtz0=0 (ann.
 U00wtrX=.80     ! U00wtrX up => nethtz0 up   (alb down)           global mean)
-HRMAX=300.      ! HRMAX up   => nethtz0 down (alb up  )        plan.alb 30%
+HRMAX=1000.     ! HRMAX up   => nethtz0 down (alb up  )        plan.alb 30%
 
 RWCLDOX=1.5  !  wtr cld particle size *3/2 over ocean
 RICLDX=.3333 !  ice cld particle size * 1(at 0mb)->1/3(at 1000mb)
 
-CO2X=1.      ! reduced opacity
-H2OstratX=1. ! reduced opacity - affects ALL layers
+CO2X=1.
+H2OstratX=1.
 
 H2ObyCH4=1.     ! activates strat.H2O generated by CH4
 KVEGA6=3        ! 6-band albedo (Schramm)
 KSOLAR=2
-NIsurf=2        ! increase as layer 1 gets thinner
-DT=450.         ! from default: DTsrc=3600.,
-dt_UVfilter=450.
-Ndisk=24        ! use =240 on COMPAQ with lsf-batch system
 
+! parameters that control the atmospheric composition
+! if set to 0, the current (day/) year is used: transient run
+s0_yr=1979
+s0_day=182
+ghg_yr=1979
+ghg_day=182
+volc_yr=1979
+volc_day=182
+aero_yr=1979
+o3_yr=1979
+
+DT_UVfilter=450.  ! usually same as DT (below)
+
+! parameters that may have to be changed in emergencies:
+DT=450.         ! from default: DTsrc=3600.,
+NIsurf=2        ! increase as layer 1 gets thinner
+
+! parameters that affect at most diagn. output:
+Ndisk=24        ! use =240 on halem
 SUBDD='SLP'     ! save SLP at sub-daily frequency
 NSUBDD=12       ! saving sub-daily diags 12hrly
 KCOPY=2         ! saving acc + rsf
 isccp_diags=1   ! use =0 to save cpu time
 nda5d=1         ! use =7 to save cpu time
 nda5s=1         ! use =7 to save cpu time
-! if the params below change, you may have to adjust HRMAX
-s0_yr=1979
-ghg_yr=1979
-ghg_day=182
-s0_day=182
-volc_yr=1979
-volc_day=182
-aero_yr=1979
-o3_yr=1979
 &&END_PARAMETERS
 
  &INPUTZ

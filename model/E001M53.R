@@ -59,7 +59,7 @@ RADNA=O3.1850-2050.depl.rec       ! with recovery of O3 after 2000
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Mar2002
-dH2O=dH2O_by_CH4
+dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
