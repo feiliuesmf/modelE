@@ -48,7 +48,8 @@ C**** Note units for these parameters!
 C**** Example: clay dust; trpdens=2.5d3, trradius=0.73d-6 
 C****          silt dust; trpdens=2.65d3, trradius=6.1d-6 
 C****
-!@var trpdens tracer particle density (kg/m^3) (=0 for non-particle tracers)
+!@var trpdens tracer particle density (kg/m^3) 
+!@+               (=0 for non-particle tracers)
       real*8, dimension(ntm) :: trpdens
 !@var trradius tracer effective radius (m) (=0 for non particle tracers)
       real*8, dimension(ntm) :: trradius
@@ -62,7 +63,7 @@ C****
 !@var MTRACE: timing index for tracers
       integer mtrace
 
-!@var ntsurfsrcmax maximum number of surface sources/sinks
+!@var ntsurfsrcmax maximum number of surface 2D sources/sinks
       integer, parameter :: ntsurfsrcmax=14
 !@var ntsurfsrc no. of non-interactive surface sources for each tracer
       integer, dimension(ntm) :: ntsurfsrc 

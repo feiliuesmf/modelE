@@ -593,41 +593,33 @@ C****
 !@auth Jean Lerner (adapted from work of G. Russell,M. Kelley,R. Ruedy)
 !@ver   1.0
       USE DAGCOM                         !kdiag
-      USE CONSTANT, only: teeny
-      USE MODEL_COM, only:
-     &     im,jm,lm,
+      USE MODEL_COM, only: im,jm,lm,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID
       USE TRACER_COM
       USE TRACER_DIAG_COM
-
       IMPLICIT NONE
 
       integer, parameter :: ktmax = (lm+ktaij)*ntm+ktaijs
 !@var Qk: if Qk(k)=.true. field k still has to be processed
       logical, dimension (ktmax) :: Qk
 !@var Iord: Index array, fields are processed in order Iord(k), k=1,2,..
-!@+     only important for fields 1->nmaplets+nmaps (appear in printout)
+!@+     only important for fields 1->nmaplets which appear in printout
 !@+     Iord(k)=0 indicates that a blank space replaces a maplet
-      INTEGER Iord(ktmax),nmaplets,nmaps 
-      INTEGER kmaplets,nt(ktmax),ijtype(ktmax)
+      INTEGER Iord(ktmax),nmaplets
+      INTEGER nt(ktmax),ijtype(ktmax)
       REAL*8, DIMENSION(IM,JM) :: SMAP
       REAL*8, DIMENSION(JM) :: SMAPJ
       CHARACTER xlb*32,title*48,lname*80,name*30,units*30
 !@var LINE virtual half page (with room for overstrikes)
       CHARACTER*133 LINE(53)
-      INTEGER ::  I,J,K,kx,L,M,N,kcolmn,nlines,jgrid,irange,k_generic
+      INTEGER ::  I,J,K,kx,L,M,N,kcolmn,nlines,jgrid,irange
       DOUBLE PRECISION :: DAYS,gm
 
       if (kdiag(8).ge.1) return
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG)call open_ij(trim(acc_period)//'.ijt'//XLABEL(1:LRUNID) 
      *     ,im,jm)
-
-C**** INITIALIZE CERTAIN QUANTITIES
-C**** standard printout
-!     nmaplets = ktmax   ! (lm+ktaij)*ntm+ktaijs
-      nmaps = 0
 
 c**** always skip unused fields
       Qk = .true.
@@ -662,6 +654,7 @@ C**** Fill in maplet indices for sources and sinks
         if (index(lname_ijts(kx),'unused').gt.0) Qk(k) = .false.
       end do
 
+!     nmaplets = ktmax   ! (lm+ktaij)*ntm+ktaijs
       nmaplets = k
 
       xlb=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)

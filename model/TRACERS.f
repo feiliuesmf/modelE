@@ -390,7 +390,7 @@ C****
       USE CONSTANT, only : visc_air,grav
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo
       USE GEOM, only : imaxj
-      USE SOMTQ_COM, only : mz,mzz,mzx,myz
+      USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius,trpdens
       USE TRACER_DIAG_COM, only : tajls,jls_grav,itcon_grav
       USE FLUXES, only : trgrdep
@@ -433,10 +433,7 @@ C**** Calculate height differences using geopotential
             end if
             trm(i,j,l,n)=trm(i,j,l  ,n)*(1.-fgrfluxd)
      *                 + trm(i,j,l+1,n)*    fgrfluxu
-            trmom(mz ,i,j,l,n)=trmom(mz ,i,j,l,n)*(1.-fgrfluxd)
-            trmom(mzz,i,j,l,n)=trmom(mzz,i,j,l,n)*(1.-fgrfluxd)
-            trmom(mzx,i,j,l,n)=trmom(mzx,i,j,l,n)*(1.-fgrfluxd)
-            trmom(myz,i,j,l,n)=trmom(myz,i,j,l,n)*(1.-fgrfluxd)
+            trmom(zmoms,i,j,l,n)=trmom(zmoms,i,j,l,n)*(1.-fgrfluxd)
           end do
           end do
           end do
