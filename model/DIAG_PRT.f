@@ -3254,7 +3254,7 @@ C**** Output for post-processing
   904 FORMAT (' P(MB)',4X,A4,1X,36I3)  ! U-grid (i.e., centers)
   905 FORMAT (1X,14('-'),36A3)
   906 FORMAT (' P(MB)',4X,A4,36I3)     ! V-grid (i.e., edges)
-  907 FORMAT ('1',27A4,I4,1X,A3,I3,' TO ',I3,1X,A3,I5)
+  907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
       END SUBROUTINE ILMAP
 
       BLOCK DATA BDWP
@@ -4919,7 +4919,7 @@ C****
         WRITE (6,901) XLABEL
         IF (K0.eq.1) THEN
           FAC(1) = 1.
-          FAC(2) = 1.   !10.   check these factors
+          FAC(2) = 10.
           WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE
      *         ,JHOUR
           WRITE (6,903)

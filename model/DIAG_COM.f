@@ -60,9 +60,9 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@var J50N,J70N special longitudes for AIL diagnostics
       INTEGER :: J50N,J70N
 
-C NEHIST = (TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
+C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param NED number of different energy history diagnostics
-!@param NEHIST,HIST_DAYS total number of energy history diagnostics, and days
+!@param NEHIST,HIST_DAYS number of energy history columns,rows (max)
       INTEGER, PARAMETER :: NED=10
       INTEGER, PARAMETER :: NEHIST=NED*(2+ISTRAT)
       INTEGER, PARAMETER :: HIST_DAYS=100
@@ -98,14 +98,14 @@ C NEHIST = (TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       INTEGER, PARAMETER :: NSPHER=4*(2+ISTRAT)
 !@var SPECA spectral diagnostics
       DOUBLE PRECISION, DIMENSION((IMH+1),KSPECA,NSPHER) :: SPECA
-!@var KLAYER index for dividing up atmosphere into layers for spec. anal.
+!@var KLAYER index for dividing up atmosphere into layers for spec.anal.
       INTEGER, DIMENSION(LM) :: KLAYER
 !@param PSPEC pressure levels at which layers are seperated and defined
 C**** 1000 - 150: troposphere           150 - 10 : low strat.
 C****   10 - 1: mid strat               1 and up : upp strat.
-      REAL*8, DIMENSION(3), PARAMETER :: PSPEC = (/ 150., 10., 1. /) 
+      REAL*8, DIMENSION(3), PARAMETER :: PSPEC = (/ 150., 10., 1. /)
 !@var LSTR level of interface between low and mid strat. (approx 10 mb)
-      INTEGER :: LSTR = LM   ! defaults to model top.  
+      INTEGER :: LSTR = LM   ! defaults to model top.
 
 !@param KTPE number of spectral diagnostics for pot. enthalpy
       INTEGER, PARAMETER :: KTPE=8
@@ -282,7 +282,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_G24,IJ_G25,IJ_G26,IJ_G27,IJ_G28,IJ_G29
 !@var IJ_GWx names for gravity wave diagnostics
       INTEGER :: IJ_GW1,IJ_GW2,IJ_GW3,IJ_GW4,IJ_GW5,IJ_GW6,IJ_GW7,IJ_GW8
-     *     ,IJ_GW9 
+     *     ,IJ_GW9
 
 !@var SCALE_IJ scaling for weighted AIJ diagnostics
       REAL*8, DIMENSION(KAIJ) :: SCALE_IJ
@@ -431,7 +431,7 @@ c??? *      CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK,AIJK,AIJL,AJLSP,
         READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZS,
      *      idac1,ACCS,
 c??? *  add a couple of lines to avoid 'COMMON BLOCK'
-     *      monac1,it
+     *      monac1  
 !**** Here we could check the dimensions written into HEADER  ??????
         TSFREZ=TSFREZS
         ACC=ACC+ACCS
