@@ -27,7 +27,7 @@
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
 #ifdef TRACERS_WATER
-     *     ,trwm
+     *     ,trwm,trw0
 #endif
       USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
      *     ,itcon_ss
@@ -44,7 +44,7 @@
 #endif
 #endif
       USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subroutines
-     *     ,airm,byam,etal,sm,smom,qm,qmom,isc
+     *     ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypj
      *     ,tl,ris,ri1,ri2,mcflx,sshr,dgdsm,dphase,dtotw,dqcond,dctei
      *     ,wml,sdl,u_0,v_0,um,vm,qs,us,vs,dcl,airxl,prcpss,hcndss
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl,dgdqm
@@ -198,6 +198,7 @@ C
 C
 Cred* Reduced Arrays 2
 C
+        DXYPJ=DXYP(J)
       DO L=1,LM
          GZIL(:,L) = GZ(:,J,L)
       END DO

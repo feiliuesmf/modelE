@@ -141,7 +141,7 @@ C$OMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
 !@var PEARTH fraction of land in grid box
 !@var TS average surface temperture (C)
 !@var RIS, RI1, RI2 Richardson numbers
-      REAL*8 :: PEARTH,TS,QS,US,VS,RIS,RI1,RI2
+      REAL*8 :: PEARTH,TS,QS,US,VS,RIS,RI1,RI2,DXYPJ
 !@var DCL max level of planetary boundary layer
       INTEGER :: DCL
 
@@ -165,7 +165,7 @@ C**** output variables
 CCOMP  does not work yet:
 CCOMP  THREADPRIVATE (RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
 CCOMP*  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE
-CCOMP*  ,DTOTW,DQCOND,DCTEI,DGDQM
+CCOMP*  ,DTOTW,DQCOND,DCTEI,DGDQM,dxypj
 CCOMP*  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
 CCOMP*  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
 CCOMP*  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
@@ -173,7 +173,7 @@ CCOMP*  ,PRCPMC,PRCPSS,PPHASE,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX
 CCOMP*  ,LMCMIN,KMAX,DEBUG)
       COMMON/CLDPRV/RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
      *  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE
-     *  ,DTOTW,DQCOND,DCTEI,DGDQM
+     *  ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPJ
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
@@ -1666,12 +1666,11 @@ C**** Only Calculate fractional changes of Q to W
 #ifdef TRACERS_WATER
       FPR=0.
       IF (WMX(L).gt.0.) FPR=PREP(L)*DTsrc/WMX(L)              ! CLW->P
+      FPR=MIN(1d0,FPR)
       FER=0.
       IF (PREBAR(L+1).gt.0.) FER=CAREA(L)*ER(L)*AIRM(L)/(
      *     GRAV*LHX*PREBAR(L+1))                              ! P->Q
       FER=MIN(1d0,FER)
-      IF (ER(L).eq.ERMAX) FER=1d0
-      FPR=MIN(1d0,FPR)
       FWTOQ=0.                                                ! CLW->Q
 #endif
       FQTOW=0.                                                ! Q->CLW
@@ -1733,6 +1732,7 @@ c ---------------------- apply fluxes ------------------------
         TM(L,N)    = TM(L,N)                + DTERT - DTWRT - DTQWT
         TRPRBAR(N,L)=TRPRBAR(N,L+1)*(1.-FERT)+DTPRT + DTWRT
         IF (PREBAR(L).eq.0) TRPRBAR(N,L)=0.  ! remove round off error
+        IF (WMX(L).eq.0) TRWML(N,L)=0.       ! remove round off error
 c
         TMOM(:,L,N)  = TMOM(:,L,N)*(1. - FQTOWT - FWASHT)
 #ifdef TRACERS_SPECIAL_O18
