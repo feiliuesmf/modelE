@@ -9,7 +9,7 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
       USE MODEL_COM, only : im,jm,fim,byim
       USE GEOM, only : imaxj
 #ifdef TRACERS_OCEAN
-      USE TRACERS, only : ntm
+      USE TRACER_COM, only : ntm
 #endif
       IMPLICIT NONE
       SAVE

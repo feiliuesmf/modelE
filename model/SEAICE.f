@@ -848,7 +848,7 @@ C****
       USE MODEL_COM, only : im,jm
       USE SEAICE, only : lmi
 #ifdef TRACERS_WATER
-      USE TRACERS, only : ntm
+      USE TRACER_COM, only : ntm
 #endif
 
       IMPLICIT NONE
@@ -877,7 +877,7 @@ C**** Note that MSI includes the mass of salt in sea ice
 !@sum  io_seaice reads and writes seaice variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,lhead
+      USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irerun
       USE SEAICE_COM
       IMPLICIT NONE
 

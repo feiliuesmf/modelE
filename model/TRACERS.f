@@ -13,7 +13,7 @@
 !@sum Tracer diagnostic arrays
 !@auth Jean Lerner
 !ver   1.0
-      USE TRACER_COM, only: ntm, ntsrcmax
+      USE TRACER_COM, only: ntm, ntsurfsrcmax
       USE MODEL_COM, only: im,jm,lm
       USE DAGCOM, only: npts !npts are conservation quantities
       IMPLICIT NONE
@@ -26,8 +26,6 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       REAL*8, DIMENSION(NTM) :: MMR_to_VMR
 
 C**** TAIJLN
-!@parm KTAIJLN number of 3D diagnostics for each tracer
-      integer, parameter :: ktaijln=ntm*lm
 !@var TAIJLN 3D tracer diagnostics (all tracers)
       real*8, dimension(im,jm,lm,ntm) :: taijln
 !@var SNAME_IJT, UNITS_IJT: Names and units of lat-sigma tracer IJ diags
@@ -46,20 +44,19 @@ C**** TAIJLN
       integer, dimension(ntm) :: ijtm_power
 !@var IJT_XX Names for TAIJLN diagnostics (Not currently used)
 
-C**** TAIJKN
-!@parm KTAIJK number of 3D diagnostics for each tracer
-!@parm KTAIJKN total number of 3D diagnostics for tracers (ntm*ktaijk)
-      integer, parameter :: ktaijk=3,ktaijkn=ntm*ktaijk
-!@var IJT_XX names for taijkn diagnostics 
-      integer ijkn_conc,ijkn_surf,ijkn_mass
-!@var TAIJKN lat/lon tracer diagnostics (all tracers)
-      real*8, dimension(im,jm,ktaijk,ntm) :: taijkn
-!@var SCALE_IJKN: printout scaling factor for tracer IJK diagnostics
-      double precision, dimension(ktaijk,ntm) :: scale_ijkn
-!@var SNAME_IJKN,UNITS_IJKN: Names and units of lat-sigma tracer diags
-      character(len=30), dimension(ktaijk,ntm) :: sname_ijkn,units_ijkn
-!@var LNAME_IJKN: descriptions of tracer IJK diags
-      character(len=80), dimension(ktaijk,ntm) :: lname_ijkn
+C**** TAIJN
+!@param KTAIJ number of 3D diagnostics for each tracer
+      integer, parameter :: ktaij=3 
+!@var IJT_XX names for taijn diagnostics 
+      integer tij_conc,tij_surf,tij_mass
+!@var TAIJN lat/lon tracer diagnostics (all tracers)
+      real*8, dimension(im,jm,ktaij,ntm) :: taijn
+!@var SCALE_TIJ: printout scaling factor for tracer IJK diagnostics
+      double precision, dimension(ktaij,ntm) :: scale_tij
+!@var SNAME_TIJ,UNITS_TIJ: Names and units of lat-sigma tracer diags
+      character(len=30), dimension(ktaij,ntm) :: sname_tij,units_tij
+!@var LNAME_TIJ: descriptions of tracer IJK diags
+      character(len=80), dimension(ktaij,ntm) :: lname_tij
 
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@parm KTAIJS number of special lat/lon tracer diagnostics
@@ -67,7 +64,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, DIMENSION(IM,JM,ktaijs) :: TAIJS
 !@var ijts_source tracer independent array for TAIJS surface src. diags
-      INTEGER ijts_source(ntsrcmax,ntm)
+      INTEGER ijts_source(ntsurfsrcmax,ntm)
 !@var SNAME_IJTS, UNITS_IJTS: Names & units of lat-sigma tracer diags
       character(len=30), dimension(ktaijs) :: sname_ijts,units_ijts
 !@var LNAME_IJTS: descriptions of tracer IJTS diags
@@ -111,7 +108,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
       REAL*8, DIMENSION(JM,LM,ktajls) :: TAJLS
 !@var jls_source tracer independent array for TAJLS surface src. diags
-      INTEGER jls_source(ntsrcmax,ntm)
+      INTEGER jls_source(ntsurfsrcmax,ntm)
 !@var jls_decay tracer independent array for radioactive sinks
       INTEGER, DIMENSION(NTM) :: jls_decay
 !@var jls_grav tracer independent array for grav. settling sink
@@ -159,7 +156,7 @@ C**** TCONSRV
 !@var SCALE_INST,SCALE_CHANGE: Scale factors for tracer conservation
       double precision, dimension(ntm) :: SCALE_INST,SCALE_CHANGE
 !@var itcon_surf Index array for surface source/sink conservation diags
-      INTEGER, DIMENSION(NTSRCMAX,NTM) :: itcon_surf
+      INTEGER, DIMENSION(ntsurfsrcmax,NTM) :: itcon_surf
 !@var itcon_decay Index array for decay conservation diags
       INTEGER, DIMENSION(NTM) :: itcon_decay
 !@var itcon_grav Index array for gravitational settling conserv. diags
@@ -169,9 +166,9 @@ C----------------------------------------------------
 !@param KTACC total number of tracer diagnostic words
 !@var TACC: Contains all tracer diagnostic accumulations
       INTEGER, PARAMETER :: 
-     *  ktacc=IM*JM*LM*NTM + IM*JM*ktaijk*NTM + IM*JM*ktaijs + 
+     *  ktacc=IM*JM*LM*NTM + IM*JM*ktaij*NTM + IM*JM*ktaijs + 
      *        JM*LM*ktajlx*NTM + JM*LM*ktajls + JM*NTM*ktcon
-      COMMON /TACCUM/ TAIJLN,TAIJKN,TAIJS,TAJLN,TAJLS,TCONSRV
+      COMMON /TACCUM/ TAIJLN,TAIJN,TAIJS,TAJLN,TAJLS,TCONSRV
       DOUBLE PRECISION, DIMENSION(KTACC) :: TACC
       EQUIVALENCE (TACC,TAIJLN)
 C----------------------------------------------------
@@ -183,7 +180,7 @@ C----------------------------------------------------
 !@auth J. Lerner
 !@calls sync_param, SET_TCON
       use DAGCOM, only: ia_src,ia_12hr
-      USE MODEL_COM, only: dtsrc
+      USE MODEL_COM, only: dtsrc,nisurf
       use BDIJ, only: ir_log2
       USE TRACER_COM
       USE TRACER_DIAG_COM
@@ -428,38 +425,38 @@ C**** Tracer concentrations (AIJLN)
       end do
       end do
 
-C**** AIJKN
+C**** AIJN
 C****     1  TM (SUM OVER ALL LAYERS) (M*M * KG TRACER/KG AIR)
-C****     2  TM1-TZM1 (SURFACE TRACER CONC.) (M*M * KG TRACER/KG AIR)
+C****     2  TRS (SURFACE TRACER CONC.) (M*M * KG TRACER/KG AIR)
 C****     3  TM (SUM OVER ALL LAYERS) (M*M * KG TRACER)
       do n=1,ntm
 C**** Summation of mass over all layers
       k = 1        ! <<<<< Be sure to do this
-      ijkn_mass = k
-        write(sname_ijkn(k,n),'(a,i2)') trim(TRNAME(n))//'_Total_Mass'
-        write(lname_ijkn(k,n),'(a,i2)') trim(TRNAME(n))//' Total Mass'
-        units_ijkn(k,n) = unit_string(ijtm_power(n),' kg/m^2')
-        scale_ijkn(k,n) = 10.**(-ijtm_power(n))
+      tij_mass = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Total_Mass'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Total Mass'
+        units_tij(k,n) = unit_string(ijtm_power(n),' kg/m^2')
+        scale_tij(k,n) = 10.**(-ijtm_power(n))
 C**** Average concentration over layers
       k = k+1
-      ijkn_conc = k
-        write(sname_ijkn(k,n),'(a,i2)') trim(TRNAME(n))//'_Average'
-        write(lname_ijkn(k,n),'(a,i2)') trim(TRNAME(n))//' Average'
-        units_ijkn(k,n) = unit_string(ijtc_power(n),cmr)
-        scale_ijkn(k,n) = MMR_to_VMR(n)*10.**(-ijtc_power(n))
+      tij_conc = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Average'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Average'
+        units_tij(k,n) = unit_string(ijtc_power(n),cmr)
+        scale_tij(k,n) = MMR_to_VMR(n)*10.**(-ijtc_power(n))
 C**** Surface concentration
       k = k+1
-      ijkn_surf = k
-        write(sname_ijkn(k,n),'(a,i2)') trim(TRNAME(n))//'_At_Surface'
-        write(lname_ijkn(k,n),'(a,i2)') trim(TRNAME(n))//' At Surface'
-        units_ijkn(k,n) = unit_string(ijtc_power(n),cmr)
-        scale_ijkn(k,n) = MMR_to_VMR(n)*10.**(-ijtc_power(n))
+      tij_surf = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_At_Surface'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' At Surface'
+        units_tij(k,n) = unit_string(ijtc_power(n),cmr)
+        scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/dble(NIsurf)
       end do
 
-      if (k .gt. ktaijk) then
+      if (k .gt. ktaij) then
         write (6,*) 
-     &   'tij_defs: Increase ktaijk=',ktaijk,' to at least ',k
-        stop 'ktaijk too small'
+     &   'tij_defs: Increase ktaij=',ktaij,' to at least ',k
+        stop 'ktaij too small'
       end if
 
 C**** Tracer sources and sinks
@@ -720,8 +717,8 @@ C****
 !@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner
       USE MODEL_COM, only: itime,im,jm,lm
-      USE GEOM, only: dxyp
-      USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
+      USE GEOM, only: dxyp,bydxyp
+      USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
       USE PBLCOM, only : npbl,trabl
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trname,needtrs
       USE FILEMANAGER, only : openunit,closeunit
@@ -782,9 +779,11 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
 C**** Initialise pbl profile if necessary
       if (needtrs(n)) then
         do it=1,4
-          do ipbl=1,npbl
-            trabl(ipbl,n,:,:,it) = trm(:,:,1,n)
-          end do
+        do j=1,jm
+        do ipbl=1,npbl
+          trabl(ipbl,n,:,j,it) = trm(:,j,1,n)*byam(1,:,j)*bydxyp(j)
+        end do
+        end do
         end do
       end if
 
@@ -1183,15 +1182,15 @@ C**** Atmospheric decay
       end do
 C****
       return
-      end
-
-      subroutine checktr(subr)
+      end subroutine tdecay
 
       SUBROUTINE TRGRAV
 !@sum TRGRAV gravitationally settles particular tracers 
 !@auth Gavin Schmidt/Reha Cakmur
       USE CONSTANT, only : visc_air,grav
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo
+      USE GEOM, only : imaxj
+      USE SOMTQ_COM, only : mz,mzz,mzx,myz
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius,trpdens
       USE TRACER_DIAG_COM, only : tajls,jls_grav,itcon_grav
       USE FLUXES, only : trgrdep
@@ -1223,7 +1222,7 @@ C**** Gravitional settling
 C**** Calculate height differences using geopotential
             if (l.eq.1) then   ! layer 1 calc
               fgrfluxd=stokevdt(n)*grav/(gz(i,j,l)-zatmo(i,j))
-              trgrdep(i,j)=fgrfluxd*trm(i,j,l,n)
+              trgrdep(i,j,n)=fgrfluxd*trm(i,j,l,n)
             else               ! above layer 1
               fgrfluxd=stokevdt(n)*grav/(gz(i,j,l)-gz(i,j,l-1))
             end if
@@ -1253,8 +1252,9 @@ C**** Calculate height differences using geopotential
       end do
 C****
       return
-      end
+      end subroutine trgrav
 
+      subroutine checktr(subr)
 !@sum  CHECKTR Checks whether tracer variables are reasonable
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -1302,3 +1302,4 @@ C**** check whether air mass is conserved
       end subroutine checktr
 
 #endif
+

@@ -7,7 +7,7 @@
       USE OCEAN, only : lmo
       USE SEAICE, only : lmi
 #ifdef TRACERS_OCEAN
-      USE TRACERS, only : ntm
+      USE TRACER_COM, only : ntm
 #endif
       IMPLICIT NONE
       SAVE

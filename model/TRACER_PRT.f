@@ -11,7 +11,7 @@
 !@auth J.Lerner
 !@ver  1.0
       USE MODEL_COM, only: im,jm,lm,itime
-      USE GEOM, only: imaxj
+      USE GEOM, only: imaxj,bydxyp
       USE SOMTQ_COM, only: mz  
       USE TRACER_COM 
       USE TRACER_DIAG_COM 
@@ -22,7 +22,7 @@
       real*8 tsum,asum
 
 C****
-C**** Accumulate concentraton for all tracers
+C**** Accumulate concentration for all tracers
 C****
       do 600 n=1,ntm
       IF (itime.lt.itime_tr0(n)) cycle
@@ -31,15 +31,14 @@ C**** Latitude-longitude by layer concentration
         taijln(:,:,l,n) = taijln(:,:,l,n) + trm(:,:,l,n)*byam(l,:,:)
       end do
 C**** Average concentration; surface concentration; total mass
-      l = 1
       do j=1,jm
       do i=1,im
-        tsum = sum(trm(i,j,:,n))  !sum over l
+        tsum = sum(trm(i,j,:,n))*bydxyp(j)  !sum over l
         asum = sum(am(:,i,j))     !sum over l
-        taijkn(i,j,ijkn_mass,n) = taijkn(i,j,ijkn_mass,n)+tsum  !MASS 
-        taijkn(i,j,ijkn_conc,n) = taijkn(i,j,ijkn_conc,n)+tsum/asum
-        taijkn(i,j,ijkn_surf,n) = taijkn(i,j,ijkn_surf,n)
-     *     + max((trm(i,j,l,n)-trmom(mz,i,j,l,n))*byam(l,i,j) ,0.)
+        taijn(i,j,tij_mass,n) = taijn(i,j,tij_mass,n)+tsum  !MASS 
+        taijn(i,j,tij_conc,n) = taijn(i,j,tij_conc,n)+tsum/asum
+c        taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
+c     * + max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)*bydxyp(j),0.)
       enddo; enddo
 C**** Zonal mean concentration
       do l=1,lm
@@ -565,7 +564,7 @@ C****
 
       IMPLICIT NONE
 
-      integer, parameter :: ktmax = ktaijln+ktaijkn+ktaijs
+      integer, parameter :: ktmax = (lm+ktaij)*ntm+ktaijs
 !@var Qk: if Qk(k)=.true. field k still has to be processed
       logical, dimension (ktmax) :: Qk
 !@var Iord: Index array, fields are processed in order Iord(k), k=1,2,..
@@ -588,7 +587,7 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 
 C**** INITIALIZE CERTAIN QUANTITIES
 C**** standard printout
-!     nmaplets = ktmax   ! ktaijln+ktaijkn+ktaijs
+!     nmaplets = ktmax   ! (lm+ktaij)*ntm+ktaijs
       nmaps = 0
 
 C**** Fill in maplet indices for tracer concentrations
@@ -602,7 +601,7 @@ C**** Fill in maplet indices for tracer concentrations
         ijtype(k) = 1
       end do
 C**** Fill in maplet indices for tracer sums and means
-      do l=1,ktaijk
+      do l=1,ktaij
         k = k+1
         iord(k) = l
         nt(k) = n
@@ -636,8 +635,8 @@ C**** Fill in the undefined pole box duplicates
       do i=2,im
         taijln(i,1,:,:) = taijln(1,1,:,:)
         taijln(i,jm,:,:) = taijln(1,jm,:,:)
-        taijkn(i,1,:,:) = taijkn(1,1,:,:)
-        taijkn(i,jm,:,:) = taijkn(1,jm,:,:)
+        taijn(i,1,:,:) = taijn(1,1,:,:)
+        taijn(i,jm,:,:) = taijn(1,jm,:,:)
         taijs (i,1,:) = taijs(1,1,:)
         taijs (i,jm,:) = taijs(1,jm,:)
       end do
@@ -729,14 +728,14 @@ c**** tracer amounts
         end do
 c**** tracer sums and means
       else if (nmap.eq.2) then
-        name = sname_ijkn(k,n) 
-        lname = lname_ijkn(k,n) 
-        units = units_ijkn(k,n)
+        name = sname_tij(k,n) 
+        lname = lname_tij(k,n) 
+        units = units_tij(k,n)
         irange = ir_ijt(n)
         byiacc = 1./(idacc(ia_ijt)+teeny)
         do j=1,jm
         do i=1,im
-          anum(i,j)=taijkn(i,j,k,n)*byiacc*scale_ijkn(k,n)/dxyp(j)
+          anum(i,j)=taijn(i,j,k,n)*byiacc*scale_tij(k,n)
         end do
         end do
 c**** Sources and sinks

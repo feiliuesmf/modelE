@@ -13,8 +13,9 @@
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,itime,jhour,sige,byim,itocean
      *     ,itoice,itlake,itlkice,itlandi,qcheck
-      USE SOMTQ_COM, only : tmom,qmom
+      USE SOMTQ_COM, only : tmom,qmom,mz
       USE GEOM, only : dxyp,imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv
+     *     ,bydxyp
       USE RADNCB, only : trhr,fsf,cosz1
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
@@ -34,7 +35,7 @@ C**** Interface to PBL
      *     ,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
      *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
      *     ,idd_eds,idd_dbl,idd_ev,idd_ldc,idd_dcf
-      USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij,am
+      USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij,am,byam
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
       USE SEAICE_COM, only : rsi,msi,snowi
@@ -46,7 +47,8 @@ C**** Interface to PBL
      *     ,solar,dmua,dmva,gtemp,nstype
 #ifdef TRACERS_ON
      *     ,tot_trsource
-      USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm
+      USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom
+      USE TRACER_DIAG_COM, only : taijn,tij_surf
 #endif
       USE SOIL_DRV, only: earth
       IMPLICIT NONE
@@ -187,7 +189,7 @@ C**** Set up tracers for PBL calculation if required
         if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
           n=n+1
 C**** Calculate first layer tracer concentration
-          trtop(n)=trm(i,j,1,itr)/(AM(I,J,1)*DXYP(J))
+          trtop(n)=trm(i,j,1,itr)*byam(1,i,j)*bydxyp(j)
         end if
       end do
       ntx = n
@@ -352,7 +354,7 @@ C**** Calculate trsfac (set to zero for const flux)
           trsfac(n)=0.
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
           rhosrf0=100.*PS/(RGAS*TGV) ! estimated surface density
-          trconstflx(n)=tot_trsource(i,j,itr)/(DXYP(J)*rhosrf0)
+          trconstflx(n)=tot_trsource(i,j,itr)/(dxyp(j)*rhosrf0)
         end if
       end do
 #endif
@@ -367,7 +369,6 @@ C =====================================================================
 C =====================================================================
       TS=TSV/(1.+QS*deltx)
 C**** CALCULATE RHOS*CM*WS AND RHOS*CH*WS
-3500  CONTINUE
       RHOSRF=100.*PS/(RGAS*TSV)
       RCDMWS=CM*WS*RHOSRF
       RCDHWS=CH*WSH*RHOSRF
@@ -523,7 +524,22 @@ C**** Limit heat fluxes out of lakes if near minimum depth
          F1DTS=F1DTS+F1DT*PTYPE
          DBLS=DBLS+DBL*PTYPE
          PSIS=PSIS+PSI*PTYPE
-5666  GO TO (4000,4100,4400),ITYPE
+#ifdef TRACERS_ON
+C**** Save surface tracer concentration whether calculated or not
+      n=0
+      do itr=1,ntm
+        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
+          n=n+1
+          taijn(i,j,tij_surf,itr) = taijn(i,j,tij_surf,itr)
+     *         + trs(n)*ptype
+        else
+          taijn(i,j,tij_surf,itr) = taijn(i,j,tij_surf,itr)
+     *         +max((trm(i,j,1,itr)-trmom(mz,i,j,1,itr))*byam(1,i,j)
+     *         *bydxyp(j),0.)*ptype
+        end if
+      end do
+#endif
+      GO TO (4000,4100,4400),ITYPE
 C****
 C**** OCEAN
 C****

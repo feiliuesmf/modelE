@@ -4,9 +4,9 @@
 !@sum  LAKES_COM model variables for Lake/Rivers module
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : IM,JM,ioread,iowrite,lhead,irerun
+      USE MODEL_COM, only : IM,JM,ioread,iowrite,lhead,irerun,irsfic
 #ifdef TRACERS_WATER
-      USE TRACERS, only : ntm
+      USE TRACER_COM, only : ntm
 #endif
       IMPLICIT NONE
       SAVE

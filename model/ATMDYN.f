@@ -161,7 +161,7 @@ C**** Scale WM mixing ratios to conserve liquid water
       USE MODEL_COM, only : im,jm,lm,q,dt,byim
       USE SOMTQ_COM, only : tmom,qmom
       USE DAGCOM, only: ajl,jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh
-      USE DYNAMICS, only: ps,mb
+      USE DYNAMICS, only: ps,mb,ma
       USE TRACER_ADV, only: 
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
       IMPLICIT NONE
@@ -192,12 +192,12 @@ C**** ADVECT
         AJL(:,:,jl_zmfvtlh)  = AJL(:,:,jl_zmfvtlh)
      &    + scm(:,:)*sfcm(:,:)*byim*byncyc
 C****
-C**** convert from mass to concentration units (using updated MB)
+C**** convert from mass to concentration units (using updated MA)
 C****
       DO L=1,LM
       DO J=1,JM
       DO I=1,IM
-        BYMA = 1.D0/MB(I,J,L)
+        BYMA = 1.D0/MA(I,J,L)
         Q(I,J,L)=Q(I,J,L)*BYMA
         QMOM(:,I,J,L)=QMOM(:,I,J,L)*BYMA
       enddo; enddo; enddo
@@ -213,7 +213,6 @@ C****
 !@ver  1.0
       USE MODEL_COM, only: im,jm,lm,itime,dt,byim
       USE TRACER_COM, only: itime_tr0,trm,trmom,trname,t_qlimit,ntm
-      USE DYNAMICS, only: ps,mb
       USE TRACER_ADV
       USE TRACER_DIAG_COM, only:
      &  jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,TAJLN
@@ -221,9 +220,7 @@ C****
       REAL*8 DTLF,byncyc
       INTEGER N
 
-!     DTLF=2.*DT
-!     CALL CALC_AMP(PS,MB)
-!     CALL AADVQ0 (DTLF)  ! uses the fluxes pua,pva,sda from DYNAM
+C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
       DO N=1,NTM
         IF (itime.LT.itime_tr0(N)) cycle
         sfbm = 0.; sbm = 0.; sbf = 0.

@@ -53,8 +53,9 @@ C**** module should own dynam variables used by other routines
       REAL*8 xAVRX
 
 !@var PUA,PVA,SDA,PS save PU,PV,SD,P for hourly tracer advection
-!@var MB Air mass array for tracers
-      REAL*8, DIMENSION(IM,JM,LM) :: PUA,PVA,SDA,MB
+!@var MB Air mass array for tracers (before advection)
+!@var MA Air mass array for tracers (updated during advection)
+      REAL*8, DIMENSION(IM,JM,LM) :: PUA,PVA,SDA,MB,MA
       REAL*8, DIMENSION(IM,JM) :: PS
 
       END MODULE DYNAMICS

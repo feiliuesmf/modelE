@@ -30,7 +30,8 @@ c****
      *     ,sha,tf,rhow,deltx
       use model_com, only : t,p,q,dtsrc,nisurf,dsig
      *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
-      use geom, only : imaxj,dxyp
+      use geom, only : imaxj,dxyp,bydxyp
+      use somtq_com, only : mz
       use radncb, only : trhr,fsf,cosz1
       use ghycom, only : wbare,wvege,htbare,htvege,snowbv,
      &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
@@ -70,12 +71,13 @@ c****
      *     ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg,idd_lwg,idd_sh,
      *     idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us,idd_vs,idd_ws,
      *     idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl,idd_ev
-      use dynamics, only : pk,pek,pedn,pdsig,am
+      use dynamics, only : pk,pek,pedn,pdsig,am,byam
       use fluxes, only : dth1,dq1,du1,dv1,e0,e1,evapor,prec,eprec,runoe
      *     ,erunoe,gtemp
 #ifdef TRACERS_ON
      *     ,tot_trsource
-      use tracer_com, only : ntm,itime_tr0,needtrs,trm
+      use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom
+      use tracer_diag_com, only : taijn,tij_surf
 #endif
 
       implicit none
@@ -182,7 +184,7 @@ C**** Set up tracers for PBL calculation if required
         if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
           n=n+1
 C**** Calculate first layer tracer concentration
-          trtop(n)=trm(i,j,1,itr)/(AM(I,J,1)*DXYP(J))
+          trtop(n)=trm(i,j,1,itr)*byam(1,i,j)*bydxyp(j)
         end if
       end do
       ntx = n
@@ -262,7 +264,7 @@ C**** Calculate trsfac (set to zero for const flux)
           trsfac(n)=0.
 C**** Calculate trconstflx (could be dependent on itype)
           rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
-          trconstflx(n)=tot_trsource(i,j,itr)/(DXYP(J)*dtsrc*rhosrf0)
+          trconstflx(n)=tot_trsource(i,j,itr)/(dxyp(J)*dtsrc*rhosrf0)
         end if
       end do
 #endif
@@ -348,6 +350,21 @@ ccc copy snow variables back to storage
       aij(i,j,ij_g26)=aij(i,j,ij_g26)+betav/nisurf
       aij(i,j,ij_g27)=aij(i,j,ij_g27)+betat/nisurf
       trhdt=trheat*dtsurf-atrg
+#ifdef TRACERS_ON
+C**** Save surface tracer concentration whether calculated or not
+      n=0
+      do itr=1,ntm
+        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
+          n=n+1
+          taijn(i,j,tij_surf,itr) = taijn(i,j,tij_surf,itr)
+     *         + trs(n)*ptype
+        else
+          taijn(i,j,tij_surf,itr) = taijn(i,j,tij_surf,itr)
+     *         +max((trm(i,j,1,itr)-trmom(mz,i,j,1,itr))*byam(1,i,j)
+     *         *bydxyp(j),0.)*ptype
+        end if
+      end do
+#endif
 c     for radiation find composite values over earth
 c           for diagnostic purposes also compute gdeep 1 2 3
       snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)

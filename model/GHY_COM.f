@@ -99,7 +99,7 @@ C**** What is the prognostic variable for snow here?
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun
       USE GHYCOM
 #ifdef TRACERS_WATER
-      USE TRACERS, only : ntm
+      USE TRACER_COM, only : ntm
 #endif
       IMPLICIT NONE
 

@@ -121,7 +121,7 @@ C**** CALCULATE TG2
 !@cont io_landice
       USE MODEL_COM, only : im,jm
 #ifdef TRACERS_WATER
-      USE TRACERS, only : ntm
+      USE TRACER_COM, only : ntm
 #endif
       IMPLICIT NONE
       SAVE
@@ -141,7 +141,7 @@ C**** CALCULATE TG2
 !@sum  io_landice reads and writes landice variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,LHEAD
+      USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irerun
       USE LANDICE_COM
       IMPLICIT NONE
 

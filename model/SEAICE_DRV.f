@@ -112,8 +112,15 @@ c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
                 Ustar = MAX(5d-4,SQRT(UI2rho(I,J)/RHOW))
                 Sm = SSS(I,J)
                 mlsh = MLHC(I,J)
+c                if (i.eq.19.and.j.eq.42) !(i.le.3.and.j.eq.4)
+c     *               print*,"iceoc0",i,j,Ti,Si,Tm,Sm,dh,Ustar,Coriol
+c     *               ,mlsh
                 call iceocean(Ti,Si,Tm,Sm,dh,Ustar,Coriol,dtsrc
      *               ,mlsh,mflux,sflux,hflux) !,mfluxmax)
+c                if (i.eq.19.and.j.eq.42) !(i.le.3.and.j.eq.4)
+c     *               print*,"iceoc1",i,j,mflux,hflux,sflux,XSI(4)*MSI(I
+c     *               ,J)/dtsrc
+
               ELSE ! for fixed SST assume freezing temp at base,implicit
                 hflux=alami*(Ti-tofrez(i,j))/(dh+alpha*dtsrc*alami*byshi
      *               /(XSI(LMI)*MSI(I,J)))
@@ -208,9 +215,16 @@ C****
         AIJ(I,J,IJ_MSI2) =AIJ(I,J,IJ_MSI2) +MSI2*POICE
         AIJ(I,J,IJ_F0OI) =AIJ(I,J,IJ_F0OI) +F0DT*POICE
         AIJ(I,J,IJ_EVAPI)=AIJ(I,J,IJ_EVAPI)+EVAP*POICE
+        
+c        if (i.eq.19.and.j.eq.42)  !(i.le.3.and.j.eq.4)
+c     *       print*,"ice0",i,j,ROICE,SNOW,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP
+c     *       ,SROX,FMOC,FHOC,FSOC
 
         CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP,SROX
      *       ,FMOC,FHOC,FSOC)
+
+c        if (i.eq.19.and.j.eq.42)  !(i.le.3.and.j.eq.4)
+c     *       print*,"ice1",i,j,ROICE,SNOW,HSIL,SSIL,MSI2,FMOC,FHOC,FSOC
 
 C**** Decay sea ice salinity 
         MSI1 = ACE1I + SNOW
@@ -220,6 +234,9 @@ C**** Decay sea ice salinity
           MFLUX=0. ; SFLUX=0. ; HFLUX=0. 
         end if
 
+c        if (i.eq.19.and.j.eq.42)  !(i.le.3.and.j.eq.4)
+c     *       print*,"ice2",i,j,ROICE,SNOW,HSIL,SSIL,MSI2,MFLUX,HFLUX
+c     *       ,SFLUX
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J)=SNOW
         HSI(:,I,J)=HSIL(:)

@@ -26,7 +26,7 @@ C          ,UG,VG,WG,ZMIX
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q
 #ifdef TRACERS_ON
      &     ,trij=>tr
-      USE TRACER_COM, only : ntm,itime_tr0,needtrs
+      USE TRACER_COM, only : ntm,needtrs,itime_tr0
 #endif
       IMPLICIT NONE
      
@@ -165,8 +165,8 @@ C *********************************************************************
       eij(1:npbl-1)=eabl(1:npbl-1,i,j,itype)
 #ifdef TRACERS_ON
       n=0
-      do itr=1,ntx
-        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
+      do itr=1,ntm
+        if (itime_tr0(itr).le.itime.and.needtrs(itr)) then
           n=n+1
           trij(:,n)=trabl(:,itr,i,j,itype)
         end if
@@ -198,8 +198,8 @@ c1003 format(a,4(1pe14.4))
       eabl(1:npbl-1,i,j,itype)=eij(1:npbl-1)
 #ifdef TRACERS_ON
       n=0
-      do itr=1,ntx
-        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
+      do itr=1,ntm
+        if (itime_tr0(itr).le.itime.and.needtrs(itr)) then
           n=n+1
           trabl(:,itr,i,j,itype)=trij(:,n)
         end if

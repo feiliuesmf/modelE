@@ -6,7 +6,7 @@
 !@ver  1.0
       USE MODEL_COM, only : im,jm
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: ntm,ntsrcmax
+      USE TRACER_COM, only: ntm,ntsurfsrcmax
 #endif
       IMPLICIT NONE
 
@@ -76,7 +76,7 @@ C**** currently saved - should be replaced by fluxed quantities
 
 #ifdef TRACERS_ON
 !@var TRSOURCE non-interactive surface sources/sinks for tracers (kg/s)
-      REAL*8, DIMENSION(IM,JM,NTSRCMAX,NTM):: trsource
+      REAL*8, DIMENSION(IM,JM,ntsurfsrcmax,NTM):: trsource
 !@var TOT_TRSOURCE total of TRSOURCE for each tracers (kg/s)
       REAL*8, DIMENSION(IM,JM,NTM):: tot_trsource
 !@var TRGRDEP gravitationally settled tracers at surface (kg)

@@ -23,7 +23,7 @@ C**** ocean grid.
       INTEGER :: LMINEF=1, LMAXEF=LMO, KVMF(3) = (/ 3, 6, 9/),
      *           LMINMF=1, LMAXMF=LMO, KCMF(3) = (/ 3, 6, 9/),
      *           LMINSF=1, LMAXSF=LMO, KVDC(3) = (/ 3, 6, 9/)
-      REAL*4 R4LEV(0:LMO)
+      REAL*4 R4LEV(0:LMO),OHT(JM)
       REAL*8 GOS,SOS,FAC,FACST,GSMAX,GSMIN,CKMIN,CKMAX,ACMIN,ACMAX
      *     ,SCALEO(10),TSUM,TEMGS,scalej(jm),scalel(lmo),AJLTMP(JM,LMO)
       CHARACTER NAME(KOLNST)*40,OUTMON,OUTYR,NAMESF(8)*50,TITLE*80
@@ -151,7 +151,7 @@ c      CALL WRITED (NAMEL(4),XLABEL,OUTMON,OUTYR)
 C****
 C**** East-West or North-South Heat Flux (10^15 W)
 C****
-      DO K=6,7
+      DO K=IJL_GFLX,IJL_GFLX+1
 c      IF(.not.QL(K))  GO TO 440
         Q = 0.
         DO J=1,JM
@@ -168,9 +168,26 @@ c      IF(.not.QL(K))  GO TO 440
 c      CALL WRITED (NAMEL(K),XLABEL,OUTMON,OUTYR)
       END DO
 C****
+C**** Calculate zonally averaged global Northward ocean heat transport
+C****
+      DO J=1,JM-1
+        OHT(J)=0.
+        DO I=1,IMAXJ(J)
+          DO L=1,LMM(I,J)
+            OHT(J)=OHT(J)+OIJL(I,J,L,IJL_GFLX+1)
+          END DO
+        END DO
+        OHT(J)=1.E-15*OHT(J)/(IDACC(1)*DTS)
+      END DO
+      TITLE = "Northward ocean heat transports (PW)  Run "//XLABEL(1:6)
+      WRITE(TITLE(63:80),'(A6,I4)') JMON0,JYEAR0
+      WRITE(6,*) TITLE
+      WRITE(6,'(71I5)') (JLAT(J),J=1,JM-1)
+      WRITE(6,'(71F5.2)') (OHT(J),J=1,JM-1)
+C****
 C**** East-West or North-South Salt Flux (10^6 kg/s)
 C****
-      DO K=10,11
+      DO K=IJL_SFLX,IJL_SFLX+1
 c      IF(.not.QL(K))  GO TO 540
         Q = 0.
         DO J=1,JM
@@ -266,7 +283,7 @@ c      TITLE = NAME(2)//'  Run '//XLABEL(1:6)
 c      WRITE(TITLE(63:80),'(A6,I4)') JMON0,JYEAR0
 c      WRITE(2) TITLE,SFIJS
 C**** Output Key diagnostics: Gulf Stream, ACC, Kuroshio
-      WRITE(6,'(A17)') "Key horizontal mass stream function diags:"
+      WRITE(6,'(A)') "Key horizontal mass stream function diags:"
       GSMAX=0
       GSMIN=100.
       DO J=30,33

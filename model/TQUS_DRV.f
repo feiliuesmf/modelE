@@ -6,7 +6,6 @@
       INTEGER, PARAMETER :: ncmax=10
       INTEGER NSTEPX1(JM,LM,NCMAX),NSTEPX2(JM,LM,NCMAX),
      *        NSTEPY(LM,NCMAX),NSTEPZ(IM*JM,NCMAX), NCYC
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: MA
       double precision, dimension(jm,lm) :: sfbm,sbm,sbf,sfcm,scm,scf
 
       contains
@@ -29,7 +28,7 @@ c****   rmom = moments of tracer mass
 c****     ma (kg) = fluid mass
 c****
       USE QUSCOM, ONLY : MFLX,nmom
-      USE DYNAMICS, ONLY: pu=>pua, pv=>pva, sd=>sda, mb
+      USE DYNAMICS, ONLY: pu=>pua, pv=>pva, sd=>sda, mb,ma
       IMPLICIT NONE
 
       double precision, dimension(im,jm,lm) :: rm
@@ -71,10 +70,6 @@ C**** loop over cycles
       mflx(:,:,:)=pu(:,:,:)
       call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx2(1,1,n))
       end do
-C****
-C**** Load mass after advection to new mass
-C****
-      mb(:,:,:) = ma(:,:,:)
 
       return
       end SUBROUTINE AADVQ
@@ -86,7 +81,7 @@ C****
 !@+   negative during any of the operator splitting steps of each cycle
 c****
 C**** The MA array space is temporarily put to use in this section
-      USE DYNAMICS, ONLY: mu=>pua, mv=>pva, mw=>sda, mb
+      USE DYNAMICS, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
       USE QUSCOM, ONLY : IM,JM,LM
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DT

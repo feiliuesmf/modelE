@@ -165,7 +165,8 @@ c  internals:
       real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
       integer, intent(in) :: ilong,jlat,itype
 #ifdef TRACERS_ON
-      real*8, intent(in), dimension(ntm) :: trtop,trsfac,trconstflx
+      real*8, intent(in), dimension(ntm) :: trtop
+      real*8, intent(inout), dimension(ntm) :: trconstflx,trsfac
       real*8, intent(out), dimension(ntm) :: trs
       integer, intent(in) :: ntx
       real*8, dimension(n,ntm) :: trsave
@@ -308,10 +309,10 @@ C**** be inside the iteration. Use moisture diffusivity
       do itr=1,ntx
 #ifdef TRACERS_WATER
 C**** Tracers need to multiply trsfac and trconstflx by cq*Usurf
-        trconstflx(itr)=trconstflx(itr)*cq*Usurfq
-        trsfac(itr)=trsfac(itr)*cq*Usurfq
+        trconstflx(itr)=trconstflx(itr)*cq*wsq
+        trsfac(itr)=trsfac(itr)*cq*wsq
 #endif
-        call tr_eqn(trsave(1,itr),tr,kq,dz,dzh,trsfac(itr)
+        call tr_eqn(trsave(1,itr),tr(1,itr),kq,dz,dzh,trsfac(itr)
      *       ,trconstflx(itr),trtop(itr),dtime,n) 
         trs(itr) = tr(1,itr)
       end do
@@ -1191,7 +1192,7 @@ c
 !@var dzh(j)  z(j+1)-z(j)
 !@var sfac factor multiplying surface tracer conc. in b.c.
 !@var constflx the constant component of the surface tracer flux
-!@var trtop stracer concentration at the first GCM layer
+!@var trtop tracer concentration at the first GCM layer
 !@var dtime time step
 !@var n number of vertical subgrid main layers
       implicit none

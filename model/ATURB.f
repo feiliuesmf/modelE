@@ -16,13 +16,13 @@
 !@var jtest latitude at which to call dout
 !@var call_diag logical variable whether dout is called
 
-      USE DYNAMICS, only : pk,pdsig,plij,pek
+      USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am
       USE MODEL_COM, only :
      *      im,jm,lm,sig,sige,u,v,t,q,p,itime
       USE CONSTANT, only : grav,deltx,lhe,sha
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux,egcm
      *     ,t2gcm,uflux1,vflux1,tflux1,qflux1
-      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj
+      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,bydxyp,dxyp
       USE DAGCOM, only : ajl,
      &     jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
       USE SOCPBL, only : b2,prt,kappa,zgs,nlevel
@@ -137,7 +137,7 @@ c           t20ij(l)=t2ij(l)
 #ifdef TRACERS_ON
             do n=1,ntm
               if (itime_tr0(n).le.itime) then
-                trij(l,n)=trm(i,j,l,n)
+                trij(l,n)=trm(i,j,l,n)*byam(l,i,j)*bydxyp(j)
 cc                trmomij(:,l,n)=trmom(:,i,j,l,n)
                 tr0ij(l,n)=trij(l,n)
               end if
@@ -246,7 +246,7 @@ C**** Use q diffusion coefficient for tracers
           do n=1,ntm
             if (itime_tr0(n).le.itime) then
               call diff_q(tr0ij(1,n),trij(1,n),kq,dzij,dzeij,
-     2             rhoij,rhoeij,rhoebydz,bydzerho,trflx(1,n),dtime,lm)
+     2             rhoij,rhoeij,rhoebydz,bydzerho,trflx(n),dtime,lm)
 cc        call diff_mom(trmomij)
             end if
           end do
@@ -277,8 +277,8 @@ c           t2gcm(l,i,j)=t2ij(l)
             do n=1,ntm
               if (itime_tr0(n).le.itime) then
                 tajln(j,l,jlnt_turb,n)=tajln(j,l,jlnt_turb,n) +
-     &               (trij(l,n)-tr0ij(l,n))
-                trm(i,j,l,n)=trij(l,n)
+     &               (trij(l,n)-tr0ij(l,n))*am(l,i,j)*dxyp(j)
+                trm(i,j,l,n)=trij(l,n)*am(l,i,j)*dxyp(j)
 cc                trmom(:,i,j,l,n)=trmomij(:,l,n)
               end if
             end do
