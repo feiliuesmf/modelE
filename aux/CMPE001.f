@@ -1,3 +1,5 @@
+#include "../model/rundeck_opts.h"
+
 C**** CMPE001.F    CoMPare restartfiles for modelE          6/00
 C****
       USE MODEL_COM, only : im,jm,lm,ntype,imh
@@ -9,6 +11,10 @@ C****
 !!!   USE RADNCB, only : LM_REQ
       USE SEAICE_COM, only : lmi
       USE PBLCOM, only : npbl
+#ifdef TRACERS_ON
+      USE TRACER_COM, only : ntm
+      USE TRACER_DIAG_COM, only: ktacc,ktaij,ktaijs,ktajlx,ktajls,ktcon
+#endif
       IMPLICIT REAL*8 (A-H,O-Z)
       SAVE
 
@@ -84,6 +90,29 @@ C**** compatibility across model configurations)
       INTEGER, PARAMETER :: KICIJ=12, IMIC=IM,JMIC=JM
       REAL*8 ICDIAG1(IMIC,JMIC,KICIJ),ICDIAG2(IMIC,JMIC,KICIJ)
       REAL*8 ICEDYN1(IMIC,JMIC,4),ICEDYN2(IMIC,JMIC,4)
+#ifdef TRACERS_ON
+      REAL*8 TR1(IM,JM,LM*NTM),TR2(IM,JM,LM*NTM),TRMOM1(IM,JM,9*LM*NTM)
+     *     ,TRMOM2(IM,JM,9*LM*NTM),
+     *     TRABL1(npbl*ntm,im,jm,4),TRABL2(npbl*ntm,im,jm,4)
+      REAL*8 TRACC1(KTACC),TRACC2(KTACC)
+      COMMON /TACCUM1/ TAIJLN1(IM,JM,LM,NTM),TAIJN1(IM,JM,KTAIJ,NTM)
+     *     ,TAIJS1(IM,JM,ktaijs),TAJLN1(JM,LM,ktajlx,NTM),TAJLS1(JM,LM
+     *     ,ktajls),TCON1(JM,ktcon,ntm)
+      COMMON /TACCUM2/ TAIJLN2(IM,JM,LM,NTM),TAIJN2(IM,JM,KTAIJ,NTM)
+     *     ,TAIJS2(IM,JM,ktaijs),TAJLN2(JM,LM,ktajlx,NTM),TAJLS2(JM,LM
+     *     ,ktajls),TCON2(JM,ktcon,ntm)
+      EQUIVALENCE (TRACC1,TAIJLN1),(TRACC2,TAIJLN2)
+#ifdef TRACERS_WATER
+      INTEGER, PARAMETER :: KTICIJ=2
+      REAL*8 TRW1(IM,JM,LM*NTM),TRW2(IM,JM,LM*NTM),
+     *     TRLK1(2*NTM,IM,JM),TRLK2(2*NTM,IM,JM),
+     *     TRSI1(LMI*NTM,IM,JM),TRSI2(LMI*NTM,IM,JM),
+     *     TRLI1(2*NTM,IM,JM),TRLI2(2*NTM,IM,JM),
+     *     TRSOIL1(NTM*(2*NGM+3),IM,JM),TRSOIL2(NTM*(2*NGM+3),IM,JM),
+     *     TRSN1(2*NTM*NLSN,IM,JM),TRSN2(2*NTM*NLSN,IM,JM)
+      REAL*8 TRICDG1(IMIC,JMIC,KTICIJ*NTM),TRICDG2(IMIC,JMIC,KTICIJ*NTM)
+#endif
+#endif
 C****
       INTEGER DAGPOS,DAGPOS1,DAGPOS2
       LOGICAL ERRQ,COMP8,COMP8p,COMPI,COMP8LIJp,COMPILIJ
@@ -130,20 +159,38 @@ c        write(0,*) 'trying to read ocea2'
          END IF
 c        write(0,*) 'trying to read lake'
          READ (1) HEADER,LAKE1
+#ifdef TRACERS_WATER
+         READ (1) HEADER,TRLK1
+#endif
 c        write(0,*) 'trying to read sice'
          READ (1) HEADER,RSI1,HSI1,SNOWI1,MSI1,SSI1,PM1,IFLAG1
 c        write(0,*) 'trying to read gdata'
+#ifdef TRACERS_WATER
+         READ (1) HEADER,TRSI1 
+#endif
          READ (1) HEADER,snwe1,te1,wtre1,ace1,snag1,fsat1,qge1
 c        write(0,*) 'trying to read soils'
          READ (1) HEADER,wb1,wv1,htb1,htv1,snbv1,ci1,qfol1
+#ifdef TRACERS_WATER
+         READ (1) HEADER,TRSOIL1
+#endif
 c        write(0,*) 'trying to read snow'
          READ (1) HEADER,NSN1,ISN1,DZSN1,WSN1,HSN1,FR_SNOW1
+#ifdef TRACERS_WATER
+         READ (1) HEADER,TRSN1
+#endif
 c        write(0,*) 'trying to read landi'
          READ (1) HEADER,SNLI1,TLI1
+#ifdef TRACERS_WATER
+         READ (1) HEADER,TRLI1
+#endif
 c        write(0,*) 'trying to read bldat'
          READ (1) HEADER,BLD1,eg1,we1,tg1,qg1
 c        write(0,*) 'trying to read pbl'
          READ (1) HEADER,PBL1,pblb1,ipbl1
+#ifdef TRACERS_ON
+         READ (1) HEADER,TRABL1
+#endif
 c        write(0,*) 'trying to read clds'
          READ (1) HEADER,CLOUD1
 c        write(0,*) 'trying to read mom'
@@ -155,6 +202,12 @@ c        write(0,*) 'trying to read icedyn'
          BACKSPACE(1)
          IF (HEADER(1:6).eq."ICEDYN".and.KOCEAN1.eq.0) KOCEAN1=1
          IF (HEADER(1:6).eq."ICEDYN") READ(1) HEADER,ICEDYN1
+#ifdef TRACERS_ON
+         READ (1) HEADER,TR1,TRMOM1
+#ifdef TRACERS_WATER
+     *        ,TRWM1
+#endif
+#endif
 c        write(0,*) 'trying to read diag'
          READ (1,ERR=100) HEADER,KEYNR,TSFREZ1,idacc1,DIAG1,TDIURN1,OA1
      *        ,ITAU2
@@ -166,6 +219,12 @@ c        write(0,*) 'trying to read ocn3'
            IF (KOCEAN1.eq.2) READ(1) HEADER,ODIAG1,itau2
            READ(1) HEADER,ICDIAG1
          END IF
+#ifdef TRACERS_ON
+#ifdef TRACERS_WATER
+         READ (1) HEADER,TRICDG1
+#endif
+         READ (1) HEADER,TRACC1
+#endif
 
          IF (ITAU1.ne.ITAU2) then
          WRITE (6,*) 'FILE 1 NOT READ CORRECTLY. IHOUR,IHOURB =',itau1
@@ -210,20 +269,38 @@ c        write(0,*) 'trying to read ocea2'
          END IF
 c        write(0,*) 'trying to read lake'
          READ (2) HEADER,LAKE2
+#ifdef TRACERS_WATER
+         READ (2) HEADER,TRLK2
+#endif
 c        write(0,*) 'trying to read sice'
          READ (2) HEADER,RSI2,HSI2,SNOWI2,MSI2,SSI2,PM2,IFLAG2
+#ifdef TRACERS_WATER
+         READ (2) HEADER,TRSI2
+#endif
 c        write(0,*) 'trying to read gdata'
          READ (2) HEADER,snwe2,te2,wtre2,ace2,snag2,fsat2,qge2
 c        write(0,*) 'trying to read soils'
          READ (2) HEADER,wb2,wv2,htb2,htv2,snbv2,ci2,qfol2
+#ifdef TRACERS_WATER
+         READ (2) HEADER,TRSOIL2
+#endif
 c        write(0,*) 'trying to read snow'
          READ (2) HEADER,NSN2,ISN2,DZSN2,WSN2,HSN2,FR_SNOW2
+#ifdef TRACERS_WATER
+         READ (2) HEADER,TRSN2
+#endif
 c        write(0,*) 'trying to read landi'
          READ (2) HEADER,SNLI2,TLI2
+#ifdef TRACERS_WATER
+         READ (2) HEADER,TRLI2
+#endif
 c        write(0,*) 'trying to read bldat'
          READ (2) HEADER,BLD2,eg2,we2,tg2,qg2
 c        write(0,*) 'trying to read pbl'
          READ (2) HEADER,PBL2,pblb2,ipbl2
+#ifdef TRACERS_ON
+         READ (2)  HEADER,TRABL2
+#endif
 c        write(0,*) 'trying to read clds'
          READ (2) HEADER,CLOUD2
 c        write(0,*) 'trying to read mom'
@@ -235,6 +312,12 @@ c        write(0,*) 'trying to read icedyn'
          BACKSPACE(2)
          IF (HEADER(1:6).eq.'ICEDYN'.and.KOCEAN2.eq.0) KOCEAN2=1
          IF (HEADER(1:6).eq.'ICEDYN') READ(2) HEADER,ICEDYN2
+#ifdef TRACERS_ON
+         READ (2) HEADER,TR2,TRMOM2
+#ifdef TRACERS_WATER
+     *        ,TRWM2
+#endif
+#endif
 c        write(0,*) 'trying to read diag'
          READ (2,ERR=300) HEADER,KEYNR,TSFREZ2,idacc2,DIAG2,TDIURN2,OA2
      *        ,ITAU2
@@ -246,6 +329,12 @@ c        write(0,*) 'trying to read ocn3'
            IF (KOCEAN2.eq.2) READ(2) HEADER,ODIAG2,itau2
            READ(2) HEADER,ICDIAG2
          END IF
+#ifdef TRACERS_ON
+#ifdef TRACERS_WATER
+         READ (2) HEADER,TRICDG2
+#endif
+         READ (2) HEADER,TRACC2
+#endif
 
       IF (itau1.ne.itau2) then
          WRITE (6,*) 'FILE 2 NOT READ CORRECTLY. IHOUR,IHOURB =',itau1
@@ -260,6 +349,7 @@ C****
 C**** Compare arrays
 C**** ERRQ flags whether any discrepancies have occurred
 C****
+      print*," Prognostic variables:"
       ERRQ = .FALSE.
       WRITE (6,*) 'FIELD IM JM LM     VAL1        VAL2     RELERR'
       ERRQ=COMP8 ('U     ',IM,JM,LM     ,U1 ,U2 ) .or. ERRQ
@@ -336,6 +426,22 @@ C****
       ERRQ=COMP8LIJp('FSF   ',4     ,IM,JM  ,FSF1  ,FSF2  ) .or. ERRQ
       ERRQ=COMP8 ('FSdir ',IM,JM,1       , fsd1 , fsd2 ) .or. ERRQ
 
+#ifdef TRACERS_ON
+      ERRQ=COMP8('TR    ',IM,JM,LM*NTM    , TR1  , TR2  ) .or. ERRQ
+      ERRQ=COMP8('TRMOM ',IM,JM,9*LM*NTM  ,TRMOM1,TRMOM2) .or. ERRQ
+      ERRQ=COMP8('TRpbl ',npbl*NTM,IM*JM,4,TRABL1,TRABL2) .or. ERRQ
+#ifdef TRACERS_WATER
+      ERRQ=COMP8('TRW   ',IM,JM,LM*NTM    , TRW1 , TRW2 ) .or. ERRQ
+      ERRQ=COMP8Lijp('TRLK  ',2*NTM,IM,JM  , TRLK1, TRLK2) .or. ERRQ
+      ERRQ=COMP8Lijp('TRSI  ',LMI*NTM,IM,JM, TRSI1, TRSI2) .or. ERRQ
+      ERRQ=COMP8Lijp('TRLI  ',2*NTM,IM,JM  , TRLI1, TRLI2) .or. ERRQ
+      ERRQ=COMP8Lijp('TRSOIL',NTM*(2*NGM+3),IM,JM  , TRSOIL1,
+     *     TRSOIL2) .or. ERRQ
+      ERRQ=COMP8Lijp('TRSNOW',2*NTM*NLSN,IM,JM, TRSN1, TRSN2) .or. ERRQ
+#endif
+#endif
+
+      print*," Diagnostic variables:"
 c      if(errq) then
 c      write(6,*) 'errors in prognostic vars: not checking diagnostics'
 c only check diagnostics if no prognostic errors
@@ -389,6 +495,18 @@ c      else
       DAGPOS=DAGPOS+LMO*KOL
       ERRQ=COMP8('OLNST ',LMO,NMST,KOLNST,ODIAG1(DAGPOS),ODIAG2(DAGPOS))
       END IF
+#ifdef TRACERS_ON
+      ERRQ=COMP8('TAIJLN',IM,JM,LM*NTM    ,TAIJLN1,TAIJLN2) .or. ERRQ
+      ERRQ=COMP8('TAIJN ',IM,JM,KTAIJ*NTM ,TAIJN1 ,TAIJN2) .or. ERRQ
+      ERRQ=COMP8('TAIJS ',IM,JM,KTAIJS    ,TAIJS1 ,TAIJS2) .or. ERRQ
+      ERRQ=COMP8('TAJLN ',JM,LM,KTAJLX*NTM,TAJLN1 ,TAJLN2) .or. ERRQ
+      ERRQ=COMP8('TAJLS ',JM,LM,KTAJLS    ,TAJLS1 ,TAJLS2) .or. ERRQ
+      ERRQ=COMP8('TCONS ',JM,KTCON,NTM    ,TCON1  ,TCON2 ) .or. ERRQ
+#ifdef TRACERS_WATER
+      ERRQ=COMP8('TRICDG',IMIC,JMIC,KTICIJ*NTM,TRICDG1,TRICDG2) .or.
+     *     ERRQ
+#endif
+#endif
 
 c      endif
       STOP
