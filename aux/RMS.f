@@ -22,32 +22,32 @@ C****
 !@var NREC array of positions of targets in diagnostic file      
       INTEGER, DIMENSION(NDIAG) :: NREC
 !@var TITLE array of target diagnostics to be found in output
-      CHARACTER*45, DIMENSION(NDIAG) :: TITLE = (/
-     *     'SNOW COVERAGE (%)                        ',
-     *     'PRECIPITATION (mm/day)                   ',
-     *     'TOTAL CLOUD COVER (%)                    ',
-     *     'NET SOLAR RADIATION, SURF (W/m^2)        ',
-     *     'INCIDENT SOLAR RADIATION, SURF (W/m^2)   ',
-     *     'SURFACE AIR TEMPERATURE (C)              ',
-     *     'U COMPONENT OF SURFACE AIR WIND (m/s)    ',
-     *     'V COMPONENT OF SURFACE AIR WIND (m/s)    ',
-     *     'LOW LEVEL CLOUDINESS (ISCCP) (%)         ',
-     *     'MIDDLE LEVEL CLOUDINESS (ISCCP) (%)      ',
-     *     'HIGH LEVEL CLOUDINESS (ISCCP) (%)        ',
-     *     'SURFACE AIR SPECIFIC HUMIDITY (10^-4 g/g)',
-     *     'SEA LEVEL PRESSURE (mb-1000)             ',
-     *     'CLOUD TOP PRESSURE (ISCCP) (mb)          ',
-     *     'PLANETARY ALBEDO (%)                     ',
-     *     'GROUND ALBEDO IN VISUAL RANGE (%)        ',
-     *     'DIURNAL SURF AIR TEMP (C)                ',
-     *     'NET SOLAR RADIATION, TOA (W/m^2)         ',
-     *     'NET THERMAL RADIATION, TOA (W/m^2)       ',
-     *     'TEMPERATURE AT 850mb (C)                 ',
-     *     'TEMPERATURE AT 500mb (C)                 ',
-     *     'TEMPERATURE AT 300mb (C)                 ',
-     *     'SPECIFIC HUMIDITY AT 850mb (g/kg)        ',
-     *     'SPECIFIC HUMIDITY AT 500mb (g/kg)        ',
-     *     '500 mb HEIGHT (m-5600)                   '/)
+      CHARACTER*45, DIMENSION(NDIAG) :: TITLE = (/       ! INDEX
+     *     'SNOW COVERAGE (%)                        ',  ! 1
+     *     'PRECIPITATION (mm/day)                   ',  ! 2
+     *     'TOTAL CLOUD COVER (%)                    ',  ! 3
+     *     'NET SOLAR RADIATION, SURF (W/m^2)        ',  ! 4
+     *     'INCIDENT SOLAR RADIATION, SURF (W/m^2)   ',  ! 5
+     *     'SURFACE AIR TEMPERATURE (C)              ',  ! 6
+     *     'U COMPONENT OF SURFACE AIR WIND (m/s)    ',  ! 7
+     *     'V COMPONENT OF SURFACE AIR WIND (m/s)    ',  ! 8
+     *     'LOW LEVEL CLOUDINESS (ISCCP) (%)         ',  ! 9
+     *     'MIDDLE LEVEL CLOUDINESS (ISCCP) (%)      ',  ! 10
+     *     'HIGH LEVEL CLOUDINESS (ISCCP) (%)        ',  ! 11
+     *     'SURFACE AIR SPECIFIC HUMIDITY (10^-4 g/g)',  ! 12
+     *     'SEA LEVEL PRESSURE (mb-1000)             ',  ! 13
+     *     'CLOUD TOP PRESSURE (ISCCP) (mb)          ',  ! 14
+     *     'PLANETARY ALBEDO (%)                     ',  ! 15
+     *     'GROUND ALBEDO IN VISUAL RANGE (%)        ',  ! 16
+     *     'DIURNAL SURF AIR TEMP (C)                ',  ! 17
+     *     'NET SOLAR RADIATION, TOA (W/m^2)         ',  ! 18
+     *     'NET THERMAL RADIATION, TOA (W/m^2)       ',  ! 19
+     *     'TEMPERATURE AT 850mb (C)                 ',  ! 20
+     *     'TEMPERATURE AT 500mb (C)                 ',  ! 21
+     *     'TEMPERATURE AT 300mb (C)                 ',  ! 22
+     *     'SPECIFIC HUMIDITY AT 850mb (g/kg)        ',  ! 23
+     *     'SPECIFIC HUMIDITY AT 500mb (g/kg)        ',  ! 24
+     *     '500 mb HEIGHT (m-5600)                   '/) ! 25
 C****
 C****  Diag  Obsr Domain  N Obseration file     Mon B Wt Fac   Off
 C****  ----  ---- ------  - ---------------     --- - -- ----  ---
