@@ -170,9 +170,27 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
      *     IJ_PEVAP,IJ_TMAXE, IJ_WMSUM, IJ_PSCLD, IJ_PDCLD, IJ_DCNVFRQ,
      *     IJ_SCNVFRQ, IJ_EMTMOM, IJ_SMTMOM, IJ_FPEU, IJ_FPEV, IJ_FMU,
      *     IJ_FMV,IJ_FQU, IJ_FQV, IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR
-!@var NAME_IJ Names of IJ diagnostics
+!@var NAME_IJ Names of lat/lon IJ diagnostics
       CHARACTER*7 NAME_IJ(KAIJ)
-!@var IA_IJ IDACC indexes for IJ diagnostics
+!@var IA_IJ IDACC indexes for lat/lon IJ diagnostics
       INTEGER IA_IJ(KAIJ)
+
+!@var J_xxx zonal J diagnostic names
+      INTEGER :: J_SRINCP0, J_SRNFP0, J_SRNFP1, J_SRABS, J_SRINCG,
+     *     J_SRNFG, J_TRNFP0, J_TRNFP1, J_TRHDT, J_RNFP0, J_RNFP1,
+     *     J_RHDT, J_SHDT, J_EVHDT, J_F2DT, J_HZ1, J_TG2, J_TG1, J_EVAP,
+     *     J_PRCP, J_TX, J_TX1, J_TSRF, J_DTSGST, J_DTDGTR, J_RICST,
+     *     J_RICTR, J_ROSST, J_ROSTR, J_RSI, J_RSNOW, J_SWCOR, J_OHT,
+     *     J_OMLT, J_DTDJS, J_DTDJT, J_LSTR, J_LTRO, J_EPRCP, J_ERUN1,
+     *     J_EDIFS, J_F1DT, J_ERUN2, J_HZ0, J_DIFS, J_IMELT, J_RUN2,
+     *     J_DWTR2, J_WTR1, J_ACE1, J_WTR2, J_ACE2, J_SNOW, J_RUN1,
+     *     J_BRTEMP, J_HZ2, J_PCLDSS, J_PCLDMC, J_PCLD, J_CTOPP,
+     *     J_PRCPSS, J_PRCPMC, J_QP, J_GAM, J_GAMM, J_GAMC, J_TRINCG,
+     *     J_FTHERM, J_HSURF, J_HATM, J_PLAVIS, J_PLANIR, J_ALBVIS,
+     *     J_ALBNIR, J_SRRVIS, J_SRRNIR, J_SRAVIS, J_SRANIR, J_CDLDEP 
+!@var NAME_J Names of zonal J diagnostics
+      CHARACTER*7 NAME_J(KAIJ)
+!@var IA_J IDACC indexes for zonal J diagnostics
+      INTEGER IA_J(KAIJ)
 
       END MODULE DAGCOM
