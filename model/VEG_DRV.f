@@ -316,13 +316,13 @@ c**** recompute ground hydrology data if necessary (new soils data)
      &     ,fdir,parinc,vegalbedo,sbeta,Ci,Qf ! added by adf, nyk
      &     ,cond_scheme         !nyk
      &     ,cnc
-      use veg_com
       use radncb, only : cosz1
      &    ,FSRDIR,SRVISSURF  !adf, nyk
       use veg_com, only : 
      &     Cint,Qfol           ! added by adf
-     $     ,cnc_ij
+     &     ,cnc_ij
      &     ,aalbveg    ! nyk
+     &     ,afr,avh,anm,anf,ala,alaif,alaf,vdata,acs
 
 
       implicit none
