@@ -46,7 +46,6 @@ SETUP = $(SCRIPTS_DIR)/setup_e.pl
 SETUP_GFDL = $(SCRIPTS_DIR)/setup_e_gfdl.pl
 CPP = $(NO_COMMAND)
 MACHINE = not_specified
-COMPILER = not_specified
 LIBS =
 F90_VERSION = 'Unknown compiler version'
 
@@ -103,7 +102,7 @@ endif
 # Absoft, Lahey, Intel (not working yet), Vast (not working yet).
 ifeq ($(UNAME),Linux)
 MACHINE = Linux
-ifndef $(COMPILER)
+ifndef COMPILER
 COMPILER = Absoft
 endif
 
@@ -224,7 +223,8 @@ ifeq ($(COMPILER),Absoft)
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.F \
 	  $(COMP_OUTPUT)
 	rm -f $*.F
-elseifeq ($(COMPILER),Lahey)
+else
+ifeq ($(COMPILER),Lahey)
 	cp $*.f $*.F
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.F \
 	  $(COMP_OUTPUT)
@@ -232,6 +232,7 @@ elseifeq ($(COMPILER),Lahey)
 else
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.f \
 	  $(COMP_OUTPUT)
+endif
 endif
 	-@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
 	  do if [ ! -s $$i.sig ] || [ `find $$i -newer $$i.sig` ] ; then \
