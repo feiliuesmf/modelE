@@ -1,7 +1,7 @@
 !@sum  UTILDBL Model Independent Utilities
 !@auth Original Development Team
 !@ver  1.0
-!@cont THBAR,QSAT,DQSATDT,TRIDAIG,TIMER,FILEMANAGER,READT,DREAD,MREAD
+!@cont THBAR,QSAT,DQSATDT,TRIDIAG,TIMER,FILEMANAGER,READT,DREAD,MREAD
 
       FUNCTION THBAR (X,Y)
 !@sum  THBAR calculates mean temperature used in vertical differencing

@@ -27,7 +27,7 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 !@sum  init_LAKES initiallises lake variables
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : rhow
+      USE CONSTANT, only : rhow,shw
       USE E001M12_COM, only : im,jm,flake,zatmo,dtsrc,flice,hlake,ftype
      *     ,fland,itlake,itlkice
       USE OCEAN, only : tocean
@@ -61,7 +61,7 @@ C**** This is just an estimate for the initiallisation
             IF (FLAKE(I,J).gt.0) THEN
               TLAKE(I,J) = TOCEAN(1,I,J)
               MWL(I,J) = RHOW*HLAKE(I,J)*FLAKE(I,J)*DXYP(J)
-              GML(I,J) = MWL(I,J)*MAX(TLAKE(I,J),4d0)
+              GML(I,J) = SHW*MWL(I,J)*MAX(TLAKE(I,J),4d0)
             ELSE
               TLAKE(I,J) = 0.
               MWL(I,J) = 0.
@@ -211,13 +211,9 @@ C****
 
 
       SUBROUTINE RIVERF
-!@sum  LAKES subroutines for Lakes and Rivers
+!@sum  RIVERF transports lake water from each grid box downstream
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0 (based on LB265)
-C****
-C**** RIVERF transports lake water from each GCM grid box to its
-C**** downstream neighbor according to the river direction file.
-C****
       USE CONSTANT, only : grav,shw,rhow
       USE E001M12_COM, only : im,jm,flake,focean,zatmo,hlake
       USE GEOM, only : dxyp
@@ -428,7 +424,7 @@ c     QCHECKL = .TRUE.
      *     ,fland,itlake,itlkice
       USE GEOM, only : imaxj
 !      USE LAKES, only : zimin,zimax,t_ice,t_noice,bydtmp
-      USE LAKES_COM, only : t50
+      USE LAKES_COM, only : t50,tlake,mwl,gml
       USE OCEAN, only : dm
       USE SEAICE_COM, only : rsi,msi,tsi,snowi
       USE SEAICE, only : z1i

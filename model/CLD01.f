@@ -5,7 +5,7 @@
 !@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
      *     ,by3,tf,bytf,rvap,bygrav
-      USE E001M12_COM, only : IM,LM,Itime,DTsrc
+      USE E001M12_COM, only : IM,LM,DTsrc
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
       USE RANDOM
       IMPLICIT NONE
@@ -844,15 +844,16 @@ C**** CALCULATE OPTICAL THICKNESS
       RETURN
       END SUBROUTINE MSTCNV
 
-      SUBROUTINE LSCOND(I0,J0)
+      SUBROUTINE LSCOND(IERR,WMERR,LERR)
 !@sum  LSCOND column physics of large scale condensation
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
 !@calls CTMIX,QSAT,DQSATDT,THBAR
       IMPLICIT NONE
 
-!@var I0,J0 grid point for diagnostic purposes
-      INTEGER, INTENT(IN) :: I0,J0
+!@var IERR,WMERR,LERR error reporting 
+      INTEGER, INTENT(OUT) :: IERR,LERR
+      REAL*8, INTENT(OUT) :: WMERR
       REAL*8 LHX,LHXUP
 
       REAL*8, PARAMETER :: CM00=1.d-4
@@ -886,6 +887,8 @@ C**** CALCULATE OPTICAL THICKNESS
 C****
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
 C**** THE LIQUID WATER CONTENT IS PREDICTED
+C****
+      IERR=0.
 C****
       PRCPSS=0.
       HCNDSS=0.
@@ -1103,8 +1106,9 @@ C**** UPDATE NEW TEMPERATURE AND SPECIFIC HUMIDITY
       WMNEW=WMX(L)+DWDT1*DTsrc
 C**** IF WMNEW .LT. 0., THE COMPUTATION IS UNSTABLE
       IF(WMNEW.LT.0.) THEN
-        WRITE(99,'(I10,3I4,A,D14.5,A)')
-     *   Itime,I0,J0,L,' CONDSE:H2O<0',WMNEW,' ->0'
+        IERR=1
+        LERR=L
+        WMERR=WMNEW
         WMNEW=0.
       END IF
       END IF

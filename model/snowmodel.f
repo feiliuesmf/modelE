@@ -689,7 +689,8 @@ ccc all other snow layers including the lower one
      &         + tsn(n+1)*right*(1.d0-eta(n+1))
           enddo
 
-        call sweep3diag(b, c, a, f, tnew, nl)
+c        call sweep3diag(b, c, a, f, tnew, nl)
+          call TRIDIAG(b,a,c,f,tnew,nl)
 
 ccc flux_corr is the energy wich should be returned to the atmosphere
         flux_corr = flux_in_deriv*( tnew(1) - tsn(1) )*gamma

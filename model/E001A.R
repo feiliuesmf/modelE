@@ -13,10 +13,10 @@ SE001M12 EE001M12   PBLE001  SLE001 ! surfce and its subr
 PBLDRV                              ! surfce and its subr
 OCNE001 SEAICE LAKES LANDICE        ! ocean, lake and sea ice modules
 SEAICE_DRV LANDICE_DRV              ! ocean, lake and sea ice modules
+snowmodel                           ! snow model
 RE001                               ! setsur  rad.subr_incl._forcings
 DE001M12  FFT72  UTILDBL RAND~      ! diag,utilities
 POUT                                ! for post-processing
-snowmodel sweep3d                   ! snow model
 
 Data input files:
 AIC=DEC1958.rsfB394M12.modelE.1

@@ -7,7 +7,7 @@
       USE CONSTANT, only : bygrav,lhm
       USE E001M12_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,sig,DTsrc,ftype
-     *     ,ntype
+     *     ,ntype,itime
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,raj,idij,idjj
       USE CLD01_COM_E001, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
@@ -38,10 +38,10 @@
       REAL*8,  PARAMETER :: ENTCON = .2d0  !@param ENTCON  ???
 
       INTEGER I,J,K,L  !@var I,J,K,L loop variables
-      INTEGER IMAX,JR,KR,ITYPE,IT
+      INTEGER IMAX,JR,KR,ITYPE,IT,LERR,IERR
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
 
-      REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP
+      REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR
 
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
@@ -169,7 +169,11 @@ C****
 
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
 
-      CALL LSCOND(I,J)
+      CALL LSCOND(IERR,WMERR,LERR)
+
+C**** Error reports
+      IF (IERR.ne.0) WRITE(99,'(I10,3I4,A,D14.5,A)')
+     *       Itime,I,J,LERR,' CONDSE:H2O<0',WMERR,' ->0'
 
 C**** Accumulate diagnostics of LSCOND
          AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM

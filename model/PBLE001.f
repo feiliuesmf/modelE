@@ -663,10 +663,10 @@ c ----------------------------------------------------------------------
       real*8 z1,zn,bgrid
       real*8 z1pass,znpass,b,xipass,lznbyz1
       common /grids_99/z1pass,znpass,b,xipass,lznbyz1
-      real*8, external :: fgrid
+      real*8, external :: fgrid,fgrid2
+      real*8 rtsafe
       integer i,j,iter  !@var i,j,iter loop variable
       real*8 dxi,zmin,zmax,dxidz,dxidzh
-c      real*8 zbrent
 
       z1pass=z1
       znpass=zn
@@ -686,15 +686,15 @@ c      real*8 zbrent
       dxidz=1.+bgrid*((zn-z1)/z1-lznbyz1)
       dz(1)=dxi/dxidz
       xipass=xihat(1)
-      zhat(1)=zbrent(fgrid,zmin,zmax,tolz)
+      zhat(1)=rtsafe(fgrid2,zmin,zmax,tolz) !zbrent(fgrid,zmin,zmax,tolz)
       dxidzh=1.+bgrid*((zn-z1)/zhat(1)-lznbyz1)
       dzh(1)=dxi/dxidzh
 
       do i=2,n-1
         xipass=xi(i)
-        z(i)=zbrent(fgrid,zmin,zmax,tolz)
+        z(i)=rtsafe(fgrid2,zmin,zmax,tolz)  !zbrent(fgrid,zmin,zmax,tolz)
         xipass=xihat(i)
-        zhat(i)=zbrent(fgrid,zmin,zmax,tolz)
+        zhat(i)=rtsafe(fgrid2,zmin,zmax,tolz) !zbrent(fgrid,zmin,zmax,tolz)
         dxidz=1.+bgrid*((zn-z1)/z(i)-lznbyz1)
         dxidzh=1.+bgrid*((zn-z1)/zhat(i)-lznbyz1)
         dz(i)=dxi/dxidz
@@ -1020,7 +1020,7 @@ c
       dia(n-1)=1.
       rhs(n-1)=0.
 c
-      call trislv(sub,dia,sup,rhs,e,n-1)
+      call TRIDIAG(sub,dia,sup,rhs,e,n-1)
 c
       do j=1,n-1
          if(e(j).lt.1.d-20) e(j)=1.d-20
@@ -1098,12 +1098,12 @@ c     M.J.Miller et al. 1992:
       sub(n)  = 0.
       rhs(n) = ttop
 
-      call trislv(sub,dia,sup,rhs,t,n)
+      call TRIDIAG(sub,dia,sup,rhs,t,n)
 c ----------------------------------------------------------------------
       dia(1) = 1.+factq
       rhs1(1)= factq*qgrnd
       rhs1(n) = qtop
-      call trislv(sub,dia,sup,rhs1,q,n)
+      call TRIDIAG(sub,dia,sup,rhs1,q,n)
 
       return
       end subroutine tqeqns
@@ -1181,8 +1181,8 @@ c
       rhs1(1)  = 0.
       rhs1(n)  = vtop
 c
-      call trislv(sub,dia,sup,rhs,u,n)
-      call trislv(sub,dia,sup,rhs1,v,n)
+      call TRIDIAG(sub,dia,sup,rhs,u,n)
+      call TRIDIAG(sub,dia,sup,rhs1,v,n)
 c ----------------------------------------------------------------------
 
       return
@@ -1239,12 +1239,12 @@ c
       sub(n)  = 0.
       rhs(n) = ttop
 c
-      call trislv(sub,dia,sup,rhs,t,n)
+      call TRIDIAG(sub,dia,sup,rhs,t,n)
 c ----------------------------------------------------------------------
       dia(1) = 1.+factq
       rhs1(1)= factq*qgrnd
       rhs1(n) = qtop
-      call trislv(sub,dia,sup,rhs1,q,n)
+      call TRIDIAG(sub,dia,sup,rhs1,q,n)
 c
       return
       end subroutine tqeqns_sta
@@ -1300,8 +1300,8 @@ c
       rhs1(1)  = 0.
       rhs1(n)  = vtop
 c
-      call trislv(sub,dia,sup,rhs,u,n)
-      call trislv(sub,dia,sup,rhs1,v,n)
+      call TRIDIAG(sub,dia,sup,rhs,u,n)
+      call TRIDIAG(sub,dia,sup,rhs1,v,n)
 c
       return
       end subroutine uveqns_sta
@@ -2029,3 +2029,77 @@ c ----------------------------------------------------------------------
       fgrid=z+bgrid*((zn-z1)*log(z/z1)-(z-z1)*lznbyz1)-xi
       return
       end function fgrid
+
+      subroutine fgrid2(z,f,df)
+!@sum  fgrid2 computes functional relationship of z and xi + derivative
+!@auth Ye Cheng/G. Hartke
+!@ver  1.0
+      implicit none
+      real*8, intent(in) :: z
+      real*8, intent(out) :: f,df
+      real*8 z1,zn,bgrid,xi,lznbyz1
+      common /grids_99/z1,zn,bgrid,xi,lznbyz1
+
+      f=z+bgrid*((zn-z1)*log(z/z1)-(z-z1)*lznbyz1)-xi
+      df=1.-bgrid*lznbyz1+bgrid*(zn-z1)/z
+
+      return
+      end subroutine fgrid2
+
+      function rtsafe(funcd,x1,x2,xacc)
+!@sum   rtsafe use Newton-Rapheson + safeguards to solve F(x)=0
+!@auth  Numerical Recipes
+!@ver   1.0
+      integer,parameter :: maxit=100
+      real*8, intent(in) :: x1,x2,xacc
+      real*8 rtsafe
+      external funcd
+      integer j
+      real*8 df,dx,dxold,f,fh,fl,temp,xh,xl
+
+      call funcd(x1,fl,df)
+      call funcd(x2,fh,df)
+      if(fl*fh.gt.0.) stop 'root must be bracketed in rtsafe'
+      if(fl.eq.0.)then
+        rtsafe=x1
+        return
+      else if(fh.eq.0.)then
+        rtsafe=x2
+        return
+      else if(fl.lt.0.)then
+        xl=x1
+        xh=x2
+      else
+        xh=x1
+        xl=x2
+      endif
+      rtsafe=.5*(x1+x2)
+      dxold=abs(x2-x1)
+      dx=dxold
+      call funcd(rtsafe,f,df)
+      do j=1,MAXIT
+        if(((rtsafe-xh)*df-f)*((rtsafe-xl)*df-f).ge.0..or. abs(2.*
+     *       f).gt.abs(dxold*df) ) then
+          dxold=dx
+          dx=0.5*(xh-xl)
+          rtsafe=xl+dx
+          if(xl.eq.rtsafe)return
+        else
+          dxold=dx
+          dx=f/df
+          temp=rtsafe
+          rtsafe=rtsafe-dx
+          if(temp.eq.rtsafe)return
+        endif
+        if(abs(dx).lt.xacc) return
+        call funcd(rtsafe,f,df)
+        if(f.lt.0.) then
+          xl=rtsafe
+        else
+          xh=rtsafe
+        endif
+      end do
+      stop 'rtsafe exceeding maximum iterations'
+      return
+      END
+
