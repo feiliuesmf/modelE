@@ -476,7 +476,7 @@ C****
       USE CONSTANT, only : grav,sha,twopi,kapa,rgas
       USE MODEL_COM, only : im,jm,lm,byim,nidyn,sig,sige
      *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
-      USE CLOUDS_COM, only : airx,lmc
+      USE CLOUDS_COM, only :: airx,lmc
       USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm
      *     ,lbreak,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv
      *     ,cmtn,cdef,cmc,pbreaktop,defthresh,pconpen,ang_gwd
@@ -499,7 +499,6 @@ C****
       REAL*8, PARAMETER :: ROTK = 1.5, RKBY3= ROTK*ROTK*ROTK
 
       REAL*8, DIMENSION(IM,JM,LM) :: DUT3,DVT3,DKE,TLS,THLS,BVS
-      INTEGER, DIMENSION(IM,2:JM) :: LDRAGA
       REAL*8, DIMENSION(IM,LM) :: UIL,VIL,TLIL,THIL,BVIL
       REAL*8, DIMENSION(LM,JM) :: DUJL
       REAL*8, DIMENSION(LM) :: PL,DP,TL,THL,RHO,BVF,UL,VL,DL,DUT,DVT,
@@ -848,7 +847,6 @@ C**** DIAGNOSTICS
 C****
 C**** CALCULATE THE DRAG
 C****
-      LDRAGA(I,J)=LDRAG
       IF (LDRAG.GT.LM) GO TO 500
       DO 400 N=1,NM
       IF (LD(N).GT.LM) GO TO 400
@@ -1042,8 +1040,7 @@ C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
             DO I=1,IMAXJ(J)
               ediff=0.
               DO K=1,KMAXJ(J)   ! loop over surrounding vel points
-                IF (L.ge.LDRAGA(IDIJ(K,I,J),IDJJ(K,J))-1) ediff=ediff
-     *               + DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
+                ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
               END DO
               ediff=ediff/(SHA*PK(I,J,L))
               T(I,J,L)=T(I,J,L)-ediff
@@ -1204,7 +1201,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM
-      USE CLOUDS_COM, only : airx,lmc
+      USE CLOUDS_COM, only :: airx,lmc
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
