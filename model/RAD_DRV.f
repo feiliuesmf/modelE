@@ -1248,39 +1248,31 @@ C**** or not.
 C**** Aerosols incl. Dust:
       if (NTRACE.gt.0) then
         FSTOPX(:)=onoff ; FTTOPX(:)=onoff
-        DO n=1,NTRACE
-          IF (trname(ntrix(n)) .EQ. 'Clay') THEN
-            SNFST(1,NTRIX(n),I,J)=0D0
-            TNFST(1,NTRIX(n),I,J)=0D0
-            SNFST(2,NTRIX(n),I,J)=0D0
-            TNFST(2,NTRIX(n),I,J)=0D0
-            EXIT
-          END IF
-        END DO
         do n=1,NTRACE
           IF (trname(NTRIX(n)).eq."seasalt2") CYCLE ! not for seasalt2
+          IF (trname(ntrix(n)) == 'Clay' .AND. n > n_clay) cycle
           FSTOPX(n)=1-onoff ; FTTOPX(n)=1-onoff ! turn on/off tracer
 C**** Warning: small bit of hardcoding assumes that seasalt1 is
 C**** one before seasalt2 in NTRACE array
           IF (trname(NTRIX(n)).eq."seasalt1") THEN ! add seasalt1 to seasalt2
             FSTOPX(n+1)=1-onoff ; FTTOPX(n+1)=1-onoff
           END IF
+c**** Do radiation calculations for all clay classes at once
+          IF (trname(ntrix(n)) == 'Clay' .AND. n == n_clay) THEN
+            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+          END IF
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
           CALL RCOMPX
-          IF (trname(ntrix(n)) .EQ. 'Clay') THEN
-            SNFST(1,NTRIX(n),I,J)=SNFST(1,NTRIX(n),I,J)+SRNFLB(1) ! surface forcing
-            TNFST(1,NTRIX(n),I,J)=TNFST(1,NTRIX(n),I,J)+TRNFLB(1)
-            SNFST(2,NTRIX(n),I,J)=SNFST(2,NTRIX(n),I,J)+SRNFLB(LFRC)
-            TNFST(2,NTRIX(n),I,J)=TNFST(2,NTRIX(n),I,J)+TRNFLB(LFRC)
-          ELSE
-            SNFST(1,NTRIX(n),I,J)=SRNFLB(1) ! surface forcing
-            TNFST(1,NTRIX(n),I,J)=TRNFLB(1)
-            SNFST(2,NTRIX(n),I,J)=SRNFLB(LFRC)
-            TNFST(2,NTRIX(n),I,J)=TRNFLB(LFRC)
-          END IF
+          SNFST(1,NTRIX(n),I,J)=SRNFLB(1) ! surface forcing
+          TNFST(1,NTRIX(n),I,J)=TRNFLB(1)
+          SNFST(2,NTRIX(n),I,J)=SRNFLB(LFRC)
+          TNFST(2,NTRIX(n),I,J)=TRNFLB(LFRC)
           FSTOPX(n)=onoff ; FTTOPX(n)=onoff ! back to default
           IF (trname(NTRIX(n)).eq."seasalt1") THEN ! for seasalt2 as well
             FSTOPX(n+1)=onoff ; FTTOPX(n+1)=onoff
+          END IF
+          IF (trname(ntrix(n)) == 'Clay' .AND. n == n_clay) THEN
+            fstopx(n+1:n+3)=onoff ; fttopx(n+1:n+3)=onoff  ! for clays as well
           END IF
         end do
       end if
@@ -1648,10 +1640,10 @@ c longwave forcing  (TOA or TROPO) clear sky
      * ,ijts_fc(6,n))-rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))*(1.d0-
      *  CFRAC(I,J))
 c shortwave forcing at surface (if required)
-             if (ijts_fc(3,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
+             if (ijts_fc(3,n).gt.0) taijs(i,j,ijts_fc(3,n))=taijs(i,j
      *         ,ijts_fc(3,n))+rsign*(SNFST(1,N,I,J)-SNFS(1,I,J))*CSZ2
 c longwave forcing at surface (if required)
-             if (ijts_fc(4,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
+             if (ijts_fc(4,n).gt.0) taijs(i,j,ijts_fc(4,n))=taijs(i,j
      *         ,ijts_fc(4,n))-rsign*(TNFST(1,N,I,J)-TNFS(1,I,J))
            end do
          end if
