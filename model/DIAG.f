@@ -2649,9 +2649,9 @@ C****
 #ifdef TRACERS_AEROSOLS_Koch
       USE TRACER_COM, only : n_SO4
 #ifdef TRACERS_HETCHEM
-     *       n_SO4_d1,n_SO4_d2, n_SO4_d3, n_SO4_d4, n_SO4_ds1, n_SO4_s2
+     *       ,n_SO4_d1,n_SO4_d2, n_SO4_d3, n_SO4_d4, n_SO4_s1, n_SO4_s2
 #endif
-#endif
+#endif 
       IMPLICIT NONE
       SAVE
 !@var kddmax maximum number of sub-daily diags output files
