@@ -216,9 +216,9 @@ C****
       THV1=T(I,J,1)*(1.+Q1*deltx)
 CCC   JR=JREG(I,J)
       MA1=AM(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
-      MSUM = (PS*100.)/GRAV !@var MSUM total mass of atmosphere (kg/m^2)
-      PGK = (PS*100.)**KAPA
-      PKDN = (GRAV*(MSUM-MA1*0.25))**KAPA
+c     MSUM = (PS*100.)/GRAV !@var MSUM total mass of atmosphere (kg/m^2)
+c     PGK = (PS*100.)**KAPA
+c     PKDN = (GRAV*(MSUM-MA1*0.25))**KAPA
 #ifdef TRACERS_ON
 C**** Set up tracers for PBL calculation if required
       nx=0
@@ -373,6 +373,9 @@ C**** fraction of solar radiation leaving layer 1 and 2
       BETA=1.
       ELHX=LHS
 
+      Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
+      CDENOM=1./(2.*Z1BY6L+Z2LI3L)
+
       END IF
 C****
 C**** LAND ICE
@@ -403,7 +406,9 @@ C****
 C**** BOUNDARY LAYER INTERACTION
 C****
       TKV=THV1*PSK
-      ZS1=.5*DSIG(1)*RGAS*BYGRAV*TKV*PIJ/PS
+c     ZS1=.5*DSIG(1)*RGAS*BYGRAV*TKV*PIJ/PS
+      if(TSV.eq.0.) TSV=TKV
+      ZS1=.5*DSIG(1)*PIJ*RGAS*BYGRAV*(THV1*P1K+TSV)/(PMID(1,I,J)+PS)
       SHDT=0.
       EVHDT=0.
       TRHDT=0.
@@ -478,7 +483,8 @@ C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
       RCDQWS=CQ*WSH*RHOSRF
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
 C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2)
-      SHEAT=SHA*RCDHWS*(TS-TG)
+c     SHEAT=SHA*RCDHWS*(TS-TG)
+      SHEAT=SHA*RCDHWS*(TSV-TGV)
       BETAUP = BETA
       IF (QSRF .GT. QG_SAT) BETAUP = 1.
       EVHEAT=(LHE+TG1*SHV)*BETAUP*RCDQWS*(QSRF-QG_SAT)
@@ -488,16 +494,18 @@ C****
 
 !!!      CASE (1) ! FLUXES USING IMPLICIT TIME STEP FOR OCEAN POINTS
       if ( ITYPE == 1) then
-        DSHDTG=-RCDHWS*SHA
-        dEVdQS = LHE*RCDQWS
-        dHS = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/
-     A       ((1.+2.*S1BYG1)*DTSURF*PGK*RCDHWS+MA1*PKDN)
-        dTS = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/
-     A       (MA1*PKDN*SHA-(1.+2.*S1BYG1)*DTSURF*PGK*DSHDTG)
-        dQS = -(1.+2.*S1BYG1)*DTSURF*EVHEAT/
-     A       ((1.+2.*S1BYG1)*DTSURF*dEVdQS+MA1*LHE)
-        SHDT = DTSURF*(SHEAT-dTS*DSHDTG)
-        EVHDT=DTSURF*(EVHEAT+dQS*dEVdQS) ! latent heat flux
+c       DSHDTG=-RCDHWS*SHA
+c       dEVdQS = LHE*RCDQWS
+c       dHS = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/
+c    A       ((1.+2.*S1BYG1)*DTSURF*PGK*RCDHWS+MA1*PKDN)
+c       dTS = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/
+c    A       (MA1*PKDN*SHA-(1.+2.*S1BYG1)*DTSURF*PGK*DSHDTG)
+c       dQS = -(1.+2.*S1BYG1)*DTSURF*EVHEAT/
+c    A       ((1.+2.*S1BYG1)*DTSURF*dEVdQS+MA1*LHE)
+c       SHDT = DTSURF*(SHEAT-dTS*DSHDTG)
+c       EVHDT=DTSURF*(EVHEAT+dQS*dEVdQS) ! latent heat flux
+        SHDT = DTSURF*SHEAT
+        EVHDT=DTSURF*EVHEAT              ! latent heat flux
         TRHDT=DTSURF*TRHEAT
 #ifdef TRACERS_AEROSOLS_Koch
         SHDTT(I,J)=SHDT
@@ -516,27 +524,34 @@ C****
         dEVdTG = -dQGdTG*LHE*RCDQWS ! d(EVHEAT)/dTG
         dTRdTG = -4*STBO*TG*TG*TG ! d(TRHEAT)/dTG
         dF0dTG = dSNdTG+dEVdTG+dTRdTG ! d(F0)/dTG
-C       dSNdHS = RCDHWS ! d(SHEAT)/dHS - kg/(sec*m^2)
-        dEVdQS = LHE*RCDQWS     ! d(EVHEAT)/dQS
-        HSDEN = -(1.+2.*S1BYG1)*DTSURF*PGK*BETA*dSNdTG+MA1*PKDN*SHA
-        HSCON = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/HSDEN ! (J*sec)/kg
-        HSMUL=-(1.+2.*S1BYG1)*DTSURF*PGK*BETA*dSNdTG/HSDEN ! J/(kg*degC)
-        QSDEN = (1.+2.*S1BYG1)*BETA*DTSURF*dEVdQS+MA1*LHE
-        QSCON = -(1.+2.*S1BYG1)*DTSURF*EVHEAT/QSDEN
-        QSMUL = -(1.+2.*S1BYG1)*DTSURF*BETA*dEVdTG/QSDEN
+cc      dSNdHS = RCDHWS ! d(SHEAT)/dHS - kg/(sec*m^2)
+c       dEVdQS = LHE*RCDQWS     ! d(EVHEAT)/dQS
+c       HSDEN = -(1.+2.*S1BYG1)*DTSURF*PGK*BETA*dSNdTG+MA1*PKDN*SHA
+c       HSCON = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/HSDEN ! (J*sec)/kg
+c       HSMUL=-(1.+2.*S1BYG1)*DTSURF*PGK*BETA*dSNdTG/HSDEN ! J/(kg*degC)
+c       QSDEN = (1.+2.*S1BYG1)*BETA*DTSURF*dEVdQS+MA1*LHE
+c       QSCON = -(1.+2.*S1BYG1)*DTSURF*EVHEAT/QSDEN
+c       QSMUL = -(1.+2.*S1BYG1)*DTSURF*BETA*dEVdTG/QSDEN
         T2DEN = HCG2+BETA*DTSURF*dF1dTG
         T2CON = DTSURF*(F1-F2)/T2DEN
         T2MUL = BETA*DTSURF*dF1dTG/T2DEN
-        TGDEN = HCG1-BETA*DTSURF*(dF0dTG-dF1dTG-
-     A       HSMUL*dSNdTG+QSMUL*dEVdQS+T2MUL*dF1dTG) ! W/(m^2*degC)
-        dTG = DTSURF*(F0-F1+BETA*
-     A       (QSCON*dEVdQS-HSCON*dSNdTG+T2CON*dF1dTG))/TGDEN ! degC
+c       TGDEN = HCG1-BETA*DTSURF*(dF0dTG-dF1dTG-
+c    A       HSMUL*dSNdTG+QSMUL*dEVdQS+T2MUL*dF1dTG) ! W/(m^2*degC)
+c       dTG = DTSURF*(F0-F1+BETA*
+c    A       (QSCON*dEVdQS-HSCON*dSNdTG+T2CON*dF1dTG))/TGDEN ! degC
+
+        DFDTG=DF0DTG-(1.-DF0DTG*Z1BY6L)*CDENOM
+        DTG=(F0-F1)*DTSURF/(HCG1-DTSURF*DFDTG)
+
         IF (TG1+dTG .GT. 0.) dTG = -TG1
-        dHS = HSCON+HSMUL*dTG   ! (J*sec)/kg
-        dQS = QSCON+QSMUL*dTG
+c       dHS = HSCON+HSMUL*dTG   ! (J*sec)/kg
+c       dQS = QSCON+QSMUL*dTG
         dT2 = T2CON+T2MUL*dTG
-        SHDT = DTSURF*(SHEAT+BETA*((dTG-dHS)*dSNdTG)) ! sensible
-        EVHDT = DTSURF*(EVHEAT+BETA*(dTG*dEVdTG+dQS*dEVdQS)) ! latent
+c       SHDT = DTSURF*(SHEAT+BETA*((dTG-dHS)*dSNdTG)) ! sensible
+c       EVHDT = DTSURF*(EVHEAT+BETA*(dTG*dEVdTG+dQS*dEVdQS)) ! latent
+        SHDT = DTSURF*(SHEAT+BETA*dTG*dSNdTG) ! sensible
+        EVHDT = DTSURF*(EVHEAT+BETA*dTG*dEVdTG) ! latent
+
         TRHDT = DTSURF*(TRHEAT+BETA*dTG*dTRdTG) ! thermal flux (J/m^2)
         F1DT = DTSURF*(F1+BETA*(dTG*dF1dTG-dT2*dF1dTG))
         TG1 = TG1+dTG          ! first layer sea ice temperature (degC)
@@ -598,9 +613,10 @@ C**** do calculation implicitly for TQS
             TEV=-RCDQWS*(trs(nx)-trgrnd(nx))
             dTEVdTQS =-RCDQWS
 #endif
-            dTQS = -(1.+2.*S1BYG1)*DTSURF*TEV/
-     *           ((1.+2.*S1BYG1)*DTSURF*dTEVdTQS-MA1)
-            TEVAP=DTSURF*(TEV+dTQS*dTEVdTQS)
+c           dTQS = -(1.+2.*S1BYG1)*DTSURF*TEV/
+c    *           ((1.+2.*S1BYG1)*DTSURF*dTEVdTQS-MA1)
+c           TEVAP=DTSURF*(TEV+dTQS*dTEVdTQS)
+            TEVAP=DTSURF*TEV
           ELSE                  ! ICE AND LAND ICE
 C**** tracer flux is set by source tracer concentration
             IF (EVAP.GE.0) THEN ! EVAPORATION
