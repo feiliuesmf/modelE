@@ -32,12 +32,33 @@ if ( $rcode == 13 ) {
   exit;
   }
 
-## possible bomb - try automatic fixup
+
+## abnormal stop: checking info and trying automatic fixup
+
+# do we need chdir? we should be in the run directory already
+#chdir "$CMRUNDIR/$runID" or die "$CMRUNDIR/$runID not found\n";
+
+## getting an error message
+if ( -f "error_message" ) {
+    $error_message = `cat error_message`; chop $error_message;
+} else { # trying "nohup.out" for older runs
+    $error_message = `cat nohup.out | tail -1`; chop $error_message;
+}
+$subj_msg = "'$runID: $error_message'";
+
+## extracting the date
+($dummy, $tau, $date) = 
+    split " ",`$EXECDIR/qc_e -r fort.[12] | grep QCRESTART_DATA`;
+if ( $dummy !~ /^QCRESTART_DATA/ ) { $tau = 0; $date = ''; }
+
+## archive the error message
+`echo ' ' >> I; echo "Stopped $date" >> I; echo "$error_message" >> I`;
+
 
 ## check return code
 if( $rcode != 11 ) {
-  `echo "No automatic fixup for return code: $rcode" >> nohup.out`;
-  `cat $runID.PRT nohup.out | tail -100 | Mail -s $runID $owner` if $owner;
+  `echo "No automatic fixup for return code: $rcode" >> $runID.PRT`;
+  `cat $runID.PRT | tail -100 | Mail -s $subj_msg $owner` if $owner;
   exit;
 }
 
@@ -45,9 +66,9 @@ chdir "$CMRUNDIR/$runID" or die "$CMRUNDIR/$runID not found\n";
 
 ## check for lock file
 if ( -e "lock" ) {
-  `echo "lock file is present: suspect non-clean stop >> nohup.out`;
-  `echo  Will not restart" >> nohup.out`;
-  `cat $runID.PRT nohup.out | tail -100 | Mail -s $runID $owner` if $owner;
+  `echo "lock file is present: suspect non-clean stop >> $runID.PRT`;
+  `echo  Will not restart" >> $runID.PRT`;
+  `cat $runID.PRT | tail -100 | Mail -s $subj_msg $owner` if $owner;
   exit;
 }
 
@@ -60,13 +81,18 @@ while(<I>) {
   }
 
 if( $dt == 0 ) {
-  `echo "$runID not set up for automatic fixup" >> nohup.out`;
-  `cat $runID.PRT nohup.out | tail -100 | Mail -s $runID $owner` if $owner;
+  `echo "$runID not set up for automatic fixup" >> $runID.PRT`;
+  `cat $runID.PRT | tail -100 | Mail -s $subj_msg $owner` if $owner;
   exit;
 }
 
-($dummy, $tau, $date) = 
-    split " ",`$EXECDIR/qc_e -r fort.[12] | grep QCRESTART_DATA`;
+
+if ( ! $date ) {
+    `echo "Could not extract time/date from the restart files" >> $runID.PRT`;
+    `echo "Will not restart" >> $runID.PRT`;
+    `cat $runID.PRT | tail -100 | Mail -s $subj_msg $owner` if $owner;
+}
+
 $taun = $tau + 48;
 
 seek I,0,0;
@@ -80,16 +106,29 @@ while(<I>) {
 close I;
 close IX;
 
-`echo ' ' >> I ; echo "Bombed $date" >> I ; cat -s fort.99 >> I`;
-`mv $runID.PRT ERR.$runID.PRT.$date`;
-`touch lock; "$runID"ln`; 
-`$runID.exe < Ix > $runID.PRT.dt$dt.$date`; $rcode = $? >> 8;
-print "rcode = $rcode\n";
-`"$runID"uln; rm -f lock`;
+## running the model with dt=DTFIX until $taun
+print <<`EOC`;
+    echo 'Trying automatic fixup' >> I
+    mv $runID.PRT ERR.$runID.PRT.$date
+    touch lock
+    ${runID}ln
+    $runID.exe < Ix > $runID.PRT.dt$dt.$date; rc=\$?
+    ${runID}uln
+    rm -f lock
+    exit \$rc
+EOC
+
+$rcode = $? >> 8;
 if ( $rcode == 13 ) {
   exec "$EXECDIR/runE $runID $MP_SET_NUMTHREADS"; 
 } else {
-  `echo "$runID: fixup failed" >> nohup.out`;
-  `cat $runID.PRT.dt$dt.$date nohup.out | tail -100 | Mail -s $runID $owner` if $owner;
+  if ( -f "error_message" ) {
+    $error_message = `cat error_message`; chop $error_message;
+  } else { # trying "nohup.out" for older runs
+    $error_message = `cat nohup.out | tail -1`; chop $error_message;
+  }
+  $subj_msg = "'$runID: $error_message'";
+  `echo "$runID: fixup failed" >> $runID.PRT.dt$dt.$date`;
+  `cat $runID.PRT.dt$dt.$date | tail -100 | Mail -s $subj_msg $owner` if $owner;
 }
 

@@ -233,6 +233,7 @@ if ( ! defined $pid ) {
 print <<`EOC`;
     umask $umask_str
     touch lock
+    rm -f error_message 2> /dev/null
     ./"$runID"ln
     ./"$runID".exe < I >> ${runID}.PRT
     rc=\$?
@@ -244,7 +245,9 @@ EOC
 
 $rcode = $? >> 8;
 if ( $rcode != 13 && $rcode != 12 ) {
-    print " Problem encountered while running hour 1\n"; 
+    print " Problem encountered while running hour 1 :\n"; 
+    $error_message = `cat error_message`; chop $error_message;
+    print " >>> $error_message <<<\n";
     exit 4 ;
 } else {
     print "1st hour completed sucessfully\n";
@@ -258,6 +261,7 @@ print RUNID <<EOF;
     if [ -f lock ] ; then
       echo 'lock file present - aborting' ; exit 1 ; fi
     touch lock
+    rm -f error_message 2> /dev/null
     PRTFILE=${runID}.PRT
     if [ \$\# -ge 1 ] && [ $1='-q' ]; then
       PRTFILE='/dev/null'; fi
