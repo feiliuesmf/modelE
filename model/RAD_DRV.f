@@ -667,6 +667,7 @@ C$OMP*   I,INCH,IH,IT, J, K,KR, L,LR, OPNSKY, CSZ2,
 C$OMP*   PLAND,PIJ, QSS, RANDSS,RANDMC, TOTCLD,TAUSSL,TAUMCL)
 C$OMP*   COPYIN(/RADCOM_hybrid/)
 C$OMP    DO SCHEDULE(DYNAMIC,2)
+C$OMP*   REDUCTION(+:ICKERR,JCKERR)
       DO 600 J=1,JM
       ! can't we replace it with J ?
       JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)  !  lat_index w.r.to 72x46 grid
@@ -826,7 +827,7 @@ C---- TLm(L)=T(I,J,L)*PK(L,I,J)     ! already defined
          WRITE(99,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TLm(L)
          WRITE(99,*) 'GTEMP:',GTEMP(:,:,I,J)
 CCC      STOP 'In Radia: Temperature out of range'
-         ICKERR=1
+         ICKERR=ICKERR+1
       END IF
 C**** MOISTURE VARIABLES
 C---- shl(L)=Q(I,J,L)        ! already defined
@@ -836,7 +837,7 @@ C**** Radiative Equilibrium Layer data
         IF(RQT(K,I,J).LT.130..OR.RQT(K,I,J).GT.370.) THEN
         WRITE(99,*) 'In RADIA: Time,I,J,L,TL',ITime,I,J,LM+K,RQT(K,I,J)
 CCC     STOP 'In Radia: RQT out of range'
-        JCKERR=1
+        JCKERR=JCKERR+1
         END IF
         TLm(LM+K)=RQT(K,I,J)
         PLB(LM+k+1) = PLB0(k)

@@ -7653,6 +7653,7 @@ C                 KWRU directs the output to selected (KWRU) file number
 C     ------------------------------------------------------------------
 C
 CCC   SAVE
+      INTEGER, INTENT(IN) :: INDEX
       CHARACTER*8 FTYPE
       CHARACTER*3 TRABCD,TRAXSG
       DIMENSION TRABCD(5),TRAXSG(5),TRPI0K(25)

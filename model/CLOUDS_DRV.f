@@ -193,6 +193,7 @@ C$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 C$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT, WMERR,
 C$OMP*  LP600,LP850,CSC,DIFT)
 C$OMP*    SCHEDULE(DYNAMIC,2)
+C$OMP*    REDUCTION(+:ICKERR,JCKERR)
 C
       DO J=1,JM
 C
@@ -318,7 +319,7 @@ C**** Error reports
       if (ierr.gt.0) then
         write(6,*) "Error in moist conv: i,j,l=",i,j,lerr
 ccc     if (ierr.eq.2) call stop_model("Subsid error: abs(c) > 1",255)
-        if (ierr.eq.2) ickerr = 1
+        if (ierr.eq.2) ickerr = ickerr + 1
       end if
 
 C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
@@ -407,34 +408,34 @@ C****
 C****
 C**** COMPUTE STRATOCUMULUS CLOUDS USING PHILANDER'S FORMULA
 C****
-       CSC=0.D0
-       IF (ISC.EQ.1.AND.FOCEAN(I,J).GT..5D0) THEN
-         LP600=LM
-         LP850=LM
-         DO L=2,LM
+      IF (ISC.EQ.1.AND.FOCEAN(I,J).GT..5D0) THEN
+        CSC=0.D0
+        LP600=LM
+        LP850=LM
+        DO L=2,LM
           IF(L.GT.LP600) EXIT
           IF(PL(L).LT.600.D0) THEN
-           LP600=L
-           IF(600.D0-PL(L).GT.PL(L-1)-600.D0) LP600=L-1
+            LP600=L
+            IF(600.D0-PL(L).GT.PL(L-1)-600.D0) LP600=L-1
           ENDIF
-         ENDDO
-         DO L=2,LM
+        ENDDO
+        DO L=2,LM
           IF(L.GT.LP850) EXIT
           IF(PL(L).LT.850.D0) THEN
-           LP850=L
-           IF(850.D0-PL(L).GT.PL(L-1)-850.D0) LP850=L-1
+            LP850=L
+            IF(850.D0-PL(L).GT.PL(L-1)-850.D0) LP850=L-1
           ENDIF
-         ENDDO
-         IF(SDL(LP600)+SDL(LP600+1).GT.0.D0) THEN
-         DIFT=TL(LP850)-TGV/(1.+DELTX*QG)
-         CSC=.031D0*DIFT+.623D0
-         IF(CSC.LT.0.D0) CSC=0.D0
-         ENDIF
-       ENDIF
-       CLDMCL(1)=CLDMCL(1)+CSC
-       IF(CSC.GT.0.D0) TAUMCL(1)=AIRM(1)*.08D0
-       IF(CLDMCL(1).GT.1.D0) CLDMCL(1)=1.D0
+        ENDDO
+        IF(SDL(LP600)+SDL(LP600+1).GT.0.D0) THEN
+          DIFT=TL(LP850)-TGV/(1.+DELTX*QG)
+          CSC=.031D0*DIFT+.623D0
+          IF(CSC.LT.0.D0) CSC=0.D0
+        ENDIF
+        CLDMCL(1)=CLDMCL(1)+CSC
+        IF(CSC.GT.0.D0) TAUMCL(1)=AIRM(1)*.08D0
+        IF(CLDMCL(1).GT.1.D0) CLDMCL(1)=1.D0
 C     IF(CSC.GT.0.) WRITE (6,*) I,J,DCL,TL(LP850),TGV/(1.+DELTX*QG),CSC
+      ENDIF
 
 C**** COMPUTE RICHARDSON NUMBER FROM SURFACE CONDITIONS WHEN DEPTH OF
 C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
@@ -585,7 +586,7 @@ c          skt=tf+tg1(i,j)
         call ISCCP_CLOUD_TYPES(pfull,phalf,qv,
      &       cc,conv,dtau_s,dtau_c,skt,
      &       at,dem_s,dem_c,itrop,fq_isccp,ctp,tauopt,nbox,jerr)
-        if(jerr.ne.0) jckerr = 1
+        if(jerr.ne.0) jckerr = jckerr + 1
 C**** set ISCCP diagnostics
         if (nbox.gt.0) then
           AIJ(I,J,IJ_CTPI) = AIJ(I,J,IJ_CTPI) + ctp

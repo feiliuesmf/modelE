@@ -46,8 +46,8 @@ c--------------------------------------------------------------
      &    , only : nmom
       implicit none
       !
-      integer :: nx,stride
-      logical :: qlimit
+      integer, intent(in) :: nx,stride
+      logical, intent(in) :: qlimit
       REAL*8, dimension(nx) :: dm, f
       REAL*8, dimension(nx*stride) :: s,mass
       REAL*8, dimension(nmom,nx*stride) :: smom

@@ -343,6 +343,7 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
 c**** loop over layers and latitudes
       ICKERR=0
 C$OMP  PARALLEL DO PRIVATE (J,L,NS,AM,F_I,FMOM_I,IERR,NERR)
+C$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
       do j=2,jm-1
       am(:) = mu(:,j,l)/nstep(j,l)
@@ -355,7 +356,7 @@ c****
       if (ierr.gt.0) then
         write(6,*) "Error in aadvQx: i,j,l=",nerr,j,l,' ',tname
         if (ierr.eq.2) write(6,*) "Error in qlimit: abs(a) > 1"
-        if (ierr.eq.2) ICKERR=1
+        if (ierr.eq.2) ICKERR=ICKERR+1
       end if
       enddo ! ns
       enddo ! j
@@ -407,6 +408,7 @@ c**** loop over layers
       ICKERR=0
 C$OMP  PARALLEL DO PRIVATE (I,J,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZM_NP,
 C$OMP*                RZZM_SP,RZZM_NP,BM,F_J,FMOM_J,FQV,NS,IERR,NERR)
+C$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
       fqv(:,:) = 0.
 
@@ -446,7 +448,7 @@ c****
       if (ierr.gt.0) then
         write(6,*) "Error in aadvQy: i,j,l=",i,nerr,l,' ',tname
         if (ierr.eq.2) write(6,*) "Error in qlimit: abs(b) > 1"
-        if (ierr.eq.2) ICKERR=1
+        if (ierr.eq.2) ICKERR=ICKERR+1
       end if
       fqv(i,:) = fqv(i,:) + f_j(:)  !store tracer flux in fqv array
       fqv(i,jm) = 0.   ! play it safe
@@ -520,6 +522,7 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
 c**** loop over latitudes and longitudes
       ICKERR=0.
 C$OMP  PARALLEL DO PRIVATE (I,J,L,NS,CM,F_L,FMOM_L,FQW,IERR,NERR)
+C$OMP* REDUCTION(+:ICKERR)
       do j=1,jm
       do i=1,imaxj(j)
       fqw(:) = 0.
@@ -534,7 +537,7 @@ c****
       if (ierr.gt.0) then
         write(6,*) "Error in aadvQz: i,j,l=",i,j,nerr,' ',tname
         if (ierr.eq.2) write(6,*) "Error in qlimit: abs(c) > 1"
-        if (ierr.eq.2) ICKERR=1
+        if (ierr.eq.2) ICKERR=ICKERR+1
       end if
       fqw(:)  = fqw(:) + f_l(:) !store tracer flux in fqw array
       enddo ! ns
@@ -585,6 +588,7 @@ C**** Decide how many timesteps to take by computing Courant limits
 C
       ICKERR = 0
 C$OMP  PARALLEL DO PRIVATE (I,IP1,IM1,J,L,NSTEP,NS,COURMAX,A,AM,MI)
+C$OMP* REDUCTION(+:ICKERR)
       DO 420 L=1,LM
       DO 420 J=2,JM-1
       nstep=0
@@ -617,7 +621,7 @@ C**** Update air mass
         if(nstep.ge.20)  then
            write(6,*) 'aadvqx: j,l,nstep,courmax=',j,l,nstep,courmax
            courmax=-1.
-           ICKERR=1
+           ICKERR=ICKERR+1
         end if
       enddo      ! while(courmax.gt.1.)
 C**** Correct air mass
@@ -654,6 +658,7 @@ C**** decide how many timesteps to take (all longitudes at this level)
       ICKERR=0
 C$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,B,BM,MIJ,
 C$OMP*          IPROB,JPROB,SBMS,SBMN)
+C$OMP* REDUCTION(+:ICKERR)
       DO 440 L=1,LM
 C**** Scale poles
       m(:, 1,l) =   m(:, 1,l)*im !!!!! temporary
@@ -696,7 +701,7 @@ C**** Update air mass in the interior
         if(nstep.ge.20) then
            write(6,*) 'courmax=',courmax,l,iprob,jprob
            write(6,*) 'aadvqy: nstep.ge.20'
-           ICKERR=1
+           ICKERR=ICKERR+1
            courmax = -1.
         endif
       enddo      ! while(courmax.gt.1.)
@@ -735,6 +740,7 @@ C
 C**** decide how many timesteps to take
       ICKERR=0
 C$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,C,CM,ML)
+C$OMP* REDUCTION(+:ICKERR)
       DO J=1,JM
       DO I=1,IM
       nstep=0
@@ -764,7 +770,7 @@ C$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,C,CM,ML)
         if(nstep.ge.20) write(6,*) 'aadvqz: nstep.ge.20'
         if(nstep.ge.20)  then
            write(6,*)  'aadvqz: nstep.ge.20'
-           ICKERR=1
+           ICKERR=ICKERR+1
            courmax = -1.
         end if
       enddo      ! while(courmax.gt.1.)
