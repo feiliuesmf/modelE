@@ -64,8 +64,8 @@ F       = $(SCRIPTS_DIR)/fco2_90
 U	= $(SCRIPTS_DIR)/uco2_f90
 CPPFLAGS = -DMACHINE_SGI
 #FFLAGS = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745
-#FFLAGS = -ftpp -macro_expand -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52 
-FFLAGS = -cpp -Wp,-P -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52
+FFLAGS = -ftpp -macro_expand -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52 
+#FFLAGS = -cpp -Wp,-P -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52
 FFLAGSF = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -freeform
 LFLAGS = -64 -O2 -mips4 -lfastm -OPT:reorg_common=OFF
 ifeq ($(MP),YES)
@@ -235,10 +235,11 @@ F90_VERSION = $(shell $(F90) -version 2>&1)
 endif
 
 
-## MAC OS with the Absoft PROfortran compiler
+## MAC OS 
 ifeq ($(UNAME),Darwin)
 MACHINE = MAC
-COMPILER = Absoft
+## .... with the Absoft PROfortran compiler
+ifeq ($(COMPILER),Absoft)
 F90 = f90
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
@@ -253,6 +254,18 @@ LFLAGS += -lefence
 endif
 endif
 
+# ...with the NAG compiler
+ifeq ($(COMPILER),NAG)
+F90 = f90
+CPP = /usr/bin/cpp -P -traditional
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
+CPPFLAGS = -DMACHINE_MAC
+FFLAGS = -O2
+FFLAGSF = -O2 -f free
+LFLAGS = 
+endif
+
+endif
 
 # end of machine - specific options
 
@@ -295,6 +308,12 @@ FORCE:
 %.o: %.f
 	@echo $(ECHO_FLAGS)  compiling $< ... $(MSG) \\c
 	@touch .timestamp
+ifeq ($(MACHINE),MAC)
+	$(CPP) $(CPPFLAGS) $*.f | sed -n '/^#pragma/!p' > $*_cpp.f
+	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.f \
+	  -o $*.o $(COMP_OUTPUT)
+	rm -f $*_cpp.f
+else
 ifeq ($(COMPILER),Absoft)
 	$(CPP) $(CPPFLAGS) $*.f $*_cpp.f
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.f \
@@ -315,6 +334,7 @@ ifeq ($(COMPILER),PGI)
 else
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.f \
 	  $(COMP_OUTPUT)
+endif
 endif
 endif
 endif
