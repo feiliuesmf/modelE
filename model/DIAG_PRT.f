@@ -9,7 +9,7 @@
       REAL*8, DIMENSION(JM,LM,2):: DPJK
       REAL*8, DIMENSION(2,LM,2) :: DPHEM
       REAL*8, DIMENSION(LM,2) :: DPGLOB
-      
+
       END MODULE WORKJK
 
 
@@ -136,7 +136,7 @@
 
       END MODULE SERIAL
 
-      
+
       subroutine print_diags(ipos)
 !@sum print_diag prints out binary and ascii diag output.
 !@auth  Original Development Team
@@ -2502,7 +2502,7 @@ C**** PRODUCE A LATITUDE BY LAYER TABLE OF THE ARRAY A
 C****
    10 LINECT=LINECT+KMAX+7
       IF (LINECT.LE.60) GO TO 20
-      WRITE (6,907) 
+      WRITE (6,907)
      *  XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
       LINECT=KMAX+8
    20 WRITE (6,901) TITLE,(DASH,J=J1,JM,INC)
@@ -2522,13 +2522,13 @@ C**** HORIZONTAL SUMS AND TABLE ENTRIES
       DO K=KMAX,1,-1
          If (J1==1) then  ! Standard Grid
             DO J=1,JM
-               FLAT(J)  = CX(J,K)/(DPJK(J,K,J1)+teeny) 
+               FLAT(J)  = CX(J,K)/(DPJK(J,K,J1)+teeny)
                XJL(J,K) = FLAT(J)*PRTFAC
                FLAT(J)  = FLAT(J)*PRTFAC
                IF (DPJK(J,K,J1).EQ.0.) XJL(J,K) = -1.E30
                MLAT(J)=NINT(MIN(1d5,MAX(-1d5,FLAT(J)))) ! prevent too large int?
             END DO
-            CALL GLOBALSUM(GRID, CX(:,K)*WTJ(:,JWT,J1)*PRTFAC, 
+            CALL GLOBALSUM(GRID, CX(:,K)*WTJ(:,JWT,J1)*PRTFAC,
      *                     AGLOB, AHEML)
          Else             ! Staggered Grid
             DO J=2,JM
@@ -2538,7 +2538,7 @@ C**** HORIZONTAL SUMS AND TABLE ENTRIES
                IF (DPJK(J,K,J1).EQ.0.) XJL(J,K) = -1.E30
                MLAT(J)=NINT(MIN(1d5,MAX(-1d5,FLAT(J)))) ! prevent too large int?
             END DO
-            CALL GLOBALSUM(GRID, CX(:,K)*WTJ(:,JWT,J1)*PRTFAC, 
+            CALL GLOBALSUM(GRID, CX(:,K)*WTJ(:,JWT,J1)*PRTFAC,
      *                     AGLOB, AHEML, istag=1)
          EndIf
          AHEM(:) = AHEM(:) + AHEML(:)
@@ -2550,7 +2550,7 @@ C**** HORIZONTAL SUMS AND TABLE ENTRIES
          XJL(JM+1,K)=G1   ! GLOBAL
          WRITE (6,902) PM(K),G1,H2,H1,(MLAT(J),J=JM,J1,-INC)
          CALL KEYNRL (SNAME,K,FLAT)
-      END DO      
+      END DO
 
 C**** VERTICAL SUMS
       WRITE (6,905) (DASH,J=J1,JM,INC)
@@ -2613,7 +2613,7 @@ C form title string
   205    XJL(J,L) = -1.E30
       LINECT=LINECT+KMAX+10
       IF (LINECT.LE.60) GO TO 230
-      WRITE (6,907) 
+      WRITE (6,907)
      *  XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
       LINECT=KMAX+11
   230 CONTINUE
@@ -2768,7 +2768,7 @@ C****
                FLAT(J)=FLAT(J)*PRTFAC
                ASUM(J)=ASUM(J)+FLAT(J)*DSIG(L)/SDSIG
             END DO
-            CALL GLOBALSUM(GRID, FLAT(:)*WTJ(:,JWT,J1), 
+            CALL GLOBALSUM(GRID, FLAT(:)*WTJ(:,JWT,J1),
      *                           FGLOB, FHEM)
             FGLOB=FGLOB/JWT
          Else                 ! Staggered Grid
@@ -2846,7 +2846,7 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
                XJL(J,L+LMAX) = FLAT(J)
 c              FLAT(J)=FLAT(J)*PRTFAC
             END DO
-            CALL GLOBALSUM(GRID, FLAT(:)*WTJ(:,JWT,J1), 
+            CALL GLOBALSUM(GRID, FLAT(:)*WTJ(:,JWT,J1),
      *                           FGLOB, FHEM)
             FGLOB=FGLOB/JWT
          Else                ! Staggered Grid
@@ -2855,7 +2855,7 @@ c              FLAT(J)=FLAT(J)*PRTFAC
                XJL(J,L+LMAX) = FLAT(J)
 c              FLAT(J)=FLAT(J)*PRTFAC
             END DO
-            CALL GLOBALSUM(GRID, FLAT(:)*WTJ(:,JWT,J1), 
+            CALL GLOBALSUM(GRID, FLAT(:)*WTJ(:,JWT,J1),
      *                           FGLOB, FHEM, istag=1)
             FGLOB=FGLOB/JWT
          EndIf
@@ -4030,8 +4030,8 @@ c**** find smap,smapj  from the numerators and denominators
             DO i=1,im
                sumj = sumj + anum(i,j)*wtij(i,j)
                wt   = wt   + aden(i,j)*wtij(i,j)
-               if (aden(i,j)*wtij(i,j).ne.0.) 
-     *               smap(i,j)=anum(i,j)/aden(i,j)               
+               if (aden(i,j)*wtij(i,j).ne.0.)
+     *               smap(i,j)=anum(i,j)/aden(i,j)
             END DO
             if (isumz.eq.1) wt = 1.
             if (wt .gt. 0.) smapj(j) = sumj/wt
@@ -4046,8 +4046,8 @@ c**** find smap,smapj  from the numerators and denominators
             DO i=1,im
                sumj = sumj + anum(i,j)*wtij(i,j)
                wt   = wt   + aden(i,j)*wtij(i,j)
-               if (aden(i,j)*wtij(i,j).ne.0.) 
-     *              smap(i,j)=anum(i,j)/aden(i,j)               
+               if (aden(i,j)*wtij(i,j).ne.0.)
+     *              smap(i,j)=anum(i,j)/aden(i,j)
             END DO
             if (isumz.eq.1) wt = 1.
             if (wt .gt. 0.) smapj(j) = sumj/wt
@@ -4192,7 +4192,7 @@ c**** always skip unused fields
       end do
 
       inquire (file='Iij',exist=qIij)
-      if (.not.qIij) kdiag(3)=0                  
+      if (.not.qIij) kdiag(3)=0
       call set_ijout (nmaplets,nmaps,Iord,Qk,iu_Iij)
       xlb=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)
 C****
@@ -4614,7 +4614,7 @@ C**** CALCULATE FINAL ANGULAR MOMENTUM + KINETIC ENERGY ON VELOCITY GRID
         DO J=2,JM
           CSJ(J,N)=CONSRV(J,N)*SCALE_CON(N)/
      *                         (IDACC(IA_CON(N))+1d-20)
-          CNSLAT(J,N)=CSJ(J,N)/(FIM*DXYV(J)) 
+          CNSLAT(J,N)=CSJ(J,N)/(FIM*DXYV(J))
           CSJ(J,N)=CSJ(J,N)*WTJ(J,1,2)
         END DO
       END DO
@@ -4634,8 +4634,8 @@ C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
             CSJ(J,N)    = CSJ(J,N)*DXYP(J)
          END DO
       END DO
-      CALL GLOBALSUM(GRID, CSJ(:,26:KCMX), 
-     &                     FGLOB(26:KCMX), FHEM(:,26:KCMX)) 
+      CALL GLOBALSUM(GRID, CSJ(:,26:KCMX),
+     &                     FGLOB(26:KCMX), FHEM(:,26:KCMX))
       FGLOB(26:KCMX)=FGLOB(26:KCMX)/AREAG
       FHEM(1,26:KCMX)=FHEM(1,26:KCMX)/(.5*AREAG)
       FHEM(2,26:KCMX)=FHEM(2,26:KCMX)/(.5*AREAG)
@@ -5591,6 +5591,7 @@ C****
            if (lname_ijk(k).ne.'unused')
      *        write (iu_Iij,'(i3,1x,a)') k,lname_ijk(k)
          end do
+         call closeunit(iu_Iij)
          return
       else if (kdiag(3).gt.1) then
          Qk = .false.
