@@ -112,7 +112,9 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
 #ifdef TRACERS_ON
 !$OMP*   ,n,trij,tr0ij,trflx,wc_nl
 #endif
-     &   ) SCHEDULE(DYNAMIC,2)
+!$OMP*    ) 
+!$OMP*    SHARED(dtime)
+!$OMP*    SCHEDULE(DYNAMIC,2)
 
       loop_j_tq: do j=1,jm
         loop_i_tq: do i=1,imaxj(j)
@@ -351,6 +353,7 @@ cc                trmom(:,i,j,l,n)=trmomij(:,l,n)
 
 !$OMP  PARALLEL DO PRIVATE (L,I,J,u,v,rho,rhoe,u0,v0,km,dze,dz,
 !$OMP*   bydzerho,rhoebydz,uflx,vflx,p4,flux_bot,flux_top)
+!$OMP*    SHARED(dtime)
 !$OMP*    SCHEDULE(DYNAMIC,2)
       loop_j_uv: do j=2,jm
         loop_i_uv: do i=1,im

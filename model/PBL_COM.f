@@ -185,6 +185,7 @@ C****
      *             cqgs(im,J_0H:J_1H,4),
      *             ipbl(im,J_0H:J_1H,4),
      *         STAT=IER)
+      ipbl(:,J_0H:J_1H,:) = 0.
 
       ALLOCATE(    roughl(im,J_0H:J_1H),
      *              wsavg(im,J_0H:J_1H),
