@@ -740,6 +740,7 @@ C****
 c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
       USE ICEDYN_COM, only : usidt,vsidt,rsix,rsiy,rsisave,icij,ij_musi
      *     ,ij_mvsi,ij_husi,ij_hvsi,ij_susi,ij_svsi
+      USE ICEDYN, only : grid_MIC
 #ifdef TRACERS_WATER
      *     ,ticij,ticij_tusi,ticij_tvsi
 #endif
@@ -856,16 +857,19 @@ C**** North-South Advection of Sea Ice
 C****
       SFASI  = 0.
       SFMSI(1:NTRICE) = 0.
+C**** Update halo of DXV,RSIY,RSI,RSIX,FOCEAN,BYDXYP,and MHS
+      CALL HALO_UPDATE(grid, RSI  , FROM=NORTH)
+      CALL HALO_UPDATE(grid,FOCEAN, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE_COLUMN(grid, MHS  , FROM=NORTH)
+
+      CALL HALO_UPDATE(grid, VSIDT, FROM=SOUTH)
+
       DO 340 I=1,IM
 C****
 C**** Calculate south-north sea ice fluxes at grid box edges
 C****
-C**** Update halo of DXV,RSIY,RSI,RSIX,FOCEAN,BYDXYP,and MHS
-      CALL HALO_UPDATE(grid, RSIY , FROM=NORTH)
-      CALL HALO_UPDATE(grid, RSIX , FROM=NORTH)
-      CALL HALO_UPDATE(grid, RSI  , FROM=NORTH)
-      CALL HALO_UPDATE(grid,FOCEAN, FROM=NORTH)
-      CALL HALO_UPDATE_COLUMN(grid, MHS  , FROM=NORTH)
+      CALL HALO_UPDATE(grid_MIC, RSIY(I,:) , FROM=NORTH)
+      CALL HALO_UPDATE(grid_MIC, RSIX(I,:) , FROM=NORTH)
 
       DO 120 J=J_0S,MIN(JM-2,J_1)
       IF(VSIDT(I,J).eq.0.)  GO TO 120
@@ -938,13 +942,12 @@ C**** Update sea ice variables due to south-north fluxes
 C****
 
 C****Update halo of VSIDT, FASI, FAW, FOCEAN, FMSI, and FXSI
-      CALL HALO_UPDATE(grid, VSIDT, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, FASI(J_0H:J_1H), FROM=SOUTH)
-      CALL HALO_UPDATE(grid, FAW, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, FOCEAN, FROM=SOUTH)
       CALL HALO_UPDATE_COLUMN(grid, FMSJ, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, FXSI, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, FYSI, FROM=SOUTH)
+
+      CALL HALO_UPDATE(grid, FASI(J_0H:J_1H), FROM=SOUTH)
+      CALL HALO_UPDATE(grid, FXSI(J_0H:J_1H), FROM=SOUTH)
+      CALL HALO_UPDATE(grid, FYSI(J_0H:J_1H), FROM=SOUTH)
+      CALL HALO_UPDATE(grid, FAW(J_0H:J_1H), FROM=SOUTH)
 
   200 DO 330 J=J_0S, J_1S
       IF(VSIDT(I,J-1)) 240,210,280
