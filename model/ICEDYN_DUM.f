@@ -18,6 +18,8 @@
 
       SUBROUTINE ICEDYN_DUM
 !@sum ICEDYN_DUM dummy routines to replace ice dynamics
+      ENTRY alloc_icedyn
+      ENTRY alloc_icedyn_com
       ENTRY io_icedyn
       ENTRY io_icdiag
       ENTRY reset_icdiag
