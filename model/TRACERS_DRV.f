@@ -152,13 +152,11 @@ C**** Define individual tracer characteristics
 #ifdef TRACERS_ON
       case ('Air')
       n_Air = n
-          itime_tr0(n) = 0.
           ntm_power(n) = -2
           tr_mm(n) = mair
 
       case ('SF6')
       n_SF6 = n
-          itime_tr0(n) = 0.
           ntm_power(n) = -14
           tr_mm(n) = 146.01d0
           ntsurfsrc(n) = 1
@@ -189,7 +187,6 @@ C**** Define individual tracer characteristics
 
       case ('CFC11')   !!! should start April 1
       n_CFC11 = n
-          itime_tr0(n) = 0.
           ntm_power(n) = -12
           tr_mm(n) = 137.4d0
           ntsurfsrc(n) = 1
@@ -200,7 +197,6 @@ C**** Define individual tracer characteristics
 
       case ('14CO2')   !!! should start 10/16
       n_14CO2 = n
-          itime_tr0(n) = 0.
           ntm_power(n) = -18
           tr_mm(n) = 46.d0
           ntsurfsrc(n) = 1
@@ -786,24 +782,20 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 #ifdef TRACERS_DUST
       CASE('Clay')
       n_clay=n
-        itime_tr0(n)=0
-        ntm_power(n)=-9
-        trpdens(n)=2.5d3
+         ntm_power(n)=-9
+         trpdens(n)=2.5d3
       CASE('Silt1')
       n_silt1=n
-        itime_tr0(n)=0
-        ntm_power(n)=-9
-        trpdens(n)=2.65d3
+         ntm_power(n)=-9
+         trpdens(n)=2.65d3
       CASE('Silt2')
       n_silt2=n
-        itime_tr0(n)=0
-        ntm_power(n)=-9
-        trpdens(n)=2.65d3
+         ntm_power(n)=-9
+         trpdens(n)=2.65d3
       CASE('Silt3')
       n_silt3=n
-        itime_tr0(n)=0
-        ntm_power(n)=-9
-        trpdens(n)=2.65d3
+         ntm_power(n)=-9
+         trpdens(n)=2.65d3
 #endif
 
 #endif
@@ -837,6 +829,10 @@ C**** done each hour:
 
       end do
 
+C**** DIAGNOSTIC DEFINTIONS 
+C**** Please note that short names for diags i.e. sname_jls are used
+C**** in special ways and MUST NOT contain spaces, commas or % signs.
+C**** Underscores and minus signs are allowed.
 
 #ifdef TRACERS_ON
 C**** Tracer sources and sinks
@@ -2204,7 +2200,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SF6 Layer 1 SOURCE'
-        sname_ijts(k) = 'SF6_CFC-GRID_SOURCE,_LAYER_1'
+        sname_ijts(k) = 'SF6_CFC-GRID_SOURCE_LAYER_1'
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -2215,7 +2211,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Rn222 L 1 SOURCE'
-        sname_ijts(k) = 'Radon-222_SOURCE,_Layer_1'
+        sname_ijts(k) = 'Rn222_SOURCE_Layer_1'
         ijts_power(k) = -21.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -2305,7 +2301,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CFC_11 L 1 SOURCE'
-        sname_ijts(k) = 'CFC_11_SOURCE,_LAYER_1'
+        sname_ijts(k) = 'CFC_11_SOURCE_LAYER_1'
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -3513,7 +3509,7 @@ c ss2 optical thickness
       k=k+1
         ijts_source(nDustTurbij,n)=k
         lname_ijts(k)='Turbulent Deposition of '//trname(n)
-        sname_ijts(k)='Turbulent loss of '//trname(n)
+        sname_ijts(k)='Turbulent_loss_of_'//trname(n)
         ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13.
