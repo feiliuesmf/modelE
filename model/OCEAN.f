@@ -494,7 +494,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       RETURN
       END SUBROUTINE OSOURC
 
-      END MODULE OCEAN
+      END MODULE STATIC_OCEAN
 
 
       SUBROUTINE init_OCEAN(iniOCEAN)
@@ -504,8 +504,8 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE CONSTANT, only : rhow
       USE MODEL_COM, only : im,jm,fland,flice,kocean,ftype,focean
      *     ,itocean,itoice,itearth,itlandi,fearth,iyear1
-      USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice,iu_ocnml
-     *     ,tocean,ocn_cycl
+      USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
+     *     ,iu_ocnml,tocean,ocn_cycl
       USE SEAICE, only : qsfix
       USE SEAICE_COM, only : snowi,rsi
       USE FLUXES, only : gtemp,sss,ui2rho
