@@ -442,7 +442,11 @@ C**** Do I need to put the common decalaration here also?
 !@var ROTK should this be set from CONSTANT?
       REAL*8, PARAMETER :: ROTK = 1.5, RKBY3= ROTK*ROTK*ROTK
 
-      REAL*8, DIMENSION(IM,JM,LM) :: DUT3,DVT3,DKE
+      REAL*8, DIMENSION(IM,JM,LM) :: DUT3,DVT3,DKE,TLS,THLS,BVS
+      REAL*8, DIMENSION(LM,IM,2:JM) :: RADKEX
+      INTEGER, DIMENSION(IM,2:JM) :: LDRAGA
+      REAL*8, DIMENSION(IM,LM) :: UIL,VIL,TLIL,THIL,BVIL
+      REAL*8, DIMENSION(LM,JM) :: DUJL
       REAL*8, DIMENSION(LM) :: PL,DP,TL,THL,RHO,BVF,WL,UL,VL,DL,DUT,DVT,
      *     DQT,DTT,RDI,DFTL,DFM,DFR,WMC,UEDGE,VEDGE,BYFACS,CN
       REAL*8 MUB(LM+1,NM),PLE(LM+1),MU(NM),UR(NM),VR(NM),WT(NM),RA(4)
@@ -468,22 +472,25 @@ C****
       END IF
 
 C**** Start main loop
+C$OMP  PARALLEL DO PRIVATE(I,J,L)
+      DO L=1,LM
+        IF (L.GE.LS1) THEN
 C**** P**KAPA IN THE STRATOSPHERE
-      DO L=LS1,LM
-      DO J=1,JM
-      DO I=1,IMAXJ(J)
-        PK(I,J,L)=PKS(L)
-      END DO
-      END DO
-      END DO
+          DO J=1,JM
+          DO I=1,IMAXJ(J)
+            PK(I,J,L)=PKS(L)
+          END DO
+          END DO
+        ELSE
 C**** P**KAPA IN THE TROPOSPHERE
-      DO L=1,LS1-1
-      DO J=1,JM
-      DO I=1,IMAXJ(J)
-        PK(I,J,L)=(P(I,J)*SIG(L)+PTOP)**KAPA
+          DO J=1,JM
+          DO I=1,IMAXJ(J)
+            PK(I,J,L)=(P(I,J)*SIG(L)+PTOP)**KAPA
+          END DO
+          END DO
+        END IF
       END DO
-      END DO
-      END DO
+C$OMP  END PARALLEL DO
 C****
 C**** FILL IN QUANTITIES AT POLES
 C****
@@ -509,11 +516,47 @@ C****
 C**** DEFORMATION
 C****
       IF(MRCH.EQ.0)  CALL DEFORM (P,U,V)
-      DKE(:,:,:)=0. ; DUT3=0. ; DVT3=0.
+C$OMP  PARALLEL DO PRIVATE(L)
+      DO L=1,LM
+        DKE(:,:,L)=0. ; DUT3(:,:,L)=0. ; DVT3(:,:,L)=0.
+      END DO
+C$OMP  END PARALLEL DO                                                  
+C$OMP  PARALLEL DO PRIVATE(I,IP1,J,L)                                   
+      DO L=1,LM                                                     
+      DO J=2,JM                                                     
+      I=IM                                                              
+      DO IP1=1,IM                                                   
+         TLS(I,J,L) =                                                   
+     *    .25*(PK(I,J-1,L)*T(I,J-1,L)+PK(IP1,J-1,L)*T(IP1,J-1,L)+       
+     *     PK(I,J,L)*T(I,J,L)+PK(IP1,J,L)*T(IP1,J,L))                   
+         THLS(I,J,L) =                                                  
+     *    .25*(T(I,J-1,L)+T(IP1,J-1,L)+T(I,J,L)+T(IP1,J,L))             
+         BVS(I,J,L) =                                                   
+     *    .5*(SZ(I,J-1,L)+SZ(IP1,J-1,L)+SZ(I,J,L)+SZ(IP1,J,L))          
+         I=IP1                                                          
+       END DO
+       END DO
+       END DO
+C$OMP  END PARALLEL DO                                                  
 C****
 C**** BEGINNING OF OUTER LOOP OVER I,J
 C****
-      DO 500 J=2,JM
+C$OMP  PARALLEL DO PRIVATE(ALFA,AIRX4,BVF,BVFSQ,BV0,BVEDGE,BYFACS,      
+C$OMP*  CN,CU,DP,DL,DUT,DVT,DU,DV,DW,DFM,DFR,DFT,DFMAX,DFTL,DWT,DUTN,DX,
+C$OMP*  DLIMIT,DKEX,EXCESS,FCORU,FDEFRM,FLUXU,FLUXV,FLUXUD,FLUXVD, 
+C$OMP*  I,IP1,J,L,LD,LD1,LMC0,LMC1,LN,LDRAG,LTOP, MU,MUB,MDN,MUP,MUR,           
+C$OMP*  N,NMX, PIJ,PLE,PL,P0,PDN,PUP, RHO,SP,TL,THL,TEDGE,              
+C$OMP*  UL,U0,UR,USRC,UEDGE, VL,V0,VR,VSRC,VEDGE, WL,W0,WSRC,WCHECK,    
+C$OMP*  WMCE,WMC, XDIFF, YDN,YUP, ZVAR,WTX,WT,AIRXS,CLDDEP,CLDHT,FPLUME,
+C$OMP*  UIL,VIL, TLIL,THIL,BVIL)                                      
+      DO J=2,JM
+C**** parallel reductions
+         UIL(:,:)=U(:,J,:)                                              
+         VIL(:,:)=V(:,J,:)                                              
+         TLIL(:,:)=TLS(:,J,:)                                           
+         THIL(:,:)=THLS(:,J,:)                                          
+         BVIL(:,:)=BVS(:,J,:)                                           
+
       CN(1)=0.
       FCORU=(ABS(FCOR(J-1))+ABS(FCOR(J)))*BYDXYV(J)
       DO K=1,2
@@ -531,7 +574,7 @@ C****
         RA(4)=RA(4)*BYIM
       END IF
       I=IM
-      DO 500 IP1=1,IM
+      DO IP1=1,IM
 C****
 C**** CALCULATE VERTICAL ARRAYS
 C****
@@ -539,15 +582,18 @@ C****
       SP=PIJ
       DO L=1,LM
       IF (L.GE.LS1) PIJ=PSFMPT
-      TL(L)=.25*(PK(I,J-1,L)*T(I,J-1,L)+PK(IP1,J-1,L)*T(IP1,J-1,L)+
-     *  PK(I,J,L)*T(I,J,L)+PK(IP1,J,L)*T(IP1,J,L))
-      THL(L)=.25*(T(I,J-1,L)+T(IP1,J-1,L)+T(I,J,L)+T(IP1,J,L))
+c      TL(L)=.25*(PK(I,J-1,L)*T(I,J-1,L)+PK(IP1,J-1,L)*T(IP1,J-1,L)+
+c     *  PK(I,J,L)*T(I,J,L)+PK(IP1,J,L)*T(IP1,J,L))
+c      THL(L)=.25*(T(I,J-1,L)+T(IP1,J-1,L)+T(I,J,L)+T(IP1,J,L))
+      TL(L)=TLIL(I,L)
+      THL(L)=THIL(I,L)
       PLE(L)=PIJ*SIGE(L)+PTOP
       PL(L)=PIJ*SIG(L)+PTOP
       DP(L)=PIJ*DSIG(L)
       RHO(L)=PL(L)/(RGAS*TL(L))
-      BVFSQ=.5*(SZ(I,J-1,L)+SZ(IP1,J-1,L)+SZ(I,J,L)+SZ(IP1,J,L))/
-     *  (DP(L)*THL(L))*GRAVS*RHO(L)
+c      BVFSQ=.5*(SZ(I,J-1,L)+SZ(IP1,J-1,L)+SZ(I,J,L)+SZ(IP1,J,L))/
+c     *  (DP(L)*THL(L))*GRAVS*RHO(L)
+      BVFSQ=BVIL(I,L)/(DP(L)*THL(L))*GRAVS*RHO(L)
       IF (PL(L).GE..4d0) THEN
          BVF(L)=SQRT(MAX(BVFSQ,1.d-10))
         ELSE
@@ -761,6 +807,7 @@ C**** DIAGNOSTICS
 C****
 C**** CALCULATE THE DRAG
 C****
+      LDRAGA(I,J)=LDRAG                                                 
       IF (LDRAG.GT.LM) GO TO 500
       DO 400 N=1,NM
       IF (LD(N).GT.LM) GO TO 400
@@ -892,32 +939,17 @@ C**** ACCUMULATE DIAGNOSTICS  (DU, DIFFUSION COEFFICIENT)
       IF (MRCH.EQ.2) THEN
 C        AJL(J,LM,JL_DUDTSDIF)=AJL(J,LM,JL_DUDTSDIF)-FLUXUD/MDN
         DO L=LDRAG,LM
-          AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+
-     &         DL(L)/(BVF(L)*BVF(L))*DTHR
+cc          AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+
+cc     &         DL(L)/(BVF(L)*BVF(L))*DTHR
+          DUJL(L,J)=DL(L)/(BVF(L)*BVF(L))*DTHR
         END DO
 C****
 C**** Save KE change and diffusion coefficient on A-grid
 C****
-        DO K=1,2
-          IO(2*K-1)=I
-          IO(2*K)=IP1
-        END DO
-        IF (J.EQ.2) THEN
-          IO(1)=1
-          IO(2)=1
-        END IF
-        IF (J.EQ.JM) THEN
-          IO(3)=1
-          IO(4)=1
-        END IF
         DO L=LDRAG-1,LM
           DKEX=.5*(((DUT(L)+U(I,J,L))**2+(DVT(L)+V(I,J,L))**2)-
      *         (U(I,J,L)**2+V(I,J,L)**2))
-          DO K=1,4
-            IA=IO(K)
-            JA=JO(K)
-            DKE(IA,JA,L)=DKE(IA,JA,L) + RA(K)*DKEX
-          END DO
+          RADKEX(L,I,J)=DKEX
           DUT3(I,J,L) = DUT(L)*DP(L)*DXYV(J)
           DVT3(I,J,L) = DVT(L)*DP(L)*DXYV(J)
         END DO
@@ -929,13 +961,64 @@ C****
         U(I,J,L)=U(I,J,L)+DUT(L)
         V(I,J,L)=V(I,J,L)+DVT(L)
       END DO
-C**** END OF LOOP OVER I,J
+
+C**** END OF LOOP OVER I
   500 I=IP1
+      END DO
+
+         U(:,J,:)=UIL(:,:)                                              
+         V(:,J,:)=VIL(:,:)                                              
+C**** END OF LOOP OVER J
+      END DO
+C$OMP  END PARALLEL DO                                                  
 C****
       IF (MRCH.EQ.2) THEN
 C**** conservation diagnostic
         CALL DIAGCD (6,UT,VT,DUT3,DVT3,DT1)
+
+C**** RECONSTRUCT DKE AS ORIGINALLY COMPUTED                
+        DO J=2,JM                                                     
+        DO K=1,2                                                   
+          RA(K)=RAVPN(J-1)                                            
+          RA(K+2)=RAVPS(J)                                            
+          JO(K)=J-1                                                   
+          JO(K+2)=J                                                   
+        END DO
+        IF(J.EQ.2)  THEN                                               
+          RA(1)=RA(1)*BYIM                                            
+          RA(2)=RA(2)*BYIM                                            
+        ELSE IF(J.EQ.JM)  THEN                                        
+          RA(3)=RA(3)*BYIM                                            
+          RA(4)=RA(4)*BYIM                                            
+        END IF                                                         
+        I=IM                                                           
+        DO IP1=1,IM                                                
+          LDRAG=LDRAGA(I,J)                                           
+          IF(LDRAG.LE.LM) THEN
+            DO K=1,2                                                
+              IO(2*K-1)=I                                              
+              IO(2*K)=IP1                                              
+            END DO
+            IF(J.EQ.2)  THEN
+              IO(1)=1                                                  
+              IO(2)=1                                                  
+            ELSE IF(J.EQ.JM)  THEN                                     
+              IO(3)=1                                                  
+              IO(4)=1                                                  
+            END IF
+            DO L=LDRAG-1,LM                                         
+              DO K=1,4
+                IA=IO(K)
+                JA=JO(K)
+                DKE(IA,JA,L)=DKE(IA,JA,L)+RA(K)*RADKEX(L,I,J)
+              END DO
+            END DO
+          END IF
+          I=IP1                                                       
+        END DO
+      END DO
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
+C$OMP  PARALLEL DO PRIVATE(I,J,L)                                  
         DO L=LDRAG-1,LM
           DO J=1,JM
             DO I=1,IMAXJ(J)
@@ -943,8 +1026,10 @@ C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
               AJL(J,L,JL_dtdtsdrg)=AJL(J,L,JL_dtdtsdrg)-
      &             DKE(I,J,L)/(SHA*PK(I,J,L))
             END DO
+            AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+ DUJL(L,J)
           END DO
         END DO
+C$OMP  END PARALLEL DO                                                  
       END IF
 C****
       RETURN
