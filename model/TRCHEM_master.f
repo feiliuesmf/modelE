@@ -1144,8 +1144,8 @@ C Save chemistry changes for updating tracers in apply_tracer_3Dsource.
 c Save new tracer Ox field, in case interactive ozone is used:
 !
         o3_tracer_save(l,i,j)=
-     &  trm(i,j,l,n_Ox)+tr3Dsource(i,j,l,nChemistry,n_Ox)*dtsrc*
-     &  bydxyp(j)*byO3MULT
+     &  (trm(i,j,l,n_Ox)+tr3Dsource(i,j,l,nChemistry,n_Ox)*dtsrc)
+     &  *bydxyp(j)*byO3MULT
 !      
 #ifdef SHINDELL_STRAT_CHEM
         DU_O3(J)=0.d0! this used to be updated with radiation O3 value
