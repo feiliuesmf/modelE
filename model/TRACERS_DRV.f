@@ -4931,6 +4931,14 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       call special_layers_init
 #endif
 #endif
+#ifdef TRACERS_COSMO
+      do n=1,ntm
+        if (trname(n) .eq. "Be7" .OR. trname(n) .eq. "Be10") then
+          call read_Be_source
+          exit
+        end if
+      end do
+#endif
       return
       end subroutine init_tracer
 
@@ -5733,15 +5741,6 @@ C         (lightning called from tracer_3Dsource)
           if (COUPLED_CHEM.ne.1)
      &    call get_sulfate_N2O5 !not applied directly;used in chemistry.
         end select
-      end do
-#endif
-
-#ifdef TRACERS_COSMO
-      do n=1,ntm
-        if (trname(n) .eq. "Be7" .OR. trname(n) .eq. "Be10") then
-          call read_Be_source
-          exit
-        end if
       end do
 #endif
 
