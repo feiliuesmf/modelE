@@ -191,11 +191,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, PARAMETER :: ktajls=94
 #endif
 #else
-#ifdef TRACERS_DUST
-      INTEGER,PARAMETER :: ktajls=16
-#else
-      INTEGER, PARAMETER :: ktajls=34
-#endif
+      INTEGER, PARAMETER :: ktajls=36   ! default
 #endif
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
       REAL*8, DIMENSION(JM,LM,ktajls) :: TAJLS
