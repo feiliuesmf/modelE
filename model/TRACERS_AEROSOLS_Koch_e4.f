@@ -1224,8 +1224,8 @@ c can't be more than moles going in:
      * rkdm(ntm),trmol(ntm),tt1,tt2,tt3,ptr
 #ifdef TRACERS_SPECIAL_Shindell
 !@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
-      integer maxl
 #endif
+      integer maxl
 
       ptr=0.3d0  !um
       DO 19 L=1,LM
