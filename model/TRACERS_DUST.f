@@ -34,7 +34,7 @@ c**** Read input: prec-evap data
         CALL openunit('MINFR',io_data,.true.,.true.)
         CALL closeunit(io_data)
 #endif
-         ifirst=.false.
+        ifirst=.false.
       endif
 
 c      do j=1,jm
@@ -96,7 +96,11 @@ c     than threshold dryhr to permit dust emission
       END DO
 
 c     Loop for calculating dust source flux for each tracer
-      trsrfflx=0D0
+      DO n=1,Ntm_dust
+        n1=n_clay+n-1
+        trsrfflx(:,:,n1)=0D0
+      END DO
+
       DO j=1,Jm
         DO i=1,Im
 
@@ -229,7 +233,6 @@ c     dsrcflx  dust source flux for Ntm_dust tracers [kg/s]
       REAL*8,DIMENSION(jm) :: h
       REAL*8 :: y
 
-c**** wet deposition with rain from external file
       DO J=1,6
          LWDEP(J) = 3
          H(J) = 2800
@@ -424,6 +427,7 @@ c*****dry deposition (turbulent mixing) 1cm/s (Giorgi (86), JGR)
         DO j=1,Jm
           tajls(j,1,najl)=tajls(j,1,najl)+SUM(trsrfflx(:,j,n1))*Dtsrc
         END DO
+        trsrfflx(:,:,n1)=0D0
       END DO
 
       RETURN
