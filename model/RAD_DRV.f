@@ -531,6 +531,7 @@ C     OUTPUT DATA
      *     ,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld,ij_frmp
      *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      *     ,ij_clr_srincg,ij_CLDTPT,ij_cldt1t,ij_cldt1p,ij_cldcv1
+     *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi
      *     ,AFLX_ST
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
       USE SEAICE, only : rhos,ace1i,rhoi
@@ -557,7 +558,7 @@ C$OMP  THREADPRIVATE(/RADCOM_hybrid/)
       INTEGER I,J,L,K,KR,LR,JR,IH,INCH,JK,IT,iy,iend,icc1
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY,CSZ2,tauup,taudn
-     *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ
+     *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi
      *     ,QR(LM,IM,JM),CLDinfo(LM,3,IM,JM)
       REAL*8 QSAT
       LOGICAL NO_CLOUD_ABOVE
@@ -686,7 +687,7 @@ C**** MAIN J LOOP
 C****
       ICKERR=0
       JCKERR=0
-C$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH, ELHX,
+C$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
 C$OMP*   I,INCH,IH,IT, J, K,KR, L,LR,icc1, OPNSKY, CSZ2,
 C$OMP*   PLAND,PIJ, QSS, TOTCLD,TAUSSL,TAUMCL)
 C$OMP*   COPYIN(/RADCOM_hybrid/)
@@ -724,7 +725,7 @@ C****
 C****
 C**** DETERMINE CLOUDS (AND THEIR OPTICAL DEPTHS) SEEN BY RADIATION
 C****
-      CSS=0. ; CMC=0. ; CLDCV=0. ; DEPTH=0.
+      CSS=0. ; CMC=0. ; CLDCV=0. ; DEPTH=0. ; OPTDW=0. ; OPTDI=0.
       DO L=1,LM
         PIJ=PLIJ(L,I,J)
         QSS=Q(I,J,L)/(RHSAV(L,I,J)+1.D-20)
@@ -766,9 +767,11 @@ C**** Determine large scale and moist convective cloud cover for radia
             SIZEIC(L)=CSIZMC(L,I,J)
             IF(SVLAT(L,I,J).EQ.LHE) THEN
               TAUWC(L)=TAUMCL
+              OPTDW=OPTDW+TAUMCL
               AJL(j,l,jl_wcld)=AJL(j,l,jl_wcld)+1.
             ELSE
               TAUIC(L)=TAUMCL
+              OPTDI=OPTDI+TAUMCL
               AJL(j,l,jl_icld)=AJL(j,l,jl_icld)+1.
             END IF
           ELSE
@@ -776,9 +779,11 @@ C**** Determine large scale and moist convective cloud cover for radia
             SIZEIC(L)=CSIZSS(L,I,J)
             IF(SVLHX(L,I,J).EQ.LHE) THEN
               TAUWC(L)=TAUSSL
+              OPTDW=OPTDW+TAUSSL
               AJL(j,l,jl_wcld)=AJL(j,l,jl_wcld)+1.
             ELSE
               TAUIC(L)=TAUSSL
+              OPTDI=OPTDI+TAUSSL
               AJL(j,l,jl_icld)=AJL(j,l,jl_icld)+1.
             END IF
           END IF
@@ -806,22 +811,31 @@ CCC      AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
          AREGIJ(4,I,J)=CLDCV*DXYP(J)
          AIJ(I,J,IJ_PMCCLD)=AIJ(I,J,IJ_PMCCLD)+CMC
          AIJ(I,J,IJ_CLDCV) =AIJ(I,J,IJ_CLDCV) +CLDCV
-         DO 250 L=1,LLOW
-         IF (TOTCLD(L).NE.1.) GO TO 250
-         AIJ(I,J,IJ_PCLDL)=AIJ(I,J,IJ_PCLDL)+1.
-         GO TO 255
-  250    CONTINUE
-  255    DO 260 L=LLOW+1,LMID
-         IF (TOTCLD(L).NE.1.) GO TO 260
-         AIJ(I,J,IJ_PCLDM)=AIJ(I,J,IJ_PCLDM)+1.
-         GO TO 265
-  260    CONTINUE
-  265    DO 270 L=LMID+1,LHI
-         IF (TOTCLD(L).NE.1.) GO TO 270
-         AIJ(I,J,IJ_PCLDH)=AIJ(I,J,IJ_PCLDH)+1.
-         GO TO 275
-  270    CONTINUE
-  275    CONTINUE
+         DO L=1,LLOW
+           IF (TOTCLD(L).NE.1.) cycle
+           AIJ(I,J,IJ_PCLDL)=AIJ(I,J,IJ_PCLDL)+1.
+           exit
+         end do
+         DO L=LLOW+1,LMID
+           IF (TOTCLD(L).NE.1.) cycle
+           AIJ(I,J,IJ_PCLDM)=AIJ(I,J,IJ_PCLDM)+1.
+           exit
+         end do
+         DO L=LMID+1,LHI
+           IF (TOTCLD(L).NE.1.) cycle
+           AIJ(I,J,IJ_PCLDH)=AIJ(I,J,IJ_PCLDH)+1.
+           exit
+         end do
+
+         if(optdw.gt.0.) then
+            AIJ(I,J,IJ_optdw)=AIJ(I,J,IJ_optdw)+optdw
+            AIJ(I,J,IJ_wtrcld)=AIJ(I,J,IJ_wtrcld)+1.
+         end if
+         if(optdi.gt.0.) then
+            AIJ(I,J,IJ_optdi)=AIJ(I,J,IJ_optdi)+optdi
+            AIJ(I,J,IJ_icecld)=AIJ(I,J,IJ_icecld)+1.
+         end if
+
          DO KR=1,NDIUPT
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              DO INCH=1,NRAD
@@ -1019,7 +1033,7 @@ C**** Save cloud top diagnostics here
       AIJ(I,J,IJ_CLDTPPR)=AIJ(I,J,IJ_CLDTPPR)+plb(ltopcl+1)
       AIJ(I,J,IJ_CLDTPT)=AIJ(I,J,IJ_CLDTPT)+(tlb(ltopcl+1) - tf)
 C**** Save cloud tau=1 related diagnostics here (opt.depth=1 level)
-      tauup=0. 
+      tauup=0.
       DO L=LM,1,-1
         taucl=tauwc(l)+tauic(l)
         taudn=tauup+taucl

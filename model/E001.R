@@ -32,11 +32,11 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.16 ! initial conditions (atm. and ground)
-! GIC=GIC.E005gasA.1DEC1956 ! initial ground conditions (needed if ISTART=2)
-! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp.  not needed if ocn prescribed
+AIC=DEC1958.rsfB394M12.modelE.16 ! model init cond (atm. and ground) ISTART=7
+! AIC=AIC.RES_M12.D771201   ! observed init cond   (atm. only)       ISTART=2
+! GIC=GIC.E005gasA.1DEC1956 ! initial ground conditions              ISTART=2
+! OHT=OTSPEC.RunIDM12.M250D ! hor.heat transp.  for q-flux ocean only
 OCNML=Z1O.B4X5.cor         ! mixed layer depth,needed for post-processing only
-MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp.,needed for post-processing only
 OSST=OST4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
 CDN=CD4X500S VEG=V72X46.1.cor
@@ -63,7 +63,7 @@ TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
 E001 (new modelE based on B402A, uses dry adiab. adjustment)
-R=00BG/B
+
 DTFIX=300
 &&PARAMETERS
 X_SDRAG=.00025,.000025
@@ -81,8 +81,10 @@ isccp_diags=1
 &&END_PARAMETERS
 
  &INPUTZ
+   !  YEARI=1950,MONTHI=12,DATEI=1,HOURI=0, ! to be used with ISTART=2
    YEARI=1950,MONTHI=1,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
-   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
+   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0, KDIAG=0,2,2,9*0,
    YEARE=1950,MONTHE=2,
+   !  ISTART=2,IRANDI=0, YEARE=1950,MONTHE=12,HOURE=1,
    ISTART=7,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END

@@ -36,7 +36,6 @@ AIC=1JAN1951.rsfE001 ! just label records of control run are needed
 ! GIC=GIC.E005gasA.1DEC1956 ! initial conditions (ground)
 ! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp.  not needed if ocn prescribed
 OCNML=Z1O.B4X5.cor         ! mixed layer depth,needed for post-processing only
-MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp.,needed for post-processing only
 OSST=OST4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
 CDN=CD4X500S VEG=V72X46.1.cor

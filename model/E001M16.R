@@ -36,7 +36,6 @@ AIC=AIC.RES_M16b.D771201   ! initial conditions (atm.)
 GIC=GIC.E005gasA.1DEC1956x ! initial conditions (ground)
 ! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp.  not needed if ocn prescribed
 OCNML=Z1O.B4X5.cor         ! mixed layer depth,needed for post-processing only
-MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp.,needed for post-processing only
 OSST=OST4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
 CDN=CD4X500S VEG=V72X46.1.cor
@@ -90,6 +89,6 @@ isccp_diags=1   ! activates coll. of ISCCP cloud data
 
  &INPUTZ
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
-   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
+   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,  KDIAG=0,2,2,9*0,
    ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,HOURE=1,
  &END

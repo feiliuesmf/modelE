@@ -2429,8 +2429,40 @@ c
       name_ij(k) = 'CLDT1T'
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
-cc    iw_ij(k) = iw_cldcv  ! built in
+cc    iw_ij(k) = iw_cldcv1 ! built in
       ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
+      IJ_WTRCLD = k ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
+      lname_ij(k) = 'WATER CLOUD COVER'
+      units_ij(k) = '%'
+      name_ij(k) = 'WTRCLD'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_ICECLD = k ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
+      lname_ij(k) = 'ICE CLOUD COVER'
+      units_ij(k) = '%'
+      name_ij(k) = 'ICECLD'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_OPTDW = k
+      lname_ij(k) = 'WATER CLOUD OPTICAL DEPTH x WATER CLOUD COVER'
+      units_ij(k) = ''
+      name_ij(k) = 'optdw'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+c
+      k=k+1 !
+      IJ_OPTDI = k
+      lname_ij(k) = 'ICE CLOUD OPTICAL DEPTH x ICE CLOUD COVER'
+      units_ij(k) = ''
+      name_ij(k) = 'optdi'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
 
       if (k .gt. kaij) then
         write (6,*) 'ij_defs: Increase kaij=',kaij,' to at least ',k

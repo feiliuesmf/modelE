@@ -36,7 +36,6 @@ Data input files:
 AIC=1JAN1961.rsfE001q               ! initial conditions
 OHT=OTSPEC.E001.M250D.1951-1955     ! horizontal ocean heat transports
 TG3M=TG3M.E001q.19711980            ! created by 'mkdeep'
-MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
 ! OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
 EDDY=ED4X5 ! Eddy diffusivity for deep ocean mixing
 CDN=CD4X500S VEG=V72X46.1.cor
@@ -63,7 +62,7 @@ TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
 E001qd (new modelE based on B402A - Qflux + deep diffusion)
-R=00BG/B
+       
 DTFIX=300
 &&PARAMETERS
 X_SDRAG=.00025,.000025
@@ -81,9 +80,8 @@ KCOPY=2         ! saving acc + rsf
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0,
-   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
-                       !  from default: IYEAR1=YEARI
+   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
+   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0, KDIAG=0,2,2,9*0,
    YEARE=1950,MONTHE=2,
    ISTART=7,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END

@@ -2361,9 +2361,6 @@ C****
       if(sname.eq.'dudt_mtndrg') then ! make sumfac an argument ... ???
          SUMFAC=10.                   ! ... to avoid this if-block  ???
          IWORD=4
-      else if(sname.eq.'wcod'.or.sname.eq.'icod') then
-         SUMFAC=SDSIG/SCALET
-         IWORD=1
       endif
       DO 140 L=LMAX,1,-1
       FGLOB=0.
@@ -2396,14 +2393,9 @@ C****
          TITLEO=TITLE//XLB
          IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
      *        J1,KLMAX,XJL,PL,CLAT,CPRES)
-      if(  sname.eq.'phi_amp_wave1' .or.
-     &     sname.eq.'phi_amp_wave2' .or.
-     &     sname.eq.'phi_amp_wave3' .or.
-     &     sname.eq.'phi_amp_wave4' .or.
-     &     sname.eq.'phi_phase_wave1' .or.
-     &     sname.eq.'phi_phase_wave2' .or.
-     &     sname.eq.'phi_phase_wave3' .or.
-     &     sname.eq.'phi_phase_wave4' ) return
+      if(  sname(1:7).eq.'phi_amp' .or.
+     &     sname(1:7).eq.'phi_pha' .or.
+     &     sname.eq.'wcod' .or. sname.eq.'icod' ) return
       WRITE (6,903) WORD(IWORD),GSUM,HSUM(2),HSUM(1),
      *  (NINT(ASUM(J)*SUMFAC),J=JM,J1,-INC)
       RETURN
@@ -3322,6 +3314,20 @@ c**** ratios (the denominators)
      *             +teeny)
             end do
             end do
+          else if (index(lname_ij(k),' x WATER CLOUD') .gt. 0) then
+            do j=1,jm
+            do i=1,im
+              adenom(i,j)=aij(i,j,ij_wtrcld)/(idacc(ia_ij(ij_wtrcld))
+     *             +teeny)
+            end do
+            end do
+          else if (index(lname_ij(k),' x ICE CLOUD') .gt. 0) then
+            do j=1,jm
+            do i=1,im
+              adenom(i,j)=aij(i,j,ij_icecld)/(idacc(ia_ij(ij_icecld))
+     *             +teeny)
+            end do
+            end do
           else if (index(lname_ij(k),' x CLRSKY') .gt. 0) then
             do j=1,jm
             do i=1,im
@@ -3593,8 +3599,8 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 C**** INITIALIZE CERTAIN QUANTITIES
       call ij_titlex
 C**** standard printout
-      kmaplets = 42
-      nmaplets = kmaplets+iDO_GWDRAG+(kgz_max-1)*2 + 3*isccp_diags
+      kmaplets = 54
+      nmaplets = kmaplets+iDO_GWDRAG+(kgz_max-1)*2 + 6*isccp_diags
       nmaps = 2
       iord(1:kmaplets) = (/
      *  ij_topo,    ij_fland,   ij_rsoi,     ! pg  1  row 1
@@ -3603,19 +3609,24 @@ C**** standard printout
      *  ij_beta,    ij_rune,    ij_tg1,      !        row 2
      *  ij_ws,      ij_jet ,    ij_dtdp,     ! pg  3  row 1
      *  ij_wsdir,   ij_jetdir,  ij_sstabx,   !        row 2
-     *  ij_cldcv,   ij_pmccld,  ij_cldtppr,  ! pg  4  row 1
-     *  ij_netrdp,  ij_srtr,    ij_btmpw,    !        row 2
+     *  ij_netrdp,  ij_srnfp0,  ij_btmpw,    ! pg  4  row 2
+     *  ij_srtr,    ij_srincg,  ij_clr_srincg, !      row 2
      *  ij_albp,    ij_albv,    ij_trnfp0,   ! pg  5  row 1
      *  ij_albg,    ij_albgv,   ij_neth,     !        row 2
      *  ij_dsev,    ij_ntdsese, ij_ntdsete,  ! pg  6  row 1
-     *  ij_gwtr,    ij_wmsum,   ij_dcnvfrq,  !        row 2
-     *  ij_scnvfrq, ij_pdcld,   ij_pscld,    ! pg  7  row 1
+     *  ij_gwtr,    ij_wmsum,   ij_colh2o,   !        row 2
+     *  ij_cldcv,   ij_dcnvfrq, ij_scnvfrq,  ! pg  7  row 1
+     *  ij_pmccld,  ij_pdcld,   ij_pscld,    !        row 2
+     *  ij_wtrcld,  ij_optdw,   ij_cldtppr,  ! pg  8  row 1
+     *  ij_icecld,  ij_optdi,   ij_cldtpt,   !        row 2
+     *  ij_cldcv1,  ij_cldt1p,  ij_cldt1t,   ! pg  9  row 1
      *  ij_pcldl,   ij_pcldm,   ij_pcldh/)   !        row 2
 
 C**** include ISCCP diags if requested
       if (isccp_diags.eq.1) then
-        iord(kmaplets+1:kmaplets+3) = (/ij_lcldi,ij_mcldi,ij_hcldi/)
-        kmaplets=kmaplets+3
+        iord(kmaplets+1:kmaplets+6) = (/ij_lcldi,ij_mcldi,ij_hcldi,
+     *                                  ij_tcldi,ij_taui,ij_ctpi/)
+        kmaplets=kmaplets+6
       end if
 
 C**** Fill in maplet indices for gravity wave diagnostics

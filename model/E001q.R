@@ -39,7 +39,6 @@ OHT=OTSPEC.E001.M250D.1951-1955    ! horizontal ocean heat transports
 ! base the above 2 lines on the preliminary run with prescribed ocean
 !
 OCNML=Z1O.B4X5.cor                 ! ocn data: mixed layer depth
-MLMAX=Z1OMAX.B4X5.250M.cor         ! ocn data: ann. max. mixed layer depth
 ! OSST=OST4X5.B.1946-55avg.Hadl1.1 ! not needed since ocn is predicted
 ! SICE=SICE4X5.B.1946-55avg.Hadl1.1 !not needed since ocn is predicted
 CDN=CD4X500S VEG=V72X46.1.cor
@@ -85,6 +84,6 @@ isccp_diags=1
 
  &INPUTZ
    YEARI=1950,MONTHI=1,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
-   YEARE=1980,MONTHE=1,DATEE=1,HOURE=0,
+   YEARE=1980,MONTHE=1,DATEE=1,HOURE=0,   KDIAG=0,2,2,9*0,
    ISTART=8,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END

@@ -32,8 +32,9 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.16 ! initial conditions (atm. and ground)
-! GIC=GIC.E005gasA.1DEC1956 ! initial ground conditions (needed if ISTART=2)
+AIC=DEC1958.rsfB394M12.modelE.16 ! init cond (atm. and ground)     ISTART=7
+! AIC=AIC.RES_M12.D771201 ! initial conditions (atm. only)         ISTART=2
+! GIC=GIC.E005gasA.1DEC1956 ! initial ground conditions            ISTART=2
 ! OSST/SICE: data rec. start with an integer M, where
 !     M=1 means Jan of the year mentioned in the file names (here 1950)
 !     In order that data and date agree, set IYEAR1=that year (1950)
@@ -41,7 +42,6 @@ OSST=OST4X5.B.1950.M02.Hadl1.1  ! ocean data   Feb 1950 - 1999
 SICE=SICE4X5.B.1950.M02.Hadl1.1 ! sea ice data Feb 1950 - 1999
 ! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp.  not needed if ocn prescribed
 ! OCNML=Z1O.B4X5.cor         ! mixed layer depth not needed if ocn prescribed
-! MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp. not needed if ocn prescribed
 ! EDDY=ED4X5 ! Eddy diffusivity for deep ocean mixing - not needed
 CDN=CD4X500S VEG=V72X46.1.cor
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
@@ -67,7 +67,7 @@ TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
 E001a (E001 - prescribed ann. varying ocean='ocean A')
-R=00BG/B
+       
 DTFIX=300
 &&PARAMETERS
 X_SDRAG=.00025,.000025
@@ -87,7 +87,7 @@ isccp_diags=1
 
  &INPUTZ
    YEARI=1951,MONTHI=1,DATEI=1,HOURI=0,
-   YEARE=1957,MONTHE=1,DATEE=1,HOURE=0,
+   YEARE=1957,MONTHE=1,DATEE=1,HOURE=0,    KDIAG=0,2,2,9*0,
    IYEAR1=1950  ! has to be consistent with OSST/SICE files !!!
    YEARE=1951,MONTHE=2,
    ISTART=7,IRANDI=0, YEARE=1951,MONTHE=1,HOURE=1,IWRITE=1,JWRITE=1,
