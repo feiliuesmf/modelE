@@ -891,7 +891,7 @@ C**** check whether air mass is conserved
 #endif
 #endif
 #ifdef TRACERS_DUST
-      USE tracers_dust_com,ONLY : hbaij
+      USE tracers_dust,ONLY : hbaij
 #endif
       IMPLICIT NONE
 

@@ -29,8 +29,8 @@
       USE LINOZ_CHEM_COM, only: dsol
 #endif
 #ifdef TRACERS_DUST
-      USE tracers_dust_com,ONLY : nDustEmij,nDustTurbij,nDustWetij,
-     &  nDustEmjl,nDustTurbjl,nDustWet3Djl
+      USE tracers_dust,ONLY : nDustTurbij,nDustWetij,
+     &     nDustTurbjl,nDustWet3Djl
 #endif
 #ifdef TRACERS_WATER
       USE LANDICE_COM, only : trli0    ! should these be in tracer_com?
@@ -5041,6 +5041,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
      * ,DMS_AER,SS1_AER,SS2_AER
      * ,SO2_src_3D,SO2_biosrc_3D,SO2_src
 #endif
+#ifdef TRACERS_DUST
+      USE tracers_dust,ONLY : hbaij,dryhr,frclay,frsilt,vtrsh
+#endif
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr
       CHARACTER*80 title
@@ -5073,6 +5076,10 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       REAL*8 dmsconc
       INTEGER mon_unit, mont,ii,jj,ir,mm,iuc,m,mmm,ll
       real*8 carbstuff,ccnv
+#endif
+#ifdef TRACERS_DUST
+      INTEGER :: io_data
+      LOGICAL,SAVE :: ifirst=.TRUE.
 #endif
 
       INTEGER J_0, J_1
@@ -5694,6 +5701,33 @@ c convert from month to second. dxyp??
       end do
       end do
       end do
+#endif
+#ifdef TRACERS_DUST
+      IF (ifirst) THEN
+        hbaij=0D0
+c**** Read input: threshold speed
+        CALL openunit('VTRSH',io_data,.true.,.true.)
+        READ (io_data) vtrsh
+        CALL closeunit(io_data)
+c**** Read input: fraction clay
+        CALL openunit('FRCLAY',io_data,.true.,.true.)
+        READ (io_data) frclay
+        CALL closeunit(io_data)
+c**** Read input: fraction silt
+        CALL openunit('FRSILT',io_data,.true.,.true.)
+        READ (io_data) frsilt
+        CALL closeunit(io_data)
+c**** Read input: prec-evap data
+        CALL openunit('DRYHR',io_data,.true.,.true.)
+        READ (io_data) dryhr
+        CALL closeunit(io_data)
+#ifdef TRACERS_DUST_MINERAL8
+        CALL openunit('MINFR',io_data,.true.,.true.)
+        CALL closeunit(io_data)
+#endif
+        ifirst=.FALSE.
+      ENDIF
+
 #endif
 
       end subroutine tracer_IC
@@ -6339,7 +6373,7 @@ C**** Apply chemistry and stratosphere overwrite changes:
 #endif
 
 #ifdef TRACERS_DUST
-      CALL tracers_dust
+c      CALL tracers_dust
 #endif
 
       return

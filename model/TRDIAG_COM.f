@@ -102,6 +102,11 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@param KTAIJS number of special lat/lon tracer diagnostics
       integer, parameter :: ktaijs= 182
 
+#ifdef TRACERS_DUST
+!@param nDustEmij index of dust emission in ijts_source
+      INTEGER,PARAMETER :: nDustEmij=1
+#endif
+
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, DIMENSION(IM,JM,ktaijs) :: TAIJS
 !@var ijts_source tracer independent array for TAIJS surface src. diags
@@ -183,6 +188,12 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #else
       INTEGER, PARAMETER :: ktajls=36   ! default
 #endif
+
+#ifdef TRACERS_DUST
+!@param nDustEmjl index of dust emission in jls_source
+      INTEGER,PARAMETER :: nDustEmjl=1
+#endif
+
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
       REAL*8, DIMENSION(JM,LM,ktajls) :: TAJLS
 !@var jls_source tracer independent array for TAJLS surface src. diags
