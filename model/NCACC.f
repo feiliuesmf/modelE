@@ -1,8 +1,9 @@
 c f90 -c -64 NCACC.f
       subroutine write_nc_acc(fileout)
       use E001M12_COM
-      use GEOM, lat_radians=>lat,lonab_deg=>lon, dlat_radians=>dlat
+      use GEOM
       use DAGCOM
+      use DAGPCOM, only : plm,ple
       implicit none
       include '/usr/local/netcdf-3.4/include/netcdf.inc'
 
@@ -19,16 +20,16 @@ c f90 -c -64 NCACC.f
 
       integer :: i,j,k
 
-      double precision, dimension(jm) :: lat_deg,latb_deg
-      double precision, dimension(lm) :: plm_gcm
-      double precision, dimension(lm+1) :: ple_gcm
+c 1st elem of ple =  glob mean edge pres between layers 1 and 2
+c 1st elem of ple_shift = glob mean surf pres
+      double precision, dimension(lm+1) :: ple_shift
 
-      lat_deg = lat_radians*360./twopi
-      latb_deg = lat_deg - dlat_radians*180./twopi
-      plm_gcm = (psf-ptop)*sig(1:lm)+ptop
-      ple_gcm = (psf-ptop)*sige(1:lm+1)+ptop
+      ple_shift(1) = psf
+      ple_shift(2:lm+1) = ple(:)
 
-      call def_acc
+c refresh some global parameters that change over the course of a run
+      call iparm_defs
+      call dparm_defs
 
       status = nf_create (trim(fileout), nf_clobber, ncid)
 c-----------------------------------------------------------------------
@@ -105,7 +106,7 @@ c-----------------------------------------------------------------------
 c aj
 c-----------------------------------------------------------------------
       dimids(1)=lat_did
-      dimids(1)=ntype_did
+      dimids(2)=ntype_did
       call ncdefarr(aj_name,aj_lname,aj_units,
      &     ncid,kaj,nf_real,2,dimids)
       call ncput_idacc(aj_name,aj_ia,ncid,kaj)
@@ -208,7 +209,7 @@ c-----------------------------------------------------------------------
       call ncdefarr(ajk_name,ajk_lname,ajk_units,
      &     ncid,kajk,nf_real,2,dimids)
 c-----------------------------------------------------------------------
-c aijk (need to define the b-grid lon_did,lat_did)
+c aijk
 c-----------------------------------------------------------------------
       dimids(1)=lonb_did
       dimids(2)=latb_did
@@ -241,17 +242,17 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c write data to netcdf file
 c-----------------------------------------------------------------------
-      var_name='longitude'; call ncwrtdbl1(var_name,ncid,lonab_deg(1,1))
-      var_name='latitude';    call ncwrtdbl1(var_name,ncid,lat_deg)
+      var_name='longitude'; call ncwrtdbl1(var_name,ncid,lon_dg(1,1))
+      var_name='latitude';    call ncwrtdbl1(var_name,ncid,lat_dg(1,1))
       var_name='area';   call ncwrtdbl1(var_name,ncid,dxyp)
-      var_name='lonb';   call ncwrtdbl1(var_name,ncid,lonab_deg(1,2))
-      var_name='latb';   call ncwrtdbl1(var_name,ncid,latb_deg)
+      var_name='lonb';   call ncwrtdbl1(var_name,ncid,lon_dg(1,2))
+      var_name='latb';   call ncwrtdbl1(var_name,ncid,lat_dg(1,2))
       var_name='areab';  call ncwrtdbl1(var_name,ncid,dxyv)
       var_name='dxv';  call ncwrtdbl1(var_name,ncid,dxv)
       var_name='sig';    call ncwrtdbl1(var_name,ncid,sig)
       var_name='sige';   call ncwrtdbl1(var_name,ncid,sige)
-      var_name='p';   call ncwrtdbl1(var_name,ncid,plm_gcm)
-      var_name='ple';   call ncwrtdbl1(var_name,ncid,ple_gcm)
+      var_name='p';   call ncwrtdbl1(var_name,ncid,plm)
+      var_name='ple';   call ncwrtdbl1(var_name,ncid,ple_shift)
       var_name='IDACC';  call ncwrtint1(var_name,ncid,idacc)
       var_name='STYPE_NAMES';  call ncwrtchar(var_name,ncid,stype_names)
       var_name='KEYNR';  call ncwrtint1(var_name,ncid,keynr)

@@ -6980,6 +6980,8 @@ C****
       INTEGER L
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
 
+      call def_acc
+
 C**** AIJ diagnostic names:
 C**** NAME     NO.    DESCRIPTION   (SCALE)*IDACC  LOCATION
 C**** ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
