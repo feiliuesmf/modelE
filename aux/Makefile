@@ -53,14 +53,10 @@ qc.o: $(GCMLIB)
 $(GCMLIB): FORCE
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN)
 
-$(BIN_DIR)/acc2nc: acc2nc.o $(MODEL_DIR)/NCACC.o $(GCMLIB) $(NCLIB)
+$(BIN_DIR)/acc2nc: acc2nc.o $(GCMLIB) $(NCLIB)
 	$(F90) $(FFLAGS) -o $@ $^
 
 acc2nc.o: $(GCMLIB)
-
-$(MODEL_DIR)/NCACC.o: $(GCMLIB) # recomp if any changes
-	rm -f $@                # force recompile
-	$(MAKE) -C $(MODEL_DIR) NCACC.o
 
 clean:
 	rm -f *.LST *~ *.ERR *.CHK *.L
