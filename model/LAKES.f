@@ -694,9 +694,6 @@ C**** Only overflow if lake mass is above sill height (HLAKE (m))
             MWLSILL = RHOW*HLAKE(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
             IF(MWL(IU,JU).gt.MWLSILL) THEN
               DMM = (MWL(IU,JU)-MWLSILL)*RATE(IU,JU)
-C**** Increase rate for greatly accumulating lakes...
-              IF (MWL(IU,JU).gt. 10.*MWLSILL)
-     *             DMM=DMM+0.5*(MWL(IU,JU)-10.*MWLSILL)
               IF (MWL(IU,JU)-DMM.lt.1d-20) DMM=MWL(IU,JU)
 c              IF (FLAKE(IU,JU).gt.0) THEN
 c                MLM=RHOW*MLDLK(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
