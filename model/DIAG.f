@@ -59,7 +59,7 @@ C****
      *     ,il_qeq,il_w50n,il_t50n,il_u50n,il_w70n,il_t70n,il_u70n
      *     ,kgz_max,pmb,ght,jl_dtdyn,jl_zmfntmom,jl_totntmom,jl_ape
      *     ,jl_uepac,jl_vepac,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac
-     *     ,jl_epflxn,jl_epflxv,ij_p850,z500,rh_inst
+     *     ,jl_epflxn,jl_epflxv,ij_p850,z500,rh_inst,t_inst
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn
       USE PBLCOM, only : tsavg
 
@@ -194,7 +194,7 @@ C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
         DO I=1,IMAXJ(J)
           K=1
           L=1
-          rh_inst(i,j,1:3) = undef
+          rh_inst(i,j,1:3) = undef ; t_inst(i,j,1:3) = undef
           z500(i,j) = undef
  172      L=L+1
           PDN=PMID(L-1,I,J)
@@ -242,6 +242,7 @@ C**** calculate geopotential heights + temperatures
             AIJ(I,J,nQ)=AIJ(I,J,nQ)+QIJK
             AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHE,PMB(K))
             RH_inst(I,J,ninst)=QIJK/qsat(TIJK+TF,LHE,PMB(K))
+            T_inst(I,J,ninst) =TIJK
           end if
 C****
           IF (K.LT.KGZ_max) THEN
@@ -2535,12 +2536,12 @@ C****
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf
-      USE MODEL_COM, only : p,ptop,zatmo,dtsrc
+      USE MODEL_COM, only : p,ptop,zatmo,dtsrc,u,v
       USE GEOM, only : imaxj
       USE PBLCOM, only : tsavg,qsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc
       USE FLUXES, only : prec
-      USE DAGCOM, only : z500,rh_inst
+      USE DAGCOM, only : z500,rh_inst,t_inst
       IMPLICIT NONE
       REAL*4, DIMENSION(IM,JM) :: DATA
       INTEGER :: I,J,K,L
@@ -2568,7 +2569,25 @@ C**** depending on namedd string choose what variables to output
         case ("RH500")    ! 500mb relative humidity (wrt water)
           data=rh_inst(:,:,2)
         case ("RH300")    ! 300mb relative humidity (wrt water)
-          data=rh_inst(:,:,3)
+          data=t_inst(:,:,3)
+        case ("T850")     ! 850mb temperature (C)
+          data=t_inst(:,:,1)
+        case ("T500")     ! 500mb temperature (C)
+          data=t_inst(:,:,2)
+        case ("T300")     ! 300mb temperature (C)
+          data=t_inst(:,:,3)
+        case ("UL2")      ! level 2 U velocity
+          data = U(:,:,2)
+        case ("UL4")      ! level 4 U velocity
+          data = U(:,:,4)
+        case ("UL6")      ! level 6 U velocity
+          data = U(:,:,6)
+        case ("VL2")      ! level 2 V velocity
+          data = U(:,:,2)
+        case ("VL4")      ! level 4 V velocity
+          data = V(:,:,4)
+        case ("VL6")      ! level 6 V velocity
+          data = V(:,:,6)
         case ("LCLD")     ! low level cloud cover (%)
           data=0.
           do j=1,jm

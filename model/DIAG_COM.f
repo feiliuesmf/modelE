@@ -181,10 +181,13 @@ C**** parameters and variables for ISCCP diags
       CHARACTER*4, DIMENSION(KGZ), PARAMETER :: PMNAME=(/
      *     "1000","850 ","700 ","500 ","300 ","100 ","30  ","10  ",
      *     "3.4 ","0.7 ",".16 ",".07 ",".03 " /)
+
+C**** Instantaneous constant pressure level fields
 !@var Z500 saved instantaneous 500 mb height field
-      REAL*8, DIMENSION(IM,JM) :: Z500
 !@var RH_inst saved instantaneous 850,500 + 300 mb relative hum.
-      REAL*8, DIMENSION(IM,JM,3) :: RH_inst
+!@var T_inst saved instantaneous 850,500 + 300 mb temperature
+      REAL*8, DIMENSION(IM,JM) :: Z500
+      REAL*8, DIMENSION(IM,JM,3) :: RH_inst,T_inst
 
 !@param KACC total number of diagnostic elements
       INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ
