@@ -960,7 +960,7 @@ C****
       USE MODEL_COM, only : im,jm,hlake,fearth,qcheck
       USE GEOM, only : dxyp,imaxj
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm, trname
+      USE TRACER_COM, only : ntm, trname, t_qlimit
 #endif
       USE LAKES
       USE LAKES_COM
@@ -1016,6 +1016,7 @@ C**** Check total lake mass ( <0.4 m, >20x orig depth)
 #ifdef TRACERS_WATER
       do n=1,ntm
 C**** Check for neg tracers in lake
+        if (t_qlimit(n)) then
           do j=1,jm
           do i=1,imaxj(j)
             if (fearth(i,j).gt.0) then
@@ -1026,7 +1027,8 @@ C**** Check for neg tracers in lake
               end if
             end if
           end do
-        end do
+          end do
+        end if
 C**** Check conservation of water tracers in lake
         if (trname(n).eq.'Water') then
           errmax = 0. ; imax=1 ; jmax=1

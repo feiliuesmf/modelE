@@ -589,7 +589,7 @@ c**** Interpolate two months of data to current day
 
 
       subroutine checktr(subr)
-!@sum  CHECKTR Checks whether tracer variables are reasonable
+!@sum  CHECKTR Checks whether atmos tracer variables are reasonable
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : teeny
