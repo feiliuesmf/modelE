@@ -899,6 +899,7 @@ C**** for Q-flux ocean no variation with salinity is required
       RETURN
       END FUNCTION TOFREZ
 
+
       SUBROUTINE DIAGCO (M)
 !@sum  DIAGCO Keeps track of the ocean conservation properties
 !@auth Gary Russell/Gavin Schmidt
@@ -910,19 +911,7 @@ C**** for Q-flux ocean no variation with salinity is required
       INTEGER, INTENT(IN) :: M
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAGCO IS BEING CALLED
-C**** M=1  INITIALIZE CURRENT QUANTITY
-C****   2  AFTER DYNAMICS
-C****   3  AFTER CONDENSATION
-C****   4  AFTER RADIATION
-C****   5  AFTER PRECIPITATION
-C****   6  AFTER LAND SURFACE (INCL. RIVER RUNOFF)
-C****   7  AFTER FULL SURFACE INTERACTION
-C****   8  AFTER STRATOSPHERIC DRAG
-C****   9  AFTER FILTER
-C****  10  AFTER DAILY
-C****  11  AFTER OCEAN DYNAMICS
-C****  12  AFTER OCEAN SUB-GRIDSCALE PHYS
-C****
+C****     (see DIAGCA)
       REAL*8, EXTERNAL :: conserv_OCE
 
 C**** OCEAN POTENTIAL ENTHALPY
@@ -930,6 +919,7 @@ C**** OCEAN POTENTIAL ENTHALPY
 C****
       RETURN
       END SUBROUTINE DIAGCO
+
 
       SUBROUTINE io_oda(kunit,it,iaction,ioerr)
 !@sum  io_oda reads/writes ocean/ice data for initializing deep ocean
