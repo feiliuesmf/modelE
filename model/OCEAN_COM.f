@@ -36,7 +36,8 @@ C**** ocean geometry (should this be in a seperate module?)
       REAL*8, DIMENSION(IM,JM) :: HATMO,HOCEAN,FOCEAN
 C**** ocean related parameters
       INTEGER NDYNO,MDYNO,MSGSO
-      REAL*8 :: DTO=450.        ! default. should be setable in Namelist
+!@dbparam DTO timestep for ocean dynamics (s)
+      REAL*8 :: DTO=450.        ! default. setable parameter
       REAL*8 DTOFS,DTOLF,DTS
 
 !@var OPRESS Anomalous pressure at surface of ocean (under ice) (Pa)

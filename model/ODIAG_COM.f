@@ -32,6 +32,8 @@
       INTEGER L_RHO,L_TEMP,L_SALT
 !@var icon_xx indexes for conservation quantities
       INTEGER icon_OCE,icon_OKE,icon_OAM,icon_OMS,icon_OSL
+!@var kbasin integer index of which basin a particular ocean point is in
+      INTEGER, DIMENSION(IM,JM) :: KBASIN
 C****
       END MODULE ODIAG
 
@@ -189,6 +191,9 @@ C**** Oceanic salt mass
       QCON=(/ F, F, F, T, F, T, F, T, T, T, T/)
       CALL SET_CON(QCON,"OCN SALT","(10 KG/M**2)    ",
      *     "(10^-8 KG/S/M^2)",1d-1,1d8,icon_OSL)
+C**** Initialise ocean basins
+      CALL OBASIN
+
 C****
       RETURN
       END SUBROUTINE init_ODIAG
@@ -206,7 +211,3 @@ C****
       return
       END SUBROUTINE reset_odiag
 
-      SUBROUTINE diag_OCEAN
-!@sum diag_OCEAN temporary dummy routine
-      RETURN
-      END SUBROUTINE diag_OCEAN

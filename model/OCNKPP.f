@@ -13,7 +13,6 @@
       REAL*8, DIMENSION(IM,JM) :: MO1,GXM1,GYM1,SXM1,SYM1,UO1,VO1
 
       END MODULE
-
 C****
       MODULE KPPE
 !@sum  KPPE contains variables and routines for KPP mixing scheme
@@ -25,16 +24,9 @@ c
       USE SW2OCEAN, only : lsrpd,fsr,fsrz,dfsrdz,dfsrdzb
       IMPLICIT NONE
       SAVE
-c     main parameter file which sets kpp ocean characteristics:
-
-c set max. number of ocean levels
-c LMO is max number of main ocean model, km is max number of KPP layers
+c set max. number of ocean levels from ocean code
+!@var km is max number of KPP layers
       INTEGER, PARAMETER :: km=LMO
-
-c imt    = number of grid points in longitudinal direction
-c jmt    = number of grid points in latitudinal direction
-c km     = number of grid points in the vertical direction
-c      parameter (imt=1, jmt=46, km=13, kmp1=km+1)
 
 c     rules for parameter constants
 c
@@ -67,16 +59,16 @@ c     variables used for vertical diffusion
 c
 c inputs: (set through namelist)
 c
-c fkph   = vertical diffusion coefficient (cm**2/sec)
-c fkpm   = vertical viscosity coefficient (cm**2/sec)
-c bvdc   = background vertical diffusion constant
-c bvvc   = background vertical viscosity constant
-c vvclim = vertical viscosity coefficient limit
-c vdclim = vertical diffusion coefficient limit
+!@var fkph   = vertical diffusion coefficient (cm**2/sec)
+!@var fkpm   = vertical viscosity coefficient (cm**2/sec)
+!@var bvdc   = background vertical diffusion constant
+!@var bvvc   = background vertical viscosity constant
+!@var vvclim = vertical viscosity coefficient limit
+!@var vdclim = vertical diffusion coefficient limit
 c
-c vvcric = maximum viscosity   due to shear instability    (cm**2/s)
+!@var vvcric = maximum viscosity   due to shear instability    (cm**2/s)
 c              (based on local richardson number)
-c vdcric = maximum diffusivity due to shear instability    (cm**2/s)
+!@var vdcric = maximum diffusivity due to shear instability    (cm**2/s)
 c
 c arrays used for vertical diffusion in "k-profile" mixing scheme,
 c computed in "kmix.F" and "kmixs.F".
@@ -84,13 +76,6 @@ c note, that in this scheme temperature diffusvity might be
 c different from the diffusivity of all other tracers due to double
 c diffusion.
 c
-c vvc           = vertical viscosity coeff
-c vdc(imt,km,1) = temperature vertical diffusivity coeff.  (cm**2/s)
-c vdc(imt,km,2) = salinity    vertical diffusivity coeff.  (cm**2/s)
-c               = diffusivity coeff. for all other tracers
-c
-c      common /kmixc/ vvc(imt,km), vdc(imt,km,2)
-c      common /cvmix1/ fkph,fkpm,bvdc,bvvc,vvclim,vdclim,vvcric,vdcric
       real*8, parameter :: vvcric=50d0, vdcric=50d0, fkpm=10d0, fkph=0
      *     .3d0,vvclim = 1000d0, vdclim = 1000d0
 
@@ -100,35 +85,32 @@ c     mixing scheme; used in "kmixs.F" subroutines
 c
 c parameters for several subroutines
 c
-c  epsl    = epsln in "pconst.h" (set in "kmixinit")    = 1.0e-20
-c  epsilon = nondimensional extent of the surface layer = 0.1
-c  vonk    = von Karman's constant                      = 0.4
-c  conc1,conam,concm,conc2,zetam,conas,concs,conc3,zetas
+!@var  epsl    = epsln in "pconst.h" (set in "kmixinit")    = 1.0e-20
+!@var  epsilon = nondimensional extent of the surface layer = 0.1
+!@var  vonk    = von Karman's constant                      = 0.4
+!@var  conc1,conam,concm,conc2,zetam,conas,concs,conc3,zetas
 c          = scalar coefficients
 
       real*8, parameter :: epsl=epsln, epsilon=0.1d0, vonk=0.4d0, conc1
      *     =5d0,conam=1.257d0, concm=8.380d0, conc2=16d0,zetam= -0.2d0
      *     ,conas=-28.86d0,concs=98.96d0,conc3=16d0,zetas= -1d0
-c      common /kmixcom/ epsl,epsilon,vonk,conc1,conam,concm,conc2,zetam,
-c     $                                         conas,concs,conc3,zetas
 
 c     parameters for subroutine "bldepth"
 
 c to compute depth of boundary layer:
 c
-c  Ricr    = critical bulk Richardson Number            = 0.3
-c  cekman  = coefficient for ekman depth                = 0.7
-c  cmonob  = coefficient for Monin-Obukhov depth        = 1.0
-c  concv   = ratio of interior buoyancy frequency to
+!@var  Ricr    = critical bulk Richardson Number            = 0.3
+!@var  cekman  = coefficient for ekman depth                = 0.7
+!@var  cmonob  = coefficient for Monin-Obukhov depth        = 1.0
+!@var  concv   = ratio of interior buoyancy frequency to
 c               buoyancy frequency at entrainment depth    = 1.8
-c  hbf     = fraction of bounadry layer depth to
+!@var  hbf     = fraction of bounadry layer depth to
 c               which absorbed solar radiation
 c               contributes to surface buoyancy forcing    = 1.0
-c  Vtc     = non-dimensional coefficient for velocity
+!@var  Vtc     = non-dimensional coefficient for velocity
 c               scale of turbulant velocity shear
 c               (=function of concv,concs,epsilon,vonk,Ricr)
 c
-c      common /kmixcbd/ Ricr,cekman,cmonob,concv,hbf,Vtc
       real*8, parameter :: Ricr= 0.3d0, cekman= 0.7d0, cmonob=1d0, concv
      *     =1.8d0,hbf=1d0
       real*8 Vtc
@@ -137,21 +119,21 @@ c      common /kmixcbd/ Ricr,cekman,cmonob,concv,hbf,Vtc
 c     parameters and common arrays for subroutines "kmixinit" and
 c     "wscale" to compute turbulent velocity scales:
 c
-c  nni     = number of values for zehat in the look up table
-c  nnj     = number of values for ustar in the look up table
-c
-c  wmt     = lookup table for wm, the turbulent velocity scale
+!@var  nni     = number of values for zehat in the look up table
+!@var  nnj     = number of values for ustar in the look up table
+c    
+!@var  wmt     = lookup table for wm, the turbulent velocity scale
 c               for momentum
-c  wst     = lookup table for ws, the turbulent velocity scale
+!@var  wst     = lookup table for ws, the turbulent velocity scale
 c               for scalars
-c  deltaz  = delta zehat in table
-c  deltau  = delta ustar in table
-c  rdeltaz  = recipricol of delta zehat in table
-c  rdeltau  = recipricol of delta ustar in table
-c  zmin    = minimum limit for zehat in table (m3/s3)
-c  zmax    = maximum limit for zehat in table
-c  umin    = minimum limit for ustar in table (m/s)
-c  umax    = maximum limit for ustar in table
+!@var  deltaz  = delta zehat in table
+!@var  deltau  = delta ustar in table
+!@var  rdeltaz  = recipricol of delta zehat in table
+!@var  rdeltau  = recipricol of delta ustar in table
+!@var  zmin    = minimum limit for zehat in table (m3/s3)
+!@var  zmax    = maximum limit for zehat in table
+!@var  umin    = minimum limit for ustar in table (m/s)
+!@var  umax    = maximum limit for ustar in table
 
       integer, parameter :: nni = 890, nnj = 480
 c
@@ -160,36 +142,28 @@ c
       real*8, parameter :: zmin=-4d-7,zmax=0.,umin=0.,umax=4d-2,
      *     deltaz = (zmax-zmin)/(nni+1), deltau = (umax-umin)/(nnj+1),
      *     rdeltaz = 1./deltaz, rdeltau = 1./deltau
-
-c      common /kmixcws2/ deltaz,deltau,rdeltaz,rdeltau,zmin,zmax,umin
-c     *     ,umax
-c for some reason, I could not compile the module if the above lines
-c were in the same comon block.
 c
 c     parameters for subroutine "ri_iwmix"
 c     to compute vertical mixing coefficients below boundary layer:
 c
-c  Riinfty = local Richardson Number limit
+!@var  Riinfty = local Richardson Number limit
 c              for shear instability                      = 0.7
-c  rRiinfty = 1/Riinfty
+!@var  rRiinfty = 1/Riinfty
 c    (note: the vertical mixing coefficients are defined
 c    in (m2/s) units in "kmixinit". they are initialized
 c    in "kmixbdta" and read via namelist "eddy" in (cm2/s)
 c    units using their c-g-s names)
 c   (m2/s)                                                 (cm2/s)
-c  difm0   = viscosity max due to shear instability     = vvcric
-c  difs0   = diffusivity ..                             = vdcric
-c  difmiw  = viscosity background due to internal waves = fkpm
-c  difsiw  = diffusivity ..                             = fkph
-c  difmcon = viscosity due to convective instability    = vvclim
-c  difscon = diffusivity ..                             = vdclim
-c  BVSQcon = value of N^2 where the convection coefs first become max
-c  rBVSQcon = 1/BVSQcon
-c  num_v_smooth_Ri = number of vertical smoothings of Ri
+!@var difm0   = viscosity max due to shear instability     = vvcric
+!@var difs0   = diffusivity ..                             = vdcric
+!@var difmiw  = viscosity background due to internal waves = fkpm
+!@var difsiw  = diffusivity ..                             = fkph
+!@var difmcon = viscosity due to convective instability    = vvclim
+!@var difscon = diffusivity ..                             = vdclim
+!@var BVSQcon = value of N^2 where the convection coefs first become max
+!@var rBVSQcon = 1/BVSQcon
+!@var num_v_smooth_Ri = number of vertical smoothings of Ri
 
-c      common /kmixcri/ Riinfty,rRiinfty,
-c     $                 difm0,difs0,difmiw,difsiw,difmcon,difscon,
-c     $                 BVSQcon,rBVSQcon,num_v_smooth_Ri
       real*8, parameter :: Riinfty= 0.7d0, rRiinfty=1./Riinfty, BVSQcon=
      *     -1d-7,rBVSQcon=1./BVSQcon, num_v_smooth_Ri=1
       real*8, parameter :: difm0   = vvcric * r10000, difs0   = vdcric
@@ -198,28 +172,23 @@ c     $                 BVSQcon,rBVSQcon,num_v_smooth_Ri
 
 c     parameters for subroutine "ddmix"
 c     to compute additional diffusivity due to double diffusion:
-c  Rrho0   = limit for double diffusive density ratio
-c  dsfmax  = maximum diffusivity in case of salt fingering (m2/s)
+!@var  Rrho0   = limit for double diffusive density ratio
+!@var  dsfmax  = maximum diffusivity in case of salt fingering (m2/s)
 
-c      common /kmixcdd/ Rrho0,dsfmax
       real*8, parameter :: Rrho0 = 1.9d0, dsfmax = 0.001d0
 
 c     parameters for subroutine "blmix"
 c     to compute mixing within boundary layer:
-c  cstar   = proportionality coefficient for nonlocal transport
-c  cg      = non-dimensional coefficient for counter-gradient term
+!@var  cstar   = proportionality coefficient for nonlocal transport
+!@var  cg      = non-dimensional coefficient for counter-gradient term
 
-c      common /kmixcbm/ cstar,cg
       real*8, parameter :: cstar = 10d0
       real*8 cg
       common /kmixcbm/ cg
 
-c solar radiation penetration common block (used in swfrac)
-c      PARAMETER (LSRPD=3)
-c      common/SWFRCB/FSR(LSRPD),FSRZ(LSRPD),dFSRdZ(LSRPD),dFSRdZB(LSRPD)
-
 c add variables for depth dependent mixing due to rough topography
-
+!@var diftop diffusion scale for topographic mixing
+!@var fz500 diffusion scale as function of height above topography
       real*8, parameter :: diftop=0d0    ! 10d0 * r10000)
       real*8 fz500
       common /topomix/FZ500(km,km)
@@ -233,69 +202,74 @@ c add variables for depth dependent mixing due to rough topography
      $                  visc  , difs  , dift  , ghats  , hbl
      $                                                 , kbl )
 
-c     Main driver subroutine for kpp vertical mixing scheme and
-c     interface to greater ocean model
+!@sum KPPMIX Main driver subroutine for kpp vertical mixing scheme and
+!@+   interface to greater ocean model
 c
 c     written  by: bill large,    june  6, 1994
 c     modified by: jan morzel,    june 30, 1994
 c                  bill large,  august 11, 1994
 c                  bill large, january 25, 1995 : "dVsq" and 1d code
 c     modified for GISS by Gavin Schmidt, march 1998
+c              for ModelE                 march 2001  
 c
-c
-c      INCLUDE "KPPE.COM"
       USE KPPE
-!@var number of diffusivities for local arrays
+!@var mdiff number of diffusivities for local arrays
       integer, parameter :: mdiff = 3
 c input
-      real*8 ZE(0:LMO)      !@var GISS vertical layering          (m)
-      real*8 zgrid(0:km+1)  !@var vertical grid (<= 0)            (m)
-      real*8 hwide(0:km+1)  !@var layer thicknesses               (m)
-      real*8 byhwide(0:km+1)!@var 1/layer thicknesses           (1/m)
-      integer kmtj      !@var number of vertical layers on this row
-      real*8 Shsq(km)   !@var (local velocity shear)^2        (m/s)^2
-      real*8 dVsq(km)   !@var (velocity shear re sfc)^2       (m/s)^2
-      real*8 ustar      !@var surface friction velocity       (m/s)
-      real*8 Bo         !@var surface turbulent buoy. forcing (m^2/s^3)
-      real*8 Bosol      !@var radiative buoyancy forcing      (m^2/s^3)
-      real*8 alphaDT(km)!@var alpha * DT  across interfaces   (kg/m^3)
-      real*8 betaDS(km) !@var beta  * DS  across interfaces   (kg/m^3)
-      real*8 dbloc(km)  !@var local delta buoyancy            (m/s^2)
-c                              ! across interfaces
-      real*8 Ritop(km)  !@var numerator of bulk Richardson
-c                              Number:                         (m/s)^2
+      real*8 ZE(0:LMO)      !@var ZE GISS vertical layering (m)
+      real*8 zgrid(0:km+1)  !@var zgrid vertical grid (<= 0) (m)
+      real*8 hwide(0:km+1)  !@var hwide layer thicknesses    (m)
+      real*8 byhwide(0:km+1)!@var byhwide 1/layer thicknesses (1/m)
+      integer kmtj    !@var kmtj number of vertical layers on this row
+      real*8 Shsq(km) !@var Shsq (local velocity shear)^2  (m/s)^2
+      real*8 dVsq(km) !@var dVsq (velocity shear re sfc)^2 (m/s)^2
+      real*8 ustar    !@var ustar surface friction velocity (m/s)
+      real*8 Bo       !@var Bo surface turbulent buoy. forcing (m^2/s^3)
+      real*8 Bosol    !@var Bosol radiative buoyancy forcing (m^2/s^3)
+!@var alphaDT alpha * DT  across interfaces (kg/m^3)
+      real*8 alphaDT(km)
+!@var betaDS beta  * DS  across interfaces (kg/m^3)
+      real*8 betaDS(km) 
+!@var dbloc local delta buoyancy across interfaces (m/s^2)
+      real*8 dbloc(km)
+!@var Ritop numerator of bulk Richardson Number (m/s)^2
 c          Ritop = (-z - -zref)* delta buoyancy w/ respect to sfc
-      real*8 Coriol     !@var Coriolis parameter            (1/s)
-      logical LDD     !@var = TRUE for double diffusive parameterisation
+      real*8 Ritop(km)
+      real*8 Coriol   !@var Coriol Coriolis parameter            (1/s)
+      logical LDD     !@var LDD = TRUE for double diffusion 
 c output
-      real*8 visc(0:km+1)  !@var vertical viscosity coefficient  (m^2/s)
-      real*8 difs(0:km+1)  !@var vertical scalar diffusivity     (m^2/s)
-      real*8 dift(0:km+1)  !@var vertical temperature diffusivity(m^2/s)
-      real*8 ghats(km)  !@var nonlocal transport              (s/m^2)
-      real*8 hbl        !@var boundary layer depth (m)
-      real*8 byhbl      !@var 1/boundary layer depth (1/m)
+!@var visc vertical viscosity coefficient (m^2/s)
+      real*8 visc(0:km+1) 
+!@var difs vertical scalar diffusivity (m^2/s)
+      real*8 difs(0:km+1) 
+!@var dift vertical temperature diffusivity (m^2/s)
+      real*8 dift(0:km+1) 
+      real*8 ghats(km)  !@var ghats nonlocal transport (s/m^2)
+      real*8 hbl        !@var hbl boundary layer depth (m)
+      real*8 byhbl      !@var byhbl 1/boundary layer depth (1/m)
 c local
-      real*8 bfsfc      !@var surface buoyancy forcing        (m^2/s^3)
-      real*8 ws         !@var momentum velocity scale
-      real*8 wm         !@var scalar   velocity scale
-      real*8 caseA      !@var = 1 in case A; =0 in case B
-      real*8 stable     !@var = 1 in stable forcing; =0 in unstable
-      real*8 dkm1(mdiff)!@var boundary layer difs at kbl-1 level
-      real*8 gat1(mdiff)!@var shape function at sigma=1
-      real*8 dat1(mdiff)!@var derivative of shape function at sigma=1
-      real*8 blmc(km,mdiff)!@var boundary layer mixing coefficients
-      real*8 sigma      !@var normalized depth (d / hbl)
-      real*8 Rib(2)     !@var bulk Richardson number
-      integer kbl       !@var index of first grid level below hbl
-      integer kmax      !@var minimum of LSRPD and kmtj, used in swfrac
+      real*8 bfsfc      !@var bfsfc surface buoyancy forcing (m^2/s^3)
+      real*8 ws         !@var ws momentum velocity scale
+      real*8 wm         !@var wm scalar   velocity scale
+      real*8 caseA      !@var caseA = 1 in case A; =0 in case B
+      real*8 stable     !@var stable 1 in stable forcing; 0 in unstable
+      real*8 dkm1(mdiff)!@var dkm1 boundary layer difs at kbl-1 level
+      real*8 gat1(mdiff)!@var gat1 shape function at sigma=1
+!@var dat1 derivative of shape function at sigma=1
+      real*8 dat1(mdiff)
+      real*8 blmc(km,mdiff)!@var blmc boundary layer mixing coefficients
+      real*8 sigma      !@var sigma normalized depth (d / hbl)
+      real*8 Rib(2)     !@var Rib bulk Richardson number
+      integer kbl       !@var kbl index of first grid level below hbl
+      integer kmax  !@var kmax minimum of LSRPD and kmtj, used in swfrac
 c local ri_iwmix
-      real*8 Rigg       !@var local richardson number
-      real*8 fri,fcon   !@var function of Rig
-      real*8 ftop       !@var function of topography
+      real*8 Rigg       !@var Rigg local richardson number
+      real*8 fri,fcon   !@var fri,fcon function of Rig
+      real*8 ftop       !@var ftop function of topography
 c local enhance
-      real*8 delta      !@var fraction hbl lies beteen zgrid neighbors
+      real*8 delta  !@var delta fraction hbl lies beteen zgrid neighbors
 c local wscale
-      real*8 zehat      !@var = zeta *  ustar**3
+      real*8 zehat      !@var zehat = zeta *  ustar**3
       INTENT (IN) LDD,ZE,zgrid,hwide,kmtj,Shsq,dVsq,ustar,Bo,Bosol
      *            ,alphaDT,betaDS,dbloc,Ritop,Coriol,byhwide
       INTENT (OUT) visc, difs, dift, ghats, hbl, kbl
@@ -833,7 +807,6 @@ c
 c     note: the lookup table is only used for unstable conditions
 c     (zehat.le.0), in the stable domain wm (=ws) gets computed
 c     directly.
-c      INCLUDE "KPPE.COM"
       USE KPPE
       INTENT (IN) sigma,hbl,ustar,bfsfc
       INTENT (OUT) wm,ws
@@ -893,7 +866,6 @@ c     Rrho dependent interior flux parameterization.
 c     Add double-diffusion diffusivities to Ri-mix values at blending
 c     interface and below.
 
-c      INCLUDE "KPPE.COM"
       USE KPPE
       INTENT (IN) alphaDT,betaDS,kmtj
       INTENT (INOUT) visc, difs, dift
@@ -945,7 +917,6 @@ c     initialize some constants for kmix subroutines, and initialize
 c     for kmix subroutine "wscale" the 2D-lookup table for wm and ws
 c     as functions of ustar and zetahat (=vonk*sigma*hbl*bfsfc).
 
-c      INCLUDE "KPPE.COM"
       USE KPPE
 c local
       real*8 zehat                        ! = zeta *  ustar**3
@@ -1014,18 +985,15 @@ c  for two levels above bottom, starting at level km/2
       end subroutine kmixinit
 
       subroutine swfrac(z,ZE,k,kmtj,kmax,bfsfc)
-
-C**** Calculate fraction of solar energy penetrating to depth z
-C**** using linear interpolation for depths between grid levels
-C**** There is a slight error since 'z' is scaled by free surface height
-C**** and ZE is not.
+!@sum swfrac Calculate fraction of solar energy penetrating to depth z
+!@+   using linear interpolation for depths between grid levels
+!@+   There is a slight error since 'z' is scaled by free surface height
+!@+   and ZE is not.
 C****
-C****      k is grid box containing point
-C****      kmtj is number of grid points in column
-C****      kmax is the number of grid points in column that recieve
-C****           solar radiation
+!@var  k is grid box containing point
+!@var  kmtj is number of grid points in column
+!@var  kmax is the number of grid points that recieve solar radiation
 C****
-c      INCLUDE "KPPE.COM"
       USE KPPE
       INTENT (IN) z,k,kmtj,kmax,ZE
       INTENT (OUT) bfsfc
@@ -1051,9 +1019,9 @@ C**** calculate fraction
       end subroutine swfrac
 
       subroutine z121 (v,kmtj,km)
-c     Apply 121 smoothing in k to 2-d array V(k=1,km)
-c     top (0) value is used as a dummy
-c     bottom (km+1) value is set to input value from above.
+!@sum z121 Apply 121 smoothing in k to 2-d array V(k=1,km)
+!@+   top (0) value is used as a dummy
+!@+   bottom (km+1) value is set to input value from above.
       IMPLICIT NONE
       REAL*8, PARAMETER :: p5=5d-1, p25=2.5d-1
       INTEGER, INTENT (IN) :: kmtj,km
@@ -1074,8 +1042,8 @@ c     bottom (km+1) value is set to input value from above.
 
 C**** Is this still necessary now that fluxes are saved?
       SUBROUTINE KVINIT
-C**** Initialise KMIX and save pre-source term surface values of
-C**** enthalpy, mass and horizontal gradients for kppmix calculation
+!@sum KVINIT Initialise KMIX and save pre-source term surface values of
+!@+   enthalpy, mass and horizontal gradients for kppmix calculation
       USE OCEAN, only : im,jm,lmo,gxmo,sxmo,gymo,symo,g0m,mo,uo,vo
       USE KPP_COM, only : G0M1,MO1,GXM1,GYM1,SXM1,SYM1,UO1,VO1,lsrpd
       IMPLICIT NONE
@@ -1492,17 +1460,17 @@ C**** GHAT terms must be zero for consistency with OSOURC
          AKVS(L) = AKVS(L)*R2
       END DO
 
-C**** For each field (U,G,S + TRACERS) call VDIFF
+C**** For each field (U,G,S + TRACERS) call OVDIFF
 C**** Momentum
       DO K=1,KMUV
-        CALL VDIFF(UL(1,K),AKVM(1),GHATM,DTBYDZ,BYDZ2
+        CALL OVDIFF(UL(1,K),AKVM(1),GHATM,DTBYDZ,BYDZ2
      *       ,LMIJ,UL0(1,K))
       END DO
 C**** Enthalpy
-      CALL VDIFFS(G0ML(1,IQ,JQ),AKVG(1),GHATG,DTBYDZ,BYDZ2,DTS
+      CALL OVDIFFS(G0ML(1,IQ,JQ),AKVG(1),GHATG,DTBYDZ,BYDZ2,DTS
      *     ,LMIJ,G0ML0(1,IQ,JQ),FLG)
 C**** Salinity
-      CALL VDIFFS(S0ML(1,IQ,JQ),AKVS(1),GHATS,DTBYDZ,BYDZ2,DTS
+      CALL OVDIFFS(S0ML(1,IQ,JQ),AKVS(1),GHATS,DTBYDZ,BYDZ2,DTS
      *     ,LMIJ,S0ML0(1,IQ,JQ),FLS)
       IF ((ITER.eq.1  .or. ABS(HBLP-HBL).gt.(ZE(KBL)-ZE(KBL-1))*0.25)
      *     .and. ITER.lt.4) GO TO 510
@@ -1779,14 +1747,14 @@ C**** Correct units for diffusivities (m^2/s) => (kg^2/m^4 s)
          GHAT(L) = 0.  ! no non-local transports since no surface fluxes
       END DO
 
-C**** For each field (U,G,S + TRACERS) call VDIFF
+C**** For each field (U,G,S + TRACERS) call OVDIFF
 C**** Momentum
-      CALL VDIFF(UL(1,IQ),AKVM(1),GHAT,DTBYDZ,BYDZ2,LMIJ,UL0)
+      CALL OVDIFF(UL(1,IQ),AKVM(1),GHAT,DTBYDZ,BYDZ2,LMIJ,UL0)
 C**** Enthalpy
-      CALL VDIFFS(G0ML(1,IQ),AKVG(1),GHAT,DTBYDZ,BYDZ2,DTS
+      CALL OVDIFFS(G0ML(1,IQ),AKVG(1),GHAT,DTBYDZ,BYDZ2,DTS
      *     ,LMIJ,G0ML0,FLG)
 C**** Salinity
-      CALL VDIFFS(S0ML(1,IQ),AKVS(1),GHAT,DTBYDZ,BYDZ2,DTS
+      CALL OVDIFFS(S0ML(1,IQ),AKVS(1),GHAT,DTBYDZ,BYDZ2,DTS
      *     ,LMIJ,S0ML0,FLS)
       IF ((ITER.eq.1  .or. ABS(HBLP-HBL).gt.(ZE(KBL)-ZE(KBL-1))*0.25)
      *     .and. ITER.lt.4) GO TO 510
@@ -1841,8 +1809,8 @@ C**** End of outside loop over straits
       RETURN
       END
 
-      SUBROUTINE VDIFF(U,K,GHAT,DTBYDZ,BYDZ2,LMIJ,U0)
-!@sum  VDIFF Implicit vertical diff + non local transport for velocity
+      SUBROUTINE OVDIFF(U,K,GHAT,DTBYDZ,BYDZ2,LMIJ,U0)
+!@sum  OVDIFF Implicit vertical diff + non local transport for velocity
 !@auth Gavin Schmidt
 !@ver  1.0
       USE OCEAN, only : LMO
@@ -1881,8 +1849,8 @@ C**** Calculate operators for tridiagonal solver
       RETURN
       END
 
-      SUBROUTINE VDIFFS(U,K,GHAT,DTBYDZ,BYDZ2,DT,LMIJ,U0,FL)
-!@sum  VDIFFS Implicit vertical diff + non local transport for tracers
+      SUBROUTINE OVDIFFS(U,K,GHAT,DTBYDZ,BYDZ2,DT,LMIJ,U0,FL)
+!@sum  OVDIFFS Implicit vertical diff + non local transport for tracers
 !@auth Gavin Schmidt
 !@ver  1.0
       USE OCEAN, only : LMO

@@ -63,6 +63,13 @@ C****
       INTEGER, DIMENSION(NMST) :: LMST = (/
      *     2,  5,  5,  2,  2,  2,  6,  6,  2,  3,  4,  2/)
 
+!@var name_st Names of straits
+      CHARACTER*20, DIMENSION(NMST) :: NAME_ST = (/
+     *     'Fury & Hecla  ', 'Nares         ', 'Gibraltar     ',
+     *     'English       ', 'Kattegat      ', 'Bosporous     ',
+     *     'Red Sea       ', 'Bab al Mandab ', 'Hormuz        ',
+     *     'Malacca       ', 'Korea         ', 'Soya-kaikyo   '/) 
+
 !@var RSIST Sea ice fraction in strait
 !@var RSIXST Center of sea ice in strait (m)
 !@var MSIST Mass of ice within strait (kg)

@@ -143,6 +143,7 @@ C****
       USE FILEMANAGER, only : openunit,closeunit
       USE SW2OCEAN, only : init_solar
       USE TIMINGS, only : timing,ntimeacc
+      USE PARAM
       IMPLICIT NONE
       INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
      *     ,iu_TOPO
@@ -153,6 +154,8 @@ C****
 C****
 C**** set up time steps from atmospheric model
 C****
+      call sync_param("DTO",DTO)
+
       DTS=DTSRC
       NDYNO=2*NINT(.5*DTS/DTO)
       DTO=DTS/NDYNO
