@@ -113,10 +113,10 @@ C**** COMPUTE ZONAL MEAN U AND V AT POLES
       ENDDO
       DO L=1,LM
        DO I=1,IM
-        UZM(1,L)=UZM(1,L)+U(I,2,L)
-        UZM(2,L)=UZM(2,L)+U(I,JM,L)
-        VZM(1,L)=VZM(1,L)+V(I,2,L)
-        VZM(2,L)=VZM(2,L)+V(I,JM,L)
+        UZM(1,L)=UZM(1,L)+UC(I,2,L)
+        UZM(2,L)=UZM(2,L)+UC(I,JM,L)
+        VZM(1,L)=VZM(1,L)+VC(I,2,L)
+        VZM(2,L)=VZM(2,L)+VC(I,JM,L)
        ENDDO
        UZM(1,L)=UZM(1,L)/FIM
        UZM(2,L)=UZM(2,L)/FIM
@@ -322,19 +322,19 @@ C**** COMPUTE RICHARDSON NUMBER
           DVDZS=(VZM(2,1)-VS)*BYDH1S
         ENDIF
         IF(J.GT.1.AND.J.LT.JM) THEN
-          DUDZ=(U(IDI(1),IDJ(1),2)+U(IDI(2),IDJ(2),2)+
-     *         U(IDI(3),IDJ(3),2)+U(IDI(4),IDJ(4),2)-
-     *         U(IDI(1),IDJ(1),1)-U(IDI(2),IDJ(2),1)-
-     *         U(IDI(3),IDJ(3),1)-U(IDI(4),IDJ(4),1))*.25*BYDH12
-          DVDZ=(V(IDI(1),IDJ(1),2)+V(IDI(2),IDJ(2),2)+
-     *         V(IDI(3),IDJ(3),2)+V(IDI(4),IDJ(4),2)-
-     *         V(IDI(1),IDJ(1),1)-V(IDI(2),IDJ(2),1)-
-     *         V(IDI(3),IDJ(3),1)-V(IDI(4),IDJ(4),1))*.25*BYDH12
-          DUDZS=(U(IDI(1),IDJ(1),1)+U(IDI(2),IDJ(2),1)+
-     *         U(IDI(3),IDJ(3),1)+U(IDI(4),IDJ(4),1)-
+          DUDZ=(UC(IDI(1),IDJ(1),2)+UC(IDI(2),IDJ(2),2)+
+     *         UC(IDI(3),IDJ(3),2)+UC(IDI(4),IDJ(4),2)-
+     *         UC(IDI(1),IDJ(1),1)-UC(IDI(2),IDJ(2),1)-
+     *         UC(IDI(3),IDJ(3),1)-UC(IDI(4),IDJ(4),1))*.25*BYDH12
+          DVDZ=(VC(IDI(1),IDJ(1),2)+VC(IDI(2),IDJ(2),2)+
+     *         VC(IDI(3),IDJ(3),2)+VC(IDI(4),IDJ(4),2)-
+     *         VC(IDI(1),IDJ(1),1)-VC(IDI(2),IDJ(2),1)-
+     *         VC(IDI(3),IDJ(3),1)-VC(IDI(4),IDJ(4),1))*.25*BYDH12
+          DUDZS=(UC(IDI(1),IDJ(1),1)+UC(IDI(2),IDJ(2),1)+
+     *         UC(IDI(3),IDJ(3),1)+UC(IDI(4),IDJ(4),1)-
      *         4.*US)*.25*BYDH1S
-          DVDZS=(V(IDI(1),IDJ(1),1)+V(IDI(2),IDJ(2),1)+
-     *         V(IDI(3),IDJ(3),1)+V(IDI(4),IDJ(4),1)-
+          DVDZS=(VC(IDI(1),IDJ(1),1)+VC(IDI(2),IDJ(2),1)+
+     *         VC(IDI(3),IDJ(3),1)+VC(IDI(4),IDJ(4),1)-
      *         4.*VS)*.25*BYDH1S
         ENDIF
         RI1=(GRAV*ALPHA1*DTDZS)/(DUDZS*DUDZS+DVDZS*DVDZS)
@@ -460,7 +460,7 @@ C**** WRITE TO GLOBAL ARRAYS
         TAUMC(L,I,J)=TAUMCL(L)
         CLDMC(L,I,J)=CLDMCL(L)
         SVLAT(L,I,J)=SVLATL(L)
-        
+
         TAUSS(L,I,J)=TAUSSL(L)
         CLDSS(L,I,J)=CLDSSL(L)
         CLDSAV(L,I,J)=CLDSAVL(L)
@@ -468,7 +468,7 @@ C**** WRITE TO GLOBAL ARRAYS
         CSIZSS(L,I,J)=CSIZEL(L)
         AJL(J,L,JL_SSHR)=AJL(J,L,JL_SSHR)+AJ11(L)
         AJL(J,L,JL_MCDLHT)=AJL(J,L,JL_MCDLHT)+AJ53(L)
-        
+
         T(I,J,L)=TH(L)
         Q(I,J,L)=QL(L)
 C**** update moment changes
