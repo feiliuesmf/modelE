@@ -22,7 +22,7 @@ C**** Calculate latitudes
       JEQ = JM/2
       JDLAT = NINT(180./(JM-1))
       DO J=1,JM
-        FLAT(J,1)  = JDLAT*(J-JEQ+0.5)  ! primary grid
+        FLAT(J,1)  = JDLAT*(J-JEQ-0.5)  ! primary grid
       END DO
       FLAT(1,2)=-90.
       DO J=1,JM-1
