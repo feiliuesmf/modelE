@@ -35,6 +35,7 @@ C**** Apply ice/ocean and air/ocean stress to ocean
 C**** Calculate vertical diffusion
       CALL OCONV
          CALL CHECKO('OCONV ')
+         CALL TIMER (MNOW,MSGSO)
 
       IDACC(11) = IDACC(11) + 1
       SMU = 0. ; SMV = 0. ; SMW = 0.

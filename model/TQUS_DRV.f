@@ -81,9 +81,9 @@ c     write(*,*) ' Processing cycle 2X',n
 
 
       SUBROUTINE AADVQ0(DT)
-C****
-c**** decide how many cycles to take such that mass does not become
-c**** negative during any of the operator splitting steps of each cycle
+!@sum AADVQ0 initialises advection of tracer. 
+!@+   Decide how many cycles to take such that mass does not become
+!@+   negative during any of the operator splitting steps of each cycle
 c****
 C**** The MA array space is temporarily put to use in this section
       USE DYNAMICS, ONLY: mu=>pua, mv=>pva, mw=>sda, mb
@@ -104,38 +104,42 @@ c     for some reason mu is not zero at the poles...
 C**** Set things up
       mneg=.true.
       ncyc = 0
-      do 600 while(mneg)
+      do while(mneg)
       ncyc = ncyc + 1
       byn = 1./ncyc
       mneg=.false.
       ma(:,:,:) = mb(:,:,:)
-      do 590 nc=1,ncyc
+      do nc=1,ncyc
 C****     1/2 x-direction
-        do 510 l=1,lm
-        do 510 j=1,jm
-        im1 = im
+        do l=1,lm
+        do j=1,jm
+          im1 = im
+          do i=1,im
+            ma(i,j,l) = ma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
+            if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
+              write(6,900)'ma(i,j,l) x1: nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
+     *             ,nc
+              mneg=.true.
+              go to 595
+            endif
+            im1 = i
+          end do
+        end do
+        end do
+C****         y-direction
+        do l=1,lm              !Interior
+        do j=2,jm-1
         do i=1,im
-          ma(i,j,l) = ma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
+          ma(i,j,l) = ma(i,j,l) + (mv(i,j-1,l)-mv(i,j,l))*byn
           if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-            write(6,900)'ma(i,j,l) x1: nc=',i,j,l,ma(i,j,l)/mb(i,j,l),nc
+            write(6,900)'ma(i,j,l) y: nc=',i,j,l,ma(i,j,l)/mb(i,j,l),nc
             mneg=.true.
             go to 595
           endif
-          im1 = i
         end do
-  510   continue
-C****         y-direction
-        do 525 l=1,lm              !Interior
-        do 525 j=2,jm-1
-        do 525 i=1,im
-        ma(i,j,l) = ma(i,j,l) + (mv(i,j-1,l)-mv(i,j,l))*byn
-        if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-          write(6,900)'ma(i,j,l) y: nc=',i,j,l,ma(i,j,l)/mb(i,j,l),nc
-          mneg=.true.
-          go to 595
-        endif
-  525   continue
-        do 530 l=1,lm              !Poles
+        end do
+        end do
+        do l=1,lm              !Poles
           ssp = sum(ma(:, 1,l)-mv(:,   1,l)*byn)*byim
           snp = sum(ma(:,jm,l)+mv(:,jm-1,l)*byn)*byim
           ma(:,1 ,l) = ssp
@@ -150,56 +154,64 @@ C****         y-direction
             mneg=.true.
             go to 595
           endif
-  530   continue
+        end do
 C****         z-direction
-        do 540 l=2,lm-1
-        do 540 j=1,jm
-        do 540 i=1,im
-        ma(i,j,l) = ma(i,j,l)+(mw(i,j,l-1)-mw(i,j,l))*byn
-        if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-          write(6,900)'ma(i,j,l) z  : nc=',i,j,l,ma(i,j,l)/mb(i,j,l),nc
-          mneg=.true.
-          go to 595
-        endif
-  540   continue
-        l = 1
-        do 545 j=1,jm
-        do 545 i=1,im
-        ma(i,j,l) = ma(i,j,l)-mw(i,j,l)*byn
-        if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-          write(6,900)'ma(i,j,l) z1 : nc=',i,j,l,ma(i,j,l)/mb(i,j,l),nc
-          mneg=.true.
-          go to 595
-        endif
-  545 continue
-        l = lm
-        do 550 j=1,jm
-        do 550 i=1,im
-        ma(i,j,l) = ma(i,j,l)+mw(i,j,l-1)*byn
-        if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-          write(6,900)'ma(i,j,l) zlm: nc=',i,j,l,ma(i,j,l)/mb(i,j,l),nc
-          mneg=.true.
-          go to 595
-        endif
-  550 continue
-C****     1/2 x-direction
-        do 580 l=1,lm
-        do 580 j=1,jm
-        im1 = im
+        do l=2,lm-1
+        do j=1,jm
         do i=1,im
-          ma(i,j,l) = ma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
+          ma(i,j,l) = ma(i,j,l)+(mw(i,j,l-1)-mw(i,j,l))*byn
           if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
-            write(6,900)'ma(i,j,l) x2: nc=',i,j,l,ma(i,j,l)/mb(i,j,l),nc
+            write(6,900)'ma(i,j,l) z : nc=',i,j,l,ma(i,j,l)/mb(i,j,l),nc
             mneg=.true.
             go to 595
           endif
-          im1 = i
         end do
-  580   continue
-  590 enddo
-  595 continue
+        end do
+        end do
+        l = 1
+        do j=1,jm
+        do i=1,im
+          ma(i,j,l) = ma(i,j,l)-mw(i,j,l)*byn
+          if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
+            write(6,900)'ma(i,j,l) z1 : nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
+     *           ,nc
+            mneg=.true.
+            go to 595
+          endif
+        end do
+        end do
+        l = lm
+        do j=1,jm
+        do i=1,im
+          ma(i,j,l) = ma(i,j,l)+mw(i,j,l-1)*byn
+          if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
+            write(6,900)'ma(i,j,l) zlm: nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
+     *           ,nc
+            mneg=.true.
+            go to 595
+          endif
+        end do
+        end do
+C****     1/2 x-direction
+        do l=1,lm
+        do j=1,jm
+          im1 = im
+          do i=1,im
+            ma(i,j,l) = ma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
+            if (ma(i,j,l)/mb(i,j,l).lt.0.5) then
+              write(6,900)'ma(i,j,l) x2: nc=',i,j,l,ma(i,j,l)/mb(i,j,l)
+     *             ,nc
+              mneg=.true.
+              go to 595
+            endif
+            im1 = i
+          end do
+        end do
+        end do
+      end do
+ 595  continue
       if(ncyc.ge.10) stop 'ncyc=10 in AADVQ0'
-  600 enddo
+ 600  enddo
       if(ncyc.gt.1) write(6,*) 'AADVQ0: ncyc>1',ncyc
 C**** Divide the mass fluxes by the number of cycles
       byn = 1./ncyc
@@ -225,7 +237,7 @@ C****
 
 
       subroutine aadvQx(rm,rmom,mass,mu,qlimit,tname,nstep)
-!@sum  AADVTQ advection driver for x-direction
+!@sum  AADVQX advection driver for x-direction
 !@auth Maxwell Kelley; modified by J. Lerner
 c****
 c**** aadvtQ advects tracers in the west to east direction using the
@@ -274,7 +286,7 @@ c****
 
       subroutine aadvQy(rm,rmom,mass,mv,qlimit,tname,nstep,
      &   sbf,sbm,sfbm)
-!@sum  AADVTQ advection driver for y-direction
+!@sum  AADVQY advection driver for y-direction
 !@auth Maxwell Kelley; modified by J. Lerner
 c****
 c**** aadvQy advects tracers in the south to north direction using the

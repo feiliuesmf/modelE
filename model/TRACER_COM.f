@@ -15,22 +15,29 @@
       SAVE
 !@param NTM number of tracers
       integer, parameter :: ntm=4
+
 C**** Each tracer has a variable name and a unique index
 !@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
-!@var N_XXX: variable names of indices for tracers
-!@var NTM_POWER: Power of 10 associated with each tracer (for printing)
-!@var TR_MM: molecular mass of each tracer
-!@var T_QLIMIT: if t_qlimit=.true. tracer is maintained as positive
       character*8, parameter :: trname(ntm)=
      * (/ 'Air     ','SF6     ','Rn222   ','CO2     '/)
+!@var N_XXX: variable names of indices for tracers
       integer, parameter :: 
-     * n_air=1,      n_SF6=2,    n_Rn222=3,n_CO2=4
+     *     n_air=1,     n_SF6=2, n_Rn222=3,  n_CO2=4
+!@var NTM_POWER: Power of 10 associated with each tracer (for printing)
       integer, parameter, dimension(ntm) :: ntm_power=
-     * (/  -2,       -14,        -21,      -6/)
+     *     (/   -2,         -14,       -21,       -6 /)
+!@var TR_MM: molecular mass of each tracer
       real*8, parameter, dimension(ntm) :: tr_mm=
-     * (/  mair,     146.01d0,   222.d0,   44.d0/)
+     *     (/ mair,    146.01d0,    222.d0,    44.d0 /)
+!@var T_QLIMIT: if t_qlimit=.true. tracer is maintained as positive
       logical, dimension (ntm) :: t_qlimit=
-     * (/  .true.,   .true.,    .true.,    .false./)
+     *     (/ .true.,   .true.,    .true.,  .false. /)
+!@var needtrs: true if surface tracer value from PBL is required
+      logical, dimension (ntm) :: needtrs=
+     *     (/.false.,  .false.,   .false.,  .false. /)
+!@var trdecy radioactive decay constant (1/s) (=0 for stable tracers)
+      real*8, dimension (ntm) :: trdecy=
+     *     (/    0d0,      0d0,    2.1d-6,      0d0 /)
 !@var ITIME_TR0: start time for each tracer
       integer, dimension(ntm) :: itime_tr0=0.
 !@var TRM: Tracer array
@@ -44,6 +51,12 @@ C**** Each tracer has a variable name and a unique index
 !@var TRWM tracer in cloud liquid water amount (kg)
       real*8, dimension(im,jm,lm,ntm) :: trwm
 #endif
+
+!@var ntrsrcmax maximum number of surface sources/sinks
+      INTEGER, PARAMETER :: ntsrcmax=10
+!@var nsrc no. of non-interactive surface sources for each tracer
+      INTEGER, DIMENSION(NTM) :: nsrc = (/
+     *     0,       1,       1,       6 /)
     
       END MODULE TRACER_COM
 

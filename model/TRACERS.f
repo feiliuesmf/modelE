@@ -1,7 +1,11 @@
+#include "rundeck_opts.h"
+
+#ifdef TRACERS_ON
 !@sum  TRACERS: tracer routines that are tracer-dependent
 !@+    Routines included: 
 !@+      Diagnostic specs: TRACER_DIAG_COM, INIT_TRACER, SET_TCON
-!@+      Tracer definitions: TRACER_IC, TRACER_SOURCE
+!@+      Tracer definitions: TRACER_IC, set_tracer_source
+!@+      Tracer independent routines: apply_tracer_source, tdecay
 !@auth Jean Lerner/Gavin Schmidt
 !@ver  1.0
 
@@ -9,7 +13,7 @@
 !@sum Tracer diagnostic arrays
 !@auth Jean Lerner
 !ver   1.0
-      USE TRACER_COM, only: ntm 
+      USE TRACER_COM, only: ntm, ntsrcmax
       USE MODEL_COM, only: im,jm,lm
       USE DAGCOM, only: npts !npts are conservation quantities
       IMPLICIT NONE
@@ -62,10 +66,8 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       integer, parameter :: ktaijs=8
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, DIMENSION(IM,JM,ktaijs) :: TAIJS
-!@var ijts_xx Names for TAIJS diagnostics
-      INTEGER ijts_SF6_source,ijts_Rn222_source,
-     *  ijts_CO2_fossil_fuel,ijts_CO2_fertilization,ijts_CO2_regrowth,
-     *  ijts_CO2_land_use,ijts_CO2_Ecosystem,ijts_CO2_Ocean
+!@var ijts_source tracer independent array for TAIJS surface src. diags
+      INTEGER ijts_source(ntsrcmax,ntm)
 !@var SNAME_IJTS, UNITS_IJTS: Names & units of lat-sigma tracer diags
       character(len=30), dimension(ktaijs) :: sname_ijts,units_ijts
 !@var LNAME_IJTS: descriptions of tracer IJTS diags
@@ -76,8 +78,8 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       integer ia_ijts(ktaijs)
 !@var ijts_power: power of 10 used for tracer IJ source/sink diags
       INTEGER, DIMENSION(ktaijs) :: ijts_power
-!@var ijts_source: tracer index associated with a TAIJS diagnostic
-      INTEGER, DIMENSION(ktaijs) :: ijts_source
+!@var ijts_index: tracer index associated with a TAIJS diagnostic
+      INTEGER, DIMENSION(ktaijs) :: ijts_index
 
 C**** TAJLN
 !@parm ktajl,ktajlx number of TAJL tracer diagnostics; 
@@ -108,12 +110,12 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, PARAMETER :: ktajls=9
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
       REAL*8, DIMENSION(JM,LM,ktajls) :: TAJLS
-!@var jls_xx Names for TAJLS diagnostics
-      INTEGER jls_SF6_source,jls_RN222_source,jls_RN222_sink,
-     *  jls_CO2_fossil_fuel,jls_CO2_fertilization,jls_CO2_regrowth,
-     *  jls_CO2_land_use,jls_CO2_Ecosystem,jls_CO2_Ocean
-!@var jls_source: Number of source/sink tracer JL diagnostics/tracer 
-      integer, dimension(ktajls) :: jls_source
+!@var jls_decay tracer independent array for radioactive sinks
+      INTEGER, DIMENSION(NTM) :: jls_decay
+!@var jls_source tracer independent array for TAJLS surface src. diags
+      INTEGER jls_source(ntsrcmax,ntm)
+!@var jls_index: Number of source/sink tracer JL diagnostics/tracer 
+      integer, dimension(ktajls) :: jls_index
 !@var SNAME_JLS: Names of lat-sigma tracer JL sources/sinks
       character(len=30), dimension(ktajls) :: sname_jls
 !@var LNAME_JLS,UNITS_JLS: descriptions/units of tracer JLS diags
@@ -154,6 +156,10 @@ C**** TCONSRV
       character(len=80), dimension(ktcon,ntm) :: lname_tconsrv
 !@var SCALE_INST,SCALE_CHANGE: Scale factors for tracer conservation
       double precision, dimension(ntm) :: SCALE_INST,SCALE_CHANGE
+!@var itcon_surf Index array for surface source/sink conservation diags
+      INTEGER, DIMENSION(NTSRCMAX,NTM) :: itcon_surf
+!@var itcon_decay Index array for decay conservation diags
+      INTEGER, DIMENSION(NTM) :: itcon_decay
 
 C----------------------------------------------------
 !@param KTACC total number of tracer diagnostic words
@@ -172,12 +178,12 @@ C----------------------------------------------------
 !@sum init_tracer initializes trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param, SET_TCON
-      use DAGCOM, only: ia_src
+      use DAGCOM, only: ia_src,ia_12hr
       USE MODEL_COM, only: dtsrc
       use BDIJ, only: ir_log2
       USE TRACER_COM
       USE TRACER_DIAG_COM
-      USE CONSTANT, only: mair
+      USE CONSTANT, only: mair,sday
       USE PARAM
       implicit none
       integer :: l,k,n
@@ -298,86 +304,86 @@ C**** This needs to be 'hand coded' depending on circumstances
       do k=1,ktajls  ! max number of sources and sinks
         jgrid_jls(k) = 1
         ia_jls(k) = ia_src
-        scale_jls(k) = 1./(DTsrc+1.D-20)
+        scale_jls(k) = 1./DTsrc
       end do
-      jls_source(:) = 0
+      jls_index(:) = 0
         
       k = 0
       n = n_air  !no special sources
 
       n = n_SF6
         k = k + 1 
-        jls_SF6_source = k
+        jls_source(1,n)=k
         sname_jls(k) = 'Layer_1_source_of_'//trname(n)
         lname_jls(k) = 'SF6 CFC-GRID SOURCE, LAYER 1'
-        jls_source(k) = n
+        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -3.
         units_jls(k) = unit_string(jls_power(k),' kg/s')
       n = n_Rn222
         k = k + 1 
-        jls_RN222_sink = k
+        jls_decay(n) = k   ! special array for all radioactive sinks
         sname_jls(k) = 'Decay_of_'//trname(n)
         lname_jls(k) = 'LOSS OF RADON-222 BY DECAY'
-        jls_source(k) = n
+        jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -11.
         units_jls(k) = unit_string(jls_power(k),' kg/s')
         k = k + 1 
-        jls_RN222_source = k
+        jls_source(1,n)=k
         sname_jls(k) = 'Ground_Source_of_'//trname(n)
         lname_jls(k) = 'RADON-222 SOURCE, LAYER 1'
-        jls_source(k) = n
+        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -10.
         units_jls(k) = unit_string(jls_power(k),' kg/s')
 ! keep AIJ and AJL CO2 sources in same order !!
       n = n_CO2
         k = k + 1 
-        jls_CO2_fossil_fuel = k
+        jls_source(1,n)=k
         sname_jls(k) = 'Fossil_fuel_source_'//trname(n)
         lname_jls(k) = 'CO2 Fossil fuel source (Marland)'
-        jls_source(k) = n
+        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),' kg/s')
         k = k + 1 
-        jls_CO2_fertilization = k
+        jls_source(2,n)=k
         sname_jls(k) = 'fertilization_sink_'//trname(n)
         lname_jls(k) = 'CO2 fertilization sink (Friedlingstein)'
-        jls_source(k) = n
+        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),' kg/s')
         k = k + 1 
-        jls_CO2_regrowth = k
+        jls_source(3,n)=k
         sname_jls(k) = 'Northern_forest_regrowth_'//trname(n)
         lname_jls(k) = 'CO2 Northern forest regrowth sink'
-        jls_source(k) = n
+        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),' kg/s')
         k = k + 1 
-        jls_CO2_land_use = k
+        jls_source(4,n)=k
         sname_jls(k) = 'Land_Use_Modification_'//trname(n)
         lname_jls(k) = 'CO2 from Land use modification (Houton)'
-        jls_source(k) = n
+        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),' kg/s')
         k = k + 1 
-        jls_CO2_Ecosystem = k
+        jls_source(5,n)=k
         sname_jls(k) = 'Ecosystem_exchange_'//trname(n)
         lname_jls(k) = 'CO2 Ecosystem exchange (Matthews)'
-        jls_source(k) = n
+        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),' kg/s')
         k = k + 1 
-        jls_CO2_Ocean = k
+        jls_source(6,n)=k
         sname_jls(k) = 'Ocean_exchange_'//trname(n)
         lname_jls(k) = 'CO2 Ocean exchange'
-        jls_source(k) = n
+        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),' kg/s')
@@ -443,8 +449,8 @@ C**** Tracer sources and sinks
 C**** Defaults for ijts (sources, sinks, etc.)
 C**** This needs to be 'hand coded' depending on circumstances
       k = 1
-        ijts_SF6_source = k
-        ijts_source(k) = n_SF6
+        ijts_source(1,n_SF6) = k
+        ijts_index(k) = n_SF6
         ia_ijts(k) = ia_src   
         lname_ijts(k) = 'SF6 Layer 1 SOURCE'
         sname_ijts(k) = 'SF6_CFC-GRID_SOURCE,_LAYER_1'
@@ -452,8 +458,8 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k+1
-        ijts_Rn222_source = k
-        ijts_source(k) = n_Rn222
+        ijts_source(1,n_Rn222) = k
+        ijts_index(k) = n_Rn222
         ia_ijts(k) = ia_src   
         lname_ijts(k) = 'Rn222 L 1 SOURCE'
         sname_ijts(k) = 'Radon-222_SOURCE,_Layer_1'
@@ -463,8 +469,8 @@ C**** This needs to be 'hand coded' depending on circumstances
 ! keep AIJ and AJL CO2 sources in same order !!
       n = n_CO2
       k = k + 1 
-        ijts_CO2_fossil_fuel = k
-        ijts_source(k) = n
+        ijts_source(1,n) = k
+        ijts_index(k) = n
         ia_ijts(k) = ia_src   
         sname_ijts(k) = 'Fossil_fuel_source_'//trname(n)
         lname_ijts(k) = 'CO2 Fossil fuel src'
@@ -472,8 +478,8 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1 
-        ijts_CO2_fertilization = k
-        ijts_source(k) = n
+        ijts_source(2,n) = k
+        ijts_index(k) = n
         ia_ijts(k) = ia_src   
         sname_ijts(k) = 'fertilization_sink_'//trname(n)
         lname_ijts(k) = 'CO2 fertilization'
@@ -481,8 +487,8 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1 
-        ijts_CO2_regrowth = k
-        ijts_source(k) = n
+        ijts_source(3,n) = k
+        ijts_index(k) = n
         ia_ijts(k) = ia_src   
         sname_ijts(k) = 'Northern_forest_regrowth_'//trname(n)
         lname_ijts(k) = 'CO2 North forest regrowth'
@@ -490,8 +496,8 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1 
-        ijts_CO2_land_use = k
-        ijts_source(k) = n
+        ijts_source(4,n) = k
+        ijts_index(k) = n
         ia_ijts(k) = ia_src   
         sname_ijts(k) = 'Land_Use_Modification_'//trname(n)
         lname_ijts(k) = 'CO2 from Land use mods'
@@ -499,8 +505,8 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1 
-        ijts_CO2_Ecosystem = k
-        ijts_source(k) = n
+        ijts_source(5,n) = k
+        ijts_index(k) = n
         ia_ijts(k) = ia_src   
         sname_ijts(k) = 'Ecosystem_exchange_'//trname(n)
         lname_ijts(k) = 'CO2 Ecosystem exch'
@@ -508,8 +514,8 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1 
-        ijts_CO2_Ocean = k
-        ijts_source(k) = n
+        ijts_source(6,n) = k
+        ijts_index(k) = n
         ia_ijts(k) = ia_src   
         sname_ijts(k) = 'Ocean_exchange_'//trname(n)
         lname_ijts(k) = 'CO2 Ocean exchange'
@@ -546,21 +552,30 @@ C**** First 12 are standard for all tracers and GCM
       CALL SET_TCON(QCON,TRNAME(N),inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       N = n_SF6
-      qcon(13) = .true.; conpts(1) = 'L1 SOURCE'
+      itcon_surf(1,N) = 13
+      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'L1 SOURCE'
       CALL SET_TCON(QCON,TRNAME(N),inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       N = n_Rn222
-      qcon(13) = .true.; conpts(1) = 'L1 SOURCE'
-      qcon(14) = .true.; conpts(2) = 'DECAY'
+      itcon_surf(1,N) = 13
+      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'L1 SOURCE'
+      itcon_decay(n) = 14
+      qcon(itcon_decay(n)) = .true.; conpts(2) = 'DECAY'
       CALL SET_TCON(QCON,TRNAME(N),inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       N = n_CO2
-      qcon(13) = .true.; conpts(1) = 'FossilFuel'
-      qcon(14) = .true.; conpts(2) = 'Fertilization'
-      qcon(15) = .true.; conpts(3) = 'Forest Regrowth'
-      qcon(16) = .true.; conpts(4) = 'Land Use'
-      qcon(17) = .true.; conpts(5) = 'Ecosystem Exch'
-      qcon(18) = .true.; conpts(6) = 'Ocean Exch'
+      itcon_surf(1,N) = 13
+      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'FossilFuel'
+      itcon_surf(2,N) = 14
+      qcon(itcon_surf(2,N)) = .true.; conpts(2) = 'Fertilization'
+      itcon_surf(3,N) = 15
+      qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Forest Regrowth'
+      itcon_surf(4,N) = 16
+      qcon(itcon_surf(4,N)) = .true.; conpts(4) = 'Land Use'
+      itcon_surf(5,N) = 17
+      qcon(itcon_surf(5,N)) = .true.; conpts(5) = 'Ecosystem Exch'
+      itcon_surf(6,N) = 18
+      qcon(itcon_surf(6,N)) = .true.; conpts(6) = 'Ocean Exch'
       CALL SET_TCON(QCON,TRNAME(N),inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
@@ -674,19 +689,19 @@ C****
 
 
       SUBROUTINE tracer_IC(tname)
-!@sum tracer_IC initializes tracers. Called once per day
+!@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner
-      USE MODEL_COM, only: itime,lm
+      USE MODEL_COM, only: itime,im,jm,lm
       USE GEOM, only: dxyp
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
       USE TRACER_DIAG_COM
       USE FILEMANAGER, only : openunit,closeunit
       IMPLICIT NONE
-      INTEGER i,N,L,j,iu_data
+      INTEGER i,n,l,j,iu_data
       CHARACTER*8 tname
       CHARACTER*80 title
-      REAL*4 CO2IC(IM,JM,LM)
+      REAL*4 co2ic(im,jm,lm)
 
       select case (tname)
 
@@ -743,13 +758,15 @@ C****
             trm(:,j,l,n) = co2ic(:,j,l)*am(l,:,j)*dxyp(j)*1.54d-6
           enddo; enddo
         end if
-      END SELECT
+      end select
       write(6,*) ' Tracer ',trname(n),' initialized at itime=',itime
-      END SUBROUTINE tracer_IC
+C****
+      end subroutine tracer_IC
 
 
       MODULE CO2_SOURCES
       USE TRACER_COM
+!@var co2_src C02 surface sources and sinks (kg/s)
       real*8 co2_src(im,jm,6)
       END MODULE CO2_SOURCES
 
@@ -771,6 +788,7 @@ C**** Tracer specific call for CO2
       do n=1,ntm
         if (trname(n).eq."CO2") call read_CO2_sources(n,iact)
       end do
+
       return
 C****
       end subroutine daily_tracer
@@ -783,8 +801,8 @@ C****
 C**** There are two monthly sources and 4 annual sources
 C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,jday,DTsrc,JDperY,im,jm
-      USE CONSTANT, only: hrday
+      USE MODEL_COM, only: itime,jday,DTsrc,JDperY,im,jm,idofm=>JDmidOfM
+      USE CONSTANT, only: sday
       USE FILEMANAGER, only : openunit,closeunit, openunits,closeunits
       USE TRACER_COM, only: itime_tr0,trname
       use CO2_SOURCES, only: src=>co2_src
@@ -793,8 +811,6 @@ C**** Monthly sources are interpolated each day
       logical :: ifirst=.true.
       data jdlast /0/
       real*8 tlca(im,jm,2),tlcb(im,jm,2)  ! for 2 monthly sources
-      integer*4 idofm(0:13)
-      data idofm /-15,16,47,75,106,136,167,197,228,259,289,320,350,381/
       real*8 adj(6)
 c     data adj/1.038,1.,1.,5.33,1.,1.749/          ! c
       data adj/3.81d0,3.67d0,3.67d0,19.54d0,3.67d0,6.42d0/     ! co2
@@ -816,7 +832,7 @@ C****
 C**** Annual Sources and sink
 C**** Apply adjustment factors to bring sources into balance
 C**** Annual sources are in KG C/M2/Y
-C**** Sources are added once/hr; convert kg/year to kg
+C**** Sources need to be kg/m^2 s; convert /year to /s
 C****
       if (ifirst) then
         call openunits(ann_files,ann_units,ann_bins,4)
@@ -824,7 +840,7 @@ C****
         do iu = ann_units(1),ann_units(4)
           k = k+1
           call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          src(:,:,k) = src(:,:,k)*adj(k)/(hrday*JDperY)
+          src(:,:,k) = src(:,:,k)*adj(k)/(sday*JDperY)
         end do
         call closeunits(ann_units,4)
       endif
@@ -889,233 +905,249 @@ c**** Interpolate two months of data to current day
       call closeunits(mon_units,2)
 C****
 C**** Apply adjustment factors to bring sources into balance
+C**** Monthly sources are in KG C/M2/S => src in kg/m^2 s
 C****
       do k=5,6
         src(:,:,k) = src(:,:,k)*adj(k)
       end do
-C**** Monthly sources are in KG C/M2/S
-C**** Sources are added once/hr; convert kg/sec to kg
-      src(:,:,5:6) = src(:,:,5:6)*DTsrc
       return
       end subroutine read_CO2_sources
 
-      SUBROUTINE tracer_source(tname)
-!@sum tracer_source adds sources and sinks to tracers
-!@auth Jean Lerner
-      USE MODEL_COM, only: FEARTH,itime,dtsrc,JDperY,fland,itoice,ftype
-      USE GEOM, only: dxyp
+      SUBROUTINE set_tracer_source
+!@sum tracer_source calculates non-interactive sources for tracers
+!@auth Jean Lerner/Gavin Schmidt
+      USE MODEL_COM, only: FEARTH,itime,JDperY,fland,psf,pmtop
+      USE GEOM, only: dxyp,areag
       USE QUSDEF
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
-      USE TRACER_DIAG_COM
-      USE CONSTANT, only: tf,sday,hrday
+      USE FLUXES, only : trsource,tot_trsource
+      USE SEAICE_COM, only : rsi
+      USE CONSTANT, only: tf,sday,hrday,bygrav,mair
       USE PBLCOM, only: tsavg
       USE CO2_SOURCES, only: co2_src
       implicit none
-      double precision, dimension(im,jm,lm) :: told
-      integer :: i,j,k,l,ky,naij,najl,n
+      integer :: i,j,ns,l,ky,n
       double precision :: source,sarea,steppy,base,steppd,x,airm,anngas,
-     *  steph,stepx,stepp,tsum
-      character*8 tname
+     *  steph,stepx,stepp
 
-      select case (tname)
+C**** All sources are saved as kg/s
+      do n=1,ntm
+
+      if (itime.lt.itime_tr0(n)) cycle
+      select case (trname(n))
 
       case default
 !     write(6,*) ' Sources for ',tname,' tracer are not in this routine'
-
 C****
 C**** Surface Sources of SF6 (Same grid as CFC)
 C****
       case ('SF6')
-      n = n_SF6
-      if (itime.lt.itime_tr0(n)) return
+        trsource(:,:,:,n)=0
 C**** Source increases each year by .3pptv/year
 C**** Distribute source over ice-free land
-    ! STEPPY = NDYN*DT/(86400.*365.)
-      steppy = DTsrc/(sday*JDperY)
+        steppy = 1./(sday*JDperY)
 C     Make sure index KY=1 in year that tracer turns on
-    ! KY = 1 + (TAU-TAUTR0(N))/8760
-      ky = 1 + (itime-itime_tr0(n))/(hrday*JDperY)
-      WRITE (6,'(A,I2,A,I9)')' >> KY FOR SF6 IS',KY,' AT itime',itime
-      base = (0.3d-12)*146./28.    !pptm
-      x = base*ky*steppy
-      airm = 9928.64 * 51018.7e10       !(kg/m**2 X m**2 = kg)
-      anngas = x*airm/steppy
-      told(:,:,1) = trm(:,:,1,n)
+        ky = 1 + (itime-itime_tr0(n))/(hrday*JDperY)
+        WRITE (6,'(A,I2,A,I9)')' >> KY FOR SF6 IS',KY,' AT itime',itime
+        base = (0.3d-12)*tr_mm(n)/mair !pptm
+        x = base*ky*steppy
+        airm = (psf-pmtop)*100.*bygrav * AREAG !(kg/m**2 X m**2 = kg)
+        anngas = x*airm/steppy
 C**** Source over United States and Canada
-      source = .37*anngas*steppy
-      sarea  = 0.
-      do j=31,35
-      do i=12,22
-        sarea = sarea + dxyp(j)*fearth(i,j)
-      enddo; enddo
-      do j=31,35
-      do i=12,22
-        trm(i,j,1,n) = trm(i,j,1,n) + source*dxyp(j)*fearth(i,j)/sarea
-        trmom(mz, i,j,1,n) = trmom(mz ,i,j,1,n) 
-     &                          - 1.5*source*dxyp(j)*fearth(i,j)/sarea
-        trmom(mzz,i,j,1,n) = trmom(mzz,i,j,1,n) 
-     &                           + .5*source*dxyp(j)*fearth(i,j)/sarea
-      enddo; enddo
+        source = .37d0*anngas*steppy
+        sarea  = 0.
+        do j=31,35
+          do i=12,22
+            sarea = sarea + dxyp(j)*fearth(i,j)
+          enddo
+        enddo
+        do j=31,35
+          do i=12,22
+            trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
+          enddo
+        enddo
 C**** Source over Europe and Russia
-c     source = .37*anngas*steppy
-      sarea  = 0.
-      do j=33,39
-      do i=35,45
-        sarea = sarea + dxyp(j)*fearth(i,j)
-      enddo; enddo
-      do j=33,39
-      do i=35,45
-        trm(i,j,1,n) = trm(i,j,1,n) + source*dxyp(j)*fearth(i,j)/sarea
-        trmom(mz, i,j,1,n) = trmom(mz ,i,j,1,n) 
-     &                          - 1.5*source*dxyp(j)*fearth(i,j)/sarea
-        trmom(mzz,i,j,1,n) = trmom(mzz,i,j,1,n) 
-     &                           + .5*source*dxyp(j)*fearth(i,j)/sarea
-      enddo; enddo
+        source = .37d0*anngas*steppy
+        sarea  = 0.
+        do j=33,39
+          do i=35,45
+            sarea = sarea + dxyp(j)*fearth(i,j)
+          enddo
+        enddo
+        do j=33,39
+          do i=35,45
+            trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
+          enddo
+        enddo
 C**** Source over Far East
-      source = .13*anngas*steppy
-      sarea  = 0.
-      do j=29,34
-      do i=61,66
-        sarea = sarea + dxyp(j)*fearth(i,j)
-      enddo; enddo
-      do j=29,34
-      do i=61,66
-        trm(i,j,1,n) = trm(i,j,1,n) + source*dxyp(j)*fearth(i,j)/sarea
-        trmom(mz, i,j,1,n) = trmom(mz ,i,j,1,n) 
-     &                          - 1.5*source*dxyp(j)*fearth(i,j)/sarea
-        trmom(mzz,i,j,1,n) = trmom(mzz,i,j,1,n) 
-     &                           + .5*source*dxyp(j)*fearth(i,j)/sarea
-      enddo; enddo
+        source = .13d0*anngas*steppy
+        sarea  = 0.
+        do j=29,34
+          do i=61,66
+            sarea = sarea + dxyp(j)*fearth(i,j)
+          enddo
+        enddo
+        do j=29,34
+          do i=61,66
+            trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
+          enddo
+        enddo
 C**** Source over Middle East
-      source = .05*anngas*steppy
-      sarea  = 0.
-      do j=28,32
-      do i=43,51
-        sarea = sarea + dxyp(j)*fearth(i,j)
-      enddo; enddo
-      do j=28,32
-      do i=43,51
-        trm(i,j,1,n) = trm(i,j,1,n) + source*dxyp(j)*fearth(i,j)/sarea
-        trmom(mz, i,j,1,n) = trmom(mz ,i,j,1,n) 
-     &                          - 1.5*source*dxyp(j)*fearth(i,j)/sarea
-        trmom(mzz,i,j,1,n) = trmom(mzz,i,j,1,n) 
-     &                           + .5*source*dxyp(j)*fearth(i,j)/sarea
-      enddo; enddo
+        source = .05d0*anngas*steppy
+        sarea  = 0.
+        do j=28,32
+          do i=43,51
+            sarea = sarea + dxyp(j)*fearth(i,j)
+          enddo
+        enddo
+        do j=28,32
+          do i=43,51
+            trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
+          enddo
+        enddo
 C**** Source over South America
-      source = .04*anngas*steppy
-      i=27; j=18
-      trm(i,j,1,n) = trm(i,j,1,n)             +     source*.5
-      trmom(mz, i,j,1,n) = trmom(mz, i,j,1,n) - 1.5*source*.5
-      trmom(mzz,i,j,1,n) = trmom(mzz,i,j,1,n) + 0.5*source*.5
-      i=28; j=18
-      trm(i,j,1,n) = trm(i,j,1,n)             +     source*.5
-      trmom(mz, i,j,1,n) = trmom(mz, i,j,1,n) - 1.5*source*.5
-      trmom(mzz,i,j,1,n) = trmom(mzz,i,j,1,n) + 0.5*source*.5
+        source = .04d0*anngas*steppy
+        i=27; j=18
+        trsource(i,j,1,n) = 0.5*source
+        i=28; j=18
+        trsource(i,j,1,n) = 0.5*source
 C**** Source over South Africa
-      source = .02*anngas*steppy
-      i=42; j=17
-      trm(i,j,1,n) = trm(i,j,1,n)             +     source*.5
-      trmom(mz, i,j,1,n) = trmom(mz, i,j,1,n) - 1.5*source*.5
-      trmom(mzz,i,j,1,n) = trmom(mzz,i,j,1,n) + 0.5*source*.5
+        source = .02d0*anngas*steppy
+        i=42; j=17
+        trsource(i,j,1,n) = source
 C**** Source over Australia and New Zealand
-c     source = .02*anngas*steppy
-      i=66; j=15
-      trm(i,j,1,n) = trm(i,j,1,n)             +     source*.5
-      trmom(mz, i,j,1,n) = trmom(mz, i,j,1,n) - 1.5*source*.5
-      trmom(mzz,i,j,1,n) = trmom(mzz,i,j,1,n) + 0.5*source*.5
-C**** diagnostics
-      naij = ijts_SF6_source
-      taijs(:,:,naij) = taijs(:,:,naij) + (trm(:,:,1,n)-told(:,:,1))
-      najl = jls_SF6_source
-      do j=1,jm
-        tajls(j,1,najl) = tajls(j,1,najl)+sum(trm(:,j,1,n)-told(:,j,1))
-      end do
-      call DIAGTCA(13,n)
+        source = .02d0*anngas*steppy
+        i=66; j=15
+        trsource(i,j,1,n) = source
 
 C****
-C**** Sources and sinks for Radon-222
+C**** Surface Sources for Radon-222
 C****
       case ('Rn222')
-      n = n_Rn222
-      if (itime.lt.itime_tr0(n)) return
+        trsource(:,:,:,n)=0
 C**** ground source
-    ! STEPPD = NDYN*DT/86400.
-      steppd = DTsrc/sday
-      told(:,:,1) = trm(:,:,1,n)
-      do j=1,jm
-      do i=1,im
+        steppd = 1./sday
+        do j=1,jm
+          do i=1,im
 C**** source from ice-free land
-      if(tsavg(i,j).lt.tf)  then  !composit surface air temperature
-        trm(i,j,1,n) = trm(i,j,1,n) + 1.0d-16*steppd*dxyp(j)*fearth(i,j)
-        trmom(mz, i,j,1,n) = trmom(mz ,i,j,1,n) 
-     &                          - 1.5*1.0d-16*steppd*dxyp(j)*fearth(i,j)
-        trmom(mzz,i,j,1,n) = trmom(mzz,i,j,1,n) 
-     &                          + 0.5*1.0d-16*steppd*dxyp(j)*fearth(i,j)
-      else
-        trm(i,j,1,n) = trm(i,j,1,n) + 3.2d-16*steppd*dxyp(j)*fearth(i,j)
-        trmom(mz, i,j,1,n) = trmom(mz ,i,j,1,n) 
-     &                          - 1.5*3.2d-16*steppd*dxyp(j)*fearth(i,j)
-        trmom(mzz,i,j,1,n) = trmom(mzz,i,j,1,n) 
-     &                          + 0.5*3.2d-16*steppd*dxyp(j)*fearth(i,j)
-      end if
+            if(tsavg(i,j).lt.tf)  then !composite surface air temperature
+              trsource(i,j,1,n) = 1.0d-16*steppd*dxyp(j)*fearth(i,j)
+            else
+              trsource(i,j,1,n) = 3.2d-16*steppd*dxyp(j)*fearth(i,j)
+            end if
 C**** source from ice-free ocean
-      trm(i,j,1,n) = trm(i,j,1,n) +     1.6d-18*steppd*dxyp(j)*
-     *               (1.-fland(i,j))*(1.-ftype(itoice,i,j))
-      trmom(mz,i,j,1,n) = trmom(mz,i,j,1,n)
-     &                            - 1.5*1.6d-18*steppd*dxyp(j)*
-     *               (1.-fland(i,j))*(1.-ftype(itoice,i,j))
-      trmom(mzz,i,j,1,n)= trmom(mzz,i,j,1,n)
-     &                            + 0.5*1.6d-18*steppd*dxyp(j)*
-     *               (1.-fland(i,j))*(1.-ftype(itoice,i,j))
-      enddo  !i
-      enddo  !j
-      naij = ijts_Rn222_source
-      taijs(:,:,naij) = taijs(:,:,naij) + (trm(:,:,1,n)-told(:,:,1))
-      najl = jls_Rn222_source
-      do j=1,jm
-        tajls(j,1,najl) = tajls(j,1,najl)+sum(trm(:,j,1,n)-told(:,j,1))
-      end do
-      call DIAGTCA(13,n)
-
-C**** radiative decay
-      x = (1.-2.1d-6*DTsrc)
-      told(:,:,:)  = trm(:,:,:,n)
-      trm(:,:,:,n) = trm(:,:,:,n)*x
-      trmom(:,:,:,:,n) = trmom(:,:,:,:,n)*x
-      najl = jls_RN222_sink
-      do l=1,lm
-      do j=1,jm
-        tajls(j,l,najl) = tajls(j,l,najl)+sum(trm(:,j,l,n)-told(:,j,l))
-      enddo; enddo
-      call DIAGTCA(14,n)
-
+            trsource(i,j,1,n) =trsource(i,j,1,n)+ 1.6d-18*steppd*dxyp(j)
+     *           *(1.-fland(i,j))*(1.-rsi(i,j))
+          enddo                 !i
+        enddo                   !j
 C****
-C**** Sources and sinks for CO2
-C****   Sources are either /sec or /year
+C**** Sources and sinks for CO2 (kg/s)
 C****
       case ('CO2')
-      n = n_CO2
-      if (itime.lt.itime_tr0(n)) return
-      naij = ijts_CO2_fossil_fuel-1
-      najl = jls_CO2_fossil_fuel-1
-      do k=1,6
-        do j=1,jm
-          tsum = 0.
-          do i=1,im
-            x = co2_src(i,j,k)*dxyp(j)
-            trm(i,j,1,n) = trm (i,j,1,n)+x
-            trmom(mz, i,j,1,n) = trmom(mz, i,j,1,n)-x*1.5d0
-            trmom(mzz,i,j,1,n) = trmom(mzz,i,j,1,n)+x*0.5d0
-            tsum = tsum+x
-            taijs(i,j,k+naij) = taijs(i,j,k+naij)+x
+        do ns=1,nsrc(n)
+          do j=1,jm
+            do i=1,im
+              trsource(i,j,ns,n) = co2_src(i,j,ns)*dxyp(j)
+            end do
           end do
-          tajls(j,1,k+najl) = tajls(j,1,k+najl)+tsum
         end do
-        call DIAGTCA(npts+1+k,n)   ! conservation
+
+      end select
+
+C**** tot_trsource is required for PBL calculations
+      tot_trsource(:,:,n) = 0.
+      do ns=1,nsrc(n)
+        tot_trsource(:,:,n) = tot_trsource(:,:,n)+trsource(:,:,ns,n)
       end do
 
-      END SELECT
-      END SUBROUTINE tracer_source
+      end do
+C****
+      END SUBROUTINE set_tracer_source
 
+      SUBROUTINE apply_tracer_source(dtsurf)
+!@sum apply_tracer_source adds non-interactive surface sources to tracers
+!@auth Jean Lerner/Gavin Schmidt
+      USE MODEL_COM, only : jm
+      USE TRACER_COM, only : ntm,trm,trmom,nsrc
+      USE QUSDEF, only : mz,mzz
+      USE FLUXES, only : trsource,tot_trsource
+      USE TRACER_DIAG_COM, only : taijs,tajls,ijts_source,jls_source
+     *     ,itcon_surf
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: dtsurf
+      INTEGER n,ns,naij,najl,j
 
+C**** This is tracer independent coding designed to work for all
+C**** surface sources that do not vary as a function of the surface
+C**** variables (non-interactive). With no daily varying sources setting 
+C**** these sources can be done once a day, otherwise it should be
+C**** every source time step. 
+
+      do n=1,ntm
+        do ns=1,nsrc(n)
+          trm(:,:,1,n) = trm(:,:,1,n) + trsource(:,:,ns,n)*dtsurf
+C**** diagnostics
+          naij = ijts_source(ns,n)
+          taijs(:,:,naij) = taijs(:,:,naij) + trsource(:,:,ns,n)*dtsurf
+          najl = jls_source(ns,n)
+          do j=1,jm
+            tajls(j,1,najl) = tajls(j,1,najl)+sum(trsource(:,j,ns,n))
+     *           *dtsurf
+          end do
+          call DIAGTCA(itcon_surf(ns,n),n)
+        end do
+C**** modify vertical moments        
+        trmom( mz,:,:,1,n) = trmom( mz,:,:,1,n)-1.5*tot_trsource(:,:,n)
+     *       *dtsurf
+        trmom(mzz,:,:,1,n) = trmom(mzz,:,:,1,n)+0.5*tot_trsource(:,:,n)
+     *       *dtsurf
+      end do
+C****
+      RETURN
+      END SUBROUTINE apply_tracer_source
+
+      SUBROUTINE TDECAY
+!@sum TDECAY decays radioactive tracers every source time step
+!@auth Gavin Schmidt/Jean Lerner
+      USE MODEL_COM, only : im,jm,lm,itime,dtsrc
+      USE TRACER_COM, only : ntm,trm,trmom,trdecy,itime_tr0
+#ifdef TRACERS_WATER
+     *     ,trwm
+#endif
+      USE TRACER_DIAG_COM, only : tajls,jls_decay,itcon_decay
+      IMPLICIT NONE
+      real*8, save, dimension(ntm) :: expdec = 1.
+      real*8, dimension(im,jm,lm) :: told
+      integer, save :: ifirst=1
+      integer n,najl,j,l
+
+      if (ifirst.eq.1) then               
+        do n=1,ntm
+          if (trdecy(n).gt.0.0) expdec(n)=exp(-trdecy(n)*dtsrc)
+        end do
+        ifirst = 0
+      end if
+
+      do n=1,ntm
+        if (trdecy(n).gt.0. .and. itime_tr0(n).ge.itime) then
+C**** Atmospheric decay
+          told(:,:,:)=trm(:,:,:,n)
+          trm(:,:,:,n)=expdec(n)*trm(:,:,:,n)
+          trmom(:,:,:,:,n)=expdec(n)*trmom(:,:,:,:,n)
+#ifdef TRACERS_WATER
+          trwm(:,:,:,n)=expdec(n)*trwm(:,:,:,n)
+#endif
+          najl = jls_decay(n)
+          do l=1,lm
+          do j=1,jm
+          tajls(j,l,najl)=tajls(j,l,najl)+sum(trm(:,j,l,n)-told(:,j,l))
+          enddo 
+          enddo
+          call DIAGTCA(itcon_decay(n),n)
+        end if
+      end do
+C****
+      return
+      end
+#endif

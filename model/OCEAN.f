@@ -9,9 +9,8 @@
       USE MODEL_COM, only : im,jm,lm,focean,fland,fearth,flice,ftype
      *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
      *     ,kocean,itocean,itoice,itlandi,itearth
-      USE PBLCOM
-     &     , only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
-     *     cq=>cqgs,ipbl
+      USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs
+     *     ,cq=>cqgs,ipbl
       USE GEOM
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
       USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0

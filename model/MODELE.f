@@ -194,6 +194,10 @@ C**** APPLY PRECIPITATION AND RUNOFF TO LAKES/OCEANS
       CALL PRECIP_OC
          IF (MODD5S.EQ.0) CALL DIAGCA (5)
          CALL CHECKT ('PRECIP')
+#ifdef TRACERS_ON
+C**** Calculate non-interactive tracer surface sources and sinks
+      call set_tracer_source
+#endif
 C**** CALCULATE SURFACE FLUXES AND EARTH
       CALL SURFCE
          CALL CHECKT ('SURFCE')
@@ -246,10 +250,10 @@ C**** SEA LEVEL PRESSURE FILTER
            CALL DIAGCA (8)
       END IF
 #ifdef TRACERS_ON
-C**** Tracer sources and sinks
-      do n=1,ntm
-        call tracer_source(trname(n))
-      end do
+C**** 3D Tracer sources and sinks
+C**** Tracer independent radioactive decay at end of day
+      CALL TDECAY
+
 C**** Accumulate tracer distribution diagnostics
       CALL TRACEA
 #endif
@@ -1118,6 +1122,10 @@ C****
       CALL init_DIAG(ISTART)
       if(istart.gt.0) CALL init_QUS(im,jm,lm)
       if(istart.gt.0) CALL init_MOM
+#ifdef TRACERS_ON
+C**** Initialise tracer parameters and diagnostics  
+      call init_tracer
+#endif
       CALL init_RAD
       WRITE (6,INPUTZ)
       call print_param( 6 )

@@ -5,8 +5,8 @@
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only: ntm
+#ifdef TRACERS_ON
+      USE TRACER_COM, only: ntm,ntsrcmax
 #endif
       IMPLICIT NONE
 
@@ -73,6 +73,13 @@ C**** currently saved - should be replaced by fluxed quantities
       REAL*8, DIMENSION(IM,JM) :: SSS
 !@var MLHC ocean mixed layer heat capacity (J/m^2 C) 
       REAL*8, DIMENSION(IM,JM) :: MLHC
+
+#ifdef TRACERS_ON
+!@var TRSOURCE non-interactive surface sources/sinks for tracers (kg/s)
+      REAL*8, DIMENSION(IM,JM,NTSRCMAX,NTM):: trsource
+!@var TOT_TRSOURCE total of TRSOURCE for each tracers (kg/s)
+      REAL*8, DIMENSION(IM,JM,NTM):: tot_trsource
+#endif
 
 #ifdef TRACERS_WATER
 !@var TRPREC tracers in precip (kg)

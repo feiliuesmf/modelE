@@ -1,8 +1,9 @@
-c**** EE001M12 E001M12 SOMTQ EB357M12
-c****
-c**** subroutine earth used by new land surface model.
-c**** coded to use new soc pbl routines.
+#include "rundeck_opts.h"
+
       module soil_drv
+!@sum soil_drv contains variables and routines for the ground 
+!@+   hydrology driver
+!@auth I. Alienov/F. Abramopolous
       use model_com, only : im,jm
       implicit none
       private
@@ -19,10 +20,11 @@ c**** coded to use new soc pbl routines.
 
 
       contains
+
       subroutine earth (ns,moddsf,moddd)
-c****
-c**** this subroutine calculates surface fluxes of sensible heat,
-c**** evaporation, thermal radiation, and momentum drag.
+!@sum EARTH calculates surface fluxes of sensible heat,
+!@+   evaporation, thermal radiation, and momentum drag over earth.
+!@auth I. Alienov/F. Abramopolous
 c****
       use constant, only : grav,rgas,lhe,lhs
      *     ,sha,tf,rhow,deltx
@@ -63,9 +65,13 @@ c****
      *     ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg,idd_lwg,idd_sh,
      *     idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us,idd_vs,idd_ws,
      *     idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl,idd_ev
-      use dynamics, only : pk,pek,pedn,pdsig !,pmid
+      use dynamics, only : pk,pek,pedn,pdsig,am
       use fluxes, only : dth1,dq1,du1,dv1,e0,e1,evapor,prec,eprec,runoe
      *     ,erunoe,gtemp
+#ifdef TRACERS_ON
+     *     ,tot_trsource
+      use tracer_com, only : ntm,itime_tr0,needtrs,trm
+#endif
 
       implicit none
 
@@ -88,6 +94,16 @@ c**** interface to pbl
       common /pblpar/zs1,tgv,tkv,qg,hemi,dtsurf,pole
       common /pblout/us,vs,ws,tsv,qsrf,psi,dbl,edvisc,eds1,kq,
      *     ppbl,ug,vg,wg,zmix
+
+#ifdef TRACERS_ON
+C**** Tracer input/output common block for PBL
+!@var trsfac, trconstflx factors in surface flux boundary cond.
+!@var ntx number of tracers that need pbl calculation
+      real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
+      integer itr,n,ntx
+      real*8 rhosrf0
+      common /trspec/trtop,trs,trsfac,trconstflx,ntx
+#endif
 
       real*8 qsat
       real*8 srhdt
@@ -149,7 +165,6 @@ c****
       pij=p(i,j)
       ps=pedn(1,i,j)
       psk=pek(1,i,j)
-      ! p1=pmid(1,i,j) ! not used
       p1k=pk(1,i,j)
       th1=t(i,j,1)
       q1=q(i,j,1)
@@ -162,6 +177,18 @@ c     rhosrf=100.*ps/(rgas*tsv)
 c     rhosrf=100.*ps/(rgas*tkv)
       jr=jreg(i,j)
       dxypj=dxyp(j)
+#ifdef TRACERS_ON
+C**** Set up tracers for PBL calculation if required
+      n=0
+      do itr=1,ntm
+        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
+          n=n+1
+C**** Calculate first layer tracer concentration
+          trtop(n)=trm(i,j,1,itr)/(AM(I,J,1)*DXYP(J))
+        end if
+      end do
+      ntx = n
+#endif
 c**** new quantities to be zeroed out over ground timesteps
          aruns=0.
          arunu=0.
@@ -221,13 +248,26 @@ c****
 c**** boundary layer interaction
 c****
       zs1=zs1co*tkv*pij/ps
-      !p1=pmid(1,i,j)    ! sig(1)*pij+ptop  - not used
 c**** loop over ground time steps
       tg=tg1+tf
       elhx=lhe
       if(tg1.lt.0.)  elhx=lhs
       qg=qsat(tg,elhx,ps)
       tgv=tg*(1.+qg*deltx)
+#ifdef TRACERS_ON
+C**** Set up b.c. for tracer PBL calculation if required
+      n=0
+      do itr=1,ntm
+        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
+          n=n+1
+C**** Calculate trsfac (set to zero for const flux)
+          trsfac(n)=0.
+C**** Calculate trconstflx (could be dependent on itype)
+          rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
+          trconstflx(n)=tot_trsource(i,j,itr)/(DXYP(J)*dtsrc*rhosrf0)
+        end if
+      end do
+#endif
 c***********************************************************************
 c***
       call pbl(i,j,itype,ptype)

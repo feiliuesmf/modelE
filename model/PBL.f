@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE SOCPBL
 !@sum  SOCPBL deals with boundary layer physics
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
@@ -7,7 +9,10 @@
 !@cont t_eqn_sta,q_eqn_sta,uv_eqn_sta
 !@cont inits,tcheck,ucheck,check1,output,rtsafe
 
-      USE CONSTANT, only : grav,omega,pi,radian
+      USE CONSTANT, only : grav,omega,pi,radian,bygrav,teeny
+#ifdef TRACERS_ON
+      USE TRACER_COM, only : ntm
+#endif
       IMPLICIT NONE
       SAVE
       integer, parameter :: n=8  !@param n  no of pbl. layers
@@ -36,6 +41,10 @@ C**** boundary layer parameters
 !@var  e  local turbulent kinetic energy
       real*8, dimension(n) :: u,v,t,q
       real*8, dimension(n-1) :: e
+#ifdef TRACERS_ON 
+!@var  tr local tracer profile (passive scalars)
+      real*8, dimension(n,ntm) :: tr
+#endif
 
 !@var bgrid log-linear gridding parameter
       real*8 :: bgrid
@@ -51,8 +60,12 @@ C**** boundary layer parameters
 
       subroutine advanc(us,vs,tsv,qs,kmsurf,khsurf,kqsurf,
      2     ustar,ug,vg,cm,ch,cq,z0m,z0h,z0q,coriol,
-     3     utop,vtop,ttop,qtop,tgrnd,qgrnd,zgs,ztop,zmix,dtime,
-     4     ufluxs,vfluxs,tfluxs,qfluxs,ilong,jlat,itype)
+     3     utop,vtop,ttop,qtop,tgrnd,qgrnd,
+#ifdef TRACERS_ON
+     *     trs,trtop,trsfac,trconstflx,ntx,
+#endif
+     4     zgs,ztop,zmix,dtime,ufluxs,vfluxs,tfluxs,qfluxs,ilong,jlat
+     *     ,itype)
 !@sum  advanc  time steps the solutions for the boundary layer variables
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
@@ -89,8 +102,15 @@ c   output:
 !@var  z0m  roughness height for momentum (if itype=1 or 2)
 !@var  z0h  roughness height for heat
 !@var  z0q  roughness height for moisture
+#ifdef TRACERS_ON
+!@var  trtop  tracer conc. at the top of the layer
+!@var  trs  surface tracer conc.
+!@var  trsfac  factor for trs in surface boundary condition
+!@var  trconstflx  constant component of surface tracer flux
+!@var  ntx  number of tracers to loop over
+#endif
 c  internals:
-!@var  n  number of the local, vertical grid points
+!@var  n     number of the local, vertical grid points
 !@var  lscale turbulence length scale. computed on secondary grid.
 !@var  z     altitude of primary vertical grid points
 !@var  zhat  altitude of secondary vertical grid points
@@ -110,13 +130,22 @@ c  internals:
       real*8, intent(out) :: ustar,zmix,z0h,z0q,cm,ch,cq
       real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
       integer, intent(in) :: ilong,jlat,itype
+#ifdef TRACERS_ON
+      real*8, intent(in), dimension(ntm) :: trtop,trsfac,trconstflx
+      real*8, intent(out), dimension(ntm) :: trs
+      integer, intent(in) :: ntx
+      real*8, dimension(n,ntm) :: trsave
+      integer itr
+#endif
 
-      real*8 :: lmonin,tstar,qstar,ustar0,test
+      real*8 :: lmonin,tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
+     *     ,wstar2q,usurfq,usurfh
       real*8, parameter ::  tol=1d-4
       integer :: itmax, ierr
       integer, parameter :: iprint= 0,jprint=33  ! set iprint>0 to debug
-      real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave,esave
+      real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave
       real*8, dimension(n-1) :: lscale,zhat,dzh,xihat,km,kh,kq,ke,gm,gh
+     *     ,esave
       integer :: i,j,iter  !@var i,j,iter loop variable
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
@@ -127,17 +156,15 @@ c  internals:
       zmix=dzh(1)+zgs
 
       itmax=1
-      do i=1,n-1
-        usave(i)=u(i)
-        vsave(i)=v(i)
-        tsave(i)=t(i)
-        qsave(i)=q(i)
-        esave(i)=e(i)
-      end do
-      usave(n)=u(n)
-      vsave(n)=v(n)
-      tsave(n)=t(n)
-      qsave(n)=q(n)
+
+      usave(:)=u(:)
+      vsave(:)=v(:)
+      tsave(:)=t(:)
+      qsave(:)=q(:)
+      esave(:)=e(:)
+#ifdef TRACERS_ON
+      trsave(:,1:ntx)=tr(:,1:ntx)
+#endif
 
 c   First, make trial advances of the solutions of the prognostic fields
 c   Must first compute subsidiary quantities such as length scale,
@@ -160,13 +187,26 @@ c   Step 1:
 
       call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
      2               ustar,dtime,n)
-      call t_eqn(u,v,tsave,qsave,t,q,z,kh,dz,dzh,
-     2            ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
-     3            ttop,qtop,dtime,n)
-      call q_eqn(u,v,tsave,qsave,t,q,z,kq,dz,dzh,
-     2            ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
-     3            ttop,qtop,dtime,n)
 
+C**** Calculate wstar term from
+C**** M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
+      wstar3fac=-1000.*grav*( 2.*(t(2)-t(1))/(t(2)+t(1))
+     &     -(q(2)-q(1)) )/dzh(1)
+C**** For heat and mositure
+      if(wstar3fac.gt.0.) then
+        wstar2h = (wstar3fac*kh(1))**twoby3
+        wstar2q = (wstar3fac*kq(1))**twoby3
+      else
+        wstar2h = 0.
+        wstar2q = 0.
+      endif
+      usurfh  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
+      usurfq  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2q)
+      
+      call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,usurfh,tgrnd,ttop,dtime,n)
+      
+      call q_eqn(qsave,q,kq,dz,dzh,cq,usurfq,qgrnd,qtop,dtime,n)
+        
       call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
      2            ustar,cm,z0m,utop,vtop,dtime,coriol,
      3            ug,vg,n)
@@ -200,13 +240,26 @@ c   Step 2:
  
         call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
      2                 ustar,dtime,n)
-        call t_eqn(u,v,tsave,qsave,t,q,z,kh,dz,dzh,
-     2              ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
-     3              ttop,qtop,dtime,n)
-        call q_eqn(u,v,tsave,qsave,t,q,z,kq,dz,dzh,
-     2              ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
-     3              ttop,qtop,dtime,n)
- 
+
+C**** Calculate wstar term 
+C**** M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
+        wstar3fac=-1000.*grav*( 2.*(t(2)-t(1))/(t(2)+t(1))
+     &       -(q(2)-q(1)) )/dzh(1)
+C**** For heat and mositure
+        if(wstar3fac.gt.0.) then
+          wstar2h = (wstar3fac*kh(1))**twoby3
+          wstar2q = (wstar3fac*kq(1))**twoby3
+        else
+          wstar2h = 0.
+          wstar2q = 0.
+        endif
+        usurfh  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
+        usurfq  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2q)
+        
+        call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,usurfh,tgrnd,ttop,dtime,n)
+
+        call q_eqn(qsave,q,kq,dz,dzh,cq,usurfq,qgrnd,qtop,dtime,n)
+        
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
      2              ustar,cm,z0m,utop,vtop,dtime,coriol,
      3              ug,vg,n)
@@ -214,6 +267,21 @@ c   Step 2:
         call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
  
       end do
+
+#ifdef TRACERS_ON
+C**** tracer calculations are passive and therefore do not need to 
+C**** be inside the iteration. Use moisture diffusivity
+      do itr=1,ntx
+#ifdef TRACERS_WATER
+C**** Tracers need to multiply trsfac and trconstflx by cq*Usurf
+        trconstflx(itr)=trconstflx(itr)*cq*Usurfq
+        trsfac(itr)=trsfac(itr)*cq*Usurfq
+#endif
+        call tr_eqn(trsave(1,itr),tr,kq,dz,dzh,trsfac(itr)
+     *       ,trconstflx(itr),trtop(itr),dtime,n) 
+        trs(itr) = tr(1,itr)
+      end do
+#endif
 
       us    = u(1)
       vs    = v(1)
@@ -246,7 +314,7 @@ c Diagnostics printed at a selected point:
       subroutine stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      2                 u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
      3                 km,kh,kq,dzh,itype,n)
-!@sum computes QSTAR,TSTAR and QSTAR
+!@sum computes USTAR,TSTAR and QSTAR
 !@sum Momentum flux = USTAR*USTAR
 !@sum Heat flux     = USTAR*TSTAR
 !@sum MOISTURE flux = USTAR*QSTAR
@@ -379,8 +447,8 @@ c     To compute the drag coefficient,Stanton number and Dalton number
           dudz=(u(i+1)-u(i))/dzh(i)
           dvdz=(v(i+1)-v(i))/dzh(i)
           as2=dudz*dudz+dvdz*dvdz
-          lmax  =0.53d0*sqrt(2.*e(i)/(an2+1d-40))
-          lmax2 =1.95d0*sqrt(2.*e(i)/(as2+1d-40))
+          lmax  =0.53d0*sqrt(2.*e(i)/(an2+teeny))
+          lmax2 =1.95d0*sqrt(2.*e(i)/(as2+teeny))
           lmax=min(lmax,lmax2)
           if (lscale(i).gt.lmax) lscale(i)=lmax
         endif
@@ -419,7 +487,6 @@ c     To compute the drag coefficient,Stanton number and Dalton number
 
       real*8, parameter :: nu=1.5d-5,num=0.135d0*nu,nuh=0.395d0*nu,
      *     nuq=0.624d0*nu
-      real*8, parameter :: epslon=1d-20
 
       real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
       real*8, parameter :: gamamu=19.3d0,gamahu=11.6d0,gamams=4.8d0,
@@ -432,7 +499,7 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       if ((itype.eq.1).or.(itype.eq.2)) then
 c *********************************************************************
 c  Compute roughness lengths using rough surface formulation:
-        z0m=num/ustar+0.018d0*ustar*ustar/grav
+        z0m=num/ustar+0.018d0*ustar*ustar*bygrav
         if (z0m.gt.0.2d0) z0m=0.2d0
         if (ustar.le.0.02d0) then
           z0h=nuh/ustar
@@ -454,7 +521,7 @@ c *********************************************************************
 c *********************************************************************
 c  For land and land ice, z0m is specified. For z0h and z0q,
 c    empirical evidence suggests:
-        z0h=z0m*exp(-2.)
+        z0h=z0m*.13533528d0    ! = exp(-2.)
         z0q=z0h
 c *********************************************************************
       endif
@@ -891,7 +958,6 @@ c       ke(i)=max(tau*e(i)*sq,1.5d-5)
 !@var ke z-profile of turbulent diffusion in eqn for e
 !@var lscale z-profile of the turbulent dissipation length scale
 !@var z vertical grids (main, meter)
-!@var zhat vertical grids (secondary, meter)
 !@var dz(j) zhat(j)-zhat(j-1)
 !@var dzh(j)  z(j+1)-z(j)
 !@var dtime time step
@@ -949,15 +1015,13 @@ c
       call TRIDIAG(sub,dia,sup,rhs,e,n-1)
 
       do j=1,n-1
-         if(e(j).lt.1d-20) e(j)=1d-20
+         if(e(j).lt.teeny) e(j)=teeny
       end do
 
       Return
       end subroutine e_eqn
 
-      subroutine t_eqn(u,v,t0,q0,t,q,z,kh,dz,dzh,
-     2                  ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
-     3                  ttop,qtop,dtime,n)
+      subroutine t_eqn(u,v,t0,t,z,kh,dz,dzh,ch,usurf,tgrnd,ttop,dtime,n)
 !@sum t_eqn integrates differential eqn for t (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
@@ -970,35 +1034,26 @@ c
 !@var t z-profle of potential temperature
 !@var q z-profle of specific humidity
 !@var t0 z-profle of t at previous time step
-!@var q0 z-profle of q at previous time step
 !@var kh z-profile of heat conductivity
 !@var z vertical grids (main, meter)
-!@var zhat vertical grids (secondary, meter)
 !@var dz(j) zhat(j)-zhat(j-1)
 !@var dzh(j)  z(j+1)-z(j)
 !@var ch  dimensionless heat flux at surface (stanton number)
-!@var cq  dimensionless moisture flux at surface (dalton number)
-!@var tstar   temperature scale (K)
-!@var qstar   moisture scale
-!@var z0h  roughness height for heat
-!@var z0q  roughness height for moisture
+!@var usurf effective surface velocity
 !@var tgrnd virtual potential temperature at the ground
-!@var qgrnd specific humidity at the ground
 !@var ttop virtual potential temperature at the first GCM layer
-!@var qtop specific humidity at the first GCM layer
 !@var dtime time step
 !@var n number of vertical subgrid main layers
       implicit none
 
       integer, intent(in) :: n
-      real*8, dimension(n), intent(in) :: u,v,t0,q0,z,dz
+      real*8, dimension(n), intent(in) :: u,v,t0,z,dz
       real*8, dimension(n-1), intent(in) :: dzh,kh
-      real*8, dimension(n), intent(inout) :: t,q
-      real*8, intent(in) :: ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd
-      real*8, intent(in) :: ttop,qtop,dtime
+      real*8, dimension(n), intent(inout) :: t
+      real*8, intent(in) :: ch,tgrnd
+      real*8, intent(in) :: ttop,dtime,usurf
 
-      real*8 :: wstar3,wstar2,usurf,facth,factq
-      real*8 :: factx,facty
+      real*8 :: facth,factx,facty
       integer :: i,j,iter  !@var i,j,iter loop variable
 
       do i=2,n-1
@@ -1010,19 +1065,10 @@ c
       factx=(dpdxr-dpdxr0)/(z(n)-z(1))
       facty=(dpdyr-dpdyr0)/(z(n)-z(1))
       do i=2,n-1
-        rhs(i)=t0(i)-dtime*(t(i+1)+t(i))/(2.d0*grav)*
+        rhs(i)=t0(i)-0.5*dtime*(t(i+1)+t(i))*bygrav*
      &         (v(i)*facty+u(i)*factx)
       end do
 
-c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
-      wstar3=-1000.*grav*kh(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
-     &                        -(q(2)-q(1)) )/dzh(1)
-      if(wstar3.gt.0.) then
-        wstar2 = wstar3**twoby3
-      else
-        wstar2 = 0.
-      endif
-      usurf  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2)
       facth  = ch*usurf*dzh(1)/kh(1)
 
       dia(1) = 1.+facth
@@ -1038,9 +1084,7 @@ c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
       return
       end subroutine t_eqn
 
-      subroutine q_eqn(u,v,t0,q0,t,q,z,kq,dz,dzh,
-     2                  ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
-     3                  ttop,qtop,dtime,n)
+      subroutine q_eqn(q0,q,kq,dz,dzh,cq,usurf,qgrnd,qtop,dtime,n)
 !@sum q_eqn integrates differential eqn q (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
@@ -1048,39 +1092,26 @@ c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
 !@+   at the top, the moisture is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
-!@var u z-profle of west-east   velocity component
-!@var v z-profle of south-north velocity component
-!@var t z-profle of potential temperature
 !@var q z-profle of specific humidity
-!@var t0 z-profle of t at previous time step
 !@var q0 z-profle of q at previous time step
 !@var kq z-profile of moisture diffusivity
-!@var z vertical grids (main, meter)
-!@var zhat vertical grids (secondary, meter)
 !@var dz(j) zhat(j)-zhat(j-1)
 !@var dzh(j)  z(j+1)-z(j)
-!@var ch  dimensionless heat flux at surface (stanton number)
 !@var cq  dimensionless moisture flux at surface (dalton number)
-!@var tstar   temperature scale (K)
-!@var qstar   moisture scale
-!@var z0h  roughness height for heat
-!@var z0q  roughness height for moisture
-!@var tgrnd virtual potential temperature at the ground
+!@var usurf effective surface velocity
 !@var qgrnd specific humidity at the ground
-!@var ttop virtual potential temperature at the first GCM layer
 !@var qtop specific humidity at the first GCM layer
 !@var dtime time step
 !@var n number of vertical subgrid main layers
       implicit none
 
       integer, intent(in) :: n
-      real*8, dimension(n), intent(in) :: u,v,t0,q0,z,dz
+      real*8, dimension(n), intent(in) :: q0,dz
       real*8, dimension(n-1), intent(in) :: dzh,kq
-      real*8, dimension(n), intent(inout) :: t,q
-      real*8, intent(in) :: ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd
-      real*8, intent(in) :: ttop,qtop,dtime
+      real*8, dimension(n), intent(inout) :: q
+      real*8, intent(in) :: cq,qgrnd,qtop,dtime,usurf
 
-      real*8 :: wstar3,wstar2,usurf,facth,factq
+      real*8 :: factq
       integer :: i,j,iter  !@var i,j,iter loop variable
 
       do i=2,n-1
@@ -1093,15 +1124,6 @@ c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
         rhs(i)=q0(i)
       end do
 
-c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
-      wstar3=-1000.*grav*kq(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
-     &                        -(q(2)-q(1)) )/dzh(1)
-      if(wstar3.gt.0.) then
-        wstar2 = wstar3**twoby3
-      else
-        wstar2 = 0.
-      endif
-      usurf  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2)
       factq  = cq*usurf*dzh(1)/kq(1)
 
       dia(1) = 1.+factq
@@ -1116,6 +1138,63 @@ c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
 
       return
       end subroutine q_eqn
+
+      subroutine tr_eqn(tr0,tr,kq,dz,dzh,sfac,constflx,trtop,dtime,n)
+!@sum tr_eqn integrates differential eqn for tracers (tridiag. method)
+!@+   between the surface and the first GCM layer.
+!@+   The boundary conditions at the bottom are:
+!@+   kq * dtr/dz = sfac * trs - constflx 
+!@+   i.e. for moisture, sfac=cq*usurf, constflx=cq*usurf*qg
+!@+        to get:  kq * dq/dz = cq * usurf * (qs - qg)  
+!@+   This should be flexible enough to deal with most situations.
+!@+   at the top, the tracer conc. is prescribed.
+!@auth Ye Cheng/G. Hartke
+!@ver  1.0
+!@var tr z-profle of tracer concentration
+!@var tr0 z-profle of tr at previous time step
+!@var kq z-profile of moisture diffusivity
+!@var dz(j) zhat(j)-zhat(j-1)
+!@var dzh(j)  z(j+1)-z(j)
+!@var sfac factor multiplying surface tracer conc. in b.c.
+!@var constflx the constant component of the surface tracer flux
+!@var trtop stracer concentration at the first GCM layer
+!@var dtime time step
+!@var n number of vertical subgrid main layers
+      implicit none
+
+      integer, intent(in) :: n
+      real*8, dimension(n), intent(in) :: tr0,dz
+      real*8, dimension(n-1), intent(in) :: dzh,kq
+      real*8, dimension(n), intent(inout) :: tr
+      real*8, intent(in) :: sfac,constflx,trtop,dtime
+
+      real*8 :: facttr
+      integer :: i  !@var i loop variable
+
+      do i=2,n-1
+        sub(i)=-dtime/(dz(i)*dzh(i-1))*kq(i-1)
+        sup(i)=-dtime/(dz(i)*dzh(i))*kq(i)
+        dia(i)=1.-(sub(i)+sup(i))
+      end do
+
+      do i=2,n-1
+        rhs(i)=tr0(i)
+      end do
+
+      facttr  = dzh(1)/kq(1)
+
+      dia(1) = 1.+sfac*facttr
+      sup(1) = -1.
+      rhs(1)= facttr*constflx
+
+      dia(n)  = 1.
+      sub(n)  = 0.
+      rhs(n) = trtop
+
+      call TRIDIAG(sub,dia,sup,rhs,tr,n)
+
+      return
+      end subroutine tr_eqn
 
       subroutine uv_eqn(u0,v0,u,v,z,km,dz,dzh,
      2                  ustar,cm,z0m,utop,vtop,dtime,coriol,
@@ -1197,8 +1276,7 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       end subroutine uv_eqn
 
 
-      subroutine t_eqn_sta(u,v,t,q,kh,dz,dzh,
-     2           ch,cq,tgrnd,qgrnd,ttop,qtop,n)
+      subroutine t_eqn_sta(t,kh,dz,dzh,ch,usurf,tgrnd,ttop,n)
 !@sum  t_eqn_sta computes the static solutions of t
 !@+    between the surface and the first GCM layer.
 !@+    The boundary conditions at the bottom are:
@@ -1212,26 +1290,23 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
 !@var q z-profle of specific humidity
 !@var kh z-profile of heat conductivity
 !@var z vertical grids (main, meter)
-!@var zhat vertical grids (secondary, meter)
 !@var dz(j) zhat(j)-zhat(j-1)
 !@var dzh(j)  z(j+1)-z(j)
 !@var ch  dimensionless heat flux at surface (stanton number)
-!@var cq  dimensionless moisture flux at surface (dalton number)
+!@var usurf effective surface velocity
 !@var tgrnd virtual potential temperature at the ground
-!@var qgrnd specific humidity at the ground
 !@var ttop virtual potential temperature at the first GCM layer
-!@var qtop specific humidity at the first GCM layer
 !@var n number of vertical main subgrid layers
       implicit none
 
       integer, intent(in) :: n
-      real*8, dimension(n), intent(in) :: u,v,dz
-      real*8, dimension(n), intent(inout) :: t,q
+      real*8, dimension(n), intent(in) :: dz
+      real*8, dimension(n), intent(inout) :: t
       real*8, dimension(n-1), intent(in) :: kh,dzh
-      real*8, intent(in) :: ch,cq,tgrnd,qgrnd,ttop,qtop
+      real*8, intent(in) :: ch,tgrnd,ttop,usurf
 
-      real*8 :: wstar3,wstar2,usurf,facth,factq
-      integer :: i,j,iter  !@var i,j,iter loop variable
+      real*8 :: facth
+      integer :: i !@var i loop variable
 
       do i=2,n-1
          sub(i)=-1./(dz(i)*dzh(i-1))*kh(i-1)
@@ -1243,15 +1318,6 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
         rhs(i)=0.
       end do
 
-c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
-      wstar3=-1000.*grav*kh(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
-     &                        -(q(2)-q(1)) )/dzh(1)
-      if(wstar3.gt.0.) then
-        wstar2 = wstar3**twoby3
-      else
-        wstar2 = 0.
-      endif
-      usurf  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2)
       facth  = ch*usurf*dzh(1)/kh(1)
 
       dia(1) = 1.+facth
@@ -1267,8 +1333,7 @@ c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
       return
       end subroutine t_eqn_sta
 
-      subroutine q_eqn_sta(u,v,t,q,kq,dz,dzh,
-     2           ch,cq,tgrnd,qgrnd,ttop,qtop,n)
+      subroutine q_eqn_sta(q,kq,dz,dzh,cq,usurf,qgrnd,qtop,n)
 !@sum  q_eqn_sta computes the static solutions of q
 !@+    between the surface and the first GCM layer.
 !@+    The boundary conditions at the bottom are:
@@ -1282,26 +1347,23 @@ c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
 !@var q z-profle of specific humidity
 !@var kq z-profile of moisture diffusivity
 !@var z vertical grids (main, meter)
-!@var zhat vertical grids (secondary, meter)
 !@var dz(j) zhat(j)-zhat(j-1)
 !@var dzh(j)  z(j+1)-z(j)
-!@var ch  dimensionless heat flux at surface (stanton number)
 !@var cq  dimensionless moisture flux at surface (dalton number)
-!@var tgrnd virtual potential temperature at the ground
+!@var usurf effective surface velocity
 !@var qgrnd specific humidity at the ground
-!@var ttop virtual potential temperature at the first GCM layer
 !@var qtop specific humidity at the first GCM layer
 !@var n number of vertical main subgrid layers
       implicit none
 
       integer, intent(in) :: n
-      real*8, dimension(n), intent(in) :: u,v,dz
-      real*8, dimension(n), intent(inout) :: t,q
+      real*8, dimension(n), intent(in) :: dz
+      real*8, dimension(n), intent(inout) :: q
       real*8, dimension(n-1), intent(in) :: kq,dzh
-      real*8, intent(in) :: ch,cq,tgrnd,qgrnd,ttop,qtop
+      real*8, intent(in) :: cq,qgrnd,qtop,usurf
 
-      real*8 :: wstar3,wstar2,usurf,facth,factq
-      integer :: i,j,iter  !@var i,j,iter loop variable
+      real*8 :: factq
+      integer :: i  !@var i loop variable
 
       do i=2,n-1
          sub(i)=-1./(dz(i)*dzh(i-1))*kq(i-1)
@@ -1313,15 +1375,6 @@ c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
         rhs(i)=0.
       end do
 
-c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
-      wstar3=-1000.*grav*kq(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
-     &                        -(q(2)-q(1)) )/dzh(1)
-      if(wstar3.gt.0.) then
-        wstar2 = wstar3**twoby3
-      else
-        wstar2 = 0.
-      endif
-      usurf  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2)
       factq  = cq*usurf*dzh(1)/kq(1)
 
       dia(1) = 1.+factq
@@ -1451,8 +1504,8 @@ c       rhs1(i)=-coriol*(u(i)-ug)
           tmp=bb*bb-4.*aa*cc
           gm=(-bb-sqrt(tmp))/(2.*aa)
         endif
-        e(i)=0.5*(B1*lscale(i))**2*as2/(gm+1d-20)
-        if(e(i).le. 1d-40)  e(i)=1d-40
+        e(i)=0.5*(B1*lscale(i))**2*as2/(gm+teeny)
+        if(e(i).le. teeny)  e(i)=teeny
       end do
 
       return
@@ -1490,17 +1543,18 @@ c       rhs1(i)=-coriol*(u(i)-ug)
 
       integer, intent(in) :: ilong,jlat,itype
       real*8, dimension(n-1) :: km,kh,kq,ke,gm,gh
-      real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave,esave
-      real*8, dimension(n-1) :: zhat,xihat,dzh,lscale
+      real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave
+      real*8, dimension(n-1) :: zhat,xihat,dzh,lscale,esave
       real*8 :: tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,ttop,qtop
      *     ,coriol,cm,ch,cq,lmonin
      *     ,bgrid,ustar,z0m,z0h,z0q,hemi,psi1,psi0,psi
-     *     ,usurf,tstar,qstar,ustar0,dtime,test
+     *     ,usurf,tstar,qstar,ustar0,dtime,test,
+     *     wstar3fac,wstar3,wstar2h,wstar2q,usurfq,usurfh
 
 c     integer, parameter ::  n=8
       integer, parameter ::  itmax=100
       integer, parameter ::  iprint= 0,jprint=25 ! set iprint>0 to debug
-      real*8, parameter ::  w=0.50,tol=1d-4,epslon=1d-20
+      real*8, parameter ::  w=0.50,tol=1d-4
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 
       z0m=zgrnd
@@ -1524,8 +1578,8 @@ c Initialization for iteration:
         else
         psi1=hemi*15.*radian
       endif
-      if (utop.eq.0.) utop=epslon
-      if (vtop.eq.0.) vtop=epslon
+      if (utop.eq.0.) utop=teeny
+      if (vtop.eq.0.) vtop=teeny
       if ((utop.gt.0.).and.(vtop.gt.0.)) then
         psi0=atan2(vtop,utop)
       endif
@@ -1589,12 +1643,26 @@ c Initialization for iteration:
 c ----------------------------------------------------------------------
 
       do iter=1,itmax
-        call t_eqn_sta(u,v,t,q,kh,dz,dzh,
-     2            ch,cq,tgrnd,qgrnd,ttop,qtop,n)
-        call q_eqn_sta(u,v,t,q,kq,dz,dzh,
-     2            ch,cq,tgrnd,qgrnd,ttop,qtop,n)
-        call uv_eqn_sta(u,v,z,km,dz,dzh,
-     2            ustar,cm,utop,vtop,coriol,n)
+
+C**** Calculate wstar term from M.J.Miller et al. 1992
+        wstar3fac=-1000.*grav*( 2.*(t(2)-t(1))/(t(2)+t(1))
+     &       -(q(2)-q(1)) )/dzh(1)
+C**** For heat and mositure
+        if(wstar3fac.gt.0.) then
+          wstar2h = (wstar3fac*kh(1))**twoby3
+          wstar2q = (wstar3fac*kq(1))**twoby3
+        else
+          wstar2h = 0.
+          wstar2q = 0.
+        endif
+        usurfh  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
+        usurfq  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2q)
+      
+        call t_eqn_sta(t,kh,dz,dzh,ch,usurfh,tgrnd,ttop,n)
+
+        call q_eqn_sta(q,kq,dz,dzh,cq,usurfq,qgrnd,qtop,n)
+
+        call uv_eqn_sta(u,v,z,km,dz,dzh,ustar,cm,utop,vtop,coriol,n)
 
         call tcheck(t,tgrnd,n)
         call tcheck(q,qgrnd,n)
@@ -1718,7 +1786,6 @@ c ----------------------------------------------------------------------
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
       implicit none
-      real*8, parameter :: epslon=1d-20
       real*8, parameter :: psistb=15.*radian, psiuns=5.*radian
       real*8, parameter :: gammau=19.3d0, gammas=4.8d0
 
@@ -1739,8 +1806,8 @@ c ----------------------------------------------------------------------
 c First, check the rotation of the wind vector:
 
       do i=n-1,1,-1
-        if (u(i).eq.0.) u(i)=epslon
-        if (v(i).eq.0.) v(i)=epslon
+        if (u(i).eq.0.) u(i)=teeny
+        if (v(i).eq.0.) v(i)=teeny
         if ((u(i).gt.0.).and.(v(i).gt.0.)) then
           psiu=atan2(v(i),u(i))
         endif
@@ -1838,7 +1905,6 @@ c  set the wind magnitude to that given by similarity theory:
 !@ver   1.0
 !@calls simil
       implicit none
-      real*8, parameter :: epslon=1d-40
       real*8, parameter :: degree=1./radian
 
       real*8, parameter :: gammah=11.6d0
@@ -1868,10 +1934,10 @@ c  set the wind magnitude to that given by similarity theory:
      3                utop,vtop,ttop,qtop,
      4                bgrid
       write (99,1000)
-      psitop=atan2(v(n),u(n)+epslon)*degree
+      psitop=atan2(v(n),u(n)+teeny)*degree
       if (psitop.lt.0.) psitop=psitop+360.
       do i=1,n
-        psi=atan2(v(i),u(i)+epslon)*degree
+        psi=atan2(v(i),u(i)+teeny)*degree
         if (psi.lt.0.) psi=psi+360.
         psi=psi-psitop
         utotal=sqrt(u(i)*u(i)+v(i)*v(i))
@@ -1923,9 +1989,9 @@ c  set the wind magnitude to that given by similarity theory:
         dudzs=ustar*phim/(kappa*zhat(i))
         dtdzs=tstar*phih/(kappa*zhat(i))
         dqdzs=qstar*phih/(kappa*zhat(i))
-        uratio=dudzs/(dudz+1d-40)
-        tratio=dtdzs/(dtdz+1d-40)
-        qratio=dqdzs/(dqdz+1d-40)
+        uratio=dudzs/(dudz+teeny)
+        tratio=dtdzs/(dtdz+teeny)
+        qratio=dqdzs/(dqdz+teeny)
 
         dbydzh=1./dzh(i)
         shear2=dbydzh*dbydzh*((u(i+1)-u(i))**2+

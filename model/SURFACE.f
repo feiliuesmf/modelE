@@ -1,22 +1,11 @@
-C**** SE001M12 E001M12 SOMTQ SB394M12
-C****
-C**** NEW CORRECTED PBL (Feb.19, 1998)
-C****
-C**** SURFCE for second order closure BL - Greg Hartke
-C**** Changes for constant pressure above LS1 in Dry Conv.
-C****   Boundary layer properties computed in subroutine PBL.
-C**** SNOW AGING  - 11 vegetation types
-C**** C version changes the way in which melting and freezing
-C****  ice is handled in the boundary layer.
-C**** D version corrects computation of TKV
-C**** J version restores fluxes into first model to Model 2 method.
+#include "rundeck_opts.h"
+
       SUBROUTINE SURFCE
-C****
-C**** THIS SUBROUTINE CALCULATES THE SURFACE FLUXES WHICH INCLUDE
-C**** SENSIBLE HEAT, EVAPORATION, THERMAL RADIATION, AND MOMENTUM
-C**** DRAG.  IT ALSO CALCULATES INSTANTANEOUS SURFACE TEMPERATURE,
-C**** SURFACE SPECIFIC HUMIDITY, AND SURFACE WIND COMPONENTS.
-C****
+!@sum SURFCE calculates the surface fluxes which include
+!@+   sensible heat, evaporation, thermal radiation, and momentum
+!@+   drag.  It also calculates instantaneous surface temperature,
+!@+   surface specific humidity, and surface wind components.
+!@auth Nobody will claim responsibilty
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6,byshi
      *     ,byrhoi,deltx,byrt3
@@ -41,7 +30,7 @@ C****
      *     ,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
      *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
      *     ,idd_eds,idd_dbl,idd_ev,idd_ldc,idd_dcf
-      USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
+      USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij,am
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
       USE SEAICE_COM, only : rsi,msi,snowi
@@ -51,6 +40,10 @@ C****
       USE LAKES, only : minmld
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,runoe,erunoe
      *     ,solar,dmua,dmva,gtemp,nstype
+#ifdef TRACERS_ON
+     *     ,tot_trsource
+      USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm
+#endif
       USE SOIL_DRV, only: earth
       IMPLICIT NONE
 
@@ -73,6 +66,10 @@ C****
 
       REAL*8 MSUM, MA1, MSI1, MSI2,tmp
       REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
+      REAL*8, PARAMETER :: qmin=1.d-12
+      REAL*8, PARAMETER :: S1BYG1 = BYRT3,
+     *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
+      REAL*8 QSAT,DQSATDT,TOFREZ
 
 C**** Interface to PBL
       REAL*8 ZS1,TGV,TKV,QG,HEMI,DTSURF,US,VS,WS,TSV,QS,PSI,DBL,KM,KH,
@@ -82,19 +79,15 @@ C**** Interface to PBL
 
       COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,KQ,PPBL,UG,VG,WG,ZMIX
 
-      REAL*8, PARAMETER :: qmin=1.d-12
-      REAL*8, PARAMETER :: S1BYG1 = BYRT3,
-     *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
-      REAL*8 QSAT,DQSATDT,TOFREZ
-C****
-C**** ZATMO     GEOPOTENTIAL (G*Z)
-C**** FLAND     LAND COVERAGE (1)
-C**** FLICE     LAND ICE COVERAGE (1)
-C****
-C**** GTEMP(1)  GROUND TEMPERATURE ARRAY OVER ALL SURFACE TYPES (C)
-C****   RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
-C****   MSI  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
-C****
+#ifdef TRACERS_ON
+C**** Tracer input/output common block for PBL
+!@var trsfac, trconstflx factors in surface flux boundary cond.
+!@var ntx number of tracers that need pbl calculation
+      real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
+      real*8 rhosrf0
+      integer itr,n,ntx
+      common /trspec/trtop,trs,trsfac,trconstflx,ntx
+#endif
 
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
@@ -190,6 +183,18 @@ C      QZ1 = QZ(I,J,1) ! vertical gradient of specific humidity
       PGK = (PS*100.)**KAPA
       HS = (H0M1-HZM1*S1BYG1)*PGK/(DXYP(J)*MA1) ! pot. spec. enth.(J/kg)
       PKDN = (GRAV*(MSUM-MA1*0.25))**KAPA
+#ifdef TRACERS_ON
+C**** Set up tracers for PBL calculation if required
+      n=0
+      do itr=1,ntm
+        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
+          n=n+1
+C**** Calculate first layer tracer concentration
+          trtop(n)=trm(i,j,1,itr)/(AM(I,J,1)*DXYP(J))
+        end if
+      end do
+      ntx = n
+#endif
 C**** ZERO OUT QUANTITIES TO BE SUMMED OVER SURFACE TYPES
       USS=0.
       VSS=0.
@@ -341,6 +346,20 @@ C**********************************************************************
       QG=QSAT(TG,ELHX,PS)
       IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG=0.98d0*QG
       TGV=TG*(1.+QG*deltx)
+#ifdef TRACERS_ON
+C**** Set up b.c. for tracer PBL calculation if required
+      n=0
+      do itr=1,ntm
+        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
+          n=n+1
+C**** Calculate trsfac (set to zero for const flux)
+          trsfac(n)=0.
+C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
+          rhosrf0=100.*PS/(RGAS*TGV) ! estimated surface density
+          trconstflx(n)=tot_trsource(i,j,itr)/(DXYP(J)*rhosrf0)
+        end if
+      end do
+#endif
 C =====================================================================
       CALL PBL(I,J,ITYPE,PTYPE)
       CM = cmgs(i,j,itype)
@@ -675,6 +694,12 @@ C**** Diurnal cycle of temperature diagnostics
         if(tsavg(i,j).lt.tdiurn(i,j,9)) tdiurn(i,j,9)=tsavg(i,j)
       END DO
       END DO
+#ifdef TRACERS_ON
+C****
+C**** Apply tracer surface sources and sinks
+C****
+      call apply_tracer_source(dtsurf)
+#endif
 C****
 C**** ADD IN SURFACE FRICTION TO FIRST LAYER WIND
 C****

@@ -1,4 +1,9 @@
+#include "rundeck_opts.h"
+
       SUBROUTINE PBL(I,J,ITYPE,PTYPE)
+!@sum  PBL calculate pbl profiles for each surface type
+!@auth Greg. Hartke/Ye Cheng
+!@ver  1.0
 C --------------------------------------------------------------------
 C     Variable definitions:
 C
@@ -6,66 +11,60 @@ C The variables passed thru the common block PBLPAR are parameters
 C  necessary to do the PBL solution. These variables have been passed
 C  from subroutine SURFCE or subroutine EARTH. The variables are:
 C
-C     ZGS    = height of the surface layer which is 10 m everywhere.
-C     ZS1    = height of the first model layer (m)
-C     PIJ    = surface pressure at gridpoint (i,j) (mb)
-C     PSK    = surface pressure to the power KAPA
-C     TGV    = virtual potential temperature of the ground (K)
-C     TKV    = virtual potential temperature of first model layer (K)
-C     THV1   = virtual temperature of the first model layer (K)
-C     HEMI   = 1 for northern hemisphere, -1 for southern hemisphere
-C     SHA    = specific heat at constant pressure (RGAS/KAPA)
-C     OMEGA2 = 2.*OMEGA where OMEGA is the angular frequency of
-C              the earth (1/sec)
-C     POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
+!@var ZGS    = height of the surface layer which is 10 m everywhere.
+!@var ZS1    = height of the first model layer (m)
+!@var PIJ    = surface pressure at gridpoint (i,j) (mb)
+!@var PSK    = surface pressure to the power KAPA
+!@var TGV    = virtual potential temperature of the ground (K)
+!@var TKV    = virtual potential temperature of first model layer (K)
+!@var THV1   = virtual temperature of the first model layer (K)
+!@var HEMI   = 1 for northern hemisphere, -1 for southern hemisphere
+!@var SHA    = specific heat at constant pressure (RGAS/KAPA)
+!@var OMEGA2 = 2.* angular frequency of the earth (1/s)
+!@var POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
 C
 C The quantities passed thru common block PBLOUT constitute the output
 C  from this PBL subroutine. The variables are:
 C
-C     US     = x component of surface wind, postive eastward (m/sec)
-C     VS     = y component of surface wind, positive northward (m/sec)
-C     WS     = magnitude of the surface wind (m/sec)
-C     TSV    = virtual potential temperature of the surface (K)
-C     QS     = surface value of the specific moisture
-C     PSI    = difference in direction between geostrophic and surface
-C              winds (radians)
-C     DBL    = boundary layer height (m)
-C     KM     = momentum transport coefficient charavterizing the
-C              boundary layer (m**2/sec)
-C     KH     = heat transport coefficient evaluated at ZGS (m**2/sec)
-C     USTAR  = friction speed (square root of momentum flux) (m/sec)
-C     PPBL   = pressure at DBL (mb)
-C     CM     = drag coefficient (dimensionless surface momentum flux)
-C     CH     = Stanton number   (dimensionless surface heat flux)
-C     CQ     = Dalton number    (dimensionless surface moisture flux)
-C     UG     = x component of the geostrophic wind, positive eastward
-C              (m/sec)
-C     VG     = y component of the geostrophic wind, positive northward
-C              (m/sec)
-C     WG     = magnitude of the geostrophic wind (m/sec)
+!@var US     = x component of surface wind, postive eastward (m/s)
+!@var VS     = y component of surface wind, positive northward (m/s)
+!@var WS     = magnitude of the surface wind (m/s)
+!@var TSV    = virtual potential temperature of the surface (K)
+!@var QS     = surface value of the specific moisture
+!@var PSI    = angular diff. btw geostrophic and surface winds (rads)
+!@var DBL    = boundary layer height (m)
+!@var KM     = momentum transport coefficient in the b.l. (m**2/s)
+!@var KH     = heat transport coefficient evaluated at ZGS (m**2/s)
+!@var USTAR  = friction speed (square root of momentum flux) (m/s)
+!@var PPBL   = pressure at DBL (mb)
+!@var CM     = drag coefficient (dimensionless surface momentum flux)
+!@var CH     = Stanton number   (dimensionless surface heat flux)
+!@var CQ     = Dalton number    (dimensionless surface moisture flux)
+!@var UG     = eastward component of the geostrophic wind (m/s)
+!@var VG     = northward component of the geostrophic wind (m/s)
+!@var WG     = magnitude of the geostrophic wind (m/s)
 C
 C --------------------------------------------------------------------
-      USE CONSTANT, only :  rgas,grav,omega2,deltx
+      USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
       USE MODEL_COM
-     &     , only : IM,JM,LM, t,q,u,v,p,ptop,ls1,psf
+     &     , only : IM,JM,LM, t,q,u,v,p,ptop,ls1,psf,itime
       USE DYNAMICS, only : pmid,pk,pedn
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
       USE PBLCOM, ustar_type=>ustar
-     &     ,uflux=>uflux,vflux=>vflux,tflux=>tflux,qflux=>qflux
       USE SOCPBL, only : uij=>u,vij=>v,tij=>t,qij=>q,eij=>e
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
      &     ,zgs,advanc
+#ifdef TRACERS_ON
+     &     ,trij=>tr
+      USE TRACER_COM, only : ntm,itime_tr0,needtrs
+#endif
       IMPLICIT NONE
      
       INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
       INTEGER, INTENT(IN) :: ITYPE  !@var ITYPE surface type
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
-C
-C        ocean and ocean ice are treated as rough surfaces
-C        roughness lengths from Brutsaert for rough surfaces
-C
 
       REAL*8 KMSURF,KHSURF,KQSURF
       LOGICAL POLE
@@ -78,12 +77,22 @@ C
 
       COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,KQ,PPBL,
      2               UG,VG,WG,ZMIX
+#ifdef TRACERS_ON
+C**** Tracer input/output common block
+!@var trsfac, trconstflx factors in surface flux boundary cond.
+!@var ntx number of tracers that need pbl calculation
+      real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
+      integer itr,n,ntx
+      common /trspec/trtop,trs,trsfac,trconstflx,ntx
+#endif
 
-      REAL*8, PARAMETER ::  EPSLON=1.D-20
       REAL*8 Z0M,ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
       REAL*8 ttop,qtop,tgrnd,qgrnd,utop,vtop,z0h,z0q,ufluxs,vfluxs
      *     ,tfluxs,qfluxs,psitop,psisrf
       INTEGER LDC,L,k
+
+C        ocean and ocean ice are treated as rough surfaces
+C        roughness lengths from Brutsaert for rough surfaces
 
       IF (ITYPE.GT.2) THEN
         Z0M=30./(10.**ROUGHL(I,J))
@@ -194,7 +203,16 @@ C *********************************************************************
       vij(:)=vabl(:,i,j,itype)
       tij(:)=tabl(:,i,j,itype)
       qij(:)=qabl(:,i,j,itype)
-      eij(1:n-1)=eabl(1:n-1,i,j,itype)
+      eij(1:npbl-1)=eabl(1:npbl-1,i,j,itype)
+#ifdef TRACERS_ON
+      n=0
+      do itr=1,ntx
+        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
+          n=n+1
+          trij(:,n)=trabl(:,itr,i,j,itype)
+        end if
+      end do
+#endif
 
       cm=cmgs(i,j,itype)
       ch=chgs(i,j,itype)
@@ -209,14 +227,26 @@ c     write(67,1003) "p-gradients: ",dpdxrij,dpdyrij,dpdxr0ij,dpdyr0ij
 c1003 format(a,4(1pe14.4))
       call advanc(us,vs,tsv,qs,kmsurf,khsurf,kqsurf,
      2     ustar,ug,vg,cm,ch,cq,z0m,z0h,z0q,coriol,
-     3     utop,vtop,ttop,qtop,tgrnd,qgrnd,zgs,ztop,zmix,dtsurf,
-     4     ufluxs,vfluxs,tfluxs,qfluxs,i,j,itype)
+     3     utop,vtop,ttop,qtop,tgrnd,qgrnd,
+#ifdef TRACERS_ON
+     *     trs,trtop,trsfac,trconstflx,ntx,
+#endif
+     4     zgs,ztop,zmix,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,i,j,itype)
 
       uabl(:,i,j,itype)=uij(:)
       vabl(:,i,j,itype)=vij(:)
       tabl(:,i,j,itype)=tij(:)
       qabl(:,i,j,itype)=qij(:)
-      eabl(1:n-1,i,j,itype)=eij(1:n-1)
+      eabl(1:npbl-1,i,j,itype)=eij(1:npbl-1)
+#ifdef TRACERS_ON
+      n=0
+      do itr=1,ntx
+        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
+          n=n+1
+          trabl(:,itr,i,j,itype)=trij(:,n)
+        end if
+      end do
+#endif
 
       cmgs(i,j,itype)=cm
       chgs(i,j,itype)=ch
@@ -228,8 +258,8 @@ c1003 format(a,4(1pe14.4))
       km    =kmsurf
       kh    =khsurf
       kq    =kqsurf
-      psitop=atan2(vg,ug+epslon)
-      psisrf=atan2(vs,us+epslon)
+      psitop=atan2(vg,ug+teeny)
+      psisrf=atan2(vs,us+teeny)
       psi   =psisrf-psitop
       ustar_type(i,j,itype)=ustar
 C ******************************************************************
@@ -332,7 +362,7 @@ C things to be done regardless of inipbl
       do itype=1,4
         if ((itype.eq.1).or.(itype.eq.4)) then
           elhx=lhe
-          else
+        else
           elhx=lhs
         endif
         do j=1,jm
@@ -460,7 +490,7 @@ c  capability is added in future versions of the model.
 c ----------------------------------------------------------------------
       USE MODEL_COM
       USE GEOM, only : imaxj
-      USE PBLCOM, only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
+      USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
      *     ,ipbl,ustar_type=>ustar
       IMPLICIT NONE
       integer i,j,iter,lpbl  !@var i,j,iter,lpbl loop variable
@@ -598,12 +628,12 @@ c ----------------------------------------------------------------------
       REAL*8, INTENT(OUT) :: ZTOP,BGRID
       real*8 theta,z1,x
 
-      theta=269.0727251
+      theta=269.0727251d0
       z1=zgs+0.5*(1.-sige(2))*psfmpt*rgas*theta/(grav*psf)
       x=z1/100.
       ztop=z1
-      bgrid=0.177427*x**4 - 1.0504*x**3 + 2.34169*x**2 -
-     2      2.4772*x + 1.44509
+      bgrid=(((0.177427d0*x - 1.0504d0)*x + 2.34169d0)*x -
+     2      2.4772d0)*x + 1.44509d0
       return
       end subroutine getb
 

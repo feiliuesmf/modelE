@@ -1,18 +1,27 @@
+#include "rundeck_opts.h"
+
       MODULE PBLCOM
 !@sum  PBLCOM contains the arrays used by the Boundary Layer code
 !@auth Greg Hartke/Ye Cheng
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
-      USE SOCPBL, only : n
+      USE SOCPBL, only : npbl=>n
+#ifdef TRACERS_ON
+      USE TRACER_COM, only : ntm
+#endif
       IMPLICIT NONE
       SAVE
 !@var uabl boundary layer profile for zonal wind
 !@var vabl boundary layer profile for meridional wind
 !@var tabl boundary layer profile for temperature
 !@var qabl boundary layer profile for humidity
-      real*8, dimension(n,im,jm,4) :: uabl,vabl,tabl,qabl
+      real*8, dimension(npbl,im,jm,4) :: uabl,vabl,tabl,qabl
 !@var eabl boundary layer profile for turbulent KE (calc. on sec. grid)
-      real*8, dimension(n,im,jm,4) :: eabl
+      real*8, dimension(npbl,im,jm,4) :: eabl
+#ifdef TRACERS_ON
+!@var trabl boundary layer profile for tracers
+      real*8, dimension(npbl,ntm,im,jm,4) :: trabl
+#endif
 
 !@var cmgs drag coefficient (dimensionless surface momentum flux)
 !@var chgs Stanton number   (dimensionless surface heat flux)
@@ -52,7 +61,7 @@
 !@sum  io_pbl reads and writes model variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,lhead
+      USE MODEL_COM, only : ioread,irsfic,irerun,iowrite,lhead
       USE PBLCOM
       IMPLICIT NONE
 
@@ -62,21 +71,41 @@
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "PBL01"
-
-      write (MODULE_HEADER(lhead+1:80),'(a7,i2,a)') 'R8 dim(',n,
+#ifdef TRACERS_ON
+!@var TR_HEADER Character string label for tracer record
+      CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TRPBL01"
+      write (TR_MODULE_HEADER(lhead+1:80),'(a7,i2,i3,a)') 'R8 dim(',npbl
+     *     ,ntm,',ijm,4):TRt'
+#endif
+      write (MODULE_HEADER(lhead+1:80),'(a7,i2,a)') 'R8 dim(',npbl,
      *  ',ijm,4):Ut,Vt,Tt,Qt,Et dim(ijm,4,3):Cmhq, I:Ipb(ijm,4)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (KUNIT,ERR=10) MODULE_HEADER,UABL,VABL,TABL,QABL,EABL,
      *     CMGS,CHGS,CQGS,IPBL
-      CASE (IOREAD:)            ! input from restart file
+#ifdef TRACERS_ON
+        WRITE (KUNIT,ERR=10) TR_MODULE_HEADER,TRABL
+#endif
+      CASE (IOREAD:)            ! input from restart file or restart
         READ (KUNIT,ERR=10) HEADER,UABL,VABL,TABL,QABL,EABL,CMGS,CHGS,
      *     CQGS,IPBL
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+#ifdef TRACERS_ON
+        SELECT CASE (IACTION)
+        CASE (IRSFIC)          ! input from restart file (no tracers)
+        CASE (IOREAD,IRERUN)    ! restarts
+          READ (KUNIT,ERR=10) TR_HEADER,TRABL
+          IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in tracer module version ",TR_HEADER
+     *           ,TR_MODULE_HEADER
+            GO TO 10
+          END IF
+        END SELECT
+#endif
       END SELECT
       RETURN
  10   IOERR=1
@@ -109,7 +138,7 @@
         READ (kunit,err=10) HEADER,wsavg,tsavg,qsavg,dclev,usavg
      *       ,vsavg,tauavg,ustar,egcm
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
       END SELECT

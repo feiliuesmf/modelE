@@ -396,7 +396,7 @@ C****
 C**** Sources and sinks
 C****
       do k=1,ktajls
-        n = jls_source(k)
+        n = jls_index(k)
         IF (n.eq.0 .or. itime.LT.itime_tr0(n))  cycle
         scalet = scale_jls(k)/idacc(ia_jls(k))
         scalet = scalet*10.**(-jls_power(k))
@@ -606,8 +606,8 @@ C**** Fill in maplet indices for tracer sums and means
       end do
 C**** Fill in maplet indices for sources and sinks
       do kx=1,ktaijs
-      n = ijts_source(kx)
-      if (itime.lt.itime_tr0(n)) cycle
+        n = ijts_index(kx)
+        if (itime.lt.itime_tr0(n)) cycle
         k = k+1
         iord(k) = kx
         nt(k) = kx
