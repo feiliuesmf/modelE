@@ -1965,7 +1965,7 @@ C**** TURBULENT KINETIC ENERGY
       n = JL_TRBKE
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AJL(1,1,n),SCALET,ONESPO,ONES,LM,2,JGRID_JL(n))
 C**** HEATING BY LARGE SCALE COND., MOIST CONVECTION AND TURBULENCE
       n = JL_SSHR
       SCALET = scale_jl(n)/idacc(ia_jl(n))

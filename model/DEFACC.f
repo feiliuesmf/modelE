@@ -3071,7 +3071,7 @@ c
       sname_jl(k) = 'tke' !
       lname_jl(k) = 'TURBULENT KINETIC ENERGY'
       units_jl(k) = 'm^2/s^2'
-      scale_jl(k) = 1.
+      scale_jl(k) = BYIM
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 c
