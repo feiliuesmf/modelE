@@ -26,7 +26,7 @@ c note that tno3,tno3r had dimension (im,jm,lm,12) for Wang source
       real*8, DIMENSION(IM,JM,LM,ntm):: aer_tau
       END MODULE AEROSOL_SOURCES
 
-      subroutine read_SO2_source(nt,iact)
+      subroutine read_SO2_source(nt)
 !@sum reads in industrial and biomass SO2 sources
 !@auth Koch
 c want kg SO2/m2/s
@@ -61,7 +61,7 @@ Cewg Between 24N and 40N, allow biomass burning from September to April.
      *  ,vemis,zg,vht,zh,pl1,pl2,te,hight,vtot
       real*4 craft(im,jm,lm)
       character*56  titleg
-      integer i,j,iuc,ij,iact,nt,
+      integer i,j,iuc,ij,nt,
      *  iuc2,ib,jb,iburn,
      *  iv,jv,ivht,ir,l,najl
       save ifirst,so2_ind_input
