@@ -420,20 +420,20 @@ C****
 C**** CALCULATE PK AND TX, THE REAL TEMPERATURE
 C****
       DO 80 L=1,LS1-1
-c      PK(L,1,1)=EXPBYK(SIG(L)*P(1,1)+PTOP)
+      PK(L,1,1)=EXPBYK(SIG(L)*P(1,1)+PTOP)
       TX(1,1,L)=T(1,1,L)*PK(L,1,1)
-c      PK(L,1,JM)=EXPBYK(SIG(L)*P(1,JM)+PTOP)
+      PK(L,1,JM)=EXPBYK(SIG(L)*P(1,JM)+PTOP)
       TX(1,JM,L)=T(1,JM,L)*PK(L,1,JM)
       DO 70 I=2,IM
       T(I,1,L)=T(1,1,L)
       T(I,JM,L)=T(1,JM,L)
-c      PK(L,I,1)=PK(L,1,1)
+      PK(L,I,1)=PK(L,1,1)
       TX(I,1,L)=TX(1,1,L)
-c      PK(L,I,JM)=PK(L,1,JM)
+      PK(L,I,JM)=PK(L,1,JM)
    70 TX(I,JM,L)=TX(1,JM,L)
       DO 80 J=2,JM-1
       DO 80 I=1,IM
-c      PK(L,I,J)=EXPBYK(SIG(L)*P(I,J)+PTOP)
+      PK(L,I,J)=EXPBYK(SIG(L)*P(I,J)+PTOP)
    80 TX(I,J,L)=T(I,J,L)*PK(L,I,J)
       DO 83 L=LS1,LM
       DO 82 I=2,IM
@@ -441,7 +441,7 @@ c      PK(L,I,J)=EXPBYK(SIG(L)*P(I,J)+PTOP)
    82 T(I,JM,L)=T(1,JM,L)
       DO 83 J=1,JM
       DO 83 I=1,IM
-c      PK(L,I,J)=PKS(L)
+      PK(L,I,J)=PKS(L)
    83 TX(I,J,L)=T(I,J,L)*PK(L,I,J)  !      PKS(L)
 C****
 C**** CALCULATE PUV, THE MASS WEIGHTED PRESSURE
@@ -958,8 +958,10 @@ C     SDQ2I=0.
 C     SDI=SDI+SD(I,J,L)
       PIJ=P(I,J)
       IF(L.GE.LS1-1) PIJ=PSF-PTOP
-      PE=PEDN(L+1,I,J)  ! SIGE(L+1)*PIJ+PTOP
-      PKE=PEK(L+1,I,J)  ! EXPBYK(PE)
+c      PE=PEDN(L+1,I,J)  ! SIGE(L+1)*PIJ+PTOP
+c      PKE=PEK(L+1,I,J)  ! EXPBYK(PE)
+      PE=SIGE(L+1)*PIJ+PTOP
+      PKE=EXPBYK(PE)
       THETA=THBAR(T(I,J,L+1),T(I,J,L))
       W(I,J,L)=SD(I,J,L)*THETA*PKE/PE
 C     PHIE(I,J,L)=PHI(I,J,L)+SHA*THETA*(PK(L,I,J)-PKE)
