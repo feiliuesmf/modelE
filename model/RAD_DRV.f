@@ -1197,6 +1197,7 @@ c seasalt forcing
 C*****************************************************
 C     Main RADIATIVE computations, SOLAR and THERMAL
       CALL RCOMPX
+C*****************************************************
 #ifdef TRACERS_AEROSOLS_Koch
          do l=1,lm
           taijs(i,j,ijts_tau(n_so4))=taijs(i,j,ijts_tau(n_so4))
@@ -1207,7 +1208,6 @@ C     Main RADIATIVE computations, SOLAR and THERMAL
      *       taijs(i,j,ijts_tau(n_seasalt2))+TTAUSV(L,3)
           end do
 #endif
-C*****************************************************
       IF(I.EQ.IWRITE.AND.J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
       CSZ2=COSZ2(I,J)
       do L=1,LM

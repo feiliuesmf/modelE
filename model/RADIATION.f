@@ -3507,7 +3507,8 @@ C     ------------------------------------------------------------------
 
       DO L=1,NL
       DO NT=1,NTRACE
-      TTAULX(L,NT)=TRACER(L,NT)*1000.D0*TRRDRY(NT)
+      TTAULX(L,NT)=TRACER(L,NT)*
+     *   1d3*.75d0/DENAER(ITR(NT))*Q55DRY(ITR(NT))/TRRDRY(NT)
       END DO
       END DO
 
@@ -3524,8 +3525,7 @@ C     ------------------------------------------------------------------
      +           *SRTQSC(K,NRHNAN(L,NA),NT)*RHFTAU
       SRBSCT(L,K)=SRBSCT(L,K)+SRTQSC(K,NRHNAN(L,NA),NT)*RHFTAU
       SRBGCB(L,K)=SRBGQL/(SRBSCT(L,K)+1.D-10)
-      if (K.EQ.6) TTAUSV(L,NT)=RHFTAU*SRTQEX(K,NRHNAN(L,NA),NT)
-
+      if (K.EQ.6) TTAUSV(L,NT)=SRTQEX(K,NRHNAN(L,NA),NT)*RHFTAU
       END DO
       END DO
       END DO
