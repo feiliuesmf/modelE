@@ -1,12 +1,3 @@
-C CMS SYSTEM ROUTINES EMULATION FOR IBM RS/6000
-C
-      SUBROUTINE CLOCKS(IHSC)
-C THIS VERSION OF CLOCKS RETURNS PROCESS TIME OF USER AND
-C SYSTEM TIME OF CHILD PROCESSES
-C NOTE: MCLOCK IS REALLY IN HUNDREDTHS OF A SECOND, NOT SIXTIETHS.
-      IHSC=-MCLOCK()
-      RETURN
-      END
 
       FUNCTION THBAR (X,Y)
 C****
@@ -17,16 +8,21 @@ C****      g(x) is replaced by a rational function
 C****           (a+bx+cxx+dxxx+cx**4)/(e+fx+gxx)
 C****      approx.error <1.E-6 for x between .9 and 1.7
 C****
-CV    REAL*8 A,B,C,D,E,F,G,Q,AL
-      IMPLICIT REAL*8 (A-H,O-Z)
-      PARAMETER (
-     *  A=113.4977618974100d0,B=438.5012518098521d0,
-     *  C=88.49964112645850d0,D=-11.50111432385882d0,
-     *  E=30.00033943846368d0,F=299.9975118132485d0,
-     *  G=299.9994728900967d0)
-C     DATA A,B,C,D,E,F,G/113.4977618974100,438.5012518098521,
-C    *  88.49964112645850,-11.50111432385882,
-C    *  30.00033943846368,299.9975118132485,299.9994728900967/
+!@sum   THBAR calculates mean temperature in the vertical
+!@auth  Original development team
+!@ver   1.0
+      IMPLICIT NONE
+!@var A,B,C,D,E,F,G   expansion coefficients for THBAR
+      REAL*8, PARAMETER :: A=113.4977618974100d0
+      REAL*8, PARAMETER :: B=438.5012518098521d0
+      REAL*8, PARAMETER :: C=88.49964112645850d0
+      REAL*8, PARAMETER :: D=-11.50111432385882d0
+      REAL*8, PARAMETER :: E=30.00033943846368d0
+      REAL*8, PARAMETER :: F=299.9975118132485d0
+      REAL*8, PARAMETER :: G=299.9994728900967d0
+      REAL*8 :: Q,AL                 !@var Q,AL   working variables
+      REAL*8, INTENT(IN) :: X,Y      !@var X,Y    input temperatures
+      REAl*8 :: THBAR                !@var THBAR  averaged temperature
       Q=X/Y
       AL=(A+Q*(B+Q*(C+Q*(D+Q))))/(E+Q*(F+G*Q))
       THBAR=X*AL
@@ -34,67 +30,149 @@ C    *  30.00033943846368,299.9975118132485,299.9994728900967/
       END
 
       FUNCTION EXPBYK (X)
-      IMPLICIT REAL*8 (A-H,O-Z)
+!@sum   EXPBYK exponentiates pressure by KAPA
+!@auth  Original development team
+!@ver   1.0
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: X      !@var X          input pressure
+      REAL*8 :: EXPBYK             !@var EXPBYK     output P^KAPA
+c      EXPBYK=X**KAPA   !should be double precision from parameter.inc
       EXPBYK=X**.286
       RETURN
       END
 
+      FUNCTION QSAT_NEW (TM,QL,PR)
+!@sum   QSAT calculates saturation vapour mixing ratio
+!@auth  Original development team
+!@ver   1.0
+      IMPLICIT NONE
+!@var A,B,C   expansion coefficients for QSAT
+      REAL*8, PARAMETER :: A=3.797915d0
+      REAL*8, PARAMETER :: B=7.93252d-6
+      REAL*8, PARAMETER :: C=2.166847d-3
+      REAL*8, INTENT(IN) :: TM  !@var TM   potential temperature (K)
+      REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap. (J/kg)
+      REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)
+      REAL*8 :: QSAT_NEW        !@var QSAT sat. vapour mixing ratio
+      QSAT_NEW = A*EXP(QL*(B-C/TM))/PR 
+      RETURN
+      END
+
       SUBROUTINE DREAD (IUNIT,AIN,LENGTH,AOUT)
-C****
-C**** READ IN REAL*4 ARRAY AND CONVERT TO REAL*8
-C****
-      REAL*4 AIN(LENGTH)
-      REAL*8 AOUT(LENGTH)
+!@sum   DREAD   read in real*4 array and convert to real*8
+!@auth  Original development team
+!@ver   1.0 
+      IMPLICIT NONE
+      INTEGER :: IUNIT                    !@var  IUNIT  file unit number
+      INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
+      REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
+      REAL*8, INTENT(OUT) :: AOUT(LENGTH) !@var  AOUT   real*8 array
+      INTEGER :: N                        !@var  N      loop variable
+
       READ (IUNIT) AIN
-      DO 10 N=LENGTH,1,-1
-   10 AOUT(N)=AIN(N)
+C**** do transfer backwards in case AOUT and AIN are same workspace
+      DO N=LENGTH,1,-1
+         AOUT(N)=AIN(N)
+      END DO 
       RETURN
       END
 
       SUBROUTINE MREAD (IUNIT,M,NSKIP,AIN,LENGTH,AOUT)
-C****
-C**** READ IN INTEGER & REAL*4 ARRAY AND CONVERT TO REAL*8
-C****
-      REAL*4 AIN(LENGTH),X
-      REAL*8 AOUT(LENGTH)
+!@sum   MREAD   read in integer and real*4 array and convert to real*8
+!@auth  Original development team
+!@ver   1.0 
+      IMPLICIT NONE
+      INTEGER :: IUNIT                    !@var  IUNIT  file unit number
+      INTEGER, INTENT(OUT) :: M           !@var  M      initial integer
+      INTEGER, INTENT(IN) :: NSKIP        !@var  NSKIP  no. of chars. to skip
+      INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
+      REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
+      REAL*8, INTENT(OUT) :: AOUT(LENGTH) !@var  AOUT   real*8 array
+      REAL*4 :: X                         !@var  X      dummy variable
+      INTEGER :: N                        !@var  N      loop variable
+
       READ (IUNIT) M,(X,N=1,NSKIP),AIN
-      DO 10 N=LENGTH,1,-1
-   10 AOUT(N)=AIN(N)
+C**** do transfer backwards in case AOUT and AIN are same workspace
+      DO N=LENGTH,1,-1
+         AOUT(N)=AIN(N)
+      END DO
       RETURN
       END
 
       SUBROUTINE READT (IUNIT,NSKIP,AIN,LENGTH,AOUT,IPOS)
-C****
-C**** READ IN TITLE & REAL*4 ARRAY AND CONVERT TO REAL*8
-C****
-      REAL*4 AIN(LENGTH),X
-      REAL*8 AOUT(LENGTH)
-      CHARACTER*80 TITLE
-      DO 10 N=1,IPOS-1
-   10 READ (IUNIT,END=920)
+!@sum   READT  read in title and real*4 array and convert to real*8
+!@auth  Original development team
+!@ver   1.0 
+      IMPLICIT NONE
+      INTEGER :: IUNIT             !@var  IUNIT  file unit number
+      INTEGER, INTENT(IN) :: NSKIP !@var  NSKIP  no. of chars. to skip
+      INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
+      INTEGER, INTENT(OUT) :: IPOS !@var  IPOS   no. of recs. to advance
+      REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
+      REAL*8, INTENT(OUT) :: AOUT(LENGTH) !@var  AOUT   real*8 array
+      REAL*4 :: X                  !@var  X      dummy variable
+      INTEGER :: N                 !@var  N      loop variable
+      CHARACTER*80 TITLE           !@var  TITLE  title of file record
+
+      DO N=1,IPOS-1
+         READ (IUNIT,END=920)
+      END DO
       READ (IUNIT,ERR=910,END=920) TITLE,(X,N=1,NSKIP),AIN
-CCC   IF(LEN.LT.4*(20+NSKIP+LENGTH)) GO TO 930
-      DO 100 N=LENGTH,1,-1
-  100 AOUT(N)=AIN(N)
+C**** do transfer backwards in case AOUT and AIN are same workspace
+      DO N=LENGTH,1,-1
+         AOUT(N)=AIN(N)
+      END DO
       WRITE(6,'('' Read from Unit '',I3,'':'',A80)') IUNIT,TITLE
       RETURN
   910 WRITE(6,*) 'READ ERROR ON UNIT',IUNIT
       STOP 'READ ERROR'
   920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON UNIT',IUNIT
       STOP 'NO DATA TO READ'
-C 930 WRITE(6,*) LEN/4,' RATHER THAN',20+NSKIP+LENGTH,' WORDS ON UNIT',
-CC   *  IUNIT
-CCC   STOP 'NOT ENOUGH DATA FOUND'
       END
+
       SUBROUTINE TIMER (MNOW,MINC,MSUM)
-C****
-C**** OUTPUT: MNOW (.01 S) = CURRENT CPU TIME
-C****         MINC (.01 S) = TIME SINCE LAST CALL TO SUBROUTINE TIMER
-C****         MSUM (.01 S) = MSUM + MINC
-C****
+!@sum  TIMER keeps track of elapsed CPU time in hundredths of seconds
+!@auth Reto Ruedy
+!@ver  1.0 (SGI version)
+      IMPLICIT NONE
+      INTEGER, INTENT(OUT) :: MNOW   !@var MNOW current CPU time (.01 s)
+      INTEGER, INTENT(OUT) :: MINC   !@var MINC time since last call
+      INTEGER, INTENT(INOUT) :: MSUM !@var MSUM running total
+      INTEGER :: MCLOCK              !@var MCLOCK intrinsic function
+      INTEGER, SAVE :: MLAST = 0     !@var MLAST  last CPU time
+
       MNOW  = MCLOCK ()
       MINC  = MNOW - MLAST
       MSUM  = MSUM + MINC
       MLAST = MNOW
       RETURN
       END
+
+      SUBROUTINE TRIDIAG(A,B,C,R,U,N)
+!@sum  TRIDIAG  solves a tridiagonal matrix equation (A,B,C)U=R 
+!@auth Numerical Recipes
+!@ver  1.0 
+      IMPLICIT NONE
+      INTEGER :: N                 !@var N    dimension of arrays
+      REAL*8, INTENT(IN) :: A(N)   !@var A    coefficients of u_i-1
+      REAL*8, INTENT(IN) :: B(N)   !@var B    coefficients of u_i
+      REAL*8, INTENT(IN) :: C(N)   !@var C    coefficients of u_i+1
+      REAL*8, INTENT(IN) :: R(N)   !@var R    RHS vector
+      REAL*8, INTENT(OUT) :: U(N)  !@var U    solution vector
+      REAL*8 :: BET                !@var BET  work variable
+      REAL*8 :: GAM(N)             !@var GAM  work array
+      INTEGER :: J                 !@var J    loop variable
+
+      BET=B(1)
+      U(1)=R(1)/BET
+      DO J=2,N
+         GAM(J)=C(J-1)/BET
+         BET=B(J)-A(J)*GAM(J)
+         U(J)=(R(J)-A(J)*U(J-1))/BET
+      END DO
+      DO J=N-1,1,-1
+         U(J)=U(J)-GAM(J+1)*U(J+1)
+      END DO
+      RETURN
+      END
+
