@@ -23,6 +23,8 @@
 
 !@var TFO temperature of freezing ocean (C)
       REAL*8, PARAMETER :: TFO = -1.8d0
+!@var SSIMEAN mean salinity in sea ice (1) (3.2 ppt)
+      REAL*8, PARAMETER :: SSIMEAN = 0.0032d0 
 !@var TOCEAN temperature of the ocean (C)
       REAL*8, DIMENSION(3,IM,JM) :: TOCEAN
 
@@ -640,6 +642,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
             MSI(I,J)=MSI2
             SNOWI(I,J)=SNOW
             HSI(:,I,J)=HSIL(:)
+            SSI(:,I,J)=SSIL(:)
 C**** set ftype/gtemp arrays
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
             FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
@@ -793,14 +796,14 @@ C****
 !@sum  GROUND_OC driver for applying surface fluxes to ocean fraction
 !@auth Original Development Team
 !@ver  1.0
-!@calls
+!@calls OSOURC
       USE CONSTANT, only : rhow,shw
       USE MODEL_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
      *     ,itoice
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : runosi,erunosi,e0,e1,evapor,dmsi,dhsi,
+      USE FLUXES, only : runosi,erunosi,e0,e1,evapor,dmsi,dhsi,dssi,
      *     flowo,eflowo,gtemp
-      USE OCEAN, only : tocean,z1o,ota,otb,otc,tfo,osourc,
+      USE OCEAN, only : tocean,z1o,ota,otb,otc,tfo,osourc,ssimean,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
@@ -896,6 +899,8 @@ C**** Store mass and energy fluxes for formation of sea ice
           DMSI(2,I,J)=ACE2F
           DHSI(1,I,J)=ENRGFO
           DHSI(2,I,J)=ENRGFI
+          DSSI(1,I,J)=SSIMEAN*ACEFO   ! assume constant mean salinity
+          DSSI(2,I,J)=SSIMEAN*ACE2F
 C**** store surface temperatures
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
 

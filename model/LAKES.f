@@ -700,7 +700,7 @@ C****
       USE CONSTANT, only : shw,rhow,pi,by3
       USE MODEL_COM, only : im,jm,ftype,itlake,itlkice,jday
       USE LAKES_COM, only : tlake,mwl,gml,mldlk,flake,tanlk
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi
+      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
       USE SEAICE, only : simelt,lmi
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : gtemp
@@ -771,6 +771,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
               MSI(I,J)=MSI2
               SNOWI(I,J)=SNOW
               HSI(:,I,J)=HSIL(:)
+              SSI(:,I,J)=0.
 C**** set ftype/gtemp arrays
               FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
               FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
@@ -878,7 +879,7 @@ C****
       USE MODEL_COM, only : im,jm,flice,fland,hlake
      *     ,fearth,dtsrc,itlake,itlkice
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : runosi, erunosi, e0,evapor, dmsi,dhsi,
+      USE FLUXES, only : runosi, erunosi, e0,evapor, dmsi,dhsi,dssi,
      *     runoli, runoe, erunoe, solar, dmua, dmva,gtemp
       USE SEAICE_COM, only : rsi
       USE PBLCOM, only : ustar
@@ -1006,6 +1007,7 @@ C**** Store mass and energy fluxes for formation of sea ice
         DMSI(2,I,J)=ACEFI
         DHSI(1,I,J)=ENRGFO
         DHSI(2,I,J)=ENRGFI
+        DSSI(:,I,J)=0.     ! assume zero salinity
       END IF
       END DO
       END DO

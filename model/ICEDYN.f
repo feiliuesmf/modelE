@@ -1235,33 +1235,38 @@ C NOW THE SECOND HALF
      *     bydxyp=>bydxypo
       USE ICEDYN, only : usidt,vsidt,rsix,rsiy
       USE SEAICE, only : ace1i,xsi_glob=>xsi
-      USE SEAICE_COM, only : rsi,msi2=>msi,snowi,hsi_glob=>hsi,lmi
+      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,lmi
       USE ODIAG, only : oij,ij_musi,ij_mvsi
       USE FLUXES, only : gtemp
       IMPLICIT NONE
       REAL*8, DIMENSION(IM) :: FAW,FASI,FXSI,FYSI
-      REAL*8 FMSI(2+LMI,IM),SFMSI(2+LMI),AMSI(2+LMI)
+!@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
+      INTEGER, PARAMETER :: NTRICE=2+2*LMI
+      REAL*8 FMSI(NTRICE,IM),SFMSI(NTRICE),AMSI(NTRICE)
       INTEGER I,J,L,IM1,IP1,K
-      REAL*8 SFASI,DHSI,ASI,YSI,MSI,HSI,XSI
-      COMMON /WORKI/MSI(IM,JM,2),HSI(IM,JM,LMI)
+      REAL*8 SFASI,DHSI,ASI,YSI,XSI,DSSI
+!@var MHS mass/heat/salt content of sea ice
+      REAL*8, DIMENSION(NTRICE,IM,JM) :: MHS
 C****
 C**** FLUXCB  USIDT  U compon of time integrated sea ice velocity (m)
 C****         VSIDT  V compon of time integrated sea ice velocity (m)
 C****
 C**** WORK01  FAW    flux of surface water area (m^2) = USIDT*DYP
 C****         FASI   flux of sea ice area (m^2) = USIDT*DYP*RSIedge
-C****         FMSI   flux of sea ice mass (kg) or heat (J)
-C**** set up local MSI/HSI arrays for local purposes only
-      MSI(:,:,1) = ACE1I + SNOWI
-      MSI(:,:,2) = MSI2
+C****         FMSI   flux of sea ice mass (kg) or heat (J) or salt (kg)
+C**** set up local MSH array to contain all advected quantities
+C**** MHS(1:2) = MASS, MHS(3:6) = HEAT, MHS(7:10)=SALT
+      MHS(1,:,:) = ACE1I + SNOWI
+      MHS(2,:,:) = MSI
       DO L=1,LMI
-        HSI(:,:,L) = HSI_GLOB(L,:,:)
+        MHS(L+2,:,:) = HSI(L,:,:)
+        MHS(L+2+LMI,:,:) = SSI(L,:,:)
       END DO
 C****
 C**** North-South Advection of Sea Ice
 C****
       SFASI  = 0.
-      DO 5 K=1,2+LMI
+      DO 5 K=1,NTRICE
     5 SFMSI(K) = 0.
       DO 340 I=1,IM
 C****
@@ -1276,16 +1281,16 @@ C**** Sea ice velocity is southward at grid box edge
       FXSI(J) = FAW(J)*RSIX(I,J+1)
       FYSI(J) = FAW(J)*
      *         (FAW(J)*BYDXYP(J+1)*FAW(J)*RSIY(I,J+1) - 3d0*FASI(J))
-      DO 105 K=1,2+LMI
-  105 FMSI(K,J) = FASI(J)*MSI(I,J+1,K)
+      DO 105 K=1,NTRICE
+  105 FMSI(K,J) = FASI(J)*MHS(K,I,J+1)
          OIJ(I,J,IJ_MVSI) = OIJ(I,J,IJ_MVSI) + (FMSI(1,J)+FMSI(2,J))
       GO TO 120
 C**** Sea ice velocity is northward at grid box edge
   110 FASI(J) = FAW(J)*(RSI(I,J)+(1d0-FAW(J)*BYDXYP(J))*RSIY(I,J))
       FXSI(J) = FAW(J)*RSIX(I,J)
       FYSI(J) = FAW(J)*(FAW(J)*BYDXYP(J)*FAW(J)*RSIY(I,J)-3d0*FASI(J))
-      DO 115 K=1,2+LMI
-  115 FMSI(K,J) = FASI(J)*MSI(I,J,K)
+      DO 115 K=1,NTRICE
+  115 FMSI(K,J) = FASI(J)*MHS(K,I,J)
          OIJ(I,J,IJ_MVSI) = OIJ(I,J,IJ_MVSI) + (FMSI(1,J)+FMSI(2,J))
   120 CONTINUE
 C****
@@ -1298,8 +1303,8 @@ C**** Sea ice velocity is southward from North Pole box
       FASI(JM-1) = FAW(JM-1)*RSI(1,JM)
       FXSI(JM-1) = 0.
       FYSI(JM-1) = -FAW(JM-1)*FASI(JM-1)
-      DO 125 K=1,2+LMI
-  125 FMSI(K,JM-1) = FASI(JM-1)*MSI(1,JM,K)
+      DO 125 K=1,NTRICE
+  125 FMSI(K,JM-1) = FASI(JM-1)*MHS(K,1,JM)
          OIJ(I,JM-1,IJ_MVSI) = OIJ(I,JM-1,IJ_MVSI) +
      *     (FMSI(1,JM-1)+FMSI(2,JM-1))
       GO TO 140
@@ -1309,13 +1314,13 @@ C**** Sea ice velocity is northward into North Pole box
       FXSI(JM-1) = FAW(JM-1)*RSIX(I,JM-1)
       FYSI(JM-1) = FAW(JM-1)*
      *  (FAW(JM-1)*BYDXYP(JM-1)*FAW(JM-1)*RSIY(I,JM-1)-3d0*FASI(JM-1))
-      DO 135 K=1,2+LMI
-  135 FMSI(K,JM-1) = FASI(JM-1)*MSI(I,JM-1,K)
+      DO 135 K=1,NTRICE
+  135 FMSI(K,JM-1) = FASI(JM-1)*MHS(K,I,JM-1)
          OIJ(I,JM-1,IJ_MVSI) = OIJ(I,JM-1,IJ_MVSI) +
      *     (FMSI(1,JM-1)+FMSI(2,JM-1))
 C**** Accumulate sea ice leaving and entering North Pole box
   140 SFASI = SFASI + FASI(JM-1)
-      DO 145 K=1,2+LMI
+      DO 145 K=1,NTRICE
   145 SFMSI(K) = SFMSI(K) + FMSI(K,JM-1)
 C****
 C**** Update sea ice variables due to south-north fluxes
@@ -1326,16 +1331,16 @@ C**** VSIDT(J-1)=0.
   210 IF(VSIDT(I,J))  220,330,230
 C**** VSIDT(J-1)=0, VSIDT(J)<0.
   220 ASI = RSI(I,J)*DXYP(J) -  FASI(J)
-      DO 225 K=1,2+LMI
-  225 AMSI(K) = RSI(I,J)*DXYP(J)*MSI(I,J,K) - FMSI(K,J)
+      DO 225 K=1,NTRICE
+  225 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J) - FMSI(K,J)
       IF(ASI.gt.DXYP(J))  GO TO 320
       YSI = (RSIY(I,J)*DXYP(J)*DXYP(J) - FYSI(J)
      *    + 3d0*(FAW(J)*ASI-DXYP(J)*FASI(J))) / (DXYP(J)-FAW(J))
       RSI(I,J)  = ASI*BYDXYP(J)
       RSIY(I,J) = YSI*BYDXYP(J)
       RSIX(I,J) = RSIX(I,J) - FXSI(J)*BYDXYP(J)
-      DO 226 K=1,2+LMI
-  226 MSI(I,J,K) = AMSI(K)/ASI
+      DO 226 K=1,NTRICE
+  226 MHS(K,I,J) = AMSI(K)/ASI
       GO TO 310
 C**** VSIDT(J-1)=0, VSIDT(J)>0.
   230 RSI(I,J)  =  RSI(I,J) -  FASI(J)*BYDXYP(J)
@@ -1357,8 +1362,8 @@ C      IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) = -RSI(I,J)
 C      GO TO 330
 C**** VSIDT(J-1)<0, VSIDT(J)<0  or  VSIDT(J-1)>0, VSIDT(J)?0.
   260 ASI = RSI(I,J)*DXYP(J) + ( FASI(J-1)- FASI(J))
-      DO 265 K=1,2+LMI
-  265 AMSI(K) = RSI(I,J)*DXYP(J)*MSI(I,J,K) + (FMSI(K,J-1)-FMSI(K,J))
+      DO 265 K=1,NTRICE
+  265 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J) + (FMSI(K,J-1)-FMSI(K,J))
       IF(ASI.gt.DXYP(J))  GO TO 320
       YSI = (RSIY(I,J)*DXYP(J)*DXYP(J) + (FYSI(J-1)-FYSI(J))
      *    + 3d0*((FAW(J-1)+FAW(J))*ASI-DXYP(J)*(FASI(J-1)+FASI(J))))
@@ -1366,8 +1371,8 @@ C**** VSIDT(J-1)<0, VSIDT(J)<0  or  VSIDT(J-1)>0, VSIDT(J)?0.
       RSI(I,J)  = ASI*BYDXYP(J)
       RSIY(I,J) = YSI*BYDXYP(J)
       RSIX(I,J) = RSIX(I,J) + (FXSI(J-1)-FXSI(J))*BYDXYP(J)
-      DO 266 K=1,2+LMI
-  266 MSI(I,J,K) = AMSI(K)/ASI
+      DO 266 K=1,NTRICE
+  266 MHS(K,I,J) = AMSI(K)/ASI
       GO TO 310
 C**** VSIDT(J-1)<0, VSIDT(J)>0.
   270 RSI(I,J)  =  RSI(I,J) + (FASI(J-1)-FASI(J))*BYDXYP(J)
@@ -1381,38 +1386,43 @@ C**** VSIDT(J-1)>0.
   280 IF(VSIDT(I,J).ne.0.)  GO TO 260
 C**** VSIDT(J-1)>0, VSIDT(J)=0.
       ASI = RSI(I,J)*DXYP(J) + FASI(J-1)
-      DO 285 K=1,2+LMI
-  285 AMSI(K) = RSI(I,J)*DXYP(J)*MSI(I,J,K) + FMSI(K,J-1)
+      DO 285 K=1,NTRICE
+  285 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J) + FMSI(K,J-1)
       IF(ASI.gt.DXYP(J))  GO TO 320
       YSI = (RSIY(I,J)*DXYP(J)*DXYP(J) + FYSI(J-1)
      *    + 3d0*(FAW(J-1)*ASI-DXYP(J)*FASI(J-1))) / (DXYP(J)+FAW(J-1))
       RSI(I,J)  = ASI*BYDXYP(J)
       RSIY(I,J) = YSI*BYDXYP(J)
       RSIX(I,J) = RSIX(I,J) + FXSI(J-1)*BYDXYP(J)
-      DO 286 K=1,2+LMI
-  286 MSI(I,J,K) = AMSI(K)/ASI
+      DO 286 K=1,NTRICE
+  286 MHS(K,I,J) = AMSI(K)/ASI
 C**** Limit RSIX and RSIY so that sea ice is positive at the edges
   310 RSI(I,J) = MAX(0d0,RSI(I,J))
       IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =    RSI(I,J)
       IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) =   -RSI(I,J)
-      IF(RSI(I,J)-RSIX(I,J).gt.1d0)  RSIX(I,J) =    RSI(I,J)-1d0
-      IF(RSI(I,J)+RSIX(I,J).gt.1d0)  RSIX(I,J) = 1d0-RSI(I,J)
+      IF(RSI(I,J)-RSIX(I,J).gt.1d0) RSIX(I,J) =    RSI(I,J)-1d0
+      IF(RSI(I,J)+RSIX(I,J).gt.1d0) RSIX(I,J) =1d0-RSI(I,J)
       IF(RSI(I,J)-RSIY(I,J).lt.0.)  RSIY(I,J) =    RSI(I,J)
       IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) =   -RSI(I,J)
-      IF(RSI(I,J)-RSIY(I,J).gt.1d0)  RSIY(I,J) =    RSI(I,J)-1d0
-      IF(RSI(I,J)+RSIY(I,J).gt.1d0)  RSIY(I,J) = 1d0-RSI(I,J)
+      IF(RSI(I,J)-RSIY(I,J).gt.1d0) RSIY(I,J) =    RSI(I,J)-1d0
+      IF(RSI(I,J)+RSIY(I,J).gt.1d0) RSIY(I,J) =1d0-RSI(I,J)
       GO TO 330
 C**** Sea ice crunches into itself and completely covers grid box
   320 RSI(I,J)   = 1d0
       RSIX(I,J)  = 0.
       RSIY(I,J)  = 0.
-      MSI(I,J,1) = AMSI(1)/ASI
-      MSI(I,J,2) =(AMSI(1)+AMSI(2))*BYDXYP(J) - MSI(I,J,1)
-      HSI(I,J,1) = AMSI(3)/ASI
-      HSI(I,J,2) = AMSI(4)/ASI
+      MHS(1,I,J) = AMSI(1)/ASI
+      MHS(2,I,J) =(AMSI(1)+AMSI(2))*BYDXYP(J) - MHS(1,I,J)
+      MHS(3,I,J) = AMSI(3)/ASI
+      MHS(4,I,J) = AMSI(4)/ASI
       DHSI = (AMSI(3)+AMSI(4)+AMSI(5)+AMSI(6))*(BYDXYP(J) - 1d0/ASI)
-      HSI(I,J,3) = AMSI(5)/ASI + XSI_GLOB(3)*DHSI
-      HSI(I,J,4)=  AMSI(6)/ASI + XSI_GLOB(4)*DHSI
+      MHS(5,I,J) = AMSI(5)/ASI + XSI_GLOB(3)*DHSI
+      MHS(6,I,J)=  AMSI(6)/ASI + XSI_GLOB(4)*DHSI
+      MHS(7,I,J) = AMSI(7)/ASI
+      MHS(8,I,J) = AMSI(8)/ASI
+      DSSI = (AMSI(7)+AMSI(8)+AMSI(9)+AMSI(10))*(BYDXYP(J) - 1d0/ASI)
+      MHS(9,I,J) = AMSI(9)/ASI + XSI_GLOB(3)*DSSI
+      MHS(10,I,J)=AMSI(10)/ASI + XSI_GLOB(4)*DSSI
 C**** End of loop over J
   330 CONTINUE
 C**** End of loop over I
@@ -1421,22 +1431,27 @@ C****
 C**** Advection of Sea Ice leaving and entering North Pole box
 C****
       ASI = RSI(1,JM)*DXYP(JM) + SFASI/IM
-      DO 345 K=1,2+LMI
-  345 AMSI(K) = RSI(1,JM)*DXYP(JM)*MSI(1,JM,K) + SFMSI(K)/IM
+      DO 345 K=1,NTRICE
+  345 AMSI(K) = RSI(1,JM)*DXYP(JM)*MHS(K,1,JM) + SFMSI(K)/IM
       IF(ASI.gt.DXYP(JM))  GO TO 350
       RSI(1,JM)   = ASI*BYDXYP(JM)
-      DO 346 K=1,2+LMI
-  346 MSI(1,JM,K) = AMSI(K)/ASI
+      DO 346 K=1,NTRICE
+  346 MHS(K,1,JM) = AMSI(K)/ASI
       GO TO 400
 C**** Sea ice crunches into itself at North Pole box
   350 RSI(1,JM)   = 1d0
-      MSI(1,JM,1) = AMSI(1)/ASI
-      MSI(1,JM,2) =(AMSI(1)+AMSI(2))*BYDXYP(JM) - MSI(1,JM,1)
-      HSI(1,JM,1) = AMSI(3)/ASI
-      HSI(1,JM,2) = AMSI(4)/ASI
+      MHS(1,1,JM) = AMSI(1)/ASI
+      MHS(2,1,JM) =(AMSI(1)+AMSI(2))*BYDXYP(JM) - MHS(1,1,JM)
+      MHS(3,1,JM) = AMSI(3)/ASI
+      MHS(4,1,JM) = AMSI(4)/ASI
       DHSI = (AMSI(3)+AMSI(4)+AMSI(5)+AMSI(6))*(BYDXYP(JM) - 1d0/ASI)
-      HSI(1,JM,3) = AMSI(5)/ASI + XSI_GLOB(3)*DHSI
-      HSI(1,JM,4)=  AMSI(6)/ASI + XSI_GLOB(4)*DHSI
+      MHS(5,1,JM) = AMSI(5)/ASI + XSI_GLOB(3)*DHSI
+      MHS(6,1,JM)=  AMSI(6)/ASI + XSI_GLOB(4)*DHSI
+      MHS(7,1,JM) = AMSI(7)/ASI
+      MHS(8,1,JM) = AMSI(8)/ASI
+      DSSI = (AMSI(7)+AMSI(8)+AMSI(9)+AMSI(10))*(BYDXYP(JM) - 1d0/ASI)
+      MHS(9,1,JM) = AMSI(9)/ASI + XSI_GLOB(3)*DSSI
+      MHS(10,1,JM)=AMSI(10)/ASI + XSI_GLOB(4)*DSSI
 C****
 C**** East-West Advection of Sea Ice
 C****
@@ -1453,16 +1468,16 @@ C**** Sea ice velocity is westward at grid box edge
       FASI(I) =FAW(I)*(RSI(IP1,J)-(1d0+FAW(I)*BYDXYP(J))*RSIX(IP1,J))
       FXSI(I) =FAW(I)*(FAW(I)*BYDXYP(J)*FAW(I)*RSIX(IP1,J)-3d0*FASI(I))
       FYSI(I) = FAW(I)*RSIY(IP1,J)
-      DO 405 K=1,2+LMI
-  405 FMSI(K,I) = FASI(I)*MSI(IP1,J,K)
+      DO 405 K=1,NTRICE
+  405 FMSI(K,I) = FASI(I)*MHS(K,IP1,J)
          OIJ(I,J,IJ_MUSI) = OIJ(I,J,IJ_MUSI) + (FMSI(1,I)+FMSI(2,I))
       GO TO 420
 C**** Sea ice velocity is eastward at grid box edge
   410 FASI(I) = FAW(I)*(RSI(I,J)+(1d0-FAW(I)*BYDXYP(J))*RSIX(I,J))
       FXSI(I) = FAW(I)*(FAW(I)*BYDXYP(J)*FAW(I)*RSIX(I,J)-3d0*FASI(I))
       FYSI(I) = FAW(I)*RSIY(I,J)
-      DO 415 K=1,2+LMI
-  415 FMSI(K,I) = FASI(I)*MSI(I,J,K)
+      DO 415 K=1,NTRICE
+  415 FMSI(K,I) = FASI(I)*MHS(K,I,J)
          OIJ(I,J,IJ_MUSI) = OIJ(I,J,IJ_MUSI) + (FMSI(1,I)+FMSI(2,I))
   420 I=IP1
 C****
@@ -1475,16 +1490,16 @@ C**** USIDT(IM1)=0.
   510 IF(USIDT(I,J))  520,630,530
 C**** USIDT(IM1)=0, USIDT(I)<0.
   520 ASI = RSI(I,J)*DXYP(J) -  FASI(I)
-      DO 525 K=1,2+LMI
-  525 AMSI(K) = RSI(I,J)*DXYP(J)*MSI(I,J,K) - FMSI(K,I)
+      DO 525 K=1,NTRICE
+  525 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J) - FMSI(K,I)
       IF(ASI.gt.DXYP(J))  GO TO 620
       XSI = (RSIX(I,J)*DXYP(J)*DXYP(J) - FXSI(I)
      *    + 3d0*(FAW(I)*ASI-DXYP(J)*FASI(I))) / (DXYP(J)-FAW(I))
       RSI(I,J)  = ASI*BYDXYP(J)
       RSIX(I,J) = XSI*BYDXYP(J)
       RSIY(I,J) = RSIY(I,J) - FYSI(I)*BYDXYP(J)
-      DO 526 K=1,2+LMI
-  526 MSI(I,J,K) = AMSI(K)/ASI
+      DO 526 K=1,NTRICE
+  526 MHS(K,I,J) = AMSI(K)/ASI
       GO TO 610
 C**** USIDT(IM1)=0, USIDT(I)>0.
   530 RSI(I,J)  =  RSI(I,J) -  FASI(I)*BYDXYP(J)
@@ -1506,8 +1521,8 @@ C      IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) = -RSI(I,J)
 C      GO TO 630
 C**** USIDT(IM1)<0, USIDT(I)<0  or  USIDT(IM1)>0, USIDT(I)?0.
   560 ASI = RSI(I,J)*DXYP(J) + (FASI(IM1)- FASI(I))
-      DO 565 K=1,2+LMI
-  565 AMSI(K) = RSI(I,J)*DXYP(J)*MSI(I,J,K) + (FMSI(K,IM1)-FMSI(K,I))
+      DO 565 K=1,NTRICE
+  565 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J) + (FMSI(K,IM1)-FMSI(K,I))
       IF(ASI.gt.DXYP(J))  GO TO 620
       XSI = (RSIX(I,J)*DXYP(J)*DXYP(J) + (FXSI(IM1)-FXSI(I))
      *    + 3d0*((FAW(IM1)+FAW(I))*ASI-DXYP(J)*(FASI(IM1)+FASI(I))))
@@ -1515,8 +1530,8 @@ C**** USIDT(IM1)<0, USIDT(I)<0  or  USIDT(IM1)>0, USIDT(I)?0.
       RSI(I,J)  = ASI*BYDXYP(J)
       RSIX(I,J) = XSI*BYDXYP(J)
       RSIY(I,J) = RSIY(I,J) + (FYSI(IM1)-FYSI(I))*BYDXYP(J)
-      DO 566 K=1,2+LMI
-  566 MSI(I,J,K) = AMSI(K)/ASI
+      DO 566 K=1,NTRICE
+  566 MHS(K,I,J) = AMSI(K)/ASI
       GO TO 610
 C**** USIDT(IM1)<0, USIDT(I)>0.
   570 RSI(I,J)  =  RSI(I,J) + (FASI(IM1)-FASI(I))*BYDXYP(J)
@@ -1530,48 +1545,54 @@ C**** USIDT(IM1)>0.
   580 IF(USIDT(I,J).ne.0.)  GO TO 560
 C**** USIDT(IM1)>0, USIDT(I)=0.
       ASI = RSI(I,J)*DXYP(J) + FASI(IM1)
-      DO 585 K=1,2+LMI
-  585 AMSI(K) = RSI(I,J)*DXYP(J)*MSI(I,J,K) + FMSI(K,IM1)
+      DO 585 K=1,NTRICE
+  585 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J) + FMSI(K,IM1)
       IF(ASI.gt.DXYP(J))  GO TO 620
       XSI = (RSIX(I,J)*DXYP(J)*DXYP(J) + FXSI(IM1)
      *    + 3d0*(FAW(IM1)*ASI-DXYP(J)*FASI(IM1))) / (DXYP(J)+FAW(IM1))
       RSI(I,J)  = ASI*BYDXYP(J)
       RSIX(I,J) = XSI*BYDXYP(J)
       RSIY(I,J) = RSIY(I,J) + FYSI(IM1)*BYDXYP(J)
-      DO 586 K=1,2+LMI
-  586 MSI(I,J,K) = AMSI(K)/ASI
+      DO 586 K=1,NTRICE
+  586 MHS(K,I,J) = AMSI(K)/ASI
 C**** Limit RSIX and RSIY so that sea ice is positive at the edges
   610 RSI(I,J) = MAX(0d0,RSI(I,J))
       IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =    RSI(I,J)
       IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) =   -RSI(I,J)
-      IF(RSI(I,J)-RSIX(I,J).gt.1d0)  RSIX(I,J) =    RSI(I,J)-1d0
-      IF(RSI(I,J)+RSIX(I,J).gt.1d0)  RSIX(I,J) = 1d0-RSI(I,J)
+      IF(RSI(I,J)-RSIX(I,J).gt.1d0) RSIX(I,J) =    RSI(I,J)-1d0
+      IF(RSI(I,J)+RSIX(I,J).gt.1d0) RSIX(I,J) =1d0-RSI(I,J)
       IF(RSI(I,J)-RSIY(I,J).lt.0.)  RSIY(I,J) =    RSI(I,J)
       IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) =   -RSI(I,J)
-      IF(RSI(I,J)-RSIY(I,J).gt.1d0)  RSIY(I,J) =    RSI(I,J)-1d0
-      IF(RSI(I,J)+RSIY(I,J).gt.1d0)  RSIY(I,J) = 1d0-RSI(I,J)
+      IF(RSI(I,J)-RSIY(I,J).gt.1d0) RSIY(I,J) =    RSI(I,J)-1d0
+      IF(RSI(I,J)+RSIY(I,J).gt.1d0) RSIY(I,J) =1d0-RSI(I,J)
       GO TO 630
 C**** Sea ice crunches into itself and completely covers grid box
   620 RSI(I,J)   = 1d0
       RSIX(I,J)  = 0.
       RSIY(I,J)  = 0.
-      MSI(I,J,1) = AMSI(1)/ASI
-      MSI(I,J,2) =(AMSI(1)+AMSI(2))*BYDXYP(J) - MSI(I,J,1)
-      HSI(I,J,1) = AMSI(3)/ASI
-      HSI(I,J,2) = AMSI(4)/ASI
+      MHS(1,I,J) = AMSI(1)/ASI
+      MHS(2,I,J) =(AMSI(1)+AMSI(2))*BYDXYP(J) - MHS(1,I,J)
+      MHS(3,I,J) = AMSI(3)/ASI
+      MHS(4,I,J) = AMSI(4)/ASI
       DHSI = (AMSI(3)+AMSI(4)+AMSI(5)+AMSI(6))*(BYDXYP(J) - 1d0/ASI)
-      HSI(I,J,3) = AMSI(5)/ASI + XSI_GLOB(3)*DHSI
-      HSI(I,J,4) = AMSI(6)/ASI + XSI_GLOB(4)*DHSI
+      MHS(5,I,J) = AMSI(5)/ASI + XSI_GLOB(3)*DHSI
+      MHS(6,I,J) = AMSI(6)/ASI + XSI_GLOB(4)*DHSI
+      MHS(7,I,J) = AMSI(7)/ASI
+      MHS(8,I,J) = AMSI(8)/ASI
+      DSSI = (AMSI(7)+AMSI(8)+AMSI(9)+AMSI(10))*(BYDXYP(J) - 1d0/ASI)
+      MHS(9,I,J) = AMSI(9)/ASI + XSI_GLOB(3)*DSSI
+      MHS(10,I,J)=AMSI(10)/ASI + XSI_GLOB(4)*DSSI
 C**** End of loop over I
   630 IM1=I
 C**** End of loop over J
   640 CONTINUE
 
 C**** set global variables from local array
-      SNOWI(:,:) = MAX(0d0,MSI(:,:,1) - ACE1I)
-      MSI2(:,:)  = MSI(:,:,2)
+      SNOWI(:,:)= MAX(0d0,MHS(1,:,:) - ACE1I)
+      MSI(:,:)  = MHS(2,:,:)
       DO L=1,LMI
-        HSI_GLOB(L,:,:) = HSI(:,:,L)
+        HSI(L,:,:) = MHS(L+2,:,:)
+        SSI(L,:,:) = MHS(L+2+LMI,:,:)
       END DO
 C**** Set atmospheric arrays
       DO J=1,JM
@@ -1579,8 +1600,8 @@ C**** Set atmospheric arrays
           IF (FOCEAN(I,J).gt.0) THEN
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*RSI(I,J)
             FTYPE(ITOCEAN,I,J)=FOCEAN(I,J) - FTYPE(ITOICE ,I,J)
-            GTEMP(1:2,2,I,J)=(HSI(I,J,1:2)/(XSI_GLOB(1:2)*MSI(I,J,1)
-     *           +LHM))*BYSHI
+            GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI_GLOB(1:2)*(ACE1I
+     *           +SNOWI(I,J)))+LHM)*BYSHI
           END IF
         END DO
       END DO

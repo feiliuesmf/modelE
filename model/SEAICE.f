@@ -208,7 +208,7 @@ C**** Adjust amounts resulting from fluxes.
       END SUBROUTINE PREC_SI
 
       SUBROUTINE SEA_ICE(DTSRCE,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP
-     *     ,SROX,TFO,RUN0,SALT,FMOC,FHOC,FO,QFIXR,QFLUXLIM,FLUXLIM)
+     *     ,SROX,TFO,RUN0,SMELT,FMOC,FHOC,FO,QFIXR,QFLUXLIM,FLUXLIM)
 !@sum  SEA_ICE applies surface fluxes to ice covered areas
 !@auth Gary Russell
 !@ver  1.0
@@ -238,19 +238,19 @@ C**** Adjust amounts resulting from fluxes.
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL, SSIL
       REAL*8, INTENT(INOUT) :: SNOW, MSI2
       REAL*8, DIMENSION(LMI) :: TSIL
-      REAL*8, INTENT(OUT) :: FO, RUN0, SALT, FMOC, FHOC
+      REAL*8, INTENT(OUT) :: FO, RUN0, SMELT, FMOC, FHOC
       REAL*8 MSI1, MELT1, MELT2, MELT3, MELT4, SNMELT, DSNOW
-      REAl*8 DEW, CMPRS, DEW1, DEW2, EVAP1,SALT1,SALT2,SALT3,SALT4
+      REAl*8 DEW, CMPRS, DEW1, DEW2, EVAP1,SMELT12,SMELT3,SMELT4
       REAL*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4
       REAL*8 HC1, HC2, HC3, HC4, HICE2, FSSI1, FSSI2, FSSI3, FSSI4
       REAL*8 dF1dTI, dF2dTI, dF3dTI, dF4dTI, F1, F2, F3
 C**** Initiallise output
-      FO=0. ; RUN0=0.  ; SALT=0. ; FMOC=0. ; FHOC=0.
+      FO=0. ; RUN0=0.  ; SMELT=0. ; FMOC=0. ; FHOC=0.
 
       IF (ROICE .EQ. 0.) RETURN
       FMSI2=0. ; MELT1=0. ; MELT2=0. ; MELT3=0. ; MELT4=0.
       FHSI1=0. ; FHSI2=0. ; FHSI3=0.  
-      SALT1=0. ; SALT2=0. ; SALT3=0. ; SALT4=0.
+      SMELT12=0; SMELT3=0.; SMELT4=0.
       FSSI1=0. ; FSSI2=0. ; FSSI3=0.  
 C****
       MSI1 = SNOW+ACE1I ! snow and first (physical) layer ice mass
@@ -317,7 +317,7 @@ C**** SNMELT is the melting that is applied to the snow first
         DEW2 =  MAX(0d0,DEW)    ! >0 i.e. dew to second layer ice
         MELT1 = MAX(0d0,HSIL(1)/LHM+XSI(1)*MSI1+DEW1)
         MELT2 = MAX(0d0,HSIL(2)/LHM+XSI(2)*MSI1+DEW2)
-        SNMELT=MELT1+MELT2   
+        SNMELT=MELT1+MELT2
       ELSE  ! first layer is snow and some ice
         DEW1 = DEW   ! all fluxes to first layer
         DEW2 = 0.
@@ -329,8 +329,8 @@ C**** SNMELT is the melting that is applied to the snow first
 C**** Check for melting in levels 3 and 4
       MELT3 = MAX(0d0,HSIL(3)/LHM+XSI(3)*MSI2) 
       MELT4 = MAX(0d0,HSIL(4)/LHM+XSI(4)*MSI2)
-      SALT3 = MELT3*SSIL(3)/(XSI(3)*MSI2) 
-      SALT4 = MELT3*SSIL(4)/(XSI(4)*MSI2) 
+      SMELT3 = MELT3*SSIL(3)/(XSI(3)*MSI2) 
+      SMELT4 = MELT3*SSIL(4)/(XSI(4)*MSI2) 
 
 C**** CMPRS is amount of snow turned to ice during melting
 C**** Calculate remaining snow and necessary mass flux using
@@ -356,8 +356,12 @@ C***** Calculate consequential heat flux between layers
       END IF
       IF (FMSI2.gt.0) THEN ! downward flux to thermal layer 3
         FHSI2 = FMSI2*HSIL(2)/(XSI(2)*MSI1+DEW2-MELT2)
+        FSSI2 = FSSI2*SSIL(2)/(XSI(2)*MSI1+DEW2-MELT2)
+        SMELT12 = 0.
       ELSE                 ! upward flux
         FHSI2 = FMSI2*HSIL(3)/(XSI(3)*MSI2-MELT3)
+        FSSI2 = FMSI2*(SSIL(3)-SMELT3)/(XSI(3)*MSI2-MELT3)
+        SMELT12=FMSI2*(SSIL(1)+SSIL(2))/ACE1I
       END IF
 
 C**** Calculate mass/heat flux at base if required
@@ -399,7 +403,7 @@ C**** MSI2 = MSI2 -(MELT3+MELT4)+(FMSI2-FMSI4)
 
 C**** Calculate output diagnostics
       RUN0 = MELT1+MELT2+MELT3+MELT4  ! mass flux to ocean
-      SALT = SALT1+SALT2+SALT3+SALT3  ! salt flux to ocean
+      SMELT = SMELT1+SMELT2+SMELT3+SMELT3  ! salt flux to ocean
       FMOC = FMSI4              ! implicit mass flux 
       FHOC = FHSI4              ! implicit heat flux
 C****
