@@ -572,6 +572,8 @@ C--------------------------------------    have to deal  1 point in time
      *          ,KYEARV=0,KJDAYV=0, KYEARE=0,KJDAYE=0, KYEARR=0,KJDAYR=0
 
       INTEGER, PARAMETER :: NLO3=49 !  # of layers in ozone data files
+!@var O3YR_max last year before O3 data repeat last ann. cycle
+      INTEGER :: O3YR_max=1997
       real*8 :: O3JDAY(NLO3,MLON72,MLAT46)
       COMMON/O3JCOM/O3JDAY
 C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
@@ -2342,6 +2344,7 @@ C**** LJTTRO(jm)    could be computed from PLBO3
       INTEGER I,J,L,M,N,IY,JYEARX,jy,MI,MJ,MK,MN,NLT,ILON,JLAT
       REAL*8 WTTI,WTTJ, WTSI,WTSJ,WTMJ,WTMI, XMI,DSO3
 
+      if(jyearo.gt.O3YR_max) jyearo=-O3YR_max ! cycle through O3YR_max
       IF(IFIRST.EQ.1) THEN
 
       IF(MADO3M.lt.0) then
@@ -2406,12 +2409,12 @@ C     To time input data READs, JYEARX is set ahead of JYEARO by 15 days
 C     ------------------------------------------------------------------
       IF(JYEARO.LT.0) THEN    !              ... except in cyclical case
         JYEARX=-JYEARO        ! Use fixed-year decadal climatology
-        IYRDEC=JYEARX-1       ! force continuous cycles
       ELSE
         JYEARX=MIN(JYEARO+(JJDAYO+15)/366,IYEO3+1) ! +1 for continuity
       END IF                                       !         at Dec 15
 
       IF(JYEARX.EQ.JYRNOW) GO TO 500    ! Get O3JDAY from current O3YEAR
+      IF(JYRNOW.GT.O3YR_max) GO TO 500  ! cyclical case
 
 C****
 C**** Get 13 months of O3 data O3YEAR starting with the leading December
@@ -2439,10 +2442,11 @@ C**** Get first decadal file
   140 CONTINUE
       call closeunit (ifile)
 
-      IF(JYEARX.EQ.IYR.AND.IYRDEC.NE.JYEARX-1.AND.IY.GT.1) THEN
+      IF(JYEARX.EQ.IYR.AND.IYRDEC.NE.JYEARX-1 .AND.
+     *   IY.GT.1.AND.JYEARO.GT.0.AND.JYEARX.LE.O3YR_max) THEN
 C        READ and use prior decadal file to define prior year December
-C        (only when starting up with JYEARO=1890,1910,1930,...1980)
-
+C        (only when starting up with JYEARO=1890,1910,1930,...1980
+C         and only for non-cyclical cases)
       call openunit (ddfile(IY-1),ifile,qbinary)                   ! KYR
       DO 240 M=1,12
       DO 230 L=1,NLO3
@@ -2510,8 +2514,9 @@ C**** Get next  decadal file
         END DO
         END DO
         END DO
+        IF(JYEARX.GT.O3YR_max) JYEARX=O3YR_max
         IYRDEC=JYEARX   !  Set flag to indicate December data is current
-      ELSE
+      ELSE IF(JYEARO.GT.0) THEN
 C       Interpolate prior December from the decadal files - start-up
         CALL O3_WTS (IYIO3,LMONTR, IYR,JYR, JYEARX-1,12,        ! in
      *               WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)            ! out
@@ -2539,6 +2544,7 @@ C       Interpolate prior December from the decadal files - start-up
 C            Fill in a full year of O3 data by interpolation
 C            -----------------------------------------------
   410 CONTINUE
+      IF(JYEARX.GT.O3YR_max) JYEARX=O3YR_max
       CALL O3_WTS (IYIO3,LMONTR, IYR,JYR, JYEARX,0,           ! in
      *             WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)            ! out
 
@@ -2565,6 +2571,17 @@ C     ------------------------------------------------------------------
   470 CONTINUE
   480 CONTINUE
   490 CONTINUE
+
+      IF(JYEARX.NE.IYRDEC) THEN
+        DO L=1,NLO3                           ! cyclical start-up case
+        DO J=1,JM
+        DO I=1,IM
+        O3YEAR(I,J,L,0)=O3YEAR(I,J,L,12)      ! DEC from current year
+        END DO
+        END DO
+        END DO
+        IYRDEC=JYEARX   !  Set flag to indicate December data is current
+      END IF
       JYRNOW=JYEARX
 
 C****

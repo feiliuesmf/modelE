@@ -314,7 +314,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      &     ,FULGAS ,PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR
      *     ,KCLDEM,KSIALB,KSOLAR, SHL, snoage_fac_max, KZSNOW
      *     ,KYEARS,KJDAYS,MADLUV, KYEARG,KJDAYG,MADGHG
-     *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER
+     *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER , O3YR_max
      *     ,KYEARD,KJDAYD,MADDST, KYEARV,KJDAYV,MADVOL
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
@@ -378,6 +378,7 @@ C**** sync radiation parameters from input
       call sync_param( "RHfix", RHfix )
       call sync_param( "O3_yr", O3_yr )
       call sync_param( "PTLISO", PTLISO )
+      call sync_param( "O3YR_max", O3YR_max )
       call sync_param( "KSOLAR", KSOLAR )
       call sync_param( "KSIALB", KSIALB )
       call sync_param( "KZSNOW", KZSNOW )
