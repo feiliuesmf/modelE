@@ -69,6 +69,7 @@ c       write (6,*) "IDACC = ",(IDACC(I),I=1,12)
           yrs_togo  = (Itimee-itime)/(365.*nday)
           write(XLABEL(29:50),'(I10,a12)') days_togo,'  days to go'
           if (days_togo.eq.1) XLABEL(44:44) = ' '
+         call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
           if (yrs_togo.ge.2.)
      *    write(XLABEL(29:50),'(f10.1,a12)') yrs_togo,' years to go'
         WRITE (6,900) ITIME,JMON,JDATE,JYEAR,JHOUR,XLABEL(1:50)
