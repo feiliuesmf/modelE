@@ -3,7 +3,8 @@
 !@sum  dust tracer parameters and variables
 !@auth Reha Cakmur, Jan Perlwitz, Ina Tegen
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       USE constant,ONLY : By6
       USE resolution,ONLY : Im,Jm,Lm
       USE tracer_com,ONLY : Ntm_dust
@@ -34,11 +35,24 @@
       REAL*8,PARAMETER :: Dradius(Ntm_dust)=(/0.75D-06,2.2D-06,4.4D-06,
      .     6.7D-06/) !n=1: clay, n=2,3,4: silt
 #else
+#if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
+      REAL*8,PARAMETER :: Dradius(Ntm_dust)=(/0.75D-06,0.75D-06,
+     &     0.75D-06,0.75D-06,0.75D-06,2.2D-06,2.2D-06,2.2D-06,2.2D-06,
+     &     2.2D-06,4.4D-06,4.4D-06,4.4D-06,4.4D-06,4.4D-06,6.7D-06,
+     &     6.7D-06,6.7D-06,6.7D-06,6.7D-06,0.75D-06,2.2D-06,4.4D-06,
+     &     6.7D-06/)
+#else
 #ifdef TRACERS_MINERALS
       REAL*8,PARAMETER :: Dradius(Ntm_dust)=(/0.75D-06,0.75D-06,
      &     0.75D-06,0.75D-06,0.75D-06,2.2D-06,2.2D-06,2.2D-06,2.2D-06,
      &     2.2D-06,4.4D-06,4.4D-06,4.4D-06,4.4D-06,4.4D-06,6.7D-06,
      &     6.7D-06,6.7D-06,6.7D-06,6.7D-06/)
+#else
+#ifdef TRACERS_QUARZHEM
+      REAL*8,PARAMETER :: Dradius(Ntm_dust)=(/0.75D-06,2.2D-06,4.4D-06,
+     .     6.7D-06/)
+#endif
+#endif
 #endif
 #endif
 !@param uplfac uplift factor for each size class of soil dust [kg*s**2/m**5]
@@ -46,11 +60,23 @@
       REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
      &     52.D-9/)
 #else
+#if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
+      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
+     &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,
+     &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,
+     &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9/)
+#else
 #ifdef TRACERS_MINERALS
       REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
      &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,
      &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,
      &     52.D-9/)
+#else
+#ifdef TRACERS_QUARZHEM
+      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
+     &     52.D-9/)
+#endif
+#endif
 #endif
 #endif
 !@param By8 0.25d0/2d0
@@ -59,9 +85,18 @@
 #ifdef TRACERS_DUST
       REAL*8 :: Fracn(Ntm_dust)=(/By6,By8,By8,By8/)
 #else
+#if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
+      REAL*8 :: Fracn(Ntm_dust)=(/By6,By6,By6,By6,By6,By8,By8,By8,By8,
+     &     By8,By8,By8,By8,By8,By8,By8,By8,By8,By8,By8,By6,By8,By8,By8/)
+#else
 #ifdef TRACERS_MINERALS
       REAL*8 :: Fracn(Ntm_dust)=(/By6,By6,By6,By6,By6,By8,By8,By8,By8,
      &     By8,By8,By8,By8,By8,By8,By8,By8,By8,By8,By8/)
+#else
+#ifdef TRACERS_QUARZHEM
+      REAL*8 :: Fracn(Ntm_dust)=(/By6,By8,By8,By8/)
+#endif
+#endif
 #endif
 #endif
 !@var hbaij  accumulated precipitation - evaporation balance

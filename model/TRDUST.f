@@ -3,7 +3,8 @@
 !@sum  local constrainsts for dust tracer emission valid for all dust bins
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       USE model_com,ONLY : dtsrc,nisurf,jmon,wfcs
       USE tracer_com,ONLY : imDUST
       USE fluxes,ONLY : prec,pprec,pevap
@@ -142,14 +143,18 @@ c     only over 5% of the area.
 !@sum  selects routine for calculating local dust source flux
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       USE constant,ONLY : sday
       USE model_com,ONLY : jday
       USE geom,ONLY : dxyp
       USE tracer_com,ONLY : trname,imDUST,n_clayilli
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+     &     ,FrHeQu
+#endif
       USE tracers_dust,ONLY : curint,fracn,frclay,frsilt,gin_data,qdust,
      &     uplfac,vtrsh,d_dust
-#ifdef TRACERS_MINERALS
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,minfr
 #endif
 
@@ -197,14 +202,34 @@ c     Interactive dust emission
           n1=n-n_clayilli-9
         END SELECT
 
+#endif
+#ifdef TRACERS_QUARZHEM
+
+        SELECT CASE(trname(n))
+        CASE ('ClayQuHe')
+          n1=5
+        CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
+          n1=6
+        END SELECT
+
+#endif
+
 #ifdef TRACERS_DUST_CUB_SAH
         SELECT CASE(trname(n))
-        CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar')
+        CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc')
           frtrac=frclay(i,j)
-        CASE ('Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &        'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &        'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
+        CASE ('ClayQuar')
+          frtrac=frclay(i,j)*(1-FrHeQu)
+        CASE ('Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &        'Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &        'Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
           frtrac=frsilt(i,j)
+        CASE ('Sil1Quar','Sil2Quar','Sil3Quar')
+          frtrac=frsilt(i,j)*(1-FrHeQu)
+        CASE ('ClayQuHe')
+          frtrac=frclay(i,j)*FrHeQu
+        CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
+          frtrac=frsilt(i,j)*FrHeQu
         END SELECT
 
         dsrcflx=minfr(i,j,n1)*Uplfac(n)*frtrac*Fracn(n)*
@@ -212,10 +237,17 @@ c     Interactive dust emission
 
 #else ! default case
 
-        dsrcflx=minfr(i,j,n1)*Uplfac(n)*Fracn(n)*gin_data(i,j)*
-     &       curint(i,j)
+        SELECT CASE(trname(n))
+        CASE ('ClayQuar','Sil1Quar','Sil2Quar','Sil3Quar')
+          frtrac=Fracn(n)*(1-FrHeQu)
+        CASE ('ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+          frtrac=Fracn(n)*FrHeQu
+        CASE DEFAULT
+          frtrac=Fracn(n)
+        END SELECT
 
-#endif
+        dsrcflx=minfr(i,j,n1)*Uplfac(n)*frtrac*gin_data(i,j)*curint(i,j)
+
 #endif
 #endif
 
@@ -250,9 +282,37 @@ c     prescribed AEROCOM dust emission
           dsrcflx=d_dust(i,j,4,jday)
         END SELECT
 
-        dsrcflx=dsrcflx*minfr(i,j,n1)/Sday/dxyp(j)/ptype
+#endif
+#ifdef TRACERS_QUARZHEM
+        
+        SELECT CASE(trname(n))
+        CASE ('ClayQuHe')
+          n1=5
+          dsrcflx=d_dust(i,j,1,jday)
+        CASE ('Sil1QuHe')
+          n1=6
+          dsrcflx=d_dust(i,j,2,jday)
+        CASE ('Sil2QuHe')
+          n1=6
+          dsrcflx=d_dust(i,j,3,jday)
+        CASE ('Sil3QuHe')
+          n1=6
+          dsrcflx=d_dust(i,j,4,jday)
+        END SELECT
 
 #endif
+
+        SELECT CASE(trname(n))
+        CASE ('ClayQuar','Sil1Quar','Sil2Quar','Sil3Quar')
+          frtrac=(1-FrHeQu)
+        CASE ('ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+          frtrac=FrHeQu
+        CASE DEFAULT
+          frtrac=1D0
+        END SELECT
+
+        dsrcflx=dsrcflx*frtrac*minfr(i,j,n1)/Sday/dxyp(j)/ptype
+
 #endif
 
       END IF
@@ -267,7 +327,8 @@ c     prescribed AEROCOM dust emission
 
       SUBROUTINE ratint2(x1a,x2a,x3a,ya,m,n,x1,x2,x3,y,dy)
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       implicit none
       INTEGER, INTENT(IN) :: m,n
       INTEGER NMAX,MMAX
@@ -328,7 +389,8 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 
       SUBROUTINE ratint(xa,ya,n,x,y,dy)
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       IMPLICIT NONE
 
       INTEGER NMAX
@@ -382,7 +444,8 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 
       SUBROUTINE polint(xa,ya,n,x,y,dy)
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
 
       IMPLICIT NONE
 
@@ -434,7 +497,8 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 
       SUBROUTINE locate(xx,n,x,j)
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       implicit none
       INTEGER, INTENT(IN):: n
       INTEGER, INTENT(OUT):: j

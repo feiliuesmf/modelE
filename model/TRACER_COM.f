@@ -196,6 +196,15 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
       character*8, parameter :: trname(ntm)=(/'Clay    ','Silt1   ',
      &     'Silt2   ','Silt3   '/)
 #else
+#if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
+      INTEGER,PARAMETER :: Ntm=24,Ntm_dust=24
+      CHARACTER*8,PARAMETER :: TrName(Ntm)=(/
+     &     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &     'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &     'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &     'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe'/)
+#else
 #ifdef TRACERS_MINERALS
       INTEGER,PARAMETER :: Ntm=20,Ntm_dust=20
       CHARACTER*8,PARAMETER :: TrName(Ntm)=(/
@@ -203,6 +212,11 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &     'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &     'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps'/)
+#else
+#ifdef TRACERS_QUARZHEM
+      INTEGER,PARAMETER :: Ntm=4,Ntm_dust=4
+      CHARACTER*8,PARAMETER :: TrName(Ntm)=(/'ClayQuHe','Sil1QuHe',
+     &     'Sil2QuHe','Sil3QuHe'/)
 #else
 #ifdef TRACERS_WATER
       integer, parameter :: ntm=2
@@ -221,6 +235,8 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #endif
 #endif
 #endif 
+#endif
+#endif
 #endif
 #endif
 #endif
@@ -264,7 +280,8 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      &     n_clayilli,n_claykaol,n_claysmec,n_claycalc,n_clayquar,
      &     n_sil1quar,n_sil1feld,n_sil1calc,n_sil1hema,n_sil1gyps,
      &     n_sil2quar,n_sil2feld,n_sil2calc,n_sil2hema,n_sil2gyps,
-     &     n_sil3quar,n_sil3feld,n_sil3calc,n_sil3hema,n_sil3gyps
+     &     n_sil3quar,n_sil3feld,n_sil3calc,n_sil3hema,n_sil3gyps,
+     &     n_clayquhe,n_sil1quhe,n_sil2quhe,n_sil3quhe
 
 !@var 3D on-line radical array for interactive aerosol and gas
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oh_live
@@ -292,7 +309,8 @@ c for gas phase sulfur chemistry used by aerosol and chemistry models
 !@dbparam imPI is 0 for industrial simulations, 1 for pre-industrial
       integer :: imPI = 0
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
 !@dbparam imDUST is 1 for AEROCOM-prescribed simulations, 0 interactive
       INTEGER :: imDUST=0
 #endif
@@ -321,6 +339,17 @@ C****
 !@var trpdens tracer particle density (kg/m^3) 
 !@+               (=0 for non-particle tracers)
       real*8, dimension(ntm) :: trpdens
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+!@param DenQuarz Particle Density of Quarz
+!@param DenHema Particle Density of Hematite
+      REAL*8,PARAMETER :: DenQuarz=2.62D3,DenHema=5.3D3
+!@dbparam FrHeQu Fraction of Hematite in Quarz/Hematite aggregate
+#ifdef TRACERS_QUARZHEM
+      REAL*8 :: FrHeQu=0.1D0
+#else
+      REAL*8 :: FrHeQu=0D0
+#endif
+#endif
 !@var trradius tracer effective radius (m) (=0 for non particle tracers)
       real*8, dimension(ntm) :: trradius
 

@@ -1234,7 +1234,8 @@ C**** Fill in maplet indices for sources and sinks
         aij2(:,:,k) = 1.
         scale(k) = scale_ijts(kx)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS)
+    (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
        if (name(k)(1:3).eq.'tau'.or.name(k)(1:3).eq.'swf'.or
      *  .name(k)(1:3).eq.'lwf') ijtype(k)=2
        if (name(k)(5:6).eq.'CS') then

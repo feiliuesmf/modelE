@@ -3,7 +3,8 @@
       module PBL_DRV
 #ifdef TRACERS_ON
       use tracer_com, only : ntm
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      &     ,Ntm_dust
 #endif
 #endif
@@ -32,7 +33,8 @@ C**** Tracer input/output common block for PBL
 #ifdef TRACERS_AEROSOLS_Koch
       real*8 :: DMS_flux,ss1_flux,ss2_flux
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       REAL*8 :: dust_flux(Ntm_dust),wsubtke,wsubwd,wsubwm
 #endif
       common /trspec/trtop,trs,trsfac,trconstflx
@@ -45,7 +47,8 @@ C**** Tracer input/output common block for PBL
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,DMS_flux,ss1_flux,ss2_flux
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      &     ,dust_flux,wsubtke,wsubwd,wsubwm
 #endif
 
@@ -305,7 +308,8 @@ C        roughness lengths from Brutsaert for rough surfaces
 #ifdef TRACERS_AEROSOLS_Koch
      *     DMS_flux,ss1_flux,ss2_flux,
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      &     ptype,dust_flux,wsubtke,wsubwd,wsubwm,
 #endif
 #endif

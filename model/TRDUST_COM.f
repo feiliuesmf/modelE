@@ -3,7 +3,8 @@
 !@sum  dust tracer parameters and variables
 !@auth Reha Cakmur, Jan Perlwitz, Ina Tegen
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       USE constant,ONLY : By6
       USE resolution,ONLY : Im,Jm,Lm
       USE model_com,ONLY : JMperY,JDperY
@@ -29,6 +30,19 @@
      &     2.2D-9/)
 #endif
 #else
+#if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
+#ifdef TRACERS_DUST_CUB_SAH
+      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
+     &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,
+     &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,
+     &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9/)
+#else !default case
+      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/2.2D-9,2.2D-9,2.2D-9,
+     &     2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,
+     &     2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,
+     &     2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9/)
+#endif
+#else
 #ifdef TRACERS_MINERALS
 #ifdef TRACERS_DUST_CUB_SAH
       REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
@@ -41,6 +55,17 @@
      &     2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,
      &     2.2D-9/)
 #endif
+#else
+#ifdef TRACERS_QUARZHEM
+#ifdef TRACERS_DUST_CUB_SAH
+      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
+     &     52.D-9/)
+#else !default case
+      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/2.2D-9,2.2D-9,2.2D-9,
+     &     2.2D-9/)
+#endif
+#endif
+#endif
 #endif
 #endif
 #ifdef TRACERS_DUST_CUB_SAH
@@ -49,22 +74,40 @@
 #else !default case
       REAL*8,PARAMETER :: By4=1D0/4D0
 #endif
-#ifdef TRACERS_DUST
 !@param fracn fraction of uplifted soil for each size class of dust [1]
+#ifdef TRACERS_DUST
 #ifdef TRACERS_DUST_CUB_SAH
       REAL*8 :: Fracn(Ntm_dust)=(/By6,By8,By8,By8/)
 #else !default case
       REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,By4,By4,By4/)
 #endif
 #else
+#if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
+#ifdef TRACERS_DUST_CUB_SAH
+      REAL*8 :: Fracn(Ntm_dust)=(/By6,By6,By6,By6,By6,By8,By8,By8,By8,
+     &     By8,By8,By8,By8,By8,By8,By8,By8,By8,By8,By8,By6,By8,By8,By8/)
+#else !default case
+      REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,0.18D0,0.18D0,0.18D0,0.18D0,
+     &     By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,
+     &     0.18D0,By4,By4,By4/)
+#endif
+#else
 #ifdef TRACERS_MINERALS
-!@param fracn fraction of uplifted soil for each size class of dust [1]
 #ifdef TRACERS_DUST_CUB_SAH
       REAL*8 :: Fracn(Ntm_dust)=(/By6,By6,By6,By6,By6,By8,By8,By8,By8,
      &     By8,By8,By8,By8,By8,By8,By8,By8,By8,By8,By8/)
 #else !default case
       REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,0.18D0,0.18D0,0.18D0,0.18D0,
      &     By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4/)
+#endif
+#else
+#ifdef TRACERS_QUARZHEM
+#ifdef TRACERS_DUST_CUB_SAH
+      REAL*8 :: Fracn(Ntm_dust)=(/By6,By8,By8,By8/)
+#else !default case
+      REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,By4,By4,By4/)
+#endif
+#endif
 #endif
 #endif
 #endif
@@ -76,7 +119,7 @@
 !@var frsilt fraction of silt
 !@var vtrsh  threshold wind speed above which dust emission is allowed
       REAL*4 :: dryhr(im,jm),frclay(im,jm),frsilt(im,jm),vtrsh(im,jm)
-#ifdef TRACERS_MINERALS
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 !@param Mtrac number of different fields with tracer fractions in grid box
 !@param Mtrac 5 clay; 5 silt
       INTEGER,PARAMETER :: Mtrac=10

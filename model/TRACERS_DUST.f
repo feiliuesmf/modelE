@@ -3,7 +3,8 @@
 !@sum soil dust sources and sinks
 !auth Reha Cakmur, Jan Perlwitz, Ina Tegen
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
 
 c      do j=1,jm
 c         do i=1,im
@@ -345,7 +346,8 @@ c     &       sigma,vtrshij,wsavgij,workij
 !@sum  Computes dust wet deposition
 !@auth Reha Cakmur, Jan Perlwitz, Ina Tegen
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       USE constant,ONLY : Grav
       USE resolution,ONLY : Im,Jm,Lm
       USE model_com,ONLY : Dtsrc,zatmo

@@ -148,7 +148,8 @@ C**** sea ice melt and iceberg/glacial melt.
 !@var TRDRYDEP tracer dry deposition by type (kg/m^2) (positive down)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRDRYDEP 
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
 !@var pprec precipitation at previous time step [kg/m^2]
       REAL*8,ALLOCATABLE,DIMENSION(:,:) :: pprec
 !@var pevap evaporation at previous time step [kg/m^2]
@@ -300,7 +301,8 @@ C**** sea ice melt and iceberg/glacial melt.
      &   STAT = IER)
          TRDRYDEP = 0.   !Initialize to 0.
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       ALLOCATE(pprec(I_0H:I_1H,J_0H:J_1H),STAT = IER)
       ALLOCATE(pevap(I_0H:I_1H,J_0H:J_1H,NSTYPE),STAT = IER)
 #endif

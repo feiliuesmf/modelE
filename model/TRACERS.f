@@ -46,9 +46,13 @@ C**** decide on AEROCOM or standard emissions
 C**** decide if preindustrial emissions  
       call sync_param("imPI",imPI)
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
 C**** decide on AEROCOM or interactive emissions 
       CALL sync_param('imDUST',imDUST)
+#endif
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+      CALL sync_param('FrHeQu',FrHeQu)
 #endif
 
 C**** Get factor to convert from mass mixing ratio to volume mr
@@ -930,7 +934,8 @@ C**** check whether air mass is conserved
      & ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       USE fluxes,ONLY : pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
 #endif
@@ -985,7 +990,8 @@ C***    ESMF Exception: need to read global arrays-- delayed until exercised.
      *       ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      &     ,hbaij,ricntd,pprec,pevap
 #endif
        END IF     !only root processor writes
@@ -1004,7 +1010,8 @@ C***    ESMF Exception: need to read global arrays-- delayed until exercised.
      *       ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      &     ,hbaij,ricntd,pprec,pevap
 #endif
 C**** ESMF: Copy global read data into the corresponding local (distributed) arrays.

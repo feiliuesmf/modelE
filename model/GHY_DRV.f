@@ -11,7 +11,8 @@ c******************   TRACERS             ******************************
 #ifdef TRACERS_SPECIAL_O18
      &     ,tr_name
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       use sle001,ONLY : aevap
 #endif
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
@@ -22,17 +23,23 @@ c******************   TRACERS             ******************************
      *     ,nWATER,nGAS,nPART,tr_wd_TYPE
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_AEROSOLS_Koch) ||\
-    (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+    (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      &     ,trname
 #endif
 #ifdef TRACERS_DUST
      &     ,n_clay
-#endif
+#else
 #ifdef TRACERS_MINERALS
      &     ,n_clayilli
+#else
+#ifdef TRACERS_QUARZHEM
+     &     ,n_clayquhe
 #endif
-      use trdiag_com, only : taijn=>taijn_loc,tij_surf
-     *  ,taijs=>taijs_loc,ijts_isrc,jls_isrc,tajls=>tajls_loc
+#endif
+#endif
+      use trdiag_com, only : taijn,tij_surf
+     *  ,taijs,ijts_isrc,jls_isrc,tajls
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd,tij_soil
 #endif
@@ -40,17 +47,19 @@ c******************   TRACERS             ******************************
      *     ,tij_drydep,tij_gsdep,itcon_dd
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,jls_source
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      &     ,ijts_source,nDustEmij,nDustEmjl
 #endif
       use fluxes, only : trsource,trsrfflx
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer,trprec
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      &     ,prec,pprec,pevap
 #endif
 #ifdef TRACERS_DRYDEP
@@ -72,7 +81,8 @@ c******************   TRACERS             ******************************
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,DMS_flux, ss1_flux, ss2_flux
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      &     ,dust_flux
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
@@ -242,7 +252,8 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       implicit none
       integer, intent(in) :: i,j
       real*8, intent(in) :: ptype,dtsurf,rhosrf
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       integer n1
 #endif
       integer n,nx
@@ -259,7 +270,8 @@ ccc tracers
         tr_wsn_ij(n,1:nlsn, 1:2, i, j) = tr_wsn(nx,1:nlsn,1:2)
       enddo
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
 c     saves precipitation for dust emission calculation at next time step
       pprec(i,j)=prec(i,j)
 c     saves evaporation for dust emission calculation at next time step
@@ -306,7 +318,8 @@ C**** are used, it can happen over land as well.
      *         ss2_flux*dxyp(j)*ptype*dtsurf
         end select
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
 ccc dust emission from earth
         SELECT CASE (trname(n))
 #ifdef TRACERS_DUST
@@ -314,11 +327,17 @@ ccc dust emission from earth
           n1=n-n_clay+1
 #else
 #ifdef TRACERS_MINERALS
-      CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &      'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &      'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &      'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
+        CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &        'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &        'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &        'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &        'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
           n1=n-n_clayilli+1
+#else
+#ifdef TRACERS_QUARZHEM
+        CASE ('ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+          n1=n-n_clayquhe+1
+#endif
 #endif
 #endif
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+dust_flux(n1)*dxyp(j)*ptype
@@ -604,7 +623,9 @@ c****
 c**** outside loop over j and i, executed once for each grid point
 c****
 C**** halo update u and v for distributed parallelization
+       call checksum   (grid, U, __LINE__, __FILE__,STGR=.true.)
        call halo_update(grid, U, from=NORTH)
+       call checksum   (grid, V, __LINE__, __FILE__,STGR=.true.)
        call halo_update(grid, V, from=NORTH)
 
        adiurn_part = 0
@@ -940,7 +961,7 @@ c***********************************************************************
      *     ,idd_eds,idd_dbl,idd_ev,tf_day1,tf_last,ndiupt
      *     ,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu
-     &     ,ij_htsoil,ij_htsnow,ij_aintrcp,ij_trsdn,ij_trsup
+     &     ,ij_htsoil,ij_htsnow,ij_aintrcp
 
 
 
@@ -1123,11 +1144,6 @@ c!!! do something with regional diag !!!
 c**** quantities accumulated for latitude-longitude maps in diagij
       aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdt*ptype
       aij(i,j,ij_beta)=aij(i,j,ij_beta)+abetad/nisurf
-      IF (MODDSF.EQ.0) THEN
-        AIJ(I,J,IJ_TRSDN)=AIJ(I,J,IJ_TRSDN)+TRHR(0,I,J)*PTYPE
-        AIJ(I,J,IJ_TRSUP)=AIJ(I,J,IJ_TRSUP)+(TRHR(0,I,J)-TRHDT/DTSURF)
-     *       *PTYPE
-      END IF
       if(modrd.eq.0)aij(i,j,ij_trnfp0)=aij(i,j,ij_trnfp0)+trhdt*ptype
      *     /dtsrc
       aij(i,j,ij_srtr)=aij(i,j,ij_srtr)+(srhdt+trhdt)*ptype
@@ -2075,8 +2091,7 @@ c****
             if (cond_scheme.eq.2) then
               aalbveg0 = 0.d0
               sfv=0.d0
-              do iv=1,11
-                if ( iv==9 .or. iv==10 ) cycle
+              do iv=1,8
                 fvp=vdata(i,j,iv+1)
                 sfv=sfv+fvp
                 aalbveg0 = aalbveg0 + fvp*(ALBVNH(iv+1,1,northsouth))

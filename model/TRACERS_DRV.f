@@ -28,7 +28,8 @@
 !@+      +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
       USE LINOZ_CHEM_COM, only: dsol
 #endif
-#if (defined TRACERS_DUST) || defined (TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || defined (TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       USE tracers_dust,ONLY : nDustTurbij,nDustWetij,
      &     nDustTurbjl,nDustWet3Djl
 #endif
@@ -964,7 +965,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       CASE('ClayQuar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_clayquar=n
           ntm_power(n)=-9
-          trpdens(n)=2.62D3
+          trpdens(n)=DenQuarz   ! 2.62D3
 #ifdef TRACERS_DRYDEP
           trradius(n)=0.46D-06
 #endif
@@ -974,7 +975,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       CASE('Sil1Quar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_sil1quar=n
           ntm_power(n)=-9
-          trpdens(n)=2.62D3
+          trpdens(n)=DenQuarz   ! 2.62D3
 #ifdef TRACERS_DRYDEP
           trradius(n)=1.47D-06
 #endif
@@ -1004,7 +1005,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       CASE('Sil1Hema')       ! http://www.webmineral.com/data/Hematite.shtml
       n_sil1hema=n
           ntm_power(n)=-9
-          trpdens(n)=5.3D3
+          trpdens(n)=DenHema    ! 5.3D3
 #ifdef TRACERS_DRYDEP
           trradius(n)=1.47D-06
 #endif
@@ -1024,7 +1025,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       CASE('Sil2Quar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_sil2quar=n
           ntm_power(n)=-9
-          trpdens(n)=2.62D3
+          trpdens(n)=DenQuarz   ! 2.62D3
 #ifdef TRACERS_DRYDEP
           trradius(n)=2.94D-06
 #endif
@@ -1054,7 +1055,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       CASE('Sil2Hema')       ! http://www.webmineral.com/data/Hematite.shtml
       n_sil2hema=n
           ntm_power(n)=-9
-          trpdens(n)=5.3D3
+          trpdens(n)=DenHema    ! 5.3D3
 #ifdef TRACERS_DRYDEP
           trradius(n)=2.94D-06
 #endif
@@ -1074,7 +1075,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       CASE('Sil3Quar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_sil3quar=n
           ntm_power(n)=-9
-          trpdens(n)=2.62D3
+          trpdens(n)=DenQuarz   ! 2.62D3
 #ifdef TRACERS_DRYDEP
           trradius(n)=5.88D-06
 #endif
@@ -1104,7 +1105,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       CASE('Sil3Hema')       ! http://www.webmineral.com/data/Hematite.shtml
       n_sil3hema=n
           ntm_power(n)=-9
-          trpdens(n)=5.3D3
+          trpdens(n)=DenHema    ! 5.3D3
 #ifdef TRACERS_DRYDEP
           trradius(n)=5.88D-06
 #endif
@@ -1115,6 +1116,48 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       n_sil3gyps=n
           ntm_power(n)=-9
           trpdens(n)=2.3D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=5.88D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+#endif
+#ifdef TRACERS_QUARZHEM
+      CASE('ClayQuHe')
+      n_clayquhe=n
+          ntm_power(n)=-9
+          trpdens(n)=(1-FrHeQu)*DenQuarz+FrHeQu*DenHema
+#ifdef TRACERS_DRYDEP
+          trradius(n)=0.46D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil1QuHe')
+      n_sil1quhe=n
+          ntm_power(n)=-9
+          trpdens(n)=(1-FrHeQu)*DenQuarz+FrHeQu*DenHema
+#ifdef TRACERS_DRYDEP
+          trradius(n)=1.47D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil2QuHe')
+      n_sil2quhe=n
+          ntm_power(n)=-9
+          trpdens(n)=(1-FrHeQu)*DenQuarz+FrHeQu*DenHema
+#ifdef TRACERS_DRYDEP
+          trradius(n)=2.94D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil3QuHe')
+      n_sil3quhe=n
+          ntm_power(n)=-9
+          trpdens(n)=(1-FrHeQu)*DenQuarz+FrHeQu*DenHema
 #ifdef TRACERS_DRYDEP
           trradius(n)=5.88D-06
 #endif
@@ -2498,12 +2541,15 @@ c gravitational settling of ss2
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
         CASE('Clay','Silt1','Silt2','Silt3',
      &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
      &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
+     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &       'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+
         k=k+1
           jls_source(nDustEmjl,n)=k
           lname_jls(k)='Emission of '//trname(n)
@@ -4421,12 +4467,14 @@ C**** Additional Special IJ diagnostics
       end do
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
         CASE('Clay','Silt1','Silt2','Silt3',
      &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
      &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
+     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &       'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
       k=k+1
         ijts_source(nDustEmij,n)=k
         lname_ijts(k)='Emission of '//trname(n)
@@ -5580,7 +5628,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #ifdef TRACERS_WATER
      *  ,q,wm,flice,fearth
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      &     ,JMperY,JDperY
 #endif
       USE DOMAIN_DECOMP, only : GRID, GET
@@ -5593,7 +5642,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #ifdef regional_Ox_tracers
      *   ,NregOx,n_Ox
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      &   ,imDUST
 #endif
 #ifdef TRACERS_WATER
@@ -5634,10 +5684,11 @@ C Read landuse parameters and coefficients for tracer dry deposition:
      * ,DMS_AER,SS1_AER,SS2_AER
      * ,SO2_src_3D,SO2_biosrc_3D,SO2_src
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       USE tracers_dust,ONLY : hbaij,ricntd,dryhr,frclay,frsilt,vtrsh,
      &     ers_data,gin_data,table,x1,x2,x3,lim,ljm,lkm,d_dust
-#ifdef TRACERS_MINERALS
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,Mtrac,minfr
 #endif
 #endif
@@ -5670,7 +5721,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       include 'netcdf.inc'
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
@@ -5679,7 +5730,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       INTEGER mon_unit, mont,ii,jj,ir,mm,iuc,m,mmm,ll
       real*8 carbstuff,ccnv
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       INTEGER :: io_data,k
       INTEGER startd(3),countd(3),statusd
       INTEGER idd1,idd2,idd3,idd4,ncidd1,ncidd2,ncidd3,ncidd4
@@ -6169,12 +6221,14 @@ C         AM=kg/m2, and DXYP=m2:
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
         CASE('Clay','Silt1','Silt2','Silt3',
      &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
      &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
+     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &       'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
           ! defaults ok
           hbaij=0D0
           ricntd=0D0
@@ -6423,7 +6477,8 @@ c convert from month to second. dxyp??
       end do
       endif
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       IF (ifirst) THEN
 c     prescribed AEROCOM dust emissions
         IF (imDust == 1) THEN
@@ -6542,7 +6597,7 @@ c**** Read input: EMISSION LOOKUP TABLE data
           CALL stop_model
      &     ('Stopped in tracer_IC: parameter imDUST must be 0 or 1',255)
         END IF
-#ifdef TRACERS_MINERALS
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
         CALL openunit('MINFR',io_data,.true.,.true.)
         READ(io_data) (((minfr(i,j,k),i=1,Im),j=1,Jm),k=1,Mtrac)
         CALL closeunit(io_data)
@@ -7245,7 +7300,8 @@ C**** Apply chemistry and stratosphere overwrite changes:
       CALL TIMER (MNOW,MCHEM)
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
 c      CALL tracers_dust_old
 #endif
 
@@ -7399,7 +7455,8 @@ C**** this is a parameterisation from Georg Hoffmann
         CASE(nPART)                           ! particulate tracer
           fq = 0.D0                           ! defaults to zero.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
-    (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+    (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
 c only dissolve if the cloud has grown
 c#ifdef TRACERS_HETCHEM
 c      select case(trname(ntix(n)))
@@ -7581,7 +7638,8 @@ C
           fq = 0.D0
         CASE(nPART)                           ! aerosols
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
-    (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+    (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
           fq = -b_beta_DT*(EXP(-PREC*rc_wash)-1.D0)
           if (FCLOUD.lt.1.D-16) fq=0.d0
           if (fq.lt.0.) fq=0.d0
