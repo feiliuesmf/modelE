@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       module param
 !@sum  param does all the bookkeeping for input parameters
 !@auth I. Aleinov
@@ -72,7 +74,11 @@
 
       integer, parameter :: MAX_PARAMS = 256
       integer, parameter :: MAX_RPARAMS = 128
+#ifdef TRACERS_SPECIAL_Shindell
+      integer, parameter :: MAX_IPARAMS = 134
+#else
       integer, parameter :: MAX_IPARAMS = 128
+#endif
       integer, parameter :: MAX_CPARAMS = 64
       integer, parameter :: MAX_NAME_LEN = 32
       integer, parameter :: MAX_CHAR_LEN = 64
