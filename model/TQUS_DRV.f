@@ -38,6 +38,7 @@ c****
       integer :: I,J,L,n,nx
 
 C**** Fill in values at the poles
+C$OMP  PARALLEL DO PRIVATE (I,L) 
       do l=1,lm
          rm(2:im,1 ,l) =   rm(1,1 ,l)
          rm(2:im,jm,l) =   rm(1,jm,l)
@@ -46,28 +47,57 @@ C**** Fill in values at the poles
             rmom(:,i,jm,l) =  rmom(:,1,jm,l)
          enddo
       enddo
+C$OMP  END PARALLEL DO 
 C****
 C**** Load mass after advection from mass before advection
 C****
-      ma(:,:,:) = mb(:,:,:)
+ccc   ma(:,:,:) = mb(:,:,:)
+C$OMP  PARALLEL DO PRIVATE (L)
+      DO L=1,LM 
+         MA(:,:,L) = MB(:,:,L) 
+      ENDDO 
+C$OMP  END PARALLEL DO 
 C****
 C**** Advect the tracer using the quadratic upstream scheme
 C****
 C**** loop over cycles
       do n=1,ncyc
-      mflx(:,:,:)=pu(:,:,:)
+ccc   mflx(:,:,:)=pu(:,:,:)
+C$OMP  PARALLEL DO PRIVATE (L)
+      DO L=1,LM 
+         MFLX(:,:,L) = PU(:,:,L) 
+      ENDDO
+C$OMP  END PARALLEL DO
 
       call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx1(1,1,n))
 
-      mflx(:,:,:)=pv(:,:,:)
+ccc   mflx(:,:,:)=pv(:,:,:)
+C$OMP  PARALLEL DO PRIVATE (L)
+      DO L=1,LM
+         MFLX(:,:,L) = PV(:,:,L)
+      ENDDO
+C$OMP  END PARALLEL DO
+
       call aadvqy (rm,rmom,ma,mflx,qlimit,tname,nstepy(1,n),
      &    sbf,sbm,sfbm)
 
-      mflx(:,:,:)=sd(:,:,:)
+ccc   mflx(:,:,:)=sd(:,:,:)
+C$OMP  PARALLEL DO PRIVATE (L)
+      DO L=1,LM
+         MFLX(:,:,L) = SD(:,:,L)
+      ENDDO
+C$OMP  END PARALLEL DO
+
       call aadvqz (rm,rmom,ma,mflx,qlimit,tname,nstepz(1,n),
      &    scf,scm,sfcm)
 
-      mflx(:,:,:)=pu(:,:,:)
+ccc   mflx(:,:,:)=pu(:,:,:)
+C$OMP  PARALLEL DO PRIVATE (L)
+      DO L=1,LM
+         MFLX(:,:,L) = PU(:,:,L)
+      ENDDO
+C$OMP  END PARALLEL DO
+
       call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx2(1,1,n))
       end do
 
@@ -89,13 +119,39 @@ C**** The MA array space is temporarily put to use in this section
       INTEGER :: i,j,l,n,nc,im1
       double precision :: byn,ssp,snp
 
-      mu(:,:,:) = mu(:,:,:)*(.5*dt)
-      mv(:,1:jm-1,:) = mv(:,2:jm,:)*dt
-      mv(:,jm,:) = 0.
-      mw(:,:,1:lm-1) = mw(:,:,1:lm-1)*(-dt)
+ccc   mu(:,:,:) = mu(:,:,:)*(.5*dt)
+ccc   mv(:,1:jm-1,:) = mv(:,2:jm,:)*dt
+ccc   mv(:,jm,:) = 0.
+ccc   mw(:,:,1:lm-1) = mw(:,:,1:lm-1)*(-dt)
+C 
+C$OMP  PARALLEL DO PRIVATE (J,L) 
+      DO L=1,LM 
+         MU(:,1,L) = 0. 
+         DO J=2,JM-1 
+            MU(:,J,L) = MU(:,J,L)*(.5*DT) 
+         ENDDO 
+         MU(:,JM,L) = 0. 
+      ENDDO 
+C$OMP  END PARALLEL DO  
+C 
+C$OMP  PARALLEL DO PRIVATE (J,L) 
+      DO L=1,LM 
+         DO J=1,JM-1   
+            MV(:,J,L) = MV(:,J+1,L)*DT 
+         ENDDO 
+         MV(:,JM,L) = 0. 
+      ENDDO 
+C$OMP  END PARALLEL DO   
+C 
+C$OMP  PARALLEL DO PRIVATE (L)   
+      DO L=1,LM-1   
+         MW(:,:,L) = MW(:,:,L)*(-DT)  
+      ENDDO 
+C$OMP  END PARALLEL DO  
+C 
 c     for some reason mu is not zero at the poles...
-      mu(:,1,:) = 0.
-      mu(:,jm,:) = 0.
+ccc   mu(:,1,:) = 0.
+ccc   mu(:,jm,:) = 0.
 C**** Set things up
       mneg=.true.
       ncyc = 0
@@ -210,13 +266,33 @@ C****     1/2 x-direction
       if(ncyc.gt.1) write(6,*) 'AADVQ0: ncyc>1',ncyc
 C**** Divide the mass fluxes by the number of cycles
       byn = 1./ncyc
-      mu(:,:,:)=mu(:,:,:)*byn
-      mv(:,1:jm-1,:)=mv(:,1:jm-1,:)*byn
-      mw(:,:,:)=mw(:,:,:)*byn
+ccc   mu(:,:,:)=mu(:,:,:)*byn
+ccc   mv(:,1:jm-1,:)=mv(:,1:jm-1,:)*byn
+ccc   mw(:,:,:)=mw(:,:,:)*byn
+C$OMP  PARALLEL DO PRIVATE (L) 
+      DO L=1,LM 
+         mu(:,:,l)=mu(:,:,l)*byn  
+      ENDDO 
+C$OMP  END PARALLEL DO 
+C$OMP  PARALLEL DO PRIVATE (L) 
+      DO L=1,LM 
+         mv(:,1:jm-1,l)=mv(:,1:jm-1,l)*byn  
+      ENDDO 
+C$OMP  END PARALLEL DO 
+C$OMP  PARALLEL DO PRIVATE (L) 
+      DO L=1,LM  
+         mw(:,:,l)=mw(:,:,l)*byn  
+      ENDDO 
+C$OMP  END PARALLEL DO 
 C****
 C**** Decide how many timesteps to take by computing Courant limits
 C****
-      MA(:,:,:) = MB(:,:,:)
+ccc   MA(:,:,:) = MB(:,:,:)
+C$OMP  PARALLEL DO PRIVATE (L)  
+      DO L=1,LM  
+         MA(:,:,L) = MB(:,:,L) 
+      ENDDO 
+C$OMP  END PARALLEL DO  
       do n=1,ncyc
         call xstep (MA,nstepx1(1,1,n))
         call ystep (MA,nstepy(1,n))
@@ -248,16 +324,21 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
-      use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
+ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
+      use QUSCOM, only : im,jm,lm, xstride  
       use QUSDEF
       implicit none
       double precision, dimension(im,jm,lm) :: rm,mass,mu
       double precision, dimension(nmom,im,jm,lm) :: rmom
       logical ::  qlimit
+      DOUBLE PRECISION  AM(IM), F_I(IM), FMOM_I(NMOM,IM)  
       character*8 tname
-      integer :: i,j,l,ierr,nerr,ns,nstep(jm,lm)
+      integer :: i,j,l,ierr,nerr,ns,nstep(jm,lm),ICKERR  
 
 c**** loop over layers and latitudes
+      ICKERR=0 
+C$OMP  PARALLEL DO PRIVATE (J,L,NS,AM,F_I,FMOM_I,IERR,NERR)   
+C$OMP*          REDUCTION(+:ICKERR)   
       do l=1,lm
       do j=2,jm-1
       am(:) = mu(:,j,l)/nstep(j,l)
@@ -269,11 +350,16 @@ c****
      &        am, im, qlimit,xstride,xdir,ierr,nerr)
       if (ierr.gt.0) then
         write(6,*) "Error in aadvQx: i,j,l=",nerr,j,l,' ',tname
-        if (ierr.eq.2) stop "Error in qlimit: abs(a) > 1"
+ccc     if (ierr.eq.2) stop "Error in qlimit: abs(a) > 1"
+        ICKERR=ICKERR+1 
       end if
       enddo ! ns
       enddo ! j
       enddo ! l
+C$OMP  END PARALLEL DO  
+C 
+      IF(ICKERR.GT.0)  CALL EXIT_RC(11) 
+C 
       return
 c****
       end subroutine aadvQx
@@ -298,7 +384,8 @@ c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
       use CONSTANT, only : teeny
-      use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
+ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
+      use QUSCOM, only : im,jm,lm, ystride,               byim  
       use QUSDEF
       implicit none
       double precision, dimension(im,jm,lm) :: rm,mass,mv
@@ -306,12 +393,17 @@ c****
       logical ::  qlimit
       double precision, dimension(im,jm) :: fqv
       double precision, intent(out), dimension(jm,lm) :: sfbm,sbm,sbf
+      DOUBLE PRECISION  BM(JM),F_J(JM),FMOM_J(NMOM,JM) 
       character*8 tname
-      integer :: i,j,l,ierr,nerr,ns,nstep(lm)
+      integer :: i,j,l,ierr,nerr,ns,nstep(lm),ICKERR   
       double precision ::
      &     m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
 
 c**** loop over layers
+      ICKERR=0 
+C$OMP  PARALLEL DO PRIVATE (I,J,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZM_NP, 
+C$OMP*                RZZM_SP,RZZM_NP,BM,F_J,FMOM_J,FQV,NS,IERR,NERR) 
+C$OMP*          REDUCTION(+:ICKERR)  
       do l=1,lm
       fqv(:,:) = 0.
 
@@ -350,7 +442,8 @@ c****
      &     bm, jm,qlimit,ystride,ydir,ierr,nerr)
       if (ierr.gt.0) then
         write(6,*) "Error in aadvQy: i,j,l=",i,nerr,l,' ',tname
-        if (ierr.eq.2) stop "Error in qlimit: abs(b) > 1"
+ccc     if (ierr.eq.2) stop "Error in qlimit: abs(b) > 1"
+        ICKERR=ICKERR+1 
       end if
       fqv(i,:) = fqv(i,:) + f_j(:)  !store tracer flux in fqv array
       fqv(i,jm) = 0.   ! play it safe
@@ -369,6 +462,7 @@ c**** average and unscale polar boxes
       rmom(mzz,:,jm,l) = (rzzm_np + sum(rmom(mzz,:,jm,l)-rzzm_np))*byim
 
       enddo  ! end loop over timesteps
+  
       do j=1,jm-1   !diagnostics
         sfbm(j,l) = sfbm(j,l) + sum(fqv(:,j)/(mv(:,j,l)+teeny))
         sbm (j,l) = sbm (j,l) + sum(mv(:,j,l))
@@ -376,6 +470,10 @@ c**** average and unscale polar boxes
       enddo
 
       enddo  ! end loop over levels
+C$OMP  END PARALLEL DO 
+C 
+      IF(ICKERR.NE.0)  stop "Error in qlimit: abs(b) > 1"   
+C 
       return
 c****
       end subroutine aadvQy
@@ -400,7 +498,8 @@ c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
       use CONSTANT, only : teeny
-      use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
+ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
+      use QUSCOM, only : im,jm,lm, zstride  
       use QUSDEF
       use GEOM, only : imaxj
       use MODEL_COM, only : fim
@@ -412,9 +511,13 @@ c****
       double precision, dimension(lm) :: fqw
       double precision, intent(out), dimension(jm,lm) :: sfcm,scm,scf
       character*8 tname
-      integer :: i,j,l,ierr,nerr,ns
+      DOUBLE PRECISION  CM(LM),F_L(LM),FMOM_L(NMOM,LM) 
+      integer :: i,j,l,ierr,nerr,ns,ICKERR  
 
 c**** loop over latitudes and longitudes
+      ICKERR=0. 
+C$OMP  PARALLEL DO PRIVATE (I,J,L,NS,FQW,CM,F_L,FMOM_L,FQW,IERR,NERR) 
+C$OMP*          REDUCTION(+:ICKERR)  
       do j=1,jm
       do i=1,imaxj(j)
       fqw(:) = 0.
@@ -428,7 +531,8 @@ c****
      &        cm,lm,qlimit,zstride,zdir,ierr,nerr)
       if (ierr.gt.0) then
         write(6,*) "Error in aadvQz: i,j,l=",i,j,nerr,' ',tname
-        if (ierr.eq.2) stop "Error in qlimit: abs(c) > 1"
+ccc     if (ierr.eq.2) stop "Error in qlimit: abs(c) > 1"
+        ICKERR=ICKERR+1 
       end if
       fqw(:)  = fqw(:) + f_l(:) !store tracer flux in fqw array
       enddo ! ns
@@ -451,6 +555,10 @@ c****
         scf(j,:)  = fim*scf(j,:)
       end if
       enddo ! j
+C$OMP  END PARALLEL DO 
+C 
+      IF(ICKERR.GT.0)  stop "Error in qlimit: abs(c) > 1"   
+C 
       return
 c****
       end subroutine aadvQz
@@ -468,10 +576,14 @@ c****
       double precision, dimension(im,jm,lm) :: m
       double precision, dimension(im) :: a,am,mi
       integer, dimension(jm,lm) :: nstepx
-      integer :: l,j,i,ip1,im1,nstep,ns
+      integer :: l,j,i,ip1,im1,nstep,ns,ICKERR  
       double precision :: courmax
 
 C**** Decide how many timesteps to take by computing Courant limits
+C 
+      ICKERR = 0 
+C$OMP  PARALLEL DO PRIVATE (I,IP1,IM1,J,L,NSTEP,NS,COURMAX,A,AM,MI) 
+C$OMP*          REDUCTION(+:ICKERR) 
       DO 420 L=1,LM
       DO 420 J=2,JM-1
       nstep=0
@@ -500,7 +612,12 @@ C**** Update air mass
           im1 = i
           enddo
         enddo    ! ns=1,nstep
-        if(nstep.ge.20) stop 'aadvqx: nstep.ge.20' !for debuging only
+ccc     if(nstep.ge.20) stop 'aadvqx: nstep.ge.20' !for debuging only
+        if(nstep.ge.20)  then 
+           write(6,*) 'aadvqx: j,l,nstep,courmax=',j,l,nstep,courmax 
+           courmax=-1. 
+           ICKERR=ICKERR+1 
+        end if 
       enddo      ! while(courmax.gt.1.)
 C**** Correct air mass
       M(:,J,L) = MI(:)
@@ -509,6 +626,10 @@ c     if(nstep.gt.2 .and. nx.eq.1)
 c    *  write(6,'(a,3i3,f7.4)')
 c    *  'aadvqx: j,l,nstep,courmax=',j,l,nstep,courmax
   420 CONTINUE
+C$OMP  END PARALLEL DO 
+C 
+      IF(ICKERR.GT.0)  stop 'aadvqx: nstep.ge.20' 
+C 
       RETURN
       END
 
@@ -525,10 +646,13 @@ c    *  'aadvqx: j,l,nstep,courmax=',j,l,nstep,courmax
       double precision, dimension(im,jm) :: mij
       double precision, dimension(jm) :: b,bm
       integer, dimension(lm) :: nstepy
-      integer :: jprob,iprob,nstep,ns,i,j,l
+      integer :: jprob,iprob,nstep,ns,i,j,l,ICKERR  
       double precision :: courmax,byn,sbms,sbmn
 
 C**** decide how many timesteps to take (all longitudes at this level)
+      ICKERR=0 
+C$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,B,BM,MIJ, 
+C$OMP*          IPROB,JPROB,SBMS,SBMN)  REDUCTION(+:ICKERR)  
       DO 440 L=1,LM
 C**** Scale poles
       m(:, 1,l) =   m(:, 1,l)*im !!!!! temporary
@@ -570,7 +694,9 @@ C**** Update air mass in the interior
         enddo    ! ns=1,nstep
         if(nstep.ge.20) then
            write(6,*) 'courmax=',courmax,l,iprob,jprob
-           stop 'aadvqy: nstep.ge.20'
+ccc        stop 'aadvqy: nstep.ge.20'
+           ICKERR=ICKERR+1 
+           courmax = -1. 
         endif
       enddo      ! while(courmax.gt.1.)
 C**** Correct air mass
@@ -582,6 +708,10 @@ C**** Unscale poles
       m(:, 1,l) =   m(:, 1,l)*byim !!! undo temporary
       m(:,jm,l) =   m(:,jm,l)*byim !!! undo temporary
   440 CONTINUE
+C$OMP  END PARALLEL DO 
+C 
+      IF(ICKERR.GT.0)  stop 'aadvqy: nstep.ge.20'  
+C 
       RETURN
       END
 
@@ -598,10 +728,13 @@ C**** Unscale poles
       double precision, dimension(lm) :: ml
       double precision, dimension(0:lm) :: c,cm
       integer, dimension(im*jm) :: nstepz
-      integer :: nstep,ns,l,i
+      integer :: nstep,ns,l,i,ICKERR   
       double precision :: courmax,byn
 
 C**** decide how many timesteps to take
+      ICKERR=0 
+C$OMP  PARALLEL DO PRIVATE (I,L,NS,NSTEP,COURMAX,BYN,C,CM,ML) 
+C$OMP*          REDUCTION(+:ICKERR)   
       DO I=1,IM*JM
       nstep=0
       courmax = 2.
@@ -627,7 +760,12 @@ C**** decide how many timesteps to take
             ml(l) = ml(l)+(cm(l-1)-cm(l))
           enddo
         enddo    ! ns=1,nstep
-        if(nstep.ge.20) stop 'aadvqz: nstep.ge.20'
+ccc     if(nstep.ge.20) stop 'aadvqz: nstep.ge.20'
+        if(nstep.ge.20)  then 
+           write(6,*)  'aadvqz: nstep.ge.20'  
+           ICKERR=ICKERR+1 
+           courmax = -1. 
+        end if 
       enddo      ! while(courmax.gt.1.)
 C**** Correct air mass
       m(i,1,:) = ml(:)
@@ -635,5 +773,9 @@ C**** Correct air mass
 c     if(nstep.gt.1 .and. nTRACER.eq.1) write(6,'(a,2i7,f7.4)')
 c    *   'aadvqz: i,nstep,courmax=',i,nstep,courmax
       END DO
+C$OMP  END PARALLEL DO 
+C 
+      IF(ICKERR.GT.0)  stop 'aadvqz: nstep.ge.20'  
+C 
       RETURN
       END
