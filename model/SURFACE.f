@@ -773,14 +773,16 @@ C**** Save surface tracer concentration whether calculated or not
      *           *bydxyp(j),0d0)*ptype
           end if
 #ifdef TRACERS_WATER
-          taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
-     *         trevapor(n,itype,i,j)*ptype
+          if (tr_wd_type(n).eq.nWater) then
+            taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
+     *           trevapor(n,itype,i,j)*ptype
+            tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
+     *           +trevapor(n,itype,i,j)*ptype
+            if (focean(i,j).gt.0) tajls(j,1,jls_source(2,n))=tajls(j,1
+     *           ,jls_source(2,n))+trevapor(n,itype,i,j)*ptype
+          end if
           taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
      *         gtracer(n,itype,i,j)*ptype
-          tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
-     *         +trevapor(n,itype,i,j)*ptype
-          if (focean(i,j).gt.0) tajls(j,1,jls_source(2,n))=tajls(j,1
-     *         ,jls_source(2,n))+trevapor(n,itype,i,j)*ptype
 #endif
         end if
       end do

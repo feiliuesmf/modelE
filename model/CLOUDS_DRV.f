@@ -28,7 +28,7 @@
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
 #ifdef TRACERS_WATER
-     *     ,trwm,trw0
+     *     ,trwm,trw0,dowetdep
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,trname
       USE FILEMANAGER, only: openunit,closeunit
@@ -816,8 +816,8 @@ c        tajls(j,1,jls_prec(1,n))=tajls(j,1,jls_prec(1,n))
 c     *       +trprec(n,i,j)*bydxyp(j)
 c        tajls(j,1,jls_prec(2,n))=tajls(j,1,jls_prec(2,n))
 c     *       +trprec(n,i,j)*focean(i,j)*bydxyp(j)
-        taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n)+trprec(n,i,j)
-     *       *bydxyp(j)
+        if (dowetdep(n)) taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) +
+     *       trprec(n,i,j)*bydxyp(j)
 #endif
       end do
 #endif

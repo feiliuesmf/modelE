@@ -85,7 +85,7 @@ C**** Tracer concentration
         if (to_per_mil(n).gt.0) units_jln(k,n) = unit_string(0,cmr(n))
 #endif
 #ifdef TRACERS_WATER
-C****   TRACER CONCENTRATION IN CLOUD WATER 
+C****   TRACER CONCENTRATION IN CLOUD WATER
         k = k + 1
         jlnt_cldh2o = k
         sname_jln(k,n) = trim(trname(n))//'_WM_CONC' 
@@ -217,6 +217,7 @@ C**** Surface concentration
 C**** the following diagnostics are set assuming that the particular
 C**** tracer exists in water. 
 C**** Tracers in precipitation (=Wet deposition)
+      if (dowetdep(n)) then
       k = k+1
       tij_prec = k
         if (to_per_mil(n) .eq.1) then
@@ -233,7 +234,9 @@ C**** Tracers in precipitation (=Wet deposition)
      *         //'/s')
           scale_tij(k,n)=10.**(-ijtc_power(n)+5)/dtsrc
         end if
+      end if
 C**** Tracers in evaporation
+      if (tr_wd_type(n).eq.nWater) then
       k = k+1
       tij_evap = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_evap'
@@ -245,6 +248,7 @@ C**** Tracers in evaporation
           units_tij(k,n)=unit_string(ijtc_power(n),trim(cmrwt(n))//'/s')
         end if
         scale_tij(k,n)=10.**(-ijtc_power(n))/dtsrc
+      endif
 C**** Tracers in river runoff
       k = k+1
       tij_rvr = k

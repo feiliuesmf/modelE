@@ -51,9 +51,6 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm=5
       character*8, parameter :: trname(ntm)=(/
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  '/)
-!@var aer_fq fraction of aerosol that condenses
-      real*8 fq_aer(ntm)
-
 #else ! default:
 #ifdef TRACERS_WATER
       integer, parameter :: ntm=2
@@ -92,7 +89,7 @@ C****    The following are set in tracer_IC
       integer, dimension(ntm) :: itime_tr0
 !@var MTRACE: timing index for tracers
       integer mtrace
-#ifdef TRACERS_SPECIAL_Shindell
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
 !@var MCHEM: timing index for chemistry
       integer mchem
 #endif
@@ -154,6 +151,8 @@ C****
       integer, dimension(ntm) :: tr_wd_TYPE
 !@var tr_RKD: Henry's Law coefficient (in mole/Joule please !)
       real*8, dimension(ntm) :: tr_RKD
+!@var fq_aer fraction of aerosol that condenses
+      real*8 fq_aer(ntm)
 #endif      
 #ifdef TRACERS_WATER   
 !@param nWD_TYPES number of tracer types for wetdep purposes  
@@ -167,6 +166,8 @@ C note, tr_evap_fact is not dimensioned as NTM:
       real*8, dimension(ntm) :: tr_DHD
 !@var tr_H2ObyCH4 conc. of tracer in water from methane oxidation 
       real*8, dimension(ntm) :: tr_H2ObyCH4
+!@var dowetdep true if tracer has some form of wet deposition
+      logical, dimension(ntm) :: dowetdep
 !@var TRWM tracer in cloud liquid water amount (kg)
       real*8, dimension(im,jm,lm,ntm) :: trwm
 #ifdef TRACERS_SPECIAL_O18

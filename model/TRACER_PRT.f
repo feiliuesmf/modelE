@@ -55,6 +55,7 @@ C**** Zonal mean concentration
 
 #ifdef TRACERS_WATER
 C**** Zonal mean cloud water concentration
+      if (dowetdep(n)) then
 !$OMP PARALLEL DO PRIVATE (L,J,TSUM,ASUM)
       do l=1,lm
       do j=1,jm
@@ -64,6 +65,7 @@ C**** Zonal mean cloud water concentration
      *       tajln(j,l,jlnt_cldh2o,n)+tsum/asum
       enddo; enddo
 !$OMP END PARALLEL DO
+      end if
 #endif
 
   600 continue
@@ -425,6 +427,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
 C****
 C**** TRACER CLOUD WATER CONCENTRATION
 C****
+      if (dowetdep(n)) then
       k = jlnt_cldh2o
 
       if (to_per_mil(n).gt.0) then
@@ -448,6 +451,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
         scalet = scalet*10.**(-jtpow)
         CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
      *       plm,tajln(1,1,k,n),scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
+      end if
       end if
 #endif
 C****
@@ -846,7 +850,7 @@ C**** Fill in maplet indices for tracer sums/means and ground conc
 C****
 C**** Calculation of dry deposition as percent
 C****
-      if (dodrydep(n)) then
+      if (dodrydep(n).and.dowetdep(n)) then
         k=k+1
         ijtype(k) = 3
         name(k) = "dry_dep_"//trim(trname(n))//"_%"
