@@ -124,9 +124,9 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
 #ifdef TRACERS_ON
 !$OMP*   ,n,nx,trij,tr0ij,trflx,wc_nl
 #endif
-!$OMP*    ) SHARED(dtime,
+!$OMP*    ) SHARED(dtime
 #ifdef TRACERS_ON
-!$OMP*    nta
+!$OMP*    ,nta
 #endif
 !$OMP*    ) SCHEDULE(DYNAMIC,2)
 
