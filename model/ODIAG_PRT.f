@@ -18,9 +18,11 @@ C**** ocean grid.
       REAL*4, DIMENSION(IM,JM,LMO) :: Q3
       REAL*8, DIMENSION(LMO,NMST) :: AS
       REAL*4, DIMENSION(JM-1,0:LMO,0:4) :: SFM,SFS
-      INTEGER I,J,K,L,LMINEF,LMAXEF,KVMF(LMO),LMAXNF,LMINMF,NS,N,KB
-     *     ,LMINSF,LMAXSF,KVDC(LMO),KCMF(LMO),LMAXMF,NOL(LMO)
+      INTEGER I,J,K,L,NS,N,KB,NOL(LMO)
      *     ,LMSTMIN(LMO),SUMORMN(LMO),JEQ,JDLAT,JLAT(JM)
+      INTEGER :: LMINEF=1, LMAXEF=LMO, KVMF(3) = (/ 3, 6, 9/),
+     *           LMINMF=1, LMAXMF=LMO, KCMF(3) = (/ 3, 6, 9/),
+     *           LMINSF=1, LMAXSF=LMO, KVDC(3) = (/ 3, 6, 9/)
       REAL*4 R4LEV(0:LMO)
       REAL*8 GOS,SOS,FAC,FACST,GSMAX,GSMIN,CKMIN,CKMAX,ACMIN,ACMAX
      *     ,SCALEO(10),TSUM,TEMGS,scalej(jm),scalel(lmo),AJLTMP(JM,LMO)
@@ -72,7 +74,7 @@ C****
 C**** Ocean Potential Temperature (C)
 C****
       DO J=1,JM
-      DO I=1,IM
+      DO I=1,IMAXJ(J)
         Q(I,J) = SKIP
         IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).le.0.)  THEN
           GOS = OIJL(I,J,L,IJL_G0M) / (OIJL(I,J,L,IJL_MO)*DXYP(J))
@@ -87,7 +89,7 @@ C****
 C**** Ocean Salinity (per mil)
 C****
       DO J=1,JM
-      DO I=1,IM
+      DO I=1,IMAXJ(J)
         Q(I,J) = SKIP
         IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).le.0.) 
      *       Q(I,J) = 1.E3*OIJL(I,J,L,IJL_S0M) / (OIJL(I,J,L,IJL_MO)
@@ -118,12 +120,14 @@ C****
   300 DO K=2,3
 c      IF(.not.QL(K))  GO TO 340
         Q = 0.
-        DO I=1,IM*(JM-1)
+        DO J=1,JM
+        DO I=1,IMAXJ(J)
         DO L=LMINMF,LMAXMF
-          Q(I,1) = Q(I,1) + OIJL(I,1,L,K)
+          Q(I,J) = Q(I,J) + OIJL(I,J,L,K)
         END DO
-        Q(I,1) = 2.E-9*Q(I,1) / (IDACC(1)*NDYNO)
-      END DO
+        Q(I,J) = 2.E-9*Q(I,J) / (IDACC(1)*NDYNO)
+        END DO
+        END DO
       IF(LMINMF.eq.LMAXMF) WRITE (NAMEL(K)(41:43),'(I3)') LMINMF
       IF(LMINMF.lt.LMAXMF) WRITE (NAMEL(K)(41:49),'(2I4)') LMINMF
      *     ,LMAXMF
@@ -133,7 +137,7 @@ c  340 CONTINUE
 C****
 C**** Vertical Mass Flux (10^-2 kg/s*m)
 C****
-      DO K=1,LMO
+      DO K=1,3  !LMO
 c     IF(KVMF(K).le.0)  GO TO 370
         L =KVMF(K)
         DO J=1,JM
@@ -150,11 +154,13 @@ C****
       DO K=6,7
 c      IF(.not.QL(K))  GO TO 440
         Q = 0.
-        DO I=1,IM*(JM-1)
+        DO J=1,JM
+        DO I=1,IMAXJ(J)
           DO L=LMINEF,LMAXEF
-            Q(I,1) = Q(I,1) + OIJL(I,1,L,K)
+            Q(I,J) = Q(I,J) + OIJL(I,J,L,K)
           END DO
-          Q(I,1) = 1.E-15*Q(I,1) / (IDACC(1)*DTS)
+          Q(I,J) = 1.E-15*Q(I,J) / (IDACC(1)*DTS)
+        END DO
         END DO
         IF(LMINEF.eq.LMAXEF) WRITE (NAMEL(K)(39:41),'(I3)') LMINEF
         IF(LMINEF.lt.LMAXEF) WRITE (NAMEL(K)(39:47),'(2I4)') LMINEF
@@ -167,11 +173,13 @@ C****
       DO K=10,11
 c      IF(.not.QL(K))  GO TO 540
         Q = 0.
-        DO I=1,IM*(JM-1)
+        DO J=1,JM
+        DO I=1,IMAXJ(J)
           DO L=LMINSF,LMAXSF
-            Q(I,1) = Q(I,1) + OIJL(I,1,L,K)
+            Q(I,J) = Q(I,J) + OIJL(I,J,L,K)
           END DO
-          Q(I,1) = 1.E-6*Q(I,1) / (IDACC(1)*DTS)
+          Q(I,J) = 1.E-6*Q(I,J) / (IDACC(1)*DTS)
+        END DO
         END DO
         IF(LMINSF.eq.LMAXSF) WRITE (NAMEL(K)(41:43),'(I3)') LMINSF
         IF(LMINSF.lt.LMAXSF) WRITE (NAMEL(K)(41:49),'(2I4)') LMINSF
@@ -181,7 +189,7 @@ c     CALL WRITED (NAMEL(K),XLABEL,OUTMON,OUTYR)
 C****
 C**** Gent Mcwilliams coefficient (10^-2 kg/s*m)
 C****
-      DO K=1,LMO
+      DO K=1,3  !LMO
 c      IF(KCMF(K).le.0)  GO TO 620
         L =KCMF(K)
         DO J=1,JM
@@ -195,11 +203,13 @@ c      CALL WRITED (NAMEL(13),XLABEL,OUTMON,OUTYR)
 C****
 C**** Vertical Diffusion Coefficient (cm/s)
 C****
-      DO K=1,LMO
+      DO K=1,3  !LMO
 c      IF(KVDC(K).le.0)  GO TO 720
         L =KVDC(K)
-        DO I=IM+1,IM*(JM-1)+1
-          Q(I,1) = 1.E4*.00097*.00097*OIJL(I,1,L,IJL_KVM)/(IDACC(1)*4.)
+        DO J=1,JM
+        DO I=1,IMAXJ(J)
+          Q(I,J) = 1.E4*.00097*.00097*OIJL(I,J,L,IJL_KVM)/(IDACC(1)*4.)
+        END DO
         END DO
         WRITE (NAMEL(14)(45:47),'(I3)') L
 c      CALL WRITED (NAMEL(14),XLABEL,OUTMON,OUTYR)
@@ -207,9 +217,11 @@ c      CALL WRITED (NAMEL(14),XLABEL,OUTMON,OUTYR)
 
       IF (QKV) THEN
         DO L=1,LMO
-          DO I=1,IM*JM
-            Q3(I,1,L)=1E4*.00097**2*OIJL(I,1,L,IJL_KVM)/(IDACC(1)*4.)
-          END DO
+        DO J=1,JM
+        DO I=1,IMAXJ(J)
+            Q3(I,J,L)=1E4*.00097**2*OIJL(I,J,L,IJL_KVM)/(IDACC(1)*4.)
+        END DO
+        END DO
         END DO
         TITLE = NAMEL(15)//'  Run '//XLABEL//'  '//OUTMON//OUTYR
 c        WRITE(2) TITLE,Q3
