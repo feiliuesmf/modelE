@@ -39,7 +39,7 @@ C****
      *     'CLOUD TOP PRESSURE (ISCCP) (mb)          ',  ! 14
      *     'PLANETARY ALBEDO (%)                     ',  ! 15
      *     'GROUND ALBEDO IN VISUAL RANGE (%)        ',  ! 16
-     *     'DIURNAL SURF AIR TEMP (C)                ',  ! 17
+     *     'DIURNAL SURF AIR TEMP RANGE (C)          ',  ! 17
      *     'NET SOLAR RADIATION, TOA (W/m^2)         ',  ! 18
      *     'NET THERMAL RADIATION, TOA (W/m^2)       ',  ! 19
      *     'TEMPERATURE AT 850mb (C)                 ',  ! 20
