@@ -16,7 +16,7 @@ c
       IMPLICIT NONE
       SAVE
 c
-C**************  P  A  R  A  M  E  T  E  R  S  *******************  
+C**************  P  A  R  A  M  E  T  E  R  S  *******************
 C
 !@param p_1 number of reactants per reaction
 !@param p_2 unknown for now
@@ -44,10 +44,10 @@ C
 !@param JPPJ number of photolysis reactions
 !@param JPNL number of photolysis levels
 !@param NJVAL Number of species for which to calculate J-values
-!@param szamax Maximum Zenith Angle(98 deg at 63 km;99 degrees at 80 km)
-!@param dtaumax Maximum optical depth above which must instert new level
+!@param szamax max Zenith Angle(98 deg at 63 km;99 degrees at 80 km)
+!@param dtaumax max optical depth above which must instert new level
 !@param ZZHT Scale height above top of atmosphere (cm)
-!@param odmax Maximum allowed optical depth, above which they are scaled
+!@param odmax Maximum allowed optical depth, above which they're scaled
 !@param luselb Use reflective photolysis boundary treatment
 !@param zlbatm Optical depth above which to set lower boundary
 !@param NFASTJ number of quadrature points in OPMIE
@@ -67,11 +67,11 @@ C
 !@param pfix_CH4_S fixed ratio of CH4/M in South. Hemis. (if used)
 !@param pfix_CH4_S fixed ratio of CH4/M in South. Hemis. (if used)
 !@param MWabyMWw ratio of molecular weights of air/water
-!@param O3_1_fact factor to alter the surface O3 that is passed to FASTJ
+!@param O3_1_fact factor to alter surface O3 that is passed to FASTJ
 !@+     this is fastj level 1, not model level 1.  Currently, it is 
 !@+     decreased by a factor of (972/1000)mb
 !@param RGAMMASULF unknown
-!@param RKBYPIM=8.*RBOLTZ/pi/MASSN2O55 =8.*1.38062E-23/3.14159/1.793E-25
+!@param RKBYPIM=8.*RBOLTZ/pi/MASSN2O55=8.*1.38062E-23/3.14159/1.793E-25
 !@param cboltz Boltzman's Constant = 1.3806d-19
 !@param dlogp 10.d0**(-2./16.)
 !@param byradian 1/radian = conversion from radians to degrees
@@ -129,7 +129,7 @@ c     & n_Paraffin= 15,    ! ---------------
      & nNO3=      32,
      & nHONO=     33,
      & nO2=       34,
-     & nM=        35,     ! you must always put nM last (highest number)
+     & nM=        35,     !you must always put nM last (highest number)
 C ----------------------------------------------   
      & N__=     1800,     !jan00, was 450, then 900 in Nov99
      & M__=        4,
@@ -160,7 +160,7 @@ C
      &                      RGAMMASULF   = 0.1,
      &                      RKBYPIM      = 1.961E2,
      &                      cboltz       = 1.3806d-19,
-     &                      dlogp        = 7.49894209E-1, !=10^(-.125) 
+     &                      dlogp        = 7.49894209E-1, !=10^(-.125)
      &                      szamax       = 98.0d0,
      &                      dtaumax      = 1.0d0,
      &                      ZZHT         = 5.d5,
@@ -172,10 +172,6 @@ C
       LOGICAL, PARAMETER :: luselb       = .false.
 c
 C**************  V  A  R  I  A  B  L  E  S *******************  
-C
-C     Need to add these:
-C     F0(K)   - reactivity factor for oxidation of biological substances
-C     HSTAR(K)- Henrys Law constant
 !@var nn reactant's number in mol list, first index reactant 1 or 2,
 !@+      second - reaction number
 !@var nnr reaction product's number in mol list, indicies like nn
@@ -210,7 +206,7 @@ C     HSTAR(K)- Henrys Law constant
 !@+   vertivle level, second=gas number (1=O2,2=O3)
 !@var qfu flux of solar radiation in the upper atmosphere in 18
 !@+   schumann-runge bands 175 - 200 nm
-!@var qf flux of solar radiation, first index corr. to spectral interval
+!@var qf flux of solar radiation, first index for spectral interval
 !@+   number, second - verticle level (photons/cm^2*c)
 !@var wlt wavelength from 200 to 730 nm in 5 nm steps (107 intervals)
 !@var sO3 absorption cross section of ozone (cm^2)
@@ -224,7 +220,7 @@ C     HSTAR(K)- Henrys Law constant
 !@var prnchg logical: print chemical changes?
 !@var prnls logical: print reaction lists by species?
 !@var epot,egr,oz unclear for now
-!@var yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR ?
+!@var yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR?
 !@var NCFASTJ number of levels in the fastj atmosphere
 !@var title_aer_pf titles read from aerosol phase function file
 !@var TITLE0 blank title read in I think
@@ -291,7 +287,7 @@ C     HSTAR(K)- Henrys Law constant
 !@var WTAU    Weighted slant path - each side of point
 !@var dpomega   change in pomega per increment  (linear)
 !@var POMEGAJ  Scattering phase function. the 2nd dimension on POMEGAJ
-!@+   was 30 in the 9-layer code, which is (2*LM+2)+10.  But it seems to
+!@+   was 30 in the 9-layer code, which is (2*LM+2)+10. But it seems to
 !@+   only need +1 (I.e. NCFASTJ+1): GSF
 !@var POMEGA,ZTAU,FZ,ZREFL,jndlv,FJFASTJ,EMU,ZFLUX,ZREFL,ZU0,WFASTJ ?
 !@var PM0,PM,BFASTJ,AFASTJ,AAFASTJ,WTFASTJ,CC,HFASTJ,C1,SFASTJ,U1,V1 ?
@@ -314,7 +310,7 @@ C     HSTAR(K)- Henrys Law constant
 !@var ta, pres local arrays to hold temperature,pressure
 !@var TFASTJ temperature sent to FASTJ
 !@var O3_FASTJ ozone sent to fastj
-!@var FASTJLAT, FASTJLON latitude & LONGITUDE (degrees) for use in fastj
+!@var FASTJLAT,FASTJLON latitude & LONGITUDE (degrees) for use in fastj
 !@var SZA the solar zenith angle (degrees)
 !@var ILIMIT maximum of main I-loop (1 or IM)
 !@var I,J,L,N,igas,inss,LL,Lqq,JJ,J3 dummy loop variables
@@ -324,11 +320,11 @@ C     HSTAR(K)- Henrys Law constant
 !@var prod_sulfate  N2O5 change by sulfate reactions in mass units
 !@var wprod_sulf N2O5 change by sulfate reactions in molecules/cm3/s
 !@var DT2 variable chemical time step, set in masterchem
-!@var nr  total number of        reactions read in from gs_jpl00_trop_15
-!@var nr3 # of trimolecular      reactions read in from gs_jpl00_trop_15
-!@var nr2 # of mono+bi-molecular reactions read in from gs_jpl00_trop_15
-!@var nmm # of monomolecular     reactions read in from gs_jpl00_trop_15
-!@var nhet # of heterogenous     reactions read in from gs_jpl00_trop_15
+!@var nr total number of        reactions read in from gs_jpl00_trop_15
+!@var nr3 #of trimolecular      reactions read in from gs_jpl00_trop_15
+!@var nr2 #of mono+bi-molecular reactions read in from gs_jpl00_trop_15
+!@var nmm #of monomolecular     reactions read in from gs_jpl00_trop_15
+!@var nhet #of heterogenous     reactions read in from gs_jpl00_trop_15
 !@var pfactor to convert units on species chemical changes
 !@var bypfactor to convert units on species chemical changes
 !@var dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,changeAldehyde,
@@ -341,9 +337,11 @@ C     HSTAR(K)- Henrys Law constant
 !@var MDOFM cumulative days at end of each month
 !@var OxIC initial conditions for Ox in KG read from file (Jan 1st?)
 !@var corrOx correction factor to tweak inital Ox in stratosphere 
+!@var F0 reactivity factor for oxidation of biological substances
+!@var HSTAR Henry's Law const for dry dep. why different from wet dep?
       INTEGER nr,nr2,nr3,nmm,nhet,MODPHOT,ILIMIT,igas,LL,I,J,L,N,
-     &inss,Lqq,JJ,J3,lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,NWWW,NK,
-     & nlbatm,NCFASTJ                                 
+     & inss,Lqq,JJ,J3,lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,
+     & NWWW,NK,nlbatm,NCFASTJ                                 
       INTEGER, DIMENSION(n_fam)        :: nfam
       INTEGER, DIMENSION(p_1,p_2)      :: nn, nnr, kss
       INTEGER, DIMENSION(p_2)          :: ks
@@ -362,9 +360,9 @@ C
       REAL*8 ZFLUX,ZREFL,ZU0,U0,RFLECT,odsum,XLTAU,TANHT,CH4FACT,FACTj,
      & r179m2v,BYFJM,FASTJLAT,FASTJLON,SZA,RVELN2O5,
      & prod_sulf,DT2,wprod_sulf,dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,
-     & changeAldehyde,changeAlkenes,changeIsoprene,changeHCHO,wprodHCHO,
-     & changeAlkylNit,changeHNO3,changeNOx,changeN2O5,wprodCO,
-     & rlossN,rprodN,ratioN,pfactor,bypfactor
+     & changeAldehyde,changeAlkenes,changeIsoprene,changeHCHO,
+     & wprodHCHO,changeAlkylNit,changeHNO3,changeNOx,changeN2O5,
+     & wprodCO,rlossN,rprodN,ratioN,pfactor,bypfactor
       REAL*8, DIMENSION(JM,4,12)       :: corrOx ! JM,(L=12,15),month
       REAL*8, DIMENSION(n_spc,LM)      :: y
       REAL*8, DIMENSION(n_rx,IM,JM,LM) :: rr, ss
@@ -379,11 +377,11 @@ C
       REAL*8, DIMENSION(n_oig,n_bnd3)  :: sech
       REAL*8, DIMENSION(p_6)           :: f8
       REAL*8, DIMENSION(p_7)           :: oz
-      REAL*8, DIMENSION(IM,JM,LM)    :: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
-     &                                 yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
+      REAL*8, DIMENSION(IM,JM,LM)   :: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
+     &                                yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      &                                    RCLOUDFJ,TX,sulfate,OxIC
-      REAL*8, DIMENSION(M__)          :: AFASTJ,C1,HFASTJ,V1,WTFASTJ,EMU
-      REAL*8, DIMENSION(M__,M__)   :: BFASTJ,AAFASTJ,CC,SFASTJ,WFASTJ,U1
+      REAL*8, DIMENSION(M__)         :: AFASTJ,C1,HFASTJ,V1,WTFASTJ,EMU
+      REAL*8, DIMENSION(M__,M__)  :: BFASTJ,AAFASTJ,CC,SFASTJ,WFASTJ,U1
       REAL*8, DIMENSION(M__,2*M__)     :: PM
       REAL*8, DIMENSION(M__,M__,N__)   :: DD
       REAL*8, DIMENSION(M__,N__)       :: RR2    
@@ -401,10 +399,10 @@ C
       REAL*8, DIMENSION(31,18,12)      :: OREF
       REAL*8, DIMENSION(41,18,12)      :: TREF
       REAL*8, DIMENSION(41)            :: BREF
-      REAL*8, DIMENSION(NLFASTJ)       :: aer,ZFASTJ,O3J,TJ,DBC,DMFASTJ,
+      REAL*8, DIMENSION(NLFASTJ)       ::aer,ZFASTJ,O3J,TJ,DBC,DMFASTJ,
      &                                    XQO3,XQO2,DTAUDZ,TTAU,FTAU,
      &                                    PIAER,RZ,RQ,DO3,PIRAY
-      REAL*8, DIMENSION(LM)            :: odtmp,TXL,COalt,ta,pres,TFASTJ
+      REAL*8, DIMENSION(LM)            ::odtmp,TXL,COalt,ta,pres,TFASTJ
       REAL*8, DIMENSION(NS)            :: VALJ
       REAL*8, DIMENSION(N__)           :: FJFASTJ
       REAL*8, DIMENSION(NWFASTJ,2,NS-3):: QQQ
@@ -412,12 +410,12 @@ C
       REAL*8, DIMENSION(JPPJ)          :: jfacta
       REAL*8, DIMENSION(JPNL,JPPJ)      :: zj, JFASTJ
       REAL*8, DIMENSION(p_2,LM)         :: chemrate, photrate 
-      REAL*8, DIMENSION(IM,JM)          :: SALBFJ      
+      REAL*8, DIMENSION(IM,JM)          :: SALBFJ
       REAL*8, DIMENSION(40,JM,IM)       :: O3DLJI, O3DLJI_clim
       REAL*8, DIMENSION(2*(LS1-1))      :: O3_FASTJ
       REAL*8, DIMENSION(19)             :: COlat
       REAL*8, DIMENSION(n_igas,LM)      :: dest, prod
-      REAL*8, DIMENSION(NTM)            :: mass2vol, bymass2vol
+      REAL*8, DIMENSION(NTM)            :: mass2vol, bymass2vol, F0
       REAL*8, DIMENSION(IM,JM,LM,ntm)   :: change
       REAL*8, DIMENSION(NLFASTJ,NLFASTJ):: WTAU
       REAL*8, DIMENSION(IM,(JM-3)/3)    :: avg67 
@@ -425,7 +423,7 @@ CGSF :: somehow need to do RCLOUDFJ(I,J,L)=TAUWC(L)+TAUIC(L) in RADIA
 C     
       LOGICAL                         fam,prnrts,prnchg,prnls      
 C      
-      CHARACTER*20, DIMENSION(9)   :: title_aer_pf ! formerly TITLEA( )
+      CHARACTER*20, DIMENSION(9)   :: title_aer_pf !formerly TITLEA( )
       CHARACTER*78                    TITLE0
       CHARACTER*7, DIMENSION(3,NS) :: TITLEJ
       CHARACTER*7, DIMENSION(JPPJ) :: jlabel
@@ -447,6 +445,16 @@ CGSF Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14.
       DATA COalt/2.,1.5625,1.375,1.25,1.125,1.0625,1.,1.,1.,
      &           1.,1.,.5,.375,.20,.20,.20,.20,.20,.25,.4,2.5,12.,60./
       DATA MDOFM/31,59,90,120,151,181,212,243,273,304,334,365/
-      
+      DATA F0/1.,0.1,0.,  0.,1.,0.,  0.,0.,0.,  0.,0.,0.,  0.,0.,0./ 
+C Note: it is not clear that these are the right HSTAR numbers to use.
+C See the notes in DB396Tds3M23.f and the values in the file: 
+C /u/cmrun/chem_files/henrys_law_tables.pdf  Example: why shouldn't
+C HSTAR exactly match tr_RKD, the wet dep version of the Henry's
+C Law constants? In any case, the ones below are in mole/(L atm). The
+C conversion to mole/Joule, which I used in wet dep is:
+C  mole/Joule = mole/(Pa*m3) X (101325. Pa/atm) X (1.E-6 m3/cm3)
+C  X (1.E3 cm3 / L) = mole/(L*atm)           GSF 5/22/02
+      DATA HSTAR/1.D-2,1.D-2,0.D0,  1.D5,1.D5,3.D2,  6.D3,0D0.,0D0.,
+     &         0.D0,3.68D0,1.3D-2,  0.D0,0.D0,0.D0/    
 C
       END MODULE TRCHEM_Shindell_COM
