@@ -109,7 +109,7 @@ C****
 C**** Note this is for reading in a full rsf file, but from a qflux run
 C**** We do not check HEADER here because it will be wrong. The other
 C**** data MUST be initialised by setting iniOCEAN=.TRUE. in init_ODEEP.
-          READ (kunit) HEADER,TOCEAN,Z1O 
+          READ (kunit) HEADER,TOCEAN,Z1O
         CASE DEFAULT            ! restart file
           READ (kunit,err=10) HEADER,TOCEAN,Z1O,STG3,DTG3,RTGO,TG3M
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
@@ -383,7 +383,7 @@ C**** Check for reasonable values for ocean variables
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : jm,lrunid,xlabel,idacc
-      USE GEOM, only : imaxj
+      USE GEOM, only : imaxj,lat_dg
       USE ODEEP_COM, only : lmom,rtgo,dz
       USE DAGCOM, only : acc_period,qdiag
       IMPLICIT NONE
@@ -392,8 +392,8 @@ C**** Check for reasonable values for ocean variables
       REAL*8 ATGO(JM,LMOM),SCALED,ONES(JM),Z(LMOM)
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      IF(QDIAG) call open_jl(trim(acc_period)//'.o'//XLABEL(1:LRUNID))
-
+      IF(QDIAG) call open_jl(trim(acc_period)//'.o'//XLABEL(1:LRUNID),
+     *  jm,lmom,0,lat_dg)
       LNAME="Zonally averaged deep ocean temperature anomaly"
       SNAME="tgo_deep_anom"
       UNITS="DEGREES C"
