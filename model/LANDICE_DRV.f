@@ -12,8 +12,8 @@
       USE CONSTANT, only : edpery,sday,lhm
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc
       USE GEOM, only : dxyp
-      USE LANDICE, only: ace1li,ace2li,glmelt_on,gmelt_fac_nh
-     *     ,gmelt_fac_sh
+      USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
+     *     ,glmelt_fac_sh
       USE LANDICE_COM, only : tlandi,snowli
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,trli0
@@ -125,7 +125,7 @@ C**** integrate area (which will depend on resolution/landmask)
         END DO
       END DO
 
-      ACCPCA = gmelt_fac_sh*ACCPDA*DTsrc/(EDPERY*SDAY*FWAREA) ! kg/m^2
+      ACCPCA = glmelt_fac_sh*ACCPDA*DTsrc/(EDPERY*SDAY*FWAREA) ! kg/m^2
       DO J=JML,JMU
         DO I=1,IM
           IF (FOCEAN(I,J).GT.0.) THEN
@@ -151,7 +151,7 @@ C**** integrate area (which will depend on resolution/landmask)
         FWAREA=FWAREA+DXYP(J)*FOCEAN(I,J)      
       END DO
 
-      ACCPCG = gmelt_fac_nh*ACCPDG*DTsrc/(EDPERY*SDAY*FWAREA)  ! kg/m^2 
+      ACCPCG = glmelt_fac_nh*ACCPDG*DTsrc/(EDPERY*SDAY*FWAREA)  ! kg/m^2 
       DO N=1,NBOX
         I=IFW(N)
         J=JFW(N)
