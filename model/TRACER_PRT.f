@@ -111,7 +111,7 @@ C**** Calculate current value TOTAL
           sstm = 0.
           ltop=lm
 #ifdef TRACERS_SPECIAL_Shindell
-          if(trname(nt).eq.'Ox')then
+          if(trname(nt).eq.'Ox'.or.trname(nt).eq.'NOx')then
 #ifdef Shindell_Strat_chem
             ltop=LS1-1     ! nominal tropopause
 #else
