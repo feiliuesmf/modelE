@@ -374,8 +374,8 @@ cc                trmom(:,i,j,l,n)=trmomij(:,l,n)
             rhoe(l)=rhoe_3d_bgrid(l,i,j)
             u0(l)=u(l)
             v0(l)=v(l)
-            u_3d_old(i,j,l)=u(l)
-            v_3d_old(i,j,l)=v(l)
+            u_3d_old(l,i,j)=u(l)
+            v_3d_old(l,i,j)=v(l)
             km(l)=km_3d_bgrid(l,i,j)
             dze(l)=dze_3d_bgrid(l,i,j)
             bydzerho(l)=1.d0/(dze(l)*rho(l))
@@ -419,7 +419,7 @@ cc                trmom(:,i,j,l,n)=trmomij(:,l,n)
               IDIK=IDIJ(K,I,J)
               IDJK=IDJJ(K,J)
               AJL(IDJK,L,JL_DAMDC)=AJL(IDJK,L,JL_DAMDC)
-     &        +(U_3d(IDIK,IDJK,L)-u_3d_old(IDIK,IDJK,L))*PLIJ(L,I,J)*RAK
+     &        +(U_3d(IDIK,IDJK,L)-u_3d_old(L,IDIK,IDJK))*PLIJ(L,I,J)*RAK
             ENDDO
           ENDDO
         ENDDO
@@ -431,8 +431,8 @@ C**** Save additional changes in KE for addition as heat later
       DO J=2,JM
       DO I=1,IM
         DKE(I,J,L)=DKE(I,J,L)+0.5*(U_3d(I,J,L)*U_3d(I,J,L)
-     *       +V_3d(I,J,L)*V_3d(I,J,L)-U_3d_old(I,J,L)*U_3d_old(I,J,L)
-     *       -V_3d_old(I,J,L)*V_3d_old(I,J,L))
+     *       +V_3d(I,J,L)*V_3d(I,J,L)-U_3d_old(L,I,J)*U_3d_old(L,I,J)
+     *       -V_3d_old(L,I,J)*V_3d_old(L,I,J))
       END DO
       END DO
       END DO
