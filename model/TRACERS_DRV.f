@@ -823,36 +823,24 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           trpdens(n)=2.5d3
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
-#ifdef TRACERS_WATER
-          dowetdep(n)=.TRUE.
-#endif
       CASE('Silt1')
       n_silt1=n
           ntm_power(n)=-9
           trpdens(n)=2.65d3
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
-#ifdef TRACERS_WATER
-          dowetdep(n)=.TRUE.
-#endif
       CASE('Silt2')
       n_silt2=n
           ntm_power(n)=-9
           trpdens(n)=2.65d3
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
-#ifdef TRACERS_WATER
-          dowetdep(n)=.TRUE.
-#endif
       CASE('Silt3')
       n_silt3=n
           ntm_power(n)=-9
           trpdens(n)=2.65d3
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
-#ifdef TRACERS_WATER
-          dowetdep(n)=.TRUE.
-#endif
 #endif
 
 #endif
@@ -860,8 +848,8 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 
 #if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
 C**** Tracers that are soluble or are scavenged or are water => wet dep
-      if (tr_wd_TYPE(n).eq.nWater.or.fq_aer(n).gt.0.or.tr_RKD(n).gt.0)
-     *     then
+      if (tr_wd_TYPE(n).eq.nWater.or.tr_wd_TYPE(n) .EQ. nPART .or.
+     *  tr_RKD(n).gt.0) then
         dowetdep(n)=.true.
       end if
 #endif
