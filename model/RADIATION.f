@@ -328,7 +328,7 @@ C----------------
 
       REAL*8    :: zsnwoi,zoice,zmp,fmp,zlake,snow_frac(2)
 !@var TRACER array to add up to 8 additional aerosol species
-      real*8    :: TRACER(LX,8) 
+      real*8    :: TRACER(LX,8)
       LOGICAL*4 :: flags
 
       COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX
@@ -3733,7 +3733,7 @@ c
       SSUM=SAERO(L,K)
       CSUM=CAERO(L,K)*SSUM
       DO 340 N=4,9
-      VDTAU=TAUCOL(ILON,JLAT,N)*VDGAER(L,N)*FSAERO(N)  
+      VDTAU=TAUCOL(ILON,JLAT,N)*VDGAER(L,N)*FSAERO(N)
       QSUM=QSUM+VDTAU*QXAERO(K,N)
       VDQS=VDTAU*QSAERO(K,N)
       SSUM=SSUM+VDQS
@@ -3763,7 +3763,7 @@ c
       DO 450 L=1,6
       ASUM=AAERO(L,K)
       DO 440 N=4,9
-      VDTAU=TAUCOL(ILON,JLAT,N)*VDGAER(L,N)*FTAERO(N)  
+      VDTAU=TAUCOL(ILON,JLAT,N)*VDGAER(L,N)*FTAERO(N)
       ASUM=ASUM+VDTAU*ATAERO(K,N)
   440 CONTINUE
       AAERO(L,K)=ASUM
@@ -8047,9 +8047,9 @@ C
      +      ,2X,'Aerosol Global    Ocean     Land  Desert    Haze')
  6103 FORMAT(1X,'FULGAS=',F5.3,F10.5,F7.3,F9.5,F8.5,4F9.5
      +      ,2X,'FGOLDH=',F7.5,2F9.6,2F8.5)
- 6104 FORMAT(1X,T84,'T'
-     +      /1X,'FULGAS=',1P,1E7.1,1P,2E8.1,1P,2E8.1,1P,4E9.1
-     +      ,' S','FGOLDH=',1P,1E7.1,1P,2E9.2,1P,2E8.1)
+C6104 FORMAT('+',T84,'T'
+C    +      /1X,'FULGAS=',1P,1E7.1,1P,2E8.1,1P,2E8.1,1P,4E9.1
+C    +      ,' S','FGOLDH=',1P,1E7.1,1P,2E9.2,1P,2E8.1)
  6105 FORMAT(1X,'PPM(1)=(now)',2X,F8.3,8X,F8.5,F8.5,4(1X,F8.7)
      +      ,2X,'TRACER=',F7.5,2F9.6,F8.5
      +      /' PPMV80=(ref)=',0P,F9.3,8X,2F8.5,4(1X,F8.7),2X
