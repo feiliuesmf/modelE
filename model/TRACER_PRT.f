@@ -1084,7 +1084,7 @@ c**** Find final field and zonal, global, and hemispheric means
      *           ,MODULE_HEADER
             GO TO 10
           END IF
-        CASE (ioread,irerun)  ! restarts
+        CASE (ioread)  ! restarts
           READ (kunit,err=10) HEADER, TACC,it
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER
