@@ -1,7 +1,7 @@
 E001M23.R GISS Model E                                 jal 04/01
 
 E001M23: new modelE (based on B402A) Stratospheric version
-         NOTE: this is not yet ready 
+         NOTE: this is not yet ready
 
 Object modules: (in order of decreasing priority)
 RES_M23 strat                       ! resolution
@@ -50,16 +50,23 @@ RADNE=topcld.trscat8
 Label and Namelist:
 E001M23 (new modelE based on B402A; stratospheric version)
 R=00BG/B
- &INPUTZ
-   IYEAR0=1950, CO2=-6., XCDLM=.0005,.00005,
-   PTOP=150.,    ! from defaults: PSF=984., LS1=12,
+
+&&PARAMETERS
+   DT=180.,        ! from default: DTsrc=3600.,
+   NSLP=12,        ! saving SLP 12hrly
+   Kvflxo=1         ! saving VFLXO daily
+   KCOPY=2,    ! saving acc+rsf
+   CO2=-6.,
+   XCDLM=.0005,.00005,
    NISURF=4,
-   PLTOP=934.,854.,720.,550.,390., 285.,210.,150.,100.,60.,30.,10.,
-   KOCEAN=0,           U00wtr=.50, U00ice=.50,
+   KOCEAN=0,  
+   U00wtr=.50,
+   U00ice=.50,
+&&END_PARAMETERS
+
+ &INPUTZ
    YEARI=1950,MONTHI=1,DATEI=1,HOURE=0,
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
    YEARE=1950,MONTHE=2,
-   DT=180.,        ! from default: DTsrc=3600.,
-   NSLP=12,Kvflxo=1,KCOPY=2,    ! saving SLP 12hrly,VFLXO daily,acc+rsf
-   ISTART=7,YEARE=1950,MONTHE=1,HOURE=1,
+   ISTART=7,YEARE=1950,MONTHE=1,HOURE=1, IRANDI=0,
  &END

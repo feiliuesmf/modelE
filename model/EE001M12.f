@@ -241,7 +241,7 @@ c      ZGS=10.
       GW(0:NGM,2) =  WVEGE(0:NGM,I,J)
       HT(0:NGM,1) = HTBARE(0:NGM,I,J)
       HT(0:NGM,2) = HTVEGE(0:NGM,I,J)
-      SNOWD(1:2)  = SNOWBV(1:2,I,J)  
+      SNOWD(1:2)  = SNOWBV(1:2,I,J)
 ccc extracting snow variables
       NSN(1:2)          = NSN_IJ    (1:2, I, J)
       ISN(1:2)          = ISN_IJ    (1:2, I, J)
@@ -696,12 +696,15 @@ C**** CALCULATE ROOT FRACTION AFR AVERAGED OVER VEGETATION TYPES
         END DO
       END DO
 C****
+      PRINT *,' '
+      PRINT *,'Soils parameters'
       SDSTNC=100.
-      PRINT *,'SDSTNC:',SDSTNC
+      PRINT *,'Interstream distance (m) SDSTNC:',SDSTNC
       C1=90.
-      PRINT *,'C1:',C1
+      PRINT *,'Canopy conductance related parameter C1:',C1
       PRFR=.1
-      PRINT *,'PRFR:',PRFR
+      PRINT *,'Fraction (by area) of precipitation PRFR:',PRFR
+      PRINT *,' '
       CALL HL0
 C****
 C code transplanted from subroutine INPUT
@@ -728,7 +731,7 @@ ccc??? remove next 5 lines? -check the old version
            W(0:NGM,2) =   WVEGE(0:NGM,I,J)
            HT(0:NGM,1) = HTBARE(0:NGM,I,J)
            HT(0:NGM,2) = HTVEGE(0:NGM,I,J)
-           SNOWD(1:2) =  SNOWBV(1:2,I,J)  
+           SNOWD(1:2) =  SNOWBV(1:2,I,J)
 
 C****     COMPUTE SOIL HEAT CAPACITY AND GROUND WATER SATURATION GWS
           CALL GHINIJ (I,J,WFC1)
@@ -795,7 +798,7 @@ ccc!!! restart file (without snow model data)
             W(0:NGM,2) =   WVEGE(0:NGM,I,J)
             HT(0:NGM,1) = HTBARE(0:NGM,I,J)
             HT(0:NGM,2) = HTVEGE(0:NGM,I,J)
-            SNOWD(1:2) =  SNOWBV(1:2,I,J)  
+            SNOWD(1:2) =  SNOWBV(1:2,I,J)
 
             CALL GHINIJ (I,J,WFC1)
             CALL SET_SNOW

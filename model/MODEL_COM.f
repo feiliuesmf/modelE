@@ -2,9 +2,12 @@
 !@sum  MODEL_COM Main model variables, independent of resolution
 !@auth Original Development Team
 !@ver  1.0
-      USE RESOLUTION, only : im,jm,lm
+      USE RESOLUTION, only : im,jm,lm,ls1,
+     *     psf,pmtop,ptop,psfmpt,pstrat, sig,sige,dsig,bydsig
       IMPLICIT NONE
       SAVE
+
+      CHARACTER*132 XLABEL !@var runID+brief description of run
 
 !@var IMH half the number of latitudinal boxes
       INTEGER, PARAMETER :: IMH=IM/2
@@ -13,58 +16,28 @@
 !@var JEQ grid box immediately north of the equator
       INTEGER, PARAMETER :: JEQ=1+JM/2
 
-C**** THERE ARE 100 INTEGER PARAMETERS IN COMMON (JC-ARRAY)
-c      pointer KOCEAN, LS1, NRAD, NIsurf, NFILTR, MFILTR, NDAA
-c     *     ,NDA5D,NDA5K,NDA5S,NDA4,NDASF,IRAND,Nslp,Kvflxo,KCOPY,Ndisk
-c     *     ,NSSW,KEYCT,NIPRNT,NMONAV
-      INTEGER ::
-     *  IM0,JM0,LM0,LS1,KACC0,        KTACC0,Itime,ItimeI,ItimeE,Itime0,
+!@var Itime current time in int. time units (+1 every physics time step)
+!@var ItimeI,ItimeE   time at start,end of run
+!@var Itime0          time at start of current accumulation period
+      INTEGER :: Itime,ItimeI,ItimeE,Itime0,
+
      *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Kvflxo,Nslp,NIdyn,
      *  NRAD,NIsurf,NFILTR,NDAY,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
      *  MLAST,MDYN,MCNDS,MRAD,MSURF,    MDIAG,MELSE,MODRD,MODD5K,MODD5S,
-     *  IYEAR0,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
+     *  IYEAR1,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
      *  NSSW,NSTEP,MRCH,NIPRNT,NMONAV
-      INTEGER, DIMENSION(32) :: IDUM
+      INTEGER, DIMENSION(12) :: IDACC
+
+      DOUBLE PRECISION :: DTsrc = 3600., DT = 450.
+
       INTEGER, DIMENSION(2,4) :: IJD6
-      INTEGER, DIMENSION(:), pointer :: IDACC ! dim = 12
-
-! handle for referring to integer parameters
-ccc JC doesh't contain any data and will be removed soon
-      INTEGER, DIMENSION(100) :: JC
-      !EQUIVALENCE (JC,IM0)
-
-C**** THERE ARE 161 REAL NUMBERS IN COMMON (RC-ARRAY)
-      DOUBLE PRECISION ::
-     *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG, SKIPSE
-      DOUBLE PRECISION, DIMENSION(4) :: TAUTR0
-      DOUBLE PRECISION, DIMENSION(LM) :: SIG
-      DOUBLE PRECISION, DIMENSION(LM+1) :: SIGE
-      DOUBLE PRECISION, DIMENSION(161-13-2*LM) :: RDM2
-!@var PSFMPT,PSTRAT derived pressure constants
-
-!@var RC handle for referring to real parameters
-ccc RC doesh't contain any data and will be removed soon
-      DOUBLE PRECISION, DIMENSION(161) :: RC
-      !EQUIVALENCE (RC,DTsrc)
-
-      CHARACTER*4 :: NAMD6(4),AMON='none',AMON0='none'
-      CHARACTER*132 XLABEL
-
-!@var LABEL1,CLABEL,XLABEL handles for referring to text parameters
-ccc CLABEL doesh't contain any data and will be removed soon
-      !CHARACTER LABEL1*16
-      CHARACTER CLABEL*156
-      !EQUIVALENCE (CLABEL,XLABEL,LABEL1)
+      CHARACTER*4 :: NAMD6(4)
 
       DOUBLE PRECISION, DIMENSION(IM,JM) :: FLAND,FOCEAN,FLICE,FLAKE0
      *     ,FEARTH,ZATMO,HLAKE
 
       DOUBLE PRECISION, DIMENSION(IM,JM,11) :: VDATA
       DOUBLE PRECISION, DIMENSION(IM,JM) :: WFCS
-
-!@var DSIG,BYDSIG,DSIGO sigma level cooridinates
-      DOUBLE PRECISION, DIMENSION(LM) :: DSIG,BYDSIG
-      DOUBLE PRECISION, DIMENSION(LM-1) :: DSIGO
 
 !@var XCDLM.  SDRAG ~XCDLM(1)+XCDLM(2)*wind_magnitude
       DOUBLE PRECISION, DIMENSION(2) :: XCDLM = (/5.D-4,5.D-5/)
@@ -78,8 +51,9 @@ C**** (Simplified) Calendar Related Terms
      *     /0,31,59,90,120,151,181,212,243,273,304,334,365/)
       INTEGER :: JDmidOfM(0:JMPERY+1) = (
      *     /-15,16,47,75,106,136,167,197,228,259,289,320,350,381/)
-!@VAR AMONTH   (3-4 letter) names for months
-      CHARACTER*4 :: AMONTH(0:12) = (/'IC  ',
+!@VAR AMON,AMONTH(0:12)  (3-4 letter) names for current,all months
+!@VAR AMON0  (3-4 letter) name of first month of the current acc-period
+      CHARACTER*4 :: AMON='none',AMON0='none', AMONTH(0:12) = (/'IC  ',
      *  'JAN ','FEB ','MAR ','APR ','MAY ','JUNE',
      *  'JULY','AUG ','SEP ','OCT ','NOV ','DEC '/)
 
@@ -127,29 +101,23 @@ C**** Define surface types (mostly used for weighting diagnostics)
 !@var LMC max layer of mc convective mass flux. (Strat model)
       INTEGER, DIMENSION(2,IM,JM) :: LMC
 
-      DATA IM0,JM0,LM0, KACC0/         ! KTACC0 should be here too ???
-     *     IM ,JM ,LM , -131313 /,   ! KACC0 - should be removed !!!
+      DATA
      *  KOCEAN,KDISK,KEYCT,KCOPY,     IRAND,MFILTR,Ndisk,Kvflxo,Nslp/
      *       1,    1,    1,    2, 123456789,     1,   24,   0,   0/,
-     *  Nrad, Nfiltr, NIsurf, Nssw, NIPRNT, NMONAV,         IYEAR0/
-     *     5,      2,      2,    1,      1,      1,           1976/,
+     *  Nrad, Nfiltr, NIsurf, Nssw, NIPRNT, NMONAV,         IYEAR1/
+     *     5,      2,      2,    1,      1,      1,             -1/,
      *  NDAa,   NDA5d, NDA5k, NDA5s, NDA4, NDAsf/
      *     7,       7,     7,     7,   24,     1/,
      *  MODRD,MODD5K,MODD5S/
      *      0,     0,     0/
-      DATA  DT, DTsrc/
-     *    450., 3600./,
 C****
 C**** Note:           DT = DTdyn and NIdyn = DTsrc/DTdyn (set in INPUT)
 C**** In general      DTxxx = Nxxx*DTsrc  and  DTxxx = DTsrc/NIxxx
 C**** except that the time steps related to NDAa, NDA5k, NDAsf are
-C**** slightly larger:     NDAa:   NDAa*DTsrc + 2*DT(dyn),
-C****                      NDA5k: NDA5k*DTsrc + 2*DT(dyn),
-C****                      NDAsf: NDAsf*DTsrc + DTsrc/NIsurf
-C****
-     *  PTOP, PSF, PSDRAG,SKIPSE/
-     *  150.,984.,  500.,     0./
-      DATA SIGE /1.0000000,LM*0./                    ! Define in rundeck
+C****          slightly larger,     NDAa:   NDAa*DTsrc + 2*DT(dyn),
+C****                              NDA5k:  NDA5k*DTsrc + 2*DT(dyn),
+C****                              NDAsf:  NDAsf*DTsrc + DTsrc/NIsurf,
+C****          to sample all points within the cycle
       DATA NAMD6 /'AUSD','MWST','SAHL','EPAC'/,
      *  IJD6/63,17, 17,34, 37,27, 13,23/
 
@@ -255,72 +223,62 @@ C****
 !@var itime input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
 !@var XLABEL1 dummy label
-      CHARACTER*132 XLABEL1
+      CHARACTER*80 :: LABEL2 = 'IM,JM,LM,LS1='
 !@var NTIM1,TSTR1,TIM1 timing related dummy arrays
       INTEGER NTIM1,TIM1(NTIMEMAX)
       CHARACTER*12 TSTR1(NTIMEMAX)
-!@var ITmin,ITmax minimal/maximal Itime of acc files to be summed up
-      INTEGER, SAVE :: ITmin=999999, ITmax=-1, IT0min
-      INTEGER it1,it0,idacc0(12) !@var it1,it0,idacc1 dummy variables
-      INTEGER, DIMENSION(11) :: idind = (/1,2,3,4,6,7,8,9,10,11,12/)
+!@var ITmin,ITmax minimal/maximal time in acc periods to be combined
+      INTEGER, SAVE :: ITmax=-1, ITmin=-1 ! to protect against long runs
+      INTEGER it1,it0,idac1(12),nd1,iy1,iti1,ite1,it01
 
 C**** Possible additions to this file: FTYPE, (remove rsi from seaice?)
 C****  size of common block arrays (and/or should we be explicit?)
 C****  timing info as named array?
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output to end-of-month restart file
-        !WRITE (kunit,err=10) it,JC,CLABEL,RC,
-        WRITE (kunit,err=10) it,XLABEL,
+        WRITE (kunit,err=10) it,XLABEL,nday,iyear1,itimei,itimee,itime0,
      *       NTIMEACC,TIMING(1:NTIMEACC),TIMESTR(1:NTIMEACC)
-C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
-        WRITE (kunit,err=10)
+C**** need a doc line: basic model parameters
+        write(label2(14:80),'(4i4,a)') im,jm,lm,ls1,' PLbot(lm+1) (R*4)'
+        WRITE (kunit,err=10) LABEL2,SNGL(PTOP+PSFMPT*SIGE)
 C**** write parameters database here
         call write_param(kunit)
-      CASE (IOREAD:)          ! input from restart file
-        READ (kunit,err=10) it,XLABEL1,
+      CASE (IOREAD:)          ! label always from input file
+        READ (kunit,err=10) it,XLABEL,nd1,iy1,iti1,ite1,it01,
      *        NTIM1,TIM1(1:NTIM1),TSTR1(1:NTIM1)
-C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
+C**** skip doc-record
         READ (kunit,err=10)
         SELECT CASE (IACTION)   ! set model common according to iaction
-        CASE (ioread) ! parameters/label from restart file
-          call read_param(kunit,.true.)
-          XLABEL=XLABEL1
+        CASE (ioread)           ! parameters from rundeck & restart file
+          call read_param(kunit,.false.)
+          nday=nd1 ; itimei=iti1      ! changeable only at new starts
+          itimee=ite1 ; itime0=it01   ! are changed later if appropriate
+          if (iyear1.lt.0) iyear1=iy1 ! rarely changes on restarts
           NTIMEACC=NTIM1
           TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
           TIMING(1:NTIM1)=TIM1(1:NTIM1)
-        CASE (IRSFIC)       ! use defaults, rundeck label
-          read(kunit,err=10) ! skip parameters
-         ! switch 'it' to 'ihour' using 'nday' of restart file ?????
-        CASE (IRERUN)  ! params: rsfile, label: rundeck
+        CASE (IRSFIC)           ! use rundeck & defaults except label
+          read(kunit,err=10)          ! skip parameters, dates
+          it=it*24/nd1                ! switch itime to ihour
+        CASE (IRERUN)           ! parameters from rundeck & restart file
           call read_param(kunit,.false.)
-        CASE (IOREAD_SINGLE) ! parameters/label from restart file
-                             ! accumulate idacc and keep track of Itmax/min
-          if ( .not. associated (IDACC) ) then
-            call alloc_param( "IDACC", IDACC, (/12*0/), 12)
-          endif
-          IDACC0=IDACC
-          XLABEL=XLABEL1
-          NTIMEACC=NTIM1
+          nday=nd1 ; itimei=iti1      ! changeable only at new starts
+          itimee=ite1                 ! is changed later if appropriate
+          if (iyear1.lt.0) iyear1=iy1 ! rarely changes on restart/reruns
+        CASE (IOREAD_SINGLE)    ! parameters/label from 1-many acc files
+          call read_param(kunit,.true.)  ! ignore rundeck
+          nday=nd1 ; iyear1=iy1 ; itime0=it01
+          NTIMEACC=NTIM1                 ! use timing from current file
           TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
           TIMING(1:NTIM1)=TIMING(1:NTIM1)+TIM1(1:NTIM1)
-          call read_param(kunit,.true.)
 
-C**** keep track of min/max time and earliest diagnostic period
-          call get_param("Itime",it1)
-          call get_param("Itime0",it0)
-          if (it1.gt.ITmax) ITmax=it1
-          if (it1.lt.ITmin) THEN
-            ITmin=it1
-            IT0min=it0
-          end if
-          call set_param("Itime",ITmax,'o')
-          call set_param("Itime0",IT0min,'o')
+C**** keep track of min/max time over the combined diagnostic period
+          if (it.gt.ITmax)                   ITmax=it
+          if (ITmin.lt.0 .or. it01.lt.ITmin) ITmin=it01
+          it = ITmax
+          itime0 = ITmin
 
-C**** This should probably be moved to io_diags
-          IDACC(idind) = IDACC(idind) + IDACC0(idind)
-          IF (IDACC0(5).gt.0) IDACC(5) = MIN(IDACC(5),IDACC0(5))
-
-        END SELECT ! namelist parameters may still be changed in rundeck
+        END SELECT
       END SELECT
       RETURN
  10   IOERR=1
@@ -357,7 +315,7 @@ C**** This should probably be moved to io_diags
       END SUBROUTINE io_model
 
       subroutine getdte(It,Nday,Iyr0,Jyr,Jmn,Jd,Jdate,Jhour,amn)
-!@sum  getdte gets julian calander info from internal timing info
+!@sum  getdte gets julian calendar info from internal timing info
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : hrday

@@ -398,7 +398,7 @@ C**** CALCULATE CONDUCTIVITY
           END IF
         end do                  ! L
       end do                    ! IBV
-ccc compute conductivity for topmodel (i.e. average saturated conductivity)
+ccc compute conductivity for topmodel (i.e. mean saturated conductivity)
       DO IBV=1,2
         XKUSA(IBV) = 0.d0
         DZ_TOTAL = 0.d0
@@ -918,8 +918,8 @@ ccc in the topmodel expression for the runoff
           else
             f_K0_Exp_L = 0.d0
           endif
-c          print *,'RNFF: ', L, RNFF(L,IBV), f_K0_Exp_L*exp( -TOP_INDEX )
-c          print *, XKUS(L,IBV),W(L,IBV),WS(L,IBV),DZ(L),TOP_INDEX
+c         print *,'RNFF: ', L, RNFF(L,IBV), f_K0_Exp_L*exp( -TOP_INDEX )
+c         print *, XKUS(L,IBV),W(L,IBV),WS(L,IBV),DZ(L),TOP_INDEX
           RNFF(L,IBV)=f_K0_Exp_L*exp( -TOP_INDEX )
 #endif
         end do

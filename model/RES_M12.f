@@ -9,15 +9,37 @@
       IMPLICIT NONE
       SAVE
 !@var IM,JM longitudinal and latitudinal number of grid boxes
-!@var LM number of vertical levels 
-      INTEGER, PARAMETER :: IM=72,JM=46,LM=12
+!@var LM number of vertical levels
+!@var LS1 Layers LS1->LM: constant pressure levels, L<LS1: sigma levels
+      INTEGER, PARAMETER :: IM=72,JM=46,LM=12, LS1=9
+
+!@var PSF,PMTOP global mean surface, model top pressure  (mb)
+!@var PTOP pressure at interface level sigma/const press coord syst (mb)
+      REAL*8, PARAMETER :: PSF=984.d0, PMTOP = 10.d0, PTOP = 150.d0
+!@var PSFMPT,PSTRAT pressure due to troposhere,stratosphere
+      REAL*8, PARAMETER :: PSFMPT=PSF-PTOP, PSTRAT=PTOP-PMTOP
+
+!@var SIGE sigma levels at layer interfaces (1)
+      REAL*8, PARAMETER, DIMENSION(LM+1) :: SIGE = ((/
+     t     PSF,   934.d0,  854.d0,  720.d0,  550.d0,    ! Pbot L=1,5
+     t  390.d0,   285.d0,  210.d0,                      !      L=...
+     1    PTOP,                                         !      L=LS1
+     s  100.d0,    60.d0,   30.d0,   PMTOP /)           !      L=..,LM+1
+     *  - PTOP)/(PSF-PTOP)
+!!!!  Note:   sige(1)=1,  sige(ls1)=0,  sige(lm)=-pstrat/psfmpt
+
+!@var SIG,DSIG,byDSIG mid point, depth, 1/depth of sigma levels (1)
+      REAL*8, dimension(lm), parameter ::
+     &     SIG    = (sige(1:lm)+sige(2:lm+1))*0.5d0,
+     &     DSIG   =  sige(1:lm)-sige(2:lm+1),
+     &     byDSIG =  1./DSIG
 
       END MODULE RESOLUTION
 
 C**** The vertical resolution also determines whether
 C**** stratospheric wave drag will be applied or not.
 C**** Hence also included here are some dummy routines for non-strat
-C**** models. 
+C**** models.
 
       SUBROUTINE DUMMY_STRAT
 !@sum DUMMY dummy routines for non-stratospheric models

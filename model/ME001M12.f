@@ -1,4 +1,4 @@
-#include "rundeck_opts.h"
+!#include "rundeck_opts.h"
 
       PROGRAM GISS_modelE
 !@sum  MAIN GISS modelE main time-stepping routine
@@ -29,7 +29,7 @@ C****
 C****
 C**** If run is already done, just produce diagnostic printout
 C****
-      IF (Itime.GE.ItimeE) then
+      IF (Itime.GE.ItimeE) then        !??? istart<0 ???
          WRITE (6,'("1"/64(1X/))')
          IF (KDIAG(1).LT.9) CALL DIAGJ
          IF (KDIAG(2).LT.9) CALL DIAGJK
@@ -65,7 +65,7 @@ C**** INITIALIZE TIME PARAMETERS
       WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
      *   '0NASA/GISS Climate Model (re)started',
      *   'Year',JYEAR,aMON,JDATE,', Hr',JHOUR,
-     *   'Internal clock: DTsrc-steps since 1/1/',IYEAR0,ITIME
+     *   'Internal clock: DTsrc-steps since 1/1/',Iyear1,ITIME
          CALL TIMER (MNOW,MELSE)
 C****
 C**** Open and position output history files if needed
@@ -220,12 +220,12 @@ C**** SEA LEVEL PRESSURE FILTER
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
-      Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear0
-      Jyear=Itime/(Nday*JDperY) + Iyear0  !  calendar year (A.D.)
+      Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
+CC??  Jyear=Itime/(Nday*JDperY) + iyear1  !  calendar year (A.D.)
       Jhour=MOD(Itime*24/NDAY,24)         ! Hour (0-23)
       Nstep=Nstep+NIdyn                   ! counts DT(dyn)-steps
 
-      call set_param( "Itime", Itime, 'o' )
+C??   call set_param( "Itime", Itime, 'o' )
 
       IF (MOD(Itime,NDAY).eq.0) THEN
            CALL DIAG5A (1,0)
@@ -360,7 +360,7 @@ C**** CPU TIME FOR CALLING DIAGNOSTICS
 C**** TEST FOR TERMINATION OF RUN
       IF (MOD(Itime,Nssw).eq.0) READ (3,END=210) LABSSW
   210 CLOSE (3)
-      IF (LABSSW.EQ.XLABEL(1:8)) THEN
+      IF (LABSSW.ne.offssw) THEN
 C**** FLAG TO TERMINATE RUN WAS TURNED ON (GOOD OLE SENSE SWITCH 6)
          KSS6=1
          WRITE (6,'("0SENSE SWITCH 6 HAS BEEN TURNED ON.")')
@@ -399,11 +399,11 @@ C**** if "B" is not in the database, then Y is unchanged and its
 C**** value is saved in the database as "B" (here sync = synchronize)
       USE MODEL_COM, only : LM,NAMD6,IJD6,NIPRNT,MFILTR,XCDLM,NDASF
      *     ,NDA4,NDA5S,NDA5K,NDA5D,NDAA,NFILTR,NRAD,Kvflxo,Nslp
-     *     ,Ndisk,Nssw,KCOPY,KOCEAN,SKIPSE,PSF,NIsurf,IYEAR0
+     *     ,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND
      $     ,ItimeI,PSFMPT,PSTRAT,SIG,SIGE
       USE RADNCB, only : s0x,co2
-      USE DAGCOM, only : KDIAG
+cc?   USE DAGCOM, only : KDIAG
       USE PARAM
 
       implicit none
@@ -428,31 +428,16 @@ C**** Rundeck parameters:
       call sync_param( "Nssw", Nssw )
       call sync_param( "KCOPY", KCOPY )
       call sync_param( "KOCEAN", KOCEAN )
-      ! used in input but not changed
-      call sync_param( "PSF", PSF )
       call sync_param( "NIsurf", NIsurf )
-C**** IYEAR0 always comes from rundeck or rsf file
-C**** (default necessary for pdE)
-      call sync_param( "IYEAR0", IYEAR0 )
-      ! the following were set only at initial start - udating
-      call sync_param( "PTOP", PTOP )
-      call sync_param( "LS1", LS1 )
       call sync_param( "IRAND", IRAND )
 
       call sync_param( "S0X", S0X ) !!
       call sync_param( "CO2", CO2 ) !!
 
-      call sync_param( "KDIAG", KDIAG, 12 )
-
-      call sync_param( "SKIPSE", SKIPSE ) !! should be removed?
 
 C**** Non-Rundeck parameters
       ! the following were set only at initial start - udating
-      call sync_param( "ItimeI", ItimeI ) !input
-      call sync_param( "PSFMPT", PSFMPT ) !input
-      call sync_param( "PSTRAT", PSTRAT ) !input
-      call sync_param( "SIG", SIG, LM )   !input
-      call sync_param( "SIGE", SIGE, LM+1 ) !input
+C??   call sync_param( "ItimeI", ItimeI ) !input
 
       end subroutine init_Model
 
@@ -464,12 +449,12 @@ C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
       USE CONSTANT, only : grav,kapa,sday,shi,lhm
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
-     *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige,dsigo
+     *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige
      *     ,bydsig,xlabel,nmonav
-     *     ,skipse,keyct,irand,psf,ptop
+     *     ,keyct,irand,psf,ptop
      *     ,nisurf,nidyn,nday,dt,dtsrc,kdisk,jmon0,jyear0
-     *     ,iyear0,itime,itimei,itimee
-     *     ,ls1,psfmpt,pstrat,kacc0,ktacc0,idacc,im0,jm0,lm0
+     *     ,iyear1,itime,itimei,itimee
+     *     ,ls1,psfmpt,pstrat,idacc
      *     ,vdata,aMONTH,jdendofm,jdpery,aMON,aMON0,ioread,irerun
      *     ,ioread_single,irsfic,iowrite_single,ftype,itearth,itlandi
      *     ,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0,Jhour0
@@ -478,7 +463,7 @@ C****
       USE RANDOM
       USE RADNCB, only : rqt,lm_req
       USE CLD01_COM_E001, only : ttold,qtold,svlhx,rhsav,cldsav
-!     *     U00wtr,U00ice,lmcm
+!     *    ,U00wtr,U00ice,lmcm
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,keynr,jreg
@@ -495,11 +480,12 @@ C****
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG unit numbers for input files
       INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG
 
-      INTEGER I,J,L,K,KLAST,KDISK0,ITYPE,IM1,KTACC     ! ? ktacc ?
-     *     ,IR,IREC,NOFF,ioerr,Ldate,months,years,mswitch,jday0
+      INTEGER I,J,L,K,KLAST,KDISK0,ITYPE,IM1
+     *     ,IR,IREC,NOFF,ioerr
       INTEGER ::   HOURI=0 , DATEI=1, MONTHI=1, YEARI=-1, IHRI=-1,
-     *  ISTART=10, HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1
-      REAL*8 TIJL,CDM,TEMP,PLTOP(LM),X
+     *             HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1,
+     *             ISTART=10, IRANDI=0
+      REAL*8 TIJL,CDM,TEMP,X
       REAL*4 XX4
       INTEGER Itime1,Itime2,ItimeX,IhrX,llab1,iargc
       INTEGER :: LRUNID=4                       ! RUNID longer than 4?
@@ -508,17 +494,15 @@ C****
      &           iniSNOW = .FALSE.  ! true = restart from "no snow" rsf
      &           ,iniOCEAN = .FALSE.
 
-      CHARACTER NLREC*80,filenm*100
-C****    List of parameters that CANNOT be changed during a run:
-      NAMELIST/INPUTZ/ ISTART
-C****    List of parameters that COULD be changed during a run:
-     *     ,IWRITE,JWRITE,ITWRITE,QCHECK
-     *     ,IHOURE, HOURE,DATEE,MONTHE,YEARE
+      CHARACTER NLREC*80,filenm*100,RLABEL*132
+      NAMELIST/INPUTZ/ ISTART,IRANDI
+     *     ,IWRITE,JWRITE,ITWRITE,QCHECK,KDIAG
+     *     ,IHOURE, HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
 
 C****
-C**** More default settings
+C**** default settings for prog. variables etc
 C****
       TEMP=250.
       TSAVG(:,:)=TEMP
@@ -526,6 +510,7 @@ C****
       V(:,:,:)=0.
       T(:,:,:)=TEMP  ! will be changed to pot.temp later
       Q(:,:,:)=3.D-6
+      P(:,:)=PSFMPT
 C**** Advection terms for first and second order moments
       TMOM(:,:,:,:)=0.
       QMOM(:,:,:,:)=0.
@@ -548,10 +533,6 @@ C**** Other speciality descriptions can be added/used locally
       CALL SET_TIMER(" DIAGNOSTICS",MDIAG)
       CALL SET_TIMER("       OTHER",MELSE)
 C****
-C**** Vertical coord system: L=1->LS1-1 sigma ; L=LS1->LM const. press
-C****                        PSF->PTOP          PTOP->PMTOP
-C**** Specify in rundeck:    PLTOP 1->LM (mb) and LS1 (or PTOP)
-C****
 C**** Print Header and Label (2 lines) from rundeck
 C****
       WRITE (6,'(A,40X,A/)') '0','GISS CLIMATE MODEL'
@@ -560,6 +541,7 @@ C****
       IF (XLABEL(73:80).EQ.'        ') NOFF=8   ! for 72-column rundecks
       XLABEL(81-NOFF:132)=NLREC(1:52+NOFF)
       WRITE (6,'(A,A/)') '0',XLABEL
+      RLABEL = XLABEL !@var RLABEL rundeck-label
 C****
 C**** Print preprocessing options (if any are defined)
 C****
@@ -583,26 +565,18 @@ C**** Read parameters from the rundeck to the database
 C****
       call parse_params( 8 )
 C**** Get those parameters which are needed in this subroutine
-      if(is_set_param("PTOP"))   call get_param( "PTOP", PTOP )
-      if(is_set_param("PSF"))    call get_param( "PSF", PSF ) !
-      if(is_set_param("LS1"))    call get_param( "LS1", LS1 )
       if(is_set_param("DTsrc"))  call get_param( "DTsrc", DTsrc )
       if(is_set_param("DT"))     call get_param( "DT", DT )
       if(is_set_param("NIsurf")) call get_param( "NIsurf", NIsurf ) !
       if(is_set_param("IRAND"))  call get_param( "IRAND", IRAND )
-      if(is_set_param("keyct"))  call get_param( "keyct", keyct )
+C??   if(is_set_param("keyct"))  call get_param( "keyct", keyct )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
-
-      if(is_set_param("PLTOP"))  call get_param( "PLTOP", PLTOP, 12 ) !!
-      if(is_set_param("IYEAR0")) call get_param( "IYEAR0", IYEAR0 ) !!
-C**** need to do some diagnostic initialisation here
-      call alloc_param( "IDACC", IDACC, (/12*0/), 12)
       call reset_diag(1)
 
 c     write( 6, INPUTZ )
 c     call print_param( 6 )
 
-      IF (ISTART.GE.9 .or. ISTART.LT.0) GO TO 400
+      IF (ISTART.GE.9 .or. ISTART.LT.0) GO TO 400 
 C***********************************************************************
 C****                                                               ****
 C****                  INITIAL STARTS - ISTART: 1 to 8              ****
@@ -619,34 +593,29 @@ C**** get unit for atmospheric initial conditions if needed
 C****
 C**** Set quantities that are derived from the namelist parameters
 C****
-      KTACC0 = KTACC      ! ????? not needed
 !@var NDAY=(1 day)/DTsrc : even integer; adjust DTsrc later if necessary
       NDAY = 2*NINT(.5*SDAY/DTsrc)
+
 C**** Get Start Time; at least YearI HAS to be specified in the rundeck
-      IhrI = ((yearI-Iyear0)*JDperY +
-     *        JDendofM(monthI-1) + dateI-1)*HR_IN_DAY + HourI
+      IF (YearI.lt.0) then
+        WRITE(6,*) 'Please choose a proper start year yearI, not',yearI
+        STOP 'INPUT: yearI not provided'
+      END IF
+      IF (Iyear1.lt.0) Iyear1 = yearI
+      IhrI = HourI +
+     +  HR_IN_DAY*(dateI-1 + JDendofM(monthI-1) + JDperY*(yearI-Iyear1))
       ITimeI = IhrI*NDAY/24  !  internal clock counts DTsrc-steps
       Itime=ItimeI
       IF (IhrI.lt.0) then
-        WRITE(6,*) 'Please set a proper start time; current values:',
-     *     'yearI,monthI,dateI,hourI=',yearI,monthI,dateI,hourI
-        STOP 'INPUT: No proper start date - set IYEARI'
+        WRITE(6,*) 'Improper start time OR Iyear1=',Iyear1,' > yearI;',
+     *     ' yearI,monthI,dateI,hourI=',yearI,monthI,dateI,hourI
+        STOP 'INPUT: Improper start date or base year Iyear1'
       END IF
-C**** The vertical layering
-      IF (PLTOP(1).lt.0.) then
-         write(6,*) 'Please specify PLTOP(1->12) (mb) and if PTOP=',
-     *      PTOP,' is not ok also specify either PTOP or LS1'
-         STOP 'INPUT: Vertical layering not defined - PLTOP'
+C**** Check the vertical layering defined in RES_ (is sige(ls1)=0 ?)
+      IF (SIGE(LS1).ne.0.) then
+        write(6,*) 'bad vertical layering: ls1,sige(ls1)',ls1,sige(ls1)
+        STOP 'INPUT: ls1 incorrectly set in RES_'
       END IF
-      IF (LS1.gt.0) PTOP=PLTOP(LS1-1)
-      DO L=1,LM    !  SIGE(1)=1.
-        SIGE(L+1)=(PLTOP(L)-PTOP)/(PSF-PTOP)
-        IF (SIGE(L).EQ.0.) LS1=L
-        SIG(L)=.5*(SIGE(L)+SIGE(L+1))
-      END DO
-      PSFMPT = PSF-PTOP
-      PSTRAT = PSFMPT*(SIGE(LS1)-SIGE(LM+1))
-      P(:,:)=PSFMPT
 C****
 C**** Get Ground conditions from a separate file - ISTART=1,2
 C****
@@ -676,6 +645,8 @@ C****
 C**** Use title of first record to get the date and make sure  ???
 C**** it is consistent with IHRI (at least equal mod 8760)     ???
 C****            not yet implemented but could easily be done  ???
+        XLABEL(1:80)='Observed atmospheric data from NMC tape'
+Csoon   READ (iu_AIC) XLABEL(1:80)
         CALL READT (iu_AIC,0,P,IM*JM,P,1)             ! Psurf
         DO I=1,IM*JM
         P(I,1)=P(I,1)-PTOP                            ! Psurf -> P
@@ -797,11 +768,10 @@ C**** Check consistency of starting time
 C**** Set flag to initialise lake variables if they are not in I.C.
       IF (ISTART.lt.8) inilake=.TRUE.
 C****
-C**** Use IRAND<0 to perturb initial temperatures to create ensembles
-C****                              perturbation is at most 1 degree C
-      IF (IRAND.LT.0) THEN
-        IRAND=-IRAND ! in old Random#gen. all seeds were >0 (RANDIBM)
-        CALL RINIT (IRAND)
+!@var IRANDI seed for random perturbation of initial conditions (if/=0)
+C****        perturbation is at most 1 degree C
+      IF (IRANDI.NE.0) THEN
+        CALL RINIT (IRANDI)
         DO L=1,LM
         DO J=1,JM
         DO I=1,IM
@@ -810,32 +780,23 @@ C****                              perturbation is at most 1 degree C
         END DO
         END DO
         END DO
-        WRITE(6,*) 'Initial conditions were perturbed !!',IRAND
-        IRAND=123456789  ! old Rand#gen: all seeds were >0 (RANDIBM)
+        WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
       END IF
 C**** Sending parameters which had just been set to the DB
       ! the following lines overwrite rundeck parameters
-      call set_param( "PTOP", PTOP, 'o' )
-      call set_param( "LS1", LS1, 'o' )
-      call set_param( "IRAND", IRAND, 'o' )
       ! the following are NON-rundeck parameters
-      call set_param( "ItimeI", ItimeI ) !input 1
-      call set_param( "NDAY", NDAY ) !input 1
-      call set_param( "PSFMPT", PSFMPT ) !input 1
-      call set_param( "PSTRAT", PSTRAT ) !input 1
-      call set_param( "SIG", SIG, LM ) !input 1
-      call set_param( "SIGE", SIGE, LM+1 ) !input 1
-
+C??   call set_param( "ItimeI", ItimeI ) !input 1     ??
+C??   call set_param( "NDAY", NDAY ) !input 1         ??
 
       WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)')
      *  '0Model started on',datei,aMONTH(monthi),yeari,' Hr',houri,
-     *  'ISTART =',ISTART,XLABEL(1:80)
+     *  'ISTART =',ISTART,XLABEL(1:80)    ! report input file label
+      XLABEL = RLABEL                     ! switch to rundeck label
 
       GO TO 600
 C***********************************************************************
 C****                                                               ****
-C****                  RESTARTS: ISTART < 0                         ****
-C****   Post-processing call for diagnostic output                  ****
+C****   Post-process ACC-files : ISTART < 0                         ****
 C****                  RESTARTS: ISTART > 8                         ****
 C****   Current settings: 9 - from own model M-file                 ****
 C****                    10 - from later of fort.1 or fort.2        ****
@@ -863,10 +824,26 @@ C****   DATA FROM end-of-month RESTART FILE     ISTART=9
 C****                          used for REPEATS and delayed EXTENSIONS
       CASE (9)    ! no need to read diag.arrays
         call getunit("AIC",iu_AIC,.true.,.true.)
-        call io_rsf(iu_AIC,ItimeX,irerun,ioerr)
+        call io_rsf(iu_AIC,Itime,irerun,ioerr)
         if (ioerr.eq.1) goto 800
         WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
-     *    ISTART,', HOUR=',ItimeX,' ',XLABEL(1:80)
+     *    ISTART,', TIME=',Itime,' ',XLABEL(1:80) ! sho input file label
+        XLABEL = RLABEL                        ! switch to rundeck label
+C****
+!**** IRANDI seed for random perturbation of current state (if/=0)
+C****        perturbation is at most 1 degree C
+      IF (IRANDI.NE.0) THEN
+        CALL RINIT (IRANDI)
+        DO L=1,LM
+        DO J=1,JM
+        DO I=1,IM
+           TIJL=T(I,J,L)*(P(I,J)*SIG(L)+PTOP)**KAPA-1.+2*RANDU(X)
+           T(I,J,L)=TIJL/(P(I,J)*SIG(L)+PTOP)**KAPA
+        END DO
+        END DO
+        END DO
+        WRITE(6,*) 'Current temperatures were perturbed !!',IRANDI
+      END IF
         TIMING = 0
         GO TO 500
 C****
@@ -880,54 +857,42 @@ C**** CHOOSE DATA SET TO RESTART ON
          Itime2=-1
          READ (2,ERR=420) Itime2
   420    REWIND 2
-         KDISK=1
          IF (Itime1+Itime2.LE.-2.) GO TO 850
+                               KDISK=1
          IF (Itime2.GT.Itime1) KDISK=2
-         IF (ISTART.GE.13) KDISK=3-KDISK
+         IF (ISTART.GE.13)     KDISK=3-KDISK
       CASE (11,12)
-         KDISK=ISTART-10
+                               KDISK=ISTART-10
       END SELECT
-C**** RESTART ON UNIT KDISK IN CASE 10-99
-      KDISK0=KDISK
-C**** After reading (which may change KDISK), reset KDISK such that
-C**** the next write action overwrites that SAME file ONLY if ISTART=10
-C**** was used WITHOUT PROBLEMS (since then - in case of trouble - we
-C**** can go back to the earlier file). In all other cases we want to
-C**** first overwrite the other (potentially bad) file. (The most likely
-C**** reason not to use ISTART=10 is trouble with the other file.)
-      call io_rsf(KDISK0,ItimeX,ioread,ioerr)
-      if (ioerr.eq.1) then    ! try the other restart file
-         rewind kdisk0
-         KDISK=3-KDISK0
+  430 call io_rsf(KDISK,Itime,ioread,ioerr)
+      if (ioerr.eq.1) then
+         if (istart.gt.10) go to 850  ! no 2nd chance if istart/=10
+         KDISK=3-KDISK                ! try the earlier restart file
          WRITE (6,'(A,I1,A,I1)')
-     *     ' Read Error on fort.',kdisk0,' trying fort.',kdisk
-         KDISK0=KDISK
-         call io_rsf(KDISK0,ItimeX,ioread,ioerr)
-         if (ioerr.eq.1) go to 850
-         IF (istart.eq.10) KDISK0=3-KDISK
+     *     ' Read Error on fort.',3-kdisk,' trying fort.',kdisk
+         ISTART=110
+         go to 430
       end if
-      KDISK=KDISK0
-      IF (istart.gt.10) KDISK=3-KDISK
-
       WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT',
-     *   KDISK,', HOUR=',ItimeX,' ',XLABEL(1:80)
+     *   KDISK,', Time=',Itime,' ',XLABEL(1:80)
+
+C**** Switch KDISK if the other file is (or may be) bad (istart>10)
+C****     so both files will be fine after the next write execution
+      IF (istart.gt.10) KDISK=3-KDISK
+C**** Keep KDISK after reading from the later restart file, so that
+C****     the same file is overwritten first; in case of trouble,
+C****     the earlier restart file will still be available
+
   500 CONTINUE
 C**** Get parameters we just read from rsf file. Only those
-C**** parameters which we need in "INPUT" should be extrcted here.
+C**** parameters which we need in "INPUT" should be extracted here.
       if(is_set_param("DTsrc"))  call get_param( "DTsrc", DTsrc )
       if(is_set_param("DT"))     call get_param( "DT", DT )
       if(is_set_param("keyct"))  call get_param( "keyct", keyct )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
-      if(is_set_param("ItimeE")) call get_param( "ItimeE", ItimeE ) !inp
+C??   if(is_set_param("ItimeE")) call get_param( "ItimeE", ItimeE ) !inp
       if(is_set_param("NIdyn"))  call get_param( "NIdyn", NIdyn ) !input
-      if(is_set_param("NDAY"))   call get_param( "NDAY", NDAY ) !input
-      if(is_set_param("Itime"))  call get_param( "Itime", Itime ) !main
-
-C**** For documentation purposes only, find PLTOP (appears on printout)
-      if(is_set_param("PLTOP"))   call get_param( "PLTOP", PLTOP, LM )
-c      DO L=1,LM
-c      PLTOP(L)=PTOP+PSFMPT*SIGE(L+1)
-c      END DO
+C??   if(is_set_param("NDAY"))   call get_param( "NDAY", NDAY ) !input
 
 C***********************************************************************
 C****                                                              *****
@@ -936,13 +901,13 @@ C****                                                              *****
 C***********************************************************************
   600 CONTINUE
 
-
+      call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
       IF (KEYCT.LE.1) KEYNR=0
-      IF (KEYCT.LE.1) KEYCT=1
+      IF (KEYCT.LE.1) KEYCT=1     !!??
 C****
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
-      IF (yearE.ge.0) ItimeE = (( (yearE-Iyear0)*JDperY +
+      IF (yearE.ge.0) ItimeE = (( (yearE-iyear1)*JDperY +
      *    JDendofM(monthE-1)+dateE-1 )*HR_IN_DAY + HourE )*NDAY/24
 C**** Alternate (old) way of specifying end time
       if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/24
@@ -950,8 +915,16 @@ C**** Alternate (old) way of specifying end time
 C****
 C**** Recompute dtsrc,dt making NIdyn=dtsrc/dt(dyn) a multiple of 2
 C****
+      if (is_set_param("DTsrc") .and. nint(sday/DTsrc).ne.NDAY) then
+        write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to',SDAY/NDAY
+        stop 'INPUT: DTsrc inappropriately set'
+      end if
       DTsrc = SDAY/NDAY   ! currently 1 hour
       NIdyn = 2*nint(.5*dtsrc/dt)
+      if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
+        write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
+        stop 'INPUT: DT inappropriately set'
+      end if
       DT = DTsrc/NIdyn
 C**** Restrict NMONAV to 1(default),2,3,4,6,12, i.e. a factor of 12
       if (NMONAV.lt. 1) NMONAV=1
@@ -965,20 +938,13 @@ C****
 C**** Overwrite rundeck parameters in the DB that were changed
       call set_param( "DTsrc", DTsrc, 'o' )
       call set_param( "DT", DT, 'o' )
-      call set_param( "keyct", keyct, 'o' )
+      call set_param( "keyct", keyct, 'o' )  !!??
       call set_param( "NMONAV", NMONAV, 'o' )
 
 C**** Overwrite non-rundeck parameters that were changed
-      call set_param( "ItimeE", ItimeE, 'o' ) !input
+C??   call set_param( "ItimeE", ItimeE, 'o' ) !input
       call set_param( "NIdyn", NIdyn, 'o' ) !input
-      call set_param( "Itime", Itime, 'o' ) !main
-
-ccc the following 5 lines are for information only (not read at restart)
-      if(.not.is_set_param("IM0"))    call set_param( "IM0", IM0 )
-      if(.not.is_set_param("JM0"))    call set_param( "JM0", JM0 )
-      if(.not.is_set_param("LM0"))    call set_param( "LM0", LM0 )
-      if(.not.is_set_param("KACC0")) call set_param( "KACC0", KACC0 ) !?
-      if(.not.is_set_param("KTACC0")) call set_param( "KTACC0", KTACC0 )
+C??   call set_param( "Itime", Itime, 'o' ) !main
 
 C**** Get the rest of parameters from DB or put defaults to DB
       call init_Model
@@ -988,14 +954,6 @@ C**** COMPUTE GRID RELATED VARIABLES AND READ IN TIME-INDEPENDENT ARRAYS
 C****
 C**** CALCULATE SPHERICAL GEOMETRY
       CALL GEOM_B
-C**** CALCULATE DSIG AND DSIGO
-      DO L=1,LM
-         DSIG(L)=SIGE(L)-SIGE(L+1)
-         BYDSIG(L)=1./DSIG(L)
-      END DO
-      DO L=1,LM-1
-         DSIGO(L)=SIG(L)-SIG(L+1)
-      END DO
       CALL CALC_AMPK(LM)
 
 C**** READ SPECIAL REGIONS FROM UNIT 29
@@ -1077,12 +1035,13 @@ C****
       CALL init_DIAG(ISTART)
       if(istart.gt.0) CALL init_QUS(im,jm,lm)
       if(istart.gt.0) CALL init_MOM(im,jm,lm)
-      IF (KDIAG(2).EQ.9.AND.SKIPSE.EQ.0..AND.KDIAG(3).LT.9) KDIAG(2)=8
+      IF (KDIAG(2).EQ.9.AND.KDIAG(3).LT.9) KDIAG(2)=8
       WRITE (6,INPUTZ)
       call print_param( 6 )
       WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
-      WRITE (6,'(A14,2I8)') "KACC0,KTACC0=",KACC0,KTACC0
-      WRITE (6,'(A14,3I4)') "IM,JM,LM=",IM,JM,LM
+      WRITE (6,'(A14,2I8)') "KACC=",KACC
+      WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
+      WRITE (6,*) "PLbot=",PTOP+PSFMPT*SIGE
       RETURN
 C****
 C**** TERMINATE BECAUSE OF IMPROPER PICK-UP
@@ -1105,7 +1064,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : orbit
       USE MODEL_COM, only : im,jm,p,itime,itimei,ptop,psf,ls1,jday
-     *     ,iyear0,nday,jdpery,jyear,jmon,jdendofm,jdate,aMON,aMONTH
+     *     ,iyear1,nday,jdpery,jyear,jmon,jdendofm,jdate,aMON,aMONTH
      *     ,jhour
       USE GEOM, only : areag,dxyp
       USE RADNCB, only : RSDIST,COSD,SIND
@@ -1145,7 +1104,7 @@ C**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
 C****
 C**** CALCULATE THE DAILY CALENDAR
 C****
-  200 call getdte(Itime,Nday,Iyear0,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+  200 call getdte(Itime,Nday,iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
       CALL ORBIT (OBLIQ,ECCN,OMEGT,DFLOAT(JDAY)-.5,RSDIST,SIND,COSD,LAM)

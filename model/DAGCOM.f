@@ -321,38 +321,37 @@ c idacc-indices of various processes
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,ioread_single,irerun,irsfic,
-     *     iowrite,iowrite_mon,iowrite_single
+     *     iowrite,iowrite_mon,iowrite_single , idacc
       USE DAGCOM
       IMPLICIT NONE
       REAL*4 ACCS(KACC),TSFREZS(IM,JM,KTSF)
       integer monac1(12)
-!@var cDATE0 beg.of acc-period date as string 'DY MNTH(MM) YEARhrHR'
-!ny   character*20 cDATE0,cDATE01    !@var Cdate01 dummy date string
-!@var ITmin minimal Itime of acc files to be summed up
-!ny   INTEGER, SAVE :: ITmin=-1
+!@var Kcomb counts acc-files as they are added up
+      INTEGER, SAVE :: Kcomb=0
 
       INTEGER kunit   !@var kunit unit number of read/write
-!ny   INTEGER k,idac1(12)
+      INTEGER idac1(12)
       INTEGER iaction !@var iaction flag for reading or writing to file
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*8 :: HEADER, MODULE_HEADER = "DIAG01"
+      CHARACTER*72 :: hd2 = '  '
 !@var it input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
 
+      write(hd2(4:17),'(a6,i3,a1,i3,a1)') 'keynr(',NKEYNR,',',NKEYMO,')'
+      write(hd2(18:33),'(a14,i1,a1)') ',TSFREZ(IM,JM,',KTSF,')'
+      write(hd2(34:43),'(a7,i2,a1)') ',idacc(',12,')'
+      write(hd2(44:58),'(a5,i9,a1)') ',acc(',kacc,')'
       SELECT CASE (IACTION)
       CASE (IOWRITE)            ! output to standard restart file
-!ny     WRITE (cDATE0,'(i2,1x,a4,  a1,i2,a1,      i5,    a2,i2)')
-!ny  *                JDATE0,AMON0,'(',JMON0,')',JYEAR0,'hr',JHOUR0
-!ny     WRITE (kunit,err=10) MODULE_HEADER,cDATE0,keyct,KEYNR,TSFREZ,
-!old
-        WRITE (kunit,err=10) MODULE_HEADER,KEYNR,TSFREZ,AJ,AREG,APJ,AJL,
-     *       ASJL,AIJ,AIL,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,
-     *       AJK,AIJK,AIJL,AJLSP,TDIURN,OA,it
+        WRITE (kunit,err=10) MODULE_HEADER,KEYNR,TSFREZ,   ! idacc,
+     *     AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,CONSRV,SPECA,ATPE,
+     *     ADAILY,WAVE,AJK,AIJK,AIJL,AJLSP,TDIURN,OA,it    ,idacc !!????
       CASE (IOWRITE_SINGLE)     ! output in single precision
-        WRITE (kunit,err=10) MODULE_HEADER,KEYNR,SNGL(TSFREZ),SNGL(AJ),
-     *     SNGL(AREG),SNGL(APJ),SNGL(AJL),
+        WRITE (kunit,err=10) MODULE_HEADER,hd2,KEYNR,SNGL(TSFREZ),idacc,
+     *     SNGL(AJ),SNGL(AREG),SNGL(APJ),SNGL(AJL),
      *     SNGL(ASJL),SNGL(AIJ),SNGL(AIL),SNGL(ENERGY),
      *     SNGL(CONSRV),SNGL(SPECA),SNGL(ATPE),SNGL(ADAILY),SNGL(WAVE),
      *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),monacc,
@@ -360,17 +359,23 @@ c idacc-indices of various processes
       CASE (IOWRITE_MON)        ! output to end-of-month restart file
         WRITE (kunit,err=10) MODULE_HEADER,KEYNR,TSFREZ,it
       CASE (ioread)           ! input from restart file
-        READ (kunit,err=10) HEADER,KEYNR,TSFREZ,AJ,AREG,APJ,AJL,ASJL,
-     *       AIJ,AIL,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK,
-     *       AIJK,AIJL,AJLSP,TDIURN,OA,it
+        READ (kunit,err=10) HEADER,KEYNR,TSFREZ,           ! idacc,
+     *      AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,CONSRV,SPECA,ATPE,
+     *      ADAILY,WAVE,AJK,AIJK,AIJL,AJLSP,TDIURN,OA,it ,idacc !!????
         IF (HEADER.NE.MODULE_HEADER) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
       CASE (IOREAD_SINGLE)      !
-        READ (kunit,err=10) HEADER,KEYNR,TSFREZS,ACCS,monac1
+        READ (kunit,err=10) HEADER,KEYNR,TSFREZS,idac1,ACCS,monac1,it
         TSFREZ=TSFREZS
         ACC=ACC+ACCS
+        IDACC = IDACC + IDAC1
+!@var idacc(5) is the length of a time series (daily energy history)
+!****   if combining acc-files, rather than concatenating the series,
+!****   we take the mean time series, truncated to the shortest series.
+        Kcomb = Kcomb + 1
+        if (Kcomb.gt.1) IDACC(5) = MIN(IDACC(5)-IDAC1(5),IDAC1(5))
         monacc = monacc + monac1
       CASE (irerun)      ! only keynr,tsfrez needed at beg of acc-period
         READ (kunit,err=10) HEADER,KEYNR,TSFREZ  ! 'it' is not read in

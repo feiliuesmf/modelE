@@ -2,6 +2,10 @@ E001B.R GISS Model E                                 gas 06/00
 
 E001B: new modelE (based on B402A - coupled version)
 
+Preprocessor Options
+!#define TRACERS_ON                  ! include tracers code
+End Preprocessor Options
+
 Object modules: (in order of decreasing priority)
 RES_M12                             ! horiz/vert resolution
 MODEL_COM GEOM_B FLUXES             ! model modules
@@ -27,7 +31,7 @@ POUT                                ! for post-processing
 PARAM PARSER
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.11
+AIC=DEC1958.rsfB394M12.modelE.11x
 OIC=OIC4X5LD.Z12.CLEV94.DEC01S  ! ocean initial conditions
 OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=AVR4X5LD.Z12                ! ocean filter
@@ -55,25 +59,22 @@ E001B (new modelE based on B402A - coupled version)
 R=00BG/B
 
 &&PARAMETERS
-IYEAR0=1950
 CO2=-6.
 XCDLM=.0005,.00005
-PTOP=150.,    ! from defaults: PSF=984., LS1=9,
-PLTOP=934.,854.,720.,550.,390., 285.,210.,150.,100.,60.,30.,10.
 KOCEAN=1
 U00wtr=.50
 U00ice=.50
 
 DT=450.,        ! from default: DTsrc=3600.,
-NSLP=0          ! saving SLP 12hrly,VFLXO daily,acc+rsf
-Kvflxo=0
-KCOPY=2
-! saving SLP 12hrly,VFLXO daily,acc+rsf
+NSLP=0          ! saving SLP 0hrly
+Kvflxo=0        ! not saving VFLXO (daily)
+KCOPY=2         ! saving acc + rsf
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1950,MONTHI=1,DATEI=1,HOURE=0,
+   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0,
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
+                       !  from default: IYEAR1=YEARI
    YEARE=1950,MONTHE=2,
-   ISTART=7,YEARE=1950,MONTHE=1,HOURE=1,
+   ISTART=7,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,
  &END

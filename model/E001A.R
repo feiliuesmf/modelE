@@ -2,6 +2,10 @@ E001A.R GISS Model E                                 gas 06/00
 
 E001A: new modelE (Qflux version)
 
+Preprocessor Options
+!#define TRACERS_ON                  ! include tracers code
+End Preprocessor Options
+
 Object modules: (in order of decreasing priority)
 RES_M12                             ! horiz/vert resolution
 MODEL_COM GEOM_B FLUXES             ! model modules
@@ -25,7 +29,7 @@ POUT                                ! for post-processing
 PARAM PARSER
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.11
+AIC=DEC1958.rsfB394M12.modelE.11x
 OHT=OTSPEC.RB399AM12.M250D OCNML=Z1O.B4X5.cor
 MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
 OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
@@ -52,25 +56,22 @@ E001A (new modelE based on B402A - Qflux)
 R=00BG/B
 
 &&PARAMETERS
-IYEAR0=1950
 CO2=-6.
 XCDLM=.0005,.00005
-PTOP=150.,    ! from defaults: PSF=984., LS1=9,
-PLTOP=934.,854.,720.,550.,390., 285.,210.,150.,100.,60.,30.,10.
 KOCEAN=1
 U00wtr=.50
 U00ice=.50
 
 DT=450.,        ! from default: DTsrc=3600.,
-NSLP=12
-Kvflxo=1
-KCOPY=2
-! saving SLP 12hrly,VFLXO daily,acc+rsf
+NSLP=12         ! saving SLP 12hrly
+Kvflxo=1        ! saving VFLXO (daily)
+KCOPY=2         ! saving acc + rsf
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1950,MONTHI=1,DATEI=1,HOURE=0,
+   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0,
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
+                       !  from default: IYEAR1=YEARI
    YEARE=1950,MONTHE=2,
-   ISTART=7,YEARE=1950,MONTHE=1,HOURE=1,
+   ISTART=7,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,
  &END

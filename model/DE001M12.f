@@ -15,7 +15,6 @@ C****
       SAVE
       DOUBLE PRECISION, DIMENSION(LM) :: PLE
       DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PLM
-      DOUBLE PRECISION PMTOP
       END MODULE DAGPCOM
 
 C****                                                             IDACC
@@ -355,10 +354,9 @@ C****
 !@ve   1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,bbyg,gbyrb,tf
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop
-     *     ,psfmpt,mdyn,mdiag,sig,sige,dsig,dsigo,zatmo,WM,ntype,ftype
+     *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
      *     ,imaxj,ravpn,ravps,sinp
-      USE DAGPCOM, only : PMTOP
       USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,
      &     aij,ij_dtdp,ij_pev,ij_phi1k,ij_pres,ij_puq,ij_pvq,
      &     ij_slp,ij_t850,ij_ujet,ij_vjet,j_tx1,
@@ -1139,9 +1137,9 @@ C**** VERTICAL TRANSPORT
      *    U(IM1,J,L+1)+U(IM1,J+1,L+1)+U(I,J,L+1)+U(I,J+1,L+1)
       VPE=V(IM1,J,L)+V(IM1,J+1,L)+V(I,J,L)+V(I,J+1,L)+
      *    V(IM1,J,L+1)+V(IM1,J+1,L+1)+V(I,J,L+1)+V(I,J+1,L+1)
-      DP=DSIGO(L)*P(I,J)
-      IF(L.GE.LS1) DP=DSIGO(L)*PSFMPT
-      IF(L.EQ.LS1-1) DP=P(I,J)*SIG(LS1-1)-PSFMPT*SIG(LS1)
+      DP=(SIG(L)-SIG(L+1))*P(I,J)
+      IF(L.GE.LS1) DP=(SIG(L)-SIG(L+1))*PSFMPT
+      IF(L.EQ.LS1-1) DP=P(I,J)*SIG(L)-PSFMPT*SIG(LS1)
       PVTHP=PVTHP+DP*VPE*(T(I,J,L)+T(I,J,L+1)-THMN)
       PITIJ=PIT(I,J)
       IF(L.GE.LS1-1) PITIJ=0.
@@ -1240,7 +1238,7 @@ C****
       USE CONSTANT, only : lhe,omega,sha,tf
       USE MODEL_COM, only :
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop,psfmpt,
-     &     mdyn,mdiag, ndaa, skipse,
+     &     mdyn,mdiag, ndaa,      !! skipse,
      &     sig,sige,dsig, Jhour, ijd6
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
@@ -1547,7 +1545,7 @@ C**** ACCUMULATE HERE
       VDVTI=VDVTI+BYDP*PVK*DVTK
       DUTI=DUTI+DUTK
       UDUTI=UDUTI+BYDP*PUK*DUTK
-      IF(SKIPSE.EQ.1.) GO TO 334
+!!    IF(SKIPSE.EQ.1.) GO TO 334
       AIJK(I,J,K,1)=AIJK(I,J,K,1)+PUK
       AIJK(I,J,K,2)=AIJK(I,J,K,2)+PVK
       AIJK(I,J,K,3)=AIJK(I,J,K,3)+SHA*PT4K+PZ4K
@@ -2916,7 +2914,7 @@ C****
 C**** THIS SUBROUTINE PRODUCES A TIME HISTORY OF ENERGIES
 C****
       USE MODEL_COM, only : im,jm,lm,
-     &     IDACC,JEQ,LS1,SKIPSE
+     &     IDACC,JEQ,LS1          !! ,SKIPSE
       USE GEOM, only : DXYV
       USE DAGCOM, only : energy,speca,ajk,aijk
       IMPLICIT NONE
@@ -2934,7 +2932,7 @@ C**** LOAD ENERGIES INTO TIME HISTORY ARRAY
 C****
       IDACC5=IDACC(5)+1
       IF (IDACC5.GT.100) RETURN
-      IF (SKIPSE.EQ.1.) GO TO 540
+!!    IF (SKIPSE.EQ.1.) GO TO 540
 C**** CALCULATE CURRENT SEKE
       BYIADA=1./IDACC(4)
       DO 530 L=1,LM
@@ -3006,12 +3004,12 @@ C****
 !@ver  1.0
       USE CONSTANT, only : sday
       USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,sige,sig,psf,ptop
-     *     ,nfiltr,dtsrc,jhour,jdate,jmon,amon,jyear
+     *     ,pmtop,nfiltr,dtsrc,jhour,jdate,jmon,amon,jyear
      *     ,jhour0,jdate0,jmon0,amon0,jyear0,idacc,ioread_single
-     *     ,xlabel,keyct,iowrite_single,iyear0,nday,dtsrc,dt,nmonav
+     *     ,xlabel,keyct,iowrite_single,iyear1,nday,dtsrc,dt,nmonav
      *     ,ItimeE
       USE DAGCOM
-      USE DAGPCOM, only : ple,plm,pmtop
+      USE DAGPCOM, only : ple,plm
       USE PARAM
       USE FILEMANAGER
       IMPLICIT NONE
@@ -3024,25 +3022,15 @@ c**** Initialize acc-array names, units, idacc-indices
       call def_acc
 
 C**** Ensure that diagnostics are reset at the beginning of the run
-      IF (Itime.le.ItimeI) THEN
-        IF (ISTART.gt.0) THEN
-          CALL reset_DIAG(0)
-          CALL daily_DIAG
-        END IF
-      ELSE  ! get parameters from restart file
-        call get_param( "Itime0", Itime0 )
-        call get_param( "JYEAR0", JYEAR0 )
-        call get_param( "JMON0", JMON0 )
-        call get_param( "JDATE0", JDATE0 )
-        call get_param( "JHOUR0", JHOUR0 )
-        call get_param( "AMON0", AMON0 )
-        call get_pparam( "IDACC", IDACC, 12) 
+      IF (Itime.le.ItimeI .and. ISTART.gt.0) THEN
+        CALL reset_DIAG(0)
+        CALL daily_DIAG
       END IF
 
       IF(ISTART.LT.0) THEN
-        call getdte(Itime0,Nday,Iyear0,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
+        call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
      *       ,amon0)
-        call getdte(Itime,Nday,Iyear0,Jyear,Jmon,Jday,Jdate,Jhour
+        call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
      *       ,amon)
         months=0 ; years=monacc(jmon0) ; mswitch=0
         do k=1,12
@@ -3090,7 +3078,6 @@ C**** Ensure that diagnostics are reset at the beginning of the run
       END IF
 
 C**** Initialize certain arrays used by more than one print routine
-      PMTOP=(PSF-PTOP)*SIGE(LM+1)+PTOP
       DO L=1,LM
         PLE(L)=SIGE(L+1)*(PSF-PTOP)+PTOP
         PLM(L)=SIG(L)*(PSF-PTOP)+PTOP
@@ -3185,26 +3172,13 @@ C**** Hence this diagnostic gives the error
 !@sum  reset_DIAG resets/initiallises diagnostics
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : Itime,jhour,jdate,jmon,amon,jyear,
+      USE MODEL_COM, only : Itime,iyear1,nday,
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc,u
       USE DAGCOM
       USE PARAM
       IMPLICIT NONE
-      INTEGER :: isum  !@var isum if =1 preparation for adding up acc-files
-
-      Itime0=Itime
-      JHOUR0=JHOUR
-      JDATE0=JDATE
-      JMON0=JMON
-      AMON0=AMON
-      JYEAR0=JYEAR
-
-      call set_param( "Itime0", Itime0, 'o' )
-      call set_param( "JYEAR0", JYEAR0, 'o' )
-      call set_param( "JMON0", JMON0, 'o' )
-      call set_param( "JDATE0", JDATE0, 'o' )
-      call set_param( "JHOUR0", JHOUR0, 'o' )
-      call set_param( "AMON0", AMON0, 'o' )
+      INTEGER :: isum !@var isum if =1 preparation to add up acc-files
+      INTEGER jd0
 
       IDACC(1:12)=0
       AJ=0    ; AREG=0
@@ -3212,11 +3186,15 @@ C**** Hence this diagnostic gives the error
       AIL=0   ; ENERGY=0 ; CONSRV=0
       SPECA=0 ; ATPE=0 ; ADAILY=0 ; WAVE=0
       AJK=0   ; AIJK=0 ; AIJL=0   ; AJLSP=0
-     
+      if (isum.eq.1) return
+
+      AIJ(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
+
+      Itime0=Itime
+      call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jd0,
+     *     Jdate0,Jhour0,amon0)
+
       CALL EPFLXI (U)  ! strat
-      if (isum.ne.1) then
-        AIJ(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
-      end if
 
       RETURN
       END SUBROUTINE reset_DIAG

@@ -15,7 +15,7 @@ C**** Routines included:   COSZ0, RADIA, DRYCNV, SDRAG
       USE GEOM, only : dlat,dlon,lon,sinip,cosip
       USE RADNCB, only : cosd,sind
       IMPLICIT NONE
-      SAVE 
+      SAVE
       REAL*8, DIMENSION(IM) :: LT1,LT2,SLT1,SLT2,S2LT1,S2LT2
       REAL*8, DIMENSION(IM,JM) :: COSZ,COSZA
       REAL*8, DIMENSION(JM) :: SINJ,COSJ
@@ -399,9 +399,9 @@ C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
          COE(L)=DTsrc*COEX/DSIG(L)
          PLE(L)=SIGE(L)*PSFMPT+PTOP
       END DO
-      PLE(LM+1)=SIGE(LM+1)*PSFMPT+PTOP
-      PLE(LM+2)=.5*PLE(LM+1)
-      PLE(LMR)=.2*PLE(LM+1)
+      PLE(LM+1)=PMTOP
+      PLE(LM+2)=.5*PMTOP
+      PLE(LMR)=.2*PMTOP
       PLE(LMR+1)=1.D-5
       PTOPTR=PTOP ! top of sigma-coord.system
       DO 40 LR=LM+1,LMR

@@ -39,12 +39,7 @@ c
          iparm_name(k) = 'nowrite'
       enddo
 c contents of iparmb common block
-      call set_iparm('IM0',IM0)
-      call set_iparm('JM0',JM0)
-      call set_iparm('LM0',LM0)
       call set_iparm('LS1',LS1)
-      call set_iparm('KACC0',KACC0)
-      call set_iparm('KTACC0',KTACC0)
       call set_iparm('Itime',Itime)
       call set_iparm('ItimeI',ItimeI)
       call set_iparm('ItimeE',ItimeE)
@@ -79,7 +74,7 @@ c contents of iparmb common block
       call set_iparm('MODRD',MODRD)
       call set_iparm('MODD5K',MODD5K)
       call set_iparm('MODD5S',MODD5S)
-      call set_iparm('IYEAR0',IYEAR0)
+      call set_iparm('IYEAR1',IYEAR1)
       call set_iparm('JYEAR',JYEAR)
       call set_iparm('JYEAR0',JYEAR0)
       call set_iparm('JMON',JMON)
@@ -130,8 +125,7 @@ c contents of rparmb common block
       call set_dparm('PSF',PSF)
       call set_dparm('PSFMPT',PSFMPT)
       call set_dparm('PSTRAT',PSTRAT)
-      call set_dparm('PSDRAG',PSDRAG)
-      call set_dparm('SKIPSE',SKIPSE)
+!!    call set_dparm('SKIPSE',SKIPSE)
 c from constants module
       call set_dparm('SDAY',SDAY)
       call set_dparm('GRAV',GRAV)
@@ -1532,7 +1526,7 @@ c
       ia_ij(k) = ia_nmo
 c
       k=k+1 !  'AIJ100'
-      IJ_LKOFF = k 
+      IJ_LKOFF = k
       lname_ij(k) = 'LAST DAY OF ICED-UP LAKE'
       units_ij(k) = 'JULIAN DAY'
       name_ij(k) = 'LKOFFDAY'
