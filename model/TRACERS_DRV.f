@@ -3481,9 +3481,9 @@ C**** set some defaults
       itcon_3Dsrc(4,N) = 16
       qcon(itcon_3Dsrc(4,N)) = .true.; conpts(4) = 'Chem sink'
       qsum(itcon_3Dsrc(4,N)) = .true.
-      itcon_3Dsrc(6,N) = 17
-      qcon(itcon_3Dsrc(6,N)) = .true.; conpts(5) = 'Heter sink'
-      qsum(itcon_3Dsrc(6,N)) = .true.
+      itcon_3Dsrc(5,N) = 17
+      qcon(itcon_3Dsrc(5,N)) = .true.; conpts(5) = 'Heter sink'
+      qsum(itcon_3Dsrc(5,N)) = .true.
       itcon_surf(1,N) = 18
       qcon(itcon_surf(1,N)) = .true.; conpts(6) = 'Industrial src'
       qsum(itcon_surf(1,N))=.false.
