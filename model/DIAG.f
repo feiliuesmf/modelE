@@ -2473,8 +2473,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       CHARACTER*64 :: subdd = "SLP"
 !@dbparam Nsubdd: DT_save_SUBDD =  Nsubdd*DTsrc sub-daily diag freq.
       INTEGER :: Nsubdd = 0
-      
-
+     
       contains
 
       subroutine init_subdd(aDATE)
@@ -2617,24 +2616,40 @@ C****
       subroutine get_subdd
 !@sum get_SUBDD saves instantaneous variables at sub-daily frequency
 !@+   every ABS(NSUBDD) hours.
-!@+   Current options: SLP, SAT, PREC, QS, LCLD, MCLD, HCLD, TROP
+!@+   Current options: SLP, PS, SAT, PREC, QS, LCLD, MCLD, HCLD, PTRO
+!@+                    QLAT, QSEN, SWDN, SWUP, LWDN, STAUX, STAUY,
+!@+                    ICEF, SNOWD
 !@+                    Z*, R*, T*  (on any fixed pressure level)
 !@+                    U*, V*      (on any model level)
 !@+                    Ox*         (on any model level with chemistry)
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
-      USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair
-      USE MODEL_COM, only : lm,p,ptop,zatmo,dtsrc,u,v
+      USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair,sha
+     *     ,lhe,rhow
+      USE MODEL_COM, only : lm,p,ptop,zatmo,dtsrc,u,v,focean,fearth
+     *     ,flice
       USE GEOM, only : imaxj,dxyp
       USE PBLCOM, only : tsavg,qsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc
       USE DYNAMICS, only : ptropo,am
-      USE FLUXES, only : prec
+      USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
+      USE SEAICE_COM, only : rsi,snowi
+      USE LANDICE_COM, only : snowli
+      USE LAKES_COM, only : flake
+      USE GHYCOM, only : snowe
+      USE RADNCB, only : trhr
       USE DAGCOM, only : z_inst,rh_inst,t_inst,kgz_max,pmname
+#ifdef TRACERS_DRYDEP
+      USE tracers_DRYDEP, only: trdrydep_rad
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: salbfj
+#endif
       IMPLICIT NONE
       REAL*4, DIMENSION(IM,JM) :: DATA
       INTEGER :: I,J,K,L,kp,kunit
       CHARACTER namel*3
+      REAL*8 POICE,PEARTH,PLANDI
 
       kunit=0
 C**** depending on namedd string choose what variables to output
@@ -2649,13 +2664,52 @@ C**** simple diags
      *           **gbyrb
           end do
           end do
+        case ("PS")      ! surface pressure (mb)
+          do j=1,jm
+          do i=1,imaxj(j)
+            data(i,j)=p(i,j)+ptop
+          end do
+          end do
         case ("SAT")      ! surf. air temp (C)
           data=tsavg-tf
         case ("QS")       ! surf humidity (kg/kg)
           data=qsavg
         case ("PREC")     ! precip (mm/day)
           data=sday*prec/dtsrc
-        case ("LCLD")     ! low level cloud cover (%)
+        case ("SNOWD")     ! snow depth (w.e. mm)
+          do j=1,jm
+            do i=1,imaxj(j)
+              POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
+              PEARTH=FEARTH(I,J)
+              PLANDI=FLICE(I,J)
+              data(i,j)=1d3*(SNOWI(I,J)*POICE+SNOWLI(I,J)*PLANDI+SNOWE(I
+     *             ,J)*PEARTH)/RHOW
+            end do
+          end do
+        case ("QLAT")           ! latent heat (W/m^2)
+          data=qflux1*lhe 
+        case ("QSEN")           ! sensible heat flux (W/m^2)
+          data=tflux1*sha
+C**** these next two only work with the tracer model. This should be
+C**** changed to work with all versions
+#ifdef TRACERS_DRYDEP
+        case ("SWDN")           ! solar downward flux at surface (W/m^2)
+          data=trdrydep_rad
+#ifdef TRACERS_SPECIAL_Shindell
+        case ("SWUP")     ! solar upward flux at surface (W/m^2)
+! estimating this from the downward x albedo, since that's already saved
+          data=trdrydep_rad*SALBFJ
+#endif
+#endif
+        case ("LWDN")     ! thermal downward flux at surface (W/m^2)
+          data=TRHR(0,:,:)
+        case ("ICEF")           ! ice fraction over open water
+          data=RSI
+        case ("STAUX")          ! E-W surface stress (N/m^2)
+          data=uflux1
+        case ("STAUY")          ! N-S surface stress (N/m^2)
+          data=vflux1
+        case ("LCLD")           ! low level cloud cover (%)
           data=0.
           do j=1,jm
             do i=1,imaxj(j)
@@ -2685,7 +2739,7 @@ C**** simple diags
               data(i,j)=data(i,j)*100./real(lhi-lmid,kind=8)
             end do
           end do
-        case ("TROP")           ! tropopause height (mb)
+        case ("PTRO")           ! tropopause pressure (mb)
           data = ptropo
         case default
           goto 10
