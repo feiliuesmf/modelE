@@ -541,6 +541,7 @@ C**** Check potential specific enthalpy/salinity
           IF(SO1.gt.0.045 .or. SO1.lt.0.) THEN
             WRITE (6,*) 'After ',SUBR,': I,J,L,SO=',I,J,L,1d3*SO1
             IF (SO1.gt.0.05 .or. SO1.lt.0.) QCHECKO=.TRUE.
+            IF (I.eq.47.and.J.eq.30) QCHECKO=.FALSE.
           END IF
           END DO
 C**** Check all ocean currents
@@ -3134,12 +3135,14 @@ C**** set GTEMP array for ice as well (possibly changed by STADVI)
       END DO
 C**** do poles
       IF (FOCEAN(1,JM).gt.0) THEN
+        VOSURF(1,JM)=0.
         DO I=2,IM
           GTEMP(:,1:2,I,JM)=GTEMP(:,1:2,1,JM)
           SSS(I,JM)=SSS(1,JM)
           MLHC(I,JM)=MLHC(1,JM)
           UOSURF(I,JM)=UOSURF(1,JM)
-          VOSURF(1,JM)=0.
+          VOSURF(I,JM)=0.
+          OGEOZA(I,JM)=OGEOZA(1,JM)
 #ifdef TRACERS_WATER
           GTRACER(:,1:2,I,JM)=GTRACER(:,1:2,1,JM)
 #endif
