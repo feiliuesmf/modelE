@@ -24,7 +24,7 @@ C**** must be compiled after the model
       USE LANDICE_COM, only : tlandi,snowli
       USE LAKES_COM, only : flake
       USE FILEMANAGER
-      USE DOMAIN_DECOMP, ONLY : init_decomp,grid,finish_decomp
+      USE DOMAIN_DECOMP, ONLY : init_app,grid,finish_app
       IMPLICIT NONE
       CHARACTER infile*60, outfile*60              ,clabel*156
       INTEGER IARGC,iu_GIC,I,J,L,N,ioerr,iu_TOPO   ,jc(100)
@@ -49,7 +49,7 @@ C**** must be compiled after the model
         STOP
       END IF
 
-        call init_decomp(grid,im,jm)
+        call init_app(grid,im,jm)
         call alloc_drv()
 
       IF (IARGC() >= 3 ) extend_gh = .true.
@@ -122,6 +122,7 @@ c??  *     FORM="UNFORMATTED",STATUS="UNKNOWN")
       close (iu_GIC)
       print*,ioerr
       print*,"New rsf file written out to ",trim(outfile)
+      call finish_app()
       stop
  800  print*,"Error reading in file"
  810  print*,"Error reading in file"
