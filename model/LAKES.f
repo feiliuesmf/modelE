@@ -848,7 +848,7 @@ C**** accumulate river runoff diags (moved from ground)
 C****              AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+DMM
               AREG_part(JR,1,JD)=AREG_part(JR,1,JD)+DMM
 C****              AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+DGM+DPE
-              AREG_part(JR,2,JU)=AREG_part(JR,2,JU)+DGM+DPE
+              AREG_part(JR,2,JD)=AREG_part(JR,2,JD)+DGM+DPE
               AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) + DMM
               AIJ(ID,JD,IJ_ERVR)=AIJ(ID,JD,IJ_ERVR) + DGM+DPE
 #ifdef TRACERS_WATER
