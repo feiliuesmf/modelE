@@ -297,6 +297,7 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
+      use CONSTANT, only : teeny
       use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
       use QUSDEF
       implicit none
@@ -369,7 +370,7 @@ c**** average and unscale polar boxes
 
       enddo  ! end loop over timesteps
       do j=1,jm-1   !diagnostics
-        sfbm(j,l) = sfbm(j,l) + sum(fqv(:,j)/mv(:,j,l))
+        sfbm(j,l) = sfbm(j,l) + sum(fqv(:,j)/(mv(:,j,l)+teeny))
         sbm (j,l) = sbm (j,l) + sum(mv(:,j,l))
         sbf (j,l) = sbf (j,l) + sum(fqv(:,j))
       enddo
@@ -398,6 +399,7 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
+      use CONSTANT, only : teeny
       use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use QUSDEF
       use GEOM, only : imaxj
@@ -431,7 +433,7 @@ c****
       fqw(:)  = fqw(:) + f_l(:) !store tracer flux in fqw array
       enddo ! ns
       do l=1,lm-1   !diagnostics
-        sfcm(j,l) = sfcm(j,l) + (fqw(l)/mw(i,j,l))
+        sfcm(j,l) = sfcm(j,l) + fqw(l)/(mw(i,j,l)+teeny)
         scm (j,l) = scm (j,l) + mw(i,j,l)
         scf (j,l) = scf (j,l) + fqw(l)
       enddo
