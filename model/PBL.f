@@ -510,9 +510,9 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       end subroutine stars
 
       subroutine getl1(e,zhat,dzh,lscale,n)
-  !@sum getl1 estimates the master length scale of the turbulence model
-  !@+   on the secondary grid
-  !@auth  Ye Cheng/G. Hartke
+!@sum getl1 estimates the master length scale of the turbulence model
+!@+   on the secondary grid
+!@auth  Ye Cheng/G. Hartke
       implicit none
   
       integer, intent(in) :: n     !@var n  array dimension

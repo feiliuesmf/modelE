@@ -170,7 +170,7 @@ C****
 
       REAL*8 FUNCTION GFREZS (S)
 C****
-C**** GFREZS returns a linearly interpolated frezzing point of
+C**** GFREZS returns a linearly interpolated freezing point of
 C**** potential specific enthalpy that depends on salinity.  Pressure
 C**** is assumed to be the normal surface ocean reference pressure.
 C****

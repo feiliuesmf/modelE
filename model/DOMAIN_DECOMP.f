@@ -1,7 +1,7 @@
 #define DEBUG_DECOMP
       MODULE DOMAIN_DECOMP
 !@sum  DOMAIN_DECOMP encapsulates lat-lon decomposition information
-!@sum  for the message passing (ESMF) implementation.
+!@+    for the message passing (ESMF) implementation.
 !@auth NCCS ASTG
 
       IMPLICIT NONE
@@ -9,20 +9,20 @@
       PRIVATE ! Except for
 
 !@var DYN_GRID derived type to provide ESMF decomposition info
-!@var public components are used to minimize overhead for accessing
-!@var routine components
+!@+   public components are used to minimize overhead for accessing
+!@+   routine components
       PUBLIC :: DYN_GRID 
 !@var  grid Default decomposition; globally accessible for convenience.
       PUBLIC :: grid
 !@var INIT_DECOMP Initialize default decomposition
       PUBLIC :: INIT_DECOMP
-!@var INIT_DECOMP Cleans up at the end of the run (closes debugging file)
+!@var FINISH_DECOMP Cleans up at the end of the run (closes debugging file)
       PUBLIC :: FINISH_DECOMP
 !@var HALO_UPDATE Update data in halo for local domain using data from
-!@var neihboring processes       
-      PUBLIC :: HALO_UPDATE ! Communicate overlapping portions of subdamains
+!@+   neighbouring processes       
+      PUBLIC :: HALO_UPDATE ! Communicate overlapping portions of subdomains
 !@var CHECKSUM output a bit-reproducible checksum for an array
-      PUBLIC :: CHECKSUM ! Communicate overlapping portions of subdamains
+      PUBLIC :: CHECKSUM ! Communicate overlapping portions of subdomains
 
 !ia since DYN_GRID is public ESMF_GRID_TYPE has to be public
 !ia (SGI compiler complains)
