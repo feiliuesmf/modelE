@@ -10170,8 +10170,8 @@ C
 C                 SIZ   TAULAT-weighted latitudinal average of SIZLAT
 C--------------------------------------------------------------------
 C
-      REAL*8, DIMENSION(NLAT), INTENT(IN) :: DEGLAT,TAULAT,SIZLAT
       INTEGER, INTENT(IN) :: NLAT,JALIM,JBLIM
+      REAL*8, DIMENSION(NLAT), INTENT(IN) :: DEGLAT,TAULAT,SIZLAT
       REAL*8, INTENT(OUT) :: SIZ
       REAL*8 ASUM,TSUM,PI,RADIAN,RLAT1,RLAT2,ALAT1,ALAT2,ALATJ
       INTEGER J,J1,J2
@@ -10510,9 +10510,9 @@ C----------------------------------------------------------------------
      4      3.904E-04,3.872E-04,3.728E-04,2.344E-04,9.932E-05,3.677E-05,
      5      1.227E-05,4.324E-06,5.294E-08,1.262E-10/
 
-      REAL*8, INTENT(INOUT) :: H,P
+      REAL*8, INTENT(INOUT) :: H,P,D
       INTEGER, INTENT(IN) :: NATM,NPHD
-      REAL*8, INTENT(OUT) :: O,Q,S,OCM,WCM,D,T
+      REAL*8, INTENT(OUT) :: O,Q,S,OCM,WCM,T
       REAL*8 :: XX,XI,XJ,DELTA,RAT,PI,PJ,DI,DJ,DP,ES,RS,OI,OJ,QI,QJ
       INTEGER :: I,J,K,N
 
@@ -10900,9 +10900,9 @@ C                        1    Fixed Extrapolation (F(XX) = edge value)
 C                        2    Linear Extrapolation using 2 edge points
 C
 C---------------------------------------------------------------------
+      INTEGER, INTENT(IN) :: NXF,KXTRAP
       REAL*8, DIMENSION(NXF), INTENT(IN) :: X,F
       REAL*8, INTENT(IN) :: XX,CUSPWM,CUSPWE
-      INTEGER, INTENT(IN) :: NXF,KXTRAP
       REAL*8, INTENT(OUT) :: FF
       REAL*8 BETW,X1,X2,X3,X4,F1,F2,F3,F4,X21,X31,X32,X43,X42,F21,F32
      *     ,F43,F3221,F4332,A,B,C,D,XF,FFCUSP,XE,XEXM,CUSPWT,FFLINR
