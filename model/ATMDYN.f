@@ -993,28 +993,28 @@ C
 !@ver  1.0
       USE CONSTANT, only : sha
       USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,dt_UVfilter,t,ang_uv
+     *  ,UVfilter_Vstrength
       USE GEOM, only : dxyn,dxys,idij,idjj,rapj,imaxj,kmaxj
       USE DYNAMICS, only : pdsig,pk
       USE DIAG, only : diagcd
 C**********************************************************************
 C**** FILTERING IS DONE IN X-DIRECTION WITH A 8TH ORDER SHAPIRO
 C**** FILTER. THE EFFECT OF THE FILTER IS THAT OF DISSIPATION AT
-C**** THE SMALLEST SCALES. (Y-dir and 2D filter commented out 'cq')
+C**** THE SMALLEST SCALES. (2D filter commented out 'cq')
 C**********************************************************************
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: U,V
       REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: UT,VT
       REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT,USAVE,VSAVE,DKE
-      REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM),DP(IM),Xby4toN
+      REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM),DP(IM),Xby4toN,Yby4toN
       REAL*8 :: DT1=0.
-cq    LOGICAL*4 QFILY,QFIL2D
+cq    LOGICAL*4 QFIL2D
       INTEGER I,J,K,L,N,IP1  !@var I,J,L,N  loop variables
-      REAL*8 Y4TO8,YJ,YJM1,X1,XI,XIM1
+      REAL*8 YJ,YJM1,X1,XI,XIM1
       INTEGER, PARAMETER :: NSHAP=8, ISIGN=(-1.0)**(NSHAP-1)
       REAL*8, PARAMETER :: BY16=1./16., by4toN=1./(4.**NSHAP)
       REAL*8 ediff,angm,dpt
 C****
-cq       QFILY  = .FALSE.
 cq       QFIL2D = .FALSE.
 C****
       USAVE=U ; VSAVE=V
@@ -1080,52 +1080,53 @@ C**** Filter V component of momentum
 C****
 C**** Filtering in north-south direction
 C****
-cq    IF(QFILY) THEN
-cq    Y4TO8 = 1./(4.**NSHAP)
+      IF (UVfilter_Vstrength.gt.0.) then
+c old Y4TO8 = 1./(4.**NSHAP)
+      Yby4toN=(DT/DT_UVfilter)*by4toN*UVfilter_Vstrength
 C**** Filter U component of momentum
-cq!$OMP  PARALLEL DO PRIVATE (I,J,L,N,Y,YJ,YJM1)
-cq    DO 650 L=1,LM
-cq    DO 540 I=1,IM
-cq    DO 510 J=1,JM
-cq510 Y(J) = U(I,J,L)
-cq    DO 530 N=1,NSHAP
-cq       Y(0)    = Y(2)
-cq       Y(JM+1) = Y(JM-1)
-cq       YJM1 = Y(0)
-cq       DO 520 J=1,JM
-cq          YJ   = Y(J)
-cq          Y(J) = YJM1-YJ-YJ+Y(J+1)
-cq520    YJM1 = YJ
-cq530 CONTINUE
-cq    DO 540 J=1,JM
-cq540 U(I,J,L) = U(I,J,L) + ISIGN*Y(J)*Y4TO8
+!$OMP  PARALLEL DO PRIVATE (I,J,L,N,Y,YJ,YJM1)
+      DO 650 L=1,LM
+      DO 540 I=1,IM
+      DO 510 J=1,JM
+  510 Y(J) = U(I,J,L)
+      DO 530 N=1,NSHAP
+         Y(0)    = Y(2)
+         Y(JM+1) = Y(JM-1)
+         YJM1 = Y(0)
+         DO 520 J=1,JM
+            YJ   = Y(J)
+            Y(J) = YJM1-YJ-YJ+Y(J+1)
+  520    YJM1 = YJ
+  530 CONTINUE
+      DO 540 J=1,JM
+  540 U(I,J,L) = U(I,J,L) + ISIGN*Y(J)*Yby4toN
 C**** Make U winds at poles to be uniform
-cq    DO 560 J=1,JM,JM-1
-cq    YJ = 0.
-cq    DO 550 I=1,IM
-cq550 YJ = YJ + U(I,J,L)
-cq    DO 560 I=1,IM
-cq560 U(I,J,L) = YJ*BYIM
+      DO 560 J=1,JM,JM-1
+      YJ = 0.
+      DO 550 I=1,IM
+  550 YJ = YJ + U(I,J,L)
+      DO 560 I=1,IM
+  560 U(I,J,L) = YJ*BYIM
 C**** Filter V component of momentum
-cq    DO 640 I=1,IM
-cq    DO 610 J=1,JM-1
-cq610 Y(J) = V(I,J,L)
-cq    DO 630 N=1,NSHAP
-cq    YJM1 = Y(1)
-cq    Y(1) = Y(2)-Y(1)
-cq    DO 620 J=2,JM-2
-cq    YJ   = Y(J)
-cq    Y(J) = YJM1-YJ-YJ+Y(J+1)
-cq620 YJM1 = YJ
-cq630 Y(JM-1)= YJM1-Y(JM-1)
-cq    DO 640 J=1,JM-1
-cq640 V(I,J,L) = V(I,J,L) + ISIGN*Y(J)*Y4TO8
-cq650 CONTINUE
-cq!$OMP  END PARALLEL DO
-cq    END IF
+      DO 640 I=1,IM
+      DO 610 J=1,JM-1
+  610 Y(J) = V(I,J,L)
+      DO 630 N=1,NSHAP
+      YJM1 = Y(1)
+      Y(1) = Y(2)-Y(1)
+      DO 620 J=2,JM-2
+      YJ   = Y(J)
+      Y(J) = YJM1-YJ-YJ+Y(J+1)
+  620 YJM1 = YJ
+  630 Y(JM-1)= YJM1-Y(JM-1)
+      DO 640 J=1,JM-1
+  640 V(I,J,L) = V(I,J,L) + ISIGN*Y(J)*Yby4toN
+  650 CONTINUE
+!$OMP  END PARALLEL DO
+      END IF
 C****
-
 C**** Conserve angular momentum along latitudes
+C****
 !$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP,ANGM,DPT)
       DO L=1,LM
         DO J=2,JM

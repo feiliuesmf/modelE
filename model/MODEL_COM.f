@@ -37,6 +37,8 @@
       integer :: COUPLED_CHEM = 0
 !@dbparam dt_UVfilter dU,dV are multiplied by dt/dt_UVfilter
       REAL*8 :: dt_UVfilter = 0. ! UV-filter is NOT used
+!@dbparam UVfilter_Vstrength multiplies UV-filter in N-S direction
+      REAL*8 :: UVfilter_Vstrength=0. ! UV-filter N-S direction NOT used
 !@dbparam ang_uv =1 to conserve ang mom in UVfilter
       INTEGER :: ang_uv = 1 ! UV-filter conserves ang mom
 
