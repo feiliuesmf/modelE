@@ -89,12 +89,11 @@ C**** TAIJN
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@parm KTAIJS number of special lat/lon tracer diagnostics
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
-#ifdef regional_Ox_tracers
       INTEGER ijs_flash,ijs_CtoG    ! ,ijs_OxL1
+#ifdef regional_Ox_tracers
       integer, parameter :: ktaijs=46
       INTEGER ijs_Oxloss, ijs_Oxprod
 #else
-      INTEGER ijs_flash,ijs_CtoG    ! ,ijs_OxL1
       integer, parameter :: ktaijs=44
 #endif
 #else
@@ -103,9 +102,9 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER ijs_flash,ijs_CtoG    ! ,ijs_OxL1
 #ifdef regional_Ox_tracers
       INTEGER ijs_Oxloss, ijs_Oxprod
-      integer, parameter :: ktaijs=30
+      integer, parameter :: ktaijs=74
 #else
-      integer, parameter :: ktaijs=28
+      integer, parameter :: ktaijs=60
 #endif
 #else
       integer, parameter :: ktaijs=25
@@ -168,14 +167,12 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@parm ktajls number of source/sink TAJLS tracer diagnostics;
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
 !@var jls_XXX index for non-tracer specific or special diags
-#ifdef regional_Ox_tracers
       INTEGER jls_OHconk,jls_HO2con,jls_NO3,jls_phot,jls_incloud(2,ntm)
       INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf,jls_day
+#ifdef regional_Ox_tracers
       INTEGER, PARAMETER :: ktajls=108
       INTEGER jls_Oxloss, jls_Oxprod
 #else
-      INTEGER jls_OHconk,jls_HO2con,jls_NO3,jls_phot,jls_incloud(2,ntm)
-      INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf,jls_day
       INTEGER, PARAMETER :: ktajls=94
 #endif
 #else
@@ -264,6 +261,7 @@ C**** TCONSRV
 !@var itcon_grav Index array for large-scale condensation conserv. diags
       INTEGER, DIMENSION(NTM) :: itcon_ss
 #ifdef TRACERS_DRYDEP
+!@var itcon_dd Index array for dry deposition conserv. diags
       INTEGER, DIMENSION(NTM) :: itcon_dd
 #endif
 C----------------------------------------------------
