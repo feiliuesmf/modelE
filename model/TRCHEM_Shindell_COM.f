@@ -63,6 +63,7 @@ C
 !@param pfix_Aldehyde fixed ratio of Aldehyde/M for initial conditions
 !@param fix_CH4_chemistry logical whether or not to used a fixed 
 !@+     value for methane in the chemistry code
+!@param checktracer_on logical to turn on the checktracer call
 !@param pfix_CH4_S fixed ratio of CH4/M in South. Hemis. (if used)
 !@param pfix_CH4_S fixed ratio of CH4/M in South. Hemis. (if used)
 !@param MWabyMWw ratio of molecular weights of air/water
@@ -74,7 +75,12 @@ C
 !@param cboltz Boltzman's Constant = 1.3806d-19
 !@param dlogp 10.d0**(-2./16.)
 !@param byradian 1/radian = conversion from radians to degrees
+!@param LCOalt number of levels in the COaltIN array 
+!@param JCOlat number of latitudes in the COlat array 
+!@param PCOalt pressures at LCOalt levels
       INTEGER, PARAMETER ::
+     & LCOalt =   23,
+     & JCOlat =   19,
      & p_1   =     2,
      & p_2   =   111,
      & p_3   =   200,
@@ -164,10 +170,18 @@ C
      &                      odmax        = 200.d0,
      &                      zlbatm       = 4.d0,
      &                      CMEQ1        = 0.25d0,
-     &                      byradian     = 1.d0/radian
+     &                      byradian     = 1.d0/radian 
+      REAL*8, PARAMETER, DIMENSION(LCOalt) :: PCOalt = (/
+     & 0.9720D+03,0.9445D+03,0.9065D+03,
+     & 0.8515D+03,0.7645D+03,0.6400D+03,0.4975D+03,0.3695D+03,
+     & 0.2795D+03,0.2185D+03,0.1710D+03,0.1335D+03,0.1016D+03,
+     & 0.7120D+02,0.4390D+02,0.2470D+02,0.1390D+02,0.7315D+01,
+     & 0.3045D+01,0.9605D+00,0.3030D+00,0.8810D-01,0.1663D-01/)
 C  
+C    These should really be defined in the run deck:
       LOGICAL, PARAMETER :: luselb            = .false.,
-     &                      fix_CH4_chemistry = .false.
+     &                      fix_CH4_chemistry = .false.,
+     &                      checktracer_on    = .false.
 c
 C**************  V  A  R  I  A  B  L  E  S *******************  
 !@var nn reactant's number in mol list, first index reactant 1 or 2,
@@ -294,7 +308,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var O3DLJI model ozone to radiation (calculated)
 !@var O3DLJI_clim model ozone to radiation (climatological)
 !@var COlat carbon monoxide latitude distribution for init cond (ppbv)
-!@var COalt adjustments of COlat by altitude (unitless)
+!@var COaltIN adjustments of COlat by altitude (unitless,LCOalt levels)
+!@var COalt adjustments of COlat by altitude (unitless,LM levels)
 !@var CH4FACT, FACTJ,r179m2v for setting CH4 ICs and strat distribution
 !@var BYFJM = 1/JM
 !@var avg67 average of lev 6 and 7 CH4 (used for IC and strat)
@@ -401,10 +416,11 @@ C
       REAL*8, DIMENSION(LM)            ::odtmp,ta,pres,TFASTJ  !,TXL
 C Multiplier of free trop [CO] by layer Badr & Probert 94 fig10 & 11,
 C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
-      REAL*8, DIMENSION(LM), PARAMETER ::  COalt =
+      REAL*8, DIMENSION(LCOalt), PARAMETER ::  COaltIN = 
      *     (/2d0,1.5625d0,1.375d0,1.25d0,1.125d0,1.0625d0,1d0,1d0,1d0
      *     ,1d0,1d0,.5d0,.375d0,.2d0,.2d0,.2d0,.2d0,.2d0,.25d0,.4d0,
      *     2.5d0,12d0,60d0/)
+      REAL*8, DIMENSION(LM)            :: COalt
       REAL*8, DIMENSION(NS)            :: VALJ
       REAL*8, DIMENSION(N__)           :: FJFASTJ
       REAL*8, DIMENSION(NWFASTJ,2,NS-3):: QQQ
@@ -416,9 +432,9 @@ C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
       REAL*8, DIMENSION(40,JM,IM)       :: O3DLJI, O3DLJI_clim
       REAL*8, DIMENSION(2*(LS1-1))      :: O3_FASTJ
 C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
-      REAL*8, DIMENSION(19), PARAMETER  :: COlat = (/40.,40.,40.,40.,45.
-     *     ,50.,60.,70.,80.,90.,110.,125.,140.,165.,175.,180.,170.,165.
-     *     ,150./)
+      REAL*8, DIMENSION(JCOlat), PARAMETER  :: COlat = (/40.,40.,40.,40.
+     *     ,45.,50.,60.,70.,80.,90.,110.,125.,140.,165.,175.,180.,170.
+     *     ,165.,150./)
       REAL*8, DIMENSION(n_igas,LM)      :: dest, prod
       REAL*8, DIMENSION(NTM)            :: mass2vol,bymass2vol
       REAL*8, DIMENSION(IM,JM,LM,ntm)   :: change
