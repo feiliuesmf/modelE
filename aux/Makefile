@@ -27,7 +27,7 @@ sinclude ~/.modelErc
 
 
 # list of targets to be built by default
-all: $(BIN_DIR)/qc $(BIN_DIR)/CMPE001 $(BIN_DIR)/conv_rsf $(BIN_DIR)/conv_gic $(BIN_DIR)/rsf2gic $(BIN_DIR)/conv_strat_rsf  $(BIN_DIR)/RMS $(BIN_DIR)/acc2nc $(BIN_DIR)/CMPE002
+all: $(BIN_DIR)/qc $(BIN_DIR)/CMPE001 $(BIN_DIR)/conv_rsf $(BIN_DIR)/conv_gic $(BIN_DIR)/rsf2gic $(BIN_DIR)/conv_strat_rsf  $(BIN_DIR)/RMS $(BIN_DIR)/acc2nc $(BIN_DIR)/CMPE002 $(BIN_DIR)/ext_gic
 qflux: $(BIN_DIR)/vertflux.exe $(BIN_DIR)/ocnIC.exe $(BIN_DIR)/otspec.E001.exe 
 # $(BIN_DIR)/rsfE001.addO.exe obsolete
 odeep: $(BIN_DIR)/mkdeep.exe
@@ -76,6 +76,11 @@ $(BIN_DIR)/rsf2gic: rsf2gic.o $(GCMLIB)
 conv_gic.o: $(GCMLIB)
 
 rsf2gic.o: $(GCMLIB)
+
+ext_gic.o: $(GCMLIB)
+
+$(BIN_DIR)/ext_gic: ext_gic.o $(GCMLIB)
+	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
 
 $(BIN_DIR)/qc: qc.o $(GCMLIB)
 	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
