@@ -4378,19 +4378,24 @@ C****
 !@auth G. Russell
 !@ver  1.0
       USE MODEL_COM, only :
-     &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL
-      USE DAGCOM, only :   kdiag,
+     &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID
+      USE DAGCOM, only :   kdiag,qdiag,acc_period,units_dd,
      &     adiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd,name_dd
       IMPLICIT NONE
 
       REAL*8, DIMENSION(HR_IN_DAY+1) :: XHOUR
       INTEGER, DIMENSION(HR_IN_DAY+1) :: MHOUR
       REAL*8 :: AVE,AVED,AVEN,BYIDAC
-      INTEGER :: I,IH,IREGF,IREGL,IS,K,KQ,KR,NDAYS
+      INTEGER :: I,IH,IREGF,IREGL,IS,K,KP,KQ,KR,NDAYS
+      CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO
+      REAL*8, DIMENSION(HR_IN_DAY+1,NDIUVAR) :: FHOUR
 C****
       NDAYS=IDACC(9)/2
       IF (NDAYS.LE.0) RETURN
       BYIDAC=1./NDAYS
+C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+      IF (QDIAG)  call open_diurn
+     &   (trim(acc_period)//'.diurn'//XLABEL(1:LRUNID),NDIUVAR)
 C****
       IREGF=1
       IREGL=4
@@ -4400,9 +4405,11 @@ C****
       DO KR=IREGF,IREGL
         WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
         WRITE (6,903) NAMDD(KR),IJDD(1,KR),IJDD(2,KR),(I,I=1,HR_IN_DAY)
+        KP = 0
         DO KQ=1,NDIUVAR
           IF (MOD(KQ-1,5).eq.0) WRITE(6,*)
           IF (LNAME_DD(KQ).eq."unused") CYCLE
+          KP = KP+1
           SELECT CASE (NAME_DD(KQ))
           CASE DEFAULT
 C**** NORMAL QUANTITIES
@@ -4425,12 +4432,17 @@ C**** RATIO OF TWO QUANTITIES
             XHOUR(HR_IN_DAY+1)=AVEN*SCALE_DD(KQ)/(AVED+1D-20)
           END SELECT
           DO IS=1,HR_IN_DAY+1
-CB        FHOUR(IS,KQ,KR)=XHOUR(IS)
+            FHOUR(IS,KP)=XHOUR(IS)
             MHOUR(IS)=NINT(XHOUR(IS))
           END DO
           WRITE (6,904) LNAME_DD(KQ),MHOUR
+          LNAMEO(KP)=LNAME_DD(KQ)(1:16)
+          UNITSO(KP)=UNITS_DD(KQ)(1:16)
         END DO
+        IF (QDIAG) CALL POUT_DIURN(LNAMEO,UNITSO,FHOUR,
+     *     NAMDD(KR),IJDD(1,KR),IJDD(2,KR),HR_IN_DAY,KP)
       END DO
+      call close_diurn
       RETURN
 C****
   901 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
