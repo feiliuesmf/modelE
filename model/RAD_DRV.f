@@ -533,9 +533,10 @@ C     OUTPUT DATA
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
      &          ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
      &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS, SRDVIS
-     &          ,BTEMPW
+     &          ,BTEMPW ,O3_OUT
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
+     *     ,O3_rad_save
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -1015,6 +1016,9 @@ C     Main RADIATIVE computations, SOLAR and THERMAL
 C*****************************************************
       IF(I.EQ.IWRITE.AND.J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
       CSZ2=COSZ2(I,J)
+      do L=1,LM
+        O3_rad_save(L,I,J)=O3_OUT(L)
+      end do
       if (kradia.gt.0) then  ! rad. forc. model; acc diagn
         do L=1,LM+LM_REQ+1
           AFLX_ST(L,I,J,1)=AFLX_ST(L,I,J,1)+SRUFLB(L)*CSZ2
