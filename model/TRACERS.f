@@ -585,10 +585,13 @@ C****
 !@sum TRGRAV gravitationally settles particular tracers 
 !@auth Gavin Schmidt/Reha Cakmur
       USE CONSTANT, only : visc_air,grav,by3
+     * ,pi,bygasc,avog
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo
+     * ,t
       USE GEOM, only : imaxj,bydxyp
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
       USE DYNAMICS, only : gz
+     * ,pmid,pk
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius,trpdens
      *     ,trname
       USE CLOUDS_COM, only: rhsav
@@ -603,12 +606,16 @@ C****
       real*8, dimension(im,jm,lm) :: told
       real*8 fgrfluxd,fgrfluxu
       integer n,najl,i,j,l
+      real*8, parameter :: s1=1.249, s2=0.42, s3=0.87
+      real*8  wmf,PRESS,AIRDEN,FRPATH,nmols
+      real*8, parameter :: RADAIR=3.65D-10 !m not sure of this value
 #ifdef TRACERS_AEROSOLS_Koch
       real*8, parameter :: c1=0.7674d0, c2=3.079d0, c3=2.573d-11,
      *     c4=-1.424d0
       real*8 r_h,den_h,rh
 #endif
 
+      wmf=0.
       if (ifirst) then               
 C**** Calculate settling velocity based on Stokes' Law using particle
 C**** density and effective radius
@@ -651,10 +658,18 @@ C**** maybe this should be a separate diag (or not be done at all?)
      *             trgrdep(n,i,j)
 #endif
             else               ! above layer 1
-              fgrfluxd=stokevdt(n)*grav/(gz(i,j,l)-gz(i,j,l-1))
+c wmf is the additional velocity if the particle size is large compared
+c   to the mean free path of the air; important in the stratosphere  
+             PRESS=pmid(l,i,j)*100.d0    !Pa              
+             AIRDEN=PRESS*avog*bygasc/(pk(l,i,j)*t(i,j,l)) 
+             FRPATH=1.d0/(PI*DSQRT(2.d0)*AIRDEN*(RADAIR)**2.)
+             wmf=FRPATH/trradius(n)*(s1+s2*dexp(-s3*trradius(n)/FRPATH))
+             fgrfluxd=(1.d0+wmf)*stokevdt(n)*grav
+     *                /(gz(i,j,l)-gz(i,j,l-1))
             end if
             if (l.lt.lm) then  ! below top layer
-              fgrfluxu=stokevdt(n)*grav/(gz(i,j,l+1)-gz(i,j,l))
+              fgrfluxu=(1.d0+wmf)*stokevdt(n)*grav
+     *                /(gz(i,j,l+1)-gz(i,j,l))
               trm(i,j,l,n)=trm(i,j,l  ,n)*(1.-fgrfluxd)
      *                   + trm(i,j,l+1,n)*    fgrfluxu
             else               ! top layer
