@@ -4,7 +4,7 @@
 !@sum  SOCPBL deals with boundary layer physics
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@ver  1.0 (from PBLB336E)
-!@cont pbl,advanc,stars,getl1,getl2,dflux,simil,griddr,tfix
+!@cont pbl,advanc,stars,getl,dflux,simil,griddr,tfix
 !@cont ccoeff0,getk,e_eqn,t_eqn,q_eqn,uv_eqn
 !@cont t_eqn_sta,q_eqn_sta,uv_eqn_sta
 !@cont inits,tcheck,ucheck,check1,output,rtsafe
@@ -69,13 +69,6 @@ C**** boundary layer parameters
       real*8, parameter :: kappa=0.40d0 !@var kappa  Von Karman constant
       real*8, parameter :: zgs=10. !@var zgs height of surface layer (m)
 
-!@var  u  local due east component of wind
-!@var  v  local due north component of wind
-!@var  t  local virtual potential temperature
-!@var  q  local specific humidity (a passive scalar)
-!@var  e  local turbulent kinetic energy
-c     real*8, dimension(n) :: u,v,t,q
-      real*8, dimension(n-1) :: e
 #ifdef TRACERS_ON
 !@var  tr local tracer profile (passive scalars)
       real*8, dimension(n,ntm) :: tr
@@ -95,7 +88,7 @@ ccc  *     gamahs=4.7d0/sigma
 C***
 C***  Thread-Private Common
 C***
-      COMMON /PBLTPC/ dpdxr,dpdyr,dpdxr0,dpdyr0,e   !  ,u,v,t,q
+      COMMON /PBLTPC/ dpdxr,dpdyr,dpdxr0,dpdyr0
 #ifdef TRACERS_ON
      * ,tr
 #endif
@@ -215,17 +208,23 @@ c  internals:
 
       real*8 :: lmonin,tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau
-      real*8, parameter ::  tol=1d-4
-      integer :: itmax, ierr
+      real*8, parameter ::  tol=1d-3,w=.5d0
+      integer, parameter ::  itmax=50
       integer, parameter :: iprint=0,jprint=33  ! set iprint>0 to debug
       real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave
       real*8, dimension(n-1) :: lscale,zhat,dzh,xihat,km,kh,kq,ke,gm,gh
      *     ,esave
-      integer :: i,j,iter  !@var i,j,iter loop variable
+      integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 
+!@var  u  local due east component of wind
+!@var  v  local due north component of wind
+!@var  t  local virtual potential temperature
+!@var  q  local specific humidity (a passive scalar)
+!@var  e  local turbulent kinetic energy
 c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(n) :: u,v,t,q
-      common/pbluvtq/u,v,t,q
+      real*8, dimension(n-1) :: e
+      common/pbluvtq/u,v,t,q,e
 !$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
 
@@ -237,8 +236,6 @@ C**** end special threadprivate common block
       end if
       zmix=dzh(1)+zgs
 
-      itmax=1
-
       usave(:)=u(:)
       vsave(:)=v(:)
       tsave(:)=t(:)
@@ -248,97 +245,31 @@ C**** end special threadprivate common block
       trsave(:,1:ntx)=tr(:,1:ntx)
 #endif
 
-c   First, make trial advances of the solutions of the prognostic fields
-c   Must first compute subsidiary quantities such as length scale,
-c   transport coefficients, and field scales.
-c   NB: ustar0 need be defined only if itmax > 1.
-c   Step 1:
-
-      call getl1(e,zhat,dzh,lscale,n)
-      call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
-      call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
-     2           u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
-     3           km,kh,kq,dzh,itype,n)
-
-      call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
-      call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
-      call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
-     2           u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
-     3           km,kh,kq,dzh,itype,n)
-      ustar0=ustar
-
-      call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
-     2               ustar,dtime,n)
-
-C**** Calculate wstar term from
-C**** M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
-      wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
-C**** For heat and mositure
-      if(wstar3fac.gt.0.) then
-        wstar2h = (wstar3fac*kh(1))**twoby3
-      else
-        wstar2h = 0.
-      endif
-      wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
-
-      call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,wsh,tgrnd,ttop,dtime,n)
-
-      call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd,qtop,dtime,n
-     &     ,evap_max,fr_sat)
-
-      call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
-     2            ustar,cm,z0m,utop,vtop,dtime,coriol,
-     3            ug,vg,uocean,vocean,n)
-
-      if ((itype.eq.4).or.(itype.eq.3)) then
-        if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
-          call tfix(t,z,ttop,tgrnd,lmonin,n) !why should we do this?
-          itmax=2
-        endif
-      endif
-
-#ifdef TRACERS_ON
-C**** save cq,kq now in case further calculations are unnescessary
-      kqsave=kq
-      cqsave=cq
-#endif
-c
-c     call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
-c
-c   Second, iteratively recompute the fields.
-c   perform test to see if solution has converged. This
-c   condition obtains if ustar remains stable to a defined limit
-c   between iterations.
-c   e_eqn is called if level 2.5 is used, level2 for level 2 model
-c   Step 2:
-
+      ustar0=0.
       do iter=1,itmax
 
+        call getl(e,u,v,t,zhat,dzh,lscale,dbl,n)
         call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
         call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
      3             km,kh,kq,dzh,itype,n)
-
-        test=abs((ustar-ustar0)/(ustar+ustar0))
-        if (test.lt.tol) exit
-        ustar0=ustar
 #ifdef TRACERS_ON
         kqsave=kq
         cqsave=cq
 #endif
-
         call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
      2                 ustar,dtime,n)
 
-C**** Calculate wstar term
-C**** M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
-        wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
-C**** For heat and mositure
-        if(wstar3fac.gt.0.) then
+        !@var wstar the convection-induced wind according to
+        !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
+        !@+ for heat and mositure
+        if(t(2).lt.t(1)) then !convective
+          wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
           wstar2h = (wstar3fac*kh(1))**twoby3
         else
           wstar2h = 0.
         endif
+
         wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
 
         call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,wsh,tgrnd,ttop,dtime,n)
@@ -350,9 +281,31 @@ C**** For heat and mositure
      2              ustar,cm,z0m,utop,vtop,dtime,coriol,
      3              ug,vg,uocean,vocean,n)
 
-        call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
+        if ((itype.eq.4).or.(itype.eq.3)) then
+          if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
+            call tfix(t,z,ttop,tgrnd,lmonin,n) !why should we do this?
+          endif
+        endif
+
+        do i=1,n-1
+          u(i)=w*usave(i)+(1.-w)*u(i)
+          v(i)=w*vsave(i)+(1.-w)*v(i)
+          t(i)=w*tsave(i)+(1.-w)*t(i)
+          q(i)=w*qsave(i)+(1.-w)*q(i)
+          e(i)=w*esave(i)+(1.-w)*e(i)
+          usave(i)=u(i)
+          vsave(i)=v(i)
+          tsave(i)=t(i)
+          qsave(i)=q(i)
+          esave(i)=e(i)
+        end do
+
+        test=abs((ustar-ustar0)/(ustar+ustar0))
+        if (test.lt.tol) exit
+        ustar0=ustar
 
       end do
+c     write(97,*) "iter=",iter,ustar
 
       wsm = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
 
@@ -493,50 +446,10 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       return
       end subroutine stars
 
-      subroutine getl1(e,zhat,dzh,lscale,n)
-!@sum   getl1 computes the master length scale of the turbulence model
-!@+     on the secondary grid using Balckdard model
-!@auth  Ye Cheng/G. Hartke
-!@ver   1.0
-!@var e z-profle of turbulent kinetic energy
-!@var lscale z-profile of the turbulent dissipation length scale
-!@var z vertical grids (main, meter)
-!@var zhat vertical grids (secondary, meter)
-!@var dzh(j)  z(j+1)-z(j)
-!@var ustar friction velocity at the surface
-!@var lmonin = Monin-Obukhov length (m)
-!@var n number of vertical subgrid main layers
-      implicit none
-
-      real*8, parameter :: alpha=0.20d0
-      integer, intent(in) :: n    !@var n array dimension
-      real*8, dimension(n-1), intent(out) :: lscale
-      real*8, dimension(n-1), intent(in) :: e,zhat,dzh
-      real*8 :: l0,l1,sum1,sum2
-      integer i,j    !@var i,j  loop variables
-
-      sum1=0.
-      sum2=0.
-      do j=1,n-1
-        sum1=sum1+sqrt(e(j))*zhat(j)*dzh(j)
-        sum2=sum2+sqrt(e(j))*dzh(j)
-      end do
-      l0=alpha*sum1/sum2
-      if (l0.lt.zhat(1)) l0=zhat(1)
-
-      do i=1,n-1
-        l1=kappa*zhat(i)
-        lscale(i)=l0*l1/(l0+l1)
-      end do
-
-      return
-      end subroutine getl1
-
-      subroutine getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
-!@sum   getl2 computes the master length scale of the turbulence model
-!@+     on the secondary grid. l0 in this routine is
-!@+     computed via an analytic approximation to the l0 computed in the
-!@+     full domain simulation.
+      subroutine getl(e,u,v,t,zhat,dzh,lscale,dbl,n)
+!@sum   getl computes the master length scale of the turbulence model
+!@+     on the secondary grid. l0 in this routine is 0.16*(pbl height)
+!@+     according to the LES data (Moeng and Sullivan 1992)
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var e z-profle of turbulent kinetic energy
@@ -547,22 +460,20 @@ c     To compute the drag coefficient,Stanton number and Dalton number
 !@var z vertical grids (main, meter)
 !@var zhat vertical grids (secondary, meter)
 !@var dzh(j)  z(j+1)-z(j)
-!@var ustar friction velocity at the surface
-!@var lmonin = Monin-Obukhov length (m)
+!@var dbl PBL height (m)
 !@var n number of vertical subgrid main layers
       implicit none
 
-      real*8, parameter :: lcoef=0.060d0
       integer, intent(in) :: n   !@var n  array dimension
       real*8, dimension(n-1), intent(in) :: e,zhat,dzh
       real*8, dimension(n), intent(in) :: u,v,t
       real*8, dimension(n-1), intent(out) :: lscale
-      real*8, intent(in) :: lmonin,ustar
+      real*8, intent(in) :: dbl
 
       integer :: i   !@var i  array dimension
       real*8 l0,l1,an2,dudz,dvdz,as2,lmax,lmax2
 
-      l0=lcoef*sqrt(ustar*abs(lmonin)/omega)
+      l0=.16d0*dbl ! Moeng and Sullivan 1994
       if (l0.lt.zhat(1)) l0=zhat(1)
 
       l1=kappa*zhat(1)
@@ -573,19 +484,13 @@ c     To compute the drag coefficient,Stanton number and Dalton number
         lscale(i)=l0*l1/(l0+l1)
         if (t(i+1).gt.t(i)) then
           an2=2.*grav*(t(i+1)-t(i))/((t(i+1)+t(i))*dzh(i))
-          dudz=(u(i+1)-u(i))/dzh(i)
-          dvdz=(v(i+1)-v(i))/dzh(i)
-          as2=dudz*dudz+dvdz*dvdz
           lmax  =0.53d0*sqrt(2.*e(i)/max(an2,teeny))
-          lmax2 =1.95d0*sqrt(2.*e(i)/max(as2,teeny))
-          lmax=min(lmax,lmax2)
           if (lscale(i).gt.lmax) lscale(i)=lmax
         endif
-        if (lscale(i).lt.0.5*kappa*zhat(i)) lscale(i)=0.5*kappa*zhat(i)
       end do
 
       return
-      end subroutine getl2
+      end subroutine getl
 
       subroutine dflux(lmonin,ustar,vsurf,z0m,z0h,z0q,zgs,
      2                 cm,ch,cq,itype)
@@ -1048,17 +953,6 @@ c     at edge: e,lscale,km,kh,gm,gh
       real*8 :: an2,dudz,dvdz,as2,ell,den,qturb,tau,gh,gm,gmmax,sm,sh
      &  ,sq,sq_by_sh,taue
       integer :: i,j  !@var i,j loop variable
-c     integer, save :: ifirst=0
-c     real*8, save :: tau_qt_by_tau_t,g9,c15,c16,c17
-
-c     if(ifirst.eq.0) then
-c         ifirst=1
-c         tau_qt_by_tau_t=1./2.d0  !then sq=sh
-c         g9=tau_qt_by_tau_t*g8   ! ad hoc
-c         c15=(g8-g9)/g5
-c         c16=g9/g5
-c         c17=(g6*g6-g7*g7)/(4*g5*g5)
-c     endif
 
       do i=1,n-1
         an2=2.*grav*(t(i+1)-t(i))/((t(i+1)+t(i))*dzh(i))
@@ -1073,13 +967,10 @@ c     endif
         if(gh.lt.ghmin) gh=ghmin
         if(gh.gt.ghmax) gh=ghmax
         gmmax=(1+d1*gh+d3*gh*gh)/(d2+d4*gh)
-        gmmax=min(gmmax,gmmax0)
         if(gm.gt.gmmax) gm=gmmax
         den=1+d1*gh+d2*gm+d3*gh*gh+d4*gh*gm+d5*gm*gm
         sm=(s0+s1*gh+s2*gm)/den
         sh=(s4+s5*gh+s6*gm)/den
-c       sq_by_sh =(1+c15*gh-c17*gm)/(1+c16*gh-c17*gm)
-c       sq=sq_by_sh*sh
         sq=sh
         taue=tau*e(i)
         km(i)=min(max(taue*sm,kmmin),kmax)
@@ -1797,16 +1688,18 @@ c       rhs1(i)=-coriol*(u(i)-ug)
 c     integer, parameter ::  n=8
       integer, parameter ::  itmax=100
       integer, parameter ::  iprint=0,jprint=33 ! set iprint>0 to debug
-      real*8, parameter ::  w=0.50,tol=1d-4
+      real*8, parameter ::  w=0.50,tol=1d-3
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 
 c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(n) :: u,v,t,q
-      common/pbluvtq/u,v,t,q
+      real*8, dimension(n-1) :: e
+      common/pbluvtq/u,v,t,q,e
 
 !$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
 
+      dbl=200.d0 !initial guess of dbl
       z0m=zgrnd
       z0h=z0m
       z0q=z0m
@@ -1873,31 +1766,18 @@ c Initialization for iteration:
         esave(i)=e(i)
       end do
 
-      call getl1(e,zhat,dzh,lscale,n)
-      call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
-      call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
-     2           u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
-     3           km,kh,kq,dzh,itype,n)
-
-      ustar0=ustar
-
-      if ((ilong.eq.iprint).and.(jlat.eq.jprint)) then
-        iter=-1
-        call output(u,v,t,q,e,lscale,z,zhat,dzh,
-     2              km,kh,kq,ke,gm,gh,cm,ch,cq,z0m,z0h,z0q,
-     3              ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
-     4              utop,vtop,ttop,qtop,
-     5              dtime,bgrid,ilong,jlat,iter,itype,n)
-      endif
-
-c ----------------------------------------------------------------------
-
+      ustar0=0.
       do iter=1,itmax
 
-C**** Calculate wstar term from M.J.Miller et al. 1992
-        wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
-C**** For heat and mositure
-        if(wstar3fac.gt.0.) then
+        call getl(e,u,v,t,zhat,dzh,lscale,dbl,n)
+        call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
+        call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
+     2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
+     3             km,kh,kq,dzh,itype,n)
+        !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
+        !@+ for heat and mositure
+        if(t(2).lt.t(1)) then
+          wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
           wstar2h = (wstar3fac*kh(1))**twoby3
         else
           wstar2h = 0.
@@ -1931,17 +1811,12 @@ C**** For heat and mositure
           esave(i)=e(i)
         end do
 
-        Call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
-        call getl1(e,zhat,dzh,lscale,n)
-        call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
-     2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
-     3             km,kh,kq,dzh,itype,n)
-
         test=abs((ustar-ustar0)/(ustar+ustar0))
         if (test.lt.tol) exit
         ustar0=ustar
 
       end do
+c     write(96,*) "iter in inits =",iter,ustar
 
 c     call check1(ustar,1,ilong,jlat,1)
 
@@ -1954,13 +1829,6 @@ c     call check1(ustar,1,ilong,jlat,1)
       endif
 
       return
-1000  format (1x,i3,10(1x,1pe11.4))
-2000  format (1x,/,1x,'iter = ',i3,/)
-3000  format (1x,'test = ',1pe11.4,/)
-8000  format (1x,9(1pe11.4,1x),1x,1pe10.3,2x,1pe10.3)
-9000  format (1x)
-9900  format (1x,'i = ',i2,2x,'j = ',i2,2x,'itype = ',i2,2x,
-     2            'test = ',1pe11.4)
       end subroutine inits
 
       subroutine tcheck(t,tgrnd,n)

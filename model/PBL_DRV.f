@@ -55,7 +55,7 @@ C          ,UG,VG,WG,ZMIX,W2_1
       USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
       USE DYNAMICS, only : pmid,pk,pedn
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
-      USE SOCPBL, only : npbl=>n,e
+      USE SOCPBL, only : npbl=>n
      &     ,dpdxr,dpdyr
      &     ,dpdxr0,dpdyr0
      &     ,advanc                      ! subroutine
@@ -89,7 +89,8 @@ c
 
 c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
-      common/pbluvtq/upbl,vpbl,tpbl,qpbl
+      real*8, dimension(npbl-1) :: epbl
+      common/pbluvtq/upbl,vpbl,tpbl,qpbl,epbl
 !$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
 
@@ -99,72 +100,38 @@ C        roughness lengths from Brutsaert for rough surfaces
       IF (ITYPE.GT.2) THEN
         Z0M=30./(10.**ROUGHL(I,J))
       ENDIF
-      ztop=zgs+zs1
+      ztop=zgs+zs1  ! zs1 is calculated before pbl is called
       IF (TKV.EQ.TGV) TGV=1.0001d0*TGV
 
-      ! find PBL height dbl (in meters) and the GCM layer (L) at which
-      ! to compute ug, vg and wg
+      ! FIND THE PBL HEIGHT IN METERS (DBL) AND THE CORRESPONDING
+      ! GCM LAYER (L) AT WHICH TO COMPUTE UG,VG AND WG.
+      ! LDC IS THE LAYER TO WHICH DRY CONVECTION/TURBULENCE MIXES
 
-c     IF (TKV.GE.TGV) THEN
-
-c       ! ATMOSPHERE IS STABLE WITH RESPECT TO THE GROUND
-c       ! COMPUTE THE PBL HEIGHT (DBL, IN METERS) WITH EMPIRICAL FORMULA
-c       ! AND DETERMINE THE GCM VERTICAL LAYER CORRESPONDING TO THE DBL
-
-c       USTAR=USTAR_PBL(I,J,ITYPE)
-c       DBL=min(0.3d0*USTAR/OMEGA2,dbl_max)
-c       if (dbl.le.ztop) then
-c         dbl=ztop
-c         L=1
-c       else
-c         zpbl=ztop
-c         pl1=pmid(1,i,j)
-c         tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)
-c         ! find the next L higher than dbl
-c         do l=2,ls1
-c           pl=pmid(l,i,j)
-c           tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j) !virtual,absolute
-c           tbar=thbar(tl1,tl)
-c           zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
-c           if (zpbl.ge.dbl) exit
-c           pl1=pl
-c           tl1=tl
-c         end do
-c       endif
-
-c     ELSE
-
-        ! ATMOSPHERE IS UNSTABLE WITH RESPECT TO THE GROUND
-        ! LDC IS THE LAYER TO WHICH DRY CONVECTION/TURBULENCE MIXES
-        ! FIND THE GCM LAYER AT OR ABOVE DBL_MAX AT WHICH TO COMPUTE WG
-
-        LDC=max(int(DCLEV(I,J)+.5d0),1)
-        if (LDC.eq.1) then
-          dbl=ztop
-          L=1
-        else
-          zpbl=ztop
-          pl1=pmid(1,i,j)
-          tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)
-          zpbl1=ztop
-          do L=2,LDC
-            pl=pmid(l,i,j)
-            tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j)
-            tbar=thbar(tl1,tl)
-            zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
-            if (zpbl.gt.dbl_max) then
-              zpbl=zpbl1
-              exit
-            endif
-            pl1=pl
-            tl1=tl
-            zpbl1=zpbl
-            if(L.eq.LDC) exit ! so that L will not increase by one
-          end do
-          dbl=zpbl
-        endif
-
-c     ENDIF
+      LDC=max(int(DCLEV(I,J)+.5d0),1)
+      if (LDC.eq.1) then
+        dbl=ztop
+        L=1
+      else
+        zpbl=ztop
+        pl1=pmid(1,i,j)
+        tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)
+        zpbl1=ztop
+        do L=2,LDC
+          pl=pmid(l,i,j)
+          tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j)
+          tbar=thbar(tl1,tl)
+          zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
+          if (zpbl.gt.dbl_max) then
+            zpbl=zpbl1
+            exit
+          endif
+          pl1=pl
+          tl1=tl
+          zpbl1=zpbl
+          if(L.eq.LDC) exit ! so that L will not increase by one
+        end do
+        dbl=zpbl
+      endif
 
       ppbl=pedn(l,i,j)
       coriol=sinp(j)*omega2
@@ -174,6 +141,7 @@ c     ENDIF
       qgrnd=qg_sat
 
       utop=0. ; vtop=0. ;  ug=0. ; vg=0.
+      ! pole and hemi are determined before pbl is called
       if (pole) then
         do k=1,kmaxj(j)
           utop = utop + rapj(k,j)*(u(idij(k,i,j),idjj(k,j),1)*cosiv(k) -
@@ -198,7 +166,7 @@ c     ENDIF
       vpbl(:)=vabl(:,i,j,itype)
       tpbl(:)=tabl(:,i,j,itype)
       qpbl(:)=qabl(:,i,j,itype)
-      e(1:npbl-1)=eabl(1:npbl-1,i,j,itype)
+      epbl(1:npbl-1)=eabl(1:npbl-1,i,j,itype)
 #ifdef TRACERS_ON
       do nx=1,ntx
         tr(:,nx)=trabl(:,ntix(nx),i,j,itype)
@@ -228,7 +196,7 @@ c     ENDIF
       vabl(:,i,j,itype)=vpbl(:)
       tabl(:,i,j,itype)=tpbl(:)
       qabl(:,i,j,itype)=qpbl(:)
-      eabl(1:npbl-1,i,j,itype)=e(1:npbl-1)
+      eabl(1:npbl-1,i,j,itype)=epbl(1:npbl-1)
 #ifdef TRACERS_ON
       do nx=1,ntx
         trabl(:,ntix(nx),i,j,itype)=tr(:,nx)
@@ -238,7 +206,7 @@ c     ENDIF
       cmgs(i,j,itype)=cm
       chgs(i,j,itype)=ch
       cqgs(i,j,itype)=cq
-      ipbl(i,j,itype)=1
+      ipbl(i,j,itype)=1  ! ipbl is used in subroutine init_pbl
 
       ws    =sqrt(us*us+vs*vs)
       wg    =sqrt(ug*ug+vg*vg)
@@ -286,7 +254,7 @@ c -------------------------------------------------------------
       USE MODEL_COM
       USE GEOM, only : idij,idjj,imaxj,kmaxj,rapj,cosiv,siniv,sinp
       USE SOCPBL, only : npbl=>n,zgs,inits,ccoeff0,XCDpbl
-     &     ,e,dpdxr,dpdyr,dpdxr0,dpdyr0
+     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
       USE PBLCOM
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
@@ -314,7 +282,8 @@ C**** ignore ocean currents for initialisation.
 
 c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
-      common/pbluvtq/upbl,vpbl,tpbl,qpbl
+      real*8, dimension(npbl-1) :: epbl
+      common/pbluvtq/upbl,vpbl,tpbl,qpbl,epbl
 !$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
 
@@ -441,7 +410,7 @@ c ******************************************************************
             end do
 
             do lpbl=1,npbl-1
-              eabl(lpbl,i,j,itype)=e(lpbl)
+              eabl(lpbl,i,j,itype)=epbl(lpbl)
             end do
 
             ipbl(i,j,itype)=1
@@ -630,7 +599,9 @@ C**** initialise some pbl common variables
 
       subroutine getztop(zgs,ztop)
 !@sum  getztop computes the value of ztop which is the height in meters
-!@+  of the first GCM layer from the surface
+!@+  of the first GCM layer from the surface.
+!@+  This subroutine only needs to be called when the BL fields require
+!@+  initialization.
 !@+  This form for z1 = zgs + zs1 (in terms of GCM parameters) yields an
 !@+  average value for zs1. The quantity theta was computed on the
 !@+  assumption of zs1=200 m from the original 9-layer model (actually
@@ -639,8 +610,7 @@ C**** initialise some pbl common variables
 !@auth Greg. Hartke/Ye Cheng
 !@var zgs The height of the surface layer.
 !@var ztop The height of the top of the BL simulation domain.
-!@+   Corresponds to the height of the middle of the first model
-!@+   layer and is only needed if the BL fields require initialization.
+!@+   Corresponds to averaged height of the middle of first model layer.
 
       USE CONSTANT, only : rgas,grav
       USE MODEL_COM, only : sige,psf,psfmpt
