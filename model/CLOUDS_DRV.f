@@ -51,7 +51,7 @@
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl,dgdqm
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
-     *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l,pphase,debug
+     *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l,lhp,debug
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo,dke
@@ -430,24 +430,15 @@ C**** TRACERS: Use only the active ones
 C****
 C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS
 C****
-      DO L=1,LM
+      DO L=1,LP50
         TL(L)=T(I,J,L)*PLK(L)
         TH(L)=T(I,J,L)
         QL(L)=Q(I,J,L)
       END DO
-      WMX(:)=WML(:)+SVWMXL(:)
-      AQ(:)=(QL(:)-QTOLD(:,I,J))*BYDTsrc
-      RNDSS1L(:)=RNDSS1(:,I,J)
-      RNDSS2L(:)=RNDSS2(:,I,J)
-C**** SEARCH 50 MB LEVEL
-        LP50=LM
-        DO L=2,LM
-          IF(L.GT.LP50) EXIT
-          IF(PL(L).LT.50.) THEN
-            LP50=L
-            IF(50.-PL(L).GT.PL(L-1)-50.) LP50=L-1
-          ENDIF
-        ENDDO
+      WMX(1:LP50)=WML(1:LP50)+SVWMXL(1:LP50)
+      AQ(1:LP50)=(QL(1:LP50)-QTOLD(1:LP50,I,J))*BYDTsrc
+      RNDSS1L(1:LP50)=RNDSS1(1:LP50,I,J)
+      RNDSS2L(1:LP50)=RNDSS2(1:LP50,I,J)
 C****
 C**** COMPUTE STRATOCUMULUS CLOUDS USING PHILANDER'S FORMULA
 C****
@@ -558,7 +549,7 @@ C**** TOTAL PRECIPITATION AND AGE OF SNOW
       PRCP=PRCP+PRCPSS*100.*BYGRAV
 C**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
 C**** NEED TO TAKE ACCOUNT OF LATENT HEAT THOUGH
-      IF (PPHASE.ne.LHS) THEN
+      IF (LHP(1).ne.LHS) THEN
 C       EPRCP=PRCPSS*100.*BYGRAV*TPRCP*SHW
         EPRCP=0.
         ENRGP=ENRGP+EPRCP
@@ -663,15 +654,15 @@ C**** WRITE TO GLOBAL ARRAYS
       CLDMC(:,I,J)=CLDMCL(:)
       SVLAT(:,I,J)=SVLATL(:)
 
-      TAUSS(:,I,J)=TAUSSL(:)
-      CLDSS(:,I,J)=CLDSSL(:)
-      CLDSAV(:,I,J)=CLDSAVL(:)
-      SVLHX(:,I,J)=SVLHXL(:)
-      CSIZSS(:,I,J)=CSIZEL(:)
+      TAUSS(1:LP50,I,J)=TAUSSL(1:LP50)
+      CLDSS(1:LP50,I,J)=CLDSSL(1:LP50)
+      CLDSAV(1:LP50,I,J)=CLDSAVL(1:LP50)
+      SVLHX(1:LP50,I,J)=SVLHXL(1:LP50)
+      CSIZSS(1:LP50,I,J)=CSIZEL(1:LP50)
 
-      RHSAV(:,I,J)=RH(:)
-      TTOLD(:,I,J)=TH(:)
-      QTOLD(:,I,J)=QL(:)
+      RHSAV(1:LP50,I,J)=RH(1:LP50)
+      TTOLD(1:LP50,I,J)=TH(1:LP50)
+      QTOLD(1:LP50,I,J)=QL(1:LP50)
 
       PREC(I,J)=PRCP            ! total precip mass (kg/m^2)
       EPREC(I,J)=ENRGP          ! energy of precipitation (J/m^2)
@@ -679,7 +670,7 @@ C**** The PRECSS array is only used if a distinction is being made
 C**** between kinds of rain in the ground hydrology.
       PRECSS(I,J)=PRCPSS*100.*BYGRAV  ! large scale precip (kg/m^2)
 
-      DO L=1,LM
+      DO L=1,LP50
         AJL(J,L,JL_SSHR)=AJL(J,L,JL_SSHR)+SSHR(L)
         AJL(J,L,JL_MCLDHT)=AJL(J,L,JL_MCLDHT)+DCTEI(L)
         AJL(J,L,JL_RHE)=AJL(J,L,JL_RHE)+RH1(L)
@@ -725,7 +716,7 @@ CCC     ENDDO
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
         n = ntix(nx)
-        do l=1,lm
+        do l=1,lp50
           dtr_ss(j,nx)=dtr_ss(j,nx)+(tm(l,nx)-tmsave(l,nx))
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
@@ -885,12 +876,14 @@ C$OMP  END PARALLEL DO
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : grav,by3
-      USE MODEL_COM, only : dtsrc,ls1
+      USE MODEL_COM, only : dtsrc,ls1,sige,lm,psfmpt,ptop
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
-     *  ,HRMAX,ISC
+     *  ,HRMAX,ISC,lp50
       USE PARAM
 
       IMPLICIT NONE
+      REAL*8 PLE
+      INTEGER L
 
       call sync_param( 'U00wtrX', U00wtrX )
       call sync_param( 'U00ice', U00ice )
@@ -906,4 +899,12 @@ C$OMP  END PARALLEL DO
 
       BYBR=((1.-BRCLD)*(1.-2.*BRCLD))**BY3
 
+C**** SEARCH FOR THE 50 MB LEVEL
+      LP50=LM
+      DO L=LM-1,1,-1
+        PLE=.25*(SIGE(L)+2.*SIGE(L+1)+SIGE(L+2))*PSFMPT+PTOP
+        IF (PLE.LT.50.) LP50=L
+      END DO
+      write(6,*) "Maximum level for LSCOND calculations (50mb): ",LP50
+      
       END SUBROUTINE init_CLD

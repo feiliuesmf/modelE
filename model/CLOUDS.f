@@ -63,7 +63,7 @@ C**** input variables
 !@var Miscellaneous vertical arrays set in driver
       REAL*8, DIMENSION(LM+1) :: PLE    !@var PLE pressure at layer edge
       REAL*8, DIMENSION(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,WMX
-     *     ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1
+     *     ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1,LHP
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -78,6 +78,7 @@ C**** input variables
 !@var MCFLX, DGDSM, DPHASE, DQCOND, DGDQM dummy variables
 !@var AQ time change rate of specific humidity (s**-1)
 !@var DPDT time change rate of pressure (mb/s)
+!@var LHP array of precip phase ! may differ from LHX
       REAL*8, DIMENSION(LM+1) :: PRECNVL
 !@var PRECNVL convective precip entering the layer top
 C**** new arrays must be set to model arrays in driver (before MSTCNV)
@@ -152,10 +153,9 @@ C**** output variables
 !@var PRCPSS precip due to large-scale condensation
 !@var HCNDSS heating due to large-scale condensation
 !@var WMSUM cloud liquid water path
-      REAL*8 :: CLDSLWIJ,CLDDEPIJ,PPHASE
+      REAL*8 :: CLDSLWIJ,CLDDEPIJ
 !@var CLDSLWIJ shallow convective cloud cover
 !@var CLDDEPIJ deep convective cloud cover
-!@var PPHASE precip phase of large-scale condensation
       INTEGER :: LMCMAX,LMCMIN
 !@var LMCMAX upper-most convective layer
 !@var LMCMIN lowerest convective layer
@@ -170,15 +170,15 @@ CCOMP*  ,DTOTW,DQCOND,DCTEI,DGDQM,dxypj
 CCOMP*  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
 CCOMP*  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
 CCOMP*  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
-CCOMP*  ,PRCPMC,PRCPSS,PPHASE,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX
+CCOMP*  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX
 CCOMP*  ,LMCMIN,KMAX,DEBUG)
       COMMON/CLDPRV/RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
-     *  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE
+     *  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE,LHP
      *  ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPJ
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
-     *  ,PRCPMC,PRCPSS,PPHASE,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,DEBUG
+     *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,DEBUG
      *  ,LMCMAX,LMCMIN,KMAX,DCL     ! integers last (alignment)
 C$OMP  THREADPRIVATE (/CLDPRV/)
 
@@ -1215,7 +1215,8 @@ C**** CALCULATE OPTICAL THICKNESS
          END IF
          IF(SVLATL(L).EQ.0.) THEN
             SVLATL(L)=LHE
-            IF(SVTP(L).LT.TF) SVLATL(L)=LHS
+            IF ( (SVTP(L).gt.0. .and. SVTP(L).LT.TF) .or.
+     *           (SVTP(L).eq.0. .and. TL(L).lt.TF) ) SVLATL(L)=LHS
          ENDIF
          IF(SVWMXL(L).GT.0.) THEN
             FCLD=CLDMCL(L)+1.E-20
@@ -1251,7 +1252,7 @@ C**** CALCULATE OPTICAL THICKNESS
 !@var IERR,WMERR,LERR error reporting
       INTEGER, INTENT(OUT) :: IERR,LERR
       REAL*8, INTENT(OUT) :: WMERR
-      REAL*8 LHX,LHXUP
+      REAL*8 LHX
 
 C**** functions
       REAL*8 :: QSAT, DQSATDT,ERMAX
@@ -1269,7 +1270,7 @@ C**** functions
       REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
       REAL*8, DIMENSION(LM) ::
-     *     QSATL,RHF,ATH,SQ,ER,QHEAT,LHP,
+     *     QSATL,RHF,ATH,SQ,ER,QHEAT,
      *     CAREA,PREP,RH00,EC,WMXM
 !@var QSATL saturation water vapor mixing ratio
 !@var RHF environmental relative humidity
@@ -1282,7 +1283,6 @@ C**** functions
 !@var RH00 threshold relative humidity
 !@var EC cloud evaporation rate
 !@var WMXM cloud water mass (mb)
-!@var LHP array of precip phase ! may differ from LHX
       REAL*8, DIMENSION(LM+1) :: PREBAR,PREICE
 !@var PREBAR,PREICE precip entering layer top for total, snow
 
@@ -1393,7 +1393,6 @@ C****
       PRCPSS=0.
       HCNDSS=0.
       CKIJ=1.
-      PPHASE=0.
 C**** initialise vertical arrays
       ER=0.
       EC=0.
@@ -1414,7 +1413,6 @@ C**** initialise vertical arrays
         IF(WMX(L).LE.0.) CAREA(L)=1.
       END DO
       DQUP=0.
-C     LHXUP=0.
       TOLDUP=TL(LP50)
       PREICE(LP50+1)=0.
       WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
@@ -1477,21 +1475,15 @@ C**** special case 1) if ice previously then stay as ice (if T<Tf)
         ENDIF
 
         IF (L.LT.LP50) THEN
-C**** special case 2) default is that water cloud is below water cloud
-C         IF(LHXUP.EQ.LHE) THEN
-C           LHX=LHE
-C           BANDF = .FALSE.
-C         END IF
-
 C**** Decide whether precip initiates B-F process
           IF (TL(L).LT.TF) THEN
             PML=WMX(L)*AIRM(L)*BYGRAV
             PMI=PREICE(L+1)*DTsrc
             PMW=0.
-            IF (PPHASE.EQ.LHE) PMW=PREBAR(L+1)*DTsrc
+            IF (LHP(L+1).EQ.LHE) PMW=PREBAR(L+1)*DTsrc
             RANDNO=RNDSS2L(L)   !  RANDNO=RANDU(XY)
 C**** Calculate probability of ice precip seeding a water cloud
-            IF (LHX.EQ.LHE.AND.PMI.gt.0.AND.PML.GT.0.) THEN
+            IF (LHX.EQ.LHE.AND.PMI.gt.0) THEN
               PRATIO=MIN(PMI/(PML+1.E-20),10d0)
               PFR=(1.-EXP(-(PRATIO*PRATIO)))*(1.-EXP(-(CBFC0*CBFC0)))
               IF(PFR.GT.RANDNO) THEN
@@ -1567,44 +1559,31 @@ C****
       IF(RH00(L).GT.1.) RH00(L)=1.
       RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
       HPHASE=0.
-      IF(LHX.EQ.LHS .AND. PPHASE.EQ.LHE .AND. PREBAR(L+1).GT.0.)
-     *  LHP(L+1)=LHS
-C     IF(L.LT.LM .AND. PREICE(L+1).GT.0. .AND. LHX.EQ.LHE)
-C    *  LHP(L+1)=LHE                 ! not needed yet
-      IF(WMX(L).GT.0.) THEN
+      LHP(L)=LHX ! default precip phase
 C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
-      RHO=1d5*PL(L)/(RGAS*TL(L))
-      TEM=RHO*WMX(L)/(WCONST*FCLD+teeny)
-      IF(LHX.EQ.LHS ) TEM=RHO*WMX(L)/(WMUI*FCLD+teeny)
-      TEM=TEM*TEM
-      IF(TEM.GT.10.) TEM=10.
-      CM1=CM0
-      IF(BANDF) CM1=CM0*CBF
-      IF(LHX.EQ.LHS) CM1=CM0
-      CM=CM1*(1.-1./EXP(TEM*TEM))+1.*100.*(PREBAR(L+1)+
-     *   PRECNVL(L+1)*BYDTsrc)
-      IF(CM.GT.BYDTsrc) CM=BYDTsrc
-      PREP(L)=WMX(L)*CM
-      LHP(L)=LHE                     ! determin precip phase
-      IF(LHX.EQ.LHS) LHP(L)=LHS      ! determin precip phase
-      IF(TL(L).LT.TF.AND.LHX.EQ.LHE) THEN  ! check snowing pdf
-        PRATM=0.
-        PRATM=1.d5*COEFM*WMX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
-        PRATM=MIN(PRATM,1.D0)*(1.-EXP(MAX(-100.,(TL(L)-TF)/COEFT)))
-        IF(PRATM.GT.RNDSS1L(L)) THEN
-          LHP(L)=LHS
-          HPHASE=-PREP(L)*LHM
-          IF(LHP(L+1).EQ.LHE .AND. PREBAR(L+1).GT.0.) THEN
-            HPHASE=HPHASE-LHM*PREBAR(L+1)*GRAV*BYAM(L)
-            LHP(L+1)=LHS
+      IF(WMX(L).GT.0.) THEN
+        RHO=1d5*PL(L)/(RGAS*TL(L))
+        TEM=RHO*WMX(L)/(WCONST*FCLD+teeny)
+        IF(LHX.EQ.LHS ) TEM=RHO*WMX(L)/(WMUI*FCLD+teeny)
+        TEM=TEM*TEM
+        IF(TEM.GT.10.) TEM=10.
+        CM1=CM0
+        IF(BANDF) CM1=CM0*CBF
+        IF(LHX.EQ.LHS) CM1=CM0
+        CM=CM1*(1.-1./EXP(TEM*TEM))+1.*100.*(PREBAR(L+1)+
+     *       PRECNVL(L+1)*BYDTsrc)
+        IF(CM.GT.BYDTsrc) CM=BYDTsrc
+        PREP(L)=WMX(L)*CM
+        IF(TL(L).LT.TF.AND.LHX.EQ.LHE) THEN ! check snowing pdf
+          PRATM=1.d5*COEFM*WMX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
+          PRATM=MIN(PRATM,1.D0)*(1.-EXP(MAX(-100.,(TL(L)-TF)/COEFT)))
+          IF(PRATM.GT.RNDSS1L(L)) THEN
+            LHP(L)=LHS
+            HPHASE=-PREP(L)*LHM
           END IF
-        ELSE
-          LHP(L+1)=LHE
         END IF
-      END IF
       ELSE
         CM=0.
-        IF(PREBAR(L+1).GT.0.) LHP(L)=LHX
       END IF
 C**** FORM CLOUDS ONLY IF RH GT RH00
   219 IF(RH1(L).LT.RH00(L)) GO TO 220
@@ -1680,17 +1659,14 @@ C**** a super-cooled water cloud (that has not had B-F occur).
 C**** Note: on rare occasions we have ice clouds even if T>0
 C**** In such a case, no energy of phase change is needed.
 C     HPHASE=0.
-      IF(L.LT.LP50 .AND. PREICE(L+1).GT.0. .AND. LHX.EQ.LHE
-     *  .AND. LHP(L).EQ.LHE) THEN
+      IF (LHP(L+1).EQ.LHS.AND.LHP(L).EQ.LHE.AND.PREICE(L+1).GT.0) THEN
         HPHASE=HPHASE+LHM*PREICE(L+1)*GRAV*BYAM(L)
         PREICE(L+1)=0.
-C       LHP(L+1)=LHE
       ENDIF
 C**** PHASE CHANGE OF PRECIP, FROM WATER TO ICE
-      IF(LHX.EQ.LHS .AND. PPHASE.EQ.LHE .AND. PREBAR(L+1).GT.0.) THEN
+      IF (LHP(L+1).EQ.LHE.AND.LHP(L).EQ.LHS.AND.PREBAR(L+1).GT.0) THEN
         HPHASE=HPHASE-LHM*PREBAR(L+1)*GRAV*BYAM(L)
-C       LHP(L+1)=LHS
-      ENDIF
+      END IF
 C**** COMPUTE THE PRECIP AMOUNT ENTERING THE LAYER TOP
       IF (ER(L).eq.ERMAX) THEN ! to avoid round off problem
         PREBAR(L)=PREBAR(L+1)*(1.-CAREA(L))+AIRM(L)*PREP(L)*BYGRAV
@@ -1794,7 +1770,7 @@ C**** Isotopic equilibration of the CLW and water vapour
         END IF
 C**** Isotopic equilibration of Precip (if liquid) and water vapour
 C**** Note that precip is either all water or all ice
-        IF (LHX.eq.LHE .AND. PREBAR(L).gt.0 .AND. QL(L).gt.0) THEN
+        IF (LHP(L).eq.LHE .AND. PREBAR(L).gt.0 .AND. QL(L).gt.0) THEN
           PRLIQ=PREBAR(L)*DTSrc*BYAM(L)*GRAV
           CALL ISOEQUIL(NTIX(N),TL(L),.TRUE.,QL(L),PRLIQ,TM(L,N)
      *         ,TRPRBAR(N,L),1d0)
@@ -1860,12 +1836,8 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
       END IF
 C**** set phase of condensation for next box down
       PREICE(L)=0.
-      PPHASE=0.
-      IF (PREBAR(L).gt.0) THEN
-        PPHASE=LHP(L)
-C       PPHASE=LHX
-        IF (PPHASE.EQ.LHS) PREICE(L)=PREBAR(L)
-      END IF
+      IF (PREBAR(L).gt.0 .AND. LHP(L).EQ.LHS) PREICE(L)=PREBAR(L)
+      IF (PREBAR(L).le.0) LHP(L)=0.
 C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
       IF(CAREA(L).GT.1.) CAREA(L)=1.
@@ -1878,8 +1850,6 @@ C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       IF(CLOUD_YET.and.CLDSSL(L).eq.0.) BELOW_CLOUD=.true.
 #endif
       TOLDUP=TOLD
-C     LHXUP=0.
-C     IF (WMX(L).gt.0) LHXUP=LHX
 C**** ACCUMULATE SOME DIAGNOSTICS
          HCNDSS=HCNDSS+(TNEW-TOLD)*AIRM(L)
          SSHR(L)=SSHR(L)+(TNEW-TOLD)*AIRM(L)
