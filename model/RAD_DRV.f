@@ -287,13 +287,14 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE MODEL_COM, only : jm,lm,ls1,dsig,sige,psfmpt,ptop,dtsrc,nrad
      *     ,kradia
       USE GEOM, only : dlat,lat_dg
-      USE RE001, only : setnew,rcomp1,writer             ! routines
+      USE RE001, only : setnew,rcomp1,writer,writet      ! routines
      &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLB, PTOPTR
      *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, SHL
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,llow,lmid,lhi,coe,sinj,cosj,H2ObyCH4,dH2O
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
+      USE DAGCOM, only : iwrite,jwrite,itwrite
       IMPLICIT NONE
 
       INTEGER J,L,LR,MADVEL
@@ -451,6 +452,9 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
       WRITE (6,47) LLOW,LLOW+1,LMID,LMID+1,LHI
  47   FORMAT (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN',
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
+C**** write trend table for forcing 'itwrite' for years iwrite->jwrite 
+C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
+      if(jwrite.gt.1500) call writet (6,itwrite,iwrite,jwrite,1,0)
 C****
       END SUBROUTINE init_RAD
 
