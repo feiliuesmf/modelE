@@ -1402,7 +1402,7 @@ C                                      Monthly-Mean Solar UV (1882-1998)
 C                                      ---------------------------------
 C
 C
-      IF(MADLUV.LT.1) GO TO 949
+      IF(MADLUV.LT.1) GO TO 909
       NRFU=NRFUN(9)
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE9
@@ -1438,6 +1438,13 @@ C
   903 CONTINUE
   904 CONTINUE
       CLOSE(NRFU)
+      GO TO 949
+  909 CONTINUE
+      DO 911 I=1,190
+      WSLEAN(I)=WSLEAN(I)/1000.D0
+      DSLEAN(I)=DSLEAN(I)/1000.D0
+      W1LEAN(I)=WSLEAN(I)-0.5D0*DSLEAN(I)
+  911 CONTINUE
 C
   949 CONTINUE
 C
