@@ -644,8 +644,14 @@ C****
       DO I=1,IM*JM
       P(I,1)=P(I,1)-PTOP                               ! Psurf -> P
       END DO
-      DO L=1,LM+LM+LM
-      CALL READT (9,0,U(1,1,L),IM*JM,U(1,1,L),1)       ! U,V,Temperature
+      DO L=1,LM
+      CALL READT (9,0,U(1,1,L),IM*JM,U(1,1,L),1)       ! U
+      END DO
+      DO L=1,LM
+      CALL READT (9,0,V(1,1,L),IM*JM,V(1,1,L),1)       ! V
+      END DO
+      DO L=1,LM
+      CALL READT (9,0,T(1,1,L),IM*JM,T(1,1,L),1)       ! Temperature
       END DO
       DO L=1,LM
       CALL READT (9,0,Q(1,1,L),IM*JM,Q(1,1,L),1)       ! Q
@@ -904,7 +910,6 @@ C*       Atmospheric topography
       CALL READT (26,0,ZATMO,IM*JM,ZATMO,1)
 C*       adjust to give geopotential height
       ZATMO = ZATMO*GRAV
-
       REWIND 26
       if(iniPBL) call pblini
 C!!!! Added 09/07/95 -rar-
@@ -1051,17 +1056,22 @@ C****
       NDYNO=MOD(NDYN,2)
       DTFS=DT*2./3.
       DTLF=2.*DT
-      DO 310 J=1,JM
-        DO 303 I=1,IM
-  303   PTOLD(I,J)=P(I,J)
-      DO 305 L=1,LM*2
-      DO 305 I=1,IM
-      UX(I,J,L)=U(I,J,L)
-  305 UT(I,J,L)=U(I,J,L)
-        DO 307 L=1,LM
-        DO 307 I=1,IM
-  307   WMT(I,J,L)=WM(I,J,L)
-  310 CONTINUE
+      DO J=1,JM
+         DO I=1,IM
+            PTOLD(I,J)=P(I,J)
+         ENDDO
+      ENDDO
+      DO L=1,LM
+         DO J=1,JM
+            DO I=1,IM
+               UX(I,J,L)=U(I,J,L)
+               UT(I,J,L)=U(I,J,L)
+               VX(I,J,L)=V(I,J,L)
+               VT(I,J,L)=V(I,J,L)
+               WMT(I,J,L)=WM(I,J,L)
+            ENDDO
+         ENDDO
+      ENDDO
       DO 311 J=1,JM
       DO 311 I=1,IM
       PA(I,J)=P(I,J)
@@ -1399,11 +1409,10 @@ C****
       DIMENSION SMASS(JM)
       DATA IFIRST/1/
 C****
-         IF(MODD5K.LT.MRCH) CALL DIAG5F (U)
+         IF(MODD5K.LT.MRCH) CALL DIAG5F (U,V)
       IF(IFIRST.NE.1) GO TO 50
       IFIRST=0
       JMM2=JM-2
-      LMT2=LM+LM
       IJL2=IM*JM*LM*2
       DO 10 J=2,JM
    10 SMASS(J)=(PSF-PTOP)*DXYV(J)
@@ -1498,11 +1507,16 @@ C****
 C**** CALL DIAGNOSTICS
          IF(MODD5K.LT.MRCH) CALL DIAG5A (4,MRCH)
          IF(MRCH.GT.0) CALL DIAG9D (1,DT1,U,V)
-      DO 320 L=1,LMT2
-      DO 320 J=2,JM
-      DO 320 I=1,IM
-      UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)
-  320 DUT(I,J,L)=0.
+      DO L=1,LM
+         DO J=2,JM
+            DO I=1,IM
+               UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)
+               VT(I,J,L)=VT(I,J,L)+DVT(I,J,L)
+               DUT(I,J,L)=0.
+               DVT(I,J,L)=0.
+            ENDDO
+         ENDDO
+      ENDDO
 C****
 C**** CORIOLIS FORCE
 C****
@@ -1528,11 +1542,16 @@ C**** Set the Coriolis term to zero at the Poles:
 C**** CALL DIAGNOSTICS, ADD CORIOLIS FORCE INCREMENTS TO UT AND VT
          IF(MODD5K.LT.MRCH) CALL DIAG5A (5,MRCH)
          IF(MRCH.GT.0) CALL DIAG9D (2,DT1,U,V)
-      DO 500 L=1,LMT2
-      DO 500 J=2,JM
-      DO 500 I=1,IM
-      UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)
-  500 DUT(I,J,L)=0.
+      DO L=1,LM
+         DO J=2,JM
+            DO I=1,IM
+               UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)
+               VT(I,J,L)=VT(I,J,L)+DVT(I,J,L)
+               DUT(I,J,L)=0.
+               DVT(I,J,L)=0.
+            ENDDO
+         ENDDO
+      ENDDO
 C****
 C**** UNDO SCALING PERFORMED AT BEGINNING OF ADVECV
 C****
@@ -1580,7 +1599,6 @@ C****
       SHA=RGAS/KAPA
       KAPAP1=KAPA+1.
       JMM2=JM-2
-      LMT2=LM+LM
       DT4=DT1/4.
       KAPAP2=KAPA+2.
       DO 10 L=1,LM+1
