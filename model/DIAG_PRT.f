@@ -3883,7 +3883,7 @@ c**** always skip unused fields
       end do
 
       inquire (file='Iij',exist=qIij)
-      if (.not.qIij) kdiag(3)=0                  
+      if (.not.qIij) kdiag(3)=0
       call set_ijout (nmaplets,nmaps,Iord,Qk,iu_Iij)
       xlb=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)
 C****
@@ -5280,6 +5280,7 @@ C****
            if (lname_ijk(k).ne.'unused')
      *        write (iu_Iij,'(i3,1x,a)') k,lname_ijk(k)
          end do
+         call closeunit(iu_Iij)
          return
       else if (kdiag(3).gt.1) then
          Qk = .false.
