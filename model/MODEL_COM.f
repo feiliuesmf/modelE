@@ -209,8 +209,8 @@ C**** Check whether index has been set
       END DO
 C**** Otherwise increase number of indexes
       NTIMEACC = NTIMEACC + 1
-      IF (NTIMEACC.gt.NTIMEMAX)
-     *     STOP "Too many timing indices: increase NTIMEMAX"
+      IF (NTIMEACC.gt.NTIMEMAX) call stop_model(
+     &     "Too many timing indices: increase NTIMEMAX",255)
       MINDEX = NTIMEACC
       TIMESTR(MINDEX) = STR
 C****

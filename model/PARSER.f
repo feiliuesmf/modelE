@@ -137,7 +137,7 @@
 
         if ( len_trim(bufs) < 1 ) then
           print *,'PARSER: no values were given to param: ', name
-          stop 'PARSER error'
+          call stop_model('PARSER error',255)
         endif
 
         ! now check the type of variables
@@ -177,9 +177,10 @@
 
       return
  666  print *, 'PARSER: Error reading params'
-      stop 255
+      call stop_model( 'PARSER: Error reading params', 255 )
  667  print *, 'PARSER: No &&PARAMETERS or &&END_PARAMETERS found'
-      stop 255
+      call stop_model(
+     &     'PARSER: No &&PARAMETERS or &&END_PARAMETERS found',255)
       end subroutine parse_params
 
       end module PARSER

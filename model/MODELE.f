@@ -26,7 +26,7 @@
 
       CHARACTER aDATE*14
       CHARACTER*8 :: flg_go='___GO___'      ! green light
-      external stop_model
+      external sig_stop_model
 C****
 C**** INITIALIZATIONS
 C****
@@ -38,13 +38,14 @@ C**** If run is already done, just produce diagnostic printout
 C****
       IF (Itime.GE.ItimeE.and.Kradia.le.0) then ! includes ISTART<1 case
         call print_diags(1)
-        CALL exit_rc (13)       ! no output files are affected
+        CALL stop_model ('The run has already completed',13)
+        ! no output files are affected
       END IF
 
       open(3,file='flagGoStop',form='FORMATTED',status='REPLACE')
       write (3,'(A8)') flg_go
       close (3)
-      call sys_signal( 15, stop_model )  ! works only on single CPU
+      call sys_signal( 15, sig_stop_model )  ! works only on single CPU
          MSTART=MNOW
          DO M=1,NTIMEACC
            MSTART= MSTART-TIMING(M)
@@ -426,16 +427,17 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       WRITE (6,'(/////4(1X,33("****")/)//,A,I8
      *             ///4(1X,33("****")/))')
      *  ' PROGRAM TERMINATED NORMALLY - Internal clock time:',ITIME
-      IF (Itime.ge.ItimeE) CALL exit_rc (13)
-      CALL exit_rc (12)               ! voluntary temporary termination
+      IF (Itime.ge.ItimeE) CALL stop_model (
+     &     'Terminated normally (reached maximum time)',13)
+      CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop
       END
 
 
-      subroutine stop_model
+      subroutine sig_stop_model
       USE MODEL_COM, only : stop_on
       implicit none
       stop_on = .true.
-      end subroutine stop_model
+      end subroutine sig_stop_model
 
 
       subroutine init_Model
@@ -631,7 +633,8 @@ C****
 #ifdef TRACERS_WATER
       write(6,*) '...and water tracer code'
 #ifndef TRACERS_ON
-      STOP 'Water tracers need TRACERS_ON as well as TRACERS_WATER'
+      call stop_model(
+     &    ' Water tracers need TRACERS_ON as well as TRACERS_WATER',255)
 #endif
 #endif
 #ifdef TRACERS_OCEAN
@@ -640,8 +643,8 @@ C****
 #ifdef TRACERS_SPECIAL_O18
       write(6,*) '...and water isotope code'
 #ifndef TRACERS_WATER
-      STOP 'Water isotope tracers need TRACERS_WATER '//
-     *     'as well as TRACERS_SPECIAL_O18'
+      call stop_model('Water isotope tracers need TRACERS_WATER '//
+     *     'as well as TRACERS_SPECIAL_O18',255)
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
@@ -657,6 +660,11 @@ C****
         WRITE (8,'(A)') NLREC
       END DO
       REWIND 8
+C****
+C**** Read parameters from the rundeck to the database
+C****
+      call parse_params( 8 )
+      REWIND 8
       do
         read (8,'(A)') NLREC
         if ( NLREC .eq. ' &&END_PARAMETERS' ) exit
@@ -664,10 +672,6 @@ C****
       READ (8,NML=INPUTZ,ERR=900)
       REWIND 8
 
-C****
-C**** Read parameters from the rundeck to the database
-C****
-      call parse_params( 8 )
 C**** Get those parameters which are needed in this subroutine
       if(is_set_param("DTsrc"))  call get_param( "DTsrc", DTsrc )
       if(is_set_param("DT"))     call get_param( "DT", DT )
@@ -716,7 +720,7 @@ C****
 C**** Get Start Time; at least YearI HAS to be specified in the rundeck
       IF (YearI.lt.0) then
         WRITE(6,*) 'Please choose a proper start year yearI, not',yearI
-        STOP 'INPUT: yearI not provided'
+        call stop_model('INPUT: yearI not provided',255)
       END IF
       IF (Iyear1.lt.0) Iyear1 = yearI
       IhrI = HourI +
@@ -726,12 +730,13 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
       IF (IhrI.lt.0) then
         WRITE(6,*) 'Improper start time OR Iyear1=',Iyear1,' > yearI;',
      *     ' yearI,monthI,dateI,hourI=',yearI,monthI,dateI,hourI
-        STOP 'INPUT: Improper start date or base year Iyear1'
+        call stop_model(
+     &       'INPUT: Improper start date or base year Iyear1',255)
       END IF
 C**** Check the vertical layering defined in RES_ (is sige(ls1)=0 ?)
       IF (SIGE(LS1).ne.0.) then
         write(6,*) 'bad vertical layering: ls1,sige(ls1)',ls1,sige(ls1)
-        STOP 'INPUT: ls1 incorrectly set in RES_'
+        call stop_model('INPUT: ls1 incorrectly set in RES_',255)
       END IF
 C****
 C**** Get Ground conditions from a separate file - ISTART=1,2
@@ -751,7 +756,7 @@ C**** Read in ground initial conditions
         call io_landice(iu_GIC,ioread,ioerr)
         if (ioerr.eq.1) then
           WRITE(6,*) "I/O ERROR IN GIC FILE: KUNIT=",iu_GIC
-          STOP "INPUT: GIC READ IN ERROR"
+          call stop_model("INPUT: GIC READ IN ERROR",255)
         end if
         call closeunit (iu_GIC)
       END IF
@@ -896,7 +901,7 @@ C**** Check consistency of starting time
         WRITE (6,*) ' Difference in hours between ',
      *       'Starting date and Data date:',MOD(IHRI-IHRX,8760)
         WRITE (6,*) 'Please change HOURI,DATEI,MONTHI'
-        STOP 'INPUT: start date inconsistent with data'
+        call stop_model('INPUT: start date inconsistent with data',255)
       END IF
 C**** Set flag to initialise lake variables if they are not in I.C.
       IF (ISTART.lt.8) inilake=.TRUE.
@@ -1038,7 +1043,7 @@ C**** Recompute dtsrc,dt making NIdyn=dtsrc/dt(dyn) a multiple of 2
 C****
       if (is_set_param("DTsrc") .and. nint(sday/DTsrc).ne.NDAY) then
         write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to',SDAY/NDAY
-        stop 'INPUT: DTsrc inappropriately set'
+        call stop_model('INPUT: DTsrc inappropriately set',255)
       end if
       DTsrc = SDAY/NDAY   ! currently 1 hour
       call set_param( "DTsrc", DTsrc, 'o' )   ! copy DTsrc into DB
@@ -1046,7 +1051,7 @@ C****
       NIdyn = 2*nint(.5*dtsrc/dt)
       if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
         write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
-        stop 'INPUT: DT inappropriately set'
+        call stop_model('INPUT: DT inappropriately set',255)
       end if
       DT = DTsrc/NIdyn
       call set_param( "DT", DT, 'o' )         ! copy DT into DB
@@ -1054,7 +1059,7 @@ C****
 C**** NMONAV has to be 1(default),2,3,4,6,12, i.e. a factor of 12
       if (NMONAV.lt.1 .or. MOD(12,NMONAV).ne.0) then
         write (6,*) 'NMONAV has to be 1,2,3,4,6 or 12, not',NMONAV
-        stop 'INPUT: nmonav inappropriately set'
+        call stop_model('INPUT: nmonav inappropriately set',255)
       end if
       write (6,*) 'Diag. acc. period:',NMONAV,' month(s)'
 
@@ -1153,7 +1158,8 @@ C****
         call print_param( 6 )
         WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
         WRITE (6,*) "PLbot=",PTOP+PSFMPT*SIGE
-        if(istart.lt.0) CALL exit_rc (13)
+        if(istart.lt.0)
+     &       CALL stop_model ('Terminated normally, istart<0',13)
         return
       end if                  !  Kradia>0; radiative forcing run
       CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART)
@@ -1185,16 +1191,16 @@ C**** TERMINATE BECAUSE OF IMPROPER PICK-UP
 C****
   800 WRITE (6,'(A,I4/" ",A)')
      *  '0ERROR ENCOUNTERED READING AIC ISTART=', ISTART,XLABEL(1:80)
-      STOP 'INPUT: READ ERROR FOR AIC'
+      call stop_model('INPUT: READ ERROR FOR AIC',255)
   830 WRITE(6,*) 'READ ERROR FOR GIC'
-      STOP 'INPUT: READ ERROR FOR GIC'
+      call stop_model('INPUT: READ ERROR FOR GIC',255)
   850 WRITE (6,'(A)')
      *  '0ERRORS ON BOTH RESTART DATA SETS. TERMINATE THIS JOB'
-      STOP 'INPUT: ERRORS ON BOTH RESTART FILES'
+      call stop_model('INPUT: ERRORS ON BOTH RESTART FILES',255)
   890 WRITE (6,'(A,I5)') '0INCORRECT VALUE OF ISTART',ISTART
-      STOP 'INPUT: ISTART-SPECIFICATION INVALID'
+      call stop_model('INPUT: ISTART-SPECIFICATION INVALID',255)
   900 write (6,*) 'Error in NAMELIST parameters'
-      stop 'Error in NAMELIST parameters'
+      call stop_model('Error in NAMELIST parameters',255)
       END SUBROUTINE INPUT
 
       SUBROUTINE DAILY(end_of_day)

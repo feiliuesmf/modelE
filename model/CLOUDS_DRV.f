@@ -314,7 +314,7 @@ C**** MOIST CONVECTION
 C**** Error reports
       if (ierr.gt.0) then
         write(6,*) "Error in moist conv: i,j,l=",i,j,lerr
-ccc     if (ierr.eq.2) stop "Subsid error: abs(c) > 1"
+ccc     if (ierr.eq.2) call stop_model("Subsid error: abs(c) > 1",255)
         if (ierr.eq.2) ickerr = 1
       end if
 
@@ -692,14 +692,14 @@ C     WAS THERE AN ERROR IN SUBSID ??
 C
       IF(ICKERR.NE.0)  THEN
          WRITE(6,*)  'SUBSID ERROR: ABS(C) > 1'
-         STOP 800
+         call stop_model('SUBSID ERROR: ABS(C) > 1',255)
       END IF
 C
 C     WAS THERE AN ERROR IN ISCCP CLOUD TYPING ??
 C
       IF(JCKERR.NE.0)  THEN
          WRITE(6,*)  'ISCCP CLOUD TYPING ERROR'
-         STOP 900
+         call stop_model('ISCCP CLOUD TYPING ERROR',255)
       END IF
 
 #ifdef TRACERS_ON

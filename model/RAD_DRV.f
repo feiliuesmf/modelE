@@ -562,7 +562,7 @@ C**** Calculate mean cosine of zenith angle for the current physics step
         iend = 0
    10   if (it.ne.iy.or.iend.eq.1) then
           write(6,*) 'RAD input file bad or too short:',itime,it,iy,iend
-          stop 'RADIA: input file bad or too short'
+          call stop_model('RADIA: input file bad or too short',255)
         end if
 C****   Find arrays derived from read-in fields
         do j=1,jm
@@ -977,8 +977,9 @@ C$OMP  END PARALLEL
 CcOMP  END PARALLEL DO
       if(kradia.gt.0) return
 C**** Stop if temperatures were out of range
-      IF(ICKERR.GT.0)  STOP 'In Radia: Temperature out of range'
-      IF(JCKERR.GT.0)  STOP 'In Radia: RQT out of range'
+      IF(ICKERR.GT.0)
+     &     call stop_model('In Radia: Temperature out of range',255)
+      IF(JCKERR.GT.0)  call stop_model('In Radia: RQT out of range',255)
 
 C**** save all input data to disk if kradia<0
       if (kradia.lt.0) write(iu_rad) itime,T,RQT,TsAvg,QR,P,CLDinfo

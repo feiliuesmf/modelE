@@ -176,7 +176,8 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
           CALL MREAD (iu_OSST, m,IM*JM,EOST0,IM*JM,EOST0)
           CALL MREAD (iu_SICE,m1,IM*JM,ERSI0,IM*JM,ERSI0)
           WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M,M1
-          IF(M.NE.M1.OR.M.NE.LSTMON) STOP 'Read error: ocean data'
+          IF(M.NE.M1.OR.M.NE.LSTMON)
+     &         call stop_model('Read error: ocean data',255)
         end if
       ELSE
 C****   COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
@@ -197,7 +198,8 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
         CALL MREAD (iu_OSST, M,0,AOST,2*IM*JM,AOST) ! READS AOST,EOST1
         CALL MREAD (iu_SICE,M1,0,ARSI,2*IM*JM,ARSI) ! READS ARSI,ERSI1
         WRITE(6,*) 'Read in ocean data for month',JMON,M,M1
-        IF(M.NE.M1.OR.JMON.NE.MOD(M-1,12)+1) STOP 'Error: Ocean data'
+        IF(M.NE.M1.OR.JMON.NE.MOD(M-1,12)+1)
+     &       call stop_model('Error: Ocean data',255)
       end if
 C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
       DO J=1,JM
@@ -355,7 +357,8 @@ C**** Read in climatological ocean mixed layer depths efficiently
           IF (JDAY.NE.1 .or. JDLAST.NE.365) THEN
             WRITE (6,*) 'Incorrect values in OCLIM: JDAY,JDLAST=',JDAY
      *           ,JDLAST
-            STOP 'ERROR READING IN SETTING OCEAN CLIMATOLOGY'
+            call stop_model(
+     &           'ERROR READING IN SETTING OCEAN CLIMATOLOGY',255)
           END IF
           IMON=IMON-12          ! New year
           GO TO 530

@@ -1125,7 +1125,7 @@ C**** set properties for ICIJ diagnostics
       if (k.gt.KICIJ) then
         write(6,*) "Too many ICIJ diags: increase KICIJ to at least"
      *       ,k
-        stop "ICIJ diagnostic error"
+        call stop_model("ICIJ diagnostic error",255)
       end if
 
 #ifdef TRACERS_OCEAN
@@ -1154,7 +1154,7 @@ C**** set properties for TICIJ diagnostics
       if (k.gt.KTICIJ) then
         write(6,*) "Too many TICIJ diags: increase KTICIJ to at least"
      *       ,k
-        stop "TICIJ diagnostic error"
+        call stop_model("TICIJ diagnostic error",255)
       end if
 #endif
 

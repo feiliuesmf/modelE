@@ -32,7 +32,7 @@ C****
         ITR=4
       case default
         write(6,*) "Tracer name ",trname," not defined in FRACVL"
-        stop
+        call stop_model('Tracer name not defined in FRACVL',255)
       end select
       FRACVL=C(ITR) + TEMP*(B(ITR) + TEMP*A(ITR))
 C****
@@ -67,7 +67,7 @@ C****
         ITR=4
       case default
         write(6,*) "Tracer name ",trname," not defined in FRACVS"
-        stop
+        call stop_model('Tracer name not defined in FRACVS',255)
       end select
       FRACVS=B(ITR) + A(ITR)*TEMP
 C****
@@ -136,7 +136,7 @@ C****
         ITR=4
       case default
         write(6,*) "Tracer name ",trname," not defined in FRACLK"
-        stop
+        call stop_model('Tracer name not defined in FRACLK',255)
       end select
       FRACLK=A(ITR)
       IF(WS.GE.7.) FRACLK=1d0-(B(ITR)*WS+C(ITR))
@@ -210,7 +210,7 @@ C****
         ITR=4
       case default
         write(6,*) "Tracer name ",trname," not defined in KIN_COND"
-        stop
+        call stop_model('Tracer name not defined in KIN_COND',255)
       end select
       KIN_COND_ICE=alph*SUPSAT/(1.+(SUPSAT-1.)*alph*ZDIFREL(ITR))
 
@@ -246,7 +246,7 @@ C****
         ITR=4
       case default
         write(6,*) "Tracer name ",trname," not defined in KIN_EVAP"
-        stop
+        call stop_model('Tracer name not defined in KIN_EVAP',255)
       end select
       KIN_EVAP_PREC=alph*HEFF/(1.+(HEFF-1.)*alph*ZDIFRELGAM(ITR))
 

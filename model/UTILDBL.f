@@ -88,14 +88,15 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       REAL*8 :: GAM(NMAX)             !@var GAM  work array
       INTEGER :: J                    !@var J    loop variable
 
-      IF ( N > NMAX ) STOP "TRIDIAG: N > NMAX, increase NMAX"
+      IF ( N > NMAX )
+     &     call stop_model("TRIDIAG: N > NMAX, increase NMAX",255)
       BET=B(1)
-      IF (BET.eq.0) STOP "TRIDIAG: DENOMINATOR = ZERO"
+      IF (BET.eq.0) call stop_model("TRIDIAG: DENOMINATOR = ZERO",255)
       U(1)=R(1)/BET
       DO J=2,N
         GAM(J)=C(J-1)/BET
         BET=B(J)-A(J)*GAM(J)
-        IF (BET.eq.0) STOP "TRIDIAG: DENOMINATOR = ZERO"
+        IF (BET.eq.0) call stop_model("TRIDIAG: DENOMINATOR = ZERO",255)
         U(J)=(R(J)-A(J)*U(J-1))/BET
       END DO
       DO J=N-1,1,-1
@@ -138,7 +139,7 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       if ( unit>MAXUNIT .or. unit<MINUNIT
      $     .or. .not. Units(unit)%in_use ) then
         write(6,*) "FILEMANAGER: asked name of a wrong unit: ",unit
-        stop "FILEMANAGER: asked name of a wrong unit"
+        call stop_model("FILEMANAGER: asked name of a wrong unit",255)
       endif
       nameunit = Units(unit)%filename
       end function nameunit
@@ -154,7 +155,7 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       enddo
       write(6,*) "FILEMANAGER: Maximum file number reached"
       call print_open_units
-      stop "FILEMANAGER: Maximum file number reached"
+      call stop_model("FILEMANAGER: Maximum file number reached",255)
       end subroutine findunit
 
 
@@ -204,7 +205,7 @@ C**** parse options
       return
 
  10   write(6,*) "FILEMANAGER: Error opening file ",trim(filename)
-      stop 'FILEMANAGER: FILE OPENING ERROR'
+      call stop_model('FILEMANAGER: FILE OPENING ERROR',255)
       end subroutine openunit
 
       subroutine closeunit( unit )
@@ -216,7 +217,7 @@ C**** parse options
       if ( unit>MAXUNIT .or. unit<MINUNIT
      $     .or. .not. Units(unit)%in_use ) then
         write(6,*) "FILEMANAGER: attempt to close wrong unit: ",unit
-        stop "FILEMANAGER: attempt to close wrong unit"
+        call stop_model("FILEMANAGER: attempt to close wrong unit",255)
       endif
 
       close( unit )
@@ -299,9 +300,9 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       WRITE(6,*) "Sucessful read from file ",NAME(IUNIT)
       RETURN
   910 WRITE(6,*) 'READ ERROR ON FILE ',TRIM(NAME(IUNIT))
-      STOP 'dREAD: READ ERROR'
+      call stop_model('dREAD: READ ERROR',255)
   920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON FILE ',TRIM(NAME(IUNIT))
-      STOP 'dREAD: No data found'
+      call stop_model('dREAD: No data found',255)
       RETURN
       END
 
@@ -329,9 +330,9 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       WRITE(6,*) "Sucessful read from file ",NAME(IUNIT)
       RETURN
   910 WRITE(6,*) 'READ ERROR ON FILE ',NAME(IUNIT)
-      STOP 'mREAD: READ ERROR'
+      call stop_model('mREAD: READ ERROR',255)
   920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON FILE ',NAME(IUNIT)
-      STOP 'mREAD: No data found'
+      call stop_model('mREAD: No data found',255)
       RETURN
       END
 
@@ -363,9 +364,9 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       WRITE(6,*) "Read from file ",TRIM(NAME(IUNIT)),": ",TRIM(TITLE)
       RETURN
   910 WRITE(6,*) 'READ ERROR ON FILE ',NAME(IUNIT)
-      STOP 'tREAD: READ ERROR'
+      call stop_model('tREAD: READ ERROR',255)
   920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON FILE ',NAME(IUNIT)
-      STOP 'tREAD: No data found'
+      call stop_model('tREAD: No data found',255)
       END
 
       subroutine WRITEI (iunit,it,aout,len4)
@@ -424,15 +425,15 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
    30 if (it2 .ne. it1) then
         write(6,*) 'file ',TRIM(NAME(IUNIT)),' damaged: it/it1/it2=',
      *    it,it1,it2
-        stop 'io_POS: damaged file'
+        call stop_model('io_POS: damaged file',255)
       end if
       if (it .ge. it1+itdif) go to 20
       write (6,*) "positioned ",TRIM(NAME(IUNIT)),", it1/itime=",it1,it
       return
    40 write (6,*) "file ",TRIM(NAME(IUNIT))," too short, it1/it=",it1,it
-      stop 'io_POS: file too short'
+      call stop_model('io_POS: file too short',255)
    50 write (6,*) "Read error on: ",TRIM(NAME(IUNIT)),", it1/it=",it1,it
-      stop 'io_POS: read error'
+      call stop_model('io_POS: read error',255)
       END subroutine io_POS
 
       SUBROUTINE CHECK3(A,IN,JN,LN,SUBR,FIELD)
@@ -463,43 +464,10 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       END DO
       END DO
       CALL SYS_FLUSH(6)
-      IF (QCHECK3) STOP 'CHECK3'
+      IF (QCHECK3) call stop_model('CHECK3',255)
       RETURN
       END SUBROUTINE CHECK3
 
-#ifdef TEST_FM
-      program test_FM
-      use filemanager
-      implicit none
-      integer :: iu_AIC, iunit = 10
-
-      call openunit("AIC",iu_AIC,.true.,.true.)
-      print *, 'opened ', iu_AIC
-      call closeunit(iu_AIC)
-      call openunit("AIC",iu_AIC,.true.,.true.)
-      print *, 'opened ', iu_AIC
-      call closeunit(iu_AIC)
-
-      stop
-
-      open( iunit, FILE="AIC",
-     $     FORM="UNFORMATTED", STATUS="OLD", ERR=10 )
-      print *, 'opened '
-      stop
-
-          OPEN(IUNIT,FILE='AIC',FORM="UNFORMATTED",
-     *       STATUS="OLD",ERR=10)
-
-          print *, 'opened '
-
-
- 10   write(6,*) "test_FM: Error opening file ", "AIC"
-      stop 'FM: FILE OPENING ERROR'
-
-
-      print *, 'closed ', iu_AIC
-      end
-#endif
 
       function unit_string (pow10,ending)
 !@sum Construct a units string with nice properties (no embedded blanks)
@@ -523,3 +491,50 @@ C****      '(' is required, so it is inserted
       return
       end function unit_string
 
+
+      subroutine stop_model( message, retcode )
+!@sum Aborts the execution of the program. Passes an error message and
+!@+ a return code to the calling script. Should be used instead of STOP
+      USE PARAM
+!@var message an error message (reason to stop)
+      character*(*), intent (in) :: message
+!@var retcode return code to be passed to the calling script
+      integer, intent(in) :: retcode
+!@dbparam dump_core if set to 1 dump core for debugging
+      integer :: dump_core = 0
+      integer, parameter :: iu_err = 9
+
+c**** don't call sync_param if the error is in 'PARAM' to avoid loops
+      if ( message(1:6) .ne. 'PARAM:' ) then
+        call sync_param( "dump_core", dump_core )
+      else
+        write (6,*) " Error in PARAM: Can't use sync_param."
+        write (6,*) " Will use default dump_core = ", dump_core
+      endif
+      
+      write (6,'(//2(" ",132("*")/))')
+      write (6,*) ' Program terminated due to the following reason:'
+      write (6,*) ' >>  ', message, '  <<'
+      write (6,'(/2(" ",132("*")/))')
+
+      if ( retcode .ne. 12 .and. retcode .ne. 13 ) then
+        open( iu_err, file='error_message',
+     &       form='FORMATTED', status='REPLACE', ERR=10 )
+        write ( iu_err, *, ERR=10 ) message
+        close( iu_err )
+      endif
+
+      call sys_flush(6)
+
+      if ( retcode > 13 .and. dump_core > 0 ) then
+        call abort
+      else
+        call exit_rc ( retcode )
+      endif
+      
+ 10   continue
+c**** something is terribly wrong, writing to stderr instead ...
+      write( 0, * ) "Can't write to the error_message file"
+      write( 0, * ) message
+      call exit_rc ( retcode )
+      end subroutine stop_model

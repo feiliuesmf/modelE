@@ -231,9 +231,9 @@ C****
 
       return
  800  write(6,*) "Error reading input file H2O18ic"
-      stop
+      call stop_model('stopped in OCN_TRACER.f',255)
  810  write(6,*) "Tracer ",trname(n)," not found in file H2O18ic"
-      stop
+      call stop_model('stopped in OCN_TRACER.f',255)
       end subroutine tracer_ic_ocean
 #endif
 

@@ -85,7 +85,7 @@ c these are the defaults for converting GCM real*8 to real*4 on disk
       status_out = nf_create (trim(outfile), nf_clobber, out_fid)
       if(status_out.ne.nf_noerr) then
          write(6,*) 'cannot create: '//trim(outfile)
-         stop
+         call stop_model('stopped in POUT_netcdf.f',255)
       endif
 c-----------------------------------------------------------------------
 c write global header
@@ -101,8 +101,8 @@ c-----------------------------------------------------------------------
       character(len=20) :: dim_name
       integer :: dimlen
       integer :: tmp_id
-      if(ndims_file.eq.ndfmax)
-     &     stop 'def_dim_out: too many dimensions in file'
+      if(ndims_file.eq.ndfmax) call stop_model(
+     &     'def_dim_out: too many dimensions in file',255)
       ndims_file = ndims_file + 1
       file_dimlens(ndims_file) = dimlen
       file_dimnames(ndims_file)=dim_name
@@ -115,8 +115,10 @@ c-----------------------------------------------------------------------
       character(len=20) :: dim_name
       integer :: dim_num
       integer :: idim
-      if(ndims_file.eq.0) stop 'set_dim_out: no dims defined'
-      if(dim_num.gt.ndims_out) stop 'set_dim_out: invalid dim #'
+      if(ndims_file.eq.0) call stop_model(
+     &     'set_dim_out: no dims defined',255)
+      if(dim_num.gt.ndims_out) call stop_model(
+     &     'set_dim_out: invalid dim #',255)
       idim=1
       do while(idim.le.ndims_file)
          if(dim_name.eq.file_dimnames(idim)) then
@@ -125,7 +127,8 @@ c-----------------------------------------------------------------------
          endif
          idim = idim + 1
       enddo
-      if(idim.gt.ndims_file) stop 'set_dim_out: invalid dim_name'
+      if(idim.gt.ndims_file) call stop_model(
+     &     'set_dim_out: invalid dim_name',255)
       return
       end subroutine set_dim_out
 
@@ -149,7 +152,7 @@ c check to make sure that variable isn't already defined in output file
       if(nf_inq_varid(out_fid,trim(var_name),varid_out)
      &                 .eq.nf_noerr) then
          write(6,*) 'wrtarr: variable already defined: ',trim(var_name)
-         stop
+         call stop_model('stopped in POUT_netcdf.f',255)
       endif
       status_out=nf_def_var(out_fid,trim(var_name),disk_dtype,
      &     ndims_out,dimids_out,varid_out)
@@ -207,11 +210,12 @@ c wrtarrn does not currently have the capability to write any real_atts
       integer :: var_nelems,n
       integer, dimension(7) :: srt,cnt
 
-      if(ndims_out.lt.2) stop 'wrtarrn: invalid ndims_out'
+      if(ndims_out.lt.2)
+     &     call stop_model('wrtarrn: invalid ndims_out',255)
       if(outer_pos.le.0 .or.
      &     outer_pos.gt.file_dimlens(dimids_out(ndims_out))) then
          write(6,*) 'wrtarrn: invalid outer_pos'
-         stop
+         call stop_model('stopped in POUT_netcdf.f',255)
       endif
 
       status_out = nf_redef(out_fid)
@@ -223,7 +227,7 @@ c check to make sure that variable isn't already defined in output file
       if(nf_inq_varid(out_fid,trim(var_name),varid_out)
      &                 .eq.nf_noerr) then
          write(6,*) 'wrtarrn: variable already defined: ',trim(var_name)
-         stop
+         call stop_model('stopped in POUT_netcdf.f',255)
       endif
       status_out=nf_def_var(out_fid,trim(var_name),disk_dtype,
      &     ndims_out,dimids_out,varid_out)
@@ -248,7 +252,7 @@ c check to make sure that variable is already defined in output file
       if(nf_inq_varid(out_fid,trim(var_name),varid_out)
      &                 .ne.nf_noerr) then
          write(6,*) 'wrtarrn: variable not yet defined: ',trim(var_name)
-         stop
+         call stop_model('stopped in POUT_netcdf.f',255)
       endif
 
       endif
@@ -374,7 +378,7 @@ C**** set dimensions
          lon_name='lonb'
          lat_name='latb'
       else
-         stop 'pout_ij: unrecognized grid'
+         call stop_model('pout_ij: unrecognized grid',255)
       endif
       call set_dim_out(lon_name,1)
       call set_dim_out(lat_name,2)
@@ -509,7 +513,7 @@ C**** set dimensions
       else if(j1.eq.2) then
          dim_name='latb'
       else
-         stop 'pout_jl: unrecognized latitude grid'
+         call stop_model('pout_jl: unrecognized latitude grid',255)
       endif
       call set_dim_out(dim_name,1)
 
@@ -528,7 +532,7 @@ C**** set dimensions
          dim_name='ple_int'
       else
          write(6,*) 'klmax =',klmax,title,pm(1:klmax)
-         stop 'pout_jl: unrecognized vertical grid'
+         call stop_model('pout_jl: unrecognized vertical grid',255)
       endif
       call set_dim_out(dim_name,2)
 
@@ -670,7 +674,7 @@ C**** therefore shift array back to standard order.
       else if(ishift.eq.2) then
          dim_name='lonb'
       else
-         stop 'pout_il: unrecognized longitude grid'
+         call stop_model('pout_il: unrecognized longitude grid',255)
       endif
       call set_dim_out(dim_name,1)
 
@@ -686,7 +690,7 @@ C**** therefore shift array back to standard order.
          dim_name='ple_int'
       else
          write(6,*) 'klmax =',klmax,title,pm(1:klmax)
-         stop 'pout_il: unrecognized vertical grid'
+         call stop_model('pout_il: unrecognized vertical grid',255)
       endif
       call set_dim_out(dim_name,2)
 

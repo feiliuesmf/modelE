@@ -786,7 +786,7 @@ C
           if (jday.ne.1 .OR. jdlast.ne.365) then
             write(6,*)
      *      'Bad values in Tracer 3D Source:JDAY,JDLAST=',JDAY,JDLAST
-            stop
+            call stop_model('stopped in TRACERS_SPECIAL_Shindell.f',255)
           end if
           imon=imon-12             ! New year
           go to 130

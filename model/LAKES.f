@@ -1054,7 +1054,8 @@ C**** Check conservation of water tracers in lake
       end do
 #endif
 
-      IF (QCHECKL) STOP 'CHECKL: Lake variables out of bounds'
+      IF (QCHECKL)
+     &     call stop_model('CHECKL: Lake variables out of bounds',255)
       RETURN
 C****
       END SUBROUTINE CHECKL

@@ -597,7 +597,7 @@ c
 c Check the count
       if (k .gt. KAJLx) then
         write (6,*) 'Increase KAJLx=',KAJLx,' to at least ',k
-        stop 'JL_TITLES: KAJLx too small'
+        call stop_model('JL_TITLES: KAJLx too small',255)
       end if
 
 c
@@ -851,7 +851,7 @@ c      units_jk(k) = '10**11 JOULES/METER/UNIT SIGMA'
 c Check the count
       if (k .gt. KAJKx) then
         write (6,*) 'Increase KAJKx=',KAJKx,' to at least ',k
-        stop 'JK_TITLES: KAJKx too small'
+        call stop_model('JK_TITLES: KAJKx too small',255)
       end if
 
       RETURN
@@ -2955,7 +2955,7 @@ c
 c Check the count
       if (k .gt. kaijx) then
         write (6,*) 'Increase kaijx=',kaijx,' to at least ',k
-        stop 'IJ_TITLES: kaijx too small'
+        call stop_model('IJ_TITLES: kaijx too small',255)
       end if
 
       do k1 = k+1,kaijx
@@ -3187,7 +3187,7 @@ c**** length of growing season   (not quite right ???)
 
       else  ! should not happen
         write (6,*) 'no field defined for ij_index',k
-        stop 'ij_mapk: undefined extra ij_field'
+        call stop_model('ij_mapk: undefined extra ij_field',255)
       end if
 
 c**** Find final field and zonal, global, and hemispheric means
@@ -4627,7 +4627,7 @@ C****
            if (lname_ijk(k).ne.'unused')
      *        write (iu_Iij,'(i3,1x,a)') k,lname_ijk(k)
          end do
-         stop 'created file Iij'
+         call stop_model('created file Iij',255)
       else if (kdiag(3).gt.1) then
          Qk = .false.
    10    read (iu_Iij,'(i3)',end=20) k

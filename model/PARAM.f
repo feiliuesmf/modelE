@@ -158,7 +158,7 @@
       if ( len(name_in) > MAX_NAME_LEN ) then
         print *, 'PARAM: parameter name too long: ', name_in
         print *, 'PARAM: maximal length allowed: ', MAX_NAME_LEN
-        stop 'PARAM: parameter name too long: '
+        call stop_model('PARAM: parameter name too long: ',255)
       endif
 
       name = name_in
@@ -170,7 +170,8 @@
         if ( .not. flag ) then
           print *, 'PARAM: attempt to set param which is already set'
           print *, 'name: ', name
-          stop 'PARAM: attempt to set param which is already set'
+          call stop_model(
+     &         'PARAM: attempt to set param which is already set',255)
         else
           return  ! return PStr found by get_pstr
         endif
@@ -179,8 +180,8 @@
       if ( num_param >= MAX_PARAMS ) then
         print *, 'PARAM: Maximal number of parameters exceeded'
         print *, 'PARAM: Please recompile param with bigger MAX_PARAMS'
-        call abort
-        stop 'PARAM: Maximal number of parameters exceeded'
+        call stop_model(
+     &       'PARAM: Maximal number of parameters exceeded',255)
       endif
 
       num_param = num_param + 1
@@ -195,8 +196,8 @@
           if ( num_iparam+dim >= MAX_IPARAMS ) then
             print *, 'PARAM: Maximal number of int parameters exceeded'
             print *, 'PARAM: Recompile param with bigger MAX_IPARAMS'
-            call abort
-            stop 'PARAM: Maximal number of int parameters exceeded'
+            call stop_model(
+     &           'PARAM: Maximal number of int parameters exceeded',255)
           endif
           PStr%indx = num_iparam + 1
           num_iparam = num_iparam + dim
@@ -204,7 +205,8 @@
           if ( num_rparam+dim >= MAX_RPARAMS ) then
             print *, 'PARAM: Maximal number of real parameters exceeded'
             print *, 'PARAM: Recompile param with bigger MAX_RPARAMS'
-            stop 'PARAM: Maximal number of real parameters exceeded'
+            call stop_model(
+     &          'PARAM: Maximal number of real parameters exceeded',255)
           endif
           PStr%indx = num_rparam + 1
           num_rparam = num_rparam + dim
@@ -212,7 +214,8 @@
           if ( num_cparam+dim >= MAX_CPARAMS ) then
             print *, 'PARAM: Maximal number of char parameters exceeded'
             print *, 'PARAM: Recompile param with bigger MAX_CPARAMS'
-            stop 'PARAM: Maximal number of char parameters exceeded'
+            call stop_model(
+     &          'PARAM: Maximal number of char parameters exceeded',255)
           endif
           PStr%indx = num_cparam + 1
           num_cparam = num_cparam + dim
@@ -246,7 +249,7 @@
         print *, 'PARAM: wrong type or dim of parameter: ', name
         print *, 'ATT: set: ', Params(n)%attrib, ' called: ', attrib
         print *, 'DIM: set: ', Params(n)%dim, ' called: ', dim
-        stop 'PARAM: wrong type or dim of parameter'
+        call stop_model('PARAM: wrong type or dim of parameter',255)
       endif
 
       PStr => Params(n)
@@ -312,7 +315,8 @@
       call get_pstr( name, np, 'i', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 'PARAM: Can''t get parameter - not in database'
+        call stop_model(
+     &       'PARAM: Can''t get parameter - not in database',255)
       endif
       value(1:np) = Idata( PStr%indx : PStr%indx+np-1 )
       return
@@ -328,7 +332,8 @@
       call get_pstr( name, 1, 'i', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 'PARAM: Can''t get parameter - not in database'
+        call stop_model(
+     &       'PARAM: Can''t get parameter - not in database',255)
       endif
       pvalue => Idata( PStr%indx )
       return
@@ -344,7 +349,8 @@
       call get_pstr( name, np, 'i', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 'PARAM: Can''t get parameter - not in database'
+        call stop_model(
+     &       'PARAM: Can''t get parameter - not in database',255)
       endif
       pvalue => Idata( PStr%indx:PStr%indx+np-1 )
       return
@@ -408,7 +414,8 @@
       call get_pstr( name, np, 'r', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 'PARAM: Can''t get parameter - not in database'
+        call stop_model(
+     &       'PARAM: Can''t get parameter - not in database',255)
       endif
       value(1:np) = Rdata( PStr%indx : PStr%indx+np-1 )
       return
@@ -424,7 +431,8 @@
       call get_pstr( name, 1, 'r', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 'PARAM: Can''t get parameter - not in database'
+        call stop_model(
+     &       'PARAM: Can''t get parameter - not in database',255)
       endif
       pvalue => Rdata( PStr%indx )
       return
@@ -440,7 +448,8 @@
       call get_pstr( name, np, 'r', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 'PARAM: Can''t get parameter - not in database'
+        call stop_model(
+     &       'PARAM: Can''t get parameter - not in database',255)
       endif
       pvalue => Rdata( PStr%indx:PStr%indx+np-1 )
       return
@@ -457,7 +466,7 @@
       character*(MAX_CHAR_LEN) v(1)
       if ( len(value) > MAX_CHAR_LEN ) then
         print *, 'PARAM: Char string too long. MAX = ', MAX_CHAR_LEN
-        stop 'PARAM: Char string too long'
+        call stop_model('PARAM: Char string too long',255)
       endif
       v(1) = value
       call set_acparam( name, v, 1, opt )
@@ -484,7 +493,7 @@
         if ( len(value(n)) > MAX_CHAR_LEN ) then
           print *, 'PARAM: Char string too long. MAX = ', MAX_CHAR_LEN
           print *, 'You submitted LEN = ', len(value(n))
-          stop 'PARAM: Char string too long'
+          call stop_model('PARAM: Char string too long',255)
         endif
       enddo
       call set_pstr( name, np, 'c', PStr, flag )
@@ -515,7 +524,8 @@
       call get_pstr( name, np, 'c', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 'PARAM: Can''t get parameter - not in database'
+        call stop_model(
+     &       'PARAM: Can''t get parameter - not in database',255)
       endif
       value(1:np) = Cdata( PStr%indx : PStr%indx+np-1 )
       return
@@ -531,7 +541,8 @@
       call get_pstr( name, 1, 'c', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 'PARAM: Can''t get parameter - not in database'
+        call stop_model(
+     &       'PARAM: Can''t get parameter - not in database',255)
       endif
       pvalue => Cdata( PStr%indx )
       return
@@ -547,7 +558,8 @@
       call get_pstr( name, np, 'c', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 'PARAM: Can''t get parameter - not in database'
+        call stop_model(
+     &       'PARAM: Can''t get parameter - not in database',255)
       endif
       pvalue => Cdata( PStr%indx:PStr%indx+np-1 )
       return
@@ -726,7 +738,8 @@
           return
         else
           print * , 'PARAM: No parameter header in input data'
-          stop 'PARAM: No parameter header in input data'
+          call stop_model(
+     &         'PARAM: No parameter header in input data',255)
         endif
       endif
 
@@ -745,7 +758,8 @@
         print *, 'PARAM: parameter list in input file too long'
         print *, 'PARAM: please recompile param with bigger MAX_?PARAMS'
         print *, 'PARAM: ',num_param,num_rparam,num_iparam,num_cparam
-        stop 'PARAM: parameter list in input file too long'
+        call stop_model(
+     &       'PARAM: parameter list in input file too long',255)
       endif
 
       if ( lnum_param < 1 ) return   ! no parameters in the records
@@ -761,7 +775,8 @@
       ! checking big/little endian format, just in case
       if ( LParams(1)%dim > 65536 .or. LParams(1)%dim < 0 ) then
         print *, 'PARAM: wrong big/little endian format in LParams.'
-        stop 'PARAM: wrong big/little endian format in LParams'
+        call stop_model(
+     &       'PARAM: wrong big/little endian format in LParams',255)
       endif
 
       ! now merge the data just read with existing database
@@ -782,7 +797,7 @@
       enddo
       return
  10   print *, 'PARAM: Error reading, unit = ', kunit
-      stop 'PARAM: Error reading'
+      call stop_model('PARAM: Error reading',255)
       end subroutine read_param
 
 
@@ -819,7 +834,7 @@
       return
 
  20   print *, 'PARAM: Error writing, unit = ', kunit
-      stop 'PARAM: Error writing'
+      call stop_model('PARAM: Error writing',255)
       end subroutine write_param
 
       subroutine print_param1( kunit )
@@ -947,7 +962,7 @@
 
       if (HEADER(1:8).ne.'PARAM01 ') then
         print *, 'PARAM: No parameter header in input data'
-        stop 'PARAM: No parameter header in input data'
+        call stop_model('PARAM: No parameter header in input data',255)
       endif
 
       read( kunit, err=10 ) HEADER,
@@ -965,7 +980,8 @@
         print *, 'PARAM: parameter list in input file too long'
         print *, 'PARAM: please recompile param with bigger MAX_?PARAMS'
         print *, 'PARAM: ',num_param,num_rparam,num_iparam,num_cparam
-        stop 'PARAM: parameter list in input file too long'
+        call stop_model(
+     &       'PARAM: parameter list in input file too long',255)
       endif
 
       ! now merge the data just read with existing database
@@ -986,7 +1002,7 @@
       enddo
       return
  10   print *, 'PARAM: Error reading, unit = ', kunit
-      stop 'PARAM: Error reading'
+      call stop_model('PARAM: Error reading',255)
       end subroutine read_param_comp01
 
       end module param

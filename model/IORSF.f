@@ -34,7 +34,8 @@ C**** Calls to individual i/o routines
         if (Kradia.gt.1 .and. iaction.ne.ioread_single .and.
      *   iaction.ne.iowrite_single) call io_rad (kunit,iaction,ioerr)
         call io_diags  (kunit,it,iaction,ioerr)
-        if(it1.ne.it .or. ioerr.eq.1) stop 'restart problem'
+        if(it1.ne.it .or. ioerr.eq.1)
+     &       call stop_model('restart problem',255)
         return
       end if
       if(iaction.ne.ioread_single.and.iaction.ne.iowrite_single) then

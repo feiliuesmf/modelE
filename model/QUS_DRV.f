@@ -213,7 +213,7 @@ c****
         write(6,*) "Error in aadvtx: i,j,l=",nerr,j,l
         if (ierr.eq.2) then
           write(0,*) "Error in qlimit: abs(a) > 1"
-CCC       call exit_rc(11)
+CCC       call stop_model('Error in qlimit: abs(a) > 1',11)
           ICKERR=1
         end if
       end if
@@ -234,7 +234,7 @@ c
       enddo ! j
       enddo ! l
 C
-      IF(ICKERR.GT.0)  CALL EXIT_RC(11)
+      IF(ICKERR.GT.0)  CALL stop_model('Stopped in aadvtx',11)
 C
       return
 c****
@@ -307,7 +307,7 @@ c****
         write(6,*) "Error in aadvty: i,j,l=",i,nerr,l
         if (ierr.eq.2) then
           write(0,*) "Error in qlimit: abs(b) > 1"
-ccc       call exit_rc(11)
+ccc       call stop_model('Error in qlimit: abs(b) > 1',11)
           ICKERR=1
         endif
       end if
@@ -339,7 +339,7 @@ c
       enddo
       enddo
 C
-      IF(ICKERR.GT.0)  CALL EXIT_RC(11)
+      IF(ICKERR.GT.0)  CALL stop_model('Stopped in aadvty',11)
 C
       return
 c****
@@ -388,7 +388,7 @@ c****
         write(6,*) "Error in aadvtz: i,j,l=",i,j,nerr
         if (ierr.eq.2) then
           write(0,*) "Error in qlimit: abs(c) > 1"
-ccc       call exit_rc(11)
+ccc       call stop_model('Error in qlimit: abs(c) > 1',11)
           ICKERR=1
         endif
       end if
@@ -396,7 +396,7 @@ ccc       call exit_rc(11)
       enddo ! j
 C$OMP  END PARALLEL DO
 C
-      IF(ICKERR.GT.0)  CALL EXIT_RC(11)
+      IF(ICKERR.GT.0) call stop_model('Stopped in aadvtz',11)
       return
 c****
       end subroutine aadvtz

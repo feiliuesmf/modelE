@@ -1503,7 +1503,8 @@ C**** Check conservation of water tracers in sea ice
       end do
 #endif
 
-      IF (QCHECKI) STOP "CHECKI: Ice variables out of bounds"
+      IF (QCHECKI)
+     &     call stop_model("CHECKI: Ice variables out of bounds",255)
 
       END SUBROUTINE CHECKI
 

@@ -305,7 +305,7 @@ C****
       if (k .gt. ktajlx) then
         write (6,*) 'JLt_TITLEX: Increase ktajlx=',ktajlx,
      &         ' to at least ',k
-        stop 'ktajlx too small'
+        call stop_model('ktajlx too small',255)
       end if
 C**** Construct UNITS string for output
       do n=1,ntm
@@ -947,7 +947,8 @@ c**** ratios (i.e. per mil diags)
 C**** PROBLEM
       else  ! should not happen
         write (6,*) 'no field defined for ijt_index',n
-        stop 'ijt_mapk: undefined extra ij_field for tracers'
+        call stop_model(
+     &       'ijt_mapk: undefined extra ij_field for tracers',255)
       end if
 
 c**** Find final field and zonal, global, and hemispheric means

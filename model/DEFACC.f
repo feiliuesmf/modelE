@@ -772,7 +772,7 @@ c
 c
       if (k .gt. kaj) then
         write (6,*) 'j_defs: Increase kaj=',kaj,' to at least ',k
-        stop 'kaj too small'
+        call stop_model( 'kaj too small', 255 )
       end if
       write (6,*) 'Number of AJ diagnostics defined: kajmax=',k
       do kk=1,k
@@ -2376,7 +2376,7 @@ c      scale_ij(k) = 1.
 
       if (k .gt. kaij) then
         write (6,*) 'ij_defs: Increase kaij=',kaij,' to at least ',k
-        stop 'kaij too small'
+        call stop_model( 'kaij too small', 255 )
       end if
 
       write (6,*) 'Number of AIJ diagnostics defined: kaijmax=',k
@@ -2991,7 +2991,7 @@ c
 c
       if (k .gt. kajl) then
         write (6,*) 'jl_defs: Increase kajl=',kajl,' to at least ',k
-        stop 'kajl too small'
+        call stop_model( 'kajl too small', 255 )
       end if
 
       write (6,*) 'Number of AJL diagnostics defined: kajlmax=',k

@@ -534,7 +534,8 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
      *            V(I-1,J,L),V(I,J,L),V(I-1,J+1,L),V(I,J+1,L),
      *            T(I,J,L),Q(I,J,L),L=1,LM)
             write(6,*) "Pressure diagnostic error"
-            IF (PA(I,J).lt.100. .or. PA(I,J).GT.1150.) call exit_rc(11)
+            IF (PA(I,J).lt.100. .or. PA(I,J).GT.1150.)
+     &           call stop_model('ADVECM: Pressure diagnostic error',11)
           END IF
         END DO
       END DO
@@ -1328,7 +1329,7 @@ C*
 C**** check Q and T to make sure they are within physical bounds
         if (TL.lt.100..or.TL.gt.373.) then
           write(99,*) 'SDRAG:',itime,i,j,l,'T=',TL
-          call exit_rc(11)
+          call stop_model('Stopped in ATMDYN::SDRAG',11)
         end if
         RHO=(PSFMPT*SIGE(L+1)+PTOP)/(RGAS*TL)
                     CDN=C_SDRAG

@@ -284,7 +284,7 @@ c
       if (k.gt.KOIJ) then
         write(6,*) "Too many OIJ diagnostics: increase KOIJ to at least"
      *       ,k
-        stop "OIJ diagnostic error"
+        call stop_model("OIJ diagnostic error",255)
       end if
 
 C**** Set up oceanic component conservation diagnostics

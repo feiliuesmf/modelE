@@ -235,7 +235,7 @@ C**** end special threadprivate common block
       if (ierr.gt.0) then
         print*,"In advanc: i,j,itype =",ilong,jlat,itype,us,vs,tsv,qsrf
         call abort
-        stop "PBL error in advanc"
+        call stop_model("PBL error in advanc",255)
       end if
       zmix=dzh(1)+zgs
 
@@ -1791,7 +1791,7 @@ C**** end special threadprivate common block
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
         print*,"In inits: i,j,itype =",ilong,jlat,itype,tgrnd,qgrnd
-        stop "PBL error in inits"
+        call stop_model("PBL error in inits",255)
       end if
 
 c Initialization for iteration:
@@ -2106,7 +2106,7 @@ c  set the wind magnitude to that given by similarity theory:
         k=index(str,'N')+index(str,'n')
         if (k.ne.0) then
           write (99,1000) ilong,jlat,i,id,a(i)
-          if (id.lt.100) stop 'check1'
+          if (id.lt.100) call stop_model('check1',255)
         endif
       end do
 

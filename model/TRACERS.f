@@ -138,7 +138,7 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY DRY CONVEC)  (kg)
       if (k.gt. ktajl) then
         write (6,*) 
      &   'tjl_defs: Increase ktajl=',ktajl,' to at least ',k
-        stop 'ktajl too small'
+        call stop_model('ktajl too small',255)
       end if
 
 C**** Construct UNITS string for output
@@ -295,7 +295,7 @@ C**** Tracers conc. in soil water
       if (k .gt. ktaij) then
         write (6,*) 
      &   'tij_defs: Increase ktaij=',ktaij,' to at least ',k
-        stop 'ktaij too small'
+        call stop_model('ktaij too small',255)
       end if
 
       END SUBROUTINE set_generic_tracer_diags
@@ -569,7 +569,7 @@ C****
           if (jday.ne.1 .OR. jdlast.ne.365) then
             write(6,*)
      *      'Incorrect values in Tracer Source:JDAY,JDLAST=',JDAY,JDLAST
-            stop
+            call stop_model('stopped in TRACERS.f',255)
           end if
           imon=imon-12  ! New year
           go to 130
@@ -629,7 +629,8 @@ C**** check for negative tracer amounts (if t_qlimit is set)
           end do
           end do
           end do
-          if (QCHECKT) STOP "CHECKTR: Negative tracer amount"
+          if (QCHECKT)
+     &         call stop_model("CHECKTR: Negative tracer amount",255)
         end if
 
 C**** check whether air mass is conserved

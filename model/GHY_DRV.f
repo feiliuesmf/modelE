@@ -943,7 +943,8 @@ c**** check whether ground hydrology data exist at this point.
         write(6,*) 'Ground Hydrology data is missing at some pts'
         write(6,*) 'If you have a non-standard land mask, please'
         write(6,*) 'consider using extended GH data and rfs file.'
-        stop 'Ground Hydrology data is missing at some cells'
+        call stop_model(
+     &       'Ground Hydrology data is missing at some cells',255)
       endif
  
       do j=1,jm
@@ -1213,7 +1214,7 @@ c**** set up layers
    21 n=n-1
       if(n.le.0) then
          write (99,*) 'ghinij:  n <= 0:  i,j,n=',i0,j0,n,(dz(k),k=1,43)
-         stop
+         call stop_model('stopped in GHY_DRV.f',255)
       end if
 c**** calculate the boundaries, based on the thicknesses.
       zb(1)=0.
@@ -1525,7 +1526,7 @@ c****
             write(6,*) "This snoage_def is not defined: ",snoage_def
             write(6,*) "Please use: 0 (update indep of T)"
             write(6,*) "            1 (update if T>0)"
-            stop
+            call stop_model('stopped in GHY_DRV.f',255)
           end if
           tsavg=tdiurn(i,j,5)/(nday*nisurf)
           if(32.+1.8*tsavg.lt.65.)

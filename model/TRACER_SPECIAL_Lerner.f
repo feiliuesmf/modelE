@@ -75,7 +75,7 @@ C**** Prather stratospheric chemistry
       integer l,nl
       real*8    XPSD,XPSLM1,XPSL
 
-      if (nsc.eq.0) stop ' NSC=0 in STRATCHEM_SETUP'
+      if (nsc.eq.0) call stop_model(' NSC=0 in STRATCHEM_SETUP',255)
       filein = trim(tname)//'_TABLE'
       call openunit(filein,iu,.false.,.true.)
       read (iu,'(a)')   titlch
@@ -268,7 +268,8 @@ C**** Read chemical loss rate dataset (5-day frequency)
       IF (itime+ 60..gt.tauy+120.) go to 510
       IF (itime+180..le.tauy+120.) then
         write(6,*)' PROBLEM MATCHING itime ON FLUX FILE',TAUX,TAUY,JYEAR
-        STOP 'PROBLEM MATCHING itime ON FLUX FILE in Trop_chem_CH4'
+        call stop_model(
+     &       'PROBLEM MATCHING itime ON FLUX FILE in Trop_chem_CH4',255)
       end if
       rewind (FRQfile)
       go to 518
@@ -975,7 +976,8 @@ C**** psf, ptrop, pdn ..... in pascals (mb*100)
       PDN  = P(K)
       CDN  = CO2JK(J,K)
       K=K+1
-      if (k.gt.kmwco2) stop ' Please increase kmwco2 in get_14CO2_IC'
+      if (k.gt.kmwco2) call stop_model(
+     &     ' Please increase kmwco2 in get_14CO2_IC',255)
       GO TO 410
 C****
   420 CUP  = CO2JK(J,K) + (CO2JK(J,K-1)-CO2JK(J,K))*(PUP-P(K))/
@@ -1072,7 +1074,7 @@ C**** Invalid arguments or B dimensions are out of range
 C****
   300 WRITE (6,930) IMA,JMA,OFFIA,DIVJA,
      *              IMB,JMB,OFFIB,DIVJB,SKIP
-      STOP 'LHNTR: 300'
+      call stop_model('LHNTR: 300',255)
   930 FORMAT ('0Arguments received by LHNTR0 in order:'/
      *   2I12,' = IMA,JMA = array dimensions for A grid'/
      *  E24.8,' = OFFIA   = fractional number of grid boxes from',
@@ -1349,7 +1351,8 @@ C****
       PDN  = P(K)
       CDN  = GASJK(J,K)
       K=K+1
-      if (k.gt.kmw) stop ' Please incrase kmw in get_wofsy_gas_IC'
+      if (k.gt.kmw) call stop_model(
+     &     ' Please incrase kmw in get_wofsy_gas_IC',255)
       GO TO 410
 C****
   420 CUP  = GASJK(J,K) + (GASJK(J,K-1)-GASJK(J,K))*(PUP-P(K))/

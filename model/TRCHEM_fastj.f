@@ -244,7 +244,7 @@ c  Ozone  (extrapolate above 60 km)
           write(6,*)'PFASTJ,i,pstd(51)',PFASTJ(i),i,pstd(51)
           if(PFASTJ(i).lt.pstd(51)) then
              write(6,*) 'Will need to get mesosphere interpolated too!'
-             stop
+             call stop_model('stopped in TRCHEM_fastj.f',255)
           endif
  10       continue
         endif
@@ -753,7 +753,7 @@ c
          write(6,*)' Too many levels in photolysis code: need'
          write(6,*) jaddto(ncFASTJ)+ncFASTJ
          WRITE(6,*)'but NLFASTJ dimensioned as ',NLFASTJ
-         stop
+         call stop_model('stopped in TRCHEM_fastj.f',255)
       endif
       do i=LM,1,-1
         if(jndlev(i).ne.1) jndlv(i)=jndlev(i)+jaddto(jndlev(i)-1)
@@ -899,7 +899,7 @@ C---Update total number of levels
       if(nd.gt.N__) then
          write(6,'(a,a,i3,a,i3)')' Too many levels in photolysis code:',
      $            ' need ',nd,' but N__ dimensioned as ',N__
-         stop
+         call stop_model('stopped in TRCHEM_fastj.f',255)
       endif
 c
 C---Add boundary/ground layer to ensure no negative J's caused by

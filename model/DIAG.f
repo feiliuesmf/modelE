@@ -2073,7 +2073,7 @@ C****
       GO TO (810,810,810,100,100,  100,810),M5
   810 WRITE (6,910) M5
   910 FORMAT ('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5D.  M5=',I5)
-      STOP 29
+      call stop_model('INCORRECT VALUE OF M5 WHEN CALLING DIAG5D',255)
 C****
 C**** KINETIC ENERGY
 C****
@@ -2210,7 +2210,7 @@ C****
 
   810 WRITE (6,910) M5
   910 FORMAT ('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5A.  M5=',I5)
-      STOP 29
+      call stop_model('INCORRECT VALUE OF M5 WHEN CALLING DIAG5A.',255)
 C**** MASS FOR KINETIC ENERGY
   200 I=IM
       DO 202 J=2,JM
@@ -2478,7 +2478,8 @@ C**** calculate how many names
         end if
         if (i.lt.len(subdd)) goto 10
         kdd=k
-        if (kdd.gt.10) STOP "Number of sub-daily diagnostics too big"
+        if (kdd.gt.10) 
+     *    call stop_model("Number of sub-daily diagnostics too big",255)
 
 C**** make array of names
         read(subdd,*) namedd(1:kdd)
@@ -2593,7 +2594,7 @@ c****
             months=months+1
           else if (monacc(k).ne.0) then
             write(6,*) 'uneven period:',monacc
-            stop 'uneven period'
+            call stop_model( 'uneven period', 255 )
           end if
           if(monacc(k).ne.monacc(kb)) mswitch = mswitch+1
           if(mswitch.eq.2) moff = moff+1
@@ -2601,7 +2602,7 @@ c****
         end do
         if (mswitch.gt.2) then
           write(6,*) 'non-consecutive period:',monacc
-          stop 'non-consecutive period'
+          call stop_model( 'non-consecutive period', 255 )
         end if
         call aPERIOD (JMON0,JYEAR0,months,years,moff, acc_period,Ldate)
         if (iargc().gt.1) then  ! save the summed acc-file
@@ -2742,7 +2743,8 @@ C**** add in epsilon=1d-5 to avoid roundoff mistakes
         WRITE(6,*) "Inconsistent definitions of stratosphere:"
         WRITE(6,*) "Adjust PSPEC, ISTRAT so that KL*4 = NSPHER"
         WRITE(6,*) "ISTRAT,PSPEC,NSPHER,KL=",ISTRAT,PSPEC,NSPHER,KL
-        STOP "Stratospheric definition problem for spectral diags."
+        call stop_model(
+     *    "Stratospheric definition problem for spectral diags.",255)
       END IF
 
 C**** Calculate the max number of geopotential heights
@@ -2899,7 +2901,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       IF (NQ.gt.NQUANT) THEN
         WRITE(6,*) "Number of conserved quantities larger than NQUANT"
      *       ,NQUANT,NQ
-        STOP "Change NQUANT in diagnostic common block"
+        call stop_model("Change NQUANT in diagnostic common block",255)
       END IF
 C**** remove spaces in NAME_CON for netcdf names
       sname=TRIM(NAME_CON)
@@ -2947,7 +2949,7 @@ C****
       IF (NS.gt.KCON) THEN
         WRITE(6,*) "KCON not large enough for extra conserv diags",
      *       KCON,NI,NM,NQ,NS,NAME_CON
-        STOP "Change KCON in diagnostic common block"
+        call stop_model("Change KCON in diagnostic common block",255)
       END IF
       TITLE_CON(NS) = " SUM OF CHANGES "//TRIM(SUM_UNIT)
       name_consrv(NS) ="sum_chg_"//trim(sname)

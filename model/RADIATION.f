@@ -546,7 +546,7 @@ C
 C              Initialize variables that might not otherwise get defined
 C              ---------------------------------------------------------
 C
-      IF(NLP.GT.LX)   STOP 'increase LX'
+      IF(NLP.GT.LX)   call stop_model('increase LX',255)
 CF    IF(LASTVC.GT.0) CALL SETATM
       DO 110 L=1,NLP
       TAUWC(L)=0.D0
@@ -1348,7 +1348,8 @@ CF    RFILEN(LP3:LP4)=RFILE7
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='OLD')
 cg    OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
       READ (NRFU) TITLE
-      IF(TITLE(1:13).eq.'Optical Depth') stop 'use new RADN7'
+      IF(TITLE(1:13).eq.'Optical Depth')
+     &     call stop_model('use new RADN7',255)
       REWIND (NRFU)
       DO K=1,5
         READ (NRFU) TITLE,VTAUR4
@@ -1470,8 +1471,10 @@ CF    OPEN (NRFU,FILE=RFILEN,FORM='FORMATTED',STATUS='OLD')
 cg    OPEN (NRFU,FORM='FORMATTED',STATUS='OLD')               ! CF
 C
       READ(NRFU,'(a80)') TITLE
-      if(ksolar.ge.2 .and. TITLE(1:3).ne.'ANN') stop 'change RADN9'
-      if(ksolar.lt.2 .and. TITLE(1:3).eq.'ANN') stop 'change RADN9'
+      if(ksolar.ge.2 .and. TITLE(1:3).ne.'ANN')
+     &     call stop_model('change RADN9',255)
+      if(ksolar.lt.2 .and. TITLE(1:3).eq.'ANN')
+     &     call stop_model('change RADN9',255)
       READ(NRFU,'(5F14.2)') (WSLEAN(I),I=1,190)
       READ(NRFU,'(a80)') TITLE
       READ(NRFU,'(5E14.3)') (DSLEAN(I),I=1,190)

@@ -692,7 +692,7 @@ C**** Do nothing for shallow convection (below 800 mb)
         IF (WTX.GT.1. OR. WTX.LT.0.) THEN
           PRINT *, 'WARNING IN GWDRAG, WTX INCORRECT',WTX,FPLUME,CLDDEP
           IF (WTX.GT.1.) WTX=1.
-          IF (WTX.LT.0.) STOP ' WTX <0 IN GWDRAG'
+          IF (WTX.LT.0.) call stop_model(' WTX <0 IN GWDRAG',255)
         END IF
         DO L=LMC0,LMC1-1
           USRC=USRC+UL(L)

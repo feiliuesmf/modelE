@@ -1221,7 +1221,8 @@ C**** Checks
       if (ntsurfsrc(n).gt.ntsurfsrcmax) then
 !       write(6,*) ' ntsurfsrc too large for ',trname(n)
         write(6,*) ' Increase ntsurfsrcmax to at least',ntsurfsrc(n)
-        STOP ' Ntsurfsrc too large.  Increase ntsurfsrcmax'
+        call stop_model(
+     &       ' Ntsurfsrc too large.  Increase ntsurfsrcmax',255)
       end if
 
       end do
@@ -1229,7 +1230,7 @@ C**** Checks
       if (k.gt. ktajls) then
         write (6,*)
      &   'tjl_defs: Increase ktajls=',ktajls,' to at least ',k
-        stop 'ktajls too small'
+        call stop_model('ktajls too small',255)
       end if
 
 
@@ -1611,7 +1612,7 @@ C**** This needs to be 'hand coded' depending on circumstances
 
       if (k .gt. ktaijs) then
         write (6,*)'ijt_defs: Increase ktaijs=',ktaijs,' to at least ',k
-        stop 'ktaijs too small'
+        call stop_model('ktaijs too small',255)
       end if
 
 C**** Initialize conservation diagnostics
@@ -2315,7 +2316,7 @@ C**** set default atmospheric liquid water amount to 0 for most tracers
 
         case default
 c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
-          stop "TRACER_IC"
+          call stop_model("TRACER_IC",255)
 
         case ('Air')
           do l=1,lm
@@ -3240,7 +3241,8 @@ c needed from the wet deposition code, then the aerosol formation code
 c should probably go here... If you add this, please make appropriate
 c changes in the subroutine's name/summary above. GSF 1/4/02.
         CASE DEFAULT                                ! error
-          STOP 'tr_wd_TYPE(NTIX(N)) out of range in SCAVENGE_TRACER'
+          call stop_model(
+     &        'tr_wd_TYPE(NTIX(N)) out of range in SCAVENGE_TRACER',255)
       END SELECT
 c
       RETURN
@@ -3292,7 +3294,8 @@ c           minus preserves FPRT sign convention in LSCOND
             fq = -(CM*DTsrc*(EXP(-CM*DTsrc)- 1.0)*FCLD)
           END IF
         CASE DEFAULT                          ! error
-          STOP 'tr_wd_TYPE(NTIX(N)) out of range in GET_FPRT'
+          call stop_model(
+     &         'tr_wd_TYPE(NTIX(N)) out of range in GET_FPRT',255)
       END SELECT
 c
       RETURN
@@ -3332,7 +3335,8 @@ C
         CASE(nPART)                           ! aerosols
           fq = b_beta_DT*(DEXP(-PREC*rc_wash)-1.)
         CASE DEFAULT                          ! error
-          STOP 'tr_wd_TYPE(NTIX(N)) out of range in WASHOUT_TRACER'
+          call stop_model(
+     &         'tr_wd_TYPE(NTIX(N)) out of range in WASHOUT_TRACER',255)
       END SELECT
 c
       RETURN

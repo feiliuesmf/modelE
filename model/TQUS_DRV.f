@@ -265,7 +265,7 @@ C****     1/2 x-direction
  595  continue
       if(ncyc.ge.10) then
         write(6,*) 'stop: ncyc=10 in AADVQ0'
-        call exit_rc(11)
+        call stop_model('AADVQ0: ncyc>=10',11)
       end if
  600  enddo
       if(ncyc.gt.1) write(6,*) 'AADVQ0: ncyc>1',ncyc
@@ -362,7 +362,7 @@ c****
       enddo ! l
 C$OMP  END PARALLEL DO
 C
-      IF(ICKERR.GT.0)  CALL EXIT_RC(11)
+      IF(ICKERR.GT.0)  CALL stop_model('Stopped in aadvQx',11)
 C
       return
 c****
@@ -475,7 +475,7 @@ c**** average and unscale polar boxes
       enddo  ! end loop over levels
 C$OMP  END PARALLEL DO
 C
-      IF(ICKERR.NE.0)  call exit_rc(11)
+      IF(ICKERR.NE.0)  call stop_model('Stopped in aadvQy',11)
 C
       return
 c****
@@ -559,7 +559,7 @@ c****
       enddo ! j
 C$OMP  END PARALLEL DO
 C
-      IF(ICKERR.GT.0)  call exit_rc(11)
+      IF(ICKERR.GT.0)  call stop_model('Stopped in aadvQz',11)
 C
       return
 c****
@@ -629,7 +629,7 @@ c    *  'aadvqx: j,l,nstep,courmax=',j,l,nstep,courmax
   420 CONTINUE
 C$OMP  END PARALLEL DO
 C
-      IF(ICKERR.GT.0)  call exit_rc(11)
+      IF(ICKERR.GT.0)  call stop_model('Stopped in XSTEP',11)
 C
       RETURN
       END
@@ -711,7 +711,7 @@ C**** Unscale poles
   440 CONTINUE
 C$OMP  END PARALLEL DO
 C
-      IF(ICKERR.GT.0)  call exit_rc(11)
+      IF(ICKERR.GT.0)  call stop_model('Stopped in YSTEP',11)
 C
       RETURN
       END
@@ -777,7 +777,7 @@ c    *   'aadvqz: i,j,nstep,courmax=',i,j,nstep,courmax
       END DO
 C$OMP  END PARALLEL DO
 C
-      IF(ICKERR.GT.0)  call exit_rc(11)
+      IF(ICKERR.GT.0)  call stop_model('Stopped in ZSTEP',11)
 C
       RETURN
       END

@@ -193,7 +193,8 @@ C****
 C**** Check that KOCEAN is set correctly
 C****
       IF (KOCEAN.eq.0) THEN
-        STOP "Must have KOCEAN > 0 for interactive ocean runs"
+        call stop_model(
+     &       "Must have KOCEAN > 0 for interactive ocean runs",255)
       END IF
 C****
 C**** set up time steps from atmospheric model
@@ -380,7 +381,7 @@ C**** Set atmospheric surface variables
 
       RETURN
 C**** Terminate because of improper start up
-  820 STOP 'init_OCEAN: Error reading ocean IC'
+  820 call stop_model('init_OCEAN: Error reading ocean IC',255)
 C****
   931 FORMAT ('0Inconsistency between LMM and M:',3I4,2F10.1)
 
@@ -608,7 +609,8 @@ C**** Check conservation of water tracers in ocean
       end do
 #endif
 
-      IF (QCHECKO) STOP "QCHECKO: Ocean Variables out of bounds"
+      IF (QCHECKO)
+     &     call stop_model("QCHECKO: Ocean Variables out of bounds",255)
 
       END IF
 C****
@@ -1771,12 +1773,12 @@ C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
          IF(QLIMIT .AND. RM(I,J,L).LT.0.) GO TO 810
   440 CONTINUE
       WRITE(6,*) 'ERROR CHECK INCONSISTENCY: OADVTX ',ICKERR
-      STOP "OADVTX"
+      call stop_model("OADVTX",255)
 
   800 WRITE (6,*) 'MO<0 in OADVTX:',I,J,L,MO(I,J,L)
   810 WRITE (6,*) 'RM in OADVTX:',I,J,L,RM(I,J,L)
       WRITE (6,*) 'A=',(I,A(I),I=1,IM)
-      STOP "OADVTX"
+      call stop_model("OADVTX",255)
       END SUBROUTINE OADVTX
 
       SUBROUTINE OADVTY (RM,RX,RY,RZ,MO,MV,DT,QLIMIT,OIJL)
@@ -2015,12 +2017,12 @@ C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
         IF(QLIMIT.AND.RM(1,JM,L).LT.0.)  GO TO 810
       END DO
       WRITE(6,*) 'ERROR CHECK INCONSISTENCY: OADVTY ',ICKERR
-      STOP "OADVTY"
+      call stop_model("OADVTY",255)
 
   800 WRITE (6,*) 'MO<0 in OADVTY:',I,J,L,MO(I,J,L)
   810 WRITE (6,*) 'RM in OADVTY:',I,J,L,RM(I,J,L)
       WRITE (6,*) 'B=',(J,B(J),J=1,JM-1)
-      STOP "OADVTY"
+      call stop_model("OADVTY",255)
       END SUBROUTINE OADVTY
 
       SUBROUTINE OADVTZ (RM,RX,RY,RZ,MO,MW,DT,QLIMIT,OIJL)
@@ -2182,12 +2184,12 @@ C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
         END DO
       END DO
       WRITE(6,*) 'ERROR CHECK INCONSISTENCY: OADVTZ ',ICKERR
-      STOP "OAVDTZ"
+      call stop_model("OAVDTZ",255)
 
   800 WRITE (6,*) 'MO<0 in OADVTZ:',I,L,MO(I,1,L)
   810 WRITE (6,*) 'RM in OADVTZ:',I,L,RM(I,1,L)
       WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
-      STOP "OADVTZ"
+      call stop_model("OADVTZ",255)
       END SUBROUTINE OADVTZ
 
       SUBROUTINE OBDRAG

@@ -678,7 +678,7 @@ ccc not sure if all this should be in one subroutine, but otherwise
 ccc one has to pass all these flux limits
 
       if ( .not. ( evap_max_out > 0. .or.  evap_max_out <= 0. ) )
-     &     stop "GHY::evap_limits: evap_max_out = NaN" !call abort
+     &     call stop_model("GHY::evap_limits: evap_max_out = NaN",255)
 
       if ( .not. compute_evap ) return
 
@@ -940,8 +940,8 @@ c     loop back until qs converged
       endif
       if(itr.ge.64)then
         call outw(0)
-        ! call abort
-        stop 'qsbal: too many iterations - see soil_outw and fort.99'
+        call stop_model(
+     &     'qsbal: too many iterations - see soil_outw and fort.99',255)
       endif
       itr=itr+1
       if(abs(qso-qs).gt.eps)go to 10
@@ -1264,7 +1264,7 @@ ccc    this is how much water we can take from layer l
 ccc    rnff always >= 0, use it first to compensate rnf<0
           if ( rnff(l,ibv) .lt. 0.d0 ) then ! call abort just to be sure
             print *, 'underground runoff < 0'
-            stop 'fllmt: negative underground runoff'
+            call stop_model('fllmt: negative underground runoff',255)
           end if
           drnf = min( -rnf(ibv), rnff(l,ibv) )
           rnf(ibv) = rnf(ibv) + drnf
@@ -1276,7 +1276,7 @@ ccc    check if rnf==0 up to machine accuracy
         if ( rnf(ibv) .lt. -1d-12 ) then
           print *, 'fllmt: rnf<0, ibv=',ibv,rnf(ibv)
           ! call abort; couldn't redistribute rnf<0 : evap is too big ?
-            stop 'fllmt: negative runoff'
+            call stop_model('fllmt: negative runoff',255)
         endif
 ccc    if -1d-12 < rnf < 0. put it to 0 to avoid possible problems
 ccc    actually for ground hydrology it is not necessary
@@ -1368,7 +1368,8 @@ c     xw,xi,xa are the volume fractions.  don't count snow in soil lyr 1
      &         + xb*hcwtb*alambr
           xden=xw*hcwtw+xi*hcwti+xa*hcwta+xsh(l,ibv)+xb*hcwtb
           xkh(l,ibv)=xnum/xden
-          if ( xkh(l,ibv) .lt. 0.d0 ) stop 'xklh: heat conductivity<0'
+          if ( xkh(l,ibv) .lt. 0.d0 )
+     &         call stop_model('xklh: heat conductivity<0',255)
         end do
       end do
 c     get the average conductivity between layers
@@ -1607,7 +1608,8 @@ cdbg        endif
       call hydra
       call outw(1)
       !call abort
-      stop 'retp: tground > 100C - see soil_outw and fort.99'
+      call stop_model(
+     &     'retp: tground > 100C - see soil_outw and fort.99',255)
       endif
       return
       end subroutine retp
@@ -1702,8 +1704,8 @@ c     call fhlmt
       write(99,*)'tb0,tc0',tb0,tc0
       call hydra
       call outw(2)
-      ! call abort
-      stop 'advnc: time step too short - see soil_outw and fort.99'
+      call stop_model(
+     &     'advnc: time step too short - see soil_outw and fort.99',255)
       end subroutine advnc
 
       subroutine accm
@@ -1929,7 +1931,7 @@ c**** first calculate timestep for water movement in soil.
       dtm=sgmm/(dldz2+1d-12)
       if(q(4,1).gt.0.d0)dtm=min(dtm,t450)
       dtm1=dtm
-      if ( dtm .lt. 0.d0 ) stop 'gdtm: dt1_ghy<0' ! call abort()
+      if ( dtm .lt. 0.d0 ) call stop_model('gdtm: dt1_ghy<0',255)
 c****
 c**** next calculate timestep for heat movement in soil.
       do ibv=1,2
@@ -1941,7 +1943,7 @@ c**** next calculate timestep for heat movement in soil.
         end do
       end do
       dtm2=dtm
-      if ( dtm .lt. 0.d0 ) stop 'gdtm: dt2_ghy<0' ! call abort()
+      if ( dtm .lt. 0.d0 ) call stop_model('gdtm: dt2_ghy<0',255)
 c****
 c**** finally, calculate max time step for top layer bare soil
 c**** and canopy interaction with surface layer.
@@ -2313,7 +2315,8 @@ ccc better check it
           write(99,*) 'snowd corrected: old=', snowd(ibv)
           snowd(ibv) = w(1,ibv)-dz(1)*thetm(1,ibv) - 1.d-10
           write(99,*) '                 new=', snowd(ibv)
-          if ( snowd(ibv) .lt. -0.001d0 ) stop 'set_snow: neg. snow'
+          if ( snowd(ibv) .lt. -0.001d0 )
+     &         call stop_model('set_snow: neg. snow',255)
           if ( snowd(ibv) .lt. 0.d0 ) snowd(ibv) = 0.d0 ! rounding error
        endif
 

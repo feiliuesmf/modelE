@@ -56,7 +56,7 @@ C
       END DO
       RETURN
   100 WRITE (6,*) ' This version of FFT is for ',KM,'. IM =',IM
-      STOP
+      call stop_model('stopped in FFT72.f',255)
       END SUBROUTINE FFT0
 C****
       SUBROUTINE FFT (F,A,B)

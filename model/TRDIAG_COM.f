@@ -306,7 +306,8 @@ C****
       IF (NS.gt.KTCON) THEN
         WRITE(6,*) "KTCON not large enough for extra conserv diags",
      *       KTCON,NI,NM,NS,NAME_CON
-        STOP "Change KTCON in tracer diagnostic common block"
+        call stop_model(
+     &       "Change KTCON in tracer diagnostic common block",255)
       END IF
       DO NM=NI+1,NS-1
         NSUM_TCON(NM,itr) = -1
