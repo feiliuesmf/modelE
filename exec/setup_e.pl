@@ -248,9 +248,9 @@ print <<`EOC`;
     umask $umask_str
     touch lock
     if [ `ulimit -s` -lt $MIN_STACK ] ; then
-      ulimit -s $MIN_STACK || \
+      ulimit -s $MIN_STACK || ( \
         echo "!!! Could not set required stack size !!!"; \
-        echo "!!! The program may not run properly !!!"
+        echo "!!! The program may not run properly !!!" )
       echo "current stack: `ulimit -s`"
     fi
     rm -f error_message 2> /dev/null
@@ -281,16 +281,15 @@ print RUNID <<EOF;
     if [ -f lock ] ; then
       echo 'lock file present - aborting' ; exit 1 ; fi
     touch lock
-    if [ `ulimit -s` -lt $MIN_STACK ] ; then
-      ulimit -s $MIN_STACK || \
-        echo "!!! Could not set required stack size !!!"; \
-        echo "!!! The program may not run properly !!!"
-      echo "current stack: `ulimit -s`"
-    fi
     rm -f error_message 2> /dev/null
     PRTFILE=${runID}.PRT
     if [ \$\# -ge 1 ] && [ $1='-q' ]; then
       PRTFILE='/dev/null'; fi
+    if [ `ulimit -s` -lt $MIN_STACK ] ; then
+      ulimit -s $MIN_STACK || \\
+        echo "!!! Could not set required stack size !!!" ;
+      echo "current stack: `ulimit -s`"
+    fi
     ./${runID}ln
     ./${runID}.exe < I > \$PRTFILE
     rc=\$?
