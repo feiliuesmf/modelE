@@ -935,12 +935,14 @@ c save for cloud-sulfate correlation
 #ifdef TRACERS_WATER
         trprec(n,i,j) = trprec(n,i,j)+trprss(nx)
 C**** diagnostics
-c        tajls(j,1,jls_prec(1,n))=tajls(j,1,jls_prec(1,n))
-c     *       +trprec(n,i,j)*bydxyp(j)
-c        tajls(j,1,jls_prec(2,n))=tajls(j,1,jls_prec(2,n))
-c     *       +trprec(n,i,j)*focean(i,j)*bydxyp(j)
-        if (dowetdep(n)) taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) +
-     *       trprec(n,i,j)*bydxyp(j)
+        if (dowetdep(n)) then
+          if (jls_prec(1,n).gt.0) tajls(j,1,jls_prec(1,n))=tajls(j,1
+     *         ,jls_prec(1,n))+trprec(n,i,j)*bydxyp(j)
+          if (jls_prec(2,n).gt.0) tajls(j,1,jls_prec(2,n))=tajls(j,1
+     *         ,jls_prec(2,n))+trprec(n,i,j)*focean(i,j)*bydxyp(j)
+          taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) +
+     *         trprec(n,i,j)*bydxyp(j)
+        end if
 #endif
       end do
 #ifdef TRACERS_AEROSOLS_Koch

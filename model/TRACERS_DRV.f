@@ -794,6 +794,10 @@ C**** These need to be 'hand coded' depending on circumstances
         ia_jls(k) = ia_src
         scale_jls(k) = 1./DTsrc
       end do
+#ifdef TRACERS_WATER
+C**** set defaults for some precip/wet-dep related diags
+      jls_prec(:,:)=0    
+#endif
 
 C****
 C**** Set some diags that are the same regardless
@@ -1142,7 +1146,7 @@ C****
 
 #ifdef TRACERS_WATER
 C**** generic ones for many water tracers
-      case ('Water', 'H2O18', 'HDO')
+      case ('Water', 'H2O18', 'HDO', 'HTO')
        k = k + 1
         jls_source(1,n)=k
         sname_jls(k) = 'Evap_'//trname(n)
@@ -1176,40 +1180,8 @@ C**** generic ones for many water tracers
         scale_jls(k) = SDAY*byim/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
 
-C**** special unique to HTO
-      case ('HTO')
-       k = k + 1
-        jls_source(1,n)=k
-        sname_jls(k) = 'Evap_'//trname(n)
-        lname_jls(k) = 'EVAPORATION OF '//trname(n)
-        jls_ltop(k) = 1
-        jls_power(k) = ntm_power(n)+4
-        scale_jls(k) = SDAY*byim/DTsrc
-        units_jls(k) = unit_string(jls_power(k),'mm/day')
-       k = k + 1
-        jls_source(2,n)=k
-        sname_jls(k) = 'Ocn_Evap_'//trname(n)
-        lname_jls(k) = 'OCEAN EVAP OF '//trname(n)
-        jls_ltop(k) = 1
-        jls_power(k) = ntm_power(n)+4
-        scale_jls(k) = SDAY*byim/DTsrc
-        units_jls(k) = unit_string(jls_power(k),'mm/day')
-       k = k + 1
-        jls_prec(1,n)=k
-        sname_jls(k) = 'Precip_'//trname(n)
-        lname_jls(k) = 'PRECIPITATION OF '//trname(n)
-        jls_ltop(k) = 1
-        jls_power(k) = ntm_power(n)+4
-        scale_jls(k) = SDAY*byim/DTsrc
-        units_jls(k) = unit_string(jls_power(k),'mm/day')
-       k = k + 1
-        jls_prec(2,n)=k
-        sname_jls(k) = 'Ocn_Precip_'//trname(n)
-        lname_jls(k) = 'OCEAN PRECIP OF '//trname(n)
-        jls_ltop(k) = 1
-        jls_power(k) = ntm_power(n)+4
-        scale_jls(k) = SDAY*byim/DTsrc
-        units_jls(k) = unit_string(jls_power(k),'mm/day')
+C**** special one unique to HTO
+      if (trname(n).eq."HTO") then
        k = k + 1
         jls_decay(n) = k   ! special array for all radioactive sinks
         sname_jls(k) = 'Decay_of_'//trname(n)
@@ -1218,6 +1190,7 @@ C**** special unique to HTO
         jls_power(k) = ntm_power(n)+8
         scale_jls(k) = 1./DTsrc
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+      end if
 #endif
 
       case ('NOx')
