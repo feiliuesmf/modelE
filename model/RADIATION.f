@@ -3561,7 +3561,7 @@ C     ------------------------------------------------------------------
         IF (itr(nt) == 7) THEN
           ntd=ntd+1
           TTAULX(L,NT)=TRACER(L,NT)*
-     *         1d3*.75d0/rodust(ntd)*qdst55(ntd)/TRRDRY(NT)
+     *         1d3*.75d0/rodust(ntd)*RTINFO(1,9,NT)/TRRDRY(NT)
         ELSE
           TTAULX(L,NT)=TRACER(L,NT)*
      *         1d3*.75d0/DENAER(ITR(NT))*Q55DRY(ITR(NT))/TRRDRY(NT)
