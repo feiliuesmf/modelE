@@ -47,7 +47,7 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 !@sum  LKSOURC applies fluxes to lake in ice-covered and ice-free areas
 !@auth Gary Russell
 !@ver  1.0
-      USE DAGCOM, only : qcheck
+      USE MODEL_COM, only : qcheck
       IMPLICIT NONE
 !@var MLAKE,ELAKE mass and energy in lake layers (kg,J /m^2)
       REAL*8, INTENT(INOUT), DIMENSION(2) :: MLAKE,ELAKE
@@ -655,9 +655,8 @@ C****
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : rhow
-      USE MODEL_COM, only : im,jm,hlake,fearth
+      USE MODEL_COM, only : im,jm,hlake,fearth,qcheck
       USE GEOM, only : dxyp
-      USE DAGCOM, only : qcheck
       USE LAKES
       USE LAKES_COM
 
@@ -1048,7 +1047,7 @@ C****
       USE LAKES_COM, only : tlake,mwl,mldlk,gml,flake
       USE SEAICE_COM, only : rsi,hsi,msi,snowi
       USE SEAICE, only : xsi,ace1i,rhoi
-      USE DAGCOM, only : qcheck
+      USE MODEL_COM, only : qcheck
       IMPLICIT NONE
       CHARACTER*2, INTENT(IN) :: STR
       INTEGER, PARAMETER :: NDIAG=2   !6

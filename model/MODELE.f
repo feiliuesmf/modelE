@@ -451,8 +451,7 @@ C****
       USE CONSTANT, only : grav,kapa,sday,shi,lhm
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
      *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige
-     *     ,bydsig,xlabel,lrunid,nmonav
-     *     ,irand,psf,ptop
+     *     ,bydsig,xlabel,lrunid,nmonav,qcheck,irand,psf,ptop
      *     ,nisurf,nidyn,nday,dt,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
      *     ,ls1,psfmpt,pstrat,idacc,jyear,jmon,jday,jdate,jhour
@@ -467,7 +466,7 @@ C****
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,jreg
-     &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck,oa
+     &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qdiag,oa
      &  ,iu_ij,iu_jl,iu_il,iu_j
       USE LAKES_COM, only : flake
       USE FILEMANAGER, only : openunit,closeunit
@@ -498,7 +497,7 @@ C****
 
       CHARACTER NLREC*80,filenm*100,RLABEL*132
       NAMELIST/INPUTZ/ ISTART,IRANDI
-     *     ,IWRITE,JWRITE,ITWRITE,QCHECK,KDIAG
+     *     ,IWRITE,JWRITE,ITWRITE,QCHECK,QDIAG,KDIAG
      *     ,IHOURE, HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
@@ -1036,7 +1035,7 @@ C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
 C**** Recompute Ground hydrology data if redoGH (new soils data)
 C****
-      CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW)
+      CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART)
 C**** Initialize pbl (and read in file containing roughness length data)
       if(istart.gt.0) CALL init_pbl(iniPBL)
 C****
@@ -1132,7 +1131,6 @@ C**** REMEMBER TO SET QCHECK BACK TO .FALSE. AFTER THE ERRORS ARE
 C**** CORRECTED.
 
       USE MODEL_COM
-      USE DAGCOM, only : QCHECK
       IMPLICIT NONE
       INTEGER I,J
 !@var SUBR identifies where CHECK was called from

@@ -156,6 +156,9 @@ C**** Variables specific for stratosphere and/or strat diagnostics
 !@var LSDRAG level above which SDRAG is applied (above 1 mb)
       INTEGER :: LSDRAG=LM  ! default=LM
 
+!@nlparam QCHECK TRUE for running diagnostic checks
+      LOGICAL :: QCHECK = .FALSE.
+
       END MODULE MODEL_COM
 
       MODULE TIMINGS

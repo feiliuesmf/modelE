@@ -224,7 +224,7 @@ C****
       USE GEOM, only :
      &     dxyp,lat,LAT_DG
       USE DAGCOM, only :
-     &     QCHECK,acc_period,aj,areg,jreg,kdiag,namreg,nreg,kaj,ia_j,
+     &     QDIAG,acc_period,aj,areg,jreg,kdiag,namreg,nreg,kaj,ia_j,
      &     j_ctopp,j_cdldep,j_pcldmc,j_srabs,j_srnfp0,j_srnfg,j_trnfp0,
      &     j_hsurf,j_trhdt,j_trnfp1,j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,
      &     j_rhdt,j_hz1,j_edifs,j_f1dt,j_prcp,j_prcpss,j_prcpmc,j_hz0,
@@ -295,7 +295,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       S1(JM)=1.
       END IF
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      IF (QCHECK)  ! the +1 is because types dimensioned 0:ntype_out
+      IF (QDIAG)  ! the +1 is because types dimensioned 0:ntype_out
      & call open_j(trim(acc_period)//'.j'//XLABEL(1:LRUNID),ntype_out+1)
 
 C**** CALCULATE THE DERIVED QUANTTIES
@@ -463,11 +463,11 @@ C****
       END DO
       WRITE (6,903) (NINT(LAT_DG(J,1)),J=JM,INC,-INC)
       WRITE (6,905)
-      IF (QCHECK) CALL POUT_J(TITLEO,SNAMEO,LNAMEO,UNITSO,BUDG,KD1M+10
+      IF (QDIAG) CALL POUT_J(TITLEO,SNAMEO,LNAMEO,UNITSO,BUDG,KD1M+10
      *     ,TERRAIN(M),M+1) ! the +1 is because M starts at 0
       IF (KDIAG(1).GT.1) RETURN
       END DO
-      if(qcheck) call close_j
+      if(qdiag) call close_j
   510 IF (KDIAG(1).GT.0.AND.KDIAG(1).NE.8) RETURN
 C****
 C**** PRODUCE REGIONAL STATISTICS
@@ -907,7 +907,7 @@ c Check the count
 
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      IF(QCHECK) call open_jl(trim(acc_period)//'.jk'//XLABEL(1:LRUNID))
+      IF(QDIAG) call open_jl(trim(acc_period)//'.jk'//XLABEL(1:LRUNID))
 
 C**** INITIALIZE CERTAIN QUANTITIES
       call JKJL_TITLEX
@@ -1885,7 +1885,7 @@ C****
      &     PMB,PHASE(1,1,N),SCALET,ONES,ONES,kgz_max,2,jgrid_jl(N+ix))
       ENDDO
 
-      if(qcheck) call close_jl
+      if(qdiag) call close_jl
 
       RETURN
   901 FORMAT (
@@ -1896,7 +1896,7 @@ C****
 
       SUBROUTINE JKMAP(LNAME,SNAME,UNITS,
      &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1)
-      USE DAGCOM, only : QCHECK,acc_period,iu_jl,lm_req,inc=>incj,linect
+      USE DAGCOM, only : QDIAG,acc_period,iu_jl,lm_req,inc=>incj,linect
      *     ,jmby2
       USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
@@ -2016,7 +2016,7 @@ C**** VERTICAL SUMS
          XJL(JM+1,LM+LM_REQ+1)=AGLOB     ! GLOBAL
          XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
          TITLEO=TITLE//XLB
-         IF(QCHECK) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
+         IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
      *        J1,KLMAX,XJL,PM,CLAT,CPRES)
       WRITE (6,903) WORD(IWORD),AGLOB,AHEM(2),AHEM(1),
      *  (MLAT(J),J=JM,J1,-INC)
@@ -2079,7 +2079,7 @@ C**** J1 INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
-      USE DAGCOM, only : QCHECK,acc_period,iu_jl,LM_REQ,inc=>incj,linect
+      USE DAGCOM, only : QDIAG,acc_period,iu_jl,LM_REQ,inc=>incj,linect
      *     ,jmby2
       USE MODEL_COM, only :
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
@@ -2179,7 +2179,7 @@ C****
          XJL(JM+1,LM+LM_REQ+1)=GSUM      ! GLOBAL
          XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
          TITLEO=TITLE//XLB
-         IF(QCHECK) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
+         IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
      *        J1,KLMAX,XJL,PL,CLAT,CPRES)
       if(  sname.eq.'phi_amp_wave1' .or.
      &     sname.eq.'phi_amp_wave2' .or.
@@ -2243,7 +2243,7 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,lm,bydsig,idacc,xlabel,lrunid
-      USE DAGCOM, only : ail,lm_req,acc_period, qcheck,lname_il,name_il
+      USE DAGCOM, only : ail,lm_req,acc_period, qdiag,lname_il,name_il
      *     ,units_il,scale_il,ia_il,kail,plm,ple,linect
       IMPLICIT NONE
       CHARACTER sname*20,unit*20,lname*80
@@ -2252,7 +2252,7 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       INTEGER :: K
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      IF(QCHECK) call open_il(trim(acc_period)//'.il'//XLABEL(1:LRUNID))
+      IF(QDIAG) call open_il(trim(acc_period)//'.il'//XLABEL(1:LRUNID))
 
 C**** INITIALIZE CERTAIN QUANTITIES
       ONES(1:LM)=1.
@@ -2282,14 +2282,14 @@ C**** INITIALIZE CERTAIN QUANTITIES
           CALL ILMAP(sname,lname,unit,PLM,XIL,BYDSIG,LM,1,1)
         END SELECT
       END DO
-      if(qcheck) call close_il
+      if(qdiag) call close_il
       RETURN
       END SUBROUTINE DIAGIL
 
 
       SUBROUTINE ILMAP (sname,lname,unit,PL,AX,SCALEL,LMAX,JWT
      *     ,ISHIFT)
-      USE DAGCOM, only : qcheck,acc_period,iu_il,inc=>inci,linect
+      USE DAGCOM, only : qdiag,acc_period,iu_il,inc=>inci,linect
       USE CONSTANT, only : twopi
       USE MODEL_COM, only : im,jm,lm,dsig,jdate,jdate0,amon,amon0,jyear
      *     ,jyear0,sige,xlabel
@@ -2352,7 +2352,7 @@ C**** Output for post-processing
       CWORD=WORD(JWT)           ! pads out to 8 characters
       XLB=TITLE
       XLB(65:80)=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
-      IF(QCHECK) CALL POUT_IL(XLB,sname,lname,unit,ISHIFT,LMAX,XIL
+      IF(QDIAG) CALL POUT_IL(XLB,sname,lname,unit,ISHIFT,LMAX,XIL
      *     ,PL,CLAT,CPRES,ASUM,GSUM,ZONAL)
       RETURN
 C****
@@ -3105,10 +3105,10 @@ c**** find hemispheric and global means
 
       SUBROUTINE DIAGIJ
 !@sum  DIAGIJ produces lat-lon fields as maplets (6/page) or full-page
-!@+    digital maps, and binary (netcdf etc) files (if qcheck=true)
+!@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
 !@auth Gary Russell,Maxwell Kelley,Reto Ruedy
 !@ver   1.0
-c     USE DAGCOM, only : QCHECK,acc_period,iu_ij
+c     USE DAGCOM, only : QDIAG,acc_period,iu_ij
       USE CONSTANT, only : sha,teeny
       USE MODEL_COM, only :
      &     im,jm,lm,byim,
@@ -3146,9 +3146,8 @@ c    &     IJ_DSEV,IJ_TRNFP0,IJ_SRNFP0,IJ_SLP,IJ_TS !not a generic subr.
      &     DE4TI,BYDPK,SZNDEG
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      IF(QCHECK) call open_ij(trim(acc_period)//'.ij'//XLABEL(1:LRUNID))
+      IF(QDIAG) call open_ij(trim(acc_period)//'.ij'//XLABEL(1:LRUNID))
 
-      print*,"diagij",ij_t850,aij(1,23,ij_t850)
 C**** INITIALIZE CERTAIN QUANTITIES
       call ij_titlex
 C**** standard printout
@@ -3168,7 +3167,7 @@ C**** standard printout
      *  ij_trnfp0,  ij_neth,    ij_dtdp,     ! pg  6  row 1
      *  ij_dsev,    ij_ntdsese, ij_ntdsete,  !        row 2
      *  ij_gwtr,    ij_wmsum,   ij_dcnvfrq,  ! pg  7  row 1
-     *  ij_t850, ij_pdcld,   ij_pscld/)   !        row 2
+     *  ij_scnvfrq, ij_pdcld,   ij_pscld/)   !        row 2
 
 C**** Fill in maplet indices for gravity wave diagnostics
       do k=1,iDO_GWDRAG
@@ -3269,7 +3268,7 @@ c**** Find, then display the appropriate array
           call ij_mapk (k,smap,smapj,gm,jgrid,irange,name,lname,units)
           title=trim(lname)//' ('//trim(units)//')'
           call maptxt(smap,smapj,gm,irange,title,line,kcolmn,nlines)
-          if(qcheck) call pout_ij(title//xlb,name,lname,units,
+          if(qdiag) call pout_ij(title//xlb,name,lname,units,
      *                            smap,smapj,gm,jgrid)
           Qk(k) = .false.
         end if
@@ -3288,12 +3287,12 @@ C**** Print out full-page digital maps
         call ij_mapk (k,smap,smapj,gm,jgrid,irange,name,lname,units)
         title=trim(lname)//' ('//trim(units)//')'
         call ijmap (title//xlb,smap,smapj,jgrid)
-        if(qcheck) call pout_ij(title//xlb,name,lname,units,smap,smapj,
+        if(qdiag) call pout_ij(title//xlb,name,lname,units,smap,smapj,
      *                          gm,jgrid)
         Qk(k) = .false.
       end do
 
-      if (.not.qcheck) RETURN
+      if (.not.qdiag) RETURN
 C**** produce binary files of remaining fields if appropriate
       do k=1,kaijx
         if (Qk(k)) then
@@ -3538,7 +3537,7 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if 0 < kdiag(3) < 8
       go to 10
 
    20 nmaplets = kmap(1) ; nmaps = kmap(2)
-      if (.not.qcheck .or. kdiag(3).eq.1) call closeunit(iu_Iij)
+      if (.not.qdiag .or. kdiag(3).eq.1) call closeunit(iu_Iij)
       return
       end subroutine set_ijout
 

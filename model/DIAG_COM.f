@@ -199,8 +199,8 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 
 !@nlparam IWRITE,JWRITE,ITWRITE control rad.debug output (i,j,amount)
       INTEGER :: IWRITE = 0, JWRITE = 0, ITWRITE = 0
-!@nlparam QCHECK TRUE for running diagnostic checks
-      LOGICAL :: QCHECK = .FALSE.
+!@nlparam QDIAG TRUE for outputting binary diagnostics
+      LOGICAL :: QDIAG = .FALSE.
 
 !@var OA generic diagnostic array for ocean heat transport calculations
 C****

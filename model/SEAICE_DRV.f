@@ -91,7 +91,7 @@ C****
 !@calls SEAICE:SEA_ICE
       USE CONSTANT, only : lhm,byshi,rhow
       USE MODEL_COM, only : im,jm,dtsrc,fland,kocean,focean
-     *     ,itoice,itlkice
+     *     ,itoice,itlkice,qcheck
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,srunosi,solar
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
@@ -100,7 +100,6 @@ C****
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,ij_rsoi,
      *     ij_msi2,ij_evapi,j_difs,j_run1,j_edifs,j_erun2,j_imelt,
      *     j_f1dt,j_f2dt,j_evap,ij_evap,j_rsnow,ij_rsit,ij_rsnw,ij_snow
-     *     ,qcheck
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,SSIL

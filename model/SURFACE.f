@@ -23,7 +23,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,fim,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,itime,jhour,sige,byim,itocean
-     *     ,itoice,itlake,itlkice,itlandi
+     *     ,itoice,itlake,itlkice,itlandi,qcheck
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : dxyp,imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv
       USE RADNCB, only : trhr,fsf,cosz1
@@ -39,7 +39,7 @@ C****
      *     ,idd_tg1,idd_q5,idd_q4,idd_q3,idd_q2,idd_q1,idd_qs,idd_qg
      *     ,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
      *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
-     *     ,idd_eds,idd_dbl,idd_ev,idd_ldc,idd_dcf,qcheck
+     *     ,idd_eds,idd_dbl,idd_ev,idd_ldc,idd_dcf
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli

@@ -368,14 +368,14 @@ C**** Check for NaN/INF in ocean data
       USE MODEL_COM, only : jm,lrunid,xlabel,idacc
       USE GEOM, only : imaxj
       USE ODEEP_COM, only : lmom,rtgo,dz
-      USE DAGCOM, only : acc_period,qcheck
+      USE DAGCOM, only : acc_period,qdiag
       IMPLICIT NONE
       CHARACTER LNAME*50,SNAME*30,UNITS*50
       INTEGER I,J,L
       REAL*8 ATGO(JM,LMOM),SCALED,ONES(JM),Z(LMOM)
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      IF(QCHECK) call open_jl(trim(acc_period)//'.o'//XLABEL(1:LRUNID))
+      IF(QDIAG) call open_jl(trim(acc_period)//'.o'//XLABEL(1:LRUNID))
 
       LNAME="Zonally averaged deep ocean temperature anomaly"
       SNAME="tgo_deep_anom"
@@ -399,7 +399,7 @@ C**** depths are calculated from base of the mixed layer
 C**** Print out a depth/latitude plot of the deep ocean temp anomaly
       CALL JLMAP(LNAME,SNAME,UNITS,Z,ATGO,SCALED,ONES,ONES,LMOM,2,1)
 C****
-      if(qcheck) call close_jl
+      if(qdiag) call close_jl
       
       RETURN
       END SUBROUTINE diag_OCEAN

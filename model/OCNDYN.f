@@ -491,7 +491,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : byrt3
-      USE DAGCOM, only : qcheck
+      USE MODEL_COM, only : qcheck
       USE SEAICE_COM, only : msi,rsi
       USE OCEAN
       IMPLICIT NONE

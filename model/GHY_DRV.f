@@ -456,7 +456,7 @@ c**** quantities accumulated for surface type tables in diagj
       return
       end subroutine earth
 
-      subroutine init_gh(dtsurf,redogh,inisnow)
+      subroutine init_gh(dtsurf,redogh,inisnow,istart)
 c**** modifications needed for split of bare soils into 2 types
       use constant, only : twopi,rhow,edpery,sha,shw_const=>shw,
      *     shi_const=>shi,lhe,lhm
@@ -468,11 +468,12 @@ c**** modifications needed for split of bare soils into 2 types
       use filemanager
       implicit none
 
-      real*8 dtsurf
+      real*8, intent(in) :: dtsurf
+      integer, intent(in) :: istart
+      logical, intent(in) :: redogh, inisnow
       integer iu_soil,iu_top_index,iu_veg
       integer jday
       real*8 snowdp,wtr1,wtr2,ace1,ace2,tg1,tg2
-      logical redogh, inisnow
       logical :: qcon(npts)
       integer i, j, k
       real*8 one,wfc1
@@ -520,6 +521,7 @@ c****   ngm+1 - 6*ngm   q(is,ngm)
 c**** 6*ngm+1 - 11*ngm   qk(is,ngm)
 c**** 11*ngm+1           sl
 
+      if (istart.gt.0) then
 c read in vegetation data set: vdata
       call openunit("VEG",iu_VEG,.true.,.true.)
       do k=1,11
@@ -608,7 +610,8 @@ c**** or these
             end if
             if (sum(dz_ij(i,j,1:ngm)).eq.0 
      &                .or. wbare(1,i,j) < 1.d-10) then
-              print*,"No soil data: i,j=",i,j,dz_ij(i,j,1:ngm)
+              print*,"No soil data: i,j=",i,j,dz_ij(i,j,1:ngm),wbare(1,i
+     *             ,j)
               dz_ij(i,j,1:ngm)=dz_ij(10,40,1:ngm)
               q_ij(i,j,1:imt,1:ngm)=q_ij(10,40,1:imt,1:ngm)
               qk_ij(i,j,1:imt,1:ngm)=qk_ij(10,40,1:imt,1:ngm)
@@ -807,6 +810,7 @@ c****     copy soils prognostic quantities to model variables
           end if
         end do
       end do
+      end if
       end if
 
 c**** set conservation diagnostics for ground water mass and energy
