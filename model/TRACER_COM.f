@@ -20,7 +20,8 @@ C
       integer, parameter :: ntm_aero=5
 
 !@var 3D on-line radical array for interactive aerosol and gas
-       REAL*8, DIMENSION(IM,JM,LM)   :: oh_live,no3_live
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oh_live
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: no3_live
 
 C**** Each tracer has a variable name and a unique index
 !@param NTM number of tracers
@@ -215,9 +216,10 @@ C****
       real*8, dimension(ntm) :: trradius
 
 !@var TRM: Tracer array (kg)
-      real*8, dimension(im,jm,lm,ntm) :: trm
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trm
+
 !@var TRMOM: Second order moments for tracers (kg)
-      real*8, dimension(nmom,im,jm,lm,ntm) :: trmom
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: trmom
 
 !@var ntsurfsrcmax maximum number of surface 2D sources/sinks
       integer, parameter :: ntsurfsrcmax=14
@@ -261,7 +263,7 @@ C note, tr_evap_fact is not dimensioned as NTM:
 !@var dowetdep true if tracer has some form of wet deposition
       logical, dimension(ntm) :: dowetdep
 !@var TRWM tracer in cloud liquid water amount (kg)
-      real*8, dimension(im,jm,lm,ntm) :: trwm
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trwm
 #ifdef TRACERS_SPECIAL_O18
 !@dbparam supsatfac factor controlling super saturation for isotopes
       real*8 :: supsatfac = 2d-3
@@ -282,9 +284,32 @@ C note, tr_evap_fact is not dimensioned as NTM:
 
       END MODULE TRACER_COM
 
+      SUBROUTINE ALLOC_TRACER_COM(grid)
+!@sum  To allocate arrays whose sizes now need to be determined at
+!@+    run time
+!@auth NCCS (Goddard) Development Team
+!@ver  1.0
+      USE TRACER_COM
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID, GET
+      IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(IN) :: grid
 
+      INTEGER :: J_1H, J_0H
+      INTEGER :: IER
 
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
+      ALLOCATE(     oh_live(IM,J_0H:J_1H,LM),
+     *             no3_live(IM,J_0H:J_1H,LM),
+     *                  trm(IM,J_0H:J_1H,LM,NTM),
+     *                trmom(NMOM,IM,J_0H:J_1H,LM,NTM) )
+  
+#ifdef TRACERS_WATER
+      ALLOCATE(        trwm(IM,J_0H:J_1H,LM,NTM) )
+#endif
 
-
+      END SUBROUTINE ALLOC_TRACER_COM
 
