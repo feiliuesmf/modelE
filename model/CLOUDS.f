@@ -116,7 +116,7 @@ C**** functions
 
       CONTAINS
 
-      SUBROUTINE MSTCNV
+      SUBROUTINE MSTCNV(IERR,LERR)
 !@sum  MSTCNV moist convective processes (precip, convective clouds,...)
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
@@ -239,6 +239,8 @@ C**** functions
 
       INTEGER K,L,N  !@var K,L,N loop variables
       INTEGER ITYPE  !@var convective cloud types
+!@var IERR,LERR error reports from advection
+      INTEGER, INTENT(OUT) :: IERR,LERR 
 !@var DUM, DVM changes of UM,VM
       REAL*8, DIMENSION(IM,LM) :: DUM,DVM
 
@@ -811,7 +813,7 @@ C****
       cmneg(ldmin:lmax)=-cm(ldmin:lmax)
       cmneg(lmax)=0. ! avoid roundoff error (esp. for qlimit)
       call adv1d(sm(ldmin),smom(1,ldmin), f(ldmin),fmom(1,ldmin),
-     &     ml(ldmin),cmneg(ldmin), nsub,.false.,1, zdir)
+     &     ml(ldmin),cmneg(ldmin), nsub,.false.,1, zdir,ierr,lerr)
       SM(LDMIN:LMAX) =   SM(LDMIN:LMAX) +   DSM(LDMIN:LMAX)
       SMOM(:,LDMIN:LMAX) =  SMOM(:,LDMIN:LMAX) +  DSMOM(:,LDMIN:LMAX)
 C****
@@ -819,7 +821,7 @@ C****
       QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +  DQMR(LDMIN:LMAX)
       QMOM(:,LDMIN:LMAX) =  QMOM(:,LDMIN:LMAX) + DQMOMR(:,LDMIN:LMAX)
       call adv1d(qm(ldmin),qmom(1,ldmin), f(ldmin),fmom(1,ldmin),
-     &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir)
+     &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierr,lerr)
       QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +   DQM(LDMIN:LMAX)
       QMOM(:,LDMIN:LMAX) =  QMOM(:,LDMIN:LMAX) +  DQMOM(:,LDMIN:LMAX)
 C**** diagnostics

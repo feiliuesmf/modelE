@@ -174,7 +174,7 @@ c****
       double precision, dimension(NMOM,IM,JM,LM) :: rmom
       logical ::  qlimit
       DOUBLE PRECISION, INTENT(OUT), DIMENSION(IM,JM) :: FQU
-      integer :: i,j,l
+      integer :: i,j,l,ierr,nerr
 c**** loop over layers and latitudes
       do l=1,lm
       do j=2,jm-1
@@ -183,7 +183,11 @@ c****
 c**** call 1-d advection routine
 c****
       call adv1d(rm(1,j,l),rmom(1,1,j,l), f_i,fmom_i, mass(1,j,l),
-     &        am, im, qlimit,xstride,xdir)
+     &        am, im, qlimit,xstride,xdir,ierr,nerr)
+      if (ierr.gt.0) then
+        write(6,*) "Error in aadvtx: i,j,l=",nerr,j,l
+        if (ierr.eq.2) stop "Error in qlimit: abs(a) > 1"
+      end if
 c****
 c**** store tracer flux in fqu array
 c****
@@ -218,7 +222,7 @@ c****
       double precision, dimension(NMOM,IM,JM,LM) :: rmom
       logical ::  qlimit
       double precision, intent(out), dimension(im,jm) :: fqv
-      integer :: i,j,l
+      integer :: i,j,l,ierr,nerr
       double precision ::
      &     m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
 c**** loop over layers
@@ -251,7 +255,11 @@ c****
 c**** call 1-d advection routine
 c****
       call adv1d(rm(i,1,l),rmom(1,i,1,l), f_j,fmom_j, mass(i,1,l),
-     &     bm, jm,qlimit,ystride,ydir)
+     &     bm, jm,qlimit,ystride,ydir,ierr,nerr)
+      if (ierr.gt.0) then
+        write(6,*) "Error in aadvty: i,j,l=",i,nerr,l
+        if (ierr.eq.2) stop "Error in qlimit: abs(b) > 1"
+      end if
 c**** store tracer flux in fqv array
       fqv(i,:) = fqv(i,:) + f_j(:)
       fqv(i,jm) = 0.   ! play it safe
@@ -295,7 +303,7 @@ c****
       double precision, dimension(im,jm,lm) :: rm,mass,mw
       double precision, dimension(NMOM,IM,JM,LM) :: rmom
       logical ::  qlimit
-      integer :: i,j,l
+      integer :: i,j,l,ierr,nerr
 c**** loop over latitudes and longitudes
       do j=1,jm
       do i=1,im
@@ -305,9 +313,15 @@ c****
 c**** call 1-d advection routine
 c****
       call adv1d(rm(i,j,1),rmom(1,i,j,1),f_l,fmom_l,mass(i,j,1),
-     &        cm,lm,qlimit,zstride,zdir)
+     &        cm,lm,qlimit,zstride,zdir,ierr,nerr)
+      if (ierr.gt.0) then
+        write(6,*) "Error in aadvtz: i,j,l=",i,j,nerr
+        if (ierr.eq.2) stop "Error in qlimit: abs(c) > 1"
+      end if
       enddo ! i
       enddo ! j
       return
 c****
       end subroutine aadvtz
+
+

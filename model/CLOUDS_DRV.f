@@ -42,14 +42,15 @@
       REAL*8,  PARAMETER :: DELTX=.608d0
 
       INTEGER I,J,K,L  !@var I,J,K,L loop variables
-      INTEGER IMAX,JR,KR,ITYPE,IT,LERR,IERR,IM1,IH
+      INTEGER IMAX,JR,KR,ITYPE,IT,IM1,IH
 !@var IMAX maximum number of zonal grid points used
 !@var IM1 IM-1
 !@var JR = JREG(I,J)
 !@var KR index for regional diagnostics
 !@var ITYPE index for snow age
 !@var IT index for surface types
-!@var LERR,IERR dummy variables
+!@var LERR,IERR error reporting 
+      INTEGER :: LERR=0, IERR=0
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
 
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,THV1
@@ -161,7 +162,13 @@ C**** SET DEFAULT FOR AIR MASS FLUX (STRAT MODEL)
       AIRX(I,J)=0.
 
 C**** MOIST CONVECTION
-      CALL MSTCNV
+      CALL MSTCNV(IERR,LERR)
+
+C**** Error reports
+      if (ierr.gt.0) then  
+        write(6,*) "Error in moist conv: i,j,l=",i,j,lerr
+        if (ierr.eq.2) stop "Subsid error: abs(c) > 1"
+      end if
 
 C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
       IF (LMCMIN.GT.0) THEN

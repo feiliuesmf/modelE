@@ -34,7 +34,8 @@ C**** x-x, x-y, x-z switches
 
       END MODULE QUSDEF
 
-      subroutine adv1d(s,smom, f,fmom, mass,dm, nx,qlimit,stride,dir)
+      subroutine adv1d(s,smom, f,fmom, mass,dm, nx,qlimit,stride,dir
+     *     ,ierr,nerr)
 !@sum  adv1d implements the quadratic upstream scheme in one dimension
 !@auth G. Russell, modified by Maxwell Kelley
 c--------------------------------------------------------------
@@ -54,10 +55,12 @@ c--------------------------------------------------------------
       integer, dimension(nmom) :: dir
       integer :: mx,my,mz,mxx,myy,mzz,mxy,myz,mzx
       integer :: n,np1,nm1,nn,ns
+      integer,intent(out) :: ierr,nerr
       double precision :: fracm,frac1,bymnew,mnew,dm2,tmp
       ! qlimit variables
       double precision :: an, anm1, fn, fnm1, sn, sxn, sxxn
       !
+      ierr=0 ; nerr=0
       mx  = dir(1)
       my  = dir(2)
       mz  = dir(3)
@@ -104,7 +107,11 @@ c-----------------------------------------------------------
             sn = s(ns)
             sxn = smom(mx,ns)
             sxxn = smom(mxx,ns)
-            call limitq(anm1,an,fnm1,fn,sn,sxn,sxxn)
+            call limitq(anm1,an,fnm1,fn,sn,sxn,sxxn,ierr)
+            if (ierr.gt.0) then
+              nerr=n
+              return
+            end if
             f(n) = fn
             f(nm1) = fnm1
             smom(mx,ns) = sxn
@@ -189,7 +196,7 @@ c-----------------------------------------------------------------
       return
       end subroutine adv1d
 
-      subroutine limitq(anm1,an,fnm1,fn,sn,sx,sxx)
+      subroutine limitq(anm1,an,fnm1,fn,sn,sx,sxx,ierr)
 !@sum  limitq adjusts moments to maintain non-neg. tracer means/fluxes
 !@auth G. Russell, modified by Maxwell Kelley
         implicit none
@@ -197,6 +204,8 @@ c-----------------------------------------------------------------
 c local variables
         double precision :: sl,sc,sr, frl,frl1, frr,frr1, gamma,g13ab,
      &       fr,fr1, fsign,su,sd
+        integer, intent(out) ::ierr
+        ierr=0
 c****
 c**** modify the tracer moments so that the tracer mass in each
 c**** division is non-negative
@@ -271,7 +280,19 @@ c**** air is leaving only through one edge
               sd=-fnm1
               fsign=1.
            endif
-           if(abs(fr).gt.1.)  stop ' aadvt qlimit: abs(a)>1'
+           if(abs(fr).gt.1.)  then
+c**** give warnings if fractional mass loss > 1
+             ierr=1
+             write(6,*) "limitq warning: abs(a)>1",fr,sd
+             write(6,*) "limitq input: anm1,an,fnm1,fn,sn,sx,sxx",anm1
+     *            ,an,fnm1,fn,sn,sx,sxx
+c**** only stop if net tracer mass is negative
+             if (sn+fnm1-fn.lt.0) then
+               ierr=2
+               write(6,*) "limitq error: new sn < 0",sn,sn+fnm1-fn
+               return
+             end if
+           end if
            su = sn-sd
            if(sd.ge.0. .and. su.ge.0.) return
            fr1=fr+fsign

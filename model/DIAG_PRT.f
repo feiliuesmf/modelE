@@ -767,7 +767,7 @@ c      USE PRTCOM, only :
      &     ajk,ajl,asjl,ajlsp,kdiag,aijl,aijk,nwav_dag,kajlsp,LM_REQ
      &     ,apj,aij,IJ_PHI1K
      &     ,qcheck, acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
-     *     ,kep
+     *     ,kep,ijl_u,ijl_v,ijl_dse,ijl_q,ijl_dp
      &     ,sname_jl=>name_jl,lname_jl,units_jl
      &     ,scale_jl,ia_jl,jgrid_jl,scale_sjl,ia_sjl
      &     ,sname_jk=>name_jk,lname_jk,units_jk
@@ -986,35 +986,38 @@ C**** VERTICAL WINDS
 C****
 C**** CALCULATIONS FOR STANDING EDDIES
 C****
-  120 DO 150 J=2,JM
-      DO 150 K=1,KM
-      DO 151 I=1,IM
-      IF (AIJL(I,J,K,5).LE.1.D-20) THEN
-        AIJL(I,J,K,1)=0.
-        AIJL(I,J,K,2)=0.
-        AIJL(I,J,K,3)=0.
-        AIJL(I,J,K,4)=0.
-      ENDIF
-  151 AIJL2(I,J,K)=AIJL(I,J,K,2)/(AIJL(I,J,K,5)+1.D-20)
-      EX(J,K)=0.
-      AX(J,K)=0.
-      BX(J,K)=0.
-  150 CX(J,K)=0.
+  120 DO J=2,JM
+      DO K=1,KM
+        DO I=1,IM
+          IF (AIJL(I,J,K,IJL_DP).LE.1.D-20) THEN
+            AIJL(I,J,K,IJL_U)=0.
+            AIJL(I,J,K,IJL_V)=0.
+            AIJL(I,J,K,IJL_DSE)=0.
+            AIJL(I,J,K,IJL_Q)=0.
+          ENDIF
+          AIJL2(I,J,K)=AIJL(I,J,K,IJL_V)/(AIJL(I,J,K,IJL_DP)+1.D-20)
+        END DO
+        EX(J,K)=0.
+        AX(J,K)=0.
+        BX(J,K)=0.
+        CX(J,K)=0.
+      END DO
+      END DO
       DO 170 J=2,JM
       DO 170 K=1,KM
 C**** SPECTRAL ANALYSIS OF STAND. AND TRANSIENT EDDY FLUXES
       DSSIG=DSIG(K)
       CALL FFT(AIJL2(1,J,K),FCPVA(0,J,K),FCPVB(0,J,K))
-      CALL FFT(AIJL(1,J,K,3),FCJKA(0,J,K),FCJKB(0,J,K))
+      CALL FFT(AIJL(1,J,K,IJL_DSE),FCJKA(0,J,K),FCJKB(0,J,K))
 C     CALL FFTI(FCJKA(0,J,K),FCJKB(0,J,K),ACHK(1,J,K))
       DO 156 N=0,NWAV_DAG
   156 SPSTAD(J,K,N,1)=.5*FIM*(FCPVA(N,J,K)*FCJKA(N,J,K)+
      *   FCPVB(N,J,K)*FCJKB(N,J,K))/DSSIG
-      CALL FFT(AIJL(1,J,K,4),FCJKA(0,J,K),FCJKB(0,J,K))
+      CALL FFT(AIJL(1,J,K,IJL_Q),FCJKA(0,J,K),FCJKB(0,J,K))
       DO 157 N=0,NWAV_DAG
   157 SPSTAD(J,K,N,2)=.5*FIM*(FCPVA(N,J,K)*FCJKA(N,J,K)+
      *   FCPVB(N,J,K)*FCJKB(N,J,K))/DSSIG
-      CALL FFT(AIJL(1,J,K,1),FCJKA(0,J,K),FCJKB(0,J,K))
+      CALL FFT(AIJL(1,J,K,IJL_U),FCJKA(0,J,K),FCJKB(0,J,K))
       DO 158 N=0,NWAV_DAG
   158 SPSTAD(J,K,N,3)=.5*FIM*(FCPVA(N,J,K)*FCJKA(N,J,K)+
      *   FCPVB(N,J,K)*FCJKB(N,J,K))/DSSIG
@@ -1485,7 +1488,7 @@ C**** RADIATION, CONDENSATION AND CONVECTION
 C****
 C**** SOLAR AND THERMAL RADIATION HEATING
       DO J=1,JM ! temporary redefinition of byp
-         BYP(J)=IDACC(4)/(APJ(J,1)+1.D-20)
+        BYP(J)=IDACC(4)/(APJ(J,1)+1.D-20)
       ENDDO
 
       SCALE=scale_jl(9)/idacc(ia_jl(9))
@@ -1499,12 +1502,12 @@ C**** SOLAR AND THERMAL RADIATION HEATING
      &  PLM,AJL(1,1,10),SCALE,BYP,BYDSIG,LM,2,JGRID_JL(10),
      *  ASJL(1,1,4),SCALES,ONESPO,BYDPS)
       DO J=1,JM
-         DO LR=1,LM_REQ
-            ARQX(J,LR)=ASJL(J,LR,3)+ASJL(J,LR,4)
-         ENDDO
-         DO L=1,LM
-            AX(J,L)=AJL(J,L,9)+AJL(J,L,10)
-         ENDDO
+        DO LR=1,LM_REQ
+          ARQX(J,LR)=ASJL(J,LR,3)+ASJL(J,LR,4)
+        ENDDO
+        DO L=1,LM
+          AX(J,L)=AJL(J,L,9)+AJL(J,L,10)
+        ENDDO
       ENDDO
       SCALE=-1.D-13*XWON*BYIARD
       SCALES=SCALE*PSFMPT
@@ -2686,7 +2689,7 @@ c**** the standard case (and numerator of ratios)
         name = name_ij(k) ; lname = lname_ij(k) ; units = units_ij(k)
         iwt = iw_ij(k) ; jgrid = jgrid_ij(k) ; irange = ir_ij(k)
         off = 0.
-        if (k .eq. ij_tmnmx) off = 273.16  ! should do in accum-phase ??
+        if (k .eq. ij_tmnmx) off = tf  ! should do in accum-phase ??
         byiacc = 1./(idacc(ia_ij(k))+tiny)
         do j=1,jm
         do i=1,im
@@ -2902,7 +2905,7 @@ c**** fill in some key numbers
 
       SUBROUTINE DIAGIJ
 !@sum  DIAGIJ produces lat-lon fields as maplets (6/page) or full-page
-!*     digital maps, and binary (netcdf etc) files (if qcheck=true)
+!@+    digital maps, and binary (netcdf etc) files (if qcheck=true)
 !@auth Gary Russell,Maxwell Kelley,Reto Ruedy
 !@ver   1.0
 c     USE DAGCOM, only : QCHECK,acc_period,iu_ij
@@ -3034,12 +3037,13 @@ C**** CACULATE STANDING AND TRANSIENT EDDY NORTHWARD TRANSPORT OF DSE
       END DO
 
 C**** Fill in the undefined pole box duplicates
-      DO 180 N=1,KAIJ
-      IF (JGRID_ij(N).EQ.2) GO TO 180
-      DO 170 I=1,IM
-      AIJ(I,1,N)=AIJ(1,1,N)
-  170 AIJ(I,JM,N)=AIJ(1,JM,N)
-  180 CONTINUE
+      DO N=1,KAIJ
+      IF (JGRID_ij(N).EQ.2) CYCLE
+      DO I=1,IM
+        AIJ(I,1,N)=AIJ(1,1,N)
+        AIJ(I,JM,N)=AIJ(1,JM,N)
+      END DO
+      END DO
 
 C**** Print out 6-map pages
       do n=1,nmaplets

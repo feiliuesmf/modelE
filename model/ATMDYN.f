@@ -1033,7 +1033,7 @@ C**** Find WMO Definition of Tropopause to Nearest L
       real*8, dimension(klev) :: zpmk, zpm, za, zb, ztm, zdtdz
       real*8 zplimb, zplimt, zgwmo, zdeltaz, zptph, zp2km, zag, zbg,
      *     zasum,zaquer, zfaktor,zptf
-      integer iplimb,iplimt, jk, jj, kcount
+      integer iplimb,iplimt, jk, jj, kcount, ltset,l
       logical ldtdz
 
 c      zkappa = 0.286
@@ -1047,6 +1047,7 @@ c      zfaktor = (-1.)*g/rd  ! -9.81/287.0
 c****
 c****  2. Calculate the height of the tropopause
 c****  -----------------------------------------
+       ltset = -999
        ptropo  = -999.0
        zplimb=papm1(iplimb)
        zplimt=papm1(iplimt)
@@ -1077,6 +1078,7 @@ c****
         if (zdtdz(jk).gt.zgwmo .and. ! dt/dz > -2K/km
      &       zpm(jk).le.zplimb) then ! zpm not too low
           ltropp = jk
+          ltset = 1
 c****
 c****  2.3 dtdz is valid > something in German
 c****  ----------------------------------------
@@ -1119,7 +1121,15 @@ c****
  1000 continue                  ! next level
  2000 continue
 
+      if (ltset.eq.-999) then
+        print*,"In tropwmo: ltropp not set"
+        print*,"Tropopause:",(l,ptm1(l),papm1(l),pk(l),zdtdz(l),zpm(l),l
+     *       =1,klev) 
+      end if
       ptropo = papm1(ltropp)
 c****
       return
       end subroutine tropwmo
+
+
+
