@@ -4,17 +4,10 @@
       IMPLICIT NONE
       SAVE
 
-!@param nlightning index number of 3D source for NOx from lightning
-!@param naircraft index number of 3D source for NOx from aircraft
-!@param nStratwrite idx number of 3D tracer source from strat overwrite
-!@param nChemistry index number of 3D tracer source from chemistry
 !@param Laircr the number of layers of aircraft data read from file
 !@param Lsulf the number of layers of sulfate SA data read from file
 !@param correct_CO_ind correction factor Lee put in for industrial CO
-      INTEGER, PARAMETER :: nChemistry  = 1,
-     &                      nStratwrite = 2,
-     &                      nLightning  = 3,
-     &                      nAircraft   = 4,
+      INTEGER, PARAMETER :: 
      &                      Laircr      =19,
      &                      Lsulf       =23 ! not LM
       REAL*8, PARAMETER :: correct_CO_ind=520./410.
@@ -511,8 +504,7 @@ c
 c
 C**** GLOBAL parameters and variables:
       USE FLUXES, only        : tr3Dsource
-      USE TRACER_COM, only    : n_NOx
-      USE TRACER_SOURCES, only: nLightning
+      USE TRACER_COM, only    : n_NOx,nLightning
       USE LIGHTNING, only     : HGT,JS,JN,SRCLIGHT,RNOx_lgt
       USE CONSTANT, only      : bygrav
       USE MODEL_COM, only     : fland,IM,JM,LS1,LM
@@ -612,8 +604,8 @@ C
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       USE FLUXES, only: tr3Dsource
       USE GEOM, only       : dxyp
-      USE TRACER_COM, only: itime_tr0,trname,n_NOx
-      use TRACER_SOURCES, only: nAircraft,Laircr
+      USE TRACER_COM, only: itime_tr0,trname,n_NOx,nAircraft
+      use TRACER_SOURCES, only: Laircr
 C
       IMPLICIT NONE
 c
@@ -666,12 +658,10 @@ C****
 C====
 C====   Place aircraft sources onto model levels:
 C====
+      tr3Dsource(:,:,:,nAircraft,n_NOx) = 0.
+      PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
       DO J=1,JM
        DO I=1,IM
-        DO L=1,LM
-          tr3Dsource(i,j,l,nAircraft,n_NOx) = 0.
-          PRES(L)=SIG(L)*(PSF-PTOP)+PTOP
-        ENDDO                   ! L
         tr3Dsource(i,j,1,nAircraft,n_NOx) = SRC(I,J,1,1)*dxyp(j)
         DO LL=2,Laircr
           LINJECT=.TRUE.
@@ -751,9 +741,7 @@ C====
 C====   Place sulfate onto model levels ("sulfate" array to be used in
 C====   the chemistry):
 C====              
-      DO L=1,LM
-        PRES(L)=SIG(L)*(PSF-PTOP)+PTOP
-      ENDDO      
+      PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
       do k=nanns+1,1; DO J=1,JM; DO I=1,IM
         DO L=1,Lsulf
           srcLin(L)=src(I,J,L,k)
