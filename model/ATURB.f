@@ -1,5 +1,5 @@
       subroutine diffus(lbase_min,lbase_max,dtime)
-!@sum  diffus updates u,v,t,q due to 
+!@sum  diffus updates u,v,t,q due to
 !@+  turbulent transport throughout all GCM layers
 !@+  using a second order closure (SOC)
 !@+  turbulence model developed at GISS, 2000.
@@ -8,7 +8,7 @@
 !@cont diffus,getdz,dout,diff_uv,diff_tq,diff_e
 !@cont lgcm,kgcm,ave_uv_to_tcell,ave_to_ucell
 !@var u 3d west-east wind component
-!@var v 3d south-north wind component 
+!@var v 3d south-north wind component
 !@var t 3d potential temperature
 !@var q 3d relative humidity
 !@var p 2-d pressure
@@ -19,7 +19,7 @@
 !@var jtest latitude at which to call dout
       USE DYNAMICS, only : pmid,pk,pedn,pdsig,plij
       USE MODEL_COM, only :
-     *      im,jm,lm,sig,sige,u,v,t,q,p,vt_on      
+     *      im,jm,lm,sig,sige,u,v,t,q,p,vt_on
       USE CONSTANT, only : kapa,deltx,lhe,sha
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux,egcm
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj
@@ -232,8 +232,8 @@ c         vflx  =vflux_ucell(i,j)
             u(i,j,l)= uij(l)
             v(i,j,l)= vij(l)
           end do
- 
-        end do loop_i_uv 
+
+        end do loop_i_uv
       end do loop_j_uv
 
 c     ACCUMULATE DIAGNOSTICS
@@ -251,7 +251,7 @@ c     ACCUMULATE DIAGNOSTICS
              ENDDO
           ENDDO
         ENDDO
-      ENDDO 
+      ENDDO
 
       return
       end subroutine diffus
@@ -329,7 +329,7 @@ c
             if(l.eq.1) then
               rhoe(1,i,j)=100.d0*ple/(tsavg(i,j)*
      2                    (1.d0+RVX*qsavg(i,j))*rgas)
-c             rhoe(1,i,j)=2.d0*rho(1,i,j)-rhoe(2,i,j)       
+c             rhoe(1,i,j)=2.d0*rho(1,i,j)-rhoe(2,i,j)
             endif
             if(l.eq.lm-1) then
 c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
@@ -374,10 +374,10 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
 !@var ps surface pressure
 !@var reserv reserved for furture use
 !@var tsurf surface temperature
-!@var uflx momentun flux -uw at surface, zedge(1) 
-!@var vflx momentun flux -vw at surface, zedge(1) 
-!@var tflx heat flux -wt at surface, zedge(1) 
-!@var qflx moisture flux -wq at surface, zedge(1) 
+!@var uflx momentun flux -uw at surface, zedge(1)
+!@var vflx momentun flux -vw at surface, zedge(1)
+!@var tflx heat flux -wt at surface, zedge(1)
+!@var qflx moisture flux -wq at surface, zedge(1)
 !@var itest,jtest (i,j) location at which the output is wriiten
 !@var dtime time step
 !@var n number of vertical main layers
@@ -506,21 +506,21 @@ c
 
       subroutine diff_uv(u0,v0,u,v,km,dz,dzedge,rho,rhoe
      2                   ,rhoebydz,bydzerho,uflx,vflx,dtime,n)
-!@sum diff_uv integrates differential eqns for u and v (tridiagonal method)
+!@sum diff_uv integrates differential eqns for u and v (tridiag. method)
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var u0 z-profle of u at previous time step
 !@var v0 z-profle of v at previous time step
-!@var km z-profile of turbulent viscosity 
+!@var km z-profile of turbulent viscosity
 !@var kh z-profile of turbulent conductivity
 !@var dz(i) z(i+1)-z(i)
 !@var dzedge(i) zedge(i+1)-zedge(i)
 !@var rho z-profile of density at z
 !@var rhoe z-profile of density at zedge
-!@var uflx momentun flux -uw at surface, zedge(1) 
-!@var vflx momentun flux -vw at surface, zedge(1) 
+!@var uflx momentun flux -uw at surface, zedge(1)
+!@var vflx momentun flux -vw at surface, zedge(1)
 !@var dtime time step
 !@var n number of vertical main layers
 
@@ -528,7 +528,7 @@ c
 
       integer, intent(in) :: n
       real*8, dimension(n), intent(in) :: u0,v0,km,rho,rhoe
-     2        ,rhoebydz,bydzerho      
+     2        ,rhoebydz,bydzerho
       real*8, dimension(n), intent(inout) :: u,v
       real*8, dimension(n), intent(in) :: dz,dzedge
       real*8, intent(in) :: uflx,vflx,dtime
@@ -581,7 +581,7 @@ c     d/dt U = -d/dz uw where
 c     d/dt U = (u(n)-u0(n))/dtime
 c     d/dz uw = (uw(n+1)-uw(n))/dze(n), dze(n)=ze(n+1)-ze(n)
 c     uw(n)=-km(n)*(u(n)-u(n-1))/dz(n-1), dz(n-1)=z(n)-z(n-1)
-c     uw(n+1)=0 
+c     uw(n+1)=0
 c
 c     alpha=dtime*km(n)/(dzedge(n)*dz(n-1)*rho(n))*rhoe(n)
       alpha=dtime*km(n)*rhoebydz(n)*bydzerho(n)
@@ -598,7 +598,7 @@ c
 
       subroutine diff_tq(tq0,tq,khq,dz,dzedge,rho,rhoe
      2                   ,rhoebydz,bydzerho,sflx,dtime,n)
-!@sum diff_tq integrates differential eqns for t and q (tridiagonal method)
+!@sum diff_tq integrates differential eqns for t and q (tridiag. method)
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var tq z-profle of potential temperature T or relative humidity Q
@@ -608,7 +608,7 @@ c
 !@var dzedge(i) zedge(i+1)-zedge(i)
 !@var rho z-profile of density at z
 !@var rhoe z-profile of density at zedge
-!@var sflx heat flux -wt or humidity flux -wq at surface, zedge(1) 
+!@var sflx heat flux -wt or humidity flux -wq at surface, zedge(1)
 !@var dtime time step
 !@var n number of vertical main layers
 
@@ -616,7 +616,7 @@ c
 
       integer, intent(in) :: n
       real*8, dimension(n), intent(in) :: tq0,khq,rho,rhoe
-     2        ,rhoebydz,bydzerho      
+     2        ,rhoebydz,bydzerho
       real*8, dimension(n), intent(inout) :: tq
       real*8, dimension(n), intent(in) :: dz,dzedge
       real*8, intent(in) :: sflx,dtime
@@ -662,7 +662,7 @@ c     d/dt T = -d/dz wt where
 c     d/dt T = (T(n)-T0(n))/dtime
 c     d/dz wt = (wt(n+1)-wt(n))/dze(n), dze(n)=ze(n+1)-ze(n)
 c     wt(n)=-kh(n)*(T(n)-T(n-1))/dz(n-1), dz(n-1)=z(n)-z(n-1)
-c     wt(n+1)=0 
+c     wt(n+1)=0
 c
 c     alpha=dtime*khq(n)/(dzedge(n)*dz(n-1)*rho(n))*rhoe(n)
       alpha=dtime*khq(n)*rhoebydz(n)*bydzerho(n)
@@ -763,7 +763,7 @@ c
 !@var e z-profle of pturbulent kinetic energy
 !@var dz(i) z(i+1)-z(i)
 !@var dzedge(i) zedge(i+1)-zedge(i)
-!@var rho the z-profile of the density 
+!@var rho the z-profile of the density
 !@var n number of GCM layers
 !@var zgs height of surface layer (m), imported from SOCPBL
       USE CONSTANT, only : grav
@@ -781,15 +781,15 @@ c
       real*8 :: dudz,dvdz,as2,lmax2
       real*8 :: sum1,sum2,qi,qim1,l0,l1,kz,an2,lmax
       integer :: i  !@var i loop variable
- 
+
       zedge(1)=zgs
       do i=2,n
           zedge(i)=zedge(i-1)+dzedge(i-1)
       end do
- 
+
 c     integration of monotonically tabulated function by
 c     trapezoidal rule
- 
+
       sum1=0.d0
       sum2=0.d0
       do i=2,n
@@ -855,7 +855,7 @@ c     at edge: e,lscale,km,kh,gm,gh
 !@var gm normalized velocity gradient, tau**2*as2
 !@var gh normalized temperature gradient, tau**2*an2
 !@var n number of GCM layers
-!@var tau B1*lscale/sqrt(2*e) 
+!@var tau B1*lscale/sqrt(2*e)
 !@var as2 shear squared, (dudz)**2+(dvdz)**2
 !@var an2 Brunt-Vaisala frequency, grav/T*dTdz
 !@var sq stability constant for e, adjustable
@@ -930,8 +930,8 @@ c     at edge: e,lscale,km,kh,gm,gh
       end subroutine find_pbl_top
 
       subroutine ave_uv_to_tcell(u,v,u_tcell,v_tcell,im,jm,lm)
-!@sum ave_uv_to_tcell Computes u_tcell,v_tcell from u,v, where u and v
-!@+   may be the x and y components of a vector defined at secondary grids 
+!@sum ave_uv_to_tcell Computes u_tcell,v_tcell from u and v,
+!@+   the x and y components of a vector defined on the secondary grid
 !@+   Note that u_tcell,v_tcell are of dimension (lm,im,jm)
 !@var u an x-component at secondary grids (ucell)
 !@var v a  y-component at secondary grids (ucell)
@@ -990,8 +990,8 @@ C****
       end subroutine ave_uv_to_tcell
 
       subroutine ave_ufvf_to_ucell(uf,vf,uf_ucell,vf_ucell,im,jm)
-!@sum ave_ufvf_to_ucell Computes uf_ucell,vf_ucell from uf,vf where uf and vf
-!@+   may be the x and y components of a vector defined at primary grids 
+!@sum ave_ufvf_to_ucell Computes uf_ucell and vf_ucell from uf and vf,
+!@+   the x and y components of a vector defined on the primary grid
 !@var uf an x-component at primary grids (tcell)
 !@var vf a  y-component at primary grids (tcell)
 !@var uf_ucell an x-component at secondary grids (ucell)
