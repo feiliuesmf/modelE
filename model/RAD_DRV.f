@@ -1100,7 +1100,7 @@ C**** Only define TRACER is individual tracer is actually defined.
       END DO
 C**** Radiative Equilibrium Layer data
       DO K=1,LM_REQ
-        IF(RQT(K,I,J).LT.130..OR.RQT(K,I,J).GT.370.) THEN
+        IF(RQT(K,I,J).LT.124..OR.RQT(K,I,J).GT.370.) THEN
         WRITE(6,*) 'In RADIA: Time,I,J,L,TL',ITime,I,J,LM+K,RQT(K,I,J)
 CCC     STOP 'In Radia: RQT out of range'
         JCKERR=JCKERR+1
@@ -1429,9 +1429,10 @@ C****
 !$OMP  END PARALLEL
       if(kradia.gt.0) return
 C**** Stop if temperatures were out of range
-      IF(ICKERR.GT.0)
-     &     call stop_model('In Radia: Temperature out of range',11)
-      IF(JCKERR.GT.0)  call stop_model('In Radia: RQT out of range',11)
+C**** Now only warning messages are printed for temp errors
+c      IF(ICKERR.GT.0)
+c     &     call stop_model('In Radia: Temperature out of range',11)
+c      IF(JCKERR.GT.0)  call stop_model('In Radia: RQT out of range',11)
       IF(KCKERR.GT.0)  call stop_model('In Radia: Q<0',255)
 C**** save all input data to disk if kradia<0
       if (kradia.lt.0) write(iu_rad) itime
