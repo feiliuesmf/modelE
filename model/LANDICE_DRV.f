@@ -43,6 +43,7 @@ C****
       INTEGER IFW(NBOXMAX),JFW(NBOXMAX)
       INTEGER :: JML, JMU, IML1, IMU1, IML2, IMU2, NBOX
       REAL*8 ACCPCA,ACCPCG,FWAREA
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO)::FWAREA_part
       LOGICAL :: do_glmelt
       INTEGER I,J,N
       INTEGER :: J_0,J_1
@@ -108,20 +109,21 @@ C****
 C**** Antarctica
 ! accumulation (kg per source time step) per water column
 C**** integrate area (which will depend on resolution/landmask)
-      FWAREA=0.
+      FWAREA_part=0.
       DO J=MAX(J_0,JML),MIN(J_1,JMU)
         DO I=1,IM
           IF (FOCEAN(I,J).GT.0.) THEN
             IF ((I.GE.IML1.AND.I.LE.IMU1) .or. I.GE.IML2 .or. I.LE
      *           .IMU2) THEN
-              FWAREA=FWAREA+DXYP(J)*FOCEAN(I,J)
+              FWAREA_part(J)=FWAREA_part(J)+DXYP(J)*FOCEAN(I,J)
             END IF
           END IF
         END DO
       END DO
+      CALL GLOBALSUM(grid, FWAREA_part, FWAREA, all=.true.)
 
       ACCPCA = ACCPDA*DTsrc/(EDPERY*SDAY*FWAREA)      ! kg/m^2
-      DO J=JML,JMU
+      DO J=MAX(J_0,JML),MIN(J_1,JMU)
         DO I=1,IM
           IF (FOCEAN(I,J).GT.0.) THEN
             IF ((I.GE.IML1.AND.I.LE.IMU1) .or. I.GE.IML2 .or. I.LE
@@ -139,12 +141,14 @@ C**** integrate area (which will depend on resolution/landmask)
 C**** Greenland
 ! accumulation (kg per source time step) per water column
 C**** integrate area (which will depend on resolution/landmask)
-      FWAREA=0.
+      FWAREA_part=0.
       DO N=1,NBOX
         I=IFW(N)
         J=JFW(N)
-        FWAREA=FWAREA+DXYP(J)*FOCEAN(I,J)      
+        If (J >= J_0 .and. J <= J_1) 
+     &       FWAREA_part(J)=FWAREA_part(J)+DXYP(J)*FOCEAN(I,J)      
       END DO
+      CALL GLOBALSUM(grid, FWAREA_part, FWAREA, all=.true.)
 
       ACCPCG = ACCPDG*DTsrc/(EDPERY*SDAY*FWAREA)  ! kg/m^2 
       DO N=1,NBOX
