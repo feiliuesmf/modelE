@@ -156,7 +156,6 @@ c
       use MODEL_COM, only : jm,lm,ls1,dtsrc,fim,sige, DO_GWDRAG,
      *  iDO_GWDRAG
       use DAGCOM
-      use DAGPCOM, only : p1000k
       implicit none
       integer :: k
 c
@@ -927,7 +926,6 @@ c
       use BDIJ
       use MODEL_COM
       use constant
-      use DAGPCOM
       implicit none
       integer :: k
 c

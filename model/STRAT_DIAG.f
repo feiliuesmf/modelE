@@ -27,8 +27,7 @@ C**** Note: W(,,1) is really PIT, the pressure tendency, but is not used
 C****
       USE MODEL_COM, only : im,jm,lm,sig,dsig,sige,psfmpt,byim
       USE GEOM, only : dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp
-      USE DAGCOM, only : ajl,kajl,kep
-      USE DAGPCOM, only : pl=>plm
+      USE DAGCOM, only : ajl,kajl,kep,pl=>plm
       USE DYNAMICS, only : w=>conv     ! I think this is right....?
 c      COMMON /WORK1/ W(IM,JM,LM),WORKX(IM,JM,7*LM+3)
 

@@ -866,8 +866,6 @@ c Check the count
      &     PTOP,PMTOP,PSFMPT,SIG,SIGE,JHOUR
       USE GEOM, only :
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
-      USE DAGPCOM, only :
-     &     PLM,PLE,P1000K,linect,jmby2
       USE DAGCOM
       USE BDjkjl
       IMPLICIT NONE
@@ -1900,8 +1898,8 @@ C****
 
       SUBROUTINE JKMAP(LNAME,SNAME,UNITS,
      &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1)
-      USE DAGCOM, only : QCHECK,acc_period,iu_jl,lm_req
-      USE DAGPCOM, only : inc=>incj,linect,jmby2
+      USE DAGCOM, only : QCHECK,acc_period,iu_jl,lm_req,inc=>incj,linect
+     *     ,jmby2 
       USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
       USE GEOM, only :
@@ -2087,8 +2085,8 @@ C**** J1 INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
-      USE DAGCOM, only : QCHECK,acc_period,iu_jl,LM_REQ
-      USE DAGPCOM, only : inc=>incj,linect,jmby2
+      USE DAGCOM, only : QCHECK,acc_period,iu_jl,LM_REQ,inc=>incj,linect
+     *     ,jmby2 
       USE MODEL_COM, only :
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
@@ -2254,9 +2252,8 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,lm,bydsig,idacc,xlabel,lrunid
-      USE DAGPCOM, only : plm,ple,linect
       USE DAGCOM, only : ail,lm_req,acc_period, qcheck,lname_il,name_il
-     *     ,units_il,scale_il,ia_il,kail
+     *     ,units_il,scale_il,ia_il,kail,plm,ple,linect
       IMPLICIT NONE
       CHARACTER sname*20,unit*20,lname*80
       DOUBLE PRECISION, DIMENSION(LM) :: ONES
@@ -2301,8 +2298,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
 
       SUBROUTINE ILMAP (sname,lname,unit,PL,AX,SCALEL,LMAX,JWT
      *     ,ISHIFT)
-      USE DAGCOM, only : qcheck,acc_period,iu_il
-      USE DAGPCOM, only : inc=>inci,linect
+      USE DAGCOM, only : qcheck,acc_period,iu_il,inc=>inci,linect
       USE CONSTANT, only : twopi
       USE MODEL_COM, only : im,jm,lm,dsig,jdate,jdate0,amon,amon0,jyear
      *     ,jyear0,sige,xlabel
@@ -2871,8 +2867,6 @@ c Check the count
      &     FLAND,FLICE,FEARTH,FOCEAN,   IDACC,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID,ZATMO
-      USE DAGPCOM, only :
-     *     P1000K
       USE BDIJ
 
       IMPLICIT NONE
@@ -3167,6 +3161,7 @@ c    &     IJ_DSEV,IJ_TRNFP0,IJ_SRNFP0,IJ_SLP,IJ_TS !not a generic subr.
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QCHECK) call open_ij(trim(acc_period)//'.ij'//XLABEL(1:LRUNID))
 
+      print*,"diagij",ij_t850,aij(1,23,ij_t850)
 C**** INITIALIZE CERTAIN QUANTITIES
       call ij_titlex
 C**** standard printout
@@ -3186,7 +3181,7 @@ C**** standard printout
      *  ij_trnfp0,  ij_neth,    ij_dtdp,     ! pg  6  row 1
      *  ij_dsev,    ij_ntdsese, ij_ntdsete,  !        row 2
      *  ij_gwtr,    ij_wmsum,   ij_dcnvfrq,  ! pg  7  row 1
-     *  ij_scnvfrq, ij_pdcld,   ij_pscld/)   !        row 2
+     *  ij_t850, ij_pdcld,   ij_pscld/)   !        row 2
 
 C**** Fill in maplet indices for gravity wave diagnostics
       do k=1,iDO_GWDRAG
@@ -3339,7 +3334,7 @@ C****
       use model_com, only : im,jm,fland
       use bdij
       use constant, only : undef
-      use dagpcom, only : inci,incj
+      use dagcom, only : inci,incj
 
       IMPLICIT NONE
 
@@ -3425,7 +3420,7 @@ C**** Print out full-page digital maps
      &     JYEAR,JYEAR0,Itime,Itime0,XLABEL,lrunid
       USE GEOM, only :
      &     LAT_DG,LON_DG
-      use dagpcom, only : inc=>inci
+      use dagcom, only : inc=>inci
       IMPLICIT NONE
 
       CHARACTER*48 TITLE
@@ -3569,8 +3564,8 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if 0 < kdiag(3) < 8
       USE GEOM, only :
      &     areag,dlon,dxyp,dxyv,LAT_DG
       USE DAGCOM, only :
-     &     consrv,kcon,scale_con,title_con,nsum_con,ia_con,kcmx
-      use dagpcom, only : inc=>incj
+     &     consrv,kcon,scale_con,title_con,nsum_con,ia_con,kcmx,
+     *     inc=>incj
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM) :: MAREA

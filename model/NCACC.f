@@ -3,7 +3,6 @@ c f90 -c -64 NCACC.f
       use MODEL_COM
       use GEOM
       use DAGCOM
-      use DAGPCOM, only : plm,ple
       implicit none
       include '/usr/local/netcdf-3.4/include/netcdf.inc'
 

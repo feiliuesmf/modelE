@@ -387,8 +387,7 @@ c restore defaults
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : jm,lm, sig,sige
-      USE DAGCOM, only : iu_jl,lm_req
-      use DAGPCOM, only : plm,ple,ple_dn
+      USE DAGCOM, only : iu_jl,lm_req,plm,ple,ple_dn
       USE GEOM, only : lat_dg
       USE NCOUT
       IMPLICIT NONE
@@ -455,8 +454,7 @@ c restore defaults
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : JM,LM,LS1
-      USE DAGCOM, only : lm_req,iu_jl
-      USE DAGPCOM, only : plm,ple,ple_dn
+      USE DAGCOM, only : lm_req,iu_jl,plm,ple,ple_dn
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -539,8 +537,7 @@ c restore defaults
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : im,lm, sig,sige
-      USE DAGCOM, only : iu_il,lm_req
-      use DAGPCOM, only : plm,ple,ple_dn
+      USE DAGCOM, only : iu_il,lm_req,plm,ple,ple_dn
       USE GEOM, only : lon_dg
       USE NCOUT
       IMPLICIT NONE
@@ -608,8 +605,7 @@ c restore defaults
 !@ver  1.0
       USE MODEL_COM, only : IM,LM,LS1
       USE GEOM, only : lon_dg
-      USE DAGCOM, only : lm_req,iu_il
-      USE DAGPCOM, only : plm,ple,ple_dn
+      USE DAGCOM, only : lm_req,iu_il,plm,ple,ple_dn
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -776,8 +772,7 @@ c
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
       USE GEOM, only : lon_dg,lat_dg
-      USE DAGCOM, only : iu_ijk
-      use DAGPCOM, only : plm
+      USE DAGCOM, only : iu_ijk,plm
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name

@@ -434,6 +434,16 @@ c idacc-indices of various processes
      *     ia_d5d=7, ia_d5s=8, ia_12hr=9, ia_filt=10, ia_ocn=11,
      *     ia_inst=12
 
+!@var PLE,PLM, PLE_DN ref pressures at upper, middle and lower edge
+      DOUBLE PRECISION, DIMENSION(LM) :: PLE
+      DOUBLE PRECISION, DIMENSION(LM) :: PLE_DN
+      DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PLM
+!@var P1000K scaling to change reference pressure from 1mb to 1000mb
+      DOUBLE PRECISION :: P1000K
+!@var inci,incj print increments for i and j, so maps/tables fit on page
+      integer, parameter :: inci=(im+35)/36,incj=(JM+23)/24, jmby2=jm/2
+!@var linect = current line on page of print out
+      integer linect
 
       END MODULE DAGCOM
 

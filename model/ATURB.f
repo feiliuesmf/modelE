@@ -26,7 +26,6 @@
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj
       USE DAGCOM, only : ajl,
      &     jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
-      USE DAGPCOM, only : p1000k
       USE SOCPBL, only : nlevel
 
       IMPLICIT NONE
@@ -102,7 +101,7 @@ C**** routine has been called from.
           do l=1,lm
             uij(l)=u_tcell(l,i,j)
             vij(l)=v_tcell(l,i,j)
-            tij(l)=t_virtual(l,i,j)*p1000k  !virtual,potential temp.
+            tij(l)=t_virtual(l,i,j)     !virtual,potential temp.
             pij(l)=100.d0*pmid(l,i,j)
             qij(l)=q(i,j,l)
             eij(l)=egcm(l,i,j)
@@ -164,7 +163,7 @@ c    2          dudz,dvdz,as2,dtdz,g_alpha,an2,lscale,dzij,lm)
             ! update 3-d q,t,egcm,t2gcm and km_gcm
             q(i,j,l)=max(qij(l),qmin)
             t0ijl=t(i,j,l)
-            t(i,j,l)=tij(l)/(p1000k*(1.d0+RVX*Q(i,j,l)))
+            t(i,j,l)=tij(l)/(1.d0+RVX*Q(i,j,l))
             egcm(l,i,j)=eij(l)
             t2gcm(l,i,j)=t2ij(l)
             km_gcm(l,i,j)=km(l)
