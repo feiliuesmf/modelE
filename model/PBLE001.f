@@ -75,9 +75,7 @@ C --------------------------------------------------------------------
       USE E001M12_COM
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/RDATA/ROUGHL(IM,JM)
-      COMMON/WORK1/CONV(IM,JM,LM),PK(IM,JM,LM),PREC(IM,JM),
-     2             TPREC(IM,JM),TAUSS(IM,JM,LM),TAUMC(IM,JM,LM),
-     4             COSZ1(IM,JM),DTH1(IM,JM),DQ1(IM,JM)
+
       REAL*8 KM,KH,KMSURF,KHSURF
       LOGICAL POLE
 

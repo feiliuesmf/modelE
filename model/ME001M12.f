@@ -18,6 +18,8 @@ C**** f90 changes
       USE SLE001
      &   , only : ghdata
       USE RANDOM
+      USE CLOUDS, only : TTOLD,QTOLD,WM,SVLHX,RHSAV
+     *     ,CLDSAV,MSTCNV,CONDSE
       IMPLICIT REAL*8 (A-H,O-Z)
       parameter (npbl=8)
       common /socabl/uabl(npbl,im,jm,4),vabl(npbl,im,jm,4),
@@ -28,9 +30,7 @@ C**** f90 changes
 CBUDG COMMON/WORK3/GBUDG(27,80,4),RBUDG(23,80),QMAPS(27,33),
 CBUDG*  QTABLE(27,9,3),EHIST(20),KEYDS(42)
             COMMON/WORKO/OA(IM,JM,12)
-      COMMON/CLDCOM/TTOLD(IM,JM,LM),QTOLD(IM,JM,LM),PTOLD(IM,JM),
-     *  WM(IM,JM,LM),SVLHX(IM,JM,LM),RHSAV(IM,JM,LM),PBLTOP(IM,JM)
-     *  ,SVWMX(IM,JM,LM),SVLAT(IM,JM,LM),CLDSAV(IM,JM,LM)
+
       PARAMETER (XSI1=0.5, XSI2=0.5, XSI3=0.5, XSI4=0.5)
       COMMON/RDATA/ROUGHL(IM,JM),FSF(IM,JM,4)
       CHARACTER CYEAR*4,CMMND*80
@@ -578,6 +578,7 @@ C****
      &  , only : ngm,sinday=>sint,cosday=>cost,gw=>w,ghdata,sdata,
      &           ghinit,ghinij,ghinht
       USE RANDOM
+      USE CLOUDS, only : TTOLD,QTOLD,WM,SVLHX,RHSAV,CLDSAV
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION JC1(100),CLABEL1(39),RC1(161)
       CHARACTER*4 CLABEL1,RUNID
@@ -589,9 +590,7 @@ C****
      5               ipbl(im,jm,4)
             COMMON/WORKO/OA(IM,JM,12)
       COMMON/WORK1/NLREC(256),SNOAGE(IM,JM,2)
-      COMMON/CLDCOM/TTOLD(IM,JM,LM),QTOLD(IM,JM,LM),PTOLD(IM,JM),
-     *  WM(IM,JM,LM),SVLHX(IM,JM,LM),RHSAV(IM,JM,LM),PBLTOP(IM,JM)
-     *  ,SVWMX(IM,JM,LM),SVLAT(IM,JM,LM),CLDSAV(IM,JM,LM)
+
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE.
       COMMON/RDATA/ROUGHL(IM,JM),FSF(IM,JM,4)
       COMMON /FLAKE/ FLAKE(IM,JM)
@@ -1095,15 +1094,16 @@ C**** INTEGRATE DYNAMIC TERMS
 C****
       USE E001M12_COM
       USE SOMTQ_COM
+      USE CLOUDS, only : PTOLD,WM
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK6/UT(IM,JM,LM),VT(IM,JM,LM),
      *   TT(IM,JM,LM),TZT(IM,JM,LM),WMT(IM,JM,LM),PRAT(IM,JM)
       COMMON/WORK2/UX(IM,JM,LM),VX(IM,JM,LM)
       DIMENSION PA(IM,JM),PB(IM,JM),PC(IM,JM),FPEU(IM,JM),FPEV(IM,JM),
      *          FWVU(IM,JM),FWVV(IM,JM)
-      COMMON/CLDCOM/TTOLD(IM,JM,LM),QTOLD(IM,JM,LM),PTOLD(IM,JM),
-     *  WM(IM,JM,LM),SVLHX(IM,JM,LM),RHSAV(IM,JM,LM),PBLTOP(IM,JM)
-     *  ,SVWMX(IM,JM,LM),SVLAT(IM,JM,LM),CLDSAV(IM,JM,LM)
+c      COMMON/CLDCOM/TTOLD(IM,JM,LM),QTOLD(IM,JM,LM),PTOLD(IM,JM),
+c     *  WM(IM,JM,LM),SVLHX(IM,JM,LM),RHSAV(IM,JM,LM),PBLTOP(IM,JM)
+c     *  ,SVWMX(IM,JM,LM),SVLAT(IM,JM,LM),CLDSAV(IM,JM,LM)
       COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
       COMMON/WORK3/PHI(IM,JM,LM)
 
@@ -1261,6 +1261,7 @@ C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 C****
       USE E001M12_COM
      &     , only : im,jm,lm,psf,ptop,ls1,dyp,dsig,dxv,fim
+      USE CLOUDS, only : SD_CLOUDS  ! tmp fix for CLOUDS module
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION U(IM,JM,LM),V(IM,JM,LM),P(IM,JM) ! p is just workspace
       COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
@@ -1384,6 +1385,10 @@ C**** COMPUTE SD, SIGMA DOT
       DO 2450 I=1,IM
       SD(I,1,L)=SDSP
  2450 SD(I,JM,L)=SDNP
+C**** temporary fix for CLOUDS module
+      SD_CLOUDS(:,:,1)    = PIT
+      SD_CLOUDS(:,:,2:LM) = SD(:,:,1:LM-1)
+C****
       RETURN
       END
       SUBROUTINE ADVECM (P,PA,DT1)
@@ -1608,6 +1613,7 @@ C****
       USE E001M12_COM
      &     , only : im,jm,lm,rgas,kapa,sige,psf,ptop,ls1,fdata,dsig,sig,
      &              dxv,dyv,mrch,modd5k,dxyp,dxyv
+      USE CLOUDS, only : GZ
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION U(IM,JM,LM),V(IM,JM,LM),T(IM,JM,LM),P(IM,JM)
       COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM)
@@ -1615,9 +1621,10 @@ C****
       COMMON/WORK3/PHI(IM,JM,LM),SPA(IM,JM,LM)
       COMMON/WORK4/FD(IM,JM),FLUXQ(IM),DUMMYS(IM),DUMMYN(IM)
       COMMON/WORK5/DUT(IM,JM,LM),DVT(IM,JM,LM)
-      COMMON/MOISTC/GZ(IM,JM,LM),PRECNV(IM,JM,LM+1)
+
       DIMENSION UT(IM,JM,LM),VT(IM,JM,LM),TT(IM,JM,LM),
-     *  PA(IM,JM),PB(IM,JM),QT(IM,JM,LM),CONV(IM,JM,LM)
+     *  PA(IM,JM),PB(IM,JM),QT(IM,JM,LM)
+
       DIMENSION PKE(LM+1)
       REAL*8 KAPAP1,KAPAP2,SZ(IM,JM,LM)
 C****
@@ -1823,13 +1830,13 @@ C****        3  SMOOTH P AND T
 C****
       USE E001M12_COM
       USE SOMTQ_COM
+      USE CLOUDS, only : WM
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK2/X(IM,JM),XS(IM),Y(IM,JM)
       DIMENSION PSUMO(JM)
 
       REAL*8 POLD(IM,JM),PRAT(IM,JM)
-      COMMON/CLDCOM/TTOLD(IM,JM,LM),QTOLD(IM,JM,LM),PTOLD(IM,JM),
-     *     WM(IM,JM,LM)
+
       IF (MOD(MFILTR,2).NE.1) GO TO 200
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P

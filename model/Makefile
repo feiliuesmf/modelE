@@ -20,14 +20,15 @@ DOBJ	= DE001M12.o
 PBLOBJ	= PBLE001.o
 SLOBJ	= SLE001.o 
 POBJ	= PE001M12.o 
-SOBJ	= EE001M12.o SE001M12.o 
+EOBJ	= EE001M12.o
+SOBJ	= SE001M12.o 
 COBJ    = CE001M12.o
 ROBJ	= RE001.o
 UOBJ    = UTILDBL.o
 FFTOBJ  = FFT72.o
 RNDOBJ  = RANDSGI.o
 OBJ	= $(MOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) $(SOBJ) $(COBJ) $(ROBJ) $(UOBJ) \
-          $(FFTOBJ) $(RNDOBJ) $(COM)
+          $(FFTOBJ) $(RNDOBJ) $(COM) $(EOBJ)
 
 # Make rules for generating object files from GISS-Fortran files
 .SUFFIXES:
@@ -58,12 +59,13 @@ OBJ	= $(MOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) $(SOBJ) $(COBJ) $(ROBJ)
 	$(EXECDIR)/$(F) $<
 
 # Make object files dependent on relevant modules
-$(MOBJ):	$(COM) $(SLOBJ) $(RNDOBJ)
-$(POBJ):	$(COM) $(ROBJ)  $(RNDOBJ)
+$(MOBJ):	$(COM) $(SLOBJ) $(RNDOBJ) $(COBJ)
+$(POBJ):	$(COM) $(ROBJ)  $(RNDOBJ) $(COBJ)
 $(PBLOBJ):	$(COM) 
 $(SOBJ):	$(COM) $(SLOBJ)
+$(EOBJ):	$(COM) $(SLOBJ) $(COBJ)
 $(SLOBJ):	$(COM) $(SCOM)
-$(DOBJ):	$(COM) 
+$(DOBJ):	$(COM)
 $(QOBJ):	$(COM) 
 $(COBJ):	$(COM) $(RNDOBJ)
 $(ROBJ):	$(RCOM)
