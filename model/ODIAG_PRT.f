@@ -204,7 +204,7 @@ C**** Loop over layers
 C****
 C**** Ocean Potential Density (kg/m^3) (w.r.t. 0m)
 C****
-      LNAME="OCEAN POTENTIAL TEMPERATURE (SIGMA_0)"
+      LNAME="OCEAN POTENTIAL DENSITY (SIGMA_0)"
       UNITS="KG/M^3"
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       TITLE(51:80)=XLB
@@ -278,9 +278,11 @@ c     *         *DXYPO(J)-OIJL(I,J,L,IJL_S0M))*trw0(n))-1.)
 C****
 C**** East-West or North-South Velocities (cm/s)
 C****
-  300 K=IJL_MFU
+      K=IJL_MFU
       LNAME="EAST-WEST VELOCITY"
       UNITS="cm/s"
+      DO LMINMF=1,LMO
+        LMAXMF=LMINMF
       Q = 0.
       DO J=1,JM
         I=IM
@@ -311,10 +313,13 @@ C****
       END IF
       TITLE(51:80)=XLB
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
+      END DO
 
       K=IJL_MFV
       LNAME="NORTH-SOUTH VELOCITY"
       UNITS="cm/s"
+      DO LMINMF=1,LMO
+        LMAXMF=LMINMF
       Q = 0.
       DO J=1,JM-1
         DO I=1,IMAXJ(J)
@@ -342,6 +347,7 @@ C****
       END IF
       TITLE(51:80)=XLB
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
+      END DO
 C****
 C**** Vertical Velocity (cm/s)
 C****
