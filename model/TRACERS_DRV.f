@@ -3351,43 +3351,43 @@ C         Apply the model-dependant stratospheric Ox corrections:
 
         case ('NOx')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
         case ('N2O5')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-12
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
         case ('HNO3')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-10
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-10
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
         case ('H2O2')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*TR_MM(n)*bymair*dxyp(j)*5.d-10
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*5.d-10
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
         case ('CH3OOH')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
         case ('HCHO')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
         case ('HO2NO2')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-12
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
