@@ -81,8 +81,9 @@ C**** Read ReStartFiles
 C****
       CALL GETARG (1,FILEIN)
       OPEN (1,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',ERR=810)
-         READ (1) ITAU1,JC,C,RC
+         READ (1) ITAU1,XLABEL
          READ (1)
+         READ (1) ! - skip parameters
          READ (1) HEADER,U1,V1,T1,P1,Q1,WM1
 C**** check which ocean
          READ (1) HEADER
@@ -123,8 +124,10 @@ C**** check which ocean
 C****
       CALL GETARG (2,FILEIN)
       OPEN (2,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',ERR=810)
-         READ (2) ITAU1,JC,C,RC
+         READ (2) ITAU1,XLABEL
          READ (2)
+ccc uncomment following line when rsf files are updated
+         !READ (2) ! - skip parameters
          READ (2) HEADER,U2,V2,T2,P2,Q2,WM2
 C**** check which ocean
          READ (2) HEADER
