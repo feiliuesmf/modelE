@@ -325,9 +325,9 @@ c         read stratospheric correction from files:
      &                  tempOx2,.true.)
            CorrOx(J,:,M)=tempOx2(:)
           END DO   ; END DO
-C         Only alter Ox between 150 and 30 hPa (lower strat):
+C         Only alter Ox between 250 and 30 hPa:
           DO L=1,LM
-            IF(PRES(L).lt.30.d0.or.PRES(L).gt.150.d0)
+            IF(PRES(L).lt.30.d0.or.PRES(L).gt.250.d0)
      &      corrOx(:,L,:)=1.0d0
           END DO
           ntm_power(n) = -8

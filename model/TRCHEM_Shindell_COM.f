@@ -103,7 +103,7 @@ C
      & LCOalt =   23,
      & JCOlat =   19,
      & LCH4alt=    6,
-     & LcorrOX=    4,
+     & LcorrOX=    7,
      & p_1   =     2 
 #ifdef SHINDELL_STRAT_CHEM
       INTEGER, PARAMETER ::
@@ -271,7 +271,7 @@ C to define BrOx, ClOx, ClONOs, HCL, and OxIC as well (GSF 8/03):
      & 0.7120D+02,0.4390D+02,0.2470D+02,0.1390D+02,0.7315D+01,
      & 0.3045D+01,0.9605D+00,0.3030D+00,0.8810D-01,0.1663D-01/)
       REAL*8, PARAMETER, DIMENSION(LcorrOx) :: PcorrOx =
-     & (/133.5d0, 101.6d0, 71.2d0, 43.9d0/)
+     & (/278.7d0, 217.9d0, 170.5d0, 133.1d0, 101.3d0, 71.0d0, 43.8d0/)
 C  
 C    These should really be defined in the run deck:
       LOGICAL, PARAMETER :: luselb            = .false.,
