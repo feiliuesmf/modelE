@@ -5,6 +5,19 @@ C**** subroutines in DB192SM15: All Diagnostics subroutines
 C**** Additional diagnostics for moist energy fluxes
 C**** changes for f90
 C****
+      MODULE DAGPCOM
+!@sum  DAGCOMP Diagnostic model variables used in the printouts
+!@auth Jean Lerner
+!@var  1.0
+      USE E001M12_COM, only : lm,sige,sig,psf,ptop
+      USE RADNCB, only : LM_REQ
+      IMPLICIT NONE
+      SAVE
+      DOUBLE PRECISION, DIMENSION(LM) :: PLE
+      DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PLM
+      DOUBLE PRECISION PMTOP
+      END MODULE DAGPCOM
+
       SUBROUTINE DIAGA (U,V,T,P,Q,PIT,SD)
 C****                                                             IDACC
 C**** CONTENTS OF AJ(J,N)  (SUM OVER LONGITUDE AND TIME OF)
@@ -347,8 +360,9 @@ C****
 
       USE RADNCB, only : rqt,lm_req
       USE PBLCOM, only : tsavg
+      USE DAGPCOM
       USE DAGCOM, only : aj,bj,cj,areg,jreg,apj,ajl,asjl,ail,
-     &     aij,PMTOP,
+     &     aij,
      &     IJ_DTDP,IJ_PEV,IJ_PHI1K,IJ_PRES,IJ_PUQ,IJ_PVQ,
      &     IJ_RSIT,IJ_RSNW,IJ_SLP,IJ_SNOW,IJ_T850,IJ_UJET,IJ_VJET
 
@@ -2731,8 +2745,10 @@ C****                                                             37-44
      &     PSF,PTOP,SIG,SIGE,SKIPSE,TOFDAY,TOFDY0
       USE GEOM, only :  
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
-      USE DAGCOM, only : ajk,ajl,asjl,ajlsp,kdiag,aijl,aijk,lm_req,
-     &     NWAV_DAG,KAJLSP,PLM,PLE,PMTOP
+      USE DAGPCOM
+      USE RADNCB, only : LM_REQ
+      USE DAGCOM, only : ajk,ajl,asjl,ajlsp,kdiag,aijl,aijk,
+     &     NWAV_DAG,KAJLSP
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(IM,JM) :: SENDEG
@@ -3764,7 +3780,9 @@ C****                                                            143-156
      &     PSF,PTOP,SIG,SIGE,TOFDAY,TOFDY0
       USE GEOM, only : 
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,FCOR,RADIUS,WTJ
-      USE DAGCOM, only : ajl,apj,asjl,kdiag,aij,lm_req,PLE,PLM,PMTOP
+      USE DAGPCOM
+      USE RADNCB, only : LM_REQ
+      USE DAGCOM, only : ajl,apj,asjl,kdiag,aij
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(JM) ::
@@ -4177,7 +4195,9 @@ C****                                                              9-16
      &     BYDSIG,DSIG,DT,IDACC,JEQ,LMM1,NCNDS,
      &     PSF,PTOP,SIG,SIGE,TOFDAY,TOFDY0
       USE GEOM, only : AREAG,DXYP,DXYV
-      USE DAGCOM, only : AIL,LM_REQ,PLE,PLM,PMTOP
+      USE RADNCB, only : LM_REQ
+      USE DAGPCOM
+      USE DAGCOM, only : AIL
       IMPLICIT NONE
 
       INTEGER :: LINECT,JMHALF,INC,IHOUR0,IHOUR
@@ -7134,6 +7154,7 @@ C****
 !@ver  1.0  
       USE E001M12_COM
       USE DAGCOM
+      USE DAGPCOM
       IMPLICIT NONE
       INTEGER L
 
@@ -7347,6 +7368,7 @@ C**** Ensure that diagnostics are reset at the beginning of the run
          CALL reset_DIAG
          CALL daily_DIAG
       END IF
+
 C**** Initialize certain arrays used by more than one print routine
       PMTOP=(PSF-PTOP)*SIGE(LM+1)+PTOP
       DO L=1,LM
@@ -7433,4 +7455,4 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
          END DO
       END DO
          
-      END SUBROUTINE daily_DIAG
+       END SUBROUTINE daily_DIAG

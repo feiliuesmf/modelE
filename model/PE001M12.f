@@ -2,7 +2,7 @@ C**** PE001M12 E001M12 SOMTQ PB395M12
 C**** OPT(3)
 C**** semi-random cloud overlap (+snow age updates+computed opt.d+diagn)
 C**** to be used with R99E or later radiation  routines.  carbon/2
-C**** Constant pressure at L=LS1 and above (SIGE(LS1)=0., PLB(LS1)=PTOP)
+C**** Constant pressure at L=LS1 and above (SIGE(LS1)=0., PLE(LS1)=PTOP)
 C**** Using 5 harmonics for horizontal ocean heat transport, thinner ice
 C**** Routines included:  PRECIP, COSZ0, RADIA,
 C****                     GROUND, DRYCNV, SDRAG
@@ -595,7 +595,7 @@ C****
      &             ,lx
      &             ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP
 C     INPUT DATA
-     &             ,PLB ,TL=>TLM ,QL=>SHL
+     &             ,PLE=>PLB ,TL=>TLM ,QL=>SHL
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC
      &             ,POCEAN,PEARTH,POICE,PLICE,AGESN,SNOWE,SNOWOI,SNOWLI
      &             ,TGO,TGE,TGOI,TGLI,TS=>TSL,WS=>WMAG,WEARTH,PTOPTR
@@ -687,15 +687,15 @@ C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
       COEX=.01*GRAV*KAPA/RGAS
       DO L=1,LM
          COE(L)=DTCNDS*COEX/DSIG(L)
-         PLB(L)=SIGE(L)*(PSF-PTOP)+PTOP
+         PLE(L)=SIGE(L)*(PSF-PTOP)+PTOP
       END DO
-      PLB(LM+1)=SIGE(LM+1)*(PSF-PTOP)+PTOP
-      PLB(LM+2)=.5*PLB(LM+1)
-      PLB(LMR)=.2*PLB(LM+1)
-      PLB(LMR+1)=1.D-5
+      PLE(LM+1)=SIGE(LM+1)*(PSF-PTOP)+PTOP
+      PLE(LM+2)=.5*PLE(LM+1)
+      PLE(LMR)=.2*PLE(LM+1)
+      PLE(LMR+1)=1.D-5
       PTOPTR=PTOP ! top of sigma-coord.system
       DO 40 LR=LM+1,LMR
-   40 COE(LR)=DT*NRAD*COEX/(PLB(LR)-PLB(LR+1))
+   40 COE(LR)=DT*NRAD*COEX/(PLE(LR)-PLE(LR+1))
       PTLISO=15.
       IF(CO2.LT.0.) KTREND=-NINT(CO2)
 C**** Default: time-dependent So/GHG/O3/Trop-Aeros/Dust/Volc-Aeros
@@ -732,12 +732,12 @@ c         JEQ=1+JM/2
 C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
          DO 43 L=1,LM
          LLOW=L
-         IF (.5*(PLB(L+1)+PLB(L+2)).LT.750.) GO TO 44 ! was 786. 4/16/97
+         IF (.5*(PLE(L+1)+PLE(L+2)).LT.750.) GO TO 44 ! was 786. 4/16/97
    43    CONTINUE
    44    LMID1=LLOW+1
          DO 45 L=LMID1,LM
          LMID=L
-         IF (.5*(PLB(L+1)+PLB(L+2)).LT.430.) GO TO 46
+         IF (.5*(PLE(L+1)+PLE(L+2)).LT.430.) GO TO 46
    45    CONTINUE
    46    LHI1=LMID+1
          LHI=LM
@@ -886,7 +886,7 @@ C****
          AIJ(I,J,IJ_CLDTPPR)=AIJ(I,J,IJ_CLDTPPR)+SIGE(L+1)*PIJ+PTOP
          GO TO 285
   280    CONTINUE
-  285    DO KR=1,4
+  285    DO KR=1,NDLYPT
             IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
                IH=IHOUR
                DO INCH=1,INCHM
@@ -917,20 +917,23 @@ C**** SET UP VERTICAL ARRAYS OMITTING THE I AND J INDICES
 C****
 C**** EVEN PRESSURES
       DO 340 L=1,LM
-      PLB(L)=PEDN(L,I,J)
+      PLE(L)=PEDN(L,I,J)
 C**** TEMPERATURES
+C---- TL(L)=T(I,J,L)*PK(L,I,J)     ! already defined
       IF(TL(L).LT.130..OR.TL(L).GT.370.) THEN
          WRITE(99,*) 'In Radia: TAU,I,J,L,TL',TAU,I,J,L,TL(L)
-         STOP 4255
+         STOP 'In Radia: Temperature out of range'
       END IF
+C**** MOISTURE VARIABLES
+C---- QL(L)=Q(I,J,L)        ! already defined
   340 CONTINUE
 C****
 C**** RADIATION, SOLAR AND THERMAL
 C****
-      DO 420 K=1,3
+      DO 420 K=1,LM_REQ
       IF(RQT(I,J,K).LT.130..OR.RQT(I,J,K).GT.370.) THEN
          WRITE(99,*) 'In Radia: TAU,I,J,L,TL',TAU,I,J,LM+K,RQT(I,J,K)
-         STOP 4262
+         STOP 'In Radia: RQT out of range'
       END IF
   420 TL(LM+K)=RQT(I,J,K)
       COSZ=COSZA(I,J)
@@ -964,7 +967,7 @@ C-OLD FGOLDU(3)=XFRADJ*PEARTH
       DO 440 L=1,LM
       SRHR(I,J,L+1)=SRFHRL(L)
   440 TRHR(I,J,L+1)=-TRFCRL(L)
-      DO 450 LR=1,3
+      DO 450 LR=1,LM_REQ
       SRHRS(I,J,LR)=SRFHRL(LM+LR)
   450 TRHRS(I,J,LR)=-TRFCRL(LM+LR)
       DO 460 K=1,4
@@ -1015,10 +1018,10 @@ C****
          POICE=ODATA(I,J,2)*(1.-PLAND)
          POCEAN=(1.-PLAND)-POICE
          JR=JREG(I,J)
-         DO 740 LR=1,3
+         DO 740 LR=1,LM_REQ
          ASJL(J,LR,3)=ASJL(J,LR,3)+SRHRS(I,J,LR)*COSZ
   740    ASJL(J,LR,4)=ASJL(J,LR,4)+TRHRS(I,J,LR)
-         DO KR=1,4
+         DO KR=1,NDLYPT
             IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
                IH=IHOUR
                DO INCH=1,INCHM
@@ -1105,7 +1108,7 @@ C****
 C****
 C**** Update radiative equilibrium temperatures
 C****
-      DO LR=1,3
+      DO LR=1,LM_REQ
          DO J=1,JM
             IMAX=IMAXJ(J)
             DO I=1,IMAX
@@ -1136,7 +1139,7 @@ C****
          END DO
       END DO
 C**** daily diagnostics
-      DO KR=1,4
+      DO KR=1,NDLYPT
          ADAILY(IHOUR,1,KR)=ADAILY(IHOUR,1,KR)+S0*COSZ1(IJD6(1,KR)
      *        ,IJD6(2,KR))
       END DO

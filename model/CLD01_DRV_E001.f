@@ -21,8 +21,7 @@
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,lpbl,taussl,cldssl,cldsavl,
      *     prcpss,hcndss,aj55,bydtcn,condse_loc
       USE PBLCOM, only : tsavg
-      USE DAGCOM, only : aj,bj,cj,areg,aij,ajl,ail,adaily,jreg,
-     *  IJ_PSCLD,IJ_PDCLD,IJ_SCNVFRQ,IJ_DCNVFRQ,IJ_WMSUM
+      USE DAGCOM  !, only : aj,bj,cj,areg,aij,ajl,ail,adaily,jreg
       USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold
       USE OCEAN, only : odata
 
