@@ -2444,7 +2444,10 @@ C****
       IMPLICIT REAL*8 (A-H,O-Z)
 c      COMMON/WORK1/CONV(IM,JM,LM),PK(LM,IM,JM)
       COMMON/WORK2/UT(IM,JM,LM),VT(IM,JM,LM),
-     *  DP(LM),RA(8),ID(8),UMS(8)
+     *  DP(LM)
+      INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
+      REAL*8, DIMENSION(IM) :: RA !@var
+      REAL*8, DIMENSION(IM) :: UMS,VMS !@var
       LOGICAL POLE
 C     DATA RVAP/461.5/
       RVX=0.
@@ -2470,8 +2473,9 @@ C****
       IM1=IM
       DO 500 I=1,IMAX
          DO K=1,KMAX
-            RA(K)=RAIJ(K,I,J)
-            ID(K)=IDIJ(K,I,J)
+            RA(K)=RAJ(K,J)
+            IDI(K)=IDIJ(K,I,J)
+            IDJ(K)=IDJJ(K,J)
          END DO
       LMAX=1
   130 LMIN=LMAX+1
@@ -2563,43 +2567,32 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       QZX(I,J,L) = 0.
       QYZ(I,J,L) = 0.
   180 CONTINUE
-      IF (POLE) GO TO 300
-C**** MIX MOMENTUM THROUGHOUT UNSTABLE LAYERS AT NON-POLAR GRID BOXES
-      DO 240 K=1,KMAX
-      UMS(K)=0.
-      DO 220 L=LMIN,LMAX
-  220 UMS(K)=UMS(K)+UT(ID(K),1,L)*DP(L)
-  240 UMS(K)=UMS(K)*RDP
+C**** MIX MOMENTUM THROUGHOUT UNSTABLE LAYERS
+      UMS(1:KMAX)=0.
+      VMS(1:KMAX)=0.
       PIJ=P(I,J)
-      DO 260 L=LMIN,LMAX
-      IF(L.GE.LS1) PIJ=PSF-PTOP
-         AJL(J,L,38)=AJL(J,L,38)+(UMS(1)+UMS(3)-UT(IM1,J,L)-UT(I,J,L))*
-     *     PIJ*RA(1)
-         AJL(J+1,L,38)=AJL(J+1,L,38)+(UMS(5)+UMS(7)-UT(IM1,J+1,L)-
-     *     UT(I,J+1,L))*PIJ*RA(5)
-      DO 260 K=1,KMAX
-  260 U(ID(K),1,L)=U(ID(K),1,L)+(UMS(K)-UT(ID(K),1,L))*RA(K)
-      GO TO 130
-C**** MIX MOMENTUM THROUGHOUT UNSTABLE LAYERS AT POLAR GRID BOXES
-  300 JVPO=2
-      IF (J.EQ.JM) JVPO=JM
-      RAPO=2.*RAPVN(1)
-      DO 360 IPO=1,IM
-      UMSPO=0.
-      VMSPO=0.
-      DO 320 L=LMIN,LMAX
-      UMSPO=UMSPO+UT(IPO,JVPO,L)*DP(L)
-  320 VMSPO=VMSPO+VT(IPO,JVPO,L)*DP(L)
-      UMSPO=UMSPO*RDP
-      VMSPO=VMSPO*RDP
-      PIJ=P(1,J)
-      DO 340 L=LMIN,LMAX
-      IF(L.GE.LS1) PIJ=PSF-PTOP
-      U(IPO,JVPO,L)=U(IPO,JVPO,L)+(UMSPO-UT(IPO,JVPO,L))*RAPO
-      V(IPO,JVPO,L)=V(IPO,JVPO,L)+(VMSPO-VT(IPO,JVPO,L))*RAPO
-  340    AJL(JVPO,L,38)=AJL(JVPO,L,38)
-     *  +(UMSPO-UT(IPO,JVPO,L))*PIJ*RAPO
-  360 CONTINUE
+      DO L=LMIN,LMAX
+         IF(L.EQ.LS1) PIJ=PSF-PTOP
+         DO K=1,KMAX
+            UMS(K)=UMS(K)+UT(IDI(K),IDJ(K),L)*DP(L)
+            VMS(K)=VMS(K)+VT(IDI(K),IDJ(K),L)*DP(L)
+         ENDDO
+      ENDDO
+      UMS(1:KMAX)=UMS(1:KMAX)*RDP
+      VMS(1:KMAX)=VMS(1:KMAX)*RDP
+      PIJ=P(I,J)
+      DO L=LMIN,LMAX
+         IF(L.EQ.LS1) PIJ=PSF-PTOP
+         DO K=1,KMAX
+            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
+     &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*RA(K)
+            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
+     &           +(VMS(K)-VT(IDI(K),IDJ(K),L))*RA(K)
+c the following line gives bytewise different ajl
+            AJL(IDJ(K),L,38)=AJL(IDJ(K),L,38)
+     &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*PIJ*RA(K)
+         ENDDO
+      ENDDO
       GO TO 130
   500 IM1=I
       RETURN
