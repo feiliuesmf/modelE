@@ -3503,6 +3503,12 @@ C
 C     NOTE:  Aerosol carried as a tracer is assumed to be in kg/m2 units
 C     ------------------------------------------------------------------
 
+      DO L=1,NL
+      DO NT=1,NTRACE
+      TTAULX(L,NT)=TRACER(L,NT)*1000.D0*TRRDRY(NT)
+      END DO
+      END DO
+                 
       FSXTAU=FSTAER*FSBAER+1.D-10
       FTXTAU=FTTAER*FTBAER
 
