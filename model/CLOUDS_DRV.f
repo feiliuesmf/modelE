@@ -15,19 +15,18 @@
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
      *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss
       USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subroutines
-c???  The current compiler can only handle thread private common blocks
-ccc  *     ,airm,byam,etal,sm,smomij=>smom,qm,qmomij=>qmom
-ccc  *     ,tl,ris,ri1,ri2,aj8,aj11,aj13,aj50,aj51,aj52,aj53,aj57
-ccc  *     ,wml,sdl,u_0,v_0,um,vm,tf,qs,us,vs,dcl,airxl,prcpss,hcndss,
-ccc  *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl
-ccc  *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
-ccc  *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl
-ccc  *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l    ! ,lpbl obsolete
+     *     ,airm,byam,etal,sm,smomij=>smom,qm,qmomij=>qmom
+     *     ,tl,ris,ri1,ri2,aj8,aj11,aj13,aj50,aj51,aj52,aj53,aj57
+     *     ,wml,sdl,u_0,v_0,um,vm,tf,qs,us,vs,dcl,airxl,prcpss,hcndss
+     *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl
+     *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
+     *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
+     *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l    ! ,lpbl obsolete
 #ifdef TRACERS_ON
 #ifdef TRACERS_WATER
-ccc  *     ,trwml,trsvwml,trprmc,trprss
+     *     ,trwml,trsvwml,trprmc,trprss
 #endif
-ccc  *     ,tm,trmomij=>tmom      ! local  (i,j)
+     *     ,tm,trmomij=>tmom      ! local  (i,j)
      *     ,ntx,ntix              ! global (same for all i,j)
       USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
      *     ,itcon_ss
@@ -57,69 +56,6 @@ ccc  *     ,tm,trmomij=>tmom      ! local  (i,j)
       USE RANDOM
       USE QUSDEF, only : nmom
       IMPLICIT NONE
-C???? repeated from CLOUDS because old OMP version needs common blocks
-C**** input variables               (except for lines starting with !)
-      REAL*8, DIMENSION(IM) :: RA
-      REAL*8, DIMENSION(IM,LM) :: UM,VM
-      REAL*8, DIMENSION(IM,LM) :: U_0,V_0
-
-      REAL*8, DIMENSION(LM+1) :: PLE    !@var PLE pressure at layer edge
-      REAL*8, DIMENSION(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,WMX
-     *     ,VSUBL,AJ8,AJ13,AJ50,AJ51,AJ52,AJ57,AQ,DPDT,RH1
-      REAL*8, DIMENSION(LM+1) :: PRECNVL
-C**** new arrays must be set to model arrays in driver (before MSTCNV)
-      REAL*8, DIMENSION(LM) :: SDL,WML
-C**** new arrays must be set to model arrays in driver (after MSTCNV)
-      REAL*8, DIMENSION(LM) :: TAUMCL,SVLATL,CLDMCL,SVLHXL,SVWMXL
-      REAL*8, DIMENSION(LM) :: CSIZEL
-C**** new arrays must be set to model arrays in driver (before LSCOND)
-      REAL*8, DIMENSION(LM) :: TTOLDL,CLDSAVL
-C**** new arrays must be set to model arrays in driver (after LSCOND)
-      REAL*8, DIMENSION(LM) :: AJ11,AJ53,TAUSSL,CLDSSL
-
-      DOUBLE PRECISION, DIMENSION(LM) :: SM,QM
-      DOUBLE PRECISION, DIMENSION(NMOM,LM) :: SMOMij,QMOMij ! renamed
-
-#ifdef TRACERS_ON
-      DOUBLE PRECISION, DIMENSION(LM,NTM) :: TM
-      DOUBLE PRECISION, DIMENSION(nmom,lm,ntm) :: TrMOMij   ! renamed
-      COMMON/CLD_TRCCOM/TM,TrMOMij        ! renamed TrMOMij=>TMOM
-C$OMP  THREADPRIVATE (/CLD_TRCCOM/)
-#ifdef TRACERS_WATER
-      REAL*8, DIMENSION(NTM,LM) :: TRWML, TRSVWML
-      REAL*8, DIMENSION(NTM)    :: TRPRSS,TRPRMC
-      REAL*8, DIMENSION(NTM) :: FQCONDT, FWASHT, FPRCPT, FQEVPT
-      REAL*8 WMXTR, b_beta_DT, precip_mm
-      COMMON/CLD_WTRTRCCOM/TRWML, TRSVWML,TRPRSS,TRPRMC
-     *  ,FQCONDT, FWASHT, FPRCPT, FQEVPT,WMXTR, b_beta_DT, precip_mm
-C$OMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
-#endif
-#endif
-
-      INTEGER ::  KMAX
-      REAL*8 :: PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2
-
-C**** output variables
-      REAL*8 :: PRCPMC,PRCPSS,HCNDSS,WMSUM
-      REAL*8 :: CLDSLWIJ,CLDDEPIJ
-      INTEGER :: LMCMAX,LMCMIN
-      REAL*8 AIRXL
-      REAL*8  RNDSS1L(LM),RNDSS2L(LM-1)
-CCOMP  does not work yet:
-CCOMP  THREADPRIVATE (RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
-CCOMP*  ,TL,QL,TH,RH,WMX,VSUBL,AJ8,AJ11,AJ13,AJ50,AJ51,AJ52,AJ53,AJ57
-CCOMP*  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
-CCOMP*  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
-CCOMP*  ,SM,QM,SMOMij,QMOMij,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL 
-CCOMP* ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX,LMCMIN,KMAX)
-      COMMON/CLDPRV/RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
-     *  ,TL,QL,TH,RH,WMX,VSUBL,AJ8,AJ11,AJ13,AJ50,AJ51,AJ52,AJ53,AJ57
-     *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
-     *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
-     *  ,SM,QM,SMOMij,QMOMij,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL 
-     *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX,LMCMIN,KMAX
-C$OMP  THREADPRIVATE (/CLDPRV/)
-C???? end of piece repeated from CLOUDS (with SMOM,QMOM,TMOM renamed)
 
 #ifdef TRACERS_ON
 !@var tmsave holds tracer value (for diagnostics)
