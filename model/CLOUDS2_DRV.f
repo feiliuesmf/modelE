@@ -10,6 +10,10 @@
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice
+#ifdef TRACERS_AEROSOLS_Koch
+     *     ,jyear,jmon
+#endif
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
@@ -50,9 +54,6 @@
      *     ,dt_sulf_mc,dt_sulf_ss
 #endif
 #endif
-#ifdef TRACERS_SPECIAL_Shindell
-      USE LIGHTNING, only : i_lgt,j_lgt,RNOx_lgt
-#endif
 #endif
       USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subroutines
      *     ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypj,lp50,hcndss
@@ -78,12 +79,15 @@
 
 #ifdef TRACERS_ON
 !@var tmsave holds tracer value (for diagnostics)
-      REAL*8 tmsave(lm,ntm),dtr_mc(jm,ntm),dtr_ss(jm,ntm),
-     *     tmomsv(nmom,lm,ntm)
+      REAL*8 tmsave(lm,ntm),tmomsv(nmom,lm,ntm),
+     *       dtr_mc(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm),
+     *       dtr_ss(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm)
       INTEGER NX
 #ifdef TRACERS_AEROSOLS_Koch
-c       real*8 a_sulf(im,jm),cc_sulf(im,jm)
-c       integer nc_tr,id,ixx,ix1,ixm1,iuc_s
+      real*8, save, dimension(im,jm) :: a_sulf=0. ,cc_sulf=0.
+      real*8 cm_sulft  !nu ,cm_sulf (? not defined/used, only redefined)
+      integer, save :: iuc_s
+      logical, save :: ifirst=.true.
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
 !@var Lfreeze Lowest level where temperature is below freezing (TF)
@@ -94,9 +98,10 @@ c       integer nc_tr,id,ixx,ix1,ixm1,iuc_s
 !@var UC,VC,UZM,VZM,ULS,VLS,UMC,VMC velocity work arrays
 !@var TLS,QLS,TMC,QMC temperature and humidity work arrays
 !@var FSS fraction of the grid box for large-scale cloud
-      REAL*8, DIMENSION(IM,JM,LM) :: UC,VC
-C     REAL*8, DIMENSION(IM,JM,LM) :: ULS,VLS,UMC,VMC,TLS,QLS,
-C    *        TMC,QMC
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+     *        :: UC,VC
+C      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
+c     *           ULS,VLS,UMC,VMC,TLS,QLS,TMC,QMC
       REAL*8, DIMENSION(2,LM) :: UZM,VZM
 
 !@param ENTCON fractional rate of entrainment (km**-1)
@@ -147,14 +152,28 @@ C        not clear yet whether they still speed things up
       REAL*8  TMOMIL(NMOM,IM,LM),  QMOMIL(NMOM,IM,LM)
 Cred*                   end Reduced Arrays 1
       INTEGER ICKERR, JCKERR, JERR, seed, NR
-      REAL*8  RNDSS(3,LM,IM,JM),xx
-      REAL*8  AJEQIL(J5N-J5S+1,IM,JM), AREGIJ(IM,JM,3)
+      REAL*8  RNDSS(3,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
+      REAL*8  AJEQIL(J5N-J5S+1,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
-      REAL*8  UKM(4,IM,2:JM-1,LM), VKM(4,IM,2:JM-1,LM)
+      REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
+     *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0SG,J_1SG
+
+C**** define local grid
+      J_0  =GRID%J_STRT
+      J_1  =GRID%J_STOP
+      J_0H =GRID%J_STRT_HALO
+      J_1H =GRID%J_STOP_HALO
+      J_0S =GRID%J_STRT_SKP
+      J_1S =GRID%J_STOP_SKP
+      J_0SG=GRID%J_STRT_STGR
+      J_1SG=GRID%J_STOP_STGR
+
 C
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
 C
-      DO J=1,JM
+      DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         DO L=LP50,1,-1
           DO NR=1,3
@@ -187,12 +206,18 @@ C**** COMPUTE ZONAL MEAN U AND V AT POLES
         VZM(2,L)=0.
       ENDDO
       DO L=1,LM
-        DO I=1,IM
-          UZM(1,L)=UZM(1,L)+UC(I,2,L)
-          UZM(2,L)=UZM(2,L)+UC(I,JM,L)
-          VZM(1,L)=VZM(1,L)+VC(I,2,L)
-          VZM(2,L)=VZM(2,L)+VC(I,JM,L)
-        ENDDO
+        IF(GRID%HAVE_SOUTH_POLE) THEN
+          DO I=1,IM
+            UZM(1,L)=UZM(1,L)+UC(I,2,L)
+            VZM(1,L)=VZM(1,L)+VC(I,2,L)
+          ENDDO
+        ENDIF
+        IF(GRID%HAVE_NORTH_POLE) THEN
+          DO I=1,IM
+            UZM(2,L)=UZM(2,L)+UC(I,JM,L)
+            VZM(2,L)=VZM(2,L)+VC(I,JM,L)
+          ENDDO
+        ENDIF
         UZM(1,L)=UZM(1,L)/FIM
         UZM(2,L)=UZM(2,L)/FIM
         VZM(1,L)=VZM(1,L)/FIM
@@ -230,6 +255,9 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
 !$OMP*  Lfreeze,
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+!$OMP*  cm_sulft,
+#endif
 !$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 !$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT,TSV, WMERR,
@@ -237,7 +265,7 @@ C****
 !$OMP*    SCHEDULE(DYNAMIC,2)
 !$OMP*    REDUCTION(+:ICKERR,JCKERR)
 C
-      DO J=1,JM
+      DO J=J_0,J_1
 C
 Cred* Reduced Arrays 2
 C
@@ -590,13 +618,15 @@ C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
         BYDH12=1./DH12
         DTDZS=(THV1-THSV)*BYDH1S
         DTDZ=(THV2-THV1)*BYDH12
-        IF (J.EQ.1) THEN
+CAOO        IF (J.EQ.1) THEN
+        IF(GRID%HAVE_SOUTH_POLE .AND. J.EQ.J_0) THEN
           DUDZ=(UZM(1,2)-UZM(1,1))*BYDH12
           DVDZ=(VZM(1,2)-VZM(1,1))*BYDH12
           DUDZS=(UZM(1,1)-US)*BYDH1S
           DVDZS=(VZM(1,1)-VS)*BYDH1S
         ENDIF
-        IF (J.EQ.JM) THEN
+CAOO        IF (J.EQ.JM) THEN
+        IF(GRID%HAVE_NORTH_POLE .AND. J.EQ.J_1) THEN
           DUDZ=(UZM(2,2)-UZM(2,1))*BYDH12
           DVDZ=(VZM(2,2)-VZM(2,1))*BYDH12
           DUDZS=(UZM(2,1)-US)*BYDH1S
@@ -735,16 +765,6 @@ c          skt=tf+tg1(i,j)
      *      dem_c(l)=1.-exp(-taumcl(LM+1-L)*byic)
 
           qv(l)=ql(LM+1-L)
-#ifdef TRACERS_AEROSOLS_Koch
-c          ixx=1 +3*(nc_tr-1)
-c          ix1=ixx+1
-c          ixm1=ixx-1
-c          if (ixm1.eq.0) ixm1=72
-c          if (i.eq.ixx.or.i.eq.ix1.or.i.eq.ixm1) then
-c            if (cc_sulf(i,j).lt.cc(l))
-c     *      cc_sulf(i,j)=cc(l)
-c          endif
-#endif
         end do
         phalf(lm+1)=ple(1)*100.
         itrop = LM+1-LTROPO(I,J)
@@ -875,6 +895,9 @@ cECON if (abs(q0-q2).gt.1d-13) print*,"pr1",i,j,q0,q1,q2,prcp,prcpss*100
 cECON     *     *bygrav
 
 #ifdef TRACERS_ON
+#ifdef TRACERS_AEROSOLS_Koch
+      cm_sulft=0.
+#endif
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
         n = ntix(nx)
@@ -900,10 +923,12 @@ C**** TRACERS: Use only the active ones
      *           dt_sulf_ss(n,l)
           end if
 c save for cloud-sulfate correlation
-c          select case (trname(n))
-c          case('SO4')
-cc     if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,n)
-c          end select
+          if (trname(n).eq.'SO4') then
+            if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,nx)/24.
+            cm_sulft=cldmcl(l)+cldssl(l)
+            if (cm_sulft.gt.1.) cm_sulft=1.
+!nu ??      if (cm_sulft.gt.cm_sulf) cm_sulf=cm_sulft
+           end if
 #endif
 #endif
         end do
@@ -918,6 +943,9 @@ c     *       +trprec(n,i,j)*focean(i,j)*bydxyp(j)
      *       trprec(n,i,j)*bydxyp(j)
 #endif
       end do
+#ifdef TRACERS_AEROSOLS_Koch
+      cc_sulf(i,j)=cc_sulf(i,j)+cm_sulft/24.
+#endif
 #endif
 
       END DO
@@ -964,20 +992,25 @@ C**** Save the conservation quantities for tracers
       end do
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-c      nc_tr=nc_tr+1
-c     if (nc_tr.eq.25) then
-c      call openunit("CLD_SO4",iuc_s,.true.,.false.)
-c      write(iuc_s) (SNGL(a_sulf(I,1)),I=1,IM*JM),
-c     *(SNGL(cc_sulf(I,1)),I=1,IM*JM)
-c      call closeunit(iuc_s)
-c      a_sulf(:,:)=0.
-c      cc_sulf(:,:)=0.
-c      nc_tr=1
-c     endif
+      if (jhour.eq.23) then
+        if (ifirst) then
+          call openunit("CLD_SO4",iuc_s,.true.,.false.)
+          ifirst=.false.
+        endif
+        if ((jyear.eq.1950.and.jmon.eq.12).or.
+     *       (jyear.eq.1951.and.jmon.le.11)) then
+          write(iuc_s) jyear,jmon,jdate,
+     *         (SNGL(a_sulf(I,1)),I=1,IM*JM),
+     *         (SNGL(cc_sulf(I,1)),I=1,IM*JM)
+        endif
+c     call closeunit(iuc_s)
+        a_sulf(:,:)=0.
+        cc_sulf(:,:)=0.
+      endif
 #endif
 
 C**** Delayed summations (to control order of summands)
-      DO J=J5S,J5N
+      DO J=MAX(J_0,J5S),MIN(J_1,J5N)
       DO I=1,IM
         IF(LMC(1,I,J).GT.0) THEN
           DO L=1,LMC(2,I,J)-1
@@ -987,7 +1020,7 @@ C**** Delayed summations (to control order of summands)
       END DO
       END DO
 C
-      DO J=1,JM
+      DO J=J_0,J_1
       DO I=1,IMAXJ(J)
          JR=JREG(I,J)
          IF(LMC(1,I,J).GT.0)
@@ -999,52 +1032,56 @@ C
 C
 C     NOW REALLY UPDATE THE MODEL WINDS
 C
-      J=1
-      DO K=1,IM ! KMAXJ(J)
-         IDI(K)=IDIJ(K,1,J)
-         IDJ(K)=IDJJ(K,J)
-      END DO
-      DO L=1,LM
-      DO K=1,IM ! KMAXJ(J)
-         U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKP1(K,L)
-         V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKP1(K,L)
-      END DO
-      END DO
+CAOO      J=1
+      IF(GRID%HAVE_SOUTH_POLE) THEN
+        DO K=1,IM ! KMAXJ(J)
+          IDI(K)=IDIJ(K,1,1)
+          IDJ(K)=IDJJ(K,1)
+        END DO
+        DO L=1,LM
+          DO K=1,IM ! KMAXJ(J)
+            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKP1(K,L)
+            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKP1(K,L)
+          END DO
+        END DO
+      ENDIF
 C
 !$OMP  PARALLEL DO PRIVATE(I,J,K,L,IDI,IDJ)
       DO L=1,LM
-      DO J=2,JM-1
+      DO J=J_0S,J_1S
          DO K=1,4  !  KMAXJ(J)
-            IDJ(K)=IDJJ(K,J)
+           IDJ(K)=IDJJ(K,J)
          END DO
          DO I=1,IM
          DO K=1,4 ! KMAXJ(J)
-            IDI(K)=IDIJ(K,I,J)
-            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
-            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
+           IDI(K)=IDIJ(K,I,J)
+           U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
+           V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
          END DO
          END DO
       END DO
       END DO
 !$OMP  END PARALLEL DO
 C
-      J=JM
-      DO K=1,IM  !  KMAXJ(J)
-         IDI(K)=IDIJ(K,1,J)
-         IDJ(K)=IDJJ(K,J)
-      END DO
-      DO L=1,LM
-      DO K=1,IM  !  KMAXJ(J)
-         U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKPJM(K,L)
-         V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKPJM(K,L)
-      END DO
-      END DO
-C
+CAOO      J=JM
+      IF(GRID%HAVE_NORTH_POLE) THEN
+        DO K=1,IM  !  KMAXJ(J)
+          IDI(K)=IDIJ(K,1,JM)
+          IDJ(K)=IDJJ(K,JM)
+        END DO
+        DO L=1,LM
+          DO K=1,IM  !  KMAXJ(J)
+            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKPJM(K,L)
+            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKPJM(K,L)
+          END DO
+        END DO
+      END IF
+C     
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 C**** and save changes in KE for addition as heat later
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
-      DO J=2,JM
+      DO J=J_0SG,J_1SG
       DO I=1,IM
          AJL(J,L,JL_DAMMC)=AJL(J,L,JL_DAMMC)+
      &         (U(I,J,L)-UC(I,J,L))*PDSIG(L,I,J)
@@ -1066,6 +1103,7 @@ C**** and save changes in KE for addition as heat later
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : grav,by3
       USE MODEL_COM, only : dtsrc,ls1,sige,lm,psfmpt,ptop,plbot,jm
+      USE DOMAIN_DECOMP, only : GRID
       USE GEOM, only : lat_dg
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00
@@ -1076,6 +1114,10 @@ C**** and save changes in KE for addition as heat later
       IMPLICIT NONE
       REAL*8 PLE
       INTEGER L,J,n
+      INTEGER :: J_0,J_1
+
+      J_0 =GRID%J_STRT
+      J_1 =GRID%J_STOP
 
       call sync_param( 'U00wtrX', U00wtrX )
       call sync_param( 'U00ice', U00ice )
@@ -1119,7 +1161,7 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
 
 C**** Define regions for ISCCP diagnostics
-      do j=1,jm
+      do j=J_0,J_1
         isccp_reg(j)=0
         do n=1,nisccp
            if(lat_dg(j,1).ge.isccp_late(n) .and.
@@ -1128,16 +1170,6 @@ C**** Define regions for ISCCP diagnostics
               exit
            endif
         enddo
-c        if (lat_dg(j,1).ge.-60. .and. lat_dg(j,1).lt.-30.)
-c     *       isccp_reg(j)=1
-c        if (lat_dg(j,1).ge.-30. .and. lat_dg(j,1).lt.-15.)
-c     *       isccp_reg(j)=2
-c        if (lat_dg(j,1).ge.-15. .and. lat_dg(j,1).lt.15.)
-c     *       isccp_reg(j)=3
-c        if (lat_dg(j,1).ge.15. .and. lat_dg(j,1).lt.30.)
-c     *       isccp_reg(j)=4
-c        if (lat_dg(j,1).ge.30. .and. lat_dg(j,1).lt.60.)
-c     *       isccp_reg(j)=5
       end do
 
       END SUBROUTINE init_CLD

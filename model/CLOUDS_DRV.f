@@ -11,7 +11,7 @@
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice
 #ifdef TRACERS_AEROSOLS_Koch
-     *     ,jyear,jmon,jdate
+     *     ,jyear,jmon
 #endif
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH
       USE QUSDEF, only : nmom
@@ -153,9 +153,8 @@ Cred*                   end Reduced Arrays 1
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0SG,J_1SG
-C 
-C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
-C 
+
+C**** define local grid
       J_0  =GRID%J_STRT
       J_1  =GRID%J_STOP
       J_0H =GRID%J_STRT_HALO
@@ -165,6 +164,9 @@ C
       J_0SG=GRID%J_STRT_STGR
       J_1SG=GRID%J_STOP_STGR
 
+C 
+C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
+C 
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         DO L=LP50,1,-1
@@ -238,6 +240,9 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
 !$OMP*  Lfreeze,
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+!$OMP*  cm_sulft,
+#endif
 !$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 !$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT,TSV, WMERR,
@@ -276,7 +281,7 @@ C****
       DO I=1,IMAXJ(J)
 cc       JR=JREG(I,J)  ! summing done outside parallel region
 C****
-C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS
+C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS FOR MSTCNV
 C****
       DEBUG = .FALSE.   ! use for individual box diags in clouds
       PEARTH=FEARTH(I,J)
@@ -852,7 +857,7 @@ c     *       +trprec(n,i,j)*focean(i,j)*bydxyp(j)
 #endif
       end do
 #ifdef TRACERS_AEROSOLS_Koch
-            cc_sulf(i,j)=cc_sulf(i,j)+cm_sulft/24.
+      cc_sulf(i,j)=cc_sulf(i,j)+cm_sulft/24.
 #endif
 #endif
 
@@ -900,19 +905,19 @@ C**** Save the conservation quantities for tracers
       end do
 #ifdef TRACERS_AEROSOLS_Koch
       if (jhour.eq.23) then
-       if (ifirst) then
-       call openunit("CLD_SO4",iuc_s,.true.,.false.)
-       ifirst=.false.
-       endif
-       if ((jyear.eq.1950.and.jmon.eq.12).or.
-     *  (jyear.eq.1951.and.jmon.le.11)) then
-       write(iuc_s) jyear,jmon,jdate,
-     *(SNGL(a_sulf(I,1)),I=1,IM*JM),
-     *(SNGL(cc_sulf(I,1)),I=1,IM*JM)
-       endif
-c      call closeunit(iuc_s)
-       a_sulf(:,:)=0.
-       cc_sulf(:,:)=0.
+        if (ifirst) then
+          call openunit("CLD_SO4",iuc_s,.true.,.false.)
+          ifirst=.false.
+        endif
+        if ((jyear.eq.1950.and.jmon.eq.12).or.
+     *       (jyear.eq.1951.and.jmon.le.11)) then
+          write(iuc_s) jyear,jmon,jdate,
+     *         (SNGL(a_sulf(I,1)),I=1,IM*JM),
+     *         (SNGL(cc_sulf(I,1)),I=1,IM*JM)
+        endif
+c     call closeunit(iuc_s)
+        a_sulf(:,:)=0.
+        cc_sulf(:,:)=0.
       endif
 #endif
 #endif
@@ -943,13 +948,13 @@ C
 CAOO      J=1
       IF(GRID%HAVE_SOUTH_POLE) THEN
         DO K=1,IM ! KMAXJ(J)
-           IDI(K)=IDIJ(K,1,1)
-           IDJ(K)=IDJJ(K,1)
+          IDI(K)=IDIJ(K,1,1)
+          IDJ(K)=IDJJ(K,1)
         END DO
         DO L=1,LM
           DO K=1,IM ! KMAXJ(J)
-             U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKP1(K,L)
-             V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKP1(K,L)
+            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKP1(K,L)
+            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKP1(K,L)
           END DO
         END DO
       ENDIF
@@ -958,13 +963,13 @@ C
       DO L=1,LM
       DO J=J_0S,J_1S
          DO K=1,4  !  KMAXJ(J)
-            IDJ(K)=IDJJ(K,J)
+           IDJ(K)=IDJJ(K,J)
          END DO
          DO I=1,IM
          DO K=1,4 ! KMAXJ(J)
-            IDI(K)=IDIJ(K,I,J)
-            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
-            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
+           IDI(K)=IDIJ(K,I,J)
+           U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
+           V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
          END DO
          END DO
       END DO
@@ -974,17 +979,17 @@ C
 CAOO      J=JM
       IF(GRID%HAVE_NORTH_POLE) THEN
         DO K=1,IM  !  KMAXJ(J)
-           IDI(K)=IDIJ(K,1,JM)
-           IDJ(K)=IDJJ(K,JM)
+          IDI(K)=IDIJ(K,1,JM)
+          IDJ(K)=IDJJ(K,JM)
         END DO
         DO L=1,LM
           DO K=1,IM  !  KMAXJ(J)
-             U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKPJM(K,L)
-             V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKPJM(K,L)
+            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKPJM(K,L)
+            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKPJM(K,L)
           END DO
         END DO
-      ENDIF
-C 
+      END IF
+C
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 C**** and save changes in KE for addition as heat later
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
