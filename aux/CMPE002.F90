@@ -232,7 +232,7 @@
 #  ifdef TRACERS_SPECIAL_Shindell
       use TRCHEM_Shindell_COM, only : &
            yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2 &
-           ,yAldehyde,yXO2N,yRXPAR,corrOx
+           ,yAldehyde,yXO2N,yRXPAR
 #  endif
 
 #  ifdef CHECK_OCEAN
@@ -471,7 +471,6 @@
         check("yAldehyde",yAldehyde)
         check("yXO2N",yXO2N)
         check("yRXPAR",yRXPAR)
-        check("corrOx",corrOx)
 #endif
 
 #  ifdef CHECK_OCEAN
