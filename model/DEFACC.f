@@ -1632,6 +1632,15 @@ c
       ir_ij(k) = ir_m9_26
 c
       k=k+1 !
+      IJ_SSS = k               !      3 SF
+      lname_ij(k) = 'SEA SURFACE SALINITY'    ! layer 1
+      units_ij(k) = 'C'
+      name_ij(k) = 'sss'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      iw_ij(k) = iw_ocn
+c
+      k=k+1 !
       IJ_MSI2 = k ! ACE2OI= MSI2*POICE  (KG/m**2)        1 GD
       lname_ij(k) = 'LAYER 2 OCEAN ICE MASS x POICE'
       units_ij(k) = '10^3 kg/m^2'

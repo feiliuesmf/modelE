@@ -61,7 +61,7 @@ C**** Interface to PBL
      *     ,idd_q5,idd_q4,idd_q3,idd_q2,idd_q1,idd_qs,idd_qg,idd_swg
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
-     *     ,idd_ev,idd_ldc,idd_dcf,hdiurn,ij_pblht
+     *     ,idd_ev,idd_ldc,idd_dcf,hdiurn,ij_pblht,ij_sss
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
       USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,
@@ -916,7 +916,10 @@ C****
         OA(I,J,6)=OA(I,J,6)+TRHDT
         OA(I,J,7)=OA(I,J,7)+SHDT
         OA(I,J,8)=OA(I,J,8)+EVHDT
-        IF (MODDSF.eq.0) AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+TG1
+        IF (MODDSF.eq.0) THEN
+          AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+TG1
+          AIJ(I,J,IJ_SSS)=AIJ(I,J,IJ_SSS)+SSS(I,J)
+        END IF
         AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAP*PTYPE
         IF (FOCEAN(I,J).gt.0) AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC) +F0DT
      *       *PTYPE
