@@ -6,7 +6,7 @@
 !@ver  1.0
       USE CONSTANT, only : by3
       USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
-     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,byim
+     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,byim,dt_UVfilter
       USE GEOM, only : dyv,dxv
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : ptold,pu,pv,pit,sd,phi,dut,dvt
@@ -65,7 +65,7 @@ C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
       CALL VDIFF (PB,UX,VX,U,V,T,DTFS)       ! strat
       CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
       CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
-      CALL FLTRUV(UX,VX,U,V)
+      if (dt_UVfilter.gt.0.) CALL FLTRUV(UX,VX,U,V)
 C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
       MRCH=-1
 C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
@@ -76,7 +76,7 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
       CALL VDIFF (PA,UT,VT,UX,VX,T,DT)       ! strat
       CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
       CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
-      CALL FLTRUV(UT,VT,UX,VX)
+      if (dt_UVfilter.gt.0.) CALL FLTRUV(UT,VT,UX,VX)
       GO TO 360
 C**** ODD LEAP FROG STEP, QT = QT + 2*DT*F(Q)
   340 MRCH=-2
@@ -88,7 +88,7 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
       CALL VDIFF (PB,UT,VT,U,V,T,DTLF)       ! strat
       CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
       CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
-      CALL FLTRUV(UT,VT,U,V)
+      if (dt_UVfilter.gt.0.) CALL FLTRUV(UT,VT,U,V)
       PA(:,:) = PB(:,:)     ! LOAD PB TO PA
 C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
   360 NS=NS+2
@@ -160,7 +160,7 @@ C$OMP  END PARALLEL DO
          END DO
          END DO
       CALL CALC_AMPK(LS1-1)
-      CALL FLTRUV(U,V,UT,VT)
+      if (dt_UVfilter.gt.0.) CALL FLTRUV(U,V,UT,VT)
       PC(:,:) = P(:,:)      ! LOAD P TO PC
       CALL SDRAG (DTLF)
          IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
@@ -791,6 +791,7 @@ C****
 !@sum  FILTER Performs 8-th order shapiro filter in zonal direction
 !@auth Original development team
 !@ver  1.0
+!@calls SHAP1D
 C****
 C**** MFILTR=1  SMOOTH P USING SEA LEVEL PRESSURE FILTER
 C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
@@ -924,8 +925,7 @@ C
 !@sum  FLTRUV Filters 2 gridpoint noise from the velocity fields
 !@auth Original development team
 !@ver  1.0
-!@calls SHAP1D
-      USE MODEL_COM, only : im,jm,lm,byim,mrch
+      USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,dt_UVfilter
       USE GEOM, only : dxyn,dxys
       USE DYNAMICS, only : pdsig
 C**********************************************************************
@@ -937,7 +937,7 @@ C**********************************************************************
       REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: U,V
       REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: UT,VT
       REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT,USAVE,VSAVE
-      REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM),DP
+      REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM),DP,Xby4toN
       REAL*8 :: DT1=0.
 cq    LOGICAL*4 QFILY,QFIL2D
       INTEGER NSHAP,ISIGN,    I,J,L,N,IP1  !@var I,J,L,N  loop variables
@@ -951,6 +951,7 @@ C****
       IF (MRCH.eq.2) THEN
         USAVE=U ; VSAVE=V
       END IF
+      Xby4toN=(DT/DT_UVfilter)*by4toN
 C****
 C**** Filtering in east-west direction
 C****
@@ -970,7 +971,7 @@ cq    IF(QFIL2D) GOTO 250
   220 XIM1 = XI
   230 X(IM)= XIM1-X(IM)-X(IM)+X1
       DO 240 I=1,IM
-  240 U(I,J,L) = U(I,J,L) + ISIGN*X(I)*by4toN
+  240 U(I,J,L) = U(I,J,L) + ISIGN*X(I)*Xby4toN
 cq    GOTO 270
 cq250 DO 255,J=2,JM-1
 cq    F2D(1,J)=.125*(U(IM,J,L)+U(1,J+1,L)+U(2,J,L)+
@@ -1006,7 +1007,7 @@ C**** Filter V component of momentum
   320 XIM1 = XI
   330 X(IM)= XIM1-X(IM)-X(IM)+X1
       DO 340 I=1,IM
-  340 V(I,J,L) = V(I,J,L) + ISIGN*X(I)*by4toN
+  340 V(I,J,L) = V(I,J,L) + ISIGN*X(I)*Xby4toN
   350 CONTINUE
 C$OMP  END PARALLEL DO
 C****

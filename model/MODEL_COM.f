@@ -22,6 +22,8 @@
 !@dbparam KOCEAN: if 0 => specified, if 1 => predicted ocean
 !@dbparam MFILTR: if 1 => SLP, if 2 => T, if 3 => SLP&T is filtered
       integer :: KOCEAN = 1, MFILTR = 1
+!@dbparam dt_UVfilter dU,dV are multiplied by dt/dt_UVfilter
+      REAL*8 :: dt_UVfilter = 0. ! UV-filter is NOT used
 
 !@dbparam X_SDRAG.  SDRAG ~X_SDRAG(1)+X_SDRAG(2)*wind_magnitude
       REAL*8, DIMENSION(2) :: X_SDRAG = (/2.5D-4,2.5D-5/)
@@ -81,11 +83,11 @@ C**** general rule:   DTxxx = Nxxx*DTsrc  and  DTxxx = DTsrc/NIxxx
 C**** except that the time steps related to NDAa, NDA5k, NDAsf are
 C**** slightly larger, to sample all points within the cycle
 
-!@var NIdyn:  DT atm_dyn  =  DTsrc/NIdyn     (NIdyn=DTsrc/DT)
+!@var     NIdyn:  DT atm_dyn  =  DTsrc/NIdyn     (NIdyn=DTsrc/DT)
 !@dbparam NIsurf: DT_Surface  =  DTsrc/NIsurf
 !@dbparam NRad:   DT_Rad      =  NRad*DTsrc
 !@dbparam NFILTR: DT_filter   =  NFILTR*DTsrc
-      INTEGER :: NIdyn, NIsurf = 2, NRad = 5 , NFILTR = 2
+      INTEGER :: NIdyn, NIsurf = 2, NRad = 5 , NFILTR = 1
 
 !@dbparam Ndisk:  DT_saversf    =  Ndisk *DTsrc fort.1/fort.2 saves
 !@dbparam Nssw:   DT_checkSsw   =  Nssw  *DTsrc

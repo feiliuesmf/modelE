@@ -449,8 +449,8 @@ C**** message and stop
 C**** sync_param( "B", Y ) reads parameter B into variable Y
 C**** if "B" is not in the database, then Y is unchanged and its
 C**** value is saved in the database as "B" (here sync = synchronize)
-      USE MODEL_COM, only : LM,NIPRNT,MFILTR,NDASF
-     *     ,NDA4,NDA5S,NDA5K,NDA5D,NDAA,NFILTR,NRAD,Kvflxo,kradia
+      USE MODEL_COM, only : LM,NIPRNT,dt_UVfilter,MFILTR,NFILTR,NRAD,
+     *     ,NDASF,NDA4,NDA5S,NDA5K,NDA5D,NDAA,Kvflxo,kradia
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND,ItimeI,PSFMPT,PSTRAT,SIG,SIGE
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
@@ -461,6 +461,7 @@ C**** value is saved in the database as "B" (here sync = synchronize)
 C**** Rundeck parameters:
       call sync_param( "NMONAV", NMONAV )
       call sync_param( "NIPRNT", NIPRNT )
+      call sync_param( "dt_UVfilter", dt_UVfilter )
       call sync_param( "MFILTR", MFILTR )
       call sync_param( "X_SDRAG", X_SDRAG, 2 )
       call sync_param( "C_SDRAG", C_SDRAG )
