@@ -25,6 +25,7 @@ $some_decl .= "|double\\s+precision";
 #$some_decl .= "|character(?:\\s*\\*\\s*(?:\\d+|\\([0-9a-z*= ]+\\)))?";
 $some_decl .= "|character(?:\\s*\\*?\\s*(?:\\d+|\\([0-9a-z*= ]+\\)))?";
 $some_decl .= "|type\\s+\\(\\w+\\)";
+$some_decl .= "|use\\s*\\w+\\s*,\\s*only\\s*:";
 
 $parenth  = "\\([^()]*\\)";
 $parenth2 = "\\((?:[^()]|$parenth)*\\)";
@@ -261,7 +262,12 @@ foreach $name ( keys %db_modules ) {
 	else { $color = "#880000" }
 	if ( ! $db_vars_used{$var_name} ) { $color = "#ff0000" }
 	print HTM "<dt><font color=$color><B>$var</B></font>";
-	print HTM " : <code>$db_vars{$var_name}{decl}</code><BR>\n";
+	if ( $db_vars{$var_name}{decl} =~ /^used from (\w+)/ ) {
+	    print HTM " : used from "; htm_link("$1",uc("$1").".html");
+	}
+	else {
+	    print HTM " : <code>$db_vars{$var_name}{decl}</code><BR>\n";
+	}
 	#print HTM "<dd>$db_vars{$var_name}{sum}<BR>\n";
 	print HTM "<dd>";
 	if ( $db_vars{$var_name}{sum} ) {
@@ -330,7 +336,12 @@ foreach $name ( keys %db_subs ) {
 	else { $color = "#880000" }
 	if ( ! $db_vars_used{$var_name} ) { $color = "#ff0000" }
 	print HTM "<dt><font color=$color><B>$var</B></font>";
-	print HTM " : <code>$db_vars{$var_name}{decl}</code><BR>\n";
+	if ( $db_vars{$var_name}{decl} =~ /^used from (\w+)/ ) {
+	    print HTM " : used from "; htm_link("$1",uc("$1").".html");
+	}
+	else {
+	    print HTM " : <code>$db_vars{$var_name}{decl}</code><BR>\n";
+	}
 	print HTM "<dd>";
 	if ( $db_vars{$var_name}{sum} ) {
 	    #print HTM "$db_vars{$var_name}{sum}<BR>\n";
@@ -476,6 +487,7 @@ sub postprocess_lists {
 	    $decl =~ s/^,//;
 	}
 	$decl =~ s/,/, /g;
+	if ( $decl =~ /^use(\w+)/ ) { $decl = "used from $1"; }
 	$db_vars{$var_name}{decl} = $decl;
     }
 
