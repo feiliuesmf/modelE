@@ -4643,13 +4643,13 @@ C****
         WRITE (6,901) XLABEL
         IF (K0.eq.1) THEN
           FAC(1) = 1.
-          FAC(2) = 10.
+          FAC(2) = 10.  ! a factor of 10 for LOW STRAT
           WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE
      *         ,JHOUR
           WRITE (6,903)
         ELSE
-          FAC(1) = 10.  !100.  do they correspond to titles?
-          FAC(2) = 10.  !1000.
+          FAC(1) = 10.  ! 10 goes from 10^18 to 10^17
+          FAC(2) = 100. ! another factor of 10 for HIGH STRAT
           WRITE (6,906) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE
      *         ,JHOUR
           WRITE (6,907)
@@ -4663,7 +4663,7 @@ C****
           DO KSPHER=1,2
             DO K=1,NED
               KS=K+(KSPHER-1)*NED
-              KN=KS+(K0-1)*NED
+              KN=KS+(K0-1)*2*NED
               IF (KN.le.NEHIST) THEN
                 EHIST(KN,I)=ENERGY(KN,I)*SCALET(K)*FAC(KSPHER)
                 IK(KS)=EHIST(KN,I)+.5
@@ -4678,7 +4678,7 @@ C****
         DO KSPHER=1,2
           DO K=1,NED
             KS=K+(KSPHER-1)*NED
-            KN=KS+(K0-1)*NED
+            KN=KS+(K0-1)*2*NED
             IF (KN.le.NEHIST) THEN
               EHIST(KN,HIST_DAYS+1)=SUME(KS)*SCALET(K)*FAC(KSPHER)
      *             /IDACC5
