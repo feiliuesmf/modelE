@@ -1433,7 +1433,8 @@ C****
                 XS(II,L)= 1d3*SOS
 #ifdef TRACERS_OCEAN
                 do n=1,ntm
-                  if (to_per_mil(n).gt.0) then
+                  if (to_per_mil(n).gt.0.and.TOIJL(I,J,L,TOIJL_CONC
+     *                 ,n_water).gt.0) then
                     XT(II,l,n)= 1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
      *              (TOIJL(I,J,L,TOIJL_CONC,n_water)*trw0(n))-1.)
 c                    XT(II,l,n)= 1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
