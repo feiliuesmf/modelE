@@ -178,7 +178,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #ifdef regional_Ox_tracers
       INTEGER, PARAMETER :: ktajls=108
 #else
-      INTEGER, PARAMETER :: ktajls=94
+      INTEGER, PARAMETER :: ktajls=96
 #endif
 #else
       INTEGER, PARAMETER :: ktajls=36   ! default

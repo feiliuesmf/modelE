@@ -40,6 +40,10 @@ C**** Decide on water tracer conc. units from rundeck if it exists
 C**** set super saturation parameter for isotopes if needed
       call sync_param("supsatfac",supsatfac)
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+C**** decide on AEROSOM or standard emissions 
+      call sync_param("imAER",imAER)
+#endif
 
 C**** Get factor to convert from mass mixing ratio to volume mr
       do n=1,ntm

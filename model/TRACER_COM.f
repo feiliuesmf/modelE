@@ -163,7 +163,7 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
 #endif
 #else
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
-      integer, parameter :: ntm=15,Ntm_dust=4,rhet=3     
+      integer, parameter :: ntm=15,Ntm_dust=4,rhet=3
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
      *                                         ,rxts4
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: krate
@@ -173,7 +173,7 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'SO4_d4  ','Clay    ','Silt1   ','Silt2   ','Silt3   '/)
 #else
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_DUST)
-      integer, parameter :: ntm=17,ntm_dust=4,imAER=1
+      integer, parameter :: ntm=17,ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
      *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
@@ -181,8 +181,6 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'Silt2   ','Silt3   '/)
 #else
 #ifdef TRACERS_AEROSOLS_Koch
-      integer, parameter :: imAER=1
-!@var imAER is 1 for AEROCOM-prescribed simulations, 0 otherwise
       integer, parameter :: ntm=13
       character*8, parameter :: trname(ntm)=(/
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
@@ -267,6 +265,10 @@ C****    The following are set in tracer_IC
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
 !@var MCHEM: timing index for chemistry
       integer mchem
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+!@dbparam imAER is 1 for AEROCOM-prescribed simulations, 0 otherwise
+      integer :: imAER = 1
 #endif
 
 #ifdef TRACERS_ON
