@@ -62,7 +62,7 @@ C          ,UG,VG,WG,W2_1
       USE MODEL_COM
      &     , only : IM,JM,LM, t,q,u,v,p,ptop,ls1,psf,itime
       USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
-      USE DYNAMICS, only : pmid,pk,pedn
+      USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE CLOUDS_COM, only : ddm1
       USE SOCPBL, only : npbl=>n
@@ -200,7 +200,8 @@ C        roughness lengths from Brutsaert for rough surfaces
       dpdxr0 = DPDX_BY_RHO_0(i,j)
       dpdyr0 = DPDY_BY_RHO_0(i,j)
 
-      ts_guess = ttop - tmom(mz,i,j,1)*S1byG1
+      ts_guess = (t(i,j,1)-tmom(mz,i,j,1)*S1byG1)*pek(1,i,j)
+     2          *(1+q(i,j,1)*deltx)
       mdf = ddm1(i,j)
 
       call advanc(
