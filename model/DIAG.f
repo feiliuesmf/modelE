@@ -3067,15 +3067,6 @@ C****
       call sync_param( "NAMDD", NAMDD, 4 )
       call sync_param( "IJDD", IJDD(1:8,1), 8)
 
-c**** Initialize acc-array names, units, idacc-indices
-      call def_acc
-
-C**** Ensure that diagnostics are reset at the beginning of the run
-      IF (Itime.le.ItimeI .and. ISTART.gt.0) THEN
-        CALL reset_DIAG(0)
-        CALL daily_DIAG
-      END IF
-
       IF(ISTART.LT.0) THEN
         call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
      *       ,amon0)
@@ -3223,6 +3214,16 @@ C**** add in epsilon=1d-5 to avoid roundoff mistakes
         WRITE(6,*) "ISTRAT,PSPEC,NSPHER,KL=",ISTRAT,PSPEC,NSPHER,KL
         STOP "Stratospheric definition problem for spectral diags."
       END IF
+
+c**** Initialize acc-array names, units, idacc-indices
+      call def_acc
+
+C**** Ensure that diagnostics are reset at the beginning of the run
+      IF (Itime.le.ItimeI .and. ISTART.gt.0) THEN
+        CALL reset_DIAG(0)
+        CALL daily_DIAG
+      END IF
+
       RETURN
       END SUBROUTINE init_DIAG
 

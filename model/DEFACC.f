@@ -155,7 +155,10 @@ c
       end subroutine set_dparm
 
       subroutine j_defs
+      use CONSTANT, only : grav,sday,shw,rgas,omega,bygrav
+      use MODEL_COM, only : jm,lm,ls1,dtsrc,fim,sige
       use DAGCOM
+      use DAGPCOM, only : p1000k
       implicit none
       integer :: k
 c
@@ -163,657 +166,760 @@ c
          write(name_j(k),'(a2,i3.3)') 'AJ',k
          lname_j(k) = 'unused'
          units_j(k) = 'unused'
+         stitle_j(k)= 'no output'
+         scale_j(k) = 1.
+         ia_j(k)    = 1.
       enddo
 c
       k=0
 c  AJ01
       k=k+1
       J_SRINCP0= k ! SRINCP0 (W/M**2)                              2 RD
-      name_j(k) = 'SRINCP0'
-      lname_j(k) = 'INC SW'
+      name_j(k) = 'inc_sw'
+      lname_j(k) = 'SOLAR RADIATION INCIDENT ON PLANET'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' INC SW(WT/M**2)'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ02
       k=k+1
       J_SRNFP0=  k ! SRNFP0 (W/M**2)                               2 RD
-      name_j(k) = 'SRNFP0'
-      lname_j(k) = 'PLANETARY ALBEDO'
-      units_j(k) = '1'
+      name_j(k) = 'sw_abs_p0'
+      lname_j(k) = ' SOLAR RADIATION ABSORBED BY PLANET'
+      units_j(k) = 'W/m^2'
+      stitle_j(k)= '0SW ABS BELOW P0'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ03
       k=k+1
       J_SRNFP1=  k ! SRNFP1 (W/M**2)                               2 RD
-      name_j(k) = 'SRNFP1'
-      lname_j(k) = 'SRNFP1'
+      name_j(k) = 'sw_abs_p1'
+      lname_j(k) = 'SOLAR RADIATION ABSORBED BELOW PTOP'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' SW ABS BELOW P1'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ04
       k=k+1
       J_SRABS =  k ! SRABSATM=AJ(SRNFP0)-AJ(SRNFG) (W/M**2)        2 D1
-      name_j(k) = 'SRABS'
-      lname_j(k) = 'SRABSATM'
+      name_j(k) = 'sw_abs_atm'
+      lname_j(k) = 'SOLAR RADIATION ABSORBED BY ATMOSPHERE'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' SW ABS BY ATMOS'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ05
       k=k+1
       J_SRINCG=  k ! SRINCG (W/M**2)                               2 RD
-      name_j(k) = 'SRINCG'
-      lname_j(k) = 'SW INC ON ZO'
+      name_j(k) = 'sw_inc_z0'
+      lname_j(k) = 'SOLAR RADIATION INCIDENT ON GROUND'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' SW INC ON Z0   '
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ06
       k=k+1
       J_SRNFG =  k ! SRNFG (W/M**2)                                2 RD
-      name_j(k) = 'SRNFG'
-      lname_j(k) = 'SW ABS AT ZO'
+      name_j(k) = 'sw_abs_z0'
+      lname_j(k) = 'SOLAR RADIATION ABSORBED BY GROUND'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' SW ABS AT Z0   '
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ07
       k=k+1
       J_TRNFP0=  k ! TRNFP0=AJ(ALBVIS)+A2BYA1*AJ(TRHDT)/DTS(W/M**2)2 D1
-      name_j(k) = 'TRNFP0'
-      lname_j(k) = 'TRNFP0=AJ(74)+A2BYA1*AJ(9)/DTSRCE'
+      name_j(k) = 'net_lw_p0'
+      lname_j(k) = 'THERMAL RADIATION EMITTED BY PLANET'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= '0NET LW AT P0   '
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ08
       k=k+1
       J_TRNFP1=  k ! TRNFP1=AJ(ALBNIR)+A2BYA1*AJ(TRHDT)/DTS(W/M**2)2 D1
-      name_j(k) = 'TRNFP1'
-      lname_j(k) = 'TRNFP1=AJ(75)+A2BYA1*AJ(9)/DTSRCE'
+      name_j(k) = 'net_lw_p1'
+      lname_j(k) = 'NET THERMAL RADIATION AT PTOP'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' NET LW AT P1   '
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ09
       k=k+1
       J_TRHDT =  k ! TRHDT (J/M**2)                                1 SF
-      name_j(k) = 'TRHDT'
-      lname_j(k) = 'NET LW AT ZO (positive downward)'
+      name_j(k) = 'net_lw_z0'
+      lname_j(k) = 'NET THERMAL RADIATION AT GROUND'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' NET LW AT Z0   '
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ10
       k=k+1
       J_RNFP0 = k ! RNFP0=AJ(SRNFP0)+AJ(TRNFP0) (W/M**2)          2 D1
-      name_j(k) = 'RNFP0'
-      lname_j(k) = 'RNFP0=AJ(2)+AJ(7)'
+      name_j(k) = 'net_rad_p0'
+      lname_j(k) = 'NET RADIATION OF PLANET'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= '0NET RAD AT P0  '
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ11
       k=k+1
       J_RNFP1 = k ! RNFP1=AJ(SRNFP1)+AJ(TRNFP1) (W/M**2)          2 D1
-      name_j(k) = 'RNFP1'
-      lname_j(k) = 'RNFP1=AJ(3)+AJ(8)'
+      name_j(k) = 'net_rad_p1'
+      lname_j(k) = 'NET RADIATION BELOW PTOP'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' NET RAD AT P1  '
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ12
       k=k+1
       J_RHDT  = k ! RHDT=A1BYA2*AJ(SRNFG)*DTS+AJ(TRHDT)(J/M^2)    1 D1
-      name_j(k) = 'RHDT'
-      lname_j(k) = 'RHDT=A1BYA2*AJ(6)*DTSRCE+AJ(9)'
+      name_j(k) = 'net_rad_z0'
+      lname_j(k) = 'NET RADIATION ABSORBED BY GROUND'
       units_j(k) = 'J/m^2'
+      stitle_j(k)= ' NET RAD AT Z0  '
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ13
       k=k+1
       J_SHDT  = k ! SHEATDT (J/M**2)                              1 SF
-      name_j(k) = 'SHDT'
-      lname_j(k) = 'SENS HEAT FLUX'
+      name_j(k) = 'snsht_flx'
+      lname_j(k) = 'SENSIBLE HEAT FLUX INTO THE GROUND'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= '0SENSBL HEAT FLX'
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ14
       k=k+1
       J_EVHDT = k ! EVHDT (J/M**2)                                1 SF
-      name_j(k) = 'EVHDT'
-      lname_j(k) = 'LATENT HEAT FLUX'
+      name_j(k) = 'evht_flx'
+      lname_j(k) = 'LATENT HEAT FLUX INTO THE GROUND'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' EVAPOR HEAT FLX'
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ15
       k=k+1
       J_F2DT  = k ! F2DT (J/M**2)                                 1 GD
-      name_j(k) = 'F2DT'
-      lname_j(k) = 'F2DT'
+      name_j(k) = 'ht_cond_z1z2'
+      lname_j(k) = 'CONDUCTION AT BOTTOM OF GROUND LAYER 2'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= '0CONDC AT -Z1-Z2'
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ16
       k=k+1
       J_HZ1   = k ! HEATZ1=AJ(EDIFS)+AJ(F1DT)                     1 D1
-      name_j(k) = 'HZ1'
-      lname_j(k) = 'HEATZ1=AJ(41)+AJ(42)'
+      name_j(k) = 'net_ht_z1'
+      lname_j(k) = 'NET HEAT FLUX BETWEEN GROUND LAYERS'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' NET HEAT AT -Z1'
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ17
       k=k+1
       J_TG2   = k ! TG2 (K-TF)                                    1 GD
-      name_j(k) = 'TG2'
-      lname_j(k) = 'TG2'
-      units_j(k) = 'degC'
+      name_j(k) = 'tg2'
+      lname_j(k) = 'TEMPERATURE OF GROUND LAYER 2'
+      units_j(k) = '.1 C'
+      stitle_j(k)= ' TG2 (.1 C)     '
+      scale_j(k) = 10.
       ia_j(k) = ia_src
 c  AJ18
       k=k+1
       J_TG1   = k ! TG1 (K-TF)                                    1 GD
-      name_j(k) = 'TG1'
-      lname_j(k) = 'TG1'
-      units_j(k) = 'degC'
+      name_j(k) = 'tg1'
+      lname_j(k) = 'TEMPERATURE OF GROUND LAYER 1'
+      units_j(k) = '.1 C'
+      stitle_j(k)= '1TG1 (.1 C)     '
+      scale_j(k) = 10.
       ia_j(k) = ia_src
 c  AJ19
       k=k+1
       J_EVAP  = k ! EVAP (KG/M**2)                                1 GD
-      name_j(k) = 'EVAP'
-      lname_j(k) = 'EVAP'
+      name_j(k) = 'evap'
+      lname_j(k) = 'EVAPORATION'
       units_j(k) = 'mm/day'
+      stitle_j(k)= ' EVAPOR (MM/DAY)'
+      scale_j(k) = SDAY/DTSRC
       ia_j(k) = ia_src
 c  AJ20
       k=k+1
       J_PRCP  = k ! PRCP=AJ(PRCPSS)+AJ(PRCPMC) (100 PA)           1 D1
-      name_j(k) = 'PRCP'
-      lname_j(k) = 'PREC'
+      name_j(k) = 'prec'
+      lname_j(k) = 'PRECIPITATION'
       units_j(k) = 'mm/day'
+      stitle_j(k)= ' PRECIP (MM/DAY)'
+      scale_j(k) = 100.*SDAY/(DTsrc*GRAV)
       ia_j(k) = ia_src
 c  AJ21
       k=k+1
       J_TX    = k ! TX (K-TF)  (INTEGRAL OVER ATMOSPHERE OF)      4 DA
-      name_j(k) = 'TX'
-      lname_j(k) = 'TX'
-      units_j(k) = 'degC'
+      name_j(k) = 'tair'
+      lname_j(k) = 'AIR TEMPERATURE'
+      units_j(k) = '.1 C'
+      stitle_j(k)= ' T AIR (.1 C)   '
+      scale_j(k) = 10.
       ia_j(k) = ia_dga
 c  AJ22
       k=k+1
       J_TX1   = k ! TX1 (K-TF)                                    4 DA
-      name_j(k) = 'TX1'
-      lname_j(k) = 'TX1'
-      units_j(k) = 'degC'
+      name_j(k) = 't1'
+      lname_j(k) = 'TEMPERATURE OF AIR LAYER 1'
+      units_j(k) = '.1 C'
+      stitle_j(k)= ' T1 (.1 C)      '
+      scale_j(k) = 10. 
       ia_j(k) = ia_dga
 c  AJ23
       k=k+1
       J_TSRF  = k ! TS (K-TF)                                     3 SF
-      name_j(k) = 'TSRF'
-      lname_j(k) = 'TS'
-      units_j(k) = 'degC'
+      name_j(k) = 'tsurf'
+      lname_j(k) = 'SURFACE AIR TEMPERATURE'
+      units_j(k) = '.1 C'
+      stitle_j(k)= '0T SURF (.1 C)  '
+      scale_j(k) = 10.
       ia_j(k) = ia_srf
 c  AJ24
       k=k+1
       J_DTSGST= k ! DTH/DPHI  (STRATOSPHERE)                      4 DA
-      name_j(k) = 'DTSGST'
-      lname_j(k) = 'DTH/DPHI  (STRATOSPHERE)'
-      units_j(k) = 'unknown'
+      name_j(k) = 'sstab_strat'
+      lname_j(k) = 'STRATOSPHERIC STATIC STABILITY'
+      units_j(k) = 'C/km'
+      stitle_j(k)= '0STAT STB(STRAT)'
+      scale_j(k) = 1.D3*GRAV*P1000K
       ia_j(k) = ia_dga
 c  AJ25
       k=k+1
       J_DTDGTR= k ! DTH/DPHI  (TROPOSPHERE)                       4 DA
-      name_j(k) = 'DTDGTR'
-      lname_j(k) = 'DTH/DPHI  (TROPOSPHERE)'
-      units_j(k) = 'unknown'
+      name_j(k) = 'sstab_trop'
+      lname_j(k) = 'TROPOSPHERIC STATIC STABILITY'
+      units_j(k) = 'C/km'
+      stitle_j(k)= ' STAT STB(TROPO)'
+      scale_j(k) = 1.D3*GRAV*P1000K
       ia_j(k) = ia_dga
 c  AJ26
       k=k+1
       J_RICST = k ! .0625*DTH*DLNP/(DU*DU+DV*DV)  (STRATOSPHERE)  4 DA
-      name_j(k) = 'RICST'
-      lname_j(k) = 'RICH NUM (STRATOSPHERE)'
+      name_j(k) = 'rich_num_strat'
+      lname_j(k) = 'STRATOSPHERIC RICHARDSON NUMBER'
       units_j(k) = '1'
+      stitle_j(k)= '0RICH NUM(STRAT)'
+      scale_j(k) = 16.*RGAS
       ia_j(k) = ia_dga
 c  AJ27
       k=k+1
       J_RICTR = k ! .0625*DTH*DLNP/(DU*DU+DV*DV)  (TROPOSPHERE)   4 DA
-      name_j(k) = 'RICTR'
-      lname_j(k) = 'RICH NUM (TROPOSPHERE)'
+      name_j(k) = 'rich_num_trop'
+      lname_j(k) = 'TROPOSPHERIC RICHARDSON NUMBER'
       units_j(k) = '1'
+      stitle_j(k)= ' RICH NUM(TROPO)'
+      scale_j(k) = 16.*RGAS
       ia_j(k) = ia_dga
 c  AJ28
       k=k+1
       J_ROSST = k ! 4*UMAX/(DX*SINJ)  (STRATOSPHERE)              4 DA
-      name_j(k) = 'ROSST'
-      lname_j(k) = 'ROSS NUM (STRATOSPHERE)'
+      name_j(k) = 'ross_num_strat'
+      lname_j(k) = 'STRATOSPHERIC ROSSBY NUMBER'
       units_j(k) = '1'
+      stitle_j(k)= ' ROSS NUM(STRAT)'
+      scale_j(k) = .5/(2.*OMEGA*FIM)
       ia_j(k) = ia_dga
 c  AJ29
       k=k+1
       J_ROSTR = k ! 4*UMAX/(DX*SINJ)  (TROPOSPHERE)               4 DA
-      name_j(k) = 'ROSTR'
-      lname_j(k) = 'ROSS NUM (TROPOSPHERE)'
+      name_j(k) = 'ross_num_trop'
+      lname_j(k) = 'TROPOSPHERIC ROSSBY NUMBER'
       units_j(k) = '1'
+      stitle_j(k)= ' ROSS NUM(TROPO)'
+      scale_j(k) = .5/(2.*OMEGA*FIM)
       ia_j(k) = ia_dga
 c  AJ30
       k=k+1
       J_RSI   = k ! RSI (1)                                       1 GD
-      name_j(k) = 'RSI'
-      lname_j(k) = 'POICE'
-      units_j(k) = '1'
+      name_j(k) = 'ocn_lak_ice_frac'
+      lname_j(k) = 'OCEAN/LAKE ICE COVER'
+      units_j(k) = '%'
+      stitle_j(k)= ' OC/LK ICE COVER'
+      scale_j(k) = 100.
       ia_j(k) = ia_src
 c  AJ31
       k=k+1
       J_RSNOW = k ! PSNOW (1)                                     4 DA
-      name_j(k) = 'RSNOW'
-      lname_j(k) = 'SNOW COVER FRACTION'
-      units_j(k) = '1'
+      name_j(k) = 'snow_cover'
+      lname_j(k) = 'SNOW COVER'
+      units_j(k) = '%'
+      stitle_j(k)= '0SNOW COVER     '
+      scale_j(k) = 100.
       ia_j(k) = ia_src
 c  AJ32
       k=k+1
       J_SWCOR = k ! SW CORRECTION   (obsolete)                    2 RD
       name_j(k) = 'SWCOR'
       lname_j(k) = 'SW CORRECTION'
-      units_j(k) = 'unknown'
+      units_j(k) = 'W/M^2'
+      stitle_j(k)= ' SW CORRECTION  '
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ33
       k=k+1
       J_OHT   = k ! OCEAN TRANSPORT                               1 GD
-      name_j(k) = 'OHT'
-      lname_j(k) = 'OCEAN TRANSPORT'
+      name_j(k) = 'ocn_ht_trans'
+      lname_j(k) = 'CONVERGED OCEAN HEAT TRANSPORT'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= '0OCEAN TRANSPORT'
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ34    ! this includes OCEAN TEMPERATURE AT BASE MIXED LAYER
       k=k+1
       J_TG3  = k ! TEMPERATURE GROUND LAYER 3                     1 GD
-      name_j(k) = 'TG3'
+      name_j(k) = 'tg3'
       lname_j(k) = 'TEMPERATURE GROUND LAYER 3'
-      units_j(k) = 'C'
+      units_j(k) = '.1 C'
+      stitle_j(k)= ' TG3 (.1 C)     '
+      scale_j(k) = 10.
       ia_j(k) = ia_src
 c  AJ35
       k=k+1
       J_DTDJS = k ! T(J+1)-T(J-1)  (SUM OVER STRATOSPHERE OF)     4 DA
-      name_j(k) = 'DTDJS'
-      lname_j(k) = 'T(J+1)-T(J-1)  (SUM OVER STRATOSPHERE OF)'
-      units_j(k) = 'K'
+      name_j(k) = 'dtdlat_strat'
+      lname_j(k) = 'STRATO TEMP CHANGE PER DEGREE LATITUDE'
+      units_j(k) = 'deg C/deg lat'
+      stitle_j(k)= '0DT/DLAT(STRAT) '
+      scale_j(k) = .5D2*(JM-1.)/((SIGE(LS1)-SIGE(LSTR+1)+1d-12)*180.)
       ia_j(k) = ia_dga
 c  AJ36
       k=k+1
       J_DTDJT = k ! T(J+1)-T(J-1)  (SUM OVER TROPOSPHERE OF)      4 DA
-      name_j(k) = 'DTDJT'
-      lname_j(k) = 'T(J+1)-T(J-1)  (SUM OVER TROPOSPHERE OF)'
-      units_j(k) = 'K'
+      name_j(k) = 'dtdlat_trop'
+      lname_j(k) = 'TROPO TEMP CHANGE PER DEGREE LATITUDE'
+      units_j(k) = 'deg C/deg lat'
+      stitle_j(k)= ' DT/DLAT(TROPO) '
+      scale_j(k) = .5d2*(JM-1.)/((SIGE(1)-SIGE(LS1))*180.)
       ia_j(k) = ia_dga
 c  AJ37
       k=k+1
       J_LSTR  = k ! SQRT(DTH/DLNP)/SINJ  (STRATOSPHERE)           4 DA
-      name_j(k) = 'LSTR'
-      lname_j(k) = 'SQRT(DTH/DLNP)/SINJ  (STRATOSPHERE)'
-      units_j(k) = 'unknown'
+      name_j(k) = 'ross_radius_strat'
+      lname_j(k) = 'ROSSBY RADIUS IN THE STRATOSPHERE'
+      units_j(k) = '10**5 m'
+      stitle_j(k)= ' L(STRAT)(10**5)'
+      scale_j(k) = 1d-5*SQRT(RGAS)/(2.*OMEGA)
       ia_j(k) = ia_dga
 c  AJ38
       k=k+1
       J_LTRO  = k ! SQRT(DTH/DLNP)/SINJ  (TROPOSPHERE)            4 DA
-      name_j(k) = 'LTRO'
-      lname_j(k) = 'SQRT(DTH/DLNP)/SINJ'
-      units_j(k) = 'unknown'
+       name_j(k) = 'ross_radius_trop'
+      lname_j(k) = 'ROSSBY RADIUS IN THE TROPOSPHERE'
+      units_j(k) = '10**5 m'
+      stitle_j(k)=  ' L(TROP) (10**5)'
+      scale_j(k) = 1d-5*SQRT(RGAS)/(2.*OMEGA)
       ia_j(k) = ia_dga
 c  AJ39
       k=k+1
       J_EPRCP = k ! ENERGP (J/M**2)                               1 CN
-      name_j(k) = 'EPRCP'
-      lname_j(k) = 'ENERGP'
+      name_j(k) = 'prec_ht_flx'
+      lname_j(k) = 'PRECIPITATION HEAT FLUX INTO THE GROUND'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' PRECIP HEAT FLX'
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ40
       k=k+1
       J_ERUN1 = k ! ERUN1 (J/M**2)                                1 GP
-      name_j(k) = 'ERUN1'
-      lname_j(k) = 'ERUN1'
+      name_j(k) = 'ht_runoff_z0'
+      lname_j(k) = 'HEAT RUNOFF Z0'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' HEAT RUNOFF Z0 '
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ41
       k=k+1
       J_EDIFS = k ! EDIFS (J/M**2)                                1 GP
-      name_j(k) = 'EDIFS'
-      lname_j(k) = 'EDIFS'
+      name_j(k) = 'ht_wtr_difs_z1'
+      lname_j(k) = 'HEAT DIFFUSION OF WATER OR ICE AT -Z1'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' HT WTR DIFS -Z1'
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ42
       k=k+1
       J_F1DT  = k ! F1DT (J/M**2)                                 1 GD
-      name_j(k) = 'F1DT'
-      lname_j(k) = 'F1DT'
+      name_j(k) = 'ht_cond_z1'
+      lname_j(k) = 'CONDUCTION AT BOTTOM OF GROUND LAYER 1'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= '0CONDUCTN AT -Z1'
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ43
       k=k+1
       J_ERUN2 = k ! ERUN2 (J/M**2)                                1 GP
-      name_j(k) = 'ERUN2'
-      lname_j(k) = 'ERUN2'
+      name_j(k) = 'ht_ice_z1z2'
+      lname_j(k) = 'ENERGY OF MELTING (OR TRANS) AT -Z1-Z2'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' ICE ENRG -Z1-Z2'
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ44
       k=k+1
       J_HZ0   = k ! HEATZ0=RHDT+SHDT+EVHDT+EPRCP-EDIFS (J/M**2)   1 D1
-      name_j(k) = 'HZ0'
-      lname_j(k) = 'NET HT Z0=AJ(12)+AJ(13)+AJ(14)+AJ(39)-AJ(40)'
+      name_j(k) = 'nt_ht_z0'
+      lname_j(k) = 'NET HEATING AT GROUND SURFACE'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' NET HEAT AT Z0 '
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ45
       k=k+1
       J_DIFS  = k ! DIFS (KG/M**2)                                1 GP
-      name_j(k) = 'DIFS'
-      lname_j(k) = 'DIFS'
+      name_j(k) = 'h2o_difs_z1'
+      lname_j(k) = 'WATER OR ICE DIFFUSION AT -Z1'
       units_j(k) = 'mm/day'
+      stitle_j(k)= ' H2O DIFS AT -Z1'
+      scale_j(k) = SDAY/DTSRC
       ia_j(k) = ia_src
 c  AJ46
       k=k+1
       J_IMELT = k ! AIFO ; BRUN2 ; CRUN2+CIFI                     1 GP
-      name_j(k) = 'IMELT'
-      lname_j(k) = 'AIFO; BRUN2; CRUN2+CIFI'
+      name_j(k) = 'ice_thru_z1z2'
+      lname_j(k) = 'ICE MELTING (OR TRANSPORT) AT -Z1-Z2'
       units_j(k) = 'mm/day'
+      stitle_j(k)= ' ICE THRU -Z1-Z2'
+      scale_j(k) = SDAY/DTSRC
       ia_j(k) = ia_src
 c  AJ47
       k=k+1
       J_RUN2  = k ! RUN2 (KG/M**2)                                1 GP
-      name_j(k) = 'RUN2'
-      lname_j(k) = 'RUN2'
+      name_j(k) = 'h2o_runoff_mld'
+      lname_j(k) = 'WATER RUNOFF THROUGH MIXED LAYER DEPTH'
       units_j(k) = 'mm/day'
+      stitle_j(k)= ' WATR RUNOFF MLD'
+      scale_j(k) = SDAY/DTSRC
       ia_j(k) = ia_src
 c  AJ48
       k=k+1
       J_DWTR2 = k ! DWTR2=AJ(DIFS)-AJ(RUN2) (KG/M**2)             1 D1
-      name_j(k) = 'DWTR2'
-      lname_j(k) = 'HEAT RUNOFF THROUGH THE MIXED LAYER DEPTH'
+      name_j(k) = 'ht_runoff_mld'
+      lname_j(k) = 'HEAT RUNOFF THROUGH MIXED LAYER DEPTH'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' HEAT RUNOFF MLD'
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ49
       k=k+1
       J_WTR1  = k ! WTR1 (KG/M**2)                                1 GD
-      name_j(k) = 'WTR1'
-      lname_j(k) = 'WTR1'
+      name_j(k) = 'wat_g1'
+      lname_j(k) = 'WATER IN GROUND LAYER 1'
       units_j(k) = 'kg/m^2'
+      stitle_j(k)= '0WATER IN G1    '
+      scale_j(k) = 1.
       ia_j(k) = ia_src
 c  AJ50
       k=k+1
       J_ACE1  = k ! ACE1 (KG/M**2)                                1 GD
-      name_j(k) = 'ACE1'
-      lname_j(k) = 'ACE1'
+      name_j(k) = 'ice_g1'
+      lname_j(k) = 'ICE IN GROUND LAYER 1'
       units_j(k) = 'kg/m^2'
+      stitle_j(k)= ' ICE IN G1      '
+      scale_j(k) = 1.
       ia_j(k) = ia_src
 c  AJ51
       k=k+1
       J_WTR2  = k ! WTR2 (KG/M**2)                                1 GD
-      name_j(k) = 'WTR2'
-      lname_j(k) = 'WTR2'
+      name_j(k) = 'wat_g2'
+      lname_j(k) = 'WATER IN GROUND LAYER 2'
       units_j(k) = 'kg/m^2'
+      stitle_j(k)= ' WATER IN G2    '
+      scale_j(k) = 1.
       ia_j(k) = ia_src
 c  AJ52
       k=k+1
       J_ACE2  = k ! ACE2 (KG/M**2)                                1 GD
-      name_j(k) = 'ACE2'
-      lname_j(k) = 'ACE2'
+      name_j(k) = 'ice_g2'
+      lname_j(k) = 'ICE IN GROUND LAYER 2'
       units_j(k) = 'kg/m^2'
+      stitle_j(k)= ' ICE IN G2      '
+      scale_j(k) = 1.
       ia_j(k) = ia_src
 c  AJ53
       k=k+1
       J_SNOW  = k ! SNOW (KG/M**2)                                1 GD
-      name_j(k) = 'SNOW'
-      lname_j(k) = 'SNOW'
+      name_j(k) = 'snowdp'
+      lname_j(k) = 'SNOW DEPTH'
       units_j(k) = 'kg/m^2'
+      stitle_j(k)= ' SNOW DEPTH     '
+      scale_j(k) = 1.
       ia_j(k) = ia_src
 c  AJ54
       k=k+1
       J_RUN1  = k ! RUN1 (KG/M**2)                                1 GP
-      name_j(k) = 'RUN1'
-      lname_j(k) = 'RUN1'
+      name_j(k) = 'wat_runoff_z0'
+      lname_j(k) = 'WATER RUNOFF AT GROUND SURFACE'
       units_j(k) = 'mm/day'
+      stitle_j(k)= '0WATER RUNOFF Z0'
+      scale_j(k) = SDAY/DTSRC
       ia_j(k) = ia_src
 c  AJ55
       k=k+1
       J_BRTEMP= k ! BTEMPW-TF                                     2 RD
-      name_j(k) = 'BRTEMP'
-      lname_j(k) = 'BTEMPW'
+      name_j(k) = 'btemp_window'
+      lname_j(k) = 'BRIGHTNESS TEMP THROUGH WINDOW REGION'
       units_j(k) = 'degC'
+      stitle_j(k)= ' LW WINDOW BTEMP'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ56
       k=k+1
       J_HZ2   = k ! HEATZ2=AJ(F2DT)+AJ(ERUN2) (J/M**2)            1 D1
-      name_j(k) = 'HZ2'
-      lname_j(k) = 'HEATZ2=AJ(15)+AJ(43)'
+      name_j(k) = 'net_ht_z1z2'
+      lname_j(k) = 'NET HEAT FLUX AT BOTTOM OF GRND LAY 2'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' NET HEAT -Z1-Z2'
+      scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
 c  AJ57
       k=k+1
       J_PCLDSS= k ! PCLDSS (1)  (COMPOSITE OVER ATMOSPHERE)       2 RD
-      name_j(k) = 'PCLDSS'
-      lname_j(k) = 'PCLDSS (COMPOSITE OVER ATMOSPHERE)'
-      units_j(k) = '1'
+      name_j(k) = 'sscld'
+      lname_j(k) = 'SUPER SATURATION CLOUD COVER'
+      units_j(k) = '%'
+      stitle_j(k)= '0TOT SUP SAT CLD'
+      scale_j(k) = 100.
       ia_j(k) = ia_rad
 c  AJ58
       k=k+1
       J_PCLDMC= k ! PCLDMC (1)  (COMPOSITE OVER ATMOSPHERE)       2 RD
-      name_j(k) = 'PCLDMC'
-      lname_j(k) = 'PCLDMC (COMPOSITE OVER ATMOSPHERE)'
-      units_j(k) = '1'
+      name_j(k) = 'mccld'
+      lname_j(k) = 'MOIST CONVECTIVE CLOUD COVER'
+      units_j(k) = '%'
+      stitle_j(k)= ' TOT MST CNV CLD'
+      scale_j(k) = 100.
       ia_j(k) = ia_rad
 c  AJ59
       k=k+1
       J_PCLD  = k ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)         2 RD
-      name_j(k) = 'PCLD'
-      lname_j(k) = 'PCLD (COMPOSITE OVER ATMOSPHERE)'
-      units_j(k) = '1'
+      name_j(k) = 'totcld'
+      lname_j(k) = 'TOTAL CLOUD COVER'
+      units_j(k) = '%'
+      stitle_j(k)= ' TOTAL CLD COVER'
+      scale_j(k) = 100.
       ia_j(k) = ia_rad
 c  AJ60
       k=k+1
       J_CTOPP = k ! CLDTOPMC=AJ(CDLDEP)/AJ(PCLDMC) (100 PA)       0 D1
-      name_j(k) = 'CTOPP'
-      lname_j(k) = 'CLDTOPMC=AJ(80)/AJ(58)'
-      units_j(k) = '100 PA'
+      name_j(k) = 'mc_clddp'
+      lname_j(k) = 'MOIST CONVECTIVE CLOUD DEPTH'
+      units_j(k) = 'mb'
+      stitle_j(k)= ' MC CLD DPTH(MB)'
+      scale_j(k) = 1.
       ia_j(k) = ia_src
 c  AJ61
       k=k+1
       J_PRCPSS= k ! PRCPSS (100 PA)                               1 CN
-      name_j(k) = 'PRCPSS'
-      lname_j(k) = 'PRCPSS'
+      name_j(k) = 'ssprec'
+      lname_j(k) = 'SUPER SATURATION PRECIPITATION'
       units_j(k) = 'mm/day'
+      stitle_j(k)= '0SS PRECIP(MM/D)'
+      scale_j(k) = 100.*SDAY/(DTsrc*GRAV)
       ia_j(k) = ia_src
 c  AJ62
       k=k+1
       J_PRCPMC= k ! PRCPMC (100 PA)                               1 CN
-      name_j(k) = 'PRCPMC'
-      lname_j(k) = 'PRCPMC'
-      units_j(k) = '100 PA'
+      name_j(k) = 'mcprec'
+      lname_j(k) = 'MOIST CONVECTIVE PRECIPITATION'
+      units_j(k) = 'mm/day'
+      stitle_j(k)= ' MC PRECIP(MM/D)'
+      scale_j(k) = 100.*SDAY/(DTsrc*GRAV)
       ia_j(k) = ia_src
 c  AJ63
       k=k+1
       J_QP    = k ! Q*P (100 PA)  (INTEGRAL OVER ATMOSPHERE OF)   4 DA
-      name_j(k) = 'QP'
-      lname_j(k) = 'Q*P (INTEGRAL OVER ATMOSPHERE OF)'
-      units_j(k) = 'kg/m^2'
+      name_j(k) = 'atmh2o'
+      lname_j(k) = 'WATER CONTENT OF ATMOSPHERE'
+      units_j(k) = 'mm'
+      stitle_j(k)= ' H2O OF ATM (MM)'
+      scale_j(k) = 100.*BYGRAV
       ia_j(k) = ia_dga
 c  AJ64
       k=k+1
       J_GAM   = k ! GAM  (K/M)  (*SIG(TROPOSPHERE)/GRAV)          4 DA
-      name_j(k) = 'GAM'
-      lname_j(k) = 'GAM  (*SIG(TROPOSPHERE)/GRAV)'
-      units_j(k) = 'K/m'
+      name_j(k) = 'lapse_rate'
+      lname_j(k) = 'MEAN LAPSE RATE'
+      units_j(k) = 'K/km'
+      stitle_j(k)= '0GAM(K/KM)      '
+      scale_j(k) = 1d3*GRAV
       ia_j(k) = ia_dga
 c  AJ65
       k=k+1
       J_GAMM  = k ! GAMM  (K-S**2/M**2)  (SIG(TROPOSPHERE)/GAMD)  4 DA
-      name_j(k) = 'GAMM'
-      lname_j(k) = 'GAMM (SIG(TROPOSPHERE)/GAMD)'
-      units_j(k) = 'K s^2/m^2'
-      ia_j(k) = ia_dga
+      name_j(k) = 'lapse_rate_m'
+      lname_j(k) = 'MOIST ADIABATIC LAPSE RATE'
+      units_j(k) = 'K/km'
+      stitle_j(k)= ' GAMM(K/KM)     '
+      scale_j(k) = 1.D3*.0098d0/(SIGE(1)-SIGE(LS1))
+      ia_j(k) = ia_dga    ! check defn of 0.0098
 c  AJ66
       k=k+1
       J_GAMC  = k ! GAMC  (K/M)                                   4 DA
-      name_j(k) = 'GAMC'
+      name_j(k) = 'lapse_rate_c'
       lname_j(k) = 'GAMC'
-      units_j(k) = 'K/m'
+      units_j(k) = 'K/Km'
+      stitle_j(k)= ' GAMC(K/KM)     '
+      scale_j(k) = 1d3
       ia_j(k) = ia_dga
 c  AJ67
       k=k+1
       J_TRINCG= k ! TRINCG (W/M**2)                               2 RD
-      name_j(k) = 'TRINCG'
-      lname_j(k) = 'LW INC ON ZO'
+      name_j(k) = 'lw_inc_z0'
+      lname_j(k) = 'THERMAL RADIATION INCIDENT ON GROUND'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' LW INC ON Z0   '
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ68
       k=k+1
       J_FTHERM= k ! ENERGY DIFFUSION INTO THERMOCLINE (W/M**2) .5*9 MN
-      name_j(k) = 'FTHERM'
-      lname_j(k) = 'ENERGY DIFFUSION INTO THERMOCLINE'
+      name_j(k) = 'ht_thermocline'
+      lname_j(k) = 'ENERGY DIFFUSION INTO THE THERMOCLINE'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' HT INTO THRMOCL'
+      scale_j(k) = 2d3*SHW/SDAY
       ia_j(k) = ia_12hr
 c  AJ69
       k=k+1
       J_TYPE  = k ! PTYPE                                         1 GD
-      name_j(k) = 'PTYPE'
-      lname_j(k) = 'sum of surface type fraction'
-      units_j(k) = 'unknown'
+      name_j(k) = 'surf_type_frac'
+      lname_j(k) = 'SURF TYPE FRACT'
+      units_j(k) = '%'
+      stitle_j(k)= ' SURF TYPE FRACT'
+      scale_j(k) = 100.
       ia_j(k) = ia_src
 c  AJ70
       k=k+1
       J_HSURF = k ! TRNFP0-TRNFG (W/M**2)                         2 RD
-      name_j(k) = 'HSURF'
-      lname_j(k) = 'TRNFP0-TRNFG'
+      name_j(k) = 'HSURF'    
+      lname_j(k) = 'SURFACE THERMAL HEATING'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= 'no output'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ71
       k=k+1
       J_HATM  = k ! TRNFP1-TRNFG (W/M**2)                         2 RD
       name_j(k) = 'HATM'
-      lname_j(k) = 'TRNFP1-TRNFG'
+      lname_j(k) = 'ATMOSPHERIC THERMAL HEATING'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= 'no output'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ72
       k=k+1
 C**** Note: next eight diagnostics must remain in order
       J_PLAVIS= k ! PLAVIS*S0*COSZ (W/M**2)                       2 RD
-      name_j(k) = 'PLAVIS'
-      lname_j(k) = 'PLAVIS*S0*COSZ'
-      units_j(k) = 'W/m^2'
+      name_j(k) = 'plan_refl_vis'
+      lname_j(k) = 'PLANETARY REFLECTED RAD. IN VISUAL'
+      units_j(k) = 'W/M^2'
+      stitle_j(k)= 'no output'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ73
       k=k+1
       J_PLANIR= k ! PLANIR*S0*COSZ (W/M**2)                       2 RD
-      name_j(k) = 'PLANIR'
-      lname_j(k) = 'PLANIR*S0*COSZ'
-      units_j(k) = 'W/m^2'
+      name_j(k) = 'plan_refl_nir'
+      lname_j(k) = 'PLANETARY REFLECTED RAD. IN NEAR IR'
+      units_j(k) = 'W/M^2'
+      stitle_j(k)= 'no output'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ74
       k=k+1
       J_ALBVIS= k ! ALBVIS*S0*COSZ (W/M**2)                       2 RD
-      name_j(k) = 'ALBVIS'
-      lname_j(k) = 'ALBVIS*S0*COSZ'
-      units_j(k) = 'W/m^2'
+      name_j(k) = 'surf_refl_vis'
+      lname_j(k) = 'GROUND REFLECTED RAD. IN VISUAL'
+      units_j(k) = 'W/M^2'
+      stitle_j(k)= 'no output'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ75
       k=k+1
       J_ALBNIR= k ! ALBNIR*S0*COSZ (W/M**2)                       2 RD
-      name_j(k) = 'ALBNIR'
-      lname_j(k) = 'ALBNIR*S0*COSZ'
-      units_j(k) = 'W/m^2'
+      name_j(k) = 'surf_refl_nir'
+      lname_j(k) = 'GROUND REFLECTED RAD. IN NEAR IR'
+      units_j(k) = 'W/M^2'
+      stitle_j(k)= 'no output'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ76
       k=k+1
       J_SRRVIS= k ! SRRVIS*S0*COSZ (W/M**2)                       2 RD
-      name_j(k) = 'SRRVIS'
-      lname_j(k) = 'SRRVIS*S0*COSZ'
-      units_j(k) = 'W/m^2'
+      name_j(k) = 'atm_refl_vis'
+      lname_j(k) = 'ATMOSPHERIC REFLECTED RAD. IN VISUAL'
+      units_j(k) = 'W/M^2'
+      stitle_j(k)= 'no output'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ77
       k=k+1
       J_SRRNIR= k ! SRRNIR*S0*COSZ (W/M**2)                       2 RD
-      name_j(k) = 'SRRNIR'
-      lname_j(k) = 'SRRNIR*S0*COSZ'
-      units_j(k) = 'W/m^2'
+      name_j(k) = 'atm_refl_nir'
+      lname_j(k) = 'ATMOSPHERIC REFLECTED RAD. IN NEAR IR'
+      units_j(k) = 'W/M^2'
+      stitle_j(k)= 'no output'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ78
       k=k+1
       J_SRAVIS= k ! SRAVIS*S0*COSZ (W/M**2)                       2 RD
-      name_j(k) = 'SRAVIS'
-      lname_j(k) = 'SRAVIS*S0*COSZ'
-      units_j(k) = 'W/m^2'
+      name_j(k) = 'atm_abs_vis'
+      lname_j(k) = 'ATMOSPHERIC ABSORPTION IN VISUAL'
+      units_j(k) = 'W/M^2'
+      stitle_j(k)= 'no output'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ79
       k=k+1
       J_SRANIR= k ! SRANIR*S0*COSZ (W/M**2)                       2 RD
-      name_j(k) = 'SRANIR'
-      lname_j(k) = 'SRANIR*S0*COSZ'
-      units_j(k) = 'W/m^2'
+      name_j(k) = 'atm_abs_nir'
+      lname_j(k) = 'ATMOSPHERIC ABSORPTION IN NEAR IR'
+      units_j(k) = 'W/M^2'
+      stitle_j(k)= 'no output'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c  AJ80
       k=k+1
       J_CDLDEP= k ! PBOTMC-PTOPMC (100 PA)                        2 RD
       name_j(k) = 'CDLDEP'
-      lname_j(k) = 'PBOTMC-PTOPMC'
-      units_j(k) = '100 PA'
+      lname_j(k) = 'MOIST CONVECTIVE CLOUD DEPTH'
+      units_j(k) = 'mb'
+      stitle_j(k)= 'no output'
+      scale_j(k) = 1. 
       ia_j(k) = ia_rad
 c
       k=k+1
       J_CLRTOA= k ! clear sky radiative forcing top of atmosphere
-      name_j(k) = 'CLRTOA'
-      lname_j(k) = 'CLEAR SKY TOA'
+      name_j(k) = 'net_clr_toa'
+      lname_j(k) = 'NET CLEAR SKY RADIATION AT P0'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' NET CLR RAD  P0'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
 c
       k=k+1
       J_CLRTRP= k ! clear sky radiative forcing tropopause
-      name_j(k) = 'CLRTRP'
-      lname_j(k) = 'CLEAR SKY TROP'
+      name_j(k) = 'net_clr_trp'
+      lname_j(k) = 'NET CLEAR SKY RADIATION AT TROPOPAUSE (WMO)'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' NET CLR RAD TRP'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
-c
+c AJ83
       k=k+1
       J_TOTTRP= k ! total radiative forcing tropopause
-      name_j(k) = 'TOTTRP'
-      lname_j(k) = 'TOTAL RAD TROP'
+      name_j(k) = 'net_tot_trp'
+      lname_j(k) = 'NET RADIATION AT TROPOPAUSE (WMO)'
       units_j(k) = 'W/m^2'
+      stitle_j(k)= ' NET RAD (TROPP)'
+      scale_j(k) = 1.
       ia_j(k) = ia_rad
-c
-      k=k+1
-      name_j(k) = 'AJ84'
-      lname_j(k) = 'unknown'
-      units_j(k) = 'unknown'
-      ia_j(k) = 0
-c
-      k=k+1
-      name_j(k) = 'AJ85'
-      lname_j(k) = 'unknown'
-      units_j(k) = 'unknown'
-      ia_j(k) = 0
-c
-      k=k+1
-      name_j(k) = 'AJ86'
-      lname_j(k) = 'unknown'
-      units_j(k) = 'unknown'
-      ia_j(k) = 0
-c
-      k=k+1
-      name_j(k) = 'AJ87'
-      lname_j(k) = 'unknown'
-      units_j(k) = 'unknown'
-      ia_j(k) = 0
-c
-      k=k+1
-      name_j(k) = 'AJ88'
-      lname_j(k) = 'unknown'
-      units_j(k) = 'unknown'
-      ia_j(k) = 0
-c
-      k=k+1
-      name_j(k) = 'AJ89'
-      lname_j(k) = 'unknown'
-      units_j(k) = 'unknown'
-      ia_j(k) = 0
-c
-      k=k+1
-      name_j(k) = 'AJ90'
-      lname_j(k) = 'unknown'
-      units_j(k) = 'unknown'
-      ia_j(k) = 0
-c
-      k=k+1
-      name_j(k) = 'AJ91'
-      lname_j(k) = 'unknown'
-      units_j(k) = 'unknown'
-      ia_j(k) = 0
-c
-      k=k+1
-      name_j(k) = 'AJ92'
-      lname_j(k) = 'unknown'
-      units_j(k) = 'unknown'
-      ia_j(k) = 0
-c
-      k=k+1
-      name_j(k) = 'AJ93'
-      lname_j(k) = 'unknown'
-      units_j(k) = 'unknown'
-      ia_j(k) = 0
-c
-      k=k+1
-      name_j(k) = 'AJ94'
-      lname_j(k) = 'unknown'
-      units_j(k) = 'unknown'
-      ia_j(k) = 0
 c
       return
       end subroutine j_defs

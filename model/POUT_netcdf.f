@@ -699,21 +699,24 @@ c restore defaults
       return
       end subroutine close_j
 
-      subroutine POUT_J(TITLE,BUDG,KMAX,TERRAIN)
+      subroutine POUT_J(TITLE,SNAME,LNAME,UNITS,BUDG,KMAX,TERRAIN,
+     *     iotype)
 !@sum  POUT_J output zonal budget file
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : JM
-      USE DAGCOM, only : KAJ,iu_j
+      USE DAGCOM, only : KAJ
       USE GEOM, only : lat_dg
       USE NCOUT
-      USE BDJ, units_j=>units,
-     &         lname_j=>lname,sname_j=>sname
       IMPLICIT NONE
 c temporary, to see nf_char
       include '/usr/local/netcdf-3.4/include/netcdf.inc'
 c
       CHARACTER*16, DIMENSION(KAJ),INTENT(INOUT) :: TITLE
+!@var LNAME,SNAME,UNITS information strings for netcdf
+      CHARACTER*50, DIMENSION(KAJ),INTENT(IN) :: LNAME
+      CHARACTER*30, DIMENSION(KAJ),INTENT(IN) :: SNAME
+      CHARACTER*50, DIMENSION(KAJ),INTENT(IN) :: UNITS
       CHARACTER*16, INTENT(IN) :: TERRAIN
       REAL*8, DIMENSION(JM+3,KAJ), INTENT(IN) :: BUDG
       INTEGER, INTENT(IN) :: KMAX
@@ -736,9 +739,9 @@ c
       dim_name='stype'; call set_dim_out(dim_name,2)
 
       DO K=1,KMAX
-        var_name=sname_j(nt_j(k))
-        long_name=lname_j(nt_j(k))
-        units=units_j(nt_j(k))
+        var_name=sname(k)
+        long_name=lname(k)
+        units=units(k)
         call wrtarrn(var_name,budg(1,k),iotype)
       END DO
 

@@ -209,7 +209,7 @@ C**** have to wait.
       return
       end subroutine open_j
 
-      subroutine POUT_J(TITLE,BUDG,KMAX,TERRAIN)
+      subroutine POUT_J(TITLE,SNAME,LNAME,UNITS,BUDG,KMAX,TERRAIN)
 !@sum  POUT_J output zonal budget ascii file (aplot format)
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -218,23 +218,34 @@ C**** have to wait.
       USE GEOM, only : lat_dg
       IMPLICIT NONE
       CHARACTER*16, DIMENSION(KAJ),INTENT(INOUT) :: TITLE
+      CHARACTER*16 :: NEWTIT
+!@var LNAME,SNAME,UNITS dummy strings 
+      CHARACTER*50, DIMENSION(KAJ),INTENT(IN) :: LNAME
+      CHARACTER*30, DIMENSION(KAJ),INTENT(IN) :: SNAME
+      CHARACTER*50, DIMENSION(KAJ),INTENT(IN) :: UNITS
       CHARACTER*16, INTENT(IN) :: TERRAIN
       REAL*8, DIMENSION(JM+3,KAJ), INTENT(IN) :: BUDG
       INTEGER, INTENT(IN) :: KMAX
-      INTEGER K,N,J
+      INTEGER K,N,J,n1
 
 C**** Convert spaces in TITLE to underscore
+C**** Try simply removing spaces for compactness
       DO K=1,KMAX
+        newtit=' '
+        n1=1
         do n=2,len_trim(title(K))    ! skip control character
-          if (title(K)(n:n).eq.' ') title(K)(n:n)='_'
+          if (title(K)(n:n).ne.' ') then
+            n1=n1+1
+            newtit(n1:n1)=title(K)(n:n)
+          end if
         end do
-        title(K)(1:1)=' '
+        title(K)=newtit
       END DO
 
       WRITE(iu_j,*) "Zonal Budgets for surface type ",TERRAIN
       WRITE(iu_j,*) "Latitude"
       WRITE(iu_j,*) "Zonal Average"
-      WRITE(iu_j,'(A4,100(1X,A))') "Lat",(TRIM(TITLE(K)),K=1,KMAX)
+      WRITE(iu_j,'(A4,100A)') "Lat",(TRIM(TITLE(K)(1:14)),K=1,KMAX)
 
       DO J=1,JM
         WRITE(iu_j,'(I4,100(1X,F8.3))') NINT(LAT_DG(J,1)),

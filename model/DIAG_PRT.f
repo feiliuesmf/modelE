@@ -1,361 +1,121 @@
       MODULE BDJ
-!@sum  stores information for outputting latitude diagnostics
+!@sum  stores information for outputting composite zonal diagnostics
 !@auth M. Kelley
 
       IMPLICIT NONE
 
-!@param nj_out number of j-format output fields = (kd1m+10)
-      integer, parameter :: nj_out=79
-
+!@param nj_out number of j-format output fields = 10
+      integer, parameter :: nj_out=10
 !@var units string containing output field units
-      CHARACTER(LEN=50), DIMENSION(nj_out) :: UNITS
+      CHARACTER(LEN=50), DIMENSION(nj_out) :: UNITS_J_O
 !@var lname string describing output field
-      CHARACTER(LEN=50), DIMENSION(nj_out) :: LNAME
+      CHARACTER(LEN=50), DIMENSION(nj_out) :: LNAME_J_O
 !@var sname string referencing output field in self-desc. output file
-      CHARACTER(LEN=30), DIMENSION(nj_out) :: SNAME
+      CHARACTER(LEN=30), DIMENSION(nj_out) :: NAME_J_O
+!@var stitle short title for print out 
+      CHARACTER(LEN=16), DIMENSION(nj_out) :: STITLE_J_O
+!@var INUM_J_O,IDEN_J_O numerator and denominator for calculated J diags
+      INTEGER, DIMENSION(nj_out) :: INUM_J_O, IDEN_J_O
 
-!@var nt_j expanded version of diagj: ndex that includes albedo-indices
-      integer, dimension(nj_out) :: nt_j
 !@var nstype_out set to ntype_out+1 since indexing in diagj is 0:ntype..
-!@var iotype current output surf type (1 through nstype_out)
-      integer :: nstype_out,iotype
+      integer :: nstype_out
       END MODULE BDJ
 
       SUBROUTINE J_TITLES
+!@sum  J_TITLES calculated zonal diagnostics 
+!@auth M. Kelley/G. Schmidt
+!@ver  1.0
+      USE DAGCOM, only : j_srincp0,j_srnfp0,j_plavis,j_planir,j_srnfg
+     *     ,j_srincg,j_albvis,j_albnir,j_srrvis,j_srrnir,j_sravis
+     *     ,j_sranir
       USE BDJ
       IMPLICIT NONE
       INTEGER :: K
+C**** These information are for J zonal budget calulated diagnostics
+C**** Note that we assume that they are all ratios of two existing 
+C**** records.
 c
       k = 0
 c
-      k = k + 1
-      sname(k) = 'inc_sw'
-      lname(k) = 'SOLAR RADIATION INCIDENT ON PLANET'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'sw_abs_p0'
-      lname(k) = ' SOLAR RADIATION ABSORBED BY PLANET'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'sw_abs_p1'
-      lname(k) = 'SOLAR RADIATION ABSORBED BELOW PTOP'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'sw_abs_atm'
-      lname(k) = 'SOLAR RADIATION ABSORBED BY ATMOSPHERE'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'sw_inc_z0'
-      lname(k) = 'SOLAR RADIATION INCIDENT ON GROUND'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'sw_abs_z0'
-      lname(k) = 'SOLAR RADIATION ABSORBED BY GROUND'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'net_lw_p0'
-      lname(k) = 'THERMAL RADIATION EMITTED BY PLANET'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'net_lw_p1'
-      lname(k) = 'NET THERMAL RADIATION AT PTOP'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'net_lw_z0'
-      lname(k) = 'NET THERMAL RADIATION AT GROUND'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'net_rad_p0'
-      lname(k) = 'NET RADIATION OF PLANET'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'net_rad_p1'
-      lname(k) = 'NET RADIATION BELOW PTOP'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'net_rad_z0'
-      lname(k) = 'NET RADIATION ABSORBED BY GROUND'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'net_clr_toa'
-      lname(k) = 'NET CLEAR SKY RADIATION AT P0'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'net_clr_trp'
-      lname(k) = 'NET CLEAR SKY RADIATION AT TROPOPAUSE (WMO)'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'net_tot_trp'
-      lname(k) = 'NET RADIATION AT TROPOPAUSE (WMO)'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'snsht_flx'
-      lname(k) = 'SENSIBLE HEAT FLUX INTO THE GROUND'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'evht_flx'
-      lname(k) = 'EVAPORATION HEAT FLUX INTO THE GROUND'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'ht_cond_z1z2'
-      lname(k) = 'CONDUCTION AT BOTTOM OF GROUND LAYER 2'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'net_ht_z1'
-      lname(k) = 'NET HEAT FLUX BETWEEN GROUND LAYERS'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'tg2'
-      lname(k) = 'TEMPERATURE OF GROUND LAYER 2'
-      units(k) = '.1 C'
-      k = k + 1
-      sname(k) = 'tg1'
-      lname(k) = 'TEMPERATURE OF GROUND LAYER 1'
-      units(k) = '.1 C'
-      k = k + 1
-      sname(k) = 'evap'
-      lname(k) = 'EVAPORATION'
-      units(k) = 'MM/DAY'
-      k = k + 1
-      sname(k) = 'prec'
-      lname(k) = 'PRECIPITATION'
-      units(k) = 'MM/DAY'
-      k = k + 1
-      sname(k) = 'tair'
-      lname(k) = 'AIR TEMPERATURE'
-      units(k) = '.1 C'
-      k = k + 1
-      sname(k) = 't1'
-      lname(k) = 'TEMPERATURE OF AIR LAYER 1'
-      units(k) = '.1 C'
-      k = k + 1
-      sname(k) = 'tsurf'
-      lname(k) = 'SURFACE AIR TEMPERATURE'
-      units(k) = '.1 C'
-      k = k + 1
-      sname(k) = 'sstab_strat'
-      lname(k) = 'STRATOSPHERIC STATIC STABILITY'
-      units(k) = 'C/km'
-      k = k + 1
-      sname(k) = 'sstab_trop'
-      lname(k) = 'TROPOSPHERIC STATIC STABILITY'
-      units(k) = 'C/km'
-      k = k + 1
-      sname(k) = 'rich_num_strat'
-      lname(k) = 'STRATOSPHERIC RICHARDSON NUMBER'
-      units(k) = '1'
-      k = k + 1
-      sname(k) = 'rich_num_trop'
-      lname(k) = 'TROPOSPHERIC RICHARDSON NUMBER'
-      units(k) = '1'
-      k = k + 1
-      sname(k) = 'ross_num_strat'
-      lname(k) = 'STRATOSPHERIC ROSSBY NUMBER'
-      units(k) = '1'
-      k = k + 1
-      sname(k) = 'ross_num_trop'
-      lname(k) = 'TROPOSPHERIC ROSSBY NUMBER'
-      units(k) = '1'
-      k = k + 1
-      sname(k) = 'ocn_lak_ice_frac'
-      lname(k) = 'OCEAN/LAKE ICE COVER'
-      units(k) = '%'
-      k = k + 1
-      sname(k) = 'snow_cover'
-      lname(k) = 'SNOW COVER'
-      units(k) = '%'
-c      k = k + 1
-c      sname(k) = 'sw_correc'
-c      lname(k) = 'SOLAR RADIATION CORRECTION'
-c      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'ocn_ht_trans'
-      lname(k) = 'CONVERGED OCEAN HEAT TRANSPORT'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'tg3'
-      lname(k) = 'OCEAN TEMP AT MAXIMUM MIXED LAYER DEPTH'
-      units(k) = '.1 C'
-      k = k + 1
-      sname(k) = 'dtdlat_strat'
-      lname(k) = 'STRATO TEMP CHANGE PER DEGREE LATITUDE'
-      units(k) = 'deg C/deg lat'
-      k = k + 1
-      sname(k) = 'dtdlat_trop'
-      lname(k) = 'TROPO TEMP CHANGE PER DEGREE LATITUDE'
-      units(k) = 'deg C/deg lat'
-      k = k + 1
-      sname(k) = 'ross_radius_strat'
-      lname(k) = 'ROSSBY RADIUS IN THE STRATOSPHERE'
-      units(k) = '10**5 m'
-      k = k + 1
-      sname(k) = 'ross_radius_trop'
-      lname(k) = 'ROSSBY RADIUS IN THE TROPOSPHERE'
-      units(k) = '10**5 m'
-      k = k + 1
-      sname(k) = 'prec_ht_flx'
-      lname(k) = 'PRECIPITATION HEAT FLUX INTO THE GROUND'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'ht_runoff_z0'
-      lname(k) = 'HEAT RUNOFF Z0'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'ht_wtr_difs_z1'
-      lname(k) = 'HEAT DIFFUSION OF WATER OR ICE AT -Z1'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'ht_cond_z1'
-      lname(k) = 'CONDUCTION AT BOTTOM OF GROUND LAYER 1'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'ht_ice_z1z2'
-      lname(k) = 'ENERGY OF MELTING (OR TRANS) AT -Z1-Z2'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'nt_ht_z0'
-      lname(k) = 'NET HEATING AT GROUND SURFACE'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'h2o_difs_z1'
-      lname(k) = 'WATER OR ICE DIFFUSION AT -Z1'
-      units(k) = 'mm/day'
-      k = k + 1
-      sname(k) = 'ice_thru_z1z2'
-      lname(k) = 'ICE MELTING (OR TRANSPORT) AT -Z1-Z2'
-      units(k) = 'mm H2O/day'
-      k = k + 1
-      sname(k) = 'h2o_runoff_mld'
-      lname(k) = 'WATER RUNOFF THROUGH MIXED LAYER DEPTH'
-      units(k) = 'mm/day'
-      k = k + 1
-      sname(k) = 'ht_runoff_mld'
-      lname(k) = 'HEAT RUNOFF THROUGH MIXED LAYER DEPTH'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'wat_g1'
-      lname(k) = 'WATER IN GROUND LAYER 1'
-      units(k) = 'kg/m**2'
-      k = k + 1
-      sname(k) = 'ice_g1'
-      lname(k) = 'ICE IN GROUND LAYER 1'
-      units(k) = 'kg/m**2'
-      k = k + 1
-      sname(k) = 'wat_g2'
-      lname(k) = 'WATER IN GROUND LAYER 2'
-      units(k) = 'kg/m**2'
-      k = k + 1
-      sname(k) = 'ice_g2'
-      lname(k) = 'ICE IN GROUND LAYER 2'
-      units(k) = 'kg/m**2'
-      k = k + 1
-      sname(k) = 'snowdp'
-      lname(k) = 'SNOW DEPTH'
-      units(k) = 'kg/m**2'
-      k = k + 1
-      sname(k) = 'wat_runoff_z0'
-      lname(k) = 'WATER RUNOFF AT GROUND SURFACE'
-      units(k) = 'mm/day'
-      k = k + 1
-      sname(k) = 'btemp_window'
-      lname(k) = 'BRIGHTNESS TEMP THROUGH WINDOW REGION'
-      units(k) = 'deg C'
-      k = k + 1
-      sname(k) = 'net_ht_z1z2'
-      lname(k) = 'NET HEAT FLUX AT BOTTOM OF GRND LAY 2'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'sscld'
-      lname(k) = 'SUPER SATURATION CLOUD COVER'
-      units(k) = '%'
-      k = k + 1
-      sname(k) = 'mccld'
-      lname(k) = 'MOIST CONVECTIVE CLOUD COVER'
-      units(k) = '%'
-      k = k + 1
-      sname(k) = 'totcld'
-      lname(k) = 'TOTAL CLOUD COVER'
-      units(k) = '%'
-      k = k + 1
-      sname(k) = 'mc_clddp'
-      lname(k) = 'MC CLD DPTH'
-      units(k) = 'MB'
-      k = k + 1
-      sname(k) = 'ssprec'
-      lname(k) = 'SUPER SATURATION PRECIPITATION'
-      units(k) = 'MM/DAY'
-      k = k + 1
-      sname(k) = 'mcprec'
-      lname(k) = 'MOIST CONVECTIVE PRECIPITATION'
-      units(k) = 'MM/DAY'
-      k = k + 1
-      sname(k) = 'atmh2o'
-      lname(k) = 'WATER CONTENT OF ATMOSPHERE'
-      units(k) = 'MM'
-      k = k + 1
-      sname(k) = 'lapse_rate'
-      lname(k) = 'MEAN LAPSE RATE'
-      units(k) = 'K/KM'
-      k = k + 1
-      sname(k) = 'lapse_rate_m'
-      lname(k) = 'MOIST ADIABATIC LAPSE RATE'
-      units(k) = 'K/KM'
-      k = k + 1
-      sname(k) = 'lapse_rate_c'
-      lname(k) = 'GAMC'
-      units(k) = 'K/KM'
-      k = k + 1
-      sname(k) = 'lw_inc_z0'
-      lname(k) = 'THERMAL RADIATION INCIDENT ON GROUND'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'ht_thermocline'
-      lname(k) = 'ENERGY DIFFUSION INTO THE THERMOCLINE'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'surf_type_frac'
-      lname(k) = 'SURF TYPE FRACT'
-      units(k) = '%'
-      k = k + 1
-      sname(k) = 'plan_alb'
-      lname(k) = 'PLANETARY ALBEDO'
-      units(k) = '%'
-      k = k + 1
-      sname(k) = 'plan_alb_vis'
-      lname(k) = 'PLANETARY ALBEDO IN VISUAL'
-      units(k) = '%'
-      k = k + 1
-      sname(k) = 'plan_alb_nir'
-      lname(k) = 'PLANETARY ALBEDO IN NEAR IR'
-      units(k) = '%'
-      k = k + 1
-      sname(k) = 'surf_alb'
-      lname(k) = 'GROUND ALBEDO'
-      units(k) = '%'
-      k = k + 1
-      sname(k) = 'surf_alb_vis'
-      lname(k) = 'GROUND ALBEDO IN VISUAL'
-      units(k) = '%'
-      k = k + 1
-      sname(k) = 'surf_alb_nir'
-      lname(k) = 'GROUND ALBEDO IN NEAR IR'
-      units(k) = '%'
-      k = k + 1
-      sname(k) = 'atm_alb_vis'
-      lname(k) = 'ATMOSPHERIC ALBEDO IN VISUAL'
-      units(k) = '%'
-      k = k + 1
-      sname(k) = 'atm_alb_nir'
-      lname(k) = 'ATMOSPHERIC ALBEDO IN NEAR IR'
-      units(k) = '%'
-      k = k + 1
-      sname(k) = 'atm_abs_vis'
-      lname(k) = 'ATMOSPHERIC ABSORPTION IN VISUAL'
-      units(k) = 'WT/M**2'
-      k = k + 1
-      sname(k) = 'atm_abs_nir'
-      lname(k) = 'ATMOSPHERIC ABSORPTION IN NEAR IR'
-      units(k) = 'WT/M**2'
+      k = k + 1 
+      name_j_o(k) = 'plan_alb'
+      lname_j_o(k) = ' TOTAL PLANETARY ALBEDO'
+      units_j_o(k) = '%'
+      stitle_j_o(k)= ' PLANETARY ALBDO'
+      inum_j_o(k)  = J_SRNFP0
+      iden_j_o(k)  = J_SRINCP0
+c
+      k = k + 1 
+      name_j_o(k) = 'plan_alb_vis'
+      lname_j_o(k) = 'PLANETARY ALBEDO IN VISUAL'
+      units_j_o(k) = '%'
+      stitle_j_o(k)= ' PLAN ALB VISUAL'
+      inum_j_o(k)  = J_PLAVIS
+      iden_j_o(k)  = J_SRINCP0
+c
+      k = k + 1 
+      name_j_o(k) = 'plan_alb_nir'
+      lname_j_o(k) = 'PLANETARY ALBEDO IN NEAR IR'
+      units_j_o(k) = '%'
+      stitle_j_o(k)= ' PLAN ALB NEARIR'
+      inum_j_o(k)  = J_PLANIR
+      iden_j_o(k)  = J_SRINCP0
+c
+      k = k + 1 
+      name_j_o(k) = 'surf_alb'
+      lname_j_o(k) = 'GROUND ALBEDO'
+      units_j_o(k) = '%'
+      stitle_j_o(k)= ' SURFACE G ALBDO'
+      inum_j_o(k)  = J_SRNFG
+      iden_j_o(k)  = J_SRINCG
+c
+      k = k + 1 
+      name_j_o(k) = 'surf_alb_vis'
+      lname_j_o(k) = 'GROUND ALBEDO IN VISUAL'
+      units_j_o(k) = '%'
+      stitle_j_o(k)= ' SURF ALB VISUAL'
+      inum_j_o(k)  = J_ALBVIS
+      iden_j_o(k)  = J_SRINCP0
+c
+      k = k + 1 
+      name_j_o(k) = 'surf_alb_nir'
+      lname_j_o(k) = 'GROUND ALBEDO IN NEAR IR'
+      units_j_o(k) = '%'
+      stitle_j_o(k)= ' SURF ALB NEARIR'
+      inum_j_o(k)  = J_ALBNIR
+      iden_j_o(k)  = J_SRINCP0
+c
+      k = k + 1 
+      name_j_o(k) = 'atm_alb_vis'
+      lname_j_o(k) = 'ATMOSPHERIC ALBEDO IN VISUAL'
+      units_j_o(k) = '%'
+      stitle_j_o(k)= '0ATMO ALB VISUAL'
+      inum_j_o(k)  = J_SRRVIS
+      iden_j_o(k)  = J_SRINCP0
+c
+      k = k + 1 
+      name_j_o(k) = 'atm_alb_nir'
+      lname_j_o(k) = 'ATMOSPHERIC ALBEDO IN NEAR IR'
+      units_j_o(k) = '%'
+      stitle_j_o(k)= ' ATMO ALB NEARIR'
+      inum_j_o(k)  = J_SRRNIR
+      iden_j_o(k)  = J_SRINCP0
+c
+      k = k + 1 
+      name_j_o(k) = 'atm_abs_vis'
+      lname_j_o(k) = 'ATMOSPHERIC ABSORPTION IN VISUAL'
+      units_j_o(k) = 'W/M**2'
+      stitle_j_o(k)= ' ATMO ABS VISUAL'
+      inum_j_o(k)  = J_SRAVIS
+      iden_j_o(k)  = J_SRINCP0
+c
+      k = k + 1 
+      name_j_o(k) = 'atm_abs_nir'
+      lname_j_o(k) = 'ATMOSPHERIC ABSORPTION IN NEAR IR'
+      units_j_o(k) = 'W/M**2'
+      stitle_j_o(k)= ' ATMO ABS NEARIR'
+      inum_j_o(k)  = J_SRANIR
+      iden_j_o(k)  = J_SRINCP0
 
       RETURN
       END SUBROUTINE J_TITLES
@@ -469,11 +229,11 @@ c      USE PRTCOM, only :
      &     j_ctopp,j_cdldep,j_pcldmc,j_srabs,j_srnfp0,j_srnfg,j_trnfp0,
      &     j_hsurf,j_trhdt,j_trnfp1,j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,
      &     j_rhdt,j_hz1,j_edifs,j_f1dt,j_prcp,j_prcpss,j_prcpmc,j_hz0,
-     &     j_shdt,j_evhdt,j_eprcp,j_erun1,j_hz2,j_f2dt,j_erun2,j_type
-      USE DAGPCOM, only :
-     *     P1000K
-      USE BDJ, only :
-     &     nt_j,nstype_out,iotype
+     &     j_shdt,j_evhdt,j_eprcp,j_erun1,j_hz2,j_f2dt,j_erun2,j_type,
+     *     scale_j,stitle_j,lname_j,name_j,units_j
+c      USE DAGPCOM, only :
+c     *     P1000K
+      USE BDJ
       IMPLICIT NONE
       SAVE
       DOUBLE PRECISION, DIMENSION(JM) ::
@@ -499,41 +259,44 @@ C**** possible expanded version (including composites)
      *     '    (GLOBAL)','(OPEN OCEAN)',' (OCEAN ICE)','     (OCEAN)',
      *     '      (LAND)','  (LAND ICE)',' (OPEN LAKE)','  (LAKE ICE)',
      *     '     (LAKES)'/)
-      CHARACTER*16 TITLEA(10)
-      CHARACTER(LEN=16), DIMENSION(KAJ) :: TITLE = (/
-     1  ' INC SW(WT/M**2)', '0SW ABS BELOW P0', ' SW ABS BELOW P1',
-     4  ' SW ABS BY ATMOS', ' SW INC ON Z0   ', ' SW ABS AT Z0   ',
-     7  '0NET LW AT P0   ', ' NET LW AT P1   ', ' NET LW AT Z0   ',
-     O  '0NET RAD AT P0  ', ' NET RAD AT P1  ', ' NET RAD AT Z0  ',
-     3  '0SENSBL HEAT FLX', ' EVAPOR HEAT FLX', '0CONDC AT -Z1-Z2',
-     6  ' NET HEAT AT -Z1', ' TG2 (.1 C)     ', '1TG1 (.1 C)     ',
-     9  ' EVAPOR (MM/DAY)', ' PRECIP (MM/DAY)', ' T AIR (.1 C)   ',
-     2  ' T1 (.1 C)      ', '0T SURF (.1 C)  ', '0STAT STB(STRAT)',
-     5  ' STAT STB(TROPO)', '0RICH NUM(STRAT)', ' RICH NUM(TROPO)',
-     8  ' ROSS NUM(STRAT)', ' ROSS NUM(TROPO)', ' OC/LK ICE COVER',
-     1  '0SNOW COVER     ', ' SW CORRECTION  ', '0OCEAN TRANSPORT',
-     4  ' TG3 (.1 C)     ', '0DT/DLAT(STRAT) ', ' DT/DLAT(TROPO) ',
-     7  ' L(STRAT)(10**5)', ' L(TROP) (10**5)', ' PRECIP HEAT FLX',
-     O  ' HEAT RUNOFF Z0 ', ' HT WTR DIFS -Z1', '0CONDUCTN AT -Z1',
-     3  ' ICE ENRG -Z1-Z2', ' NET HEAT AT Z0 ', ' H2O DIFS AT -Z1',
-     6  ' ICE THRU -Z1-Z2', ' WATR RUNOFF MLD', ' HEAT RUNOFF MLD',
-     9  '0WATER IN G1    ', ' ICE IN G1      ', ' WATER IN G2    ',
-     2  ' ICE IN G2      ', ' SNOW DEPTH     ', '0WATER RUNOFF Z0',
-     5  ' LW WINDOW BTEMP', ' NET HEAT -Z1-Z2', '0TOT SUP SAT CLD',
-     8  ' TOT MST CNV CLD', ' TOTAL CLD COVER', ' MC CLD DPTH(MB)',
-     1  '0SS PRECIP(MM/D)', ' MC PRECIP(MM/D)', ' H2O OF ATM (MM)',
-     4  '0GAM(K/KM)      ', ' GAMM(K/KM)     ', ' GAMC(K/KM)     ',
-     7  ' LW INC ON Z0   ', ' HT INTO THRMOCL', ' SURF TYPE FRACT',
-     & ('                ',iii=1,11),
-     *  ' NET CLR RAD  P0', ' NET CLR RAD TRP', ' NET RAD (TROPP)',
-     & ('                ',iii=1,11)/)
-      DATA TITLEA/' PLANETARY ALBDO',' PLAN ALB VISUAL',
-     *  ' PLAN ALB NEARIR', ' SURFACE G ALBDO', ' SURF ALB VISUAL',
-     *  ' SURF ALB NEARIR', '0ATMO ALB VISUAL', ' ATMO ALB NEARIR',
-     *  ' ATMO ABS VISUAL', ' ATMO ABS NEARIR'/
+c      CHARACTER*16 TITLEA(10)
+c      CHARACTER(LEN=16), DIMENSION(KAJ) :: TITLE = (/
+c     1  ' INC SW(WT/M**2)', '0SW ABS BELOW P0', ' SW ABS BELOW P1',
+c     4  ' SW ABS BY ATMOS', ' SW INC ON Z0   ', ' SW ABS AT Z0   ',
+c     7  '0NET LW AT P0   ', ' NET LW AT P1   ', ' NET LW AT Z0   ',
+c     O  '0NET RAD AT P0  ', ' NET RAD AT P1  ', ' NET RAD AT Z0  ',
+c     3  '0SENSBL HEAT FLX', ' EVAPOR HEAT FLX', '0CONDC AT -Z1-Z2',
+c     6  ' NET HEAT AT -Z1', ' TG2 (.1 C)     ', '1TG1 (.1 C)     ',
+c     9  ' EVAPOR (MM/DAY)', ' PRECIP (MM/DAY)', ' T AIR (.1 C)   ',
+c     2  ' T1 (.1 C)      ', '0T SURF (.1 C)  ', '0STAT STB(STRAT)',
+c     5  ' STAT STB(TROPO)', '0RICH NUM(STRAT)', ' RICH NUM(TROPO)',
+c     8  ' ROSS NUM(STRAT)', ' ROSS NUM(TROPO)', ' OC/LK ICE COVER',
+c     1  '0SNOW COVER     ', ' SW CORRECTION  ', '0OCEAN TRANSPORT',
+c     4  ' TG3 (.1 C)     ', '0DT/DLAT(STRAT) ', ' DT/DLAT(TROPO) ',
+c     7  ' L(STRAT)(10**5)', ' L(TROP) (10**5)', ' PRECIP HEAT FLX',
+c     O  ' HEAT RUNOFF Z0 ', ' HT WTR DIFS -Z1', '0CONDUCTN AT -Z1',
+c     3  ' ICE ENRG -Z1-Z2', ' NET HEAT AT Z0 ', ' H2O DIFS AT -Z1',
+c     6  ' ICE THRU -Z1-Z2', ' WATR RUNOFF MLD', ' HEAT RUNOFF MLD',
+c     9  '0WATER IN G1    ', ' ICE IN G1      ', ' WATER IN G2    ',
+c     2  ' ICE IN G2      ', ' SNOW DEPTH     ', '0WATER RUNOFF Z0',
+c     5  ' LW WINDOW BTEMP', ' NET HEAT -Z1-Z2', '0TOT SUP SAT CLD',
+c     8  ' TOT MST CNV CLD', ' TOTAL CLD COVER', ' MC CLD DPTH(MB)',
+c     1  '0SS PRECIP(MM/D)', ' MC PRECIP(MM/D)', ' H2O OF ATM (MM)',
+c     4  '0GAM(K/KM)      ', ' GAMM(K/KM)     ', ' GAMC(K/KM)     ',
+c     7  ' LW INC ON Z0   ', ' HT INTO THRMOCL', ' SURF TYPE FRACT',
+c     & ('                ',iii=1,11),
+c     *  ' NET CLR RAD  P0', ' NET CLR RAD TRP', ' NET RAD (TROPP)',
+c     & ('                ',iii=1,11)/)
+c      DATA TITLEA/' PLANETARY ALBDO',' PLAN ALB VISUAL',
+c     *  ' PLAN ALB NEARIR', ' SURFACE G ALBDO', ' SURF ALB VISUAL',
+c     *  ' SURF ALB NEARIR', '0ATMO ALB VISUAL', ' ATMO ALB NEARIR',
+c     *  ' ATMO ABS VISUAL', ' ATMO ABS NEARIR'/
 C**** Arrays needed for full output
       REAL*8, DIMENSION(JM+3,KAJ) :: BUDG
-      CHARACTER*16,DIMENSION(KAJ) :: TITLEO
+      CHARACTER*16, DIMENSION(KAJ) :: TITLEO
+      CHARACTER*50, DIMENSION(KAJ) :: LNAMEO
+      CHARACTER*30, DIMENSION(KAJ) :: SNAMEO
+      CHARACTER*50, DIMENSION(KAJ) :: UNITSO
 C**** weighting functions for surface types
       DOUBLE PRECISION, DIMENSION(0:NTYPE_OUT,NTYPE) ::
 c     *     WT=RESHAPE(         ! old version with NTYPE=3
@@ -555,12 +318,12 @@ c     *     (/NTYPE_OUT+1,NTYPE/) )
      *  42,41,16,15,43,56,33,48,68,18,  17,34,23,22,21,35,36,24,25,26,
      *  27,28,29,37,38,64,65,66,57,58,  59,60,61,62,20,19,63,54,45,46,
      *  47,49,50,51,52,53,31,30,69/)
-      INTEGER, DIMENSION(10) :: INNUM,INDEN
-      DATA INNUM/2,72,73,6,74,75,76,77,78,79/, INDEN/3*1,5,6*1/
-      DOUBLE PRECISION, DIMENSION(KAJ) :: SCALE
-      DATA SCALE/6*1.,  6*1.,  4*1.,2*10.,  2*1.,4*10.,  6*100.,
-     *  100.,2*1.,10.,2*100.,  6*1.,  6*1.,  6*1.,  2*1.,3*100.,1.,
-     *  6*1., 2*1.,100.,3*1., 22*1./
+c      INTEGER, DIMENSION(10) :: INNUM,INDEN
+c      DATA INNUM/2,72,73,6,74,75,76,77,78,79/, INDEN/3*1,5,6*1/
+c      DOUBLE PRECISION, DIMENSION(KAJ) :: SCALE
+c      DATA SCALE/6*1.,  6*1.,  4*1.,2*10.,  2*1.,4*10.,  6*100.,
+c     *  100.,2*1.,10.,2*100.,  6*1.,  6*1.,  6*1.,  2*1.,3*100.,1.,
+c     *  6*1., 2*1.,100.,3*1., 22*1./
 
       DOUBLE PRECISION :: A1BYA2,A2BYA1,AMULT,BYA1,BYIACC,
      &     FGLOB,GSUM,GSUM2,GWT,HSUM,HSUM2,HWT,QDEN,QJ,QNUM,DAYS,WTX
@@ -587,50 +350,49 @@ C**** INITIALIZE CERTAIN QUANTITIES  (KD1M LE 69)
       END DO
       S1(1)=1.
       S1(JM)=1.
-      SCALE(9)=1./DTSRC
-      SCALE(12)=1./DTSRC
-      SCALE(13)=1./DTSRC
-      SCALE(14)=1./DTSRC
-      SCALE(15)=1./DTSRC
-      SCALE(16)=1./DTSRC
-      SCALE(19)=SDAY/DTSRC
-      SCALE(20)=100.*SDAY/(DTsrc*GRAV)
-      SCALE(24)=1.D3*GRAV*P1000K
-      SCALE(25)=SCALE(24)
-      SCALE(26)=16.*RGAS
-      SCALE(27)=16.*RGAS
-      SCALE(28)=.5/(2.*OMEGA*FIM)
-      SCALE(29)=.5/(2.*OMEGA*FIM)
-      SCALE(33)=1./DTSRC
-      SCALE(35)=.5D2*(JM-1.)/((SIGE(LS1)-SIGE(LM+1)+1.D-12)*180.)
-      SCALE(36)=.5E2*(JM-1.)/((SIGE(1)-SIGE(LS1))*180.)
-      SCALE(37)=1.D-5*SQRT(RGAS)/(2.*OMEGA)
-      SCALE(38)=SCALE(37)
-      SCALE(39)=1./DTSRC
-      SCALE(40)=1./DTSRC
-      SCALE(41)=1./DTSRC
-      SCALE(42)=1./DTSRC
-      SCALE(43)=1./DTSRC
-      SCALE(44)=1./DTSRC
-      SCALE(45)=SDAY/DTSRC
-      SCALE(46)=SDAY/DTSRC
-      SCALE(47)=SDAY/DTSRC
-      SCALE(48)=1./DTSRC
-      SCALE(54)=SDAY/DTSRC
-      SCALE(56)=1./DTSRC
-      SCALE(61)=SCALE(20)
-      SCALE(62)=SCALE(20)
-      SCALE(63)=100.*BYGRAV
-      SCALE(64)=1.D3*GRAV
-      SCALE(65)=1.D3*.0098/(SIGE(1)-SIGE(LS1))
-      SCALE(66)=1.D3
-      SCALE(68)=2.E3*4185./SDAY
+c      SCALE(9)=1./DTSRC
+c      SCALE(12)=1./DTSRC
+c      SCALE(13)=1./DTSRC
+c      SCALE(14)=1./DTSRC
+c      SCALE(15)=1./DTSRC
+c      SCALE(16)=1./DTSRC
+c      SCALE(19)=SDAY/DTSRC
+c      SCALE(20)=100.*SDAY/(DTsrc*GRAV)
+c      SCALE(24)=1.D3*GRAV*P1000K
+c      SCALE(25)=SCALE(24)
+c      SCALE(26)=16.*RGAS
+c      SCALE(27)=16.*RGAS
+c      SCALE(28)=.5/(2.*OMEGA*FIM)
+c      SCALE(29)=.5/(2.*OMEGA*FIM)
+c      SCALE(33)=1./DTSRC
+c      SCALE(35)=.5D2*(JM-1.)/((SIGE(LS1)-SIGE(LM+1)+1.D-12)*180.)
+c      SCALE(36)=.5E2*(JM-1.)/((SIGE(1)-SIGE(LS1))*180.)
+c      SCALE(37)=1.D-5*SQRT(RGAS)/(2.*OMEGA)
+c      SCALE(38)=SCALE(37)
+c      SCALE(39)=1./DTSRC
+c      SCALE(40)=1./DTSRC
+c      SCALE(41)=1./DTSRC
+c      SCALE(42)=1./DTSRC
+c      SCALE(43)=1./DTSRC
+c      SCALE(44)=1./DTSRC
+c      SCALE(45)=SDAY/DTSRC
+c      SCALE(46)=SDAY/DTSRC
+c      SCALE(47)=SDAY/DTSRC
+c      SCALE(48)=1./DTSRC
+c      SCALE(54)=SDAY/DTSRC
+c      SCALE(56)=1./DTSRC
+c      SCALE(61)=SCALE(20)
+c      SCALE(62)=SCALE(20)
+c      SCALE(63)=100.*BYGRAV
+c      SCALE(64)=1.D3*GRAV
+c      SCALE(65)=1.D3*.0098/(SIGE(1)-SIGE(LS1))
+c      SCALE(66)=1.D3
+c      SCALE(68)=2.E3*4185./SDAY
       END IF
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      iotype = 0
       IF (QCHECK) call open_j(trim(acc_period)//'.j'//XLABEL(1:LRUNID))
 
-C**** CALCULATE THE DERIVED QUANTITIES
+C**** CALCULATE THE DERIVED QUANTTIES
       BYA1=1./(IDACC(1)+1.D-20)
       A2BYA1=DFLOAT(IDACC(2))/DFLOAT(IDACC(1))
       A1BYA2=IDACC(1)/(IDACC(2)+1.D-20)
@@ -686,7 +448,7 @@ C****
       IACC=IDACC(IA_J(N))
 C**** set weighting for denominator (different only for J_TYPE)
       MD=M
-      IF (N.EQ.J_TYPE) MD=0
+      IF (name_j(N).eq.'J_surf_type_frac') MD=0
       GSUM=0.
       GWT=0.
       DO JHEMI=1,2
@@ -701,7 +463,7 @@ C**** Sum over types
             QJ =QJ +WT(M ,IT)*AJ(J,N,IT)
             WTX=WTX+WT(MD,IT)*SPTYPE(IT,J)
           END DO
-          QJ=QJ*SCALE(N)
+          QJ=QJ*SCALE_J(N)
           WTX=WTX*IACC
           FLAT(J)=QJ/(WTX+1.D-20)
           MLAT(J)=NINT(FLAT(J))
@@ -719,35 +481,45 @@ C**** Save BUDG for full output
       BUDG(JM+1,K)=FHEM(1)
       BUDG(JM+2,K)=FHEM(2)
       BUDG(JM+3,K)=FGLOB
-      TITLEO(K)=TITLE(N)
-      NT_J(K)=N
+      TITLEO(K)=STITLE_J(N)
+      LNAMEO(K)=LNAME_J(N)
+      SNAMEO(K)=NAME_J(N)
+      UNITSO(K)=UNITS_J(N)
 c     GO TO (350,350,350,350,350,350,  350,350,350,350,350,350,
 c    *       350,350,348,348,350,350,  345,345,350,350,350,350,
 c    *       340,350,350,345,345,350,  350,340,348,350,350,350,
 c    *       345,345,348,345,348,348,  348,348,345,345,345,345,
 c    *       350,350,350,350,350,345,  350,348,350,350,350,350,
 c    *       345,345,350,345,345,345,  350,345,350,350,350,350),N
-      SELECT CASE (N)           ! output format
-      CASE (25,32)
-        WRITE (6,906) TITLE(N),FGLOB,FHEM(2),FHEM(1),
+      SELECT CASE (name_j(N)(3:len_trim(name_j(N)))) ! output format
+      CASE ('sstab_trop','SWCOR')
+        WRITE (6,906) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
      *       (FLAT(J),J=JM,INC,-INC)
-      CASE (19,20,28,29,37,38,40,45:48,54,61,62,64:66,68)
-        WRITE (6,911) TITLE(N),FGLOB,FHEM(2),FHEM(1),
+      CASE ('evap','prec','ross_num_strat','ross_num_trop'
+     *       ,'ross_radius_strat','ross_radius_trop','ht_runoff_z0'
+     *       ,'h2o_difs_z1','ice_thru_z1z2','h2o_runoff_mld'
+     *       ,'ht_runoff_mld','wat_runoff_z0','ssprec','mcprec'
+     *       ,'lapse_rate','lapse_rate_m','lapse_rate_c'
+     *       ,'ht_thermocline')
+        WRITE (6,911) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
      *       (FLAT(J),J=JM,INC,-INC)
-      CASE (15,16,33,39,41:44,56)
-        WRITE (6,912) TITLE(N),FGLOB,FHEM(2),FHEM(1),
+      CASE ('ht_cond_z1z2','net_ht_z1','ocn_ht_trans','prec_ht_flx'
+     *       ,'ht_wtr_difs_z1','ht_cond_z1','ht_ice_z1z2','nt_ht_z0'
+     *       ,'net_ht_z1z2')
+        WRITE (6,912) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
      *       (MLAT(J),J=JM,INC,-INC)
       CASE DEFAULT
-        WRITE (6,907) TITLE(N),FGLOB,FHEM(2),FHEM(1),
+        WRITE (6,907) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
      *       (MLAT(J),J=JM,INC,-INC)
       END SELECT
       IF (N.EQ.1) THEN
 C**** CALCULATE AND PRINT ALBEDOS
-      DO KA=1,10
-        NN=INNUM(KA)
-        ND=INDEN(KA)
+      DO KA=1,nj_out
+        NN=INUM_J_O(KA)
+        ND=IDEN_J_O(KA)
         AMULT=1.
-        IF (KA.LE.1.OR.KA.EQ.4) AMULT=-1.
+        IF (name_j_o(ka).eq.'plan_alb'.or.name_j_o(ka).eq.'surf_alb')
+     *       AMULT=-1.
         GSUM=0.
         GSUM2=0.
         DO JHEMI=1,2
@@ -772,23 +544,26 @@ C**** Sum over types
           GSUM2=GSUM2+HSUM2
         END DO
         FGLOB=50.+AMULT*(100.*GSUM/(GSUM2+1.D-20)-50.)
-        IF (M.EQ.0.AND.KA.EQ.1) CALL KEYDJA (FGLOB)
+        IF (M.EQ.0.AND.name_j_o(ka).eq.'plan_alb') CALL KEYDJA (FGLOB)
 C**** Save BUDG for full output
       BUDG(1:JM,KA+KD1M)=FLAT(1:JM)
       BUDG(JM+1,KA+KD1M)=FHEM(1)
       BUDG(JM+2,KA+KD1M)=FHEM(2)
       BUDG(JM+3,KA+KD1M)=FGLOB
-      TITLEO(KA+KD1M)=TITLE(KA)
-      NT_J(KA+KD1M)=KA+KD1M
-      WRITE (6,912) TITLEA(KA),FGLOB,FHEM(2),FHEM(1),
+      TITLEO(KA+KD1M)=STITLE_J_O(KA)
+      LNAMEO(K)=LNAME_J_O(N)
+      SNAMEO(K)=NAME_J_O(N)
+      UNITSO(K)=UNITS_J_O(N)
+C****
+      WRITE (6,912) STITLE_J_O(KA),FGLOB,FHEM(2),FHEM(1),
      *     (MLAT(J),J=JM,INC,-INC)
       END DO
       END IF
       END DO
       WRITE (6,903) (NINT(LAT_DG(J,1)),J=JM,INC,-INC)
       WRITE (6,905)
-      iotype = iotype + 1
-      IF (QCHECK) CALL POUT_J(TITLEO,BUDG,KD1M+10,TERRAIN(M))
+      IF (QCHECK) CALL POUT_J(TITLEO,SNAMEO,LNAMEO,UNITSO,BUDG,KD1M+10
+     *     ,TERRAIN(M),M)
       IF (KDIAG(1).GT.1) RETURN
       END DO
       if(qcheck) call close_j
@@ -804,7 +579,7 @@ C****
       N=NDEX(K)
       BYIACC=1./(IDACC(IA_J(N))+1.D-20)
       DO JR=1,23
-        FLAT(JR)=AREG(JR,N)*SCALE(N)*BYIACC/SAREA(JR)
+        FLAT(JR)=AREG(JR,N)*SCALE_J(N)*BYIACC/SAREA(JR)
         MLAT(JR)=NINT(FLAT(JR))
       END DO
 CF       DO 523 J=1,23
@@ -815,26 +590,32 @@ c    *       540,550,550,540,540,540,  540,540,550,550,550,550,
 c    *       540,540,550,540,550,550,  550,550,540,540,540,540,
 c    *       540,540,550,550,540,540,  550,550,550,550,550,550,
 c    *       540,540,540,540,540,540,  550,540,550,550,550,550),N
-      SELECT CASE (N) ! output format
-      CASE (19,20,25,28:32,37,38,40,45:50,53,54,61:66,68)
-        WRITE (6,910) TITLE(N),(FLAT(JR),JR=1,23)
+      SELECT CASE (name_j(N)(3:len_trim(name_j(N)))) ! output format
+      CASE ('evap','prec','sstab_trop','ross_num_strat','ross_num_trop',
+     *     'ocn_lak_ice_frac','snow_cover','SWCOR','ross_radius_strat'
+     *     ,'ross_radius_trop','ht_runoff_z0','h2o_difs_z1'
+     *     ,'ice_thru_z1z2','h2o_runoff_mld','ht_runoff_mld','wat_g1'
+     *     ,'ice_g1','snowdp','wat_runoff_z0','ssprec','mcprec','atmh2o'
+     *     ,'lapse_rate','lapse_rate_m','lapse_rate_c','ht_thermocline')
+        WRITE (6,910) STITLE_J(N),(FLAT(JR),JR=1,23)
       CASE DEFAULT
-        WRITE (6,909) TITLE(N),(MLAT(JR),JR=1,23)
+        WRITE (6,909) STITLE_J(N),(MLAT(JR),JR=1,23)
       END SELECT
       IF (N.EQ.1) THEN ! do albedo printout next
 C**** CALCULATE AND PRINT ALBEDOS FOR REGIONAL STATISTICS
-      DO KA=1,10
-        NN=INNUM(KA)
-        ND=INDEN(KA)
+      DO KA=1,nj_out
+        NN=INUM_J_O(KA)
+        ND=IDEN_J_O(KA)
         AMULT=1.
-        IF (KA.LE.1.OR.KA.EQ.4) AMULT=-1.
+        IF (name_j_o(ka).eq.'plan_alb'.or.name_j_o(ka).eq.'surf_alb')
+     *       AMULT=-1.
         DO JR=1,23
           FLAT(JR)=AMULT*(100.*AREG(JR,NN)/(AREG(JR,ND)+1.D-20)-50.)+50.
           MLAT(JR)=FLAT(JR)+.5
         END DO
 CF       DO 613 J=1,23
 CF613    RBUDG(J,KA+KD1M)=FLAT(J)
-        WRITE (6,909) TITLEA(KA),(MLAT(JR),JR=1,23)
+        WRITE (6,909) STITLE_J_O(KA),(MLAT(JR),JR=1,23)
       END DO
       END IF
       END DO

@@ -248,10 +248,14 @@ C****      names, indices, units, idacc-numbers, etc.
       character(len=20), dimension(kaj) :: name_j,units_j
 !@var LNAME_J Long names of zonal J diagnostics
       character(len=80), dimension(kaj) :: lname_j
-      character(len=20), dimension(kaj) :: name_reg
+!@var STITLE_J short titles for print out for zonal J diagnostics
+      character(len=16), dimension(kaj) :: stitle_j
+!@var SCALE_J scale for zonal J diagnostics
+      real*8, dimension(kaj) :: scale_j
 !@var IA_J IDACC indexes for zonal J diagnostics
       integer, dimension(kaj) :: ia_j
 
+      character(len=20), dimension(kaj) :: name_reg
       character(len=20), dimension(kapj) :: name_pj,units_pj
       character(len=80), dimension(kapj) :: lname_pj
 
