@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE MODEL_COM
 !@sum  MODEL_COM Main model variables, independent of resolution
 !@auth Original Development Team
@@ -426,9 +428,15 @@ C**** Calls to individual i/o routines
         call io_clouds (kunit,iaction,ioerr)
         call io_somtq  (kunit,iaction,ioerr)
         call io_rad    (kunit,iaction,ioerr)
+#ifdef TRACERS_ON        
+        call io_tracer (kunit,iaction,ioerr)
+#endif
       end if
       call io_diags  (kunit,it,iaction,ioerr)
       call io_ocdiag (kunit,it,iaction,ioerr)
+#ifdef TRACERS_ON        
+      call io_trdiag (kunit,it,iaction,ioerr)
+#endif
 
       if (it1.ne.it) THEN
         WRITE(6,*) "TIMES DO NOT MATCH READING IN RSF FILE",it,it1

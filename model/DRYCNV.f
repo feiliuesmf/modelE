@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       SUBROUTINE DIFFUS(LBASE_MIN,LBASE_MAX,DTIME)
 !@sum  DIFFUS(DRYCNV) mixes air caused by dry convection.
 !@+    this version checks base layers lbase_min to lbase_max.
@@ -8,6 +10,10 @@
       USE GEOM
       USE QUSDEF, only : nmom,zmoms,xymoms
       USE SOMTQ_COM, only : tmom,qmom
+#ifdef TRACERS_ON
+      USE TRACER_COM, only: TRM,TRMOM,NTM
+      USE TRACER_DIAG_COM, only: TAJLN,JLNT_TURB
+#endif
       USE DAGCOM, only : ajl,jl_trbhr,jl_damdc,jl_trbdlht
       USE DYNAMICS, only : pk,pdsig,plij
       USE PBLCOM, only : dclev
@@ -27,6 +33,12 @@
       DOUBLE PRECISION, DIMENSION(NMOM) :: TMOMS,QMOMS
       REAL*8 DOK,PIJBOT,PIJ,PKMS,THPKMS,QMS
      *     ,TVMS,THETA,RDP,THM
+
+#ifdef TRACERS_ON
+      DOUBLE PRECISION, DIMENSION(NMOM,NTM) :: TRMOMS
+      DOUBLE PRECISION, DIMENSION(     NTM) :: TRMS
+      REAL*8 SDPL,BYSDPL
+#endif
 
       if(LBASE_MAX.GE.LM) stop 'DRYCNV: LBASE_MAX.GE.LM'
 C**** LOAD U,V INTO UT,VT.  UT,VT WILL BE FIXED DURING DRY CONVECTION
@@ -73,6 +85,11 @@ C**** sum moments to mix over unstable layers
       QMOMS(XYMOMS) =
      &     QMOM(XYMOMS,I,J,LMIN  )*(DP(LMIN  ))  +
      &     QMOM(XYMOMS,I,J,LMIN+1)*(DP(LMIN+1))
+#ifdef TRACERS_ON
+      TRMS(:) = TRM(I,J,LMIN,:)+TRM(I,J,LMIN+1,:)
+      TRMOMS(XYMOMS,:) = 
+     &     TRMOM(XYMOMS,I,J,LMIN,:)+TRMOM(XYMOMS,I,J,LMIN+1,:)
+#endif
       IF (LMIN+1.GE.LM) GO TO 150
       TVMS=T(I,J,LMIN)*(1.+Q(I,J,LMIN)*deltx)*(PK(LMIN,I,J)*DP(LMIN))
      *    +T(I,J,LMIN+1)*(1.+Q(I,J,LMIN+1)*deltx)
@@ -92,12 +109,23 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
         QMOMS(XYMOMS) = QMOMS(XYMOMS) +
      &       QMOM(XYMOMS,I,J,L)*DP(L)
         THETA=TVMS/PKMS
+#ifdef TRACERS_ON
+      TRMS(:) = TRMS(:) + TRM(I,J,L,:)
+      TRMOMS(XYMOMS,:) = TRMOMS(XYMOMS,:) + TRMOM(XYMOMS,I,J,L,:)
+#endif
       END DO
   150 L=LM+1
   160 LMAX=L-1
       RDP=1./(PIJBOT*SIGE(LMIN)-PIJ*SIGE(LMAX+1))
       THM=THPKMS/PKMS
       QMS=QMS*RDP
+#ifdef TRACERS_ON
+        SDPL = 0.d0
+        DO L=LMIN,LMAX
+          SDPL = SDPL+DP(L)
+        ENDDO
+        BYSDPL = 1.D0/SDPL
+#endif
       DO L=LMIN,LMAX
          AJL(J,L,JL_TRBHR)=AJL(J,L,JL_TRBHR)+
      &        (THM-T(I,J,L))*PK(L,I,J)*PLIJ(L,I,J)
@@ -109,6 +137,13 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       Q(I,J,L)=QMS
       QMOM(XYMOMS,I,J,L)=QMOMS(XYMOMS)*RDP
       QMOM(ZMOMS,I,J,L)=0.
+#ifdef TRACERS_ON
+        TAJLN(J,L,JLNT_TURB,:)=TAJLN(J,L,JLNT_TURB,:) +
+     &     (TRMS(:)*(DP(L)*BYSDPL)-TRM(I,J,L,:))
+      TRM(I,J,L,:) = TRMS(:)*(DP(L)*BYSDPL)
+      TRMOM(XYMOMS,I,J,L,:) = TRMOMS(XYMOMS,:)*(DP(L)*BYSDPL)
+      TRMOM(ZMOMS,I,J,L,:) = 0.
+#endif
       END DO
 C**** MIX MOMENTUM THROUGHOUT UNSTABLE LAYERS
       UMS(1:KMAX)=0.
