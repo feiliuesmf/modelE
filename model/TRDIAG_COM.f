@@ -100,6 +100,8 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
 #ifdef regional_Ox_tracers
       integer, parameter :: ktaijs=90
+#elif (defined EDGAR_HYDE_SOURCES)
+      integer, parameter :: ktaijs=79
 #else
       integer, parameter :: ktaijs=76
 #endif
