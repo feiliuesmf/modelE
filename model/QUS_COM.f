@@ -11,14 +11,17 @@
 !    &        :: TMOM,QMOM
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TMOM,QMOM
 
-      CONTAINS
+      END MODULE SOMTQ_COM
 
-      SUBROUTINE INIT_SMOMTQ(grid)
+      SUBROUTINE ALLOC_SMOMTQ(grid)
 !@sum  init_smomtq allocates the arrays in this module which
 !@+    must now be dynamic for the distributed memory implementation.
 !@auth Rosalinda de Fainchtein
 !@ver  1.0
       USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE QUSDEF, ONLY : NMOM
+      USE MODEL_COM, ONLY : LM
+      USE SOMTQ_COM, ONLY : TMOM,QMOM
       IMPLICIT NONE
       TYPE (DYN_GRID), INTENT(IN) :: grid
 
@@ -35,10 +38,7 @@
       ALLOCATE ( TMOM(NMOM , I_0H:I_1H , J_0H:J_1H , LM) )
       ALLOCATE ( QMOM(NMOM , I_0H:I_1H , J_0H:J_1H , LM) )
 
-
-      END SUBROUTINE INIT_SMOMTQ
-
-      END MODULE SOMTQ_COM
+      END SUBROUTINE ALLOC_SMOMTQ
 
       SUBROUTINE io_somtq(kunit,iaction,ioerr)
 !@sum  io_somtq reads and writes second order moments to file
