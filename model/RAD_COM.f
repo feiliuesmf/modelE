@@ -55,14 +55,16 @@ C**** exactly the same as the default values.
 !@var SRVISSURF Incident solar direct+diffuse visible at surface (W/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRVISSURF
 !@var SRDN Total incident solar at surface (W/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRDN  ! saved in rsf 
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRDN  ! saved in rsf
 
-!@var CFRAC Total cloud fraction as seen be radiation 
+!@var CFRAC Total cloud fraction as seen be radiation
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CFRAC ! saved in rsf
-!@var RCLD Total cloud optical depth as seen be radiation 
+!@var RCLD Total cloud optical depth as seen be radiation
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: RCLD ! saved in rsf
 !@var O3_rad_save 3D ozone saved from radiation for use elsewhere
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: O3_rad_save ! saved in rsf
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: O3_rad_save !saved in rsf
+!@var KLIQ Flag indicating dry(0)/wet(1) atmosphere (memory feature)
+      INTEGER, ALLOCATABLE, DIMENSION(:,:,:,:) :: KLIQ ! saved in rsf
 
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: COSZ1
@@ -96,8 +98,8 @@ C**** exactly the same as the default values.
 !@+       SRRVIS,SRRNIR,SRAVIS,SRANIR (see RADIATION)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), TARGET :: ALB
 
-!@var SALB broadband 1 - surface albedo saved in rsf
-      REAL*8, POINTER, DIMENSION(:,:) :: SALB   ! = ABL(:,:,1)
+!@var SALB (1.-broadband surface albedo) - saved in rsf
+      REAL*8, POINTER, DIMENSION(:,:) :: SALB   ! = ALB(:,:,1)
 !      EQUIVALENCE (SALB,ALB)
 !@dbparam rad_interact_tr =1 for radiatively active tracers (default=0)
       INTEGER :: rad_interact_tr = 0
@@ -123,7 +125,7 @@ C**** Local variables initialised in init_RAD
       USE MODEL_COM, ONLY : IM, JM, LM
       USE RADNCB, ONLY : LM_REQ
       USE RADNCB, ONLY : RQT, Tchg, SRHR, TRHR, FSF, FSRDIR, SRVISSURF,
-     *     SRDN, CFRAC, RCLD, O3_rad_save, COSZ1, dH2O,
+     *     SRDN, CFRAC, RCLD, O3_rad_save, KLIQ, COSZ1, dH2O,
      *     ALB, SALB, SINJ, COSJ
 
       IMPLICIT NONE
@@ -145,6 +147,7 @@ C**** Local variables initialised in init_RAD
      *     CFRAC(IM, J_0H:J_1H),
      *     RCLD(LM, IM, J_0H:J_1H),
      *     O3_rad_save(LM, IM, J_0H:J_1H),
+     *     KLIQ(LM,4, IM, J_0H:J_1H),
      *     COSZ1(IM, J_0H:J_1H),
      *     dH2O(J_0H:J_1H, LM, 12),
      *     ALB(IM, J_0H:J_1H, 9),
@@ -152,6 +155,7 @@ C**** Local variables initialised in init_RAD
      *     COSJ(J_0H:J_1H),
      *     STAT=IER)
 
+      KLIQ = 1
       dH2O = 0.
       SALB => ALB(:,:,1)
       RETURN
@@ -171,7 +175,7 @@ C**** Local variables initialised in init_RAD
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "RAD04"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "RAD05"
 !@var HEADER_F Character string label for records (forcing runs)
       CHARACTER*80 :: HEADER_F, MODULE_HEADER_F = "RADF"
 
@@ -191,28 +195,28 @@ C**** Local variables initialised in init_RAD
         END SELECT
       else
 
-      MODULE_HEADER(lhead+1:80) = 'R8 Teq(3,ijm),'//
-     *  ' S0, s+tHr(0:lm,ijm,2),fs(4),fdir,SRV,sa,sd,cf,od(ijm)' 
+      MODULE_HEADER(lhead+1:80) = 'R8:Tq(3,ijm), I:LIQ(lm,4,ijm),'//
+     *  ' S0,s+tHr,fs(4),fd,sv,al,sd,cf,o3'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,RQT
+        WRITE (kunit,err=10) MODULE_HEADER,RQT,KLIQ
+  ! rest needed only if MODRAD>0 at restart
      *    ,S0,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,SALB,SRDN,CFRAC,RCLD
      *    ,O3_rad_save
-  ! needed if MODRAD>0 at restart
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
         CASE (ioread,IRERUN)  ! input for restart, rerun or extension
-          READ (kunit,err=10) HEADER,RQT
+          READ (kunit,err=10) HEADER,RQT,KLIQ
+  ! rest needed only if MODRAD>0 at restart
      *       ,S0,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,SALB,SRDN,CFRAC,RCLD
      *       ,O3_rad_save
-  ! needed if MODRAD>0 at restart
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
           END IF
         CASE (IRSFIC,irsficnt,IRSFICNO)  ! restart file of prev. run
-          READ (kunit,err=10) HEADER,RQT
+          READ (kunit,err=10) HEADER,RQT,KLIQ
         END SELECT
       END SELECT
       end if

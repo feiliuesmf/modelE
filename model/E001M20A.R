@@ -1,4 +1,4 @@
-E001M18A.R GISS Model E  2002 modelE                 rar  6/20/02
+E001M20A.R GISS Model E  2002 modelE                 rar  6/20/02
 
 modelE 2.3.4+ with 18 lyrs, top at .1 mb - 1880 atmosphere/ocean
 no gravity wave drag;     uses dry convection (rather than turbulence)
@@ -13,7 +13,7 @@ Preprocessor Options
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
-RES_M18AT                           ! horiz/vert resolution, 4x5deg, 18 layers -> .1mb
+RES_M20AT                           ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
@@ -27,8 +27,8 @@ GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ! pick exactly one of the next 2 choices: ATURB or DRYCNV
-! ATURB                             ! turbulence in whole atmosphere
-DRYCNV                              ! drycnv
+ATURB                               ! turbulence in whole atmosphere
+! DRYCNV                            ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
@@ -42,7 +42,7 @@ POUT                                ! post-processing output
 
 Data input files:
     ! the first 4 files are specific to prescribed ocean runs
-AIC=AIC.RES_M18A.D771201          ! initial conditions (atm.)
+AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)
 GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)
 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
@@ -52,8 +52,8 @@ SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
 ! OSST=OST4X5.B.1871.M02.Hadl1.1  ! ocean data   Feb 1871 - 2002
 ! SICE=SICE4X5.B.1871.M02.Hadl1.1 ! ocean data   Feb 1871 - 2002
     ! the next 3 files are specific to q-flux ocean runs
-! AIC=E001M18A/1JAN1960.rsfE001M18A.MXL65m   ! AIC/OHT made by aux/mkOTSPEC
-! OHT=E001M18A/OTSPEC.E001M18A.MXL65m.1951-1960 ! horizontal ocean heat transport
+! AIC=E001M20A/1JAN1960.rsfE001M20A.MXL65m   ! AIC/OHT made by aux/mkOTSPEC
+! OHT=E001M20A/OTSPEC.E001M20A.MXL65m.1951-1960 ! horizontal ocean heat transport
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (use for post processing)
     ! files needed for all models
 CDN=CD4X500S                      ! surf.drag coefficient
@@ -92,7 +92,7 @@ dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
-E001M18A (ModelE 2.3.4+ 1880 atm/ocn)
+E001M20A (ModelE 2.3.4+ 1880 atm/ocn)
 
 DTFIX=180
 
@@ -118,7 +118,7 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 U00ice=.60      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
-U00wtrX=1.12    ! U00wtrX up => nethtz0 up  (alb down);        for global annual mean
+U00wtrX=1.23    ! U00wtrX up => nethtz0 up  (alb down);        for global annual mean
 ! U00wtrX=1.08    ! use with 1995 atmosphere/ocean
 ! U00wtrX=1.21    ! use with RES_M20AT and 1880 atmosphere/ocean
 ! U00wtrX=1.16    ! use with RES_M20AT and 1995 atmosphere/ocean

@@ -318,7 +318,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
-     *     ,FSAERO,FTAERO,MADBAK,FGOLDH
+     *     ,FS8OPX,FT8OPX,AERMIX
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O
@@ -445,7 +445,7 @@ C****
 C****
 C             Model Add-on Data of Extended Climatology Enable Parameter
 C     MADO3M  = -1   Reads                      Ozone data the GCM way
-C     MADAER  =  1   Reads   Aerosol 50y tropospheric climatology RFILE5
+C     MADAER  =  1   Reads   Tropospheric Aerosol climatology 1850-2050
 C     MADDST  =  1   Reads   Dust-windblown mineral climatology   RFILE6
 C     MADVOL  =  1   Reads   Volcanic 1950-00 aerosol climatology RFILE7
 C     MADEPS  =  1   Reads   Epsilon cloud heterogeniety data     RFILE8
@@ -460,7 +460,7 @@ C****                                         even if the year is fixed
       KYEARA=Aero_yr ; KJDAYA=0 ;       MADAER=1 !trop.aeros (ann.cycle)
       KYEARV=Volc_yr ; KJDAYV=Volc_day; MADVOL=1   ! Volc. Aerosols
 C**** NO time history (yet), except for ann.cycle, for forcings below;
-C****  if arg3=day0 (1->365), data from that day are used all year
+C****  if KJDAY?=day0 (1->365), data from that day are used all year
       KYEARD=0       ; KJDAYD=0 ;       MADDST=1   ! Desert dust
       KYEARE=0       ; KJDAYE=0 ;       MADEPS=1   !cloud Epsln - KCLDEP
       KYEARR=0       ; KJDAYR=0           ! surf.reflectance (ann.cycle)
@@ -469,49 +469,51 @@ C**** New options (currently not used)
 
 C**** Aerosols:
 C**** Currently there are five different default aerosol controls
-C****   1: total 2:background 3: AClim 4:dust 5:volcanic
+C****   1:total 2:background+tracer 3:Climatology 4:dust 5:volcanic
 C**** By adjusting FSXAER,FTXAER you can remove the default
 C**** aerosols and replace them with your version if required
 C**** (through TRACER in RADIA).
-C**** FSXAER is for the shortwave, FTXAER is for the longwave
-caer   FSXAER = (/ 1.,1.,1.,1.,1. /)
-caer   FTXAER = (/ 1.,1.,1.,1.,1. /)
+C**** FSXAER is for the shortwave,    FTXAER is for the longwave effects
+caer  FSXAER = (/ 1.,1.,1.,1.,1. /) ; FTXAER = (/ 1.,1.,1.,1.,1. /)
 
-C**** There are 10 aerosol subtypes for AClim:
-C**** 1. Industrial BC, 2. Industrial OC, 3. Industrial sulfate
-C**** 4. seasalt, 5. Natural sulfate, 6. nitrate (set = natural so4),
-C**** 7. Natural OC, 8. Biomass OC, 9. Biomass BC, 10. other bkgrd aeros
-C**** so use FSAERO and FTAERO to zero out particular subtypes:
-caer  FSAERO = (/1., 1., 1., 1., 1., 1., 1., 1., 1., 1./)
-caer  FTAERO = (/1., 1., 1., 1., 1., 1., 1., 1., 1., 1./)
+C**** climatology aerosols are grouped into 6 types from 13 sources:
+C****  Pre-Industrial+Natural 1850 Level  Industrial Process  BioMBurn
+C****  ---------------------------------  ------------------  --------
+C****   1    2    3    4    5    6    7    8    9   10   11   12   13
+C****  SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
+C**** using the following default scaling/tuning factors  AERMIX(1-13)
+C****  1.0, 1.0, 1.0, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9
+C**** The 6 groups are:
+C**** 1. Sulfate (industr and natural), 2. seasalt, 3. Nitrate
+C**** 4. Organic Carbons, 5. Industrial Black Carbon(BC), 6. Biomass BC
+C**** use FS8OPX and FT8OPX to enhance the optical effect; defaults:
+caer  FS8OPX = (/1., 1., 1., 1., 2., 2.,    1.   ,   1./)     solar
+caer  FT8OPX = (/1., 1., 1., 1., 1., 1.,    1.3d0,   1./)     thermal
+C**** The last 2 entries are used to scale the other 2 aerosol types:
+C**** 7. Dust aerosols, 8. Volcanic aerosols
 
 C**** To add up to 8 further aerosols:
-C****  1) define NTRACE to the number of extra aerosol fields
+C****  1) set NTRACE to the number of extra aerosol fields
 C****  2) ITR defines which set of Mie parameters get used, choose
-C****    from the following:
-C****   1 ? ,2 seasalt (2um), 3 sulfate (0.3 um), 4 sulfate (1 um),
-C****   5 ?, 6 ?, 7 dust (0.5 um), 8 dust (2 um), 9 dust (8 um),
-C****   10 BC (0.1 um) 11 BC (0.5 um)
-C****  3) Use FTRACER(1:NTRACE) to turn them on in RADIA
-C****  4) MAKBAK=1 gets to SETBAK where extra tracers are added
-C**** however then we need to set FGOLDH(1-5)=0 in order to
-C**** avoid the addition of background aerosols in GETBAK
+C****     from the following:
+C****     1 SO4,  2 seasalt, 3 nitrate, 4 OCX organic carbons
+C****     5 BCI,  6 BCB,     7 dust,    8 H2SO4 volc
 C****
+C****  3) Use FSTOPX/FTTOPX(1:NTRACE) to scale them in RADIA
+C**** Note: whereas FSXAER/FTXAER are global (shared), FSTOPX/FTTOPX
+C****       have to be reset for each grid box to allow for the way it 
+C****       is used in RADIA (TRACERS_AEROSOLS_Koch)
 caer   NTRACE = 0.
 caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
-caer   MADBAK=1
-caer   FGOLDH(1:5)=(/0.,0.,0.,0.,0./)
 
 #ifdef TRACERS_AEROSOLS_Koch
-      if (rad_interact_tr.gt.0) then
-        FSAERO = (/1., 1., 0., 0., 0., 0., 1., 1., 1., 1./)
-        FTAERO = (/1., 1., 0., 0., 0., 0., 1., 1., 1., 1./)
+      if (rad_interact_tr.gt.0) then  ! if BC's sol.effect are doubled:
+        FS8OPX = (/0., 0., 1., 1., 2., 2.,    1.   , 1./)
+        FT8OPX = (/0., 0., 1., 1., 1., 1.,    1.3d0, 1./)
       end if
       NTRACE=2
-      MADBAK=1
-      FGOLDH(1:5)=(/0.,0.,0.,0.,0./)
 c tracer 1 is sulfate, tracer 2 is seasalt
-      ITR = (/ 3,2,0,0, 0,0,0,0 /)
+      ITR = (/ 1,2,0,0, 0,0,0,0 /)
 #endif
 
       if (ktrend.ne.0) then
@@ -528,8 +530,9 @@ C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
       end if
 C**** set up unit numbers for 14 more radiation input files
       DO IU=1,14
-        IF (IU.EQ.12.OR.IU.EQ.13) CYCLE            ! not used in GCM
-        IF (IU.EQ.4.OR.IU.EQ.10.OR.IU.EQ.11) CYCLE ! obsolete O3 data
+        IF (IU.EQ.12.OR.IU.EQ.13) CYCLE                ! not used in GCM
+        IF (IU.EQ.4.OR.IU.EQ.10.OR.IU.EQ.11) CYCLE    ! obsolete O3 data
+        IF (IU.EQ.5) CYCLE                 ! obsolete trop. aerosol data
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
       END DO
 C***********************************************************************
@@ -539,8 +542,9 @@ C     ------------------------------------------------------------------
       CALL WRITER(6,0)  ! print out ispare/fspare control parameters
 C***********************************************************************
       DO IU=1,14
-        IF (IU.EQ.12.OR.IU.EQ.13) CYCLE            ! not used in GCM
-        IF (IU.EQ.4.OR.IU.EQ.10.OR.IU.EQ.11) CYCLE ! obsolete O3 data
+        IF (IU.EQ.12.OR.IU.EQ.13) CYCLE                ! not used in GCM
+        IF (IU.EQ.4.OR.IU.EQ.10.OR.IU.EQ.11) CYCLE    ! obsolete O3 data
+        IF (IU.EQ.5) CYCLE                 ! obsolete trop. aerosol data
         call closeunit(NRFUN(IU))
       END DO
 C**** Save initial (currently permanent and global) Q in rad.layers
@@ -556,8 +560,8 @@ C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
 C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
       if(jwrite.gt.1500) call writet (6,itwrite,iwrite,jwrite,1,0)
 C****
-      ENTRY SETATM        ! dummy routines
-      ENTRY GETVEG(LONR,LATR)
+      ENTRY SETATM               ! dummy routine in gcm
+      ENTRY GETVEG(LONR,LATR)    ! dummy routine in gcm
       RETURN
       END SUBROUTINE init_RAD
 
@@ -578,12 +582,12 @@ C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY
 C     INPUT DATA  (i,j) dependent
      &             ,JLAT,ILON,nl,nlp, PLB ,TLB,TLM ,SHL, ltopcl
-     &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC
+     &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC, kdeliq
      &             ,POCEAN,PEARTH,POICE,PLICE,PLAKE,COSZ,PVT
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
-     *             ,TRACER,NTRACE,FTRACER
+     *             ,TRACER,NTRACE,FSTOPX,FTTOPX
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
@@ -592,7 +596,7 @@ C     OUTPUT DATA
      &          ,BTEMPW ,O3_OUT
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
-     *     ,O3_rad_save,rad_interact_tr
+     *     ,O3_rad_save,rad_interact_tr,kliq
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -841,6 +845,7 @@ C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PEARTH=FEARTH(I,J)
 C****
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
+      kdeliq=0   ! initialize mainly for l>lm
       if (kradia.gt.0) then     ! rad forcing model
         do l=1,lm
           tlm(l) = T(i,j,l)*pk(l,i,j)
@@ -1016,6 +1021,9 @@ C---- shl(L)=Q(I,J,L)        ! already defined
           KCKERR=KCKERR+1
           shl(l)=0.
         end if
+        do k=1,4
+          kdeliq(L,k)=kliq(L,k,i,j)
+        end do
 C**** Extra aerosol data
 C**** For up to NTRACE aerosols, define the aerosol amount to
 C**** be used (optical depth, I think)
@@ -1100,43 +1108,46 @@ C****
       WMAG=WSAVG(I,J)
 C****
 C**** Radiative interaction and forcing diagnostics:
-C**** If no radiatively active tracers are defined, nothing changes. 
+C**** If no radiatively active tracers are defined, nothing changes.
 C**** Currently this works for aerosols, but should be extended
 C**** to cope with trace gases.
 C**** Possibly different values >0 could do different things
+      FSTOPX(:)=1. ; FTTOPX(:)=1.     ! defaults
 #ifdef TRACERS_AEROSOLS_Koch
 C**** The calculation of the forcing is slightly different.
 C**** depending on whether full radiative interaction is turned on
-C**** or not. 
-      FTRACER(:)=0.
-      if (rad_interact_tr.eq.0 .and. NTRACE.gt.0) then
-                                ! Turn ON each tracer in turn
+C**** or not.
+      if (NTRACE.gt.0) then
+        FSTOPX(:)=0. ; FTTOPX(:)=0.
+        if (rad_interact_tr.eq.0) then
+                                          ! Turn ON each tracer in turn
 C**** Sulfate forcing
-        FTRACER(1)=1.d0         ! turn on sulfate
-        CALL RCOMPX
-        SNFST(N_SO4,I,J)=SRNFLB(4+LM)
-        TNFST(N_SO4,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-        FTRACER(1)=0.d0
+          FSTOPX(1)=1.d0 ; FTTOPX(1)=1.d0 ! turn on sulfate
+          CALL RCOMPX
+          SNFST(N_SO4,I,J)=SRNFLB(4+LM)
+          TNFST(N_SO4,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+          FSTOPX(1)=0.d0 ; FTTOPX(1)=0.d0
 C**** seasalt forcing
-        FTRACER(2)=1.d0         ! turn on seasalt
-        CALL RCOMPX
-        SNFST(N_seasalt1,I,J)=SRNFLB(4+LM)
-        TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-        FTRACER(2)=0.d0
-      else                      ! Turn OFF each tracer in turn
-        FTRACER(1:NTRACE)=1.
+          FSTOPX(2)=1.d0 ; FTTOPX(2)=1.d0 ! turn on seasalt
+          CALL RCOMPX
+          SNFST(N_seasalt1,I,J)=SRNFLB(4+LM)
+          TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+          FSTOPX(2)=0.d0 ; FTTOPX(2)=0.d0
+        else                              ! Turn OFF each tracer in turn
+          FSTOPX(1:NTRACE)=1. ; FTTOPX(1:NTRACE)=1.
 C**** Sulfate forcing
-        FTRACER(1)=0.d0         ! turn off sulfate
-        CALL RCOMPX
-        SNFST(N_SO4,I,J)=SRNFLB(4+LM)
-        TNFST(N_SO4,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-        FTRACER(1)=1.d0
+          FSTOPX(1)=0.d0 ; FTTOPX(1)=0.d0 ! turn off sulfate
+          CALL RCOMPX
+          SNFST(N_SO4,I,J)=SRNFLB(4+LM)
+          TNFST(N_SO4,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+          FSTOPX(1)=1.d0 ; FTTOPX(1)=1.d0
 c seasalt forcing
-        FTRACER(2)=0.d0         ! turn off seasalt
-        CALL RCOMPX
-        SNFST(N_seasalt1,I,J)=SRNFLB(4+LM)
-        TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-        FTRACER(2)=1.d0
+          FSTOPX(2)=0.d0 ; FTTOPX(2)=0.d0 ! turn off seasalt
+          CALL RCOMPX
+          SNFST(N_seasalt1,I,J)=SRNFLB(4+LM)
+          TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+          FSTOPX(2)=1.d0 ; FTTOPX(2)=1.d0
+        end if
       end if
 #endif
 C*****************************************************
@@ -1147,6 +1158,9 @@ C*****************************************************
       CSZ2=COSZ2(I,J)
       do L=1,LM
         O3_rad_save(L,I,J)=O3_OUT(L)
+        do k=1,4
+          kliq(L,k,i,j)=kdeliq(L,k) ! save updated flags
+        end do
       end do
       if (kradia.gt.0) then  ! rad. forc. model; acc diagn
         do L=1,LM+LM_REQ+1

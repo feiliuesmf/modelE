@@ -290,15 +290,17 @@ C----------------
       real*8 :: SHL(LX),RHL(LX)
 !@var       KEEPRH  if 0, RHL is computed from SHL, else SHL from RHL
       integer :: KEEPRH=0       ! control param
+!@var KDELIQ Flag for dry(0) or wet(1) air deliquescence
+      integer :: KDELIQ(LX,4)
 
 !@var SRBALB,SRXALB diffuse,direct surface albedo (1); see KEEPAL
-      real*8 :: SRBALB(15),SRXALB(15)  !?? should be dimensioned as 6?
+      real*8 :: SRBALB(6),SRXALB(6)
 !@var       KEEPAL  if 0, SRBALB,SRXALB are computed in SET/GETSUR
       integer :: KEEPAL=0       ! control param
 !@dbparm    KSIALB  sea ice albedo computation flag: 0=Hansen 1=Lacis
       integer :: KSIALB=0
 !@var PVT           frac. of surf.type (bareWhite+veg*8+bareDark+ocn)(1)
-!@var AGESN         age of snow    (over soil,oice,land ice) (days)
+!@var AGESN 1-3     age of snow    (over soil,oice,land ice) (days)
 !@var SNOWE,SNOWLI  amount of snow (over soil,land ice)   (kg/m^2)
 !@var SNOWOI        amount of snow (over ocean/lake ice)  (kg/m^2)
 !@var WEARTH        soil wetness (1)
@@ -315,7 +317,7 @@ C----------------
      *     ,PEARTH,POICE,PLICE,PLAKE,TGO,TGE,TGOI,TGLI,TSL
 !@var KZSNOW        =1 for snow/ice albedo zenith angle dependence
       integer :: KZSNOW=1
-!     Additional info for Schramm/Schmidt/Hansen sea ice albedo KSIALB=1
+!     Additional info for Schramm/Schmidt/Hansen sea ice albedo KSIALB=0
 !@var ZSNWOI        depth of snow over ocean ice (m)
 !@var zoice         depth of ocean ice (m)
 !@var zmp           depth of melt pond (m)
@@ -324,15 +326,13 @@ C----------------
 !@var flags         true if snow is wet
 !@var snow_frac(2)  fraction of snow over bare(1),vegetated(2) soil (1)
 !@var snoage_fac_max  max snow age reducing-factor for sea ice albedo
+      REAL*8 :: zsnwoi,zoice,zmp,fmp,zlake,snow_frac(2)
       REAL*8 :: snoage_fac_max=.5d0
 
-      REAL*8    :: zsnwoi,zoice,zmp,fmp,zlake,snow_frac(2)
 !@var TRACER array to add up to 8 additional aerosol species
       real*8    :: TRACER(LX,8)
-!@var FTRACER scales optional aerosols
-      real*8    :: FTRACER(8) =
-C             TR1   TR2   TR3   TR4   TR5   TR6   TR7   TR8
-     *     (/ 0d0,  0d0,  0d0,  0d0,  0d0,  0d0,  0d0,  0d0/)
+!@var FSTOPX,FTTOPX scales optional aerosols (solar,thermal component)
+      real*8    :: FSTOPX(8),FTTOPX(8)
       LOGICAL*4 :: flags
 
       COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX
@@ -341,10 +341,11 @@ C             TR1   TR2   TR3   TR4   TR5   TR6   TR7   TR8
      C             ,SHL,RHL,TRACER,SRBALB,SRXALB
      D             ,PVT,AGESN,SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG
      E             ,POCEAN,PEARTH,POICE,PLICE,PLAKE
-     F             ,TGO,TGE,TGOI,TGLI,TSL,COSZ,FTRACER
+     F             ,TGO,TGE,TGOI,TGLI,TSL,COSZ,FSTOPX,FTTOPX
      X             ,zsnwoi,zoice,zmp,fmp,snow_frac,zlake
 C      integer variables start here, followed by logicals
      Y             ,JLAT,ILON,NL,NLP, LS1_loc,flags
+     Z             ,KDELIQ                ! is updated by rad. after use
 !$OMP  THREADPRIVATE(/RADPAR_INPUT_IJDATA/)
 
 C     array with local and global entries: repeat this section in driver
@@ -370,8 +371,8 @@ C--------------------------------------------------------
      *     SRDFLB,SRUFLB,SRNFLB,SRFHRL,O3_OUT
       real*8 :: SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,
      *     SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,
-     *     SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR,TRDFGW,
-     *     TRUFGW,TRUFTW,BTEMPW,SRXVIS,SRXNIR
+     *     SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR,
+     *     TRDFGW,TRUFGW,TRUFTW,BTEMPW,SRXVIS,SRXNIR
       real*8, dimension(4) :: FSRNFG,FTRUFG,DTRUFG !,SRXATM
       real*8 :: WINDZF(3),WINDZT(3),TOTLZF(3),TOTLZT(3),SRKINC(16),
      *     SRKALB(16),SRKGAX(16,4),SRKGAD(16,4),SKDFLB(LX,17),
@@ -397,21 +398,21 @@ C--------------------------------------------------------
 !sl  K             ,TRSLTS,TRSLTG,TRSLBS
      K             ,O3_OUT
      L             ,LBOTCL,LTOPCL   ! integers last for alignment
-!$OMP  THREADPRIVATE(/RADPAR_OUTPUT_IJDATA/)
-c      EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
+!$OMP THREADPRIVATE(/RADPAR_OUTPUT_IJDATA/)
+!nu   EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
 !nu   EQUIVALENCE (SRXATM(3),XXAVIS),(SRXATM(4),XXANIR)  !nu = not used
 
 C----------------   scratch pad for temporary arrays that are passed to
-C     Work arrays - other routines while working on a lat/lon point; but
+C     Work arrays   other routines while working on a lat/lon point; but
 C----------------   in multi-cpu mode, each cpu needs its own copy !!
 
       real*8, dimension(LX,6) ::
      *     SRAEXT,SRASCT,SRAGCB,SRBEXT,SRBSCT,SRBGCB,
      *     SRDEXT,SRDSCT,SRDGCB,SRVEXT,SRVSCT,SRVGCB,
      *     SRCEXT,SRCSCT,SRCGCB,DBLEXT,DBLSCT,DBLGCB,DBLPI0,SRCPI0,
-     *     QAERO,SAERO,CAERO,QDUST,SDUST,CDUST
+     *     QDUST,SDUST,CDUST                    !nu ,QAERO,SAERO,CAERO
       real*8, dimension(LX,33) :: TRCALK,TRAALK,TRBALK,TRTAUK,TRDALK
-     *     ,TRVALK,TRGXLK,DFLB,UFLB,WFLB,AAERO,ADUST
+     *     ,TRVALK,TRGXLK,DFLB,UFLB,WFLB,ADUST  !nu ,AAERO
       real*8, dimension(33) :: TRCTCA,DFSL,UFSL,WFSL,CLPI0,TXCTPG,TSCTPG
      *     ,TGCTPG,AVH2S,TRGALB,BGFEMT,BGFEMD
       real*8, dimension(LX) :: PL,DPL,WTLB,WTLT
@@ -423,6 +424,9 @@ C----------------   in multi-cpu mode, each cpu needs its own copy !!
      *     ,Q55H2S,RIJTCK(6,33),FDXTCK(3,33),ALBTCK(3,33),FEMTCK(3,33)
      *     ,QVH2S(6),SVH2S(6),GVH2S(6),XTRU(LX,4),XTRD(LX,4)
       integer, dimension(LX) :: ITLB,ITLT
+C**** local except for special radiative aerosol diagnostics aadiag
+      real*8  ATAULX(LX,6)
+      integer NRHNAN(LX,8)
 
       COMMON/WORKDATA/          !          Temp data generated by RCOMPX
      A              SRAEXT,SRASCT,SRAGCB,TRCALK
@@ -444,12 +448,13 @@ C----------------   in multi-cpu mode, each cpu needs its own copy !!
      Q             ,DNA,DNB,DNC,Q55H2S
      R             ,RIJTCK,FDXTCK,ALBTCK,CLPI0
      S             ,FEMTCK,TXCTPG,TSCTPG,TGCTPG
-     T             ,QAERO,SAERO,CAERO,AAERO
+!nu  T             ,QAERO,SAERO,CAERO,AAERO
      U             ,QDUST,SDUST,CDUST,ADUST
      V             ,O2FHRL,SRAXNL,SRASNL,SRAGNL,AO3X
      W             ,O2FHRB,AO3D,AO3U
      X             ,HTPROF,QVH2S,SVH2S,GVH2S,AVH2S
-     F             ,XTRU,XTRD,ITLB,ITLT   ! integers last
+     F             ,XTRU,XTRD,                  ATAULX
+     I             ,ITLB,ITLT,                  NRHNAN   ! integers last
 !$OMP  THREADPRIVATE(/WORKDATA/)
 
       real*8 ::                      !  Temp data used by WRITER, WRITET
@@ -472,9 +477,8 @@ C------------------------------------------
       real*8 ::                 !   Model parameters generated by RCOMP1
      H              HLB0(LX),PLB0(LX),TLM0(LX),U0GAS3(LX)
      A             ,TKPFW(630),TKPFT(900),AO3(460)
-     D             ,FPXCO2(LX),FPXOZO(LX),PIAERO(10)
+     D             ,FPXCO2(LX),FPXOZO(LX) !nu ,PIAERO(10)
      C             ,SRAX(LX,6,5),SRAS(LX,6,5),SRAC(LX,6,5),ZTABLE(LX,11)
-     D             ,QXAERO(6,10),QSAERO(6,10),QCAERO(6,10),ATAERO(33,10)
      E             ,QXDUST(6,8),QSDUST(6,8),QCDUST(6,8),ATDUST(33,8)
      D             ,QDST55(8),TRAX(LX,33,5),DBLN(30),TCLMIN
 
@@ -500,10 +504,10 @@ C            RADDAT_AERCLD_MIEPAR          read from            radfile3
      G             ,TRCQAL(33,15),VEFC15(15)   ,VEFA11(   11),VEFB10(10)
      H             ,SRDQEX( 6,25),SRDQSC( 6,25),SRDQCB( 6,25),Q55D25(25)
      I             ,TRDQEX(33,25),TRDQSC(33,25),TRDQCB(33,25),REFD25(25)
-     J             ,TRDQAL(33,25),VEFD25(25),SIZENR(183),XNR(13)
-     K     ,SRVQEX( 6,20,6),SRVQSC( 6,20,6),SRVQCB( 6,20,6),Q55V20(20,6)
-     L     ,TRVQEX(33,20,6),TRVQSC(33,20,6),TRVQCB(33,20,6),REFV20(20,6)
-     M     ,TRVQAL(33,20,6),VEFV20(20,6),  QEXTNR(183,13),COSBNR(183,13)
+     J             ,TRDQAL(33,25),VEFD25(25)
+     K         ,SRVQEX( 6,20,6),SRVQSC( 6,20,6),SRVQCB( 6,20,6)
+     L         ,TRVQEX(33,20,6),TRVQSC(33,20,6),TRVQCB(33,20,6)
+     M         ,TRVQAL(33,20,6),Q55V20(20,6),REFV20(20,6),VEFV20(20,6)
      N         ,SRUQEX( 6,120),SRUQSC( 6,120),SRUQCB( 6,120),Q55U22(120)
      O         ,TRUQEX(33,120),TRUQSC(33,120),TRUQCB(33,120),REFU22(120)
      P         ,TRUQAL(33,120),VEFU22(120),TRSQAL(33,25),VEFS25(25)
@@ -530,7 +534,7 @@ C--------------------------------------    have to deal  1 point in time
 !     -------------------------------------------------------i/o control
 !@var MADxxx  Model Add-on Data of Extended Climatology Enable Parameter
 !@+   ------   if 0   input process is skipped
-!@+ 2 MADAER   =  1   Reads  Aerosol 50y tropospheric climatology RFILE5
+!@+ 2 MADAER   =  1   Reads  Aerosol tropospheric climatology
 !@+ 3 MADDST   =  1   Reads  Dust-windblown mineral climatology   RFILE6
 !@+ 4 MADVOL   =  1   Reads  Volcanic 1950-00 aerosol climatology RFILE7
 !@+ 5 MADEPS   =  1   Reads  Epsilon cloud heterogeneity data     RFILE8
@@ -554,14 +558,10 @@ C--------------------------------------    have to deal  1 point in time
 !@+   KYEARR,KJDAYR: RVegeTrend (Ground Albedo)
 !@+   KYEARV,KJDAYV: Volc.Aerosol Trend
 !@+   KYEARA,KJDAYA: trop.Aerosol Trend
-!@var X0YBCI,X0YOCI,X0YSUI (if > 1.) replace KYEARA+KJDAYA/365 to choose
-!@+       indiv. dates for Industrial Black,Organic Carbons and SUlfates
 !     ------------------------------------------------------------------
       integer ::                    KYEARS=0,KJDAYS=0, KYEARG=0,KJDAYG=0
      *          ,KYEARO=0,KJDAYO=0, KYEARA=0,KJDAYA=0, KYEARD=0,KJDAYD=0
      *          ,KYEARV=0,KJDAYV=0, KYEARE=0,KJDAYE=0, KYEARR=0,KJDAYR=0
-      real*8  :: X0YBCI=1.d-3,      X0YOCI=1.d-3,      X0YSUI=1.d-3
-
 
       INTEGER, PARAMETER :: NLO3=18 !  # of layers in ozone data files
       real*8 :: O3JDAY(NLO3,MLON72,MLAT46)
@@ -571,18 +571,14 @@ C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
      *     (/984.,934.,854.,720.,550.,390.,285.,210.,150.,110.,80.,
      +     55.,35.,20.,10.,3.,1.,0.3,0.1/) ! Current standard PLB
 
-!@var PLB12L Vert. Layering for tropospheric aerosols/dust (reference)
-      real*8, parameter, dimension(13) :: PLB12L=(/
-     *  984.,934.,854.,720.,550.,390.,285.,255.,150.,100., 60.,30.,10./)
-C     Layer 1    2    3    4    5    6    7    8    9   10   11  12
-
-C            RADMAD2_TROPAER_DECADAL          (user SETAER)     radfile5
-      real*4 ::      TROAER(72,46,13,8,4),VDBCSU(46,12,13,3)
-      real*8 ::      TAUCOL(72,46,10),VDAERO(46,12,10)
+!@var PLBA09 Vert. Layering for tropospheric aerosols/dust (reference)
+      real*8, parameter, dimension(10) :: PLBA09=(/
+     *   984.,934.,854.,720.,550.,390.,255.,150., 70., 10./)
+C     Layer  1    2    3    4    5    6    7    8    9
 
 C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
       real*4 TDUST(72,46,9,8,13)
-      real*8 DUSTLN(72,46,12,8),DSTCOL(72,46,8)
+      real*8 DDJDAY(9,8,72,46)
 
 C            RADMAD4_VOLCAER_DECADAL          (user SETVOL)     radfile7
       real*8         V4TAUR(1800,24,5),FDATA(80),GDATA(80)
@@ -651,9 +647,16 @@ C***  alternate sources to get WSOLAR,FSOLAR:
 !icb         RADMAD7_VEG_TOPOG          (user SETSUR)  radfileC,radfileD
 !icb                 FVEG11(72,46,11),FOLGIZ(72,46,9)
 
-!new         RADMAD8_RELHUM_AERDATA  (not yet)(user SETREL)     radfileH
-!new  real*8 ::
-!new A TRHQAB(33,168,4),SRHQEX(6,168,4),SRHQSC(6,168,4),SRHQCB( 6,168,4)
+C            RADMAD8_RELHUM_AERDATA     (user SETAER,SETREL)    radfileH
+!@var KRHAER(4) 0/1=off/on flag to make aeros.sizes humidity dependent
+      integer, dimension(4) :: KRHAER=(/1,1,1,1/) ! SO4,SeaSalt,Nitr,org
+!@var KRHTRA(8) 0/1=off/on flag to make tracer aeros.sizes humidity dep.
+      integer, dimension(8) :: KRHTRA=(/1,1,1,1,1,1,1,1/)
+      real*8 ::
+     A               SRHQEX(6,190,4),SRHQSC(6,190,4),SRHQCB( 6,190,4)
+     B              ,TRHQAB(33,190,4),RHINFO(190,9,4),A6JDAY(9,6,72,46)
+     C              ,SRTQEX(6,190,8),SRTQSC(6,190,8),SRTQCB( 6,190,8)
+     D              ,TRTQAB(33,190,8),RTINFO(190,9,8)
 !new
 !new  save TSOIL,TVEGE                  (not implemented)
 !nu   DIMENSION PI0TRA(11)
@@ -743,13 +746,13 @@ C        1   2   3   4   5   6   7   8   9  10    11     12   13
      +   1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,   1.,    1.,  0./)
 
 !@var FGOLDH scales background aerosols for Glb Ocn Land Desert Haze
-      real*8, dimension(5) ::
+      real*8, dimension(5) ::       ! used by setbak/getbak only
 C               GLOBAL  OCEAN   LAND  DESERT    HAZE
 C                    1      2      3       4       5
      +   FGOLDH=(/ 1d0, .68d0, .32d0, 1.d-20, 1.d-20 /)
 
 !@var FSXAER,FTXAER scales solar,thermal opt.depth for var. aerosols:
-!@+          1: total 2:background 3: AClim? 4:dust 5:volcanic
+!@+          1: total 2:background 3: AClim 4:dust 5:volcanic
       real*8, dimension(5) ::  FSXAER=(/1.,1.,1.,1.,1./)
       real*8, dimension(5) ::  FTXAER=(/1.,1.,1.,1.,1./)
       real*8 FSTAER,FSBAER,FSAAER,FSDAER,FSVAER
@@ -790,12 +793,6 @@ C                    1      2      3       4       5
 !@var KUFH2O,KUFCO2 H2O,CO2 column absorb.scaling
 !@var KCSELF,KCFORN H2O_ContSelf-Broadening,CO2_ContForeign-Broadening
       integer :: KWVCON=1, KUFH2O=1,  KUFCO2=1,  KCSELF=1,  KCFORN=1
-
-!@var MEANAC,MEANDD,MEANVA if >0 use ann.means for tropo,dust,volc aeros
-      integer :: MEANAC=0,  MEANDD=0,  MEANVA=0
-
-!@var KVRAER if >0 repartition aerosols vertically to current layering
-      integer :: KVRAER=1
 
 !@var ICE012 pick ice droplet type: 0 liquid, 1 ice non-spher, 2 ice Mie
       integer :: ICE012=1
@@ -852,67 +849,54 @@ C      ACID1 SSALT SLFT1 SLFT2 BSLT1 BSLT2 DUST1 DUST2 DUST3 CARB1 CARB2
 !nu       DUST1      DUST2      DUST3      CARB1      CARB2
 !nu  2   0.91995,   0.78495,   0.63594,   0.31482,   0.47513/)
 
-      real*8, dimension(10) ::       ! ANT (nitrate) not yet implemented
-C                       TROPOSPHERIC AEROSOL PARAMETERS
-C                  BCI  OCI  SUI  SEA  SUN    ANT  OCN  OCB  BCB  SSB
-     *   REAERO=(/ 0.1, 0.3, 0.3, 2.0, 0.3,   1.0, 0.3, 0.3, 0.2, 0.5/)
-     *  ,VEAERO=(/ 0.2, 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2, 0.2/)
-     *  ,ROAERO=(/ 2.0, 2.0, 2.0, 2.0, 2.0,   2.0, 2.0, 2.0, 2.0, 2.0/)
-C       ,PI0MAX=(/ 1.0, 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0, 1.0/)
-C             (OCI,OCN,OCB PI0MAXs are based on Novakov(1998) Ni=0.005)
-     *  ,PI0MAX=(/ 1.0, .96, 1.0, 1.0, 1.0,   1.0, .98, .93, 1.0, 1.0/)
-     *  ,FSAERO=(/ 1.0, 1.0, 1.0, 1.0, 1.0,   0.0, 1.0, 1.0, 1.0, 1.0/)
-     *  ,FTAERO=(/ 1.0, 1.0, 1.0, 1.0, 1.0,   0.0, 1.0, 1.0, 1.0, 1.0/)
-     *  ,FRSULF=(/ 0.0, .33, 0.0, 0.0, 0.0,   0.0, .33, .33, 0.0, 0.0/)
+      real*8, dimension(8) ::
+C                TROPOSPHERIC AEROSOL COMPOSITIONAL/TYPE PARAMETERS
+C                  SO4    SEA    ANT    OCX    BCI    BCB    DST   VOL
+     *  REFDRY=(/0.200, 1.000, 0.300, 0.300, 0.100, 0.100, 1.000,1.000/)
 
-      real*8 :: SSBTAU=0.005
+     * ,REFWET=(/0.272, 1.808, 0.398, 0.318, 0.100, 0.100, 1.000,1.000/)
+
+     * ,DRYM2G=(/4.667, 0.866, 4.448, 5.018, 9.000, 9.000, 1.000,1.000/)
+
+CKoch   DRYM2G=(/5.000, 2.866, 8.000, 8.000, 9.000, 9.000, 1.000,1.000/)
+
+!nu     RHTMAG=(/1.788, 3.310, 1.756, 1.163, 1.000, 1.000, 1.000,1.000/)
+!nu alt RHTMAG=(/1.982, 3.042, 1.708, 1.033, 1.000, 1.000, 1.000,1.000/)
+!nu  *  WETM2G=(/8.345, 2.866, 7.811, 5.836, 9.000, 9.000, 1.000,1.000/)
+!nu alt WETM2G=(/9.250, 2.634, 7.598, 5.180, 9.000, 9.000, 1.000,1.000/)
+     * ,Q55DRY=(/2.191, 2.499, 3.069, 3.010, 1.560, 1.560, 1.000,1.000/)
+
+     * ,DENAER=(/1.760, 2.165, 1.725, 1.500, 1.300, 1.300, 2.000,2.000/)
+
+C     TROP AEROSOL 1850 BACKGROUND, INDUSTRIAL & BIO-BURNING PARAMETERS
+      real*8, dimension(13) :: AERMIX=(/
+C      Pre-Industrial+Natural 1850 Level  Industrial Process  BioMBurn
+C      ---------------------------------  ------------------  --------
+C       1    2    3    4    5    6    7    8    9   10   11   12   13
+C      SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
+     + 1.0, 1.0, 1.0, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9/)
+
+      real*8, dimension(8) ::
+C                TROPOSPHERIC AEROSOL COMPOSITIONAL/TYPE PARAMETERS
+C                  SO4    SEA    ANT    OCX    BCI    BCB    DST   VOL
+     *  FS8OPX=(/1.000, 1.000, 1.000, 1.000, 2.000, 2.000, 1.000, 1.00/)
+
+     * ,FT8OPX=(/1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.300, 1.00/)
+
+     * ,FRSULF=(/0.000, 0.000, 0.000, 0.330, 0.000, 0.000, 0.000, 1.00/)
+
+     * ,PI0MAX=(/1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.00/)
+
+!nu  * ,A8VEFF=(/ .200,  .200,  .200,  .200,  .200,  .200,  .200, .200/)
 
       real*8, dimension(8) ::
 C                          MINERAL DUST PARAMETERS
 C                         CLAY                  SILT
      *   REDUST=(/ 0.1, 0.2, 0.4, 0.8,   1.0, 2.0, 4.0, 8.0/)
-     *  ,VEDUST=(/ 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2/)
-     *  ,RODUST=(/ 2.5, 2.5, 2.5, 2.5,   2.6, 2.6, 2.6, 2.6/)
-     *  ,FSDUST=(/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/)
-     *  ,FTDUST=(/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/)
-
-!@var VDGAER   TROPOSPHERIC AEROSOL GLOBAL MEAN VERTICAL DISTRIBUTION
-!@+            ------------------------------------------------------
-!@+   Layr  1    2    3    4    5    6    7    8    9    10   11   12
-!@+   Ptop 934  854  720  550  390  285  255  150  100   60   30   10
-!@+   Pbot 984  934  854  720  550  390  285  255  150  100   60   30
-      real*8, dimension(12,10) :: VDGAER=reshape(
-C       L=   1    2    3    4    5    6    7    8    9   10   11   12
-     A  (/ .10, .10, .10, .10, .10, .10, .10, .10, .10, .10, .00, .00,
-     B     .10, .10, .10, .10, .10, .10, .10, .10, .10, .10, .00, .00,
-     C     .10, .10, .10, .10, .10, .10, .10, .10, .10, .10, .00, .00,
-     D     .30, .20, .20, .15, .10, .05, .00, .00, .00, .00, .00, .00,
-     E     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
-     F     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
-     G     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
-     H     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
-     I     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
-     J     .00, .00, .00, .00, .00, .00, .25, .20, .20, .20, .10, .05/)
-     *   ,(/12,10/) )
-
-!@var VDFAER Aerosol Vertical Profile (Optical Depth) Scaling Factors
-!@+          --------------------------------------------------------
-!@+   Layr  1    2    3    4    5    6    7    8    9    10   11   12
-!@+   Ptop 934  854  720  550  390  285  255  150  100   60   30   10
-!@+   Pbot 984  934  854  720  550  390  285  255  150  100   60   30
-      real*8, dimension(12) ::  VDFBCI=(/
-     A     1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0/)
-      real*8, dimension(12) ::  VDFOCI=(/
-     A     1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0/)
-      real*8, dimension(12) ::  VDFSUI=(/
-     A     1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0/)
-      real*8, dimension(12) ::  VDFDST=(/
-     A     1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0/)
-      real*8     VDFAER(12,4)
-      equivalence (VDFBCI(1),VDFAER(1,1))
-      equivalence (VDFOCI(1),VDFAER(1,2))
-      equivalence (VDFSUI(1),VDFAER(1,3))
-      equivalence (VDFDST(1),VDFAER(1,4))
+!nu  *  ,VEDUST=(/ 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2/)
+!nu  *  ,RODUST=(/ 2.5, 2.5, 2.5, 2.5,   2.6, 2.6, 2.6, 2.6/)
+!nu  *  ,FSDUST=(/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/)
+!nu  *  ,FTDUST=(/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/)
 
 C-----------------------------------------------------------------------
 C     GHG 1980 Reference Concentrations and Vertical Profile Definitions
@@ -991,10 +975,18 @@ C                    CCL3F1    CCL2F2   N2     CFC-Y     CFC-Z
 C     GAS  NUMBER         8         9   10        11        12
 
 C---------------------
-C     Optional Tracers
+C     Optional Tracers    used via setbak/getbak
 C---------------------
       integer, dimension(8) :: ITR=(/0,0,0,0, 0,0,0,0/)
       integer :: NTRACE=0
+
+      real*8, dimension(8) ::
+C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
+     *  TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
+!nu  * ,TRVEFF=(/ .2d0, .2d0, .2d0, .2d0, .2d0, .2d0, .2d0, .2d0/)
+!nu  * ,TRADEN=(/ 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0/)
+!loc * ,FSTOPX=(/ 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0/)
+!loc * ,FTTOPX=(/ 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0/)
 
       SAVE
 
@@ -1112,7 +1104,7 @@ C              ---------------------------------------------------------
   110 CONTINUE
 
       IF(LASTVC.GT.0) CALL SETATM
-      IF(NLP.GT.LX)   call stop_model('increase LX',255)
+      IF(NLP.GT.LX)   call stop_model('rcomp1: increase LX',255)
 
 C**** Use (global mean) pressures to get standard mid-latitude summer
 C**** values for height, density, temperature, ozone, water vapor
@@ -1274,6 +1266,8 @@ C                               ----------------------------------------
       READ (NRFU,3005) (TRDQAL(K,N),K=1,33)
   308 CONTINUE
 
+      TRDQAB(:,:)=TRDQEX(:,:)-TRDQSC(:,:)  !  used in writer only
+
 C                               Volcanic aerosol Mie size, variance data
 C                               ----------------------------------------
       DO 313 M=1,5
@@ -1384,77 +1378,6 @@ C                            -------------------------------------------
       N1=N2+1
   328 CONTINUE
 
-C         Mie scattering Qext,Cosb tables (Nr=1.30-1.60),(Reff=0.0-15.0)
-C         used for hygroscopic aerosol relative humidity size dependence
-C         --------------------------------------------------------------
-
-      READ (NRFU,3014) (XNR(J),J=1,7)
- 3014 FORMAT(13X,F5.3,12F9.3)
-      DO 331 I=1,183
-      READ (NRFU,3015) J,SIZENR(I),(QEXTNR(I,J),J=1,7)
- 3015 FORMAT(I3,F6.2,13F9.5)
-  331 CONTINUE
-      READ (NRFU,3014) (XNR(J),J=8,13)
-      DO 332 I=1,183
-      READ (NRFU,3015) J,SIZENR(I),(QEXTNR(I,J),J=8,13)
-  332 CONTINUE
-      READ (NRFU,3014) (XNR(J),J=1,7)
-      DO 333 I=1,183
-      READ (NRFU,3015) J,SIZENR(I),(COSBNR(I,J),J=1,7)
-  333 CONTINUE
-      READ (NRFU,3014) (XNR(J),J=8,13)
-      DO 334 I=1,183
-      READ (NRFU,3015) J,SIZENR(I),(COSBNR(I,J),J=8,13)
-  334 CONTINUE
-
-  399 CONTINUE
-
-C-----------------------------------------------------------------------
-CR(5) TROAER: Monthly-Mean Tropospheric Aerosols  (Column Optical Depth)
-C                  Decade Maps (N=1,5) for BCI, OCI, SUI (K=1,3) Aerosol
-C                  for K=4 (N=1,5) gives SEA, SUN, OCN, OCB, BCB Aerosol
-C                  Map: IJ=72x46,  Month: M=1-12, AnnAv: M=13
-C
-C     VDBSCU: Zonal Mean Vertical Distribution for BCI,SUI-TYPE Aerosols
-C     ------------------------------------------------------------------
-
-      IF(MADAER.LT.1) GO TO 599
-      NRFU=NRFUN(5)
-      READ (NRFU) TROAER
-      READ (NRFU) VDBCSU
-
-C     ------------------------------------------------------------------
-C     VDBCSU Input Data Adjustment:
-C
-C             Renormalize VDBCSU(46,12,13,3) BC and SU Vertical Profiles
-C                  and Recompute Annual-Mean BC and SU Vertical Profiles
-C     ------------------------------------------------------------------
-
-      DO 515 N=1,3
-      DO 514 M=1,12
-      DO 513 J=1,46
-      SUM=0.D0
-      DO 511 L=1,12
-      SUM=SUM+VDBCSU(J,L,M,N)
-  511 CONTINUE
-      DO 512 L=1,12
-      VDBCSU(J,L,M,N)=VDBCSU(J,L,M,N)/SUM
-  512 CONTINUE
-  513 CONTINUE
-  514 CONTINUE
-  515 CONTINUE
-      DO 519 N=1,3
-      DO 518 L=1,12
-      DO 517 J=1,46
-      SUM=0.D0
-      DO 516 M=1,12
-      SUM=SUM+VDBCSU(J,L,M,N)
-  516 CONTINUE
-      VDBCSU(J,L,13,N)=SUM/12.D0
-  517 CONTINUE
-  518 CONTINUE
-  519 CONTINUE
-  599 CONTINUE
 
 C-----------------------------------------------------------------------
 CR(6) DUST:   Monthly-Mean Desert Dust (Clay,Silt) 8-Size Optical Depths
@@ -1467,21 +1390,6 @@ C                  -----------------------------------------------------
 
   699 CONTINUE
 
-C     ------------------------------------------------------------------
-C     IFIRST=1     Read in 2 Files of Tropospheric Aerosol and Dust Data
-C                  Apply Multiplicative Scaling Factors: for Aerosol and
-C                  and Desert Dust Optical Depths, and Single Scattering
-C                  Albedos using (FSAERO,FTAERO,PI0MAX, & FSDUST,FTDUST)
-C                  defined in RADPAR (defaults)
-C
-C        NOTE:     Scaling Factors Multiply the Appropriate Aerosol  MIE
-C                  Radiative Parameters (QXAERO,QSAERO, & QXDUST,QSDUST)
-C                  and NOT  the Column Optical Depth (72x46) Global Maps
-C
-C     IFIRST=0     Subsequent CALLs to SETAER  can Reset Scaling Factors
-C     ------------------------------------------------------------------
-
-
 C-----------------------------------------------------------------------
 CR(7)        Read Makiko's Stratospheric binary data made in April, 2002
 C                               (1800 months (1850-1999) x 24 latitudes)
@@ -1491,7 +1399,7 @@ C                               ----------------------------------------
       NRFU=NRFUN(7)
       READ (NRFU) TITLE
       IF(TITLE(1:13).eq.'Optical Depth')
-     &     call stop_model('use new RADN7',255)
+     &     call stop_model('rcomp1: use new RADN7',255)
       REWIND (NRFU)
       DO K=1,5
         READ (NRFU) TITLE,VTAUR4
@@ -1599,9 +1507,9 @@ C                                      ---------------------------------
 
       READ(NRFU,'(a80)') TITLE
       if(ksolar.ge.2 .and. TITLE(1:3).ne.'ANN')
-     &     call stop_model('change RADN9',255)
+     &     call stop_model('rcomp1: change RADN9 to ann.file',255)
       if(ksolar.lt.2 .and. TITLE(1:3).eq.'ANN')
-     &     call stop_model('change RADN9',255)
+     &     call stop_model('rcomp1: change RADN9 to monthly file',255)
       READ(NRFU,'(5F14.2)') (WSLEAN(I),I=1,190)
       READ(NRFU,'(a80)') TITLE
       READ(NRFU,'(5E14.3)') (DSLEAN(I),I=1,190)
@@ -1739,8 +1647,8 @@ C----------------------------------------------
 C--------------------------------
                       CALL SETGAS
 C
-                      CALL SETBAK
-      IF(MADAER.GT.0) CALL SETAER
+                                     CALL SETBAK
+      IF(MADAER.GT.0.or.NTRACE.gt.0) CALL SETAER
       IF(MADDST.GT.0) CALL SETDST
 C--------------------------------
 
@@ -1843,7 +1751,7 @@ C----------------------------------------------
       IF(KJDAYA.GT.0)             JJDAYA=KJDAYA
       IF(KYEARA.GT.0)             JYEARA=KYEARA
 C----------------------------------------------
-      IF(MADAER.GT.0) CALL UPDAER(JYEARA,JJDAYA)
+      IF(MADAER.NE.0) CALL UPDAER(JYEARA,JJDAYA)
 C----------------------------------------------
 
       JJDAYD=JDAY
@@ -1924,10 +1832,10 @@ C--------------------------------
 
 
 C--------------------------------
-      SRBEXT=1.d-20 ; SRBSCT=0. ; SRBGCB=0. ; TRBALK=0. 
+      SRBEXT=1.d-20 ; SRBSCT=0. ; SRBGCB=0. ; TRBALK=0.
       IF(MADBAK.GT.0) CALL GETBAK
 
-      IF(MADAER.GT.0) THEN ; CALL GETAER
+      IF(MADAER.NE.0.OR.NTRACE.GT.0) THEN ; CALL GETAER
        ELSE ; SRAEXT=0.     ; SRASCT=0. ; SRAGCB=0. ; TRAALK=0. ; END IF
       IF(MADDST.GT.0) THEN ; CALL GETDST
        ELSE ; SRDEXT=0.     ; SRDSCT=0. ; SRDGCB=0. ; TRDALK=0. ; END IF
@@ -2360,7 +2268,7 @@ C     UPDO3D CALLs GTREND to get CH4 to interpolate tropospheric O3
 C     -----------------------------------------------------------------
 
       CHARACTER*80 TITLE
-      logical :: qexist, qbinary=.true.
+      logical, parameter :: qbinary=.true.   ; logical qexist
 
 C**** The data statements below are only used if  MADO3M > -1
       CHARACTER*40, DIMENSION(NFO3X) :: DDFILE = (/
@@ -2415,9 +2323,7 @@ C****   Find O3 data files and fill array IYEAR from title(1:4)
 
    10   continue
         if(nfo3.eq.1) JYEARO=-IYEAR(1)
-        if(nfo3.eq.0) call stop_model('no Ozone files found',255)
-        call openunit (ddfile(1),ifile,qbinary)  ! reserve unit ifile
-        close(ifile)     ! ifile will be used for the rest of the run
+        if(nfo3.eq.0) call stop_model('updo3d: no Ozone files',255)
         OTFILE='O3trend '
       END IF
 
@@ -2429,12 +2335,12 @@ C****   Find O3 data files and fill array IYEAR from title(1:4)
       end if
 
       if(IY.EQ.0) then ! READ strat O3 time trend for strat O3 interpol.
-        OPEN (IFILE,FILE=OTFILE,FORM='UNFORMATTED',STATUS='UNKNOWN')
+        call openunit (OTFILE,ifile,qbinary)
         READ (IFILE) OTREND    ! strat O3 time-trend OTREND(JM,18,2412)
-        CLOSE(IFILE)
+        call closeunit (ifile)
         if(MADO3M.lt.0) write(6,'(a,a)') ' read ',OTfile
       else
-        OPEN(IFILE,FILE=DDFILE(IY),FORM='UNFORMATTED',STATUS='OLD')
+        call openunit (ddfile(IY),ifile,qbinary)
         DO 40 M=1,12
         DO 30 L=1,NLO3
         READ (IFILE) TITLE,A
@@ -2449,7 +2355,7 @@ C****   Find O3 data files and fill array IYEAR from title(1:4)
         DO 50 I=1,IM
         O3YEAR(I,J,L,0)=O3YEAR(I,J,L,12)
    50   CONTINUE
-        CLOSE(IFILE)
+        call closeunit (ifile)
         JYRNOW=-JYEARO  ! insures that O3YEAR is no longer changed
       end if
 
@@ -2480,7 +2386,7 @@ C****
       JYR=IYEAR(JY)
 
 C**** Get first decadal file
-      OPEN(IFILE,FILE=DDFILE(IY),FORM='UNFORMATTED',STATUS='OLD')  ! IYR
+      call openunit (ddfile(IY),ifile,qbinary)                     ! IYR
       DO 140 M=1,12
       DO 130 L=1,NLO3
       READ (IFILE) TITLE,A
@@ -2491,13 +2397,13 @@ C**** Get first decadal file
   120 CONTINUE
   130 CONTINUE
   140 CONTINUE
-      CLOSE(IFILE)
+      call closeunit (ifile)
 
       IF(JYEARX.EQ.IYR.AND.IYRDEC.NE.JYEARX-1.AND.IY.GT.1) THEN
 C        READ and use prior decadal file to define prior year December
 C        (only when starting up with JYEARO=1890,1910,1930,...1980)
 
-      OPEN(IFILE,FILE=DDFILE(IY-1),FORM='UNFORMATTED',STATUS='OLD')! KYR
+      call openunit (ddfile(IY-1),ifile,qbinary)                   ! KYR
       DO 240 M=1,12
       DO 230 L=1,NLO3
       READ(IFILE) TITLE,A
@@ -2508,7 +2414,7 @@ C        (only when starting up with JYEARO=1890,1910,1930,...1980)
   220 CONTINUE
   230 CONTINUE
   240 CONTINUE
-      CLOSE(IFILE)
+      call closeunit (ifile)
 
 C     Tropospheric & stratospheric ozone timetrend interpolation weights
 C       Tropospheric ozone time variability is proportional to CH4 trend
@@ -2541,7 +2447,7 @@ C     ------------------------------------------------------------------
       ENDIF
 
 C**** Get next  decadal file
-      OPEN(IFILE,FILE=DDFILE(JY),FORM='UNFORMATTED',STATUS='OLD') !  JYR
+      call openunit (ddfile(JY),ifile,qbinary)                    !  JYR
       DO 340 M=1,12
       DO 330 L=1,NLO3
       READ(IFILE) TITLE,A
@@ -2552,7 +2458,7 @@ C**** Get next  decadal file
   320 CONTINUE
   330 CONTINUE
   340 CONTINUE
-      CLOSE(IFILE)
+      call closeunit (ifile)
 
       IF(JYEARX.eq.IYRDEC) GO TO 410    ! done with prior December
 
@@ -3158,7 +3064,7 @@ C     SETBAK,GETBAK  Initializes Background Aerosol Specification, i.e.,
 C                    Aerosol Composition and Distribution that is set in
 C                    RADPAR by AGOLDH, BGOLDH, CGOLDH Factors
 C                    and controlled by FGOLDH ON/OFF Scaling Parameters.
-C
+C                    Optional tracers may be added in SETAER/GETAER
 C     ------------------------------------------------------------------
 C     Tau Scaling Factors:    Solar    Thermal    apply to:
 c                             FSTAER   FTTAER  ! Total Aerosol
@@ -3175,10 +3081,11 @@ C                        -----------------------------------------------
       INTEGER, SAVE :: IFIRST=1
       INTEGER, SAVE :: NL0=0
 
-      REAL*8 C,BC,ABC,HXPB,HXPT,ABCD,SRAQX,SRAQS,SUMABS,EXTSUM,SCTSUM
-     *     ,COSSUM,SUMEXT
+      REAL*8 C,BC,ABC,HXPB,HXPT,ABCD,SRAQX,SRAQS
+     *      ,SUMABS,EXTSUM,SCTSUM,COSSUM
       INTEGER I,J,K,L,JJ
 
+C**** Background aerosols
 C     ------------------------------------------------------------------
 C     Thermal: Set (5) Aerosol Type Compositions & Vertical Distribution
 C     ------------------------------------------------------------------
@@ -3301,7 +3208,7 @@ C                                                              ---------
   200 CONTINUE
       DO 203 L=1,NL0
       DO 202 K=1,33
-      SUMABS=0.
+      SUMABS=1.D-20
       DO 201 J=1,5
       SUMABS=SUMABS+TGOLDH(J)*TRAX(L,K,J)
   201 CONTINUE
@@ -3317,135 +3224,32 @@ C                                                                -------
   210 CONTINUE
       DO 212 K=1,6
       DO 212 L=1,NL0
-      EXTSUM=0.   !  1.D-20
-      SCTSUM=0.   !  1.D-30
+      EXTSUM=1.D-20
+      SCTSUM=1.D-30
       COSSUM=0.D0
       DO 211 J=1,5
       EXTSUM=EXTSUM+SGOLDH(J)*SRAX(L,K,J)
       SCTSUM=SCTSUM+SGOLDH(J)*SRAS(L,K,J)
       COSSUM=COSSUM+SGOLDH(J)*SRAS(L,K,J)*SRAC(L,K,J)
   211 CONTINUE
-      IF (EXTSUM.gt.0) SRBEXT(L,K)=EXTSUM
-      IF (SCTSUM.gt.0) THEN
-        SRBSCT(L,K)=SCTSUM
-        SRBGCB(L,K)=COSSUM/SCTSUM
-      END IF
-  212 CONTINUE
-
-
-C     ------------------------------------------------------------------
-C                            Option to repartition aerosol optical depth
-C                                  for nonstandard GCM vertical layering
-C                                  -------------------------------------
-      IF(MRELAY.GT.0) THEN         ! for offline use only if NL changes
-      DO 240 K=1,6
-      DO 220 L=1,NL0
-      AERX1(L)=QAERO(L,K)
-      AERS1(L)=SAERO(L,K)
-      AERG1(L)=CAERO(L,K)*SAERO(L,K)
-  220 CONTINUE
-      CALL REPART(AERX1,PLB0,NL0,AERX2,PLB,NLP)
-      CALL REPART(AERS1,PLB0,NL0,AERS2,PLB,NLP)
-      CALL REPART(AERG1,PLB0,NL0,AERG2,PLB,NLP)
-
-      DO 230 L=1,NL
-      SRAEXT(L,K)=AERX2(L)
-      SRASCT(L,K)=AERS2(L)
-      SRAGCB(L,K)=AERG2(L)/(AERS2(L)+1.D-10)
-  230 CONTINUE
-  240 CONTINUE
-
-      DO 270 K=1,33
-      DO 250 L=1,NL0
-      AERX1(L)=AAERO(L,K)
-  250 CONTINUE
-      CALL REPART(AERX1,PLB0,NL0,AERX2,PLB,NLP)
-      DO 260 L=1,NL
-      TRAALK(L,K)=AERX2(L)
-  260 CONTINUE
-  270 CONTINUE
-      ENDIF
-
-C     ------------------------------------------------------------------
-C     Option to add on Tracer Type aerosol thermal & solar contributions
-C     ------------------------------------------------------------------
-
-      IF(NTRACE.GT.0) THEN
-
-      DO 303 JJ=1,NTRACE
-      I=ITR(JJ)
-C                                                              (Thermal)
-C                                                              ---------
-      DO 302 K=1,33
-      SUMEXT=FTRACER(JJ)*(TRAQEX(K,I)-TRAQSC(K,I))
-      DO 301 L=1,NL
-      TRBALK(L,K)=TRBALK(L,K)+SUMEXT*TRACER(L,JJ)
-  301 CONTINUE
-  302 CONTINUE
-  303 CONTINUE
-
-C                                                                (Solar)
-C                                                                -------
-      DO 305 K=1,6
-      DO 305 L=1,NL
-      EXTSUM=SRBEXT(L,K)
-      SCTSUM=SRBSCT(L,K)
-      COSSUM=SRBGCB(L,K)*SRBSCT(L,K)
-      DO 304 JJ=1,NTRACE
-      I=ITR(JJ)
-      SRAQX=SRAQEX(K,I)
-      SRAQS=SRAQSC(K,I)
-      IF(SRAQS.GT.SRAQX) SRAQS=SRAQX
-      EXTSUM=EXTSUM+FTRACER(JJ)*TRACER(L,JJ)*SRAQX
-      SCTSUM=SCTSUM+FTRACER(JJ)*TRACER(L,JJ)*SRAQS
-      COSSUM=COSSUM+FTRACER(JJ)*TRACER(L,JJ)*SRAQCB(K,I)*SRAQS
-  304 CONTINUE
       SRBEXT(L,K)=EXTSUM
       SRBSCT(L,K)=SCTSUM
-      IF (SCTSUM.gt.0) SRBGCB(L,K)=COSSUM/SCTSUM
-  305 CONTINUE
-      ENDIF
+      SRBGCB(L,K)=COSSUM/SCTSUM
+  212 CONTINUE
+
 
       RETURN
       END SUBROUTINE SETBAK
 
+
       SUBROUTINE SETAER
+
+cc    INCLUDE  'rad00def.radCOMMON.f'
       IMPLICIT NONE
 C     ---------------------------------------------------------------
-C     GISS MONTHLY-MEAN AEROSOL (1950-1990) & DESERT DUST CLIMATOLOGY
-C     ---------------------------------------------------------------
-C
-C     Modification of Aerosol Composition Amounts and/or of Radiative
-C     Parameters is via RADPAR Parameters
-C
-C     UPDAER INPUT: via ENTRY UPDAER Arguments:   IYEAR, IMONTH, IDAY
-C                   specifies the time of Global Aerosol Distribution
-C
-C     GETAER INPUT: via ILON and JLAT set in RADPAR for 72x46 grid
-C
-C           OUTPUT: via SRAEXT(L,K)  Aerosol Extinction Optical Depth
-C                       SRASCT(L,K)  Aerosol Scattering Optical Depth
-C                       SRAGCB(L,K)  Aerosol Asymmetry Parameter  g
-C                       TRAALK(L,K)  Thermal Absorption Optical Depth
-C
-C     Defining Parameters are required for GETAER INPUT via RADPAR
-C
-C                          NL  = Number of Model Layers
-C                         NLP  = Number of Model Layers + 1
-C                         PLB  = Layer Edge Pressure
-C
-C                      MEANAC  = 0  (Default RADPAR value)
-C                      KVRAER  = 1  (Default RADPAR value)
-C     REMARKS:
-C
-C     MEANAC=1  Over-rides IMONTH, IDAY to yield Annual-Mean Aerosols
-C     KVRAER=0  Puts 12-Layer Aerosol Amounts in  first 12 PLB layers
-C     KVRAER=1  Repartions Aerosol Vertical Distribution according to
-C               PLB Pressure levels, i.e., from PLB(1) up to PLB(NLP)
-C               (This takes Topography & Model Layering into account)
+C     GISS MONTHLY-MEAN (1850-2050)  TROPOSPHERIC AEROSOL CLIMATOLOGY
 C     ---------------------------------------------------------------
 
-C     ------------------------------------------------------------------
 C     Tau Scaling Factors:    Solar    Thermal    apply to:
 c                             FSTAER   FTTAER  ! Total Aerosol
 c                             FSAAER   FTAAER  ! AClim Aerosol
@@ -3456,228 +3260,136 @@ C                        FTTAER    LW   (All-type) Aerosol Optical Depth
 C                        FSAAER    SW   AClim Aer  Aerosol Optical Depth
 C                        FTAAER    LW   AClim Aer  Aerosol Optical Depth
 C                        -----------------------------------------------
-C
-C     PLB12L  Aerosol Vertical Profile (Optical Depth) Scaling Factors
-C             --------------------------------------------------------
-C     Layr  1    2    3    4    5    6    7    8    9    10   11   12
-C     Ptop 934  854  720  550  390  285  255  150  100   60   30   10
-C     Pbot 984  934  854  720  550  390  285  255  150  100   60   30
 
-      REAL*8, DIMENSION(25) :: QXAERN,QSAERN,QGAERN
-      REAL*8, DIMENSION(12) :: SRAX12,SRAS12,SRAG12,TRAX12
+!nu   DIMENSION ATAU09(9)
+cc    DIMENSION PLBA09(10)          !       Aerosol data pressure levels
+cc    DATA PLBA09/984.,934.,854.,720.,550.,390.,255.,150.,70.,10./
+      real*8, parameter, dimension(4) ::
+C              Crystallization RH               Deliquescence RH
+     *  RHC=(/.38d0,.47d0,.28d0,.38d0/), RHD=(/.80d0,.75d0,.62d0,.80d0/)
 
 C     ------------------------------------------------------------------
-C     TROAER: Monthly-Mean Tropospheric Aerosols  (Column Optical Depth)
-C                  Decade Maps (N=1,5) for BCI, OCI, SUI (K=1,3) aerosol
-C                  for K=4 (N=1,5) gives SEA, SUN, OCN, OCB, BCB aerosol
-C                  Map: IJ=72x46,  Month: M=1-12, AnnAv: M=13
-C
-C     VDBSCU: Zonal Mean Vertical Distribution for BCI,SUI-TYPE Aerosols
-C
-C                  Apply multiplicative scaling factors: for climatology
-C                  aerosol optical depths, and single scattering albedos
-C                  using (FSAERO,FTAERO,PI0MAX) factors defined in BLOCK
-C                  DATA RADPAR in COMMON/AERCOM (contains defaults)
-C
-C        NOTE:     Scaling factors multiply the appropriate aerosol  MIE
-C                  radiative parameters (QXAERO,QSAERO) and NOT the data
-C                  of the column optical depth (72x46) global maps
-C
-C     IFIRST=0     Subsequent CALLs to SETAER  can reset scaling factors
-C     ------------------------------------------------------------------
-C                  Define aerosol size according to REAERO specification
+C                  Define aerosol size according to REFDRY specification
+C                                      (if KRHAER(NA)=0, REFWET is used)
 C                  FRSULF= Sulfate fraction of basic aerosol composition
 C
-C     Set Size OCI (N=2) = Organic (Anthrop) Aerosol  (Nominal Reff=0.3)
-C     Set Size SUI (N=3) = Sulfate (Anthrop) Aerosol  (Nominal Reff=1.0)
-C     Set Size SEA (N=4) = SeaSalt (Natural) Aerosol  (Nominal Reff=2.0)
-C     Set Size SUN (N=5) = Sulfate (Natural) Aerosol  (Nominal Reff=0.3)
-C     Set Size ANT (N=6) = Nitrate (Anthrop) Aerosol  (Nominal Reff=1.0)
-C     Set Size OCN (N=7) = Organic (Natural) Aerosol  (Nominal Reff=0.3)
-C     Set Size OCB (N=8) = Organic (Anthrop) Aerosol  (Nominal Reff=0.3)
+C          Set size SO4 (NA=1) = Sulfate aerosol  (Nominal dry Reff=0.2)
+C          Set size SEA (NA=2) = SeaSalt aerosol  (Nominal dry Reff=1.0)
+C          Set size ANT (NA=3) = Nitrate aerosol  (Nominal dry Reff=0.3)
+C          Set size OCX (NA=4) = Organic aerosol  (Nominal dry Reff=0.3)
 C     ------------------------------------------------------------------
-      INTEGER, INTENT(IN) :: JYEARA,JJDAYA
-      REAL*8 AREFF,WTS,WTA,QGAERX,PI0F,PI0,XJYEAR,XJYBCI,XJYOCI,XJYSUI
-     *     ,DJYEAR,WMA,WMB,TAUBCI,TAUBCJ,TAUOCI,TAUOCJ,TAUSUI,TAUSUJ
-     *     ,VDTAU,QSUM,SSUM,CSUM,VDQS,ASUM,FSXTAU,FTXTAU,BCIWID,BCIWJD
-     *     ,OCIWID,OCIWJD,SUIWID,SUIWJD,XMO
-      INTEGER I,J,K,L,NA,N0,N,NN,NNA,JJYEAR,MA,MB,IBCI,JBCI,IOCI,JOCI
-     *     ,ISUI,JSUI
+      REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55
+      REAL*8          TTAULX(LX,8),   SRBGQL
+      INTEGER K,L,NA,N,NRH,M,KDREAD,NT
 
-      DO 115 NA=2,8
-      N0=0
-      IF(NA.EQ.2) N0=88
-      IF(NA.EQ.4) N0=22
-      IF(NA.EQ.6) N0=44
-      IF(NA.EQ.7) N0=88
-      IF(NA.EQ.8) N0=88
-      AREFF=REAERO(NA)
-      DO 112 K=1,6
-      DO 111 N=1,22
-      NN=N0+N
-      WTS=FRSULF(NA)
-      WTA=1.D0-WTS
-      QXAERN(N)=SRUQEX(K,NN)*WTA+SRUQEX(K,N)*WTS
-      QSAERN(N)=SRUQSC(K,NN)*WTA+SRUQSC(K,N)*WTS
-      QGAERX=SRUQCB(K,NN)*SRUQSC(K,NN)*WTA+SRUQCB(K,N)*SRUQSC(K,N)*WTS
-      QGAERN(N)=QGAERX/QSAERN(N)
-  111 CONTINUE
-      CALL SPLINE(REFU22,QXAERN,22,AREFF,SRBQEX(K,NA),1.D0,1.D0,1)
-      CALL SPLINE(REFU22,QSAERN,22,AREFF,SRBQSC(K,NA),1.D0,1.D0,1)
-      CALL SPLINE(REFU22,QGAERN,22,AREFF,SRBQCB(K,NA),1.D0,1.D0,1)
-  112 CONTINUE
-      DO 114 K=1,33
-      DO 113 N=1,22
-      NN=N0+N
-      WTS=FRSULF(NA)
-      WTA=1.D0-WTS
-      QXAERN(N)=TRUQEX(K,NN)*WTA+TRUQEX(K,N)*WTS
-      QSAERN(N)=TRUQSC(K,NN)*WTA+TRUQSC(K,N)*WTS
-      QGAERX=TRUQCB(K,NN)*TRUQSC(K,NN)*WTA+TRUQCB(K,N)*TRUQSC(K,N)*WTS
-      QGAERN(N)=QGAERX/(QSAERN(N)+1d-30)
-  113 CONTINUE
-      CALL SPLINE(REFU22,QXAERN,22,AREFF,TRBQEX(K,NA),1.D0,1.D0,1)
-      CALL SPLINE(REFU22,QSAERN,22,AREFF,TRBQSC(K,NA),1.D0,1.D0,1)
-      CALL SPLINE(REFU22,QGAERN,22,AREFF,TRBQCB(K,NA),1.D0,1.D0,1)
-  114 CONTINUE
-      CALL SPLINE(REFU22,Q55U22,22,AREFF,Q55B10(NA),1.D0,1.D0,1)
-  115 CONTINUE
-      REFB10(6)=AREFF
-      VEFB10(6)=0.2D0
+      IF(MADAER.LE.0) GO TO 150
+      DO 110 NA=1,4
+      AREFF=REFDRY(NA)
+      IF(KRHAER(NA).EQ.0) AREFF=REFWET(NA)
+      CALL GETMIE(NA,AREFF,SRHQEX(1,1,NA),SRHQSC(1,1,NA),SRHQCB(1,1,NA)
+     +                    ,TRHQAB(1,1,NA),Q55DRY(NA))
+      DRYM2G(NA)=0.75D0/DENAER(NA)*Q55DRY(NA)/AREFF
+      RHINFO(1,1,NA)=0.D0                                     !  Rel Hum
+      RHINFO(1,2,NA)=1.D0                                     !  TAUFAC
+      RHINFO(1,3,NA)=AREFF                                    !  AerSize
+      RHINFO(1,4,NA)=0.D0                                     !  LW g/m2
+      RHINFO(1,5,NA)=1.33333333D0*AREFF*DENAER(NA)/Q55DRY(NA) !  Dryg/m2
+      RHINFO(1,6,NA)=1.33333333D0*AREFF*DENAER(NA)/Q55DRY(NA) !  Totg/m2
+      RHINFO(1,7,NA)=1.D0                                     !  Xmas fr
+      RHINFO(1,8,NA)=DENAER(NA)                               !  Density
+      RHINFO(1,9,NA)=Q55DRY(NA)                               !  Q55 Ext
+  110 CONTINUE
 
-
-C     Set Size BCI (N=1) = Black Carbon (Industrial)  (Nominal Reff=0.1)
-C     Set Size BCB (N=9) = Black Carbon (BioBurning)  (Nominal Reff=0.5)
+C     Set size BCI (NA=5) = Black Carbon (Industrial) (Nominal Reff=0.1)
+C     Set size BCB (NA=6) = Black Carbon (BioBurning) (Nominal Reff=0.1)
 C     ------------------------------------------------------------------
+      DO 120 NA=5,6
+      AREFF=REFDRY(NA)
+      CALL GETMIE(NA,AREFF,SRBQEX(1,NA),SRBQSC(1,NA),SRBQCB(1,NA)
+     +                    ,TRBQAB(1,NA),Q55DRY(NA))
+      DRYM2G(NA)=0.75D0/DENAER(NA)*Q55DRY(NA)/AREFF
+  120 CONTINUE
 
-      DO 125 NNA=1,2
-      NA=1
-      IF(NNA.EQ.2) NA=9
-      AREFF=REAERO(NA)
-      DO 122 K=1,6
-      DO 121 N=1,25
-      QXAERN(N)=SRSQEX(K,N)
-      QSAERN(N)=SRSQSC(K,N)
-      QGAERN(N)=SRSQCB(K,N)
-  121 CONTINUE
-      CALL SPLINE(REFS25,QXAERN,25,AREFF,SRBQEX(K,NA),1.D0,1.D0,1)
-      CALL SPLINE(REFS25,QSAERN,25,AREFF,SRBQSC(K,NA),1.D0,1.D0,1)
-      CALL SPLINE(REFS25,QGAERN,25,AREFF,SRBQCB(K,NA),1.D0,1.D0,1)
-  122 CONTINUE
-      DO 124 K=1,33
-      DO 123 N=1,25
-      QXAERN(N)=TRSQEX(K,N)
-      QSAERN(N)=TRSQSC(K,N)
-      QGAERN(N)=TRSQCB(K,N)
-  123 CONTINUE
-      CALL SPLINE(REFS25,QXAERN,25,AREFF,TRBQEX(K,NA),1.D0,1.D0,1)
-      CALL SPLINE(REFS25,QSAERN,25,AREFF,TRBQSC(K,NA),1.D0,1.D0,1)
-      CALL SPLINE(REFS25,QGAERN,25,AREFF,TRBQCB(K,NA),1.D0,1.D0,1)
-  124 CONTINUE
-      CALL SPLINE(REFS25,Q55U22,25,AREFF,Q55B10(NA),1.D0,1.D0,1)
-  125 CONTINUE
+              !      Extend default dry aerosol coefficients for N=2,190
+      DO 135 N=2,190
+      DO 134 NA=1,4
+      DO 131 K=1,6
+      SRHQEX(K,N,NA)=SRHQEX(K,1,NA)
+      SRHQSC(K,N,NA)=SRHQSC(K,1,NA)
+      SRHQCB(K,N,NA)=SRHQCB(K,1,NA)
+  131 CONTINUE
+      DO 132 K=1,33
+      TRHQAB(K,N,NA)=TRHQAB(K,1,NA)
+  132 CONTINUE
+      DO 133 M=1,9
+      RHINFO(N,M,NA)=RHINFO(N,1,NA)
+  133 CONTINUE
+  134 CONTINUE
+  135 CONTINUE
 
-      DO 150 N=1,10
-      DO 130 I=1,6
-      PI0F=1.D0
-      PI0=SRBQSC(I,N)/SRBQEX(I,N)
-      IF(PI0.GT.PI0MAX(N)) PI0F=PI0MAX(N)/PI0
-      QXAERO(I,N)=SRBQEX(I,N)
-      QSAERO(I,N)=SRBQSC(I,N)*PI0F
-      QCAERO(I,N)=SRBQCB(I,N)
-  130 CONTINUE
-      PIAERO(N)=QSAERO(6,N)/(QXAERO(6,N)+1.D-10)
-      DO 140 K=1,33
-      ATAERO(K,N)=TRBQEX(K,N)-TRBQSC(K,N)
-      TRBQAB(K,N)=TRBQEX(K,N)-TRBQSC(K,N)
-  140 CONTINUE
-c     IF(N.EQ.3) CALL SETREL(N)
-  150 CONTINUE
-
-      RETURN
-
-C--------------------------------
-      ENTRY UPDAER(JYEARA,JJDAYA)
-C--------------------------------
-
-C                    Aerosol Climatology Time Dependence Selection
-C                    ---------------------------------------------
-C
-C          Time Selection is by UPDAER(IYEAR,IMONTH,IDAY) Argument
-C          Integer Year, Month, Day values are converted to XJYEAR
-C
-C     IF(MEANAC.EQ.0)     Time Dependence is Linearly interpolated
-C                         between Monthly-mean Aerosol Data Tables
-C
-C     IF(MEANAC.EQ.1)     Annual-mean  (72X46) Climatology is used
-C
-C     MEANAC=0 Default value set in RADPAR
-C     ------------------------------------------------------------
-
-      XJYEAR=JYEARA+(JJDAYA-0.999D0)/366.D0
-
-      XJYBCI=XJYEAR
-      IF(X0YBCI.GT.1.D0) XJYBCI=X0YBCI
-      XJYOCI=XJYEAR
-      IF(X0YOCI.GT.1.D0) XJYOCI=X0YOCI
-      XJYSUI=XJYEAR
-      IF(X0YSUI.GT.1.D0) XJYSUI=X0YSUI
-
-C                         ----------------------------------------
-C                         Decadal Time Interpolation for BC and SU
-C                         Tables from 1950 (IBC=1) to 1990 (JBC=5)
-C                         BCWTID, BCWTJD Weights need not sum to 1
-C                         Exponential Extrapolation: <1950, 1990>
-C                         ----------------------------------------
-
-      CALL BCTAUW(XJYBCI,IBCI,JBCI,BCIWID,BCIWJD)
-      CALL BCTAUW(XJYOCI,IOCI,JOCI,OCIWID,OCIWJD)
-      CALL SUTAUW(XJYSUI,ISUI,JSUI,SUIWID,SUIWJD)
-      XJYEAR=XJYEAR+1.D0/24.D0
-      JJYEAR=XJYEAR
-      DJYEAR=XJYEAR-JJYEAR
-      XMO=DJYEAR*12.D0
-      MA=XMO
-      MB=MA+1
-      WMB=XMO-MA
-      WMA=1.D0-WMB
-      IF(MA.LT.1)  MA=12
-      IF(MB.GT.12) MB=1
-      IF(MEANAC.EQ.1) THEN
-      WMA=1.D0
-      WMB=0.D0
-      MA=13
-      MB=13
+      KDREAD=71           !  Over-write dry coefficients if KRHAER(NA)=1
+      DO 140 NA=1,4
+      IF(KRHAER(NA).GT.0) THEN
+      CALL SETREL(REFDRY(NA),NA ,kdread
+     A           ,SRUQEX,SRUQSC,SRUQCB
+     B           ,TRUQEX,TRUQSC,TRUQCB
+     C           ,REFU22,Q55U22
+     D      ,SRHQEX(1,1,NA),SRHQSC(1,1,NA),SRHQCB(1,1,NA)
+     E      ,TRHQAB(1,1,NA)
+     F      ,RHINFO(1,1,NA))
       ENDIF
+  140 CONTINUE
 
-      DO 220 J=1,46
-      DO 210 I=1,72
-      TAUBCI=WMA*TROAER(I,J,MA,IBCI,1)+WMB*TROAER(I,J,MB,IBCI,1)
-      TAUBCJ=WMA*TROAER(I,J,MA,JBCI,1)+WMB*TROAER(I,J,MB,JBCI,1)
-      TAUCOL(I,J,1)=BCIWID*TAUBCI+BCIWJD*TAUBCJ
-      TAUOCI=WMA*TROAER(I,J,MA,IOCI,2)+WMB*TROAER(I,J,MB,IOCI,2)
-      TAUOCJ=WMA*TROAER(I,J,MA,JOCI,2)+WMB*TROAER(I,J,MB,JOCI,2)
-      TAUCOL(I,J,2)=OCIWID*TAUOCI+OCIWJD*TAUOCJ
-      TAUSUI=WMA*TROAER(I,J,MA,ISUI,3)+WMB*TROAER(I,J,MB,ISUI,3)
-      TAUSUJ=WMA*TROAER(I,J,MA,JSUI,3)+WMB*TROAER(I,J,MB,JSUI,3)
-      TAUCOL(I,J,3)=SUIWID*TAUSUI+SUIWJD*TAUSUJ
-      TAUCOL(I,J,4)=WMA*TROAER(I,J,MA,1,4)+WMB*TROAER(I,J,MB,1,4)
-      TAUCOL(I,J,5)=WMA*TROAER(I,J,MA,2,4)+WMB*TROAER(I,J,MB,2,4)
-      TAUCOL(I,J,6)=WMA*TROAER(I,J,MA,2,4)+WMB*TROAER(I,J,MB,2,4)  ! nu
-      TAUCOL(I,J,7)=WMA*TROAER(I,J,MA,3,4)+WMB*TROAER(I,J,MB,3,4)
-      TAUCOL(I,J,8)=WMA*TROAER(I,J,MA,4,4)+WMB*TROAER(I,J,MB,4,4)
-      TAUCOL(I,J,9)=WMA*TROAER(I,J,MA,5,4)+WMB*TROAER(I,J,MB,5,4)
-      TAUCOL(I,J,10)=SSBTAU
-  210 CONTINUE
-  220 CONTINUE
+  150 CONTINUE
+      IF(NTRACE.LE.0) RETURN
 
-      DO 240 L=1,12
-      DO 230 J=1,46
-      VDAERO(J,L,1)=WMA*VDBCSU(J,L,MA,1)+WMB*VDBCSU(J,L,MB,1)
-      VDAERO(J,L,2)=WMA*VDBCSU(J,L,MA,2)+WMB*VDBCSU(J,L,MB,2)
-      VDAERO(J,L,3)=WMA*VDBCSU(J,L,MA,3)+WMB*VDBCSU(J,L,MB,3)
-  230 CONTINUE
-  240 CONTINUE
+C**** Optional Tracer aerosols initializations
+      DO NT=1,NTRACE
+      NA=ITR(NT)
+      AREFF=TRRDRY(NT)
+      CALL GETMIE(NA,AREFF,SRTQEX(1,1,NT),SRTQSC(1,1,NT),SRTQCB(1,1,NT)
+     +                    ,TRTQAB(1,1,NT),Q55)
+      RTINFO(1,1,NT)=0.0
+      RTINFO(1,2,NT)=1.0
+      RTINFO(1,3,NT)=AREFF
+      RTINFO(1,4,NT)=0.0
+      RTINFO(1,5,NT)=1.33333333D0*AREFF*DENAER(NT)/Q55
+      RTINFO(1,6,NT)=1.33333333D0*AREFF*DENAER(NT)/Q55
+      RTINFO(1,7,NT)=1.0
+      RTINFO(1,8,NT)=DENAER(NT)
+      RTINFO(1,9,NT)=Q55
+      END DO
+            !      Define default dry aerosol coefficients for N=2,190
+      DO N=2,190
+      DO NT=1,NTRACE
+        DO K=1,6
+        SRTQEX(K,N,NT)=SRTQEX(K,1,NT)
+        SRTQSC(K,N,NT)=SRTQSC(K,1,NT)
+        SRTQCB(K,N,NT)=SRTQCB(K,1,NT)
+        END DO
+        DO K=1,33
+        TRTQAB(K,N,NT)=TRTQAB(K,1,NT)
+        END DO
+        DO M=1,9
+        RTINFO(N,M,NT)=RTINFO(N,1,NT)
+        END DO
+      END DO
+      END DO
+
+      KDREAD=71           !  Over-write dry coefficients if KRHTRA(NT)=1
+      DO NT=1,NTRACE
+      NA=ITR(NT)
+      IF(KRHTRA(NT).GT.0) THEN
+      CALL SETREL(REFDRY(NT),NA,KDREAD
+     A           ,SRUQEX,SRUQSC,SRUQCB
+     B           ,TRUQEX,TRUQSC,TRUQCB
+     C           ,REFU22,Q55U22
+     D      ,SRTQEX(1,1,NT),SRTQSC(1,1,NT),SRTQCB(1,1,NT)
+     E      ,TRTQAB(1,1,NT)
+     F      ,RTINFO(1,1,NT))
+      ENDIF
+      END DO
+
       RETURN
 
 
@@ -3685,200 +3397,466 @@ C-----------------
       ENTRY GETAER
 C-----------------
 
-C     ------------------------------------------------------------
-C     Tropospheric Aerosol and Mineral Dust Data are on 72X46 Grid
-C     with a Nominal 5 deg Longitude and 4 deg Latitude Resolution
-C     with 12 Layer Vertical Distribution of Aerosol Optical Depth
-C
-C     Geographic Location is specified by: ILON and JLAT in RADPAR
-C     ------------------------------------------------------------
-C
-C                  -----------------------------------------------
-C                  For Model Resolution other than 72X36, Redefine
-C                  ILON and JLAT appropriately
-C
-C     ------------------------------------------------------------
-C     Aerosol Vertical Distribution  vs. Model Vertical Resolution
-C
-C     IF(KVRAER.EQ.0) 12 Layer Vertical Distribution is used as is
-C
-C     IF(KVRAER.EQ.1) Aerosol Height Distribution is Repartitioned
-C                             Using PLB in RADPAR
-C                     (This takes Surface Topography into account)
-C     ------------------------------------------------------------
+      NRHNAN(:,:) = 1
+      DO 230 L=1,NL
+      IF(RHL(L).GT.0.9005D0) THEN
+      XRH=(RHL(L)-0.899499D0)*1000.D0
+      NRH=XRH+64
+      IF(NRH.GT.164) NRH=164
+      ELSE
+      XRH=RHL(L)*100.D0+0.5D0
+      NRH=XRH-26
+      IF(NRH.LT.0) NRH=0
+      ENDIF
+      DO 220 NA=1,4
+      IF(KDELIQ(L,NA).EQ.0) THEN
+      IF(RHL(L).GT.RHD(NA)) KDELIQ(L,NA)=1
+      ELSE
+      IF(RHL(L).LT.RHC(NA)) KDELIQ(L,NA)=0
+      ENDIF
+      NRHNAN(L,NA)=NRH*KDELIQ(L,NA)+1
+  220 CONTINUE
+  230 CONTINUE
 
+      IF(MADAER.LE.0) GO TO 500
 
-C                                                (Solar Component)
-C                                                -----------------
-      DO 330 K=1,6
-      DO 320 L=1,12
-      VDTAU=SSBTAU*VDGAER(L,10)*FSAERO(10)
-      QSUM=VDTAU*QXAERO(K,10)+2.D-10
-      SSUM=VDTAU*QSAERO(K,10)+1.D-10
-      CSUM=SSUM*QCAERO(K,10)
-      DO 310 N=1,3
-      VDTAU=TAUCOL(ILON,JLAT,N)*VDAERO(JLAT,L,N)*VDFAER(L,N)*FSAERO(N)
-      QSUM=QSUM+VDTAU*QXAERO(K,N)
-      VDQS=VDTAU*QSAERO(K,N)
-      SSUM=SSUM+VDQS
-      CSUM=CSUM+VDQS*QCAERO(K,N)
-  310 CONTINUE
-      QAERO(L,K)=QSUM
-      SAERO(L,K)=SSUM
-      CAERO(L,K)=CSUM/SSUM
-  320 CONTINUE
-  330 CONTINUE
-c
-      DO 360 K=1,6
-      DO 350 L=1,6
-      QSUM=QAERO(L,K)
-      SSUM=SAERO(L,K)
-      CSUM=CAERO(L,K)*SSUM
-      DO 340 N=4,9
-      VDTAU=TAUCOL(ILON,JLAT,N)*VDGAER(L,N)*FSAERO(N)
-      QSUM=QSUM+VDTAU*QXAERO(K,N)
-      VDQS=VDTAU*QSAERO(K,N)
-      SSUM=SSUM+VDQS
-      CSUM=CSUM+VDQS*QCAERO(K,N)
-  340 CONTINUE
-      QAERO(L,K)=QSUM
-      SAERO(L,K)=SSUM
-      CAERO(L,K)=CSUM/SSUM
-  350 CONTINUE
-  360 CONTINUE
-
-C                                              (Thermal Component)
-C                                              -------------------
-      DO 430 K=1,33
-      DO 420 L=1,12
-      VDTAU=SSBTAU*VDGAER(L,10)*FTAERO(10)
-      ASUM=VDTAU*ATAERO(K,10)
-      DO 410 N=1,3
-      VDTAU=TAUCOL(ILON,JLAT,N)*VDAERO(JLAT,L,N)*VDFAER(L,N)*FTAERO(N)
-      ASUM=ASUM+VDTAU*ATAERO(K,N)
-  410 CONTINUE
-      AAERO(L,K)=ASUM
-  420 CONTINUE
-  430 CONTINUE
-c
-      DO 460 K=1,33
-      DO 450 L=1,6
-      ASUM=AAERO(L,K)
-      DO 440 N=4,9
-      VDTAU=TAUCOL(ILON,JLAT,N)*VDGAER(L,N)*FTAERO(N)
-      ASUM=ASUM+VDTAU*ATAERO(K,N)
-  440 CONTINUE
-      AAERO(L,K)=ASUM
-  450 CONTINUE
-  460 CONTINUE
-
-C                     -------------------------------------------------
-C                     Define Aerosol Thermal and Solar Contributions in
-C                                       TRAALK and SRAEXT,SRASCT,SRAGCB
-C
-C                     Apply Solar/Thermal Optical Depth Scaling Factors
-C                              AClim Aerosol  Solar  FSXA=FSTAER*FSAAER
-C                              AClim Aerosol Thermal FTXA=FSTAER*FTAAER
-C                              ----------------------------------------
+      DO NA=1,6
+      CALL REPART(A6JDAY(1,NA,ILON,JLAT),PLBA09,10,ATAULX(1,NA),PLB,NLP)
+      END DO
 
       FSXTAU=FSTAER*FSAAER+1.D-10
       FTXTAU=FTTAER*FTAAER
-      IF(KVRAER.EQ.1) THEN
-C                           -------------------------------------------
-C                           Option to repartition aerosol optical depth
-C                                 for nonstandard GCM vertical layering
-C                                 -------------------------------------
-      DO 530 K=1,6
-      DO 510 L=1,12
-      SRAX12(L)=QAERO(L,K)*FSXTAU
-      SRAS12(L)=SAERO(L,K)*FSXTAU
-      SRAG12(L)=CAERO(L,K)*SAERO(L,K)*FSXTAU
-  510 CONTINUE
-      CALL REPART(SRAX12,PLB12L,13,SRAXNL,PLB,NLP)
-      CALL REPART(SRAS12,PLB12L,13,SRASNL,PLB,NLP)
-      CALL REPART(SRAG12,PLB12L,13,SRAGNL,PLB,NLP)
-      DO 520 L=1,NL
-      SRAEXT(L,K)=SRAXNL(L)
-      SRASCT(L,K)=SRASNL(L)
-      SRAGCB(L,K)=SRAGNL(L)/(SRASNL(L)+1.D-10)
-  520 CONTINUE
-  530 CONTINUE
-
-      DO 560 K=1,33
-      DO 540 L=1,12
-      TRAX12(L)=AAERO(L,K)*FTXTAU
-  540 CONTINUE
-      CALL REPART(TRAX12,PLB12L,13,TRAXNL,PLB,NLP)
-      DO 550 L=1,NL
-      TRAALK(L,K)=TRAXNL(L)
-  550 CONTINUE
-  560 CONTINUE
-
-      ELSE
-      DO 620 K=1,6
-      DO 610 L=1,NL
-      SRAEXT(L,K)=QAERO(L,K)*FSXTAU
-      SRASCT(L,K)=SAERO(L,K)*FSXTAU
-      SRAGCB(L,K)=CAERO(L,K)
-      IF(L.LT.13) GO TO 610
-      SRAEXT(L,K)=2.D-10
-      SRASCT(L,K)=1.D-10
-      SRAGCB(L,K)=0.D0
-  610 CONTINUE
-  620 CONTINUE
-
-      DO 640 K=1,33
-      DO 630 L=1,NL
-      TRAALK(L,K)=AAERO(L,K)*FTXTAU
-      IF(L.LT.13) GO TO 630
+                           !            (Solar BCI,BCB components)
+      DO 250 L=1,NL
+      DO 240 K=1,6
+      SRAEXT(L,K)=SRBQEX(K,5)*ATAULX(L,5)*FSXTAU*FS8OPX(5)
+     +           +SRBQEX(K,6)*ATAULX(L,6)*FSXTAU*FS8OPX(6)
+      SRASCT(L,K)=SRBQSC(K,5)*ATAULX(L,5)*FSXTAU*FS8OPX(5)
+     +           +SRBQSC(K,6)*ATAULX(L,6)*FSXTAU*FS8OPX(6)
+      SRAGQL     =SRBQSC(K,5)*ATAULX(L,5)*SRBQCB(K,5)
+     +           +SRBQSC(K,6)*ATAULX(L,6)*SRBQCB(K,6)
+      SRAGCB(L,K)=SRAGQL/(SRASCT(L,K)+1.D-10)
+  240 CONTINUE
+  250 CONTINUE
+                          !           (Thermal BCI,BCB components)
+      DO 270 L=1,NL
+      DO 260 K=1,33
+      TRAALK(L,K)=TRBQAB(K,5)*ATAULX(L,5)*FTXTAU*FT8OPX(5)
+     +           +TRBQAB(K,6)*ATAULX(L,6)*FTXTAU*FT8OPX(6)
+      IF(PLB(L).GT.10.D0) GO TO 260
       TRAALK(L,K)=0.D0
-  630 CONTINUE
-  640 CONTINUE
-      ENDIF
+  260 CONTINUE
+  270 CONTINUE
+
+      DO 330 L=1,NL
+      DO 320 K=1,6
+      DO 310 NA=1,4
+      RHFTAU=RHINFO(NRHNAN(L,NA),2,NA)*ATAULX(L,NA)*FSXTAU*FS8OPX(NA)
+      SRAEXT(L,K)=SRAEXT(L,K)
+     +        +SRHQEX(K,NRHNAN(L,NA),NA)*RHFTAU
+      SRASCT(L,K)=SRASCT(L,K)
+     +        +SRHQSC(K,NRHNAN(L,NA),NA)*RHFTAU
+      SRAGQL     =SRAGCB(L,K)*SRASCT(L,K)+SRHQCB(K,NRHNAN(L,NA),NA)
+     +           *SRHQSC(K,NRHNAN(L,NA),NA)*RHFTAU
+      SRAGCB(L,K)=SRAGQL/(SRASCT(L,K)+1.D-10)
+  310 CONTINUE
+  320 CONTINUE
+  330 CONTINUE
+
+      DO 360 L=1,NL
+      DO 350 K=1,33
+      DO 340 NA=1,4
+      RHFTAU=RHINFO(NRHNAN(L,NA),2,NA)*ATAULX(L,NA)*FTXTAU*FT8OPX(NA)
+      TRAALK(L,K)=TRAALK(L,K)
+     +        +TRHQAB(K,NRHNAN(L,NA),NA)*RHFTAU
+  340 CONTINUE
+  350 CONTINUE
+  360 CONTINUE
+
+  500 CONTINUE
+      IF(NTRACE.LE.0) RETURN
+
+C     ------------------------------------------------------------------
+C     Option to add on Tracer Type aerosol thermal & solar contributions
+C
+C     NOTE:  Aerosol carried as a tracer is assumed to be in kg/m2 units
+C     ------------------------------------------------------------------
+
+      FSXTAU=FSTAER*FSBAER+1.D-10
+      FTXTAU=FTTAER*FTBAER
+
+      DO L=1,NL
+      DO K=1,6
+      DO NT=1,NTRACE
+      NA=ITR(NT)
+      RHFTAU=RTINFO(NRHNAN(L,NA),2,NT)*TTAULX(L,NT)*FSXTAU*FSTOPX(NT)
+      SRBEXT(L,K)=SRBEXT(L,K)+SRTQEX(K,NRHNAN(L,NA),NT)*RHFTAU
+      SRBSCT(L,K)=SRBSCT(L,K)+SRTQSC(K,NRHNAN(L,NA),NT)*RHFTAU
+      SRBGQL     =SRBGCB(L,K)*SRBSCT(L,K)+SRTQCB(K,NRHNAN(L,NA),NT)
+     +           *SRTQSC(K,NRHNAN(L,NA),NT)*RHFTAU
+      SRBGCB(L,K)=SRBGQL/(SRBSCT(L,K)+1.D-10)
+      END DO
+      END DO
+      END DO
+
+      DO L=1,NL
+      DO K=1,33
+      DO NT=1,NTRACE
+      NA=ITR(NT)
+      RHFTAU=RTINFO(NRHNAN(L,NA),2,NT)*TTAULX(L,NT)*FTXTAU*FTTOPX(NT)
+      TRBALK(L,K)=TRBALK(L,K)+TRTQAB(K,NRHNAN(L,NA),NT)*RHFTAU
+      END DO
+      END DO
+      END DO
 
       RETURN
       END SUBROUTINE SETAER
 
+
+      SUBROUTINE UPDAER(JYEARA,JJDAYA)
+
+cc    INCLUDE 'rad00def.radCOMMON.f'
+C     ------------------------------------------------------------------
+C     Reads: sep2003_XXX_Koch_kg_m2_72x46x9_1850-1990 aerosol kg/m2 data
+C     for SUI,OCI,BCI, and PRE (PRE=SNP,SBP,SSP,ANP,ONP,OBP,ANI,OCB,BCB)
+C
+C     Makes: A6YEAR(72,46,9,0:12,6), A6JDAY(9,6,72,46) (dry aerosol Tau)
+C     ------------------------------------------------------------------
+
+      USE FILEMANAGER, only : openunit,closeunit
+      implicit none
+
+      integer, intent(in) :: jyeara,jjdaya
+      REAL*4 A6YEAR(72,46,9,0:12,6)
+      REAL*4  PREDD(72,46,9,12,10),SUIDD(72,46,9,12,8)
+      REAL*4  OCIDD(72,46,9,12, 8),BCIDD(72,46,9,12,8),AMON(72,46,9)
+      save A6YEAR,PREDD,SUIDD,OCIDD,BCIDD
+
+      CHARACTER*80 XTITLE
+      CHARACTER*40, dimension(4) :: RDFILE = (/            !  Input data
+     1            'sep2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850'
+     2           ,'sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990'
+     3           ,'sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990'
+     4           ,'sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990'/)
+
+      CHARACTER*40, dimension(4) :: RDFGEN = (/          ! generic names
+     * 'TAero_PRE','TAero_SUI','TAero_OCI','TAero_BCI'/)
+
+C                TROPOSPHERIC AEROSOL COMPOSITIONAL/TYPE PARAMETERS
+C                   SO4    SEA    ANT    OCX    BCI    BCB   *BCB  *BCB
+C     DATA REFDRY/0.200, 1.000, 0.300, 0.300, 0.100, 0.100, 0.200,0.050/
+C
+C     DATA REFWET/0.272, 1.808, 0.398, 0.318, 0.100, 0.100, 0.200,0.050/
+C
+C     DATA DRYM2G/4.667, 0.866, 4.448, 5.018, 9.000, 9.000, 5.521,8.169/
+C
+CKoch DATA DRYM2G/5.000, 2.866, 8.000, 8.000, 9.000, 9.000, 5.521,8.169/
+C
+C     DATA RHTMAG/1.788, 3.310, 1.756, 1.163, 1.000, 1.000, 1.000,1.000/
+C
+CRH70 DATA WETM2G/8.345, 2.866, 7.811, 5.836, 9.000, 9.000, 5.521,8.169/
+C
+C     DATA Q55DRY/2.191, 2.499, 3.069, 3.010, 1.560, 1.560, 1.914,0.708/
+C
+C     DATA DENAER/1.760, 2.165, 1.725, 1.500, 1.300, 1.300, 1.300,1.300/
+C
+C     ------------------------------------------------------------------
+C          DRYM2G(I) = 0.75/DENAER(I)*Q55DRY(I)/REFDRY(I)
+C          WETM2G(I) = DRYM2G(I)*RHTMAG(I)
+C          RHTMAG(I) = Rel Humidity TAU Magnification factor  at RH=0.70
+C          REFWET(I) = Rel Humidity REFDRY Magnification      at RH=0.70
+C     ------------------------------------------------------------------
+
+C     TROP AEROSOL 1850 BACKGROUND, INDUSTRIAL & BIO-BURNING PARAMETERS
+C     DATA AERMIX/
+C       Pre-Industrial+Natural 1850 Level  Industrial Process  BioMBurn
+C       ---------------------------------  ------------------  --------
+C        1    2    3    4    5    6    7    8    9   10   11   12   13
+C       SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
+C    +  1.0, 1.0, 1.0, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9/
+
+C      A6YEAR          PRE                  SUI         OCI        BCI
+C     ------------------------------------------------------------------
+C     NAER=1=SO4 = SNP*1+SBP*2         +  SUI*I,J
+C          2=SEA = SSP*3
+C          3=ANT = ANP*4+ANI*0,8
+C          4=OCX = ONP*5+OBP*6+OCB*0,9             +  OCI*I,J
+C          5=BCI =                                               BCI*I,J
+C          6=BCB = BBP*7,BCB*0,10
+C     ------------------------------------------------------------------
+C     Aerosol input data is from designated source files PRE SUI OCI BCI
+C     Aerosol output is accumulated for 6-A6YEAR designated compositions
+C           SNP*1 represents AERMIX(1)*PRE(I,J,L,M,1) = 1850 Natural SO4
+C           SBP*2 represents AERMIX(2)*PRE(I,J,L,M,2) = 1850 BioBurn SO4
+C         SUI*I,J represents AERMIX(8)*(SUI(I,J,L,M,I)intSUI(I,J,L,M,J))
+C           SSP*1 represents AERMIX(3)*PRE(I,J,L,M,3) = 1850 SeaSalt
+C         BCB*0,10represents AERMIX(11)*(0_interpol_PRE(I,J,L,M,10)) BCB
+C         (which is interpolated linearly in time from 0 amount in 1850)
+C
+C         1850 Background   Sulfate  SO4 = 0.870 Natural + 0.130 BioBurn
+C         1850 Background  Sea Salt  SEA =  all Natural-Mean SSP SeaSalt
+C         1850 Background AmmNitrate ANT = ANP=(1.26/5.27)*1990(ANP+ANI)
+C         1850 Background Org Carbon OCX = 0.162 Natural + 0.838 BioBurn
+C         1850 Background Blk Carbon BCI = 0  (No Industrial BC in 1850)
+C         1850 Background Blk Carbon BCB = BBP,all of 1850 BC is BioBurn
+C     ------------------------------------------------------------------
+      logical, parameter :: qbinary=.true.   ; logical qexist
+      integer, save :: IFILE=11, IFIRST=1, JYRNOW=0
+
+      integer ia,idd,ndd,m,mi,mj,i,j,l,n,jyearx,iys,jys,iyc,jyc
+      real*8 WTANI,WTOCB,WTBCB,wt75,swti,swtj,cwti,cwtj,xmi,wtmi,wtmj
+      IF(IFIRST.EQ.1) THEN
+C                                       READ Input PRE,SUI,OCI,BCI Files
+C                                       --------------------------------
+      inquire (file=RDFGEN(1),exist=qexist) ! decide whether specific or
+      if(qexist) RDFILE=RDFGEN              !     generic names are used
+      inquire (file=RDFILE(1),exist=qexist) !     stop if neither exist
+      if(.not.qexist) call stop_model('updaer: no TropAero files',255)
+
+      DO 106 IA=1,4
+      call openunit (RDFILE(IA),ifile,qbinary)   ! unform.:qbinary=true
+      NDD=8
+      IF(IA.EQ.1) NDD=10
+      DO 105 IDD=1,NDD
+      DO 104 M=1,12
+      READ (IFILE) XTITLE,AMON
+      DO 103 L=1,9
+      DO 102 J=1,46
+      DO 101 I=1,72
+      IF(IA.EQ.1) PREDD(I,J,L,M,IDD)=AMON(I,J,L)
+      IF(IA.EQ.2) SUIDD(I,J,L,M,IDD)=AMON(I,J,L)
+      IF(IA.EQ.3) OCIDD(I,J,L,M,IDD)=AMON(I,J,L)
+      IF(IA.EQ.4) BCIDD(I,J,L,M,IDD)=AMON(I,J,L)
+  101 CONTINUE
+  102 CONTINUE
+  103 CONTINUE
+  104 CONTINUE
+  105 CONTINUE
+      call closeunit (ifile)
+  106 CONTINUE
+      IFIRST=0
+      ENDIF
+
+
+C     To time input data READs, JYEARX is set ahead of JYEARA by 15 days
+C     ------------------------------------------------------------------
+      JYEARX=MIN(JYEARA+(JJDAYA+15)/366,2050)
+
+      IF(JYEARX.EQ.JYRNOW) GO TO 500    ! Get A6JDAY from current A6YEAR
+
+C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
+      DO 114 M=1,12
+      DO 113 L=1,9
+      DO 112 J=1,46
+      DO 111 I=1,72
+      A6YEAR(I,J,L,M,1)=AERMIX(1)*PREDD(I,J,L,M,1)*1000.D0*DRYM2G(1)
+     +                 +AERMIX(2)*PREDD(I,J,L,M,2)*1000.D0*DRYM2G(1)
+      A6YEAR(I,J,L,M,2)=AERMIX(3)*PREDD(I,J,L,M,3)*1000.D0*DRYM2G(2)
+      A6YEAR(I,J,L,M,3)=AERMIX(4)*PREDD(I,J,L,M,4)*1000.D0*DRYM2G(3)
+      A6YEAR(I,J,L,M,4)=AERMIX(5)*PREDD(I,J,L,M,5)*1000.D0*DRYM2G(4)
+     +                 +AERMIX(6)*PREDD(I,J,L,M,6)*1000.D0*DRYM2G(4)
+      A6YEAR(I,J,L,M,5)=0.D0
+      A6YEAR(I,J,L,M,6)=AERMIX(7)*PREDD(I,J,L,M,7)*1000.D0*DRYM2G(6)
+  111 CONTINUE
+  112 CONTINUE
+  113 CONTINUE
+  114 CONTINUE
+      DO 117 L=1,9                !     Define 1849 Background  Dec data
+      DO 116 J=1,46
+      DO 115 I=1,72
+      A6YEAR(I,J,L,0,1)=A6YEAR(I,J,L,12,1)
+      A6YEAR(I,J,L,0,2)=A6YEAR(I,J,L,12,2)
+      A6YEAR(I,J,L,0,3)=A6YEAR(I,J,L,12,3)
+      A6YEAR(I,J,L,0,4)=A6YEAR(I,J,L,12,4)
+      A6YEAR(I,J,L,0,5)=A6YEAR(I,J,L,12,5)
+      A6YEAR(I,J,L,0,6)=A6YEAR(I,J,L,12,6)
+  115 CONTINUE
+  116 CONTINUE
+  117 CONTINUE
+
+      IF(JYEARA.GT.1850) THEN                           !   (JYEAR>1850)
+      WTANI=GLOPOP(JYEARA)
+      WTOCB=(JYEARA-1850)/140.D0
+      WTBCB=(JYEARA-1850)/140.D0
+      DO 124 M=1,12              !  Add time dependent JYEAR ANI,OCB,BCB
+      DO 123 L=1,9
+      DO 122 J=1,46
+      DO 121 I=1,72
+      A6YEAR(I,J,L,M,3)=A6YEAR(I,J,L,M,3)+
+     +             AERMIX( 9)*WTANI*PREDD(I,J,L,M, 8)*1000.D0*DRYM2G(3)
+      A6YEAR(I,J,L,M,4)=A6YEAR(I,J,L,M,4)+
+     +             AERMIX(12)*WTOCB*PREDD(I,J,L,M, 9)*1000.D0*DRYM2G(4)
+      A6YEAR(I,J,L,M,6)=A6YEAR(I,J,L,M,6)+
+     +             AERMIX(13)*WTBCB*PREDD(I,J,L,M,10)*1000.D0*DRYM2G(6)
+  121 CONTINUE
+  122 CONTINUE
+  123 CONTINUE
+  124 CONTINUE
+      WTANI=GLOPOP(JYEARA-1)
+      WTOCB=(JYEARA-1851)/140.D0
+      WTBCB=(JYEARA-1851)/140.D0
+      M=12
+      DO 127 L=1,9    !  Add time dependent JYEAR-1 ANI,OCB,BCB Dec data
+      DO 126 J=1,46
+      DO 125 I=1,72
+      A6YEAR(I,J,L,0,3)=A6YEAR(I,J,L,0,3)+
+     +             AERMIX( 9)*WTANI*PREDD(I,J,L,M, 8)*1000.D0*DRYM2G(3)
+      A6YEAR(I,J,L,0,4)=A6YEAR(I,J,L,0,4)+
+     +             AERMIX(12)*WTOCB*PREDD(I,J,L,M, 9)*1000.D0*DRYM2G(4)
+      A6YEAR(I,J,L,0,6)=A6YEAR(I,J,L,0,6)+
+     +             AERMIX(13)*WTBCB*PREDD(I,J,L,M,10)*1000.D0*DRYM2G(6)
+  125 CONTINUE
+  126 CONTINUE
+  127 CONTINUE
+      ENDIF
+
+      IF(JYEARA.GT.1850.AND.JYEARA.LT.1876) THEN   !   (1850<JYEAR<1876)
+      WT75=(JYEARA-1850)/25.D0
+      DO 134 M=1,12            !    Add time dependent JYEAR SUI,OCI,BCI
+      DO 133 L=1,9
+      DO 132 J=1,46
+      DO 131 I=1,72
+      A6YEAR(I,J,L,M,1)=A6YEAR(I,J,L,M,1)+
+     +              WT75*SUIDD(I,J,L,M,1)*AERMIX( 8)*1000.D0*DRYM2G(1)
+      A6YEAR(I,J,L,M,4)=A6YEAR(I,J,L,M,4)+
+     +              WT75*OCIDD(I,J,L,M,1)*AERMIX(10)*1000.D0*DRYM2G(4)
+      A6YEAR(I,J,L,M,5)=A6YEAR(I,J,L,M,5)+
+     +              WT75*BCIDD(I,J,L,M,1)*AERMIX(11)*1000.D0*DRYM2G(5)
+
+  131 CONTINUE
+  132 CONTINUE
+  133 CONTINUE
+  134 CONTINUE
+      WT75=(JYEARA-1851)/25.D0
+      M=12            !  Add time dependent JYEAR-1 SUI,OCI,BCI Dec data
+      DO 137 L=1,9
+      DO 136 J=1,46
+      DO 135 I=1,72
+      A6YEAR(I,J,L,0,1)=A6YEAR(I,J,L,0,1)+
+     +              WT75*SUIDD(I,J,L,M,1)*AERMIX( 8)*1000.D0*DRYM2G(1)
+      A6YEAR(I,J,L,0,4)=A6YEAR(I,J,L,0,4)+
+     +              WT75*OCIDD(I,J,L,M,1)*AERMIX(10)*1000.D0*DRYM2G(4)
+      A6YEAR(I,J,L,0,5)=A6YEAR(I,J,L,0,5)+
+     +              WT75*BCIDD(I,J,L,M,1)*AERMIX(11)*1000.D0*DRYM2G(5)
+  135 CONTINUE
+  136 CONTINUE
+  137 CONTINUE
+      ENDIF
+
+
+      IF(JYEARA.GT.1875) THEN                         !     (JYEAR>1875)
+      CALL STREND(JYEARA,IYS,JYS,SWTI,SWTJ)
+      CALL CTREND(JYEARA,IYC,JYC,CWTI,CWTJ)
+      DO 144 M=1,12            !    Add time dependent JYEAR SUI,OCI,BCI
+      DO 143 L=1,9
+      DO 142 J=1,46
+      DO 141 I=1,72
+      A6YEAR(I,J,L,M,1)=A6YEAR(I,J,L,M,1)+AERMIX( 8)*1000.D0*DRYM2G(1)*
+     +                 (SWTI*SUIDD(I,J,L,M,IYS)+SWTJ*SUIDD(I,J,L,M,JYS))
+      A6YEAR(I,J,L,M,4)=A6YEAR(I,J,L,M,4)+AERMIX(10)*1000.D0*DRYM2G(4)*
+     +                 (CWTI*OCIDD(I,J,L,M,IYC)+CWTJ*OCIDD(I,J,L,M,JYC))
+      A6YEAR(I,J,L,M,5)=A6YEAR(I,J,L,M,5)+AERMIX(11)*1000.D0*DRYM2G(5)*
+     +                 (CWTI*BCIDD(I,J,L,M,IYC)+CWTJ*BCIDD(I,J,L,M,JYC))
+  141 CONTINUE
+  142 CONTINUE
+  143 CONTINUE
+  144 CONTINUE
+      CALL STREND(JYEARA-1,IYS,JYS,SWTI,SWTJ)
+      CALL CTREND(JYEARA-1,IYC,JYC,CWTI,CWTJ)
+      M=12            !  Add time dependent JYEAR-1 SUI,OCI,BCI Dec data
+      DO 147 L=1,9
+      DO 146 J=1,46
+      DO 145 I=1,72
+      A6YEAR(I,J,L,0,1)=A6YEAR(I,J,L,0,1)+AERMIX( 8)*1000.D0*DRYM2G(1)*
+     +                 (SWTI*SUIDD(I,J,L,M,IYS)+SWTJ*SUIDD(I,J,L,M,JYS))
+      A6YEAR(I,J,L,0,4)=A6YEAR(I,J,L,0,4)+AERMIX(10)*1000.D0*DRYM2G(4)*
+     +                 (CWTI*OCIDD(I,J,L,M,IYC)+CWTJ*OCIDD(I,J,L,M,JYC))
+      A6YEAR(I,J,L,0,5)=A6YEAR(I,J,L,0,5)+AERMIX(11)*1000.D0*DRYM2G(5)*
+     +                 (CWTI*BCIDD(I,J,L,M,IYC)+CWTJ*BCIDD(I,J,L,M,JYC))
+  145 CONTINUE
+  146 CONTINUE
+  147 CONTINUE
+      ENDIF
+      JYRNOW=JYEARX
+
+
+C      A6JDAY is interpolated daily from A6YEAR seasonal data via JJDAYA
+C      -----------------------------------------------------------------
+
+  500 CONTINUE
+      XMI=(JJDAYA+JJDAYA+31-(JJDAYA+15)/61+(JJDAYA+14)/61)/61.D0
+      MI=XMI
+      WTMJ=XMI-MI       !   Intra-year interpolation is linear in JJDAYA
+      WTMI=1.D0-WTMJ
+      IF(MI.GT.11) MI=0
+      MJ=MI+1
+      DO 540 J=1,46
+      DO 530 I=1,72
+      DO 520 N=1,6
+      DO 510 L=1,9
+      A6JDAY(L,N,I,J)=WTMI*A6YEAR(I,J,L,MI,N)+WTMJ*A6YEAR(I,J,L,MJ,N)
+  510 CONTINUE
+  520 CONTINUE
+  530 CONTINUE
+  540 CONTINUE
+      RETURN        !  A6JDAY(9,6,72,46) is used in GETAER via ILON,JLAT
+      END SUBROUTINE UPDAER
+
+
+      REAL*8 FUNCTION GLOPOP(JYEAR)
+      IMPLICIT none
+
+C     ----------------------------------------------------------------
+C     GLOPOP = normalized global population trend set to unity in 1990
+C              based on UN statistics & population projections to 2050
+C
+C     GLOPOP = 0.000 for 1850 and earlier
+C            = 1.000 for 1990
+C            = 1.658 for 2050 and later
+C     ----------------------------------------------------------------
+
+      integer, intent(in) :: jyear
+      real*8 :: GPNORM = 5.27-1.26 ,DNGPOP(21), GPOP(21) = (/
+C               1850                     1900                     1950
+     A          1.26,1.33,1.41,1.49,1.57,1.65,1.75,1.86,2.07,2.30,2.52
+C                                        2000                     2050
+     B              ,3.02,3.70,4.44,5.27,6.06,6.79,7.50,8.11,8.58,8.91/)
+      integer i,iy
+      real*8 xy,dy
+
+      DO 110 I=1,21
+      DNGPOP(I)=(GPOP(I)-GPOP(1))/GPNORM
+  110 CONTINUE
+      XY=(JYEAR-1840)/10.D0
+      IY=XY
+      DY=XY-IY
+      IF(IY.LT.1) THEN
+      IY=1
+      DY=0.D0
+      ENDIF
+      IF(IY.GT.20) THEN
+      IY=20
+      DY=1.D0
+      ENDIF
+      GLOPOP=DNGPOP(IY)+DY*(DNGPOP(IY+1)-DNGPOP(IY))
+      RETURN
+      END FUNCTION GLOPOP
+
       SUBROUTINE SETDST
       IMPLICIT NONE
+
 C     ---------------------------------------------------------------
-C     GISS MONTHLY-MEAN AEROSOL (1950-1990) & DESERT DUST CLIMATOLOGY
+C     MONTHLY-MEAN DESERT DUST CLIMATOLOGY
 C     ---------------------------------------------------------------
-C
-C     Modification of Aerosol Composition Amounts and/or of Radiative
-C     Parameters is via RADPAR Parameters
-C
-C     UPDDST INPUT: via ENTRY UPDDST Arguments:   IYEAR, IMONTH, IDAY
-C                     specifies the time of Dust Aerosol Distribution
-C
-C     GETDST INPUT: via ILON and JLAT set in RADPAR for 72x46 grid
-C
+
 C           OUTPUT: via SRDEXT(L,K)   D Dust Extinction Optical Depth
 C                       SRDSCT(L,K)   D Dust Scattering Optical Depth
 C                       SRDGCB(L,K)   D Dust Asymmetry Parameter  g
 C                       TRDALK(L,K)  Thermal Absorption Optical Depth
-C
-C     Defining Parameters are required for GETdst INPUT via RADPAR
-C
-C                          NL  = Number of Model Layers
-C                         NLP  = Number of Model Layers + 1
-C                         PLB  = Layer Edge Pressure
-C
-C                      MEANDD  = 0  (Default RADPAR value)
-C                      KVRAER  = 1  (Default RADPAR value)
-C     REMARKS:
-C
-C     MEANDD=1  Over-rides IMONTH, IDAY to yield Annual-Mean Aerosols
-C     KVRAER=0  Puts 12-Layer Aerosol Amounts in  first 12 PLB layers
-C     KVRAER=1  Repartions Aerosol Vertical Distribution according to
-C               PLB Pressure levels, i.e., from PLB(1) up to PLB(NLP)
-C               (This takes Topography & Model Layering into account)
-C     ---------------------------------------------------------------
 
-C-----------------------------------------------------------------------
 C     Tau Scaling Factors:    Solar    Thermal    apply to:
-c                             FSTAER   FTTAER  ! Total Aerosol
-c                             FSDAER   FTDAER  ! Dust  Aerosol
+C                             FSTAER   FTTAER  ! Total Aerosol
+C                             FSDAER   FTDAER  ! Dust  Aerosol
 C
 C     Control Parameters/Aerosol Scaling (kill) Factors
 C                        FSTAER    SW   (All-type) Aerosol Optical Depth
@@ -3887,88 +3865,18 @@ C                        FSDAER    SW   Dust Aer   Aerosol Optical Depth
 C                        FTDAER    LW   Dust Aer   Aerosol Optical Depth
 C                        -----------------------------------------------
 
-
-C   PLB12L Dust Aerosol Vertical Profile (Optical Depth) Scaling Factors
-C   --------------------------------------------------------------------
-C     Layr  1    2    3    4    5    6    7    8    9    10   11   12
-C     Ptop 934  854  720  550  390  285  255  150  100   60   30   10
-C     Pbot 984  934  854  720  550  390  285  255  150  100   60   30
-
-      REAL*8, DIMENSION(12) :: SRAX12,SRAS12,SRAG12,TRAX12
-
-      REAL*8, PARAMETER, DIMENSION(9) ::
-     *   FRACD1=(/105.0, 30.0, 60.0, 50.0, 30.0, 30.0, 20.0, 3.0, 1.0/),
-     *   FRACD2=(/135.0,135.0,105.0, 80.0, 80.0, 60.0, 60.0, 4.0, 6.0/)
-      REAL*8, SAVE, DIMENSION(9) :: FRACDL
-      INTEGER, PARAMETER, DIMENSION(9) :: LFRACD =
-     *     (/  6,    6,    7,    8,    8,    9,    9,    8,  12/)
-!nu   REAL*8 TAUCON(8)
-      INTEGER, SAVE :: IFIRST=1
-
-C     ------------------------------------------------------------------
-C     DUST:   Monthly-Mean Desert Dust (Clay,Silt) 8-Size Optical Depths
-C                   Map: IJ=72x46, Lay: L=1-9, Siz: S=1-8, Month: M=1-12
-C
-C     IFIRST=1      Read in Dust Data: (Dust Data are read in by RCOMP1)
-C                   Apply multiplicative scaling factors for Desert Dust
-C                   optical depths, and single scattering albedos, using
-C                   factors FSDUST, FTDUST  defined in RADPAR
-C                   COMMON/AERCOM (contains default values)
-C
-C        NOTE:      Scaling factors multiply the appropriate Desert Dust
-C                   MIE radiative parameters (QXDUST,QSDUST) and NOT the
-C                   column optical depth data of the (72x46) global maps
-C
-C     IFIRST=0      Subsequent CALLs to SETAER can reset scaling factors
-C     ------------------------------------------------------------------
+C     Select Desert Dust (NA=7) Mie scattering parameters for REDUST(N)
+!nu   REAL*8 TAUCON(8),pidust(8)
       INTEGER, INTENT(IN) :: JYEARD,JJDAYD
-      REAL*8 FNDUST,DSUM,XJYEAR,DJYEAR,WMA,WMB,XMO,DUSTTL,VDF,QSUM,SSUM
-     *     ,CSUM,SRDN,ASUM,FSXTAU,FTXTAU
-      INTEGER I,J,K,L,N,M,JJYEAR,MA,MB
+      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX,8)
+      INTEGER I,J,K,L,N,MI,MJ
 
-
-      IF(IFIRST.EQ.1) THEN
-
-      DO 110 L=1,9
-      FRACDL(L)=FRACD1(L)/FRACD2(L)
-  110 CONTINUE
-
-      DO 120 N=1,8
-      FNDUST=FSDUST(N)
-      CALL SDDUST
-     +(QXDUST(1,N),QSDUST(1,N),QCDUST(1,N),QDST55(N),REDUST(N),FNDUST)
-      CALL TDDUST(ATDUST(1,N),REDUST(N),FTDUST(N))
+      DO 110 N=1,8
+      CALL GETMIE(7,REDUST(N),QXDUST(1,N),QSDUST(1,N),QCDUST(1,N)
+     +                    ,ATDUST(1,N),QDST55(N))
 !nu   TAUCON(N)=0.75E+03*QDST55(N)/(RODUST(N)*REDUST(N))
-  120 CONTINUE
-
-      M=13
-      DO 160 N=1,8
-      DO 150 J=1,46
-      DO 140 I=1,72
-      DSUM=0.D0
-      DO 130 L=1,9
-      DSUM=DSUM+TDUST(I,J,L,N,M)
-  130 CONTINUE
-      DSTCOL(I,J,N)=DSUM
-  140 CONTINUE
-  150 CONTINUE
-  160 CONTINUE
-
-      DO 180 I=1,25
-      DO 170 K=1,33
-      TRDQAB(K,I)=TRDQEX(K,I)-TRDQSC(K,I)
-  170 CONTINUE
-  180 CONTINUE
-      IFIRST=0
-      RETURN
-      ENDIF
-
-      DO 190 N=1,8
-      FNDUST=FSDUST(N)
-      CALL SDDUST
-     +(QXDUST(1,N),QSDUST(1,N),QCDUST(1,N),QDST55(N),REDUST(N),FNDUST)
-      CALL TDDUST(ATDUST(1,N),REDUST(N),FTDUST(N))
-  190 CONTINUE
+!nu   PIDUST(N)=QSDUST(6,N)/(QXDUST(6,N)+1.D-10)
+  110 CONTINUE
 
       RETURN
 
@@ -3977,172 +3885,82 @@ C--------------------------------
       ENTRY UPDDST(JYEARD,JJDAYD)
 C--------------------------------
 
-      XJYEAR=JYEARD+(JJDAYD-0.999D0)/366.D0
+C     ------------------------------------------------------------------
+C     Makes DDJDAY(9,8,72,46) from TDUST(72,46,9,8,13) read in in RCOMP1
+C
+C      DDJDAY is interpolated daily from  TDUST seasonal data via JJDAYD
+C      -----------------------------------------------------------------
+!nu   JYEARX=MIN(JYEARD,(JJDAYD+15)/366,2050)
 
-      XJYEAR=XJYEAR+1.D0/24.D0
-      JJYEAR=XJYEAR
-      DJYEAR=XJYEAR-JJYEAR
-      XMO=DJYEAR*12.D0
-      MA=XMO
-      MB=MA+1
-      WMB=XMO-MA
-      WMA=1.D0-WMB
-      IF(MA.LT.1)  MA=12
-      IF(MB.GT.12) MB=1
-      IF(MEANDD.EQ.1) THEN
-      WMA=1.D0
-      WMB=0.D0
-      MA=13
-      MB=13
-      ENDIF
-
-      DO 290 N=1,8
-      DO 280 J=1,46
-      DO 270 I=1,72
-      DSUM=0.D0
-      DO 250 L=1,5
-      DUSTLN(I,J,L,N)=WMA*TDUST(I,J,L,N,MA)+WMB*TDUST(I,J,L,N,MB)
-      DSUM=DSUM+DUSTLN(I,J,L,N)
-  250 CONTINUE
-      DO 260 L=6,12
-      K=L-5
-      M=LFRACD(K)
-      DUSTTL=WMA*TDUST(I,J,M,N,MA)+WMB*TDUST(I,J,M,N,MB)
-      DUSTLN(I,J,L,N)=DUSTTL*FRACDL(K)
-      DSUM=DSUM+DUSTLN(I,J,L,N)
-  260 CONTINUE
-      DUSTLN(I,J,10,N)=DUSTLN(I,J,10,N)+DUSTTL*FRACDL(9)
-      DUSTLN(I,J, 7,N)=DUSTLN(I,J, 7,N)+DUSTLN(I,J, 8,N)*FRACDL(8)
-      DSUM=DSUM+DUSTLN(I,J,8,N)*FRACDL(8)+DUSTTL*FRACDL(9)
-      DSTCOL(I,J,N)=DSUM
-  270 CONTINUE
-  280 CONTINUE
-  290 CONTINUE
-      RETURN
+  500 CONTINUE
+      XMI=(JJDAYD+JJDAYD+31-(JJDAYD+15)/61+(JJDAYD+14)/61)/61.D0
+      MI=XMI
+      WTMJ=XMI-MI       !   Intra-year interpolation is linear in JJDAYD
+      WTMI=1.D0-WTMJ
+      IF(MI.LT.1) MI=12
+      IF(MI.GT.12) MI=1
+      MJ=MI+1
+      IF(MJ.GT.12) MJ=1
+      DO 540 J=1,46
+      DO 530 I=1,72
+      DO 520 N=1,8
+      DO 510 L=1,9
+      DDJDAY(L,N,I,J)=WTMI*TDUST(I,J,L,N,MI)+WTMJ*TDUST(I,J,L,N,MJ)
+  510 CONTINUE
+  520 CONTINUE
+  530 CONTINUE
+  540 CONTINUE
+      RETURN        !  DDJDAY(9,8,72,46) is used in GETDST via ILON,JLAT
 
 
 C-----------------
       ENTRY GETDST
 C-----------------
 
-C     ------------------------------------------------------------
-C     Wind-blown Mineral Dust data are represented on a 72X46 Grid
-C     with a nominal 5 deg longitude and 4 deg latitude resolution
-C     with 12 layer vertical distribution of aerosol optical depth
-C
-C     Geographic Location is specified by: ILON and JLAT in RADPAR
-C
-C                  For Model Resolution other than 72X36, Redefine
-C                  ILON and JLAT appropriately
-C
-C     Aerosol Vertical Distribution  vs. Model Vertical Resolution
-C
-C     IF(KVRAER.EQ.0) 12 Layer Vertical Distribution is used as is
-C
-C     IF(KVRAER.EQ.1) Aerosol Height Distribution is Repartitioned
-C                             Using PLB in RADPAR
-C                     (This takes Surface Topography into account)
-C     ------------------------------------------------------------
+      DO 200 N=1,8
+      CALL REPART(DDJDAY(1,N,ILON,JLAT),PLBA09,10,DTAULX(1,N),PLB,NLP)
+  200 CONTINUE
 
-
-C                                                (Solar Component)
-C                                                -----------------
-
-      DO 390 L=1,12
-      VDF=VDFDST(L)
-      DO 380 K=1,6
-      QSUM=0.D0
-      SSUM=1.D-10
-      CSUM=0.D0
-      DO 370 N=1,8
-      QSUM=QSUM+QXDUST(K,N)*DUSTLN(ILON,JLAT,L,N)
-      SRDN=     QSDUST(K,N)*DUSTLN(ILON,JLAT,L,N)
-      SSUM=SSUM+SRDN
-      CSUM=CSUM+QCDUST(K,N)*SRDN
-  370 CONTINUE
-      CDUST(L,K)=CSUM/SSUM
-      QDUST(L,K)=QSUM*VDF
-      SDUST(L,K)=SSUM*VDF
-  380 CONTINUE
-  390 CONTINUE
-
-C                                              (Thermal Component)
-C                                              -------------------
-
-      DO 490 L=1,12
-      VDF=VDFDST(L)
-      DO 480 K=1,33
-      ASUM=0.D0
-      DO 470 N=1,8
-      ASUM=ASUM+ATDUST(K,N)*DUSTLN(ILON,JLAT,L,N)
-  470 CONTINUE
-      ADUST(L,K)=ASUM*VDF
-  480 CONTINUE
-  490 CONTINUE
-
-C                ------------------------------------------------------
-C                Define Mineral Dust Thermal and Solar Contributions to
-C                         TRDALK and SRDEXT,SRDSCT,SRDGCB, respectively
-C
 C                     Apply Solar/Thermal Optical Depth Scaling Factors
 C                              Dust Aerosol  Solar   FSXD=FSTAER*FSDAER
 C                              Dust Aerosol Thermal  FTXD=FSTAER*FTDAER
 C                              ----------------------------------------
 
-      FSXTAU=FSTAER*FSDAER
+      FSXTAU=FSTAER*FSDAER+1.D-10
       FTXTAU=FTTAER*FTDAER
-      IF(KVRAER.EQ.1) THEN
-C                           -------------------------------------------
-C                           Option to repartition aerosol optical depth
-C                                 for nonstandard GCM vertical layering
-C                                 -------------------------------------
-      DO 530 K=1,6
-      DO 510 L=1,12
-      SRAX12(L)=QDUST(L,K)*FSXTAU
-      SRAS12(L)=SDUST(L,K)*FSXTAU
-      SRAG12(L)=CDUST(L,K)*SDUST(L,K)*FSXTAU
-  510 CONTINUE
-      CALL REPART(SRAX12,PLB12L,13,SRAXNL,PLB,NLP)
-      CALL REPART(SRAS12,PLB12L,13,SRASNL,PLB,NLP)
-      CALL REPART(SRAG12,PLB12L,13,SRAGNL,PLB,NLP)
-      DO 520 L=1,NL
-      SRDEXT(L,K)=SRAXNL(L)
-      SRDSCT(L,K)=SRASNL(L)
-      SRDGCB(L,K)=SRAGNL(L)/(SRASNL(L)+1.D-10)
-  520 CONTINUE
-  530 CONTINUE
 
-      DO 560 K=1,33
-      DO 540 L=1,12
-      TRAX12(L)=ADUST(L,K)*FTXTAU
-  540 CONTINUE
-      CALL REPART(TRAX12,PLB12L,13,TRAXNL,PLB,NLP)
-      DO 550 L=1,NL
-      TRDALK(L,K)=TRAXNL(L)
-  550 CONTINUE
-  560 CONTINUE
-
-      ELSE
-      DO 620 K=1,6
-      DO 610 L=1,NL
-      SRDEXT(L,K)=QDUST(L,K)*FSXTAU
-      SRDSCT(L,K)=SDUST(L,K)*FSXTAU
-      SRDGCB(L,K)=CDUST(L,K)
-      IF(L.LT.13) GO TO 610
+      DO 220 K=1,6
+      DO 210 L=1,NL
       SRDEXT(L,K)=2.D-10
       SRDSCT(L,K)=1.D-10
       SRDGCB(L,K)=0.D0
-  610 CONTINUE
-  620 CONTINUE
+  210 CONTINUE
+  220 CONTINUE
 
-      DO 640 K=1,33
-      DO 630 L=1,NL
-      TRDALK(L,K)=ADUST(L,K)*FTXTAU
-      IF(L.LT.13) GO TO 630
+      DO 240 K=1,33
+      DO 230 L=1,NL
       TRDALK(L,K)=0.D0
-  630 CONTINUE
-  640 CONTINUE
-      ENDIF
+  230 CONTINUE
+  240 CONTINUE
+
+      DO 270 L=1,NL
+      DO 260 K=1,6
+      DO 250 N=1,8
+      SRDEXT(L,K)=SRDEXT(L,K)+QDUST(L,K)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
+      SRDSCT(L,K)=SRDSCT(L,K)+SDUST(L,K)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
+      SRDGQL     = CDUST(L,K)*SDUST(L,K)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
+      SRDGCB(L,K)=SRDGQL/(SRDSCT(L,K)+1.D-10)
+  250 CONTINUE
+  260 CONTINUE
+  270 CONTINUE
+
+      DO 300 L=1,NL
+      DO 290 K=1,33
+      DO 280 N=1,8
+      TRDALK(L,K)=TRDALK(L,K)+ADUST(L,K)*DTAULX(L,N)*FTXTAU*FT8OPX(7)
+  280 CONTINUE
+  290 CONTINUE
+  300 CONTINUE
 
       RETURN
       END SUBROUTINE SETDST
@@ -4870,7 +4688,7 @@ C     ----------------------------------------------------------
       INTEGER, PARAMETER :: IGUX(15) = (/ 0,300,408,480,588,660,720,760
      *     ,820,880,904,928,944,968,992/)
 
-      REAL*8, PARAMETER, DIMENSION(8,2) ::  XKCFCW(8,2) = RESHAPE( (/
+      REAL*8, PARAMETER, DIMENSION(8,2) ::  XKCFCW = RESHAPE( (/
      + 12.4414,11.7842,11.3630,10.8109,10.3200, 9.8900, 9.3916, 8.8933,
      +  5.3994, 5.6429, 5.8793, 6.1687, 6.2300, 6.5200, 6.8650, 7.2100/)
      *     , (/8,2/) )
@@ -7348,7 +7166,6 @@ C                            -----------------------------------------
       WTI=1.D0-WTJ
       IT=IT+IT0
       JT=IT+1
-
       GG=WGI*(WTI*(WXI*GTAU(IX,IG,IT)+WXJ*GTAU(JX,IG,IT))
      +      + WTJ*(WXI*GTAU(IX,IG,JT)+WXJ*GTAU(JX,IG,JT)))
      +  +WGJ*(WTI*(WXI*GTAU(IX,JG,IT)+WXJ*GTAU(JX,JG,IT))
@@ -7640,111 +7457,133 @@ C**** lin. interpolate obs. data (every 10 years) 1950-1990
       RETURN
       END SUBROUTINE SUTAUW
 
-!nu   SUBROUTINE STDAER(QXAER,QSAER,QCAER,ATAER,PIAMAX,NA)
-!nu   IMPLICIT NONE
-!nu
-!nu   ------------------------------------------------------------------
-!nu   STDAER   Selects Mie Scattering Parameters for Aerosol Climatology
-!nu                   and applies PIAMAX, FSAERA, FTAERA Scaling Factors
-!nu                   --------------------------------------------------
-!nu
-!nu   REAL*8 QXAER(6),QSAER(6),QCAER(6),ATAER(33)
-!nu   REAL*8 FSAERA(10),FTAERA(10),PIAMAX(10)
-!nu   REAL*8 PI0F,PI0
-!nu   INTEGER I
-!nu   FSAERN=1.D0                ! FSAERA,FTAERA Scaling moved to GETAER
-!nu   FTAERN=1.D0
-!nu
-!nu   DO I=1,6
-!nu   PI0F=1.D0
-!nu   PI0=SRBQSC(I,NA)/SRBQEX(I,NA)
-!nu   IF(PI0.GT.PIAMAX(NA)) PI0F=PIAMAX(NA)/PI0
-!nu   QXAER(I)=SRBQEX(I,NA)*FSAERN
-!nu   QSAER(I)=SRBQSC(I,NA)*FSAERN*PI0F
-!nu   QCAER(I)=SRBQCB(I,NA)
-!nu   END DO
-!nu
-!nu   DO I=1,33
-!nu   ATAER(I)=(TRBQEX(I,NA)-TRBQSC(I,NA))*FTAERN
-!nu   END DO
-!nu
-!nu   RETURN
-!nu   END SUBROUTINE STDAER
+      SUBROUTINE GETMIE(NA,AREFF,SQEX,SQSC,SQCB,TQAB,Q55)
 
-      SUBROUTINE SDDUST(QQDUST,SSDUST,GGDUST,Q55DST,SIZDST,FNDUST)
-      IMPLICIT NONE
-C     ------------------------------------------------------------------
-C     SDDUST     Selects Solar Mie Scattering Parameters for Desert Dust
-C                                     and applies FSDUST Scaling Factors
-C                                     ----------------------------------
-      REAL*8, DIMENSION(6), INTENT(OUT) :: QQDUST,SSDUST,GGDUST
-      REAL*8, INTENT(OUT) :: Q55DST
-      REAL*8, INTENT(IN) :: SIZDST,FNDUST
-      REAL*8 RDI,RDJ,WTJ,WTI
-      INTEGER I,J,K
+c     INCLUDE 'rad00def.radCOMMON.f'
 
-      RDI=0.0
-      DO 110 J=1,25
-      RDJ=REFD25(J)
-      IF(SIZDST.LT.RDJ) GO TO 120
-      RDI=RDJ
-  110 CONTINUE
-      WTJ=1.0
-      J=25
-      I=25
-      GO TO 130
-  120 WTJ=(SIZDST-RDI)/(RDJ-RDI)
-      I=J-1
-      IF(I.LT.1) I=1
-  130 WTI=1.0-WTJ
+      INTEGER, INTENT(IN) :: NA
+      real*8,  intent(in) :: areff
+      real*8   SQEX(6),SQSC(6),SQCB(6),TQEX(33),TQSC(33),TQAB(33),Q55
+      real*8   QXAERN(25),QSAERN(25),QGAERN(25),Q55AER(25)
 
-      DO 140 K=1,6
-      QQDUST(K)=(WTI*SRDQEX(K,I)+WTJ*SRDQEX(K,J))*FNDUST
-      SSDUST(K)=(WTI*SRDQSC(K,I)+WTJ*SRDQSC(K,J))*FNDUST
-      GGDUST(K)=(WTI*SRDQCB(K,I)+WTJ*SRDQCB(K,J))
-  140 CONTINUE
-      Q55DST=WTI*Q55D25(I)+WTJ*Q55D25(J)
+      real*8 wts,wta,QGAERX,pi,vreff
+      integer n0,k,n,nn
+                          !                               1   2   3   4
+      IF(NA.LT.5) THEN    !    NA : Aerosol compositions SO4,SEA,ANT,OCX
+      N0=0
+      IF(NA.EQ.2) N0=22
+      IF(NA.EQ.3) N0=44
+      IF(NA.EQ.4) N0=88
+      DO 112 K=1,6
+      DO 111 N=1,22
+      NN=N0+N
+      WTS=FRSULF(NA)
+      WTA=1.D0-WTS
+      QXAERN(N)=SRUQEX(K,NN)*WTA+SRUQEX(K,N)*WTS
+      QSAERN(N)=SRUQSC(K,NN)*WTA+SRUQSC(K,N)*WTS
+      QGAERX=SRUQCB(K,NN)*SRUQSC(K,NN)*WTA+SRUQCB(K,N)*SRUQSC(K,N)*WTS
+      QGAERN(N)=QGAERX/QSAERN(N)
+  111 CONTINUE
+      CALL SPLINE(REFU22,QXAERN,22,AREFF,SQEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QSAERN,22,AREFF,SQSC(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QGAERN,22,AREFF,SQCB(K),1.D0,1.D0,1)
 
+      PI=SQSC(K)/SQEX(K)
+      IF(PI.GT.PI0MAX(NA)) SQSC(K)=SQSC(K)*PI0MAX(NA)/PI
+  112 CONTINUE
+      DO 114 K=1,33
+      DO 113 N=1,22
+      NN=N0+N
+      WTS=FRSULF(NA)
+      WTA=1.D0-WTS
+      QXAERN(N)=TRUQEX(K,NN)*WTA+TRUQEX(K,N)*WTS
+      QSAERN(N)=TRUQSC(K,NN)*WTA+TRUQSC(K,N)*WTS
+      QGAERX=TRUQCB(K,NN)*TRUQSC(K,NN)*WTA+TRUQCB(K,N)*TRUQSC(K,N)*WTS
+      QGAERN(N)=QGAERX/(QSAERN(N)+1.d-20)
+  113 CONTINUE
+      CALL SPLINE(REFU22,QXAERN,22,AREFF,TQEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QSAERN,22,AREFF,TQSC(K),1.D0,1.D0,1)
+      TQAB(K)=TQEX(K)-TQSC(K)
+  114 CONTINUE
+      DO 115 N=1,22
+      NN=N0+N
+      WTS=FRSULF(NA)
+      WTA=1.D0-WTS
+      Q55AER(N)=Q55U22(NN)*WTA+Q55U22(N)*WTS
+  115 CONTINUE
+      CALL SPLINE(REFU22,Q55U22,22,AREFF,Q55,1.D0,1.D0,1)
+      ENDIF
+
+                                   !                              5   6
+      IF(NA.EQ.5.OR.NA.EQ.6) THEN  !   NA : Aerosol compositions BIC,BCB
+cc    AREFF=REFDRY(NA)
+      DO 122 K=1,6
+      DO 121 N=1,25
+      QXAERN(N)=SRSQEX(K,N)
+      QSAERN(N)=SRSQSC(K,N)
+      QGAERN(N)=SRSQCB(K,N)
+  121 CONTINUE
+      CALL SPLINE(REFS25,QXAERN,25,AREFF,SQEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFS25,QSAERN,25,AREFF,SQSC(K),1.D0,1.D0,1)
+      CALL SPLINE(REFS25,QGAERN,25,AREFF,SQCB(K),1.D0,1.D0,1)
+  122 CONTINUE
+      DO 124 K=1,33
+      DO 123 N=1,25
+      QXAERN(N)=TRSQEX(K,N)
+      QSAERN(N)=TRSQSC(K,N)
+      QGAERN(N)=TRSQCB(K,N)
+  123 CONTINUE
+      CALL SPLINE(REFS25,QXAERN,25,AREFF,TQEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFS25,QSAERN,25,AREFF,TQSC(K),1.D0,1.D0,1)
+      TQAB(K)=TQEX(K)-TQSC(K)
+  124 CONTINUE
+      CALL SPLINE(REFS25,Q55S25,25,AREFF,Q55,1.D0,1.D0,1)
+      ENDIF
+
+                                        !                             7
+      IF(NA.EQ.7) THEN                  !   NA : Aerosol composition DST
+cc    AREFF=REFDRY(NA)
+      DO 132 K=1,6
+      DO 131 N=1,25
+      QXAERN(N)=SRDQEX(K,N)
+      QSAERN(N)=SRDQSC(K,N)
+      QGAERN(N)=SRDQCB(K,N)
+  131 CONTINUE
+      CALL SPLINE(REFS25,QXAERN,25,AREFF,SQEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFS25,QSAERN,25,AREFF,SQSC(K),1.D0,1.D0,1)
+      CALL SPLINE(REFS25,QGAERN,25,AREFF,SQCB(K),1.D0,1.D0,1)
+  132 CONTINUE
+      DO 134 K=1,33
+      DO 133 N=1,25
+      QXAERN(N)=TRDQEX(K,N)
+      QSAERN(N)=TRDQSC(K,N)
+      QGAERN(N)=TRDQCB(K,N)
+  133 CONTINUE
+      CALL SPLINE(REFS25,QXAERN,25,AREFF,TQEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFS25,QSAERN,25,AREFF,TQSC(K),1.D0,1.D0,1)
+      TQAB(K)=TQEX(K)-TQSC(K)
+  134 CONTINUE
+      CALL SPLINE(REFD25,Q55D25,25,AREFF,Q55,1.D0,1.D0,1)
+      ENDIF
+
+                               !                                      8
+      IF(NA.EQ.8) THEN         !     NA : Aerosol composition(H2SO4) VOL
+      VREFF=AREFF
+      IF(VREFF.LT.0.1D0) VREFF=0.1D0
+      IF(VREFF.GT.2.0D0) VREFF=2.0D0
+      CALL GETQVA(VREFF)
+      DO 141 K=1,6
+      SQEX(K)=QVH2S(K)
+      SQSC(K)=SVH2S(K)
+      SQCB(K)=GVH2S(K)
+  141 CONTINUE
+      DO 142 K=1,33
+      TQAB(K)=AVH2S(K)
+  142 CONTINUE
+      Q55=Q55H2S
+      ENDIF
       RETURN
-      END SUBROUTINE SDDUST
-
-      SUBROUTINE TDDUST(ADDUST,SIZDST,FNDUST)
-      IMPLICIT NONE
-C     ------------------------------------------------------------------
-C     TDDUST   Selects Thermal Mie Scattering Parameters for Desert Dust
-C                                     and applies FTDUST Scaling Factors
-C                                     ----------------------------------
-      REAL*8, INTENT(IN) :: SIZDST,FNDUST
-      REAL*8, DIMENSION(33), INTENT(OUT) :: ADDUST
-      REAL*8, DIMENSION(33) :: QDDUST,SDDUST
-!nu  *                        ,GDDUST
-      REAL*8 RDI,RDJ,WTI,WTJ
-      INTEGER I,J,K
-
-      RDI=0.0
-      DO 110 J=1,25
-      RDJ=REFD25(J)
-      IF(SIZDST.LT.RDJ) GO TO 120
-      RDI=RDJ
-  110 CONTINUE
-      WTJ=1.0
-      J=25
-      I=25
-      GO TO 130
-  120 WTJ=(SIZDST-RDI)/(RDJ-RDI)
-      I=J-1
-      IF(I.LT.1) I=1
-  130 WTI=1.0-WTJ
-
-      DO 140 K=1,33
-      QDDUST(K)=(WTI*TRDQEX(K,I)+WTJ*TRDQEX(K,J))*FNDUST
-      SDDUST(K)=(WTI*TRDQSC(K,I)+WTJ*TRDQSC(K,J))*FNDUST
-!nu   GDDUST(K)=(WTI*TRDQCB(K,I)+WTJ*TRDQCB(K,J))
-      ADDUST(K)=QDDUST(K)-SDDUST(K)
-  140 CONTINUE
-
-      RETURN
-      END SUBROUTINE TDDUST
+      END SUBROUTINE GETMIE
 
       SUBROUTINE AO3ABS(OCM,O3ABS)
       IMPLICIT NONE
@@ -7805,7 +7644,7 @@ C                 A  SW aerosol Mie scattering Qx,Qs,g in use parameters
 C                 B  SW  cloud  Mie scattering Qx,Qs,g in use parameters
 C                 C  SW cld+aer Mie scattering Qx,Qs,g in use parameters
 C                 D  SW LW aerosol 11-compositon  Mie Qx,Qs,g parameters
-C                 E  SW LW aerosol 10-compositon  Mie Qx,Qs,g parameters
+C                 E  SW LW aerosol  6-compositon  Mie Qx,Qs,g parameters
 C                 F  SW LW aerosol 8-size D dust  Mie Qx,Qs,g parameters
 C                 G  SW LW  cloud  15-size/phase  Mie Qx,Qs,g parameters
 C           5     LW cld,aer,gas total optical k-distribution extinction
@@ -7836,6 +7675,10 @@ C                 KWRU directs the output to selected (KWRU) file number
 C     ------------------------------------------------------------------
 C
       INTEGER, INTENT(IN) :: INDEX
+      real*8, dimension(10) ::       ! no longer needed except in writer
+C!nu               TROPOSPHERIC AEROSOL effective radius
+C!nu               BCI  OCI  SUI  SEA  SUN    ANT  OCN  OCB  BCB  SSB
+     *   REAERO=(/ 0.1, 0.3, 0.3, 2.0, 0.3,   1.0, 0.3, 0.3, 0.2, 0.5/)
       CHARACTER*8, PARAMETER :: FTYPE(5) =
      *     (/'DOWNWARD','  UPWARD','UPWD NET','COOLRATE','FRACTION'/)
       CHARACTER*6, PARAMETER :: GHG(12) =
@@ -7914,15 +7757,15 @@ C
  6000 FORMAT(' CALL WRITER(KW,0) :',2X,'PAGE 1/2  '
      +          ,'CONTROL PARAMS   DEFINITIONS'/
      +      /' CONTROL PARAMTER      DEFAULT  PARAMETER DESCRIPTION')
-      WRITE(KW,6001)  KVRAER,MEANAC,MEANDD,MEANVA,KUVFAC,KSNORM
+      WRITE(KW,6001)                              KUVFAC,KSNORM
      + ,KWTRAB,KGGVDF,KPGRAD,KLATZ0,KCLDEM,KANORM,KPFCO2,KPFOZO,KSIALB
      + ,KORDER,KUFH2O,KUFCO2,KCSELF,KCFORN
- 6001 FORMAT(7X,'   KVRAER = ',I1,'     1      Repartition Aer VDist'
-     2      /7X,'   MEANAC = ',I1,'     0      Use Ann-Mean Aer Clim'
-     3      /7X,'   MEANDD = ',I1,'     0      Use Ann-Mean Des Dust'
-     4      /7X,'   MEANVA = ',I1,'     0      Use Ann-Mean Volc Aer'
-!nu  5      /7X,'   NCARO3 = ',I1,'     0      NCAR London 1976 Ozon'
-     6      /7X,'   KUVFAC = ',I1,'     0      ON/OFF UV Mult Factor'
+ 6001 FORMAT( ! 7X,'   KVRAER = ',I1,'     1      Repartition Aer VDist'
+!nu  2    ! /7X,'   MEANAC = ',I1,'     0      Use Ann-Mean Aer Clim'
+!nu  3    ! /7X,'   MEANDD = ',I1,'     0      Use Ann-Mean Des Dust'
+!nu  4    ! /7X,'   MEANVA = ',I1,'     0      Use Ann-Mean Volc Aer'
+!nu  5      /7X,'   NCARO3 = ',I1,'     0      NCAR London 1976 Ozon'/
+     6       7X,'   KUVFAC = ',I1,'     0      ON/OFF UV Mult Factor'
      7      /7X,'   KSNORM = ',I1,'     0      Norm S0 when KUVFAC=1'
      8      /7X,'   KWTRAB = ',I1,'     0      WRITER: Qab,Qex,Qsc,g'
      9      /7X,'   KGGVDF = ',I1,'     0      Use GHG VertProf Grad'
@@ -7960,15 +7803,11 @@ C
 C
       WRITE(KW,6006)
  6006 FORMAT('0CONTROL PARAMTER    VALUE',16X,' DEFAULT')
-      WRITE(KW,6007) PTOPTR,REFF0 ,VEFF0 ,xxxxxx,X0YBCI,X0YOCI,X0YSUI
+      WRITE(KW,6007) PTOPTR,REFF0 ,VEFF0
      +              ,AVSCAT,ANSCAT,AVFOAM,ANFOAM
  6007 FORMAT(7X,'   PTOPTR = ',F7.1,6X,'TropTop (SIGMA lev) Pressure'
      A      /7X,'   REFF0  = ',F7.3,'                 0.300         '
      B      /7X,'   VEFF0  = ',F7.3,'                 0.350         '
-     C      /7X,'   xxxxxx = ',F7.5,'                 0.001         '
-     E      /7X,'   X0YBCI = ',F7.3,'                 0.001         '
-     F      /7X,'   X0YOCI = ',F7.3,'                 0.001         '
-     G      /7X,'   X0YSUI = ',F7.3,'                 0.0001        '
      H      /7X,'   AVSCAT = ',F7.5,'                 0.01560       '
      I      /7X,'   ANSCAT = ',F7.5,'                 0.00020       '
      J      /7X,'   AVFOAM = ',F7.5,'                 0.21970       '
@@ -7994,11 +7833,6 @@ C
      I      /7X,'   CARB1 = ',F8.6,F11.6,'      .31482             '
      J      /7X,'   CARB2 = ',F8.6,F11.6,'      .47513             '
      K      )
-
-      WRITE(KW,6017)
- 6017 FORMAT(/'  layer  VDFBCI VDFOCI VDFSUI VDFDST')
-      WRITE(KW,6018) (I,VDFBCI(I),VDFOCI(I),VDFSUI(I),VDFDST(I),I=1,12)
- 6018 FORMAT(3X,I4,' :',4F6.2)
 
       WRITE(KW,6019)
  6019 FORMAT(/'  GHGAS',9X,'PPMVK0    PPMVDF    PPGRAD')
@@ -8029,14 +7863,14 @@ C     IF(KGASSR.GT.0)
 C    +WRITE(KW,6104) (FULGAS(I+9),I=1,2),(FULGAS(I+9),I=4,9)
 C    +              ,FULGAS(11),FULGAS(12),   (FGOLDH(I+9),I=1,5)
       WRITE(KW,6105) PPMCO2,PPMN2O,PPMCH4,PPMF11,PPMF12,PPMY11,PPMZ12
-     +             ,(FTRACER(I),I=1,4),PPMV80(2),(PPMV80(I),I=6,9)
+     +             ,(FSTOPX(I),I=1,4),PPMV80(2),(PPMV80(I),I=6,9)
      +             ,(PPMV80(I),I=11,12),KTREND,JYEAR,JDAY,LASTVC
       WRITE(KW,6106) TAUWC0,FCLDTR,EOCTRA,ZOCSRA,KZSNOW,KCLDEM,NTRACE
      +             ,FSAAER,FTTAER,MADO3M,KCLDEP,NL
       WRITE(KW,6107) TAUIC0,FCLDSR,ESNTRA,ZSNSRA,WETTRA,KSIALB,ITR(1)
      +             ,ITR(5),FSBAER,FTBAER,MADO3M,KEEPAL,NLP
-      WRITE(KW,6108)xxxxxx,FRAYLE,EICTRA,ZICSRA,WETSRA,KCNORM,ITR(2)
-     +             ,ITR(6),FSAAER,FTAAER,KVRAER,KEEP10,MLAT46
+      WRITE(KW,6108)       FRAYLE,EICTRA,ZICSRA,WETSRA,KCNORM,ITR(2)
+     +             ,ITR(6),FSAAER,FTAAER,       KEEP10,MLAT46
       WRITE(KW,6109) TLGRAD,ECLTRA,EDSTRA,ZDSSRA,KANORM,KPGRAD,ITR(3)
      +             ,ITR(7),FSDAER,FTDAER,KWVCON,ICE012,MLON72
       WRITE(KW,6110) PTLISO       ,EVGTRA,ZVGSRA,KEEPRH,KLATZ0,ITR(4)
@@ -8066,10 +7900,10 @@ C    +      ,' S','FGOLDH=',1P,1E7.1,1P,2E9.2,1P,2E8.1)
      +      ,1X,'ZSNSRA=',  F3.1,1X,'WETTRA=',  F4.2,' KSIALB=',  I3
      +      ,1X,'ITR(1)=',    2I2,1X,'FSBAER=', F3.1,' FTBAER=',F3.1
      +      ,1X,'K03LON=',    I1,1X,'KEEPAL=',    I1,'    NLP=',  I2)
- 6108 FORMAT(1X,'xxxxxx=', F6.2,  ' FRAYLE=',0P,F4.1,' EICTRA=',F3.1
+ 6108 FORMAT(1X,'       ',  6X ,  ' FRAYLE=',0P,F4.1,' EICTRA=',F3.1
      +      ,1X,'ZICSRA=',  F3.1,1X,'WETSRA=',  F4.2,' KCNORM=',  I3
      +      ,1X,'ITR(2)=',    2I2,1X,'FSAAER=', F3.1,' FTAAER=',F3.1
-     +      ,1X,'KVRAER=',    I1,1X,'KEEP10=',    I1,' MLAT46=',  I2)
+     +      ,1X,'       ',   ' ',1X,'KEEP10=',    I1,' MLAT46=',  I2)
  6109 FORMAT(1X,'TLGRAD=',   F6.2,' ECLTRA=',0P,F4.2,' EDSTRA=',F3.1
      +      ,1X,'ZDSSRA=',  F3.1,1X,'KANORM=',  I4  ,' KPGRAD=',  I3
      +      ,1X,'ITR(3)=',    2I2,1X,'FSDAER=', F3.1,' FTDAER=',F3.1
@@ -8507,31 +8341,38 @@ C
 C
 C                                (4E)  10-Comp Aerosol Qx, Qs, g, Pi0
 C                                ------------------------------------
-      WRITE(KW,6450) KWTRAB,(N,N=1,10),(REAERO(N),N=1,10)
+      WRITE(KW,6450) KWTRAB,(N,N=1, 6),(REFDRY(N),N=1, 6)
       WRITE(KW,6451)
       DO 435 K=1,6
-      WRITE(KW,6452) K,(SRBQEX(K,N),N=1,10)
+      WRITE(KW,6452) K,(SRHQEX(K,1,N),N=1, 4),(SRBQEX(K,N),N=5, 6)
   435 CONTINUE
       WRITE(KW,6453)
       DO 436 K=1,6
-      WRITE(KW,6452) K,(SRBQSC(K,N),N=1,10)
+      WRITE(KW,6452) K,(SRHQSC(K,1,N),N=1, 4),(SRBQSC(K,N),N=5, 6)
   436 CONTINUE
       WRITE(KW,6454)
       DO 437 K=1,6
-      WRITE(KW,6452) K,(SRBQCB(K,N),N=1,10)
+      WRITE(KW,6452) K,(SRHQCB(K,1,N),N=1, 4),(SRBQCB(K,N),N=5, 6)
   437 CONTINUE
-      WRITE(KW,6455) TRABCD(2),TRAXSG(KWTRAB+1)
+      WRITE(KW,6455) TRABCD(2),TRAXSG(1) !obs TRAXSG(KWTRAB+1)
       DO 438 K=1,33
-      IF(KWTRAB.EQ.0) WRITE(KW,6442) K,(TRBQAB(K,N),N=1,10)
-      IF(KWTRAB.EQ.1) WRITE(KW,6442) K,(TRBQEX(K,N),N=1,10)
-      IF(KWTRAB.EQ.2) WRITE(KW,6442) K,(TRBQSC(K,N),N=1,10)
-      IF(KWTRAB.EQ.3) WRITE(KW,6442) K,(TRBQCB(K,N),N=1,10)
-      IF(KWTRAB.EQ.4) THEN
-      DO N=1,10
-      TRPI0K(N)=TRBQSC(K,N)/(1.D-10+TRBQEX(K,N))
-      END DO
-      WRITE(KW,6442) K,(TRPI0K(N),N=1,10)
-      ENDIF
+      IF(KWTRAB.EQ.0) WRITE(KW,6442) K,(TRHQAB(K,1,N),N=1, 4),
+     *                                 (TRBQAB(K,N),N=5, 6)
+!obs  IF(KWTRAB.EQ.1) WRITE(KW,6442) K,(TRHQEX(K,1,N),N=1, 4),
+!obs *                                 (TRBQEX(K,N),N=5, 6)
+!obs  IF(KWTRAB.EQ.2) WRITE(KW,6442) K,(TRHQSC(K,1,N),N=1, 4),
+!obs *                                 (TRBQSC(K,N),N=5, 6)
+!obs  IF(KWTRAB.EQ.3) WRITE(KW,6442) K,(TRHQCB(K,1,N),N=1, 4),
+!obs *                                 (TRBQCB(K,N),N=5, 6)
+!obs  IF(KWTRAB.EQ.4) THEN
+!obs  DO N=1,4
+!obs  TRPI0K(N)=TRHQCB(K,1,N)/(1.D-10+TRHQEX(K,1,N))
+!obs  END DO
+!obs  DO N=5,6 ! 10
+!obs  TRPI0K(N)=TRBQSC(K,N)/(1.D-10+TRBQEX(K,N))
+!obs  END DO
+!obs  WRITE(KW,6442) K,(TRPI0K(N),N=1, 6)
+!obs  ENDIF
   438 CONTINUE
       DO 439 I=1,1
       WRITE(KW,6456)
@@ -8681,15 +8522,15 @@ C
  6450 FORMAT(' (4E) Climatology Aerosol Solar and Thermal Mie '
      +      ,'Scattering Parameters:'
      +      ,T81,'List: SRBQEX(L,K),SRBQST(L,K),SRBQCB(L,K), TRAB Q S G'
-     +      /'      KWTRAB=',I1/7X,10I8/
-     +        '   AEROSOL   BCI     OCI     SUI     SEA     SUN '
-     +        ,'    ANT     OCN     OCB     BCB     SSB         '/
-     +        '   SIZE ',10F8.1)
- 6451 FORMAT('  K  SRBQEX')
+     +      /'      KWTRAB=',I1/7X, 6I8/
+     +        '   AEROSOL   SO4     SEA     ANT     OCX     BCI '
+     +        ,'    BCB'/ ! OCN     OCB     BCB     SSB         '/
+     +        '   SIZE ', 6F8.1)
+ 6451 FORMAT('  K  SRBQEX - DRY')
  6452 FORMAT(I3,6X,15F8.5)
- 6453 FORMAT('  K  SRBQSC')
- 6454 FORMAT('  K  SRBQCB')
- 6455 FORMAT('  K  ',2A3)
+ 6453 FORMAT('  K  SRBQSC - DRY')
+ 6454 FORMAT('  K  SRBQCB - DRY')
+ 6455 FORMAT('  K  ',2A3,' - DRY')
  6456 FORMAT(' ')
 C
  6460 FORMAT(' (4F) Desert Dust Aerosol Solar and Thermal Mie '
@@ -8699,10 +8540,10 @@ C
      +        '   AEROSOL  CLAY1   CLAY2   CLAY3   CLAY4   SILT1'
      +        ,'   SILT2   SILT3   SILT4                        '/
      +        '   SIZE ',8F8.1)
- 6461 FORMAT('  K  SRAQEX')
+ 6461 FORMAT('  K  SRDQEX')
  6462 FORMAT(I3,6X,15F8.5)
- 6463 FORMAT('  K  SRAQSC')
- 6464 FORMAT('  K  SRAQCB')
+ 6463 FORMAT('  K  SRDQSC')
+ 6464 FORMAT('  K  SRDQCB')
  6465 FORMAT('  K  ',2A3)
  6466 FORMAT(' ')
 C
@@ -9788,13 +9629,13 @@ C
      +WRITE(KW,6400) JYRREF,JJDAYO,JMONTH,MADO3M,(L,L=2,15)
  6400 FORMAT(/' (4)=INDEX  JYRREF=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' Ozone: Zonal-mean Vertical Distribution (cmSTP)'
-     +      ,T126,'MADO3M=',I1/'  JLAT DLAT46   COLUMN  L =   1',14I7)
+     +      ,T126,'MADO3=',I2/'  JLAT DLAT46   COLUMN  L =   1',14I7)
       IF(KLIMIT.LT.1)
      +WRITE(KW,7400) JYRREF,JJDAYO,JMONTH,MADO3M
      +              ,(PLB0(I),I=1,15),(L,L=2,15)
  7400 FORMAT(/' (4)=INDEX  JYRREF=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' Ozone: Zonal-mean Vertical Distribution (cmSTP)'
-     +      ,T126,'MADO3M=',I1//21X,'PLB0 =',F6.1,9F7.1,5F7.2
+     +      ,T126,'MADO3=',I2//21X,'PLB0 =',F6.1,9F7.1,5F7.2
      +      /'  JLAT DLAT46   COLUMN  L =   1',14I7)
 C
       DO 470 JJ=1,46
@@ -9855,19 +9696,19 @@ C
      +WRITE(KW,6510) JYRREF,JJDAYO,JMONTH,MADO3M,(I,I=10,310,10)
  6510 FORMAT(/'  5A=INDEX  JYEAR=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' Ozone Longitudinal Variation:  Troposphere'
-     +      ,' (Wang-Jacobs) Surf to 150 mb',T126,'MADO3M=',I1
+     +      ,' (Wang-Jacobs) Surf to 150 mb',T126,'MADO3=',I2
      +      /'  J LON=0',31I4)
       IF(N.EQ.2)
      +WRITE(KW,6520) JYRREF,JJDAYO,JMONTH,MADO3M,(I,I=10,310,10)
  6520 FORMAT(/'  5B=INDEX  JYEAR=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' Ozone Longitudinal Variation:  Stratosphere'
-     +      ,' (London-NCAR) 150 mb to TOA',T126,'MADO3M=',I1
+     +      ,' (London-NCAR) 150 mb to TOA',T126,'MADO3=',I2
      +      /'  J LON=0',31I4)
       IF(N.EQ.3.AND.KLIMIT.LT.1)
      +WRITE(KW,6530) JYRREF,JJDAYO,JMONTH,MADO3M,(I,I=10,310,10)
  6530 FORMAT(/'  5C=INDEX  JYEAR=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' Ozone Longitudinal Variation:  Total Column'
-     +      ,' (W-J/London) Surface to TOA',T126,'MADO3M=',I1
+     +      ,' (W-J/London) Surface to TOA',T126,'MADO3=',I2
      +      /'  J LON=0',31I4)
       IF(KLIMIT.LT.1) WRITE(KW,6540)
  6540 FORMAT(' ')
@@ -10843,6 +10684,11 @@ C     ------------------------------------------------------------------
 
       SUBROUTINE SPLINE(X,F,NXF,XX,FF,CUSPWM,CUSPWE,KXTRAP)
       IMPLICIT NONE
+
+      integer, intent(in)  :: NXF,              KXTRAP
+      real*8 , intent(in)  :: X(NXF),F(NXF),XX, CUSPWM,CUSPWE
+      real*8 , intent(out) :: FF
+
 C---------------------------------------------------------------------
 C
 C    SPLINE locates XX between points (F2,X2)(F3,X3) on 4-point spread
@@ -10881,12 +10727,9 @@ C                        1    Fixed Extrapolation (F(XX) = edge value)
 C                        2    Linear Extrapolation using 2 edge points
 C
 C---------------------------------------------------------------------
-      INTEGER, INTENT(IN) :: NXF,KXTRAP
-      REAL*8, DIMENSION(NXF), INTENT(IN) :: X,F
-      REAL*8, INTENT(IN) :: XX,CUSPWM,CUSPWE
-      REAL*8, INTENT(OUT) :: FF
-      REAL*8 BETW,X1,X2,X3,X4,F1,F2,F3,F4,X21,X31,X32,X43,X42,F21,F32
-     *     ,F43,F3221,F4332,A,B,C,D,XF,FFCUSP,XE,XEXM,CUSPWT,FFLINR
+
+      REAL*8 x1,x2,x3,x4, x21,x32,x43,x31,x42, betw,FFCUSP,FFLINR,CUSPWT
+      REAL*8 f1,f2,f3,f4, f21,f32,f43,f3221,f4332,  a,b,c,d, xf,xe,xexm
       INTEGER K
 
       K=2
@@ -12152,3 +11995,1175 @@ C
       RETURN
       END SUBROUTINE RXSNOW
 
+      SUBROUTINE CTREND(JYEAR,IDEC,JDEC,CWTI,CWTJ)
+      IMPLICIT NONE
+
+C-------------------------------------------------------------------
+C     Black Carbon interdecadal TAU interpolation is based on linear
+C     TAU trend (between decadal global TAUmaps) with a superimposed
+C     intra-decadal time dependence scaled to the Black Carbon Total
+C     emission rate.
+C
+C        INPUT: JYEAR   (Julian year)
+C
+C                 CTREND coefficients refer to sep2003_OCI_Koch maps
+C                 CTREND coefficients refer to sep2003_BCI_Koch maps
+C                 --------------------------------------------------
+C
+C                 Map=  1850 1875 1900 1925 1950 1960 1970 1980 1990
+C       OUTPUT:  IDEC=   (0)   1    2    3    4    5    6    7    8
+C                JDEC=  IDEC + 1    (returned IDEC,JDEC are (1 to 8)
+C
+C                CWTI=   (Multiplicative Weight for BC DataMap IDEC)
+C                CWTJ=   (Multiplicative Weight for BC DataMap JDEC)
+C
+C        NOTE:  Time dependence is linear before 1950. Industrial BC
+C               is assumed 0 in 1850 so CWTI=0, and IDEC is set to 1
+C-------------------------------------------------------------------
+
+      INTEGER, INTENT(IN)  :: JYEAR
+      INTEGER, INTENT(OUT) :: IDEC,JDEC
+      REAL*8,  INTENT(OUT) :: CWTI,CWTJ
+
+C    Global Annual Emissions of BC U   Emission (Mt/yr)
+
+      real*8, parameter, dimension(5,45) :: BCE = RESHAPE( (/
+C      Year    Hard_Coal    Brown_Coal      Diesel        Total
+     A 50.0, 2.280581713, 0.4449132979, 0.1599090248, 2.885536671,
+     B 51.0, 2.443193913, 0.4855868816, 0.1884280443, 3.117194653,
+     C 52.0, 2.473641872, 0.5115299225, 0.2027695477, 3.187930107,
+     D 53.0, 2.481340885, 0.5448409319, 0.2149295360, 3.241089582,
+     E 54.0, 2.505670071, 0.5780177116, 0.2343477309, 3.317960978,
+     F 55.0, 2.698692560, 0.6238067150, 0.2733324766, 3.595800638,
+     G 56.0, 2.855226278, 0.6531309485, 0.3043369055, 3.812692404,
+     H 57.0, 2.975781679, 0.6821750998, 0.3207367063, 3.978575468,
+     I 58.0, 3.341105223, 0.7035279870, 0.3370627165, 4.381746292,
+     J 59.0, 3.638528824, 0.7075053453, 0.3695519567, 4.715488434,
+     K 60.0, 3.770926714, 0.7416650057, 0.3832504749, 4.896034241,
+     L 61.0, 3.392980337, 0.7805693150, 0.4217525721, 4.595387459,
+     M 62.0, 3.288835049, 0.8179932237, 0.4603823125, 4.567360401,
+     N 63.0, 3.359177589, 0.8604368567, 0.5090782642, 4.728550911,
+     O 64.0, 3.432664871, 0.8952696323, 0.5388473868, 4.866865158,
+     P 65.0, 3.529418945, 0.8819132447, 0.5785927773, 4.989773750,
+     Q 66.0, 3.577459812, 0.8817394972, 0.6323299408, 5.091631413,
+     R 67.0, 3.418204546, 0.8635972142, 0.6592246890, 4.941041946,
+     S 68.0, 3.452457905, 0.8943673372, 0.7338049412, 5.080585003,
+     A 69.0, 3.626069546, 0.9298774004, 0.7889106274, 5.344810009,
+     B 70.0, 3.264039755, 0.9229136109, 0.8880128860, 5.074741840,
+     C 71.0, 3.437611580, 0.9374827743, 0.9531223178, 5.328329086,
+     D 72.0, 3.473345757, 0.7836616039, 1.0180075170, 5.274850368,
+     E 73.0, 3.495583296, 0.8056778908, 1.1174367670, 5.418928623,
+     F 74.0, 3.506143808, 0.8251076341, 1.0828053950, 5.413989067,
+     G 75.0, 3.906814098, 0.8527192473, 1.0454736950, 5.804963112,
+     H 76.0, 4.005736828, 0.8900613785, 1.1400985720, 6.035901546,
+     I 77.0, 4.236912251, 0.9103702307, 1.2190728190, 6.366260529,
+     J 78.0, 4.459666252, 0.9303293228, 1.2408012150, 6.630728722,
+     K 79.0, 4.697422504, 0.9856286645, 1.3019220830, 6.984815121,
+     L 80.0, 4.796229839, 0.9959300756, 1.2336660620, 7.026207924,
+     M 81.0, 4.789204121, 1.0459070210, 1.1664049630, 7.001126766,
+     N 82.0, 4.872739315, 1.0975246430, 1.1601715090, 7.130136490,
+     O 83.0, 4.983223438, 1.1424025300, 1.1732926370, 7.298912525,
+     P 84.0, 5.265352249, 1.2178678510, 1.2251536850, 7.708741188,
+     Q 85.0, 5.763637543, 1.2965050940, 1.2428865430, 8.303324699,
+     R 86.0, 5.924767494, 1.3386499880, 1.2930148840, 8.556744576,
+     S 87.0, 6.155550480, 1.3738890890, 1.3162037130, 8.845513344,
+     A 88.0, 6.379704475, 1.3670797350, 1.3813229800, 9.127896309,
+     B 89.0, 6.594299316, 1.4169263840, 1.4029121400, 9.414231300,
+     C 90.0, 6.566919804, 1.4685817960, 1.4224120380, 9.458042145,
+     D 91.0, 6.661097050, 1.2067918780, 1.4163945910, 9.284657478,
+     E 92.0, 7.737902641, 1.3509917260, 1.4471185210, 10.53625107,
+     F 93.0, 7.393332005, 1.2448183300, 1.4543261530, 10.09271908,
+     G 94.0, 7.515841007, 1.2333894970, 1.4780857560, 10.22745800
+     *   /), (/5,45/) )
+
+      real*8 XDEC
+      integer IBCDEC,JBCDEC,IJYEAR
+
+      IF(JYEAR.LT.1876) THEN
+      CWTJ=(JYEAR-1850)/25.D0
+      IF(CWTJ.LT.0.D0) CWTJ=0.D0
+      CWTI=0.D0
+      IDEC=1
+      JDEC=1
+      GO TO 100
+      ENDIF
+
+      IF(JYEAR.LT.1950) THEN
+      XDEC=(JYEAR-1850)/25.D0
+      IDEC=XDEC
+      JDEC=IDEC+1
+      CWTJ=XDEC-IDEC
+      CWTI=1.D0-CWTJ
+      GO TO 100
+      ENDIF
+
+      IF(JYEAR.LT.1990) THEN
+      IDEC=(JYEAR-1910)/10
+      JDEC=IDEC+1
+      IBCDEC=1+(IDEC-4)*10
+      JBCDEC=IBCDEC+10
+      IJYEAR=JYEAR-1949
+      CWTJ=(BCE(5,IJYEAR)-BCE(5,IBCDEC))
+     +    /(BCE(5,JBCDEC)-BCE(5,IBCDEC))
+      CWTI=1.D0-CWTJ
+      GO TO 100
+      ENDIF
+
+      IF(JYEAR.GT.1989) THEN
+      IDEC=7
+      JDEC=8
+      IJYEAR=JYEAR-1949
+      IF(IJYEAR.GT.45) IJYEAR=45
+      CWTJ=BCE(5,IJYEAR)/BCE(5,41)
+      CWTI=0.D0
+      ENDIF
+  100 CONTINUE
+
+      RETURN
+      END SUBROUTINE CTREND
+
+      SUBROUTINE STREND(JYEAR,IDEC,JDEC,SWTI,SWTJ)
+      IMPLICIT NONE
+
+C-------------------------------------------------------------------
+C     Anthropogenic Sulfate inter-decadal TAU interpolation is based
+C     on a linear TAU trend (between decadal global TAU-maps) with a
+C     superimposed intradecadal time dependence scaled in proportion
+C     to the Anthropogenic Sulfate global emission rate.
+C
+C        INPUT: JYEAR   (Julian year)
+C
+C                 CTREND coefficients refer to sep2003_SUI_Koch maps
+C                 --------------------------------------------------
+C
+C                 Map=  1850 1875 1900 1925 1950 1960 1970 1980 1990
+C       OUTPUT:  IDEC=   (0)   1    2    3    4    5    6    7    8
+C                JDEC=  IDEC + 1    (returned IDEC,JDEC are (1 to 8)
+C
+C                SWTI=  (Multiplicative Weight for SUI DataMap IDEC)
+C                SWTJ=  (Multiplicative Weight for SUI DataMap JDEC)
+C
+C        NOTE:  Time dependence linear before 1950.   Industrial SUI
+C               is assumed 0 in 1850 so SWTI=0, and IDEC is set to 1
+C-------------------------------------------------------------------
+
+      INTEGER, INTENT(IN)  :: JYEAR
+      INTEGER, INTENT(OUT) :: IDEC,JDEC
+      REAL*8,  INTENT(OUT) :: SWTI,SWTJ
+
+C     Global Emission of Sulfate
+
+C     Emission (Mt/yr)
+C               year      Anthropogenic_Sulfate Natural_Sulfate
+      real*8, parameter, dimension(3,41) :: SUE = reshape( (/
+     A          1950.0,     30.46669769,           14.4,
+     B          1951.0,     32.38347244,           14.4,
+     C          1952.0,     32.18632889,           14.4,
+     D          1953.0,     32.83379745,           14.4,
+     E          1954.0,     32.79270935,           14.4,
+     F          1955.0,     35.79611969,           14.4,
+     G          1956.0,     39.93603897,           14.4,
+     H          1957.0,     38.68806839,           14.4,
+     I          1958.0,     39.35904312,           14.4,
+     J          1959.0,     41.06065369,           14.4,
+     K          1960.0,     42.67050934,           14.4,
+     L          1961.0,     41.32410431,           14.4,
+     M          1962.0,     41.80470276,           14.4,
+     N          1963.0,     43.26312637,           14.4,
+     O          1964.0,     44.68368530,           14.4,
+     P          1965.0,     45.81701660,           14.4,
+     Q          1966.0,     46.61584091,           14.4,
+     R          1967.0,     46.42276001,           14.4,
+     S          1968.0,     47.77438354,           14.4,
+     A          1969.0,     49.30817032,           14.4,
+     B          1970.0,     52.81050873,           14.4,
+     C          1971.0,     52.95043945,           14.4,
+     D          1972.0,     54.10167694,           14.4,
+     E          1973.0,     55.93037415,           14.4,
+     F          1974.0,     57.31056213,           14.4,
+     G          1975.0,     58.52788162,           14.4,
+     H          1976.0,     59.71361542,           14.4,
+     I          1977.0,     62.59599304,           14.4,
+     J          1978.0,     61.98198318,           14.4,
+     K          1979.0,     64.71042633,           14.4,
+     L          1980.0,     65.28986359,           14.4,
+     M          1981.0,     63.23768234,           14.4,
+     N          1982.0,     62.88000488,           14.4,
+     O          1983.0,     61.45023346,           14.4,
+     P          1984.0,     63.85008621,           14.4,
+     Q          1985.0,     66.47412872,           14.4,
+     R          1986.0,     68.00902557,           14.4,
+     S          1987.0,     69.87956238,           14.4,
+     A          1988.0,     70.52937317,           14.4,
+     B          1989.0,     72.06355286,           14.4,
+     C          1990.0,     71.29174805,           14.4
+     *              /), (/3,41/) )
+
+      real*8 xdec
+      integer ISUDEC,JSUDEC,IJYEAR
+
+      IF(JYEAR.LT.1876) THEN
+      SWTJ=(JYEAR-1850)/25.D0
+      IF(SWTJ.LT.0.D0) SWTJ=0.D0
+      SWTI=0.D0
+      IDEC=1
+      JDEC=1
+      GO TO 100
+      ENDIF
+
+      IF(JYEAR.LT.1950) THEN
+      XDEC=(JYEAR-1850)/25.D0
+      IDEC=XDEC
+      JDEC=IDEC+1
+      SWTJ=XDEC-IDEC
+      SWTI=1.D0-SWTJ
+      GO TO 100
+      ENDIF
+
+      IF(JYEAR.LT.1990) THEN
+      IDEC=(JYEAR-1910)/10
+      JDEC=IDEC+1
+      ISUDEC=1+(IDEC-4)*10
+      JSUDEC=ISUDEC+10
+      IJYEAR=JYEAR-1949
+      SWTJ=(SUE(2,IJYEAR)-SUE(2,ISUDEC))
+     +    /(SUE(2,JSUDEC)-SUE(2,ISUDEC))
+      SWTI=1.D0-SWTJ
+      GO TO 100
+      ENDIF
+
+      IF(JYEAR.GT.1989) THEN
+      IDEC=7
+      JDEC=8
+      IJYEAR=JYEAR-1949
+      IF(IJYEAR.GT.41) IJYEAR=41
+      SWTJ=SUE(2,IJYEAR)/SUE(2,41)
+      SWTI=0.D0
+      ENDIF
+  100 CONTINUE
+
+      RETURN
+      END SUBROUTINE STREND
+
+      SUBROUTINE SPLINV(X,F,NXF,XX,FF,CUSPWM,CUSPWE,KXTRAP)
+      IMPLICIT NONE
+
+      integer, intent(in)  :: NXF,              KXTRAP
+      real*8 , intent(in)  :: X(NXF),F(NXF),FF, CUSPWM,CUSPWE
+      real*8 , intent(out) :: XX
+
+C---------------------------------------------------------------------
+C    Inverse spline:
+C    SPLINV locates FF between points (F2,X2)(F3,X3) on 4-point spread
+C    and returns 4-point Cubic Spline value of XX such that FF = F(XX)
+C
+C    Quadratic Derivatives of Spline are continuous at (F2,X2),(F3,X3)
+C    (X-Coordinate may be specified in increasing or decreasing order)
+C
+C---------------------------------------------------------------------
+C
+C    Custom Control Parameters:  CUSPWM,CUSPWE
+C------------------------------
+C
+C    In cases where data points are unevenly spaced and/or data points
+C    exhibit abrupt changes in value, Spline Interpolation may produce
+C    undesirable bulging of interpolated values. In more extreme cases
+C    Linear Interpolation may be less problematic to use.
+C
+C    Interpolation can be weighted between: Cubic Spline and Linear by
+C    adjusting weights CUSPWM and CUSPWE to values between 1.0 and 0.0
+C
+C    CUSPWM = Cubic Spline Weight at the (X2-X3) Interval Mid-point
+C    CUSPWE = Cubic Spline Weight at the (X2-X3) Interval End-points
+C
+C    For example, with:
+C
+C    CUSPWM=1.0,CUSPWE=1.0  FF returns Cubic Spline interpolated value
+C    CUSPWM=0.0,CUSPWE=0.0  FF returns   Linearly   interpolated value
+C
+C---------------------------------------------------------------------
+C
+C     Extrapolation for XX outside of defined interval:  X(1)<->X(NXF)
+C
+C               KXTRAP = 0    No Extrapolation   (i.e., sets XX = 0.0)
+C                        1    Fixed Extrapolation (sets XX=edge value)
+C                        2    Linear Extrapolation using 2 edge points
+C
+C---------------------------------------------------------------------
+C
+C
+C    NOTE:  F(X) is assumed to be monotonic between F(1) and F(NXF)
+C
+C------------------------------------------------------------------
+
+      REAL*8 x1,x2,x3,x4, x21,x32,x43,x31,x42, BETW,FFCUSP,FFLINR,CUSPWT
+      REAL*8 f1,f2,f3,f4, f21,f32,f43,f3221,f4332, a,b,c,d, xf,xe,xexm
+      REAL*8 DX,gg,xg,xy,deltx,slopec,slopel,slopes
+      integer k,kk
+
+      BETW=(F(2)-FF)*(F(NXF)-F(1))
+      IF(BETW.GT.0.D0) GO TO 120
+      BETW=(FF-F(NXF-1))*(F(NXF)-F(1))
+      IF(BETW.GT.0.D0) GO TO 140
+
+      DO 100 K=3,NXF-1
+      BETW=(FF-F(K-1))*(F(K)-FF)
+      DX=(FF-F(K-1))/(F(K)-F(K-1))
+      XX=X(K-1)+DX*(X(K)-X(K-1))
+      IF(BETW.GE.0.D0) GO TO 110
+  100 CONTINUE
+
+  110 CONTINUE
+      DO 115 KK=1,5
+      X1=X(K-2)
+      X2=X(K-1)
+      X3=X(K)
+      X4=X(K+1)
+      F1=F(K-2)
+      F2=F(K-1)
+      F3=F(K)
+      F4=F(K+1)
+      X21=X2-X1
+      X31=X3-X1
+      X32=X3-X2
+      X43=X4-X3
+      X42=X4-X2
+      F21=(F2-F1)/(X21*X21)
+      F32=(F3-F2)/(X32*X32)
+      F43=(F4-F3)/(X43*X43)
+      F3221=(F32+F21)/X31*X21
+      F4332=(F43+F32)/X42*X43
+      A=F2
+      B=X32*F3221
+      C=3.D0*F32-F3221-F3221-F4332
+      D=(F3221+F4332-F32-F32)/X32
+      XF=XX-X2
+
+C                             FFCUSP= Cubic Spline Interpolation Result
+C                             -----------------------------------------
+
+      FFCUSP=A+XF*(B+XF*(C+XF*D))
+      XE=(X3+X2-XX-XX)/X32
+      IF(XE.LT.0.D0) XE=-XE
+      XEXM=XE**2
+      CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
+
+C                                   FFLINR= Linear Interpolation Result
+C                                   -----------------------------------
+      FFLINR=A+XF*F32*X32
+      GG=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
+      SLOPEC=B+2.D0*C*XF+3.D0*D*XF**2
+      SLOPEL=F32*X32
+      SLOPES=SLOPEC*CUSPWT+SLOPEL*(1.D0-CUSPWT)
+      XG=XF
+      XY=XX
+      DELTX=(GG-FF)/SLOPES
+      XX=XF-(GG-FF)/SLOPES+X2
+  115 CONTINUE
+      GO TO 160
+
+C                Edge Point Interval Interpolation and/or Extrapolation
+C                ------------------------------------------------------
+  120 CONTINUE
+      BETW=(F(1)-FF)*(F(NXF)-F(1))
+      IF(BETW.GT.0.D0) GO TO 130
+
+C                          F(1),F(2)  Edge Point Interval Interpolation
+C                          --------------------------------------------
+      DO 125 KK=2,6
+      X1=X(1)
+      X2=X(2)
+      X3=X(3)
+      F1=F(1)
+      F2=F(2)
+      F3=F(3)
+      XX=X1+(FF-F(1))/(F(2)-F(1))*(X2-X1)
+      XF=XX-X1
+      X21=X2-X1
+      F21=(F2-F1)/X21
+      X32=X3-X2
+      X31=X3-X1
+      C=((F3-F2)/X32-F21)/X31
+      B=F21-X21*C
+      A=F1
+      FFCUSP=A+XF*(B+XF*C)
+      FFLINR=A+XF*F21
+      XE=1.D0-2.D0*XF/X21
+      XEXM=XE**2
+      CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
+      GG=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
+      SLOPEC=B+2.D0*C*XF
+      SLOPEL=F21
+      SLOPES=SLOPEC*CUSPWT+SLOPEL*(1.D0-CUSPWT)
+      XG=XF
+      DELTX=(GG-FF)/SLOPES
+      XX=XF-(GG-FF)/SLOPES+X1
+  125 CONTINUE
+      GO TO 160
+
+  130 CONTINUE
+C                  Extrapolation for FF Outside of Interval F(1) - F(2)
+C                  ----------------------------------------------------
+C                  IF(KXTRAP.EQ.0)  (No Extrapolation:   sets XX = 0.0)
+C                  IF(KXTRAP.EQ.1)  (Extrapolation at Fixed Edge Value)
+C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
+
+      IF(KXTRAP.EQ.0) XX=0.D0
+      IF(KXTRAP.EQ.1) XX=X(1)
+      IF(KXTRAP.EQ.2) XX=X(1)-(F(1)-FF)/(F(2)-F(1))*(X(2)-X(1))
+      GO TO 160
+
+  140 CONTINUE
+      BETW=(FF-F(NXF))*(F(NXF)-F(1))
+      IF(BETW.GT.0.D0) GO TO 150
+
+C                    F(NXF-1),F(NXF)  Edge Point Interval Interpolation
+C                    --------------------------------------------------
+      DO 145 KK=3,7
+      X1=X(NXF-2)
+      X2=X(NXF-1)
+      X3=X(NXF)
+      F1=F(NXF-2)
+      F2=F(NXF-1)
+      F3=F(NXF)
+      XX=X2+(FF-F2)/(F3-F2)*(X3-X2)
+      XF=XX-X2
+      X32=X3-X2
+      F32=(F3-F2)/X32
+      X21=X2-X1
+      X31=X3-X1
+      F21=(F2-F1)/X21
+
+C                    3-Point Quadratic Interpolation for Edge Intervals
+C                    --------------------------------------------------
+C
+C      (Edge Option)     ----------------------------------------------
+C                        For Linear Interpolation within Edge Intervals
+C                        between F(1),F(2), and between F(NXF-1),F(NXF)
+C                        set the value of coefficient C below, to C=0.0
+C                        ----------------------------------------------
+
+      C=(F32-F21)/X31
+      B=F21+X21*C
+      A=F2
+      FFCUSP=A+XF*(B+XF*C)
+      FFLINR=A+XF*F32
+      XE=1.D0-2.D0*XF/X32
+      IF(XE.LT.0.D0) XE=-XE
+      XEXM=XE**2
+      CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
+      GG=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
+      SLOPEC=B+2.D0*C*XF
+      SLOPEL=F21
+      SLOPES=SLOPEC*CUSPWT+SLOPEL*(1.D0-CUSPWT)
+      XG=XF
+      DELTX=(GG-FF)/SLOPES
+      XX=XF-(GG-FF)/SLOPES+X2
+  145 CONTINUE
+      GO TO 160
+
+  150 CONTINUE
+C              Extrapolation for F Outside of Interval  F(NXF-1)-F(NXF)
+C              --------------------------------------------------------
+C                  IF(KXTRAP.EQ.0)  (No Extrapolation:   sets XX = 0.0)
+C                  IF(KXTRAP.EQ.1)  (Extrapolation at Fixed Edge Value)
+C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
+
+      IF(KXTRAP.EQ.0) XX=0.D0
+      IF(KXTRAP.EQ.1) XX=X(NXF)
+      IF(KXTRAP.EQ.2) XX=X(NXF)
+     +                  -(F(NXF)-FF)/(F(NXF-1)-F(NXF))*(X(NXF-1)-X(NXF))
+
+  160 CONTINUE
+      RETURN
+      END SUBROUTINE SPLINV
+
+      SUBROUTINE SPLN44(Q,NI,NJ,IR,DR,JN,DN,QQ)
+      IMPLICIT NONE
+
+      integer, intent(in)  ::   NI,NJ,  IR, JN
+      real*8,  intent(in)  :: Q(NI,NJ), DR, DN
+      real*8,  intent(out) :: QQ
+
+!nu   real*8,save :: CUSPWM=1., CUSPWE=1. ,CUSPWT,fflinr
+      real*8 QK(4),  ffcusp,a,b,c,d,xf,xe,xexm
+      REAL*8 f1,f2,f3,f4, f21,f32,f43,f3221,f4332
+      integer k,kr,irm,irp
+
+      K=0
+      IRM=IR-1
+      IRP=IR+2
+      DO 110 KR=IRM,IRP
+      K=K+1
+      F1=Q(KR,JN-1)
+      F2=Q(KR,JN)
+      F3=Q(KR,JN+1)
+      F4=Q(KR,JN+2)
+      F21=F2-F1
+      F32=F3-F2
+      F43=F4-F3
+      F3221=0.5D0*(F32+F21)
+      F4332=0.5D0*(F43+F32)
+      A=F2
+      B=F3221
+      C=3.D0*F32-F3221-F3221-F4332
+      D=F3221+F4332-F32-F32
+      XF=DN
+      FFCUSP=A+XF*(B+XF*(C+XF*D))
+      XE=1.D0-XF-XF
+      IF(XE.LT.0.0) XE=-XE
+      XEXM=XE**2
+!=1   CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
+!nu   FFLINR=A+XF*F32
+      QK(K)=FFCUSP ! *CUSPWT+FFLINR*(1.D0-CUSPWT)
+  110 CONTINUE
+      F1=QK(1)
+      F2=QK(2)
+      F3=QK(3)
+      F4=QK(4)
+      F21=F2-F1
+      F32=F3-F2
+      F43=F4-F3
+      F3221=0.5D0*(F32+F21)
+      F4332=0.5D0*(F43+F32)
+      A=F2
+      B=F3221
+      C=3.D0*F32-F3221-F3221-F4332
+      D=F3221+F4332-F32-F32
+      XF=DR
+      FFCUSP=A+XF*(B+XF*(C+XF*D))
+      XE=1.D0-XF-XF
+      IF(XE.LT.0.0) XE=-XE
+      XEXM=XE**2
+!=1   CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
+!nu   FFLINR=A+XF*F32
+      QQ=FFCUSP ! *CUSPWT+FFLINR*(1.D0-CUSPWT)
+      RETURN
+      END SUBROUTINE SPLN44
+
+      SUBROUTINE SPLNI4(Q,NI,NJ,IR,JN,DN,QQ)
+      IMPLICIT NONE
+
+      integer, intent(in)  ::   NI,NJ,  IR, JN
+      real*8,  intent(in)  :: Q(NI,NJ),     DN
+      real*8,  intent(out) :: QQ
+
+!nu   real*8,save :: CUSPWM=1., CUSPWE=1. ,CUSPWT,fflinr
+      real*8 ffcusp,a,b,c,d,xf,xe,xexm
+      REAL*8 f1,f2,f3,f4, f21,f32,f43,f3221,f4332
+
+      F1=Q(IR,JN-1)
+      F2=Q(IR,JN)
+      F3=Q(IR,JN+1)
+      F4=Q(IR,JN+2)
+      F21=F2-F1
+      F32=F3-F2
+      F43=F4-F3
+      F3221=0.5D0*(F32+F21)
+      F4332=0.5D0*(F43+F32)
+      A=F2
+      B=F3221
+      C=3.D0*F32-F3221-F3221-F4332
+      D=F3221+F4332-F32-F32
+      XF=DN
+      FFCUSP=A+XF*(B+XF*(C+XF*D))
+      XE=1.D0-XF-XF
+      IF(XE.LT.0.0) XE=-XE
+      XEXM=XE**2
+!=1   CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
+!nu   FFLINR=A+XF*F32
+      QQ=FFCUSP ! *CUSPWT+FFLINR*(1.D0-CUSPWT)
+      RETURN
+      END SUBROUTINE SPLNI4
+
+
+      SUBROUTINE SETREL(REFF0,NAER,KDREAD           !  input parameters
+     A                 ,SRUQEX,SRUQSC,SRUQCB        !  SW input ( 6,110)
+     B                 ,TRUQEX,TRUQSC,TRUQCB        !  LW input (33,110)
+     C                 ,REFU22,Q55U22               !  RQ input    (110)
+                                                    !     SETREL  output
+     D                 ,SRHQEX,SRHQSC,SRHQCB,TRHQAB !  3(6,190),(33,190)
+     E                 ,RHDATA)                     !  RH info   (190,9)
+
+      USE FILEMANAGER, only : openunit,closeunit
+      IMPLICIT REAL*8(A-H,O-Z)
+
+      real*8 REFF0,SRUQEX( 6,110),SRUQSC( 6,110),SRUQCB( 6,110)
+     A            ,TRUQEX(33,110),TRUQSC(33,110),TRUQCB(33,110)
+     B            ,REFU22(110),Q55U22(110)
+      real*8 SRHQEX(6,190),SRHQSC(6,190),SRHQCB( 6,190)
+     A            ,TRHQAB(33,190),RHDATA(190,9)
+
+C     ------------------------------------------------------------------
+C     REFF0  = Effective radius for dry aerosol seed size (in microns)
+C     NAER   = Aerosol composition index
+C     KDREAD = IO READ unit number for Q(m,r),g(m,r) data used by SETREL
+C     ------------------------------------------------------------------
+C     Aerosol index = NAER    Composition         Input data order = NNA
+C                      1      SO4  Sulfate                            1
+C                      2      SEA  Sea Salt                           2
+C                      3      NO3  Nitrate                            3
+C                                  Pure Water                         4
+C                      4      ORG  Organinc                           5
+C     ------------------------------------------------------------------
+
+      character*40, save :: dtfile='oct2003.relhum.nr.Q633G633.table'
+      logical, parameter :: qbinary=.false.  ; logical qexist
+
+C     Local variables
+
+      real*8    RHRHRH(190),RHTAUF(190),RHREFF(190)
+     A         ,RHWGM2(190),RHDGM2(190),RHTGM2(190)
+     B         ,RHXMFX(190),RHDENS(190),RHQ550(190),RHINFO(190,9)
+      EQUIVALENCE (RHINFO(1,1),RHRHRH(1)),(RHINFO(1,2),RHTAUF(1))
+      EQUIVALENCE (RHINFO(1,3),RHREFF(1)),(RHINFO(1,4),RHWGM2(1))
+      EQUIVALENCE (RHINFO(1,5),RHDGM2(1)),(RHINFO(1,6),RHTGM2(1))
+      EQUIVALENCE (RHINFO(1,7),RHXMFX(1)),(RHINFO(1,8),RHDENS(1))
+      EQUIVALENCE (RHINFO(1,9),RHQ550(1))
+
+      real*8    R633NR(890),XNR(31),Q633NR(890,31),G633NR(890,31)
+      real*8    Q880M1(890),G880M1(890),Q880M0(890),G880M0(890)
+      real*8    Q880N1(890),Q880N0(890),R550NR(890)
+      real*8    RR0RHX(190),XNRRHX(190),QRH633(190),GRH633(190)
+      real*8    XXMF(190),XXRH(190),XRR0(190)
+      real*8    XXNR(190),XROA(190),DNRX(190)
+
+      real*8    QXAERN(33),QSAERN(33),QGAERN(33)
+     A         ,SR1QEX( 6),SR1QSC( 6),SR1QCB( 6)
+     B         ,SR2QEX( 6),SR2QSC( 6),SR2QCB( 6)
+     C         ,SR3QEX( 6),SR3QSC( 6),SR3QCB( 6)
+     D         ,SR4QEX( 6),SR4QSC( 6),SR4QCB( 6)
+     E         ,TR1QEX(33),TR1QSC(33),TR1QCB(33)
+     F         ,TR2QEX(33),TR2QSC(33),TR2QCB(33)
+     G         ,TR3QEX(33),TR3QSC(33),TR3QCB(33)
+     H         ,TR4QEX(33),TR4QSC(33),TR4QCB(33)
+     I         ,TRHQEX(33),TRHQSC(33),TRHQCB(33)
+
+      integer, parameter, dimension(4) :: NRHCRY=(/38,47,28,38/)
+
+!nu   CHARACTER*8 AERTYP(4)
+!nu   DATA AERTYP/'Sulfate ','SeaSalt ','Nitrate ','Organic '/
+
+C     ------------------------------------------------------------------
+C     Hygroscopic aerosols (Sulfate,SeaSalt,Nitrate) physical properties
+C     formulas from Tang and Munkelwitz (1994, 1996) in JGR 99, JGR 101.
+C
+C     AW=water activity RO=density  BX=growth factor RX=refractive index
+C     SO4 = ammonium sulfate;   SEA = sea salt;   NO3 = ammonium nitrate
+C     ------------------------------------------------------------------
+
+C     functions
+
+      real*8 AWSO4,ROSO4,BXSO4,RXSO4,DRWSO4,DRDSO4
+      real*8 AWSEA,ROSEA,BXSEA,RXSEA,DRWSEA,DRDSEA,RRSEA,VVSEA,GXSEA
+      real*8 AWNO3,RONO3,BXNO3,R1NO3,R2NO3, DRXNO3
+
+      AWSO4(X)=1.D0-0.2715*X+0.3113*X**2-2.336*X**3+1.412*X**4    ! TM94
+      ROSO4(X)=0.9971D0+5.92D-01*X-5.036D-02*X**2+1.024D-02*X**3  ! TM94
+      BXSO4(X)=(1.D0/X*1.760D0/ROSO4(X))**(1.D0/3.D0)             ! TM96
+      RXSO4(X)=1.3330+0.16730*X-0.0395*X**2                       ! TM91
+      DRWSO4(RH)=1.002146-0.00149*RH+0.001*RH/(1.0+0.911*RH**10)
+      DRDSO4(RH)=1.002503     ! ratio of wet & dry nr(0.550) / nr(0.633)
+
+      AWSEA(X)=1.0D0-0.6366*X+0.8624*X**2-11.58*X**3+15.18*X**4   ! TM96
+      ROSEA(X)=0.9971+0.741*X-0.3741*X**2+2.252*X**3-2.060*X**4   ! TM96
+      BXSEA(X)=(1.D0/X*2.165D0/ROSEA(X))**(1.D0/3.D0)
+      RRSEA(X)=3.70958+(8.95-3.70958)/(1.D0+(1.0-X)/X*58.448/18.0)
+      VVSEA(X)=(18.0+(58.448-18.0)/(1.0+(1.0-X)/X*58.448/18.0))/ROSEA(X)
+      GXSEA(X)=SQRT((2.D0*RRSEA(X)+VVSEA(X))/(VVSEA(X)-RRSEA(X))) ! TM96
+      RXSEA(X)=1.333+(GXSEA(X)-1.333)*(1.490-1.333)/(1.544-1.333)
+      DRWSEA(RH)=1.00212-0.001625*RH+0.00131*RH/(1.0+0.928*RH**3)
+      DRDSEA(RH)=1.003007     ! ratio of wet & dry nr(0.550) / nr(0.633)
+
+      AWNO3(X)=1.D0-3.65D-01*X-9.155D-02*X**2-2.826D-01*X**3      ! TM96
+      RONO3(X)=0.9971D0+4.05D-01*X+9.0D-02*X**2                   ! TM96
+      BXNO3(X)=(1.D0/X*1.725D0/RONO3(X))**(1.D0/3.D0)             ! TM96
+      R1NO3(X)=1.3330+0.119D0*X          !  (X<0.205)              TWM81
+      R2NO3(X)=1.3285+0.145D0*X          !  (X>0.205)              TWM81
+      DRXNO3(RH)=1.001179     ! ratio of wet & dry nr(0.550) / nr(0.633)
+
+
+C     ------------------------------------------------------------------
+C     Q,G Mie data (879x31) at 0.633 microns, use 31 points to cover the
+C     refractive index from 1.30 to 1.60 with equal spacing of 0.01
+C
+C     Q,G data effective radius spans the range from 0.0 to 20.4 microns
+C     in (3) segments of equally spaced data for optimized 4-point Cubic
+C     Spline interpolation.  The equally spaced segments are as follows:
+C
+C     Index:    1 - 303   304 - 603   604 -  879   881 - 885   886 - 890
+C     Reff:   0.00-3.02   3.04-9.02   9.04-20.04   2.98-3.04   8.96-9.08
+C     Delta:     0.01        0.02        0.04         0.02        0.04
+C
+C     The last two intervals are constructed to accommodate transitions
+C     between the (3) segments using 4-point Cubic Spline interpolation
+C     ------------------------------------------------------------------
+
+      inquire (file=dtfile,exist=qexist)
+      if(.not.qexist) dtfile='RH_QG_Mie  ' ! generic name used by GCM
+      inquire (file=dtfile,exist=qexist)
+      if(.not.qexist) call stop_model('setrel: no RH_QG files',255)
+      call openunit(dtfile,kdread,qbinary) ! formatted:qbinary=.false.
+
+      READ (KDREAD,7000) (XNR(J),J=1,31)
+ 7000 FORMAT(12X,F5.3,30F8.3)
+      DO 101 I=1,880
+      READ (KDREAD,7001) R633NR(I),(Q633NR(I,J),J=1,31)
+ 7001 FORMAT(3X,F6.2,31F8.5)
+  101 CONTINUE
+      READ (KDREAD,7000) (XNR(J),J=1,31)
+      DO 102 I=1,880
+      READ (KDREAD,7001) R633NR(I),(G633NR(I,J),J=1,31)
+  102 CONTINUE
+      call CLOSEunit (KDREAD)
+
+      J=880
+      DO 104 K=299,305
+      IF(K.EQ.300) GO TO 104
+      IF(K.EQ.302) GO TO 104
+      J=J+1
+      R633NR(J)=R633NR(K)
+      DO 103 I=1,31
+      Q633NR(J,I)=Q633NR(K,I)
+      G633NR(J,I)=G633NR(K,I)
+  103 CONTINUE
+  104 CONTINUE
+      DO 106 K=600,606
+      IF(K.EQ.601) GO TO 106
+      IF(K.EQ.603) GO TO 106
+      J=J+1
+      R633NR(J)=R633NR(K)
+      DO 105 I=1,31
+      Q633NR(J,I)=Q633NR(K,I)
+      G633NR(J,I)=G633NR(K,I)
+  105 CONTINUE
+  106 CONTINUE
+
+C         Set dry mass fraction XXMF and relative humidity RHRHRH scales
+C         --------------------------------------------------------------
+      DO 110 I=1,190
+      XXMF(I)=1.D0-(I-1)/100.D0
+      IF(I.GT.91)  XXMF(I)=0.10D0-(I-91)/1000.D0
+      RHRHRH(I)=(I-1)/100.D0
+      IF(I.GT.91) RHRHRH(I)=0.90D0+(I-91)/1000.D0
+  110 CONTINUE
+
+C         Define RH (=AW), RO, BX, RX as functions of X for NAER aerosol
+C         --------------------------------------------------------------
+      NRHN1=NRHCRY(NAER)+1
+      DO 111 I=1,190
+      RHI=RHRHRH(I)
+      RR0RHX(I)=1.D0
+      RHXMFX(I)=1.D0
+      IF(NAER.EQ.1) THEN       !    Dry Sulfate refrac index and density
+      XNRRHX(I)=1.526
+      RHDENS(I)=1.760
+      IF(I.LT.NRHN1) DNRX(I)=DRDSO4(RHI)
+      IF(I.GE.NRHN1) DNRX(I)=DRWSO4(RHI)
+      ENDIF
+      IF(NAER.EQ.2) THEN       !    Dry SeaSalt refrac index and density
+      XNRRHX(I)=1.490
+      RHDENS(I)=2.165
+      IF(I.LT.NRHN1) DNRX(I)=DRDSEA(RHI)
+      IF(I.GE.NRHN1) DNRX(I)=DRWSEA(RHI)
+      ENDIF
+      IF(NAER.EQ.3) THEN       !    Dry Nitrate refrac index and density
+      XNRRHX(I)=1.554
+      RHDENS(I)=1.725
+      DNRX(I)=DRXNO3(RHRHRH(I))
+      ENDIF
+      IF(NAER.EQ.4) THEN       !    Dry Organic refrac index and density
+      XNRRHX(I)=1.526          !                  (representative value)
+      RHDENS(I)=1.5            !                  (representative value)
+      IF(I.LT.NRHN1) DNRX(I)=DRDSO4(RHI)
+      IF(I.GE.NRHN1) DNRX(I)=DRWSO4(RHI)
+      ENDIF
+  111 CONTINUE
+      DO 112 I=1,190
+      X=XXMF(I)
+      IF(NAER.EQ.1) THEN          !       RH dependent Sulfate X,R,NR,RO
+      XXRH(I)=AWSO4(X)
+      XRR0(I)=BXSO4(X)
+      XXNR(I)=RXSO4(X)
+      XROA(I)=ROSO4(X)
+      ENDIF
+      IF(NAER.EQ.2) THEN          !       RH dependent SeaSalt X,R,NR,RO
+      XXRH(I)=AWSEA(X)
+      XRR0(I)=BXSEA(X)
+      XXNR(I)=RXSEA(X)
+      XROA(I)=ROSEA(X)
+      IF(I.LT.NRHN1) XXRH(I)=I/1000.0
+      ENDIF
+      IF(NAER.EQ.3) THEN          !       RH dependent Nitrate X,R,NR,RO
+      XXRH(I)=AWNO3(X)
+      XRR0(I)=BXNO3(X)
+      XXNR(I)=R1NO3(X)
+      XROA(I)=RONO3(X)
+      IF(X.GT.0.205) XXNR(I)=R2NO3(X)
+      ENDIF
+      IF(NAER.EQ.4) THEN          !       RH dependent Organic X,R,NR,RO
+      XXRH(I)=AWSO4(X)**0.50      !       (to yield growth factor G=1.1)
+      XRR0(I)=BXSO4(X)**0.30      !       (at RH=84 Virkkula et al 1999)
+      XXNR(I)=RXSO4(X)
+      XROA(I)=ROSO4(X)*(1.0-X*(1.760-1.650)/1.760)
+      ENDIF
+  112 CONTINUE
+
+C            Invert X, RO, BX, RX functions of (X) to be functions of RH
+C            -----------------------------------------------------------
+      DO 113 I=NRHN1,190
+      RHI=RHRHRH(I)
+      CALL SPLINE(XXRH,XRR0,190,RHI,RR0RHX(I),1.D0,1.D0,1)
+      CALL SPLINE(XXRH,XXNR,190,RHI,XNRRHX(I),1.D0,1.D0,1)
+      CALL SPLINE(XXRH,XXMF,190,RHI,RHXMFX(I),1.D0,1.D0,1)
+      CALL SPLINE(XXRH,XROA,190,RHI,RHDENS(I),1.D0,1.D0,1)
+      RHDENS(I)=MAX(RHDENS(I),1.D0)
+  113 CONTINUE
+
+C     ------------------------------------------------------------------
+C     Find Qdry(r),gdry(r) from Q(m,r),g(m,r) maps for each aerosol type
+C     Find Qwet(r),gwet(r) from Q(m,r),g(m,r) maps for each aerosol type
+C     also locate MAXDRY,MAXWET pts where Qdry(r),Qwet(r) are at maximum
+C          (M1 refers to mass fraction X of 1.0, i.e., "dry" aerosol)
+C          (M0 refers to mass fraction X of 0.0, i.e., "wet" aerosol)
+C     ------------------------------------------------------------------
+      MAXDRY=1
+      MAXWET=1
+      QQDMAX=0.D0
+      QQWMAX=0.D0
+      XDRY=XNRRHX(1)
+C     IF(MCRYON.EQ.1) XDRY=XNRRHX(NRHN1) ! If "dry" = RHC reference line
+      SDRY=XDRY*100.D0-129
+      JDRY=SDRY
+      DDRY=SDRY-JDRY
+      XWET=1.3330D0                     !  Pure water Nr = "wet" aerosol
+      SWET=XWET*100.D0-129
+      JWET=SWET
+      DWET=SWET-JWET
+      DO 114 I=1,880
+      CALL SPLNI4(Q633NR,890,31,I,JDRY,DDRY,Q880M1(I))
+      CALL SPLNI4(G633NR,890,31,I,JDRY,DDRY,G880M1(I))
+      CALL SPLNI4(Q633NR,890,31,I,JWET,DWET,Q880M0(I))
+      CALL SPLNI4(G633NR,890,31,I,JWET,DWET,G880M0(I))
+      IF(Q880M1(I).GT.QQDMAX) THEN
+      QQDMAX=Q880M1(I)
+      MAXDRY=I
+      ENDIF
+      IF(Q880M0(I).GT.QQWMAX) THEN
+      QQWMAX=Q880M0(I)
+      MAXWET=I
+      ENDIF
+  114 CONTINUE
+      RQDMAX=R633NR(MAXDRY)
+      RQWMAX=R633NR(MAXWET)
+
+C     Define:  Qdry(r) and Qwet(r) at the reference wavelength of 550 nm
+C              using refractive index off-set and size parameter scaling
+C     ------------------------------------------------------------------
+      XDRY=XNRRHX(1)*DNRX(1)             !      Dry aerosol Nr at 550 nm
+C     IF(MCRYON.EQ.1) XDRY=XNRRHX(NRHN1) ! If "dry" = RHC reference line
+      SDRY=XDRY*100.D0-129
+      JDRY=SDRY
+      DDRY=SDRY-JDRY
+      XWET=1.3330D0*1.001179     !       Pure water aerosol Nr at 550 nm
+      SWET=XWET*100.D0-129
+      JWET=SWET
+      DWET=SWET-JWET
+      DO 115 I=1,880
+      CALL SPLNI4(Q633NR,890,31,I,JDRY,DDRY,Q880N1(I))
+      CALL SPLNI4(Q633NR,890,31,I,JWET,DWET,Q880N0(I))
+      R550NR(I)=R633NR(I)*(0.550/0.633) !  Size shift refers Q to 550 nm
+  115 CONTINUE
+      CALL SPLINE(R550NR,Q880N1,880,REFF0,Q55DRY,1.D0,1.D0,1)
+      CALL SPLINE(R633NR,Q880M1,880,REFF0,Q63DRY,1.D0,1.D0,1)
+
+C     Find Q(RH),g(RH) paths in Q(m,r),g(m,r) maps for seed size = REFF0
+C     2-coordinate paths defined via XN0=XNRRHX(I) & RR0=REFF0*RR0RHX(I)
+C     ------------------------------------------------------------------
+      DO 116 I=1,190
+      XN0=XNRRHX(I)
+      XN1=XN0*100.D0-129
+      IN1=XN1
+      DWN=XN1-IN1
+      RR0=REFF0*RR0RHX(I)
+      IF(RR0.LT.0.01) RR0=0.01
+      IF(RR0.LE.3.00D0) XR1=RR0*100.D0+1
+      IF(RR0.GT.3.00D0.AND.RR0.LT.3.04D0) XR1=RR0*50.0D0+732
+      IF(RR0.GE.3.04D0.AND.RR0.LE.9.00D0) XR1=RR0*50.0D0+152
+      IF(RR0.GT.9.00D0.AND.RR0.LT.9.08D0) XR1=RR0*25.0D0+662
+      IF(RR0.GE.9.08D0) THEN
+      XR1=RR0*25.0D0+378
+      IF(XR1.GT.877.9999D0) XR1=877.9999D0
+      ENDIF
+      IR1=XR1
+      DWR=XR1-IR1
+      CALL SPLN44(Q633NR,890,31,IR1,DWR,IN1,DWN,QRH633(I))
+      CALL SPLN44(G633NR,890,31,IR1,DWR,IN1,DWN,GRH633(I))
+  116 CONTINUE
+
+C     Define Q55(RH) by tracing path in Q(m,r) map for RH dependent size
+C     via 2-coordinate path XN0=XNRRHX(I)*DNRX(I), RR0=RRH(I)*(.633/.55)
+C     ------------------------------------------------------------------
+      DO 117 I=1,190
+      XN0=XNRRHX(I)*DNRX(I)
+      XN1=XN0*100.D0-129
+      IN1=XN1
+      DWN=XN1-IN1
+      RR0=REFF0*RR0RHX(I)*(0.633D0/0.550D0)
+      IF(RR0.LT.0.01) RR0=0.01
+      IF(RR0.LE.3.00D0) XR1=RR0*100.D0+1
+      IF(RR0.GT.3.00D0.AND.RR0.LT.3.04D0) XR1=RR0*50.0D0+732
+      IF(RR0.GE.3.04D0.AND.RR0.LE.9.00D0) XR1=RR0*50.0D0+152
+      IF(RR0.GT.9.00D0.AND.RR0.LT.9.08D0) XR1=RR0*25.0D0+662
+      IF(RR0.GE.9.08D0) THEN
+      XR1=RR0*25.0D0+378
+      IF(XR1.GT.877.9999D0) XR1=877.9999D0
+      ENDIF
+      IR1=XR1
+      DWR=XR1-IR1
+      CALL SPLN44(Q633NR,890,31,IR1,DWR,IN1,DWN,RHQ550(I))
+      RHREFF(I)=RR0RHX(I)*REFF0
+  117 CONTINUE
+
+C        Aerosol liquid water content is in kg/m2 per unit optical depth
+C                with the aerosol effective radius expressed in microns.
+C                -------------------------------------------------------
+      DO 118 I=1,190
+!alt  RHTAUF(I)=(RHQ550(I)/Q55DRY)*RR0RHX(I)**2 ! if input data are adj.
+      RHTAUF(I)=(RHQ550(I)/Q55DRY)/(QRH633(I)/Q63DRY)*RR0RHX(I)**2
+      AERMAS=1.33333333D0*RHREFF(I)*RHDENS(I)/RHQ550(I)*RHTAUF(I)
+      RHTGM2(I)=AERMAS
+      RHDGM2(I)=RHTGM2(1)
+      RHWGM2(I)=RHTGM2(I)-RHDGM2(I)
+  118 CONTINUE
+
+      DO 120 N=1,9
+      DO 119 I=1,190
+      RHDATA(I,N)=RHINFO(I,N)
+  119 CONTINUE
+  120 CONTINUE
+
+C     Determination of RH dependent Mie scattering tables for GCM input.
+C     Find equivalent aersol dry sizes (RD1,RD2) and wet sizes (RW1,RW2)
+C     and corresponding weights to match the RH dependent Q(r) and g(r).
+C     Fits made to form: QRH=X*[Y*QD1+(1-Y)*QD2]+(1-X)*[Z*WD1+(1-Z)*WD2]
+C     ------------------------------------------------------------------
+      RFAC=1.25                                !   Spectral range factor
+      J1=MAXWET
+      JHIMAX=881-MAXWET
+      K1=MAXDRY
+      KHIMAX=881-MAXDRY
+      NP=190-NRHN1+1
+      DO 140 I=1,190
+      RHRHI=RHRHRH(I)
+      XFDRY=RHXMFX(I)
+      REFFI=RHREFF(I)
+      RRH=RR0RHX(I)*REFF0
+      GRH=GRH633(I)
+      QRH=QRH633(I)
+      QD1=QRH
+      QD2=QRH
+      QW1=QRH
+      QW2=QRH
+      IF(QW1.GT.QQWMAX) QW1=QQWMAX
+      IF(QW2.GT.QQWMAX) QW2=QQWMAX
+      CALL SPLINV(R633NR    ,Q880M0    ,MAXWET,RW1,QW1,1.D0,1.D0,1)
+      CALL SPLINV(R633NR(J1),Q880M0(J1),JHIMAX,RW2,QW2,1.D0,1.D0,1)
+      CALL SPLINE(R633NR,G880M0,880,RW1,GW1,1.D0,1.D0,1)
+      CALL SPLINE(R633NR,G880M0,880,RW2,GW2,1.D0,1.D0,1)
+      CALL SPLINE(R633NR,Q880M0,880,RW1*RFAC,PW1,1.D0,1.D0,1)
+      CALL SPLINE(R633NR,Q880M0,880,RW2*RFAC,PW2,1.D0,1.D0,1)
+      IF(I.GE.NRHN1.AND.QRH.GT.QQWMAX) THEN
+      QD1=QQWMAX+(QRH-QQWMAX)/XFDRY ! QD1 such that  QRH=X*QD1+(1-X)*QW1
+      QD2=2.3D0                     ! 2 dry sizes are used if QD1>QQWMAX
+      ENDIF
+      CALL SPLINV(R633NR    ,Q880M1    ,MAXDRY,RD1,QD1,1.D0,1.D0,1)
+      CALL SPLINV(R633NR(K1),Q880M1(K1),KHIMAX,RD2,QD2,1.D0,1.D0,1)
+      CALL SPLINE(R633NR,G880M1,880,RD1,GD1,1.D0,1.D0,1)
+      CALL SPLINE(R633NR,G880M1,880,RD2,GD2,1.D0,1.D0,1)
+      RRHFAC=RRH*RFAC
+      CALL SPLINE(RHREFF(NRHN1),QRH633(NRHN1),NP,RRHFAC,PRH,1.D0,1.D0,1)
+      CALL SPLINE(R633NR,Q880M1,880,RD1*RFAC,PD1,1.D0,1.D0,1)
+      CALL SPLINE(R633NR,Q880M1,880,RD2*RFAC,PD2,1.D0,1.D0,1)
+
+      IF(I.LT.NRHN1) THEN         !          Pure dry aerosol region (1)
+      WTX=1.D0
+      WTY=1.D0
+      IF(REFF0.GT.RQDMAX) WTY=0.D0
+      WTZ=1.D0
+      ELSE            !         Dry/wet weighted average regions (2)-(6)
+      IF(QRH.LE.QQWMAX.AND.REFFI.LT.RW1) THEN
+      IF(QRH.LT.2.2D0) THEN     !          Small-size aerosol region (2)
+      WTZ=1.D0
+      WTY=1.D0
+      WTX=(GRH-GW1)/(GD1-GW1)
+      ELSE                       !      Moderate-size aerosol region (3)
+      WTZ=1.D0
+      WTY=((PD2-PW1)*(GRH-GW1)-(PRH-PW1)*(GD2-GW1))
+     +   /((PRH-PW1)*(GD1-GD2)-(PD1-PD2)*(GRH-GW1))
+      WTX=(GRH-GW1)/(WTY*(GD1-GD2)+(GD2-GW1))
+      ENDIF
+      ENDIF
+      IF(QRH.GT.QQWMAX) THEN       !      Medium-size aerosol region (4)
+C     Fit form: QRH=X*(Y*QD1+(1-Y)*QD2)+(1-X)*QWmax & QRH=/QD1=/QD2=/QW1
+      WTZ=1.D0
+      WTY=((GRH-GD2)*QRH*QD2+(GD2-GW1)*QD2*QW1+(GW1-GRH)*QRH*QW1)
+     +   /((GD1-GRH)*QRH*QD1+(GRH-GD2)*QRH*QD2+(GW1-GD1)*QD1*QW1
+     +    +(GD2-GW1)*QD2*QW1)
+      WTX=(QRH-QW1)/(WTY*(QD1-QD2)+(QD2-QW1))
+      ENDIF
+      IF(QRH.LE.QQWMAX.AND.REFFI.GT.RW1) THEN   !  Large size region (5)
+      WTY=0.D0
+      WTZ=((PD2-PW2)*(GRH-GW2)-(PRH-PW2)*(GD2-GW2))
+     +   /((PW2-PW1)*(GD2-GRH)+(PRH-PD2)*(GW2-GW1))
+      IF(WTZ.GT.1.D0) WTZ=1.D0
+      IF(WTZ.LT.0.D0) WTZ=0.D0
+      WTX=((GRH-GW2)+WTZ*(GW2-GW1))/((GD2-GW2)+WTZ*(GW2-GW1))
+      ENDIF
+      ENDIF
+      IF(REFFI.GT.RQWMAX.AND.RHRHI.GT.0.995) THEN   ! High RH region (6)
+      WTY=0.D0
+      WTX=XFDRY
+      WTZ=((GRH-GW2)-(GD2-GW2)*WTX)/((1.D0-WTX)*(GW1-GW2))
+      ENDIF
+
+      VD1=WTX*WTY
+      VD2=WTX*(1.D0-WTY)
+      VW1=WTZ*(1.D0-WTX)
+      VW2=(1.D0-WTZ)*(1.D0-WTX)
+      RD1=MIN(RD1,10.D0)
+      RD2=MIN(RD2,10.D0)
+      RW1=MIN(RW1,10.D0)
+      RW2=MIN(RW2,10.D0)
+
+C     Computed weight factors are for Lab reference wavelength of 633nm.
+C     Rescale spectral extinction to 550 nm & renormalize weight factors
+C     ------------------------------------------------------------------
+      CALL SPLINE(R550NR,Q880N1,880,RD1,Q550,1.D0,1.D0,1)
+      CALL SPLINE(R633NR,Q880M1,880,RD1,Q633,1.D0,1.D0,1)
+      WD1=VD1*(Q550/Q633)
+      CALL SPLINE(R550NR,Q880N1,880,RD2,Q550,1.D0,1.D0,1)
+      CALL SPLINE(R633NR,Q880M1,880,RD2,Q633,1.D0,1.D0,1)
+      WD2=VD2*(Q550/Q633)
+      CALL SPLINE(R550NR,Q880N0,880,RW1,Q550,1.D0,1.D0,1)
+      CALL SPLINE(R633NR,Q880M0,880,RW1,Q633,1.D0,1.D0,1)
+      WW1=VW1*(Q550/Q633)
+      CALL SPLINE(R550NR,Q880N0,880,RW2,Q550,1.D0,1.D0,1)
+      CALL SPLINE(R633NR,Q880M0,880,RW2,Q633,1.D0,1.D0,1)
+      WW2=VW2*(Q550/Q633)
+      SUMW=WD1+WD2+WW1+WW2
+      W1=WD1/SUMW
+      W2=WD2/SUMW
+      W3=WW1/SUMW
+      W4=WW2/SUMW
+
+C     ------------------------------------------------------------------
+C     Tabulate relative humidity dependent solar, thermal Mie scattering
+C     parameters SRHQEX,SRHQSC,SRHQCS, TRHQAB for each aerosol type NAER
+C     These are mass weighted averages of equivalent dry and wet aerosol
+C     parameters for sizes matching the relative humidity dependent Q(r)
+C     ------------------------------------------------------------------
+
+      N0=0                      !      Select Mie parameters for Sulfate
+      IF(NAER.EQ.2) N0=22       !      Select Mie parameters for SeaSalt
+      IF(NAER.EQ.3) N0=44       !      Select Mie parameters for Nitrate
+      IF(NAER.EQ.4) N0=88       !      Select Mie parameters for Organic
+      N1=N0+1
+      DO 122 K=1,6                            !   SW dry sizes RD1 & RD2
+      DO 121 N=1,22
+      NN=N0+N
+      QXAERN(N)=SRUQEX(K,NN)
+      QSAERN(N)=SRUQSC(K,NN)
+      QGAERN(N)=SRUQCB(K,NN)
+  121 CONTINUE
+      CALL SPLINE(REFU22,QXAERN,22,RD1,SR1QEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QSAERN,22,RD1,SR1QSC(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QGAERN,22,RD1,SR1QCB(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QXAERN,22,RD2,SR2QEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QSAERN,22,RD2,SR2QSC(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QGAERN,22,RD2,SR2QCB(K),1.D0,1.D0,1)
+  122 CONTINUE
+
+      DO 124 K=1,33                           !   LW dry sizes RD1 & RD2
+      DO 123 N=1,22
+      NN=N0+N
+      QXAERN(N)=TRUQEX(K,NN)
+      QSAERN(N)=TRUQSC(K,NN)
+      QGAERN(N)=TRUQCB(K,NN)
+  123 CONTINUE
+      CALL SPLINE(REFU22,QXAERN,22,RD1,TR1QEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QSAERN,22,RD1,TR1QSC(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QGAERN,22,RD1,TR1QCB(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QXAERN,22,RD2,TR2QEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QSAERN,22,RD2,TR2QSC(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QGAERN,22,RD2,TR2QCB(K),1.D0,1.D0,1)
+  124 CONTINUE
+      CALL SPLINE(REFU22,Q55U22(N1),22,RD1,Q55RH1,1.D0,1.D0,1)
+      CALL SPLINE(REFU22,Q55U22(N1),22,RD2,Q55RH2,1.D0,1.D0,1)
+
+      N0=66                    !   Select Mie parameters for pure water
+      N1=N0+1
+      DO 126 K=1,6                           !   SW wet sizes RW1 & RW2
+      DO 125 N=1,22
+      NN=N0+N
+      QXAERN(N)=SRUQEX(K,NN)
+      QSAERN(N)=SRUQSC(K,NN)
+      QGAERN(N)=SRUQCB(K,NN)
+  125 CONTINUE
+      CALL SPLINE(REFU22,QXAERN,22,RW1,SR3QEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QSAERN,22,RW1,SR3QSC(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QGAERN,22,RW1,SR3QCB(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QXAERN,22,RW2,SR4QEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QSAERN,22,RW2,SR4QSC(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QGAERN,22,RW2,SR4QCB(K),1.D0,1.D0,1)
+  126 CONTINUE
+
+      DO 128 K=1,33                          !   LW wet sizes RW1 & RW2
+      DO 127 N=1,22
+      NN=N0+N
+      QXAERN(N)=TRUQEX(K,NN)
+      QSAERN(N)=TRUQSC(K,NN)
+      QGAERN(N)=TRUQCB(K,NN)
+  127 CONTINUE
+      CALL SPLINE(REFU22,QXAERN,22,RW1,TR3QEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QSAERN,22,RW1,TR3QSC(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QGAERN,22,RW1,TR3QCB(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QXAERN,22,RW2,TR4QEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QSAERN,22,RW2,TR4QSC(K),1.D0,1.D0,1)
+      CALL SPLINE(REFU22,QGAERN,22,RW2,TR4QCB(K),1.D0,1.D0,1)
+  128 CONTINUE
+      CALL SPLINE(REFU22,Q55U22(N1),22,RW1,Q55RH3,1.D0,1.D0,1)
+      CALL SPLINE(REFU22,Q55U22(N1),22,RW2,Q55RH4,1.D0,1.D0,1)
+
+                        !       Weighted GCM SW Mie cattering parameters
+      DO 129 K=1,6
+      SRHQEX(K,I)=W1*SR1QEX(K)+W2*SR2QEX(K)+W3*SR3QEX(K)+W4*SR4QEX(K)
+      SRHQSC(K,I)=W1*SR1QSC(K)+W2*SR2QSC(K)+W3*SR3QSC(K)+W4*SR4QSC(K)
+      QSCQCB     =W1*SR1QCB(K)*SR1QSC(K)+W2*SR2QCB(K)*SR2QSC(K)
+     +           +W3*SR3QCB(K)*SR3QSC(K)+W4*SR4QCB(K)*SR4QSC(K)
+      SRHQCB(K,I)=QSCQCB/SRHQSC(K,I)
+  129 CONTINUE
+                        !       Weighted GCM LW Mie cattering parameters
+      DO 130 K=1,33
+      TRHQEX(K)=W1*TR1QEX(K)+W2*TR2QEX(K)+W3*TR3QEX(K)+W4*TR4QEX(K)
+      TRHQSC(K)=W1*TR1QSC(K)+W2*TR2QSC(K)+W3*TR3QSC(K)+W4*TR4QSC(K)
+      QSCQCB   =W1*TR1QCB(K)*TR1QSC(K)+W2*TR2QCB(K)*TR2QSC(K)
+     +         +W3*TR3QCB(K)*TR3QSC(K)+W4*TR4QCB(K)*TR4QSC(K)
+      TRHQCB(K)=QSCQCB/TRHQSC(K)
+      TRHQAB(K,I)=TRHQEX(K)-TRHQSC(K)
+  130 CONTINUE
+
+!dbug Diagnostic variables  (not required for SETREL output)
+!dbug QGFIT4=VD1*GD1*QD1+VD2*GD2*QD2+VW1*GW1*QW1+VW2*GW2*QW2
+!dbug Q63FIT=VD1*QD1+VD2*QD2+VW1*QW1+VW2*QW2
+!dbug G63FIT=QGFIT4/Q63FIT
+!dbug Q63RAT=QRH633(I)/QRH633(1)
+!dbug TAUF63=Q63RAT*RR0RHX(I)**2   !TAUF63 close to RHTAUF but not equal
+!dbug GRATIO=GRH633(I)/G63FIT      !633nm weighted G-fit  equal to unity
+!dbug Q55RH4=W1*Q55RH1+W2*Q55RH2+W3*Q55RH3+W4*Q55RH4   !  Weighted Q-fit
+!dbug QRATIO=Q55RH4/RHQ550(I) ! only close to unity due to coarse interp
+
+  140 CONTINUE
+
+      RETURN
+      END SUBROUTINE SETREL
