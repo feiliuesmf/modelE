@@ -9,6 +9,7 @@
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6,byshi
      *     ,byrhoi,deltx,byrt3,teeny
+      USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM, HALO_UPDATE, SOUTH
       USE MODEL_COM, only : im,jm,lm,fim,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,itime,jhour,sige,byim,itocean
@@ -103,12 +104,12 @@ C**** Interface to PBL
      *     ,Z1BY6L,QZ1,EVAPLIM,F2,FSRI(2),HTLIM
 
       REAL*8 MA1, MSI1
-      REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TGRND,TGRN2
       REAL*8, PARAMETER :: qmin=1.d-12
       REAL*8, PARAMETER :: S1BYG1 = BYRT3,
      *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
       REAL*8 QSAT,DQSATDT
-      REAL*8 AREGIJ(7,3,IM,JM)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: AREGIJ
 c
 #ifdef TRACERS_ON
       real*8 rhosrf0, totflux(ntm)
@@ -125,13 +126,24 @@ c
 #endif
 #endif
 
+      INTEGER :: J_0, J_1, J_0H, J_1H
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H, 
+     *               J_STRT=J_0,        J_STOP=J_1)
+
+      ALLOCATE ( TGRND(NSTYPE,IM,J_0H:J_1H) )
+      ALLOCATE ( TGRN2(NSTYPE,IM,J_0H:J_1H) )
+      ALLOCATE ( AREGIJ(7,3,IM,J_0H:J_1H) )
+
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
       IH=JHOUR+1
       IHM = IH+(JDATE-1)*24
 
 C**** ZERO OUT ENERGY AND EVAPORATION FOR GROUND AND INITIALIZE TGRND
-      DO J=1,JM
+      DO J=J_0,J_1
       DO I=1,IM
         TGRND(2,I,J)=GTEMP(1,2,I,J)
         TGRND(3,I,J)=GTEMP(1,3,I,J)
@@ -178,6 +190,18 @@ C**** Set up tracers for PBL calculation if required
       end do
       ntx = nx
 #endif
+
+      Call CHECKSUM(GRID, uosurf, __LINE__, __FILE__)
+      Call CHECKSUM(GRID, vosurf, __LINE__, __FILE__)
+      Call CHECKSUM(GRID, uisurf, __LINE__, __FILE__)
+      Call CHECKSUM(GRID, visurf, __LINE__, __FILE__)
+
+      Call HALO_UPDATE(GRID, uosurf, FROM=SOUTH)
+      Call HALO_UPDATE(GRID, vosurf, FROM=SOUTH)
+      Call HALO_UPDATE(GRID, uisurf, FROM=SOUTH)
+      Call HALO_UPDATE(GRID, visurf, FROM=SOUTH)
+
+
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
@@ -204,7 +228,7 @@ C****
 !$OMP*  )
 !$OMP*  SCHEDULE(DYNAMIC,2)
 C
-      DO J=1,JM
+      DO J=J_0,J_1
       HEMI=1.
       IF(J.LE.JM/2) HEMI=-1.
       POLE= (J.EQ.1 .or. J.EQ.JM)
@@ -915,7 +939,12 @@ C****
       END DO   ! end of J loop
 !$OMP  END PARALLEL DO
 
-      DO J=1,JM
+      Call CHECKSUM(GRID, uosurf, __LINE__, __FILE__)
+      Call CHECKSUM(GRID, vosurf, __LINE__, __FILE__)
+      Call CHECKSUM(GRID, uisurf, __LINE__, __FILE__)
+      Call CHECKSUM(GRID, visurf, __LINE__, __FILE__)
+
+      DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         JR=JREG(I,J)
         DO K=1,3
@@ -940,7 +969,7 @@ C**** UPDATE FIRST LAYER QUANTITIES
 C****
 !$OMP  PARALLEL DO PRIVATE (I,J,FTEVAP,FQEVAP,P1K)
 !$OMP*          SCHEDULE(DYNAMIC,2)
-      DO J=1,JM
+      DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         FTEVAP=0
         IF (DTH1(I,J)*T(I,J,1).lt.0) FTEVAP=-DTH1(I,J)/T(I,J,1)
@@ -1006,6 +1035,11 @@ C**** Save for tracer dry deposition conservation quantity:
      *       call diagtcb(dtr_dd(1,n),itcon_dd(n),n)
       end do
 #endif
+
+      DEALLOCATE ( TGRND )
+      DEALLOCATE ( TGRN2 )
+      DEALLOCATE ( AREGIJ )
+
       RETURN
 C****
       END SUBROUTINE SURFCE
