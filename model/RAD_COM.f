@@ -36,7 +36,7 @@ C**** exactly the same as the default values.
 !@var LM_REQ Extra number of radiative equilibrium layers
       INTEGER, PARAMETER :: LM_REQ=3
 !@var dimrad_sv dimension sum of input fields saved for radia_only runs
-      INTEGER, PARAMETER :: dimrad_sv=IM*JM*(7*LM+3*LM_REQ+20)
+      INTEGER, PARAMETER :: dimrad_sv=IM*JM*(7*LM+3*LM_REQ+23)
 !@var RQT Radiative equilibrium temperatures above model top
       REAL*8, DIMENSION(LM_REQ,IM,JM) :: RQT
 !@var Tchg Total temperature change in adjusted forcing runs

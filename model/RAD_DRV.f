@@ -594,11 +594,18 @@ C**** Calculate mean cosine of zenith angle for the current physics step
         iend = 1
         it = itime-1           ! make sure, at least 1 record is read
         do while (mod(itime-it,8760).ne.0)
-          read(iu_rad,end=10,err=10) it,T,RQT,TsAvg,QR,P,CLDinfo
-     *     ,rsi,msi,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm),wsoil,wsavg
-     *     ,snowi,snowli_com,snowe_com,snoage,fmp_com,flag_dsws,ltropo
-     *     ,fr_snow_rad_ij,mwl     ! ,flake (if time-dep)
-     *     ,srhra,trhra,iy  ! original output data (for adj.frc. only)
+C****   input data:          WARNINGS
+C****        1 - any changes here also go in later (look for 'iu_rad')
+C****        2 - keep "dimrad_sv" up-to-date:         dimrad_sv=IM*JM*{
+          read(iu_rad,end=10,err=10) it,T,RQT,TsAvg    ! LM+LM_REQ+1+
+     *     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
+     *     ,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm)   ! 4+
+     *     ,wsoil,wsavg,snowi,snowli_com,snowe_com     ! 1+1+1+1+1+
+     *     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
+     *     ,fr_snow_rad_ij,mwl ! (,flake if time-dep)  ! 2+1+       (1+)
+C****   output data: really needed only if kradia=2
+     *     ,srhra,trhra,iy                             ! 2(LM+LM_REQ+1)}
+C****   total: dimrad_sv= IM*JM*(7*LM + 3*LM_REQ + 23) => RAD_COM.f
           if (qcheck) write(6,*) 'reading RADfile at Itime',Itime,it,iy
         end do
         iend = 0
@@ -1096,11 +1103,14 @@ C**** Stop if temperatures were out of range
       IF(JCKERR.GT.0)  call stop_model('In Radia: RQT out of range',11)
 C     IF(KCKERR.GT.0)  call stop_model('In Radia: Q<0',11)
 C**** save all input data to disk if kradia<0
-      if (kradia.lt.0) write(iu_rad) itime,T,RQT,TsAvg,QR,P,CLDinfo
-     *  ,rsi,msi,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm),wsoil,wsavg
-     *  ,snowi,snowli_com,snowe_com,snoage,fmp_com,flag_dsws,ltropo
-     *  ,fr_snow_rad_ij,mwl        ! ,flake (if time-dep)
-     *  ,SRHRA,TRHRA,itime
+      if (kradia.lt.0) write(iu_rad) itime,T,RQT,TsAvg ! LM+LM_REQ+1+
+     *     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
+     *     ,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm)   ! 4+
+     *     ,wsoil,wsavg,snowi,snowli_com,snowe_com     ! 1+1+1+1+1+
+     *     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
+     *     ,fr_snow_rad_ij,mwl ! (,flake if time-dep)  ! 2+1+       (1+)
+C****   output data: really needed only if kradia=2
+     *     ,srhra,trhra,iy                             ! 2(LM+LM_REQ+1)
 C****
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C****
