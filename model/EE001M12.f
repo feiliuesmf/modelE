@@ -558,7 +558,7 @@ C**** 6*NGM+1 - 11*NGM   QK(IS,NGM)
 C**** 11*NGM+1           SL
 C
 C READ SOILS PARAMETERS
-      call getunit("SOIL",iu_SOIL,.TRUE.)
+      call getunit("SOIL",iu_SOIL,.true.,.true.)
       CALL DREAD (iu_SOIL,DZ_IJ,IM*JM*(11*NGM+1),DZ_IJ)
       CLOSE (iu_SOIL)
 C
@@ -582,7 +582,7 @@ C THE SH'S ARE THE SPECIFIC HEAT CAPACATIES
 c      SHA= sha_const
 c      SHV=1911.
 C THE ALAM'S ARE THE HEAT CONDUCTIVITIES
-      ALAMW=.573345d0 
+      ALAMW=.573345d0
       ALAMI=2.1762d0
       ALAMA=.025d0
       ALAMSN=0.088d0
@@ -686,7 +686,7 @@ C****
 C code transplanted from subroutine INPUT
 C**** Recompute GHDATA if necessary (new soils data)
       IF (redoGH) THEN
-        JDAY=1+MOD(ITime/NDAY,365)  
+        JDAY=1+MOD(ITime/NDAY,365)
         COSDAY=COS(TWOPI/EDPERY*JDAY)
         SINDAY=SIN(TWOPI/EDPERY*JDAY)
 

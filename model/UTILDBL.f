@@ -1,4 +1,4 @@
-!@sum  UTILDBL Model Independent Utilities 
+!@sum  UTILDBL Model Independent Utilities
 !@auth Original Development Team
 !@ver  1.0
 !@cont THBAR,QSAT,DQSATDT,TRIDAIG,TIMER,FILEMANAGER,READT,DREAD,MREAD
@@ -169,7 +169,7 @@ C**** platforms
 
       CONTAINS
 
-      SUBROUTINE GETUNIT(FILENM,IUNIT,QBIN)
+      SUBROUTINE GETUNIT(FILENM,IUNIT,QBIN,QOLD)
 !@sum  GETUNIT sets a unit number for a requested file and opens it
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -179,20 +179,28 @@ C**** platforms
       INTEGER, INTENT(OUT) :: IUNIT
 !@var FILENAME name of file to open
       CHARACTER*(*), INTENT(IN) :: FILENM
-!@var QBIN true if binary file is to be opened (UNFORMATTED)
-      LOGICAL, INTENT(IN) :: QBIN
+!@var QOLD,QBIN true if (old) binary file is to be opened (UNFORMATTED)
+      LOGICAL, INTENT(IN) :: QBIN,QOLD
 
       IF (IUNIT0+NUNIT.gt.IUNITMX)
      *     STOP "Maximum file number reached"
 C**** Set unit number
       IUNIT = IUNIT0 + NUNIT
 C**** Open file
-      IF (QBIN) THEN
-        OPEN(IUNIT,FILE=FILENM,FORM="UNFORMATTED",
+      IF (QOLD) THEN
+        IF (QBIN) THEN
+          OPEN(IUNIT,FILE=FILENM,FORM="UNFORMATTED",
      *       STATUS="OLD",ERR=10)
+        ELSE
+          OPEN(IUNIT,FILE=FILENM,FORM="FORMATTED",
+     *       STATUS="OLD",ERR=10)
+        END IF
       ELSE
-        OPEN(IUNIT,FILE=FILENM,FORM="FORMATTED",
-     *       STATUS="OLD",ERR=10)
+        IF (QBIN) THEN
+          OPEN(IUNIT,FILE=FILENM,FORM="UNFORMATTED",ERR=10)
+        ELSE
+          OPEN(IUNIT,FILE=FILENM,FORM="FORMATTED",ERR=10)
+        END IF
       END IF
 C**** set NAME for error tracking purposes
       NAME (IUNIT) = FILENM
@@ -345,3 +353,54 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
   920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON FILE ',NAME(IUNIT)
       STOP 'NO DATA TO READ'
       END
+
+      subroutine WRITEI (iunit,it,aout,len4)
+!@sum   WRITEI  writes array surrounded by IT and secures it
+!@auth  Original Development Team
+!@ver   1.0
+      use FILEMANAGER, only : NAME !@var NAME name of record being read
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: IUNIT        !@var  IUNIT  file unit number
+      INTEGER, INTENT(IN) :: IT         !@var  time_tag, 1st & last word
+      INTEGER, INTENT(IN) :: LEN4         !@var  LENGTH size of array
+      REAL*4,  INTENT(IN) :: AOUT(LEN4)   !@var  AOUT   real*4 array
+
+      write (iunit) it,aout,it
+      endfile iunit
+      backspace iunit
+      write (6,*) "Wrote to file ",TRIM(NAME(IUNIT)),", time=",it
+      return
+      END subroutine WRITEI
+
+      subroutine io_POS (iunit,it,len4,itdif)
+!@sum   io_POS  positions a seq. output file for the next write operat'n
+!@auth  Original Development Team
+!@ver   1.0
+      use FILEMANAGER, only : NAME !@var NAME name of record being read
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: IUNIT        !@var  IUNIT  file unit number
+      INTEGER, INTENT(IN) :: IT,ITdif   !@var  current time,time step
+      INTEGER, INTENT(IN) :: LEN4       !@var  LENGTH of array in words
+      INTEGER :: IT1,IT2   !@var  time_tags at start,end of each record
+      INTEGER :: N                      !@var  N      loop variable
+
+      read (iunit,end=10,err=50) it1,(it2,n=1,len4+1)
+      if(it.gt.it1) go to 30
+   10 write(6,*) "Starting a new file ",TRIM(NAME(IUNIT)),", time=",it
+      rewind iunit
+      return
+
+   20 read (iunit,end=40,err=50) it1,(it2,n=1,len4+1)
+   30 if (it2 .ne. it1) then
+        write(6,*) 'file ',TRIM(NAME(IUNIT)),' damaged: it/it1/it2=',
+     *    it,it1,it2
+        stop 1
+      end if
+      if (it .ge. it1+itdif) go to 20
+      write (6,*) "positioned ",TRIM(NAME(IUNIT)),", it1/itime=",it1,it
+      return
+   40 write (6,*) "file ",TRIM(NAME(IUNIT))," too short, it1/it=",it1,it
+      stop 1
+   50 write (6,*) "Read error on: ",TRIM(NAME(IUNIT)),", it1/it=",it1,it
+      stop 1
+      END subroutine io_POS

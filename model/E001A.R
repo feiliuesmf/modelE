@@ -51,5 +51,6 @@ R=00BG/B
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
    YEARE=1950,MONTHE=2,
    DT=450.,        ! from default: DTsrc=3600.,
-   ISTART=7,KCOPY=2,NSLP=-12,Kvflxo=-1,YEARE=1950,MONTHE=1,HOURE=1,
+   NSLP=12,Kvflxo=1,KCOPY=2,    ! saving SLP 12hrly,VFLXO daily,acc+rsf
+   ISTART=7,YEARE=1950,MONTHE=1,HOURE=1,
  &END

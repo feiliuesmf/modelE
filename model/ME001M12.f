@@ -8,9 +8,11 @@
       USE DYNAMICS, only : filter,calc_ampk
       USE OCEAN, only : tocean,oa
       USE SEAICE_COM, only : rsi,msi
+      USE FILEMANAGER, only : getunit
       IMPLICIT NONE
 
       INTEGER I,J,L,K,LLAB1,KSS6,MSTART,MNOW,MINC,MODD5D,months,ioerr
+      INTEGER iu_VFLXO,iu_SLP
       REAL*8 DTIME,PELSE,PDIAG,PSURF,PRAD,PCDNS,PDYN,TOTALT
 
       CHARACTER CDATE*7
@@ -28,6 +30,7 @@ C**** INITIALIZE TIME PARAMETERS
          MODD5K=1000
 
       CALL DAILY(0)
+      if (itime.eq.itimei) call reset_diag
       CALL daily_EARTH(0)
       CALL daily_LAKE(0)
       CALL daily_OCEAN(0)
@@ -58,6 +61,19 @@ C****
          STOP 13          ! no output files are affected
       END IF
 C****
+C**** Open and position output history files if needed
+C****
+      if (Kvflxo.ne.0) then
+        write(CDATE,'(a3,I4.4)') Amon0(1:3),Jyear0
+        call getunit('VFLXO'//CDATE,iu_VFLXO,.true.,.false.)
+        call IO_pos(iu_VFLXO,Itime,2*im*jm*12,Nday)
+      end if
+      if (Nslp.ne.0) then
+        write(CDATE,'(a3,I4.4)') Amon0(1:3),Jyear0
+        call getunit('SLP'//CDATE,iu_SLP,.true.,.false.)
+        call IO_pos(iu_SLP,Itime,im*jm,Nslp)
+      end if
+C****
 C**** MAIN LOOP
 C****
       DO WHILE (Itime.lt.ItimeE)
@@ -78,8 +94,19 @@ C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY DAY
       IF (MOD(Itime,NDAY).eq.0) THEN
 C**** CHECK FOR BEGINNING OF EACH MONTH => RESET DIAGNOSTICS
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
-        IF ( months.ge.NMONAV .and. JDAY.eq.1+JDendOfM(Jmon-1) )
-     *    call reset_DIAG
+        IF ( months.ge.NMONAV .and. JDAY.eq.1+JDendOfM(Jmon-1) ) then
+          call reset_DIAG
+          if (Kvflxo.ne.0) then
+            close (iu_VFLXO)
+            write(CDATE,'(a3,I4.4)') Amon0(1:3),Jyear0
+            open (iu_VFLXO,file='VFLXO'//CDATE,form='unformatted')
+          end if
+          if (Nslp.ne.0) then
+            close (iu_SLP)
+            write(CDATE,'(a3,I4.4)') Amon0(1:3),Jyear0
+            open (iu_SLP,file='SLP'//CDATE,form='unformatted')
+          end if
+        end if
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
         call daily_DIAG
       END IF
@@ -178,16 +205,11 @@ C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS
 C****
       IF (Kvflxo.NE.0.) THEN
          IF (MOD(Itime,NDAY).eq.0) THEN
-            WRITE (20) ITIME,OA
-            ENDFILE 20
-            BACKSPACE 20
-            IF (Kvflxo.LT.0) Kvflxo=-Kvflxo
-            WRITE (6,'(A,78X,A,I8)')
-     *           ' oht-info WRITTEN ON UNIT 20',' Time',ITIME
+            call WRITEI (iu_vflxo,Itime,OA,2*im*jm*12)
 C**** ZERO OUT INTEGRATED QUANTITIES
             OA(:,:,4:12)=0.
          ELSEIF (MOD(Itime,NDAY/2).eq.0) THEN
-            call uset_OCEAN
+            call vflx_OCEAN
          END IF
          CALL TIMER (MNOW,MINC,MELSE)
       END IF
@@ -195,12 +217,7 @@ C****
 C**** WRITE SEA LEVEL PRESSURES EVERY NSLP DTSRC-TIME STEPS
 C****
       IF (NSLP.NE.0) THEN
-         IF (MOD(ITIME, NSLP).eq.0) THEN
-            CALL DIAG10(0)
-            IF (NSLP.LT.0) NSLP=-NSLP
-            WRITE (6,'(A,78X,A,I8)')
-     *           ' Sea Level Pressure written to unit 16',' Time',ITIME
-         END IF
+         IF (MOD(ITIME, NSLP).eq.0) CALL get_SLP(iu_SLP)
       END IF
 C****
 C**** CALL DIAGNOSTIC ROUTINES
@@ -543,7 +560,7 @@ C****                     8 - from current model M-file             ****
 C****                                                               ****
 C***********************************************************************
 C**** get unit for atmospheric initial conditions if needed
-      IF (ISTART.gt.1) call getunit("AIC",iu_AIC,.TRUE.)
+      IF (ISTART.gt.1) call getunit("AIC",iu_AIC,.true.,.true.)
 C****
 C**** Set the derived quantities NDAY, Itime.., vert. layering, etc
 C****
@@ -552,8 +569,8 @@ C****
 C**** Correct the time step
       DTsrc = SDAY/NDAY   ! currently 1 hour
 C**** Get Start Time; at least YearI HAS to be specified in the rundeck
-      IhrI = (yearI-Iyear0)*JDperY +
-     *       (JDendofM(monthI-1) + dateI-1)*HR_IN_DAY + HourI
+      IhrI = ((yearI-Iyear0)*JDperY +
+     *        JDendofM(monthI-1) + dateI-1)*HR_IN_DAY + HourI
       ITimeI = IhrI*NDAY/24  !  internal clock counts DTsrc-steps
       IF (IhrI.lt.0) then
         WRITE(6,*) 'Please set a proper start time; current values:',
@@ -584,7 +601,7 @@ C**** Set flag to initialise pbl and snow variables
         iniPBL=.TRUE.
         iniSNOW = .TRUE.  ! extract snow data from first soil layer
 C**** GDATA(8) UNUSED,GDATA(9-11) SNOW AGE OVER OCN.ICE,L.ICE,EARTH
-        call getunit("GIC",iu_GIC,.TRUE.)
+        call getunit("GIC",iu_GIC,.true.,.true.)
         READ(iu_GIC,ERR=830) GDATA,GHDATA,((TOCEAN(1,I,J),I=1,IM),J=1
      *       ,JM),RSI
         CLOSE (iu_GIC)
@@ -692,7 +709,7 @@ C     iniPBL=.TRUE.  ; iniSNOW = .TRUE.
       CASE (3:6)
          go to 890   !  not available
 C****
-C**** I.C FROM RESTART FILE WITH COMPLETE DATA        ISTART=3,8
+C**** I.C FROM RESTART FILE WITH almost COMPLETE DATA    ISTART=7
 C****
       CASE (7)             ! converted model II' (B399) format (no snow)
         call io_rsf(iu_AIC,ItimeX,irsfic,ioerr)
@@ -701,7 +718,7 @@ C****
         if (ioerr.eq.1) goto 800
         iniSNOW = .TRUE.      ! extract snow data from first soil layer
 C****
-C****   Data from current type of RESTART FILE     ISTART=8
+C****   Data from current type of RESTART FILE           ISTART=8
 C****
       CASE (8)  ! no need to read SRHR,TRHR,FSF.TSFREZ,diag.arrays
         call io_rsf(iu_AIC,ItimeX,irsfic,ioerr)
@@ -758,7 +775,7 @@ C****   DATA FROM end-of-month RESTART FILE     ISTART=9
 C****                          used for REPEATS and delayed EXTENSIONS
   400 SELECT CASE (ISTART)
       CASE (9)    ! no need to read diag.arrays
-        call getunit("AIC",iu_AIC,.TRUE.)
+        call getunit("AIC",iu_AIC,.true.,.true.)
         call io_rsf(iu_AIC,ItimeX,irerun,ioerr)
         if (ioerr.eq.1) goto 800
          WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
@@ -812,31 +829,7 @@ C**** UPDATE C ARRAY FROM INPUTZ
       REWIND 8
       READ (8,NML=INPUTZ)
       REWIND 8
-
-      IF (NSLP.GT.0) THEN
-C****    REPOSITION THE SEA LEVEL PRESSURE HISTORY DATA SET (UNIT 16)
-         REWIND 16
-  510    READ (16,ERR=870,END=880) Itime1,((XX4,I=1,IM),J=1,JM),Itime2
-         IF (Itime1.NE.Itime2) THEN
-            write(6,*) 'slp history record destroyed; time tags',
-     *        Itime1,Itime2,' inconsistent. Try ISTART=99'
-            stop 'slp record bad'
-         end if
-         IF (Itime.LT.Itime1) REWIND 16     ! for some false starts
-         IF (Itime.GE.Itime1+NSLP) GO TO 510
-         WRITE (6,'(A,I8/)')
-     *      '0SLP HISTORY REPOSITIONED.  LAST RECORD:',Itime1
-      END IF
-      IF (Kvflxo.GT.0) THEN
-C****    REPOSITION THE OUTPUT TAPE ON UNIT 20 FOR RESTARTING
-         REWIND 20
-  520    READ (20,ERR=870,END=880) Itime1
-         IF (Itime.LT.Itime1) REWIND 20
-         IF (Itime.GE.Itime1+NDAY) GO TO 520
-         WRITE (6,'(A,I8/)')
-     *        '0VFLX-file for OHT repositioned, last record:',Itime1
-      END IF
-C**** For documentation purposes only find PLTOP (appears on printout)
+C**** For documentation purposes only, find PLTOP (appears on printout)
       DO L=1,LM
       PLTOP(L)=PTOP+PSFMPT*SIGE(L+1)
       END DO
@@ -851,8 +844,8 @@ C***********************************************************************
 C****
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
-      IF (yearE.ge.0) ItimeE = ((yearE-Iyear0)*JDperY +
-     *   (JDendofM(monthE-1)+dateE-1)*HR_IN_DAY + HourE)*NDAY/24
+      IF (yearE.ge.0) ItimeE = (( (yearE-Iyear0)*JDperY +
+     *    JDendofM(monthE-1)+dateE-1 )*HR_IN_DAY + HourE )*NDAY/24
 C**** Alternate (old) way of specifying end time
       if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/24
 C****
@@ -882,12 +875,12 @@ C**** CALCULATE DSIG AND DSIGO
       CALL CALC_AMPK(LM)
 
 C**** READ SPECIAL REGIONS FROM UNIT 29
-      call getunit("REG",iu_REG,.TRUE.)
+      call getunit("REG",iu_REG,.true.,.true.)
       READ(iu_REG) TITREG,JREG,NAMREG
       WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
 
 C***  READ IN LANDMASKS AND TOPOGRAPHIC DATA
-      call getunit("TOPO",iu_TOPO,.TRUE.)
+      call getunit("TOPO",iu_TOPO,.true.,.true.)
 
       CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
       CALL READT (iu_TOPO,0,FLAKE,IM*JM,FLAKE,1)   ! Lake fraction
@@ -912,7 +905,7 @@ C****  KOCEAN = 0 => RSI/MSI factor
       CALL init_OCEAN
 
 C**** READ IN VEGETATION DATA SET: VDATA
-      call getunit("VEG",iu_VEG,.TRUE.)
+      call getunit("VEG",iu_VEG,.true.,.true.)
       DO K=1,11
          CALL READT (iu_VEG,0,VDATA(1,1,K),IM*JM,VDATA(1,1,K),1)
       END DO

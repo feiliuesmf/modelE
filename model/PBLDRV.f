@@ -275,7 +275,7 @@ c -------------------------------------------------------------
      & ,  uinit=>u,vinit=>v,tinit=>t,qinit=>q,einit=>e
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
-      USE DYNAMICS, only : pmid,pk,pedn,pek  
+      USE DYNAMICS, only : pmid,pk,pedn,pek
       USE OCEAN, only : tocean
       USE SEAICE_COM, only : rsi
       USE FILEMANAGER
@@ -301,7 +301,7 @@ c -------------------------------------------------------------
       real*8 qsat
 
 C things to be done regardless of inipbl
-      call getunit("CDN",iu_CDN,.TRUE.)
+      call getunit("CDN",iu_CDN,.TRUE.,.true.)
       call readt (iu_CDN,0,roughl,im*jm,roughl,1)
       close (iu_CDN)
 

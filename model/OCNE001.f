@@ -2,7 +2,7 @@
 !@sum  OCEAN contains all the ocean subroutines
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean)
-!@cont OSTRUC,OCLIM,init_OCEAN,uset_OCEAN,daily_OCEAN,PREC_OC
+!@cont OSTRUC,OCLIM,init_OCEAN,vflx_OCEAN,daily_OCEAN,PREC_OC
       USE CONSTANT, only : lhm,rhow,rhoi,shw,shi
       USE E001M12_COM, only : im,jm,lm,gdata,focean,flake,fland,fearth
      *     ,flice,kocean,Itime,jmon,jdate,jday,JDendOfM,JDmidOfM
@@ -470,24 +470,24 @@ C**** Check for NaN/INF in ocean data
       INTEGER :: I,J
 
 C**** set up unit numbers for ocean climatologies
-      call getunit("OSST",iu_OSST,.TRUE.)
-      call getunit("SICE",iu_SICE,.TRUE.)
+      call getunit("OSST",iu_OSST,.true.,.true.)
+      call getunit("SICE",iu_SICE,.true.,.true.)
 
 C**** Read in constant factor relating RSI to MSI from sea ice clim.
       CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
 
       IF (KOCEAN.eq.1) THEN
 C**** Set up unit number of mixed layer depth climatogies
-      call getunit("OCNML",iu_OCNML,.TRUE.)
+      call getunit("OCNML",iu_OCNML,.true.,.true.)
 
 C**** DATA FOR QFLUX MIXED LAYER OCEAN RUNS
 C**** read in ocean heat transport coefficients
-      call getunit("OHT",iu_OHT,.TRUE.)
+      call getunit("OHT",iu_OHT,.true.,.true.)
       READ (iu_OHT) OTA,OTB,OTC
       CLOSE (iu_OHT)
 
 C**** read in ocean max mix layer depth
-      call getunit("MLMAX",iu_MLMAX,.TRUE.)
+      call getunit("MLMAX",iu_MLMAX,.true.,.true.)
       CALL READT (iu_MLMAX,0,Z12O,IM*JM,Z12O,1)
       CLOSE (iu_MLMAX)
 
@@ -588,8 +588,8 @@ C**** RESAVE PROGNOSTIC QUANTITIES
       RETURN
       END
 
-      SUBROUTINE uset_OCEAN
-!@sum  uset_OCEAN saves quantities for OHT calculations
+      SUBROUTINE vflx_OCEAN
+!@sum  vflx_OCEAN saves quantities for OHT calculations
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : RHOI
@@ -623,10 +623,10 @@ C****
       END DO
 
       RETURN
-      END
+      END SUBROUTINE vflx_OCEAN
 
       SUBROUTINE io_ocean(kunit,iaction,ioerr)
-!@sum  io_ocean reads and writes ocean arrays to file 
+!@sum  io_ocean reads and writes ocean arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
       USE E001M12_COM, only : ioread,iowrite

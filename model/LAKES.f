@@ -73,7 +73,7 @@ C****
 C**** Always initiallise River direction and Rate
 C****
 C**** Read in CDIREC: Number = octant direction, Letter = river mouth
-      call getunit("RVR",iu_RVR,.FALSE.)
+      call getunit("RVR",iu_RVR,.false.,.true.)
       READ  (iu_RVR,910) TITLEI
       WRITE (6,*) 'River Direction file read: ',TITLEI
       READ  (iu_RVR,910)

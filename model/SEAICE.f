@@ -41,7 +41,7 @@
 !@ver  1.0
       IMPLICIT NONE
 !@param SNOMAX maximum allowed snowdepth (1m equivalent) (kg/m^2)
-!@param dSNdRN 
+!@param dSNdRN
       REAL*8, PARAMETER :: SNOMAX=1d0*RHOS, dSNdRN=0.
 !@var TRRCP,EPRCP temperature and energy of precip (C),(J/m^2)
 !@var PRCP amount of precip (kg/m^2)
@@ -57,14 +57,14 @@
 !@var DIFS  upward ice mass into layer 2  (kg/m^2)
 !@var EDIFS energy of ice mass DIFS (J/m^2)
 !@var ERUN2 implied energy flux at base to keep fixed ice mass (J/m^2)
-      REAL*8, INTENT(OUT) :: DIFS, EDIFS, ERUN2 
+      REAL*8, INTENT(OUT) :: DIFS, EDIFS, ERUN2
 !@var RUN0 runoff from ice (kg/m^2)
-      REAL*8, INTENT(OUT) :: RUN0 
+      REAL*8, INTENT(OUT) :: RUN0
 
       REAL*8 :: HSI1, HSI2, HSI3, HSI4, BYMSI2,FMSI1, FMSI2, FHSI1,
-     *     FHSI2,FHSI3, CMPRS, SNWF, FHSI2U, MELT1, RAIN, FREZ1 
+     *     FHSI2,FHSI3, CMPRS, SNWF, FHSI2U, MELT1, RAIN, FREZ1
 
-C**** initialize fluxes 
+C**** initialize fluxes
       RUN0=0. ; FMSI2=0. ; FHSI1=0 ; FHSI2=0. ; FHSI3=0. ; FHSI2U=0.
 C**** reciprocal of ice thickness for efficiency
       BYMSI2=1./MSI2
@@ -180,19 +180,19 @@ C**** components so that the code is valid for fixed sea ice runs also
       SNOW = MSI1-ACE1I         ! snow mass
       IF (SNOW .LT. 0.) SNOW=0. ! to catch roundoff errors
       HSI1 = HSI1- FHSI1
-      HSI2 = HSI2+(FHSI1-FHSI2) 
+      HSI2 = HSI2+(FHSI1-FHSI2)
 
       IF (.not. QFIXR) THEN     ! ADVECT ICE for predicted ice
-        MSI2 = MSI2+FMSI2  ! second layer sea ice mass (kg/m^2)
+        MSI2 = MSI2+FMSI2       ! 2nd layer sea ice mass (kg/m^2)
         HSI2 = HSI2- FHSI2U     ! flux associated with upward advection
         HSI3 = HSI3+(FHSI2U+FHSI2-FHSI3)
         HSI4 = HSI4+ FHSI3
-        TG3 = (HSI3/(XSI3*MSI2)+LHM)*BYSHI ! third layer ice temperature
-        TG4 = (HSI4/(XSI4*MSI2)+LHM)*BYSHI ! fourth layer ice temperature
+        TG3 = (HSI3/(XSI3*MSI2)+LHM)*BYSHI ! 3rd layer ice temperature
+        TG4 = (HSI4/(XSI4*MSI2)+LHM)*BYSHI ! 4th layer ice temperature
       END IF
-      TG1 = (HSI1/(XSI1*MSI1)+LHM)*BYSHI ! first layer ice temperature
-      TG2 = (HSI2/(XSI2*MSI1)+LHM)*BYSHI ! second layer ice temperature
- 
+      TG1 = (HSI1/(XSI1*MSI1)+LHM)*BYSHI ! 1st layer ice temperature
+      TG2 = (HSI2/(XSI2*MSI1)+LHM)*BYSHI ! 2nd layer ice temperature
+
       RETURN
       END SUBROUTINE PREC_SI
 
@@ -630,7 +630,7 @@ C**** CONVERT SEA ICE ENTHALPY MINUS LATENT HEAT INTO TEMPERATURE
       END MODULE SEAICE
 
       MODULE SEAICE_COM
-!@sum  SEAICE_COM contains the model arrays for seaice 
+!@sum  SEAICE_COM contains the model arrays for seaice
 !@auth Gavin Schmidt
 !@ver  1.0
       USE E001M12_COM, only : im,jm
@@ -651,7 +651,7 @@ c      REAL*8, DIMENSION(LMI,IM,JM) :: HSI
       END MODULE SEAICE_COM
 
       SUBROUTINE io_seaice(kunit,iaction,ioerr)
-!@sum  io_seaice reads and writes seaice variables to file 
+!@sum  io_seaice reads and writes seaice variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
       USE E001M12_COM, only : ioread,iowrite

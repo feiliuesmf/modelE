@@ -228,7 +228,7 @@ C****
         BJ(J,J_EPRCP)=BJ(J,J_EPRCP)+ENRGP*PEARTH
         AIJ(I,J,IJ_F0E)=AIJ(I,J,IJ_F0E)+ENRGP
       END IF
-C**** 
+C****
       END DO
       END DO
       RETURN
@@ -663,7 +663,7 @@ C**** New options (currently not used)
 C**** set up unit numbers for 14 radiation input files
       DO IU=1,14
          IF (IU.EQ.12.OR.IU.EQ.13) CYCLE    ! not used in GCM
-         call getunit(RUNSTR(IU),NRFUN(IU),QBIN(IU))
+         call getunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
       END DO
       CALL RCOMP1 (MADVEL,NRFUN) ! MAD 1-6: O3 TrAer Dust VAer Clds SoUV
       CO2REF=FULGAS(2)
