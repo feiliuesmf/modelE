@@ -203,23 +203,29 @@ C**** No need to save current value
       USE CONSTANT, only: teeny, twopi
       USE MODEL_COM, only:
      &     jm,fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
-     &     jyear,jyear0,nday,jeq,itime,itime0,xlabel
+     &     jyear,jyear0,nday,jeq,itime,itime0,xlabel,lrunid
       USE GEOM, only:
      &     areag,dlon,dxyp,lat_dg
       USE TRACER_COM, only: ntm ,itime_tr0
       USE TRACER_DIAG_COM, only:
-     &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt
-      USE DAGCOM, only: inc=>incj,xwon,kdiag
+     &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt,
+     &     lname_tconsrv,name_tconsrv,units_tconsrv
+      USE DAGCOM, only: inc=>incj,xwon,kdiag,qdiag,acc_period
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM) :: MAREA
       REAL*8, DIMENSION(KTCON) :: FGLOB
       REAL*8, DIMENSION(2,KTCON) :: FHEM
-      REAL*8, DIMENSION(JM+3,KTCON,NTM) :: CNSLAT
+      REAL*8, DIMENSION(JM+3,KTCON) :: CNSLAT
       CHARACTER*4, PARAMETER :: HEMIS(2) = (/' SH ',' NH '/),
      *     DASH = ('----')
       INTEGER :: j,jhemi,jnh,jp1,jpm,jsh,jx,n,k,KTCON_max
       REAL*8 :: aglob,ahem,feq,fnh,fsh,days
+C**** Arrays needed for full output and pdE
+      CHARACTER*38, DIMENSION(KTCON) :: TITLEO
+      CHARACTER*50, DIMENSION(KTCON) :: LNAMEO
+      CHARACTER*30, DIMENSION(KTCON) :: SNAMEO
+      CHARACTER*50, DIMENSION(KTCON) :: UNITSO
 
       if (kdiag(8).ge.2) return
 C**** CALCULATE SCALING FACTORS
@@ -230,6 +236,10 @@ C**** Calculate areas
       END DO
       AGLOB=1.D-10*AREAG*XWON
       AHEM=1.D-10*(.5*AREAG)*XWON
+C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+      IF (QDIAG) 
+     *     call open_jc(trim(acc_period)//'.jc'//XLABEL(1:LRUNID),
+     *     jm,lat_dg)
 C****
 C**** Outer loop over tracers
 C****
@@ -264,15 +274,19 @@ C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
           FGLOB (K)=FGLOB (K)+(FSH+FNH)
           FHEM(1,K)=FHEM(1,K)+FSH
           FHEM(2,K)=FHEM(2,K)+FNH
-          CNSLAT(JSH,K,N)=FSH/(FIM*DXYP(JSH))
-          CNSLAT(JNH,K,N)=FNH/(FIM*DXYP(JNH))
+          CNSLAT(JSH,K)=FSH/(FIM*DXYP(JSH))
+          CNSLAT(JNH,K)=FNH/(FIM*DXYP(JNH))
         END DO
         FGLOB (K)=FGLOB (K)/AREAG
         FHEM(1,K)=FHEM(1,K)/(.5*AREAG)
         FHEM(2,K)=FHEM(2,K)/(.5*AREAG)
-        CNSLAT(JM+1,K,N)=FHEM(1,K)
-        CNSLAT(JM+2,K,N)=FHEM(2,K)
-        CNSLAT(JM+3,K,N)=FGLOB (K)
+        CNSLAT(JM+1,K)=FHEM(1,K)
+        CNSLAT(JM+2,K)=FHEM(2,K)
+        CNSLAT(JM+3,K)=FGLOB (K)
+          titleo(k)=title_Tcon(k,n)
+          lnameo(k)=lname_Tconsrv(k,n)
+          snameo(k)=name_Tconsrv(k,n)
+          unitso(k)=units_Tconsrv(k,n)
       END DO
 C**** LOOP OVER HEMISPHERES
       DAYS=(Itime-Itime0)/FLOAT(nday)
@@ -289,11 +303,14 @@ C**** PRODUCE TABLES
         WRITE (6,903) (DASH,J=JP1,JPM,INC)
         DO K=1,KTCON_max
         WRITE (6,905) TITLE_TCON(K,N),FGLOB(K),FHEM(JHEMI,K),
-     *         (NINT(CNSLAT(JX,K,N)),JX=JPM,JP1,-INC)
+     *         (NINT(CNSLAT(JX,K)),JX=JPM,JP1,-INC)
         END DO
         WRITE (6,906) AGLOB,AHEM,(MAREA(JX),JX=JPM,JP1,-INC)
       END DO
+      IF (QDIAG) CALL POUT_JC(TITLEO,SNAMEO,LNAMEO,UNITSO,cnslat,
+     *   ktcon_max)
   900 CONTINUE
+      if(qdiag) call close_JC
       RETURN
 C****
   902 FORMAT ('0Conservation Quantities       From:',

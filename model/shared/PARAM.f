@@ -1009,27 +1009,21 @@
 !**** this should be put somewhere else, but since it is used only ****
 !**** in this module I put it here for a while ...                 ****
 
-      subroutine swap_bytes_4( value, dim )
-      integer dim
-      integer(4) value(dim)
-      integer(4) a
-      character(1) c(4), c1, c2
-      equivalence (a,c)
-      integer n
+      subroutine swap_bytes_4( c, ndim )
+      integer n,ndim
+      character*1 c(4,ndim),temp
 !@sum  does conversion big<->little - endian for 4 byte data
 !@auth I. Aleinov
 !@ver 1.0
-      do n=1,dim
-        a = value(n)
-        c1 = c(1)
-        c2 = c(2)
-        c(1) = c(4)
-        c(2) = c(3)
-        c(3) = c2
-        c(4) = c1
+        do n=1,ndim
+          temp   = c(1,n)
+          c(1,n) = c(4,n)
+          c(4,n) = temp
+          temp   = c(2,n)
+          c(2,n) = c(3,n)
+          c(3,n) = temp
         ! the next line is needed for stupid optimizers - do not delete
-        if ( n > 16384 ) print *, a, c
-        value(n) = a
-      enddo
+          if ( n > 16384 ) print *, n,c(:,n)
+        end do
       end subroutine swap_bytes_4
 

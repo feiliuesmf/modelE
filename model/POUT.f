@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 !@sum  POUT default output routines for standard GISS formats
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -16,6 +18,10 @@ C**** have to wait.
       implicit none
 !@var iu_ij,iu_jl,iu_il,iu_j,iu_diurn,iu_hdiurn !units for selected diag. output
       integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_diurn,iu_hdiurn,iu_isccp
+#ifdef TRACERS_ON
+!@var iu_jc unit for tracer conservation diagnostics
+      integer iu_jc
+#endif
 !@var im,jm,lm,lm_req local dimensions set in open_* routines
       integer :: im,jm,lm,lm_req,ndiuvar
 !@var JMMAX maximum conceivable JM
@@ -605,3 +611,83 @@ C**** Try simply removing spaces for compactness
 
       return
       end subroutine POUT_hdiurn
+
+#ifdef TRACERS_ON
+      subroutine close_jc
+!@sum  CLOSE_jc closes the conservation quantity ascii output file
+!@auth J. Lerner
+!@ver  1.0
+      USE GISSOUT
+      USE FILEMANAGER
+      IMPLICIT NONE
+      call closeunit(iu_jc)
+      return
+      end subroutine close_jc
+
+      subroutine open_jc(filename,jm_gcm,lat_dg_gcm)
+!@sum  OPEN_jc opens the conservation quantity ascii output file
+!@auth J. Lerner
+!@ver  1.0
+      USE GISSOUT
+      USE FILEMANAGER
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+!@var JM_GCM dimensions for j output
+      INTEGER, INTENT(IN) :: jm_gcm
+!@var lat_dg_gcm latitude of mid points of grid boxs (deg)
+      REAL*8, INTENT(IN), DIMENSION(JM_GCM,2) :: lat_dg_gcm
+
+      call openunit(filename,iu_jc,.false.,.false.)
+
+C**** set dimensions
+      jm=jm_gcm
+      lat_dg(1:JM,:)=lat_dg_gcm(1:JM,:)
+
+      return
+      end subroutine open_jc
+
+      subroutine POUT_jc(TITLE,SNAME,LNAME,UNITS,cnslat,KMAX)
+!@sum  POUT_JC output zonal conservation ascii file (aplot format)
+!@+    This was written for tracer, but probably works for all
+!@auth J. Lerner
+!@ver  1.0
+      USE GISSOUT
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: KMAX
+      CHARACTER*38, DIMENSION(kmax),INTENT(INOUT) :: TITLE
+!@var LNAME,SNAME,UNITS dummy strings
+      CHARACTER*50, DIMENSION(kmax),INTENT(IN) :: LNAME
+      CHARACTER*30, DIMENSION(kmax),INTENT(IN) :: SNAME
+      CHARACTER*50, DIMENSION(kmax),INTENT(IN) :: UNITS
+      REAL*8, DIMENSION(JM+3,kmax), INTENT(IN) :: cnslat
+      INTEGER K,N,J
+
+C**** Convert spaces in TITLE to underscore
+      DO K=1,KMAX
+        title(K)(1:1)=' '
+        do n=2,len_trim(title(K))    ! skip control character
+          if (title(k)(n:n).eq.' ') title(k)(n:n)='_'
+        end do
+      END DO
+
+      WRITE(iu_jc,*) "Zonal conservation for tracers "
+      WRITE(iu_jc,*) "Latitude"
+      WRITE(iu_jc,*) "Zonal Average"
+      WRITE(iu_jc,'(A,100A)') "Lat",(TRIM(TITLE(K)(1:38)),K=1,KMAX)
+
+      DO J=1,JM
+        WRITE(iu_jc,'(I4,50(1X,1pE11.4))') NINT(LAT_DG(J,1)),
+     *       (cnslat(J,K),K=1,KMAX)
+      END DO
+      WRITE(iu_jc,*)
+C**** output hemispheric and global means
+      WRITE(iu_jc,'(A4,50(1X,1pE11.4))')"NH",(cnslat(JM+2,K),K=1,KMAX)
+      WRITE(iu_jc,'(A4,50(1X,1pE11.4))')"SH",(cnslat(JM+1,K),K=1,KMAX)
+      WRITE(iu_jc,'(A4,50(1X,1pE11.4))')"GLOB",(cnslat(JM+3,K),K=1,KMAX)
+      WRITE(iu_jc,*)
+
+      return
+      end subroutine pout_jc
+#endif
+
