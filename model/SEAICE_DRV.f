@@ -144,7 +144,7 @@ C****
 C**** Coriolis parameter (on tracer grid)
         coriol = ABS(2.*OMEGA*SINP(J))
         DO I=1,IMAXJ(J)
-          IF (RSI(I,J).gt.0) THEN
+          IF ((FOCEAN(I,J)+FLAKE(I,J))*RSI(I,J).gt.0) THEN
 C**** Set mixed layer conditions
             Tm = GTEMP(1,1,I,J)
 #ifdef TRACERS_WATER
@@ -190,15 +190,15 @@ c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
 C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
               IF (MWL(I,J).lt.0.4d0*RHOW*FLAKE(I,J)*DXYP(J)) THEN
                 FLUXLIM=-GML(I,J)/(DTSRC*FLAKE(I,J)*DXYP(J))
-                IF (hflux.lt.FLUXLIM) THEN
-                  hflux = FLUXLIM
+                IF (hflux.lt.FLUXLIM) hflux = FLUXLIM
+                if (mflux.lt.0) then
                   mflux = 0.
 #ifdef TRACERS_WATER
                   trflux= 0.
 #endif
-                  if (qcheck) print*,"Flux limiting",I,J,MWL(I,J)/
-     *                 (RHOW*FLAKE(I,J)*DXYP(J)),FLUXLIM*DTSRC
-                END IF
+                end if
+                if (qcheck) print*,"Flux limiting",I,J,MWL(I,J)/
+     *               (RHOW*FLAKE(I,J)*DXYP(J)),FLUXLIM*DTSRC
               END IF
             END IF
             FMSI_IO(I,J) = mflux*dtsrc   ! positive down

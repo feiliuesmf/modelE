@@ -164,8 +164,8 @@ C**** CALL DIAGNOSTICS, ADD CORIOLIS FORCE INCREMENTS TO UT AND VT
       DO I=1,IM
         UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)
         VT(I,J,L)=VT(I,J,L)+DVT(I,J,L)
-        DUT(I,J,L)=0.  ! necessary?
-        DVT(I,J,L)=0.  ! necessary?
+        DUT(I,J,L)=0.
+        DVT(I,J,L)=0.
       END DO
       END DO
       END DO
