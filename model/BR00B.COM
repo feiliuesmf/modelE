@@ -10,7 +10,51 @@ C     BLOCK DATA RADPAR that initialize PLB and HLB
       REAL*4 ATAU98,SIZE98,HTF498,O3CLIM
       CHARACTER*80 ATITLE,VTITLE,DTITLE,TITLE
 C
-      include 'BR00B.COM_interface_rad'
+      COMMON/RADCOM_glob/V6ALB(11,4,7)
+     *             ,TAUWC0,TAUIC0,EPSCON,RO3COL,FULGAS(13)
+     A             ,FRAYLE,FALGAE,FCLDTR,FCLDSR,PTLISO,TLGRAD,FGOLDH(13)
+     B             ,WETTRA,WETSRA,FSXAER(5),FTXAER(5),FZSRA(6),FEMTRA(6)
+     C             ,KWVCON,KEEPAL,KEEPRH,KEEP10,KCNORM,KCLDEP,ICE012,NV
+     D             ,MADVES,MRELAY,MOZONE,KO3LON,NO3COL,NORMS0,KSOLAR
+     E             ,KTREND,NTRACE,ITR(8),NL,NLP,MLAT46,MLON72,LASTVC
+C     INPUT DATA  not (i,j) dependent
+     X             ,S00WM2,RATLS0,S0,XXJDAY,JYEAR,JDAY,ISPARE(98)
+C     INPUT DATA  (i,j) dependent
+            COMMON/RADCOM_local/JLAT,ILON
+     F             ,PLB(LX),HLB(LX),TLB(LX),TLT(LX),TLM(LX)
+     G             ,ULGAS(LX,12),SHL(LX),RHL(LX),TRACER(LX,8)
+     H             ,TAUWC(LX),TAUIC(LX),SIZEWC(LX),SIZEIC(LX),CLDEPS(LX)
+     I          ,POCEAN,PEARTH,POICE,PLICE,AGESN(3),SNOWE,SNOWOI,SNOWLI
+     J             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
+     L             ,COSZ,PVT(11),BXA(153),SRBXAL(15,2)   ,DMOICE,DMLICE
+     X             ,hsn,hin,hmp,fmp,flags, LS1_loc
+!@var LS1_loc local tropopause level
+C**** Additional info passed for new prescription of sea ice albedo
+!@var hsn depth of snow (m)
+!@var hin depth of ice (m)
+!@var hmp depth of melt pond (m)
+!@var fmp fraction of melt pond area
+      REAL*8 :: hsn,hin,hmp,fmp
+!@var flags true is snow is wet
+      LOGICAL*4 :: flags
+C$OMP  THREADPRIVATE(/RADCOM_local/)
+
+C     INPUT data ! some local, some not: repeat this section in driver
+      REAL*8 U0GAS,FSPARE
+      COMMON/RADCOM_hybrid/U0GAS(LX,12),FSPARE(998)
+C$OMP  THREADPRIVATE(/RADCOM_hybrid/)
+C     end of section to be repeated in driver (needed for 'copyin')
+
+C     OUTPUT DATA
+      COMMON/RADCOM_out/
+     M              TRDFLB(LX),TRUFLB(LX),TRNFLB(LX),TRFCRL(LX)
+     N             ,SRDFLB(LX),SRUFLB(LX),SRNFLB(LX),SRFHRL(LX),SRSLHR
+     O             ,SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,SRXATM(4)
+     P             ,SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,FSRNFG(4)
+     Q             ,SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR,FTRUFG(4)
+     R             ,TRDFGW,TRUFGW,TRUFTW,BTEMPW,DTRUFG(4)
+     S             ,TRSLTS,TRSLTG,TRSLWV,TRSLBS,TTRUFG,LBOTCL,LTOPCL
+C$OMP  THREADPRIVATE(/RADCOM_out/)
 C
 C                                BLOCKD INITIALIZED DEFAULT DATA
 C not initiallised
@@ -38,7 +82,27 @@ C block data init
      L     ,DLAT46(46),DLON72(72),AOCEAN(33)
 
 C not initialised
-      include 'BR00B.COM_wrk'
+      COMMON/WORKER1/PL(LX),DPL(LX)                       ! all local
+     A             ,SRAEXT(LX,6),SRASCT(LX,6),SRAGCB(LX,6)
+     B             ,SRBEXT(LX,6),SRBSCT(LX,6),SRBGCB(LX,6)
+     C             ,SRDEXT(LX,6),SRDSCT(LX,6),SRDGCB(LX,6)
+     D             ,SRVEXT(LX,6),SRVSCT(LX,6),SRVGCB(LX,6)
+     E             ,DBLEXT(LX,6),DBLSCT(LX,6),DBLGCB(LX,6),DBLPI0(LX,6)
+     F             ,SRCEXT(LX,6),SRCSCT(LX,6),SRCGCB(LX,6),SRCPI0(LX,6)
+     G             ,TRCALK(LX,33),TRAALK(LX,33),TRBALK(LX,33)
+     H             ,TRDALK(LX,33),TRVALK(LX,33),TRGXLK(LX,33),TRCTCA(33)
+     I             ,TRTAUK(LX,33),DFLB(LX,33),UFLB(LX,33),WFLB(LX,33)
+     J             ,TRGALB(LX),BGFEMT(LX),BGFEMD(LX),WTLB(LX),WTLT(LX)
+     K             ,ENA(LX),ENB(LX),ENC(LX),TRA(LX),TRB(LX),TRC(LX)
+     L             ,DFSL(33),UFSL(33),WFSL(33),ITLB(LX),ITLT(LX)
+     M             ,AERX1(LX),AERS1(LX),AERG1(LX)
+     N             ,AERX2(LX),AERS2(LX),AERG2(LX),UGAS0(LX),UGASR(LX)
+     O             ,RNB(LX),RNX(LX),TNB(LX),TNX(LX),XNB(LX),XNX(LX)
+     P             ,SRB(LX),SRX(LX),VRU(LX),VRD(LX),FAC(LX)
+     Q             ,UXGAS(LX,9),TAUN(33*LX),BVSURF,BNSURF,XVSURF,XNSURF
+!obsoR             ,GHGREF(5,3),GHGNOW(5,3),GHGDT0(5,3),GHGDAT(5,3)
+     S             ,DNA(LX),DNB(LX),DNC(LX),ALBTCK(3,33),CLPI0(33)
+C$OMP  THREADPRIVATE(/WORKER1/)
 C block data init
       COMMON/WORKER2/TAUSL(33),FTAUSL(33)
 
@@ -255,7 +319,7 @@ C$OMP  THREADPRIVATE(/LCLCOM/)
 
       DIMENSION XREF(nghg+1) ! ,YREF(5),ZREF(5)
       DIMENSION XNOW(nghg+1) ! ,YNOW(5),ZNOW(5)
-      common/ghgcom/ghgyr1,ghgyr2,ghgam,xref,xnow  
+      common/ghgcom/ghgyr1,ghgyr2,ghgam,xref,xnow
 !wrtt DIMENSION XDT0(5),YDT0(5),ZDT0(5) Xdt0/Xdat/Xrat needed for
 !wrtt DIMENSION XDAT(5),XRAT(5),XFOR(5)   WRITET only; rest obsolete
 !obso EQUIVALENCE (GHGREF(1,1),XREF(1)),(GHGREF(1,2),YREF(1))

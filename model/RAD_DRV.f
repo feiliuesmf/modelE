@@ -287,9 +287,10 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,llow,lmid,lhi,coe,sinj,cosj,H2ObyCH4,dH2O
+     *     ,ple0,ql0  ! saved to avoid OMP-copyin of input arrays
       USE RE001, only : setnew,rcomp1,writer             ! routines
      &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLE=>PLB, PTOPTR
-     *     ,KCLDEM,KVEGA6,MOZONE
+     *     ,KCLDEM,KVEGA6,MOZONE, QL=>SHL
       USE FILEMANAGER
       USE PARAM
       IMPLICIT NONE
@@ -362,6 +363,7 @@ C****
       PTOPTR=PTOP ! top of sigma-coord.system
       DO LR=LM+1,LMR
         COE(LR)=DTsrc*NRAD*COEX/(PLE(LR)-PLE(LR+1))
+        ple0(LR-LM) = ple(LR+1)
       END DO
       PTLISO=15.
       KTREND=1   !  GHgas trends are determined by input file
@@ -382,8 +384,7 @@ CnoAC CALL SETNEW(7, 0, 0   , 0,0,0.D0) ! cloud heterogeneity - KCLDEP
 CnoAC CALL SETNEW(8, 0, 0   , 0,0,0.D0) !  surface albedo
 C**** New options (currently not used)
       KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme
-      KVEGA6=0  ! 0:2-band 1:6-band veg.albedo (not usable)
-      MADVEL=123456         ! suppress reading i-th time series by i->0
+      KVEGA6=0  ! 0:2-band 1:6-band veg.albedo (currently not usable)
       if (ktrend.ne.0) then
 C****   Read in time history of well-mixed greenhouse gases
         call openunit('GHG',iu,.false.,.true.)
@@ -401,11 +402,19 @@ C**** set up unit numbers for 14 more radiation input files
         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE ! not used in GCM
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
       END DO
+
+      MADVEL=123456         ! suppress reading i-th time series by i->0
       CALL RCOMP1 (MADVEL,NRFUN) ! MAD 1-6: O3 TrAer Dust VAer Clds SoUV
+
       DO IU=1,14
         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE ! not used in GCM
         call closeunit(NRFUN(IU))
       END DO
+C**** Save initial (currently permanent and global) Q in rad.layers
+      do LR=1,LM_REQ
+        QL0(LR) = QL(LM+LR)
+      end do
+      write(6,*) 'spec.hum in rad.equ.layers:',ql0
 C**** Optionally scale selected greenhouse gases
       IF(ghg_yr.gt.0) FULGAS(2)=FULGAS(2)*CO2X
       if(ghg_yr.gt.0) FULGAS(7)=FULGAS(7)*CH4X
@@ -438,11 +447,26 @@ C****
       USE MODEL_COM
       USE GEOM
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
-     *     ,llow,lmid,lhi,coe,dh2o,H2ObyCH4,ghg_yr
+     *     ,llow,lmid,lhi,coe,dh2o,H2ObyCH4,ghg_yr,ple0,ql0
       USE RE001
      &  , only : writer,rcompx,rcompt ! routines
      &          ,ghgam,ghgyr2,ghgyr1  ! dH2O by CH4
-     &           ,lx  ! for threadprivate common blocks
+     &          ,lx  ! for threadprivate copyin common block
+C     INPUT DATA         ! not (i,j) dependent
+     X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY
+C     INPUT DATA  (i,j) dependent
+     &             ,JLAT,ILON, PLE=>PLB ,TL=>TLM ,QL=>SHL
+     &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC
+     &             ,POCEAN,PEARTH,POICE,PLICE,COSZ,PVT
+     &             ,TGO,TGE,TGOI,TGLI,TS=>TSL,WS=>WMAG,WEARTH
+     &             ,AGESN,SNOWE,SNOWOI,SNOWLI,DMOICE,DMLICE
+     &             ,hsn,hin,hmp,fmp,flags,LS1_loc
+C     OUTPUT DATA
+     &          ,TRDFLB ,TRNFLB ,TRFCRL
+     &          ,SRDFLB ,SRNFLB ,SRFHRL
+     &          ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
+     &          ,SRRVIS ,SRAVIS ,SRRNIR ,SRANIR
+     &          ,BTEMPW
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss
@@ -467,22 +491,10 @@ C****
       USE FLUXES, only : gtemp
       IMPLICIT NONE
 C
-      include 'BR00B.COM_interface_mod'
-      include 'BR00B.COM_wrk'
-C     INPUT DATA
-c    &             ,PLE=>PLB ,TL=>TLM ,QL=>SHL
-c    &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC
-c    &             ,POCEAN,PEARTH,POICE,PLICE,AGESN,SNOWE,SNOWOI,SNOWLI
-c    &             ,TGO,TGE,TGOI,TGLI,TS=>TSL,WS=>WMAG,WEARTH
-c    &             ,S00WM2,RATLS0,S0,COSZ,PVT
-c    &             ,JYEARR=>JYEAR,JDAYR=>JDAY,JLAT,ILON
-c    &             ,hsn,hin,hmp,fmp,flags,LS1_loc
-C     OUTPUT DATA
-c    &             ,TRDFLB ,TRNFLB ,TRFCRL
-c    &             ,SRDFLB ,SRNFLB ,SRFHRL
-c    &             ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
-c    &             ,SRRVIS ,SRAVIS ,SRRNIR ,SRANIR
-c    &             ,BTEMPW
+C     INPUT DATA   partly (i,j) dependent, partly global
+      REAL*8 U0GAS,FSPARE
+      COMMON/RADCOM_hybrid/U0GAS(LX,12),FSPARE(998)
+C$OMP  THREADPRIVATE(/RADCOM_hybrid/)
 
       REAL*8, DIMENSION(IM,JM) :: COSZ2,COSZA,TRINCG,BTMPW
       REAL*8, DIMENSION(4,IM,JM) :: SNFS,TNFS
@@ -592,7 +604,7 @@ C****
 C$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH, ELHX,
 C$OMP*   I,INCH,IH,IT, J, K,KR, L,LR, OPNSKY,
 C$OMP*   PLAND,PIJ, QSS, RANDSS,RANDMC, TOTCLD,TAUSSL,TAUMCL)
-C$OMP*   COPYIN(/RADCOM_local/,/RADCOM_out/,/WORKER1/)
+C$OMP*   COPYIN(/RADCOM_hybrid/)
 C$OMP    DO REDUCTION(+:ICKERR,JCKERR)  SCHEDULE(DYNAMIC,2)
       DO 600 J=1,JM
       JLAT=NINT(1.+(J-1.)*45./(JM-1.))  !  j w.r.to 72x46 grid
@@ -730,6 +742,7 @@ C****
 C**** SET UP VERTICAL ARRAYS OMITTING THE I AND J INDICES
 C****
 C**** EVEN PRESSURES
+      PLE(LM+1)=PEDN(LM+1,I,J)
       DO 340 L=1,LM
       PLE(L)=PEDN(L,I,J)
 C**** TEMPERATURES
@@ -753,6 +766,12 @@ CCC     STOP 'In Radia: RQT out of range'
         JCKERR=JCKERR+1
         END IF
         TL(LM+K)=RQT(K,I,J)
+        ple(LM+k+1) = ple0(k)
+        ql(LM+k)    = ql0(k)
+        tauwc(LM+k) = 0.
+        tauic(LM+k) = 0.
+        sizewc(LM+k)= 0.
+        sizeic(LM+k)= 0.
       END DO
       COSZ=COSZA(I,J)
       TGO =GTEMP(1,1,I,J)+TF
@@ -766,7 +785,7 @@ CCC     STOP 'In Radia: RQT out of range'
       AGESN(1)=SNOAGE(3,I,J)    ! land         ! ? why are these numbers
       AGESN(2)=SNOAGE(1,I,J)    ! ocean ice        so confusing ?
       AGESN(3)=SNOAGE(2,I,J)    ! land ice
-C**** set up parameters for new sea ice albedo
+C**** set up parameters for new sea ice and snow albedo
       hsn=snowoi/rhos
       if (poice.gt.0.) then
         hin=(ace1i+msi(i,j))/rhoi
@@ -776,6 +795,8 @@ C**** set up parameters for new sea ice albedo
       else
         hin = 0. ; flags=.FALSE. ; fmp=0. ; hmp=0.
       endif
+      dmoice = 10.
+      dmlice = 10.
 C****
          AIJ(I,J,IJ_FRMP) = AIJ(I,J,IJ_FRMP) + fmp*POICE
       WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)

@@ -1840,10 +1840,14 @@ C--------------------------------
 C
 C
 C--------------------------------
-      IF(MADBAK.GT.0) CALL GETBAK
-      IF(MADAER.GT.0) CALL GETAER
-      IF(MADDST.GT.0) CALL GETDST
-      IF(MADVOL.GT.0) CALL GETVOL
+      IF(MADBAK.GT.0) THEN ; CALL GETBAK
+       ELSE ; SRBEXT=1.d-20 ; SRBSCT=0. ; SRBGCB=0. ; TRBALK=0. ; END IF
+      IF(MADAER.GT.0) THEN ; CALL GETAER
+       ELSE ; SRAEXT=0.     ; SRASCT=0. ; SRAGCB=0. ; TRAALK=0. ; END IF
+      IF(MADDST.GT.0) THEN ; CALL GETDST
+       ELSE ; SRDEXT=0.     ; SRDSCT=0. ; SRDGCB=0. ; TRDALK=0. ; END IF
+      IF(MADVOL.GT.0) THEN ; CALL GETVOL
+       ELSE ; SRVEXT=0.     ; SRVSCT=0. ; SRVGCB=0. ; TRVALK=0. ; END IF
 C--------------------------------
 C
 C
@@ -3083,7 +3087,7 @@ C     ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
       END IF
 C****
       ULGAS(L,3)=U0GAS(L,3)*FULGAS(3)
-      ULGAS(L,5)=U0GAS(L,5)*FULGAS(5)
+!obso ULGAS(L,5)=U0GAS(L,5)*FULGAS(5)
   230 CONTINUE
 C
       IF(KPFOZO.EQ.1) THEN
@@ -3131,7 +3135,7 @@ C
       IF(DL.LT.DLS) PTRO=189.D0-(DL+40.D0)*2.22D0
       IF(DL.GT.DLN) PTRO=189.D0+(DL-40.D0)*2.22D0
       DO 249 N=1,NL0
-      IF(PLB0(N).GE.PTRO) Z0LAT=HLB(N)
+      IF(PLB0(N).GE.PTRO) Z0LAT=HLB0(N)
   249 CONTINUE
       DO 251 K=6,12
       IF(K.EQ.10) GO TO 251
@@ -3178,7 +3182,7 @@ C****
 C
       DO 330 L=1,NL0
       ULGAS(L,3)=U0GAS(L,3)*FULGAS(3)
-      ULGAS(L,5)=U0GAS(L,5)*FULGAS(5)
+!obso ULGAS(L,5)=U0GAS(L,5)*FULGAS(5)
   330 CONTINUE
 C
       IF(KPFOZO.EQ.1) THEN
@@ -3419,7 +3423,7 @@ C
 C
       HXPB=1.D0
       DO 102 L=1,NL0
-      HXPT=HLB(L+1)/C
+      HXPT=HLB0(L+1)/C
       IF(HXPT.GT.80.D0) GO TO 102
       HXPT=EXP(HXPT)
       ABCD=ABC/(1.D0+BC*HXPB)
@@ -3462,7 +3466,7 @@ C
 C
       HXPB=1.D0
       DO 112 L=1,NL0
-      HXPT=HLB(L+1)/C
+      HXPT=HLB0(L+1)/C
       IF(HXPT.GT.80.D0) GO TO 112
       HXPT=EXP(HXPT)
       ABCD=ABC/(1.D0+BC*HXPB)
@@ -4505,7 +4509,7 @@ C
       DO 310 K=1,4
       HLATTF(K)=HTFLAT(JLAT,K)
   310 CONTINUE
-      CALL REPART(HLATTF,HLATKM,5,HTPROF,HLB,NLP)
+      CALL REPART(HLATTF,HLATKM,5,HTPROF,HLB0,NLP)
       LHPMAX=0
       LHPMIN=NL
       DO 320 L=1,NL
@@ -11201,12 +11205,12 @@ C
      E    240.,245.,250.,255.,260.,265.,270.,275.,280.,285.,290.,295.,
      F    300.,305.,310.,315.,320.,325.,330.,335.,340.,345.,350.,355./
 C
-      DATA PLB/984.,934.,854.,720.,550.,390.,285.,210.,150.,100.,60.,
-     +          30.,10.,5.,2.,0.001,41*0.0/
+!obso DATA PLB/984.,934.,854.,720.,550.,390.,285.,210.,150.,100.,60.,
+!obso+          30.,10.,5.,2.,0.001,41*0.0/
 C
-      DATA HLB/
-     +          0.25, 0.70, 1.47, 2.89, 5.06, 7.65, 9.90,11.97,14.12,
-     +         16.67,19.95,24.47,31.97,36.98,44.00,99.99,41*99.999/
+!obso DATA HLB/
+!obso+          0.25, 0.70, 1.47, 2.89, 5.06, 7.65, 9.90,11.97,14.12,
+!obso+         16.67,19.95,24.47,31.97,36.98,44.00,99.99,41*99.999/
 C
 C     DATA PLB/
 C    +     1013.2500, 961.7485, 879.3460, 741.3219, 566.2166, 401.4117,
@@ -13536,3 +13540,4 @@ c     DATA  QAERO / LX*0.0, LX*0.0, LX*0.0, LX*0.0, LX*0.0, LX*0.0 /
 c     DATA  TRAXNL / LX*0.0 /
 C
 c     END BLOCK DATA RADBET
+C     ALERT!!! LX=57 is for a 53-layer model (i.e., LX=LM+4)
