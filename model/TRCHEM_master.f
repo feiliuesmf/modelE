@@ -30,7 +30,7 @@ c
      &                  ,NregOx,n_OxREG1
 #endif
       USE CONSTANT, only: radian,gasc,mair,mb2kg,pi
-      USE TRACER_DIAG_COM, only : jls_N2O5sulf,tajls
+      USE TRACER_DIAG_COM, only : jls_N2O5sulf,tajls,taijs,ijs_JH2O2
       USE TRCHEM_Shindell_COM
 c
       IMPLICIT NONE
@@ -380,6 +380,7 @@ C And fill in the photolysis coefficients: ZJ --> ss:
            ss(inss,L,I,J)=zj(L,inss)*
      &     by35*SQRT(1.224d3*(cos(ABS(LAT_DG(J,1))*radian))**2.+1.d0)
           enddo
+          taijs(i,j,ijs_JH2O2(l))=taijs(i,j,ijs_JH2O2(l))+ss(4,l,i,j)
 #ifdef SHINDELL_STRAT_CHEM
           colmO2=colmO2+y(nO2,L)*thick(L)*1.d5
           if(L.ge.LTROPO(I,J)+1)then
