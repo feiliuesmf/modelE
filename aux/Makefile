@@ -107,7 +107,7 @@ $(GCMLIB): FORCE
 
 ifdef NETCDFHOME
 $(BIN_DIR)/acc2nc: acc2nc.o $(GCMLIB)
-        $(F90) $(LFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)                       |  
+	$(F90) $(LFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)                       |  
 else
 $(BIN_DIR)/acc2nc:
 	@echo "NetCDF library is not specified"
