@@ -275,7 +275,7 @@ C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
         CNSLAT(JM+3,K,N)=FGLOB (K)
       END DO
 C**** LOOP OVER HEMISPHERES
-      DAYS=(Itime-Itime0)/DFLOAT(nday)
+      DAYS=(Itime-Itime0)/FLOAT(nday)
       WRITE (6,'(''1'')')
       DO JHEMI=2,1,-1
         WRITE (6,'(''0'',A)') XLABEL
@@ -1095,7 +1095,7 @@ C**** water vapour
 
       xlb=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)
 C****
-      DAYS=(Itime-Itime0)/DFLOAT(nday)
+      DAYS=(Itime-Itime0)/FLOAT(nday)
 C**** Collect the appropriate weight-arrays in WT_IJ
       wt_ij(:,:,:) = 1.
 

@@ -1730,7 +1730,7 @@ C****
 
 C**** Loop over layers and latitudes
       ICKERR=0
-!$OMP PARALLEL DO  PRIVATE(I,J,L,IP1,IM1,A,AM,FM,FX,FY,FZ)
+!$OMP PARALLEL DO  PRIVATE(I,J,L,IP1,IM1,A,AM,FM,FX,FY,FZ,RXY)
 !$OMP&             REDUCTION(+:ICKERR)
       DO 320 L=1,LMO
       DO 320 J=2,JM-1
@@ -1893,7 +1893,7 @@ C****
 
 C**** Loop over layers and longitudes
       ICKERR=0
-!$OMP PARALLEL DO  PRIVATE(I,J,L, SBMN,SFMN,SFZN, B,BM,FM,FX,FY,FZ),
+!$OMP PARALLEL DO  PRIVATE(I,J,L, SBMN,SFMN,SFZN, B,BM,FM,FX,FY,FZ,RXY),
 !$OMP&             REDUCTION(+:ICKERR)
       DO 350 L=1,LMO
 C     SBMS = 0.
@@ -2137,7 +2137,7 @@ C****
 C****
 C**** Loop over latitudes and longitudes
       ICKERR=0
-!$OMP PARALLEL DO  PRIVATE(I,IMIN,IMAX,J,L,LMIJ, C,CM, FM,FX,FY,FZ)
+!$OMP PARALLEL DO  PRIVATE(I,IMIN,IMAX,J,L,LMIJ, C,CM, FM,FX,FY,FZ,RXY)
 !$OMP&             REDUCTION(+:ICKERR)
       DO J=1,JM
         IMIN=1

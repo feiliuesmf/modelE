@@ -244,7 +244,7 @@ c
 !@auth Koch
 c want kg seasalt/m2/s, for now in 2 size bins
       implicit none
-      REAL*8 swind,erate
+      REAL*8 erate
       integer, INTENT(IN)::itype,ibin,i,j
       REAL*8, INTENT(IN)::swind
       REAL*8, INTENT(OUT)::ss

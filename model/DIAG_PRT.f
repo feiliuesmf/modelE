@@ -266,7 +266,7 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 
 C**** CALCULATE THE DERIVED QUANTTIES
       BYA1=1./(IDACC(ia_srf)+teeny)
-      A2BYA1=DFLOAT(IDACC(ia_rad))/DFLOAT(IDACC(ia_src))
+      A2BYA1=FLOAT(IDACC(ia_rad))/FLOAT(IDACC(ia_src))
       A1BYA2=IDACC(ia_src)/(IDACC(ia_rad)+teeny)
       DO JR=1,23 ! only 23 will fit on a green sheet
         AREG(JR,J_TRNFP0)=AREG(JR,J_HSURF)+A2BYA1*AREG(JR,J_TRHDT)/DTSRC
@@ -297,7 +297,7 @@ C**** CALCULATE THE DERIVED QUANTTIES
         AJ(J,J_HZ2,IT)=AJ(J,J_HZ1,IT)-AJ(J,J_ERUN,IT)-AJ(J,J_IMPLH,IT)
       END DO
       END DO
-      DAYS=(Itime-Itime0)/DFLOAT(nday)
+      DAYS=(Itime-Itime0)/FLOAT(nday)
 C****
 C**** LOOP OVER SURFACE TYPES: 1 TO NTYPE
 C****
@@ -3004,18 +3004,18 @@ C****
       INTEGER ::
      &     I,ITM,L,M,MM1,MMAX,MMAXP1,NU,NUA,
      &     NUAMAX,NUB,NUBMAX,NUMAX,NUTM
-      CI=DCMPLX(0.D0,1.D0)
+      CI=CMPLX(0.D0,1.D0)
       MMAXP1=MMAX+1
 C**COSINE AND SINE FUNCTION
       NUMAX=NUAMAX*NUBMAX
       DO 20 NU=1,NUMAX
-      ARG=2.0*PI*DFLOAT(NU)/DFLOAT(NUMAX)
+      ARG=2.0*PI*FLOAT(NU)/FLOAT(NUMAX)
       C(NU)=DCOS(ARG)
    20 S(NU)=DSIN(ARG)
    50 PP=0.0
       DO 60 I=1,ITM
    60 PP=PP+SERIES(I)*CONJG(SERIES(I))
-      P(1)=PP/DFLOAT(ITM)
+      P(1)=PP/FLOAT(ITM)
       VAR=P(1)
       M=1
       B1(1)=SERIES(1)
@@ -3030,8 +3030,8 @@ C**COSINE AND SINE FUNCTION
       DO 120 I=1,ITM-M
       B1(I)=B1(I)-CONJG(AA(M-1))*B2(I)
   120 B2(I)=B2(I+1)-AA(M-1)*B1(I+1)
-   80 ANOM=DCMPLX(0.D0,0.D0)
-      ADEN=DCMPLX(0.D0,0.D0)
+   80 ANOM=CMPLX(0.D0,0.D0)
+      ADEN=CMPLX(0.D0,0.D0)
       DO 90 I=1,ITM-M
       ANOM=ANOM+CONJG(B1(I))*B2(I)
    90 ADEN=ADEN+B1(I)*CONJG(B1(I))+B2(I)*CONJG(B2(I))
@@ -3044,7 +3044,7 @@ C**COSINE AND SINE FUNCTION
       IF (M.LT.MMAX) GO TO 100
 C**FINAL PREDICTION ERROR
       DO 150 M=1,MMAXP1
-  150 FPE(M)=P(M)*DFLOAT(ITM+M-1)/DFLOAT(ITM-M+1)
+  150 FPE(M)=P(M)*FLOAT(ITM+M-1)/FLOAT(ITM-M+1)
       DO 180 NUA=1,NUAMAX
       POWERX=0.
 C**FREQUENCY BAND AVERAGE
@@ -3055,7 +3055,7 @@ C**FREQUENCY BAND AVERAGE
       NUTM=MOD(NU*M-1,NUMAX)+1
   160 CSUM=CSUM-A(M)*(C(NUTM)-CI*S(NUTM))
   170 POWERX=POWERX+P(MMAXP1)/(CSUM*CONJG(CSUM))
-      POWER(NUA)=.5*POWERX/DFLOAT(NUBMAX)
+      POWER(NUA)=.5*POWERX/FLOAT(NUBMAX)
   180 CONTINUE
       PNU=0.0
       DO 210 L=1,NUAMAX
@@ -3729,7 +3729,7 @@ c**** always skip unused fields
      *    call set_ijout (nmaplets,nmaps,Iord,Qk,iu_Iij)
       xlb=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)
 C****
-      DAYS=(Itime-Itime0)/DFLOAT(nday)
+      DAYS=(Itime-Itime0)/FLOAT(nday)
 C**** Collect the appropriate weight-arrays in WT_IJ
       do j=1,jm
       do i=1,im
@@ -3960,7 +3960,7 @@ C**** Print out full-page digital maps
       INTEGER :: I,J,jgrid
 
 C**** WRITE HEADER LINES
-      DAYS=(Itime-Itime0)/DFLOAT(nday)
+      DAYS=(Itime-Itime0)/FLOAT(nday)
       WRITE(6,901)XLABEL
       WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,
      *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
@@ -4165,7 +4165,7 @@ C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
       AGLOB=1.D-10*AREAG*XWON
       AHEM=1.D-10*(.5*AREAG)*XWON
 C**** LOOP OVER HEMISPHERES
-      DAYS=(Itime-Itime0)/DFLOAT(nday)
+      DAYS=(Itime-Itime0)/FLOAT(nday)
       DO N=1,KCMX
         DO J=1,JM
           MLAT(J,N)=NINT(CNSLAT(J,N))
@@ -4994,7 +4994,7 @@ C****
       ENTRY DIAGKN
 C**** PRINTS THE TABLE OF KEY NUMBERS
 C****
-      DAYS=(Itime-Itime0)/DFLOAT(nday)
+      DAYS=(Itime-Itime0)/FLOAT(nday)
       KEYNR(1,KEYCT)=JMON0
       IF (Itime.eq.ItimeI+1) KEYNR(1,KEYCT)=0
       IF (KEYCT.GE.2) THEN

@@ -115,9 +115,9 @@ c
       integer n,nx,nsrc
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: tevaplim,trgrnd
-      real*8  TEV,dTEVdTQS,tevap,dTQS,TDP,TDT1
+      real*8  TEV,dTEVdTQS,tevap,dTQS,TDP,TDT1,frac
 #ifdef TRACERS_SPECIAL_O18
-     *     ,FRACVL,FRACVS,FRACLK,frac
+     *     ,FRACVL,FRACVS,FRACLK
 #endif
 #endif
 #ifdef TRACERS_DRYDEP
@@ -185,7 +185,7 @@ C****
 #endif
 !
 #if defined(TRACERS_ON) && defined(TRACERS_WATER)
-!$OMP*  ,tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1
+!$OMP*  ,tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1,frac
 #endif
 !
 #if defined(TRACERS_ON) && defined(TRACERS_DRYDEP)
@@ -660,25 +660,25 @@ C**** Limit evaporation if lake mass is at minimum
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
         select case (trname(n))
-	case ('DMS')
+        case ('DMS')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+DMS_flux*dxyp(j)*ptype
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
      &         DMS_flux*dxyp(j)*ptype*dtsurf
           tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
      *         DMS_flux*dxyp(j)*ptype*dtsurf
-	case ('seasalt1')
+        case ('seasalt1')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss1_flux*dxyp(j)*ptype
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) -
      &         ss1_flux*dxyp(j)*ptype*dtsurf
           tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
      *         ss1_flux*dxyp(j)*ptype*dtsurf
-	case ('seasalt2')
+        case ('seasalt2')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss2_flux*dxyp(j)*ptype
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) -
      &         ss2_flux*dxyp(j)*ptype*dtsurf
           tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
      *         ss2_flux*dxyp(j)*ptype*dtsurf
-	end select
+        end select
 #endif
 #ifdef TRACERS_DRYDEP
 C****

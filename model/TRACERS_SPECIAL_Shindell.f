@@ -108,11 +108,11 @@ C**** Monthly sources are interpolated each day
      *   (/'CH4_BURN','CH4_RICE','CH4_WETL'/)
       real*8 adj_wet(jm)
       data adj_wet/15*0.6585,16*1.761,15*0.6585/ !zonal adj FOR WETLANDS
-      data kwet/14/  !!! position of wetlands array in src
+      integer :: kwet=14           !!! position of wetlands array in src
       logical :: mon_bins(nmons)=(/.true.,.true.,.true./)
       real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
       real*8 frac
-      integer i,j,nt,iact,iu,k,kwet,imon(nmons)
+      integer i,j,nt,iact,iu,k,imon(nmons)
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
 

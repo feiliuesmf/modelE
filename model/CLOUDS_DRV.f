@@ -150,7 +150,7 @@ Cred*                   end Reduced Arrays 1
      *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
 #ifdef TRACERS_AEROSOLS_Koch
-      save ifirst,iuc_s
+      save iuc_s
 #endif
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM), 
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)

@@ -764,13 +764,13 @@ C**** Monthly sources are interpolated each day
      *        .true.,.true.,.true.,.true./)
       character*8 :: mon_files(nmons) =
      *   (/'CH4_BURN','CH4_RICE','CH4_WETL'/)
-      real*8 adj_wet(jm)
+      real*8 adj_wet(jm) 
       data adj_wet/15*0.6585,16*1.761,15*0.6585/ !zonal adj FOR WETLANDS
-      data kwet/14/  !!! position of wetlands array in src
+      integer :: kwet=14         !!! position of wetlands array in src
       logical :: mon_bins(nmons)=(/.true.,.true.,.true./)
       real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
       real*8 frac
-      integer i,j,nt,iact,iu,k,kwet,imon(nmons)
+      integer i,j,nt,iact,iu,k,imon(nmons)
       logical :: ifirst=.true.
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
@@ -1156,10 +1156,11 @@ C****    CHECK IT with checkfile=.true.!!!
       USE lhntr_com, only: LHNTR,LHNTR0
       implicit none
       integer l,i,j,km,imo,jmo,lmo,kmo,in_file,interp_file,ifileA,ltopx
+     *     ,it
       parameter (km=im*jm, imo=36,jmo=24,lmo=9,kmo=imo*jmo)
       character*80 title
       logical :: debug=.true.,checkfile=.false.
-      real*4 t,tau,fold(kmo,lmo)   ,rlat(jm)
+      real*4 tau,fold(kmo,lmo)   ,rlat(jm)
       real*8 wta(kmo),foldlm(kmo,lm),
      *  fnew(km,lm),pold(lmo),pnew(lm),ain(lmo),aout(lm)
       real*8 :: sigo(lmo) = (/.974264d0,.907372d0,.796957d0,.640124d0,
@@ -1179,7 +1180,7 @@ C****    CHECK IT with checkfile=.true.!!!
 
       call openunit('OHCH4_FRQ_temporary',interp_file,.true.)
 C**** outer loop over tau
-      do 500 t=0.,8640.,120.
+      do 500 it=0,8640,120
       read (in_file) tau,fold
 C**** interpolate vertically  fold-->foldlm
       do i=1,kmo

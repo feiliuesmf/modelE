@@ -1351,7 +1351,8 @@ C****
 
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
 C**** This is for noon (GMT) for new day.
-      CALL ORBIT (OBLIQ,ECCN,OMEGT,DFLOAT(JDAY)-.5,RSDIST,SIND,COSD,LAM)
+      CALL ORBIT (OBLIQ,ECCN,OMEGT,REAL(JDAY,KIND=8)-.5,RSDIST,
+     *     SIND,COSD,LAM)
 
       IF (.not.(end_of_day.or.itime.eq.itimei)) RETURN
 

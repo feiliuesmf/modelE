@@ -228,14 +228,14 @@ C****
           RY(I1,J1,L) = RY(I1,J1,L)*( RM(I1,J1,L)/(RXY + tiny(RXY)) )
         endif
         if ( abs(RZ(I1,J1,L)) > RM(I1,J1,L) )
-     \       RZ(I1,J1,L) = sign(RM(I1,J1,L), RZ(I1,J1,L)+0d0)
+     *       RZ(I1,J1,L) = sign(RM(I1,J1,L), RZ(I1,J1,L)+0d0)
         RXY = abs(RX(I2,J2,L)) + abs(RY(I2,J2,L))
         if ( RXY > RM(I2,J2,L) ) then
           RX(I2,J2,L) = RX(I2,J2,L)*( RM(I2,J2,L)/(RXY + tiny(RXY)) )
           RY(I2,J2,L) = RY(I2,J2,L)*( RM(I2,J2,L)/(RXY + tiny(RXY)) )
         endif
         if ( abs(RZ(I2,J2,L)) > RM(I2,J2,L) )
-     \       RZ(I2,J2,L) = sign(RM(I2,J2,L), RZ(I2,J2,L)+0d0)
+     *       RZ(I2,J2,L) = sign(RM(I2,J2,L), RZ(I2,J2,L)+0d0)
         if ( abs(RXST) > RMST ) RXST = sign(RMST, RXST)
         if ( abs(RZST) > RMST ) RZST = sign(RMST, RZST)
       end if

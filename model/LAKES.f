@@ -490,7 +490,7 @@ C**** read in named rivers (if any)
       READ (iu_RVR,*,END=10)
       IF (TITLEI.eq."Named River Mouths:") THEN
         DO I=1,NRVRMX,5
-          READ(iu_RVR,'(5(A8,X))') NAMERVR(I:MIN(NRVRMX,I+4))
+          READ(iu_RVR,'(5A9)') NAMERVR(I:MIN(NRVRMX,I+4))
         END DO
       END IF
  10   call closeunit (iu_RVR)
@@ -915,7 +915,7 @@ C****
       REAL*8 TRRVOUT(6,NTM)
 #endif
 
-      DAYS=(Itime-Itime0)/DFLOAT(nday)
+      DAYS=(Itime-Itime0)/REAL(nday,kind=8)
       WRITE(6,900) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE,JHOUR
      *     ,ITIME,DAYS
 C**** convert kg/(source time step) to km^3/mon

@@ -334,7 +334,8 @@ C----------------
       REAL*8 :: snoage_fac_max=.5d0
 
       REAL*8    :: zsnwoi,zoice,zmp,fmp,zlake,snow_frac(2)
-      real*8    :: TRACER(LX,8)  ! ??? defn
+!@var TRACER array to add up to 8 additional aerosol species
+      real*8    :: TRACER(LX,8) 
       LOGICAL*4 :: flags
 
       COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX

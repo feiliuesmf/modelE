@@ -414,16 +414,16 @@ C**** Tracer Dry Deposition boundary condition for dry dep tracers:
 C****   4) tracers with interactive sources
 #ifdef TRACERS_AEROSOLS_Koch
         select case (trname(ntix(itr)))
-	case ('DMS')
+        case ('DMS')
           call read_DMS_sources(wsm,itype,ilong,jlat,DMS_flux)
           trcnst=DMS_flux*byrho
-	case ('seasalt1')
+        case ('seasalt1')
           call read_seasalt_sources(wsm,itype,1,ilong,jlat,ss1_flux)
           trcnst=ss1_flux*byrho
-	case ('seasalt2')
+        case ('seasalt2')
           call read_seasalt_sources(wsm,itype,2,ilong,jlat,ss2_flux)
           trcnst=ss2_flux *byrho
-	end select
+        end select
 #endif
 
 C**** solve tracer transport equation
