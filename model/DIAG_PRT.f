@@ -2099,7 +2099,6 @@ C**** VERTICAL SUMS
       IF ( SNAME.EQ.'temp' .OR. ! make sumfac an argument to avoid this
      &     SNAME.EQ.'v' .OR.
      &     SNAME.EQ.'tot_nt_dse' .OR.
-     &     SNAME.EQ.'tot_nt_lh' .OR.
      &     SNAME.EQ.'tot_nt_se' .OR.
      &     SNAME.EQ.'tot_nt_am') THEN
          SUMFAC=10.
