@@ -351,7 +351,7 @@ C****
       USE MODEL_COM, only : jm,im,lm,dtsrc
       USE CONSTANT, only : teeny
       USE GEOM, only : imaxj
-      USE TRACER_COM, only : ntm,trm,trmom,nt3Dsrc
+      USE TRACER_COM, only : ntm,trm,trmom
       USE QUSDEF, only: nmom
       USE FLUXES, only : tr3Dsource
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc

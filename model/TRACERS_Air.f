@@ -45,7 +45,6 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       t_qlimit = .true.
       needtrs = .false.
       trdecay = 0.
-      nt3Dsrc = 0
       ntsurfsrc = 0
       trpdens = 0.
       trradius = 0.
@@ -99,7 +98,6 @@ C**** Define individual tracer characteristics
           tr_mm(n) = 44.d0
           ntsurfsrc(n) = 1
 #ifdef TRACERS_SPECIAL_Lerner
-          nt3Dsrc(n) = 1
           n_MPtable(n) = 1
           tcscale(n_MPtable(n)) = 1.
 #endif
@@ -111,7 +109,6 @@ C**** Define individual tracer characteristics
           tr_mm(n) = 137.4d0
           ntsurfsrc(n) = 1
 #ifdef TRACERS_SPECIAL_Lerner
-          nt3Dsrc(n) = 1
           n_MPtable(n) = 2
           tcscale(n_MPtable(n)) = 1.
 #endif
@@ -129,7 +126,6 @@ C**** Define individual tracer characteristics
           tr_mm(n) = 16.d0
           ntsurfsrc(n) = 14
 #ifdef TRACERS_SPECIAL_Lerner
-          nt3Dsrc(n) = 2
           n_MPtable(n) = 3
           tcscale(n_MPtable(n)) = 1.
 #endif
@@ -139,7 +135,6 @@ C**** Define individual tracer characteristics
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_SPECIAL_Lerner
-          nt3Dsrc(n) = 2
 C**** Get solar variability coefficient from namelist if it exits
           dsol = 0.
           call sync_param("dsol",dsol)
@@ -609,11 +604,6 @@ C**** Checks
 !       write(6,*) ' ntsurfsrc too large for ',trname(n)
         write(6,*) ' Increase ntsurfsrcmax to at least',ntsurfsrc(n)
         STOP ' Ntsurfsrc too large.  Increase ntsurfsrcmax'
-      end if
-      if (nt3Dsrc(n).gt.nt3Dsrcmax) then
-!       write(6,*) ' nt3Dsrc too large for ',trname(n)
-        write(6,*) ' Increase nt3Dsrcmax to at least',nt3Dsrc(n)
-        STOP ' nt3Dsrc too large.  Increase nt3Dsrcmax'
       end if
 
       end select
