@@ -47,7 +47,7 @@ ccc      real*8, parameter :: MIN_SNOW_THICKNESS =  0.01d0  ! was 0.09d0
       real*8, parameter :: MIN_FRACT_COVER = 0.0001d0
 
 !@var DEB_CH channel for debug output
-      integer, save :: DEB_CH = 0
+      integer :: DEB_CH = 0
 !@var i_earth, j_earth coordinate of current point (for debugging)
       integer i_earth, j_earth
 

@@ -97,15 +97,25 @@ endif
 # Linux - specific options here
 ifeq ($(UNAME),Linux)
 MACHINE = Linux
+## This is for the VAST compile
 #COMPILER = Vast
 #F90 = f90
 #FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -m vo
-# this is for Intel Compiler
+## this is for Intel Compiler (DOES NOT WORK WELL)
 #COMPILER = Intel
 #F90 = ifc
 #FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -m d -int
 #FFLAGS = -O2
 #LFLAGS = -O2
+## This is for the Lahey/Fujitsu compiler
+#COMPILER = Lahey
+#F90 = lf95
+#CPP = /usr/bin/cpp -P -traditional
+#FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend 
+#CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux
+#FFLAGS = -O
+#LFLAGS = 
+## This is for the Absoft PROfortran compiler
 COMPILER = Absoft
 F90 = f90
 CPP = /usr/bin/cpp -P -traditional
@@ -183,11 +193,16 @@ FORCE:
 
 # Standard fortran
 # .timestemp is a hack to set proper times on .o and .mod
-# For the Absoft compiler, we need to force a cpp run through
+# For the Absoft/Lahey compilers, we need to force a cpp run through
 %.o: %.f
 	@echo -n compiling $< ... $(MSG)
 	@touch .timestamp
 ifeq ($(COMPILER),Absoft)
+	cp $*.f $*.F
+	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.F \
+	  $(COMP_OUTPUT)
+	rm -f $*.F
+elseifeq ($(COMPILER),Lahey)
 	cp $*.f $*.F
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.F \
 	  $(COMP_OUTPUT)
