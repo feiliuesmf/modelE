@@ -27,7 +27,7 @@ sinclude ~/.modelErc
 
 
 # list of targets to be built by default
-all: $(BIN_DIR)/qc $(BIN_DIR)/CMPE001 $(BIN_DIR)/conv_rsf $(BIN_DIR)/conv_gic $(BIN_DIR)/rsf2gic $(BIN_DIR)/conv_strat_rsf  $(BIN_DIR)/RMS $(BIN_DIR)/acc2nc
+all: $(BIN_DIR)/qc $(BIN_DIR)/CMPE001 $(BIN_DIR)/conv_rsf $(BIN_DIR)/conv_gic $(BIN_DIR)/rsf2gic $(BIN_DIR)/conv_strat_rsf  $(BIN_DIR)/RMS $(BIN_DIR)/acc2nc $(BIN_DIR)/CMPE002
 qflux: $(BIN_DIR)/vertflux.exe $(BIN_DIR)/ocnIC.exe $(BIN_DIR)/otspec.E001.exe 
 # $(BIN_DIR)/rsfE001.addO.exe obsolete
 odeep: $(BIN_DIR)/mkdeep.exe
@@ -38,13 +38,18 @@ include $(MODEL_DIR)/Rules.make
 # look for .mod files in MODEL_DIR
 ifeq ($(COMPILER),Absoft)
 FFLAGS += -p $(MODEL_DIR)
+FFLAGSF += -p $(MODEL_DIR)
 else
 FFLAGS += -I$(MODEL_DIR)
+FFLAGSF += -I$(MODEL_DIR)
 endif
 
 #
 #  targets
 #
+
+$(BIN_DIR)/CMPE002: CMPE002.F90 $(GCMLIB)
+	$(F90) $(FFLAGSF) $(CPPFLAGS) $(LFLAGS) -o $@ $^
 
 $(BIN_DIR)/CMPE001: CMPE001.f $(GCMLIB)
 	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
