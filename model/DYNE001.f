@@ -1,4 +1,4 @@
-      SUBROUTINE AFLUX (U,V,PA)
+      SUBROUTINE AFLUX (U,V,PIJL)
 !@sum  AFLUX Calculates horizontal/vertical air mass fluxes
 !@auth Original development team
 !@ver  1.0
@@ -9,15 +9,13 @@
 C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
       REAL*8 U(IM,JM,LM),V(IM,JM,LM),P(IM,JM) ! p is just workspace
       REAL*8, DIMENSION(IM) :: DUMMYS,DUMMYN
-      REAL*8 PA(IM,JM)
+      REAL*8 PIJL(IM,JM,LM)
       INTEGER I,J,L,IP1,IM1
       REAL*8 PUS,PUN,PVS,PVN,PBS,PBN,SDNP,SDSP
 C****
 C**** BEGINNING OF LAYER LOOP
 C****
-      P(:,:)=PA(:,:)
       DO 2000 L=1,LM
-      IF(L.EQ.LS1) P(:,:)=PSFMPT
 C****
 C**** COMPUTATION OF MASS FLUXES     P,T  PU     PRIMARY GRID ROW
 C**** ARAKAWA'S SCHEME B             PV   U,V    SECONDARY GRID ROW
@@ -30,7 +28,8 @@ C**** COMPUTE PU, THE WEST-EAST MASS FLUX, AT NON-POLAR POINTS
       I=IM
       DO 2166 J=2,JM-1
       DO 2165 IP1=1,IM
-      PU(I,J,L)=.25*DYP(J)*SPA(I,J,L)*(P(I,J)+P(IP1,J))*DSIG(L)
+      PU(I,J,L)=.25*DYP(J)*SPA(I,J,L)*(PIJL(I,J,L)+PIJL(IP1,J,L))*
+     *  DSIG(L)
  2165 I=IP1
  2166 CONTINUE
 C**** COMPUTE PV, THE SOUTH-NORTH MASS FLUX
@@ -38,7 +37,7 @@ C**** COMPUTE PV, THE SOUTH-NORTH MASS FLUX
       DO 2172 J=2,JM
       DO 2170 I=1,IM
       PV(I,J,L)=.25*DXV(J)*(V(I,J,L)+V(IM1,J,L))*
-     *   (P(I,J)+P(I,J-1))*DSIG(L)
+     *   (PIJL(I,J,L)+PIJL(I,J-1,L))*DSIG(L)
  2170 IM1=I
  2172 CONTINUE
 C**** COMPUTE PU*3 AT THE POLES
@@ -51,8 +50,8 @@ C**** COMPUTE PU*3 AT THE POLES
       PUN=PUN+U(I,JM,L)
       PVS=PVS+PV(I,2,L)
  1110 PVN=PVN+PV(I,JM,L)
-      PUS=.25*DYP(2)*PUS*P(1,1)*BYIM
-      PUN=.25*DYP(JM-1)*PUN*P(1,JM)*BYIM
+      PUS=.25*DYP(2)*PUS*PIJL(1,1,L)*BYIM
+      PUN=.25*DYP(JM-1)*PUN*PIJL(1,JM,L)*BYIM
       PVS=PVS/FIM
       PVN=PVN/FIM
       DUMMYS(1)=0.
@@ -68,8 +67,8 @@ C**** COMPUTE PU*3 AT THE POLES
       PBS=PBS*BYIM
       PBN=PBN*BYIM
       DO 1140 I=1,IM
-      SPA(I,1,L)=4.*(PBS-DUMMYS(I)+PUS)/(DYP(2)*P(1,1))
-      SPA(I,JM,L)=4.*(DUMMYN(I)-PBN+PUN)/(DYP(JM-1)*P(1,JM))
+      SPA(I,1,L)=4.*(PBS-DUMMYS(I)+PUS)/(DYP(2)*PIJL(1,1,L))
+      SPA(I,JM,L)=4.*(DUMMYN(I)-PBN+PUN)/(DYP(JM-1)*PIJL(1,JM,L))
       PU(I,1,L)=3.*(PBS-DUMMYS(I)+PUS)*DSIG(L)
  1140 PU(I,JM,L)=3.*(DUMMYN(I)-PBN+PUN)*DSIG(L)
 C****
@@ -837,6 +836,27 @@ C****
       RETURN
       END SUBROUTINE SHAP1D
 
+      SUBROUTINE CALC_PIJL(lmax,p,pijl)
+!@sum  CALC_PIJL Fills in P as 3-D
+!@auth Jean Lerner
+!@ver  1.0
+      USE E001M12_COM, only : im,jm,lm,ls1,psfmpt
+C**** 
+      implicit none
+      double precision, dimension(im,jm) :: p
+      double precision, dimension(im,jm,lm) :: pijl
+      integer :: l,lmax
+
+      do l=1,ls1-1
+        pijl(:,:,l) = p(:,:)
+      enddo
+      do l=ls1,lmax
+        pijl(:,:,l) = PSFMPT
+      enddo
+      return
+      end subroutine calc_pijl
+
+
       SUBROUTINE CALC_AMPK(LMAX)
 !@sum  CALC_AMPK calculate air mass and pressure functions
 !@auth Jean Lerner/Gavin Schmidt
@@ -932,7 +952,7 @@ C****
 
       REAL*8, DIMENSION(IM,JM) :: PRAT
       REAL*8, DIMENSION(IM,JM,LM) :: UT,VT,TT,TZ,TZT,WMT,MA
-      REAL*8, DIMENSION(IM,JM,LM) :: UX,VX
+      REAL*8, DIMENSION(IM,JM,LM) :: UX,VX,PIJL
       REAL*8 PA(IM,JM),PB(IM,JM),PC(IM,JM),FPEU(IM,JM),FPEV(IM,JM),
      *          FWVU(IM,JM),FWVV(IM,JM)
 
@@ -958,7 +978,8 @@ C**** INITIAL FORWARD STEP, QX = Q + .667*DT*F(Q)
       NS=0
       MRCH=0
 C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
-      CALL AFLUX (U,V,P)
+      CALL CALC_PIJL(LM,P,PIJL)
+      CALL AFLUX (U,V,PIJL)
       CALL ADVECM (P,PB,DTFS)
       CALL ADVECV (P,UX,VX,PB,U,V,P,DTFS)
       CALL PGF (UX,VX,PB,U,V,T,TZ,P,DTFS)
@@ -967,7 +988,8 @@ C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
 C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
       MRCH=-1
 C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
-      CALL AFLUX (UX,VX,PB)
+      CALL CALC_PIJL(LS1-1,PB,PIJL)
+      CALL AFLUX (UX,VX,PIJL)
       CALL ADVECM (P,PA,DT)
       CALL ADVECV (P,UT,VT,PA,UX,VX,PB,DT)
       CALL PGF (UT,VT,PA,UX,VX,T,TZ,PB,DT)
@@ -982,7 +1004,8 @@ CD       DIAGA SHOULD BE CALLED HERE BUT THEN ARRAYS MUST BE CHANGED
 C**** ODD LEAP FROG STEP, QT = QT + 2*DT*F(Q)
   340 MRCH=-2
 C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
-      CALL AFLUX (U,V,P)
+      CALL CALC_PIJL(LS1-1,P,PIJL)
+      CALL AFLUX (U,V,PIJL)
       CALL ADVECM (PA,PB,DTLF)
       CALL ADVECV (PA,UT,VT,PB,U,V,P,DTLF)
       CALL PGF (UT,VT,PB,U,V,T,TZ,P,DTLF)
@@ -994,7 +1017,8 @@ C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
          MODD5K=MOD(NSTEP+NS-NIdyn+NDA5K*NIdyn+2,NDA5K*NIdyn+2)
       MRCH=2
 C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
-      CALL AFLUX (UT,VT,PA)
+      CALL CALC_PIJL(LS1-1,PA,PIJL)
+      CALL AFLUX (UT,VT,PIJL)
       CALL ADVECM (PC,P,DTLF)
       CALL ADVECV (PC,U,V,P,UT,VT,PA,DTLF)
          FPEU(:,:) = 0.
