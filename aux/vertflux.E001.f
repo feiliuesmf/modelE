@@ -19,6 +19,8 @@ C****
 !!    use model_com, only : ioread
       use model_com, only : im,jm,init_model_com
 !!    use somtq_com, only: init_smomtq
+      use clouds_com, only : init_clouds_com
+!!    use icedyn,     only : init_icedyn_alloc => init_icedyn
 !AOO end of part 1 of 3
       USE STATIC_OCEAN
       USE DAGCOM, only : oa,koa
@@ -72,6 +74,8 @@ C****
 !!    call init_dynamics(grid)
       call init_model_com(grid)
 !!    call init_smomtq(grid)
+      call init_clouds_com(grid)
+!!    call init_icedyn_alloc(grid)
 !AOO end of part 2 of 3
       call getarg(1,RunID )
       call getarg(2,title0)
