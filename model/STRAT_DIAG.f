@@ -424,13 +424,13 @@ C****   DUD,DUR - Delta U by Eulerian and transf. circulation  m s-2
 C****
       USE MODEL_COM, only : im,jm,lm,sig,dsig,dtsrce=>dtsrc,psfmpt,fim
      *     ,idacc,ndaa,ls1,ptop
+      USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
       USE DAGCOM, only : ajl,kajl,kep,apj
      &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg
      &     ,jl_dumcdrgm10,jl_dumcdrgp10
      &     ,jl_dumcdrgm40,jl_dumcdrgp40
      &     ,jl_dumcdrgm20,jl_dumcdrgp20
      &     ,jl_dudtsdif,jl_damdc,jl_dammc
-      USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
       IMPLICIT NONE
 C**** NOTE: AEP was a separate array but is now saved in AJL (pointer?)
 c      REAL*8, DIMENSION(JM,LM,KEP) :: AEP
@@ -596,7 +596,7 @@ CW      END DO
 CW      END DO
 C****
 C**** Print maps of EP fluxes
-C**** note: JLMAP (lname,sname,units,power,Pres,Array,SCALEP,ScaleJ,ScaleL)
+C**** note: JLMAP (lname,sname,units,power,Pres,Array,ScalP,ScalJ,ScalL)
 C****          prints maps of  (Array * SCALEP * ScaleJ * ScaleL)
 C****
       DO L=1,LM

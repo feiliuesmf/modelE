@@ -9,7 +9,7 @@ C**** same interface
 C****
 C**** Note: it would be nice to amalgamate IL and JL, but that will
 C**** have to wait.
-      
+
       module gissout
 !@sum gissout contains variables for outputting GISS format binaries
 !@auth G. Schmidt
@@ -23,7 +23,7 @@ C**** have to wait.
 !@var LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
       REAL*8, DIMENSION(JMMAX,2) :: LAT_DG
 
-      end module
+      end module gissout
 
       subroutine open_ij(filename,im_gcm,jm_gcm)
 !@sum  OPEN_IJ opens the lat-lon binary output file
@@ -294,7 +294,7 @@ C**** set dimensions
       IMPLICIT NONE
       CHARACTER*16, DIMENSION(KAJ),INTENT(INOUT) :: TITLE
       CHARACTER*16 :: NEWTIT
-!@var LNAME,SNAME,UNITS dummy strings 
+!@var LNAME,SNAME,UNITS dummy strings
       CHARACTER*50, DIMENSION(KAJ),INTENT(IN) :: LNAME
       CHARACTER*30, DIMENSION(KAJ),INTENT(IN) :: SNAME
       CHARACTER*50, DIMENSION(KAJ),INTENT(IN) :: UNITS

@@ -70,8 +70,8 @@ c****     rm = tracer concentration
 c****   rmom = moments of tracer concentration
 c****     ma (kg) = fluid mass
 c****
-      USE QUSCOM, ONLY : IM,JM,LM, MFLX
       USE QUSDEF
+      USE QUSCOM, ONLY : IM,JM,LM, MFLX
       IMPLICIT NONE
 
       REAL*8, dimension(im,jm,lm) :: rm,ma
@@ -186,9 +186,9 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
+      use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       use QUSCOM, only : im,jm,lm, xstride
-      use QUSDEF
       implicit none
       REAL*8, dimension(im,jm,lm) :: rm,mass,mu,hfqu
       REAL*8, dimension(NMOM,IM,JM,LM) :: rmom
@@ -255,9 +255,9 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
+      use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
       use QUSCOM, only : im,jm,lm, ystride,               byim
-      use QUSDEF
       implicit none
       REAL*8, dimension(im,jm,lm) :: rm,mass,mv
       REAL*8, dimension(NMOM,IM,JM,LM) :: rmom
@@ -361,9 +361,9 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
+      use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use QUSCOM, only : im,jm,lm, zstride
-      use QUSDEF
       implicit none
       REAL*8, dimension(im,jm,lm) :: rm,mass,mw
       REAL*8, dimension(NMOM,IM,JM,LM) :: rmom

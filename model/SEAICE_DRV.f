@@ -18,13 +18,13 @@
 #ifdef TRACERS_WATER
      *     ,trprec,trunpsi,gtracer
 #endif
+      USE SEAICE, only : prec_si, ace1i, lmi,xsi
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,flag_dsws,pond_melt
 #ifdef TRACERS_WATER
      *     ,ntm,trsi
 #endif
-      USE SEAICE, only : prec_si, ace1i, lmi,xsi
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,j_imelt
-     *     ,j_smelt 
+     *     ,j_smelt
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
@@ -124,12 +124,14 @@ C****
       USE CONSTANT, only : rhow,lhm,omega,rhoi,byshi,shw
       USE MODEL_COM, only : im,jm,focean,dtsrc,qcheck,kocean
       USE GEOM, only : sinp,imaxj,dxyp
-      USE SEAICE_COM, only : msi,hsi,ssi,rsi
 #ifdef TRACERS_WATER
-     *     ,trsi
       USE TRACER_COM, only : ntm, trname
 #endif
       USE SEAICE, only : lmi,xsi,icelake,iceocean,ac2oim,alami,alpha
+      USE SEAICE_COM, only : msi,hsi,ssi,rsi
+#ifdef TRACERS_WATER
+     *     ,trsi
+#endif
       USE FLUXES, only : fmsi_io,fhsi_io,fssi_io,ui2rho,gtemp,sss,mlhc
 #ifdef TRACERS_WATER
      *     ,ftrsi_io,gtracer
@@ -144,7 +146,7 @@ C****
      *     ,mlsh,tofrez   !,mfluxmax
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: Trm,Tri,trflux,tralpha
-#ifdef TRACERS_SPECIAL_O18           
+#ifdef TRACERS_SPECIAL_O18
       REAL*8 fracls
 #endif
 #endif
@@ -159,7 +161,7 @@ C**** Set mixed layer conditions
 #ifdef TRACERS_WATER
             Trm(:)=GTRACER(:,1,I,J)
             Tri(:)=TRSI(:,LMI,I,J)/(XSI(LMI)*MSI(I,J)-SSI(LMI,I,J))
-#ifdef TRACERS_SPECIAL_O18           
+#ifdef TRACERS_SPECIAL_O18
             tralpha(:)=fracls(trname(:))
 #else
             tralpha(:)=1.
@@ -249,11 +251,11 @@ C****
 #ifdef TRACERS_WATER
      *     ,ftrsi_io,trevapor,trunosi
 #endif
+      USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix
       USE LAKES_COM, only : mwl,gml,flake
       USE DAGCOM, only : aj,areg,aij,jreg,ij_erun2,ij_rsoi,ij_msi2
      *     ,j_imelt,j_hmelt,j_smelt,j_rsnow,ij_rsit,ij_rsnw,ij_snow
@@ -397,15 +399,17 @@ C****
       USE MODEL_COM, only : im,jm,focean,kocean,ftype,fland
      *     ,itocean,itoice,itlake,itlkice,itime
       USE GEOM, only : imaxj,dxyp
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater
+#endif
+      USE DAGCOM, only : aj,areg,aij,jreg,j_rsi,j_ace1,j_ace2,j_snow
+     *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2
+      USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
       USE TRACER_DIAG_COM, only : tij_seaice,taijn
-      USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater
 #endif
-      USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi
-      USE DAGCOM, only : aj,areg,aij,jreg,j_rsi,j_ace1,j_ace2,j_snow
-     *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2
       USE FLUXES, only : dmsi,dhsi,dssi,gtemp
 #ifdef TRACERS_WATER
      *     ,dtrsi,gtracer
@@ -594,11 +598,11 @@ C****
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm,shi
       USE MODEL_COM, only : im,jm,kocean,focean
+      USE SEAICE, only : xsi,ace1i,ac2oim,ssi0
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE SEAICE, only : xsi,ace1i,ac2oim,ssi0
       USE FLUXES, only : gtemp
 #ifdef TRACERS_WATER
      *     ,gtracer
@@ -666,8 +670,8 @@ C****
 !@ver  1.0
       USE MODEL_COM, only : im,jm,fim,fland
       USE GEOM, only : imaxj
-      USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
+      USE SEAICE_COM, only : rsi,msi,snowi
       IMPLICIT NONE
 !@var ICE total snow and ice mass (kg/m^2)
       REAL*8, DIMENSION(JM) :: ICE

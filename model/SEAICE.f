@@ -47,7 +47,7 @@
       REAL*8, PARAMETER :: FSSS = 13d0/35d0
 !@var qsfix flag is true if salinity of sea ice is constant
       LOGICAL :: QSFIX = .false.
-!@var alpha implicitness for heat diffusion in sea ice (1=fully implicit)
+!@var alpha implicity for heat diffusion in sea ice (1=fully implicit)
       REAL*8, PARAMETER :: ALPHA = 1.0
 
       CONTAINS
@@ -124,7 +124,7 @@ C**** TOO MUCH SNOW HAS ACCUMULATED, SOME SNOW IS COMPACTED INTO ICE
           CMPRS = SNOW+SNWF-0.9d0*SNOMAX
         ELSE
 C**** RAIN and MELT COMRESSES SNOW INTO ICE
-          CMPRS = MIN(dSNdRN*(RAIN+MELT1), SNOW+SNWF-MELT1) 
+          CMPRS = MIN(dSNdRN*(RAIN+MELT1), SNOW+SNWF-MELT1)
         END IF
         DSNOW = SNWF - (MELT1+CMPRS)
         SMELT1=0.
@@ -160,8 +160,8 @@ C***** Calculate consequential heat/salt flux between layers
       END IF
 
 C**** Fluxes between first two layers are complicated because salinty
-C**** is evenly shared over the ice portion, and zero for the snow, 
-C**** while tracers have distinct concentrations with respect to the 
+C**** is evenly shared over the ice portion, and zero for the snow,
+C**** while tracers have distinct concentrations with respect to the
 C**** fresh water mass in both layers
       SS12=(SSIL(1)+SSIL(2))-FSSI2-SMELT1
       FSSI1=SSIL(1)-SMELT1-SS12*MAX(0d0,
@@ -224,7 +224,7 @@ C**** Diagnostics for output
       RUN0 = MELT1+(RAIN-FREZ1) ! runoff mass to ocean
       IF (RUN0.lt.1d-13) RUN0=0. ! clean up roundoff errors
       SRUN0 = SMELT1             ! salt in runoff
-c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)      
+c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
 
 #ifdef TRACERS_WATER
       TRUN0(:)=TRMELT1(:)+TRRMF(:)  ! tracer flux to ocean
@@ -296,7 +296,7 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
       SMELT1=0 ; SMELT2=0. ; SMELT3=0.; SMELT4=0.
       FSSI2=0. ; FSSI3=0.
 #ifdef TRACERS_WATER
-      FTRSI1=0. ; FTRSI2=0. ; FTRSI3=0. 
+      FTRSI1=0. ; FTRSI2=0. ; FTRSI3=0.
       TRMELT1=0. ; TRMLET2=0. ; TRMELT3=0. ; TRMELT4=0.
 #endif
 C****
@@ -341,7 +341,7 @@ c      FO=(dF4dTI*(HC4*(TSIL(4)-TFO)+ALPHA*F3)+HC4*SROX(1)*FSRI(4))/
 c     *     (HC4+ALPHA*dF4dTI)
 c      FHOC=(dF4dTI*ALPHA*F3+HC4*(SROX(1)*FSRI(4)+FHOC))/
 c     *     (HC4+ALPHA*dF4dTI)
-C**** Add solar flux through bottom to basal heat flux already calculated
+C**** Add solar flux through bottom to basal heat flux already computed
       SROX(2) = SROX(1)*FSRI(4)
 
       HSIL(1) = HSIL(1)+(F0DT-F1DT)
@@ -349,7 +349,7 @@ C**** Add solar flux through bottom to basal heat flux already calculated
       HSIL(3) = HSIL(3)+(F2-F3)
       HSIL(4) = HSIL(4)+(F3-SROX(2)-FHOC)
 
-C**** add basal salt flux 
+C**** add basal salt flux
       SSIL(4) = SSIL(4)-FSOC
 #ifdef TRACERS_WATER
       TRSIL(:,4) = TRSIL(:,4)-FTROC(:)
@@ -403,9 +403,9 @@ C****
         SMELT2= MELT2*SS12/(ACE1I-MAX(0d0,EVAP1-SNOW))
       END IF
 #ifdef TRACERS_WATER
-C**** tracer melt is calculated using fresh water concentration 
+C**** tracer melt is calculated using fresh water concentration
       TRMELT1(:)=(MELT1-SMELT1)*TRSIL(:,1)/(XSI(1)*MSI1+DEW1-SSIL(1))
-      TRMELT2(:)=(MELT2-SMELT2)*TRSIL(:,2)/(XSI(2)*MSI1+DEW2-SSIL(2)) 
+      TRMELT2(:)=(MELT2-SMELT2)*TRSIL(:,2)/(XSI(2)*MSI1+DEW2-SSIL(2))
 #endif
 
 C**** Mass fluxes required to keep first layer ice = ACE1I
@@ -438,8 +438,8 @@ C***** Calculate consequential heat flux between layers
       END IF
 
 C**** Fluxes between first two layers are complicated because salinty
-C**** is evenly shared over the ice portion, and zero for the snow, 
-C**** while tracers have distinct concentrations with respect to the 
+C**** is evenly shared over the ice portion, and zero for the snow,
+C**** while tracers have distinct concentrations with respect to the
 C**** fresh water mass in both layers
       SS12=(SSIL(1)+SSIL(2))-FSSI2-SMELT1-SMELT2
       FSSI1=SSIL(1)-SMELT1-SS12*MAX(0d0,
@@ -499,13 +499,13 @@ C**** Apply the tracer fluxes
       TRSIL(:,4)=TRSIL(:,4)- TRMELT4(:)+ FTRSI3(:)
 #endif
 
-C**** Calculate additional runoff output fluxes 
+C**** Calculate additional runoff output fluxes
       RUN = MELT1+MELT2+MELT3+MELT4 ! mass flux to ocean
       SRUN= SMELT1+SMELT2+SMELT3+SMELT4   ! salt flux to ocean
-c HMELT currently assumed to be zero since melting is at 0 deg 
-      ERUN= SROX(2)        ! + HMELT 
+c HMELT currently assumed to be zero since melting is at 0 deg
+      ERUN= SROX(2)        ! + HMELT
 #ifdef TRACERS_WATER
-      TRUN(:)=TRMELT1(:)+TRMELT2(:)+TRMELT3(:)+TRMELT4(:) 
+      TRUN(:)=TRMELT1(:)+TRMELT2(:)+TRMELT3(:)+TRMELT4(:)
                                 ! tracer flux to ocean
 #endif
 c**** Decide WETSNOW for albedo calculations and save MELT12 for
@@ -644,8 +644,8 @@ C**** MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
       END IF
   270 CONTINUE
 C**** COMPRESS THE ICE HORIZONTALLY IF TOO THIN OR LEAD FRAC. TOO SMALL
-      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2))) ! -BYZICX) sometime -ve!
-      IF ((ROICE*(ACE1I+MSI2)).gt.5.*RHOI) OPNOCN=0.    ! no leads for h>5
+      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2))) ! -BYZICX) ?? <0
+      IF ((ROICE*(ACE1I+MSI2)).gt.5.*RHOI) OPNOCN=0.  ! no leads for h>5
       IF (MSI2.LT.AC2OIM .or. ROICE.GT.1.-OPNOCN) THEN
       ROICEN = MIN(ROICE*(ACE1I+MSI2)/(ACE1I+AC2OIM),1.-OPNOCN)
       DRSI = ROICEN-ROICE ! < 0. compressed ice concentration
@@ -676,7 +676,7 @@ C****
 C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-4) => rsi=(1-OPNOCN))
       IF (ROICE.gt.0) THEN
       OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2)))    ! -BYZICX)
-      IF ((ROICE*(ACE1I+MSI2)).gt.5.*RHOI) OPNOCN=0.    ! no leads for h>5
+      IF ((ROICE*(ACE1I+MSI2)).gt.5.*RHOI) OPNOCN=0.  ! no leads for h>5
       IF (ROICE.gt.(1.-OPNOCN-1d-4)) THEN
         ROICEN = 1.-OPNOCN
         DRSI = ROICEN-ROICE ! > 0
@@ -772,7 +772,7 @@ C****
      *             TRSIL,TRFLUX,
 #endif
      *     MFLUX,HFLUX,SFLUX)
-!@sum  SSIDEC decays salinity in sea ice 
+!@sum  SSIDEC decays salinity in sea ice
 !@auth Jiping Liu
 !@ver  1.0
       IMPLICIT NONE
@@ -796,7 +796,7 @@ C****
 !@var bydtssi decay constant for sea ice salinity (1/s)
       REAL*8, parameter :: dtssi=30.d0, bydtssi=1./(dtssi*sday)
 
-      DSSI = 0. ; DMSI = 0. ;  DHSI = 0.          
+      DSSI = 0. ; DMSI = 0. ;  DHSI = 0.
 #ifdef TRACERS_WATER
       DTRSI(:,:)= 0.
 #endif
@@ -805,7 +805,7 @@ C**** salinity in sea ice decays if it is above threshold level ssi0
 C**** check first layer (default ice and snow)
       IF(SSIL(1)+SSIL(2).GT.ssi0*ACE1I) THEN
         DS12 = (SSIL(1)+SSIL(2)-ACE1I*ssi0)*DT*BYDTSSI
-        IF (ACE1I.gt.XSI(2)*MSI1) THEN 
+        IF (ACE1I.gt.XSI(2)*MSI1) THEN
           DSSI(1) = (ACE1I-XSI(2)*MSI1)*DS12/ACE1I
           DSSI(2) = DS12-DSSI(1)
         ELSE
@@ -828,7 +828,7 @@ c        END DO
 
 C**** check remaining layers
       DO L=3,LMI
-        IF (SSIL(L).GT.ssi0*XSI(L)*MSI2) THEN 
+        IF (SSIL(L).GT.ssi0*XSI(L)*MSI2) THEN
           DSSI(L) = (SSIL(L)-ssi0*XSI(L)*MSI2)*DT*BYDTSSI
           DMSI(L) = DSSI(L)
           DHSI(L) = DMSI(L)*HSIL(L)/(XSI(L)*MSI2)
@@ -849,7 +849,7 @@ C**** dealt with later)
 #ifdef TRACERS_WATER
       FTRSI1(:) = FMSI1*TRSIL(:,2)/(XSI(2)*MSI1-DMSI(2))
 #endif
-C**** Mass/heat/salt moves from layer 3 to 2 
+C**** Mass/heat/salt moves from layer 3 to 2
       FMSI2 = -(DMSI(1)+DMSI(2))
       FHSI2 = FMSI2*HSIL(3)/(XSI(3)*MSI2-DMSI(3))
       FSSI2 = FMSI2*SSIL(3)/(XSI(3)*MSI2-DMSI(3))
@@ -879,7 +879,7 @@ C**** Apply the fluxes
       HSIL(4)=HSIL(4)+ FHSI3
 C**** salinity spread evenly over upper ice layer
       SS12=(SSIL(1)+SSIL(2))-FSSI2
-      IF (ACE1I.gt.XSI(2)*MSI1) THEN 
+      IF (ACE1I.gt.XSI(2)*MSI1) THEN
         SSIL(1)=SS12*(ACE1I-XSI(2)*MSI1)/ACE1I
       ELSE
         SSIL(1)= 0.
@@ -897,7 +897,7 @@ C**** Apply the tracer fluxes
 c     MSI1 = MSI1 - (DMSI(1)+DMSI(2)) - FMSI2 ! stays fixed
       MSI2 = MSI2 - (DMSI(3)+DMSI(4)) + FMSI2
 
-C**** output fluxes and diagnostics 
+C**** output fluxes and diagnostics
       MFLUX = SUM(DMSI)         ! mass flux to ocean
       HFLUX = SUM(DHSI)         ! energy flux to ocean
       SFLUX = SUM(DSSI)         ! salt flux to ocean
@@ -915,7 +915,7 @@ C****
      *     Tri,Trm,trflux,tralpha,
 #endif
      *     mflux,sflux,hflux)
-!@sum  iceocean calculates fluxes at base of sea ice 
+!@sum  iceocean calculates fluxes at base of sea ice
 !@auth Gavin Schmidt
 !@ver  1.0
 !@usage At the ice-ocean interface the following equations hold:
@@ -925,11 +925,11 @@ C****
 !@+                           rho_m     g_S (Sb-Sm) =  m (Sib-Sb )   (3)
 !@+  with  Sib=Si, Tib=Ti m>0,  or Sib = fsss Sm, Tib=Tb m<0        (4)
 !@+ This routine iteratively solves for m, Tb, Sb and Sib, Tib using
-!@+ Newton's method. The form of the latent heat and conductivity  
+!@+ Newton's method. The form of the latent heat and conductivity
 !@+ can optionally include salinity effects.
 !@+ The actual fluxes (positive down) are then:
-!@+     mflux = m   ; sflux = 1d-3 m Sib (kg/m^2/s)
-!@+     hflux = lam_i(Ti,Si) (Ti-Tb)/dh -m Lh(Tib,Sib)+m shw Tib  (J/m^2/s)
+!@+  mflux = m   ; sflux = 1d-3 m Sib (kg/m^2/s)
+!@+  hflux = lam_i(Ti,Si) (Ti-Tb)/dh -m Lh(Tib,Sib)+m shw Tib  (J/m^2/s)
 !@+
       implicit none
 !@var alamdS salinity coefficient for conductivity (from common?)
@@ -948,7 +948,7 @@ C****  G_mole_S = 12.5 * 2432d0**(2d0/3d0) - 6. = 2255d0
       real*8, intent(in) :: ustar,Coriol
 !@var dtsrc source time step (s)
 !@var mfluxmax maximum melt rate allowed (kg/m^2 s)
-!@var mlsh mixed layer specific heat capactity (J/m^2 C) 
+!@var mlsh mixed layer specific heat capactity (J/m^2 C)
       real*8, intent(in) :: dtsrc,mlsh          !,mfluxmax
 !@var mflux,sflux,hflux mass, salt and heat fluxes at base of ice
       real*8, intent(out) :: mflux,sflux,hflux
@@ -956,7 +956,7 @@ C****  G_mole_S = 12.5 * 2432d0**(2d0/3d0) - 6. = 2255d0
 !@var Tri,Trm tracer concentration in ice and mixed layer (kg/kg)
 !@var tralpha tracer fraction going into ice (1)
       real*8, dimension(ntm), intent(in) :: Trm,Tri,tralpha
-!@var trflux tracer mass flux at base 
+!@var trflux tracer mass flux at base
       real*8, dimension(ntm), intent(out) :: trflux
 !@var Trib tracer concentration at interface ice (kg/kg)
       real*8, dimension(ntm) :: Trib
@@ -972,13 +972,13 @@ C****  G_mole_S = 12.5 * 2432d0**(2d0/3d0) - 6. = 2255d0
 !@var Tib,Sib actual temperature/salinity in melting/freezing ice (psu)
       real*8 :: m,Tb,Sib,Tib
       real*8 :: lh,left2,df3dm,dmdTb,dmdSi,alamdh,f0,df,rsg
-      integer, parameter :: niter=5 !@param niter number of iterations 
+      integer, parameter :: niter=5 !@param niter number of iterations
       integer :: i
 
 C**** Calculate turbulent exchange velocities g_T, g_S
 
-C****  G_turb = (1/k) ln (u* E n^2 / f h) + 1 / (2 E n) - (1/k)
-C****         = 2.5 ln ( 5300*(u*)^2/coriol ) + 9.62 - 2.5 (assuming n=1)
+C**** G_turb = (1/k) ln (u* E n^2 / f h) + 1 / (2 E n) - (1/k)
+C****        = 2.5 ln ( 5300*(u*)^2/coriol ) + 9.62 - 2.5 (assuming n=1)
 C**** Note: n should theoretically depend on the buoyancy flux and
 C****       therfore this should be included in the iteration below.
       G_turb = 2.5d0 * log ( 5300.*ustar*ustar/coriol ) + 7.12d0
@@ -991,22 +991,22 @@ C**** Diffusive flux is implicit in ice !  + ml temperature (not used)
       rsg=rhow*shw*g_T    ! /(1.+alpha*dtsrc*rhow*shw*g_T/mlsh)
 c no salinity effects
       alamdh = alami/(dh+alpha*dtsrc*alami*byshi/(2.*dh*rhoi))
-c S thermo 
-c      alamdh = (alami*Ti+alamdS*Si)/(dh*Ti+alpha*dtsrc*(alami*Ti+alamdS*Si)
-c     *          *byshi/(2.*rhoi*dh))
+c S thermo
+c      alamdh = (alami*Ti+alamdS*Si)/(dh*Ti+alpha*dtsrc*
+c     *          (alami*Ti+alamdS*Si)*byshi/(2.*rhoi*dh))
 
 C**** solve for boundary values (uses Newton-Rapheson with bounds)
 C**** Estimate initial boundary salinity
-      Sb0 = 0.75d0*Sm+0.25d0*Si   
+      Sb0 = 0.75d0*Sm+0.25d0*Si
       do i=1,niter
         Tb = -mu*Sb0            ! freezing point at salinity Sb0
 C**** calculate left hand side of equation 2
         left2 = -alamdh*(Ti-Tb) + rsg*(Tb-Tm)
 C**** depending on whether there is freezing or melting, the sea ice
 C**** salinity in the melt/freeze fraction is set to be the original
-C**** ice salinity or is a function of the boundary salinity. 
+C**** ice salinity or is a function of the boundary salinity.
 C**** Similarly for temperature Tib
-        if (left2.gt.0) then    ! freezing   
+        if (left2.gt.0) then    ! freezing
           if (qsfix) then   ! keep salinity in ice constant
             Sib = ssi0
           else              ! it is a function of boundary value
@@ -1015,7 +1015,7 @@ C**** Similarly for temperature Tib
 c no salinity effects
           lh = lhm+ Tb*(shw-shi)
 c S thermo
-c         lh = lhm*(1.+mu*Sib/Tb) + (Tb+mu*Sib)*(shw-shi) 
+c         lh = lhm*(1.+mu*Sib/Tb) + (Tb+mu*Sib)*(shw-shi)
           m = -left2/lh
 
 c no salinity effects
@@ -1023,7 +1023,7 @@ c no salinity effects
           dmdSi = 0.
 c S thermo
 c         dmdTb = (left2*(-lhm*mu*Sib/Tb**2+shw-shi)-lh*(alamdh + rsg
-c    *       ))/(lh*lh) 
+c    *       ))/(lh*lh)
 c         dmdSi = (left2*mu*(lhm/Tb+shw-shi))/(lh*lh)
 
           if (qsfix) then   ! keep salinity in ice constant
@@ -1100,7 +1100,7 @@ C**** Assume constant g_T = 5d-5, g_S = 0.04 * g_T m/s
 !@var Tri,Trm tracer concentration in ice and mixed layer (kg/kg)
 !@var tralpha tracer fraction going into ice (1)
       real*8, dimension(ntm), intent(in) :: Trm,Tri,tralpha
-!@var trflux tracer mass flux at base 
+!@var trflux tracer mass flux at base
       real*8, dimension(ntm), intent(out) :: trflux
 !@var Trib tracer concentration at interface ice (kg/kg)
       real*8, dimension(ntm) :: Trib
@@ -1110,14 +1110,14 @@ C**** Diffusive flux is implicit in ice temperature
       alamdh = alami/(dh+alpha*dtsrc*byshi*alami/(2.*dh*rhoi))
 C**** calculate left hand side of equation 2
       left2 = -alamdh*Ti - rsg*Tm    !/(1.+alpha*dtsrc*rsg/mlsh)
-      if (left2.gt.0) then      ! freezing   
+      if (left2.gt.0) then      ! freezing
         lh = lhm
       else                      ! melting
         lh = lhm -  Ti*shi
       end if
 C**** define fluxes (positive down)
       m = -left2/lh
-C**** Cap mass flux at 90% of bottom layer 
+C**** Cap mass flux at 90% of bottom layer
       if (m.gt.0.9d0*2.*dh*rhoi/dtsrc) then
         m=0.9d0*2.*dh*rhoi/dtsrc
       end if
@@ -1137,7 +1137,7 @@ C****
       end subroutine icelake
 
       subroutine solar_ice_frac(snow,msi2,wetsnow,fsri,lmax)
-!@sum solar_ice_frac calculates the fraction of solar radiation 
+!@sum solar_ice_frac calculates the fraction of solar radiation
 !@+   transmitted through the ice, taking albedo into account, but
 !@+   assuming constant proportions of visible and near-ir.
 !@+   Based on Ebert et al, 1995.
@@ -1147,7 +1147,7 @@ C****
       real*8, parameter :: kiextvis=1.5d0, kiextnir1=18.d0
 !@var snow,msi2 snow and second layer ice amounts (kg/m^2)
       real*8, intent(in) :: snow,msi2
-!@var wetsnow =true if snow is wet      
+!@var wetsnow =true if snow is wet
       logical, intent(in) :: wetsnow
 !@var lmax number of ice layers to do calculation for
       integer, intent(in) :: lmax
@@ -1183,7 +1183,7 @@ c        FSRI(4) = FSRI(2)*EXP(-KIEXT*MSI2*BYRHOI)
 c**** Set fractions of visible and near-ir bands based on weighting the
 c**** solar input by the approximate co-albedo. Could possibly be
 c**** retreived from radiation code
-c**** VIS: 250 - 690 nm,       NIR1= 690 - 1119 nm   
+c**** VIS: 250 - 690 nm,       NIR1= 690 - 1119 nm
 c****         52%,     and          33% of incoming solar
 c**** NIR2/3 (> 1119 nm assumed not to be transmitted)
 c****
@@ -1193,7 +1193,7 @@ c**** Since albedo does as well, absorbed fractions also vary
         if (wetsnow) then
           fracvis =0.22d0 ;  fracnir1=0.32d0
           ksextvis=10.7d0 ; ksextnir1=118.d0
-        else 
+        else
           fracvis =0.07d0 ;  fracnir1=0.30d0
           ksextvis=19.6d0 ; ksextnir1=196.d0
         end if
@@ -1203,7 +1203,7 @@ c**** Since albedo does as well, absorbed fractions also vary
       end if
 
 C**** calculate sucessive fractions assuming each band is attenuated
-C**** independently. 
+C**** independently.
       if (ace1i*xsi(1).gt.snow*xsi(2)) then
 c**** First thermal layer is snow and ice
         hice(1)    = (ace1i-xsi(2)*(snow+ace1i))*byrhoi
@@ -1235,9 +1235,9 @@ c****
 !@auth Gavin Schmidt
       implicit none
 !@var sss sea surface salinity (psu)
-      real*8, intent(in) :: sss    
+      real*8, intent(in) :: sss
 !@var gauge pressure (default=0) (Pa)
-      real*8, intent(in), optional :: press 
+      real*8, intent(in), optional :: press
 !@var tfrez approx. freezing point of sea water (C)
       real*8 tfrez,pr
       real*8, parameter :: dtdp = -7.5d-8
@@ -1245,7 +1245,7 @@ c****
 
       pr=0.
       if (present(press)) pr=press
-C**** linear approximation 
+C**** linear approximation
       tfrez = -mu*sss + dtdp*pr
 C**** UNESCO formula (1983)
 c     tfrez = (a01 + a02*sss)*sss + a03*sss*sqrt(sss)+ dtdp*pr
@@ -1260,10 +1260,10 @@ c     tfrez = (a01 + a02*sss)*sss + a03*sss*sqrt(sss)+ dtdp*pr
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm
-      USE SEAICE, only : lmi
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
+      USE SEAICE, only : lmi
 
       IMPLICIT NONE
 !@var RSI fraction of open water area covered in ice
@@ -1359,12 +1359,14 @@ C**** albedo calculations
       USE CONSTANT, only : lhm,shi,rhow
       USE MODEL_COM
       USE GEOM, only : imaxj
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only : ntm, trname
+#endif
       USE SEAICE, only : lmi,xsi,ace1i
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi
-      USE TRACER_COM, only : ntm, trname
-#endif      
+#endif
       USE FLUXES
       IMPLICIT NONE
 
@@ -1377,7 +1379,7 @@ C**** albedo calculations
 #ifdef TRACERS_WATER
       integer :: imax,jmax, n
       real*8 relerr,errmax
-#endif      
+#endif
 
 C**** Check for NaN/INF in ice data
       CALL CHECK3(RSI,IM,JM,1,SUBR,'rsi')
@@ -1427,7 +1429,7 @@ c            QCHECKI = .TRUE.
 C**** Check conservation of water tracers in sea ice
       do n=1,ntm
         if (trname(n).eq.'Water') then
-          errmax = 0. ; imax=1 ; jmax=1 
+          errmax = 0. ; imax=1 ; jmax=1
           do j=1,jm
           do i=1,imaxj(j)
             if (rsi(i,j).gt.0) then
@@ -1436,7 +1438,7 @@ C**** Check conservation of water tracers in sea ice
      *             ))/trsi(n,1,i,j),abs(trsi(n,2,i,j)-(snowi(i,j)+ace1i)
      *             *xsi(2)+ssi(2,i,j))/trsi(n,2,i,j),abs(trsi(n,3,i,j)
      *             -msi(i,j)*xsi(3)+ssi(3,i,j))/trsi(n,3,i,j),abs(trsi(n
-     *             ,4,i,j)-msi(i,j)*xsi(4)+ssi(4,i,j))/trsi(n,4,i,j))  
+     *             ,4,i,j)-msi(i,j)*xsi(4)+ssi(4,i,j))/trsi(n,4,i,j))
               if (relerr.gt.errmax) then
                 imax=i ; jmax=j ; errmax=relerr
               end if

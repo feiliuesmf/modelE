@@ -35,10 +35,12 @@ C          ,UG,VG,WG,ZMIX
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
       USE MODEL_COM
      &     , only : IM,JM,LM, t,q,u,v,p,ptop,ls1,psf,itime
+      USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
       USE DYNAMICS, only : pmid,pk,pedn
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
-      USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
-      USE PBLCOM
+#ifdef TRACERS_ON
+      USE TRACER_COM, only : needtrs,itime_tr0
+#endif
       USE SOCPBL, only : uij=>u,vij=>v,tij=>t,qij=>q,eij=>e
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
@@ -50,8 +52,8 @@ C          ,UG,VG,WG,ZMIX
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q
 #ifdef TRACERS_ON
      &     ,trij=>tr
-      USE TRACER_COM, only : needtrs,itime_tr0
 #endif
+      USE PBLCOM
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
@@ -279,19 +281,19 @@ c  fields are obtained by solving the static equations of the
 c  Level 2 model. This is used when starting from a restart
 c  file that does not have this data stored.
 c -------------------------------------------------------------
+      USE FILEMANAGER
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
       USE MODEL_COM
       USE GEOM, only : idij,idjj,imaxj,kmaxj,rapj,cosiv,siniv,sinp
-      USE PBLCOM
       USE SOCPBL, only : npbl=>n,zgs,bgrid,inits,ccoeff0
      & ,  uinit=>u,vinit=>v,tinit=>t,qinit=>q,einit=>e
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
+      USE PBLCOM
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE SEAICE_COM, only : rsi
       USE FLUXES, only : gtemp
-      USE FILEMANAGER
 
       IMPLICIT NONE
 

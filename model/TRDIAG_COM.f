@@ -6,9 +6,9 @@
 !@+    Mostly tracer independent, but this may deped on applications
 !@auth Jean Lerner
 !ver   1.0
-      USE TRACER_COM, only: ntm, ntsurfsrcmax, nt3Dsrcmax
       USE MODEL_COM, only: im,jm,lm
       USE DAGCOM, only: npts !npts are conservation quantities
+      USE TRACER_COM, only: ntm, ntsurfsrcmax, nt3Dsrcmax
       IMPLICIT NONE
       SAVE
 
@@ -18,12 +18,12 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@dbparam to_volume_MixRat: For printout of tracer concentration
 !@+   to_volume_MixRat=1: printout is in Volume Mixing Ratio
 !@+   to_volume_MixRat=0: printout is in Mass Mixing Ratio
-      INTEGER, DIMENSION(NTM) :: to_volume_MixRat=0 
+      INTEGER, DIMENSION(NTM) :: to_volume_MixRat=0
 #ifdef TRACERS_WATER
 !@dbparam to_per_mil For printout of tracer concentration in permil
       INTEGER, DIMENSION(NTM) :: to_per_mil = 0
 #endif
-!@var MMR_to_VMR: converts tracer mass mixing ratio to volume mr 
+!@var MMR_to_VMR: converts tracer mass mixing ratio to volume mr
       REAL*8, DIMENSION(NTM) :: MMR_to_VMR
 
 C**** TAIJLN
@@ -52,10 +52,10 @@ C**** TAIJN
 #else
       integer, parameter :: ktaij=3
 #endif
-!@var IJT_XX names for taijn diagnostics 
+!@var IJT_XX names for taijn diagnostics
       integer tij_conc,tij_surf,tij_mass
 #ifdef TRACERS_WATER
-!@var IJT_XX names for water-based taijn diagnostics 
+!@var IJT_XX names for water-based taijn diagnostics
       integer tij_rvr,tij_seaice,tij_prec,tij_evap,tij_grnd
 #endif
 !@var TAIJN lat/lon tracer diagnostics (all tracers)
@@ -80,7 +80,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       character(len=80), dimension(ktaijs) :: lname_ijts = 'unused'
 !@var SCALE_IJTS: printout scaling factor for tracer IJTS diagnostics
       REAL*8, dimension(ktaijs) :: scale_ijts
-!@var IA_IJTS: idacc-number for tracer source/sink IJ diags 
+!@var IA_IJTS: idacc-number for tracer source/sink IJ diags
       integer ia_ijts(ktaijs)
 !@var ijts_power: power of 10 used for tracer IJ source/sink diags
       INTEGER, DIMENSION(ktaijs) :: ijts_power
@@ -88,7 +88,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER, DIMENSION(ktaijs) :: ijts_index
 
 C**** TAJLN
-!@parm ktajl,ktajlx number of TAJL tracer diagnostics; 
+!@parm ktajl,ktajlx number of TAJL tracer diagnostics;
 !@+          ktajlx includes composits
       INTEGER, PARAMETER :: ktajl=8, ktajlx=ktajl+2
 !@var TAJLN  vertical tracer diagnostics (all tracers)
@@ -125,7 +125,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, DIMENSION(NTM) :: jls_decay
 !@var jls_grav tracer independent array for grav. settling sink
       INTEGER, DIMENSION(NTM) :: jls_grav
-!@var jls_index: Number of source/sink tracer JL diagnostics/tracer 
+!@var jls_index: Number of source/sink tracer JL diagnostics/tracer
       integer, dimension(ktajls) :: jls_index
 !@var SNAME_JLS: Names of lat-sigma tracer JL sources/sinks
       character(len=30), dimension(ktajls) :: sname_jls
@@ -163,7 +163,7 @@ C**** TCONSRV
 !@var kt_power_inst,kt_power_change: Exponents for tracer conservation
       INTEGER, DIMENSION(ntm) :: kt_power_inst,kt_power_change
 !@var name_tconsrv,lname_tconsrv,units_tconsrv: for tracer conservation
-      character(len=20), dimension(ktcon,ntm) :: 
+      character(len=20), dimension(ktcon,ntm) ::
      &   name_tconsrv,units_tconsrv
       character(len=80), dimension(ktcon,ntm) :: lname_tconsrv
 !@var SCALE_INST,SCALE_CHANGE: Scale factors for tracer conservation
@@ -184,8 +184,8 @@ C**** TCONSRV
 C----------------------------------------------------
 !@param KTACC total number of tracer diagnostic words
 !@var TACC: Contains all tracer diagnostic accumulations
-      INTEGER, PARAMETER :: 
-     *  ktacc=IM*JM*LM*NTM + IM*JM*ktaij*NTM + IM*JM*ktaijs + 
+      INTEGER, PARAMETER ::
+     *  ktacc=IM*JM*LM*NTM + IM*JM*ktaij*NTM + IM*JM*ktaijs +
      *        JM*LM*ktajlx*NTM + JM*LM*ktajls + JM*NTM*ktcon
       COMMON /TACCUM/ TAIJLN,TAIJN,TAIJS,TAJLN,TAJLS,TCONSRV
       REAL*8, DIMENSION(KTACC) :: TACC
@@ -200,10 +200,10 @@ C----------------------------------------------------
 !@ver  1.0
       USE CONSTANT, only: sday
       USE MODEL_COM, only: dtsrc,nfiltr
+      USE DAGCOM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src,CONPT
       USE TRACER_DIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
      *     ,nofmt,ia_tcon,name_tconsrv,lname_tconsrv,units_tconsrv
      *     ,ntcons
-      USE DAGCOM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src,CONPT
       IMPLICIT NONE
 !@var QCON denotes at which points conservation diags are saved
       LOGICAL, INTENT(IN),DIMENSION(ktcon-1) :: QCON
@@ -238,7 +238,7 @@ C**** remove spaces in NAME_CON for netcdf names
 C****
       NI=1
       NOFMT(1,itr) = NI
-      TITLE_TCON(NI,itr) = 
+      TITLE_TCON(NI,itr) =
      *     "0INSTANT "//TRIM(NAME_CON)//" "//TRIM(INST_UNIT)
       SCALE_TCON(NI,itr) = INST_SC
       name_tconsrv(NI,itr) ="inst_"//sname

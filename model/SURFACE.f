@@ -13,16 +13,23 @@
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,itime,jhour,sige,byim,itocean
      *     ,itoice,itlake,itlkice,itlandi,qcheck
-      USE SOMTQ_COM, only : tmom,qmom,mz,nmom
       USE GEOM, only : dxyp,imaxj,bydxyp
+      USE SOMTQ_COM, only : tmom,qmom,mz,nmom
+      USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij,am,byam
       USE RADNCB, only : trhr,fsf,cosz1
-      USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
-     &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
-     &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg
+#ifdef TRACERS_ON
+      USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
+#ifdef TRACERS_WATER
+     *     ,nWATER,nGAS,nPART,tr_wd_TYPE,trname,trw0
+#endif
+#endif
 C**** Interface to PBL
       USE SOCPBL, only : zgs,ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
      &     ,US,VS,WS,WSH,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
      &     ,UG,VG,WG,ZMIX
+      USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
+     &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
+     &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg
       USE PBL_DRV, only : pbl,evap_max,fr_sat
 #ifdef TRACERS_WATER
      *     ,tr_evap_max
@@ -38,12 +45,11 @@ C**** Interface to PBL
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
      *     ,idd_ev,idd_ldc,idd_dcf
-      USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij,am,byam
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
-      USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws
       USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,
      *     solar_ice_frac
+      USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws
       USE LAKES_COM, only : mwl,mldlk,gml,flake
       USE LAKES, only : minmld
       USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe
@@ -52,10 +58,6 @@ C**** Interface to PBL
      *     ,trsrfflx,trsource
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer
-#endif
-      USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
-#ifdef TRACERS_WATER
-     *     ,nWATER,nGAS,nPART,tr_wd_TYPE,trname,trw0
 #endif
       USE TRACER_DIAG_COM, only : taijn,tij_surf
 #ifdef TRACERS_WATER
@@ -355,10 +357,10 @@ C****
 C**** Set up b.c. for tracer PBL calculation if required
       do nx=1,ntx
         n=ntix(nx)
-C**** Set surface boundary conditions for tracers depending on whether they
-C**** are water or another type of tracer
+C**** Set surface boundary conditions for tracers depending on whether
+C**** they are water or another type of tracer
 #ifdef TRACERS_WATER
-        tr_evap_max(nx)=1.  
+        tr_evap_max(nx)=1.
 C**** The select is used to distinguish water from gases or particle
         select case (tr_wd_TYPE(n))
         case (nWATER)
@@ -388,7 +390,7 @@ C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
           end do
           trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
 #ifdef TRACERS_WATER
-        end select 
+        end select
 #endif
       end do
 #endif

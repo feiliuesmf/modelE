@@ -281,19 +281,19 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 !@auth Original Development Team
 !@ver  1.0
 !@calls RE001:RCOMP1
+      USE FILEMANAGER
+      USE PARAM
       USE CONSTANT, only : grav,bysha,twopi
       USE MODEL_COM, only : jm,lm,ls1,dsig,sige,psfmpt,ptop,dtsrc,nrad
      *     ,kradia
       USE GEOM, only : dlat,lat_dg
+      USE RE001, only : setnew,rcomp1,writer             ! routines
+     &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLE=>PLB, PTOPTR
+     *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, QL=>SHL
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,llow,lmid,lhi,coe,sinj,cosj,H2ObyCH4,dH2O
      *     ,ple0,ql0  ! saved to avoid OMP-copyin of input arrays
-      USE RE001, only : setnew,rcomp1,writer             ! routines
-     &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLE=>PLB, PTOPTR
-     *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, QL=>SHL
-      USE FILEMANAGER
-      USE PARAM
       IMPLICIT NONE
 
       INTEGER J,L,LR,MADVEL
@@ -398,7 +398,7 @@ C**** New options (currently not used)
       KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme
 !!!   KVEGA6=-3  ! 2-band albedo, Antarc/Greenl alb=.8, puddling :SI2000
 !!!   KVEGA6=-2  ! 2-band albedo, Antarc/Greenl alb=.8, no puddling
-!!!   KVEGA6=-1  ! 2-band albedo - no 'fixups'                    
+!!!   KVEGA6=-1  ! 2-band albedo - no 'fixups'
       KVEGA6= 0  ! Schramm oi.alb, Antarc/Greenl alb=.8, no puddling
 !!!   KVEGA6= 1  ! 6-band albedo - no 'fixups'
 !!!   KVEGA6= 2  ! 6-band albedo, Antarc/Greenl alb=.8, no puddling
@@ -463,8 +463,6 @@ C****
      *     ,kapa
       USE MODEL_COM
       USE GEOM
-      USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
-     *     ,llow,lmid,lhi,coe,ple0,ql0,tchg
       USE RE001
      &  , only : writer,rcompx,rcompt ! routines
      &          ,lx  ! for threadprivate copyin common block
@@ -483,6 +481,8 @@ C     OUTPUT DATA
      &          ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
      &          ,SRRVIS ,SRAVIS ,SRRNIR ,SRANIR
      &          ,BTEMPW
+      USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
+     *     ,llow,lmid,lhi,coe,ple0,ql0,tchg
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss
@@ -499,8 +499,8 @@ C     OUTPUT DATA
      *     ,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld,ij_frmp
      *     ,AFLX_ST
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
-      USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
       USE SEAICE, only : rhos,ace1i,rhoi
+      USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
       USE GHYCOM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
      *     ,aiearth
       USE LANDICE_COM, only : snowli_com=>snowli

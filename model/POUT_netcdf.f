@@ -555,8 +555,8 @@ C**** set dimensions
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : sig,sige
-      USE DAGCOM, only : plm,ple,ple_dn
       USE GEOM, only : lon_dg
+      USE DAGCOM, only : plm,ple,ple_dn
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name

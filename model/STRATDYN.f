@@ -17,17 +17,17 @@ C****  ii) PK type variables should be done in dynamics and used here
       REAL*8, DIMENSION(2) :: XCDNST(2)
 !@dbparam CMTN parameter for GW MTN drag (in param. database)
 !@dbparam CDEF parameter for GW DEF drag (in param. database)
-!@dbparma CMC parameter for GW M. Convective drag (in param. database) 
+!@dbparma CMC parameter for GW M. Convective drag (in param. database)
 C**** (used to be FMC)
-      REAL*8 :: CMTN = .5, CDEF = 3., CMC = 2d-7 
+      REAL*8 :: CMTN = .5, CDEF = 3., CMC = 2d-7
 !@dbparam PBREAK p. level above which GW drag acts (in param. database)
       REAL*8 :: PBREAK = 500.   ! default is 500mb
 !@dbparam DEFTHRESH threshold for deformation wave (1/s)
       REAL*8 :: DEFTHRESH = 15d-6  ! default is 15x10^-6 s^-1
 !@dbparam PBREAKTOP p. level to force GW breaking in top layer
 C**** This should be set to 100. (or something similar) to force
-C**** breaking of remaining gravity waves in top layer. Otherwise, 
-C**** momentum passes through model top. 
+C**** breaking of remaining gravity waves in top layer. Otherwise,
+C**** momentum passes through model top.
       REAL*8 :: PBREAKTOP = 0.05d0   ! default is 0.05mb
 
 !@var ZVART,ZVARX,ZVARY,ZWT topogrpahic variance
@@ -45,7 +45,7 @@ C**** (must be in common due to read statement)
 !@dbparam QGWSHR =1 turns on GW Shear drag terms
 !@dbparam QGWDEF =1 turns on GW Deformation drag terms
 !@dbparam QGWCNV =1 turns on GW Convective drag terms
-      INTEGER :: QGWMTN = 1, QGWSHR = 1, QGWDEF = 1, QGWCNV = 1 
+      INTEGER :: QGWMTN = 1, QGWSHR = 1, QGWDEF = 1, QGWCNV = 1
 
 !@var PK local P**Kapa array - should be done by DYNAMICS?
       REAL*8, DIMENSION(IM,JM,LM) :: PK
@@ -60,16 +60,16 @@ C**** (must be in common due to read statement)
       SUBROUTINE init_GWDRAG
 !@sum init_GWDRAG
 !@auth Jean Lerner
-C**** DO_GWDRAG=true activates the printing of the diagnostics 
+C**** DO_GWDRAG=true activates the printing of the diagnostics
 C**** accumulated in the routines contained herein
-      USE CONSTANT, only : twopi,kapa
-      USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
-     *     ,ld2,lshr,ldef,ldefm,zvarx,zvary,zvart,zwt,pks,nm,ek, cmtn,
-     *     cdef,cmc,pbreak,pbreaktop,defthresh
-      USE MODEL_COM, only : im,jm,lm,ls1,do_gwdrag,ptop,sig,psfmpt,sige
-      USE GEOM, only : areag,dxyv
       USE FILEMANAGER
       USE PARAM
+      USE CONSTANT, only : twopi,kapa
+      USE MODEL_COM, only : im,jm,lm,ls1,do_gwdrag,ptop,sig,psfmpt,sige
+      USE GEOM, only : areag,dxyv
+      USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
+     *     ,ld2,lshr,ldef,ldefm,zvarx,zvary,zvart,zwt,pks,nm,ek, cmtn
+     *     ,cdef,cmc,pbreak,pbreaktop,defthresh
       IMPLICIT NONE
       REAL*8 PLEV,PLEVE,EKS,EK1,EK2,EKX
       INTEGER I,J,L,iu_zvar
@@ -161,9 +161,9 @@ C****
       USE CONSTANT, only : rgas,grav,twopi,kapa
       USE MODEL_COM, only : im,jm,lm,psfmpt,sig,ptop,ls1
      *     ,sige,mrch
+      USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj,rapvn,rapvs,dxyv
       USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
      *     vsurf=>vsavg
-      USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj,rapvn,rapvs,dxyv
       USE DAGCOM, only : ajl,jl_dudtsdif
       USE STRAT, only : defrm,pk
       IMPLICIT NONE
@@ -225,7 +225,7 @@ C****
       I=IM
       DO 300 IP1=1,IM
 C**** Surface values are used for F(0)
-C**** Note area weighting for four point means 
+C**** Note area weighting for four point means
       PIJ=(P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)+(P(I,J)+P(IP1,J))*RAPVS(J)
       PL(0)=(PIJ+PTOP)
       UL(0)=(USURF(I  ,J-1) + USURF(IP1,J-1))*RAPVN(J-1) +
@@ -292,7 +292,7 @@ C**** Update model winds
         END DO
       END DO
   300 I=IP1
-C**** conservation diagnostic 
+C**** conservation diagnostic
       IF (MRCH.gt.0) CALL DIAGCD (6,UT,VT,DUT,DVT,DT1)
 
       RETURN
@@ -419,9 +419,9 @@ C****
       USE CONSTANT, only : grav,sha,twopi,kapa,rgas
       USE MODEL_COM, only : im,jm,lm,byim,airx,lmc,nidyn,sig,sige
      *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
-      USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm,
-     *     ,lbreak,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv,
-     *     cmtn,cdef,cmc,pbreaktop,defthresh
+      USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm
+     *     ,lbreak,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv
+     *     ,cmtn,cdef,cmc,pbreaktop,defthresh
 C**** Do I need to put the common decalaration here also?
       USE GEOM, only : dxyv,bydxyv,fcor,imaxj,ravpn,ravps,rapvn,rapvs
       USE DAGCOM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
@@ -591,7 +591,7 @@ C**** DEFORMATION WAVE (X    d cm-2)
       IF (QGWDEF.eq.1) THEN
         IF (ZATMO(I,J)/GRAV.GT.1000.) GO TO 155
         IF (DEFRM(I,J).LT. DEFTHRESH) GO TO 155 !  deform. Threshold
-        FDEFRM=- CDEF*GRAV/(1000.*DEFTHRESH)*DEFRM(I,J)   
+        FDEFRM=- CDEF*GRAV/(1000.*DEFTHRESH)*DEFRM(I,J)
         DU=UL(LDEF +1)-UL(LDEF )
         DV=VL(LDEF +1)-VL(LDEF )
         DW=SQRT(DU**2        + DV**2       )
@@ -931,7 +931,7 @@ C**** END OF LOOP OVER I,J
   500 I=IP1
 C****
       IF (MRCH.EQ.2) THEN
-C**** conservation diagnostic 
+C**** conservation diagnostic
         CALL DIAGCD (6,UT,VT,DUT3,DVT3,DT1)
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
         DO L=LDRAG-1,LM
