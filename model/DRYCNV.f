@@ -22,7 +22,6 @@
 
       integer, intent(in) :: LBASE_MIN,LBASE_MAX
       real*8, intent(in) :: dtime  ! dummy variable
-!23456789012345678901234567890123456789012345678901234567890123456789012
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LM) :: 
      &        UT,VT
       REAL*8, DIMENSION(LM) :: DP

@@ -38,7 +38,7 @@ C**** rheology calculations without changing ADVSI grid.
       integer :: NPOL=1,LCYC=1
 
 !@var FOCEAN land/ocean mask on ice dynamic grid
-      REAL*8, DIMENSION(NX1-2,NY1) :: FOCEAN
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: FOCEAN
 
 C**** input
 !@var HEFFM ice mass mask (1/0)
@@ -62,20 +62,20 @@ C**** internal variables
 C**** output
 !@var DWATN non-linear water drag term
 !@var DMU,DMV ice-ocean stress
-      REAL*8, DIMENSION(NX1,NY1) :: PRESS,HEFFM,UVM,DWATN,COR
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: PRESS,HEFFM,UVM,DWATN,COR
      *     ,ZMAX,ZMIN,ETA,ZETA,DRAGS,DRAGA,GAIRX,GAIRY
      *     ,GWATX,GWATY,PGFUB,PGFVB,FORCEX,FORCEY,AMASS,UICEC,VICEC,UIB
      *     ,VIB,DMU,DMV,HEFF,AREA
-      REAL*8, DIMENSION(NX1,NY1,3) :: UICE,VICE
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: UICE,VICE
 C**** Geometry 
 !@var SINEN sin(phi)
 !@var BYDXDY 
 !@var DXT,DXU x-direction distances on tracer and velocity grid
 !@var DYT,DYU y-direction distances on tracer and velocity grid
-      REAL*8, DIMENSION(NX1,NY1) :: SINEN,BYDXDY
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: SINEN,BYDXDY
       REAL*8, DIMENSION(NX1) :: DXT,DXU,BYDX2,BYDXR
-      REAL*8, DIMENSION(NY1) :: DYT,DYU,BYDY2,BYDYR,CST,CSU,TNGT,TNG
-     *     ,BYCSU
+      REAL*8, DIMENSION(:), ALLOCATABLE :: DYT,DYU,BYDY2,BYDYR,CST,
+     &                                     CSU,TNGT,TNG,BYCSU
 
 !@var OIPHI ice-ocean turning angle (25 degrees)
 !@var ECCEN value of eccentricity for yield curve ellipse
@@ -91,30 +91,110 @@ C**** Geometry
 
       CONTAINS
 
+      SUBROUTINE INIT_ICEDYN(grid)
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+
+      INTEGER :: I_0H, I_1H, J_1H, J_0H
+      INTEGER :: IER
+
+      INTEGER :: I,J,L
+
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+      J_0H = grid%J_STRT_HALO
+      J_1H = grid%J_STOP_HALO
+
+      ALLOCATE( FOCEAN(NX1-2,J_0H:J_1H),
+     $   STAT = IER)
+
+      ALLOCATE(  PRESS(NX1,J_0H:J_1H),
+     &           HEFFM(NX1,J_0H:J_1H),
+     &           UVM(NX1,J_0H:J_1H),
+     &           DWATN(NX1,J_0H:J_1H),
+     &           COR(NX1,J_0H:J_1H),
+     *           ZMAX(NX1,J_0H:J_1H),
+     &           ZMIN(NX1,J_0H:J_1H),
+     &           ETA(NX1,J_0H:J_1H),
+     &           ZETA(NX1,J_0H:J_1H),
+     &           DRAGS(NX1,J_0H:J_1H),
+     &           DRAGA(NX1,J_0H:J_1H),
+     &           GAIRX(NX1,J_0H:J_1H),
+     &           GAIRY(NX1,J_0H:J_1H),
+     *           GWATX(NX1,J_0H:J_1H),
+     &           GWATY(NX1,J_0H:J_1H),
+     &           PGFUB(NX1,J_0H:J_1H),
+     &           PGFVB(NX1,J_0H:J_1H),
+     &           FORCEX(NX1,J_0H:J_1H),
+     &           FORCEY(NX1,J_0H:J_1H),
+     &           AMASS(NX1,J_0H:J_1H),
+     &           UICEC(NX1,J_0H:J_1H),
+     &           VICEC(NX1,J_0H:J_1H),
+     &           UIB(NX1,J_0H:J_1H),
+     *           VIB(NX1,J_0H:J_1H),
+     &           DMU(NX1,J_0H:J_1H),
+     &           DMV(NX1,J_0H:J_1H),
+     &           HEFF(NX1,J_0H:J_1H),
+     &           AREA(NX1,J_0H:J_1H),
+     $   STAT = IER)
+      ALLOCATE( UICE(NX1,J_0H:J_1H,3),
+     &          VICE(NX1,J_0H:J_1H,3),
+     $   STAT = IER)
+C**** Geometry
+      ALLOCATE( SINEN(NX1,J_0H:J_1H),
+     &          BYDXDY(NX1,J_0H:J_1H),
+     $   STAT = IER)
+
+      ALLOCATE ( DYT(J_0H:J_1H),
+     &           DYU(J_0H:J_1H),
+     &           BYDY2(J_0H:J_1H),
+     &           BYDYR(J_0H:J_1H),
+     &           CST(J_0H:J_1H),
+     &           CSU(J_0H:J_1H),
+     &           TNGT(J_0H:J_1H),
+     &           TNG(J_0H:J_1H),
+     &           BYCSU(J_0H:J_1H),
+     $   STAT = IER)
+
+      RETURN
+      END SUBROUTINE INIT_ICEDYN
+
       SUBROUTINE FORM
 !@sum  FORM calculates ice dynamics input parameters for relaxation
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
+      USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, CHECKSUM
+
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 AAA
+      INTEGER :: J_0,J_1,J_0S,J_1S,J_0STG,J_1STG
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
+
 C****
 C**** Set up non linear water drag
 C****
-      DO J=1,NY1-1
+       DO J=J_0,J_1S
       DO I=1,NX1-1
         DWATN(I,J)=5.5*SQRT((UICE(I,J,1)-GWATX(I,J))**2
      1       +(VICE(I,J,1)-GWATY(I,J))**2)
       END DO
       END DO
 C NOW SET UP SYMMETRIC DRAG
-      DO J=1,NY1-1
+       DO J=J_0,J_1S
       DO I=1,NX1-1
         DRAGS(I,J)=DWATN(I,J)*COSWAT
       END DO
       END DO
 C NOW SET UP ANTI SYMMETRIC DRAG PLUS CORIOLIS
-      DO J=1,NY1
+       DO J=J_0,J_1
       DO I=1,NX1
         IF(J.GT.NY1/2) THEN
           DRAGA(I,J)=DWATN(I,J)*SINWAT+COR(I,J)
@@ -124,7 +204,7 @@ C NOW SET UP ANTI SYMMETRIC DRAG PLUS CORIOLIS
       END DO
       END DO
 C NOW SET UP FORCING FIELD
-      DO J=1,NY1
+       DO J=J_0,J_1
       DO I=1,NX1
 
 C FIRST DO WIND
@@ -158,7 +238,7 @@ C**** Otherwise estimate tilt using geostrophy
       END DO
 
 C NOW SET UP ICE PRESSURE AND VISCOSITIES
-      DO J=1,NY1
+       DO J=J_0,J_1
       DO I=1,NX1
         PRESS(I,J)=PSTAR*HEFF(I,J)*EXP(-20.0*(1.0-AREA(I,J)))
         ZMAX(I,J)=(5d12/2d4)*PRESS(I,J)
@@ -169,25 +249,27 @@ c       ZMIN(I,J)=0.0D+00
 
       CALL PLAST
 
-      AAA=0.0
-      DO I=2,NX1-1
-        AAA=AAA+PRESS(I,NY1-1)
-      END DO
-      AAA=AAA/FLOAT(NX1-2)
-      DO I=1,NX1
-        PRESS(I,NY1)=AAA
-      END DO
+      if (grid%HAVE_NORTH_POLE) then
+       AAA=0.0
+       DO I=2,NX1-1
+         AAA=AAA+PRESS(I,NY1-1)
+       END DO
+       AAA=AAA/FLOAT(NX1-2)
+       DO I=1,NX1
+         PRESS(I,NY1)=AAA
+       END DO
+      end if
 
  8481 CONTINUE
 
-      DO J=1,NY1
+       DO J=J_0,J_1
         PRESS(1,J)=PRESS(NX1-1,J)
         PRESS(NX1,J)=PRESS(2,J)
       END DO
 
 C NOW SET VISCOSITIES AND PRESSURE EQUAL TO ZERO AT OUTFLOW PTS
 
-      DO J=1,NY1
+       DO J=J_0,J_1
       DO I=1,NX1
         PRESS(I,J)=PRESS(I,J)*HEFFM(I,J)
         ETA(I,J)=ETA(I,J)*HEFFM(I,J)
@@ -196,17 +278,20 @@ C NOW SET VISCOSITIES AND PRESSURE EQUAL TO ZERO AT OUTFLOW PTS
       END DO
 
 C NOW CALCULATE PRESSURE FORCE AND ADD TO EXTERNAL FORCE
-      DO J=1,NY1-1
-      DO I=1,NX1-1
-      FORCEX(I,J)=FORCEX(I,J)-(0.25/(DXU(I)*CSU(J)))
-     1  *(PRESS(I+1,J)+PRESS(I+1,J+1)-PRESS(I,J)-PRESS(I,J+1))
-      FORCEY(I,J)=FORCEY(I,J)-0.25/DYU(J)
-     1  *(PRESS(I,J+1)+PRESS(I+1,J+1)-PRESS(I,J)-PRESS(I+1,J))
+C**** Update halo of PRESS for distributed memory implementation
+      CALL CHECKSUM(grid, PRESS,  __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, PRESS, FROM=NORTH)
+       DO J=J_0,J_1S
+        DO I=1,NX1-1
+          FORCEX(I,J)=FORCEX(I,J)-(0.25/(DXU(I)*CSU(J)))
+     1     *(PRESS(I+1,J)+PRESS(I+1,J+1)-PRESS(I,J)-PRESS(I,J+1))
+          FORCEY(I,J)=FORCEY(I,J)-0.25/DYU(J)
+     1     *(PRESS(I,J+1)+PRESS(I+1,J+1)-PRESS(I,J)-PRESS(I+1,J))
 C NOW PUT IN MINIMAL MASS FOR TIME STEPPING CALCULATIONS
-      END DO
-      END DO
+         END DO
+       END DO
 
-      DO J=1,NY1
+       DO J=J_0,J_1
         FORCEX(1,J)=FORCEX(NX1-1,J)
         FORCEY(1,J)=FORCEY(NX1-1,J)
         FORCEX(NX1,J)=FORCEX(2,J)
@@ -220,15 +305,31 @@ C NOW PUT IN MINIMAL MASS FOR TIME STEPPING CALCULATIONS
 !@sum  PLAST Calculates strain rates and viscosity for dynamic ice
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
+      USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, CHECKSUM
       IMPLICIT NONE
-      REAL*8, DIMENSION(NX1,NY1) :: E11,E22,E12
+      REAL*8, DIMENSION(NX1,grid%j_strt_halo:grid%j_stop_halo) 
+     &        :: E11,E22,E12
 c      REAL*8 :: SS11
       REAL*8, PARAMETER :: ECM2 = 1.0/(ECCEN**2),GMIN=1d-20
       REAL*8 DELT,DELT1,AAA
       INTEGER I,J
 
+      INTEGER :: J_0,J_1,J_0S,J_1S
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
+
+
 C EVALUATE STRAIN RATES
-      DO J=2,NY1-1
+      CALL CHECKSUM(grid, UICE, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, UICE, FROM=SOUTH)
+      CALL CHECKSUM(grid, VICE, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, VICE, FROM=SOUTH)
+      DO J=J_0S,J_1S
         DO I=2,NX1-1
           E11(I,J)=0.5/(DXT(I)*CST(J))*(UICE(I,J,1)+UICE(I,J-1,1)
      *         -UICE(I-1,J,1)-UICE(I-1,J-1,1))-0.25*(VICE(I,J,1)+
@@ -251,28 +352,30 @@ C NOW EVALUATE VISCOSITIES
       END DO
 
 C NOW PUT MIN AND MAX VISCOSITIES IN
-      DO J=1,NY1
+       DO J=J_0,J_1
         DO I=1,NX1
           ZETA(I,J)=MIN(ZMAX(I,J),ZETA(I,J))
           ZETA(I,J)=MAX(ZMIN(I,J),ZETA(I,J))
         END DO
       END DO
 
-      AAA=0.0
-      DO I=2,NX1-1
-        AAA=AAA+ZETA(I,NY1-1)
-      END DO
-      AAA=AAA/FLOAT(NX1-2)
-      DO I=1,NX1
-        ZETA(I,NY1)=AAA
-      END DO
+      if (grid%HAVE_NORTH_POLE) then
+        AAA=0.0
+        DO I=2,NX1-1
+          AAA=AAA+ZETA(I,NY1-1)
+        END DO
+        AAA=AAA/FLOAT(NX1-2)
+        DO I=1,NX1
+          ZETA(I,NY1)=AAA
+        END DO
+       end if
 
-      DO J=1,NY1
+       DO J=J_0,J_1
         ZETA(1,J)=ZETA(NX1-1,J)
         ZETA(NX1,J)=ZETA(2,J)
       END DO
 
-      DO J=1,NY1
+       DO J=J_0,J_1
         DO I=1,NX1
           ETA(I,J)=ECM2*ZETA(I,J)
 c         E11(I,J)=E11(I,J)*HEFFM(I,J)
@@ -288,17 +391,39 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
 !@sum  RELAX calculates ice dynamics relaxation method
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
+      USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, CHECKSUM
       IMPLICIT NONE
-      REAL*8, DIMENSION(NX1,NY1) :: AU,BU,CU,FXY,FXY1
-      REAL*8, DIMENSION(NY1,NX1) :: AV,BV,CV,FXYa,FXY1a
+
+      REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+     &         AU,BU,CU,FXY,FXY1
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,NX1) :: 
+     &         AV,BV,CV,FXYa,FXY1a
       REAL*8, DIMENSION(NX1) :: CUU,URT         !CUU,
-      REAL*8, DIMENSION(NY1) :: CVV,VRT,U_tmp   !CVV,
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+     &         CVV,VRT,U_tmp                     !CVV,
       REAL*8, PARAMETER :: BYRAD2 = 1./(RADIUS*RADIUS)
       INTEGER I,J,J1,J2,IMD,JMD
       REAL*8 DELXY,DELXR,DELX2,DELY2,DELYR,ETAMEAN,ZETAMEAN,AA1,AA2
      *     ,AA3,AA4,AA5,AA6,AA9
 
-      DO J=1,NY1
+      INTEGER :: J_0,J_1,J_0S,J_1S,J_0STG,J_1STG
+
+C**** Replaces NYPOLE in loops. 
+      INTEGER :: J_NYP 
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
+
+C****
+C**** Modify if NYPOLE definition is modified.
+C****
+      J_NYP=J_1S
+
+       DO J=J_0,J_1
         DO I=1,NX1
           FORCEX(I,J)=FORCEX(I,J)*UVM(I,J)
           FORCEY(I,J)=FORCEY(I,J)*UVM(I,J)
@@ -306,7 +431,7 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
       END DO
 C MUST UPDATE HEFF BEFORE CALLING RELAX
 C FIRST SET U(2)=U(1)
-      DO J=1,NY1
+       DO J=J_0,J_1
         DO I=1,NX1
 C NOW MAKE SURE BDRY PTS ARE EQUAL TO ZERO
           UICE(I,J,2)=UICE(I,J,1)
@@ -316,46 +441,60 @@ C NOW MAKE SURE BDRY PTS ARE EQUAL TO ZERO
         END DO
       END DO
 
-      DO I=1,NX1/2
-      UICE(I,NY1,1)=-UICEC(I+(NX1-2)/2,NY1-1)
-      VICE(I,NY1,1)=-VICEC(I+(NX1-2)/2,NY1-1)
-      UICE(I,NY1,3)=-UICEC(I+(NX1-2)/2,NY1-1)
-      VICE(I,NY1,3)=-VICEC(I+(NX1-2)/2,NY1-1)
+      if (grid%HAVE_NORTH_POLE) then
+        DO I=1,NX1/2
+         UICE(I,NY1,1)=-UICEC(I+(NX1-2)/2,NY1-1)
+         VICE(I,NY1,1)=-VICEC(I+(NX1-2)/2,NY1-1)
+         UICE(I,NY1,3)=-UICEC(I+(NX1-2)/2,NY1-1)
+         VICE(I,NY1,3)=-VICEC(I+(NX1-2)/2,NY1-1)
+  
+         UICEC(I,NY1)=-UICEC(I+(NX1-2)/2,NY1-1)
+         VICEC(I,NY1)=-VICEC(I+(NX1-2)/2,NY1-1)
+        END DO
+  
+        DO I=NX1/2+1,NX1-1
+         UICE(I,NY1,1)=-UICEC(I-(NX1-2)/2,NY1-1)
+         VICE(I,NY1,1)=-VICEC(I-(NX1-2)/2,NY1-1)
+         UICE(I,NY1,3)=-UICEC(I-(NX1-2)/2,NY1-1)
+         VICE(I,NY1,3)=-VICEC(I-(NX1-2)/2,NY1-1)
+  
+         UICEC(I,NY1)=-UICEC(I-(NX1-2)/2,NY1-1)
+         VICEC(I,NY1)=-VICEC(I-(NX1-2)/2,NY1-1)
+        END DO
+      end if
 
-      UICEC(I,NY1)=-UICEC(I+(NX1-2)/2,NY1-1)
-      VICEC(I,NY1)=-VICEC(I+(NX1-2)/2,NY1-1)
-      END DO
-
-      DO I=NX1/2+1,NX1-1
-      UICE(I,NY1,1)=-UICEC(I-(NX1-2)/2,NY1-1)
-      VICE(I,NY1,1)=-VICEC(I-(NX1-2)/2,NY1-1)
-      UICE(I,NY1,3)=-UICEC(I-(NX1-2)/2,NY1-1)
-      VICE(I,NY1,3)=-VICEC(I-(NX1-2)/2,NY1-1)
-
-      UICEC(I,NY1)=-UICEC(I-(NX1-2)/2,NY1-1)
-      VICEC(I,NY1)=-VICEC(I-(NX1-2)/2,NY1-1)
-      END DO
-
-      DO J=1,NY1
-      UICE(1,J,1)=UICEC(NX1-1,J)
-      VICE(1,J,1)=VICEC(NX1-1,J)
-      UICE(NX1,J,1)=UICEC(2,J)
-      VICE(NX1,J,1)=VICEC(2,J)
-      UICE(1,J,3)=UICEC(NX1-1,J)
-      VICE(1,J,3)=VICEC(NX1-1,J)
-      UICE(NX1,J,3)=UICEC(2,J)
-      VICE(NX1,J,3)=VICEC(2,J)
-
-      UICEC(1,J)=UICEC(NX1-1,J)
-      VICEC(1,J)=VICEC(NX1-1,J)
-      UICEC(NX1,J)=UICEC(2,J)
-      VICEC(NX1,J)=VICEC(2,J)
+      DO J=J_0,J_1
+        UICE(1,J,1)=UICEC(NX1-1,J)
+        VICE(1,J,1)=VICEC(NX1-1,J)
+        UICE(NX1,J,1)=UICEC(2,J)
+        VICE(NX1,J,1)=VICEC(2,J)
+        UICE(1,J,3)=UICEC(NX1-1,J)
+        VICE(1,J,3)=VICEC(NX1-1,J)
+        UICE(NX1,J,3)=UICEC(2,J)
+        VICE(NX1,J,3)=VICEC(2,J)
+  
+        UICEC(1,J)=UICEC(NX1-1,J)
+        VICEC(1,J)=VICEC(NX1-1,J)
+        UICEC(NX1,J)=UICEC(2,J)
+        VICEC(NX1,J)=VICEC(2,J)
       END DO
 
 C FIRST DO UICE
 C THE FIRST HALF
 
-      DO J=2,NYPOLE
+C**Update halos for arrays eta,zeta,vicec,bycsu as needed in the next loop
+      CALL CHECKSUM(grid, ETA, __LINE__, __FILE__)
+        CALL HALO_UPDATE(grid, ETA, FROM=NORTH)
+      CALL CHECKSUM(grid, ZETA, __LINE__, __FILE__)
+        CALL HALO_UPDATE(grid, ZETA, FROM=NORTH)
+      CALL CHECKSUM(grid, VICEC, __LINE__, __FILE__)
+        CALL HALO_UPDATE(grid, VICEC, FROM=NORTH)
+        CALL HALO_UPDATE(grid, VICEC, FROM=SOUTH)
+      CALL CHECKSUM(grid, BYCSU, __LINE__, __FILE__)
+        CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH)
+        CALL HALO_UPDATE(grid, BYCSU, FROM=SOUTH)
+
+      DO J=J_0S,J_NYP
       DO I=2,NXLCYC
       DELXY=BYDXDY(I,J)    ! 0.5/(DXU(I)*DYU(J))
       DELXR=BYDXR(I)       ! 0.5/(DXU(I)*RADIUS)
@@ -394,7 +533,7 @@ C THE FIRST HALF
       END DO
       END DO
 
-      DO J=2,NYPOLE
+      DO J=J_0S,J_NYP
       DO I=2,NXLCYC
       DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
       DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
@@ -414,13 +553,22 @@ C THE FIRST HALF
       CU(I,J)=-AA1*DELX2*UVM(I,J)
       END DO
       END DO
-      DO J=2,NYPOLE
+      DO J=J_0S,J_NYP
       AU(2,J)=0.0
       CU(NXLCYC,J)=0.0
 c      CU(2,J)=CU(2,J)/BU(2,J)  ! absorbed into TRIDIAG
       END DO
 
-      DO 1200 J=2,NYPOLE
+C**Update halos for UICE and TNG as needed for loop 1200
+C**(ETA and ZETA were updted above)
+      CALL CHECKSUM(grid, UICE, __LINE__, __FILE__)
+        CALL HALO_UPDATE(grid, UICE, FROM=SOUTH)
+        CALL HALO_UPDATE(grid, UICE, FROM=NORTH)
+      CALL CHECKSUM(grid, TNG, __LINE__, __FILE__)
+        CALL HALO_UPDATE(grid, TNG, FROM=SOUTH)
+        CALL HALO_UPDATE(grid, TNG, FROM=NORTH)
+
+      DO 1200 J=J_0S,J_NYP
       DO I=2,NXLCYC
 
       DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
@@ -477,76 +625,85 @@ c      END DO
  1200 CONTINUE
 
       DO I=2,NXLCYC
-      DO J=2,NYPOLE
+      DO J=J_0S,J_NYP
       UICE(I,J,3)=UICE(I,J,1)
       END DO
       END DO
 
+C**ETA, ZETA, and TNG halos already updated above**
 C NOW THE SECOND HALF
       DO I=2,NXLCYC
-      DO J=2,NYPOLE
-      DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
-      DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
-      DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
-      ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
-      ZETAMEAN=0.25*(ZETA(I,J+1)+ZETA(I+1,J+1)+ZETA(I,J)+ZETA(I+1,J))
+      DO J=J_0S,J_NYP
+       DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
+       DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
+       DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
+       ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
+       ZETAMEAN=0.25*(ZETA(I,J+1)+ZETA(I+1,J+1)+ZETA(I,J)+ZETA(I+1,J))
 
-      AA1=ETA(I,J+1)+ETA(I+1,J+1)
-      AA2=ETA(I,J)+ETA(I+1,J)
-      AA5=-(ETA(I,J+1)+ETA(I+1,J+1)-ETA(I,J)-ETA(I+1,J))*TNG(J)
-      AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
+       AA1=ETA(I,J+1)+ETA(I+1,J+1)
+       AA2=ETA(I,J)+ETA(I+1,J)
+       AA5=-(ETA(I,J+1)+ETA(I+1,J+1)-ETA(I,J)-ETA(I+1,J))*TNG(J)
+       AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
 
-      AV(J,I)=(-AA2*DELY2+ETAMEAN*DELYR*(TNG(J-1)-2.0*TNG(J)))*UVM(I,J)
-      BV(J,I)=((AA1+AA2)*DELY2+AA5*DELYR+AA6*BYRAD2
-     &+AMASS(I,J)*BYDTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
-      CV(J,I)=(-AA1*DELY2-ETAMEAN*DELYR*(TNG(J+1)-2.0*TNG(J)))*UVM(I,J)
+       AV(J,I)=(-AA2*DELY2+ETAMEAN*DELYR*(TNG(J-1)-2.0*TNG(J)))*UVM(I,J)
+       BV(J,I)=((AA1+AA2)*DELY2+AA5*DELYR+AA6*BYRAD2
+     & +AMASS(I,J)*BYDTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
+       CV(J,I)=(-AA1*DELY2-ETAMEAN*DELYR*(TNG(J+1)-2.0*TNG(J)))*UVM(I,J)
       END DO
       END DO
+
+      if (grid%HAVE_SOUTH_POLE) then
+        DO I=2,NXLCYC
+          AV(2,I)=0.0
+c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
+        END DO
+      end if
+
+      if (grid%HAVE_NORTH_POLE) then
+        DO I=2,NXLCYC
+          CV(NYPOLE,I)=0.0
+        END DO
+      end if
+
       DO I=2,NXLCYC
-      AV(2,I)=0.0
-      CV(NYPOLE,I)=0.0
-c      CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
-      END DO
+      DO J=J_0S,J_NYP
+        DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
+        DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
+        DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
+        ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
+  
+        AA1=((ETA(I+1,J)  +ZETA(I+1,J)  )*BYCSU(J)+
+     *      (ETA(I+1,J+1)+ZETA(I+1,J+1))*BYCSU(J))*BYCSU(J)
+        AA2=((ETA(I,J)+ZETA(I,J))*BYCSU(J)+(ETA(I,J+1)+ZETA(I,J+1))
+     &      *BYCSU(J))*BYCSU(J)
 
-      DO I=2,NXLCYC
-      DO J=2,NYPOLE
-      DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
-      DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
-      DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
-      ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
+        IF(J.EQ.NYPOLE) THEN
+          AA9=( (ETA(I,J+1)+ETA(I+1,J+1))*DELY2*UICEC(I,J+1)
+     &    +ETAMEAN*DELYR*(TNG(J+1)-2.0*TNG(J))*UICEC(I,J+1) )*UVM(I,J)
+     &       *FLOAT(NPOL-0)
+        ELSE
+          AA9=0.0
+        END IF
 
-      AA1=((ETA(I+1,J)  +ZETA(I+1,J)  )*BYCSU(J)+
-     *     (ETA(I+1,J+1)+ZETA(I+1,J+1))*BYCSU(J))*BYCSU(J)
-      AA2=((ETA(I,J)+ZETA(I,J))*BYCSU(J)+(ETA(I,J+1)+ZETA(I,J+1))
-     &     *BYCSU(J))*BYCSU(J)
-
-      IF(J.EQ.NYPOLE) THEN
-      AA9=( (ETA(I,J+1)+ETA(I+1,J+1))*DELY2*UICEC(I,J+1)
-     &     +ETAMEAN*DELYR*(TNG(J+1)-2.0*TNG(J))*UICEC(I,J+1) )*UVM(I,J)
-     &*FLOAT(NPOL-0)
-      ELSE
-      AA9=0.0
-      END IF
-
-      FXY1a(J,I)=AA9+AMASS(I,J)*BYDTS*UICE(I,J,1)*2.0
-     5-(AA1+AA2)*DELX2*UICE(I,J,1)
-     6+((ETA(I+1,J)+ZETA(I+1,J)+ETA(I+1,J+1)+ZETA(I+1,J+1))
-     6*UICE(I+1,J,1)
-     6+(ETA(I,J)+ZETA(I,J)+ETA(I,J+1)+ZETA(I,J+1))*UICE(I-1,J,1))
-     6*DELX2*BYCSU(J)*BYCSU(J)
+        FXY1a(J,I)=AA9+AMASS(I,J)*BYDTS*UICE(I,J,1)*2.0
+     5  -(AA1+AA2)*DELX2*UICE(I,J,1)
+     6  +((ETA(I+1,J)+ZETA(I+1,J)+ETA(I+1,J+1)+ZETA(I+1,J+1))
+     6  *UICE(I+1,J,1)
+     6  +(ETA(I,J)+ZETA(I,J)+ETA(I,J+1)+ZETA(I,J+1))*UICE(I-1,J,1))
+     6  *DELX2*BYCSU(J)*BYCSU(J)
 
       END DO
       END DO
 
       DO 1300 I=2,NXLCYC
-      DO J=2,NYPOLE
+      DO J=J_0S,J_NYP
       VRT(J)=FXY(I,J)+FXY1a(J,I)
       VRT(J)=VRT(J)*UVM(I,J)
       END DO
 
       CALL TRIDIAG(AV(2,I),BV(2,I),CV(2,I),VRT(2),U_tmp(2),NYPOLE-1)
 
-c      DO J=2,NYPOLE
+c      DO J=J_0S,J_NYP
 c      CVV(J)=CV(J,I)
 c      END DO
 c      VRT(2)=VRT(2)/BV(2,I)
@@ -560,7 +717,7 @@ c      J1=NYPOLE-J
 c      J2=J1+1
 c      VRT(J1)=VRT(J1)-CVV(J1)*VRT(J2)
 c      END DO
-      DO J=2,NYPOLE
+      DO J=J_0S,J_NYP
         UICE(I,J,1)=U_tmp(J)     ! VRT(J)   !
       END DO
  1300 CONTINUE
@@ -568,8 +725,11 @@ c      END DO
 C NOW DO VICE
 C THE FIRST HALF
 
+      CALL CHECKSUM(grid, UICEC, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, UICEC, FROM=NORTH)
+
       DO I=2,NXLCYC
-      DO J=2,NYPOLE
+      DO J=J_0S,J_NYP
       DELXY=BYDXDY(I,J)    ! 0.5/(DXU(I)*DYU(J))
       DELXR=BYDXR(I)       ! 0.5/(DXU(I)*RADIUS)
       DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
@@ -606,7 +766,7 @@ C THE FIRST HALF
       END DO
 
       DO I=2,NXLCYC
-      DO J=2,NYPOLE
+      DO J=J_0S,J_NYP
       DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
       DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
       DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
@@ -628,46 +788,54 @@ C THE FIRST HALF
      &+ETAMEAN*2.0*TNG(J)*DELYR)*UVM(I,J)
       END DO
       END DO
-      DO I=2,NXLCYC
-      AV(2,I)=0.0
-      CV(NYPOLE,I)=0.0
-c      CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
-      END DO
+
+      if (grid%HAVE_SOUTH_POLE) then
+        DO I=2,NXLCYC
+          AV(2,I)=0.0
+c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
+        END DO
+      end if
+
+      if (grid%HAVE_NORTH_POLE) then
+        DO I=2,NXLCYC
+          CV(NYPOLE,I)=0.0
+        END DO
+      end if
 
       DO 1301 I=2,NXLCYC
-      DO J=2,NYPOLE
-      DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
-      DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
-      DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
+      DO J=J_0S,J_NYP
+        DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
+        DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
+        DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
 
-      ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
-      ZETAMEAN=0.25*(ZETA(I,J+1)+ZETA(I+1,J+1)+ZETA(I,J)+ZETA(I+1,J))
+        ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
+        ZETAMEAN=0.25*(ZETA(I,J+1)+ZETA(I+1,J+1)+ZETA(I,J)+ZETA(I+1,J))
 
-      AA1=ETA(I,J+1)+ZETA(I,J+1)+ETA(I+1,J+1)+ZETA(I+1,J+1)
-      AA2=ETA(I,J)+ZETA(I,J)+ETA(I+1,J)+ZETA(I+1,J)
-      AA3=(ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*BYCSU(J)
-      AA4=(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*BYCSU(J)
-      AA5=((ZETA(I,J+1)-ETA(I,J+1))+(ZETA(I+1,J+1)-ETA(I+1,J+1))
-     &-(ZETA(I,J)-ETA(I,J))-(ZETA(I+1,J)-ETA(I+1,J)))*TNG(J)
-      AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
+        AA1=ETA(I,J+1)+ZETA(I,J+1)+ETA(I+1,J+1)+ZETA(I+1,J+1)
+        AA2=ETA(I,J)+ZETA(I,J)+ETA(I+1,J)+ZETA(I+1,J)
+        AA3=(ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*BYCSU(J)
+        AA4=(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*BYCSU(J)
+        AA5=((ZETA(I,J+1)-ETA(I,J+1))+(ZETA(I+1,J+1)-ETA(I+1,J+1))
+     &  -(ZETA(I,J)-ETA(I,J))-(ZETA(I+1,J)-ETA(I+1,J)))*TNG(J)
+        AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
 
-      IF(J.EQ.NYPOLE) THEN
-      AA9=(AA1*DELY2-(ZETAMEAN-ETAMEAN)*TNG(J+1)*DELYR
-     &-ETAMEAN*2.0*TNG(J)*DELYR)*VICEC(I,J+1)*UVM(I,J)*FLOAT(NPOL-0)
-      ELSE
-      AA9=0.0
-      END IF
+        IF(J.EQ.NYPOLE) THEN
+          AA9=(AA1*DELY2-(ZETAMEAN-ETAMEAN)*TNG(J+1)*DELYR
+     &    -ETAMEAN*2.0*TNG(J)*DELYR)*VICEC(I,J+1)*UVM(I,J)*FLOAT(NPOL-0)
+        ELSE
+          AA9=0.0
+        END IF
 
-      VRT(J)=AA9+FXYa(J,I)-(AA3+AA4)*DELX2*VICE(I,J,2)
-     6+((ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*VICE(I+1,J,2)*DELX2
-     7     +(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*VICE(I-1,J,2)*DELX2)
-     *     *BYCSU(J)
-      VRT(J)=(VRT(J)+AMASS(I,J)*BYDTS*VICE(I,J,2)*2.0)*UVM(I,J)
+        VRT(J)=AA9+FXYa(J,I)-(AA3+AA4)*DELX2*VICE(I,J,2)
+     6 +((ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*VICE(I+1,J,2)*DELX2
+     7    +(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*VICE(I-1,J,2)*DELX2)
+     *       *BYCSU(J)
+        VRT(J)=(VRT(J)+AMASS(I,J)*BYDTS*VICE(I,J,2)*2.0)*UVM(I,J)
       END DO
 
       CALL TRIDIAG(AV(2,I),BV(2,I),CV(2,I),VRT(2),U_tmp(2),NYPOLE-1)
 
-c      DO J=2,NYPOLE
+c      DO J=J_0S,J_NYP
 c      CVV(J)=CV(J,I)
 c      END DO
 c      VRT(2)=VRT(2)/BV(2,I)
@@ -681,111 +849,118 @@ c      J1=NYPOLE-J
 c      J2=J1+1
 c      VRT(J1)=VRT(J1)-CVV(J1)*VRT(J2)
 c      END DO
-      DO J=2,NYPOLE
+      DO J=J_0S,J_NYP
         VICE(I,J,1)=U_tmp(J)   ! VRT(J)   !
       END DO
  1301 CONTINUE
 
       DO I=2,NXLCYC
-      DO J=2,NYPOLE
-      VICE(I,J,3)=VICE(I,J,1)
-      END DO
+       DO J=J_0S,J_NYP
+        VICE(I,J,3)=VICE(I,J,1)
+       END DO
       END DO
 
 C NOW THE SECOND HALF
 
-      DO J=2,NYPOLE
+      DO J=J_0S,J_NYP
+       DO I=2,NXLCYC
+        DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
+        DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
+        DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
+        ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
+        ZETAMEAN=0.25*(ZETA(I,J+1)+ZETA(I+1,J+1)+ZETA(I,J)+ZETA(I+1,J))
+
+        AA1=ETA(I,J+1)+ZETA(I,J+1)+ETA(I+1,J+1)+ZETA(I+1,J+1)
+        AA2=ETA(I,J)+ZETA(I,J)+ETA(I+1,J)+ZETA(I+1,J)
+        AA3=(ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*BYCSU(J)
+        AA4=(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*BYCSU(J)
+        AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
+
+        AU(I,J)=-AA4*DELX2*UVM(I,J)
+        BU(I,J)=((AA3+AA4)*DELX2+AA6*BYRAD2
+     &  +AMASS(I,J)*BYDTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
+        CU(I,J)=-AA3*DELX2*UVM(I,J)
+       END DO
+      END DO
+
+      DO J=J_0S,J_NYP
+       AU(2,J)=0.0
+       CU(NXLCYC,J)=0.0
+c       CU(2,J)=CU(2,J)/BU(2,J)   ! absorbed into TRIDIAG
+      END DO
+
+      CALL CHECKSUM(grid, VICE, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, VICE, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, VICE, FROM=NORTH)
+
+      DO J=J_0S,J_NYP
       DO I=2,NXLCYC
-      DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
-      DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
-      DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
-      ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
-      ZETAMEAN=0.25*(ZETA(I,J+1)+ZETA(I+1,J+1)+ZETA(I,J)+ZETA(I+1,J))
 
-      AA1=ETA(I,J+1)+ZETA(I,J+1)+ETA(I+1,J+1)+ZETA(I+1,J+1)
-      AA2=ETA(I,J)+ZETA(I,J)+ETA(I+1,J)+ZETA(I+1,J)
-      AA3=(ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*BYCSU(J)
-      AA4=(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*BYCSU(J)
-      AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
+        DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
+        DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
+        DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
+        ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
+        ZETAMEAN=0.25*(ZETA(I,J+1)+ZETA(I+1,J+1)+ZETA(I,J)+ZETA(I+1,J))
 
-      AU(I,J)=-AA4*DELX2*UVM(I,J)
-      BU(I,J)=((AA3+AA4)*DELX2+AA6*BYRAD2
-     &+AMASS(I,J)*BYDTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
-      CU(I,J)=-AA3*DELX2*UVM(I,J)
-      END DO
-      END DO
-      DO J=2,NYPOLE
-      AU(2,J)=0.0
-      CU(NXLCYC,J)=0.0
-c      CU(2,J)=CU(2,J)/BU(2,J)   ! absorbed into TRIDIAG
-      END DO
+        AA1=ETA(I,J+1)+ZETA(I,J+1)+ETA(I+1,J+1)+ZETA(I+1,J+1)
+        AA2=ETA(I,J)+ZETA(I,J)+ETA(I+1,J)+ZETA(I+1,J)
+        AA3=(ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*BYCSU(J)
+        AA4=(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*BYCSU(J)
+        AA5=((ZETA(I,J+1)-ETA(I,J+1))+(ZETA(I+1,J+1)-ETA(I+1,J+1))
+     &  -(ZETA(I,J)-ETA(I,J))-(ZETA(I+1,J)-ETA(I+1,J)))*TNG(J)
+        AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
 
-      DO J=2,NYPOLE
-      DO I=2,NXLCYC
+        IF(I.EQ.2) THEN
+          AA9=AA4*DELX2*VICEC(I-1,J)*UVM(I,J)*FLOAT(LCYC-0)
+        ELSE IF(I.EQ.NXLCYC) THEN
+          AA9=AA3*DELX2*VICEC(I+1,J)*UVM(I,J)*FLOAT(LCYC-0)
+        ELSE
+          AA9=0.0
+        END IF
+        FXY1(I,J)=AA9+AMASS(I,J)*BYDTS*VICE(I,J,1)*2.0
+     1  -AA5*DELYR*VICE(I,J,1)
+     1  -(AA1+AA2)*DELY2*VICE(I,J,1)
+     1  +AA1*DELY2*VICE(I,J+1,1)-((ZETAMEAN-ETAMEAN)*TNG(J+1)*DELYR
+     1  +ETAMEAN*2.0*TNG(J)*DELYR)*VICE(I,J+1,1)
+     2  +AA2*DELY2*VICE(I,J-1,1)+((ZETAMEAN-ETAMEAN)*TNG(J-1)*DELYR
+     2  +ETAMEAN*2.0*TNG(J)*DELYR)*VICE(I,J-1,1)
 
-      DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
-      DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
-      DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
-      ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
-      ZETAMEAN=0.25*(ZETA(I,J+1)+ZETA(I+1,J+1)+ZETA(I,J)+ZETA(I+1,J))
-
-      AA1=ETA(I,J+1)+ZETA(I,J+1)+ETA(I+1,J+1)+ZETA(I+1,J+1)
-      AA2=ETA(I,J)+ZETA(I,J)+ETA(I+1,J)+ZETA(I+1,J)
-      AA3=(ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*BYCSU(J)
-      AA4=(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*BYCSU(J)
-      AA5=((ZETA(I,J+1)-ETA(I,J+1))+(ZETA(I+1,J+1)-ETA(I+1,J+1))
-     &-(ZETA(I,J)-ETA(I,J))-(ZETA(I+1,J)-ETA(I+1,J)))*TNG(J)
-      AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
-
-      IF(I.EQ.2) THEN
-      AA9=AA4*DELX2*VICEC(I-1,J)*UVM(I,J)*FLOAT(LCYC-0)
-      ELSE IF(I.EQ.NXLCYC) THEN
-      AA9=AA3*DELX2*VICEC(I+1,J)*UVM(I,J)*FLOAT(LCYC-0)
-      ELSE
-      AA9=0.0
-      END IF
-      FXY1(I,J)=AA9+AMASS(I,J)*BYDTS*VICE(I,J,1)*2.0
-     1-AA5*DELYR*VICE(I,J,1)
-     1-(AA1+AA2)*DELY2*VICE(I,J,1)
-     1+AA1*DELY2*VICE(I,J+1,1)-((ZETAMEAN-ETAMEAN)*TNG(J+1)*DELYR
-     1+ETAMEAN*2.0*TNG(J)*DELYR)*VICE(I,J+1,1)
-     2+AA2*DELY2*VICE(I,J-1,1)+((ZETAMEAN-ETAMEAN)*TNG(J-1)*DELYR
-     2+ETAMEAN*2.0*TNG(J)*DELYR)*VICE(I,J-1,1)
       END DO
       END DO
 
-      DO 1201 J=2,NYPOLE
-      DO I=2,NXLCYC
-      URT(I)=FXYa(J,I)+FXY1(I,J)
-      URT(I)=URT(I)*UVM(I,J)
-      END DO
+      DO 1201 J=J_0S,J_NYP
+        DO I=2,NXLCYC
+          URT(I)=FXYa(J,I)+FXY1(I,J)
+          URT(I)=URT(I)*UVM(I,J)
+        END DO
 
-      CALL TRIDIAG(AU(2,J),BU(2,J),CU(2,J),URT(2),VICE(2,J,1),NXLCYC-1)
+        CALL TRIDIAG(AU(2,J),BU(2,J),CU(2,J),URT(2),VICE(2,J,1),
+     &               NXLCYC-1)
 
-c      DO I=2,NXLCYC
-c      CUU(I)=CU(I,J)
-c      END DO
-c      URT(2)=URT(2)/BU(2,J)
-c      DO I=3,NXLCYC
-c      IMD=I-1
-c      CUU(I)=CUU(I)/(BU(I,J)-AU(I,J)*CUU(IMD))
-c      URT(I)=(URT(I)-AU(I,J)*URT(IMD))/(BU(I,J)-AU(I,J)*CUU(IMD))
-c      END DO
-c      DO I=1,NXLCYC-2
-c      J1=NXLCYC-I
-c      J2=J1+1
-c      URT(J1)=URT(J1)-CUU(J1)*URT(J2)
-c      END DO
-c      DO I=2,NXLCYC
-c      VICE(I,J,1)=URT(I)
-c      END DO
+c        DO I=2,NXLCYC
+c          CUU(I)=CU(I,J)
+c        END DO
+c        URT(2)=URT(2)/BU(2,J)
+c        DO I=3,NXLCYC
+c          IMD=I-1
+c          CUU(I)=CUU(I)/(BU(I,J)-AU(I,J)*CUU(IMD))
+c          URT(I)=(URT(I)-AU(I,J)*URT(IMD))/(BU(I,J)-AU(I,J)*CUU(IMD))
+c        END DO
+c        DO I=1,NXLCYC-2
+c          J1=NXLCYC-I
+c          J2=J1+1
+c          URT(J1)=URT(J1)-CUU(J1)*URT(J2)
+c        END DO
+c        DO I=2,NXLCYC
+c          VICE(I,J,1)=URT(I)
+c        END DO
  1201 CONTINUE
 
-      DO J=2,NYPOLE
-      DO I=2,NXLCYC
-      UICE(I,J,1)=UICE(I,J,1)*UVM(I,J)
-      VICE(I,J,1)=VICE(I,J,1)*UVM(I,J)
-      END DO
+      DO J=J_0S,J_NYP
+        DO I=2,NXLCYC
+          UICE(I,J,1)=UICE(I,J,1)*UVM(I,J)
+          VICE(I,J,1)=VICE(I,J,1)*UVM(I,J)
+        END DO
       END DO
 
       RETURN
@@ -793,9 +968,19 @@ c      END DO
 
       SUBROUTINE setup_icedyn_grid
       USE MODEL_COM, only : dts=>dtsrc
+      USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, CHECKSUM
       IMPLICIT NONE
       REAL*8 :: dlat,dlon,phit,phiu,hemi,rms
       INTEGER I,J,n,k,kki,sumk,l
+
+      INTEGER :: J_0,J_1,J_0S,J_1S
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 C****
 C**** calculate grid and initialise arrays
 c****
@@ -803,7 +988,7 @@ c****
       dlon=nint(360./(nx1-2))*radian
       bydts = 1./dts
 c****
-      do j = 1,ny1
+      do j = j_0,j_1
         dyt(j) = dlat*radius
         dyu(j) = dlat*radius
       enddo
@@ -820,7 +1005,7 @@ c****
         bydx2(i)=0.5/(dxu(i)*dxu(i))
         bydxr(i)=0.5/(dxu(i)*radius)
       end do
-      do j=1,ny1
+       do j=j_0,j_1
         bydy2(j)=0.5/(dyu(j)*dyu(j))
         bydyr(j)=0.5/(dyu(j)*radius)
         do i=1,nx1
@@ -828,7 +1013,7 @@ c****
         end do
       end do
 
-      do j = 1,ny1
+      do j = j_0,j_1
        phit = (-90.+(j-1)*4.)*radian
        phiu = (-88.+(j-1)*4.)*radian
        cst(j) = cos(phit)
@@ -840,17 +1025,19 @@ c****
          SINEN(I,J)=SIN(PHIU)
        enddo
       enddo
-      TNGT(NY1)=TNGT(NY1-1)
-      TNG(NY1)=TNG(NY1-1)
-      CSU(NY1)=CSU(NY1-1)
-      bycsu(NY1) = 1./csu(NY1)
+      if (grid%have_north_pole) then
+        TNGT(NY1)=TNGT(NY1-1)
+        TNG(NY1)=TNG(NY1-1)
+        CSU(NY1)=CSU(NY1-1)
+        bycsu(NY1) = 1./csu(NY1)
+      end if
 
 C**** sin/cos ice-ocean turning angle
       SINWAT=SIN(OIPHI)
       COSWAT=COS(OIPHI)
 
 C**** Set land masks for tracer and velocity points
-      do j=1,ny1
+       do j=j_0,j_1
         do i=2,nx1-1
           heffm(i,j)=nint(focean(i-1,j))
         enddo
@@ -858,7 +1045,9 @@ C**** Set land masks for tracer and velocity points
         heffm(nx1,j)=heffm(2,j)  
       enddo
 C**** define velocity points (including exterior corners)
-      do j=1,ny1-1
+      CALL CHECKSUM(grid, HEFFM, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, HEFFM, FROM=NORTH)
+      do j=j_0,j_1s
         do i=1,nx1-1
 c          sumk=heffm(i,j)+heffm(i+1,j)+heffm(i,j+1)+heffm(i+1,j+1)
 c          if (sumk.ge.3) uvm(i,j)=1  ! includes exterior corners
@@ -867,7 +1056,10 @@ c          if (sumk.ge.3) uvm(i,j)=1  ! includes exterior corners
         end do
       end do
 C**** reset tracer points to surround velocity points (except for single
-      do j=2,ny1-1
+      CALL CHECKSUM(grid, UVM, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, UVM, FROM=SOUTH)
+c     CALL HALO_UPDATE(grid, UVM, FROM=NORTH)
+      do j=j_0s,j_1s
         do i=2,nx1-1
           k = nint(max (uvm(i,j), uvm(i-1,j), uvm(i,j-1), uvm(i-1,j-1)))
 c         sumk = nint(uvm(i,j)+uvm(i+1,j)+uvm(i,j+1)+uvm(i+1,j+1))
@@ -878,7 +1070,7 @@ c         end if
         enddo
       enddo
 C**** final sweep to reinstate islands
-c      do j=2,ny1-1
+c      do j=j_0s,j_1s
 c        do i=2,nx1-1
 c          sumk = nint(uvm(i,j)+uvm(i+1,j)+uvm(i,j+1)+uvm(i+1,j+1))
 c          if (sumk.eq.4.and.heffm(i,j).eq.0.) then
@@ -887,18 +1079,23 @@ c          end if
 c        enddo
 c      enddo
 c set lateral boundary conditions
-      do j=1,ny1
+       do j=j_0,j_1
         heffm(1,j)   = heffm(nx1-1,j)
         heffm(nx1,j) = heffm(2,j)
       enddo
-      do j=1,ny1-1
+
+C**** Update halo of PHI for distributed memory implementation
+      CALL CHECKSUM(grid, HEFFM, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, HEFFM, FROM=NORTH)
+      do j=j_0,j_1s
         do i=1,nx1-1
           uvm(i,j) = nint(min(heffm(i,j), heffm(i+1,j), heffm(i,j+1),
      *         heffm(i+1,j+1)))
         end do
       end do
+
 c set cyclic conditions on eastern and western boundary
-      do j=1,ny1
+       do j=j_0,j_1
         uvm(1,j) = uvm(nx1-1,j)
         uvm(nx1,j) = uvm(2,j)
       enddo
@@ -912,11 +1109,21 @@ c set cyclic conditions on eastern and western boundary
 !@sum  vpicedyn is the entry point into the viscous-plastic ice 
 !@+    dynamics code
 !@auth Gavin Schmidt (based on code from J. Zhang)
+      USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, CHECKSUM
       USE ICEDYN, only : nx1,ny1,form,relax,uice,vice,uicec,vicec
       IMPLICIT NONE
-      REAL*8, DIMENSION(NX1,NY1) :: USAVE,VSAVE
+      REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+     &        USAVE,VSAVE
       REAL*8 rms
       INTEGER kki,i,j
+      INTEGER :: J_0,J_1,J_0S,J_1S
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 
       rms=0.
 C KKI LOOP IS FOR PSEUDO-TIMESTEPPING
@@ -924,7 +1131,7 @@ C KKI LOOP IS FOR PSEUDO-TIMESTEPPING
  10   KKI=KKI+1
 
 C FIRST DO PREDICTOR
-      DO J=1,NY1
+      DO J=J_0,J_1
       DO I=1,NX1
        UICE(I,J,3)=UICE(I,J,1)
        VICE(I,J,3)=VICE(I,J,1)
@@ -936,7 +1143,7 @@ C FIRST DO PREDICTOR
       CALL FORM
       CALL RELAX
 
-      DO J=1,NY1
+       DO J=J_0,J_1
        UICE(1,J,1)=UICE(NX1-1,J,1)
        VICE(1,J,1)=VICE(NX1-1,J,1)
        UICE(NX1,J,1)=UICE(2,J,1)
@@ -946,7 +1153,7 @@ C FIRST DO PREDICTOR
 C NOW DO REGULAR TIME STEP
 C NOW DO MODIFIED EULER STEP
 c
-      DO J=1,NY1
+      DO J=J_0,J_1
       DO I=1,NX1
        UICE(I,J,1)=0.5*(UICE(I,J,1)+UICE(I,J,2))
        VICE(I,J,1)=0.5*(VICE(I,J,1)+VICE(I,J,2))
@@ -956,7 +1163,7 @@ c
       CALL FORM
 
 C NOW SET U(1)=U(2) AND SAME FOR V
-      DO J=1,NY1
+      DO J=J_0,J_1
       DO I=1,NX1
        UICE(I,J,3)=UICE(I,J,1)
        VICE(I,J,3)=VICE(I,J,1)
@@ -969,7 +1176,7 @@ C NOW SET U(1)=U(2) AND SAME FOR V
 
       CALL RELAX
 
-      DO J=1,NY1
+       DO J=J_0,J_1
        UICE(1,J,1)=UICE(NX1-1,J,1)
        VICE(1,J,1)=VICE(NX1-1,J,1)
        UICE(NX1,J,1)=UICE(2,J,1)
@@ -979,7 +1186,7 @@ C NOW SET U(1)=U(2) AND SAME FOR V
       if (kki.gt.1) then ! test convergence
         rms=0.
         do i=1,nx1
-          do j=1,ny1
+           do j=j_0,j_1
             rms=rms+(USAVE(i,j)-UICE(i,j,1))**2+(VSAVE(i,j)-VICE(i,j,1))
      *           **2
           end do

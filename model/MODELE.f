@@ -18,6 +18,9 @@
       USE DAGCOM, only : oa,monacc,koa
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
+c$$$      USE FLUXES, only : init_fluxes
+      USE CLOUDS_COM, only : init_clouds_com
+      USE ICEDYN,     only : init_icedyn_alloc => init_icedyn
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
@@ -33,9 +36,12 @@
 
 !RKF   Allocate arrays
 !
-        call init_decomp(im,jm)
+        call init_decomp(grid,im,jm)
         call init_dynamics(grid)
         call init_model_com(grid)
+c$$$        call init_fluxes(grid)
+        call init_clouds_com(grid)
+        call init_icedyn_alloc(grid)
 C****
 C**** Processing command line options
 C****

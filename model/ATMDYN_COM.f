@@ -67,6 +67,9 @@ c$$$      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DKE
 !@var WSAVE vertical velocity (m/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WSAVE
+!@var SMASS local but "SAVE"d array ADVECV in MOMEN2ND made global
+!@    here since its use does not go beyond ATMDYN that calls ADVECV
+      REAL*8, ALLOCATABLE:: SMASS(:)
 
       CONTAINS
 
@@ -128,6 +131,10 @@ c$$$      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
      $          DPDX_BY_RHO_0(I_0H:I_1H,J_0H:J_1H), 
      $          DPDY_BY_RHO_0(I_0H:I_1H,J_0H:J_1H),
      $          PS(I_0H:I_1H,J_0H:J_1H),
+     $   STAT = IER)
+
+      ! J arrays
+      ALLOCATE(  SMASS(J_0H:J_1H), 
      $   STAT = IER)
 
 ! correct or wrong, but being static all arrays were initialized

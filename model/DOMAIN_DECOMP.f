@@ -23,6 +23,8 @@
       PUBLIC :: HALO_UPDATE ! Communicate overlapping portions of subdomains
 !@var CHECKSUM output a bit-reproducible checksum for an array
       PUBLIC :: CHECKSUM ! Communicate overlapping portions of subdomains
+!@var GET - extracts bounds information from DYN_GRID object
+      PUBLIC :: GET
 
 !ia since DYN_GRID is public ESMF_GRID_TYPE has to be public
 !ia (SGI compiler complains)
@@ -77,8 +79,8 @@
          INTEGER :: J_STRT_STGR     ! Begin local staggered domain
          INTEGER :: J_STOP_STGR     ! End   local staggered domain
          ! Controls for special cases
-         LOGICAL :: HAVE_NORTH_POLE ! North pole is in local domain
          LOGICAL :: HAVE_SOUTH_POLE ! South pole is in local domain
+         LOGICAL :: HAVE_NORTH_POLE ! North pole is in local domain
          LOGICAL :: HAVE_EQUATOR    ! Equator (JM+1)/2 is in local domain
       END TYPE DYN_GRID
 
@@ -106,9 +108,10 @@
 
       ! This routine initializes the quantities described above.
       ! The initialization should proceed prior to any grid computations.
-      SUBROUTINE INIT_DECOMP(IM,JM)
+      SUBROUTINE INIT_DECOMP(grd_dum, IM,JM)
       USE FILEMANAGER, Only : openunit
       IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(INOUT) :: grd_dum
       INTEGER, INTENT(IN) :: IM, JM
 
       If (init) Then
@@ -124,24 +127,24 @@
       RANK_LON = 0
       RANK_LAT = 0
 
-      GRID%I_STRT        = 1
-      GRID%I_STOP        = IM
-      GRID%I_STRT_HALO   = 1
-      GRID%I_STOP_HALO   = IM
+      grd_dum%I_STRT        = 1
+      grd_dum%I_STOP        = IM
+      grd_dum%I_STRT_HALO   = 1
+      grd_dum%I_STOP_HALO   = IM
 
-      GRID%J_STRT        = 1
-      GRID%J_STOP        = JM
-      GRID%J_STRT_SKP    = 2
-      GRID%J_STOP_SKP    = JM-1
-      GRID%J_STRT_HALO   = 1
-      GRID%J_STOP_HALO   = JM
+      grd_dum%J_STRT        = 1
+      grd_dum%J_STOP        = JM
+      grd_dum%J_STRT_SKP    = 2
+      grd_dum%J_STOP_SKP    = JM-1
+      grd_dum%J_STRT_HALO   = 1
+      grd_dum%J_STOP_HALO   = JM
 
-      GRID%J_STRT_STGR   = 2
-      GRID%J_STOP_STGR   = JM
+      grd_dum%J_STRT_STGR   = 2
+      grd_dum%J_STOP_STGR   = JM
 
-      GRID%HAVE_NORTH_POLE = .TRUE.
-      GRID%HAVE_SOUTH_POLE = .TRUE.
-      GRID%HAVE_EQUATOR    = .TRUE.
+      grd_dum%HAVE_SOUTH_POLE = .TRUE.
+      grd_dum%HAVE_NORTH_POLE = .TRUE.
+      grd_dum%HAVE_EQUATOR    = .TRUE.
 
 
 #ifdef DEBUG_DECOMP
@@ -150,47 +153,86 @@
 
       END SUBROUTINE INIT_DECOMP
 
-      SUBROUTINE HALO_UPDATE_1D(grd, arr, from)
+      SUBROUTINE GET(grd_dum, I_STRT, I_STOP, I_STRT_HALO, I_STOP_HALO,
+     &                        J_STRT, J_STOP, J_STRT_HALO, J_STOP_HALO,
+     &                        J_STRT_SKP, J_STOP_SKP,      
+     &                        J_STRT_STGR, J_STOP_STGR,      
+     &                        HAVE_SOUTH_POLE, HAVE_NORTH_POLE)
+      TYPE (DYN_GRID), INTENT(IN) :: grd_dum
+      INTEGER, OPTIONAL :: I_STRT, I_STOP
+      INTEGER, OPTIONAL :: I_STRT_HALO, I_STOP_HALO
+      INTEGER, OPTIONAL :: J_STRT, J_STOP
+      INTEGER, OPTIONAL :: J_STRT_HALO, J_STOP_HALO
+      INTEGER, OPTIONAL :: J_STRT_SKP, J_STOP_SKP
+      INTEGER, OPTIONAL :: J_STRT_STGR, J_STOP_STGR
+      LOGICAL, OPTIONAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      IF (PRESENT(I_STRT)) I_STRT = grd_dum%I_STRT
+      IF (PRESENT(I_STOP)) I_STOP = grd_dum%I_STOP
+
+      IF (PRESENT(I_STRT_HALO)) I_STRT_HALO = grd_dum%I_STRT_HALO
+      IF (PRESENT(I_STOP_HALO)) I_STOP_HALO = grd_dum%I_STOP_HALO
+    
+      IF (PRESENT(J_STRT)) J_STRT = grd_dum%J_STRT
+      IF (PRESENT(J_STOP)) J_STOP = grd_dum%J_STOP
+
+      IF (PRESENT(J_STRT_HALO)) J_STRT_HALO = grd_dum%J_STRT_HALO
+      IF (PRESENT(J_STOP_HALO)) J_STOP_HALO = grd_dum%J_STOP_HALO
+    
+      IF (PRESENT(J_STRT_SKP)) J_STRT_SKP = grd_dum%J_STRT_SKP
+      IF (PRESENT(J_STOP_SKP)) J_STOP_SKP = grd_dum%J_STOP_SKP
+      
+      IF (PRESENT(J_STRT_STGR)) J_STRT_STGR = grd_dum%J_STRT_STGR
+      IF (PRESENT(J_STOP_STGR)) J_STOP_STGR = grd_dum%J_STOP_STGR
+      
+      IF (PRESENT(HAVE_SOUTH_POLE)) 
+     &             HAVE_SOUTH_POLE=grd_dum%HAVE_SOUTH_POLE
+      IF (PRESENT(HAVE_NORTH_POLE)) 
+     &             HAVE_NORTH_POLE=grd_dum%HAVE_NORTH_POLE
+
+      END SUBROUTINE GET
+
+      SUBROUTINE HALO_UPDATE_1D(grd_dum, arr, from)
       IMPLICIT NONE
-      TYPE (DYN_GRID),   INTENT(IN)    :: grd
+      TYPE (DYN_GRID),   INTENT(IN)    :: grd_dum
       REAL*8,            INTENT(INOUT) :: 
-     &                        arr(grd%j_strt_halo:)
+     &                        arr(grd_dum%j_strt_halo:)
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
       END SUBROUTINE HALO_UPDATE_1D
 
-      SUBROUTINE HALO_UPDATE_2D(grd, arr, from)
+      SUBROUTINE HALO_UPDATE_2D(grd_dum, arr, from)
       IMPLICIT NONE
-      TYPE (DYN_GRID),   INTENT(IN)    :: grd
+      TYPE (DYN_GRID),   INTENT(IN)    :: grd_dum
       REAL*8,            INTENT(INOUT) :: 
-     &                        arr(grd%i_strt_halo:,grd%j_strt_halo:)
+     &                    arr(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
       END SUBROUTINE HALO_UPDATE_2D
 
-      SUBROUTINE HALO_UPDATE_3D(grd, arr, from)
+      SUBROUTINE HALO_UPDATE_3D(grd_dum, arr, from)
       IMPLICIT NONE
-      TYPE (DYN_GRID),   INTENT(IN)    :: grd
+      TYPE (DYN_GRID),   INTENT(IN)    :: grd_dum
       REAL*8,            INTENT(INOUT) :: 
-     &                       arr(grd%i_strt_halo:,grid%j_strt_halo:,:)
+     &                 arr(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
       END SUBROUTINE HALO_UPDATE_3D
 
-      SUBROUTINE HALO_UPDATE_COLUMN(grd, arr, from)
+      SUBROUTINE HALO_UPDATE_COLUMN(grd_dum, arr, from)
       IMPLICIT NONE
-      TYPE (DYN_GRID),   INTENT(IN)    :: grd
+      TYPE (DYN_GRID),   INTENT(IN)    :: grd_dum
       REAL*8,            INTENT(INOUT) :: 
-     &                       arr(:,grd%i_strt_halo:,grid%j_strt_halo:)
+     &                  arr(:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
       END SUBROUTINE HALO_UPDATE_COLUMN
 
-      SUBROUTINE CHECKSUM_1D(grd, arr, line, file, unit)
+      SUBROUTINE CHECKSUM_1D(grd_dum, arr, line, file, unit)
       IMPLICIT NONE
-      TYPE (DYN_GRID),   INTENT(IN) :: grd
+      TYPE (DYN_GRID),   INTENT(IN) :: grd_dum
       REAL*8,            INTENT(IN) :: 
-     &                arr(grid%j_strt_halo:)
+     &                arr(grd_dum%j_strt_halo:)
       INTEGER,           INTENT(IN) :: line
       CHARACTER(LEN=*),  INTENT(IN) :: file
       INTEGER, OPTIONAL, INTENT(IN) :: unit
@@ -204,8 +246,8 @@
       unit_ = CHECKSUM_UNIT ! default
       If (Present(unit)) unit_ = unit
 
-      j_0 = grid%j_strt
-      j_1 = grid%j_stop
+      j_0 = grd_dum%j_strt
+      j_1 = grd_dum%j_stop
 
       asum   = Sum(    arr(j_0:j_1)   )
       L1norm = Sum(Abs(arr(j_0:j_1))  )
@@ -218,11 +260,11 @@
 
       END SUBROUTINE CHECKSUM_1D
 
-      SUBROUTINE CHECKSUM_2D(grd, arr, line, file, unit)
+      SUBROUTINE CHECKSUM_2D(grd_dum, arr, line, file, unit)
       IMPLICIT NONE
-      TYPE (DYN_GRID),   INTENT(IN) :: grd
+      TYPE (DYN_GRID),   INTENT(IN) :: grd_dum
       REAL*8,            INTENT(IN) :: 
-     &                arr(grd%i_strt_halo:,grid%j_strt_halo:)
+     &                arr(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
       INTEGER,           INTENT(IN) :: line
       CHARACTER(LEN=*),  INTENT(IN) :: file
       INTEGER, OPTIONAL, INTENT(IN) :: unit
@@ -236,10 +278,10 @@
       unit_ = CHECKSUM_UNIT ! default
       If (Present(unit)) unit_ = unit
 
-      i_0 = grid%i_strt
-      i_1 = grid%i_stop
-      j_0 = grid%j_strt
-      j_1 = grid%j_stop
+      i_0 = grd_dum%i_strt
+      i_1 = grd_dum%i_stop
+      j_0 = grd_dum%j_strt
+      j_1 = grd_dum%j_stop
 
       asum   = Sum(    arr(i_0:i_1,j_0:j_1)   )
       L1norm = Sum(Abs(arr(i_0:i_1,j_0:j_1))  )
@@ -252,11 +294,11 @@
 
       END SUBROUTINE CHECKSUM_2D
 
-      SUBROUTINE CHECKSUM_3D(grd, arr, line, file, unit)
+      SUBROUTINE CHECKSUM_3D(grd_dum, arr, line, file, unit)
       IMPLICIT NONE
-      TYPE (DYN_GRID),   INTENT(IN) :: grd
+      TYPE (DYN_GRID),   INTENT(IN) :: grd_dum
       REAL*8,            INTENT(IN) :: 
-     &                arr(grd%i_strt_halo:,grid%j_strt_halo:,:)
+     &                arr(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
       INTEGER,           INTENT(IN) :: line
       CHARACTER(LEN=*),  INTENT(IN) :: file
       INTEGER, OPTIONAL, INTENT(IN) :: unit
@@ -270,10 +312,10 @@
       unit_ = CHECKSUM_UNIT ! default
       If (Present(unit)) unit_ = unit
 
-      i_0 = grid%i_strt
-      i_1 = grid%i_stop
-      j_0 = grid%j_strt
-      j_1 = grid%j_stop
+      i_0 = grd_dum%i_strt
+      i_1 = grd_dum%i_stop
+      j_0 = grd_dum%j_strt
+      j_1 = grd_dum%j_stop
 
       asum   = Sum(    arr(i_0:i_1,j_0:j_1,:)   )
       L1norm = Sum(Abs(arr(i_0:i_1,j_0:j_1,:))  )
@@ -286,11 +328,11 @@
 
       END SUBROUTINE CHECKSUM_3D
 
-      SUBROUTINE CHECKSUM_COLUMN(grd, arr, line, file, unit)
+      SUBROUTINE CHECKSUM_COLUMN(grd_dum, arr, line, file, unit)
       IMPLICIT NONE
-      TYPE (DYN_GRID),   INTENT(IN) :: grd
+      TYPE (DYN_GRID),   INTENT(IN) :: grd_dum
       REAL*8,            INTENT(IN) :: 
-     &                arr(:,grd%i_strt_halo:,grid%j_strt_halo:)
+     &                arr(:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
       INTEGER,           INTENT(IN) :: line
       CHARACTER(LEN=*),  INTENT(IN) :: file
       INTEGER, OPTIONAL, INTENT(IN) :: unit
@@ -304,10 +346,10 @@
       unit_ = CHECKSUM_UNIT ! default
       If (Present(unit)) unit_ = unit
 
-      i_0 = grid%i_strt
-      i_1 = grid%i_stop
-      j_0 = grid%j_strt
-      j_1 = grid%j_stop
+      i_0 = grd_dum%i_strt
+      i_1 = grd_dum%i_stop
+      j_0 = grd_dum%j_strt
+      j_1 = grd_dum%j_stop
 
       asum   = Sum(    arr(:,i_0:i_1,j_0:j_1)   )
       L1norm = Sum(Abs(arr(:,i_0:i_1,j_0:j_1))  )

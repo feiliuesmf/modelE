@@ -142,12 +142,10 @@ C**** slightly larger, to sample all points within the cycle
 
 !**** Boundary condition arrays:
 !@var ZATMO,HLAKE Topography arrays: elevation (m), lake depth (m) ???
-!AOO      REAL*8, DIMENSION(IM,JM) :: ZATMO,HLAKE,
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ZATMO,HLAKE,
 !@var Fxx fraction of gridbox of type xx (land,ocean,...)
      *     FLAND,FOCEAN,FLICE,FLAKE0,FEARTH
 !@var WFCS water field capacity of first ground layer (kg/m2)  ???
-!AOO      REAL*8, DIMENSION(IM,JM) :: WFCS
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: WFCS
 
 !**** IO read/write flags used by the io_xyz routines
@@ -169,17 +167,14 @@ C**** slightly larger, to sample all points within the cycle
 !@var T potential temperature (referenced to 1 mb) (K)
 !@var Q specific humidity (kg water vapor/kg air)
 !@var WM cloud liquid water amount (kg water/kg air)
-!AOO      REAL*8, DIMENSION(IM,JM,LM) :: U,V,T,Q,WM
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: U,V,T,Q,WM
 !@var P surface pressure (hecto-Pascals - PTOP)
-!AOO      REAL*8, DIMENSION(IM,JM) :: P
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: P
 
 C**** Define surface types (mostly used for weighting diagnostics)
 !@param NTYPE number of different surface types
       INTEGER, PARAMETER :: NTYPE=6   ! orig = 3
 !@var FTYPE fractions of each surface type
-!AOO      REAL*8, DIMENSION(NTYPE,IM,JM) :: FTYPE
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: FTYPE
 !@param ITxx indices of various types (used only when it matters)
       INTEGER, PARAMETER :: ITOCEAN=1, ITOICE=2, ITEARTH=3,

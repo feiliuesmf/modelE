@@ -168,12 +168,18 @@ C**** COMPUTE ZONAL MEAN U AND V AT POLES
         VZM(2,L)=0.
       ENDDO
       DO L=1,LM
-        DO I=1,IM
-          UZM(1,L)=UZM(1,L)+UC(I,2,L)
-          UZM(2,L)=UZM(2,L)+UC(I,JM,L)
-          VZM(1,L)=VZM(1,L)+VC(I,2,L)
-          VZM(2,L)=VZM(2,L)+VC(I,JM,L)
-        ENDDO
+        IF(GRID%HAVE_SOUTH_POLE) THEN
+          DO I=1,IM
+            UZM(1,L)=UZM(1,L)+UC(I,2,L)
+            VZM(1,L)=VZM(1,L)+VC(I,2,L)
+          ENDDO
+        ENDIF
+        IF(GRID%HAVE_NORTH_POLE) THEN
+          DO I=1,IM
+            UZM(2,L)=UZM(2,L)+UC(I,JM,L)
+            VZM(2,L)=VZM(2,L)+VC(I,JM,L)
+          ENDDO
+        ENDIF
         UZM(1,L)=UZM(1,L)/FIM
         UZM(2,L)=UZM(2,L)/FIM
         VZM(1,L)=VZM(1,L)/FIM
@@ -908,17 +914,18 @@ C
 C
 C     NOW REALLY UPDATE THE MODEL WINDS
 C
-      J=1
-      DO K=1,IM ! KMAXJ(J)
-         IDI(K)=IDIJ(K,1,J)
-         IDJ(K)=IDJJ(K,J)
-      END DO
-      DO L=1,LM
-      DO K=1,IM ! KMAXJ(J)
-         U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKP1(K,L)
-         V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKP1(K,L)
-      END DO
-      END DO
+      IF(GRID%HAVE_SOUTH_POLE) THEN
+        DO K=1,IM ! KMAXJ(J)
+           IDI(K)=IDIJ(K,1,1)
+           IDJ(K)=IDJJ(K,1)
+        END DO
+        DO L=1,LM
+          DO K=1,IM ! KMAXJ(J)
+             U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKP1(K,L)
+             V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKP1(K,L)
+          END DO
+        END DO
+      ENDIF
 C
 !$OMP  PARALLEL DO PRIVATE(I,J,K,L,IDI,IDJ)
       DO L=1,LM
@@ -937,17 +944,18 @@ C
       END DO
 !$OMP  END PARALLEL DO
 C
-      J=JM
-      DO K=1,IM  !  KMAXJ(J)
-         IDI(K)=IDIJ(K,1,J)
-         IDJ(K)=IDJJ(K,J)
-      END DO
-      DO L=1,LM
-      DO K=1,IM  !  KMAXJ(J)
-         U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKPJM(K,L)
-         V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKPJM(K,L)
-      END DO
-      END DO
+      IF(GRID%HAVE_NORTH_POLE) THEN
+        DO K=1,IM  !  KMAXJ(J)
+           IDI(K)=IDIJ(K,1,JM)
+           IDJ(K)=IDJJ(K,JM)
+        END DO
+        DO L=1,LM
+          DO K=1,IM  !  KMAXJ(J)
+             U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKPJM(K,L)
+             V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKPJM(K,L)
+          END DO
+        END DO
+      ENDIF
 C
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 C**** and save changes in KE for addition as heat later

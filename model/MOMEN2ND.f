@@ -26,7 +26,7 @@
      * FD(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       REAL*8, SAVE :: SMASS(JM)
 
-      INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S
+      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S
       INTEGER,SAVE :: IFIRST = 1
       INTEGER I,J,IP1,IM1,L,K  !@var I,J,IP1,IM1,L,K  loop variables
       REAL*8 VMASS,RVMASS,ALPH,PDT4,SDU,DT1,DT2,DT4,DT8,DT12,DT24
@@ -42,7 +42,7 @@ C****
       J_0S=GRID%J_STRT_SKP
       J_1S=GRID%J_STOP_SKP
 
-         IF(MODD5K.LT.MRCH) CALL DIAG5F (U,V)
+      IF(MODD5K.LT.MRCH) CALL DIAG5F (U,V)
       IF(IFIRST.EQ.1) THEN
         IFIRST=0
         DO 10 J=J_0S,J_1
@@ -76,9 +76,8 @@ C 150 VT(I,J,L)=VT(I,J,L)*VMASS
 C     DUT=0.
 C     DVT=0.
 C
-      FROM = SOUTH
-      CALL HALO_UPDATE(GRID,PA,FROM)
-CAOO Leave 1-D halo update for now   CALL HALO_UPDATE(GRID,DXYN,FROM)
+      CALL HALO_UPDATE(GRID,PA,FROM=SOUTH)
+      CALL HALO_UPDATE(GRID,DXYN,FROM=SOUTH)
       DO 110 J=J_0S,J_1
       I=IM
       DO 110 IP1=1,IM
@@ -114,8 +113,7 @@ C****
 C****
 C**** HORIZONTAL ADVECTION OF MOMENTUM
 C****
-      FROM = SOUTH
-      CALL HALO_UPDATE(GRID,PU,FROM)
+      CALL HALO_UPDATE(GRID,PU,FROM=SOUTH)
       I=IM
       DO 230 IP1=1,IM
 C**** CONTRIBUTION FROM THE WEST-EAST MASS FLUX
@@ -127,10 +125,9 @@ C**** CONTRIBUTION FROM THE WEST-EAST MASS FLUX
       FLUXV=FLUX*(V(IP1,J,L)+V(I,J,L))
       DVT(IP1,J,L)=DVT(IP1,J,L)+FLUXV
   210 DVT(I,J,L)  =DVT(I,J,L)  -FLUXV
-      FROM = NORTH
-      CALL HALO_UPDATE(GRID,PV ,FROM)
-      CALL HALO_UPDATE(GRID,U  ,FROM)
-      CALL HALO_UPDATE(GRID,V  ,FROM)
+      CALL HALO_UPDATE(GRID,PV ,FROM=NORTH)
+      CALL HALO_UPDATE(GRID,U  ,FROM=NORTH)
+      CALL HALO_UPDATE(GRID,V  ,FROM=NORTH)
 CAOO no need to communicate, local compute      CALL HALO_UPDATE(GRID,DUT,FROM)
 CAOO no need to communicate, local compute      CALL HALO_UPDATE(GRID,DVT,FROM)
       DO 220 J=J_0S,J_1S
@@ -175,9 +172,8 @@ C     DUT(I,J,L+1)=DUT(I,J,L+1)-SDU*(U(I,J,L)+U(I,J,L+1))
 C     DVT(I,J,L)  =DVT(I,J,L)  +SDU*(V(I,J,L)+V(I,J,L+1))
 C     DVT(I,J,L+1)=DVT(I,J,L+1)-SDU*(V(I,J,L)+V(I,J,L+1))
 C 310 I=IP1
-      FROM = SOUTH
-      CALL HALO_UPDATE(GRID,SD,FROM)
-CAOO Leave 1-D halo for now   CALL HALO_UPDATE(GRID,RAVPN,FROM)
+      CALL HALO_UPDATE(GRID,SD,FROM=SOUTH)
+      CALL HALO_UPDATE(GRID,RAVPN,FROM=SOUTH)
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM-1
       DO J=J_0S,J_1
@@ -235,18 +231,17 @@ C****
 C         FD(I,1)=FCOR(1)*2.  -.5*(SPA(IM1,1,L)+SPA(I,1,L))*DXV(2)
 C         FD(I,JM)=FCOR(JM)*2.+.5*(SPA(IM1,JM,L)+SPA(I,JM,L))*DXV(JM)
 C****     Set the Coriolis term to zero at the Poles:
-          IF(J_0 .EQ. 1)
+          IF(GRID%HAVE_SOUTH_POLE)
      *    FD(I,J_0)= -.5*(SPA(IM1,J_0,L)+
      *                 SPA(I,J_0,L))*
      *                 DXV(J_0+1)
-          IF(J_1 .EQ. JM)
+          IF(GRID%HAVE_NORTH_POLE)
      *    FD(I,J_1)=  .5*(SPA(IM1,J_1,L)+
      *                 SPA(I,J_1,L))*
      *                 DXV(J_1)
           IM1=I
         END DO
-CAOO      FROM = NORTH
-CAOO Leave 1-D hale update for now  CALL HALO_UPDATE(GRID,DXV ,FROM)
+        CALL HALO_UPDATE(GRID,DXV ,FROM=NORTH)
         DO J=J_0S,J_1S
           IM1=IM
           DO I=1,IM
@@ -255,9 +250,8 @@ CAOO Leave 1-D hale update for now  CALL HALO_UPDATE(GRID,DXV ,FROM)
             IM1=I
           END DO
         END DO
-        FROM = SOUTH
-        CALL HALO_UPDATE(GRID,P ,FROM)
-        CALL HALO_UPDATE(GRID,FD,FROM)
+        CALL HALO_UPDATE(GRID,P ,FROM=SOUTH)
+        CALL HALO_UPDATE(GRID,FD,FROM=SOUTH)
         DO J=J_0S,J_1
           IM1=IM
           DO I=1,IM
@@ -280,9 +274,8 @@ C****
 C**** ADD CORIOLIS FORCE INCREMENTS TO UT AND VT
 C**** AND UNDO SCALING PERFORMED AT BEGINNING OF ADVECV
 C****
-      FROM = SOUTH
-      CALL HALO_UPDATE(GRID,PB,FROM)
-CAOO Leave 1-D halo update for now      CALL HALO_UPDATE(GRID,DXYN,FROM)
+      CALL HALO_UPDATE(GRID,PB,FROM=SOUTH)
+      CALL HALO_UPDATE(GRID,DXYN,FROM=SOUTH)
       DO J=J_0S,J_1
         I=IM
         DO IP1=1,IM

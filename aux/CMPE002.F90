@@ -183,6 +183,9 @@
       use model_com, only : ioread
       use model_com, only : im,jm,init_model_com
       use somtq_com, only: init_smomtq
+!!$$      use fluxes, only : init_fluxes
+      use clouds_com, only : init_clouds_com
+      use icedyn,     only : init_icedyn_alloc => init_icedyn
 !ccc  modules with data to compare
       use model_com, only : u,v,t,q,p
 #ifdef CHECK_OCEAN
@@ -262,10 +265,14 @@
       endif
 
 !AOO added calls ti init routines for dynamically allocated arrays.
-      call init_decomp(im,jm)
+      call init_decomp(grid,im,jm)
       call init_dynamics(grid)
       call init_model_com(grid)
       call init_smomtq(grid)
+!!$$      call init_fluxes(grid)
+      call init_clouds_com(grid)
+      call init_icedyn_alloc(grid)
+
 !C****
 !C**** Read ReStartFiles
 !C****
