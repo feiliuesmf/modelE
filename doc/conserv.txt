@@ -5,7 +5,7 @@ This document explains the identities that should be observed in the
 model as a check of water mass, energy and salt conservation. Note
 that these identities may be affected by round-off errors in the PRT
 tables. Also, due to the 5 hour default timestep for the radiation,
-the average radiation diagnostics will not be accurate unless the
+the average radiation diagnostics will not be exact unless the
 number of hours run is divisible by 5 (=NRAD).
 
 First side of equations come from "Conservation Quantities".
@@ -100,22 +100,44 @@ Conservation of Energy fluxes
 -----------------------------
 0 = Global: HEAT RUNOFF
 
-Conservation of Total Potential Energy in Atmosphere
-----------------------------------------------------
+Note that the dynamics by itself does not guarantee that the energy
+lost from total potential energy is gained by the kinetic
+energy. There is a fix to put in this energy term (calculated a
+posteriori) at the end of DYNAM. Similarly, dissipation of KE is added
+in locally after surface friction, dry convection, atmopsheric
+turbulence and oist convection. There is similar coding in the FILTER,
+SDRAG and GWDRAG. If all of these energy changes are in place, then
+the total energy (KE+TPE+ENRG WAT) should be conserved.
 
-Atmosphere: Change of TPE by Radiation (10^-2 W/m^2) / 100  =
-Global: [SW ABS BY ATMOS + NET LW AT P0 - NET LW AT Z0]
+Conservation of Total Potential/Latent Energy in Atmosphere
+-----------------------------------------------------------
+
+Atmosphere: Change of TPE by Dynamics (10^-2 W/m^2) / 100 + 
+Atmosphere: Change of KE by Dynamics (10^-3 W/m^2) / 1000 = 0. 
+
+Atmosphere: Change of TPE by Radiation (10^-2 W/m^2) / 100  
+ = Global: [SW ABS BY ATMOS + NET LW AT P1 - NET LW AT Z0]
+ = Global: [NET RAD AT P1 - NET RAD AT Z0]
 
 Atmosphere: Change of TPE by Surface Inter (10^-2 W/m^2) / 100  =
 Global: - [SENSBL HEAT FLX]
 
+Atmosphere: Change of TPE by Condensation (10^-2 W/m^2) / 100 +
+Atmosphere: Change of ENRG WAT by Condensation (10^-2 W/m^2) / 100 =
+Global: - [PRECIP HEAT FLX]
+
+Atmosphere: Change of TPE by Dissipation  (10^-2 W/m^2) / 100  + 
+Atmosphere: Change of KE by MOIST CONVECT (10^-3 W/m^2) / 1000 +
+Atmosphere: Change of KE by SURF +DC/TURB (10^-3 W/m^2) / 1000 = 0. 
+
+Atmosphere: Sum changes of (TPE + KE + ENRG WAT) (10^-2 W/m^2) / 100 =
+Global: NET RAD AT P1 - NET HEAT AT Z0
 
 Conservation of Energy in Ground
 --------------------------------
+
 Ground: Change of GRND ENRG by EARTH (10^-3 W/m^2) =
 Ground: NET HT CNV GRND * earth fraction * 1000
-
-**** Not sure if ground energy diagnostic is correct for this *****
 
 Conservation of Energy in Lakes
 -------------------------------

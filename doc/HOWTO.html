@@ -283,10 +283,10 @@ you succeed (or more importantly, fail) in compiling the code using
 any other compiler.</p>
 
 <p> Note that the parallelization used in the code is based on the
-OpenMP shared memory architecture. This is not appropraite for
+OpenMP shared memory architecture. This is not appropriate for
 multi-processing on a distributed memory platform (such as a Beowlf
 cluster). For machines that share a number of processors per board, 
-the OpenMP directives will work up to that number of processors.
+the OpenMP directives will work up to that number of processors.</p>
 
 <hr>
 
@@ -1231,13 +1231,6 @@ executable (using 'gmake exe RUN=E001xyz'). </p>
 
 <p>Other formats (HDF?) can be defined as you like with a suitable
 POUT_xyz.f file.</p>
-
-<p> <small> Please note that we do not
-currently have a link between the definition of the netcdf librabries
-in ~/.modelErc, and the include file in POUT_netcdf.f. If the version
-or location of your netcdf installation is different to our default,
-you will need to edit the include files in POUT_netcdf.f. At some
-point we will fix this. </small> </p>
 
 <p><A name="part2_5"><b>5) HOW-TO calculate a model score</b></a></p>
 
