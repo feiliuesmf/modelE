@@ -405,50 +405,6 @@ C**** variables set for consistency with surfce
       uocean=0 ; vocean=0
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
-cddd#ifdef TRACERS_WATER_OLD
-cdddC**** Quick and dirty calculation of water tracer amounts in
-cdddC**** soils to ensure conservation. Should be replaced with proper
-cdddC**** calculation at some point
-cdddC**** Calculate mean tracer ratio
-cddd      trsoil_tot = 0 ; wsoil_tot = 0
-cddd      fb=afb(i,j) ; fv=1.-fb
-cddd      do ibv=1,2
-cddd        frac=fb
-cddd        if (ibv.eq.2) frac=fv
-cddd        wsoil_tot=wsoil_tot+snowd(ibv)*frac
-cddd        do nx=1,ntx
-cddd          n=ntix(nx)
-cddd          if (tr_wd_TYPE(n).eq.nWATER) THEN
-cddd            trsnowd(nx,ibv) = TRSNOWBV(n,ibv,i,j)
-cddd            trsoil_tot(nx)=trsoil_tot(nx)+trsnowd(nx,ibv)*frac
-cddd          end if
-cddd        end do
-cddd        do k= 2-ibv,ngm
-cddd          wsoil_tot=wsoil_tot+w(k,ibv)*frac
-cddd          do nx=1,ntx
-cddd            n=ntix(nx)
-cddd            if (tr_wd_TYPE(n).eq.nWATER) THEN
-cddd              if (ibv.eq.1) then
-cddd                trw(nx,k,ibv)= TRBARE(n,k,i,j)
-cddd              else
-cddd                trw(nx,k,ibv)= TRVEGE(n,k,i,j)
-cddd              end if
-cddd              trsoil_tot(nx)=trsoil_tot(nx)+trw(nx,k,ibv)*frac
-cddd            end if
-cddd          end do
-cddd        end do
-cddd      end do
-cdddC**** calculate new tracer ratio after precip
-cddd      wsoil_tot=wsoil_tot+dtsurf*pr
-cddd      do nx=1,ntx
-cddd        n=ntix(nx)
-cddd        if (tr_wd_TYPE(n).eq.nWATER) THEN
-cddd          trpr(nx)=(trprec(n,i,j)*bydxyp(j))/dtsrc ! kg/m^2 s
-cddd          trsoil_tot(nx)=trsoil_tot(nx)+dtsurf*trpr(nx)
-cddd          trsoil_rat(nx)=trsoil_tot(nx)/(rhow*wsoil_tot)
-cddd        end if
-cddd      end do
-cddd#endif
 C****
       do nx=1,ntx
         n=ntix(nx)
@@ -570,42 +526,6 @@ c     call qsbal
       htvege(0:ngm,i,j) = ht(0:ngm,2)
       snowbv(1:2,i,j)   = snowd(1:2)
 
-!!! test test test
-!      aevap = 0.d0
-
-cddd#ifdef TRACERS_WATER_OLD
-cdddC**** reset tracer variables
-cdddc      wsoil_tot=wsoil_tot-(aevapw+aevapd+aevapb+aruns+arunu)/rhow
-cddd      wsoil_tot=wsoil_tot-(aevap+aruns+arunu)/rhow
-cddd      do nx=1,ntx
-cddd        n=ntix(nx)
-cddd        if (tr_wd_TYPE(n).eq.nWATER) THEN
-cdddc**** fix outputs to mean ratio (TO BE REPLACED WITHIN SOIL TRACERS)
-cddd        trruns(nx)=aruns * trsoil_rat(nx) ! kg/m^2
-cddd        trrunu(nx)=arunu * trsoil_rat(nx)
-cdddc#ifdef TRACERS_SPECIAL_O18
-cdddc        tevapw(nx)=aevapw*trsoil_rat(nx)*fracvl(tp(1,1),trname(n))
-cdddc#else
-cdddc        tevapw(nx)=aevapw * trsoil_rat(nx)
-cdddc#endif
-cdddc        tevapd(nx)=aevapd * trsoil_rat(nx)
-cdddc        tevapb(nx)=aevapb * trsoil_rat(nx)
-cddd        tevapw(nx)=aevap * trsoil_rat(nx)
-cdddc**** update ratio
-cc       trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+tevapd(nx)+tevapb(nx)
-cdddc     *       +trruns(nx)+trrunu(nx))
-c       trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+trruns(nx)+trrunu(nx))
-cddd        trsoil_rat(nx)=trsoil_tot(nx)/(rhow*wsoil_tot)
-cddd        trbare(n,1:ngm,i,j) = trsoil_rat(nx)*w(1:ngm,1)*rhow
-cddd        trvege(n,:,i,j) = trsoil_rat(nx)*w(:,2)*rhow
-cddd        trsnowbv(n,:,i,j)=trsoil_rat(nx)*snowd(:)*rhow
-cdddc       trbare(n,:,i,j) = trw(nx,:,1)
-cdddc       trvege(n,:,i,j) = trw(nx,:,2)
-cdddc       trsnowbv(n,:,i,j) = trsnowd(nx,:)
-cddd        gtracer(n,itype,i,j)=trsoil_rat(nx)
-cddd        end if
-cddd      end do
-cddd#endif
 ccc copy snow variables back to storage
       nsn_ij    (1:2, i, j)         = nsn(1:2)
       !isn_ij    (1:2, i, j)         = isn(1:2)
@@ -710,9 +630,58 @@ ccc accumulate tracer evaporation and runoff
      &       atr_evap(nx)/dtsurf *dxyp(j)*ptype
       enddo
 #endif
-#ifdef TRACERS_DRYDEP
-      do nx=1,ntx
+
+#ifdef TRACERS_DUST
+ccc dust emission from earth
+      CALL dust_emission_constraints(i,j)
+#endif
+
+#ifdef TRACERS_ON
+      DO nx=1,ntx
         n=ntix(nx)
+
+#ifdef TRACERS_AEROSOLS_Koch
+C**** technicallly these are ocean emissions, but if fixed datasets
+C**** are used, it can happen over land as well.
+        select case (trname(n))
+        case ('DMS')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+DMS_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
+     &         DMS_flux*dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
+     *         DMS_flux*dxyp(j)*ptype*dtsurf
+        case ('seasalt1')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss1_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) -
+     &         ss1_flux*dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
+     *         ss1_flux*dxyp(j)*ptype*dtsurf
+        case ('seasalt2')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss2_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) -
+     &         ss2_flux*dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
+     *         ss2_flux*dxyp(j)*ptype*dtsurf
+        end select
+#endif
+#ifdef TRACERS_DUST
+ccc dust emission from earth
+        SELECT CASE (trname(n))
+        CASE ('Clay','Silt1','Silt2','Silt3')
+          n1=n-n_clay+1
+          CALL local_dust_emission(i,j,n1)
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+dustflux(i,j,n1)
+          taijs(i,j,ijts_source(nDustEmij,n))=
+     &         taijs(i,j,ijts_source(nDustEmij,n))+dustflux(i,j,n1)*
+     &         dtsurf
+          tajls(j,1,jls_source(nDustEmjl,n))=
+     &         tajls(j,1,jls_source(nDustEmjl,n))+dustflux(i,j,n1)*
+     &         dtsurf
+        END SELECT
+#endif
+
+#ifdef TRACERS_DRYDEP
+
 ccc accumulate tracer dry deposition
         if(dodrydep(n)) then
           rtsdt=rhosrf*trs(nx)*dtsurf
@@ -738,51 +707,9 @@ ccc accumulate tracer dry deposition
           dtr_dd(j,n,1)=dtr_dd(j,n,1)-ptype*rtsdt*dxyp(j)*dep_vel(n)
           dtr_dd(j,n,2)=dtr_dd(j,n,2)-ptype*rtsdt*dxyp(j)* gs_vel(n)
         end if
+#endif
+
       end do
-#endif
-#ifdef TRACERS_AEROSOLS_Koch
-      DO nx=1,ntx
-        n=ntix(nx)
-        select case (trname(n))
-        case ('DMS')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+DMS_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
-     &         DMS_flux*dxyp(j)*ptype*dtsurf
-          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
-     *         DMS_flux*dxyp(j)*ptype*dtsurf
-        case ('seasalt1')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss1_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) -
-     &         ss1_flux*dxyp(j)*ptype*dtsurf
-          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
-     *         ss1_flux*dxyp(j)*ptype*dtsurf
-        case ('seasalt2')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss2_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) -
-     &         ss2_flux*dxyp(j)*ptype*dtsurf
-          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
-     *         ss2_flux*dxyp(j)*ptype*dtsurf
-        end select
-      END DO
-#endif
-#ifdef TRACERS_DUST
-ccc dust emission from earth
-      CALL dust_emission_constraints(i,j)
-      DO nx=1,ntx
-        n=ntix(nx)
-        SELECT CASE (trname(n))
-        CASE ('Clay','Silt1','Silt2','Silt3')
-          n1=n-n_clay+1
-          CALL local_dust_emission(i,j,n1)
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+dustflux(i,j,n1)
-          taijs(i,j,ijts_source(nDustEmij,n))=
-     &         taijs(i,j,ijts_source(nDustEmij,n))+dustflux(i,j,n1)*
-     &         dtsurf
-          tajls(j,1,jls_source(nDustEmjl,n))=
-     &         tajls(j,1,jls_source(nDustEmjl,n))+dustflux(i,j,n1)*
-     &         dtsurf
-        END SELECT
-      END DO
 #endif
 c****
 c**** accumulate diagnostics
