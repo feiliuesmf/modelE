@@ -77,17 +77,16 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
 !@auth Numerical Recipes
 !@ver  1.0
       IMPLICIT NONE
-      INTEGER :: N                 !@var N    dimension of arrays
-      REAL*8, INTENT(IN) :: A(N)   !@var A    coefficients of u_i-1
-      REAL*8, INTENT(IN) :: B(N)   !@var B    coefficients of u_i
-      REAL*8, INTENT(IN) :: C(N)   !@var C    coefficients of u_i+1
-      REAL*8, INTENT(IN) :: R(N)   !@var R    RHS vector
-      REAL*8, INTENT(OUT) :: U(N)  !@var U    solution vector
-      REAL*8 :: BET                !@var BET  work variable
-C**** Note that this work array is on the stack and therefore should
-C**** not be too large (i.e. no more than about 100?)
-      REAL*8 :: GAM(N)             !@var GAM  work array
-      INTEGER :: J                 !@var J    loop variable
+      INTEGER, PARAMETER :: NMAX = 5000  !@var NMAX workspace
+      INTEGER, INTENT(IN):: N         !@var N    dimension of arrays
+      REAL*8, INTENT(IN) :: A(NMAX)   !@var A    coefficients of u_i-1
+      REAL*8, INTENT(IN) :: B(NMAX)   !@var B    coefficients of u_i
+      REAL*8, INTENT(IN) :: C(NMAX)   !@var C    coefficients of u_i+1
+      REAL*8, INTENT(IN) :: R(NMAX)   !@var R    RHS vector
+      REAL*8, INTENT(OUT):: U(NMAX)   !@var U    solution vector
+      REAL*8 :: BET                   !@var BET  work variable
+      REAL*8 :: GAM(NMAX)             !@var GAM  work array
+      INTEGER :: J                    !@var J    loop variable
 
       BET=B(1)
       IF (BET.eq.0) STOP "TRIDIAG: DENOMINATOR = ZERO"

@@ -1090,30 +1090,30 @@ C**** CORRECTED.
       CHARACTER*6, INTENT(IN) :: SUBR
       IF (QCHECK) THEN
 C**** Check all prog. arrays for Non-numbers
-         CALL CHECK3(U,IM,JM,LM,SUBR,'u ')
-         CALL CHECK3(V,IM,JM,LM,SUBR,'v ')
-         CALL CHECK3(T,IM,JM,LM,SUBR,'t ')
-         CALL CHECK3(Q,IM,JM,LM,SUBR,'q ')
-         CALL CHECK3(P,IM,JM,1,SUBR,'p ')
-         CALL CHECK3(WM,IM,JM,LM,SUBR,'wm')
-
-         DO J=1,JM
-           DO I=1,IM
-             IF (Q(I,J,1).gt.1d-1)print*,SUBR," Q BIG ",i,j,Q(I,J,1:LS1)
-             IF (T(I,J,1).gt.50.) print*,SUBR," T BIG ",i,j,T(I,J,1:LS1)
-           END DO
-         END DO
-
+        CALL CHECK3(U,IM,JM,LM,SUBR,'u ')
+        CALL CHECK3(V,IM,JM,LM,SUBR,'v ')
+        CALL CHECK3(T,IM,JM,LM,SUBR,'t ')
+        CALL CHECK3(Q,IM,JM,LM,SUBR,'q ')
+        CALL CHECK3(P,IM,JM,1,SUBR,'p ')
+        CALL CHECK3(WM,IM,JM,LM,SUBR,'wm')
+         
+        DO J=1,JM
+          DO I=1,IM
+            IF (Q(I,J,1).gt.1d-1)print*,SUBR," Q BIG ",i,j,Q(I,J,1:LS1)
+            IF (T(I,J,1).gt.50.) print*,SUBR," T BIG ",i,j,T(I,J,1:LS1)
+          END DO
+        END DO
+        
 C**** Check PBL arrays
-         CALL CHECKPBL(SUBR)
+        CALL CHECKPBL(SUBR)
 C**** Check Ocean arrays
-         CALL CHECKO(SUBR)
+        CALL CHECKO(SUBR)
 C**** Check Ice arrays
-         CALL CHECKI(SUBR)
+        CALL CHECKI(SUBR)
 C**** Check Lake arrays
-         CALL CHECKL(SUBR)
+        CALL CHECKL(SUBR)
 C**** Check Earth arrays
-c         CALL CHECKE(SUBR)
+c       CALL CHECKE(SUBR)
       END IF
       RETURN
       END SUBROUTINE CHECKT
@@ -1136,15 +1136,15 @@ c         CALL CHECKE(SUBR)
       INTEGER I,J,L !@var I,J,L loop variables
 
       DO L=1,LN
-         DO J=1,JN
-            DO I=1,IN
-               IF (.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.)) THEN
-                  WRITE (6,*) FIELD,': ',I,J,L,A(I,J,L),'after '
-     *                 ,SUBR
-                  IF (J.LT.JN.AND.J.GT.1) STOP 'CHECK3'
-               END IF
-            END DO
-         END DO
+        DO J=1,JN
+          DO I=1,IN
+            IF (.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.)) THEN
+              WRITE (6,*) FIELD,': ',I,J,L,A(I,J,L),'after '
+     *             ,SUBR
+              IF (J.LT.JN.AND.J.GT.1) STOP 'CHECK3'
+            END IF
+          END DO
+        END DO
       END DO
       RETURN
       END SUBROUTINE CHECK3

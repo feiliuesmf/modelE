@@ -833,14 +833,14 @@ c
       ia_ij(k) = ia_src
 c
       k=k+1 !  'AIJ002'
-      IJ_RSNW = k ! PSNOW (1)            4 DA
+      IJ_RSNW = k ! PSNOW (1)            1 GD
       lname_ij(k) = 'ACCUMULATED SNOW FRACTION'
       units_ij(k) = '1'
       name_ij(k) = 'RSNW'
       ia_ij(k) = ia_src
 c
       k=k+1 !  'AIJ003'
-      IJ_SNOW = k ! SNOW (KG/M**2)       4 DA
+      IJ_SNOW = k ! SNOW (KG/M**2)       1 GD
       lname_ij(k) = 'ACCUMULATED SNOW MASS'
       units_ij(k) = 'kg/m^2'
       name_ij(k) = 'SNOW'

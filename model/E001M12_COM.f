@@ -151,7 +151,16 @@ C**** Define surface types (mostly used for weighting diagnostics)
       CHARACTER*12, INTENT(IN) :: STR
 !@var MINDEX index for that accumulator
       INTEGER, INTENT(OUT) :: MINDEX
-C****
+      INTEGER N
+
+C**** Check whether index has been set
+      DO N=1,NTIMEACC
+        IF (STR.EQ.TIMESTR(N)) THEN
+          MINDEX=N
+          RETURN
+        END IF
+      END DO
+C**** Otherwise increase number of indexes
       NTIMEACC = NTIMEACC + 1
       IF (NTIMEACC.gt.NTIMEMAX)
      *     STOP "Too many timing indices: increase NTIMEMAX"

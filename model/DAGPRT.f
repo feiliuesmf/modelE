@@ -184,11 +184,6 @@ c     *     (/NTYPE_OUT+1,NTYPE/) )
      *  47,49,50,51,52,53,31,30,69,0/)
       INTEGER, DIMENSION(10) :: INNUM,INDEN
       DATA INNUM/2,72,73,6,74,75,76,77,78,79/, INDEN/3*1,5,6*1/
-C**** IA: 1 SOURCE, 2 RADIATION, 3 SURFACE, 4 DIAGA, 0 UNUSED
-c      INTEGER, DIMENSION(KAJ) :: IA  ! replaced with global IA_J
-c      DATA IA/6*2,  2,2,1,2,2,1,  6*1,  1,1,4,4,3,4,  5*4,1,
-c     *  4,2,1,1,4,4, 4,4,2*1,1,1, 1,1,3*1,1, 6*1, 2,1,4*2,  1,1,4*4,
-c     *  2,9,1,3*0, 8*0,14*1/
       DOUBLE PRECISION, DIMENSION(KAJ) :: SCALE
       DATA SCALE/6*1.,  6*1.,  4*1.,2*10.,  2*1.,4*10.,  6*100.,
      *  100.,2*1.,10.,2*100.,  6*1.,  6*1.,  6*1.,  2*1.,3*100.,1.,
@@ -2620,7 +2615,7 @@ c      USE PRTCOM, only :
       USE GEOM, only :
      &     AREAG,DXV,DXYP,DXYV
       USE DAGCOM, only :
-     &     ajk,kdiag,aij,kaij,aijk,tsfrez,
+     &     ajk,kdiag,aij,kaij,aijk,tsfrez,ia_ij,
      &     IJ_PEV,IJ_TRNFP0,IJ_SRNFP0,IJ_SLP,IJ_TS !not a generic subr.
       IMPLICIT NONE
 
@@ -2647,11 +2642,7 @@ C**** ECHAR/-,Z,Y,...,B,A,0,1,...,8,9,+/
      &  19,17,18,41,42,43,   21,22,44,24,26,45,   21,23,31,20, 1, 2,
      &  10,11,12,13,14,15,    9,10,11,12,13,14,   50,81,84,85,83,82,
      &  98,    1,1,1,1,1/)
-      INTEGER, DIMENSION(60), PARAMETER :: IA=(/
-     &   0, 0, 1, 4, 4, 4,    1, 1, 1, 1, 1, 1,    3, 4, 3, 1, 0, 0,
-     &   2, 2, 0, 2, 2, 2,    2, 1, 2, 0, 0, 0,    2, 1, 4, 4, 4, 4,
-     &   4, 4, 4, 4, 4, 4,    4, 4, 4, 4, 4, 4,    1, 1, 1, 1, 1, 1,
-     &   1, 0,0,0,0,0/)
+C**** IA now set from DEFACC
 
       INTEGER, DIMENSION(3,24) :: ILEG
       DATA ILEG/7,3*1,9,1,   10,10,12, 1,18,11,    3, 5, 3, 4, 2, 2,
@@ -2685,7 +2676,6 @@ C**** ECHAR/-,Z,Y,...,B,A,0,1,...,8,9,+/
      &     DE4TI,BYDPK,SZNDEG
 
 C**** INITIALIZE CERTAIN QUANTITIES
-c      SHA=RGAS/KAPA
       INC=1+(JM-1)/24
       ILINE=36*INC
       IQ1=1+IM/(4*INC)
@@ -2694,8 +2684,7 @@ c      SHA=RGAS/KAPA
       LONGTD(IQ2)=LONGTD(1)
       IQ3=1+3*IM/(4*INC)
       LONGTD(IQ3)=LONGTD(1)
-C      JEQ=2.+.5*(JM-1.)
-c      BYIM=1./FIM
+
       SCALE(7)=SDAY/DTsrc
       SCALE(8)=SDAY/DTSRC
       SCALE(9)=1./DTSRC
@@ -2788,7 +2777,7 @@ C****
       FLATK=0.
       K=3*KR+KCOLMN-3
       NDEX=IND(K)
-      BYIACC=1./(IDACC(IA(K))+1.D-20)
+      BYIACC=1./(IDACC(ia_ij(IND(K)))+1.D-20)
       GO TO (320,340,400,400,440,400, 440,440,460,400,420,460,
      *       380,300,300,475,240,240, 400,400,260,400,400,400,
      *       220,420,460,260,260,260, 460,460,380,420,280,280,
@@ -2851,7 +2840,7 @@ CB       DIJMAP(IM+1,J,K)=FLAT(KCOLMN)
 C**** STANDING AND TRANSIENT EDDY NORTHWARD TRANSPORTS OF DSE
   280 IF (SKIPSE.EQ.1.) GO TO 510
       DO 290 I=1,IM
-      A=ENDE16(I,J,NDEX)*SCALE(K)*BYIACC
+      A=ENDE16(I,J,NDEX)*SCALE(K)/(IDACC(4)+1d-20)
 CB       DIJMAP(I,J,K)=A
       FLATK=FLATK+A
       N=11.5+A*FAC(K)
