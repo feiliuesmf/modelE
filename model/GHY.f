@@ -108,7 +108,7 @@ c****
       private
 
 c**** public functions:
-      public hl0, set_snow, reth, retp, advnc, evap_limits, xklh0
+      public hl0, set_snow, advnc, evap_limits, xklh0
 
 
 ccc   physical constants and global model parameters
@@ -294,8 +294,8 @@ ccc tracers output:
 ccc the data below this line is not in GHYTPC yet !
 ccc the following vars control if bare/vegetated fraction has to 
 ccc be computed (i.e. f[bv] is not zero)
-      integer :: i_bare=1, i_vege=2
-      logical :: process_bare=.true., process_vege=.true.
+      integer :: i_bare, i_vege
+      logical :: process_bare, process_vege
 
 C***
 C***   Thread Private Common Block GHYTPC
@@ -317,6 +317,7 @@ C***
      &     ,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
      &     ,ijdebug,n,nsn !nth
      &     ,flux_snow,wsn_for_tr
+     &     ,i_bare,i_vege,process_bare,process_vege
 #ifdef TRACERS_WATER
      &     ,trpr, tr_surf, tr_w, tr_wsn,tr_evap,tr_rnff ! ntg
      &     ,atr_evap,atr_rnff,atr_g
@@ -1297,7 +1298,7 @@ c hcwt''s are the heat conductivity weighting factors
       do i=1,imt-1
         hcwt(i)=hcwt(i)/3.d0
       end do
-      do ibv=i_bare,i_vege
+      do ibv=1,2        ! i_bare,i_vege
         do l=1,n
           xsha(l,ibv)=0.d0
           xsh(l,ibv)=0.d0
@@ -1655,9 +1656,6 @@ cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
       call accmf
       call hydra
       call wtab  ! for gcm diag. only
-ccc restore to original (both present) (just in case)
-      i_bare = 1; i_vege = 2
-      process_bare = .true.; process_vege = .true.      
       return
   900 continue
       write(99,*)'limit exceeded'

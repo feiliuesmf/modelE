@@ -37,7 +37,7 @@ c****
       use somtq_com, only : mz
       use radncb, only : trhr,fsf,cosz1
       use sle001
-     &    , only : reth,retp,advnc,evap_limits,
+     &    , only : advnc,evap_limits,
      &    ngm,
      &    pr,htpr,prs,htprs,w,ht,snowd,tp,fice,
      &    fv,fb,atrg,ashg,alhg,
