@@ -479,7 +479,9 @@ C**** Modify tracer amount, moments, and diagnostics
 C**** calculate fractional loss
         fr3d=0.
         if (tr3Dsource(i,j,l,ns,n).lt.0.) then
-          fr3d = -tr3Dsource(i,j,l,ns,n)*dtsrc/(trm(i,j,l,n)+teeny)
+          fr3d = -tr3Dsource(i,j,l,ns,n)*dtsrc/(trm(i,j,l,n)+
+     *         tiny(trm(i,j,l,n)))
+          fr3d=min(1d0,fr3d)
           if (domom) trmom(1:nmom,i,j,l,n) =
      *         trmom(1:nmom,i,j,l,n)*(1.-fr3d)
         end if
