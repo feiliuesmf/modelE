@@ -21,7 +21,7 @@ C****
 C**** INITIALIZATIONS
 C****
          CALL TIMER (MNOW,MDUM)
-      OPEN(6,RECL=133)
+
       CALL INPUT
       WRITE (3) OFFSSW
       CLOSE (3)
