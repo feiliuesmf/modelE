@@ -359,7 +359,8 @@ C**** qflux runs. Over land, it is always used for landice changes.
       k=k+1
       J_IMPLM = k               !                                 1 GP
       name_j(k) = 'impl_m_flux'
-      lname_j(k) = 'DOWNWARD IMPLICIT MASS FLUX AT ICE BASE/OCN ML'
+      lname_j(k) =
+     *     'DOWNWARD IMPLICIT FRESHWATER FLUX AT ICE BASE/OCN ML'
       units_j(k) = 'mm/day'
       stitle_j(k)= ' DWN IMPL WT FLX'
       scale_j(k) = SDAY/DTSRC
@@ -1039,6 +1040,15 @@ c
       ir_ij(k) = ir_m80_28
 c
       k=k+1 !
+      IJ_T700 = k !
+      lname_ij(k) = 'TEMPERATURE AT 700mb'
+      units_ij(k) = 'C'
+      name_ij(k) = 't_700'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
       IJ_T850 = k !
       lname_ij(k) = 'TEMPERATURE AT 850mb x P850'
       units_ij(k) = 'C'
@@ -1066,6 +1076,15 @@ c
       ir_ij(k) = ir_0_18
 c
       k=k+1
+      IJ_Q700 = k
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 700mb'
+      units_ij(k) = 'g/kg'
+      name_ij(k) = 'q_700'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d3
+      ir_ij(k) = ir_0_18
+c
+      k=k+1
       IJ_Q850 = k
       lname_ij(k) = 'SPECIFIC HUMIDITY AT 850mb x P850'
       units_ij(k) = 'g/kg'
@@ -1085,7 +1104,7 @@ c
 c
       k=k+1
       IJ_RH300 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY AT 300mb'
+      lname_ij(k) = 'RELATIVE HUMIDITY (ICE) AT 300mb'
       units_ij(k) = '%'
       name_ij(k) = 'rh_300'
       ia_ij(k) = ia_dga
@@ -1097,6 +1116,15 @@ c
       lname_ij(k) = 'RELATIVE HUMIDITY AT 500mb'
       units_ij(k) = '%'
       name_ij(k) = 'rh_500'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d2
+      ir_ij(k) = ir_pct
+c
+      k=k+1
+      IJ_RH700 = k
+      lname_ij(k) = 'RELATIVE HUMIDITY AT 700mb'
+      units_ij(k) = '%'
+      name_ij(k) = 'rh_700'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d2
       ir_ij(k) = ir_pct
@@ -1154,6 +1182,22 @@ c
       scale_ij(k) = 1.
 c
       k=k+1
+      IJ_3dRWM = k
+      lname_ij(k) = '3D Warm Moist Conv Reff '
+      units_ij(k) = 'um'
+      name_ij(k) = '3dRwm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_3dRIM = k
+      lname_ij(k) = '3D Cold Moist Conv Reff '
+      units_ij(k) = 'um'
+      name_ij(k) = '3dRim'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
       IJ_3dNWS = k
       lname_ij(k) = '3D Warm Large-scale CDNC '
       units_ij(k) = 'cm^-3'
@@ -1166,6 +1210,22 @@ c
       lname_ij(k) = '3D Cold Large-scale CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = '3dNis'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_3dRWS = k
+      lname_ij(k) = '3D Warm Large-scale Reff '
+      units_ij(k) = 'um'
+      name_ij(k) = '3dRws'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_3dRIS = k
+      lname_ij(k) = '3D Cold Large-scale Reff '
+      units_ij(k) = 'um'
+      name_ij(k) = '3dRis'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
 #endif
@@ -1244,6 +1304,24 @@ c
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
       ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_SWCRF = k ! SW cloud radiative forcing (W/m**2)      2 RD
+      lname_ij(k) = 'SW CLOUD RADIATIVE FORCING, TOA'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'swcrf_toa'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m265_95
+c
+      k=k+1 !
+      IJ_LWCRF = k ! LW cloud radiative forcing (W/m**2)      2 RD
+      lname_ij(k) = 'LW CLOUD RADIATIVE FORCING, TOA'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'lwcrf_toa'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m95_265
 c
       k=k+1 !
       IJ_TG1  = k ! TG1 (K-TF)                                1 GD
@@ -1943,8 +2021,8 @@ c
 c
       k=k+1
       IJ_G04 = k
-      name_ij(k) = 'bs_wlay4' !
-      lname_ij(k) = 'LAYER 4 BARE SOIL WATER'
+      name_ij(k) = 'bs_wlay6' !
+      lname_ij(k) = 'LAYER 6 BARE SOIL WATER'
       units_ij(k) = 'mm'
       ia_ij(k) = ia_src
       scale_ij(k) = 1000.
@@ -2001,8 +2079,8 @@ c
 c
       k=k+1
       IJ_G10 = k
-      name_ij(k) = 'vs_wlay3' !
-      lname_ij(k) = 'LAYER 3 VEGETATED SOIL WATER'
+      name_ij(k) = 'vs_wlay6' !
+      lname_ij(k) = 'LAYER 6 VEGETATED SOIL WATER'
       units_ij(k) = 'mm'
       ia_ij(k) = ia_src
       scale_ij(k) = 1000.
@@ -2053,8 +2131,8 @@ c
       name_ij(k) = 'bs_tlay1' !
       lname_ij(k) = 'BARE SOIL LAYER 1 TEMPERATURE'
       units_ij(k) = 'C'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       iw_ij(k) = iw_bare
       ir_ij(k) = ir_m80_28
 c
@@ -2063,18 +2141,18 @@ c
       name_ij(k) = 'bs_tlay2' !
       lname_ij(k) = 'BARE SOIL LAYER 2 TEMPERATURE'
       units_ij(k) = 'C'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       iw_ij(k) = iw_bare
       ir_ij(k) = ir_m80_28
 c
       k=k+1
       IJ_G17 = k
-      name_ij(k) = 'bs_tlay3' !
-      lname_ij(k) = 'BARE SOIL LAYER 3 TEMPERATURE'
+      name_ij(k) = 'bs_tlay6' !
+      lname_ij(k) = 'BARE SOIL LAYER 6 TEMPERATURE'
       units_ij(k) = 'C'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       iw_ij(k) = iw_bare
       ir_ij(k) = ir_m80_28
 c
@@ -2140,8 +2218,8 @@ c
       name_ij(k) = 'can_temp' !
       lname_ij(k) = 'CANOPY TEMPERATURE'
       units_ij(k) = 'C'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       iw_ij(k) = iw_veg
       ir_ij(k) = ir_m80_28
 c
@@ -2150,8 +2228,8 @@ c
       name_ij(k) = 'vs_tlay1' !
       lname_ij(k) = 'VEGETATED SOIL LAYER 1 TEMPERATURE'
       units_ij(k) = 'C'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       iw_ij(k) = iw_veg
       ir_ij(k) = ir_m80_28
 c
@@ -2160,18 +2238,18 @@ c
       name_ij(k) = 'vs_tlay2' !
       lname_ij(k) = 'VEGETATED SOIL LAYER 2 TEMPERATURE'
       units_ij(k) = 'C'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       iw_ij(k) = iw_veg
       ir_ij(k) = ir_m80_28
 c
       k=k+1
       IJ_G24 = k
-      name_ij(k) = 'vs_tlay3' !
-      lname_ij(k) = 'VEGETATED SOIL LAYER 3 TEMPERATURE'
+      name_ij(k) = 'vs_tlay6' !
+      lname_ij(k) = 'VEGETATED SOIL LAYER 6 TEMPERATURE'
       units_ij(k) = 'C'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       iw_ij(k) = iw_veg
       ir_ij(k) = ir_m80_28
 c
@@ -2180,8 +2258,8 @@ c
       name_ij(k) = 'wtbl_depth' !
       lname_ij(k) = 'AVERAGE WATER TABLE DEPTH'
       units_ij(k) = 'm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = -1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = -1.
       iw_ij(k) = iw_soil
       ir_ij(k) = ir_0_3_15
 c
@@ -4436,12 +4514,12 @@ c
       scale_dd(k)=100.
       lname_dd(k)=' CLD 1  '
 c
-      k=k+1
-      IDD_W=k
-      name_dd(k)='VERTVEL'
-      units_dd(k)='1d-5 m/s'
-      scale_dd(k)=1.
-      lname_dd(k)=' W TO-5 '
+!!    k=k+1
+!!    IDD_W=k
+!!    name_dd(k)='VERTVEL'
+!!    units_dd(k)='1d-5 m/s'
+!!    scale_dd(k)=1.
+!!    lname_dd(k)=' W TO-5 '
 c
       k=k+1
       IDD_CCV=k

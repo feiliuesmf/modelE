@@ -304,14 +304,14 @@ C**** CALCULATE TG2
 
       CASE (:IOWRITE)            ! output to standard restart file
 C**** Gather into global arrays
-        CALL PACK_DATA(grid,SNOWLI,SNOWLI_GLOB)  	
-        CALL PACK_COLUMN( grid,TLANDI,TLANDI_GLOB )  	
+        CALL PACK_DATA(grid,SNOWLI,SNOWLI_GLOB)
+        CALL PACK_COLUMN( grid,TLANDI,TLANDI_GLOB)
         IF (AM_I_ROOT())
      &    WRITE (kunit,err=10) MODULE_HEADER,SNOWLI_GLOB,TLANDI_GLOB
 #ifdef TRACERS_WATER
 C**** Gather into global arrays
-          CALL PACK_COLUMN( grid,TRSNOWLI,TRSNOWLI_GLOB )     
-          CALL PACK_COLUMN( grid,TRLNDI,  TRLNDI_GLOB  )      
+          CALL PACK_COLUMN( grid,TRSNOWLI,TRSNOWLI_GLOB )
+          CALL PACK_COLUMN( grid,TRLNDI,  TRLNDI_GLOB  )
         IF (AM_I_ROOT())
      &    WRITE (kunit,err=10) TRMODULE_HEADER,TRSNOWLI_GLOB,TRLNDI_GLOB
 #endif

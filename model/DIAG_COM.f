@@ -142,7 +142,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       INTEGER, PARAMETER :: HR_IN_MONTH=HR_IN_DAY*31
 !@var HDIURN hourly diagnostics (hourly value at selected points)
 !@+     Same quantities as ADIURN but not averaged over the month
-      REAL*8, DIMENSION(HR_IN_MONTH+4,NDIUVAR,NDIUPT) :: HDIURN
+      REAL*8, DIMENSION(HR_IN_MONTH,NDIUVAR,NDIUPT) :: HDIURN
 
 !@param KAJK number of zonal constant pressure diagnostics
 !@param KAJKX number of zonal constant pressure composit diagnostics
@@ -332,9 +332,9 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_PHI30, IJ_PHI10, IJ_PHI3p4, IJ_PHI0p7, IJ_PHI0p16,
      *     IJ_PHI0p07, IJ_PHI0p03, IJ_T850, IJ_T500, IJ_T300, IJ_Q850,
      *     IJ_Q500, IJ_Q300, IJ_PMCCLD, IJ_CLDTPPR, IJ_CLDCV, IJ_DSEV,
-     *     IJ_CLDTPT, IJ_CLDCV1, IJ_CLDT1T,IJ_CLDT1P,
-     *     ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,IJ_PBLHT,
-     *     IJ_RH1, IJ_RH850, IJ_RH500, IJ_RH300,
+     *     IJ_CLDTPT, IJ_CLDCV1, IJ_CLDT1T,IJ_CLDT1P, IJ_T700, IJ_Q700,
+     *     ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,IJ_PBLHT, IJ_RH700,
+     *     IJ_RH1, IJ_RH850, IJ_RH500, IJ_RH300, IJ_SWCRF, IJ_LWCRF,
      *     IJ_TRNFP0, IJ_SRTR, IJ_NETH, IJ_SRNFP0, IJ_SRINCP0, IJ_SRNFG,
      *     IJ_SRINCG, IJ_TG1, IJ_RSIT, IJ_TDSL, IJ_TDCOMP, IJ_DTDP,
      *     IJ_RUNE, IJ_TS1, IJ_RUNLI, IJ_WS, IJ_TS, IJ_US, IJ_VS,
@@ -353,6 +353,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_MLTP,IJ_FRMP, IJ_P850, IJ_CLR_SRINCG, IJ_GPP, IJ_DLEAF
 #ifdef CLD_AER_CDNC
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
+     *     ,ij_3drwm,ij_3drim,ij_3drws,ij_3dris
 #endif
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER :: IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
@@ -667,7 +668,7 @@ c idacc-indices of various processes
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
      *     IM*JM*LM*KAIJK+ntau*npres*nisccp
-     *     + (HR_IN_MONTH+4)*NDIUVAR*NDIUPT
+     *     + HR_IN_MONTH*NDIUVAR*NDIUPT
 !@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
       REAL*4 AJ4(JM,KAJ,NTYPE),AREG4(NREG,KAJ),APJ4(JM,KAPJ)
       REAL*4 AJL4(JM,LM,KAJL),ASJL4(JM,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
@@ -677,7 +678,7 @@ c idacc-indices of various processes
       REAL*4 WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP)
       REAL*4 AJK4(JM,LM,KAJK),AIJK4(IM,JM,LM,KAIJK)
       REAL*4 AISCCP4(ntau,npres,nisccp)
-      REAL*4 HDIURN4(HR_IN_MONTH+4,NDIUVAR,NDIUPT)
+      REAL*4 HDIURN4(HR_IN_MONTH,NDIUVAR,NDIUPT)
       REAL*4 TSFREZ4(IM,JM,KTSF),AFLX4(LM+LM_REQ+1,IM,JM,5)
       integer monac1(12),i_ida,i_xtra,it_check
 !@var Kcomb counts acc-files as they are added up

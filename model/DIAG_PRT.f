@@ -4078,6 +4078,7 @@ c**** find hemispheric and global means
      &     FLAND,FLICE,FEARTH,FOCEAN,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID,iDO_GWDRAG
+      USE RADNCB, only : cloud_rad_forc
       USE LAKES_COM, only : flake
       USE GEOM, only : DXV
       USE VEG_COM, only : vdata
@@ -4127,7 +4128,8 @@ C**** INITIALIZE CERTAIN QUANTITIES
       call ij_titlex
 C**** standard printout
       kmaplets = 55
-      nmaplets = kmaplets+iDO_GWDRAG+(kgz_max-1)*2 + 6*isccp_diags
+      nmaplets = kmaplets+iDO_GWDRAG+(kgz_max-1)*2 + 6*isccp_diags +
+     *     2*cloud_rad_forc
       nmaps = 2
       iord(1:kmaplets) = (/
      *  ij_topo,    ij_fland,   ij_rsoi,     ! pg  1  row 1
@@ -4136,7 +4138,7 @@ C**** standard printout
      *  ij_beta,    ij_rune,    ij_tg1,      !        row 2
      *  ij_ws,      ij_jet ,    ij_dtdp,     ! pg  3  row 1
      *  ij_wsdir,   ij_jetdir,  ij_sstabx,   !        row 2
-     *  ij_netrdp,  ij_srnfp0,  ij_btmpw,    ! pg  4  row 2
+     *  ij_netrdp,  ij_srnfp0,  ij_btmpw,    ! pg  4  row 1
      *  ij_srtr,    ij_srincg,  ij_clr_srincg, !      row 2
      *  ij_albp,    ij_albv,    ij_trnfp0,   ! pg  5  row 1
      *  ij_albg,    ij_albgv,   ij_neth,     !        row 2
@@ -4155,6 +4157,22 @@ C**** include ISCCP diags if requested
         iord(kmaplets+1:kmaplets+6) = (/ij_lcldi,ij_mcldi,ij_hcldi,
      *                                  ij_tcldi,ij_taui,ij_ctpi/)
         kmaplets=kmaplets+6
+      else
+        lname_ij(ij_lcldi)='unused'
+        lname_ij(ij_mcldi)='unused'
+        lname_ij(ij_hcldi)='unused'
+        lname_ij(ij_tcldi)='unused'
+        lname_ij(ij_taui) ='unused'
+        lname_ij(ij_ctpi) ='unused'
+      end if
+
+C**** include CRF diags if requested
+      if (cloud_rad_forc.eq.1) then
+        iord(kmaplets+1:kmaplets+2) = (/ij_swcrf,ij_lwcrf/)
+        kmaplets=kmaplets+2
+      else
+        lname_ij(ij_swcrf)='unused'
+        lname_ij(ij_lwcrf)='unused'
       end if
 
 C**** Fill in maplet indices for gravity wave diagnostics
@@ -4179,10 +4197,8 @@ c**** always skip unused fields
       end do
 
       inquire (file='Iij',exist=qIij)
-      if (.not.qIij .and. kdiag(3).lt.8) kdiag(3)=8 ! ->0 in set_ijout
-      if (     qIij .and. kdiag(3).gt.7) kdiag(3)=0 ! ignore Iij
-      if (.not.qIij .or.  kdiag(3).gt.0)
-     *    call set_ijout (nmaplets,nmaps,Iord,Qk,iu_Iij)
+      if (.not.qIij) kdiag(3)=0                  
+      call set_ijout (nmaplets,nmaps,Iord,Qk,iu_Iij)
       xlb=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)
 C****
       DAYS=(Itime-Itime0)/FLOAT(nday)
@@ -4305,7 +4321,7 @@ C**** produce binary files of remaining fields if appropriate
         end if
       end do
       call close_ij
-      if (kdiag(3).lt.7) CALL IJKMAP (iu_Iij)
+      if (kdiag(3).lt.8) CALL IJKMAP (iu_Iij)
 
       RETURN
 C****
@@ -4499,7 +4515,7 @@ C****
      *   n,kmap(3)
 
 c**** Just list what's available - then do same for ijk-fields
-      if (kdiag(3) .eq. 8) then
+      if (kdiag(3) .eq. 0) then
         Qktmp = Qk
         call openunit('Iij',iu_Iij,.false.,.false.)
         write (iu_Iij,'(a)') 'List of fields shown as maplets'
@@ -4527,12 +4543,13 @@ c**** Just list what's available - then do same for ijk-fields
           if (.not.Qktmp(k)) cycle
           write (iu_Iij,'(i3,1x,a)') k,lname_ij(k)
         end do
+        kdiag(3)=9
         CALL IJKMAP (iu_Iij)
         kdiag(3)=0
         return
       end if
 
-c**** Redefine nmaplets,nmaps,Iord,Qk if 0 < kdiag(3) < 8
+c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
       call openunit('Iij',iu_Iij,.false.,.true.)
 
       nmaplets = 0 ; nmaps = 0 ; Iord = 0 ; Qk = .false.
@@ -4962,11 +4979,11 @@ C****
      &   hdiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd,name_dd
      *     ,ia_12hr
       IMPLICIT NONE
-      REAL*8, DIMENSION(HR_IN_MONTH+4) :: XHOUR
-      INTEGER, DIMENSION(HR_IN_MONTH+4) :: MHOUR
+      REAL*8, DIMENSION(HR_IN_MONTH) :: XHOUR
+      INTEGER, DIMENSION(HR_IN_MONTH) :: MHOUR
       INTEGER :: I,IH,IH0,IREGF,IREGL,IS,JD,jdayofm,K,KP,KQ,KR,NDAYS
       CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO,SNAMEO
-      REAL*8, DIMENSION(HR_IN_MONTH+4,NDIUVAR) :: FHOUR
+      REAL*8, DIMENSION(HR_IN_MONTH,NDIUVAR) :: FHOUR
 C****
       NDAYS=IDACC(ia_12hr)/2
       IF (NDAYS.LE.0) RETURN
@@ -4993,17 +5010,17 @@ C**** KP packs the quantities for postprocessing (skipping unused)
           SELECT CASE (NAME_DD(KQ))
           CASE DEFAULT
 C**** NORMAL QUANTITIES
-            DO IH=1,HR_IN_MONTH+4
+            DO IH=1,HR_IN_MONTH
               XHOUR(IH)=HDIURN(IH,KQ,KR)*SCALE_DD(KQ)*(24./NDAY)
             END DO
 C**** RATIO OF TWO QUANTITIES
           CASE ('LDC')
-            DO IH=1,HR_IN_MONTH+4
+            DO IH=1,HR_IN_MONTH
               XHOUR(IH)=HDIURN(IH,KQ,KR)*SCALE_DD(KQ)/
      *             (HDIURN(IH,KQ-1,KR)+1D-20)
             END DO
           END SELECT
-          DO IS=1,HR_IN_MONTH+4
+          DO IS=1,HR_IN_MONTH
             FHOUR(IS,KP)=XHOUR(IS)
             MHOUR(IS)=NINT(XHOUR(IS))
           END DO
@@ -5012,7 +5029,6 @@ C**** RATIO OF TWO QUANTITIES
             WRITE (6,904) LNAME_DD(KQ),(MHOUR(i),i=ih0,ih0+23),jd
             ih0 = ih0+24
           end do
-            WRITE (6,905) LNAME_DD(KQ),(MHOUR(i),i=ih0,ih0+3)
           SNAMEO(KP)=NAME_DD(KQ)(1:16)
           LNAMEO(KP)=LNAME_DD(KQ)(1:16)
           UNITSO(KP)=UNITS_DD(KQ)(1:16)
@@ -5026,7 +5042,6 @@ C****
   901 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
   903 FORMAT ('0',A4,I2,',',I2,' ',I2,23I5,'  Day')
   904 FORMAT (A8,24I5,I5)
-  905 FORMAT (A8,4I5)
       END SUBROUTINE DIAGDH
 
 
@@ -5591,7 +5606,7 @@ C****
       do k=1,kaijkx
         if (lname_ijk(k).eq.'unused') Qk(k) = .false.
       end do
-      if (kdiag(3).eq.8) then
+      if (kdiag(3).eq.9) then
          write (iu_Iij,'(a)') 'list of 3-d fields'
          do k=1,kaijkx
            if (lname_ijk(k).ne.'unused')

@@ -107,8 +107,8 @@ C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &		HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &		HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+     &          HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &          HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
       OCEANE=0
       DO J=J_0, J_1

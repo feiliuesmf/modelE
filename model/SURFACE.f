@@ -172,7 +172,7 @@ C****
          MODDD=MOD(1+ITime/NDAY+NS,NIsurf)   ! 1+ not really needed ??
 C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
          DTH1=0. ;  DQ1 =0. ;  uflux1=0. ; vflux1=0.
-#ifdef TRACERS_WATER
+#ifdef TRACERS_ON
          trsrfflx = 0.
 #endif
 
@@ -637,13 +637,16 @@ C**** Limit evaporation if lake mass is at minimum
       EVHDT=DQ1X*(LHE+TG1*SHV)*MA1
       IF (ITYPE.NE.1) TG1=TG1+(EVHDT-EVHDT0)/HCG1
  3720 EVAP=-DQ1X*MA1
+
+#ifdef TRACERS_ON
+C**** Loop over tracers
+      DO NX=1,NTX
+        N=NTIX(NX)
 #ifdef TRACERS_WATER
+        if (tr_wd_TYPE(n).eq.nWATER) THEN
 C****
 C**** Calculate Water Tracer Evaporation
 C****
-      DO NX=1,NTX
-        N=NTIX(NX)
-        if (tr_wd_TYPE(n).eq.nWATER) THEN
           IF (ITYPE.EQ.1) THEN  ! OCEAN
 C**** do calculation implicitly for TQS
 #ifdef TRACERS_SPECIAL_O18
@@ -705,13 +708,13 @@ C**** Limit evaporation if lake mass is at minimum
      *         DMS_flux*dxyp(j)*ptype*dtsurf
         case ('seasalt1')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss1_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) -
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
      &         ss1_flux*dxyp(j)*ptype*dtsurf
           tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
      *         ss1_flux*dxyp(j)*ptype*dtsurf
         case ('seasalt2')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss2_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) -
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
      &         ss2_flux*dxyp(j)*ptype*dtsurf
           tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
      *         ss2_flux*dxyp(j)*ptype*dtsurf
@@ -746,7 +749,6 @@ C****
           dtr_dd(j,n,2)=dtr_dd(j,n,2)-ptype*rtsdt*dxyp(j)* gs_vel(n)
         end if
 #endif
-#ifdef TRACERS_WATER
       END DO
 #endif
 C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES

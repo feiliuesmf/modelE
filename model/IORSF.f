@@ -66,7 +66,6 @@ C**** Calls to individual i/o routines
 #ifdef TRACERS_ON
       call io_trdiag (kunit,it,iaction,ioerr)
 #endif
-
       if (it1.ne.it) THEN
         WRITE(6,*) "TIMES DO NOT MATCH READING IN RSF FILE",it,it1
         ioerr=1

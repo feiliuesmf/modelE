@@ -641,7 +641,7 @@ C**** output daily mean
       CHARACTER*16, DIMENSION(NDIUVAR) :: UNITS,NAME,SNAME
       CHARACTER*4, INTENT(IN) :: NAMDD !names of boxes
       INTEGER, INTENT(IN) :: HR_IN_period,KP,IJDD1,IJDD2
-      REAL*8, DIMENSION(HR_IN_period+4,NDIUVAR), INTENT(IN) :: FHOUR
+      REAL*8, DIMENSION(HR_IN_period,NDIUVAR), INTENT(IN) :: FHOUR
       INTEGER K,N,I
 
 C**** Convert spaces in TITLE to underscore

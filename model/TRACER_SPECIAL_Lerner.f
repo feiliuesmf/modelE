@@ -277,7 +277,7 @@ C---- CTM layers LM down
 !@sum Trop_chem_CH4 calculates tropospheric chemistry for CH4
 !@+     by applying a pre-determined chemical loss rate
 !@auth Jean Lerner
-      USE MODEL_COM, only: im,jm,lm,byim,jyear,nday,jday,itime
+      USE MODEL_COM, only: im,jm,lm,byim,jyear,nday,jday,itime,dtsrc
       USE DOMAIN_DECOMP, only: GRID, GET
       USE GEOM, only: imaxj
       USE DYNAMICS, only: ltropo
@@ -314,8 +314,9 @@ C**** Read chemical loss rate dataset (5-day frequency)
   510 continue
       read (FRQfile,end=515) taux,frqlos
       tauy = nint(taux)+(jyear-1950)*8760.
-      IF (itime+ 60..gt.tauy+120.) go to 510
-      IF (itime+180..le.tauy+120.) then
+c     IF (itime+ 60..gt.tauy+120.) go to 510
+      IF ((itime*Dtsrc/3600.)+60.gt.tauy+120.) go to 510
+      IF ((itime*Dtsrc/3600.)+180..le.tauy+120.) then
         write(6,*)' PROBLEM MATCHING itime ON FLUX FILE',TAUX,TAUY,JYEAR
         call stop_model(
      &       'PROBLEM MATCHING itime ON FLUX FILE in Trop_chem_CH4',255)

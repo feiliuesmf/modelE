@@ -76,6 +76,8 @@ C**** some B-grid conservation quantities
 !@var  FCOR latitudinally varying coriolis parameter
       REAL*8, DIMENSION(JM) :: FCOR
 
+      real*8 :: acor,acor2,polwt
+
       CONTAINS
 
       SUBROUTINE GEOM_B
@@ -121,6 +123,7 @@ cc    IF (JM.eq.24) DLAT_DG=180./(JM-1)   ! 1/2 box at pole, orig 8x10
 C**** The following corrections have no effect for half polar boxes
 C**** but are important for full and quarter polar box cases.
         IF (J.eq.2) THEN
+          polwt = cosv(j)
           COSV(J) = .5*(COSP1+COSP(J))
           DXV(J)  = .5*(DXP1+DXP(J))
         END IF
@@ -140,9 +143,10 @@ C****
       DXYS(JM) = DXYP(JM)
       DXYN(1)  = DXYP(1)
       DXYN(JM) = 0.
+      polwt = (cosv(3)-cosv(2))/(cosv(3)-polwt)
       AREAG = DXYP(1)+DXYP(JM)
       DO J=2,JM-1
-        DYP(J)  = .5*(DYV(J)+DYV(J+1))
+        DYP(J)  =  radius*dlat !.5*(DYV(J)+DYV(J+1))
         DXYP(J) = .5*(DXV(J)+DXV(J+1))*DYP(J)
         BYDXYP(J) = 1./DXYP(J)
         DXYS(J) = .5*DXYP(J)
@@ -155,6 +159,8 @@ C****
       RAPVS(1)  = 0.
       RAVPN(JM) = 0.
       RAPVN(JM) = 0.
+      acor = dxyv(2)/(.5*dxp(2)*dyv(2)) ! gridbox area correction factor
+      acor2 = dxyv(2)/(dxv(2)*dyv(2))
       DO J=2,JM
         DXYV(J) = DXYN(J-1)+DXYS(J)
         BYDXYV(J) = 1./DXYV(J)

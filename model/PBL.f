@@ -461,8 +461,8 @@ ccc dust emission from earth
       SELECT CASE (trname(ntix(itr)))
       CASE ('Clay','Silt1','Silt2','Silt3')
         n1=ntix(itr)-n_clay+1
-        CALL local_dust_emission(ilong,jlat,n1,wsm,dsrcflx)
-        trcnst=dsrcflx
+        CALL local_dust_emission(ilong,jlat,n1,wsm,ptype,dsrcflx)
+        trcnst=dsrcflx*byrho
         dust_flux(n1)=dsrcflx
       END SELECT
 #endif

@@ -109,12 +109,11 @@ C**** Files for an accumulation period (1-12 months)
 C**** Initiallise file for sub-daily diagnostics, controlled by
 C**** space-seperated string segments in SUBDD & SUBDD1 in the rundeck
       call init_subdd(aDATE)
-
+      call sys_flush(6)
 C****
 C**** MAIN LOOP
 C****
       DO WHILE (Itime.lt.ItimeE)
-
 C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
 C**** write restart information alternatingly onto 2 disk files
       IF (MOD(Itime-ItimeI,Ndisk).eq.0) THEN
@@ -157,22 +156,27 @@ C**** reset sub-daily diag files
 C****
 C**** INTEGRATE DYNAMIC TERMS (DIAGA AND DIAGB ARE CALLED FROM DYNAM)
 C****
+      CALL CHECKT ('DYNAM0')
       if (kradia.le.0) then                   ! full model,kradia le 0
          MODD5D=MOD(Itime-ItimeI,NDA5D)
          IF (MODD5D.EQ.0) IDACC(7)=IDACC(7)+1
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
       CALL DYNAM
+      CALL CHECKT ('DYNAM1')
       CALL QDYNAM  ! Advection of Q by integrated fluxes
+      CALL CHECKT ('DYNAM2')
          CALL TIMER (MNOW,MDYN)
 #ifdef TRACERS_ON
       CALL TrDYNAM   ! tracer dynamics
+      CALL CHECKT ('DYNAM3')
          CALL TIMER (MNOW,MTRACE)
 #endif
 C****
 C**** Calculate tropopause level and pressure
 C****
       CALL CALC_TROP
+      CALL CHECKT ('DYNAM4')
 
 C**** calculate some dynamic variables for the PBL
       CALL PGRAD_PBL
@@ -579,11 +583,11 @@ C**** Determine if FLTRUV is called.
          end if
       end if
 c Warn if polar fixes requested for a model not having a half polar box
-      if(do_polefix.eq.1 .and. jm.ne.46) then
-         do_polefix = 0
-         write(6,*) 'Polar fixes are currently applicable only to'//
-     &           'models having a half polar box; no fixes applied'
-      endif
+c     if(do_polefix.eq.1 .and. jm.ne.46) then
+c        do_polefix = 0
+c        write(6,*) 'Polar fixes are currently applicable only to'//
+c    &           'models having a half polar box; no fixes applied'
+c     endif
       RETURN
 C****
       end subroutine init_Model
@@ -612,7 +616,7 @@ C****
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b,imaxj
       USE RANDOM
-      USE RADNCB, only : rqt,lm_req
+      USE RADNCB, only : rqt,lm_req,cloud_rad_forc
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM,only: MTRACE,NTM,TRNAME
@@ -1199,10 +1203,6 @@ C****
       IF (LRUNID.gt.16) call stop_model
      *     ('INPUT: Rundeck name too long. Shorten to 16 char or less'
      *     ,255)
-      LRUNID = INDEX(XLABEL(1:16),'(') -1
-      IF (LRUNID.LT.1) LRUNID=16
-      if (index(XLABEL(1:LRUNID),' ').gt.0)
-     *     LRUNID=index(XLABEL(1:LRUNID),' ')-1
 
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
@@ -1332,7 +1332,7 @@ C**** Recompute Ground hydrology data if redoGH (new soils data)
 C****
       if (Kradia.gt.0) then   !  radiative forcing run
         CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
-        if(istart.gt.0) CALL init_RAD
+        CALL init_RAD(istart)
         if(istart.lt.0) CALL init_DIAG(ISTART,num_acc_files)
         WRITE (6,INPUTZ)
         call print_param( 6 )
@@ -1362,7 +1362,7 @@ C****
       CALL UPDTYPE
       if(istart.gt.0) CALL init_QUS(grid,im,jm,lm)
       if(istart.gt.0) CALL init_MOM
-      if(istart.gt.0) CALL init_RAD
+      CALL init_RAD(istart)
       WRITE (6,INPUTZ)
       call print_param( 6 )
       WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)

@@ -64,10 +64,12 @@ C
 c
 C**** GLOBAL parameters and variables:
 c
+      USE MODEL_COM, only: LS1
       USE DYNAMICS, only: LTROPO
       USE TRACER_COM, only : n_NOx
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
-     &                        ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO
+     &                        ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,
+     &                        which_trop
 #ifdef SHINDELL_STRAT_CHEM     
      &                        ,nClO,nOClO,nBrO
 #endif
@@ -80,8 +82,9 @@ C**** Local parameters and variables and arguments:
 !@var I,J passed horizontal position indicies
 !@var lmax maximum altitude for chemistry
 !@var iNO2form NO2 formation reaction from O + NO
+!@var maxl LTROPO(I,J) or LS1-1, depending upon what_trop variable
       real*8 b,c,p1,p2
-      integer L,iNO2form
+      integer L,iNO2form,maxl
       integer, intent(IN) :: lmax,I,J
 c
 #ifdef SHINDELL_STRAT_CHEM
@@ -90,6 +93,12 @@ c
       iNO2form=48
 #endif
 c
+      select case(which_trop)
+      case(0); maxl=ltropo(I,J)
+      case(1); maxl=ls1-1
+      case default; call stop_model('which_trop problem 8',255)
+      end select
+C
       do L=1,lmax
 c       If dawn then set NO3 back to zero:
         IF(yNO3(I,J,L).GT.0.)yNO3(I,J,L)=0.d0
@@ -98,7 +107,7 @@ c       B is for NO->NO2 reactions :
      &   +rr(iNO2form,L)*y(nO,L)
 
 c       Troposphere
-        if(l.lt.LTROPO(I,J)+1)then
+        if(l.le.maxl)then
          B=B+rr(20,L)*yCH3O2(I,J,L)
      &   +rr(39,L)*y(nC2O3,L)+4.2d-12*exp(180./ta(L))*y(nXO2,L)
         else
@@ -129,7 +138,7 @@ c     &   +rr(17,L)*y(nNO3,L)
 c
 C       C is for NO2->NO reactions :
         C=ss(1,L,I,J)+rr(26,L)*y(nO,L)
-        if(l.lt.LTROPO(I,J)+1)C=C
+        if(l.le.maxl)C=C
      &   +rr(7,L)*y(nO3,L)*0.25 !forms NO3, assume some goes to NO
 c        most likely rxns: NO2+NO3->NO+NO2, J5:NO3->NO+O2, J6:NO3->NO2+O
 c     &   +rr(24,L)*y(nNO3,L) !no NO3 during day
@@ -160,7 +169,7 @@ C
 c
 C**** GLOBAL parameters and variables:
 c
-      USE MODEL_COM, only : LM
+      USE MODEL_COM, only : LM,LS1
 #ifdef SHINDELL_STRAT_CHEM
      &      ,ptop,psf,sig
 #endif
@@ -175,7 +184,7 @@ c
       USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
      &                           nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,
      &                           nXO2N,ta,ss,nC2O3,nROR,
-     &                           yso2,ydms
+     &                           yso2,ydms,which_trop
 #ifdef SHINDELL_STRAT_CHEM
      &                           ,nBrO,nClO,nOClO,nBr,nCl,SF3,nO
 #endif
@@ -191,9 +200,10 @@ C**** Local parameters and variables and arguments:
 !@var iHNO3form HNO3 formation reaction from OH + NO2
 !@var iHONOform HONO formation reaction from NO + OH
 !@var rHprod,rHspecloss,rkzero,rktot temporary var during OH->H rxns
+!@var maxl either LTROPO(I,J) or LS1-1 depending on which_trop dbparam
       real*8 aqqz, bqqz, cqqz, cz, dz, sqroot, temp_yHOx,
      *rcqqz,ratio,rHprod,rHspecloss,rkzero,rktot
-      integer L
+      integer L, maxl
       integer, intent(IN) :: lmax,I,J
 c
 #ifdef SHINDELL_STRAT_CHEM
@@ -211,9 +221,14 @@ c
        PRES(L)=SIG(L)*(PSF-PTOP)+PTOP
       end do
 #endif
+      select case(which_trop)
+      case(0); maxl=ltropo(I,J)
+      case(1); maxl=ls1-1
+      case default; call stop_model('which_trop problem 9',255)
+      end select
 C
 cc    Troposphere
-      do L=1,LTROPO(I,J)   ! >> beginning of altitude loop <<
+      do L=1,maxl   ! >> beginning of altitude loop <<
 c
 c      First calculate equilibrium amount of HOx
 c      A: loss rxns with HOx**2, B: loss rxns linear in HOx, C: prod
@@ -234,7 +249,6 @@ C oxidation of DMS,SO2
      & +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) + 
      & rsulf2(i,j,l)*ydms(i,j,l))
 
-C
        cqqz=(2.d0*ss(4,L,I,J)*y(n_H2O2,L)+ss(9,L,I,J)*y(n_HNO3,L)+
      & ss(13,L,I,J)*y(n_HCHO,L)+ss(14,L,I,J)*y(n_CH3OOH,L)+
      & (rr(20,L)*y(nNO,L)+0.66d0*rr(27,L)*yCH3O2(I,J,L))
@@ -267,9 +281,12 @@ C SO2 oxidation
 C
 C      DZ: HO2->OH reactions :
        dz=rr(4,L)*y(nO3,L)+rr(6,L)*y(nNO,L)
-     & +rr(41,L)*0.79d0*y(nC2O3,L)+rr(15,L)*y(nHO2,L)
-     & *(2.d0*ss(4,L,I,J)/(2.d0*ss(4,L,I,J)+y(nOH,L)*rr(14,L)))
-c      Previous two lines additional OH production via rxn 41,
+     & +rr(41,L)*0.79d0*y(nC2O3,L)
+       if((2.d0*ss(4,L,I,J)+y(nOH,L)*rr(14,L)).ne.0.)then
+         dz=dz+rr(15,L)*y(nHO2,L)*(2.d0*ss(4,L,I,J)
+     &   /(2.d0*ss(4,L,I,J)+y(nOH,L)*rr(14,L)))
+       end if
+c      Previous few lines additional OH production via rxn 41,
 c      which also produces HO2, and R15 then S4/(S4+S14) fraction
 C
        if(cz+dz.gt.0.)then
@@ -292,7 +309,7 @@ C
 c
 #ifdef SHINDELL_STRAT_CHEM
 cc    Stratosphere
-      do L=LTROPO(I,J)+1,lmax
+      do L=maxl+1,lmax
 c
 c      First calculate equilibrium amount of HOx
 c      A: loss rxns with HOx**2, B: loss rxns linear in HOx, C: prod
@@ -411,11 +428,12 @@ c
 c
 C**** GLOBAL parameters and variables:
 c
-      USE MODEL_COM, only :  LM,ls1
+      USE DYNAMICS, only: LTROPO
+      USE MODEL_COM, only :  LM,LS1
       USE TRACER_COM, only : n_ClOx,n_HOCl,n_ClONO2,n_HCl,n_H2O2,n_CH4
       USE TRCHEM_Shindell_COM, only:pClOx,rr,y,nClO,nOClO,nCl,nCl2O2,
      &    ta,ss,nO3,nHO2,nNO3,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
-     &    SZA,dt2,pClx,pOClOx,nNO2
+     &    SZA,dt2,pClx,pOClOx,nNO2,which_trop,yCl2,yCl2O2
 C
       IMPLICIT NONE
 c
@@ -424,13 +442,26 @@ C**** Local parameters and variables and arguments:
 !@var ClOx_old total ClOx at start of chemical timestep
 !@var rnormnum is temporary var for conservation of Cl
 !@var destCl, prodCl temporary vars for simple steady state Cl calc
+!@var maxl either LTROPO(I,J) or LS1-1 depending on which_trop dbparam
       REAL*8, DIMENSION(LM)      :: ClOx_old 
       real*8 A,B,C,D,F,G,Q,V,X,YY,dClOx,ww,p1,p2,p3,dOClO,ratioc,
      &rnormnum,destCl,prodCl
-      integer L
+      integer L,maxl
       integer, intent(IN) :: lmax,I,J
 
-      do L=LS1,lmax
+      select case(which_trop)
+      case(0); maxl=ltropo(I,J)
+      case(1); maxl=ls1-1
+      case default; call stop_model('which_trop problem 10',255)
+      end select
+
+      do L=maxl+1,lmax ! stratosphere
+c      Temporarily, no het chem, Cl2 and Cl2O2 both zero.
+       yCl2(I,J,L)=0.d0            ! this to
+       y(nCl2,L)=yCl2(I,J,L)       ! be altered
+       yCl2O2(I,J,L)=0.d0          ! later
+       y(nCl2O2,L)=yCl2O2(I,J,L)   ! by
+       y(nOClO,L)=0.d0             ! Drew
 
 c      full ClOxfam code from offline photochemistry
 c       goto 10
@@ -460,14 +491,14 @@ c      calculating Cl amount, otherwise ignore
        D=y(nO3,L)*rr(49,L)+y(nBrO,L)*rr(75,L)
        F=(rr(53,L)*y(nOH,L)*y(n_HOCl,L)+rr(55,L)*y(nO,L)*
      *   y(n_HOCl,L)+rr(65,L)*y(n_ClONO2,L)*y(nO,L)+rr(93,L)*
-     *   y(nCl2O2,L)*y(nM,L)*2)/y(n_ClOx,L)
+     *   y(nCl2O2,L)*y(nM,L)*2.d0)/y(n_ClOx,L)
        G=rr(62,L)*y(nOH,L)+rr(63,L)*y(nHO2,L)+rr(77,L)*
-     *   y(nBrO,L)+2*rr(102,L)*y(nClO,L)+rr(103,L)*y(nNO2,L)
+     *   y(nBrO,L)+2.d0*rr(102,L)*y(nClO,L)+rr(103,L)*y(nNO2,L)
        Q=rr(56,L)*y(nOH,L)
        V=C-D
        X=rr(51,L)*y(nOH,L)*y(nCl2,L)+rr(54,L)*y(nO,L)*
-     *   y(n_HCl,L)+
-     *   2*ss(18,L,i,j)*y(nCl2,L)+2*ss(20,L,i,j)*y(nCl2O2,L)+
+     *   y(n_HCl,L)+ 2.d0*
+     *   ss(18,L,i,j)*y(nCl2,L)+2.d0*ss(20,L,i,j)*y(nCl2O2,L)+
      *   ss(21,L,i,j)*y(n_HOCl,L)+ss(22,L,i,j)*y(n_ClONO2,L)
        X=X/y(n_ClOx,L)
        YY=rr(57,L)*y(n_HOCl,L)+rr(58,L)*y(n_H2O2,L)+rr(59,L)*
@@ -553,10 +584,6 @@ c     *   rr(60,L),y(nNO3,L),rr(66,L)
        pClx(I,J,L)=y(nCl,L)/y(n_ClOx,L)
        pOClOx(I,J,L)=y(nOClO,L)/y(n_ClOx,L)
 
-c      Temporarily, no het chem, Cl2 and Cl2O2 both zero.
-c       y(nCl2O2,L)=0.d0
-       y(nCl2,L)=0.d0 !het rxns set to produce Cl instead of Cl2
-
        goto 50 !skip alternative method
 
  10    continue
@@ -598,11 +625,6 @@ c      Normalize so that amount of ClOx doesn't change
        pClx(I,J,L)=y(nCl,L)/y(n_ClOx,L)
        pOClOx(I,J,L)=0.d0
 
-c      Temporarily, no het chem, Cl2 and Cl2O2 both zero.
-       y(nCl2O2,L)=0.d0
-       y(nCl2,L)=0.d0
-       y(nOClO,L)=0.d0
-
  50   enddo  ! end of altitude loop
 #endif
       return
@@ -621,20 +643,28 @@ c
 c
 C**** GLOBAL parameters and variables:
 c
-      USE MODEL_COM, only :  ls1
+      USE DYNAMICS, only: LTROPO
+      USE MODEL_COM, only: LS1
       USE TRACER_COM, only : n_BrOx,n_H2O2,n_HBr,n_HOBr,n_BrONO2
       USE TRCHEM_Shindell_COM, only:rr,y,nO3,nClO,nOClO,nNO,nO,nBr,nOH,
-     &    nBrO,ss,nHO2,nNO2,pBrOx
+     &    nBrO,ss,nHO2,nNO2,pBrOx,which_trop
 C
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
 !@var a,b,c,d,eq,f,p2,p1 dummy vars
+!@var maxL either LTROPO(I,J) or LS1-1 depending on which_trop dbparam
       real*8 a,b,c,d,eq,f,p2,p1
-      integer L
+      integer L,maxl
       integer, intent(IN) :: lmax,I,J
 
-      do L=LS1,lmax
+      select case(which_trop)
+      case(0); maxl=ltropo(I,J)
+      case(1); maxl=ls1-1
+      case default; call stop_model('which_trop problem 11',255)
+      end select
+
+      do L=maxl+1,lmax  ! stratosphere
          a=y(nO3,L)*rr(70,L)+y(nOClO,L)*rr(74,L)
          b=y(nO,L)*rr(69,L)+y(nNO,L)*rr(71,L)+y(nClO,L)*
      *   (rr(75,L)+rr(76,L))+2*y(nBrO,L)*rr(78,L)+y(nOH,L)*

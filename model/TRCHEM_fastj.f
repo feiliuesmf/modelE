@@ -170,11 +170,11 @@ c
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only: JM, month=>JMON
+      USE MODEL_COM, only: JM, month=>JMON,ls1
       USE DYNAMICS, only: LTROPO
       USE TRCHEM_Shindell_COM, only: O3_FASTJ,cboltz,dlogp,O3J,TJ,DBC,
      &                          OREF,TREF,BREF,DO3,DMFASTJ,NCFASTJ,
-     &                          PFASTJ
+     &                          PFASTJ,which_trop
 c
       IMPLICIT NONE
 c
@@ -183,8 +183,9 @@ C**** Local parameters and variables and arguments:
 !@var i,j,l,m dummy loop variables
 !@var pstd Approximate pressures of levels for supplied data
 !@var tmp1,tmp2,ydgrd,month,tmpfra temporary variables
+!@var maxl LTROPO or LS1-1, depending on which_trop variable
       INTEGER, INTENT(IN) :: nslon, nslat
-      INTEGER i,j,l,m
+      INTEGER i,j,l,m,maxl
       REAL*8, DIMENSION(51) :: pstd
       REAL*8 tmp1,tmp2,ydgrd,tmpfra
 c
@@ -240,7 +241,12 @@ c  Ozone  (extrapolate above 60 km)
       enddo
 c
 c     overwrite troposphere lvls of climatological O3 with GISS GCM O3:
-      do i=1,2*LTROPO(nslon,nslat)
+      select case(which_trop)
+      case(0); maxl=ltropo(nslon,nslat)
+      case(1); maxl=ls1-1
+      case default; call stop_model('which_trop problem 3',255)
+      end select
+      do i=1,2*maxl
        O3J(i)=O3_FASTJ(i)
       enddo
 c

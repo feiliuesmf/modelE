@@ -297,7 +297,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       RETURN
       END
 
-      SUBROUTINE init_RAD
+      SUBROUTINE init_RAD(istart)
 !@sum  init_RAD initialises radiation code
 !@auth Original Development Team
 !@ver  1.0
@@ -323,7 +323,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,RHfix
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
-     *     ,calc_orb_par,paleo_orb_yr
+     *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,rad_interact_tr,rad_forc_lev,ntrix
       USE DAGCOM, only : iwrite,jwrite,itwrite
@@ -332,7 +332,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 #endif
       IMPLICIT NONE
 
-      INTEGER J,L,LR,LONR,LATR,n1
+      INTEGER J,L,LR,LONR,LATR,n1,istart
       REAL*8 COEX,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS,PLBx(LM+1)
      *     ,pyear
 !@var NRFUN indices of unit numbers for radiation routines
@@ -392,6 +392,8 @@ C**** sync radiation parameters from input
       end if
       call sync_param( "rad_interact_tr", rad_interact_tr )
       call sync_param( "rad_forc_lev", rad_forc_lev )
+      call sync_param( "cloud_rad_forc", cloud_rad_forc )
+      if (istart.le.0) return
 
 C**** Set orbital parameters appropriately
       if (calc_orb_par.eq.1) then ! calculate from paleo-year
@@ -581,15 +583,17 @@ C**** should also work if other aerosols are not used
         FS8OPX(7) = 0. ; FT8OPX(7) = 0.
       end if
       n1=NTRACE+1
-      NTRACE=NTRACE+ntm_dust  ! add dust tracers
+      NTRACE=NTRACE+ntm_dust+3  ! add dust tracers
 c tracer 7 is dust
-      ITR(n1:NTRACE) = (/ 7,7,7,7 /)
+      ITR(n1:NTRACE) = (/ 7,7,7,7,7,7,7 /)
       KRHTRA(n1:NTRACE)= 0.  ! no deliq for dust
 C**** particle size for dust  (from trradius?)
-      TRRDRY(n1:NTRACE)=(/ .75d0, 2.2d0, 4.4d0, 6.7d0/)
+c      TRRDRY(n1:NTRACE)=(/ .75d0, 2.2d0, 4.4d0, 6.7d0/)
+      TRRDRY(n1:NTRACE)=(/.1d0, .2d0, .4d0, .8d0, 1.d0, 2.d0, 4.d0/)
 C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics. Adjust if number of dust tracers changes.
-      NTRIX(n1:NTRACE)=(/ n_clay,n_silt1,n_silt2,n_silt3/)
+      NTRIX(n1:NTRACE)=(/n_clay,n_clay,n_clay,n_clay,n_silt1,n_silt2,
+     &     n_silt3/)
 C**** If some tracers are not being used reduce NTRACE accordingly
       NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #endif
@@ -671,7 +675,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
-     *             ,TRACER,NTRACE,FSTOPX,FTTOPX,O3_IN
+     *             ,TRACER,NTRACE,FSTOPX,FTTOPX,O3_IN,FTAUC
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
@@ -683,6 +687,7 @@ C     OUTPUT DATA
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
+     *     ,cloud_rad_forc
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -699,8 +704,8 @@ C     OUTPUT DATA
      *     ,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld,ij_frmp
      *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      *     ,ij_clr_srincg,ij_CLDTPT,ij_cldt1t,ij_cldt1p,ij_cldcv1
-     *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi
-     *     ,AFLX_ST
+     *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,ij_swcrf,ij_lwcrf
+     *     ,AFLX_ST, hr_in_day,hr_in_month
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -715,7 +720,7 @@ C     OUTPUT DATA
       USE DOMAIN_DECOMP, ONLY: GLOBALSUM, AM_I_ROOT, HERE
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
-     *     ,n_OCIA,N_OCII
+     *     ,n_OCIA,N_OCII,n_clay
       USE TRACER_DIAG_COM, only: taijs,ijts_fc,ijts_tau
 #endif
       IMPLICIT NONE
@@ -729,6 +734,8 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
       REAL*8, DIMENSION(4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFS,TNFS
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     *     SNFSCRF,TNFSCRF
 #ifdef TRACERS_ON
 !@var SNFST,TNFST like SNFS/TNFS but with/without specific tracers for
 !@+   radiative forcing calculations
@@ -743,7 +750,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(LM) :: TOTCLD
       INTEGER, SAVE :: JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff
-     *     ,LFRC
+     *     ,LFRC,JTIME
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,X,OPNSKY,CSZ2,tauup,taudn
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
@@ -790,7 +797,8 @@ C**** limit optical cloud depth from below: taulim
       taulim=min(tauwc0,tauic0) ! currently both .001
       tauwc0 = taulim ; tauic0 = taulim
 C**** Calculate mean cosine of zenith angle for the current physics step
-      ROT1=(TWOPI*MOD(ITIME,NDAY))/NDAY  ! MOD(ITIME,NDAY)*TWOPI/NDAY ??
+      JTIME=MOD(ITIME,NDAY)
+      ROT1=(TWOPI*JTIME)/NDAY
       ROT2=ROT1+TWOPI*DTsrc/SDAY
       CALL COSZT (ROT1,ROT2,COSZ1)
 
@@ -1116,41 +1124,30 @@ CCC      AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
 
          DO KR=1,NDIUPT
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+C**** Warning: this replication may give inaccurate results for hours
+C****          1->(NRAD-1)*DTsrc (ADIURN) or skip them (HDIURN)
              DO INCH=1,NRAD
-               IH=1+MOD(JHOUR+INCH-1,24)
-C****               ADIURN(IH,IDD_CL7,KR)=ADIURN(IH,IDD_CL7,KR)+TOTCLD(7)
-               ADIURN_part(IH,KR,1,J)=ADIURN_part(IH,KR,1,J)+TOTCLD(7)
-C****               ADIURN(IH,IDD_CL6,KR)=ADIURN(IH,IDD_CL6,KR)+TOTCLD(6)
-               ADIURN_part(IH,KR,2,J)=ADIURN_part(IH,KR,2,J)+TOTCLD(6)
-C****               ADIURN(IH,IDD_CL5,KR)=ADIURN(IH,IDD_CL5,KR)+TOTCLD(5)
-               ADIURN_part(IH,KR,3,J)=ADIURN_part(IH,KR,3,J)+TOTCLD(5)
-C****               ADIURN(IH,IDD_CL4,KR)=ADIURN(IH,IDD_CL4,KR)+TOTCLD(4)
-               ADIURN_part(IH,KR,4,J)=ADIURN_part(IH,KR,4,J)+TOTCLD(4)
-C****               ADIURN(IH,IDD_CL3,KR)=ADIURN(IH,IDD_CL3,KR)+TOTCLD(3)
-               ADIURN_part(IH,KR,5,J)=ADIURN_part(IH,KR,5,J)+TOTCLD(3)
-C****               ADIURN(IH,IDD_CL2,KR)=ADIURN(IH,IDD_CL2,KR)+TOTCLD(2)
-               ADIURN_part(IH,KR,6,J)=ADIURN_part(IH,KR,6,J)+TOTCLD(2)
-C****               ADIURN(IH,IDD_CL1,KR)=ADIURN(IH,IDD_CL1,KR)+TOTCLD(1)
-               ADIURN_part(IH,KR,7,J)=ADIURN_part(IH,KR,7,J)+TOTCLD(1)
-C****               ADIURN(IH,IDD_CCV,KR)=ADIURN(IH,IDD_CCV,KR)+CLDCV
-               ADIURN_part(IH,KR,8,J)=ADIURN_part(IH,KR,8,J)+CLDCV
-               IHM = JHOUR+INCH+(JDATE-1)*24
-C****               HDIURN(IHM,IDD_CL7,KR)=HDIURN(IHM,IDD_CL7,KR)+TOTCLD(7)
-               HDIURN_part(IHM,KR,1,J)=HDIURN_part(IHM,KR,1,J)+TOTCLD(7)
-C****               HDIURN(IHM,IDD_CL6,KR)=HDIURN(IHM,IDD_CL6,KR)+TOTCLD(6)
-               HDIURN_part(IHM,KR,2,J)=HDIURN_part(IHM,KR,2,J)+TOTCLD(6)
-C****               HDIURN(IHM,IDD_CL5,KR)=HDIURN(IHM,IDD_CL5,KR)+TOTCLD(5)
-               HDIURN_part(IHM,KR,3,J)=HDIURN_part(IHM,KR,3,J)+TOTCLD(5)
-C****               HDIURN(IHM,IDD_CL4,KR)=HDIURN(IHM,IDD_CL4,KR)+TOTCLD(4)
-               HDIURN_part(IHM,KR,4,J)=HDIURN_part(IHM,KR,4,J)+TOTCLD(4)
-C****               HDIURN(IHM,IDD_CL3,KR)=HDIURN(IHM,IDD_CL3,KR)+TOTCLD(3)
-               HDIURN_part(IHM,KR,5,J)=HDIURN_part(IHM,KR,5,J)+TOTCLD(3)
-C****               HDIURN(IHM,IDD_CL2,KR)=HDIURN(IHM,IDD_CL2,KR)+TOTCLD(2)
-               HDIURN_part(IHM,KR,6,J)=HDIURN_part(IHM,KR,6,J)+TOTCLD(2)
-C****               HDIURN(IHM,IDD_CL1,KR)=HDIURN(IHM,IDD_CL1,KR)+TOTCLD(1)
-               HDIURN_part(IHM,KR,7,J)=HDIURN_part(IHM,KR,7,J)+TOTCLD(1)
-C****               HDIURN(IHM,IDD_CCV,KR)=HDIURN(IHM,IDD_CCV,KR)+CLDCV
-               HDIURN_part(IHM,KR,8,J)=HDIURN_part(IHM,KR,8,J)+CLDCV
+               IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
+               IH=IHM
+               IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
+               ADIURN(IH,IDD_CL7,KR)=ADIURN(IH,IDD_CL7,KR)+TOTCLD(7)
+               ADIURN(IH,IDD_CL6,KR)=ADIURN(IH,IDD_CL6,KR)+TOTCLD(6)
+               ADIURN(IH,IDD_CL5,KR)=ADIURN(IH,IDD_CL5,KR)+TOTCLD(5)
+               ADIURN(IH,IDD_CL4,KR)=ADIURN(IH,IDD_CL4,KR)+TOTCLD(4)
+               ADIURN(IH,IDD_CL3,KR)=ADIURN(IH,IDD_CL3,KR)+TOTCLD(3)
+               ADIURN(IH,IDD_CL2,KR)=ADIURN(IH,IDD_CL2,KR)+TOTCLD(2)
+               ADIURN(IH,IDD_CL1,KR)=ADIURN(IH,IDD_CL1,KR)+TOTCLD(1)
+               ADIURN(IH,IDD_CCV,KR)=ADIURN(IH,IDD_CCV,KR)+CLDCV
+               IHM = IHM+(JDATE-1)*HR_IN_DAY
+               IF(IHM.GT.HR_IN_MONTH) CYCLE
+               HDIURN(IHM,IDD_CL7,KR)=HDIURN(IHM,IDD_CL7,KR)+TOTCLD(7)
+               HDIURN(IHM,IDD_CL6,KR)=HDIURN(IHM,IDD_CL6,KR)+TOTCLD(6)
+               HDIURN(IHM,IDD_CL5,KR)=HDIURN(IHM,IDD_CL5,KR)+TOTCLD(5)
+               HDIURN(IHM,IDD_CL4,KR)=HDIURN(IHM,IDD_CL4,KR)+TOTCLD(4)
+               HDIURN(IHM,IDD_CL3,KR)=HDIURN(IHM,IDD_CL3,KR)+TOTCLD(3)
+               HDIURN(IHM,IDD_CL2,KR)=HDIURN(IHM,IDD_CL2,KR)+TOTCLD(2)
+               HDIURN(IHM,IDD_CL1,KR)=HDIURN(IHM,IDD_CL1,KR)+TOTCLD(1)
+               HDIURN(IHM,IDD_CCV,KR)=HDIURN(IHM,IDD_CCV,KR)+CLDCV
              END DO
            END IF
          END DO
@@ -1195,6 +1192,15 @@ C**** more than one tracer is lumped together for radiation purposes
      *           trm(i,j,l,n_OCIA))*BYDXYP(J)
           case ("BCIA")
             TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYDXYP(J)
+          CASE ('Clay')
+            IF (n == n_clay) TRACER(L,n)=trm(i,j,l,NTRIX(n))*BYDXYP(J)
+     &           *0.01D0
+            IF (n == n_clay+1) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
+     &           BYDXYP(J)*0.08D0
+            IF (n == n_clay+2) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
+     &           BYDXYP(J)*0.23D0
+            IF (n == n_clay+3) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
+     &           BYDXYP(J)*0.66D0
           case default
             TRACER(L,n)=trm(i,j,l,NTRIX(n))*BYDXYP(J)
           end select
@@ -1298,6 +1304,15 @@ C**** or not.
 C**** Aerosols incl. Dust:
       if (NTRACE.gt.0) then
         FSTOPX(:)=onoff ; FTTOPX(:)=onoff
+        DO n=1,NTRACE
+          IF (trname(ntrix(n)) .EQ. 'Clay') THEN
+            SNFST(1,NTRIX(n),I,J)=0D0
+            TNFST(1,NTRIX(n),I,J)=0D0
+            SNFST(2,NTRIX(n),I,J)=0D0
+            TNFST(2,NTRIX(n),I,J)=0D0
+            EXIT
+          END IF
+        END DO
         do n=1,NTRACE
           IF (trname(NTRIX(n)).eq."seasalt2") CYCLE ! not for seasalt2
           FSTOPX(n)=1-onoff ; FTTOPX(n)=1-onoff ! turn on/off tracer
@@ -1308,10 +1323,17 @@ C**** one before seasalt2 in NTRACE array
           END IF
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
           CALL RCOMPX
-          SNFST(1,NTRIX(n),I,J)=SRNFLB(1)  ! surface forcing
-          TNFST(1,NTRIX(n),I,J)=TRNFLB(1)
-          SNFST(2,NTRIX(n),I,J)=SRNFLB(LFRC)
-          TNFST(2,NTRIX(n),I,J)=TRNFLB(LFRC)
+          IF (trname(ntrix(n)) .EQ. 'Clay') THEN
+            SNFST(1,NTRIX(n),I,J)=SNFST(1,NTRIX(n),I,J)+SRNFLB(1) ! surface forcing
+            TNFST(1,NTRIX(n),I,J)=TNFST(1,NTRIX(n),I,J)+TRNFLB(1)
+            SNFST(2,NTRIX(n),I,J)=SNFST(2,NTRIX(n),I,J)+SRNFLB(LFRC)
+            TNFST(2,NTRIX(n),I,J)=TNFST(2,NTRIX(n),I,J)+TRNFLB(LFRC)
+          ELSE
+            SNFST(1,NTRIX(n),I,J)=SRNFLB(1) ! surface forcing
+            TNFST(1,NTRIX(n),I,J)=TRNFLB(1)
+            SNFST(2,NTRIX(n),I,J)=SRNFLB(LFRC)
+            TNFST(2,NTRIX(n),I,J)=TRNFLB(LFRC)
+          END IF
           FSTOPX(n)=onoff ; FTTOPX(n)=onoff ! back to default
           IF (trname(NTRIX(n)).eq."seasalt1") THEN ! for seasalt2 as well
             FSTOPX(n+1)=onoff ; FTTOPX(n+1)=onoff
@@ -1333,6 +1355,16 @@ C**** Ozone:
       TNFST(2,n_Ox,I,J)=TRNFLB(LFRC)
       use_tracer_ozone=onoff
 #endif
+
+C**** Optional calculation of CRF using a clear sky calc.
+      if (cloud_rad_forc.gt.0) then
+        FTAUC=0.   ! turn off cloud tau (tauic +tauwc)
+        kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+        CALL RCOMPX
+        SNFSCRF(I,J)=SRNFLB(LM+LM_REQ+1)   ! always TOA
+        TNFSCRF(I,J)=TRNFLB(LM+LM_REQ+1)   ! always TOA
+      end if
+      FTAUC=1.     ! default: turn on cloud tau
 
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
 
@@ -1617,17 +1649,25 @@ C
          END DO
          DO KR=1,NDIUPT
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+C**** Warning: this replication may give inaccurate results for hours
+C****          1->(NRAD-1)*DTsrc (ADIURN) or skip them (HDIURN)
              DO INCH=1,NRAD
-               IH=1+MOD(JHOUR+INCH-1,24)
-               ADIURN_part(IH,KR,1,J)=(1.-SNFS(3,I,J)/S0)
-               ADIURN_part(IH,KR,2,J)=(1.-ALB(I,J,1))
-               ADIURN_part(IH,KR,3,J)=
+               IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
+               IH=IHM
+               IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
+               ADIURN(IH,IDD_PALB,KR)=ADIURN(IH,IDD_PALB,KR)+
+     *              (1.-SNFS(3,I,J)/S0)
+               ADIURN(IH,IDD_GALB,KR)=ADIURN(IH,IDD_GALB,KR)+
+     *              (1.-ALB(I,J,1))
+               ADIURN(IH,IDD_ABSA,KR)=ADIURN(IH,IDD_ABSA,KR)+
      *              (SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
-               IHM = JHOUR+INCH+(JDATE-1)*24
-
-               HDIURN_part(IHM,KR,1,J)=(1.-SNFS(3,I,J)/S0)
-               HDIURN_part(IHM,KR,2,J)=(1.-ALB(I,J,1))
-               HDIURN_part(IHM,KR,3,J)=
+               IHM = IHM+(JDATE-1)*HR_IN_DAY
+               IF(IHM.GT.HR_IN_MONTH) CYCLE
+               HDIURN(IHM,IDD_PALB,KR)=HDIURN(IHM,IDD_PALB,KR)+
+     *              (1.-SNFS(3,I,J)/S0)
+               HDIURN(IHM,IDD_GALB,KR)=HDIURN(IHM,IDD_GALB,KR)+
+     *              (1.-ALB(I,J,1))
+               HDIURN(IHM,IDD_ABSA,KR)=HDIURN(IHM,IDD_ABSA,KR)+
      *              (SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
              END DO
            END IF
@@ -1687,6 +1727,14 @@ C****
          AIJ(I,J,IJ_SRVIS)  =AIJ(I,J,IJ_SRVIS)  +S0*CSZ2*ALB(I,J,4)
          AIJ(I,J,IJ_TRNFP0) =AIJ(I,J,IJ_TRNFP0) -TNFS(3,I,J)+TNFS(1,I,J)
          AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(3,I,J)*CSZ2)
+C**** CRF diags if required
+         if (cloud_rad_forc.gt.0) then
+           AIJ(I,J,IJ_SWCRF)=AIJ(I,J,IJ_SWCRF)+
+     *          (SNFS(3,I,J)-SNFSCRF(I,J))*CSZ2
+           AIJ(I,J,IJ_LWCRF)=AIJ(I,J,IJ_LWCRF)-
+     *          (TNFS(3,I,J)-TNFSCRF(I,J))
+         end if
+
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) || (defined TRACERS_SPECIAL_Shindell)
 C**** Generic diagnostics for radiative forcing calculations
 C**** Depending on whether tracers radiative interaction is turned on,

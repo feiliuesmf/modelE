@@ -43,9 +43,133 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !@var MDF is the mass of the downdraft flux
       real*8, DIMENSION(IM,JM):: PBLH = 0,shdtt = 0.   ! ,MDF
       real*8, DIMENSION(IM,JM,LM):: ohr,dho2r,perjr,
-     *   tno3r,oh,dho2,perj,tno3
+     *   tno3r,oh,dho2,perj,tno3,o3_offline
       real*8, DIMENSION(IM,JM,LM,ntm):: aer_tau
       END MODULE AEROSOL_SOURCES
+      subroutine get_O3_offline
+!@sum read in ozone fields for aqueous oxidation
+c
+C**** GLOBAL parameters and variables:
+C
+      USE MODEL_COM, only: jday,im,jm,lm,ptop,psf,sig
+      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE AEROSOL_SOURCES, only: o3_offline
+C
+      IMPLICIT NONE
+
+C**** Local parameters and variables and arguments:
+c
+!@var nanns,nmons: number of annual and monthly input files
+      integer, parameter :: nanns=0,nmons=1
+      integer ann_units(nanns),mon_units(nmons),imon(nmons)
+      integer i,j,iu,k,l
+      integer      :: jdlast=0  
+      logical :: ifirst=.true.
+      character*80 title   
+      character*10 :: mon_files(nmons) = (/'O3_FIELD'/)
+      logical      :: mon_bins(nmons)=(/.true./) ! binary file?
+      real*8 tlca(im,jm,lm,nmons),tlcb(im,jm,lm,nmons),frac
+      REAL*8, DIMENSION(IM,JM,LM,1) :: src
+      save jdlast,tlca,tlcb,mon_units,imon,ifirst
+
+
+C initialise
+c      o3_offline(:,:,:)=0.0d0
+c
+C     Read it in here and interpolated each day.
+C
+      if (ifirst) call openunits(mon_files,mon_units,mon_bins,nmons)
+      ifirst = .false.
+      j = 0
+      do k=nanns+1,1
+        j = j+1
+        call read_monthly_O3_3D_source(LM,mon_units(j),jdlast,
+     *    tlca(1,1,1,j),tlcb(1,1,1,j),src(1,1,1,k),frac,imon(j))
+      end do
+      jdlast = jday
+
+      write(6,*) 'Read in ozone offline fields for in cloud oxidation 
+     *  interpolated to current day',frac
+      call sys_flush(6)
+
+      do k=nanns+1,1; DO l=1,lm; DO J=1,JM; DO I=1,IM
+      o3_offline(i,j,l)=src(I,J,L,k)
+
+      end do
+      end do
+      end do
+      end do
+
+      END SUBROUTINE get_O3_offline
+
+      SUBROUTINE read_monthly_O3_3D_source(Ldim,iu,jdlast,tlca,
+     * tlcb,data1,frac,imon)
+!@sum Read in monthly sources and interpolate to current day
+!@ Author Greg Faluvegi 
+!@+   Calling routine must have the lines:
+!@+      real*8 tlca(im,jm,Ldim,nm),tlcb(im,jm,Ldim,nm)
+!@+      integer imon(nm)   ! nm=number of files that will be read
+!@+      data jdlast /0/
+!@+      save jdlast,tlca,tlcb,imon
+!@+   Input: iu, the fileUnit#; jdlast
+!@+   Output: interpolated data array + two monthly data arrays
+      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
+      implicit none
+!@var Ldim how many vertical levels in the read-in file?
+!@var L dummy vertical loop variable
+      integer Ldim,L
+      real*8 frac, A2D(im,jm), B2D(im,jm)
+      real*8 tlca(im,jm,Ldim),tlcb(im,jm,Ldim),data1(im,jm,Ldim)
+      integer imon,iu,jdlast
+C
+      if (jdlast.EQ.0) then   ! NEED TO READ IN FIRST MONTH OF DATA
+        imon=1                ! imon=January
+        if (jday.le.16)  then ! JDAY in Jan 1-15, first month is Dec
+          do L=1,LDim*11
+            read(iu)
+          end do
+          DO L=1,Ldim
+            call readt(iu,0,A2D,im*jm,A2D,1)
+            tlca(:,:,L)=A2d(:,:)
+          END DO
+          rewind iu
+        else              ! JDAY is in Jan 16 to Dec 16, get first month
+  120     imon=imon+1
+          if (jday.gt.idofm(imon) .AND. imon.le.12) go to 120
+          do L=1,Ldim*(imon-2)
+            read(iu)
+          end do
+          DO L=1,Ldim
+            call readt(iu,0,A2D,im*jm,A2D,1)
+            tlca(:,:,L)=A2d(:,:)
+          END DO
+          if (imon.eq.13)  rewind iu
+        end if
+      else                         ! Do we need to read in second month?
+        if (jday.ne.jdlast+1) then ! Check that data is read in daily
+          if (jday.ne.1 .OR. jdlast.ne.365) then
+            write(6,*)
+     *      'Bad values in Tracer 3D Source:JDAY,JDLAST=',JDAY,JDLAST
+            call stop_model('Bad values in Tracer 3D Source.',255)
+          end if
+          imon=imon-12             ! New year
+          go to 130
+        end if
+        if (jday.le.idofm(imon)) go to 130
+        imon=imon+1                ! read in new month of data
+        tlca(:,:,:) = tlcb(:,:,:)
+        if (imon.eq.13) rewind iu
+      end if
+      DO L=1,Ldim
+        call readt(iu,0,B2D,im*jm,B2D,1)
+        tlcb(:,:,L)=B2D(:,:)
+      END DO
+  130 continue
+c**** Interpolate two months of data to current day
+      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      data1(:,:,:) = tlca(:,:,:)*frac + tlcb(:,:,:)*(1.-frac)
+      return
+      end subroutine read_monthly_O3_3D_source
 
       subroutine read_SO2_source(nt)
 !@sum reads in industrial, biomass, volcanic and aircraft SO2 sources
@@ -85,7 +209,7 @@ Cewg Between 24N and 40N, allow biomass burning from September to April.
      *  iuc2,ib,jb,iburn,
      *  iv,jv,ivht,ir,l,najl
       save ifirst,so2_ind_input
-
+      if (imPI.eq.1) go to 88
       if (ifirst) then
       call openunit('SO2_IND',iuc,.false.)
       so2_ind_input(:,:)=0.   ! initiallise
@@ -111,6 +235,42 @@ c Actually they are kg SO2/box/yr:
 
 c??      DTT=REAL(NDYN)*DT/(86400.*30.) (ADDTC=TB*B60N*DTT)
 
+c Aircraft emissions
+      if (ifirst) then
+      so2_src_3D(:,:,:,2)=0.
+      bci_src_3D(:,:,:)=0.d0
+      call openunit('AIRCRAFT',iuc2,.true.)
+C Read 13 layer data file for 23 layer model
+      if (lm.eq.23) then
+      DO L=1,LS1+1
+      READ(iuc2) titleg,((craft(i,j,l),i=1,im),j=1,jm)
+      END DO
+      else
+      DO L=1,LM
+      READ(iuc2) titleg,((craft(i,j,l),i=1,im),j=1,jm)
+      END DO
+      endif
+      call closeunit(iuc2)
+C Set emissions above LS1+1 to zero for 23 layer model
+       if (lm.eq.23) then
+       DO L=LS1+2,LM
+        DO J=1,JM
+         DO I=1,IM
+       craft(i,j,l)=0.0
+       END DO
+       END DO
+       END DO
+       endif
+c craft is Kg fuel/day. Convert to Kg SO2/s. 2.3 factor
+c adjusts 2015 source to 1990 source.
+c 4.d0d-4 converts to kg S
+c (for BC multiply this by 0.1)
+      so2_src_3D(:,:,:,2)=craft(:,:,:)*4.0d-4*tr_mm(n_SO2)/32.d0
+     *  /2.3d0/sday
+      bci_src_3D(:,:,:)=so2_src_3D(:,:,:,2)*0.1d0
+      ifirst=.false.
+      endif
+ 88   continue
 C  Read in emissions from biomass burning
       call openunit('SO2_BIOMASS',iuc2,.false.)
       so2_biosrc_3D(:,:,:,:)=0.   ! initiallise
@@ -159,7 +319,8 @@ Cewg Allow burning south of 32N on the 90 driest days of the year
           IF (REAL(JDAY).LT.SDDAY.OR.REAL(JDAY).GT.ENDDAY) GOTO 154
         ENDIF
         ADDTC = TB*FDRY
- 165    SO2_biosrc_3D(IB,JB,1,jmon) =  ADDTC
+ 165    if (imPI.eq.1) ADDTC=0.5d0*ADDTC
+       SO2_biosrc_3D(IB,JB,1,jmon) =  ADDTC
  400  CONTINUE
  154  CONTINUE
  155  call closeunit(iuc2)
@@ -194,41 +355,6 @@ C ZH is height in meters of top of layer above sea level
  100   CONTINUE
  116  CONTINUE
       call closeunit(iuc2)
-c Aircraft emissions
-      if (ifirst) then
-      so2_src_3D(:,:,:,2)=0.
-      bci_src_3D(:,:,:)=0.d0
-      call openunit('AIRCRAFT',iuc2,.true.)
-C Read 13 layer data file for 23 layer model
-      if (lm.eq.23) then
-      DO L=1,LS1+1
-      READ(iuc2) titleg,((craft(i,j,l),i=1,im),j=1,jm)
-      END DO
-      else
-      DO L=1,LM
-      READ(iuc2) titleg,((craft(i,j,l),i=1,im),j=1,jm)
-      END DO
-      endif
-      call closeunit(iuc2)
-C Set emissions above LS1+1 to zero for 23 layer model
-       if (lm.eq.23) then
-       DO L=LS1+2,LM
-        DO J=1,JM
-         DO I=1,IM
-       craft(i,j,l)=0.0
-       END DO
-       END DO
-       END DO
-       endif
-c craft is Kg fuel/day. Convert to Kg SO2/s. 2.3 factor
-c adjusts 2015 source to 1990 source.
-c 4.d0d-4 converts to kg S
-c (for BC multiply this by 0.1)
-      so2_src_3D(:,:,:,2)=craft(:,:,:)*4.0d-4*tr_mm(n_SO2)/32.d0
-     *  /2.3d0/sday
-      bci_src_3D(:,:,:)=so2_src_3D(:,:,:,2)*0.1d0
-      ifirst=.false.
-      endif
 
       end subroutine read_SO2_source
 
@@ -284,6 +410,8 @@ c        write(6,*)'DMS RRR',i,j,jday,DMS_AER(i,j,jday)
 c if after Feb 28 skip the leapyear day
          jread=jday
          if (jday.gt.59) jread=jday+1
+         if (j.eq.1.or.j.eq.46) DMS_AER(i,j,jread)
+     *      =DMS_AER(i,j,jread)*72.d0
          erate=DMS_AER(i,j,jread)/sday/dxyp(j)*tr_mm(n_DMS)/32.d0
         endif
         DMS_flux=erate          ! units are kg/m2/s
@@ -352,6 +480,9 @@ c     endif
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
      & dho2,perj,
      * tno3
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: which_trop
+#endif
 c Aerosol chemistry
       implicit none
       logical :: ifirst=.true.
@@ -360,14 +491,18 @@ c Aerosol chemistry
      * ddno3,dddms,ddno3a,fmom,dtt
       real*8 rk4,ek4,r4,d4
       real*8, DIMENSION(IM,JM,LM):: dms_dens,so2_dens,so4_dens
-#ifdef TRACERS_HETCHEM
-     *       ,d41,d42,d43,d44
-#endif
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
      * r5,d5,dmssink
+#ifdef TRACERS_HETCHEM
+     *       ,d41,d42,d43,d44,d45,d46
+#endif
       real*8 bciage,ociage
       integer i,j,l,n,iuc,iun,itau,ixx1,ixx2,ichemi,itopen,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl
+#ifdef TRACERS_SPECIAL_Shindell
+!@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
+#endif
+      integer maxl
       save ifirst,itopen,iuc
 
 C**** initialise source arrays
@@ -381,6 +516,8 @@ C**** initialise source arrays
         tr3Dsource(:,:,l,1,n_H2O2_s)=0. ! H2O2 chem source
         tr3Dsource(:,:,l,2,n_H2O2_s)=0. ! H2O2 chem sink
 #ifdef TRACERS_HETCHEM
+        tr3Dsource(:,:,l,1,n_SO4_s1) =0. ! SO4 on seasalt1
+        tr3Dsource(:,:,l,1,n_SO4_s2) =0. ! SO4 on seasalt2
         tr3Dsource(:,:,l,1,n_SO4_d1) =0. ! SO4 on dust
         tr3Dsource(:,:,l,1,n_SO4_d2) =0. ! SO4 on dust
         tr3Dsource(:,:,l,1,n_SO4_d3) =0. ! SO4 on dust
@@ -437,6 +574,8 @@ c      endif
 #ifdef TRACERS_HETCHEM
 c calculation of heterogeneous reaction rates: SO2 on dust 
       CALL SULFDUST
+c calculation of heterogeneous reaction rates: SO2 on seasalt
+      CALL SULFSEAS 
 #endif
       dtt=dtsrc
 C**** THIS LOOP SHOULD BE PARALLELISED
@@ -448,9 +587,12 @@ C Initialise
         dms_dens(i,j,l)=0.0D0
         so2_dens(i,j,l)=0.0D0
         so4_dens(i,j,l)=0.0D0
+        maxl = ltropo(i,j)
+#ifdef TRACERS_SPECIAL_Shindell
+        if(which_trop.eq.1)maxl=ls1-1
+#endif
 
-      if(l.le.ltropo(i,j)) then
-
+      if(l.le.maxl) then
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
       mm=am(l,i,j)*dxyp(j)
@@ -465,12 +607,16 @@ c DMM is number density of air in molecules/cm3
         select case (trname(n))
 c    Aging of industrial carbonaceous aerosols 
         case ('BCII')
-        bciage=4.3D-6*dtsrc*trm(i,j,l,n) !efold of 3 day?        
+c       bciage=4.3D-6*trm(i,j,l,n) !used this first        
+c       bciage=1.0D-6*trm(i,j,l,n)  !2nd
+        bciage=1.0D-7*trm(i,j,l,n)
         tr3Dsource(i,j,l,1,n)=-bciage        
         tr3Dsource(i,j,l,1,n_BCIA)=bciage        
 
         case ('OCII')
-        ociage=7.3D-6*dtsrc*trm(i,j,l,n)        
+c       ociage=7.3D-6*trm(i,j,l,n)       !used this first 
+c       ociage=3.6D-6*trm(i,j,l,n)     !2nd
+        ociage=3.D-7*trm(i,j,l,n)
         tr3Dsource(i,j,l,1,n)=-ociage        
         tr3Dsource(i,j,l,1,n_OCIA)=ociage        
 
@@ -540,7 +686,11 @@ cg       call DIAGTCA(itcon_3Dsrc(3,n_SO2),n_SO2)
       do 31 j=1,jm
       do 32 i=1,imaxj(j)
 
-      if(l.le.ltropo(i,j)) then
+      maxl = ltropo(i,j)
+#ifdef TRACERS_SPECIAL_Shindell
+      if(which_trop.eq.1)maxl=ls1-1
+#endif
+      if(l.le.maxl) then
 
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
@@ -564,18 +714,22 @@ c     IF (I.EQ.30.AND.J.EQ.30.and.L.EQ.2) WRITE(6,*)'msulf',TE,DMM,
 c     *  PPRES,RK4,EK4,R4,D4,ohmc
           IF (d4.GE.1.) d4=0.99999d0
 #ifdef TRACERS_HETCHEM
-       d41 = exp(-rxts1(i,j,l)*dtsrc)     
-       d42 = exp(-rxts2(i,j,l)*dtsrc)     
-       d43 = exp(-rxts3(i,j,l)*dtsrc)     
-       d44 = exp(-rxts4(i,j,l)*dtsrc)     
-       tr3Dsource(i,j,l,5,n) = (-trm(i,j,l,n)*(1.d0-d41)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d4)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d42)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d43)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d44)/dtsrc)
+        d41 = exp(-rxts1(i,j,l)*dtsrc)     
+        d42 = exp(-rxts2(i,j,l)*dtsrc)     
+        d43 = exp(-rxts3(i,j,l)*dtsrc)     
+        d44 = exp(-rxts4(i,j,l)*dtsrc)     
+        d45 = exp(-rxtss1(i,j,l)*dtsrc)     
+        d46 = exp(-rxtss2(i,j,l)*dtsrc)    
+       tr3Dsource(i,j,l,5,n) = (-trm(i,j,l,n)*(1.d0-d4)/dtsrc)
+     *                       + ( -trm(i,j,l,n)*(1.d0-d41)/dtsrc)
+     *                       + ( -trm(i,j,l,n)*(1.d0-d42)/dtsrc)
+     *                       + ( -trm(i,j,l,n)*(1.d0-d43)/dtsrc)
+     *                       + ( -trm(i,j,l,n)*(1.d0-d44)/dtsrc)
+     *                       + ( -trm(i,j,l,n)*(1.d0-d45)/dtsrc)
+     *                       + ( -trm(i,j,l,n)*(1.d0-d46)/dtsrc)
  
 #else
-       tr3Dsource(i,j,l,5,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
+       tr3Dsource(i,j,l,5,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc
 #endif         
           
 c diagnostics to save oxidant fields
@@ -608,6 +762,18 @@ c sulfate production from SO2 on mineral dust aerosol
 
        tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
      *             tr_mm(n_so2)*(1.d0-d44)*trm(i,j,l,n_so2)/dtsrc
+
+       case ('SO4_s1')
+c sulfate production from SO2 on seasalt1
+
+       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
+     *             tr_mm(n_so2)*(1.d0-d45)*trm(i,j,l,n_so2)/dtsrc
+
+       case ('SO4_s2')
+c sulfate production from SO2 on seasalt2
+
+       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
+     *             tr_mm(n_so2)*(1.d0-d46)*trm(i,j,l,n_so2)/dtsrc
 
 #endif
         case('SO4')
@@ -824,7 +990,7 @@ c     endif
 
       SUBROUTINE GET_SULFATE(L,temp,fcloud,
      *  wa_vol,wmxtr,sulfin,sulfinc,sulfout,tr_left,
-     *  tm,tmcl,airm,LHX,dt_sulf)
+     *  tm,tmcl,airm,LHX,dt_sulf,fcld0)
 !@sum  GET_SULFATE calculates formation of sulfate from SO2 and H2O2
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
@@ -873,12 +1039,13 @@ c
       real*8, parameter :: rk=6.357d14    !1/(M*M*s)
       real*8, parameter :: ea=3.95d4 !J/mol
       REAL*8,  INTENT(IN) :: fcloud,temp,wa_vol,wmxtr,LHX
-      real*8 tm(lm,ntm), tmcl(ntm,lm), airm(lm)
+      real*8 tm(lm,ntm), tmcl(ntm), airm(lm)
 c     REAL*8,  INTENT(OUT)::
       real*8 sulfin(ntm),sulfout(ntm),tr_left(ntm)
      *  ,sulfinc(ntm)
 !@var dt_sulf accumulated diagnostic of sulfate chemistry changes
       real*8, dimension(ntm), intent(inout) :: dt_sulf
+      real*8 finc,fcld0
       INTEGER, INTENT(IN) :: L
       do n=1,ntx
         sulfin(N)=0.
@@ -886,10 +1053,13 @@ c     REAL*8,  INTENT(OUT)::
         sulfout(N)=0.
         tr_left(N)=1.
       end do
+
 c
 C**** CALCULATE the fraction of tracer mass that becomes condensate:
 c
       if (LHX.NE.LHE.or.fcloud.lt.teeny) go to 333
+      finc=(fcloud-fcld0)/fcloud
+      if (finc.lt.0d0) finc=0.d0
 c First allow for formation of sulfate from SO2 and H2O2. Then remaining
 c  gases may be allowed to dissolve (amount given by tr_left)
 C H2O2 + SO2 -> H2O + SO3 -> H2SO4
@@ -916,7 +1086,7 @@ c the following is from Phil:
 c      reduction in partial pressure as species dissolves
       henry_const(is)=rkdm(is)*exp(-tr_dhd(is)*tfac)
       pph(is)=pph(is)/(1+(henry_const(is)*clwc*gasc*temp))
-c again all except tmcl(n,l)
+c again all except tmcl(n)
       trdr(is)=mair*ppas/tr_mm(is)/amass*bygasc
      *    /temp*1.D-3  !M/kg
 c dissolved moles
@@ -941,7 +1111,7 @@ c the following is from Phil:
 c      reduction in partial pressure as species dissolves
       henry_const(ih)=rkdm(ih)*exp(-tr_dhd(ih)*tfac)
       pph(ih)=pph(ih)/(1+(henry_const(ih)*clwc*gasc*temp))
-c all except tmcl(n,l)
+c all except tmcl(n)
       trdr(ih)=mair*ppas/tr_mm(ih)
      *    /amass*bygasc/temp*1.D-3  !M/kg
 c dissolved moles
@@ -958,7 +1128,9 @@ c dissolved moles
 c this part from gas phase:moles/kg/kg
       dso4g=rk*exp(-ea/(gasc*temp))*rk1f
      *    *pph(ih)*pph(is)*dtsrc*wa_vol
-c dmk should wa_vol be incremental water volume??
+c dmk  incremental water volume
+      dso4g=dso4g*finc
+c should probably be (finc+tr_lef) but then tr_lef has to be saved   
 c check to make sure no overreaction: moles of production:
       dso4gt=dso4g*tm(l,ihx)*tm(l,isx)
 c can't be more than moles going in:
@@ -996,7 +1168,7 @@ c can't be more than moles going in:
        is4=ntix(n)
 !       is4x=n
        sulfout(is4)=tr_mm(is4)/1000.*(dso4g*tm(l,isx)*tm(l,ihx)
-     *  +dso4d*tmcl(isx,l)*tmcl(ihx,l)) !kg
+     *  +dso4d*tmcl(isx)*tmcl(ihx)) !kg
 
        dt_sulf(is4) = dt_sulf(is4) + sulfout(is4)
 
@@ -1005,7 +1177,7 @@ c can't be more than moles going in:
        isx=n
 ! is ih/ihx set here, then why isn't is/isx?
        sulfin(is)=-dso4g*tm(l,ihx)*tr_mm(is)/1000. !dimnless
-       sulfinc(is)=-dso4d*tmcl(ihx,l)*tr_mm(is)/1000.
+       sulfinc(is)=-dso4d*tmcl(ihx)*tr_mm(is)/1000.
        sulfinc(is)=max(-1d0,sulfinc(is))
        sulfin(is)=max(-1d0,sulfin(is))
        tr_left(isx)=0.
@@ -1024,7 +1196,7 @@ c can't be more than moles going in:
        ih=ntix(n)
        ihx=n
        sulfin(ih)=-dso4g*tm(l,isx)*tr_mm(ih)/1000.
-       sulfinc(ih)=-dso4d*tmcl(isx,l)*tr_mm(ih)/1000.
+       sulfinc(ih)=-dso4d*tmcl(isx)*tr_mm(ih)/1000.
        sulfinc(ih)=max(-1d0,sulfinc(ih))
        sulfin(ih)=max(-1d0,sulfin(ih))
        tr_left(ihx)=0.
@@ -1049,11 +1221,14 @@ c can't be more than moles going in:
       USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,pi
       USE TRACER_COM, only:tr_RKD,tr_DHD,n_H2O2_s,n_SO2
      *     ,trname,ntm,tr_mm,n_SO4,trm,trmom,n_H2O2
-      USE MODEL_COM, only: im,jm,lm,dtsrc,t,p,coupled_chem
+      USE MODEL_COM, only: im,jm,lm,ls1,dtsrc,t,p,coupled_chem
       USE CLOUDS_COM, only:rhsav
       USE DYNAMICS, only: pmid,am,pk,ltropo
       USE GEOM, only: dxyp,imaxj
       USE FLUXES, only : tr3Dsource
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: which_trop
+#endif
 
       IMPLICIT NONE
       integer i,j,l,n,najl
@@ -1066,7 +1241,10 @@ c can't be more than moles going in:
      * pph(ntm),r1,A,B,pp,rr,aa,bb,BA,B2,xx,y,pn,tv,avol,
      * dso4g,dso4gt,tso2,th2o2,sulfout,sulfin,wv,ss,clwc,
      * rkdm(ntm),trmol(ntm),tt1,tt2,tt3,ptr
-
+#ifdef TRACERS_SPECIAL_Shindell
+!@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
+#endif
+      integer maxl
 
       ptr=0.3d0  !um
       DO 19 L=1,LM
@@ -1078,7 +1256,12 @@ C**** initialise source arrays
         tr3Dsource(i,j,l,6,n_SO2)=0.
         tr3Dsource(i,j,l,3,n_H2O2_s)=0.
 
-      if(l.le.ltropo(i,j)) then
+        maxl = ltropo(i,j)
+#ifdef TRACERS_SPECIAL_Shindell
+        if(which_trop.eq.1)maxl=ls1-1
+#endif
+
+      if(l.le.maxl) then
 
       amass=am(l,i,j)*DXYP(j)   !kg
       ppas=pmid(l,i,j)*100.    !Pa

@@ -1,13 +1,18 @@
-E001o.R GISS Model E                                 gas 06/00
+E1oM20.R GISS Model E  coupled version          larissa   03/04/2004
 
-E001o: coupled version
-ModelE1 (3.0) with 20 lyrs, top at .1 mb - 1880 atmosphere/ocean
-no gravity wave drag;     uses turbulence (not dry convection)
-Sdrag: weak linear strat. drag in top layer, near poles down to 20 mb
-       ang.mom loss is added in below 150 mb
-sea level pressure filter applied every hour, UV-filter used
-6-band oice albedo; Hogstrom(1984) pbl drag
-Note: Some of these choices may be changed using the PARAMETERs below.
+E1oM20: replace this section by a description of what distinguishes this run ?
+       Use as many lines as you need. Look carefully at all the possible    ?
+       choices, particularly the lines containing '?'. In some cases, you   ?
+       will have to pick the appropriate choice to make this rundeck work   ?
+       The final rundeck should contain no '?'
+       Check and modify the rest of the description below:                  ?
+modelE1 (3.0) 4x5 hor. grid with 20 lyrs, top at .1 mb (+ 3 rad.lyrs)       ?
+atmospheric composition from year 1880 ? 1979                               ?
+ocean: coupled to GISS ocean model (Russell - Schmidt)                      ?
+uses turbulence scheme (no dry conv), simple strat.drag (no grav.wave drag) ?
+time steps: dynamics 7.5 min leap frog; physics 30 min.; radiation 2.5 hrs  ?
+filters: U,V in E-W direction (after every dynamics time step)              ?
+         sea level pressure (after every physics time step)                 ?
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -27,17 +32,15 @@ SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-! pick exactly one of the next 2 choices:
 ATURB                               ! turbulence in whole atmosphere
-! DRYCNV                            ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
+ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM ! dynamic ocean modules
 OCNDYN OSTRAITS OCNGM OCNKPP           ! dynamic ocean routines
 ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                           ! ocean function look up table
-ICEDYN ICEDYN_DRV                   ! ice dynamics
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
@@ -48,7 +51,7 @@ Data input files:
 ! AIC=AIC.RES_M20A.D771201           ! initial conditions (atm.)     needs GIC,OIC ISTART=2
 ! GIC=GIC.E046D3M20A.1DEC1955        ! initial conditions (ground)         and 300 year spin-up
 ! OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01 ! ocean initial conditions
-AIC=1DEC1969.rsfE050AoM20A           ! full IC (GIC,OIC not needed) ISTART=8 (spun up 320 yrs)
+AIC=1JAN2012.rsfE051oM20A            ! full IC (GIC,OIC not needed) ISTART=8 (spun up 380 yrs)
 OFTAB=OFTABLE_NEW                    ! ocean function table
 AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
 KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
@@ -59,10 +62,9 @@ VEG=V72X46.1.cor2_no_crops.ext CROPS=CROPS_72X46N.cor4  ! veg. fractions, crops 
 SOIL=S4X50093.ext TOPO=Z72X46N_gas.1_nocasp ! bdy.cond
 REG=REG4X5           ! special regions-diag
 RVR=RD4X525.gas2.RVR      ! river direction file
-RADN1=sgpgxg.table8    ! rad.tables
+RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=radfil33k                   !     8/2003 version
 RADN3=miescatpar.abcdv2
-! RADN4,RADN5,RADNA,RADNB are no longer used
 TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
 TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
 TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
@@ -73,25 +75,25 @@ RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux     ! need KSOLAR=2
 RADNE=topcld.trscat8
-! new ozone files (minimum 1, maximum 9 files)
-O3file_01=jan2004_o3_shindelltrop_72x46x49x12_1850
-O3file_02=jan2004_o3_shindelltrop_72x46x49x12_1890
-O3file_03=jan2004_o3_shindelltrop_72x46x49x12_1910
-O3file_04=jan2004_o3_shindelltrop_72x46x49x12_1930
-O3file_05=jan2004_o3_shindelltrop_72x46x49x12_1950
-O3file_06=jan2004_o3_shindelltrop_72x46x49x12_1960
-O3file_07=jan2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=jan2004_o3_shindelltrop_72x46x49x12_1980
-O3file_09=jan2004_o3_shindelltrop_72x46x49x12_1990
-O3trend=jan2004_o3timetrend_46x49x2412_1850_2050
-GHG=GHG.1850-2050.Mar2002
+! ozone files (minimum 1, maximum 9 files + 1 trend file)
+O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
+O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
+O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
+O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
+O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
+O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
+O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
+O3file_08=mar2004_o3_shindelltrop_72x46x49x12_1980
+O3file_09=mar2004_o3_shindelltrop_72x46x49x12_1990
+O3trend=mar2004_o3timetrend_46x49x2412_1850_2050
+GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij.ext
 MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:
-E001o (ModelE1 1880 atm/ocn - coupled version)
-
+E1oM20 (coupled version, 4x5, 20 lyrs, 1880 atm; use up to 72 (or 80) columns and ??
+up to 60 (or 52) columns here to describe your run)?<- col 53  to  72 ->   80 ->
 DTFIX=300
 &&PARAMETERS
 ! parameters set for coupled ocean runs:
@@ -114,11 +116,9 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 U00ice=.59      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
-U00wtrX=1.39    ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
+?1880 U00wtrX=1.40    ! U00wtrX+.01=>nethtz0+.7                for global annual mean
+?1979 U00wtrX=1.39    ! delete ?yyyy for the appropriate choice, remove the other line
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
-
-RWCLDOX=1.   !  wtr cld particle size *RWCLDx over ocean
-RICLDX=1.    !  ice cld particle size * 1(at 0mb)->RICLDx (at 1000mb)
 
 CO2X=1.
 H2OstratX=1.
@@ -129,15 +129,15 @@ KSOLAR=2
 
 ! parameters that control the atmospheric/boundary conditions
 ! if set to 0, the current (day/) year is used: transient run
-crops_yr=1880 ! if -1, crops in VEG-file is used
-s0_yr=1880
+crops_yr=1880 ! if -1, crops in VEG-file is used  ? 1979
+s0_yr=1880    ? 1979
 s0_day=182
-ghg_yr=1880
+ghg_yr=1880   ? 1979
 ghg_day=182
-volc_yr=1880
+volc_yr=1880  ? 1979
 volc_day=182
-aero_yr=1880
-o3_yr=1880
+aero_yr=1880  ? 1979
+o3_yr=1880    ? 1979
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)
@@ -151,20 +151,20 @@ DT=450.
 NIsurf=1        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:
-Ndisk=48        ! use =480 on halem
+Ndisk=480       ! use =48 except on halem
 SUBDD=' '       ! no sub-daily frequency diags
-NSUBDD=0        ! saving sub-daily diags 0hrly
+NSUBDD=0        ! saving sub-daily diags every NSUBDD*DTsrc/3600. hour(s)
 KCOPY=2         ! saving acc + rsf
 isccp_diags=1   ! use =0 to save cpu time if isccp-diags are not essential
-nda5d=13        ! use =1 for more exact cons. diags
-nda5s=13        ! use =1 for more exact cons. diags
+nda5d=13        ! use =1 to get more accurate energy cons. diag (increases CPU time)
+nda5s=13        ! use =1 to get more accurate energy cons. diag (increases CPU time)
 ndaa=13
 nda5k=13
-nda4=48
+nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1900,MONTHI=12,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
-   YEARE=2000,MONTHE=1,DATEE=1,HOURE=0, KDIAG=0,2,2,9*0,9,
-   ISTART=8,IRANDI=0, YEARE=1900,MONTHE=12,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   YEARI=1901,MONTHI=1,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
+   YEARE=2001,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
+   ISTART=8,IRANDI=0, YEARE=1901,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END

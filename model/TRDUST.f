@@ -4,7 +4,8 @@
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
 #ifdef TRACERS_DUST
-      USE model_com,ONLY : dtsrc,nisurf,jmon,wfcs,itime
+      USE model_com,ONLY : dtsrc,nisurf,jmon,wfcs
+      USE tracer_com,ONLY : imDUST
       USE fluxes,ONLY : prec,pprec,pevap
       USE ghycom,ONLY : snowe,wearth,aiearth
       USE tracers_dust,ONLY : curint,dryhr,ers_data,hbaij,lim,ljm,qdust,
@@ -21,6 +22,8 @@
       LOGICAL :: pmei
       REAL*8 :: sigma,ans,dy
       REAL*8 :: soilvtrsh,workij1,workij2
+
+      IF (imDUST == 0) THEN
 
 #ifndef DUST_EMISSION_EXTERN
 
@@ -51,9 +54,6 @@ c     &         itime,i,j,itype,prec(i,j),pprec(i,j),pevap(i,j,itype)
 
       IF (pmei .AND. snowe(i,j) <= 1 .AND. vtrsh(i,j) > 0. .AND.
      &     wsm > vtrsh(i,j)) THEN
-c        WRITE(*,*) 'In dust_emission_constraints: itime,i,j,itype,',
-c     &       'snowe,vtrsh,wsm:',itime,i,j,itype,snowe(i,j),vtrsh(i,j),
-c     &       wsm
         qdust(i,j)=.TRUE.
       ELSE
         qdust(i,j)=.FALSE.
@@ -72,10 +72,6 @@ c     &       wsm
         soilwet=(WEARTH(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
         if (soilwet.gt.1.) soilwet=1.d0
         soilvtrsh=8.d0*(exp(0.25d0*soilwet))
-
-c        WRITE(*,*) 'In dust_emission_contraints: itime,i,j,wearth,',
-c     &       'aiearth,wfcs,soilwet:',itime,i,j,wearth(i,j),aiearth(i,j),
-c     &       wfcs(i,j),soilwet
 
         curint(i,j)=0.d0
         workij1=0.d0
@@ -122,9 +118,7 @@ c     only over 5% of the area.
             curint(i,j)=0D0
           endif
         endif
-c        WRITE(*,*) 'In dust_emission_contraints: itime,i,j,sigma,',
-c     &       'soilvtrsh,wsm,curint:',itime,i,j,sigma,soilvtrsh,wsm,
-c     &       curint(i,j)
+
       END IF
 #endif
 #else
@@ -136,29 +130,42 @@ c     &       curint(i,j)
       END IF
       
 #endif
+
+      ELSE IF (imDUST == 1) THEN
+        IF (itype == 4) THEN
+          qdust(i,j)=.TRUE.
+        ELSE
+          qdust(i,j)=.FALSE.
+        END IF
+      END IF
 #endif
 
       RETURN
       END SUBROUTINE dust_emission_constraints
 
-      SUBROUTINE local_dust_emission(i,j,n,wsm,dsrcflx)
+      SUBROUTINE local_dust_emission(i,j,n,wsm,ptype,dsrcflx)
 !@sum  selects routine for calculating local dust source flux
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
 #ifdef TRACERS_DUST
-      USE model_com,ONLY : itime
-      USE tracer_com,ONLY : trname
+      USE constant,ONLY : sday
+      USE model_com,ONLY : jday
+      USE geom,ONLY : dxyp
+      USE tracer_com,ONLY : trname,imDUST
       USE tracers_dust,ONLY : curint,fracn,frclay,frsilt,gin_data,qdust,
-     &     uplfac,vtrsh
+     &     uplfac,vtrsh,d_dust
 
 #ifndef DUST_EMISSION_EXTERN
       IMPLICIT NONE
 
       INTEGER,INTENT(IN) :: i,j,n
-      REAL*8,INTENT(IN) :: wsm
+      REAL*8,INTENT(IN) :: ptype,wsm
       REAL*8,INTENT(OUT) :: dsrcflx
 
       REAL*8 :: frtrac
+
+      IF (imDUST == 0) THEN
+c     Interactive dust emission
 
       IF (.NOT. qdust(i,j)) THEN
         dsrcflx=0D0
@@ -177,17 +184,12 @@ c     &       curint(i,j)
         CASE ('Silt1','Silt2','Silt3')
           frtrac=frsilt(i,j)
         END SELECT
-c        WRITE(*,*) 'In local_dust_emission: itime,i,j,n,uplfac(n),',
-c     &       'frtrac,fracn(n),wsm,vtrsh:',itime,i,j,n,uplfac(n),frtrac,
-c     &       fracn(n),wsm,vtrsh(i,j)
+
         dsrcflx=Uplfac(n)*frtrac*Fracn(n)*(wsm-vtrsh(i,j))*wsm**2
 
 #else ! default case
-c        WRITE(*,*) 'In local_dust_emission: itime,i,j,n,uplfac(n),',
-c     &       'fracn(n),gin_data:',itime,i,j,n,uplfac(n),fracn(n),
-c     &       gin_data(i,j)
+
         dsrcflx=Uplfac(n)*Fracn(n)*gin_data(i,j)*curint(i,j)
-#endif
 #endif
 c        WRITE(*,*)
 c     &       'In local_dust_emission: itime,i,j,n,dsrcflx:',itime,i,j,n,
@@ -195,23 +197,93 @@ c     &       dsrcflx
       END IF
 #endif
 #endif
-            
+
+      END IF
+
+      ELSE IF (imDUST == 1) THEN
+c     prescribed AEROCOM dust emission
+
+      IF (.NOT. qdust(i,j)) THEN
+        dsrcflx=0D0
+      ELSE
+        dsrcflx=d_dust(i,j,n,jday)/Sday/dxyp(j)/ptype
+      END IF
+
+      END IF
+
+#endif
+#endif
+           
       RETURN
       END SUBROUTINE local_dust_emission
 
-      SUBROUTINE loc_dustflux_cub_min8
-!@sum  local dust source flux physics with Ina's cubic scheme and 8 minerals
-!@auth Jan Perlwitz, ...
+      INTEGER, INTENT(IN) :: n
+      INTEGER NMAX
+      REAL*8, INTENT(OUT) :: y,dy
+      REAL*8, INTENT(IN) :: x,xa(n),ya(n)
+      PARAMETER (NMAX=300)
+      INTEGER i,m,ns
+      REAL*8 den,dif,dift,ho,hp,w,c(NMAX),d(NMAX)
+      ns=1
+      dif=abs(x-xa(1))
+      do 11 i=1,n
+        dift=abs(x-xa(i))
+        if (dift.lt.dif) then
+          ns=i
+          dif=dift
+        endif
+        c(i)=ya(i)
+        d(i)=ya(i)
+11    continue
+      y=ya(ns)
+      ns=ns-1
+      do 13 m=1,n-1
+        do 12 i=1,n-m
+          ho=xa(i)-x
+          hp=xa(i+m)-x
+          w=c(i+1)-d(i)
+          den=ho-hp
+          if(den.eq.0.d0) CALL stop_model('failure in polint',255)
+          den=w/den
+          d(i)=hp*den
+          c(i)=ho*den
+12      continue
+        if (2*ns.lt.n-m)then
+          dy=c(ns+1)
+        else
+          dy=d(ns)
+          ns=ns-1
+        endif
+        y=y+dy
+13    continue
+#endif
 
-      RETURN
-      END SUBROUTINE loc_dustflux_cub_min8
+      return
+      END SUBROUTINE POLINT
 
       SUBROUTINE loc_dustflux_turb_min8
 !@sum  local dust source flux physics with turbulent fluxes and 8 minerals
 !@auth Jan Perlwitz, Reha Cakmur
 
-      RETURN
-      END SUBROUTINE loc_dustflux_turb_min8
+#ifdef TRACERS_DUST
+      implicit none
+      INTEGER, INTENT(IN):: n
+      INTEGER, INTENT(OUT):: j
+      REAL*8, INTENT(IN):: x,xx(n)
+      INTEGER jl,jm,ju
+      jl=0
+      ju=n+1
+10    if(ju-jl.gt.1)then
+        jm=(ju+jl)/2
+        if((xx(n).gt.xx(1)).eqv.(x.gt.xx(jm)))then
+          jl=jm
+        else
+          ju=jm
+        endif
+      goto 10
+      endif
+      j=jl
+#endif
 
       SUBROUTINE ratint2(x1a,x2a,x3a,ya,m,n,x1,x2,x3,y,dy)
 

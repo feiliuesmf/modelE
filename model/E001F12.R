@@ -63,17 +63,17 @@ RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux     ! need KSOLAR=2
 RADNE=topcld.trscat8
 ! new ozone files (minimum 1, maximum 9 files)
-O3file_01=jan2004_o3_shindelltrop_72x46x49x12_1850
-O3file_02=jan2004_o3_shindelltrop_72x46x49x12_1890
-O3file_03=jan2004_o3_shindelltrop_72x46x49x12_1910
-O3file_04=jan2004_o3_shindelltrop_72x46x49x12_1930
-O3file_05=jan2004_o3_shindelltrop_72x46x49x12_1950
-O3file_06=jan2004_o3_shindelltrop_72x46x49x12_1960
-O3file_07=jan2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=jan2004_o3_shindelltrop_72x46x49x12_1980
-O3file_09=jan2004_o3_shindelltrop_72x46x49x12_1990
-O3trend=jan2004_o3timetrend_46x49x2412_1850_2050
-GHG=GHG.1850-2050.Mar2002
+O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
+O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
+O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
+O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
+O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
+O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
+O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
+O3file_08=mar2004_o3_shindelltrop_72x46x49x12_1980
+O3file_09=mar2004_o3_shindelltrop_72x46x49x12_1990
+O3trend=mar2004_o3timetrend_46x49x2412_1850_2050
+GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_144x90.ij.ext
 MSU_wts=MSU.RSS.weights.data
@@ -113,7 +113,7 @@ isccp_diags=1
 
  &INPUTZ
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! to be used with ISTART=2
-   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0, KDIAG=0,2,2,9*0,9,
+   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
    YEARE=1950,MONTHE=2,
    ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
  &END

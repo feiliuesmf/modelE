@@ -52,7 +52,7 @@ C**** Variables passed from DIAGA to DIAGB
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: TJL0
 
 C**** Variables used in DIAG5 calculations
-!@var FCUVA,FCUVB fourier coefficients for velocities 
+!@var FCUVA,FCUVB fourier coefficients for velocities
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: FCUVA,FCUVB
 
 C**** Some local constants
@@ -89,7 +89,7 @@ C**** Some local constants
      &     STAT = IER)
       ALLOCATE( TJL0(J_0H:J_1H, LM),
      &     STAT = IER)
-      ALLOCATE( FCUVA(0:IMH, J_0H:J_1H, LM, 2), 
+      ALLOCATE( FCUVA(0:IMH, J_0H:J_1H, LM, 2),
      &          FCUVB(0:IMH, J_0H:J_1H, LM, 2),
      &     STAT = IER)
 
@@ -127,15 +127,15 @@ C**** Some local constants
      &                          GRID, SOUTH, NORTH, GLOBALSUM
       IMPLICIT NONE
       REAL*8, DIMENSION(LM) :: GMEAN
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &        TIL,UI,UMAX,PI,EL,RI,DUDVSQ
-      REAL*8, DIMENSION(NTYPE,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(NTYPE,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &        SPTYPE
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &        THJL,THSQJL,SPI,PHIPI,TPI
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM-1) :: 
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM-1) ::
      &        SDMEAN
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &        PUV
       REAL*8, DIMENSION(LM_REQ) :: TRI
       REAL*8, DIMENSION(IM) :: THSEC,PSEC,SQRTP,PDA
@@ -168,7 +168,7 @@ C**** Some local constants
 
       CALL GETTIME(MBEGIN)
 
-      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1, 
+      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               J_STRT_HALO=J_0H,
@@ -200,7 +200,6 @@ C****
 C****
 C**** CALCULATE PK AND TX, THE REAL TEMPERATURE
 C****
-     
       IF(HAVE_SOUTH_POLE) THEN
         DO L=1,LM
           TX(1,1,L)=T(1,1,L)*PK(L,1,1)
@@ -885,7 +884,7 @@ C****
      &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm,km=>lm
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
-      USE DAGCOM, only : ajk,aijk,speca,adiurn,nspher,hdiurn,
+      USE DAGCOM, only : ajk,aijk,speca,nspher,  ! adiurn,hdiurn
      &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
      *     ,ijk_dse,klayer,idd_w,ijdd,
      &      JK_DPA,JK_DPB,JK_TEMP,JK_HGHT,JK_Q,JK_THETA,
@@ -915,11 +914,11 @@ C****
      &     PSIJK,UP,TY,PSIP,WTJK,UVJK,WUJK
       REAL*8, DIMENSION(IM) :: PSEC,X1
       REAL*8, DIMENSION(LM) :: SHETH,DPM,DTH
-      REAL*8, DIMENSION(size(adiurn,1),size(adiurn,3),
-     &        GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ADIURN_part
-      REAL*8, DIMENSION(size(hdiurn,1),size(hdiurn,3),
-     &        GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: HDIURN_part
-      REAL*8 :: ADIURNSUM,HDIURNSUM
+c      REAL*8, DIMENSION(size(adiurn,1),size(adiurn,3),
+c     &        GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ADIURN_part
+c      REAL*8, DIMENSION(size(hdiurn,1),size(hdiurn,3),
+c     &        GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: HDIURN_part
+c      REAL*8 :: ADIURNSUM,HDIURNSUM
 
       INTEGER ::
      &     I,IH,IHM,IM1,INCH,INCHM,IP1,IZERO,J,J45N,
@@ -1081,7 +1080,7 @@ C DIAGA may have contained relevant halo calls
 C and since DIAGB is called immediately after DIAGA
 C there may not be a need for these calls if
 C the concerned arrays have not been updated
-C from the previous halo call. 
+C from the previous halo call.
       CALL CHECKSUM(grid, P, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, P, FROM=SOUTH)
       CALL CHECKSUM(grid, TX, __LINE__, __FILE__)
@@ -1383,48 +1382,48 @@ C**** ZERO OUT SUBSURFACE VERTICAL WINDS
       ENDDO
       ENDDO
       ENDDO
-C**** ACCUMULATE ALL VERTICAL WINDS
-      ADIURN_part=0.
-      HDIURN_part=0.
-      DO 558 J=J_0,J_1
-      DO 558 I=1,IM
-      DO KR=1,NDIUPT
-         IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-C**** Warning:     This diagnostic has 3 flaws   (?)
-C****          1 - It assumes that DTsrc=1hr, (DTsrc=3600.)
-C****          2 - since DTdaa-Ndaa*DTsrc=2*DTdyn rather than 0,
-C****              some hours are skipped once in a while
-C****          3 - Some of the first Ndaa hours are skipped at the
-C****              beginning of a month and overcounted at the end;
-C****              this happens to balance out, if and only if
-C****              mod(days_in_month,ndaa)=0  (i.e. February if Ndaa=7)
-            IH=JHOUR+1
-            IHM = IH+(JDATE-1)*24
-            DO INCH=1,NDAA
-              IF(IH.GT.HR_IN_DAY) IH=IH-HR_IN_DAY
-              ADIURN_part(IH,KR,J)=ADIURN_part(IH,KR,J)+1.E5*W(I,J,3)
-     *             /DXYP(J)
-              HDIURN_part(IHM,KR,J)=HDIURN_part(IHM,KR,J)+1.E5*W(I,J,3)
-     *             /DXYP(J)
-              IH=IH+1
-              IHM=IHM+1
-            END DO
-         END IF
-      END DO
-  558 CONTINUE
-
-      DO KR=1,NDIUPT
-        DO IH=1,size(ADIURN,1)
-          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,:),ADIURNSUM,
-     &                   ALL=.TRUE.)
-          ADIURN(IH,IDD_W,KR)=ADIURN(IH,IDD_W,KR)+ADIURNSUM
-        ENDDO
-        DO IHM=1,size(HDIURN,1)
-          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,:),HDIURNSUM,
-     &                   ALL=.TRUE.)
-          HDIURN(IHM,IDD_W,KR)=HDIURN(IHM,IDD_W,KR)+HDIURNSUM
-        ENDDO
-      ENDDO
+cC**** ACCUMULATE ALL VERTICAL WINDS
+c      ADIURN_part=0.
+c      HDIURN_part=0.
+c      DO 558 J=J_0,J_1
+c      DO 558 I=1,IM
+c      DO KR=1,NDIUPT
+c         IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+cC**** Warning:     This diagnostic has 3 flaws   (?)
+cC****          1 - It assumes that DTsrc=1hr, (DTsrc=3600.)
+cC****          2 - since DTdaa-Ndaa*DTsrc=2*DTdyn rather than 0,
+cC****              some hours are skipped once in a while
+cC****          3 - Some of the first Ndaa hours are skipped at the
+cC****              beginning of a month and overcounted at the end;
+cC****              this happens to balance out, if and only if
+cC****              mod(days_in_month,ndaa)=0  (i.e. February if Ndaa=7)
+c            IH=JHOUR+1
+c            IHM = IH+(JDATE-1)*24
+c            DO INCH=1,NDAA
+c              IF(IH.GT.HR_IN_DAY) IH=IH-HR_IN_DAY
+c              ADIURN_part(IH,KR,J)=ADIURN_part(IH,KR,J)+1.E5*W(I,J,3)
+c     *             /DXYP(J)
+c              HDIURN_part(IHM,KR,J)=HDIURN_part(IHM,KR,J)+1.E5*W(I,J,3)
+c     *             /DXYP(J)
+c              IH=IH+1
+c              IHM=IHM+1
+c            END DO
+c         END IF
+c      END DO
+c  558 CONTINUE
+c
+c      DO KR=1,NDIUPT
+c        DO IH=1,size(ADIURN,1)
+c          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,:),ADIURNSUM,
+c     &                   ALL=.TRUE.)
+c          ADIURN(IH,IDD_W,KR)=ADIURN(IH,IDD_W,KR)+ADIURNSUM
+c        ENDDO
+c        DO IHM=1,size(HDIURN,1)
+c          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,:),HDIURNSUM,
+c     &                   ALL=.TRUE.)
+c          HDIURN(IHM,IDD_W,KR)=HDIURN(IHM,IDD_W,KR)+HDIURNSUM
+c        ENDDO
+c      ENDDO
 
       DO 565 J=J_0,J_1
       DO 565 K=1,KM
@@ -2868,9 +2867,18 @@ C****
       USE FILEMANAGER, only : openunit, closeunits
       USE DAGCOM, only : kgz_max,pmname
       USE PARAM
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRACER_COM, only : n_Ox,trm,tr_mm
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
+      USE TRACER_COM, only : trm,tr_mm
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRACER_COM, only : n_Ox
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+      USE TRACER_COM, only : n_SO4
+#ifdef TRACERS_HETCHEM
+     *       ,n_SO4_d1,n_SO4_d2, n_SO4_d3, n_SO4_d4, n_SO4_s1, n_SO4_s2
+#endif
+#endif 
       IMPLICIT NONE
       SAVE
 !@var kddmax maximum number of sub-daily diags output files
@@ -2894,7 +2902,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       INTEGER :: Nsubdd = 0
 !@dbparam LmaxSUBDD: the max L when writing "ALL" levels
       INTEGER :: LmaxSUBDD = LM
-     
+
       contains
 
       subroutine init_subdd(aDATE)
@@ -3023,6 +3031,7 @@ C****
 !@+                    Z*, R*, T*  (on any fixed pressure level)
 !@+                    U*, V*, W*  (on any model level)
 !@+                    Ox*         (on any model level with chemistry)
+!@+                    SO4
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair,sha
@@ -3109,11 +3118,11 @@ C**** simple diags
             end do
           end do
         case ("QLAT")           ! latent heat (W/m^2)
-          data=qflux1*lhe 
+          data=qflux1*lhe
         case ("QSEN")           ! sensible heat flux (W/m^2)
           data=tflux1*sha
         case ("SWD")            ! solar downward flux at surface (W/m^2)
-          data=srdn*cosz1       ! multiply by instant cos zenith angle 
+          data=srdn*cosz1       ! multiply by instant cos zenith angle
         case ("SWU")            ! solar upward flux at surface (W/m^2)
 ! estimating this from the downward x albedo, since that's already saved
           data=srdn*(1.-salb)*cosz1
@@ -3159,6 +3168,23 @@ C**** simple diags
           data=cfrac*100.
         case ("PTRO")           ! tropopause pressure (mb)
           data = ptropo
+#ifdef TRACERS_AEROSOLS_Koch
+        case ("SO4")      ! sulfate in L=1
+          do j=1,jm
+          do i=1,imaxj(j)
+            data(i,j)=trm(i,j,1,n_SO4)                
+#ifdef TRACERS_HETCHEM
+     *               +trm(i,j,1,n_SO4_d1)
+     *               +trm(i,j,1,n_SO4_d2)
+     *               +trm(i,j,1,n_SO4_d3)
+     *               +trm(i,j,1,n_SO4_d4)
+     *               +trm(i,j,1,n_SO4_s1)
+     *               +trm(i,j,1,n_SO4_s2)
+#endif
+
+          end do
+          end do
+#endif
         case default
           goto 10
         end select
@@ -3301,7 +3327,7 @@ C**** write out
 #endif
         end select
       end do
-c**** 
+c****
       return
       end subroutine get_subdd
 
@@ -3409,7 +3435,7 @@ C**** From DIAGA:
       LDNA(1)=1
       LUPA(LM)=LM
 
-C**** From DIAGB      
+C**** From DIAGB
       PM(1)=1200.
       DO L=2,LM+1
         PL(L)=PSFMPT*SIGE(L)+PTOP
@@ -3424,7 +3450,7 @@ C**** From DIAG7A
       L850=LM
       L300=LM
       L50=LM
-      DO L=LM-1,1,-1 
+      DO L=LM-1,1,-1
         PLE_tmp=.25*(SIGE(L)+2.*SIGE(L+1)+SIGE(L+2))*PSFMPT+PTOP
         IF (PLE_tmp.LT.850.) L850=L
         IF (PLE_tmp.LT.300.) L300=L

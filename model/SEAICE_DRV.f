@@ -721,7 +721,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
         ELSE
 C**** save implicit mass-flux diagnostics
           AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+ROICE*DMIMP
-          AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-DMIMP*POICE
+          AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-(DMIMP-DSIMP)*POICE
           AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-DHIMP*POICE
         END IF
 C**** set gtemp array

@@ -193,7 +193,7 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c hdiurn, hourly adiurn quantities
 c-----------------------------------------------------------------------
-      status = nf_def_dim(ncid,'HR_IN_MONTHp4',hr_in_MONTH+4,dimids(1))
+      status = nf_def_dim(ncid,'HR_IN_MONTH',hr_in_MONTH,dimids(1))
       status = nf_def_dim(ncid, 'NDIUVAR',   ndiuvar, dimids(2))
       status = nf_def_dim(ncid, 'NDIUPT', ndiupt, dimids(3))
       status = nf_def_var(ncid, 'HDIURN',nf_real,3,dimids,varid)

@@ -39,14 +39,12 @@
 #ifdef CLD_AER_CDNC 
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
+     *     ,ij_3drwm,ij_3drws,ij_3drim,ij_3dris
 #endif
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname
 #ifdef TRACERS_WATER
      *     ,trwm,trw0,dowetdep
-#endif
-#ifdef TRACERS_HETCHEM
-     *     , n_SO4_d1, n_SO4_d2, n_SO4_d3, n_SO4_d4
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE LIGHTNING, only : RNOx_lgt
@@ -56,7 +54,7 @@
 #ifdef TRACERS_WATER
      *     ,jls_prec,taijn,tajls,tij_prec
 #ifdef TRACERS_AEROSOLS_Koch
-     *     ,jls_incloud
+     *     ,jls_incloud,taijs,ijts_aq
 #endif
 #endif
       USE CLOUDS, only : tm,tmom ! local  (i,j)
@@ -78,7 +76,9 @@
      *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1
      *     ,smommc,smomls,qmommc,qmomls,ddmflx,ncol
 #ifdef CLD_AER_CDNC 
-     *     ,cdncws,cdncis,cdncwm,cdncim,oldcdo,oldcdl,smfpml
+     *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
+     *     ,nlsw,nlsi,nmcw,nmci
+     *     ,oldcdo,oldcdl,smfpml
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
@@ -102,12 +102,6 @@
      *       dtr_mc(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm),
      *       dtr_ss(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm)
       INTEGER NX
-#ifdef TRACERS_AEROSOLS_Koch
-      real*8, save, dimension(im,jm) :: a_sulf=0. ,cc_sulf=0.
-      real*8 cm_sulft  !nu ,cm_sulf (? not defined/used, only redefined)
-      integer, save :: iuc_s
-      logical, save :: ifirst=.true.
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
 !@var Lfreeze Lowest level where temperature is below freezing (TF)
       INTEGER Lfreeze
@@ -316,9 +310,6 @@ C****
 !$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IDI,IDJ,
 #ifdef TRACERS_SPECIAL_Shindell
 !$OMP*  Lfreeze,
-#endif
-#ifdef TRACERS_AEROSOLS_Koch
-!$OMP*  cm_sulft,
 #endif
 !$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
@@ -530,12 +521,6 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
           AJL(J,L,JL_MCMFLX)=AJL(J,L,JL_MCMFLX)+MCFLX(L)
           AJL(J,L,JL_CLDMC) =AJL(J,L,JL_CLDMC) +CLDMCL(L)
           AJL(J,L,JL_CSIZMC)=AJL(J,L,JL_CSIZMC)+CSIZEL(L)*CLDMCL(L)
-#ifdef CLD_AER_CDNC 
-          AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+CDNCWM(L)*CLDMCL(L)
-          AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+CDNCIM(L)*CLDMCL(L)
-          AJL(J,L,JL_CNUMWM)=AJL(J,L,JL_CNUMWM)+CDNCWM(L)*CLDMCL(L)
-          AJL(J,L,JL_CNUMIM)=AJL(J,L,JL_CNUMIM)+CDNCIM(L)*CLDMCL(L)
-#endif
         END DO
         DO IT=1,NTYPE
           AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
@@ -556,7 +541,20 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
             HDIURN(IHM,IDD_SMC ,KR)=HDIURN(IHM,IDD_SMC ,KR)+CLDSLWIJ
           END IF
         END DO
-
+#ifdef CLD_AER_CDNC
+        DO L =1,LM
+        IF (NMCW.ge.1) then
+         AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)   !/NMCW
+         AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)   !/NMCW
+         AJL(J,L,JL_CNUMWM)=AJL(J,L,JL_CNUMWM)+ACDNWM(L)   !/NMCW
+        ENDIF
+        IF (NMCI.ge.1) then
+         AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)    !/NMCI
+         AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)   !/NMCI
+         AJL(J,L,JL_CNUMIM)=AJL(J,L,JL_CNUMIM)+ACDNIM(L)   !/NMCI
+        ENDIF
+        ENDDO
+#endif
 C**** ACCUMULATE PRECIP
         PRCP=PRCPMC*100.*BYGRAV
 C**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
@@ -925,12 +923,6 @@ C**** update running-average of precipitation (in mm/day):
         AJL(J,L,JL_CLDSS) =AJL(J,L,JL_CLDSS) +CLDSSL(L)
         AJL(J,L,JL_CSIZSS)=AJL(J,L,JL_CSIZSS)+CSIZEL(L)*CLDSSL(L)
 
-#ifdef CLD_AER_CDNC 
-        AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+CDNCWS(L)*CLDSSL(L)
-        AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+CDNCIS(L)*CLDSSL(L)
-        AJL(J,L,JL_CNUMWS)=AJL(J,L,JL_CNUMWS)+CDNCWS(L)*CLDSSL(L)
-        AJL(J,L,JL_CNUMIS)=AJL(J,L,JL_CNUMIS)+CDNCIS(L)*CLDSSL(L)
-#endif
         T(I,J,L)=TH(L)*FSSL(L)+TMC(I,J,L)*(1.-FSSL(L))
         Q(I,J,L)=QL(L)*FSSL(L)+QMC(I,J,L)*(1.-FSSL(L))
         SMOM(:,L)=SMOM(:,L)*FSSL(L)+SMOMMC(:,L)*(1.-FSSL(L))
@@ -985,14 +977,30 @@ CCC  *          (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
             END DO
          END IF
       ENDDO
+#ifdef CLD_AER_CDNC
+        DO L=1,LM
+         IF (NLSW.ge.1) then
+          AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L) !/NLSW
+          AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L)  !/NLSW
+          AJL(J,L,JL_CNUMWS)=AJL(J,L,JL_CNUMWS)+ACDNWS(L)  !/NLSW
+c     if(AIJ(I,J,IJ_3dNWS).gt.1500.)write(6,*)"OUTDRV",AIJ(I,J,IJ_3dNWS)
+c    * ,ACDNWS,NLSW,itime
+         ENDIF
+        IF(NLSI.ge.1) then
+         AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+ACDNIS(L)!/NLSI
+         AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)!/NLSI
+         AJL(J,L,JL_CNUMIS)=AJL(J,L,JL_CNUMIS)+ACDNIS(L)!/NLSI
+        ENDIF
+c     if(AIJ(I,J,IJ_3dNWS).gt.1500.)write(6,*)"ODRV",AIJ(I,J,IJ_3dNWS)
+c    * ,ACDNWS(L),L
+c       STOP "CLOUDS2_DRV_F26"
+        ENDDO
+#endif
 cECON      q2 = sum((Q(I,J,:)+WMX(:))*AIRM(:))*100.*BYGRAV+PRCP
 cECON if (abs(q0-q2).gt.1d-13) print*,"pr1",i,j,q0,q1,q2,prcp,prcpss*100
 cECON     *     *bygrav
 
 #ifdef TRACERS_ON
-#ifdef TRACERS_AEROSOLS_Koch
-      cm_sulft=0.
-#endif
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
         n = ntix(nx)
@@ -1017,22 +1025,11 @@ C**** TRACERS: Use only the active ones
      *           dt_sulf_mc(n,l)*(1.-fssl(l))
             tajls(j,l,jls_incloud(2,n))=tajls(j,l,jls_incloud(2,n))+
      *           dt_sulf_ss(n,l)
+          if (ijts_aq(n).gt.0) then
+            taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+
+     *           dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
+          endif
           end if
-c save for cloud-sulfate correlation
-          if (trname(n).eq.'SO4') then
-#ifdef TRACERS_HETCHEM
-            if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,nx)/24.
-     *                                    +tm(l,n_SO4_d1)/24. 
-     *                                    +tm(l,n_SO4_d2)/24. 
-     *                                    +tm(l,n_SO4_d3)/24. 
-     *                                    +tm(l,n_SO4_d4)/24. 
-#else
-            if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,nx)/24.
-#endif
-            cm_sulft=cldmcl(l)+cldssl(l)
-            if (cm_sulft.gt.1.) cm_sulft=1.
-!nu ??      if (cm_sulft.gt.cm_sulf) cm_sulf=cm_sulft
-           end if
 #endif
         end do
 #ifdef TRACERS_WATER
@@ -1048,9 +1045,6 @@ C**** diagnostics
         end if
 #endif
       end do
-#ifdef TRACERS_AEROSOLS_Koch
-      cc_sulf(i,j)=cc_sulf(i,j)+cm_sulft/24.
-#endif
 #endif
 
       END DO
@@ -1095,23 +1089,6 @@ C**** Save the conservation quantities for tracers
         if (itcon_mc(n).gt.0) call diagtcb(dtr_mc(1,nx),itcon_mc(n),n)
         if (itcon_ss(n).gt.0) call diagtcb(dtr_ss(1,nx),itcon_ss(n),n)
       end do
-#endif
-#ifdef TRACERS_AEROSOLS_Koch
-      if (jhour.eq.23) then
-        if (ifirst) then
-          call openunit("CLD_SO4",iuc_s,.true.,.false.)
-          ifirst=.false.
-        endif
-        if ((jyear.eq.1950.and.jmon.eq.12).or.
-     *       (jyear.eq.1951.and.jmon.le.11)) then
-          write(iuc_s) jyear,jmon,jdate,
-     *         (SNGL(a_sulf(I,1)),I=1,IM*JM),
-     *         (SNGL(cc_sulf(I,1)),I=1,IM*JM)
-        endif
-c     call closeunit(iuc_s)
-        a_sulf(:,:)=0.
-        cc_sulf(:,:)=0.
-      endif
 #endif
 
 C**** Delayed summations (to control order of summands)

@@ -41,8 +41,14 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("supsatfac",supsatfac)
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-C**** decide on AEROSOM or standard emissions 
+C**** decide on AEROCOM or standard emissions 
       call sync_param("imAER",imAER)
+C**** decide if preindustrial emissions  
+      call sync_param("imPI",imPI)
+#endif
+#ifdef TRACERS_DUST
+C**** decide on AEROCOM or interactive emissions 
+      CALL sync_param('imDUST',imDUST)
 #endif
 
 C**** Get factor to convert from mass mixing ratio to volume mr
@@ -94,8 +100,13 @@ C**** Tracer mass
         sname_jln(k,n) = trim(trname(n))//'_MASS' 
         lname_jln(k,n) = trim(trname(n))//' MASS' 
         jlq_power(k) = 4
+#ifdef TRACERS_AEROSOLS_Koch
+        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)+13
+     *       ,'kg')
+#else
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)
      *       ,'kg/m^2')
+#endif
         scale_jlq(k) = 1.d0
 
 #ifdef TRACERS_WATER
@@ -104,7 +115,7 @@ C****   TRACER CONCENTRATION IN CLOUD WATER
         jlnt_cldh2o = k
         sname_jln(k,n) = trim(trname(n))//'_WM_CONC' 
         lname_jln(k,n) = trim(trname(n))//' CLOUD WATER CONCENTRATION' 
-        jlq_power(k) = 4.
+        jlq_power(k) = 4
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)
      *       ,'kg/kg water')
         scale_jlq(k) = 1.d0
@@ -117,7 +128,7 @@ C****   F (TOTAL NORTHWARD TRANSPORT OF TRACER MASS)  (kg)
         sname_jln(k,n) = 'tr_nt_tot_'//trname(n)
         lname_jln(k,n) = 'TOTAL NORTHWARD TRANSPORT OF '//
      &     trim(trname(n))//' MASS'
-        jlq_power(k) = 11.
+        jlq_power(k) = 11
         jgrid_jlq(k) = 2
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
 C****   STM/SM (MEAN MERIDIONAL N.T. OF TRACER MASS)  (kg)
@@ -126,7 +137,7 @@ C****   STM/SM (MEAN MERIDIONAL N.T. OF TRACER MASS)  (kg)
         sname_jln(k,n) = 'tr_nt_mm_'//trname(n)
         lname_jln(k,n) = 'NORTHWARD TRANS. OF '//
      &     trim(trname(n))//' MASS BY MERIDIONAL CIRC.'
-        jlq_power(k) = 10.
+        jlq_power(k) = 10
         jgrid_jlq(k) = 2
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
 C****   F (TOTAL VERTICAL TRANSPORT OF TRACER MASS)  (kg)
@@ -135,7 +146,7 @@ C****   F (TOTAL VERTICAL TRANSPORT OF TRACER MASS)  (kg)
         sname_jln(k,n) = 'tr_vt_tot_'//trname(n)
         lname_jln(k,n) = 'TOTAL VERTICAL TRANSPORT OF '//
      &     trim(trname(n))//' MASS'
-        jlq_power(k) = 11.
+        jlq_power(k) = 11
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
 C****   STM/SM (MEAN MERIDIONAL V.T. OF TRACER MASS)  (kg)
         k = k + 1
@@ -151,7 +162,7 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY MOIST CONVEC)(kg)
         sname_jln(k,n) = 'tr_mc_'//trname(n)
         lname_jln(k,n) = 'CHANGE OF '//
      &     trim(trname(n))//' MASS BY MOIST CONVECTION'
-        jlq_power(k) = 10.
+        jlq_power(k) = 10
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
 C****   TMBAR-TM (CHANGE OF TRACER MASS BY Large-scale CONDENSE)  (kg)
         k = k + 1
@@ -167,7 +178,7 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY DRY CONVEC)  (kg)
         sname_jln(k,n) = 'tr_turb_'//trname(n)
         lname_jln(k,n) = 'CHANGE OF '//
      &     trim(trname(n))//' MASS BY TURBULENCE/DRY CONVECTION'
-        jlq_power(k) = 10.
+        jlq_power(k) = 10
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
 
       end do
@@ -892,7 +903,7 @@ C**** check whether air mass is conserved
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      & yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,corrOx
 #ifdef SHINDELL_STRAT_CHEM
-     & ,SF3,pClOx,pClx,pOClOx,pBrOx
+     & ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
 #endif
 #ifdef TRACERS_DUST
@@ -941,16 +952,14 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_WATER
      *       ,TRWM_glob
 #endif
-
 #ifdef TRACERS_SPECIAL_Shindell
 C***    ESMF Exception: need to read global arrays-- delayed until exercised.
      *       ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
      *       ,yXO2N,yRXPAR,corrOx,ss
 #ifdef SHINDELL_STRAT_CHEM
-     *       ,SF3,pClOx,pClx,pOClOx,pBrOx
+     *       ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
 #endif
-
 #ifdef TRACERS_DUST
      &       ,hbaij
 #endif
@@ -963,13 +972,15 @@ C***    ESMF Exception: need to read global arrays-- delayed until exercised.
 #ifdef TRACERS_WATER
      *       ,TRWM_glob
 #endif
-
 #ifdef TRACERS_SPECIAL_Shindell
      *       ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
      *       ,yXO2N,yRXPAR,corrOx,ss
 #ifdef SHINDELL_STRAT_CHEM
-     *       ,SF3,pClOx,pClx,pOClOx,pBrOx
+     *       ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
+#endif
+#ifdef TRACERS_DUST
+     &     ,hbaij
 #endif
 C**** ESMF: Copy global read data into the corresponding local (distributed) arrays.
        DO ITM=1,NTM
@@ -983,9 +994,6 @@ C**** ESMF: Copy global read data into the corresponding local (distributed) arr
 #endif
        END DO
 
-#ifdef TRACERS_DUST
-     &     ,hbaij
-#endif
           IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10

@@ -43,12 +43,8 @@ C**** Each tracer has a variable name and a unique index
 #else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
 !@var ntm_chem number of drew-only tracers
-      integer, parameter :: ntm_dust=4,rhet=3
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
-     *                                         ,rxts4
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: krate
 #ifdef regional_Ox_tracers
-      integer, parameter :: ntm=32,ntm_chem=21
+      integer, parameter :: ntm=32,ntm_chem=21,ntm_dust=4
 C Note: please always put the regional Ox tracers at the end,
 C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
       character*8, parameter :: trname(ntm)=(/
@@ -61,7 +57,7 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'seasalt1','seasalt2',
      *    'Clay    ','Silt1   ','Silt2   ','Silt3   '/)
 #else
-      integer, parameter :: ntm=26,ntm_chem=15
+      integer, parameter :: ntm=26,ntm_chem=15,ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
      *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
@@ -73,12 +69,8 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
 #else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell)
 !@var ntm_chem number of drew-only tracers
-      integer, parameter :: Ntm_dust=4,rhet=3
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
-     *                                         ,rxts4
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: krate
 #ifdef regional_Ox_tracers
-      integer, parameter :: ntm=25,ntm_chem=21
+      integer, parameter :: ntm=25,ntm_chem=21,ntm_dust=4
 C Note: please always put the regional Ox tracers at the end,
 C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
       character*8, parameter :: trname(ntm)=(/
@@ -89,7 +81,7 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'OxREG6  ',
      *    'Clay    ','Silt1   ','Silt2   ','Silt3   '/)
 #else
-      integer, parameter :: ntm=19,ntm_chem=15
+      integer, parameter :: ntm=19,ntm_chem=15,ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
      *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
@@ -163,14 +155,14 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
 #endif
 #else
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
-      integer, parameter :: ntm=15,Ntm_dust=4,rhet=3
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
-     *                                         ,rxts4
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: krate
+      integer, parameter :: ntm=23,Ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
-     *    'seasalt1','seasalt2','SO4_d1  ','SO4_d2  ','SO4_d3  ',
-     *    'SO4_d4  ','Clay    ','Silt1   ','Silt2   ','Silt3   '/)
+     *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     ','Clay    ','Silt1   ',
+     *    'Silt2   ','Silt3   ',
+     *    'SO4_s1  ','SO4_s2  ','SO4_d1  ','SO4_d2  ','SO4_d3  ',
+     *    'SO4_d4  '/)
 #else
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_DUST)
       integer, parameter :: ntm=17,ntm_dust=4
@@ -186,6 +178,10 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
      *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
      *    'OCII    ','OCIA    ','OCB     '/)
+c use these for Rutgers runs
+c     integer, parameter :: ntm=4
+c     character*8, parameter :: trname(ntm)=(/
+c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #else
 #ifdef TRACERS_DUST
 !@var Ntm_dust number of dust tracers
@@ -242,7 +238,7 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *     n_HBr=0,    n_HOBr=0,  n_BrONO2=0,n_CFC=0,
      *     n_Pb210 = 0,n_Be7=0,   n_Be10=0,
      *     n_seasalt1=0,  n_seasalt2=0, n_SO4_d1=0,  n_SO4_d2=0,
-     *     n_SO4_d3=0, n_SO4_d4=0,
+     *     n_SO4_d3=0, n_SO4_d4=0, n_SO4_s1=0,  n_SO4_s2=0,
      *     n_BCII=0,  n_BCIA=0,  n_BCB=0,
      *     n_OCII=0,  n_OCIA=0,  n_OCB=0,
      *     n_OxREG1=0,n_OxREG2=0,n_OxREG3=0,
@@ -265,15 +261,20 @@ C****    The following are set in tracer_IC
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
 !@var MCHEM: timing index for chemistry
       integer mchem
+!@var RSULF1, RSULF2, RSULF3, RSULF4: rate coefficients
 c for gas phase sulfur chemistry used by aerosol and chemistry models
-      real*8, DIMENSION(IM,JM,LM):: rsulf1, rsulf2,
-     *  rsulf3,rsulf4 
+      real*8, DIMENSION(IM,JM,LM):: rsulf1, rsulf2,rsulf3,rsulf4 
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
 !@dbparam imAER is 1 for AEROCOM-prescribed simulations, 0 otherwise
       integer :: imAER = 1
+!@dbparam imPI is 0 for industrial simulations, 1 for pre-industrial
+      integer :: imPI = 0
 #endif
-
+#ifdef TRACERS_DUST
+!@dbparam imDUST is 1 for AEROCOM-prescribed simulations, 0 interactive
+      INTEGER :: imDUST=0
+#endif
 #ifdef TRACERS_ON
 !@var NTM_POWER: Power of 10 associated with each tracer (for printing)
       integer, dimension(ntm) :: ntm_power
@@ -368,6 +369,12 @@ C note, tr_evap_fact is not dimensioned as NTM:
 !@var TRGLAC tracer ratio in glacial runoff to ocean (kg/kg)
       real*8, dimension(ntm) :: trglac
 #endif
+#ifdef TRACERS_HETCHEM
+      integer, parameter :: rhet=3
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
+     *                                         ,rxts4,rxtss1,rxtss2
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: krate
+#endif
 
       END MODULE TRACER_COM
 
@@ -397,14 +404,11 @@ C****
 #ifdef TRACERS_WATER
       ALLOCATE(        trwm(IM,J_0H:J_1H,LM,NTM) )
 #endif
-
-#if ((defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell)) || (defined TRACERS_HETCHEM)
-      ALLOCATE( rxts(IM,J_0H:J_1H,LM),
-     *         rxts1(IM,J_0H:J_1H,LM),
-     *         rxts2(IM,J_0H:J_1H,LM),
-     *         rxts3(IM,J_0H:J_1H,LM),
-     *         rxts4(IM,J_0H:J_1H,LM),
-     *         krate(IM,J_0H:J_1H,LM,rhet) )
+#ifdef TRACERS_HETCHEM
+      ALLOCATE( rxts(IM,J_0H:J_1H,LM),rxts1(IM,J_0H:J_1H,LM),
+     *         rxtss1(IM,J_0H:J_1H,LM),rxtss2(IM,J_0H:J_1H,LM),
+     *         rxts2(IM,J_0H:J_1H,LM),rxts3(IM,J_0H:J_1H,LM),
+     *         rxts4(IM,J_0H:J_1H,LM),krate(IM,J_0H:J_1H,LM,rhet) )
 #endif
 
       END SUBROUTINE ALLOC_TRACER_COM
