@@ -27,6 +27,7 @@ c****     rm = tracer mass
 c****   rmom = moments of tracer mass
 c****     ma (kg) = fluid mass
 c****
+      USE MODEL_COM, only : fim
       USE QUSCOM, ONLY : MFLX,nmom
       USE DYNAMICS, ONLY: pu=>pua, pv=>pva, sd=>sda, mb,ma
       IMPLICIT NONE
@@ -102,6 +103,18 @@ C$OMP  END PARALLEL DO
 
       call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx2(1,1,n))
       end do
+
+C**** deal with vertical polar box diagnostics outside ncyc loop
+C$OMP  PARALLEL DO PRIVATE (L)
+      do l=1,lm-1
+        sfcm(1 ,l) = fim*sfcm(1 ,l)
+        sfcm(jm,l) = fim*sfcm(jm,l)
+        scm (1 ,l) = fim*scm (1 ,l)
+        scm (jm,l) = fim*scm (jm,l)
+        scf (1 ,l) = fim*scf (1 ,l)
+        scf (jm,l) = fim*scf (jm,l)
+      end do
+C$OMP  END PARALLEL DO
 
       return
       end SUBROUTINE AADVQ
@@ -505,7 +518,6 @@ c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
       use CONSTANT, only : teeny
-      use MODEL_COM, only : fim
       use GEOM, only : imaxj
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
@@ -558,9 +570,6 @@ c****
             mass(i,j,l)=mass(1,j,l)
           end do
         end do
-        sfcm(j,:) = fim*sfcm(j,:)
-        scm(j,:)  = fim*scm(j,:)
-        scf(j,:)  = fim*scf(j,:)
       end if
       enddo ! j
 C$OMP  END PARALLEL DO
