@@ -7,7 +7,7 @@
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only       : im,jm,lm,ls1
+      USE MODEL_COM, only       : im,jm,lm
 #ifdef regional_Ox_tracers
      &                            ,ptop,psf,sig
 #endif
@@ -36,7 +36,8 @@ CCC  &                            ,ijs_OxL1,taijs
      &                   ny,nhet,rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
      &                   prnchg,y,bymass2vol,kss,nps,kps,nds,kds,
-     &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,changeAldehyde
+     &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,changeAldehyde,
+     &                   LS1J
 #ifdef Shindell_Strat_chem
      &                   ,SF3
 #endif
@@ -112,9 +113,9 @@ C     TROPOSPHERIC CHEMISTRY ONLY or TROP+STRAT:
 #ifdef Shindell_Strat_chem
       maxl=LM
 #else
-      maxl=LS1-1
+      maxl=LS1J(J)-1
 #endif
-      maxT=LS1-1
+      maxT=LS1J(J)-1
 
       do L=1,maxT
        y(nCH3O2,L)   =yCH3O2(I,J,L)
@@ -1205,7 +1206,7 @@ cc    __________________________________________________________________
       SUBROUTINE rates(maxl,I,J)
 !@sum rates calculate reaction rates with present concentrations
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_calc_jun1202_M23)
+!@ver  1.0 (based on chemcalc0C5.4_M23p)
 c
 C**** GLOBAL parameters and variables:
 C
@@ -1243,7 +1244,7 @@ cc    __________________________________________________________________
       SUBROUTINE chem1(kdnr,maxl,numel,nn,ndnr,chemrate,dest,multip)
 !@sum chem1 calculate chemical destruction/production
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_calc_jun1202_M23)
+!@ver  1.0 (based on chemcalc0C5.4_M23p)
 c
 C**** GLOBAL parameters and variables:
 C
@@ -1323,7 +1324,7 @@ cc    __________________________________________________________________
      &                    index,multip,igas,total,maxl,I,J)
 !@sum chem1prn for printing out the chemical reactions
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_calc_jun1202_M23)
+!@ver  1.0 (based on chemcalc0C5.4_M23p)
 c
 C**** GLOBAL parameters and variables:
 C
