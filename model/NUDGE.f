@@ -11,7 +11,7 @@ c *****************************************************************
 !@var  U2, V2 NCEP U wind at the following ncep timestep (m/s)
       REAL*4, DIMENSION(IM,JM,LM) :: U2,V2
 !@var netcdf integer
-      INTEGER :: ncidu,ncidv,uid,vid,plid,step_rea=1
+      INTEGER :: ncidu,ncidv,uid,vid,plid,step_rea=1,zirk=0
 !@var tau nuding time interpoltation
       INTEGER :: tau
 !@param  nlevnc vertical levels of NCEP data  
@@ -41,15 +41,19 @@ c     LOCAL
 c - - - - - - - - - - - - - - - - - - - - - - - - - |
 c   x_gcm = a * x_gcm + ( 1 - a ) * x_reanalys      |
 C----------------------------------------------------
+             alphau=0.0001  !in sync_para in modelE
+             alphav=0.0001
              alphau=dtstep * anudgeu !alphau !anudgeu
              alphav=dtstep * anudgev !alphav !nudgev
-
+c             print*, ' A L P H A ', alphau, alphav,anudgeu,anudgev
          do l=1,lm
          do j=2,jm
          do i=1,im
             a=(1.-tau)*u1(i,j,l)+tau*u2(i,j,l)         !time interpolation
+c            ugcm(i,j,l)=alphau*ugcm(i,j,l)+(1-alphau)*a 
             ugcm(i,j,l) =(ugcm(i,j,l)+ a * alphau)/ (1+alphau) !nudging
             a=(1.-tau)*v1(i,j,l)+tau*v2(i,j,l)         !time interpolation
+c            vgcm(i,j,l)=alphav*vgcm(i,j,l)+(1-alphav)*a 
             vgcm(i,j,l) =(vgcm(i,j,l)+ a * alphav)/ (1+alphav) !nudging
          enddo
          enddo
@@ -65,10 +69,91 @@ c(UNDG,VNDG)
 !@sum  Nudging of the horizontal wind comonents to reanalysis data sets
 !@auth Susanne
 !@ver  
-      USE MODEL_COM, only : im,jm,lm,jhour
-      USE NUDGE_COM, only : U1,U2,V1,V2,tau,step_rea
+      USE MODEL_COM, only : im,jm,lm,jhour,jday
+      USE NUDGE_COM
       IMPLICIT NONE
+      include 'netcdf.inc'
       INTEGER i
+      integer start(4),count(4),status
+C-----------------------------------------------------------------------
+      if (jday.eq.1.and.jhour.eq.0) then
+            zirk = zirk + 1
+c -----------------------------------------------------------------
+c   Opening of the files to be read
+c -----------------------------------------------------------------
+      print*, '  I N    N U D G E : OPEN NF FILES', jday,zirk
+      if(zirk.eq.2) then
+            status=NF_CLOSE('u.nc',NCNOWRIT,ncidu)
+            status=NF_CLOSE('v.nc',NCNOWRIT,ncidv)
+
+            status=NF_OPEN('u1.nc',NCNOWRIT,ncidu)
+            status=NF_OPEN('v1.nc',NCNOWRIT,ncidv)
+      endif     
+      if(zirk.eq.3) then
+            status=NF_CLOSE('u1.nc',NCNOWRIT,ncidu)
+            status=NF_CLOSE('v1.nc',NCNOWRIT,ncidv)
+
+            status=NF_OPEN('u2.nc',NCNOWRIT,ncidu)
+            status=NF_OPEN('v2.nc',NCNOWRIT,ncidv)
+      endif     
+      if(zirk.eq.4) then
+            status=NF_CLOSE('u2.nc',NCNOWRIT,ncidu)
+            status=NF_CLOSE('v2.nc',NCNOWRIT,ncidv)
+
+            status=NF_OPEN('u3.nc',NCNOWRIT,ncidu)
+            status=NF_OPEN('v3.nc',NCNOWRIT,ncidv)
+      endif     
+      if(zirk.eq.5) then
+            status=NF_CLOSE('u3.nc',NCNOWRIT,ncidu)
+            status=NF_CLOSE('v3.nc',NCNOWRIT,ncidv)
+
+            status=NF_OPEN('u4.nc',NCNOWRIT,ncidu)
+            status=NF_OPEN('v4.nc',NCNOWRIT,ncidv)
+      endif     
+      if(zirk.eq.6) then
+            status=NF_CLOSE('u4.nc',NCNOWRIT,ncidu)
+            status=NF_CLOSE('v4.nc',NCNOWRIT,ncidv)
+
+            status=NF_OPEN('u5.nc',NCNOWRIT,ncidu)
+            status=NF_OPEN('v5.nc',NCNOWRIT,ncidv)
+      endif     
+      if(zirk.eq.7) then
+            status=NF_CLOSE('u5.nc',NCNOWRIT,ncidu)
+            status=NF_CLOSE('v5.nc',NCNOWRIT,ncidv)
+
+            status=NF_OPEN('u6.nc',NCNOWRIT,ncidu)
+            status=NF_OPEN('v6.nc',NCNOWRIT,ncidv)
+      endif     
+      if(zirk.eq.8) then
+            status=NF_CLOSE('u6.nc',NCNOWRIT,ncidu)
+            status=NF_CLOSE('v6.nc',NCNOWRIT,ncidv)
+
+            status=NF_OPEN('u7.nc',NCNOWRIT,ncidu)
+            status=NF_OPEN('v7.nc',NCNOWRIT,ncidv)
+      endif     
+
+      if(zirk.eq.9) then
+            status=NF_CLOSE('u7.nc',NCNOWRIT,ncidu)
+            status=NF_CLOSE('v7.nc',NCNOWRIT,ncidv)
+
+            status=NF_OPEN('u8.nc',NCNOWRIT,ncidu)
+            status=NF_OPEN('v8.nc',NCNOWRIT,ncidv)
+      endif     
+
+      if(zirk.eq.10) then
+            status=NF_CLOSE('u8.nc',NCNOWRIT,ncidu)
+            status=NF_CLOSE('v8.nc',NCNOWRIT,ncidv)
+
+            status=NF_OPEN('u9.nc',NCNOWRIT,ncidu)
+            status=NF_OPEN('v9.nc',NCNOWRIT,ncidv)
+      endif     
+
+          step_rea = 0
+            status=NF_INQ_VARID(ncidu,'uwnd',uid)
+            status=NF_INQ_VARID(ncidu,'level',plid)
+            status=NF_INQ_VARID(ncidv,'vwnd',vid)
+      endif
+
 C-----------------------------------------------------------------------
       if (jhour.eq.0.or.jhour.eq.6.or.jhour.eq.12.or.jhour.eq.18) then
            v1(:,:,:) = v2(:,:,:)
@@ -200,6 +285,7 @@ C**** Rundeck parameters:
 c -----------------------------------------------------------------
 c   Initialisation of the files to be read
 c -----------------------------------------------------------------
+      print*, '  I N    N U D G E : OPEN NF FILES'
             status=NF_OPEN('u.nc',NCNOWRIT,ncidu)
             status=NF_INQ_VARID(ncidu,'uwnd',uid)
             status=NF_INQ_VARID(ncidu,'level',plid)
