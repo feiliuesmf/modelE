@@ -1291,64 +1291,72 @@ C**** As this is written, it must be called after the call to CALC_AMPK
 C**** after DYNAM (since it uses pk/pmid). It would be better if it used
 C**** SPA and PU directly from the dynamics. (Future work).
       USE CONSTANT, only : rgas
-      USE MODEL_COM, only : im,jm,t,p,zatmo,sig
-      USE GEOM, only : dyp,dxp,bydyp,bydxp
-      USE DYNAMICS, only : phi,pu,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
+      USE MODEL_COM, only : im,jm,t,p,zatmo,sig,byim
+      USE GEOM, only : bydyp,bydxp,cosip,sinip
+      USE DYNAMICS, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
      *     ,dpdx_by_rho_0,pmid,pk
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,JM,1) :: PU0
-      REAL*8 rho1,FLUX
-      INTEGER I,J,IP1,IM1
+      REAL*8 by_rho1,dpx1,dpy1,dpx0,dpy0,hemi
+      INTEGER I,J,K,IP1,IM1,J1
 
 C**** (Pressure gradient)/density at first layer and surface
-C**** to be used in the PBL
-      DPDY_BY_RHO=0.
-      DPDY_BY_RHO_0=0.
-      IM1=IM
-      DO I=1,IM
-        DO J=2,JM
-          rho1=100.*pmid(1,i,j)/(rgas*t(i,j,1)*pk(1,i,j))
-          FLUX=(PHI(I,J,1)-PHI(I,J-1,1))*BYDYP(J)
-     2         +100.*(P(I,J)-P(I,J-1))*SIG(1)/(rho1*DYP(J))
-          DPDY_BY_RHO(I,J)=DPDY_BY_RHO(I,J)+FLUX
-          DPDY_BY_RHO(IM1,J)=DPDY_BY_RHO(IM1,J)+FLUX
-          FLUX=(ZATMO(I,J)-ZATMO(I,J-1))*BYDYP(J)
-     2         +100.*(P(I,J)-P(I,J-1))/(rho1*DYP(J))
-          DPDY_BY_RHO_0(I,J)=DPDY_BY_RHO_0(I,J)+FLUX
-          DPDY_BY_RHO_0(IM1,J)=DPDY_BY_RHO_0(IM1,J)+FLUX
-        END DO
-        IM1=I
-      END DO
-c
-      DPDX_BY_RHO=0.
-      DPDX_BY_RHO_0=0.
-      I=IM
-      DO IP1=1,IM
-        PU(I,1,1)=0.
-        PU(I,JM,1)=0.
-        PU0(I,1,1)=0.
-        PU0(I,JM,1)=0.
-        DO J=2,JM-1
-          rho1=100.*pmid(1,i,j)/(rgas*t(i,j,1)*pk(1,i,j))
-          PU(I,J,1)=(PHI(IP1,J,1)-PHI(I,J,1))*BYDXP(J)
-     2              +100.*(P(IP1,J)-P(I,J))*SIG(1)/(rho1*DXP(J))
-          PU0(I,J,1)=(ZATMO(IP1,J)-ZATMO(I,J))*BYDXP(J)
-     2               +100.*(P(IP1,J)-P(I,J))/(rho1*DXP(J))
-        END DO
-        I=IP1
-      END DO
-      CALL AVRX (PU(1,1,1))
-      CALL AVRX (PU0(1,1,1))
-      DO J=2,JM
-        DO I=1,IM
-          DPDX_BY_RHO(I,J)=DPDX_BY_RHO(I,J)+0.5*(PU(I,J,1)+PU(I,J-1,1))
-          DPDX_BY_RHO_0(I,J)=DPDX_BY_RHO_0(I,J)+
-     2                       0.5*(PU0(I,J,1)+PU0(I,J-1,1))
-        END DO
-      END DO
-C****
-      END SUBROUTINE PGRAD_PBL
+C**** to be used in the PBL, at the promary grids
 
+      ! for dPdy/rho at non-pole grids
+
+      DO I=1,IM
+        DO J=2,JM-1
+          by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
+          DPDY_BY_RHO(I,J)=(100.*(P(I,J+1)-P(I,J-1))*SIG(1)*by_rho1
+     2         +PHI(I,J+1,1)-PHI(I,J-1,1))*BYDYP(J)*.5d0
+          DPDY_BY_RHO_0(I,J)=(100.*(P(I,J+1)-P(I,J-1))*by_rho1
+     2         +ZATMO(I,J+1)-ZATMO(I,J-1))*BYDYP(J)*.5d0
+        END DO
+      END DO
+
+      ! for dPdx/rho at non-pole grids
+
+      DO J=2,JM-1
+        IM1=IM
+        IP1=2
+        DO I=1,IM
+          by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
+          DPDX_BY_RHO(I,J)=(100.*(P(IP1,J)-P(IM1,J))*SIG(1)*by_rho1
+     2         +PHI(IP1,J,1)-PHI(IM1,J,1))*BYDXP(J)*.5d0
+          DPDX_BY_RHO_0(I,J)=(100.*(P(IP1,J)-P(IM1,J))*by_rho1
+     2         +ZATMO(IP1,J)-ZATMO(IM1,J))*BYDXP(J)*.5d0
+          IM1=I
+          IP1=I+2
+        END DO
+      END DO
+
+      ! at poles
+
+      DO J=1,JM,JM-1
+        if (J.eq.1) then
+          hemi=-1.; J1=2
+        else
+          hemi= 1.; J1=JM-1
+        endif
+        dpx1=0. ; dpy1=0.
+        dpx0=0. ; dpy0=0.
+        DO K=1,IM
+          dpx1=dpx1+(DPDX_BY_RHO(K,J1)*COSIP(K)
+     2         -hemi*DPDY_BY_RHO(K,J1)*SINIP(K)) 
+          dpy1=dpy1+(DPDY_BY_RHO(K,J1)*COSIP(K)
+     2         +hemi*DPDX_BY_RHO(K,J1)*SINIP(K)) 
+          dpx0=dpx0+(DPDX_BY_RHO_0(K,J1)*COSIP(K)
+     2         -hemi*DPDY_BY_RHO_0(K,J1)*SINIP(K)) 
+          dpy0=dpy0+(DPDY_BY_RHO_0(K,J1)*COSIP(K)
+     2         +hemi*DPDX_BY_RHO_0(K,J1)*SINIP(K)) 
+        END DO
+        DPDX_BY_RHO(1,j)  =dpx1*BYIM
+        DPDY_BY_RHO(1,j)  =dpy1*BYIM
+        DPDX_BY_RHO_0(1,j)=dpx0*BYIM
+        DPDY_BY_RHO_0(1,j)=dpy0*BYIM
+      END DO
+
+      END SUBROUTINE PGRAD_PBL
 
       SUBROUTINE SDRAG(DT1)
 !@sum  SDRAG puts a drag on the winds in the top layers of atmosphere
