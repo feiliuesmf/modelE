@@ -5091,6 +5091,7 @@ C****
 !@+   is used, all diagnostics and moments are updated automatically.
 !@auth Jean Lerner/Greg Faluvegi
 !@calls DIAGTCA, masterchem, apply_tracer_3Dsource
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE TRACER_COM
       USE FLUXES, only: tr3Dsource
       USE MODEL_COM, only: itime
@@ -5105,6 +5106,11 @@ C****
 #endif
       implicit none
       INTEGER n,ns,najl,i,j,l,mnow
+      INTEGER J_0, J_1
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 C**** All sources are saved as kg/s
       do n=1,ntm
