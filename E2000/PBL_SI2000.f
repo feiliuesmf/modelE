@@ -1079,8 +1079,8 @@ c     find ghmin,ghmax,gmmax0:
       del=(s4+2*d1)**2-8*(s5+2*d3)
       ghmin=(-s4-2*d1+sqrt(del))/(2*(s5+2*d3))
       ghmin=int(ghmin*10000.)/10000.
-      ghmax=b1*b1*0.53d0   ! model ii'  ! (b1*0.53d0)**2
-      gmmax0=b1*b1*1.95d0    ! moddel ii' ! (b1*1.95d0)**2
+      ghmax=(b1*0.53d0)**2
+      gmmax0=(b1*1.95d0)**2
       write(99,*) "ghmin",-ghmin/(b1*b1)
 
       ! for level 3 model only:
