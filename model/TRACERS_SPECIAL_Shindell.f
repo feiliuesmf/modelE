@@ -43,7 +43,7 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
 !@sum  LIGHTNING_COM model variables lightning parameterization
 !@auth Colin Price (modelEification by Greg Faluvegi)
 !@ver  1.0 (taken from CB436Tds3M23)
-      USE RESOLUTION, only : IM,JM,LM,LS1
+      USE MODEL_COM, only : IM,JM,LM,LS1
 
       IMPLICIT NONE
       SAVE
@@ -69,7 +69,10 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
      &    5.4,6.6,8.3,9.6,12.8,10.0,6.2,0.3/
       DATA (HGT(2,2,I),I=1,16)/5.8,2.9,2.6,2.4,2.2,2.1,2.3,6.1,
      & 16.5,14.1,13.7,12.8,12.5,2.8,0.9,0.3/ 
-          
+         
+      common/Shindell_private/ i_lgt,j_lgt
+!$OMP  THREADPRIVATE (/Shindell_private/)
+ 
       END MODULE LIGHTNING 
       
           
@@ -163,6 +166,11 @@ C****
       do j=1,jm
         src(:,j,kwet) = src(:,j,kwet)*adj_wet(j)
       end do
+C****
+C**** Also, increase the wetlands + tundra CH4 emissions:
+C****
+      src(:,:,kwet)=1.9d0*src(:,:,kwet)
+C  
       return
       end subroutine read_CH4_sources
 
@@ -821,8 +829,7 @@ c**** Interpolate two months of data to current day
 c
 C**** GLOBAL parameters and variables:
 C
-      USE RESOLUTION, only : im,jm,lm,ls1
-      USE MODEL_COM, only  : JEQ
+      USE MODEL_COM, only  : im,jm,lm,ls1,JEQ
       USE GEOM, only       : dxyp
       USE DYNAMICS, only   : am
       USE CONSTANT, only: mair
