@@ -488,7 +488,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND,ItimeI,PSFMPT,PSTRAT,SIG,SIGE,UOdrag
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
-     $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,COUPLED_CHEM
+     $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,COUPLED_CHEM,UVfilter_Vstrength
       USE PARAM
       implicit none
       INTEGER L,LCSDRAG
@@ -497,6 +497,7 @@ C**** Rundeck parameters:
       call sync_param( "NMONAV", NMONAV )
       call sync_param( "NIPRNT", NIPRNT )
       call sync_param( "dt_UVfilter", dt_UVfilter )
+      call sync_param( "UVfilter_Vstrength", UVfilter_Vstrength )
       call sync_param( "MFILTR", MFILTR )
       call sync_param( "X_SDRAG", X_SDRAG, 2 )
       call sync_param( "C_SDRAG", C_SDRAG )
