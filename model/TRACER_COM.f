@@ -131,9 +131,12 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
       integer, parameter :: NregOx=6
 !@var regOx_s southern limit of regional Ox tracers (deg)
 !@var regOx_n northern limit of regional Ox tracers (deg)
+!@var regOx_e eastern limit of regional Ox tracers (deg)
+!@var regOx_w western limit of regional Ox tracers (deg)
 !@var regOx_t upper (top) limit of regional Ox tracers (hPa)
 !@var regOx_b lower (bottom) limit of regional Ox tracers (hPa)
-      real*8, dimension(NregOx)::regOx_s,regOx_n,regOx_t,regOx_b
+      real*8, dimension(NregOx)::regOx_s,regOx_n,regOx_t,regOx_b,
+     &                           regOx_e,regOx_w
 #endif
 !@var N_XXX: variable names of indices for tracers
       integer :: 

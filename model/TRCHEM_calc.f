@@ -14,7 +14,7 @@ C
       USE DYNAMICS, only        : am, byam
       USE GEOM, only            : BYDXYP,dxyp
 #ifdef regional_Ox_tracers
-     &                            ,LAT_DG
+     &                            ,LAT_DG,LON_DG
 #endif
       USE TRACER_DIAG_COM, only : jls_OHcon,jls_H2Omr,jls_day,tajls
 CCC  &                            ,ijs_OxL1,taijs
@@ -27,7 +27,7 @@ CCC  &                            ,ijs_OxL1,taijs
      &                   n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
      &                   n_HOBr,n_BrONO2,n_CFC,ntm_chem
 #ifdef regional_Ox_tracers
-     &                   ,NregOx,regOx_t,regOx_b,regOx_n,regOx_s
+     &         ,NregOx,regOx_t,regOx_b,regOx_n,regOx_s,regOx_e,regOx_w
 #endif  
       USE TRCHEM_Shindell_COM, only: chemrate,photrate,mass2vol,
      &                   yCH3O2,yC2O3,yXO2,yXO2N,yRXPAR,yAldehyde,
@@ -1146,10 +1146,16 @@ c*** calculate chemical changes for regional Ox tracers ***
           nREG=igas-nlast
           PRES(L)=SIG(L)*(PSF-PTOP)+PTOP
           change(I,J,L,igas)=trm(I,J,L,igas)*Oxloss(L)/trm(I,J,L,n_Ox)
+C ----- in region criterion -----
           if(lat_dg(J,1).ge.regOx_s(nREG).and.(lat_dg(J,1).lt.
      &    regOx_n(nREG).or.(lat_dg(J,1).eq.regOx_n(nREG).and.J.eq.JM))
-     &    .and.PRES(L).le.regOx_b(nREG).and.(PRES(L).gt.regOx_t(nREG)
-     &    .or.(PRES(L).eq.regOx_t(nREG).and.L.eq.maxl))) ! in region
+     &                        .and.
+     &    PRES(L).le.regOx_b(nREG).and.(PRES(L).gt.regOx_t(nREG)
+     &    .or.(PRES(L).eq.regOx_t(nREG).and.L.eq.maxl))
+     &                        .and.
+     &    lon_dg(I,1).ge.regOx_w(nREG).and.(lon_dg(I,1).lt.
+     &    regOx_e(nREG).or.(lon_dg(I,1).eq.regOx_e(nREG).and.I.eq.IM)))
+C -------------------------------
      &    change(I,J,L,igas)=change(I,J,L,igas)+Oxprod(L)    
         end if
 #endif
