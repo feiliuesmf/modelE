@@ -43,7 +43,7 @@
       USE TRCHEM_Shindell_COM,only:COaltIN,LCOalt,PCOalt,COalt,
      & mass2vol,bymass2vol,CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,
-     &     OxICIN,OxIC,OxICINL,OxICL
+     &     OxICIN,OxIC,OxICINL,OxICL,corrOxIN,corrOx,LcorrOx,PcorrOx
 #ifdef SHINDELL_STRAT_CHEM
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt
@@ -72,7 +72,8 @@
 !@var PRES local nominal pressure for vertical interpolations
 !@var iu_data unit number
 !@var title header read in from file
-      REAL*8, DIMENSION(LM) :: PRES
+      REAL*8, DIMENSION(LM) :: PRES, tempOx2
+      REAL*8, DIMENSION(LcorrOx) :: tempOx1
       integer iu_data,m,i,j,nq
       character*80 title
 #ifdef regional_Ox_tracers
@@ -313,6 +314,22 @@ C**** Get solar variability coefficient from namelist if it exits
            CALL LOGPINT(LCOalt,PCOalt,OxICINL,LM,PRES,OxICL,.true.)
            OxIC(I,J,:)=OxICL(:)
           end do     ; end do
+c         read stratospheric correction from files:
+          call openunit('Ox_corr',iu_data,.true.,.true.)
+          read (iu_data) title,corrOxIN
+          call closeunit(iu_data)
+          write(6,*) title,' read from Ox_corr'
+          DO m=1,12; DO j=1,jm
+           tempOx1(:)=CorrOxIN(J,:,M)
+           CALL LOGPINT(LcorrOX,PcorrOx,tempOx1,LM,PRES,
+     &                  tempOx2,.true.)
+           CorrOx(J,:,M)=tempOx2(:)
+          END DO   ; END DO
+C         Only alter Ox between 150 and 30 hPa (lower strat):
+          DO L=1,LM
+            IF(PRES(L).lt.30.d0.or.PRES(L).gt.150.d0)
+     &      corrOx(:,L,:)=1.0d0
+          END DO
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP

@@ -90,6 +90,8 @@ C**** Local parameters and variables and arguments:
       LOGICAL error
 !@var I,J,L,N,igas,inss,LL,Lqq,JJ,J3,L2,n2 dummy loop variables
       INTEGER igas,LL,I,J,L,N,inss,Lqq,JJ,J3,L2,n2,Jqq,Iqq
+!@var imonth,m only needed to choose Ox strat correction factors
+      INTEGER imonth,m
 #ifdef regional_Ox_tracers
 !@var sumOx for summing regional Ox tracers
 !@var bysumOx reciprocal of sum of regional Ox tracers
@@ -1197,6 +1199,20 @@ c
 C     0.55866= 1/1.79 is 1/(obs. tropsph. CH4):
       r179=1.d0/1.79d0 
 C
+      if(correct_strat_Ox) then
+C       Use Ox correction factor for the proper month:
+        imonth= 1
+        DO m=2,12
+         IF((JDAY.LE.MDOFM(m)).AND.(JDAY.GT.MDOFM(m-1))) THEN
+          imonth=m
+          GOTO 217
+         END IF
+        END DO
+ 217    CONTINUE
+        if(MOD(Itime,24).eq.0)
+     &  write(6,*)'Using Ox strat correction factors for month ',imonth
+      end if
+C
       do j=1,jm
        J3=MAX(1,NINT(float(j)*float(JCOlat)*BYFJM))! index for CO
        do i=1,IM
@@ -1204,7 +1220,7 @@ C
          do L=LTROPO(I,J)+1,LM    ! >> BEGIN LOOP OVER STRATOSPHERE <<
 c         Update stratospheric ozone to amount set in radiation:
           changeL(L,n_Ox)=O3_rad_save(L,I,J)*DXYP(J)*O3MULT
-     &    - trm(I,J,L,n_Ox)
+     &    *corrOx(J,L,imonth) - trm(I,J,L,n_Ox)
           byam75=F75P*byam(L75P,I,J)+F75M*byam(L75M,I,J)
           FACT1=2.0d-9*DXYP(J)*am(L,I,J)*byam75
 C         We think we have too little stratospheric NOx, so, to

@@ -71,6 +71,7 @@ C
 !@param fix_CH4_chemistry logical whether or not to used a fixed 
 !@+     value for methane in the chemistry code
 !@param checktracer_on logical to turn on the checktracer call
+!@param correct_strat_Ox logical tourn on lower strat Ox corrections
 !@param pfix_CH4_S fixed ratio of CH4/M in South. Hemis. (if used)
 !@param pfix_CH4_S fixed ratio of CH4/M in South. Hemis. (if used)
 !@param MWabyMWw ratio of molecular weights of air/water
@@ -85,9 +86,11 @@ C
 !@param byradian 1/radian = conversion from radians to degrees
 !@param LCOalt number of levels in the COaltIN array 
 !@param LCH4alt number of levels in the CH4altIN array
+!@param LcorrOx number of levels in the corrOxIN array
 !@param JCOlat number of latitudes in the COlat array 
 !@param PCOalt pressures at LCOalt levels
 !@param PCH4alt pressures at LCH4alt levels
+!@param PcorrOx pressures at LcorrOx levels
 !@param NCFASTJ2 number of levels in the fastj2 atmosphere
 !@param NBFASTJ for fastj2 (=LM+1)
 !@param MXFASTJ "Number of aerosol/cloud types supplied from CTM"
@@ -100,6 +103,7 @@ C
      & LCOalt =   23,
      & JCOlat =   19,
      & LCH4alt=    6,
+     & LcorrOX=    4,
      & p_1   =     2 
 #ifdef SHINDELL_STRAT_CHEM
       INTEGER, PARAMETER ::
@@ -266,11 +270,14 @@ C to define BrOx, ClOx, ClONOs, HCL, and OxIC as well (GSF 8/03):
      & 0.2795D+03,0.2185D+03,0.1710D+03,0.1335D+03,0.1016D+03,
      & 0.7120D+02,0.4390D+02,0.2470D+02,0.1390D+02,0.7315D+01,
      & 0.3045D+01,0.9605D+00,0.3030D+00,0.8810D-01,0.1663D-01/)
+      REAL*8, PARAMETER, DIMENSION(LcorrOx) :: PcorrOx =
+     & (/133.5d0, 101.6d0, 71.2d0, 43.9d0/)
 C  
 C    These should really be defined in the run deck:
       LOGICAL, PARAMETER :: luselb            = .false.,
      &                      fix_CH4_chemistry = .false.,
-     &                      checktracer_on    = .false.
+     &                      checktracer_on    = .false.,
+     &                      correct_strat_Ox  = .true.
 c
 C**************  V  A  R  I  A  B  L  E  S *******************  
 !@var nn reactant's number in mol list, first index reactant 1 or 2,
@@ -454,6 +461,10 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@+   conservation (strat)
 !@var chemrate,photrate ?   
 !@var MDOFM cumulative days at end of each month
+!@var corrOxIN correction factor to tweak inital Ox in stratosphere
+!@+   on LcorrOx levels
+!@var corrOx correction factor to tweak inital Ox in stratosphere
+!@+   on LM levels
 !@var L75P first model level above nominal 75 hPa
 !@var L75M first model level below nominal 75 hPa
 !@var F75P interpolation coeff. of higher altitude value (units ln(P))
@@ -506,6 +517,8 @@ C
 #ifdef SHINDELL_STRAT_CHEM
      & ,ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom,changeCl
 #endif
+      REAL*8, DIMENSION(JM,LcorrOx,12) :: corrOxIN ! 12=month
+      REAL*8, DIMENSION(JM,LM,12)      :: corrOx
       REAL*8, DIMENSION(nc,LM)         :: y
       REAL*8, DIMENSION(n_rx,LM)       :: rr
       REAL*8, DIMENSION(JPPJ,LM,IM,JM) :: ss
