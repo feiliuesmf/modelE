@@ -1,6 +1,6 @@
-E001.R GISS Model E                                 gas 06/00
+E001A.R GISS Model E                                 gas 06/00
 
-E001: new modelE (based on B402A)
+E001A: new modelE (Qflux version)
 
 Object modules: (in order of decreasing priority)
 E001M12_COM SOMTQ_COM GEOM_B        ! model modules
@@ -34,11 +34,11 @@ Data input files:
 84=topcld.trscat8
 
 Label and Namelist:
-E001 (new modelE based on B402A)
+E001A (new modelE based on B402A)
 R=00BG/B
  &INPUTZ
    TAUI=0.,IYEAR=1950, CO2=-6.,
-   KOCEAN=0,  CCMCX=1.,  S0X=1.,  IJRA=1, U00=.60,
+   KOCEAN=1,  CCMCX=1.,  S0X=1.,  IJRA=1, U00=.60,
    SIGE=1.0000000,.9400480,.8441247,.6834533,.4796163,.2877698,
         .1618705, .0719424, .0000000,-.0599520,-.1079137,-.1438849,
         -.1678657,

@@ -1477,7 +1477,7 @@ C****
       USE PBLCOM, only : tsavg
       USE DAGCOM, only : aj,bj,cj,dj,aij,jreg
       USE OCEAN, only : odata,XSI1,XSI2,XSI3,XSI4,R1,R2,R3,R4,TTRUNC,Z1I
-     *     ,Z2OIM,ACE1I,AC2OIM,OTA,OTB,OTC,TFO
+     *     ,Z2OIM,ACE1I,AC2OIM,OTA,OTB,OTC,TFO,T50
 
       IMPLICIT REAL*8 (A-H,O-Z)
 C*
@@ -1487,8 +1487,6 @@ C*
 C*
       COMMON/WORK3/E0(IM,JM,4),E1(IM,JM,4),EVAPOR(IM,JM,4)
             COMMON/oldDAG/GDEEP(IM,JM,3)
-
-      COMMON /FLAKE/ T50(IM,JM)
 
       DATA ALAMI/2.1762/,Z2LI/2.9/,Z1E/.1/,Z2E/4./,Z2OIX/4.9/
 

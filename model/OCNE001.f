@@ -51,6 +51,8 @@ c      REAL*8, DIMENSION(IM,JM,LMSI) :: HSI
       COMMON/OOBS/DM,AOST,EOST1,EOST0,BOST,COST,ARSI,ERSI1,ERSI0,BRSI
      *     ,CRSI,KRSI
 
+      REAL*8, DIMENSION(IM,JM) :: T50
+      INTEGER KLAKE
       CONTAINS
 
       SUBROUTINE OSTRUC
@@ -238,6 +240,10 @@ C*
      *     ,X2,Z1OMIN,RSINEW,TIME 
       INTEGER :: JDOFM(13) = (
      *     /0,31,59,90,120,151,181,212,243,273,304,334,365/)
+      
+      REAL*8 FACTOR,T_ICE,T_NOICE
+       IF (KOCEAN.EQ.1.AND.KLAKE.EQ.1) GO TO 500
+       IF (KOCEAN.EQ.1) GO TO 470
 
 C****
 C**** OOBS AOST     monthly Average Ocean Surface Temperature
@@ -375,6 +381,43 @@ C**** REPLICATE VALUES AT POLE
       DO 460 K=1,3
   460 ODATA(I,JM,K)=ODATA(1,JM,K)
       IF (KOCEAN.EQ.0) RETURN
+C****
+C**** Calculate Lake Ice extent for current day from 50-day-mean Ts
+C****
+  470 ZIMIN=.5 ! minimum lake ice thickness
+      ZIMAX=2. ! maximum lake ice thickness
+      T_ICE = -8.  ! surface air temperature for 100% ice cover
+      T_NOICE = 0. ! surface air temperature for no ice cover
+      FACTOR = 1./(T_ICE-T_NOICE)
+      DO 480 J=1,JM
+         IMAX=IMAXJ(J)
+      DO 480 I=1,IMAX
+      IF (FLAKE(I,J) .LE. 0.) GO TO 480
+      IF (T50(I,J) .LE. T_ICE) THEN
+          RSINEW = 1.
+      ELSE IF (T50(I,J) .GE. T_NOICE) THEN
+          RSINEW = 0.
+      ELSE
+          RSINEW =(T50(I,J)-T_NOICE)*FACTOR ! linear fit for -8< T50 <0
+      END IF
+      ODATA(I,J,2)=RSINEW
+      ODATA(I,J,3)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+      IF (ODATA(I,J,2).GT.0.) GO TO 480
+      GDATA(I,J,1)=0.
+      GDATA(I,J,3)=0.
+      GDATA(I,J,7)=0.
+      GDATA(I,J,15)=0.
+      GDATA(I,J,16)=0.
+  480 CONTINUE
+C**** REPLICATE VALUES AT POLE
+      DO 490 I=2,IM
+      GDATA(I,JM,1)=GDATA(1,JM,1)
+      GDATA(I,JM,3)=GDATA(1,JM,3)
+      GDATA(I,JM,7)=GDATA(1,JM,7)
+      GDATA(I,JM,15)=GDATA(1,JM,15)
+      GDATA(I,JM,16)=GDATA(1,JM,16)
+      DO 490 K=1,3
+  490 ODATA(I,JM,K)=ODATA(1,JM,K)
 C****
 C**** CALCULATE DAILY OCEAN MIXED LAYER DEPTHS FROM CLIMATOLOGY
 C****

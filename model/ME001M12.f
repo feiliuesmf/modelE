@@ -4,7 +4,7 @@ C**** Second order scheme for momentum advection, with FLTRUV
 C****
 C**** Snow ages each day independent of temperature
 C****
-C****   This does not have leads at all
+C**** No extra leads - works with both: KOCEAN=0 and KOCEAN=1
 C****
 C**** Basic model II (OA,PALMER omitted) .5 box longitude shift
 C**** Pressure replaces Sigma above LS1 as the vertical coordinate
@@ -27,7 +27,7 @@ C**** f90 changes
      *     cq=>cqgs,ipbl,bldata
       USE DAGCOM, only : aj,kacc,aij,aijg,tsfrez,tdiurn,keynr,kdiag
       USE DYNAMICS, only : FILTER,CALC_AMPK
-      USE OCEAN, only : ODATA,OA,OSTRUC,XSI1,XSI2,XSI3,XSI4
+      USE OCEAN, only : ODATA,OA,OSTRUC,XSI1,XSI2,XSI3,XSI4,T50
 
       IMPLICIT REAL*8 (A-H,O-Z)
 
@@ -95,7 +95,7 @@ C**** WRITE RESTART INFORMATION ONTO DISK
      *  TTOLD,QTOLD,SVLHX,RHSAV,WM,CLDSAV,
      *  TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
      *  QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
-     *  RQT,SRHR,TRHR,FSF,TSFREZ,(AJ(K,1),K=1,KACC),
+     *  T50,RQT,SRHR,TRHR,FSF,TSFREZ,(AJ(K,1),K=1,KACC),
      *  TDIURN,OA,TAU
       REWIND KDISK
       CALL TIMER (MNOW,MINC,MELSE)
@@ -387,7 +387,7 @@ C**** KCOPY > 1 : SAVE THE RESTART INFORMATION
      *  TTOLD,QTOLD,SVLHX,RHSAV,WM,CLDSAV,
      *  TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
      *  QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
-     *      RQT,SRHR,TRHR,FSF,TSFREZ,TAU
+     *      T50,RQT,SRHR,TRHR,FSF,TSFREZ,TAU
          CLOSE (30)
          IF (KCOPY.EQ.2) GO TO 685
 C**** KCOPY > 2 : SAVE THE OCEAN DATA FOR INITIALIZING DEEP OCEAN RUNS
@@ -442,7 +442,7 @@ C**** RUN TERMINATED BECAUSE SENSE SWITCH 6 WAS TURNED ON
      *  TTOLD,QTOLD,SVLHX,RHSAV,WM,CLDSAV,
      *  TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
      *  QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
-     *  RQT,SRHR,TRHR,FSF,TSFREZ,(AJ(K,1),K=1,KACC),TDIURN,OA,TAU
+     *  T50,RQT,SRHR,TRHR,FSF,TSFREZ,(AJ(K,1),K=1,KACC),TDIURN,OA,TAU
       WRITE (6,'(A,I3,77X,A,F11.2)')
      *  ' OUTPUT RECORD WRITTEN ON UNIT',KDISK,'TAU',TAU
 C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
@@ -528,7 +528,7 @@ C****
      &  ,ipbl,bldata,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : aj,kacc,tsfrez,tdiurn,kdiag,keynr,jreg
      &  ,TITREG,NAMREG,KREG,iwrite,jwrite,itwrite,qcheck
-      USE OCEAN, only : odata,OA
+      USE OCEAN, only : odata,OA,T50
 
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION JC1(100),CLABEL1(39),RC1(161)
@@ -733,7 +733,7 @@ C****     ISTART=3: C ARRAY IS BUILT UP FROM DEAULTS AND NAMELIST
      3  TTOLD,QTOLD,SVLHX,RHSAV,WM,CLDSAV,
      4  TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
      5  QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
-     6  RQT
+     6  RQT,T50
       GO TO 398
 C****     ISTART=4: C ARRAY IS COPIED FROM INPUT DATA EXCEPT FOR XLABEL
 C**** USE ISTART=4 TO START FROM THIS RUN'S .rsf FILE
@@ -746,7 +746,7 @@ C***********************************************************************
      2  TTOLD,QTOLD,SVLHX,RHSAV,WM,CLDSAV,
      *  TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
      *  QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
-     *  RQT,SRHR,TRHR,FSF,TSFREZ
+     *  T50,RQT,SRHR,TRHR,FSF,TSFREZ
       DO 321 K=34,39
   321 CLABEL(K)=CLABEL1(K)
       DO 336 K=32,37
@@ -829,7 +829,7 @@ C**** RESTART ON UNIT KDISK
      4  TTOLD,QTOLD,SVLHX,RHSAV,WM,CLDSAV,
      *  TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
      *  QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
-     *  RQT,SRHR,TRHR,FSF,TSFREZ,(AJ(K,1),K=1,KACC),TDIURN,OA,TAUY
+     *  T50,RQT,SRHR,TRHR,FSF,TSFREZ,(AJ(K,1),K=1,KACC),TDIURN,OA,TAUY
       REWIND KDISK0
       KDISK=KDISK0
       IF (RUNID.NE.XLABEL(1)) THEN
@@ -1024,7 +1024,7 @@ C****
      &  , only : cosday=>cost, sinday=>sint
       USE PBLCOM, only : bldata
       USE DYNAMICS, only : CALC_AMPK
-      USE OCEAN, only : OCLIM0,OCLIM
+      USE OCEAN, only : OCLIM0,OCLIM,KLAKE
 
       IMPLICIT NONE
 
@@ -1063,6 +1063,7 @@ C**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
 
       WRITE (6,901) DELTAP
       DOZ1O=1.
+      KLAKE=0
 C****
 C**** CALCULATE THE DAILY CALENDAR
 C****
@@ -1100,8 +1101,9 @@ C**** DO Z1O COMPUTATION ONLY IF BLDATA(I,J,5) DOES NOT CONTAIN Z1O
       IF (BLDATA(IM,1,5).NE.-9999.) DOZ1O=1.
 
       CALL OCLIM0
-
+      KLAKE=1
       IF (TAU.GT.TAUI+DT/7200.) GO TO 200
+      KLAKE=0
       GO TO 100
 C*****
   901 FORMAT ('0PRESSURE ADDED IN GMP IS',F10.6/)
