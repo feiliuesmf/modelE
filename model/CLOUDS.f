@@ -1503,7 +1503,6 @@ C**** If liquid rain falls into an ice cloud, B-F must occur
 C**** COMPUTE RELATIVE HUMIDITY
       QSATL(L)=QSAT(TL(L),LHX,PL(L))
       RH1(L)=QL(L)/QSATL(L)
-      RH(L)=RH1(L)
       IF(LHX.EQ.LHS) THEN
         QSATE=QSAT(TL(L),LHE,PL(L))
         RHW=.00536d0*TL(L)-.276d0
@@ -1556,12 +1555,6 @@ c        IF(L.EQ.DCL) HDEP=0.5*HDEP
       ENDIF
 C****
       IF(RH00(L).GT.1.) RH00(L)=1.
-      IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))  
-      IF(CAREA(L).GT.1.) CAREA(L)=1.                                 
-      IF(RH(L).GT.1.) CAREA(L)=0.                                    
-      IF(WMX(L).LE.0.) CAREA(L)=1.                                   
-      IF(CAREA(L).LT.0.) CAREA(L)=0.                                 
-      FCLD=1.-CAREA(L)+1.E-20
       RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
 C**** Set precip phase to be the same as the cloud, unless precip above
 C**** is ice and temperatures are still below freezing
@@ -1604,7 +1597,7 @@ C****
       ERMAX=LHX*PREBAR(L+1)*GRAV*BYAM(L)
       IF (FORM_CLOUDS) THEN
 C**** COMPUTE EVAPORATION OF RAIN WATER, ER
-        RHN=RHF(L)
+        RHN=MIN(RH(L),RHF(L))
         IF(WMX(L).GT.0.)  THEN
           ER(L)=(1.-RHN)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
         ELSE                    !  WMX(l).le.0.
@@ -1826,11 +1819,11 @@ C**** CONDENSING MORE TRACERS
       TH(L)=TL(L)/PLK(L)
       TNEW=TL(L)
       END IF
-      IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))  
-      IF(CAREA(L).GT.1.) CAREA(L)=1.                                 
-      IF(RH(L).GT.1.) CAREA(L)=0.                                    
-      IF(WMX(L).LE.0.) CAREA(L)=1.                                   
-      IF(CAREA(L).LT.0.) CAREA(L)=0.                                 
+      IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+      IF(CAREA(L).GT.1.) CAREA(L)=1.                               
+      IF(RH(L).GT.1.) CAREA(L)=0.                                  
+      IF(WMX(L).LE.0.) CAREA(L)=1.                                 
+      IF(CAREA(L).LT.0.) CAREA(L)=0.                                
       RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))                     
       IF(RH(L).LE.RHF(L).AND.RH(L).LT..999999.AND.WMX(L).gt.0.) THEN
 C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
