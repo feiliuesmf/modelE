@@ -1240,7 +1240,8 @@ C****   be re-thought for others.
       YV(J) = YVJm1-YVJ-YVJ+YV(J+1)
       YVJm1 = YVJ
   620 CONTINUE
-      YV(2*JM-1)= YVJm1-YV(JM)-YV(JM)+YV2
+      J=2*JM-1
+      YV(J)= YVJm1-YV(J)-YV(J)+YV2
   630 CONTINUE
 
       DO 640 J=J_0STG,J_1STG
@@ -1273,7 +1274,8 @@ C****   be re-thought for others.
       YV(J) = YVJm1-YVJ-YVJ+YV(J+1)
       YVJm1 = YVJ
   720 CONTINUE
-      YV(2*JM-1)= YVJm1-YV(JM)-YV(JM)+YV2
+      J=2*JM-1
+      YV(J)= YVJm1-YV(J)-YV(J)+YV2
   730 CONTINUE
 
       DO 740 J=J_0STG,J_1STG
