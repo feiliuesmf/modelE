@@ -50,6 +50,9 @@
       REAL*8, DIMENSION(JM,LM) :: dH2O = 0.
 !@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAl*8 :: RSDIST,SIND,COSD
+!@var ALB is SRNFLB(1)/(SRDFLB(1)+1.D-20),PLAVIS,PLANIR,ALBVIS,ALBNIR,
+!@+       SRRVIS,SRRNIR,SRAVIS,SRANIR (see BR00B.COM)
+      REAL*8, DIMENSION(IM,JM,9) :: ALB 
 
 C**** Local variables initialised in init_RAD
 !@var COE

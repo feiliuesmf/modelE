@@ -486,7 +486,7 @@ C     OUTPUT DATA
      &          ,SRRVIS ,SRAVIS ,SRRNIR ,SRANIR
      &          ,BTEMPW
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
-     *     ,llow,lmid,lhi,coe,PLB0,shl0,tchg
+     *     ,llow,lmid,lhi,coe,PLB0,shl0,tchg,ALB
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss
@@ -521,7 +521,6 @@ C$OMP  THREADPRIVATE(/RADCOM_hybrid/)
       REAL*8, DIMENSION(4,IM,JM) :: SNFS,TNFS
       REAL*8, DIMENSION(LM_REQ,IM,JM) :: TRHRS,SRHRS
       REAL*8, DIMENSION(0:LM+LM_REQ,IM,JM) :: TRHRA,SRHRA ! for adj.frc
-      REAL*8, DIMENSION(IM,JM,9) :: ALB
       REAL*8, DIMENSION(LM) :: TOTCLD
 
       INTEGER, SAVE :: JDLAST = -9
