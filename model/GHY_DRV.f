@@ -508,13 +508,13 @@ c****   ngm+1 - 6*ngm   q(is,ngm)
 c**** 6*ngm+1 - 11*ngm   qk(is,ngm)
 c**** 11*ngm+1           sl
 
-      if (istart.gt.0) then
 c read in vegetation data set: vdata
       call openunit("VEG",iu_VEG,.true.,.true.)
       do k=1,11
         call readt (iu_VEG,0,vdata(1,1,K),im*jm,vdata(1,1,k),1)
       end do
       call closeunit(iu_VEG)
+      if (istart.gt.0) then
 c read soils parameters
       call openunit("SOIL",iu_SOIL,.true.,.true.)
       call dread (iu_SOIL,dz_ij,im*jm*(11*ngm+1),dz_ij)

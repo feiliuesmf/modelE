@@ -122,19 +122,17 @@ C**** functions
 !@ver  1.0 (taken from CB265)
 !@calls adv1d,QSAT,DQSATDT,THBAR
       IMPLICIT NONE
-      REAL*8 LHX,MPLUME,MCLOUD,MPMAX,MPO,SENV,QENV
+      REAL*8 LHX,MPLUME,MCLOUD,MPMAX,SENV,QENV
 !@var LHX latent heat of evaporation (J/Kg)
 !@var MPLUME mass of convective plume (mb)
 !@var MCLOUD air mass available for re-evaporation of precip
 !@var MPMAX convective plume at the detrainment level
-!@var MPO old MPLUME
 !@var SENV,QENV dummy variables
 
       REAL*8, DIMENSION(0:LM) :: CM     !@var CM air mass of subsidence
-      REAL*8, DIMENSION(IM) :: UMP,VMP,UMDN,VMDN,UMPO,VMPO  !@var
+      REAL*8, DIMENSION(IM) :: UMP,VMP,UMDN,VMDN
 !@var UMP, VMP momentum carried by convective plumes
 !@var UMDN,VMDN dummy variables
-!@var UMPO, VMPO old UMP, VMP
 !@var DQM,DSM,DQMR,DSMR Vertical profiles of T/Q and changes
       REAL*8, DIMENSION(LM) ::
      * SMOLD,QMOLD, DQM,DSM,DQMR,DSMR
@@ -185,7 +183,7 @@ C**** functions
      *     ,QMDN,QMIX,QMPMAX,QMPT,QNX,QSATC,QSATMP
      *     ,RCLD,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ
      *     ,SUMDP,DDRUP,EDRAFT
-     *     ,TOLD,TOLD1,TEMWM,TEM,WTEM,WCONST,WORK,SMPO,QMPO
+     *     ,TOLD,TOLD1,TEMWM,TEM,WTEM,WCONST,WORK
 !@var TERM1 contribution to non-entraining convective cloud
 !@var FMP0 non-entraining convective mass
 !@var SMO1,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE dummy variables
@@ -199,7 +197,7 @@ C**** functions
 !@var GAMA,DQSUM,TNX,DQ,CONSUM,BETAU,ALPHAU dummy variables
 !@var DMSE1 difference in moist static energy
 !@var FCTYPE fraction for convective cloud types
-!@var CDHDRT,DELTA.ALPHA,BETA,CDHM,CDHSUM,CLDREF dummy variables
+!@var CDHDRT,ALPHA,BETA,CDHM,CDHSUM,CLDREF dummy variables
 !@var DDRAFT downdraft mass
 !@var DELTA fraction of plume stays in the layer
 !@var CLDM subsidence due to convection
@@ -231,7 +229,6 @@ C**** functions
 !@var TOLD,TOLD1 old temperatures
 !@var TEMWM,TEM,WTEM,WCONST dummy variables
 !@var WORK work done on convective plume
-!@var SMPO,QMPO old SMP, QMP
 
       LOGICAL MC1  !@var MC1 true for the first convective event
 
@@ -466,38 +463,6 @@ C     IF(L.GT.LMIN+1.AND.SDL(L).GT.0.) GO TO 340
       IF(DMSE.GT.-1.E-10) GO TO 340
       END IF
       IF(PLK(L-1)*(SVUP-SVDN)+SLHE*(QUP-QDN).GE.0.) GO TO 340
-C****
-C**** DEPOSIT PART OF THE PLUME IN LOWER LAYER
-C****
-      DELTA=0.
-      SMPO =SMP
-      QMPO =QMP
-      MPO = MPLUME
-      DO K=1,KMAX !vref
-         UMPO(K)=UMP(K) !vref
-         VMPO(K)=VMP(K) !vref
-      ENDDO !vref
-C     IF(MPLUME.GT.AIRM(L)) THEN
-      IF(MPLUME.GT..95*AIRM(L)) THEN
-C     DELTA=(MPLUME-AIRM(L))/MPLUME
-      DELTA=(MPLUME-.95*AIRM(L))/MPLUME
-      SMP = SMP  *(1.-DELTA)
-      QMP = QMP  *(1.-DELTA)
-C     MPLUME=AIRM(L)
-      MPLUME=.95*AIRM(L)
-      DO K=1,KMAX !vref
-         UMP(K)=UMP(K)-UMP(K)*DELTA !vref
-         VMP(K)=VMP(K)-VMP(K)*DELTA !vref
-      ENDDO !vref
-      END IF
-C****
-C**** CONVECTION IN UPPER LAYER   (WORK DONE COOLS THE PLUME)
-C****
-      WORK=MPLUME*(SUP-SDN)*(PLK(L-1)-PLK(L))/PLK(L-1)
-C     SMP=SMP-WORK
-      DSM(L-1)=DSM(L-1)-WORK
-      CCM(L-1)=MPLUME
-      DM(L-1)=DM(L-1)+DELTA*MPO
 C**** TEST FOR CONDENSATION ALSO DETERMINES IF PLUME REACHES UPPER LAYER
       TP=SMP*PLK(L)/MPLUME
       TPSAV(L)=TP
@@ -509,18 +474,38 @@ C**** TEST FOR CONDENSATION ALSO DETERMINES IF PLUME REACHES UPPER LAYER
       LHX=LHS
       QSATMP=MPLUME*QSAT(TP,LHX,PL(L))
   290 SLH=LHX*BYSHA
-        DSM(L-1)=  DSM(L-1)+DELTA*SMPO
-      DSMOM(xymoms,L-1)=DSMOM(xymoms,L-1)+DELTA*SMOMP(xymoms)
-c      SMP = SMP *(1.-DELTA)     ! already set above
-      SMOMP(xymoms) = SMOMP(xymoms)*(1.-DELTA)
-        DQM(L-1)=  DQM(L-1)+DELTA*QMPO
-      DQMOM(xymoms,L-1)=DQMOM(xymoms,L-1)+DELTA*QMOMP(xymoms)
-c      QMP = QMP *(1.-DELTA)     ! already set above
-      QMOMP(xymoms) = QMOMP(xymoms)*(1.-DELTA)
-      DO K=1,KMAX !vref
-         DUM(K,L-1)=DUM(K,L-1)+UMPO(K)*DELTA !vref
-         DVM(K,L-1)=DVM(K,L-1)+VMPO(K)*DELTA !vref
-      ENDDO !vref
+C****
+C**** DEPOSIT PART OF THE PLUME IN LOWER LAYER
+C****
+      IF(MPLUME.GT..95*AIRM(L)) THEN
+        DELTA=(MPLUME-.95*AIRM(L))/MPLUME
+        DM(L-1)=DM(L-1)+DELTA*MPLUME
+        MPLUME=.95*AIRM(L)
+
+        DSM(L-1)=  DSM(L-1)+DELTA*SMP
+        SMP = SMP  *(1.-DELTA)
+        DSMOM(xymoms,L-1)=DSMOM(xymoms,L-1)+DELTA*SMOMP(xymoms)
+        SMOMP(xymoms) = SMOMP(xymoms)*(1.-DELTA)
+
+        DQM(L-1)=  DQM(L-1)+DELTA*QMP
+        QMP = QMP  *(1.-DELTA)
+        DQMOM(xymoms,L-1)=DQMOM(xymoms,L-1)+DELTA*QMOMP(xymoms)
+        QMOMP(xymoms) = QMOMP(xymoms)*(1.-DELTA)
+
+        DO K=1,KMAX             !vref
+          DUM(K,L-1)=DUM(K,L-1)+UMP(K)*DELTA !vref
+          DVM(K,L-1)=DVM(K,L-1)+VMP(K)*DELTA !vref
+          UMP(K)=UMP(K)-UMP(K)*DELTA !vref
+          VMP(K)=VMP(K)-VMP(K)*DELTA !vref
+        ENDDO                   !vref
+      END IF
+C****
+C**** CONVECTION IN UPPER LAYER   (WORK DONE COOLS THE PLUME)
+C****
+      WORK=MPLUME*(SUP-SDN)*(PLK(L-1)-PLK(L))/PLK(L-1)
+C     SMP=SMP-WORK
+      DSM(L-1)=DSM(L-1)-WORK
+      CCM(L-1)=MPLUME
 C****
 C**** ENTRAINMENT
 C****
