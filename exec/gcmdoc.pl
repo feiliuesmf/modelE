@@ -177,6 +177,14 @@ htm_prt_vars( "sl", keys %db_vars );
 htm_end();
 
 print  "printing files\n";
+# create USE dependencies list
+@list_db_files = sort keys %db_files;
+foreach $name ( keys %db_files ) {
+    foreach $mod_name ( keys %{$db_files{$name}{depend_on_mod}} ) {
+	$db_files{$name}{depend_on_file}{$db_modules{$mod_name}{file}} = 1;
+    }
+}
+
 
 foreach $name ( keys %db_files ) {
     htm_start("$output_dir/$name.html","$name");
@@ -211,9 +219,30 @@ foreach $name ( keys %db_files ) {
 	print HTM "<dd>";
 	htm_text("$db_subs{$sub_name}{sum}");
     }
-     print HTM "</dl>\n";
+    print HTM "</dl>\n";
+    print HTM "<HR width=10%>\n";
+    print HTM "Depends on the following files: \n";
+    print HTM "<dl>\n";
+    foreach $f_name ( sort keys %{$db_files{$name}{depend_on_file}} ) {
+	print HTM "<dt>";
+	htm_link($f_name,"$f_name.html");
+	print HTM "<br>";
+    }
+    print HTM "</dl>\n";
+    print HTM "<HR width=10%>\n";
+    print HTM "Used by the following files: \n";
+    print HTM "<dl>\n";
+    foreach $f_name ( @list_db_files ) {
+	print HTM "<dt>";
+	if( $db_files{$f_name}{depend_on_file}{$name} ) {
+	    htm_link($f_name,"$f_name.html");
+	    print HTM "<br>";
+	}
+    }
+    print HTM "</dl>\n";
     htm_end();
 }
+
 
 print "printing modules\n";
 
@@ -918,6 +947,12 @@ sub parse_fort_str {
 
     if ( $current_typedef ) { return; } #skip typedefs for now
 
+#!!! experimental code
+# create the list of USEd modules
+    if ( $fstr =~ /^\s*use\s+(\w+)/i ) {
+	$db_files{"$current_file"}{depend_on_mod}{uc($1)} = 1;
+    }
+  
     # variable declaration string
     if ( $fstr =~ s/^\s*($some_decl)\s*//i ) {
 	$var_type = $1;
@@ -1003,7 +1038,7 @@ sub parse_fort_str {
     if ( $fstr =~ /^\s*(common)/i ) { 
 	return;
     }
-  
+
 #!!! experimental code
 # check for unused variables (very primitive check)
     $tmp_fstr = $fstr;
