@@ -115,6 +115,8 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #ifdef TRACERS_AEROSOLS_Koch
 !@var ijts_tau tracer independent array for TAIJS hydrated optical thickness
       INTEGER ijts_tau(ntm)
+!@var ijts_fc tracer independent array for TAIJS short, long wave radiative forcings
+      INTEGER ijts_fc(2,ntm)
 #endif
 !@var ijts_3Dsource tracer independent array for TAIJS 3D src. diags
       INTEGER ijts_3Dsource(nt3Dsrcmax,ntm)
