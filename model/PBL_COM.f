@@ -131,7 +131,7 @@
       CHARACTER*80 :: HEADER, MODULE_HEADER = "BLD02"
 
       MODULE_HEADER(lhead+1:80) = 'R8 dim(ijm):ws,ts,qs,'//
-     *  'LvlDC,us,vs,tau,u*(.,4),ke(lijm),w2(lijm),tgv,qg'
+     *  'LvlDC,us,vs,tau,u*(.,4),ke;w2(lijm),tgv,qg'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file

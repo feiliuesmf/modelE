@@ -763,7 +763,7 @@ C**** Set flag to initialise pbl and snow variables
 C**** Read in ground initial conditions
         call openunit("GIC",iu_GIC,.true.,.true.)
         ioerr=-1
-        call io_ocean  (iu_GIC,ioread,ioerr)
+        read(iu_GIC)  ! ignore first line (ocean ic done in init_OCEAN)
         call io_seaice (iu_GIC,ioread,ioerr)
         call io_earth  (iu_GIC,ioread,ioerr)
         call io_soils  (iu_GIC,ioread,ioerr)
@@ -1128,7 +1128,7 @@ C**** Initialize lake variables (including river directions)
 C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor
-      CALL init_OCEAN(iniOCEAN)
+      CALL init_OCEAN(iniOCEAN,istart)
 C**** Initialize ice dynamics code (if required)
       CALL init_icedyn(iniOCEAN)
 C**** Initialize land ice (must come after oceans)

@@ -542,14 +542,14 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       END MODULE STATIC_OCEAN
 
 
-      SUBROUTINE init_OCEAN(iniOCEAN)
+      SUBROUTINE init_OCEAN(iniOCEAN,istart)
 !@sum init_OCEAN initiallises ocean variables
 !@auth Original Development Team
 !@ver  1.0
       USE FILEMANAGER
       USE PARAM
       USE MODEL_COM, only : im,jm,fland,flice,kocean,focean
-     *     ,fearth,iyear1
+     *     ,fearth,iyear1,ioread
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
@@ -565,8 +565,20 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       LOGICAL, INTENT(IN) :: iniOCEAN  ! true if starting from ic.
       CHARACTER CONPT(NPTS)*10
 !@var iu_OHT,iu_MLMAX unit numbers for reading in input files
-      INTEGER :: iu_OHT,iu_MLMAX
-      INTEGER :: I,J
+      INTEGER :: iu_OHT,iu_MLMAX,iu_GIC
+      INTEGER :: I,J,ISTART,ioerr
+
+C**** if starting from AIC/GIC files need additional read for ocean
+      if (istart.le.2) then
+        call openunit("GIC",iu_GIC,.true.,.true.)
+        ioerr=-1
+        call io_ocean (iu_GIC,ioread,ioerr)
+        if (ioerr.eq.1) then
+          WRITE(6,*) "I/O ERROR IN GIC FILE: KUNIT=",iu_GIC
+          call stop_model("INPUT: GIC READ IN ERROR",255)
+        end if
+        call closeunit (iu_GIC)
+      end if
 
       if (kocean.eq.0) then
         call sync_param( "ocn_cycl", ocn_cycl ) ! 1:cycle data 0:dont
