@@ -37,9 +37,20 @@
      &     DSIG   =  sige(1:lm)-sige(2:lm+1),
      &     byDSIG =  1./DSIG
 
+C**** KEP depends on whether stratos. EP flux diagnostics are calculated
+C**** If dummy EPFLUX is used set KEP=0, otherwise KEP=21
+!@param KEP number of lat/height E-P flux diagnostics 
+      INTEGER, PARAMETER :: KEP=21
+
+C**** Based on model top, determine how much of stratosphere is resolved
+C****         PMTOP >= 10 mb,    ISTRAT = 0
+C**** 1 mb <= PMTOP <  10 mb,    ISTRAT = 1
+C****         PMTOP <   1 mb,    ISTRAT = 2
+      INTEGER, PARAMETER :: ISTRAT = 2
+
       END MODULE RESOLUTION
 
 C**** The vertical resolution also determines whether
 C**** stratospheric wave drag will be applied or not.
-C**** This resolution is for a stratospheric model and so mut be used 
+C**** This resolution is for a stratospheric model and so must be used 
 C**** in conjunction with the strat. modules

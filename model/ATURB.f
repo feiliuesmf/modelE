@@ -164,6 +164,7 @@ c           ACCUMULATE DIAGNOSTICS
      2                 +(T(I,J,L)-t0ijl)*PK(L,I,J)*PLIJ(L,I,J)
             AJL(J,L,55)=AJL(J,L,55)
      2                 +(Q(I,J,L)-q0ij(l))*PDSIG(L,I,J)*LHE/SHA
+            AJL(J,L,54)=AJL(J,L,54)+eij(l)
           end do
           dclev(i,j)=dbll
 c

@@ -42,8 +42,8 @@ C**** Vertical diffusion coefficient depends on wind shear.
 C**** Uses TRIDIAG for implicit scheme (MU=1) as in diffuse53.
 C**** This version only does diffusion for lowest LDIFM layers.
 C****
-      USE CONSTANT, only : rgas,grav,twopi
-      USE MODEL_COM, only : im,jm,lm,airx,lmc,psfmpt,sig,ptop,ls1,psf
+      USE CONSTANT, only : rgas,grav,twopi,kapa
+      USE MODEL_COM, only : im,jm,lm,airx,lmc,psfmpt,sig,ptop,ls1
      *     ,sige,mrch
       USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
      *     vsurf=>vsavg
@@ -68,7 +68,7 @@ c      COMMON /WORK03/ VKEDDY(IM,JM,LM+1)  ! WORK03 is used in AADVT
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: U,V,T,Q
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM) :: P
       REAL*8, INTENT(IN) :: DT1
-      REAL*8 G2DT,PIJ,TPHYS,EXPBYK
+      REAL*8 G2DT,PIJ,TPHYS
       INTEGER I,J,L,IP1,NDT,N
 
       G2DT=GRAV*GRAV*DT1
@@ -124,10 +124,10 @@ C**** Surface values are used for F(0)
       QL(0)    =QSURF(I,J)
       TPHYS    =.25*(TSURF(I  ,J-1) + TSURF(IP1,J-1) +
      *               TSURF(I  ,J)   + TSURF(IP1,J))
-      TL(0)    =TPHYS*EXPBYK(PL(0))
+      TL(0)    =TPHYS*PL(0)**KAPA
       RHOL(0)  =  PL(0)/(RGAS*TPHYS)
       DO 200 L=1,MIN(LDIFM+1,LM)
-      IF (L.GE.LS1) PIJ=PSF-PTOP
+      IF (L.GE.LS1) PIJ=PSFMPT
       PL(L)   =PIJ*SIG(L)+PTOP
       UL(L)   =U(I,J,L)
       VL(L)   =V(I,J,L)
@@ -318,13 +318,14 @@ C**** 3-8 Convective waves
 C**** 9   Deformation wave
 C****
       USE CONSTANT, only : grav,sha,twopi,kapa,rgas
-      USE MODEL_COM, only : im,jm,lm,byim,airx,lmc,nidyn,psf,sig,sige
-     *     ,dsig,ptop,ls1,mrch,zatmo
+      USE MODEL_COM, only : im,jm,lm,byim,airx,lmc,nidyn,sig,sige
+     *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
       USE STRAT, only : xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm,pk
 C**** Do I need to put the common decalaration here also?
       USE GEOM, only : dxyv,bydxyv,fcor,areag,imaxj,ravpn,ravps,rapvn
      *     ,rapvs
-      USE DAGCOM, only : aij,ajl
+      USE DAGCOM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
+     *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9 
       USE FILEMANAGER
       USE PARAM
       IMPLICIT NONE
@@ -353,7 +354,7 @@ c     *   PDEF,LDEF,LDEFM
      *     ,JA
       REAL*8 FCORU,PIJ,SP,U0,V0,W0,BV0,ZVAR,P0,DU,DV,DW,CU,USRC,VSRC
      *     ,AIRX4,AIRXS,CLDDEP,FPLUME,CLDHT,WTX,TEDGE,WMCE,BVEDGE,DFMAX
-     *     ,EXCESS,ALFA,XDIFF,DFT,DWT,EXPBYK,FDEFRM,WSRC,WCHECK,DUTN,PDN
+     *     ,EXCESS,ALFA,XDIFF,DFT,DWT,FDEFRM,WSRC,WCHECK,DUTN,PDN
      *     ,YDN,FLUXUD,FLUXVD,PUP,YUP,DX,DLIMIT,FLUXU,FLUXV,DKEX,MDN
      *     ,MUP,MUR,BVFSQ
 C     LOGICAL QWRITE
@@ -396,7 +397,7 @@ c      BYDXYV(J)=1./DXYV(J)
   971 FORMAT ('   AVG EK: ',4X,E12.2)
 C**** Coefficients for Radiative Damping (not valid below 500 mb)
       DO 12 L500=1,LM-2
-      IF((PSF-PTOP)*SIG(L500)+PTOP.LT.500.) GO TO 13
+      IF(PSFMPT*SIG(L500)+PTOP.LT.500.) GO TO 13
    12 CONTINUE
    13 L500=L500+1
       WRITE (*,*) ' L500=',L500
@@ -417,7 +418,7 @@ C****
       ZVARY(I,J+1)=ZVARY(I,J)
    20 ZWT(I,J+1)=ZWT(I,J)
       DO 40 L=LS1,LM
-   40 PKS(L)=((PSF-PTOP)*SIG(L)+PTOP)**KAPA
+   40 PKS(L)=(PSFMPT*SIG(L)+PTOP)**KAPA
       IFIRST=0
       END IF
 C**** P**KAPA IN THE STRATOSPHERE
@@ -431,7 +432,7 @@ C**** P**KAPA IN THE TROPOSPHERE
       DO 65 L=1,LS1-1
       DO 60 J=1,JM
       DO 60 I=1,IMAXJ(J)
-        PK(I,J,L)=EXPBYK(P(I,J)*SIG(L)+PTOP)
+        PK(I,J,L)=(P(I,J)*SIG(L)+PTOP)**KAPA
    60 CONTINUE
    65 CONTINUE
 C****
@@ -489,7 +490,7 @@ C****
       PIJ=(P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)+(P(I,J)+P(IP1,J))*RAPVS(J)
       SP=PIJ
       DO 110 L=1,LM
-      IF (L.GE.LS1) PIJ=PSF-PTOP
+      IF (L.GE.LS1) PIJ=PSFMPT
       TL(L)=.25*(PK(I,J-1,L)*T(I,J-1,L)+PK(IP1,J-1,L)*T(IP1,J-1,L)+
      *  PK(I,J,L)*T(I,J,L)+PK(IP1,J,L)*T(IP1,J,L))
       THL(L)=.25*(T(I,J-1,L)+T(IP1,J-1,L)+T(I,J,L)+T(IP1,J,L))
@@ -709,15 +710,14 @@ C    * 4X,'MU',8X,1P,6E11.2/4X,'LD',10X,6I11)
 C     IF (QWRITE) WRITE (6,994) I,J,(L,UL(L),VL(L),(MUB(L,N),N=1,6),
 C    *  PLE(L),BVF(L),L=1,LM+1)
          IF (MRCH.NE.2) GO TO 251
-C**** These AIJ need names instead of numbers
-c         AIJ(I,J,46)=AIJ(I,J,46)+MU(9)*UR(9)*DTHR
-c         AIJ(I,J,92)=AIJ(I,J,92)+MU(1)*UR(1)*DTHR  *WT(1)
-c         AIJ(I,J,93)=AIJ(I,J,93)+MU(2)*UR(2)*DTHR
-c         AIJ(I,J,94)=AIJ(I,J,94)+MU(3)*UR(3)*DTHR  *WT(3)
-c         AIJ(I,J,95)=AIJ(I,J,95)+MU(7)*UR(7)*DTHR  *WT(7)
-c         AIJ(I,J,96)=AIJ(I,J,96)+MU(5)*UR(5)*DTHR  *WT(5)
-c         AIJ(I,J,97)=AIJ(I,J,97)+CN(2)*UR(2)*DTHR
-c         AIJ(I,J,98)=AIJ(I,J,98)+USRC*DTHR
+         AIJ(I,J,IJ_GW1)=AIJ(I,J,IJ_GW1)+MU(9)*UR(9)*DTHR
+         AIJ(I,J,IJ_GW2)=AIJ(I,J,IJ_GW2)+MU(1)*UR(1)*DTHR  *WT(1)
+         AIJ(I,J,IJ_GW3)=AIJ(I,J,IJ_GW3)+MU(2)*UR(2)*DTHR
+         AIJ(I,J,IJ_GW4)=AIJ(I,J,IJ_GW4)+MU(3)*UR(3)*DTHR  *WT(3)
+         AIJ(I,J,IJ_GW5)=AIJ(I,J,IJ_GW5)+MU(7)*UR(7)*DTHR  *WT(7)
+         AIJ(I,J,IJ_GW6)=AIJ(I,J,IJ_GW6)+MU(5)*UR(5)*DTHR  *WT(5)
+         AIJ(I,J,IJ_GW7)=AIJ(I,J,IJ_GW7)+CN(2)*UR(2)*DTHR
+         AIJ(I,J,IJ_GW8)=AIJ(I,J,IJ_GW8)+USRC*DTHR
 C****
 C**** CALCULATE THE DRAG
 C****
@@ -747,9 +747,8 @@ C****
 Cd    IF (QWRITE) WRITE (6,988) LD1,LTOP,RAREA
 C 988 FORMAT (1X,'LD1=',I6,4X,'LTOP=',I6,4X,'RAREA=',1P,E12.3)
       DO 300 L=LD1,LTOP
-C**** These AIJ need names instead of numbers
-c      IF (L.EQ.LM.AND.MRCH.EQ.2)
-c     *   AIJ(I,J,99)=AIJ(I,J,99)+MU(N)*UR(N)*DTHR  *WT(N)
+      IF (L.EQ.LM.AND.MRCH.EQ.2)
+     *   AIJ(I,J,IJ_GW9)=AIJ(I,J,IJ_GW9)+MU(N)*UR(N)*DTHR  *WT(N)
 C**** RADIATIVE DAMPING
       MUR=MU(N)
 CRAD  DTW=DP(L)*BVF(L)/(EK(N,J)*WMC(L)*WMC(L)*RHO(L)*GRAV+ ERR)
@@ -933,7 +932,7 @@ C**** For spherical coordinates, we are treating DEFRM1 like DIV
 C**** and DEFRM2 like CURL (i.e., like FLUX and CIRCULATION),
 C**** except the "V" signs are switched.  DEFRM is RMS on u,v grid
 C****
-      USE MODEL_COM, only : im,jm,lm,airx,lmc,psf,ptop,sig,dsig
+      USE MODEL_COM, only : im,jm,lm,airx,lmc,psfmpt,ptop,sig,dsig
       USE DYNAMICS, only : pu,pv
       USE GEOM, only : bydxyv,dxyv,dxv,dyp
       USE STRAT, only : ldef,ldefm,defrm
@@ -958,7 +957,7 @@ c??      EQUIVALENCE (WSQ(1,1,3),DEF1A), (WSQ(1,1,4),DEF2A)
 
       IF (IFIRST.EQ.1) THEN
         DO L=1,LM
-          PL=(PSF-PTOP)*SIG(L)+PTOP
+          PL=PSFMPT*SIG(L)+PTOP
           IF (PL.GE.700) THEN
             LDEF=L
             PDEF=PL
@@ -1085,7 +1084,7 @@ C****
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "STRAT01"
 
-      MODULE_HEADER(lhead+1,80) = 'R8: airx(im,jm), I: lmc(2,im,jm)'
+      MODULE_HEADER(lhead+1:80) = 'R8: airx(im,jm), I: lmc(2,im,jm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE) ! output to end-of-month restart file

@@ -429,9 +429,10 @@ c**** quantities accumulated hourly for diag6
             adaily(ihour,36,kr)=adaily(ihour,36,kr)+us*ptype
             adaily(ihour,37,kr)=adaily(ihour,37,kr)+vs*ptype
             adaily(ihour,38,kr)=adaily(ihour,38,kr)+ws*ptype
+            adaily(ihour,39,kr)=adaily(ihour,39,kr)+psi*ptype
             adaily(ihour,42,kr)=adaily(ihour,42,kr)+cdm*ptype
             adaily(ihour,43,kr)=adaily(ihour,43,kr)+cdh*ptype
-            adaily(ihour,44,kr)=adaily(ihour,44,kr)+dhgs*ptype
+            adaily(ihour,44,kr)=adaily(ihour,44,kr)+cdq*ptype
             adaily(ihour,45,kr)=adaily(ihour,45,kr)+eds1*ptype
             adaily(ihour,46,kr)=adaily(ihour,46,kr)+dbl*ptype
             adaily(ihour,50,kr)=adaily(ihour,50,kr)+evap*ptype

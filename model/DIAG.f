@@ -9,7 +9,7 @@ C****
 !@sum  DAGCOMP Diagnostic model variables used in the printouts
 !@auth Jean Lerner
 !@var  1.0
-      USE MODEL_COM, only : lm,sige,sig,psf,ptop
+      USE MODEL_COM, only : lm
       USE RADNCB, only : LM_REQ
       IMPLICIT NONE
       SAVE
@@ -122,23 +122,23 @@ C****  13  DT(MC)*P (100 PA*K)  DRY HEATING                        1 CN
 C****  14  FREE                                                    4 DA
 C****  15  FREE                                                    4 DA
 C****  16  (TH*SQRT(P)-THGM)**2/GMEAN(PR**(1-KAPA)*DTH/DPR)        4 DA
-C****  17  FREE                                                    4 DA
-C****  18  FREE                                                    4 DA
+C****  17  T-T0 (change of Th by dynamics)                         4 DA
+C****  18  DU/DT BY STRAT DEFORM DRAG (M/S)                        1 SD
 C****  19  PCLD*P (TOTAL)                                          1 CN
-C****  20  DU/DT BY STRAT DRAG (M S-2)                             1 SD
-C****  21  FREE                                                    4 DA
-C****  22  FREE                                                    4 DA
-C****  23  FREE                                                    4 DA
-C****  24  FREE                                                    4 DA
-C****  25  FREE                                                    4 DA
-C****  26  FREE                                                    4 DA
-C****  27  FREE                                                    4 DA
+C****  20  DU/DT BY STRAT MTN DRAG (M S)                           1 SD
+C****  21  DU/DT BY STRAT SHR DRAG (M S)                           1 SD
+C****  22  DU/DT BY STRAT MC DRAG C=-10 (M/S)                      1 SD
+C****  23  DU/DT BY STRAT MC DRAG C=+10 (M/S)                      1 SD
+C****  24  DU/DT BY STRAT MC DRAG C=-40 (M/S)                      1 SD
+C****  25  DU/DT BY STRAT MC DRAG C=+40 (M/S)                      1 SD
+C****  26  DU/DT BY STRAT MC DRAG C=-20 (M/S)                      1 SD
+C****  27  DU/DT BY STRAT MC DRAG C=+20 (M/S)                      1 SD
 C****  28  PCLD*P (SS)                                             1 CN
 C****  29  PCLD*P (MC)                                             1 CN
 C****  30  FREE                                                    4 DA
-C****  31  FREE                                                    4 DA
-C****  32  FREE                                                    4 DA
-C****  33  FREE                                                    4 DA
+C****  31  D  (M*M/S *       ) STRAT. DIFFUSION COEFF.             1 SD
+C****  32  DU  (M/S)  STRATOSPHERIC DIFFUSION                      1 SD
+C****  33  DT  (DEG-K/TIMESTEP)  HEATING BY STRATOSPHERIC DRAG     1 SD
 C****  34  FREE                                                    4 DA
 C****  35  FREE                                                    4 DA
 C****  36  (2F-2D(UDX))*16PV(TH-THMEAN)/(DTH/DSIG)+(SD-SDMEAN)*8U  4 DA
@@ -151,15 +151,18 @@ C****  42  V  (SUM OVER I, 135W to 110W)(PV GRID)                  4 DA
 C****  43  SD  (SUM OVER I, 135W to 110W                           4 DA
 C****  44  U  (SUM OVER I, 150E TO IM)   (PV GRID)                 4 DA
 C****  45  V  (SUM OVER I, 150E TO IM)   (PV GRID)                 4 DA
-C****  46  SD  (SUM OVER  I, 150E TO IM))                          4 DA
+C****  46  SD  (SUM OVER I, 150E TO IM)                            4 DA
 C****  47  V-V*  =D((V-VI)*(T-TI)/DTHDP)/DP                        4 DA
 C****  48  4*PU4I*PV4I/P4I (100 N/S**2)  (UV GRID)                 4 DA
 C****  49  4*PUV4I (100 N/S**2)  (UV GRID)                         4 DA
 C****  50  DT(MC)*P (100 PA*K)  CHANGE OF PHASE                    1 CN
 C****  51  CLHE*DQ(MC BEFORE COND)*P (100 PA*K)                    1 CN
 C****  52  DU/DT BY SDRAG (M S-2)                                  1 SD
-C****  53  FREE                                                    4 DA
-C****  54  SIGMA  (VARIANCE FOR MOIST CONVECTION)                  1 CN
+C****  53  CHANGE OF LATENT HEAT BY MOSIT CONV.                    1 CN
+C****  54  TURBULENT KINETIC ENERGY (W/M^2)                        1 AT
+C****  55  CHANGE OF LATENT HEAT BY TURBULENCE                     1 AT
+C****  56  TOTAL HEATING BY MOIST CONVECTION (Q1)                  1 CN
+C****  57  TOTAL DRYING BY MOIST CONVECTION (Q2)                   1 CN
 C****
 C**** CONTENTS OF ASJL(J,L,N)  (SUM OVER LONGITUDE AND TIME OF)
 C****   1  TX (C)                                                  4 DA
@@ -354,7 +357,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,bbyg,gbyrb,tf
-      USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop
+      USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
      *     ,imaxj,ravpn,ravps,sinp,bydxyv
@@ -380,7 +383,8 @@ C****
       DOUBLE PRECISION, DIMENSION(JM) :: TIL,UI,UMAX,PI,EL,RI,DUDVSQ
       DOUBLE PRECISION, DIMENSION(NTYPE,JM) :: SPTYPE
       DOUBLE PRECISION, DIMENSION(JM,LM) ::
-     &     THJL,THSQJL,SPI,PHIPI,TPI
+     &     THJL,THSQJL,SPI,PHIPI,TPI,TJL0
+      DOUBLE PRECISION, DIMENSION(JM,LM), SAVE :: TJL0
       DOUBLE PRECISION, DIMENSION(JM,LM-1) :: SDMEAN
       DOUBLE PRECISION, DIMENSION(IM,JM) :: PUV
       DOUBLE PRECISION, DIMENSION(LM_REQ) :: TRI
@@ -390,9 +394,15 @@ C****
       INTEGER, DIMENSION(LM) :: LUPA,LDNA
       DOUBLE PRECISION, DIMENSION(LM) :: D2SIG,PKS
       CHARACTER*16 TITLE
-      DOUBLE PRECISION, DIMENSION(7), PARAMETER ::
-     &     PMB=(/1000.,850.,700.,500.,300.,100.,30./),
-     &     GHT=(/0.,1500.,3000.,5600.,9500.,16400.,24000./)
+!@param KGZ number of pressure levels for geopotential height diag
+      INTEGER, PARAMETER :: KGZ = 7   !13
+!@param PMB pressure levels for geopotential heights (extends to strat)
+!@param GHT statndard geopotential heights at PMB level (extends to strat)
+      REAL*8, DIMENSION(KGZ), PARAMETER ::
+     &     PMB=(/1000d0,850d0,700d0,500d0,300d0,100d0,30d0/),   !10d0,
+!     *     3.4d0,.7d0,.16d0,.07d0,.03d0/),
+     *     GHT=(/0.,1500.,3000.,5600.,9500.,16400.,24000./) !,30000.,
+!     *     40000.,50000.,61000.,67000.,72000./)
       INTEGER :: IFIRST = 1
       DOUBLE PRECISION, PARAMETER :: ONE=1.,ZERO20=1.E-20,P1000=1000.
       INTEGER :: I,IM1,J,K,L,JET,JR,KM,LDN,LUP,
@@ -406,7 +416,7 @@ C****
      &     PDN,PE,PEQ,PEQM1,PEQM2,PHIRI,PIBYIM,PIJ,PITIJ,PITMN,
      *     PKE,PL,PRQ1,PRT,PSMPT4,PU4I,PUP,PUV4I,PV4I,PVTHP,
      *     QLH,ROSSX,SDMN,SDPU,SMALL,SP,SP2,SS,T4,THETA,THGM,THMN,TPIL,
-     *     TZL,UAMAX,UMN,UPE,VPE,X,Z4
+     *     TZL,UAMAX,UMN,UPE,VPE,X,Z4,THI
 
       REAL*8 QSAT
 
@@ -426,10 +436,10 @@ C**** INITIALIZE CERTAIN QUANTITIES
       BYSDSG=1./(1.-SIGE(LM+1))
       EPSLON=1.
       KM=0
-      DO 5 K=1,7
+      DO 5 K=1,KGZ
       IF (PMTOP.GT.PMB(K)) GO TO 6
     5 KM=KM+1
-    6 CONTINUE    ! JEQ=2.+.5*(JM-1.)
+    6 CONTINUE
       I150E = IM*(180+150)/360+1   ! WEST EDGE OF 150 EAST
       I110W = IM*(180-110)/360+1   ! WEST EDGE OF 110 WEST
       I135W = IM*(180-135)/360+1   ! WEST EDGE OF 135 WEST
@@ -558,6 +568,7 @@ C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
       PHIPI(J,L)=0.
 C     QPI=0.
       SPI(J,L)=0.
+      THI=0.
 C     RHPI=0.
       DBYSD=DSIG(L)*BYSDSG
       DO 220 I=1,IMAX
@@ -575,6 +586,7 @@ C     RHPI=0.
       PHIPI(J,L)=PHIPI(J,L)+PHI(I,J,L)*PIJ
 C     QPI=QPI+Q(I,J,L)*PIJ
       SPI(J,L)=SPI(J,L)+T(I,J,L)*PIJ
+      THI=THI+T(I,J,L)
 C     QLH=LHE
 C     QSATL=QSAT(TX(I,J,L),QLH,SIG(L)*PIJ+PTOP)
 C     IF (QSATL.GT.1.) QSATL=1.
@@ -583,7 +595,7 @@ C     RHPI=RHPI+Q(I,J,L)*PIJ/QSATL
 C     AJL(J,L,1)=AJL(J,L,1)+TPI(J,L)
 C     AJL(J,L,2)=AJL(J,L,2)+PHIPI(J,L)
 C     AJL(J,L,3)=AJL(J,L,3)+QPI
-C     AJL(J,L,17)=AJL(J,L,17)+SPI(J,L)
+      AJL(J,L,17)=AJL(J,L,17)+THI-TJL0(J,L)
 C     AJL(J,L,18)=AJL(J,L,18)+RHPI
   230 CONTINUE
   250 CONTINUE
@@ -1169,6 +1181,22 @@ C**** ACCUMULATE TIME USED IN DIAGA
       CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
       RETURN
   999 FORMAT (' DTHETA/DP IS TOO SMALL AT J=',I4,' L=',I4,2F15.6)
+
+      ENTRY DIAGA0 (T)
+C****
+C**** INITIALIZE TJL0 ARRAY (FROM PRIOR TO ADVECTION)
+C****
+      DO L=1,LM
+      DO J=1,JM
+        THI=0.
+        DO I=1,IMAXJ(J)
+          THI=THI+T(I,J,L)
+        END DO
+        TJL0(J,L)=THI
+      END DO
+      END DO
+      RETURN
+C****
       END SUBROUTINE DIAGA
 
       SUBROUTINE DIAGB (U,V,T,P,Q,WM,DUT,DVT)
@@ -1235,14 +1263,14 @@ C****   6  4*DP4*Q4 (100 PA)  (UV GRID)
 C****
       USE CONSTANT, only : lhe,omega,sha,tf
       USE MODEL_COM, only :
-     &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop,psfmpt,
+     &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,psfmpt,
      &     mdyn,mdiag, ndaa,      !! skipse,
      &     sig,sige,dsig, Jhour, ijd6
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DAGCOM, only : ajk,aijk,aijl,ajlsp,speca,adaily,nspher,
      &     nwav_dag,ndlypt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
-     *     ,ijk_dse
+     *     ,ijk_dse,klayer
       USE DYNAMICS, only : phi
       IMPLICIT NONE
       SAVE
@@ -1993,7 +2021,7 @@ C****
       IZERO=0
       NM=1+IM/2
       J45N=2+.75*(JM-1.)
-      KS1=LS1
+c      KS1=LS1
 C**** TOTAL THE KINETIC ENERGIES
       KE(:,:)=0.
       DO 2140 J=2,JM
@@ -2002,9 +2030,10 @@ C**** TOTAL THE KINETIC ENERGIES
       PSEC(I)=.25*(P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J))
  2020 I=IP1
       DO 2140 K=1,KM
-      KSPHER=2
-      IF (K.GE.KS1) KSPHER=1
-      IF (J.GT.JEQ) KSPHER=KSPHER+2
+        KSPHER=KLAYER(K)
+c      KSPHER=2
+c      IF (K.GE.KS1) KSPHER=1
+      IF (J.GT.JEQ) KSPHER=KSPHER+1
       DO 2140 KX=IZERO,LM,LM
       DO 2090 I=1,IM
       DPUV=0.
@@ -2046,12 +2075,12 @@ C**** ACCUMULATE HERE
  2100 KE(N,KSPHER)=KE(N,KSPHER)+X1(N)*DXYV(J)
       IF (J.NE.J45N) GO TO 2140
       DO 2110 N=1,NM
- 2110 KE(N,KSPHER+4)=KE(N,KSPHER+4)+X1(N)*DXYV(J)
+ 2110 KE(N,KSPHER+2)=KE(N,KSPHER+2)+X1(N)*DXYV(J)
       GO TO 2140
  2120 DO 2130 N=1,NM
-      KE(N,KSPHER+4)=KE(N,KSPHER+4)+X1(N)*DXYV(J)
+      KE(N,KSPHER+2)=KE(N,KSPHER+2)+X1(N)*DXYV(J)
       KE(N,KSPHER)=KE(N,KSPHER)+.5D0*X1(N)*DXYV(J)
- 2130 KE(N,KSPHER+2)=KE(N,KSPHER+2)+.5D0*X1(N)*DXYV(J)
+ 2130 KE(N,KSPHER+1)=KE(N,KSPHER+1)+.5D0*X1(N)*DXYV(J)
  2140 CONTINUE
       DO 2150 KS=1,NSPHER
       DO 2150 N=1,NM
@@ -2068,7 +2097,7 @@ C**** QUANTITIES AND FROM THAT PRINTS A TABLE OF WAVE FREQUENCIES.
 C****
       USE CONSTANT, only : grav,bygrav
       USE MODEL_COM, only : im,imh,jm,lm,
-     &     IDACC,JEQ,LS1,MDIAG,P,PSF,PTOP,PSFMPT,SIG,SIGE,U,V
+     &     IDACC,JEQ,LS1,MDIAG,P,PTOP,PSFMPT,SIG,SIGE,U,V
       USE DYNAMICS, only : PHI
       USE DAGCOM, only : nwav_dag,wave,max12hr_sequ,j50n
       IMPLICIT NONE
@@ -2574,7 +2603,7 @@ C****
       SUBROUTINE DIAG5D (M5,NDT,DUT,DVT)
       USE MODEL_COM, only : im,imh,jm,lm,fim,
      &     DSIG,JEQ,LS1,MDIAG,MDYN
-      USE DAGCOM, only : speca,nspher
+      USE DAGCOM, only : speca,nspher,klayer
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: DUT,DVT
@@ -2593,13 +2622,7 @@ C****
       NM=1+IM/2
       J45N=2.+.75*(JM-1.)
       MKE=M5
-C****
-C**** KSPHER=1 SOUTHERN STRATOSPHERE       3 NORTHERN STRATOSPHERE
-C****        2 SOUTHERN TROPOSPHERE        4 NORTHERN TROPOSPHERE
-C****
-C****        5 EQUATORIAL STRATOSPHERE     7 45 DEG NORTH STRATOSPHERE
-C****        6 EQUATORIAL TROPOSPHERE      8 45 DEG NORTH TROPOSPHERE
-C****
+
       GO TO (810,810,810,100,100,  100,810),M5
   810 WRITE (6,910) M5
   910 FORMAT ('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5D.  M5=',I5)
@@ -2612,8 +2635,9 @@ C**** TRANSFER RATES FOR KINETIC ENERGY IN THE DYNAMICS
       KE(:,:)=0.
 
       DO 170 L=1,LM
-      KSPHER=2
-      IF (L.GE.LS1) KSPHER=1
+        KSPHER=KLAYER(L)
+c      KSPHER=2
+c      IF (L.GE.LS1) KSPHER=1
       DO 170 J=2,JM
       DO 170 KUV=1,2 ! loop over u,v
       IF(KUV.EQ.1) CALL FFT(DUT(1,J,L),FA,FB)
@@ -2626,14 +2650,14 @@ C**** TRANSFER RATES FOR KINETIC ENERGY IN THE DYNAMICS
       X(NM)=X(NM)+X(NM)
       IF (J.NE.JEQ) KE(:,KSPHER)=KE(:,KSPHER)+X(:)*DSIG(L)
       IF (J.EQ.J45N) THEN     ! 45 N
-         KE(:,KSPHER+4)=KE(:,KSPHER+4)+X(:)*DSIG(L)
+         KE(:,KSPHER+2)=KE(:,KSPHER+2)+X(:)*DSIG(L)
       ELSE IF (J.EQ.JEQ) THEN ! EQUATOR
         DO N=1,NM
-        KE(N,KSPHER+4)=KE(N,KSPHER+4)+     X(N)*DSIG(L)
+        KE(N,KSPHER+2)=KE(N,KSPHER+2)+     X(N)*DSIG(L)
         KE(N,KSPHER)  =KE(N,KSPHER)  +.5D0*X(N)*DSIG(L) ! CONTRIB TO SH
-        KE(N,KSPHER+2)=KE(N,KSPHER+2)+.5D0*X(N)*DSIG(L) ! CONTRIB TO NH
+        KE(N,KSPHER+1)=KE(N,KSPHER+1)+.5D0*X(N)*DSIG(L) ! CONTRIB TO NH
         ENDDO
-        IF (KUV.EQ.2) KSPHER=KSPHER+2
+        IF (KUV.EQ.2) KSPHER=KSPHER+1
       ENDIF
   170 CONTINUE
 
@@ -2677,9 +2701,9 @@ C****
       USE CONSTANT, only : sha
       USE MODEL_COM, only : im,imh,jm,lm,fim,
      &     DSIG,IDACC,JEQ,LS1,MDIAG,
-     &     P,PSF,PTOP,PSFMPT,SIG,T,U,V,ZATMO
+     &     P,PTOP,PSFMPT,SIG,T,U,V,ZATMO
       USE GEOM, only : AREAG,DXYN,DXYP,DXYS
-      USE DAGCOM, only : speca,atpe,nspher,kspeca
+      USE DAGCOM, only : speca,atpe,nspher,kspeca,klayer
       USE DYNAMICS, only : sqrtp,pk
       IMPLICIT NONE
       SAVE
@@ -2719,11 +2743,21 @@ C****
       MKE=M5
       MAPE=M5
 C****
-C**** KSPHER=1 SOUTHERN STRATOSPHERE       3 NORTHERN STRATOSPHERE
-C****        2 SOUTHERN TROPOSPHERE        4 NORTHERN TROPOSPHERE
+C**** Note: KSPHER has been re-arranged from previous models to better
+C****       deal with optionally resolved stratosphere. The higher values
+C****       are only used if the model top is high enough.
 C****
-C****        5 EQUATORIAL STRATOSPHERE     7 45 DEG NORTH STRATOSPHERE
-C****        6 EQUATORIAL TROPOSPHERE      8 45 DEG NORTH TROPOSPHERE
+C**** KSPHER=1 SOUTHERN TROPOSPHERE         3 NORTHERN TROPOSPHERE
+C****        2 EQUATORIAL TROPOSPHERE       4 45 DEG NORTH TROPOSPHERE
+C****
+C****        5 SOUTHERN LOW STRATOSPHERE    7 NORTHERN LOW STRATOSPHERE
+C****        6 EQUATORIAL LOW STRATOSPHERE  8 45 DEG NORTH LOW STRATOSPHERE
+C**** 
+C****        9 SOUTHERN MID STRATOSPHERE   10 NORTHERN MID STRATOSPHERE
+C****       11 EQUATORIAL MID STRATOSPHERE 12 45 DEG NORTH MID STRATOSPHERE
+C****
+C****       13 SOUTHERN UPP STRATOSPHERE   14 NORTHERN UPP STRATOSPHERE
+C****       15 EQUATORIAL UPP STRATOSPHERE 15 45 DEG NORTH UPP STRATOSPHERE
 C****
       GO TO (200,200,810,810,810,  810,200,810,205,810,
      *       296,205,810,205,810,  205,810,810,810,810),M5
@@ -2743,8 +2777,9 @@ C****
       KE(:,:)=0.
 C**** CURRENT KINETIC ENERGY
       DO 240 L=1,LM
-      KSPHER=2
-      IF (L.GE.LS1) KSPHER=1
+        KSPHER=KLAYER(L)
+c      KSPHER=2
+c      IF (L.GE.LS1) KSPHER=1
       DO 240 J=2,JM
       DO 240 K=IZERO,LM,LM
       IF(K.EQ.IZERO) X(1:IM)=U(1:IM,J,L)*SQRTM(1:IM,J)
@@ -2755,13 +2790,13 @@ C**** CURRENT KINETIC ENERGY
   220 KE(N,KSPHER)=KE(N,KSPHER)+X(N)*DSIG(L)
       IF (J.NE.J45N) GO TO 240
       DO 222 N=1,NM
-  222 KE(N,KSPHER+4)=KE(N,KSPHER+4)+X(N)*DSIG(L)
+  222 KE(N,KSPHER+2)=KE(N,KSPHER+2)+X(N)*DSIG(L)
       GO TO 240
   225 DO 230 N=1,NM
-      KE(N,KSPHER+4)=KE(N,KSPHER+4)+X(N)*DSIG(L)
+      KE(N,KSPHER+2)=KE(N,KSPHER+2)+X(N)*DSIG(L)
       KE(N,KSPHER)=KE(N,KSPHER)+.5D0*X(N)*DSIG(L)
-  230 KE(N,KSPHER+2)=KE(N,KSPHER+2)+.5D0*X(N)*DSIG(L)
-      IF (K.EQ.LM) KSPHER=KSPHER+2
+  230 KE(N,KSPHER+1)=KE(N,KSPHER+1)+.5D0*X(N)*DSIG(L)
+      IF (K.EQ.LM) KSPHER=KSPHER+1
   240 CONTINUE
       IF (NDT.EQ.0) GO TO 260
 C**** TRANSFER RATES AS DIFFERENCES OF KINETIC ENERGY
@@ -2796,9 +2831,9 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
       LDN=LUP
       L=LUP
       GO TO 300
-  350 DO 360 JHEMI=1,2
-      DO 360 N=2,NM
-  360 VAR(N,JHEMI)=0.
+  350 CONTINUE 
+
+      VAR(2:NM,1:2)=0.
       VAR(1,1)=.5*(THJSP(L)-THGM(L))**2*DXYP(1)*FIM
       VAR(1,2)=.5*(THJNP(L)-THGM(L))**2*DXYP(JM)*FIM
       GMEAN=((THJSP(LUP)-THJSP(LDN))*DXYP(1)*(SIG(L)*P(1,1)+PTOP)/
@@ -2806,30 +2841,37 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
      *  (SIG(L)*P(1,JM)+PTOP)/(SQRTP(1,JM)*P(1,JM)*PK(L,1,JM)))*FIM
       JHEMI=1
       DO 388 J=2,JM-1
-      GMSUM=0.
-      DO 370 I=1,IM
-      X(I)=T(I,J,L)*SQRTP(I,J)-THGM(L)
-  370 GMSUM=GMSUM+(T(I,J,LUP)-T(I,J,LDN))*(SIG(L)*P(I,J)+PTOP)/
-     *  (P(I,J)*PK(L,I,J))
-      GMEAN=GMEAN+GMSUM*DXYP(J)
-      CALL FFTE (X,X)
-      DO 380 N=1,NM
-  380 VAR(N,JHEMI)=VAR(N,JHEMI)+X(N)*DXYP(J)
-      IF (J.NE.JEQ-1) GO TO 384
-      DO 382 N=1,NM
-  382 VAR(N,3)=X(N)*DXYP(J)
-      JHEMI=2
-  384 IF (J.NE.J45N-1) GO TO 388
-      DO 386 N=1,NM
-  386 VAR(N,4)=X(N)*DXYP(J)
-  388 CONTINUE
+        GMSUM=0.
+        DO I=1,IM
+          X(I)=T(I,J,L)*SQRTP(I,J)-THGM(L)
+          GMSUM=GMSUM+(T(I,J,LUP)-T(I,J,LDN))*(SIG(L)*P(I,J)+PTOP)/
+     *         (P(I,J)*PK(L,I,J))
+        END DO
+        GMEAN=GMEAN+GMSUM*DXYP(J)
+        CALL FFTE (X,X)
+        DO N=1,NM
+          VAR(N,JHEMI)=VAR(N,JHEMI)+X(N)*DXYP(J)
+        END DO
+        IF (J.NE.JEQ-1) GO TO 384
+        DO N=1,NM
+          VAR(N,3)=X(N)*DXYP(J)
+        END DO
+        JHEMI=2
+ 384    IF (J.NE.J45N-1) GO TO 388
+        DO N=1,NM
+          VAR(N,4)=X(N)*DXYP(J)
+        END DO
+ 388  CONTINUE
       GMEAN=DSIG(L)*AREAG*(SIG(LDN)-SIG(LUP))/GMEAN
-      KS=2
-      IF (L.GE.LS1) KS=1
-      DO 400 JHEMI=1,4
-      DO 390 N=1,NM
-  390 APE(N,KS)=APE(N,KS)+VAR(N,JHEMI)*GMEAN
-  400 KS=KS+2
+      KS=KLAYER(L)
+c      KS=2
+c      IF (L.GE.LS1) KS=1
+      DO JHEMI=1,4
+        DO N=1,NM
+          APE(N,KS)=APE(N,KS)+VAR(N,JHEMI)*GMEAN
+        END DO
+        KS=KS+1  
+      END DO
       IF (L.EQ.LM) GO TO 450
       LDN=L
       L=LUP
@@ -2910,7 +2952,7 @@ C****
 C**** THIS SUBROUTINE PRODUCES A TIME HISTORY OF ENERGIES
 C****
       USE MODEL_COM, only : im,jm,lm,
-     &     IDACC,JEQ,LS1          !! ,SKIPSE
+     &     IDACC,JEQ,LS1,ISTRAT          !! ,SKIPSE
       USE GEOM, only : DXYV
       USE DAGCOM, only : energy,speca,ajk,aijk,ijk_u,ijk_v,ijk_dp
       IMPLICIT NONE
@@ -2929,50 +2971,49 @@ C****
       IDACC5=IDACC(5)+1
       IF (IDACC5.GT.100) RETURN
 !!    IF (SKIPSE.EQ.1.) GO TO 540
-C**** CALCULATE CURRENT SEKE
-      BYIADA=1./IDACC(4)
-      DO 530 L=1,LM
-      KS=5
-      IF (L.GE.LS1) KS=15
-      DO 530 J=2,JM
-      IF (AJK(J,L,2).LE.1.D-20) GO TO 530
-      PU4TI=0.
-      PV4TI=0.
-      SKE4I=0.
-      DO 510 I=1,IM
-      PU4TI=PU4TI+AIJK(I,J,L,IJK_U)
-      PV4TI=PV4TI+AIJK(I,J,L,IJK_V)
-  510 SKE4I=SKE4I+(AIJK(I,J,L,IJK_U)*AIJK(I,J,L,IJK_U)
-     *            +AIJK(I,J,L,IJK_V)*AIJK(I,J,L,IJK_V))
-     *            /(AIJK(I,J,L,IJK_DP)+1.D-20)
-      SEKE=(SKE4I-(PU4TI*PU4TI+PV4TI*PV4TI)/AJK(J,L,2))*DXYV(J)*BYIADA
-      IF (J.EQ.JEQ) GO TO 520
-      ENERGY(KS,IDACC5)=ENERGY(KS,IDACC5)+SEKE
-      GO TO 530
-  520 ENERGY(KS,IDACC5)=ENERGY(KS,IDACC5)+.5*SEKE
-      ENERGY(KS+1,IDACC5)=ENERGY(KS+1,IDACC5)+.5*SEKE
-      KS=KS+1
-  530 CONTINUE
+C**** CALCULATE CURRENT SEKE   ! this diagnostic makes no sense
+c      BYIADA=1./IDACC(4)
+c      DO 530 L=1,LM
+c      KS=5
+c      IF (L.GE.LS1) KS=15
+c      DO 530 J=2,JM
+c      IF (AJK(J,L,2).LE.1.D-20) GO TO 530
+c      PU4TI=0.
+c      PV4TI=0.
+c      SKE4I=0.
+c      DO 510 I=1,IM
+c      PU4TI=PU4TI+AIJK(I,J,L,IJK_U)
+c      PV4TI=PV4TI+AIJK(I,J,L,IJK_V)
+c  510 SKE4I=SKE4I+(AIJK(I,J,L,IJK_U)*AIJK(I,J,L,IJK_U)
+c     *            +AIJK(I,J,L,IJK_V)*AIJK(I,J,L,IJK_V))
+c     *            /(AIJK(I,J,L,IJK_DP)+1.D-20)
+c      SEKE=(SKE4I-(PU4TI*PU4TI+PV4TI*PV4TI)/AJK(J,L,2))*DXYV(J)*BYIADA
+c      IF (J.EQ.JEQ) GO TO 520
+c      ENERGY(KS,IDACC5)=ENERGY(KS,IDACC5)+SEKE
+c      GO TO 530
+c  520 ENERGY(KS,IDACC5)=ENERGY(KS,IDACC5)+.5*SEKE
+c      ENERGY(KS+1,IDACC5)=ENERGY(KS+1,IDACC5)+.5*SEKE
+c      KS=KS+1
+c  530 CONTINUE
 C**** OTHER ENERGIES COME FROM LATEST SPECTRAL ANALYSIS
-  540 ENERGY(1,IDACC5)=SPECA(1,19,2)
-      ENERGY(2,IDACC5)=SPECA(1,19,4)
-      ENERGY(7,IDACC5)=SPECA(1,20,2)
-      ENERGY(8,IDACC5)=SPECA(1,20,4)
-      ENERGY(11,IDACC5)=SPECA(1,19,1)
-      ENERGY(12,IDACC5)=SPECA(1,19,3)
-      ENERGY(17,IDACC5)=SPECA(1,20,1)
-      ENERGY(18,IDACC5)=SPECA(1,20,3)
-      DO 550 N=2,NM
-      ENERGY(3,IDACC5)=ENERGY(3,IDACC5)+SPECA(N,19,2)
-      ENERGY(4,IDACC5)=ENERGY(4,IDACC5)+SPECA(N,19,4)
-      ENERGY(9,IDACC5)=ENERGY(9,IDACC5)+SPECA(N,20,2)
-      ENERGY(10,IDACC5)=ENERGY(10,IDACC5)+SPECA(N,20,4)
-      ENERGY(13,IDACC5)=ENERGY(13,IDACC5)+SPECA(N,19,1)
-      ENERGY(14,IDACC5)=ENERGY(14,IDACC5)+SPECA(N,19,3)
-      ENERGY(19,IDACC5)=ENERGY(19,IDACC5)+SPECA(N,20,1)
-  550 ENERGY(20,IDACC5)=ENERGY(20,IDACC5)+SPECA(N,20,3)
+c  540 CONTINUE
+      DO I=0,1+ISTRAT  ! loop over number of 'spheres'
+        ENERGY(1+10*I,IDACC5)=SPECA(1,19,1+4*I)   ! SH
+        ENERGY(2+10*I,IDACC5)=SPECA(1,19,3+4*I)   ! NH
+        ENERGY(5+10*I,IDACC5)=SPECA(2,19,1+4*I)   ! check this
+        ENERGY(6+10*I,IDACC5)=SPECA(3,19,3+4*I)   ! and this
+        ENERGY(7+10*I,IDACC5)=SPECA(1,20,1+4*I)
+        ENERGY(8+10*I,IDACC5)=SPECA(1,20,3+4*I)
+        DO N=2,NM
+        ENERGY( 3+10*I,IDACC5)=ENERGY( 3+10*I,IDACC5)+SPECA(N,19,1+4*I)
+        ENERGY( 4+10*I,IDACC5)=ENERGY( 4+10*I,IDACC5)+SPECA(N,19,3+4*I)
+        ENERGY( 9+10*I,IDACC5)=ENERGY( 9+10*I,IDACC5)+SPECA(N,20,1+4*I)
+        ENERGY(10+10*I,IDACC5)=ENERGY(10+10*I,IDACC5)+SPECA(N,20,3+4*I)
+        END DO
+      END DO
       IDACC(5)=IDACC5
       RETURN
+C****
       END SUBROUTINE DIAG4A
 
       SUBROUTINE get_SLP(iu_SLP)
@@ -3000,8 +3041,8 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : sday
-      USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,sige,sig,psf,ptop
-     *     ,pmtop,nfiltr,dtsrc,jhour,jdate,jmon,amon,jyear
+      USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,sige,sig,ptop
+     *     ,pmtop,psfmpt,nfiltr,dtsrc,jhour,jdate,jmon,amon,jyear
      *     ,jhour0,jdate0,jmon0,amon0,jyear0,idacc,ioread_single
      *     ,xlabel,iowrite_single,iyear1,nday,dtsrc,dt,nmonav
      *     ,ItimeE,lrunid
@@ -3010,7 +3051,7 @@ C****
       USE PARAM
       USE FILEMANAGER
       IMPLICIT NONE
-      INTEGER L,K,iargc,ioerr,months,years,mswitch,ldate,iu_AIC
+      INTEGER L,K,KL,iargc,ioerr,months,years,mswitch,ldate,iu_AIC
      *     ,ISTART,jday0,jday
       CHARACTER FILENM*100
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
@@ -3062,9 +3103,9 @@ C**** Ensure that diagnostics are reset at the beginning of the run
 
 C**** Initialize certain arrays used by more than one print routine
       DO L=1,LM
-        PLE(L)=SIGE(L+1)*(PSF-PTOP)+PTOP
-        PLE_DN(L)=SIGE(L)*(PSF-PTOP)+PTOP
-        PLM(L)=SIG(L)*(PSF-PTOP)+PTOP
+        PLE(L)=SIGE(L+1)*PSFMPT+PTOP
+        PLE_DN(L)=SIGE(L)*PSFMPT+PTOP
+        PLM(L)=SIG(L)*PSFMPT+PTOP
       END DO
       PLM(LM+1)=.75*PMTOP
       PLM(LM+2)=.35*PMTOP
@@ -3153,6 +3194,20 @@ C**** initialise longitudinal diagnostic special latitudes
       J50N=(50.+90.)*(JM-1)/180.+1.5
       J70N=(70.+90.)*(JM-1)/180.+1.5
 
+C**** initiallise layering for spectral diagnostics
+C**** add in epsilon=1d-5 to avoid roundoff mistakes
+      KL=1
+      DO L=1,LM
+        IF (PTOP+PSFMPT*SIGE(L+1)+1d-5.lt.PSPEC(KL) .and.
+     *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.PSPEC(KL)) KL=KL+1
+        KLAYER(L)=4*(KL-1)+1
+      END DO
+      IF (KL*4 .gt. NSPHER) THEN
+        WRITE(6,*) "Inconsistent definitions of stratosphere:"
+        WRITE(6,*) "Adjust PSPEC, ISTRAT so that KL*4 = NSPHER"
+        WRITE(6,*) "ISTRAT,PSPEC,NSPHER,KL=",ISTRAT,PSPEC,NSPHER,KL
+        STOP "Stratospheric definition problem for spectral diags."
+      END IF
       RETURN
       END SUBROUTINE init_DIAG
 

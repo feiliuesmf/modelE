@@ -731,7 +731,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : by3
       USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
-     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1
+     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,lsdrag
       USE GEOM, only : dyv,dxv
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : ptold,pu,pv,pit,sd,phi,dut,dvt
@@ -864,11 +864,9 @@ C**** LOAD P TO PC
          ENDIF
 C**** Restart after 8 steps due to divergence of solutions
 C**** STRATOSPHERIC MOMENTUM DRAG must be called at least once
-!     IF (NS.LT.NIdyn) GO TO 340
       IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
-!!!!! need to calculate arg for sdrag (if strat model)
       CALL CALC_AMPK(LS1-1)
-      CALL SDRAG (LM,DT*(NS-NSOLD))
+      CALL SDRAG (LSDRAG,DT*(NS-NSOLD))
       NSOLD=NS
       IF (NS.LT.NIdyn) GO TO 300
 C**** Scale WM mixing ratios to conserve liquid water
@@ -952,6 +950,7 @@ C****
       USE CONSTANT, only : grav,rgas
       USE MODEL_COM, only : im,jm,lm,psfmpt,u,v,sige,ptop,t,xcdlm
      *     ,bydsig,itime
+      USE GEOM, only : cosv
       USE DAGCOM, only : aij, ij_wlm,ajl,ij_sdrag
       USE DYNAMICS, only : pk
       IMPLICIT NONE
@@ -959,36 +958,38 @@ C****
 !@var DT1 time step (s)
       REAL*8, INTENT(IN) :: DT1
 !@var LMIN lowest level at which SDRAG is applied
+C**** Normally 1 mb and up (inclusive)
+C**** Note that this low level is only applied at the pole, elsewhere
+C**** only top two layers are done (unless LMIN=LM i.e. only top layer)
       INTEGER, INTENT(IN) :: LMIN
-      REAL*8 WL,RHO,CDN,X,PIJU,BYPIJU
+      REAL*8 WL,RHO,CDN,X,BYPIJU
       INTEGER I,J,IP1,L
 
-      PIJU = PSFMPT
       BYPIJU=1./PSFMPT
-
-      DO L=LMIN,LM
+      DO L=LMIN,LM 
       DO J=2,JM
       I=IM
+      IF (COSV(J).LE..15.OR.L.GE.LM-1) THEN
       DO IP1=1,IM
         WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
-        RHO=(PIJU*SIGE(L+1)+PTOP)/(RGAS*T(I,J,L)*PK(L,I,J))
+        RHO=(PSFMPT*SIGE(L+1)+PTOP)/(RGAS*T(I,J,L)*PK(L,I,J))
         CDN=XCDLM(1)+XCDLM(2)*WL
         AIJ(I,J,IJ_WLM)=AIJ(I,J,IJ_WLM)+WL
         X=DT1*RHO*CDN*WL*GRAV*BYDSIG(L)*BYPIJU
         IF(X.GT.1) THEN
-          write(99,*)'SDRAG: ITime,I,J,PIJU,X,RHO,CDN,U,V'
-     *         ,ITime,I,J,PIJU,X,RHO,CDN,U(I,J,L),V(I,J,L)
+          write(99,*)'SDRAG: ITime,I,J,PSFMPT,X,RHO,CDN,U,V'
+     *         ,ITime,I,J,PSFMPT,X,RHO,CDN,U(I,J,L),V(I,J,L)
      *         ,' If problem persists, winds are too high! '
      *         ,'Try setting XCDLM smaller.'
           X=1.
         END IF
         AJL(J,L,52) = AJL(J,L,52)-U(I,J,L)*X
-c     IF(L.EQ.LM) AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
         AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
         U(I,J,L)=U(I,J,L)*(1.-X)
         V(I,J,L)=V(I,J,L)*(1.-X)
         I=IP1
       END DO
+      END IF
       END DO
       END DO
       RETURN

@@ -2,8 +2,8 @@
 !@sum  MODEL_COM Main model variables, independent of resolution
 !@auth Original Development Team
 !@ver  1.0
-      USE RESOLUTION, only : im,jm,lm,ls1,
-     *     psf,pmtop,ptop,psfmpt,pstrat, sig,sige,dsig,bydsig
+      USE RESOLUTION, only : im,jm,lm,ls1,kep,istrat,
+     *     psf,pmtop,ptop,psfmpt,pstrat,sig,sige,dsig,bydsig
       IMPLICIT NONE
       SAVE
 
@@ -156,6 +156,9 @@ C**** Define surface types (mostly used for weighting diagnostics)
       REAL*8 AIRX(IM,JM)
 !@var LMC max layer of mc convective mass flux. (Strat model)
       INTEGER, DIMENSION(2,IM,JM) :: LMC
+
+!@var LSDRAG level above which SDRAG is applied (above 1 mb)
+      INTEGER :: LSDRAG=LM  ! default=LM
 
       END MODULE MODEL_COM
 

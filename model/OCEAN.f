@@ -813,7 +813,7 @@ C****
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i,ssi0
       USE DAGCOM, only : aj,aij,areg,jreg,ij_f0oc,j_run2
-     *     ,j_dwtr2,j_tg1,j_tg2,j_evap,j_oht,j_omlt,j_erun2,j_imelt
+     *     ,j_dwtr2,j_tg1,j_tg2,j_evap,j_oht,j_tg3,j_erun2,j_imelt
      *     ,ij_tgo,ij_tg1,ij_evap,ij_evapo,j_type,oa
       IMPLICIT NONE
 C**** grid box variables
@@ -879,7 +879,7 @@ C**** Open Ocean diagnostics
      *           *POCEAN
             AJ(J,J_OHT  ,ITOCEAN)=AJ(J,J_OHT  ,ITOCEAN)+OTDT  *POCEAN
             AJ(J,J_RUN2 ,ITOCEAN)=AJ(J,J_RUN2 ,ITOCEAN)+RUN4O *POCEAN
-            AJ(J,J_OMLT ,ITOCEAN)=AJ(J,J_OMLT ,ITOCEAN)+TOCEAN(3,I,J)
+            AJ(J,J_TG3  ,ITOCEAN)=AJ(J,J_TG3  ,ITOCEAN)+TOCEAN(3,I,J)
      *           *POCEAN
             AJ(J,J_DWTR2,ITOCEAN)=AJ(J,J_DWTR2,ITOCEAN)+ERUN4O*POCEAN
             AJ(J,J_ERUN2,ITOCEAN)=AJ(J,J_ERUN2,ITOCEAN)-ENRGFO*POCEAN

@@ -38,6 +38,7 @@ CDN=CD4X500S VEG=V72X46.1.cor
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
 RVR=RD4X525.RVR      ! river direction file
+ZVAR=ZVAR4X5         ! topogrphic variation for gwdrag
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=kdist33.tautabs4
 RADN3=miescatpar.abcdv
@@ -63,9 +64,13 @@ KOCEAN=0
 U00wtr=.50
 U00ice=.50
 
-DT=450.,        ! from default: DTsrc=3600.,
-NSLP=12         ! saving SLP 12hrly
-Kvflxo=1        ! saving VFLXO (daily)
+LMCM=16              ! max level of moist convection
+XCDNST=300.,10000.   ! strat. gw drag parameters
+DT=180.,             ! from default: DTsrc=3600.,
+NIsurf=4,            ! number of surface time steps
+
+NSLP=0          ! saving SLP 12hrly
+Kvflxo=0        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
 &&END_PARAMETERS
 

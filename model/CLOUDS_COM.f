@@ -1,5 +1,5 @@
-      MODULE CLD01_COM_E001
-!@sum  CLD01_COM_E001 model variables for moist convction and
+      MODULE CLOUDS_COM
+!@sum  CLOUDS_COM model variables for moist convction and
 !@+          large-scale condensation
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
@@ -30,14 +30,14 @@ C**** variables saved for radiation calculations
 !@var CSIZMC,CSIZSS mc,ss effective cloud droplet radius (microns)
       REAL*8, DIMENSION(LM,IM,JM) :: CSIZMC,CSIZSS
 
-      END MODULE CLD01_COM_E001
+      END MODULE CLOUDS_COM
 
       SUBROUTINE io_clouds(kunit,iaction,ioerr)
 !@sum  io_clouds reads and writes cloud arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
-      USE CLD01_COM_E001
+      USE CLOUDS_COM
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write

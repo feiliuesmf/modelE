@@ -34,6 +34,17 @@
      &     DSIG   =  sige(1:lm)-sige(2:lm+1),
      &     byDSIG =  1./DSIG
 
+C**** KEP depends on whether stratos. EP flux diagnostics are calculated
+C**** If dummy EPFLUX is used set KEP=0, otherwise KEP=21
+!@param KEP number of lat/height E-P flux diagnostics 
+      INTEGER, PARAMETER :: KEP=0
+
+C**** Based on model top, determine how much of stratosphere is resolved
+C****         PMTOP >= 10 mb,    ISTRAT = 0
+C**** 1 mb <= PMTOP <  10 mb,    ISTRAT = 1
+C****         PMTOP <   1 mb,    ISTRAT = 2
+      INTEGER, PARAMETER :: ISTRAT = 0
+
       END MODULE RESOLUTION
 
 C**** The vertical resolution also determines whether
@@ -47,7 +58,7 @@ C**** models.
       ENTRY VDIFF
       ENTRY EPFLUX
       ENTRY EPFLXI
-      ENTRY diaga0
+      ENTRY EPFLXP
       ENTRY io_strat
       RETURN
       END SUBROUTINE DUMMY_STRAT

@@ -1,5 +1,5 @@
-      MODULE CLD01
-!@sum  CLD01 column physics of moist conv. and large-scale condensation
+      MODULE CLOUDS
+!@sum  CLOUDS column physics of moist conv. and large-scale condensation
 !@auth M.S.Yao/A. Del Genio (modifications by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
 !@cont MSTCNV,LSCOND
@@ -76,8 +76,8 @@ C**** new arrays must be set to model arrays in driver (before COND)
 !@var TTOLDL previous potential temperature
 !@var CLDSAVL saved large-scale cloud cover
 C**** new arrays must be set to model arrays in driver (after COND)
-      REAL*8, DIMENSION(LM) :: AJ11,AJ55,TAUSSL,CLDSSL
-!@var AJ11, AJ55 dummy variables
+      REAL*8, DIMENSION(LM) :: AJ11,AJ53,TAUSSL,CLDSSL
+!@var AJ11,AJ53 height diagnostics of dry and latent heating by MC
 !@var TAUSSL large-scale cloud optical thickness
 !@var CLDSSL large-scale cloud cover
 
@@ -1152,7 +1152,7 @@ C     IF(RH(L).GT.1.) CAREA(L)=0.
       PREICE(LM+1)=0.
       WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
          AJ11=0.
-         AJ55=0.
+         AJ53=0.
 C****
 C**** MAIN L LOOP FOR LARGE-SCALE CONDENSATION, PRECIPITATION AND CLOUDS
 C****
@@ -1559,8 +1559,8 @@ C**** RE-EVAPORATION OF LWC IN THE UPPER LAYER
          HCNDSS=HCNDSS+(TNEW-TOLD)*AIRM(L)+(TNEWU-TOLDU)*AIRM(L+1)
          AJ11(L)=AJ11(L)+(TNEW-TOLD)*AIRM(L)
          AJ11(L+1)=AJ11(L+1)+(TNEWU-TOLDU)*AIRM(L+1)
-         AJ55(L)=AJ55(L)+(QNEW-QOLD)*AIRM(L)*LHX*BYSHA
-         AJ55(L+1)=AJ55(L+1)+(QNEWU-QOLDU)*AIRM(L+1)*LHX*BYSHA
+         AJ53(L)=AJ53(L)+(QNEW-QOLD)*AIRM(L)*LHX*BYSHA
+         AJ53(L+1)=AJ53(L+1)+(QNEWU-QOLDU)*AIRM(L+1)*LHX*BYSHA
   382 CONTINUE
          WMSUM=0.
 C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
@@ -1611,4 +1611,4 @@ C**** CALCULATE OPTICAL THICKNESS
       RETURN
       END SUBROUTINE LSCOND
 
-      END MODULE CLD01
+      END MODULE CLOUDS

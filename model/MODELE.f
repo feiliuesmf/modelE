@@ -396,12 +396,11 @@ C**** value is saved in the database as "B" (here sync = synchronize)
       USE MODEL_COM, only : LM,NAMD6,IJD6,NIPRNT,MFILTR,XCDLM,NDASF
      *     ,NDA4,NDA5S,NDA5K,NDA5D,NDAA,NFILTR,NRAD,Kvflxo,Nslp
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
-     $     ,PTOP,LS1,IRAND
+     $     ,PTOP,LS1,IRAND,LSDRAG
      $     ,ItimeI,PSFMPT,PSTRAT,SIG,SIGE
-cc?   USE DAGCOM, only : KDIAG
       USE PARAM
-
       implicit none
+      INTEGER L
 
 C**** Rundeck parameters:
       call sync_param( "NAMD6", NAMD6, 4 )
@@ -428,8 +427,17 @@ C**** Rundeck parameters:
       call sync_param( "IRAND", IRAND )
 
 C**** Non-Rundeck parameters
-      ! the following were set only at initial start - udating
 
+C**** Calculate level for application of SDRAG
+C**** All levels above and including 1 mb, or LM for trop model
+      DO L=1,LM
+        IF (PTOP+PSFMPT*SIGE(L+1)+1d-5.lt.1d0 .and.
+     *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.1d0) EXIT
+      END DO
+      LSDRAG=MIN(L,LM)
+      WRITE(6,*) "Level for SDRAG = ",LSDRAG
+      RETURN
+C****
       end subroutine init_Model
 
 
@@ -453,7 +461,7 @@ C****
       USE GEOM, only : geom_b
       USE RANDOM
       USE RADNCB, only : rqt,lm_req
-      USE CLD01_COM_E001, only : ttold,qtold,svlhx,rhsav,cldsav
+      USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,jreg

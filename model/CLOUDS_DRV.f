@@ -10,9 +10,9 @@
      *     ,ntype,itime,fim,airx,lmc
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
-      USE CLD01_COM_E001, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
+      USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
      *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss
-      USE CLD01, only : kmax,ra,pl,ple,plk
+      USE CLOUDS, only : kmax,ra,pl,ple,plk
      *     ,airm,byam,etal,sm,smomij=>smom,qm,qmomij=>qmom
      *     ,tl,ri1,ri2,aj13
      *     ,aj50,aj51,aj52,aj57,aj8,aj11,wml,sdl,u_0,v_0,um,vm,tf
@@ -20,7 +20,7 @@
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,mstcnv,qs,us,vs,dcl
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,lpbl,taussl,cldssl,cldsavl,
-     *     prcpss,hcndss,aj55,BYDTsrc,lscond,airxl
+     *     prcpss,hcndss,aj53,BYDTsrc,lscond,airxl
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,dclev
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adaily,jreg,ij_pscld
      *     ,ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec
@@ -325,7 +325,7 @@ C**** WRITE TO GLOBAL ARRAYS
          SVLHX(L,I,J)=SVLHXL(L)
          CSIZSS(L,I,J)=CSIZEL(L)
          AJL(J,L,11)=AJL(J,L,11)+AJ11(L)
-         AJL(J,L,55)=AJL(J,L,55)+AJ55(L)
+         AJL(J,L,53)=AJL(J,L,53)+AJ53(L)
 
          T(I,J,L)=TH(L)
          Q(I,J,L)=QL(L)
@@ -371,7 +371,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : grav,by3
       USE MODEL_COM, only : dtsrc,ls1
-      USE CLD01, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtr,U00ice
+      USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtr,U00ice
       USE PARAM
 
       IMPLICIT NONE

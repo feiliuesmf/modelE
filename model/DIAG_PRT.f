@@ -77,6 +77,18 @@ c
       lname(k) = 'NET RADIATION ABSORBED BY GROUND'
       units(k) = 'WT/M**2'
       k = k + 1
+      sname(k) = 'net_clr_toa'
+      lname(k) = 'NET CLEAR SKY RADIATION AT P0'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'net_clr_trp'
+      lname(k) = 'NET CLEAR SKY RADIATION AT TROPOPAUSE (WMO)'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'net_tot_trp'
+      lname(k) = 'NET RADIATION AT TROPOPAUSE (WMO)'
+      units(k) = 'WT/M**2'
+      k = k + 1
       sname(k) = 'snsht_flx'
       lname(k) = 'SENSIBLE HEAT FLUX INTO THE GROUND'
       units(k) = 'WT/M**2'
@@ -152,10 +164,10 @@ c
       sname(k) = 'snow_cover'
       lname(k) = 'SNOW COVER'
       units(k) = '%'
-      k = k + 1
-      sname(k) = 'sw_correc'
-      lname(k) = 'SOLAR RADIATION WATER CORRECTION'
-      units(k) = 'WT/M**2'
+c      k = k + 1
+c      sname(k) = 'sw_correc'
+c      lname(k) = 'SOLAR RADIATION CORRECTION'
+c      units(k) = 'WT/M**2'
       k = k + 1
       sname(k) = 'ocn_ht_trans'
       lname(k) = 'CONVERGED OCEAN HEAT TRANSPORT'
@@ -371,23 +383,25 @@ C***3   3  SOLAR RADIATION ABSORBED BELOW PTOP (W/M**2)
 C***4   4  SOLAR RADIATION ABSORBED BY ATMOSPHERE (W/M**2)
 C***5   5  SOLAR RADIATION INCIDENT ON GROUND (W/M**2)
 C***6   6  SOLAR RADIATION ABSORBED BY GROUND (W/M**2)
-C***7  32  SOLAR RADIATION WATER CORRECTION
-C***8   7  THERMAL RADIATION EMITTED BY PLANET (W/M**2)
-C***9   8  THERMAL RADIATION AT PTOP (W/M**2)
-C**10   9  THERMAL RADIATION EMITTED BY GROUND (W/M**2)
+C***7   7  THERMAL RADIATION EMITTED BY PLANET (W/M**2)     
+C***8   8  THERMAL RADIATION AT PTOP (W/M**2)          
+C***9   9  THERMAL RADIATION EMITTED BY GROUND (W/M**2)
+C**10  67  THERMAL RADIATION INCIDENT ON GROUND (W/M**2)
 C****
-C**11  67  THERMAL RADIATION INCIDENT ON GROUND (W/M**2)
-C****  55  BRIGHTNESS TEMPERATURE THROUGH WINDOW REGION (K-TF)
+C**11  55  BRIGHTNESS TEMPERATURE THROUGH WINDOW REGION (K-TF)
 C****  10  NET RADIATION ABSORBED BY PLANET (W/M**2)
 C****  11  NET RADIATION ABSORBED BELOW PTOP (W/M**2)
 C****  12  NET RADIATION ABSORBED BY GROUND (W/M**2)
+C****  81  NET CLEAR SKY RADIATION AT P0 W/M**2
+C****  82  NET CLEAR SKY RADIATION AT TROPOPAUSE (WMO) W/M**2
+C****  83  NET RADIATION AT TROPOPAUSE (WMO) W/M**2
 C****  13  SENSIBLE HEAT FLUX INTO THE GROUND (W/M**2)
 C****  14  EVAPORATION HEAT FLUX INTO THE GROUND (W/M**2)
 C****  39  PRECIPITATION HEAT FLUX INTO THE GROUND (W/M**2)
-C****  40  HEAT RUNOFF FROM FIRST GROUND LAYER (W/M**2)
-C****  44  NET HEATING AT Z0 (W/M**2)
 C****
-C**21  42  CONDUCTION AT -Z1 (W/M**2)
+C**21  40  HEAT RUNOFF FROM FIRST GROUND LAYER (W/M**2)
+C****  44  NET HEATING AT Z0 (W/M**2)
+C****  42  CONDUCTION AT -Z1 (W/M**2)
 C****  41  HEAT OF WATER OR ICE DUFFUSION AT -Z1 (W/M**2)
 C****  16  NET HEATING AT -Z1 (W/M**2)
 C****  15  CONDUCTION AT -Z1-Z2 (W/M**2)
@@ -395,10 +409,10 @@ C****  43  ENERGY OF ICE MELTING (OR TRANSPORTING) AT -Z1-Z2 (W/M**2)
 C****  56  NET HEATING AT -Z1-Z2 (W/M**2)
 C****  33  OCEAN TRANSPORT (W/M**2)
 C****  48  HEAT RUNOFF THROUGH THE MIXED LAYER DEPTH (W/M**2)
-C****  68  ENERGY DIFFUSION INTO THE THERMOCLINE (W/M**2)
-C****  18  MEAN TEMPERATURE OF FIRST GROUND LAYER (.1 K-TF)
 C****
-C**31  17  MEAN TEMPERATURE OF SECOND GROUND LAYER (.1 K-TF)
+C**31  68  ENERGY DIFFUSION INTO THE THERMOCLINE (W/M**2)
+C****  18  MEAN TEMPERATURE OF FIRST GROUND LAYER (.1 K-TF)
+C****  17  MEAN TEMPERATURE OF SECOND GROUND LAYER (.1 K-TF)
 C****  34  OCEAN TEMPERATURE AT THE MAXIMUM MIXED LAYER DEPTH
 C****  23  SURFACE AIR TEMPERATURE (.1 K-TF)
 C****  22  FIRST LAYER AIR TEMPERATURE (.1 K-TF)
@@ -406,10 +420,10 @@ C****  21  COMPOSITE AIR TEMPERATURE (.1 K-TF)
 C****  35  STRATO TEMPERATURE CHANGE PER DEGREE LATITUDE (10**-2 K)
 C****  36  TROPO TEMPERATURE CHANGE PER DEGREE LATITUDE (10**-2 K)
 C****  24  STRATOSPHERIC STATIC STABILITY (10**-3 K/M)
-C****  25  TROPOSPHERIC STATIC STABILITY (10**-3 K/M)
-C****  26  STRATOSPHERIC RICHARDSON NUMBER (1)
 C****
-C**41  27  TROPOSPHERIC RICHARDSON NUMBER (1)
+C**41  25  TROPOSPHERIC STATIC STABILITY (10**-3 K/M)
+C****  26  STRATOSPHERIC RICHARDSON NUMBER (1)
+C****  27  TROPOSPHERIC RICHARDSON NUMBER (1)
 C****  28  STRATOSPHERIC ROSSBY NUMBER (1)
 C****  29  TROPOSPHERIC ROSSBY NUMBER (1)
 C****  37  L IN THE STRATOSPHERE (10**5 M)
@@ -417,10 +431,10 @@ C****  38  L IN THE TROPOSPHERE (10**5 M)
 C****  64  GAM  (10**-3 K/M)
 C****  65  GAMM  (10**-3 K/M)
 C****  66  GAMC  (10**-3 K/M)
-C****  57  INTEGRATED SUPER-SATURATION CLOUD COVER (10**-2)
-C****  58  INTEGRATED MOIST CONVECTIVE CLOUD COVER (10**-2)
 C****
-C**51  59  INTEGRATED TOTAL CLOUD COVER (10**-2)
+C**51  57  INTEGRATED SUPER-SATURATION CLOUD COVER (10**-2)
+C****  58  INTEGRATED MOIST CONVECTIVE CLOUD COVER (10**-2)
+C****  59  INTEGRATED TOTAL CLOUD COVER (10**-2)
 C****  60  MOIST CONVECTIVE CLOUD DEPTH (100 N)
 C****  61  SUPER SATURATION PRECIPITATION (KG/M**2/86400 S)
 C****  62  MOIST CONVECTIVE PRECIPITATION (KG/M**2/86400 S)
@@ -428,17 +442,18 @@ C****  20  PRECIPITATION (KG/M**2/86400 S)
 C****  19  EVAPORATION (KG/M**2/86400 S)
 C****  63  WATER CONTENT OF ATMOSPHERE (KG/M**2)
 C****  54  WATER RUNOFF AT Z0 (KG/M**2/86400 S)
-C****  45  WATER OR ICE DIFFUSION AT -Z1 (KG/M**2/86400 S)
-C****  46  ICE MELTING (OR TRANSPORTING) AT -Z1-Z2 (KG/M**2/86400 S)
 C****
-C**61  47  WATER RUNOFF THROUGH MIXED LAYER DEPTH (KG/M**2/86400 S)
+C**61  45  WATER OR ICE DIFFUSION AT -Z1 (KG/M**2/86400 S)
+C****  46  ICE MELTING (OR TRANSPORTING) AT -Z1-Z2 (KG/M**2/86400 S)
+C****  47  WATER RUNOFF THROUGH MIXED LAYER DEPTH (KG/M**2/86400 S)
 C****  49  WATER CONTAINED IN FIRST GROUND LAYER (KG/M**2)
 C****  50  ICE CONTAINED IN FIRST GROUND LAYER (KG/M**2)
 C****  51  WATER CONTAINED IN SECOND GROUND LAYER (KG/M**2)
 C****  52  ICE CONTAINED IN SECOND GROUND LAYER (KG/M**2)
 C****  53  SNOW DEPTH (KG/M**2)
 C****  31  SNOW COVER (10**-2)
-C**68  30  OCEAN ICE COVER (10**-2)
+C****  30  OCEAN ICE COVER (10**-2)
+C**71  69  SURFACE TYPE FRACTION (1)
 C****
 c      USE PRTCOM, only :
       USE CONSTANT, only :
@@ -504,10 +519,12 @@ C**** possible expanded version (including composites)
      2  ' ICE IN G2      ', ' SNOW DEPTH     ', '0WATER RUNOFF Z0',
      5  ' LW WINDOW BTEMP', ' NET HEAT -Z1-Z2', '0TOT SUP SAT CLD',
      8  ' TOT MST CNV CLD', ' TOTAL CLD COVER', ' MC CLD DPTH(MB)',
-     *  '0SS PRECIP(MM/D)', ' MC PRECIP(MM/D)', ' H2O OF ATM (MM)',
+     1  '0SS PRECIP(MM/D)', ' MC PRECIP(MM/D)', ' H2O OF ATM (MM)',
      4  '0GAM(K/KM)      ', ' GAMM(K/KM)     ', ' GAMC(K/KM)     ',
-     *  ' LW INC ON Z0   ', ' HT INTO THRMOCL', ' SURF TYPE FRACT',
-     & ('                ',iii=1,25)/)
+     7  ' LW INC ON Z0   ', ' HT INTO THRMOCL', ' SURF TYPE FRACT',
+     & ('                ',iii=1,11),
+     *  ' NET CLR RAD  P0', ' NET CLR RAD TRP', ' NET RAD (TROPP)',
+     & ('                ',iii=1,11)/)
       DATA TITLEA/' PLANETARY ALBDO',' PLAN ALB VISUAL',
      *  ' PLAN ALB NEARIR', ' SURFACE G ALBDO', ' SURF ALB VISUAL',
      *  ' SURF ALB NEARIR', '0ATMO ALB VISUAL', ' ATMO ALB NEARIR',
@@ -530,11 +547,12 @@ c     *     (/NTYPE_OUT+1,NTYPE/) )
      *       1.,0.,0.,0.,1.,0.,0.,0.,0., 1.,0.,0.,0.,0.,1.,0.,0.,0.,
      *       1.,0.,0.,0.,0.,0.,1.,0.,1., 1.,0.,0.,0.,0.,0.,0.,1.,1./),
      *     (/NTYPE_OUT+1,NTYPE/) )
-      INTEGER, DIMENSION(70) :: NDEX = (/
-     *  1,2,3,4,5,6,32,7,8,9,           67,55,10,11,12,13,14,39,40,44,
+      INTEGER, DIMENSION(71) :: NDEX = (/
+     *  1,2,3,4,5,6,7,8,9,67,           55,10,11,12,81,82,83,13,14,39,
+     *     40,44,
      *  42,41,16,15,43,56,33,48,68,18,  17,34,23,22,21,35,36,24,25,26,
      *  27,28,29,37,38,64,65,66,57,58,  59,60,61,62,20,19,63,54,45,46,
-     *  47,49,50,51,52,53,31,30,69,0/)
+     *  47,49,50,51,52,53,31,30,69/)
       INTEGER, DIMENSION(10) :: INNUM,INDEN
       DATA INNUM/2,72,73,6,74,75,76,77,78,79/, INDEN/3*1,5,6*1/
       DOUBLE PRECISION, DIMENSION(KAJ) :: SCALE
@@ -554,7 +572,8 @@ c     *     (/NTYPE_OUT+1,NTYPE/) )
 C**** INITIALIZE CERTAIN QUANTITIES  (KD1M LE 69)
       nstype_out = ntype_out+1 ! must do this before calling open_j
       call j_titles
-      KD1M=69  ! was 68, now includes J_TYPE diagnostic
+      KD1M=71  ! was 68, now includes J_TYPE,J_CLRTOA,J_CLRTPR,J_TOTTRP
+               ! removed J_SWCOR
       INC=1+(JM-1)/24
       JMHALF=JM/2
       SAREA=0.
@@ -1063,15 +1082,16 @@ c      USE PRTCOM, only :
      &     grav,rgas,kapa,sday,lhe,twopi,omega,sha,bygrav,tf
       USE MODEL_COM, only :
      &     im,jm,lm,fim, xlabel,lrunid,
-     &     BYIM,DSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,
-     &     PSF,PTOP,PMTOP,PSFMPT,SIG,SIGE,JHOUR    ! ,skipse
+     &     BYIM,DSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,nidyn,
+     &     PTOP,PMTOP,PSFMPT,SIG,SIGE,JHOUR    ! ,skipse
       USE GEOM, only :
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
       USE DAGPCOM, only :
      &     PLM
       USE DAGCOM, only :
      &     ajk,ajl,asjl,ajlsp,kdiag,aijl,aijk,nwav_dag,kajlsp,LM_REQ
-     &    ,qcheck, acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
+     &     ,qcheck, acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
+     *     ,kep
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(IM,JM) :: SENDEG
@@ -1382,18 +1402,19 @@ C**** NORTHWARD TRANSPORT OF SENSIBLE HEAT BY EDDIES
       CALL JKMAP (13,PLM,AX,SCALE,DXV,ONES,KM,2,2)
 C**** NORTHWARD TRANSPORT OF DRY STATIC ENERGY BY STANDING EDDIES,
 C****   EDDIES, AND TOTAL
+C**** Individual wave transports commented out. (gas - 05/2001)
       SCALE=25.D-14*XWON*BYIADA*BYGRAV
 c     IF (SKIPSE.EQ.1.) GO TO 220
       CALL JKMAP (22,PLM,BX,SCALE,DXV,ONES,KM,2,2)
-      DO 219 N=1,5
-  219 CALL JLMAP(114+N,PLM,SPSTAD(1,1,N,1),SCALE,DXV,ONES,LM,2,2)
+C      DO 219 N=1,5
+C  219 CALL JLMAP(114+N,PLM,SPSTAD(1,1,N,1),SCALE,DXV,ONES,LM,2,2)
   220 DO 230 K=1,KM
       DO 230 J=2,JM
       AX(J,K)=SHA*(AJK(J,K,13)-AJK(J,K,12))+(AJK(J,K,15)-AJK(J,K,14))
   230 BX(J,K)=SHA*AJK(J,K,13)+AJK(J,K,15)
       CALL JKMAP (23,PLM,AX,SCALE,DXV,ONES,KM,2,2)
-      DO 231 N=1,9
-  231 CALL JLMAP(119+N,PLM,SPTRAN(1,1,N,1),SCALE,DXV,ONES,LM,2,2)
+C      DO 231 N=1,9
+C  231 CALL JLMAP(119+N,PLM,SPTRAN(1,1,N,1),SCALE,DXV,ONES,LM,2,2)
       SCALE=SCALE*.1
       CALL JKMAP (24,PLM,BX,SCALE,DXV,ONES,KM,2,2)
 C**** NORTHWARD TRANSPORT OF LATENT HEAT BY STAND. EDDY, EDDIES AND TOTA
@@ -1404,12 +1425,12 @@ C**** NORTHWARD TRANSPORT OF LATENT HEAT BY STAND. EDDY, EDDIES AND TOTA
       SCALE=25.D-13*XWON*LHE*BYIADA*BYGRAV
 c     IF(SKIPSE.EQ.1.) GO TO 242
       CALL JKMAP(44,PLM,EX,SCALE,DXV,ONES,KM,2,2)
-      DO 241 N=1,5
-  241 CALL JLMAP(128+N,PLM,SPSTAD(1,1,N,2),SCALE,DXV,ONES,LM,2,2)
+C      DO 241 N=1,5
+C  241 CALL JLMAP(128+N,PLM,SPSTAD(1,1,N,2),SCALE,DXV,ONES,LM,2,2)
   242 CONTINUE
       CALL JKMAP (25,PLM,DX,SCALE,DXV,ONES,KM,2,2)
-      DO 243 N=1,9
-  243 CALL JLMAP(133+N,PLM,SPTRAN(1,1,N,2),SCALE,DXV,ONES,LM,2,2)
+C      DO 243 N=1,9
+C  243 CALL JLMAP(133+N,PLM,SPTRAN(1,1,N,2),SCALE,DXV,ONES,LM,2,2)
       SCALE=SCALE*.1
       CALL JKMAP (26,PLM,AJK(1,1,17),SCALE,DXV,ONES,KM,2,2)
 C**** NORTHWARD TRANSPORT OF STATIC ENERGY BY EDDIES AND TOTAL
@@ -1427,15 +1448,15 @@ C**** NOR. TRANS. OF ANG. MOMENTUM BY STANDING EDDIES, EDDIES AND TOTAL
       SCALE=100.D-18*XWON*RADIUS*BYIADA*BYGRAV
 c     IF (SKIPSE.EQ.1.) GO TO 250
       CALL JKMAP (31,PLM,CX,SCALE,DXCOSV,ONES,KM,2,2)
-      DO 249 N=1,5
-  249 CALL JLMAP(142+N,PLM,SPSTAD(1,1,N,3),SCALE,DXCOSV,ONES,LM,2,2)
+C      DO 249 N=1,5
+C  249 CALL JLMAP(142+N,PLM,SPSTAD(1,1,N,3),SCALE,DXCOSV,ONES,LM,2,2)
   250 DO 260 K=1,KM
       DO 260 J=2,JM
       CX(J,K)=AJK(J,K,21)-AJK(J,K,20)
   260 DX(J,K)=AJK(J,K,21)+RADIUS*OMEGA*COSV(J)*AJK(J,K,9)
       CALL JKMAP (32,PLM,CX,SCALE,DXCOSV,ONES,KM,2,2)
-      DO 261 N=1,9
-  261 CALL JLMAP(147+N,PLM,SPTRAN(1,1,N,3),SCALE,DXCOSV,ONES,LM,2,2)
+C      DO 261 N=1,9
+C  261 CALL JLMAP(147+N,PLM,SPTRAN(1,1,N,3),SCALE,DXCOSV,ONES,LM,2,2)
       SCALE=.1*SCALE
       CALL JKMAP (33,PLM,DX,SCALE,DXCOSV,ONES,KM,2,2)
 C****
@@ -1683,14 +1704,21 @@ C**** WIND: RATE OF CHANGE, ADVECTION, EDDY CONVERGENCE
       IF (IDACC(4).LE.1) GO TO 730
       SCALE=1.D6/((IDACC(4)-1)*(DTsrc*NDAA+DT+DT))
       CALL JLMAP (40,PLM,AJK(1,1,47),SCALE,ONES,ONES,KM,2,2)
-  730 SCALE=1.D6*BYIADA
-      CALL JLMAP (59,PLM,AJK(1,1,40),SCALE,ONES,ONES,KM,2,1)
-      SCALE=1.D6
-      CALL JLMAP (60,PLM,AX,SCALE,ONES,ONES,KM,2,1)
+  730 CONTINUE
+C**** Depending on whether EP fluxes have been specially calcualted
+C**** output full or approximate version
+      IF (KEP.gt.0) THEN
+        CALL EPFLXP
+      ELSE ! these are not very good 
+        SCALE=1.D6*BYIADA
+        CALL JLMAP (59,PLM,AJK(1,1,40),SCALE,ONES,ONES,KM,2,1)
+        SCALE=1.D6
+        CALL JLMAP (60,PLM,AX,SCALE,ONES,ONES,KM,2,1)
 C**** WIND: TRANSFORMED ADVECTION, LAGRANGIAN CONVERGENCE (DEL.F)
-      SCALE=1.D6*BYIADA
-      CALL JLMAP (64,PLM,AJK(1,1,42),SCALE,ONES,ONES,KM,2,1)
-      CALL JLMAP (65,PLM,BX,SCALE,ONES,ONES,KM,2,1)
+        SCALE=1.D6*BYIADA
+        CALL JLMAP (64,PLM,AJK(1,1,42),SCALE,ONES,ONES,KM,2,1)
+        CALL JLMAP (65,PLM,BX,SCALE,ONES,ONES,KM,2,1)
+      END IF
 C**** WIND: DU/DT BY STRAT. DRAG
       SCALE=1.D6/(FIM*IDACC(1)*DTsrc+1.E-20)
       CALL JLMAP (1,PLM,AJL(1,1,20),SCALE,ONES,ONES,LM,2,2)
@@ -1708,6 +1736,12 @@ C**** TEMPERATURE: RATE OF CHANGE, ADVECTION, EDDY CONVERGENCE
 C**** TEMPERATURE: TRANSFORMED ADVECTION
       SCALE=1.D1*SDAY*BYIADA
       CALL JLMAP (70,PLM,AJK(1,1,43),SCALE,ONES,PKM,KM,2,1)
+C**** CHANGE IN TEMPERATURE BY STRATOSPHERIC DRAG
+      SCALE=1.E1*SDAY/(FIM*IDACC(1)*DTsrc+1.D-20)
+      CALL JLMAP (29,PLM,AJL(1,1,33),SCALE,ONES,PKM,KM,2,1)
+C**** CHANGE IN TEMPERATURE BY DYNAMICS
+      SCALE=1.E1*SDAY*NIDYN/(FIM*IDACC(4)*7200.+1.E-20)
+      CALL JLMAP (21,PLM,AJL(1,1,17),SCALE,ONESPO,PKM,KM,2,1)
   799 CONTINUE
       RETURN
   901 FORMAT (
@@ -1831,12 +1865,6 @@ C     IF (NT.GE.80.AND.NT.LE.87) RETURN
          IF(QCHECK) CALL POUT_JL(TITLEO,J1,KLMAX,XJL,PM,CLAT
      *        ,CPRES)
          in_jkmap=.false.
-c         WRITE (iu_jl) TITLE(NT),XLB,JM-J1+1,KLMAX,1,1,
-c     *     ((XJL(J,L),J=J1,JM),L=1,KLMAX),
-c     *     (SNGL(LAT_DG(J,J1)),J=J1,JM),(SNGL(PM(L)),L=1,KLMAX),1.,1.,
-c     *     CLAT,CPRES,CBLANK,CBLANK,'NASAGISS',
-c     *        (XJL(J,LM+LM_REQ+1),J=J1,JM+3),((XJL(J,L),J=JM+1,JM+3),
-c     *        L=1,KLMAX)
       WRITE (6,903) WORD(IWORD),AGLOB,AHEM(2),AHEM(1),
      *  (MLAT(J),J=JM,J1,-INC)
          IF (NT.EQ.1) CALL KEYJKT (AGLOB,ASUM)
@@ -1877,10 +1905,10 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
      *  (MLAT(J),J=JM,J1,-INC)
       GO TO 100
   901 FORMAT ('0',30X,A64,'  CP'/1X,30('-'),24A4)
-  902 FORMAT (1X,F5.1,3F8.1,1X,24I4)
-  903 FORMAT (A6,3F8.1,1X,24I4)
-  904 FORMAT (' P(MB) ',A4,' G      NH      SH  ',24I4)
-  905 FORMAT (1X,30('-'),24A4)
+  902 FORMAT (1X,F7.3,3F8.1,1X,24I4)
+  903 FORMAT (A6,2X,3F8.1,1X,24I4)
+  904 FORMAT (' P(MB)   ',A4,' G      NH      SH  ',24I4)
+  905 FORMAT (1X,32('-'),24A4)
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
       END SUBROUTINE JKMAP
 
@@ -1973,17 +2001,17 @@ c
       lname(k) = 'HEATING BY LARGE SCALE CONDENSATION'
       units(k) = '10**13 WATTS/UNIT SIGMA'
       k = k + 1 ! 015
-      sname(k) = 'dconv_heat'
-      lname(k) = 'HEATING BY DRY CONVECTION'
+      sname(k) = 'turb_heat'
+      lname(k) = 'HEATING BY TURBULENCE'
       units(k) = '10**13 WATTS/UNIT SIGMA'
       k = k + 1 ! 016
-      sname(k) = 'dconv_dry'
-      lname(k) = 'CHANGE OF LATENT HEAT BY DRY CONV.'
+      sname(k) = 'turb_lat'
+      lname(k) = 'CHANGE OF LATENT HEAT BY TURBULENCE'
       units(k) = '10**14 W/UNIT SIGMA'
       k = k + 1 ! 017
-      sname(k) = '' !'stand_eddy_ke'
-      lname(k) = '' !'STANDING EDDY KINETIC ENERGY'
-      units(k) = '' !'10**4 JOULES/M**2/UNIT SIGMA'
+      sname(k) = 'moist_lat'
+      lname(k) = 'CHANGE OF LATENT HEAT BY MOIST CONV.'
+      units(k) = '10**14 W/UNIT SIGMA'
       k = k + 1 ! 018
       sname(k) = '' !'eddy_ke'
       lname(k) = '' !'EDDY KINETIC ENERGY'
@@ -1997,9 +2025,9 @@ c
       lname(k) = 'AVAILABLE POTENTIAL ENERGY'
       units(k) = '10**5 JOULES/M**2/UNIT SIGMA'
       k = k + 1 ! 021
-      sname(k) = '' !'pot_temp'
-      lname(k) = '' !'POTENTIAL TEMPERATURE'
-      units(k) = '' !'DEGREES KELVIN'
+      sname(k) = 'DT_DYNAMICS' 
+      lname(k) = 'DTEMP/DT BY DYNAMICS' 
+      units(k) = '10**-1 DEG-K/DAY'
       k = k + 1 ! 022
       sname(k) = '' !'nt_dse_stand_eddy'
       lname(k) = '' !'NOR. TRANS. OF DRY STAT. ENERGY BY STAND. EDDIES'
@@ -2029,9 +2057,9 @@ c
       lname(k) = '' !'TOTAL NORTHWARD TRANSPORT OF STATIC ENERGY'
       units(k) = '' !'10**15 WATTS/DSIGMA'
       k = k + 1 ! 029
-      sname(k) = '' !'nt_ke_eddy'
-      lname(k) = '' !'NORTH. TRANSPORT OF KINETIC ENERGY BY EDDIES'
-      units(k) = '' !'10**12 WATTS/DSIG'
+      sname(k) = 'DT_SDRAG' 
+      lname(k) = 'DTEMP/DT BY STRATOSPHERIC DRAG' 
+      units(k) = '10**-1 DEG-K/DAY' 
       k = k + 1 ! 030
       sname(k) = '' !'tot_nt_ke'
       lname(k) = '' !'TOTAL NORTHWARD TRANSPORT OF KINETIC ENERGY'
@@ -2090,7 +2118,7 @@ c
       units(k) = '' !'10**18 JOULES'
       k = k + 1 ! 044
       sname(k) = 'del_am_dc'
-      lname(k) = 'CHANGE OF ANG. MOMENTUM BY DRY CONVEC'
+      lname(k) = 'CHANGE OF ANG. MOMENTUM BY TURBULENCE'
       units(k) = '10**18 JOULE/UNIT SIGMA'
       k = k + 1 ! 045
       sname(k) = 'del_am_mc'
@@ -2281,9 +2309,9 @@ c
       lname(k) = 'PRESSURE DIFFERENCES (CP)'
       units(k) = 'MB'
       k = k + 1 ! 092
-      sname(k) = 'dt_subgrid'
-      lname(k) = 'SUBGRID SCALE TEMPERATURE DEVIATION'
-      units(k) = 'HUNDREDTHS OF DEGREES KEL'
+      sname(k) = 'tke'
+      lname(k) = 'TURBULENT KINETIC ENERGY'
+      units(k) = 'W/M^2'
       k = k + 1 ! 093
       sname(k) = '' !'dyn_conv_dse'
       lname(k) = '' !'DYNAMIC CONVERGENCE OF DRY STATIC ENERGY'
@@ -2559,13 +2587,13 @@ c      USE PRTCOM, only :
       USE MODEL_COM, only :
      &     im,jm,lm,FIM,
      &     BYDSIG,BYIM,DSIG,DTsrc,IDACC,IMH,
-     &     PSF,PTOP,PMTOP,SIG,SIGE,JHOUR
+     &     PTOP,PMTOP,SIG,SIGE,JHOUR,PSFMPT
       USE GEOM, only :
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,FCOR,RADIUS,WTJ
       USE DAGPCOM, only :
      &     PLE,PLM
       USE DAGCOM, only :
-     &     ajl,apj,asjl,kdiag,aij,LM_REQ, qcheck
+     &     ajl,apj,asjl,kdiag,aij,LM_REQ, qcheck,ij_phi1k
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(JM) ::
@@ -2694,7 +2722,7 @@ C**** SOLAR AND THERMAL RADIATION HEATING
       DO 250 L=1,LM
   250 AX(J,L)=AJL(J,L,9)+AJL(J,L,10)
       SCALE=-1.D-13*XWON*BYIARD
-      SCALES=SCALE*(PSF-PMTOP)
+      SCALES=SCALE*PSFMPT
       CALL JLMAPS (13,PLM,AX,SCALE,DXYPPO,BYDSIG,LM,1,1,
      *  ARQX,SCALES,DXYPPO,BYDPS)
 C**** TOTAL, SUPER SATURATION, AND CONVECTIVE CLOUD COVER
@@ -2702,15 +2730,16 @@ C**** TOTAL, SUPER SATURATION, AND CONVECTIVE CLOUD COVER
       CALL JLMAP (77,PLM,AJL(1,1,19),SCALE,ONESPO,ONES,LM,2,1)
       CALL JLMAP (78,PLM,AJL(1,1,28),SCALE,ONESPO,ONES,LM,2,1)
       CALL JLMAP (79,PLM,AJL(1,1,29),SCALE,ONESPO,ONES,LM,2,1)
-C**** SUBGRID SCALE TEMPERATURE DEVIATION
-      SCALE=1.D2*SQRT(2.)*BYIACN
+C**** TURBULENT KINETIC ENERGY
+      SCALE=BYIACN
       CALL JLMAP (92,PLM,AJL(1,1,54),SCALE,ONES,ONES,LM,2,1)
-C**** HEATING BY LARGE SCALE CONDENSATION AND DRY AND MOIST CONVECTION
+C**** HEATING BY LARGE SCALE COND., MOIST CONVECTION AND TURBULENCE
       SCALE=100.D-13*XWON*SHA*BYIACN/(GRAV*DTsrc)
       CALL JLMAP (14,PLM,AJL(1,1,11),SCALE,DXYPPO,BYDSIG,LM,1,1)
       CALL JLMAP (15,PLM,AJL(1,1,12),SCALE,DXYPPO,ONES,LM,1,1)
       SCALE=0.1*SCALE
       CALL JLMAP (16,PLM,AJL(1,1,55),SCALE,DXYPPO,BYDSIG,LM,1,1)
+      CALL JLMAP (17,PLM,AJL(1,1,53),SCALE,DXYPPO,BYDSIG,LM,1,1)
       CALL JLMAP (98,PLM,AJL(1,1,56),SCALE,DXYPPO,ONES,LM,1,1)
       CALL JLMAP (97,PLM,AJL(1,1,57),SCALE,DXYPPO,ONES,LM,1,1)
 C****
@@ -2793,7 +2822,7 @@ C****
       PHASE(1,K,N)=0.
   610 PHASE(JM,K,N)=0.
       DO 620 J=2,JM-1
-      CALL FFT (AIJ(1,J,8+K),AN,BN)
+      CALL FFT (AIJ(1,J,IJ_PHI1K-1+K),AN,BN)
       DO 620 N=1,4
       AMPLTD(J,K,N)=SQRT(AN(N)*AN(N)+BN(N)*BN(N))
       PHASE(J,K,N)=(ATAN2(BN(N),AN(N))-TWOPI)/N+ELOFIM
@@ -2922,12 +2951,6 @@ C        IF (NT.EQ.5) CALL KEYJLJ (L,FLAT)
          IF(QCHECK) CALL POUT_JL(TITLEO,J1,KLMAX,XJL,PL,CLAT
      *        ,CPRES)
          in_jlmap=.false.
-c         IF(QCHECK) WRITE (iu_jl) TITLE(NT),XLB,JM-J1+1,KLMAX,1,1,
-c     *     ((XJL(J,L),J=J1,JM),L=1,KLMAX),
-c     *     (SNGL(LAT_DG(J,J1)),J=J1,JM),(SNGL(PL(L)),L=1,KLMAX),1.,1.,
-c     *     CLAT,CPRES,CBLANK,CBLANK,'NASAGISS',
-c     *        (XJL(J,LM+LM_REQ+1),J=J1,JM+3),((XJL(J,L),J=JM+1,JM+3),
-c     *        L=1,KLMAX)
       WRITE (6,903) WORD(IWORD),GSUM,HSUM(2),HSUM(1),
      *  (MLAT(J),J=JM,J1,-INC)
 C        IF (NT.EQ.1) CALL KEYJLT (GSUM,ASUM)
@@ -2967,11 +2990,11 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
   230 WRITE (6,902) PL(L+LM),FGLOB,FHEM(2),FHEM(1),
      *  (MLAT(J),J=JM,J1,-INC)
       GO TO 100
-  901 FORMAT ('0',30X,A64/1X,30('-'),24A4)
-  902 FORMAT (F6.1,3F8.1,1X,24I4)
-  903 FORMAT (A6,3F8.1,1X,24I4)
-  904 FORMAT (' P(MB) ',A4,' G      NH      SH  ',24I4)
-  905 FORMAT (1X,30('-'),24A4)
+  901 FORMAT ('0',30X,A64/2X,32('-'),24A4)
+  902 FORMAT (1X,F8.3,3F8.1,1X,24I4)
+  903 FORMAT (1X,A6,2X,3F8.1,1X,24I4)
+  904 FORMAT ('  P(MB)   ',A4,' G      NH      SH  ',24I4)
+  905 FORMAT (2X,32('-'),24A4)
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
       END SUBROUTINE JLMAP
 
@@ -3233,7 +3256,7 @@ C**** Output for post-processing
   904 FORMAT (' P(MB)',4X,A4,1X,36I3)  ! U-grid (i.e., centers)
   905 FORMAT (1X,14('-'),36A3)
   906 FORMAT (' P(MB)',4X,A4,36I3)     ! V-grid (i.e., edges)
-  907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
+  907 FORMAT ('1',27A4,I4,1X,A3,I3,' TO ',I3,1X,A3,I5)
       END SUBROUTINE ILMAP
 
       BLOCK DATA BDWP
@@ -4622,12 +4645,12 @@ c      USE PRTCOM, only :
       USE MODEL_COM, only :
      &     im,jm,lm,fim,
      &     DT,IDACC,JHOUR,JHOUR0,JDATE,JDATE0,
-     &     AMON,AMON0,JYEAR,JYEAR0,LS1,JEQ,XLABEL
+     &     AMON,AMON0,JYEAR,JYEAR0,LS1,JEQ,XLABEL,istrat
 !!!  &     ,SKIPSE
       USE GEOM, only :
      &     DLON,DXYV
       USE DAGCOM, only :
-     &     speca,atpe,ajk,aijk,kspeca,ktpe,nhemi,nspher,ijk_u
+     &     speca,atpe,ajk,aijk,kspeca,ktpe,nhemi,nspher,ijk_u,klayer
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(IM) :: X
@@ -4643,8 +4666,11 @@ c      USE PRTCOM, only :
 
       CHARACTER*8 :: LATITD(4) = (/
      *     'SOUTHERN','NORTHERN',' EQUATOR','45 NORTH'/)
-      CHARACTER*16 :: SPHERE(2) = (/
-     *     'STRATOSPHERE    ','TROPOSPHERE     '/)
+c      CHARACTER*16 :: SPHERE(2) = (/
+c     *     'STRATOSPHERE    ','TROPOSPHERE     '/)
+      CHARACTER*16 :: SPHERE(4)=
+     *     (/'TROPOSPHERE     ','LOW STRATOSPHERE',
+     *       'MID STRATOSPHERE','UPP STRATOSPHERE'/)
 
       INTEGER ::
      &     I,IUNITJ,IUNITW,J,J45N,
@@ -4666,8 +4692,9 @@ C****
       DO 710 N=1,NM
   710 SPECA(N,1,K)=0.
       DO 770 L=1,LM
-      KSPHER=2
-      IF (L.GE.LS1) KSPHER=1
+        KSPHER=KLAYER(L)
+c      KSPHER=2
+c      IF (L.GE.LS1) KSPHER=1
       DO 770 J=2,JM
       IF (AJK(J,L,2).LE.1.D-20) GO TO 770
       FACTOR=FIM*DXYV(J)/AJK(J,L,2)
@@ -4680,13 +4707,13 @@ C****
   730 SPECA(N,1,KSPHER)=SPECA(N,1,KSPHER)+X(N)*FACTOR
       IF (J.NE.J45N) GO TO 769
       DO 740 N=1,NM
-  740 SPECA(N,1,KSPHER+4)=SPECA(N,1,KSPHER+4)+X(N)*FACTOR
+  740 SPECA(N,1,KSPHER+2)=SPECA(N,1,KSPHER+2)+X(N)*FACTOR
       GO TO 769
   750 DO 760 N=1,NM
-      SPECA(N,1,KSPHER+4)=SPECA(N,1,KSPHER+4)+X(N)*FACTOR
+      SPECA(N,1,KSPHER+2)=SPECA(N,1,KSPHER+2)+X(N)*FACTOR
       SPECA(N,1,KSPHER)=SPECA(N,1,KSPHER)+.5*X(N)*FACTOR
-  760 SPECA(N,1,KSPHER+2)=SPECA(N,1,KSPHER+2)+.5*X(N)*FACTOR
-      IF (K.EQ.LM) KSPHER=KSPHER+2
+  760 SPECA(N,1,KSPHER+1)=SPECA(N,1,KSPHER+1)+.5*X(N)*FACTOR
+      IF (K.EQ.LM) KSPHER=KSPHER+1
   769 CONTINUE
   770 CONTINUE
 C****
@@ -4714,15 +4741,16 @@ C****
   605 SCALE(K)=(TWOPI/(DLON*FIM))*SCALE(K)
       IUNITJ=17
       IUNITW=12
-      DO 690 KPAGE=1,4
+      DO 690 KPAGE=1,4   ! one for each loc. SH/NH/EQ/45N
 C**** WRITE HEADINGS
       WRITE (6,901) XLABEL
       WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE,JHOUR,
      *  IUNITJ,IUNITW
-      DO 670 KROW=1,2
+      DO 670 KROW=1,2+ISTRAT
       IF (JM.GE.25.AND.KROW.EQ.2) WRITE (6,901)
       WRITE (6,903) LATITD(KPAGE),SPHERE(KROW)
-      KSPHER=2*(KPAGE-1)+KROW
+c      KSPHER=2*(KPAGE-1)+KROW
+      KSPHER=4*(KROW-1)+KPAGE
 C**** WRITE KINETIC AND AVAILABLE POTENTIAL ENERGY BY WAVE NUMBER
       DO 610 M=1,KSPECA
       F0(M)=SPECA(1,M,KSPHER)*SCALE(M)
@@ -4730,7 +4758,8 @@ C**** WRITE KINETIC AND AVAILABLE POTENTIAL ENERGY BY WAVE NUMBER
   610 FNSUM(M)=0.
       WRITE (6,904) MN
       DO 630 N=2,NM
-      KSPHER=2*(KPAGE-1)+KROW
+c      KSPHER=2*(KPAGE-1)+KROW
+      KSPHER=4*(KROW-1)+KPAGE
       DO 620 M=1,KSPECA
       FNM=SPECA(N,M,KSPHER)*SCALE(M)
       MN(M)=NINT(FNM)
@@ -4787,11 +4816,11 @@ C****
      *  '0SRF PRS',' PT 5   ',' PT 4   ',' PT 3   ',' PT 2   ',
      *  ' PT 1   ',' TS     ',' TG1    ','0Q 5    ',' Q 4    ',
      *  ' Q 3    ',' Q 2    ',' Q 1    ',' QS     ',' QG     ',
-     *  '0CLD 6  ',' CLD 5  ',' CLD 4  ',' CLD 3  ',' CLD 2  ',
-     *  ' CLD 1  ',' COVER  ','0SW ON G',' LW AT G',' SNSB HT',
+     *  '        ','        ','        ','        ','        ',
+     *  '        ','        ','0SW ON G',' LW AT G',' SNSB HT',
      *  ' LAT HT ',' HEAT Z0','0UG*10  ',' VG*10  ',' WG*10  ',
      *  ' US*10  ',' VS*10  ',' WS*10  ',' ALPHA0 ','0RIS1*E2',
-     *  ' RIGS*E2',' CDM*E4 ',' CDH*E4 ',' DGS*10 ',' EDS1*10',
+     *  ' RIGS*E2',' CM*E4  ',' CH*E4  ',' CQ*E4  ',' EDS1*10',
      *  '0DBL    ',' DC FREQ',' LDC*10 ','0PRC*10 ',' EVP*10 ',
      *  ' DEEP MC',' SHLW MC',' CLD 7  ',' CLD 6  ',' CLD 5  ',
      *  ' CLD 4  ',' CLD 3  ',' CLD 2  ',' CLD 1  ',' W TO-5 ',
@@ -4816,7 +4845,7 @@ c      USE PRTCOM, only :
       DOUBLE PRECISION, DIMENSION(NDLYVAR) :: SCALE
       DATA SCALE/1.,2*100.,2*1.,  5*1.,  3*1.,2*1.D5,  5*1.D5,
      *  5*100.,  2*100.,3*1.,  2*1.,3*10.,  3*10.,1.,100.,
-     *  100.,2*1.D4,2*10.,  1.,100.,10.,2*1.,
+     *  100.,3*1.D4,1*10.,  1.,100.,10.,2*1.,
      *  2*100., 7*100., 1.,100., 2*10./
       DOUBLE PRECISION, DIMENSION(HR_IN_DAY+1) :: XHOUR
       INTEGER, DIMENSION(HR_IN_DAY+1) :: MHOUR
@@ -4854,7 +4883,7 @@ C****
       WRITE (6,903) NAMD6(KR),IJD6(1,KR),IJD6(2,KR),(I,I=1,HR_IN_DAY)
       DO 500 KQ=1,NDLYVAR
       IF (KQ.EQ.48) GO TO 200
-      IF(KQ.GE.21.AND.KQ.LE.27) GO TO 500
+      IF (len_trim(TITLE(KQ)).eq.0) GO TO 500
 C**** NORMAL QUANTITIES
       AVE=0.
       DO 120 IH=1,HR_IN_DAY
@@ -4893,7 +4922,7 @@ c      USE PRTCOM, only :
       USE MODEL_COM, only :
      &     im,jm,lm,fim,
      &     IDACC,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
-     &     JYEAR,JYEAR0,NDA4,NDAY,Itime0,XLABEL
+     &     JYEAR,JYEAR0,NDA4,NDAY,Itime0,XLABEL,istrat
       USE GEOM, only :
      &     DLON
       USE DAGCOM, only :
@@ -4905,9 +4934,9 @@ c      USE PRTCOM, only :
       DOUBLE PRECISION, DIMENSION(NEHIST,HIST_DAYS+1) :: EHIST
 
       INTEGER ::
-     &     I,IDACC5,ItimeX,IDAYX,IDAYXM,K
+     &     I,IDACC5,ItimeX,IDAYX,IDAYXM,K,K0
       DOUBLE PRECISION ::
-     &     TOFDYX
+     &     TOFDYX, FAC
 
       IDACC5=IDACC(5)
       IF (IDACC5.LE.0) RETURN
@@ -4935,27 +4964,39 @@ c      USE PRTCOM, only :
       DO 60 K=1,NEHIST
    60 SCALE(K)=(TWOPI/(DLON*FIM))*SCALE(K)/IDACC(12)
 C****
-      WRITE (6,901) XLABEL
-      WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE,JHOUR
-      DO 110 K=1,NEHIST
-  110 SUM(K)=0.
-      WRITE (6,903)
-      DO 200 I=1,IDACC5
-      ItimeX=Itime0+I*NDA4-1
-      IDAYX=1+ItimeX/NDAY
-      IDAYXM=MOD(IDAYX,100000)
-      TOFDYX=MOD(ItimeX,NDAY)*24./NDAY
-      DO 150 K=1,NEHIST
-         EHIST(K,I)=ENERGY(K,I)*SCALE(K)
-      IK(K)=EHIST(K,I)+.5
-  150 SUM(K)=SUM(K)+ENERGY(K,I)
-      WRITE (6,904) IDAYXM,TOFDYX,IK
-  200 CONTINUE
-      DO 250 K=1,NEHIST
-         EHIST(K,101)=SUM(K)*SCALE(K)/IDACC5
-  250 IK(K)=EHIST(K,101)+.5
-      WRITE (6,905) IK
-         CALL KEYD4 (IK)
+      DO K0=1,MIN(1+ISTRAT,2)
+        WRITE (6,901) XLABEL
+        IF (K0.eq.1) THEN
+          FAC = 1.
+          WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE
+     *         ,JHOUR
+          WRITE (6,903)
+        ELSE
+          FAC = 10.
+          WRITE (6,906) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE
+     *         ,JHOUR
+          WRITE (6,907)
+        END IF
+        SUM(:)=0.
+        DO I=1,IDACC5
+          ItimeX=Itime0+I*NDA4-1
+          IDAYX=1+ItimeX/NDAY
+          IDAYXM=MOD(IDAYX,100000)
+          TOFDYX=MOD(ItimeX,NDAY)*24./NDAY
+          DO K=1,MIN((K0-1)*20,NEHIST)
+            EHIST(K,I)=ENERGY(K,I)*SCALE(K)*FAC
+            IK(K)=EHIST(K,I)+.5
+            SUM(K)=SUM(K)+ENERGY(K,I)
+          END DO 
+          WRITE (6,904) IDAYXM,TOFDYX,IK
+        END DO
+        DO K=1,NEHIST
+          EHIST(K,101)=SUM(K)*SCALE(K)*FAC/IDACC5
+          IK(K)=EHIST(K,101)+.5
+        END DO
+        WRITE (6,905) IK
+        IF (K0.eq.1) CALL KEYD4 (IK)
+      END DO
       RETURN
 C****
   901 FORMAT ('1',A)
@@ -4963,13 +5004,24 @@ C****
      *  6X,'To:',I6,A6,I2,', Hr',I3,
      *  '    UNITS OF 10**18 JOULES')
   903 FORMAT ('0',15X,21('-'),' TROPOSPHERE ',22('-'),5X,21('-'),
-     *  ' STRATOSPHERE ',21('-')/8X,2(11X,'ZKE',8X,'EKE',7X,'SEKE',9X,
-     * 'ZPE',10X,'EPE')/3X,'DAY  HOUR     SH   NH    SH   NH    SH   NH
+     *  '  LOW STRAT. * 10 ',19('-')/8X,2(11X,'ZKE',8X,'EKE',7X,
+     *     'SEKE',9X,
+     * 'ZPE',10X,'EPE')/3X,'DAY  HOUR     SH   NH    SH   NH     1    2
      *    SH    NH     SH    NH      SH   NH    SH   NH    SH   NH     S
      *H    NH     SH    NH'/1X,132('='))
   904 FORMAT (I6,F6.1,1X,3(I6,I5),2(I7,I6),2X,3(I6,I5),2(I7,I6))
   905 FORMAT (1X,132('=')/8X,'MEAN ',3(I6,I5),2(I7,I6),2X,3(I6,I5),
      *  2(I7,I6))
+  906 FORMAT ('0** ENERGY HISTORY **   DAY',I6,', HR',I3,' (',I2,A5,I5,
+     *  ')    TO    DAY',I5,', HR',I3,' (',I2,A5,I5,
+     *  ')    UNITS OF 10**17 JOULES')
+  907 FORMAT ('0',15X,19('-'),' MID STRATOSPHERE ',19('-'),5X,18('-'),
+     *  ' HIGH STRAT. * 10  ',19('-')/8X,2(11X,'ZKE',8X,'EKE',7X,
+     *   'NHKE',9X,
+     *  'ZPE',10X,'EPE')/3X,'DAY  HOUR     SH   NH    SH   NH    1    2
+     *    SH    NH     SH    NH      SH   NH    SH   NH    1    2      S
+     *H    NH     SH    NH'/1X,132('='))
+  920 FORMAT (1X)
       END SUBROUTINE DIAG4
 
       SUBROUTINE DIAGKS
@@ -5033,7 +5085,7 @@ c      USE PRTCOM, only :
       USE MODEL_COM, only :
      &     jm,lm,jeq, JHOUR,JHOUR0,
      &     JDATE,JDATE0,JMON,JMON0,AMON,AMON0,JYEAR,JYEAR0,
-     &     Itime,ItimeI,Itime0,PSF,PTOP,SIG,XLABEL,
+     &     Itime,ItimeI,Itime0,PTOP,SIG,XLABEL,
      &     PSFMPT,AMONTH,nday
       USE GEOM, only :
      &     DLAT,DXYP,LAT_DG

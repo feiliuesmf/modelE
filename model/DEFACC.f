@@ -109,7 +109,7 @@ c
       use MODEL_COM
       use DAGCOM
       use RADNCB, only : co2
-      use CLD01, only : u00wtr,u00ice
+      use CLOUDS, only : u00wtr,u00ice
       implicit none
       integer :: k
 c
@@ -396,12 +396,12 @@ c  AJ33
       lname_j(k) = 'OCEAN TRANSPORT'
       units_j(k) = 'W/m^2'
       ia_j(k) = ia_src
-c  AJ34
+c  AJ34    ! this includes OCEAN TEMPERATURE AT BASE MIXED LAYER
       k=k+1
-      J_OMLT  = k ! OCEAN TEMPERATURE AT MAX. MIXED LAYER DEPTH   1 GD
-      name_j(k) = 'OMLT'
-      lname_j(k) = 'OCEAN TEMP AT MAX. MIXED LAYER DEPTH'
-      units_j(k) = 'unknown'
+      J_TG3  = k ! TEMPERATURE GROUND LAYER 3                     1 GD
+      name_j(k) = 'TG3'
+      lname_j(k) = 'TEMPERATURE GROUND LAYER 3'
+      units_j(k) = 'C'
       ia_j(k) = ia_src
 c  AJ35
       k=k+1
@@ -728,22 +728,25 @@ c  AJ80
       ia_j(k) = ia_rad
 c
       k=k+1
-      name_j(k) = 'AJ81'
-      lname_j(k) = 'unknown'
-      units_j(k) = 'unknown'
-      ia_j(k) = 0
+      J_CLRTOA= k ! clear sky radiative forcing top of atmosphere
+      name_j(k) = 'CLRTOA'
+      lname_j(k) = 'CLEAR SKY TOA'
+      units_j(k) = 'W/m^2'
+      ia_j(k) = ia_rad
 c
       k=k+1
-      name_j(k) = 'AJ82'
-      lname_j(k) = 'unknown'
-      units_j(k) = 'unknown'
-      ia_j(k) = 0
+      J_CLRTRP= k ! clear sky radiative forcing tropopause
+      name_j(k) = 'CLRTRP'
+      lname_j(k) = 'CLEAR SKY TROP'
+      units_j(k) = 'W/m^2'
+      ia_j(k) = ia_rad
 c
       k=k+1
-      name_j(k) = 'AJ83'
-      lname_j(k) = 'unknown'
-      units_j(k) = 'unknown'
-      ia_j(k) = 0
+      J_TOTTRP= k ! total radiative forcing tropopause
+      name_j(k) = 'TOTTRP'
+      lname_j(k) = 'TOTAL RAD TROP'
+      units_j(k) = 'W/m^2'
+      ia_j(k) = ia_rad
 c
       k=k+1
       name_j(k) = 'AJ84'
@@ -1736,6 +1739,69 @@ c
       units_ij(k) = 'MM H2O'
       ia_ij(k) = ia_src
 c
+      k=k+1                ! ij diags from gwdrag calculations
+      IJ_GW1 = k
+      name_ij(k) = 'AIJGW1'
+      lname_ij(k) = 'E/W INCIDENT DEFORM WAVE MOM FLX'
+      units_ij(k) = '(.1 NT/M**2)'
+      ia_ij(k) = ia_src
+c
+      k=k+1                ! ij diags from gwdrag calculations
+      IJ_GW2 = k
+      name_ij(k) = 'AIJGW2'
+      lname_ij(k) = 'E/W INCIDENT MTN+WAVE MOM FLX'
+      units_ij(k) = '(.1 NT/M**2)'
+      ia_ij(k) = ia_src
+c
+      k=k+1                ! ij diags from gwdrag calculations
+      IJ_GW3 = k
+      name_ij(k) = 'AIJGW3'
+      lname_ij(k) = 'E/W INCIDENT SHR WAVE MOM FLX'
+      units_ij(k) = '(.1 NT/M**2)'
+      ia_ij(k) = ia_src
+c
+      k=k+1                ! ij diags from gwdrag calculations
+      IJ_GW4 = k
+      name_ij(k) = 'AIJGW4'
+      lname_ij(k) = 'E/W INCIDENT MC C=-10 M/S WAVE MOM FLX'
+      units_ij(k) = '(.1 NT/M**2)'
+      ia_ij(k) = ia_src
+c
+      k=k+1                ! ij diags from gwdrag calculations
+      IJ_GW5 = k
+      name_ij(k) = 'AIJGW5'
+      lname_ij(k) = 'E/W INCIDENT MC C=-20 M/S WAVE MOM FLX'
+      units_ij(k) = '(.1 NT/M**2)'
+      ia_ij(k) = ia_src
+c
+      k=k+1                ! ij diags from gwdrag calculations
+      IJ_GW6 = k
+      name_ij(k) = 'AIJGW6'
+      lname_ij(k) = 'E/W INCIDENT MC C=-40 M/S WAVE MOM FLX'
+      units_ij(k) = '(.1 NT/M**2)'
+      ia_ij(k) = ia_src
+c
+      k=k+1                ! ij diags from gwdrag calculations
+      IJ_GW7 = k
+      name_ij(k) = 'AIJGW7'
+      lname_ij(k) = 'PHASE SPEED OF SHEAR WAVE'
+      units_ij(k) = 'M/S'
+      ia_ij(k) = ia_src
+c
+      k=k+1                ! ij diags from gwdrag calculations
+      IJ_GW8 = k
+      name_ij(k) = 'AIJGW8'
+      lname_ij(k) = 'SOURCE SPEED OF MC'
+      units_ij(k) = 'M/S'
+      ia_ij(k) = ia_src
+c
+      k=k+1                ! ij diags from gwdrag calculations
+      IJ_GW9 = k
+      name_ij(k) = 'AIJGW9'
+      lname_ij(k) = 'EXIT MOM. FLUX OF ALL WAVES'   !???
+      units_ij(k) = '(1.E-3 NT/M**2)'
+      ia_ij(k) = ia_src
+
       return
       end subroutine ij_defs
 
@@ -1930,13 +1996,13 @@ c
 c
       k=k+1
       name_jl(k) = 'AJL17'
-      lname_jl(k) = 'unknown'
+      lname_jl(k) = 'T-T0 (change of Th by dynamics)'
       units_jl(k) = 'unknown'
 c
       k=k+1
       name_jl(k) = 'AJL18'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+      lname_jl(k) = 'DU/DT BY STRAT DEFORM DRAG'
+      units_jl(k) = 'M/S'
 c
       k=k+1
       name_jl(k) = 'AJL19'
@@ -1945,43 +2011,43 @@ c
 c
       k=k+1
       name_jl(k) = 'AJL20'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+      lname_jl(k) = 'DU/DT BY STRAT MTN DRAG'
+      units_jl(k) = 'M/S'
 c
       k=k+1
       name_jl(k) = 'AJL21'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+      lname_jl(k) = 'DU/DT BY STRAT SHR DRAG'
+      units_jl(k) = 'M/S'
 c
       k=k+1
       name_jl(k) = 'AJL22'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+      lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-10'
+      units_jl(k) = 'M/S'
 c
       k=k+1
       name_jl(k) = 'AJL23'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+      lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+10'
+      units_jl(k) = 'M/S'
 c
       k=k+1
       name_jl(k) = 'AJL24'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+      lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-40'
+      units_jl(k) = 'M/S'
 c
       k=k+1
       name_jl(k) = 'AJL25'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+      lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+40'
+      units_jl(k) = 'M/S'
 c
       k=k+1
       name_jl(k) = 'AJL26'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+      lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-20'
+      units_jl(k) = 'M/S'
 c
       k=k+1
       name_jl(k) = 'AJL27'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+      lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+20'
+      units_jl(k) = 'M/S'
 c
       k=k+1
       name_jl(k) = 'AJL28'
@@ -2000,18 +2066,18 @@ c
 c
       k=k+1
       name_jl(k) = 'AJL31'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+      lname_jl(k) = 'STRAT. DIFFUSION COEFF'
+      units_jl(k) = 'M*M/S'
 c
       k=k+1
       name_jl(k) = 'AJL32'     ! gwdrag
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+      lname_jl(k) = 'DU/DT  STRATOSPHERIC DIFFUSION'
+      units_jl(k) = 'M/S'
 c
       k=k+1
       name_jl(k) = 'AJL33'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+      lname_jl(k) = 'HEATING BY STRATOSPHERIC DRAG'
+      units_jl(k) = 'DEG-K/TIMESTEP'
 c
       k=k+1
       name_jl(k) = 'AJL34'
@@ -2110,7 +2176,7 @@ c
 c
       k=k+1
       name_jl(k) = 'AJL53'
-      lname_jl(k) = 'unknown'
+      lname_jl(k) = 'CHANGE OF LATENT HEAT BY MOIST CONV'
       units_jl(k) = 'unknown'
 c
       k=k+1
@@ -2120,7 +2186,7 @@ c
 c
       k=k+1
       name_jl(k) = 'AJL55'
-      lname_jl(k) = 'unknown'
+      lname_jl(k) = 'CHANGE OF LATENT HEAT BY TURBULENCE'
       units_jl(k) = 'unknown'
 c
       k=k+1

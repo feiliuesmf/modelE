@@ -886,7 +886,7 @@ C****
       USE SEAICE_COM, only : rsi
       USE PBLCOM, only : ustar
       USE DAGCOM, only : aj,aij,areg,jreg,ij_f0oc,j_run2
-     *     ,j_dwtr2,j_tg1,j_tg2,j_evap,j_oht,j_omlt,j_erun2,j_imelt
+     *     ,j_dwtr2,j_tg1,j_tg2,j_evap,j_oht,j_erun2,j_imelt
      *     ,ij_tgo,ij_tg1,ij_evap,ij_evapo,j_type
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
       USE LAKES, only : lkmix,lksourc,byzeta,minmld

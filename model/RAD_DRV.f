@@ -403,6 +403,7 @@ C****
 !@sum  RADIA adds the radiation heating to the temperatures
 !@auth Original Development Team
 !@ver  1.0
+!@calls tropwmo, rcompt, rcompx, cosz, coszt
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo
       USE MODEL_COM
       USE GEOM
@@ -428,7 +429,7 @@ c    &             ,QXAERO ,QSAERO ,QCAERO ,ATAERO
 c    &             ,QAER55 ,REAERO ,VEAERO ,ROAERO ,PI0MAX
 c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE RANDOM
-      USE CLD01_COM_E001, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
+      USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss
       USE PBLCOM, only : wsavg,tsavg
       USE DAGCOM, only : aj,areg,jreg,aij,ail,ajl,asjl,adaily,
@@ -437,7 +438,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     ij_cldtppr,lm_req,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
      *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,j_plavis,ij_trnfp0,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref,
-     *     j50n,j70n
+     *     j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig
       USE SEAICE_COM, only : rsi,snowi
       USE GHYCOM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
@@ -451,12 +452,12 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       REAL*8, DIMENSION(4,IM,JM) :: SNFS,TNFS
       REAL*8, DIMENSION(LM_REQ,IM,JM) :: TRHRS,SRHRS
       REAL*8, DIMENSION(IM,JM,9) :: ALB
-      REAL*8, DIMENSION(LM) :: TOTCLD
+      REAL*8, DIMENSION(LM) :: TOTCLD,PLL,PKL
 
       INTEGER, SAVE :: JDLAST = -9
-      INTEGER I,J,L,K,KR,LR,IHOUR,IMAX,IM1,JR,IH,INCH,JK,IT
+      INTEGER I,J,L,K,KR,LR,IHOUR,IMAX,IM1,JR,IH,INCH,JK,IT,LTROPO
       REAL*8 ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS,CMC,DEPTH,QSS,TAUSSL
-     *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X
+     *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,PTROPO,OPNSKY
       REAL*8 QSAT
 C****
 C**** FLAND     LAND COVERAGE (1)
@@ -566,6 +567,7 @@ C****
       END IF
   240 CONTINUE
          CLDCV=CMC+CSS-CMC*CSS
+         OPNSKY=1.-CLDCV
          DO IT=1,NTYPE
            AJ(J,J_PCLDSS,IT)=AJ(J,J_PCLDSS,IT)+CSS  *FTYPE(IT,I,J)
            AJ(J,J_PCLDMC,IT)=AJ(J,J_PCLDMC,IT)+CMC  *FTYPE(IT,I,J)
@@ -605,13 +607,6 @@ C****
              IH=IHOUR
              DO INCH=1,NRAD
                IF (IH.GT.24) IH=IH-24
-               ADAILY(IH,21,KR)=ADAILY(IH,21,KR)+TOTCLD(6)
-               ADAILY(IH,22,KR)=ADAILY(IH,22,KR)+TOTCLD(5)
-               ADAILY(IH,23,KR)=ADAILY(IH,23,KR)+TOTCLD(4)
-               ADAILY(IH,24,KR)=ADAILY(IH,24,KR)+TOTCLD(3)
-               ADAILY(IH,25,KR)=ADAILY(IH,25,KR)+TOTCLD(2)
-               ADAILY(IH,26,KR)=ADAILY(IH,26,KR)+TOTCLD(1)
-               ADAILY(IH,27,KR)=ADAILY(IH,27,KR)+CLDCV
                ADAILY(IH,53,KR)=ADAILY(IH,53,KR)+TOTCLD(7)
                ADAILY(IH,54,KR)=ADAILY(IH,54,KR)+TOTCLD(6)
                ADAILY(IH,55,KR)=ADAILY(IH,55,KR)+TOTCLD(5)
@@ -632,6 +627,8 @@ C****
 C**** EVEN PRESSURES
       DO 340 L=1,LM
       PLE(L)=PEDN(L,I,J)
+      PLL(L)=PMID(L,I,J)
+      PKL(L)=PK(L,I,J)
 C**** TEMPERATURES
 C---- TL(L)=T(I,J,L)*PK(L,I,J)     ! already defined
       IF(TL(L).LT.130..OR.TL(L).GT.370.) THEN
@@ -642,6 +639,10 @@ C---- TL(L)=T(I,J,L)*PK(L,I,J)     ! already defined
 C**** MOISTURE VARIABLES
 C---- QL(L)=Q(I,J,L)        ! already defined
   340 CONTINUE
+C**** 
+C**** Find WMO Definition of Tropopause to Nearest L
+C**** 
+      CALL TROPWMO(TL,PLL,PKL,PTROPO,LTROPO)
 C****
 C**** RADIATION, SOLAR AND THERMAL
 C****
@@ -704,6 +705,22 @@ C-OLD FGOLDU(3)=XFRADJ*PEARTH
       ALB(I,J,7)=SRRNIR
       ALB(I,J,8)=SRAVIS
       ALB(I,J,9)=SRANIR
+C**** Save clear sky/tropopause diagnostics here
+      DO IT=1,NTYPE
+        AJ(J,J_CLRTOA,IT)=AJ(J,J_CLRTOA,IT)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
+     *                 *COSZ2(I,J)-TRNFLB(LM+LM_REQ+1))*FTYPE(IT,I,J)
+        AJ(J,J_CLRTRP,IT)=AJ(J,J_CLRTRP,IT)+OPNSKY*
+     *       (SRNFLB(LTROPO)*COSZ2(I,J)-TRNFLB(LTROPO))*FTYPE(IT,I,J)
+        AJ(J,J_TOTTRP,IT)=AJ(J,J_TOTTRP,IT)+
+     *       (SRNFLB(LTROPO)*COSZ2(I,J)-TRNFLB(LTROPO))*FTYPE(IT,I,J)
+      END DO
+      AREG(JR,J_CLRTOA)=AREG(JR,J_CLRTOA)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
+     *     *COSZ2(I,J)-TRNFLB(LM+LM_REQ+1))*DXYP(J)
+      AREG(JR,J_CLRTRP)=AREG(JR,J_CLRTRP)+OPNSKY*
+     *     (SRNFLB(LTROPO)*COSZ2(I,J)-TRNFLB(LTROPO))*DXYP(J)
+      AREG(JR,J_TOTTRP)=AREG(JR,J_TOTTRP)+
+     *     (SRNFLB(LTROPO)*COSZ2(I,J)-TRNFLB(LTROPO))*DXYP(J)
+C****
       IM1=I
       END DO
 C****
@@ -846,3 +863,109 @@ C**** daily diagnostics
 
       RETURN
       END
+
+      subroutine tropwmo(ptm1, papm1, pk, ptropo, ltropp)
+!@sum  tropwmo calculates tropopasue height according to WMO formula
+!@auth D. Nodorp/T. Reichler/C. Land
+!@+    GISS Modifications by Jean Lerner/Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : klev=>lm
+      USE CONSTANT, only : zkappa=>kapa,zzkap=>bykapa,grav,rgas
+      implicit none
+
+      real*8, intent(in), dimension(klev) :: ptm1, papm1, pk
+      real*8, intent(out) :: ptropo
+      integer, intent(out) :: ltropp
+      real*8, dimension(klev) :: zpmk, zpm, za, zb, ztm, zdtdz
+      real*8 zplimb, zplimt, zgwmo, zdeltaz, zptph, zp2km, zag, zbg,
+     *     zasum,zaquer, zfaktor,zptf
+      integer iplimb,iplimt, jk, jj, kcount
+      logical ldtdz
+
+c      zkappa = 0.286
+c      zzkap=1./zkappa
+c      zfaktor = (-1.)*g/rd		! -9.81/287.0
+      zfaktor = -GRAV/RGAS              ! 9.81/287.0
+      zgwmo  = -0.002d0
+      zdeltaz = 2000.0
+      iplimb=4
+      iplimt=klev
+c****
+c****  2. Calculate the height of the tropopause
+c****  -----------------------------------------
+       ptropo  = -999.0
+       zplimb=papm1(iplimb)
+       zplimt=papm1(iplimt)
+c****
+c****  2.1 compute dt/dz
+c****  -----------------
+c****       ztm 	lineare Interpolation in p**kappa
+c****     gamma 	dt/dp = a * kappa + papm1(jx,jk)**(kappa-1.)
+
+      do jk=iplimb+1,iplimt-1
+        zpmk(jk)=0.5*(pk(jk-1)+pk(jk))
+
+        zpm(jk)=zpmk(jk)**zzkap      ! p mitte
+
+        za(jk)=(ptm1(jk-1)-ptm1(jk))/(pk(jk-1)-pk(jk))
+        zb(jk) = ptm1(jk)-(za(jk)*pk(jk))
+
+        ztm(jk)=za(jk)*zpmk(jk)+zb(jk) ! T mitte
+        zdtdz(jk)=zfaktor*zkappa*za(jk)*zpmk(jk)/ztm(jk)
+      end do
+
+c****
+c****  2.2 First test: valid dt/dz ?
+c****  -----------------------------
+c****
+      do 1000 jk=iplimb+1,iplimt-1
+
+        if (zdtdz(jk).gt.zgwmo .and. ! dt/dz > -2K/km
+     &       zpm(jk).le.zplimb) then ! zpm not too low
+          ltropp = jk 
+c****
+c****  2.3 dtdz is valid > something in German
+c****  ----------------------------------------
+c****	   1.lineare in p^kappa (= Dieters neue Methode)
+
+          zag = (zdtdz(jk)-zdtdz(jk+1))/
+     &         (zpmk(jk)-zpmk(jk+1)) ! a-gamma
+          zbg = zdtdz(jk+1) - zag*zpmk(jk+1) ! b-gamma
+          if(((zgwmo-zbg)/zag).lt.0.) then
+            zptf=0.
+          else 
+            zptf=1.
+          end if
+          zptph = zptf*abs((zgwmo-zbg)/zag)**zzkap
+          ldtdz=zdtdz(jk+1).lt.zgwmo
+          if(.not.ldtdz) zptph=zpm(jk)
+c****
+c****  2.4 2nd test: dt/dz above 2km must not be lower than -2K/km
+c****  -----------------------------------------------------------
+c****
+          zp2km = zptph + zdeltaz*zpm(jk)
+     &         / ztm(jk)*zfaktor ! p at ptph + 2km
+          zasum = 0.0           ! zdtdz above
+          kcount = 0            ! number of levels above
+c****
+c****  2.5 Test until pm < p2km
+c****  --------------------------
+c****
+          do jj=jk,iplimt-1
+            if(zpm(jj).gt.zptph) cycle ! doesn't happen
+            if(zpm(jj).lt.zp2km) goto 2000 ! ptropo valid
+            zasum = zasum+zdtdz(jj)
+            kcount = kcount+1
+            zaquer = zasum/float(kcount) ! dt/dz mean
+            if(zaquer.le.zgwmo) goto 1000 ! dt/dz above < 2K/1000
+                                          ! discard it
+          end do                ! test next level
+          goto 2000 
+        endif 
+ 1000 continue                  ! next level
+ 2000 continue
+
+      ptropo = papm1(ltropp)
+c****
+      return
+      end

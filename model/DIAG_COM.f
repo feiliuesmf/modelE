@@ -2,7 +2,7 @@
 !@sum  DAGCOM Diagnostic model variables
 !@auth Original Development Team
 !@var  1.0
-      USE MODEL_COM, only : im,jm,lm,imh,ntype
+      USE MODEL_COM, only : im,jm,lm,imh,ntype,kep,istrat
       USE RADNCB, only : LM_REQ
 
       IMPLICIT NONE
@@ -39,7 +39,7 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       DOUBLE PRECISION, DIMENSION(JM,KAPJ) :: APJ
 
 !@param KAJL number of accumulated AJL diagnostics
-      INTEGER, PARAMETER :: KAJL=57
+      INTEGER, PARAMETER :: KAJL=57+KEP
 !@var AJL latitude/height diagnostics
       DOUBLE PRECISION, DIMENSION(JM,LM,KAJL) :: AJL
 
@@ -60,9 +60,9 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@var J50N,J70N special longitudes for AIL diagnostics
       INTEGER :: J50N,J70N
 
-C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
+C NEHIST = (TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param NEHIST,HISTDAYS number of energy history diagnostics, and days
-      INTEGER, PARAMETER :: NEHIST=20
+      INTEGER, PARAMETER :: NEHIST=10*(2+ISTRAT)
       INTEGER, PARAMETER :: HIST_DAYS=100
 !@var ENERGY energy diagnostics
       DOUBLE PRECISION, DIMENSION(NEHIST,HIST_DAYS) :: ENERGY
@@ -93,9 +93,15 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 
 !@param KSPECA,NSPHER number of spectral diagnostics, and harmonics used
       INTEGER, PARAMETER :: KSPECA=20
-      INTEGER, PARAMETER :: NSPHER=8
+      INTEGER, PARAMETER :: NSPHER=4*(2+ISTRAT)
 !@var SPECA spectral diagnostics
       DOUBLE PRECISION, DIMENSION((IMH+1),KSPECA,NSPHER) :: SPECA
+!@var KLAYER index for dividing up atmosphere into layers for spec. anal.
+      INTEGER, DIMENSION(LM) :: KLAYER
+!@param PSPEC pressure levels at which layers are seperated and defined
+C**** 1000 - 150: troposphere           150 - 10 : low strat.
+C****   10 - 1: mid strat               1 and up : upp strat.
+      REAL*8, DIMENSION(3), PARAMETER :: PSPEC = (/ 150., 10., 1. /) 
 
 !@param KTPE number of spectral diagnostics for pot. enthalpy
       INTEGER, PARAMETER :: KTPE=8
@@ -228,13 +234,14 @@ C****      names, indices, units, idacc-numbers, etc.
      *     J_RHDT, J_SHDT, J_EVHDT, J_F2DT, J_HZ1, J_TG2, J_TG1, J_EVAP,
      *     J_PRCP, J_TX, J_TX1, J_TSRF, J_DTSGST, J_DTDGTR, J_RICST,
      *     J_RICTR, J_ROSST, J_ROSTR, J_RSI, J_TYPE, J_RSNOW, J_SWCOR,
-     *     J_OHT,J_OMLT, J_DTDJS, J_DTDJT, J_LSTR, J_LTRO, J_EPRCP,
+     *     J_OHT,J_TG3, J_DTDJS, J_DTDJT, J_LSTR, J_LTRO, J_EPRCP,
      *     J_ERUN1,J_EDIFS, J_F1DT, J_ERUN2, J_HZ0, J_DIFS, J_IMELT,
      *     J_RUN2,J_DWTR2, J_WTR1, J_ACE1, J_WTR2, J_ACE2, J_SNOW,
      *     J_RUN1,J_BRTEMP, J_HZ2, J_PCLDSS, J_PCLDMC, J_PCLD, J_CTOPP
      *     ,J_PRCPSS, J_PRCPMC, J_QP, J_GAM, J_GAMM, J_GAMC, J_TRINCG
      *     ,J_FTHERM, J_HSURF, J_HATM, J_PLAVIS, J_PLANIR, J_ALBVIS
-     *     ,J_ALBNIR, J_SRRVIS, J_SRRNIR, J_SRAVIS, J_SRANIR, J_CDLDEP
+     *     ,J_ALBNIR, J_SRRVIS, J_SRRNIR, J_SRAVIS, J_SRANIR, J_CDLDEP,
+     *     J_CLRTOA, J_CLRTRP, J_TOTTRP
 !@var NAME_J,UNITS_J Names/Units of zonal J diagnostics
       character(len=20), dimension(kaj) :: name_j,units_j
 !@var LNAME_J Long names of zonal J diagnostics
@@ -269,6 +276,10 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_G08,IJ_G09,IJ_G10,IJ_G11,IJ_G12,IJ_G13,IJ_G14,IJ_G15,
      *     IJ_G16,IJ_G17,IJ_G18,IJ_G19,IJ_G20,IJ_G21,IJ_G22,IJ_G23,
      *     IJ_G24,IJ_G25,IJ_G26,IJ_G27,IJ_G28,IJ_G29
+!@var IJ_GWx names for gravity wave diagnostics
+      INTEGER :: IJ_GW1,IJ_GW2,IJ_GW3,IJ_GW4,IJ_GW5,IJ_GW6,IJ_GW7,IJ_GW8
+     *     ,IJ_GW9 
+
 !@var SCALE_IJ scaling for weighted AIJ diagnostics
       REAL*8, DIMENSION(KAIJ) :: SCALE_IJ
 !@var NAME_IJ,UNITS_IJ Names/Units of lat/lon IJ diagnostics
