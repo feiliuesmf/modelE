@@ -37,8 +37,8 @@ include $(MODEL_DIR)/Rules.make
 
 # look for .mod files in MODEL_DIR
 ifeq ($(COMPILER),Absoft)
-FFLAGS += -p $(MODEL_DIR)
-FFLAGSF += -p $(MODEL_DIR)
+FFLAGS += -p $(MODEL_DIR) -I$(MODEL_DIR)
+FFLAGSF += -p $(MODEL_DIR) -I$(MODEL_DIR)
 else
 FFLAGS += -I$(MODEL_DIR)
 FFLAGSF += -I$(MODEL_DIR)
