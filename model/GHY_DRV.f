@@ -75,6 +75,9 @@ c****
      *     ,idd_ev,tf_day1,tf_last,ndiupt
 #ifdef TRACERS_ON
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
+#ifdef TRACERS_DRYDEP
+     &     ,dodrydep
+#endif
 #ifdef TRACERS_WATER
      *     ,nWATER,nGAS,nPART,tr_wd_TYPE,trname
 #endif
@@ -82,9 +85,16 @@ c****
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd,jls_source,tajls,tij_soil
 #endif
-      use fluxes, only : trsource
+#ifdef TRACERS_DRYDEP
+     *     ,tij_drydep,itcon_dd
+#endif
+      use fluxes, only : trsource,trsrfflx
 #ifdef TRACERS_WATER
-     *     ,trevapor,trunoe,gtracer,trsrfflx,trprec
+     *     ,trevapor,trunoe,gtracer,trprec
+#endif
+#ifdef TRACERS_DRYDEP
+     *     ,trdrydep
+      use tracers_DRYDEP, only : dtr_dd,dep_vel
 #endif
 #endif
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
@@ -142,6 +152,10 @@ ccc new vars
 #ifdef TRACERS_SPECIAL_O18
       real*8 fracvl
 #endif
+#endif
+#ifdef TRACERS_DRYDEP
+      real*8 tdryd, tdd, td1
+      integer k
 #endif
 #endif
       real*8 qsat
@@ -217,6 +231,9 @@ c****
 #ifdef TRACERS_WATER
 !$OMP*   ,trgrnd,trsoil_tot,tevapw,tevapd,tevapb,trruns,trrunu,
 !$OMP*   trsoil_rat,trw,trsnowd,tdp, tdt1, wsoil_tot,frac,tevap,ibv
+#endif
+#ifdef TRACERS_DRYDEP
+!$OMP*   ,tdryd,tdd,td1
 #endif
 #endif
 !$OMP*   )
@@ -400,8 +417,12 @@ C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
 C**** is a non-soluble tracer mixed in.)
 C**** Calculate trsfac (set to zero for const flux)
           trsfac(nx)=0.
-C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
           rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
+#ifdef TRACERS_DRYDEP
+          if(dodrydep(n)) trsfac(nx) = rhosrf0
+          !then multiplied by deposition velocity in PBL 
+#endif
+C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
           totflux=0.
           do nsrc=1,ntsurfsrc(n)
             totflux = totflux+trsource(i,j,nsrc,n)
@@ -420,8 +441,14 @@ ccc actually PBL needs evap (kg/m^2*s) / rho_air
       fr_sat = fr_sat_ij(i,j)
 #ifdef TRACERS_WATER
 c**** water tracers are also flux limited
-!      tr_evap_max(1:ntx) = evap_max * trsoil_rat(1:ntx)
-      tr_evap_max(1:ntx) = evap_max * gtracer(ntix(:ntx),itype,i,j)
+      do nx=1,ntx
+        n=ntix(nx)
+C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
+        tr_evap_max(nx) = evap_max * gtracer(n,itype,i,j)
+#ifdef TRACERS_DRYDEP
+        if(dodrydep(n)) tr_evap_max(nx) = 1.d30
+#endif
+      end do
 #endif
       call pbl(i,j,itype,ptype)
 c****
@@ -624,7 +651,35 @@ ccc accumulate tracer evaporation and runoff
      &       atr_evap(nx)/dtsurf *dxyp(j)*ptype
       enddo
 #endif
-
+#ifdef TRACERS_DRYDEP
+      do nx=1,ntx
+        n=ntix(nx)
+ccc accumulate tracer dry deposition
+        if(dodrydep(n)) then       
+#ifdef TRACERS_WATER
+          if (tr_wd_TYPE(n).eq.nWATER) call stop_model
+     &    ('A water tracer should not undergo dry deposition.',255)
+#endif
+          tdryd=-rhosrf0*dep_vel(n)*trs(nx)*dtsurf
+          tdd = tdryd*dxyp(j)*ptype
+          td1 = trsrfflx(i,j,n)*dtsurf
+          if (trm(i,j,1,n)+td1+tdd.lt.0.and.tdd.lt.0) then
+            if (qcheck) write(99,*) "limiting tdryd earth",i,j,n,tdd
+     *           ,trm(i,j,1,n)
+            tdd= -(trm(i,j,1,n)+td1)
+            tdryd= tdd/(dxyp(j)*ptype)
+            trsrfflx(i,j,n)= - trm(i,j,1,n)/dtsurf
+          else
+            trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdd/dtsurf
+          end if
+          trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - ! positive down
+     &      tdryd*ptype/(dtsurf*NIsurf)
+          taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n)+
+     &      tdryd*ptype/dtsurf ! then /NIsurf in IJt_MAPk (scale var)
+          dtr_dd(j,n)=dtr_dd(j,n)+tdd
+        end if
+      end do
+#endif
 cddd#ifdef TRACERS_WATER_OLD
 cdddC****
 cdddC**** Calculate Water Tracer Evaporation
@@ -1780,6 +1835,7 @@ c**** check for reasonable temperatures over earth
 !@sum  daily_earth performs daily tasks for earth related functions
 !@auth original development team
 !@ver  1.0
+!@calls RDLAI
       use constant, only : rhow,twopi,edpery,tf
       use model_com, only : nday,nisurf,jday,fearth,wfcs
       use geom, only : imaxj
@@ -1843,6 +1899,9 @@ c****
         end do
         end do
       end if
+#ifdef TRACERS_DRYDEP
+      CALL RDLAI ! read leaf are indecies for tracer dry deposition
+#endif
 
       return
       end subroutine daily_earth

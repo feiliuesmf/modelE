@@ -67,6 +67,12 @@ C          ,UG,VG,WG,ZMIX,W2_1
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q,w2_1
 #ifdef TRACERS_ON
      *     ,tr
+#ifdef TRACERS_DRYDEP
+      USE tracers_DRYDEP, only: TS_drydep
+#ifdef TRACERS_AEROSOLS_Koch
+      USE AEROSOL_SOURCES, only: PBLH
+#endif
+#endif
 #endif
 
       USE PBLCOM
@@ -137,7 +143,9 @@ C        roughness lengths from Brutsaert for rough surfaces
         end do
         dbl=zpbl
       endif
-
+#if (defined TRACERS_DRYDEP) && (defined TRACERS_AEROSOLS_Koch)
+       PBLH(I,J)=dbl
+#endif
       ppbl=pedn(l,i,j)
       coriol=sinp(j)*omega2
       ttop=tkv
@@ -176,12 +184,17 @@ C        roughness lengths from Brutsaert for rough surfaces
       do nx=1,ntx
         tr(:,nx)=trabl(:,ntix(nx),i,j,itype)
       end do
+#ifdef TRACERS_DRYDEP
+C**** Convert surface virtual potential temperature to actual surface
+C**** temperature.  Note that at the surface, potential temperature =
+C**** actual temperature, so in practice, just convert from virtual:
+      TS_drydep=tpbl(1)/(1.+qpbl(1)*deltx) 
+#endif
 #endif
 
       cm=cmgs(i,j,itype)
       ch=chgs(i,j,itype)
       cq=cqgs(i,j,itype)
-
       dpdxr  = DPDX_BY_RHO(i,j)
       dpdyr  = DPDY_BY_RHO(i,j)
       dpdxr0 = DPDX_BY_RHO_0(i,j)

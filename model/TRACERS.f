@@ -84,7 +84,6 @@ C**** Tracer concentration
 #ifdef TRACERS_WATER
         if (to_per_mil(n).gt.0) units_jln(k,n) = unit_string(0,cmr(n))
 #endif
-
 #ifdef TRACERS_WATER
 C****   TRACER CONCENTRATION IN CLOUD WATER 
         k = k + 1
@@ -307,6 +306,16 @@ C**** Tracers conc. in soil water
           units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
         end if
         scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
+#endif
+#ifdef TRACERS_DRYDEP
+C**** Tracers dry deposition flux.
+      k = k+1
+      tij_drydep = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_dry_dep'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *       ' Dry Deposition'
+        units_tij(k,n)=unit_string(ijtm_power(n)-9,'kg/m^2/s')
+        scale_tij(k,n)=10.**(-ijtm_power(n)+9)/REAL(NIsurf,KIND=8)
 #endif
       end do
 
@@ -737,15 +746,25 @@ C**** check whether air mass is conserved
 !@ver  1.0
 #ifdef TRACERS_ON      
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
+#ifdef TRACERS_SPECIAL_Shindell      
+     & ,im,jm,lm
+#endif
       USE TRACER_COM
+#ifdef TRACERS_DRYDEP
+      USE tracers_DRYDEP, only: CFRAC,trdrydep_rad
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,
-     & yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,OxIC,corrOx
+     & yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,OxIC,corrOx,ss,
+     & SALBFJ,RCLOUDFJ,O3DLJI,O3DLJI_clim,JPPJ
 #endif
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
       INTEGER iaction !@var iaction flag for reading or writing to file
+#ifdef TRACERS_SPECIAL_Shindell 
+      INTEGER K1,K2   !@var K1,K2 dummy loop variables
+#endif
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
@@ -772,8 +791,12 @@ C**** check whether air mass is conserved
      *     ,TRWM
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     *     ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2
-     *     ,yAldehyde,yXO2N,yRXPAR,OxIC,corrOx
+     *     ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
+     *     ,yXO2N,yRXPAR,OxIC,corrOx,SALBFJ,RCLOUDFJ,O3DLJI
+     *     ,O3DLJI_clim,((ss(K1,K2,1,1),K1=1,jppj),K2=1,IM*JM*LM)
+#endif
+#ifdef TRACERS_DRYDEP
+     *     ,CFRAC,trdrydep_rad
 #endif
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
@@ -783,8 +806,12 @@ C**** check whether air mass is conserved
      *       ,TRWM
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     *     ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2
-     *     ,yAldehyde,yXO2N,yRXPAR,OxIC,corrOx
+     *     ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
+     *     ,yXO2N,yRXPAR,OxIC,corrOx,SALBFJ,RCLOUDFJ,O3DLJI
+     &     ,O3DLJI_clim,((ss(K1,K2,1,1),K1=1,jppj),K2=1,IM*JM*LM)
+#endif
+#ifdef TRACERS_DRYDEP
+     *     ,CFRAC,trdrydep_rad
 #endif
           IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER

@@ -37,6 +37,14 @@ C**** Each tracer has a variable name and a unique index
      *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
      *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin'/)
 #else
+#ifdef TRACERS_AEROSOLS_Koch
+      integer, parameter :: ntm=5
+      character*8, parameter :: trname(ntm)=(/
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  '/)
+!@var aer_fq fraction of aerosol that condenses
+      real*8 fq_aer(ntm)
+
+#else ! default:
 #ifdef TRACERS_WATER
       integer, parameter :: ntm=2
       character*8, parameter :: trname(ntm)=(/'Air     ','Water   '/)
@@ -52,6 +60,7 @@ C**** Each tracer has a variable name and a unique index
 #endif
 #endif
 #endif
+#endif
 !@var N_XXX: variable names of indices for tracers
       integer :: 
      *     n_Air,    n_SF6,   n_Rn222, n_CO2,      n_N2O,
@@ -59,7 +68,8 @@ C**** Each tracer has a variable name and a unique index
      *     n_H2O18,  n_HDO,   n_HTO,   n_Ox,       n_NOx, 
      *     n_N2O5,   n_HNO3,  n_H2O2,  n_CH3OOH,   n_HCHO,
      *     n_HO2NO2, n_CO,    n_PAN,   n_Isoprene, n_AlkylNit,
-     *     n_Alkenes,n_Paraffin 
+     *     n_Alkenes, n_Paraffin, n_DMS, n_MSA, n_SO2,
+     *     n_SO4    ,n_H2O2_s 
 
 C****    The following are set in tracer_IC
 !@var T_QLIMIT: if t_qlimit=.true. tracer is maintained as positive
@@ -78,6 +88,16 @@ C****    The following are set in tracer_IC
       real*8, dimension(ntm) :: tr_mm
 !@var needtrs: true if surface tracer value from PBL is required
       logical, dimension(ntm) :: needtrs
+#ifdef TRACERS_DRYDEP
+!@var dodrydep: true if tracer should undergo dry deposition
+      logical, dimension(ntm) :: dodrydep
+!@var F0 reactivity factor for oxidation of biological substances
+      real*8, dimension(ntm)  :: F0
+!@var HSTAR Henry's Law const for tracer dry deposition. mole/(L atm)
+!@+   Same as the tr_RKD wet dep variable, except for units.
+!@+   If F0 & HSTAR both 0, & tracer not particulate, then no drydep.
+      real*8, dimension(ntm)  :: HSTAR
+#endif
 
 C**** Note units for these parameters!
 C**** Example: clay dust; trpdens=2.5d3, trradius=0.73d-6 
@@ -101,27 +121,31 @@ C****
 !@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
 #ifdef TRACERS_SPECIAL_Shindell
       integer, parameter :: nt3Dsrcmax=4
+#elif (defined TRACERS_AEROSOLS_Koch)
+      integer, parameter :: nt3Dsrcmax=9
 #else
       integer, parameter :: nt3Dsrcmax=3
 #endif    
 #endif
 
-#ifdef TRACERS_WATER
-!@param nWD_TYPES number of tracer types for wetdep purposes
+#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
 !@param nGAS   index for wetdep tracer type = gas
 !@param nPART  index for wetdep tracer type = particle/aerosol
 !@param nWATER index for wetdep tracer type = water 
 !@+       (original condense method)
-      integer, parameter :: nWD_TYPES=3, nGAS=1, nPART=2, nWATER=3
-!@param tr_evap_fact fraction of re-evaporation by tracer type
-C note, tr_evap_fact is not dimensioned as NTM:
-      REAL*8, parameter, dimension(nWD_TYPES) :: tr_evap_fact=
-     *     (/1.d0, 0.5d0,  1.d0/)
-
+      integer, parameter :: nGAS=1, nPART=2, nWATER=3
 !@var tr_wd_TYPE: tracer wet dep type (gas, particle, water)
       integer, dimension(ntm) :: tr_wd_TYPE
 !@var tr_RKD: Henry's Law coefficient (in mole/Joule please !)
       real*8, dimension(ntm) :: tr_RKD
+#endif      
+#ifdef TRACERS_WATER   
+!@param nWD_TYPES number of tracer types for wetdep purposes  
+      integer, parameter :: nWD_TYPES=3 !(gas,particle,water)
+!@param tr_evap_fact fraction of re-evaporation by tracer type
+C note, tr_evap_fact is not dimensioned as NTM:
+      REAL*8, parameter, dimension(nWD_TYPES) :: tr_evap_fact=
+     *     (/1.d0, 0.5d0,  1.d0/)
 !@var tr_DHD: coefficient of temperature-dependence term of Henry's
 !@+   Law coefficient (in Joule/mole please !)
       real*8, dimension(ntm) :: tr_DHD

@@ -5,7 +5,6 @@
 !@auth  M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver   1.0 (taken from CB265)
 !@calls CLOUDS:MSTCNV,CLOUDS:LSCOND
-
       USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs,sha,deltx
      *     ,teeny
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
@@ -30,16 +29,27 @@
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
 #ifdef TRACERS_WATER
      *     ,trwm,trw0
+#ifdef TRACERS_AEROSOLS_Koch
+     *     ,trname
+      USE AEROSOL_SOURCES, only: MDF
+      USE FILEMANAGER, only: openunit,closeunit
+#endif
 #endif
       USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
      *     ,itcon_ss
 #ifdef TRACERS_WATER
      *     ,jls_source,taijn,tajls,tij_prec
+#ifdef TRACERS_AEROSOLS_Koch
+     *     ,jls_3Dsource
+#endif
 #endif
       USE CLOUDS, only : tm,tmom ! local  (i,j)
      *     ,ntx,ntix              ! global (same for all i,j)
 #ifdef TRACERS_WATER
      *     ,trwml,trsvwml,trprmc,trprss
+#ifdef TRACERS_AEROSOLS_Koch
+     *     ,dt_sulf_mc,dt_sulf_ss
+#endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE LIGHTNING, only : i_lgt,j_lgt,RNOx_lgt
@@ -68,7 +78,11 @@
 #ifdef TRACERS_ON
 !@var tmsave holds tracer value (for diagnostics)
       REAL*8 tmsave(lm,ntm),dtr_mc(jm,ntm),dtr_ss(jm,ntm)
-      INTEGER NX
+      INTEGER NX,N
+#ifdef TRACERS_AEROSOLS_Koch
+c       real*8 a_sulf(im,jm),cc_sulf(im,jm)
+c       integer nc_tr,id,ixx,ix1,ixm1,iuc_s
+#endif
 #endif
 
 !@var UC,VC,UZM,VZM velocity work arrays
@@ -126,7 +140,6 @@ Cred*                   end Reduced Arrays 1
       REAL*8  AJEQIL(J5N-J5S+1,IM,JM), AREGIJ(IM,JM,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,2:JM-1,LM), VKM(4,IM,2:JM-1,LM)
-
 C
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
 C
@@ -167,7 +180,7 @@ C**** COMPUTE ZONAL MEAN U AND V AT POLES
       ENDDO
       IH=JHOUR+1
 #ifdef TRACERS_ON
-C**** Find the ntx active tracers ntix(1->ntx)
+C**** Find the ntx active tracers ntix(1->ntx
       nx = 0
       do n=1,ntm
         if (itime.lt.itime_tr0(n)) cycle
@@ -189,6 +202,9 @@ C****
 !$OMP*  DH1S,DH12,DTDZ,DTDZG,DTDZS,DUDZ,DUDZG,DUDZS,DVDZ,DVDZG,DVDZS,
 !$OMP*  DTAU_S,DTAU_C,DEM_S,DEM_C, FQ_ISCCP, ENRGP,EPRCP,
 !$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IDI,IDJ,
+#ifdef TRACERS_SPECIAL_Shindell
+!$OMP*  i_lgt,j_lgt,
+#endif
 !$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 !$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT, WMERR,
@@ -312,9 +328,9 @@ C**** SET DEFAULT FOR AIR MASS FLUX (STRAT MODEL)
 
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Save current i,j for lightning calculation in MSTCNV:
-      i_lgt = i
-      j_lgt = j
-      RNOx_lgt(i,j) = 0.
+       i_lgt = i
+       j_lgt = j
+       RNOx_lgt(i,j) = 0.
 #endif
 
 C****
@@ -539,7 +555,6 @@ cECON *     *AIRM(1:LP50)) )*100.*BYGRAV
 C**** Error reports
       IF (IERR.ne.0) WRITE(99,'(I10,3I4,A,D14.5,A)')
      *       Itime,I,J,LERR,' CONDSE:H2O<0',WMERR,' ->0'
-
 C**** Accumulate diagnostics of LSCOND
          AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
          DO IT=1,NTYPE
@@ -627,6 +642,16 @@ c          skt=tf+tg1(i,j)
      *      dem_c(l)=1.-exp(-taumcl(LM+1-L)*byic)
 
           qv(l)=ql(LM+1-L)
+#ifdef TRACERS_AEROSOLS_Koch
+c          ixx=1 +3*(nc_tr-1)
+c          ix1=ixx+1
+c          ixm1=ixx-1
+c          if (ixm1.eq.0) ixm1=72
+c          if (i.eq.ixx.or.i.eq.ix1.or.i.eq.ixm1) then
+c            if (cc_sulf(i,j).lt.cc(l))
+c     *      cc_sulf(i,j)=cc(l)
+c          endif
+#endif
         end do
         phalf(lm+1)=ple(1)*100.
         itrop = LM+1-LTROPO(I,J)
@@ -634,6 +659,7 @@ c          skt=tf+tg1(i,j)
         call ISCCP_CLOUD_TYPES(pfull,phalf,qv,
      &       cc,conv,dtau_s,dtau_c,skt,
      &       at,dem_s,dem_c,itrop,fq_isccp,ctp,tauopt,nbox,jerr)
+
         if(jerr.ne.0) jckerr = jckerr + 1
 C**** set ISCCP diagnostics
         if (nbox.gt.0) then
@@ -748,6 +774,18 @@ C**** TRACERS: Use only the active ones
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
           trwm(i,j,l,n) = trwml(nx,l)
+#ifdef TRACERS_AEROSOLS_Koch
+        tajls(j,l,jls_3Dsource(2,n))=tajls(j,l,jls_3Dsource(2,n))+
+     *   dt_sulf_mc(l,n)
+        tajls(j,l,jls_3Dsource(3,n))=tajls(j,l,jls_3Dsource(3,n))+
+     *   dt_sulf_ss(l,n)
+c save for cloud-sulfate correlation
+       select case (trname(n))
+       case('SO4')
+c      if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,n)
+       MDF(i,j)=airxl/3.d0
+       end select
+#endif
 #endif
         end do
 #ifdef TRACERS_WATER
@@ -805,6 +843,18 @@ C**** Save the conservation quantities for tracers
         call diagtcb(dtr_mc(1,nx),itcon_mc(n),n)
         call diagtcb(dtr_ss(1,nx),itcon_ss(n),n)
       end do
+#ifdef TRACERS_AEROSOLS_Koch
+c      nc_tr=nc_tr+1
+c     if (nc_tr.eq.25) then
+c      call openunit("CLD_SO4",iuc_s,.true.,.false.)
+c      write(iuc_s) (SNGL(a_sulf(I,1)),I=1,IM*JM),
+c     *(SNGL(cc_sulf(I,1)),I=1,IM*JM)
+c      call closeunit(iuc_s)
+c      a_sulf(:,:)=0.
+c      cc_sulf(:,:)=0.
+c      nc_tr=1
+c     endif
+#endif
 #endif
 
 C**** Delayed summations (to control order of summands)

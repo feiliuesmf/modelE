@@ -55,9 +55,17 @@ C**** TAIJLN
 C**** TAIJN
 !@param KTAIJ number of 3D diagnostics for each tracer
 #ifdef TRACERS_WATER
+#ifdef TRACERS_DRYDEP
+      integer, parameter :: ktaij=12
+#else
       integer, parameter :: ktaij=11
+#endif
+#else
+#ifdef TRACERS_DRYDEP
+      integer, parameter :: ktaij=4
 #else
       integer, parameter :: ktaij=3
+#endif
 #endif
 !@var IJT_XX names for taijn diagnostics
       integer tij_conc,tij_surf,tij_mass
@@ -65,6 +73,9 @@ C**** TAIJN
 !@var IJT_XX names for water-based taijn diagnostics
       integer tij_rvr,tij_seaice,tij_prec,tij_evap,tij_grnd,tij_lk1
      *     ,tij_lk2,tij_soil
+#endif
+#ifdef TRACERS_DRYDEP
+      integer tij_drydep
 #endif
 !@var TAIJN lat/lon tracer diagnostics (all tracers)
       real*8, dimension(im,jm,ktaij,ntm) :: taijn
@@ -204,7 +215,9 @@ C**** TCONSRV
       INTEGER, DIMENSION(NTM) :: itcon_mc
 !@var itcon_grav Index array for large-scale condensation conserv. diags
       INTEGER, DIMENSION(NTM) :: itcon_ss
-
+#ifdef TRACERS_DRYDEP
+      INTEGER, DIMENSION(NTM) :: itcon_dd
+#endif
 C----------------------------------------------------
 !@param KTACC total number of tracer diagnostic words
 !@var TACC: Contains all tracer diagnostic accumulations

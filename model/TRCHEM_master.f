@@ -763,6 +763,7 @@ c
       END SUBROUTINE Crates
 c
 c
+#ifdef TRACERS_SPECIAL_Shindell
       SUBROUTINE checktracer(I,J)
 !@sum checktracer for various debugging of tracer chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
@@ -850,6 +851,7 @@ c check for unreal (not-a-number) tracers:
       RETURN
 
       END SUBROUTINE checktracer
+#endif
       
       
 

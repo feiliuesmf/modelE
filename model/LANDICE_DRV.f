@@ -24,6 +24,9 @@
       USE TRACER_COM, only : trglac
 #endif
 #endif
+#ifdef TRACERS_OCEAN
+      USE TRACER_COM, only :  trglac
+#endif
       USE DAGCOM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
       USE PARAM
       IMPLICIT NONE

@@ -141,6 +141,10 @@ C**** sea ice melt and iceberg/glacial melt.
 !@var ftrsi_io ice-ocean tracer fluxes under ice (kg/m^2)
       REAL*8, DIMENSION(NTM,IM,JM) :: ftrsi_io
 #endif
+#ifdef TRACERS_DRYDEP
+!@var TRDRYDEP tracer dry deposition by type (kg/m^2) (positive down)
+      REAL*8, DIMENSION(NTM,NSTYPE,IM,JM) :: TRDRYDEP
+#endif
 #endif
 
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)

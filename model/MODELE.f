@@ -695,6 +695,12 @@ C****
 #ifdef TRACERS_SPECIAL_Lerner
       write(6,*) '...and Jean/David tracers and chemistry'
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      write(6,*) '...and Drew Shindell tracers and chemistry'
+#endif
+#ifdef TRACERS_DRYDEP
+      write(6,*) '...and tracer dry deposition'
+#endif
 C****
 C**** Print and Copy Namelist parameter changes to disk so they may be
 C**** read in repeatedly. Then read them in to overwrite the defaults

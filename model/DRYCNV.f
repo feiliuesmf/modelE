@@ -300,9 +300,9 @@ C**** Save additional changes in KE for addition as heat later
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv,dxyp
       USE DYNAMICS, only : byam,am,dke
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm,trm,trmom,trname
+      USE TRACER_COM, only : ntm,trm,trmom,trname,t_qlimit
 #ifdef TRACERS_WATER
-     *     ,trw0,t_qlimit
+     *     ,trw0,tr_wd_TYPE,nWATER
 #endif
       USE FLUXES, only : trflux1
 #endif
@@ -311,7 +311,7 @@ C**** Save additional changes in KE for addition as heat later
       REAL*8, PARAMETER :: qmin=1.d-12
       integer i,j,k,n
       real*8, intent(in) :: dt
-      real*8 hemi
+      real*8 hemi,trmin
       real*8, dimension(im,jm) :: usave,vsave
 
       do j=1,jm
@@ -326,15 +326,17 @@ C**** Save additional changes in KE for addition as heat later
         do j=1,jm
           do i=1,imaxj(j)
             trm(i,j,1,n) = trm(i,j,1,n) + trflux1(i,j,n)*dt
+            trmin=0.d0
 #ifdef TRACERS_WATER
-            if (t_qlimit(n).and.trm(i,j,1,n).lt.qmin*trw0(n)*am(1,i,j)
-     *           *dxyp(j)) then
-              if (qcheck) write(99,*) trname(n),I,J,' TR1:',trm(i,j,1,n)
-     *             ,'->',qmin*trw0(n)*am(1,i,j)*dxyp(j)
-              trm(i,j,1,n) = qmin*trw0(n)*am(1,i,j)*dxyp(j)
+            IF(tr_wd_TYPE(n).eq.nWATER) trmin = 
+     &      qmin*trw0(n)*am(1,i,j)*dxyp(j)
+#endif
+            if (t_qlimit(n).and.trm(i,j,1,n).lt.trmin) then
+              if (qcheck) write(99,*) trname(n),I,J,' TR1:',
+     *        trm(i,j,1,n),'->',trmin
+              trm(i,j,1,n) = trmin
               trmom(:,i,j,1,n)=0.
             end if
-#endif
           end do
         end do
       end do

@@ -13,7 +13,7 @@
       SUBROUTINE init_tracer
 !@sum init_tracer initializes trace gas attributes and diagnostics
 !@auth J. Lerner
-!@calls sync_param, SET_TCON
+!@calls sync_param, SET_TCON, RDLAND, RDDRYCF
       USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim
       USE DAGCOM, only: ia_src,ia_12hr,ir_log2,npts
@@ -43,6 +43,10 @@
 #ifdef TRACERS_WATER
       real*8 fracls
 #endif
+#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
+!@param convert_HSTAR converts from mole/Joule to mole/(L*atm)
+      real*8, parameter :: convert_HSTAR = 1.01325d2
+#endif
 
 C**** Set defaults for tracer attributes (all dimensioned ntm)
       itime_tr0 = 0
@@ -58,13 +62,20 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       tcscale = 0.
 #endif
 #endif
-#ifdef TRACERS_WATER
-      tr_wd_TYPE = nGas         ! or  nPART  or nWATER
-      tr_DHD = 0.
+#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
+      tr_wd_TYPE = nGas       !other options are nPART or nWATER
       tr_RKD = 0.
+#endif
+#ifdef TRACERS_WATER
+      tr_DHD = 0.
       trli0 = 0.
       trsi0 = 0.
       tr_H2ObyCH4 = 0.
+#endif
+#ifdef TRACERS_DRYDEP
+      dodrydep = .false.
+      F0 = 0.
+      HSTAR = tr_RKD * convert_HSTAR
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
       trw0 = 0.
@@ -228,12 +239,20 @@ C**** Get solar variability coefficient from namelist if it exits
       n_Ox = n
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
+#ifdef TRACERS_DRYDEP
+          F0(n) = 1.d0
+          HSTAR(n) = 1.d-2
+#endif
 
       case ('NOx')
       n_NOx = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 3 ! fossil fuel, biomass burning, soil
           tr_mm(n) = 14.01d0
+#ifdef TRACERS_DRYDEP
+          F0(n) = 1.d-1
+          HSTAR(n) = 1.d-2
+#endif
 
       case ('N2O5')
       n_N2O5 = n
@@ -244,15 +263,25 @@ C**** Get solar variability coefficient from namelist if it exits
       n_HNO3 = n
           ntm_power(n) = -11
           tr_mm(n) = 63.018d0
-#ifdef TRACERS_WATER
+#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
           tr_RKD(n) = 2.073d3 ! in mole/J = 2.1d5 mole/(L atm)
 #endif
+#ifdef TRACERS_DRYDEP
+          HSTAR(n)=tr_RKD(n)*convert_HSTAR
+#endif
+
       case ('H2O2')
       n_H2O2 = n
           ntm_power(n) = -11
           tr_mm(n) = 34.016d0
-#ifdef TRACERS_WATER
+#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
           tr_RKD(n) = 9.869d2    ! in mole/J = 1.d5 mole/(L atm)
+#endif
+#ifdef TRACERS_DRYDEP
+          HSTAR(n)=tr_RKD(n)*convert_HSTAR
+          F0(n) = 1.d0
+#endif
+#ifdef TRACERS_WATER
           tr_DHD(n) = -5.52288d4 ! in J/mole = -13.2 kcal/mole.
 #endif
 
@@ -260,13 +289,19 @@ C**** Get solar variability coefficient from namelist if it exits
       n_CH3OOH = n
           ntm_power(n) = -11
           tr_mm(n) = 48.042d0
+#ifdef TRACERS_DRYDEP
+          HSTAR(n) = 3.d2
+#endif
 
       case ('HCHO')
       n_HCHO = n
           ntm_power(n) = -11
           tr_mm(n) = 30.026d0
-#ifdef TRACERS_WATER
+#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
           tr_RKD(n) = 6.218d1 ! mole/J = 6.3d3 mole/(L atm)
+#endif
+#ifdef TRACERS_DRYDEP
+          HSTAR(n)=tr_RKD(n)*convert_HSTAR
 #endif
 
       case ('HO2NO2')
@@ -284,12 +319,18 @@ C**** Get solar variability coefficient from namelist if it exits
       n_PAN = n
           ntm_power(n) = -11
           tr_mm(n) = 121.054d0   ! assuming CH3COOONO2 = PAN
+#ifdef TRACERS_DRYDEP
+          HSTAR(n) = 3.68d0
+#endif
 
       case ('Isoprene')
       n_Isoprene = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 1   ! (vegetation?)
           tr_mm(n) = 60.05d0 ! i.e. 5 carbons
+#ifdef TRACERS_DRYDEP
+          HSTAR(n) = 1.3d-2
+#endif
 
       case ('AlkylNit')
       n_AlkylNit = n
@@ -318,8 +359,78 @@ C + 4.5% Butane(4C) + 10.8% Pentane(5C) + 12.6% higher alkanes(8C)
 C + 5.1% Ketones(3.6C)) = 4.95 C
 C
 C This number wasn't adjusted when the vegetation source was added.
+ 
+#ifdef TRACERS_AEROSOLS_Koch
+      case ('DMS')
+      n_DMS = n
+          ntm_power(n) = -12
+          ntsurfsrc(n) = 1   ! ocean DMS concentration
+          tr_mm(n) = 62.
+
+      case ('MSA')
+      n_MSA = n
+          ntm_power(n) = -13
+          ntsurfsrc(n) = 1   ! sink to dry dep
+          tr_mm(n) = 96.  !(H2O2 34;SO2 64)
+          trpdens(n)=1.7d3   !kg/m3 this is sulfate value
+          trradius(n)=5.d-7 !m (SO4 3;BC 1;OC 3)
+          fq_aer(n)=1.0   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+#ifdef TRACERS_DRYDEP
+          HSTAR(n)=0.d0
+          F0(n) = 0.d0
+#endif
+      case ('SO2')
+      n_SO2 = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 2   !EDGAR,+biomass
+          tr_mm(n) = 64.
+          tr_RKD(n) =0.0118 !mole/J or  1.2  M/atm
+          tr_DHD(n) =-2.62d4! in J/mole= -6.27 kcal/mol
+          tr_wd_TYPE(n) = nGAS
+#ifdef TRACERS_DRYDEP
+c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
+          HSTAR(N)=1.D5
+          F0(n) = 0.d0
+#endif
+      case ('SO4')
+      n_SO4 = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 1   ! EDGAR
+          tr_mm(n) = 96.
+          trpdens(n)=1.7d3   !kg/m3 this is sulfate value
+          trradius(n)=3.d-7 !m
+          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+#ifdef TRACERS_DRYDEP
+          HSTAR(n)=0.d0
+          F0(n) = 0.d0
+#endif
+      case ('H2O2_s')
+      n_H2O2_s = n
+          ntm_power(n) = -10
+          tr_mm(n) = 34.
+          tr_RKD(n) = 730. !mole/J or 7.4E4 M/atm (Drew uses 986.9)
+          tr_DHD(n) = -5.52288d4 ! in J/mole = -13.2 kcal/mole.
+          tr_wd_TYPE(n) = nGAS
+#ifdef TRACERS_DRYDEP
+c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
+          HSTAR(N)=1.D5
+          F0(n) = 1.d0
+#endif
+#endif
 #endif
       end select
+
+#ifdef TRACERS_DRYDEP
+C     If tracers are particles or have non-zero HSTAR or F0 do dry dep:
+C     Any tracers that dry deposits needs the surface concentration:
+      if(HSTAR(n).GT.0..OR.F0(n).GT.0..OR.tr_wd_TYPE(n).eq.nPART) then
+        dodrydep(n)=.true.
+        needtrs(n)=.true.
+      end if
+#endif
+
       end do
 
 #ifdef TRACERS_ON
@@ -1215,6 +1326,291 @@ C**** special unique to HTO
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
+      case ('DMS')
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Ocean_source_of'//trname(n)
+        lname_jls(k) = 'DMS ocean source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) =0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+C
+        k = k + 1
+        jls_source(2,n) = k
+        sname_jls(k) = 'TKE_Contribution'//trname(n)
+        lname_jls(k) = 'SGSWSP TKE'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) =0 
+        units_jls(k) = unit_string(jls_power(k),'%')
+
+        k = k + 1
+        jls_source(3,n) = k
+        sname_jls(k) = 'Wet_Conv_Contr'//trname(n)
+        lname_jls(k) = 'SGSWSP Wet Conv'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) =0 
+        units_jls(k) = unit_string(jls_power(k),'%')
+
+        k = k + 1
+        jls_source(4,n) = k
+        sname_jls(k) = 'Dry_Conv_Contr'//trname(n)
+        lname_jls(k) = 'SGSWSP Dry Conv'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) =0 
+        units_jls(k) = unit_string(jls_power(k),'%')
+
+
+        k = k + 1
+        jls_source(5,n) = k
+        sname_jls(k) = 'SGSWSP-old'//trname(n)
+        lname_jls(k) = 'DMS SGSWP-old/old'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) =0 
+        units_jls(k) = unit_string(jls_power(k),'%')
+
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'Chemical_sink_of'//trname(n)
+        lname_jls(k) = 'DMS chemical loss'
+        jls_index(k) = n
+        jls_ltop(k) =LM
+        jls_power(k) =0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+       case ('MSA')
+c put in chemical production of MSA
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'chemistry_source_of'//trname(n)
+        lname_jls(k) = 'Chemical production of MSA'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c sink of MSA to dry dep
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Dry_dep_sink_of'//trname(n)
+        lname_jls(k) = 'MSA dry dep sink'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) =-1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+       case ('SO2')
+c put in chemical production of SO2
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'dms_source_of'//trname(n)
+        lname_jls(k) = 'production of SO2 from DMS'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) =  1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c convective chem cloud phase sink of SO2
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'mc_cloud_chem_sink_of'//trname(n)
+        lname_jls(k) = 'SO2 used in convective cloud chem'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c stratiform chem cloud phase sink of SO2
+        k = k + 1
+        jls_3Dsource(3,n) = k
+        sname_jls(k) = 'ss_cloud_chem_sink_of'//trname(n)
+        lname_jls(k) = 'SO2 used in stratiform cloud chem'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c volcanic production of SO2
+        k = k + 1
+        jls_3Dsource(4,n) = k
+        sname_jls(k) = 'volcanic_source_of'//trname(n)
+        lname_jls(k) = 'production of SO2 from volcanos'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c aircraft production of SO2
+        k = k + 1
+        jls_3Dsource(5,n) = k
+        sname_jls(k) = 'aircraft_source_of'//trname(n)
+        lname_jls(k) = 'production of SO2 from aircraft'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c Oxidants
+        k = k + 1
+        jls_3Dsource(6,n) = k
+        sname_jls(k) = 'OH'//trname(n)
+        lname_jls(k) = 'OH'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) =3
+        units_jls(k) = unit_string(jls_power(k),'molec/cm3')
+        k = k + 1
+        jls_3Dsource(7,n) = k
+        sname_jls(k) = 'HO2'//trname(n)
+        lname_jls(k) = 'HO2'
+        jls_index(k) = n
+        jls_ltop(k) =LM
+        jls_power(k) =5
+        units_jls(k) = unit_string(jls_power(k),'molec/cm3')
+        k = k + 1
+        jls_3Dsource(8,n) = k
+        sname_jls(k) = 'photolysis_rate_of_H2O2'//trname(n)
+        lname_jls(k) = 'photolysis rate of H2O2'
+        jls_index(k) = n
+        jls_ltop(k) =LM
+        jls_power(k) =-8
+        units_jls(k) = unit_string(jls_power(k),'/s')
+        k = k + 1
+        jls_3Dsource(9,n) = k
+        sname_jls(k) = 'NO3'//trname(n)
+        lname_jls(k) = 'NO3'
+        jls_index(k) = n
+        jls_ltop(k) =LM
+        jls_power(k) =5
+        units_jls(k) = unit_string(jls_power(k),'molec/cm3')
+c industrial source
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Industrial_src_of'//trname(n)
+        lname_jls(k) = 'SO2 industrial source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) =0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c biomass burning source
+        k = k + 1
+        jls_source(2,n) = k
+        sname_jls(k) = 'Biomass_src_of'//trname(n)
+        lname_jls(k) = 'SO2 biomass source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) =0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c sink of SO2 to dry dep
+        k = k + 1
+        jls_source(3,n) = k
+        sname_jls(k) = 'Dry_dep_sink_of'//trname(n)
+        lname_jls(k) = 'SO2 dry dep sink'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) =0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+        case ('SO4')
+c gas phase source of SO4
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'gas_phase_source_of'//trname(n)
+        lname_jls(k) = 'SO4 gas phase source'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = 1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c convective cloud phase source of SO4
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'mc_cloud_source_of'//trname(n)
+        lname_jls(k) = 'SO4 made in convective clouds'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c stratiform cloud phase source of SO4
+        k = k + 1
+        jls_3Dsource(3,n) = k
+        sname_jls(k) = 'ss_cloud_source_of'//trname(n)
+        lname_jls(k) = 'SO4 made in stratiform clouds'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c heterogeneous source of SO4
+        k = k + 1
+        jls_3Dsource(4,n) = k
+        sname_jls(k) = 'heterogeneous_source_of'//trname(n)
+        lname_jls(k) = 'SO4 made in SO4'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -3 
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c industrial source
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Industrial_src_of'//trname(n)
+        lname_jls(k) = 'SO4 industrial source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) =0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c sink of SO2 to dry dep
+        k = k + 1
+        jls_source(2,n) = k
+        sname_jls(k) = 'Dry_dep_sink_of'//trname(n)
+        lname_jls(k) = 'SO4 dry dep sink'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) =0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        case ('H2O2_s')
+c gas phase source and sink of H2O2
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'gas_phase_source_of'//trname(n)
+        lname_jls(k) = 'H2O2 gas phase source'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = 2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c convective chem cloud phase sink of H2O2
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'mc_cloud_chem_sink_of'//trname(n)
+        lname_jls(k) = 'H2O2 used in convective cloud chem'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c stratiform chem cloud phase sink of H2O2
+        k = k + 1
+        jls_3Dsource(3,n) = k
+        sname_jls(k) = 'ss_cloud_chem_sink_of'//trname(n)
+        lname_jls(k) = 'H2O2 used in stratiform cloud chem'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+C
+        k = k + 1
+        jls_3Dsource(4,n) = k
+        sname_jls(k) = 'gas_phase_sink_of'//trname(n)
+        lname_jls(k) = 'H2O2 gas phase sink'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = 2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c sink of H2O2 to dry dep
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Dry_dep_sink_of'//trname(n)
+        lname_jls(k) = 'H2O2 dry dep sink'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) =0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
 C**** Here are some more examples of generalised diag. configuration
 c      n = n_dust
 c        k = k + 1
@@ -1617,6 +2013,123 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
+      case ('DMS')
+        k = k + 1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'DMS Ocean source'
+        sname_ijts(k) = 'DMS_Ocean_source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+      case ('MSA')
+c put in chemical production of MSA
+        k = k + 1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'MSA Chemical source'
+        sname_ijts(k) = 'MSA_Chemical_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c MSA dry dep
+        k = k + 1
+        ijts_source(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'MSA Dry Dep'
+        sname_ijts(k) = 'MSA_Dry_Dep'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+      case ('SO2')
+c put in production of SO2 from DMS
+        k = k + 1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO2 source from DMS'
+        sname_ijts(k) = 'SO2_source_from_DMS'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c production of SO2 from volcanic emissions
+        k = k + 1
+        ijts_source(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO2 source from volcanos'
+        sname_ijts(k) = 'SO2_source_from_volcanos'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c emissions of industrial SO2
+        k = k + 1
+        ijts_source(3,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Industrial SO2 source'
+        sname_ijts(k) = 'SO2_source_from_industry'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c emissions of biomass SO2
+        k = k + 1
+        ijts_source(4,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Biomass SO2 source'
+        sname_ijts(k) = 'SO2_source_from_biomass'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c SO2 dry dep
+        k = k + 1
+        ijts_source(5,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO2 dry dep'
+        sname_ijts(k) = 'SO2_dry_dep'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+      case ('SO4')
+c put in production of SO4 from gas phase
+        k = k + 1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO4 gas phase source'
+        sname_ijts(k) = 'SO4_gas_phase_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c SO4 from industrial emissions
+        k = k + 1
+        ijts_source(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Industrial SO4 source'
+        sname_ijts(k) = 'SO4_source_from_industry'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c SO4 dry dep
+        k = k + 1
+        ijts_source(3,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO4 dry dep'
+        sname_ijts(k) = 'SO4_dry_dep'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
       end select
       end do
 
@@ -1766,6 +2279,13 @@ C**** First 12 are standard for all tracers and GCM
       qcon(itcon_ss(n)) = .true.  ; conpts(18) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
 #endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=31
+        qcon(itcon_dd(n)) = .true. ; conpts(19) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
@@ -1825,7 +2345,7 @@ C**** First 12 are standard for all tracers and GCM
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('Ox')
-      kt_power_change(n) = -11
+      kt_power_change(n) = -12
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -1842,13 +2362,20 @@ C**** First 12 are standard for all tracers and GCM
       qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
 #endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('NOx')
-      kt_power_change(n) = -13
+      kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -1880,6 +2407,13 @@ C**** First 12 are standard for all tracers and GCM
       qcon(itcon_ss(n)) = .true.  ; conpts(9) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
 #endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=22
+        qcon(itcon_dd(n)) = .true. ; conpts(10) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
@@ -1902,6 +2436,13 @@ C**** First 12 are standard for all tracers and GCM
       itcon_ss(n) = 16
       qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
+#endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
 #endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
@@ -1926,13 +2467,20 @@ C**** First 12 are standard for all tracers and GCM
       qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
 #endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('H2O2')
-      kt_power_change(n) = -12
+      kt_power_change(n) = -13
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -1948,6 +2496,13 @@ C**** First 12 are standard for all tracers and GCM
       itcon_ss(n) = 16
       qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
+#endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
 #endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
@@ -1955,7 +2510,7 @@ C**** First 12 are standard for all tracers and GCM
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('CH3OOH')
-      kt_power_change(n) = -13
+      kt_power_change(n) = -15
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -1971,6 +2526,13 @@ C**** First 12 are standard for all tracers and GCM
       itcon_ss(n) = 16
       qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
+#endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
 #endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
@@ -1978,7 +2540,7 @@ C**** First 12 are standard for all tracers and GCM
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('HCHO')
-      kt_power_change(n) = -13
+      kt_power_change(n) = -15
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -1994,6 +2556,13 @@ C**** First 12 are standard for all tracers and GCM
       itcon_ss(n) = 16
       qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
+#endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
 #endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
@@ -2001,7 +2570,7 @@ C**** First 12 are standard for all tracers and GCM
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('HO2NO2')
-      kt_power_change(n) = -13
+      kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -2018,13 +2587,20 @@ C**** First 12 are standard for all tracers and GCM
       qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
 #endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('CO')
-      kt_power_change(n) = -12
+      kt_power_change(n) = -13
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -2047,13 +2623,20 @@ C**** First 12 are standard for all tracers and GCM
       qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
 #endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=19
+        qcon(itcon_dd(n)) = .true. ; conpts(7) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('PAN')
-      kt_power_change(n) = -12
+      kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -2070,13 +2653,20 @@ C**** First 12 are standard for all tracers and GCM
       qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
 #endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('Isoprene')
-      kt_power_change(n) = -12
+      kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -2096,13 +2686,20 @@ C**** First 12 are standard for all tracers and GCM
       qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
 #endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=18
+        qcon(itcon_dd(n)) = .true. ; conpts(6) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('AlkylNit')
-      kt_power_change(n) = -12
+      kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -2119,13 +2716,20 @@ C**** First 12 are standard for all tracers and GCM
       qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
 #endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('Alkenes')
-      kt_power_change(n) = -12
+      kt_power_change(n) = -13
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -2151,13 +2755,20 @@ C**** First 12 are standard for all tracers and GCM
       qcon(itcon_ss(n)) = .true.  ; conpts(7) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
 #endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=20
+        qcon(itcon_dd(n)) = .true. ; conpts(8) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('Paraffin')
-      kt_power_change(n) = -12
+      kt_power_change(n) = -13
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -2182,6 +2793,13 @@ C**** First 12 are standard for all tracers and GCM
       itcon_ss(n) = 19
       qcon(itcon_ss(n)) = .true.  ; conpts(7) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
+#endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=20
+        qcon(itcon_dd(n)) = .true. ; conpts(8) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
 #endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
@@ -2233,6 +2851,144 @@ C**** First 12 are standard for all tracers and GCM
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 #endif
 
+      case ('DMS')
+      itcon_surf(1,N) = 13
+      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Ocean Src'
+      qsum(itcon_surf(1,N))=.false.
+      itcon_3Dsrc(1,N) = 14
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Chem'
+      qsum(itcon_3Dsrc(1,N))= .true.
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('MSA')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Chem'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 14
+      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 15
+      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=16
+        qcon(itcon_dd(n)) = .true. ; conpts(4) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .true.
+      end if
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('SO2')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Chem src'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Chem sink'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+      itcon_3Dsrc(3,N) = 15
+      qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'Volcanic src'
+      qsum(itcon_3Dsrc(3,N)) = .true.
+      itcon_3Dsrc(4,N) = 16
+      qcon(itcon_3Dsrc(4,N)) = .true.; conpts(4) = 'Aircraft src'
+      qsum(itcon_3Dsrc(4,N))=.true.
+      itcon_surf(1,N) = 17
+      qcon(itcon_surf(1,N)) = .true.; conpts(5) = 'Industrial src'
+      qsum(itcon_surf(1,N))=.false.
+      itcon_surf(2,N) = 18
+      qcon(itcon_surf(2,N)) = .true.; conpts(6) = 'Biomass src'
+      qsum(itcon_surf(2,N))=.false.
+#ifdef TRACERS_WATER
+      itcon_mc(n) =19
+      qcon(itcon_mc(n)) = .true.  ; conpts(7) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =20
+      qcon(itcon_ss(n)) = .true.  ; conpts(8) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=21
+        qcon(itcon_dd(n)) = .true. ; conpts(9) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .true.
+      end if
+#endif
+      itcon_3Dsrc(5,N) = 22
+      qcon(itcon_3Dsrc(5,N)) = .true.; conpts(10) = 'Heter sink'
+      qsum(itcon_3Dsrc(5,N)) = .true.
+
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('SO4')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase src'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_surf(1,N) = 14
+      qcon(itcon_surf(1,N)) = .true.; conpts(2) = 'Industrial src'
+      qsum(itcon_surf(1,N)) = .false.
+#ifdef TRACERS_WATER
+      itcon_mc(n) =15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .true.
+      end if
+#endif
+      itcon_3Dsrc(2,N) = 18
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(6) = 'Heter src'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('H2O2_s')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+#ifdef TRACERS_WATER
+      itcon_mc(n) =14
+      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =15
+      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=16
+        qcon(itcon_dd(n)) = .true. ; conpts(4) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .true.
+      end if
+#endif
+      itcon_3Dsrc(2,N) = 17
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(5) = 'Heter sink'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
 C**** Here are some more examples of conservation diag configuration
 C**** Gravitional settling:
 c      n=n_dust
@@ -2252,8 +3008,13 @@ c      qsum(itcon_ss(n)) = .false.
 
 C**** print out total tracer diagnostic array size
       WRITE (6,'(A14,2I8)') "KTACC=",KTACC
+C      
+#ifdef TRACERS_DRYDEP
+C Read landuse parameters and coefficients for tracer dry deposition:
+      CALL RDLAND
+      CALL RDDRYCF 
 #endif
-
+#endif
       return
       end subroutine init_tracer
 
@@ -2273,7 +3034,7 @@ C**** print out total tracer diagnostic array size
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
      *   tr_mm
 #ifdef TRACERS_WATER
-     *  ,trwm,trw0
+     *  ,trwm,trw0,tr_wd_TYPE,nWATER
       USE SOMTQ_COM, only : qmom
       USE LANDICE, only : ace1li,ace2li
       USE LANDICE_COM, only : trli0,trsnowli,trlndi,snowli
@@ -2581,43 +3342,43 @@ C         Apply the model-dependant stratospheric Ox corrections:
 
         case ('NOx')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
         case ('N2O5')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-12
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
         case ('HNO3')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-10
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-10
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
         case ('H2O2')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*5.d-10
+            trm(i,j,l,n) = am(l,i,j)*TR_MM(n)*bymair*dxyp(j)*5.d-10
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
         case ('CH3OOH')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
         case ('HCHO')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
         case ('HO2NO2')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-12
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
@@ -2669,6 +3430,36 @@ C         AM=kg/m2, and DXYP=m2
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
+        case('DMS')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-13
+          end do; end do; end do
+          trmom(:,:,:,:,n) = 0.
+
+        case('MSA')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+          trmom(:,:,:,:,n) = 0.
+
+        case('SO2')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+          trmom(:,:,:,:,n) = 0.
+
+        case('SO4')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+          trmom(:,:,:,:,n) = 0.
+
+        case('H2O2_s')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+          trmom(:,:,:,:,n) = 0.
+
       end select
 
 C**** Initialise pbl profile if necessary
@@ -2676,10 +3467,14 @@ C**** Initialise pbl profile if necessary
         do it=1,4
         do j=1,jm
         do ipbl=1,npbl
-#ifndef TRACERS_WATER
-          trabl(ipbl,n,:,j,it) = trm(:,j,1,n)*byam(1,:,j)*bydxyp(j)
+#ifdef TRACERS_WATER
+          if(tr_wd_TYPE(n).eq.nWATER)THEN
+            trabl(ipbl,n,:,j,it) = trinit*qabl(ipbl,:,j,it)
+          ELSE
+            trabl(ipbl,n,:,j,it) = trm(:,j,1,n)*byam(1,:,j)*bydxyp(j)
+          END IF
 #else
-          trabl(ipbl,n,:,j,it) = trinit*qabl(ipbl,:,j,it)
+          trabl(ipbl,n,:,j,it) = trm(:,j,1,n)*byam(1,:,j)*bydxyp(j)
 #endif
         end do
         end do
@@ -2805,6 +3600,15 @@ C         (lightning called from tracer_3Dsource)
       end do
 #endif
 
+#ifdef TRACERS_AEROSOLS_Koch
+      do n=1,ntm
+        select case (trname(n))
+        case ('SO2')
+          call read_SO2_source(n,iact)
+        end select
+      end do
+#endif
+
 C****
 C**** Initialize tracers here to allow for tracers that 'turn on'
 C****  at any time
@@ -2834,6 +3638,9 @@ C****  at any time
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRACER_SOURCES, only: CO_src,ch4_src,NOx_src,Isoprene_src,
      &                          Alkenes_src,Paraffin_src
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+       USE AEROSOL_SOURCES, only: DMS_src,SO2_src
 #endif
       implicit none
       integer :: i,j,ns,l,ky,n
@@ -3062,7 +3869,30 @@ C****
           end do
         end do
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+      case ('DMS')
+      call read_DMS_sources(n)
+        do ns=1,ntsurfsrc(n)
+         do j=1,jm
+            trsource(:,j,ns,n) = DMS_src(:,j,ns)*dxyp(j)
+         end do
+        end do
 
+      case ('SO2')
+        do ns=1,ntsurfsrc(n)
+         do j=1,jm
+            trsource(:,j,ns,n) = SO2_src(:,j,ns)*0.97
+         end do
+        end do
+c we assume 97% emission as SO2, 3% as sulfate (*tr_mm/tr_mm)
+
+      case ('SO4')
+        do ns=1,ntsurfsrc(n)
+         do j=1,jm
+            trsource(:,j,ns,n) = SO2_src(:,j,ns)*0.045
+         end do
+        end do
+#endif
       end select
 
       end do
@@ -3125,16 +3955,27 @@ C****
       call DIAGTCA(itcon_3Dsrc(1,n),n)
 C****
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+      case ('SO2')
+      call apply_SO2_3Dsrc
+#endif
 
       end select
 
       end do
 
+#ifdef TRACERS_AEROSOLS_Koch
+c somehow get IJ maps of these
+       call aerosol_gas_chem
+c       call simple_dry_dep
+       call heter
+#endif
+
 #ifdef TRACERS_SPECIAL_Shindell
 C Apply non-chemistry 3D sources, so they can be "seen" by chemistry:
 C (Note: using this method, tracer moments are changed just like they
 C are done for chemistry.  It might be better to do it like surface
-C sources are done? -- GSF 4/24/02)
+C sources are done? -- GSF 11/26/02)
 c
       call apply_tracer_3Dsource(nAircraft,n_NOx)
       tr3Dsource(:,:,:,nLightning,n_NOx) = 0.
@@ -3146,7 +3987,7 @@ C**** Make sure that these 3D sources for all tracers start at 0.:
       tr3Dsource(:,:,:,nStratwrite,:) = 0.
 
 C**** Call the model CHEMISTRY and STRATOSPHERE OVERWRITE:
-
+           
       CALL masterchem ! does chemistry and stratospheric over-writing.
                       ! tr3Dsource defined within, for both processes
 
@@ -3165,7 +4006,8 @@ C**** Apply chemistry and stratosphere overwrite changes:
 #ifdef TRACERS_WATER
 C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 
-      SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,LHX,FCLOUD,FQ0,fq)
+      SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,LHX,FCLOUD,FQ0,fq,
+     *  TR_CONV,TRWML,TM,THLAW,TR_LEF)
 !@sum  GET_COND_FACTOR calculation of condensate fraction for tracers
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
@@ -3173,11 +4015,14 @@ C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 !@ver  1.0 (based on CB436TdsM23 CLOUDCHCC and CLOUDCHEM subroutines)
 c
 C**** GLOBAL parameters and variables:
-      USE CONSTANT, only: TF, BYGASC, MAIR,teeny,lhe
+      USE CONSTANT, only: BYGASC, MAIR,teeny,lhe
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,nGAS,nPART,tr_wd_TYPE
-     *     ,trname
+     *     ,trname,ntm,lm
 #ifdef TRACERS_SPECIAL_Shindell
      &     ,t_qlimit
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+     &     ,fq_aer
 #endif
 #ifdef TRACERS_SPECIAL_O18
      &     ,supsatfac
@@ -3195,7 +4040,7 @@ c
 !@var FCLOUD fraction of cloud available for tracer condensation
 !@var SSFAC dummy variable (assumed units= kg water?)
 !@var FQ            fraction of tracer that goes into condensate
-!@var FQ0 [default] fraction of tracer that goes into condensate
+!@var FQ0 default fraction of water tracer that goes into condensate
 !@var L index for altitude loop
 !@var N index for tracer number loop
 !@var WMXTR mixing ratio of water available for tracer condensation?
@@ -3207,17 +4052,22 @@ c
 #ifdef TRACERS_SPECIAL_O18
       real*8 tdegc,alph,fracvs,fracvl,kin_cond_ice
 #endif
-      REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP, LHX
-      REAL*8,  INTENT(OUT):: fq
+      REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP, LHX, TR_LEF
+      REAL*8,  INTENT(IN), DIMENSION(ntm,lm) :: trwml
+      REAL*8,  INTENT(IN), DIMENSION(lm,ntm) :: TM
+      REAL*8,  INTENT(OUT):: fq,thlaw
       INTEGER, INTENT(IN) :: L, N
+      LOGICAL TR_CONV
       REAL*8 :: SUPSAT
 c
 C**** CALCULATE the fraction of tracer mass that becomes condensate:
 c
+      thlaw=0.
       SELECT CASE(tr_wd_TYPE(NTIX(N)))
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
         CASE(nGAS)                            ! gas tracer
-          fq = 0.D0                           ! frozen case
-          IF(TEMP.ge.TF) THEN                ! if not frozen then:
+          fq = 0.D0                           ! frozen and default case
+          IF(LHX.eq.LHE) THEN                 ! if not frozen then:
             Ppas = PL(L)*1.D2                 ! pressure to pascals
             tfac = (1.D0/TEMP - BY298K)*BYGASC
             IF(tr_DHD(NTIX(N)).ne.0.D0) THEN
@@ -3228,11 +4078,23 @@ c
 c           clwc=WMXTR*MAIR*1.D-3*Ppas*BYGASC/(TEMP*FCLOUD)
 c           ssfac=RKD*GASC*TEMP*clwc   ! Henry's Law
             ssfac=RKD*WMXTR*MAIR*1.D-3*Ppas/(FCLOUD+teeny)
-            fq=ssfac / (1.D0 + ssfac)
+            if (.not.tr_conv) then  !stratiform
+              thlaw=(ssfac*tr_lef*tm(l,NTIX(N))
+     *        -TRWML(NTIX(N),L))/(1.D0+ssfac)
+              if (thlaw.lt.0.) thlaw=0.d0
+              if (thlaw.gt.tm(l,NTIX(N))) thlaw=tm(l,NTIX(N))
+            else  !if convection
+              fq=ssfac / (1.D0 + ssfac)
+              if (fq.ge.1.) fq=1.d0
+              thlaw=0.
+            endif
+            if (FCLOUD.LT.1.E-16) fq=0.d0
+            if (FCLOUD.LT.1.E-16) thlaw=0.d0
 #ifdef TRACERS_SPECIAL_Shindell
-            if(t_qlimit(NTIX(N)).and.fq.gt.1.)fq=1. !no negative tracers
+            if(t_qlimit(NTIX(N)).and.fq.gt.1.)fq=1.!no negative tracers
 #endif
           END IF
+#endif
         CASE(nWATER)                          ! water tracer
 #ifdef TRACERS_SPECIAL_O18
 C**** calculate condensate in equilibrium with source vapour
@@ -3254,26 +4116,25 @@ C**** this is a parameterisation from Georg Hoffmann
               fq = fq0
             end if
           else
-            fq = 0.
+            fq = 0.d0
           end if
 #else
           fq = fq0
 #endif
         CASE(nPART)                           ! particulate tracer
-          fq = 0.D0                           ! temporarily zero.
-c NOTE 1: Dorothy has some code that will be put here to condense
-c aerosols. GSF 1/4/02
-c
-c NOTE 2:  Really, any aerosol 'formation', (meaning the production of
-c an aerosol tracer due to cloud chemistry, or any flux among tracers),
-c should be done elsewhere, like in a chemistry section of the model.
-c But if it is impossible to supply that section with the variables
-c needed from the wet deposition code, then the aerosol formation code
-c should probably go here... If you add this, please make appropriate
-c changes in the subroutine''s name/summary above. GSF 1/4/02.
+          fq = 0.D0                           ! defaults to zero.
+#ifdef TRACERS_AEROSOLS_Koch
+          if(LHX.EQ.LHE.and.fq0.gt.0.) then
+            fq = fq_aer(NTIX(N))*FCLOUD
+c complete dissolution in convective clouds
+            if (TR_CONV) fq=1.d0
+          endif
+          if (FCLOUD.LT.1.E-16) fq=0.d0
+#endif
+
         CASE DEFAULT                                ! error
           call stop_model(
-     &    'tr_wd_TYPE(NTIX(N)) out of range in SCAVENGE_TRACER',255)
+     &    'tr_wd_TYPE(NTIX(N)) out of range in GET_COND_FACTOR',255)
       END SELECT
 c
       RETURN
@@ -3313,7 +4174,8 @@ c
             fq = 0.D0
           ELSE
 c           minus preserves FPRT sign convention in LSCOND
-            fq = -(CM*DTsrc*(EXP(-CM*DTsrc)- 1.0)*FCLD)
+c           fq = -(CM*DTsrc*(EXP(-CM*DTsrc)- 1.0)*FCLD)
+            fq=FQ0
           END IF
         CASE(nWATER)                          ! water/original method
           fq = FQ0                            ! no fractionation
@@ -3322,7 +4184,11 @@ c           minus preserves FPRT sign convention in LSCOND
             fq = 0.D0
           ELSE
 c           minus preserves FPRT sign convention in LSCOND
-            fq = -(CM*DTsrc*(EXP(-CM*DTsrc)- 1.0)*FCLD)
+c           fq = -(CM*DTsrc*(EXP(-CM*DTsrc)- 1.0)*FCLD)
+c We could try the following, to make removal amount proportional
+c   to autoconversion (CM*DTsrc). The 2nd factor of CM*DTsrc
+c   approximates the fraction of the cloud that is precipitating
+            fq =  FQ0   ! CM*DTsrc*CM*DTsrc
           END IF
         CASE DEFAULT                          ! error
           call stop_model(
@@ -3333,15 +4199,18 @@ c
       END SUBROUTINE GET_PREC_FACTOR
 
 
-      SUBROUTINE GET_WASH_FACTOR(N,b_beta_DT,PREC,fq)
+      SUBROUTINE GET_WASH_FACTOR(N,b_beta_DT,PREC,fq
+     * ,TEMP,LHX,WMXTR,FCLOUD,L,TM,TRCOND,THLAW)
 !@sum  GET_WASH_FACTOR calculation of the fraction of tracer
 !@+    scavanged by precipitation below convective clouds ("washout").
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on CB436TdsM23 CWASH and WASH_EVAP routines)
 c
 C**** GLOBAL parameters and variables:
-      USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE
-      USE CLOUDS, only: NTIX
+      USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE,
+     * tr_RKD,tr_DHD,LM,NTM
+      USE CLOUDS, only: NTIX,PL
+      USE CONSTANT, only: BYGASC,LHE,MAIR,teeny
 c
       IMPLICIT NONE
 c
@@ -3353,18 +4222,42 @@ C**** Local parameters and variables and arguments:
 !@+   percipitating layer.
 !@+   The name was chosen to correspond to Koch et al. p. 23,802.
 !@var N index for tracer number loop
-      INTEGER, INTENT(IN) :: N
-      REAL*8, INTENT(OUT):: FQ
-      REAL*8, INTENT(IN) :: PREC, b_beta_DT
-      REAL*8, PARAMETER :: rc_wash = 1.D-1
+      INTEGER, INTENT(IN) :: N,L
+      REAL*8, INTENT(OUT):: FQ,THLAW
+      REAL*8, INTENT(IN) :: PREC,b_beta_DT,TEMP,LHX,WMXTR,FCLOUD,
+     *  TM(LM,NTM),TRCOND(NTM,LM)
+      REAL*8, PARAMETER :: rc_wash = 1.D-1, BY298K=3.3557D-3
+      REAL*8 Ppas, tfac, ssfac, RKD
 C
+      thlaw=0.
       SELECT CASE(tr_wd_TYPE(NTIX(N)))
         CASE(nGAS)                            ! gas
-          fq = 0.D0
+          fq = 0.D0                           ! frozen and default case
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
+          IF(LHX.EQ.LHE) THEN                 ! if not frozen then:
+            Ppas = PL(L)*1.D2                 ! pressure to pascals
+            tfac = (1.D0/TEMP - BY298K)*BYGASC
+            IF(tr_DHD(NTIX(N)).ne.0.D0) THEN
+              RKD=tr_RKD(NTIX(N))*DEXP(-tr_DHD(NTIX(N))*tfac)
+            ELSE
+              RKD=tr_RKD(NTIX(N))
+            END IF
+            ssfac=RKD*WMXTR*MAIR*1.D-3*Ppas/(FCLOUD+teeny)
+            thlaw=(ssfac*tm(l,NTIX(N))-TRCOND(NTIX(N),L))
+     *            /(1.D0+ssfac)
+            if (thlaw.lt.0.) thlaw=0.d0
+            if (thlaw.gt.tm(l,NTIX(N))) thlaw=tm(l,NTIX(N))
+            if (FCLOUD.lt.1.E-16) fq=0.d0
+            if (FCLOUD.LT.1.E-16) thlaw=0.d0
+          ENDIF
+#endif
         CASE(nWATER)                          ! water/original method
           fq = 0.D0
         CASE(nPART)                           ! aerosols
-          fq = b_beta_DT*(DEXP(-PREC*rc_wash)-1.)
+#ifdef TRACERS_AEROSOLS_Koch
+          fq = -b_beta_DT*(DEXP(-PREC*rc_wash)-1.D0)
+          if (FCLOUD.lt.1.E-16) fq=0.d0
+#endif
         CASE DEFAULT                          ! error
           call stop_model(
      &    'tr_wd_TYPE(NTIX(N)) out of range in WASHOUT_TRACER',255)
@@ -3404,6 +4297,7 @@ c
       select case (tr_wd_TYPE(NTIX(N)))
       case default
         fq=FQ0*tr_evap_fact(tr_wd_TYPE(NTIX(N)))
+        if(FQ0.ge.1.) fq=1.D0 ! total evaporation
 c
       case (nWater)
 #ifdef TRACERS_SPECIAL_O18
@@ -3424,6 +4318,7 @@ C**** no fractionation for ice evap
           end if
 #else
           fq=FQ0*tr_evap_fact(tr_wd_TYPE(NTIX(N)))
+          if(FQ0.ge.1.) fq=1.D0 ! total evaporation
 #endif
       end select
       RETURN

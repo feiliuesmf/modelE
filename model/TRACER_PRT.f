@@ -521,8 +521,22 @@ C****
         if ( n.eq.0 ) cycle
         if ( itime.LT.itime_tr0(n) )  cycle
         scalet = scale_jls(k)*10.**(-jls_power(k))/idacc(ia_jls(k))
+#ifdef TRACERS_AEROSOLS_Koch
+       if (lname_jls(k).eq.'SGSWSP TKE'.or.lname_jls(k).eq.
+     *'SGSWSP Wet Conv'.or.lname_jls(k).eq.'DMS SGSWP-old/old'.or.
+     * lname_jls(k).eq.'SGSWSP Dry Conv') then
+        scale_jls(k)=1.0
+        scalet = scale_jls(k)*10.**(-jls_power(k))/idacc(ia_jls(k))
+        CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),
+     *    plm,tajls(1,1,k),scalet,ones,ones,jls_ltop(k),2,jgrid_jls(k))
+       go to 22 
+       endif
+#endif
         CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),
      *    plm,tajls(1,1,k),scalet,ones,ones,jls_ltop(k),1,jgrid_jls(k))
+#ifdef TRACERS_AEROSOLS_Koch
+  22  continue
+#endif
       end do
 
 #ifdef TRACERS_SPECIAL_O18

@@ -4,9 +4,9 @@
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on various chemistry modules of B436Tds3YM23 model)
 c
-      USE RESOLUTION, only : im,jm,lm,ls1,istrat,psf,
-     &                       ptop,sig,sige,dsig,bydsig
-      USE MODEL_COM, only  : dtsrc,Itime,ItimeI,T,JEQ
+      USE MODEL_COM, only :  im,jm,lm,ls1,istrat,psf,
+     &                       ptop,sig,sige,dsig,bydsig,
+     &                       dtsrc,Itime,ItimeI,T,JEQ
       USE CONSTANT, only   : pi, mair, mwat, radian
       USE DYNAMICS, only   : am, byam, PMID, PK
       USE GEOM, only       : BYDXYP,dxyp
@@ -133,7 +133,7 @@ c     & n_Paraffin= 15,    ! ---------------
 C ----------------------------------------------   
      & N__=     1800,     !jan00, was 450, then 900 in Nov99
      & M__=        4,
-     & NLFASTJ=  300,     !300 is arbitrary for now GSF
+     & NLFASTJ=  350,     !300 is arbitrary for now
      & NS     =   51,
      & NWFASTJ=   15, 
      & JPPJ   =   16,
@@ -288,7 +288,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var dpomega   change in pomega per increment  (linear)
 !@var POMEGAJ  Scattering phase function. the 2nd dimension on POMEGAJ
 !@+   was 30 in the 9-layer code, which is (2*LM+2)+10. But it seems to
-!@+   only need +1 (I.e. NCFASTJ+1): GSF
+!@+   only need +1 (I.e. NCFASTJ+1)
 !@var POMEGA,ZTAU,FZ,ZREFL,jndlv,FJFASTJ,EMU,ZFLUX,ZREFL,ZU0,WFASTJ ?
 !@var PM0,PM,BFASTJ,AFASTJ,AAFASTJ,WTFASTJ,CC,HFASTJ,C1,SFASTJ,U1,V1 ?
 !@var RR2 former RR from fastj ?
@@ -337,8 +337,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var MDOFM cumulative days at end of each month
 !@var OxIC initial conditions for Ox in KG read from file (Jan 1st?)
 !@var corrOx correction factor to tweak inital Ox in stratosphere 
-!@var F0 reactivity factor for oxidation of biological substances
-!@var HSTAR Henry's Law const for dry dep. why different from wet dep?
       INTEGER nr,nr2,nr3,nmm,nhet,MODPHOT,ILIMIT,igas,LL,I,J,L,N,
      & inss,Lqq,JJ,J3,lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,
      & NWWW,NK,nlbatm,NCFASTJ                                 
@@ -379,7 +377,8 @@ C
       REAL*8, DIMENSION(p_7)           :: oz
       REAL*8, DIMENSION(IM,JM,LM)   :: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &                                yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
-     &                                    RCLOUDFJ,TX,sulfate,OxIC
+     &                                TX,sulfate,OxIC
+      REAL*8, DIMENSION(LM,IM,JM)      :: RCLOUDFJ
       REAL*8, DIMENSION(M__)         :: AFASTJ,C1,HFASTJ,V1,WTFASTJ,EMU
       REAL*8, DIMENSION(M__,M__)  :: BFASTJ,AAFASTJ,CC,SFASTJ,WFASTJ,U1
       REAL*8, DIMENSION(M__,2*M__)     :: PM
@@ -415,11 +414,10 @@ C
       REAL*8, DIMENSION(2*(LS1-1))      :: O3_FASTJ
       REAL*8, DIMENSION(19)             :: COlat
       REAL*8, DIMENSION(n_igas,LM)      :: dest, prod
-      REAL*8, DIMENSION(NTM)            :: mass2vol,bymass2vol,F0,HSTAR
+      REAL*8, DIMENSION(NTM)            :: mass2vol,bymass2vol
       REAL*8, DIMENSION(IM,JM,LM,ntm)   :: change
       REAL*8, DIMENSION(NLFASTJ,NLFASTJ):: WTAU
       REAL*8, DIMENSION(IM,(JM-3)/3)    :: avg67 
-CGSF :: somehow need to do RCLOUDFJ(I,J,L)=TAUWC(L)+TAUIC(L) in RADIA
 C     
       LOGICAL                         fam,prnrts,prnchg,prnls      
 C      
@@ -437,24 +435,13 @@ C
       DATA WTFASTJ/.17392742256873D0,.32607257743127D0,
      $          .32607257743127D0,.17392742256873D0/
       DATA nfam /27,30,0,0/ ! why 4?
-CGSF [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
+C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
       DATA COlat/40.,40.,40.,40.,45.,50.,60.,70.,80.,90.,110.
      &           ,125.,140.,165.,175.,180.,170.,165.,150./
-CGSF multiplier of free trop [CO] by layer Badr & Probert 94 fig10&11,
-CGSF Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14.
+C Multiplier of free trop [CO] by layer Badr & Probert 94 fig10 & 11,
+C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
       DATA COalt/2.,1.5625,1.375,1.25,1.125,1.0625,1.,1.,1.,
      &           1.,1.,.5,.375,.20,.20,.20,.20,.20,.25,.4,2.5,12.,60./
       DATA MDOFM/31,59,90,120,151,181,212,243,273,304,334,365/
-      DATA F0/1.,0.1,0.,  0.,1.,0.,  0.,0.,0.,  0.,0.,0.,  0.,0.,0./ 
-C Note: it is not clear that these are the right HSTAR numbers to use.
-C See the notes in DB396Tds3M23.f and the values in the file: 
-C /u/cmrun/chem_files/henrys_law_tables.pdf  Example: why shouldn't
-C HSTAR exactly match tr_RKD, the wet dep version of the Henry's
-C Law constants? In any case, the ones below are in mole/(L atm). The
-C conversion to mole/Joule, which I used in wet dep is:
-C  mole/Joule = mole/(Pa*m3) X (101325. Pa/atm) X (1.E-6 m3/cm3)
-C  X (1.E3 cm3 / L) = mole/(L*atm)           GSF 5/22/02
-      DATA HSTAR/1.D-2,1.D-2,0.D0,  1.D5,1.D5,3.D2,  6.D3,0.D0,0.D0,
-     &         0.D0,3.68D0,1.3D-2,  0.D0,0.D0,0.D0/    
 C
       END MODULE TRCHEM_Shindell_COM

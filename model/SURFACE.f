@@ -20,8 +20,14 @@
       USE RADNCB, only : trhr,fsf,cosz1
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
+#ifdef TRACERS_DRYDEP
+     *     ,dodrydep
+#endif
 #ifdef TRACERS_WATER
      *     ,nWATER,nGAS,nPART,tr_wd_TYPE,trname,trw0
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+      USE AEROSOL_SOURCES, only: SHDTT
 #endif
 #endif
 C**** Interface to PBL
@@ -62,9 +68,16 @@ C**** Interface to PBL
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer
 #endif
+#ifdef TRACERS_DRYDEP
+     *     ,trdrydep
+      USE tracers_DRYDEP, only : dtr_dd,dep_vel
+#endif
       USE TRACER_DIAG_COM, only : taijn,tij_surf
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd,tajls,jls_source
+#endif
+#ifdef TRACERS_DRYDEP
+     *     ,tij_drydep,itcon_dd
 #endif
 #endif
       USE SOIL_DRV, only: earth
@@ -99,6 +112,10 @@ c
      *     ,FRACVL,FRACVS,FRACLK,frac
 #endif
 #endif
+#ifdef TRACERS_DRYDEP
+      real*8 tdryd, tdd, td1
+      integer k
+#endif
 #endif
 
       NSTEPS=NIsurf*ITime
@@ -123,7 +140,10 @@ C**** Zero out fluxes summed over type and surface time step
 #ifdef TRACERS_WATER
       TREVAPOR = 0. ; TRUNOE = 0.
 #endif
-
+#ifdef TRACERS_DRYDEP
+      TRDRYDEP = 0.
+      dtr_dd=0.
+#endif      
 C****
 C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NIsurf TIMES EVERY HOUR
 C****
@@ -156,6 +176,9 @@ C****
 !$OMP*  ,n,nx,nsrc,rhosrf0,totflux
 #ifdef TRACERS_WATER
 !$OMP*  ,tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1
+#endif
+#ifdef TRACERS_DRYDEP
+!$OMP*  ,tdryd,tdd,td1
 #endif
 #endif
 !$OMP*  )
@@ -401,8 +424,17 @@ C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
 C**** is a non-soluble tracer mixed in.)
 C**** Calculate trsfac (set to zero for const flux)
           trsfac(nx)=0.
-C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
           rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
+#ifdef TRACERS_DRYDEP
+          if(dodrydep(n)) then
+            trsfac(nx)=rhosrf0 
+     &      !then multiplied by deposition velocity in PBL
+#ifdef TRACERS_WATER
+            tr_evap_max(nx)=1.d30
+#endif
+          end if
+#endif
+C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
           totflux=0.
           do nsrc=1,ntsurfsrc(n)
             totflux = totflux+trsource(i,j,nsrc,n)
@@ -454,6 +486,9 @@ C****
         SHDT = DTSURF*(SHEAT-dTS*DSHDTG)
         EVHDT=DTSURF*(EVHEAT+dQS*dEVdQS) ! latent heat flux
         TRHDT=DTSURF*TRHEAT
+#ifdef TRACERS_AEROSOLS_Koch
+        SHDTT(I,J)=SHDT
+#endif
 C****
 !!!      CASE (2) ! FLUXES USING IMPLICIT TIME STEP FOR ICE POINTS
       else if ( ITYPE == 2 ) then
@@ -589,8 +624,36 @@ C**** Limit evaporation if lake mass is at minimum
           END IF
           TREVAPOR(n,ITYPE,I,J)=TREVAPOR(n,ITYPE,I,J)+TEVAP
         END IF
-      END DO
 #endif
+#ifdef TRACERS_DRYDEP
+C****
+C**** Calculate Tracer Dry Deposition
+C****
+        if(dodrydep(n))then
+#ifdef TRACERS_WATER
+          if (tr_wd_TYPE(n).eq.nWATER) call stop_model
+     &    ('A water tracer should not undergo dry deposition.',255)
+#endif
+          tdryd=-rhosrf0*dep_vel(n)*trs(nx)*dtsurf     ! kg/m2
+          tdd = tdryd*dxyp(j)*ptype                    ! kg
+          td1 = trsrfflx(i,j,n)*dtsurf                 ! kg
+          if (trm(i,j,1,n)+td1+tdd.lt.0.and.tdd.lt.0) then
+            if (qcheck) write(99,*) "limiting tdryd surfce",i,j,n,tdd
+     *           ,trm(i,j,1,n)
+            tdd= -(trm(i,j,1,n)+td1)
+            tdryd=tdd/(dxyp(j)*ptype)
+            trsrfflx(i,j,n)= - trm(i,j,1,n)/dtsurf
+          else
+            trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdd/dtsurf
+          end if
+          trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - !positive down 
+     &       tdryd*ptype/(dtsurf*NIsurf)
+          taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n)+
+     &       tdryd*ptype/dtsurf ! then /NIsurf in IJt_MAPk (scale var)
+          dtr_dd(j,n)=dtr_dd(j,n)+tdd
+        end if
+#endif          
+      END DO
 C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       F0DT=DTSURF*SRHEAT+TRHDT+SHDT+EVHDT
 C**** Limit heat fluxes out of lakes if near minimum depth
@@ -843,6 +906,13 @@ C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
       END IF
 C****
       END DO   ! end of surface time step
+     
+#ifdef TRACERS_DRYDEP
+C**** Save for tracer dry deposition conservation quantity:
+      do n=1,ntm   
+        if(dodrydep(n))call diagtcb(dtr_dd(1,n),itcon_dd(n),n)     
+      end do
+#endif      
       RETURN
 C****
       END SUBROUTINE SURFCE

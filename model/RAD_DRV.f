@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 !@sum RAD_DRV contains drivers for the radiation related routines
 !@ver  1.0
 !@cont COSZ0, init_RAD, RADIA
@@ -539,6 +541,12 @@ C     OUTPUT DATA
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : gtemp
+#ifdef TRACERS_DRYDEP
+      USE tracers_DRYDEP, only: CFRAC,trdrydep_rad
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: RCLOUDFJ
+#endif
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
@@ -793,6 +801,12 @@ C**** Determine large scale and moist convective cloud cover for radia
           AJL(j,l,jl_wcsiz)=AJL(j,l,jl_wcsiz)+sizewc(l)*tauwc(l)
           AJL(j,l,jl_icsiz)=AJL(j,l,jl_icsiz)+sizeic(l)*tauic(l)
         END IF
+#ifdef TRACERS_SPECIAL_Shindell
+        RCLOUDFJ(L,I,J)=TAUWC(L)+TAUIC(L)
+#endif
+#ifdef TRACERS_DRYDEP
+        CFRAC(I,J) = CFRAC(I,J) + CLDSS(L,I,J) + CLDMC(L,I,J)
+#endif
       END DO
 C**** effective cloud cover diagnostics
          OPNSKY=1.-CLDCV
@@ -1015,6 +1029,9 @@ C****
       ALB(I,J,7)=SRRNIR
       ALB(I,J,8)=SRAVIS
       ALB(I,J,9)=SRANIR
+#ifdef TRACERS_DRYDEP
+      trdrydep_rad(I,J)=SRDFLB(1) ! save solar flux at surface
+#endif
       FSRDIR(I,J)=SRXVIS                  ! added by adf
 C**** Save clear sky/tropopause diagnostics here
         AIJ(I,J,IJ_CLR_SRINCG)=AIJ(I,J,IJ_CLR_SRINCG)+

@@ -13,6 +13,10 @@
      &                     ,by3,shv,sha,shw,lhe,stbo,rhow,rgas
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trname
+#ifdef TRACERS_DRYDEP
+     & ,dodrydep
+      USE tracers_DRYDEP, only: dep_vel
+#endif
 #endif
       IMPLICIT NONE
 
@@ -73,6 +77,8 @@ C**** boundary layer parameters
 !@var  tr local tracer profile (passive scalars)
       real*8, dimension(n,ntm) :: tr
 #endif
+!@var lmonin = Monin-Obukhov length (m)
+      REAL*8 :: lmonin
 
 C**** parameters for surface fluxes
       !Hogstrom 1988:
@@ -209,7 +215,6 @@ c  internals:
 #endif
 #endif
 #endif
-
       real*8 :: lmonin,tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau
       real*8, parameter ::  tol=1d-3,w=.5d0
@@ -368,6 +373,20 @@ C**** tracers are now passive, so use 'upstream' concentration
           end if
         end select
 #endif
+#endif
+#ifdef TRACERS_DRYDEP
+C**** Get tracer deposition velocity (= 1 / bulk sfc resistance):
+        CALL get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar)
+c       if (itype.eq.1) write(6,*)'drydep', ilong,jlat,lmonin,dbl,ustar
+C  
+C       I am resetting trsf & trcnst here because the TRACERS_WATER
+C       Gavin's code section above needs to be fixed to not operate on
+C       non-water tracers... 10/7/02 gsf
+        trcnst=trconstflx(itr)   ! reset
+        trsf=trsfac(itr)         ! reset
+C       Tracer Dry Deposition boundary condition for dry dep tracers:
+        if(dodrydep(ntix(itr)))
+     &  trsf=trsfac(itr)*dep_vel(ntix(itr))
 #endif
         call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
      *       ,trcnst,trtop(itr),
