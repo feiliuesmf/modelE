@@ -6,9 +6,9 @@
 !@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN,DIAGCO,TOFREZ,
 !@+    PRECIP_OC,GROUND_OC
       USE CONSTANT, only : lhm,rhow,rhoi,shw,shi,by12,byshi
-      USE MODEL_COM, only : im,jm,lm,focean,fland,fearth
-     *     ,flice,kocean,Itime,jmon,jdate,jday,JDendOfM,JDmidOfM,ftype
-     *     ,itocean,itoice,itlandi,itearth
+      USE MODEL_COM, only : im,jm,lm,focean,fland,fearth,flice,ftype
+     *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
+     *     ,kocean,itocean,itoice,itlandi,itearth
       USE PBLCOM
      &     , only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
      *     cq=>cqgs,ipbl
@@ -21,6 +21,8 @@
       IMPLICIT NONE
       SAVE
 
+!@dbparam ocn_cycl 0|1 precribed ocn data don't|do cycle (1 year)
+      integer :: ocn_cycl = 1
 !@var TFO temperature of freezing ocean (C)
       REAL*8, PARAMETER :: TFO = -1.8d0
 !@var TOCEAN temperature of the ocean (C)
@@ -118,7 +120,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       INTEGER, INTENT(IN) :: IDOZ1O
 
-      INTEGER n,J,I,LSTMON,K,IMAX
+      INTEGER n,J,I,LSTMON,K,IMAX,m,m1
       REAL*8 PLICEN,PLICE,POICE,POCEAN,RSICSQ,ZIMIN,ZIMAX,X1
      *     ,X2,Z1OMIN,RSINEW,TIME,FRAC,MSINEW
 !@var JDLAST julian day that OCLIM was last called
@@ -153,25 +155,46 @@ C****
 C**** READ IN OBSERVED OCEAN DATA
       IF (JMON.EQ.IMON0) GO TO 400
       IF (IMON0.EQ.0) THEN
-C****    READ IN LAST MONTH'S END-OF-MONTH DATA
-         LSTMON=JMON-1
-         IF(LSTMON.EQ.0) LSTMON=12
-         CALL READT (iu_OSST,IM*JM,EOST0,IM*JM,EOST0,LSTMON)
-         CALL READT (iu_SICE,IM*JM,ERSI0,IM*JM,ERSI0,LSTMON)
+C****   READ IN LAST MONTH'S END-OF-MONTH DATA
+        if (ocn_cycl.eq.1) then
+          LSTMON=JMON-1
+          if (lstmon.eq.0) lstmon = 12
+          call readt (iu_OSST,IM*JM,EOST0,IM*JM,EOST0,LSTMON)
+          call readt (iu_SICE,IM*JM,ERSI0,IM*JM,ERSI0,LSTMON)
+        else   !  if (ocn_cycl.eq.0) then
+          LSTMON=JMON-1+(JYEAR-IYEAR1)*JMperY
+  300     read (iu_OSST) M
+          if (m.lt.lstmon) go to 300
+          backspace iu_OSST
+  310     read (iu_SICE) m
+          if (m.lt.lstmon) go to 310
+          backspace iu_SICE
+          CALL MREAD (iu_OSST, m,IM*JM,EOST0,IM*JM,EOST0)
+          CALL MREAD (iu_SICE,m1,IM*JM,ERSI0,IM*JM,ERSI0)
+          WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M,M1
+          IF(M.NE.M1.OR.M.NE.LSTMON) STOP 'Read error: ocean data'
+        end if
       ELSE
-C****    COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
+C****   COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
         EOST0=EOST1
         ERSI0=ERSI1
       END IF
 C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
-      IMON0=JMON
-      IF (JMON.EQ.1) THEN
-         REWIND iu_OSST
-         REWIND iu_SICE
-         READ (iu_SICE)         ! skip over DM-record
-      END IF
-      CALL READT (iu_OSST,0,AOST,2*IM*JM,AOST,1) ! READS AOST,EOST1
-      CALL READT (iu_SICE,0,ARSI,2*IM*JM,ARSI,1) ! READS ARSI,ERSI1
+      if (ocn_cycl.eq.1) then
+        if (jmon.eq.1) then
+          rewind iu_OSST
+          rewind iu_SICE
+          read (iu_SICE)  ! skip over DM-record
+        end if
+        call readt (iu_OSST,0,AOST,2*im*jm,AOST,1) ! reads AOST,EOST1
+        call readt (iu_SICE,0,ARSI,2*im*jm,ARSI,1) ! reads ARSI,ERSI1
+      else   !  if (ocn_cycl.eq.0) then
+        IMON0=JMON
+        CALL MREAD (iu_OSST, M,0,AOST,2*IM*JM,AOST) ! READS AOST,EOST1
+        CALL MREAD (iu_SICE,M1,0,ARSI,2*IM*JM,ARSI) ! READS ARSI,ERSI1
+        WRITE(6,*) 'Read in ocean data for month',JMON,M,M1
+        IF(M.NE.M1.OR.JMON.NE.MOD(M-1,12)+1) STOP 'Error: Ocean data'
+      end if
 C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
       DO J=1,JM
         IMAX=IMAXJ(J)
@@ -478,13 +501,14 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,fland,flice,kocean,ftype,focean
-     *     ,itocean,itoice,itearth,itlandi,fearth
+     *     ,itocean,itoice,itearth,itlandi,fearth,iyear1
       USE OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice,iu_ocnml
-     *     ,tocean
+     *     ,tocean,ocn_cycl
       USE SEAICE_COM, only : snowi,rsi
       USE FLUXES, only : gtemp
       USE DAGCOM, only : npts,icon_OCE
       USE FILEMANAGER
+      USE PARAM
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       LOGICAL, INTENT(IN) :: iniOCEAN  ! true if starting from ic.
@@ -492,35 +516,44 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       INTEGER :: iu_OHT,iu_MLMAX
       INTEGER :: I,J
 
-C**** set up unit numbers for ocean climatologies
-      call openunit("OSST",iu_OSST,.true.,.true.)
-      call openunit("SICE",iu_SICE,.true.,.true.)
+      if (kocean.eq.0) then
+        call sync_param( "ocn_cycl", ocn_cycl ) ! 1:cycle data 0:dont
+C****   set up unit numbers for ocean climatologies
+        call openunit("OSST",iu_OSST,.true.,.true.)
+        call openunit("SICE",iu_SICE,.true.,.true.)
+        if (ocn_cycl.eq.0) then
+          write(6,*) '********************************************'
+          write(6,*) '* Make sure that IYEAR1 is consistent with *'
+          write(6,*) '*    the ocean data files OSST and SICE    *'
+          write(6,*) '********************************************'
+          write(6,*) 'IYEAR1=',IYEAR1
+        end if
 
-C**** Read in constant factor relating RSI to MSI from sea ice clim.
-      CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
+C****   Read in constant factor relating RSI to MSI from sea ice clim.
+        CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
 
-      IF (KOCEAN.eq.1) THEN
-C**** Set up unit number of mixed layer depth climatogies
-      call openunit("OCNML",iu_OCNML,.true.,.true.)
+      else !  IF (KOCEAN.eq.1) THEN
+C****   Set up unit number of observed mixed layer depth data
+        call openunit("OCNML",iu_OCNML,.true.,.true.)
 
-C**** DATA FOR QFLUX MIXED LAYER OCEAN RUNS
-C**** read in ocean heat transport coefficients
-      call openunit("OHT",iu_OHT,.true.,.true.)
-      READ (iu_OHT) OTA,OTB,OTC
-      WRITE(6,*) "Read ocean heat transports from OHT"
-      call closeunit (iu_OHT)
+C****   DATA FOR QFLUX MIXED LAYER OCEAN RUNS
+C****   read in ocean heat transport coefficients
+        call openunit("OHT",iu_OHT,.true.,.true.)
+        READ (iu_OHT) OTA,OTB,OTC
+        WRITE(6,*) "Read ocean heat transports from OHT"
+        call closeunit (iu_OHT)
 
-C**** read in ocean max mix layer depth
-      call openunit("MLMAX",iu_MLMAX,.true.,.true.)
-      CALL READT (iu_MLMAX,0,Z12O,IM*JM,Z12O,1)
-      call closeunit (iu_MLMAX)
+C****   read in ocean max mix layer depth
+        call openunit("MLMAX",iu_MLMAX,.true.,.true.)
+        CALL READT (iu_MLMAX,0,Z12O,IM*JM,Z12O,1)
+        call closeunit (iu_MLMAX)
 
-C**** initialise deep ocean arrays if required
-      call init_ODEEP(iniOCEAN)
+C****   initialise deep ocean arrays if required
+        call init_ODEEP(iniOCEAN)
 
-C**** IF SNOWI(I,J)<0, THE OCEAN PART WAS CHANGED TO LAND ICE
-C**** BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
-      DO J=1,JM
+C****   IF SNOWI(I,J)<0, THE OCEAN PART WAS CHANGED TO LAND ICE
+C****   BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
+        DO J=1,JM
         DO I=1,IM
           IF(SNOWI(I,J).GE.-1.) CYCLE
           FLICE(I,J)=1-FLAND(I,J)+FLICE(I,J)
@@ -528,18 +561,18 @@ C**** BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
           FEARTH(I,J)=1.-FLICE(I,J)
           FOCEAN(I,J)=0.
           WRITE(6,'(2I3,'' OCEAN WAS CHANGED TO LAND ICE'')') I,J
-C**** Reset ftype array. Summation is necessary for cases where Earth
-C**** and Land Ice are lumped together
+C****   Reset ftype array. Summation is necessary for cases where Earth
+C****   and Land Ice are lumped together
           FTYPE(ITLANDI,I,J)=0.
           FTYPE(ITEARTH,I,J)=FEARTH(I,J)
           FTYPE(ITLANDI,I,J)=FTYPE(ITLANDI,I,J)+FLICE(I,J)
         END DO
-      END DO
+        END DO
 
-C***** set conservation diagnostic for ocean heat
-      QCON=(/ F, F, F, T, F, T, F, T, T, F, F/)
-      CALL SET_CON(QCON,"OCN HEAT","(10^6 J/M**2)   ",
-     *     "(W/M^2)         ",1d-6,1d0,icon_OCE)
+C*****  set conservation diagnostic for ocean heat
+        QCON=(/ F, F, F, T, F, T, F, T, T, F, F/)
+        CALL SET_CON(QCON,"OCN HEAT","(10^6 J/M**2)   ",
+     *       "(W/M^2)         ",1d-6,1d0,icon_OCE)
 
       END IF
 C**** Set ftype array for oceans
