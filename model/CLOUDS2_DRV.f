@@ -52,12 +52,12 @@
 #ifdef TRACERS_SPECIAL_Shindell
       USE LIGHTNING, only : RNOx_lgt
 #endif
-      USE TRDIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
+      USE TRDIAG_COM,only: tajln=>tajln_loc,jlnt_mc,jlnt_lscond,itcon_mc
      *     ,itcon_ss
 #ifdef TRACERS_WATER
-     *     ,jls_prec,taijn,tajls,tij_prec
+     *     ,jls_prec,taijn=>taijn_loc,tajls=>tajls_loc,tij_prec
 #ifdef TRACERS_AEROSOLS_Koch
-     *     ,jls_incloud,taijs,ijts_aq
+     *     ,jls_incloud,taijs=>taijs_loc,ijts_aq
 #endif
 #endif
       USE CLOUDS, only : tm,tmom ! local  (i,j)
@@ -271,9 +271,7 @@ C     But save the current seed in case isccp_routine is activated
       if (isccp_diags.eq.1) CALL RFINAL(seed)
 C
 C**** UDATE HALOS of U and V FOR DISTRIBUTED PARALLELIZATION
-      CALL CHECKSUM   (grid, U, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, U, from= NORTH)
-      CALL CHECKSUM   (grid, V, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, V, from= NORTH)
 C
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
