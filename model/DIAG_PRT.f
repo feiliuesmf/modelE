@@ -3014,13 +3014,14 @@ c**** ratios (the denominators)
           if (index(lname_ij(k),' x POCEAN') .gt. 0) then
             do j=1,jm
             do i=1,im
-              adenom(i,j) = 1-fland(i,j) - aij(i,j,ij_rsoi)*byiacc
+              adenom(i,j) = 1-fland(i,j) - aij(i,j,ij_rsoi)
+     *             /(idacc(ia_ij(ij_rsoi))+teeny)
             end do
             end do
           else if (index(lname_ij(k),' x POICE') .gt. 0) then
             do j=1,jm
             do i=1,im
-              adenom(i,j)=aij(i,j,ij_rsoi) * byiacc
+              adenom(i,j)=aij(i,j,ij_rsoi)/(idacc(ia_ij(ij_rsoi))+teeny)
             end do
             end do
           else if (index(lname_ij(k),' x PLICE') .gt. 0) then
@@ -3030,19 +3031,22 @@ c**** ratios (the denominators)
           else if (index(lname_ij(k),' x TOTAL CLOUD') .gt. 0) then
             do j=1,jm
             do i=1,im
-              adenom(i,j)=aij(i,j,ij_cldcv) * byiacc
+              adenom(i,j)=aij(i,j,ij_cldcv)/(idacc(ia_ij(ij_cldcv))
+     *             +teeny)
             end do
             end do
           else if (index(lname_ij(k),' x TOTAL ISCCP') .gt. 0) then
             do j=1,jm
             do i=1,im
-              adenom(i,j)=aij(i,j,ij_tcldi) * byiacc
+              adenom(i,j)=aij(i,j,ij_tcldi)/(idacc(ia_ij(ij_tcldi))
+     *             +teeny)
             end do
             end do
           else if (index(lname_ij(k),' x P850') .gt. 0) then
             do j=1,jm
             do i=1,im
-              adenom(i,j)=aij(i,j,ij_p850) * byiacc
+              adenom(i,j)=aij(i,j,ij_p850)/(idacc(ia_ij(ij_p850))
+     *             +teeny)
             end do
             end do
           end if
