@@ -307,8 +307,8 @@ C**** SET DEFAULTS IF NO OCEAN ICE
               SSI(3:4,I,J)=SSI0*XSI(3:4)*AC2OIM
 #ifdef TRACERS_WATER
               DO N=1,NTM
-                TRSI(N,1:2,I,J)=(TRSI0(N)-SSI0)*XSI(1:2)*ACE1I
-                TRSI(N,3:4,I,J)=(TRSI0(N)-SSI0)*XSI(3:4)*AC2OIM
+                TRSI(N,1:2,I,J)=TRSI0(N)*(1.-SSI0)*XSI(1:2)*ACE1I
+                TRSI(N,3:4,I,J)=TRSI0(N)*(1.-SSI0)*XSI(3:4)*AC2OIM
               END DO
 #endif
               SNOWI(I,J)=0.

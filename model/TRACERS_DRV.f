@@ -2472,7 +2472,12 @@ c     tmominit = 0.
 C**** lakes
             if (flake(i,j).gt.0) then
               trlake(n,1,i,j)=trw0(n)*mldlk(i,j)*rhow*flake(i,j)*dxyp(j)
-              trlake(n,2,i,j)=trw0(n)*mwl(i,j)-trlake(n,1,i,j)
+              if (mwl(i,j)-mldlk(i,j)*rhow*flake(i,j)*dxyp(j).gt.1d-10
+     *             *mwl(i,j)) then
+                trlake(n,2,i,j)=trw0(n)*mwl(i,j)-trlake(n,1,i,j)
+              else
+                trlake(n,2,i,j)=0.
+              end if
               gtracer(n,1,i,j)=trw0(n)
             elseif (fearth(i,j).gt.0) then
               trlake(n,1,i,j)=trw0(n)*mwl(i,j)
@@ -3214,8 +3219,8 @@ C**** calculate condensate in equilibrium with source vapour
             else  ! cond to ice
               alph=1./fracvs(tdegc,trname(ntix(n)))
 C**** kinetic fractionation can occur as a function of supersaturation
-C**** this is a hack from Georg Hoffmann
-              supsat=1d0-2d-3*tdegc
+C**** this is a parameterisation from Georg Hoffmann
+              supsat=1d0-4d-3*tdegc
               if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
      *             ,trname(ntix(n)))
             end if
