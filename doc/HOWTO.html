@@ -110,6 +110,7 @@ diagnostics</A></P>
   <LI><A HREF="#part3_5c"> C: Introducing a new parameter</A>
   <LI><A HREF="#part3_5d"> D: Adding new diagnostics</A>
   <LI><A HREF="#part3_5e"> E: Adding extra timing information</A>
+  <LI><A HREF="#part3_5f"> F: Coupling an ocean model</A>
        </ul>
   <LI><A HREF="#part3_9"> HOW-TO read in an external file</A>
   <LI><A HREF="#part3_10"> HOW-TO add new variables to the restart
@@ -153,14 +154,14 @@ This is stored through the CVS revision control system, and copies can
 be checked-out to your home directory using the following commands:</p>
 <tt>
    export CVSROOT=/u/cmrun/cvs/repository<br>
-   cvs checkout -r modelE-2 modelE<br>
+   cvs checkout -r modelE-2-0 modelE<br>
    cd modelE<br>
    cvs tag -b your_tag_here<br>
    cvs update -r your_tag_here<br>
 </tt>
 
 <p>This will create a directory modelE/ in your directory. The code
-will correspond to modelE-2. Please check to see if this is the
+will correspond to modelE-2-0. Please check to see if this is the
 latest release. It will be tagged with your own tag name so that your
 developments can be maintained by CVS, without conflicting with the
 main development branch.</P>
@@ -197,43 +198,43 @@ configurable parameters.</p>
 <p>Here is the list of currently supported options (with their default values)
 which one can set in <tt>~/.modelErc</tt>:</p>
 <UL>
-  <tt>DECKS_REPOSITORY</tt> - a directory for permanent storage of run info.
+<li><tt>DECKS_REPOSITORY</tt> - a directory for permanent storage of run info.
   All rundecks that you create will be copied to this directory. This 
   directory exists mostly for archival purposes.<br>
   (default: <tt>DECKS_REPOSITORY=/u/cmrun/modelE/decks</tt>)<br>
 
-  <tt>CMRUNDIR</tt> - directory to which all run directories will be linked.
+<li>  <tt>CMRUNDIR</tt> - directory to which all run directories will be linked.
   This directory will be searched by most scripts for locations of 
   specific runs. It can coincide with <tt>SAVEDISK</tt><br>
   (default: <tt>CMRUNDIR=/u/cmrun</tt>)<br>
 
-  <tt>GCMSEARCHPATH</tt> - directory to search for gcm input files.
+<li>  <tt>GCMSEARCHPATH</tt> - directory to search for gcm input files.
   All necessary input files should be copied or linked to this directory.<br>
   (default: <tt>GCMSEARCHPATH=/u/cmrun</tt>)<br>
 
-  <tt>EXECDIR</tt> - path to directory with modelE scripts. This directory 
+<li>  <tt>EXECDIR</tt> - path to directory with modelE scripts. This directory 
   should contain the scripts from <tt>modelE/exec</tt>. Auxiliary binaries 
   which are not run-dependent should also be put into this directory.<br>
   (default: <tt>EXECDIR=/u/exec</tt>)<br>
 
-  <tt>NETCDFHOME</tt> - path to directory which contains netcdf library. 
+<li>  <tt>NETCDFHOME</tt> - path to directory which contains netcdf library. 
   If netcdf is not installed on your computer you should leave it blank. 
   modelE will work fine without netcdf but you will not able to compile some 
   auxiliary binaries.<br>
   (default: <tt>NETCDFHOME=/usr/local/netcdf-3.4/lib64</tt>)<br>
 
-  <tt>SAVEDISK</tt> - a directory where all run directories will be created. 
+<li>  <tt>SAVEDISK</tt> - a directory where all run directories will be created. 
   These run directories will contain all files written by the model during the
   run (i.e. rsf, acc, PRT etc.). So <tt>SAVEDISK</tt> should be big enough to 
   accommodate all model output.<br>
   (default: <tt>SAVEDISK=/raid1</tt>)<br>
 
-  <tt>MAILTO</tt> - email address of the user. When the program ends/crashes
+<li>  <tt>MAILTO</tt> - email address of the user. When the program ends/crashes
   all notifications will be sent to this address. If not specified
   `whoami` will be used.<br>
   (default: <tt>MAILTO=</tt> )<br>
 
-  <tt>OVERWRITE</tt> - if set to <tt>YES</tt> it will allow gmake to 
+<li>  <tt>OVERWRITE</tt> - if set to <tt>YES</tt> it will allow gmake to 
   overwrite certain files (like rundecks in repository) which by default 
   are protected. It may be useful when you do a lot of testing and don't 
   want to add <tt>OVERWRITE=YES</tt> on the command line all the time. 
@@ -241,18 +242,18 @@ which one can set in <tt>~/.modelErc</tt>:</p>
   default unless you know what you are doing.<br>
   (default: <tt>OVERWRITE=NO</tt>)<br>
 
-  <tt>OUTPUT_TO_FILES</tt> - if set to <tt>YES</tt> all errors and warnings 
+<li>  <tt>OUTPUT_TO_FILES</tt> - if set to <tt>YES</tt> all errors and warnings 
   will be sent to files with the names <tt>source_name.ERR</tt>. This is 
   user's preference and can be set according to personal taste.<br>
   (default: <tt>OUTPUT_TO_FILES=YES</tt>)<br>
 
-  <tt>VERBOSE_OUTPUT</tt> - if set to <tt>YES</tt> gmake will show 
+<li>  <tt>VERBOSE_OUTPUT</tt> - if set to <tt>YES</tt> gmake will show 
   compilation commands and some other information while compilation is in 
   process. Otherwise most of the output will be suppressed. Set it according 
   to your taste.<br>
   (default: <tt>VERBOSE_OUTPUT=NO</tt>)<br>
 
-  <tt>MP</tt> - multiprocessing support. If set to <tt>YES</tt> gmake will 
+<li>  <tt>MP</tt> - multiprocessing support. If set to <tt>YES</tt> gmake will 
   compile the code with OpenMP instructions. Don't set it to <tt>YES</tt> 
   unless you are really planning to run the model on several processors, 
   otherwise it will be unnecessary waste of resources (and your model can 
@@ -536,21 +537,6 @@ U00ice/HRMAX)</b></a></p>
 <p><A name="part1_2b"><b>B: How to set up a Q-flux model with a single
 ocean layer</b></a></p>
 
-<p>    A preliminary run with prescribed climatological ocean has to
-       be run for about 6 years collecting daily fluxes into the ocean
-       (Kvflxo=1). Based on these data, a new input file (OTSPEC...)
-       has to be created that specifies the horizontal heat transports
-       in the ocean; in addition, the ocean temperatures at the annual
-       maximum mixed layer depth and the mean temperature between that
-       level and the bottom of the current mixed layer depth have to be
-       computed for the final time of the preliminary run and added to
-       the final restart file of that preliminary run. That augmented
-       restart file will serve as initial state file for the new run.
-       During the first few years, monitor the time series of global
-       annual means of  Ocean Ice Cover  and  Surface Air Temperature.
-       Hopefully, they will no longer change after a few years (10-25).
-       The model is said to be in balance as soon as that happens.</p>
-
 <p>    To run the Q-flux model it is necessary to supply the implied
        horizontal heat transports and proper initial condition as
        input files. To calculate the horizontal ocean heat transports
@@ -563,6 +549,15 @@ ocean layer</b></a></p>
        U00ice/HRMAX (see 1b). In your control run-decks, you have to have
        Kvflxo=1. Then the model will save the data for the heat
        transport.</P>
+
+<p>    Based on the saved VFLXOmmmyyyy data, a new input file (OTSPEC...)
+       has to be created that specifies the horizontal heat transports
+       in the ocean; in addition, the ocean temperatures at the annual
+       maximum mixed layer depth and the mean temperature between that
+       level and the bottom of the current mixed layer depth have to be
+       computed for the final time of the preliminary run and added to
+       the final restart file of that preliminary run. That augmented
+       restart file will serve as initial state file for the new run. </p>
 
 <p>    For the ocean heat transport calculation, it is necessary to
        skip the first year of this control run because of the spin-up
@@ -618,17 +613,95 @@ model:
      as your control run.
        <LI> specify AIC and OHT as described above.
      </ol>
+
+<p> 
+    During the first few years of the q-flux run, monitor the time
+    series of global annual means of Ocean Ice Cover and Surface Air
+    Temperature.  Hopefully, they will no longer change after a few years
+    (10-25).  The model is said to be in balance as soon as that
+    happens. If this is not the case, it may be possible to adjust some of
+    the ice-related parameters to improve the sea ice distribution and
+    hence the stability. Two parameters can be used 'oi_ustar0' and
+    'silmfac'. These control the basal and lateral melt of sea ice. Since
+    they are not used in a fixed SST/sea ice run they can be used to tune
+    the q-flux model. Increasing 'oi_ustar0' (default=5d-3) reduces the
+    temperature difference between the ocean and sea ice and increases the
+    basal heat flux, decreasing ice thickness and ice extent. Increasing
+    'silmfac' (default=1.4d-8) increases lateral melt and therefore ice
+    concentration. </p>
+
 </ol>
 
 <p><A name="part1_2c"><b>C: How to set up a Q-flux model with diffusion
 into a deep ocean </b></a></p>
+
+<p> Qflux model with Diffusion into the deep ocean
+
 <p>    Such a run needs a preliminary Q-flux model running for 10 years
        in equilibrium, saving (KCOPY=3) the data necessary for diffusion
-       computations (see /u/cmrun/model/notes/deep.ocean.doc). A new
+       computations. A new
        file has to be created ('TG3M' in the rundeck) using 'gmake
        auxdeep RUN=E001xyz' and then running 'mkdeep *.oda.*'. This
        creates the initial conditions and climatology at the base of the
-       mixed layer. Use E001D.R as a rundeck template.</p>
+       mixed layer. Use E001qd.R as a rundeck template.</p>
+
+<p> The deep ocean layers 2-LMOM (currently = 12) start at the annual
+maximal mixed layer depth. The thickness of layer 2 (DZ2) is 10m and
+the layer thicknesses increase geometrically s.t. 
+DZ1X+DZ2+DZ3+...+DZlmom=5000m (lmom=12); i.e. DZ1X=10/Q,
+DZ3=10*Q, DZ4=DZ3*Q, ...  and DZ1=ann.max.mixed layer depth 
+DZ1X is not used; the dzo's to compute the vertical gradients are
+given by : dzo1=10/sqrt(Q) , dzo2=dzo1*Q , dzo3=dzo2*Q , etc Q=1.701...</p>
+
+<p> The diffusion into the deep ocean is computed once every day using
+the temperature anomaly with respect to 'climatology' as tracer. The
+climatology is found by taking a 10-year mean of the Qflux model without
+a deep ocean that is used to initialize the deep ocean run. </p>
+
+<p> More detailed description:
+<pre>
+T1 = temperature of mixed layer (C)                       =TOCEAN(1)
+T2 = T between mixed layer and ann.max mixed layer depth  =TOCEAN(2)
+T3 = temperature at annual maximal mixed layer depth.     =TOCEAN(3)
+
+RTGO(I,J,L=1->lmom) is set to 0 at the beginning of the run
+RTGO(I,J,L) = temperature anomaly for deep ocean layer L (2->LMOM)
+RTGO(I,J,1) BEFORE the diffusion computation equals the annual mean
+            anomaly of T3 (based on the most recent 12-month period)
+            and is kept constant throughout the month
+RTGO(I,J,1) is changed during the diffusion; that change is added 
+            to T1,T2,T3, then RTGO(I,J,1) is reset to the current
+            annual mean anomaly 
+
+The heat flux at interface of layers L and L+1 is given by
+      EDO*(RTGO(L)-RTGO(L+1))/dzo(L)  L=1,...,8
+however, a semi-implicit scheme is used to compute these fluxes.
+
+The following auxiliary arrays are used:
+STG3(I,J) is set to 0 at the beginning of each month, at the end of
+          each day  T3  is added; at the end of month M, STG3 is
+          saved in TG3M(I,J,M)
+
+TG3M(I,J,M) initially contains a 10-year mean of Sum T3 for month M
+          (the sum is taken over each day of month M)
+          of the Q-flux run without deep ocean that is used to start
+          up the current run, at the end of month M it is set to STG3.
+
+DTG3(I,J) is set to 0 initially and is updated at the end of  month M
+          by adding (STG3-TG3M(.,.,M)). At that point we have:
+ADTG3 = DTG3(I,J)/365 = 12-month running mean of T3 - T3clim ;
+          this is used to initialize RTGO(.,.,1) before the diffusion.
+
+Note: After 1 year we have ADTG3 = ( SumD T3_yr1 - SumM init.TG3M )/365
+      After 2 years : SumM TG3M = SumD T3_yr1 hence
+           DTG3 = SumD T3_yr1 - SumM init.TG3M + SumD(T3_yr2 - T3_yr1)
+          ADTG3 = ( SumD T3_yr2 - SumM init.TG3M )/365
+          i.e. the year 1 contributions canceled
+</pre>
+
+<p> Compared to the Qflux model without deep ocean, the model with
+deep ocean needs one extra input file (EDDY = diffusivity
+coefficients) and uses the ODEEP module instead of OCNML. </p>
 
 <p><A name="part1_2d"><b>D: How to use parameters to control numerical
 instabilities</b></a></p>
@@ -789,20 +862,44 @@ always be recreated if needed.</p>
 
 <p><A name="part1_5"><b>5) HOW-TO change trace gas amounts</b></a></p>
 
-<p>This is not as obvious as it should be:
-<ol>
-<li> (OBSOLETE) CO2 levels can be set simply from the rundeck. Setting CO2=3 for
-instance will give CO2 level three times as high as the default (which
-is the CO2 level on July 1, 1981 = 311.098). Setting CO2 to be a
-negative integer, will allow the CO2 to vary according to a number of
-different scenarios (i.e. observations until 1998, various projections
-subsequently).
+<p> Trace gas amounts can be set in two ways. Firstly from a scenario
+(or histoical data) as a function of time. This is useful for
+transient experiments. Secondly, you can set most trace gas amounts as
+multiples of the default values in order to look at equilibrium
+sensitivities for instance.
 
-<li> (OBSOLETE) Other gases are slightly more problematic, although we are working
-on that. Essentially they should be able to be adjusted using the
-'FULGAS' array in init_RAD in a similar way to CO2. Stratospheric
-water vapour is more complicated and requires hacking about in the
-radiation code. Not recommended for the novice.
+<ol>
+<li> Setting the Trace Gas Year: 
+
+<p> The file GHG in the rundeck can be used to define a trace gas
+sceanrio (the default file gives observed values from 1850 to
+2000). However, any other scenario can be defined and used. If the
+variable 'ghg_yr' is set in the rundeck, then that year's values are
+used throughout the run. If a transient scenario is required, set
+ghg_yr=0 and the years will be taken from the model year. (A similar
+procedure works for aerosols (Aero_yr), solar forcing (sol_yr),
+volcanos (volc_yr) and ozone (O3_yr) as well). Note that stratospheric
+water vapour amounts are related to the ghg_yr (and the methane
+concentration) if H2ObyCH4=1 (the default is not to include the
+methane related flux). </P>
+
+<li> Changing fixed trace gas concentrations:
+
+<p> If you want to test the sensitivity to various hypothetical trace
+gas amounts, there are some multiplier parameters that can be used for
+the three principle greenhouse gases (CO2, CH4 and stratospheric water
+vapour). These variables CO2X, CH4X and H2OstratX are by default
+1. Since the default ghg_yr is 1951, changing the values of these
+multipliers gives a tracer gas concentration of (CO2X) times the 1951
+CO2 level. These defaults for reference are, CO2=311.098 and
+CH4=1.10298 (but really depend on the 1951 values in the GHG
+file). H2OstratX multiplies whatever the stratospheric water vapour
+amount is. </p>
+
+<li> For other gases (CFCs, N2O, O3) there are no rundeck parameters
+available, but they can be changed based on the 'FULGAS' array in
+init_RAD in a similar way to CO2.
+
 </ol>
 
 <p><A name="part1_6"><b>6) HOW-TO have a perpetual winter</b></a></p>
@@ -830,7 +927,7 @@ will be no seasonality there). Possibly there is another way....</p>
        number of seconds in an hour, or the number of hours in the
        day. Remember that dtsrc must divide into sday exactly.
   <li> Solar constant. This can be set by the multiplicative factor S0X
-       within RAD_DRV.f (I think)
+       within the rundeck.
   <li> Aerosol/dust amounts. These can be changed within RAD_DRV.f or by
        changing the RADN input files.
 </ol>
@@ -882,10 +979,10 @@ need to be downloaded separately. </P>
 
 <p>The biggest problem may be if the machine you wish to run the code
 on has a different fortran compiler. Some variation has been fully
-allowed for (i.e. the standard SGI or IBM compilers and Absoft
-Profortran on a Linux system) and some attempts have been made to
-accomodate the DEC/COMPAQ version, however, we do not have a stable testbed
-for that and therefore cannot guarantee it will always work.</P>
+allowed for (i.e. the standard SGI or IBM compilers, Absoft Profortran
+on a Linux system and the DEC/COMPAQ version), however, we do not have
+a stable testbed for any other compilers and therefore cannot
+guarantee it will always work.</P>
 
 <p>General problems will arise due to arbitrary compiler decisions on
 what to name compiled module files (which affects the determination of
@@ -1402,7 +1499,7 @@ give the diagnostic. Ratios are a little more complicated.</p>
 
 <p>Other diagnostics will be explained if and when we work them out.</P>
 
-  <li><A name="part3_5e"><b>D: Adding extra timing information</b></a>
+  <li><A name="part3_5e"><b>E: Adding extra timing information</b></a>
 
        <p> If you want more information on how long each part of the
        code takes (for instance if you put in some tracer code, or
@@ -1419,6 +1516,12 @@ give the diagnostic. Ratios are a little more complicated.</p>
        MORIG refers to the timing counter current at this point (in
        order to zero the counter for your routine. At the end of your
        code, call TIMER(MNOW,MPHYS). That's it. </p>
+
+  <li><A name="part3_5f"><b>F: Coupling an ocean model</b></a>
+
+       <p> Please read <a href="coupling.txt">the coupling
+       	documentation</a> for details of the fluxes, fields and entry points
+	required for any ocean code.  </p> 
 </ul>
 
 <p><A name="part3_9"><b>9) HOW-TO read in an external file</b></a></p>

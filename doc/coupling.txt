@@ -56,18 +56,13 @@ PRECIP_OC
   Called after calculation of precipitation. (May be a dummy routine if
   the precip is added later).
 
-GROUND_OC
+OCEANS
 
-  Called after the surface routine. Use to add surface and runoff
-  fluxes to ocean. The amount of ice formation is already calculated
-  under the ice, but open water and deep ice formation must be
-  calculated here. CANNOT be a dummy routine! 
-
-ODYNAM
-
-  Main entry point to ocean dynamics code (after all surface fluxes have
-  been calculated). Could also be used to accumulate fluxes if a
-  longer ocean time step is desired. CANNOT be a dummy routine!
+  Main entry point to ocean code, called after the surface routine.
+  Use to add surface and runoff fluxes to ocean. The amount of ice
+  formation is already calculated under the ice, but open water and
+  deep ice formation must be calculated here. Ocean dynamics should be
+  called from within here. CANNOT be a dummy routine!
 
 DIAGCO
 
@@ -78,23 +73,22 @@ DIAGCO
 diag_OCEAN  [ ALSO diag_ICEDYN ]
 
   Called once a month and used to print out (or output) ocean related
-  diagnostics in any foramt you like. You might want to use it to
+  diagnostics in any format you like. You might want to use it to
   simply print out some key ocean numbers (overturning strength, ACC,
   Gulf stream, mean vertical profiles etc.). Can be a dummy routine.
 
 Summary:
 
-There are two compulsory entry points. OCDYNAM is the driver for the
-ocean code, and GROUND_OC which calculates any ice that has formed in
-the open ocean to the ice code. Note that what happens in each call is
-completely independent of the AGCM (as long as the necessary fields
-are set). Thus fluxes can be summed over a long period and the ocean
-model run only every n hours, and the GROUND_OC ice fluxes can have
-been calculated previously and then slowly applied to the ice every
-hour. The other entry points are there for your convenience so that,
-for instance, the model restart files work consistently and monthly
-diagnostics can be output togther. There use is encouraged, but not
-demanded.
+There is one compulsory entry point. OCEANS is the driver for the
+ocean code, and calculates any ice that has formed in the open
+ocean. Note that what happens in each call is completely independent
+of the AGCM (as long as the necessary fields are set). Thus fluxes can
+be summed over a long period and the ocean model run only every n
+hours, and the ice fluxes can have been calculated previously and then
+slowly applied to the ice every hour. The other entry points are there
+for your convenience so that, for instance, the model restart files
+work consistently and monthly diagnostics can be output togther. There
+use is encouraged, but not demanded.
 
 =======================================================================
 
@@ -102,8 +96,7 @@ demanded.
 
 GTEMP(1,1,I,J) : surface ocean temperature (i.e layer 1) for ocean on
   atmospheric grid.  This must be set during the initialisation, and
-  after any call to the ocean model (PRECIP_OC, GROUND_OC, ODYNAM,
-  daily_OCEAN)). 
+  after any call to the ocean model (PRECIP_OC, OCEANS, daily_OCEAN)). 
 
 SSS(I,J) : surface salinity on atmospheric grid. This is used to
   estimate the salinity at the ice ocean interface and hence the
@@ -119,6 +112,12 @@ OGEOZA (ocean geopotential height) (m^2/s^2)
   The sea surface height field is required for computing the ice
   dynamics. If a rigid lid is being used, an assumption of geostrophy
   can be used instead to estimate the field.
+
+UOSURF(I,J), VOSURF(I,J): (ocean surface currents) (m/s)
+  The sea surface velocities are only required in the ice dynamics. As
+  a first step, these velocities are on the atmospheric C-grid. If
+  higher resolution ice dynamics are required, the grid for these will
+  change (but so will the ICEDYN_DRV.f code).
 
 ======================================================================
 
@@ -154,7 +153,8 @@ FLOWO, EFLOWO, SFLOWO runoff (kg), energy of runoff (J) (and salt in
 
 DMUA, DMVA N-S and E-W components of the atmospheric wind stress (kg/ms). 
       Note that these are on the atmospheric tracer grid, and are the
-      stresses to be applied over the whole box.
+      stresses to be applied over the whole box (i.e. they are already
+      weighted by the open ocean fraction).
 
 b) OUTPUT
 DMSI, DHSI, DSSI mass (kg/m^2), energy (J/m^2) and salt (kg/m^2)
