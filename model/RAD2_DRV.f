@@ -589,6 +589,7 @@ C**** Calculate mean cosine of zenith angle for the current physics step
           read(iu_rad,end=10,err=10) it,T,RQT,TsAvg,QR,P,CLDinfo
      *     ,rsi,msi,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm),wsoil,wsavg
      *     ,snowi,snowli_com,snowe_com,snoage,fmp_com,flag_dsws,ltropo
+     *     ,fr_snow_rad_ij,mwl     ! ,flake (if time-dep)
      *     ,srhra,trhra,iy  ! original output data (for adj.frc. only)
           if (qcheck) write(6,*) 'reading RADfile at Itime',Itime,it,iy
         end do
@@ -732,7 +733,7 @@ C****
         QSS=Q(I,J,L)/(RHSAV(L,I,J)+1.D-20)
         shl(L)=QSS
         IF(FSS(L,I,J)*CLDSAV(L,I,J).LT.1.)
-     *       shl(L)=(Q(I,J,L)-QSS*FSS(L,I,J)*CLDSAV(L,I,J))/            
+     *       shl(L)=(Q(I,J,L)-QSS*FSS(L,I,J)*CLDSAV(L,I,J))/
      *              (1.-FSS(L,I,J)*CLDSAV(L,I,J))
         TLm(L)=T(I,J,L)*PK(L,I,J)
         TAUSSL=0.
@@ -1082,6 +1083,7 @@ C**** save all input data to disk if kradia<0
       if (kradia.lt.0) write(iu_rad) itime,T,RQT,TsAvg,QR,P,CLDinfo
      *  ,rsi,msi,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm),wsoil,wsavg
      *  ,snowi,snowli_com,snowe_com,snoage,fmp_com,flag_dsws,ltropo
+     *  ,fr_snow_rad_ij,mwl        ! ,flake (if time-dep)
      *  ,SRHRA,TRHRA,itime
 C****
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
