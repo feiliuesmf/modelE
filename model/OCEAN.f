@@ -58,6 +58,9 @@
 !@var iu_OSST,iu_SICE,iu_OCNML unit numbers for climatologies
       INTEGER iu_OSST,iu_SICE,iu_OCNML
 
+!@dbparam qflux_fix an energy leak (default=0; no fix for continuity)
+      INTEGER :: qflux_fix=0
+
       CONTAINS
 
       SUBROUTINE OSTRUC(QTCHNG)
@@ -480,8 +483,8 @@ C**** Calculate previous ice mass (before fluxes applied)
 C**** Calculate extra mass flux to ocean, balanced by deep removal
       RUN4O=-EVAPO+RVRRUN  ! open ocean
       RUN4I=-EVAPI+RVRRUN  ! under ice
-      ERUN4O=RUN4O*TGW*SHW ! corresponding heat flux at bottom (open)
-      ERUN4I=RUN4I*TGW*SHW !                              (under ice)
+      ERUN4O=(1.-qflux_fix)*RUN4O*TGW*SHW ! corresponding heat flux at bottom (open)
+      ERUN4I=(1.-qflux_fix)*RUN4I*TGW*SHW !                              (under ice)
 
 C**** Calculate heat fluxes to ocean
       ENRGO  = FODT+OTDT+RVRERUN-ERUN4O ! in open water
@@ -733,7 +736,7 @@ C****
      *     ,emelti,smelti,fwsim
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
-      USE STATIC_OCEAN, only : tocean,z1o
+      USE STATIC_OCEAN, only : tocean,z1o,qflux_fix
       IMPLICIT NONE
       REAL*8 TGW,PRCP,WTRO,ENRGP,ERUN4,POCEAN,POICE,SNOW
      *     ,SMSI0,ENRGW,WTRW0,WTRW,RUN0,RUN4,ROICE,SIMELT,ESIMELT
@@ -767,7 +770,7 @@ C**** Calculate effect of lateral melt of sea ice
 
 C**** Additional mass (precip) is balanced by deep removal
             RUN4=PRCP
-            ERUN4=RUN4*TGW*SHW
+            ERUN4=(1.-qflux_fix)*RUN4*TGW*SHW
 
             IF (POICE.LE.0.) THEN
               ENRGW=TGW*WTRO*SHW + ENRGP - ERUN4
@@ -917,7 +920,7 @@ C****
       USE MODEL_COM, only : focean,im,jm,itocean,itoice,kocean,itime
      *     ,jmon
       USE GEOM, only : dxyp,imaxj
-      USE STATIC_OCEAN, only : tocean,z1o,z12o
+      USE STATIC_OCEAN, only : tocean,z1o,z12o,qflux_fix
       USE SEAICE, only : ace1i,lmi
       USE SEAICE_COM, only : rsi,msi,hsi,ssi,snowi
 #ifdef TRACERS_WATER
@@ -940,7 +943,7 @@ C****
         IF (FOCEAN(I,J).gt.0) THEN
           TGW  = TOCEAN(1,I,J)
           RUN4  = MSICNV(I,J)
-          ERUN4 = TGW*SHW*RUN4
+          ERUN4 = (1.-qflux_fix)*TGW*SHW*RUN4
 C**** Ensure that we don't run out of ocean if ice gets too thick
           IF (POICE.GT.0) THEN
             Z1OMIN=1.+FWSIM(I,J)/(RHOWS*RSI(I,J))
