@@ -11017,9 +11017,10 @@ C**** 0 until 1850, then lin. interpolate obs. data (every 25 years)
         END IF
       ELSE IF(XJYEAR.GE.1990.D0) THEN
 C**** Slow reduction after 1990 (POST90=-250 years e-folding time)
+C**** Actually we will use no reduction after 1990
         DYEAR=XJYEAR-1990.D0
         BCWTID=0.D0
-        BCWTJD=1.D0*EXP(DYEAR/POST90)
+        BCWTJD=1.D0 !  BCWTJD=1.D0*EXP(DYEAR/POST90)
         IDEC=8
         JDEC=8
       ELSE
@@ -11157,9 +11158,10 @@ C**** 0 until 1850, then lin. interpolate obs. data (every 25 years)
         END IF
       ELSE IF(XJYEAR.GE.1990.D0) THEN
 C**** Slow reduction after 1990 (POST90=-250 years e-folding time)
+C**** Actually we will use no reduction after 1990
         DYEAR=XJYEAR-1990.D0
         SUWTID=0.D0
-        SUWTJD=1.D0*EXP(DYEAR/POST90)
+        SUWTJD=1.D0  !  SUWTJD=1.D0*EXP(DYEAR/POST90)
         IDEC=8
         JDEC=8
       ELSE
