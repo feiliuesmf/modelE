@@ -57,8 +57,8 @@ in adding functionality or diagnostics.</P>
   <LI> <A HREF="#part1_3"> HOW-TO stop and restart the GCM</A>
   <LI> <A HREF="#part1_4"> HOW-TO change boundary conditions</A>
        <OL>
-	 <LI> <A HREF="#part1_4a"> HOW-TO alter the topography file
-	      consistently</A>
+  <LI> <A HREF="#part1_4a"> HOW-TO alter the topography file
+       consistently</A>
        </OL>
   <LI> <A HREF="#part1_5"> HOW-TO change trace gas amounts</A>
   <LI> <A HREF="#part1_6"> HOW-TO have a perpetual winter</A>
@@ -89,16 +89,16 @@ diagnostics</A></P>
   <LI><A HREF="#part3_3"> HOW-TO use or add to the automatic
        documentation</A>
   <LI><A HREF="#part3_4"> HOW-TO ensure that your code meets the new
-       standards</A> 
-  <LI><A HREF="#part3_5"> HOW-TO add functionality</A> 
+       standards</A>
+  <LI><A HREF="#part3_5"> HOW-TO add functionality</A>
        <ul>
-	 <li><A HREF="#part3_5a"> A: Variations on existing code</A>
-	 <LI><A HREF="#part3_5b"> B: Introducing new sub-modules</A> 
-	 <LI><A HREF="#part3_5c"> C: Introducing a new parameter</A> 
-	 <LI><A HREF="#part3_5d"> D: Adding new diagnostics</A>
-	 <LI><A HREF="#part3_5e"> E: Adding extra timing information</A>
+  <li><A HREF="#part3_5a"> A: Variations on existing code</A>
+  <LI><A HREF="#part3_5b"> B: Introducing new sub-modules</A>
+  <LI><A HREF="#part3_5c"> C: Introducing a new parameter</A>
+  <LI><A HREF="#part3_5d"> D: Adding new diagnostics</A>
+  <LI><A HREF="#part3_5e"> E: Adding extra timing information</A>
        </ul>
-  <LI><A HREF="#part3_9"> HOW-TO read in an external file</A> 
+  <LI><A HREF="#part3_9"> HOW-TO read in an external file</A>
   <LI><A HREF="#part3_10"> HOW-TO add new variables to the restart
        files</A>
   <LI><A HREF="#part3_11"> HOW-TO access variables that are already
@@ -312,10 +312,12 @@ recorded in the central rundeck repository.</p>
 
     The dp-params are saved in record 3 of the save files (acc,rsf)
        They are tuning or control parameters.
-    the nl-params are saved in record 1 (ISTART,IRANDI,IYEAR1) or
-       not at all (all others). These others set start and stop
+    the nl-params are not saved except for IYEAR1 (which is saved in
+       record 1). Most of the others set start and stop
        date for the run: (YEAR/MONTH/DATE/HOUR)I or E or IHOURE
-       or determine the (debug) printout: KDIAG,IWRITE,...,QCHECK
+       or determine the (debug) printout: KDIAG,QDIAG,IWRITE,...,QCHECK
+       ISTART determines whether this is an initial- or restart
+       IRANDI may be used to perturb the current temperatures
 
     When a run starts, parameters not set in the rundeck take their
     default values. On restarts, YEAR/MONTH/DATE/HOURI are ignored;
@@ -502,7 +504,7 @@ always be recreated if needed.</p>
 
 <ol>
   <li><A name="part1_4a"><b>a) HOW-TO alter the topography file
-       consistently</b></a> 
+       consistently</b></a>
        <p> The topography file (TOPO) in the rundeck, must have a
        degree of internal consistency. Therefore if changes are made
        to the ocean mask (FOCEAN), for instance, other changes are
@@ -511,24 +513,24 @@ always be recreated if needed.</p>
        reasons not worth going into. This file is made up of 9 fields
        (in the standard TITLE*80,DATA(IM,JM) format):
        <ol>
-	 <li> FOCEAN   fraction of ocean
-	 <li> FLAKE    fraction of lake
-	 <li> FGRND (or FEARTH) fraction of non-glaciated land
-	 <li> FGICE (or FLICE)  fraction of glaciated land
-	 <li> ZATMO    mean topography (m)
-	 <li> HOCEAN   depth of ocean (m)  (not used except for GISS ocean)
-	 <li> HLAKE    depth of lake  (m)
-	 <li> HGICE    depth of glacier (m)(not yet used)
-	 <li> ZSOLID   not sure!           (not used except for GISS ocean)
+  <li> FOCEAN   fraction of ocean
+  <li> FLAKE    fraction of lake
+  <li> FGRND (or FEARTH) fraction of non-glaciated land
+  <li> FGICE (or FLICE)  fraction of glaciated land
+  <li> ZATMO    mean topography (m)
+  <li> HOCEAN   depth of ocean (m)  (not used except for GISS ocean)
+  <li> HLAKE    depth of lake  (m)
+  <li> HGICE    depth of glacier (m)(not yet used)
+  <li> ZSOLID   not sure!           (not used except for GISS ocean)
        </ol>
-       In particular: 
+       In particular:
        <pre>
        IF (FOCEAN(I,J).gt.0) THEN
          FLAKE(I,J)=0.   ! lake and ocean cannot co-exist at the same grid point
          HLAKE(I,J)=0.
-         FLAND=1.-FOCEAN(I,J) 
+         FLAND=1.-FOCEAN(I,J)
        ELSE
-         FLAND=1.-FLAKE(I,J) 
+         FLAND=1.-FLAKE(I,J)
        END IF
        FGRND(I,J)=MAX(0.,FLAND-FGICE(I,J))! land ice fraction takes precedence over ground
        FGICE(I,J)=FLAND-FGRND(I,J)
@@ -537,10 +539,10 @@ always be recreated if needed.</p>
        ice sheets, FGICE should be set to FLAND (i.e. 1-FOCEAN),
        FGRND, FLAKE, and HLAKE to zero. Note as well that the polar
        boxes must be homogenous (i.e. FOCEAN(2:IM,JM)=FOCEAN(1,JM)
-       etc.)  </p> 
-       
+       etc.)  </p>
+
        <p>Some other external file data may not be consistent with the
-       new land/ocean mask but the model code will extrapolate from a 
+       new land/ocean mask but the model code will extrapolate from a
        nearest neighbour to fill those points in. Make sure that the
        model is started with ISTART=6 in order to ensure that this is
        the case.</p>
@@ -725,7 +727,8 @@ is no simple way to pick and choose exactly which diagnostics appear,
 although we are working on a scheme to do just that. Some of the
 following options are rarely used, and may soon be made obsolete.
 These switches can also be used in 'Ipd' input for pdE to control
-which binary output to produce.</p>
+which binary output to produce. If QDIAG=.true. some binary files</p>
+are created accompanying the printed output</p>
 
 <p>Current options are:
 <pre>
@@ -737,7 +740,7 @@ KDIAG(1)  < 9 print Zonal/Regional budget pages
 KDIAG(2)  < 9 print Latitude-height diagnostics
           = 8 Only print spectral analysis of standing eddies
 
-KDIAG(3)  = 0 standard printout, all binary files if QCHECK=.true.
+KDIAG(3)  = 0 standard printout, all binary files if QDIAG=.true.
           = 1 ij-fields as in list Iij, all ijk-fields
           = 2 ij and ijk fields are handled according to list Iij
           = 7 ij-fields as in list Iij, no ijk-fields are produced
@@ -880,9 +883,9 @@ the (not very onerous) conditions. Unfortunately, we do not have
 anybody whose job it is to make sure that added code
 conforms. However, every time this happens it makes it harder to keep
 the model consistent, and leads to the creation of unnecessary
-complications in keeping things straight.</p> 
+complications in keeping things straight.</p>
 
-<p><A name="part3_5"><b>5) HOW-TO add functionality</b></a></p> 
+<p><A name="part3_5"><b>5) HOW-TO add functionality</b></a></p>
 
 <ul>
   <li><A name="part3_5a"><b>A: Variations on existing code</b></a>
@@ -952,7 +955,7 @@ preferred solution is 'plug and play'.</P>
 create, you should modify the <a href = "OPTIONS.html"> OPTIONS.html
 </a> file to document the details.</p>
 
-  <li><A name="part3_5c"><b>C: Introducing a new parameter</b></a> 
+  <li><A name="part3_5c"><b>C: Introducing a new parameter</b></a>
 
 <p>Only introduce a new parameter if you would like to be able to vary
 it's value at run time without recompiling the model (i.e. an
@@ -1017,7 +1020,7 @@ and KCON by 2+number of points at which you are saving the value.</p>
        order to zero the counter for your routine. At the end of your
        code, call TIMER(MNOW,MPHYS). That's it. </p>
 </ul>
-       
+
 <p><A name="part3_9"><b>9) HOW-TO read in an external file</b></a></p>
 
 <p>ModelE has introduced a FILEMANAGER system that controls the
