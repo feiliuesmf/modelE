@@ -1221,7 +1221,7 @@ C****
       DO L=1,MIN(LSRPD,LMIJ)
         G0ML(L,1,1) = G0M1(1,JM,L)
       END DO
-      DO L=LSRPD,LMIJ
+      DO L=LSRPD+1,LMIJ
         G0ML(L,1,1) = G0ML0(L,1,1)
       END DO
 #ifdef TRACERS_OCEAN
@@ -1358,7 +1358,7 @@ C**** Loop over quarter boxes
       DO L=2,MIN(LSRPD,LMIJ)
         G0ML(L,IQ,JQ)=2.5d-1*(G0M1(I,J,L)+RI*GXMO(I,J,L)+RJ*GYMO(I,J,L))
       END DO
-      DO L=LSRPD,LMIJ
+      DO L=LSRPD+1,LMIJ
         G0ML(L,IQ,JQ) = G0ML0(L,IQ,JQ)
       END DO
 #ifdef TRACERS_OCEAN
