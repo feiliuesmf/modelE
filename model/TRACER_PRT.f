@@ -513,6 +513,10 @@ C****
 C****
 C**** LOOP OVER TRACERS
 C****
+
+C**** Note: why are jtpow defined here AND in units definition above?
+C**** there is needless scope for inconsistency....
+
       DO 400 N=1,NTM
       IF (itime.LT.itime_tr0(N)) cycle
 C****
@@ -556,11 +560,8 @@ C**** for Dorothy and Drew for the time being)
 C****
       k=jlnt_mass
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
-      jtpow = ntm_power(n)+5+jlq_power(k)
-      scalet = scalet*10.**(-jtpow)
-
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
-     *     plm,tajln(1,1,k,n),scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
+     *     plm,tajln(1,1,k,n),scalet,byapo,ones,lm,2,jgrid_jlq(k))
 
 #endif
 
