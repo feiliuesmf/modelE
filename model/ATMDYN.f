@@ -244,18 +244,22 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
 !@auth Original development team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,ls1,psfmpt,dsig,bydsig,byim
+     &     ,zatmo,sige
       USE GEOM
       USE DYNAMICS, only : pit,sd,conv,pu,pv,sd_clouds,spa
       IMPLICIT NONE
 C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
-      REAL*8 U(IM,JM,LM),V(IM,JM,LM),P(IM,JM) ! p is just workspace
+      REAL*8 U(IM,JM,LM),V(IM,JM,LM)
       REAL*8, DIMENSION(IM) :: DUMMYS,DUMMYN
       REAL*8 PIJL(IM,JM,LM)
       INTEGER I,J,L,IP1,IM1
       REAL*8 PUS,PUN,PVS,PVN,PBS,PBN,SDNP,SDSP
+      REAL*8 WT
 C****
 C**** BEGINNING OF LAYER LOOP
 C****
+      pu(:,:,:) = 0.
+      pv(:,:,:) = 0.
       DO 2000 L=1,LM
 C****
 C**** COMPUTATION OF MASS FLUXES     P,T  PU     PRIMARY GRID ROW
@@ -269,18 +273,55 @@ C**** COMPUTE PU, THE WEST-EAST MASS FLUX, AT NON-POLAR POINTS
       I=IM
       DO 2166 J=2,JM-1
       DO 2165 IP1=1,IM
-      PU(I,J,L)=.25*DYP(J)*SPA(I,J,L)*(PIJL(I,J,L)+PIJL(IP1,J,L))*
-     *  DSIG(L)
+      PU(I,J,L)=PU(I,J,L)+.25*DYP(J)*SPA(I,J,L)*
+     &        (PIJL(I,J,L)+PIJL(IP1,J,L))*DSIG(L)
  2165 I=IP1
  2166 CONTINUE
 C**** COMPUTE PV, THE SOUTH-NORTH MASS FLUX
       IM1=IM
       DO 2172 J=2,JM
       DO 2170 I=1,IM
-      PV(I,J,L)=.25*DXV(J)*(V(I,J,L)+V(IM1,J,L))*
+      PV(I,J,L)=PV(I,J,L)+.25*DXV(J)*(V(I,J,L)+V(IM1,J,L))*
      *   (PIJL(I,J,L)+PIJL(I,J-1,L))*DSIG(L)
  2170 IM1=I
  2172 CONTINUE
+      if(l.lt.ls1) then
+c modify uphill air mass fluxes around steep topography
+      do j=2,jm-1
+         i = im
+         do ip1=1,im
+            if((zatmo(ip1,j)-zatmo(i,j))*pu(i,j,l).gt.0.) then
+               if(pu(i,j,l).gt.0.) then
+                  wt = (pijl(ip1,j,l)/pijl(i,j,l)-sige(l+1))/dsig(l)
+               else
+                  wt = (pijl(i,j,l)/pijl(ip1,j,l)-sige(l+1))/dsig(l)
+               endif
+               if(wt.lt.1.) then
+                  if(wt.lt.0.) wt=0.
+                  pu(i,j,l+1) = pu(i,j,l+1) + pu(i,j,l)*(1.-wt)
+                  pu(i,j,l) = pu(i,j,l)*wt
+               endif
+            endif
+            i = ip1
+         enddo
+      enddo
+      do j=2,jm
+         do i=1,im
+            if((zatmo(i,j)-zatmo(i,j-1))*pv(i,j,l).gt.0.) then
+               if(pv(i,j,l).gt.0.) then
+                  wt = (pijl(i,j,l)/pijl(i,j-1,l)-sige(l+1))/dsig(l)
+               else
+                  wt = (pijl(i,j-1,l)/pijl(i,j,l)-sige(l+1))/dsig(l)
+               endif
+               if(wt.lt.1.) then
+                  if(wt.lt.0.) wt=0.
+                  pv(i,j,l+1) = pv(i,j,l+1) + pv(i,j,l)*(1.-wt)
+                  pv(i,j,l) = pv(i,j,l)*wt
+               endif
+            endif
+         enddo
+      enddo
+      endif
 C**** COMPUTE PU*3 AT THE POLES
       PUS=0.
       PUN=0.
