@@ -12,7 +12,7 @@ Note: Many of these choices may be changed using the PARAMETERs below.
 
 Preprocessor Options
 #define TRACERS_ON          ! include tracers code
-!#define TRACERS_SPECIAL_Lerner ! also activate TRACER_SPECIAL_Lerner in Obj.modules !!
+#define TRACERS_SPECIAL_Lerner ! also activate TRACER_SPECIAL_Lerner in Obj.modules !!
 !#define TRACERS_WATER      ! include water tracers code
 End Preprocessor Options
 
@@ -21,6 +21,7 @@ RES_M12                             ! horiz/vert resolution
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
+DOMAIN_DECOMP                       ! domain decomposition
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q and tracer gases
@@ -28,7 +29,7 @@ TRACER_COM TRACERS_DRV              ! configurable tracer code
 TRACERS                             ! generic tracer code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 ! use next line if #define TRACERS_SPECIAL_Lerner
-! TRACER_SPECIAL_Lerner             ! routines called when TRACERS_SPECIAL_Lerner is activated
+TRACER_SPECIAL_Lerner               ! routines called when TRACERS_SPECIAL_Lerner is activated
 CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
@@ -117,7 +118,7 @@ DTFIX=300
 &&PARAMETERS
 ! parameters set for prescribed ocean runs:
 KOCEAN=0        ! ocn is prescribed
-Kvflxo=1        ! save VFLXO (daily) if ocn prescribed
+Kvflxo=0        ! save VFLXO (daily) if ocn prescribed
 ocn_cycl=1      ! =0 for ann.varying prescr. ocean
 
 ! parameters usually not changed when switching to q-flux ocean:
@@ -170,5 +171,5 @@ nda5s=1         ! use =7 to save cpu time
  &INPUTZ
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=0,2,2,9*0,9,
-   ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,HOURE=1,
+   ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
  &END

@@ -14,10 +14,7 @@
 !@auth J. Lerner
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
       USE CONSTANT, only: mair,mwat,sday
-      USE MODEL_COM, only: dtsrc,byim
-#ifdef TRACERS_SPECIAL_Shindell
-     & ,ptop,psf,sig,lm,jm
-#endif
+      USE MODEL_COM, only: dtsrc,byim,ptop,psf,sig,lm,jm
       USE DAGCOM, only: ia_src,ia_12hr,ir_log2,npts
       USE TRACER_COM
 #ifdef TRACERS_ON
@@ -43,10 +40,10 @@
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt
 #endif
-      USE FILEMANAGER, only: openunit,closeunit
 #endif
+      USE FILEMANAGER, only: openunit,closeunit
       implicit none
-      integer :: l,k,n,ntemp,n2
+      integer :: l,k,n,ntemp,n2,ltop,g
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
       character*10 CMR
 #ifdef TRACERS_ON
@@ -66,7 +63,7 @@
 !@var title header read in from file
       REAL*8, DIMENSION(LM) :: PRES,tempOx2
       REAL*8, DIMENSION(LcorrOx) :: tempOx1
-      integer iu_data,m,j,nq,g
+      integer iu_data,m,j,nq
       character*80 title
 #ifdef regional_Ox_tracers
 !@var Ox_a_tracer logical is true if Ox is one of the tracers
@@ -122,6 +119,17 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       ntemp=0
 #endif
 #endif
+
+C**** Define a max layer for some optionally trop/strat tracers
+      LTOP = LM
+#ifdef TRACERS_SPECIAL_Shindell
+#ifdef Shindell_Strat_chem
+      LTOP = LM
+#else
+      LTOP = LS1Jmax-1
+#endif
+#endif
+
 C**** Define individual tracer characteristics
       do n=1,ntm
       select case (trname(n))
@@ -846,11 +854,7 @@ C****
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH4 BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -1190,11 +1194,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Ox BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -1212,11 +1212,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF NOx BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = -1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -1269,11 +1265,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF N2O5 BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = -1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -1291,11 +1283,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HNO3 BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = -1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -1313,11 +1301,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF H2O2 BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -1335,11 +1319,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH3OOH BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = -1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -1357,11 +1337,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HCHO BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -1379,11 +1355,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HO2NO2 BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = -1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -1401,11 +1373,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CO BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -1437,11 +1405,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF PAN BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = -1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -1459,11 +1423,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Isoprene BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -1488,11 +1448,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF AlkylNit BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = -1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -1510,11 +1466,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Alkenes BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -1553,11 +1505,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Paraffin BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = -1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -1606,11 +1554,7 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
-#ifdef Shindell_Strat_chem
-        jls_ltop(k) = LM
-#else
-        jls_ltop(k) = LS1Jmax-1
-#endif
+        jls_ltop(k) = LTOP
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifndef Shindell_Strat_chem
@@ -2790,6 +2734,42 @@ c put in production of H2O2 from heter chem
         lname_ijts(k) = 'H2O2 heter chem sink'
         sname_ijts(k) = 'H2O2_het_chem_sink'
         ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+        case ('Be7')
+c cosmogenic source from file
+        k = k + 1
+        ijts_3Dsource(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Cosmogenic source of '//trname(n)
+        sname_ijts(k) = 'Be7_cosmo_src'
+        ijts_power(k) = -13.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+        case ('Be10')
+c cosmogenic source from file
+        k = k + 1
+        ijts_3Dsource(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Cosmogenic source of '//trname(n)
+        sname_ijts(k) = 'Be10_cosmo_src'
+        ijts_power(k) = -13.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+        case ('Pb210')
+c source of Pb210 from Rn222 decay
+        k = k + 1
+        ijts_3Dsource(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Radioactive source of '//trname(n)
+        sname_ijts(k) = 'Pb210_radio_src'
+        ijts_power(k) = -8.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
