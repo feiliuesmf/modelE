@@ -16,7 +16,7 @@ C
      &                          yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,
      &                          yRXPAR,yXO2N
 #ifdef SHINDELL_STRAT_CHEM
-     &                          ,pCLOx,pCLx,pOClOx,pBrOx
+     &                          ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
 c
       IMPLICIT NONE
@@ -77,6 +77,8 @@ C     Initialize a few (IM,JM,LM) arrays, first hour only:
         pClx     =0.d0
         pOClOx   =0.d0
         pBrOx    =1.d0
+        yCl2     =0.d0
+        yCl2O2   =0.d0
 #endif
       END IF
 C
