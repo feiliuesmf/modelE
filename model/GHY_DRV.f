@@ -634,7 +634,7 @@ ccc actually PBL needs evap (kg/m^2*s) / rho_air
 
 c**** call tracers stuff
 #ifdef TRACERS_ON
-      call ghy_tracers_set_cell(i,j,qg,evap_max)
+      call ghy_tracers_set_cell(i,j,qg,pbl_args%evap_max)
 #endif
       call pbl(i,j,itype,ptype,pbl_args)
 c****
@@ -742,7 +742,7 @@ c****
 
 c**** update tracers
 #ifdef TRACERS_ON
-      call ghy_tracers_save_cell(i,j,ptype,dtsurf)
+      call ghy_tracers_save_cell(i,j,ptype,pbl_args%dtsurf)
 #endif
       end do loop_i
       end do loop_j
