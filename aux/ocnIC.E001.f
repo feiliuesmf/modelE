@@ -18,7 +18,8 @@ C****        TOPO = topography
 C****        SNOW = daily snow amounts (from vertflux)
 C****
       USE STATIC_OCEAN
-      USE SEAICE_COM, only : snowi
+      USE SEAICE, only : ace1i,ac2oim
+      USE SEAICE_COM, only : snowi,msi,ssi
       USE FLUXES, only : sss
       USE FILEMANAGER
       implicit none
@@ -73,6 +74,14 @@ C**** open snow file
       call openunit("SNOW",iu_SNOW,.true.,.true.)
 C**** define sea surface salinity (needed for OCLIM)
       sss(:,:)=sss0
+C**** initialise sea ice mass etc.
+      do j=1,jm
+        do i=1,im
+          msi(i,j)=ac2oim
+          ssi(1:2,i,j)=ssi0*ace1i*xsi(1:2)
+          ssi(3:4,i,j)=ssi0*msi(i,j)*xsi(3:4)
+        end do
+      end do
 C****
 C**** Loop over days of the year
 C****
@@ -87,6 +96,11 @@ C*
           kocean = 0
           jmon = month
           jdate = kday
+
+C***  Read in ocean ice snow data
+          READ(iu_SNOW) TITLE,SNOWI
+          WRITE (6,*) TITLE
+
           CALL OCLIM (.true.)
 
 C***  Read in the ocean mixed layer depth data
@@ -94,10 +108,6 @@ C***  and interpolate them for the current day
           kocean = 1
           jday = jday + 1
           CALL OCLIM (.true.)
-
-C***  Read in ocean ice snow data
-          READ(iu_SNOW) TITLE,SNOWI
-          WRITE (6,*) TITLE
 
           IF(m.eq.months .and. kday.eq.1) THEN
 C**** Initialize TOCEAN(2) and TOCEAN(3) on Day 1

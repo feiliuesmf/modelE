@@ -14,11 +14,11 @@
       USE MODEL_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
      *     ,jday,p,ptop
       USE GEOM, only : imaxj,dxyp,bydxyp
-      USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,apress
+      USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,apress,fwsim
 #ifdef TRACERS_WATER
      *     ,trprec,trunpsi,gtracer
 #endif
-      USE SEAICE, only : prec_si, ace1i, lmi,xsi
+      USE SEAICE, only : prec_si, ace1i, lmi,xsi,debug
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,flag_dsws,pond_melt
 #ifdef TRACERS_WATER
      *     ,ntm,trsi
@@ -62,6 +62,8 @@
 
         AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
 C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
+
+c        debug=i.eq.2.and.j.eq.4
         CALL PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,RUN0,SRUN0,
 #ifdef TRACERS_WATER
      *       TRSIL,TRPRCP,TRUN0,
@@ -98,6 +100,7 @@ C**** set gtemp array
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J) = TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
 #endif
+        FWSIM(I,J) = RSI(I,J)*(ACE1I+SNOW+MSI2-SUM(SSIL(1:LMI)))
 
 C**** Accumulate diagnostics for ice fraction
         AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+RUN0 *POICE
@@ -543,7 +546,7 @@ C****
      *     ,trsi,ntm
       USE TRACER_DIAG_COM, only : tij_seaice,taijn
 #endif
-      USE FLUXES, only : dmsi,dhsi,dssi,gtemp
+      USE FLUXES, only : dmsi,dhsi,dssi,gtemp,fwsim
 #ifdef TRACERS_WATER
      *     ,dtrsi,gtracer
 #endif
@@ -649,6 +652,7 @@ C**** set gtemp array
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
 #endif
+        FWSIM(I,J) = RSI(I,J)*(ACE1I+SNOW+MSI2-SUM(SSIL(1:LMI)))
 
 C**** ACCUMULATE DIAGNOSTICS
         AJ(J,J_RSI, ITYPE)=AJ(J,J_RSI, ITYPE)+        POICE
@@ -691,6 +695,7 @@ C**** replicate ice values at the north pole
         TRSI(:,:,I,JM) = TRSI(:,:,1,JM)
         GTRACER(:,2,I,JM) = GTRACER(:,2,1,JM)
 #endif
+        FWSIM(I,JM) = FWSIM(1,JM)
       END DO
 C****
       END SUBROUTINE FORM_SI
@@ -701,22 +706,22 @@ C****
 !@ver  1.0
       USE MODEL_COM, only : im,jm,focean
       USE DAGCOM, only : oa
-      USE SEAICE, only : ace1i
-      USE SEAICE_COM, only : msi,hsi,snowi
+      USE SEAICE_COM, only : hsi,snowi
+      USE FLUXES, only : fwsim
       IMPLICIT NONE
       INTEGER I,J
 C****
 C****       DATA SAVED IN ORDER TO CALCULATE OCEAN TRANSPORTS
 C****
-C****       1  ACE1I+SNOWOI  (INSTANTANEOUS AT NOON GMT)
-C****       2  MSI2   (INSTANTANEOUS AT NOON GMT)
+C****       1  SNOWOI (INSTANTANEOUS AT NOON GMT)
+C****       2  FWSIM  (INSTANTANEOUS AT NOON GMT)
 C****       3  HSIT   (INSTANTANEOUS AT NOON GMT)
 C****
       DO J=1,JM
         DO I=1,IM
           IF (FOCEAN(I,J).gt.0) THEN
-            OA(I,J,1)=ACE1I+SNOWI(I,J)
-            OA(I,J,2)=MSI(I,J)
+            OA(I,J,1)=SNOWI(I,J)
+            OA(I,J,2)=FWSIM(I,J)
             OA(I,J,3)=SUM(HSI(:,I,J))
           END IF
         END DO
@@ -733,16 +738,17 @@ C****
       USE CONSTANT, only : byshi,lhm,shi,rhow
       USE MODEL_COM, only : im,jm,kocean,focean
       USE SEAICE, only : xsi,ace1i,ac2oim,ssi0,tfrez,oi_ustar0,silmfac
+     *     ,lmi
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp,sss,ui2rho
+      USE FLUXES, only : gtemp,sss,ui2rho,fwsim
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
       USE DAGCOM, only : npts,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI
-     *     ,icon_LHSI,title_con,conpt0
+     *     ,icon_LHSI,conpt0
       USE PARAM
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE. , iniOCEAN
@@ -787,7 +793,7 @@ C****   set defaults for no ice case
         END DO
         END DO
       END IF
-C**** set GTEMP array for ice
+C**** set GTEMP etc. array for ice
       DO J=1,JM
       DO I=1,IM
         MSI1=SNOWI(I,J)+ACE1I
@@ -796,6 +802,7 @@ C**** set GTEMP array for ice
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))
 #endif
+        FWSIM(I,J) = RSI(I,J)*(MSI1+MSI(I,J)-SUM(SSI(1:LMI,I,J)))
       END DO
       END DO
 
@@ -903,7 +910,7 @@ C****
       END SUBROUTINE conserv_OSSI
 
       SUBROUTINE conserv_LMSI(ICE)
-!@sum  conserv_MSI calculates total amount of snow and ice over lakes
+!@sum  conserv_LMSI calculates total amount of snow and ice over lakes
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm,fim
@@ -930,7 +937,7 @@ C****
       END SUBROUTINE conserv_LMSI
 
       SUBROUTINE conserv_LHSI(EICE)
-!@sum  conserv_HSI calculates total ice energy over lakes
+!@sum  conserv_LHSI calculates total ice energy over lakes
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm,fim

@@ -98,6 +98,8 @@ C**** sea ice melt.
       REAL*8, DIMENSION(IM,JM) :: UISURF,VISURF
 !@var APRESS total atmos + sea ice pressure (at base of sea ice) (Pa)
       REAL*8, DIMENSION(IM,JM) :: APRESS
+!@var FWSIM fresh water sea ice mass (kg/m^2) (used for qflux model)
+      REAL*8, DIMENSION(IM,JM) :: FWSIM
 
 #ifdef TRACERS_ON
 !@var TRSOURCE non-interactive surface sources/sinks for tracers (kg/s)

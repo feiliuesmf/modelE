@@ -205,7 +205,8 @@ c??  *     FORM="UNFORMATTED",STATUS="UNKNOWN")
       print*,ioerr
       print*,"New rsf file written out to ",trim(outfile)
       stop
- 800  print*,"Error reading in file"
- 810  print*,"Error reading in file"
+ 800  print*,"Error reading in AIC file "
+      stop
+ 810  print*,"Error reading in AIC file - end reached"
       stop
       end

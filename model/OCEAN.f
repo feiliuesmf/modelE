@@ -15,12 +15,13 @@
       USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs
      *     ,cq=>cqgs,ipbl,roughl
       USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0,tfrez,fleadoc
+     *     ,lmi
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,trsi0,ntm
 #endif
       USE LANDICE_COM, only : snowli,tlandi
-      USE FLUXES, only : gtemp,sss
+      USE FLUXES, only : gtemp,sss,fwsim
       USE DAGCOM, only : aij, ij_smfx, aj, j_implh, j_implm
       IMPLICIT NONE
       SAVE
@@ -75,9 +76,8 @@ C**** TOCEAN 1  OCEAN TEMPERATURE OF FIRST LAYER (C)
 C****        2  MEAN OCEAN TEMPERATURE OF SECOND LAYER (C)
 C****        3  OCEAN TEMPERATURE AT BOTTOM OF SECOND LAYER (C)
 C****     RSI   RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
-C****     MSI   OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
-C**** SNOWI     OCEAN ICE SNOW AMOUNT (KG/M**2)
+C**** FWSIM     Fresh water sea ice amount (KG/M**2)
 C****
 C**** RESTRUCTURE OCEAN LAYERS
 C****
@@ -86,8 +86,7 @@ C****
           IF (FLAND(I,J).GE.1.) CYCLE
           IF (Z1OOLD(I,J).GE.Z12O(I,J)) GO TO 140
           IF (Z1O(I,J).EQ.Z1OOLD(I,J)) CYCLE
-          WTR1O=RHOW*Z1O(I,J)-RSI(I,J)*(SNOWI(I,J)
-     *         +ACE1I+MSI(I,J))
+          WTR1O=RHOW*Z1O(I,J)-FWSIM(I,J)
           DWTRO=RHOW*(Z1O(I,J)-Z1OOLD(I,J))
           WTR2O=RHOW*(Z12O(I,J)-Z1O(I,J))
           IF (DWTRO.GT.0.) GO TO 120
@@ -331,6 +330,8 @@ C**** SET DEFAULTS IF NO OCEAN ICE
               SNOWI(I,J)=0.
               GTEMP(1:2,2,I,J)=TFO
             END IF
+            FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-SUM(SSI(1:LMI
+     *           ,I,J)))
           END IF
         END DO
       END DO
@@ -347,6 +348,7 @@ C**** REPLICATE VALUES AT POLE (for prescribed data only)
           TRSI(:,:,I,JM)=TRSI(:,:,1,JM)
 #endif
           GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
+          FWSIM(I,JM)=FWSIM(1,JM)
         END DO
       END IF
       RETURN
@@ -396,33 +398,33 @@ C**** INTERPOLATE OCEAN DATA TO CURRENT DAY
       Z1O(I,J)=FRAC*XZO(I,J)+(1.-FRAC)*XZN(I,J)
 
       IF (RSI(I,J)*FOCEAN(I,J).GT.0) THEN
-        Z1OMIN=1.+(ACE1I+SNOWI(I,J)+MSI(I,J))/RHOW
+        Z1OMIN=1.+FWSIM(I,J)/RHOW
         IF (Z1OMIN.GT.Z1O(I,J)) THEN
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
           WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN
  602      FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,2F10.3)
           Z1O(I,J)=Z1OMIN
-        END IF
-      END IF
-      IF (Z1O(I,J).GT.Z12O(I,J).AND.RSI(I,J)*FOCEAN(I,J).GT.0) THEN
+          IF (Z1O(I,J).GT.Z12O(I,J)) THEN
 C**** ICE DEPTH+1>MAX MIXED LAYER DEPTH : 
 C**** Two options here: i) lose the excess mass to the deep ocean, or
 C**** ii) change the ocean to land ice. 
 C**** Option ii) has big problems in terms of conservation of heat (and
 C**** inability to ever be reversed and so is not recommended.
 C**** Option i) lose excess ice mass
-      MSINEW=MSI(I,J)-RHOW*(Z1O(I,J)-Z12O(I,J))
-      HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
-      SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
+C**** Calculate freshwater mass to be removed, and then any energy/salt
+            MSINEW=MSI(I,J)*(1.-RHOW*(Z1O(I,J)-Z12O(I,J))/(FWSIM(I,J)
+     *           -ACE1I-SNOWI(I,J)))
+            HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
+            SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
 #ifdef TRACERS_WATER
-      TRSI(:,3:4,I,J) = TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
+            TRSI(:,3:4,I,J) = TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
 #endif
-      AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+RSI(I,J)*(MSINEW-MSI(I,J))
-      AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-FOCEAN(I,J)*RSI(I,J)
-     *     *(MSINEW-MSI(I,J))
-      AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)*RSI(I,J)
-     *     *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
-      MSI(I,J)=MSINEW
+            AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+RSI(I,J)*(MSINEW-MSI(I,J))
+            AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-FOCEAN(I,J)*RSI(I
+     *           ,J)*(MSINEW-MSI(I,J))
+            AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)*RSI(I
+     *           ,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
+            MSI(I,J)=MSINEW
 cC**** Option ii) CHANGE OCEAN TO LAND ICE (not used anymore)
 c      PLICE=FLICE(I,J)
 c      PLICEN=1.-FEARTH(I,J)
@@ -468,6 +470,8 @@ c     +           cq(i,j,3)*plice)/plicen
 c      WRITE(6,606) 100.*POICE,100.*POCEAN,ITime,I,J
 c  606 FORMAT(F6.1,'% OCEAN ICE AND',F6.1,'% OPEN OCEAN WERE',
 c     *  ' CHANGED TO LAND ICE AT (I)Time,I,J',I10,2I4)
+          END IF
+        END IF
       END IF
       END DO
       END DO
@@ -484,6 +488,8 @@ C**** PREVENT Z1O, THE MIXED LAYER DEPTH, FROM EXCEEDING Z12O
      *     ,RVRERUN,EVAPO,EVAPI,TFW,RUN4O,ERUN4O,RUN4I
      *     ,ERUN4I,ENRGFO,ACEFO,ACEFI,ENRGFI)
 !@sum  OSOURC applies fluxes to ocean in ice-covered and ice-free areas
+!@+    ACEFO/I are the freshwater ice amounts, 
+!@+    ENRGFO/I is total energy (including a salt component)
 !@auth Gary Russell
 !@ver  1.0
       IMPLICIT NONE
@@ -525,8 +531,8 @@ C**** FLUXES RECOMPUTE TGW WHICH IS ABOVE FREEZING POINT FOR OCEAN
         END IF
       ELSE
 C**** FLUXES COOL TGO TO FREEZING POINT FOR OCEAN AND FORM SOME ICE
-        ACEFO=(ENRGO0+ENRGO-EOFRZ)/(TFW*(SHI-SHW)-LHM*(1.-SSI0))
-        ENRGFO=ACEFO*(TFW*SHI-LHM*(1.-SSI0))
+        ACEFO=(ENRGO0+ENRGO-EOFRZ)/(TFW*(SHI-SHW)-LHM)
+        ENRGFO=ACEFO*(TFW*SHI/(1.-SSI0)-LHM)
         IF (ROICE.LE.0.) THEN
           TGW=TFW
           RETURN
@@ -548,8 +554,8 @@ C**** AND CHECK WHETHER NEW ICE MUST BE FORMED
       EFIW = WTRI1*TFW*SHW ! freezing energy of ocean mass WTRI1
       IF (EIW0+ENRGIW .LE. EFIW) THEN ! freezing case
 C**** FLUXES WOULD COOL TGW TO FREEZING POINT AND FREEZE SOME MORE ICE
-        ACEFI = (EIW0+ENRGIW-EFIW)/(TFW*(SHI-SHW)-LHM*(1.-SSI0))
-        ENRGFI = ACEFI*(TFW*SHI-LHM*(1.-SSI0)) ! energy of frozen ice
+        ACEFI = (EIW0+ENRGIW-EFIW)/(TFW*(SHI-SHW)-LHM)
+        ENRGFI = ACEFI*(TFW*SHI/(1.-SSI0)-LHM) ! energy of frozen ice
       END IF
 C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       WTRW = WTRO  -(1.-ROICE)* ACEFO        -ROICE*(SMSI+ACEFI)
@@ -756,7 +762,8 @@ C****
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,dxyp
       USE DAGCOM, only : aj,j_implm,j_implh,oa,areg,jreg
-      USE FLUXES, only : runpsi,prec,eprec,gtemp,mlhc,melti,emelti
+      USE FLUXES, only : runpsi,srunpsi,prec,eprec,gtemp,mlhc,melti
+     *     ,emelti,smelti,fwsim
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE STATIC_OCEAN, only : tocean,z1o
@@ -774,23 +781,21 @@ C****
         IF (FOCEAN(I,J).gt.0) THEN
           PRCP=PREC(I,J)
           ENRGP=EPREC(I,J)
+          RUN0=RUNPSI(I,J)-SRUNPSI(I,J) ! fresh water runoff
+          SIMELT =(MELTI(I,J)-SMELTI(I,J))/(FOCEAN(I,J)*DXYP(J))
+          ESIMELT=EMELTI(I,J)/(FOCEAN(I,J)*DXYP(J))
           OA(I,J,4)=OA(I,J,4)+ENRGP
 
           IF (KOCEAN .EQ. 1) THEN
             TGW=TOCEAN(1,I,J)
             WTRO=Z1O(I,J)*RHOW
-            RUN0=RUNPSI(I,J)
             SNOW=SNOWI(I,J)
-            SMSI0=MSI(I,J)+ACE1I+SNOW+RUN0-PRCP ! initial ice
-
-            SIMELT = MELTI(I,J)/(FOCEAN(I,J)*DXYP(J))
-            ESIMELT=EMELTI(I,J)/(FOCEAN(I,J)*DXYP(J))
-c           SSIMELT=SMELTI(I,J)/(FOCEAN(I,J)*DXYP(J))
+            SMSI0=FWSIM(I,J)+ROICE*(RUN0-PRCP) ! initial ice
 
 C**** Calculate effect of lateral melt of sea ice
             IF (SIMELT.gt.0) THEN
               TGW=TGW + (ESIMELT-SIMELT*TGW*SHW)/
-     *             (SHW*(WTRO-ROICE*SMSI0))
+     *             (SHW*(WTRO-SMSI0))
             END IF
 
 C**** Additional mass (precip) is balanced by deep removal
@@ -801,7 +806,7 @@ C**** Additional mass (precip) is balanced by deep removal
               ENRGW=TGW*WTRO*SHW + ENRGP - ERUN4
               WTRW =WTRO
             ELSE
-              WTRW0=WTRO -ROICE*SMSI0
+              WTRW0=WTRO -SMSI0
               ENRGW=WTRW0*TGW*SHW + (1.-ROICE)*ENRGP - ERUN4
               WTRW =WTRW0+ROICE*(RUN0-RUN4)
             END IF
@@ -834,7 +839,7 @@ C****
       USE GEOM, only : imaxj,dxyp
       USE DAGCOM, only : aj,areg,jreg,j_implm,j_implh,j_oht,oa
       USE FLUXES, only : runosi,erunosi,srunosi,e0,e1,evapor,dmsi,dhsi
-     *     ,dssi,flowo,eflowo,gtemp,sss
+     *     ,dssi,flowo,eflowo,gtemp,sss,fwsim
 #ifdef TRACERS_WATER
      *     ,dtrsi
 #endif
@@ -851,8 +856,7 @@ C**** grid box variables
 C**** prognostic variables
       REAL*8 TGW, WTRO, SMSI, ROICE
 C**** fluxes
-      REAL*8 EVAPO, EVAPI, FIDT, FODT, OTDT, RVRRUN, RVRERUN, RUN0,
-     *     SALT
+      REAL*8 EVAPO, EVAPI, FIDT, FODT, OTDT, RVRRUN, RVRERUN, RUN0
 C**** output from OSOURC
       REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACEFI, ENRGFI
 
@@ -870,12 +874,13 @@ C**** output from OSOURC
           EVAPO=EVAPOR(I,J,1)
           EVAPI=EVAPOR(I,J,2)   ! evapor/dew at the ice surface (kg/m^2)
           FODT =E0(I,J,1)
-          SMSI =MSI(I,J)+ACE1I+SNOWI(I,J)
+          SMSI = 0.
+          IF (ROICE.gt.0) SMSI =FWSIM(I,J)/ROICE
           TFO  =tfrez(sss(i,j))
 C**** get ice-ocean fluxes from sea ice routine
-          RUN0=RUNOSI(I,J)  ! includes ACE2M + basal term
+          RUN0=RUNOSI(I,J)-SRUNOSI(I,J) ! fw, includes runoff+basal
           FIDT=ERUNOSI(I,J)
-          SALT=SRUNOSI(I,J)
+c          SALT=SRUNOSI(I,J)
 C**** get river runoff/simelt flux
           RVRRUN = FLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
           RVRERUN=EFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
@@ -913,16 +918,18 @@ C**** regional diagnostics
           END IF
 
 C**** Store mass and energy fluxes for formation of sea ice
-          DMSI(1,I,J)=ACEFO
-          DMSI(2,I,J)=ACEFI
+C**** Note ACEFO/I is the freshwater amount of ice.
+C**** Add salt for total mass
+          DMSI(1,I,J)=ACEFO*(1.+SSI0)
+          DMSI(2,I,J)=ACEFI*(1.+SSI0)
           DHSI(1,I,J)=ENRGFO
           DHSI(2,I,J)=ENRGFI
-          DSSI(1,I,J)=SSI0*ACEFO   ! assume constant mean salinity
-          DSSI(2,I,J)=SSI0*ACEFI
+          DSSI(1,I,J)=SSI0*DMSI(1,I,J)
+          DSSI(2,I,J)=SSI0*DMSI(2,I,J)
 #ifdef TRACERS_WATER
 C**** assume const mean tracer conc over freshwater amount
-          DTRSI(:,1,I,J)=TRSI0(:)*(1.-SSI0)*ACEFO
-          DTRSI(:,2,I,J)=TRSI0(:)*(1.-SSI0)*ACEFI
+          DTRSI(:,1,I,J)=TRSI0(:)*ACEFO
+          DTRSI(:,2,I,J)=TRSI0(:)*ACEFI
 #endif
 C**** store surface temperatures
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)

@@ -24,8 +24,8 @@ C****
       USE TIMINGS, only : ntimeacc,timing,timestr
       USE STATIC_OCEAN
       USE DAGCOM, only : OA
-      USE SEAICE_COM, only : rsi,snowi
-      USE SEAICE, only : ace1i
+      USE SEAICE_COM, only : rsi,snowi,msi,ssi
+      USE SEAICE, only : ace1i,ac2oim
       USE FLUXES, only : sss
       USE GEOM
       USE FILEMANAGER
@@ -58,9 +58,9 @@ C****
      5  'Sine coefficient of Ocean Transport (W/m**2)'/
 C****
 C**** Ocean vertical flux data saved from run
-C****    K= 1  ACE1I+SNOWOI  (instantaneous at noon GMT)
-C****       2  TG1OI  (instantaneous at noon GMT)
-C****       3  TG2OI  (instantaneous at noon GMT)
+C****    K= 1  SNOWOI (instantaneous at noon GMT)
+C****       2  FWSIM  (instantaneous at noon GMT)
+C****       3  HSIT   (instantaneous at noon GMT)
 C****       4  ENRGP  (integrated over the day)
 C****       5  SRHDT  (integrated over the day)
 C****       6  TRHDT  (for ocean, integrated over the day)
@@ -69,6 +69,7 @@ C****       8  EVHDT  (for ocean, integrated over the day)
 C****       9  TRHDT  (for ocean ice, integrated over the day)
 C****      10  SHDT   (for ocean ice, integrated over the day)
 C****      11  EVHDT  (for ocean ice, integrated over the day)
+C****      12  SRHDT  (for ocean ice, integrated over the day)
 C****
       call getarg(1,RunID )
       call getarg(2,title0)
@@ -137,6 +138,14 @@ ccc   the above line could substitute for next 3 lines: same results ?
       write(6,*) 'Mixed Layer Depths limited to',z12o_max
 C**** define sea surface salinity (needed for OCLIM)
       sss(:,:)=sss0
+C**** Initialise sea ice mass etc.
+      do j=1,jm
+        do i=1,im
+          msi(i,j)=ac2oim
+          ssi(1:2,i,j)=ssi0*ace1i*xsi(1:2)
+          ssi(3:4,i,j)=ssi0*msi(i,j)*xsi(3:4)
+        end do
+      end do
 C****
 C**** Loop over years of data and days in the year
 C****
@@ -167,18 +176,20 @@ C*
             kocean = 0
             jmon = month
             jdate = kday
+C*
+            DO J = 1,JM
+              DO I = 1,IM
+                SNOWI(I,J) = OA(I,J,1)
+              END DO
+            END DO
+
             CALL OCLIM (.true.)
 
 C***  Read in the ocean mixed layer depth data
 C***  and interpolate them for the current day
             kocean = 1
             CALL OCLIM (.true.)
-C*
-            DO J = 1,JM
-              DO I = 1,IM
-                SNOWI(I,J) = OA(I,J,1) - ACE1I
-              END DO
-            END DO
+
             CALL OSTRUC(.false.)
 C****
 C**** Calculate the vertical flux (J/m**2) and ocean energy (J/m**2)
@@ -192,8 +203,7 @@ C****
      *               +OA(I,J,11)+XCORR*OA(I,J,12))
 C*
                 OE = RSI(I,J)*OA(I,J,3)
-     *               + ((Z1O(I,J)*RHOW-(OA(I,J,1)+OA(I,J,2))*RSI(I,J))
-     *               *TOCEAN(1,I,J)+
+     *               + ((Z1O(I,J)*RHOW-OA(I,J,2))*TOCEAN(1,I,J)+
      *               (Z12O(I,J)-Z1O(I,J))*RHOW*TOCEAN(2,I,J))*SHW
 C*
 C**** Accumulate the spectral coefficients

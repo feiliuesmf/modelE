@@ -16,7 +16,7 @@ C****
       USE DAGCOM, only : OA
       USE SEAICE_COM, only : rsi,snowi
       USE SEAICE, only : ace1i
-      USE FLUXES, only : sss
+      USE FLUXES, only : sss,fwsim
       USE GEOM
       USE FILEMANAGER
       implicit none
@@ -43,8 +43,8 @@ C****
 C****
 C**** Contents of OA(I,J,K) saved from the GCM
 C****
-C****    K= 1  ACE1I+SNOWOI  (instantaneous at noon GMT)
-C****       2  MSI2   (instantaneous at noon GMT)
+C****    K= 1  SNOWOI (instantaneous at noon GMT)
+C****       2  FWSIM  (instantaneous at noon GMT)
 C****       3  HSIT   (instantaneous at noon GMT)
 C****       4  ENRGP  (integrated over the day)
 C****       5  SRHDT  (for ocean, integrated over the day)
@@ -141,7 +141,7 @@ C*
 C*
               DO J = 1,JM
                 DO I = 1,IM
-                  SNOWI(I,J) = OA(I,J,1) - ACE1I
+                  SNOWI(I,J) = OA(I,J,1)
                 END DO
               END DO
 C*

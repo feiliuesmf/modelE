@@ -89,9 +89,9 @@
 !@var RUN0 runoff from ice (kg/m^2)
 !@var SRUN0 salt in runoff from ice (kg/m^2)
       REAL*8, INTENT(OUT) :: RUN0, SRUN0
-      REAL*8 :: BYMSI2, FMSI1, FMSI2, FMSI3, FHSI1, FHSI2, FHSI3,
-     *     CMPRS, SNWF, RAIN, FREZ1, MSI1, FSSI2,
-     *     FSSI3, MELT1, SMELT1, DSNOW, SS12, FSSI1
+      REAL*8 :: BYMSI2, FMSI2, FMSI3, FHSI2, FHSI3,
+     *     CMPRS, SNWF, RAIN, FREZI, MSI1, FSSI2, HFREZ,SNOW1,
+     *     FSSI3, MELTI, MELTS, SMELTI, DSNOW, SICE, HCMPRS, HSNOW, HICE
 #ifdef TRACERS_WATER
 !@var TRSIL tracer amount in ice layers (kg/m^2)
       REAL*8, DIMENSION(NTM,LMI), INTENT(INOUT) :: TRSIL
@@ -100,7 +100,7 @@
 !@var TRUN0 tracer runoff from ice (kg/m^2)
       REAL*8, DIMENSION(NTM), INTENT(OUT) :: TRUN0
       REAL*8, DIMENSION(NTM) :: FTRSI1,FTRSI2,FTRSI3,FTRSI4,TRRMF
-     *     ,TRMELT1
+     *     ,TRMELTI,TRMELTS,TRCMPRS,TRICE,TRSNOW
 #endif
 
       WETSNOW=.FALSE.
@@ -111,61 +111,106 @@
       MSI1=SNOW+ACE1I
 
       IF (PRCP.gt.0) THEN
-      HSIL(1) = HSIL(1)+ENRGP  ! add total energy of precipitation
 
 C**** Snowfall is calculated from precip energy (0 deg or colder)
       SNWF = MAX(0d0,MIN(PRCP,-ENRGP*BYLHM))
 C**** Rain is remaining precip (0 deg or warmer)
       RAIN = PRCP-SNWF
       WETSNOW = RAIN.GT.1d-5*PRCP  ! i.e. a noticeable fraction of prec
-C**** Calculate whether rain causes freezing or melting in first layer
-      IF (HSIL(1).le.-LHM*(XSI(1)*MSI1+SNWF-SSIL(1))) THEN
-        FREZ1 = MIN(RAIN,-HSIL(1)*BYLHM-XSI(1)*MSI1+SSIL(1)-SNWF)
-        MELT1 = 0.
-      ELSE
-        FREZ1 = 0.
-        MELT1 = MAX(0d0,HSIL(1)*BYLHM/(1.-SSIL(1)/(XSI(1)*MSI1))+XSI(1)
-     *       *MSI1+SNWF)
-      END IF
 
+C**** New formulation: separate out snow and ice components
 C**** Calculate remaining snow and necessary mass flux using
-C**** SNOW =SNOW  + SNWF  - CMPRS - MELT1
-C**** ACE1I=ACE1I + FREZ1 + CMPRS - FMSI2
-C**** SALTI=SALTI - SMELT1        - FSSI2
-
-C**** Calculate changes to snow
-      IF (SNOW+SNWF.GT.MELT1) THEN ! some snow remains
-        IF (SNWF.ge.PRCP .and. SNOW+SNWF .GT. SNOMAX) THEN
-C**** TOO MUCH SNOW HAS ACCUMULATED, SOME SNOW IS COMPACTED INTO ICE
-          CMPRS = SNOW+SNWF-0.9d0*SNOMAX
-        ELSE
-C**** RAIN and MELT COMPRESSES SNOW INTO ICE
-          CMPRS = MIN(dSNdRN*(RAIN+MELT1), SNOW+SNWF-MELT1)
-        END IF
-        DSNOW = SNWF - (MELT1+CMPRS)
-        SMELT1=0.
-      ELSE
-C**** RAIN MELTS ALL SNOW AND SOME ICE
-        CMPRS = 0.
-        DSNOW = -SNOW
-        SMELT1=(MELT1-SNWF-SNOW)*(SSIL(1)+SSIL(2))/ACE1I
-      END IF
-C**** Mass fluxes required to keep first layer ice = ACE1I
-      FMSI2 = SNWF+FREZ1-MELT1-DSNOW ! either up or down
-      FMSI1 = XSI(1)*FMSI2+XSI(2)*(SNWF+FREZ1-MELT1)
-
+C**** SNOW =SNOW  + SNWF  - CMPRS - MELTS
+C**** ACE1I=ACE1I + FREZI + CMPRS - FMSI2
+C**** SALTI=SALTI - SMELTI        - FSSI2
+      IF (SNOW.gt.0) THEN ! apply fluxes to snow portion first
+        SNOW1 = MIN(SNOW,XSI(1)*MSI1)
+        HSNOW = HSIL(1)*MIN(SNOW1/(XSI(1)*MSI1),1d0)        
+        HICE  = HSIL(1)-HSNOW
+        SICE  = SSIL(1)
 #ifdef TRACERS_WATER
-      TRSIL(:,1) = TRSIL(:,1)+TRPRCP(:)*(SNWF+FREZ1)/PRCP
-      TRRMF(:) = TRPRCP(:)*(1.-(SNWF+FREZ1)/PRCP)
-      TRMELT1(:) = MELT1*TRSIL(:,1)/(XSI(1)*MSI1+SNWF+FREZ1)
+        TRSNOW(:) = TRSIL(:,1)*MIN(SNOW1/(XSI(1)*MSI1-SSIL(1)),1d0)
+        TRICE(:)  = TRSIL(:,1)-TRSNOW(:)
 #endif
+        MELTS=MAX(0d0,(HSNOW+ENRGP)*BYLHM+SNOW1+SNWF)
+        IF (MELTS.gt.SNOW1+SNWF) THEN   ! all snow and some ice melts
+          MELTS = SNOW1+SNWF
+          MELTI = MAX(0d0,(HICE+HSNOW+ENRGP)*BYLHM/(1.-SICE/(XSI(1)*MSI1
+     *         -SNOW1))+XSI(1)*MSI1-SNOW1)
+          SMELTI = MELTI*SICE/(XSI(1)*MSI1-SNOW1)
+          FREZI = 0.
+          HICE = HICE+HSNOW+ENRGP
+          HSNOW = 0.
+          SNOW1 = 0.
+          CMPRS = 0.
+#ifdef TRACERS_WATER
+          TRRMF(:)  = TRPRCP(:)*(1.-(SNWF+FREZI)/PRCP)
+          TRMELTS(:)= TRSNOW(:) + TRPRCP(:)*SNWF/PRCP
+          TRMELTI(:)= (MELTI-SMELTI)*TRICE(:)/(XSI(1)*MSI1-SNOW1-SICE)
+          TRCMPRS(:)= 0.
+          TRSNOW(:) = 0.
+          TRICE(:)  = TRICE(:) - TRMELTI(:)
+#endif
+c         ACE1I = ACE1I - MELTI
+        ELSE ! some snow remains
+          MELTI =0.
+          SMELTI=0.
+          FREZI=MIN(RAIN,MAX(-(HSNOW+ENRGP)*BYLHM-SNOW1-SNWF+MELTS,0d0))
+          HICE  = HICE - LHM*FREZI
+          HSNOW = HSNOW + ENRGP + LHM*FREZI
+          IF (SNWF.ge.PRCP .and. SNOW+SNWF .GT. SNOMAX) THEN
+C**** TOO MUCH SNOW HAS ACCUMULATED, SOME SNOW IS COMPACTED INTO ICE
+            CMPRS = SNOW+SNWF-0.9d0*SNOMAX
+          ELSE
+C**** RAIN and MELT COMPRESSES SNOW INTO ICE
+            CMPRS = MIN(dSNdRN*(RAIN+MELTS), SNOW+SNWF-MELTS)
+          END IF
+          HCMPRS = HSNOW*CMPRS/(SNOW1+SNWF-MELTS)
+          HSNOW = HSNOW - HCMPRS
+          HICE  = HICE  + HCMPRS
+#ifdef TRACERS_WATER
+          TRRMF(:)  = TRPRCP(:)*(1.-(SNWF+FREZI)/PRCP)
+          TRSNOW(:) = TRSNOW(:)+ TRPRCP(:)*SNWF/PRCP
+          TRMELTS(:)= MELTS*TRSNOW(:)/(SNOW1+SNWF)
+          TRCMPRS(:)= CMPRS*(TRSNOW(:)-TRMELTS(:))/(SNOW1+SNWF-MELTS)
+          TRMELTI(:)= 0.
+          TRICE(:)  = TRICE(:) + TRPRCP(:)*FREZI/PRCP + TRCMPRS(:)
+          TRSNOW(:) = TRSNOW(:) - TRMELTS(:) - TRCMPRS(:)
+#endif
+          SNOW1  = SNOW1 + SNWF - MELTS - CMPRS
+c         ACE1I = ACE1I + FREZI + CMPRS
+        END IF
+      ELSE
+        HSNOW = MIN(ENRGP,0d0)  ! new snow
+        HICE  = HSIL(1)+ENRGP-HSNOW
+        SICE  = SSIL(1)
+        MELTS = 0.
+        CMPRS = 0.
+        MELTI = MAX(0d0,HICE*BYLHM/(1.-SICE/(XSI(1)*MSI1))+XSI(2)*MSI1)
+        SMELTI= MELTI*SICE/(XSI(2)*MSI1)
+        FREZI = MIN(RAIN,MAX(-HICE*BYLHM-XSI(2)*MSI1+SICE,0d0))
+        SNOW1 = SNWF
+c       ACE1I = ACE1I - MELTI + FREZI
+#ifdef TRACERS_WATER
+        TRSNOW(:) = TRPRCP(:)*SNWF/PRCP
+        TRMELTI(:)= (MELTI-SMELTI)*TRICE(:)/(XSI(2)*MSI1-SICE)
+        TRICE(:)  = TRSIL(:,1) + TRPRCP(:)*FREZI/PRCP - TRMELTI(:)
+        TRRMF(:)  = TRPRCP(:)*(1.-(SNWF+FREZI)/PRCP)
+        TRCMPRS(:) = 0.
+        TRMELTS(:) = 0.
+#endif
+      END IF
+      SICE = SICE - SMELTI
+
+C**** Mass fluxes required to keep first layer ice = ACE1I
+      FMSI2 = CMPRS+FREZI-MELTI ! either up or down
 
 C***** Calculate consequential heat/salt flux between layers
       IF (FMSI2.gt.0) THEN      ! downward flux to thermal layer 3
-        FHSI2 = FMSI2*HSIL(2)/(XSI(2)*MSI1)
-        FSSI2 = FMSI2*SSIL(2)/(XSI(2)*MSI1)
+        FHSI2 = FMSI2*HSIL(2)/(XSI(2)*MSI1) 
+        FSSI2 = FMSI2*SSIL(2)/(XSI(2)*MSI1) 
 #ifdef TRACERS_WATER
-        FTRSI2(:) = FMSI2*TRSIL(:,2)/(XSI(2)*MSI1)
+        FTRSI2(:)=FMSI2*TRSIL(:,2)/(XSI(2)*MSI1)
 #endif
       ELSE                      ! upward flux
         FHSI2  = FMSI2*HSIL(3)/(XSI(3)*MSI2)
@@ -175,28 +220,47 @@ C***** Calculate consequential heat/salt flux between layers
 #endif
       END IF
 
-C**** Fluxes between first two layers are complicated because salinty
-C**** is evenly shared over the ice portion, and zero for the snow,
-C**** while tracers have distinct concentrations with respect to the
-C**** fresh water mass in both layers
-      SS12=(SSIL(1)+SSIL(2))-FSSI2-SMELT1
-      FSSI1=SSIL(1)-SMELT1-SS12*MAX(0d0,
-     *     XSI(1)*ACE1I-(SNOW+DSNOW)*XSI(2))/ACE1I
-
-      IF (FMSI1.gt.0) THEN      ! downward flux to thermal layer 2
-        FHSI1 = FMSI1*HSIL(1)/(XSI(1)*MSI1+SNWF+FREZ1-MELT1)
-      ELSE                      ! upward flux
-        FHSI1 = FMSI1*HSIL(2)/(XSI(2)*MSI1)
-      END IF
-
+C**** Calculate total snow and ice in upper layers
+      IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice originally in first layer
+        SNOW = SNOW1
+        HICE = HICE + HSIL(2)
+        SICE = SICE + SSIL(2)
 #ifdef TRACERS_WATER
-C**** tracer flux depends on sign of freshwater flux
-      IF (FMSI1-FSSI1.gt.0) THEN      ! downward flux to thermal layer 2
-        FTRSI1(:) = (FMSI1-FSSI1)*(TRSIL(:,1)-TRMELT1(:))/(XSI(1)*MSI1
-     *       +SNWF+FREZ1-MELT1-SSIL(1)+SMELT1)
-      ELSE                      ! upward flux
-        FTRSI1(:)=(FMSI1-FSSI1)*TRSIL(:,2)/(XSI(2)*MSI1-SSIL(2))
+        TRICE(:) = TRICE(:) + TRSIL(:,2)
+#endif
+      ELSE ! some snow orignally in second layer
+        SNOW = SNOW1 + (XSI(2)*MSI1-ACE1I)
+        HSNOW = HSNOW + HSIL(2)*(XSI(2)*MSI1-ACE1I)/(XSI(2)*MSI1)
+        HICE = HICE + HSIL(2)*ACE1I/(XSI(2)*MSI1)
+        SICE = SSIL(2)
+#ifdef TRACERS_WATER
+        TRSNOW(:) = TRSNOW(:) + TRSIL(:,2)*(XSI(2)*MSI1-ACE1I)
+     *       /(XSI(2)*MSI1-SSIL(2))
+        TRICE(:) = TRICE(:) + TRSIL(:,2)*(ACE1I-SSIL(2))/(XSI(2)*MSI1
+     *       -SSIL(2))
+#endif
       END IF
+     
+C**** reconstitute upper layers
+      MSI1 = ACE1I + SNOW
+      IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+        HSIL(1) = (HICE-FHSI2)*(ACE1I-XSI(2)*MSI1)/ACE1I + HSNOW
+        SSIL(1) = (SICE-FSSI2)*(ACE1I-XSI(2)*MSI1)/ACE1I ! + SSNOW
+#ifdef TRACERS_WATER
+        TRSIL(:,1) = (TRICE(:)-FTRSI2(:))*(ACE1I-XSI(2)*MSI1)/ACE1I
+     *       +TRSNOW(:)
+#endif
+      ELSE
+        HSIL(1) = HSNOW*XSI(1)*MSI1/(MSI1-ACE1I)
+        SSIL(1) = 0.            ! SSNOW*XSI(1)*MSI1/(MSI1-ACE1I)
+#ifdef TRACERS_WATER
+        TRSIL(:,1) = TRSNOW(:)*XSI(1)*MSI1/(MSI1-ACE1I)
+#endif
+      END IF
+      HSIL(2) = HICE - HSIL(1) - FHSI2 + HSNOW 
+      SSIL(2) = SICE - SSIL(1) - FSSI2 ! + SSNOW 
+#ifdef TRACERS_WATER
+      TRSIL(:,2) = TRICE(:) - TRSIL(:,1) - FTRSI2(:) + TRSNOW(:)
 #endif
 
 C**** Calculate mass/heat flux between layers 3 and 4
@@ -216,37 +280,28 @@ C**** Calculate mass/heat flux between layers 3 and 4
       END IF
 
 C**** Adjust amounts resulting from fluxes.
-      SNOW = MAX(0d0,SNOW+DSNOW)
-      MSI1 = ACE1I + SNOW
       MSI2 = MSI2 + FMSI2
 
-      HSIL(1)=HSIL(1)- FHSI1
-      HSIL(2)=HSIL(2)+(FHSI1-FHSI2)
       HSIL(3)=HSIL(3)+(FHSI2-FHSI3)
       HSIL(4)=HSIL(4)+ FHSI3
 
-C**** Note salinity is evenly shared over ice portion
-      SSIL(1)=SSIL(1)- FSSI1-SMELT1
-      SSIL(2)=SSIL(2)+(FSSI1-FSSI2)
       SSIL(3)=SSIL(3)+(FSSI2-FSSI3)
       SSIL(4)=SSIL(4)+ FSSI3
 
 #ifdef TRACERS_WATER
 C**** Apply the tracer fluxes
-      TRSIL(:,1)=TRSIL(:,1)- FTRSI1(:)-TRMELT1(:)
-      TRSIL(:,2)=TRSIL(:,2)+(FTRSI1(:)-FTRSI2(:))
       TRSIL(:,3)=TRSIL(:,3)+(FTRSI2(:)-FTRSI3(:))
       TRSIL(:,4)=TRSIL(:,4)+ FTRSI3(:)
 #endif
 
 C**** Diagnostics for output
-      RUN0 = MELT1+(RAIN-FREZ1) ! runoff mass to ocean
+      RUN0 = MELTS+MELTI+(RAIN-FREZI) ! runoff mass to ocean
       IF (RUN0.lt.1d-13) RUN0=0. ! clean up roundoff errors
-      SRUN0 = SMELT1             ! salt in runoff
+      SRUN0 = SMELTI             ! salt in runoff
 c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
 
 #ifdef TRACERS_WATER
-      TRUN0(:)=TRMELT1(:)+TRRMF(:)  ! tracer flux to ocean
+      TRUN0(:)=TRMELTS(:)+TRMELTI(:)+TRRMF(:)  ! tracer flux to ocean
 #endif
       END IF
 
@@ -984,7 +1039,7 @@ C****
       INTEGER N
 #endif
 
-      REAL*8 DSSI(3:LMI),DMSI(3:LMI),DHSI(3:LMI),TSIL(3:LMI),SS12,DS12
+      REAL*8 DSSI(3:LMI),DMSI(3:LMI),DHSI(3:LMI),TSIL(3:LMI),DS12
      *     ,DM12,DH12
       REAL*8 FMSI1,FMSI2,FMSI3,FSSI1,FSSI2,FSSI3,FHSI1,FHSI2,FHSI3
       REAL*8 HSNOW,HICE,SICE,TICE
@@ -1630,7 +1685,7 @@ C**** Check for reasonable values for ice variables
             IF (HSI(L,I,J).gt.0.or.TICE.gt.1d-4.or.TICE.lt.-80.) THEN
               WRITE(6,*) 'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,HSI(:,I
      *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J),SSI(:,I,J)
-              if (HSI(L,I,J).gt.0.or.TICE.gt.0.01.or.TICE.lt.-80.)
+              if (HSI(L,I,J).gt.0.or.TICE.gt.0. .or.TICE.lt.-80.)
      *             QCHECKI = .TRUE.
             END IF
             IF (SSI(L,I,J).lt.0) THEN
