@@ -326,7 +326,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
-     *     ,rad_interact_tr,rad_forc_lev,ntrix
+     *     ,rad_interact_tr,rad_forc_lev,ntrix,wttr
       USE DAGCOM, only : iwrite,jwrite,itwrite
 #ifdef TRACERS_ON
       USE TRACER_COM
@@ -535,6 +535,7 @@ C****     1 SO4,  2 seasalt, 3 nitrate, 4 OCX organic carbons
 C****     5 BCI,  6 BCB,     7 dust,    8 H2SO4 volc
 C****  2b) set up the indexing array NTRIX to map the RADIATION tracers
 C****      to the main model tracers
+C****  2c) set up the weighting array WTTR to weight main model tracers
 C****
 C****  3) Use FSTOPX/FTTOPX(1:NTRACE) to scale them in RADIA
 C****  4) Set TRRDRY to dry radius
@@ -563,6 +564,8 @@ C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics
       NTRIX(1:NTRACE)=
      *     (/ n_sO4, n_seasalt1, n_seasalt2, n_OCIA, n_BCIA, n_BCB/)
+C**** define weighting (only used for clays so far) 
+      WTTR(1:NTRACE) = 1d0
 C**** If some tracers are not being used reduce NTRACE accordingly
       NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #endif
@@ -585,6 +588,8 @@ C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics. Adjust if number of dust tracers changes.
       NTRIX(n1:NTRACE)=(/n_clay,n_clay,n_clay,n_clay,n_silt1,n_silt2,
      &     n_silt3/)
+C**** define weighting for different clays
+      WTTR(n1:NTRACE)=(0.01d0,0.08d0,0.23d0,0.66d0,1d0,1d0,1d0)
 C**** If some tracers are not being used reduce NTRACE accordingly
       NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #endif
@@ -677,7 +682,7 @@ C     OUTPUT DATA
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
-     *     ,cloud_rad_forc
+     *     ,wttr,cloud_rad_forc
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -747,7 +752,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     ,QR(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,CLDinfo(LM,3,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8 QSAT
-      LOGICAL NO_CLOUD_ABOVE
+      LOGICAL NO_CLOUD_ABOVE, set_clay
 C
       REAL*8  RDSS(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,RDMC(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
@@ -911,7 +916,7 @@ C****
       KCKERR=0
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
 !$OMP*   I,INCH,IH,IHM,IT, J, K,KR, L,LR,LFRC, N, onoff,OPNSKY,
-!$OMP*   CSZ2, PLAND,tauex5,tauex6,tausct,taugcb,
+!$OMP*   CSZ2, PLAND,tauex5,tauex6,tausct,taugcb,set_clay,
 !$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
 !$OMP*   COPYIN(/RADPAR_hybrid/)
 !$OMP*   SHARED(ITWRITE)
@@ -1136,17 +1141,8 @@ C**** more than one tracer is lumped together for radiation purposes
      *           trm(i,j,l,n_OCIA))*BYDXYP(J)
           case ("BCIA")
             TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYDXYP(J)
-          CASE ('Clay')
-            IF (ntrix(n)==n_clay) TRACER(L,n)=trm(i,j,l,NTRIX(n))
-     *           *BYDXYP(J)*0.01D0
-            IF (ntrix(n)==n_clay+1) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
-     &           BYDXYP(J)*0.08D0
-            IF (ntrix(n)==n_clay+2) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
-     &           BYDXYP(J)*0.23D0
-            IF (ntrix(n)==n_clay+3) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
-     &           BYDXYP(J)*0.66D0
           case default
-            TRACER(L,n)=trm(i,j,l,NTRIX(n))*BYDXYP(J)
+            TRACER(L,n)=wttr(n)*trm(i,j,l,NTRIX(n))*BYDXYP(J)
           end select
         end if
       end do
@@ -1248,18 +1244,21 @@ C**** or not.
 C**** Aerosols incl. Dust:
       if (NTRACE.gt.0) then
         FSTOPX(:)=onoff ; FTTOPX(:)=onoff
+        set_clay=.false.
         do n=1,NTRACE
           IF (trname(NTRIX(n)).eq."seasalt2") CYCLE ! not for seasalt2
-          IF (trname(ntrix(n)) == 'Clay' .AND. ntrix(n) > n_clay) cycle
+          IF (trname(ntrix(n)) == 'Clay' .AND. set_clay) cycle
           FSTOPX(n)=1-onoff ; FTTOPX(n)=1-onoff ! turn on/off tracer
 C**** Warning: small bit of hardcoding assumes that seasalt1 is
 C**** one before seasalt2 in NTRACE array
           IF (trname(NTRIX(n)).eq."seasalt1") THEN ! add seasalt1 to seasalt2
             FSTOPX(n+1)=1-onoff ; FTTOPX(n+1)=1-onoff
           END IF
-c**** Do radiation calculations for all clay classes at once
-          IF (trname(ntrix(n)) == 'Clay' .AND. ntrix(n)==n_clay) THEN
+C**** Do radiation calculations for all clay classes at once
+C**** Assumes that 4 clay tracers are adjacent in NTRACE array
+          IF (trname(ntrix(n)) == 'Clay') THEN
             fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+            set_clay=.true.
           END IF
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
           CALL RCOMPX
@@ -1271,7 +1270,7 @@ c**** Do radiation calculations for all clay classes at once
           IF (trname(NTRIX(n)).eq."seasalt1") THEN ! for seasalt2 as well
             FSTOPX(n+1)=onoff ; FTTOPX(n+1)=onoff
           END IF
-          IF (trname(ntrix(n)) == 'Clay' .AND. ntrix(n)==n_clay) THEN
+          IF (trname(ntrix(n)) == 'Clay') THEN
             fstopx(n+1:n+3)=onoff ; fttopx(n+1:n+3)=onoff  ! for clays as well
           END IF
         end do
@@ -1312,13 +1311,10 @@ C*****************************************************
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
 C**** Save optical depth diags
       do n=1,NTRACE
-        if (ijts_tau(1,NTRIX(n)).gt.0)
-     *    taijs(i,j,ijts_tau(1,NTRIX(n)))
-     *    =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
-        if (ijts_tau(2,NTRIX(n)).gt.0)
-     *    taijs(i,j,ijts_tau(2,NTRIX(n)))
-     *    =taijs(i,j,ijts_tau(2,NTRIX(n)))
-     *    +SUM(TTAUSV(1:lm,n))*OPNSKY
+        if (ijts_tau(1,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(1,NTRIX(n)))
+     *       =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
+        if (ijts_tau(2,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(2,NTRIX(n)))
+     *       =taijs(i,j,ijts_tau(2,NTRIX(n)))+SUM(TTAUSV(1:lm,n))*OPNSKY
       end do
 #endif
 
@@ -1633,12 +1629,12 @@ c longwave forcing  (TOA or TROPO)
      *         ,ijts_fc(2,n))-rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
 c shortwave forcing (TOA or TROPO) clear sky
              if (ijts_fc(5,n).gt.0) taijs(i,j,ijts_fc(5,n))=taijs(i,j
-     * ,ijts_fc(5,n))+rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2*(1.d0-
-     *  CFRAC(I,J))
+     *         ,ijts_fc(5,n))+rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
+     *         *(1.d0-CFRAC(I,J))
 c longwave forcing  (TOA or TROPO) clear sky
              if (ijts_fc(6,n).gt.0) taijs(i,j,ijts_fc(6,n))=taijs(i,j
-     * ,ijts_fc(6,n))-rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))*(1.d0-
-     *  CFRAC(I,J))
+     *         ,ijts_fc(6,n))-rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
+     *         *(1.d0-CFRAC(I,J))
 c shortwave forcing at surface (if required)
              if (ijts_fc(3,n).gt.0) taijs(i,j,ijts_fc(3,n))=taijs(i,j
      *         ,ijts_fc(3,n))+rsign*(SNFST(1,N,I,J)-SNFS(1,I,J))*CSZ2
