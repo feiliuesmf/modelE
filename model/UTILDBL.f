@@ -37,8 +37,7 @@ C****
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: X      !@var X          input pressure
       REAL*8 :: EXPBYK             !@var EXPBYK     output P^KAPA
-c      EXPBYK=X**KAPA
-      EXPBYK=X**.286
+      EXPBYK=X**KAPA
       RETURN
       END
 
