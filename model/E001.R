@@ -53,6 +53,7 @@ RADN9=solar.lean99.uvflux
 RADNA=o3trend.1951-2050
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
+GHG=GHG.1850-2050.Oct2000
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:

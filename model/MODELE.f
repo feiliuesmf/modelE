@@ -1078,7 +1078,7 @@ C****
       END SUBROUTINE INPUT
 
       SUBROUTINE DAILY(IEND)
-!@sum  DAILY performs daily model-related tasks and at start
+!@sum  DAILY performs daily tasks at end-of-day and maybe at (re)starts
 !@auth Original Development Team
 !@ver  1.0
 !@calls constant:orbit, calc_ampk, getdte
@@ -1090,9 +1090,20 @@ C****
       USE RADNCB, only : RSDIST,COSD,SIND
       IMPLICIT NONE
       REAL*8 DELTAP,PBAR,SPRESS,SMASS,LAM
-      INTEGER I,J,IEND,IDOZ1O
+      INTEGER I,J,IEND
 
-      IF (IEND.eq.0.and.Itime.gt.ItimeI) GO TO 200
+C**** Tasks to be done at end of day and at each start or restart
+C****
+C**** CALCULATE THE DAILY CALENDAR
+C****
+      call getdte(Itime,Nday,iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+
+C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
+      CALL ORBIT (OBLIQ,ECCN,OMEGT,DFLOAT(JDAY)-.5,RSDIST,SIND,COSD,LAM)
+
+      IF (IEND.eq.0.and.Itime.gt.ItimeI) RETURN
+
+C**** Tasks to be done at end of day and at initial starts only
 C****
 C**** THE GLOBAL MEAN PRESSURE IS KEPT CONSTANT AT PSF MILLIBARS
 C****
@@ -1114,13 +1125,10 @@ C**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
 
       IF (ABS(DELTAP).gt.1d-6)
      *     WRITE (6,'(A25,F10.6/)') '0PRESSURE ADDED IN GMP IS',DELTAP
-C****
-C**** CALCULATE THE DAILY CALENDAR
-C****
-  200 call getdte(Itime,Nday,iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
-C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
-      CALL ORBIT (OBLIQ,ECCN,OMEGT,DFLOAT(JDAY)-.5,RSDIST,SIND,COSD,LAM)
+      IF (IEND.eq.0) RETURN
+
+C**** Tasks to be done at end of day only (none so far)
 
       RETURN
       END SUBROUTINE DAILY

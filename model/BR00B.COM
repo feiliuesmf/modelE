@@ -1,9 +1,9 @@
 C     ALERT!!! LX=57 is for a 53-layer model (i.e., LX=LM+4)
-C     If LX is changed, need to change data statements in 
+C     If LX is changed, need to change data statements in
 C     BLOCK DATA RADPAR that initialize PLB and HLB
       IMPLICIT REAL*8(A-H,O-Z)
       PARAMETER (LX=57,LMOX=12*(1998-1881),MO3X=12*(2050-1950) )
-      REAL*4 TROAER,VDBCSU,TDUST,EPLMHC,UVLEAN   ! ,FVEG11,FOLGIZ     
+      REAL*4 TROAER,VDBCSU,TDUST,EPLMHC,UVLEAN   ! ,FVEG11,FOLGIZ
       REAL*4 ATAU98,SIZE98,HTF498,O3CLIM         !  only for offline use
       CHARACTER*80 ATITLE,VTITLE,DTITLE,TITLE
 C
@@ -44,6 +44,13 @@ C not initiallised
 C read in
       COMMON/BLOCKD2/WSLEAN(190),FSLEAN(190),DSLEAN(190),TSI1(LMOX)
      *     ,TSI2(LMOX)
+      integer nghg,nyrsghg,ghgyr1,ghgyr2
+      parameter (nyrsghg=2050-1850+1,nghg=6)
+!@var nghg nr. of well-mixed GHgases: CO2 N2O CH4 CFC-11 CFC-12 others
+!@var nyrsghg number of years in GHG data table (upper limit)
+!@var ghgyr1,ghgyr2 first and last year of GHG data table
+!@var ghgam GHG-mixing ratios in ppm,ppm,ppm,ppb,ppb,ppb
+      real*8 GHGAM(nghg,nyrsghg)
 C block data init
       COMMON/BLOCKD3/AGOLDH(11,5),BGOLDH(11,5),CGOLDH(11,5),SRCGSF(3)
      A     ,AGSIDV(33,4),ASNALB(15),AOIALB(15),ALIALB(15)
@@ -95,7 +102,7 @@ C not initiallised
      A             ,D72(72),ATOT(32),O3DCOL(31),O3XCOL(LX),COLSUM(46)
      B             ,ZO3(32),VO3LON(360),PLB0(LX),TLM0(LX),U0GAS3(LX)
      C             ,O3WJA(72,46,LX,12),O3LF(72,46,LX)
-     F             ,O3NCAR(72,46,12),TOPO3(30,46,12),OZONNL(LX)        
+     F             ,O3NCAR(72,46,12),TOPO3(30,46,12),OZONNL(LX)
      G             ,SAGEZT(50,12,12),SZP50(50,46,12)
 C read in
       COMMON/O3DCOM2/O3DPPM(31,16,12),PO3(32),O3AVE(12,18,18),
@@ -121,7 +128,7 @@ C not initiallised
      L             ,QVH2S(6),SVH2S(6),GVH2S(6),AVH2S(33)
 C read in
       COMMON/VOLCOM2/ATAU98(612,24),SIZE98(612,24),HTF498(612,24,4)
-C block data init 
+C block data init
       COMMON/VOLCOM3/PIVMAX
 C
       COMMON/MIECOM/SRAQEX( 6,11),SRAQSC( 6,11),SRAQCB( 6,11),Q55A11(11)
@@ -268,18 +275,18 @@ CF   C             ,FVEG11(72,46,11),FOLGIZ(72,46,9)
       EQUIVALENCE (ISPARE(47),KJDAYE)
       EQUIVALENCE (ISPARE(48),KJDAYR)
 
-      DIMENSION XREF(5),YREF(5),ZREF(5)
-      DIMENSION XNOW(5),YNOW(5),ZNOW(5)
-      DIMENSION XDT0(5),YDT0(5),ZDT0(5)
-      DIMENSION XDAT(5),XRAT(5),XFOR(5)
-      EQUIVALENCE (GHGREF(1,1),XREF(1)),(GHGREF(1,2),YREF(1))
-      EQUIVALENCE (GHGREF(1,3),ZREF(1))
-      EQUIVALENCE (GHGNOW(1,1),XNOW(1)),(GHGNOW(1,2),YNOW(1))
-      EQUIVALENCE (GHGNOW(1,3),ZNOW(1))
-      EQUIVALENCE (GHGDT0(1,1),XDT0(1)),(GHGDT0(1,2),YDT0(1))
-      EQUIVALENCE (GHGDT0(1,3),ZDT0(1))
-      EQUIVALENCE (GHGDAT(1,1),XDAT(1)),(GHGDAT(1,2),XRAT(1))
-      EQUIVALENCE (GHGDAT(1,3),XFOR(1))
+      DIMENSION XREF(nghg) ! ,YREF(5),ZREF(5)
+      DIMENSION XNOW(nghg) ! ,YNOW(5),ZNOW(5)
+      DIMENSION XDT0(5)    ! ,YDT0(5),ZDT0(5) Xdt0/Xdat/Xrat needed for
+      DIMENSION XDAT(5),XRAT(5)  ! ,XFOR(5)   WRITET only; rest obsolete
+!obso EQUIVALENCE (GHGREF(1,1),XREF(1)),(GHGREF(1,2),YREF(1))
+!obso EQUIVALENCE (GHGREF(1,3),ZREF(1))
+!obso EQUIVALENCE (GHGNOW(1,1),XNOW(1)),(GHGNOW(1,2),YNOW(1))
+!obso EQUIVALENCE (GHGNOW(1,3),ZNOW(1))
+!obso EQUIVALENCE (GHGDT0(1,1),XDT0(1)),(GHGDT0(1,2),YDT0(1))
+!obso EQUIVALENCE (GHGDT0(1,3),ZDT0(1))
+!obso EQUIVALENCE (GHGDAT(1,1),XDAT(1)),(GHGDAT(1,2),XRAT(1))
+!obso EQUIVALENCE (GHGDAT(1,3),XFOR(1))
 
       DIMENSION AO3AVE(18,12)
       EQUIVALENCE (AO3AV1(1),AO3AVE(1,1))
