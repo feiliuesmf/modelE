@@ -2554,7 +2554,7 @@ C****
 #endif
 #endif
       REAL*8 MOO,GOO,GMOO,GMOI,MOI,GOI,SMOO,SMOI,SOO,SOI,GFOO,GFOI,TFOO
-     *     ,TFOI,SI00,SIOI
+     *     ,TFOI,SIOO,SIOI
       REAL*8 GFREZS,TFREZS,TSOL
       INTEGER L,LSR,N
 
@@ -2590,12 +2590,12 @@ C**** Remove insolation from layer 1 that goes to lower layers
       IF(GOO.lt.GFOO) THEN
 C**** Open ocean is below freezing, calculate
 C**** DMOO = mass of ocean that freezes over open fraction from
-C**** GOO*MOO = GFOO*(MOO-DMOO) + (TFOO*SHI-LHM*(1-SI00))*DMOO
+C**** GOO*MOO = GFOO*(MOO-DMOO) + (TFOO*SHI-LHM*(1-SIOO))*DMOO
         TFOO = TFREZS(SOO)
-        SI00 = FSSS*S00
-        DMOO = MOO*(GOO-GFOO)/(TFOO*SHI-LHM*(1.-SI00)-GFOO)
-        DEOO = (TFOO*SHI-LHM*(1.-SI00))*DMOO
-        DSOO = SI00*DMOO
+        SIOO = FSSS*SOO
+        DMOO = MOO*(GOO-GFOO)/(TFOO*SHI-LHM*(1.-SIOO)-GFOO)
+        DEOO = (TFOO*SHI-LHM*(1.-SIOO))*DMOO
+        DSOO = SIOO*DMOO
 #ifdef TRACERS_OCEAN
         DTROO(:) = TMOO(:)*FRAC(:)*(DMOO-DSOO)/(MOO-SMOO)
 #endif
@@ -2620,12 +2620,12 @@ C**** Remove insolation from layer 1 that goes to lower layers
         IF(GOI.LT.GFOI) THEN
 C**** Ocean underneath the ice is below freezing, calculate
 C**** DMOI = mass of ocean that freezes under sea ice fraction from
-C**** GOI*MOI = GFOI*(MOI-DMOI) + (TFOI*SHI-LHM*(1-SI0I))*DMOI
+C**** GOI*MOI = GFOI*(MOI-DMOI) + (TFOI*SHI-LHM*(1-SIOI))*DMOI
           TFOI = TFREZS(SOI)
-          SI0I = FSSS*SOI
-          DMOI = MOI*(GOI-GFOI)/(TFOI*SHI-LHM*(1.-SI0I)-GFOI)
-          DEOI = (TFOI*SHI-LHM*(1.-SI0I))*DMOI
-          DSOI = SI0I*DMOI
+          SIOI = FSSS*SOI
+          DMOI = MOI*(GOI-GFOI)/(TFOI*SHI-LHM*(1.-SIOI)-GFOI)
+          DEOI = (TFOI*SHI-LHM*(1.-SIOI))*DMOI
+          DSOI = SIOI*DMOI
 #ifdef TRACERS_OCEAN
           DTROI(:) = TMOI(:)*FRAC(:)*(DMOI-DSOI)/(MOI-SMOI)
 #endif
