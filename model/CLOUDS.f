@@ -896,7 +896,7 @@ C**** save plume temperature after possible condensation
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
       ELSE ! mixed phase
-        FG=(TP-TF+40.)*0.025d0
+        FG=(TP-TI)/(TF-TI)
         FI=1.-FG
         CONDIP=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
