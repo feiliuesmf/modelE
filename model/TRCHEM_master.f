@@ -5,7 +5,7 @@
 !@ver  1.0 (based on masterchem000_M23p)   
 !@calls photoj,checktracer,Crates,Oxinit,HOxfam,NOxfam,chemstep
 C
-C PLEASE SEE THE WARNINGS IN THE STRATOSPHERIC OVERWRITE SECTION.
+C PLEASE SEE ANY WARNINGS IN THE STRATOSPHERIC OVERWRITE SECTION.
 c
 C**** GLOBAL parameters and variables:
 c
@@ -176,10 +176,13 @@ c      calculate M and set fixed ratios for O2 & H2:
        y(nM,L)=pres(L)/(ta(L)*1.38d-19)
        y(nO2,L)=y(nM,L)*pfix_O2
 #ifdef Shindell_Strat_chem
-       if(L.LE.LS1)then
+       if(L.LE.LS1J(J))then
         y(nH2,L)=y(nM,L)*pfix_H2
        else
-        y(nH2,L)=y(nM,L)*pfix_H2*7.d1/(7.d1+L-LS1)
+        y(nH2,L)=y(nM,L)*pfix_H2*7.d1/(7.d1+L-LS1J(J))
+        write(6,*) 'part of strat chem not layer-independent'
+        write(6,*) 'y(nH2,L)=y(nM,L)*pfix_H2*7.d1/(7.d1+L-LS1J(J))'
+        call stop_model('must make strat chem layer-independent',255)
        endif
        CLTOT=0.
 #else
@@ -204,7 +207,7 @@ c      If desired, fix the methane concentration used in chemistry
 #ifdef Shindell_Strat_chem
 c     Set CLTOT based on CFCs (3.3 ppbv yield from complete oxidation of
 c     1.7 ppbv CFC plus 0.5 ppbv background
-      if(L.ge.LS1)then
+      if(L.ge.LS1J(J))then
       CLTOT=((y(n_CFC,1)/y(nM,1)-y(n_CFC,L)/y(nM,L))*(3.3/1.8)*
      * y(nCFC,1)/(1.8d-9*y(nM,1)))
       CLTOT=CLTOT+0.5d-9
@@ -309,18 +312,18 @@ c read in by chem_init. lg.feb99., gsf.apr01. dts.aug.02
        O3_FASTJ(LL)=y(nO3,LL)/y(nM,LL)
       ENDDO
 #else
-c Interpolate O3 (in ppm) from bottom LS1-1 model sigma levels
-c (ie those levels normally in troposphere) onto bottom 2*(LS1-1) FASTJ
-c levels. Above these levels fastj uses climatological (Nagatani) O3
-c read in by chem_init.
+c Interpolate O3 (in ppm) from bottom LS1J(J)-1 model sigma levels
+c (ie those levels normally in troposphere) onto bottom 2*(LS1J(J)-1)
+c FASTJ levels. Above these levels fastj uses climatological (Nagatani)
+c O3 read in by chem_init.
 c
 c       define O3 to be sent to FASTJ (centers):
-        DO LL=2,2*(LS1-1),2
+        DO LL=2,2*(LS1J(J)-1),2
           O3_FASTJ(LL)=y(nO3,LL/2)
         ENDDO
 c       define O3 to be sent to FASTJ (edges):
         O3_FASTJ(1)=y(nO3,1)*O3_1_fact ! see parameter declaration...
-        DO LL=3,2*(LS1-1)-1,2
+        DO LL=3,2*(LS1J(J)-1)-1,2
 c         interpolation factor, based on pressure:
           FASTJ_PFACT=(PFASTJ(LL)-PFASTJ(LL-1))/
      &    (PFASTJ(LL+1)-PFASTJ(LL-1))
@@ -330,7 +333,7 @@ c         lower limit on O3:
           IF(O3_FASTJ(LL).LT.0.) O3_FASTJ(LL)=-O3_FASTJ(LL)
         ENDDO
 c       Convert to ppm (units used in fastj)
-        DO LL=1,2*(LS1-1)
+        DO LL=1,2*(LS1J(J)-1)
           O3_FASTJ(LL)=O3_FASTJ(LL)/(PFASTJ(LL)*2.55d10)
         ENDDO
 #endif
@@ -351,7 +354,7 @@ C And fill in the photolysis coefficients: ZJ --> ss:
           enddo
 #ifdef Shindell_Strat_chem
       colmO2=colmO2+y(nO2,L)*thick(L)*1E5
-      if(L.ge.LS1)then
+      if(L.ge.LS1J(J))then
           SF3(I,J,L)=1.3d-6*EXP(-1.d-7*colmO2**.35)
       else
        SF3(I,J,L)=0.
@@ -380,9 +383,9 @@ c
        call NOxfam(LM,I,J)
        call BrOxfam(LM,I,J)
 #else
-       call Oxinit(LS1-1,I,J)
-       call HOxfam(LS1-1,I,J)
-       call NOxfam(LS1-1,I,J)
+       call Oxinit(LS1J(J)-1,I,J)
+       call HOxfam(LS1J(J)-1,I,J)
+       call NOxfam(LS1J(J)-1,I,J)
 #endif
 c
 cc    Non-family chemistry:
@@ -447,7 +450,7 @@ C      where v  = SQRT (8.Kb.T / PI*M); Kb = 1.38062E-23;
 C      T = Temp (K); M = mass N2O5 (Kg)
 C*****************************************************************
 c
-       do L=1,LS1-1 ! (troposphere)
+       do L=1,LS1J(J)-1 ! (troposphere)
          pfactor=dxyp(J)*AM(L,I,J)/y(nM,L)
          bypfactor=1.D0/pfactor
          RVELN2O5=SQRT(TX(I,J,L)*RKBYPIM)*100.
@@ -735,7 +738,7 @@ C
        enddo  ! troposphere loop
 #ifdef Shindell_Strat_chem
 cc     Nighttime stratospheric chemistry
-       do L=LS1,LM
+       do L=LS1J(J),LM
 c
          pfactor=dxyp(J)*AM(L,I,J)/y(nM,L)
          wprod_sulf=DT2*y(n_N2O5,L)*rr(105,L)
@@ -999,7 +1002,7 @@ C
 #ifdef Shindell_Strat_chem
       LL=LM
 #else
-      LL=LS1-1
+      LL=LS1J(J)-1
 #endif
       DO L=1,LL  ! loop over troposphere again (or trop+strat)
 
@@ -1093,7 +1096,10 @@ c
 cc    Troposphere halogen sink (Br) & (Cl)
       do i=1,IM
       do j=1,jm
-       do L=1,LS1-2 !tropopause at L=9 at high latitudes
+       do L=1,LS1J(J)-2 !tropopause at L=9 at high latitudes
+        write(6,*) 'part of strat chem not layer-independent'
+        write(6,*) 'do L=1,LS1J(J)-2'
+        call stop_model('must make strat chem layer-independent',255)
         rmv=(1.-0.95**(12-L))
         change(i,j,L,n_ClOx)=change(i,j,L,n_ClOx)-
      *   (trm(I,J,L,n_ClOx)*rmv)
@@ -1115,7 +1121,6 @@ cc    Troposphere halogen sink (Br) & (Cl)
       enddo
       enddo
 c
-
 #else
 C
 C
@@ -1124,11 +1129,11 @@ cc    Stratospheric Overwrite of tracers                cc
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C
 C W A R N I N G :If there is ever stratospheric chemistry (i.e. the
-C                'change' variable for L>LS1-1 is non-zero at this point
-C                in the code), then the stratospheric changes below
-C                should be altered.  Currently, they are functions of
-C                tracer mass UNCHANGED by chemistry !
-C
+C               'change' variable for L>LS1J(J)-1 is non-zero at this
+C               point in the code), then the stratospheric changes below
+C               should be altered.  Currently, they are functions of
+C               tracer mass UNCHANGED by chemistry !
+
 C     Make sure that change is zero:
       change(:,:,:,:) = 0.
 C 
@@ -1155,14 +1160,14 @@ C Use Ox correction factor for the proper month:
       END DO
  217  CONTINUE
 C
-c         Update stratospheric ozone to amount set in radiation
-          do i=1,im; DO l=1,lm
-            O3DLJI(L,:,I)=O3DLJ(L,:)
-          end do   ; end do
+c     Update stratospheric ozone to amount set in radiation
+      do i=1,im; DO l=1,lm
+        O3DLJI(L,:,I)=O3DLJ(L,:)
+      end do   ; end do
 c
-      do L=LS1,LM                  ! >> BEGIN LOOP OVER STRATOSPHERE <<
-       do j=1,jm
-        J3=MAX(1,NINT(float(j)*float(JCOlat)*BYFJM))! index for CO
+      do j=1,jm
+       J3=MAX(1,NINT(float(j)*float(JCOlat)*BYFJM))! index for CO
+       do L=LS1J(J),LM               ! >> BEGIN LOOP OVER STRATOSPHERE <<
         do i=1,IM
           change(I,J,L,n_Ox)=  O3DLJI(L,J,I)*DXYP(J)*O3MULT*
      &    corrOx(J,L,imonth) - trm(I,J,L,n_Ox)
@@ -1193,14 +1198,14 @@ c         mixing ratios to 1.79:
 c
           CH4FACT=CH4_569*r179
           IF((J.LE.JS).OR.(J.GT.JN)) THEN                ! extratropics
-            DO L2=L,LS1,-1
+            DO L2=L,LS1J(J),-1
               IF(CH4altX(L2).ne.0.) THEN
                 CH4FACT=CH4FACT*CH4altX(L2)
                 EXIT
               END IF
             END DO
           ELSE IF((J.GT.JS).AND.(J.LE.JN)) THEN           ! tropics
-            DO L2=L,LS1,-1
+            DO L2=L,LS1J(J),-1
               IF(CH4altT(L2).ne.0.) THEN
                 CH4FACT=CH4FACT*CH4altT(L2)
                 EXIT
@@ -1217,8 +1222,8 @@ C Save stratosph change for updating tracer, apply_tracer_3Dsource:
           END DO
 C
         end do !i
-       end do  !j
-      end do                        ! >> END LOOP OVER STRATOSPHERE <<
+       end do                        ! >> END LOOP OVER STRATOSPHERE <<
+      end do  !j
 #endif
 c
       RETURN
@@ -1235,9 +1240,8 @@ c
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only : ls1
       USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
-     &                          r1,sb,nst,y,nM,nH2O,ro,sn
+     &                          r1,sb,nst,y,nM,nH2O,ro,sn,LS1J
 c
       IMPLICIT NONE
 c
@@ -1257,7 +1261,7 @@ C
 #ifdef Shindell_Strat_chem
       Ltop=LM
 #else
-      Ltop=LS1-1
+      Ltop=LS1J(J)-1
 #endif
       do L=1,Ltop            !  >>> BEGIN ALTITUDE LOOP <<<
         byta=1./ta(L)
@@ -1417,12 +1421,12 @@ c
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only  : Itime, LM, ls1
-      USE TRACER_COM, only : ntm, trname, n_Ox,ntm_chem
+      USE MODEL_COM, only  : Itime, LM
+      USE TRACER_COM, only : ntm, trname, n_Ox, ntm_chem
 #ifdef regional_Ox_tracers
      & ,NregOx
 #endif
-      USE TRCHEM_Shindell_COM, only: y, nM
+      USE TRCHEM_Shindell_COM, only: y, nM, LS1J
 c
       IMPLICIT NONE
 c
@@ -1462,7 +1466,7 @@ C     data statement above. Then, please delete the above stop.
 C
 C check if ozone gets really big in the troposphere:
        IF(checkOx) THEN
-       do L=1,LS1-1
+       do L=1,LS1J(J)-1
          if(y(n_Ox,L)/y(nM,L).gt.1.E-5) then
            write(6,*)'Ox @ I,J,L,Ox,tau:',I,J,L,y(n_Ox,L),Itime
            call stop_model('checktracer: Ox too big in tropo.',255)
