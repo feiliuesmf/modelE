@@ -43,10 +43,10 @@ c       for concentration of O(1D):
         y(nO,L)=P1*az*y(n_Ox,L)
         y(nO1D,L)=P1*bz*y(n_Ox,L)
         y(nO3,L)=y(n_Ox,L)-y(nO,L)-y(nO1D,L)
-        if(y(nO,L).lt.0.)y(nO,L)=0.0
-        if(y(nO1D,L).lt.0.)y(nO1D,L)=0.0
-        if(y(nO3,L).lt.1.)y(nO3,L)=1.0
-        if(y(n_Ox,L).lt.1.)y(n_Ox,L)=1.0
+        if(y(nO,L).lt.0.)y(nO,L)=0.d0
+        if(y(nO1D,L).lt.0.)y(nO1D,L)=0.d0
+        if(y(nO3,L).lt.1.)y(nO3,L)=1.d0
+        if(y(n_Ox,L).lt.1.)y(n_Ox,L)=1.d0
         pOx(I,J,L)=y(nO3,L)/y(n_Ox,L)
       enddo
 c
@@ -92,7 +92,7 @@ c
 c
       do L=1,lmax
 c       If dawn then set NO3 back to zero:
-        IF(yNO3(I,J,L).GT.0.)yNO3(I,J,L)=0.
+        IF(yNO3(I,J,L).GT.0.)yNO3(I,J,L)=0.d0
 c       B is for NO->NO2 reactions :
         B=rr(5,L)*y(nO3,L)+rr(6,L)*y(nHO2,L)
      &   +rr(iNO2form,L)*y(nO,L)
@@ -100,7 +100,7 @@ c       B is for NO->NO2 reactions :
 c       Troposphere
         if(l.lt.LTROPO(I,J)+1)then
          B=B+rr(20,L)*yCH3O2(I,J,L)
-     &   +rr(39,L)*y(nC2O3,L)+4.2E-12*exp(180./ta(L))*y(nXO2,L)
+     &   +rr(39,L)*y(nC2O3,L)+4.2d-12*exp(180./ta(L))*y(nXO2,L)
         else
 c       Stratosphere
 #ifdef SHINDELL_STRAT_CHEM
@@ -116,7 +116,7 @@ c     *   rr(92,L)*y(n_N2O5,L)*y(nM,L)+ss(11,L,i,j)*
 c     *   y(n_HO2NO2,L)+ss(7,L,i,j)*y(n_N2O5,L)+ss(22,L,i,j)*
 c     *   y(n_ClONO2,L))/y(n_NOx,L)
 c       else
-c        Gqq=0.
+c        Gqq=0.d0
 c       endif
 c       y(nNO3,L)=(Aqq*y(nNO2,L)+Gqq*y(n_NOx,L))/
 c     *   (Bqq+rr(99,L)*y(nNO2,L))
@@ -139,12 +139,12 @@ c
         y(nNO,L)=p1*y(n_NOx,L)
         y(nNO2,L)=p2*y(n_NOx,L)
 C       Set limits on NO, NO2, NOx:
-        if(y(nNO,L).lt.1.) y(nNO,L) = 1.0
-        if(y(nNO2,L).lt.1.)y(nNO2,L)= 1.0
-        if(y(n_NOx,L).lt.1.)y(n_NOx,L)= 1.0
+        if(y(nNO,L).lt.1.) y(nNO,L) = 1.d0
+        if(y(nNO2,L).lt.1.)y(nNO2,L)= 1.d0
+        if(y(n_NOx,L).lt.1.)y(n_NOx,L)= 1.d0
         pNOx(I,J,L)=y(nNO2,L)/y(n_NOx,L)
-        y(nNO3,L) =1.0
-        y(nHONO,L)=1.0
+        y(nNO3,L) =1.d0
+        y(nHONO,L)=1.d0
       enddo
 
       return
@@ -224,28 +224,28 @@ C
      & y(n_HNO3,L)+rr(23,L)*y(n_CH3OOH,L)+rr(iHNO3form,L)
      & *y(nNO2,L)+rr(iHONOform,L)*y(nNO,L))+rr(22,L)*yCH3O2(I,J,L)
      & +pHOx(I,J,L)*(rr(38,L)*y(nAldehyde,L)+rr(37,L)
-     & *y(n_Paraffin,L)*0.89+rr(34,L)*y(n_Alkenes,L)
-     & +rr(30,L)*y(n_Isoprene,L)*0.15+rr(33,L)*y(n_AlkylNit,L))
+     & *y(n_Paraffin,L)*0.89d0+rr(34,L)*y(n_Alkenes,L)
+     & +rr(30,L)*y(n_Isoprene,L)*0.15d0+rr(33,L)*y(n_AlkylNit,L))
      & +rr(43,L)*y(nXO2,L)+y(nXO2N,L)*
-     & (rr(44,L)*rr(43,L)/(4.2E-12*exp(180./ta(L))))
+     & (rr(44,L)*rr(43,L)/(4.2d-12*exp(180./ta(L))))
 C
-       cqqz=(2.*ss(4,L,I,J)*y(n_H2O2,L)+ss(9,L,I,J)*y(n_HNO3,L)+
+       cqqz=(2.d0*ss(4,L,I,J)*y(n_H2O2,L)+ss(9,L,I,J)*y(n_HNO3,L)+
      & ss(13,L,I,J)*y(n_HCHO,L)+ss(14,L,I,J)*y(n_CH3OOH,L)+
-     & (rr(20,L)*y(nNO,L)+0.66*rr(27,L)*yCH3O2(I,J,L))
+     & (rr(20,L)*y(nNO,L)+0.66d0*rr(27,L)*yCH3O2(I,J,L))
      & *yCH3O2(I,J,L))
 C
        cqqz=cqqz+
-     & ((2.*rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))*
+     & ((2.d0*rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))*
      & ss(2,L,I,J)*y(nO3,L))/
      & (rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
      & rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))
-     & +ss(16,L,I,J)*y(nAldehyde,L)*2.+(rr(39,L)*y(nNO,L)
-     & +rr(40,L)*y(nC2O3,L)*2.)*y(nC2O3,L)
-     & +(rr(42,L)*0.94+1.6E3)*y(nROR,L)+rr(35,L)*y(n_Alkenes,L)
-     & *y(nO3,L)*0.65+rr(31,L)*y(n_Isoprene,L)*y(nO3,L)*0.58
+     & +ss(16,L,I,J)*y(nAldehyde,L)*2.d0+(rr(39,L)*y(nNO,L)
+     & +rr(40,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
+     & +(rr(42,L)*0.94d0+1.6d3)*y(nROR,L)+rr(35,L)*y(n_Alkenes,L)
+     & *y(nO3,L)*0.65d0+rr(31,L)*y(n_Isoprene,L)*y(nO3,L)*0.58d0
 c
-       sqroot=sqrt(bqqz*bqqz+4.*aqqz*cqqz)
-       y(nHO2,L)=(sqroot-bqqz)/(2.*aqqz)
+       sqroot=sqrt(bqqz*bqqz+4.d0*aqqz*cqqz)
+       y(nHO2,L)=(sqroot-bqqz)/(2.d0*aqqz)
        y(nOH,L)=pHOx(I,J,L)*y(nHO2,L)
        temp_yHOx=y(nOH,L)+y(nHO2,L)
 c
@@ -254,30 +254,30 @@ c      CZ: OH->HO2 reactions :
        cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(n_CO,L)
      & +rr(14,L)*y(n_H2O2,L)+rr(19,L)*y(nH2,L)
      & +rr(21,L)*y(n_HCHO,L)+rr(37,L)*y(n_Paraffin,L)*
-     & *0.11+rr(30,L)*y(n_Isoprene,L)*0.85
+     & *0.11d0+rr(30,L)*y(n_Isoprene,L)*0.85d0
      & +rr(34,L)*y(n_Alkenes,L)
 C
 C      DZ: HO2->OH reactions :
        dz=rr(4,L)*y(nO3,L)+rr(6,L)*y(nNO,L)
-     & +rr(41,L)*0.79*y(nC2O3,L)+rr(15,L)*y(nHO2,L)
-     & *(2.*ss(4,L,I,J)/(2.*ss(4,L,I,J)+y(nOH,L)*rr(14,L)))
+     & +rr(41,L)*0.79d0*y(nC2O3,L)+rr(15,L)*y(nHO2,L)
+     & *(2.d0*ss(4,L,I,J)/(2.d0*ss(4,L,I,J)+y(nOH,L)*rr(14,L)))
 c      Previous two lines additional OH production via rxn 41,
 c      which also produces HO2, and R15 then S4/(S4+S14) fraction
 C
        if(cz+dz.gt.0.)then
         y(nOH,L)=(dz/(cz+dz))*temp_yHOx
-        if(y(nOH,L).gt.temp_yHOx)y(nOH,L)=temp_yHOx-1.0
+        if(y(nOH,L).gt.temp_yHOx)y(nOH,L)=temp_yHOx-1.d0
 c---->  warning: OH caps follow
-        if(j.le.3.and.y(nOH,L).ge.3.E5) y(nOH,L)=3.E5
-        if(j.ge.44.and.y(nOH,L).ge.3.E5)y(nOH,L)=3.E5
+        if(j.le.3.and.y(nOH,L).ge.3.d5) y(nOH,L)=3.d5
+        if(j.ge.44.and.y(nOH,L).ge.3.d5)y(nOH,L)=3.d5
        else
-        y(nOH,L)=1.0
+        y(nOH,L)=1.d0
        endif
        y(nHO2,L)=(temp_yHOx-y(nOH,L))
 C      Some limits on OH, HO2:
-       if(y(nOH,L).lt.1.)y(nOH,L)=1.0
-       if(y(nHO2,L).lt.1.)y(nHO2,L)=1.0
-       if(y(nHO2,L).gt.1.E9)y(nHO2,L)=1.E9
+       if(y(nOH,L).lt.1.d0)y(nOH,L)=1.d0
+       if(y(nHO2,L).lt.1.d0)y(nHO2,L)=1.d0
+       if(y(nHO2,L).gt.1.d9)y(nHO2,L)=1.d9
        pHOx(I,J,L)=y(nOH,L)/y(nHO2,L)
 C
       enddo  ! >> end of altitude loop <<
@@ -290,7 +290,7 @@ c      First calculate equilibrium amount of HOx
 c      A: loss rxns with HOx**2, B: loss rxns linear in HOx, C: prod
 c       equations are in terms of HO2 (so *pHOx when OH is reactant)
 C
-       aqqz=2.*(pHOx(I,J,L)*rr(1,L) + pHOx(I,J,L)*pHOx(I,J,L)*
+       aqqz=2.d0*(pHOx(I,J,L)*rr(1,L) + pHOx(I,J,L)*pHOx(I,J,L)*
      & (rr(3,L)+rr(iH2O2form,L)) + rr(15,L))
 C
        bqqz=pHOx(I,J,L)*(rr(12,L)*y(n_CH4,L)+rr(16,L)*
@@ -305,7 +305,7 @@ C
 c     &  +pHOx(I,J,L)*rr(18,L)*y(n_HO2NO2,L)+rr(98,L)*y(nNO2,L)
 c
 c     Use OH production without O1D explicitly
-       cqqz=2*ss(4,L,i,j)*y(n_H2O2,L)+ss(9,L,i,j)*y(n_HNO3,L)
+       cqqz=2.d0*ss(4,L,i,j)*y(n_H2O2,L)+ss(9,L,i,j)*y(n_HNO3,L)
 c     &	+(2*rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))*y(nO1D,L)
 c     &	((2*rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))*
 c     &  ss(2,L,i,j)*y(nO3,L))/
@@ -321,12 +321,12 @@ c      production from O1D limited to O1D amount
        rcqqz=rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
      & rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L)
        if(rcqqz.gt.1)then
-        ratio=1./rcqqz
+        ratio=1.d0/rcqqz
        else
-        ratio=1.
+        ratio=1.d0
        endif
        cqqz=cqqz+ratio*        
-     & ((2.*rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))*
+     & ((2.d0*rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))*
      & ss(2,L,I,J)*y(nO3,L))/
      & (rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
      & rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))
@@ -336,8 +336,8 @@ c
 c      if(J.eq.jprn.and.I.eq.iprn.and.L.eq.lprn)
 c     & write(*,*) 'HOxfam: a,b,c,p = ',aqqz,bqqz,cqqz,pHOx(I,J,L)
 c
-       sqroot=sqrt(bqqz*bqqz+4*aqqz*cqqz)
-       y(nHO2,L)=(sqroot-bqqz)/(2*aqqz)
+       sqroot=sqrt(bqqz*bqqz+4.d0*aqqz*cqqz)
+       y(nHO2,L)=(sqroot-bqqz)/(2.d0*aqqz)
        y(nOH,L)=pHOx(I,J,L)*y(nHO2,L)
        temp_yHOx=y(nOH,L)+y(nHO2,L)
 c
@@ -354,32 +354,32 @@ c      CZ: OH->HO2 reactions :
 c
        dz=rr(4,L)*y(nO3,L)+rr(6,L)*y(nNO,L)
 c     &+rr(15,L)*y(nHO2,L)
-c     &*(2*ss(4,L,i,j)/(2*ss(4,L,i,j)+y(nOH,L)*rr(14,L)))
+c     &*(2.d0*ss(4,L,i,j)/(2.d0*ss(4,L,i,j)+y(nOH,L)*rr(14,L)))
 c      Previous two lines additional OH production via 
 c      R15 then S4/(S4+S14) fraction
      &  +rr(60,L)*y(nCl,L)+rr(90,L)*y(nO,L)
 c
        if(cz+dz.gt.0)then
         y(nOH,L)=(dz/(cz+dz))*temp_yHOx
-        if(y(nOH,L).gt.temp_yHOx)y(nOH,L)=temp_yHOx-1.0
+        if(y(nOH,L).gt.temp_yHOx)y(nOH,L)=temp_yHOx-1.d0
        else
-        y(nOH,L)=1.0
+        y(nOH,L)=1.d0
        endif
        y(nHO2,L)=(temp_yHOx-y(nOH,L))
 
 c      At low pressures, include loss of OH into H
        if(PRES(L).lt.2.d0)then
         rHprod=rr(89,L)*y(nOH,L)*y(nO,L)
-        rHspecloss=y(nO3,L)*1.4E-10*exp(-470./ta(L))
-        rkzero=y(nM,L)*5.7d-32*((ta(L)/300)**(-1.6))
+        rHspecloss=y(nO3,L)*1.4d-10*exp(-470./ta(L))
+        rkzero=y(nM,L)*5.7d-32*((ta(L)/300.d0)**(-1.6))
         rktot=(rkzero/(1+(rkzero/7.5d-11)))
         rHspecloss=rHspecloss+y(nO2,L)*rktot
         y(nOH,L)=y(nOH,L)-rHprod/rHspecloss
        endif
 c
-        if(y(nOH,L).lt.1)y(nOH,L)=1.0
-        if(y(nHO2,L).lt.1)y(nHO2,L)=1.0
-        if(y(nHO2,L).gt.1E9)y(nHO2,L)=1.E9
+        if(y(nOH,L).lt.1)y(nOH,L)=1.d0
+        if(y(nHO2,L).lt.1)y(nHO2,L)=1.d0
+        if(y(nHO2,L).gt.1.d9)y(nHO2,L)=1.d9
        pHOx(I,J,L)=y(nOH,L)/y(nHO2,L)
 c      if(J.eq.jprn.and.I.eq.iprn.and.L.eq.lprn)
 c    & write(*,*)'part end HO2, HOx, OH, cz, dz = ',
@@ -426,7 +426,7 @@ C**** Local parameters and variables and arguments:
 
 c      full ClOxfam code from offline photochemistry
 c       goto 10
-c       if(y(n_ClOx,L).gt.0.6E-9*y(nM,L))y(n_ClOx,L)=0.6d-9*y(nM,L)
+c       if(y(n_ClOx,L).gt.0.6d-9*y(nM,L))y(n_ClOx,L)=0.6d-9*y(nM,L)
        y(nClO,L)=y(n_ClOx,L)*pClOx(I,J,L)
        y(nOClO,L)=y(n_ClOx,L)*pOClOx(I,J,L)
        y(nCl,L)=y(n_ClOx,L)*pClx(I,J,L)
@@ -467,7 +467,7 @@ c      calculating Cl amount, otherwise ignore
        if((dt2*y(n_ClOx,L)).ne.0)then
         dClOx=(y(n_ClOx,L)-ClOx_old(L))/(dt2*y(n_ClOx,L))
        else
-        dClOx=0.
+        dClOx=0.d0
        endif
        ww=A+yy+dClOx
 
@@ -478,24 +478,24 @@ c      calculating Cl amount, otherwise ignore
            if((B+D-Q-dClOx).ne.0)then
             p3=abs((-p1*D+D)/(B+D-Q-dClOx))
            else 
-            p3=0.  
+            p3=0.d0
            endif   
            p2=1-p1-p3
           else 
-           p2=1. 
-           p1=0.
-           p3=0.  
+           p2=1.d0
+           p1=0.d0
+           p3=0.d0  
           endif  
          else 
-          p2=1. 
-          p1=0.
-          p3=0.  
+          p2=1.d0 
+          p1=0.d0
+          p3=0.d0  
          endif          
        
-       if(SZA.gt.90)then
+       if(SZA.gt.90.)then
         dOClO=(y(nClO,L)*D-y(nOClO,L)*(B+Q))*dt2
         y(nOClO,L)=y(nOClO,L)+dOClO
-        if(y(nOClO,L).lt.0.)y(nOClO,L)=0.0
+        if(y(nOClO,L).lt.0.)y(nOClO,L)=0.d0
        endif 
        
 c       if(SZA.lt.93)then       
@@ -509,24 +509,24 @@ c     *    +y(n_CH4,L)*rr(82,L)+y(nH2,L)*rr(83,L))
 c          y(nCl,L)=y(nCl,L)*ratioC
           y(nClO,L)=p2*y(n_ClOx,L)
 c         else 
-cc          y(nCl,L)=0.
+cc          y(nCl,L)=0.d0
 c        dClO=(
 cc     *   y(nCl,L)*A+
 c     *   y(nOClO,L)*B+y(nClOx,L)*F-y(nClO,L)*(C+G))*dt2
 c          y(nClO,L)=y(nClO,L)+dClO   
 c          y(nCl,L)=y(n_ClOx,L)-(y(nClO,L)+y(nOClO,L))
 c         endif   
-       if(SZA.lt.90)y(nOClO,L)=p3*y(n_ClOx,L)  
-         if(y(nCl,L).lt.0)y(nCl,L)=0.0
-         if(y(nClO,L).lt.1)y(nClO,L)=0.0
-         if(y(nOClO,L).lt.1)y(nOClO,L)=0.0
+       if(SZA.lt.90.)y(nOClO,L)=p3*y(n_ClOx,L)  
+         if(y(nCl,L).lt.0)y(nCl,L)=0.d0
+         if(y(nClO,L).lt.1)y(nClO,L)=0.d0
+         if(y(nOClO,L).lt.1)y(nOClO,L)=0.d0
          if(y(n_ClOx,L).lt.1)y(n_ClOx,L)=1.0
            
 c      write(*,*) ' L, Cl, ClO, OClO, ClOx =',L,y(nCl,L),
 c     * y(nClO,L),y(nOClO,L),y(nClOx,L)
 
 c      Normalize so that amount of ClOx doesn't change
-       if((y(nCl,L)+y(nClO,L)+y(nOClO,L)).gt.0)then
+       if((y(nCl,L)+y(nClO,L)+y(nOClO,L)).gt.0.)then
           rnormnum=y(n_ClOx,L)/(y(nCl,L)+y(nClO,L)+y(nOClO,L))
           y(nCl,L)=y(nCl,L)*rnormnum
           y(nClO,L)=y(nClO,L)*rnormnum
@@ -546,8 +546,8 @@ c     *   rr(60,L),y(nNO3,L),rr(66,L)
        pOClOx(I,J,L)=y(nOClO,L)/y(n_ClOx,L)
 
 c      Temporarily, no het chem, Cl2 and Cl2O2 both zero.
-c       y(nCl2O2,L)=0.
-       y(nCl2,L)=0. !het rxns set to produce Cl instead of Cl2
+c       y(nCl2O2,L)=0.d0
+       y(nCl2,L)=0.d0 !het rxns set to produce Cl instead of Cl2
 
        goto 50 !skip alternative method
 
@@ -574,13 +574,13 @@ c     *    ,y(n_CH4,L)*rr(82,L),y(nH2,L)*rr(83,L)
        y(nCl,L)=prodCl/destCl
        y(nClO,L)=y(n_ClOx,L)-y(nCl,L)
 
-c       p2=1./((C/A)+1.)
-c       p1=1.-p2
+c       p2=1.d0/((C/A)+1.d0)
+c       p1=1.d0-p2
 c       y(nCl,L)=p1*y(n_ClOx,L)
 c       y(nClO,L)=p2*y(n_ClOx,L)
 
 c      Normalize so that amount of ClOx doesn't change
-       if((y(nCl,L)+y(nClO,L)).gt.0)then
+       if((y(nCl,L)+y(nClO,L)).gt.0.)then
           rnormnum=y(n_ClOx,L)/(y(nCl,L)+y(nClO,L))
           y(nCl,L)=y(nCl,L)*rnormnum
           y(nClO,L)=y(nClO,L)*rnormnum
@@ -588,12 +588,12 @@ c      Normalize so that amount of ClOx doesn't change
 
        pClOx(I,J,L)=y(nClO,L)/y(n_ClOx,L)
        pClx(I,J,L)=y(nCl,L)/y(n_ClOx,L)
-       pOClOx(I,J,L)=0.
+       pOClOx(I,J,L)=0.d0
 
 c      Temporarily, no het chem, Cl2 and Cl2O2 both zero.
-       y(nCl2O2,L)=0.
-       y(nCl2,L)=0.
-       y(nOClO,L)=0.
+       y(nCl2O2,L)=0.d0
+       y(nCl2,L)=0.d0
+       y(nOClO,L)=0.d0
 
  50   enddo  ! end of altitude loop
 #endif
@@ -640,18 +640,18 @@ C**** Local parameters and variables and arguments:
        if(a+b.ne.0)then
         p2=a/(a+b)
        else
-        p2=0.
+        p2=0.d0
        endif
-       if(p2.lt.0)p2=0.
-       if(p2.gt.1)p2=1.
+       if(p2.lt.0)p2=0.d0
+       if(p2.gt.1)p2=1.d0
          p1=1-p2    
          y(nBr,L)=p1*y(n_BrOx,L)
          y(nBrO,L)=p2*y(n_BrOx,L)
-         if(y(nBr,L).lt.1)y(nBr,L)=0.0
-         if(y(nBrO,L).lt.1)y(nBrO,L)=0.0
-         if(y(nBr,L).gt.1d9)y(nBr,L)=0.0
-         if(y(nBrO,L).gt.1d9)y(nBrO,L)=0.0
-         if(y(n_BrOx,L).lt.1)y(n_BrOx,L)=1.0
+         if(y(nBr,L).lt.1)y(nBr,L)=0.d0
+         if(y(nBrO,L).lt.1)y(nBrO,L)=0.d0
+         if(y(nBr,L).gt.1d9)y(nBr,L)=0.d0
+         if(y(nBrO,L).gt.1d9)y(nBrO,L)=0.d0
+         if(y(n_BrOx,L).lt.1)y(n_BrOx,L)=1.d0
 c       write(*,*) ' L, Br, BrO, BrOx =',L,y(nBr,L),y(nBrO,L),
 c     * y(n_BrOx,L)
 
