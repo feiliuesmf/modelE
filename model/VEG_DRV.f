@@ -81,7 +81,8 @@
 !                                      and  5 C (13 m2/kg[dry mass])
 !          Francesco Tubiello, personal communication, crop 18-20 m2/kg.
       real*8, parameter :: sleafa(8) =
-     $     1./(/30.5d0,49.0d0,30.5d0,40.5d0,32.0d0,8.2d0,32.0d0,18.0d0/)
+     $     (/ 1./30.5d0,1./49.0d0,1./30.5d0,1./40.5d0,1./32.0d0,
+     $        1./8.2d0,1./32.0d0,1./18.0d0/) 
 
 c****             tundr grass shrub trees decid evrgr rainf crops
 c****
