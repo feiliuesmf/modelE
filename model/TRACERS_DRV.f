@@ -6068,7 +6068,9 @@ C         (lightning called from tracer_3Dsource)
         end select
       end do
 #endif
-
+#ifdef TRACERS_AEROSOLS_Koch
+       if (COUPLED_CHEM.ne.1) call get_O3_offline
+#endif
 C****
 C**** Initialize tracers here to allow for tracers that 'turn on'
 C**** at the start of any day
