@@ -96,6 +96,10 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #endif
 #endif
 
+#ifdef TRACERS_DUST
+      INTEGER :: ijts_grav(Ntm)
+#endif
+
 !@param KTAIJS number of special lat/lon tracer diagnostics
       integer, parameter :: ktaijs=90
 

@@ -591,6 +591,9 @@ C****
      *     ,visc_air_kin,mair,rgas
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo,t,q
       USE GEOM, only : imaxj,bydxyp
+#ifdef TRACERS_DUST
+     &     ,dxyp
+#endif
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
       USE DYNAMICS, only : gz
      * ,pmid,pk
@@ -600,6 +603,9 @@ C****
       USE TRACER_DIAG_COM, only : tajls,jls_grav,itcon_grav
 #ifdef TRACERS_DRYDEP
      *     ,taijn,tij_drydep
+#endif
+#ifdef TRACERS_DUST
+     &     ,taijs,ijts_grav
 #endif
       USE FLUXES, only : trgrdep
       IMPLICIT NONE
@@ -614,6 +620,9 @@ C****
       real*8, parameter :: c1=0.7674d0, c2=3.079d0, c3=2.573d-11,
      *     c4=-1.424d0
       real*8 r_h,den_h,rh
+#endif
+#ifdef TRACERS_DUST
+      INTEGER :: naij
 #endif
 
       do n=1,ntm
@@ -691,6 +700,12 @@ C**** maybe this should be a separate diag (or not be done at all?)
      *           -told(1:imaxj(j),j,l))
           enddo 
           enddo
+#ifdef TRACERS_DUST
+          naij=ijts_grav(n)
+          DO j=1,Jm
+            taijs(:,j,naij)=taijs(:,j,naij)+trgrdep(n,:,j)*dxyp(j)
+          END DO
+#endif
           call DIAGTCA(itcon_grav(n),n)
         end if
       end do

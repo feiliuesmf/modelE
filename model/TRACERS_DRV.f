@@ -29,8 +29,8 @@
       USE LINOZ_CHEM_COM, only: dsol
 #endif
 #ifdef TRACERS_DUST
-      USE tracers_dust_com,ONLY : nDustEmij,nDustTurbij,nDustGravij,
-     &  nDustWetij,nDustEmjl,nDustTurbjl,nDustGrav3Djl,nDustWet3Djl
+      USE tracers_dust_com,ONLY : nDustEmij,nDustTurbij,nDustWetij,
+     &  nDustEmjl,nDustTurbjl,nDustWet3Djl
 #endif
 #ifdef TRACERS_WATER
       USE LANDICE_COM, only : trli0    ! should these be in tracer_com?
@@ -833,24 +833,28 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       n_clay=n
           ntm_power(n)=-9
           trpdens(n)=2.5d3
+          trradius(n)=0.75D-06
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
       CASE('Silt1')
       n_silt1=n
           ntm_power(n)=-9
           trpdens(n)=2.65d3
+          trradius(n)=2.2D-06
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
       CASE('Silt2')
       n_silt2=n
           ntm_power(n)=-9
           trpdens(n)=2.65d3
+          trradius(n)=4.4D-06
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
       CASE('Silt3')
       n_silt3=n
           ntm_power(n)=-9
           trpdens(n)=2.65d3
+          trradius(n)=6.7D-06
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
 #endif
@@ -2184,9 +2188,9 @@ c gravitational settling of ss2
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
         k=k+1
-          jls_3Dsource(nDustGrav3Djl,n)=k
-          lname_jls(k)='Loss by gravitational settling of '//trname(n)
-          sname_jls(k)=TRIM(trname(n))//'_grav_settle'
+          jls_grav(n)=k
+          lname_jls(k)='Gain by gravitational settling of '//trname(n)
+          sname_jls(k)=TRIM(trname(n))//'_grav_sett'
           jls_ltop(k)=Lm
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
@@ -3776,9 +3780,9 @@ c ss2 optical thickness
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k=k+1
-        ijts_source(nDustGravij,n)=k
+        ijts_grav(n)=k
         lname_ijts(k)='Gravitational settling of '//trname(n)
-        sname_ijts(k)=TRIM(trname(n))//'_grav_settle'
+        sname_ijts(k)=TRIM(trname(n))//'_grav_sett'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13.
