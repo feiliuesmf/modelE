@@ -1707,10 +1707,10 @@ C**** initialise vertical arrays
 #ifdef TRACERS_AEROSOLS_Koch
       DT_SULF_SS(1:NTM,:)=0.
 #endif
+#endif
 #ifdef CLD_AER_CDNC
        CDNCWS=0.
        CDNCIS=0.
-#endif
 #endif
       DO L=1,LP50
         CAREA(L)=1.-CLDSAVL(L)
