@@ -318,7 +318,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARD,KJDAYD,MADDST, KYEARV,KJDAYV,MADVOL
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
-     *     ,ITR,NTRACE,ntrix  ! turning on options for extra aerosols
+     *     ,ITR,NTRACE        ! turning on options for extra aerosols
      *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA
       USE RADNCB, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
@@ -326,7 +326,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
-     *     ,rad_interact_tr,rad_forc_lev
+     *     ,rad_interact_tr,rad_forc_lev,ntrix
       USE DAGCOM, only : iwrite,jwrite,itwrite
 #ifdef TRACERS_ON
       USE TRACER_COM
@@ -657,7 +657,7 @@ C****
      &          ,tauwc0,tauic0 ! set in radpar block data
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY,FULGAS
-     &          ,use_tracer_ozone,ntrix
+     &          ,use_tracer_ozone
 C     INPUT DATA  (i,j) dependent
      &             ,JLAT,ILON,nl,nlp, PLB ,TLB,TLM ,SHL,RHL, ltopcl
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC, kdeliq
@@ -676,7 +676,7 @@ C     OUTPUT DATA
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
-     *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev
+     *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,cloud_rad_forc
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,

@@ -999,8 +999,6 @@ C     Optional Tracers    used via setbak/getbak
 C---------------------
       integer, dimension(ITRMAX) :: ITR=1
       integer :: NTRACE=0
-!@var NTRIX Indexing array for optional aerosol interaction
-      INTEGER, DIMENSION(ITRMAX) :: NTRIX = 0
 
       real*8, dimension(ITRMAX) ::
 C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
@@ -3316,11 +3314,6 @@ C                                                                -------
 
       SUBROUTINE SETAER
 
-      USE tracer_com,ONLY : trname
-#ifdef TRACERS_DUST
-     &     ,n_clay
-#endif
-
 cc    INCLUDE  'rad00def.radCOMMON.f'
       IMPLICIT NONE
 C     ---------------------------------------------------------------
@@ -3357,10 +3350,7 @@ C          Set size OCX (NA=4) = Organic aerosol  (Nominal dry Reff=0.3)
 C     ------------------------------------------------------------------
       REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55,RHDNA,RHDTNA
       REAL*8          TTAULX(LX,ITRMAX),   SRBGQL
-      INTEGER K,L,NA,N,NRH,M,KDREAD,NT
-#ifdef TRACERS_DUST
-     &     ,nt1
-#endif
+      INTEGER K,L,NA,N,NRH,M,KDREAD,NT,ntd
 
       IF(MADAER.LE.0) GO TO 150
       DO 110 NA=1,4
@@ -3566,18 +3556,16 @@ C     NOTE:  Aerosol carried as a tracer is assumed to be in kg/m2 units
 C     ------------------------------------------------------------------
 
       DO L=1,NL
+      ntd=0
       DO NT=1,NTRACE
-        SELECT CASE (trname(ntrix(nt)))
-#ifdef TRACERS_DUST
-        CASE ('Clay','Silt1','Silt2','Silt3')
-          nt1=nt-n_clay+1
+        IF (itr(nt) == 7) THEN
+          ntd=ntd+1
           TTAULX(L,NT)=TRACER(L,NT)*
-     *    1d3*.75d0/rodust(nt1)*qdst55(nt1)/TRRDRY(NT)
-#endif
-        CASE DEFAULT
+     *         1d3*.75d0/rodust(ntd)*qdst55(ntd)/TRRDRY(NT)
+        ELSE
           TTAULX(L,NT)=TRACER(L,NT)*
      *         1d3*.75d0/DENAER(ITR(NT))*Q55DRY(ITR(NT))/TRRDRY(NT)
-        END SELECT
+        END IF
       END DO
       END DO
 

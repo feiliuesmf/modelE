@@ -122,6 +122,9 @@ C**** Local variables initialised in init_RAD
 !@var SINJ,COSJ sines and cosines for zenith angle calculation
       REAL*8, ALLOCATABLE, DIMENSION(:) :: SINJ,COSJ
 
+!@var NTRIX Indexing array for optional aerosol interaction
+      INTEGER, DIMENSION(ITRMAX) :: NTRIX = 0
+
       END MODULE RADNCB
 
       SUBROUTINE ALLOC_RAD_COM(grid)
