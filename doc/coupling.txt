@@ -156,6 +156,9 @@ DMUA, DMVA N-S and E-W components of the atmospheric wind stress (kg/ms).
       stresses to be applied over the whole box (i.e. they are already
       weighted by the open ocean fraction).
 
+APRESS this is the anomalous (gauge) pressure (Pa) at the top of the
+      ocean (i.e. below the sea ice).
+
 b) OUTPUT
 DMSI, DHSI, DSSI mass (kg/m^2), energy (J/m^2) and salt (kg/m^2)
      amount in ice formed in the ocean that is to be applied to the
