@@ -140,6 +140,8 @@ C**** Initialise some output used in dynamics
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
+      USE DOMAIN_DECOMP, only : AM_I_ROOT
+      USE DOMAIN_DECOMP, only : PACK_COLUMN, UNPACK_COLUMN
       USE CLOUDS_COM
       IMPLICIT NONE
 
@@ -149,27 +151,56 @@ C**** Initialise some output used in dynamics
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "CLD01"
+      REAL*8, DIMENSION(LM,IM,JM) :: TTOLD_glob,QTOLD_glob
+     &                              ,SVLHX_glob,RHSAV_glob,CLDSAV_glob
+#ifdef CLD_AER_CDNC
+           ,OLDNO_glob,OLDNL_glob,SMFPM_glob
+#endif
 
       write(MODULE_HEADER(lhead+1:80),'(a)')
      *'R8 dim(im,jm,lm):potT,Hum,LatHeat,RHum,CldCv,NO,NL,SM (all old)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,
-     *     TTOLD,QTOLD,SVLHX,RHSAV,CLDSAV
+        CALL PACK_COLUMN(grid, TTOLD,  TTOLD_glob)
+        CALL PACK_COLUMN(grid, QTOLD,  QTOLD_glob)
+        CALL PACK_COLUMN(grid, SVLHX,  SVLHX_glob)
+        CALL PACK_COLUMN(grid, RHSAV,  RHSAV_glob)
+        CALL PACK_COLUMN(grid, CLDSAV, CLDSAV_glob)
 #ifdef CLD_AER_CDNC
-     *     ,OLDNO,OLDNL,SMFPM
+        CALL PACK_COLUMN(grid, OLDNO, OLDNO_glob) 
+        CALL PACK_COLUMN(grid, OLDNL, OLDNL_glob) 
+        CALL PACK_COLUMN(grid, SMFPM, SMFPM_glob) 
 #endif
+        IF (AM_I_ROOT()) THEN
+          WRITE (kunit,err=10) MODULE_HEADER,
+     *       TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob
+#ifdef CLD_AER_CDNC
+     *       ,OLDNO_glob,OLDNL_glob,SMFPM_glob
+#endif
+        END IF
+
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,
-     *     TTOLD,QTOLD,SVLHX,RHSAV,CLDSAV
+     *     TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob
 #ifdef CLD_AER_CDNC
-     *     ,OLDNO,OLDNL,SMFPM
+     *     ,OLDNO_glob,OLDNL_glob,SMFPM_glob
 #endif
         IF (HEADER(1:15).NE.MODULE_HEADER(1:15)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+C***ESMF: Unpack global arrays into distributed local arrays.
+        CALL UNPACK_COLUMN(grid, TTOLD_glob , TTOLD , local=.true.)
+        CALL UNPACK_COLUMN(grid, QTOLD_glob , QTOLD , local=.true.)
+        CALL UNPACK_COLUMN(grid, SVLHX_glob , SVLHX , local=.true.)
+        CALL UNPACK_COLUMN(grid, RHSAV_glob , RHSAV , local=.true.)
+        CALL UNPACK_COLUMN(grid, CLDSAV_glob, CLDSAV, local=.true.)
+#ifdef CLD_AER_CDNC
+        CALL UNPACK_COLUMN(grid, OLDNO_glob , OLDNO , local=.true.)
+        CALL UNPACK_COLUMN(grid, OLDNL_glob , OLDNL , local=.true.)
+        CALL UNPACK_COLUMN(grid, SMFPM_glob , SMFPM , local=.true.)
+#endif
       END SELECT
 
       RETURN

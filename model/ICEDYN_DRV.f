@@ -141,6 +141,8 @@ C**** stencils.
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
      *     ,irerun,lhead
+      USE DOMAIN_DECOMP, only: AM_I_ROOT, PACK_DATA, UNPACK_DATA
+      USE ICEDYN, only : grid_MIC
       USE ICEDYN_COM
       IMPLICIT NONE
 
@@ -150,22 +152,35 @@ C**** stencils.
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "ICEDYN01"
+      REAL*8, DIMENSION(IMIC, JMIC) :: RSIX_glob,RSIY_glob,USI_glob
+     &                                ,VSI_glob
 
       write(MODULE_HEADER(lhead+1:80),'(a7,i3,a1,i3,a)')
      *     'R8 dim(',imic,',',jmic,'):RSIX,RSIY,USI,VSI'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,RSIX,RSIY,USI,VSI
+        CALL PACK_DATA(grid_MIC, RSIX, RSIX_GLOB)
+        CALL PACK_DATA(grid_MIC, RSIY, RSIY_GLOB)
+        CALL PACK_DATA(grid_MIC,  USI,  USI_GLOB)
+        CALL PACK_DATA(grid_MIC,  VSI,  VSI_GLOB)
+        IF (AM_I_ROOT())
+     &   WRITE (kunit,err=10) MODULE_HEADER,RSIX_glob,RSIY_glob
+     &                                     , USI_glob, VSI_glob
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
         CASE (IRSFICNO)           ! initial conditions (no ocean)
         CASE (ioread,irerun,irsfic,irsficnt)    ! restarts
-          READ (kunit,err=10) HEADER,RSIX,RSIY,USI,VSI
+          READ (kunit,err=10) HEADER,       RSIX_glob,RSIY_glob
+     &                                     , USI_glob, VSI_glob
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
           END IF
+          CALL UNPACK_DATA(grid_MIC, RSIX_GLOB, RSIX, local=.true.)
+          CALL UNPACK_DATA(grid_MIC, RSIY_GLOB, RSIY, local=.true.)
+          CALL UNPACK_DATA(grid_MIC,  USI_GLOB,  USI, local=.true.)
+          CALL UNPACK_DATA(grid_MIC,  VSI_GLOB,  VSI, local=.true.)
         END SELECT
       END SELECT
 
@@ -181,6 +196,9 @@ C****
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irsfic,irsficnt,irerun,ioread_single,lhead
+      USE DOMAIN_DECOMP, only : GET, AM_I_ROOT
+      USE DOMAIN_DECOMP, only : PACK_DATA, UNPACK_DATA
+      USE ICEDYN, only : grid_MIC
       USE ICEDYN_COM
       IMPLICIT NONE
 
@@ -194,35 +212,52 @@ C****
       INTEGER, INTENT(INOUT) :: it
 !@var ICIJ4 dummy arrays for reading diag. files
       REAL*4, DIMENSION(IMIC,JMIC,KICIJ)  :: ICIJ4
+      REAL*8, DIMENSION(IMIC,JMIC,KICIJ)  :: ICIJ_GLOB
+      INTEGER :: J_0H_MIC, J_1H_MIC
+
 #ifdef TRACERS_WATER
       REAL*4, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ4
+      REAL*8, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ_GLOB
 !@var TR_HEADER Character string label for individual tracer records
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TRICDIAG01"
+      
       write(TR_MODULE_HEADER(lhead+1:80),'(a9,i3,a1,i3,a1,i2,a1,i2,a4)')
      *     'R8 Ticij(',imic,',',jmic,',',kticij,',',ntm,'),it'
 #endif
       write(MODULE_HEADER(lhead+1:80),'(a8,i3,a1,i3,a1,i2,a4)')
      *     'R8 ICij(',imic,',',jmic,',',kicij,'),it'
 
+      CALL GET(grid_MIC, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
+
       SELECT CASE (IACTION)
       CASE (IOWRITE,IOWRITE_MON)  ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,ICIJ,it
+        CALL PACK_DATA(grid_mic, icij, icij_glob)
+        IF (AM_I_ROOT())
+     &     WRITE (kunit,err=10) MODULE_HEADER,ICIJ_glob,it
 #ifdef TRACERS_WATER
-        WRITE (kunit,err=10) TR_MODULE_HEADER,TICIJ,it
+        CALL PACK_DATA(grid_mic, TICIJ, TICIJ_GLOB)
+        IF (AM_I_ROOT())
+     &     WRITE (kunit,err=10) TR_MODULE_HEADER,TICIJ_GLOB,it
 #endif
       CASE (IOWRITE_SINGLE)    ! output to acc file
         MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
-        WRITE (kunit,err=10) MODULE_HEADER,REAL(ICIJ,KIND=4),it
+        CALL PACK_DATA(grid_mic, icij, icij_glob)
+        IF (AM_I_ROOT())
+     &     WRITE (kunit,err=10) MODULE_HEADER,REAL(ICIJ_GLOB,KIND=4),it
 #ifdef TRACERS_WATER
         TR_MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
-        WRITE (kunit,err=10) TR_MODULE_HEADER,REAL(TICIJ,KIND=4),it
+        CALL PACK_DATA(grid_mic, TICIJ, TICIJ_GLOB)
+        IF (AM_I_ROOT())
+     &     WRITE (kunit,err=10) TR_MODULE_HEADER
+     &          ,REAL(TICIJ_GLOB,KIND=4),it
 #endif
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
         CASE (ioread_single)    ! accumulate diagnostic files
           READ (kunit,err=10) HEADER,ICIJ4,it
 C**** accumulate diagnostics
-          ICIJ=ICIJ+ICIJ4
+          ICIJ(:,J_0H_MIC:J_1H_MIC,:)=ICIJ(:,J_0H_MIC:J_1H_MIC,:)
+     &                            +ICIJ4(:,J_0H_MIC:J_1H_MIC,:)
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
@@ -231,7 +266,8 @@ C**** accumulate diagnostics
 #ifdef TRACERS_WATER
           READ (kunit,err=10) TR_HEADER,TICIJ4,it
 C**** accumulate diagnostics
-          TICIJ=TICIJ+TICIJ4
+          TICIJ(:,J_0H_MIC:J_1H_MIC,:,:)=TICIJ(:,J_0H_MIC:J_1H_MIC,:,:)
+     &                                 +TICIJ4(:,J_0H_MIC:J_1H_MIC,:,:)
           IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",TR_HEADER
      *           ,TR_MODULE_HEADER
@@ -239,19 +275,21 @@ C**** accumulate diagnostics
           END IF
 #endif
         CASE (ioread,irerun)    ! restarts
-          READ (kunit,err=10) HEADER,ICIJ,it
+          READ (kunit,err=10) HEADER,ICIJ_GLOB,it
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
             GO TO 10
           END IF
+          CALL UNPACK_DATA(grid_MIC, ICIJ_GLOB, ICIJ, local=.true.)
 #ifdef TRACERS_WATER
-          READ (kunit,err=10) TR_HEADER,TICIJ,it
+          READ (kunit,err=10) TR_HEADER,TICIJ_GLOB,it
           IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",TR_HEADER
      *           ,TR_MODULE_HEADER
             GO TO 10
           END IF
+          CALL UNPACK_DATA(grid_MIC, TICIJ_GLOB, TICIJ, local=.true.)
 #endif
         CASE (IRSFIC)  ! initial conditions
           READ (kunit)

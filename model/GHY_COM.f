@@ -177,7 +177,8 @@ C**** Initialize to zero
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE GHYCOM
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP, only : PACK_DATA, PACK_COLUMN
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -200,8 +201,18 @@ C**** Initialize to zero
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
-     *       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
+        CALL PACK_DATA(grid, SNOWE       , SNOWE_glob)
+        CALL PACK_DATA(grid, TEARTH      , TEARTH_glob)
+        CALL PACK_DATA(grid, WEARTH      , WEARTH_glob)
+        CALL PACK_DATA(grid, AIEARTH     , AIEARTH_GLOB)
+        CALL PACK_DATA(grid, evap_max_ij , evap_max_ij_glob)
+        CALL PACK_DATA(grid, fr_sat_ij   , fr_sat_ij_glob)
+        CALL PACK_DATA(grid, qg_ij       , qg_ij_glob)
+        CALL PACK_COLUMN(grid, SNOAGE    , SNOAGE_glob)
+        IF (AM_I_ROOT())
+     *     WRITE (kunit,err=10) MODULE_HEADER,SNOWE_glob,TEARTH_glob
+     *       ,WEARTH_glob,AIEARTH_glob
+     *       ,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij,qg_ij_glob
       CASE (IOREAD:)            ! input from restart file
 c$$$        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
 c$$$     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
@@ -236,6 +247,8 @@ c$$$     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
       USE DOMAIN_DECOMP, ONLY: GRID, GET, CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP, ONLY: PACK_DATA, PACK_COLUMN, AM_I_ROOT
+      USE DOMAIN_DECOMP, ONLY: PACK_BLOCK, UNPACK_BLOCK
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -255,7 +268,9 @@ c$$$     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSOILS01"
-
+      REAL*8 :: TRSNOWBV0_GLOB(NTM,2,IM,JM)
+      REAL*8 :: TR_WBARE_GLOB (NTM,  NGM,IM,JM)
+      REAL*8 :: TR_WVEGE_GLOB  (NTM,0:NGM,IM,JM)
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a21,i3,a1,i2,a9,i3,a1,i2,a11,i3,a2)')
      *     'R8 dim(im,jm) TRBARE(',NTM,',',NGM,'),TRVEGE(',NTM,',',NGM+1
@@ -267,11 +282,24 @@ c$$$     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,wbare,wvege,htbare,htvege
-     *       ,snowbv
+        CALL PACK_DATA(grid  , WBARE ,  WBARE_GLOB)
+        CALL PACK_COLUMN(grid, SNOWBV, SNOWBV_GLOB)
+        CALL PACK_COLUMN(grid, WVEGE ,  WVEGE_GLOB)
+        CALL PACK_COLUMN(grid, HTBARE, HTBARE_GLOB)
+        CALL PACK_COLUMN(grid, HTVEGE, HTVEGE_GLOB)
 #ifdef TRACERS_WATER
-        WRITE (kunit,err=10) TRMODULE_HEADER,TR_WBARE,TR_WVEGE,TRSNOWBV0
+        CALL PACK_BLOCK(grid, TR_WBARE , TR_WBARE_GLOB)
+        CALL PACK_BLOCK(grid, TR_WVEGE , TR_WVEGE_GLOB)
+        CALL PACK_BLOCK(grid, TRSNOWBV0, TRSNOWBV0_GLOB)
 #endif
+        IF (AM_I_ROOT()) THEN 
+          WRITE (kunit,err=10) MODULE_HEADER,wbare_glob,wvege_glob,
+     *       htbare_glob,htvege_glob ,snowbv_glob
+#ifdef TRACERS_WATER
+          WRITE (kunit,err=10) TRMODULE_HEADER,TR_WBARE_GLOB
+     &       ,TR_WVEGE_GLOB,TRSNOWBV0_GLOB
+#endif
+        END IF
       CASE (IOREAD:)            ! input from restart file
         READ(kunit,err=10) HEADER,wbare_glob,wvege_glob,htbare_glob,
      &                            htvege_glob,snowbv_glob
@@ -298,12 +326,17 @@ c$$$        CALL CHECKSUM_COLUMN(grid,snowbv,__LINE__,__FILE__)
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
         CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)  ! reruns/restarts
-          READ (kunit,err=10) TRHEADER,TR_WBARE,TR_WVEGE,TRSNOWBV0
+          READ (kunit,err=10) TRHEADER, TR_WBARE_GLOB
+     &         ,TR_WVEGE_GLOB,TRSNOWBV0_GLOB
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",TRHEADER
      *           ,TRMODULE_HEADER
             GO TO 10
           END IF
+          CALL UNPACK_BLOCK(grid,TR_WBARE_GLOB ,TR_WBARE ,local=.true.)
+          CALL UNPACK_BLOCK(grid,TR_WVEGE_GLOB ,TR_WVEGE ,local=.true.)
+          CALL UNPACK_BLOCK(grid,TRSNOWBV0_GLOB,TRSNOWBV0,local=.true.)
+
         END SELECT
 #endif
       END SELECT
@@ -318,6 +351,9 @@ c$$$        CALL CHECKSUM_COLUMN(grid,snowbv,__LINE__,__FILE__)
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
+      USE DOMAIN_DECOMP, only : grid, AM_I_ROOT
+      USE DOMAIN_DECOMP, only : PACK_BLOCK  , PACK_COLUMN
+      USE DOMAIN_DECOMP, only : UNPACK_BLOCK, UNPACK_COLUMN
       USE GHYCOM
       IMPLICIT NONE
 
@@ -327,9 +363,14 @@ c$$$        CALL CHECKSUM_COLUMN(grid,snowbv,__LINE__,__FILE__)
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "SNOW01"
+      INTEGER ::  NSN_IJ_GLOB(2,IM,JM)
+      REAL*8, DIMENSION(NLSN,2,IM,JM) :: DZSN_IJ_GLOB, WSN_IJ_GLOB
+     &                                  ,HSN_IJ_GLOB
+      REAL*8 :: FR_SNOW_IJ_GLOB(2,IM,JM)
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSNOW01"
+      REAL*8 TR_WSN_IJ_GLOB(NTM,NLSN,2,IM,JM)
 
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a7,i3,a1,i3,a)')'R8 dim(',NTM,',',NLSN,',2,IM,JM):TRSNW'
@@ -340,27 +381,49 @@ c$$$        CALL CHECKSUM_COLUMN(grid,snowbv,__LINE__,__FILE__)
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,NSN_IJ,DZSN_IJ,WSN_IJ
-     *       ,HSN_IJ,FR_SNOW_IJ
+        CALL PACK_BLOCK(grid, DZSN_IJ, DZSN_IJ_GLOB)
+        CALL PACK_BLOCK(grid,  WSN_IJ,  WSN_IJ_GLOB)
+        CALL PACK_BLOCK(grid,  HSN_IJ,  HSN_IJ_GLOB)
+        CALL PACK_COLUMN(grid, NSN_IJ,  NSN_IJ_GLOB)
+        CALL PACK_COLUMN(grid, FR_SNOW_IJ,  FR_SNOW_IJ_GLOB)
 #ifdef TRACERS_WATER
-        WRITE (kunit,err=10) TRMODULE_HEADER,TR_WSN_IJ
+        CALL PACK_BLOCK(grid, TR_WSN_IJ(     :,:,1,:,:)
+     &                      , TR_WSN_IJ_GLOB(:,:,1,:,:) )
+        CALL PACK_BLOCK(grid, TR_WSN_IJ(     :,:,2,:,:)
+     &                      , TR_WSN_IJ_GLOB(:,:,2,:,:) )
 #endif
+        IF (AM_I_ROOT()) THEN
+          WRITE (kunit,err=10) MODULE_HEADER, NSN_IJ_glob, DZSN_IJ_glob
+     *         ,WSN_IJ_glob, HSN_IJ_glob, FR_SNOW_IJ_glob
+#ifdef TRACERS_WATER
+          WRITE (kunit,err=10) TRMODULE_HEADER,TR_WSN_IJ_glob
+#endif
+        END IF
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,NSN_IJ,DZSN_IJ,WSN_IJ
-     *       ,HSN_IJ,FR_SNOW_IJ
+        READ (kunit,err=10) HEADER,NSN_IJ_glob, DZSN_IJ_glob
+     *         ,WSN_IJ_glob, HSN_IJ_glob, FR_SNOW_IJ_glob
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
-#ifdef TRACERS_WATER
+        CALL UNPACK_BLOCK(grid, DZSN_IJ_GLOB, DZSN_IJ)
+        CALL UNPACK_BLOCK(grid,  WSN_IJ_GLOB,  WSN_IJ)
+        CALL UNPACK_BLOCK(grid,  HSN_IJ_GLOB,  HSN_IJ)
+        CALL UNPACK_COLUMN(grid, NSN_IJ_GLOB,  NSN_IJ)
+        CALL UNPACK_COLUMN(grid, FR_SNOW_IJ_GLOB,  FR_SNOW_IJ) 
+#ifdef TRACERS_WATER 
         SELECT CASE (IACTION)
         CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO) ! reruns/restarts
-          READ (kunit,err=10) TRHEADER,TR_WSN_IJ
+          READ (kunit,err=10) TRHEADER,TR_WSN_IJ_GLOB
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",TRHEADER
      *           ,TRMODULE_HEADER
             GO TO 10
           END IF
+          CALL UNPACK_BLOCK(grid, TR_WSN_IJ_GLOB(:,:,1,:,:)
+     &                          , TR_WSN_IJ(:,:,1,:,:), local=.true. )
+          CALL UNPACK_BLOCK(grid, TR_WSN_IJ_GLOB(:,:,2,:,:)
+     &                          , TR_WSN_IJ(:,:,2,:,:), local=.true. )
         END SELECT
 #endif
       END SELECT

@@ -436,7 +436,7 @@ C**** mb*m2/s and convert to WSAVE, units of m/s):
       USE DYNAMICS, only: ps,mb,ma
       USE TRACER_ADV, only:
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
-      USE DOMAIN_DECOMP, only : grid, GET, HERE
+      USE DOMAIN_DECOMP, only : grid, GET
       IMPLICIT NONE
       REAL*8 DTLF,byncyc,byma
       INTEGER I,J,L   !@var I,J,L loop variables
@@ -448,11 +448,8 @@ c**** Extract domain decomposition info
 
 
       DTLF=2.*DT
-      CALL HERE(__FILE__,__LINE__)
       CALL CALC_AMP(PS,MB)
-      CALL HERE(__FILE__,__LINE__)
       CALL AADVQ0 (DTLF)  ! uses the fluxes pua,pva,sda from DYNAM
-      CALL HERE(__FILE__,__LINE__)
 C****
 C**** convert from concentration to mass units
 C****
@@ -831,7 +828,8 @@ C2440 CONTINUE
       DO 2440 J=J_0,J_1
          DO 2438 I=1,IMAXJ(J)
          DO 2438 L=LS1-2,1,-1
-            SD(I,JJ(J),L)=SD(I,JJ(J),L+1)+SD(I,JJ(J),L)-DSIG(L+1)*PIT(I,JJ(J))
+           SD(I,JJ(J),L)=SD(I,JJ(J),L+1)+SD(I,JJ(J),L)-
+     &           DSIG(L+1)*PIT(I,JJ(J))
  2438    CONTINUE
  2440 CONTINUE
 !$OMP  END PARALLEL DO
@@ -1345,7 +1343,7 @@ C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
       ediff=(TE-TE0)/((PSF-PMTOP)*SHA*mb2kg)        ! C
 !$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm
-        T(:,J_0:J_1,L)=T(:,:,L)-ediff/PK(L,:,J_0:J_1)
+        T(:,J_0:J_1,L)=T(:,J_0:J_1,L)-ediff/PK(L,:,J_0:J_1)
       end do
 !$OMP  END PARALLEL DO
 
@@ -1682,7 +1680,6 @@ C**** Add in dissipiated KE as heat locally
         END DO
 !$OMP  END PARALLEL DO
       END IF
-      CALL CHECKSUM(grid, U, __LINE__, __FILE__, STGR=.true.)
 
       RETURN
       END SUBROUTINE FLTRUV
@@ -2239,7 +2236,7 @@ c**** Extract domain decomposition info
 C**** DKE (m^2/s^2) is saved from surf,dry conv,aturb and m.c
 
       CALL CHECKSUM(grid, DKE, __LINE__, __FILE__,STGR=.true.)
-      CALL HALO_UPDATE(grid, DKE, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, DKE, FROM=NORTH)
 
 !$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
       DO L=1,LM

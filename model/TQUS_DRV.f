@@ -629,9 +629,9 @@ c**** Scatter back "1D" arrays --latitude.  (fmom_j not needed).
 c     do nm=1,nmom
 c       call arrayscatter( grid, fmom_j(nm,:), fmom_j_glob(nm,:) )
 c     end do
-      call arrayscatter( grid, f_j(:),f_j_glob(:) )
+      call arrayscatter( grid, f_j,f_j_glob )
 
-      fqv(i,:) = fqv(i,:) + f_j(:)  !store tracer flux in fqv array
+      fqv(i,J_0:J_1) = fqv(i,J_0:J_1) + f_j(J_0:J_1)  !store tracer flux in fqv array
       if (HAVE_NORTH_POLE) fqv(i,jm) = 0.   ! play it safe
 c     sbfijl(i,:,l) = sbfijl(i,:,l)+f_j(:)
       enddo  ! end loop over longitudes

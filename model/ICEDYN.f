@@ -337,7 +337,7 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
-      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, CHECKSUM
+      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
       USE DOMAIN_DECOMP, ONLY : PACK_DATA, UNPACK_DATA, AM_I_ROOT
       IMPLICIT NONE
 
@@ -651,7 +651,6 @@ C**** for call to TRIDIAG.
 C**** Pack the distributed array VRT into the global array VRT_GLOB.
       CALL PACK_DATA(GRID,VRT,VRT_GLOB)
 C****DEGUB
-CCC      write(*,*)'call to tridiag in 1300 loop: i=',i,bv_glob(2,i) 
       IF (AM_I_ROOT())
      &  CALL TRIDIAG(AV_GLOB(2,I),BV_GLOB(2,I),CV_GLOB(2,I),VRT_GLOB(2),
      &               U_tmp_GLOB(2),NYPOLE-1)

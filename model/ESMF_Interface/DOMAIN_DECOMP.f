@@ -141,6 +141,7 @@
         MODULE PROCEDURE ARRAYSCATTER_J
         MODULE PROCEDURE ARRAYSCATTER_IJ
         MODULE PROCEDURE IARRAYSCATTER_IJ
+        MODULE PROCEDURE LARRAYSCATTER_IJ
       END INTERFACE   
 
 #ifdef USE_ESMF
@@ -149,11 +150,13 @@
         MODULE PROCEDURE ESMF_ARRAYGATHER_J_int
         MODULE PROCEDURE ESMF_ARRAYGATHER_IJ
         MODULE PROCEDURE IESMF_ARRAYGATHER_IJ
+        MODULE PROCEDURE LESMF_ARRAYGATHER_IJ
       END INTERFACE   
       INTERFACE ESMF_ARRAYSCATTER
         MODULE PROCEDURE ESMF_ARRAYSCATTER_J
         MODULE PROCEDURE ESMF_ARRAYSCATTER_IJ
         MODULE PROCEDURE IESMF_ARRAYSCATTER_IJ
+        MODULE PROCEDURE LESMF_ARRAYSCATTER_IJ
       END INTERFACE   
 #endif
 
@@ -162,6 +165,7 @@
         MODULE PROCEDURE ARRAYGATHER_J_INT
         MODULE PROCEDURE ARRAYGATHER_IJ
         MODULE PROCEDURE IARRAYGATHER_IJ
+        MODULE PROCEDURE LARRAYGATHER_IJ
       END INTERFACE   
 
       INTERFACE DREAD_PARALLEL
@@ -230,7 +234,10 @@
       interface PACK_DATA
          module procedure PACK_1D
          module procedure PACK_2D
+         module procedure LPACK_2D
          module procedure PACK_3D
+         module procedure IPACK_3D
+         module procedure PACK_4D
       end interface
 
 !@var UNPACK Generic routine to unpack into a distributed
@@ -239,7 +246,10 @@
       interface UNPACK_DATA
          module procedure UNPACK_1D
          module procedure UNPACK_2D
+         module procedure LUNPACK_2D
          module procedure UNPACK_3D
+         module procedure IUNPACK_3D
+         module procedure UNPACK_4D
       end interface
 
 !@var PACK_COLUMN Generic routine to pack  a global array
@@ -258,6 +268,7 @@
       interface UNPACK_COLUMN
          module procedure UNPACK_COLUMN_1D
          module procedure UNPACK_COLUMN_2D
+         module procedure IUNPACK_COLUMN_2D
          module procedure UNPACK_COLUMN_3D
       end interface
 
@@ -266,15 +277,35 @@
       PUBLIC :: PACK_BLOCK 
       interface PACK_BLOCK 
          module procedure IPACK_BLOCK_2D
+         module procedure  PACK_BLOCK_2D
+         module procedure  PACK_BLOCK_3D
       end interface
 
-!@var IUNPACK_BLOCK  Generic routine to unpack into a distributed
+!@var UNPACK_BLOCK  Generic routine to unpack into a distributed
 !@+   array the data from the corresponding global array.
-      PUBLIC :: IUNPACK_BLOCK 
-      interface IUNPACK_BLOCK 
+      PUBLIC :: UNPACK_BLOCK 
+      interface UNPACK_BLOCK 
          module procedure IUNPACK_BLOCK_2D
+         module procedure  UNPACK_BLOCK_2D
+         module procedure  UNPACK_BLOCK_3D
       end interface
 
+!@var PACK_J Generic routine to pack  a global array
+!@+   with the data from the corresponding distributed array.
+      PUBLIC :: PACK_J
+      interface PACK_J
+         module procedure PACK_J_2D
+         module procedure PACK_J_3D
+         module procedure PACK_J_4D
+      end interface
+!@var UNPACK Generic routine to unpack into a distributed
+!@+   array the data from the corresponding global array.
+      PUBLIC :: UNPACK_J
+      interface UNPACK_J
+         module procedure UNPACK_J_2D
+         module procedure UNPACK_J_3D
+         module procedure UNPACK_J_4D
+      end interface
 
 
       ! Direction bits
@@ -694,9 +725,9 @@
       End If
 
       t_arr(:,J_0:J_1) = arr(:,J_0:J_1)
-      Call GLOBALSUM(grd_dum,      t_arr, asum, istag=stgr_, iskip=skip_)
+      Call GLOBALSUM(grd_dum,      t_arr,asum, istag=stgr_,iskip=skip_)
       t_arr(:,J_0:J_1) = ABS(t_arr(:,J_0:J_1))
-      Call GLOBALSUM(grd_dum,      t_arr, L1norm, istag=stgr_, iskip=skip_)
+      Call GLOBALSUM(grd_dum,      t_arr,L1norm,istag=stgr_,iskip=skip_)
 
       If (AM_I_ROOT()) Write(unit_,'(a20,1x,i5,1x,2(e22.17,1x))') 
      &     file,line, asum, L1norm
@@ -883,10 +914,10 @@
       End If
 
       Do k = 1, Size(arr,1)
-        CALL GLOBALSUM(grd_dum,    arr(k,:,:,:),   asum(k,:),istag=stgr_,
-     &                 iskip=skip_)
-        CALL GLOBALSUM(grd_dum,Abs(arr(k,:,:,:)),L1norm(k,:),istag=stgr_,
-     &                 iskip=skip_)
+        CALL GLOBALSUM(grd_dum,    arr(k,:,:,:),   asum(k,:),
+     &        istag=stgr_, iskip=skip_)
+        CALL GLOBALSUM(grd_dum,Abs(arr(k,:,:,:)),L1norm(k,:),
+     &       istag=stgr_, iskip=skip_)
       End Do
 
       If (AM_I_ROOT()) Then
@@ -1129,7 +1160,7 @@
          If (all) Then
             Call MPI_BCAST(gsum,1,MPI_REAL8,root,
      &           MPI_COMM_WORLD, ier)
-            If (Present(hsum))             Call MPI_BCAST(hsum,2,MPI_REAL8,root,
+            If (Present(hsum))     Call MPI_BCAST(hsum,2,MPI_REAL8,root,
      &           MPI_COMM_WORLD, ier)
          End If
       End If
@@ -1328,8 +1359,8 @@
          If (all) Then
             Call MPI_BCAST(gsum,Size(gsum),MPI_REAL8,root,
      &           MPI_COMM_WORLD, ier)
-            If (Present(hsum))             Call MPI_BCAST(hsum,size(hsum),MPI_REAL8,root,
-     &           MPI_COMM_WORLD, ier)
+            If (Present(hsum)) Call MPI_BCAST(hsum,size(hsum),MPI_REAL8,
+     &           root, MPI_COMM_WORLD, ier)
          End If
       End If
 #endif
@@ -1436,7 +1467,9 @@ C****  convert from real*4 to real*8
 
 #ifdef USE_ESMF
       DO N=1,NM
-         call ESMF_ArrayScatter(GRID, AVAR(:,grd_dum%J_STRT:,N), AOUT(:,:,N))
+         call ESMF_ArrayScatter(GRID, 
+     &        AVAR(:,grd_dum%J_STRT:,N), 
+     &        AOUT(:,:,N))
       END DO
 #else
       AVAR=AOUT
@@ -1585,7 +1618,8 @@ C****  convert from real*4 to real*8
       EndIf
 
 #ifdef USE_ESMF
-      call ESMF_ArrayScatter(GRID, AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP), AOUT)
+      call ESMF_ArrayScatter(GRID, 
+     &   AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP), AOUT)
 #else
       AVAR=AOUT
 #endif
@@ -1630,8 +1664,6 @@ C****  convert from real*4 to real*8
       JM   = grd_dum%JM_WORLD
       NM   = size(AVAR,3)
 
-      CALL LOG_PARALLEL(grd_dum, __FILE__,__LINE__)
-
       If (AM_I_ROOT()) then
          DO N=1,IPOS-1
             READ (IUNIT,IOSTAT=IERR)
@@ -1645,11 +1677,8 @@ C****  convert from real*4 to real*8
 
 #ifdef USE_ESMF
       DO N=1,NM
-         CALL LOG_PARALLEL(grd_dum, __FILE__, __LINE__, i0 = N)
          call ESMF_ArrayScatter(GRID, 
      &        AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,N), AOUT(:,:,N))
-         CALL LOG_PARALLEL(grd_dum, __FILE__, __LINE__, i0 = N, i1 = Shape(AVAR),
-     &        x0 = SUM(AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,N)**2))
       END DO
 #else
       AVAR=AOUT
@@ -1699,6 +1728,8 @@ C****  convert from real*4 to real*8
       call ESMF_DELayoutGetDEID(layout, deId, rc=status)
       if (deId==root) then
         allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
+      else
+         allocate(var(0:0), stat=status)
       endif
       
       displs(0) = 0
@@ -1722,13 +1753,14 @@ C****  convert from real*4 to real*8
         endif
       enddo
       
-      call MPI_ScatterV(var, sendcounts, displs, 
-     &     MPI_DOUBLE_PRECISION, local_array, recvcount, 
-     &     MPI_DOUBLE_PRECISION, root, MPI_COMM_WORLD, status)
+      call MPI_ScatterV(
+     &       var, sendcounts, displs, MPI_DOUBLE_PRECISION,
+     &       local_array, recvcount,  MPI_DOUBLE_PRECISION,
+     &       root, MPI_COMM_WORLD, status)
       
-      if (deId == root) then
+c$$$      if (deId == root) then
         deallocate(VAR, stat=status)
-      endif
+c$$$      endif
       
       deallocate(sendcounts, displs, stat=status)
 #else
@@ -1805,6 +1837,76 @@ C****  convert from real*4 to real*8
 #endif
 
       end subroutine IESMF_ArrayScatter_IJ
+
+!-----------------------------------------------------------
+      subroutine LESMF_ArrayScatter_IJ(egrid, local_array, global_array)
+      logical      , dimension (:,:) :: local_array, global_array
+      type (ESMF_Grid)      :: egrid
+
+#ifdef USE_ESMF
+      type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
+      type (ESMF_DELayout)                          :: layout
+      integer, allocatable, dimension(:)            ::
+     &     sendcounts, displs
+      integer                                       :: nDEs
+      integer                                       :: status
+      integer                                       :: recvcount
+
+      integer                                       :: I, J, deId
+      integer                                       :: NX, NY
+      integer                                       :: I1, IN
+      integer                                       :: J1, JN
+
+
+      integer      , allocatable                    :: var(:)
+
+      call ESMF_GridGetAllAxisIndex(egrid, AI, rc=status)
+      call ESMF_GridGetDELayout(egrid, layout=layout, rc=status)
+
+
+      call ESMF_DELayoutGetNumDEs(layout, nDEs, rc=status)
+      allocate (sendcounts(nDEs), displs(0:nDEs), stat=status)
+
+      call ESMF_DELayoutGetDEID(layout, deId, rc=status)
+      if (deId==root) then
+        allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
+      endif
+
+      displs(0) = 0
+      do I = 1,nDEs
+        J = I - 1
+        I1 = AI(I,1)%min
+        IN = AI(I,1)%max
+        J1 = AI(I,2)%min
+        JN = AI(I,2)%max
+
+        sendcounts(I) = (IN - I1 + 1) * (JN - J1 + 1)
+        if (J == deId) then
+          recvcount = sendcounts(I)
+        endif
+        displs(I) = displs(J) + sendcounts(I)
+        if (deId == root) then
+
+          var(displs(J):displs(I)-1) =
+     &         RESHAPE(global_array(I1:IN,J1:JN),
+     &         shape=(/sendcounts(I)/))
+        endif
+      enddo
+
+      call MPI_ScatterV(var, sendcounts, displs,
+     &     MPI_LOGICAL         , local_array, recvcount,
+     &     MPI_LOGICAL         , root, MPI_COMM_WORLD, status)
+
+      if (deId == root) then
+        deallocate(VAR, stat=status)
+      endif
+
+      deallocate(sendcounts, displs, stat=status)
+#else
+      local_array=global_array
+#endif
+
+      end subroutine LESMF_ArrayScatter_IJ
 
 
 
@@ -2019,6 +2121,78 @@ C****  convert from real*4 to real*8
 
       end subroutine IEsmf_ArrayGather_IJ
 
+!--------------------------------
+      subroutine LEsmf_ArrayGather_IJ(grid, local_array, global_array)
+      type (ESMF_Grid)      :: grid
+      logical      , dimension (:,:) :: local_array, global_array
+
+      type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
+      type (ESMF_DELayout)                          :: layout
+      integer, allocatable, dimension(:)            ::
+     &     recvcounts, displs
+      integer                                       :: nDEs
+      integer                                       :: status
+      integer                                       :: sendcount
+
+      integer                                       :: I, J, deId
+      integer                                       :: NX, NY
+      integer                                       :: I1, IN
+      integer                                       :: J1, JN
+
+
+      integer      , allocatable                    :: var(:)
+
+
+      call ESMF_GridGetAllAxisIndex(grid, AI, rc=status)
+      call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
+
+
+      call ESMF_DELayoutGetNumDEs(layout, nDEs, rc=status)
+      allocate (recvcounts(nDEs), displs(0:nDEs), stat=status)
+
+      call ESMF_DELayoutGetDEID(layout, deId, rc=status)
+      allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
+
+      displs(0) = 0
+      do I = 1,nDEs
+        J = I - 1
+        I1 = AI(I,1)%min
+        IN = AI(I,1)%max
+        J1 = AI(I,2)%min
+        JN = AI(I,2)%max
+
+        recvcounts(I) = (IN - I1 + 1) * (JN - J1 + 1)
+        if (J == deId) then
+          sendcount = recvcounts(I)
+        endif
+        displs(I) = displs(J) + recvcounts(I)
+      enddo
+
+
+      call MPI_GatherV(local_array, sendcount, MPI_LOGICAL         ,
+     &     var, recvcounts, displs,
+     &     MPI_LOGICAL         , root, MPI_COMM_WORLD, status)
+
+      if (deId == root) then
+        do I = 1,nDEs
+          J = I - 1
+          I1 = AI(I,1)%min
+          IN = AI(I,1)%max
+          J1 = AI(I,2)%min
+          JN = AI(I,2)%max
+
+          global_array(I1:IN,J1:JN) =
+     &         RESHAPE(var(displs(J):displs(I)-1),
+     &         shape=(/size(local_array,1),
+     &         size(local_array,2)/))
+        enddo
+      endif
+
+      deallocate(VAR, stat=status)
+      deallocate(recvcounts, displs, stat=status)
+
+      end subroutine LEsmf_ArrayGather_IJ
+!------------------------------------------------------------
 
 
 
@@ -2204,6 +2378,24 @@ C****  convert from real*4 to real*8
 
 !---------------------------
 
+      subroutine LArrayGather_IJ(grd_dum, local_array, global_array)
+      type (DIST_GRID)      :: grd_dum
+      logical, dimension (:,grd_dum%J_STRT_HALO:) :: local_array
+      logical, dimension (:,:)               :: global_array
+
+#ifdef USE_ESMF
+      call Esmf_ArrayGather_IJ(grd_dum%ESMF_GRID,
+     &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
+     &     global_array)
+#else
+      global_array = local_array
+#endif
+
+      end subroutine LArrayGather_IJ
+
+!---------------------------
+
+
       subroutine IArrayGather_IJ(grd_dum, local_array, global_array)
       type (DIST_GRID)      :: grd_dum
       integer, dimension (:,grd_dum%J_STRT_HALO:) :: local_array
@@ -2271,6 +2463,24 @@ C****  convert from real*4 to real*8
 #endif
 
       end subroutine IArrayScatter_IJ
+
+!---------------------------
+
+      subroutine LArrayScatter_IJ(grd_dum, local_array, global_array)
+      type (DIST_GRID)      :: grd_dum
+      logical, dimension (:,grd_dum%J_STRT_HALO:) :: local_array
+      logical, dimension (:,:)               :: global_array
+
+#ifdef USE_ESMF
+      call LEsmf_ArrayScatter_IJ(grd_dum%ESMF_GRID,
+     &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
+     & global_array)
+#else
+      local_array = global_array
+#endif
+
+      end subroutine LArrayScatter_IJ
+
 
     !---------------------------
 #ifdef USE_ESMF
@@ -2546,7 +2756,8 @@ c)
 #ifdef USE_ESMF
     !    call ESMF_DELayoutBcast(layout, data, 1, root, rc=status)
     ! Fortran interface takes only 1d real arrays - call C wrapper directly    
-        call c_ESMC_DELayoutBcast(layout, data, 1, root, ESMF_KIND_I4, status)
+        call c_ESMC_DELayoutBcast(layout, data, 1, root, ESMF_KIND_I4, 
+     &         status)
 #endif
     
         return
@@ -3263,7 +3474,8 @@ c)
 
 !       Fill NORTHERN ghost region
 
-      IF(FILL(NORTH) .OR. FILL(SOUTH)) THEN
+      IF(FILL(NORTH) .OR.
+     &  FILL(SOUTH)) THEN
         LAST = SIZE(A,1)-1 
         LEN2 = 1
         STR = LEN2*SIZE(A,1)
@@ -3344,7 +3556,8 @@ c)
 
 !       Fill NORTHERN ghost region
 
-      IF(FILL(NORTH) .OR. FILL(SOUTH)) THEN
+      IF(FILL(NORTH) .OR.
+     &  FILL(SOUTH)) THEN
         LAST = SIZE(A,2)-1 
         LEN2 = SIZE(A,1)
         STR = LEN2*SIZE(A,2)
@@ -3471,7 +3684,8 @@ c$$$      ENDIF
 
 !       Fill NORTHERN ghost region
 
-      IF(FILL(NORTH) .OR. FILL(SOUTH)) THEN
+      IF(FILL(NORTH) .OR.
+     &  FILL(SOUTH)) THEN
         LAST = SIZE(A,3)-1 
         LEN2 = SIZE(A,1)*SIZE(A,2)
         STR = LEN2*SIZE(A,1)*SIZE(A,2)
@@ -3806,6 +4020,19 @@ c$$$      ENDIF
       RETURN
       END SUBROUTINE PACK_2D
 
+      SUBROUTINE LPACK_2D(grd_dum,ARR,ARR_GLOB)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      LOGICAL, INTENT(IN) ::
+     &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+      LOGICAL, INTENT(INOUT) :: ARR_GLOB(:,:)
+
+      CALL ARRAYGATHER(grd_dum,ARR,ARR_GLOB)
+
+      RETURN
+      END SUBROUTINE LPACK_2D
+
 
       SUBROUTINE PACK_3D(grd_dum,ARR,ARR_GLOB)
       IMPLICIT NONE
@@ -3823,6 +4050,43 @@ c$$$      ENDIF
       RETURN
       END SUBROUTINE PACK_3D
 
+
+
+      SUBROUTINE IPACK_3D(grd_dum,ARR,ARR_GLOB)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      INTEGER, INTENT(IN) ::
+     &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
+      INTEGER, INTENT(OUT) :: ARR_GLOB(:,:,:)
+      INTEGER :: l
+
+      do l=1,size(arr_glob,3)
+       CALL ARRAYGATHER(grd_dum,ARR(:,:,l),ARR_GLOB(:,:,l))
+      end do
+
+      RETURN
+      END SUBROUTINE IPACK_3D
+
+
+
+      SUBROUTINE PACK_4D(grd_dum,ARR,ARR_GLOB)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8, INTENT(IN) ::
+     &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:,:)
+      REAL*8, INTENT(OUT) :: ARR_GLOB(:,:,:,:)
+      INTEGER :: l,m
+
+      do m=1,size(arr_glob,4)
+        do l=1,size(arr_glob,3)
+          CALL ARRAYGATHER(grd_dum,ARR(:,:,l,m),ARR_GLOB(:,:,l,m))
+        end do
+      end do
+
+      RETURN
+      END SUBROUTINE PACK_4D
 
       SUBROUTINE UNPACK_1D(grd_dum,ARR_GLOB,ARR,local)
       IMPLICIT NONE
@@ -3875,6 +4139,31 @@ c$$$      ENDIF
       RETURN 
       END SUBROUTINE UNPACK_2D
 
+      SUBROUTINE LUNPACK_2D(grd_dum,ARR_GLOB,ARR,local)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      LOGICAL, INTENT(IN) :: ARR_GLOB(:,:)
+      LOGICAL, INTENT(OUT) ::
+     &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+      INTEGER :: J_0H, J_1H
+      LOGICAL, OPTIONAL :: local
+
+      if (present(local)) then
+        if (local) then
+          J_0H=grd_dum%j_strt_halo
+          J_1H=grd_dum%j_stop_halo
+          ARR(:,J_0H:J_1H)=ARR_GLOB(:,J_0H:J_1H)
+        else
+          call arrayscatter(grd_dum, arr, arr_glob)
+        end if
+      else
+        call arrayscatter(grd_dum, arr, arr_glob)
+      end if
+
+      RETURN
+      END SUBROUTINE LUNPACK_2D
+
       SUBROUTINE UNPACK_3D(grd_dum,ARR_GLOB,ARR,local)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
@@ -3903,6 +4192,69 @@ c$$$      ENDIF
 
       RETURN
       END SUBROUTINE UNPACK_3D
+
+
+      SUBROUTINE IUNPACK_3D(grd_dum,ARR_GLOB,ARR,local)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      INTEGER, INTENT(IN) :: ARR_GLOB(:,:,:)
+      INTEGER, INTENT(OUT) ::
+     &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
+      INTEGER :: J_0H, J_1H, L
+      LOGICAL, OPTIONAL :: local
+
+      if (present(local)) then
+        if (local) then
+          J_0H=grd_dum%j_strt_halo
+          J_1H=grd_dum%j_stop_halo
+          ARR(:,J_0H:J_1H,:)=ARR_GLOB(:,J_0H:J_1H,:)
+        else
+          do l=1,size(arr,3)
+            call arrayscatter(grd_dum, arr(:,:,l), arr_glob(:,:,l))
+          end do
+        end if
+      else
+        do l=1,size(arr,3)
+          call arrayscatter(grd_dum, arr(:,:,l), arr_glob(:,:,l))
+        end do
+      end if
+
+      RETURN
+      END SUBROUTINE IUNPACK_3D
+
+      SUBROUTINE UNPACK_4D(grd_dum,ARR_GLOB,ARR,local)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8, INTENT(IN) :: ARR_GLOB(:,:,:,:)
+      REAL*8, INTENT(OUT) ::
+     &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:,:)
+      INTEGER :: J_0H, J_1H, L,M
+      LOGICAL, OPTIONAL :: local
+
+      if (present(local)) then
+        if (local) then
+          J_0H=grd_dum%j_strt_halo
+          J_1H=grd_dum%j_stop_halo
+          ARR(:,J_0H:J_1H,:,:)=ARR_GLOB(:,J_0H:J_1H,:,:)
+        else
+          do m=1,size(arr,4)
+            do l=1,size(arr,3)
+              call arrayscatter(grd_dum,arr(:,:,l,m), arr_glob(:,:,l,m))
+            end do
+          end do
+        end if
+      else
+        do m=1,size(arr,4)
+          do l=1,size(arr,3)
+            call arrayscatter(grd_dum, arr(:,:,l,m), arr_glob(:,:,l,m))
+          end do
+        end do
+      end if
+
+      RETURN
+      END SUBROUTINE UNPACK_4D
 
 C*** Overloaded PACK_COLUMN routines:
 C------------------------------------
@@ -4036,6 +4388,35 @@ C--------------------------------------
       RETURN 
       END SUBROUTINE UNPACK_COLUMN_2D
 
+      SUBROUTINE IUNPACK_COLUMN_2D(grd_dum,ARR_GLOB,ARR,local)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      INTEGER, INTENT(IN) :: ARR_GLOB(:,:,:)
+      INTEGER, INTENT(OUT) ::
+     &        ARR(:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+      INTEGER :: J_0H, J_1H, K
+      LOGICAL, OPTIONAL :: local
+
+      if (present(local)) then
+        if (local) then
+          J_0H=grd_dum%j_strt_halo
+          J_1H=grd_dum%j_stop_halo
+          ARR(:,:,J_0H:J_1H)=ARR_GLOB(:,:,J_0H:J_1H)
+        else
+          do k=1,size(arr,1)
+            call arrayscatter(grd_dum, arr(k,:,:), arr_glob(k,:,:))
+          end do
+        end if
+      else
+        do k=1,size(arr,1)
+          call arrayscatter(grd_dum, arr(k,:,:), arr_glob(k,:,:))
+        end do
+      end if
+
+      RETURN
+      END SUBROUTINE IUNPACK_COLUMN_2D
+
       SUBROUTINE UNPACK_COLUMN_3D(grd_dum,ARR_GLOB,ARR,local)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
@@ -4088,6 +4469,45 @@ C--------------------------------------
       RETURN
       END SUBROUTINE IPACK_BLOCK_2D
 
+      SUBROUTINE PACK_BLOCK_2D(grd_dum,ARR,ARR_GLOB)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8 , INTENT(IN) ::
+     &        ARR(:,:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+      REAL*8 , INTENT(INOUT) :: ARR_GLOB(:,:,:,:)
+      INTEGER :: K,L
+
+      DO K=1,SIZE(ARR,1)
+        DO L=1,SIZE(ARR,2)
+          CALL ARRAYGATHER(grd_dum,ARR(K,L,:,:),ARR_GLOB(K,L,:,:))
+        END DO
+      END DO
+
+      RETURN
+      END SUBROUTINE PACK_BLOCK_2D
+
+
+      SUBROUTINE PACK_BLOCK_3D(grd_dum,ARR,ARR_GLOB)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8 , INTENT(IN) ::
+     &        ARR(:,:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
+      REAL*8 , INTENT(INOUT) :: ARR_GLOB(:,:,:,:,:)
+      INTEGER :: K,L,M
+
+      DO M=1,SIZE(ARR,5) 
+        DO L=1,SIZE(ARR,2)
+          DO K=1,SIZE(ARR,1)
+            CALL ARRAYGATHER(grd_dum,ARR(K,L,:,:,M),ARR_GLOB(K,L,:,:,M))
+          END DO
+        END DO
+      END DO
+
+      RETURN
+      END SUBROUTINE PACK_BLOCK_3D
+
 
       SUBROUTINE IUNPACK_BLOCK_2D(grd_dum,ARR_GLOB,ARR,local)
       IMPLICIT NONE
@@ -4119,6 +4539,238 @@ C--------------------------------------
         end do
       end if
       END SUBROUTINE IUNPACK_BLOCK_2D
+
+      SUBROUTINE UNPACK_BLOCK_2D(grd_dum,ARR_GLOB,ARR,local)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8 , INTENT(IN) :: ARR_GLOB(:,:,:,:)
+      REAL*8 , INTENT(OUT) ::
+     &        ARR(:,:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+      INTEGER :: J_0H, J_1H, K, L
+      LOGICAL, OPTIONAL :: local
+
+      if (present(local)) then
+        if (local) then
+          J_0H=grd_dum%j_strt_halo
+          J_1H=grd_dum%j_stop_halo
+          ARR(:,:,:,J_0H:J_1H)=ARR_GLOB(:,:,:,J_0H:J_1H)
+        else
+          do k=1,size(arr,1)
+            do l=1,size(arr,2)
+              call arrayscatter(grd_dum,arr(k,l,:,:),arr_glob(k,l,:,:))
+            end do
+          end do
+        end if
+      else
+        do k=1,size(arr,1)
+          do l=1,size(arr,2)
+            call arrayscatter(grd_dum, arr(k,l,:,:), arr_glob(k,l,:,:))
+          end do
+        end do
+      end if
+      END SUBROUTINE UNPACK_BLOCK_2D
+
+      SUBROUTINE UNPACK_BLOCK_3D(grd_dum,ARR_GLOB,ARR,local)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8 , INTENT(IN) :: ARR_GLOB(:,:,:,:,:)
+      REAL*8 , INTENT(OUT) ::
+     &        ARR(:,:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
+      INTEGER :: J_0H, J_1H, K, L, M
+      LOGICAL, OPTIONAL :: local
+
+      if (present(local)) then
+        if (local) then
+          J_0H=grd_dum%j_strt_halo
+          J_1H=grd_dum%j_stop_halo
+          ARR(:,:,:,J_0H:J_1H,:)=ARR_GLOB(:,:,:,J_0H:J_1H,:)
+        else
+          do m=1,size(arr,5)
+            do l=1,size(arr,2)
+              do k=1,size(arr,1)
+                call arrayscatter(grd_dum,arr(k,l,:,:,m)
+     &                              ,arr_glob(k,l,:,:,m))
+              end do
+            end do
+          end do
+        end if
+      else
+        do m=1,size(arr,5)
+          do l=1,size(arr,2)
+            do k=1,size(arr,1)
+              call arrayscatter(grd_dum, arr(k,l,:,:,m)
+     &                            , arr_glob(k,l,:,:,m))
+            end do
+          end do
+        end do
+      end if
+      END SUBROUTINE UNPACK_BLOCK_3D
+
+
+C*** Overloaded PACK_J routines:
+C-------------------------------
+      SUBROUTINE PACK_J_2D(grd_dum,ARR,ARR_GLOB)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8, INTENT(IN) ::
+     &        ARR(grd_dum%j_strt_halo:,:)
+      REAL*8, INTENT(OUT) :: ARR_GLOB(:,:)
+      integer :: K
+
+      DO K=1,SIZE(ARR,2)
+       CALL ARRAYGATHER(grd_dum,ARR(:,k),ARR_GLOB(:,k) )
+      END DO
+
+      RETURN
+      END SUBROUTINE PACK_J_2D
+
+
+      SUBROUTINE PACK_J_3D(grd_dum,ARR,ARR_GLOB)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8, INTENT(IN) ::
+     &        ARR(grd_dum%j_strt_halo:,:,:)
+      REAL*8, INTENT(INOUT) :: ARR_GLOB(:,:,:)
+      INTEGER :: K,L
+
+      DO L=1,SIZE(ARR,3)
+        DO K=1,SIZE(ARR,2)
+          CALL ARRAYGATHER(grd_dum,ARR(:,K,L),ARR_GLOB(:,K,L))
+        END DO
+      END DO
+
+      RETURN
+      END SUBROUTINE PACK_J_3D
+
+      SUBROUTINE PACK_J_4D(grd_dum,ARR,ARR_GLOB)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8, INTENT(IN) ::
+     &        ARR(grd_dum%j_strt_halo:,:,:,:)
+      REAL*8, INTENT(INOUT) :: ARR_GLOB(:,:,:,:)
+      INTEGER :: K,L,M
+
+      DO M=1,SIZE(ARR,4)
+        DO L=1,SIZE(ARR,3)
+          DO K=1,SIZE(ARR,2)
+            CALL ARRAYGATHER( grd_dum,ARR(:,K,L,M), ARR_GLOB(:,K,L,M) )
+          END DO
+        END DO
+      END DO
+
+      RETURN
+      END SUBROUTINE PACK_J_4D
+
+
+C*** Overloaded UNPACK_J routines:
+C--------------------------------
+      SUBROUTINE UNPACK_J_2D(grd_dum,ARR_GLOB,ARR,local)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8, INTENT(IN) :: ARR_GLOB(:,:)
+      REAL*8, INTENT(OUT) ::
+     &        ARR(grd_dum%j_strt_halo:,:)
+      INTEGER :: J_0H, J_1H, K
+      LOGICAL, OPTIONAL :: local
+
+      if (present(local)) then
+        if (local) then
+          J_0H=grd_dum%j_strt_halo
+          J_1H=grd_dum%j_stop_halo
+          ARR(J_0H:J_1H,:)=ARR_GLOB(J_0H:J_1H,:)
+        else
+          do k=1,size(arr,2)
+            call arrayscatter(grd_dum, arr(:,k), arr_glob(:,k))
+          end do
+        end if
+      else
+        do k=1,size(arr,2)
+          call arrayscatter(grd_dum, arr(:,k), arr_glob(:,k))
+        end do
+      end if
+
+      RETURN
+      END SUBROUTINE UNPACK_J_2D
+
+
+      SUBROUTINE UNPACK_J_3D(grd_dum,ARR_GLOB,ARR,local)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8, INTENT(IN) :: ARR_GLOB(:,:,:)
+      REAL*8, INTENT(OUT) ::
+     &        ARR(grd_dum%j_strt_halo:,:,:)
+      INTEGER :: J_0H, J_1H, K,L
+      LOGICAL, OPTIONAL :: local
+
+      if (present(local)) then
+        if (local) then
+          J_0H=grd_dum%j_strt_halo
+          J_1H=grd_dum%j_stop_halo
+          ARR(J_0H:J_1H,:,:)=ARR_GLOB(J_0H:J_1H,:,:)
+        else
+          do l=1,size(arr,3)
+            do k=1,size(arr,2)
+              call arrayscatter(grd_dum, arr(:,k,l), arr_glob(:,k,l))
+            end do
+          end do
+        end if
+      else
+          do l=1,size(arr,3)
+            do k=1,size(arr,2)
+              call arrayscatter(grd_dum, arr(:,k,l), arr_glob(:,k,l))
+            end do
+          end do
+      end if
+
+      RETURN
+      END SUBROUTINE UNPACK_J_3D
+
+
+      SUBROUTINE UNPACK_J_4D(grd_dum,ARR_GLOB,ARR,local)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8, INTENT(IN) :: ARR_GLOB(:,:,:,:)
+      REAL*8, INTENT(OUT) ::
+     &        ARR(grd_dum%j_strt_halo:,:,:,:)
+      INTEGER :: J_0H, J_1H, K, L, M
+      LOGICAL, OPTIONAL :: local
+
+      if (present(local)) then
+        if (local) then
+          J_0H=grd_dum%j_strt_halo
+          J_1H=grd_dum%j_stop_halo
+          ARR(J_0H:J_1H,:,:,:)=ARR_GLOB(J_0H:J_1H,:,:,:)
+        else
+          do m=1,size(arr,4)
+            do l=1,size(arr,3)
+              do k=1,size(arr,2)
+                call arrayscatter( grd_dum, arr(:,k,l,m),
+     &                                 arr_glob(:,k,l,m) )
+              end do
+            end do
+          end do
+        end if
+      else
+        do m=1,size(arr,4)
+          do l=1,size(arr,3)
+            do k=1,size(arr,2)
+              call arrayscatter( grd_dum, arr(:,k,l,m),
+     &                               arr_glob(:,k,l,m) )
+            end do
+          end do
+        end do
+      end if
+
+      RETURN
+      END SUBROUTINE UNPACK_J_4D
 
 
       END MODULE DOMAIN_DECOMP

@@ -180,7 +180,10 @@ C**** Local variables initialised in init_RAD
      *         ,lhead,Kradia,irsficnt,irsficno
       USE RADNCB
       USE PARAM
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, UNPACK_COLUMN, PACK_COLUMN
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP, ONLY : UNPACK_COLUMN, PACK_COLUMN
+      USE DOMAIN_DECOMP, ONLY : UNPACK_BLOCK , PACK_BLOCK 
+      USE DOMAIN_DECOMP, ONLY : UNPACK_DATA  , PACK_DATA  
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -192,9 +195,15 @@ C**** Local variables initialised in init_RAD
 !@var HEADER_F Character string label for records (forcing runs)
       CHARACTER*80 :: HEADER_F, MODULE_HEADER_F = "RADF"
 
-      REAL*8 ::Tchg_glob(LM+LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
-      REAL*8 ::RQT_glob(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
-      INTEGER ::kliq_glob(LM,4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8 :: Tchg_glob(LM+LM_REQ,IM,JM)
+      REAL*8 :: RQT_glob(LM_REQ,IM,JM)
+      INTEGER :: kliq_glob(LM,4,IM,JM)
+      REAL*8, DIMENSION(0:LM,IM,JM) :: SRHR_GLOB, TRHR_GLOB
+      REAL*8  :: FSF_GLOB(4,IM,JM)
+      REAL*8, DIMENSION(IM, JM) :: FSRDIR_GLOB, SRVISSURF_GLOB,
+     &           SRDN_GLOB, CFRAC_GLOB, SALB_GLOB
+      REAL*8, DIMENSION(LM, IM, JM) :: RCLD_GLOB, O3_rad_save_GLOB,
+     &           O3_tracer_save_GLOB
       INTEGER :: J_0,J_1
       INTEGER :: k
 
@@ -206,22 +215,19 @@ C**** Local variables initialised in init_RAD
         SELECT CASE (IACTION)
         CASE (:IOWRITE)            ! output to standard restart file
           CALL PACK_COLUMN(grid, Tchg, Tchg_glob)
-          ! Next line intentionally broken - need to create interface
-          ! for pack on integers
-          DO k = 1, 4
-            Call PACK_COLUMN(grid, kliq(:,k,:,:), kliq_glob(:,k,:,:))
-          END DO
-          WRITE (kunit,err=10) MODULE_HEADER_F,Tchg_glob,kliq_glob
+          Call PACK_BLOCK( grid, kliq, kliq_glob)
+          IF (AM_I_ROOT())
+     &       WRITE (kunit,err=10) MODULE_HEADER_F,Tchg_glob,kliq_glob
         CASE (IOREAD:)
           SELECT CASE  (IACTION)
           CASE (ioread,irerun,ioread_single)  ! input for restart
             READ (kunit,err=10) HEADER_F,Tchg_glob,kliq_glob
-            CALL UNPACK_COLUMN(grid, Tchg_glob, Tchg)
-            kliq(:,:,:,J_0:J_1) = kliq_glob(:,:,:,J_0:J_1)
+            CALL UNPACK_COLUMN(grid, Tchg_glob, Tchg, local=.true.)
+            CALL UNPACK_BLOCK( grid, kliq_glob, kliq, local=.true.)
           CASE (IRSFIC)  ! only way to start frc. runs
             READ (kunit,err=10) HEADER,RQT_glob,kliq_glob ; Tchg = 0.
-            CALL UNPACK_COLUMN(grid, RQT_glob, RQT)
-            kliq(:,:,:,J_0:J_1) = kliq_glob(:,:,:,J_0:J_1)
+            CALL UNPACK_COLUMN(grid, RQT_glob, RQT, local=.true.)
+            CALL UNPACK_BLOCK( grid, kliq_glob, kliq, local=.true.)
             call sync_param( "Ikliq", Ikliq )
             if(Ikliq.eq.1) kliq=1  ! hysteresis init: equilibrium
             if(Ikliq.eq.0) kliq=0  ! hysteresis init: dry
@@ -234,23 +240,64 @@ C**** Local variables initialised in init_RAD
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,RQT,KLIQ
+        CALL PACK_COLUMN(grid,  RQT,  RQT_glob)
+        Call PACK_BLOCK( grid, kliq, kliq_glob)
+        CALL PACK_COLUMN(grid, SRHR, SRHR_GLOB)
+        CALL PACK_COLUMN(grid, TRHR, TRHR_GLOB)
+        CALL PACK_COLUMN(grid,  FSF,  FSF_GLOB)
+
+        CALL PACK_DATA( grid, SALB     , SALB_GLOB)
+        CALL PACK_DATA( grid, FSRDIR   , FSRDIR_GLOB)
+        CALL PACK_DATA( grid, SRVISSURF, SRVISSURF_GLOB)
+        CALL PACK_DATA( grid, SRDN     ,   SRDN_GLOB)
+        CALL PACK_DATA( grid, CFRAC    ,  CFRAC_GLOB)
+
+        CALL PACK_COLUMN(grid, RCLD          , RCLD_GLOB)
+        CALL PACK_COLUMN(grid, O3_rad_save   , O3_rad_save_GLOB)
+        CALL PACK_COLUMN(grid, O3_tracer_save, O3_tracer_save_GLOB)
+
+        IF (AM_I_ROOT())
+     *     WRITE (kunit,err=10) MODULE_HEADER,RQT_GLOB,KLIQ_GLOB
   ! rest needed only if MODRAD>0 at restart
-     *    ,S0,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,SALB,SRDN,CFRAC,RCLD
-     *    ,O3_rad_save,O3_tracer_save
+     *      ,S0,  SRHR_GLOB, TRHR_GLOB, FSF_GLOB , FSRDIR_GLOB
+     *      ,SRVISSURF_GLOB, SALB_GLOB, SRDN_GLOB, CFRAC_GLOB,RCLD_GLOB
+     *      ,O3_rad_save_GLOB,O3_tracer_save_GLOB
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
         CASE (ioread,IRERUN)  ! input for restart, rerun or extension
-          READ (kunit,err=10) HEADER,RQT,KLIQ
+          READ (kunit,err=10) HEADER,RQT_glob,KLIQ_glob
   ! rest needed only if MODRAD>0 at restart
-     *       ,S0,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,SALB,SRDN,CFRAC,RCLD
-     *       ,O3_rad_save,O3_tracer_save
+  ! rest needed only if MODRAD>0 at restart
+     *      ,S0,  SRHR_GLOB, TRHR_GLOB, FSF_GLOB , FSRDIR_GLOB
+     *      ,SRVISSURF_GLOB, SALB_GLOB, SRDN_GLOB, CFRAC_GLOB,RCLD_GLOB
+     *      ,O3_rad_save_GLOB,O3_tracer_save_GLOB
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
           END IF
+
+          CALL UNPACK_COLUMN(grid,  RQT_glob,  RQT)
+          Call UNPACK_BLOCK( grid, kliq_glob, kliq)
+          CALL UNPACK_COLUMN(grid, SRHR_glob, SRHR)
+          CALL UNPACK_COLUMN(grid, TRHR_glob, TRHR)
+          CALL UNPACK_COLUMN(grid,  FSF_glob,  FSF)
+  
+          CALL UNPACK_DATA( grid, SALB_glob     , SALB)
+          CALL UNPACK_DATA( grid, FSRDIR_glob   , FSRDIR)
+          CALL UNPACK_DATA( grid, SRVISSURF_glob, SRVISSURF)
+          CALL UNPACK_DATA( grid, SRDN_glob     ,   SRDN)
+          CALL UNPACK_DATA( grid, CFRAC_glob    ,  CFRAC)
+  
+          CALL UNPACK_COLUMN(grid, RCLD_glob          , RCLD_GLOB)
+          CALL UNPACK_COLUMN(grid, O3_rad_save_glob   ,O3_rad_save_GLOB)
+          CALL UNPACK_COLUMN(grid, O3_tracer_save_glob,
+     &         O3_tracer_save_GLOB)
+
+
         CASE (IRSFIC,irsficnt,IRSFICNO)  ! restart file of prev. run
-          READ (kunit,err=10) HEADER,RQT,KLIQ
+          READ (kunit,err=10) HEADER,RQT_glob,KLIQ_glob
+          CALL UNPACK_COLUMN(grid,  RQT_glob,  RQT)
+          Call UNPACK_BLOCK( grid, kliq_glob, kliq)
           call sync_param( "Ikliq", Ikliq )
           if(Ikliq.eq.1) kliq=1  ! hysteresis init: equilibrium
           if(Ikliq.eq.0) kliq=0  ! hysteresis init: dry

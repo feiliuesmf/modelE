@@ -150,22 +150,16 @@ CW   *     WRITE (*,*) 'STB < .001 AT J,L,STB:',J,L,STB(J,L)
       END DO
       STB(:,1)  = 1d-2
 
-      Call CHECKSUM(grid, DXV  , __LINE__, __FILE__)
       Call CHECKSUM(grid, VI   , __LINE__, __FILE__)
       Call CHECKSUM(grid, UI   , __LINE__, __FILE__)
       Call CHECKSUM(grid, WI   , __LINE__, __FILE__)
       Call CHECKSUM(grid, U    , __LINE__, __FILE__)
       Call CHECKSUM(grid, V    , __LINE__, __FILE__)
-      Call CHECKSUM(grid, RAPVN, __LINE__, __FILE__)
-      Call CHECKSUM(grid, FCOR , __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, DXV  , from = NORTH)
       CALL HALO_UPDATE(grid, VI   , from = NORTH)
       CALL HALO_UPDATE(grid, UI   , from = NORTH)
       CALL HALO_UPDATE(grid, WI   , from = SOUTH)
       CALL HALO_UPDATE(grid, U    , from = NORTH)
       CALL HALO_UPDATE(grid, V    , from = NORTH)
-      CALL HALO_UPDATE(grid, RAPVN, from = SOUTH)
-      CALL HALO_UPDATE(grid, FCOR , from = SOUTH)
 
 C****
 C**** CORRELATIONS OF VARIOUS QUANTITIES
@@ -241,11 +235,14 @@ C****
 C**** COR(J,L) .......... CORIOLIS FORCE
 C****                        (m3 s-2)
       DO L=1,LM
-        IF (HAVE_SOUTH_POLE) 
-     *      COR( 2,L)=.5*(2.*FCOR( 1)+FCOR(   2))*VI(2,L)
+        IF (HAVE_SOUTH_POLE) THEN
+            COR( 2,L)=.5*(2.*FCOR( 1)+FCOR(   2))*VI(2,L)
+        ELSE
+            COR(J_0S,L)=.5*(FCOR(J_0)+FCOR(J_0S))*VI(J_0S,L)
+        END IF
         IF (HAVE_NORTH_POLE) 
      *      COR(JM,L)=.5*(2.*FCOR(JM)+FCOR(JM-1))*VI(JM,L)
-        DO J=3,JM-1
+        DO J=J_0S+1,JM-1
           COR(J,L)=.5*(FCOR(J-1)+FCOR(J))*VI(J,L)
         END DO
       END DO
@@ -408,10 +405,8 @@ C****
 
       CALL CHECKSUM(grid, VR  , __LINE__, __FILE__)
       CALL CHECKSUM(grid, WR  , __LINE__, __FILE__)
-      CALL CHECKSUM(grid, COSV, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, VR  , from = NORTH)
       CALL HALO_UPDATE(grid, WR  , from = SOUTH)
-      CALL HALO_UPDATE(grid, COSV, from = NORTH)
 
 C****
 C**** TRANSFORMED MEAN FLUXES
@@ -433,11 +428,14 @@ C****
       END DO
       END DO
       DO L=1,LM
-        IF (HAVE_SOUTH_POLE) 
-     *      CORR( 2,L)=.5*(2.*FCOR( 1)+FCOR(   2))*VR(2,L)
+        IF (HAVE_SOUTH_POLE) THEN 
+            CORR( 2,L)=.5*(2.*FCOR( 1)+FCOR(   2))*VR(2,L) 
+        ELSE
+            CORR(J_0S,L)=.5*(FCOR(J_0)+FCOR(J_0S))*VR(J_0S,L)
+        END IF
         IF (HAVE_NORTH_POLE) 
      *      CORR(JM,L)=.5*(2.*FCOR(JM)+FCOR(JM-1))*VR(JM,L)
-        DO J=3,JM-1
+        DO J=J_0S+1,J_1S
           CORR(J,L)=.5*(FCOR(J-1)+FCOR(J))*VR(J,L)
         END DO
       END DO
@@ -735,12 +733,10 @@ C****
       Call CHECKSUM(grid, FEY  , __LINE__, __FILE__)
       Call CHECKSUM(grid, FMYR , __LINE__, __FILE__)
       Call CHECKSUM(grid, FEYR , __LINE__, __FILE__)
-      Call CHECKSUM(grid, COSP , __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, FMY  , from = SOUTH)
       CALL HALO_UPDATE(grid, FEY  , from = SOUTH)
       CALL HALO_UPDATE(grid, FMYR , from = SOUTH)
       CALL HALO_UPDATE(grid, FEYR , from = SOUTH)
-      CALL HALO_UPDATE(grid, COSP , from = SOUTH)
 
       DO L=1,LM
       DO J=J_0STG,J_1STG

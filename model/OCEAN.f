@@ -65,7 +65,6 @@ C     *     ,CRSI,KRSI
 
 !@var iu_OSST,iu_SICE,iu_OCNML unit numbers for climatologies
       INTEGER iu_OSST,iu_SICE,iu_OCNML
-      LOGICAL :: HAVE_NORTH_POLE
 
       CONTAINS
 

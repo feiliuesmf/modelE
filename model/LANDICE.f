@@ -271,8 +271,8 @@ C**** CALCULATE TG2
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
       USE DOMAIN_DECOMP, only : grid, ARRAYGATHER, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : PACK_DATA, UNPACK_DATA, PACK_COLUMN, 
-     &                          UNPACK_COLUMN
+      USE DOMAIN_DECOMP, only : PACK_DATA, UNPACK_DATA, PACK_COLUMN
+      USE DOMAIN_DECOMP, only : UNPACK_COLUMN
       USE LANDICE_COM
       IMPLICIT NONE
 
@@ -340,8 +340,9 @@ C****** Load data into distributed arrays
             GO TO 10
           END IF
 C********* Load data into distributed arrays
-          CALL UNPACK_COLUMN(GRID, TRSNOWLI_GLOB,TRSNOWLI,local=.true.)
-          CALL UNPACK_COLUMN(GRID, TRLNDI_GLOB,  TRLNDI,local=.true.  )
+          CALL UNPACK_COLUMN(GRID, TRSNOWLI_GLOB, TRSNOWLI,
+     &         local=.true. )
+          CALL UNPACK_COLUMN(GRID, TRLNDI_GLOB,   TRLNDI,local=.true.)
 !         TRSNOWLI(     1:NTM,1:IM,J_0H:J_1H) 
 !    &  = TRSNOWLI_GLOB(1:NTM,1:IM,J_0H:J_1H)
 !         TRLNDI(       1:NTM,1:IM,J_0H:J_1H) 

@@ -39,6 +39,7 @@
 !@auth Gavin Schmidt
       USE CONSTANT, only : rhows
       USE MODEL_COM, only : im,jm,kocean,focean,dtsrc
+      USE DOMAIN_DECOMP, only : grid, get
       USE GEOM, only : imaxj
       USE SEAICE, only : oi_ustar0
       USE SEAICE_COM, only : rsi
@@ -47,9 +48,13 @@
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 ustar1
+      INTEGER :: J_0,J_1
+
 
       IF (KOCEAN.eq.1) THEN
-        DO J=1,JM
+
+        CALL GET (grid, J_STRT=J_0,   J_STOP=J_1 )
+        DO J=J_0,J_1
         DO I=1,IMAXJ(J)
 c          UI2rho(I,J) = rhows*(oi_ustar0)**2  ! default
 C**** with wind stress dependence

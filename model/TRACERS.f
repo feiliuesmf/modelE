@@ -884,6 +884,9 @@ C**** check whether air mass is conserved
 !@ver  1.0
 #ifdef TRACERS_ON      
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
+      USE DOMAIN_DECOMP, only : grid, AM_I_ROOT
+      USE DOMAIN_DECOMP, only :   PACK_DATA,   PACK_COLUMN
+      USE DOMAIN_DECOMP, only : UNPACK_DATA, UNPACK_COLUMN
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
@@ -902,8 +905,13 @@ C**** check whether air mass is conserved
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
+
+      REAL*8, DIMENSION(NMOM,IM,JM,LM,NTM) :: TRMOM_GLOB
+      REAL*8, DIMENSION(     IM,JM,LM,NTM) :: TRM_GLOB
+      INTEGER :: ITM
 #ifdef TRACERS_WATER
       CHARACTER*80 :: HEADER, MODULE_HEADER = "TRACERW01"
+      REAL*8, DIMENSION(     IM,JM,LM,NTM) :: TRWM_GLOB
 
       write (MODULE_HEADER(lhead+1:80),'(a,i2,a,a,i1,a,i2,a,i2,a)')
      *     'R8 TRM(im,jm,lm,',NTM,')',
@@ -920,27 +928,42 @@ C**** check whether air mass is conserved
       SELECT CASE (IACTION)
 
       CASE (:IOWRITE) ! output to end-of-month restart file
-        WRITE (kunit,err=10) MODULE_HEADER,TRM,TRmom
+        DO ITM=1,NTM
+          CALL PACK_DATA(grid, TRM(:,:,:,ITM), TRM_GLOB(:,:,:,ITM))
+          CALL PACK_COLUMN(grid, TRmom(:,:,:,:,ITM),
+     &         TRmom_GLOB(:,:,:,:,ITM))
+#ifdef TRACERS_WATER 
+          CALL PACK_DATA(grid, TRWM(:,:,:,ITM), TRWM_GLOB(:,:,:,ITM))
+#endif
+        END DO
+        IF (AM_I_ROOT()) THEN
+          WRITE (kunit,err=10) MODULE_HEADER,TRM_glob,TRmom_glob
 #ifdef TRACERS_WATER
-     *     ,TRWM
+     *       ,TRWM_glob
 #endif
+
 #ifdef TRACERS_SPECIAL_Shindell
-     *     ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
-     *     ,yXO2N,yRXPAR,corrOx,ss
+C***    ESMF Exception: need to read global arrays-- delayed until exercised.
+     *       ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
+     *       ,yXO2N,yRXPAR,corrOx,ss
 #ifdef SHINDELL_STRAT_CHEM
-     *     ,SF3,pClOx,pClx,pOClOx,pBrOx
+     *       ,SF3,pClOx,pClx,pOClOx,pBrOx
 #endif
 #endif
+
 #ifdef TRACERS_DUST
-     &     ,hbaij
+     &       ,hbaij
 #endif
+       END IF     !only root processor writes
+
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
         CASE (ioread,irerun,irsfic,irsficno) ! restarts
-          READ (kunit,err=10) HEADER,TRM,TRmom
+          READ (kunit,err=10) HEADER,TRM_glob,TRmom_glob
 #ifdef TRACERS_WATER
-     *       ,TRWM
+     *       ,TRWM_glob
 #endif
+
 #ifdef TRACERS_SPECIAL_Shindell
      *       ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
      *       ,yXO2N,yRXPAR,corrOx,ss
@@ -948,6 +971,18 @@ C**** check whether air mass is conserved
      *       ,SF3,pClOx,pClx,pOClOx,pBrOx
 #endif
 #endif
+C**** ESMF: Copy global read data into the corresponding local (distributed) arrays.
+       DO ITM=1,NTM
+         CALL UNPACK_DATA  (grid,   TRM_GLOB(:,:,:,  itm),
+     &                              TRM(:,:,:,  itm),   local=.true.)
+         CALL UNPACK_COLUMN(grid, TRMOM_GLOB(:,:,:,:,itm),
+     &                              TRmom(:,:,:,:,itm), local=.true.)
+#ifdef TRACERS_WATER
+         CALL UNPACK_DATA  (grid,  TRWM_GLOB(:,:,:,  itm),
+     &                              TRWM(:,:,:,  itm),  local=.true.)
+#endif
+       END DO
+
 #ifdef TRACERS_DUST
      &     ,hbaij
 #endif

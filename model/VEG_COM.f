@@ -41,6 +41,9 @@
 !@auth I. Aleinov
 !@ver  1.0
       use model_com, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
+      use model_com, only : im,jm
+      use domain_decomp, only : grid, am_i_root
+      use domain_decomp, only : pack_data, unpack_data
       use veg_com, only : Cint, Qfol, cnc_ij
       implicit none
 
@@ -50,18 +53,30 @@
       integer, intent(inout) :: ioerr
 !@var header character string label for individual records
       character*80 :: header, module_header = "vegetation01"
+!@var cint_glob work array for parallel_io
+!@var qfol_glob work array for parallel_io
+!@var cnc_ij_glob work array for parallel_io
+      real*8, dimension(im,jm) :: cint_glob, qfol_glob, cnc_ij_glob
 
       write(module_header(lhead+1:80),'(a)') 'cint,qfol,cnc_ij'
 
       select case (iaction)
       case (:iowrite)            ! output to standard restart file
-        write (kunit,err=10) module_header,cint,qfol,cnc_ij
+        call pack_data(grid, cint, cint_glob)
+        call pack_data(grid, qfol, qfol_glob)
+        call pack_data(grid, cnc_ij, cnc_ij_glob)
+        if (am_i_root())
+     &    write (kunit,err=10) module_header,cint_glob,qfol_glob,
+     &                         cnc_ij_glob
       case (ioread:)            ! input from restart file
-        read (kunit,err=10) header,cint,qfol,cnc_ij
+        read (kunit,err=10) header, cint_glob, qfol_glob, cnc_ij_glob
         if (header(1:lhead).ne.module_header(1:lhead)) then
           print*,"discrepancy in module version ",header,module_header
           go to 10
         end if
+        call unpack_data(grid, cint_glob,   cint  , local=.true.)
+        call unpack_data(grid, qfol_glob,   qfol  , local=.true.)
+        call unpack_data(grid, cnc_ij_glob, cnc_ij, local=.true.)
       end select
 
       return

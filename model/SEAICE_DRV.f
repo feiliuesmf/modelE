@@ -26,7 +26,7 @@
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,j_imelt
      *     ,j_smelt
       USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP, only : GET, GLOBALSUM
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
@@ -418,7 +418,7 @@ C****
      *     ,j_imelt,j_hmelt,j_smelt,j_rsnow,ij_rsit,ij_rsnw,ij_snow
      *     ,ij_mltp
       USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP, only : GET, GLOBALSUM
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,SSIL
@@ -617,7 +617,7 @@ C****
 #endif
       USE LAKES_COM, only : flake
       USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP, only : GET, GLOBALSUM
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL

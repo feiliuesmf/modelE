@@ -341,6 +341,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM
+      USE DOMAIN_DECOMP, only : AM_I_ROOT
       USE TIMINGS, only : ntimemax,ntimeacc,timestr,timing
       USE PARAM
       IMPLICIT NONE
@@ -363,13 +364,15 @@ C****
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output to end-of-month restart file
-        WRITE (kunit,err=10) it,XLABEL,nday,iyear1,itimei,itimee,itime0,
-     *       NTIMEACC,TIMING(1:NTIMEACC),TIMESTR(1:NTIMEACC)
+        IF (AM_I_ROOT()) THEN
+          WRITE (kunit,err=10) it,XLABEL,nday,iyear1,itimei,itimee,
+     *          itime0,NTIMEACC,TIMING(1:NTIMEACC),TIMESTR(1:NTIMEACC)
 C**** doc line: basic model parameters
-        write(label2,'(a13,4i4,a)') 'IM,JM,LM,LS1=',im,jm,lm,ls1,' '
-        WRITE (kunit,err=10) LABEL2
+          write(label2,'(a13,4i4,a)') 'IM,JM,LM,LS1=',im,jm,lm,ls1,' '
+          WRITE (kunit,err=10) LABEL2
 C**** write parameters database here
-        call write_param(kunit)
+          call write_param(kunit)
+        END IF
       CASE (IOREAD:)          ! label always from input file
         READ (kunit,err=10) it,XLABEL,nd1,iy1,iti1,ite1,it01,
      *        NTIM1,TIM1(1:NTIM1),TSTR1(1:NTIM1)
@@ -422,6 +425,7 @@ C**** keep track of min/max time over the combined diagnostic period
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM
+      USE DOMAIN_DECOMP, only: grid, PACK_DATA, UNPACK_DATA, AM_I_ROOT
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -430,19 +434,42 @@ C**** keep track of min/max time over the combined diagnostic period
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "MODEL01"
+!@var U_glob Work array for parallel I/O
+!@var V_glob Work array for parallel I/O
+!@var T_glob Work array for parallel I/O
+!@var Q_glob Work array for parallel I/O
+!@var WM_glob Work array for parallel I/O
+!@var P_glob Work array for parallel I/O
+      REAL*8, DIMENSION(IM,JM,LM) :: U_glob,V_glob,T_glob,Q_glob,WM_glob
+      REAL*8 :: P_glob(IM,JM)
 
       MODULE_HEADER(lhead+1:80) = 'R8 dim(im,jm,lm):u,v,t, p(im,jm),'//
      *  ' dim(im,jm,lm):q,MliqW'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE) ! output to end-of-month restart file
-        WRITE (kunit,err=10) MODULE_HEADER,U,V,T,P,Q,WM
+        CALL PACK_DATA(grid, U, U_GLOB)
+        CALL PACK_DATA(grid, V, V_GLOB)
+        CALL PACK_DATA(grid, T, T_GLOB)
+        CALL PACK_DATA(grid, Q, Q_GLOB)
+        CALL PACK_DATA(grid, WM, WM_GLOB)
+        CALL PACK_DATA(grid, P, P_GLOB)
+        IF (AM_I_ROOT())
+     &    WRITE (kunit,err=10) MODULE_HEADER,U_glob,V_glob,T_glob,
+     &                         P_glob,Q_glob,WM_glob
       CASE (IOREAD:)          ! input from restart file
-        READ (kunit,err=10) HEADER,U,V,T,P,Q,WM
+        READ (kunit,err=10) HEADER,U_glob,V_glob,T_glob,
+     &                         P_glob,Q_glob,WM_glob
         IF (HEADER(1:LHEAD).ne.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+        CALL UNPACK_DATA(grid, U_GLOB, U, local=.true.)
+        CALL UNPACK_DATA(grid, V_GLOB, V, local=.true.)
+        CALL UNPACK_DATA(grid, T_GLOB, T, local=.true.)
+        CALL UNPACK_DATA(grid, Q_GLOB, Q, local=.true.)
+        CALL UNPACK_DATA(grid, WM_GLOB, WM, local=.true.)
+        CALL UNPACK_DATA(grid, P_GLOB, P, local=.true.)
       END SELECT
       RETURN
  10   IOERR=1

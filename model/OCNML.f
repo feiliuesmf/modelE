@@ -46,7 +46,8 @@ C**** Check for reasonable values for ocean variables
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE STATIC_OCEAN
-      USE DOMAIN_DECOMP, only : grid, GET
+      USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP, only : PACK_COLUMN, PACK_DATA
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -55,8 +56,8 @@ C**** Check for reasonable values for ocean variables
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCN01"
-      REAL*8, DIMENSION(3,IM,JM) :: TOCEAN_g
-      REAL*8, DIMENSION(IM,JM)   :: Z1O_g
+      REAL*8, DIMENSION(3,IM,JM) :: TOCEAN_glob
+      REAL*8, DIMENSION(IM,JM)   :: Z1O_glob
       INTEGER :: J_0,J_1
 
       MODULE_HEADER(lhead+1:80) = 'R8 Tocn(3,im,jm),MixLD(im,jm)'
@@ -65,11 +66,14 @@ C**** Check for reasonable values for ocean variables
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,TOCEAN,Z1O
+        CALL PACK_COLUMN(grid, TOCEAN, TOCEAN_glob)
+        CALL PACK_DATA(grid, Z1O, Z1O_glob)
+        IF (AM_I_ROOT())
+     &    WRITE (kunit,err=10) MODULE_HEADER,TOCEAN_glob,Z1O_glob
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,TOCEAN_g,Z1O_g
-        TOCEAN(:,:,J_0:J_1) = TOCEAN_g(:,:,J_0:J_1)
-        Z1O(:,J_0:J_1) = Z1O_g(:,J_0:J_1)
+        READ (kunit,err=10) HEADER,TOCEAN_glob,Z1O_glob
+        TOCEAN(:,:,J_0:J_1) = TOCEAN_glob(:,:,J_0:J_1)
+        Z1O(:,J_0:J_1) = Z1O_glob(:,J_0:J_1)
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10

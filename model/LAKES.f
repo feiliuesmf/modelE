@@ -707,7 +707,7 @@ C****
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
      *     ,itocean,itoice,fland
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET,
-     *        HALO_UPDATE_COLUMN
+     *        GLOBALSUM, HALO_UPDATE_COLUMN
       USE GEOM, only : dxyp,bydxyp
       USE DAGCOM, only : aij,ij_ervr,ij_mrvr,ij_f0oc,aj,areg,jreg,
      *        j_rvrd,j_ervr

@@ -6,6 +6,7 @@
 !@auth Jean Lerner
 !ver   1.0
       USE MODEL_COM, only: im,jm,lm
+      USE DOMAIN_DECOMP, ONLY: grid
       USE DAGCOM, only: npts !npts are conservation quantities
       USE TRACER_COM, only: ntm
 #ifdef TRACERS_ON
@@ -36,7 +37,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !!! WARNING: if new diagnostics are added, keep io_trdiag up-to-date !!!
 C**** TAIJLN
 !@var TAIJLN 3D tracer diagnostics (all tracers)
-      real*8, dimension(im,jm,lm,ntm) :: taijln
+      real*8, allocatable, dimension(:,:,:,:) :: taijln
 !@var SNAME_IJT, UNITS_IJT: Names and units of lat-sigma tracer IJ diags
       character(len=30), dimension(lm,ntm) :: sname_ijt,units_ijt
 !@var LNAME_IJT: descriptions of tracer IJ diagnostics
@@ -79,7 +80,7 @@ C**** TAIJN
       integer tij_drydep,tij_gsdep
 #endif
 !@var TAIJN lat/lon tracer diagnostics (all tracers)
-      real*8, dimension(im,jm,ktaij,ntm) :: taijn
+      real*8, allocatable, dimension(:,:,:,:) :: taijn
 !@var SCALE_TIJ: printout scaling factor for tracer IJK diagnostics
       REAL*8, dimension(ktaij,ntm) :: scale_tij
 !@var SNAME_TIJ,UNITS_TIJ: Names and units of lat-sigma tracer diags
@@ -112,7 +113,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #endif
 
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
-      REAL*8, DIMENSION(IM,JM,ktaijs) :: TAIJS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS
 !@var ijts_source tracer independent array for TAIJS surface src. diags
       INTEGER ijts_source(ntsurfsrcmax,ntm)
 !@var ijts_isrc tracer independent array for TAIJS interactive srf. src.
@@ -146,7 +147,7 @@ C**** TAJLN
 #endif
      &     ,ktajlx=ktajl+2
 !@var TAJLN  vertical tracer diagnostics (all tracers)
-      REAL*8, DIMENSION(JM,LM,ktajlx,NTM) :: TAJLN
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN
 !@var jlnt_xx Names for TAJLN diagnostics
       INTEGER jlnt_conc,jlnt_mass,jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,
      &  jlnt_vt_mm,jlnt_mc,jlnt_turb,jlnt_lscond, jlnt_bebe,
@@ -199,7 +200,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #endif
 
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
-      REAL*8, DIMENSION(JM,LM,ktajls) :: TAJLS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS
 !@var jls_source tracer independent array for TAJLS surface src. diags
       INTEGER jls_source(ntsurfsrcmax,ntm)
 !@var jls_isrc tracer independent array for TAJLS interactive surface src. diags
@@ -241,7 +242,7 @@ C**** include some extra troposphere only ones
       INTEGER, PARAMETER :: ntmxcon = ntm
 #endif
 !@var TCONSRV conservation diagnostics for tracers
-      REAL*8, DIMENSION(JM,ktcon,ntmxcon) :: TCONSRV
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV
 !@var SCALE_TCON scales for tracer conservation diagnostics
       REAL*8, DIMENSION(ktcon,ntmxcon) :: SCALE_TCON
 !@var TITLE_TCON titles for tracer conservation diagnostics
@@ -278,7 +279,7 @@ C**** include some extra troposphere only ones
 #endif
 #endif
 !@var PDSIGJL temporary storage for mean pressures for jl diags
-      REAL*8, DIMENSION(JM,LM) :: PDSIGJL
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PDSIGJL
 
       END MODULE TRACER_DIAG_COM
 
@@ -428,6 +429,9 @@ C****
 !@ver  1.0
       USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irerun,ioread_single,lhead
+      USE DOMAIN_DECOMP, only : PACK_DATA,PACK_J,UNPACK_DATA,UNPACK_J
+      USE DOMAIN_DECOMP, only : AM_I_ROOT
+      USE DOMAIN_DECOMP, only : GET
       USE TRACER_DIAG_COM
       IMPLICIT NONE
 
@@ -449,18 +453,39 @@ C****
       REAL*4 TAIJS4(IM,JM,ktaijs),TAJLN4(JM,LM,ktajlx,NTM)
       REAL*4 TAJLS4(JM,LM,ktajls),TCONSRV4(JM,ktcon,ntmxcon)
 
+!@var TA.._glob(..) dummy arrays for reading diagnostics files (ESMF)
+      REAL*8 TAIJLN_glob(im,jm,lm,ntm),TAIJN_glob(im,jm,ktaij,ntm)
+      REAL*8 TAIJS_glob(IM,JM,ktaijs),TAJLN_glob(JM,LM,ktajlx,NTM)
+      REAL*8 TAJLS_glob(JM,LM,ktajls),TCONSRV_glob(JM,ktcon,ntmxcon)
+
+      INTEGER :: J_0H, J_1H
+
+      CALL GET( grid,  J_STRT_HALO = J_0H,  J_STOP_HALO = J_1H )
+
       write (MODULE_HEADER(lhead+1:80),'(a,i8,a)')
      *   'R8 TACC(',ktacc,'),it'
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE,IOWRITE_MON) ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,
-     *                         TAIJLN,TAIJN,TAIJS,TAJLN,TAJLS,TCONSRV,it
-      CASE (IOWRITE_SINGLE)    ! output to acc file
-        MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
-        WRITE (kunit,err=10) MODULE_HEADER,
-     *     REAL(TAIJLN,KIND=4),REAL(TAIJN,KIND=4),REAL(TAIJS,KIND=4),
-     *     REAL(TAJLN,KIND=4),REAL(TAJLS,KIND=4),REAL(TCONSRV,KIND=4),it
+      CASE (IOWRITE,IOWRITE_MON,IOWRITE_SINGLE)  
+C***  PACK distributed arrays into global ones in preparation for output
+        CALL PACK_DATA(grid,TAIJLN, TAIJLN_glob)
+        CALL PACK_DATA(grid,TAIJN , TAIJN_glob )
+        CALL PACK_DATA(grid,TAIJS , TAIJS_glob )
+        CALL PACK_J(grid,TAJLN  , TAJLN_glob )
+        CALL PACK_J(grid,TAJLS  , TAJLS_glob )
+        CALL PACK_J(grid,TCONSRV, TCONSRV_glob )
+        SELECT CASE (IACTION)
+          CASE (IOWRITE,IOWRITE_MON) ! output to standard restart file
+          IF (AM_I_ROOT())  WRITE (kunit,err=10) MODULE_HEADER,
+     *                         TAIJLN_glob,TAIJN_glob,TAIJS_glob,
+     *                         TAJLN_glob ,TAJLS_glob,TCONSRV_glob,it
+          CASE (IOWRITE_SINGLE)    ! output to acc file
+            MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
+            IF (AM_I_ROOT()) WRITE (kunit,err=10) MODULE_HEADER,
+     *       REAL(TAIJLN_glob,KIND=4),REAL(TAIJN_glob,KIND=4),
+     *       REAL(TAIJS_glob,KIND=4) ,REAL(TAJLN_glob,KIND=4),
+     *       REAL(TAJLS_glob,KIND=4) ,REAL(TCONSRV_glob,KIND=4),it
+        END SELECT
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
         CASE (ioread_single)    ! accumulate diagnostic files
@@ -471,9 +496,12 @@ C****
             go to 10  ! or should this be just a warning ??
           end if
 C****     Accumulate diagnostics (converting back to real*8)
-          TAIJLN = TAIJLN+TAIJLN4 ; TAIJN = TAIJN+TAIJN4
-          TAIJS  = TAIJS+TAIJS4   ; TAJLN = TAJLN+TAJLN4
-          TAJLS  = TAJLS+TAJLS4   ; TCONSRV = TCONSRV+TCONSRV4
+          TAIJLN =  TAIJLN+TAIJLN4(:,J_0H:J_1H,:,:) 
+          TAIJN =   TAIJN+TAIJN4(:,J_0H:J_1H,:,:)
+          TAIJS  =  TAIJS+TAIJS4(:,J_0H:J_1H,:)   
+          TAJLN =   TAJLN+TAJLN4(J_0H:J_1H,:,:,:)
+          TAJLS  =  TAJLS+TAJLS4(J_0H:J_1H,:,:)
+          TCONSRV = TCONSRV+TCONSRV4(J_0H:J_1H,:,:)
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
@@ -481,12 +509,20 @@ C****     Accumulate diagnostics (converting back to real*8)
           END IF
         CASE (ioread)  ! restarts
           READ (kunit,err=10) HEADER,
-     *                         TAIJLN,TAIJN,TAIJS,TAJLN,TAJLS,TCONSRV,it
+     *                         TAIJLN_glob,TAIJN_glob,TAIJS_glob,
+     *                         TAJLN_glob,TAJLS_glob,TCONSRV_glob,it
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
             GO TO 10
           end IF
+C*** Unpack read global data into local distributed arrays
+          CALL UNPACK_DATA( grid,TAIJLN_glob, TAIJLN, local=.true. )
+          CALL UNPACK_DATA( grid,TAIJN_glob , TAIJN , local=.true. )
+          CALL UNPACK_DATA( grid,TAIJS_glob , TAIJS , local=.true. )
+          CALL UNPACK_J( grid,TAJLN_glob  , TAJLN,    local=.true. )
+          CALL UNPACK_J( grid,TAJLS_glob  , TAJLS,    local=.true. )
+          CALL UNPACK_J( grid,TCONSRV_glob, TCONSRV,  local=.true. )
         END SELECT
       END SELECT
 
@@ -496,3 +532,22 @@ C****     Accumulate diagnostics (converting back to real*8)
       END SUBROUTINE io_trdiag
 #endif
 
+      SUBROUTINE ALLOC_TRACER_DIAG_COM
+      USE TRACER_DIAG_COM
+      USE DOMAIN_DECOMP, only : GET
+      INTEGER :: J_0H,J_1H
+      INTEGER :: status
+
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+#ifdef TRACERS_ON 
+      ALLOCATE ( TAIJLN(IM,J_0H:J_1H,LM,ntm), stat=status )
+      ALLOCATE ( TAIJN( IM,J_0H:J_1H,ktaij,ntm), stat=status )
+      ALLOCATE ( TAIJS( IM,J_0H:J_1H,ktaijs   ), stat=status )
+      ALLOCATE ( TAJLN(    J_0H:J_1H,LM,ktajlx,ntm), stat=status )
+      ALLOCATE ( TAJLS(    J_0H:J_1H,LM,ktajls    ), stat=status )
+      ALLOCATE ( TCONSRV(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
+#endif
+      ALLOCATE ( PDSIGJL(  J_0H:J_1H,LM    ), stat=status )
+      RETURN
+      END SUBROUTINE ALLOC_TRACER_DIAG_COM

@@ -2595,7 +2595,9 @@ C**** some scaling numbers for the equatorial diags.
       bydj   = 1./REAL(j5n-j5s+1,KIND=8)
       bydjuv = 1./REAL(j5nuv-j5suv+1,KIND=8)
       daeq=0.
-      do j=max(j_0,j5s),min(J_1,j5n)
+      ! This loop uses global array DXYP, so bounds
+      ! do not need modification for parallel implementation.
+      do j=j5s,j5n
         daeq=daeq+DXYP(J)
       end do
 C****

@@ -1536,7 +1536,8 @@ C****
      *           CO2_src(im,J_0H:J_1H,nco2src),
      *           STAT=IER )
 
-      ALLOCATE(   frqlos(IM,J_0H:J_1H,LM),
+C**** ESMF: This array is read in only
+      ALLOCATE(   frqlos(IM,JM,LM),
      *          STAT=IER)
 
       END SUBROUTINE ALLOC_TRACER_SPECIAL_Lerner_COM

@@ -297,14 +297,12 @@ C**** Get Vertical Diffusion Coefficient for this timestep
       CALL GETVK (U,V,VKEDDY,LDIFM)
 
       CALL CHECKSUM(GRID, P     , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, RAPVN , __LINE__, __FILE__)
       CALL CHECKSUM(GRID, USURF , __LINE__, __FILE__)
       CALL CHECKSUM(GRID, VSURF , __LINE__, __FILE__)
       CALL CHECKSUM(GRID, TSURF , __LINE__, __FILE__)
       CALL CHECKSUM(GRID, RHO   , __LINE__, __FILE__)
       CALL CHECKSUM(GRID, T     , __LINE__, __FILE__)
       CALL HALO_UPDATE(GRID, P     , from=SOUTH)
-      CALL HALO_UPDATE(GRID, RAPVN , from=SOUTH)
       CALL HALO_UPDATE(GRID, USURF , from=SOUTH)
       CALL HALO_UPDATE(GRID, VSURF , from=SOUTH)
       CALL HALO_UPDATE(GRID, TSURF , from=SOUTH)
@@ -713,14 +711,12 @@ C****
       CALL CHECKSUM(GRID, P     , __LINE__, __FILE__)
       CALL CHECKSUM(GRID, AIRX  , __LINE__, __FILE__)
       CALL CHECKSUM_COLUMN(GRID, LMC   , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, RAPVN , __LINE__, __FILE__)
       CALL HALO_UPDATE(GRID, PK    , from=SOUTH)
       CALL HALO_UPDATE(GRID, SZ    , from=SOUTH)
       CALL HALO_UPDATE(GRID, T     , from=SOUTH)
       CALL HALO_UPDATE(GRID, P     , from=SOUTH)
       CALL HALO_UPDATE(GRID, AIRX  , from=SOUTH)
       CALL HALO_UPDATE_COLUMN(GRID, LMC   , from=SOUTH)
-      CALL HALO_UPDATE(GRID, RAPVN , from=SOUTH)
 
 C****
 C**** DEFORMATION
@@ -1291,11 +1287,9 @@ C****
 
       CALL CHECKSUM(GRID, U  , __LINE__, __FILE__)
       CALL CHECKSUM(GRID, V  , __LINE__, __FILE__)
-      CALL CHECKSUM(GRID, DXV, __LINE__, __FILE__)
       CALL CHECKSUM(GRID, PV , __LINE__, __FILE__)
       CALL HALO_UPDATE(GRID, U  , from=NORTH)
       CALL HALO_UPDATE(GRID, V  , from=NORTH)
-      CALL HALO_UPDATE(GRID, DXV, from=NORTH)
       CALL HALO_UPDATE(GRID, PV , from=NORTH)
 
       L=LDEF
@@ -1416,12 +1410,18 @@ C****
 !@ver  1.0
       USE MODEL_COM
       USE CLOUDS_COM, only : airx,lmc
+      USE DOMAIN_DECOMP, only : grid, AM_I_ROOT
+      USE DOMAIN_DECOMP, only : PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP, only : PACK_COLUMN, UNPACK_COLUMN
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
       INTEGER iaction !@var iaction flag for reading or writing to file
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
+!@var AIRX_GLOB, LMC_GLOB global temporary arrays for distributed I/O (ESMF)
+      REAL*8 :: airx_glob(im,jm)
+      INTEGER :: lmc_glob(2,im,jm)
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "STRAT01"
 
@@ -1429,13 +1429,18 @@ C****
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE) ! output to end-of-month restart file
-        WRITE (kunit,err=10) MODULE_HEADER,AIRX,LMC
+        CALL PACK_DATA(grid, AIRX, AIRX_GLOB)
+        CALL PACK_COLUMN(grid,LMC,  LMC_GLOB)
+        IF (AM_I_ROOT())
+     &    WRITE (kunit,err=10) MODULE_HEADER,AIRX_GLOB,LMC_GLOB
       CASE (IOREAD:)          ! input from restart file
-        READ (kunit,err=10) HEADER,AIRX,LMC
+        READ (kunit,err=10) HEADER,AIRX_GLOB,LMC_GLOB
         IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+        CALL UNPACK_DATA(grid, AIRX_GLOB, AIRX, local=.true.)
+        CALL UNPACK_COLUMN(grid,LMC_GLOB, LMC , local=.true.)
       END SELECT
       RETURN
  10   IOERR=1

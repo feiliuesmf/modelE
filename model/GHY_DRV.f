@@ -5,14 +5,17 @@
 !@+   hydrology driver
 !@auth I. Alienov/F. Abramopolous
       use model_com, only : im,jm
-      use DOMAIN_DECOMP, only : GRID, GET
       use veg_drv, only : cosday,sinday
       implicit none
       private
       save
 
-      public daily_earth, ground_e, init_gh, earth, conserv_wtg
-     $     ,conserv_htg
+      public daily_earth
+      public ground_e
+      public init_gh
+      public earth
+      public conserv_wtg
+      public conserv_htg
 
       !real*8 cosday,sinday
       !real*8 cosdaym1, sindaym1               !nyk TEMPORARY for jday-1
@@ -35,8 +38,9 @@ c****
       use model_com, only : t,p,q,dtsrc,nisurf,dsig,qcheck,jdate
      *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
      *     ,u,v
+      use DOMAIN_DECOMP, only : GRID, GET
       use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
-      use DOMAIN_DECOMP, only : GLOBALSUM
+      use DOMAIN_DECOMP, only : GLOBALSUM, HERE
       use geom, only : imaxj,dxyp,bydxyp
       use dynamics, only : pmid,pk,pek,pedn,pdsig,am,byam
       use somtq_com, only : mz
@@ -210,14 +214,14 @@ c**** snowbv  1  snow depth over bare soil (m)
 c****         2  snow depth over vegetated soil (m)
 c****
 
+C**** Work array for regional diagnostic accumulation
 C****   define local grid
       integer J_0, J_1, J_0H, J_1H
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1       ,
-     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
       dtsurf=dtsrc/nisurf
       zs1co=.5*dsig(1)*rgas/grav
@@ -955,6 +959,7 @@ C
 !@var fract_snow snow cover fraction (0-1)
 !@var snow_water snow water equivalent (m)
 !@var top_dev standard deviation of the surface elevation
+      use DOMAIN_DECOMP, only : GRID, GET
       use constant, only : teeny
       real*8, intent(out) :: fract_snow
       real*8, intent(in) :: snow_water, top_dev
@@ -975,7 +980,8 @@ c**** modifications needed for split of bare soils into 2 types
       use filemanager
       use param
       use constant, only : twopi,rhow,edpery,sha,lhe,tf
-      use DOMAIN_DECOMP, only : GRID, READT_PARALLEL, DREAD_PARALLEL
+      use DOMAIN_DECOMP, only : GRID, DIST_GRID
+      use DOMAIN_DECOMP, only : GET,READT_PARALLEL, DREAD_PARALLEL
       use DOMAIN_DECOMP, only : CHECKSUM, HERE, CHECKSUM_COLUMN
       use DOMAIN_DECOMP, only : GLOBALSUM
       use model_com, only : fearth,itime,nday,jeq,jyear
@@ -1011,8 +1017,8 @@ c**** modifications needed for split of bare soils into 2 types
       real*8 trsoil_tot,wsoil_tot,fm
 #endif
 c****
-      REAL*8 :: 
-     * TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,11*NGM+1)
+c$$$      REAL*8::TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,11*NGM+1)
+      REAL*8, Allocatable, DIMENSION(:,:,:) :: TEMP_LOCAL
 c**** contents of TEMP_LOCAL used for reading the following in a block:
 c****       1 -   ngm   dz(ngm)
 c****   ngm+1 - 6*ngm   q(is,ngm)
@@ -1026,13 +1032,13 @@ c**** 11*ngm+1           sl
        real*8 :: evap_max_ij_sum
 C****	define local grid
       integer J_0, J_1
-      integer J_H0, J_H1
+      integer J_0H, J_1H
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
-     *               J_STRT_HALO=J_H0, J_STOP_HALO=J_H1)
+     *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
 c**** set conservation diagnostics for ground water mass and energy
       conpt=conpt0
@@ -1060,6 +1066,7 @@ c**** read land surface parameters or use defaults
         !!!if (istart.le.0) return ! avoid reading unneeded files
 c**** read soils parameters
         call openunit("SOIL",iu_SOIL,.true.,.true.)
+        ALLOCATE(TEMP_LOCAL(IM,J_0H:J_1H,11*NGM+1))
         call DREAD_PARALLEL(grid,iu_SOIL,NAMEUNIT(iu_SOIL),TEMP_LOCAL)
         DZ_IJ(:,:,:)   = TEMP_LOCAL(:,:,1:NGM)
          Q_IJ(:,J_0:J_1,:,:) = RESHAPE( TEMP_LOCAL(:,J_0:J_1,1+NGM:) , 
@@ -1068,6 +1075,7 @@ c**** read soils parameters
      *                 RESHAPE( TEMP_LOCAL(:,J_0:J_1,1+NGM+NGM*IMT:) , 
      *                   (/im,J_1-J_0+1,imt,ngm/) )
         SL_IJ(:,J_0:J_1)  = TEMP_LOCAL(:,J_0:J_1,1+NGM+NGM*IMT+NGM*IMT)
+        DEALLOCATE(TEMP_LOCAL)
         call closeunit (iu_SOIL)
 c**** read topmodel parameters
         call openunit("TOP_INDEX",iu_TOP_INDEX,.true.,.true.)
@@ -1325,6 +1333,7 @@ ccc still not quite correct (assumes fw=1)
 
       subroutine reset_gh_to_defaults( reset_prognostic )
       !use model_com, only: vdata
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
       use ghycom
       use veg_drv, only : reset_veg_to_defaults
       logical, intent(in) :: reset_prognostic
@@ -1419,6 +1428,7 @@ c****
       use ghycom, only : ngm,imt,dz_ij,sl_ij,q_ij,qk_ij
      *     ,top_index_ij,top_dev_ij
       use veg_com, only: afb
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
 !      use veg_drv, only : veg_set_cell
 
       implicit none
@@ -1530,6 +1540,7 @@ c**** ht - heat in soil layers
 c**** add calculation of wfc2
 c**** based on combination of layers 2-n, as in retp2
       use sle001
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
       implicit none
 
       real*8 snowdp,tg1,tg2,wtr1,wtr2,ace1,ace2
@@ -1614,6 +1625,7 @@ c**** output:
 c**** tg2av - temperature of layers 2 to ngm, c
 c**** ice2av - ice amount in layers 2 to ngm, kg/m+2
 c**** wtr2av - water in layers 2 to ngm, kg/m+2
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
       use sle001
       implicit none
       real*8 tg2av,wtr2av,ace2av, wc,htc,shcc,tpc,ficec,ftp
@@ -1658,6 +1670,7 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
       use geom, only : imaxj
       use ghycom, only : tearth,wearth,aiearth,snowe,wbare,wvege,htbare
      *     ,htvege,snowbv,ngm
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
       implicit none
 
       real*8 x,tgl,wtrl,acel
@@ -1724,6 +1737,7 @@ c**** check for reasonable temperatures over earth
       use veg_com, only : almass,aalbveg       !nyk
       use vegetation, only: crops_yr,cond_scheme !nyk
       use surf_albedo, only: albvnh  !nyk
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
       use sle001, only : fb,fv,ws
       use veg_drv, only : veg_set_cell
 
@@ -1859,6 +1873,7 @@ c****
 !@ver  1.0
       use model_com, only : fearth,itearth
       use geom, only : imaxj,dxyp
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
       use DOMAIN_DECOMP, only : GLOBALSUM
       use ghycom, only : snowe, tearth,wearth,aiearth,wbare,wvege,snowbv
      *     ,fr_snow_ij,fr_snow_rad_ij, gdeep
@@ -1953,6 +1968,7 @@ c****
       use geom, only : imaxj
       use ghycom, only : ngm,wbare,wvege,snowbv
       use veg_com, only : afb
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
 !@var waterg zonal ground water (kg/m^2)
       real*8, dimension(grid%j_strt:grid%j_stop) :: waterg
@@ -1996,9 +2012,11 @@ c****
       use geom, only : imaxj, dxyp
       use ghycom, only : ngm,htbare,htvege,fr_snow_ij,nsn_ij,hsn_ij
       use veg_com, only : afb
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
 !@var heatg zonal ground heat (J/m^2)
-      real*8, dimension(grid%j_strt:grid%j_stop) :: heatg
+      real*8, dimension(grid%j_strt_halo:grid%j_stop_halo) :: heatg
+
       integer i,j
       real*8 hij,fb,fv
 

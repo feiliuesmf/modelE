@@ -294,6 +294,9 @@ C**** MAIN J LOOP
 C****
        ICKERR=0
        JCKERR=0
+
+       ! Burn random numbers for earlier latitudes here.
+       ! Actuall generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
       if (isccp_diags.eq.1) then
        DO J = 1, J_0-1
          DO I = 1, IMAXJ(J)

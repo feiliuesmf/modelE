@@ -193,6 +193,7 @@ C****
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0li,ij_f1li,ij_erun2
      *     ,ij_runli,j_run,j_implh,j_implm
       USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP, only : GLOBALSUM, CHECKSUM, CHECKSUM_COLUMN
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0,PLICE,DXYPJ
@@ -208,10 +209,11 @@ C****
 !@var TRDIFS implicit tracer flux at base of ice (kg/m^2)
       REAL*8, DIMENSION(NTM) :: TRDIFS
 #endif
-      INTEGER I,J,JR
-      INTEGER :: J_0,J_1
-
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+C**** Get useful grid parameters
+      INTEGER :: I, J, JR
+      INTEGER :: J_0, J_1, J_0H, J_1H
+      CALL GET(GRID,J_STRT=J_0      , J_STOP=J_1      ,
+     &              J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
 
       DO J=J_0,J_1
       DXYPJ=DXYP(J)
@@ -306,6 +308,7 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
 #endif
 #endif
       USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP, only : GLOBALSUM
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0,PLICE,DXYPJ

@@ -65,10 +65,14 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
      *            )
       RETURN
       END SUBROUTINE ALLOC_LAKES_COM
+
       SUBROUTINE io_lakes(kunit,iaction,ioerr)
 !@sum  io_lakes reads and writes lake arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
+      USE DOMAIN_DECOMP, only : AM_I_ROOT, grid
+      USE DOMAIN_DECOMP, only : PACK_DATA  , PACK_BLOCK
+      USE DOMAIN_DECOMP, only : UNPACK_DATA, UNPACK_BLOCK
       USE LAKES_COM
       IMPLICIT NONE
       INTEGER kunit   !@var kunit unit number of read/write
@@ -77,11 +81,13 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "LAKE01"
+      REAL*8, DIMENSION(IM,JM):: MLDLK_glob,MWL_glob,TLAKE_glob,GML_glob
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRLAK01"
-
-      write (TRMODULE_HEADER(lhead+1:80)
+      REAL*8 :: TRLAKE_GLOB(NTM,2,IM,JM)
+      IF (AM_I_ROOT())
+     *   write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a7,i3,a)')'R8 dim(',NTM,',2,im,jm):TRLAKE'
 #endif
 
@@ -89,25 +95,41 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,MLDLK,MWL,TLAKE,GML !,FLAKE
+        CALL PACK_DATA(grid, MLDLK, MLDLK_GLOB)
+        CALL PACK_DATA(grid, MWL  ,   MWL_GLOB)
+        CALL PACK_DATA(grid, TLAKE, TLAKE_GLOB)
+        CALL PACK_DATA(grid, GML  ,   GML_GLOB)
+        IF (AM_I_ROOT()) THEN
+          WRITE (kunit,err=10) MODULE_HEADER,MLDLK_glob,MWL_glob,
+     &                         TLAKE_glob,GML_glob !,FLAKE
 #ifdef TRACERS_WATER
-        WRITE (kunit,err=10) TRMODULE_HEADER,TRLAKE
+          CALL PACK_BLOCK(grid, TRLAKE, TRLAKE_glob)
+          WRITE (kunit,err=10) TRMODULE_HEADER,TRLAKE_glob
 #endif
+        END IF
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,MLDLK,MWL,TLAKE,GML   !,FLAKE
+        READ (kunit,err=10) HEADER,MLDLK_glob,MWL_glob,TLAKE_glob,
+     &                      GML_glob   !,FLAKE
+
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+        CALL UNPACK_DATA(grid,  MLDLK_GLOB, MLDLK, local=.true.)
+        CALL UNPACK_DATA(grid,    MWL_GLOB, MWL  , local=.true.)
+        CALL UNPACK_DATA(grid,  TLAKE_GLOB, TLAKE, local=.true.)
+        CALL UNPACK_DATA(grid,    GML_GLOB, GML  , local=.true.)
+
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
         CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)    ! reruns/restarts
-          READ (kunit,err=10) TRHEADER,TRLAKE
+          READ (kunit,err=10) TRHEADER,TRLAKE_glob
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",TRHEADER
      *           ,TRMODULE_HEADER
             GO TO 10
           END IF
+          CALL UNPACK_BLOCK(grid, TRLAKE_GLOB, TRLAKE, local=.true.)
         END SELECT
 #endif
       END SELECT

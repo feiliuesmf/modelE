@@ -66,23 +66,26 @@
 !@ver  1.0
       USE MODEL_COM, only : ioread,irsfic,irerun,iowrite,irsficno,lhead
       USE PBLCOM
-      USE DOMAIN_DECOMP, only : grid, GET, CHECKSUM
+      USE DOMAIN_DECOMP, only : grid, GET, CHECKSUM, AM_I_ROOT
+      USE DOMAIN_DECOMP, only : pack_column, pack_data
+      USE DOMAIN_DECOMP, only : pack_block , unpack_block
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
       INTEGER iaction !@var iaction flag for reading or writing to file
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
-      REAL*8, DIMENSION(npbl,IM,JM,4) :: uabl_g,vabl_g,tabl_g,
-     &     qabl_g,eabl_g
-      REAL*8, DIMENSION(IM,JM,4) :: cmgs_g, chgs_g, cqgs_g
-      INTEGER, DIMENSION(IM,JM,4) :: ipbl_g
+      REAL*8, DIMENSION(npbl,IM,JM,4) :: uabl_glob,vabl_glob,tabl_glob,
+     &     qabl_glob,eabl_glob
+      REAL*8, DIMENSION(IM,JM,4) :: cmgs_glob, chgs_glob, cqgs_glob
+      INTEGER, DIMENSION(IM,JM,4) :: ipbl_glob
       INTEGER :: J_0, J_1
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "PBL01"
 #ifdef TRACERS_ON
 !@var TR_HEADER Character string label for tracer record
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TRPBL01"
+      REAL*8, DIMENSION(npbl,ntm,im,jm,4) :: trabl_glob
       write (TR_MODULE_HEADER(lhead+1:80),'(a7,i2,a,i2,a)') 'R8 dim(',
      *     npbl,',',ntm,',ijm,4):TRt'
 #endif
@@ -93,25 +96,43 @@
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (KUNIT,ERR=10) MODULE_HEADER,UABL,VABL,TABL,QABL,EABL,
-     *     CMGS,CHGS,CQGS,IPBL
+        CALL PACK_COLUMN(grid, uabl, uabl_glob)
+        CALL PACK_COLUMN(grid, vabl, vabl_glob)
+        CALL PACK_COLUMN(grid, tabl, tabl_glob)
+        CALL PACK_COLUMN(grid, qabl, qabl_glob)
+        CALL PACK_COLUMN(grid, eabl, eabl_glob)
+
+        CALL PACK_DATA(grid, cmgs, cmgs_glob)
+        CALL PACK_DATA(grid, chgs, chgs_glob)
+        CALL PACK_DATA(grid, cqgs, cqgs_glob)
+        CALL PACK_DATA(grid, ipbl, ipbl_glob)
+
 #ifdef TRACERS_ON
-        WRITE (KUNIT,ERR=10) TR_MODULE_HEADER,TRABL
+        CALL PACK_BLOCK(grid, trabl, trabl_glob)
 #endif
+        IF (AM_I_ROOT()) THEN
+          WRITE (KUNIT,ERR=10) MODULE_HEADER,UABL_GLOB,VABL_GLOB
+     *       ,TABL_GLOB,QABL_GLOB,EABL_GLOB,CMGS_GLOB
+     *       ,CHGS_GLOB,CQGS_GLOB,IPBL_GLOB
+#ifdef TRACERS_ON
+          WRITE (KUNIT,ERR=10) TR_MODULE_HEADER,TRABL_GLOB
+#endif
+        END IF
+
       CASE (IOREAD:)            ! input from restart file or restart
-        READ (KUNIT,ERR=10) HEADER,UABL_g,VABL_g,TABL_g,QABL_g,EABL_g,
-     &       CMGS_g,CHGS_g,CQGS_g,IPBL_g
+        READ (KUNIT,ERR=10) HEADER,UABL_glob,VABL_glob,TABL_glob,
+     &       QABL_glob,EABL_glob,CMGS_glob,CHGS_glob,CQGS_glob,IPBL_glob
 
-        uabl(:,:,J_0:J_1,:) = uabl_g(:,:,J_0:J_1,:)
-        vabl(:,:,J_0:J_1,:) = vabl_g(:,:,J_0:J_1,:)
-        tabl(:,:,J_0:J_1,:) = tabl_g(:,:,J_0:J_1,:)
-        qabl(:,:,J_0:J_1,:) = qabl_g(:,:,J_0:J_1,:)
-        eabl(:,:,J_0:J_1,:) = eabl_g(:,:,J_0:J_1,:)
+        uabl(:,:,J_0:J_1,:) = uabl_glob(:,:,J_0:J_1,:)
+        vabl(:,:,J_0:J_1,:) = vabl_glob(:,:,J_0:J_1,:)
+        tabl(:,:,J_0:J_1,:) = tabl_glob(:,:,J_0:J_1,:)
+        qabl(:,:,J_0:J_1,:) = qabl_glob(:,:,J_0:J_1,:)
+        eabl(:,:,J_0:J_1,:) = eabl_glob(:,:,J_0:J_1,:)
 
-        cmgs(:,J_0:J_1,:) = cmgs_g(:,J_0:J_1,:)
-        chgs(:,J_0:J_1,:) = chgs_g(:,J_0:J_1,:)
-        cqgs(:,J_0:J_1,:) = cqgs_g(:,J_0:J_1,:)
-        ipbl(:,J_0:J_1,:) = ipbl_g(:,J_0:J_1,:)
+        cmgs(:,J_0:J_1,:) = cmgs_glob(:,J_0:J_1,:)
+        chgs(:,J_0:J_1,:) = chgs_glob(:,J_0:J_1,:)
+        cqgs(:,J_0:J_1,:) = cqgs_glob(:,J_0:J_1,:)
+        ipbl(:,J_0:J_1,:) = ipbl_glob(:,J_0:J_1,:)
         CALL CHECKSUM(grid,cmgs,__LINE__,__FILE__//'::cmgs')
 
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
@@ -121,12 +142,13 @@
 #ifdef TRACERS_ON
         SELECT CASE (IACTION)
         CASE (IOREAD,IRERUN,IRSFIC,IRSFICNO)    ! restarts
-          READ (KUNIT,ERR=10) TR_HEADER,TRABL
+          READ (KUNIT,ERR=10) TR_HEADER,TRABL_GLOB
           IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in tracer module version ",TR_HEADER
      *           ,TR_MODULE_HEADER
             GO TO 10
           END IF
+          CALL UNPACK_BLOCK(grid, TRABL_GLOB, TRABL, local=.true.)
         END SELECT
 #endif
       END SELECT
@@ -182,8 +204,11 @@
           CALL ARRAYGATHER(grid, egcm(L,:,:), egcm_glob(L,:,:))
           CALL ARRAYGATHER(grid, w2gcm(L,:,:), w2gcm_glob(L,:,:))
         END DO
-        WRITE (kunit,err=10) MODULE_HEADER,wsavg,tsavg,qsavg,dclev
-     *       ,usavg,vsavg,tauavg,ustar_pbl,egcm,w2gcm,tgvavg,qgavg
+        WRITE (kunit,err=10) MODULE_HEADER,wsavg_glob,tsavg_glob
+     *       ,qsavg_glob,dclev_glob,usavg_glob,vsavg_glob,tauavg_glob
+     *       ,ustar_pbl_glob,egcm_glob,w2gcm_glob,tgvavg_glob
+     *       ,qgavg_glob
+
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,wsavg_glob,tsavg_glob,
      *       qsavg_glob,dclev_glob,usavg_glob,

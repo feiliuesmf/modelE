@@ -1808,7 +1808,9 @@ C**** albedo calculations
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
       USE SEAICE_COM
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP, only : PACK_COLUMN, PACK_DATA, PACK_BLOCK
+      USE DOMAIN_DECOMP, only :  UNPACK_BLOCK
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -1825,6 +1827,7 @@ C**** albedo calculations
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSICE01"
+      REAL*8 ::  TRSI_GLOB(NTM, LMI, IM, JM)
 
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a8,i3,a1,i3,a)')'R8 TRSI(',ntm,',',lmi,',im,jm)'
@@ -1836,11 +1839,25 @@ C**** albedo calculations
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-         WRITE (kunit,err=10) MODULE_HEADER,RSI,HSI,SNOWI,MSI,SSI
-     *     ,POND_MELT,FLAG_DSWS
+         CALL PACK_DATA(grid, RSI, RSI_GLOB)
+         CALL PACK_DATA(grid, SNOWI, SNOWI_GLOB)
+         CALL PACK_DATA(grid, MSI, MSI_GLOB)
+         CALL PACK_DATA(grid, POND_MELT, POND_MELT_GLOB)
+         CALL PACK_DATA(grid, FLAG_DSWS, FLAG_DSWS_GLOB)
+         CALL PACK_COLUMN(grid, HSI, HSI_GLOB)
+         CALL PACK_COLUMN(grid, SSI, SSI_GLOB)
 #ifdef TRACERS_WATER
-        WRITE (kunit,err=10) TRMODULE_HEADER,TRSI
+         CALL PACK_BLOCK(grid, TRSI, TRSI_GLOB)
 #endif
+         IF (AM_I_ROOT()) THEN
+           WRITE (kunit,err=10) MODULE_HEADER, RSI_glob, HSI_glob,
+     *       SNOWI_glob, MSI_glob, SSI_glob,POND_MELT_glob,
+     *       FLAG_DSWS_glob
+#ifdef TRACERS_WATER
+
+           WRITE (kunit,err=10) TRMODULE_HEADER,TRSI_glob
+#endif
+        END IF
       CASE (IOREAD:)            ! input from restart file
          READ (kunit,err=10) HEADER,RSI_GLOB,HSI_GLOB,
      *      SNOWI_GLOB,MSI_GLOB,SSI_GLOB
@@ -1863,12 +1880,13 @@ C**** albedo calculations
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
         CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO) ! reruns/restarts
-          READ (kunit,err=10) TRHEADER,TRSI
+          READ (kunit,err=10) TRHEADER,TRSI_GLOB
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",TRHEADER
      *           ,TRMODULE_HEADER
             GO TO 10
           END IF
+          CALL UNPACK_BLOCK(grid, TRSI_GLOB, TRSI, local=.true.)
         END SELECT
 #endif
       END SELECT

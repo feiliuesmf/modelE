@@ -351,8 +351,9 @@ c -------------------------------------------------------------
       USE SOCPBL, only : npbl=>n,zgs,inits,ccoeff0,XCDpbl
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
       USE PBLCOM
-      USE DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE,CHECKSUM,NORTH
+      USE DOMAIN_DECOMP, only : READT_PARALLEL
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE SEAICE_COM, only : rsi,snowi
