@@ -16,7 +16,7 @@
      &                      nLightning  = 3,
      &                      nAircraft   = 4,
      &                      Laircr      =19,
-     &                      Lsulf       =LM
+     &                      Lsulf       =23 ! not LM
       REAL*8, PARAMETER :: correct_CO_ind=520./410.
 c
 !@var CH4_src           CH4 surface sources and sinks (kg/s)
@@ -622,20 +622,20 @@ c
       character*80 title
       logical LINJECT
       integer, parameter :: nanns=0,nmons=1
-      integer ann_units(nanns),mon_units(nmons)
+      integer ann_units(nanns),mon_units(nmons),imon(nmons)
       character*12 :: mon_files(nmons) = (/'NOx_AIRCRAFT'/)
       logical :: mon_bins(nmons)=(/.true./) ! binary file?
       real*8 tlca(im,jm,Laircr,nmons),tlcb(im,jm,Laircr,nmons)
       real*8 frac
-      integer l,i,j,iu,k,ll,imon(nmons)
+      integer l,i,j,iu,k,ll
       integer :: jdlast=0
       save jdlast,tlca,tlcb,mon_units,imon
-      REAL*8, DIMENSION(IM,JM,Laircr,1) :: src
-      REAL*8, DIMENSION(LM)     :: pres
-      REAL*4, DIMENSION(Laircr) :: PAIRL
-      DATA PAIRL/1013.25,898.74,794.95,701.08,616.40,540.19,471.81,
-     &            410.60,355.99,307.42,264.36,226.32,193.30,165.10,
-     &            141.01,120.44,102.87,87.866,75.048/
+      REAL*8, DIMENSION(IM,JM,Laircr,1)    :: src
+      REAL*8, DIMENSION(LM)                :: pres
+      REAL*4, PARAMETER, DIMENSION(Laircr) :: PAIRL =
+     & (/1013.25,898.74,794.95,701.08,616.40,540.19,471.81,
+     &    410.60,355.99,307.42,264.36,226.32,193.30,165.10,
+     &    141.01,120.44,102.87,87.866,75.048/)
 c
 C**** Local parameters and variables and arguments:
 c
@@ -697,34 +697,41 @@ C
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only: jday,im,jm,lm
+      USE MODEL_COM, only: jday,im,jm,lm,ptop,psf,sig
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       use TRACER_SOURCES, only: Lsulf
       USE TRCHEM_Shindell_COM, only: sulfate
 C
       IMPLICIT NONE
-c
+
 C**** Local parameters and variables and arguments:
 c
 !@var nanns,nmons: number of annual and monthly input files
-      character*80 title
+!@param Psulf pressure levels of the sulfate SA input file
+      real*8, parameter, dimension(Lsulf) :: Psulf = (/
+     & 0.9720D+03,0.9445D+03,0.9065D+03,
+     & 0.8515D+03,0.7645D+03,0.6400D+03,0.4975D+03,0.3695D+03,
+     & 0.2795D+03,0.2185D+03,0.1710D+03,0.1335D+03,0.1016D+03,
+     & 0.7120D+02,0.4390D+02,0.2470D+02,0.1390D+02,0.7315D+01,
+     & 0.3045D+01,0.9605D+00,0.3030D+00,0.8810D-01,0.1663D-01/)
       integer, parameter :: nanns=0,nmons=1
-      integer ann_units(nanns),mon_units(nmons)
+      integer ann_units(nanns),mon_units(nmons),imon(nmons)
+      integer i,j,iu,k,l
+      integer      :: jdlast=0  
+      character*80 title   
       character*10 :: mon_files(nmons) = (/'SULFATE_SA'/)
-      logical :: mon_bins(nmons)=(/.true./) ! binary file?
-      real*8 tlca(im,jm,Lsulf,nmons),tlcb(im,jm,Lsulf,nmons)
-      real*8 frac
-      integer i,j,iu,k,imon(nmons)
-      integer :: jdlast=0
+      logical      :: mon_bins(nmons)=(/.true./) ! binary file?
+      real*8 tlca(im,jm,Lsulf,nmons),tlcb(im,jm,Lsulf,nmons),frac
+      REAL*8, DIMENSION(LM)    :: pres,srcLout
+      REAL*8, DIMENSION(Lsulf) :: srcLin
       REAL*8, DIMENSION(IM,JM,Lsulf,1) :: src
       save jdlast,tlca,tlcb,mon_units,imon
 c
 C**** Sulfate surface area input file is monthly, on LM levels.
 C     Read it in here and interpolated each day.
-C****
-C**** Monthly sources are interpolated to the current day
-C**** I belive no conversion of the sulfate input file is expected:
-C****
+C     I belive no conversion of the sulfate input file is expected,
+C     other than interpolation in the vertical.
+C
       call openunits(mon_files,mon_units,mon_bins,nmons)
       j = 0
       do k=nanns+1,1
@@ -735,11 +742,23 @@ C****
       jdlast = jday
       call closeunits(mon_units,nmons)
       write(6,*) 'Sulfate srface area interpolated to current day',frac
-      call sys_flush(6)
-C
-C**** Save in array to be used in chemistry:
-C
-      sulfate(:,:,:)=src(:,:,:,1)
+      call sys_flush(6) 
+C====
+C====   Place sulfate onto model levels ("sulfate" array to be used in
+C====   the chemistry):
+C====              
+      DO L=1,LM
+        PRES(L)=SIG(L)*(PSF-PTOP)+PTOP
+      ENDDO      
+      do k=nanns+1,1; DO J=1,JM; DO I=1,IM
+        DO L=1,Lsulf
+          srcLin(L)=src(I,J,L,k)
+        END DO
+        call LOGPINT(Lsulf,Psulf,srcLin,LM,PRES,srcLout)
+        DO L=1,LM
+          sulfate(I,J,L)=srcLout(L)
+        ENDDO         
+      end do        ; END DO   ; END DO     
 C
       return
       END SUBROUTINE get_sulfate
@@ -1049,3 +1068,60 @@ C     more representative throughout the 1 hour time step:
 
       RETURN
       END SUBROUTINE get_sza
+C
+C
+      SUBROUTINE LOGPINT(LIN,PIN,AIN,LOUT,POUT,AOUT)
+!@sum LOGPINT does vertical interpolation of column variable,
+!@+   linearly in ln(P).
+!@auth Greg Faluvegi
+!@ver 1.0
+C
+      IMPLICIT NONE
+c
+C**** Local parameters and variables and arguments
+C
+!@var LIN number of levels for initial input variable
+!@var LOUT number of levels for output variable
+!@var PIN pressures at LIN levels
+!@var POUT pressures at LOUT levels
+!@var AIN initial input column variable
+!@var AOUT output (interpolated) column variable
+!@var LNPIN natural log of PIN
+!@var LNPOUT natural log of POUT
+!@var slope slope of line used for extrapolations
+C
+      INTEGER, INTENT(IN)                 :: LIN, LOUT
+      REAL*8, INTENT(IN), DIMENSION(LIN)  :: PIN, AIN
+      REAL*8, INTENT(OUT),DIMENSION(LOUT) :: POUT, AOUT 
+      REAL*8, DIMENSION(LIN)              :: LNPIN
+      REAL*8, DIMENSION(LOUT)             :: LNPOUT       
+      INTEGER L1,L2
+      REAL*8 slope
+C      
+      LNPIN(:) = LOG(PIN(:))                   ! take natural log
+      LNPOUT(:)= LOG(POUT(:))                  ! of pressures
+C      
+      DO L1=1,LOUT
+       IF (LNPOUT(L1).gt.LNPIN(1)) THEN        ! extrapolate
+         slope=(AIN(2)-AIN(1))/(LNPIN(2)-LNPIN(1))
+         AOUT(L1)=AIN(1)-slope*(LNPIN(1)-LNPOUT(L1))
+       ELSE IF (LNPOUT(L1).lt.LNPIN(LIN)) THEN ! extrapolate
+         slope=(AIN(LIN)-AIN(LIN-1))/(LNPIN(LIN)-LNPIN(LIN-1))
+         AOUT(L1)=AIN(LIN)+slope*(LNPOUT(L1)-LNPIN(LIN))
+       ELSE                                    ! interpolate
+        DO L2=1,LIN-1
+         IF(LNPOUT(L1).eq.LNPIN(L2)) THEN
+           AOUT(L1)=AIN(L2)
+         ELSE IF(LNPOUT(L1).eq.LNPIN(L2+1)) THEN
+           AOUT(L1)=AIN(L2+1)
+         ELSE IF(LNPOUT(L1).lt.LNPIN(L2) .and. 
+     &   LNPOUT(L1).gt.LNPIN(L2+1)) THEN
+           AOUT(L1)=(AIN(L2)*(LNPIN(L2+1)-LNPOUT(L1)) 
+     &     +AIN(L2+1)*(LNPOUT(L1)-LNPIN(L2)))/(LNPIN(L2+1)-LNPIN(L2))
+         END IF
+        END DO
+       END IF
+      END DO          
+C           
+      RETURN
+      END SUBROUTINE LOGPINT
