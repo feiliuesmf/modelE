@@ -31,7 +31,7 @@
       external sig_stop_model
 C**** Command line options
       LOGICAL :: qcrestart=.false.
-      CHARACTER*32 :: ifile='Iinput'
+      CHARACTER*32 :: ifile
 
 
         call init_decomp(grid,im,jm)
@@ -717,7 +717,7 @@ C****
 C****
 C**** Print Header and Label (2 lines) from rundeck
 C****
-      call openunit(ifile,iu_IFILE,.false.,.true.)
+      call openunit(trim(ifile),iu_IFILE,.false.,.true.)
       WRITE (6,'(A,40X,A/)') '0','GISS CLIMATE MODEL'
       READ(iu_IFILE,'(A80)') XLABEL(1:80),NLREC
       NOFF=0
