@@ -538,8 +538,10 @@ c??? *  add many lines to avoid 'COMMON BLOCK' - do I really have to ???
       RETURN
       END SUBROUTINE io_diags
 
-      SUBROUTINE aPERIOD (JMON1,JYR1,months,years,  aDATE,LDATE)
+      SUBROUTINE aPERIOD (JMON1,JYR1,months,years,moff,  aDATE,LDATE)
 !@sum  aPERIOD finds a 7 or 12-character name for an accumulation period
+!@+   if the earliest month is NOT the beginning of the 2-6 month period
+!@+   the name will reflect that fact ONLY for 2 or 3-month periods
 !@auth Reto A. Ruedy
 !@ver  1.0
       USE MODEL_COM, only : AMONTH
@@ -550,6 +552,8 @@ c??? *  add many lines to avoid 'COMMON BLOCK' - do I really have to ???
       INTEGER JMONM,JMONL
 !@var months,years length of 1 period,number of periods
       INTEGER months,years
+!@var moff = # of months from beginning of period to JMON1 if months<12
+      integer moff
 !@var yr1,yr2 (end)year of 1st and last period
       INTEGER yr1,yr2
 !@var aDATE date string: MONyyr1(-yyr2)
@@ -568,6 +572,11 @@ c??? *  add many lines to avoid 'COMMON BLOCK' - do I really have to ???
          yr1=yr1+1
          JMONL=JMONL-12
       end if
+      if (moff.gt.0.and.months.le.3) then  ! earliest month is NOT month
+        JMONL = 1 + mod(10+jmon1,12)       ! 1 of the 2-3 month period
+        yr1=JYR1
+        if (jmon1.gt.1) yr1=yr1+1
+      end if
       yr2=yr1+years-1
       write(aDATE(4:7),'(i4.4)') yr1
       if(years.gt.1) write(aDATE(8:12),'(a1,i4.4)') '-',yr2
@@ -581,10 +590,26 @@ c??? *  add many lines to avoid 'COMMON BLOCK' - do I really have to ???
 !****    =FML where M=letter 1 of Middle month       for 3 month periods
 !****    =FnL where n=length of period if n>3         4-11 month periods
       aDATE(3:3)=AMONTH(JMONL)(1:1)            ! we know: months>1
-      IF (months.eq.2) aDATE(2:2)='+'
-      JMONM = JMONL-1
-      IF(JMONM.eq.0) JMONM=12
-      IF (months.eq.3) aDATE(2:2)=AMONTH(JMONM)(1:1)
+      IF (months.eq.2) then
+        aDATE(2:2)='+'
+        return
+      end if
+      if (months.eq.3) then
+        JMONM = JMONL-1
+        if (moff.eq.1) jmonm = jmon1+1
+        if (jmonm.gt.12) jmonm = jmonm-12
+        if (jmonm.le.0 ) jmonm = jmonm+12
+        aDATE(2:2)=AMONTH(JMONM)(1:1)
+        return
+      end if
+      if (moff.gt.0) then  ! can't tell non-consec. from consec. periods
+        jmon1 = jmon1-moff
+        if (jmon1.le.0) jmon1 = jmon1+12
+        JMONL=JMON1+months-1
+        if (jmonl.gt.12) jmonl = jmonl-12
+        aDATE(1:1)=AMONTH(JMON1)(1:1)
+        aDATE(3:3)=AMONTH(JMONL)(1:1)
+      end if
       IF (months.ge.4.and.months.le.9) write (aDATE(2:2),'(I1)') months
       IF (months.eq.10) aDATE(2:2)='X'         ! roman 10
       IF (months.eq.11) aDATE(2:2)='B'         ! hex   11

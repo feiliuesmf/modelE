@@ -19,7 +19,7 @@
      *     ,s0,s1,s2,s3,s4,s5,s6,c1,c2,c3,c4,c5,c6,b1,b123
 
 C**** boundary layer parameters
-      real*8, parameter :: kappa=0.40d0  !@var kappa  Von Karman constant
+      real*8, parameter :: kappa=0.40d0 !@var kappa  Von Karman constant
       real*8, parameter :: zgs=10. !@var zgs height of surface layer (m)
 
 !@var  u  local due east component of wind
@@ -944,7 +944,7 @@ c
       subroutine tqeqns(u,v,t0,q0,t,q,z,kh,dz,dzh,
      2                  ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
      3                  ttop,qtop,dtime,n)
-!@sum tqeqns integrates differential eqns for t AND q (tridiagonal method)
+!@sum tqeqns integrates differential eqns for t & q (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
 !@+   kh * dt/dz = ch * usurf * (t - tg)
@@ -1030,7 +1030,7 @@ c     M.J.Miller et al. 1992:
       subroutine uveqns(u0,v0,u,v,z,km,dz,dzh,
      2                  ustar,cm,z0m,utop,vtop,dtime,coriol,
      3                  ug,vg,n)
-!@sum uveqns integrates differential eqns for u and v (tridiagonal method)
+!@sum uveqns integrates differential eqns for u & v (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
 !@+   km * du/dz = cm * usurf * u

@@ -38,12 +38,12 @@ c      COMMON /WORK1/ W(IM,JM,LM),WORKX(IM,JM,7*LM+3)
       REAL*8, INTENT(IN), DIMENSION(IM,JM) :: P
 
 C**** NOTE: AEP was a seperate array but is now saved in AJL (pointer?)
-!@var AEP accumulated E-P flux diagnostics 
+!@var AEP accumulated E-P flux diagnostics
 c      REAL*8, DIMENSION(JM,LM,KEP) :: AEP
 
 C**** ARRAYS CALCULATED HERE:
       REAL*8 UV(IM,JM,LM),UW(IM,JM,LM),
-     *   STB(JM,LM), RXCL(LM),UCL(LM), WXXS(IM),WXXN(IM)   
+     *   STB(JM,LM), RXCL(LM),UCL(LM), WXXS(IM),WXXN(IM)
 C**** The following quantities are added into AEP(,,1..19)
      *  ,FMY(JM,LM), FEY(JM,LM),  FMZ(JM,LM), FEZ(JM,LM)
      *  ,FMYR(JM,LM),FEYR(JM,LM), FMZR(JM,LM),FEZR(JM,LM)
@@ -53,7 +53,7 @@ C**** The following quantities are added into AEP(,,1..19)
 C**** End of quantities added into AEP
      *  ,TI(JM,LM),  FD(IM,JM)
 C**** The following quantities are added into AEP(,,1..19)
-C**** (equivalenced to XEP) 
+C**** (equivalenced to XEP)
       COMMON /EPCOM1/ FMY, FEY,  FMZ, FEZ, FMYR, FEYR, FMZR, FEZR, COR,
      *     CORR, FER1, ER21, ER22, VR, WR, RX, UI, VI,  WI
       REAL*8 DUT(JM,LM), AX(JM,LM)
@@ -66,7 +66,7 @@ C**** (equivalenced to XEP)
 C     Use IDACC(4) for calling frequency
 
 C**** Initialise for this call
-      XEP = 0 
+      XEP = 0
 
 C****
 C**** ZONAL AVERAGE QUANTITIES
@@ -305,7 +305,7 @@ C****
         CORR( 2,L)=.5*(2.*FCOR( 1)+FCOR(   2))*VR(2,L)
         CORR(JM,L)=.5*(2.*FCOR(JM)+FCOR(JM-1))*VR(JM,L)
         DO J=3,JM-1
-          CORR(J,L)=.5*(FCOR(J-1)+FCOR(J))*VR(J,L) 
+          CORR(J,L)=.5*(FCOR(J-1)+FCOR(J))*VR(J,L)
         END DO
       END DO
 C****
@@ -435,7 +435,7 @@ C****
       USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
       IMPLICIT NONE
 C**** NOTE: AEP was a seperate array but is now saved in AJL (pointer?)
-!@var AEP accumulated E-P flux diagnostics 
+!@var AEP accumulated E-P flux diagnostics
 c      REAL*8, DIMENSION(JM,LM,KEP) :: AEP
 
 c      COMMON /PROGCB/ U,V,T,SX,SY,SZ,P,Q   !not used?
@@ -468,7 +468,7 @@ C**** ARRAYS CALCULATED HERE:
 CW   *  ,DMY(JM,LM),DMZ(JM,LM),DEY(JM,LM),DEZ(JM,LM)
 CW     *  ,DMYR(JM,LM),DMZR(JM,LM),DEYR(JM,LM),DEZR(JM,LM)
      *  ,ER1(JM,LM),ER2(JM,LM), BYDPJL(JM,LM)
-C**** common required to pass from XEP to individual arrays (better way?)
+C**** common needed to pass from XEP to individual arrays (better way??)
 C**** Not clear how many of these are actually used.
       COMMON /EPCOM/ FMY, FEY, FMZ, FEZ, FMYR, FEYR, FMZR, FEZR, COR,
      *     CORR, FER1, ER21, ER22, VR, WR, RX, UI, VI, WI, DUT, DUD
@@ -476,7 +476,7 @@ C**** Not clear how many of these are actually used.
       EQUIVALENCE (XEP,FMY)
       REAL*8 DTAEP,BYDT,SCALE,SCALE1,BYIAEP
       INTEGER I,J,L,N,JL
-      
+
 C**** Initialize constants
       DTAEP = DTsrce*NDAA   ! change of definition of NDAA
       BYIAEP=1./(IDACC(4)+1.D-20)

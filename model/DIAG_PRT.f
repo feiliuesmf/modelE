@@ -2752,13 +2752,15 @@ c
       integer i,j,k1,k2,k,iwt,jgrid,irange,n1,n2
       character(len=30) name,units
       character(len=80) lname
-      real*8 :: gm, off, byiacc, scalek
+      real*8 :: gm,nh,sh, off, byiacc, scalek
 
+c**** Find & scale the numerators and find the appropriate denominators
+c****
       adenom = 1.                                             ! default
       if (k.eq.ij_dsev) adenom(1,1) = undef    ! zonal mean -> zonal sum
 
+c**** the standard cases: aij(.,.,k) or aij(.,.,k)/aij(.,.,k1)
       if (k .le. kaij) then
-c**** the standard case (and numerator of ratios)
         name = name_ij(k) ; lname = lname_ij(k) ; units = units_ij(k)
         iwt = iw_ij(k) ; jgrid = jgrid_ij(k) ; irange = ir_ij(k)
 c**** offsets ("  + " or "  - " in lname_ij, i.e. 2 blanks,+|-,1 blank)
@@ -2808,17 +2810,16 @@ c**** ratios (the denominators)
           end if
           lname_ij(k)(k1:80) = ' '    ; lname = lname_ij(k)
         end if
-        call ij_avg (k,anum,adenom,wt_ij(1,1,iwt),jgrid, smap,smapj,gm)
-        return
+        go to 100
       end if
 
-c**** compound quantities defined with their attributes
+c**** compound quantities defined with their attributes (k > kaij)
 c****
       iwt = iw_all ; jgrid = 1 ; irange = ir_pct    ! defaults
       name  = name_ij(k)
       lname = lname_ij(k) ; units = units_ij(k)
 
-c**** time independent arrays (k > kaij)
+c**** time independent arrays
       if      (k.eq.ij_topo)  then
         anum = zatmo*bygrav    ; irange = ir_0_3550
 
@@ -2921,20 +2922,25 @@ c**** length of growing season   (not quite right ???)
         write (6,*) 'no field defined for ij_index',k
         stop 'ij_mapk: undefined extra ij_field'
       end if
-      call ij_avg (k,anum,adenom,wt_ij(1,1,iwt),jgrid, smap,smapj,gm)
+
+c**** Find final field and zonal, global, and hemispheric means
+  100 call ij_avg (anum,adenom,wt_ij(1,1,iwt),jgrid,       ! in
+     *             smap,smapj,gm,nh,sh)                    ! out
+
+c**** fill in some key numbers
+      if (k .eq. IJ_RSIT) call keyij(gm,nh)
+
       return
 
       end subroutine ij_mapk
 
-      subroutine ij_avg (k,anum,aden,wtij,jgrid, smap,smapj,gm)
+      subroutine ij_avg (anum,aden,wtij,jgrid, smap,smapj,gm,nh,sh)
 !@sum ij_avg finds num/den and various averages from num and den
 !@auth R.Ruedy
 !@ver  1.0
       USE MODEL_COM, only :  im,jm,fim,jeq
       USE CONSTANT, only :  undef
       USE GEOM, only : wtj
-      USE BDIJ
-      USE DAGCOM
 
       IMPLICIT NONE
 
@@ -2980,9 +2986,6 @@ c**** find hemispheric and global means
         sh = znumh(1) ; nh = znumh(2) ; gm = (znumh(1)+znumh(2))
       end if
 
-c**** fill in some key numbers
-      if (k .eq. IJ_RSIT) call keyij(gm,nh)
-
       return
       end subroutine ij_avg
 
@@ -3010,7 +3013,7 @@ c    &     IJ_DSEV,IJ_TRNFP0,IJ_SRNFP0,IJ_SLP,IJ_TS !not a generic subr.
       IMPLICIT NONE
 
 !@var Qk: if Qk(k)=.true. field k still has to be processed
-      logical, dimension (kaijx) :: Qk = .true.
+      logical, dimension (kaijx) :: Qk
 !@var Iord: Index array, fields are processed in order Iord(k), k=1,2,..
 !@+     only important for fields 1->nmaplets+nmaps (appear in printout)
 !@+     Iord(k)=0 indicates that a blank space replaces a maplet
@@ -3058,6 +3061,7 @@ c***                                        2  full page maps
      *  ij_slp,ij_ts/)
 
 c**** always skip unused fields
+      Qk = .true.
       do k=1,kaijx
         if (index(lname_ij(k),'unused').gt.0) Qk(k) = .false.
       end do
@@ -3165,7 +3169,7 @@ C**** Print out full-page digital maps
         Qk(k) = .false.
       end do
 
-      if (.not.qcheck) return
+      if (.not.qcheck) RETURN
 C**** produce binary files of remaining fields if appropriate
       do k=1,kaijx
         if (Qk(k)) then
@@ -3347,7 +3351,7 @@ C****
 
       IMPLICIT NONE
       character*80 line
-      logical, dimension (kaijx) :: Qk
+      logical Qk(kaijx)
       INTEGER Iord(kaijx+10),nmaplets,nmaps,iopt,iu_Iij,k,
      *   n,kmap(3)
 
@@ -3401,6 +3405,7 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if 0 < kdiag(3) < 8
       go to 10
 
    20 nmaplets = kmap(1) ; nmaps = kmap(2)
+      if (.not.qcheck .or. kdiag(3).eq.1) call closeunit(iu_Iij)
       return
       end subroutine set_ijout
 
@@ -3876,7 +3881,7 @@ C****
      *  6X,'To:',I6,A6,I2,', Hr',I3,
      *  '    UNITS OF 10**18 JOULES')
   903 FORMAT ('0',15X,21('-'),' TROPOSPHERE ',22('-'),5X,21('-'),
-     *  '  LOW STRAT. * 10 ',19('-')/8X,2(11X,'ZKE',8X,'EKE',7X,
+     *  '  LOW STRAT. * 10 ',17('-')/8X,2(11X,'ZKE',8X,'EKE',7X,
      *     'SEKE',9X,
      * 'ZPE',10X,'EPE')/3X,'DAY  HOUR     SH   NH    SH   NH     1    2
      *    SH    NH     SH    NH      SH   NH    SH   NH    SH   NH     S
@@ -4304,6 +4309,7 @@ C**** All titles/names etc. implicitly assume that this will be done.
       USE DAGCOM, only : kdiag,
      &     aijk,acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
      *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk,kaijkx
+      use filemanager
       IMPLICIT NONE
 
       CHARACTER XLB*24,TITLEX*56
@@ -4312,7 +4318,7 @@ C**** All titles/names etc. implicitly assume that this will be done.
       REAL*8 flat,press,dp
       CHARACTER*4 CPRESS(LM)
       INTEGER i,j,l,kxlb,ni,kcomp,k,iu_Iij
-      logical, dimension (kaijkx) :: Qk = .true.
+      logical, dimension (kaijkx) :: Qk
 
 C**** OPEN PLOTTABLE OUTPUT FILE
       call open_ijk(trim(acc_period)//'.ijk'//XLABEL(1:LRUNID))
@@ -4320,6 +4326,11 @@ C****
 C**** INITIALIZE CERTAIN QUANTITIES
 C****
       call ijk_titles
+
+      Qk = .true.
+      do k=1,kaijkx
+        if (lname_ijk(k).eq.'unused') Qk(k) = .false.
+      end do
       if (kdiag(3).eq.8) then
          write (iu_Iij,'(a)') 'list of 3-d fields'
          do k=1,kaijkx
@@ -4333,6 +4344,7 @@ C****
          Qk(k) = .true.
          go to 10
    20    continue
+         call closeunit(iu_Iij)
       end if
 
       SMAP(:,:,:) = UNDEF
@@ -4355,8 +4367,8 @@ C****
 
 C**** Select fields
       DO K=1,KAIJKx
-        if (.not.Qk(k).or.lname_ijk(k).eq.'unused'.or.k.eq.ijk_dp) cycle
-        TITLEX = lname_ijk(k)(1:19)//"   at        mb ("//
+        if (.not.Qk(k).or.k.eq.ijk_dp) cycle
+        TITLEX = lname_ijk(k)(1:17)//"   at        mb ("//
      *       trim(units_ijk(k))//", UV grid)"
         IF (K.le.kaijk) THEN     !  simple cases
           DO L=1,LM

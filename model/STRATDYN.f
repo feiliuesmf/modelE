@@ -324,7 +324,7 @@ C**** Do I need to put the common decalaration here also?
       USE GEOM, only : dxyv,bydxyv,fcor,areag,imaxj,ravpn,ravps,rapvn
      *     ,rapvs
       USE DAGCOM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
-     *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9 
+     *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
      &     ,jl_dudfmdrg,jl_sdifcoef,jl_dtdtsdrg
       USE FILEMANAGER
       USE PARAM
@@ -335,7 +335,7 @@ C**** Do I need to put the common decalaration here also?
       INTEGER, PARAMETER :: NM=9
       REAL*8, PARAMETER :: FMC=2d-7, ERR=1d-20, H0=8000., XFROUD=1.
 !@var XLIMIT per timestep limit on mixing and drag
-      REAL*8, PARAMETER :: XLIMIT=.1d0 
+      REAL*8, PARAMETER :: XLIMIT=.1d0
 !@var ROTK should this be set from CONSTANT?
       REAL*8, PARAMETER :: ROTK = 1.5, RKBY3= ROTK*ROTK*ROTK
 c      COMMON/WORK3/PK(IM,JM,LM),UBAR(IM,JM,LM),
@@ -350,7 +350,7 @@ c     *   PDEF,LDEF,LDEFM
      *     WT(NM),UEDGE(LM),VEDGE(LM),BYFACS(LM)
       REAL*8, SAVE :: EK(NM,JM),CN(NM),PKS(LM)
       DATA CN(1)/0./
-      REAL*8, SAVE :: GRAVS,G2DT,DTHR,BYDT1,VARMIN 
+      REAL*8, SAVE :: GRAVS,G2DT,DTHR,BYDT1,VARMIN
       INTEGER, SAVE :: IFIRST=1
       INTEGER, SAVE :: L500,LSHR,LD2 = LM   ! need default for LD2
       INTEGER LD(NM),IO(4),JO(4)
@@ -788,7 +788,8 @@ C     IF (N.NE.1.OR.MRCH.NE.2) GO TO 375
 C     DO 370 L=LD1,LTOP
 C     IF (DFM(L).EQ.0.) GO TO 370
 C        AJL(J,L,JL_30)=AJL(J,L,JL_30)+ZWT(I,J)
-C        AJL(J,L,JL_DUDFMDRG)=AJL(J,L,JL_DUDFMDRG)+MUB(L+1,1)*UR(1)*ZWT(I,J)
+C        AJL(J,L,JL_DUDFMDRG)=
+C    *     AJL(J,L,JL_DUDFMDRG)+MUB(L+1,1)*UR(1)*ZWT(I,J)
 C 370 CONTINUE
 C**** CALCULATE DIFFUSION COEFFICIENT AND ADD DRAG TO THE WINDS
 C**** (DEFORMATION DIFFUSION IS * XDIFF)
@@ -841,7 +842,8 @@ C9430 FORMAT (' 7267 DIFFX > LIMIT:',4I3,1P,3E10.2,0P,2F7.1)
       FLUXV=DX/(1.+DX*(MUP+MDN)/(MUP*MDN))*(VL(L)-VL(L-1))
       DUT(L-1)=DUT(L-1)-(FLUXUD-FLUXU)/MDN
       DVT(L-1)=DVT(L-1)-(FLUXVD-FLUXV)/MDN
-C        IF (MRCH.EQ.2) AJL(J,L-1,JL_DUDTSDIF)=AJL(J,L-1,JL_DUDTSDIF)-(FLUXUD-FLUXU)/MDN
+C        IF (MRCH.EQ.2) AJL(J,L-1,JL_DUDTSDIF)=
+C    *      AJL(J,L-1,JL_DUDTSDIF)-(FLUXUD-FLUXU)/MDN
       FLUXUD=FLUXU
       FLUXVD=FLUXV
       YDN=YUP

@@ -1,19 +1,20 @@
       MODULE FFT72
-!@sum  FFT72 calculates the Fast Fourier Transform 
+!@sum  FFT72 calculates the Fast Fourier Transform
 !@auth Gary Russell
 !@ver  1.0 (for KM=72)
       USE CONSTANT, only : twopi,rt2,rt3
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KM=72 !@param KM fixed length of input array 
-      
-      REAL*8, PARAMETER :: BYKM=1d0/KM   !@param BYKM  1/KM 
+!@param KM length of input array; to change KM => rewrite module !!!
+      INTEGER, PARAMETER :: KM=72
+
+      REAL*8, PARAMETER :: BYKM=1d0/KM   !@param BYKM  1/KM
       REAL*8, PARAMETER :: BYKMH=2d0/KM  !@param BYKMH 1/(KM/2)
-      REAL*8, PARAMETER :: BYKM2=1d0/(2*KM)!@param BYKM2 1/(2*KM) 
+      REAL*8, PARAMETER :: BYKM2=1d0/(2*KM)!@param BYKM2 1/(2*KM)
 !@var C,S cos/sin evaluated on grid points
-      REAL*8 :: C(0:KM),S(0:KM)    
+      REAL*8 :: C(0:KM),S(0:KM)
 !@var CH,SH cos/sin evaluated on half points
-      REAL*8 :: CH(KM/2-1),SH(KM/2-1) 
+      REAL*8 :: CH(KM/2-1),SH(KM/2-1)
 
 !@var C240,C241,S241,C8,S8  intermediate sums for FFT
 !@var C41,C42,C43,C44,S41,S42,S43,S44 intermediate sums for FFT
@@ -29,13 +30,13 @@ C****
       SUBROUTINE FFT0 (IM)
 !@sum  FFT0 initializes sines and cosines used by FFT routines.
 !@auth Gary Russell
-!@ver  1.0 
+!@ver  1.0
       USE FFT72
       IMPLICIT NONE
       INTEGER IQ,N !@var IQ,N loop variables
       INTEGER, INTENT(IN) :: IM    !@var IM size of arrays (must=KM)
       IF(IM.NE.KM)  GO TO 100
-      DO N=0,KM/4  
+      DO N=0,KM/4
          C(N) = COS(TWOPI*N/dble(KM))
          S(KM/4   -N) =  C(N)
          C(KM/2   -N) = -C(N)
@@ -58,7 +59,7 @@ C****
 !@sum   FFT calculates fast fourier transform of an input array F
 !@auth  Gary Russell
 !@ver   1.0
-!@calls DOCALC 
+!@calls DOCALC
 C****
 C**** FFT calculates a fast fourier transform of the input array F,
 C**** producing the cosine and sine coefficients in the output arrays
@@ -81,7 +82,7 @@ C**** with the sum being taken over all wave numbers N from 0 to KM/2.
 C****
       USE FFT72
       IMPLICIT NONE
-      REAL*8, INTENT(IN) :: F(KM)      !@var F input gridpoint array 
+      REAL*8, INTENT(IN) :: F(KM)      !@var F input gridpoint array
       REAL*8, INTENT(OUT) :: A(0:KM/2) !@var A fourier coeffs. (cos)
       REAL*8, INTENT(OUT) :: B(0:KM/2) !@var B fourier coeffs. (sin)
       INTEGER IQ,N !@var IQ,N loop variables
@@ -89,15 +90,15 @@ C****
       CALL DOCALC(F)
 
 C**** Calculate final coefficients of fourier expansion
-      A(0) = (C22(0)+C21(0))*BYKM 
-      B(0) = 0. 
+      A(0) = (C22(0)+C21(0))*BYKM
+      B(0) = 0.
       DO N=1,KM/4
          A(N) = (C22(N)+C21(N))*BYKMH
          B(N) = (S22(N)+S21(N))*BYKMH
       END DO
       DO N=1,KM/4-1
-         A(KM/2-N) = (C22(N)-C21(N))*BYKMH 
-         B(KM/2-N) = (S21(N)-S22(N))*BYKMH 
+         A(KM/2-N) = (C22(N)-C21(N))*BYKMH
+         B(KM/2-N) = (S21(N)-S22(N))*BYKMH
       END DO
       A(KM/2) = (C22(0)-C21(0))*BYKM
       B(KM/2) = 0.
@@ -111,7 +112,7 @@ C****
 !@ver  1.0 (KM=72)
       USE FFT72
       IMPLICIT NONE
-      REAL*8, INTENT(OUT) :: F(KM)     !@var F output gridpoint array 
+      REAL*8, INTENT(OUT) :: F(KM)     !@var F output gridpoint array
       REAL*8, INTENT(IN) :: A(0:KM/2)  !@var A fourier coeffs. (cos)
       REAL*8, INTENT(IN) :: B(0:KM/2)  !@var B fourier coeffs. (sin)
       INTEGER IQ,N !@var IQ,N loop variables
@@ -142,8 +143,8 @@ C**** Now multiply by 2, so FACTOR = 2/18 = 9
       END DO
 C**** Multiply by 2 again, so FACTOR = 2*2/18 = 2/9
       DO N=0,4
-         C8(8,N)=C44(N)+C44(9-N) 
-         C8(4,N)=C44(N)-C44(9-N) 
+         C8(8,N)=C44(N)+C44(9-N)
+         C8(4,N)=C44(N)-C44(9-N)
          C8(2,N)=C42(N)+S42(9-N)
          C8(6,N)=C42(N)-S42(9-N)
       END DO
@@ -239,8 +240,8 @@ C**** Multiply by 3, so FACTOR = 3*2*2/18 = 3*2/9 = 2/3
       S241(23)=-(C8(7,2)-C8(7,4))*S(3)-(S8(7,2)-S8(7,4))*S(15)+S8(7,1)
       S241(7) = (C8(7,2)-C8(7,4))*S(15)+(S8(7,2)-S8(7,4))*S(3)+S8(7,1)
 C**** Multiply by FACTOR = 3/2
-      DO IQ=1,24 
-         F(IQ+24) = (S241(IQ)*S(IQ+24)+C241(IQ)*C(IQ+24))+C240(IQ)*.5 
+      DO IQ=1,24
+         F(IQ+24) = (S241(IQ)*S(IQ+24)+C241(IQ)*C(IQ+24))+C240(IQ)*.5
          F(IQ)    = (S241(IQ)*C(IQ+48)-C241(IQ)*S(IQ+48))*RT3+F(IQ+24)
          F(IQ+48) =-(S241(IQ)*C(IQ)   -C241(IQ)*S(IQ))   *RT3+F(IQ+24)
       END DO
@@ -251,26 +252,26 @@ C****
       SUBROUTINE FFTE (F,E)
 !@sum   FFTE calcs. the spectral energy E from input gridpoint values F
 !@auth  Gary Russell
-!@ver   1.0 
+!@ver   1.0
 !@calls DOCALC
       USE FFT72
       IMPLICIT NONE
-      REAL*8, INTENT(IN) :: F(KM)       !@var F input gridpoint array 
+      REAL*8, INTENT(IN) :: F(KM)       !@var F input gridpoint array
       REAL*8, INTENT(OUT) :: E(0:KM/2)  !@var E spectral energy
       INTEGER IQ,N !@var IQ,N loop variables
 
       CALL DOCALC(F)
 C****
-      E(0) =  (C22(0)+C21(0))*(C22(0)+C21(0))*BYKM2 
-      DO N=1,KM/4 
-         E(N) = ((C22(N)+C21(N))*(C22(N)+C21(N)) + 
-     *        (S22(N)+S21(N))*(S22(N)+S21(N)))*BYKM 
+      E(0) =  (C22(0)+C21(0))*(C22(0)+C21(0))*BYKM2
+      DO N=1,KM/4
+         E(N) = ((C22(N)+C21(N))*(C22(N)+C21(N)) +
+     *        (S22(N)+S21(N))*(S22(N)+S21(N)))*BYKM
       END DO
       DO N=1,KM/4-1
          E(KM/2-N) = ((C22(N)-C21(N))*(C22(N)-C21(N)) +
      *        (S21(N)-S22(N))*(S21(N)-S22(N)))*BYKM
       END DO
-      E(KM/2) = (C22(0)-C21(0))*(C22(0)-C21(0))*BYKM2 
+      E(KM/2) = (C22(0)-C21(0))*(C22(0)-C21(0))*BYKM2
 C****
       RETURN
       END SUBROUTINE FFTE
@@ -278,14 +279,14 @@ C****
       SUBROUTINE FFT2 (F,A,B)
 !@sum   FFT2 calculates Fourier coefficients on secondary grid
 !@auth  Gary Russell
-!@ver   1.0 
+!@ver   1.0
 !@calls FFT
 C****
 C**** Values in F(K) are located a half space right of those in FFT.
 C****
       USE FFT72
       IMPLICIT NONE
-      REAL*8, INTENT(IN) :: F(KM)      !@var input array 
+      REAL*8, INTENT(IN) :: F(KM)      !@var input array
       REAL*8, INTENT(OUT) :: A(0:KM/2) !@var fourier coefficients (cos)
       REAL*8, INTENT(OUT) :: B(0:KM/2) !@var fourier coefficients (sin)
       REAL*8  ANEW  !@var  ANEW  dummy variable
@@ -323,7 +324,7 @@ C**** Calculate expressions summed by increments of 8
          C8(IQ,1) = C241(IQ)+C241(IQ+8)+C241(IQ+16)
          S8(IQ,1) = S241(IQ)+S241(IQ+8)+S241(IQ+16)
       END DO
-              
+
       C8(1,2)= (C241(1)-S241(17))*S(15)+(S241(9)-C241(9))*S(9)+(S241(1)
      *     -C241(17))*S(3)
       C8(2,2)= (C241(2)-C241(10))*S(12)+(S241(2)+S241(10))*S(6)-S241(18)
@@ -337,7 +338,7 @@ C**** Calculate expressions summed by increments of 8
       C8(7,2)= (C241(23)+S241(7))*S(15)-(S241(15)+C241(15))*S(9)
      *     -(S241(23)+C241(7))*S(3)
       C8(8,2)= C241(24)-(C241(8)+C241(16))*S(6)+(S241(8)-S241(16))*S(12)
-      
+
       C8(1,3)= C240(1)*S(15)-C240(9)*S(9)-C240(17)*S(3)
       C8(2,3)= (C240(2)-C240(10))*S(12)
       C8(3,3)= C240(3)*S(9)-C240(11)*S(15)+C240(19)*S(3)
@@ -346,7 +347,7 @@ C**** Calculate expressions summed by increments of 8
       C8(6,3)= (C240(22)-C240(14))*S(12)
       C8(7,3)= C240(23)*S(15)-C240(15)*S(9)-C240(7)*S(3)
       C8(8,3)= C240(24)-(C240(8)+C240(16))*S(6)
-      
+
       C8(1,4)= (C241(1)+S241(17))*S(15)-(S241(9)+C241(9))*S(9)-(S241(1)
      *     +C241(17))*S(3)
       C8(2,4)= (C241(2)-C241(10))*S(12)-(S241(2)+S241(10))*S(6)+S241(18)
@@ -360,7 +361,7 @@ C**** Calculate expressions summed by increments of 8
       C8(7,4)= (C241(23)-S241(7))*S(15)+(S241(15)-C241(15))*S(9)
      *     +(S241(23)-C241(7))*S(3)
       C8(8,4)= C241(24)-(C241(8)+C241(16))*S(6)-(S241(8)-S241(16))*S(12)
-      
+
       S8(1,2)= (C241(1)+S241(17))*S(3)+(C241(9)+S241(9))*S(9)-(C241(17)
      *     +S241(1))*S(15)
       S8(2,2)= (C241(10)+C241(2))*S(6)+(S241(10)-S241(2))*S(12)-C241(18)
@@ -374,7 +375,7 @@ C**** Calculate expressions summed by increments of 8
       S8(7,2)= (C241(7)-S241(23))*S(15)+(S241(15)-C241(15))*S(9)
      *     -(C241(23)-S241(7))*S(3)
       S8(8,2)= (C241(8)-C241(16))*S(12)+(S241(8)+S241(16))*S(6)-S241(24)
-      
+
       S8(1,3)= C240(1)*S(3)+C240(9)*S(9)-C240(17)*S(15)
       S8(2,3)= (C240(10)+C240(2))*S(6)-C240(18)
       S8(3,3)= C240(3)*S(9)-C240(19)*S(15)+C240(11)*S(3)
@@ -383,7 +384,7 @@ C**** Calculate expressions summed by increments of 8
       S8(6,3)= C240(6)-(C240(14)+C240(22))*S(6)
       S8(7,3)= C240(7)*S(15)-C240(15)*S(9)-C240(23)*S(3)
       S8(8,3)= (C240(8)-C240(16))*S(12)
-      
+
       S8(1,4)= (C241(1)-S241(17))*S(3)+(C241(9)-S241(9))*S(9)-(C241(17)
      *     -S241(1))*S(15)
       S8(2,4)= (C241(10)+C241(2))*S(6)-(S241(10)-S241(2))*S(12)-C241(18)
@@ -428,12 +429,12 @@ C**** Calculate expressions summed by increments of 4
       S44(9) = 0.
 C**** Calculate expressions summed by increments of 2
       DO N=0,9
-         C21(N) = C41(N)+C43(N) 
-         C22(N) = C44(N)+C42(N) 
+         C21(N) = C41(N)+C43(N)
+         C22(N) = C44(N)+C42(N)
       END DO
       DO N=1,8
-         S21(N) = S41(N)+S43(N) 
-         S22(N) = S44(N)+S42(N) 
+         S21(N) = S41(N)+S43(N)
+         S22(N) = S44(N)+S42(N)
       END DO
       DO N=1,9
          C21(18-N) = S41(N)-S43(N)
@@ -441,10 +442,10 @@ C**** Calculate expressions summed by increments of 2
          S21(18-N) = C41(N)-C43(N)
          S22(18-N) = S42(N)-S44(N)
       END DO
-      C21(18) = 0. 
+      C21(18) = 0.
       C22(18) = C44(0)-C42(0)
       S21(18) = C41(0)-C43(0)
-      S22(18) = 0. 
+      S22(18) = 0.
 C****
       RETURN
       END SUBROUTINE DOCALC

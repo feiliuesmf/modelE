@@ -885,7 +885,7 @@ C****
       END SUBROUTINE DIAGCO
 
       SUBROUTINE io_oda(kunit,it,iaction,ioerr)
-!@sum  io_oda reads and writes ocean/ice data for initialisaing deep ocean
+!@sum  io_oda reads/writes ocean/ice data for initializing deep ocean
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,Itime,im,jm
@@ -903,10 +903,10 @@ C****
       INTEGER I,J
 
       SELECT CASE (IACTION)
-      CASE (:IOWRITE)           ! output 
+      CASE (:IOWRITE)           ! output
         WRITE (kunit,err=10) it,TOCEAN,RSI,MSI,HSI,SSI,
      *     ((AIJ(I,J,IJ_TGO2),I=1,IM),J=1,JM)
-      CASE (IOREAD:)            ! input 
+      CASE (IOREAD:)            ! input
         READ (kunit,err=10) it,TOCEAN,RSI,MSI,HSI,SSI,
      *     ((AIJ(I,J,IJ_TGO2),I=1,IM),J=1,JM)
       END SELECT

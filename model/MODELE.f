@@ -311,7 +311,7 @@ c       WRITE (6,'("1"/64(1X/))')
 
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
         IF (KCOPY.GT.0) THEN
-          call aPERIOD (JMON0,JYEAR0,months,1,aDATE(1:12),Ldate)
+          call aPERIOD (JMON0,JYEAR0,months,1,0, aDATE(1:12),Ldate)
           WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),JYEAR
 C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
           monacc = 0

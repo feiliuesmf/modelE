@@ -954,8 +954,10 @@ C     UM=UM+UE
 C     UT=UT+UE*SDU
 C 660 I=IP1
 C     AJL(J,L,JL_35)=AJL(J,L,JL_35)+TKET
-C     AJL(J,L,JL_EPFLXV)=AJL(J,L,JL_EPFLXV)+(UT-2.*UM*(SDMEAN(J,L)+SDMEAN(J-1,L)))
-C     AJL(J,L,JL_EPFLXN)=AJL(J,L,JL_EPFLXN)+(UT+4*AMA*FIM*(SDMEAN(J,L)+SDMEAN(J-1,L)))
+C     AJL(J,L,JL_EPFLXV)=
+C    *   AJL(J,L,JL_EPFLXV)+(UT-2.*UM*(SDMEAN(J,L)+SDMEAN(J-1,L)))
+C     AJL(J,L,JL_EPFLXN)=
+C    *  AJL(J,L,JL_EPFLXN)+(UT+4*AMA*FIM*(SDMEAN(J,L)+SDMEAN(J-1,L)))
 C 670 CONTINUE
 C****
 C**** AVAILABLE POTENTIAL ENERGY
@@ -3035,7 +3037,8 @@ c      PV4TI=PV4TI+AIJK(I,J,L,IJK_V)
 c  510 SKE4I=SKE4I+(AIJK(I,J,L,IJK_U)*AIJK(I,J,L,IJK_U)
 c     *            +AIJK(I,J,L,IJK_V)*AIJK(I,J,L,IJK_V))
 c     *            /(AIJK(I,J,L,IJK_DP)+1.D-20)
-c      SEKE=(SKE4I-(PU4TI*PU4TI+PV4TI*PV4TI)/AJK(J,L,JK_DPB))*DXYV(J)*BYIADA
+c      SEKE=(SKE4I-(PU4TI*PU4TI+PV4TI*PV4TI)/AJK(J,L,JK_DPB))*
+c     *   DXYV(J)*BYIADA
 c      IF (J.EQ.JEQ) GO TO 520
 c      ENERGY(KS,IDACC5)=ENERGY(KS,IDACC5)+SEKE
 c      GO TO 530
@@ -3100,7 +3103,7 @@ C****
       USE FILEMANAGER
       IMPLICIT NONE
       INTEGER L,K,KL,iargc,ioerr,months,years,mswitch,ldate,iu_AIC
-     *     ,ISTART,jday0,jday
+     *     ,ISTART,jday0,jday,moff,kb
       CHARACTER FILENM*100
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
 
@@ -3112,21 +3115,25 @@ C****
      *       ,amon0)
         call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
      *       ,amon)
-        months=0 ; years=monacc(jmon0) ; mswitch=0
-        do k=1,12
+        months=1 ; years=monacc(jmon0) ; mswitch=0 ; moff=0 ; kb=jmon0
+        do kl=jmon0+1,jmon0+11
+          k = kl
+          if (k.gt.12) k=k-12
           if (monacc(k).eq.years) then
             months=months+1
           else if (monacc(k).ne.0) then
             write(6,*) 'uneven period:',monacc
             stop 'uneven period'
           end if
-          if(k.gt.1.and.monacc(k).ne.monacc(k-1)) mswitch = mswitch+1
+          if(monacc(k).ne.monacc(kb)) mswitch = mswitch+1
+          if(mswitch.eq.2) moff = moff+1
+          kb = k
         end do
         if (mswitch.gt.2) then
           write(6,*) 'non-consecutive period:',monacc
           stop 'non-consecutive period'
         end if
-        call aPERIOD (JMON0,JYEAR0,months,years,acc_period,Ldate)
+        call aPERIOD (JMON0,JYEAR0,months,moff, years,acc_period,Ldate)
         if (iargc().gt.1) then  ! save the summed acc-file
           write(6,*) iargc(),' files are summed up'
           keyct=1 ; KEYNR=0

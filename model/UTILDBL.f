@@ -123,7 +123,7 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
         character*16 filename              ! the name on the file
       end type UnitStr
 
-      type (UnitStr) :: Units( MINUNIT : MAXUNIT ) 
+      type (UnitStr) :: Units( MINUNIT : MAXUNIT )
       data  Units  / TOTALUNITS*UnitStr(.false.," ") /
 
       contains
@@ -141,7 +141,7 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       endif
       nameunit = Units(unit)%filename
       end function nameunit
-      
+
 
       subroutine findunit( unit )
 !@sum findunit finds available unit
@@ -158,7 +158,7 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
 
 
       subroutine openunit( filename, iunit, qbin, qold )
-!@sum openunit opens the file <filename> and returns its unit in <unit> 
+!@sum openunit opens the file <filename> and returns its unit in <unit>
       implicit none
 !@var unit - unit of opened file
       integer, intent(out) :: iunit
@@ -194,7 +194,7 @@ C**** parse options
       implicit none
 !@var unit - unit of the file to close
       integer, intent(in) :: unit
-      
+
       if ( unit>MAXUNIT .or. unit<MINUNIT
      $     .or. .not. Units(unit)%in_use ) then
         write(6,*) "FILEMANAGER: attempt to close wrong unit: ",unit
@@ -211,7 +211,7 @@ C**** parse options
 !@sum print_open_units prints info on open units (for debugging)
       implicit none
       integer unit
-      
+
       write(6,*) "FILEMANAGER: Open Units:"
       do unit=MINUNIT,MAXUNIT
         if ( Units(unit)%in_use ) then
@@ -219,7 +219,7 @@ C**** parse options
         endif
       enddo
       end subroutine print_open_units
-      
+
 
       SUBROUTINE OPENUNITS(FILENM,IUNIT,QBIN,NREQ)
 !@sum  OPENUNITS sets unit number for requested files and opens them
@@ -267,7 +267,7 @@ C**** parse options
 !@auth  Original Development Team
 !@ver   1.0
 !@var NAME name of record being read
-      USE FILEMANAGER, only : NAME=>nameunit 
+      USE FILEMANAGER, only : NAME=>nameunit
       IMPLICIT NONE
       INTEGER :: IUNIT                    !@var  IUNIT  file unit number
       INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
@@ -324,7 +324,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 !@auth  Original Development Team
 !@ver   1.0
 !@var NAME name of record being read
-      USE FILEMANAGER, only : NAME=>nameunit 
+      USE FILEMANAGER, only : NAME=>nameunit
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: IUNIT        !@var  IUNIT  file unit number
       INTEGER, INTENT(IN) :: NSKIP    !@var  NSKIP  no. of R*4's to skip
@@ -357,12 +357,12 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 !@auth  Original Development Team
 !@ver   1.0
 !@var NAME name of record being read
-      USE FILEMANAGER, only : NAME=>nameunit 
+      USE FILEMANAGER, only : NAME=>nameunit
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: IUNIT        !@var  IUNIT  file unit number
-      INTEGER, INTENT(IN) :: IT           !@var  IT time_tag, 1st & last word
-      INTEGER, INTENT(IN) :: LEN4         !@var  LENGTH size of array
-      REAL*4,  INTENT(IN) :: AOUT(LEN4)   !@var  AOUT   real*4 array
+      INTEGER, INTENT(IN) :: IUNIT       !@var  IUNIT  file unit number
+      INTEGER, INTENT(IN) :: IT          !@var  IT time, 1st & last word
+      INTEGER, INTENT(IN) :: LEN4        !@var  LENGTH size of array
+      REAL*4,  INTENT(IN) :: AOUT(LEN4)  !@var  AOUT   real*4 array
 
       write (iunit) it,aout,it
       call flush(iunit)
@@ -375,7 +375,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 !@auth  Original Development Team
 !@ver   1.0
 !@var NAME name of record being read
-      USE FILEMANAGER, only : NAME=>nameunit 
+      USE FILEMANAGER, only : NAME=>nameunit
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: IUNIT        !@var  IUNIT  file unit number
       INTEGER, INTENT(IN) :: IT,ITdif   !@var  current time,time step
@@ -429,7 +429,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
      *       STATUS="OLD",ERR=10)
 
           print *, 'opened '
-          
+
 
  10   write(6,*) "test_FM: Error opening file ", "AIC"
       stop 'FM: FILE OPENING ERROR'

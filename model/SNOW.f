@@ -34,13 +34,13 @@ ccc physical parameters
 ccc model parameters
 !@var EPS small number (used as cutoff parameter) (1)
       real*8, parameter :: EPS = 1.d-8  ! was 1.d-12
-!@var MAX_NL maximal number of snow layers (actually only 3 are used) (1)
+!@var MAX_NL maximal number of snow layers (only 3 are used, really) (1)
       integer, parameter :: MAX_NL = 16
 !@var MIN_SNOW_THICKNESS minimal thickness of snow (m)
 ccc trying to increase MIN_SNOW_THICKNESS for stability
 ccc      real*8, parameter :: MIN_SNOW_THICKNESS =  0.01d0  ! was 0.09d0
       real*8, parameter :: MIN_SNOW_THICKNESS =  0.1d0
-!@var MIN_FRACT_COVER miminal areal fraction of snow cover (cutoff param) (1)
+!@var MIN_FRACT_COVER minimal snow cover (cutoff param) (1)
       real*8, parameter :: MIN_FRACT_COVER = 0.0001d0
 
 !@var DEB_CH channel for debug output
@@ -678,9 +678,9 @@ c!!! this is for debugging
 !@+   Implicitness is controlled by the parameters:
 !@+       gamma - for upper boundary
 !@+       eta(MAX_NL+1) - for the rest of the boundaries
-!@+   In general we are trying to use half-implicit method (gamma = .5d0)
+!@+   In general we are trying to use half-implicit method (gamma = .5)
 !@+   at the surface. But this may introduce a systematic error when
-!@+   temperature of the snow is close to 0 C. 
+!@+   temperature of the snow is close to 0 C.
 !@+   When option DO_EXPLIC_0 is enabled the program checks for possible
 !@+   error and if necessary recomputes the solution with reduced gamma,
 !@+   i.e. in more explicit way.

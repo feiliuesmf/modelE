@@ -726,9 +726,9 @@ C****
 C****
 C**** END OF MAIN LOOP FOR J INDEX
 C****
-C**** Put this here so that print out values are correct??? (at least for CO2).
+C**** Put this here so that print out values are correct
       if (ifirst.eq.1) then
-        call writer(6,0)  
+        call writer(6,0)
         ifirst=0
       end if
 C****

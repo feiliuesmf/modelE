@@ -1012,7 +1012,7 @@ c
 c
       k=k+1 !  'AIJ008'
       IJ_PRES = k ! PIJ (100 PA)  (NO PRINTOUT)  4 DA
-      lname_ij(k) = 'PRESSURE: SURFACE TO PTOP'
+      lname_ij(k) = 'SURFACE PRESSURE  - PTOP'
       units_ij(k) = 'mb'
       name_ij(k) = 'PRES'
       ia_ij(k) = ia_dga
@@ -1662,7 +1662,7 @@ cfree scale_ij(k) = 1.
 c
       k=k+1 !  'AIJ078'
       IJ_TMNMX  = k ! MIN(DIURNAL MAX OF COMPOSITE TS)      12 MN
-      lname_ij(k) = 'SURFACE AIR TEMPERATURE: LOWEST DIURNAL HIGH'
+      lname_ij(k) = 'SURFC AIR TEMPERATURE: LOWEST DIURNAL HIGH  + TF'
       units_ij(k) = 'degC' ! after offset (TF=273.16)
       name_ij(k) = 'TMNMX'
       ia_ij(k) = ia_inst
@@ -1680,7 +1680,7 @@ c
 c
       k=k+1 !  'AIJ080'
       IJ_TMAXE = k ! MAX TS OVER EARTH FOR CURRENT DAY (C).5*9 MN
-      lname_ij(k) = 'SURFACE AIR TEMPERATURE: DIURNAL HIGH OVER SOIL'
+      lname_ij(k) = 'SURFACE AIR TEMPERATURE: DIURNAL HIGH/SOIL'
       units_ij(k) = 'degC'
       name_ij(k) = 'TMAXE'
       ia_ij(k) = ia_12hr
@@ -2746,7 +2746,7 @@ c
 c
       k=k+1
       jl_mcdtotw = k
-      name_jl(k) = 'mc_del_tot_wat' !'AJL51' !'CLHE*DQ(MC BEFORE COND)*P'
+      name_jl(k) = 'mc_del_tot_wat' !'AJL51' 'CLHE*DQ(MC BEFORE COND)*P'
       lname_jl(k) = 'CHANGE IN TOTAL WATER BY MOIST CONV'
       units_jl(k) = '100 PA*K'
 c

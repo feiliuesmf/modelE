@@ -117,7 +117,7 @@ c**** public variables:
      *     ,thets,thetm,ws,thm,nth,shc,shw
      *     ,htpr
      *     ,top_index
-      public 
+      public
      &    pr,htpr,prs,htprs,w,ht,snowd,tp,fice,hour,
      &    fv,fb,atrg,ashg,alhg,
      &    abetad,abetav,abetat,
@@ -132,12 +132,12 @@ c**** public variables:
      &    z1,
      &    tg,t1,vg,eddy,
      &    isn,nsn,dzsn,wsn,hsn,fr_snow
-      public dt, fsn, elh, shi, alamw, alami, alama, 
-     $     alambr, alams, hw,   
+      public dt, fsn, elh, shi, alamw, alami, alama,
+     $     alambr, alams, hw,
      $     sdstnc, c1, prfr, so_
 
       real*8, external :: qsat,dqsatdt
-      real*8 beta,betab,betat,betav  ! used only in qsbal but may need in accm
+      real*8 beta,betab,betat,betav  ! used only in qsbal (+ maybe accm)
       integer, parameter :: ngm=6, ng=ngm+1, imt=5
       integer, parameter :: igcm=0  !?? do we really need it ?
       real*8 pr,htpr,prs,htprs,w(0:ngm,2),ht(0:ngm,2)

@@ -6,54 +6,54 @@
 !@+ are Fortramn 90 interfaces, i.e. they recognize the type of the
 !@+ variables implicitly and call corresponding subroutine.
 !@+
-!@+ Simple copy routines to copy parameters to/from database: 
+!@+ Simple copy routines to copy parameters to/from database:
 !@+     set_param( name, value, dim, opt ) - put a parameter with the
-!@+       name <name> and the value <value> to the database 
+!@+       name <name> and the value <value> to the database
 !@+     get_param( name, value, dim ) - copy the value of the parameter
-!@+       <name> from the database to the variable <value> 
+!@+       <name> from the database to the variable <value>
 !@+
-!@+ Query logical function: 
+!@+ Query logical function:
 !@+     is_set_param( name ) - returns .true. if parameter <name> is
-!@+       present in the database, .false. otherwise 
+!@+       present in the database, .false. otherwise
 !@+     sync_param( name, value, dim ) - puts parameter <name> into the
 !@+       database if it is not yet there, otherwise gets it
 !@+
 !@+ Subroutines to work with pointers:
-!@+     alloc_param( name, pvalue, initval, dim ) - allocates space in the
-!@+       database for the parameter <name>, fills it with data provided 
-!@+       in <initval> and returns pointer to it in <pvalue>
-!@+     get_pparam( name, pvalue, dim ) - returns pointer <pvalue> to the
-!@+       parameter data of the parameter <name> in the database
+!@+     alloc_param( name, pvalue, initval, dim ) - allocates space in 
+!@+       the database for the parameter <name>, fills it with data 
+!@+       provided in <initval> and returns pointer to it in <pvalue>
+!@+     get_pparam( name, pvalue, dim ) - returns pointer <pvalue> to 
+!@+       the parameter data of the parameter <name> in the database
 !@+
 !@+ Reading/writing subroutines:
-!@+     read_param( kunit, ovrwrt ) - reads the parameter database from the
-!@+       unit <kunit>
+!@+     read_param( kunit, ovrwrt ) - reads the parameter database from
+!@+       the unit <kunit>
 !@+     write_param( kunit ) - writes the parameter database to the unit
 !@+       <kunit>
 !@+
 !@+ Other useful subroutines:
-!@+     print_param( kunit ) - does formatted output to the unit <kunit> in
-!@+       a way similar to namelist
-!@+     query_param( n, name, dim, ptype ) - returns the the information
-!@+       about the parameter by its number in the database <n>. It returns 
-!@+       'EMPTY' in the <name> if parameter with such <n> doesn't exist 
-!@+       (i.e. if <n> isbigger then the number of parameters)
+!@+     print_param( kunit ) - does formatted output to the unit <kunit>
+!@+       in a way similar to namelist
+!@+     query_param( n, name, dim, ptype ) - returns information about
+!@+       the parameter by its number in the database <n>. It returns
+!@+       'EMPTY' in the <name> if no parameter with such an <n> exists
+!@+       (i.e. if <n> is bigger than the number of parameters)
 !@+
-!@+ The formal arguments in the subroutines are: 
+!@+ The formal arguments in the subroutines are:
 !@+     name - character*(*) - the name of the parameter which is a
-!@+       character string no longer than 32 bytes 
+!@+       character string no longer than 32 bytes
 !@+     value - a scalar variable or a linear array of type: integer,
-!@+       real*8,character*1 to character*16 
-!@+     dim - integer - dimension of an array, should be omitted for scalars 
+!@+       real*8,character*1 to character*16
+!@+     dim - integer - dimension of an array; omit 'dim' for scalars
 !@+     opt - character*1 - an optional "option" (opt='o' means
-!@+       "overwrite") 
-!@+     kunut - integer - unit number for reading/writing 
+!@+       "overwrite")
+!@+     kunut - integer - unit number for reading/writing
 !@+     ptype - character*1, intent(out) - returns the type of the
-!@+       parameter: 'i' - for integer 'r' - for real*8 'c' - for character
-!@+     ovrwrt - logical - if .true. then reading overwrites those parameters
-!@+       that are already in the database. If .false. then those parameters 
-!@+       which are already in the database are left unchanged and only new
-!@+       parameters are added. 
+!@+       parameter: 'i' for integer, 'r' for real*8, 'c' for character
+!@+     ovrwrt - logical - if .true. then reading overwrites those
+!@+       parameters that are already in the database. If .false. then
+!@+       those parameters which are already in the database are left
+!@+       unchanged and only new parameters are added.
 !@+
 !@+   Read FAQ's for the full description.
 
