@@ -2,7 +2,7 @@
 !@sum  SOCPBL deals with boundary layer physics
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@ver  1.0 (from PBLB336E)
-!@cont pbl,advanc,stars,getl1,getl2,dflux,simil,getb,griddr,tfix
+!@cont pbl,advanc,stars,getl1,getl2,dflux,simil,griddr,tfix
 !@cont ccoeff0,getk,trislv,eeqns,tqeqns,uveqns,tqeqns_sta,uveqns_sta
 !@cont getk_old,elevl2,inits,tcheck,ucheck,check1,output,zbrent
 

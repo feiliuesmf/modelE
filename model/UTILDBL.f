@@ -134,14 +134,18 @@ C**** platforms
       REAL*8, INTENT(IN) :: R(N)   !@var R    RHS vector
       REAL*8, INTENT(OUT) :: U(N)  !@var U    solution vector
       REAL*8 :: BET                !@var BET  work variable
+C**** Note that this work array is on the stack and therefore should
+C**** not be too large (i.e. no more than about 100?)
       REAL*8 :: GAM(N)             !@var GAM  work array
       INTEGER :: J                 !@var J    loop variable
 
       BET=B(1)
+      IF (BET.eq.0) STOP "TRIDIAG: DENOMINATOR = ZERO"
       U(1)=R(1)/BET
       DO J=2,N
         GAM(J)=C(J-1)/BET
         BET=B(J)-A(J)*GAM(J)
+        IF (BET.eq.0) STOP "TRIDIAG: DENOMINATOR = ZERO"
         U(J)=(R(J)-A(J)*U(J-1))/BET
       END DO
       DO J=N-1,1,-1

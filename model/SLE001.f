@@ -1426,9 +1426,14 @@ ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
 C**** THE FOLLOWING LINES WERE ORIGINALLY CALLED BEFORE RETP,
 C**** RETH, AND HYDRA.
-      REAL*8 QSATS
+      REAL*8 QSATS,DERUN
 
-      AERUNS=AERUNS+SHW*(FB*TP(1,1)*RNF(1)+FV*TP(1,2)*RNF(2))*DTS
+      DERUN=SHW*(FB*TP(1,1)*RNF(1)+FV*TP(1,2)*RNF(2))*DTS
+C**** Need fix for negative energy because rain sometimes runs off
+C**** frozen ground without freezing
+      IF (DERUN.lt.0) DERUN=0.
+C**** 
+      AERUNS=AERUNS+DERUN
       ADIFS=ADIFS-DTS*(F(2,1)*FB+F(2,2)*FV)
       DEDIFS=F(2,1)*TP(2,1)
       IF(F(2,1).LT.0.d0) DEDIFS=F(2,1)*TP(1,1)
@@ -1447,7 +1452,9 @@ C**** RETH, AND HYDRA.
       ARUNS=ARUNS+(FB*RNF(1)+FV*RNF(2))*DTS
       DO L=1,N
         ARUNU=ARUNU+(RNFF(L,1)*FB+RNFF(L,2)*FV)*DTS
-        AERUNU=AERUNU+(SNKH(L,1)*FB+SNKH(L,2)*FV)*DTS
+        AERUNU=AERUNU+ SHW*( TP(L,1)*RNFF(L,1)*FB
+     *                     + TP(L,2)*RNFF(L,2)*FV )*DTS
+c        AERUNU=AERUNU+(SNKH(L,1)*FB+SNKH(L,2)*FV)*DTS ! wrong
 ccc some new accumulators were added below this line
 ccc check if their results are passed to corresponding programs
         ARNFF(L)=ARNFF(L)+(RNFF(L,1)*FB+RNFF(L,2)*FV)*DTS

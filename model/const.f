@@ -26,17 +26,26 @@ C**** Numerical constants
       real*8,parameter :: by6 =1./6d0  !@param by6  1/6
       real*8,parameter :: by9 =1./9d0  !@param by9  1/9
       real*8,parameter :: by12=1./12d0 !@param by12 1/12
+!@param skip Missing value
+      real*8,parameter :: skip=-999999.
 
 C**** Physical constants
 
 !@param stbo Stefan-Boltzmann constant (W/m^2 K^4)
       real*8,parameter :: stbo =5.67051d-8 !current best estimate
 
-!@param lhe   latent heat of evap at 0 C (J/kg)
-c**** lhe(T) = 2.5008d6 - 2.3d3 T (in C)
+c**** Latent heats: 
+c**** Note that for energy conservation the efective latent heat at any
+c**** temperature must follow these formulae (assuming a reference
+c**** temperature of 0 Celcius, and constant specific heats).
+c**** If specific heats vary as a function of temperature, the extra
+c**** term becomes an integral 
+c**** lhe(T) = lhe(0) + (shv-shw) T (in C)
+c**** lhm(T) = lhm(0) + (shw-shi) T (in C)
+c**** lhs(T) = lhs(0) + (shv-shi) T (in C)
+!@param lhe   latent heat of evap at 0 C (2.5008d6 J/kg) 
       real*8,parameter :: lhe = 2.5d6
-!@param lhm   latent heat of melt at 0 C (J/kg)
-c**** lhm(T) = 334590 + 2.05d3 T (in C)
+!@param lhm   latent heat of melt at 0 C (334590 J/kg) 
       real*8,parameter :: lhm = 3.34d5
 !@param lhs  latent heat of sublimation at 0 C (J/kg)
       real*8,parameter :: lhs = lhe+lhm
@@ -86,7 +95,7 @@ c**** defined as R/M_W = 1000* 8.314510 J/mol K /18.015 g/mol
 !@param mrat  mass ratio of air to water vapour (0.62197)
       real*8,parameter :: mrat = mwat/mair    ! = 0.62197....
 
-!@param srat ratio of specific heats of air and vapour (1.401)
+!@param srat ratio of specific heats at const. press. and vol. (=1.401)
       real*8,parameter :: srat = 1.401d0
 !@param kapa ideal gas law exponent  (.2862)
 c**** kapa = (g-1)/g where g=1.401 = c_p/c_v
@@ -96,16 +105,18 @@ c**** kapa = (g-1)/g where g=1.401 = c_p/c_v
       real*8,parameter :: bykapap1 = 1./(kapa+1.)
       real*8,parameter :: bykapap2 = 1./(kapa+2.)
 
-!@param sha specific heat of dry air (rgas/kapa J/kg C)
+!@param sha specific heat of dry air (const. vol.) (rgas/kapa J/kg C)
       real*8,parameter :: sha = rgas/kapa
 !@param bysha 1/sha
       real*8,parameter :: bysha = 1./sha
 
-!@param shv specific heat of vapour (J/kg C)
+!@param shv specific heat of water vapour (const. vol.) (J/kg C)
 c**** shv is currently assumed to be zero to aid energy conservation in
 c**** the atmosphere. Once the heat content associated with water
 c**** vapour is included, this can be set to the standard value
-c     real*8,parameter :: shv = sha/srat
+c**** Literature values are 1911 (Arakawa), 1952 (Wallace and Hobbs) 
+c**** Smithsonian Met Tables = 4*rvap + delta = 1858--1869 ????
+c     real*8,parameter :: shv = 4.*rvap  ????
       real*8,parameter :: shv = 0.
 
 C**** Useful conversion factors

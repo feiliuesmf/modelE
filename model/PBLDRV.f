@@ -778,9 +778,8 @@ c            initialization.
 c    bgrid = The parameter that determines the strength of the log
 c            term in the log-linear gridding scheme.
 c ----------------------------------------------------------------------
-      USE CONSTANT, only : rgas
+      USE CONSTANT, only : rgas,grav
       USE E001M12_COM, only : sige,psf,ptop,psfmpt
-      USE SOCPBL, only : grav ! for now
       IMPLICIT NONE
 
       REAL*8, INTENT(IN) :: ZGS
