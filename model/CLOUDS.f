@@ -2300,7 +2300,7 @@ C-----------------------------------------------------------------------
 !@sum  ISCCP_CLOUD_TYPES calculate isccp cloud diagnostics in a column
 !@auth G. Tselioudis (modifications by Gavin Schmidt)
 !@ver  1.0
-      USE CONSTANT, only : bygrav, wtmair=>mair, bymrat,avogr
+      USE CONSTANT, only : bygrav, wtmair=>mair, bymrat,avog
       USE RANDOM, only : rinit,rfinal,randu
       USE MODEL_COM, only : nlev=>lm,qcheck
       implicit none
@@ -2647,7 +2647,7 @@ cc    CALL RFINAL(SEED)
                                 !atmden = g/cm2 = kg/m2 / 10
           atmden = dpress*bygrav
           rvh20 = qv(ilev)*bymrat    !wtmair/wtmh20
-          wk = rvh20*avogr*atmden/wtmair
+          wk = rvh20*avog*atmden/wtmair
 c          rhoave = (press/pstd)*(t0/at(ilev))
           rhoave = (press/at(ilev))*t0bypstd
           rh20s = rvh20*rhoave
