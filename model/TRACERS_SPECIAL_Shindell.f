@@ -1,5 +1,9 @@
       MODULE TRACER_SOURCES
       USE TRACER_COM
+
+      IMPLICIT NONE
+      SAVE
+
 !@param nlightning index number of 3D source for NOx from lightning
 !@param naircraft index number of 3D source for NOx from aircraft
 !@param nStratwrite idx number of 3D tracer source from strat overwrite
@@ -786,7 +790,7 @@ C
           if (jday.ne.1 .OR. jdlast.ne.365) then
             write(6,*)
      *      'Bad values in Tracer 3D Source:JDAY,JDLAST=',JDAY,JDLAST
-            call stop_model('stopped in TRACERS_SPECIAL_Shindell.f',255)
+            call stop_model('Bad values in Tracer 3D Source.',255)
           end if
           imon=imon-12             ! New year
           go to 130
@@ -1043,4 +1047,3 @@ C     more representative throughout the 1 hour time step:
 
       RETURN
       END SUBROUTINE get_sza
-
