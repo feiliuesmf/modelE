@@ -10,7 +10,7 @@
 !@auth Original Development team
 !@ver  1.0
 !@calls seaice:prec_si
-      USE CONSTANT, only : byshi,lhm,teeny,rhoi,grav
+      USE CONSTANT, only : teeny,rhoi,grav
       USE MODEL_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
      *     ,jday,p,ptop
       USE GEOM, only : imaxj,dxyp,bydxyp
@@ -181,7 +181,8 @@ c            mfluxmax = (MSI(I,J)-AC2OIM)/dtsrc
             IF (FOCEAN(I,J).gt.0) THEN
 C**** Ice lowest layer conditions
               Si = 1d3*SSI(LMI,I,J)/(XSI(LMI)*MSI(I,J))
-              Ti = (HSI(LMI,I,J)/(XSI(LMI)*MSI(I,J))+LHM)*BYSHI
+              Ti = ((HSI(LMI,I,J)-SSI(LMI,I,J)*LHM)/(XSI(LMI)*MSI(I,J))
+     *             +LHM)*BYSHI
 C**** for the Salinity thermodynamics case (or something similar)
 c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
               IF (KOCEAN.eq.1) THEN
@@ -367,7 +368,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 !@calls SEAICE:SEA_ICE
-      USE CONSTANT, only : lhm,byshi,rhow,grav
+      USE CONSTANT, only : rhow,grav
       USE MODEL_COM, only : im,jm,dtsrc,fland,kocean,focean
      *     ,itoice,itlkice,jday,p,ptop
       USE GEOM, only : imaxj,dxyp
@@ -526,7 +527,6 @@ C****
 !@auth Original Development team
 !@ver  1.0
 !@calls seaice:addice
-      USE CONSTANT, only : lhm,byshi
       USE MODEL_COM, only : im,jm,focean,kocean,fland
      *     ,itocean,itoice,itlake,itlkice,itime
       USE GEOM, only : imaxj,dxyp
@@ -699,7 +699,6 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,focean
-      USE CONSTANT, only : byshi,lhm
       USE DAGCOM, only : oa
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : msi,hsi,snowi
@@ -776,8 +775,8 @@ C****   set defaults for no ice case
               SSI(:,I,J)  = 0.
               TFO = 0.
             END IF
-            HSI(1:2,I,J)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I
-            HSI(3:4,I,J)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM
+            HSI(1:2,I,J)=(SHI*TFO-LHM*(1.-SSI0))*XSI(1:2)*ACE1I
+            HSI(3:4,I,J)=(SHI*TFO-LHM*(1.-SSI0))*XSI(3:4)*AC2OIM
 #ifdef TRACERS_WATER
             TRSI(:,:,I,J)=0.
 #endif
@@ -791,7 +790,8 @@ C**** set GTEMP array for ice
       DO J=1,JM
       DO I=1,IM
         MSI1=SNOWI(I,J)+ACE1I
-        GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI
+        GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
+     *       (XSI(1:2)*MSI1)+LHM)*BYSHI
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))
 #endif

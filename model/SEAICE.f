@@ -117,12 +117,12 @@ C**** Rain is remaining precip (0 deg or warmer)
       RAIN = PRCP-SNWF
       WETSNOW = RAIN.GT.1d-5*PRCP  ! i.e. a noticeable fraction of prec
 C**** Calculate whether rain causes freezing or melting in first layer
-      IF (HSIL(1).le.-LHM*(XSI(1)*MSI1+SNWF)) THEN
-        FREZ1 = MIN(RAIN,-HSIL(1)*BYLHM-XSI(1)*MSI1-SNWF)
+      IF (HSIL(1).le.-LHM*(XSI(1)*MSI1+SNWF-SSIL(1))) THEN
+        FREZ1 = MIN(RAIN,-HSIL(1)*BYLHM-XSI(1)*MSI1-SNWF+SSIL(1))
         MELT1 = 0.
       ELSE
         FREZ1 = 0.
-        MELT1 = MAX(0d0,HSIL(1)*BYLHM+XSI(1)*MSI1+SNWF)
+        MELT1 = MAX(0d0,HSIL(1)*BYLHM+XSI(1)*MSI1+SNWF-SSIL(1))
       END IF
 
 C**** Calculate remaining snow and necessary mass flux using
@@ -247,8 +247,9 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
 #endif
       END IF
 
-      TSIL(1:2) = (HSIL(1:2)/(XSI(1:2)*MSI1)+LHM)*BYSHI ! ice temp L=1,2
-      TSIL(3:4) = (HSIL(3:4)/(XSI(3:4)*MSI2)+LHM)*BYSHI ! ice temp L=3,4
+ ! ice temp L=1,2,3,4
+      TSIL(1:2) = ((HSIL(1:2)-LHM*SSIL(1:2))/(XSI(1:2)*MSI1)+LHM)*BYSHI
+      TSIL(3:4) = ((HSIL(3:4)-LHM*SSIL(3:4))/(XSI(3:4)*MSI2)+LHM)*BYSHI
 
       RETURN
       END SUBROUTINE PREC_SI
@@ -335,8 +336,9 @@ C**** Calculate solar fractions
 C****
 C**** OCEAN ICE, CALCULATE TSIL FROM ENTHALPY
 C****
-      TSIL(1:2) = (HSIL(1:2)/(XSI(1:2)*MSI1) +LHM)*BYSHI ! temp. L=1/2
-      TSIL(3:4) = (HSIL(3:4)/(XSI(3:4)*MSI2) +LHM)*BYSHI ! temp. L=3/4
+ ! ice temp L=1,2,3,4
+      TSIL(1:2) = ((HSIL(1:2)-LHM*SSIL(1:2))/(XSI(1:2)*MSI1)+LHM)*BYSHI
+      TSIL(3:4) = ((HSIL(3:4)-LHM*SSIL(3:4))/(XSI(3:4)*MSI2)+LHM)*BYSHI
 
       HC1 = SHI*XSI(1)*MSI1 ! heat capacity of ice L=1 (J/(degC*m^2))
       HC2 = SHI*XSI(2)*MSI1 ! heat capacity of ice L=2 (J/(degC*m^2))
@@ -392,14 +394,14 @@ C**** SNMELT is the melting that is applied to the snow first
       IF (SNOW*XSI(2).gt.XSI(1)*ACE1I) THEN ! first layer is all snow
         DEW1 = -EVAP1           ! <0 i.e. evaporation from snow
         DEW2 =  MAX(0d0,DEW)    ! >0 i.e. dew to second layer ice
-        MELT1 = MAX(0d0,HSIL(1)*BYLHM+XSI(1)*MSI1+DEW1)
-        MELT2 = MAX(0d0,HSIL(2)*BYLHM+XSI(2)*MSI1+DEW2)
+        MELT1 = MAX(0d0,HSIL(1)*BYLHM+XSI(1)*MSI1-SSIL(1)+DEW1)
+        MELT2 = MAX(0d0,HSIL(2)*BYLHM+XSI(2)*MSI1-SSIL(2)+DEW2)
         SNMELT=MELT1+MELT2
       ELSE  ! first layer is snow and some ice
         DEW1 = DEW   ! all fluxes to first layer
         DEW2 = 0.
-        MELT1 = MAX(0d0,HSIL(1)*BYLHM+XSI(1)*MSI1+DEW1)
-        MELT2 = MAX(0d0,HSIL(2)*BYLHM+XSI(2)*MSI1)
+        MELT1 = MAX(0d0,HSIL(1)*BYLHM+XSI(1)*MSI1-SSIL(1)+DEW1)
+        MELT2 = MAX(0d0,HSIL(2)*BYLHM+XSI(2)*MSI1-SSIL(2))
         SNMELT=MELT1
       END IF
 #ifdef TRACERS_WATER
@@ -441,8 +443,8 @@ C**** Mass fluxes required to keep first layer ice = ACE1I
       FMSI1 = -XSI(1)*DSNOW+DEW1-MELT1
 
 C**** Check for melting in levels 3 and 4
-      MELT3 = MAX(0d0,HSIL(3)*BYLHM+XSI(3)*MSI2)
-      MELT4 = MAX(0d0,HSIL(4)*BYLHM+XSI(4)*MSI2-FMOC)
+      MELT3 = MAX(0d0,HSIL(3)*BYLHM+XSI(3)*MSI2-SSIL(3))
+      MELT4 = MAX(0d0,HSIL(4)*BYLHM+XSI(4)*MSI2-SSIL(4)-FMOC)
       SMELT3 = MELT3*SSIL(3)/(XSI(3)*MSI2)
       SMELT4 = MELT4*SSIL(4)/(XSI(4)*MSI2-FMOC)
 #ifdef TRACERS_WATER
@@ -611,7 +613,7 @@ C****
 C**** Create new ice in ice-free ocean
         ROICE=ACEFO/(ACE1I+AC2OIM)
         SNOW=0.
-C****   TSIL=(ENRGFO/ACEFO + LHM)*BYSHI ! but hsi is primary var.
+C****   TSIL=(ENRGFO/ACEFO + (1-S)*LHM)*BYSHI ! but hsi is primary var.
         HSIL(1:2) =(ENRGFO/ACEFO)*XSI(1:2)*ACE1I
         HSIL(3:4) =(ENRGFO/ACEFO)*XSI(3:4)*AC2OIM
         SSIL(1:2) = (SALTO/ACEFO)*XSI(1:2)*ACE1I
@@ -850,8 +852,8 @@ C**** Ensure that MSI2 does not get too small for fixed-SST case.
         END IF
       END IF
 C**** Calculate temperatures for diagnostics and radiation
-      TSIL(1:2)=(HSIL(1:2)/(XSI(1:2)*MSI1)+LHM)*BYSHI ! temp. layer 1/2
-      TSIL(3:4)=(HSIL(3:4)/(XSI(3:4)*MSI2)+LHM)*BYSHI ! temp. layer 3/4
+      TSIL(1:2)=((HSIL(1:2)-SSIL(1:2)*LHM)/(XSI(1:2)*MSI1)+LHM)*BYSHI
+      TSIL(3:4)=((HSIL(3:4)-SSIL(3:4)*LHM)/(XSI(3:4)*MSI2)+LHM)*BYSHI
 
       RETURN
       END SUBROUTINE ADDICE
@@ -920,8 +922,8 @@ C**** Remove DRSI amount of ice
 C**** set defaults if no ice is left
         SNOW=0.
         MSI2=AC2OIM
-        HSIL(1:2)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I
-        HSIL(3:4)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM
+        HSIL(1:2)=(SHI*TFO-LHM*(1-SSI0))*XSI(1:2)*ACE1I
+        HSIL(3:4)=(SHI*TFO-LHM*(1-SSI0))*XSI(3:4)*AC2OIM
         IF (POCEAN.gt.0) THEN
           SSIL(1:2)=SSI0*XSI(1:2)*ACE1I
           SSIL(3:4)=SSI0*XSI(3:4)*AC2OIM
@@ -968,9 +970,10 @@ C****
       INTEGER N
 #endif
 
-      REAL*8 DSSI(3:LMI),DMSI(3:LMI),DHSI(3:LMI),SS12,DS12,DM12,DH12
+      REAL*8 DSSI(3:LMI),DMSI(3:LMI),DHSI(3:LMI),TSIL(3:LMI),SS12,DS12
+     *     ,DM12,DH12
       REAL*8 FMSI1,FMSI2,FMSI3,FSSI1,FSSI2,FSSI3,FHSI1,FHSI2,FHSI3
-      REAL*8 HSNOW,HICE,SICE
+      REAL*8 HSNOW,HICE,SICE,TICE
       INTEGER L,I0,J0
 !@var dtssi decay time scale for sea ice salinity (days)
 !@var bydtssi decay constant for sea ice salinity (1/s)
@@ -992,6 +995,7 @@ C**** Split all upper mass layer fields into ice and snow components
       HICE  = HSIL(1)+HSIL(2)-HSNOW
 CC    SSNOW = 0.   ! always zero
       SICE  = SSIL(1)+SSIL(2)
+      TICE = ((HICE-LHM*SICE)/ACE1I+LHM)*BYSHI
 #ifdef TRACERS_WATER
       TRSNOW(:) = TRSIL(:,1)*MIN((MSI1-ACE1I)/(XSI(1)*MSI1-SSIL(1)),1d0)
      *     +TRSIL(:,2)*MAX(1.-(ACE1I-SICE)/(XSI(2)*MSI1-SSIL(2)),0d0)
@@ -1002,7 +1006,7 @@ C**** calculate removal of excess salinity
       IF (SICE.GT.ssi0*ACE1I) THEN
         DS12 = (SICE-ACE1I*ssi0)*DT*BYDTSSI
         DM12 = DS12
-        DH12 = DM12*HICE/ACE1I
+        DH12 = -DM12*TICE*SHI
 #ifdef TRACERS_WATER
 C**** no tracer removed if pure salt is lost
 c       DTR12(:) = (DM12-DS12)*TRICE(:)/(ACE1I-SICE)
@@ -1017,7 +1021,8 @@ C**** check remaining layers
         IF (SSIL(L).GT.ssi0*XSI(L)*MSI2) THEN
           DSSI(L) = (SSIL(L)-ssi0*XSI(L)*MSI2)*DT*BYDTSSI
           DMSI(L) = DSSI(L)
-          DHSI(L) = DMSI(L)*HSIL(L)/(XSI(L)*MSI2)
+          TSIL(L) = ((HSIL(L)-LHM*SSIL(L))/(XSI(L)*MSI2)+LHM)*BYSHI
+          DHSI(L) = -DMSI(L)*TSIL(L)*SHI
 #ifdef TRACERS_WATER
 C**** no tracer removed if pure salt is lost
 c         DTRSI(:,L)=(DMSI(L)-DSSI(L))*TRSIL(:,L)/(XSI(L)*MSI2-SSIL(L))
@@ -1205,14 +1210,19 @@ C**** Similarly for temperature Tib
             Sib = Sb0*fsss
           end if
 c no salinity effects
-          lh = lhm+ Tb*(shw-shi)
+c         lh = lhm + Tb*(shw-shi)
+c salinity effects only mass
+          lh = lhm*(1.-Sib*1d-3) + Tb*(shw-shi) 
 c S thermo
 c         lh = lhm*(1.+mu*Sib/Tb) + (Tb+mu*Sib)*(shw-shi)
           m = -left2/lh
 
 c no salinity effects
+c          dmdTb = (left2*(shw-shi)-lh*(alamdh + rsg))/(lh*lh)
+c          dmdSi = 0.
+c salinity effects only mass
           dmdTb = (left2*(shw-shi)-lh*(alamdh + rsg))/(lh*lh)
-          dmdSi = 0.
+          dmdSi = left2*lhm*1d-3/(lh*lh)
 c S thermo
 c         dmdTb = (left2*(-lhm*mu*Sib/Tb**2+shw-shi)-lh*(alamdh + rsg
 c    *       ))/(lh*lh)
@@ -1230,7 +1240,9 @@ c         dmdSi = (left2*mu*(lhm/Tb+shw-shi))/(lh*lh)
         else                    ! melting
           Sib = Si
 c no salinity effects
-          lh = lhm + Tb*shw - Ti*shi
+c         lh = lhm + Tb*shw - Ti*shi
+c salinity effects only mass
+          lh = lhm*(1.-Sib*1d-3) + Tb*(shw-shi) 
 c S thermo
 c         lh = lhm*(1.+mu*Sib/Ti) + (Ti+mu*Sib)*(shw-shi) - shw*(Ti-Tb)
           m = -left2/lh
@@ -1597,12 +1609,13 @@ C**** Check for reasonable values for ice variables
           END IF
           IF ( (FOCEAN(I,J)+FLAKE(I,J))*RSI(I,J).gt.0) THEN
           DO L=1,LMI
-            IF (L.le.2) TICE = (HSI(L,I,J)/(XSI(L)*(ACE1I+SNOWI(I,J)))
-     *           +LHM)/SHI
-            IF (L.gt.2) TICE = (HSI(L,I,J)/(XSI(L)*MSI(I,J))+LHM)/SHI
+            IF (L.le.2) TICE = ((HSI(L,I,J)-SSI(L,I,J)*LHM)/(XSI(L)
+     *           *(ACE1I+SNOWI(I,J)))+LHM)/SHI
+            IF (L.gt.2) TICE = ((HSI(L,I,J)-SSI(L,I,J)*LHM)/(XSI(L)
+     *           *MSI(I,J))+LHM)/SHI
             IF (HSI(L,I,J).gt.0.or.TICE.gt.1d-4.or.TICE.lt.-80.) THEN
               WRITE(6,*) 'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,HSI(:,I
-     *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J)
+     *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J),SSI(:,I,J)
               if (HSI(L,I,J).gt.0.or.TICE.gt.0.01.or.TICE.lt.-80.)
      *             QCHECKI = .TRUE.
             END IF

@@ -2532,7 +2532,7 @@ C****
 !@sum  OSOURC applies fluxes to ocean in ice-covered and ice-free areas
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : shci=>shi,elhm=>lhm
+      USE CONSTANT, only : shi,lhm
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : ntm,trname
 #endif
@@ -2554,7 +2554,7 @@ C****
 #endif
 #endif
       REAL*8 MOO,GOO,GMOO,GMOI,MOI,GOI,SMOO,SMOI,SOO,SOI,GFOO,GFOI,TFOO
-     *     ,TFOI
+     *     ,TFOI,SI00,SIOI
       REAL*8 GFREZS,TFREZS,TSOL
       INTEGER L,LSR,N
 
@@ -2590,11 +2590,12 @@ C**** Remove insolation from layer 1 that goes to lower layers
       IF(GOO.lt.GFOO) THEN
 C**** Open ocean is below freezing, calculate
 C**** DMOO = mass of ocean that freezes over open fraction from
-C**** GOO*MOO = GFOO*(MOO-DMOO) + (TFOO*SHCI-ELHM)*DMOO
+C**** GOO*MOO = GFOO*(MOO-DMOO) + (TFOO*SHI-LHM*(1-SI00))*DMOO
         TFOO = TFREZS(SOO)
-        DMOO = MOO*(GOO-GFOO)/(TFOO*SHCI-ELHM-GFOO)
-        DEOO = (TFOO*SHCI-ELHM)*DMOO
-        DSOO = FSSS*SOO*DMOO
+        SI00 = FSSS*S00
+        DMOO = MOO*(GOO-GFOO)/(TFOO*SHI-LHM*(1.-SI00)-GFOO)
+        DEOO = (TFOO*SHI-LHM*(1.-SI00))*DMOO
+        DSOO = SI00*DMOO
 #ifdef TRACERS_OCEAN
         DTROO(:) = TMOO(:)*FRAC(:)*(DMOO-DSOO)/(MOO-SMOO)
 #endif
@@ -2619,11 +2620,12 @@ C**** Remove insolation from layer 1 that goes to lower layers
         IF(GOI.LT.GFOI) THEN
 C**** Ocean underneath the ice is below freezing, calculate
 C**** DMOI = mass of ocean that freezes under sea ice fraction from
-C**** GOI*MOI = GFOI*(MOI-DMOI) + (TFOI*SHCI-ELHM)*DMOI
+C**** GOI*MOI = GFOI*(MOI-DMOI) + (TFOI*SHI-LHM*(1-SI0I))*DMOI
           TFOI = TFREZS(SOI)
-          DMOI = MOI*(GOI-GFOI)/(TFOI*SHCI-ELHM-GFOI)
-          DEOI = (TFOI*SHCI-ELHM)*DMOI
-          DSOI = FSSS*SOI*DMOI
+          SI0I = FSSS*SOI
+          DMOI = MOI*(GOI-GFOI)/(TFOI*SHI-LHM*(1.-SI0I)-GFOI)
+          DEOI = (TFOI*SHI-LHM*(1.-SI0I))*DMOI
+          DSOI = SI0I*DMOI
 #ifdef TRACERS_OCEAN
           DTROI(:) = TMOI(:)*FRAC(:)*(DMOI-DSOI)/(MOI-SMOI)
 #endif

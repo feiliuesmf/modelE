@@ -966,8 +966,8 @@ C**** Set atmospheric arrays
 C**** set total atmopsheric pressure anomaly in case needed by ocean
             APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
      *           *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
-            GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MHS(1,I,J))
-     *           +LHM)*BYSHI
+            GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
+     *           (XSI(1:2)*MHS(1,I,J))+LHM)*BYSHI
 #ifdef TRACERS_WATER
             GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MHS(1,I,J)
      *           -SSI(1,I,J))
