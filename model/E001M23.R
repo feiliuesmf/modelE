@@ -66,8 +66,8 @@ R=00BG/B
 &&PARAMETERS
 XCDLM=.0005,.00005
 KOCEAN=0
-U00wtr=.49
-U00ice=.50
+U00ice=.50   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
+HRMAX=300.   ! tune this to get rad.equilibrium (range: 100.-1500. meters)
 KSOLAR=1
 LMCM=16              ! max level of moist convection
 XCDNST=300.,10000.   ! strat. gw drag parameters

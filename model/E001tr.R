@@ -99,8 +99,8 @@ R=00BG/B
 &&PARAMETERS
 XCDLM=.0005,.00005
 KOCEAN=0
-U00wtr=.49
-U00ice=.50
+U00ice=.50   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
+HRMAX=1000.  ! tune this to get rad.equilibrium (range: 100.-1500. meters)
 KSOLAR=1
 DT=450.,        ! from default: DTsrc=3600.,
 to_volume_MixRat=1,1,1, 1,1,1, 1,1,1,   ! for tracer printout

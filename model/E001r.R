@@ -77,24 +77,15 @@ E001r (inst.forcing run - control)
 R=00BG/B
 
 &&PARAMETERS
-XCDLM=.0005,.00005  ! irrelevant
-P_sdrag=20.         ! irrelevant
-KOCEAN=0            ! irrelevant
-U00wtr=.50          ! irrelevant
-U00ice=.50          ! irrelevant
-KSOLAR=1
-NIsurf=2            ! irrelevant
-DT=300.             ! irrelevant
-
-NSLP=0              ! dont change
-Kvflxo=0            ! dont change
+KSOLAR=1 ! all params affecting radia are relevant
+         ! most other parameters are irrelevant
+NSLP=0              ! dont touch this line
+Kvflxo=0            ! dont touch this line
 KCOPY=2             ! saving acc + rsf
-isccp_diags=0       ! irrelevant
 Kradia=1            ! use Kradia=2 for adj. forcing run
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0, ! irrelevant
    YEARE=1952,MONTHE=1,DATEE=1,HOURE=0,  ! assumed start: 1/1/1951
    ISTART=8, YEARE=1951,MONTHE=1,HOURE=1,IWRITE=1,JWRITE=1,ITWRITE=23,
  &END
