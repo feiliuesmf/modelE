@@ -866,8 +866,10 @@ C**** TRACERS: Use only the active ones
      *           dt_sulf_mc(n,l)
             tajls(j,l,jls_incloud(2,n))=tajls(j,l,jls_incloud(2,n))+
      *           dt_sulf_ss(n,l)
+          if (ijts_aq(n).gt.0) then
            taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+
      *           dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
+          end if
           end if
 #endif
 #endif
