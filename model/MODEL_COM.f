@@ -34,8 +34,9 @@
 !@dbparam KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved
 !@dbparam NMONAV number of months in a diagnostic accuml. period
 !@dbparam Kvflxo if 1 => vert.fluxes into ocean are saved daily
+!@dbparam Kradia if -1 save data for, if 1|2 do   inst|adj forcing run
 !@dbparam NIPRNT number of instantaneous initial printouts
-      integer :: KCOPY=2, NMONAV=1, Kvflxo=0, NIPRNT=1
+      integer :: KCOPY=2, NMONAV=1, Kvflxo=0, Kradia=0,iu_rad, NIPRNT=1
 
 C**** (Simplified) Calendar Related Terms
 !@param JDperY,JMperY    number of days,months per year
@@ -162,7 +163,7 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       LOGICAL :: QCHECK = .FALSE.
 
 !@var stop_on TRUE stops the model (set with "kill -15 PID)
-      LOGICAL :: stop_on = .FALSE.   
+      LOGICAL :: stop_on = .FALSE.
 
       END MODULE MODEL_COM
 
@@ -313,6 +314,7 @@ C**** use doc-record to check the basic model parameters
           if (iyear1.lt.0) iyear1=iy1 ! rarely changes on restart/reruns
         CASE (IOREAD_SINGLE)    ! parameters/label from 1-many acc files
           call read_param(kunit,.true.)  ! ignore rundeck
+          call sync_param( "kradia",kradia)
           nday=nd1 ; iyear1=iy1 ; itime0=it01
           NTIMEACC=NTIM1                 ! use timing from current file
           TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)

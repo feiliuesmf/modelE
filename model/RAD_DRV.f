@@ -282,7 +282,8 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 !@ver  1.0
 !@calls RE001:RCOMP1
       USE CONSTANT, only : grav,bysha,twopi
-      USE MODEL_COM, only : jm,lm,dsig,sige,psfmpt,ptop,dtsrc,nrad
+      USE MODEL_COM, only : jm,lm,ls1,dsig,sige,psfmpt,ptop,dtsrc,nrad
+     *     ,kradia
       USE GEOM, only : dlat,lat_dg
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
@@ -365,6 +366,14 @@ C****
         COE(LR)=DTsrc*NRAD*COEX/(PLE(LR)-PLE(LR+1))
         ple0(LR-LM) = ple(LR+1)
       END DO
+      if (kradia.gt.1) then
+        do l=1,ls1-1
+          COE(L)=DTsrc*nrad*COEX/DSIG(L)
+        end do
+        do l=ls1,lm
+          COE(L)=DTsrc*NRAD*COEX/(PLE(L)-PLE(L+1))
+        end do
+      end if
       PTLISO=15.
       KTREND=1   !  GHgas trends are determined by input file
 !note KTREND=0 is a possible but virtually obsolete option
@@ -380,9 +389,9 @@ C****                                         even if the year is fixed
       CALL SETNEW( 6,Volc_yr,Volc_day, 0,0,0.D0)   ! Volc. Aerosols
 C**** NO time history (yet), except for ann.cycle, for forcings below;
 C****  if arg3=day0 (1->365), data from that day are used all year
-C     CALL SETNEW( 5, 0, 0   , 0,0,0.D0) ! Desert dust
-C     CALL SETNEW( 7, 0, 0   , 0,0,0.D0) ! cloud heterogeneity - KCLDEP
-C     CALL SETNEW( 8, 0, 0   , 0,0,0.D0) ! surface albedo
+C     CALL SETNEW(5, 0, 0   , 0,0,0.D0) ! Desert dust
+C     CALL SETNEW(7, 0, 0   , 0,0,0.D0) ! cloud heterogeneity - KCLDEP
+C     CALL SETNEW(8, 0, 0   , 0,0,0.D0) ! surface albedo
 C**** New options (currently not used)
       KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme
       KVEGA6=0  ! 0:2-band 1:6-band veg.albedo (currently not usable)
@@ -444,10 +453,11 @@ C****
 !@ver  1.0
 !@calls tropwmo, RE001:rcompt, RE001:rcompx, RE001:writer, coszs, coszt
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
+     *     ,kapa
       USE MODEL_COM
       USE GEOM
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
-     *     ,llow,lmid,lhi,coe,dh2o,H2ObyCH4,ghg_yr,ple0,ql0
+     *     ,llow,lmid,lhi,coe,dh2o,H2ObyCH4,ghg_yr,ple0,ql0,tchg
       USE RE001
      &  , only : writer,rcompx,rcompt ! routines
      &          ,ghgam,ghgyr2,ghgyr1  ! dH2O by CH4
@@ -462,8 +472,8 @@ C     INPUT DATA  (i,j) dependent
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI,DMOICE,DMLICE
      &             ,hsn,hin,hmp,fmp,flags,LS1_loc
 C     OUTPUT DATA
-     &          ,TRDFLB ,TRNFLB ,TRFCRL
-     &          ,SRDFLB ,SRNFLB ,SRFHRL
+     &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
+     &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
      &          ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
      &          ,SRRVIS ,SRAVIS ,SRRNIR ,SRANIR
      &          ,BTEMPW
@@ -481,6 +491,7 @@ C     OUTPUT DATA
      *     ,il_r70n,ijdd,idd_cl7,idd_cl6,idd_cl5,idd_cl4,idd_cl3,idd_cl2
      *     ,idd_cl1,idd_ccv,idd_isw,idd_palb,idd_galb,idd_absa,j5s,j5n
      *     ,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld,ij_frmp
+     *     ,AFLX_ST
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
       USE SEAICE, only : rhos,ace1i,rhoi
@@ -496,9 +507,10 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       COMMON/RADCOM_hybrid/U0GAS(LX,12),FSPARE(998)
 C$OMP  THREADPRIVATE(/RADCOM_hybrid/)
 
-      REAL*8, DIMENSION(IM,JM) :: COSZ2,COSZA,TRINCG,BTMPW
+      REAL*8, DIMENSION(IM,JM) :: COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
       REAL*8, DIMENSION(4,IM,JM) :: SNFS,TNFS
       REAL*8, DIMENSION(LM_REQ,IM,JM) :: TRHRS,SRHRS
+      REAL*8, DIMENSION(0:LM+LM_REQ,IM,JM) :: TRHRA,SRHRA ! for adj.frc
       REAL*8, DIMENSION(IM,JM,9) :: ALB
       REAL*8, DIMENSION(LM) :: TOTCLD
 
@@ -506,7 +518,7 @@ C$OMP  THREADPRIVATE(/RADCOM_hybrid/)
       INTEGER I,J,L,K,KR,LR,JR,IH,INCH,JK,IT,iy
       REAL*8 ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS,CMC,DEPTH,QSS,TAUSSL
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY,CSZ2
-     *     ,MSTRAT,STRATQ,STRJ,MSTJ
+     *     ,MSTRAT,STRATQ,STRJ,MSTJ,QR(LM,IM,JM),CLDinfo(LM,3,IM,JM)
       REAL*8 QSAT
 C
       REAL*8  RDSS(LM,IM,JM),RDMC(IM,JM), AREGIJ(IM,JM,7)
@@ -527,7 +539,31 @@ C**** Calculate mean cosine of zenith angle for the current physics step
       ROT2=ROT1+TWOPI*DTsrc/SDAY
       CALL COSZT (ROT1,ROT2,COSZ1)
 
-      if (H2ObyCH4.gt.0) then
+      if (kradia.gt.0) then    ! read in all rad. input data (frc.runs)
+        it = itime-1
+        do while (mod(itime-it,8760).ne.0)
+          read(iu_rad) it,T,RQT,TsAvg,QR,P,CLDinfo
+     *     ,rsi,msi,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm),wsoil,wsavg
+     *     ,snowi,snowli_com,snowe_com,snoage,fmp_com,flag_dsws,ltropo
+     *     ,srhra,trhra,iy  ! original output data (for adj.frc. only)
+        end do
+        if (it.ne.iy) then
+          write(6,*) 'RAD input file corrupted:',itime,it,iy
+          stop 'RADIA: input file corrupted'
+        end if
+        if(qcheck) write(6,*) 'read RADfile at Itime',Itime,it
+C****   Find arrays derived from read-in fields
+        do j=1,jm
+        do i=1,imaxj(j)
+          pedn(LM+1,i,j) = SIGE(LM+1)*PSFMPT+PTOP
+        do l=1,lm
+          pij=p(i,j)
+          if(l.ge.ls1) pij=psfmpt
+          pedn(l,i,j) = SIGE(L)*PIJ+PTOP
+          pk(l,i,j)   = (SIG(L)*PIJ+PTOP)**KAPA
+        end do ; end do ; end do
+
+      else if (H2ObyCH4.gt.0) then
 C****   Add obs. H2O generated by CH4 using a 2 year lag
         iy = jyear - 2 - ghgyr1 + 1
         if (ghg_yr.gt.0) iy = ghg_yr - 2 - ghgyr1 + 1
@@ -560,6 +596,7 @@ C*********************************************************
       JDLAST=JDAY
       S0=S0X*S00WM2*RATLS0/RSDIST
 
+         if(kradia.le.0) then
       IF (QCHECK) THEN
 C****   Calculate mean strat water conc
         STRATQ=0.
@@ -596,13 +633,14 @@ C
          END DO
       END DO
       END DO
+        end if ! kradia le 0
 C****
 C**** MAIN J LOOP
 C****
       ICKERR=0
       JCKERR=0
 C$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH, ELHX,
-C$OMP*   I,INCH,IH,IT, J, K,KR, L,LR, OPNSKY,     
+C$OMP*   I,INCH,IH,IT, J, K,KR, L,LR, OPNSKY, CSZ2,
 C$OMP*   PLAND,PIJ, QSS, RANDSS,RANDMC, TOTCLD,TAUSSL,TAUMCL)
 C$OMP*   COPYIN(/RADCOM_hybrid/)
 C$OMP    DO REDUCTION(+:ICKERR,JCKERR)  SCHEDULE(DYNAMIC,2)
@@ -622,6 +660,16 @@ C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PEARTH=FEARTH(I,J)
 C****
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
+        if (kradia.gt.0) then     ! rad forcing model
+           do l=1,lm
+             tl(l) = T(i,j,l)*pk(l,i,j)
+             ql(l) = QR(l,i,j)
+             tauwc(l) = CLDinfo(l,1,i,j)
+             tauic(l) = CLDinfo(l,2,i,j)
+             SIZEWC(L)= CLDinfo(l,3,i,j)
+             SIZEIC(L)= SIZEWC(L)
+           end do
+        else                      ! full model
 C****
 C**** DETERMINE CLOUDS (AND THEIR OPTICAL DEPTHS) SEEN BY RADIATION
 C****
@@ -644,8 +692,8 @@ CCC   IF(CLDSS(L,I,J).EQ.0.) RANDSS=RANDU(X)
       TAUMCL=0.
       TAUWC(L)=0.
       TAUIC(L)=0.
-      SIZEWC(L)=CSIZMC(L,I,J)
-      SIZEIC(L)=CSIZMC(L,I,J)
+      SIZEWC(L)=0.
+      SIZEIC(L)=0.
          TOTCLD(L)=0.
       IF (CLDSS(L,I,J).LT.RANDSS.OR.TAUSS(L,I,J).LE.0.) GO TO 220
       TAUSSL=TAUSS(L,I,J)
@@ -666,18 +714,20 @@ CCC   IF(CLDSS(L,I,J).EQ.0.) RANDSS=RANDU(X)
   230    AJL(J,L,JL_TOTCLD)=AJL(J,L,JL_TOTCLD)+TOTCLD(L)
       IF(TAUSSL+TAUMCL.GT.0.) THEN
         IF(TAUMCL.GT.TAUSSL) THEN
+          SIZEWC(L)=CSIZMC(L,I,J)
+          SIZEIC(L)=CSIZMC(L,I,J)
           IF(SVLAT(L,I,J).EQ.LHE) THEN
             TAUWC(L)=TAUMCL
           ELSE
             TAUIC(L)=TAUMCL
           END IF
         ELSE
+          SIZEWC(L)=CSIZSS(L,I,J)
+          SIZEIC(L)=CSIZSS(L,I,J)
           IF(SVLHX(L,I,J).EQ.LHE) THEN
             TAUWC(L)=TAUSSL
-            SIZEWC(L)=CSIZSS(L,I,J)
           ELSE
             TAUIC(L)=TAUSSL
-            SIZEIC(L)=CSIZSS(L,I,J)
           END IF
         END IF
       END IF
@@ -737,6 +787,7 @@ CCC      AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
              END DO
            END IF
          END DO
+        end if ! kradia le 0 (full model)
 C****
 C**** SET UP VERTICAL ARRAYS OMITTING THE I AND J INDICES
 C****
@@ -770,6 +821,12 @@ CCC     STOP 'In Radia: RQT out of range'
         sizewc(LM+k)= 0.
         sizeic(LM+k)= 0.
       END DO
+      if (kradia.gt.1) then
+        do l=1,lm+lm_req
+          tl(l) = tl(l) + Tchg(l,i,j)
+          AFLX_ST(L,I,J,5)=AFLX_ST(L,I,J,5)+Tchg(L,I,J)
+        end do
+      end if
 C**** Zenith angle and GROUND/SURFACE parameters
       COSZ=COSZA(I,J)
       TGO =GTEMP(1,1,I,J)+TF
@@ -788,17 +845,25 @@ C**** set up parameters for new sea ice and snow albedo
       if (poice.gt.0.) then
         hin=(ace1i+msi(i,j))/rhoi
         flags=flag_dsws(i,j)
-        fmp=min(1.118d0*sqrt(pond_melt(i,j)/rhow),1d0)
-          AIJ(I,J,IJ_FRMP) = AIJ(I,J,IJ_FRMP) + fmp*POICE
+        if (kradia .le. 0) then
+          fmp=min(1.118d0*sqrt(pond_melt(i,j)/rhow),1d0)
+             AIJ(I,J,IJ_FRMP) = AIJ(I,J,IJ_FRMP) + fmp*POICE
+        else
+          fmp = fmp_com(i,j)
+        end if
         hmp=min(0.8d0*fmp,0.9d0*hin)
       else
-        hin = 0. ; flags=.FALSE. ; fmp=0. ; hmp=0.
+        hin=0. ; flags=.FALSE. ; fmp=0. ; hmp=0.
       endif
       dmoice = 10.
       dmlice = 10.
 C****
-      WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
-      if (wearth.gt.1.) wearth=1.
+      if (kradia .le. 0) then
+        WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
+        if (wearth.gt.1.) wearth=1.
+      else                            ! rad.frc. model
+        wearth = wsoil(i,j)
+      end if
       DO K=1,11
         PVT(K)=VDATA(I,J,K)
       END DO
@@ -809,8 +874,42 @@ C     Main RADIATIVE computations, SOLAR and THERMAL
       CALL RCOMPX
 C*****************************************************
       IF(I.EQ.IWRITE.AND.J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
+      CSZ2=COSZ2(I,J)
+      if (kradia.gt.0) then  ! rad. forc. model; acc diagn
+        do L=1,LM+LM_REQ+1
+          AFLX_ST(L,I,J,1)=AFLX_ST(L,I,J,1)+SRUFLB(L)*CSZ2
+          AFLX_ST(L,I,J,2)=AFLX_ST(L,I,J,2)+SRDFLB(L)*CSZ2
+          AFLX_ST(L,I,J,3)=AFLX_ST(L,I,J,3)+TRUFLB(L)
+          AFLX_ST(L,I,J,4)=AFLX_ST(L,I,J,4)+TRDFLB(L)
+        end do
+        if(kradia.eq.1) cycle
+        do l=LS1_loc,ls1-1
+          tchg(l,i,j) = tchg(l,i,j) + ( srfhrl(l)*csz2-srhra(l,i,j) +
+     *      (-trfcrl(l)-trhra(l,i,j)) ) * coe(l)/p(i,j)
+        end do
+        do l=max(ls1,LS1_loc),lm+lm_req
+          tchg(l,i,j) = tchg(l,i,j) + ( srfhrl(l)*csz2-srhra(l,i,j) +
+     *      (-trfcrl(l)-trhra(l,i,j)) ) * coe(l)
+        end do
+        cycle
+      else if (kradia.lt.0) then ! save i/o data for frc.runs
+        fmp_com(i,j) = fmp                  ! input data
+        wsoil(i,j) = wearth
+        do L=1,LM
+          QR(L,I,J) = QL(L)
+          CLDinfo(L,1,I,J) = tauwc(L)
+          CLDinfo(L,2,I,J) = tauic(L)
+          CLDinfo(L,3,I,J) = sizeic(L)  ! sizeic=sizewc currently
+        end do
+        SRHRA(0,I,J)=SRNFLB(1)*CSZ2      ! output data (for adj frc)
+        TRHRA(0,I,J)=-TRNFLB(1)
+        do L=1,LM+LM_REQ
+          SRHRA(L,I,J)=SRFHRL(L)*CSZ2
+          TRHRA(L,I,J)=-TRFCRL(L)
+        end do
+      end if
 C****
-C**** Save relevant output in 3D model arrays
+C**** Save relevant output in model arrays
 C****
       FSF(1,I,J)=FSRNFG(1)   !  ocean
       FSF(2,I,J)=FSRNFG(3)   !  ocean ice
@@ -845,57 +944,63 @@ C****
 C**** Save clear sky/tropopause diagnostics here
       DO IT=1,NTYPE
         AJ(J,J_CLRTOA,IT)=AJ(J,J_CLRTOA,IT)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
-     *     *COSZ2(I,J)-TRNFLB(LM+LM_REQ+1))*FTYPE(IT,I,J)
+     *     *CSZ2-TRNFLB(LM+LM_REQ+1))*FTYPE(IT,I,J)
         AJ(J,J_CLRTRP,IT)=AJ(J,J_CLRTRP,IT)+OPNSKY*(SRNFLB(LTROPO(I,J))
-     *     *COSZ2(I,J)-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J)
+     *     *CSZ2-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J)
         AJ(J,J_TOTTRP,IT)=AJ(J,J_TOTTRP,IT)+(SRNFLB(LTROPO(I,J))
-     *     *COSZ2(I,J)-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J)
+     *     *CSZ2-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J)
       END DO
 CCC   AREG(JR,J_CLRTOA)=AREG(JR,J_CLRTOA)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
-CCC  *     *COSZ2(I,J)-TRNFLB(LM+LM_REQ+1))*DXYP(J)
+CCC  *     *CSZ2-TRNFLB(LM+LM_REQ+1))*DXYP(J)
 CCC   AREG(JR,J_CLRTRP)=AREG(JR,J_CLRTRP)+OPNSKY*
-CCC  *     (SRNFLB(LTROPO(I,J))*COSZ2(I,J)-TRNFLB(LTROPO(I,J)))*DXYP(J)
+CCC  *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
 CCC   AREG(JR,J_TOTTRP)=AREG(JR,J_TOTTRP)+
-CCC  *     (SRNFLB(LTROPO(I,J))*COSZ2(I,J)-TRNFLB(LTROPO(I,J)))*DXYP(J)
+CCC  *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
       AREGIJ(I,J,5)=OPNSKY*(SRNFLB(LM+LM_REQ+1)
-     *     *COSZ2(I,J)-TRNFLB(LM+LM_REQ+1))*DXYP(J)
+     *     *CSZ2-TRNFLB(LM+LM_REQ+1))*DXYP(J)
       AREGIJ(I,J,6)=OPNSKY*
-     *     (SRNFLB(LTROPO(I,J))*COSZ2(I,J)-TRNFLB(LTROPO(I,J)))*DXYP(J)
+     *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
       AREGIJ(I,J,7)=
-     *     (SRNFLB(LTROPO(I,J))*COSZ2(I,J)-TRNFLB(LTROPO(I,J)))*DXYP(J)
+     *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
 C****
       END DO
 C****
 C**** END OF MAIN LOOP FOR I INDEX
 C****
   600 CONTINUE
+C****
+C**** END OF MAIN LOOP FOR J INDEX
+C****
 C$OMP  END DO
 C$OMP  END PARALLEL
 CcOMP  END PARALLEL DO
-
+      if(kradia.gt.0) return
 C**** Stop if temperatures were out of range
       IF(ICKERR.GT.0)  STOP 'In Radia: Temperature out of range'
       IF(JCKERR.GT.0)  STOP 'In Radia: RQT out of range'
 
-      DO J=1,JM
-      DO I=1,IMAXJ(J)
-         JR=JREG(I,J)
-         AREG(JR,J_PCLDSS)=AREG(JR,J_PCLDSS)+AREGIJ(I,J,1)
-         AREG(JR,J_PCLDMC)=AREG(JR,J_PCLDMC)+AREGIJ(I,J,2)
-         AREG(JR,J_CLDDEP)=AREG(JR,J_CLDDEP)+AREGIJ(I,J,3)
-         AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +AREGIJ(I,J,4)
-         AREG(JR,J_CLRTOA)=AREG(JR,J_CLRTOA)+AREGIJ(I,J,5)
-         AREG(JR,J_CLRTRP)=AREG(JR,J_CLRTRP)+AREGIJ(I,J,6)
-         AREG(JR,J_TOTTRP)=AREG(JR,J_TOTTRP)+AREGIJ(I,J,7)
-      END DO
-      END DO
-C
-C****
-C**** END OF MAIN LOOP FOR J INDEX
-C****
+C**** save all input data to disk if kradia<0
+      if (kradia.lt.0) write(iu_rad) itime,T,RQT,TsAvg,QR,P,CLDinfo    
+     *  ,rsi,msi,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm),wsoil,wsavg
+     *  ,snowi,snowli_com,snowe_com,snoage,fmp_com,flag_dsws,ltropo
+     *  ,SRHRA,TRHRA,itime
 C****
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C****
+C       delayed accumulation to preserve order of summation
+         DO J=1,JM
+         DO I=1,IMAXJ(J)
+           JR=JREG(I,J)
+           AREG(JR,J_PCLDSS)=AREG(JR,J_PCLDSS)+AREGIJ(I,J,1)
+           AREG(JR,J_PCLDMC)=AREG(JR,J_PCLDMC)+AREGIJ(I,J,2)
+           AREG(JR,J_CLDDEP)=AREG(JR,J_CLDDEP)+AREGIJ(I,J,3)
+           AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +AREGIJ(I,J,4)
+           AREG(JR,J_CLRTOA)=AREG(JR,J_CLRTOA)+AREGIJ(I,J,5)
+           AREG(JR,J_CLRTRP)=AREG(JR,J_CLRTRP)+AREGIJ(I,J,6)
+           AREG(JR,J_TOTTRP)=AREG(JR,J_TOTTRP)+AREGIJ(I,J,7)
+         END DO
+         END DO
+C
          DO 780 J=1,JM
          DXYPJ=DXYP(J)
          DO L=1,LM

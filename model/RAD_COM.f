@@ -10,8 +10,12 @@
 
 !@var LM_REQ Extra number of radiative equilibrium layers
       INTEGER, PARAMETER :: LM_REQ=3
+!@var dimrad_sv dimension sum of input fields saved for radia_only runs
+      INTEGER, PARAMETER :: dimrad_sv=IM*JM*(7*LM+3*LM_REQ+20)
 !@var RQT Radiative equilibrium temperatures above model top
       DOUBLE PRECISION, DIMENSION(LM_REQ,IM,JM) :: RQT
+!@var Tchg Total temperature change in adjusted forcing runs
+      DOUBLE PRECISION, DIMENSION(LM+LM_REQ,IM,JM) :: Tchg
 !@var SRHR(0) Solar   raditive net flux into the ground          (W/m^2)
 !@var TRHR(0) Thermal raditive net flux into ground(W/O -StB*T^4)(W/m^2)
 !@*   Note: -StB*T^4 is MISSING, since T may vary a lot betw. rad. calls
@@ -63,7 +67,8 @@ C**** Local variables initialised in init_RAD
 !@sum  io_rad reads and writes radiation arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,lhead      
+      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,ioread_single
+     *         ,lhead,Kradia
       USE RADNCB
       IMPLICIT NONE
 
@@ -73,6 +78,22 @@ C**** Local variables initialised in init_RAD
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "RAD01"
+
+      if (kradia.gt.1) then
+        write (MODULE_HEADER(lhead+1:80),'(a8,i2,a5)')
+     *    'R8 Tchg(',lm+LM_REQ,',ijm)'
+        SELECT CASE (IACTION)
+        CASE (:IOWRITE)            ! output to standard restart file
+          WRITE (kunit,err=10) MODULE_HEADER,Tchg
+        CASE (IOREAD:)
+          SELECT CASE  (IACTION)
+          CASE (ioread,irerun,ioread_single)  ! input for restart
+            READ (kunit,err=10) HEADER,Tchg
+          CASE (IRSFIC)  ! only way to start adj.frc. run
+            Tchg = 0.
+          END SELECT
+        END SELECT
+      else
 
       MODULE_HEADER(lhead+1:80) = 'R8 Teq(3,im,jm),'//
      *  ' S0, s+tHr(0:lm,im,jm,2),fs(im,jm,4)'
@@ -94,6 +115,7 @@ C**** Local variables initialised in init_RAD
           GO TO 10
         END IF
       END SELECT
+      end if
 
       RETURN
  10   IOERR=1

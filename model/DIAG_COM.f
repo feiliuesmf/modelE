@@ -71,9 +71,9 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       DOUBLE PRECISION, DIMENSION(NEHIST,HIST_DAYS) :: ENERGY
 
 !@var NPTS number of points at which standard conserv. diags are called
-      INTEGER, PARAMETER :: NPTS = 11  
+      INTEGER, PARAMETER :: NPTS = 11
 !@param NQUANT Number of conserved quantities in conservation diags
-      INTEGER, PARAMETER :: NQUANT=18 
+      INTEGER, PARAMETER :: NQUANT=18
 !@param KCON number of conservation diagnostics
       INTEGER, PARAMETER :: KCON=125
 !@var CONSRV conservation diagnostics
@@ -157,7 +157,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
      &     DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP) :: WAVE
 
 !@param KGZ number of pressure levels for geopotential height diag
-      INTEGER, PARAMETER :: KGZ = 13 
+      INTEGER, PARAMETER :: KGZ = 13
 !@param kgz_max is the actual number of geopotential heights saved
       INTEGER kgz_max
 !@param PMB pressure levels for geopotential heights (extends to strat)
@@ -184,7 +184,8 @@ C****   10 - 1: mid strat               1 and up : upp strat.
      &  ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,
      &  AJK,AIJK
       DOUBLE PRECISION, DIMENSION(KACC) :: ACC
-      EQUIVALENCE (ACC,AJ)
+      DOUBLE PRECISION, DIMENSION(LM+LM_REQ+1,IM,JM,5) :: AFLX_ST
+      EQUIVALENCE (ACC,AJ,AFLX_ST)
 
 !@param KTSF number of freezing temperature diagnostics
       integer, parameter :: ktsf=4
@@ -266,7 +267,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     J_SRNFG, J_TRNFP0, J_TRNFP1, J_TRHDT, J_RNFP0, J_RNFP1,
      *     J_RHDT, J_SHDT, J_EVHDT, J_HZ1, J_TG2, J_TG1, J_EVAP,
      *     J_PRCP, J_TX, J_TX1, J_TSRF, J_DTSGST, J_DTDGTR, J_RICST,
-     *     J_RICTR, J_ROSST, J_ROSTR, J_RSI, J_TYPE, J_RSNOW, 
+     *     J_RICTR, J_ROSST, J_ROSTR, J_RSI, J_TYPE, J_RSNOW,
      *     J_OHT, J_DTDJS, J_DTDJT, J_LSTR, J_LTRO, J_EPRCP,
      *     J_RUN, J_ERUN, J_SRUN, J_HZ0,
      *     J_RVRD,J_ERVR,J_IMELT, J_HMELT, J_SMELT,J_IMPLM, J_IMPLH,
@@ -543,11 +544,12 @@ c idacc-indices of various processes
 !@sum  io_diag reads and writes diagnostics to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,ioread_single,irerun,irsfic,
-     *     iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
+      USE MODEL_COM, only : ioread,ioread_single,irerun,irsfic
+     *    ,iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
+     *    ,Kradia
       USE DAGCOM
       IMPLICIT NONE
-      REAL*4 ACCS(KACC),TSFREZS(IM,JM,KTSF)
+      REAL*4 ACCS(KACC),TSFREZS(IM,JM,KTSF),AFLXS(LM+LM_REQ+1,IM,JM,5)
 c???  add a couple of lines to replace ACCS and avoid 'COMMON BLOCK'
       integer monac1(12),i_ida,i_xtra
 !@var Kcomb counts acc-files as they are added up
@@ -563,6 +565,39 @@ c???  add a couple of lines to replace ACCS and avoid 'COMMON BLOCK'
 !@var it input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
 
+      if(kradia.gt.0) then
+        write (MODULE_HEADER(LHEAD+1:80),'(a6,i8,a20,i2,a7)')
+     *   '#acc(=',idacc(2),') R8:SU.SD.TU.TD.dT(',lm+lm_req+1,',ijM,5)'
+
+        SELECT CASE (IACTION)
+        CASE (IOWRITE)            ! output to standard restart file
+          WRITE (kunit,err=10) MODULE_HEADER,idacc(2),AFLX_ST,it
+        CASE (IOWRITE_SINGLE)     ! output in single precision
+          MODULE_HEADER(LHEAD+18:LHEAD+18) = '4'
+          MODULE_HEADER(LHEAD+44:80) = ',monacc(12)'
+          WRITE (kunit,err=10) MODULE_HEADER,idacc(2),SNGL(AFLX_ST),
+     *      monacc,it
+        CASE (IOWRITE_MON)        ! output to end-of-month restart file
+          MODULE_HEADER(LHEAD+1:80) = 'itime '
+          WRITE (kunit,err=10) MODULE_HEADER,it
+        CASE (ioread)           ! input from restart file
+          READ (kunit,err=10) HEADER,idacc(2),AFLX_ST,it
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
+        CASE (IOREAD_SINGLE)      !
+          READ (kunit,err=10) HEADER,idac1(2),AFLXS,monac1
+          AFLX_ST=AFLX_ST+AFLXS
+          IDACC(2) = IDACC(2) + IDAC1(2)
+          monacc = monacc + monac1
+        CASE (irerun)      ! no diag-info needed
+        CASE (Irsfic)      ! no diag-info needed
+        END SELECT
+        return
+      end if
+
+C**** The regular model (Kradia le 0)
       write (MODULE_HEADER(LHEAD+1:LHEAD+15),'(a10,i4,a1)')
      *   'I/R8 keys(',1+NKEYNR*NKEYMO,')'             ! keyct,keynr(:,:)
       i_ida = Lhead + 10+4+1 + 10+2+1 + 1
@@ -609,12 +644,10 @@ c??? *      CONSRV,SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,
       CASE (IOREAD_SINGLE)      !
         READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZS,
      *      idac1,ACCS,
-c??? *  add a couple of lines to avoid 'COMMON BLOCK'
      *      monac1
 !**** Here we could check the dimensions written into HEADER  ??????
         TSFREZ=TSFREZS
         ACC=ACC+ACCS
-c??? *  add many lines to avoid 'COMMON BLOCK' - do I really have to ???
         IDACC = IDACC + IDAC1
 !@var idacc(5) is the length of a time series (daily energy history).
 !****   If combining acc-files, rather than concatenating these series,

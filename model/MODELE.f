@@ -13,6 +13,7 @@
       USE PARAM
       USE SOIL_DRV, only: daily_earth, ground_e
       USE GEOM, only : dxyp
+      USE RADNCB, only : dimrad_sv
 #ifdef TRACERS_ON
       USE TRACER_COM, only: mtrace,trm
 #endif
@@ -36,7 +37,7 @@ C****
 C****
 C**** If run is already done, just produce diagnostic printout
 C****
-      IF (Itime.GE.ItimeE) then     ! includes ISTART<1 case
+      IF (Itime.GE.ItimeE.and.Kradia.le.0) then ! includes ISTART<1 case
          IF (KDIAG(1).LT.9) CALL DIAGJ
          IF (KDIAG(2).LT.9) CALL DIAGJK
          IF (KDIAG(10).LT.9) CALL DIAGIL
@@ -72,13 +73,15 @@ C**** INITIALIZE TIME PARAMETERS
 
       CALL DAILY(.false.)                  ! not end_of_day
       if (itime.eq.itimei) call reset_diag(0)
-      CALL daily_EARTH(.false.)            ! not end_of_day
-      CALL daily_OCEAN(.false.)            ! not end_of_day
-      CALL CALC_AMPK(LS1-1)
+      if (Kradia.le.0) then
+        CALL daily_EARTH(.false.)          ! not end_of_day
+        CALL daily_OCEAN(.false.)          ! not end_of_day
+        CALL CALC_AMPK(LS1-1)
 #ifdef TRACERS_ON
-      CALL daily_tracer(0)
+        CALL daily_tracer(0)
 #endif
-         CALL CHECKT ('INPUT ')
+           CALL CHECKT ('INPUT ')
+      end if
 
       WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
      *   '0NASA/GISS Climate Model (re)started',
@@ -88,15 +91,19 @@ C**** INITIALIZE TIME PARAMETERS
 C****
 C**** Open and position output history files if needed
 C****
+      write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
       if (Kvflxo.ne.0) then
-        write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
         call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
-        call io_POS(iu_VFLXO,Itime,2*im*jm*koa,Nday)
+        call io_POS(iu_VFLXO,Itime,2*im*jm*koa,Nday) ! real*8-dim -> 2*
       end if
       if (Nslp.ne.0) then
-        write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
         call openunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.)
         call io_POS(iu_SLP,Itime,im*jm,Nslp)
+      end if
+      if (Kradia.ne.0) then
+        if (Kradia.gt.0) aDATE(4:7)='    '
+        call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
+        if (Kradia.lt.0) call io_POS(iu_RAD,Itime-1,2*dimrad_sv,Nrad)
       end if
 C****
 C**** MAIN LOOP
@@ -122,23 +129,28 @@ C**** CHECK FOR BEGINNING OF EACH MONTH => RESET DIAGNOSTICS
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
         IF ( months.ge.NMONAV .and. JDAY.eq.1+JDendOfM(Jmon-1) ) then
           call reset_DIAG(0)
-          if (Kvflxo.ne.0) then
             write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
+          if (Kvflxo.ne.0) then
             call closeunit( iu_VFLXO )
             call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
           end if
           if (Nslp.ne.0) then
-            write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
             call closeunit( iu_SLP )
             call openunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.)
           end if
+          if (Kradia.ne.0) then
+            if (Kradia.gt.0) aDATE(4:7)='    '
+            call closeunit( iu_RAD )
+            call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
+          end if
         end if
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
-        call daily_DIAG
+        if (kradia.le.0) call daily_DIAG
       END IF
 C****
 C**** INTEGRATE DYNAMIC TERMS (DIAGA AND DIAGB ARE CALLED FROM DYNAM)
 C****
+      if (kradia.le.0) then                   ! full model,kradia le 0
          MODD5D=MOD(Itime-ItimeI,NDA5D)
          IF (MODD5D.EQ.0) IDACC(7)=IDACC(7)+1
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
@@ -167,7 +179,6 @@ C****
 C**** INTEGRATE SOURCE TERMS
 C****
          IDACC(1)=IDACC(1)+1
-         MODRD=MOD(Itime-ItimeI,NRAD)
          MODD5S=MOD(Itime-ItimeI,NDA5S)
          IF (MODD5S.EQ.0) IDACC(8)=IDACC(8)+1
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG5A (1,0)
@@ -179,9 +190,12 @@ C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)
          IF (MODD5S.EQ.0) CALL DIAGCA (3)
 C**** RADIATION, SOLAR AND THERMAL
-      CALL RADIA
+      end if                                  ! full model,kradia le 0
+      MODRD=MOD(Itime-ItimeI,NRAD)
+      if (kradia.le.0. or. MODRD.eq.0) CALL RADIA
          CALL CHECKT ('RADIA ')
          CALL TIMER (MNOW,MRAD)
+      if (kradia.le.0) then                    ! full model,kradia le 0
          IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)
          IF (MODD5S.EQ.0) CALL DIAGCA (4)
 C****
@@ -265,6 +279,7 @@ C**** Accumulate tracer distribution diagnostics
       CALL TRACEA
          CALL TIMER (MNOW,MTRACE)
 #endif
+      end if                                  ! full model,kradia le 0
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
@@ -272,8 +287,11 @@ C****
       Jhour=MOD(Itime*24/NDAY,24)         ! Hour (0-23)
       Nstep=Nstep+NIdyn                   ! counts DT(dyn)-steps
 
-
-      IF (MOD(Itime,NDAY).eq.0) THEN
+      IF (MOD(Itime,NDAY).eq.0) THEN      ! NEW DAY
+      if (kradia.gt.0) then               ! radiative forcing run
+        CALL DAILY(.false.)
+        months=(Jyear-Jyear0)*JMperY + JMON-JMON0
+      else                                ! full model, kradia le 0
            CALL DIAG5A (1,0)
            CALL DIAGCA (1)
         CALL DAILY(.true.)                 ! end_of_day
@@ -292,7 +310,9 @@ C****
            CALL DIAG5A (16,NDAY*NIdyn)
            CALL DIAGCA (10)
         call sys_flush(6)
-      END IF
+      end if   ! kradia: full model (or rad.forcing run)
+      END IF   !  NEW DAY
+      if (kradia.le.0) then   ! full model
 C****
 C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS
 C****
@@ -307,7 +327,7 @@ C**** ZERO OUT INTEGRATED QUANTITIES
          CALL TIMER (MNOW,MELSE)
       END IF
 C****
-C**** WRITE SEA LEVEL PRESSURES EVERY NSLP DTSRC-TIME STEPS
+C**** WRITE SEA LEVEL PRESSURES EVERY NSLP physics-TIME STEPS (DTsrc)
 C****
       IF (NSLP.NE.0) THEN
          IF (MOD(ITIME, NSLP).eq.0) CALL get_SLP(iu_SLP)
@@ -343,6 +363,7 @@ C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
          NIPRNT=NIPRNT-1
          call set_param( "NIPRNT", NIPRNT, 'o' )
       END IF
+      end if   ! full model ; kradia le 0
 
 C**** THINGS TO DO BEFORE ZEROING OUT THE ACCUMULATING ARRAYS
 C****    done at the end of (selected) months
@@ -350,7 +371,7 @@ C****    done at the end of (selected) months
      *    JDAY.eq.1+JDendOfM(JMON-1) .and. MOD(Itime,NDAY).eq.0) THEN
 
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
-c       WRITE (6,'("1"/64(1X/))')
+      if (kradia.le.0) then            ! full model
         IF (KDIAG(1).LT.9) CALL DIAGJ
         IF (KDIAG(2).LT.9) CALL DIAGJK
         IF (KDIAG(10).LT.9) CALL DIAGIL
@@ -363,13 +384,14 @@ c       WRITE (6,'("1"/64(1X/))')
         IF (KDIAG(11).LT.9) CALL diag_RIVER
         IF (KDIAG(12).LT.9) CALL diag_OCEAN
 #ifdef TRACERS_ON
-         IF (KDIAG(8).LT.9) then
+         if (KDIAG(8).LT.9) then
             CALL DIAGJLT
             CALL DIAGIJT
             CALL DIAGTCP
          end if
 #endif
         CALL DIAGKN
+      end if   ! full model; kradia le 0
 
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
         IF (KCOPY.GT.0) THEN
@@ -472,7 +494,7 @@ C**** sync_param( "B", Y ) reads parameter B into variable Y
 C**** if "B" is not in the database, then Y is unchanged and its
 C**** value is saved in the database as "B" (here sync = synchronize)
       USE MODEL_COM, only : LM,NIPRNT,MFILTR,XCDLM,NDASF
-     *     ,NDA4,NDA5S,NDA5K,NDA5D,NDAA,NFILTR,NRAD,Kvflxo,Nslp
+     *     ,NDA4,NDA5S,NDA5K,NDA5D,NDAA,NFILTR,NRAD,Kvflxo,Nslp,kradia
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND,LSDRAG,P_SDRAG
      $     ,ItimeI,PSFMPT,PSTRAT,SIG,SIGE
@@ -499,6 +521,7 @@ C**** Rundeck parameters:
       call sync_param( "Nssw", Nssw )
       call sync_param( "KCOPY", KCOPY )
       call sync_param( "KOCEAN", KOCEAN )
+      call sync_param( "KRADIA", KRADIA )
       call sync_param( "NIsurf", NIsurf )
       call sync_param( "IRAND", IRAND )
       call sync_param( "P_SDRAG", P_SDRAG )
@@ -525,7 +548,7 @@ C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
       USE CONSTANT, only : grav,kapa,sday,shi,lhm
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
-     *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige
+     *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige,kradia
      *     ,bydsig,xlabel,lrunid,nmonav,qcheck,irand,psf,ptop
      *     ,nisurf,nidyn,nday,dt,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
@@ -677,6 +700,7 @@ C**** Get those parameters which are needed in this subroutine
       if(is_set_param("NIsurf")) call get_param( "NIsurf", NIsurf ) !
       if(is_set_param("IRAND"))  call get_param( "IRAND", IRAND )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
+      if(is_set_param("Kradia")) call get_param( "Kradia", Kradia )
       call reset_diag(1)
 
 C***********************************************************************
@@ -695,7 +719,7 @@ C***********************************************************************
         GO TO 500
       end if
 
-      if (istart.ge.9) go to 400
+      if (istart.ge.9 .or. Kradia.gt.0) go to 400
 C***********************************************************************
 C****                                                               ****
 C****                  INITIAL STARTS - ISTART: 1 to 8              ****
@@ -935,16 +959,20 @@ C***********************************************************************
 C****
 C****   DATA FROM end-of-month RESTART FILE     ISTART=9
 C****        mainly used for REPEATS and delayed EXTENSIONS
-      CASE (9)    ! no need to read diag.arrays
+      CASE (8:9)    ! no need to read diag.arrays
         call openunit("AIC",iu_AIC,.true.,.true.)
-        call io_rsf(iu_AIC,Itime,irerun,ioerr)
+        if(istart.eq.8) then   !  initial start of rad.forcing run
+          call io_label(iu_AIC,Itime,irerun,ioerr)
+          if (Kradia.gt.1) call io_rad (iu_AIC,Itime,irsfic,ioerr)
+        end if
+        if(istart.eq.9) call io_rsf(iu_AIC,Itime,irerun,ioerr)
         call closeunit(iu_AIC)
         if (ioerr.eq.1) goto 800
         WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
      *    ISTART,', TIME=',Itime,' ',XLABEL(1:80) ! sho input file label
         XLABEL = RLABEL                        ! switch to rundeck label
 C****
-!**** IRANDI seed for random perturbation of current state (if/=0):
+!**** IRANDI seed for random perturbation of current state (if/=0)
 C****        tropospheric temperatures are changed by at most 1 degree C
         IF (IRANDI.NE.0) THEN
           CALL RINIT (IRANDI)
@@ -1003,6 +1031,7 @@ C**** parameters which we need in "INPUT" should be extracted here.
       if(is_set_param("DTsrc"))  call get_param( "DTsrc", DTsrc )
       if(is_set_param("DT"))     call get_param( "DT", DT )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
+      if(is_set_param("Kradia")) call get_param( "Kradia", Kradia )
 
 C***********************************************************************
 C****                                                              *****
@@ -1064,13 +1093,15 @@ C**** COMPUTE GRID RELATED VARIABLES AND READ IN TIME-INDEPENDENT ARRAYS
 C****
 C**** CALCULATE SPHERICAL GEOMETRY
       CALL GEOM_B
-      CALL CALC_AMPK(LM)
+      if (Kradia.le.0) then   !  full model
+        CALL CALC_AMPK(LM)
 
-C**** READ SPECIAL REGIONS FROM UNIT 29
-      call openunit("REG",iu_REG,.true.,.true.)
-      READ(iu_REG) TITREG,JREG,NAMREG
-      WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
-      call closeunit(iu_REG)
+C****   READ SPECIAL REGIONS FROM UNIT 29
+        call openunit("REG",iu_REG,.true.,.true.)
+        READ(iu_REG) TITREG,JREG,NAMREG
+        WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
+        call closeunit(iu_REG)
+      end if  ! full model: Kradia le 0
 
 C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
 C**** Note that FLAKE0 is read in only to provide initial values
@@ -1135,6 +1166,17 @@ C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
 C**** Recompute Ground hydrology data if redoGH (new soils data)
 C****
+      if (Kradia.gt.0) then   !  radiative forcing run
+        CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
+        if(istart.gt.0) CALL init_RAD
+        if(istart.lt.0) CALL init_DIAG(ISTART)
+        WRITE (6,INPUTZ)
+        call print_param( 6 )
+        WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
+        WRITE (6,*) "PLbot=",PTOP+PSFMPT*SIGE
+        if(istart.lt.0) CALL exit_rc (13)
+        return
+      end if                  !  Kradia>0; radiative forcing run
       CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART)
 C**** Initialize pbl (and read in file containing roughness length data)
       if(istart.gt.0) CALL init_pbl(iniPBL)
@@ -1245,7 +1287,7 @@ C**** Tasks to be done at end of day only (none so far)
 !@calls io_model,io_ocean,io_lakes,io_seaice,io_earth,io_soils,io_snow
 !@+     io_landice,io_bldat,io_pbl,io_clouds,io_somtq,io_rad,io_diags
 !@+     io_ocdiag
-      USE MODEL_COM, only : ioread_single,iowrite_single
+      USE MODEL_COM, only : ioread_single,iowrite_single,Kradia
 
       IMPLICIT NONE
 !@var iaction flag for reading or writing rsf file
@@ -1267,6 +1309,13 @@ C**** Particular values may produce variations in indiv. i/o routines
 C**** Calls to individual i/o routines
       call io_label  (kunit,it,iaction,ioerr)
       it1=it
+      if (Kradia.gt.0) then
+        if (Kradia.gt.1 .and. iaction.ne.ioread_single .and.
+     *   iaction.ne.iowrite_single) call io_rad (kunit,iaction,ioerr)
+        call io_diags  (kunit,it,iaction,ioerr)
+        if(it1.ne.it .or. ioerr.eq.1) stop 'restart problem'
+        return
+      end if
       if(iaction.ne.ioread_single.and.iaction.ne.iowrite_single) then
         call io_model  (kunit,iaction,ioerr)
         call io_strat  (kunit,iaction,ioerr)

@@ -2973,9 +2973,9 @@ C
       DO 100 L=1,NL0
       DPL(L)=PLB0(L)-PLB0(L+1)
       PL(L)=(PLB0(L)+PLB0(L+1))*0.5D0
-      HLB(L)=HLB0(L)
+!obso HLB(L)=HLB0(L)
   100 CONTINUE
-      HLB(NL1)=HLB0(NL1)
+!obso HLB(NL1)=HLB0(NL1)
 C
       NLAY=LASTVC/100000
       NATM=(LASTVC-NLAY*100000)/10000
@@ -5318,6 +5318,7 @@ C
 C                                              -------------------------
 C                                              Snow Albedo Specification
 C                                              -------------------------
+      fspare(52:59)=0. ! for writer only : soil albedos
       ASNAGE=0.35D0*EXP(-0.2D0*AGESN(1))
       BSNVIS=ASNVIS+ASNAGE
       BSNNIR=ASNNIR+ASNAGE
@@ -6287,9 +6288,7 @@ C
       DTHALF=(TA-TB)*(P2-P3)/(P1-P3)*TLGRAD
       TLB(NL)=TC+DTHALF
       TLT(NL)=TC-DTHALF
-      L=NLP
-      DO 120 N=1,NL
-      L=L-1
+      DO 120 L=NL,1,-1
       IF(PLB(L).GT.PTLISO) GO TO 130
       TLT(L)=TLM(L)
       TLB(L)=TLM(L)
@@ -6991,7 +6990,11 @@ C
       SRFHRL(N)=0.D0
       SKDFLB(N,16)=0.D0
       SKUFLB(N,16)=0.D0
+      SRKALB(N)=0.D0  ! for WRITER only
    10 CONTINUE
+      dblext=0. ; dblsct=0. ; dblgcb=0. ; dblpi0=0. ! for writer only
+      skdflb=0. ; sknflb=0. ; skuflb=0.             ! for writer only
+      skfhrl=0. ; srkgax=0. ; srkgad=0.             ! for writer only
 C                     TOA solar flux VIS/NIR subdivision
 C                     (incident, outgoing, plane albedo)
 C                     ----------------------------------
@@ -8347,7 +8350,9 @@ C                        KWTRAB=2           sets LW output to be Mie Qsc
 C                        KWTRAB=3           sets LW output to be Mie Qcb
 C                        KWTRAB=4           sets LW output to be Mie Pi0
 C
-C                 INDEX < 10 is selective, INDEX > 10 is digit inclusive
+C                 INDEX  0-9 : show item 'INDEX' only
+C                 INDEX 11-19: show items 1->last digit of 'INDEX'
+C                 INDEX 21-29: show items 0->last digit of 'INDEX'
 C                 KWRU directs the output to selected (KWRU) file number
 C     ------------------------------------------------------------------
 C
@@ -8478,13 +8483,14 @@ C
 C
       KW=KWRU
       INDJ=MOD(INDEX,10)
-      IF(INDJ.LT.1) INDJ=10
+      IF(INDJ.LT.1.and.INDEX.gt.0) INDJ=10
       INDI=1
+      IF(INDEX.GT.20.or.INDEX.eq.0) INDI=0
       IF(INDEX.LT.11) INDI=INDJ
       DO 9999 INDX=INDI,INDJ
 C
       KPAGE=1
-      IF(INDEX.EQ.0) GO TO 90
+      IF(INDX.EQ.0) GO TO 90
       GO TO (100,200,300,400,500,600,700,800,900,1000),INDX
 C
 C-------------
@@ -8723,13 +8729,16 @@ C
       UXGAS(L,8)=U0GAS(L,8)*FULGAS(8+LGS)
   204 UXGAS(L,9)=U0GAS(L,9)*FULGAS(9+LGS)
   205 CONTINUE
-      DO 206 N=1,NL
-      L=NLP-N
+      DO 206 L=NL,1,-1
       EPS=CLDEPS(L)
       TAER=WSREXT(L,6)
       IPI0=WSRPI0(L,6)*1000.D0+1.D-05
-      HLM=0.5D0*(HLB(L+1)+HLB(L))
-      TLAPS=(TLT(L)-TLB(L))/(HLB(L+1)-HLB(L))
+      HLM=0.5D0*(HLB0(L+1)+HLB0(L))
+      TLAPS=(TLT(L)-TLB(L))/(HLB0(L+1)-HLB0(L))
+      if(keeprh.eq.0) then
+        es=10.D0**(9.4051D0-2353.D0/TLM(L))
+        rhl(l)=pl(l)*shl(l)/(es*(0.662D0+0.378D0*SHL(L)))
+      end if
       IRHL=RHL(L)*100.0
       IF(PL(L).LT.1.D0) THEN
       WRITE(KW,6212) L,PL(L),HLM,TLM(L),TLAPS,SHL(L),IRHL
@@ -8839,7 +8848,7 @@ C
       SRALB =SRUFLB(L)/(SRDFLB(L)+1.E-10)
       STNFLB=SRNFLB(L)-TRNFLB(L)
       WRITE(KW,6301) NORMS0
-      WRITE(KW,6302) L,PLB(L),HLB(L),TLB(L)
+      WRITE(KW,6302) L,PLB(L),HLB0(L),TLT(L-1) ! TLB(LN+1) unused/set
      +             ,TRDFLB(L),TRUFLB(L),TRNFLB(L)
      +             ,SRDFLB(L),SRUFLB(L),SRNFLB(L),STNFLB,SRALB
       DO 301 N=1,NL
@@ -8854,12 +8863,12 @@ C
       SRXVIS=SRXATM(1)
       SRXNIR=SRXATM(2)
       IF(PLB(L).LT.1.D0) THEN
-      WRITE(KW,6313) L,PLB(L),HLB(L),TLB(L),TLT(L)
+      WRITE(KW,6313) L,PLB(L),HLB0(L),TLB(L),TLT(L)
      +             ,TRDFLB(L),TRUFLB(L),TRNFLB(L),TRFCRL(L)
      +             ,SRDFLB(L),SRUFLB(L),SRNFLB(L),SRFHRL(L)
      +             ,STNFLB,STFHR,STDHR,TRDCR,SRDHR,SRALB
       ELSE
-      WRITE(KW,6303) L,PLB(L),HLB(L),TLB(L),TLT(L)
+      WRITE(KW,6303) L,PLB(L),HLB0(L),TLB(L),TLT(L)
      +             ,TRDFLB(L),TRUFLB(L),TRNFLB(L),TRFCRL(L)
      +             ,SRDFLB(L),SRUFLB(L),SRNFLB(L),SRFHRL(L)
      +             ,STNFLB,STFHR,STDHR,TRDCR,SRDHR,SRALB
@@ -8954,7 +8963,7 @@ C                                ----------------------------------
       WRITE(KW,6402) (K,K=1,6),(K,K=1,6)
       DO 403 N=1,NL
       L=NLP-N
-      WRITE(KW,6403) L,PLB(L),HLB(L)
+      WRITE(KW,6403) L,PLB(L),HLB0(L)
      +              ,(WSREXT(L,J),J=1,6),(WSRSCT(L,J),J=1,6)
   403 CONTINUE
       WRITE(KW,6404) (SUM1(K),K=1,6),(SUM2(K),K=1,6)
@@ -9004,7 +9013,7 @@ C                                ------------------------------------
       WRITE(KW,6412) (K,K=1,6),(K,K=1,6)
       DO 413 N=1,NL
       L=NLP-N
-      WRITE(KW,6413) L,PLB(L),HLB(L)
+      WRITE(KW,6413) L,PLB(L),HLB0(L)
      +              ,(SRCEXT(L,J),J=1,6),(SRCSCT(L,J),J=1,6)
   413 CONTINUE
       WRITE(KW,6414) (SUM1(K),K=1,6),(SUM2(K),K=1,6)
@@ -9053,7 +9062,7 @@ C                                ------------------------------------
       WRITE(KW,6427) (K,K=1,6),(K,K=1,6)
       DO 420 N=1,NL
       L=NLP-N
-      WRITE(KW,6428) L,PLB(L),HLB(L)
+      WRITE(KW,6428) L,PLB(L),HLB0(L)
      +              ,(DBLEXT(L,J),J=1,6),(DBLSCT(L,J),J=1,6)
   420 CONTINUE
       WRITE(KW,6429) (SUM1(K),K=1,6),(SUM2(K),K=1,6)
@@ -9721,9 +9730,9 @@ C
       IF(KORDER.EQ.1) FSR2(K)=SKDFLB(NLP,K)
       SUMK1=SUMK1+FSR1(K)
       SUMK2=SUMK2+FSR2(K)
-      FSR1(K)=FSR1(K)/FSR2(K)
+      FSR1(K)=FSR1(K)/(FSR2(K)+1.d-20)
   813 CONTINUE
-      FSR1(17)=SUMK1/SUMK2
+      FSR1(17)=SUMK1/(SUMK2+1.d-20)
       WRITE(KW,6813) (FSR1(K),K=1,17)
       SUMT=SUMT+FSR1(17)
       SUMK1=0.D0
@@ -9735,9 +9744,9 @@ C
       IF(KORDER.EQ.1) FSR2(K)=SKDFLB(NLP,K)
       SUMK1=SUMK1+FSR1(K)
       SUMK2=SUMK2+FSR2(K)
-      FSR1(K)=FSR1(K)/FSR2(K)
+      FSR1(K)=FSR1(K)/(FSR2(K)+1.d-20)
   814 CONTINUE
-      FSR1(17)=SUMK1/SUMK2
+      FSR1(17)=SUMK1/(SUMK2+1.d-20)
       WRITE(KW,6814) (FSR1(K),K=1,17)
       SUMT=SUMT+FSR1(17)
       DO 815 K=1,16
