@@ -991,7 +991,8 @@ C****
 #ifdef TRACERS_DRYDEP
 C**** Save for tracer dry deposition conservation quantity:
       do n=1,ntm
-        if(dodrydep(n)) call diagtcb(dtr_dd(1,n),itcon_dd(n),n)
+        if(dodrydep(n).and.itcon_dd(n).gt.0)
+     *       call diagtcb(dtr_dd(1,n),itcon_dd(n),n)
       end do
 #endif
       RETURN
