@@ -1391,29 +1391,6 @@ C                            -------------------------------------------
       N1=N2+1
   328 CONTINUE
 
-C         Mie scattering Qext,Cosb tables (Nr=1.30-1.60),(Reff=0.0-15.0)
-C         used for hygroscopic aerosol relative humidity size dependence
-C         -------skip over these data, they are no longer needed--------
-
-      READ (NRFU,3014)           ! (XNR(J),J=1,7)
- 3014 FORMAT(13X,F5.3,12F9.3)
-      DO 331 I=1,183
-      READ (NRFU,3015)           ! J,SIZENR(I),(QEXTNR(I,J),J=1,7)
- 3015 FORMAT(I3,F6.2,13F9.5)
-  331 CONTINUE
-      READ (NRFU,3014)           ! (XNR(J),J=8,13)
-      DO 332 I=1,183
-      READ (NRFU,3015)           ! J,SIZENR(I),(QEXTNR(I,J),J=8,13)
-  332 CONTINUE
-      READ (NRFU,3014)           ! (XNR(J),J=1,7)
-      DO 333 I=1,183
-      READ (NRFU,3015)           ! J,SIZENR(I),(COSBNR(I,J),J=1,7)
-  333 CONTINUE
-      READ (NRFU,3014)           ! (XNR(J),J=8,13)
-      DO 334 I=1,183
-      READ (NRFU,3015)           ! J,SIZENR(I),(COSBNR(I,J),J=8,13)
-  334 CONTINUE
-
 C                        Sinyuk Desert Dust 25 sizes, Mie parameter data
 C                        -----------------------------------------------
 
@@ -12689,7 +12666,7 @@ C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
      E                 ,RHDATA)                     !  RH info   (190,9)
 
       USE FILEMANAGER, only : openunit,closeunit
-      implicit none 
+      implicit none
 
       integer NAER,KDREAD
       real*8 REFF0,SRUQEX( 6,110),SRUQSC( 6,110),SRUQCB( 6,110)
