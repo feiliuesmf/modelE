@@ -3,7 +3,7 @@
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean)
 !@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN
-      USE CONSTANT, only : lhm,rhow,rhoi,shw,shi,by12
+      USE CONSTANT, only : lhm,rhow,rhoi,shw,shi,by12,byshi
       USE E001M12_COM, only : im,jm,lm,focean,flake,fland,fearth
      *     ,flice,kocean,Itime,jmon,jdate,jday,JDendOfM,JDmidOfM,ftype
      *     ,itocean,itlake,itoice,itlkice
@@ -11,10 +11,11 @@
      &     , only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
      *     cq=>cqgs,ipbl
       USE GEOM
-      USE SEAICE_COM, only : rsi,msi,tsi,snowi
+      USE SEAICE_COM, only : rsi,msi,hsi,snowi
       USE SEAICE, only : xsi,ace1i,z1i
       USE LANDICE_COM, only : snowli,tlandi
       USE LAKES_COM, only : tlake,tfl
+      USE FLUXES, only : gtemp
 
       IMPLICIT NONE
 !@param LMOM number of layers for deep ocean diffusion
@@ -88,7 +89,7 @@ C****     RSI   RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****     MSI   OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
 C**** SNOWI     OCEAN ICE SNOW AMOUNT (KG/M**2)
-C**** TSI(1:2)  OCEAN ICE TEMPERATURE OF FIRST/SECOND LAYER (C)
+C**** HSI(1:2)  OCEAN ICE ENTHALPY OF FIRST/SECOND LAYER (C)
 C****
 C**** RESTRUCTURE OCEAN LAYERS
 C****
@@ -135,7 +136,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
 
       INTEGER n,MD,J,I,LSTMON,K,MDMAX,IMAX,IMON
       REAL*8 PLICEN,PLICE,POICE,POCEAN,RSICSQ,ZIMIN,ZIMAX,X1
-     *     ,X2,Z1OMIN,RSINEW,TIME,FRAC
+     *     ,X2,Z1OMIN,RSINEW,TIME,FRAC,MSINEW
 !@var JDLAST julian day that OCLIM was last called
       INTEGER, SAVE :: JDLAST=0
 !@var MONTHO current month for climatology reading
@@ -255,7 +256,10 @@ C**** RSI uses quadratic fit
             RSINEW=ARSI(I,J)+BRSI(I,J)*TIME+CRSI(I,J)*(TIME**2-BY12)
           END SELECT
           RSI(I,J)=RSINEW
-          MSI(I,J)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+          MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+C**** adjust enthalpy so that temperature remains constant
+          HSI(3:4,I,J)=HSI(3:4,I,J)*MSINEW/MSI(I,J)
+          MSI(I,J)=MSINEW
 C**** set ftype arrays
           IF (FOCEAN(I,J).gt.0) THEN
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
@@ -275,18 +279,19 @@ c     END IF
 C**** ZERO OUT SNOWOI, TG1OI, TG2OI IF THERE IS NO OCEAN ICE
           IF (RSI(I,J).LE.0.) THEN
             SNOWI(I,J)=0.
-            TSI(:,I,J)=0.
+            GTEMP(1:2,2,I,J)=0.
           END IF
         END DO
       END DO
 C**** REPLICATE VALUES AT POLE
       DO I=2,IM
         SNOWI(I,JM)=SNOWI(1,JM)
-        TSI(:,I,JM)=TSI(:,1,JM)
         TOCEAN(1,I,JM)=TOCEAN(1,1,JM)
         TLAKE(I,JM)=TLAKE(1,JM)
         RSI(I,JM)=RSI(1,JM)
         MSI(I,JM)=MSI(1,JM)
+        HSI(:,I,JM)=HSI(:,1,JM)
+        GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
 C**** set ftype arrays
         IF (FOCEAN(1,JM).gt.0) THEN
           FTYPE(ITOICE ,I,JM)=FOCEAN(1,JM)*    RSI(1,JM)
@@ -356,11 +361,11 @@ C**** ICE DEPTH+1>MAX MIXED LAYER DEPTH : CHANGE OCEAN TO LAND ICE
       POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
       SNOWLI(I,J)=(SNOWLI(I,J)*PLICE+SNOWI(I,J)*POICE)/PLICEN
       TLANDI(1,I,J)=(TLANDI(1,I,J)*PLICE+
-     *  (TSI(1,I,J)*XSI(1)+TSI(2,I,J)*XSI(2))*POICE+
-     *  (LHM+SHW*TOCEAN(1,I,J))*POCEAN/SHI)/PLICEN
+     *     ((HSI(1,I,J)+HSI(2,I,J))/(SNOWI(I,J)+ACE1I)+LHM)*BYSHI*POICE+
+     *     (LHM+SHW*TOCEAN(1,I,J))*POCEAN/SHI)/PLICEN
       TLANDI(2,I,J)=(TLANDI(2,I,J)*PLICE+
-     *  (TSI(3,I,J)*XSI(3)+TSI(4,I,J)*XSI(4))*POICE+
-     *  (LHM+SHW*TOCEAN(1,I,J))*POCEAN/SHI)/PLICEN
+     *     ((HSI(3,I,J)+HSI(4,I,J))/MSI(I,J)+LHM)*BYSHI*POICE+
+     *     (LHM+SHW*TOCEAN(1,I,J))*POCEAN/SHI)/PLICEN
       FLAND(I,J)=1.
       FLICE(I,J)=PLICEN
 C**** MARK THE POINT FOR RESTART PURPOSES
@@ -574,12 +579,13 @@ C****
       USE OCEAN, only : tocean,ostruc,oclim,z1O,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE DAGCOM, only : aij,ij_toc2,ij_tgo2
-      USE SEAICE_COM, only : rsi,msi,tsi,snowi
+      USE SEAICE_COM, only : rsi,msi,hsi,snowi
       USE SEAICE, only : simelt,ace1i,lmi
       USE GEOM, only : imaxj
+      USE FLUXES, only : gtemp
       IMPLICIT NONE
       INTEGER I,J,IEND,IMAX
-      REAL*8, DIMENSION(LMI) :: TSIL
+      REAL*8, DIMENSION(LMI) :: HSIL,TSIL
       REAL*8 MSI2,ROICE,SNOW,TGW,WTRO,WTRW,ENRGW,ENRGUSED,ANGLE
 
 C**** update ocean related climatologies
@@ -623,11 +629,11 @@ C**** (MELTING POINT OF ICE)
             ROICE=RSI(I,J)
             MSI2=MSI(I,J)
             SNOW=SNOWI(I,J)   ! snow mass
-            TSIL(:)= TSI(:,I,J) ! sea ice temperatures
+            HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
             WTRO=Z1O(I,J)*RHOW
             WTRW=WTRO-ROICE*(SNOW + ACE1I + MSI2)
             ENRGW=WTRW*TGW*SHW  ! energy of water available for melting
-            CALL SIMELT(ROICE,SNOW,MSI2,TSIL,ENRGW,ENRGUSED)
+            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,TSIL,ENRGW,ENRGUSED)
 C**** RESAVE PROGNOSTIC QUANTITIES
             TGW=(ENRGW-ENRGUSED)/(WTRO*SHW)
             TOCEAN(1,I,J)=TGW
@@ -635,16 +641,17 @@ C**** RESAVE PROGNOSTIC QUANTITIES
               RSI(I,J)=0.
               MSI(I,J)=0.
               SNOWI(I,J)=0.
-              TSI(:,I,J)=0.
+c              HSI(:,I,J)=0.
             ELSE
               RSI(I,J)=ROICE
               MSI(I,J)=MSI2
               SNOWI(I,J)=SNOW
-              TSI(:,I,J)=TSIL(:)
+              HSI(:,I,J)=HSIL(:)
             END IF
-C**** set ftype arrays
+C**** set ftype/gtemp arrays
             FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)*(1.-RSI(I,J))
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
+            GTEMP(1:2,2,I,J) = TSIL(1:2)
           END DO
         END DO
       END IF
@@ -863,3 +870,183 @@ C**** Store mass and energy fluxes for formation of sea ice
 C****
       END SUBROUTINE GROUND_OC
 
+C**** Things to do:
+C**** Add QDEEP option
+C**** CALL ODIFS ! before OSTRUC
+C**** Add RTGO to acc file
+c    *    (((SNGL(RTGO(L,I,J)),L=2,lmom),I=1,IM),J=1,JM)
+C**** INITIALIZE DEEP OCEAN ARRAYS
+c      STG3=0. ; DTG3=0 ; RTGO=0 
+C**** TG3M must be set from a previous ML run?
+
+
+      MODULE OCEAN_COM
+!@sum  OCEAN_COM defines the model variables relating to the ocean
+!@auth Gavin Schmidt/Gary Russell
+!@ver  1.0
+      USE E001M12_COM, only : im,jm
+      USE OCEAN, only : lmom
+      IMPLICIT NONE
+
+!@var TG3M Monthly accumulation of temperatures at base of mixed layer
+      REAL*8, DIMENSION(IM,JM,12) :: TG3M
+!@var RTGO Temperature anomaly in thermocline  
+      REAL*8, DIMENSION(LMOM,IM,JM) :: RTGO
+!@var STG3 accumulated temperature at base of mixed layer 
+      REAL*8, DIMENSION(IM,JM) :: STG3
+!@var DTG3 accumulated temperature diff. from initial monthly values
+      REAL*8, DIMENSION(IM,JM) :: DTG3
+
+      END MODULE OCEAN_COM
+
+      SUBROUTINE ODIFS
+!@sum  ODFIS calculates heat diffusion at the base of the mixed layer
+!@auth Gary Russell
+!@ver  1.0
+!@calls ODFFUS
+C****
+C**** THIS SUBROUTINE CALCULATES THE ANNUAL OCEAN TEMPERATURE AT THE
+C**** MAXIMUM MIXED LAYER, COMPARES THAT TO THE CONTROL RUN'S
+C**** TEMPERATURE, CALLS SUBROUTINE ODFFUS, AND REDUCES THE UPPER
+C**** OCEAN TEMPERATURES BY THE AMOUNT OF HEAT THAT IS DIFFUSED INTO
+C**** THE THERMOCLINE
+C****
+      USE CONSTANT, only : sday
+      USE E001M12_COM, only : im,jm,focean,jmon,jday,jdate,itocean
+     *     ,itoice
+      USE GEOM, only : imaxj
+      USE OCEAN_COM, only : tg3m,rtgo,stg3,dtg3
+      USE OCEAN, only : z12o,lmom,tocean
+      USE SEAICE_COM, only : rsi
+      USE DAGCOM, only : aj,j_ftherm
+      USE FILEMANAGER
+      IMPLICIT NONE
+
+      REAL*8, SAVE, DIMENSION(IM,JM) :: EDO
+      REAL*8, SAVE, DIMENSION(LMOM) :: DZ
+      REAL*8, SAVE, DIMENSION(LMOM-1) :: DZO,BYDZO
+      REAL*8 :: ADTG3
+      INTEGER I,J,L,IMAX,IFIRST,iu_EDDY
+      REAL*8, PARAMETER :: PERDAY=1./365d0
+!@param ALPHA degree of implicitness (1 fully implicit,0 fully explicit)
+      REAL*8, PARAMETER :: ALPHA=.5d0
+!@param FAC geometric factor for ocean layers so that total depth is 1000m
+C**** NOTE: This assumes tha LMOM is 9. For any different nuber of
+C**** layers, the equation 1000=(1-x^(LMOM-1))/(1-x) should be solved.
+      REAL*8, PARAMETER :: FAC=1.705357255658901d0
+      DATA IFIRST/1/
+C****
+C**** READ IN EDDY DIFFUSIVITY AT BASE OF MIXED LAYER
+C****
+      IF (IFIRST.EQ.1) THEN
+        CALL getunit("EDDY",iu_EDDY,.TRUE.,.TRUE.)
+        CALL READT (iu_EDDY,0,EDO,IM*JM,EDO,1)
+C**** DEFINE THE VERTICAL LAYERING EVERYWHERE EXCEPT FIRST LAYER THICKNESS 
+        DZ(2)=10.
+        DZO(1)=0.5*DZ(2)   ! 10./SQRT(FAC)
+        BYDZO(1)=1./DZO(1)
+        DO L=2,LMOM-1
+          DZ(L+1)=DZ(L)*FAC
+          DZO(L)=0.5*(DZ(L+1)+DZ(L))     !DZO(L-1)*FAC
+          BYDZO(L)=1./DZO(L)
+        END DO
+        IFIRST=0
+      END IF
+C****
+C**** ACCUMULATE OCEAN TEMPERATURE AT MAXIMUM MIXED LAYER
+C****
+      DO J=1,JM
+        IMAX=IMAXJ(J)
+        DO I=1,IMAX
+          STG3(I,J)=STG3(I,J)+TOCEAN(3,I,J)
+        END DO
+      END DO
+C****
+C**** AT THE END OF EACH MONTH, UPDATE THE OCEAN TEMPERATURE
+C**** DIFFERENCE AND REPLACE THE MONTHLY SUMMED TEMPERATURE
+C****
+      IF(JDATE.EQ.1) THEN
+      DO J=1,JM
+        IMAX=IMAXJ(J)
+        DO I=1,IMAX
+          DTG3(I,J)=DTG3(I,J)+(STG3(I,J)-TG3M(I,J,JMON))
+          TG3M(I,J,JMON)=STG3(I,J)
+          STG3(I,J)=0.
+        END DO
+      END DO
+      END IF
+C****
+C**** DIFFUSE THE OCEAN TEMPERATURE DIFFERENCE OF THE UPPER LAYERS
+C**** INTO THE THERMOCLINE AND REDUCE THE UPPER TEMPERATURES BY THE
+C**** HEAT THAT IS DIFFUSED DOWNWARD
+C****
+      DO J=1,JM
+        IMAX=IMAXJ(J)
+        DO I=1,IMAX
+          IF(FOCEAN(I,J).GT.0.) THEN
+
+          ADTG3=DTG3(I,J)*PERDAY
+          RTGO(1,I,J)=ADTG3
+C**** Set first layer thickness
+          DZ(1)=Z12O(I,J)
+
+          CALL ODFFUS (SDAY,ALPHA,EDO(I,J),DZ,BYDZO,RTGO(1,I,J),LMOM)
+
+          DO L=1,3
+            TOCEAN(L,I,J)=TOCEAN(L,I,J)+(RTGO(1,I,J)-ADTG3)
+          END DO
+          AJ(J,J_FTHERM,ITOCEAN)=AJ(J,J_FTHERM,ITOCEAN)-(RTGO(1,I,J)
+     *         -ADTG3)*Z12O(I,J)*FOCEAN(I,J)*(1.-RSI(I,J))
+          AJ(J,J_FTHERM,ITOICE )=AJ(J,J_FTHERM,ITOICE )-(RTGO(1,I,J)
+     *         -ADTG3)*Z12O(I,J)*FOCEAN(I,J)*RSI(I,J)
+          END IF
+        END DO
+      END DO
+
+      RETURN
+      END SUBROUTINE ODIFS
+
+      SUBROUTINE ODFFUS (DT,ALPHA,ED,DZ,BYDZO,R,LMIJ)
+!@sum  ODFFUS calculates the vertical mixing of a tracer
+!@auth Gavin Schmidt/Gary Russell
+!@ver  1.0
+!@calls TRIDIAG
+      IMPLICIT NONE
+!@var LMIJ IS THE NUMBER OF VERTICAL LAYERS
+      INTEGER, INTENT(IN) :: LMIJ
+!@var ED diffusion coefficient between adjacent layers (m**2/s)
+!@var ALPHA determines the time scheme (0 explicit,1 fully implicit)
+!@var DT time step (s)
+      REAL*8, INTENT(IN) :: ED,ALPHA,DT
+!@var DZ the depth of the layers (m)
+!@var BYDZO is the inverse of depth between layer centers (1/m)
+      REAL*8, INTENT(IN) :: DZ(LMIJ),BYDZO(LMIJ-1)
+!@var R tracer concentration 
+      REAL*8, INTENT(INOUT) :: R(LMIJ)
+
+      REAL*8 AM(LMIJ),BM(LMIJ),CM(LMIJ),DM(LMIJ)
+      INTEGER L
+C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
+      AM(1)=0
+      BM(1)=DZ(1)+ALPHA*DT*ED*BYDZO(1)
+      CM(1)=     -ALPHA*DT*ED*BYDZO(1)
+      DM(1)=DZ(1)*R(1)-(1.-ALPHA)*DT*ED*(R(1)-R(2))*BYDZO(1)
+
+      DO L=2,LMIJ-1
+        AM(L)=     -ALPHA*DT* ED*BYDZO(L-1)
+        BM(L)=DZ(L)+ALPHA*DT*(ED*BYDZO(L-1)+ED*BYDZO(L))
+        CM(L)=     -ALPHA*DT*               ED*BYDZO(L)
+        DM(L)=DZ(L)*R(L)+(1.-ALPHA)*DT*(ED*(R(L-1)-R(L))*BYDZO(L-1)
+     *                                 -ED*(R(L)-R(L+1))*BYDZO(L))
+      END DO
+
+      AM(LMIJ)=        -ALPHA*DT*ED*BYDZO(LMIJ-1)
+      BM(LMIJ)=DZ(LMIJ)+ALPHA*DT*ED*BYDZO(LMIJ-1)
+      CM(LMIJ)=0.
+      DM(LMIJ)=DZ(LMIJ)*R(LMIJ)+(1.-ALPHA)*DT*ED*
+     *         (R(LMIJ-1)-R(LMIJ))*BYDZO(LMIJ-1)
+
+      CALL TRIDIAG(AM,BM,CM,DM,R,LMIJ)
+
+      RETURN
+      END SUBROUTINE ODFFUS

@@ -464,7 +464,7 @@ C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
 C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
-      USE CONSTANT, only : grav,kapa,sday
+      USE CONSTANT, only : grav,kapa,sday,shi,lhm
       USE E001M12_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
      *     ,focean,flake,flice,hlake,zatmo,sig,dsig,sige,dsigo
      *     ,bydsig,xlabel,jc,rc,clabel,namd6,ijd6,niprnt,nmonav
@@ -489,7 +489,8 @@ C****
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck
       USE DYNAMICS, only : filter,calc_ampk
       USE OCEAN, only : tocean,oa
-      USE SEAICE_COM, only : rsi,snowi,tsi
+      USE SEAICE_COM, only : rsi,snowi,hsi
+      USE SEAICE, only : xsi,ace1i,ac2oim
       USE LAKES_COM, only : t50
       USE LANDICE_COM, only : snowli,tlandi
       USE FILEMANAGER, only : getunit
@@ -502,7 +503,7 @@ C****
      *     ,IR,IREC,NOFF,ioerr
       INTEGER ::   HOURI=0 , DATEI=1, MONTHI=1, YEARI=-1, IHRI=-1,
      *  ISTART=10, HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1
-      REAL*8 TIJL,X,CDM,TEMP,PLTOP(LM)   ! ,SNOAGE ? obsolete
+      REAL*8 TIJL,X,CDM,TEMP,PLTOP(LM),MSI1   ! ,SNOAGE ? obsolete
       REAL*4 XX4
       REAL*8 HOURX   ! ? to restart from older versions
       INTEGER Itime1,Itime2,ItimeX
@@ -627,14 +628,29 @@ C**** GDATA(8) UNUSED,GDATA(9-11) SNOW AGE OVER OCN.ICE,L.ICE,EARTH
         call getunit("GIC",iu_GIC,.true.,.true.)
 c        READ(iu_GIC,ERR=830) GDATA,GHDATA,((TOCEAN(1,I,J),I=1,IM),J=1
 c     *       ,JM),RSI
+C**** Note that these HSI are temperatures (not enthalpy) but we need
+C**** MSI to be able to convert them. For KOCEAN=0 this initialisation 
+C**** is overridden by OCLIM (but not for lakes!), for KOCEAN=1 this 
+C**** should not be used.
         READ(iu_GIC,ERR=830) SNOWI,SNOWE,
-     *       ((TSI(1,I,J),I=1,IM),J=1,JM),TEARTH,WEARTH,AIEARTH,
-     *       ((TSI(2,I,J),I=1,IM),J=1,JM),((X,I=1,IM),J=1,JM),
+     *       ((HSI(1,I,J),I=1,IM),J=1,JM),TEARTH,WEARTH,AIEARTH,
+     *       ((HSI(2,I,J),I=1,IM),J=1,JM),((X,I=1,IM),J=1,JM),
      *       (((SNOAGE(L,I,J),I=1,IM),J=1,JM),L=1,3),SNOWLI,
      *       (((TLANDI(L,I,J),I=1,IM),J=1,JM),L=1,2),
-     *       (((TSI(L,I,J),I=1,IM),J=1,JM),L=3,4),
+     *       (((HSI(L,I,J),I=1,IM),J=1,JM),L=3,4),
      *       GHDATA,((TOCEAN(1,I,J),I=1,IM),J=1,JM),RSI
         CLOSE (iu_GIC)
+C**** define defaults: (this should not be here, but be set in an 
+C**** updated GIC file). Use AC2OIM instead of MSI.
+        DO J=1,JM
+        DO I=1,IM
+          MSI1=SNOWI(I,J)+ACE1I
+          HSI(1,I,J) = (SHI*HSI(1,I,J)-LHM)*XSI(1)*MSI1
+          HSI(2,I,J) = (SHI*HSI(2,I,J)-LHM)*XSI(2)*MSI1
+          HSI(3,I,J) = (SHI*HSI(3,I,J)-LHM)*XSI(3)*AC2OIM
+          HSI(4,I,J) = (SHI*HSI(4,I,J)-LHM)*XSI(4)*AC2OIM
+        END DO
+        END DO
       END IF
 C****
 C**** Get primary Atmospheric data from NMC tapes - ISTART=2
@@ -942,6 +958,8 @@ C****
       ZATMO = ZATMO*GRAV                           ! Geopotential
       CALL READT (iu_TOPO,0,HLAKE,IM*JM,HLAKE,2)   ! Lake Depths
       REWIND iu_TOPO
+C**** Initialize ice 
+      CALL init_ice
 C**** Initialize pbl (and read in file containing roughness length data)
       CALL init_pbl(iniPBL)
 C**** Initialise lake variables (including river directions)

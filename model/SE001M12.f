@@ -29,7 +29,7 @@ C****
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
       USE SOCPBL, only : zgs
-      USE DAGCOM, only : aij,tdiurn,aj,areg,adaily,jreg
+      USE DAGCOM, only : aij,tdiurn,aj,areg,adaily,ndlypt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt,j_f1dt
@@ -38,9 +38,10 @@ C****
       USE LANDICE_COM, only : tlandi,snowli
       USE OCEAN, only : tocean,oa,tfo
       USE LAKES_COM, only : tlake
-      USE SEAICE_COM, only : rsi,msi,snowi,tsi
+      USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,runoe,erunoe
+     *     ,gtemp,nstype
       IMPLICIT NONE
 
       INTEGER I,J,K,IM1,IP1,KR,JR,NS,NSTEPS,MODDSF,MODD6
@@ -60,7 +61,7 @@ C****
      *     ,PLK,PLKI,F1DTS
 
       REAL*8 MSUM, MA1, MSI1, MSI2
-      REAL*8, DIMENSION(IM,JM,4) :: TGRND,TGRN2
+      REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
 
 C**** Interface to PBL
       REAL*8 ZS1,TGV,TKV,QG,HEMI,DTSURF,US,VS,WS,TSV,QS,PSI,DBL,KM,KH,
@@ -68,8 +69,7 @@ C**** Interface to PBL
       LOGICAL POLE
       COMMON /PBLPAR/ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
 
-      COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,PPBL,
-     2               UG,VG,WG,ZMIX
+      COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,PPBL,UG,VG,WG,ZMIX
 
       REAL*8, PARAMETER :: qmin=1.e-12
       REAL*8, PARAMETER :: S1BYG1 = 0.57735, RVX=0.,
@@ -94,11 +94,11 @@ C****
 C**** ZERO OUT ENERGY AND EVAPORATION FOR GROUND AND INITIALIZE TGRND
       DO J=1,JM
         DO I=1,IM
-          TGRND(I,J,2)=TSI   (1,I,J)
-          TGRND(I,J,3)=TLANDI(1,I,J)
-C         TGRND(I,J,4)=TEARTH(I,J)
-          TGRN2(I,J,2)=TSI   (2,I,J)
-          TGRN2(I,J,3)=TLANDI(2,I,J)
+          TGRND(2,I,J)=GTEMP(1,2,I,J)
+          TGRND(3,I,J)=TLANDI(1,I,J)
+C         TGRND(4,I,J)=TEARTH(I,J)
+          TGRN2(2,I,J)=GTEMP(2,2,I,J)
+          TGRN2(3,I,J)=TLANDI(2,I,J)
         END DO
       END DO
 C*
@@ -240,8 +240,8 @@ C****
       PTYPE=POICE
       NGRNDZ=1    ! NIgrnd>1 currently not an option
       SNOW=SNOWI(I,J)
-      TG1=TGRND(I,J,2)
-      TG2=TGRN2(I,J,2)
+      TG1=TGRND(2,I,J)
+      TG2=TGRN2(2,I,J)
       ACE2=MSI(I,J)
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
             OA(I,J,12)=OA(I,J,12)+SRHEAT*DTSURF
@@ -272,7 +272,7 @@ C****
       ITYPE=3
       PTYPE=PLICE
       SNOW=SNOWLI(I,J)
-      TG1=TGRND(I,J,3)
+      TG1=TGRND(3,I,J)
       TG2=TLANDI(2,I,J)
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
@@ -380,7 +380,7 @@ C     dSNdHS = RCDHWS ! d(SHEAT)/dHS - kg/(sec*m^2)
       DV1(I,J)=DV1(I,J)+PTYPE*DTGRND*RCDMWS*VS/RMBYA
       TG1 = TG1+dTG ! first layer sea ice temperature (degC)
       TG2 = TG2+dT2 ! second layer sea ice temperature (degC)
-      TGRN2(I,J,ITYPE) = TG2
+      TGRN2(ITYPE,I,J) = TG2
  3600 CONTINUE
       GO TO 3700
 C**** CALCULATE FLUXES USING IMPLICIT TIME STEP ALSO FOR OCEAN POINTS
@@ -412,7 +412,7 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       E0(I,J,ITYPE)=E0(I,J,ITYPE)+F0DT
       E1(I,J,ITYPE)=E1(I,J,ITYPE)+F1DT
       EVAPOR(I,J,ITYPE)=EVAPOR(I,J,ITYPE)+EVAP
-      TGRND(I,J,ITYPE)=TG1
+      TGRND(ITYPE,I,J)=TG1
       DTH1(I,J)=DTH1(I,J)-SHDT*PTYPE/(SHA*RMBYA*P1K)
       DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
       USS=USS+US*PTYPE
@@ -529,7 +529,7 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
          AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QSS
 C**** QUANTITIES ACCUMULATED HOURLY FOR DIAG6
  5800    IF(MODD6.EQ.0) THEN
-         DO KR=1,4
+         DO KR=1,NDLYPT
             IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
                ADAILY(JHOUR+1,6,KR)=ADAILY(JHOUR+1,6,KR)+PS  ! ???
                ADAILY(JHOUR+1,7,KR)=ADAILY(JHOUR+1,7,KR)+PSK*T(I,J,5)

@@ -27,8 +27,6 @@ C**** surface energy fluxes defined over type
       REAL*8, DIMENSION(IM,JM,NSTYPE) :: EVAPOR
 !@var SOLAR solar radiation at surface over water and ice (J/m^2) 
       REAL*8, DIMENSION(IM,JM,2) :: SOLAR
-!@var SENSHT sensible heat at surface over each type (J/m^2) 
-c      REAL*8, DIMENSION(IM,JM,NSTYPE) :: SENSHT
 
 !@var DMUA,DMVA momentum flux from atmosphere over each type (?) 
 c      REAL*8, DIMENSION(IM,JM,NSTYPE) :: DMUA,DMVA
@@ -50,6 +48,9 @@ C**** currently saved - should be replaced by fluxed quantities
       REAL*8, DIMENSION(IM,JM) :: EPREC
 !@var PRECSS precipitation from super-saturation (kg/m^2)
       REAL*8, DIMENSION(IM,JM) :: PRECSS
+
+!@var GTEMP ground temperature (upper two levels) over surface type (C)
+      REAL*8, DIMENSION(2,NSTYPE,IM,JM) :: GTEMP
 
       END MODULE FLUXES
 

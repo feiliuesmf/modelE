@@ -25,9 +25,9 @@ C**** Set-able variables from NAMELIST
 !@var LMCM max level for originating MC plumes (set in init_CLD)
       INTEGER :: LMCM
 !@var U00wtr critical humidity for water cloud condensation (default)
-      REAL*8 :: U00wtr = .7
+      REAL*8 :: U00wtr = .7d0
 !@var U00ice critical humidity for ice cloud condensation (default)
-      REAL*8 :: U00ice = .7
+      REAL*8 :: U00ice = .7d0
 
 C**** input variables
 !@var RA,UM,VM,U_0,V_0 velocity related variables

@@ -426,10 +426,11 @@ c     QCHECKL = .TRUE.
 !      USE LAKES, only : zimin,zimax,t_ice,t_noice,bydtmp
       USE LAKES_COM, only : t50,tlake,mwl,gml
       USE OCEAN, only : dm
-      USE SEAICE_COM, only : rsi,msi,tsi,snowi
+      USE SEAICE_COM, only : rsi,msi,hsi,snowi
       USE SEAICE, only : z1i
+      USE FLUXES, only : gtemp
       IMPLICIT NONE
-      REAL*8  ZIMIN,ZIMAX,T_ICE,T_NOICE,byDTMP
+      REAL*8  ZIMIN,ZIMAX,T_ICE,T_NOICE,byDTMP,MSINEW
       INTEGER I,J,K,IMAX,IEND
       REAL*8 RSINEW
 
@@ -447,14 +448,17 @@ c     QCHECKL = .TRUE.
           IF (FLAKE(I,J) .GT. 0.) THEN ! linear fit for -8< T50 <0
             RSINEW = MIN(1d0,MAX(0d0,(T50(I,J)-T_NOICE)*byDTMP))
             RSI(I,J)=RSINEW
-            MSI(I,J)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+            MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+C**** adjust enthalpy so that temperature remains constant
+            HSI(3:4,I,J)=HSI(3:4,I,J)*MSINEW/MSI(I,J)
+            MSI(I,J)=MSINEW
+            IF (RSINEW.LE.0.) THEN
+              SNOWI(I,J)=0.
+              GTEMP(1:2,2,I,J)=0.
+            END IF
 C**** set ftype arrays
             FTYPE(ITLAKE ,I,J)= FLAKE(I,J)*(1.-RSI(I,J))
             FTYPE(ITLKICE,I,J)= FLAKE(I,J)*    RSI(I,J)
-            IF (RSINEW.LE.0.) THEN
-              SNOWI(I,J)=0.
-              TSI(:,I,J)=0.
-            END IF
           END IF
         END DO
       END DO

@@ -353,10 +353,11 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig
       USE OCEAN, only : tocean
       USE LAKES_COM, only : tlake
-      USE SEAICE_COM, only : rsi,snowi,tsi
+      USE SEAICE_COM, only : rsi,snowi
       USE GHYCOM, only : snowe_com=>snowe,snoage,tearth,
      *     wearth_com=>wearth,aiearth
       USE LANDICE_COM, only : snowli_com=>snowli,tlandi
+      USE FLUXES, only : gtemp
       USE FILEMANAGER
 
       IMPLICIT NONE
@@ -650,7 +651,7 @@ C****
       ELSE
         TGO =TLAKE(I,J)+TF
       END IF
-      TGOI=TSI   (1,I,J)+TF
+      TGOI=GTEMP(1,2,I,J)+TF
       TGLI=TLANDI(1,I,J)+TF
       TGE =TEARTH(  I,J)+TF
       TS=TSAVG(I,J)
