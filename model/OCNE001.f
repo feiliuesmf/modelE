@@ -33,7 +33,7 @@ c      COMMON/WORKO/OA(IM,JM,12)
 !@var AC2OIM ice mass 2nd layer (kg/m^2)
       REAL*8, PARAMETER :: AC2OIM = Z2OIM*RHOI
 !@var TFO temperature of freezing ocean (C)
-      REAL*8, PARAMETER :: TFO = 1.8
+      REAL*8, PARAMETER :: TFO = -1.8
 
 c      REAL*8, SAVE,DIMENSION(IM,JM) :: TSO
 c      REAL*8, DIMENSION(IM,JM) :: RSI
