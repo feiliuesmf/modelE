@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 !@sum TRACER_PRT Tracer diagnostics.  These routines are generic for
 !@+    all tracers
 !@+   TRACEA and DIAGTCA are called throughout the day
@@ -89,6 +91,9 @@ C**** Calculate current value TOTAL
             stm = 0.
             do i=1,imaxj(j)
               stm = stm+trm(i,j,l,nt)
+#ifdef TRACERS_WATER
+     *             +trwm(i,j,l,nt)
+#endif
             end do
             sstm = sstm+stm
           end do
@@ -158,7 +163,7 @@ C**** LOOP BACKWARDS SO THAT INITIALIZATION IS DONE BEFORE SUMMATION!
           ELSEIF (NSUM_TCON(K,N).gt.0) THEN
             TCONSRV(J,NSUM_TCON(K,N),N)=
      *      TCONSRV(J,NSUM_TCON(K,N),N)+TCONSRV(J,K,N)
-     *           *SCALE_TCON(K,N)*IDACC(12)/(IDACC(IA_TCON(K))+teeny)
+     *           *SCALE_TCON(K,N)*IDACC(12)/(IDACC(IA_TCON(K,N))+teeny)
           KTCON_max = NSUM_TCON(K,N)
           END IF
         END DO
@@ -170,8 +175,10 @@ C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
         FHEM(2,K)=0.
         DO JSH=1,JEQ-1
           JNH=1+JM-JSH
-          FSH=TCONSRV(JSH,K,N)*SCALE_TCON(K,N)/(IDACC(IA_TCON(K))+teeny)
-          FNH=TCONSRV(JNH,K,N)*SCALE_TCON(K,N)/(IDACC(IA_TCON(K))+teeny)
+          FSH=TCONSRV(JSH,K,N)*SCALE_TCON(K,N)/(IDACC(IA_TCON(K,N))
+     *         +teeny)
+          FNH=TCONSRV(JNH,K,N)*SCALE_TCON(K,N)/(IDACC(IA_TCON(K,N))
+     *         +teeny)
           FGLOB (K)=FGLOB (K)+(FSH+FNH)
           FHEM(1,K)=FHEM(1,K)+FSH
           FHEM(2,K)=FHEM(2,K)+FNH

@@ -141,7 +141,7 @@ C**** TCONSRV
 !@var TITLE_TCON titles for tracer conservation diagnostics
       CHARACTER*38, DIMENSION(ktcon,ntm) :: TITLE_TCON
 !@var IA_TCON IDACC numbers for tracer conservation diagnostics
-      INTEGER, DIMENSION(ktcon) ::  IA_TCON
+      INTEGER, DIMENSION(ktcon,ntm) ::  IA_TCON
 !@var NSUM_TCON indices for summation of conservation diagnostics
       INTEGER, DIMENSION(ktcon,ntm) :: NSUM_TCON
 !@var NOFMT indices for TCONSRV array
@@ -543,8 +543,8 @@ C**** First 12 are standard for all tracers and GCM
       do n=1,ntm
         kt_power_inst(n)   = ntm_power(n)+2
         kt_power_change(n) = ntm_power(n)-4
-        scale_inst(n)   = 10.**(-kt_power_inst(n))
-        scale_change(n) = 10.**(-kt_power_change(n))
+        scale_inst(n)   = 10d0**(-kt_power_inst(n))
+        scale_change(n) = 10d0**(-kt_power_change(n))
         inst_unit(n) = unit_string(kt_power_inst(n),  ' kg/m^2)')
          sum_unit(n) = unit_string(kt_power_change(n),' kg/s/m^2)')
       end do
@@ -629,7 +629,7 @@ C****
       name_tconsrv(NI,itr) ="inst_"//sname
       lname_tconsrv(NI,itr) = "INSTANT "//TRIM(NAME_CON)
       units_tconsrv(NI,itr) = INST_UNIT
-      IA_TCON(NI) = 12
+      IA_TCON(NI,itr) = 12
       NM=NI
       DO N=2,ktcon-1
         IF (QCON(N)) THEN
@@ -651,19 +651,19 @@ C****
           SELECT CASE (N)
           CASE (2)
             SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
-            IA_TCON(NM) = ia_d5d
+            IA_TCON(NM,itr) = ia_d5d
           CASE (3,4,5,6,7,9,11,12)
             SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
-            IA_TCON(NM) = ia_d5s
+            IA_TCON(NM,itr) = ia_d5s
           CASE (8)
             SCALE_TCON(NM,itr) = CHNG_SC/(NFILTR*DTSRC)
-            IA_TCON(NM) = ia_filt
+            IA_TCON(NM,itr) = ia_filt
           CASE (10)
             SCALE_TCON(NM,itr) = CHNG_SC*2./SDAY
-            IA_TCON(NM) = ia_12hr
+            IA_TCON(NM,itr) = ia_12hr
           CASE (13:)   ! special tracer sources
             SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
-            IA_TCON(NM) = ia_src
+            IA_TCON(NM,itr) = ia_src
           END SELECT
         ELSE
           NOFMT(N,itr) = 0
@@ -680,7 +680,7 @@ C****
       lname_Tconsrv(NS,itr) = " SUM OF CHANGES OF "//TRIM(NAME_CON)
       units_Tconsrv(NS,itr) = SUM_UNIT
       SCALE_TCON(NS,itr) = 1.
-      IA_TCON(NS) = 12
+      IA_TCON(NS,itr) = 12
       NSUM_TCON(NI,itr) = -1
       NSUM_TCON(NI+1:NS-1,itr) = NS
       NSUM_TCON(NS,itr) = 0
