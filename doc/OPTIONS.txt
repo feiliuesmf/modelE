@@ -40,18 +40,30 @@ Other output methods may also be defined.
 
 iii) Ocean model treatment
 
-OCEAN:  Standard fixed SST ocean + Qlfux (fixed Ocean heat transport model)
-        Chosen by KOCEAN = 0 or KOCEAN = 1 respectively
+The ocean treatment is set in a couple of ways. For the basic
+(no-dynamics) ocean, there are three options: a) fixed SST, b) Mixed
+layer ocean (with fixed ocean heat transports, and c) Mixed layer
+ocean with fixed transports and deep diffusion into the top 1000m).
+The fixed SST run is set by using KOCEAN = 0 in the rundeck, while the
+Qflux ocean is set by KOCEAN = 1. Whether this gives the simple mixed
+layeer ocean or the deep diffusing ocean, depends on the following
+'plug and play' options:
 
-OCEAN_DEEP: Mixed layer ocean that allows diffusion into top 1000 meters.
-        (Not yet available)
+OCEAN OCNML :  fixed SST ocean or simple Qlfux 
+
+OCEAN ODEEP :  fixed SST ocean or deep diffusing Qflux 
+
+The fixed SST ocean requires the following files: OSST, SICE, OCNML, MLMAX
+The Qflux ocean requires in addition: OHT 
+The deep diffusion Qflux model also requires: EDDY and TG3M
+
+For dynamic oceans, the only current option is to use  
 
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM }
 OCNDYN OSTRAITS OCNGM OCNKPP OCNFUNTAB } - Russell Dynamic Ocean
 ICEDYN                                 }
-       This should be used in conjunction with ICEDYN (dynamic sea ice).
 
-Other ocean models may also be used.
+In time, other ocean models will also be incorporated.
 
 iv) Atmospheric mixing
 

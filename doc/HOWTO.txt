@@ -26,19 +26,18 @@ PART I: Basic user information
 
 1) HOW-TO setup and run the GISS GCM:
 3) HOW-TO set rundeck parameters
-   3a: How to set and alter them
-   3b: How to use them to control numerical instabilities
-   3c: How to use IRANDI to create an ensemble of runs
-   1b: How to tune a specified ocean run (using U00wtr)
-   1c: How to set up a Q-flux model with a single ocean layer
-   1d: How to set up a Q-flux model with diffusion into a deep ocean
+   A: How to tune a specified ocean run (using U00wtr)
+   B: How to set up a Q-flux model with a single ocean layer
+   C: How to set up a Q-flux model with diffusion into a deep ocean
+   D: How to use them to control numerical instabilities
+   E: How to use IRANDI to create an ensemble of runs
 4) HOW-TO stop and restart the GCM
 5) HOW-TO change boundary conditions
 6) HOW-TO change trace gas amounts
 7) HOW-TO have a perpetual winter
 8) HOW-TO travel back/forward in time
 9) HOW-TO move to Mars
-10) HOW-TO get help
+10) HOW-TO move to Wonderland
 11) HOW-TO report a problem
 12) HOW-TO keep up-to-date
 13) HOW-TO add to this documentation
@@ -64,7 +63,8 @@ Part III: The model code
 10) HOW-TO add new variables to the restart files
 11) HOW-TO access variables that are already calculated somewhere else
 12) HOW-TO deal with the inevitable bugs you introduce
-13) HOW-TO get an innovation included in everybody's versions
+13) HOW-TO deal with restart problems (non-reproducibility of results)
+14) HOW-TO get an innovation included in everybody's versions
 
 Finally, CREDITS where CREDITS are due:
 
@@ -186,26 +186,7 @@ specified length of time.
        For a list and explanation of all parameters see
           /u/exec/docE/params.txt.
 
-   3b: How to use parameters to control numerical instabilities
-       Parameter   affects:                   depends on:
-       DT          stability at poles         hor. resolution, AVRX
-       NIsurf      stability at the surface   vert.resolution near surf
-       XcdLM       stability at the top       model top pressure PMTOP
-       M/NFILTR    checker board patterns     dynamics scheme
-
-   3c: How to use IRANDI to create an ensemble of runs
-       If ISTART<10 and IRANDI/=0, all atmospheric initial temperatures
-       are randomly perturbed by at most 1C . The perturbations depend
-       on the value of IRANDI.
-       So to create an ensemble of N runs whose only difference is the
-       initial state they start up from, pick N (odd) numbers and
-       create N copies of the rundeck that only differ in the runID and
-       the value set for IRANDI.
-       It is good practice to put IRANDI on the same line as ISTART
-       so it will not affect later extensions or reruns, since it is
-       then automatically removed from the file 'I'.
-
-   1b: How to TUNE a specified ocean run (using U00wtr)
+   A: How to TUNE a specified ocean run (using U00wtr)
        It is desirable to run a specified ocean model in such a way that
        it is in RADIATIVE BALANCE, i.e. that the net flux of energy into
        the ocean (which has no effect, since ocean data are specified)
@@ -233,7 +214,7 @@ specified length of time.
        imbalance (advantage: no need to repeat the control run,
        disadvantage: Jim hated it, no longer part of the code).
 
-   1c: How to set up a Q-flux model with a single ocean layer
+   B: How to set up a Q-flux model with a single ocean layer
        A preliminary run with prescribed climatological ocean has to
        be run for about 6 years collecting daily fluxes into the ocean
        (Kvflxo=1). Based on these data, a new input file (OTSPEC...)
@@ -325,11 +306,32 @@ specified length of time.
             You will also get few PRT files which you can remove. And you
             can remove the symbolic link for fort.1.
 
-
-   1d: How to set up a Q-flux model with diffusion into a deep ocean
+   C: How to set up a Q-flux model with diffusion into a deep ocean
        Such a run needs a preliminary Q-flux model running for 10 years
        in equilibrium, saving (KCOPY=3) the data necessary for diffusion
-       computations (see /u/cmrun/model/notes/deep.ocean.doc)
+       computations (see /u/cmrun/model/notes/deep.ocean.doc). A new
+       file has to be created ('TG3M' in the rundeck) to read in the
+       climatology at the base of the mixed layer before starting.
+
+   D: How to use parameters to control numerical instabilities
+       Parameter   affects:                   depends on:
+       DT          stability at poles         hor. resolution, AVRX
+       NIsurf      stability at the surface   vert.resolution near surf
+       XcdLM       stability at the top       model top pressure PMTOP
+       M/NFILTR    checker board patterns     dynamics scheme
+
+   E: How to use IRANDI to create an ensemble of runs
+       If ISTART<10 and IRANDI/=0, all atmospheric initial temperatures
+       are randomly perturbed by at most 1C . The perturbations depend
+       on the value of IRANDI.
+       So to create an ensemble of N runs whose only difference is the
+       initial state they start up from, pick N (odd) numbers and
+       create N copies of the rundeck that only differ in the runID and
+       the value set for IRANDI.
+       It is good practice to put IRANDI on the same line as ISTART
+       so it will not affect later extensions or reruns, since it is
+       then automatically removed from the file 'I'.
+
 
 4) HOW-TO stop and restart the GCM
 
@@ -344,13 +346,66 @@ Simply alter the file declarations in the rundeck appropriately!
 
 6) HOW-TO change trace gas amounts
 
+This is not as obvious as it should be:
+
+i) CO2 levels can be set simply from the rundeck. Setting CO2=3 for
+instance will give CO2 level three times as high as the default (which
+is the CO2 level on July 1, 1981 = 311.098). Setting CO2 to be a
+negative integer, will allow the CO2 to vary according to a number of
+different scenarios (observations until 1998, various projections
+subsequently).
+
+ii) Other gases are slightly more probelmatic, although we are working
+on that. Essentially they should be able to be adjusted using the
+'FULGAS' array in init_RAD in a similar way to CO2. Stratospheric
+water vapour is more complicated and requires hacking about in the
+radiation code. Not recommended for the novice. 
+
 7) HOW-TO have a perpetual winter
+
+Orbital parameters must be fixed and so 'ORBIT' in DAILY should be
+given the same JDAY every day. (i.e. JDAY0=1 for JAN 1st conditions).
+Though this will have consequences for the polar regions (since there
+will be no seasonality there). Possibly there is another way....
 
 8) HOW-TO travel back/forward in time
 
+A number of things can change depending on the time period concerned.
+
+  i) orbital parameters. Change these in CONST.f (note LGM and 6K BP
+     versions will soon be made available).
+ ii) trace gas amounts. (see Q6) Note that for really large changes,
+     the mean atmospheric composition will change (and thus so will RVAP
+     etc. See CONST.f for details)
+iii) continental configuration. Change the boundary condition files
+     in the run deck. (Also for land use/cover changes, ice sheets etc.)
+ iv) Mean atmospheric pressure. Change PSF etc. in the RES_xyz file.
+  v) Speed of rotation. A little tricky since this effects OMEGA (in
+     CONST.f) but also SDAY, and depending on how you define an 'hour', the
+     number of seconds in an hour, or the number of hours in the
+     day. Remember that dtsrc must divide into sday exactly.
+ vi) Solar constant. This can be set by the multiplicative factor S0X 
+     within RAD_DRV.f (I think)  
+vii) Aerosol/dust amounts. These can be changed within RAD_DRV.f or by
+     changing the RADN input files.
+
 9) HOW-TO move to Mars
 
-10) HOW-TO get help or report a problem
+Like travelling back in time, only more complicated. Oh, and no water.
+Note that the length of year is set by EDPERY in CONST.f. 
+
+10) HOW-TO move to Wonderland
+
+The wonderland model is a sector version of the GCM that is used for
+very fast or very long runs that do not have to be as true to the real
+climate as normal. Essentially, the globe is split into three sectors,
+and only one sector is prognostically calculated. You must alter the
+resolution (IM will be 24), change the definition of DLON (in
+GEOM_B.f), and make sure that the radaition calculation has been
+modified to synchronise the diurnal cycle over the sector. Note that
+this has never been tested.
+
+11) HOW-TO get help or report a problem
 
 There is a mailing list 'giss-gcm-users-l@giss.nasa.gov' where queries,
 problems and comments on the gcm can be aired. Sending a message here
@@ -566,25 +621,94 @@ creation of unnecessary complications in keeping things straight.
 
 5) HOW-TO add functionality - A: variations on existing code
 
+Since all code is now kept within CVS, code history is preserved and
+can be retreived at any time. So for minor modifications to the code
+(i.e. slightly different formulation of a particular term), go
+straight ahead and modify your version. Compare the results from that
+with the standard control run. As you extend your modifications, make
+sure to 'commit' your changes at appropriate points (on your branch
+only) so that you can retrieve the code from any intermediate (but
+functional) point. 
 
 6) HOW-TO add functionality - B: introducing new sub-modules
 
+If you want to add a completely new physical module or radically
+change an exisiting one, you will be best off creating a new 'plug and
+play' option. Follow the example of the ATURB code (which can replace
+DRYCNV if required). The issue is mainly one of keeping the interface
+clean and consistent. Unless what you propose will directly influence
+multiple parts of the model, it is best to keep your new code as
+modular (single column for instance) as possible, and only interact
+with the main code through the relevant drivers. 
 
-7) HOW-TO add functionality - C: introducing a new NAMELIST parameter
+In particular, if there is an exisiting call to an equivalent routine,
+keep the call statement the same for the old and new versions (and you
+can add dummy arguements to the old code if required). If you want to
+add a new call for which there is no analog, you may want to add a
+dummy routine for use in the old version (i.e as in RES_M12.f with
+regard to some of the stratospheric code). Put this in a file that you
+are making obselete, or even create a new dummy file.
 
-Only introduce a new NAMELIST parameter if you would like to be able
-to vary it's value at run time without recompiling the model (i.e. an
+Another way to do this is by using pre-processing directives set from
+the rundeck. This is not encouraged except where it would make
+inserting a new option much more straightforward. If it is used, limit
+its use to the absolute minimum (i.e. to decide whether to call the
+new routine or not). We specifically do not want multiply threaded
+options with any of the physics routines since that makes maintenence
+much more problematic. 
+
+In any file where the directive is to used, there must be an 
+
+#include "rundeck_opts.h" 
+
+statement at the top of the file. The coding then follows standard practice:
+
+#ifdef NEW_FUNCTION
+      call new_function(a,b,c)
+#endif
+
+To set this option, add a line to the preprocessing option part of the
+rundeck.
+
+Preprocessor Options
+#define NEW_FUNCTION                  ! do new function 
+End Preprocessor Options
+
+The gmake command will recompile the relevant routines every time you
+change the option. Note that if options become too commonplace, the
+entire model will need to be recompiled every time. Therefore, our
+preferred solution is 'plug and play'.
+
+Note that for each new sub-module or pre-processor directive you
+create, you should modify the OPTIONS.txt file to document the
+details.
+
+7) HOW-TO add functionality - C: introducing a new parameter to the database
+
+Only introduce a new parameter if you would like to be able to vary
+it's value at run time without recompiling the model (i.e. an
 adjustable parameter, or an option switch for instance). Firstly,
 decide who should own the parameter. That is likely to be one of the
 physics modules. Since it is likely to be a fundamental part of a
 local physics process, it should be declared and defined in the local
-physics module. You now need to USE it in the physics COM block (this
-is to allow the input/output routines to access it easily). In INPUT,
-you should then USE this parameter from the COM block. This is a
-little indirect but it cuts down on dependencies and is neater. Then
-the variable can be added to the NAMELIST. You will probably also need
-to add this parameter to the rsf/acc files for future reference - see
-Q9 for details.
+physics module. You MUST give it a default value, and ensure it is
+tagged with a '@dbparam' comment that explains what it does.
+
+In the initialisation for this module, you need to add a line 
+
+	call sync_param("NEWPARAM",newparam)
+
+which will set the value of newparam from the parameter database, if
+it has been set from the input rundeck, or from a restart. (see
+FAQ.txt for more details on how this works). 
+
+In the rundeck you need only add to the &&PARAMETERS...&&END_PARAMETERS
+block a line like this:
+
+NEWPARAM=1        ! NEWPARAM sets something for XYZ
+
+Of course, you should use a more obvious name! If no value is set in
+the rundeck, the default value will be used. 
 
 8) HOW-TO add functionality - D: adding new diagnostics
 
@@ -712,10 +836,76 @@ uncoupled from the mean tracer amount, giving rise to an implied
 sub-grid scale profile that is seriously wrong. The biggest mistake is
 not to reduce the gradients by the same fraction by which the mean was
 reduced in some process. See the document "Using the GISS GCM tracer
-moments" for more details on how to do this properly. The CLD01.f
-tracer code is a good example of what to do.
+moments" (http://www.giss.nasa.gov/~gavin/slopes.html) for more
+details on how to do this properly. The CLOUDS.f tracer code is a good
+example of what to do.
 
-13) HOW-TO get an innovation included in everybody's versions
+13) HOW-TO deal with restart problems (non-reprodcuibility of results)
+
+Occasionally after making coding changes the model ceases to be able
+to reproduce results. For instance, after a crash, a restart from the
+last fort.[12] file does not crash at all, or does so at a different
+point. This is a symptom of a restart problem. It should definitely be
+fixed, since it is clear evidence that the prognostic code has a real
+bug (one that could change the results).
+
+These problems can arise in a number of circumstances:
+  i) the rsf file is incomplete (a prognostic variable has not been
+    saved). This is quite easy to spot and fix. 
+ ii) a variable is not being properly initiallised. This is
+    quite tricky to find. What happens is that the first time it is used,
+    it is zero, but subsequently it is not. Thus at a restart it is set to
+    zero again, changing the results. Try compiling with an option 
+    (-DEBUG:trap_uninitialized=ON on the SGI compiler) that sets all
+    un-initialised numbers to NaN, therefore causing a crash if they are
+    used.
+iii) out of bounds memory addressing. Occasionally this can also
+    result in a restart problem if the memory that is being overwritten is
+    used prior to the over-writing. Thus the first time through it is
+    clean, but subsequently has the value from the inccorectly addressed
+    array. Unfortunately, you cannot set the compiler to catch this,
+    since overwriting of arrays, is sometimes done on purpose in the code
+    (though we are trying to eliminate that).
+ iv) parallelisation issues. This is a little trickier and is to do
+    with the essentially random order in which calculations are done
+    across the processors. For instance, if a random number is used inside
+    a parallel loop, the results are irreproducible since random numbers
+    are produced in sequence and thus are dependent on the order in which
+    they are used.
+
+Restart problems can be caught though. There are three times at which
+they occur, on the source time step cycle, on the radiation time-step
+cycle, or at the daily cycle. Occasionally problems can arise
+mid-month if any climatologies are being used. However, most problems
+can be detected within the first two hours. 
+
+Start from a any fort.[12] file. Save it, and call it rsf0. In the
+rundeck (the 'I' file in the run directory), set NDISK=1 in the
+database parameter list. This will produce an rsf file every source
+time step. Set the end time to be two hours from later than rsf0.
+Copy rsf0 to both fort.1 and fort.2. Run the model and save the two
+final rsf files as rsf1 and rsf2. Copy rsf1 to both fort.1 and fort.2,
+and run the model again. Save the new restart files as rsf1a and rsf2a.
+
+Now you have two copies of the first and second hour rsf files. In
+order to compare them, use the program CMPE001 (compiled using 'gmake
+aux RUN=E001xyx'). 
+
+CMPE001 rsf1 rsf1a 
+
+will go through the rsf files array by array and output any
+discrepencies. If no numbers are output, the arrays are identical. If
+the first hour rsf files are different, the error must be within INPUT
+(or one of the init_XYZ routines). Look at the relevant routine for
+the arrays that are highlighted. If however, the first hour checks out
+fine, but the second does not, then the error is in the main loop
+somewhere. Again, judge by the arrays that are affected which routine
+it is likely to be in. If neither set of rsf files differ, then you
+need to do this procedure again either starting at hour 4 (assuming a
+radaition related problem and a 5 hour radiation time step), or at
+hour 23 (assuming a daily related problem). 
+
+14) HOW-TO get an innovation included in everybody's versions
 
 Since you are working on the code within CVS, it is possible to upload
 your changes to the main development branch. However, this is highly
