@@ -76,9 +76,7 @@ C
 C****
 C**** Update north halos for arrays U and V
 C****
-      CALL CHECKSUM   (grid, U, __LINE__,__FILE__)
       CALL HALO_UPDATE(grid, U, from=NORTH)
-      CALL CHECKSUM   (grid, V, __LINE__,__FILE__)
       CALL HALO_UPDATE(grid, V, FROM=NORTH)
 
 C**** LOAD U,V INTO UT,VT.  UT,VT WILL BE FIXED DURING DRY CONVECTION
@@ -268,7 +266,7 @@ C***  ...first update halo (J_0-1 values) of UKM,VKM, and PLIJ.
      *       UKP1(K,L)*PLIJ(L,1,J)*RA(K)
        END DO ; END DO
       ElSE ! need contribution from southern neighbor
-        J=J_0H
+        J=J_0-1
         KMAX=KMAXJ(J)
         DO K=1,KMAX
            IDJ(K)=IDJJ(K,J)
@@ -440,6 +438,12 @@ c****
 c**** add in surface friction to first layer wind
 c****
       usave=u(:,:,1) ; vsave=v(:,:,1)
+
+C   *....update halo (J_0-1 values) of  byam, uflux1, vflux1.
+      Call HALO_UPDATE(grid, uflux1, from=SOUTH)
+      Call HALO_UPDATE(grid, vflux1, from=SOUTH)
+      Call HALO_UPDATE(grid, byam(1,:,:), from=SOUTH)
+
 c**** SOUTH POLE BOX
       if (HAVE_SOUTH_POLE) then
       j=1
@@ -454,7 +458,21 @@ c**** SOUTH POLE BOX
      *     *dt*byam(1,I,J)
         end do
         end do
-       end if  !SOUTH POLE
+      Else
+        j = j_0-1
+
+        do i=1,imaxj(j)
+        do k=3,4
+           If (idjj(k,j) == j_0) Then
+              u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
+     *             ravj(k,j)*uflux1(i,j)*dt*byam(1,I,J)
+              v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
+     *             ravj(k,j)*vflux1(i,j)*dt*byam(1,I,J)
+           end if
+        end do
+        end do
+
+      end if                    !SOUTH POLE
 
       IF (HAVE_NORTH_POLE) then
         j=jm
@@ -469,7 +487,7 @@ c**** SOUTH POLE BOX
      *       *dt*byam(1,I,J)
           end do
         end do
-      END IF   !NORTH POLE
+      End If
 
 c**** non polar boxes
       do j=J_0S,J_1-1
@@ -485,7 +503,20 @@ c**** non polar boxes
 
 C****For distr. parallelization: North-most lattitude of internal blocks.
 C   *--->(First half of j=j_1 loop cycle for internal blocks --k=1,2)
-        IF (.not. HAVE_NORTH_POLE) then
+      IF (HAVE_NORTH_POLE) then
+c***        j=jm
+c***        hemi=1.
+c***        do i=1,imaxj(j)
+c***          do k=1,kmaxj(j)
+c***            u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
+c***     *       ravj(k,j)*(uflux1(i,j)*cosiv(k)+vflux1(i,j)*siniv(k)*hemi)
+c***     *       *dt*byam(1,I,J)
+c***            v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
+c***     *       ravj(k,j)*(vflux1(i,j)*cosiv(k)-uflux1(i,j)*siniv(k)*hemi)
+c***     *       *dt*byam(1,I,J)
+c***          end do
+c***        end do
+      Else
           j=j_1
           do i=1,imaxj(j)
             do k=1,2
@@ -496,36 +527,6 @@ C   *--->(First half of j=j_1 loop cycle for internal blocks --k=1,2)
             end do
           end do
         ENDIF   !.not. NORTH POLE
-
-C   *....update halo (J_0-1 values) of  byam, uflux1, vflux1.
-        call checksum_column(grid, byam, __LINE__, __FILE__)
-        call halo_update_column(grid, byam, from=SOUTH)
-
-        call checksum(grid,uflux1, __LINE__, __FILE__//'::uflux1')
-        call checksum(grid,vflux1, __LINE__, __FILE__)
-
-        call halo_update(grid,uflux1, from=SOUTH)
-        call halo_update(grid,vflux1, from=SOUTH)
-
-C   *--->Second half of southern neighbor's j=j_1 cycle 
-C   -    (equivalent to j=j_0-1 in this block).
-       if (.not. HAVE_SOUTH_POLE) then
-
-
-C     *...then, accumulate neighbors contribution to
-C     -   U,V at the J=J_0 (B-grid) corners --i.e.do a
-C     -   K=3,4 iterations on the newly updated J=J_0-1 box.
-
-          j=j_0-1
-          do i=1,imaxj(j)
-            do k=3,4
-              u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
-     *               ravj(k,j)*uflux1(i,j)*dt*byam(1,I,J)
-              v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
-     *               ravj(k,j)*vflux1(i,j)*dt*byam(1,I,J)
-            end do
-          end do
-        end if
 
 C**** save change of KE for addition as heat later
       do j=J_0STG, J_1STG
