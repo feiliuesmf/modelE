@@ -316,6 +316,8 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER
      *     ,KYEARD,KJDAYD,MADDST, KYEARV,KJDAYV,MADVOL
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
+     *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
+     *     ,ITR,NTRACE,FGOLDH ! turning on options for extra aerosols
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O
@@ -461,6 +463,27 @@ C****  if arg3=day0 (1->365), data from that day are used all year
       KYEARR=0       ; KJDAYR=0           ! surf.reflectance (ann.cycle)
 C**** New options (currently not used)
       KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme
+
+C**** Aerosols:
+C**** Currently there are five different default aerosol controls
+C****   1: total 2:background 3: AClim 4:dust 5:volcanic
+C**** By adjusting FSXAER,FTXAER you can remove the default
+C**** aerosols and replace them with your version if required 
+C**** (through TRACER in RADIA). 
+C**** FSXAER is for the shortwave, FTXAER is for the longwave
+caer   FSXAER = (/ 1.,1.,1.,1.,1. /)     
+caer   FTXAER = (/ 1.,1.,1.,1.,1. /)     
+
+C**** To add up to 8 further aerosols:
+C****  1) define NTRACE to the number of extra aerosol fields
+C****  2) ITR defines which set of 11 background Mie parameters
+C****     get used
+C****  3) Use FGOLDH(6:NTRACE+5) to turn them on
+C****
+caer   NTRACE = 0.
+caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
+caer   FGOLDH(5+1:5+NTRACE) = (/ 0.,0.,0.,0. 0.,0.,0.,0./)
+
       if (ktrend.ne.0) then
 C****   Read in time history of well-mixed greenhouse gases
         call openunit('GHG',iu,.false.,.true.)
@@ -530,6 +553,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
+     *             ,TRACER,NTRACE
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
@@ -958,6 +982,12 @@ C---- shl(L)=Q(I,J,L)        ! already defined
           KCKERR=KCKERR+1
           shl(l)=0.
         end if
+C**** Extra aerosol data
+C**** For up to NTRACE aerosols, define the aerosol amount to
+C**** be used (optical depth, I think)
+caer  TRACER(L,1) = aer_tau(i,j,l)   ! maybe
+caer  TRACER(L,2) = ....
+
       END DO
 C**** Radiative Equilibrium Layer data
       DO K=1,LM_REQ
@@ -973,6 +1003,8 @@ CCC     STOP 'In Radia: RQT out of range'
         tauic(LM+k) = 0.
         sizewc(LM+k)= 0.
         sizeic(LM+k)= 0.
+C**** set radiative equilibirum extra tracer amount to zero
+caer    TRACER(LM+k,1:NTRACE)=0.
       END DO
       if (kradia.gt.1) then
         do l=1,lm+lm_req
