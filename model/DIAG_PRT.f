@@ -3401,7 +3401,7 @@ C****
       SUBROUTINE DIAGCP
 !@sum  DIAGCP produces tables of the conservation diagnostics
 !@auth Gary Russell/Gavin Schmidt 
-!@var  1.0
+!@ver  1.0
 c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     twopi
@@ -3542,7 +3542,7 @@ C****
       SUBROUTINE DIAG5P
 !@sum  DIAG5P PRINTS THE SPECTRAL ANALYSIS TABLES
 !@auth Gary Russell
-!@var  1.0
+!@ver  1.0
 c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,twopi
