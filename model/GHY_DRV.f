@@ -496,7 +496,7 @@ c**** calculate ground fluxes
 c     call qsbal
 
 
-      call veg_set_cell(i,j)
+      !call veg_set_cell(i,j)  !moved to inside ghinij (nyk)
 
       call ghinij (i,j,wfc1)
       !call init_localveg
@@ -912,7 +912,7 @@ c**** modifications needed for split of bare soils into 2 types
 #ifdef TRACERS_WATER
       use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0,needtrs
       use fluxes, only : gtracer
-      use veg_com, only : afb,avh
+      use veg_com, only:  afb, avh
 #endif
       use fluxes, only : gtemp
       use ghycom
@@ -1306,10 +1306,9 @@ c****
      *     ,top_index,top_stdev
       use ghycom, only : dz_ij,sl_ij,q_ij,qk_ij
      *     ,top_index_ij,top_dev_ij
+      use veg_com, only: afb
       use veg_drv, only : veg_set_cell
-      use veg_com, only : avh,afr,afb,ala,acs,can_w_capacity
-     *     ,anm,anf ! added by adf
-!     *     ,aalbveg ! nyk
+      use vegetation, only: alai  !nyk
 
       implicit none
       integer i0,j0
@@ -1318,6 +1317,9 @@ c****
       real*8 shtpr
 !----------------------------------------------------------------------!
       real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
+
+
+      call veg_set_cell(i0,j0) !nyk
 
       ijdebug=i0*1000+j0
       i_earth = i0
@@ -1370,7 +1372,7 @@ c****
           ws(k,ibv)=thets(k,ibv)*dz(k)
         end do
       end do
-!veg      ws(0,2)=.0001d0*alai
+      ws(0,2)=.0001d0*alai
 !!!      ws(0,2)=can_w_capacity(i0,j0)*alai
       wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
 c****
