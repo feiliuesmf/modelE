@@ -17,7 +17,7 @@ C**** have to wait.
       use DAGCOM, only : acc_period
       implicit none
 
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
 
       private
       public ::
@@ -147,7 +147,7 @@ c-----------------------------------------------------------------------
       subroutine wrtarr(var_name,var)
       use ncout
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       character(len=30) :: var_name
       REAL*8 :: var(1)
       integer :: var_nelems,n
@@ -207,7 +207,7 @@ c outer_pos=1, otherwise it stops.
 c wrtarrn does not currently have the capability to write any real_atts
       use ncout
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       character(len=30) :: var_name
       REAL*8 :: var(1)
       integer :: outer_pos
@@ -782,7 +782,7 @@ C**** set dimensions
       USE NCOUT
       IMPLICIT NONE
 c temporary, to see nf_char
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
 c
       CHARACTER*16, DIMENSION(KAJ),INTENT(INOUT) :: TITLE
 !@var LNAME,SNAME,UNITS_IN information strings for netcdf

@@ -2711,21 +2711,21 @@ C**** Set up atmospheric component conservation diagnostics
       CONPT(4)="SURF+TURB"
 C**** Atmospheric mass
       QCON=(/ T, F, F, F, F, F, T, F, T, F, F/)
-      CALL SET_CON(QCON,CONPT,"MASS    ","(KG/M^2)       ",
+      CALL SET_CON(QCON,CONPT,"MASS    ","(KG/M^2)        ",
      *     "(10**-8 KG/SM^2)",1d0,1d8,icon_MS)
 C**** Atmospheric total potential energy
       QCON=(/ T, T, T, F, F, T, T, F, F, F, F/)
-      CALL SET_CON(QCON,CONPT,"TPE     ","(10**5 J/M^2)  ",
+      CALL SET_CON(QCON,CONPT,"TPE     ","(10**5 J/M^2)   ",
      *     "(10**-2 W/M^2)  ",1d-5,1d2,icon_TPE)
 C**** Atmospheric water mass
       QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
-      CALL SET_CON(QCON,CONPT,"ATM WAT ","(10**-2 KG/M^2)",
+      CALL SET_CON(QCON,CONPT,"ATM WAT ","(10**-2 KG/M^2) ",
      *     "(10**-8 KG/SM^2)",1d2,1d8,icon_WM)
 C**** Atmospheric water energy
 C**** This is not currently a conserved quantity, but it should be.
 C**** Hence this diagnostic gives the error
       QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
-      CALL SET_CON(QCON,CONPT,"ENRG WAT","(J/M^2)        ",
+      CALL SET_CON(QCON,CONPT,"ENRG WAT","(J/M^2)         ",
      *     "(10**-6 W/M^2)  ",1d0,1d6,icon_EWM)
 
 C**** Initialize layering for spectral diagnostics
