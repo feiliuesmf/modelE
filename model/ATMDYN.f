@@ -1317,17 +1317,16 @@ C**** to be used in the PBL, at the promary grids
       ! for dPdx/rho at non-pole grids
 
       DO J=2,JM-1
-        IM1=IM
-        IP1=2
-        DO I=1,IM
+        IM1=IM-1
+        I=IM
+        DO IP1=1,IM
           by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
           DPDX_BY_RHO(I,J)=(100.*(P(IP1,J)-P(IM1,J))*SIG(1)*by_rho1
      2         +PHI(IP1,J,1)-PHI(IM1,J,1))*BYDXP(J)*.5d0
           DPDX_BY_RHO_0(I,J)=(100.*(P(IP1,J)-P(IM1,J))*by_rho1
      2         +ZATMO(IP1,J)-ZATMO(IM1,J))*BYDXP(J)*.5d0
           IM1=I
-          IP1=IM1+2
-          IF(IP1.GT.IM) IP1=1
+          I=IP1
         END DO
       END DO
 
