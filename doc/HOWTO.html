@@ -679,7 +679,7 @@ given by : dzo1=10/sqrt(Q) , dzo2=dzo1*Q , dzo3=dzo2*Q , etc Q=1.701...</p>
 <p> The diffusion into the deep ocean is computed once every day using
 the temperature anomaly with respect to 'climatology' as tracer. The
 climatology is found by taking a 10-year mean of the Qflux model without
-a deep ocean that is used to initialize the deep ocean run. </p>
+a deep ocean. That run is also used to initialize the deep ocean run. </p>
 
 <p> More detailed description:
 <pre>
@@ -688,38 +688,38 @@ T2 = T between mixed layer and ann.max mixed layer depth  =TOCEAN(2)
 T3 = temperature at annual maximal mixed layer depth.     =TOCEAN(3)
 
 RTGO(L=1->lmom) is set to 0 at the beginning of the run
-RTGO(L) = temperature anomaly for deep ocean layer L (2->LMOM)
-RTGO(1) BEFORE the diffusion computation equals the annual mean
-            anomaly of T3 (based on the most recent 12-month period)
-            and is kept constant throughout the month
-RTGO(1) is changed during the diffusion; that change is added 
-            to T1,T2,T3, then RTGO(I,J,1) is reset to the current
-            annual mean anomaly 
+
+RTGO(L=2->LMOM) = temperature anomaly for deep ocean layer L 
+RTGO(1)=12-month-mean anomaly of T3 w.r. to climatology, i.e.:
+    before the diffusion computation it is reset to the difference
+    dT3ann="mean_T3_over_last_12_full_months - 10year_mean_of_prel.run";
+    dT3ann is kept constant throughout the month. The diffusion
+    computation changes RTGO(1); that change is added to T1,T2,T3,
+    Before the next diffusion computation, RTGO(1) is reset to dT3ann.  
 
 The heat flux at interface of layers L and L+1 is given by
-      EDO*(RTGO(L)-RTGO(L+1))/dzo(L)  L=1,...,8
+    EDO*(RTGO(L)-RTGO(L+1))/dzo(L)  L=1,...,8
 however, a semi-implicit scheme is used to compute these fluxes.
 
-The following auxiliary arrays are used:
+The following auxiliary arrays are used to carry out this scheme:
 STG3 is set to 0 at the beginning of each month, at the end of
-          each day  T3  is added; at the end of month M, STG3 is
-          saved in TG3M(I,J,M)
+    each day  T3  is added; i.e. STG3=SumD_T3 (summed over days) 
 
-TG3M(M) initially contains a 10-year mean of Sum T3 for month M
-          (the sum is taken over each day of month M)
-          of the Q-flux run without deep ocean that is used to start
-          up the current run, at the end of month M it is set to STG3.
+TG3M(M) initially contains a 10-year mean of SumD_T3 for month M
+    (the sum is taken over each day of month M, not averaged yet)
+    of the Q-flux run without deep ocean that is used to start
+    up the current run, at the end of month M it is set to STG3.
+    From month 13 on, TG3M contains SumD_T3 for each of the last
+    12 months.
 
-DTG3 is set to 0 initially and is updated at the end of  month M
-          by adding (STG3-TG3M(.,.,M)). At that point we have:
+DTG3 is set to 0 initially and is updated at the end of month M
+    by adding (STG3-TG3M(M)). Then STG3 overwrites TG3M(M), so
+    that next year this STG3 will be subtracted and cancels out:
+    after 1 year: DTG3 = (sumD_T3_for_yr1 - SumM orig.TG3M) and
+    after that the oldest month is subtracted, the newest added,
+    hence DTG3 = (sumD_T3 over last 12 months - SumM orig.TG3M); so:
 ADTG3 = DTG3/365 = 12-month running mean of T3 - T3clim ;
-          this is used to initialize RTGO(.,.,1) before the diffusion.
-
-Note: After 1 year we have ADTG3 = ( SumD T3_yr1 - SumM init.TG3M )/365
-      After 2 years : SumM TG3M = SumD T3_yr1 hence
-           DTG3 = SumD T3_yr1 - SumM init.TG3M + SumD(T3_yr2 - T3_yr1)
-          ADTG3 = ( SumD T3_yr2 - SumM init.TG3M )/365
-          i.e. the year 1 contributions canceled
+    this is used to initialize RTGO(.,.,1) before the diffusion.
 </pre>
 
 <p> Compared to the Qflux model without deep ocean, the model with
