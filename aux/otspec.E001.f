@@ -32,7 +32,8 @@ C****
       USE DAGCOM, only : OA
       USE SEAICE_COM, only : rsi,msi, snowi   
       USE SEAICE, only : ace1i 
-      USE GEOM  
+      USE GEOM
+      USE FILEMANAGER
       implicit none
       integer first_month, first_year, last_month, 
      *        last_year, jyears, jyear, i, j, k, imax
@@ -45,7 +46,7 @@ C****
       REAL*4 PWATER(IM,JM), month_day(12)
       REAL*8 TGO(IM,JM),ROICE(IM,JM),ACE2(IM,JM),
      *       TG2O(IM,JM),TG12O(IM,JM)   
-      INTEGER iu_AIC,ioerr
+      INTEGER iu_AIC,ioerr,iu_TOPO,iu_SICE0,iu_MLMAX
       INTEGER ItimeX
       REAL*8 onht(jm)
 C****
@@ -90,20 +91,21 @@ C*
 C****
 C**** Read in input files
 C****
-      call getunit("SICE",iu_SICE,.true.,.true.)
-      CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
+      call openunit("SICE",iu_SICE0,.true.,.true.)
+      CALL READT (iu_SICE0,0,DM,IM*JM,DM,1)
+      call closeunit(iu_SICE0)
 C* 
 C**** Read in FOCEAN - ocean fraction 
 C* 
-      call getunit("TOPO",iu_TOPO,.true.,.true.)
+      call openunit("TOPO",iu_TOPO,.true.,.true.)
       CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
-      REWIND iu_TOPO
+      call closeunit(iu_TOPO)
 C* 
 C**** Read in annual maximum mixed layer depth
 C* 
-      call getunit("MLMAX",iu_MLMAX,.true.,.true.)
+      call openunit("MLMAX",iu_MLMAX,.true.,.true.)
       CALL READT (iu_MLMAX,0,Z12O,IM*JM,Z12O,1)
-      REWIND iu_MLMAX
+      call closeunit(iu_MLMAX)
 C* 
 C**** Read in ocean data below mixed layer on December 31
 C*
@@ -127,9 +129,9 @@ C**** Calculate spherical geometry
 C****
       call GEOM_B
 C**** set up unit numbers for ocean climatologies
-      call getunit("OSST",iu_OSST,.true.,.true.)
+      call openunit("OSST",iu_OSST,.true.,.true.)
 C**** Set up unit number of mixed layer depth climatogies
-      call getunit("OCNML",iu_OCNML,.true.,.true.)
+      call openunit("OCNML",iu_OCNML,.true.,.true.)
 C****
 C**** Loop over years of data and days in the year
 C****
