@@ -22,8 +22,8 @@
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
      &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,
      &     jl_mchphas,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,
-     *     ij_ctpi,ij_taui,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,
-     *     isccp_diags
+     *     ij_ctpi,ij_taui,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,        
+     *     ij_sstabx,isccp_diags
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
 #ifdef TRACERS_WATER
@@ -89,13 +89,13 @@
 
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,ALPHAS
       REAL*8 :: DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV1,THV2,QG,TGV
-      REAL*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG
+      REAL*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG,SSTAB
 !@var HCNDMC heating due to moist convection
 !@var PRCP precipipation
 !@var TPRCP temperature of precip  (deg. C)
 !@var EPRCP sensible heat of precip
 !@var ENRGP energy of precip
-!@var WMERR DH12,BYDH12,DH1S,BYDH1S dummy variable
+!@var WMERR DH12,BYDH12,DH1S,BYDH1S,SSTAB dummy variable
 !@var THSV,THV1,THV2 vertual potential temperatures
 !@var QG,TGV ground humidity,virt.temperature from pbl
 !@var ALPHA1,ALPHA2,ALPHAS dummy variables
@@ -188,7 +188,7 @@ C$OMP*  DTAU_S,DTAU_C,DEM_S,DEM_C, FQ_ISCCP, ENRGP,EPRCP,
 C$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IDI,IDJ,
 C$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, NBOX, PRCP,PFULL,PHALF,
 C$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
-C$OMP*  QG,QV, SKT, TGV,TPRCP,THSV,THV1,THV2,TAUOPT, WMERR)
+C$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT, WMERR)
 C$OMP*    SCHEDULE(DYNAMIC,2)
 C
       DO J=1,JM
@@ -230,7 +230,7 @@ C****
       VS=VSAVG(I,J)
       TGV=TGVAVG(I,J)
       QG=QGAVG(I,J)
-!!!      DCL=NINT(DCLEV(I,J))   ! is DCLEV always >= 0 ?
+!!!   DCL=NINT(DCLEV(I,J))   ! prevented by openMP bug
       DCL=INT(DCLEV(I,J)+.5)
 
       DO K=1,KMAX
@@ -300,7 +300,7 @@ C**** SET PRECIPITATION AND LATENT HEAT
 
 C**** SET DEFAULT FOR AIR MASS FLUX (STRAT MODEL)
       AIRX(I,J)=0.
-      
+
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Save current i,j for lightning calculation in MSTCNV:
       i_lgt = i
@@ -570,6 +570,16 @@ C**** Sum over itau=2,ntau (itau=1 is no cloud)
      *         + fq_isccp(itau,2) + fq_isccp(itau,3)
         end do
       end if
+
+C**** Peak static stability diagnostic
+      SSTAB=-1.d30
+      DO L=1,DCL
+Cred    IF(SSTAB.lt.(TH(L+1)-TH(L))/(GZ(I,J,L+1)-GZ(I,J,L)))
+Cred *     SSTAB =  (TH(L+1)-TH(L))/(GZ(I,J,L+1)-GZ(I,J,L))
+        IF(SSTAB.lt.(TH(L+1)-TH(L))/(GZIL(I,L+1)-GZIL(I,L)))
+     *     SSTAB =  (TH(L+1)-TH(L))/(GZIL(I,L+1)-GZIL(I,L))
+      END DO
+      AIJ(I,J,ij_sstabx) = AIJ(I,J,ij_sstabx) + SSTAB
 
 C**** WRITE TO GLOBAL ARRAYS
       TAUMC(:,I,J)=TAUMCL(:)

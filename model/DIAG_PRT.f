@@ -3306,12 +3306,12 @@ C**** standard printout
      *  ij_rsnw,    ij_snow,    ij_rsit,     !        row 2
      *  ij_prec,    ij_evap,    ij_shdt,     ! pg  2  row 1
      *  ij_beta,    ij_rune,    ij_tg1,      !        row 2
-     *  ij_ws,      ij_jet ,    ij_wsmn,     ! pg  3  row 1
-     *  0       ,   ij_jetdir,  ij_wsdir,    !        row 2
+     *  ij_ws,      ij_jet ,    ij_dtdp,     ! pg  3  row 1
+     *  ij_wsdir,   ij_jetdir,  ij_sstabx,   !        row 2
      *  ij_cldcv,   ij_pmccld,  ij_cldtppr,  ! pg  4  row 1
      *  ij_netrdp,  ij_srtr,    ij_btmpw,    !        row 2
-     *  ij_albp,    ij_albg,    ij_albv,     ! pg  5  row 1
-     *  ij_trnfp0,  ij_neth,    ij_dtdp,     !        row 2
+     *  ij_albp,    ij_albv,    ij_trnfp0,   ! pg  5  row 1
+     *  ij_albg,    ij_albgv,   ij_neth,     !        row 2
      *  ij_dsev,    ij_ntdsese, ij_ntdsete,  ! pg  6  row 1
      *  ij_gwtr,    ij_wmsum,   ij_dcnvfrq,  !        row 2
      *  ij_scnvfrq, ij_pdcld,   ij_pscld,    ! pg  7  row 1

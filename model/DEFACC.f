@@ -1213,6 +1213,15 @@ c
       ir_ij(k) = ir_0_18
 c
       k=k+1 !
+      IJ_SSTABX = k ! PEAK DTHETA/DPHI (K S**2/m**2) IN PBL   1 CL
+      lname_ij(k) = 'PEAK STATIC STABILITY IN PBL'
+      units_ij(k) = 'C/km'
+      name_ij(k) = 'SSTABX'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.*GRAV*P1000K
+      ir_ij(k) = ir_0_18
+c
+      k=k+1 !
       IJ_RUNE = k ! RUN1 OVER EARTH  (KG/m**2)                1 PG
       lname_ij(k) = 'GROUND RUNOFF OVER SOIL'
       units_ij(k) = 'mm/day'

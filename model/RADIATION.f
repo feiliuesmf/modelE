@@ -1266,17 +1266,18 @@ CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE5
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='OLD')
 cg    OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
-      READ (NRFU) TROAER,VDBCSU
+      READ (NRFU) TROAER      
+      READ (NRFU) VDBCSU
 cg    CLOSE(NRFU)
 C
 C     ------------------------------------------------------------------
 C     VDBCSU Input Data Adjustment:
 C
-C             Renormalize VDBCSU(46,12,13,2) BC and SU Vertical Profiles
+C             Renormalize VDBCSU(46,12,13,3) BC and SU Vertical Profiles
 C                  and Recompute Annual-Mean BC and SU Vertical Profiles
 C     ------------------------------------------------------------------
 C
-      DO 515 N=1,2
+      DO 515 N=1,3
       DO 514 M=1,12
       DO 513 J=1,46
       SUM=0.D0
@@ -1289,7 +1290,7 @@ C
   513 CONTINUE
   514 CONTINUE
   515 CONTINUE
-      DO 519 N=1,2
+      DO 519 N=1,3
       DO 518 L=1,12
       DO 517 J=1,46
       SUM=0.D0
@@ -3903,8 +3904,8 @@ C
       DO 240 L=1,12
       DO 230 J=1,46
       VDAERO(J,L,1)=WMA*VDBCSU(J,L,MA,1)+WMB*VDBCSU(J,L,MB,1)
-      VDAERO(J,L,3)=WMA*VDBCSU(J,L,MA,2)+WMB*VDBCSU(J,L,MB,2)
-      VDAERO(J,L,2)=VDAERO(J,L,1)
+      VDAERO(J,L,2)=WMA*VDBCSU(J,L,MA,2)+WMB*VDBCSU(J,L,MB,2)
+      VDAERO(J,L,3)=WMA*VDBCSU(J,L,MA,3)+WMB*VDBCSU(J,L,MB,3)
   230 CONTINUE
   240 CONTINUE
       RETURN
@@ -11489,20 +11490,20 @@ C
       DATA TAUWC0/0.0010/, TAUIC0/0.0010/
 C
 C                       TROPOSPHERIC AEROSOL PARAMETERS
-C                  BCI  OCI  SUI  SEA  SUN    OCN  OCB  BCB  SSB
-      DATA REAERO/ 0.1, 0.5, 1.0, 2.0, 0.3,   0.3, 1.0, 0.5, 0.5/
+C                  BCI  OCI  SUI  SEA  SUN    OCN  OCB  BCB  SSB  ANT
+      DATA REAERO/ 0.1, 0.5, 1.0, 2.0, 0.3,   0.3, 1.0, 0.5, 0.5, 1.0/
 C
-      DATA VEAERO/ 0.2, 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2/
+      DATA VEAERO/ 0.2, 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2, 0.2/
 C
-      DATA ROAERO/ 2.0, 2.0, 2.0, 2.0, 2.0,   2.0, 2.0, 2.0, 2.0/
+      DATA ROAERO/ 2.0, 2.0, 2.0, 2.0, 2.0,   2.0, 2.0, 2.0, 2.0, 2.0/
 C
-C     DATA PI0MAX/ 1.0, 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/
+C     DATA PI0MAX/ 1.0, 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0, 1.0/
 C       (OCI,OCN,OCB PI0MAXs are based on Novikov(1998) Ni=0.005)
-      DATA PI0MAX/ 1.0, .96, 1.0, 1.0, 1.0,   .98, .93, 1.0, 1.0/
+      DATA PI0MAX/ 1.0, .96, 1.0, 1.0, 1.0,   .98, .93, 1.0, 1.0, 1.0/
 C
-      DATA FSAERO/ 0.5, 0.5, 1.0, 4.0, 1.0,   1.0, 1.0, 1.0, 1.0/
+      DATA FSAERO/ 1.0, 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0, 1.0/
 C
-      DATA FTAERO/ 0.5, 0.5, 1.0, 4.0, 1.0,   1.0, 1.0, 1.0, 1.0/
+      DATA FTAERO/ 1.0, 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0, 1.0/
 C
       DATA SSBTAU/0.005/
 C
@@ -11534,8 +11535,8 @@ C       L=   1    2    3    4    5    6    7    8    9   10   11   12
      F     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
      G     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
      H     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
-     I     .00, .00, .00, .00, .00, .00, .25, .20, .20, .20, .10, .05/
-C
+     I     .00, .00, .00, .00, .00, .00, .25, .20, .20, .20, .10, .05,
+     J     .30, .20, .20, .15, .10, .05, .00, .00, .00, .00, .00, .00/
 C
 ceq   DIMENSION VDFBCI(12),VDFOCI(12),VDFSUI(12),VDFDST(12)
 ceq   EQUIVALENCE (FSPARE( 81),VDFBCI(1)),(FSPARE(101),VDFOCI(1))
@@ -11636,9 +11637,9 @@ C     intra-decadal time dependence scaled to the Black Carbon Total
 C     emission rate.
 C
 C        INPUT:  XJYEAR  (Fractional Julian year)
-C
-C       OUTPUT:  IDEC    (Map Index: I=1,2,3,4  1950,1960,1970,1980)
-C                JDEC    (Map Index: J=2,3,4,5  1960,1970,1980,1990)
+C                                                 by 25     by 10
+C       OUTPUT:  IDEC    (Map Index: I= -3,4-7  (0) -1925,1950-1980)
+C                JDEC    (Map Index: J=1-4,5-8  1875-1950,1960-1990)
 C
 C              BCWTID    (Multiplicative Weight for BC TAU-Map IDEC)
 C              BCWTJD    (Multiplicative Weight for BC TAU-Map JDEC)
@@ -11711,7 +11712,7 @@ C    G 94.0, 7.515841007, 1.2333894970, 1.4780857560, 10.22745800/
 C
 C     DATA POST90/50.D0/
 C     DATA PRE50/50.D0/
-      PARAMETER(POST90=50.D0,PRE50=50.D0)
+      PARAMETER(POST90=-250.D0)
       DATA IFIRST/1/
 C
       SAVE IFIRST
@@ -11728,38 +11729,47 @@ C
       ENDIF
 C
       IF(XJYEAR.LT.1950.D0) THEN
-      DYEAR=XJYEAR-1950.D0
-      BCWTID=1.D0*EXP(DYEAR/PRE50)
-      BCWTJD=0.D0
-      IDEC=1
-      JDEC=2
-      GO TO 120
-      ENDIF
-      IF(XJYEAR.GE.1990.D0) THEN
-      DYEAR=XJYEAR-1990.D0
-      BCWTID=0.D0
-      BCWTJD=1.D0*EXP(DYEAR/POST90)
-      IDEC=4
-      JDEC=5
-      GO TO 120
-      ENDIF
-C
-      DYEAR=XJYEAR-1950.D0
-      IYEAR=DYEAR
-      DELTAY=DYEAR-IYEAR
-      DELDEC=DYEAR/10.D0-IYEAR/10
-      IDEC=(IYEAR+10)/10
-      JDEC=IDEC+1
-      IYDI=1+(IDEC-1)*10
-      IYDJ=IYDI+10
-      IYYI=IYEAR+1
-      IYYJ=IYYI+1
-      BCED=BCTOT(IYDI)+DELDEC*(BCTOT(IYDJ)-BCTOT(IYDI))
-      BCEY=BCTOT(IYYI)+DELTAY*(BCTOT(IYYJ)-BCTOT(IYYI))
-      RATYD=BCEY/BCED
-      BCWTID=RATYD*(1.D0-DELDEC)
-      BCWTJD=RATYD*DELDEC
-  120 CONTINUE
+C**** 0 until 1850, then lin. interpolate obs. data (every 25 years)
+        XDEC=(XJYEAR-1850.d0)/25.d0
+        IF (XDEC.lt.0.) Xdec=0.
+        IDEC=XDEC
+        DDEC=XDEC-IDEC
+        BCWTID=1.-DDEC
+        JDEC=IDEC+1
+        BCWTJD=DDEC
+        IF(IDEC.LT.1) THEN
+          IDEC=1
+          JDEC=1
+          BCWTID=XDEC
+          BCWTJD=0. 
+        END IF
+      ELSE IF(XJYEAR.GE.1990.D0) THEN
+C**** Slow reduction after 1990 (POST90=-250 years e-folding time)
+        DYEAR=XJYEAR-1990.D0
+        BCWTID=0.D0
+        BCWTJD=1.D0*EXP(DYEAR/POST90)
+        IDEC=8
+        JDEC=8
+      ELSE    
+C**** lin. interpolate obs. data (every 10 years) 1950-1990
+        DYEAR=XJYEAR-1950.D0                                  
+        IYEAR=DYEAR
+        DELTAY=DYEAR-IYEAR
+        DELDEC=DYEAR/10.D0-IYEAR/10
+        IDEC=(IYEAR+10)/10
+        JDEC=IDEC+1
+        IYDI=1+(IDEC-1)*10
+        IYDJ=IYDI+10
+        IYYI=IYEAR+1
+        IYYJ=IYYI+1
+        BCED=BCTOT(IYDI)+DELDEC*(BCTOT(IYDJ)-BCTOT(IYDI))
+        BCEY=BCTOT(IYYI)+DELTAY*(BCTOT(IYYJ)-BCTOT(IYYI))
+        RATYD=BCEY/BCED
+        BCWTID=RATYD*(1.D0-DELDEC)
+        BCWTJD=RATYD*DELDEC
+        IDEC=IDEC+3
+        JDEC=JDEC+3
+      END IF 
 C
       RETURN
       END SUBROUTINE BCTAUW
@@ -11774,9 +11784,9 @@ C     superimposed intradecadal time dependence scaled in proportion
 C     to the Anthropogenic Sulfate global emission rate.
 C
 C        INPUT:  XJYEAR  (Fractional Julian year)
-C
-C       OUTPUT:  IDEC    (Map Index: I=1,2,3,4  1950,1960,1970,1980)
-C                JDEC    (Map Index: J=2,3,4,5  1960,1970,1980,1990)
+C                                                 by 25     by 10
+C       OUTPUT:  IDEC    (Map Index: I= -3,4-7  (0) -1925,1950-1980)
+C                JDEC    (Map Index: J=1-4,5-8  1875-1950,1960-1990)
 C
 C              SUWTID    (Multiplicative Weight for SU TAU-Map IDEC)
 C              SUWTJD    (Multiplicative Weight for SU TAU-Map JDEC)
@@ -11844,7 +11854,7 @@ C    C          1990.0,     71.29174805,           14.4/
 C
 C     DATA POST90/100.D0/
 C     DATA PRE50/50.D0/
-      PARAMETER(POST90=100.D0,PRE50=50.D0)
+      PARAMETER(POST90=-250.D0)
       DATA IFIRST/1/
 C
       SAVE  IFIRST
@@ -11859,38 +11869,47 @@ C
       ENDIF
 C
       IF(XJYEAR.LT.1950.D0) THEN
-      DYEAR=XJYEAR-1950.D0
-      SUWTID=1.D0*EXP(DYEAR/PRE50)
-      SUWTJD=0.D0
-      IDEC=1
-      JDEC=2
-      GO TO 120
-      ENDIF
-      IF(XJYEAR.GE.1990.D0) THEN
-      DYEAR=XJYEAR-1990.D0
-      SUWTID=0.D0
-      SUWTJD=1.D0*EXP(DYEAR/POST90)
-      IDEC=4
-      JDEC=5
-      GO TO 120
-      ENDIF
-C
-      DYEAR=XJYEAR-1950.D0
-      IYEAR=DYEAR
-      DELTAY=DYEAR-IYEAR
-      DELDEC=DYEAR/10.D0-IYEAR/10
-      IDEC=(IYEAR+10)/10
-      JDEC=IDEC+1
-      IYDI=1+(IDEC-1)*10
-      IYDJ=IYDI+10
-      IYYI=IYEAR+1
-      IYYJ=IYYI+1
-      SUED=SUANT(IYDI)+DELDEC*(SUANT(IYDJ)-SUANT(IYDI))
-      SUEY=SUANT(IYYI)+DELTAY*(SUANT(IYYJ)-SUANT(IYYI))
-      RATYD=SUEY/SUED
-      SUWTID=RATYD*(1.D0-DELDEC)
-      SUWTJD=RATYD*DELDEC
-  120 CONTINUE
+C**** 0 until 1850, then lin. interpolate obs. data (every 25 years)
+        XDEC=(XJYEAR-1850.d0)/25.d0
+        IF (XDEC.lt.0.) Xdec=0.
+        IDEC=XDEC
+        DDEC=XDEC-IDEC
+        SUWTID=1.-DDEC
+        JDEC=IDEC+1
+        SUWTJD=DDEC
+        IF(IDEC.LT.1) THEN
+          IDEC=1
+          JDEC=1
+          SUWTID=XDEC
+          SUWTJD=0. 
+        END IF
+      ELSE IF(XJYEAR.GE.1990.D0) THEN
+C**** Slow reduction after 1990 (POST90=-250 years e-folding time)
+        DYEAR=XJYEAR-1990.D0
+        SUWTID=0.D0
+        SUWTJD=1.D0*EXP(DYEAR/POST90)
+        IDEC=8
+        JDEC=8
+      ELSE    
+C**** lin. interpolate obs. data (every 10 years) 1950-1990
+        DYEAR=XJYEAR-1950.D0
+        IYEAR=DYEAR
+        DELTAY=DYEAR-IYEAR
+        DELDEC=DYEAR/10.D0-IYEAR/10
+        IDEC=(IYEAR+10)/10
+        JDEC=IDEC+1
+        IYDI=1+(IDEC-1)*10
+        IYDJ=IYDI+10
+        IYYI=IYEAR+1
+        IYYJ=IYYI+1
+        SUED=SUANT(IYDI)+DELDEC*(SUANT(IYDJ)-SUANT(IYDI))
+        SUEY=SUANT(IYYI)+DELTAY*(SUANT(IYYJ)-SUANT(IYYI))
+        RATYD=SUEY/SUED
+        SUWTID=RATYD*(1.D0-DELDEC)
+        SUWTJD=RATYD*DELDEC
+        IDEC=IDEC+3 
+        JDEC=JDEC+3 
+      END IF 
 C
       RETURN
       END SUBROUTINE SUTAUW

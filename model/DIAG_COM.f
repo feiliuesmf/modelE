@@ -313,7 +313,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_F1LI, IJ_SNWF, IJ_TSLI, IJ_ERUN2, IJ_SHDTLI, IJ_EVHDT,
      *     IJ_TRHDT, IJ_TMAX, IJ_TMIN, IJ_TMNMX, IJ_PEVAP, IJ_TMAXE,
      *     IJ_WMSUM, IJ_PSCLD, IJ_PDCLD, IJ_DCNVFRQ, IJ_SCNVFRQ,
-     *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV,
+     *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV, IJ_SSTABX,
      *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR,
      *     IJ_LKON, IJ_LKOFF, IJ_PTROP, IJ_TSI, IJ_SSI1, IJ_SSI2,
      *     IJ_SMFX, IJ_MSU2, IJ_MSU2R, IJ_MSU3, IJ_MSU4, IJ_MLTP,

@@ -145,8 +145,8 @@ C read in
      A     ,RIJTPG(6,49,17,21),FDXTPG(3,49,17,21),FEMTPG(3,49,17,21)
 
 C                           I  J  M N K         I  J L N  M
-      COMMON/TADCOM/TROAER(72,46,13,5,4),TDUST(72,46,9,8,13)
-     A             ,VDBCSU(46,12,13,2)
+      COMMON/TADCOM/TROAER(72,46,13,8,4),TDUST(72,46,9,8,13)
+     A             ,VDBCSU(46,12,13,3)
      B             ,ATITLE(13,5,4),VTITLE(13,2),DTITLE(13,9),TITLE
 
 C not initiallised
@@ -180,8 +180,8 @@ C
      R             ,TRSQAL(33,25),VEFS25(25)
 
 C  not initialised
-      COMMON/AERCOM1/QXAERO(6,9),QSAERO(6,9),QCAERO(6,9),ATAERO(33,9)
-     A             ,QAER55(9),PIAERO(9)
+      COMMON/AERCOM1/QXAERO(6,10),QSAERO(6,10),QCAERO(6,10)
+     A             ,ATAERO(33,10),QAER55(10),PIAERO(10)
      C             ,QXDUST(6,8),QSDUST(6,8),QCDUST(6,8),ATDUST(33,8)
      D             ,QDST55(8),PIDUST(8)
      H             ,TAUCOL(72,46,9),VDAERO(46,12,9),DUSTLN(72,46,12,8)
@@ -191,8 +191,8 @@ C  not initialised
      G             ,QDUST(LX,6),SDUST(LX,6),CDUST(LX,6),ADUST(LX,33)
 C$OMP  THREADPRIVATE(/AERCOM_local/)
 c block data initialised
-      COMMON/AERCOM2/REAERO(9),VEAERO(9),ROAERO(9),PI0MAX(9)
-     B             ,FSAERO(9),FTAERO(9),VDGAER(12,9),SSBTAU,
+      COMMON/AERCOM2/REAERO(10),VEAERO(10),ROAERO(10),PI0MAX(10)
+     B             ,FSAERO(10),FTAERO(10),VDGAER(12,10),SSBTAU,
      *              REDUST(8),VEDUST(8),RODUST(8)
      E             ,FSDUST(8),FTDUST(8)
 C
