@@ -469,7 +469,8 @@ c**** fix outputs to mean ratio (TO BE REPLACED BY WITHIN SOIL TRACERS)
 c**** update ratio
         trsoil_rat(nx)=(trsoil_tot(nx)+dtsurf*trpr(nx)-
      *       (tevapw(nx)+tevapd(nx)+tevapb(nx)+trruns(nx)+trrunu(nx)))/
-     *      (rhow*(wsoil_tot+dtsurf*pr)-(evapw+evapd+evapb+aruns+arunu))
+     *       (rhow*(wsoil_tot+dtsurf*pr)-(aevapw+aevapd+aevapb+aruns
+     *       +arunu))
         trbare(n,1:ngm,i,j) = trsoil_rat(nx)*w(1:ngm,1)*rhow
         trvege(n,:,i,j) = trsoil_rat(nx)*w(:,2)*rhow
         trsnowbv(n,:,i,j)=trsoil_rat(nx)*snowd(:)*rhow

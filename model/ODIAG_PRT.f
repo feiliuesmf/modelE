@@ -127,7 +127,6 @@ C**** This is really bad!
       REAL*8 GOS,SOS,FAC,FACST,GSMAX,GSMIN,CKMIN,CKMAX,ACMIN,ACMAX
      *     ,TSUM,TEMGS,QJ(JM),QSUM,MQ,DLON,byiacc
       CHARACTER NAME(KOLNST)*40,TITLE*80,lname*50,sname*30,units*50
-      LOGICAL QKV
 
       QJ=0.
       QSUM=0.
@@ -375,47 +374,46 @@ c      IF(KCMF(K).le.0)  GO TO 620
 C****
 C**** Vertical Diffusion Coefficients (cm/s)
 C****
-      IF (QKV) THEN
-        DO L=1,LMO-1
-          LNAME="VERT. MOM. DIFF."
-          UNITS="cm^2/s"
-          SNAME="kvm"//char(l+48)
-          Q=UNDEF
-          DO J=1,JM
+      DO L=1,LMO-1
+        LNAME="VERT. MOM. DIFF."
+        UNITS="cm^2/s"
+        SNAME="kvm"//char(l+48)
+        Q=UNDEF
+        DO J=1,JM
           DO I=1,IMAXJ(J)
             IF (OIJL(I,J,L+1,IJL_MO).gt.0)
-     *         Q(I,J)=1d4*.00097d0**2*OIJL(I,J,L,IJL_KVM)/(IDACC(1)*4.)
+     *           Q(I,J)=1d4*.00097d0**2*OIJL(I,J,L,IJL_KVM)/(IDACC(1)*4.
+     *           )
           END DO
-          END DO
-          Q(2:IM,JM)=Q(1,JM)
-          Q(2:IM,1)=Q(1,1)
-          TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
-          WRITE (TITLE(40:47),'(A5I3)') "Level",L
-          WRITE (LNAME(40:47),'(A5I3)') "Level",L
-          TITLE(51:80)=XLB
-          CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2)
         END DO
-
-        DO L=1,LMO-1
-          LNAME="VERT. HEAT DIFF."
-          UNITS="cm^2/s"
-          SNAME="kvh"//char(l+48)
-          Q=UNDEF
-          DO J=1,JM
+        Q(2:IM,JM)=Q(1,JM)
+        Q(2:IM,1)=Q(1,1)
+        TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
+        WRITE (TITLE(40:47),'(A5I3)') "Level",L
+        WRITE (LNAME(40:47),'(A5I3)') "Level",L
+        TITLE(51:80)=XLB
+        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2)
+      END DO
+      
+      DO L=1,LMO-1
+        LNAME="VERT. HEAT DIFF."
+        UNITS="cm^2/s"
+        SNAME="kvh"//char(l+48)
+        Q=UNDEF
+        DO J=1,JM
           DO I=1,IMAXJ(J)
             IF (OIJL(I,J,L+1,IJL_MO).gt.0)
-     *         Q(I,J)=1d4*.00097**2*OIJL(I,J,L,IJL_KVG)/(IDACC(1)*4.)
+     *           Q(I,J)=1d4*.00097**2*OIJL(I,J,L,IJL_KVG)/(IDACC(1)*4.)
           END DO
-          END DO
-          Q(2:IM,JM)=Q(1,JM)
-          Q(2:IM,1)=Q(1,1)
-          TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
-          WRITE (TITLE(40:47),'(A5I3)') "Level",L
-          WRITE (LNAME(40:47),'(A5I3)') "Level",L
-          TITLE(51:80)=XLB
-          CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2)
         END DO
-      END IF
+        Q(2:IM,JM)=Q(1,JM)
+        Q(2:IM,1)=Q(1,1)
+        TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
+        WRITE (TITLE(40:47),'(A5I3)') "Level",L
+        WRITE (LNAME(40:47),'(A5I3)') "Level",L
+        TITLE(51:80)=XLB
+        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2)
+      END DO
 C****
 C**** Simple scaled OIJ diagnostics
 C****
