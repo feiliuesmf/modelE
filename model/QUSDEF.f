@@ -73,9 +73,8 @@ c--------------------------------------------------------------
 c-----------------------------------------------------------
       ! calculate tracer mass flux f
 c-----------------------------------------------------------
+      n = nx
       do np1=1,nx
-         n=np1-1
-         if(np1.eq.1) n=nx
          if(dm(n).lt.0.) then ! air mass flux is negative
             nn=np1
             frac1=+1.
@@ -94,11 +93,11 @@ c-----------------------------------------------------------
       ! temporary storage of frac1 in fxx, to be used below
          fmom(mxx,n)=frac1
       !
+        n = np1
       enddo
       if(qlimit) then
+         nm1 = nx
          do n=1,nx
-            nm1=n-1
-            if(n.eq.1) nm1=nx
             ns=1+(n-1)*stride
             an = fmom(mx,n)      ! reading fracm which was stored in fx
             anm1 = fmom(mx,nm1)
@@ -116,14 +115,14 @@ c-----------------------------------------------------------
             f(nm1) = fnm1
             smom(mx,ns) = sxn
             smom(mxx,ns) = sxxn
+           nm1 = n
          enddo
       endif
 c--------------------------------------------------------------------
       ! calculate tracer fluxes of slopes and curvatures
 c--------------------------------------------------------------------
+      n = nx
       do np1=1,nx
-         n=np1-1
-         if(np1.eq.1) n=nx
          if(dm(n).lt.0.) then ! air mass flux is negative
             nn=np1
          else                 ! air mass flux is positive
@@ -147,13 +146,13 @@ c--------------------------------------------------------------------
          fmom(myy,n) = fracm*smom(myy,ns)
          fmom(mzz,n) = fracm*smom(mzz,ns)
          fmom(myz,n) = fracm*smom(myz,ns)
+        n = np1
       enddo
 c-------------------------------------------------------------------
 c update tracer mass, moments of tracer mass, air mass distribution
 c-------------------------------------------------------------------
+      nm1 = nx
       do n=1,nx
-         nm1=n-1
-         if(n.eq.1) nm1=nx
          ns=1+(n-1)*stride
          tmp=mass(ns)+dm(nm1)
          mnew=tmp-dm(n)
@@ -192,6 +191,7 @@ c------------------------------------------------------------------
             smom(:,ns)=0.
          endif
 c-----------------------------------------------------------------
+        nm1 = n
       enddo
       return
       end subroutine adv1d
