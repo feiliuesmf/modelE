@@ -13,7 +13,7 @@ Preprocessor Options
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
-RES_M18AT ! horiz/vert resolution: 4x5, 18 lrs->.1mb, NO GWdrag
+RES_M18AT                           ! horiz/vert resolution
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
@@ -80,6 +80,8 @@ PP_sdrag=20.    ! linear SDRAG above PP_sdrag mb near poles
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 
 KOCEAN=0
+Kvflxo=1        ! saving VFLXO (daily, preparing for q-flux run)
+
 xCDpbl=1.       ! tune surface mom.drag to get reas. SLP (990mb at 65S)
 U00ice=.60      ! U00ice up  => nethtz0 down (alb down) goals: nethtz0=0 (ann.
 U00wtrX=.80     ! U00wtrX up => nethtz0 up   (alb down)           global mean)
@@ -101,7 +103,6 @@ Ndisk=24        ! use =240 on COMPAQ with lsf-batch system
 
 SUBDD='SLP'     ! save SLP at sub-daily frequency
 NSUBDD=12       ! saving sub-daily diags 12hrly
-Kvflxo=1        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
 isccp_diags=1   ! use =0 to save cpu time
 nda5d=1         ! use =7 to save cpu time
