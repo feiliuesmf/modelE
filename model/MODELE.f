@@ -258,7 +258,9 @@ C**** SEA LEVEL PRESSURE FILTER
 C**** 3D Tracer sources and sinks
 C**** Tracer independent radioactive decay at end of day
       CALL TDECAY
-
+C**** Calculate 3D tracers sources and sinks
+      call set_tracer_3Dsource
+      call apply_tracer_3Dsource(dtsrc)
 C**** Accumulate tracer distribution diagnostics
       CALL TRACEA
 #endif

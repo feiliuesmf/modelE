@@ -1,11 +1,7 @@
 E001tr.R GISS Model E with sample tracers               jal 10/01
 
-E001tr: new modelE (based on B402A with 4 sample tracers)
- T1=Air mass
- T2=SF6
- T3=RN222
- T4=CO2
- T5=14CO2
+E001tr: new modelE (based on B402A with sample tracers)
+ Air mass, SF6, RN222, CO2, 14CO2, CFC-11, CH4, N2O, O3
 
 Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
@@ -76,7 +72,20 @@ CO2_LAND_USE=CO2_sources/gcm_data/CO2DEF_HOU_4X5
 CO2_VEG=CO2_sources/gcm_data/CO2VEG_MON_4X5        ! Monthly source
 CO2_OCEAN=CO2_sources/gcm_data/CO2_4X5_Ocean_flux02  ! Monthly source  x 1.749
 14CO2_IC_DATA=workshop.14co2      ! for 14CO2 Oct. 1963
-
+CH4_TROP_FRQ=OHCH4_FRQ_M12_LS1     !troposphere loss frequency table for 12 layers
+N2O_IC=N2O_Shindell_Jan9293_M23      !initial conditions
+CH4_IC=CH4_Wofsy_Jan1995_M23       !wofsy jl for 23 layers
+CH4_ANIMALS=methane/gcm_data/CH4ANIMLS_4X5    ! Annual 1.3847
+CH4_COALMINE=methane/gcm_data/CH4COAL_4X5      ! Annual 1.0285
+CH4_GASLEAK=methane/gcm_data/CH4GASLEAK_4X5   ! Annual 3.904
+CH4_GASVENT=methane/gcm_data/CH4GASVENT_4X5   ! Annual 1.659
+CH4_CITYDUMP=methane/gcm_data/CH4MSW_4X5       ! Annual 1.233
+CH4_SOIL_ABS=methane/gcm_data/CH4SOILABS_4X5   ! Annual 1.194
+CH4_TERMITES=methane/gcm_data/CH4TRMITE_4X5    ! Annual 0.999
+CH4_COALBURN=methane/gcm_data/COAL_BURN_BY_POP84_4X5  ! Annual 7.2154
+CH4_BURN=methane/gcm_data/CH4BURN_4X5      ! Monthly 0.4369
+CH4_RICE=methane/gcm_data/CH4RICEC_4X5     ! Monthly 0.7533
+CH4_WETL=methane/gcm_data/CH4WETL+TUNDRA_4X5  ! Monthly 0.9818; zonal also
 
 Label and Namelist:
 E001tr (new modelE based on B402A, uses dry adiab. adjustment; tracers)

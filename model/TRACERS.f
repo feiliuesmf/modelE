@@ -299,41 +299,33 @@ C****
 !@sum apply_tracer_3Dsource adds 3D sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only : jm,im,lm
+      USE GEOM, only : imaxj
       USE TRACER_COM, only : ntm,trm,trmom,nt3Dsrc
       USE QUSDEF, only: nmom
       USE FLUXES, only : tr3Dsource
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
+      REAL*8 del_trm
       INTEGER n,ns,najl,i,j,l
-      real*8 scale_trmom(im,jm,lm,ntm)
 
 C**** This is tracer independent coding designed to work for all
 C**** 3D sources.
-
+C**** Modify tracer amount, moments, and diagnostics
       do n=1,ntm
-
-C**** Non-interactive sources
         do ns=1,nt3Dsrc(n)
-          trm(:,:,:,n) = trm(:,:,:,n) + tr3Dsource(:,:,:,ns,n)*dtstep
-C**** diagnostics
           najl = jls_3Dsource(ns,n)
           do l=1,lm
           do j=1,jm
-            tajls(j,l,najl) = tajls(j,l,najl)+
-     *         sum(tr3Dsource(:,j,l,ns,n))*dtstep
-          end do
-          end do
+          do i=1,imaxj(j)
+            del_trm = trm(i,j,l,n)*tr3Dsource(i,j,l,ns,n)*dtstep
+            trm(i,j,l,n) = trm(i,j,l,n)-del_trm
+            tajls(j,l,najl) = tajls(j,l,najl)-del_trm
+            trmom(1:nmom,i,j,l,n) = trmom(1:nmom,i,j,l,n)
+     *        *(1.-tr3Dsource(i,j,l,ns,n)*dtstep)
+          end do; end do; end do
           call DIAGTCA(itcon_3Dsrc(ns,n),n)
         end do
-
-C**** modify vertical moments
-        do l=1,lm
-        do j=1,jm
-        do i=1,im
-        trmom(1:nmom,i,j,l,n) = trmom(1:nmom,i,j,l,n)
-     *     *scale_trmom(i,j,l,n)*dtstep
-        end do; end do; end do
       end do
 C****
       RETURN
@@ -344,7 +336,7 @@ C****
 !@sum TDECAY decays radioactive tracers every source time step
 !@auth Gavin Schmidt/Jean Lerner
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc
-      USE TRACER_COM, only : ntm,trm,trmom,trdecy,itime_tr0
+      USE TRACER_COM, only : ntm,trm,trmom,trdecay,itime_tr0
 #ifdef TRACERS_WATER
      *     ,trwm
 #endif
@@ -352,18 +344,18 @@ C****
       IMPLICIT NONE
       real*8, save, dimension(ntm) :: expdec = 1.
       real*8, dimension(im,jm,lm) :: told
-      integer, save :: ifirst=1
+      logical, save :: ifirst=.true.
       integer n,najl,j,l
 
-      if (ifirst.eq.1) then               
+      if (ifirst) then               
         do n=1,ntm
-          if (trdecy(n).gt.0.0) expdec(n)=exp(-trdecy(n)*dtsrc)
+          if (trdecay(n).gt.0.0) expdec(n)=exp(-trdecay(n)*dtsrc)
         end do
-        ifirst = 0
+        ifirst = .false.
       end if
 
       do n=1,ntm
-        if (trdecy(n).gt.0. .and. itime.ge.itime_tr0(n)) then
+        if (trdecay(n).gt.0. .and. itime.ge.itime_tr0(n)) then
 C**** Atmospheric decay
           told(:,:,:)=trm(:,:,:,n)
 #ifdef TRACERS_WATER
@@ -403,19 +395,19 @@ C****
       USE DYNAMICS, only : gz
       IMPLICIT NONE
       real*8, save, dimension(ntm) :: stokevdt = 0.
-      integer, save :: ifirst=1
+      logical, save :: ifirst=.true.
       real*8, dimension(im,jm,lm) :: told
       real*8 fgrfluxd,fgrfluxu
       integer n,najl,i,j,l
 
-      if (ifirst.eq.1) then               
+      if (ifirst) then               
 C**** Calculate settling velocity based on Stokes' Law using particle
 C**** density and effective radius
         do n=1,ntm
           if (trradius(n).gt.0.0) stokevdt(n)=dtsrc*2.*grav*trpdens(n)
      *         *trradius(n)**2/(9.*visc_air)
         end do
-        ifirst = 0
+        ifirst = .false.
       end if
 
       do n=1,ntm

@@ -36,8 +36,8 @@ C**** Each tracer has a variable name and a unique index
 !@var needtrs: true if surface tracer value from PBL is required
       logical, parameter, dimension (ntm) :: needtrs=
      *     (/.true. /)
-!@var trdecy radioactive decay constant (1/s) (=0 for stable tracers)
-      real*8, parameter, dimension (ntm) :: trdecy=
+!@var trdecay radioactive decay constant (1/s) (=0 for stable tracers)
+      real*8, parameter, dimension (ntm) :: trdecay=
      *     (/   0d0 /)
 
 C**** Note units for these parameters!
