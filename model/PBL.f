@@ -1164,8 +1164,8 @@ c     rhs(n-1)=0.
 !@sum q_eqn integrates differential eqn q (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
-!@+   kq * dq/dz = min ( cq * usurf * (q - qg) ,
-!@+         fr_sat * cq * usurf * (q - qg) + ( 1 - fr_sat ) * flux_max )
+!@+   kq * dq/dz = - min ( cq * usurf * (qg - q) ,
+!@+         fr_sat * cq * usurf * (qg - q) + ( 1 - fr_sat ) * flux_max )
 !@+   at the top, the moisture is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
@@ -1226,8 +1226,8 @@ c**** for unsaturated fraction
 
 c**** Flux is too high, have to recompute with the following boundary
 c**** conditions at the bottom:
-c**** kq * dq/dz = fr_sat * cq * usurf * (q - qg)
-c****              + ( 1 - fr_sat ) * flux_max
+c**** kq * dq/dz = - (  fr_sat * cq * usurf * (qg - q)
+c****              + ( 1 - fr_sat ) * flux_max  )
 
       dia(1) = 1. + fr_sat*factq
       sup(1) = -1.
