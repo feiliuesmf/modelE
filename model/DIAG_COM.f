@@ -385,7 +385,7 @@ C****      names, indices, units, idacc-numbers, etc.
       INTEGER :: isccp_diags = 0
 
 !@var SCALE_IJ scaling for weighted AIJ diagnostics
-      REAL*8, DIMENSION(KAIJ) :: SCALE_IJ
+      REAL*8, DIMENSION(KAIJX) :: SCALE_IJ             ! KAIJ -> KAIJX OK?
 !@var NAME_IJ,UNITS_IJ Names/Units of lat/lon IJ diagnostics
       character(len=30), dimension(kaijx) :: name_ij,units_ij
 !@var LNAME_IJ Long names of lat/lon IJ diagnostics
