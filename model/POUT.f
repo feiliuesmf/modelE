@@ -10,6 +10,30 @@ C****
 C**** Note: it would be nice to amalgamate IL and JL, but that will
 C**** have to wait.
 
+      subroutine open_ij(filename)
+!@sum  OPEN_IJ opens the lat-lon binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE DAGCOM, only : iu_ij
+      USE FILEMANAGER
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+
+      call getunit(filename,iu_ij,.true.,.false.)
+      return
+      end subroutine open_ij
+
+      subroutine close_ij
+!@sum  CLOSE_IJ closes the lat-lon binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE DAGCOM, only : iu_ij
+      IMPLICIT NONE
+      close(iu_ij)
+      return
+      end subroutine close_ij
+
       subroutine POUT_IJ(TITLE,XIJ,XJ,XSUM)
 !@sum  POUT_IJ output lat-lon binary records
 !@auth Gavin Schmidt
@@ -20,15 +44,39 @@ C**** have to wait.
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
 !@var XIJ lat/lon output field 
-      REAL*4, DIMENSION(IM,JM), INTENT(IN) :: XIJ
+      REAL*8, DIMENSION(IM,JM), INTENT(IN) :: XIJ
 !@var XJ lat sum/mean of output field 
-      REAL*4, DIMENSION(JM), INTENT(IN) :: XJ
+      REAL*8, DIMENSION(JM), INTENT(IN) :: XJ
 !@var XSUM global sum/mean of output field 
-      REAL*4, INTENT(IN) :: XSUM
+      REAL*8, INTENT(IN) :: XSUM
 
-      WRITE(iu_ij) TITLE,XIJ,XJ,XSUM
+      WRITE(iu_ij) TITLE,SNGL(XIJ),SNGL(XJ),SNGL(XSUM)
       return
       end
+
+      subroutine open_jl(filename)
+!@sum  OPEN_JL opens the lat-height binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE DAGCOM, only : iu_jl
+      USE FILEMANAGER
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+
+      call getunit(filename,iu_jl,.true.,.false.)
+      return
+      end subroutine open_jl
+
+      subroutine close_jl
+!@sum  CLOSE_JL closes the lat-height binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE DAGCOM, only : iu_jl
+      IMPLICIT NONE
+      close(iu_jl)
+      return
+      end subroutine close_jl
 
       subroutine POUT_JL(TITLE,J1,KLMAX,XJL,PM,CX,CY)
 !@sum  POUT_JL output lat-height binary records
@@ -47,26 +95,51 @@ C**** have to wait.
 !@+       (J1:JM,1:KLMAX) is field
 !@+       (JM+1:JM+3,1:KLMAX) are global/NH/SH average over L
 !@+       (J1:JM+3,LM+LM_REQ+1) are averages over J
-      REAL*4, DIMENSION(JM+3,LM+LM_REQ+1), INTENT(IN) :: XJL
+      REAL*8, DIMENSION(JM+3,LM+LM_REQ+1), INTENT(IN) :: XJL
 !@var PM pressure levels (MB)
       REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM 
       
       CHARACTER*16, INTENT(IN) :: CX,CY
       CHARACTER*16, PARAMETER :: CBLANK = ' '
-      REAL*4 XCOOR(JM)
+      REAL*8 XCOOR(JM)
       INTEGER J,L,JXMAX
       
       XCOOR(1:JM-J1) = LAT_DG(J1:JM,J1)
       JXMAX = JM-J1+1
 
       WRITE (iu_jl) TITLE,JXMAX,KLMAX,1,1,
-     *     ((XJL(J1+J-1,L),J=1,JXMAX),L=1,KLMAX),(XCOOR(J),J=1,JXMAX)
+     *     ((SNGL(XJL(J1+J-1,L)),J=1,JXMAX),L=1,KLMAX)
+     *     ,(SNGL(XCOOR(J)),J=1,JXMAX)
      *     ,(SNGL(PM(L)),L=1,KLMAX),1.,1.,CX,CY,CBLANK,CBLANK,'NASAGISS'
-     *     ,(XJL(J,LM+LM_REQ+1),J=J1,JM+3),((XJL(J,L),J=JM+1,JM+3),L=1
-     *     ,KLMAX)
+     *     ,(SNGL(XJL(J,LM+LM_REQ+1)),J=J1,JM+3)
+     *     ,((SNGL(XJL(J,L)),J=JM+1,JM+3),L=1,KLMAX)
 
       return
       end
+
+      subroutine open_il(filename)
+!@sum  OPEN_IL opens the lon-height binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE DAGCOM, only : iu_il
+      USE FILEMANAGER
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+
+      call getunit(filename,iu_il,.true.,.false.)
+      return
+      end subroutine open_il
+
+      subroutine close_il
+!@sum  CLOSE_IL closes the lon-height binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE DAGCOM, only : iu_il
+      IMPLICIT NONE
+      close(iu_il)
+      return
+      end subroutine close_il
 
       subroutine POUT_IL(TITLE,ISHIFT,KLMAX,XIL,PM,CX,CY,
      *     ASUM,GSUM,ZONAL)
@@ -83,29 +156,53 @@ C**** have to wait.
 !@var ISHIFT flag for secondary grid
       INTEGER, INTENT(IN) :: KLMAX,ISHIFT
 !@var XIL output field 
-      REAL*4, DIMENSION(IM,LM+LM_REQ+1), INTENT(IN) :: XIL
+      REAL*8, DIMENSION(IM,LM+LM_REQ+1), INTENT(IN) :: XIL
 !@var PM pressure levels (MB)
       REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM 
 !@var ASUM vertical mean/sum
-      REAL*4, DIMENSION(IM), INTENT(IN) :: ASUM 
+      REAL*8, DIMENSION(IM), INTENT(IN) :: ASUM 
 !@var GSUM total sum/mean 
-      REAL*4, INTENT(IN) :: GSUM
+      REAL*8, INTENT(IN) :: GSUM
 !@var ZONAL zonal sum/mean 
-      REAL*4, DIMENSION(LM+LM_REQ), INTENT(IN) :: ZONAL 
+      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: ZONAL 
       
       CHARACTER*16, INTENT(IN) :: CX,CY
       CHARACTER*16, PARAMETER :: CBLANK = ' '
-      REAL*4 XCOOR(IM)
+      REAL*8 XCOOR(IM)
       INTEGER I,L
       
       XCOOR(1:IM) = LON_DG(1:IM,ISHIFT)
       WRITE (iu_il) TITLE,IM,KLMAX,1,1,
-     *     ((XIL(I,L),I=1,IM),L=1,KLMAX),(XCOOR(I),I=1,IM)
+     *     ((SNGL(XIL(I,L)),I=1,IM),L=1,KLMAX),(SNGL(XCOOR(I)),I=1,IM)
      *     ,(SNGL(PM(L)),L=1,KLMAX),0.,0.,CX,CY,CBLANK,CBLANK,'NASAGISS'
-     *     ,(ASUM(I),I=1,IM),GSUM,(ZONAL(L),L=1,KLMAX)
+     *     ,(SNGL(ASUM(I)),I=1,IM),SNGL(GSUM),(SNGL(ZONAL(L)),L=1,KLMAX)
 
       return
       end
+
+      subroutine close_j
+!@sum  CLOSE_J closes the latitudinal budget-page ascii output file
+!@auth M. Kelley
+!@ver  1.0
+      USE DAGCOM, only : iu_j
+      IMPLICIT NONE
+      close(iu_j)
+      return
+      end subroutine close_j
+
+      subroutine open_j(filename)
+!@sum  OPEN_J opens the latitudinal budget-page ascii output file
+!@auth M. Kelley
+!@ver  1.0
+      USE DAGCOM, only : iu_j
+      USE FILEMANAGER
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+
+      call getunit(filename,iu_j,.false.,.false.)
+      return
+      end subroutine open_j
 
       subroutine POUT_J(TITLE,BUDG,KMAX,TERRAIN)
 !@sum  POUT_J output zonal budget ascii file (aplot format)
@@ -117,7 +214,7 @@ C**** have to wait.
       IMPLICIT NONE
       CHARACTER*16, DIMENSION(KAJ),INTENT(INOUT) :: TITLE
       CHARACTER*16, INTENT(IN) :: TERRAIN
-      REAL*4, DIMENSION(JM+3,KAJ), INTENT(IN) :: BUDG
+      REAL*8, DIMENSION(JM+3,KAJ), INTENT(IN) :: BUDG
       INTEGER, INTENT(IN) :: KMAX
       INTEGER K,N,J
 

@@ -42,7 +42,7 @@ FMAKEDEP = $(SCRIPTDIR)/sfmakedepend -H
 F       = $(SCRIPTDIR)/fco2_90
 U	= $(SCRIPTDIR)/uco2_f90
 SETUP	= $(SCRIPTDIR)/setup_e
-LIBS	= -L/u/cmrun -lGCM -lgP 
+LIBS	= -L/usr/local/netcdf-3.4/lib64 -lnetcdf #-L/u/cmrun -lGCM -lgP
 FFLAGS = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 
 LFLAGS = -64 -O2 -mips4 -lfastm -mp -OPT:reorg_common=OFF -Wl,-woff,134 -Wl,-woff,15
 endif

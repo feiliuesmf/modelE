@@ -12,7 +12,7 @@
       USE PARAM
       IMPLICIT NONE
 
-      INTEGER I,J,L,K,M,LLAB1,KSS6,MSTART,MNOW,MODD5D,months,ioerr,Ldate
+      INTEGER I,J,L,K,M,KSS6,MSTART,MNOW,MODD5D,months,ioerr,Ldate
       INTEGER iu_VFLXO,iu_SLP
       INTEGER :: MDUM = 0
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
@@ -305,10 +305,6 @@ c       WRITE (6,'("1"/64(1X/))')
 
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
         IF (KCOPY.GT.0) THEN
-          LLAB1 = INDEX(XLABEL(1:16),'(') -1
-          IF (LLAB1.LT.1) LLAB1=16
-          if (index(XLABEL(1:LLAB1),' ').gt.0)
-     *      LLAB1=index(XLABEL(1:LLAB1),' ')-1
           call aPERIOD (JMON0,JYEAR0,months,1,aDATE(1:12),Ldate)
           WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),JYEAR
 C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
@@ -318,7 +314,7 @@ C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
             if(m.gt.12) m = m-12
             monacc(m) = 1
           end do
-          OPEN (30,FILE=aDATE(1:7)//'.acc'//XLABEL(1:LLAB1),
+          OPEN (30,FILE=aDATE(1:7)//'.acc'//XLABEL(1:LRUNID),
      *         FORM='UNFORMATTED')
           call io_rsf (30,Itime,iowrite_single,ioerr)
           CLOSE (30)
@@ -327,13 +323,13 @@ C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
             CALL RFINAL (IRAND)
             call set_param( "IRAND", IRAND, 'o' )
             OPEN(30,FORM='UNFORMATTED',
-     *              FILE='1'//aDATE(8:14)//'.rsf'//XLABEL(1:LLAB1))
+     *              FILE='1'//aDATE(8:14)//'.rsf'//XLABEL(1:LRUNID))
             call io_rsf(30,Itime,iowrite_mon,ioerr)
             CLOSE (30)
           END IF
 C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
           IF (KCOPY.GT.2) THEN
-            OPEN (30,FILE=aDATE(1:7)//'.oda'//XLABEL(1:LLAB1),
+            OPEN (30,FILE=aDATE(1:7)//'.oda'//XLABEL(1:LRUNID),
      *           FORM='UNFORMATTED')
             call io_oda(30,Itime,iowrite,ioerr)
             CLOSE (30)
@@ -443,7 +439,7 @@ C****
       USE CONSTANT, only : grav,kapa,sday,shi,lhm
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
      *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige
-     *     ,bydsig,xlabel,nmonav
+     *     ,bydsig,xlabel,lrunid,nmonav
      *     ,keyct,irand,psf,ptop
      *     ,nisurf,nidyn,nday,dt,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
@@ -480,8 +476,7 @@ C****
      *             ISTART=10, IRANDI=0
       REAL*8 TIJL,CDM,TEMP,X
       REAL*4 XX4
-      INTEGER Itime1,Itime2,ItimeX,IhrX,llab1,iargc
-      INTEGER :: LRUNID=4                       ! RUNID longer than 4?
+      INTEGER Itime1,Itime2,ItimeX,IhrX,iargc
 
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE., inilake = .FALSE.,
      &           iniSNOW = .FALSE.  ! true = restart from "no snow" rsf
@@ -1035,6 +1030,13 @@ C****
       WRITE (6,'(A14,2I8)') "KACC=",KACC
       WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
       WRITE (6,*) "PLbot=",PTOP+PSFMPT*SIGE
+C****
+C**** initialize lrunid
+C****
+      LRUNID = INDEX(XLABEL(1:16),'(') -1
+      IF (LRUNID.LT.1) LRUNID=16
+      if (index(XLABEL(1:LRUNID),' ').gt.0)
+     *     LRUNID=index(XLABEL(1:LRUNID),' ')-1
       RETURN
 C****
 C**** TERMINATE BECAUSE OF IMPROPER PICK-UP

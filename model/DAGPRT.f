@@ -97,11 +97,11 @@ c      USE PRTCOM, only :
       USE MODEL_COM, only :
      &     im,jm,lm,fim,flice,
      &     dtsrc,fland,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
-     &     jyear,jyear0,ls1,sige,itime,itime0,nday,xlabel,ntype
+     &     jyear,jyear0,ls1,sige,itime,itime0,nday,xlabel,lrunid,ntype
       USE GEOM, only :
      &     dxyp,lat,LAT_DG
       USE DAGCOM, only :
-     &     QCHECK,aj,areg,jreg,kdiag,namreg,nreg,kaj,ia_j,
+     &     QCHECK,acc_period,aj,areg,jreg,kdiag,namreg,nreg,kaj,ia_j,
      &     j_ctopp,j_cdldep,j_pcldmc,j_srabs,j_srnfp0,j_srnfg,j_trnfp0,
      &     j_hsurf,j_trhdt,j_trnfp1,j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,
      &     j_rhdt,j_hz1,j_edifs,j_f1dt,j_prcp,j_prcpss,j_prcpmc,j_hz0,
@@ -163,7 +163,7 @@ C**** possible expanded version (including composites)
      *  ' SURF ALB NEARIR', '0ATMO ALB VISUAL', ' ATMO ALB NEARIR',
      *  ' ATMO ABS VISUAL', ' ATMO ABS NEARIR'/
 C**** Arrays needed for full output
-      REAL*4, DIMENSION(JM+3,KAJ) :: BUDG
+      REAL*8, DIMENSION(JM+3,KAJ) :: BUDG
       CHARACTER*16,DIMENSION(KAJ) :: TITLEO
 C**** weighting functions for surface types
       DOUBLE PRECISION, DIMENSION(0:NTYPE_OUT,NTYPE) ::
@@ -254,6 +254,9 @@ C**** INITIALIZE CERTAIN QUANTITIES  (KD1M LE 69)
       SCALE(66)=1.D3
       SCALE(68)=2.E3*4185./SDAY
       END IF
+C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+      IF (QCHECK) call open_j(trim(acc_period)//'.j'//XLABEL(1:LRUNID))
+
 C**** CALCULATE THE DERIVED QUANTITIES
       BYA1=1./(IDACC(1)+1.D-20)
       A2BYA1=DFLOAT(IDACC(2))/DFLOAT(IDACC(1))
@@ -412,6 +415,7 @@ C**** Save BUDG for full output
       IF (QCHECK) CALL POUT_J(TITLEO,BUDG,KD1M+10,TERRAIN(M))
       IF (KDIAG(1).GT.1) RETURN
       END DO
+      if(qcheck) call close_j
   510 IF (KDIAG(1).GT.0.AND.KDIAG(1).NE.8) RETURN
 C****
 C**** PRODUCE REGIONAL STATISTICS
@@ -557,7 +561,7 @@ c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,kapa,sday,lhe,twopi,omega,sha,bygrav,tf
       USE MODEL_COM, only :
-     &     im,jm,lm,fim,
+     &     im,jm,lm,fim, xlabel,lrunid,
      &     BYIM,DSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,
      &     PSF,PTOP,PMTOP,PSFMPT,SIG,SIGE,JHOUR    ! ,skipse
       USE GEOM, only :
@@ -566,6 +570,7 @@ c      USE PRTCOM, only :
      &     PLM
       USE DAGCOM, only :
      &     ajk,ajl,asjl,ajlsp,kdiag,aijl,aijk,nwav_dag,kajlsp,LM_REQ
+     &    ,qcheck, acc_period
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(IM,JM) :: SENDEG
@@ -608,6 +613,9 @@ c      USE PRTCOM, only :
      &     SKEI,SMALL,SN,SNAMI,SNDEGI,SNELGI,SQM,SQN,SZNDEG,SZNELG,
      &     THDN,THETA,THUP,TX,UDXN,UDXS,UX,WTKP1,WTN,WTNK,
      &     WTS,WTSK,XWON
+
+C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+      IF(QCHECK) call open_jl(trim(acc_period)//'.jk'//XLABEL(1:LRUNID))
 
 C**** INITIALIZE CERTAIN QUANTITIES
       IF (KDIAG(2).GE.8) GO TO 120
@@ -1172,13 +1180,13 @@ C**** WIND: RATE OF CHANGE, ADVECTION, EDDY CONVERGENCE
       SCALE=1.D6/((IDACC(4)-1)*(DTsrc*NDAA+DT+DT))
       CALL JLMAP (40,PLM,AJK(1,1,47),SCALE,ONES,ONES,KM,2,2)
   730 SCALE=1.D6*BYIADA
-      CALL JLMAP (59,PLM,AJK(1,1,40),SCALE,ONES,ONES,KMM1,2,1)
+      CALL JLMAP (59,PLM,AJK(1,1,40),SCALE,ONES,ONES,KM,2,1)
       SCALE=1.D6
-      CALL JLMAP (60,PLM,AX,SCALE,ONES,ONES,KMM1,2,1)
+      CALL JLMAP (60,PLM,AX,SCALE,ONES,ONES,KM,2,1)
 C**** WIND: TRANSFORMED ADVECTION, LAGRANGIAN CONVERGENCE (DEL.F)
       SCALE=1.D6*BYIADA
-      CALL JLMAP (64,PLM,AJK(1,1,42),SCALE,ONES,ONES,KMM1,2,1)
-      CALL JLMAP (65,PLM,BX,SCALE,ONES,ONES,KMM1,2,1)
+      CALL JLMAP (64,PLM,AJK(1,1,42),SCALE,ONES,ONES,KM,2,1)
+      CALL JLMAP (65,PLM,BX,SCALE,ONES,ONES,KM,2,1)
 C**** WIND: DU/DT BY STRAT. DRAG
       SCALE=1.D6/(FIM*IDACC(1)*DTsrc+1.E-20)
       CALL JLMAP (1,PLM,AJL(1,1,20),SCALE,ONES,ONES,LM,2,2)
@@ -1190,12 +1198,12 @@ C**** TEMPERATURE: RATE OF CHANGE, ADVECTION, EDDY CONVERGENCE
       SCALE=1.D1*SDAY/((IDACC(4)-1)*(DTsrc*NDAA+DT+DT))
       CALL JLMAP (66,PLM,AJK(1,1,49),SCALE,ONES,PKM,KM,2,1)
   750 SCALE=1.D1*SDAY*BYIADA
-      CALL JLMAP (67,PLM,AJK(1,1,41),SCALE,ONES,PKM,KMM1,2,1)
+      CALL JLMAP (67,PLM,AJK(1,1,41),SCALE,ONES,PKM,KM,2,1)
       SCALE=1.D1*SDAY
-      CALL JLMAP (69,PLM,CX,SCALE,ONES,ONES,KMM1,2,1)
+      CALL JLMAP (69,PLM,CX,SCALE,ONES,ONES,KM,2,1)
 C**** TEMPERATURE: TRANSFORMED ADVECTION
       SCALE=1.D1*SDAY*BYIADA
-      CALL JLMAP (70,PLM,AJK(1,1,43),SCALE,ONES,PKM,KMM1,2,1)
+      CALL JLMAP (70,PLM,AJK(1,1,43),SCALE,ONES,PKM,KM,2,1)
   799 CONTINUE
       RETURN
   901 FORMAT (
@@ -1240,7 +1248,7 @@ C**** TEMPERATURE: TRANSFORMED ADVECTION
       INTEGER :: IWORD,J,J0,JH,JHEMI,K,L ,ksx,klmax
       DOUBLE PRECISION :: AGLOB,FGLOB,FLATJ,G1,H1,H2,SUMFAC
 
-      REAL*4, DIMENSION(JM+3,LM+4) :: XJL ! for binary output
+      REAL*8, DIMENSION(JM+3,LM+4) :: XJL ! for binary output
       CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
 C****
@@ -1633,7 +1641,7 @@ c      USE PRTCOM, only :
       USE DAGPCOM, only :
      &     PLE,PLM
       USE DAGCOM, only :
-     &     ajl,apj,asjl,kdiag,aij,LM_REQ
+     &     ajl,apj,asjl,kdiag,aij,LM_REQ, qcheck
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(JM) ::
@@ -1874,6 +1882,7 @@ C****
       SCALE=360./TWOPI
       DO 640 N=1,4
   640 CALL JLMAP (N+83,PMB,PHASE(1,1,N),SCALE,ONES,ONES,KM,2,1)
+      if(qcheck) call close_jl
       RETURN
       END SUBROUTINE DIAGJL
 
@@ -1919,7 +1928,7 @@ C****
       INTEGER :: IWORD,J,J0,JH,JHEMI,K,L  ,ksx,klmax
       DOUBLE PRECISION :: FGLOB,FLATJ,GSUM,SDSIG,SUMFAC
 
-      REAL*4, DIMENSION(JM+3,LM+LM_REQ+1) :: XJL ! for binary output
+      REAL*8, DIMENSION(JM+3,LM+LM_REQ+1) :: XJL ! for binary output
       CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
 C****
@@ -2071,10 +2080,10 @@ C****                                                              9-16
       SUBROUTINE DIAGIL
       USE CONSTANT, only : grav,rgas,sha,bygrav
       USE MODEL_COM, only : im,jm,lm,fim,bydsig,dsig,dtsrc,idacc,jeq,psf
-     *     ,ptop,sig,sige
+     *     ,ptop,sig,sige,xlabel,lrunid
       USE GEOM, only :  areag,dxyp,dxyv
       USE DAGPCOM, only : plm,ple
-      USE DAGCOM, only : ail,lm_req,j50n,j70n
+      USE DAGCOM, only : ail,lm_req,j50n,j70n,acc_period, qcheck
 
       IMPLICIT NONE
 
@@ -2092,6 +2101,9 @@ C****                                                              9-16
      *  CASEIL=(/1,1,2,3,3, 4,5,0,2,3, 0,1,2,3,0, 1/)
 c    *  CASEIL=(/1,1,2,3,3, 4,5,0,2,3, 5,1,2,3,5, 1/)
       DOUBLE PRECISION SIL(K_PIL)
+
+C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+      IF(QCHECK) call open_il(trim(acc_period)//'.il'//XLABEL(1:LRUNID))
 
 C**** INITIALIZE CERTAIN QUANTITIES
       INC=1+(JM-1)/24
@@ -2135,7 +2147,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
         CALL ILMAP(TITLE(K),PLM,AIL(1,1,KNDEX(K)),SIL(K),BYDSIG,LM,1,1)
       END SELECT
       END DO
-
+      if(qcheck) call close_il
       RETURN
       END SUBROUTINE DIAGIL
 
@@ -2147,7 +2159,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       USE GEOM, only : dlon,lon_dg
       IMPLICIT NONE
 
-      REAL*4 :: XIL(IM,LM),ZONAL(LM) ! used for post-proc
+      REAL*8 :: XIL(IM,LM),ZONAL(LM) ! used for post-proc
       CHARACTER XLB*80,CWORD*8
       CHARACTER*16, PARAMETER :: CBLANK=' ',
      &  CLAT='LONGITUDE',CPRES='PRESSURE (MB)'
@@ -2208,7 +2220,8 @@ C**** Output for post-processing
          XLB=TITLE
          XLB(65:80)=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
          IF(QCHECK) CALL POUT_IL(XLB,ISHIFT,LMAX,XIL,PL,CLAT,CPRES
-     *        ,SNGL(ASUM),SNGL(GSUM),ZONAL)
+     *        ,ASUM,GSUM,ZONAL)
+
       RETURN
   901 FORMAT ('0',30X,A64/1X,14('-'),36A3)
   902 FORMAT (F6.1,F8.1,1X,36I3)
@@ -2648,7 +2661,7 @@ C****
      &     im,jm,lm,fim,jeq,
      &     BYIM,DTsrc,FLAND,IDACC,JHOUR,JHOUR0,JDATE,JDATE0,
      &     AMON,AMON0,JYEAR,JYEAR0,NDAY,           !   SKIPSE,
-     &     Itime,Itime0,XLABEL,ZATMO
+     &     Itime,Itime0,XLABEL,LRUNID,ZATMO
       USE GEOM, only :
      &     AREAG,DXV,DXYP,DXYV
       USE DAGCOM, only :
@@ -2660,8 +2673,8 @@ C****
       common/ntdse/ende16 ! aka sendeg
       INTEGER, DIMENSION(3) :: MLAT,MGLOBE
       DOUBLE PRECISION, DIMENSION(3) :: FLAT,FNH,FGLOBE,GNUM,GDEN
-      REAL*4, DIMENSION(IM,JM,3) :: SMAP
-      REAL*4, DIMENSION(JM,3) :: SMAPJ
+      REAL*8, DIMENSION(IM,JM,3) :: SMAP
+      REAL*8, DIMENSION(JM,3) :: SMAPJ
       CHARACTER XLB*48
 
       COMMON/DIJCOM/TITLE(3,19)
@@ -2714,6 +2727,9 @@ C**** IA now set from DEFACC
      &     A,BYIACC,BYIACN,BYIADA,DAREA,
      &     FDEN,FLATK,FNUM,PLAND,DAYS,ZNDE16,ZS,DPTI,PVTI,
      &     DE4TI,BYDPK,SZNDEG
+
+C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+      IF(QCHECK) call open_ij(trim(acc_period)//'.ij'//XLABEL(1:LRUNID))
 
 C**** INITIALIZE CERTAIN QUANTITIES
       KXLB = INDEX(XLABEL(1:11),'(')-1
@@ -3087,7 +3103,7 @@ CB       DIJMPG(KCOLMN,KROW,KPAGE)=FGLOBE(KCOLMN)
       IF(QCHECK) THEN
         DO KC=1,3
           IF(TITLE(KC,KR).ne.' ') CALL POUT_IJ(TITLE(KC,KR)//XLB,
-     *         SMAP(1,1,KC),SMAPJ(1,KC),SNGL(FGLOBE(KC)))
+     *         SMAP(1,1,KC),SMAPJ(1,KC),FGLOBE(KC)) 
 c     *        WRITE(iu_ij) TITLE(KC,KR),XLB,((SMAP(I,J,KC),I=1,IM),
 c     *               J=1,JM),(SMAPJ(J,KC),J=1,JM),SNGL(FGLOBE(KC))
             END DO
@@ -3103,6 +3119,7 @@ C****
 C     CALL IJMAP (4,AIJ(1,1,IJ_SLP1),BYIADA)
 C     CALL IJMAP (5,AIJ(1,1,IJ_TS1),BYIADA)
          IF(QCHECK) CALL SIJMAP
+      if(qcheck) call close_ij
       RETURN
 C****
   901 FORMAT ('1',A)
@@ -3148,8 +3165,8 @@ C****
      *  'SEA LEVEL PRESSURE (MB-1000)  (USING T1)',
      *  'SURFACE TEMPERATURE (DEG C)  (LAPSE RATE FROM T1'/
 
-      REAL*4, DIMENSION(IM,JM) :: SMAP
-      REAL*4, DIMENSION(JM) :: SMAPJ
+      REAL*8, DIMENSION(IM,JM) :: SMAP
+      REAL*8, DIMENSION(JM) :: SMAPJ
       DOUBLE PRECISION :: A,FLAT,DAYS
       INTEGER :: I,IA,INC,J,JA,JX,K,LD
 
@@ -3218,7 +3235,7 @@ C     WRITE (6,925) (LINE(I),I=1,IM,INC)
       WRITE (6,925) (LINE(I),I=1,IM,INC)
   300 IF (JM.LE.24) WRITE (6,940)
       WRITE (6,930) (LON_DG(I,1),I=1,IM,INC*2)
-         IF(QCHECK) CALL POUT_IJ(TITLE(NT)//XLB,SMAP,SMAPJ,-1.E30)
+         IF(QCHECK) CALL POUT_IJ(TITLE(NT)//XLB,SMAP,SMAPJ,-1.D30)
 c                   WRITE(iu_ij) TITLE(NT),XLB,SMAP,SMAPJ,-1.E30
       RETURN
 C****
@@ -4088,7 +4105,7 @@ C****
       IMPLICIT NONE
 
       CHARACTER XLB*24,TITLEX*56
-      REAL*4 SMAP(IM,JM),SMAPJ(JM),UNDEF,flat,press,dp
+      REAL*8 SMAP(IM,JM),SMAPJ(JM),UNDEF,flat,press,dp
       CHARACTER*4 CPRESS(LM)
       INTEGER i,j,l,kxlb,ni
 C****

@@ -415,6 +415,7 @@ c idacc-indices of various processes
       LDATE = 7                  ! if years=1
       if(years.gt.1) LDATE = 12
 
+      aDATE(1:12)=' '
       aDATE(1:3)=AMONTH(JMON1)        ! letters 1-3 of month IF months=1
       yr1=JYR1
       JMONL=JMON1+months-1
@@ -423,7 +424,8 @@ c idacc-indices of various processes
          JMONL=JMONL-12
       end if
       yr2=yr1+years-1
-      write(aDATE(4:12),'(i4.4,a1,i4.4)') yr1,'-',yr2
+      write(aDATE(4:7),'(i4.4)') yr1
+      if(years.gt.1) write(aDATE(8:12),'(a1,i4.4)') '-',yr2
 
       if(months.gt.12) aDATE(1:1)='x'                ! should not happen
       if(months.le.1 .or. months.gt.12) return

@@ -143,7 +143,7 @@ $(BIN_DIR):
 
 # Create an executable
 gcm $(BIN_DIR)/$(RUN).exe: $(RUNDECK) $(OBJS)
-	$(F90) $(LFLAGS) $(OBJS) -o $(RUN).exe  $(LINK_OUTPUT)
+	$(F90) $(LFLAGS) $(OBJS) $(LIBS) -o $(RUN).exe  $(LINK_OUTPUT)
 ifdef LINK_OUTPUT
 	@if [ -s $(RUN).ERR ] ; then cat $(RUN).ERR; else rm -f $(RUN).ERR; fi
 endif

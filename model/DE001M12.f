@@ -14,6 +14,7 @@ C****
       IMPLICIT NONE
       SAVE
       DOUBLE PRECISION, DIMENSION(LM) :: PLE
+      DOUBLE PRECISION, DIMENSION(LM) :: PLE_DN
       DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PLM
       END MODULE DAGPCOM
 
@@ -3001,13 +3002,13 @@ C****
      *     ,pmtop,nfiltr,dtsrc,jhour,jdate,jmon,amon,jyear
      *     ,jhour0,jdate0,jmon0,amon0,jyear0,idacc,ioread_single
      *     ,xlabel,keyct,iowrite_single,iyear1,nday,dtsrc,dt,nmonav
-     *     ,ItimeE
+     *     ,ItimeE,lrunid
       USE DAGCOM
-      USE DAGPCOM, only : ple,plm
+      USE DAGPCOM, only : ple,ple_dn,plm
       USE PARAM
       USE FILEMANAGER
       IMPLICIT NONE
-      INTEGER L,K,iargc,ioerr,months,years,mswitch,ldate,iu_AIC,llab1
+      INTEGER L,K,iargc,ioerr,months,years,mswitch,ldate,iu_AIC
      *     ,ISTART,jday0,jday
       CHARACTER FILENM*100
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
@@ -3041,39 +3042,26 @@ C**** Ensure that diagnostics are reset at the beginning of the run
           stop 'non-consecutive period'
         end if
         call aPERIOD (JMON0,JYEAR0,months,years,acc_period,Ldate)
-        LLAB1 = INDEX(XLABEL(1:17),'(') -1
-        IF (LLAB1.LT.1) LLAB1=16
-        if (index(XLABEL(1:LLAB1),' ').gt.0)
-     *       LLAB1=index(XLABEL(1:LLAB1),' ')-1
         if (iargc().gt.1) then  ! save the summed acc-file
           write(6,*) iargc(),' files are summed up'
           keyct=1 ; KEYNR=0
           XLABEL(128:132)='     '
           XLABEL(120:132)=acc_period(1:3)//' '//acc_period(4:Ldate)
-          OPEN (30,FILE=acc_period(1:Ldate)//'.acc'//XLABEL(1:LLAB1),
+          OPEN (30,FILE=acc_period(1:Ldate)//'.acc'//XLABEL(1:LRUNID),
      *         FORM='UNFORMATTED')
           call io_rsf (30,Itime,iowrite_single,ioerr)
           CLOSE (30)
         end if
-        if(qcheck) then         ! open the binary output files
-          call getunit(acc_period(1:Ldate)//'.ij'//XLABEL(1:LLAB1),
-     *         iu_ij,.true.,.false.)
-          call getunit(acc_period(1:Ldate)//'.jk'//XLABEL(1:LLAB1),
-     *         iu_jl,.true.,.false.)
-          call getunit(acc_period(1:Ldate)//'.il'//XLABEL(1:LLAB1),
-     *         iu_il,.true.,.false.)
-          call getunit(acc_period(1:Ldate)//'.j'//XLABEL(1:LLAB1),
-     *         iu_j,.false.,.false.)
-        end if
         ItimeE = -1
         close (6)
-        open(6,file=acc_period(1:Ldate)//'.'//XLABEL(1:LLAB1)//'.PRT',
+        open(6,file=acc_period(1:Ldate)//'.'//XLABEL(1:LRUNID)//'.PRT',
      *       FORM='FORMATTED')
       END IF
 
 C**** Initialize certain arrays used by more than one print routine
       DO L=1,LM
         PLE(L)=SIGE(L+1)*(PSF-PTOP)+PTOP
+        PLE_DN(L)=SIGE(L)*(PSF-PTOP)+PTOP
         PLM(L)=SIG(L)*(PSF-PTOP)+PTOP
       END DO
       PLM(LM+1)=.75*PMTOP

@@ -9,6 +9,8 @@
 
       CHARACTER*132 XLABEL !@var runID+brief description of run
 
+      INTEGER :: LRUNID !@var Run name stored in XLABEL(1:LRUNID)
+
 !@var IMH half the number of latitudinal boxes
       INTEGER, PARAMETER :: IMH=IM/2
 !@var FIM,BYIM real parameter values for the number of long. grid boxes
