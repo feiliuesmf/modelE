@@ -189,7 +189,7 @@
       use ghycom, only : snowe,tearth,wearth,aiearth,snoage &
            ,evap_max_ij,fr_sat_ij,qg_ij
       use ghycom, only : wbare,wvege,htbare,htvege,snowbv,Cint,Qfol, &
-        nsn_ij,isn_ij,dzsn_ij,hsn_ij,fr_snow_ij
+        nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
       use landice_com, only : snowli,tlandi
       use pblcom, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg, &
            ustar_pbl,egcm,w2gcm,tgvavg,qgavg
@@ -334,6 +334,7 @@
         check("nsn_ij",nsn_ij)
         check("isn_ij",isn_ij)
         check("dzsn_ij",dzsn_ij)
+        check("wsn_ij",wsn_ij)
         check("hsn_ij",hsn_ij)
         check("fr_snow_ij",fr_snow_ij)
         ! land ice
