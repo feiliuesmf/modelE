@@ -188,6 +188,8 @@ MACHINE = DEC
 F90 = f90
 CPP = /lib/cpp -P
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
+# this forces echo -n to work
+export CMD_ENV=bsd
 # CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_DEC
 # FFLAGS = -O2 -cpp
 # LFLAGS = -O2
