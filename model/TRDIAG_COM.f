@@ -52,7 +52,7 @@ C**** TAIJLN
 C**** TAIJN
 !@param KTAIJ number of 3D diagnostics for each tracer
 #ifdef TRACERS_WATER
-      integer, parameter :: ktaij=8
+      integer, parameter :: ktaij=11
 #else
       integer, parameter :: ktaij=3
 #endif
@@ -60,7 +60,8 @@ C**** TAIJN
       integer tij_conc,tij_surf,tij_mass
 #ifdef TRACERS_WATER
 !@var IJT_XX names for water-based taijn diagnostics
-      integer tij_rvr,tij_seaice,tij_prec,tij_evap,tij_grnd
+      integer tij_rvr,tij_seaice,tij_prec,tij_evap,tij_grnd,tij_lk1
+     *     ,tij_lk2,tij_soil
 #endif
 !@var TAIJN lat/lon tracer diagnostics (all tracers)
       real*8, dimension(im,jm,ktaij,ntm) :: taijn

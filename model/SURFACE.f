@@ -678,7 +678,7 @@ C**** Save surface tracer concentration whether calculated or not
           taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
      *         trevapor(n,itype,i,j)*ptype
           taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
-     *         gtracer(n,1,i,j)*ptype
+     *         gtracer(n,1,i,j)*ptype/nisurf
           tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
      *         +trevapor(n,itype,i,j)*ptype
           if (focean(i,j).gt.0) tajls(j,1,jls_source(2,n))=tajls(j,1

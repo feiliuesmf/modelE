@@ -253,6 +253,42 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
           units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
         end if
         scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
+C**** Tracers conc. in lakes (layer 1)
+      k = k+1
+      tij_lk1 = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Lake1'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *       ' Lakes layer 1'
+        if (to_per_mil(n) .eq.1) then
+          units_tij(k,n)=unit_string(0,cmrwt(n))
+        else
+          units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
+        end if
+        scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
+C**** Tracers conc. in lakes (layer 2)
+      k = k+1
+      tij_lk2 = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Lake2'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *       ' Lakes layer 2'
+        if (to_per_mil(n) .eq.1) then
+          units_tij(k,n)=unit_string(0,cmrwt(n))
+        else
+          units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
+        end if
+        scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
+C**** Tracers conc. in soil water 
+      k = k+1
+      tij_soil = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_Soil'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *       ' Soil Water'
+        if (to_per_mil(n) .eq.1) then
+          units_tij(k,n)=unit_string(0,cmrwt(n))
+        else
+          units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
+        end if
+        scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
 #endif
       end do
 

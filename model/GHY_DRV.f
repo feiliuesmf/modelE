@@ -71,7 +71,7 @@ c****
 #endif
       use tracer_diag_com, only : taijn,tij_surf
 #ifdef TRACERS_WATER
-     *     ,tij_evap,tij_grnd,jls_source,tajls
+     *     ,tij_evap,tij_grnd,jls_source,tajls,tij_soil
 #endif
       use fluxes, only : trsource
 #ifdef TRACERS_WATER
@@ -341,12 +341,13 @@ C**** Calculate mean tracer ratio
         end do
       end do
 C**** calculate new tracer ratio after precip
+      wsoil_tot=wsoil_tot+dtsurf*pr
       do nx=1,ntx
         n=ntix(nx)
         if (tr_wd_TYPE(n).eq.nWATER) THEN
           trpr(nx)=(trprec(n,i,j)*bydxyp(j))/dtsrc ! kg/m^2 s
-          trsoil_rat(nx)=(trsoil_tot(nx)+dtsurf*trpr(nx))
-     *         /(rhow*(wsoil_tot+dtsurf*pr))
+          trsoil_tot(nx)=trsoil_tot(nx)+dtsurf*trpr(nx)
+          trsoil_rat(nx)=trsoil_tot(nx)/(rhow*wsoil_tot)
         end if
       end do
 #endif
@@ -459,6 +460,7 @@ c     call qsbal
 
 #ifdef TRACERS_WATER
 C**** reset tracer variables
+      wsoil_tot=wsoil_tot-(aevapw+aevapd+aevapb+aruns+arunu)
       do nx=1,ntx
         n=ntix(nx)
         if (tr_wd_TYPE(n).eq.nWATER) THEN
@@ -473,9 +475,9 @@ c**** fix outputs to mean ratio (TO BE REPLACED BY WITHIN SOIL TRACERS)
         tevapd(nx)=aevapd * trsoil_rat(nx)
         tevapb(nx)=aevapb * trsoil_rat(nx)
 c**** update ratio
-        trsoil_rat(nx)=(trsoil_tot(nx)+dtsurf*trpr(nx)-
-     *       (tevapw(nx)+tevapd(nx)+tevapb(nx)+trruns(nx)+trrunu(nx)))/
-     *   (rhow*(wsoil_tot+dtsurf*pr)-(aevapw+aevapd+aevapb+aruns+arunu))
+        trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+tevapd(nx)+tevapb(nx)
+     *       +trruns(nx)+trrunu(nx)) 
+        trsoil_rat(nx)=trsoil_tot(nx)/(rhow*wsoil_tot)
         trbare(n,1:ngm,i,j) = trsoil_rat(nx)*w(1:ngm,1)*rhow
         trvege(n,:,i,j) = trsoil_rat(nx)*w(:,2)*rhow
         trsnowbv(n,:,i,j)=trsoil_rat(nx)*snowd(:)*rhow
@@ -501,7 +503,6 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
         fr_snow_rad_ij(ibv,i,j) = min (
      &       fr_snow_rad_ij(ibv,i,j), fr_snow_ij(ibv, i, j) )
       enddo
-
 
       aij(i,j,ij_g18)=aij(i,j,ij_g18)+aevapb
       aij(i,j,ij_g19)=aij(i,j,ij_g19)+aevapd
@@ -599,7 +600,9 @@ C**** Save surface tracer concentration whether calculated or not
           taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
      *         trevapor(n,itype,i,j)*ptype
           taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
-     *         gtracer(n,1,i,j)*ptype
+     *         gtracer(n,1,i,j)*ptype/nisurf
+          taijn(i,j,tij_soil,n)=taijn(i,j,tij_soil,n)+trsoil_tot(nx)
+     *         /nisurf
           tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
      *         +trevapor(n,itype,i,j)*ptype
 #endif

@@ -1220,6 +1220,7 @@ C****
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
+      USE TRACER_DIAG_COM,only: taijn,tij_lk1,tij_lk2 
 #endif
       USE LAKES, only : lkmix,lksourc,byzeta,minmld
       IMPLICIT NONE
@@ -1371,6 +1372,11 @@ C**** Ice-covered ocean diagnostics
 C**** regional diags
         AREG(JR,J_WTR1)=AREG(JR,J_WTR1)+MLAKE(1)*FLAKE(I,J)*DXYP(J)
         AREG(JR,J_WTR2)=AREG(JR,J_WTR2)+MLAKE(2)*FLAKE(I,J)*DXYP(J)
+#ifdef TRACERS_WATER
+C**** tracer diagnostics
+        TAIJN(I,J,tij_lk1,:)=TAIJN(I,J,tij_lk1,:)+TRLAKEL(:,1) !*PLKICE?
+        TAIJN(I,J,tij_lk2,:)=TAIJN(I,J,tij_lk2,:)+TRLAKEL(:,2) !*PLKICE?
+#endif
 
 C**** Store mass and energy fluxes for formation of sea ice
         DMSI(1,I,J)=ACEFO
