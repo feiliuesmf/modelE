@@ -26,7 +26,8 @@ C****
       use model_com, only : im,jm,init_model_com
       use somtq_com, only: init_smomtq
       use clouds_com, only : init_clouds_com
-      use icedyn,     only : init_icedyn_alloc => init_icedyn
+      use icedyn,     only : alloc_icedyn
+      use icedyn_com, only : alloc_icedyn_com
 !AOO end of part 1 of 3
       USE PARAM
       USE CONSTANT, only : twopi,sday,rhows
@@ -90,7 +91,8 @@ C****
       call init_model_com(grid)
       call init_smomtq(grid)
       call init_clouds_com(grid)
-      call init_icedyn_alloc(grid)
+      call alloc_icedyn(grid)
+      call alloc_icedyn_com(grid)
 !AOO end of part 2 of 3
       call getarg(1,RunID )
       call getarg(2,title0)

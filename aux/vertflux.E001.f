@@ -75,7 +75,8 @@ C****
       call init_model_com(grid)
 !!    call init_smomtq(grid)
       call init_clouds_com(grid)
-!!    call init_icedyn_alloc(grid)
+!!    call alloc_icedyn(grid)    
+!!    call alloc_icedyn_com(grid)    
 !AOO end of part 2 of 3
       call getarg(1,RunID )
       call getarg(2,title0)
