@@ -113,7 +113,7 @@ C**** Convert ACC single to double precision
       CALL CNV428(tsfrez  ,tsfrez_odd  ,k19)
 
       call geom_b
-
+      call init_DIAG
       call write_nc_acc(outfile)
 
       stop
