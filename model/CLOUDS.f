@@ -1273,7 +1273,7 @@ C since a fraction (FCLW) of TRCOND was removed above.
       FEVAP=.5*CCM(L)*BYAM(L+1)
       IF(L.LT.LMIN) FEVAP=.5*CCM(LMIN)*BYAM(LMIN+1)
       IF(FEVAP.GT..5) FEVAP=.5
-      CLDMCL(L+1)=CLDMCL(L+1)+FCLOUD
+      CLDMCL(L+1)=MIN(CLDMCL(L+1)+FCLOUD,1d0)
       CLDREF=CLDMCL(L+1)
       IF(PLE(LMAX+1).GT.700..AND.CLDREF.GT.CLDSLWIJ)
      *  CLDSLWIJ=CLDREF
@@ -1408,7 +1408,7 @@ C**** Isotopic equilibration of liquid precip with water vapour
 #endif
   540 CONTINUE
 C****
-      IF(PRCP.GT.0.) CLDMCL(1)=CLDMCL(1)+CCM(LMIN)*BYAM(LMIN+1)
+      IF(PRCP.GT.0.) CLDMCL(1)=MIN(CLDMCL(1)+CCM(LMIN)*BYAM(LMIN+1),1d0)
       PRCPMC=PRCPMC+PRCP
 #ifdef TRACERS_WATER
       TRPRMC(1:NTX) = TRPRMC(1:NTX) + TRPRCP(1:NTX)
