@@ -744,6 +744,7 @@ c**** modifications needed for split of bare soils into 2 types
       real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
       real*8 slim,slre,svh,z
       integer iv, l
+      logical ghy_data_missing
 #ifdef TRACERS_WATER
       real*8 trsoil_tot,wsoil_tot
 #endif
@@ -865,46 +866,41 @@ c****
       afr(:,:,:)=0.
       acs(1,:,:)=.01d0
 
+c**** check whether ground hydrology data exist at this point.
+      ghy_data_missing = .false.
+      do j=1,jm
+        do i=1,im
+          if (fearth(i,j).gt.0) then
+            if ( sum(vdata(i,j,1:10)).eq.0 ) then
+              print *,"No vegetation data: i,j=",i,j,vdata(i,j,1:10)
+              ghy_data_missing = .true.
+            end if
+            if ( top_index_ij(i,j).eq.-1. ) then
+              print *,"No top_index data: i,j=",i,j,top_index_ij(i,j)
+              ghy_data_missing = .true.
+            end if
+            if ( sum(dz_ij(i,j,1:ngm)).eq.0 ) then
+              print *, "No soil data: i,j=",i,j,dz_ij(i,j,1:ngm)
+              ghy_data_missing = .true.
+            endif
+            if (wbare(1,i,j) < 1.d-10 .and. wvege(1,i,j) < 1.d-10) then
+              print*,"No gh data in restart file: i,j=",i,j,
+     &             wbare(:,i,j),wvege(:,i,j)
+              ghy_data_missing = .true.
+            endif
+          end if
+        enddo
+      enddo
+      if ( ghy_data_missing ) then
+        write(6,*) 'Ground Hydrology data is missing at some pts'
+        write(6,*) 'If you have a non-standard land mask, please'
+        write(6,*) 'consider using extended GH data and rfs file.'
+        stop 'Ground Hydrology data is missing at some cells'
+      endif
+ 
       do j=1,jm
         do i=1,im
           pearth=fearth(i,j)
-c**** check whether data exist at this point. We should use a
-c**** nearest neighbour approximation.
-c**** In the meantime, use arbitrary point 10,40 (TEMPORARY FIX)
-          if (pearth.gt.0) then
-            if (sum(vdata(i,j,1:10)).eq.0) then
-              print*,"No vege data: i,j=",i,j,vdata(i,j,1:10)
-              vdata(i,j,1:11)=vdata(10,40,1:11)
-c**** or these
-              snowe(i,j)=0.
-              tearth(i,j)=tearth(10,40)
-              wearth(i,j)=wearth(10,40)
-              aiearth(i,j)=aiearth(10,40)
-            end if
-            if (top_index_ij(i,j).eq.-1.) then
-              print*,"No topo data: i,j=",i,j,top_index_ij(i,j)
-              top_index_ij(i,j)=top_index_ij(10,40)
-            end if
-            if (sum(dz_ij(i,j,1:ngm)).eq.0
-     &                .or. wbare(1,i,j) < 1.d-10) then
-              print*,"No soil data: i,j=",i,j,dz_ij(i,j,1:ngm),wbare(1,i
-     *             ,j)
-              dz_ij(i,j,1:ngm)=dz_ij(10,40,1:ngm)
-              q_ij(i,j,1:imt,1:ngm)=q_ij(10,40,1:imt,1:ngm)
-              qk_ij(i,j,1:imt,1:ngm)=qk_ij(10,40,1:imt,1:ngm)
-              sl_ij(i,j)=sl_ij(10,40)
-c**** Not really sure what these should be set to.
-              wbare(:,i,j) = wbare(:,10,40)
-              wvege(:,i,j) = wvege(:,10,40)
-              htbare(:,i,j)= htbare(:,10,40)
-              htvege(:,i,j)= htvege(:,10,40)
-              snowbv(:,i,j)= 0.
-c**** or these
-              NSN_IJ(:,i,j)=0. ; ISN_IJ(:,i,j)=0 ; DZSN_IJ(:,:,i,j) =0.
-              WSN_IJ(:,:,i,j)=0. ; HSN_IJ(:,:,i,j)=0.
-              FR_SNOW_IJ(:,i,j)=0
-            end if
-          end if
           afb(i,j)=vdata(i,j,1)+vdata(i,j,10)
           if(afb(i,j).gt..999) afb(i,j)=1.
           if(pearth.le.0..or.afb(i,j).ge.1.) cycle
@@ -983,52 +979,48 @@ c**** recompute ground hydrology data if necessary (new soils data)
 
         do j=1,jm
         do i=1,im
-        pearth=fearth(i,j)
-        if(pearth.le.0.) then
+          pearth=fearth(i,j)
+          if(pearth.le.0.) then
 
-          wbare(:,i,j)=0.
-          wvege(:,i,j)=0.
-          htbare(:,i,j)=0.
-          htvege(:,i,j)=0.
-          snowbv(:,i,j)=0.
+            wbare(:,i,j)=0.
+            wvege(:,i,j)=0.
+            htbare(:,i,j)=0.
+            htvege(:,i,j)=0.
+            snowbv(:,i,j)=0.
+            
+          else
+ccc   ??? remove next 5 lines? -check the old version
+            w(1:ngm,1) =   wbare(1:ngm,i,j)
+            w(0:ngm,2) =   wvege(0:ngm,i,j)
+            ht(0:ngm,1) = htbare(0:ngm,i,j)
+            ht(0:ngm,2) = htvege(0:ngm,i,j)
+            snowd(1:2) =  snowbv(1:2,i,j)
+            
+c**** compute soil heat capacity and ground water saturation gws
+            call ghinij (i,j,wfc1)
+c**** fill in soils common blocks
+            snowdp=snowe(i,j)/rhow
+            wtr1=wearth(i,j)
+            ace1=aiearth(i,j)
+            tg1 =tearth(i,j)
+            wtr2=wtr1
+            ace2=ace1
+            tg2 =tg1
+c           wtr2=gdata(i,j,9)   ! this cannot be right
+c           ace2=gdata(i,j,10)
+c           tg2 =gdata(i,j,8)
+            call ghinht (snowdp, tg1,tg2, wtr1,wtr2, ace1,ace2)
 
-        else
-ccc??? remove next 5 lines? -check the old version
-           w(1:ngm,1) =   wbare(1:ngm,i,j)
-           w(0:ngm,2) =   wvege(0:ngm,i,j)
-           ht(0:ngm,1) = htbare(0:ngm,i,j)
-           ht(0:ngm,2) = htvege(0:ngm,i,j)
-           snowd(1:2) =  snowbv(1:2,i,j)
-
-c****     compute soil heat capacity and ground water saturation gws
-          call ghinij (i,j,wfc1)
-c****     fill in soils common blocks
-          snowdp=snowe(i,j)/rhow
-          wtr1=wearth(i,j)
-          ace1=aiearth(i,j)
-          tg1 =tearth(i,j)
-          wtr2=wtr1
-          ace2=ace1
-          tg2 =tg1
-c          wtr2=gdata(i,j,9)   ! this cannot be right
-c          ace2=gdata(i,j,10)
-c          tg2 =gdata(i,j,8)
-          call ghinht (snowdp, tg1,tg2, wtr1,wtr2, ace1,ace2)
-
-c****     copy soils prognostic quantities to model variables
+c**** copy soils prognostic quantities to model variables
             wbare(1:ngm,i,j) = w(1:ngm,1)
             wvege(0:ngm,i,j) = w(0:ngm,2)
-           htbare(0:ngm,i,j) = ht(0:ngm,1)
-           htvege(0:ngm,i,j) = ht(0:ngm,2)
-           snowbv(1:2,i,j)   = snowd(1:2)
-C**** also compute evap_limits
-           if (iniSNOW) then
-             call evap_limits(.false.,evap_max_ij(i,j), fr_sat_ij(i,j))
-           end if
-        end if
-      end do
-      end do
-      write (*,*) 'ground hydrology data was made from ground data'
+            htbare(0:ngm,i,j) = ht(0:ngm,1)
+            htvege(0:ngm,i,j) = ht(0:ngm,2)
+            snowbv(1:2,i,j)   = snowd(1:2)
+          end if
+        end do
+        end do
+        write (*,*) 'ground hydrology data was made from ground data'
       end if
 c**** set gtemp array
       do j=1,jm
