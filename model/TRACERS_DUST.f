@@ -311,9 +311,9 @@ c     default case
 
       DO n=1,Ntm
         stokefac1=stokevdt(n)/zld(1)*Dtsrc
-        trgrdep(:,:,n)=stokefac1*trm(:,:,1,n)
-c        WRITE(*,*) 'n,stokefac1,trgrdep(:,:,n):',n,stokefac1,
-c     &       trgrdep(:,:,n)
+        trgrdep(n,:,:)=stokefac1*trm(:,:,1,n)
+c        WRITE(*,*) 'n,stokefac1,trgrdep(n,:,:):',n,stokefac1,
+c     &       trgrdep(n,:,:)
         DO l=1,Lm-1
           stokefac1=stokevdt(n)/zld(l)
           stokefac2=stokevdt(n)/zld(l+1)
@@ -337,7 +337,7 @@ c     &       trgrdep(:,:,n)
         naij=ijts_source(nDustGravij,n)
         najl=jls_3Dsource(nDustGrav3Djl,n)
 c        WRITE(*,*) 'naij,najl:',naij,najl
-        taijs(:,:,naij)=taijs(:,:,naij)+trgrdep(:,:,n)
+        taijs(:,:,naij)=taijs(:,:,naij)+trgrdep(n,:,:)
 c        WRITE(*,*) 'n,taijs(:,:,naij):',n,taijs(:,:,naij)
         DO l=1,Lm
           DO j=1,Jm
