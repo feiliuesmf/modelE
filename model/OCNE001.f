@@ -212,15 +212,19 @@ C**** RESAVE PROGNOSTIC QUANTITIES
 !@ver  1.0 (Q-flux ocean or fixed SST/fixed lakes)
       IMPLICIT NONE
 
-      REAL*8 Z1OOLD,XO,XZO
-      COMMON/WORK2/Z1OOLD(IM,JM),XO(IM,JM,3),XZO(IM,JM)
+      REAL*8 Z1OOLD
+      COMMON/WORK2/Z1OOLD(IM,JM)
+      REAL*8 XZO(IM,JM),XZN(IM,JM)
+      INTEGER IDOFM(0:13)
+      DATA IDOFM /-15,16,47,75,106,136,167,197,228,259,289,320,350,381/
 
-      INTEGER n,MD,J,I,LSTMON,K,MDMAX,IMAX
+      INTEGER n,MD,J,I,LSTMON,K,MDMAX,IMAX,IMON
       REAL*8 PLICEN,PLICE,POICE,POCEAN,RSICSQ,ZIMIN,ZIMAX,DOZ1O,X1
-     *     ,X2,Z1OMIN,RSINEW,TIME
+     *     ,X2,Z1OMIN,RSINEW,TIME,FRAC
       INTEGER :: JDOFM(13) = (
      *     /0,31,59,90,120,151,181,212,243,273,304,334,365/)
-
+!@var JDLAST julian day that OCLIM was last called
+      INTEGER, SAVE :: JDLAST=0
 !@var MONTHO current month for climatology reading
       INTEGER, SAVE :: MONTHO = 0
 
@@ -371,35 +375,23 @@ C****
       T_ICE = -8.  ! surface air temperature for 100% ice cover
       T_NOICE = 0. ! surface air temperature for no ice cover
       FACTOR = 1./(T_ICE-T_NOICE)
-      DO 480 J=1,JM
-         IMAX=IMAXJ(J)
-      DO 480 I=1,IMAX
-      IF (FLAKE(I,J) .LE. 0.) GO TO 480
-      IF (T50(I,J) .LE. T_ICE) THEN
-          RSINEW = 1.
-      ELSE IF (T50(I,J) .GE. T_NOICE) THEN
-          RSINEW = 0.
-      ELSE
-          RSINEW =(T50(I,J)-T_NOICE)*FACTOR ! linear fit for -8< T50 <0
-      END IF
-      ODATA(I,J,2)=RSINEW
-      ODATA(I,J,3)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
-      IF (ODATA(I,J,2).GT.0.) GO TO 480
-      GDATA(I,J,1)=0.
-      GDATA(I,J,3)=0.
-      GDATA(I,J,7)=0.
-      GDATA(I,J,15)=0.
-      GDATA(I,J,16)=0.
-  480 CONTINUE
-C**** REPLICATE VALUES AT POLE
-      DO 490 I=2,IM
-      GDATA(I,JM,1)=GDATA(1,JM,1)
-      GDATA(I,JM,3)=GDATA(1,JM,3)
-      GDATA(I,JM,7)=GDATA(1,JM,7)
-      GDATA(I,JM,15)=GDATA(1,JM,15)
-      GDATA(I,JM,16)=GDATA(1,JM,16)
-      DO 490 K=1,3
-  490 ODATA(I,JM,K)=ODATA(1,JM,K)
+      DO J=1,JM
+        IMAX=IMAXJ(J)
+        DO I=1,IMAX
+          IF (FLAKE(I,J) .GT. 0.) THEN ! linear fit for -8< T50 <0
+            RSINEW = MIN(1d0,MAX(0d0,(T50(I,J)-T_NOICE)*FACTOR))
+            ODATA(I,J,2)=RSINEW
+            ODATA(I,J,3)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+            IF (RSINEW.LE.0.) THEN
+              GDATA(I,J,1)=0.
+              GDATA(I,J,3)=0.
+              GDATA(I,J,7)=0.
+              GDATA(I,J,15)=0.
+              GDATA(I,J,16)=0.
+            END IF
+          END IF
+        END DO
+      END DO
 C****
 C**** CALCULATE DAILY OCEAN MIXED LAYER DEPTHS FROM CLIMATOLOGY
 C****
@@ -411,44 +403,44 @@ CORR  NEXT LINE NOT NEEDED IF Z1O WERE PART OF THE RESTART FILE
   510 Z1OOLD(I,J)=Z1O(I,J)
 C*** COMPUTE Z1O ONLY AT THE BEGINNING OF A DAY (OR AT TAUI)
       IF (DOZ1O.EQ.0.) RETURN
-C**** READ IN TWO MONTHS OF OCEAN DATA
-      X1=1.
-      DO 515 J=1,JM
-      DO 515 I=1,IM
-  515 XZO(I,J)=0.
-      IF (JDAY.GE.16) GO TO 520
-      MD=JDATE+15
-      GO TO 530
-  520 IF (JDAY.LE.350) GO TO 550
-      MD=JDATE-16
-  530 CALL READT (iu_OCNML,0,XZO,IM*JM,XZO,1)
-      MDMAX=31
-C     DO 540 MX=1,10
-C 540 READ (13) M
-      CALL READT (iu_OCNML,0,Z1O,IM*JM,Z1O,11)
-      GO TO 600
-C 550 DO 560 MX=1,12
-  550 CALL READT (iu_OCNML,0,Z1O,IM*JM,Z1O,MONTH-1)
-C     IF (M.EQ.MONTH) GO TO 570
-      IF (JDATE.LT.16) GO TO 580
-      IF (MONTH.GT.1) CALL READT (iu_OCNML,0,Z1O,IM*JM,Z1O,1)
-C     STOP 'OCEAN FILE ERROR: MLD NOT FOUND FOR CURRENT MONTH'
-  570 IF (JDATE.EQ.16) GO TO 601
-      MDMAX=JDOFM(MONTH+1)-JDOFM(MONTH)
-      MD=JDATE-16
-      GO TO 590
-  580 MDMAX=JDOFM(MONTH)-JDOFM(MONTH-1)
-      MD=MDMAX+JDATE-16
-  590 CALL READT (iu_OCNML,0,XZO,IM*JM,XZO,1)
+C**** Read in climatological ocean mixed layer depths efficiently
+      IF (JDLAST.eq.0) THEN ! need to read in first month climatology
+        IMON=1          ! IMON=January
+        IF (JDAY.LE.16)  THEN ! JDAY in Jan 1-15, first month is Dec
+          CALL READT (iu_OCNML,0,XZO,IM*JM,XZO,12)
+          REWIND iu_OCNML
+        ELSE            ! JDAY is in Jan 16 to Dec 16, get first month
+  520     IMON=IMON+1
+          IF (JDAY.GT.IDOFM(IMON) .and. IMON.LE.12) GO TO 520
+          CALL READT (iu_OCNML,0,XZO,IM*JM,XZO,IMON-1)
+          IF (IMON.EQ.13)  REWIND iu_OCNML
+        END IF
+      ELSE                      ! Do we need to read in second month?
+        IF (JDAY.NE.JDLAST+1) THEN ! Check that data is read in daily
+          IF (JDAY.NE.1 .or. JDLAST.NE.365) THEN
+            WRITE (6,*) 'Incorrect values in OCLIM: JDAY,JDLAST=',JDAY
+     *           ,JDLAST
+            STOP 'ERROR READING IN SETTING OCEAN CLIMATOLOGY'
+          END IF
+          IMON=IMON-12          ! New year
+          GO TO 530
+        END IF
+        IF (JDAY.LE.IDOFM(IMON)) GO TO 530
+        IMON=IMON+1          ! read in new month of climatological data
+        XZO = XZN
+        IF (IMON.EQ.13)  REWIND iu_OCNML
+      END IF
+      CALL READT (iu_OCNML,0,XZN,IM*JM,XZN,1)
+ 530  JDLAST=JDAY
 C**** INTERPOLATE OCEAN DATA TO CURRENT DAY
-  600 X1=DFLOAT(MDMAX-MD)/MDMAX
-  601 X2=1.-X1
+      FRAC = DBLE(IDOFM(IMON)-JDAY)/(IDOFM(IMON)-IDOFM(IMON-1))
       DO 610 J=1,JM
       DO 610 I=1,IM
-      Z1O(I,J)=X1*Z1O(I,J)+X2*XZO(I,J)
-      IF (ODATA(I,J,2)*(1.-FLAND(I,J)).LE.0.) GO TO 610
+      Z1O(I,J)=FRAC*XZO(I,J)+(1.-FRAC)*XZN(I,J)
+
+      IF (ODATA(I,J,2)*FOCEAN(I,J).LE.0.) GO TO 610
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
-      Z1OMIN=1. +  .09166+.001*(GDATA(I,J,1)+ODATA(I,J,3))
+      Z1OMIN=1.+(RHOI*Z1I+GDATA(I,J,1)+ODATA(I,J,3))/RHOW
       IF (Z1O(I,J).GE.Z1OMIN) GO TO 605
       WRITE(6,602) TAU,I,J,MONTH,Z1O(I,J),Z1OMIN
   602 FORMAT (' INCREASE OF MIXED LAYER DEPTH ',F9.0,3I4,2F10.3)
