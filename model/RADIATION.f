@@ -167,7 +167,7 @@ C            12        KCLDEM         1        Top Cloud Scatter Cor
 C            13        KANORM         0        SGP Atmos Column Norm
 C            14        KPFCO2         0        1=MOD CO2PROF: FPXCO2
 C            15        KPFOZO         0        1=MOD O3 PROF: FPXOZO
-C            16        KVEGA6         1        6 SpecBand Veg Albedo
+C            16        KVEGA6         0        Schramm's ocn ice alb
 C            17        KORDER         0        WRITER k-d spec order
 C            18        unused
 C            19        unused
@@ -8573,7 +8573,7 @@ C
      3      /5X,I2,' = KANORM = ',I1,'   0        SGP Atmos Column Norm'
      4      /5X,I2,' = KPFCO2 = ',I1,'   0        1=MOD CO2PROF: FPXCO2'
      5      /5X,I2,' = KPFOZO = ',I1,'   0        1=MOD O3 PROF: FPXOZO'
-     6      /5X,I2,' = KVEGA6 = ',I1,'   0        6 SpecBand Veg Albedo'
+     6      /5X,I2,' = KVEGA6 = ',I1,'   0        Schramm's ocn ice alb'
      7      /5X,I2,' = KORDER = ',I1,'   0        WRITER k-d spec order'
      8      /5X,I2,' = unused = ',I1,'                                 '
      R      )

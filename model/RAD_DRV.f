@@ -393,13 +393,13 @@ C**** NO time history (yet), except for ann.cycle, for forcings below;
 C****  if arg3=day0 (1->365), data from that day are used all year
 C     CALL SETNEW(5, 0, 0   , 0,0,0.D0) ! Desert dust
 C     CALL SETNEW(7, 0, 0   , 0,0,0.D0) ! cloud heterogeneity - KCLDEP
-C     CALL SETNEW(8, 0, 0   , 0,0,0.D0) ! surface albedo
+C     CALL SETNEW(8, 0, 0   , 0,0,0.D0) ! surface albedo (ann.cycle)
 C**** New options (currently not used)
       KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme
 !!!   KVEGA6=-3  ! 2-band albedo, Antarc/Greenl alb=.8, puddling :SI2000
 !!!   KVEGA6=-2  ! 2-band albedo, Antarc/Greenl alb=.8, no puddling
 !!!   KVEGA6=-1  ! 2-band albedo - no 'fixups'
-      KVEGA6= 0  ! Schramm oi.alb, Antarc/Greenl alb=.8, no puddling
+!!!   KVEGA6= 0  ! Schramm oi.alb, Antarc/Greenl alb=.8, no puddling
 !!!   KVEGA6= 1  ! 6-band albedo - no 'fixups'
 !!!   KVEGA6= 2  ! 6-band albedo, Antarc/Greenl alb=.8, no puddling
       if (ktrend.ne.0) then

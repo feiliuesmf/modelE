@@ -665,13 +665,10 @@ c  Here the atmosphere is unstable with respect to the ground:
 c *********************************************************************
       endif
 
-      dm=1./(1.-dpsim/lzgsbyz0m)**2
-      dh=sqrt(dm)/(1.-dpsih/lzgsbyz0h)
-      dq=sqrt(dm)/(1.-dpsiq/lzgsbyz0q)
-
-      if (dm.lt.1d-4) dm=1d-4
-      if (dh.lt.1d-4) dh=1d-4
-      if (dq.lt.1d-4) dq=1d-4
+      dm = 1. ; dh = 1. ; dq = 1.  !  prevent divide checks
+      if(dpsim/lzgsbyz0m.lt..9) dm=1./(1.-dpsim/lzgsbyz0m)**2
+      if(dpsih/lzgsbyz0h.lt..9) dh=sqrt(dm)/(1.-dpsih/lzgsbyz0h)
+      if(dpsiq/lzgsbyz0q.lt..9) dq=sqrt(dm)/(1.-dpsiq/lzgsbyz0q)
 
       cm=dm*cmn
       ch=dh*chn

@@ -517,7 +517,7 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
       DO J=1,JM
         DO I=1,IMAXJ(J)
           PA(I,J)=P(I,J)+(DT1*PIT(I,J)*BYDXYP(J))
-          IF (PA(I,J).GT.1150.) THEN
+          IF (PA(I,J).GT.1160.-PTOP .or. PA(I,J).LT.200.) THEN
             WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),ZATMO(I,J),
      *           (U(I-1,J,L),U(I,J,L),U(I-1,J+1,L),U(I,J+1,L),
      *            V(I-1,J,L),V(I,J,L),V(I-1,J+1,L),V(I,J+1,L),
