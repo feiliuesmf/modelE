@@ -54,6 +54,19 @@ print_usage help all:
 	@echo 'cases, since you want to look at the warning massages before'
 	@echo 'doing "setup".'
 	@echo
+	@echo '          Customization'
+	@echo 'You may choose not to see all the "technical" messages which'
+	@echo 'gmake outputs to the screen. You can do it with option "-s"'
+	@echo 'If you type:'
+	@echo '        gmake -s setup RUN=my_run'
+	@echo 'the ony information you will see will be compilation progress,'
+	@echo 'warnings and errors.'
+	@echo 'By default all warnings and errors are written to files with'
+	@echo 'the name "fortran_file_name.ERR". If you prefer them to be'
+	@echo 'sent to the screen you can do it by setting an environment'
+	@echo 'variable MODELE_MAKE_OUTPUT=SCREEN .'
+	@echo
+
 
 
 #
@@ -128,11 +141,11 @@ rundeck:
 	@if [ $(RUNDECK) != $(RUNDECKSRC) ]; then  \
 	sed 's/^'$(RUNSRC)'\([:\. ]\)/'$(RUN)'\1/g' $(RUNDECKSRC) > $(RUNDECK); \
 	fi;
-	@echo '---------         Rundeck  created                   ---------' 
+	@echo '---------             Rundeck  created               ---------' 
 
 depend $(DEPENDFILE): $(RUNDECK) $(FSRCS)
 	@echo '-------- Dependecies are out of date or do not exist ---------'
-	@echo '---------         regenerating them                  ---------'
+	@echo '---------           regenerating them                ---------'
 	[ -f $(RUN_H) ] || touch $(RUN_H)
 	$(FMAKEDEP) -f $(DEPENDFILE) $^
 	@echo '---------         done with dependencies             ---------'
@@ -151,6 +164,7 @@ $(BIN_DIR):
 
 # Create an executable
 gcm $(BIN_DIR)/$(RUN).exe: $(RUNDECK) $(OBJS)
+	@echo linking executable $(MSG)
 	$(F90) $(LFLAGS) $(OBJS) $(LIBS) -o $(RUN).exe  $(LINK_OUTPUT)
 ifdef LINK_OUTPUT
 	@if [ -s $(RUN).ERR ] ; then cat $(RUN).ERR; else rm -f $(RUN).ERR; fi
@@ -158,7 +172,7 @@ endif
 	@if [ ! -d $(BIN_DIR) ]; then mkdir $(BIN_DIR); fi
 	mv $(RUN).exe $(BIN_DIR)
 	@echo '--------------------------------------------------------------'
-	@echo '---------    GCM successfuly compiled                ---------'
+	@echo '---------       GCM successfuly compiled             ---------'
 	@echo '---------    executable $(RUN).exe was created       ---------'
 	@echo '--------------------------------------------------------------'
 
@@ -170,7 +184,8 @@ gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(MODS) $(OBJS) NCACC.o
 
 # Setup the gcm
 setup:  $(BIN_DIR)/$(RUN).exe
-	@echo '--------- Starting setup for $(RUN) --------------------------'
+	@echo '---------        Starting setup for $(RUN)           ---------'
+	@echo '--------------------------------------------------------------'
 	@$(SETUP) $(RUN)
 
 # Mkexe the gcm

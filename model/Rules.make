@@ -20,6 +20,19 @@ EXTRA_FFLAGS =
 COMP_OUTPUT = > $*.ERR 2>&1
 LINK_OUTPUT = > $(RUN).ERR 2>&1
 
+# overwriting above options if environment var MODELE_MAKE_OUTPUT=SCREEN
+ifeq ($(MODELE_MAKE_OUTPUT),SCREEN)
+COMP_OUTPUT =
+LINK_OUTPUT =
+endif
+
+# if -s specified enable some extra messages
+ifeq ($(findstring s,$(MFLAGS)),s)
+MSG = 
+else
+MSG = > /dev/null
+endif
+
 #
 # starting machine - specific options
 #
@@ -85,6 +98,7 @@ FORCE:
 # Standard fortran
 # .timestemp is a hack to set proper times on .o and .mod
 %.o: %.f
+	@echo compiling $@ $(MSG)
 	@touch .timestamp
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $<  $(COMP_OUTPUT)
 	-@if [ -s *.mod ] ; then for i in *.mod; do if [ ! -s $$i.sig ] || [ $$i -nt $$i.sig ] ; then echo $@ > $$i.sig; fi; done; fi
@@ -94,6 +108,7 @@ ifdef COMP_OUTPUT
 endif
 
 %.o: %.F
+	@echo compiling $@ $(MSG)
 	@touch .timestamp
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $<  $(COMP_OUTPUT)
 	-@if [ -s *.mod ] ; then for i in *.mod; do if [ ! -s $$i.sig ] || [ $$i -nt $$i.sig ] ; then echo $@ > $$i.sig; fi; done; fi
