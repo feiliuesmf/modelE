@@ -6,7 +6,7 @@
 !@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6
      *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow
-     *  ,twopi                                             
+     *  ,twopi
       USE MODEL_COM, only : im,lm,dtsrc,itime,coupled_chem
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
@@ -158,14 +158,14 @@ C**** new arrays must be set to model arrays in driver (after LSCOND)
 c for diagnostics
       REAL*8, DIMENSION(NTM,LM) :: DT_SULF_MC,DT_SULF_SS
 #endif
-!#ifdef CLD_AER_CDNC 
+!#ifdef CLD_AER_CDNC
 !     REAL*8, DIMENSION(LM):: DSGL
 !#endif
       COMMON/CLD_WTRTRCCOM/TRWML, TRSVWML,TRPRSS,TRPRMC
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,DT_SULF_MC,DT_SULF_SS
 #endif
-!#ifdef CLD_AER_CDNC 
+!#ifdef CLD_AER_CDNC
 !     *     ,DSGL
 !#endif
 !$OMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
@@ -217,7 +217,7 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,VLAT
      *  ,FSUB,FCONV,FSSL,FMCL
      *  ,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
-#ifdef CLD_AER_CDNC 
+#ifdef CLD_AER_CDNC
      *  ,CDNCWM,CDNCIM,CDNCWS,CDNCIS
      *  ,OLDCDL,OLDCDO,SMFPML
 #endif
@@ -392,7 +392,7 @@ c for sulfur chemistry
 !@var QSATC saturation vapor mixing ratio
 !@var QSATMP plume's saturation vapor mixing ratio
 !@var RCLD,RCLDE cloud particle's radius, effective radius
-#ifdef CLD_AER_CDNC 
+#ifdef CLD_AER_CDNC
 !@var MCDNCW,MCDNCI cloud droplet # for warm,cold moist conv clouds (cm^-3)
 #endif
 !@var SLH LHX/SHA
@@ -1921,7 +1921,7 @@ C**** is ice and temperatures after ice melt would still be below TFrez
       DO N=1,NTX
        select case (trname(ntix(n)))
        case('SO4')
-#ifdef CLD_AER_CDNC 
+#ifdef CLD_AER_CDNC
        DSGL(L)=tm(l,n)
 #endif
         end select
@@ -1952,7 +1952,7 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
         CM1=CM0
         IF(BANDF) CM1=CM0*CBF
         IF(LHX.EQ.LHS) CM1=CM0
-#ifdef CLD_AER_CDNC 
+#ifdef CLD_AER_CDNC
 !routine to get the autoconversion rate
 !     CALL GET_QAUT(L,TL(L),FCLD,WMX(L),SCDNCW,RHO,QCRIT,QAUT)
 !     if ((WMX(L)/(FCLD+1.d-20)).GT.QCRIT) then
@@ -1968,7 +1968,7 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
      *       PRECNVL(L+1)*BYDTsrc)
         IF(CM.GT.BYDTsrc) CM=BYDTsrc
         PREP(L)=WMX(L)*CM
-#ifdef CLD_AER_CDNC 
+#ifdef CLD_AER_CDNC
 c       if(CM.ne.0.) write(6,*)"QAUT",CM,QAUT,QCRIT,PREP(L),L
 #endif
         IF(TL(L).LT.TF.AND.LHX.EQ.LHE) THEN ! check snowing pdf
@@ -2018,7 +2018,7 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
             RCLD=1d-6*RWCLDOX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           ELSE
             RCLD=25.d-6*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
-#ifdef CLD_AER_CDNC   
+#ifdef CLD_AER_CDNC
 !           RCLD= 100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
 #endif
           END IF
@@ -2423,7 +2423,7 @@ C****
         DSEC=DWM*TL(L)/BETA
         IF(CK.LT.CKR) CYCLE
         FPMAX=MIN(1d0,1.-EXPST)
-#ifdef CLD_AER_CDNC 
+#ifdef CLD_AER_CDNC
         SMFPML(L)=FPMAX
 #endif
         IF(FPMAX.LE.0.) CYCLE
@@ -2578,7 +2578,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
 
 !         RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
           RCLD=RWCLDOX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
-          QHEATC=(QHEAT(L)+CAREA(L)*(EC(L)+ER(L)))/LHX
+          QHEATC=(QHEAT(L)+FSSL(L)*CAREA(L)*(EC(L)+ER(L)))/LHX
           IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
         ELSE
           RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
