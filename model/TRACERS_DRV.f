@@ -3244,7 +3244,7 @@ c should probably go here... If you add this, please make appropriate
 c changes in the subroutine's name/summary above. GSF 1/4/02.
         CASE DEFAULT                                ! error
           call stop_model(
-     &        'tr_wd_TYPE(NTIX(N)) out of range in SCAVENGE_TRACER',255)
+     &    'tr_wd_TYPE(NTIX(N)) out of range in SCAVENGE_TRACER',255)
       END SELECT
 c
       RETURN
@@ -3297,7 +3297,7 @@ c           minus preserves FPRT sign convention in LSCOND
           END IF
         CASE DEFAULT                          ! error
           call stop_model(
-     &         'tr_wd_TYPE(NTIX(N)) out of range in GET_FPRT',255)
+     &    'tr_wd_TYPE(NTIX(N)) out of range in GET_FPRT',255)
       END SELECT
 c
       RETURN
@@ -3338,7 +3338,7 @@ C
           fq = b_beta_DT*(DEXP(-PREC*rc_wash)-1.)
         CASE DEFAULT                          ! error
           call stop_model(
-     &         'tr_wd_TYPE(NTIX(N)) out of range in WASHOUT_TRACER',255)
+     &    'tr_wd_TYPE(NTIX(N)) out of range in WASHOUT_TRACER',255)
       END SELECT
 c
       RETURN
