@@ -956,7 +956,7 @@ c     endif
 
       SUBROUTINE GET_SULFATE(L,temp,fcloud,
      *  wa_vol,wmxtr,sulfin,sulfinc,sulfout,tr_left,
-     *  tm,tmcl,airm,LHX,dt_sulf)
+     *  tm,tmcl,airm,LHX,dt_sulf,fcld0)
 !@sum  GET_SULFATE calculates formation of sulfate from SO2 and H2O2
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
@@ -1011,6 +1011,7 @@ c     REAL*8,  INTENT(OUT)::
      *  ,sulfinc(ntm)
 !@var dt_sulf accumulated diagnostic of sulfate chemistry changes
       real*8, dimension(ntm), intent(inout) :: dt_sulf
+      real*8 finc,fcld0
       INTEGER, INTENT(IN) :: L
       do n=1,ntx
         sulfin(N)=0.
@@ -1023,6 +1024,8 @@ c
 C**** CALCULATE the fraction of tracer mass that becomes condensate:
 c
       if (LHX.NE.LHE.or.fcloud.lt.teeny) go to 333
+      finc=(fcloud-fcld0)/fcloud
+      if (finc.lt.0d0) finc=0.d0
 c First allow for formation of sulfate from SO2 and H2O2. Then remaining
 c  gases may be allowed to dissolve (amount given by tr_left)
 C H2O2 + SO2 -> H2O + SO3 -> H2SO4
@@ -1091,7 +1094,9 @@ c dissolved moles
 c this part from gas phase:moles/kg/kg
       dso4g=rk*exp(-ea/(gasc*temp))*rk1f
      *    *pph(ih)*pph(is)*dtsrc*wa_vol
-c dmk should wa_vol be incremental water volume??
+c dmk  incremental water volume
+      dso4g=dso4g*finc
+c should probably be (finc+tr_lef) but then tr_lef has to be saved   
 c check to make sure no overreaction: moles of production:
       dso4gt=dso4g*tm(l,ihx)*tm(l,isx)
 c can't be more than moles going in:

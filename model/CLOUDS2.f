@@ -978,7 +978,7 @@ C**** CONDENSING TRACERS
       CALL GET_SULFATE(L,TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN,
      *     SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND(1,L),
      *     AIRM,LHX,
-     *     DT_SULF_MC(1,L))
+     *     DT_SULF_MC(1,L),CLDSAVT)
 #endif
       DO N=1,NTX
 #ifdef TRACERS_AEROSOLS_Koch
@@ -1402,7 +1402,7 @@ C**** WASHOUT of TRACERS BELOW CLOUD
         WA_VOL= precip_mm*DXYPJ
         CALL GET_SULFATE(L,TNX,FPLUME,WA_VOL,WMXTR,SULFIN,
      *       SULFINC,SULFOUT,TR_LEFT,TM,TRPRCP,AIRM,LHX,
-     *       DT_SULF_MC(1,L))
+     *       DT_SULF_MC(1,L),CLDSAVT)
 #endif
         DO N=1,NTX
 #ifdef TRACERS_AEROSOLS_Koch
@@ -2157,7 +2157,7 @@ c CLDSAVT is current FCLD
       ENDIF
       CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL
      * ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,l),AIRM,LHX
-     *  ,DT_SULF_SS(1,L))
+     *  ,DT_SULF_SS(1,L),FCLD)
       DO N=1,NTX
       select case (trname(ntix(n)))
       case('SO2','SO4','H2O2_s','H2O2')
@@ -2296,7 +2296,7 @@ c   processes - this should be all in-cloud
 #ifdef TRACERS_AEROSOLS_Koch
       CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL,WMXTR,SULFIN,
      *     SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,L),AIRM,LHX,
-     *     DT_SULF_SS(1,L))
+     *     DT_SULF_SS(1,L),FCLD)
 #endif
       DO N=1,NTX
         TR_LEF=1.
