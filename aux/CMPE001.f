@@ -218,14 +218,13 @@ c        write(0,*) 'trying to read diag'
 c        write(0,*) 'trying to read ocn3'
            IF (KOCEAN1.eq.2) READ(1) HEADER,ODIAG1,itau2
            READ(1) HEADER,ICDIAG1
+#ifdef TRACERS_WATER
+           READ (1) HEADER,TRICDG1
+#endif
          END IF
 #ifdef TRACERS_ON
-#ifdef TRACERS_WATER
-         READ (1) HEADER,TRICDG1
-#endif
          READ (1) HEADER,TRACC1
 #endif
-
          IF (ITAU1.ne.ITAU2) then
          WRITE (6,*) 'FILE 1 NOT READ CORRECTLY. IHOUR,IHOURB =',itau1
      *        ,itau2
@@ -328,11 +327,11 @@ c        write(0,*) 'trying to read diag'
 c        write(0,*) 'trying to read ocn3'
            IF (KOCEAN2.eq.2) READ(2) HEADER,ODIAG2,itau2
            READ(2) HEADER,ICDIAG2
+#ifdef TRACERS_WATER
+           READ (2) HEADER,TRICDG2
+#endif
          END IF
 #ifdef TRACERS_ON
-#ifdef TRACERS_WATER
-         READ (2) HEADER,TRICDG2
-#endif
          READ (2) HEADER,TRACC2
 #endif
 
@@ -485,6 +484,14 @@ c      else
       ERRQ=COMP8 ('TDIURN',IM,JM,KTD    ,TDIURN1,TDIURN2)
       ERRQ=COMP8p('OA    ',IM,JM,KOA    ,OA1,OA2)
 
+#ifdef TRACERS_ON
+      ERRQ=COMP8('TAIJLN',IM,JM,LM*NTM    ,TAIJLN1,TAIJLN2) .or. ERRQ
+      ERRQ=COMP8('TAIJN ',IM,JM,KTAIJ*NTM ,TAIJN1 ,TAIJN2) .or. ERRQ
+      ERRQ=COMP8('TAIJS ',IM,JM,KTAIJS    ,TAIJS1 ,TAIJS2) .or. ERRQ
+      ERRQ=COMP8('TAJLN ',JM,LM,KTAJLX*NTM,TAJLN1 ,TAJLN2) .or. ERRQ
+      ERRQ=COMP8('TAJLS ',JM,LM,KTAJLS    ,TAJLS1 ,TAJLS2) .or. ERRQ
+      ERRQ=COMP8('TCONS ',JM,KTCON,NTM    ,TCON1  ,TCON2 ) .or. ERRQ
+#endif
       IF (KOCEAN1.eq.KOCEAN2.and.KOCEAN1.eq.2) THEN ! compare ocn diags
       DAGPOS=1
       ERRQ=COMP8('OIJ   ',IM,JM,KOIJ,ODIAG1(DAGPOS),ODIAG2(DAGPOS))
@@ -494,19 +501,11 @@ c      else
       ERRQ=COMP8('OL    ',LMO,KOL,1   ,ODIAG1(DAGPOS),ODIAG2(DAGPOS))
       DAGPOS=DAGPOS+LMO*KOL
       ERRQ=COMP8('OLNST ',LMO,NMST,KOLNST,ODIAG1(DAGPOS),ODIAG2(DAGPOS))
-      END IF
-#ifdef TRACERS_ON
-      ERRQ=COMP8('TAIJLN',IM,JM,LM*NTM    ,TAIJLN1,TAIJLN2) .or. ERRQ
-      ERRQ=COMP8('TAIJN ',IM,JM,KTAIJ*NTM ,TAIJN1 ,TAIJN2) .or. ERRQ
-      ERRQ=COMP8('TAIJS ',IM,JM,KTAIJS    ,TAIJS1 ,TAIJS2) .or. ERRQ
-      ERRQ=COMP8('TAJLN ',JM,LM,KTAJLX*NTM,TAJLN1 ,TAJLN2) .or. ERRQ
-      ERRQ=COMP8('TAJLS ',JM,LM,KTAJLS    ,TAJLS1 ,TAJLS2) .or. ERRQ
-      ERRQ=COMP8('TCONS ',JM,KTCON,NTM    ,TCON1  ,TCON2 ) .or. ERRQ
 #ifdef TRACERS_WATER
       ERRQ=COMP8('TRICDG',IMIC,JMIC,KTICIJ*NTM,TRICDG1,TRICDG2) .or.
      *     ERRQ
 #endif
-#endif
+      END IF
 
 c      endif
       STOP
