@@ -784,12 +784,6 @@ C**** The regular model (Kradia le 0)
         write (MODULE_HEADER(i_xtra:80),             '(a7,i2,a)')
      *   ',x(IJM,',KTD+KOA,')'  ! make sure that i_xtra+7+2 < 80
 
-        DO I = 1, SIZE(CONSRV_LOC,2)
-          CALL CHECKSUM(grid, CONSRV_LOC(:,I),
-     &         10000*i+__LINE__,__FILE__)
-          IF (I == 1) CALL LOG_PARALLEL(grid, __FILE__,__LINE__,
-     &         x1 = CONSRV_LOC(:,i))
-        END DO
 
         CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
         CALL PACK_DATAj(grid, AJ_loc, AJ)
