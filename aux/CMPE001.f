@@ -1,7 +1,7 @@
 C**** CMPE001.F    CoMPare restartfiles for modelE          6/00
 C****
       USE MODEL_COM, only : im,jm,lm
-      USE DAGCOM, ONLY: KTD,KAIJ,KAJK,KCON,kacc
+      USE DAGCOM, ONLY: KTD,KAIJ,KAJK,KCON,kacc,ktsf
       USE SLE001, ONLY: NGM
       IMPLICIT REAL*8 (A-H,O-Z)
 c     PARAMETER (IM=72,JM=46,LM=12,NGM=6,KTD=8,KAIJ=150,KAJK=51,KCON=125
@@ -53,8 +53,8 @@ ccc   land ice data
       CHARACTER C*4,XLABEL*132,LABEL*16,FILEIN*60,HEADER*80
       DIMENSION C(39),JC(100),RC(161)
       EQUIVALENCE (C,XLABEL,LABEL)
-      COMMON/DAG1/DIAG1(KACC),TSFREZ1(IM,JM,4),TDIURN1(IM,JM,KTD)
-      COMMON/DAG2/DIAG2(KACC),TSFREZ2(IM,JM,4),TDIURN2(IM,JM,KTD)
+      COMMON/DAG1/DIAG1(KACC),TSFREZ1(IM,JM,ktsf),TDIURN1(IM,JM,KTD)
+      COMMON/DAG2/DIAG2(KACC),TSFREZ2(IM,JM,ktsf),TDIURN2(IM,JM,KTD)
       COMMON /KEYS/ KEYNR(1+42*50)  !  also incl. keyct
       REAL*8 LAKE1,LAKE2
       COMMON /LAKE/LAKE1(IM,JM,4),LAKE2(IM,JM,4)
@@ -141,13 +141,17 @@ c        write(0,*) 'trying to read mom'
 c        write(0,*) 'trying to read radia'
          READ (1) HEADER,RQT1, S0,SRHR1,TRHR1,FSF1
 c        write(0,*) 'trying to read diag'
-         READ (1) HEADER,KEYNR,TSFREZ1,idacc1,DIAG1,TDIURN1,OA1,ITAU2
-         IF (KOCEAN1.eq.2) THEN
+         READ (1,ERR=100) HEADER,KEYNR,TSFREZ1,idacc1,DIAG1,TDIURN1,OA1
+     *        ,ITAU2
+         GOTO 200
+ 100     BACKSPACE(1)
+         READ (1) HEADER,KEYNR,TSFREZ1,ITAU2
+ 200     IF (KOCEAN1.eq.2) THEN
 c        write(0,*) 'trying to read ocn3'
            READ(1) HEADER,ODIAG1,itau2    !OIJ,OIJL,OL,OLNST,it
          END IF
 
-      IF (ITAU1.ne.ITAU2) then
+         IF (ITAU1.ne.ITAU2) then
          WRITE (6,*) 'FILE 1 NOT READ CORRECTLY. IHOUR,IHOURB =',itau1
      *        ,itau2
          STOP
@@ -212,8 +216,12 @@ c        write(0,*) 'trying to read mom'
 c        write(0,*) 'trying to read radia'
          READ (2) HEADER,RQT2, S0,SRHR2,TRHR2,FSF2
 c        write(0,*) 'trying to read diag'
-         READ (2) HEADER,KEYNR,TSFREZ2,idacc2,DIAG2,TDIURN2,OA2,ITAU2
-         IF (KOCEAN2.eq.2) THEN
+         READ (2,ERR=300) HEADER,KEYNR,TSFREZ2,idacc2,DIAG2,TDIURN2,OA2
+     *        ,ITAU2
+         GOTO 400
+ 300     BACKSPACE(2)
+         READ (2) HEADER,KEYNR,TSFREZ2,ITAU2
+ 400     IF (KOCEAN2.eq.2) THEN
 c        write(0,*) 'trying to read ocn3'
            READ(2) HEADER,ODIAG2,itau2    !OIJ,OIJL,OL,OLNST,it
          END IF

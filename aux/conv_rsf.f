@@ -100,6 +100,7 @@ C**** and initialize sea ice salinity to 3.2 ppt (0 in snow & lake ice).
               HSI(1:2,I,J)=(SHI*MIN(HSI(1:2,I,J),TFO)-LHM)*XSI(1:2)*MSI1
               HSI(3:4,I,J)=(SHI*MIN(HSI(3:4,I,J),TFO)-LHM)*XSI(3:4)
      *             *MSI(I,J)
+              SSI(3:4,I,J)=SSI0 * XSI(3:4)*MSI(I,J)
               IF (ACE1I*XSI(1).gt.SNOWI(I,J)*XSI(2)) THEN
                 SSI(1,I,J)=SSI0 * (ACE1I-(ACE1I+SNOWI(I,J))* XSI(2))
                 SSI(2,I,J)=SSI0 * (ACE1I+SNOWI(I,J))* XSI(2)
