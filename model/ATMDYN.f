@@ -1326,7 +1326,8 @@ C**** to be used in the PBL, at the promary grids
           DPDX_BY_RHO_0(I,J)=(100.*(P(IP1,J)-P(IM1,J))*by_rho1
      2         +ZATMO(IP1,J)-ZATMO(IM1,J))*BYDXP(J)*.5d0
           IM1=I
-          IP1=I+2
+          IP1=IM1+2
+          IF(IP1.GT.IM) IP1=1
         END DO
       END DO
 
