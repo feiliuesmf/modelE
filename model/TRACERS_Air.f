@@ -443,7 +443,7 @@ c     data adj/1.038,1.,1.,5.33,1.,1.749/          ! c
       logical :: mon_bins(2)=(/.true.,.true./)
       real*8 frac
       integer i,j,nt,iact,imon,iu,iumf,iuml,ioff,k,jdlast
-      save ifirst,jdlast
+      save ifirst,jdlast,tlca,tlcb
 
       if (itime.lt.itime_tr0(nt)) return
  !    write(0,*) ' debugging traces iact,jday=',iact,jday,jdlast,ifirst
