@@ -25,12 +25,21 @@ c
 !@var Isoprene_src ISoprene surface sources and sinks (kg/m2/s)
 c
 c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
+#ifdef EDGAR_HYDE_SOURCES
+      integer, parameter :: nch4src     = 15,
+     &                      nCOsrc      =  6,
+     &                      nAlkenessrc =  8,
+     &                      nParaffinsrc=  8,
+     &                      nIsoprenesrc=  1,
+     &                      nNOxsrc     =  7
+#else
       integer, parameter :: nch4src     = 14,
      &                      nCOsrc      =  2,
      &                      nAlkenessrc =  3,
      &                      nParaffinsrc=  3,
      &                      nIsoprenesrc=  1,
      &                      nNOxsrc     =  3
+#endif
       real*8 CO_src(im,jm,nCOsrc),CH4_src(im,jm,nch4src),
      & Alkenes_src(im,jm,nAlkenessrc),Paraffin_src(im,jm,nParaffinsrc),
      & Isoprene_src(im,jm,nIsoprenesrc),NOx_src(im,jm,nNOxsrc)
@@ -74,6 +83,503 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
       
           
 #ifdef TRACERS_ON
+#ifdef EDGAR_HYDE_SOURCES
+!
+      subroutine read_CH4_sources(nt,iact)
+!@sum reads in CH4 surface sources and sinks: EDGA-HYDE VERSION
+!@auth Greg Faluvegi & Jean Lerner
+C****
+C**** There are 6 monthly sources and 9 annual sources
+C**** Annual sources are read in at start and re-start of run only
+C**** Monthly sources are interpolated each day
+      USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,fearth,DTsrc
+      USE GEOM, only: BYDXYP
+      USE LAKES_COM, only: flake
+      USE CONSTANT, only: sday
+      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE TRACER_COM, only: itime_tr0,trname
+      use TRACER_SOURCES, only: src=>ch4_src,nsrc=>nch4src
+      implicit none
+      character*80 title
+!@var adj Factors that tune the total amount of individual sources
+      logical :: ifirst=.true.
+      logical :: adjust(nsrc) = (/.false.,.false.,.false.,.false.,
+     & .true.,.true.,.true.,.true.,.true.,.true.,.false.,.false.,
+     & .false.,.false.,.false./)
+      real*8 adj(nsrc)
+      data adj/4*-1.d30, 0.999d0, 1.194d0, 3.5997d-5, 17.330d-4,
+     & 5.3558d-5, 0.9818d0, 5*-1.d30/
+      INTEGER :: EHorJEAN(nsrc) = (/1,1,1,1,2,2,2,2,2,2,1,1,1,1,1/)
+      real*8 ann_conv(2),mon_conv(2)!1=edgar-hyde conversion, 2=Jean's 
+      real*8 byDTsrc
+C     
+C    K=1    Animals (edgar hyde annual)
+C    K=2    Fossil Fuel Combustion (edgar hyde annual)
+C    K=3    Landfills (edgar hyde annual)
+C    K=4    fossil fuel prod, transmis, transform (edgar hyde annual)
+C    K=5    termites (from Jean annual)
+C    K=6    Soil Sink (from Jean annual)
+C    K=7    ocean (from Jean annual)
+C    K=8    fresh water lakes (from Jean annual)
+C    K=9    Misc. Ground Source (from Jean annual)
+C    K=10   wetlands and tundra (from Jean monthly)
+C    These 5 are from edgar hyde, but with our monthly variation from
+C    biomass burning apllied to the annual values. In the case of
+C    agricultural land use, our rice cultivation variation was applied:
+C    K=11   agricultural waste burning
+C    K=12   deforestation
+C    K=13   savannah burning
+C    K=14   biofuel production, transformation, combustion
+C    K=15   agricultural land activities     
+!@var nanns,nmons: number of annual and monthly input files
+      integer, parameter :: nanns=9,nmons=6
+      integer ann_units(nanns-3),mon_units(nmons)
+      character*15 :: ann_files(nanns-3) =
+     & (/'CH4_ANIMALS_EH ','CH4_F_FUEL_C_EH','CH4_LANDFILL_EH',
+     &   'CH4_F_FUEL_P_EH','CH4_TERMITES   ','CH4_SOIL_ABS   '/)
+      logical :: ann_bins(nanns-3)=(/.true.,.true.,.true.,.true.,
+     &        .true.,.true./)
+      character*9 :: mon_files(nmons) =
+     &   (/'CH4_WETL ','CH4_AW_EH','CH4_DF_EH','CH4_SB_EH',
+     &     'CH4_BF_EH','CH4_AL_EH'/)
+      real*8 adj_wet(jm)
+      data adj_wet/15*0.6585,16*1.761,15*0.6585/ !zonal adj FOR WETLANDS
+      integer :: kwet=10           !!! position of wetlands array in src
+      logical :: mon_bins(nmons)=(/.true.,.true.,.true.,
+     &        .true.,.true.,.true./)
+      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
+      real*8 frac
+      integer i,j,jj,nt,iact,iu,k,imon(nmons)
+      integer :: jdlast=0
+      save ifirst,jdlast,tlca,tlcb,mon_units,imon
+
+      byDTsrc = 1.d0/dtsrc
+      if (itime.lt.itime_tr0(nt)) return
+C****
+C**** Annual Sources and sinks
+C**** Apply adjustment factors to bring sources into balance.
+C**** Also, Jean's sources are in KG CH4/M2/YEAR and
+C**** the EDGAR-HYDE sources are in KG/4x5grid/HR. Both need to be
+C**** converted to (kg CH4)/m2/sec:
+C****
+      ann_conv(2)= 1.d0/(sday*JDperY) ! Jean's
+      if (ifirst) then
+        k = 0
+        call openunits(ann_files,ann_units,ann_bins,nanns-3)
+        do iu = ann_units(1),ann_units(nanns-3)
+          k = k+1
+          call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
+          do j=1,jm
+            ann_conv(1)=bydxyp(j)*byDTsrc ! EH
+            src(:,j,k) = src(:,j,k)*ann_conv(EHorJEAN(k))
+            if(adjust(k)) src(:,j,k) = src(:,j,k)*adj(k)
+          end do
+        end do
+        call closeunits(ann_units,nanns-3)
+        ! 3 miscellaneous sources
+          k = k+1
+          do j=1,jm
+            ann_conv(1)=bydxyp(j)*byDTsrc ! EH
+            src(:,j,k) = focean(:,j)*ann_conv(EHorJEAN(k))
+            if(adjust(k)) src(:,j,k) = src(:,j,k)*adj(k)            
+          end do
+          k = k+1
+          do j=1,jm
+            ann_conv(1)=bydxyp(j)*byDTsrc ! EH
+            src(:,j,k) =  flake(:,j)*ann_conv(EHorJEAN(k))
+            if(adjust(k)) src(:,j,k) = src(:,j,k)*adj(k)
+          end do
+          k = k+1
+          do j=1,jm
+            ann_conv(1)=bydxyp(j)*byDTsrc ! EH         
+            src(:,j,k) = fearth(:,j)*ann_conv(EHorJEAN(k))
+            if(adjust(k)) src(:,j,k) = src(:,j,k)*adj(k)
+          end do
+        call openunits(mon_files,mon_units,mon_bins,nmons)
+      endif
+C****
+C**** Monthly sources are interpolated to the current day
+C**** Apply adjustment factors to bring sources into balance.
+C**** Jean's monthly sources are already in correct units.
+C**** The EDGAR-HYDE sources are in KG/4x5grid/HR and need to be
+C**** converted to (kg CH4)/m2/sec:
+C****
+      mon_conv(2)= 1.d0 ! Jean's
+      ifirst = .false.
+      jj = 0
+      do k = nanns+1,nsrc
+        jj = jj+1
+        call read_monthly_sources(mon_units(jj),jdlast,
+     *    tlca(1,1,jj),tlcb(1,1,jj),src(1,1,k),frac,imon(jj))
+        do j=1,jm
+          mon_conv(1)=bydxyp(j)*byDTsrc
+          src(:,j,k) = src(:,j,k)*mon_conv(EHorJEAN(k))
+          if(adjust(k)) src(:,j,k) = src(:,j,k)*adj(k)
+        end do
+      end do
+      jdlast = jday
+      write(6,*) trname(nt),'Sources interpolated to current day',frac
+      call sys_flush(6)
+C****
+C**** Zonal adjustment for combined wetlands and tundra
+C****
+      do j=1,jm
+        src(:,j,kwet) = src(:,j,kwet)*adj_wet(j)
+      end do
+C****
+C**** Also, increase the wetlands + tundra CH4 emissions:
+C****
+      src(:,:,kwet)=2.2d0*src(:,:,kwet)
+C  
+      return
+      end subroutine read_CH4_sources
+
+
+      subroutine read_CO_sources(nt,iact)
+!@sum reads in CO surface sources and sinks: EDGA-HYDE VERSION
+!@auth Jean Lerner/Greg Faluvegi
+C****
+C**** There is 4 monthly sources and 2 annual source
+C**** Annual sources are read in at start and re-start of run only
+C**** Monthly sources are interpolated each day
+      USE MODEL_COM, only: itime,jday,JDperY,im,jm,DTsrc
+      USE GEOM, only: BYDXYP
+      USE CONSTANT, only: sday,hrday
+      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE TRACER_COM, only: itime_tr0,trname
+      use TRACER_SOURCES, only: src=>CO_src,nsrc=>nCOsrc,correct_CO_ind
+      
+      implicit none
+      character*80 title
+      logical :: ifirst=.true.
+!@var nanns,nmons: number of annual and monthly input files
+      integer, parameter :: nanns=2,nmons=4
+      integer ann_units(nanns),mon_units(nmons)
+      character*8 :: ann_files(nanns) = (/'CO_FC_EH','CO_IN_EH'/)
+      logical :: ann_bins(nanns)=(/.true.,.true./) ! binary file?
+      character*10 :: mon_files(nmons) = (/'CO_AW_EH','CO_SB_EH',
+     & 'CO_BF_EH','CO_DF_EH'/)
+      logical :: mon_bins(nmons)=(/.true.,.true.,.true.,.true./)
+      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
+      real*8 frac,byDTsrc
+      integer i,j,jj,nt,iact,iu,k,imon(nmons)
+      integer :: jdlast=0
+      save ifirst,jdlast,tlca,tlcb,mon_units,imon
+C
+C    K=1    Fossil fuel combustion           (edgar hyde annual)
+C    K=2    industrial prod & cons processes (edgar hyde annual)
+C    These 4 are from edgar hyde, but with our monthly variation from
+C    biomass burning apllied to the annual values:
+C    K=3    agricultural waste burning
+C    K=4    savannah burning
+C    K=5    biofuel production, transformation, combustion
+C    K=6    deforestation
+C
+      if (itime.lt.itime_tr0(nt)) return
+      byDTsrc = 1.d0/dtsrc
+C****
+C**** Annual Sources and sink
+C**** The EDGAR-HYDE sources are in KG/4x5grid/HR and need to be
+C**** converted to KG/m2/sec:
+C****
+      if (ifirst) then
+        call openunits(ann_files,ann_units,ann_bins,nanns)
+        k = 0
+        do iu = ann_units(1),ann_units(nanns)
+          k = k+1
+          call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
+          do j=1,jm
+            src(:,j,k) = src(:,j,k)*bydxyp(j)*byDTsrc
+          end do
+        end do
+        call closeunits(ann_units,nanns)
+        call openunits(mon_files,mon_units,mon_bins,nmons)
+      endif
+C****
+C**** Monthly sources are interpolated to the current day
+C**** The EDGAR-HYDE sources are in KG/4x5grid/HR and need to be
+C**** converted to KG/m2/sec:
+C****
+      ifirst = .false.
+      jj = 0
+      do k=nanns+1,nsrc
+        jj = jj+1
+        call read_monthly_sources(mon_units(jj),jdlast,
+     *    tlca(1,1,jj),tlcb(1,1,jj),src(1,1,k),frac,imon(jj))
+        do j=1,jm
+          src(:,j,k) = src(:,j,k)*bydxyp(j)*byDTsrc
+        end do
+      end do
+      jdlast = jday
+      write(6,*) trname(nt),'Sources interpolated to current day',frac
+      call sys_flush(6)
+C****
+      return
+      end subroutine read_CO_sources
+
+
+      subroutine read_Alkenes_sources(nt,iact)
+!@sum reads in Alkenes surface sources and sinks: EDGA-HYDE VERSION
+!@auth Jean Lerner/Greg Faluvegi
+C****
+C**** There are 5 monthly sources and 3 annual source
+C**** Annual sources are read in at start and re-start of run only
+C**** Monthly sources are interpolated each day
+      USE MODEL_COM, only: itime,jday,JDperY,im,jm,DTsrc
+      USE CONSTANT, only: sday,hrday
+      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE GEOM, only: BYDXYP
+      USE TRACER_COM, only: itime_tr0,trname
+      use TRACER_SOURCES, only: src=>Alkenes_src,nsrc=>nAlkenessrc
+
+      implicit none
+      character*80 title
+      logical :: ifirst=.true.
+!@var nanns,nmons: number of annual and monthly input files
+      integer, parameter :: nanns=3,nmons=5
+      integer ann_units(nanns),mon_units(nmons)
+      character*18 :: ann_files(nanns) = (/'Alkenes_FC_EH     ',
+     &'Alkenes_IN_EH     ','Alkenes_FP_EH     '/)
+      logical :: ann_bins(nanns)=(/.true.,.true.,.true./) ! bin files?
+      character*18 :: mon_files(nmons) =      (/'Alkenes_VEGETATION',
+     &'Alkenes_AW_EH     ','Alkenes_SB_EH     ','Alkenes_BF_EH     ',
+     &'Alkenes_DF_EH     '/)
+      logical :: mon_bins(nmons)=(/.true.,.true.,.true.,.true.,.true./)
+      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
+      real*8 frac,byDTsrc
+      integer i,j,jj,nt,iact,iu,k,imon(nmons)
+      integer :: jdlast=0
+      save ifirst,jdlast,tlca,tlcb,mon_units,imon
+C
+C    K=1    Fossil fuel combustion           (edgar hyde annual)
+C    K=2    industrial prod & cons processes (edgar hyde annual)
+C    K=3    fossil fuel prod, transm, transfor      (e-h annual)
+C    K=4    Vegetation emissions (from B436000M23 model, monthly)
+C    These 4 are from edgar hyde, but with our monthly variation from
+C    biomass burning apllied to the annual values:
+C    K=5    agricultural waste burning
+C    K=6    savannah burning
+C    K=7    biofuel production, transformation, combustion
+C    K=8    deforestation
+      if (itime.lt.itime_tr0(nt)) return
+      byDTsrc = 1.d0/dtsrc
+C****
+C**** Annual Sources
+C**** The EDGAR-HYDE sources are in KG C/4x5grid/HR and need to be
+C**** converted to KG C/m2/sec:
+C****
+      if (ifirst) then
+        call openunits(ann_files,ann_units,ann_bins,nanns)
+        k = 0
+        do iu = ann_units(1),ann_units(nanns)
+          k = k+1
+          call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
+          do j = 1,jm
+            src(:,j,k) = src(:,j,k)*BYDXYP(j)*byDTsrc
+          end do
+        end do
+        call closeunits(ann_units,nanns)
+        call openunits(mon_files,mon_units,mon_bins,nmons)
+      endif
+C****
+C**** Monthly sources are interpolated to the current day.
+C**** The EDGAR-HYDE sources are in KG C/4x5grid/HR and need to be
+C**** converted to KG C/m2/sec. Same is true for the B436000M23
+C**** vegetation source:
+C****
+      ifirst = .false.
+      jj = 0
+      do k=nanns+1,nsrc
+        jj = jj+1
+        call read_monthly_sources(mon_units(jj),jdlast,
+     *    tlca(1,1,jj),tlcb(1,1,jj),src(1,1,k),frac,imon(jj))
+          do j = 1,jm
+            src(:,j,k) = src(:,j,k)*BYDXYP(j)*byDTsrc
+          end do
+      end do
+      jdlast = jday
+      write(6,*) trname(nt),'Sources interpolated to current day',frac
+      call sys_flush(6)
+C****
+      return
+      end subroutine read_Alkenes_sources
+
+
+      subroutine read_Paraffin_sources(nt,iact)
+!@sum reads in Paraffin surface sources and sinks: EDGA-HYDE VERSION
+!@auth Jean Lerner/Greg Faluvegi
+C****
+C**** There are 5 monthly sources and 3 annual source
+C**** Annual sources are read in at start and re-start of run only
+C**** Monthly sources are interpolated each day
+      USE MODEL_COM, only: itime,jday,JDperY,im,jm,DTsrc
+      USE CONSTANT, only: sday,hrday
+      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE GEOM, only: BYDXYP
+      USE TRACER_COM, only: itime_tr0,trname
+      use TRACER_SOURCES, only: src=>Paraffin_src,nsrc=>nParaffinsrc
+      
+      implicit none
+      character*80 title
+      logical :: ifirst=.true.
+!@var nanns,nmons: number of annual and monthly input files
+      integer, parameter :: nanns=3,nmons=5
+      integer ann_units(nanns),mon_units(nmons)
+      character*19 :: ann_files(nanns) = (/'Paraffin_FC_EH     ',
+     &'Paraffin_IN_EH     ','Paraffin_FP_EH     '/)
+      logical :: ann_bins(nanns)=(/.true.,.true.,.true./) ! bin files?
+      character*19 :: mon_files(nmons) =        (/'Paraffin_VEGETATION',
+     &'Paraffin_AW_EH     ','Paraffin_SB_EH     ','Paraffin_BF_EH     ',
+     &'Paraffin_DF_EH     '/)
+      logical :: mon_bins(nmons)=(/.true.,.true.,.true.,.true.,.true./)
+      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
+      real*8 frac,byDTsrc
+      integer i,j,jj,nt,iact,iu,k,imon(nmons)
+      integer :: jdlast=0
+      save ifirst,jdlast,tlca,tlcb,mon_units,imon
+C
+C    K=1    Fossil fuel combustion           (edgar hyde annual)
+C    K=2    industrial prod & cons processes (edgar hyde annual)
+C    K=3    fossil fuel prod, transm, transfor      (e-h annual)
+C    K=4    Vegetation emissions (from B436000M23 model, monthly)
+C    These 4 are from edgar hyde, but with our monthly variation from
+C    biomass burning apllied to the annual values:
+C    K=5    agricultural waste burning
+C    K=6    savannah burning
+C    K=7    biofuel production, transformation, combustion
+C    K=8    deforestation
+C
+      if (itime.lt.itime_tr0(nt)) return
+      byDTsrc = 1.d0/dtsrc
+C****
+C**** Annual Sources
+C**** The EDGAR-HYDE sources are in KG C/4x5grid/HR and need to be
+C**** converted to KG C/m2/sec:
+C****
+      if (ifirst) then
+        call openunits(ann_files,ann_units,ann_bins,nanns)
+        k = 0
+        do iu = ann_units(1),ann_units(nanns)
+          k = k+1
+          call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
+          do j = 1,jm
+            src(:,j,k) = src(:,j,k)*BYDXYP(j)*byDTsrc
+          end do
+        end do
+        call closeunits(ann_units,nanns)
+        call openunits(mon_files,mon_units,mon_bins,nmons)
+      endif
+C****
+C**** Monthly sources are interpolated to the current day.
+C**** The EDGAR-HYDE sources are in KG C/4x5grid/HR and need to be
+C**** converted to KG C/m2/sec. Same is true for the B436000M23
+C**** vegetation source:
+C****
+      ifirst = .false.
+      jj = 0
+      do k=nanns+1,nsrc
+        jj = jj+1
+        call read_monthly_sources(mon_units(jj),jdlast,
+     *  tlca(1,1,jj),tlcb(1,1,jj),src(1,1,k),frac,imon(jj))
+        do j = 1,jm
+          src(:,j,k) = src(:,j,k)*BYDXYP(j)*byDTsrc
+        end do
+      end do
+      jdlast = jday
+      write(6,*) trname(nt),'Sources interpolated to current day',frac
+      call sys_flush(6)
+C****
+      return
+      end subroutine read_Paraffin_sources
+
+
+      subroutine read_NOx_sources(nt,iact)
+!@sum reads in NOx surface sources and sinks: EDGA-HYDE VERSION
+!@auth Jean Lerner/Greg Faluvegi
+C****
+C**** There are 5 monthly sources and 2 annual source
+C**** Annual sources are read in at start and re-start of run only
+C**** Monthly sources are interpolated each day
+      USE MODEL_COM, only: itime,jday,JDperY,im,jm,DTsrc
+      USE GEOM, only: BYDXYP
+      USE CONSTANT, only: sday,hrday
+      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE TRACER_COM, only: itime_tr0,trname
+      use TRACER_SOURCES, only: src=>NOx_src,nsrc=>nNOxsrc
+
+      implicit none
+      character*80 title
+      logical :: ifirst=.true.
+!@var nanns,nmons: number of annual and monthly input files
+      integer, parameter :: nanns=2,nmons=5
+      integer ann_units(nanns),mon_units(nmons)
+      character*9 :: ann_files(nanns) = (/'NOx_FC_EH','NOx_IN_EH'/)
+      logical :: ann_bins(nanns)=(/.true.,.true./) ! binary files?
+      character*9 :: mon_files(nmons) = (/'NOx_AL_EH','NOx_AW_EH',
+     &    'NOx_BF_EH','NOx_DF_EH','NOx_SB_EH'/)
+      logical :: mon_bins(nmons)=(/.true.,.true.,.true.,.true.,.true./)
+      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
+      real*8 frac,byDTsrc
+      integer i,j,jj,nt,iact,iu,k,imon(nmons)
+      integer :: jdlast=0
+      save ifirst,jdlast,tlca,tlcb,mon_units,imon
+
+C------ annual -------
+C    K=1    Fossil Fuel Combustion (edgar hyde annual)
+C    K=2    industrial prod & cons processes (edgar hyde annual)
+C------ monthly ------
+C    K=3    agricultural land activities (E-H variation as soil NOx)
+C    K=4    agricultural waste burning (edgar hyde variation bio.burn)
+C    K=5    biofuel production, transformation, combustion (")
+C    K=6    deforestation (edgar hyde variation as bio. burn)
+C    K=7    savannah burning (edgar hyde variation as bio. burn)
+
+      if (itime.lt.itime_tr0(nt)) return
+      byDTsrc = 1.d0/dtsrc
+C****
+C**** Annual Sources
+C**** The EDGAR-HYDE sources are in KG N/4x5grid/HR and need to be
+C**** converted to KG N/m2/sec:
+C****
+      if (ifirst) then
+        call openunits(ann_files,ann_units,ann_bins,nanns)
+        k = 0
+        do iu = ann_units(1),ann_units(nanns)
+          k = k+1
+          call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
+          do j=1,jm
+            src(:,j,k) = src(:,j,k)*BYDXYP(j)*byDTsrc
+          end do
+        end do
+        call closeunits(ann_units,nanns)
+        call openunits(mon_files,mon_units,mon_bins,nmons)
+      endif
+C****
+C**** Monthly sources are interpolated to the current day
+C**** The EDGAR-HYDE sources are in KG N/4x5grid/HR and need to be
+C**** converted to KG N/m2/sec:
+C****
+      ifirst = .false.
+      jj = 0
+      do k=nanns+1,nsrc
+        jj = jj+1
+        call read_monthly_sources(mon_units(jj),jdlast,
+     *  tlca(1,1,jj),tlcb(1,1,jj),src(1,1,k),frac,imon(jj))
+        do j=1,jm
+          src(:,j,k) = src(:,j,k)*BYDXYP(j)*byDTsrc
+        end do 
+      end do
+      jdlast = jday
+      write(6,*) trname(nt),'Sources interpolated to current day',frac
+      call sys_flush(6)
+C****
+      return
+      end subroutine read_NOx_sources   
+!
+#else
+!
+!end of edgar-hyde sources. normal model sources follow:
+!  
       subroutine read_CH4_sources(nt,iact)
 !@sum reads in CH4 surface sources and sinks
 !@auth Jean Lerner
@@ -246,18 +752,17 @@ C****
 C**** There are 2 monthly sources and 1 annual source
 C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm
+      USE MODEL_COM, only: itime,jday,JDperY,im,jm,DTsrc
       USE CONSTANT, only: sday,hrday
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       USE GEOM, only: BYDXYP
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>Alkenes_src,nsrc=>nAlkenessrc
+   
       implicit none
       character*80 title
       logical :: ifirst=.true.
 !@var nanns,nmons: number of annual and monthly input files
-!@param r3600 = 1.d0/3600.
-      real*8, parameter :: r3600=1./3600.
       integer, parameter :: nanns=1,nmons=2
       integer ann_units(nanns),mon_units(nmons)
       character*18 :: ann_files(nanns) = (/'Alkenes_INDUSTRIAL'/)
@@ -266,12 +771,13 @@ C**** Monthly sources are interpolated each day
      &                                     'Alkenes_VEGETATION'/)
       logical :: mon_bins(nmons)=(/.true.,.true./) ! binary files?
       real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
-      real*8 frac
+      real*8 frac,byDTsrc
       integer i,j,jj,nt,iact,iu,k,imon(nmons)
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
 
       if (itime.lt.itime_tr0(nt)) return
+      byDTsrc = 1.d0/dtsrc
 C****
 C**** Annual Sources and sink
 C**** I believe input file is in (kg C)/4x5 grid/hr. So,
@@ -284,7 +790,7 @@ C****
           k = k+1
           call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
           do j = 1,jm
-            src(:,j,k) = src(:,j,k)*BYDXYP(j)*r3600
+            src(:,j,k) = src(:,j,k)*BYDXYP(j)*byDTsrc
           end do
         end do
         call closeunits(ann_units,nanns)
@@ -302,7 +808,7 @@ C****
         call read_monthly_sources(mon_units(j),jdlast,
      *    tlca(1,1,j),tlcb(1,1,j),src(1,1,k),frac,imon(j))
           do jj = 1,jm
-            src(:,jj,k) = src(:,jj,k)*BYDXYP(jj)*r3600
+            src(:,jj,k) = src(:,jj,k)*BYDXYP(jj)*byDTsrc
           end do
       end do
       jdlast = jday
@@ -320,19 +826,18 @@ C****
 C**** There are 2 monthly sources and 1 annual source
 C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm
+      USE MODEL_COM, only: itime,jday,JDperY,im,jm,DTsrc
       USE CONSTANT, only: sday,hrday
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       USE GEOM, only: BYDXYP
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>Paraffin_src,nsrc=>nParaffinsrc
+     
       implicit none
       character*80 title
       logical :: ifirst=.true.
 !@var nanns,nmons: number of annual and monthly input files
-!@var r3600 = 1.d0/3600.
       integer, parameter :: nanns=1,nmons=2
-      real*8, parameter :: r3600=1./3600.
       integer ann_units(nanns),mon_units(nmons)
       character*19 :: ann_files(nanns) = (/'Paraffin_INDUSTRIAL'/)
       logical :: ann_bins(nanns)=(/.true./) ! binary files?
@@ -340,12 +845,13 @@ C**** Monthly sources are interpolated each day
      &                                     'Paraffin_VEGETATION'/)
       logical :: mon_bins(nmons)=(/.true.,.true./) ! binary files?
       real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
-      real*8 frac
+      real*8 frac,byDTsrc
       integer i,j,jj,nt,iact,iu,k,imon(nmons)
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
 
       if (itime.lt.itime_tr0(nt)) return
+      byDTsrc = 1.d0/dtsrc
 C****
 C**** Annual Sources and sink
 C**** I believe input file is in (kg C)/4x5 grid/hr. So,
@@ -358,7 +864,7 @@ C****
           k = k+1
           call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
           do j = 1,jm
-            src(:,j,k) = src(:,j,k)*BYDXYP(j)*r3600
+            src(:,j,k) = src(:,j,k)*BYDXYP(j)*byDTsrc
           end do
         end do
         call closeunits(ann_units,nanns)
@@ -376,7 +882,7 @@ C****
         call read_monthly_sources(mon_units(j),jdlast,
      *  tlca(1,1,j),tlcb(1,1,j),src(1,1,k),frac,imon(j))
         do jj = 1,jm
-          src(:,jj,k) = src(:,jj,k)*BYDXYP(jj)*r3600
+          src(:,jj,k) = src(:,jj,k)*BYDXYP(jj)*byDTsrc
         end do
       end do
       jdlast = jday
@@ -385,60 +891,6 @@ C****
 C****
       return
       end subroutine read_Paraffin_sources
-
-
-      subroutine read_Isoprene_sources(nt,iact)
-!@sum reads in Isoprene surface sources and sinks
-!@auth Jean Lerner/Greg Faluvegi
-C****
-C**** There is 1 monthly source
-C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm
-      USE CONSTANT, only: sday,hrday
-      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
-      USE GEOM, only: BYDXYP
-      USE TRACER_COM, only: itime_tr0,trname
-      use TRACER_SOURCES, only: src=>Isoprene_src,nsrc=>nIsoprenesrc
-      implicit none
-      character*80 title
-      logical :: ifirst=.true.
-!@var nanns,nmons: number of annual and monthly input files
-!@var r3600 = 1.d0/3600.
-      real*8, parameter :: r3600=1./3600.
-      integer, parameter :: nanns=0, nmons=1
-      integer mon_units(nmons)
-      character*19 :: mon_files(nmons) = (/'Isoprene_VEGETATION'/)
-      logical :: mon_bins(nmons)=(/.true./) ! binary file?
-      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
-      real*8 frac
-      integer i,j,jj,nt,iact,iu,k,imon(nmons)
-      integer :: jdlast=0
-      save ifirst,jdlast,tlca,tlcb,mon_units,imon
-
-      if (itime.lt.itime_tr0(nt)) return
-C****
-C**** Monthly sources are interpolated to the current day
-C****
-C**** I believe input files are in (kg C)/4x5 grid/hr. So,
-C**** convert to (kg C)/m2/s.
-C****
-      if(ifirst) call openunits(mon_files,mon_units,mon_bins,nmons)
-      ifirst = .false.
-      j = 0
-      do k=nanns+1,nsrc
-        j = j+1
-        call read_monthly_sources(mon_units(j),jdlast,
-     *    tlca(1,1,j),tlcb(1,1,j),src(1,1,k),frac,imon(j))
-        do jj = 1,jm
-          src(:,jj,k) = src(:,jj,k)*BYDXYP(jj)*r3600
-        end do
-      end do
-      jdlast = jday
-      write(6,*) trname(nt),'Sources interpolated to current day',frac
-      call sys_flush(6)
-C****
-      return
-      end subroutine read_Isoprene_sources
 
 
       subroutine read_NOx_sources(nt,iact)
@@ -504,7 +956,62 @@ C****
       call sys_flush(6)
 C****
       return
-      end subroutine read_NOx_sources
+      end subroutine read_NOx_sources   
+#endif
+
+
+      subroutine read_Isoprene_sources(nt,iact)
+!@sum reads in Isoprene surface sources and sinks
+!@auth Jean Lerner/Greg Faluvegi
+C****
+C**** There is 1 monthly source
+C**** Monthly sources are interpolated each day
+      USE MODEL_COM, only: itime,jday,JDperY,im,jm,DTsrc
+      USE CONSTANT, only: sday,hrday
+      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE GEOM, only: BYDXYP
+      USE TRACER_COM, only: itime_tr0,trname
+      use TRACER_SOURCES, only: src=>Isoprene_src,nsrc=>nIsoprenesrc
+     
+      implicit none
+      character*80 title
+      logical :: ifirst=.true.
+!@var nanns,nmons: number of annual and monthly input files
+      integer, parameter :: nanns=0, nmons=1
+      integer mon_units(nmons)
+      character*19 :: mon_files(nmons) = (/'Isoprene_VEGETATION'/)
+      logical :: mon_bins(nmons)=(/.true./) ! binary file?
+      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
+      real*8 frac,byDTsrc
+      integer i,j,jj,nt,iact,iu,k,imon(nmons)
+      integer :: jdlast=0
+      save ifirst,jdlast,tlca,tlcb,mon_units,imon
+
+      if (itime.lt.itime_tr0(nt)) return
+      byDTsrc = 1.d0/dtsrc
+C****
+C**** Monthly sources are interpolated to the current day
+C****
+C**** I believe input files are in (kg C)/4x5 grid/hr. So,
+C**** convert to (kg C)/m2/s.
+C****
+      if(ifirst) call openunits(mon_files,mon_units,mon_bins,nmons)
+      ifirst = .false.
+      j = 0
+      do k=nanns+1,nsrc
+        j = j+1
+        call read_monthly_sources(mon_units(j),jdlast,
+     *    tlca(1,1,j),tlcb(1,1,j),src(1,1,k),frac,imon(j))
+        do jj = 1,jm
+          src(:,jj,k) = src(:,jj,k)*BYDXYP(jj)*byDTsrc
+        end do
+      end do
+      jdlast = jday
+      write(6,*) trname(nt),'Sources interpolated to current day',frac
+      call sys_flush(6)
+C****
+      return
+      end subroutine read_Isoprene_sources
 c
 c
       SUBROUTINE get_lightning_NOx
