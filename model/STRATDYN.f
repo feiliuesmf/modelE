@@ -887,13 +887,8 @@ C**** SHEAR AND MOUNTAIN ORIENTATION
         DUTN=DWT*UR(N)*WT(N)
         DUT(L)=DUT(L)+DUTN
         DVT(L)=DVT(L)+DWT*VR(N)
-        IF (MRCH.EQ.2) THEN
-          IF (N.LT.9) THEN
-            AJL(J,L,N+JL_gwFirst)=AJL(J,L,N+JL_gwFirst)+DUTN
-          ELSE
-            AJL(J,L,JL_gwFirst)=AJL(J,L,JL_gwFirst)+DUTN !JL_DUDFMDRG
-          ENDIF
-        END IF
+        IF (MRCH.EQ.2) AJL(J,L,N+JL_gwFirst-1)=AJL(J,L,N+JL_gwFirst-1)
+     *       +DUTN 
       END DO
   400 CONTINUE
 C****

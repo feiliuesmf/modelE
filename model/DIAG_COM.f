@@ -45,7 +45,7 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       REAL*8, DIMENSION(JM,LM_REQ,KASJL) :: ASJL
 
 !@param KAIJ,KAIJX number of AIJ diagnostics, KAIJX includes composites
-      INTEGER, PARAMETER :: KAIJ=170 , KAIJX=KAIJ+100
+      INTEGER, PARAMETER :: KAIJ=180 , KAIJX=KAIJ+100
 !@var AIJ latitude/longitude diagnostics
       REAL*8, DIMENSION(IM,JM,KAIJ) :: AIJ
 

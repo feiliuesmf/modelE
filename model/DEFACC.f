@@ -2719,17 +2719,7 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
-      jl_gwFirst = k   ! The next consececutive n are Gravity Wave
-      jl_dudfmdrg = k
-      sname_jl(k) = 'dudt_dfmdrg' !
-      lname_jl(k) = 'DU/DT BY STRAT DEFORM DRAG'
-      units_jl(k) = 'm/s^2'
-      pow_jl(k) = -6
-      scale_jl(k) = 1./(FIM*DTsrc)
-      ia_jl(k) = ia_src
-      jgrid_jl(k) = 2
-c
-      k=k+1
+      jl_gwFirst = k   ! The next consecutive 9 are Gravity Wave Diags
       jl_dumtndrg = k
       sname_jl(k) = 'dudt_mtndrg' !
       lname_jl(k) = 'DU/DT BY STRAT MTN DRAG'
@@ -2755,6 +2745,7 @@ c
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-10'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
+      scale_jl(k) = 1./(FIM*DTsrc)
       ia_jl(k) = ia_src
       jgrid_jl(k) = 2
 c
@@ -2764,6 +2755,7 @@ c
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+10'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
+      scale_jl(k) = 1./(FIM*DTsrc)
       ia_jl(k) = ia_src
       jgrid_jl(k) = 2
 c
@@ -2773,6 +2765,7 @@ c
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-40'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
+      scale_jl(k) = 1./(FIM*DTsrc)
       ia_jl(k) = ia_src
       jgrid_jl(k) = 2
 c
@@ -2782,6 +2775,7 @@ c
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+40'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
+      scale_jl(k) = 1./(FIM*DTsrc)
       ia_jl(k) = ia_src
       jgrid_jl(k) = 2
 c
@@ -2791,15 +2785,27 @@ c
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-20'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
+      scale_jl(k) = 1./(FIM*DTsrc)
       ia_jl(k) = ia_src
       jgrid_jl(k) = 2
-c Last of the Gravity Wave JL's
+c
       k=k+1
       jl_dumcdrgp20 = k
       sname_jl(k) = 'dudt_mcdrgp20' !
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+20'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
+      scale_jl(k) = 1./(FIM*DTsrc)
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 2
+c Last of the Gravity Wave JL's
+      k=k+1
+      jl_dudfmdrg = k
+      sname_jl(k) = 'dudt_dfmdrg' !
+      lname_jl(k) = 'DU/DT BY STRAT DEFORM DRAG'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      scale_jl(k) = 1./(FIM*DTsrc)
       ia_jl(k) = ia_src
       jgrid_jl(k) = 2
 c

@@ -564,22 +564,26 @@ c
       jl_mcdrgpm10 = k                        ; jgrid_jl(k) = 2
       sname_jl(k) = 'dudt_mcdrgpm10'
       lname_jl(k) = 'DU/DT BY STRAT. MC DRAG  C=+/-10R'
-      units_jl(k) = '10**-6 m/s^2'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
       k = k + 1
       jl_mcdrgpm40 = k                        ; jgrid_jl(k) = 2
       sname_jl(k) = 'dudt_mcdrgpm40' !AJL24+25
       lname_jl(k) = 'DU/DT BY STRAT. MC DRAG  C=+/-40R'
-      units_jl(k) = '10**-6 m/s^2'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
       k = k + 1
       jl_mcdrgpm20 = k                        ; jgrid_jl(k) = 2
       sname_jl(k) = 'dudt_mcdrgpm20' !AJL26+27
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+/-20R'
-      units_jl(k) = '10**-6 m/s^2'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
       k = k + 1
       jl_sumdrg = k                           ; jgrid_jl(k) = 2
       sname_jl(k) = 'dudt_sumdrg' !AJL(18+20-27)
       lname_jl(k) = 'ZONAL WIND CHANGE BY MTN+DEFORM+SHR+MC DRAG'
-      units_jl(k) = '10**-6 m/s^2'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
       k = k + 1
       jl_nt_lh_e = k
       sname_jl(k) = 'nt_lh_eddy'        ; jgrid_jl(k) = 2
