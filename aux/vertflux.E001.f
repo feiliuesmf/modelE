@@ -23,7 +23,7 @@ C****
       integer first_month, first_year, last_month, last_year, years
       integer months, monthe, year, month, itime1,
      *     last_day, kday, i, j, iu_TOPO, iu_VFLX, iu_XCORR, iu_SRCOR
-     *     ,iu_SNOW
+     *     ,iu_SNOW,iok
       REAL*8 AVFX(IM,JM),GSR,GVFXSR,SYEAR,SYEARS
       real*8 VFSR, VF, XCORR
       REAL*8 ASR(im,jm),AVFXSR(im,jm)
@@ -109,8 +109,8 @@ C****
           call openunit(file_name,iu_VFLX,.true.,.true.)
           last_day = month_day(month)
           do kday = 1,last_day
-            READ (iu_VFLX, END=555) itime,OA,itime1
-C*
+            call READi (iu_VFLX, itime,OA,itime1,IM*JM*12*2,iok)
+            if(iok.gt.0) go to 555
             jmon = month
             jdate = kday
 

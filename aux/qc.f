@@ -89,7 +89,7 @@ c       write (6,*) "IDACC = ",(IDACC(I),I=1,12)
       if ( QCRESTART ) then ! print data needed for restart
         call getdte(
      &       ItimeMax,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
-        write(6,"('QCRESTART_DATA: ',I10,1X,I2,'-',I2.2,'-',I4.4,)")
+        write(6,"('QCRESTART_DATA: ',I10,1X,I2,'-',I2.2,'-',I4.4)")
 c        write(6,*)
      &       ItimeMax*24/Nday, Jmon, Jdate, Jyear
       endif

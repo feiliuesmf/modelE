@@ -1,12 +1,12 @@
 C**** CMPE001.F    CoMPare restartfiles for modelE          6/00
 C****
-      USE MODEL_COM, only : im,jm,lm,ntype
-      USE DAGCOM, ONLY: kacc,ktsf,KTD,kaj,nreg,ntype,kapj
+      USE MODEL_COM, only : im,jm,lm,ntype,imh
+      USE DAGCOM, ONLY: kacc,ktsf,KTD,kaj,nreg,kapj
      *  ,kajl,lm_req,KASJL,KAIJ,KAIL,NEHIST,HIST_DAYS,KCON
      *  ,KSPECA,NSPHER,KTPE,NHEMI,HR_IN_DAY,NDIUVAR,NDIUPT
      *  ,Max12HR_sequ,NWAV_DAG,KWP,KAJK,KAIJK
       USE SLE001, ONLY: NGM,nlsn
-      USE RADNCB, only : LM_REQ
+!!!   USE RADNCB, only : LM_REQ
       USE SEAICE_COM, only : lmi
       USE PBLCOM, only : npbl
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -56,7 +56,7 @@ ccc   land ice data
       COMMON /KEYS/ KEYNR(1+42*50)  !  also incl. keyct
       REAL*8 LAKE1,LAKE2
       COMMON /LAKE/LAKE1(IM,JM,4),LAKE2(IM,JM,4)
-C**** coupled model ocean data (cannot be read in from module for 
+C**** coupled model ocean data (cannot be read in from module for
 C**** compatibility across model configurations)
       INTEGER, PARAMETER :: NMST=12, LMO=13
       INTEGER, PARAMETER :: KOIJ=5,KOIJL=22,KOL=6,KOLNST=8,
@@ -71,7 +71,7 @@ C**** compatibility across model configurations)
       COMMON /ODAG2/OIJ2(IM,JM,KOIJ),OIJL2(IM,JM,LMO,KOIJL),
      *     OL2(LMO,KOL),OLNST2(LMO,NMST,KOLNST)
       EQUIVALENCE (ODIAG1,OIJ1),(ODIAG2,OIJ2)
-C**** ice dynamic data (cannot be read in from module for 
+C**** ice dynamic data (cannot be read in from module for
 C**** compatibility across model configurations)
       INTEGER, PARAMETER :: KICIJ=12, IMIC=IM,JMIC=JM
       REAL*8 ICDIAG1(IMIC,JMIC,KICIJ),ICDIAG2(IMIC,JMIC,KICIJ)
@@ -253,7 +253,7 @@ C****
       ERRQ=COMP8 ('STRAT ',IM,JM,1      ,strat1 ,strat2 ) .or. ERRQ
       ERRQ=COMPi ('ISTRAT',2,IM,JM      ,istrat1,istrat2 ) .or. ERRQ
       IF (KOCEAN1.eq.KOCEAN2) THEN ! compare oceans else don't
-        IF (KCOEAN1.eq.1) THEN  ! Qflux/fixed
+        IF (KOCEAN1.eq.1) THEN  ! Qflux/fixed
           ERRQ=COMP8LIJp('TOCEAN',3,IM,JM ,TOCEAN1,TOCEAN2).or.ERRQ
           ERRQ=COMP8 ('Z10   ',IM,JM,1    ,     Z1,     Z2).or.ERRQ
         ELSE                    ! coupled

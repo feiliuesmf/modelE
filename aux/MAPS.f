@@ -123,7 +123,7 @@ C****
       CHARACTER*5 XCHAR
 C****
       DATA IM/36/, JMLAST/0/, KDLAST/0/
-      DATA SKIP /Z'FF7FFFFF'/
+      DATA SKIP /-1.e20/
       DATA CHAR/'1','2','3','4','5','6','7','8','9','A','B','C',
      *          'D','E','F','G','H','I','J','K','L','M','N','O',
      *          'P','Q','R','S','T','U','V','W','X','Y','Z'/
@@ -309,7 +309,7 @@ C****
       LOGICAL*4 QLAND
 C****
       DATA JMLAST/0/
-      DATA SKIP /Z'FF7FFFFF'/
+      DATA SKIP /-1.e20/
       DATA CHAR/'1','2','3','4','5','6','7','8','9','A','B','C',
      *          'D','E','F','G','H','I','J','K','L','M','N','O',
      *          'P','Q','R','S','T','U','V','W','X','Y','Z'/
@@ -377,6 +377,7 @@ C****
       DO 450 I=IMIN,IMAX
       WT(J) = WT(J) + WEIGHT(I,J)
 C**** If WEIGHT=0 or A=SKIP, blank out the grid point
+      if(j.eq.0)write(0,*) j,jmin,jmax,jhemi,jm,fjeq ! leave in, opt err
       IF(WEIGHT(I,J).NE.0. .AND. A(I,J).NE.SKIP)  GO TO 410
       LINE(I) = BLANK
       GO TO 450
@@ -507,7 +508,7 @@ C****
       LOGICAL*4 QLAND
 C****
       DATA JMLAST/0/
-      DATA SKIP /Z'FF7FFFFF'/
+      DATA SKIP /-1.e20/
       DATA CHAR/'1','2','3','4','5','6','7','8','9','A','B','C',
      *          'D','E','F','G','H','I','J','K','L','M','N','O',
      *          'P','Q','R','S','T','U','V','W','X','Y','Z'/
@@ -622,8 +623,8 @@ C****
   540 ALAT(J) = 0.
       IF(WT(J).GT.0.)  ALAT(J) = SUM(J)/WT(J)
       WRITE (6,951) RLAT(J),J,(LINE(I),I=IMIN,IMAX),J,ALAT(J)
-      HWT(JHEMI)  = HWT(JHEMI)  + WT(J)*DXYP(J)*WTHN
-      HSUM(JHEMI) = HSUM(JHEMI) + SUM(J)*DXYP(J)*WTHN
+      HWT(JHEMI)  = HWT(JHEMI)  + WT(J)*DXYP(J)
+      HSUM(JHEMI) = HSUM(JHEMI) + SUM(J)*DXYP(J)
   570 CONTINUE
 C****
 C**** End of J loop, produce bottom longitudes and global mean
@@ -696,7 +697,7 @@ C****
       CHARACTER*6 XCHAR
 C****
       DATA IM/12/, JMLAST/0/, KDLAST/0/
-      DATA SKIP /Z'FF7FFFFF'/
+      DATA SKIP /-1.e20/
       DATA CHAR/'1','2','3','4','5','6','7','8','9','A','B','C',
      *          'D','E','F','G','H','I','J','K','L','M','N','O',
      *          'P','Q','R','S','T','U','V','W','X','Y','Z'/
@@ -749,7 +750,7 @@ C****
       HWT    = 0.
       HACCUM = 0.
       DO 600 J=JM,1,-1
-      IF(J.NE.JEQ)  GO TO 310
+      IF(J.NE.JM/2)  GO TO 310
       ANHEMI = 0.
       IF(HWT.GT.0.)  ANHEMI = HACCUM/HWT
       HWT    = 0.
@@ -833,7 +834,7 @@ C****
       DO 720 J=1,JM
       IMAX=IM
       IF(J.EQ.1 .OR. J.EQ.JM)  IMAX=1
-      IF(J.NE.JEQ+1)  GO TO 705
+      IF(J.NE.JM/2+1)  GO TO 705
       ASHEMI = 0.
       IF(HWT.GT.0.)  ASHEMI = HACCUM/HWT
       HWT    = 0.

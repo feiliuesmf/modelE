@@ -30,7 +30,7 @@ C****
       USE FILEMANAGER
       implicit none
       integer first_month, first_year, last_month,
-     *        last_year, years, year, i, j, k
+     *        last_year, years, year, i, j, k,iok
       integer months, monthe, itime1, month, kday, last_day
       REAL*8 COT(IM,JM),AOT(IM,JM,4),BOT(IM,JM,4)
       REAL*4 AMPOT(IM,JM),PHAOT(IM,JM),COTS(IM,JM),TAU4
@@ -146,8 +146,8 @@ C****
               SINDAY(K) = DSIN(K*ARG)
             END DO
 C*
-            READ (iu_VFLX, END=555) itime,OA,itime1
-C*
+            call READi (iu_VFLX, itime,OA,itime1,IM*JM*12*2,iok)
+            if(iok.gt.0) go to 555
 C**** Interpolate daily ocean data from the monthly climatology
 C*
             kocean = 0
@@ -300,4 +300,5 @@ C**** Output aplot format file of ocean heat transports
  555  write (*,*) ' Reached end of file ',file_name
       call exit_rc (11)
       END
+
 
