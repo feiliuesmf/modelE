@@ -188,8 +188,9 @@
       use seaice_com, only : rsi,hsi,snowi,msi,ssi,pond_melt,flag_dsws
       use ghycom, only : snowe,tearth,wearth,aiearth,snoage &
            ,evap_max_ij,fr_sat_ij,qg_ij
-      use ghycom, only : wbare,wvege,htbare,htvege,snowbv,Cint,Qfol, &
+      use ghycom, only : wbare,wvege,htbare,htvege,snowbv, &
         nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
+      use veg_com, only : Cint,Qfol,cnc_ij
       use landice_com, only : snowli,tlandi
       use pblcom, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg, &
            ustar_pbl,egcm,w2gcm,tgvavg,qgavg
@@ -331,6 +332,7 @@
         check("snowbv",snowbv)
         check("Cint",Cint)
         check("Qfol",Qfol)
+        check("cnc_ij",cnc_ij)
         check("nsn_ij",nsn_ij)
         check("isn_ij",isn_ij)
         check("dzsn_ij",dzsn_ij)

@@ -10,8 +10,8 @@ C**** must be compiled after the model
      *     ,iowrite_mon,focean,nday,itime,itimei,itimee,itime0,iyear1
       USE SOMTQ_COM
       USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
-     *     ,htbare,htvege,snowbv,ngm,evap_max_ij,fr_sat_ij,qg_ij,cint
-     *     ,qfol
+     *     ,htbare,htvege,snowbv,ngm,evap_max_ij,fr_sat_ij,qg_ij
+      use veg_com, only : cint,qfol,cnc_ij
       USE RADNCB, only : rqt,lm_req
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
       USE DAGCOM, only : keynr,tsfrez
@@ -206,6 +206,7 @@ C**** extending ground hydrology
 C**** set default foliage values
       Qfol=3.D-6
       Cint=0.0127D0
+      cnc_ij=0.d0
 
       call openunit (trim(outfile),iu_AIC, .true.,.false.)
 
