@@ -520,11 +520,11 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       implicit none
 
       real*8, parameter :: lcoef=0.060d0
+      integer, intent(in) :: n   !@var n  array dimension
       real*8, dimension(n-1), intent(in) :: e,zhat,dzh
       real*8, dimension(n), intent(in) :: u,v,t
       real*8, dimension(n-1), intent(out) :: lscale
       real*8, intent(in) :: lmonin,ustar
-      integer, intent(in) :: n   !@var n  array dimension
 
       integer :: i   !@var i  array dimension
       real*8 l0,l1,an2,dudz,dvdz,as2,lmax,lmax2
@@ -1371,7 +1371,7 @@ c**** profile
 
 c**** Flux is too high, have to recompute with the following boundary
 c**** conditions at the bottom:
-c**** kq * dq/dz = fr_sat * (sfac * trs - constflx) 
+c**** kq * dq/dz = fr_sat * (sfac * trs - constflx)
 c****              + ( 1 - fr_sat ) * tr_evap_max
 
       dia(1) = 1. + fr_sat*sfac*facttr

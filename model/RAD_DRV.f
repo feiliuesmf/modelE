@@ -325,6 +325,7 @@ C**** sync radiation parameters from input
       call sync_param( "O3_yr", O3_yr )
       call sync_param( "MOZONE", MOZONE )
       call sync_param( "KSOLAR", KSOLAR )
+      call sync_param( "KVEGA6", KVEGA6 )
 
 C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       PHIS=-.25*TWOPI
@@ -382,7 +383,7 @@ C****
 C**** Radiative forcings are either constant = obs.value at given yr/day
 C****    or time dependent (year=0); if day=0 an annual cycle is used
 C****                                         even if the year is fixed
-      CALL SETNEW(11,s0_yr ,s0_day , KSOLAR,0,0.D0) 
+      CALL SETNEW(11,s0_yr ,s0_day , KSOLAR,0,0.D0)
       CALL SETNEW( 2,ghg_yr,ghg_day, 0,0,0.D0)     ! well-mixed GHGases
       if(ghg_yr.gt.0) CALL SETNEW(13,0,0,0,0,0.D0) ! skip GHG-updating
       CALL SETNEW( 3,O3_yr   ,0 ,0,0,0.D0)  ! ozone (ann.cycle)
@@ -395,7 +396,12 @@ C     CALL SETNEW(7, 0, 0   , 0,0,0.D0) ! cloud heterogeneity - KCLDEP
 C     CALL SETNEW(8, 0, 0   , 0,0,0.D0) ! surface albedo
 C**** New options (currently not used)
       KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme
-      KVEGA6=0  ! 0:2-band 1:6-band veg.albedo (currently not usable)
+!!!   KVEGA6=-3  ! 2-band albedo, Antarc/Greenl alb=.8, puddling :SI2000
+!!!   KVEGA6=-2  ! 2-band albedo, Antarc/Greenl alb=.8, no puddling
+!!!   KVEGA6=-1  ! 2-band albedo - no 'fixups'                    
+      KVEGA6= 0  ! Schramm oi.alb, Antarc/Greenl alb=.8, no puddling
+!!!   KVEGA6= 1  ! 6-band albedo - no 'fixups'
+!!!   KVEGA6= 2  ! 6-band albedo, Antarc/Greenl alb=.8, no puddling
       if (ktrend.ne.0) then
 C****   Read in time history of well-mixed greenhouse gases
         call openunit('GHG',iu,.false.,.true.)

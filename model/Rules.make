@@ -138,7 +138,7 @@ F90 = f90
 CPP = /lib/cpp -P
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_DEC
-FFLAGS = -O2
+FFLAGS = -O2 -cpp
 LFLAGS = -O2
 endif
 

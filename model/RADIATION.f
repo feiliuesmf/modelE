@@ -5269,9 +5269,8 @@ CCC   ANSCUM=0.D0
 C
       NV=11
       NVEG=9
-      KVEGA6=0  !  Puddling/sea ice albedo fix work only in this case
 C
-      IF(KVEGA6.EQ.0) THEN
+      IF(KVEGA6.LE.0) THEN  ! go from 6 bands to 2 bands
       DO 30 K=3,6
       DO 20 J=1,4
       DO 10 I=1,11
@@ -5326,6 +5325,15 @@ C
 C-----------------
       ENTRY GETSUR
 C-----------------
+C
+C-----------------------------------------------------------------------
+C     Select albedo computations and fixups using KVEGA6
+C     KVEGA6=-3  2-band albedo, Antarc/Greenl alb=.8, puddling  (SI2000)
+C     KVEGA6=-2  2-band albedo, Antarc/Greenl alb=.8, no puddling
+C     KVEGA6=-1  2-band albedo - no 'fixups'
+C     KVEGA6= 0  Schramm oi.alb, Antarc/Greenl alb=.8, no puddling
+C     KVEGA6= 1  6-band albedo - no 'fixups'
+C     KVEGA6= 2  6-band albedo, Antarc/Greenl alb=.8, no puddling
 C
 C                     Define Vegetation Fractions for ILON,JLAT grid box
 C                     --------------------------------------------------
@@ -5456,7 +5464,7 @@ C                                          -----------------------------
 C                                          Soil/Veg Albedo Specification
 C                                          -----------------------------
   400 CONTINUE
-      IF(KVEGA6.EQ.0) THEN
+      IF(KVEGA6.LE.0) THEN                                      ! 2-band
       DSFRAC=PVT(1)+PVT(10)
       VGFRAC=1.D0-DSFRAC
       IF(PEARTH.LT.1.D-04) GO TO 500
@@ -5503,7 +5511,7 @@ C                                          -----------------------------
       XVVEGE=BVVEGE
       XNVEGE=BNVEGE
 C
-      ELSE
+      ELSE                                                      ! 6-band
       DSFRAC=PVT(1)+PVT(10)
       VGFRAC=1.D0-DSFRAC
       IF(PEARTH.LT.1.D-04) GO TO 500
@@ -5554,7 +5562,7 @@ C
       XNSOIL=BNSOIL
       XVVEGE=BVVEGE
       XNVEGE=BNVEGE
-      ENDIF
+      ENDIF                                                 ! end 6-band
 C
       ITEA=TGE
       WTEA=TGE-ITEA
@@ -5589,7 +5597,7 @@ C                                         Ocean Ice Albedo Specification
 C                                         ------------------------------
   500 CONTINUE
       IF(POICE.LT.1.D-04) GO TO 600
-
+      IF(KVEGA6.EQ.0) then
 C**** This albedo specification comes from Schramm et al 96
 C**** Actually uses 4 spectral bands, but we calculate a
 C**** weighted average for the two bands used in this code.
@@ -5661,34 +5669,37 @@ c****
       BOINIR=alnirf
       XOIVIS=alvisr
       XOINIR=alnirr
-c**** old code (now obsolete ???)
+      end if                       !  end of Schramm's version
       EXPSNO=EXP(-SNOWOI/DMOICE)
-!obs? ASNAGE=0.35D0*EXP(-0.2D0*AGESN(2))
-!obs? BSNVIS=ASNVIS+ASNAGE
-!obs? BSNNIR=ASNNIR+ASNAGE
-!obs? BOIVIS=AOIVIS*EXPSNO+BSNVIS*(1.D0-EXPSNO)
-!obs? BOINIR=AOINIR*EXPSNO+BSNNIR*(1.D0-EXPSNO)
-!obs?
-!obs? Puddlings: weak in both Hemispheres, i.e. if Ts > 0C, then
-!obs? set albedos indep. of snow to .3/.15 up to .55/.3 as Ts grows
-!obs?
-!obs?    IF(TSL.GT.273.16) THEN
-!obs?       BOIVIS=.3                                     !   Ts > 10C
-!obs?       BOINIR=.15
-!obs?       IF(TSL.LT.283.16) THEN
-!obs?          BOIVIS=AOIVIS-(TSL-273.16)*.1*(AOIVIS-.30) !   0<Ts<10C
-!obs?          BOINIR=AOINIR-(TSL-273.16)*.1*(AOINIR-.15)
-!obs?       END IF
-!obs?    END IF
-!obs? End of puddling section
-!obs? XOIVIS=BOIVIS
-!obs? XOINIR=BOINIR
+      IF(KVEGA6.ne.0) then         !  original version
+      ASNAGE=0.35D0*EXP(-0.2D0*AGESN(2))
+      BSNVIS=ASNVIS+ASNAGE
+      BSNNIR=ASNNIR+ASNAGE
+      BOIVIS=AOIVIS*EXPSNO+BSNVIS*(1.D0-EXPSNO)
+      BOINIR=AOINIR*EXPSNO+BSNNIR*(1.D0-EXPSNO)
+     
+c**** Puddlings: weak in both Hemispheres, i.e. if Ts > 0C, then
+c**** set albedos indep. of snow to .3/.15 up to .55/.3 as Ts grows
+      if (kvega6.lt.-2) then
+         IF(TSL.GT.273.16) THEN
+            BOIVIS=.3                                     !   Ts > 10C
+            BOINIR=.15
+            IF(TSL.LT.283.16) THEN
+               BOIVIS=AOIVIS-(TSL-273.16)*.1*(AOIVIS-.30) !   0<Ts<10C
+               BOINIR=AOINIR-(TSL-273.16)*.1*(AOINIR-.15)
+            END IF
+         END IF
+      end if
+c**** End of puddling section
+      XOIVIS=BOIVIS
+      XOINIR=BOINIR
       IF(KVEGA6.GT.0) THEN
       DO 501 L=1,6
       BOIVN(L)=AOIALB(L)*EXPSNO+BSNVN(L)*(1.D0-EXPSNO)
       XOIVN(L)=BOIVN(L)
   501 CONTINUE
       ENDIF
+      ENDIF                        ! end of pre-Schramm version
 C
       ITOI=TGOI
       WTOI=TGOI-ITOI
@@ -5731,21 +5742,38 @@ C****
 C**** Specify the Albedo for Antarctica and Greenland: vis.alb = 95%
 C**** and mean albedo=80%, i.e. AMEAN = .57*BLIVIS+.43*BLINIR = .80
 C****
+      if (kvega6.ne.-1) then
       IF( JLAT.LT.NINT(MLAT46/6.) .OR.
      *   (JLAT.LT.45.AND.JLAT.GT.38.AND.ILON.LT.33.AND.ILON.GT.23)) THEN
          AMEAN=.8
          BLIVIS=.95
          BLINIR=(AMEAN-.57*BLIVIS)/.43
       END IF
+      end if
 C****
       XLIVIS=BLIVIS
       XLINIR=BLINIR
-      IF(KVEGA6.GT.0) THEN
+      IF(KVEGA6.GT.0) THEN                             ! 6-band
       DO 601 L=1,6
       BLIVN(L)=ALIALB(L)*EXPSNL+BSNVN(L)*(1.D0-EXPSNL)
       XLIVN(L)=BLIVN(L)
   601 CONTINUE
-      ENDIF
+C****
+C**** Specify the Albedo for Antarctica and Greenland: vis.alb = 95%
+C**** and mean albedo=80%, i.e. AMEAN = .57*BLIVIS+.43*BLINIR = .80
+C****
+      if (kvega6.eq.2) then
+        IF( JLAT.LT.NINT(MLAT46/6.) .OR.
+     *   (JLAT.LT.45.AND.JLAT.GT.38.AND.ILON.LT.33.AND.ILON.GT.23)) THEN
+          BLIVN(1)=BLIVIS
+          XLIVN(1)=XLIVIS
+          DO L=2,6                    
+            BLIVN(L)=BLINIR
+            XLIVN(L)=XLINIR
+          END DO
+        END IF
+      end if
+      END IF                                          ! end 6-band
 C
       ITLI=TGLI
       WTLI=TGLI-ITLI
@@ -5774,7 +5802,7 @@ C
       DTRUFG(4)=0.5D0*(BLIP-BLIM)
   700 CONTINUE
 C
-      IF(KVEGA6.LT.1) THEN
+      IF(KVEGA6.LT.1) THEN                                      ! 2-band
       BVSURF= POCEAN*BOCVIS +PEARTH*BEAVIS +POICE*BOIVIS +PLICE*BLIVIS
       XVSURF= POCEAN*XOCVIS +PEARTH*XEAVIS +POICE*XOIVIS +PLICE*XLIVIS
       BNSURF= POCEAN*BOCNIR +PEARTH*BEANIR +POICE*BOINIR +PLICE*BLINIR
@@ -5803,7 +5831,7 @@ C
       SRXALB(J)=XNSURF
   740 CONTINUE
 C
-      ELSE
+      ELSE                                                      ! 6-band
       DO 750 L=1,6
       BVNSUR(L)=POCEAN*BOCVN(L)+PEARTH*BEAVN(L)
      +         + POICE*BOIVN(L)+ PLICE*BLIVN(L)
@@ -5827,7 +5855,7 @@ C
       SRBALB(J)=BVNSUR(L)
       SRXALB(J)=XVNSUR(L)
   770 CONTINUE
-      ENDIF
+      ENDIF                                                 ! end 6-band
 C
 C                     --------------------------------------------------
 C                     Define each Surface Flux Factors, Flux Derivatives
@@ -11359,7 +11387,7 @@ ceq   EQUIVALENCE (ISPARE(15),KPFOZO)
 ceq   EQUIVALENCE (ISPARE(16),KVEGA6)
 ceq   EQUIVALENCE (ISPARE(17),KORDER)
 C
-      DATA KPFCO2/0/,  KPFOZO/0/,  KVEGA6/1/,  KORDER/0/
+      DATA KPFCO2/0/,  KPFOZO/0/,  KVEGA6/0/,  KORDER/0/
 C
 C
 ceq   EQUIVALENCE (ISPARE(31),KYEARS),(ISPARE(41),KJDAYS)
