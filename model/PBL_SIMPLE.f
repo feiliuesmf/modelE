@@ -53,6 +53,7 @@
 !output
       real*8 :: us,vs,ws,wsm,wsh,tsv,qsrf,khs
      *         ,w2_1
+     &     ,wint
 !output diag
       real*8 :: psi,dbl,ug,vg,wg
 !output compat (not used)
@@ -60,7 +61,7 @@
 
       common /socpbl_globals/ zs1,tgv,tkv,hemi,qg_sat,pole
      &   ,us,vs,ws,wsm,wsh,tsv,qsrf,khs,w2_1
-     &   ,psi,dbl,ug,vg,wg,kms,kqs
+     &   ,psi,dbl,ug,vg,wg,kms,kqs,wint
 
 !$OMP  THREADPRIVATE (/socpbl_globals/)
 

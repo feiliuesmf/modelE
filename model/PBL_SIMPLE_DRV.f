@@ -15,6 +15,11 @@ c     input data:
 
       real*8 :: cdnl(im,jm)
 
+ccc   some variables introduced in later code, first for tracers,
+ccc   then globally. hope they are not used ...
+      real*8 :: psurf, trhr0
+
+
       contains
 
       subroutine pbl(i,j,itype,ptype)
@@ -37,7 +42,7 @@ C          ,UG,VG,WG,W2_1
       use socpbl, only :  ! npbl=>n ,
      &     zs1,tgv,tkv,qg_sat,hemi,pole    ! rest local
      &     ,us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl,kms,khs,kqs
-     &     ,ug,vg,wg,zgs,w2_1
+     &     ,ug,vg,wg,zgs,w2_1,wint
       use pblcom
 ccc for simple model:
       use dynamics, only : am,pedn,pek
@@ -157,6 +162,10 @@ cccc ***************  output ************
       wsh = wsm
       tsv = tvs
       qsrf = qs
+
+      ! have no idea what this variable is...
+      ! hope this hack is correct I.A.
+      wint = wsm
       
       !diag psi,
       !diag dbl,
