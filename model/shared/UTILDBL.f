@@ -456,7 +456,8 @@ C$OMP PARALLEL DO PRIVATE (L,J,I) SHARED (QCHECK3)
       DO L=1,LN
       DO J=1,JN
       DO I=1,IN
-        IF (.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.)) THEN
+        IF (.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.) .or.
+     *       ABS(A(I,J,L)) .gt.HUGE(A(I,J,L)) ) THEN
           WRITE (6,*) TRIM(FIELD),': ',I,J,L,A(I,J,L),'after ',SUBR
           IF (J.LT.JN.AND.J.GT.1) QCHECK3 = .TRUE.
         END IF
