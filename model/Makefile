@@ -63,7 +63,7 @@ print_usage help all:
 MODEL_E_ROOT = ..
 MODEL_DIR = .
 DECKS_DIR = .
-SCRIPTDIR = $(MODEL_E_ROOT)/exec
+SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
 
 RUNSRC  = E001
 RUN     =
@@ -189,7 +189,7 @@ newstart:
 
 htmldoc:
 	[ -d $(DOC_DIR) ] || mkdir $(DOC_DIR)
-	$(SCRIPTDIR)/gcmdoc.pl -O $(DOC_DIR) -R $(RUN) $(FSRCS)
+	$(SCRIPTS_DIR)/gcmdoc.pl -O $(DOC_DIR) -R $(RUN) $(FSRCS)
 
 clean:
 	rm -f *.LST *~ *.ERR *.CHK *.L

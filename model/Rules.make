@@ -38,10 +38,10 @@ UNAME = $(shell uname)
 ifeq ($(UNAME),IRIX64)
 MACHINE = SGI
 F90 = f90
-FMAKEDEP = $(SCRIPTDIR)/sfmakedepend -H
-F       = $(SCRIPTDIR)/fco2_90
-U	= $(SCRIPTDIR)/uco2_f90
-SETUP	= $(SCRIPTDIR)/setup_e
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -H
+F       = $(SCRIPTS_DIR)/fco2_90
+U	= $(SCRIPTS_DIR)/uco2_f90
+SETUP	= $(SCRIPTS_DIR)/setup_e
 LIBS	= -L/usr/local/netcdf-3.4/lib64 -lnetcdf #-L/u/cmrun -lGCM -lgP
 FFLAGS = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 
 LFLAGS = -64 -O2 -mips4 -lfastm -mp -OPT:reorg_common=OFF -Wl,-woff,134 -Wl,-woff,15
@@ -51,7 +51,7 @@ endif
 ifeq ($(UNAME),Linux)
 MACHINE = Linux
 F90 = f90
-FMAKEDEP = $(SCRIPTDIR)/sfmakedepend -m vo
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -m vo
 FFLAGS = -O2
 LFLAGS = -O2
 endif
@@ -60,7 +60,7 @@ endif
 ifeq ($(UNAME),AIX)
 MACHINE = IBM
 F90 = xlf90_r
-FMAKEDEP = perl $(SCRIPTDIR)/sfmakedepend
+FMAKEDEP = perl $(SCRIPTS_DIR)/sfmakedepend
 FFLAGS = -O2 -qfixed
 LFLAGS = -O2
 endif
