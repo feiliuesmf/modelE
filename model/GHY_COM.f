@@ -62,15 +62,26 @@ ccc evaporation limits from previous time step
       real*8, dimension(IM,JM) :: evap_max_ij=1., fr_sat_ij=1.,
      &     qg_ij = 0.
 
-#ifdef TRACERS_WATER
+#ifdef TRACERS_WATER_OLD
 !@var TRBARE,TRVEGE tracers in bare and veg. soil fraction (kg/m^2)
       REAL*8, DIMENSION(NTM,  NGM,IM,JM) :: TRBARE
       REAL*8, DIMENSION(NTM,0:NGM,IM,JM) :: TRVEGE
 C**** What is the prognostic variable for snow here?
 !@var TRSNOWBV tracer amount in snow over bare and veg. soil (kg/m^2)
       REAL*8, DIMENSION(NTM,2,IM,JM) :: TRSNOWBV
-!@var TRSN_IJ tracer amount in snow on earth (kg)  ???? Is this correct?
-      REAL*8, DIMENSION(NTM,NLSN,2,IM,JM) :: TRSN_IJ
+#endif
+#ifdef TRACERS_WATER
+ccc new tracers
+      !integer, parameter :: NTM = 3
+!@var TR_WBARE tracers in bare soil fraction (kg/m^2)
+!@var TR_WVEGE tracers in vegetated soil fraction (kg/m^2)
+!@var TR_WSN_IJ tracer amount in snow (multiplied by fr_snow) (kg/m^2)
+      REAL*8, DIMENSION(NTM,  NGM,IM,JM) :: TR_WBARE = 0.d0
+      REAL*8, DIMENSION(NTM,0:NGM,IM,JM) :: TR_WVEGE = 0.d0
+      REAL*8, DIMENSION(NTM,NLSN,2,IM,JM) :: TR_WSN_IJ = 0.d0
+ccc TRSNOWBV is not used
+!@var TRSNOWBV tracer amount in snow over bare and veg. soil (kg/m^2)
+      REAL*8, DIMENSION(NTM,2,IM,JM) :: TRSNOWBV0
 #endif
 
       END MODULE GHYCOM
@@ -146,7 +157,7 @@ C**** What is the prognostic variable for snow here?
         WRITE (kunit,err=10) MODULE_HEADER,wbare,wvege,htbare,htvege
      *       ,snowbv
 #ifdef TRACERS_WATER
-        WRITE (kunit,err=10) TRMODULE_HEADER,TRBARE,TRVEGE,TRSNOWBV
+        WRITE (kunit,err=10) TRMODULE_HEADER,TR_WBARE,TR_WVEGE,TRSNOWBV0
 #endif
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
@@ -158,7 +169,7 @@ C**** What is the prognostic variable for snow here?
         SELECT CASE (IACTION)
         CASE (IRSFIC)           ! initial conditions
         CASE (IRERUN,IOREAD)    ! only need tracers from reruns/restarts
-          READ (kunit,err=10) TRHEADER,TRBARE,TRVEGE,TRSNOWBV
+          READ (kunit,err=10) TRHEADER,TR_WBARE,TR_WVEGE,TRSNOWBV0
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version",TRHEADER
      *           ,TRMODULE_HEADER
@@ -203,7 +214,7 @@ C**** What is the prognostic variable for snow here?
         WRITE (kunit,err=10) MODULE_HEADER,NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ
      *       ,HSN_IJ,FR_SNOW_IJ
 #ifdef TRACERS_WATER
-        WRITE (kunit,err=10) TRMODULE_HEADER,TRSN_IJ
+        WRITE (kunit,err=10) TRMODULE_HEADER,TR_WSN_IJ
 #endif
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ
@@ -216,7 +227,7 @@ C**** What is the prognostic variable for snow here?
         SELECT CASE (IACTION)
         CASE (IRSFIC)           ! initial conditions
         CASE (IRERUN,IOREAD)    ! only need tracers from reruns/restarts
-          READ (kunit,err=10) TRHEADER,TRSN_IJ
+          READ (kunit,err=10) TRHEADER,TR_WSN_IJ
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version",TRHEADER
      *           ,TRMODULE_HEADER

@@ -130,7 +130,7 @@ c!!!                may be ice*max_fract_water ??
 
 
       subroutine snow_redistr(
-     &     dz, wsn, hsn, nl, fract_cover_ratio )
+     &     dz, wsn, hsn, nl, fract_cover_ratio, tr_flux, dt )
 !@sum  redistributes snow between the layers
 !@auth I.Aleinov
 !@ver  1.0
@@ -142,6 +142,8 @@ c!!!                may be ice*max_fract_water ??
       real*8 dzo(TOTAL_NL+1), wsno(TOTAL_NL), hsno(TOTAL_NL)
       integer n, no
       real*8 total_dz, ddz, delta, fract
+      real*8, optional :: tr_flux(0:TOTAL_NL), dt
+      integer i
 
 c$$$      if( fract_cover_new .lt. MIN_FRACT_COVER ) then
 c$$$        print *, 'snow_redistr: fract_cover_new < MIN_FRACT_COVER'
@@ -204,6 +206,20 @@ ccc the following is just for check
           endif
         enddo
 
+ccc for tracers
+      if ( present(tr_flux) ) then
+        if ( nlo < TOTAL_NL ) wsno(nlo+1:TOTAL_NL) = 0.d0
+        tr_flux(0) = 0.d0
+        do i=1,TOTAL_NL
+          tr_flux(i) =
+     &         - (wsn(i) - wsno(i)*fract_cover_ratio)/dt
+     &         + tr_flux(i-1)
+        enddo
+
+        if ( abs(tr_flux(TOTAL_NL)) > 1.d-12 )
+     &       call stop_model("SNOW: snow redistr flux error",255)
+      endif
+
       return
       end subroutine snow_redistr
 
@@ -212,7 +228,8 @@ ccc the following is just for check
      &    srht, trht, snht, htpr, evaporation, pr, dt,
      &    t_ground, dz_ground,
      &    water_to_ground, heat_to_ground,
-     &    radiation_out, snsh_dt, evap_dt, fb_or_fv )
+     &    radiation_out, snsh_dt, evap_dt, fb_or_fv,
+     &     tr_flux )
       implicit none
 !@sum  a wrapper that calles real snow_adv (introduced for debugging)
 !@auth I.Aleinov
@@ -263,7 +280,7 @@ ccc checking if the model conserves energy (part 1) (for debugging)
      &    water_to_ground, heat_to_ground,
      &    radiation_out, snsh_dt, evap_dt, retcode )
 
-      if (fb_or_fv .le. 0.) return
+!      if (fb_or_fv .le. 0.) return
 ccc checking if the model conserves energy (part 2) (for debugging)
       do i=1,nl
         total_energy = total_energy + hsn(i)
@@ -291,6 +308,7 @@ c$$$      call abort
 c$$$    endif
 
 ccc for tracers
+      !!!tr_flux(0) = tr_flux(0) + pr - evaporation
       tr_flux(0) = pr - evaporation
       do i=1,TOTAL_NL
         tr_flux(i) = -(wsn(i) - wsn_o(i))/dt

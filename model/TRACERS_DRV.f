@@ -2280,7 +2280,8 @@ C**** print out total tracer diagnostic array size
       USE SEAICE, only : xsi,ace1i
       USE SEAICE_COM, only : rsi,msi,snowi,trsi,trsi0,ssi
       USE LAKES_COM, only : trlake,mwl,mldlk,flake
-      USE GHYCOM, only : trbare,trvege,trsnowbv,wbare,wvege,snowbv
+      USE GHYCOM, only : tr_wbare,tr_wvege,tr_wsn_ij,wbare,wvege
+     &     ,wsn_ij,nsn_ij,fr_snow_ij
       USE FLUXES, only : gtracer
 #endif
       USE GEOM, only: dxyp,bydxyp
@@ -2520,16 +2521,22 @@ c**** landice
 c**** earth
             if (fearth(i,j).gt.0) then
               conv=rhow         ! convert from m to kg/m^2
-              trbare  (n,:,i,j)=trw0(n)*wbare (:,i,j)*conv
-              trvege  (n,:,i,j)=trw0(n)*wvege (:,i,j)*conv
-              trsnowbv(n,1,i,j)=trw0(n)*snowbv(1,i,j)*conv
-              trsnowbv(n,2,i,j)=trw0(n)*snowbv(2,i,j)*conv
+              tr_wbare  (n,:,i,j)=trw0(n)*wbare (:,i,j)*conv
+              tr_wvege  (n,:,i,j)=trw0(n)*wvege (:,i,j)*conv
+              tr_wsn_ij(n,1:nsn_ij(1,i,j),1,i,j)=
+     &             trw0(n)*wsn_ij(1:nsn_ij(1,i,j),1,i,j)
+     &             *fr_snow_ij(1,i,j)*conv
+              tr_wsn_ij(n,1:nsn_ij(2,i,j),2,i,j)=
+     &             trw0(n)*wsn_ij(1:nsn_ij(2,i,j),2,i,j)
+     &             *fr_snow_ij(2,i,j)*conv
+              !trsnowbv(n,2,i,j)=trw0(n)*snowbv(2,i,j)*conv
               gtracer (n,4,i,j)=trw0(n)
             else
-              trbare  (n,:,i,j)=0.
-              trvege  (n,:,i,j)=0.
-              trsnowbv(n,1,i,j)=0.
-              trsnowbv(n,2,i,j)=0.
+              tr_wbare  (n,:,i,j)=0.
+              tr_wvege  (n,:,i,j)=0.
+              tr_wsn_ij(n,:,:,i,j)=0.
+              !trsnowbv(n,1,i,j)=0.
+              !trsnowbv(n,2,i,j)=0.
               gtracer(n,4,i,j)=0.
             end if
           end do
@@ -3263,7 +3270,7 @@ c should be done elsewhere, like in a chemistry section of the model.
 c But if it is impossible to supply that section with the variables
 c needed from the wet deposition code, then the aerosol formation code
 c should probably go here... If you add this, please make appropriate
-c changes in the subroutine's name/summary above. GSF 1/4/02.
+c changes in the subroutine''s name/summary above. GSF 1/4/02.
         CASE DEFAULT                                ! error
           call stop_model(
      &    'tr_wd_TYPE(NTIX(N)) out of range in SCAVENGE_TRACER',255)

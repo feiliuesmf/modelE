@@ -433,7 +433,7 @@ C****
       USE SEAICE_COM, only : trsi
       USE LAKES_COM, only : trlake
       USE LANDICE_COM, only : trlndi,trsnowli
-      USE GHYCOM, only : trbare,trvege,trsnowbv,trsn_ij
+      USE GHYCOM, only : tr_wbare,tr_wvege,tr_wsn_ij
 #endif
       USE TRACER_DIAG_COM, only : tajls,jls_decay,itcon_decay
       IMPLICIT NONE
@@ -466,10 +466,9 @@ C**** Decay sea ice tracers
 C**** ...lake tracers
           trlake(n,:,:,:) = expdec(n)*trlake(n,:,:,:)
 C**** ...land surface tracers
-          trbare(n,:,:,:) = expdec(n)*trbare(n,:,:,:)
-          trvege(n,:,:,:) = expdec(n)*trvege(n,:,:,:)
-          trsnowbv(n,:,:,:) = expdec(n)*trsnowbv(n,:,:,:)
-          trsn_ij(n,:,:,:,:)= expdec(n)*trsn_ij(n,:,:,:,:)
+          tr_wbare(n,:,:,:) = expdec(n)*tr_wbare(n,:,:,:)
+          tr_wvege(n,:,:,:) = expdec(n)*tr_wvege(n,:,:,:)
+          tr_wsn_ij(n,:,:,:,:)= expdec(n)*tr_wsn_ij(n,:,:,:,:)
           trsnowli(n,:,:) = expdec(n)*trsnowli(n,:,:)
           trlndi(n,:,:)   = expdec(n)*trlndi(n,:,:)
 #endif
@@ -678,7 +677,7 @@ C**** check whether air mass is conserved
       
 #ifdef TRACERS_WATER
         if (trname(n).eq.'Water') then
-          errmax = 0. ; lmax=1 ; imax=1 ; jmax=1 
+          errmax = 0. ; lmax=1 ; imax=1 ; jmax=1
           do l=1,lm
           do j=1,jm
           do i=1,imaxj(j)

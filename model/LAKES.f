@@ -938,7 +938,7 @@ C**** convert kg/(source time step) to km^3/mon
                 TRRVOUT(I,N)=scale_tij(TIJ_RVR,n)*TAIJN(IRVRMTH(I-1+INM)
      *               ,JRVRMTH(I-1+INM),TIJ_RVR,N)/(AIJ(IRVRMTH(I-1+INM)
      *               ,JRVRMTH(I-1+INM),IJ_MRVR)*BYDXYP(JRVRMTH(I-1+INM))
-     *               )
+     *               +teeny)
               end if
             END DO
             WRITE(6,901) (NAMERVR(I-1+INM),TRRVOUT(I,N),I=1,6)
