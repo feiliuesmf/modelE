@@ -846,7 +846,7 @@ C**** save plume temperature after possible condensation
       FLAMW=(1000.d0*PI*CN0/(CONDMU+teeny))**.25
       FLAMG=(400.d0*PI*CN0/(CONDMU+teeny))**.25
       FLAMI=(100.d0*PI*CN0/(CONDMU+teeny))**.25
-      IF (TP.GE.TF) THEN
+      IF (TP.GE.TF) THEN ! water phase
         DDCW=6d-3/FITMAX
         IF(PLAND.LT..5) DDCW=1.5d-3/FITMAX
         DCW=0.
@@ -860,15 +860,11 @@ C**** save plume temperature after possible condensation
         CONDP(L)=RHOW*(PI*by6)*CN0*EXP(-FLAMW*DCW)*
      *     (DCW*DCW*DCW/FLAMW+3.*DCW*DCW/(FLAMW*FLAMW)+
      *     6.*DCW/(FLAMW*FLAMW*FLAMW)+6./FLAMW**4)
-        CONDP(L)=.01d0*CONDP(L)*CCM(L-1)*TL(L)*RGAS/PL(L)
-      ENDIF
-      IF (TP.LE.TI) THEN
+      ELSE IF (TP.LE.TI) THEN ! pure ice phase
         CONDP(L)=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
-        CONDP(L)=.01d0*CONDP(L)*CCM(L-1)*TL(L)*RGAS/PL(L)
-      ENDIF
-      IF (TP.LT.TF.AND.TP.GT.TI) THEN
+      ELSE ! mixed phase
         FG=(TP-TF+40.)*0.025d0
         FI=1.-FG
         CONDIP=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
@@ -877,9 +873,10 @@ C**** save plume temperature after possible condensation
         CONDGP=RHOG*(PI*by6)*CN0*EXP(-FLAMG*DCG)*
      *    (DCG*DCG*DCG/FLAMG+3.*DCG*DCG/(FLAMG*FLAMG)+
      *    6.*DCG/(FLAMG*FLAMG*FLAMG)+6./FLAMG**4)
-        CONDP(L)=.01d0*(FG*CONDGP+FI*CONDIP)*CCM(L-1)*
-     *     TL(L)*RGAS/PL(L)
+        CONDP(L)=FG*CONDGP+FI*CONDIP
       ENDIF
+c convert condp to the same units as cond
+      CONDP(L)=.01d0*CONDP(L)*MPLUME*TL(L)*RGAS/PL(L)
 #ifdef TRACERS_WATER
 C**** CONDENSING TRACERS
       WMXTR=DQSUM*BYAM(L)
