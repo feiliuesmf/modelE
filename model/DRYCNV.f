@@ -47,6 +47,7 @@ C
       if(LBASE_MAX.GE.LM) call stop_model('DRYCNV: LBASE_MAX.GE.LM',255)
 
       ! update w2gcm at 1st GCM layer
+      w2gcm=0.d0
       do j=1,jm
       do i=1,im
          w2gcm(1,i,j)=w2_l1(i,j)
