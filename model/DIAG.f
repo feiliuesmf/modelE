@@ -2644,8 +2644,8 @@ C****
 #endif
       IMPLICIT NONE
       SAVE
-!@var kddmax maximum number of sub-daily diags
-      INTEGER, PARAMETER :: kddmax = 30
+!@var kddmax maximum number of sub-daily diags output files
+      INTEGER, PARAMETER :: kddmax = 40
 !@var kdd total number of sub-daily diags
       INTEGER :: kdd
 !@var kddunit total number of sub-daily files
