@@ -72,6 +72,7 @@ C          ,UG,VG,WG,ZMIX
       INTEGER, INTENT(IN) :: ITYPE  !@var ITYPE surface type
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
 
+      REAL*8, parameter :: dbl_max=3000. ! meters
       REAL*8 Ts
 
 #ifdef TRACERS_ON
@@ -96,80 +97,73 @@ C        roughness lengths from Brutsaert for rough surfaces
         Z0M=30./(10.**ROUGHL(I,J))
       ENDIF
       ztop=zgs+zs1
-      IF (TKV.EQ.TGV) TGV=1.0001*TGV
-      IF (TKV.GE.TGV) THEN
-C **********************************************************************
-C ********** ATMOSPHERE IS STABLE WITH RESPECT TO THE GROUND ***********
-C
-C  DETERMINE THE VERTICAL LEVEL CORRESPONDING TO THE HEIGHT OF THE PBL:
-C   WHEN ATMOSPHERE IS STABLE, CAN COMPUTE DBL BUT DO NOT KNOW THE
-C   INDEX OF THE LAYER.
-C
-        USTAR=USTAR_PBL(I,J,ITYPE)
-        DBL=0.3*USTAR/OMEGA2
-        if (dbl.le.ztop) then
-C THE VERTICAL LEVEL FOR WHICH WG IS COMPUTED IS THE FIRST:
+      IF (TKV.EQ.TGV) TGV=1.0001d0*TGV
+
+      ! find PBL height dbl (in meters) and the GCM layer (L) at which
+      ! to compute ug, vg and wg 
+
+c     IF (TKV.GE.TGV) THEN
+
+c       ! ATMOSPHERE IS STABLE WITH RESPECT TO THE GROUND
+c       ! COMPUTE THE PBL HEIGHT (DBL, IN METERS) WITH EMPIRICAL FORMULA
+c       ! AND DETERMINE THE GCM VERTICAL LAYER CORRESPONDING TO THE DBL
+
+c       USTAR=USTAR_PBL(I,J,ITYPE)
+c       DBL=min(0.3d0*USTAR/OMEGA2,dbl_max)
+c       if (dbl.le.ztop) then
+c         dbl=ztop
+c         L=1
+c       else
+c         zpbl=ztop
+c         pl1=pmid(1,i,j)
+c         tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)
+c         ! find the next L higher than dbl
+c         do l=2,ls1
+c           pl=pmid(l,i,j)
+c           tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j) !virtual,absolute
+c           tbar=thbar(tl1,tl)
+c           zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
+c           if (zpbl.ge.dbl) exit
+c           pl1=pl
+c           tl1=tl
+c         end do
+c       endif
+
+c     ELSE
+
+        ! ATMOSPHERE IS UNSTABLE WITH RESPECT TO THE GROUND
+        ! LDC IS THE LAYER TO WHICH DRY CONVECTION/TURBULENCE MIXES
+        ! FIND THE GCM LAYER AT OR ABOVE DBL_MAX AT WHICH TO COMPUTE WG
+
+        LDC=max(int(DCLEV(I,J)+.5d0),1)
+        if (LDC.eq.1) then
           dbl=ztop
           L=1
-        ELSE
-          if (dbl.gt.3000.) dbl=3000.
-C FIND THE VERTICAL LEVEL NEXT HIGHER THAN DBL AND COMPUTE WG THERE:
-          zpbl=ztop
-          pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
-          ! pk(1,i,j) = expbyk(pl1)
-          tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)
-          do l=2,ls1
-            pl=pmid(l,i,j)        !pij*sig(l)+ptop
-            tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j) !virtual,absolute
-            tbar=thbar(tl1,tl)
-            zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
-            if (zpbl.ge.dbl) go to 200
-            pl1=pl
-            tl1=tl
-          end do
- 200      CONTINUE
-        ENDIF
-C *********************************************************************
-      ELSE
-C *********************************************************************
-C ********* ATMOSPHERE IS UNSTABLE WITH RESPECT TO THE GROUND *********
-C
-C  LDC IS THE LEVEL TO WHICH DRY CONVECTION MIXES. IF THE BOUNDARY
-C   LAYER HEIGHT IS LESS THAN 3 KM, ASSIGN LDC TO L, OTHERWISE MUST
-C   FIND INDEX FOR NEXT MODEL LAYER ABOVE 3 KM:
-C
-        LDC=nint(DCLEV(I,J))
-        IF (LDC.EQ.0) LDC=1
-        if (ldc.eq.1) then
-          dbl=ztop
-          l=1
         else
           zpbl=ztop
-          pl1=pmid(1,i,j)          !pij*sig(1)+ptop
-          tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)   !expbyk(pl1)
+          pl1=pmid(1,i,j)
+          tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)
           zpbl1=ztop
-          do l=2,ldc
-            pl=pmid(l,i,j)         !pij*sig(l)+ptop
-            tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j)  !expbyk(pl)
+          do L=2,LDC
+            pl=pmid(l,i,j)
+            tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j)
             tbar=thbar(tl1,tl)
             zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
-            if (zpbl.ge.3000.) then
+            if (zpbl.gt.dbl_max) then
               zpbl=zpbl1
-              go to 400
+              exit
             endif
             pl1=pl
             tl1=tl
             zpbl1=zpbl
+            if(L.eq.LDC) exit ! so that L will not increase by one
           end do
-400       continue
-          l=l-1
           dbl=zpbl
         endif
-C**********************************************************************
-      ENDIF
 
-C *********************************************************************
-      ppbl=pedn(l,i,j)      ! sige(l)*pij+ptop
+c     ENDIF
+
+      ppbl=pedn(l,i,j)
       coriol=sinp(j)*omega2
       ttop=tkv
       qtop=q(i,j,1)

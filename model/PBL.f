@@ -1140,29 +1140,29 @@ c
       sup(1)=0.
       rhs(1)=0.5*b123*ustar*ustar
 
-c     j=n-1
-c     an2=2.*grav*(t(j+1)-t(j))/((t(j+1)+t(j))*dzh(j))
-c     dudz=(u(j+1)-u(j))/dzh(j)
-c     dvdz=(v(j+1)-v(j))/dzh(j)
-c     as2=max(dudz*dudz+dvdz*dvdz,teeny)
-c     ri=an2/as2
-c     if(ri.gt.rimax) ri=rimax
-c     aa=c1*ri*ri-c2*ri+c3
-c     bb=c4*ri+c5
-c     cc=2.d0
-c     if(abs(aa).lt.1d-8) then
-c       gm= -cc/bb
-c     else
-c       tmp=bb*bb-4.*aa*cc
-c       gm=(-bb-sqrt(tmp))/(2.*aa)
-c     endif
-c     sub(n-1)=0.
-c     dia(n-1)=1.
-c     rhs(n-1)=max(0.5*(B1*lscale(j))**2*as2/(gm+teeny),teeny)
-
-      sub(n-1)=-1.
+      j=n-1
+      an2=2.*grav*(t(j+1)-t(j))/((t(j+1)+t(j))*dzh(j))
+      dudz=(u(j+1)-u(j))/dzh(j)
+      dvdz=(v(j+1)-v(j))/dzh(j)
+      as2=max(dudz*dudz+dvdz*dvdz,teeny)
+      ri=an2/as2
+      if(ri.gt.rimax) ri=rimax
+      aa=c1*ri*ri-c2*ri+c3
+      bb=c4*ri+c5
+      cc=2.d0
+      if(abs(aa).lt.1d-8) then
+        gm= -cc/bb
+      else
+        tmp=bb*bb-4.*aa*cc
+        gm=(-bb-sqrt(tmp))/(2.*aa)
+      endif
+      sub(n-1)=0.
       dia(n-1)=1.
-      rhs(n-1)=0.
+      rhs(n-1)=max(0.5*(B1*lscale(j))**2*as2/(gm+teeny),teeny)
+
+c     sub(n-1)=-1.
+c     dia(n-1)=1.
+c     rhs(n-1)=0.
 
       call TRIDIAG(sub,dia,sup,rhs,e,n-1)
 
