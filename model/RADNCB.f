@@ -23,7 +23,7 @@
       REAL*8 :: S0X = 1.
 !@var CO2 carbon dioxide multiplication factor                 DB-param
       REAL*8 :: CO2 = 1.
-!@var RSDIST,SIND,COSD orbit related variables
+!@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAl*8 :: RSDIST,SIND,COSD
 
 C**** Local variables initialised in init_RAD
@@ -50,23 +50,21 @@ C**** Local variables initialised in init_RAD
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "RAD01"
-!@var RADDUM dummy variable
-      REAL*8, DIMENSION(4) :: RADDUM
 
-      MODULE_HEADER(lhead+1:80) = 'R8 S0,SunE,sinD,cosD,Teq(3,im,jm),'//
-     *  's+tHr(0:lm,im,jm,2),fs(im,jm,4)'
+      MODULE_HEADER(lhead+1:80) = 'R8 Teq(3,im,jm),'//
+     *  ' S0, s+tHr(0:lm,im,jm,2),fs(im,jm,4)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,S0,RSDIST,SIND,COSD,
-     *     RQT,SRHR,TRHR,FSF
+        WRITE (kunit,err=10) MODULE_HEADER,RQT
+     *    ,S0,SRHR,TRHR,FSF      ! only needed if MODRAD > 0 at restart
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
         CASE (ioread,IRERUN)  ! input for restart, rerun or extension
-          READ (kunit,err=10) HEADER,S0,RSDIST,SIND,COSD,
-     *       RQT,SRHR,TRHR,FSF
-        CASE (IRSFIC)           ! start from old restart file
-          READ (kunit,err=10) HEADER,RADDUM,RQT
+          READ (kunit,err=10) HEADER,RQT
+     *       ,S0,SRHR,TRHR,FSF   ! only needed if MODRAD > 0 at restart
+        CASE (IRSFIC)            ! start from restart file of prev. run
+          READ (kunit,err=10) HEADER,RQT
         END SELECT
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
