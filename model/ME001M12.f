@@ -508,8 +508,7 @@ C****
      *  ISTART=10, HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1
       REAL*8 TIJL,X,CDM,TEMP,PLTOP(LM),MSI1   ! ,SNOAGE ? obsolete
       REAL*4 XX4
-      REAL*8 HOURX   ! ? to restart from older versions
-      INTEGER Itime1,Itime2,ItimeX
+      INTEGER Itime1,Itime2,ItimeX,IhrX
       INTEGER :: LRUNID=4                       ! RUNID longer than 4?
 
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE., inilake = .FALSE.,
@@ -601,6 +600,7 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
       IhrI = ((yearI-Iyear0)*JDperY +
      *        JDendofM(monthI-1) + dateI-1)*HR_IN_DAY + HourI
       ITimeI = IhrI*NDAY/24  !  internal clock counts DTsrc-steps
+      Itime=ItimeI
       IF (IhrI.lt.0) then
         WRITE(6,*) 'Please set a proper start time; current values:',
      *     'yearI,monthI,dateI,hourI=',yearI,monthI,dateI,hourI
@@ -761,24 +761,22 @@ C****
 C**** I.C FROM RESTART FILE WITH almost COMPLETE DATA    ISTART=7
 C****
       CASE (7)             ! converted model II' (B399) format (no snow)
-        call io_rsf(iu_AIC,ItimeX,irsfic,ioerr)
+        call io_rsf(iu_AIC,IhrX,irsfic,ioerr)
         CLOSE (iu_AIC)
-        HOURX=ItimeX*24/NDAY  ! works only if DTsrc is same in both runs
         if (ioerr.eq.1) goto 800
         iniSNOW = .TRUE.      ! extract snow data from first soil layer
 C****
 C****   Data from current type of RESTART FILE           ISTART=8
 C****
       CASE (8)  ! no need to read SRHR,TRHR,FSF,TSFREZ,diag.arrays
-        call io_rsf(iu_AIC,ItimeX,irsfic,ioerr)
+        call io_rsf(iu_AIC,IhrX,irsfic,ioerr)
         CLOSE (iu_AIC)
-        HOURX=ItimeX*24/NDAY  ! works only if DTsrc is same in both runs
         if (ioerr.eq.1) goto 800
       END SELECT
-C**** Check consistency of starting date
-      IF (ISTART.ge.3.and.(MOD(IHRI-nint(HOURX),8760).ne.0)) THEN
+C**** Check consistency of starting time
+      IF (ISTART.ge.3.and.(MOD(IHRI-IHRX,8760).ne.0)) THEN
         WRITE (6,*) ' Difference in hours between ',
-     *       'Starting date and Data date:',MOD(IHRI-nint(HOURX),8760)
+     *       'Starting date and Data date:',MOD(IHRI-IHRX,8760)
         WRITE (6,*) 'Please change HOURI,DATEI,MONTHI'
         STOP 'ERROR: start date inconsistent with data'
       END IF

@@ -158,9 +158,10 @@ C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
         SELECT CASE (IACTION)   ! set model common according to iaction
         CASE (ioread)       ! use parameters and label from restart file
           JC=JC1 ; CLABEL=CLABEL1 ; RC=RC1
-        CASE (IRSFIC)       ! use defaults, rundeck label => do nothing
+        CASE (IRSFIC)       ! use defaults, rundeck label
+         ! switch 'it' to 'ihour' using 'nday' of restart file ?????
         CASE (IRERUN)       ! use params from rsfile, label from rundec
-          JC=JC1 ; RC=RC1   
+          JC=JC1 ; RC=RC1
         END SELECT ! namelist parameters may still be changed in rundeck
       END SELECT
       RETURN
