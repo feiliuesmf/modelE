@@ -4,10 +4,10 @@
 !@ver   1.0 (taken from CB265)
 !@calls CLOUDS:MSTCNV,CLOUDS:LSCOND
 
-      USE CONSTANT, only : bygrav,lhm,rgas,grav
+      USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,sig,DTsrc,ftype
-     *     ,ntype,itime,fim,airx,lmc
+     *     ,ntype,itime,fim,airx,lmc,focean,fland,flice
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
@@ -27,11 +27,15 @@
      *     ij_neth,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
      &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,
-     &     jl_mchphas,jl_mcdtotw,jl_mcdlht,jl_mcheat,jl_mcdry
+     &     jl_mchphas,jl_mcdtotw,jl_mcdlht,jl_mcheat,jl_mcdry,
+     *     ij_ctpi,ij_taui,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,
+     *     isccp_diags
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
+     *     ,ltropo
       USE SEAICE_COM, only : rsi
       USE GHYCOM, only : snoage
-      USE FLUXES, only : prec,eprec,precss
+      USE LAKES_COM, only : flake
+      USE FLUXES, only : prec,eprec,precss,gtemp
 
       IMPLICIT NONE
 
@@ -65,6 +69,16 @@
 !@var ENRGP energy of precip
 !@var WMERR DH12,BYDH12,DH1S,BYDH1S,THV1,THV2 dummy variables
 !@var ALPHA1,ALPHA2,DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS dummy variables
+
+C**** parameters and variables for isccp diags
+      integer, parameter :: ntau=7,npres=7
+      real*8, parameter :: bywc = 1./2.56d0 , byic= 1./2.13d0
+      real*8 skt,conv(lm),qv(lm)
+      real*8 pfull(lm),at(lm),cc(lm),dtau_s(lm),dtau_c(lm)
+      real*8 dem_s(lm),dem_c(lm),phalf(lm+1)
+      real*8 fq_isccp(ntau,npres),ctp,tauopt,sumcld
+      integer itau,ipres,itrop,nbox
+C**** 
 
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
@@ -325,6 +339,65 @@ C**** PRECIPITATION DIAGNOSTICS
           SNOAGE(ITYPE,I,J)=SNOAGE(ITYPE,I,J)*EXP(-PRCP)
         END DO
       END IF
+
+C**** Calculate ISCCP cloud diagnostics if required
+      if (isccp_diags.eq.1) then
+        do l=1,lm
+          cc(l)=cldmcl(LM+1-L)+cldssl(LM+1-L)
+          if(cc(l) .gt. 1.) then
+            cc(l)=1.
+          endif
+          conv(l)=cldmcl(LM+1-L)
+          if(conv(l) .gt. 1.) then
+            conv(l)=1.
+          endif
+          
+          dtau_s(l)=taussl(LM+1-L) 
+          dtau_c(l)=taumcl(LM+1-L)  
+          pfull(l)=pl(LM+1-L)*100.
+          phalf(l)=ple(LM+2-L)*100.
+          at(l)=tl(LM+1-L)  ! in situ temperature
+
+C**** set tg1 from GTEMP array (or save in SURFACE?)
+c          skt=tf+tg1(i,j)
+          skt=tf + (focean(i,j)+flake(i,j))*(1.-rsi(i,j))*gtemp(1,1,i,j)
+     *         + (focean(i,j)+flake(i,j))*rsi(i,j)*gtemp(1,2,i,j)
+     *         + flice(i,j)*gtemp(1,3,i,j)+fearth(i,j)*gtemp(1,4,i,j)
+          if(svlhxl(LM+1-L) .eq. lhe ) then   ! water cloud
+            dem_s(l)=1.-exp(-taussl(LM+1-L)*bywc)  
+            dem_c(l)=1.-exp(-taumcl(LM+1-L)*bywc)  
+          else                                     ! ice cloud
+            dem_s(l)=1.-exp(-taussl(LM+1-L)*byic)  
+            dem_c(l)=1.-exp(-taumcl(LM+1-L)*byic)  
+          endif
+          
+          qv(l)=ql(LM+1-L)  
+        end do
+        phalf(lm+1)=ple(1)*100.
+        itrop = LM+1-LTROPO(I,J)
+
+        call ISCCP_CLOUD_TYPES(pfull,phalf,qv,
+     &       cc,conv,dtau_s,dtau_c,skt,
+     &       at,dem_s,dem_c,itrop,fq_isccp,ctp,tauopt,nbox)
+          
+C**** set ISCCP diagnostics
+        if (nbox.gt.0) then
+          AIJ(I,J,IJ_CTPI) = AIJ(I,J,IJ_CTPI) + ctp
+          AIJ(I,J,IJ_TAUI) = AIJ(I,J,IJ_TAUI) + tauopt
+          AIJ(I,J,IJ_TCLDI)= AIJ(I,J,IJ_TCLDI)+ 1. 
+        end if
+C**** note LOW CLOUDS:       ipres=6,7, MID-LEVEL CLOUDS: ipres=4,5 ,
+C****      HIGH CLOUDS:      ipres=1,2,3 
+C**** Sum over itau=2,ntau (itau=1 is no cloud)
+        do itau=2,ntau
+          AIJ(I,J,IJ_LCLDI)= AIJ(I,J,IJ_LCLDI) + fq_isccp(itau,6)
+     *         + fq_isccp(itau,7)
+          AIJ(I,J,IJ_MCLDI)= AIJ(I,J,IJ_MCLDI) + fq_isccp(itau,4)
+     *         + fq_isccp(itau,5)
+          AIJ(I,J,IJ_HCLDI)= AIJ(I,J,IJ_HCLDI) + fq_isccp(itau,1)
+     *         + fq_isccp(itau,2) + fq_isccp(itau,3)
+        end do
+      end if
 
 C**** WRITE TO GLOBAL ARRAYS
       DO L=1,LM

@@ -1040,7 +1040,7 @@ C**** only top two layers are done (unless LMIN=LM i.e. only top layer)
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,t
       USE GEOM, only : imaxj
-      USE DAGCOM, only : aij, aj
+      USE DAGCOM, only : aij, ij_ptrop
       USE DYNAMICS, only : pk, pmid, PTROPO, LTROPO
       IMPLICIT NONE
       INTEGER I,J,L
@@ -1053,6 +1053,7 @@ C**** Find WMO Definition of Tropopause to Nearest L
           TL(L)=T(I,J,L)*PK(L,I,J)
         end do
         CALL TROPWMO(TL,PMID(1,I,J),PK(1,I,J),PTROPO(I,J),LTROPO(I,J))
+        AIJ(I,J,IJ_PTROP)=AIJ(I,J,IJ_PTROP)+PTROPO(I,J)
       end do
       end do
       END SUBROUTINE CALC_TROP

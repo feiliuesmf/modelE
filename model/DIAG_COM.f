@@ -301,7 +301,8 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_TMAX,IJ_TMIN, IJ_TMNMX,IJ_PEVAP,IJ_TMAXE, IJ_WMSUM,
      *     IJ_PSCLD,IJ_PDCLD, IJ_DCNVFRQ,IJ_SCNVFRQ, IJ_EMTMOM,
      *     IJ_SMTMOM,IJ_FPEU, IJ_FPEV, IJ_FMU,IJ_FMV,IJ_FQU, IJ_FQV,
-     *     IJ_FGZU,IJ_FGZV, IJ_ERVR, IJ_MRVR,IJ_SDRAG,IJ_LKON,IJ_LKOFF
+     *     IJ_FGZU,IJ_FGZV, IJ_ERVR, IJ_MRVR,IJ_SDRAG,IJ_LKON,IJ_LKOFF,
+     *     IJ_PTROP
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER :: IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
      *     IJ_G08,IJ_G09,IJ_G10,IJ_G11,IJ_G12,IJ_G13,IJ_G14,IJ_G15,
@@ -310,6 +311,11 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var IJ_GWx names for gravity wave diagnostics
       INTEGER :: IJ_GW1,IJ_GW2,IJ_GW3,IJ_GW4,IJ_GW5,IJ_GW6,IJ_GW7,IJ_GW8
      *     ,IJ_GW9
+!@var IJ_xxxI names for ISCCP diagnostics
+      INTEGER :: IJ_CTPI,IJ_TAUI,IJ_LCLDI,IJ_MCLDI,IJ_HCLDI,IJ_TCLDI
+
+!@var isccp_diags flag for accumulating ISCCP diagnostics (default not)
+      INTEGER :: isccp_diags = 0
 
 !@var SCALE_IJ scaling for weighted AIJ diagnostics
       REAL*8, DIMENSION(KAIJ) :: SCALE_IJ

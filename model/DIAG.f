@@ -2943,6 +2943,7 @@ C****
 
       call sync_param( "NAMDD", NAMDD, 4 )
       call sync_param( "IJDD", IJDD(1:2,1), 8)
+      call sync_param( "isccp_diags",isccp_diags)
 
       IF(ISTART.LT.0) THEN
         call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jday0,Jdate0,Jhour0

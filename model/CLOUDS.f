@@ -1612,3 +1612,639 @@ C**** CALCULATE OPTICAL THICKNESS
       END SUBROUTINE LSCOND
 
       END MODULE CLOUDS
+
+C-----------------------------------------------------------------------------
+
+      SUBROUTINE ISCCP_CLOUD_TYPES(pfull,phalf,qv,cc,conv,dtau_s,dtau_c
+     *     ,skt,at,dem_s,dem_c,itrop,fq_isccp,ctp,tauopt,nbox)
+!@sum  ISCCP_CLOUD_TYPES calculate isccp cloud diagnostics in a column
+!@auth G. Tselioudis (modifications by Gavin Schmidt)
+!@ver  1.0
+      USE CONSTANT, only : bygrav, wtmair=>mair, bymrat
+      USE RANDOM, only : rinit,rfinal,randu
+      USE MODEL_COM, only : nlev=>lm,qcheck
+      implicit none
+!@var  overlap type: 1=max, 2=rand,  3=max/rand
+!@var  top_height 1 = adjust top height, that is compute infrared
+!@+     brightness temperature and adjust cloud top pressure accordingly
+!@+               2 = do not adjust top height, that is cloud top
+!@+     pressure is the actual cloud top pressure in the model
+      INTEGER, PARAMETER :: top_height=1, overlap=3
+!@var  emsfc_lw    longwave emissivity of surface at 10.5 microns
+      REAL*8, PARAMETER :: emsfc_lw=0.99d0 
+      INTEGER,PARAMETER :: ncol =20    !@var ncol number of subcolumns
+      REAL*8, PARAMETER :: byncol = 1d0/ncol
+      REAL*8, PARAMETER :: Navo = 6.023d23 !@var Navo Avogardos Numbers
+!@var pc1bylam Planck constant c1 by wavelength (10.5 microns)
+      REAL*8, PARAMETER :: pc1bylam = 1.439d0/10.5d-4
+!@var t0 ave temp  (K)
+      REAL*8, PARAMETER :: t0 = 296. 
+!@var t0bypstd ave temp by sea level press 
+      REAL*8, PARAMETER :: t0bypstd = t0/1.013250d6
+      real*8, parameter :: bywc = 1./2.56d0 , byic= 1./2.13d0
+!     -----
+!     Input 
+!     -----
+!@var pfull pressure of full model levels (Pascals)
+      REAL*8 pfull(nlev)  ! pfull(1) is top level, pfull(nlev) is bottom
+!@var phalf pressure of half model levels (Pascals)
+      REAL*8 phalf(nlev+1) ! phalf(1) is top, phalf(nlev+1) is surf pres
+!@var qv  water vapor specific humidity (kg vapor/ kg air) 
+      REAL*8 qv(nlev)      
+!@var cc  input cloud cover in each model level (fraction) 
+      REAL*8 cc(nlev)           ! NOTE: This is the HORIZONTAL area of 
+                                ! each grid box covered by clouds
+!@var conv input convective cloud cover in each model level(frac)
+      REAL*8 conv(nlev)         ! NOTE: This is the HORIZONTAL area of
+                                ! each box covered by convective clouds
+!@var dtau_s mean 0.67 micron optical depth of stratiform clouds each level
+!@var dtau_c mean 0.67 micron optical depth of convective clouds each level
+      REAL*8 dtau_s(nlev), dtau_c(nlev)      
+           !  NOTE:  these cloud optical depths are only for the
+           !         cloudy part of the grid box, they are not weighted
+           !         with the 0 cloud optical depth of the clear
+           !         part of the grid box
+
+      INTEGER :: itrop    !@var itrop tropopause level (WMO definition)
+
+!     The following input variables are used only if top_height = 1
+      REAL*8 skt                !@var skt skin Temperature (K)
+      REAL*8 at(nlev)           !@var at temperature in each model level (K)
+!@var dem_s 10.5 micron longwave emissivity of stratiform clouds 
+!@var dem_c 10.5 micron longwave emissivity of convective clouds
+      REAL*8 dem_s(nlev),dem_c(nlev)        
+!     ------
+!     Output
+!     ------
+!@var fq_isccp the fraction of the model grid box covered by each
+!@+   of the 49 ISCCP D level cloud types
+      REAL*8 fq_isccp(7,7)      
+!@var ctp cloud top pressure averaged over grid box (mb)
+      REAL*8 ctp 
+!@var tauopt cloud optical thickness averaged over grid box
+      REAL*8 tauopt 
+!@var nbox number of boxes with clouds (used as a flag)
+      INTEGER nbox  
+!     ------
+! Working variables 
+!     ------
+!@var frac_out boxes gridbox divided up into
+      REAL*8 frac_out(ncol,nlev) ! Equivalent of BOX in original version, but
+                                 ! indexed by column then row, rather than
+                                 ! by row then column
+!@var tca total cloud cover (fraction) with extra layer of zeroes on top
+      REAL*8 tca(ncol,0:nlev)   ! in this version this just contains the
+                           ! values input from cc but replicated across ncol
+!@var cca convect. cloud cover each model level(frac)
+      REAL*8 cca(ncol,nlev)  ! from conv but replicated across ncol
+!@var threshold pointer to position in gridbox
+!@var maxocc Flag for max overlapped conv cld
+!@var maxpsc Flag for max overlapped strat cld
+!@var boxpos ordered pointer to position in gridbox
+!@var threshold_min min. allowed value of threshold
+      REAL*8, dimension(ncol) :: threshold,maxocc,maxosc,boxpos,
+     *     threshold_min 
+!@var dem,bb,bbs working variables for 10.5 micron longwave emissivity
+!@+ in part of gridbox under consideration
+      real*8 dem(ncol),bb(nlev),bbs  
+      integer seed  !@var seed saved value for random number generator
+!@var dtautmp,demtmp temporary variables for dtau,dem
+      real*8, dimension(ncol) :: dtautmp, demtmp 
+      real*8 ptrop,attrop,atmax,atmin,btcmin,transmax
+      integer ilev,ibox,ipres,itau,ilev2
+      integer acc(nlev,ncol),match(nlev-1),nmatch,levmatch(ncol)
+      
+      !variables needed for water vapor continuum absorption
+      real*8 fluxtop_clrsky,trans_layers_above_clrsky,taumin
+      real*8 dem_wv(nlev)
+      real*8 press, dpress, atmden, rvh20, wk, rhoave, rh20s, rfrgn
+      real*8 tmpexp,tauwv, XX 
+
+      real*8, dimension(ncol) :: tau,tb,ptop,emcld,fluxtop,
+     *     trans_layers_above
+      real*8, parameter :: isccp_taumin = 0.1d0
+
+      character*1 cchar(6),cchar_realtops(6)
+      data cchar / ' ','-','1','+','I','+'/
+      data cchar_realtops / ' ',' ','1','1','I','I'/
+
+!     assign 2d tca array using 1d input array cc
+      do ilev=0,nlev
+        do ibox=1,ncol
+	  if (ilev.eq.0) then
+	    tca(ibox,ilev)=0
+	  else
+	    tca(ibox,ilev)=cc(ilev)
+	  endif
+        enddo
+      enddo
+!     assign 2d cca array using 1d input array conv
+      do ilev=1,nlev
+        do ibox=1,ncol
+	  cca(ibox,ilev)=conv(ilev)
+        enddo
+      enddo
+
+C**** In order to ensure that the model does not go down a different
+C**** path depending on whether this routine is used, we save current
+C**** seed and reset it afterwards
+      CALL RFINAL(SEED)
+
+      if (top_height .eq. 1) then 
+        ptrop = pfull(itrop)
+        attrop = at(itrop)
+        atmin = 400.
+        atmax = 0.
+        do ilev=1,nlev-1
+          if (at(ilev) .gt. atmax) atmax=at(ilev)
+          if (at(ilev) .lt. atmin) atmin=at(ilev)
+        end do
+      end if
+
+!     ---------------------------------------------------!
+!     find unpermittable data.....
+!
+      do ilev=1,nlev
+        if (cc(ilev) .lt. 0.) then
+          print*, ' error = cloud fraction less than zero'
+          STOP
+        end if
+        if (cc(ilev) .gt. 1.) then
+          print*,' error = cloud fraction greater than 1'
+          STOP
+        end if 
+        if (conv(ilev) .lt. 0.) then
+          print*,' error = convective cloud fraction less than zero'
+          STOP
+        end if
+        if (conv(ilev) .gt. 1.) then
+          print*,' error = convective cloud fraction greater than 1'
+          STOP
+        end if 
+        
+        if (dtau_s(ilev) .lt. 0.) then
+          print*,' error = stratiform cloud opt. depth less than zero'
+          STOP
+        end if
+        if (dem_s(ilev) .lt. 0.) then
+          print*,' error = stratiform cloud emissivity less than zero'
+          STOP
+        end if
+        if (dem_s(ilev) .gt. 1.) then
+          print*,' error = stratiform cloud emissivity greater than 1'
+          STOP
+        end if 
+        
+        if (dtau_c(ilev) .lt. 0.) then
+          print*, ' error = convective cloud opt. depth less than zero'
+          STOP
+        end if
+        if (dem_c(ilev) .lt. 0.) then
+          print*,' error = convective cloud emissivity less than zero'
+          STOP
+        end if
+        if (dem_c(ilev) .gt. 1.) then
+          print*,' error = convective cloud emissivity greater than 1'
+          STOP
+        end if
+      end do
+
+!     ---------------------------------------------------!
+!     Initialise working variables
+!     ---------------------------------------------------!
+
+!     Initialised frac_out to zero
+      frac_out(:,:)=0.0
+      do ibox=1,ncol
+	boxpos(ibox)=(ibox-.5)/ncol
+      enddo
+
+!     ---------------------------------------------------!
+!     ALLOCATE CLOUD INTO BOXES, FOR NCOLUMNS, NLEVELS
+!     frac_out is the array that contains the information 
+!     where 0 is no cloud, 1 is a stratiform cloud and 2 is a
+!     convective cloud
+      
+      !loop over vertical levels
+      do ilev = 1,nlev
+                                  
+!     Initialise threshold
+
+        if (ilev.eq.1) then
+          do ibox=1,ncol
+	    ! if max overlap 
+	    if (overlap.eq.1) then
+	      ! select pixels spread evenly
+	      ! across the gridbox
+              threshold(ibox)=boxpos(ibox)
+	    else
+	      ! select random pixels from the non-convective
+	      ! part the gridbox ( some will be converted into
+	      ! convective pixels below )
+              threshold(ibox)=
+     *        cca(ibox,ilev)+(1-cca(ibox,ilev))*randu(xx) 
+            endif
+          enddo
+        endif
+
+        do ibox=1,ncol
+          ! All versions
+          if (boxpos(ibox).le.cca(ibox,ilev)) then
+            maxocc(ibox) = 1
+          else
+            maxocc(ibox) = 0
+          end if
+
+          select case (overlap)
+          case (1)              ! Max overlap
+            threshold_min(ibox)=cca(ibox,ilev)
+            maxosc(ibox)=1
+          case (2)              ! Random overlap
+            threshold_min(ibox)=cca(ibox,ilev)
+            maxosc(ibox)=0
+          case (3)              ! Max/Random overlap
+            threshold_min(ibox)=max(cca(ibox,ilev),
+     &           min(tca(ibox,ilev-1),tca(ibox,ilev)))
+            if (threshold(ibox).lt.min(tca(ibox,ilev-1),tca(ibox,ilev))
+     &           .and.(threshold(ibox).gt.cca(ibox,ilev))) then
+              maxosc(ibox)= 1
+            else
+              maxosc(ibox)= 0
+            end if
+          end select
+          ! Reset threshold 
+          threshold(ibox)=
+                                !if max overlapped conv cloud
+     &         maxocc(ibox) * boxpos(ibox) +
+                                !else
+     &         (1-maxocc(ibox)) * (                                   
+                                !if max overlapped strat cloud
+     &         (maxosc(ibox)) * (                                 
+                                !threshold=boxpos
+     &         threshold(ibox) ) +
+                                !else
+     &         (1-maxosc(ibox)) * (                               
+                                !threshold_min=random[thrmin,1]
+     &         threshold_min(ibox)+(1-threshold_min(ibox))*RANDU(XX)))
+        end do
+
+!          Fill frac_out with 1's where tca is greater than the threshold
+
+        do ibox=1,ncol
+          if (tca(ibox,ilev).gt.threshold(ibox)) then
+            frac_out(ibox,ilev)=1
+          else
+            frac_out(ibox,ilev)=0
+          end if               
+        end do
+
+!	   Code to partition boxes into startiform and convective parts
+!	   goes here
+        
+        do ibox=1,ncol
+          if (threshold(ibox).le.cca(ibox,ilev)) then
+                                ! = 2 IF threshold le cca(ibox)
+            frac_out(ibox,ilev) = 2 
+          else
+                                ! = the same IF NOT threshold le cca(ibox) 
+            frac_out(ibox,ilev) = frac_out(ibox,ilev)
+          end if
+        end do
+      end do                    !loop over nlev
+!
+!     ---------------------------------------------------!
+!     COMPUTE CLOUD OPTICAL DEPTH FOR EACH COLUMN and
+!     put into vector tau
+ 
+      !initialize tau to zero
+      tau(:)=0.
+
+      !compute total cloud optical depth for each column     
+      do ilev=1,nlev
+            !increment tau for each of the boxes
+        do ibox=1,ncol
+          if (frac_out(ibox,ilev).eq.1) then
+            dtautmp(ibox)= dtau_s(ilev)
+          else if (frac_out(ibox,ilev).eq.2) then
+            dtautmp(ibox)= dtau_c(ilev)
+          else
+            dtautmp(ibox)= 0.
+          end if
+          
+          tau(ibox)=tau(ibox)+dtautmp(ibox)
+        end do
+      end do
+!     ---------------------------------------------------!
+!     COMPUTE INFRARED BRIGHTNESS TEMPERATURES
+!     AND CLOUD TOP TEMPERATURE SATELLITE SHOULD SEE
+!
+!     again this is only done if top_height = 1
+!
+!     fluxtop is the 10.5 micron radiance at the top of the
+!              atmosphere
+!     trans_layers_above is the total transmissivity in the layers
+!             above the current layer
+!     fluxtop_clrsky and trans_layers_above_clrsky are the clear
+!             sky versions of these quantities.
+      if (top_height .eq. 1) then
+        
+        !----------------------------------------------------------------------
+        !    
+        !             DO CLEAR SKY RADIANCE CALCULATION FIRST
+        !
+        !compute water vapor continuum emissivity
+        !this treatment follows Schwarkzopf and Ramasamy
+        !JGR 1999,vol 104, pages 9467-9499.
+        !the emissivity is calculated at a wavenumber of 955 cm-1, 
+        !or 10.47 microns 
+        do ilev=1,nlev
+                                !press and dpress are dyne/cm2 = Pascals *10
+          press = pfull(ilev)*10.
+          dpress = (phalf(ilev+1)-phalf(ilev))*10.
+                                !atmden = g/cm2 = kg/m2 / 10 
+          atmden = dpress*bygrav
+          rvh20 = qv(ilev)*bymrat    !wtmair/wtmh20
+          wk = rvh20*Navo*atmden/wtmair
+c          rhoave = (press/pstd)*(t0/at(ilev))
+          rhoave = (press/at(ilev))*t0bypstd
+          rh20s = rvh20*rhoave
+          rfrgn = rhoave-rh20s
+          tmpexp = exp(-0.02d0*(at(ilev)-t0))
+          tauwv = wk*1d-20*( (0.0224697d0*rh20s*tmpexp) + 
+     &         (3.41817d-7*rfrgn)         )*0.98d0
+          dem_wv(ilev) = 1. - exp(-tauwv)
+        end do
+
+        !initialize variables
+        fluxtop_clrsky = 0.
+        trans_layers_above_clrsky=1.
+
+        do ilev=1,nlev
+            ! Black body emission at temperature of the layer
+          bb(ilev)=1 / ( exp(pc1bylam/at(ilev)) - 1. )
+          
+                                ! increase TOA flux by flux emitted from layer
+                                ! times total transmittance in layers above
+          fluxtop_clrsky = fluxtop_clrsky 
+     &         + dem_wv(ilev) * bb(ilev) * trans_layers_above_clrsky 
+          
+                                ! update trans_layers_above with transmissivity
+                                ! from this layer for next time around loop
+          
+          trans_layers_above_clrsky=
+     &         trans_layers_above_clrsky*(1.-dem_wv(ilev))
+        end do                  !loop over level
+        
+        !add in surface emission
+        bbs=1/( exp(pc1bylam/skt) - 1. )
+
+        fluxtop_clrsky = fluxtop_clrsky + emsfc_lw * bbs 
+     &       * trans_layers_above_clrsky
+!           END OF CLEAR SKY CALCULATION
+!
+!----------------------------------------------------------------
+        fluxtop(:)=0.
+        trans_layers_above(:)=1.
+
+        do ilev=1,nlev
+          do ibox=1,ncol
+                                ! emissivity for point in this layer
+            if (frac_out(ibox,ilev).eq.1) then
+              dem(ibox)= 1. - 
+     &             ( (1. - dem_wv(ilev)) * (1. -  dem_s(ilev)) )
+            else if (frac_out(ibox,ilev).eq.2) then
+              dem(ibox)= 1. - 
+     &             ( (1. - dem_wv(ilev)) * (1. -  dem_c(ilev)) )
+            else
+              dem(ibox)=  dem_wv(ilev)
+            end if
+                ! increase TOA flux by flux emitted from layer
+	        ! times total transmittance in layers above
+            fluxtop(ibox) = fluxtop(ibox) 
+     &           + dem(ibox) * bb(ilev)
+     &           * trans_layers_above(ibox) 
+                ! update trans_layers_above with transmissivity
+	        ! from this layer for next time around loop
+            trans_layers_above(ibox)=
+     &           trans_layers_above(ibox)*(1.-dem(ibox))
+
+          end do                ! ibox
+        end do                  ! ilev
+
+                                !add in surface emission
+        do ibox=1,ncol
+          fluxtop(ibox) = fluxtop(ibox) 
+     &         + emsfc_lw * bbs * trans_layers_above(ibox) 
+        end do
+
+        do ibox=1,ncol
+            !now that you have the top of atmosphere radiance account
+            !for ISCCP procedures to determine cloud top temperature
+
+            !account for partially transmitting cloud recompute flux 
+            !ISCCP would see assuming a single layer cloud
+            !note choice here of 2.13, as it is primarily ice
+            !clouds which have partial emissivity and need the 
+            !adjustment performed in this section
+            !
+            !Note that this is discussed on pages 85-87 of 
+            !the ISCCP D level documentation (Rossow et al. 1996)
+           
+            !compute minimum brightness temperature and optical depth
+          btcmin = 1. /  ( exp(pc1bylam/(attrop-5.)) - 1. ) 
+          transmax = (fluxtop(ibox)-btcmin)/(fluxtop_clrsky-btcmin)
+          taumin = -log(max(min(transmax,0.9999999),0.001))
+          
+          if (transmax .gt. 0.001 .and. transmax .le. 0.9999999) then
+            emcld(ibox) = 1. - exp(-tau(ibox)*byic)
+            fluxtop(ibox) = fluxtop(ibox) -   
+     &           ((1.-emcld(ibox))*fluxtop_clrsky)
+            fluxtop(ibox)=max(1d-6,(fluxtop(ibox)/emcld(ibox)))
+          end if
+
+          if (tau(ibox) .gt.  1d-7) then 
+                !cloudy box
+            tb(ibox)= pc1bylam/(log(1. + (1./fluxtop(ibox))))
+                
+            if (tau(ibox) .lt. taumin) then
+              tb(ibox) = attrop - 5.
+            end if
+          else
+                !clear sky brightness temperature
+            tb(ibox) = pc1bylam/(log(1.+(1./fluxtop_clrsky)))
+          end if
+        enddo                   ! ibox
+      end if
+!     
+!     ---------------------------------------------------!
+!     DETERMINE CLOUD TOP PRESSURE
+!
+!     again the 2 methods differ according to whether
+!     or not you use the physical cloud top pressure (top_height = 2)
+!     or the radiatively determined cloud top pressure (top_height = 1)
+!
+      !compute cloud top pressure
+      do ibox=1,ncol
+        
+               !segregate according to optical thickness
+        if (tau(ibox) .le. 1d-7) then
+          ptop(ibox)=0.
+          levmatch(ibox)=0      
+        else 
+          if (top_height .eq. 1) then  
+                                !find level whose temperature
+                                !most closely matches brightness temperature
+            nmatch=0
+            do ilev=1,nlev-1
+              if ((at(ilev)   .ge. tb(ibox) .and. 
+     &             at(ilev+1) .lt. tb(ibox)) .or.
+     &             (at(ilev) .le. tb(ibox) .and. 
+     &             at(ilev+1) .gt. tb(ibox))) then 
+                
+                nmatch=nmatch+1
+                if(abs(at(ilev)-tb(ibox)) .lt.
+     &               abs(at(ilev+1)-tb(ibox))) then
+                  match(nmatch)=ilev
+                else
+                  match(nmatch)=ilev+1
+                end if
+              end if                        
+            end do
+            
+            if (nmatch .ge. 1) then
+              ptop(ibox)=pfull(match(nmatch))
+              levmatch(ibox)=match(nmatch)   
+            else
+              if (tb(ibox) .lt. atmin) then
+                ptop(ibox)=ptrop
+                levmatch(ibox)=itrop
+              end if
+              if (tb(ibox) .gt. atmax) then
+                ptop(ibox)=pfull(nlev)
+                levmatch(ibox)=nlev
+              end if                                
+            end if
+          else             
+            ptop(ibox)=0.
+            ilev=1
+            do while(ptop(ibox) .eq. 0. 
+     &           .and. ilev .lt. nlev+1)
+              if (frac_out(ibox,ilev) .ne. 0) then
+                ptop(ibox)=pfull(ilev)
+                levmatch(ibox)=ilev
+              end if
+              ilev=ilev+1              
+            end do
+          end if                            
+        end if
+      end do
+!     
+!     ---------------------------------------------------!
+!     DETERMINE ISCCP CLOUD TYPE FREQUENCIES
+!
+!     Now that ptop and tau have been determined, 
+!     determine amount of each of the 49 ISCCP cloud
+!     types
+!
+      !compute isccp frequencies
+      fq_isccp(:,:)=0.
+      ctp = 0.
+      tauopt = 0.
+      nbox = 0
+
+      do ibox=1,ncol
+            !convert ptop to millibars
+        ptop(ibox)=ptop(ibox)*1d-2
+            
+        if (tau(ibox) .gt. 1d-7 .and. ptop(ibox) .gt. 0.) then
+            !reset itau, ipres
+          itau = 0
+          ipres = 0
+            !determine optical depth category
+          if (tau(ibox) .lt. isccp_taumin) then
+            itau=1
+          else if (tau(ibox) .ge. isccp_taumin
+     &           .and. tau(ibox) .lt. 1.3d0) then
+            itau=2
+          else if (tau(ibox) .ge. 1.3d0 .and. tau(ibox) .lt. 3.6d0) then
+            itau=3
+          else if (tau(ibox) .ge. 3.6d0 .and. tau(ibox) .lt. 9.4d0) then
+            itau=4
+          else if (tau(ibox) .ge. 9.4d0 .and. tau(ibox) .lt. 23.) then
+            itau=5
+          else if (tau(ibox) .ge. 23. .and. tau(ibox) .lt. 60.) then
+            itau=6
+          else if (tau(ibox) .ge. 60.) then
+            itau=7
+          end if
+
+            !determine cloud top pressure category
+          if (    ptop(ibox) .gt. 0.  .and.ptop(ibox) .lt. 180.) then
+            ipres=1
+          else if(ptop(ibox) .ge. 180..and.ptop(ibox) .lt. 310.) then
+            ipres=2
+          else if(ptop(ibox) .ge. 310..and.ptop(ibox) .lt. 440.) then
+            ipres=3
+          else if(ptop(ibox) .ge. 440..and.ptop(ibox) .lt. 560.) then
+            ipres=4
+          else if(ptop(ibox) .ge. 560..and.ptop(ibox) .lt. 680.) then
+            ipres=5
+          else if(ptop(ibox) .ge. 680..and.ptop(ibox) .lt. 800.) then
+            ipres=6
+          else if(ptop(ibox) .ge. 800.) then
+            ipres=7
+          end if 
+          
+            !update frequencies
+          if(ipres .gt. 0.and.itau .gt. 0) then
+            fq_isccp(itau,ipres)=fq_isccp(itau,ipres)+byncol !(1./dble(ncol))
+          end if
+
+C**** accumulate ptop/tauopt over columns for output
+          if (itau.gt.1) then
+            ctp   = ctp  +ptop(ibox)
+            tauopt=tauopt+ tau(ibox)
+            nbox = nbox + 1
+          end if
+        end if
+      end do
+
+      if (nbox.gt.0) then
+        ctp = ctp/dble(nbox)
+        tauopt=tauopt/dble(nbox)
+      end if
+      CALL RINIT(SEED)   ! reset seed to original value
+
+!     
+!     ---------------------------------------------------!
+!     OPTIONAL PRINTOUT OF DATA TO CHECK PROGRAM
+!
+      if (QCHECK) then 
+        do ilev=1,nlev
+          do ibox=1,ncol
+            acc(ilev,ibox)=frac_out(ibox,ilev)*2
+            if (levmatch(ibox) .eq. ilev) 
+     &           acc(ilev,ibox)=acc(ilev,ibox)+1
+          end do
+        end do
+        
+        do ilev=1,nlev
+          write(6,'(i2,1X,8(f7.2,1X),50(a1))') 
+     &         ilev,pfull(ilev)/100.,at(ilev),
+     &         cc(ilev)*100.0,dem_wv(ilev),dem_s(ilev),dtau_s(ilev)
+     *         ,dem_c(ilev),dtau_c(ilev),(cchar(acc(ilev,ibox)+1),ibox=1
+     *         ,ncol)
+        end do
+        print*, 'skt = ',skt
+        write (6,'(8I7)') (ibox,ibox=1,ncol)
+        write (6,'(a)') 'tau:'
+        write (6,'(8f7.2)') (tau(ibox),ibox=1,ncol)
+        write (6,'(a)') 'tb:'
+        write (6,'(8f7.2)') (tb(ibox),ibox=1,ncol)
+        write (6,'(a)') 'ptop:'
+        write (6,'(8f7.2)') (ptop(ibox),ibox=1,ncol)
+        print*, 'ctp,tauopt,nbox =',ctp,tauopt,nbox
+      end if 
+      return
+      end 
+    

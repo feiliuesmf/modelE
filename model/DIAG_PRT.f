@@ -3059,6 +3059,12 @@ c**** ratios (the denominators)
               adenom(i,j)=aij(i,j,ij_cldcv) * byiacc
             end do
             end do
+          else if (index(lname_ij(k),' x TOTAL ISCCP') .gt. 0) then
+            do j=1,jm
+            do i=1,im
+              adenom(i,j)=aij(i,j,ij_tcldi) * byiacc
+            end do
+            end do
           end if
           lname_ij(k)(k1:80) = ' '    ; lname = lname_ij(k)
         end if
@@ -3293,7 +3299,8 @@ C**** INITIALIZE CERTAIN QUANTITIES
       call ij_titlex
 C**** standard printout
       kmaplets = 42
-      nmaplets = kmaplets+iDO_GWDRAG+(kgz_max-1)*2 ; nmaps = 2
+      nmaplets = kmaplets+iDO_GWDRAG+(kgz_max-1)*2 + 3*isccp_diags
+      nmaps = 2
       iord(1:kmaplets) = (/
      *  ij_topo,    ij_fland,   ij_rsoi,     ! pg  1  row 1
      *  ij_rsnw,    ij_snow,    ij_rsit,     !        row 2
@@ -3302,18 +3309,25 @@ C**** standard printout
      *  ij_ws,      ij_jet ,    ij_wsmn,     ! pg  3  row 1
      *  ij_sdrag,   ij_jetdir,  ij_wsdir,    !        row 2
      *  ij_cldcv,   ij_pmccld,  ij_cldtppr,  ! pg  4  row 1
-     *  ij_pcldl,   ij_pcldm,   ij_pcldh,    !        row 2
-     *  ij_netrdp,  ij_srtr,    ij_btmpw,    ! pg  5  row 1
-     *  ij_albp,    ij_albg,    ij_albv,     !        row 2
-     *  ij_trnfp0,  ij_neth,    ij_dtdp,     ! pg  6  row 1
-     *  ij_dsev,    ij_ntdsese, ij_ntdsete,  !        row 2
-     *  ij_gwtr,    ij_wmsum,   ij_dcnvfrq,  ! pg  7  row 1
-     *  ij_scnvfrq, ij_pdcld,   ij_pscld/)   !        row 2
+     *  ij_netrdp,  ij_srtr,    ij_btmpw,    !        row 2
+     *  ij_albp,    ij_albg,    ij_albv,     ! pg  5  row 1
+     *  ij_trnfp0,  ij_neth,    ij_dtdp,     !        row 2
+     *  ij_dsev,    ij_ntdsese, ij_ntdsete,  ! pg  6  row 1
+     *  ij_gwtr,    ij_wmsum,   ij_dcnvfrq,  !        row 2
+     *  ij_scnvfrq, ij_pdcld,   ij_pscld,    ! pg  7  row 1
+     *  ij_pcldl,   ij_pcldm,   ij_pcldh/)   !        row 2
+    
+C**** include ISCCP diags if requested     
+      if (isccp_diags.eq.1) then
+        iord(kmaplets+1:kmaplets+3) = (/ij_lcldi,ij_mcldi,ij_hcldi/) 
+        kmaplets=kmaplets+3
+      end if
 
 C**** Fill in maplet indices for gravity wave diagnostics
       do k=1,iDO_GWDRAG
         iord(k+kmaplets) = ij_gw1+k-1  !i.e. first entry is ij_gw1
       end do
+
 C**** Fill in maplet indices for geoptential heights and thickness T's
       koff = kmaplets+iDO_GWDRAG
       do k=1,kgz_max-1

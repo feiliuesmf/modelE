@@ -2349,6 +2349,71 @@ c
       iDO_GWDRAG = k-IJ_GW1+1
       END IF
 
+      if (isccp_diags.eq.1) then
+      k=k+1 !  
+      IJ_LCLDI = k 
+      lname_ij(k) = 'LOW LEVEL CLOUDINESS (ISCCP)'
+      units_ij(k) = '%'
+      name_ij(k) = 'LCLDI'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1 !  
+      IJ_MCLDI = k 
+      lname_ij(k) = 'MIDDLE LEVEL CLOUDINESS (ISCCP)'
+      units_ij(k) = '%'
+      name_ij(k) = 'MCLDI'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1 !  
+      IJ_HCLDI = k 
+      lname_ij(k) = 'HIGH LEVEL CLOUDINESS (ISCCP)'
+      units_ij(k) = '%'
+      name_ij(k) = 'HCLDI'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+C**** Note this diagnostic is NOT the total cloud cover (that is got by
+C**** summing the low+ mid+high diagnostics). Instead, this is the
+C**** fraction of time that a cloud appears in the grid box (which may
+C**** well cover less than 100% of the box). This is needed for
+C**** weighting the cloud top pressure and optical depth
+      k=k+1 !  
+      IJ_TCLDI = k 
+      lname_ij(k) = 'FRACTION OF TIME FOR ISCCP CLOUD'
+      units_ij(k) = '%'
+      name_ij(k) = 'TCLDI'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1 !  
+      IJ_CTPI = k 
+      lname_ij(k) = 'CLOUD TOP PRESSURE (ISCCP) x TOTAL ISCCP CLOUD'
+      units_ij(k) = 'mb'
+      name_ij(k) = 'CTPI'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_1775
+c
+      k=k+1 !  
+      IJ_TAUI = k 
+      lname_ij(k) = 'CLOUD OPTICAL DEPTH (ISCCP) x TOTAL ISCCP CLOUD'
+      units_ij(k) = ''
+      name_ij(k) = 'TAUI'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+
+      end if
+
+      k=k+1 
+      IJ_PTROP = k 
+      lname_ij(k) = 'TROPOPAUSE PRESSURE (WMO)'
+      units_ij(k) = 'mb'
+      name_ij(k) = 'PTROP'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+
       if (k .gt. kaij) then
         write (6,*) 'ij_defs: Increase kaij=',kaij,' to at least ',k
         stop 'kaij too small'
