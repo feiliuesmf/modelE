@@ -1154,7 +1154,7 @@ c     at edge: e,lscale,km,kh,gm,gh
       real*8, dimension(n-1), intent(in) :: e,lscale,dzh
       real*8, dimension(n-1), intent(out) :: km,kh,kq,ke,gma,gha
 
-      real*8, parameter :: se=0.4d0,kmax=100.d0
+      real*8, parameter :: se=0.04d0,kmax=100.d0
      &  ,kmmin=1.5d-5,khmin=2.5d-5,kqmin=2.5d-5,kemin=1.5d-5
       real*8 :: an2,dudz,dvdz,as2,ell,den,qturb,tau,gh,gm,gmmax,sm,sh
      &  ,sq,sq_by_sh,taue
@@ -1196,7 +1196,7 @@ c       sq=sq_by_sh*sh
         km(i)=min(max(taue*sm,kmmin),kmax)
         kh(i)=min(max(taue*sh,khmin),kmax)
         kq(i)=min(max(taue*sq,kqmin),kmax)
-        ke(i)=min(max(taue*se/b1,kemin),kmax)
+        ke(i)=min(max(taue*se,kemin),kmax)
         gma(i)=gm
         gha(i)=gh
       end do
@@ -1589,15 +1589,15 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
          dia(i)=1.-(sub(i)+sup(i))
       end do
 
-      factx=(dpdxr-dpdxr0)/(z(n)-z(1))
-      facty=(dpdyr-dpdyr0)/(z(n)-z(1))
+c     factx=(dpdxr-dpdxr0)/(z(n)-z(1))
+c     facty=(dpdyr-dpdyr0)/(z(n)-z(1))
       do i=2,n-1
-        dpdx=0. ! factx*(z(i)-z(1))+dpdxr0
-        dpdy=0. ! facty*(z(i)-z(1))+dpdyr0
-        rhs(i)=u0(i)+dtime*(coriol*v(i)-dpdx)
-        rhs1(i)=v0(i)-dtime*(coriol*u(i)+dpdy)
-c       rhs(i)=u0(i)+dtime*coriol*(v(i)-vg)
-c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
+c       dpdx=factx*(z(i)-z(1))+dpdxr0
+c       dpdy=facty*(z(i)-z(1))+dpdyr0
+c       rhs(i)=u0(i)+dtime*(coriol*v(i)-dpdx)
+c       rhs1(i)=v0(i)-dtime*(coriol*u(i)+dpdy)
+        rhs(i)=u0(i)+dtime*coriol*(v(i)-vg)
+        rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       end do
 
       usurf  = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
@@ -1785,16 +1785,16 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
           dia(i)=-(sub(i)+sup(i))
        end do
 
-      factx=(dpdxr-dpdxr0)/(z(n)-z(1))
-      facty=(dpdyr-dpdyr0)/(z(n)-z(1))
+c     factx=(dpdxr-dpdxr0)/(z(n)-z(1))
+c     facty=(dpdyr-dpdyr0)/(z(n)-z(1))
 c      write(99,*) factx,facty
       do i=2,n-1
-        dpdx=0.  ! factx*(z(i)-z(1))+dpdxr0
-        dpdy=0.  ! facty*(z(i)-z(1))+dpdyr0
-        rhs(i)=(coriol*v(i)-dpdx)
-        rhs1(i)=-(coriol*u(i)+dpdy)
-c       rhs(i)=coriol*(v(i)-vg)
-c       rhs1(i)=-coriol*(u(i)-ug)
+c       dpdx=factx*(z(i)-z(1))+dpdxr0
+c       dpdy=facty*(z(i)-z(1))+dpdyr0
+c       rhs(i)=(coriol*v(i)-dpdx)
+c       rhs1(i)=-(coriol*u(i)+dpdy)
+        rhs(i)=coriol*(v(i)-vg)
+        rhs1(i)=-coriol*(u(i)-ug)
       end do
 
       usurf  = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
