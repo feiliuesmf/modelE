@@ -2805,6 +2805,10 @@ C****
 !@+                    U*, V*, W*  (on any model level)
 !@+                    Ox*         (on any model level with chemistry)
 !@+                    SO4
+#ifdef CLD_AER_CDNC
+!@+                    CTEM,CD3D,CL3D,CDN3D,CRE3D,CLWP
+!@+                    TAUSS,TAUMC,CLDSS,CLDMC
+#endif
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair,sha
@@ -2814,6 +2818,9 @@ C****
       USE GEOM, only : imaxj,dxyp
       USE PBLCOM, only : tsavg,qsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc
+#ifdef CLD_AER_CDNC
+     *           ,tauss,taumc,ctem,cd3d,cl3d,cdn3d,cre3d,clwp
+#endif
       USE DYNAMICS, only : ptropo,am,wsave
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
      *     ,gtemp
@@ -3093,6 +3100,95 @@ C**** write out
           end do
 #endif
         end select
+
+#ifdef CLD_AER_CDNC   !for 3 hrly diagnostics
+c          select case (namedd(k))  !(1:5))
+c            case ("CLWP")         !LWP (kg m-2) ?
+c            do j=1,jm
+c               do i=1,imaxj(j)
+c                 data(i,j)=clwp(i,j)
+c       if(clwp(i,j).ne.0.) write(6,*)"CLWP",data(i,j),i,j,k,kunit
+c               end do
+c            end do
+c          kunit=kunit+1
+c           end select
+C**** fix polar values
+c             data(2:im,1) =data(1,1)
+c             data(2:im,jm)=data(1,jm)
+c**** write out
+c           call writei(iu_subdd(kunit),itime,data,im*jm)
+c           cycle
+
+#endif
+#ifdef CLD_AER_CDNC
+            kunit=kunit+1
+            do l=1,lm
+              select case (namedd(k))
+              case ("CTEM")
+              do j=1,jm
+                do i=1,imaxj(j)
+                  data=ctem(:,:,l)     ! cld temp (K)
+c                 write(6,*)"CTEM",data,i,j,l,k,kunit
+                end do
+              end do
+              case ("CL3D")
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data=cl3d(:,:,l)     ! cld LWC (kg m-3)
+                end do
+              end do
+              case ("CD3D")
+              do j=1,jm
+                do i=1,imaxj(j)
+                  data=cd3d(:,:,l)     ! cld thickness (m)
+                end do
+              end do
+              case ("CLDSS")
+              do j=1,jm
+                do i=1,imaxj(j)
+                  data=cldss(:,:,l)    ! Cld cover LS
+                end do
+              end do
+c             write(6,*)"CCSS",data,i,j,l,k,kunit
+              case ("CLDMC")
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data=cldmc(:,:,l)    ! Cld cover MC
+                end do
+              end do
+              case ("CDN3D")
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data=cdn3d(:,:,l)    ! cld CDNC (cm^-3)
+                end do
+              end do
+              case ("CRE3D")
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data=cre3d(:,:,l)    ! cld Reff (um)
+                end do
+              end do
+              case ("TAUSS")
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data=tauss(:,:,l)       ! LS cld tau
+                end do
+              end do
+              case ("TAUMC")
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data=taumc(:,:,l)       ! MC cld tau
+                end do
+              end do
+
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             end select
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+             cycle
+          end do
+#endif
       end do
 c****
       return
