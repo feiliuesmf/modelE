@@ -34,6 +34,8 @@
 !@ver  1.0
       USE MODEL_COM, only : im,jm
       USE ODEEP_COM, only : tg3m,stg3,dtg3,rtgo,dz,dzo,bydzo,edo,lmom
+      USE OCEAN, only : tocean
+      USE SEAICE_COM, only : rsi,msi,hsi,ssi
       USE FILEMANAGER, only : openunit,closeunit
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
@@ -59,13 +61,14 @@ C**** DEFINE THE VERTICAL LAYERING EVERYWHERE EXCEPT LAYER 1 THICKNESS
         BYDZO(L)=1./DZO(L)
       END DO
 
-C**** read in initial climatology for the temperatures at base of mixed
-C**** layer and initialise deep arrays if start of run
+C**** read in initial conditions and climatology for the temperatures at
+C**** base of mixed layer, initialise deep arrays for start of run
       if (iniOCEAN) then
         stg3=0. ; dtg3=0. ; rtgo=0.
 
         call openunit("TG3M",iu_tg3m,.true.,.true.)
-        call readt (iu_tg3m,0,tg3m,12*im*jm,tg3m,1)
+        READ(iu_tg3m) TITLE,TOCEAN,RSI,MSI,HSI,SSI,TG3M
+        WRITE(6,*) "Read from TG3M",TITLE
         call closeunit (iu_tg3m)
         
       end if
@@ -77,7 +80,7 @@ C****
 !@sum  io_ocean reads and writes ocean arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,lhead
+      USE MODEL_COM, only : ioread,iowrite,irsfic,lhead
       USE OCEAN
       USE ODEEP_COM
       IMPLICIT NONE
@@ -98,13 +101,18 @@ C****
         WRITE (kunit,err=10) MODULE_HEADER,TOCEAN,Z1O,STG3,DTG3,RTGO,
      *     TG3M
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,TOCEAN,Z1O,STG3,DTG3,RTGO,TG3M
-        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
+        SELECT CASE (IACTION)
+        CASE (IRSFIC)           ! initial conditions
+          READ (kunit)          ! no read - initialise in init_ODEEP  
+        CASE DEFAULT            ! restart file
+          READ (kunit,err=10) HEADER,TOCEAN,Z1O,STG3,DTG3,RTGO,TG3M
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
+        END SELECT
       END SELECT
-
+        
       RETURN
  10   IOERR=1
       RETURN
@@ -356,7 +364,6 @@ C**** Check for NaN/INF in ocean data
       ENTRY ODYNAM
       ENTRY DYNSI
       ENTRY ADVSI
-      ENTRY io_oda
 
       RETURN
       END SUBROUTINE DUMMY_OCN

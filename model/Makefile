@@ -28,11 +28,13 @@ print_usage help all:
 	@echo ' gcm     - compile object files and build executable for specified rundeck'
 	@echo ' aux     - compile standard auxiliary programs'
 	@echo ' auxqflux- compile auxiliary programs for computing qflux'
+	@echo ' auxdeep - compile auxiliary programs for setting deep ocean'
 	@echo ' setup   - do setup for specified rundeck'
 	@echo ' clean   - remove listings and error files'
 	@echo ' vclean  - remove object files, .mod files and dependencies'
 	@echo ' newstart- remove all files in the run directory'
 	@echo ' exe     - compile gcm and put executable into RUN directory'
+	@echo ' htmldoc - create web-based documentation for this RUN'
 	@echo
 	@echo '          Recommended usage:'
 	@echo 'The targets are made in order: "rundeck", "depend", "gcm", "setup",'

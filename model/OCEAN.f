@@ -884,3 +884,37 @@ C**** OCEAN POTENTIAL ENTHALPY
 C****
       RETURN
       END SUBROUTINE DIAGCO
+
+      SUBROUTINE io_oda(kunit,it,iaction,ioerr)
+!@sum  io_oda reads and writes ocean/ice data for initialisaing deep ocean
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : ioread,iowrite,Itime,im,jm
+      USE OCEAN, only : tocean
+      USE SEAICE_COM, only : rsi,msi,hsi,ssi
+      USE DAGCOM, only : ij_tgo2,aij
+      IMPLICIT NONE
+
+      INTEGER kunit   !@var kunit unit number of read/write
+      INTEGER iaction !@var iaction flag for reading or writing to file
+!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var it input/ouput value of hour
+      INTEGER, INTENT(INOUT) :: it
+      INTEGER I,J
+
+      SELECT CASE (IACTION)
+      CASE (:IOWRITE)           ! output 
+        WRITE (kunit,err=10) it,TOCEAN,RSI,MSI,HSI,SSI,
+     *     ((AIJ(I,J,IJ_TGO2),I=1,IM),J=1,JM)
+      CASE (IOREAD:)            ! input 
+        READ (kunit,err=10) it,TOCEAN,RSI,MSI,HSI,SSI,
+     *     ((AIJ(I,J,IJ_TGO2),I=1,IM),J=1,JM)
+      END SELECT
+
+      RETURN
+ 10   IOERR=1
+      RETURN
+C****
+      END SUBROUTINE io_oda
+
