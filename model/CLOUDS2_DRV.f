@@ -5,11 +5,10 @@
 !@auth  M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver   1.0 (taken from CB265)
 !@calls CLOUDS:MSTCNV,CLOUDS:LSCOND
-
       USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs,sha,deltx
      *     ,teeny
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
-     *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype
+     *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
@@ -25,22 +24,31 @@
      &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,jl_mchphas
      *     ,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui
      *     ,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags
-     *     ,ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,
+     *     ,ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,hdiurn,
      *     ntau,npres,aisccp,isccp_reg
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
+      USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname
 #ifdef TRACERS_WATER
-     *     ,trwm,trw0
+     *     ,trwm,trw0,dowetdep
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE LIGHTNING, only : RNOx_lgt
 #endif
       USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
      *     ,itcon_ss
 #ifdef TRACERS_WATER
-     *     ,jls_source,taijn,tajls,tij_prec
+     *     ,jls_prec,taijn,tajls,tij_prec
+#ifdef TRACERS_AEROSOLS_Koch
+     *     ,jls_incloud
+#endif
 #endif
       USE CLOUDS, only : tm,tmom ! local  (i,j)
      *     ,ntx,ntix              ! global (same for all i,j)
 #ifdef TRACERS_WATER
      *     ,trwml,trsvwml,trprmc,trprss
+#ifdef TRACERS_AEROSOLS_Koch
+     *     ,dt_sulf_mc,dt_sulf_ss
+#endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE LIGHTNING, only : i_lgt,j_lgt,RNOx_lgt
@@ -65,12 +73,21 @@
 #ifdef TRACERS_WATER
      *     ,trprec
 #endif
+      USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
 
 #ifdef TRACERS_ON
 !@var tmsave holds tracer value (for diagnostics)
       REAL*8 tmsave(lm,ntm),dtr_mc(jm,ntm),dtr_ss(jm,ntm)
       INTEGER NX
+#ifdef TRACERS_AEROSOLS_Koch
+c       real*8 a_sulf(im,jm),cc_sulf(im,jm)
+c       integer nc_tr,id,ixx,ix1,ixm1,iuc_s
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+!@var Lfreeze Lowest level where temperature is below freezing (TF)
+      INTEGER Lfreeze
+#endif 
 #endif
 
 !@var UC,VC,UZM,VZM,ULS,VLS,UMC,VMC velocity work arrays
@@ -85,7 +102,7 @@ C    *        TMC,QMC
       REAL*8,  PARAMETER :: ENTCON = .2d0
 
       INTEGER I,J,K,L,N  !@var I,J,K,L,N loop variables
-      INTEGER JR,KR,ITYPE,IT,IH,LP850,LP600
+      INTEGER JR,KR,ITYPE,IT,IH,LP850,LP600,IHM
 !@var JR = JREG(I,J)
 !@var KR index for regional diagnostics
 !@var ITYPE index for snow age
@@ -99,7 +116,7 @@ C    *        TMC,QMC
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,ALPHAS
       REAL*8 :: DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV1,THV2,QG,TGV
       REAL*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG,SSTAB,DIFT,CSC
-     *     ,E,E1,ep,TSV
+     *     ,E,E1,ep,TSV,q0,q1,q2
 !@var HCNDMC heating due to moist convection
 !@var PRCP precipitation
 !@var TPRCP temperature of mc. precip  (deg. C)
@@ -133,7 +150,6 @@ Cred*                   end Reduced Arrays 1
       REAL*8  AJEQIL(J5N-J5S+1,IM,JM), AREGIJ(IM,JM,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,2:JM-1,LM), VKM(4,IM,2:JM-1,LM)
-
 C
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
 C
@@ -182,6 +198,7 @@ C**** COMPUTE ZONAL MEAN U AND V AT POLES
         VZM(2,L)=VZM(2,L)/FIM
       ENDDO
       IH=JHOUR+1
+      IHM = IH+(JDATE-1)*24
 #ifdef TRACERS_ON
 C**** Find the ntx active tracers ntix(1->ntx)
       nx = 0
@@ -191,6 +208,10 @@ C**** Find the ntx active tracers ntix(1->ntx)
         ntix(nx) = n
       end do
       ntx = nx
+#ifdef TRACERS_SPECIAL_Shindell
+C**** Make sure the NOx from lightning is initialized:
+      RNOx_lgt=0.
+#endif
 #endif
 C****
 C**** MAIN J LOOP
@@ -205,10 +226,13 @@ C****
 !$OMP*  DH1S,DH12,DTDZ,DTDZG,DTDZS,DUDZ,DUDZG,DUDZS,DVDZ,DVDZG,DVDZS,
 !$OMP*  DTAU_S,DTAU_C,DEM_S,DEM_C, FQ_ISCCP, ENRGP,EPRCP,
 !$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IDI,IDJ,
+#ifdef TRACERS_SPECIAL_Shindell
+!$OMP*  Lfreeze,
+#endif
 !$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 !$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT,TSV, WMERR,
-!$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep)
+!$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep,q0,q1,q2)
 !$OMP*    SCHEDULE(DYNAMIC,2)
 !$OMP*    REDUCTION(+:ICKERR,JCKERR)
 C
@@ -328,22 +352,14 @@ C**** INITIALISE PRECIPITATION AND LATENT HEAT
       PRCP=0.
       ENRGP=0.
 C**** temperature of precip is based on pre-mstcnv profile
-      TPRCP=T(I,J,1)*PK(1,I,J)-TF
+      TPRCP=T(I,J,1)*PLK(1)-TF
 #ifdef TRACERS_WATER
       TRPREC(:,I,J) = 0.
 #endif
 
-C**** SET DEFAULT FOR AIR MASS FLUX (STRAT MODEL)
+C**** SET DEFAULTS FOR AIR MASS FLUX (STRAT MODEL)
       AIRX(I,J)=0.
       DDM1(I,J)=0.
-
-#ifdef TRACERS_SPECIAL_Shindell
-C**** Save current i,j for lightning calculation in MSTCNV:
-      i_lgt = i
-      j_lgt = j
-      RNOx_lgt(i,j) = 0.
-#endif
-
 C****
 C**** Energy conservation note: For future reference the energy function
 C**** for these column calculations (assuming energy reference level
@@ -357,9 +373,17 @@ C****                *AIRM(:))*100.*BYGRAV
 C**** and again after LSCOND:
 C****          = sum(WMX(:)*(LHE-SVLHXL(:))*AIRM(:))*100.*BYGRAV
 C****
+cECON
+cECON      q0 = sum(QM(:)+WML(:)*AIRM(:))*100.*BYGRAV
+cECON
+cECON      E = (sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +sum(WML(:)*(LHE
+cECON     *     -SVLHXL(:))*AIRM(:)))*100.*BYGRAV
 
 C**** MOIST CONVECTION
       CALL MSTCNV(IERR,LERR)
+
+cECON      E1 = ( sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +sum((WML(:)*(LHE
+cECON     *     -SVLHXL(:))+SVWMXL(:)*(LHE-SVLATL(:)))*AIRM(:)))*100.*BYGRAV
 
 C**** Error reports
       if (ierr.gt.0) then
@@ -367,6 +391,21 @@ C**** Error reports
 ccc     if (ierr.eq.2) call stop_model("Subsid error: abs(c) > 1",255)
         if (ierr.eq.2) ickerr = ickerr + 1
       end if
+
+#ifdef TRACERS_SPECIAL_Shindell
+C**** Calculate NOx from lightning:
+C**** first, need the local freezing level:
+      IF(LMCMAX.gt.0)THEN
+        Lfreeze=1
+        DO L=1,LMCMAX
+          IF(T(I,J,L)*PLK(L).lt.TF) THEN
+            Lfreeze=L
+            EXIT
+          END IF
+        END DO
+        CALL calc_lightning(I,J,LMCMAX,Lfreeze) 
+      END IF
+#endif
 
 C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
       IF (LMCMIN.GT.0) THEN
@@ -406,6 +445,11 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
             ADIURN(IH,IDD_MCP ,KR)=ADIURN(IH,IDD_MCP ,KR)+PRCPMC
             ADIURN(IH,IDD_DMC ,KR)=ADIURN(IH,IDD_DMC ,KR)+CLDDEPIJ
             ADIURN(IH,IDD_SMC ,KR)=ADIURN(IH,IDD_SMC ,KR)+CLDSLWIJ
+            HDIURN(IHM,IDD_PR  ,KR)=HDIURN(IHM,IDD_PR  ,KR)+PRCPMC
+            HDIURN(IHM,IDD_ECND,KR)=HDIURN(IHM,IDD_ECND,KR)+HCNDMC
+            HDIURN(IHM,IDD_MCP ,KR)=HDIURN(IHM,IDD_MCP ,KR)+PRCPMC
+            HDIURN(IHM,IDD_DMC ,KR)=HDIURN(IHM,IDD_DMC ,KR)+CLDDEPIJ
+            HDIURN(IHM,IDD_SMC ,KR)=HDIURN(IHM,IDD_SMC ,KR)+CLDSLWIJ
           END IF
         END DO
 
@@ -448,8 +492,9 @@ CCC  *                   FSSL(L)*VLS(IDI(K),IDJ(K),L)
         FSS(:,I,J)=FSSL(:)
         AIRX(I,J) = AIRXL*DXYP(J)
 C**** level 1 downfdraft mass flux/rho (m/s)
-        DDM1(I,J) = DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J)*DTSrc)
-      END IF                    ! should this be after tracers....????
+        DDM1(I,J) = (1.-FSSL(1))*DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J)
+     *       *DTSrc)
+      END IF
 #ifdef TRACERS_ON
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
@@ -583,7 +628,8 @@ cECON  E = ( sum(TL(1:LP50)*AIRM(1:LP50))*SHA + sum(QL(1:LP50)
 cECON *     *AIRM(1:LP50))*LHE +sum( (WML(1:LP50)*(LHE-SVLHXL(1:LP50))
 cECON *     +SVWMXL(1:LP50)*(LHE-SVLATL(1:LP50)))*AIRM(1:LP50))  )*100.
 cECON *     *BYGRAV
-
+cECON      q1 = sum((Q(I,J,:)+WML(:)+SVWMXL(:))*AIRM(:))*100.*BYGRAV+PRCP
+cECON      if (abs(q0-q1).gt.1d-13) print*,"pr0",i,j,q0,q1,prcp
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
       CALL LSCOND(IERR,WMERR,LERR)
 
@@ -607,6 +653,9 @@ CCC      AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
              ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPSS
              ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDSS
              ADIURN(IH,IDD_SSP ,KR)=ADIURN(IH,IDD_SSP ,KR)+PRCPSS
+             HDIURN(IHM,IDD_PR  ,KR)=HDIURN(IHM,IDD_PR  ,KR)+PRCPSS
+             HDIURN(IHM,IDD_ECND,KR)=HDIURN(IHM,IDD_ECND,KR)+HCNDSS
+             HDIURN(IHM,IDD_SSP ,KR)=HDIURN(IHM,IDD_SSP ,KR)+PRCPSS
            END IF
          END DO
 
@@ -682,6 +731,16 @@ c          skt=tf+tg1(i,j)
      *      dem_c(l)=1.-exp(-taumcl(LM+1-L)*byic)
 
           qv(l)=ql(LM+1-L)
+#ifdef TRACERS_AEROSOLS_Koch
+c          ixx=1 +3*(nc_tr-1)
+c          ix1=ixx+1
+c          ixm1=ixx-1
+c          if (ixm1.eq.0) ixm1=72
+c          if (i.eq.ixx.or.i.eq.ix1.or.i.eq.ixm1) then
+c            if (cc_sulf(i,j).lt.cc(l))
+c     *      cc_sulf(i,j)=cc(l)
+c          endif
+#endif
         end do
         phalf(lm+1)=ple(1)*100.
         itrop = LM+1-LTROPO(I,J)
@@ -807,6 +866,9 @@ CCC  *          (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
             END DO
          END IF
       ENDDO
+cECON      q2 = sum((Q(I,J,:)+WMX(:))*AIRM(:))*100.*BYGRAV+PRCP
+cECON      if (abs(q0-q2).gt.1d-13) print*,"pr1",i,j,q0,q1,q2,prcp,prcpss*100
+cECON     *     *bygrav
 
 #ifdef TRACERS_ON
 C**** TRACERS: Use only the active ones
@@ -820,21 +882,35 @@ C**** TRACERS: Use only the active ones
           trm(i,j,l,n) = tm(l,nx)
           trmom(:,i,j,l,n) = tmom(:,l,nx)
           tajln(j,l,jlnt_lscond,n) = tajln(j,l,jlnt_lscond,n) +
-     &          (tm(l,nx)-tmsave(l,nx))
+     &         (tm(l,nx)-tmsave(l,nx))
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
           trwm(i,j,l,n) = trwml(nx,l)
+#ifdef TRACERS_AEROSOLS_Koch
+          if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
+     *         H2O2_s") then
+            tajls(j,l,jls_incloud(1,n))=tajls(j,l,jls_incloud(1,n))+
+     *           dt_sulf_mc(n,l)
+            tajls(j,l,jls_incloud(2,n))=tajls(j,l,jls_incloud(2,n))+
+     *           dt_sulf_ss(n,l)
+          end if
+c save for cloud-sulfate correlation
+c          select case (trname(n))
+c          case('SO4')
+cc     if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,n)
+c          end select
+#endif
 #endif
         end do
 #ifdef TRACERS_WATER
         trprec(n,i,j) = trprec(n,i,j)+trprss(nx)
 C**** diagnostics
-        tajls(j,1,jls_source(3,n))=tajls(j,1,jls_source(3,n))
-     *       +trprec(n,i,j)*bydxyp(j)
-        tajls(j,1,jls_source(4,n))=tajls(j,1,jls_source(4,n))
-     *       +trprec(n,i,j)*focean(i,j)*bydxyp(j)
-        taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n)+trprec(n,i,j)
-     *       *bydxyp(j)
+c        tajls(j,1,jls_prec(1,n))=tajls(j,1,jls_prec(1,n))
+c     *       +trprec(n,i,j)*bydxyp(j)
+c        tajls(j,1,jls_prec(2,n))=tajls(j,1,jls_prec(2,n))
+c     *       +trprec(n,i,j)*focean(i,j)*bydxyp(j)
+        if (dowetdep(n)) taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) +
+     *       trprec(n,i,j)*bydxyp(j)
 #endif
       end do
 #endif
@@ -881,6 +957,18 @@ C**** Save the conservation quantities for tracers
         call diagtcb(dtr_mc(1,nx),itcon_mc(n),n)
         call diagtcb(dtr_ss(1,nx),itcon_ss(n),n)
       end do
+#ifdef TRACERS_AEROSOLS_Koch
+c      nc_tr=nc_tr+1
+c     if (nc_tr.eq.25) then
+c      call openunit("CLD_SO4",iuc_s,.true.,.false.)
+c      write(iuc_s) (SNGL(a_sulf(I,1)),I=1,IM*JM),
+c     *(SNGL(cc_sulf(I,1)),I=1,IM*JM)
+c      call closeunit(iuc_s)
+c      a_sulf(:,:)=0.
+c      cc_sulf(:,:)=0.
+c      nc_tr=1
+c     endif
+#endif
 #endif
 
 C**** Delayed summations (to control order of summands)

@@ -26,13 +26,9 @@
      *     ,ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,hdiurn,
      *     ntau,npres,aisccp,isccp_reg
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
+      USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname
 #ifdef TRACERS_WATER
      *     ,trwm,trw0,dowetdep
-#ifdef TRACERS_AEROSOLS_Koch
-     *     ,trname
-      USE FILEMANAGER, only: openunit,closeunit
-#endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE LIGHTNING, only : RNOx_lgt
@@ -72,6 +68,7 @@
 #ifdef TRACERS_WATER
      *     ,trprec
 #endif
+      USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
 
 #ifdef TRACERS_ON
@@ -185,7 +182,7 @@ C**** COMPUTE ZONAL MEAN U AND V AT POLES
       IH=JHOUR+1
       IHM = IH+(JDATE-1)*24
 #ifdef TRACERS_ON
-C**** Find the ntx active tracers ntix(1->ntx
+C**** Find the ntx active tracers ntix(1->ntx)
       nx = 0
       do n=1,ntm
         if (itime.lt.itime_tr0(n)) cycle
@@ -328,7 +325,7 @@ C**** INITIALISE PRECIPITATION AND LATENT HEAT
       PRCP=0.
       ENRGP=0.
 C**** temperature of precip is based on pre-mstcnv profile
-      TPRCP=T(I,J,1)*PK(1,I,J)-TF
+      TPRCP=T(I,J,1)*PLK(1)-TF
 #ifdef TRACERS_WATER
       TRPREC(:,I,J) = 0.
 #endif
@@ -359,14 +356,14 @@ C**** Error reports
 ccc     if (ierr.eq.2) call stop_model("Subsid error: abs(c) > 1",255)
         if (ierr.eq.2) ickerr = ickerr + 1
       end if
-C
+
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Calculate NOx from lightning:
 C**** first, need the local freezing level:
       IF(LMCMAX.gt.0)THEN
         Lfreeze=1
         DO L=1,LMCMAX
-          IF(T(I,J,L)*PK(L,I,J).lt.TF) THEN
+          IF(T(I,J,L)*PLK(L).lt.TF) THEN
             Lfreeze=L
             EXIT
           END IF
@@ -444,7 +441,7 @@ C         EPRCP=PRCP*TPRCP*SHI
         AIRX(I,J) = AIRXL*DXYP(J)
 C**** level 1 downfdraft mass flux/rho (m/s)
         DDM1(I,J) = DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J)*DTSrc)
-      END IF                    ! should this be after tracers....????
+      END IF
 #ifdef TRACERS_ON
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
@@ -580,6 +577,7 @@ cECON *     *AIRM(1:LP50)) )*100.*BYGRAV
 C**** Error reports
       IF (IERR.ne.0) WRITE(99,'(I10,3I4,A,D14.5,A)')
      *       Itime,I,J,LERR,' CONDSE:H2O<0',WMERR,' ->0'
+
 C**** Accumulate diagnostics of LSCOND
          AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
          DO IT=1,NTYPE
@@ -687,7 +685,6 @@ c          endif
         call ISCCP_CLOUD_TYPES(pfull,phalf,qv,
      &       cc,conv,dtau_s,dtau_c,skt,
      &       at,dem_s,dem_c,itrop,fq_isccp,ctp,tauopt,nbox,jerr)
-
         if(jerr.ne.0) jckerr = jckerr + 1
 C**** set ISCCP diagnostics
         if (nbox.gt.0) then
@@ -817,7 +814,7 @@ cc     if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,n)
 c          end select
 #endif
 #endif
-      end do
+        end do
 #ifdef TRACERS_WATER
         trprec(n,i,j) = trprec(n,i,j)+trprss(nx)
 C**** diagnostics
