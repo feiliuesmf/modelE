@@ -789,7 +789,7 @@ c     Get canopy conductivity cnc and gpp
 
 !!!! test
  !!!       trans_sw = .1d0
-        print *,'trans_sw = ', trans_sw
+ !!!       print *,'trans_sw = ', trans_sw
 
         betat=cnc/(cnc+cna+1d-12)
         abetat=betat            ! return to old diagnostics
