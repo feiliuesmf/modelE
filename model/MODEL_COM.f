@@ -48,6 +48,8 @@
       INTEGER :: LSDRAG=LM, LPSDRAG=LM  ! non-polar, polar limit
 !@var ANG_SDRAG if =1: ang.momentum lost by SDRAG is added in below PTOP
       INTEGER :: ANG_SDRAG=0  ! default: SDRAG does NOT conserve ang.mom
+!@dbparam Wc_JDRAG critical velocity for J.Hansen/Judith Perlwitz drag
+      REAL*8 :: Wc_JDRAG=30.d0  !  if 0.: no JDRAG-feature in Sdrag
 
 !**** Diagnostic control parameters
 !@dbparam KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved

@@ -550,13 +550,13 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
       DO J=1,JM
         DO I=1,IMAXJ(J)
           PA(I,J)=P(I,J)+(DT1*PIT(I,J)*BYDXYP(J))
-          IF (PA(I,J).GT.1160.-PTOP .or. PA(I,J).LT.200.) THEN
+          IF (PA(I,J)+PTOP.GT.1160. .or. PA(I,J)+PTOP.LT.350.) THEN
             WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),ZATMO(I,J),DT1,
      *           (U(I-1,J,L),U(I,J,L),U(I-1,J+1,L),U(I,J+1,L),
      *            V(I-1,J,L),V(I,J,L),V(I-1,J+1,L),V(I,J+1,L),
      *            T(I,J,L),Q(I,J,L),L=1,LM)
             write(6,*) "Pressure diagnostic error"
-            IF (PA(I,J).lt.100. .or. PA(I,J).GT.1150.)
+            IF (PA(I,J)+PTOP.lt.250. .or. PA(I,J)+PTOP.GT.1200.)
      &           call stop_model('ADVECM: Pressure diagnostic error',11)
           END IF
         END DO
@@ -1365,6 +1365,7 @@ C**** to be used in the PBL, at the promary grids
       USE CONSTANT, only : grav,rgas,sha
       USE MODEL_COM, only : im,jm,lm,ls1,psfmpt,u,v,sige,bydsig,ptop,t
      *  ,q,x_sdrag,c_sdrag,lcsdrag,lsdrag,lpsdrag,ang_sdrag,itime
+     *  ,Wc_Jdrag
       USE GEOM, only : cosv,dxyn,dxys,imaxj,kmaxj,idij,idjj,rapj
       USE DAGCOM, only : ajl,jl_dudtsdrg
       USE DYNAMICS, only : pk,pdsig
@@ -1373,20 +1374,21 @@ C**** to be used in the PBL, at the promary grids
 !@var DT1 time step (s)
       REAL*8, INTENT(IN) :: DT1
 !@var L(P)SDRAG lowest level at which SDRAG_lin is applied (near poles)
-C**** SDRAG_const is applied from PTOP (150 mb) to P_CSDRAG
-      REAL*8 WL,TL,RHO,CDN,X,BYPIJU,DP,DPL(LM)
+C**** SDRAG_const is applied above PTOP (150 mb) and below the SDRAG_lin
+C**** regime (but not above P_CSDRAG)
+      REAL*8 WL,TL,RHO,CDN,X,BYPIJU,DP,DPL(LM),du
 !@var DUT,DVT change in momentum (mb m^3/s)
 !@var DKE change in kinetic energy (m^2/s^2)
       REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT,DKE
-      INTEGER I,J,L,IP1,K
+      INTEGER I,J,L,IP1,K,Lmax
       logical cd_lin
 !@var ang_mom is the sum of angular momentun at layers LS1 to LM
       REAL*8, DIMENSION(IM,JM)    :: ang_mom, sum_airm
 !@param wmax imposed limit for stratospheric winds (m/s)
       real*8, parameter :: wmax = 200.d0 , wmaxp = wmax*3.d0/4.d0
-      real*8 ediff,wmaxj
+      real*8 ediff,wmaxj,xjud
 
-      ang_mom=0. ;  sum_airm=0.
+      ang_mom=0. ;  sum_airm=0. ; dke=0. ; dut=0.
 C*
       BYPIJU=1./PSFMPT
       DUT=0. ; DVT=0.
@@ -1394,7 +1396,7 @@ C*
       DO J=2,JM
       cd_lin=.false.
       IF( L.ge.LSDRAG .or.
-     *    (L.ge.LPSDRAG.and.COSV(J).LE..15) ) cd_lin=.true.
+     *   (L.ge.LPSDRAG.and.COSV(J).LE..15) ) cd_lin=.true.
       wmaxj=wmax
       if(COSV(J).LE..15) wmaxj=wmaxp
       I=IM
@@ -1407,12 +1409,14 @@ C**** check T to make sure it stayed within physical bounds
         end if
         RHO=(PSFMPT*SIGE(L+1)+PTOP)/(RGAS*TL)
         WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
+        xjud=1.
+        if(Wc_JDRAG.gt.0.) xjud=(Wc_JDRAG/(Wc_JDRAG+min(WL,wmaxj)))**2
 C**** WL is restricted to Wmax by adjusting X, if necessary;
 C**** the following is equivalent to first reducing (U,V), if necessary,
 C**** then finding the drag and applying it to the reduced winds
-                    CDN=C_SDRAG
+                    CDN=C_SDRAG*xjud
         IF (L.gt.LCsdrag) CDN=0.
-        IF (cd_lin) CDN=X_SDRAG(1)+X_SDRAG(2)*min(WL,wmaxj)
+        IF (cd_lin) CDN=(X_SDRAG(1)+X_SDRAG(2)*min(WL,wmaxj))*xjud
         X=DT1*RHO*CDN*min(WL,wmaxj)*GRAV*BYDSIG(L)*BYPIJU
         if (wl.gt.wmaxj) X = 1. - (1.-X)*wmaxj/wl
 C**** adjust diags for possible difference between DT1 and DTSRC
@@ -1430,22 +1434,27 @@ C**** adjust diags for possible difference between DT1 and DTSRC
       END DO
       END DO
 C*
-C***  Add the lost angular momentum uniformly back in if ang_sdrag=1
-C???  currently only below 150mb - delete this line when this changes
+C***  Add the lost angular momentum uniformly back in if ang_sdrag>0
+C***  only below 150mb if ang_sdrag=1, into whole column if ang_sdrag>1
 C*
-      if (ang_sdrag.eq.1) then
+      if (ang_sdrag.gt.0) then
+        lmax=ls1-1
+        if (ang_sdrag.gt.1) lmax=lm
         do j = 2,jm
         I=IM
         do ip1 = 1,im
-          do l = 1,ls1-1   !   soon: 1,lm   ???
+          do l = 1,lmax
             DPL(L)=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
      *        +(PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*DXYS(J  ))
             sum_airm(i,j) = sum_airm(i,j)+DPL(L)
           end do
 C*
-          do l = 1,ls1-1   !   soon: 1,lm   ???
-            DUT(I,J,L)=(ang_mom(i,j)/sum_airm(i,j))*dpl(l)
-            U(I,J,L)=U(I,J,L)+ang_mom(i,j)/sum_airm(i,j)
+          do l = 1,lmax
+            du = ang_mom(i,j)/sum_airm(i,j)
+            DUT(I,J,L) = DUT(I,J,L) + du*dpl(l)
+            U(I,J,L)=U(I,J,L) + du
+            AJL(J,L,JL_DUDTSDRG) = AJL(J,L,JL_DUDTSDRG) + du
+            dke(i,j,l) = dke(i,j,l) + .5*du*(2*u(i,j,l)+du)
           end do
           I=IP1
         end do
@@ -1454,7 +1463,7 @@ C*
 
 C***** Add in dissipiated KE as heat locally
 !$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
-      DO L=LS1,LM
+      DO L=1,LM
         DO J=1,JM
           DO I=1,IMAXJ(J)
             ediff=0.
@@ -1471,7 +1480,7 @@ C**** conservation diagnostic
 C**** (technically we should use U,V from before but this is ok)
       CALL DIAGCD (4,U,V,DUT,DVT,DT1)
       RETURN
-      END
+      END SUBROUTINE SDRAG
 
       SUBROUTINE CALC_TROP
 !@sum  CALC_TROP (to calculate tropopause height and layer)

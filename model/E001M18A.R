@@ -3,8 +3,8 @@ E001M18A.R GISS Model E  2002 modelE                 rar  6/20/02
 modelE with 18 lyrs, top at .1 mb - 1979 atmosphere/ocean
 no gravity wave drag;     uses dry convection (rather than turbulence)
 Sdrag: weak linear strat. drag in top layer, near poles down to 20 mb
-       const drag above 150mb, lost ang.mom is added in below 150 mb
-sealevel pressure filter applied every hour
+       const drag above 150mb, lost ang.mom is added in whole column
+sea level pressure filter applied every hour
 6-band oice albedo; Hogstrom(1984) pbl drag
 Note: Many of these choices may be changed using the PARAMETERs below.
 
@@ -73,18 +73,21 @@ E001M18A (1979 atm/ocn - reduced opacity)
 DTFIX=180
 
 &&PARAMETERS
-X_SDRAG=.00025,.000025  ! used above P(P)_sdrag mb (and in top layer)
-C_SDRAG=.00002  ! constant SDRAG above PTOP=150mb
-P_sdrag=0.      ! linear SDRAG only in top layer (except near poles)
+X_SDRAG=.001,.0001  ! used above P(P)_sdrag mb (and in top layer)
+C_SDRAG=.0001   ! constant SDRAG above PTOP=150mb
+P_csdrag=1.     ! no constant Sdrag above 1 mb
+P_sdrag=1.      ! linear SDRAG only in top layer (except near poles)
 PP_sdrag=20.    ! linear SDRAG above PP_sdrag mb near poles
-ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
+ANG_sdrag=2     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
+Wc_jdrag=30.    ! crit.velocity for jdrag factor
+! alternate: Wc_jdrag=0., with: C_SDRAG=.00002, X_drag=.0001,.00001
 
 KOCEAN=0
 Kvflxo=1        ! saving VFLXO (daily, preparing for q-flux run)
 
 xCDpbl=1.       ! tune surface mom.drag to get reas. SLP (990mb at 65S)
 U00ice=.60      ! U00ice up  => nethtz0 down (alb down) goals: nethtz0=0 (ann.
-U00wtrX=.80     ! U00wtrX up => nethtz0 up   (alb down)           global mean)
+U00wtrX=.95     ! U00wtrX up => nethtz0 up   (alb down)           global mean)
 HRMAX=500.      ! HRMAX up   => nethtz0 down (alb up  )        plan.alb 30%
 
 RWCLDOX=1.5  !  wtr cld particle size *3/2 over ocean

@@ -72,7 +72,7 @@ C**** INITIALIZE TIME PARAMETERS
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
         CALL daily_tracer(0)
 #endif
-           CALL CHECKT ('INPUT ')
+           if (kradia.le.0) CALL CHECKT ('INPUT ')
       end if
       CALL UPDTYPE
 
@@ -192,11 +192,13 @@ C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
          CALL TIMER (MNOW,MCNDS)
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)
          IF (MODD5S.EQ.0) CALL DIAGCA (3)
-C**** RADIATION, SOLAR AND THERMAL
       end if                                  ! full model,kradia le 0
+C**** RADIATION, SOLAR AND THERMAL
       MODRD=MOD(Itime-ItimeI,NRAD)
-      if (kradia.le.0. or. MODRD.eq.0) CALL RADIA
+      if (kradia.le.0. or. MODRD.eq.0) then
+         CALL RADIA
          CALL CHECKT ('RADIA ')
+      end if
          CALL TIMER (MNOW,MRAD)
       if (kradia.le.0) then                    ! full model,kradia le 0
          IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)
@@ -361,9 +363,7 @@ C****    done at the end of (selected) months
      *    JDAY.eq.1+JDendOfM(JMON-1) .and. MOD(Itime,NDAY).eq.0) THEN
 
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
-      if (kradia.le.0) then            ! full model
-        call print_diags(3)
-      end if   ! full model; kradia le 0
+      if (kradia.le.0) call print_diags(3)
 
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
         IF (KCOPY.GT.0) THEN
@@ -471,7 +471,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND,ItimeI,PSFMPT,PSTRAT,SIG,SIGE,UOdrag
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
-     $     ,LCSDRAG,P_CSDRAG
+     $     ,LCSDRAG,P_CSDRAG,Wc_Jdrag
       USE PARAM
       implicit none
       INTEGER L
@@ -487,6 +487,7 @@ C**** Rundeck parameters:
       call sync_param( "P_SDRAG", P_SDRAG )
       call sync_param( "PP_SDRAG", PP_SDRAG )
       call sync_param( "ANG_SDRAG", ANG_SDRAG )
+      call sync_param( "Wc_Jdrag", Wc_Jdrag )
       call sync_param( "NDASF", NDASF )
       call sync_param( "NDA4", NDA4 ) !!
       call sync_param( "NDA5S", NDA5S ) !!
