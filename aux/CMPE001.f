@@ -9,7 +9,7 @@ C****
       USE PBLCOM, only : npbl
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm
-      USE TRACER_DIAG_COM, only: ktaij,ktaijs,ktajlx,ktajls,ktcon
+      USE TRDIAG_COM, only: ktaij,ktaijs,ktajlx,ktajls,ktcon
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: JPPJ, n_rx
 #endif
