@@ -51,11 +51,11 @@ C****
      *     ,DTGRND,EVHDT,F1DT,CM,CH,CQ,DHGS,DQGS,DGS,BETAUP,EVHEAT,F0,F1
      *     ,DSHDTG,DQGDTG,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG,dEVdQS
      *     ,HSDEN,HSCON,HSMUL,dHS,dQS,dT2,dTS,DQ1X,EVHDT0,EVAP,F0DT
-     *     ,FTEVAP,VAP,SPRING,TIMEZ,PWATER,PXSOIL,PSK,TH1,Q1,THV1,TFS
+     *     ,FTEVAP,VAP,TIMEZ,PWATER,PXSOIL,PSK,TH1,Q1,THV1,TFS
      *     ,RMBYA,HZM1,Q0M1,QZM1,TSS,QSS,TAUS,RTAUS,RTAUUS,RTAUVS,TG1S
      *     ,QGS,SRHDTS,TRHDTS,SHDTS,UGS,PTYPE,TG1,SRHEAT,SNOW,TG2,SHDT
      *     ,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT,QSDEN
-     *     ,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,ZS1CO,WARMER,USS
+     *     ,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,ZS1CO,USS
      *     ,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L,THZ1,QZ1,POC,POI
      *     ,PLK,PLKI,F1DTS
 
@@ -88,17 +88,15 @@ C****
 
       ZS1CO=.5*DSIG(1)*RGAS*BYGRAV
 
-      SPRING=-1.
-      IF((JDAY.GE.32).AND.(JDAY.LE.212)) SPRING=1.
 C**** ZERO OUT ENERGY AND EVAPORATION FOR GROUND AND INITIALIZE TGRND
       DO J=1,JM
-        DO I=1,IM
-          TGRND(2,I,J)=GTEMP(1,2,I,J)
-          TGRND(3,I,J)=GTEMP(1,3,I,J)
-C         TGRND(4,I,J)=GTEMP(1,4,I,J)
-          TGRN2(2,I,J)=GTEMP(2,2,I,J)
-          TGRN2(3,I,J)=GTEMP(2,3,I,J)
-        END DO
+      DO I=1,IM
+        TGRND(2,I,J)=GTEMP(1,2,I,J)
+        TGRND(3,I,J)=GTEMP(1,3,I,J)
+C       TGRND(4,I,J)=GTEMP(1,4,I,J)
+        TGRN2(2,I,J)=GTEMP(2,2,I,J)
+        TGRN2(3,I,J)=GTEMP(2,3,I,J)
+      END DO
       END DO
 C*
 C**** Zero out fluxes summed over type
@@ -129,8 +127,6 @@ C****
       IF(J.LE.JM/2) HEMI=-1.
       POLE=.FALSE.
       IF(J.EQ.1 .or. J.EQ.JM) POLE = .TRUE.
-         IF(J.LT.JEQ) WARMER=-SPRING
-         IF(J.GE.JEQ) WARMER=SPRING
       IM1=IM
       DO I=1,IMAX
 
@@ -579,23 +575,23 @@ C****
 C**** UPDATE FIRST LAYER QUANTITIES
 C****
       DO J=1,JM
-        IMAX=IMAXJ(J)
-        DO I=1,IMAX
-          FTEVAP=0
-          IF (DTH1(I,J)*T(I,J,1).lt.0) FTEVAP=-DTH1(I,J)/T(I,J,1)
-          FQEVAP=0
-          IF (DQ1(I,J).lt.0.and.Q(I,J,1).gt.0) FQEVAP=-DQ1(I,J)/Q(I,J,1)
-            T(I,J,1)=  T(I,J,1)+DTH1(I,J)
-            Q(I,J,1)=  Q(I,J,1)+DQ1(I,J)
+      IMAX=IMAXJ(J)
+      DO I=1,IMAX
+        FTEVAP=0
+        IF (DTH1(I,J)*T(I,J,1).lt.0) FTEVAP=-DTH1(I,J)/T(I,J,1)
+        FQEVAP=0
+        IF (DQ1(I,J).lt.0.and.Q(I,J,1).gt.0) FQEVAP=-DQ1(I,J)/Q(I,J,1)
+        T(I,J,1)=  T(I,J,1)+DTH1(I,J)
+        Q(I,J,1)=  Q(I,J,1)+DQ1(I,J)
 ! Z-moments should be set from PBL
-            TMOM(:,I,J,1) = TMOM(:,I,J,1)*(1.-FTEVAP)
-            QMOM(:,I,J,1) = QMOM(:,I,J,1)*(1.-FQEVAP)
-          IF (Q(I,J,1).LT.qmin) THEN
-             WRITE(99,*) ITime,'I,J:',I,J,' Q1:',Q(I,J,1),'->0',DQ1(I,J)
-             Q(I,J,1)=qmin
-             QMOM(:,I,J,1)=0.
-          ENDIF
-        END DO
+        TMOM(:,I,J,1) = TMOM(:,I,J,1)*(1.-FTEVAP)
+        QMOM(:,I,J,1) = QMOM(:,I,J,1)*(1.-FQEVAP)
+        IF (Q(I,J,1).LT.qmin) THEN
+          WRITE(99,*) ITime,'I,J:',I,J,' Q1:',Q(I,J,1),'->',qmin
+          Q(I,J,1)=qmin
+          QMOM(:,I,J,1)=0.
+        ENDIF
+      END DO
       END DO
 C****
 C**** ADD IN SURFACE FRICTION TO FIRST LAYER WIND
@@ -607,12 +603,12 @@ C**** Polar boxes
         HEMI=1.
         IF(J.LE.JM/2) HEMI=-1.
         DO I=1,IMAX
-          DO K=1,KMAX
-            U(IDIJ(K,I,J),IDJJ(K,J),1)=U(IDIJ(K,I,J),IDJJ(K,J),1)-RAJ(K
-     *           ,J)*(DU1(I,J)*COSI(K)+DV1(I,J)*SINI(K)*HEMI)
-            V(IDIJ(K,I,J),IDJJ(K,J),1)=V(IDIJ(K,I,J),IDJJ(K,J),1)-RAJ(K
-     *           ,J)*(DV1(I,J)*COSI(K)-DU1(I,J)*SINI(K)*HEMI)
-          END DO
+        DO K=1,KMAX
+          U(IDIJ(K,I,J),IDJJ(K,J),1)=U(IDIJ(K,I,J),IDJJ(K,J),1) -
+     *           RAJ(K,J)*(DU1(I,J)*COSI(K)+DV1(I,J)*SINI(K)*HEMI)
+          V(IDIJ(K,I,J),IDJJ(K,J),1)=V(IDIJ(K,I,J),IDJJ(K,J),1) -
+     *           RAJ(K,J)*(DV1(I,J)*COSI(K)-DU1(I,J)*SINI(K)*HEMI)
+        END DO
         END DO
       END DO
 C**** non polar boxes
@@ -620,12 +616,12 @@ C**** non polar boxes
         IMAX=IMAXJ(J)
         KMAX=KMAXJ(J)
         DO I=1,IMAX
-          DO K=1,KMAX
-            U(IDIJ(K,I,J),IDJJ(K,J),1)=U(IDIJ(K,I,J),IDJJ(K,J),1)
-     *           - RAJ(K,J)*DU1(I,J)
-            V(IDIJ(K,I,J),IDJJ(K,J),1)=V(IDIJ(K,I,J),IDJJ(K,J),1)
-     *           - RAJ(K,J)*DV1(I,J)
-          END DO
+        DO K=1,KMAX
+          U(IDIJ(K,I,J),IDJJ(K,J),1)=U(IDIJ(K,I,J),IDJJ(K,J),1) -
+     *           RAJ(K,J)*DU1(I,J)
+          V(IDIJ(K,I,J),IDJJ(K,J),1)=V(IDIJ(K,I,J),IDJJ(K,J),1) -
+     *           RAJ(K,J)*DV1(I,J)
+        END DO
         END DO
       END DO
 C****
