@@ -122,8 +122,9 @@ diagnostics</A></P>
 This is stored through the CVS revision control system, and copies can
 be checked-out to your home directory using the following commands:</p>
 <tt>
-   export CVSDIR=/u/cmrun/cvs/repository<br>
+   export CVSROOT=/u/cmrun/cvs/repository<br>
    cvs checkout -r modelE-1-0 modelE<br>
+   cd modelE<br>
    cvs tag -b your_tag_here<br>
    cvs update -r your_tag_here<br>
 </tt>
