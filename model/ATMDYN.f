@@ -24,7 +24,7 @@
      &     UT,VT,TT,TZ,TZT,MA,
      &     UX,VX,PIJL
 
-      REAL*8 DTFS,DTLF,PP,UU,VV
+      REAL*8 DTFS,DTLF
       INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
       INTEGER NS, NSOLD,MODDA    !? ,NIdynO
 
@@ -190,24 +190,20 @@ CCC   TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
       CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
       
-      CALL CHECKSUM(grid, U, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, U, FROM=NORTH)
          DO L=1,LM
          DO J=J_0S,J_1S ! eastward transports
          I=IM
          DO IP1=1,IM
-           PP=.5*(PHI(I,J,L)+PHI(IP1,J,L))
-           UU=.5*(U(I,J,L)+U(I,J+1,L))
-           AIJ(I,J,IJ_FGZU)=AIJ(I,J,IJ_FGZU)+PP*UU*DYV(J)*DTLF
+            AIJ(I,J,IJ_FGZU)=AIJ(I,J,IJ_FGZU)+
+     &           (PHI(I,J,L)+PHI(IP1,J,L))*PU(I,J,L)*DT ! use DT=DTLF/2
          I=IP1
          END DO
          END DO
          DO J=J_0STG,J_1STG ! northward transports
          IM1=IM
          DO I=1,IM
-           PP=.5*(PHI(I,J-1,L)+PHI(I,J,L))
-           VV=.5*(V(I,J,L)+V(IM1,J,L))
-           AIJ(I,J,IJ_FGZV)=AIJ(I,J,IJ_FGZV)+PP*VV*DXV(J)*DTLF
+            AIJ(I,J,IJ_FGZV)=AIJ(I,J,IJ_FGZV)+
+     &           (PHI(I,J-1,L)+PHI(I,J,L))*PV(I,J,L)*DT ! use DT=DTLF/2
          IM1=I
          END DO
          END DO
