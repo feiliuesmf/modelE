@@ -210,15 +210,17 @@ C *********************************************************************
 
 c     write(67,1003) "p-gradients: ",dpdxrij,dpdyrij,dpdxr0ij,dpdyr0ij
 c1003 format(a,4(1pe14.4))
-      call advanc(
-     3     coriol,utop,vtop,ttop,qtop,tgrndv,qgrnd,evap_max,fr_sat,
 #ifdef TRACERS_ON
-     *     trs,trtop,trsfac,trconstflx,ntx,
+      call advanc(coriol,utop,vtop,ttop,qtop,tgrndv,qgrnd,evap_max
+     *     ,fr_sat,trs,trtop,trsfac,trconstflx,ntx,
 #ifdef TRACERS_WATER
      *     tr_evap_max,
 #endif
+#else
+      call advanc(coriol,utop,vtop,ttop,qtop,tgrndv,qgrnd,evap_max
+     *     ,fr_sat,
 #endif
-     4     ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,i,j,itype)
+     *     ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,i,j,itype)
 
       uabl(:,i,j,itype)=uij(:)
       vabl(:,i,j,itype)=vij(:)

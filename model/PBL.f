@@ -109,15 +109,17 @@ C$OMP  THREADPRIVATE (/PBLPAR/,/PBLOUT/)
 
       CONTAINS
 
-      subroutine advanc(
-     3     coriol,utop,vtop,ttop,qtop,tgrnd,qgrnd,evap_max,fr_sat,
 #ifdef TRACERS_ON
-     *     trs,trtop,trsfac,trconstflx,ntx,
+      subroutine advanc(coriol,utop,vtop,ttop,qtop,tgrnd,qgrnd,evap_max
+     *     ,fr_sat,trs,trtop,trsfac,trconstflx,ntx,
 #ifdef TRACERS_WATER
      *     tr_evap_max,
 #endif
+#else
+      subroutine advanc(coriol,utop,vtop,ttop,qtop,tgrnd,qgrnd,evap_max
+     *     ,fr_sat,
 #endif
-     4     ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,ilong,jlat,itype)
+     *     ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,ilong,jlat,itype)
 !@sum  advanc  time steps the solutions for the boundary layer variables
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
