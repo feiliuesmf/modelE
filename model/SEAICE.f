@@ -671,6 +671,7 @@ C****
 C****
       END IF
 C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-4) => rsi=(1-OPNOCN))
+      IF (ROICE.gt.0) THEN
       OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2)))    ! -BYZICX)
       IF ((ROICE*(ACE1I+MSI2)).gt.5.*RHOI) OPNOCN=0.    ! no leads for h>5
       IF (ROICE.gt.(1.-OPNOCN-1d-4)) THEN
@@ -695,6 +696,7 @@ C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-4) => rsi=(1-OPNOCN))
         MSI2 = MSI2-FMSI4       ! new ice mass of second physical layer
 C       SNOW = SNOW   ! snow thickness is conserved
         ROICE = ROICEN
+      END IF
       END IF
       END IF
 C**** Calculate temperatures for diagnostics and radiation
