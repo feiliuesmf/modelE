@@ -27,6 +27,15 @@
       CHARACTER aDATE*14
       CHARACTER*8 :: flg_go='___GO___'      ! green light
       external sig_stop_model
+      LOGICAL :: qcrestart
+C****
+C**** Processing command line options
+C****
+      call read_options( qcrestart )
+      if ( qcrestart ) then
+        call print_restart_info
+        call stop_model("Terminated normally: printed restart info",13)
+      endif
 C****
 C**** INITIALIZATIONS
 C****
@@ -1383,4 +1392,62 @@ C**** check tracers
 
       RETURN
       END SUBROUTINE CHECKT
+
+      
+      subroutine read_options( qcrestart )
+!@sum reads options from the command line (for now only one option)
+!@auth I. Aleinov
+!@ver 1.0
+!@var qcrestart true if "-r" is present
+      logical, intent(out) :: qcrestart
+      integer n, nargs
+      character*80 arg
+
+      qcrestart = .false.
+
+      nargs = iargc()
+      do n=1,nargs
+        call getarg(n,arg)
+        select case (arg)
+        case ("-r")
+          qcrestart = .true.
+        ! new options can be included here
+        case default
+          print *,'Unknown option specified: ', arg
+          print *,'Aborting...'
+          call stop_model("Unknown option on a command line",255)
+        end select
+      enddo
+
+      return
+      end subroutine read_options
+
+      
+      subroutine print_restart_info
+!@sum prints timing information needed to restart the model
+!@auth I. Aleinov
+!@ver 1.0
+      USE MODEL_COM
+      integer :: ItimeMax=-1, Itime1, Itime2, itm, ioerr1=-1, ioerr2=-1
+      
+      call io_label(1,Itime1,itm,ioread,ioerr1)
+      call io_label(2,Itime2,itm,ioread,ioerr2)
+
+      if ( ioerr1==-1 ) ItimeMax = Itime1
+      if ( ioerr2==-1 ) ItimeMax = max( ItimeMax, Itime2 )
+
+      if ( Itime < 0 )
+     $     call stop_model("Could not read fort.1, fort.2",255)
+
+      call getdte(
+     &     ItimeMax,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+      write(6,"('QCRESTART_DATA: ',I10,1X,I2,'-',I2.2,'-',I4.4)")
+     &     ItimeMax*24/Nday, Jmon, Jdate, Jyear
+
+      return
+      end subroutine print_restart_info
+
+
+
+
 
