@@ -2840,8 +2840,7 @@ c
       k=k+1
       jl_dudtsdif = k                   
       sname_jl(k) = 'dudt_sdiff' !     ! gwdrag
-      lname_jl(k) = 'MOIST CONVECTIVE EFFECTIVE CLOUD PARTICLE SIZE'
-      lname_jl(k) = 'DU/DT BY GRAVITY WAVE DIFFUSION'
+      lname_jl(k) = 'DU/DT BY GRAVITY WAVE MOMENTUM DIFFUSION'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
       jgrid_jl(k) = 2
