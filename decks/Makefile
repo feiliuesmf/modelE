@@ -65,7 +65,7 @@ setup: gcm
 	    echo '### Information below describes your run. Do not delete! ###'\
 	    >> $(DECKS_REPOSITORY)/$(RUN).R ; \
 	    date >> $(DECKS_REPOSITORY)/$(RUN).R ; \
-	    $(F90) -version >> $(DECKS_REPOSITORY)/$(RUN).R 2>&1 ;\
+	    echo $(F90_VERSION) >> $(DECKS_REPOSITORY)/$(RUN).R ;\
 	    if [ -f $(MODEL_DIR)/CVS/Tag ]; then \
 	      echo "CVS Repository Tag: `cat $(MODEL_DIR)/CVS/Tag`" \
 	      >> $(DECKS_REPOSITORY)/$(RUN).R; else \
@@ -97,7 +97,7 @@ setup_gfdl: gcm $(SETUP_GFDL)
 	    echo '### Information below describes your run. Do not delete! ###'\
 	    >> $(DECKS_REPOSITORY)/$(RUN).R ; \
 	    date >> $(DECKS_REPOSITORY)/$(RUN).R ; \
-	    $(F90) -version >> $(DECKS_REPOSITORY)/$(RUN).R 2>&1 ;\
+	    echo $(F90_VERSION) >> $(DECKS_REPOSITORY)/$(RUN).R ;\
 	    if [ -f $(MODEL_DIR)/CVS/Tag ]; then \
 	      echo "CVS Repository Tag: `cat $(MODEL_DIR)/CVS/Tag`" \
 	      >> $(DECKS_REPOSITORY)/$(RUN).R; else \
@@ -139,7 +139,7 @@ exe:  $(BIN_DIR)/$(RUN).exe
 	<$(DECKS_REPOSITORY)/$(RUN).R  >$(DECKS_REPOSITORY)/$(RUN).R.tmp
 	@echo '### Executable was recompiled ' >> $(DECKS_REPOSITORY)/$(RUN).R
 	@date >> $(DECKS_REPOSITORY)/$(RUN).R
-	@$(F90) -version >> $(DECKS_REPOSITORY)/$(RUN).R 2>&1
+	@echo $(F90_VERSION) >> $(DECKS_REPOSITORY)/$(RUN).R
 	@if [ -f $(MODEL_DIR)/CVS/Tag ]; then \
 	echo "CVS Repository Tag: `cat $(MODEL_DIR)/CVS/Tag`" \
 	>> $(DECKS_REPOSITORY)/$(RUN).R; else \
@@ -179,3 +179,5 @@ config configure:
 
 update:
 	$(MAKE) -C $(MODEL_E_ROOT) $@ RELEASE=$(RELEASE)
+
+

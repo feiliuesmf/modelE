@@ -48,8 +48,10 @@ CPP = $(NO_COMMAND)
 MACHINE = not_specified
 COMPILER = not_specified
 LIBS =
+F90_VERSION = 'Unknown compiler version'
 
 UNAME = $(shell uname)
+
 
 # SGI - specific options here
 ifeq ($(UNAME),IRIX64)
@@ -77,6 +79,7 @@ endif
 # not sure if the following will help the debugging ...
 # FFLAGS += -DEBUG:verbose_runtime=ON
 # LFLAGS += -DEBUG:verbose_runtime=ON
+F90_VERSION = $(shell $(F90) -version 2>&1)
 endif
 
 # SGI-32 - specific options here
@@ -90,33 +93,47 @@ U       = $(SCRIPTS_DIR)/uco2_f90
 CPPFLAGS = -DMACHINE_SGI
 FFLAGS = -cpp -O2 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745
 LFLAGS = -O2 -mips4 -lfastm -mp -OPT:reorg_common=OFF -Wl,-woff,134 -Wl,-woff,15
+F90_VERSION = $(shell $(F90) -version 2>&1)
 endif
 
 
-
 # Linux - specific options here
+# If COMPILER is set will use options for that compiler, otherwise will
+# use the default (Absoft). The following compilers are recognized:
+# Absoft, Lahey, Intel (not working yet), Vast (not working yet).
 ifeq ($(UNAME),Linux)
 MACHINE = Linux
-## This is for the VAST compile
-#COMPILER = Vast
-#F90 = f90
-#FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -m vo
-## this is for Intel Compiler (DOES NOT WORK WELL)
-#COMPILER = Intel
-#F90 = ifc
-#FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -m d -int
-#FFLAGS = -O2
-#LFLAGS = -O2
-## This is for the Lahey/Fujitsu compiler
-#COMPILER = Lahey
-#F90 = lf95
-#CPP = /usr/bin/cpp -P -traditional
-#FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend 
-#CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux
-#FFLAGS = -O
-#LFLAGS = 
-## This is for the Absoft PROfortran compiler
+ifndef $(COMPILER)
 COMPILER = Absoft
+endif
+
+## This is for the VAST compiler (DOES NOT WORK)
+ifeq ($(COMPILER),Vast)
+F90 = f90
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -m vo
+endif
+
+## this is for Intel Compiler (DOES NOT WORK WELL)
+ifeq ($(COMPILER),Intel)
+F90 = ifc
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -m d -int
+FFLAGS = -O2
+LFLAGS = -O2
+endif
+
+## This is for the Lahey/Fujitsu compiler
+ifeq ($(COMPILER),Lahey)
+F90 = lf95
+CPP = /usr/bin/cpp -P -traditional
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend 
+CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux
+FFLAGS = -O
+LFLAGS = 
+F90_VERSION = $(shell $(F90) --version)
+endif
+
+## This is for the Absoft PROfortran compiler
+ifeq ($(COMPILER),Absoft)
 F90 = f90
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
@@ -127,6 +144,8 @@ LFLAGS = -lf90math -lV77 -lU77
 #FFLAGS += -g -trap=INVALID,DIVBYZERO,OVERFLOW -B111
 #LFLAGS += -lefence -g
 endif
+endif
+
 
 # IBM - specific options here
 ifeq ($(UNAME),AIX)
@@ -138,8 +157,11 @@ FMAKEDEP = perl $(SCRIPTS_DIR)/sfmakedepend
 CPPFLAGS =
 FFLAGS = -O2 -qfixed -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
 # one may need to add -bmaxstack:0x1000000 if rusns out of stack
-LFLAGS = -O2 -bmaxdata:0x10000000 
+LFLAGS = -O2 -bmaxdata:0x10000000
+# no guarantee that the following line gives correct info
+F90_VERSION = $(shell what /usr/lpp/xlf/bin/xlfentry | tail -1)
 endif
+
 
 # DEC Alpha - specific options here
 # This option has not been tested yet. It may need some adjustment.
@@ -158,8 +180,8 @@ ifeq ($(MP),YES)
 FFLAGS += -omp
 LFLAGS += -omp
 endif
+F90_VERSION = $(shell $(F90) -version 2>&1)
 endif
-
 
 
 # end of machine - specific options

@@ -58,3 +58,7 @@ MP=NO
 # mask.
 UMASK=002
 
+# COMPILER - this option has effect only on Linux machines. It specifies
+# your f90 compiler. Currently supported: Absoft, Lahey.
+# default is Absoft.
+# COMPILER=Absoft
