@@ -12,7 +12,7 @@ c left to do: divide by sum of ptypes for each longitude (=im right now)
       real :: dtday,dtsec
 
       integer :: ntype
-      real, dimension(:), allocatable :: lats,sige
+      real, dimension(:), allocatable :: lats,sige,dxyp
       real, dimension(:,:), allocatable :: acc
       real, dimension(:), allocatable :: acc1,acc2,acc3,acc4,acc5,accsum
       real, dimension(:), allocatable :: fj,sptype
@@ -42,7 +42,7 @@ c left to do: divide by sum of ptypes for each longitude (=im right now)
       dim_name='NTYPE'; call get_dim_size(dim_name,ntype)
       if(nargs-2.gt.ntype) stop 'too many surface types in arguments'
 ! allocate space using these dimensions
-      allocate(lats(jm))
+      allocate(lats(jm),dxyp(jm))
       allocate(sige(lm+1))
       allocate(acc(jm,ntype))
       allocate (acc1(jm),acc2(jm),acc3(jm),acc4(jm),acc5(jm),accsum(jm))
@@ -50,6 +50,7 @@ c left to do: divide by sum of ptypes for each longitude (=im right now)
       allocate(wtype(ntype))
 ! get lon,ht coordinates
       acc_name='latitude'; call getacc(acc_name,lats)
+      acc_name='area'; call getacc(acc_name,dxyp)
       acc_name='sige'; call getacc(acc_name,sige)
 
 ! define output file
@@ -105,6 +106,11 @@ c  AJ69
       sptype = accsum*scale
       fj = sptype/im
       call wrtarr(var_name,fj)
+c grid areas
+      var_name='area'
+      long_name = 'area of latitude band'
+      units = 'm^2'
+      call wrtarr(var_name,dxyp)
 c  AJ01
       var_name = 'inc_sw'
       long_name = 'INC SW'
@@ -677,7 +683,7 @@ c AJ02/AJ01
       long_name = 'PLANETARY ALBDO'
       units = '1'
       acc_name='SRNFP0'; call getaj(acc_name,acc,acc1,jm,wtype,ntype)
-      fj = -acc1/(acc2+1.E-20)
+      fj = 1.-acc1/(acc2+1.E-20)
       call wrtarr(var_name,fj)
 c AJ72/AJ01
       var_name = 'palb_vis'
@@ -697,8 +703,8 @@ c AJ06/AJ05
       var_name = 'galb'
       long_name = 'SURFACE G ALBDO'
       units = '1'
-      acc_name='PLANIR'; call getaj(acc_name,acc,acc1,jm,wtype,ntype)
-      fj = -acc1/(acc3+1.E-20)
+      acc_name='SRNFG'; call getaj(acc_name,acc,acc1,jm,wtype,ntype)
+      fj = 1.-acc1/(acc3+1.E-20)
       call wrtarr(var_name,fj)
 c AJ74/AJ01
       var_name = 'galb_vis'
