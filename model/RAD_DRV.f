@@ -547,7 +547,7 @@ C     OUTPUT DATA
       USE tracers_DRYDEP, only: CFRAC,trdrydep_rad
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: RCLOUDFJ
+      USE TRCHEM_Shindell_COM, only: RCLOUDFJ,SALBFJ
 #endif
       IMPLICIT NONE
 C
@@ -1041,6 +1041,9 @@ C****
       ALB(I,J,9)=SRANIR
 #ifdef TRACERS_DRYDEP
       trdrydep_rad(I,J)=SRDFLB(1) ! save solar flux at surface
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      SALBFJ(I,J)=ALB(I,J,1)    ! save surface albedo for chemistry
 #endif
       FSRDIR(I,J)=SRXVIS                  ! added by adf
 C**** Save clear sky/tropopause diagnostics here
