@@ -2512,7 +2512,7 @@ C****
      *     ,dxpo,dypo,dxvo,dyvo,dxyvo,dxypo,bydxypo
       USE OCEAN_DYN, only : dh
       IMPLICIT NONE
-      REAL*8, PARAMETER :: AKHMIN=1d8, FSLIP=0.
+      REAL*8, PARAMETER :: AKHMIN=1.5d8, FSLIP=0.
       INTEGER, PARAMETER :: IIP=IM*(JM-2)+1
       REAL*8, SAVE, DIMENSION(JM) :: KYPXP,KXPYV,KYVXV,KXVYP,BYDXYV,
      *     KHP,KHV,TANP,TANV,BYDXV,BYDXP,BYDYV,BYDYP
@@ -2558,6 +2558,7 @@ C**** Discretisation errors need TANP/V to be defined like this
         VLAT = DLAT*(J+0.5-0.5*(1+JM))
         TANV(J)=TAN(VLAT)*SIN(DLAT)/(DLAT*RADIUS)
       END DO
+      KHV(1)=KHV(2)
       BYDXV(1)=1D0/DXVO(1)
       BYDYV(1)=1D0/DYVO(1)
       BYDYP(1)=1D0/DYPO(1)
