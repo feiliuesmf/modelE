@@ -2642,7 +2642,7 @@ C**** NCON=1:25 are special cases: Angular momentum and kinetic energy
       SCALE_CON(23)             = 1d3/(NFILTR*DTSRC)
       SCALE_CON(24)             = 2d3/SDAY
       TITLE_CON(1:25) = (/
-     *  ' INSTANTANE AM (10**9 J*S/M**2) ',
+     *  ' INSTANTANE AM (10**9 J*S/M^2)  ',
      *  '     DELTA AM BY ADVECTION      ',
      *  '     DELTA AM BY CORIOLIS FORCE ',
      *  '     DELTA AM BY PRESSURE GRAD  ',
@@ -2653,8 +2653,8 @@ C**** NCON=1:25 are special cases: Angular momentum and kinetic energy
      *  ' CHANGE OF AM BY SURF FRIC+TURB ',
      *  ' CHANGE OF AM BY FILTER         ',
      *  ' CHANGE OF AM BY DAILY RESTOR   ',
-     *  ' SUM OF CHANGES (10**2 J/M**2)  ',
-     *  '0INSTANTANEOUS KE (10**3 J/M**2)',
+     *  ' SUM OF CHANGES (10**2 J/M^2)   ',
+     *  '0INSTANTANEOUS KE (10**3 J/M^2) ',
      *  '     DELTA KE BY ADVECTION      ',
      *  '     DELTA KE BY CORIOLIS FORCE ',
      *  '     DELTA KE BY PRESSURE GRAD  ',
@@ -2666,7 +2666,7 @@ C**** NCON=1:25 are special cases: Angular momentum and kinetic energy
      *  ' CHANGE OF KE BY SURF + DC/TURB ',
      *  ' CHANGE OF KE BY FILTER         ',
      *  ' CHANGE OF KE BY DAILY RESTOR   ',
-     *  ' SUM OF CHANGES (10**-3 W/M**2) '/)
+     *  ' SUM OF CHANGES (10**-3 W/M^2)  '/)
       name_consrv(1:25) = (/
      *     'inst_AM   ','del_AM_ADV','del_AM_COR','del_AM_PRE',
      *     'del_AM_STR','del_AM_UVF','del_AM_GWD','chg_AM_DYN'
@@ -2675,10 +2675,10 @@ C**** NCON=1:25 are special cases: Angular momentum and kinetic energy
      *     ,'del_KE_STR','del_KE_UVF','del_KE_GWD','chg_KE_DYN'
      *     ,'chg_KE_MOI','chg_KE_SUR','del_KE_FIL','chg_KE_DAI'
      *     ,'sum_chg_KE'/)
-      units_consrv(1)    ="10**9 J*S/M**2"
-      units_consrv(2:12) ="10**2 J/M**2"
-      units_consrv(13)   ="10**3 J/M**2"
-      units_consrv(14:24)="10**-3 W/M**2"
+      units_consrv(1)    ="10**9 J*S/M^2"
+      units_consrv(2:12) ="10**2 J/M^2"
+      units_consrv(13)   ="10**3 J/M^2"
+      units_consrv(14:24)="10**-3 W/M^2"
       lname_consrv(1:25)=TITLE_CON(1:25)
 C**** To add a new conservation diagnostic:
 C****    i) Add 1 to NQUANT, and increase KCON in DAGCOM.f
@@ -2698,22 +2698,22 @@ C****       should be in the driver module for the relevant physics
 C**** Set up atmospheric component conservation diagnostics
 C**** Atmospheric mass
       QCON=(/ T, F, F, F, F, F, T, F, T, F, F/)
-      CALL SET_CON(QCON,"MASS    ","(KG/M**2)       ",
-     *     "(10^-8 KG/S/M^2)",1d0,1d8,icon_MS)
+      CALL SET_CON(QCON,"MASS    ","(KG/M^2)       ",
+     *     "(10**-8 KG/SM^2)",1d0,1d8,icon_MS)
 C**** Atmospheric total potential energy
       QCON=(/ T, T, T, F, F, T, T, F, F, F, F/)
-      CALL SET_CON(QCON,"TPE     ","(10**5 J/M**2)  ",
-     *     "(10**-2 W/M**2) ",1d-5,1d2,icon_TPE)
+      CALL SET_CON(QCON,"TPE     ","(10**5 J/M^2)  ",
+     *     "(10**-2 W/M^2)  ",1d-5,1d2,icon_TPE)
 C**** Atmospheric water mass
       QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
-      CALL SET_CON(QCON,"ATM WATR","(10**-2 KG/M**2)",
-     *     "(10^-8 KG/S/M^2)",1d2,1d8,icon_WM)
+      CALL SET_CON(QCON,"ATM WAT ","(10**-2 KG/M^2)",
+     *     "(10**-8 KG/SM^2)",1d2,1d8,icon_WM)
 C**** Atmospheric water energy
 C**** This is not currently a conserved quantity, but it should be.
 C**** Hence this diagnostic gives the error
       QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
-      CALL SET_CON(QCON,"ENRG WAT","(J/M**2)        ",
-     *     "(10^-6 J/S/M^2) ",1d0,1d6,icon_EWM)
+      CALL SET_CON(QCON,"ENRG WAT","(J/M^2)        ",
+     *     "(10**-6 W/M^2)  ",1d0,1d6,icon_EWM)
 
 C**** Initialize layering for spectral diagnostics
 C**** add in epsilon=1d-5 to avoid roundoff mistakes

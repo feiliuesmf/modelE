@@ -655,8 +655,8 @@ C****
       NAME(LN_KVM)= 'Vertical Diffusion Coefficient (m^2/s)'
       SCALEO(LN_KVM) = .5
       SUMORMN(LN_KVM)=2
-      NAME(LN_ICFL)='Sea Ice Mass Flux (10^4 kg/s)'
-      SCALEO(LN_ICFL) = .5D-4 / DTS
+      NAME(LN_ICFL)='Sea Ice Mass Flux (10^6 kg/s)'
+      SCALEO(LN_ICFL) = .5D-6 / DTS
       SUMORMN(LN_ICFL)=0
       DO N=1,KOLNST
         if (n.eq.LN_MFLX .or. n.eq.LN_GFLX.or. n.eq.LN_SFLX.or. n.eq

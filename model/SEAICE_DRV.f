@@ -757,13 +757,13 @@ C**** set GTEMP array for ice
 C**** Set conservation diagnostics for ice mass, energy, salt
       QCON=(/ F, F, F, T, T, T, F, F, T, F, F/)
       CALL SET_CON(QCON,"ICE MASS","(KG/M^2)        ",
-     *     "(10^-9 KG/S/M^2)",1d0,1d9,icon_MSI)
+     *     "(10**-9 KG/SM^2)",1d0,1d9,icon_MSI)
       QCON=(/ F, F, F, T, T, T, F, F, T, F, F/)
       CALL SET_CON(QCON,"ICE ENRG","(10**6 J/M^2)   ",
-     *     "(10^-3 J/S/M^2) ",1d-6,1d3,icon_HSI)
+     *     "(10**-3 J/S M^2)",1d-6,1d3,icon_HSI)
       QCON=(/ F, F, F, T, T, T, F, F, T, F, F/)
-      CALL SET_CON(QCON,"ICE SALT","(10^-3 KG/M^2)  ",
-     *     "(10^-9 KG/S/M^2)",1d3,1d9,icon_SSI)
+      CALL SET_CON(QCON,"ICE SALT","(10**-3 KG/M^2) ",
+     *     "(10**-9 KG/SM^2)",1d3,1d9,icon_SSI)
 C****
       END SUBROUTINE init_ice
 
