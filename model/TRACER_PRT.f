@@ -441,7 +441,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
         CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
      *       plm,a,scalet,ones,ones,lm,2,jgrid_jlq(k))
       else
-        scalet = scale_jln(n)*scale_jlq(k)/idacc(ia_jlq(k))
+        scalet = scale_jlq(k)/idacc(ia_jlq(k))
         jtpow = ntm_power(n)+jlq_power(k)
         scalet = scalet*10.**(-jtpow)
         CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
