@@ -1132,7 +1132,7 @@ C**** Local parameters and variables and arguments:
 !@var id0,id1,im,i,j,k,mstart dummy variables
 !@var sum0,sum1,sum2,sum3,deltau,d1,d2,surfac dummy variables
       integer id, id0, id1, im, i, j, k, mstart, ND
-      real*8  sum0, sum1, sum2, sum3, deltau, d1, d2, surfac
+      real*8  sum0, sum1, sum2, sum3, deltau, d1, d2, surfac, ttmp(8)
 c
 C---------------------------------------------
       IF(ID.EQ.1 .OR. ID.EQ.ND) THEN
@@ -1257,13 +1257,16 @@ C------------intermediate points:  can be even or odd, A & C diagonal
           C1(I) = -AFASTJ(I)
            SUM0 = 0.0d0
           DO IM=MSTART,MFIT,2
-           SUM0 = SUM0 + POMEGA(IM,ID)*PM(I,IM)*PM0(IM)
+           TTMP(IM) = POMEGA(IM,ID)*PM(I,IM)
+           SUM0 = SUM0 + TTMP(IM)*PM0(IM)
+c           SUM0 = SUM0 + POMEGA(IM,ID)*PM(I,IM)*PM0(IM)
           ENDDO
           HFASTJ(I) = SUM0*FZ(ID)
           DO J=1,I
             SUM0 = 0.0d0
            DO IM=MSTART,MFIT,2
-            SUM0 = SUM0 + POMEGA(IM,ID)*PM(I,IM)*PM(J,IM)
+            SUM0 = SUM0 + TTMP(IM)*PM(J,IM)
+c            SUM0 = SUM0 + POMEGA(IM,ID)*PM(I,IM)*PM(J,IM)
            ENDDO
             BFASTJ(I,J) =  - SUM0*WTFASTJ(J)
             BFASTJ(J,I) =  - SUM0*WTFASTJ(I)

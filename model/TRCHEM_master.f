@@ -26,7 +26,7 @@ c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
-!@param by35 1/35 used for sherical geometry constant
+!@param by35 1/35 used for spherical geometry constant
       REAL*8, PARAMETER :: by35=1.d0/35.d0
 !@var FASTJ_PFACT temp factor for vertical pressure-weighting
 !@var FACT1 temp variable for start overwrite
@@ -48,7 +48,7 @@ C++++ First, some INITIALIZATIONS :
       bydtsrc = 1./dtsrc
       BYFJM=1./float(JM)
 C reset change due to chemistry to zero:
-      change = 0.
+      change(:,:,:,:) = 0.
 C
 C set surface albedo variable used in fastj, based on ALB(..1)
 C from radiation code:
@@ -91,6 +91,9 @@ C**** (note this section is already done in DIAG.f)
         END DO
       END DO
 C
+!$OMP  PARALLEL DO PRIVATE (FASTJ_PFACT, LL, 
+!$OMP*    I,igas,inss, J, L,Lqq, N,error )
+
       DO J=1,JM                          ! >>>> MAIN J LOOP BEGINS <<<<
 c     ILIMT=IM
 c     if(J.eq.1.or.J.eq.JM)ILIMT=1
@@ -581,6 +584,8 @@ c
       END DO ! >>>> MAIN I LOOP ENDS <<<<
 c
       END DO ! >>>> MAIN J LOOP ENDS <<<<
+!$OMP END PARALLEL DO  
+
 C
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC

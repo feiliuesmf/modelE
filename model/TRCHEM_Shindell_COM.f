@@ -333,7 +333,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
       INTEGER nr,nr2,nr3,nmm,nhet,MODPHOT, 
      & lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,
      & NWWW,NK,nlbatm,NCFASTJ                                 
-      INTEGER, DIMENSION(n_fam)        :: nfam
+      INTEGER, DIMENSION(n_fam)        :: nfam = (/27,30,0,0/) ! why 4?
       INTEGER, DIMENSION(p_1,p_2)      :: nn, nnr, kss
       INTEGER, DIMENSION(p_2)          :: ks
       INTEGER, DIMENSION(p_3)          :: nps, nds, npnr, ndnr
@@ -344,7 +344,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
       INTEGER, DIMENSION(JPPJ)         :: jind
       INTEGER, DIMENSION(NLFASTJ)      :: jaddlv, jaddto
       INTEGER, DIMENSION(NJVAL)        :: jpdep  
-      INTEGER, DIMENSION(12)           :: MDOFM    
+      INTEGER, DIMENSION(12) , PARAMETER :: MDOFM =
+     *     (/31,59,90,120,151,181,212,243,273,304,334,365/)
 C      
       CHARACTER*8, DIMENSION(n_spc)    :: ay
 C      
@@ -370,7 +371,12 @@ C
      &                                yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      &                                TX,sulfate,OxIC
       REAL*8, DIMENSION(LM,IM,JM)      :: RCLOUDFJ
-      REAL*8, DIMENSION(M__)         :: AFASTJ,C1,HFASTJ,V1,WTFASTJ,EMU
+      REAL*8, DIMENSION(M__)         :: AFASTJ,C1,HFASTJ,V1
+      REAL*8, DIMENSION(M__), PARAMETER ::
+     *     EMU = (/.06943184420297D0, .33000947820757D0,
+     *             .66999052179243D0,.93056815579703D0/), 
+     *     WTFASTJ = (/.17392742256873D0,.32607257743127D0,
+     *                 .32607257743127D0,.17392742256873D0/)
       REAL*8, DIMENSION(M__,M__)  :: BFASTJ,AAFASTJ,CC,SFASTJ,WFASTJ,U1
       REAL*8, DIMENSION(M__,2*M__)     :: PM
       REAL*8, DIMENSION(M__,M__,N__)   :: DD
@@ -392,7 +398,13 @@ C
       REAL*8, DIMENSION(NLFASTJ)       ::aer,ZFASTJ,O3J,TJ,DBC,DMFASTJ,
      &                                    XQO3,XQO2,DTAUDZ,TTAU,FTAU,
      &                                    PIAER,RZ,RQ,DO3,PIRAY
-      REAL*8, DIMENSION(LM)            ::odtmp,TXL,COalt,ta,pres,TFASTJ
+      REAL*8, DIMENSION(LM)            ::odtmp,ta,pres,TFASTJ  !,TXL
+C Multiplier of free trop [CO] by layer Badr & Probert 94 fig10 & 11,
+C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
+      REAL*8, DIMENSION(LM), PARAMETER ::  COalt =
+     *     (/2d0,1.5625d0,1.375d0,1.25d0,1.125d0,1.0625d0,1d0,1d0,1d0
+     *     ,1d0,1d0,.5d0,.375d0,.2d0,.2d0,.2d0,.2d0,.2d0,.25d0,.4d0,
+     *     2.5d0,12d0,60d0/)
       REAL*8, DIMENSION(NS)            :: VALJ
       REAL*8, DIMENSION(N__)           :: FJFASTJ
       REAL*8, DIMENSION(NWFASTJ,2,NS-3):: QQQ
@@ -403,7 +415,10 @@ C
       REAL*8, DIMENSION(IM,JM)          :: SALBFJ
       REAL*8, DIMENSION(40,JM,IM)       :: O3DLJI, O3DLJI_clim
       REAL*8, DIMENSION(2*(LS1-1))      :: O3_FASTJ
-      REAL*8, DIMENSION(19)             :: COlat
+C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
+      REAL*8, DIMENSION(19), PARAMETER  :: COlat = (/40.,40.,40.,40.,45.
+     *     ,50.,60.,70.,80.,90.,110.,125.,140.,165.,175.,180.,170.,165.
+     *     ,150./)
       REAL*8, DIMENSION(n_igas,LM)      :: dest, prod
       REAL*8, DIMENSION(NTM)            :: mass2vol,bymass2vol
       REAL*8, DIMENSION(IM,JM,LM,ntm)   :: change
@@ -418,21 +433,24 @@ C
       CHARACTER*7, DIMENSION(JPPJ) :: jlabel
       CHARACTER*7, DIMENSION(3)    :: lpdep
 C
-c
-C**************  D   A   T   A *******************  
-C
-      DATA EMU/.06943184420297D0,.33000947820757D0,.66999052179243D0,
-     $          .93056815579703D0/
-      DATA WTFASTJ/.17392742256873D0,.32607257743127D0,
-     $          .32607257743127D0,.17392742256873D0/
-      DATA nfam /27,30,0,0/ ! why 4?
-C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
-      DATA COlat/40.,40.,40.,40.,45.,50.,60.,70.,80.,90.,110.
-     &           ,125.,140.,165.,175.,180.,170.,165.,150./
-C Multiplier of free trop [CO] by layer Badr & Probert 94 fig10 & 11,
-C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
-      DATA COalt/2.,1.5625d0,1.375d0,1.25,1.125,1.0625d0,1.,1.,1.,
-     &     1.,1.,.5,.375,.2d0,.2d0,.2d0,.2d0,.2d0,.25,.4d0,2.5,12.,60./
-      DATA MDOFM/31,59,90,120,151,181,212,243,273,304,334,365/
-C
+      COMMON/CHEM_LOC/bypfactor
+     & ,changeAldehyde,changeAlkenes,changeAlkylNit
+     & ,changeIsoprene,changeHCHO,changeHNO3,changeNOx,changeN2O5
+     & ,chemrate,dest,dNO3,FASTJLAT
+     & ,FFF,gwprodHNO3,gprodHNO3,gwprodN2O5,O3_FASTJ,PFASTJ,photrate
+     & ,pfactor,pres,prod_sulf,prod,RFLECT,rlossN,rprodN,ratioN,rr
+     & ,RVELN2O5,SZA
+     & ,ta,TANHT,TFASTJ,U0,VALJ,wprod_sulf,wprodHCHO,wprodCO
+     & ,WTAU,y,zj,jndlv
+     & ,jndlev,jaddlv,jaddto,MIEDX,NCFASTJ  ! integers last (alignment)
+!$OMP THREADPRIVATE(/CHEM_LOC/)
+
+      COMMON/FJAST_LOC/aer,ZFASTJ,O3J,TJ,DBC,DMFASTJ,
+     &     XQO3,XQO2,DTAUDZ,TTAU,FTAU,rr2,dd,
+     &     PIAER,RZ,RQ,DO3,PIRAY , JFASTJ,odtmp,odsum,XLTAU,dpomega
+     *     ,pomega,pomegaj,ztau,fz,zrefl,zu0,zflux,pm0,pm,fjfastj
+     *     ,wfastj,BFASTJ,AFASTJ,AAFASTJ,CC,HFASTJ,C1,SFASTJ,U1,V1 
+!$OMP THREADPRIVATE(/FJAST_LOC/)
+
+
       END MODULE TRCHEM_Shindell_COM

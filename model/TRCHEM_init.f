@@ -65,8 +65,8 @@ C     Initialize a few (IM,JM,LM) arrays, first hour only:
         yRXPAR   =0.
 C       Also, initialize the ozone-radiation interaction fields:
         call openunit('O3D_IC',iu_data,.true.,.true.)
-        READ(iu_data)title,O3DLJI      ; WRITE(6,*)'READING: ',title
-        READ(iu_data)title,O3DLJI_clim ; WRITE(6,*)'READING: ',title
+        READ(iu_data)O3DLJI,O3DLJI_clim 
+c        READ(iu_data)title,O3DLJI_clim ; WRITE(6,*)'READING: ',title
         close(iu_data)
       END IF
 C
