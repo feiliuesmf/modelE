@@ -2848,13 +2848,15 @@ C**** Done!
 !@sum  TOC2SST convert ocean surface variables into atmospheric sst
 !@auth Gavin Schmidt
 !@ver  1.0
+      USE CONSTANT, only : byshi,lhm
       USE MODEL_COM, only : ftype,itocean,itoice
       USE OCEAN, only : im,jm,g0m,s0m,mo,dxypo,focean,lmm
-      USE SEAICE_COM, only : rsi
+      USE SEAICE_COM, only : rsi,hsi,snowi
+      USE SEAICE, only : ace1i, xsi
       USE FLUXES, only : gtemp, sss, mlhc
       IMPLICIT NONE
       INTEGER I,J
-      REAL*8 TEMGS,shcgs,GO,SO,GO2,SO2,TO
+      REAL*8 TEMGS,shcgs,GO,SO,GO2,SO2,TO,MSI1
 C****
 C**** Note that currently everything is on same grid
 C****
@@ -2875,6 +2877,9 @@ c            END IF
 c            GTEMP(2,1,I,J)= TO
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*RSI(I,J)
             FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
+C**** set GTEMP array for ice as well (possibly changed by STADVI)
+            MSI1=SNOWI(I,J)+ACE1I
+            GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI
           END IF
         END DO
       END DO

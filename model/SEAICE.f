@@ -571,7 +571,7 @@ C****
       REAL*8, INTENT(IN) :: DT, MSI1
       REAL*8, INTENT(OUT) :: MFLUX,HFLUX,SFLUX
 
-      REAL*8 DSSI(LMI),DMSI(LMI),DHSI(LMI),S12,DS12
+      REAL*8 DSSI(LMI),DMSI(LMI),DHSI(LMI),SS12,DS12
       REAL*8 FMSI1,FMSI2,FMSI3,FMSI4,FSSI1,FSSI2,FSSI3,FSSI4,
      *       FHSI1,FHSI2,FHSI3,FHSI4
       INTEGER L
@@ -586,11 +586,11 @@ C**** check first layer (default ice and snow)
       IF(SSIL(1)+SSIL(2).GT.ssi0*ACE1I) THEN
         DS12 = (SSIL(1)+SSIL(2)-ACE1I*ssi0)*DT*BYDTSSI
         IF (ACE1I.gt.XSI(2)*MSI1) THEN 
-          DSSI(1) = (ACE1I-XSI(2)*MSI1)*DS12
-          DSSI(2) = XSI(2)*MSI1*DS12
+          DSSI(1) = (ACE1I-XSI(2)*MSI1)*DS12/ACE1I
+          DSSI(2) = DS12-DSSI(1)
         ELSE
           DSSI(1) = 0.
-          DSSI(2) = ACE1I*MSI1*DS12
+          DSSI(2) = DS12
         END IF
         DMSI(1:2) = DSSI(1:2)
         DHSI(1:2) = DMSI(1:2)*HSIL(1:2)/(XSI(1:2)*MSI1)
@@ -633,13 +633,13 @@ C**** Apply the fluxes
       HSIL(3)=HSIL(3)+(FHSI2-FHSI3)
       HSIL(4)=HSIL(4)+(FHSI3-FHSI4)
 C**** salinity spread evenly over upper ice layer
-      S12=(SSIL(1)+SSIL(2))-FSSI2
+      SS12=(SSIL(1)+SSIL(2))-FSSI2
       IF (ACE1I.gt.XSI(2)*MSI1) THEN 
-        SSIL(1)=S12*(ACE1I-XSI(2)*MSI1)/ACE1I
+        SSIL(1)=SS12*(ACE1I-XSI(2)*MSI1)/ACE1I
       ELSE
         SSIL(1)= 0.
       END IF
-      SSIL(2)=S12-SSIL(1)
+      SSIL(2)=SS12-SSIL(1)
       SSIL(3)=SSIL(3)+(FSSI2-FSSI3)
       SSIL(4)=SSIL(4)+(FSSI3-FSSI4)
 c     MSI1 = MSI1 - (DMSI(1)+DMSI(2)) - FMSI2 ! stays fixed
@@ -783,7 +783,12 @@ c         lh = lhm*(1.+mu*Sib/Ti) + (Ti+mu*Sib)*(shw-shi) - shw*(Ti-Tb)
         Sb0=Sb
       end do
 C**** define fluxes (positive down)
-C**** Cap mass flux at to prevent MSI2 going below minimum
+C**** Cap mass flux at at 90% of bottom layer
+      if (m.gt.0.9d0*2.*dh*rhoi/dtsrc) then
+        print*,"Iceocean: Basal flux limited",m,0.9d0*2.*dh*rhoi/dtsrc
+     *       ,Ti,Si,Tm,Sm,Tb,Sb,ustar,Coriol,mlsh
+        m=0.9d0*2.*dh*rhoi/dtsrc
+      end if
 c      m = min(m,mfluxmax)
       mflux = m                       ! (kg/m^2 s)
       sflux = 1d-3*m*Sib              ! (kg/m^2 s)
@@ -818,8 +823,13 @@ C**** calculate left hand side of equation 2
       end if
 C**** define fluxes (positive down)
       m = -left2/lh
-C**** Cap mass flux at to prevent MSI2 going below minimum
-c      m = min(m,mfluxmax)
+C**** Cap mass flux at 90% of bottom layer 
+      if (m.gt.0.9d0*2.*dh*rhoi/dtsrc) then
+        print*,"Icelake: Basal flux limited",m,0.9d0*2.*dh*rhoi/dtsrc,Ti
+     *       ,Tm,mlsh
+        m=0.9d0*2.*dh*rhoi/dtsrc
+      end if
+c      m = min(m,dh/dtsrc)
       mflux = m                 ! (kg/m^2 s)
       hflux = alamdh*Ti - m*lh  ! (J/m^2 s)
 C****
@@ -928,6 +938,11 @@ C**** Check for reasonable values for ice variables
      *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J),sqrt(UI2RHO(I,J)
      *             /rhow)
 c              QCHECKI = .TRUE.
+            END IF
+            IF (SSI(L,I,J).lt.0) THEN
+              WRITE(6,*) 'After ',SUBR,': I,J,L,SSI=',I,J,L,SSI(:,I
+     *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J)
+              QCHECKI = .TRUE.
             END IF
           END DO
           IF (SNOWI(I,J).lt.0) THEN
