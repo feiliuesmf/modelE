@@ -260,9 +260,6 @@ c for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
       REAL*8 WA_VOL
       REAL*8, DIMENSION(NTM) ::SULFOUT,SULFIN,SULFINC
-c for debugging
-      REAL*8 TROLD,DT1(lm),DT2(lm),DT3(lm),DTM1(lm),DTM2(lm),DTM3(lm)
-      integer ll
 #endif
       REAL*8 DTSUM,HEFF
 #endif
@@ -556,7 +553,7 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
 #endif
       MC1=.FALSE.
       LHX=LHE
-      MPLUME=MIN(1.*AIRM(LMIN),1.*AIRM(LMIN+1))
+      MPLUME=MIN(AIRM(LMIN),AIRM(LMIN+1))
       IF(MPLUME.GT.FMP2) MPLUME=FMP2
       IF(ITYPE.EQ.2) THEN
       FCTYPE=1.
@@ -823,21 +820,15 @@ c removal of precursers
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFIN(N))
 c formation of sulfate
         TRCOND(N,L) = TRCOND(N,L)+SULFOUT(N)
-c below TR_LEFT(N) limits the amount of available tracer in gridbox
 #endif
         TR_LEF=1.D0
         CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
      *       ,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF)
-#ifdef TRACERS_AEROSOLS_Koch
-        TRCOND(N,L) = FQCONDT * TR_LEFT(N)*TMP(N) + TRCOND(N,L)
-        TMP(N)         = TMP(N)   *(1.-FQCONDT*TR_LEFT(N))
-        TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT*TR_LEFT(N))
-#else
-        TRCOND(N,L) = FQCONDT * TMP(N)
+
+        TRCOND(N,L) = FQCONDT * TMP(N) + TRCOND(N,L)
         TMP(N)         = TMP(N)         *(1.-FQCONDT)
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT)
-#endif
-       END DO
+      END DO
 #endif
       TAUMCL(L)=TAUMCL(L)+DQSUM
       CDHEAT(L)=SLH*COND(L)
@@ -1637,7 +1628,7 @@ C**** PHASE CHANGE OF CLOUD WATER CONTENT
       IF(OLDLAT.EQ.LHE.AND.LHX.EQ.LHS) HCHANG=HCHANG+SVWMXL(L)*LHM
       IF(OLDLAT.EQ.LHS.AND.LHX.EQ.LHE) HCHANG=HCHANG-SVWMXL(L)*LHM
       SVLHXL(L)=LHX
-      TL(L)=TL(L)+HCHANG/SHA
+      TL(L)=TL(L)+HCHANG*BYSHA
       TH(L)=TL(L)/PLK(L)
       ATH(L)=(TH(L)-TTOLDL(L))*BYDTsrc
 C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
@@ -1682,7 +1673,7 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
         CM1=CM0
         IF(BANDF) CM1=CM0*CBF
         IF(LHX.EQ.LHS) CM1=CM0
-        CM=CM1*(1.-1./EXP(TEM*TEM))+1.*100.*(PREBAR(L+1)+
+        CM=CM1*(1.-1./EXP(TEM*TEM))+100.*(PREBAR(L+1)+
      *       PRECNVL(L+1)*BYDTsrc)
         IF(CM.GT.BYDTsrc) CM=BYDTsrc
         PREP(L)=WMX(L)*CM
@@ -1829,7 +1820,7 @@ C**** Only Calculate fractional changes of Q to W
 C**** adjust gradients down if Q decreases
       QMOM(:,L)= QMOM(:,L)*(1.-FQTOW)
       WMX(L)=WMNEW
-      TL(L)=TL(L)+DTsrc*(QHEAT(L)-HPHASE)/SHA
+      TL(L)=TL(L)+DTsrc*(QHEAT(L)-HPHASE)*BYSHA
       TH(L)=TL(L)/PLK(L)
       TNEW=TL(L)
       QSATC=QSAT(TL(L),LHX,PL(L))
@@ -2013,7 +2004,7 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
         PREBAR(L)=PREBAR(L)+WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
         IF(LHP(L).EQ.LHS .AND. LHX.EQ.LHE) THEN
           HCHANG=WMX(L)*LHM
-          TL(L)=TL(L)+HCHANG/SHA
+          TL(L)=TL(L)+HCHANG*BYSHA
           TH(L)=TL(L)/PLK(L)
         END IF
         WMX(L)=0.

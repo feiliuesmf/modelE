@@ -78,7 +78,8 @@
 
 #ifdef TRACERS_ON
 !@var tmsave holds tracer value (for diagnostics)
-      REAL*8 tmsave(lm,ntm),dtr_mc(jm,ntm),dtr_ss(jm,ntm)
+      REAL*8 tmsave(lm,ntm),dtr_mc(jm,ntm),dtr_ss(jm,ntm),
+     *     tmomsv(nmom,lm,ntm)
       INTEGER NX
 #ifdef TRACERS_AEROSOLS_Koch
 c       real*8 a_sulf(im,jm),cc_sulf(im,jm)
@@ -220,7 +221,7 @@ C****
        JCKERR=0
 !$OMP  PARALLEL DO PRIVATE (
 #ifdef TRACERS_ON
-!$OMP*  NX,tmsave,
+!$OMP*  NX,tmsave,tmomsv,
 #endif
 !$OMP*  ALPHAS,ALPHA1,ALPHA2,AT,BYDH1S,BYDH12, CC,CONV,CTP,
 !$OMP*  DH1S,DH12,DTDZ,DTDZG,DTDZS,DUDZ,DUDZG,DUDZS,DVDZ,DVDZG,DVDZS,
@@ -500,17 +501,20 @@ C**** TRACERS: Use only the active ones
       do nx=1,ntx
         n = ntix(nx)
         do l=1,lm
-          dtr_mc(j,nx)=dtr_mc(j,nx)+(tm(l,nx)-trm(i,j,l,n))
+          dtr_mc(j,nx)=dtr_mc(j,nx)+(tm(l,nx)-trm(i,j,l,n))*(1.-fssl(l))
 #ifdef TRACERS_WATER
      *         + trsvwml(nx,l)
 #endif
           tajln(j,l,jlnt_mc,n) = tajln(j,l,jlnt_mc,n) +
-     &          (tm(l,nx)-trm(i,j,l,n))
+     &          (tm(l,nx)-trm(i,j,l,n))*(1.-fssl(l))
 #ifdef TRACERS_WATER
      *         + trsvwml(nx,l)
           trwml(nx,l) = trwm(i,j,l,n)+trsvwml(nx,l)
 #endif
           tmsave(l,nx) = tm(l,nx) ! save for tajln(large-scale condense)
+          tmomsv(:,l,nx) = tmom(:,l,nx) 
+          tm(l,nx) = trm(i,j,l,n)*fssl(l)   ! kg in lsc fraction only
+          tmom(:,l,nx) = trmom(:,i,j,l,n)*fssl(l)
         end do
 #ifdef TRACERS_WATER
         trprec(n,i,j) = trprmc(nx)
@@ -875,14 +879,15 @@ C**** TRACERS: Use only the active ones
       do nx=1,ntx
         n = ntix(nx)
         do l=1,lp50
-          dtr_ss(j,nx)=dtr_ss(j,nx)+(tm(l,nx)-tmsave(l,nx))
+          dtr_ss(j,nx)=dtr_ss(j,nx)+tm(l,nx)-trm(i,j,l,n)*fssl(l)
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
 #endif
-          trm(i,j,l,n) = tm(l,nx)
-          trmom(:,i,j,l,n) = tmom(:,l,nx)
+          trm(i,j,l,n) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
+          trmom(:,i,j,l,n) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.
+     *         -fssl(l))
           tajln(j,l,jlnt_lscond,n) = tajln(j,l,jlnt_lscond,n) +
-     &         (tm(l,nx)-tmsave(l,nx))
+     &         tm(l,nx)-trm(i,j,l,n)*fssl(l)
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
           trwm(i,j,l,n) = trwml(nx,l)
@@ -890,7 +895,7 @@ C**** TRACERS: Use only the active ones
           if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
      *         H2O2_s") then
             tajls(j,l,jls_incloud(1,n))=tajls(j,l,jls_incloud(1,n))+
-     *           dt_sulf_mc(n,l)
+     *           dt_sulf_mc(n,l)*(1.-fssl(l))
             tajls(j,l,jls_incloud(2,n))=tajls(j,l,jls_incloud(2,n))+
      *           dt_sulf_ss(n,l)
           end if
