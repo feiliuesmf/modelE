@@ -148,7 +148,7 @@
               echo "uncompressing AIC; ignore ln-error msg"
          elif [[ -a '/HOSTS/Ra/raid4/'$t ]]
          then pt='/HOSTS/Ra/raid4/'$t
-         else echo " $t NOT found in $DIRS" ; exit 82
+         else echo " $t NOT found in $GCMSEARCHPATH" ; exit 82
          fi
 #  Make sure that linking works for numbers as well as names ie. n:=>fort.n
   if [[ `echo $n | grep "[A-Za-z]" ` == "" ]] ; then n=fort.$n ; fi
@@ -187,7 +187,7 @@
    done
 
 ## Run the 1st hour then clean up
-   echo " startting the execution "
+   echo " starting the execution "
    echo " current dir is " `pwd`
    chmod ugo+x "$RUNID"ln
    chmod ugo+x "$RUNID"uln
