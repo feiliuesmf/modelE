@@ -991,9 +991,7 @@ C****
 cq       QFILY  = .FALSE.
 cq       QFIL2D = .FALSE.
 C****
-      IF (MRCH.eq.2) THEN
-        USAVE=U ; VSAVE=V
-      END IF
+      USAVE=U ; VSAVE=V
       Xby4toN=(DT/DT_UVfilter)*by4toN
 C****
 C**** Filtering in east-west direction
@@ -1100,33 +1098,37 @@ cq650 CONTINUE
 cq!$OMP  END PARALLEL DO
 cq    END IF
 C****
-      IF (MRCH.eq.2) THEN
-!$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP,ANGM,DPT)
-        DO L=1,LM
-        DO J=2,JM
-        ANGM=0.
-        DPT=0.
-        I=IM
-        DO IP1=1,IM
-          DP(I)=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
-     *              +(PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*DXYS(J  ))
-          ANGM=ANGM-DP(I)*(U(I,J,L)-USAVE(I,J,L))
-          DPT=DPT+DP(I)
-          I=IP1
-        END DO
-        DO I=1,IM
-          if (ang_uv.eq.1) U(I,J,L)=U(I,J,L)+ANGM/DPT
-          DKE(I,J,L)=0.5*(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L)-USAVE(I,J
-     *         ,L)*USAVE(I,J,L)-VSAVE(I,J,L)*VSAVE(I,J,L))
-          DUT(I,J,L)=(U(I,J,L)-USAVE(I,J,L))*DP(I)
-          DVT(I,J,L)=(V(I,J,L)-VSAVE(I,J,L))*DP(I)
-        END DO
-        END DO
-        END DO
-!$OMP  END PARALLEL DO
-        CALL DIAGCD(5,UT,VT,DUT,DVT,DT1)
 
-C***** Add in dissipiated KE as heat locally
+C**** Conserve angular momentum along latitudes
+!$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP,ANGM,DPT)
+      DO L=1,LM
+        DO J=2,JM
+          ANGM=0.
+          DPT=0.
+          I=IM
+          DO IP1=1,IM
+            DP(I)=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
+     *           +(PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*DXYS(J  ))
+            ANGM=ANGM-DP(I)*(U(I,J,L)-USAVE(I,J,L))
+            DPT=DPT+DP(I)
+            I=IP1
+          END DO
+          DO I=1,IM
+            if (ang_uv.eq.1) U(I,J,L)=U(I,J,L)+ANGM/DPT
+            DKE(I,J,L)=0.5*(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L)
+     *           -USAVE(I,J,L)*USAVE(I,J,L)-VSAVE(I,J,L)*VSAVE(I,J,L))
+            DUT(I,J,L)=(U(I,J,L)-USAVE(I,J,L))*DP(I)
+            DVT(I,J,L)=(V(I,J,L)-VSAVE(I,J,L))*DP(I)
+          END DO
+        END DO
+      END DO
+!$OMP  END PARALLEL DO
+
+C**** Call diagnostics and KE dissipation only for even time step 
+      IF (MRCH.eq.2) THEN
+        CALL DIAGCD(5,UT,VT,DUT,DVT,DT1)
+        
+C**** Add in dissipiated KE as heat locally
 !$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
         DO L=1,LM
           DO J=1,JM
@@ -1140,8 +1142,8 @@ C***** Add in dissipiated KE as heat locally
           END DO
         END DO
 !$OMP  END PARALLEL DO
-
       END IF
+
       RETURN
       END SUBROUTINE FLTRUV
 

@@ -292,40 +292,47 @@ C**** Update model winds
         IF (MRCH.GT.0) THEN
           DO L=1,LM
             AJL(J,L,JL_DUDTSDIF) = AJL(J,L,JL_DUDTSDIF) + DU(L)
+            DUT(I,J,L) = DUT(I,J,L) + DU(L)*AIRM(L)*DXYV(J)
+            DVT(I,J,L) = DVT(I,J,L) + DV(L)*AIRM(L)*DXYV(J)
+            DKE(I,J,L) = DU(L)*(U(I,J,L)+0.5*DU(L))+
+     *                   DV(L)*(V(I,J,L)+0.5*DV(L))
           END DO
-        ENDIF
+        END IF
+C**** Save AM change and update U,V
         ANGM=0.
         DO L=1,LM
-          DUT(I,J,L) = DUT(I,J,L) + DU(L)*AIRM(L)*DXYV(J)
-          DVT(I,J,L) = DVT(I,J,L) + DV(L)*AIRM(L)*DXYV(J)
           ANGM       = ANGM - DU(L)*AIRM(L)
-          DKE(I,J,L) = DU(L)*(U(I,J,L)+0.5*DU(L))+
-     *                 DV(L)*(V(I,J,L)+0.5*DV(L))
           U(I,J,L) = U(I,J,L) + DU(L)
           V(I,J,L) = V(I,J,L) + DV(L)
         END DO
 
-        IF (ANG_GWD.GT.0) THEN ! ADD IN ANG MOM
-          LMAX=LS1-1  ! BELOW PTOP
-          IF (ANG_GWD.GT.1) LMAX=LM  ! OVER WHOLE COLUMN
+        IF (ANG_GWD.GT.0) THEN  ! ADD IN ANG MOM
+          LMAX=LS1-1            ! BELOW PTOP
+          IF (ANG_GWD.GT.1) LMAX=LM ! OVER WHOLE COLUMN
           DPT=0
           DO L=1,LMAX
             DPT=DPT+AIRM(L)
           END DO
           DO L=1,LMAX
             DU(L) = ANGM/DPT
-            DKE(I,J,L) = DKE(I,J,L) + DU(L)*(U(I,J,L)+0.5*DU(L))
-            DUT(I,J,L) = DUT(I,J,L) + DU(L)*AIRM(L)*DXYV(J)
+          END DO
+          IF (MRCH.GT.0) THEN
+            DO L=1,LMAX
+              DKE(I,J,L) = DKE(I,J,L) + DU(L)*(U(I,J,L)+0.5*DU(L))
+              DUT(I,J,L) = DUT(I,J,L) + DU(L)*AIRM(L)*DXYV(J)
+              AJL(J,L,JL_DUDTSDIF) = AJL(J,L,JL_DUDTSDIF) + DU(L)
+            END DO
+          END IF
+          DO L=1,LMAX
             U(I,J,L) = U(I,J,L) + DU(L)
-            IF (MRCH.GT.0) AJL(J,L,JL_DUDTSDIF) = AJL(J,L,JL_DUDTSDIF) +
-     *           DU(L)
           END DO
         END IF
 
       END DO
   300 I=IP1
 C**** conservation diagnostic
-      IF (MRCH.gt.0) CALL DIAGCD (6,UT,VT,DUT,DVT,DT1)
+      IF (MRCH.gt.0) THEN
+        CALL DIAGCD (6,UT,VT,DUT,DVT,DT1)
 
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
 !$OMP  PARALLEL DO PRIVATE(I,J,L,K,ediff)
@@ -343,6 +350,8 @@ C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
           END DO
         END DO
 !$OMP  END PARALLEL DO
+      END IF
+
       RETURN
 C****
       END SUBROUTINE VDIFF
@@ -972,34 +981,38 @@ cc     &         DL(L)/(BVF(L)*BVF(L))*DTHR
           DUJL(L,J)=DL(L)/(BVF(L)*BVF(L))*DTHR
         END DO
 C****
-C**** Save KE, AM change and diffusion coefficient on A-grid
+C**** Save KE change and diffusion coefficient on A-grid
 C****
-        ANGM = 0.
         DO L=LDRAG-1,LM
-          ANGM = ANGM - DUT(L)*DP(L)
           DKE(I,J,L)=DUT(L)*(0.5*DUT(L)+UIL(I,L)) +
      *               DVT(L)*(0.5*DVT(L)+VIL(I,L))
           DUT3(I,J,L) = DUT(L)*DP(L)*DXYV(J)
           DVT3(I,J,L) = DVT(L)*DP(L)*DXYV(J)
         END DO
+      END IF
 
-        if (ang_gwd.gt.0) then ! add in ang mom
-          lmax=ls1-1  ! below PTOP
-          if (ang_gwd.gt.1) lmax=lm  ! over whole column
-          DPT=0
-          DO L=1,LMAX
-            DPT=DPT+DP(L)
-          END DO
-          DO L=1,LMAX
-            DUANG = ANGM/DPT
+C**** Save AM change 
+      ANGM = 0.
+      DO L=LDRAG-1,LM
+        ANGM = ANGM - DUT(L)*DP(L)
+      END DO
+
+      if (ang_gwd.gt.0) then    ! add in ang mom
+        lmax=ls1-1              ! below PTOP
+        if (ang_gwd.gt.1) lmax=lm ! over whole column
+        DPT=0
+        DO L=1,LMAX
+          DPT=DPT+DP(L)
+        END DO
+        DO L=1,LMAX
+          DUANG = ANGM/DPT
+          IF (MRCH.eq.2) THEN
             DKE(I,J,L) = DKE(I,J,L) + DUANG*(0.5*DUANG+UIL(I,L)+DUT(L))
             DUT3(I,J,L)=DUT3(I,J,L) + DUANG*DP(L)*DXYV(J)
-            DUT(L) = DUT(L) + DUANG
-cc??            IF (MRCH.EQ.2) need ajl diag for du?
-          END DO
-        end if
-
-      END IF
+          END IF
+          DUT(L) = DUT(L) + DUANG
+        END DO
+      end if
 C****
 C**** UPDATE THE U AND V WINDS
 C****
