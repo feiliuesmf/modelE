@@ -1,7 +1,8 @@
 E001.R GISS Model E  2002 modelE                 rar  6/20/02
 
 modelE 2.3.4+ with 12 lyrs, top at 10 mb - 1979 atmosphere/ocean
-no gravity wave drag;     uses dry convection (rather than turbulence)
+                      (alternate tuning for 1880 atmosphere/ocean)
+no gravity wave drag;     uses turbulence (rather than dry convection)
 Sdrag: weak linear strat. drag in top layer
        lost ang.mom is added in below 150 mb
 sealevel pressure filter applied every hour, U-filter used
@@ -21,14 +22,14 @@ DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global dist
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
-CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
+CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ! pick exactly one of the next 2 choices: ATURB or DRYCNV
-! ATURB                             ! turbulence in whole atmosphere
-DRYCNV                              ! drycnv
+ATURB                               ! turbulence in whole atmosphere
+! DRYCNV                            ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
@@ -42,11 +43,12 @@ POUT                                ! post-processing output
 
 Data input files:
     ! the first group of files is specific to prescribed ocean runs
-! AIC=1DEC1951.rsfE000   ! or:    ! initial conditions (atm./ground), no GIC, ISTART=8
 AIC=AIC.RES_M12.D771201           ! initial conditions (atm.),     needs GIC, ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)
-OSST=OST4X5.B.1975-84avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
-SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
+OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
+SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
+!1979 OSST=OST4X5.B.1975-84avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
+!1979 SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
     ! if the prescr. ocean varies from year to year use instead:
 ! OSST=OST4X5.B.1950.M02.Hadl1.1  ! ocean data   Feb 1950 - 1999
 ! SICE=SICE4X5.B.1950.M02.Hadl1.1 ! ocean data   Feb 1950 - 1999
@@ -91,10 +93,9 @@ dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
-E001 (modelE 2.3.4+ 1979 atm/ocn)
+E001 (modelE 2.3.4+ 1880 atm/ocn)
 
 DTFIX=300
-
 &&PARAMETERS
 ! parameters set for prescribed ocean runs:
 KOCEAN=0        ! ocn is prescribed
@@ -110,9 +111,10 @@ P_sdrag=0.      ! linear SDRAG only in top layer (except near poles)
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 
 xCDpbl=1.
+cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 U00ice=.60      ! U00ice up  => nethtz0 down (alb down) goals: nethtz0=0 (ann.
-U00wtrX=.80     ! U00wtrX up => nethtz0 up   (alb down)           global mean)
-HRMAX=550.      ! HRMAX up   => nethtz0 down (alb up  )        plan.alb 30%
+U00wtrX=1.18    ! U00wtrX up => nethtz0 up   (alb down)           global mean)
+!1979 U00wtrX=1.15    ! use with 1979 atmosphere/ocean
 
 RWCLDOX=1.5  !  wtr cld particle size *3/2 over ocean
 RICLDX=.3333 !  ice cld particle size * 1(at 0mb)->1/3(at 1000mb)
@@ -126,15 +128,15 @@ KSOLAR=2
 
 ! parameters that control the atmospheric/boundary conditions
 ! if set to 0, the current (day/) year is used: transient run
-crops_yr=1979 ! if -1, crops in VEG-file is used
-s0_yr=1979
+crops_yr=1880 ! if -1, crops in VEG-file is used
+s0_yr=1880
 s0_day=182
-ghg_yr=1979
+ghg_yr=1880
 ghg_day=182
-volc_yr=1979
+volc_yr=1880
 volc_day=182
-aero_yr=1979
-o3_yr=1979
+aero_yr=1880
+o3_yr=1880
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)

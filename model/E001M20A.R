@@ -1,10 +1,8 @@
 E001M20A.R GISS Model E  2002 modelE                 rar 12/01/03
 
 modelE 2.4 with 20 lyrs, top at .1 mb - 1880 atmosphere/ocean
-!M12 modelE 2.4 with 12 lyrs, top at 10 mb - 1880 atmosphere/ocean
 no gravity wave drag;     uses turbulence (not dry convection)
 Sdrag: weak linear strat. drag in top layer, near poles down to 20 mb
-!M12 Sdrag: weak linear strat. drag in top layer only
        ang.mom loss is added in below 150 mb
 sea level pressure filter applied every hour, UV-filter used
 6-band oice albedo; Hogstrom(1984) pbl drag
@@ -16,7 +14,6 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_M20AT                           ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
-!M12 RES_M12                        ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
@@ -47,7 +44,6 @@ Data input files:
     ! the first group of files is specific to prescribed ocean runs
 ! AIC=1DEC1951.rsfE000   ! or:    ! initial conditions (atm./ground), no GIC, ISTART=8
 AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
-!M12 AIC=AIC.RES_M12.D771201      ! initial conditions (atm.)      needs GIC, ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)
 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
@@ -117,12 +113,6 @@ PP_sdrag=20.        ! linear SDRAG above PP_sdrag mb near poles
 P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
 Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
 
-! drag params if top is at 10mb
-!M12 X_SDRAG=.00025,.000025  ! very weak linear drag
-!M12 C_SDRAG=0.      ! no constant drag
-!M12 P_sdrag=0.      ! linear SDRAG only in top layer
-!M12 PP_sdrag=0.     ! linear SDRAG only in top layer even at poles
-
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
@@ -134,8 +124,6 @@ U00ice=.60      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.al
 U00wtrX=1.25    ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
 !        U00wtrX=1.25    ! use with 1880 atmosphere/ocean
 !1979    U00wtrX=1.22    ! use with 1979 atmosphere/ocean
-!M12     U00wtrX=1.18    ! use with 1880 atmosphere/ocean AND RES_M12
-!M121979 U00wtrX=1.15    ! use with 1979 atmosphere/ocean AND RES_M12
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
 
 RWCLDOX=1.5  !  wtr cld particle size *3/2 over ocean
@@ -163,14 +151,11 @@ o3_yr=1880
 ! parameters that control the Shapiro filter
 DT_XUfilter=300. ! Shapiro filter on U in E-W direction; usually same as DT (below)
 DT_XVfilter=300. ! Shapiro filter on V in E-W direction; usually same as DT (below)
-!M12 DT_XUfilter=450.
-!M12 DT_XVfilter=450.
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
 ! parameters that may have to be changed in emergencies:
 DT=300.         ! from default: DTsrc=3600.,
-!M12 DT=450.    ! from default: DTsrc=3600., (also use DTFIX=300 , not 180)
 NIsurf=2        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:

@@ -40,8 +40,8 @@ GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ! pick exactly one of the next 2 choices ATURB or DRYCNV
-ATURB                               ! turbulence in whole atmosphere
-! DRYCNV                              ! drycnv
+! ATURB                               ! turbulence in whole atmosphere
+DRYCNV                              ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
@@ -130,7 +130,7 @@ CH4_WETL=methane/gcm_data/CH4WETL+TUNDRA_4X5    ! Monthly
 Label and Namelist:
 E001tr (ModelE 2.3.4+ based on B402A, uses dry adiab. adjustment; tracers)
 R=00BG/B
-DTFIX=300
+DTFIX=180
 &&PARAMETERS
 ! parameters set for prescribed ocean runs:
 KOCEAN=0        ! ocn is prescribed
@@ -150,9 +150,10 @@ PCONPEN=500.   ! penetrating convection defn for GWDRAG
 CMC = 0.0000003
 
 xCDpbl=1.
-U00ice=.60      ! U00ice up  => nethtz0 down (alb down) goals: nethtz0=0 (ann.
-U00wtrX=.80     ! U00wtrX up => nethtz0 up   (alb down)           global mean)
-HRMAX=550.      ! HRMAX up   => nethtz0 down (alb up  )        plan.alb 30%
+cond_scheme=2   ! more elaborate conduction scheme (GHY, Nancy Kiang)
+U00ice=.61      ! U00ice up  => nethtz0 down (alb down) goals: nethtz0=0 (ann.
+U00wtrX=1.259   ! U00wtrX up => nethtz0 up   (alb down)           global mean)
+! HRMAX=550.    ! HRMAX up   => nethtz0 down (alb up  )        plan.alb 30%
 
 RWCLDOX=1.5  !  wtr cld particle size *3/2 over ocean
 RICLDX=.3333 !  ice cld particle size * 1(at 0mb)->1/3(at 1000mb)
@@ -173,16 +174,16 @@ aero_yr=1979
 o3_yr=1979
 
 ! parameters that control the Shapiro filter
-DT_XUfilter=180. ! Shapiro filter on U in E-W direction; usually same as DT (below)
-DT_XVfilter=180. ! Shapiro filter on V in E-W direction; usually same as DT (below)
+DT_XUfilter=300. ! Shapiro filter on U in E-W direction; usually same as DT (below)
+DT_XVfilter=300. ! Shapiro filter on V in E-W direction; usually same as DT (below)
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
 ! parameters that may have to be changed in emergencies:
 LMCM=16              ! max level of moist convection
 XCDNST=300.,10000.   ! strat. gw drag parameters
-DT=180.,             ! from default: DTsrc=3600.,
-NIsurf=4,            ! number of surface time steps
+DT=300.,             ! from default: DTsrc=3600.,
+NIsurf=3,            ! number of surface time steps
 
 ! parameters that affect at most diagn. output:
 Ndisk=24        ! use =240 on halem
@@ -199,6 +200,6 @@ to_volume_MixRat=1,1,1,1,1,1,1,1,1,1   ! for tracer printout
 
  &INPUTZ
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
-  YEARE=1950,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=0,2,2,9*0,9,
+   YEARE=1950,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=0,2,2,9*0,9,
    ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
  &END
