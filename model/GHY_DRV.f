@@ -72,7 +72,7 @@ c****
      *     ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt,
      *     j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2,ij_g05
      *     ,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,ij_g16,ij_g17
-     *     ,ij_gpp, ij_dleaf
+     *     ,ij_gpp, ij_dleaf,ij_pblht
      *     ,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,ij_g24,ij_g25
      *     ,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
@@ -803,6 +803,7 @@ c**** quantities accumulated for latitude-longitude maps in diagij
         aij(i,j,ij_tauvs)=aij(i,j,ij_tauvs)+rcdmws*(vs-vocean)*ptype
         aij(i,j,ij_qs)=aij(i,j,ij_qs)+qs*ptype
         aij(i,j,ij_tg1)=aij(i,j,ij_tg1)+tg1*ptype
+        aij(i,j,ij_pblht)=aij(i,j,ij_pblht)+dbl*ptype
 chyd       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)
 chyd      *  +   (40.6*psoil+.72*(2.*(tss-tfs)-(qsatss-qss)*lhe/sha))
 c**** quantities accumulated hourly for diagDD
