@@ -74,11 +74,18 @@ print_usage help all:
 
 # General Definitions
 
+
 RUNSRC  = E001
 RUN     =
-DEPENDFILE = .depend.$(RUN)
 
-SCRIPTDIR = ./SCRIPTS
+MODEL_E_ROOT = ..
+MODEL_DIR = .
+DECKS_DIR = .
+OBJ_DIR = .
+
+DEPENDFILE = $(OBJ_DIR)/.depend.$(RUN)
+
+SCRIPTDIR = $(MODEL_E_ROOT)/exec
 
 NO_COMMAND = @echo Requested target is not supported on $(UNAME); exit 1;
 
