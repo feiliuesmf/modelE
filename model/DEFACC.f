@@ -19,7 +19,6 @@ c-----------------------------------------------------------------------
       call sjl_defs
       call ij_defs
       call il_defs
-      call consrv_defs
       call wave_defs
       call jk_defs
       call ijk_defs
@@ -2499,13 +2498,9 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
-      name_jl(k) = 'del_u_sdrag' !'AJL20'
-c      lname_jl(k) = 'DU/DT BY STRAT MTN DRAG' ! ???
-      lname_jl(k) = 'ZONAL WIND CHANGE BY STRATOSPHERIC DRAG'
-      units_jl(k) = '10**-6 M S-2' ! ??? 'M/S'
-      scale_jl(k) = 1.D6/(FIM*DTsrc)
-      ia_jl(k) = ia_src
-      jgrid_jl(k) = 2
+      name_jl(k) = 'AJL20'
+      lname_jl(k) = 'DU/DT BY STRAT MTN DRAG' 
+      units_jl(k) = 'M/S'
 c
       k=k+1
       name_jl(k) = 'AJL21'
@@ -3106,292 +3101,6 @@ c
       return
       end subroutine jk_defs
 
-      subroutine consrv_defs
-      use DAGCOM
-      implicit none
-      integer :: k
-c
-      do k=1,kcon
-         write(name_consrv(k),'(a6,i3.3)') 'CONSRV',k
-         lname_consrv(k) = 'unused'
-         units_consrv(k) = 'unused'
-      enddo
-c
-      k=0
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV01'
-      lname_consrv(k) = 'INSTANTANEOUS AM'
-      units_consrv(k) = '10**9 J*s/m^2'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV02'
-      lname_consrv(k) = 'CHANGE OF AM BY ADVECTION'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV03'
-      lname_consrv(k) = 'CHANGE OF AM BY CORIOLIS FORCE'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV04'
-      lname_consrv(k) = 'CHANGE OF AM BY ADVEC + COR'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV05'
-      lname_consrv(k) = 'CHANGE OF AM BY PRESSURE GRAD'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV06'
-      lname_consrv(k) = 'CHANGE OF AM BY DYNAMICS'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV07'
-      lname_consrv(k) = 'CHANGE OF AM BY SURFACE FRIC'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV08'
-      lname_consrv(k) = 'CHANGE OF AM BY STRATOS DRAG'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV09'
-      lname_consrv(k) = 'CHANGE OF AM BY FILTER'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV10'
-      lname_consrv(k) = 'CHANGE OF AM BY DAILY RESTOR'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV11'
-      lname_consrv(k) = 'SUM OF AM CHANGES'
-      units_consrv(k) = '10**2 J/m^2'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV12'
-      lname_consrv(k) = 'INSTANTANEOUS KE'
-      units_consrv(k) = '10**3 J/m^2'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV13'
-      lname_consrv(k) = 'CHANGE OF KE BY ADVECTION'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV14'
-      lname_consrv(k) = 'CHANGE OF KE BY CORIOLIS FORCE'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV15'
-      lname_consrv(k) = 'CHANGE OF KE BY ADVEC + COR'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV16'
-      lname_consrv(k) = 'CHANGE OF KE BY PRESSURE GRAD'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV17'
-      lname_consrv(k) = 'CHANGE OF KE BY DYNAMICS'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV18'
-      lname_consrv(k) = 'CHANGE OF KE BY MOIST CONVEC'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV19'
-      lname_consrv(k) = 'CHANGE OF KE BY SURF + DRY CONV'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV20'
-      lname_consrv(k) = 'CHANGE OF KE BY STRATOS DRAG'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV21'
-      lname_consrv(k) = 'CHANGE OF KE BY FILTER'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV22'
-      lname_consrv(k) = 'CHANGE OF KE BY DAILY RESTOR'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV23'
-      lname_consrv(k) = 'SUM OF KE CHANGES'
-      units_consrv(k) = '10**-3 W/m^2'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV24'
-      lname_consrv(k) = 'INSTANTANEOUS MASS'
-      units_consrv(k) = 'kg/m^2'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV25'
-      lname_consrv(k) = 'CHANGE OF MASS BY DYNAMICS'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV26'
-      lname_consrv(k) = 'CHANGE OF MASS BY FILTER'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV27'
-      lname_consrv(k) = 'CHANGE OF MASS BY DAILY RESTOR'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV28'
-      lname_consrv(k) = 'SUM MASS CHANGES'
-      units_consrv(k) = '10**-8 kg/m^2/s'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV29'
-      lname_consrv(k) = 'INSTANTANE TPE'
-      units_consrv(k) = '10**5 J/m^2'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV30'
-      lname_consrv(k) = 'CHANGE OF TPE BY DYNAMICS'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV31'
-      lname_consrv(k) = 'CHANGE OF TPE BY CONDENSATION'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV32'
-      lname_consrv(k) = 'CHANGE OF TPE BY RADIATION'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV33'
-      lname_consrv(k) = 'CHANGE OF TPE BY SURFACE INTER'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV34'
-      lname_consrv(k) = 'CHANGE OF TPE BY FILTER'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV35'
-      lname_consrv(k) = 'CHANGE OF TPE BY DAILY RESTOR'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV36'
-      lname_consrv(k) = 'SUM OF TPE CHANGES'
-      units_consrv(k) = '10**-2 W/m^2'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV37'
-      lname_consrv(k) = 'INSTANT WATER'
-      units_consrv(k) = '10**-2 kg/m^2'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV38'
-      lname_consrv(k) = 'CHANGE OF WATER BY DYNAMICS'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV39'
-      lname_consrv(k) = 'CHANGE OF WATER BY CONDENSATION'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV40'
-      lname_consrv(k) = 'CHANGE OF WATER BY SURFACE EVAP'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV41'
-      lname_consrv(k) = 'CHANGE OF WATER BY DAILY RESTOR'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV42'
-      lname_consrv(k) = 'SUM WATER CHANGES'
-      units_consrv(k) = '10**-8 kg/m^2/s'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV43'
-      lname_consrv(k) = 'unknown'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV44'
-      lname_consrv(k) = 'unknown'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV45'
-      lname_consrv(k) = 'unknown'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV46'
-      lname_consrv(k) = 'unknown'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV47'
-      lname_consrv(k) = 'unknown'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV48'
-      lname_consrv(k) = 'unknown'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV49'
-      lname_consrv(k) = 'unknown'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV50'
-      lname_consrv(k) = 'unknown'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV51'
-      lname_consrv(k) = 'unknown'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV52'
-      lname_consrv(k) = 'unknown'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV53'
-      lname_consrv(k) = 'unknown'
-      units_consrv(k) = 'unknown'
-c
-      k=k+1
-      name_consrv(k) = 'CONSRV54'
-      lname_consrv(k) = 'unknown'
-      units_consrv(k) = 'unknown'
-c
-      return
-      end subroutine consrv_defs
-
       subroutine ijk_defs
       use CONSTANT, only : bygrav,tf
       use DAGCOM
@@ -3468,34 +3177,45 @@ c
          write(name_ijl(k),'(a4,i3.3)') 'AIJL',k
          lname_ijl(k) = 'unused'
          units_ijl(k) = 'unused'
+         scale_ijl(k) = 1.
       enddo
 c
       k=0
 c
       k=k+1
-      name_ijl(k) = 'AIJL1'
-      lname_ijl(k) = 'unknown'
-      units_ijl(k) = 'unknown'
+      IJL_U=k
+      name_ijl(k) = 'ijl_u' !'AIJL1'
+      lname_ijl(k) = 'U-WIND            x delta p, b-grid'
+      units_ijl(k) = 'm/s'
+      scale_ijl(k) = 1.
 c
       k=k+1
-      name_ijl(k) = 'AIJL2'
-      lname_ijl(k) = 'unknown'
-      units_ijl(k) = 'unknown'
+      IJL_V=k
+      name_ijl(k) = 'ijl_v' !'AIJL2'
+      lname_ijl(k) = 'V-WIND            x delta p, b-grid'
+      units_ijl(k) = 'm/s'
+      scale_ijl(k) = 1.
 c
       k=k+1
-      name_ijl(k) = 'AIJL3'
-      lname_ijl(k) = 'unknown'
-      units_ijl(k) = 'unknown'
+      IJL_DSE=k
+      name_ijl(k) = 'ijl_dse' ! 'AIJL3'
+      lname_ijl(k) = 'DRY STAT. ENERGY  x delta p x 4, b-grid'
+      units_ijl(k) = 'm^2/s^2'
+      scale_ijl(k) = 0.25
 c
       k=k+1
-      name_ijl(k) = 'AIJL4'
-      lname_ijl(k) = 'unknown'
-      units_ijl(k) = 'unknown'
+      IJL_Q=k
+      name_ijl(k) = 'ijl_q' ! 'AIJL4'
+      lname_ijl(k) = 'SPECIFIC HUMIDITY x delta p x 4, b-grid'
+      units_ijl(k) = '10**-5'
+      scale_ijl(k) = 0.25*1d-5
 c
       k=k+1
-      name_ijl(k) = 'AIJL5'
-      lname_ijl(k) = 'unknown'
-      units_ijl(k) = 'unknown'
+      IJL_DP=k
+      name_ijl(k) = 'ijl_dp'  !'AIJL5'
+      lname_ijl(k) = 'DELTA-P           b-grid'
+      units_ijl(k) = '100 PA'
+      scale_ijl(k) = 1.
 c
       return
       end subroutine ijl_defs

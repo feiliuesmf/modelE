@@ -347,7 +347,13 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var LNAME_IJK,UNITS_IJK Descriptions/Units of IJK diagnostics
       character(len=50), dimension(kaijk) :: lname_ijk,units_ijk
 
+!@var IJL_xxx AIJL diagnostic names
+      INTEGER :: IJL_U, IJL_V, IJL_DSE, IJL_DP, IJL_Q
+!@var SCALE_IJL scaling for weighted AIJL diagnostics
+      REAL*8, DIMENSION(KAIJK) :: SCALE_IJL
+!@var NAME_IJL Names of lon-lat-pressure IJL diagnostics
       character(len=20), dimension(kaijl) :: name_ijl,units_ijl
+!@var LNAME_IJL,UNITS_IJL Descriptions/Units of IJL diagnostics
       character(len=80), dimension(kaijl) :: lname_ijl
 
       character(len=20), dimension(kwp) :: name_wave,units_wave

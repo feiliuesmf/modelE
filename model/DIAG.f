@@ -1148,7 +1148,7 @@ C**** VERTICAL TRANSPORT
       THMN=THMN+T(I,J,L+1)+T(I,J,L)
   872 SDMN=SDMN+SD(I,J,L)
       SMALL=.0001*FIM*T(1,J,L+1)
-      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
+c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
       IF (DTHDP.LT.SMALL) DTHDP=SMALL
       THMN=THMN/FIM
       SDMN=SDMN/FIM
@@ -1286,7 +1286,8 @@ C****
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DAGCOM, only : ajk,aijk,aijl,ajlsp,speca,adiurn,nspher,
      &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
-     *     ,ijk_dse,klayer,idd_w,ijdd
+     *     ,ijk_dse,klayer,idd_w,ijdd,ijl_u, ijl_v, ijl_dse, ijl_dp,
+     *     ijl_q
       USE DYNAMICS, only : phi
       IMPLICIT NONE
       SAVE
@@ -1491,11 +1492,11 @@ C**** ACCUMULATE AIJL ARRAYS
       PT4L=DELP*(TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L))
       PZ4L=DELP*(PHI(I,J-1,L)+PHI(IP1,J-1,L)+PHI(I,J,L)+PHI(IP1,J,L))
       PQ4L=DELP*(Q(I,J-1,L)+Q(IP1,J-1,L)+Q(I,J,L)+Q(IP1,J,L))
-      AIJL(I,J,L,1)=AIJL(I,J,L,1)+DELP*U(I,J,L)
-      AIJL(I,J,L,2)=AIJL(I,J,L,2)+DELP*V(I,J,L)
-      AIJL(I,J,L,3)=AIJL(I,J,L,3)+SHA*PT4L+PZ4L
-      AIJL(I,J,L,4)=AIJL(I,J,L,4)+PQ4L
-      AIJL(I,J,L,5)=AIJL(I,J,L,5)+DELP
+      AIJL(I,J,L,IJL_U)=AIJL(I,J,L,IJL_U)+DELP*U(I,J,L)
+      AIJL(I,J,L,IJL_V)=AIJL(I,J,L,IJL_V)+DELP*V(I,J,L)
+      AIJL(I,J,L,IJL_DSE)=AIJL(I,J,L,IJL_DSE)+SHA*PT4L+PZ4L
+      AIJL(I,J,L,IJL_Q)=AIJL(I,J,L,IJL_Q)+PQ4L
+      AIJL(I,J,L,IJL_DP)=AIJL(I,J,L,IJL_DP)+DELP
       AIJL1(I,J,L)=DELP*U(I,J,L)
       AIJL2(I,J,L)=V(I,J,L)
       AIJL3(I,J,L)=SHA*PT4L+PZ4L
@@ -3167,6 +3168,18 @@ C**** NCON=1:23 are special cases: Angular momentum and kinetic energy
      *  ' CHANGE OF KE BY STRATOS DRAG   ',
      *  ' CHANGE OF KE BY DAILY RESTOR   ',
      *  ' SUM OF CHANGES (10**-3 W/M**2) '/)
+      name_consrv(1:23) = (/
+     *     'inst_AM   ','chg_AM_ADV','chg_AM_COR','chg_AM_ADV',
+     *     'chg_AM_PRE','chg_AM_DYN','chg_AM_SUR','chg_AM_FIL',
+     *     'chg_AM_STR','chg_AM_DAI','sum_chg_AM',
+     *     'inst_KE   ','chg_KE_ADV','chg_KE_COR','chg_KE_ADV',
+     *     'chg_KE_PRE','chg_KE_DYN','chg_KE_MOI','chg_KE_SUR',
+     *     'chg_KE_FIL','chg_KE_STR','chg_KE_DAI','sum_chg_KE'/)
+      units_consrv(1)    ="10**9 J*S/M**2"
+      units_consrv(2:11) ="10**2 J/M**2"
+      units_consrv(12)   ="10**3 J/M**2"
+      units_consrv(13:23)="10**-3 W/M**2"
+      lname_consrv(1:23)=TITLE_CON(1:23)
 C**** To add a new conservation diagnostic:
 C****    i) Add 1 to NQUANT, and increase KCON in DAGCOM.f
 C****   ii) Set up a QCON, and call SET_CON to allocate array numbers,
@@ -3329,7 +3342,8 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       USE CONSTANT, only : sday
       USE MODEL_COM, only : dtsrc,nfiltr
       USE DAGCOM, only : kcon,nquant,npts,title_con,scale_con,nsum_con
-     *     ,nofm,ia_con,kcmx,ia_d5d,ia_d5s,ia_filt,ia_12hr
+     *     ,nofm,ia_con,kcmx,ia_d5d,ia_d5s,ia_filt,ia_12hr,name_consrv
+     *     ,lname_consrv,units_consrv
       IMPLICIT NONE
 !@var QCON logical variable sets where conservation diags are saved
       LOGICAL, INTENT(IN),DIMENSION(NPTS) :: QCON
@@ -3339,6 +3353,8 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       REAL*8, INTENT(IN) :: CHNG_SC
 !@var NAME_CON name of conservation quantity
       CHARACTER*8, INTENT(IN) :: NAME_CON
+!@var sname name of conservation quantity (no spaces)
+      CHARACTER*8 :: sname
 !@var INST_UNIT string for unit for instant. values
       CHARACTER*16, INTENT(IN) :: INST_UNIT
 !@var SUM_UNIT string for unit for summed changes
@@ -3350,7 +3366,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
      *     "DYNAMICS  ","CONDENSATN","RADIATION ","PRECIPITAT",
      *     "LAND SURFC","SURFACE   ","FILTER    ","OCEAN     ",
      *     "DAILY     ","OCN DYNAM ","OCEAN PHYS"/)
-      INTEGER NI,NM,NS,N
+      INTEGER NI,NM,NS,N,k
       INTEGER, SAVE :: NQ = 2   ! first 2 special cases AM + KE
 
       NQ=NQ+1
@@ -3359,10 +3375,19 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
      *       ,NQUANT,NQ
         STOP "Change NQUANT in diagnostic common block"
       END IF
+C**** remove spaces in NAME_CON for netcdf names
+      sname=TRIM(NAME_CON)
+      do k=1,len_trim(NAME_CON)
+        if (sname(k:k).eq." ") sname(k:k)="_"
+      end do
+C****
       NI=KCMX+1
       NOFM(1,NQ) = NI
       TITLE_CON(NI) = "0INSTANT "//TRIM(NAME_CON)//" "//TRIM(INST_UNIT)
       SCALE_CON(NI) = INST_SC
+      name_consrv(NI) ="inst_"//sname
+      lname_consrv(NI) = "INSTANT "//TRIM(NAME_CON)
+      units_consrv(NI) = INST_UNIT
       IA_CON(NI) = 12
       NM=NI
       DO N=1,NPTS
@@ -3371,6 +3396,9 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
           NOFM(N+1,NQ) = NM
           TITLE_CON(NM) = " CHANGE OF "//TRIM(NAME_CON)//" BY "//
      *         CONPT(N)
+          name_consrv(NM) ="chg_"//trim(sname)//"_"//TRIM(CONPT(N)(1:3))
+          lname_consrv(NM) = TITLE_CON(NM)
+          units_consrv(NM) = SUM_UNIT
           SELECT CASE (N)
           CASE (1)
             SCALE_CON(NM) = CHNG_SC/DTSRC
@@ -3391,6 +3419,9 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       END DO
       NS=NM+1
       TITLE_CON(NS) = " SUM OF CHANGES "//TRIM(SUM_UNIT)
+      name_consrv(NS) ="sum_chg_"//trim(sname)
+      lname_consrv(NS) = " SUM OF CHANGES OF "//TRIM(NAME_CON)
+      units_consrv(NS) = SUM_UNIT
       SCALE_CON(NS) = 1.
       IA_CON(NS) = 12
       NSUM_CON(NI) = -1
