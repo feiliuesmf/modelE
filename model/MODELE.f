@@ -26,7 +26,7 @@
       REAL*8 DTIME,PELSE,PDIAG,PSURF,PRAD,PCDNS,PDYN,TOTALT
 
       CHARACTER aDATE*14
-      CHARACTER*8 :: LABSSW       ! old_ssw ???
+      CHARACTER*8 :: flg_go       ! green light
       external stop_model
 C****
 C**** INITIALIZATIONS
@@ -72,7 +72,6 @@ C**** INITIALIZE TIME PARAMETERS
          MODD5K=1000
 
       CALL DAILY(.false.)                  ! not end_of_day
-      if (itime.eq.itimei) call reset_diag(0)
       if (Kradia.le.0) then
         CALL daily_EARTH(.false.)          ! not end_of_day
         CALL daily_OCEAN(.false.)          ! not end_of_day
@@ -443,16 +442,16 @@ C**** CPU TIME FOR CALLING DIAGNOSTICS
       CALL TIMER (MNOW,MDIAG)
 C**** TEST FOR TERMINATION OF RUN
 ccc
+      flg_go = '___ON___'             ! let the model run
       IF (MOD(Itime,Nssw).eq.0) then
-        LABSSW = '___OFF__'
         open(3,file='sswOnOff',form='FORMATTED',status='OLD',err=210)
-        read (3,'(A8)',end=210) LABSSW
+        read (3,'(A8)',end=210) flg_go
         close (3)
  210    continue
       endif
-      IF (LABSSW.ne.'___ON___' .or. stop_on) THEN
-C**** FLAG TO TERMINATE RUN WAS TURNED ON (GOOD OLE SENSE SWITCH 6)
-         WRITE (6,'("0SENSE SWITCH 6 HAS BEEN TURNED ON.")')
+      IF (flg_go.ne.'___ON___' .or. stop_on) THEN
+C**** Flag to continue run has been turned off
+         WRITE (6,'("0Flag to continue run has been turned off.")')
          EXIT
       END IF
 
@@ -701,7 +700,6 @@ C**** Get those parameters which are needed in this subroutine
       if(is_set_param("IRAND"))  call get_param( "IRAND", IRAND )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
       if(is_set_param("Kradia")) call get_param( "Kradia", Kradia )
-      call reset_diag(1)
 
 C***********************************************************************
 C****                                                               ****
@@ -709,6 +707,7 @@ C****        Post-process one or more ACC-files : ISTART < 1        ****
 C****                                                               ****
 C***********************************************************************
       if (istart.le.0) then
+        call reset_diag(1)
         monacc = 0
         do k=1,iargc()
           call getarg(k,filenm)
@@ -754,6 +753,8 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
      *     ' yearI,monthI,dateI,hourI=',yearI,monthI,dateI,hourI
         STOP 'INPUT: Improper start date or base year Iyear1'
       END IF
+C**** Initialize accumulation arrays and accumulation start time
+      call reset_diag(0)
 C**** Check the vertical layering defined in RES_ (is sige(ls1)=0 ?)
       IF (SIGE(LS1).ne.0.) then
         write(6,*) 'bad vertical layering: ls1,sige(ls1)',ls1,sige(ls1)
@@ -964,6 +965,7 @@ C****        mainly used for REPEATS and delayed EXTENSIONS
         if(istart.eq.8) then   !  initial start of rad.forcing run
           call io_label(iu_AIC,Itime,irerun,ioerr)
           if (Kradia.gt.1) call io_rad (iu_AIC,Itime,irsfic,ioerr)
+          call reset_diag(0)
         end if
         if(istart.eq.9) call io_rsf(iu_AIC,Itime,irerun,ioerr)
         call closeunit(iu_AIC)
