@@ -273,6 +273,7 @@ C**** sea ice melt and iceberg/glacial melt.
       !:-:-I-J arrays
       ALLOCATE( GTRACER ( NTM , NSTYPE , I_0H:I_1H , J_0H:J_1H ),
      &  STAT = IER)
+      GTRACER=0.
 
 #ifdef TRACERS_WATER
                                                     !(:)-(:)-I-J arrays
