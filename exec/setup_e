@@ -162,8 +162,6 @@
    done
    echo 'chmod ugo+rw * 2> /dev/null' >> ${RUNID}uln
    echo 'export PAGESIZE_DATA=64 PAGESIZE_STACK=64' >> ${RUNID}ln
-   echo 'touch lock' >> ${RUNID}ln
-   echo 'rm -f lock' >> ${RUNID}uln
 
 ## Copy Label and Namelist to RUNID.I.
    if [[ -a I ]] then rm I ; fi
@@ -193,11 +191,13 @@
    echo " current dir is " `pwd`
    chmod ugo+x "$RUNID"ln
    chmod ugo+x "$RUNID"uln
+   touch lock
    ./"$RUNID"ln
 {  ./"$RUNID".exe < I >> ${RUNID}.PRT
    retc=$?
    rm -f AIC GIC OIC  #fort.[789]
    ./"$RUNID"uln
+   rm -f lock
    if [[ $retc -ne 13 && $retc -ne 12 ]] then
      echo Problem encountered while running hour 1; exit 4 ;
    else
@@ -215,20 +215,24 @@
 
 ## Prepare for restart
 ## create executable script file E
-   echo "./$RUNID"ln > E
+   echo 'touch lock' > E
+   echo "./$RUNID"ln >> E
    #  echo "export XLFRTEOPTS=namelist=old:nlwidth=133" >> E
    echo " ./${RUNID}.exe < I > ${RUNID}.PRT " >> E
    echo ' rc=$? ' >> E
    echo "./$RUNID"uln >> E
    echo "$EXECDIR/runpm $RUNID" '$rc' "$( whoami )" >> E
+   echo 'rm -f lock' >> E
    chmod ugo+x  E
 ## create executable script file RUNID
-   echo "./$RUNID"ln > $RUNID
+   echo 'touch lock' > $RUNID
+   echo "./$RUNID"ln >> $RUNID
    #  echo "export XLFRTEOPTS=namelist=old:nlwidth=133" >> $RUNID
    echo " ./$RUNID"'.exe < I > /dev/null' >> $RUNID
    echo ' rc=$? ' >> $RUNID
    echo "./$RUNID"uln >> $RUNID
    echo "$EXECDIR/runpm $RUNID" '$rc' "$( whoami )" >> $RUNID
+   echo 'rm -f lock' >> $RUNID
    chmod ugo+x  $RUNID
 ## overwrite RUNID.I omitting ISTART=.. line.
    exec < I
