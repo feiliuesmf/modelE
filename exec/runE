@@ -1,6 +1,6 @@
 #!/bin/sh
 ## RUN     Run Climate Model saving the printout  10/21/91
-   CMRUNDIR='/bench/rfaincht/GISS'
+   CMRUNDIR='/u/cmrun'
    OPTS=
    if [ -f $HOME/.modelErc ] ; then . $HOME/.modelErc; fi
 
