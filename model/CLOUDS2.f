@@ -933,10 +933,10 @@ C**** CONDENSING TRACERS
 #ifdef TRACERS_AEROSOLS_Koch
       WA_VOL=COND(L)*1.d2*BYGRAV*DXYPJ
       DO N=1,NTX
-      select case (trname(ntx))
+      select case (trname(n))
       case('SO2','SO4','H2O2_s','H2O2')
-      if (trname(ntx).eq."H2O2" .and. coupled_chem.eq.0) goto 400
-      if (trname(ntx).eq."H2O2_s" .and. coupled_chem.eq.1) goto 400
+      if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 400
+      if (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1) goto 400
 
         IF (FPLUME.GT.teeny) then
           TMP_SUL(L,N)=TMP(N)/FPLUME
