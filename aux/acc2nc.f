@@ -23,7 +23,7 @@ c             /usr/local/netcdf-3.4/lib64/libnetcdf.a -o acc2nc
      &     aj_odd,areg_odd,apj_odd,ajl_odd,asjl_odd,aij_odd,
      &     ail_odd,energy_odd,consrv_odd,speca_odd,
      &     atpe_odd,adiurn_odd,wave_odd,ajk_odd,aijk_odd,
-     &     aijl_odd,ajlsp_odd,tsfrez_odd
+     &     tsfrez_odd
 
       call getarg(0,cmdstr)
       if(iargc().ne.2) then
@@ -64,8 +64,6 @@ C**** Convert ACC single to double precision
       k14 = size(wave)
       k15 = size(ajk)
       k16 = size(aijk)
-      k17 = size(aijl)
-      k18 = size(ajlsp)
       k19 = size(tsfrez)
 
       call CNV428(aj      ,aj_odd      ,k01)
@@ -83,8 +81,6 @@ C**** Convert ACC single to double precision
       call CNV428(wave    ,wave_odd    ,k14)
       call CNV428(ajk     ,ajk_odd     ,k15)
       call CNV428(aijk    ,aijk_odd    ,k16)
-      call CNV428(aijl    ,aijl_odd    ,k17)
-      call CNV428(ajlsp   ,ajlsp_odd   ,k18)
       CALL CNV428(tsfrez  ,tsfrez_odd  ,k19)
 
       call geom_b
