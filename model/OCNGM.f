@@ -594,9 +594,9 @@ C**** Calculate average density + gradients over [1,LUP]
                 LAVY = LAVY + 1
               END IF
             END DO
-            ARHO  = ARHO / DBLE(LAV)
-            IF (LAVX.gt.0) ARHOX = ARHOX / DBLE(LAVX)
-            IF (LAVY.gt.0) ARHOY = ARHOY / DBLE(LAVY)
+            ARHO  = ARHO / REAL(LAV,KIND=8)
+            IF (LAVX.gt.0) ARHOX = ARHOX / REAL(LAVX,KIND=8)
+            IF (LAVY.gt.0) ARHOY = ARHOY / REAL(LAVY,KIND=8)
             IF (LAV.gt.1) THEN
               ARHOZ = 2.*(RHO(I,J,LAV)-RHO(I,J,1))/
      *             (ZE(LAV)+ZE(LAV-1)-ZE(1))
@@ -623,7 +623,7 @@ C**** Calculate average density + gradients over [1,LUP]
       IF (IFIRST.eq.1) THEN  !output GM diffusion coefficient
         call openunit('ODIFF',iu_ODIFF,.true.,.false.)
         TITLE = "Visbeck scaling for GM coefficient m^2/s"
-        WRITE(iu_ODIFF) TITLE,((REAL(AINV(i,J)),i=1,im),j=1,jm)
+        WRITE(iu_ODIFF) TITLE,((REAL(AINV(i,J),KIND=4),i=1,im),j=1,jm)
         call closeunit(iu_ODIFF)
         IFIRST = 0
       END IF

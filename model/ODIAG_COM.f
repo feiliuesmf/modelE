@@ -111,8 +111,8 @@ C****
         WRITE (kunit,err=10) MODULE_HEADER,OIJ,OIJL,OL,OLNST,it
       CASE (IOWRITE_SINGLE)    ! output to acc file
         MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
-        WRITE (kunit,err=10) MODULE_HEADER,SNGL(OIJ),SNGL(OIJL),SNGL(OL)
-     *     ,SNGL(OLNST),it
+        WRITE (kunit,err=10) MODULE_HEADER,REAL(OIJ,KIND=4),
+     *        REAL(OIJL,KIND=4),REAL(OL,KIND=4),REAL(OLNST,KIND=4),it
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
         CASE (IRSFIC)           ! initial conditions

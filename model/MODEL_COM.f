@@ -24,9 +24,9 @@
       integer :: KOCEAN = 1, MFILTR = 1
 
 !@dbparam XCDLM.  SDRAG ~XCDLM(1)+XCDLM(2)*wind_magnitude
-      double precision, DIMENSION(2) :: XCDLM = (/5.D-4,5.D-5/)
+      REAL*8, DIMENSION(2) :: XCDLM = (/5.D-4,5.D-5/)
 !@dbparam P_SDRAG pressure level above which SDRAG may be applied (mb)
-      double precision :: P_SDRAG = 1.d0 ! default=1mb
+      REAL*8 :: P_SDRAG = 1.d0 ! default=1mb
 !@var LSDRAG level above which SDRAG is applied (above P_SDRAG mb)
       INTEGER :: LSDRAG=LM  ! default=LM
 
@@ -68,9 +68,9 @@ C**** (Simplified) Calendar Related Terms
       INTEGER :: ItimeI,ItimeE,   Itime0,JMON0,JDATE0,JYEAR0,JHOUR0
 
 !@dbparam DTSRC source time step (s)   = 1 ITU
-      DOUBLE PRECISION :: DTsrc = 3600.
+      REAL*8 :: DTsrc = 3600.
 !@dbparam DT (atmospheric) dynamics time step (s)
-      DOUBLE PRECISION :: DT    =  450.         ! DT = DTdyn_atm
+      REAL*8 :: DT    =  450.         ! DT = DTdyn_atm
 
 C**** Time step related multipliers:  N... NI...
 C**** general rule:   DTxxx = Nxxx*DTsrc  and  DTxxx = DTsrc/NIxxx
@@ -113,13 +113,13 @@ C**** slightly larger, to sample all points within the cycle
 
 !**** Boundary condition arrays:
 !@var ZATMO,HLAKE Topography arrays: elevation (m), lake depth (m) ???
-      DOUBLE PRECISION, DIMENSION(IM,JM) :: ZATMO,HLAKE,
+      REAL*8, DIMENSION(IM,JM) :: ZATMO,HLAKE,
 !@var Fxx fraction of gridbox of type xx (land,ocean,...)
      *     FLAND,FOCEAN,FLICE,FLAKE0,FEARTH
 !@var VDATA(:,:,k)  fraction of gridbox of veg.type k=1-11
-      DOUBLE PRECISION, DIMENSION(IM,JM,11) :: VDATA
+      REAL*8, DIMENSION(IM,JM,11) :: VDATA
 !@var WFCS water field capacity of first ground layer (kg/m2)  ???
-      DOUBLE PRECISION, DIMENSION(IM,JM) :: WFCS
+      REAL*8, DIMENSION(IM,JM) :: WFCS
 
 !**** IO read/write flags used by the io_xyz routines
 !@param IOWRITE Flag used for writing normal restart files
@@ -136,9 +136,9 @@ C**** slightly larger, to sample all points within the cycle
 !@var T potential temperature (referenced to 1 mb) (K)
 !@var Q specific humidity (kg water vapor/kg air)
 !@var WM cloud liquid water amount (kg water/kg air)
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: U,V,T,Q,WM
+      REAL*8, DIMENSION(IM,JM,LM) :: U,V,T,Q,WM
 !@var P surface pressure (hecto-Pascals - PTOP)
-      DOUBLE PRECISION, DIMENSION(IM,JM) :: P
+      REAL*8, DIMENSION(IM,JM) :: P
 
 C**** Define surface types (mostly used for weighting diagnostics)
 !@param NTYPE number of different surface types

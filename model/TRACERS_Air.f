@@ -1461,7 +1461,7 @@ C****  at any time
 #endif
       implicit none
       integer :: i,j,ns,l,ky,n
-      double precision :: source,sarea,steppy,base,steppd,x,airm,anngas,
+      REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
      *  steph,stepx,stepp,tmon,by_dt,tnew
 
       by_dt = 1./DTsrc

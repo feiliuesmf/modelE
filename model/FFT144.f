@@ -37,7 +37,7 @@ C****
       INTEGER, INTENT(IN) :: IM    !@var IM size of arrays (must=KM)
       IF(IM.NE.KM)  GO TO 100
       DO N=0,KM/4
-         C(N) = COS(TWOPI*N/dble(KM))
+         C(N) = COS(TWOPI*N/REAL(KM,KIND=8))
          S(KM/4   -N) =  C(N)
          C(KM/2   -N) = -C(N)
          S(KM/4   +N) =  C(N)
@@ -47,8 +47,8 @@ C****
          S(3*KM/4 +N) = -C(N)
       END DO
       DO N=1,KM/2-1
-         CH(N) = COS(TWOPI*N/dble(2*KM))
-         SH(N) = SIN(TWOPI*N/dble(2*KM))
+         CH(N) = COS(TWOPI*N/REAL(2*KM,KIND=8))
+         SH(N) = SIN(TWOPI*N/REAL(2*KM,KIND=8))
       END DO
       RETURN
   100 WRITE (6,*) ' This version of FFT is for ',KM,'. IM =',IM

@@ -48,17 +48,17 @@ c--------------------------------------------------------------
       !
       integer :: nx,stride
       logical :: qlimit
-      double precision, dimension(nx) :: dm, f
-      double precision, dimension(nx*stride) :: s,mass
-      double precision, dimension(nmom,nx*stride) :: smom
-      double precision, dimension(nmom,nx) :: fmom
+      REAL*8, dimension(nx) :: dm, f
+      REAL*8, dimension(nx*stride) :: s,mass
+      REAL*8, dimension(nmom,nx*stride) :: smom
+      REAL*8, dimension(nmom,nx) :: fmom
       integer, dimension(nmom) :: dir
       integer :: mx,my,mz,mxx,myy,mzz,mxy,myz,mzx
       integer :: n,np1,nm1,nn,ns
       integer,intent(out) :: ierr,nerr
-      double precision :: fracm,frac1,bymnew,mnew,dm2,tmp
+      REAL*8 :: fracm,frac1,bymnew,mnew,dm2,tmp
       ! qlimit variables
-      double precision :: an, anm1, fn, fnm1, sn, sxn, sxxn
+      REAL*8 :: an, anm1, fn, fnm1, sn, sxn, sxxn
       !
       ierr=0 ; nerr=0
       mx  = dir(1)
@@ -200,9 +200,9 @@ c-----------------------------------------------------------------
 !@sum  limitq adjusts moments to maintain non-neg. tracer means/fluxes
 !@auth G. Russell, modified by Maxwell Kelley
         implicit none
-        double precision :: anm1,an,fnm1,fn,sn,sx,sxx
+        REAL*8 :: anm1,an,fnm1,fn,sn,sx,sxx
 c local variables
-        double precision :: sl,sc,sr, frl,frl1, frr,frr1, gamma,g13ab,
+        REAL*8 :: sl,sc,sr, frl,frl1, frr,frr1, gamma,g13ab,
      &       fr,fr1, fsign,su,sd
         integer, intent(out) ::ierr
         ierr=0
@@ -325,8 +325,8 @@ c**** upstream division is negative
 !@var RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX mean and moments of tracer
       USE QUSDEF
       IMPLICIT NONE
-      DOUBLE PRECISION, DIMENSION(2) :: RM
-      DOUBLE PRECISION, DIMENSION(NMOM,2) :: RMOM
+      REAL*8, DIMENSION(2) :: RM
+      REAL*8, DIMENSION(NMOM,2) :: RMOM
       REAL*8 FMIX      !@var FMIX  fraction of lower box mixed up
       REAL*8 FRAT      !@var FRAT  fraction of upper box mixed down
       REAL*8 FMAIR     !@var FMAIR mass of air mixed

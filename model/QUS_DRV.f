@@ -1,6 +1,6 @@
 C**** QUSEM12 E001M12 SOMTQ QUSB261AM12
 C**** QUSBM9=QUSB140M9 with correction to second order moment calc.
-C**** Changes for constant pressure above LS1 + double precision
+C**** Changes for constant pressure above LS1 + REAL*8
 C**** QUS   is Russell quadratic upstream scheme for temperature
 C**** and water vapor advection, with limits applied to water vapor.
 C**** Changes for constant pressure above LS1
@@ -15,18 +15,18 @@ C**** Routines included: AADVT, AADVTX, AADVTY, AADVTZ
       SAVE
       INTEGER :: IM,JM,LM
       INTEGER :: XSTRIDE,YSTRIDE,ZSTRIDE
-      DOUBLE PRECISION :: BYIM
+      REAL*8 :: BYIM
 C**** AIR MASS FLUXES
-      DOUBLE PRECISION, DIMENSION(:,:,:), ALLOCATABLE :: MFLX
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: MFLX
 C**** WORKSPACE FOR AADVTX
-cc    DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE :: AM,F_I
-cc    DOUBLE PRECISION, DIMENSION(:,:), ALLOCATABLE :: FMOM_I
+cc    REAL*8, DIMENSION(:), ALLOCATABLE :: AM,F_I
+cc    REAL*8, DIMENSION(:,:), ALLOCATABLE :: FMOM_I
 C**** WORKSPACE FOR AADVTY
-cc    DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE :: BM,F_J
-cc    DOUBLE PRECISION, DIMENSION(:,:), ALLOCATABLE :: FMOM_J
+cc    REAL*8, DIMENSION(:), ALLOCATABLE :: BM,F_J
+cc    REAL*8, DIMENSION(:,:), ALLOCATABLE :: FMOM_J
 C**** WORKSPACE FOR AADVTZ
-cc    DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE :: CM,F_L
-cc    DOUBLE PRECISION, DIMENSION(:,:), ALLOCATABLE :: FMOM_L
+cc    REAL*8, DIMENSION(:), ALLOCATABLE :: CM,F_L
+cc    REAL*8, DIMENSION(:,:), ALLOCATABLE :: FMOM_L
 
       END MODULE QUSCOM
 
@@ -39,7 +39,7 @@ C**** SET RESOLUTION
       IM = IM_GCM
       JM = JM_GCM
       LM = LM_GCM
-      BYIM = 1.D0/DBLE(IM)
+      BYIM = 1.D0/REAL(IM,KIND=8)
       XSTRIDE = 1
       YSTRIDE = IM
       ZSTRIDE = IM*JM
@@ -74,18 +74,18 @@ c****
       USE QUSDEF
       IMPLICIT NONE
 
-      double precision, dimension(im,jm,lm) :: rm,ma
-      double precision, dimension(NMOM,IM,JM,LM) :: rmom
+      REAL*8, dimension(im,jm,lm) :: rm,ma
+      REAL*8, dimension(NMOM,IM,JM,LM) :: rmom
 
       REAL*8, INTENT(IN) :: DT
-      double precision, dimension(im,jm,lm), intent(in) :: pu,pv
-      double precision, dimension(im,jm,lm-1), intent(in) :: sd
+      REAL*8, dimension(im,jm,lm), intent(in) :: pu,pv
+      REAL*8, dimension(im,jm,lm-1), intent(in) :: sd
       LOGICAL, INTENT(IN) :: QLIMIT
 
-      double precision, dimension(im,jm), intent(inout) :: fqu,fqv
+      REAL*8, dimension(im,jm), intent(inout) :: fqu,fqv
 
       INTEGER :: I,J,L
-      DOUBLE PRECISION :: BYMA
+      REAL*8 :: BYMA
 
 C**** Initialise diagnostics
       FQU=0.  ; FQV=0.
@@ -190,11 +190,11 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       use QUSCOM, only : im,jm,lm, xstride
       use QUSDEF
       implicit none
-      double precision, dimension(im,jm,lm) :: rm,mass,mu,hfqu
-      double precision, dimension(NMOM,IM,JM,LM) :: rmom
+      REAL*8, dimension(im,jm,lm) :: rm,mass,mu,hfqu
+      REAL*8, dimension(NMOM,IM,JM,LM) :: rmom
       logical ::  qlimit
-      DOUBLE PRECISION, INTENT(OUT), DIMENSION(IM,JM) :: FQU
-      DOUBLE PRECISION  AM(IM), F_I(IM), FMOM_I(NMOM,IM)
+      REAL*8, INTENT(OUT), DIMENSION(IM,JM) :: FQU
+      REAL*8  AM(IM), F_I(IM), FMOM_I(NMOM,IM)
       integer :: i,j,l,ierr,nerr,ICKERR
 c**** loop over layers and latitudes
       ICKERR=0
@@ -259,13 +259,13 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
       use QUSCOM, only : im,jm,lm, ystride,               byim
       use QUSDEF
       implicit none
-      double precision, dimension(im,jm,lm) :: rm,mass,mv
-      double precision, dimension(NMOM,IM,JM,LM) :: rmom
+      REAL*8, dimension(im,jm,lm) :: rm,mass,mv
+      REAL*8, dimension(NMOM,IM,JM,LM) :: rmom
       logical ::  qlimit
-      double precision, intent(out), dimension(im,jm) :: fqv
-      DOUBLE PRECISION  HFQV(IM,JM,LM),BM(JM),F_J(JM),FMOM_J(NMOM,JM)
+      REAL*8, intent(out), dimension(im,jm) :: fqv
+      REAL*8  HFQV(IM,JM,LM),BM(JM),F_J(JM),FMOM_J(NMOM,JM)
       integer :: i,j,l,ierr,nerr,ICKERR
-      double precision ::
+      REAL*8 ::
      &     m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
 c**** loop over layers
       ICKERR=0
@@ -365,10 +365,10 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use QUSCOM, only : im,jm,lm, zstride
       use QUSDEF
       implicit none
-      double precision, dimension(im,jm,lm) :: rm,mass,mw
-      double precision, dimension(NMOM,IM,JM,LM) :: rmom
+      REAL*8, dimension(im,jm,lm) :: rm,mass,mw
+      REAL*8, dimension(NMOM,IM,JM,LM) :: rmom
       logical ::  qlimit
-      DOUBLE PRECISION  CM(LM),F_L(LM),FMOM_L(NMOM,LM)
+      REAL*8  CM(LM),F_L(LM),FMOM_L(NMOM,LM)
       integer :: i,j,l,ierr,nerr,ICKERR
 c**** loop over latitudes and longitudes
       ICKERR=0

@@ -34,7 +34,7 @@ C**** TAIJLN
 !@var LNAME_IJT: descriptions of tracer IJ diagnostics
       character(len=80), dimension(lm,ntm) :: lname_ijt = 'unused'
 !@var SCALE_IJT: printout scaling factor for tracer IJ diagnostics
-      double precision, dimension(lm,ntm) :: scale_ijt
+      REAL*8, dimension(lm,ntm) :: scale_ijt
 !@var IR_IJT: range index of IJ diagnosts
       integer, dimension(ntm) :: ir_ijt
 !@var IA_IJT: idacc-number for tracer IJ diags (same for all tracers)
@@ -61,7 +61,7 @@ C**** TAIJN
 !@var TAIJN lat/lon tracer diagnostics (all tracers)
       real*8, dimension(im,jm,ktaij,ntm) :: taijn
 !@var SCALE_TIJ: printout scaling factor for tracer IJK diagnostics
-      double precision, dimension(ktaij,ntm) :: scale_tij
+      REAL*8, dimension(ktaij,ntm) :: scale_tij
 !@var SNAME_TIJ,UNITS_TIJ: Names and units of lat-sigma tracer diags
       character(len=30), dimension(ktaij,ntm) :: sname_tij,units_tij
 !@var LNAME_TIJ: descriptions of tracer IJK diags
@@ -79,7 +79,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var LNAME_IJTS: descriptions of tracer IJTS diags
       character(len=80), dimension(ktaijs) :: lname_ijts = 'unused'
 !@var SCALE_IJTS: printout scaling factor for tracer IJTS diagnostics
-      double precision, dimension(ktaijs) :: scale_ijts
+      REAL*8, dimension(ktaijs) :: scale_ijts
 !@var IA_IJTS: idacc-number for tracer source/sink IJ diags 
       integer ia_ijts(ktaijs)
 !@var ijts_power: power of 10 used for tracer IJ source/sink diags
@@ -102,7 +102,7 @@ C**** TAJLN
       character(len=50), dimension(ktajlx,ntm) :: lname_jln = 'unused'
      *     ,units_jln
 !@var SCALE_JLQ: printout scaling factor for tracer JL diagnostics
-      double precision, dimension(ktajlx) :: scale_jlq
+      REAL*8, dimension(ktajlx) :: scale_jlq
 !@var IA_JLQ,JGRID_JLQ: idacc-numbers,gridtypes for tracer JL diags
       integer, dimension(ktajlx) :: ia_jlq,jgrid_jlq
 !@var JLQ_POWER: power of 10 used for tracer JL diagnostics
@@ -133,7 +133,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       character(len=50), dimension(ktajls) :: lname_jls = 'unused'
      *     ,units_jls
 !@var SCALE_JLS: printout scaling factor for tracer JLS diagnostics
-      double precision, dimension(ktajls) :: scale_jls
+      REAL*8, dimension(ktajls) :: scale_jls
 !@var IA_JLS,JGRID_JLS: idacc-numbers,gridtypes for tracer JL diags
       integer, dimension(ktajls) :: ia_jls,jgrid_jls
 !@var JLS_POWER: power of 10 used for tracer JLS diagnostics
@@ -147,9 +147,9 @@ C**** TCONSRV
 !@parm KTCON total number of conservation diagnostics for tracers
       INTEGER, PARAMETER :: KTCON=npts+ntcons+2
 !@var TCONSRV conservation diagnostics for tracers
-      DOUBLE PRECISION, DIMENSION(JM,ktcon,ntm) :: TCONSRV
+      REAL*8, DIMENSION(JM,ktcon,ntm) :: TCONSRV
 !@var SCALE_TCON scales for tracer conservation diagnostics
-      DOUBLE PRECISION, DIMENSION(ktcon,ntm) :: SCALE_TCON
+      REAL*8, DIMENSION(ktcon,ntm) :: SCALE_TCON
 !@var TITLE_TCON titles for tracer conservation diagnostics
       CHARACTER*38, DIMENSION(ktcon,ntm) :: TITLE_TCON
 !@var IA_TCON IDACC numbers for tracer conservation diagnostics
@@ -167,7 +167,7 @@ C**** TCONSRV
      &   name_tconsrv,units_tconsrv
       character(len=80), dimension(ktcon,ntm) :: lname_tconsrv
 !@var SCALE_INST,SCALE_CHANGE: Scale factors for tracer conservation
-      double precision, dimension(ntm) :: SCALE_INST,SCALE_CHANGE
+      REAL*8, dimension(ntm) :: SCALE_INST,SCALE_CHANGE
 !@var itcon_surf Index array for surface source/sink conservation diags
       INTEGER, DIMENSION(ntsurfsrcmax,NTM) :: itcon_surf
 !@var itcon_3D Index array for 3D source/sink conservation diags
@@ -188,7 +188,7 @@ C----------------------------------------------------
      *  ktacc=IM*JM*LM*NTM + IM*JM*ktaij*NTM + IM*JM*ktaijs + 
      *        JM*LM*ktajlx*NTM + JM*LM*ktajls + JM*NTM*ktcon
       COMMON /TACCUM/ TAIJLN,TAIJN,TAIJS,TAJLN,TAJLS,TCONSRV
-      DOUBLE PRECISION, DIMENSION(KTACC) :: TACC
+      REAL*8, DIMENSION(KTACC) :: TACC
       EQUIVALENCE (TACC,TAIJLN)
 C----------------------------------------------------
       END MODULE TRACER_DIAG_COM

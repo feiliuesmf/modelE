@@ -81,9 +81,10 @@ C**** set dimensions
 !@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
       INTEGER, INTENT(IN) :: IJGRID
 
-      WRITE(iu_ij) TITLE,SNGL(XIJ),SNGL(XJ),SNGL(XSUM)
+      WRITE(iu_ij) TITLE,REAL(XIJ,KIND=4),REAL(XJ,KIND=4),
+     *             REAL(XSUM,KIND=4)
       return
-      end
+      end subroutine POUT_IJ
 
       subroutine open_jl(filename,jm_gcm,lm_gcm,lm_req_gcm,lat_dg_gcm)
 !@sum  OPEN_JL opens the lat-height binary output file
@@ -155,11 +156,13 @@ C**** set dimensions
       XCOOR(1:JXMAX) = LAT_DG(J1:JM,J1)
 
       WRITE (iu_jl) TITLE,JXMAX,KLMAX,1,1,
-     *     ((SNGL(XJL(J1+J-1,L)),J=1,JXMAX),L=1,KLMAX)
-     *     ,(SNGL(XCOOR(J)),J=1,JXMAX)
-     *     ,(SNGL(PM(L)),L=1,KLMAX),1.,1.,CX,CY,CBLANK,CBLANK,'NASAGISS'
-     *     ,(SNGL(XJL(J,LM+LM_REQ+1)),J=J1,JM+3)
-     *     ,((SNGL(XJL(J,L)),J=JM+1,JM+3),L=1,KLMAX)
+     *     ((REAL(XJL(J1+J-1,L),KIND=4),J=1,JXMAX),L=1,KLMAX)
+     *     ,(REAL(XCOOR(J),KIND=4),J=1,JXMAX)
+     *     ,(REAL(PM(L),KIND=4),L=1,KLMAX)
+     *     ,REAL(1.,KIND=4),REAL(1.,KIND=4)
+     *     ,CX,CY,CBLANK,CBLANK,'NASAGISS'
+     *     ,(REAL(XJL(J,LM+LM_REQ+1),KIND=4),J=J1,JM+3)
+     *     ,((REAL(XJL(J,L),KIND=4),J=JM+1,JM+3),L=1,KLMAX)
 
       return
       end
@@ -234,12 +237,16 @@ C**** Allow for the possibility of wrap-around arrays
       IF (I1.gt.1) XCOOR(IM-I1+2:IM) = LON_DG(1:I1-1,ISHIFT)
 
       WRITE (iu_il) TITLE,IM,KLMAX,1,1,
-     *     ((SNGL(XIL(I,L)),I=1,IM),L=1,KLMAX),(SNGL(XCOOR(I)),I=1,IM)
-     *     ,(SNGL(PM(L)),L=1,KLMAX),0.,0.,CX,CY,CBLANK,CBLANK,'NASAGISS'
-     *     ,(SNGL(ASUM(I)),I=1,IM),SNGL(GSUM),(SNGL(ZONAL(L)),L=1,KLMAX)
+     *     ((REAL(XIL(I,L),KIND=4),I=1,IM),L=1,KLMAX)
+     *     ,(REAL(XCOOR(I),KIND=4),I=1,IM)
+     *     ,(REAL(PM(L),KIND=4),L=1,KLMAX)
+     *     ,REAL(0.,KIND=4),REAL(0.,KIND=4)
+     *     ,CX,CY,CBLANK,CBLANK,'NASAGISS'
+     *     ,(REAL(ASUM(I),KIND=4),I=1,IM),REAL(GSUM,KIND=4)
+     *     ,(REAL(ZONAL(L),KIND=4),L=1,KLMAX)
 
       return
-      end
+      end subroutine POUT_IL
 
       subroutine close_j
 !@sum  CLOSE_J closes the latitudinal budget-page ascii output file
@@ -387,8 +394,8 @@ C**** set dimensions
       INTEGER :: I,K
 
       DO K=1,LM
-         WRITE(iu_ijk) TITLE(K), SNGL(XIJK(:,:,K)),
-     &     SNGL(XJK(:,K)), SNGL(XK(K))
+         WRITE(iu_ijk) TITLE(K), REAL(XIJK(:,:,K),KIND=4),
+     &     REAL(XJK(:,K),KIND=4), REAL(XK(K),KIND=4)
       ENDDO
       return
-      end
+      end subroutine POUT_IJK

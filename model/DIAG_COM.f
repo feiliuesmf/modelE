@@ -18,12 +18,12 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@param KAJ number of accumulated zonal budget diagnostics
       INTEGER, PARAMETER :: KAJ=80
 !@var AJ zonal budget diagnostics for each surface type
-      DOUBLE PRECISION, DIMENSION(JM,KAJ,NTYPE) :: AJ
+      REAL*8, DIMENSION(JM,KAJ,NTYPE) :: AJ
 
 !@param NREG number of regions for budget diagnostics
       INTEGER, PARAMETER :: NREG=24
 !@var AREG regional budget diagnostics
-      DOUBLE PRECISION, DIMENSION(NREG,KAJ) :: AREG
+      REAL*8, DIMENSION(NREG,KAJ) :: AREG
 !@var TITREG,NAMREG title and names of regions for AREG diagnostics
       CHARACTER*4 TITREG*80,NAMREG(2,23)
 !@var JREH lat/lon array defining regions for AREG diagnostics
@@ -32,27 +32,27 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@param KAPJ number of zonal pressure diagnostics
       INTEGER, PARAMETER :: KAPJ=2
 !@var APJ zonal pressure diagnostics
-      DOUBLE PRECISION, DIMENSION(JM,KAPJ) :: APJ
+      REAL*8, DIMENSION(JM,KAPJ) :: APJ
 
 !@param KAJL,KAJLX number of AJL diagnostics,KAJLX includes composites
       INTEGER, PARAMETER :: KAJL=50+KEP, KAJLX=KAJL+50
 !@var AJL latitude/height diagnostics
-      DOUBLE PRECISION, DIMENSION(JM,LM,KAJL) :: AJL
+      REAL*8, DIMENSION(JM,LM,KAJL) :: AJL
 
 !@param KASJL number of ASJL diagnostics
       INTEGER, PARAMETER :: KASJL=4
 !@var ASJL latitude/height supplementary diagnostics (merge with AJL?)
-      DOUBLE PRECISION, DIMENSION(JM,LM_REQ,KASJL) :: ASJL
+      REAL*8, DIMENSION(JM,LM_REQ,KASJL) :: ASJL
 
 !@param KAIJ,KAIJX number of AIJ diagnostics, KAIJX includes composites
       INTEGER, PARAMETER :: KAIJ=160 , KAIJX=KAIJ+100
 !@var AIJ latitude/longitude diagnostics
-      DOUBLE PRECISION, DIMENSION(IM,JM,KAIJ) :: AIJ
+      REAL*8, DIMENSION(IM,JM,KAIJ) :: AIJ
 
 !@param KAIL number of AIL diagnostics
       INTEGER, PARAMETER :: KAIL=15
 !@var AIL longitude/height diagnostics
-      DOUBLE PRECISION, DIMENSION(IM,LM,KAIL) :: AIL
+      REAL*8, DIMENSION(IM,LM,KAIL) :: AIL
 !@var J50N,J70N,J5NUV,J5SUV,J5S,J5N special latitudes for AIL diags
       INTEGER, PARAMETER :: J50N  = (50.+90.)*(JM-1)/180.+1.5
       INTEGER, PARAMETER :: J70N  = (70.+90.)*(JM-1)/180.+1.5
@@ -68,7 +68,7 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       INTEGER, PARAMETER :: NEHIST=NED*(2+ISTRAT)
       INTEGER, PARAMETER :: HIST_DAYS=100
 !@var ENERGY energy diagnostics
-      DOUBLE PRECISION, DIMENSION(NEHIST,HIST_DAYS) :: ENERGY
+      REAL*8, DIMENSION(NEHIST,HIST_DAYS) :: ENERGY
 
 !@var NPTS number of points at which standard conserv. diags are called
       INTEGER, PARAMETER :: NPTS = 11
@@ -77,9 +77,9 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param KCON number of conservation diagnostics
       INTEGER, PARAMETER :: KCON=125
 !@var CONSRV conservation diagnostics
-      DOUBLE PRECISION, DIMENSION(JM,KCON) :: CONSRV
+      REAL*8, DIMENSION(JM,KCON) :: CONSRV
 !@var SCALE_CON scales for conservation diagnostics
-      DOUBLE PRECISION, DIMENSION(KCON) :: SCALE_CON
+      REAL*8, DIMENSION(KCON) :: SCALE_CON
 !@var TITLE_CON titles for conservation diagnostics
       CHARACTER*32, DIMENSION(KCON) :: TITLE_CON
 !@var NSUM_CON indices for summation of conservation diagnostics
@@ -103,7 +103,7 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       INTEGER, PARAMETER :: KSPECA=20
       INTEGER, PARAMETER :: NSPHER=4*(2+ISTRAT)
 !@var SPECA spectral diagnostics
-      DOUBLE PRECISION, DIMENSION((IMH+1),KSPECA,NSPHER) :: SPECA
+      REAL*8, DIMENSION((IMH+1),KSPECA,NSPHER) :: SPECA
 !@var KLAYER index for dividing up atmosphere into layers for spec.anal.
       INTEGER, DIMENSION(LM) :: KLAYER
 !@param PSPEC pressure levels at which layers are seperated and defined
@@ -117,7 +117,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       INTEGER, PARAMETER :: KTPE=8
       integer, parameter :: NHEMI=2
 !@var ATPE pot. enthalpy spectral diagnostics
-      DOUBLE PRECISION, DIMENSION(KTPE,NHEMI) :: ATPE
+      REAL*8, DIMENSION(KTPE,NHEMI) :: ATPE
 
 !@param HR_IN_DAY hours in day
       INTEGER, PARAMETER :: HR_IN_DAY=24
@@ -131,18 +131,18 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       DATA        IJDD    /  63,17,  17,34,  37,27,  13,23 /
       DATA        NAMDD   / 'AUSD', 'MWST', 'SAHL', 'EPAC' /
 !@var ADIURN diurnal diagnostics (24 hour cycles at selected points)
-      DOUBLE PRECISION, DIMENSION(HR_IN_DAY,NDIUVAR,NDIUPT) :: ADIURN
+      REAL*8, DIMENSION(HR_IN_DAY,NDIUVAR,NDIUPT) :: ADIURN
 
 !@param KAJK number of zonal constant pressure diagnostics
 !@param KAJKX number of zonal constant pressure composit diagnostics
       INTEGER, PARAMETER :: KAJK=51, KAJKX=KAJK+100
 !@var AJK zonal constant pressure diagnostics
-      DOUBLE PRECISION, DIMENSION(JM,LM,KAJK) :: AJK
+      REAL*8, DIMENSION(JM,LM,KAJK) :: AJK
 
 !@param KAIJK,KAIJX number of lat/lon constant pressure diagnostics
       INTEGER, PARAMETER :: KAIJK=6 , kaijkx=kaijk+100
 !@var KAIJK lat/lon constant pressure diagnostics
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM,KAIJK) :: AIJK
+      REAL*8, DIMENSION(IM,JM,LM,KAIJK) :: AIJK
 
 !@param NWAV_DAG number of components in spectral diagnostics
       INTEGER, PARAMETER :: NWAV_DAG=min(9,imh)
@@ -153,7 +153,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@param KWP number of wave power diagnostics
       INTEGER, PARAMETER :: KWP=12
 !@var WAVE frequency diagnostics (wave power)
-      DOUBLE PRECISION,
+      REAL*8,
      &     DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP) :: WAVE
 
 !@param KGZ number of pressure levels for geopotential height diag
@@ -183,8 +183,8 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       COMMON /ACCUM/ AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
      &  ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,
      &  AJK,AIJK
-      DOUBLE PRECISION, DIMENSION(KACC) :: ACC
-      DOUBLE PRECISION, DIMENSION(LM+LM_REQ+1,IM,JM,5) :: AFLX_ST
+      REAL*8, DIMENSION(KACC) :: ACC
+      REAL*8, DIMENSION(LM+LM_REQ+1,IM,JM,5) :: AFLX_ST
       EQUIVALENCE (ACC,AJ,AFLX_ST)
 
 !@param KTSF number of freezing temperature diagnostics
@@ -194,7 +194,7 @@ C****   1  FIRST DAY OF GROWING SEASON (JULIAN DAY)
 C****   2  LAST DAY OF GROWING SEASON (JULIAN DAY)
 C****   3  LAST DAY OF ICE-FREE LAKE (JULIAN DAY)
 C****   4  LAST DAY OF ICED-UP LAKE  (JULIAN DAY)
-      DOUBLE PRECISION, DIMENSION(IM,JM,KTSF) :: TSFREZ
+      REAL*8, DIMENSION(IM,JM,KTSF) :: TSFREZ
 
 !@param KTD number of diurnal temperature diagnostics
       INTEGER, PARAMETER :: KTD=9
@@ -208,7 +208,7 @@ C****   6  MAX COMPOSITE TS FOR CURRENT DAY (K)
 C****   7  MAX TG1 OVER OCEAN ICE FOR CURRENT DAY (C)
 C****   8  MAX TG1 OVER LAND ICE FOR CURRENT DAY (C)
 C****   9  MIN COMPOSITE TS FOR CURRENT DAY (K)
-      DOUBLE PRECISION, DIMENSION(IM,JM,KTD) :: TDIURN
+      REAL*8, DIMENSION(IM,JM,KTD) :: TDIURN
 
 !@nlparam KDIAG array of flags to control diagnostics printout
       INTEGER, DIMENSION(12) :: KDIAG
@@ -259,7 +259,7 @@ C****      names, indices, units, idacc-numbers, etc.
       integer :: niparm=0
       integer, parameter :: ndparm_max=100
       character(len=20), dimension(ndparm_max) :: dparm_name
-      double precision, dimension(ndparm_max) :: dparm
+      REAL*8, dimension(ndparm_max) :: dparm
       integer :: ndparm=0
 
 !@var J_xxx zonal J diagnostic names
@@ -423,7 +423,7 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var LNAME_JL,UNITS_JL Descriptions/Units of JL diagnostics
       character(len=50), dimension(kajlx) :: lname_jl,units_jl
 !@var SCALE_JL printout scaling factors for JL diagnostics
-      double precision, dimension(kajlx) :: scale_jl
+      REAL*8, dimension(kajlx) :: scale_jl
 !@var IA_JL,JGRID_JL idacc-numbers,gridtypes for JL diagnostics
       integer, dimension(kajlx) :: ia_jl,jgrid_jl
 !@var POW_JL printed output scaled by 10**(-pow_jl)
@@ -434,7 +434,7 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var LNAME_SJL,UNITS_SJL Descriptions/Units of SJL diagnostics
       character(len=50), dimension(kasjl) :: lname_sjl,units_sjl
 !@var SCALE_SJL printout scaling factors for SJL diagnostics
-      double precision, dimension(kasjl) :: scale_sjl
+      REAL*8, dimension(kasjl) :: scale_sjl
 !@var IA_SJL idacc-numbers for SJL diagnostics
       integer, dimension(kasjl) :: ia_sjl
 
@@ -459,7 +459,7 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var LNAME_JK,UNITS_JK Descriptions/Units of JK diagnostics
       character(len=50), dimension(kajkx) :: lname_jk,units_jk
 !@var SCALE_JK printout scaling factors for JK diagnostics
-      double precision, dimension(kajkx) :: scale_jk
+      REAL*8, dimension(kajkx) :: scale_jk
 !@var IA_JK,JGRID_JK idacc-numbers,gridtypes for JK diagnostics
       integer, dimension(kajkx) :: ia_jk,jgrid_jk
 !@var POW_JK printed output scaled by 10**(-pow_jk)
@@ -525,18 +525,18 @@ c idacc-indices of various processes
      *     ia_inst=12
 
 !@var PLE,PLM, PLE_DN ref pressures at upper, middle and lower edge
-      DOUBLE PRECISION, DIMENSION(LM) :: PLE
-      DOUBLE PRECISION, DIMENSION(LM) :: PLE_DN
-      DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PLM
+      REAL*8, DIMENSION(LM) :: PLE
+      REAL*8, DIMENSION(LM) :: PLE_DN
+      REAL*8, DIMENSION(LM+LM_REQ) :: PLM
 !@var P1000K scaling to change reference pressure from 1mb to 1000mb
-      DOUBLE PRECISION :: P1000K
+      REAL*8 :: P1000K
 !@var inci,incj print increments for i and j, so maps/tables fit on page
       integer, parameter :: inci=(im+35)/36,incj=(JM+23)/24, jmby2=jm/2
 !@var linect = current line on page of print out
       integer linect
 
 !@var XWON scale factor for diag. printout needed for Wonderland model
-      DOUBLE PRECISION :: XWON = TWOPI/(DLON*FIM)
+      REAL*8 :: XWON = TWOPI/(DLON*FIM)
 
       END MODULE DAGCOM
 
@@ -576,8 +576,8 @@ c???  add a couple of lines to replace ACCS and avoid 'COMMON BLOCK'
         CASE (IOWRITE_SINGLE)     ! output in single precision
           MODULE_HEADER(LHEAD+18:LHEAD+18) = '4'
           MODULE_HEADER(LHEAD+44:80) = ',monacc(12)'
-          WRITE (kunit,err=10) MODULE_HEADER,idacc(2),SNGL(AFLX_ST),
-     *      monacc,it
+          WRITE (kunit,err=10) MODULE_HEADER,idacc(2),
+     *          REAL(AFLX_ST,KIND=4), monacc,it
         CASE (IOWRITE_MON)        ! output to end-of-month restart file
           MODULE_HEADER(LHEAD+1:80) = 'itime '
           WRITE (kunit,err=10) MODULE_HEADER,it
@@ -622,12 +622,12 @@ c??? *     ADIURN,WAVE,AJK,AIJK
       CASE (IOWRITE_SINGLE)     ! output in single precision
         MODULE_HEADER(LHEAD+1:LHEAD+4) = 'I/R4'
         MODULE_HEADER(i_xtra:80) = ',monacc(12)'
-        WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,SNGL(TSFREZ),
-     *     idacc,SNGL(ACC),
-c??? *     idacc,SNGL(AJ),SNGL(AREG),SNGL(APJ),SNGL(AJL),
-c??? *     SNGL(ASJL),SNGL(AIJ),SNGL(AIL),SNGL(ENERGY),
-c??? *     SNGL(CONSRV),SNGL(SPECA),SNGL(ATPE),SNGL(ADIURN),SNGL(WAVE),
-c??? *     SNGL(AJK),SNGL(AIJK),
+        WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,
+     *     REAL(TSFREZ,KIND=4),idacc,REAL(ACC,KIND=4),
+c??? *     idacc,REAL(AJ,KIND=4),REAL(AREG,KIND=4),REAL(APJ,KIND=4),REAL(AJL,KIND=4),
+c??? *     REAL(ASJL,KIND=4),REAL(AIJ,KIND=4),REAL(AIL,KIND=4),REAL(ENERGY,KIND=4),
+c??? *     REAL(CONSRV,KIND=4),REAL(SPECA,KIND=4),REAL(ATPE,KIND=4),REAL(ADIURN,KIND=4),REAL(WAVE,KIND=4),
+c??? *     REAL(AJK,KIND=4),REAL(AIJK,KIND=4),
      *     monacc,it
       CASE (IOWRITE_MON)        ! output to end-of-month restart file
         MODULE_HEADER(i_ida:80) = ',it '

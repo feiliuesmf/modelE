@@ -19,7 +19,7 @@ C**** salinity (ppt) and pressure (MPa = 10^6 Pa) as arguments
       REAL*8, DIMENSION(-2:40,0:40) :: CGS
       END MODULE OCFUNC
 
-      DOUBLE PRECISION FUNCTION VOLGSP (G,S,P)
+      REAL*8 FUNCTION VOLGSP (G,S,P)
 C****
 C**** VOLGSP returns a linearly interpolated specific volume from
 C**** an input table that depends on potential specific enthalpy,
@@ -63,7 +63,7 @@ C****
       RETURN
       END
 
-      DOUBLE PRECISION FUNCTION VOLGS (G,S)
+      REAL*8 FUNCTION VOLGS (G,S)
 C****
 C**** VOLGS returns a linearly interpolated specific volume from
 C**** an input table that depends on potential specific enthalpy
@@ -98,7 +98,7 @@ C****
       RETURN
       END
 
-      DOUBLE PRECISION FUNCTION TEMGS (G,S)
+      REAL*8 FUNCTION TEMGS (G,S)
 C****
 C**** TEMGS returns a linearly interpolated temperature from an
 C**** input table that depends on potential specific enthalpy and
@@ -133,7 +133,7 @@ C****
       RETURN
       END
 
-      DOUBLE PRECISION FUNCTION SHCGS (G,S)
+      REAL*8 FUNCTION SHCGS (G,S)
 C****
 C**** SHCGS returns a linearly interpolated specific heat capacity
 C**** from an input table that depends on potential specific enthalpy
@@ -168,7 +168,7 @@ C****
       RETURN
       END
 
-      DOUBLE PRECISION FUNCTION GFREZS (S)
+      REAL*8 FUNCTION GFREZS (S)
 C****
 C**** GFREZS returns a linearly interpolated frezzing point of
 C**** potential specific enthalpy that depends on salinity.  Pressure
@@ -203,7 +203,7 @@ C****
       RETURN
       END
 
-      DOUBLE PRECISION FUNCTION TFREZS (SIN)
+      REAL*8 FUNCTION TFREZS (SIN)
 C****
 C**** TFREZS calculates the freezing temperature of sea water as a
 C**** function of salinity.
@@ -227,7 +227,7 @@ C****
       RETURN
       END
 
-      DOUBLE PRECISION FUNCTION HETGSP (G,S,P)
+      REAL*8 FUNCTION HETGSP (G,S,P)
 C****
 C**** HETGSP returns a linearly interpolated specific enthalpy from
 C**** an input table that depends on potential specific enthalpy,
@@ -271,7 +271,7 @@ C****
       RETURN
       END
 
-      DOUBLE PRECISION FUNCTION ALPHAGSP (G,S,P)
+      REAL*8 FUNCTION ALPHAGSP (G,S,P)
 C****
 C**** ALPHAGSP returns a linearly interpolated thermal expansion
 C**** coefficient from an input table that depends on potential
@@ -315,7 +315,7 @@ C****
       RETURN
       END
 
-      DOUBLE PRECISION FUNCTION BETAGSP (G,S,P)
+      REAL*8 FUNCTION BETAGSP (G,S,P)
 C****
 C**** BETAGSP returns a linearly interpolated saline expansion
 C**** coefficient from an input table that depends on potential 
@@ -359,7 +359,7 @@ C****
       RETURN
       END
 
-      DOUBLE PRECISION FUNCTION TEMGSP (G,S,P)
+      REAL*8 FUNCTION TEMGSP (G,S,P)
 C****
 C**** TEMGSP returns a linearly interpolated in situ temperature
 C**** from an input table that depends on potential 

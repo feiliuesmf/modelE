@@ -3138,7 +3138,7 @@ c       GTRACER(:,1:2,I,1)=GTRACER(:,1:2,1,1)
 C****
       END
 
-      DOUBLE PRECISION FUNCTION TOFREZ(I,J)
+      REAL*8 FUNCTION TOFREZ(I,J)
 !@sum  TOFREZ returns the value of the seawater freezing temp
 !@auth Gavin Schmidt
 !@var  1.0

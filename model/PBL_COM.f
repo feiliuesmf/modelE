@@ -32,7 +32,7 @@
       integer, dimension(im,jm,4) :: ipbl
 
 !@var ROUGHL log10(zgs/roughness length), prescribed with zgs=30 m.
-      double precision, dimension(im,jm) :: roughl
+      REAL*8, dimension(im,jm) :: roughl
 !@var WSAVG     COMPOSITE SURFACE WIND MAGNITUDE (M/S)
 !@var TSAVG     COMPOSITE SURFACE AIR TEMPERATURE (K)
 !@var QSAVG     COMPOSITE SURFACE AIR SPECIFIC HUMIDITY (1)
@@ -41,9 +41,9 @@
 !@var VSAVG     COMPOSITE SURFACE V WIND
 !@var TAUAVG    COMPOSITE SURFACE MOMENTUM TRANSFER (TAU)
 !@var USTAR     friction velocity (sqrt of srfc mom flux) (m/s)
-      double precision, dimension(im,jm) ::
+      REAL*8, dimension(im,jm) ::
      &     wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,tgvavg,qgavg
-      double precision, dimension(im,jm,4) :: ustar
+      REAL*8, dimension(im,jm,4) :: ustar
 
 !@var egcm  3-d turbulent kinetic energy in the whole atmosphere
       real*8, dimension(lm,im,jm) :: egcm,t2gcm

@@ -369,7 +369,8 @@ C**** Read in climatological ocean mixed layer depths efficiently
  530  JDLAST=JDAY
 
 C**** INTERPOLATE OCEAN DATA TO CURRENT DAY
-      FRAC = DBLE(JDmidOFM(IMON)-JDAY)/(JDmidOFM(IMON)-JDmidOFM(IMON-1))
+      FRAC = REAL(JDmidOFM(IMON)-JDAY,KIND=8)/
+     a           (JDmidOFM(IMON)-JDmidOFM(IMON-1))
       DO J=1,JM
       DO I=1,IM
       Z1O(I,J)=FRAC*XZO(I,J)+(1.-FRAC)*XZN(I,J)
@@ -979,7 +980,7 @@ C****
 
 C**** This is here so that a coupled ocean is easier to implement
 
-      DOUBLE PRECISION FUNCTION TOFREZ(I,J)
+      REAL*8 FUNCTION TOFREZ(I,J)
 !@sum  TOFREZ returns the value of the seawater freezing temp
 !@auth Gavin Schmidt
 !@ver  1.0

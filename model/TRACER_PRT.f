@@ -168,13 +168,13 @@ C**** No need to save current value
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM) :: MAREA
-      DOUBLE PRECISION, DIMENSION(KTCON) :: FGLOB
-      DOUBLE PRECISION, DIMENSION(2,KTCON) :: FHEM
-      DOUBLE PRECISION, DIMENSION(JM+3,KTCON,NTM) :: CNSLAT
+      REAL*8, DIMENSION(KTCON) :: FGLOB
+      REAL*8, DIMENSION(2,KTCON) :: FHEM
+      REAL*8, DIMENSION(JM+3,KTCON,NTM) :: CNSLAT
       CHARACTER*4, PARAMETER :: HEMIS(2) = (/' SH ',' NH '/),
      *     DASH = ('----')
       INTEGER :: j,jhemi,jnh,jp1,jpm,jsh,jx,n,k,KTCON_max
-      DOUBLE PRECISION :: aglob,ahem,feq,fnh,fsh,days
+      REAL*8 :: aglob,ahem,feq,fnh,fsh,days
 
       if (kdiag(8).ge.2) return
 C**** CALCULATE SCALING FACTORS
@@ -332,11 +332,11 @@ C****
       USE BDJLT
       IMPLICIT NONE
 
-      DOUBLE PRECISION, DIMENSION(JM) :: ONESPO
-      DOUBLE PRECISION, DIMENSION(JM+LM) :: ONES
-      DOUBLE PRECISION, DIMENSION(JM,LM) :: A
-      DOUBLE PRECISION, DIMENSION(LM) :: PM
-      DOUBLE PRECISION :: scalet
+      REAL*8, DIMENSION(JM) :: ONESPO
+      REAL*8, DIMENSION(JM+LM) :: ONES
+      REAL*8, DIMENSION(JM,LM) :: A
+      REAL*8, DIMENSION(LM) :: PM
+      REAL*8 :: scalet
       INTEGER :: J,L,N,K,jtpow
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
@@ -505,19 +505,19 @@ C****
       CHARACTER(LEN=64) :: TITLE
 
       INTEGER :: JG,JWT,LMAX
-      DOUBLE PRECISION :: SCALET
-      DOUBLE PRECISION, DIMENSION(JM,LM) :: AX
-      DOUBLE PRECISION, DIMENSION(JM) :: SCALEJ
-      DOUBLE PRECISION, DIMENSION(LM) :: SCALEL,PL
+      REAL*8 :: SCALET
+      REAL*8, DIMENSION(JM,LM) :: AX
+      REAL*8, DIMENSION(JM) :: SCALEJ
+      REAL*8, DIMENSION(LM) :: SCALEL,PL
 
       CHARACTER*4 DASH,WORD(4)
       DATA DASH/'----'/,WORD/'SUM','MEAN',' ','.1*'/
 
       INTEGER, DIMENSION(JM) :: MLAT
-      DOUBLE PRECISION, DIMENSION(JM) :: ASUM
-      DOUBLE PRECISION, DIMENSION(2) :: FHEM,HSUM
+      REAL*8, DIMENSION(JM) :: ASUM
+      REAL*8, DIMENSION(2) :: FHEM,HSUM
       INTEGER :: IWORD,J,JHEMI,K,L
-      DOUBLE PRECISION :: FGLOB,FLATJ,GSUM,SDSIG
+      REAL*8 :: FGLOB,FLATJ,GSUM,SDSIG
 
 !?    REAL*8, DIMENSION(JM+3,LM+LM_REQ+1) :: XJL ! for binary output
       REAL*8, DIMENSION(JM+3,LM+1) :: XJL ! for binary output
@@ -639,7 +639,7 @@ C****
 !@var LINE virtual half page (with room for overstrikes)
       CHARACTER*133 LINE(53)
       INTEGER ::  I,J,K,kx,L,M,N,kcolmn,nlines,jgrid
-      DOUBLE PRECISION :: DAYS,gm
+      REAL*8 :: DAYS,gm
 
       if (kdiag(8).ge.1) return
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
@@ -889,7 +889,7 @@ c**** Find final field and zonal, global, and hemispheric means
         WRITE (kunit,err=10) MODULE_HEADER, TACC,it
       CASE (IOWRITE_SINGLE)    ! output to acc file
         MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
-        WRITE (kunit,err=10) MODULE_HEADER, SNGL(TACC),it
+        WRITE (kunit,err=10) MODULE_HEADER, REAL(TACC,KIND=4),it
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
         CASE (IRSFIC)           ! initial conditions

@@ -26,7 +26,7 @@ C**** Calculate latitudes
         FLAT(J,2)  = JDLAT*(J-JEQ)  ! secondary grid
       END DO
 C**** Calculate longitudes
-      DLON=360./DBLE(IM)
+      DLON=360./REAL(IM,KIND=8)
       DO I=1,IM
         FLON(I,1)  = -180.+DLON*(I-0.5)  ! primary grid
       END DO

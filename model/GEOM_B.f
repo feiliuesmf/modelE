@@ -41,7 +41,7 @@ C**** some B-grid conservation quantities
 !@var AREAG global integral of area (m^2)
       REAL*8 :: AREAG
 !@var WTJ area weighting used in JLMAP, JKMAP (for hemispheric means)
-      DOUBLE PRECISION, DIMENSION(JM,2,2) :: WTJ
+      REAL*8, DIMENSION(JM,2,2) :: WTJ
 
 !@var DXYV,BYDXYV area of grid box around velocity point (recip.)(m^2)
       REAL*8, DIMENSION(JM) :: DXYV,BYDXYV

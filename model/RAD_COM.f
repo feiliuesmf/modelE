@@ -13,19 +13,19 @@
 !@var dimrad_sv dimension sum of input fields saved for radia_only runs
       INTEGER, PARAMETER :: dimrad_sv=IM*JM*(7*LM+3*LM_REQ+20)
 !@var RQT Radiative equilibrium temperatures above model top
-      DOUBLE PRECISION, DIMENSION(LM_REQ,IM,JM) :: RQT
+      REAL*8, DIMENSION(LM_REQ,IM,JM) :: RQT
 !@var Tchg Total temperature change in adjusted forcing runs
-      DOUBLE PRECISION, DIMENSION(LM+LM_REQ,IM,JM) :: Tchg
+      REAL*8, DIMENSION(LM+LM_REQ,IM,JM) :: Tchg
 !@var SRHR(0) Solar   raditive net flux into the ground          (W/m^2)
 !@var TRHR(0) Thermal raditive net flux into ground(W/O -StB*T^4)(W/m^2)
 !@*   Note: -StB*T^4 is MISSING, since T may vary a lot betw. rad. calls
 !@var SRHR(1->LM) Solar   raditive heating rate (W/m^2)  (short wave)
 !@var TRHR(1->LM) Thermal raditive heating rate (W/m^2)  (long wave)
-      DOUBLE PRECISION, DIMENSION(0:LM,IM,JM) :: SRHR,TRHR
+      REAL*8, DIMENSION(0:LM,IM,JM) :: SRHR,TRHR
 !@var FSF Solar Forcing over each type (W/m^2)
-      DOUBLE PRECISION, DIMENSION(4,IM,JM) :: FSF
+      REAL*8, DIMENSION(4,IM,JM) :: FSF
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
-      DOUBLE PRECISION, DIMENSION(IM,JM) :: COSZ1
+      REAL*8, DIMENSION(IM,JM) :: COSZ1
 !@dbparam S0X solar constant multiplication factor
       REAL*8 :: S0X = 1.
 !@dbparam S0_yr,S0_day obs.date of solar constant (if 0: time var)
@@ -47,7 +47,7 @@
 !@dbparam H2ObyCH4 if not 0: add CH4 produced H2O into layers 1->LM
       INTEGER :: H2ObyCH4 = 0
 !@var dH2O  zonal H2O-prod.rate in kg/m^2/ppm_CH4/second in layer L
-      DOUBLE PRECISION, DIMENSION(JM,LM) :: dH2O = 0.
+      REAL*8, DIMENSION(JM,LM) :: dH2O = 0.
 !@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAl*8 :: RSDIST,SIND,COSD
 

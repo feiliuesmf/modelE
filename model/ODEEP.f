@@ -150,7 +150,7 @@ C**** no output required for rsf files. Only acc files
 
       SELECT CASE (IACTION)
       CASE (IOWRITE_SINGLE)     ! output to acc file
-        WRITE (kunit,err=10) MODULE_HEADER,SNGL(RTGO)
+        WRITE (kunit,err=10) MODULE_HEADER,REAL(RTGO,KIND=4)
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
         CASE (ioread_single)    ! read in from acc file

@@ -15,13 +15,13 @@ c f90 -c -64 NCACC.f
      &     str_levid,plm_did,ple_did,ntype_did
 
       character(len=20) :: var_name
-      double precision, dimension(jm,ntype) :: aj_tmp
+      REAL*8, dimension(jm,ntype) :: aj_tmp
 
       integer :: i,j,k
 
 c 1st elem of ple =  glob mean edge pres between layers 1 and 2
 c 1st elem of ple_shift = glob mean surf pres
-      double precision, dimension(lm+1) :: ple_shift
+      REAL*8, dimension(lm+1) :: ple_shift
 
       ple_shift(1) = psf
       ple_shift(2:lm+1) = ple(:)
@@ -300,7 +300,7 @@ c-----------------------------------------------------------------------
       integer :: ncid,inner_size,arr_size
       integer :: status
       character(len=20), dimension(arr_size) :: arr_name
-      double precision, dimension(inner_size,arr_size) :: arr
+      REAL*8, dimension(inner_size,arr_size) :: arr
       integer :: n,varid
       do n=1,arr_size
          status = nf_inq_varid(ncid,trim(arr_name(n)),varid)
@@ -315,7 +315,7 @@ c-----------------------------------------------------------------------
       integer :: ncid,inner_size,arr_size
       integer :: status
       character(len=20), dimension(arr_size) :: arr_name
-      double precision, dimension(inner_size,arr_size) :: arr
+      REAL*8, dimension(inner_size,arr_size) :: arr
       integer :: n,varid
       do n=1,arr_size
          status = nf_inq_varid(ncid,trim(arr_name(n)),varid)
@@ -330,7 +330,7 @@ c-----------------------------------------------------------------------
       integer :: ncid
       integer :: status,varid
       character(len=20) :: var_name
-      double precision :: var
+      REAL*8 :: var
       status = nf_inq_varid(ncid,trim(var_name),varid)
       status = nf_put_var_double(ncid,varid,var)
       return
@@ -342,7 +342,7 @@ c-----------------------------------------------------------------------
       integer :: ncid
       integer :: status,varid
       character(len=20) :: var_name
-      double precision :: var
+      REAL*8 :: var
       status = nf_inq_varid(ncid,trim(var_name),varid)
       status = nf_get_var_double(ncid,varid,var)
       return
@@ -430,7 +430,7 @@ c-----------------------------------------------------------------------
       implicit none
       include '/usr/local/netcdf-3.4/include/netcdf.inc'
       character(len=20), dimension(krc) :: dparm_name
-      double precision, dimension(krc) :: dparm
+      REAL*8, dimension(krc) :: dparm
       integer :: ncid,krc
       integer :: k,status
       do k=1,krc
@@ -445,7 +445,7 @@ c-----------------------------------------------------------------------
       implicit none
       include '/usr/local/netcdf-3.4/include/netcdf.inc'
       character(len=20), dimension(krc) :: dparm_name
-      double precision, dimension(krc) :: dparm
+      REAL*8, dimension(krc) :: dparm
       integer :: ncid,krc
       integer :: k,status
       do k=1,krc

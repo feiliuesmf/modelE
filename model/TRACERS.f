@@ -194,7 +194,8 @@ C**** Surface concentration
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_At_Surface'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' At Surface'
         units_tij(k,n) = unit_string(ijtc_power(n),cmr(n))
-        scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/dble(NIsurf)
+        scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/
+     *                 REAL(NIsurf,KIND=8)
 #ifdef TRACERS_WATER
 C**** the following diagnostics are set assuming that the particular tracer
 C**** exists in water. 
@@ -213,7 +214,7 @@ C**** Tracers in evaporation
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' in Evaporation'
         units_tij(k,n)=unit_string(ijtc_power(n),cmrwt(n))
-        scale_tij(k,n)=10.**(-ijtc_power(n))/dble(NIsurf)
+        scale_tij(k,n)=10.**(-ijtc_power(n))/REAL(NIsurf,KIND=8)
 C**** Tracers in river runoff
       k = k+1
       tij_rvr = k
@@ -251,7 +252,7 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
         else
           units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
         end if
-        scale_tij(k,n)=10.**(-ijtc_power(n)-3)/dble(NIsurf)
+        scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
 #endif
       end do
 
@@ -261,7 +262,7 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
         stop 'ktaij too small'
       end if
 
-      end SUBROUTINE set_generic_tracer_diags
+      END SUBROUTINE set_generic_tracer_diags
 
 
       SUBROUTINE apply_tracer_2Dsource(dtstep)

@@ -1115,8 +1115,8 @@ C$OMP  END PARALLEL DO
       USE MODEL_COM, only : im,jm,lm,ls1,psfmpt
 C****
       implicit none
-      double precision, dimension(im,jm) :: p
-      double precision, dimension(im,jm,lm) :: pijl
+      REAL*8, dimension(im,jm) :: p
+      REAL*8, dimension(im,jm,lm) :: pijl
       integer :: l,lmax
 
       do l=1,ls1-1
@@ -1194,8 +1194,8 @@ C$OMP  END PARALLEL DO
       USE GEOM, only : dxyp
 C****
       implicit none
-      double precision, dimension(im,jm) :: p
-      double precision, dimension(im,jm,lm) :: amp
+      REAL*8, dimension(im,jm) :: p
+      REAL*8, dimension(im,jm,lm) :: amp
       integer :: j,l
 C
 C$OMP  PARALLEL DO PRIVATE(J,L)

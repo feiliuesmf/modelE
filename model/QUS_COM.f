@@ -6,7 +6,7 @@
       USE MODEL_COM, only : im,jm,lm
       IMPLICIT NONE
       SAVE
-      DOUBLE PRECISION, DIMENSION(NMOM,IM,JM,LM) :: TMOM,QMOM
+      REAL*8, DIMENSION(NMOM,IM,JM,LM) :: TMOM,QMOM
 
       END MODULE SOMTQ_COM
 
@@ -48,9 +48,9 @@
       USE MODEL_COM, only : im,jm,lm,sige,sig
       USE SOMTQ_COM
       implicit none
-      double precision, dimension(im,jm,lm) :: t,q
+      REAL*8, dimension(im,jm,lm) :: t,q
       integer :: i,j,l
-      double precision :: rdsig
+      REAL*8 :: rdsig
 C**** INITIALIZES VERTICAL SLOPES OF T,Q
       DO J=1,JM
       DO I=1,IM

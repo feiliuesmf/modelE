@@ -99,13 +99,13 @@ C**** new arrays must be set to model arrays in driver (after LSCOND)
 !@var CLDSSL large-scale cloud cover
 
 !@var SM,QM Vertical profiles of T/Q
-      DOUBLE PRECISION, DIMENSION(LM) :: SM,QM
-      DOUBLE PRECISION, DIMENSION(NMOM,LM) :: SMOM,QMOM
+      REAL*8, DIMENSION(LM) :: SM,QM
+      REAL*8, DIMENSION(NMOM,LM) :: SMOM,QMOM
 
 #ifdef TRACERS_ON
 !@var TM Vertical profiles of tracers
-      DOUBLE PRECISION, DIMENSION(LM,NTM) :: TM
-      DOUBLE PRECISION, DIMENSION(nmom,lm,ntm) :: TMOM
+      REAL*8, DIMENSION(LM,NTM) :: TM
+      REAL*8, DIMENSION(nmom,lm,ntm) :: TMOM
       COMMON/CLD_TRCCOM/TM,TMOM
 C$OMP  THREADPRIVATE (/CLD_TRCCOM/)
 #ifdef TRACERS_WATER
@@ -199,24 +199,24 @@ C**** functions
       REAL*8, DIMENSION(LM) ::
      * SMOLD,QMOLD, DQM,DSM,DQMR,DSMR
 !@var SMOLD,QMOLD old SM, QM
-      DOUBLE PRECISION, DIMENSION(LM) :: F,CMNEG
-      DOUBLE PRECISION, DIMENSION(NMOM,LM) :: FMOM
-      DOUBLE PRECISION, DIMENSION(NMOM,LM) :: SMOMOLD,QMOMOLD
-      DOUBLE PRECISION, DIMENSION(NMOM,LM) :: DSMOM,DQMOM,DSMOMR,DQMOMR
-      DOUBLE PRECISION, DIMENSION(NMOM) ::
+      REAL*8, DIMENSION(LM) :: F,CMNEG
+      REAL*8, DIMENSION(NMOM,LM) :: FMOM
+      REAL*8, DIMENSION(NMOM,LM) :: SMOMOLD,QMOMOLD
+      REAL*8, DIMENSION(NMOM,LM) :: DSMOM,DQMOM,DSMOMR,DQMOMR
+      REAL*8, DIMENSION(NMOM) ::
      &     SMOMP,QMOMP, SMOMPMAX,QMOMPMAX, SMOMDN,QMOMDN
 
 #ifdef TRACERS_ON
 !@var TMOLD: old TM (tracer mass)
 !@var DTM,DTMR: Vertical profiles of Tracers mass and changes
-      DOUBLE PRECISION, DIMENSION(LM,NTM)      :: TMOLD,  DTM,  DTMR,TM1
-      DOUBLE PRECISION, DIMENSION(NMOM,LM,NTM) :: TMOMOLD,DTMOM,DTMOMR
-      DOUBLE PRECISION, DIMENSION(NTM)      :: TMP,  TMPMAX,  TMDN, TENV
-      DOUBLE PRECISION, DIMENSION(NMOM,NTM) :: TMOMP,TMOMPMAX,TMOMDN
+      REAL*8, DIMENSION(LM,NTM)      :: TMOLD,  DTM,  DTMR,TM1
+      REAL*8, DIMENSION(NMOM,LM,NTM) :: TMOMOLD,DTMOM,DTMOMR
+      REAL*8, DIMENSION(NTM)      :: TMP,  TMPMAX,  TMDN, TENV
+      REAL*8, DIMENSION(NMOM,NTM) :: TMOMP,TMOMPMAX,TMOMDN
 #ifdef TRACERS_WATER
-      DOUBLE PRECISION, DIMENSION(NTM)      :: TRPRCP
-      DOUBLE PRECISION, DIMENSION(NTM,LM)   :: TRCOND
-      DOUBLE PRECISION DTSUM
+      REAL*8, DIMENSION(NTM)      :: TRPRCP
+      REAL*8, DIMENSION(NTM,LM)   :: TRCOND
+      REAL*8 DTSUM
 #endif
 #endif
 
@@ -2540,8 +2540,8 @@ C**** accumulate ptop/tauopt over columns for output
       end do
 
       if (nbox.gt.0) then
-        ctp = ctp/dble(nbox)
-        tauopt=tauopt/dble(nbox)
+        ctp = ctp/REAL(nbox,KIND=8)
+        tauopt=tauopt/REAL(nbox,KIND=8)
       end if
 cc    CALL RINIT(SEED)   ! reset seed to original value
 

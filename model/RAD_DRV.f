@@ -1226,7 +1226,7 @@ C**** vertical integration to model layers
           dh = 0.
           pdn = plb(l)
           do ll=ldn,lup
-            pup = max(dble(pb(ll+1)),plb(l+1))
+            pup = max(REAL(pb(ll+1),KIND=8),plb(l+1))
             fracl= (pdn-pup)/(pb(ll)-pb(ll+1))
             dh = dh+(w1*h2o(j1,ll)+w2*h2o(j2,ll))*fracl*dz(ll)
             pdn = pup

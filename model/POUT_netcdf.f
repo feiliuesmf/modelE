@@ -142,7 +142,7 @@ c-----------------------------------------------------------------------
       implicit none
       include '/usr/local/netcdf-3.4/include/netcdf.inc'
       character(len=30) :: var_name
-      double precision :: var(1)
+      REAL*8 :: var(1)
       integer :: var_nelems,n
       status_out = nf_redef(out_fid)
 c check to make sure that variable isn't already defined in output file
@@ -202,7 +202,7 @@ c wrtarrn does not currently have the capability to write any real_atts
       implicit none
       include '/usr/local/netcdf-3.4/include/netcdf.inc'
       character(len=30) :: var_name
-      double precision :: var(1)
+      REAL*8 :: var(1)
       integer :: outer_pos
       integer :: var_nelems,n
       integer, dimension(7) :: srt,cnt

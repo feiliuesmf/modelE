@@ -13,23 +13,23 @@
       SAVE
 C bare/veg not in merged array because WBARE does not contain
 C 0 index for legacy reasons
-      DOUBLE PRECISION, DIMENSION(  NGM,IM,JM) :: WBARE
-      DOUBLE PRECISION, DIMENSION(0:NGM,IM,JM) :: WVEGE
-      DOUBLE PRECISION, DIMENSION(0:NGM,IM,JM) :: HTBARE
-      DOUBLE PRECISION, DIMENSION(0:NGM,IM,JM) :: HTVEGE
-      DOUBLE PRECISION, DIMENSION(2,IM,JM) :: SNOWBV
+      REAL*8, DIMENSION(  NGM,IM,JM) :: WBARE
+      REAL*8, DIMENSION(0:NGM,IM,JM) :: WVEGE
+      REAL*8, DIMENSION(0:NGM,IM,JM) :: HTBARE
+      REAL*8, DIMENSION(0:NGM,IM,JM) :: HTVEGE
+      REAL*8, DIMENSION(2,IM,JM) :: SNOWBV
 
-      DOUBLE PRECISION, DIMENSION(IM,JM,NGM) :: DZ_IJ
-      DOUBLE PRECISION, DIMENSION(IM,JM,IMT,NGM) :: Q_IJ,QK_IJ
-      DOUBLE PRECISION, DIMENSION(IM,JM) :: SL_IJ
+      REAL*8, DIMENSION(IM,JM,NGM) :: DZ_IJ
+      REAL*8, DIMENSION(IM,JM,IMT,NGM) :: Q_IJ,QK_IJ
+      REAL*8, DIMENSION(IM,JM) :: SL_IJ
 C this common only for purpose of reading its contents from a
 C file opened in fortran unformatted sequential access mode
 C containing its contents in a contiguous real*4 block
       COMMON/SDATA/ DZ_IJ,Q_IJ,QK_IJ,SL_IJ
 
-      DOUBLE PRECISION, DIMENSION(NGM,IM,JM) :: AFR
-      DOUBLE PRECISION, DIMENSION(3,IM,JM) :: ALA,ACS
-      DOUBLE PRECISION, DIMENSION(IM,JM) :: AFB,AVH
+      REAL*8, DIMENSION(NGM,IM,JM) :: AFR
+      REAL*8, DIMENSION(3,IM,JM) :: ALA,ACS
+      REAL*8, DIMENSION(IM,JM) :: AFB,AVH
 
 ccc the following arrays contain prognostic variables for the snow model
 ccc ( ISN can be eliminated later, since FR_SNOW contains similar info )

@@ -6,7 +6,7 @@
       INTEGER, PARAMETER :: ncmax=10
       INTEGER NSTEPX1(JM,LM,NCMAX),NSTEPX2(JM,LM,NCMAX),
      *        NSTEPY(LM,NCMAX),NSTEPZ(IM*JM,NCMAX), NCYC
-      double precision, dimension(jm,lm) :: sfbm,sbm,sbf,sfcm,scm,scf
+      REAL*8, dimension(jm,lm) :: sfbm,sbm,sbf,sfcm,scm,scf
 
       contains
 
@@ -31,8 +31,8 @@ c****
       USE DYNAMICS, ONLY: pu=>pua, pv=>pva, sd=>sda, mb,ma
       IMPLICIT NONE
 
-      double precision, dimension(im,jm,lm) :: rm
-      double precision, dimension(nmom,im,jm,lm) :: rmom
+      REAL*8, dimension(im,jm,lm) :: rm
+      REAL*8, dimension(nmom,im,jm,lm) :: rmom
       logical, intent(in) :: qlimit
       character*8 tname          !tracer name
       integer :: I,J,L,n,nx
@@ -117,7 +117,7 @@ C**** The MA array space is temporarily put to use in this section
       REAL*8, INTENT(IN) :: DT
       LOGICAL :: mneg
       INTEGER :: i,j,l,n,nc,im1
-      double precision :: byn,ssp,snp
+      REAL*8 :: byn,ssp,snp
 
 ccc   mu(:,:,:) = mu(:,:,:)*(.5*dt)
 ccc   mv(:,1:jm-1,:) = mv(:,2:jm,:)*dt
@@ -331,10 +331,10 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       use QUSCOM, only : im,jm,lm, xstride
       use QUSDEF
       implicit none
-      double precision, dimension(im,jm,lm) :: rm,mass,mu
-      double precision, dimension(nmom,im,jm,lm) :: rmom
+      REAL*8, dimension(im,jm,lm) :: rm,mass,mu
+      REAL*8, dimension(nmom,im,jm,lm) :: rmom
       logical ::  qlimit
-      DOUBLE PRECISION  AM(IM), F_I(IM), FMOM_I(NMOM,IM)
+      REAL*8  AM(IM), F_I(IM), FMOM_I(NMOM,IM)
       character*8 tname
       integer :: i,j,l,ierr,nerr,ns,nstep(jm,lm),ICKERR
 
@@ -390,15 +390,15 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
       use QUSCOM, only : im,jm,lm, ystride,               byim
       use QUSDEF
       implicit none
-      double precision, dimension(im,jm,lm) :: rm,mass,mv
-      double precision, dimension(nmom,im,jm,lm) :: rmom
+      REAL*8, dimension(im,jm,lm) :: rm,mass,mv
+      REAL*8, dimension(nmom,im,jm,lm) :: rmom
       logical ::  qlimit
-      double precision, dimension(im,jm) :: fqv
-      double precision, intent(out), dimension(jm,lm) :: sfbm,sbm,sbf
-      DOUBLE PRECISION  BM(JM),F_J(JM),FMOM_J(NMOM,JM)
+      REAL*8, dimension(im,jm) :: fqv
+      REAL*8, intent(out), dimension(jm,lm) :: sfbm,sbm,sbf
+      REAL*8  BM(JM),F_J(JM),FMOM_J(NMOM,JM)
       character*8 tname
       integer :: i,j,l,ierr,nerr,ns,nstep(lm),ICKERR
-      double precision ::
+      REAL*8 ::
      &     m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
 
 c**** loop over layers
@@ -505,14 +505,14 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use GEOM, only : imaxj
       use MODEL_COM, only : fim
       implicit none
-      double precision, dimension(im,jm,lm) :: rm,mass,mw
-      double precision, dimension(nmom,im,jm,lm) :: rmom
+      REAL*8, dimension(im,jm,lm) :: rm,mass,mw
+      REAL*8, dimension(nmom,im,jm,lm) :: rmom
       integer, dimension(im,jm) :: nstep
       logical ::  qlimit
-      double precision, dimension(lm) :: fqw
-      double precision, intent(out), dimension(jm,lm) :: sfcm,scm,scf
+      REAL*8, dimension(lm) :: fqw
+      REAL*8, intent(out), dimension(jm,lm) :: sfcm,scm,scf
       character*8 tname
-      DOUBLE PRECISION  CM(LM),F_L(LM),FMOM_L(NMOM,LM)
+      REAL*8  CM(LM),F_L(LM),FMOM_L(NMOM,LM)
       integer :: i,j,l,ierr,nerr,ns,ICKERR
 
 c**** loop over latitudes and longitudes
@@ -573,11 +573,11 @@ c****
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mu=>pua
       IMPLICIT NONE
-      double precision, dimension(im,jm,lm) :: m
-      double precision, dimension(im) :: a,am,mi
+      REAL*8, dimension(im,jm,lm) :: m
+      REAL*8, dimension(im) :: a,am,mi
       integer, dimension(jm,lm) :: nstepx
       integer :: l,j,i,ip1,im1,nstep,ns,ICKERR
-      double precision :: courmax
+      REAL*8 :: courmax
 
 C**** Decide how many timesteps to take by computing Courant limits
 C
@@ -641,12 +641,12 @@ C
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mv=>pva
       IMPLICIT NONE
-      double precision, dimension(im,jm,lm) :: m
-      double precision, dimension(im,jm) :: mij
-      double precision, dimension(jm) :: b,bm
+      REAL*8, dimension(im,jm,lm) :: m
+      REAL*8, dimension(im,jm) :: mij
+      REAL*8, dimension(jm) :: b,bm
       integer, dimension(lm) :: nstepy
       integer :: jprob,iprob,nstep,ns,i,j,l,ICKERR
-      double precision :: courmax,byn,sbms,sbmn
+      REAL*8 :: courmax,byn,sbms,sbmn
 
 C**** decide how many timesteps to take (all longitudes at this level)
       ICKERR=0
@@ -723,12 +723,12 @@ C
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mw=>sda
       IMPLICIT NONE
-      double precision, dimension(im,jm,lm) :: m
-      double precision, dimension(lm) :: ml
-      double precision, dimension(0:lm) :: c,cm
+      REAL*8, dimension(im,jm,lm) :: m
+      REAL*8, dimension(lm) :: ml
+      REAL*8, dimension(0:lm) :: c,cm
       integer, dimension(im*jm) :: nstepz
       integer :: nstep,ns,l,i,ICKERR
-      double precision :: courmax,byn
+      REAL*8 :: courmax,byn
 
 C**** decide how many timesteps to take
       ICKERR=0
