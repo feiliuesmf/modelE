@@ -56,6 +56,10 @@ in adding functionality or diagnostics.</P>
      </OL>
   <LI> <A HREF="#part1_3"> HOW-TO stop and restart the GCM</A>
   <LI> <A HREF="#part1_4"> HOW-TO change boundary conditions</A>
+       <OL>
+	 <LI> <A HREF="#part1_4a"> HOW-TO alter the topography file
+	      consistently</A>
+       </OL>
   <LI> <A HREF="#part1_5"> HOW-TO change trace gas amounts</A>
   <LI> <A HREF="#part1_6"> HOW-TO have a perpetual winter</A>
   <LI> <A HREF="#part1_7"> HOW-TO travel back/forward in time</A>
@@ -85,16 +89,16 @@ diagnostics</A></P>
   <LI><A HREF="#part3_3"> HOW-TO use or add to the automatic
        documentation</A>
   <LI><A HREF="#part3_4"> HOW-TO ensure that your code meets the new
-       standards</A>
-  <LI><A HREF="#part3_5"> HOW-TO add functionality - A: variations on
-       existing code</A>
-  <LI><A HREF="#part3_6"> HOW-TO add functionality - B: introducing
-       new sub-modules</A>
-  <LI><A HREF="#part3_7"> HOW-TO add functionality - C: introducing a
-       new parameter</A>
-  <LI><A HREF="#part3_8"> HOW-TO add functionality - D: adding new
-       diagnostics</A>
-  <LI><A HREF="#part3_9"> HOW-TO read in an external file</A>
+       standards</A> 
+  <LI><A HREF="#part3_5"> HOW-TO add functionality</A> 
+       <ul>
+	 <li><A HREF="#part3_5a"> A: Variations on existing code</A>
+	 <LI><A HREF="#part3_5b"> B: Introducing new sub-modules</A> 
+	 <LI><A HREF="#part3_5c"> C: Introducing a new parameter</A> 
+	 <LI><A HREF="#part3_5d"> D: Adding new diagnostics</A>
+	 <LI><A HREF="#part3_5e"> E: Adding extra timing information</A>
+       </ul>
+  <LI><A HREF="#part3_9"> HOW-TO read in an external file</A> 
   <LI><A HREF="#part3_10"> HOW-TO add new variables to the restart
        files</A>
   <LI><A HREF="#part3_11"> HOW-TO access variables that are already
@@ -496,6 +500,37 @@ always be recreated if needed.</p>
 
 <p>Simply alter the file declarations in the rundeck appropriately!</p>
 
+<ol>
+  <li><A name="part1_4a"><b>a) HOW-TO alter the topography file
+       consistently</b></a> 
+       <p> The topography file (TOPO) in the rundeck, must have a
+       degree of internal consistency. Therefore if changes are made
+       to the ocean mask (FOCEAN), for instance, other changes are
+       required for the other fields (FLAKE,FEARTH,FLAND,FLICE). In
+       particular: 
+       <pre>
+       IF (FOCEAN(I,J).gt.0) THEN
+         FLAKE(I,J)=0.   ! lake and ocean cannot co-exist at the same grid point
+         FLAND(I,J)=1.-FOCEAN(I,J) 
+       END IF
+       IF (FLAKE(I,J).gt.0) FLAND(I,J)=1.-FLAKE(I,J) 
+       IF (FLICE(I,J).gt.FLAND(I,J)) THEN
+         FLICE(I,J)=FLAND(I,J)  ! land ice fraction takes precedence over earth
+         FEARTH(I,J)=0.
+       ELSE
+         FEARTH(I,J)=FLAND(I,J)-FLICE(I,J)  ! earth is a residual
+       END IF
+       </pre>
+       If land boxes are added close to the Antarctica or Greenland
+       ice sheets, FLICE should be set to FLAND, FEARTH to zero. Note
+       as well that the polar boxes must be homogenous
+       (i.e. FOCEAN(2:IM,JM)=FOCEAN(1,JM) etc.)  </p>
+       
+       <p>Some other external file data may not be consistent with the
+       new land/ocean mask but the model code will extrapolate from a 
+       nearest neighbour to fill those points in.</p>
+</ol>
+
 <p><A name="part1_5"><b>5) HOW-TO change trace gas amounts</b></a></p>
 
 <p>This is not as obvious as it should be:
@@ -830,10 +865,12 @@ the (not very onerous) conditions. Unfortunately, we do not have
 anybody whose job it is to make sure that added code
 conforms. However, every time this happens it makes it harder to keep
 the model consistent, and leads to the creation of unnecessary
-complications in keeping things straight.</p>
+complications in keeping things straight.</p> 
 
-<p><A name="part3_5"><b>5) HOW-TO add functionality - A: variations on
-existing code</b></a></p>
+<p><A name="part3_5"><b>5) HOW-TO add functionality</b></a></p> 
+
+<ul>
+  <li><A name="part3_5a"><b>A: Variations on existing code</b></a>
 
 <p>Since all code is now kept within CVS, code history is preserved and
 can be retrieved at any time. So for minor modifications to the code
@@ -844,7 +881,7 @@ sure to 'commit' your changes at appropriate points (on your branch
 only) so that you can retrieve the code from any intermediate (but
 functional) point. </p>
 
-<p><A name="part3_6"><b>6) HOW-TO add functionality - B: introducing new sub-modules</b></a></p>
+  <li><A name="part3_5b"><b>B: Introducing new sub-modules</b></a>
 
 <p>If you want to add a completely new physical module or radically
 change an existing one, you will be best off creating a new 'plug and
@@ -900,8 +937,7 @@ preferred solution is 'plug and play'.</P>
 create, you should modify the <a href = "OPTIONS.html"> OPTIONS.html
 </a> file to document the details.</p>
 
-<p><A name="part3_7"><b>7) HOW-TO add functionality - C: introducing a
-new parameter</b></a></p>
+  <li><A name="part3_5c"><b>C: Introducing a new parameter</b></a> 
 
 <p>Only introduce a new parameter if you would like to be able to vary
 it's value at run time without recompiling the model (i.e. an
@@ -928,8 +964,7 @@ NEWPARAM=1        ! NEWPARAM sets something for XYZ
 <p>Of course, you should use a more obvious name! If no value is set in
 the rundeck, the default value will be used. </p>
 
-<p><A name="part3_8"><b>8) HOW-TO add functionality - D: adding new
-diagnostics</b></a></p>
+  <li><A name="part3_5d"><b>D: Adding new diagnostics</b></a>
 
 <p>The diagnostic system that the GCM uses is very sophisticated and is
 almost certainly sufficient for any new need for diagnostics that
@@ -949,6 +984,25 @@ and KCON by 2+number of points at which you are saving the value.</p>
 
 <p>Other diagnostics will be explained if and when we work them out.</P>
 
+  <li><A name="part3_5e"><b>D: Adding extra timing information</b></a>
+
+       <p> If you want more information on how long each part of the
+       code takes (for instance if you put in some tracer code, or
+       extra physics) the way to do it is to increase the number of
+       timing variables such as are output by the program 'qc'. </p>
+
+       <p> Initially, call the routine
+       <pre>
+       CALL SET_TIMER("NEW PHYSICS",MPHYS)
+       </pre>
+       Where the text is what will appear in the printout, and MPHYS is
+       a locally defined integer variable. At the beginning of
+       code you want to profile, add a call to TIMER(MNOW,MORIG) where
+       MORIG refers to the timing counter current at this point (in
+       order to zero the counter for your routine. At the end of your
+       code, call TIMER(MNOW,MPHYS). That's it. </p>
+</ul>
+       
 <p><A name="part3_9"><b>9) HOW-TO read in an external file</b></a></p>
 
 <p>ModelE has introduced a FILEMANAGER system that controls the
