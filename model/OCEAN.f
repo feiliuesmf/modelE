@@ -280,7 +280,7 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
         EOST1 = TEMP_LOCAL(:,:,2)
           CALL HERE(__FILE__,__LINE__)
         CALL MREAD_PARALLEL
-     *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),M,0,TEMP_LOCAL)
+     *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),M1,0,TEMP_LOCAL)
         ARSI  = TEMP_LOCAL(:,:,1)
         ERSI1 = TEMP_LOCAL(:,:,2)
         WRITE(6,*) 'Read in ocean data for month',JMON,M,M1
