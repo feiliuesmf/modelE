@@ -1320,8 +1320,8 @@ C**** functions
      *     ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1
      *     ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
      *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD,FCOND,HDEPx
-     *     ,PMW,PRATW,PRATM
-!@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,HRISE,PMW,PRATW,PRATM dummy variables
+     *     ,PRATW,PRATM
+!@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,HRISE,PRATW,PRATM dummy variables
 !@var AIRMR
 !@var CBF enhancing factor for precip conversion
 !@var CK ratio of cloud top jumps in moist static energy and total water
@@ -1379,6 +1379,7 @@ C**** functions
 !@var XY,FCOND dummy variables
       INTEGER LN,ITER !@var LN,ITER loop variables
       LOGICAL BANDF  !@var BANDF true if Bergero-Findeisen proc. occurs
+      LOGICAL FORM_CLOUDS !@var FORM_CLOUDS true if clouds are formed
 
       INTEGER K,L,N  !@var K,L,N loop variables
 
@@ -1447,7 +1448,6 @@ C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
       BANDF=.FALSE.
       LHX=LHE
       CBF=1. + EXP(-((TL(L)-258.16d0)/10.)**2)
-      CBFC0=.5*CM0*CBF*DTsrc
 
       IF (TL(L).LE.TI) THEN     ! below -40: force ice
         LHX=LHS
@@ -1476,40 +1476,34 @@ C**** special case 1) if ice previously then stay as ice (if T<Tf)
 
         IF (L.LT.LP50) THEN
 C**** Decide whether precip initiates B-F process
-          IF (TL(L).LT.TF) THEN
-            PML=WMX(L)*AIRM(L)*BYGRAV
-            PMI=PREICE(L+1)*DTsrc
-            PMW=0.
-            IF (LHP(L+1).EQ.LHE) PMW=PREBAR(L+1)*DTsrc
-            RANDNO=RNDSS2L(L)   !  RANDNO=RANDU(XY)
+          PML=WMX(L)*AIRM(L)*BYGRAV
+          PMI=PREICE(L+1)*DTsrc
+          RANDNO=RNDSS2L(L)     !  RANDNO=RANDU(XY)
 C**** Calculate probability of ice precip seeding a water cloud
-            IF (LHX.EQ.LHE.AND.PMI.gt.0) THEN
-              PRATIO=MIN(PMI/(PML+1.E-20),10d0)
-              PFR=(1.-EXP(-(PRATIO*PRATIO)))*(1.-EXP(-(CBFC0*CBFC0)))
-              IF(PFR.GT.RANDNO) THEN
-                BANDF=.TRUE.
-                LHX=LHS
-              END IF
-            END IF
-C**** Calculate probablity of water precip freezing (and thereby
-C**** seeding an ice cloud)
-            IF (PMW.gt.0) THEN
-                IF(LHX.EQ.LHS .AND. PML.GT.0.) BANDF=.TRUE. ! pdf = 1
+          IF (LHX.EQ.LHE.AND.PMI.gt.0) THEN
+            PRATIO=MIN(PMI/(PML+1.E-20),10d0)
+            CBFC0=.5*CM0*CBF*DTsrc
+            PFR=(1.-EXP(-(PRATIO*PRATIO)))*(1.-EXP(-(CBFC0*CBFC0)))
+            IF(PFR.GT.RANDNO) THEN
+              BANDF=.TRUE.
+              LHX=LHS
             END IF
           END IF
+C**** If liquid rain falls into an ice cloud, B-F must occur
+          IF (LHP(L+1).EQ.LHE .AND. LHX.EQ.LHS .AND. PML.GT.0.)
+     *         BANDF=.TRUE.
         END IF
       END IF
       IF(LHX.EQ.LHS .AND. (OLDLHX.EQ.LHE.OR.OLDLAT.EQ.LHE)) BANDF=.TRUE.
+
 C**** COMPUTE RELATIVE HUMIDITY
       QSATL(L)=QSAT(TL(L),LHX,PL(L))
       RH1(L)=QL(L)/QSATL(L)
       IF(LHX.EQ.LHS) THEN
-      QSATE=QSAT(TL(L),LHE,PL(L))
-      RHW=.00536d0*TL(L)-.276d0
-      RH1(L)=QL(L)/QSATE
-      IF(TL(L).LT.238.16) THEN
-        RH1(L)=QL(L)/(QSATE*RHW)
-      END IF
+        QSATE=QSAT(TL(L),LHE,PL(L))
+        RHW=.00536d0*TL(L)-.276d0
+        RH1(L)=QL(L)/QSATE
+        IF(TL(L).LT.238.16) RH1(L)=QL(L)/(QSATE*RHW)
       END IF
 C**** PHASE CHANGE OF CLOUD WATER CONTENT
       HCHANG=0.
@@ -1558,7 +1552,6 @@ c        IF(L.EQ.DCL) HDEP=0.5*HDEP
 C****
       IF(RH00(L).GT.1.) RH00(L)=1.
       RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
-      HPHASE=0.
       LHP(L)=LHX ! default precip phase
 C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
       IF(WMX(L).GT.0.) THEN
@@ -1577,96 +1570,98 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
         IF(TL(L).LT.TF.AND.LHX.EQ.LHE) THEN ! check snowing pdf
           PRATM=1.d5*COEFM*WMX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
           PRATM=MIN(PRATM,1.D0)*(1.-EXP(MAX(-100.,(TL(L)-TF)/COEFT)))
-          IF(PRATM.GT.RNDSS1L(L)) THEN
-            LHP(L)=LHS
-            HPHASE=-PREP(L)*LHM
-          END IF
+          IF(PRATM.GT.RNDSS1L(L)) LHP(L)=LHS
         END IF
       ELSE
         CM=0.
       END IF
+C**** DECIDE WHETHER TO FORM CLOUDS
 C**** FORM CLOUDS ONLY IF RH GT RH00
-  219 IF(RH1(L).LT.RH00(L)) GO TO 220
-C**** COMPUTE THE CONVERGENCE OF AVAILABLE LATENT HEAT
-      SQ(L)=LHX*QSATL(L)*DQSATDT(TL(L),LHX)*BYSHA
-      TEM=-LHX*DPDT(L)/PL(L)
-      QCONV=LHX*AQ(L)-RH(L)*SQ(L)*SHA*PLK(L)*ATH(L)
-     *  -TEM*QSATL(L)*RH(L)
-      IF(QCONV.LE.0.0.AND.WMX(L).LE.0.) GO TO 220
-C**** COMPUTE EVAPORATION OF RAIN WATER, ER
-      RHN=RHF(L)
-      IF(RHF(L).GT.RH(L)) RHN=RH(L)
-      IF(WMX(L).GT.0.)  THEN
-          ER(L)=(1.-RHN)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
-      ELSE     !  WMX(l).le.0.
-        IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)  THEN
-          ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
-        ELSE
-          ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
-        END IF
+      IF (RH1(L).LT.RH00(L)) THEN
+        FORM_CLOUDS=.FALSE.
+      ELSE   ! COMPUTE THE CONVERGENCE OF AVAILABLE LATENT HEAT
+        SQ(L)=LHX*QSATL(L)*DQSATDT(TL(L),LHX)*BYSHA
+        TEM=-LHX*DPDT(L)/PL(L)
+        QCONV=LHX*AQ(L)-RH(L)*SQ(L)*SHA*PLK(L)*ATH(L)
+     *       -TEM*QSATL(L)*RH(L)
+        FORM_CLOUDS= (QCONV.GT.0. .OR. WMX(L).GT.0.)
       END IF
+C****
       ERMAX=LHX*PREBAR(L+1)*GRAV*BYAM(L)
-      IF(ER(L).GT.ERMAX) ER(L)=ERMAX
-      IF(ER(L).LT.0.) ER(L)=0.
+      IF (FORM_CLOUDS) THEN
+C**** COMPUTE EVAPORATION OF RAIN WATER, ER
+        RHN=MIN(RH(L),RHF(L))
+        IF(WMX(L).GT.0.)  THEN
+          ER(L)=(1.-RHN)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
+        ELSE                    !  WMX(l).le.0.
+          IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)  THEN
+            ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
+          ELSE
+            ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
+          END IF
+        END IF
+        ER(L)=MAX(0d0,MIN(ER(L),ERMAX))
 C**** COMPUTATION OF CLOUD WATER EVAPORATION
-      IF (CAREA(L).GT.0.) THEN
-      WTEM=1d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
-      IF(LHX.EQ.LHE.AND.WMX(L)/FCLD.GE.WCONST*1d-3)
-     *  WTEM=1d2*WCONST*PL(L)/(TL(L)*RGAS)
-      IF(LHX.EQ.LHS.AND.WMX(L)/FCLD.GE.WMUI*1d-3)
-     *  WTEM=1d2*WMUI*PL(L)/(TL(L)*RGAS)
-      IF(WTEM.LT.1d-10) WTEM=1d-10
-      IF(LHX.EQ.LHE)  THEN
-         RCLD=1d-6*(10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
-       ELSE
-         RCLD=25.d-6*(WTEM/4.2d-3)**BY3
-      END IF
-      CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
-      CK2=1000.*RGAS*TL(L)/(2.4d-3*QSATL(L)*PL(L))
-      TEVAP=1000.*(CK1+CK2)*RCLD*RCLD
-      WMX1=WMX(L)-PREP(L)*DTsrc
-      ECRATE=(1.-RHF(L))/(TEVAP*FCLD+teeny)
-      IF(ECRATE.GT.BYDTsrc) ECRATE=BYDTsrc
-      EC(L)=WMX1*ECRATE*LHX
-      END IF
+        IF (CAREA(L).GT.0.) THEN
+          WTEM=1d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
+          IF(LHX.EQ.LHE.AND.WMX(L)/FCLD.GE.WCONST*1d-3)
+     *         WTEM=1d2*WCONST*PL(L)/(TL(L)*RGAS)
+          IF(LHX.EQ.LHS.AND.WMX(L)/FCLD.GE.WMUI*1d-3)
+     *         WTEM=1d2*WMUI*PL(L)/(TL(L)*RGAS)
+          IF(WTEM.LT.1d-10) WTEM=1d-10
+          IF(LHX.EQ.LHE)  THEN
+            RCLD=1d-6*(10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
+          ELSE
+            RCLD=25.d-6*(WTEM/4.2d-3)**BY3
+          END IF
+          CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
+          CK2=1000.*RGAS*TL(L)/(2.4d-3*QSATL(L)*PL(L))
+          TEVAP=1000.*(CK1+CK2)*RCLD*RCLD
+          WMX1=WMX(L)-PREP(L)*DTsrc
+          ECRATE=(1.-RHF(L))/(TEVAP*FCLD+teeny)
+          IF(ECRATE.GT.BYDTsrc) ECRATE=BYDTsrc
+          EC(L)=WMX1*ECRATE*LHX
+        END IF
 C**** COMPUTE NET LATENT HEATING DUE TO STRATIFORM CLOUD PHASE CHANGE,
 C**** QHEAT, AND NEW CLOUD WATER CONTENT, WMNEW
-      DRHDT=2.*CAREA(L)*CAREA(L)*(1.-RH00(L))*(QCONV+ER(L)+EC(L))/LHX/
-     *     (WMX(L)/(FCLD+teeny)+2.*CAREA(L)*QSATL(L)*(1.-RH00(L))+teeny)
-      IF(ER(L).EQ.0..AND.EC(L).EQ.0..AND.WMX(L).LE.0.) DRHDT=0.
-      QHEAT(L)=(QCONV-LHX*DRHDT*QSATL(L))/(1.+RH(L)*SQ(L))
-      DWDT=QHEAT(L)/LHX-PREP(L)+CAREA(L)*ER(L)/LHX
-      WMNEW =WMX(L)+DWDT*DTsrc
-      IF(WMNEW.LT.0.) THEN
-        WMNEW=0.
-        QHEAT(L)=(-WMX(L)*BYDTsrc+PREP(L))*LHX-CAREA(L)*ER(L)
-      END IF
-      GO TO 230
+        DRHDT=2.*CAREA(L)*CAREA(L)*(1.-RH00(L))*(QCONV+ER(L)+EC(L))/LHX/
+     *       (WMX(L)/(FCLD+teeny)+2.*CAREA(L)*QSATL(L)*(1.-RH00(L))
+     *       +teeny)
+        IF(ER(L).EQ.0..AND.EC(L).EQ.0..AND.WMX(L).LE.0.) DRHDT=0.
+        QHEAT(L)=(QCONV-LHX*DRHDT*QSATL(L))/(1.+RH(L)*SQ(L))
+        DWDT=QHEAT(L)/LHX-PREP(L)+CAREA(L)*ER(L)/LHX
+        WMNEW =WMX(L)+DWDT*DTsrc
+        IF(WMNEW.LT.0.) THEN
+          WMNEW=0.
+          QHEAT(L)=(-WMX(L)*BYDTsrc+PREP(L))*LHX-CAREA(L)*ER(L)
+        END IF
+      ELSE
 C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
-  220 IF(WMX(L).GT.0.) PREP(L)=WMX(L)*BYDTsrc
-      ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
-      IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)
-     *  ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
-      ERMAX=LHX*PREBAR(L+1)*GRAV*BYAM(L)
-      IF(ER(L).GT.ERMAX) ER(L)=ERMAX
-      IF(ER(L).LT.0.) ER(L)=0.
-      QHEAT(L)=-CAREA(L)*ER(L)
-      WMNEW=0.
-  230 CONTINUE
+        IF(WMX(L).GT.0.) PREP(L)=WMX(L)*BYDTsrc
+        ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
+        IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)
+     *       ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
+        ER(L)=MAX(0d0,MIN(ER(L),ERMAX))
+        QHEAT(L)=-CAREA(L)*ER(L)
+        WMNEW=0.
+      END IF
+
 C**** PHASE CHANGE OF PRECIPITATION, FROM ICE TO WATER
 C**** This occurs if 0 C isotherm is crossed, or ice is falling into
 C**** a super-cooled water cloud (that has not had B-F occur).
 C**** Note: on rare occasions we have ice clouds even if T>0
 C**** In such a case, no energy of phase change is needed.
-C     HPHASE=0.
+      HPHASE=0.
       IF (LHP(L+1).EQ.LHS.AND.LHP(L).EQ.LHE.AND.PREICE(L+1).GT.0) THEN
         HPHASE=HPHASE+LHM*PREICE(L+1)*GRAV*BYAM(L)
         PREICE(L+1)=0.
       ENDIF
 C**** PHASE CHANGE OF PRECIP, FROM WATER TO ICE
-      IF (LHP(L+1).EQ.LHE.AND.LHP(L).EQ.LHS.AND.PREBAR(L+1).GT.0) THEN
-        HPHASE=HPHASE-LHM*PREBAR(L+1)*GRAV*BYAM(L)
-      END IF
+      IF (LHP(L+1).EQ.LHE.AND.LHP(L).EQ.LHS.AND.PREBAR(L+1).GT.0)
+     *     HPHASE=HPHASE-LHM*PREBAR(L+1)*GRAV*BYAM(L)
+C**** Make sure energy is conserved for transfers between P and CLW
+      IF (LHP(L).NE.LHX)
+     *     HPHASE=HPHASE+(ER(L)*CAREA(L)/LHX-PREP(L))*LHM
 C**** COMPUTE THE PRECIP AMOUNT ENTERING THE LAYER TOP
       IF (ER(L).eq.ERMAX) THEN ! to avoid round off problem
         PREBAR(L)=PREBAR(L+1)*(1.-CAREA(L))+AIRM(L)*PREP(L)*BYGRAV
@@ -1906,10 +1901,10 @@ C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
       QMO2=QM(L+1)
       WMO2=WMXM(L+1)
       DO K=1,KMAX
-         UMO1(K)=UM(K,L)
-         VMO1(K)=VM(K,L)
-         UMO2(K)=UM(K,L+1)
-         VMO2(K)=VM(K,L+1)
+        UMO1(K)=UM(K,L)
+        VMO1(K)=VM(K,L)
+        UMO2(K)=UM(K,L+1)
+        VMO2(K)=VM(K,L+1)
       ENDDO
       FPLUME=FPMAX
       DFX=FPMAX
@@ -1978,15 +1973,15 @@ C**** mix cloud liquid water tracers as well
       END DO
 #endif
       DO K=1,KMAX
-         UMN1(K)=(UMO1(K)*(1.-FMIX)+FRAT*UMO2(K))
-         VMN1(K)=(VMO1(K)*(1.-FMIX)+FRAT*VMO2(K))
-         UMN2(K)=(UMO2(K)*(1.-FRAT)+FMIX*UMO1(K))
-         VMN2(K)=(VMO2(K)*(1.-FRAT)+FMIX*VMO1(K))
-         UM(K,L)=UM(K,L)+(UMN1(K)-UMO1(K))*RA(K)
-         VM(K,L)=VM(K,L)+(VMN1(K)-VMO1(K))*RA(K)
-         UM(K,L+1)=UM(K,L+1)+(UMN2(K)-UMO2(K))*RA(K)
-         VM(K,L+1)=VM(K,L+1)+(VMN2(K)-VMO2(K))*RA(K)
-      ENDDO
+        UMN1(K)=(UMO1(K)*(1.-FMIX)+FRAT*UMO2(K))
+        VMN1(K)=(VMO1(K)*(1.-FMIX)+FRAT*VMO2(K))
+        UMN2(K)=(UMO2(K)*(1.-FRAT)+FMIX*UMO1(K))
+        VMN2(K)=(VMO2(K)*(1.-FRAT)+FMIX*VMO1(K))
+        UM(K,L)=UM(K,L)+(UMN1(K)-UMO1(K))*RA(K)
+        VM(K,L)=VM(K,L)+(VMN1(K)-VMO1(K))*RA(K)
+        UM(K,L+1)=UM(K,L+1)+(UMN2(K)-UMO2(K))*RA(K)
+        VM(K,L+1)=VM(K,L+1)+(VMN2(K)-VMO2(K))*RA(K)
+      END DO
 C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
       QL(L+1)=QL(L+1)+WMX(L+1)
       TH(L+1)=TH(L+1)-(LHX*BYSHA)*WMX(L+1)/PLK(L+1)
@@ -2003,53 +1998,55 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
       CLDSSL(L)=1.-CAREA(L)
       TNEW=TL(L)
       TNEWU=TL(L+1)
-         QNEW=QL(L)
-         QNEWU=QL(L+1)
-         HCNDSS=HCNDSS+(TNEW-TOLD)*AIRM(L)+(TNEWU-TOLDU)*AIRM(L+1)
-         SSHR(L)=SSHR(L)+(TNEW-TOLD)*AIRM(L)
-         SSHR(L+1)=SSHR(L+1)+(TNEWU-TOLDU)*AIRM(L+1)
-         DCTEI(L)=DCTEI(L)+(QNEW-QOLD)*AIRM(L)*LHX*BYSHA
-         DCTEI(L+1)=DCTEI(L+1)+(QNEWU-QOLDU)*AIRM(L+1)*LHX*BYSHA
-  382 CONTINUE
+      QNEW=QL(L)
+      QNEWU=QL(L+1)
+      HCNDSS=HCNDSS+(TNEW-TOLD)*AIRM(L)+(TNEWU-TOLDU)*AIRM(L+1)
+      SSHR(L)=SSHR(L)+(TNEW-TOLD)*AIRM(L)
+      SSHR(L+1)=SSHR(L+1)+(TNEWU-TOLDU)*AIRM(L+1)
+      DCTEI(L)=DCTEI(L)+(QNEW-QOLD)*AIRM(L)*LHX*BYSHA
+      DCTEI(L+1)=DCTEI(L+1)+(QNEWU-QOLDU)*AIRM(L+1)*LHX*BYSHA
+ 382  CONTINUE
       WMSUM=0.
 C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
-      DO 388 L=1,LP50
-      FCLD=CLDSSL(L)+teeny
-      WTEM=1.d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
-      LHX=SVLHXL(L)
-      IF(LHX.EQ.LHS.AND.WMX(L)/FCLD.GE.WMUI*1d-3)
-     *  WTEM=1d5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
-      IF(WTEM.LT.1d-10) WTEM=1.d-10
-      IF(LHX.EQ.LHE) THEN
-         RCLD=(10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
-         QHEATC=(QHEAT(L)+CAREA(L)*(EC(L)+ER(L)))/LHX
-         IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
-      ELSE
-         RCLD=25.0*(WTEM/4.2d-3)**BY3
-      ENDIF
-      RCLDE=RCLD/BYBR
-      CSIZEL(L)=RCLDE
-      TEM=AIRM(L)*WMX(L)*1.d2*BYGRAV
-      TAUSSL(L)=1.5d3*TEM/(FCLD*RCLDE+teeny)
-      IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
- 388  IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM
+      DO L=1,LP50
+        FCLD=CLDSSL(L)+teeny
+        WTEM=1.d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
+        LHX=SVLHXL(L)
+        IF(LHX.EQ.LHS.AND.WMX(L)/FCLD.GE.WMUI*1d-3)
+     *       WTEM=1d5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
+        IF(WTEM.LT.1d-10) WTEM=1.d-10
+        IF(LHX.EQ.LHE) THEN
+          RCLD=(10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
+          QHEATC=(QHEAT(L)+CAREA(L)*(EC(L)+ER(L)))/LHX
+          IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
+        ELSE
+          RCLD=25.0*(WTEM/4.2d-3)**BY3
+        ENDIF
+        RCLDE=RCLD/BYBR
+        CSIZEL(L)=RCLDE
+        TEM=AIRM(L)*WMX(L)*1.d2*BYGRAV
+        TAUSSL(L)=1.5d3*TEM/(FCLD*RCLDE+teeny)
+        IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
+        IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM
+      END DO
 
 C**** CALCULATE OPTICAL THICKNESS
       DO L=1,LP50
-      CLDSAVL(L)=CLDSSL(L)
-      IF(TAUMCL(L).GT.0..AND.CKIJ.EQ.1.) GO TO 526
-      BMAX=1.-EXP(-(CLDSAVL(L)/.3d0))
-      IF(CLDSAVL(L).GE..95d0) BMAX=CLDSAVL(L)
-      IF(L.EQ.1.OR.L.LE.DCL) THEN
-        CLDSSL(L)=CLDSSL(L)+(BMAX-CLDSSL(L))*CKIJ
-        TAUSSL(L)=TAUSSL(L)*CLDSAVL(L)/(CLDSSL(L)+teeny)
-      ENDIF
-      IF(TAUSSL(L).LE.0.) CLDSSL(L)=0.
-      IF(L.EQ.1.OR.L.LE.DCL.OR.TAUMCL(L).GT.0.) GO TO 526
-      CLDSSL(L)=CLDSSL(L)**(2.*BY3)
-      TAUSSL(L)=TAUSSL(L)*CLDSAVL(L)**BY3
-  526 CONTINUE
-      IF(WMX(L).LE.0.) SVLHXL(L)=0.
+        CLDSAVL(L)=CLDSSL(L)
+        IF(WMX(L).LE.0.) SVLHXL(L)=0.
+        IF(TAUMCL(L).EQ.0..OR.CKIJ.NE.1.) THEN
+          BMAX=1.-EXP(-(CLDSAVL(L)/.3d0))
+          IF(CLDSAVL(L).GE..95d0) BMAX=CLDSAVL(L)
+          IF(L.EQ.1.OR.L.LE.DCL) THEN
+            CLDSSL(L)=CLDSSL(L)+(BMAX-CLDSSL(L))*CKIJ
+            TAUSSL(L)=TAUSSL(L)*CLDSAVL(L)/(CLDSSL(L)+teeny)
+          ENDIF
+          IF(TAUSSL(L).LE.0.) CLDSSL(L)=0.
+          IF(L.GT.DCL .AND. TAUMCL(L).LE.0.) THEN
+            CLDSSL(L)=CLDSSL(L)**(2.*BY3)
+            TAUSSL(L)=TAUSSL(L)*CLDSAVL(L)**BY3
+          END IF
+        END IF
       END DO
 
       RETURN
