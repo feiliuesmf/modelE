@@ -1,7 +1,7 @@
       program convert_gic_files
 C**** convert GIC files from model II' (B399) format to modelE format 
 C**** compile with: gmake conv_gic.o
-C**** f90 -o conv_gic conv_gic.o ../model/*.o -O2 -64 -mips4 \
+C**** f90 -o conv_gic conv_gic.o ../model/ *.o -O2 -64 -mips4 \
 C****                      -OPT:reorg_comm=off -w2 -listing
 C**** Note that since it uses modules and routines from the model, it
 C**** must be compiled after the model
