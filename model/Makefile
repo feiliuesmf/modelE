@@ -5,7 +5,8 @@ F	= fco2_f90
 U	= uco2_f90
 SETUP	= setup_f90
 MKEXE	= mkexe_f90
-RUN	= E001
+RUNSRC	= E001
+RUN	= $(RUNSRC)
 EXECDIR = /u/cmrun/modelE/exec
 LIBS	= -L/u/cmrun -lGCM -lgP 
 # Model common blocks 
@@ -89,6 +90,7 @@ gcm:	$(OBJ)
 
 # Setup the gcm
 setup:	gcm
+	mkrun $(RUNSRC) $(RUN) 
 	$(EXECDIR)/$(SETUP) $(RUN)
 
 # Mkexe the gcm
