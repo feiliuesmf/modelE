@@ -165,7 +165,8 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       integer, intent(out) :: iunit
 !@var filename - name of the file to open
       character*(*), intent(in) :: filename
-!@var qbin, qold - .true. if file is binary, old (.false. by default)
+!@var qbin - .true. if file is binary (.false. by default)
+!@var qold - .true. if file is old (.false. by default)
       logical, optional, intent(in) :: qbin, qold
       character*11 form, status
       integer name_len

@@ -81,6 +81,8 @@ C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
         TRUNPSI(:,I,J)=TRUN0(:)   ! tracer in runoff
 #endif
         FLAG_DSWS(I,J)=FLAG_DSWS(I,J).or.WETSNOW
+C**** reset flag if there was fresh snow (i.e. prcp but no rain!)
+        IF (.not. WETSNOW .and. PRCP.gt.0.) FLAG_DSWS(I,J)=.FALSE.
 C**** pond_melt accumulates in melt season only
         if ((J.gt.JM/2 .and. (jday.ge.152 .and. jday.lt.212)) .or.
      *       (J.lt.JM/2 .and. (jday.ge.334 .or. jday.lt.31))) then
@@ -248,8 +250,9 @@ C****
       REAL*8, DIMENSION(LMI) :: HSIL,SSIL
       REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,SROX(2)
      *     ,FMOC,FHOC,FSOC,DXYPJ,POICE,PWATER,SCOVI
-      REAL*8 MSI1,MFLUX,HFLUX,SFLUX,TOFREZ,MELT12,RUN,ERUN,SRUN
+      REAL*8 MSI1,MFLUX,HFLUX,SFLUX,TOFREZ,RUN,ERUN,SRUN,MELT12
       INTEGER I,J,IMAX,JR,ITYPE
+      LOGICAL WETSNOW
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: trsil
       REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap,trrun
@@ -281,6 +284,7 @@ C****
         MSI2= MSI(I,J)
         HSIL(:) = HSI(:,I,J)  ! sea ice enthalpy
         SSIL(:) = SSI(:,I,J)  ! sea ice salt
+        WETSNOW=FLAG_DSWS(I,J)  ! wetness of snow
 #ifdef TRACERS_WATER
         TREVAP(:) = TREVAPOR(:,2,I,J)
         FTROC(:)  = ftrsi_io(:,i,j)
@@ -301,7 +305,7 @@ C****
 #ifdef TRACERS_WATER
      *       ,TRSIL,TREVAP,FTROC,TRRUN
 #endif
-     *       ,FMOC,FHOC,FSOC,RUN,ERUN,SRUN,MELT12)
+     *       ,FMOC,FHOC,FSOC,RUN,ERUN,SRUN,WETSNOW,MELT12)
 
 C**** Decay sea ice salinity
         MSI1 = ACE1I + SNOW
@@ -326,7 +330,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
 #ifdef TRACERS_WATER
         TRSI(:,:,I,J) = TRSIL(:,:)
 #endif
-        FLAG_DSWS(I,J)=FLAG_DSWS(I,J).or.MELT12.gt.0
+        FLAG_DSWS(I,J)=WETSNOW
 C**** pond_melt accumulates in melt season only
         if ((J.gt.JM/2 .and. (jday.ge.152 .and. jday.lt.212)) .or.
      *       (J.lt.JM/2 .and. (jday.ge.334 .or. jday.lt.31))) then
@@ -724,12 +728,9 @@ C****
       IMPLICIT NONE
       INTEGER I,J
 
-C**** Every day reset snow flag and adjust pond-melt
+C**** Every day adjust pond-melt
       DO J=1,JM
       DO I=1,IMAXJ(J)
-
-C**** reset snow flag to dry snow
-        FLAG_DSWS(I,J)=.FALSE.
 
 C**** pond_melt decreases linearly in shoulder season
         if (J.gt.JM/2 .and. (jday.ge.212 .and. jday.lt.244)) then

@@ -39,9 +39,9 @@ C**** Interface to PBL
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij,am,byam
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
-      USE SEAICE_COM, only : rsi,msi,snowi
-      USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,rhos,kiext
-     *     ,ksext
+      USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws
+      USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,
+     *     solar_ice_frac
       USE LAKES_COM, only : mwl,mldlk,gml,flake
       USE LAKES, only : minmld
       USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe
@@ -72,7 +72,7 @@ C**** Interface to PBL
      *     ,PXSOIL,PSK,TH1,Q1,THV1,TFS,PTYPE,TG1,SRHEAT,SNOW,TG2
      *     ,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT
      *     ,QSDEN,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,Z2BY4L
-     *     ,Z1BY6L,QZ1,EVAPLIM,HICE,HSNOW,HICE1,HSNOW1,F2,FSRI(2),HTLIM
+     *     ,Z1BY6L,QZ1,EVAPLIM,F2,FSRI(2),HTLIM
 
       REAL*8 MSUM, MA1, MSI1, MSI2
       REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
@@ -82,7 +82,6 @@ C**** Interface to PBL
       REAL*8 QSAT,DQSATDT,TOFREZ
       REAL*8 AREGIJ(3,IM,JM,5)
 c
-
 #ifdef TRACERS_ON
 C**** Tracer input/output common block for PBL
 !@var trsfac, trconstflx factors in surface flux boundary cond.
@@ -143,7 +142,7 @@ C$OMP*  CDTERM,CDENOM, DGS,DSHDTG,DQGDTG,DEVDTG,DTRDTG,
 C$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DHGS,DQGS,DSNDTG,DEVDQS,
 C$OMP*  DHS,DQS,DT2,DTS, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0,
 C$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HC1,HCG1,HCG2,HSDEN,HSCON,
-C$OMP*  HSMUL,HTLIM,HSNOW,HSNOW1,HICE,HICE1, I,ITYPE,IDTYPE, J,
+C$OMP*  HSMUL,HTLIM,I,ITYPE,IDTYPE, J,
 C$OMP*  KR, MSUM,MA1,MSI1,MSI2, PS,PXSOIL,P1,P1K,PLAND,PWATER,
 C$OMP*  PLICE,PIJ,POICE,POCEAN,PGK,PKDN,PTYPE,PSK, Q1,QSDEN,
 C$OMP*  QSCON,QSMUL, RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT,
@@ -293,17 +292,7 @@ C****
       SOLAR(2,I,J)=SOLAR(2,I,J)+DTSURF*SRHEAT
 C**** fraction of solar radiation leaving layer 1 and 2
       IF (SRHEAT.gt.0) THEN ! don't bother if there is no sun
-        HSNOW = SNOW/RHOS
-        HICE  = ACE1I*BYRHOI
-        IF (ACE1I*XSI(1).gt.SNOW*XSI(2)) THEN
-C**** first thermal layer is snow and ice
-          HICE1 = (ACE1I-XSI(2)*(SNOW+ACE1I))*BYRHOI
-          FSRI(1) = EXP(-KSEXT*HSNOW-KIEXT*HICE1)
-        ELSE ! all snow
-          HSNOW1 = (ACE1I+SNOW)*XSI(1)/RHOS
-          FSRI(1) = EXP(-KSEXT*HSNOW1)
-        END IF
-        FSRI(2) = EXP(-KSEXT*HSNOW-KIEXT*HICE)
+        call solar_ice_frac(SNOW,ACE2,FLAG_DSWS(I,J),FSRI,2)
       ELSE
         FSRI(1:2) = 0
       END IF
@@ -412,7 +401,7 @@ C =====================================================================
       DGS =DQGS
 C =====================================================================
       TS=TSV/(1.+QS*deltx)
-C**** CALCULATE RHOS*CM*WS AND RHOS*CH*WS
+C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
       RHOSRF=100.*PS/(RGAS*TSV)
       RCDMWS=CM*WS*RHOSRF
       RCDHWS=CH*WSH*RHOSRF

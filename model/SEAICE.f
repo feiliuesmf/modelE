@@ -32,10 +32,6 @@
       REAL*8, PARAMETER :: ALAMI=2.1762d0, ALAMS=0.35d0
 !@param RHOS density of snow (kg/m^3)
       REAL*8, PARAMETER :: RHOS = 300.0
-!@param KIEXT extinction coefficient for light in sea ice (1/m)
-      REAL*8, PARAMETER :: KIEXT = 1.5d0
-!@param KSEXT extinction coefficient for light in snow (1/m)
-      REAL*8, PARAMETER :: KSEXT = 15d0
 !@var FLEADOC lead fraction for ocean ice (%)
       REAL*8, PARAMETER :: FLEADOC = 0.06d0
 !@var FLEADLK lead fraction for lakes (%)
@@ -106,7 +102,7 @@ C**** Snowfall is calculated from precip energy (0 deg or colder)
       SNWF = MAX(0d0,MIN(PRCP,-ENRGP*BYLHM))
 C**** Rain is remaining precip (0 deg or warmer)
       RAIN = PRCP-SNWF
-      WETSNOW = RAIN.GT.0.
+      WETSNOW = RAIN.GT.1d-5*PRCP  ! i.e. a noticeable fraction of prec
 C**** Calculate whether rain causes freezing or melting in first layer
       IF (HSIL(1).le.-LHM*(XSI(1)*MSI1+SNWF)) THEN
         FREZ1 = MIN(RAIN,-HSIL(1)*BYLHM-XSI(1)*MSI1-SNWF)
@@ -225,7 +221,8 @@ C**** Apply the tracer fluxes
 #endif
 
 C**** Diagnostics for output
-      RUN0 = MELT1+RAIN-FREZ1   ! runoff mass to ocean
+      RUN0 = MELT1+(RAIN-FREZ1) ! runoff mass to ocean
+      IF (RUN0.lt.1d-13) RUN0=0. ! clean up roundoff errors
       SRUN0 = SMELT12           ! salt in runoff
 c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)      
 
@@ -243,7 +240,7 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
 #ifdef TRACERS_WATER
      *     TRSIL,TREVAP,FTROC,TRUN,
 #endif
-     *     FMOC,FHOC,FSOC,RUN,ERUN,SRUN,MELT12)
+     *     FMOC,FHOC,FSOC,RUN,ERUN,SRUN,WETSNOW,MELT12)
 !@sum  SEA_ICE applies surface fluxes to ice covered areas
 !@auth Gary Russell
 !@ver  1.0
@@ -265,7 +262,9 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
       REAL*8, INTENT(IN) :: FMOC, FHOC, FSOC
 !@var RUN,ERUN,SRUN runoff fluxes down of mass,heat,salt (J or kg/m^2)
       REAL*8, INTENT(OUT) :: RUN,ERUN,SRUN
-!@var MELT12 amount of surface melting (kg/m^2) (Used for albedo calc)
+!@var WETSNOW whether snow is wet or not (Used for albedo calc)
+      LOGICAL, INTENT(INOUT) :: WETSNOW
+!@var MELT12 save surface melt (Used for albedo calc)
       REAL*8, INTENT(OUT) :: MELT12
 #ifdef TRACERS_WATER
 !@var TRSIL tracer amount in ice layers (kg/m^2)
@@ -304,11 +303,7 @@ C****
       MSI1 = SNOW+ACE1I ! snow and first (physical) layer ice mass
 C**** Calculate solar fractions
       IF (SROX(1).gt.0) THEN
-        HICE =ACE1I*BYRHOI
-        HSNOW=SNOW/RHOS
-        FSRI(2) = EXP(-KSEXT*HSNOW-KIEXT*HICE)
-        FSRI(3) = FSRI(2)*EXP(-KIEXT*MSI2*XSI(3)*BYRHOI)
-        FSRI(4) = FSRI(2)*EXP(-KIEXT*MSI2*BYRHOI)
+        call solar_ice_frac(snow,msi2,wetsnow,fsri,4)
       ELSE
         FSRI = 0.
       END IF
@@ -519,8 +514,10 @@ c HMELT currently assumed to be zero since melting is at 0 deg
       TRUN(:)=TRMELT1(:)+TRMELT2(:)+TRMELT3(:)+TRMELT4(:) 
                                 ! tracer flux to ocean
 #endif
-c Save MELT12 separately for albedo calculations
+c**** Decide WETSNOW for albedo calculations and save MELT12 for
+c**** possible melt ponds
       MELT12=MELT1+MELT2
+      WETSNOW = WETSNOW .or. (MELT12.gt.0)
 C****
       RETURN
       END SUBROUTINE SEA_ICE
@@ -1146,6 +1143,99 @@ C**** Tracers use tracer turbulent diffusion term
 C****
       return
       end subroutine icelake
+
+      subroutine solar_ice_frac(snow,msi2,wetsnow,fsri,lmax)
+!@sum solar_ice_frac calculates the fraction of solar radiation 
+!@+   transmitted through the ice, taking albedo into account, but
+!@+   assuming constant proportions of visible and near-ir.
+!@+   Based on Ebert et al, 1995.
+!@auth Gavin Schmidt
+      implicit none
+!@var kiextvis,kiextnir1 ice extinction coeff. for vis and nir (1/m)
+      real*8, parameter :: kiextvis=1.5d0, kiextnir1=18.d0
+!@var snow,msi2 snow and second layer ice amounts (kg/m^2)
+      real*8, intent(in) :: snow,msi2
+!@var wetsnow =true if snow is wet      
+      logical, intent(in) :: wetsnow
+!@var lmax number of ice layers to do calculation for
+      integer, intent(in) :: lmax
+!@var fsri fraction of solar energy reaching bottom of layer
+      real*8, dimension(lmax), intent(out) :: fsri
+      real*8, dimension(lmax) :: fsrvis, fsrnir1, hice
+!@var ksextvis,ksextnir1 snow extinction coeff. for vis and nir (1/m)
+!@var fracvis,fracnir fraction of absorbed solar in vis and nir
+      real*8 fracvis,fracnir1,ksextvis,ksextnir1
+      real*8 hsnow,hsnow1,hice12
+      integer l
+
+      hsnow = snow/rhos
+      hice12= ace1i*byrhoi
+
+C**** old code
+c!@param KIEXT extinction coefficient for light in sea ice (1/m)
+c      REAL*8, PARAMETER :: KIEXT = 1.5d0
+c!@param KSEXT extinction coefficient for light in snow (1/m)
+c      REAL*8, PARAMETER :: KSEXT = 15d0
+c        IF (ACE1I*XSI(1).gt.SNOW*XSI(2)) THEN
+cC**** first thermal layer is snow and ice
+c          HICE1 = (ACE1I-XSI(2)*(SNOW+ACE1I))*BYRHOI
+c          FSRI(1) = EXP(-KSEXT*HSNOW-KIEXT*HICE1)
+c        ELSE ! all snow
+c          HSNOW1 = (ACE1I+SNOW)*XSI(1)/RHOS
+c          FSRI(1) = EXP(-KSEXT*HSNOW1)
+c        END IF
+c        FSRI(2) = EXP(-KSEXT*HSNOW-KIEXT*HICE12)
+c        FSRI(3) = FSRI(2)*EXP(-KIEXT*MSI2*XSI(3)*BYRHOI)
+c        FSRI(4) = FSRI(2)*EXP(-KIEXT*MSI2*BYRHOI)
+
+c**** Set fractions of visible and near-ir bands based on weighting the
+c**** solar input by the approximate co-albedo. Could possibly be
+c**** retreived from radiation code
+c**** VIS: 250 - 690 nm,       NIR1= 690 - 1119 nm   
+c****         52%,     and          33% of incoming solar
+c**** NIR2/3 (> 1119 nm assumed not to be transmitted)
+c****
+      if (hsnow.gt.0.02) then    ! same cutoff as for albedo
+c**** Extinction coefficients for snow depend on wetness
+c**** Since albedo does as well, absorbed fractions also vary
+        if (wetsnow) then
+          fracvis =0.22d0 ;  fracnir1=0.32d0
+          ksextvis=10.7d0 ; ksextnir1=118.d0
+        else 
+          fracvis =0.07d0 ;  fracnir1=0.30d0
+          ksextvis=19.6d0 ; ksextnir1=196.d0
+        end if
+      else
+        fracvis=0.26d0 ; fracnir1=0.42d0
+      end if
+
+C**** calculate sucessive fractions assuming each band is attenuated
+C**** independently. 
+      if (ace1i*xsi(1).gt.snow*xsi(2)) then
+c**** First thermal layer is snow and ice
+        hice(1)    = (ace1i-xsi(2)*(snow+ace1i))*byrhoi
+        fsrvis (1) = exp(-ksextvis *hsnow - kiextvis *hice(1))
+        fsrnir1(1) = exp(-ksextnir1*hsnow - kiextnir1*hice(1))
+        fsri(1)    = fracvis*fsrvis(1) + fracnir1*fsrnir1(1)
+      else                      ! all snow
+        hsnow1     = (ace1i+snow)*xsi(1)/rhos
+        fsrvis (1) = exp(-ksextvis *hsnow1)
+        fsrnir1(1) = exp(-ksextnir1*hsnow1)
+        fsri(1)    = fracvis*fsrvis(1) + fracnir1*fsrnir1(1)
+      end if
+      fsrvis (2) = exp(-ksextvis *hsnow - kiextvis *hice12)
+      fsrnir1(2) = exp(-ksextnir1*hsnow - kiextnir1*hice12)
+      fsri(2)    = fracvis*fsrvis(2) + fracnir1*fsrnir1(2)
+
+      do l=3,lmax   ! only done if lmax>2
+        hice(l)    = xsi(l)*msi2*byrhoi
+        fsrvis (l) = exp(-kiextvis *hice(l)) * fsrvis (l-1)
+        fsrnir1(l) = exp(-kiextnir1*hice(l)) * fsrnir1(l-1)
+        fsri(l)    = fracvis*fsrvis(l) + fracnir1*fsrnir1(l)
+      end do
+c****
+      return
+      end subroutine solar_ice_frac
 
       END MODULE SEAICE
 
