@@ -1960,7 +1960,7 @@ C****
      *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_OMSI
      *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI
      *     ,conserv_MLI,conserv_HLI
-      REAL*8 MNOW
+      INTEGER MNOW
       INTEGER NT
 
 C**** ATMOSPHERIC ANGULAR MOMENTUM
