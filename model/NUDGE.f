@@ -4,13 +4,14 @@ c *****************************************************************
 !@auth 
 !@ver  
       USE MODEL_COM, only : im,jm,lm
-      USE DOMAIN_DECOMP, only : grid
+c      USE DOMAIN_DECOMP, only : grid
       IMPLICIT NONE
       SAVE
 !@var  U1, V1 NCEP U wind at prior ncep timestep (m/s)
       REAL*4, DIMENSION(IM,JM,LM) :: U1,V1
 !@var  U2, V2 NCEP U wind at the following ncep timestep (m/s)
-      REAL*4, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: U2,V2
+c      REAL*4, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: U2,V2
+      REAL*4, DIMENSION(IM,JM,LM) :: U2,V2
 !@var netcdf integer
       INTEGER :: ncidu,ncidv,uid,vid,plid,step_rea=1,zirk=0
 !@var tau nuding time interpoltation
@@ -33,7 +34,8 @@ c******************************************************************
       USE NUDGE_COM, only : U1,V1,U2,V2,tau,anudgeu,anudgev
       IMPLICIT NONE
 
-      REAL*8 DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: UGCM, VGCM
+      REAL*8,DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: UGCM,
+     *     VGCM
 
 c     LOCAL
       INTEGER i,j,l
@@ -207,7 +209,8 @@ c******************************************************************
       integer timestep,l
 
       REAL*4 U(IM,JM-1,nlevnc),V(IM,JM-1,nlevnc),PL(nlevnc)
-      REAL*4 DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: UN, VN
+      REAL*4, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: UN,
+     *     VN
 
       integer start(4),count(4),status
 
@@ -274,7 +277,7 @@ C****
 
 
         do i=1,im
-        do j= J_OSG, J_1SG
+        do j= J_0SG, J_1SG
            do ln=1,lm
               if (pmid(ln,i,j).ge.po(1))then
                  varn(i,j,ln) =  varo(i,j-1,1)
