@@ -13,8 +13,8 @@
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo,
      *     symo,szmo,dts,dtofs,dto,dtolf,opress,bydxypo,mdyno,msgso
      *     ,ratoc,imaxj,focean,ogeoz
-      USE ODIAG, only : oijl,ijl_mo,ijl_g0m,ijl_s0m,ijl_gflx,ijl_sflx,
-     *     ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl
+      USE ODIAG, only : oijl,oij,ijl_mo,ijl_g0m,ijl_s0m,ijl_gflx
+     *     ,ijl_sflx,ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl,ij_ssh
 #ifdef TRACERS_OCEAN
      *     ,toijl,toijl_conc,toijl_tflx,toijl_gmfl
 #endif
@@ -113,6 +113,12 @@ C**** Advection of Potential Enthalpy and Salt
         END DO
         END DO
         END DO
+        DO J=1,JM
+        DO I=1,IM
+          OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)
+        END DO
+        END DO
+
 #ifdef TRACERS_OCEAN
         DO N=1,NTM
           TOIJL(:,:,:,TOIJL_CONC,N)=TOIJL(:,:,:,TOIJL_CONC,N)

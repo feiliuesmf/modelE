@@ -12,7 +12,7 @@
       USE DAGCOM, only : npts  ! needed for conservation diags
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=11,KOIJL=22,KOL=6,KOLNST=8,
+      INTEGER, PARAMETER :: KOIJ=17,KOIJL=22,KOL=6,KOLNST=8,
      *     KACCO=IM*JM*KOIJ + IM*JM*LMO*KOIJL + LMO*KOL + LMO*NMST
      *     *KOLNST
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
@@ -25,7 +25,8 @@
       REAL*8, DIMENSION(LMO,NMST,KOLNST):: OLNST
 !@var IJ_xxx Names for OIJ diagnostics
       INTEGER IJ_USI,IJ_VSI,IJ_DMUI,IJ_DMVI,IJ_PICE,IJ_HBL,IJ_BO
-     *     ,IJ_BOSOL,IJ_USTAR,IJ_MUSI,IJ_MVSI
+     *     ,IJ_BOSOL,IJ_USTAR,IJ_MUSI,IJ_MVSI,IJ_HUSI,IJ_HVSI,IJ_SUSI
+     *     ,IJ_SVSI,IJ_RSI,IJ_SSH
 !@var lname_oij Long names for OIJ diagnostics
       CHARACTER*50, DIMENSION(KOIJ) :: LNAME_OIJ
 !@var sname_oij Short names for OIJ diagnostics
@@ -35,7 +36,7 @@
 !@var ia_oij IDACC numbers for OIJ diagnostics
       INTEGER, DIMENSION(KOIJ) :: IA_OIJ
 !@var scale_oij scales for OIJ diagnostics
-      REAl*8, DIMENSION(KOIJ) :: SCALE_OIJ
+      REAL*8, DIMENSION(KOIJ) :: SCALE_OIJ
 !@var ijgrid_oij Grid descriptor for OIJ diagnostics
        INTEGER, DIMENSION(KOIJ) :: IJGRID_OIJ
 
@@ -74,6 +75,24 @@ C****
       REAL*8, DIMENSION(IM,JM,LMO,KTOIJL,NTM)  :: TOIJL
 !@var toijl_xxx indices for TOIJL diags
       INTEGER, PARAMETER :: toijl_conc=1,toijl_tflx=2,toijl_gmfl=6
+!@var KTOIJ number of lat/lon ocean tracer diagnostics
+      INTEGER, PARAMETER :: KTOIJ=2
+!@var TOIJ  lat/lon ocean tracer diagnostics
+      REAL*8, DIMENSION(IM,JM,KTOIJ,NTM)  :: TOIJ
+!@var toij_xxx indices for TOIJL diags
+      INTEGER :: toij_tusi,toij_tvsi
+!@var lname_toij Long names for TOIJ diagnostics
+      CHARACTER*50, DIMENSION(KTOIJ) :: LNAME_TOIJ
+!@var sname_toij Short names for TOIJ diagnostics
+      CHARACTER*30, DIMENSION(KTOIJ) :: SNAME_TOIJ
+!@var units_toij Units for TOIJ diagnostics
+      CHARACTER*50, DIMENSION(KTOIJ) :: UNITS_TOIJ
+!@var ia_toij IDACC numbers for TOIJ diagnostics
+      INTEGER, DIMENSION(KTOIJ) :: IA_TOIJ
+!@var scale_toij scales for TOIJ diagnostics
+      REAL*8, DIMENSION(KTOIJ) :: SCALE_TOIJ
+!@var ijgrid_toij Grid descriptor for TOIJ diagnostics
+       INTEGER, DIMENSION(KTOIJ) :: IJGRID_TOIJ
 !@var TLNST strait diagnostics
       REAL*8, DIMENSION(LMO,NMST,KOLNST,NTM):: TLNST
 #endif
@@ -104,12 +123,14 @@ C****
 #ifdef TRACERS_OCEAN
       REAL*4, DIMENSION(IM,JM,LMO,KTOIJL,NTM)  :: TOIJL4
       REAL*4, DIMENSION(LMO,NMST,KOLNST,NTM):: TLNST4
+      REAL*4, DIMENSION(IM,JM,KTOIJ,NTM)  :: TOIJ4
 !@var TR_HEADER Character string label for individual tracer records
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TROCDIAG01"
 
-      write(TR_MODULE_HEADER(lhead+1:80),'(a20,i2,a1,i4,a9,i4,
-     *  a4)') 'R8 Toijl(im,jm,lmo,',ktoijl,',',ntm,'), Tlnst(',
-     *     LMO*NMST*KOLNST*NTM,'),it'
+      write(TR_MODULE_HEADER(lhead+1:80)
+     *     ,'(a19,i2,a1,i2,a14,i2,a1,i2,a9,i4,a4)')
+     *     'R8 Toijl(im,jm,lmo,',ktoijl,',',ntm,'), Toij(im,jm,',
+     *     ktoij,',',ntm,'), Tlnst(',LMO*NMST*KOLNST*NTM,'),it'
 #endif
       write(MODULE_HEADER(lhead+1:80),'(a13,i2,a13,i2,a1,  i2,a5,i2,
      *  a1,i2,a8,i4,a)') 'R8 Oij(im,jm,',koij,'),Oijl(im,jm,',lmo,',',
@@ -119,7 +140,7 @@ C****
       CASE (IOWRITE,IOWRITE_MON)  ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,OIJ,OIJL,OL,OLNST,it
 #ifdef TRACERS_OCEAN
-        WRITE (kunit,err=10) TR_MODULE_HEADER,TOIJL,TLNST,it
+        WRITE (kunit,err=10) TR_MODULE_HEADER,TOIJL,TOIJ,TLNST,it
 #endif
       CASE (IOWRITE_SINGLE)    ! output to acc file
         MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
@@ -128,7 +149,7 @@ C****
 #ifdef TRACERS_OCEAN
         TR_MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
         WRITE (kunit,err=10) TR_MODULE_HEADER,REAL(TOIJL,KIND=4),
-     *       REAL(TLNST,KIND=4),it
+     *       REAL(TOIJ,KIND=4),REAL(TLNST,KIND=4),it
 #endif
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
@@ -146,9 +167,10 @@ C**** accumulate diagnostics
             GO TO 10
           END IF
 #ifdef TRACERS_OCEAN
-          READ (kunit,err=10) TR_HEADER,TOIJL4,TLNST4,it
+          READ (kunit,err=10) TR_HEADER,TOIJL4,TOIJ4,TLNST4,it
 C**** accumulate diagnostics
           TOIJL=TOIJL+TOIJL4
+          TOIJ =TOIJ +TOIJ4
           TLNST=TLNST+TLNST4
           IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",TR_HEADER
@@ -214,6 +236,7 @@ C****
 !@sum  init_ODIAG initialises ocean diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0
+      USE CONSTANT, only : bygrav
       USE MODEL_COM, only : dtsrc
       USE DAGCOM, only : ia_src
       USE ODIAG
@@ -299,6 +322,42 @@ C**** set properties for OIJ diagnostics
       ijgrid_oij(k)=2
 
       k=k+1
+      IJ_HUSI=k
+      lname_oij(k)="Sea ice NS heat flux"
+      sname_oij(k)="oij_husi"
+      units_oij(k)="W"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1./dtsrc
+      ijgrid_oij(k)=2
+
+      k=k+1
+      IJ_HVSI=k
+      lname_oij(k)="Sea ice EW heat flux"
+      sname_oij(k)="oij_hvsi"
+      units_oij(k)="W"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1./dtsrc
+      ijgrid_oij(k)=2
+
+      k=k+1
+      IJ_SUSI=k
+      lname_oij(k)="Sea ice NS salt flux"
+      sname_oij(k)="oij_susi"
+      units_oij(k)="kg/s"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1./dtsrc
+      ijgrid_oij(k)=2
+
+      k=k+1
+      IJ_SVSI=k
+      lname_oij(k)="Sea ice EW salt flux"
+      sname_oij(k)="oij_svsi"
+      units_oij(k)="kg/s"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1./dtsrc
+      ijgrid_oij(k)=2
+
+      k=k+1
       IJ_HBL=k
       lname_oij(k)="Ocean Boundary layer depth (KPP) x PO4"
       sname_oij(k)="oij_hbl"
@@ -334,29 +393,59 @@ C**** set properties for OIJ diagnostics
       scale_oij(k)=0.25
       ijgrid_oij(k)=1
 
-c      k=k+1
-c      IJ_OGEOZ=k
-c      lname_oij(k)="Ocean surface height"
-c      sname_oij(k)="oij_ogeoz"
-c      units_oij(k)="m"
-c      ia_oij(k)=ia_src
-c      scale_oij(k)=bygrav
-c      ijgrid_oij(k)=1
+      k=k+1
+      IJ_SSH=k
+      lname_oij(k)="Ocean surface height"
+      sname_oij(k)="oij_ssh"
+      units_oij(k)="m"
+      ia_oij(k)=ia_src
+      scale_oij(k)=bygrav
+      ijgrid_oij(k)=1
 
-c      k=k+1
-c      IJ_RSI=k
-c      lname_oij(k)="Ocean ice fraction"
-c      sname_oij(k)="oij_rsi"
-c      units_oij(k)="%"
-c      ia_oij(k)=ia_src
-c      scale_oij(k)=100.
-c      ijgrid_oij(k)=1
+      k=k+1
+      IJ_RSI=k
+      lname_oij(k)="Ocean ice fraction"
+      sname_oij(k)="oij_rsi"
+      units_oij(k)="%"
+      ia_oij(k)=ia_src
+      scale_oij(k)=100.
+      ijgrid_oij(k)=1
 
       if (k.gt.KOIJ) then
         write(6,*) "Too many OIJ diagnostics: increase KOIJ to at least"
      *       ,k
         stop "OIJ diagnostic error"
       end if
+
+#ifdef TRACERS_OCEAN
+C**** simple tracer diags same description for all tracers
+C**** set properties for TOIJ diagnostics
+      k=0
+     
+      k=k+1
+      TOIJ_TUSI=k
+      lname_toij(k)="Sea ice NS tracer flux"
+      sname_toij(k)="toij_tusi"
+      units_toij(k)="kg/s"
+      ia_toij(k)=ia_src
+      scale_toij(k)=1./dtsrc
+      ijgrid_toij(k)=2
+
+      k=k+1
+      TOIJ_TVSI=k
+      lname_toij(k)="Sea ice EW tracer flux"
+      sname_toij(k)="toij_tvsi"
+      units_toij(k)="kg/s"
+      ia_toij(k)=ia_src
+      scale_toij(k)=1./dtsrc
+      ijgrid_toij(k)=2
+
+      if (k.gt.KTOIJ) then
+        write(6,*) "Too many TOIJ diags: increase KTOIJ to at least"
+     *       ,k
+        stop "TOIJ diagnostic error"
+      end if
+#endif
 
 C**** Set up oceanic component conservation diagnostics
 C**** Oceanic mass

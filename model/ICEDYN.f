@@ -103,7 +103,7 @@ C**** Dynamic sea ice should be on the ocean grid
       USE FLUXES, only : dmua,dmva,dmui,dmvi,UI2rho
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
-      USE ODIAG, only : oij,ij_usi,ij_vsi,ij_dmui,ij_dmvi,ij_pice !,ij_rsi
+      USE ODIAG, only : oij,ij_usi,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi
       IMPLICIT NONE
       SAVE
 C****
@@ -592,7 +592,7 @@ C**** calculate mass fluxes for the ice advection
             OIJ(I,J,IJ_DMVI)=OIJ(I,J,IJ_DMVI)+DMVI(i,j)
           END IF
           OIJ(I,J,IJ_PICE)=OIJ(I,J,IJ_PICE)+ RSI(I,J)*press(i+1,j)
-c         OIJ(I,J,IJ_RSI) =OIJ(I,J,IJ_RSI) + RSI(I,J)
+          OIJ(I,J,IJ_RSI) =OIJ(I,J,IJ_RSI) + RSI(I,J)
           I=IP1
         END DO
       END DO
@@ -600,7 +600,7 @@ c         OIJ(I,J,IJ_RSI) =OIJ(I,J,IJ_RSI) + RSI(I,J)
       USIDT(1:IM,JM)=USI(1,JM)*DTS
       OIJ(1,JM,IJ_USI) =OIJ(1,JM,IJ_USI) +RSI(1,JM)*USI(1,JM)
       OIJ(1,JM,IJ_DMUI)=OIJ(1,JM,IJ_DMUI)+DMUI(1,JM)
-c     OIJ(1,JM,IJ_RSI)=OIJ(1,JM,IJ_RSI)+ RSI(1,JM)
+      OIJ(1,JM,IJ_RSI)=OIJ(1,JM,IJ_RSI)+ RSI(1,JM)
 C****
       END SUBROUTINE DYNSI
 
@@ -1339,7 +1339,11 @@ C NOW THE SECOND HALF
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE ODIAG, only : oij,ij_musi,ij_mvsi
+      USE ODIAG, only : oij,ij_musi,ij_mvsi,ij_husi,ij_hvsi,ij_susi
+     *     ,ij_svsi
+#ifdef TRACERS_OCEAN
+     *     ,toij,toij_tusi,toij_tvsi
+#endif
       USE FLUXES, only : gtemp
 #ifdef TRACERS_WATER
      *     ,gtracer
@@ -1407,8 +1411,7 @@ C****
 C**** North-South Advection of Sea Ice
 C****
       SFASI  = 0.
-      DO 5 K=1,NTRICE
-    5 SFMSI(K) = 0.
+      SFMSI(1:NTRICE) = 0.
       DO 340 I=1,IM
 C****
 C**** Calculate south-north sea ice fluxes at grid box edges
@@ -1416,53 +1419,63 @@ C****
       DO 120 J=2,JM-2
       IF(VSIDT(I,J).eq.0.)  GO TO 120
       FAW(J) = VSIDT(I,J)*DXV(J)
-      IF(VSIDT(I,J).gt.0.)  GO TO 110
+      IF(VSIDT(I,J).le.0.) THEN
 C**** Sea ice velocity is southward at grid box edge
-      FASI(J) =FAW(J)*(RSI(I,J+1)-(1d0+FAW(J)*BYDXYP(J+1))*RSIY(I,J+1))
-      FXSI(J) = FAW(J)*RSIX(I,J+1)
-      FYSI(J) = FAW(J)*
-     *         (FAW(J)*BYDXYP(J+1)*FAW(J)*RSIY(I,J+1) - 3d0*FASI(J))
-      DO 105 K=1,NTRICE
-  105 FMSI(K,J) = FASI(J)*MHS(K,I,J+1)
-         OIJ(I,J,IJ_MVSI) = OIJ(I,J,IJ_MVSI) + (FMSI(1,J)+FMSI(2,J))
-      GO TO 120
+        FASI(J)=FAW(J)*(RSI(I,J+1)-(1d0+FAW(J)*BYDXYP(J+1))*RSIY(I,J+1))
+        FXSI(J)=FAW(J)*RSIX(I,J+1)
+        FYSI(J)=FAW(J)*
+     *       (FAW(J)*BYDXYP(J+1)*FAW(J)*RSIY(I,J+1) - 3d0*FASI(J))
+        FMSI(1:NTRICE,J) = FASI(J)*MHS(1:NTRICE,I,J+1)
+      ELSE
 C**** Sea ice velocity is northward at grid box edge
-  110 FASI(J) = FAW(J)*(RSI(I,J)+(1d0-FAW(J)*BYDXYP(J))*RSIY(I,J))
-      FXSI(J) = FAW(J)*RSIX(I,J)
-      FYSI(J) = FAW(J)*(FAW(J)*BYDXYP(J)*FAW(J)*RSIY(I,J)-3d0*FASI(J))
-      DO 115 K=1,NTRICE
-  115 FMSI(K,J) = FASI(J)*MHS(K,I,J)
-         OIJ(I,J,IJ_MVSI) = OIJ(I,J,IJ_MVSI) + (FMSI(1,J)+FMSI(2,J))
+        FASI(J)=FAW(J)*(RSI(I,J)+(1d0-FAW(J)*BYDXYP(J))*RSIY(I,J))
+        FXSI(J)=FAW(J)*RSIX(I,J)
+        FYSI(J)=FAW(J)*(FAW(J)*BYDXYP(J)*FAW(J)*RSIY(I,J)-3d0*FASI(J))
+        FMSI(1:NTRICE,J) = FASI(J)*MHS(1:NTRICE,I,J)
+      END IF
+         OIJ(I,J,IJ_MVSI)=OIJ(I,J,IJ_MVSI)+SUM(FMSI(1:2,J))
+         OIJ(I,J,IJ_HVSI)=OIJ(I,J,IJ_HVSI)+SUM(FMSI(3:2+LMI,J))
+         OIJ(I,J,IJ_SVSI)=OIJ(I,J,IJ_SVSI)+SUM(FMSI(3+LMI:2+2*LMI,J))
+#ifdef TRACERS_OCEAN
+         DO ITR=1,NTM
+           TOIJ(I,J,TOIJ_TVSI,ITR)=TOIJ(I,J,TOIJ_TVSI,ITR)+
+     *          SUM(FMSI(3+(1+ITR)*LMI:2+(2+ITR)*LMI,J))
+         END DO
+#endif
   120 CONTINUE
 C****
 C**** Calculate south-north sea ice fluxes near North Pole
 C****
       IF(VSIDT(I,JM-1).eq.0.)  GO TO 200
       FAW(JM-1) = VSIDT(I,JM-1)*DXV(JM-1)
-      IF(VSIDT(I,JM-1).gt.0.)  GO TO 130
+      IF(VSIDT(I,JM-1).le.0.) THEN
 C**** Sea ice velocity is southward from North Pole box
-      FASI(JM-1) = FAW(JM-1)*RSI(1,JM)
-      FXSI(JM-1) = 0.
-      FYSI(JM-1) = -FAW(JM-1)*FASI(JM-1)
-      DO 125 K=1,NTRICE
-  125 FMSI(K,JM-1) = FASI(JM-1)*MHS(K,1,JM)
-         OIJ(I,JM-1,IJ_MVSI) = OIJ(I,JM-1,IJ_MVSI) +
-     *     (FMSI(1,JM-1)+FMSI(2,JM-1))
-      GO TO 140
+        FASI(JM-1) = FAW(JM-1)*RSI(1,JM)
+        FXSI(JM-1) = 0.
+        FYSI(JM-1) = -FAW(JM-1)*FASI(JM-1)
+        FMSI(1:NTRICE,JM-1) = FASI(JM-1)*MHS(1:NTRICE,1,JM)
+      ELSE
 C**** Sea ice velocity is northward into North Pole box
-  130 FASI(JM-1) = FAW(JM-1)*
-     *  (RSI(I,JM-1)+(1d0-FAW(JM-1)*BYDXYP(JM-1))*RSIY(I,JM-1))
-      FXSI(JM-1) = FAW(JM-1)*RSIX(I,JM-1)
-      FYSI(JM-1) = FAW(JM-1)*
+        FASI(JM-1) = FAW(JM-1)*
+     *       (RSI(I,JM-1)+(1d0-FAW(JM-1)*BYDXYP(JM-1))*RSIY(I,JM-1))
+        FXSI(JM-1) = FAW(JM-1)*RSIX(I,JM-1)
+        FYSI(JM-1) = FAW(JM-1)*
      *  (FAW(JM-1)*BYDXYP(JM-1)*FAW(JM-1)*RSIY(I,JM-1)-3d0*FASI(JM-1))
-      DO 135 K=1,NTRICE
-  135 FMSI(K,JM-1) = FASI(JM-1)*MHS(K,I,JM-1)
-         OIJ(I,JM-1,IJ_MVSI) = OIJ(I,JM-1,IJ_MVSI) +
-     *     (FMSI(1,JM-1)+FMSI(2,JM-1))
+        FMSI(1:NTRICE,JM-1) = FASI(JM-1)*MHS(1:NTRICE,I,JM-1)
+      END IF
 C**** Accumulate sea ice leaving and entering North Pole box
-  140 SFASI = SFASI + FASI(JM-1)
-      DO 145 K=1,NTRICE
-  145 SFMSI(K) = SFMSI(K) + FMSI(K,JM-1)
+      SFASI = SFASI + FASI(JM-1)
+      SFMSI(1:NTRICE) = SFMSI(1:NTRICE) + FMSI(1:NTRICE,JM-1)
+         OIJ(I,JM-1,IJ_MVSI)=OIJ(I,JM-1,IJ_MVSI)+SUM(FMSI(1:2,JM-1))
+         OIJ(I,JM-1,IJ_HVSI)=OIJ(I,JM-1,IJ_HVSI)+SUM(FMSI(3:2+LMI,JM-1))
+         OIJ(I,JM-1,IJ_SVSI)=OIJ(I,JM-1,IJ_SVSI)+
+     *        SUM(FMSI(3+LMI:2+2*LMI,JM-1))
+#ifdef TRACERS_OCEAN
+         DO ITR=1,NTM
+           TOIJ(I,JM-1,TOIJ_TVSI,ITR)=TOIJ(I,JM-1,TOIJ_TVSI,ITR)+
+     *          SUM(FMSI(3+(1+ITR)*LMI:2+(2+ITR)*LMI,JM-1))
+         END DO
+#endif
 C****
 C**** Update sea ice variables due to south-north fluxes
 C****
@@ -1592,26 +1605,33 @@ C****
 C**** Calculate west-east sea ice fluxes at grid box edges
 C****
       I=IM
-      DO 420 IP1=1,IM
+      DO IP1=1,IM
       IF(USIDT(I,J).eq.0.)  GO TO 420
       FAW(I) = USIDT(I,J)*DYP(J)
-      IF(USIDT(I,J).gt.0.)  GO TO 410
+      IF(USIDT(I,J).le.0.) THEN
 C**** Sea ice velocity is westward at grid box edge
-      FASI(I) =FAW(I)*(RSI(IP1,J)-(1d0+FAW(I)*BYDXYP(J))*RSIX(IP1,J))
-      FXSI(I) =FAW(I)*(FAW(I)*BYDXYP(J)*FAW(I)*RSIX(IP1,J)-3d0*FASI(I))
-      FYSI(I) = FAW(I)*RSIY(IP1,J)
-      DO 405 K=1,NTRICE
-  405 FMSI(K,I) = FASI(I)*MHS(K,IP1,J)
-         OIJ(I,J,IJ_MUSI) = OIJ(I,J,IJ_MUSI) + (FMSI(1,I)+FMSI(2,I))
-      GO TO 420
+        FASI(I)=FAW(I)*(RSI(IP1,J)-(1d0+FAW(I)*BYDXYP(J))*RSIX(IP1,J))
+        FXSI(I)=FAW(I)*(FAW(I)*BYDXYP(J)*FAW(I)*RSIX(IP1,J)-3d0*FASI(I))
+        FYSI(I)=FAW(I)*RSIY(IP1,J)
+        FMSI(1:NTRICE,I) = FASI(I)*MHS(1:NTRICE,IP1,J)
+      ELSE
 C**** Sea ice velocity is eastward at grid box edge
-  410 FASI(I) = FAW(I)*(RSI(I,J)+(1d0-FAW(I)*BYDXYP(J))*RSIX(I,J))
-      FXSI(I) = FAW(I)*(FAW(I)*BYDXYP(J)*FAW(I)*RSIX(I,J)-3d0*FASI(I))
-      FYSI(I) = FAW(I)*RSIY(I,J)
-      DO 415 K=1,NTRICE
-  415 FMSI(K,I) = FASI(I)*MHS(K,I,J)
-         OIJ(I,J,IJ_MUSI) = OIJ(I,J,IJ_MUSI) + (FMSI(1,I)+FMSI(2,I))
+        FASI(I)=FAW(I)*(RSI(I,J)+(1d0-FAW(I)*BYDXYP(J))*RSIX(I,J))
+        FXSI(I)=FAW(I)*(FAW(I)*BYDXYP(J)*FAW(I)*RSIX(I,J)-3d0*FASI(I))
+        FYSI(I)=FAW(I)*RSIY(I,J)
+        FMSI(1:NTRICE,I) = FASI(I)*MHS(1:NTRICE,I,J)
+      END IF
+         OIJ(I,J,IJ_MUSI)=OIJ(I,J,IJ_MUSI) + SUM(FMSI(1:2,I))
+         OIJ(I,J,IJ_HUSI)=OIJ(I,J,IJ_HUSI) + SUM(FMSI(3:2+LMI,I))
+         OIJ(I,J,IJ_SUSI)=OIJ(I,J,IJ_SUSI) + SUM(FMSI(3+LMI:2+2*LMI,I))
+#ifdef TRACERS_OCEAN
+         DO ITR=1,NTM
+           TOIJ(I,J,TOIJ_TUSI,ITR)=TOIJ(I,J,TOIJ_TUSI,ITR)+
+     *          SUM(FMSI(3+(1+ITR)*LMI:2+(2+ITR)*LMI,I))
+         END DO
+#endif
   420 I=IP1
+      END DO
 C****
 C**** Update sea ice variables due to west-east fluxes
 C****
