@@ -699,10 +699,7 @@ C     OUTPUT DATA
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
      *     ,n_OCIA,N_OCII
-      USE TRACER_DIAG_COM, only: taijs,ijts_fc
-#ifdef TRACERS_AEROSOLS_Koch
-     *     ,ijts_tau
-#endif
+      USE TRACER_DIAG_COM, only: taijs,ijts_fc,ijts_tau
 #endif
       IMPLICIT NONE
 C
