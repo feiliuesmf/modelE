@@ -874,7 +874,7 @@ c**** adjust canopy conductance for soil water potential
 !----------------------------------------------------------------------!
 ! adf
       real*8 I0dr,I0df,tk,CiPa,prpa,pcp,Kc,Oi,Ko,n1,n2,Acan,Amax,dqs
-      real*8 cncn,Ntot,Rcan,Anet,Amax_net,dcnc,dcnc_max,gt,Ca,Cin
+      real*8 cncn,Ntot,Rcan,Anet,Amax_net,dcnc,dcnc_max,gt,Ca
 !----------------------------------------------------------------------!
       cnc=betad*alaie/rs
 c**** adjust canopy conductance for incoming solar radiation
@@ -975,6 +975,8 @@ c**** adjust canopy conductance for incoming solar radiation
       m2=Ci/(Ci+Kc*(1.0+Oi/Ko))
       msat=min(m1*n1,m2*n2)
 !----------------------------------------------------------------------!
+ccc "qsimp" is supposed to return S, isn't it ? - I.A.
+      s = 1.d0 ! hack - have no idea what this value is ...
       return
       end subroutine qsimp
 !----------------------------------------------------------------------!

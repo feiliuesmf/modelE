@@ -451,9 +451,9 @@ c  define extra variables to be passed in surfc:
 ! adf Fraction of solar radiation at ground that is direct beam.
       fdir=FSRDIR(i,j)
 ! Internal foliage CO2 concentration (mol/m3).
-      Ci=Cint(i,j)   ; Cin=Ci  ! needed to prevent div.check , why ?
+      Ci=Cint(i,j)  ! ; Cin=Ci  ! needed to prevent div.check , why ?
 ! Foliage surface mixing ratio (kg/kg).
-      Qf=Qfol(i,j)   ; Qfn=Qf
+      Qf=Qfol(i,j)  ! ; Qfn=Qf
 !----------------------------------------------------------------------!
   !    zs    =zgs  !!! will not need after qsbal is replaced
   !    z1    =zmix  !!! will not need after qsbal is replaced
