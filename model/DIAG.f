@@ -567,9 +567,9 @@ C****
       CALL CHECKSUM(grid, U, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, U, FROM=NORTH)
 
-      I=IM
       DO L=1,LM
       DO J=J_0S,J_1S
+      I=IM
       DO IP1=1,IM
         AIJ(I,J,IJ_PUQ)=AIJ(I,J,IJ_PUQ)+(PLIJ(L,I,J)+PLIJ(L,IP1,J))*
      *       (U(I,J,L)+U(I,J+1,L))*(Q(I,J,L)+Q(IP1,J,L))*DSIG(L)
