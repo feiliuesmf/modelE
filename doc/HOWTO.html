@@ -360,7 +360,15 @@ ocean-atmosphere version. Further examples represent qflux models with
 deep diffusion (E001qd.R), a stratospheric model (E001M23.R), a tracer
 model (E001tr.R) etc. These can be used as templates for any runs
 you do; unlike the E1... examples, the E0... are not tested for
-radiative balance.
+radiative balance. 
+
+Please note that gmake is not very happy about 'TAB' characters in the
+file, this might lead to strange errors like:
+
+<pre><tt>
+f77 ERROR:  no source or object file given
+gmake: *** [.f] Error 2
+</tt></pre>
 
 <OL>
    <LI> <A name="part1_1a"><b> How to select a rundeck name </b></A>
