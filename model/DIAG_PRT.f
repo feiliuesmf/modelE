@@ -1614,10 +1614,10 @@ C**** output full or approximate version
       BX=0.
       DO 720 K=2,KM-1
       DO 720 J=2,JM-1
-      AX(J,K)=((AJK(J,K,JK_TOTNTMOM)-
+      if (AJK(J,K,JK_DPA).gt.0)  AX(J,K)=((AJK(J,K,JK_TOTNTMOM)-
      &  AJK(J,K,JK_ZMFNTMOM))*DXV(J)-(AJK(J+1,K,JK_TOTNTMOM)-
      *  AJK(J+1,K,JK_ZMFNTMOM))*DXV(J+1))/
-     &        (AJK(J,K,JK_DPA)*DXYP(J)+teeny)+
+     &        (AJK(J,K,JK_DPA)*DXYP(J))+
      *  .125*((AJK(J,K,JK_VTAMEDDY)-AJK(J,K-1,JK_VTAMEDDY))/
      &        (AJK(J,K,JK_DPB)*DXYV(J)+teeny)+
      * (AJK(J+1,K,JK_VTAMEDDY)-AJK(J+1,K-1,JK_VTAMEDDY))/
@@ -1700,10 +1700,10 @@ C**** TEMPERATURE: RATE OF CHANGE, ADVECTION, EDDY CONVERGENCE
       cx = 0.
       do k=2,km-1
       do j=2,jm-1
-        CX(J,K)=.25*(
+        if (AJK(J,K,JK_DPA).gt.0.) CX(J,K)=.25*(
      &     (AJK(J,  K,JK_TOTNTSH)-AJK(J,  K,JK_ZMFNTSH))*DXV(J)-
      &     (AJK(J+1,K,JK_TOTNTSH)-AJK(J+1,K,JK_ZMFNTSH))*DXV(J+1))/
-     &     (AJK(J,K,JK_DPA)*DXYP(J)+teeny)+
+     &     (AJK(J,K,JK_DPA)*DXYP(J))+
      *     (AJK(J,K,JK_EDDVTPT)  -AJK(J,K-1,JK_EDDVTPT))/
      &     (PM(K-1)-PM(K))*BYIADA*PKM(K)
       end do
