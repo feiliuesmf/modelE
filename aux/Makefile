@@ -32,7 +32,7 @@ NCLIB	= /usr/local/netcdf-3.4/lib64/libnetcdf.a
 #
 
 cmp:    CMPE001.f 
-	$(F90) $(FFLAGS) -o CMPE001 CMPE001.f
+	$(F90) $(FFLAGS) -o $(BIN_DIR)/CMPE001 CMPE001.f
 
 conv_rsf: conv_rsf.o $(MODEL_DIR)/gcmlib.a
 	$(F90) $(FFLAGS) -o $(BIN_DIR)/conv_rsf $^
