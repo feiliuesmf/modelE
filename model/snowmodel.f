@@ -62,7 +62,7 @@ ccc pass extra water to the lower layers
           ice = -hsn(n)/lat_fusion
           free_water = wsn(n) - ice
 c!!!                may be ice*max_fract_water ??
-          water_down = max(0., free_water - wsn(n)*max_fract_water)
+          water_down = max(0.d0, free_water - wsn(n)*max_fract_water)
           wsn(n) = wsn(n) - water_down
           !/* should I reduce dz here ??? */
           !/* dz(n) = dz(n) * min( ice/ice_old, 1. )  */
