@@ -61,6 +61,9 @@
 !@dbparam qflux_fix an energy leak (default=0; no fix for continuity)
       INTEGER :: qflux_fix=0
 
+!@dbparam qfluxX multiplying factor for qfluxes 
+      REAL*8 :: qfluxX=1.
+
       CONTAINS
 
       SUBROUTINE OSTRUC(QTCHNG)
@@ -554,7 +557,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE SEAICE, only : qsfix, osurf_tilt
       USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
-     *     ,iu_ocnml,tocean,ocn_cycl,sss0,qflux_fix
+     *     ,iu_ocnml,tocean,ocn_cycl,sss0,qflux_fix,qfluxX
       USE DAGCOM, only : npts,icon_OCE,conpt0
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
@@ -578,6 +581,8 @@ C****   set conservation diagnostic for ocean heat
       if (istart.le.0) return
 
       call sync_param( "qflux_fix",qflux_fix)
+
+      call sync_param( "qfluxX"   ,qfluxX)
 
 C**** if starting from AIC/GIC files need additional read for ocean
       if (istart.le.2) then
@@ -820,7 +825,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,trsi0
 #endif
-      USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,osourc,
+      USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,osourc,qfluxX,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       IMPLICIT NONE
 C**** grid box variables
@@ -861,7 +866,7 @@ C**** get river runoff/iceberg melt flux
 
           IF (KOCEAN .ge. 1) THEN
             WTRO=Z1O(I,J)*RHOWS
-            OTDT=DTSRC*(OTA(I,J,4)*SN4ANG+OTB(I,J,4)*CS4ANG
+            OTDT=qfluxX*DTSRC*(OTA(I,J,4)*SN4ANG+OTB(I,J,4)*CS4ANG
      *           +OTA(I,J,3)*SN3ANG+OTB(I,J,3)*CS3ANG
      *           +OTA(I,J,2)*SN2ANG+OTB(I,J,2)*CS2ANG
      *           +OTA(I,J,1)*SINANG+OTB(I,J,1)*COSANG+OTC(I,J))
