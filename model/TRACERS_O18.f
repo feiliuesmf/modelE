@@ -293,7 +293,7 @@ C****
       subroutine get_frac(itype,ws,tg1,q1,qg,trname,trc1,trs1)
 !@sum get_frac calculated fractionation factors during evaporation
 !@auth Gavin Schmidt
-      use const, only :: tf
+      use constant, only : tf
       implicit none
       real*8, intent(in) :: ws,tg1,q1,qg
       integer, intent(in) :: itype
@@ -301,7 +301,7 @@ C****
 !@var trc1 factor multiplying trcnst in PBL
 !@var trs1 factor multiplying trsf in PBL
       real*8, intent(out) :: trc1,trs1
-      real*8 frac,fk
+      real*8 frac,fk,fracvl,fracvs,fraclk
 
 C**** Isotope tracers have different fractionations dependent on
 C**** type and direction of flux

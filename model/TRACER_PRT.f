@@ -801,7 +801,7 @@ C****
       DO 220 J=JRANGE_HEMI(1,JHEMI,JG),JRANGE_HEMI(2,JHEMI,JG)
       FLATJ = AX(J,L)*SCALET*SCALEJ(J)*SCALEL(L)
          XJL(J,L) = FLATJ
-      MLAT(J) = NINT(FLATJ)
+      MLAT(J) = NINT(MAX(-1d5,MIN(FLATJ,1d5))) ! prevent integer overflow
       IF (JWT.EQ.1) THEN     
         ASUM(J) = ASUM(J)+FLATJ  !!!!most
       ELSE
@@ -845,7 +845,7 @@ C****
       ENDIF
       IF (LMAX.EQ.1) RETURN
       WRITE (6,903) WORD(JWT),GSUM,HSUM(2),HSUM(1),
-     *    (NINT(ASUM(J)),J=JM,JG,-INC)
+     *    (NINT(MAX(-1d5,MIN(ASUM(J),1d5))),J=JM,JG,-INC)
       RETURN
 C****
   901 FORMAT ('0',30X,A64/2X,32('-'),24A4)
