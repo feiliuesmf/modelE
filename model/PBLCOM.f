@@ -2,7 +2,7 @@
 !@sum  PBLCOM contains the arrays used by the Boundary Layer code
 !@auth Greg Hartke/Ye Cheng
 !@ver  1.0
-      USE E001M12_COM, only : im,jm
+      USE E001M12_COM, only : im,jm,lm
       USE SOCPBL, only : n
       IMPLICIT NONE
       SAVE
@@ -37,6 +37,9 @@
      &     wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
       double precision, dimension(im,jm,4) :: ustar
 
+!@var egcm  3-d turbulent kinetic energy in the whole atmospher 
+       real*8, dimension(im,jm,lm) :: egcm
+
 c      common /bleq/
 c     &     wsavg,tsavg,qsavg,dclev,Z1O,usavg,vsavg,tauavg,ustar
 c!@var BLDATA handle for referring to all boundary layer data
@@ -47,8 +50,8 @@ C**** model related constants (should really be taken from E001M12_COM)
       integer, parameter ::  iq1=im/4+1,iq2=im/2+1,iq3=3*im/4+1
 
 C**** pressure gradient arrays
-      double precision, dimension(im,jm) ::
-     &     dpdxr,dpdyr,phi,dpdxr0,dpdyr0
+c     double precision, dimension(im,jm) ::
+c    &     dpdxr,dpdyr,phi,dpdxr0,dpdyr0
 
       END MODULE PBLCOM
 
@@ -102,10 +105,10 @@ C**** pressure gradient arrays
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,wsavg,tsavg,qsavg,dclev
-     *       ,usavg,vsavg,tauavg,ustar
+     *       ,usavg,vsavg,tauavg,ustar,egcm
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,wsavg,tsavg,qsavg,dclev,usavg
-     *       ,vsavg,tauavg,ustar
+     *       ,vsavg,tauavg,ustar,egcm
         IF (HEADER.NE.MODULE_HEADER) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10

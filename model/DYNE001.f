@@ -352,14 +352,18 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
       USE E001M12_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,sige,ptop
      *     ,zatmo,sig,modd5k,bydsig
-      USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp
+      USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp
       USE DYNAMICS, only : gz,pu,pit,phi,spa,fd,dut,dvt
+     *     ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
+     *     ,PMID,PK
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,JM,LM) :: U,V,T
       REAL*8, DIMENSION(IM,JM) :: P,RFDUX
       REAL*8 UT(IM,JM,LM),VT(IM,JM,LM),TT(IM,JM,LM),
      *  PA(IM,JM),PB(IM,JM),QT(IM,JM,LM)
+      REAL*8, DIMENSION(IM,JM,1) :: PU0
+      real*8 :: rho1
 
       REAL*8 PKE(LM+1)
       REAL*8 SZ(IM,JM,LM),DT4,DT1
@@ -439,6 +443,53 @@ C**** SET POLAR VALUES FROM THOSE AT I=1
  3081    GZ(I,J,L)=PHI(I,J,L)
 C****
 C**** PRESSURE GRADIENT FORCE
+C****
+C**** (Pressure gradient)/density at first layer and surface
+C**** to be used in the PBL
+      DPDY_BY_RHO=0.
+      DPDY_BY_RHO_0=0.
+      IM1=IM
+      DO I=1,IM
+        DO J=2,JM
+          rho1=100.*pmid(1,i,j)/(rgas*t(i,j,1)*pk(1,i,j))
+          FLUX=(PHI(I,J,1)-PHI(I,J-1,1))/DYP(J)
+     2         +100.*(P(I,J)-P(I,J-1))*SIG(1)/(rho1*DYP(J))
+          DPDY_BY_RHO(I,J)=DPDY_BY_RHO(I,J)+FLUX
+          DPDY_BY_RHO(IM1,J)=DPDY_BY_RHO(IM1,J)+FLUX
+          FLUX=(ZATMO(I,J)-ZATMO(I,J-1))/DYP(J)
+     2         +100.*(P(I,J)-P(I,J-1))/(rho1*DYP(J))
+          DPDY_BY_RHO_0(I,J)=DPDY_BY_RHO_0(I,J)+FLUX
+          DPDY_BY_RHO_0(IM1,J)=DPDY_BY_RHO_0(IM1,J)+FLUX
+        END DO
+        IM1=I
+      END DO
+c
+      DPDX_BY_RHO=0.
+      DPDX_BY_RHO_0=0.
+      I=IM
+      DO IP1=1,IM
+        PU(I,1,1)=0.
+        PU(I,JM,1)=0.
+        PU0(I,1,1)=0.
+        PU0(I,JM,1)=0.
+        DO J=2,JM-1
+          rho1=100.*pmid(1,i,j)/(rgas*t(i,j,1)*pk(1,i,j))
+          PU(I,J,1)=(PHI(IP1,J,1)-PHI(I,J,1))/DXP(J)
+     2              +100.*(P(IP1,J)-P(I,J))*SIG(1)/(rho1*DXP(J))
+          PU0(I,J,1)=(ZATMO(IP1,J)-ZATMO(I,J))/DXP(J)
+     2               +100.*(P(IP1,J)-P(I,J))/(rho1*DXP(J))
+        END DO
+        I=IP1
+      END DO
+      CALL AVRX (PU(1,1,1))
+      CALL AVRX (PU0(1,1,1))
+      DO J=2,JM
+        DO I=1,IM
+          DPDX_BY_RHO(I,J)=DPDX_BY_RHO(I,J)+0.5*(PU(I,J,1)+PU(I,J-1,1))
+          DPDX_BY_RHO_0(I,J)=DPDX_BY_RHO_0(I,J)+
+     2                       0.5*(PU0(I,J,1)+PU0(I,J-1,1))
+        END DO
+      END DO
 C****
 C**** NORTH-SOUTH DERIVATIVE AFFECTS THE V-COMPONENT OF MOMENTUM
       DO 3236 L=1,LS1-1

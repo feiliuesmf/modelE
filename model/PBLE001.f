@@ -3,12 +3,9 @@
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@ver  1.0 (from PBLB336E)
 !@cont pbl,advanc,stars,getl1,getl2,dflux,simil,griddr,tfix
-!@cont ccoeff0,getk,trislv,eeqns,tqeqns,uveqns,tqeqns_sta,uveqns_sta
-!@cont getk_old,elevl2,inits,tcheck,ucheck,check1,output,zbrent,rtsafe
+!@cont ccoeff0,getk,eeqns,tqeqns,uveqns,tqeqns_sta,uveqns_sta
+!@cont inits,tcheck,ucheck,check1,output,rtsafe
 
-C --------------------------------------------------------------------
-C     ABL model using second order closure model -- Greg Hartke
-C --------------------------------------------------------------------
       USE CONSTANT, only : grav,omega
       IMPLICIT NONE
       SAVE
@@ -18,8 +15,8 @@ C --------------------------------------------------------------------
 
       real*8, save, dimension(n) :: sub,dia,sup,rhs,rhs1
 
-      real*8 save, rimax,ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5,s0,s1,s2,s3
-     *     ,s4,s5,s6,c1,c2,c3,c4,c5,b1,b123
+      real*8 save, rimax,ghmin,ghmax,gmmax0,d0,d1,d2,d3,d4,d5
+     *     ,s0,s1,s2,s3,s4,s5,s6,c1,c2,c3,c4,c5,c6,b1,b123
 
 C**** boundary layer parameters
       real*8, parameter :: kappa=0.40  !@var kappa  Von Karman constant
@@ -28,11 +25,15 @@ C**** boundary layer parameters
 C**** model related constants (should really be taken from E001M12_COM)
       real*8, parameter :: omega2 = 2.*omega !@var omega2 2*omega (s^-1)
 
-c@var u,v,t,q,e local boundary layer profiles
+!@var  u  local due east component of wind
+!@var  v  local due north component of wind
+!@var  t  local potential temperature
+!@var  q  local specific humidity (a passive scalar)
+!@var  e  local turbulent kinetic energy
       real*8, dimension(n) :: u,v,t,q
       real*8, dimension(n-1) :: e
 
-c@var bgrid log-linear gridding parameter
+!@var bgrid log-linear gridding parameter
       real*8, save :: bgrid
 
       CONTAINS
@@ -44,122 +45,72 @@ c@var bgrid log-linear gridding parameter
 !@sum  advanc  time steps the solutions for the boundary layer variables
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
-c ----------------------------------------------------------------------
-c this routine time advances the solutions for the wind components u and
-c  v, the temperature t, the moisture (or other passive scalar) q, and
-c  the turbulence energy e. the quantities u, v, t, and q are computed
-c  on the primary grid and e is computed on the secondary grid which is
-c  staggered with respect to the primary grid. other quantities computed
-c  on the secondary grid are km, kh, ke, lscale (the turbulence length
-c  scale) and the dimensionless gradients gm and gh.
-c ----------------------------------------------------------------------
-c
-c internal quantities:
-c
-c     n           = number of vertical grid points
-c     u(n)        = x component of wind
-c     v(n)        = y component of wind
-c     t(n)        = temperature
-c     q(n)        = specific humidity (a passive scalar)
-c     e(n-1)      = turbulence energy. computed on the secondary grid.
-c     lscale(n-1) = turbulence length scale. computed on secondary grid.
-c     z(n)        = altitude of primary vertical grid points
-c     zhat(n)     = altitude of secondary vertical grid points
-c     dzh(n-1)    = dz evaluated at zhat(i)
-c     dz(n)       = dz evaluated at z(i)
-c     dxi         = (z(n)-z(1))/(n-1)
-c     km(n-1)     = turbulent momentum tranport coefficient. computed
-c                   on the secondary grid.
-c     kh(n-1)     = turbulent thermometric conductivity. computed
-c                   on the secondary grid.
-c     ke(n-1)     = tranport coefficient for the turbulence energy.
-c                   computed on the secondary grid.
-c     ipbl(im,jm,4) array used to keep track of grid points and surface
-c                   types for which bl properties were computed at the
-c                   last time step. (keeps track of formation and
-c                   melting of ice.)
-c
-c ----------------------------------------------------------------------
-c quantities in the call to this routine:
+!@varinput:
+!@var  z0m  roughness height for momentum (if itype>2)
+!@var  ug   x component of the geostrophic wind
+!@var  vg   y component of the geostrophic wind
+!@var  utop  x component of wind at the top of the layer
+!@var  vtop  y component of wind at the top of the layer
+!@var  ttop  temperature at the top of the layer
+!@var  qtop  moisture at the top of the layer
+!@var  tgrnd  temperature of the ground, at the roughness height
+!@var  qgrnd  moisture at the ground, at the roughness height
+!@var  zgs  height of the surface layer (nominally 10 m)
+!@var  ztop height of the first model layer, approx 200 m if lm=9
+!@var  dtime  time step
+!@var  ilong  longitude identifier
+!@var  jlat   latitude identifier
+!@var  itype  1, ocean; 2, ocean ice; 3, land ice; 4, land
 c   output:
-c     us          = x component of the surface wind (i.e., due east)
-c     vs          = y component of the surface wind (i.e., due north)
-c     tsv         = virtual potential surface temperature
-c     qs          = surface specific moisture
-c     kmsurf      = surface value of km
-c     khsurf      = surface value of kh
-c     ustar       = friction speed
-c     coriol      = 2.*omega*sin(latitude), the coriolis factor
-c     zmix        = magic quantity needed in surfce
-c     from subroutine dflux:{
-c     cm          = dimensionless momentum flux at surface (drag
-c                   coefficient)
-c     ch          = dimensionless heat flux at surface (stanton number)
-c     cq          = dimensionless moisture flux at surface (dalton
-c                   number)
-c     z0m         = roughness height for momentum (if itype=1 or 2)
-c     z0h         = roughness height for heat
-c     z0q         = roughness height for moisture }
-c   input:
-c     z0m         = roughness height for momentum (if itype>2)
-c     ug          = x component of the geostrophic wind
-c     vg          = y component of the geostrophic wind
-c     utop        = x component of wind at the top of the layer
-c     vtop        = y component of wind at the top of the layer
-c     ttop        = temperature at the top of the layer
-c     qtop        = moisture at the top of the layer
-c     tgrnd       = temperature of the ground, i.e., at the roughness
-c                   height for temperature
-c     qgrnd       = moisture at the ground level, i.e., at the roughness
-c                   height for temperature
-c     zgs         = height of the surface layer (nominally 10 m)
-c     ztop        = height of the first model layer, approx 200 m in
-c                   the 9 layer model
-c     dtime       = time step
-c     ilong       = index of the longitude coordinate
-c     jlat        = index of the latitude coordinate (these were used
-c                   for diagnostics in the development phase.)
-c     itype       = 1, ocean
-c                 = 2, ocean ice
-c                 = 3, land ice
-c                 = 4, land
-c ----------------------------------------------------------------------
-c   value of bgrid (=0.293 based on zs1=200.) is chosen to minimize
-c    differences in surface temperature, surface wind direction,
-c    surface momentum flux, surface heat flux, and surface moisture flux
-c    compared to full simulation for z=[10.,3000.] and n=128.
-c ----------------------------------------------------------------------
-c ----------------------------------------------------------------------
+!@var  us  x component of the surface wind (i.e., due east)
+!@var  vs  y component of the surface wind (i.e., due north)
+!@var  tsv  virtual potential surface temperature
+!@var  qs  surface specific moisture
+!@var  kmsurf  surface value of km
+!@var  khsurf  surface value of kh
+!@var  ustar  friction speed
+!@var  coriol  2.*omega*sin(latitude), the coriolis factor
+!@var  zmix  magic quantity needed in surfce
+!@var  cm  dimensionless momentum flux at surface (drag coeff.)
+!@var  ch  dimensionless heat flux at surface (stanton number)
+!@var  cq  dimensionless moisture flux at surface (dalton number)
+!@var  z0m  roughness height for momentum (if itype=1 or 2)
+!@var  z0h  roughness height for heat
+!@var  z0q  roughness height for moisture
+c  internals:
+!@var  n  number of the local, vertical grid points
+!@var  lscale turbulence length scale. computed on secondary grid.
+!@var  z     altitude of primary vertical grid points
+!@var  zhat  altitude of secondary vertical grid points
+!@var  dzh   dz evaluated at zhat(i)
+!@var  dz    dz evaluated at z(i)
+!@var  dxi   (z(n)-z(1))/(n-1)
+!@var  km    turbulent momentum tranport coefficient. 
+!@var  kh    turbulent thermometric conductivity. computed
+!@var  ke    tranport coefficient for the turbulent kinetic energy.
+!@var  ipbl  stores bl properties of last time step
       implicit none
 
-      real*8 us,vs,tsv,qs,kmsurf,khsurf,ustar,ug,vg,cm,ch,cq,
-     2     z0m,z0h,z0q,coriol,utop,vtop,ttop,qtop,tgrnd,
-     3     qgrnd,zgs,ztop,zmix,dtime,ufluxs,vfluxs,
-     4     tfluxs,qfluxs,ustar,tstar,qstar
-      integer ilong,jlat,itype
-      real*8 lmonin
+      real*8, intent(in) :: ug,vg,coriol,utop,vtop,ttop,qtop
+      real*8, intent(in) :: tgrnd,qgrnd,zgs,ztop,dtime
+      real*8, intent(inout) :: z0m
+      real*8, intent(out) :: us,vs,tsv,qs,kmsurf,khsurf,ustar,zmix
+      real*8, intent(out) :: z0h,z0q,cm,ch,cq
+      real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
+      integer, intent(in) :: ilong,jlat,itype
 
+      real*8 :: lmonin,tstar,qstar,ustar0,test
       real*8, parameter ::  tol=1.e-4
-
+      integer :: itmax
       integer, parameter :: iprint= 0,jprint=33  ! set iprint>0 to debug
-
-      real*8 lscale(n-1)
-      real*8, dimension(n) :: z,dz,xi
-      real*8, dimension(n-1) :: zhat,dzh,xihat,km,kh,ke,gm,gh
-      real*8, dimension(n) :: usave,vsave,tsave,qsave,esave
-
-      integer i,j,iter  !@var i,j,iter loop variable
-      integer ::  itmax
-c
-      itmax=1
-
-c     if(abs(bgrid-0.29269d0).gt.0.01) then
-c     write(99,*) bgrid,ilong,jlat,itype
-c     endif
+      real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave,esave
+      real*8, dimension(n-1) :: lscale,zhat,dzh,xihat,km,kh,ke,gm,gh
+      integer :: i,j,iter  !@var i,j,iter loop variable
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n)
       zmix=dzh(1)+zgs
 
+      itmax=1
       do i=1,n-1
         usave(i)=u(i)
         vsave(i)=v(i)
@@ -172,8 +123,7 @@ c     endif
       tsave(n)=t(n)
       qsave(n)=q(n)
 
-c ----------------------------------------------------------------------
-c First, make trial advances of the solutions of the prognostic fields.
+c   First, make trial advances of the solutions of the prognostic fields
 c   Must first compute subsidiary quantities such as length scale,
 c   transport coefficients, and field scales.
 c   NB: ustar0 need be defined only if itmax > 1.
@@ -185,12 +135,12 @@ c   Step 1:
      2           u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
      3           km,kh,dzh,itype,n)
 
-      call getl2(e,t,zhat,dzh,lscale,ustar,lmonin,n)
+      call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
       call getk(km,kh,ke,gm,gh,u,v,t,e,lscale,dzh,n)
       call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      2           u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
      3           km,kh,dzh,itype,n)
-c     ustar0=ustar
+      ustar0=ustar
 
       call eeqns(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
      2               ustar,dtime,n)
@@ -204,23 +154,18 @@ c     ustar0=ustar
 
 c     if ((itype.eq.4).or.(itype.eq.3)) then
         if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
-          call tfix(t,z,ttop,tgrnd,lmonin,n)
+          call tfix(t,z,ttop,tgrnd,lmonin,n) !why should we do this?
           itmax=2
         endif
 c     endif
 
-c     call elevl2(e,u,v,t,km,kh,lscale,dzh,ustar,n)
-      call getl2(e,t,zhat,dzh,lscale,ustar,lmonin,n)
+      call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
 
-c ----------------------------------------------------------------------
-c Now iteratively recompute the fields. If itmax > 1, restore commented
-c   code that performs test to see if solution has converged. This
+c   Second, iteratively recompute the fields.
+c   perform test to see if solution has converged. This
 c   condition obtains if ustar remains stable to a defined limit
 c   between iterations.
-c   NB: test need be defined only if itmax > 1. Also, final computation
-c       of lscale (via call to getl2 before line 200) should be included
-c       if itmax > 1.
-c       eeqn is called if level 2.5 is used, elevl2 for level 2 soln.
+c   eeqn is called if level 2.5 is used, level2 for level 2 model
 c   Step 2:
 
       do iter=1,itmax
@@ -230,9 +175,9 @@ c   Step 2:
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
      3             km,kh,dzh,itype,n)
 
-c       test=abs(ustar-ustar0)/(ustar+ustar0)
-c       if (test.lt.tol) go to 300
-c       ustar0=ustar
+        test=abs((ustar-ustar0)/(ustar+ustar0))
+        if (test.lt.tol) exit
+        ustar0=ustar
 
         call eeqns(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
      2                 ustar,dtime,n)
@@ -244,14 +189,9 @@ c       ustar0=ustar
      2              ustar,cm,z0m,utop,vtop,dtime,coriol,
      3              ug,vg,n)
 
-        if ((iter.eq.1).and.(itmax.eq.2)) then
-c         call elevl2(e,u,v,t,km,kh,lscale,dzh,ustar,n)
-          call getl2(e,t,zhat,dzh,lscale,ustar,lmonin,n)
-        endif
+        call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
 
       end do
-300   continue
-c ----------------------------------------------------------------------
 
       us    = u(1)
       vs    = v(1)
@@ -265,7 +205,8 @@ c ----------------------------------------------------------------------
       tfluxs=kh(1)*(t(2)-t(1))/dzh(1)
       qfluxs=kh(1)*(q(2)-q(1))/dzh(1)
 
-c ----------------------------------------------------------------------
+c     call check1(ustar,1,ilong,jlat,2)
+
 c Diagnostics printed at a selected point:
 
       if ((ilong.eq.iprint).and.(jlat.eq.jprint)) then
@@ -275,45 +216,41 @@ c Diagnostics printed at a selected point:
      4              utop,vtop,ttop,qtop,
      5              dtime,bgrid,ilong,jlat,iter,itype,n)
       endif
-c
-c     call check1(ustar,1,ilong,jlat,2)
-c     call check1(u,n,ilong,jlat,1)
-c     call check1(v,n,ilong,jlat,2)
-c     call check1(t,n,ilong,jlat,3)
-c     call check1(q,n,ilong,jlat,4)
-c ----------------------------------------------------------------------
+
       return
       end subroutine advanc
 
       subroutine stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      2                 u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
      3                 km,kh,dzh,itype,n)
-c ----------------------------------------------------------------------
-c Computes the friction speed USTAR, temperature scale TSTAR, and
-c  moisture scale QSTAR. The fluxes of momentum, heat, and moisture
-c  should be constant in the surface layer, with
-c   Momentum flux = USTAR*USTAR
-c   Heat flux     = USTAR*TSTAR
-c   MOISTURE flux = USTAR*QSTAR
-c LMONIN is the Monin-Obukhov length scale.
-c The call to dflux computes the drag coefficient, Stanton number, and
-c  Dalton number.
-c ----------------------------------------------------------------------
+!@sum computes QSTAR,TSTAR and QSTAR
+!@sum Momentum flux = USTAR*USTAR
+!@sum Heat flux     = USTAR*TSTAR
+!@sum MOISTURE flux = USTAR*QSTAR
+!@sum 
+!@sum 
+!@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
+!@ver  1.0 (from PBLB336E)
+!@var USTAR the friction speed
+!@var TSTAR the temperature scale 
+!@var QSTAR the moisture scale
+!@var LMONIN the Monin-Obukhov length scale
       implicit none
 
       real*8, parameter ::  smax=0.25,smin=0.005,cmax=smax*smax,
      *     cmin=smin*smin
       integer, intent(in) :: itype,n
-      real*8 u(n),v(n),t(n),q(n),z(n)
-      real*8 km(n-1),kh(n-1),dzh(n-1)
-      real*8 lmonin
-      real*8 ustar,tstar,qstar,tgrnd,qgrnd,z0m,z0h,z0q,cm,ch,cq
+      real*8, dimension(n), intent(in) :: u,v,t,q,z
+      real*8, dimension(n-1), intent(in) :: km,kh,dzh
+      real*8, intent(in) :: tgrnd,qgrnd
+      real*8, intent(inout) :: z0m
+      real*8, intent(out) :: ustar,tstar,qstar,lmonin
+      real*8, intent(out) :: z0h,z0q,cm,ch,cq
+
       real*8 dz,vel1,du1,dv1,dudz,dtdz,dqdz,zgs
-c ----------------------------------------------------------------------
+
       dz     = dzh(1)
       vel1   = sqrt(u(1)*u(1)+v(1)*v(1))
-c     vel2   = sqrt(u(2)*u(2)+v(2)*v(2))
-c     dudz   = (vel2-vel1)/dz
       du1=u(2)-u(1)
       dv1=v(2)-v(1)
       dudz=sqrt(du1*du1+dv1*dv1)/dz
@@ -332,23 +269,27 @@ c     dudz   = (vel2-vel1)/dz
       if (abs(qstar).lt.smin*abs(q(1)-qgrnd)) qstar=smin*(q(1)-qgrnd)
 
       lmonin = ustar*ustar*tgrnd/(kappa*grav*tstar)
+c     To compute the drag coefficient,Stanton number and Dalton number
       call dflux(lmonin,ustar,vel1,z0m,z0h,z0q,zgs,cm,ch,cq,itype)
-c ----------------------------------------------------------------------
 
       return
       end subroutine stars
 
       subroutine getl1(e,zhat,dzh,lscale,n)
 !@sum   getl1 computes the master length scale of the turbulence model
+!@sum   on the secondary grid using Balckdard model 
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
-c ----------------------------------------------------------------------
-c  Finds the master length scale of the turbulence model. Keep in mind
-c  that LSCALE is computed on the secondary grid. This routine computes
-c  l0 (the asymptotic length scale) according to the usual prescription
-c  used in the Mellor and Yamada models.
-c ----------------------------------------------------------------------
+!@var e z-profle of turbulent kinetic energy
+!@var lscale z-profile of the turbulent dissipation length scale
+!@var z vertical grids (main, meter)
+!@var zhat vertical grids (secondary, meter)
+!@var dzh(j)  z(j+1)-z(j)
+!@var ustar friction velocity at the surface
+!@var lmonin = Monin-Obukhov length (m)
+!@var n number of vertical subgrid main layers
       implicit none
+
       real*8, parameter :: alpha=0.20
       integer, intent(in) :: n    !@var n array dimension
       real*8, dimension(n-1), intent(out) :: lscale
@@ -367,33 +308,40 @@ c ----------------------------------------------------------------------
       do i=1,n-1
         l1=kappa*zhat(i)
         lscale(i)=l0*l1/(l0+l1)
-c       lscale(i)=l1
       end do
 
       return
       end subroutine getl1
 
-      subroutine getl2(e,t,zhat,dzh,lscale,ustar,lmonin,n)
+      subroutine getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
 !@sum   getl2 computes the master length scale of the turbulence model
+!@sum   on the secondary grid. l0 in this routine is
+!@sum   computed via an analytic approximation to the l0 computed in the
+!@sum   full domain simulation.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
-c ----------------------------------------------------------------------
-c  Computes the master length scale of the turbulence model. Note
-c  that LSCALE is computed on the secondary grid. l0 in this routine is
-c  computed via an analytic approximation to the l0 computed in the
-c  full domain simulation.
-c ----------------------------------------------------------------------
+!@var e z-profle of turbulent kinetic energy
+!@var u z-profle of west-east   velocity component
+!@var v z-profle of south-north velocity component
+!@var t z-profle of potential temperature
+!@var lscale z-profile of the turbulent dissipation length scale
+!@var z vertical grids (main, meter)
+!@var zhat vertical grids (secondary, meter)
+!@var dzh(j)  z(j+1)-z(j)
+!@var ustar friction velocity at the surface
+!@var lmonin = Monin-Obukhov length (m)
+!@var n number of vertical subgrid main layers
       implicit none
 
       real*8, parameter :: lcoef=0.060, omega=7.292e-5
       real*8, dimension(n-1), intent(in) :: e,zhat,dzh
-      real*8, dimension(n), intent(in) :: t
+      real*8, dimension(n), intent(in) :: u,v,t
       real*8, dimension(n-1), intent(out) :: lscale
       real*8, intent(in) :: lmonin,ustar
       integer, intent(in) :: n   !@var n  array dimension
 
       integer :: i   !@var i  array dimension
-      real*8 l0,l1,bvfrq2,lmax
+      real*8 l0,l1,an2,dudz,dvdz,as2,lmax,lmax2
 
       l0=lcoef*sqrt(ustar*abs(lmonin)/omega)
       if (l0.lt.zhat(1)) l0=zhat(1)
@@ -405,8 +353,13 @@ c ----------------------------------------------------------------------
         l1=kappa*zhat(i)
         lscale(i)=l0*l1/(l0+l1)
         if (t(i+1).gt.t(i)) then
-          bvfrq2=grav*log(t(i+1)/t(i))/dzh(i)
-          lmax  =0.75*sqrt(e(i)/(bvfrq2+1.e-40))
+          an2=2.*grav*(t(i+1)-t(i))/((t(i+1)+t(i))*dzh(i))
+          dudz=(u(i+1)-u(i))/dzh(i)
+          dvdz=(v(i+1)-v(i))/dzh(i)
+          as2=dudz*dudz+dvdz*dvdz
+          lmax  =0.53*sqrt(2.*e(i)/(an2+1.e-40))
+          lmax2 =1.95*sqrt(2.*e(i)/(as2+1.e-40))
+          lmax=min(lmax,lmax2)
           if (lscale(i).gt.lmax) lscale(i)=lmax
         endif
         if (lscale(i).lt.0.5*kappa*zhat(i)) lscale(i)=0.5*kappa*zhat(i)
@@ -418,38 +371,29 @@ c ----------------------------------------------------------------------
 
       subroutine dflux(lmonin,ustar,vsurf,z0m,z0h,z0q,zgs,
      2                 cm,ch,cq,itype)
-!@sum   dflux computes (dimensionless) surf.fluxes of mom.,heat,moisture
+!@sum   dflux computes (dimensionless) surface fluxes of momemtun,
+!@sum   heat and moisture (drag coefficient, Stanton number,
+!@sum   and Dalton number)
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
-c *********************************************************************
-c      Calculates drag coefficient, Stanton number, and Dalton number
-c *********************************************************************
+!@var lmonin = Monin-Obukhov length (m)
+!@var ustar  = friction speed (sqrt of surface momentum flux) (m/sec)
+!@var vsurf  = total surface wind speed, used to limit ustar -> cm
+!@var zgs    = height of the surface layer (m)
+!@var itype  = integer identifying surface type
+!@var z0m   = momentum roughness length, prescribed (itype=3,4) (m)
+!@var z0m   = roughness length for momentum, computed (itype=1,2)
+!@var cm    = drag coefficient for momentum
+!@var ch    = Stanton number
+!@var cq    = Dalton number
+!@var z0h   = roughness length for temperature (m)
+!@var z0q   = roughness length for water vapor (m)
       implicit none
-
-!@var    lmonin = Monin-Obukhov length (m)
-      real*8,  intent(in) :: lmonin
-!@var    ustar  = friction speed (sqrt of surface momentum flux) (m/sec)
-      real*8,  intent(in) :: ustar
-!@var    vsurf  = total surface wind speed, used to limit ustar -> cm
-      real*8,  intent(in) :: vsurf
-!@var    zgs    = height of the surface layer (m)
-      real*8,  intent(in) :: zgs
-!@var    itype  = integer identifying surface type
+      
+      real*8,  intent(in) :: lmonin,ustar,vsurf,zgs
       integer,  intent(in) :: itype
-!@var    z0m   = momentum roughness length, prescribed (itype=3,4) (m)
-!@var    z0m   = roughness length for momentum, computed (itype=1,2)
       real*8,  intent(inout) :: z0m
-
-!@var    cm    = drag coefficient for momentum
-      real*8,  intent(out) :: cm
-!@var    ch    = Stanton number
-      real*8,  intent(out) :: ch
-!@var    cq    = Dalton number
-      real*8,  intent(out) :: cq
-!@var    z0h   = roughness length for temperature (m)
-      real*8,  intent(out) :: z0h
-!@var    z0q   = roughness length for water vapor (m)
-      real*8,  intent(out) :: z0q
+      real*8,  intent(out) :: cm,ch,cq,z0h,z0q
 
       real*8, parameter :: nu=1.5e-5,num=0.135*nu,nuh=0.395*nu,
      *     nuq=0.624*nu
@@ -464,7 +408,6 @@ c *********************************************************************
       real*8 r0q,beta,zgsbyl,z0mbyl,z0hbyl,z0qbyl,cmn,chn,cqn,dpsim
      *     ,dpsih,dpsiq,xms,xm0,xhs,xh0,xqs,xq0,dm,dh,dq,lzgsbyz0m
      *     ,lzgsbyz0h,lzgsbyz0q
-
 
       if ((itype.eq.1).or.(itype.eq.2)) then
 c *********************************************************************
@@ -564,33 +507,31 @@ c *********************************************************************
 !@sum   temperature, and moisture mixing ratio at height z.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
+!@var     z       height above ground at which soln is being computed (m)
+!@var     ustar   friction speed (m/sec)
+!@var     tstar   temperature scale (K)
+!@var     qstar   moisture scale
+!@var     z0m     momentum roughness height (m)
+!@var     z0h     temperature roughness height (m)
+!@var     z0q     moisture roughness height (m)
+!@var     lmonin  Monin-Obukhov length scale (m)
+!@var     tg      ground temperature (K)
+!@var     qg      ground moisture mixing ratio
+!@var     u       computed similarity solution for wind speed (m/sec)
+!@var     t       computed similarity solution for temperature (K)
+!@var     q       computed similarity solution for moisture mixing ratio
       implicit none
+
+      real*8,  intent(in) :: z,ustar,tstar,qstar,z0m,z0h,z0q
+      real*8,  intent(in) :: lmonin,tg,qg 
+      real*8,  intent(out) :: u,t,q
 
       real*8, parameter :: sigma=0.95,sigma1=1.-sigma
       real*8, parameter :: gamamu=19.3,gamahu=11.6,gamams=4.8,
      *     gamahs=8./sigma
-      real*8 :: u,t,q,z,ustar,tstar,qstar,
-     2                 z0m,z0h,z0q,lmonin,tg,qg
+     
       real*8 zbyl,z0mbyl,z0hbyl,z0qbyl,dpsim,dpsih,dpsiq,xm,xm0,xh,xh0
      *     ,xq,xq0,lzbyz0m,lzbyz0h,lzbyz0q
-
-c  Inputs:
-c     z      = height above ground at which soln is being computed (m)
-c     ustar  = friction speed (m/sec)
-c     tstar  = temperature scale (K)
-c     qstar  = moisture scale
-c     z0m    = momentum roughness height (m)
-c     z0h    = temperature roughness height (m)
-c     z0q    = moisture roughness height (m)
-c     lmonin = Monin-Obukhov length scale (m)
-c     tg     = ground temperature (K)
-c     qg     = ground moisture mixing ratio
-c
-c  Outputs:
-c     u      = computed similarity solution for wind speed (m/sec)
-c     t      = computed similarity solution for temperature (K)
-c     q      = computed similarity solution for moisture mixing ratio
-c *********************************************************************
 
       zbyl  =z  /lmonin
       z0mbyl=z0m/lmonin
@@ -636,31 +577,48 @@ c *********************************************************************
       end subroutine simil
 
       subroutine griddr(z,zhat,xi,xihat,dz,dzh,z1,zn,bgrid,n)
-c ----------------------------------------------------------------------
-c Computes altitudes on the vertical grid. The XI coordinates are
-c  uniformly spaced and are mapped in a log-linear fashion onto the Z
-c  grid. (The Z's are the physical coords.) Also computes the altitudes
-c  on the secondary grid, ZHAT(I), and the derivatives dxi/dz evaluated
-c  at both all Z(I) and ZHAT(I). The differentials dz and dzh used
-c  throughout the code are
+!@sum Computes altitudes on the vertical grid. The XI coordinates are
+!@sum uniformly spaced and are mapped in a log-linear fashion onto the Z
+!@sum grid. (The Z's are the physical coords.) Also computes the altitudes
+!@sum on the secondary grid, ZHAT(I), and the derivatives dxi/dz evaluated
+!@sum at both all Z(I) and ZHAT(I).
+!@sum The parameter BGRID determines how strongly non-linear the mapping is.
+!@sum BGRID=0 gives linear mapping. Increasing BGRID packs more points into
+!@sum the bottom of the layer.
+!@auth  Ye Cheng/G. Hartke
+!@ver   1.0
+c     Grids:
 c
-c     dz  = deltaxi/(dxi/dz)
-c     dzh = deltaxi/(dxi/dzh)
+c                n   - - - - - - - - - - - - -
+c                    -------------------------  n-1
+c                n-1 - - - - - - - - - - - - -
+c                    -------------------------  j+1
+c     (main,z)   j+1 - - - - - - - - - - - - -
+c     (z)            -------------------------  j     (secondary, zhat)
+c                j   - - - - - - - - - - - - -
+c                    -------------------------  j-1
+c                j-1 - - - - - - - - - - - - -
+c                    -------------------------    2
+c                2   - - - - - - - - - - - - -
+c                    -------------------------    1
+c                1   - - - - - - - - - - - - -
 c
-c  where deltaxi = dxi = (ztop - zbottom)/(n-1)
-c
-c The parameter BGRID determines how strongly non-linear the mapping is.
-c  BGRID=0 gives linear mapping. Increasing BGRID packs more points into
-c  the bottom of the layer.
-c ----------------------------------------------------------------------
+c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
+!@var  z       hieght of main grids (meter)
+!@var  zhat    hieght of secondary grids (meter)
+!@var  xi      an uniformly spaced coordinate mapped to z
+!@var  xihat   an uniformly spaced coordinate mapped to zhat
+!@var  dz   dxi/(dxi/dz)
+!@var  dzh  dxi/(dxi/dzh)
+!@var  dxi  (ztop - zbottom)/(n-1)
       implicit none
 
-      real*8, parameter ::  tolz=1.e-3
       integer, intent(in) :: n    !@var n  array dimension
-      real*8 z(n),zhat(n-1)
-      real*8 xi(n),xihat(n-1)
-      real*8 dz(n),dzh(n-1)
-      real*8 z1,zn,bgrid
+      real*8, dimension(n), intent(out) :: z,xi,dz
+      real*8, dimension(n-1), intent(out) :: zhat,xihat,dzh
+      real*8, intent(in) :: z1,zn,bgrid
+
+      real*8, parameter ::  tolz=1.e-3
       real*8 z1pass,znpass,b,xipass,lznbyz1
       common /grids_99/z1pass,znpass,b,xipass,lznbyz1
       real*8, external :: fgrid,fgrid2
@@ -707,93 +665,6 @@ c ----------------------------------------------------------------------
       return
       end subroutine griddr
 
-      function zbrent(func,x1,x2,tol)
-!@sum   zbrent use Brent's method to solve F(x)=0
-!@auth  Ye Cheng/G. Hartke (from Numerical Recipes)
-!@ver   1.0
-      implicit none
-
-      real*8, parameter :: eps=1.e-3
-      integer, parameter :: itmax=100
-      real*8 :: func  !@func func  external function
-!@var  x1,x2 limits of x (must bracket the root)
-      real*8, intent(in) :: x1,x2
-      real*8, intent(in) :: tol !@var tol tolerance for estimate of root
-      real*8 zbrent
-
-      real*8 a,b,c,d,e,fa,fb,fc,tol1,xm
-      real*8 p,q,r,s
-      integer iter
-
-      a=x1
-      b=x2
-      fa=func(a)
-      fb=func(b)
-      if(fb*fa.gt.0.) then
-        write (99,*)  'root must be bracketed for zbrent.'
-        stop
-      endif
-      fc=fb
-      do iter=1,itmax
-        if(fb*fc.gt.0.) then
-          c=a
-          fc=fa
-          d=b-a
-          e=d
-        endif
-        if(abs(fc).lt.abs(fb)) then
-          a=b
-          b=c
-          c=a
-          fa=fb
-          fb=fc
-          fc=fa
-        endif
-        tol1=2.*eps*abs(b)+0.5*tol
-        xm=.5*(c-b)
-        if(abs(xm).le.tol1 .or. fb.eq.0.)then
-          zbrent=b
-          return
-        endif
-        if(abs(e).ge.tol1 .and. abs(fa).gt.abs(fb)) then
-          s=fb/fa
-          if(a.eq.c) then
-            p=2.*xm*s
-            q=1.-s
-          else
-            q=fa/fc
-            r=fb/fc
-            p=s*(2.*xm*q*(q-r)-(b-a)*(r-1.))
-            q=(q-1.)*(r-1.)*(s-1.)
-          endif
-          if(p.gt.0.) q=-q
-          p=abs(p)
-          if(2.*p .lt. min(3.*xm*q-abs(tol1*q),abs(e*q))) then
-            e=d
-            d=p/q
-          else
-            d=xm
-            e=d
-          endif
-        else
-          d=xm
-          e=d
-        endif
-        a=b
-        fa=fb
-        if(abs(d) .gt. tol1) then
-          b=b+d
-        else
-          b=b+sign(tol1,xm)
-        endif
-        fb=func(b)
-      end do
-      write (99,*) 'zbrent exceeding maximum iterations.'
-      write (99,*) x1,b,x2
-      stop 'zbrent'
-      return
-      end function zbrent
-
       subroutine tfix(t,z,ttop,tgrnd,lmonin,n)
 !@sum   tfix
 !@auth  Ye Cheng/G. Hartke
@@ -819,91 +690,149 @@ c ----------------------------------------------------------------------
       end subroutine tfix
 
       subroutine ccoeff0
-!@sum   ccoeff0 sets/calculates coefficients for level 2 solution
-!@auth  Ye Cheng/G. Hartke
+!@sum   ccoeff0 sets/calculates model coefficients for the
+!@sum   Giss 2000 turbulence model (level2 2/2.5)
+!@auth  Ye Cheng
 !@ver   1.0
       implicit none
 
-      real*8 g1,g2,g3,g4,g5,g6,g7,g8,del
-c----------------------------------------------------------------------
-      b1=16.6
+      ! temperary variable
+      real*8 :: g1,g2,g3,g4,g5,g6,g7,g8,prt,del
+
+      prt=     0.82d0
+      b1=     19.3                                                         
       b123=b1**(2./3.)
-      g1= 1.87
-      g2= 1.63
-      g3= 3.14
-      g4= 1.33
-      g5= 2.31
-      g6= 0.4
-      g7= 0.0
-      g8= 6.73
+      g1=       .1070
+      g2=       .0032
+      g3=       .0864
+      g4=       .1000
+      g5=     11.04
+      g6=       .786
+      g7=       .643
+      g8=       .547
 c
-      D1 = -G5*(7./3.*G4+G8)
-      D2 = G3**2-1./3.*G2**2-1./4.*G5**2*(G6**2-G7**2)
-      D3 = 1./3.*G4*G5**2*(4.*G4+3.*G8)
-      D4 = -G5*( 1./3.*G4*(G3**2-G2**2)+G8*(G3**2-1./3.*G2**2)
-     &      -G4*G5*(G3*G7-1./3.*G2*G6) )
-      D5 = -1./12.*G5**2*(3.*G3**2-G2**2)*(G6**2-G7**2)
-      S0 = 1./2.*G1
-      S1 = 1./18.*G5*( 3.*G4*G5*(G6+G7)+2.*G4*(G2+3*G3)
-     &      -3.*G1*(4.*G4+3.*G8) )
-      S2 = -1./8.*G1*G5**2*(G6**2-G7**2)
-      S3 = 0.
-      S4 = 1./3.*G5
-      S5 = -1./3.*G4*G5**2
-      S6 = -1./36.*G5*( 6.*G1*(3.*G3-G2)-9.*G1*G5*(G6-G7)
-     &      -4.*(3.*G3**2-G2**2) )
-c
-c      x = -B1**2*Gh
-c      y = B1**2*Gm
-c    (B1/2*sm_num/den - Sm_num/Den);
-c
-c      Den  = 1. + D1*Gh + D2*Gm + D3*Gh**2 + D4*Gh*Gm + D5*Gm**2
-c      Sm_num = S0 + S1*Gh + S2*Gm
-c      Sh_num = S4 + S5*Gh + S6*Gm
+      d0 = 3*g5**2
+      d1 = g5*(7*g4+3*g8)
+      d2 = g5**2*(3*g3**2-g2**2)-3.d0/4*(g6**2-g7**2)
+      d3 = g4*(4*g4+3*g8)
+      d4 = g4*(g2*g6-3*g3*g7-g5*(g2**2-g3**2))+g5*g8*(3*g3**2-g2**2)
+      d5 = 1.d0/4*(g2**2-3*g3**2)*(g6**2-g7**2)
+      s0 = 3.d0/2.*g1*g5**2
+      s1 = -g4*(g6+g7)+2*g4*g5*(g1-1.d0/3*g2-g3)+3.d0/2*g1*g5*g8
+      s2 = -3.d0/8*g1*(g6**2-g7**2)
+      s3 = 0.
+      s4 = 2*g5
+      s5 = 2*g4
+      s6 = 2.d0/3*g5*(3*g3**2-g2**2)-1.d0/2*g1*g5*(3*g3-g2)
+     &     +3.d0/4*g1*(g6-g7)
+      write(67,*) "      d0=",d0
+      write(67,*) "      d1=",d1
+      write(67,*) "      d2=",d2
+      write(67,*) "      d3=",d3
+      write(67,*) "      d4=",d4
+      write(67,*) "      d5=",d5
+      write(67,*) "      s0=",s0
+      write(67,*) "      s1=",s1
+      write(67,*) "      s2=",s2
+      write(67,*) "      s3=",s3
+      write(67,*) "      s4=",s4
+      write(67,*) "      s5=",s5
+      write(67,*) "      s6=",s6
 c
 c     find rimax:
-      c1=s5*b1-d3
-      c2=d4-(s1+s6)*b1
-      c3=s2*b1-d5
-      rimax=(-c2-sqrt(c2*c2-4.*c1*c3))/(2*c1)
-      rimax=int(rimax*1000.)/1000.
-      c4 = d1-s4*b1
-      c5 = s0*b1-d2
-c      write(99,*) "in ccoeff0, rimax=",rimax
-c     find ghmax:
-      del=(2.*d1+s4)**2-8.*(2.*d3+s5)
-      ghmax=( b1*s4-d1-sqrt( (b1*s4-d1)**2-4*(d3-b1*s5) ) )
-     &    / (2*(d3-b1*s5))
-      ghmax=int(ghmax*10000.)/10000.
-      ghmin=-0.281d0
-      gmmax0=3.80d0
 c
-c      write(99,*) "g1=",g1
-c      write(99,*) "g2=",g2
-c      write(99,*) "g3=",g3
-c      write(99,*) "g4=",g4
-c      write(99,*) "g5=",g5
-c      write(99,*) "g6=",g6
-c      write(99,*) "g7=",g7
-c      write(99,*) "g8=",g8
-c      write(99,*) "rimax=",rimax
-c      write(99,*) "ghmax=",ghmax
-c      write(99,*) "ghmin=",ghmin
-c      write(99,*) "gmmax0=",gmmax0
+      c1=s5+2*d3
+      c2=-s1+s6+2*d4
+      c3=-s2+2*d5
+      c4=s4+2*d1
+      c5=-s0+2*d2
+      c6=2*d0
+
+      write(67,*) "c1=",c1
+      write(67,*) "c2=",c2
+      write(67,*) "c3=",c3
+c     c4-c6 are used in subroutine level2
+      write(67,*) "c4=",c4
+      write(67,*) "c5=",c5
+      write(67,*) "c6=",c6
+      if(c3.eq.0.) then ! the case of Mellor-Yamada mdel
+          rimax=-c2/c1
+      else
+          rimax=(-c2+sqrt(c2**2-4.*c1*c3))/(2*c1)
+      endif
+      write(67,*) "rimax=",rimax
+      rimax=int(rimax*1000.)/1000.
+      write(67,*) "rimax=",rimax
+c
+c     find ghmin:
+c
+      del=(s4+2*d1)**2-8.*d0*(s5+2*d3)
+      write(67,*) "del=",del
+      ghmin=(-s4-2*d1+sqrt(del))/(2*(s5+2*d3))
+      write(67,*) "ghmin=",ghmin
+      ghmin=int(ghmin*10000.)/10000.
+      write(67,*) "ghmin=",ghmin
+      write(67,*) "ghmin/B1**2=",ghmin/B1**2
+      ghmax=(0.53*b1)**2
+      gmmax0=(1.95*b1)**2
+      write(67,*) "ghmax=",ghmax
+      write(67,*) "gmmax0=",gmmax0
       return
       end subroutine ccoeff0
 
       subroutine getk(km,kh,ke,gma,gha,u,v,t,e,lscale,dzh,n)
+!@sum   getk calculates eddy diffusivities Km, Kh and Ke
+!@sum   Giss 2000 turbulence model at level 2.5
+!@auth  Ye Cheng
+!@ver   1.0
+c     Grids:
+c
+c                n   - - - - - - - - - - - - -
+c                    -------------------------  n-1
+c                n-1 - - - - - - - - - - - - -
+c                    -------------------------  j+1
+c     (main,z)   j+1 - - - - - - - - - - - - -
+c     (z)            -------------------------  j     (secondary, zhat)
+c                j   - - - - - - - - - - - - -
+c                    -------------------------  j-1
+c                j-1 - - - - - - - - - - - - -
+c                    -------------------------    2
+c                2   - - - - - - - - - - - - -
+c                    -------------------------    1
+c                1   - - - - - - - - - - - - -
+c
+c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
+c     at main: u,v,t,q,ke
+c     at edge: e,lscale,km,kh,gm,gh
+!@sum getk computes the turbulent viscosity, Km, and turbulent
+!@sum conductivity, Kh, and turbulent diffusivity , Ke,
+!@sum using the GISS second order closure model (2000)
+!@sum at main: u,v,t,q,ke
+!@sum at secondary: e,lscale,km,kh,gma,gha
+!@auth  Ye Cheng/G. Hartke
+!@ver   1.0
+!@var u,v,t,e,lscale,t_real z-profiles
+!@var dz(j) zhat(j)-zhat(j-1)
+!@var dzh(j)  z(j+1)-z(j)
+!@var km turbulent viscosity for u and v equations
+!@var kh turbulent conductivity for t and q equations
+!@var ke turbulent diffusivity for e equation
+!@var gma normalized velocity gradient, tau**2*as2
+!@var gha normalized temperature gradient, tau**2*an2
+!@var tau B1*lscale/sqrt(2*e)
+!@var as2 shear squared, (dudz)**2+(dvdz)**2
+!@car an2 Brunt-Vaisala frequency, grav/T*dTdz
+!@var sq stability constant for e, adjustable
       implicit none
 
-      real*8, parameter ::  sq=0.2
       integer, intent(in) :: n    !@var n  array dimension
-      real*8 km(n-1),kh(n-1),ke(n-1),gma(n-1),gha(n-1)
-      real*8 u(n),v(n),t(n),e(n-1),dzh(n-1)
-      real*8 lscale(n-1)
+      real*8, dimension(n), intent(in) :: u,v,t
+      real*8, dimension(n-1), intent(in) :: e,lscale,dzh
+      real*8, dimension(n-1), intent(out) :: km,kh,ke,gma,gha
 
-      real*8 an2,dudz,dvdz,as2,ell,den,qturb,tau,gh,gm,gmmax,sm,sh
-      integer i,j,iter  !@var i,j,iter loop variable
+      real*8, parameter ::  sq=0.02
+      real*8 :: an2,dudz,dvdz,as2,ell,den,qturb,tau,gh,gm,gmmax,sm,sh
+      integer :: i,j  !@var i,j loop variable
 
 c-----------------------------------------------------------------------
       do i=1,n-1
@@ -913,75 +842,61 @@ c-----------------------------------------------------------------------
         as2=dudz*dudz+dvdz*dvdz
         ell=lscale(i)
         qturb=sqrt(2.*e(i))
-        tau=ell/max(qturb,1.d-20)
-        gh=-tau*tau*an2
+        tau=B1*ell/max(qturb,1.d-20)
+        gh=tau*tau*an2
         gm=tau*tau*as2
         if(gh.lt.ghmin) gh=ghmin
         if(gh.gt.ghmax) gh=ghmax
-        gmmax=(1.+d1*gh+d3*gh*gh)/(d2+d4*gh)
+        gmmax=(d0+d1*gh+d3*gh*gh)/(d2+d4*gh)
         gmmax=min(gmmax,gmmax0)
         if(gm.gt.gmmax) gm=gmmax
-        Den=1.+D1*Gh+D2*Gm+D3*Gh*Gh+D4*Gh*Gm+D5*Gm*Gm
-        sm=(S0+S1*Gh+S2*Gm)/Den
-        sh=(S4+S5*Gh+S6*Gm)/Den
-        km(i)=min(max(ell*qturb*sm,1.5d-5),100.d0)
-        kh(i)=min(max(ell*qturb*sh,2.5d-5),100.d0)
-        ke(i)=min(max(ell*qturb*sq,1.5d-5),100.d0)
+        den=d0+d1*gh+d2*gm+d3*gh*gh+d4*gh*gm+d5*gm*gm
+        sm=(s0+s1*gh+s2*gm)/den
+        sh=(s4+s5*gh+s6*gm)/den
+        km(i)=min(max(tau*e(i)*sm,1.5d-5),100.d0)
+        kh(i)=min(max(tau*e(i)*sh,2.5d-5),100.d0)
+        ke(i)=min(max(tau*e(i)*sq,1.5d-5),100.d0)
         gma(i)=gm
         gha(i)=gh
       end do
-c
-1004  format(16(1pe16.5))
       return
       end subroutine getk
 
-      subroutine trislv(a,b,c,r,u,n)
-c-----to solve the real tridiagonal difference matrix equation
-      implicit none
-
-      integer, intent(in) :: n    !@var n  array dimension
-      real*8 a(n),b(n),c(n),r(n),u(n),gam(40)
-      real*8 bet
-      integer j
-
-      if(b(1).eq.0.) then
-          write(99,*) 'b(1).eq.0.,stop'
-          stop
-      endif
-      bet=b(1)
-      u(1)=r(1)/bet
-      do 11 j=2,n
-          gam(j)=c(j-1)/bet
-          bet=b(j)-a(j)*gam(j)
-          if(bet.eq.0.) then
-              write(99,*) 'bet.eq.0., stop'
-              write(99,*) j,b(j),a(j),gam(j)
-              write(99,*) c(j-1),b(1),r(1),u(1)
-              stop
-          endif
-          u(j)=(r(j)-a(j)*u(j-1))/bet
- 11   continue
-      do 12 j=n-1,1,-1
-          u(j)=u(j)-gam(j+1)*u(j+1)
- 12   continue
-      return
-      end subroutine trislv
-
       subroutine eeqns(esave,e,u,v,t,km,kh,ke,lscale,
      &                     dz,dzh,ustar,dtime,n)
+!@sum integrates differential eqns for e (tridiagonal method)
+!@sum between the surface and the first GCM layer.
+!@sum The boundary conditions at the bottom are:
+!@sum   e(1)=(1/2)*B1**(2/3)*ustar**2
+!@sum at the top, dedz is continuous
+!@auth Ye Cheng/G. Hartke
+!@ver  1.0
+!@var u z-profle of west-east   velocity component
+!@var v z-profle of south-north velocity component
+!@var t z-profle of potential temperature
+!@var km z-profile of turbulent viscosity
+!@var kh z-profile of turbulent conductivity
+!@var ke z-profile of turbulent diffusion in eqn for e
+!@var lscale z-profile of the turbulent dissipation length scale
+!@var z vertical grids (main, meter)
+!@var zhat vertical grids (secondary, meter)
+!@var dz(j) zhat(j)-zhat(j-1)
+!@var dzh(j)  z(j+1)-z(j)
+!@var dtime time step
+!@var ustar friction velocity at the surface
+!@var n number of vertical subgrid main layers
       implicit none
 
       integer, intent(in) :: n    !@var n  array dimension
 
-      real*8 esave(n),e(n-1),u(n),v(n),t(n)
-      real*8 km(n-1),kh(n-1),ke(n-1)
-      real*8 lscale(n-1)
-      real*8 dz(n),dzh(n-1)
+      real*8, intent(in) :: ustar, dtime
+      real*8, dimension(n), intent(in) :: u,v,t,dz
+      real*8, dimension(n-1), intent(in) :: esave,km,kh,ke,lscale,dzh
+      real*8, dimension(n-1), intent(inout) :: e
 
-      real*8 ustar,dtime
-      real*8 an2,dudz,dvdz,as2,qturb
-      integer i,j,iter  !@var i,j,iter loop variable
-c ----------------------------------------------------------------------
+      real*8 :: an2,dudz,dvdz,as2,qturb
+      integer :: i,j,iter  !@var i,j,iter loop variable
+c
 c     sub(j)*e_jm1_kp1+dia(j)*e_j_kp1+sup(j)*e_jp1_kp1 = rhs(j)
 c     from kirk:/u/acyxc/papers/2ndOrder/maple/phik.1,
 c       sub(j)=-dtime*aj*P1a_jm1_k/dxi^2
@@ -998,7 +913,6 @@ c       a(j+1/2) = dxi/dzh(j+1/2)=dxi/dz(j+1)
 c       p1(j-1/2)=0.5*(ke(j)+ke(j-1))
 c       p1(j+1/2)=0.5*(ke(j)+ke(j+1))
 c       ke(j)=sq*lscale(j)*qturb, qturb=sqrt(2.*e(j))
-c ----------------------------------------------------------------------
 c
       do j=2,n-2
           qturb=sqrt(2.*e(j))
@@ -1011,73 +925,81 @@ c
           as2=dudz*dudz+dvdz*dvdz
           rhs(j)=esave(j)+dtime*(km(j)*as2-kh(j)*an2)
        end do
-c
+
       dia(1)=1.
       sup(1)=0.
       rhs(1)=0.5*b123*ustar*ustar
-c
+
       sub(n-1)=-1.
       dia(n-1)=1.
       rhs(n-1)=0.
-c
+
       call TRIDIAG(sub,dia,sup,rhs,e,n-1)
-c
+
       do j=1,n-1
          if(e(j).lt.1.d-20) e(j)=1.d-20
       end do
-c
-      return
+
+      Return
       end subroutine eeqns
 
       subroutine tqeqns(u,v,t0,q0,t,q,z,kh,dz,dzh,
      2                  ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
      3                  ttop,qtop,dtime,n)
-c ----------------------------------------------------------------------
-c this routine computes the matrices for the solutions of the t and q
-c  fields as well as appling the boundary conditions.
-c  the boundary conditions at the bottom are:
-c
-c     kh * dt/dz = ch * usurf * (t - tg)
-c     kh * dq/dz = cq * usurf * (q - qg), evaluated at the lowest level.
-c
-c  at the top, the temperature and moisture are prescribed.
-c
-c the arrays at and aq are the lhs's of the appropriate discretized
-c  equation. the vectors bt and bq are similarly the rhs's.
-c note that t(i) and q(i) that appear in this routine are the
-c  temperature and moisture mixing ratio from the previous time step.
-c ----------------------------------------------------------------------
+!@sum integrates differential eqns for t AND q (tridiagonal method)
+!@sum between the surface and the first GCM layer.
+!@sum The boundary conditions at the bottom are:
+!@sum kh * dt/dz = ch * usurf * (t - tg)
+!@sum kh * dq/dz = cq * usurf * (q - qg)
+!@sum at the top, the temperature and moisture are prescribed.
+!@auth Ye Cheng/G. Hartke
+!@ver  1.0
+!@var u z-profle of west-east   velocity component
+!@var v z-profle of south-north velocity component
+!@var t z-profle of potential temperature
+!@var q z-profle of relative humidity
+!@var t0 z-profle of t at previous time step
+!@var q0 z-profle of q at previous time step
+!@var kh z-profile of turbulent conductivity
+!@var z vertical grids (main, meter)
+!@var zhat vertical grids (secondary, meter)
+!@var dz(j) zhat(j)-zhat(j-1)
+!@var dzh(j)  z(j+1)-z(j)
+!@var ch  dimensionless heat flux at surface (stanton number)
+!@var cq  dimensionless moisture flux at surface (dalton number)
+!@var tstar   temperature scale (K)
+!@var qstar   moisture scale
+!@var z0h  roughness height for heat
+!@var z0q  roughness height for moisture
+!@var tgrnd potentail temperature at the ground
+!@var qgrnd relative humidity at the ground
+!@var ttop potentail temperature at the first GCM layer
+!@var qtop relative humidity at the first GCM layer
+!@var dtime time step
+!@var n number of vertical subgrid main layers
       implicit none
 
-      integer, intent(in) :: n    !@var n  array dimension
-      real*8 u(n),v(n),t0(n),q0(n),t(n),q(n),z(n),kh(n-1)
-      real*8 dz(n),dzh(n-1)
-      real*8 ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
-     3                  ttop,qtop,dtime
+      integer, intent(in) :: n
+      real*8, dimension(n), intent(in) :: u,v,t0,q0,z,dz
+      real*8, dimension(n-1), intent(in) :: dzh,kh
+      real*8, dimension(n), intent(inout) :: t,q
+      real*8, intent(in) :: ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd
+      real*8, intent(in) :: ttop,qtop,dtime
 
-      integer i,j,iter  !@var i,j,iter loop variable
-
-      real*8 wstar3,wstar2,usurf,facth,factq
-c ----------------------------------------------------------------------
-c compute the lhss of the prognostic equations. the (1,j) and (n,j)
-c  components are zeroed to accomodate boundary conditions:
+      real*8 :: wstar3,wstar2,usurf,facth,factq
+      integer :: i,j,iter  !@var i,j,iter loop variable
 
       do i=2,n-1
          sub(i)=-dtime/(dz(i)*dzh(i-1))*kh(i-1)
          sup(i)=-dtime/(dz(i)*dzh(i))*kh(i)
          dia(i)=1.-(sub(i)+sup(i))
       end do
-c ----------------------------------------------------------------------
-c now compute the rhss. components (1) and (n) are assigned as bcs:
 
       do i=2,n-1
         rhs(i)=t0(i)
         rhs1(i)=q0(i)
       end do
-c ----------------------------------------------------------------------
-c finally, apply the boundary conditions that the flux be continuous
-c  across the boundary at the surface (level 1 of the sub-grid scale
-c  model, see comments at beginning of this routine):
+
 c     M.J.Miller et al. 1992:
       wstar3=-1000.*grav*kh(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
      &                        -(q(2)-q(1)) )/dzh(1)
@@ -1097,9 +1019,8 @@ c     M.J.Miller et al. 1992:
       dia(n)  = 1.
       sub(n)  = 0.
       rhs(n) = ttop
-
       call TRIDIAG(sub,dia,sup,rhs,t,n)
-c ----------------------------------------------------------------------
+
       dia(1) = 1.+factq
       rhs1(1)= factq*qgrnd
       rhs1(n) = qtop
@@ -1111,45 +1032,51 @@ c ----------------------------------------------------------------------
       subroutine uveqns(u0,v0,u,v,z,km,dz,dzh,
      2                  ustar,cm,z0m,utop,vtop,dtime,coriol,
      3                  ug,vg,n)
-c ----------------------------------------------------------------------
-c this routine computes the matrices for the solutions of the u and v
-c  fields as well as applying the boundary conditions.
-c  the boundary conditions at the bottom are:
-c
-c     km * du/dz = cm * usurf * u
-c     km * dv/dz = cm * usurf * v, evaluated at the lowest level.
-c
-c  at the top, the winds are prescribed.
-c
-c the arrays au and av are the lhs's of the appropriate discretized
-c  equation. the vectors bu and bv are similarly the rhs's.
-c  nb: u0 and v0 are the velocity components from the previous time
-c      step and u and v are (a) the same as u0 and v0 for the
-c      computation of the predictors, then are (b) the predictors,
-c      i.e., the current iterate of the computed solution.
-c ----------------------------------------------------------------------
+!@sum integrates differential eqns for u and v (tridiagonal method)
+!@sum between the surface and the first GCM layer.
+!@sum The boundary conditions at the bottom are:
+!@sum km * du/dz = cm * usurf * u
+!@sum km * dv/dz = cm * usurf * v
+!@sum  at the top, the winds are prescribed.
+!@auth Ye Cheng/G. Hartke
+!@ver  1.0
+!@var u z-profle of west-east   velocity component
+!@var v z-profle of south-north velocity component
+!@var u0 z-profle of u at previous time step
+!@var v0 z-profle of v at previous time step
+!@var km z-profile of turbulent viscosity
+!@var kh z-profile of turbulent conductivity
+!@var dz(j) zhat(j)-zhat(j-1)
+!@var dzh(j)  z(j+1)-z(j)
+!@var ustar friction velocity at the surface
+!@var cm  dimensionless  momentum flux at surface (drag coeff.)
+!@var ch  dimensionless heat flux at surface (stanton number)
+!@var cq  dimensionless moisture flux at surface (dalton number)
+!@var z0m  roughness height for momentum (if itype=1 or 2)
+!@var utop due east component of the wind at the first GCM layer
+!@var vtop due north component of the wind at the first GCM layer
+!@var dtime time step
+!@var coriol the Coriolis parameter
+!@var ug due east component of the geostrophic wind 
+!@var vg due north component of the geostrophic wind 
+!@var n number of vertical subgrid main layers
       implicit none
 
-      real*8, parameter :: epslon=1.e-40
+      integer, intent(in) :: n
+      real*8, dimension(n), intent(in) :: u0,v0,z,dz
+      real*8, dimension(n), intent(inout) :: u,v
+      real*8, dimension(n-1), intent(in) :: km,dzh
+      real*8, intent(in) :: ustar,cm,z0m,utop,vtop,dtime,coriol,ug,vg
 
-      integer, intent(in) :: n    !@var n  array dimension
-      real*8 u0(n),v0(n),u(n),v(n),z(n)
-      real*8 km(n-1),dz(n),dzh(n-1)
-      real*8 ustar,cm,z0m,utop,vtop,dtime,coriol,ug,vg
-
-      integer i,j,iter  !@var i,j,iter loop variable
-      real*8 factx,facty,dpdx,dpdy,usurf,factor
-c ----------------------------------------------------------------------
-c compute the lhss of the prognostic equations. the (1,j) and (n,j)
-c  components are zeroed to accomodate boundary conditions:
+      real*8 :: factx,facty,dpdx,dpdy,usurf,factor
+      integer :: i,j,iter  !@var i,j,iter loop variable
 
       do i=2,n-1
          sub(i)=-dtime/(dz(i)*dzh(i-1))*km(i-1)
          sup(i)=-dtime/(dz(i)*dzh(i))*km(i)
          dia(i)=1.-(sub(i)+sup(i))
       end do
-c ----------------------------------------------------------------------
-c now compute the rhss. components (1) and (n) are assigned as bcs:
+
       factx=(dpdxr-dpdxr0)/(z(n)-z(1))
       facty=(dpdyr-dpdyr0)/(z(n)-z(1))
       do i=2,n-1
@@ -1160,12 +1087,6 @@ c now compute the rhss. components (1) and (n) are assigned as bcs:
 c       rhs(i)=u0(i)+dtime*coriol*(v(i)-vg)
 c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       end do
-c ----------------------------------------------------------------------
-c finally, apply the boundary conditions that the flux be continuous
-c  across the boundary at the surface (level 1 of the sub-grid scale
-c  model, see comments at beginning of this routine). at the top, the
-c  prognostic fields are set equal to those from the lowest gcm model
-c  level:
 
       usurf  = sqrt(u(1)*u(1)+v(1)*v(1))
       factor = 1.+cm*usurf*dzh(1)/km(1)
@@ -1173,17 +1094,16 @@ c  level:
       dia(1)= factor
       sup(1)= -1.
       rhs(1)  = 0.
-c
+
       dia(n) = 1.
       sub(n) = 0.
       rhs(n)  = utop
-c
+
       rhs1(1)  = 0.
       rhs1(n)  = vtop
-c
+
       call TRIDIAG(sub,dia,sup,rhs,u,n)
       call TRIDIAG(sub,dia,sup,rhs1,v,n)
-c ----------------------------------------------------------------------
 
       return
       end subroutine uveqns
@@ -1191,34 +1111,52 @@ c ----------------------------------------------------------------------
 
       subroutine tqeqns_sta(u,v,t,q,kh,dz,dzh,
      2            ch,cq,tgrnd,qgrnd,ttop,qtop,n)
-c ----------------------------------------------------------------------
-c  computes the static solutions of the t and q
-c  the boundary conditions at the bottom are:
-c     kh * dt/dz = ch * usurf * (t - tg)
-c     kh * dq/dz = cq * usurf * (q - qg), evaluated at the lowest level.
-c  at the top, the temperature and moisture are prescribed.
-c ----------------------------------------------------------------------
+!@sum  computes the static solutions of the t and q
+!@sum  between the surface and the first GCM layer.
+!@sum  The boundary conditions at the bottom are:
+!@sum  kh * dt/dz = ch * usurf * (t - tg)
+!@sum  kh * dq/dz = cq * usurf * (q - qg)
+!@sum  at the top, potential temperature and moisture are prescribed.
+!@auth Ye Cheng/G. Hartke
+!@ver  1.0
+!@var u z-profle of west-east   velocity component
+!@var v z-profle of south-north velocity component
+!@var t z-profle of potential temperature
+!@var q z-profle of relative humidity
+!@var kh z-profile of turbulent conductivity
+!@var z vertical grids (main, meter)
+!@var zhat vertical grids (secondary, meter)
+!@var dz(j) zhat(j)-zhat(j-1)
+!@var dzh(j)  z(j+1)-z(j)
+!@var ch  dimensionless heat flux at surface (stanton number)
+!@var cq  dimensionless moisture flux at surface (dalton number)
+!@var tgrnd potentail temperature at the ground
+!@var qgrnd relative humidity at the ground
+!@var ttop potentail temperature at the first GCM layer
+!@var qtop relative humidity at the first GCM layer
+!@var n number of vertical main subgrid layers
       implicit none
 
-      integer, intent(in) :: n    !@var n  array dimension
-      real*8 u(n),v(n),t(n),q(n),kh(n-1),dz(n),dzh(n-1)
-      real*8 ch,cq,tgrnd,qgrnd,ttop,qtop
+      integer, intent(in) :: n
+      real*8, dimension(n), intent(in) :: u,v,dz
+      real*8, dimension(n), intent(inout) :: t,q
+      real*8, dimension(n-1), intent(in) :: kh,dzh
+      real*8, intent(in) :: ch,cq,tgrnd,qgrnd,ttop,qtop
 
-      integer i,j,iter  !@var i,j,iter loop variable
-      real*8 wstar3,wstar2,usurf,facth,factq
+      real*8 :: wstar3,wstar2,usurf,facth,factq
+      integer :: i,j,iter  !@var i,j,iter loop variable
 
-c ----------------------------------------------------------------------
       do i=2,n-1
          sub(i)=-1./(dz(i)*dzh(i-1))*kh(i-1)
          sup(i)=-1./(dz(i)*dzh(i))*kh(i)
          dia(i)=-(sub(i)+sup(i))
       end do
-c ----------------------------------------------------------------------
+
       do i=2,n-1
         rhs(i)=0.
         rhs1(i)=0.
       end do
-c ----------------------------------------------------------------------
+
 c     M.J.Miller et al. 1992:
       wstar3=-1000.*grav*kh(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
      &                        -(q(2)-q(1)) )/dzh(1)
@@ -1230,7 +1168,7 @@ c     M.J.Miller et al. 1992:
       usurf  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2)
       facth  = ch*usurf*dzh(1)/kh(1)
       factq  = cq*usurf*dzh(1)/kh(1)
-c
+
       dia(1) = 1.+facth
       sup(1) = -1.
       rhs(1) = facth*tgrnd
@@ -1238,42 +1176,59 @@ c
       dia(n)  = 1.
       sub(n)  = 0.
       rhs(n) = ttop
-c
       call TRIDIAG(sub,dia,sup,rhs,t,n)
-c ----------------------------------------------------------------------
+
       dia(1) = 1.+factq
       rhs1(1)= factq*qgrnd
       rhs1(n) = qtop
       call TRIDIAG(sub,dia,sup,rhs1,q,n)
-c
+
       return
       end subroutine tqeqns_sta
 
       subroutine uveqns_sta(u,v,z,km,dz,dzh,
      2            ustar,cm,utop,vtop,coriol,n)
-c ----------------------------------------------------------------------
-c  computes the static solutions of the u and v
-c  the boundary conditions at the bottom are:
-c     km * du/dz = cm * usurf * u
-c     km * dv/dz = cm * usurf * v, evaluated at the lowest level.
-c  at the top, the winds are prescribed.
-c ----------------------------------------------------------------------
+!@sum  computes the static solutions of the u and v
+!@sum  between the surface and the first GCM layer.
+!@sum  The boundary conditions at the bottom are:
+!@sum  km * du/dz = cm * usurf * u
+!@sum  km * dv/dz = cm * usurf * v
+!@sum  at the top, the winds are prescribed.
+!@auth Ye Cheng/G. Hartke
+!@ver  1.0
+!@var u z-profle of west-east   velocity component
+!@var v z-profle of south-north velocity component
+!@var z vertical height at the main grids (meter)
+!@var zhat vertical height at the secondary grids (meter)
+!@var km z-profile of turbulent viscosity
+!@var kh z-profile of turbulent conductivity
+!@var dz(j) zhat(j)-zhat(j-1)
+!@var dzh(j)  z(j+1)-z(j)
+!@var ustar friction velocity at the surface
+!@var cm  dimensionless  momentum flux at surface (drag coeff.)
+!@var ch  dimensionless heat flux at surface (stanton number)
+!@var cq  dimensionless moisture flux at surface (dalton number)
+!@var utop due east component of the wind at the first GCM layer
+!@var vtop due north component of the wind at the first GCM layer
+!@var coriol the Coriolis parameter
+!@var n number of vertical subgrid main layers
       implicit none
 
-      integer, intent(in) :: n    !@var n  array dimension
-      real*8 u(n),v(n),z(n),km(n-1),dz(n),dzh(n-1)
-      real*8 ustar,cm,utop,vtop,coriol
+      integer, intent(in) :: n
+      real*8, dimension(n), intent(in) :: z,dz
+      real*8, dimension(n), intent(inout) :: u,v
+      real*8, dimension(n-1), intent(in) :: km,dzh
+      real*8, intent(in) :: ustar,cm,utop,vtop,coriol
 
-      integer i,j,iter  !@var i,j,iter loop variable
+      real*8 :: factx,facty,dpdx,dpdy,usurf,factor
+      integer :: i,j,iter  !@var i,j,iter loop variable
 
-      real*8 factx,facty,dpdx,dpdy,usurf,factor
-c ----------------------------------------------------------------------
       do i=2,n-1
           sub(i)=-1./(dz(i)*dzh(i-1))*km(i-1)
           sup(i)=-1./(dz(i)*dzh(i))*km(i)
           dia(i)=-(sub(i)+sup(i))
        end do
-c ----------------------------------------------------------------------
+
       factx=(dpdxr-dpdxr0)/(z(n)-z(1))
       facty=(dpdyr-dpdyr0)/(z(n)-z(1))
       write(99,*) factx,facty
@@ -1285,235 +1240,117 @@ c ----------------------------------------------------------------------
 c       rhs(i)=coriol*(v(i)-vg)
 c       rhs1(i)=-coriol*(u(i)-ug)
       end do
-c ----------------------------------------------------------------------
+
       usurf  = sqrt(u(1)*u(1)+v(1)*v(1))
       factor = 1.+cm*usurf*dzh(1)/km(1)
-c
+
       dia(1)= factor
       sup(1)= -1.
       rhs(1)  = 0.
-c
+
       dia(n) = 1.
       sub(n) = 0.
       rhs(n)  = utop
-c
+
       rhs1(1)  = 0.
       rhs1(n)  = vtop
-c
+
       call TRIDIAG(sub,dia,sup,rhs,u,n)
       call TRIDIAG(sub,dia,sup,rhs1,v,n)
-c
+
       return
       end subroutine uveqns_sta
 
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-c     from numerical recipes:
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-      subroutine getk_old(km,kh,gm,gh,u,v,t,e,lscale,z,zhat,dzh,itype,n)
-c ----------------------------------------------------------------------
-c This routine computes the turbulent viscosity, KM, and turbulent
-c  diffusivity, KH. These coefficients are computed using the second
-c  order closure model of Galperin et al. (1988) and are modified under
-c  stable conditions to give proper scaling at large Ri. Two grids are
-c  used in the computation. The quantities U, V, T, and Z are computed
-c  on the primary grid. The quantities E, LSCALE, KM, KH, GM, and GH
-c  are computed on the secondary grid, which is staggered with respect
-c  to the primary grid.
-c
-c Requiring GM be positive results in the requirement GH .le. 0.0233.
-c  The actual limit applied here is 75% of that too make for a cleaner
-c  solution. Actually, this limit is rarely used.
-c
-c The quantities 1.5E-5 and 2.5E-5 m**2/sec added to km and kh below
-c  are the viscosity and thermometric conductivity of air,
-c  respectively.
-c ----------------------------------------------------------------------
-      implicit none
-
-      integer, intent(in) :: n    !@var n  array dimension
-      integer, intent(in) :: itype  !@var itype  surface type
-      real*8 km(n-1),kh(n-1),gm(n-1),gh(n-1)
-      real*8 u(n),v(n),t(n),z(n),zhat(n-1),e(n-1)
-      real*8 dzh(n-1)
-      real*8 lscale(n-1)
-
-      real*8, parameter ::  a1=0.92,b1=16.6,c1=0.08,a2=0.74,b2=10.1,
-     *     sq=0.20
-
-      real*8, parameter ::  f1=-3.*a1*a2*b1*b2+18.*a2*b2*a1*a1+9.*a1*a2
-     *     *a2*b1-54.*a1*a1*a2*a2+9.*a1*a2*b1*b2*c1+54.*a1*a1*a2*b1*c1
-      real*8, parameter ::  f2= 9.*a1*a2*a2*b1+27.*a1*a2*a2*b2+108.*a1
-     *     *a1*a2*a2
-      real*8, parameter ::  f3= 21.*a1*a2+3.*a2*b2+a2*b1
-      real*8, parameter ::  f4= 6.*a1*a1-a1*b1+3.*a1*b1*c1
-      real*8, parameter ::  f5= a1*a1*b1*b1-12.*b1*a1**3+36.*a1**4
-     2              -6.*a1*a1*b1*b1*c1+9.*a1*a1*b1*b1*c1*c1
-     3              +36.*b1*c1*a1**3
-      real*8, parameter ::  f6= 216.*a1*a1*a2*a2-36.*a1*a2*a2*b1+252*a2
-     *     *a1**3-90.*a1*a1*a2*b1*c1-30.*a1*a1*a2*b1-36.*a1*a1*a2*b2+6.
-     *     *a1*a2*b1*b2-18.*a1*a2*b1*b2*c1-2.*a1*a2*b1*b1+6.*a1*a2*b1*b1
-     *     *c1
-      real*8, parameter ::  f7= 18.*a1*a2*a2*b2+6.*a1*a2*a2*b1+9.*a2*a2
-     *     *b2*b2+a2*a2*b1*b1+9.*a1*a1*a2*a2+6.*a2*a2*b1*b2
-
-      real*8, parameter ::  sm1=1.-3.*c1-6.*a1/b1
-      real*8, parameter ::  sm2=-3.*a2*((b2-3.*a2)*(1.-6.*a1/b1)-3.*c1
-     *     *(b2+6.*a1))
-      real*8, parameter ::  sm3=9.*a1*a2
-      real*8, parameter ::  sh1=a2*(1.-6.*a1/b1)
-      real*8, parameter ::  s1 =3.*a2*(6.*a1+b2)
-
-      real*8, parameter ::  ri0=1.e-7,rimin=-0.44140
-      real*8, parameter ::  ghmin=-0.5*0.75*0.75,ghmax=0.75/(a2*(12.*a1
-     *     +b1+3.*b2))
-c     real*8, parameter ::  rimaxm=0.045840,rimaxh=0.098800
-      real*8, parameter ::  rimaxm=0.0780715,rimaxh=0.089044
-      real*8, parameter ::  p1=1./3.,p2=4./3.
-      real*8, parameter ::  emin=1.e-2
-      integer i,j,iter  !@var i,j,iter loop variable
-      real*8 bvfrq2,khtest,shear2,rich,sm,sh,xm,xh,richf,smmin,prndtl
-     *     ,prandtl,kmtest
-
-      do i=1,n-1
-
-        bvfrq2=grav*log(t(i+1)/t(i))/dzh(i)+1.e-8
-        shear2=((u(i+1)-u(i))/dzh(i))**2+
-     2         ((v(i+1)-v(i))/dzh(i))**2+1.e-8
-        rich=bvfrq2/shear2
-        if (abs(rich).lt.ri0) rich=sign(ri0,rich)
-
-        if (rich.lt.rimin) then
-          gh(i)=ghmax
-          sm=(sm1+gh(i)*sm2)*a1/((1.-s1*gh(i))*(1.-sm3*gh(i)))
-          sh=sh1/(1.-s1*gh(i))
-        endif
-
-        if ((rich.gt.rimin).and.(rich.lt.rimaxm)) then
-          gh(i)=0.5*((f3*rich+f4+
-     2             sqrt(f5+f6*rich+f7*rich*rich))/(f1+f2*rich))
-          sm=(sm1+gh(i)*sm2)*a1/((1.-s1*gh(i))*(1.-sm3*gh(i)))
-          sh=sh1/(1.-s1*gh(i))
-        endif
-
-        if (rich.gt.rimaxm) then
-          gh(i)=0.5*((f3*rimaxm+f4+
-     2             sqrt(f5+f6*rimaxm+f7*rimaxm*rimaxm))/(f1+f2*rimaxm))
-          sm=(sm1+gh(i)*sm2)*a1/((1.-s1*gh(i))*(1.-sm3*gh(i)))
-c         xm=rimaxm/rich
-c         sm=sm*(xm**p1)
-          xm=rich/rimaxm
-          sm=sm*(2.**p1-1.)/((1.+xm)**p1-1.)
-          if (rich.gt.rimaxh) then
-            gh(i)=0.5*((f3*rimaxh+f4+
-     2             sqrt(f5+f6*rimaxh+f7*rimaxh*rimaxh))/(f1+f2*rimaxh))
-            sh=sh1/(1.-s1*gh(i))
-c           xh=rimaxh/rich
-c           sh=sh*(xh**p2)
-            xh=rich/rimaxh
-            sh=sh*(2.**p2-1.)/((1.+xh)**p2-1.)
-            else
-            gh(i)=0.5*((f3*rich+f4+
-     2               sqrt(f5+f6*rich+f7*rich*rich))/(f1+f2*rich))
-            sh=sh1/(1.-s1*gh(i))
-          endif
-        endif
-
-        richf=sh*rich/sm
-c         if (rich.gt.0.) then
-            smmin=2.*emin/(b1*lscale(i)*lscale(i)*shear2*(1.-richf))
-            if (sm.lt.smmin) then
-              prandtl=sm/sh
-              sm=smmin
-              sh=sm/prandtl
-            endif
-c         endif
-        gm(i)=-gh(i)/rich
-
-        e(i)=0.5*b1*sm*lscale(i)*lscale(i)*shear2*(1.-richf)
-
-        km(i) = sqrt(b1*sm*(1.-richf)*shear2)*
-     2          sm*lscale(i)*lscale(i)+1.5e-5
-        kh(i) = sqrt(b1*sm*(1.-richf)*shear2)*
-     2          sh*lscale(i)*lscale(i)+2.5e-5
-
-        if (km(i).gt.100.) then
-          prndtl=km(i)/kh(i)
-          km(i)=100.
-          kh(i)=km(i)/prndtl
-        endif
-
-      end do
-
-      do i=2,n-2
-        kmtest=0.25*(km(i-1)+km(i+1))
-        khtest=0.25*(kh(i-1)+kh(i+1))
-        if (km(i).lt.kmtest) km(i)=kmtest
-        if (kh(i).lt.khtest) kh(i)=khtest
-      end do
-
-      if (km(1).lt.0.5*km(2)) km(1)=0.5*km(2)
-      if (kh(1).lt.0.5*kh(2)) kh(1)=0.5*kh(2)
-      if (km(n-1).lt.0.5*km(n-2)) km(n-1)=0.5*km(n-2)
-      if (kh(n-1).lt.0.5*kh(n-2)) kh(n-1)=0.5*kh(n-2)
-
-      return
-      end subroutine getk_old
-
-      subroutine elevl2(e,u,v,t,km,kh,lscale,dzh,ustar,n)
-!@sum   elevl2 computes the turbulence energy using the Level 2 prescr.
+      subroutine level2(e,u,v,t,lscale,dzh,n)
+!@sum  level2 computes the turbulent kinetic energy e using the
+!@sum  GISS 2000 turbulence model at level 2
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
+!@var e z-profle of turbulent kinetic energy
+!@var u z-profle of west-east   velocity component
+!@var v z-profle of south-north velocity component
+!@var t z-profle of potential temperature
+!@var lscale z-profile of the turbulent dissipation length scale
+!@var z vertical grids (main, meter)
+!@var dzh(j)  z(j+1)-z(j)
+!@var n number of vertical subgrid main layers
       implicit none
-      integer, intent(in) :: n     !@var n array dimension
 
-      real*8, parameter :: b1=16.6,emax=8.
-      real*8, dimension(n-1), intent(in) :: lscale,km,kh,dzh
-      real*8, dimension(n-1), intent(out) :: e
+      integer, intent(in) :: n     !@var n array dimension
       real*8, dimension(n), intent(in)   :: u,v,t
-      real*8, intent(in) :: ustar
-      integer i    !@var i loop variable
-      real*8 shear2,tgrad,extra
+      real*8, dimension(n-1), intent(in) :: lscale,dzh
+      real*8, dimension(n-1), intent(out) :: e
+      real*8 :: dudz,dvdz,as2,an2,ri,gm
+      real*8 :: aa,bb,cc,tmp
+      integer :: i    !@var i loop variable
 
       do i=1,n-1
-        shear2=(((u(i+1)-u(i))/dzh(i))**2+
-     2          ((v(i+1)-v(i))/dzh(i))**2)
-        tgrad =log(t(i+1)/t(i))/dzh(i)
-        extra=b1*lscale(i)*(km(i)*shear2-kh(i)*grav*tgrad)
-        if (extra.lt.1.e-3) extra=1.e-3
-        e(i)=(0.125*extra*extra)**(1./3.)
-        if (e(i).gt.emax) e(i)=emax
+        an2=2.*grav*(t(i+1)-t(i))/((t(i+1)+t(i))*dzh(i))
+        dudz=(u(i+1)-u(i))/dzh(i)
+        dvdz=(v(i+1)-v(i))/dzh(i)
+        as2=max(dudz*dudz+dvdz*dvdz,1.d-20)
+        ri=an2/as2
+        if(ri.gt.rimax) ri=rimax
+        aa=c1*ri*ri+c2*ri+c3
+        bb=c4*ri+c5
+        cc=c6
+        if(abs(aa).lt.1.e-8) then
+          gm= -cc/bb
+        else
+          tmp=bb*bb-4.*aa*cc
+          gm=(-bb-sqrt(tmp))/(2.*aa)
+        endif
+        e(i)=0.5*(B1*lscale(i))**2*as2/(gm+1.e-20)
+        if(e(i).le. 1.e-40)  e(i)=1.e-40
       end do
 
       return
-      end subroutine elevl2
+      end subroutine level2
 
       subroutine inits(tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,
      2                 ttop,qtop,coriol,cm,ch,cq,bgrid,ustar,
      3                 ilong,jlat,itype)
-c ----------------------------------------------------------------------
-c This routine initializes the winds, temperature, and humidity using
-c  static solutions of the Level 2 turbulence equations.
-c ----------------------------------------------------------------------
+!@sum  inits initializes the winds, potential temperature,
+!@sum  and humidity using static solutions of the GISS 2000
+!@sum  turbulence model at level 2
+!@var  n number of sub-grid levels for the PBL
+!@var  tgrnd  temperature of the ground, at the roughness height
+!@var  qgrnd  moisture at the ground, at the roughness height
+!@var  zgrnd  
+!@var  zgs  height of the surface layer (nominally 10 m)
+!@var  ztop height of the first model layer, approx 200 m if lm=9
+!@var  utop  x component of wind at the top of the layer
+!@var  vtop  y component of wind at the top of the layer
+!@var  ttop  temperature at the top of the layer
+!@var  qtop  moisture at the top of the layer
+!@var  coriol the Coriolis parameter
+!@var  cm  dimensionless  momentum flux at surface (drag coeff.)
+!@var  ch  dimensionless heat flux at surface (stanton number)
+!@var  cq  dimensionless moisture flux at surface (dalton number)
+!@var  bgrid log-linear gridding parameter
+!@var  ustar  friction speed
+!@var  ilong  longitude identifier
+!@var  jlat  latitude identifier
+!@var  itype  surface type
+
+!@var  iprint longitude for diagnostics
+!@var  jprint latitude for diagnostics
       implicit none
 
-      real*8, parameter ::  w=0.50,tol=1.e-4,epslon=1.e-20
-c      integer, parameter ::  n=8
+      integer, intent(in) :: ilong,jlat,itype
+      real*8, dimension(n-1) :: km,kh,ke,gm,gh
+      real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave,esave
+      real*8, dimension(n-1) :: zhat,xihat,dzh,lscale
+      real*8 :: tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,ttop,qtop
+     *     ,coriol,cm,ch,cq,lmonin
+     *     ,bgrid,ustar,pi,radian,z0m,z0h,z0q,hemi,psi1,psi0,psi
+     *     ,usurf,tstar,qstar,ustar0,dtime,test
+
+c     integer, parameter ::  n=8
       integer, parameter ::  itmax=100
       integer, parameter ::  iprint= 0,jprint=25 ! set iprint>0 to debug
-      integer, intent(in) :: ilong  !@var ilong  longitude identifier
-      integer, intent(in) :: jlat   !@var jlat  latitude identifier
-      integer, intent(in) :: itype  !@var itype  surface type
-      real*8 km(n-1),kh(n-1),ke(n-1),gm(n-1),gh(n-1)
-      real*8 usave(n),vsave(n)
-      real*8 tsave(n),qsave(n),esave(n)
-      real*8 z(n),zhat(n-1),xi(n),xihat(n-1)
-      real*8 dz(n),dzh(n-1)
-      real*8 lscale(n-1),lmonin
-      real*8 tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,ttop,qtop,coriol,cm,ch
-     *     ,cq,bgrid,ustar,pi,radian,z0m,z0h,z0q,hemi,psi1,psi0,psi
-     *     ,usurf,tstar,qstar,tstar0,dtime,test
-
-      integer i,j,iter  !@var i,j,iter loop variable
+      real*8, parameter ::  w=0.50,tol=1.e-4,epslon=1.e-20
+      integer :: i,j,iter  !@var i,j,iter loop variable
 
       pi=dacos(-1.d0)
       radian=pi/180.
@@ -1523,7 +1360,6 @@ c      integer, parameter ::  n=8
       write(99,*) "inside inits"
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n)
 
-c ----------------------------------------------------------------------
 c Initialization for iteration:
       if (coriol.le.0.) then
         hemi=-1.
@@ -1586,8 +1422,7 @@ c Initialization for iteration:
      2           u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
      3           km,kh,dzh,itype,n)
 
-c     ustar0=ustar
-      tstar0=tstar
+      ustar0=ustar
 
       if ((ilong.eq.iprint).and.(jlat.eq.jprint)) then
         iter=-1
@@ -1610,7 +1445,7 @@ c ----------------------------------------------------------------------
         call tcheck(q,qgrnd,n)
         call ucheck(u,v,z,ustar,lmonin,z0m,hemi,psi0,psi1,n)
 
-        call elevl2(e,u,v,t,km,kh,lscale,dzh,ustar,n)
+        call level2(e,u,v,t,lscale,dzh,n)
 
         do i=1,n-1
           u(i)=w*usave(i)+(1.-w)*u(i)
@@ -1625,44 +1460,27 @@ c ----------------------------------------------------------------------
           esave(i)=e(i)
         end do
 
-        call getk_old(km,kh,gm,gh,u,v,t,e,lscale,z,zhat,dzh,itype,n)
+        Call getk(km,kh,ke,gm,gh,u,v,t,e,lscale,dzh,n)
         call getl1(e,zhat,dzh,lscale,n)
         call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
      3             km,kh,dzh,itype,n)
 
-c       test=abs(ustar-ustar0)/(ustar+ustar0)
-        test=abs(tstar-tstar0)/abs(tstar+tstar0)
-        if (test.lt.tol) go to 400
-c       ustar0=ustar
-        tstar0=tstar
-
-        if ((ilong.eq.iprint).and.(jlat.eq.jprint)) then
-          call output(u,v,t,q,e,lscale,z,zhat,dzh,
-     2                km,kh,gm,gh,cm,ch,cq,z0m,z0h,z0q,
-     3                ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
-     4                utop,vtop,ttop,qtop,
-     5                dtime,bgrid,ilong,jlat,iter,itype,n)
-        endif
+        test=abs((ustar-ustar0)/(ustar+ustar0))
+        if (test.lt.tol) exit
+        ustar0=ustar
 
       end do
 
-c     write (99,9900) ilong,jlat,itype,test
-400   continue
+c     call check1(ustar,1,ilong,jlat,1)
 
-        if ((ilong.eq.iprint).and.(jlat.eq.jprint)) then
+      if ((ilong.eq.iprint).and.(jlat.eq.jprint)) then
         call output(u,v,t,q,e,lscale,z,zhat,dzh,
      2              km,kh,gm,gh,cm,ch,cq,z0m,z0h,z0q,
      3              ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      4              utop,vtop,ttop,qtop,
      5              dtime,bgrid,ilong,jlat,iter,itype,n)
       endif
-
-c     call check1(u,n,ilong,jlat,1)
-c     call check1(v,n,ilong,jlat,2)
-c     call check1(t,n,ilong,jlat,3)
-c     call check1(q,n,ilong,jlat,4)
-c     call check1(ustar,1,ilong,jlat,0)
 
       return
 1000  format (1x,i3,10(1x,1pe11.4))
@@ -1734,19 +1552,16 @@ c ----------------------------------------------------------------------
       end subroutine tcheck
 
       subroutine ucheck(u,v,z,ustar,lmonin,z0m,hemi,psi0,psi1,n)
-!@sum   ucheck checks for reasonable winds
+!@sum  This routine makes sure that the winds remain within reasonable
+!@sum  bounds during the initialization process. (Sometimes the computed
+!@sum  wind speed iterated out in left field someplace, *way* outside
+!@sum  any reasonable range.) Tests and corrects both direction and
+!@sum  magnitude of the wind rotation with altitude. Tests the total wind
+!@sum  speed via comparison to similarity theory. Note that it works from
+!@sum  the top down so that it can assume that at level (i), level (i+1)
+!@sum  displays reasonable behavior.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
-c ----------------------------------------------------------------------
-c This routine makes sure that the winds remain within reasonable
-c  bounds during the initialization process. (Sometimes the computed
-c  wind speed iterated out in left field someplace, *way* outside
-c  any reasonable range.) Tests and corrects both direction and
-c  magnitude of the wind rotation with altitude. Tests the total wind
-c  speed via comparison to similarity theory. Note that it works from
-c  the top down so that it can assume that at level (i), level (i+1)
-c  displays reasonable behavior.
-c ----------------------------------------------------------------------
       implicit none
       real*8, parameter :: epslon=1.e-20
       real*8, parameter :: pi=3.141592654, radian=pi/180.
@@ -1767,7 +1582,6 @@ c ----------------------------------------------------------------------
         psilim=psiuns
       endif
 
-c --------------------------------------------------------------------
 c First, check the rotation of the wind vector:
 
       do i=n-1,1,-1
@@ -1828,8 +1642,6 @@ c  set the wind magnitude to that given by similarity theory:
       return
       end subroutine ucheck
 
-c --------------------------------------------------------------------
-
       subroutine check1(a,n,ilong,jlat,id)
 !@sum   check1 checks for NaN'S and INF'S in real 1-D arrays.
 !@auth  Ye Cheng/G. Hartke
@@ -1861,8 +1673,6 @@ c --------------------------------------------------------------------
      4            '         id    = ',6x,i3,/,1x,
      5            '         value = ',1pe11.4,/)
       end subroutine check1
-
-c ----------------------------------------------------------------------
 
       subroutine output(u,v,t,q,e,lscale,z,zhat,dzh,
      2                  km,kh,gm,gh,cm,ch,cq,z0m,z0h,z0q,
@@ -2016,22 +1826,9 @@ c ----------------------------------------------------------------------
 
       END MODULE SOCPBL
 
-      function fgrid(z)
-!@sum   fgrid computes functional relationship between z and xi
-!@auth  Ye Cheng/G. Hartke
-!@ver   1.0
-      implicit none
-      real*8, intent(in) :: z
-      real*8 fgrid
-      real*8 z1,zn,bgrid,xi,lznbyz1
-      common /grids_99/z1,zn,bgrid,xi,lznbyz1
-
-      fgrid=z+bgrid*((zn-z1)*log(z/z1)-(z-z1)*lznbyz1)-xi
-      return
-      end function fgrid
-
       subroutine fgrid2(z,f,df)
 !@sum  fgrid2 computes functional relationship of z and xi + derivative
+!@sum  fgrid2 will be called in function rtsafe(fgrid2,x1,x2,xacc)
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
       implicit none

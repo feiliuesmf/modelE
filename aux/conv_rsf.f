@@ -15,6 +15,7 @@ C**** must be compiled after the model
       USE DAGCOM, only : keynr,tsfrez
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq
      *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
+     *     ,egcm
       USE OCEAN, only : tocean,z1o
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
       USE SEAICE, only : ace1i,xsi,ac2oim
@@ -26,7 +27,11 @@ C**** must be compiled after the model
       REAL*8 TAUX,X   ! ? temporary for compatibility only
       REAL*8 MSI1
       INTEGER ItimeX
+!@ egcm_init_max maximum initial vaule of egcm
+      real*8, parameter :: egcm_init_max=0.5
+      real*8 :: tmp   ! temperary variable
 
+      
       IF (IARGC().lt.2) THEN
         PRINT*,"Convert rsf files from old format to new"
         PRINT*,"conv_rsf filename output_file"
@@ -83,6 +88,17 @@ C**** convert sea ice temperatures into enthalpy
           END IF
         END DO
       END DO
+
+c     initialize the 3-d turbulent kinetic enery to be used in
+c     the subroutine diffus.
+      do l=1,lm
+        tmp=egcm_init_max/(float(l)**2)
+        do j=1,jm
+          do i=1,im
+            egcm(i,j,l)=tmp
+          end do
+        end do
+      end do
 
 C**** initialize TSFREZ to defaults
       TSFREZ(:,:,1:2)=365.

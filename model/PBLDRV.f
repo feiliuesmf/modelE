@@ -54,10 +54,10 @@ C --------------------------------------------------------------------
       USE E001M12_COM
      &     , only : IM,JM,LM, t,q,u,v,p,ptop,ls1,psf
       USE DYNAMICS, only : pmid,pk,pedn
+     &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE GEOM, only : idij,idjj,kmaxj
       USE PBLCOM, ustar_type=>ustar
-      USE SOCPBL, gravx=>grav
-     &     ,uij=>u,vij=>v,tij=>t,qij=>q,eij=>e
+      USE SOCPBL, uij=>u,vij=>v,tij=>t,qij=>q,eij=>e
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
       IMPLICIT NONE
@@ -217,11 +217,13 @@ c        vg  =.25*(v(im1,j,l)+v(i,j,l)+v(im1,j+1,l)+v(i,j+1,l))
       ch=chgs(i,j,itype)
       cq=cqgs(i,j,itype)
 
-      dpdxrij  = dpdxr(i,j)
-      dpdyrij  = dpdyr(i,j)
-      dpdxr0ij = dpdxr0(i,j)
-      dpdyr0ij = dpdyr0(i,j)
+      dpdxrij  = DPDX_BY_RHO(i,j)
+      dpdyrij  = DPDY_BY_RHO(i,j)
+      dpdxr0ij = DPDX_BY_RHO_0(i,j)
+      dpdyr0ij = DPDY_BY_RHO_0(i,j)
 
+c     write(67,1003) "p-gradients: ",dpdxrij,dpdyrij,dpdxr0ij,dpdyr0ij
+c1003 format(a,4(1pe14.4))
       call advanc(us,vs,tsv,qs,kmsurf,khsurf,ustar,ug,vg,cm,ch,cq,
      2            z0m,z0h,z0q,coriol,utop,vtop,ttop,qtop,tgrnd,
      3            qgrnd,zgs,ztop,zmix,dtsurf,ufluxs,vfluxs,
@@ -276,6 +278,7 @@ c -------------------------------------------------------------
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
       USE DYNAMICS, only : pmid,pk,pedn,pek
+     &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE SEAICE_COM, only : rsi
       USE FLUXES, only : gtemp
       USE FILEMANAGER
@@ -310,7 +313,7 @@ C things to be done regardless of inipbl
 
       if(.not.inipbl) return
 
-      call pgrads1   !   added 6/19/00
+c     call pgrads1   !   added 6/19/00
       do j=1,jm
         do i=1,im
           pland=fland(i,j)
@@ -402,10 +405,10 @@ c ******************************************************************
               zgrnd=0.1
             endif
 
-            dpdxrij  = dpdxr(i,j)
-            dpdyrij  = dpdyr(i,j)
-            dpdxr0ij = dpdxr0(i,j)
-            dpdyr0ij = dpdyr0(i,j)
+            dpdxrij  = DPDX_BY_RHO(i,j)
+            dpdyrij  = DPDY_BY_RHO(i,j)
+            dpdxr0ij = DPDX_BY_RHO_0(i,j)
+            dpdyr0ij = DPDY_BY_RHO_0(i,j)
 
             call inits(tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,
      2                 ttop,qtop,coriol,cm,ch,cq,bgrid,ustar,
@@ -580,173 +583,6 @@ c ******* itype=4: Land
 
       return
       end subroutine loadbl
-
-      subroutine pgrads1
-      USE CONSTANT, only : rgas
-      USE E001M12_COM, only : im,jm,t,p,sig,zatmo
-      USE GEOM, only : dyp,dxp
-      USE PBLCOM, only : dpdxr,dpdyr,phi,dpdxr0,dpdyr0,iq1,iq2,iq3
-      USE DYNAMICS, only : pmid,pk,pedn
-      IMPLICIT NONE
-
-      integer i,j,iter  !@var i,j,iter loop variable
-      real*8 p1k,t1,pij,rho1,dpx,dpy,dypsp,dypnp,rhojm,p1
-      integer index1,index2
-c      real*8 expbyk
-
-c     for gcm main level 1:
-      call geopot
-
-      do j=2,jm-1
-        do i=1,im
-
-          pij=p(i,j)
-          p1=100.*pmid(1,i,j)      !(pij*sig(1)+ptop)
-          t1=t(i,j,1)*pk(1,i,j)    !expbyk(pij*sig(1)+ptop)
-          rho1=p1/(rgas*t1)
-
-          index1=i+1
-          index2=i-1
-          if (i.eq.1) then
-            index2=im
-          endif
-          if (i.eq.im) then
-            index1=1
-          endif
-          dpx=100.*(p(index1,j)-p(index2,j))*sig(1)
-
-          dpdxr(i,j)=0.5*dpx/(dxp(j)*rho1)+0.5*
-     2               (phi(index1,j)-phi(index2,j))/dxp(j)
-
-          dpy=100.*(p(i,j+1)-p(i,j-1))*sig(1)
-
-          dpdyr(i,j)=0.5*dpy/(dyp(j)*rho1)+0.5*
-     2               (phi(i,j+1)-phi(i,j-1))/dyp(j)
-
-c         at the surface:
-          dpx=100.*(p(index1,j)-p(index2,j))
-
-          dpdxr0(i,j)=0.5*dpx/(dxp(j)*rho1)+0.5*
-     2               (ZATMO(index1,j)-ZATMO(index2,j))/dxp(j)
-
-          dpy=100.*(p(i,j+1)-p(i,j-1))
-
-          dpdyr0(i,j)=0.5*dpy/(dyp(j)*rho1)+0.5*
-     2               (ZATMO(i,j+1)-ZATMO(i,j-1))/dyp(j)
-
-       end do
-      end do
-
-      i=1
-      j=1
-      pij=p(i,j)
-      p1=100.*pmid(1,i,j)            !(pij*sig(1)+ptop)
-      t1=t(i,j,1)*pk(1,i,j)          !expbyk(pij*sig(1)+ptop)
-      rho1 =p1/(rgas*t1)
-      dypsp=2.*dyp(1)
-
-      j=jm
-      pij=p(i,j)
-      p1=100.*pmid(1,i,j)            !(pij*sig(1)+ptop)
-      t1=t(i,j,1)*pk(1,i,j)          !expbyk(pij*sig(1)+ptop)
-      rhojm=p1/(rgas*t1)
-      dypnp=2.*dyp(jm)
-
-      dpdxr(1, 1)=0.25*(p(iq1  ,   2)-p(iq3  ,   2)+
-     2                  p(iq1+1,   2)-p(iq3+1,   2))*sig(1)*100./
-     3                 (dypsp*rho1)+
-     4            0.125*(phi(iq1  ,   2)-phi(iq3  ,   2)+
-     5                  phi(iq1+1,   2)-phi(iq3+1,   2))/dypsp
-      dpdyr(1, 1)=0.25*(p(    1,   2)-p(iq2  ,   2)+
-     2                  p(    2,   2)-p(iq2+1,   2))*sig(1)*100./
-     3                 (dypsp*rho1)+
-     4            0.125*(phi(    1,   2)-phi(iq2  ,   2)+
-     5                  phi(    2,   2)-phi(iq2+1,   2))/dypsp
-
-      dpdxr(1,jm)=0.25*(p(iq1  ,jm-1)-p(iq3  ,jm-1)+
-     2                  p(iq1+1,jm-1)-p(iq3+1,jm-1))*sig(1)*100./
-     3                 (dypnp*rhojm)+
-     4            0.125*(phi(iq1  ,jm-1)-phi(iq3  ,jm-1)+
-     5                  phi(iq1+1,jm-1)-phi(iq3+1,jm-1))/dypnp
-      dpdyr(1,jm)=0.25*(p(iq2  ,jm-1)-p(    1,jm-1)+
-     2                  p(iq2+1,jm-1)-p(    2,jm-1))*sig(1)*100./
-     3                 (dypnp*rhojm)+
-     4            0.125*(phi(iq2  ,jm-1)-phi(    1,jm-1)+
-     5                  phi(iq2+1,jm-1)-phi(    2,jm-1))/dypnp
-
-c     at the surface:
-
-      dpdxr0(1, 1)=0.25*(p(iq1  ,   2)-p(iq3  ,   2)+
-     2                  p(iq1+1,   2)-p(iq3+1,   2))*100./
-     3                 (dypsp*rho1)+
-     4            0.125*(ZATMO(iq1  ,   2)-ZATMO(iq3  ,   2)+
-     5                   ZATMO(iq1+1,   2)-ZATMO(iq3+1,   2))/dypsp
-      dpdyr0(1, 1)=0.25*(p(    1,   2)-p(iq2  ,   2)+
-     2                  p(    2,   2)-p(iq2+1,   2))*100./
-     3                 (dypsp*rho1)+
-     4            0.125*(ZATMO(    1,   2)-ZATMO(iq2  ,   2)+
-     5                   ZATMO(    2,   2)-ZATMO(iq2+1,   2))/dypsp
-
-
-
-      dpdxr0(1,jm)=0.25*(p(iq1  ,jm-1)-p(iq3  ,jm-1)+
-     2                  p(iq1+1,jm-1)-p(iq3+1,jm-1))*100./
-     3                 (dypnp*rhojm)+
-     4            0.125*(ZATMO(iq1  ,jm-1)-ZATMO(iq3  ,jm-1)+
-     5                   ZATMO(iq1+1,jm-1)-ZATMO(iq3+1,jm-1))/dypnp
-      dpdyr0(1,jm)=0.25*(p(iq2  ,jm-1)-p(    1,jm-1)+
-     2                  p(iq2+1,jm-1)-p(    2,jm-1))*100./
-     3                 (dypnp*rhojm)+
-     4            0.125*(ZATMO(iq2  ,jm-1)-ZATMO(    1,jm-1)+
-     5                   ZATMO(iq2+1,jm-1)-ZATMO(    2,jm-1))/dypnp
-
-      return
-      end subroutine pgrads1
-
-      subroutine geopot
-      USE CONSTANT, only : rgas,grav
-      USE E001M12_COM, only : im,jm,t,p,dsig,zatmo
-      USE PBLCOM, only : phi
-      USE SOCPBL, only : zgs
-      USE DYNAMICS, only : pmid,pk,pedn
-      IMPLICIT NONE
-
-c      real*8 expbyk
-
-      integer i,j,iter  !@var i,j,iter loop variable
-      real*8 p1,p1k,pij,t1,z1
-
-c     note: ZATMO(I,J) is the geopotential height (9.81*zatm)
-c
-c     for GCM main level 1:
-      do j=2,jm-1
-        do i=1,im
-          pij=p(i,j)
-          p1=pmid(1,i,j)     !pij*sig(1)+ptop
-          p1k=pk(1,i,j)      !expbyk(p1)
-          t1=t(i,j,1)*p1k
-          z1=zgs+0.5*dsig(1)*rgas*t1*pij/(p1*grav)
-          phi(i,j)=grav*z1+ZATMO(I,J)
-        end do
-      end do
-      i=1
-      j=1
-      pij=p(i,j)
-      p1=pmid(1,i,j)          !pij*sig(1)+ptop
-      p1k=pk(1,i,j)           !expbyk(p1)
-      t1=t(i,j,1)*p1k
-      z1=zgs+0.5*dsig(1)*rgas*t1*pij/(p1*grav)
-      phi(i,j)=grav*z1+ZATMO(I,J)
-
-      j=jm
-      pij=p(i,j)
-      p1=pmid(1,i,j)          !pij*sig(1)+ptop
-      p1k=pk(1,i,j)           !expbyk(p1)
-      t1=t(i,j,1)*p1k
-      z1=zgs+0.5*dsig(1)*rgas*t1*pij/(p1*grav)
-      phi(i,j)=grav*z1+ZATMO(I,J)
-      return
-      end subroutine geopot
 
       subroutine getb(zgs,ztop,bgrid)
 c ----------------------------------------------------------------------
