@@ -378,10 +378,11 @@ C****                                         even if the year is fixed
       CALL SETNEW( 3,O3_yr   ,0 ,0,0,0.D0)  ! ozone (ann.cycle)
       CALL SETNEW( 4,Aero_yr, 0 ,0,0,0.D0)  ! trop. aerosols (ann.cycle)
       CALL SETNEW( 6,Volc_yr,Volc_day, 0,0,0.D0)   ! Volc. Aerosols
-C     Except for ann.cycle, got NO time history (yet) for forcings below
-CnoAC CALL SETNEW(5, 0, 0   , 0,0,0.D0) ! Desert dust
-CnoAC CALL SETNEW(7, 0, 0   , 0,0,0.D0) ! cloud heterogeneity - KCLDEP
-CnoAC CALL SETNEW(8, 0, 0   , 0,0,0.D0) !  surface albedo
+C**** NO time history (yet), except for ann.cycle, for forcings below;
+C****  if arg3=day0 (1->365), data from that day are used all year
+C     CALL SETNEW( 5, 0, 0   , 0,0,0.D0) ! Desert dust
+C     CALL SETNEW( 7, 0, 0   , 0,0,0.D0) ! cloud heterogeneity - KCLDEP
+C     CALL SETNEW( 8, 0, 0   , 0,0,0.D0) ! surface albedo
 C**** New options (currently not used)
       KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme
       KVEGA6=0  ! 0:2-band 1:6-band veg.albedo (currently not usable)
@@ -402,10 +403,11 @@ C**** set up unit numbers for 14 more radiation input files
         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE ! not used in GCM
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
       END DO
-
+C***********************************************************************
+C     Main Radiative Initializations
       MADVEL=123456         ! suppress reading i-th time series by i->0
       CALL RCOMP1 (MADVEL,NRFUN) ! MAD 1-6: O3 TrAer Dust VAer Clds SoUV
-
+C***********************************************************************
       DO IU=1,14
         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE ! not used in GCM
         call closeunit(NRFUN(IU))
@@ -419,8 +421,6 @@ C**** Optionally scale selected greenhouse gases
       IF(ghg_yr.gt.0) FULGAS(2)=FULGAS(2)*CO2X
       if(ghg_yr.gt.0) FULGAS(7)=FULGAS(7)*CH4X
       IF(H2OstratX.GE.0.) FULGAS(1)=FULGAS(1)*H2OstratX
-C**** write out now occurs after first pass to ensure correct ppm values
-c      CALL WRITER (6,0)
 C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
       DO L=1,LM
         LLOW=L
@@ -505,7 +505,7 @@ C$OMP  THREADPRIVATE(/RADCOM_hybrid/)
       INTEGER, SAVE :: JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JR,IH,INCH,JK,IT,iy
       REAL*8 ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS,CMC,DEPTH,QSS,TAUSSL
-     *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY
+     *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY,CSZ2
      *     ,MSTRAT,STRATQ,STRJ,MSTJ
       REAL*8 QSAT
 C
@@ -551,14 +551,14 @@ C****
 C**** Calculate mean cosine of zenith angle for the full radiation step
       ROT2=ROT1+TWOPI*NRAD*DTsrc/SDAY
       CALL COSZS (ROT1,ROT2,COSZ2,COSZA)
-C****
-C**** COMPUTE EARTH ALBEDOS AND OTHER PARAMETERS FOR BEGINNING OF DAY
-C****
       JDAYR=JDAY
       JYEARR=JYEAR
+C*********************************************************
+C     Update time dependent radiative parameters each day
       IF(JDAY.NE.JDLAST) CALL RCOMPT
-      S0=S0X*S00WM2*RATLS0/RSDIST
+C*********************************************************
       JDLAST=JDAY
+      S0=S0X*S00WM2*RATLS0/RSDIST
 
       IF (QCHECK) THEN
 C****   Calculate mean strat water conc
@@ -602,16 +602,17 @@ C****
       ICKERR=0
       JCKERR=0
 C$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH, ELHX,
-C$OMP*   I,INCH,IH,IT, J, K,KR, L,LR, OPNSKY,
+C$OMP*   I,INCH,IH,IT, J, K,KR, L,LR, OPNSKY,     
 C$OMP*   PLAND,PIJ, QSS, RANDSS,RANDMC, TOTCLD,TAUSSL,TAUMCL)
 C$OMP*   COPYIN(/RADCOM_hybrid/)
 C$OMP    DO REDUCTION(+:ICKERR,JCKERR)  SCHEDULE(DYNAMIC,2)
       DO 600 J=1,JM
-      JLAT=NINT(1.+(J-1.)*45./(JM-1.))  !  j w.r.to 72x46 grid
+      JLAT=NINT(1.+(J-1.)*45./(JM-1.))  !  lat_index w.r.to 72x46 grid
 C****
 C**** MAIN I LOOP
 C****
       DO I=1,IMAXJ(J)
+      ILON=NINT(.5+(I-.5)*72./IM)       !  lon_index w.r.to 72x46 grid
 CCC      JR=JREG(I,J)
 C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PLAND=FLAND(I,J)
@@ -737,8 +738,6 @@ CCC      AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
            END IF
          END DO
 C****
-  300 CONTINUE
-C****
 C**** SET UP VERTICAL ARRAYS OMITTING THE I AND J INDICES
 C****
 C**** EVEN PRESSURES
@@ -756,9 +755,7 @@ CCC      STOP 'In Radia: Temperature out of range'
 C**** MOISTURE VARIABLES
 C---- QL(L)=Q(I,J,L)        ! already defined
   340 CONTINUE
-C****
-C**** RADIATION, SOLAR AND THERMAL
-C****
+C**** Radiative Equilibrium Layer data
       DO K=1,LM_REQ
         IF(RQT(K,I,J).LT.130..OR.RQT(K,I,J).GT.370.) THEN
         WRITE(99,*) 'In RADIA: Time,I,J,L,TL',ITime,I,J,LM+K,RQT(K,I,J)
@@ -773,6 +770,7 @@ CCC     STOP 'In Radia: RQT out of range'
         sizewc(LM+k)= 0.
         sizeic(LM+k)= 0.
       END DO
+C**** Zenith angle and GROUND/SURFACE parameters
       COSZ=COSZA(I,J)
       TGO =GTEMP(1,1,I,J)+TF
       TGOI=GTEMP(1,2,I,J)+TF
@@ -791,6 +789,7 @@ C**** set up parameters for new sea ice and snow albedo
         hin=(ace1i+msi(i,j))/rhoi
         flags=flag_dsws(i,j)
         fmp=min(1.118d0*sqrt(pond_melt(i,j)/rhow),1d0)
+          AIJ(I,J,IJ_FRMP) = AIJ(I,J,IJ_FRMP) + fmp*POICE
         hmp=min(0.8d0*fmp,0.9d0*hin)
       else
         hin = 0. ; flags=.FALSE. ; fmp=0. ; hmp=0.
@@ -798,26 +797,31 @@ C**** set up parameters for new sea ice and snow albedo
       dmoice = 10.
       dmlice = 10.
 C****
-         AIJ(I,J,IJ_FRMP) = AIJ(I,J,IJ_FRMP) + fmp*POICE
       WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
       if (wearth.gt.1.) wearth=1.
       DO K=1,11
         PVT(K)=VDATA(I,J,K)
       END DO
       WS=WSAVG(I,J)
-      ILON=NINT(.5+(I-.5)*72./IM)
+C****
+C*****************************************************
+C     Main RADIATIVE computations, SOLAR and THERMAL
       CALL RCOMPX
+C*****************************************************
+      IF(I.EQ.IWRITE.AND.J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
+C****
+C**** Save relevant output in 3D model arrays
+C****
       FSF(1,I,J)=FSRNFG(1)   !  ocean
       FSF(2,I,J)=FSRNFG(3)   !  ocean ice
       FSF(3,I,J)=FSRNFG(4)   !  land ice
       FSF(4,I,J)=FSRNFG(2)   !  soil
-      IF(I.EQ.IWRITE.AND.J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
-      SRHR(1,I,J)=SRNFLB(1)
-      TRHR(1,I,J)=STBO*(POCEAN*TGO**4+POICE*TGOI**4+PLICE*TGLI**4
+      SRHR(0,I,J)=SRNFLB(1)
+      TRHR(0,I,J)=STBO*(POCEAN*TGO**4+POICE*TGOI**4+PLICE*TGLI**4
      *  +PEARTH*TGE**4)-TRNFLB(1)
       DO L=1,LM
-        SRHR(L+1,I,J)=SRFHRL(L)
-        TRHR(L+1,I,J)=-TRFCRL(L)
+        SRHR(L,I,J)=SRFHRL(L)
+        TRHR(L,I,J)=-TRFCRL(L)
       END DO
       DO LR=1,LM_REQ
         SRHRS(LR,I,J)= SRFHRL(LM+LR)
@@ -868,12 +872,11 @@ C****
 C$OMP  END DO
 C$OMP  END PARALLEL
 CcOMP  END PARALLEL DO
-C
-C     WAS THERE AN ERROR ??
-C
+
+C**** Stop if temperatures were out of range
       IF(ICKERR.GT.0)  STOP 'In Radia: Temperature out of range'
       IF(JCKERR.GT.0)  STOP 'In Radia: RQT out of range'
-C
+
       DO J=1,JM
       DO I=1,IMAXJ(J)
          JR=JREG(I,J)
@@ -897,15 +900,15 @@ C****
          DXYPJ=DXYP(J)
          DO L=1,LM
            DO I=1,IMAXJ(J)
-             AJL(J,L,JL_SRHR)=AJL(J,L,JL_SRHR)+SRHR(L+1,I,J)*COSZ2(I,J)
-             AJL(J,L,JL_TRCR)=AJL(J,L,JL_TRCR)+TRHR(L+1,I,J)
+             AJL(J,L,JL_SRHR)=AJL(J,L,JL_SRHR)+SRHR(L,I,J)*COSZ2(I,J)
+             AJL(J,L,JL_TRCR)=AJL(J,L,JL_TRCR)+TRHR(L,I,J)
            END DO
          END DO
          DO 770 I=1,IMAXJ(J)
-         COSZ=COSZ2(I,J)
+         CSZ2=COSZ2(I,J)
          JR=JREG(I,J)
          DO LR=1,LM_REQ
-           ASJL(J,LR,3)=ASJL(J,LR,3)+SRHRS(LR,I,J)*COSZ
+           ASJL(J,LR,3)=ASJL(J,LR,3)+SRHRS(LR,I,J)*CSZ2
            ASJL(J,LR,4)=ASJL(J,LR,4)+TRHRS(LR,I,J)
          END DO
          DO KR=1,NDIUPT
@@ -917,77 +920,77 @@ C****
                ADIURN(IH,IDD_GALB,KR)=ADIURN(IH,IDD_GALB,KR)+
      *              (1.-ALB(I,J,1))
                ADIURN(IH,IDD_ABSA,KR)=ADIURN(IH,IDD_ABSA,KR)+
-     *              ((SNFS(4,I,J)-SNFS(1,I,J))*COSZ-TNFS(4,I,J)
+     *              ((SNFS(4,I,J)-SNFS(1,I,J))*CSZ2-TNFS(4,I,J)
      *              +TNFS(1,I,J))
              END DO
            END IF
          END DO
 
          DO IT=1,NTYPE
-         AJ(J,J_SRINCP0,IT)=AJ(J,J_SRINCP0,IT)+(S0*COSZ)*FTYPE(IT,I,J)
-         AJ(J,J_SRNFP0 ,IT)=AJ(J,J_SRNFP0 ,IT)+(SNFS(4,I,J)*COSZ)*
+         AJ(J,J_SRINCP0,IT)=AJ(J,J_SRINCP0,IT)+(S0*CSZ2)*FTYPE(IT,I,J)
+         AJ(J,J_SRNFP0 ,IT)=AJ(J,J_SRNFP0 ,IT)+(SNFS(4,I,J)*CSZ2)*
      *          FTYPE(IT,I,J)
-         AJ(J,J_SRINCG ,IT)=AJ(J,J_SRINCG ,IT)+(SRHR(1,I,J)*COSZ/
+         AJ(J,J_SRINCG ,IT)=AJ(J,J_SRINCG ,IT)+(SRHR(0,I,J)*CSZ2/
      *          (ALB(I,J,1)+1.D-20))*FTYPE(IT,I,J)
          AJ(J,J_BRTEMP ,IT)=AJ(J,J_BRTEMP ,IT)+BTMPW(I,J) *FTYPE(IT,I,J)
          AJ(J,J_TRINCG ,IT)=AJ(J,J_TRINCG ,IT)+TRINCG(I,J)*FTYPE(IT,I,J)
          AJ(J,J_HSURF  ,IT)=AJ(J,J_HSURF  ,IT)-TNFS(4,I,J)*FTYPE(IT,I,J)
-         AJ(J,J_SRNFP1 ,IT)=AJ(J,J_SRNFP1 ,IT)+SNFS(1,I,J)*COSZ
+         AJ(J,J_SRNFP1 ,IT)=AJ(J,J_SRNFP1 ,IT)+SNFS(1,I,J)*CSZ2
      *          *FTYPE(IT,I,J)
          AJ(J,J_HATM   ,IT)=AJ(J,J_HATM   ,IT)-TNFS(1,I,J)*FTYPE(IT,I,J)
          END DO
-         AREG(JR,J_SRINCP0)=AREG(JR,J_SRINCP0)+(S0*COSZ)*DXYPJ
-         AREG(JR,J_SRNFP0)=AREG(JR,J_SRNFP0)+(SNFS(4,I,J)*COSZ)*DXYPJ
-         AREG(JR,J_SRNFP1)=AREG(JR,J_SRNFP1)+(SNFS(1,I,J)*COSZ)*DXYPJ
+         AREG(JR,J_SRINCP0)=AREG(JR,J_SRINCP0)+(S0*CSZ2)*DXYPJ
+         AREG(JR,J_SRNFP0)=AREG(JR,J_SRNFP0)+(SNFS(4,I,J)*CSZ2)*DXYPJ
+         AREG(JR,J_SRNFP1)=AREG(JR,J_SRNFP1)+(SNFS(1,I,J)*CSZ2)*DXYPJ
          AREG(JR,J_SRINCG)=AREG(JR,J_SRINCG)+
-     *     (SRHR(1,I,J)*COSZ/(ALB(I,J,1)+1.D-20))*DXYPJ
+     *     (SRHR(0,I,J)*CSZ2/(ALB(I,J,1)+1.D-20))*DXYPJ
 C**** Note: confusing because the types for radiation are a subset
-         AJ(J,J_SRNFG,ITOCEAN)=AJ(J,J_SRNFG,ITOCEAN)+(FSF(1,I,J)*COSZ)
+         AJ(J,J_SRNFG,ITOCEAN)=AJ(J,J_SRNFG,ITOCEAN)+(FSF(1,I,J)*CSZ2)
      *        *FOCEAN(I,J)*(1.-RSI(I,J))
-         AJ(J,J_SRNFG,ITLAKE) =AJ(J,J_SRNFG,ITLAKE) +(FSF(1,I,J)*COSZ)
+         AJ(J,J_SRNFG,ITLAKE) =AJ(J,J_SRNFG,ITLAKE) +(FSF(1,I,J)*CSZ2)
      *        * FLAKE(I,J)*(1.-RSI(I,J))
-         AJ(J,J_SRNFG,ITEARTH)=AJ(J,J_SRNFG,ITEARTH)+(FSF(4,I,J)*COSZ)
+         AJ(J,J_SRNFG,ITEARTH)=AJ(J,J_SRNFG,ITEARTH)+(FSF(4,I,J)*CSZ2)
      *        *FEARTH(I,J)
-         AJ(J,J_SRNFG,ITLANDI)=AJ(J,J_SRNFG,ITLANDI)+(FSF(3,I,J)*COSZ)
+         AJ(J,J_SRNFG,ITLANDI)=AJ(J,J_SRNFG,ITLANDI)+(FSF(3,I,J)*CSZ2)
      *        * FLICE(I,J)
-         AJ(J,J_SRNFG,ITOICE )=AJ(J,J_SRNFG,ITOICE )+(FSF(2,I,J)*COSZ)
+         AJ(J,J_SRNFG,ITOICE )=AJ(J,J_SRNFG,ITOICE )+(FSF(2,I,J)*CSZ2)
      *        *FOCEAN(I,J)*RSI(I,J)
-         AJ(J,J_SRNFG,ITLKICE)=AJ(J,J_SRNFG,ITLKICE)+(FSF(2,I,J)*COSZ)
+         AJ(J,J_SRNFG,ITLKICE)=AJ(J,J_SRNFG,ITLKICE)+(FSF(2,I,J)*CSZ2)
      *        * FLAKE(I,J)*RSI(I,J)
 C****
          AREG(JR,J_HATM)  =AREG(JR,J_HATM)  - TNFS(1,I,J)      *DXYPJ
-         AREG(JR,J_SRNFG) =AREG(JR,J_SRNFG) +(SRHR(1,I,J)*COSZ)*DXYPJ
+         AREG(JR,J_SRNFG) =AREG(JR,J_SRNFG) +(SRHR(0,I,J)*CSZ2)*DXYPJ
          AREG(JR,J_HSURF) =AREG(JR,J_HSURF) - TNFS(4,I,J)      *DXYPJ
          AREG(JR,J_BRTEMP)=AREG(JR,J_BRTEMP)+  BTMPW(I,J)      *DXYPJ
          AREG(JR,J_TRINCG)=AREG(JR,J_TRINCG)+ TRINCG(I,J)      *DXYPJ
          DO K=2,9
            JK=K+J_PLAVIS-2     ! accumulate 8 radiation diags.
            DO IT=1,NTYPE
-             AJ(J,JK,IT)=AJ(J,JK,IT)+(S0*COSZ)*ALB(I,J,K)*FTYPE(IT,I,J)
+             AJ(J,JK,IT)=AJ(J,JK,IT)+(S0*CSZ2)*ALB(I,J,K)*FTYPE(IT,I,J)
            END DO
-           AREG(JR,JK)=AREG(JR,JK)+(S0*COSZ)*ALB(I,J,K)*DXYPJ
+           AREG(JR,JK)=AREG(JR,JK)+(S0*CSZ2)*ALB(I,J,K)*DXYPJ
          END DO
-         AIJ(I,J,IJ_SRNFG)  =AIJ(I,J,IJ_SRNFG)  +(SRHR(1,I,J)*COSZ)
+         AIJ(I,J,IJ_SRNFG)  =AIJ(I,J,IJ_SRNFG)  +(SRHR(0,I,J)*CSZ2)
          AIJ(I,J,IJ_BTMPW)  =AIJ(I,J,IJ_BTMPW)  +BTMPW(I,J)
-         AIJ(I,J,IJ_SRREF)  =AIJ(I,J,IJ_SRREF)  +S0*COSZ*ALB(I,J,2)
-         AIJ(I,J,IJ_SRVIS)  =AIJ(I,J,IJ_SRVIS)  +S0*COSZ*ALB(I,J,4)
+         AIJ(I,J,IJ_SRREF)  =AIJ(I,J,IJ_SRREF)  +S0*CSZ2*ALB(I,J,2)
+         AIJ(I,J,IJ_SRVIS)  =AIJ(I,J,IJ_SRVIS)  +S0*CSZ2*ALB(I,J,4)
          AIJ(I,J,IJ_TRNFP0) =AIJ(I,J,IJ_TRNFP0) - TNFS(4,I,J)
-         AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(4,I,J)*COSZ)
-         AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(1,I,J)*COSZ/
+         AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(4,I,J)*CSZ2)
+         AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(0,I,J)*CSZ2/
      *        (ALB(I,J,1)+1.D-20))
-         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*COSZ)
+         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
   770    CONTINUE
   780    CONTINUE
          DO L=1,LM
            DO I=1,IM
              DO J=J5S,J5N
                AIL(I,L,IL_REQ)=AIL(I,L,IL_REQ)+
-     *              (SRHR(L+1,I,J)*COSZ2(I,J)+TRHR(L+1,I,J))*DXYP(J)
+     *              (SRHR(L,I,J)*COSZ2(I,J)+TRHR(L,I,J))*DXYP(J)
              END DO
-             AIL(I,L,IL_R50N)=AIL(I,L,IL_R50N)+(SRHR(L+1,I,J50N)*COSZ2(I
-     *            ,J50N)+TRHR(L+1,I,J50N))*DXYP(J50N)
-             AIL(I,L,IL_R70N)=AIL(I,L,IL_R70N)+(SRHR(L+1,I,J70N)*COSZ2(I
-     *            ,J70N)+TRHR(L+1,I,J70N))*DXYP(J70N)
+             AIL(I,L,IL_R50N)=AIL(I,L,IL_R50N)+(SRHR(L,I,J50N)*COSZ2(I
+     *            ,J50N)+TRHR(L,I,J50N))*DXYP(J50N)
+             AIL(I,L,IL_R70N)=AIL(I,L,IL_R70N)+(SRHR(L,I,J70N)*COSZ2(I
+     *            ,J70N)+TRHR(L,I,J70N))*DXYP(J70N)
            END DO
          END DO
 C****
@@ -1007,7 +1010,7 @@ C****
   900 DO J=1,JM
         DO I=1,IMAXJ(J)
           DO L=1,LM
-            T(I,J,L)=T(I,J,L)+(SRHR(L+1,I,J)*COSZ1(I,J)+TRHR(L+1,I,J))*
+            T(I,J,L)=T(I,J,L)+(SRHR(L,I,J)*COSZ1(I,J)+TRHR(L,I,J))*
      *           COE(L)/(PLIJ(L,I,J)*PK(L,I,J))
           END DO
         END DO

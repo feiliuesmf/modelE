@@ -54,13 +54,13 @@ C**** Interface to PBL
       USE SOIL_DRV, only: earth
       IMPLICIT NONE
 
-      INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IDTYPE 
-      REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1,P1K,H0M1,PGK,PKDN
+      INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IDTYPE
+      REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1,P1K,PGK,PKDN
      *     ,BETA,ELHX,ACE2,CDTERM,CDENOM,HC1,dF1dTG,HCG1,HCG2,EVHDT,F1DT
      *     ,CM,CH,CQ,DHGS,DQGS,DGS,BETAUP,EVHEAT,F0,F1,DSHDTG,DQGDTG
      *     ,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG,dEVdQS,HSDEN,HSCON
      *     ,HSMUL,dHS,dQS,dT2,dTS,DQ1X,EVHDT0,EVAP,F0DT,FTEVAP,PWATER
-     *     ,PXSOIL,PSK,TH1,Q1,THV1,TFS,Q0M1,PTYPE,TG1,SRHEAT,SNOW,TG2
+     *     ,PXSOIL,PSK,TH1,Q1,THV1,TFS,PTYPE,TG1,SRHEAT,SNOW,TG2
      *     ,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT
      *     ,QSDEN,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,Z2BY4L
      *     ,Z1BY6L,QZ1,EVAPLIM,HICE,HSNOW,HICE1,HSNOW1,F2,FSRI(2),HTLIM
@@ -165,16 +165,14 @@ C****
       PS=PEDN(1,I,J)
       PSK=PEK(1,I,J)
       P1=PMID(1,I,J)
-      P1K=PK(1,I,J) 
+      P1K=PK(1,I,J)
       TH1=T(I,J,1)
       Q1=Q(I,J,1)
       THV1=TH1*(1.+Q1*deltx)
       TFS=TF*PXSOIL
       JR=JREG(I,J)
       MA1=AM(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
-      MSUM = (PS*100.)/GRAV !@var MSUM total column mass of atmosphere (kg/m^2)
-      H0M1 = TH1*SHA*MA1*DXYP(J) !@var H0M1 mean pot.enthalpy of lowest atm. (J)
-      Q0M1 = Q1*MA1*DXYP(J) !@var Q0M1 mean water vapor of lowest atmosphere (kg)
+      MSUM = (PS*100.)/GRAV !@var MSUM total mass of atmosphere (kg/m^2)
       PGK = (PS*100.)**KAPA
       PKDN = (GRAV*(MSUM-MA1*0.25))**KAPA
 #ifdef TRACERS_ON
@@ -246,7 +244,7 @@ C**** limit on tracer evporation from lake
 C****
 C**** OCEAN ICE
 C****
-      CASE (2) 
+      CASE (2)
 
       PTYPE=POICE
       IF (PTYPE.gt.0) THEN
@@ -374,7 +372,7 @@ C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2)
       BETAUP = BETA
       IF (QS .GT. QG) BETAUP = 1.
       EVHEAT=(LHE+TG1*SHV)*BETAUP*RCDQWS*(QS-QG)
-      TRHEAT=TRHR(1,I,J)-STBO*(TG*TG)*(TG*TG)
+      TRHEAT=TRHR(0,I,J)-STBO*(TG*TG)*(TG*TG)
 C****
       SELECT CASE (ITYPE)
 
@@ -390,7 +388,7 @@ C****
         SHDT = DTSURF*(SHEAT-dTS*DSHDTG)
         EVHDT=DTSURF*(EVHEAT+dQS*dEVdQS) ! latent heat flux
         TRHDT=DTSURF*TRHEAT
-C**** 
+C****
       CASE (2) ! FLUXES USING IMPLICIT TIME STEP FOR ICE POINTS
 
 ! heat flux on first/second/third layers (W/m^2)
@@ -407,7 +405,7 @@ C       dSNdHS = RCDHWS ! d(SHEAT)/dHS - kg/(sec*m^2)
         dEVdQS = LHE*RCDQWS     ! d(EVHEAH)/dQS
         HSDEN = -(1.+2.*S1BYG1)*DTSURF*PGK*BETA*dSNdTG+MA1*PKDN*SHA
         HSCON = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/HSDEN ! (J*sec)/kg
-        HSMUL = -(1.+2.*S1BYG1)*DTSURF*PGK*BETA*dSNdTG/HSDEN ! J/(kg*degC)
+        HSMUL=-(1.+2.*S1BYG1)*DTSURF*PGK*BETA*dSNdTG/HSDEN ! J/(kg*degC)
         QSDEN = (1.+2.*S1BYG1)*BETA*DTSURF*dEVdQS+MA1*LHE
         QSCON = -(1.+2.*S1BYG1)*DTSURF*EVHEAT/QSDEN
         QSMUL = -(1.+2.*S1BYG1)*DTSURF*BETA*dEVdTG/QSDEN
@@ -426,8 +424,8 @@ C       dSNdHS = RCDHWS ! d(SHEAT)/dHS - kg/(sec*m^2)
         EVHDT = DTSURF*(EVHEAT+BETA*(dTG*dEVdTG+dQS*dEVdQS)) ! latent
         TRHDT = DTSURF*(TRHEAT+BETA*dTG*dTRdTG) ! thermal flux (J/m^2)
         F1DT = DTSURF*(F1+BETA*(dTG*dF1dTG-dT2*dF1dTG))
-        TG1 = TG1+dTG           ! first layer sea ice temperature (degC)
-        TG2 = TG2+dT2           ! second layer sea ice temperature (degC)
+        TG1 = TG1+dTG          ! first layer sea ice temperature (degC)
+        TG2 = TG2+dT2          ! second layer sea ice temperature (degC)
         TGRN2(ITYPE,I,J) = TG2
 C****
       CASE (3) ! IMPLICIT TIME STEP OVER LANDICE
@@ -469,41 +467,41 @@ C**** Limit evaporation if lake mass is at minimum
 #ifdef TRACERS_WATER
 C****
 C**** Calculate Water Tracer Evaporation
-C****                                                            
-      DO NX=1,NTX                                                 
+C****
+      DO NX=1,NTX
         N=NTIX(NX)
-        IF (ITYPE.EQ.1) THEN ! OCEAN                             
-C**** do calculation implicitly for TQS                          
+        IF (ITYPE.EQ.1) THEN ! OCEAN
+C**** do calculation implicitly for TQS
           TEV=-RCDQWS*(trs(nx)-trgrnd(nx)) !*FRACLK(WS,ITRSPC)
-          dTEVdTQS =-RCDQWS                !*FRACLK(WS,ITRSPC) 
-          dTQS = -(1.+2.*S1BYG1)*DTSURF*TEV/                     
-     *           ((1.+2.*S1BYG1)*DTSURF*dTEVdTQS-MA1)            
-          TEVAP(NX)=DTSURF*(TEV+dTQS*dTEVdTQS)                    
+          dTEVdTQS =-RCDQWS                !*FRACLK(WS,ITRSPC)
+          dTQS = -(1.+2.*S1BYG1)*DTSURF*TEV/
+     *           ((1.+2.*S1BYG1)*DTSURF*dTEVdTQS-MA1)
+          TEVAP(NX)=DTSURF*(TEV+dTQS*dTEVdTQS)
         ELSE ! ICE AND LAND ICE
 C**** tracer flux is set by source tracer concentration
-          IF (EVAP.GE.0) THEN   ! EVAPORATION                        
+          IF (EVAP.GE.0) THEN   ! EVAPORATION
             TEVAP(NX)=EVAP*trgrnd(nx)/QG
-          ELSE                  ! DEW                                
+          ELSE                  ! DEW
 c           TEVAP(NX)=EVAP*trs(nx)/(QS*FRACVL(TG1,ITRSPC))
             TEVAP(NX)=EVAP*trs(nx)/(QS+teeny)
-          END IF            
+          END IF
         END IF
 C**** Limit evaporation if lake mass is at minimum
-        IF (ITYPE.EQ.1 .and. FLAKE(I,J).GT.0 .and. 
+        IF (ITYPE.EQ.1 .and. FLAKE(I,J).GT.0 .and.
      *       (TREVAPOR(n,1,I,J)+TEVAP(NX).gt.TEVAPLIM(NX))) THEN
           WRITE(99,*) "Lake TEVAP limited: I,J,TEVAP,TMWL",N
      *         ,TREVAPOR(n,1,I,J)+TEVAP(NX),TEVAPLIM(NX)
           TEVAP(NX)= TEVAPLIM(NX)-TREVAPOR(n,1,I,J)
-        END IF                                                          
+        END IF
         TDP = TEVAP(NX)*DXYP(J)*ptype
         TDT1 = trsrfflx(I,J,n)*DTSURF
         IF (TRM(I,J,1,n)+TDT1+TDP.lt.1d-5) THEN
           WRITE(99,*) "LIMITING TEVAP",I,J,N,TDP,TRM(I,J,1,n)
           TEVAP(NX) = - (TRM(I,J,1,n)+TDT1-1d-5)/(DXYP(J)*ptype)
           trsrfflx(I,J,n)= - TRM(I,J,1,n)+1d-5
-        ELSE                                                            
+        ELSE
           trsrfflx(I,J,n)=trsrfflx(I,J,n)+TDP/DTSURF
-        END IF                                                          
+        END IF
         TREVAPOR(n,ITYPE,I,J)=TREVAPOR(n,ITYPE,I,J)+TEVAP(NX)
       END DO
 #endif
@@ -627,7 +625,7 @@ C****
         OA(I,J,9)=OA(I,J,9)+TRHDT
         OA(I,J,10)=OA(I,J,10)+SHDT
         OA(I,J,11)=OA(I,J,11)+EVHDT
-C**** 
+C****
       CASE (3) ! land ice
         IF (TG1.GT.TDIURN(I,J,8)) TDIURN(I,J,8) = TG1
 C****
@@ -635,7 +633,7 @@ C****
 C****
       END IF
       END DO   ! end of itype loop
- 
+
       END DO   ! end of I loop
 
       END DO   ! end of J loop

@@ -4,7 +4,7 @@
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
       USE RE001, only : S0
-!@var S0 solar constant needs to be saved between calls to radiation
+!@var S0 solar 'constant' needs to be saved between calls to radiation
       IMPLICIT NONE
       SAVE
 
@@ -12,12 +12,15 @@
       INTEGER, PARAMETER :: LM_REQ=3
 !@var RQT Radiative equilibrium temperatures above model top
       DOUBLE PRECISION, DIMENSION(LM_REQ,IM,JM) :: RQT
-!@var SRHR Solar radition absorbed every hour (W/m^2)
-!@var TRHR Thermal radition absorbed every hour (W/m^2)
-      DOUBLE PRECISION, DIMENSION(LM+1,IM,JM) :: SRHR,TRHR
+!@var SRHR(0) Solar   raditive net flux into the ground          (W/m^2)
+!@var TRHR(0) Thermal raditive net flux into ground(W/O -StB*T^4)(W/m^2)
+!@*   Note: -StB*T^4 is MISSING, since T may vary a lot betw. rad. calls
+!@var SRHR(1->LM) Solar   raditive heating rate (W/m^2)  (short wave)
+!@var TRHR(1->LM) Thermal raditive heating rate (W/m^2)  (long wave)
+      DOUBLE PRECISION, DIMENSION(0:LM,IM,JM) :: SRHR,TRHR
 !@var FSF Solar Forcing over each type (W/m^2)
       DOUBLE PRECISION, DIMENSION(4,IM,JM) :: FSF
-!@var COSZ1 Integral of Solar Zenith angle over time (????)
+!@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
       DOUBLE PRECISION, DIMENSION(IM,JM) :: COSZ1
 !@dbparam S0X solar constant multiplication factor
       REAL*8 :: S0X = 1.
@@ -60,7 +63,7 @@ C**** Local variables initialised in init_RAD
 !@sum  io_rad reads and writes radiation arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,lhead
+      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,lhead      
       USE RADNCB
       IMPLICIT NONE
 

@@ -205,7 +205,7 @@ C**** Calculate first layer tracer concentration
       end do
       ntx = nx
 #ifdef TRACERS_WATER
-      TEVAPW=0. ; TEVAPD=0. ; TEVAPB=0. ; TRRUNS=0. ; TRRUNU=0. 
+      TEVAPW=0. ; TEVAPD=0. ; TEVAPB=0. ; TRRUNS=0. ; TRRUNU=0.
 #endif
 #endif
 c**** new quantities to be zeroed out over ground timesteps
@@ -282,7 +282,7 @@ C**** Calculate trsfac (set to zero for const flux)
 C**** Calculate trconstflx (could be dependent on itype)
         rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
         trconstflx(nx)=trflux1(i,j,ntix(nx))/(dxyp(j)*dtsrc*rhosrf0)
-#else 
+#else
 C**** Set surface boundary conditions for water tracers
 C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
         trsfac(nx)=1.
@@ -292,7 +292,7 @@ C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
       end do
 #endif
 #ifdef TRACERS_WATER
-C**** Quick and dirty calculation of water tracer amounts in 
+C**** Quick and dirty calculation of water tracer amounts in
 C**** soils to ensure conservation. Should be replaced with proper
 C**** calculation at some point
 C**** Calculate mean tracer ratio
@@ -353,7 +353,7 @@ c**** calculate rhosrf*cdm*ws
 c**** calculate fluxes of sensible heat, latent heat, thermal
 c****   radiation, and conduction heat (watts/m**2)
 c      snht=-sha*rcdhws*(ts-tg)  ! -not used
-      trheat=trhr(1,i,j)
+      trheat=trhr(0,i,j)
 c **********************************************************************
 c *****
 c  define extra variables to be passed in surfc:
@@ -380,9 +380,9 @@ c     call qsbal
       tg1=tbcs
       !qg_ij(i,j) = qs  !!! - this seemed to work ok
       !! trying more precise value for qg :  qsat(tg1+tf,elhx,ps)
-      qg_sat = qsat(tg1+tf,elhx,ps)  ! saturated soil
-      qg_nsat = qs                   ! non-sat soil, no evap
-      if ( rcdhws > 1.d-30 ) then    ! correction to non-sat, due to evap
+      qg_sat = qsat(tg1+tf,elhx,ps) ! saturated soil
+      qg_nsat = qs                  ! non-sat soil, no evap
+      if ( rcdhws > 1.d-30 ) then   ! correction to non-sat, due to evap
         qg_nsat = qg_nsat + evap_max_ij(i,j)/(0.001*rcdhws)
       endif
       qg_nsat = min( qg_nsat, qg_sat )
@@ -481,7 +481,7 @@ c****
 #ifdef TRACERS_WATER
 C****
 C**** Calculate Water Tracer Evaporation
-C****                                                            
+C****
       do nx=1,ntx
         n=ntix(nx)
         tevap = tevapw(nx)+tevapd(nx)+tevapb(nx)
