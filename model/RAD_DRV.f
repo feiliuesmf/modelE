@@ -580,6 +580,7 @@ C****
      &          ,tauwc0,tauic0 ! set in radpar block data
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY
+     &          ,use_tracer_ozone
 C     INPUT DATA  (i,j) dependent
      &             ,JLAT,ILON,nl,nlp, PLB ,TLB,TLM ,SHL, ltopcl
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC, kdeliq
@@ -587,7 +588,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
-     *             ,TRACER,NTRACE,FSTOPX,FTTOPX
+     *             ,TRACER,NTRACE,FSTOPX,FTTOPX,O3_IN
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
@@ -596,7 +597,7 @@ C     OUTPUT DATA
      &          ,BTEMPW ,O3_OUT
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
-     *     ,O3_rad_save,rad_interact_tr,kliq
+     *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -627,7 +628,7 @@ C     OUTPUT DATA
       USE DOMAIN_DECOMP, ONLY: grid
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE, CHECKSUM
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: NTM,N_SO4,N_seasalt1,N_seasalt2
+      USE TRACER_COM, only: NTM,N_SO4,N_seasalt1,N_seasalt2,n_Ox
       USE TRACER_DIAG_COM, only: taijs,ijts_fc
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only: aer_tau
@@ -1148,6 +1149,17 @@ c seasalt forcing
           TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
           FSTOPX(2)=1.d0 ; FTTOPX(2)=1.d0
         end if
+      end if
+#endif
+      use_tracer_ozone = 0 ! by default use climatological ozone
+#ifdef TRACERS_SPECIAL_Shindell
+      if(rad_interact_tr.gt.0)then
+        O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
+        use_tracer_ozone = 0 ! first, call with climatological ozone
+        CALL RCOMPX  
+        SNFST(n_Ox,I,J)=SRNFLB(4+LM)
+        TNFST(n_Ox,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+        use_tracer_ozone = 1 ! for main call, use calculated ozone 
       end if
 #endif
 C*****************************************************

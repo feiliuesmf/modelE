@@ -63,9 +63,10 @@ C**** exactly the same as the default values.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: RCLD ! saved in rsf
 !@var O3_rad_save 3D ozone saved from radiation for use elsewhere
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: O3_rad_save !saved in rsf
+!@var O3_tracer_save 3D ozone saved elsewhere for use in radiation
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: O3_tracer_save!saved rsf
 !@var KLIQ Flag indicating dry(0)/wet(1) atmosphere (memory feature)
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:,:) :: KLIQ ! saved in rsf
-
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: COSZ1
 !@dbparam S0X solar constant multiplication factor
@@ -125,8 +126,8 @@ C**** Local variables initialised in init_RAD
       USE MODEL_COM, ONLY : IM, JM, LM
       USE RADNCB, ONLY : LM_REQ
       USE RADNCB, ONLY : RQT, Tchg, SRHR, TRHR, FSF, FSRDIR, SRVISSURF,
-     *     SRDN, CFRAC, RCLD, O3_rad_save, KLIQ, COSZ1, dH2O,
-     *     ALB, SALB, SINJ, COSJ
+     *     SRDN, CFRAC, RCLD, O3_rad_save, O3_tracer_save, KLIQ, COSZ1, 
+     *     dH2O, ALB, SALB, SINJ, COSJ
 
       IMPLICIT NONE
       TYPE (DYN_GRID), INTENT(IN) :: grid
@@ -147,6 +148,7 @@ C**** Local variables initialised in init_RAD
      *     CFRAC(IM, J_0H:J_1H),
      *     RCLD(LM, IM, J_0H:J_1H),
      *     O3_rad_save(LM, IM, J_0H:J_1H),
+     *     O3_tracer_save(LM, IM, J_0H:J_1H),
      *     KLIQ(LM,4, IM, J_0H:J_1H),
      *     COSZ1(IM, J_0H:J_1H),
      *     dH2O(J_0H:J_1H, LM, 12),
@@ -203,14 +205,14 @@ C**** Local variables initialised in init_RAD
         WRITE (kunit,err=10) MODULE_HEADER,RQT,KLIQ
   ! rest needed only if MODRAD>0 at restart
      *    ,S0,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,SALB,SRDN,CFRAC,RCLD
-     *    ,O3_rad_save
+     *    ,O3_rad_save,O3_tracer_save
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
         CASE (ioread,IRERUN)  ! input for restart, rerun or extension
           READ (kunit,err=10) HEADER,RQT,KLIQ
   ! rest needed only if MODRAD>0 at restart
      *       ,S0,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,SALB,SRDN,CFRAC,RCLD
-     *       ,O3_rad_save
+     *       ,O3_rad_save,O3_tracer_save
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10

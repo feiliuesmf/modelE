@@ -333,6 +333,11 @@ C----------------
       real*8    :: TRACER(LX,8)
 !@var FSTOPX,FTTOPX scales optional aerosols (solar,thermal component)
       real*8    :: FSTOPX(8),FTTOPX(8)
+!@var O3_IN column variable for importing ozone field from rest of model
+!@var use_tracer_ozone =0 normal case, =1 means
+!@+   RCOMPX will use O3_IN(L) for U0GAS(L,3) for GCM levels
+      real*8, dimension(lx) :: O3_IN
+      integer use_tracer_ozone
       LOGICAL*4 :: flags
 
       COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX
@@ -341,10 +346,10 @@ C----------------
      C             ,SHL,RHL,TRACER,SRBALB,SRXALB
      D             ,PVT,AGESN,SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG
      E             ,POCEAN,PEARTH,POICE,PLICE,PLAKE
-     F             ,TGO,TGE,TGOI,TGLI,TSL,COSZ,FSTOPX,FTTOPX
+     F             ,TGO,TGE,TGOI,TGLI,TSL,COSZ,FSTOPX,FTTOPX,O3_IN
      X             ,zsnwoi,zoice,zmp,fmp,snow_frac,zlake
 C      integer variables start here, followed by logicals
-     Y             ,JLAT,ILON,NL,NLP, LS1_loc,flags
+     Y             ,JLAT,ILON,NL,NLP, LS1_loc,flags,use_tracer_ozone
      Z             ,KDELIQ                ! is updated by rad. after use
 !$OMP  THREADPRIVATE(/RADPAR_INPUT_IJDATA/)
 
@@ -1832,6 +1837,9 @@ C--------------------------------
 !!!                   CALL GETO3D(ILON,JLAT)
       CALL REPART(O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
       O3_OUT(:)=U0GAS(:,3) ! to save 3D ozone field in SUBR. RADIA
+      if(use_tracer_ozone .eq. 1) U0GAS(1:NL-3,3)=O3_IN(1:NL-3)
+      ! The -3 in the line above is just a fudge for the 23-layer model.
+      ! Gavin said he'd think about how to do this properly.
                       CALL GETGAS
 C--------------------------------
 

@@ -14,6 +14,7 @@ c
      & COUPLED_CHEM
       USE DYNAMICS, only: pedn,LTROPO
       USE RADNCB, only : COSZ1,salbfj=>salb,rcloudfj=>rcld,O3_rad_save
+     & ,O3_tracer_save 
       USE GEOM, only : BYDXYP, DXYP, LAT_DG, IMAXJ
       USE FLUXES, only : tr3Dsource
       USE TRACER_COM, only: n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
@@ -1126,15 +1127,23 @@ C Save chemistry changes for updating tracers in apply_tracer_3Dsource.
         DO N=1,NTM_CHEM
           tr3Dsource(i,j,l,nChemistry,n) = changeL(l,n) * bydtsrc
         END DO
-c Reset radiation O3 values here, if interactive ozone:
-        !
-        !
-        !
+c Save new tracer Ox field, in case interactive ozone is used:
+!
+        o3_tracer_save(l,i,j)=
+     &  trm(i,j,l,n_Ox)+tr3Dsource(i,j,l,nChemistry,n_Ox)*dtsrc*
+     &  bydxyp(j)*byO3MULT
+!      
 #ifdef SHINDELL_STRAT_CHEM
         DU_O3(J)=0.d0! this used to be updated with radiation O3 value
+        call stop_model('masterchem needs attention.',255)
 #endif
 c
       END DO       ! end current altitude loop
+C Since o3_tracer_save only got filled up to LL, need to fill
+C the rest with the values from the radiation? right?
+      DO L=LL+1,LM
+        o3_tracer_save(l,i,j)=O3_rad_save(l,i,j)
+      END DO
 C
 CC    if(checktracer_on) call checktracer(I,J)
 c
