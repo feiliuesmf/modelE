@@ -1,7 +1,7 @@
 E001C12.R GISS Model E                                 gas 06/00
 
 WARNING: The boundary conditions used here may not be what you want
-         and no tuning has yet been done.
+         and only preliminary tuning has been done.
   Please check and see before running
 E001C12: modelE1 (3.0) 8x10
 
@@ -90,7 +90,7 @@ ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 do_polefix=0    ! polefix enhancements not yet valid for real 8x10 resolution
 
 KOCEAN=0
-U00ice=.55   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
+U00ice=.74   ! tune this first to get reas.alb/cldcvr 
 U00wtrX=1.
 
 ! parameters that control the Shapiro filter
