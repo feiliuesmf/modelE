@@ -2878,8 +2878,6 @@ C**** The AIJ diagnostics are set once a year (zero otherwise)
           IF (J.le.JM/2) THEN
 C**** initiallise/save South. Hemi. on Feb 28
             IF (JDAY.eq.59 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) THEN
-              print*,"aijlk0",i,j,jday,TSFREZ(I,J,TF_LKOFF),TSFREZ(I,J
-     *             ,TF_LKON)
               AIJ(I,J,IJ_LKICE)=1.
               AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +307,365)
               AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+306,365)
@@ -2889,9 +2887,6 @@ C**** initiallise/save South. Hemi. on Feb 28
               ELSE
                 TSFREZ(I,J,TF_LKOFF) = undef
               END IF
-              print*,"aijlk1",i,j,TSFREZ(I,J,TF_LKOFF),TSFREZ(I,J
-     *             ,TF_LKON),AIJ(I,J,IJ_LKICE), AIJ(I,J,IJ_LKON),AIJ(I,J
-     *             ,IJ_LKOFF)
             END IF
           ELSE
 C**** initiallise/save North. Hemi. on Aug 31
@@ -2915,10 +2910,6 @@ C**** set ice on/off days
      *           TSFREZ(I,J,TF_LKON)=JDAY
             IF (RSI(I,J).gt.0) TSFREZ(I,J,TF_LKOFF)=JDAY
           END IF
-          if (i.eq.10.and.(j.ge.38.or.j.lt.10)) print*,"tsfrez",i,j,JDAY
-     *         ,RSI(I,J),TSFREZ(i,j,TF_LKON),TSFREZ(I,J,TF_LKOFF),AIJ(I
-     *         ,J,IJ_LKICE),AIJ(I,J,IJ_LKON),AIJ(I,J,IJ_LKOFF),FOCEAN(I
-     *         ,J)+FLAKE(I,J)
         END DO
       END DO
 
