@@ -1260,8 +1260,9 @@ C**** functions
 !@param CM00 upper limit for autoconversion rate
 !@param AIRM0 scaling factor for computing rain evaporation
 !@param HEFOLD e-folding length for computing HRISE
+!@param COEFM coefficient for ratio of cloud water amount and WCONST
       REAL*8, PARAMETER :: CM00=1.d-4, AIRM0=100.d0, GbyAIRM0=GRAV/AIRM0
-      REAL*8, PARAMETER :: HEFOLD=500.
+      REAL*8, PARAMETER :: HEFOLD=500.,COEFM=10.
       REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
       REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
@@ -1479,32 +1480,37 @@ C**** special case 2) default is that water cloud is below water cloud
           END IF
 
 C**** Decide whether precip initiates B-F process
-          IF (LHX.EQ.LHE .AND. TL(L).LT.TF) THEN
+          IF (TL(L).LT.TF) THEN
             PML=WMX(L)*AIRM(L)*BYGRAV
             PMI=PREICE(L+1)*DTsrc
             PMW=0.
             IF (PPHASE.EQ.LHE) PMW=PREBAR(L+1)*DTsrc
             RANDNO=RNDSS2L(L)   !  RANDNO=RANDU(XY)
 C**** Calculate probability of ice precip seeding a water cloud
-            IF (PMI.gt.0) THEN
+            IF (LHX.EQ.LHE.AND.PMI.gt.0) THEN
               PRATIO=MIN(PMI/(PML+1.E-20),10d0)
               PFR=(1.-EXP(-(PRATIO*PRATIO)))*(1.-EXP(-(CBFC0*CBFC0)))
               IF(PFR.GT.RANDNO) THEN
                 BANDF=.TRUE.
                 LHX=LHS
               END IF
+            END IF
 C**** Calculate probablity of water precip freezing (and thereby
 C**** seeding an ice cloud)
-            ELSEIF (PMW.gt.0) THEN
-              PRATW=MIN(PML/PMW,10d0)
+            IF (PMW.gt.0) THEN
+              PRATW=0.
+              IF(LHX.EQ.LHS) PRATW=MIN(PML/PMW,10d0)
               PFR=(1.-EXP(-(PRATW*PRATW)))*(1.-EXP(-(CBFC0*CBFC0)))
-              PRATM=2.d5*WMX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
-c             IF(LHX.EQ.LHS) PRATM=2.d5*WMX(L)*PL(L)/
-c     *           (WMUI*FCLD*TL(L)*RGAS+teeny)    ! no need, always LHE
+              PRATM=0.
+              IF(LHX.EQ.LHE) PRATM=1.d5*COEFM*WMX(L)*PL(L)/(WCONST*FCLD
+     *           *TL(L)*RGAS+teeny)
               PFR=MIN(MAX(PFR,PRATM),1d0)
               IF(PFR.GT.RANDNO) THEN
                 BANDF=.TRUE.
                 LHX=LHS
+              ELSE
+                BANDF=.FALSE.
+                LHX=LHE
               END IF
             END IF
           END IF
@@ -1834,7 +1840,7 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
       END IF
 #endif
       PREBAR(L)=PREBAR(L)+WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
-      WMX(L)=0.  
+      WMX(L)=0.
       END IF
 C**** set phase of condensation for next box down
       PREICE(L)=0.
