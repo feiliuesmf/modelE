@@ -138,7 +138,7 @@ C**** (note this section is already done in DIAG.f)
         END DO
       END DO
 C
-!$OMP  PARALLEL DO PRIVATE (changeL, FASTJ_PFACT, 
+!$OMP  PARALLEL DO PRIVATE (airvol, changeL, FASTJ_PFACT, 
 #ifdef regional_Ox_tracers
 !$OMP* bysumOx, sumOx,
 #endif
