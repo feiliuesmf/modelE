@@ -15,7 +15,7 @@
 #endif
       USE DAGCOM, only : keyct,keynr,kdiag,oa,monacc,koa
       USE SOIL_DRV, only: daily_earth, ground_e
-      USE SUBDAILY
+      USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
       IMPLICIT NONE
 
       INTEGER I,J,L,K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,n,istart
@@ -342,7 +342,9 @@ C**** ZERO OUT INTEGRATED QUANTITIES
 C****
 C**** WRITE SUB-DAILY DIAGNOSTICS EVERY NSUBDD hours
 C****
-      if (Nsubdd.ne.0 .and. mod(Itime,Nsubdd).eq.0) call get_subdd
+      if (Nsubdd.ne.0) then
+        if (mod(Itime,Nsubdd).eq.0) call get_subdd
+      end if
 C****
 C**** CALL DIAGNOSTIC ROUTINES
 C****

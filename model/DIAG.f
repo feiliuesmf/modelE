@@ -2431,6 +2431,7 @@ C****
       USE FILEMANAGER, only : openunit, closeunits
       USE PARAM
       IMPLICIT NONE
+      SAVE
 !@var kdd total number of sub-daily diags
       INTEGER :: kdd
 !@var namedd array of names of sub-daily diags
