@@ -563,13 +563,18 @@ C--------------------------------------    have to deal  1 point in time
      *          ,KYEARO=0,KJDAYO=0, KYEARA=0,KJDAYA=0, KYEARD=0,KJDAYD=0
      *          ,KYEARV=0,KJDAYV=0, KYEARE=0,KJDAYE=0, KYEARR=0,KJDAYR=0
 
-      INTEGER, PARAMETER :: NLO3=18 !  # of layers in ozone data files
+      INTEGER, PARAMETER :: NLO3=49 !  # of layers in ozone data files
       real*8 :: O3JDAY(NLO3,MLON72,MLAT46)
       COMMON/O3JCOM/O3JDAY
 C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
-      REAL*8, PARAMETER, DIMENSION(NLO3+1) :: PLBO3 =
-     *     (/984.,934.,854.,720.,550.,390.,285.,210.,150.,110.,80.,
-     +     55.,35.,20.,10.,3.,1.,0.3,0.1/) ! Current standard PLB
+      REAL*8, PARAMETER, DIMENSION(NLO3+1) :: PLBO3 = (/
+     *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0, 
+     *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0, 
+     *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0, 
+     *       10.d0,  7.d0,  5.d0,  4.d0,  3.d0,  2.d0,  1.5d0, 
+     *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1, 
+     *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2, 
+     *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
 
 !@var PLBA09 Vert. Layering for tropospheric aerosols/dust (reference)
       real*8, parameter, dimension(10) :: PLBA09=(/
@@ -2254,13 +2259,12 @@ C
 
       integer, PARAMETER ::
      *     NFO3x=9,      !  max. number of decadal ozone files used
-!!!  *     NLO3=18,      !  number of layers of ozone data files
+!!!  *     NLO3=49,      !  number of layers of ozone data files
      *     IYIO3=1850, IYEO3=2050, ! beg & end year of O3 trend file
      *     LMONTR=12*(IYEO3-IYIO3+1) ! length of O3 trend file
 
       REAL*4 O3YEAR(MLON72,MLAT46,NLO3,0:12),OTREND(MLAT46,NLO3,LMONTR)
       REAL*4 O3ICMA(im,jm,NLO3,12),O3JCMA(im,jm,NLO3,12),A(im,jm)
-!!!   REAl*8 PLBO3(NLO3+1)
       INTEGER LJTTRO(jm)
 !!!   COMMON/O3JCOM/O3JDAY(NLO3,im,jm) ! to 'save' & for offline testing
 
@@ -2272,24 +2276,29 @@ C     -----------------------------------------------------------------
 
 C**** The data statements below are only used if  MADO3M > -1
       CHARACTER*40, DIMENSION(NFO3X) :: DDFILE = (/
-     1            'aug2003_o3_shindelltrop_72x46x18x12_1850'
-     2           ,'aug2003_o3_shindelltrop_72x46x18x12_1890'
-     3           ,'aug2003_o3_shindelltrop_72x46x18x12_1910'
-     4           ,'aug2003_o3_shindelltrop_72x46x18x12_1930'
-     5           ,'aug2003_o3_shindelltrop_72x46x18x12_1950'
-     6           ,'aug2003_o3_shindelltrop_72x46x18x12_1960'
-     7           ,'aug2003_o3_shindelltrop_72x46x18x12_1970'
-     8           ,'aug2003_o3_shindelltrop_72x46x18x12_1980'
-     9           ,'aug2003_o3_shindelltrop_72x46x18x12_1990'/)
+     1            'aug2003_o3_shindelltrop_72x46x49x12_1850'
+     2           ,'aug2003_o3_shindelltrop_72x46x49x12_1890'
+     3           ,'aug2003_o3_shindelltrop_72x46x49x12_1910'
+     4           ,'aug2003_o3_shindelltrop_72x46x49x12_1930'
+     5           ,'aug2003_o3_shindelltrop_72x46x49x12_1950'
+     6           ,'aug2003_o3_shindelltrop_72x46x49x12_1960'
+     7           ,'aug2003_o3_shindelltrop_72x46x49x12_1970'
+     8           ,'aug2003_o3_shindelltrop_72x46x49x12_1980'
+     9           ,'aug2003_o3_shindelltrop_72x46x49x12_1990'/)
       INTEGER, DIMENSION(NFO3X) :: IYEAR =
      *     (/1850,1890,1910,1930,1950,1960,1970,1980,1990/)
       INTEGER :: NFO3 = NFO3X
-      CHARACTER*40 :: OTFILE ='aug2003_o3timetrend_46x18x2412_1850_2050'
+      CHARACTER*40 :: OTFILE ='aug2003_o3timetrend_46x49x2412_1850_2050'
       INTEGER :: IFILE=11            ! not used in GCM runs
 
-C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
-!!!   DATA PLBO3/984.,934.,854.,720.,550.,390.,285.,210.,150.,110.,80.,
-!!!  +          55.,35.,20.,10.,3.,1.,0.3,0.1/    ! Current standard PLB
+!!!   REAL*8 :: PLBO3(NLO3+1) = (/ ! could be read off the titles
+!!!  *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0, 
+!!!  *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0, 
+!!!  *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0, 
+!!!  *       10.d0,  7.d0,  5.d0,  4.d0,  3.d0,  2.d0,  1.5d0, 
+!!!  *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1, 
+!!!  *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2, 
+!!!  *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
 C**** LJTTRO(jm)    could be computed from PLBO3
       DATA LJTTRO/6*6,7*7,20*8,7*7,6*6/           !   Top of troposphere
       INTEGER, SAVE :: IYR=0, JYRNOW=0, IYRDEC=0, IFIRST=1, JYR
@@ -12929,8 +12938,7 @@ C        Aerosol liquid water content is in kg/m2 per unit optical depth
 C                with the aerosol effective radius expressed in microns.
 C                -------------------------------------------------------
       DO 118 I=1,190
-!alt  RHTAUF(I)=(RHQ550(I)/Q55DRY)*RR0RHX(I)**2 ! if input data are adj.
-      RHTAUF(I)=(RHQ550(I)/Q55DRY)/(QRH633(I)/Q63DRY)*RR0RHX(I)**2
+      RHTAUF(I)=(RHQ550(I)/Q55DRY)*RR0RHX(I)**2 ! if input data are adj.
       AERMAS=1.33333333D0*RHREFF(I)*RHDENS(I)/RHQ550(I)*RHTAUF(I)
       RHTGM2(I)=AERMAS
       RHDGM2(I)=RHTGM2(1)
