@@ -133,6 +133,8 @@ C**** Monthly sources are interpolated each day
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>ch4_src,nsrc=>nch4src
+      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
+ 
       implicit none
       character*80 title
 !@var adj Factors that tune the total amount of individual sources
@@ -141,7 +143,8 @@ C**** Monthly sources are interpolated each day
      & .true.,.true.,.true.,.true.,.true.,.true.,.false.,.false.,
      & .false.,.false.,.false./)
       real*8 adj(nsrc)
-      data adj/4*-1.d30, 0.999d0, 1.194d0, 3.5997d-5, 17.330d-4,
+Corig data adj/4*-1.d30, 0.999d0, 1.194d0, 3.5997d-5, 17.330d-4,
+      data adj/4*-1.d30, 0.999d0, 1.588d0, 3.5997d-5, 17.330d-4,
      & 5.3558d-5, 0.9818d0, 5*-1.d30/
       INTEGER :: EHorJEAN(nsrc) = (/1,1,1,1,2,2,2,2,2,2,1,1,1,1,1/)
       real*8 ann_conv(2),mon_conv(2)!1=edgar-hyde conversion, 2=Jean's 
@@ -189,6 +192,8 @@ C    K=15   agricultural land activities
 
       byDTsrc = 1.d0/dtsrc
       if (itime.lt.itime_tr0(nt)) return
+      if(PI_run.eq.1)
+     &call stop_model('edgar-hyde PI run not set up yet',255)
 C****
 C**** Annual Sources and sinks
 C**** Apply adjustment factors to bring sources into balance.
@@ -282,6 +287,7 @@ C**** Monthly sources are interpolated each day
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>CO_src,nsrc=>nCOsrc,correct_CO_ind
+      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
       
       implicit none
       character*80 title
@@ -311,6 +317,8 @@ C    K=6    deforestation
 C
       if (itime.lt.itime_tr0(nt)) return
       byDTsrc = 1.d0/dtsrc
+      if(PI_run.eq.1)
+     &call stop_model('edgar-hyde PI run not set up yet',255)
 C****
 C**** Annual Sources and sink
 C**** The EDGAR-HYDE sources are in KG/4x5grid/HR and need to be
@@ -365,6 +373,7 @@ C**** Monthly sources are interpolated each day
       USE GEOM, only: BYDXYP
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>Alkenes_src,nsrc=>nAlkenessrc
+      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
 
       implicit none
       character*80 title
@@ -397,6 +406,8 @@ C    K=7    biofuel production, transformation, combustion
 C    K=8    deforestation
       if (itime.lt.itime_tr0(nt)) return
       byDTsrc = 1.d0/dtsrc
+      if(PI_run.eq.1)
+     &call stop_model('edgar-hyde PI run not set up yet',255)
 C****
 C**** Annual Sources
 C**** The EDGAR-HYDE sources are in KG C/4x5grid/HR and need to be
@@ -452,6 +463,7 @@ C**** Monthly sources are interpolated each day
       USE GEOM, only: BYDXYP
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>Paraffin_src,nsrc=>nParaffinsrc
+      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
       
       implicit none
       character*80 title
@@ -485,6 +497,8 @@ C    K=8    deforestation
 C
       if (itime.lt.itime_tr0(nt)) return
       byDTsrc = 1.d0/dtsrc
+      if(PI_run.eq.1)
+     &call stop_model('edgar-hyde PI run not set up yet',255)
 C****
 C**** Annual Sources
 C**** The EDGAR-HYDE sources are in KG C/4x5grid/HR and need to be
@@ -540,6 +554,7 @@ C**** Monthly sources are interpolated each day
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>NOx_src,nsrc=>nNOxsrc
+      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
 
       implicit none
       character*80 title
@@ -570,6 +585,8 @@ C    K=7    savannah burning (edgar hyde variation as bio. burn)
 
       if (itime.lt.itime_tr0(nt)) return
       byDTsrc = 1.d0/dtsrc
+      if(PI_run.eq.1)
+     &call stop_model('edgar-hyde PI run not set up yet',255)
 C****
 C**** Annual Sources
 C**** The EDGAR-HYDE sources are in KG N/4x5grid/HR and need to be
@@ -631,16 +648,22 @@ C**** Monthly sources are interpolated each day
      &       ,nday_ncep,by_nday_ncep,first_ncep,iday_ncep,day_ncep
      &       ,i0_ncep,avg_ncep,sum_ncep,fact_ncep,avg_modPT
 #endif
+      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
       
       implicit none
       character*80 title
 !@var adj Factors that tune the total amount of individual sources
+!@var PIfact factor for altering source to preindustrial (or not)
+      real*8 PIfact
       logical :: ifirst=.true.
       real*8 adj(nsrc)
-      data adj/1.3847,1.0285,3.904,1.659,1.233,1.194,0.999,
-!    *  7.2154, 3.7247d-5,3.1399d-4,5.4838d-5,   !Model II prime
+C  O  data adj/1.3847,1.0285,3.904,1.659,1.233,1.194,0.999,
+C! R *  7.2154, 3.7247d-5,3.1399d-4,5.4838d-5,   !Model II prime
+C  I *  7.2154, 3.5997d-5,17.330d-4,5.3558d-5,
+C  G *  0.4369,0.7533,0.9818/
+      data adj/1.0787,0.6891,2.6157,1.659,0.617,1.588,0.999,
      *  7.2154, 3.5997d-5,17.330d-4,5.3558d-5,
-     *  0.4369,0.7533,0.9818/
+     *  0.3277,0.3767,0.9818/
 !@var nanns,nmons: number of annual and monthly input files
       integer, parameter :: nanns=11,nmons=3
       integer ann_units(nanns-3),mon_units(nmons)
@@ -679,8 +702,15 @@ C****
         call openunits(ann_files,ann_units,ann_bins,nanns-3)
         do iu = ann_units(1),ann_units(nanns-3)
           k = k+1
+          PIfact=1.d0
+          select case(PI_run)
+          case(1) ! pre-industrial
+            select case(k)
+            case(2,3,4,5,8); PIfact=PIratio_indus
+            end select
+          end select
           call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          src(:,:,k) = src(:,:,k)*adj(k)/(sday*JDperY)
+          src(:,:,k) = src(:,:,k)*PIfact*adj(k)/(sday*JDperY)
         end do
         call closeunits(ann_units,nanns-3)
         ! 3 miscellaneous sources
@@ -701,10 +731,17 @@ C****
       ifirst = .false.
       j = 0
       do k = nanns+1,nsrc
+        PIfact=1.d0
+        select case(PI_run)
+        case(1) ! pre-industrial
+          select case(k)
+          case(nanns+1); PIfact=PIratio_bburn
+          end select
+        end select
         j = j+1
         call read_monthly_sources(mon_units(j),jdlast,
      *    tlca(1,1,j),tlcb(1,1,j),src(1,1,k),frac,imon(j))
-        src(:,:,k) = src(:,:,k)*adj(k)
+        src(:,:,k) = src(:,:,k)*adj(k)*PIfact
       end do
       jdlast = jday
       write(6,*) trname(nt),'Sources interpolated to current day',frac
@@ -783,9 +820,12 @@ C**** Monthly sources are interpolated each day
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>CO_src,nsrc=>nCOsrc,correct_CO_ind
+      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
       implicit none
       character*80 title
       logical :: ifirst=.true.
+!@var PIfact factor for altering source to preindustrial (or not)
+      real*8 PIfact
 !@var nanns,nmons: number of annual and monthly input files
       integer, parameter :: nanns=1,nmons=1
       integer ann_units(nanns),mon_units(nmons)
@@ -811,8 +851,12 @@ C****
         k = 0
         do iu = ann_units(1),ann_units(nanns)
           k = k+1
+          select case(PI_run)
+          case(1);      PIfact=PIratio_indus
+          case default; PIfact=1.d0
+          end select
           call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          src(:,:,k) = src(:,:,k)*correct_CO_ind
+          src(:,:,k) = src(:,:,k)*correct_CO_ind*PIfact
         end do
         call closeunits(ann_units,nanns)
         call openunits(mon_files,mon_units,mon_bins,nmons)
@@ -825,9 +869,17 @@ C****
       ifirst = .false.
       j = 0
       do k=nanns+1,nsrc
+        PIfact=1.d0
+        select case(PI_run)
+        case(1) ! pre-industrial
+          select case(k)
+          case(nanns+1); PIfact=PIratio_bburn
+          end select
+        end select
         j = j+1
         call read_monthly_sources(mon_units(j),jdlast,
      *    tlca(1,1,j),tlcb(1,1,j),src(1,1,k),frac,imon(j))
+        src(:,:,k) = src(:,:,k)*PIfact
       end do
       jdlast = jday
       write(6,*) trname(nt),'Sources interpolated to current day',frac
@@ -850,6 +902,7 @@ C**** Monthly sources are interpolated each day
       USE GEOM, only: BYDXYP
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>Alkenes_src,nsrc=>nAlkenessrc
+      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
    
       implicit none
       character*80 title
@@ -866,6 +919,8 @@ C**** Monthly sources are interpolated each day
       real*8 frac,byDTsrc
       integer i,j,jj,nt,iact,iu,k,imon(nmons)
       integer :: jdlast=0
+!@var PIfact factor for altering source to preindustrial (or not)
+      real*8 PIfact
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
 
       if (itime.lt.itime_tr0(nt)) return
@@ -880,9 +935,13 @@ C****
         k = 0
         do iu = ann_units(1),ann_units(nanns)
           k = k+1
+          select case(PI_run)
+          case(1);      PIfact=PIratio_indus
+          case default; PIfact=1.d0
+          end select
           call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
           do j = 1,jm
-            src(:,j,k) = src(:,j,k)*BYDXYP(j)*byDTsrc
+            src(:,j,k) = src(:,j,k)*BYDXYP(j)*byDTsrc*PIfact
           end do
         end do
         call closeunits(ann_units,nanns)
@@ -896,11 +955,18 @@ C****
       ifirst = .false.
       j = 0
       do k=nanns+1,nsrc
+        PIfact=1.d0
+        select case(PI_run)
+        case(1) ! pre-industrial
+          select case(k)
+          case(nanns+1); PIfact=PIratio_bburn
+          end select
+        end select
         j = j+1
         call read_monthly_sources(mon_units(j),jdlast,
      *    tlca(1,1,j),tlcb(1,1,j),src(1,1,k),frac,imon(j))
           do jj = 1,jm
-            src(:,jj,k) = src(:,jj,k)*BYDXYP(jj)*byDTsrc
+           src(:,jj,k)=src(:,jj,k)*BYDXYP(jj)*byDTsrc*PIfact
           end do
       end do
       jdlast = jday
@@ -924,6 +990,7 @@ C**** Monthly sources are interpolated each day
       USE GEOM, only: BYDXYP
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>Paraffin_src,nsrc=>nParaffinsrc
+      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
      
       implicit none
       character*80 title
@@ -940,6 +1007,8 @@ C**** Monthly sources are interpolated each day
       real*8 frac,byDTsrc
       integer i,j,jj,nt,iact,iu,k,imon(nmons)
       integer :: jdlast=0
+!@var PIfact factor for altering source to preindustrial (or not)
+      real*8 PIfact
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
 
       if (itime.lt.itime_tr0(nt)) return
@@ -954,9 +1023,13 @@ C****
         k = 0
         do iu = ann_units(1),ann_units(nanns)
           k = k+1
+          select case(PI_run)
+          case(1);      PIfact=PIratio_indus
+          case default; PIfact=1.d0
+          end select
           call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
           do j = 1,jm
-            src(:,j,k) = src(:,j,k)*BYDXYP(j)*byDTsrc
+            src(:,j,k) = src(:,j,k)*BYDXYP(j)*byDTsrc*PIfact
           end do
         end do
         call closeunits(ann_units,nanns)
@@ -970,11 +1043,18 @@ C****
       ifirst = .false.
       j = 0
       do k=nanns+1,nsrc
+        PIfact=1.d0
+        select case(PI_run)
+        case(1) ! pre-industrial
+          select case(k)
+          case(nanns+1); PIfact=PIratio_bburn
+          end select
+        end select
         j = j+1
         call read_monthly_sources(mon_units(j),jdlast,
      *  tlca(1,1,j),tlcb(1,1,j),src(1,1,k),frac,imon(j))
         do jj = 1,jm
-          src(:,jj,k) = src(:,jj,k)*BYDXYP(jj)*byDTsrc
+          src(:,jj,k) = src(:,jj,k)*BYDXYP(jj)*byDTsrc*PIfact
         end do
       end do
       jdlast = jday
@@ -997,6 +1077,8 @@ C**** Monthly sources are interpolated each day
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>NOx_src,nsrc=>nNOxsrc
+      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
+
       implicit none
       character*80 title
       logical :: ifirst=.true.
@@ -1012,6 +1094,8 @@ C**** Monthly sources are interpolated each day
       real*8 frac
       integer i,j,nt,iact,iu,k,imon(nmons)
       integer :: jdlast=0
+!@var PIfact factor for altering source to preindustrial (or not)
+      real*8 PIfact
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
 
       if (itime.lt.itime_tr0(nt)) return
@@ -1025,8 +1109,12 @@ C****
         k = 0
         do iu = ann_units(1),ann_units(nanns)
           k = k+1
+          select case(PI_run)
+          case(1);      PIfact=PIratio_indus
+          case default; PIfact=1.d0
+          end select
           call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          src(:,:,k) = src(:,:,k)/(sday*JDperY)
+          src(:,:,k) = src(:,:,k)*PIfact/(sday*JDperY)
         end do
         call closeunits(ann_units,nanns)
         call openunits(mon_files,mon_units,mon_bins,nmons)
@@ -1039,9 +1127,17 @@ C****
       ifirst = .false.
       j = 0
       do k=nanns+1,nsrc
+        PIfact=1.d0
+        select case(PI_run)
+        case(1) ! pre-industrial
+          select case(k)
+          case(nanns+1); PIfact=PIratio_bburn
+          end select
+        end select
         j = j+1
         call read_monthly_sources(mon_units(j),jdlast,
      *    tlca(1,1,j),tlcb(1,1,j),src(1,1,k),frac,imon(j))
+        src(:,:,k) = src(:,:,k) * PIfact
       end do
       jdlast = jday
       write(6,*) trname(nt),'Sources interpolated to current day',frac
