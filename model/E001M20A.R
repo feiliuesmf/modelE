@@ -1,8 +1,10 @@
-E001M20A.R GISS Model E  2002 modelE                 rar  6/20/02
+E001M20A.R GISS Model E  2002 modelE                 rar 12/01/03
 
 modelE 2.4 with 20 lyrs, top at .1 mb - 1880 atmosphere/ocean
+!M12 modelE 2.4 with 12 lyrs, top at 10 mb - 1880 atmosphere/ocean
 no gravity wave drag;     uses turbulence (not dry convection)
 Sdrag: weak linear strat. drag in top layer, near poles down to 20 mb
+!M12 Sdrag: weak linear strat. drag in top layer only
        ang.mom loss is added in below 150 mb
 sea level pressure filter applied every hour, UV-filter used
 6-band oice albedo; Hogstrom(1984) pbl drag
@@ -14,6 +16,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_M20AT                           ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
+!M12 RES_M12                        ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
@@ -21,7 +24,7 @@ DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global dist
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
-CLOUDS2 CLOUDS2_DRV CLOUDS_COM        ! clouds modules
+CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
@@ -41,17 +44,19 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-    ! the first 4 files are specific to prescribed ocean runs
-AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)
+    ! the first group of files is specific to prescribed ocean runs
+! AIC=1DEC1951.rsfE000   ! or:    ! initial conditions (atm./ground), no GIC, ISTART=8
+AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
+!M12 AIC=AIC.RES_M12.D771201      ! initial conditions (atm.)      needs GIC, ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)
 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
-! OSST=OST4X5.B.1990-99avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
-! SICE=SICE4X5.B.1990-99avg.Hadl1.1 ! prescr. climatological sea ice
+!1979 OSST=OST4X5.B.1975-84avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
+!1979 SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
     ! if the prescr. ocean varies from year to year use instead:
 ! OSST=OST4X5.B.1871.M02.Hadl1.1  ! ocean data   Feb 1871 - 2002
 ! SICE=SICE4X5.B.1871.M02.Hadl1.1 ! ocean data   Feb 1871 - 2002
-    ! the next 3 files are specific to q-flux ocean runs
+    ! the next group files are specific to q-flux ocean runs
 ! AIC=E001M20A/1JAN1960.rsfE001M20A.MXL65m   ! AIC/OHT made by aux/mkOTSPEC
 ! OHT=E001M20A/OTSPEC.E001M20A.MXL65m.1951-1960 ! horizontal ocean heat transport
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (use for post processing)
@@ -92,24 +97,32 @@ dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
-E001M20A (ModelE 2.3.4+ 1880 atm/ocn)
+E001M20A (ModelE 1880 atm/ocn)
 
 DTFIX=180
 
 &&PARAMETERS
 ! parameters set for prescribed ocean runs:
 KOCEAN=0        ! ocn is prescribed
-Kvflxo=0        ! DONT'T save VFLXO (daily) (use 1 to prepare for q-flux run)
+Kvflxo=0        ! do NOT save VFLXO (daily) (use 1 to prepare for q-flux run)
 ocn_cycl=1      ! =0 if ocean varies from year to year
 
 ! parameters usually not changed when switching to q-flux ocean:
 
+! drag params if grav.wave drag is not used and top is at .01mb
 X_SDRAG=.001,.0001  ! used above P(P)_sdrag mb (and in top layer)
-C_SDRAG=.0001   ! constant SDRAG above PTOP=150mb
-P_sdrag=1.      ! linear SDRAG only in top layer (except near poles)
-PP_sdrag=20.    ! linear SDRAG above PP_sdrag mb near poles
-P_CSDRAG=1.    ! increase CSDRAG above P_CSDRAG to approach lin. drag
-Wc_JDRAG=30.   ! crit.wind speed for J-drag (Judith/Jim)
+C_SDRAG=.0001       ! constant SDRAG above PTOP=150mb
+P_sdrag=1.          ! linear SDRAG only above 1mb (except near poles)
+PP_sdrag=20.        ! linear SDRAG above PP_sdrag mb near poles
+P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
+Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
+
+! drag params if top is at 10mb
+!M12 X_SDRAG=.00025,.000025  ! very weak linear drag
+!M12 C_SDRAG=0.      ! no constant drag
+!M12 P_sdrag=0.      ! linear SDRAG only in top layer
+!M12 PP_sdrag=0.     ! linear SDRAG only in top layer even at poles
+
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
@@ -118,10 +131,11 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 U00ice=.60      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
-U00wtrX=1.25    ! U00wtrX up => nethtz0 up  (alb down);        for global annual mean
-! U00wtrX=1.??    ! use with 1995 atmosphere/ocean
-! U00wtrX=1.??    ! use with RES_M20AT and 1880 atmosphere/ocean
-! U00wtrX=1.??    ! use with RES_M20AT and 1995 atmosphere/ocean
+U00wtrX=1.25    ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
+!        U00wtrX=1.25    ! use with 1880 atmosphere/ocean
+!1979    U00wtrX=1.22    ! use with 1979 atmosphere/ocean
+!M12     U00wtrX=1.18    ! use with 1880 atmosphere/ocean AND RES_M12
+!M121979 U00wtrX=1.15    ! use with 1979 atmosphere/ocean AND RES_M12
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
 
 RWCLDOX=1.5  !  wtr cld particle size *3/2 over ocean
@@ -149,11 +163,14 @@ o3_yr=1880
 ! parameters that control the Shapiro filter
 DT_XUfilter=300. ! Shapiro filter on U in E-W direction; usually same as DT (below)
 DT_XVfilter=300. ! Shapiro filter on V in E-W direction; usually same as DT (below)
+!M12 DT_XUfilter=450.
+!M12 DT_XVfilter=450.
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
 ! parameters that may have to be changed in emergencies:
 DT=300.         ! from default: DTsrc=3600.,
+!M12 DT=450.    ! from default: DTsrc=3600., (also use DTFIX=300 , not 180)
 NIsurf=2        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:
