@@ -381,7 +381,8 @@ C**** set up unit numbers for 14 radiation input files
       END DO
       CO2REF=FULGAS(2)
       IF(CO2.GE.0.) FULGAS(2)=CO2REF*CO2
-      CALL WRITER (6,0)
+C**** write out now occurs after first pass to ensure correct ppm values
+c      CALL WRITER (6,0)
 C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
       DO L=1,LM
         LLOW=L
@@ -456,7 +457,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       REAL*8, DIMENSION(IM,JM,9) :: ALB
       REAL*8, DIMENSION(LM) :: TOTCLD,PLL,PKL
 
-      INTEGER, SAVE :: JDLAST = -9
+      INTEGER, SAVE :: JDLAST = -9, IFIRST = 1
       INTEGER I,J,L,K,KR,LR,IMAX,IM1,JR,IH,INCH,JK,IT,LTROPO
       REAL*8 ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS,CMC,DEPTH,QSS,TAUSSL
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,PTROPO,OPNSKY
@@ -731,6 +732,11 @@ C****
 C****
 C**** END OF MAIN LOOP FOR J INDEX
 C****
+C**** Put this here so that print out values are correct??? (at least for CO2).
+      if (ifirst.eq.1) then
+        call writer(6,0)  
+        ifirst=0
+      end if
 C****
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C****
