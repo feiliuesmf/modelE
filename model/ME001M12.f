@@ -6,7 +6,7 @@ C**** Snow ages each day independent of temperature
 C****
 C****   This does not have leads at all
 C****
-C**** basic model II (OA,PALMER omitted) .5 box longitude shift
+C**** Basic model II (OA,PALMER omitted) .5 box longitude shift
 C**** Pressure replaces Sigma above LS1 as the vertical coordinate
 C**** Modified for using new MC codes, radiation, 11 veg.types
 C**** Quadratic upstream scheme + 4th order scheme, Cor.term=0 at poles
