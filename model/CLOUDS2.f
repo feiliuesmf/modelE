@@ -689,16 +689,16 @@ C**** TEST FOR CONDENSATION ALSO DETERMINES IF PLUME REACHES UPPER LAYER
   290 CONTINUE
 C**** this is commented out until all the energy conservation issues are
 C**** dealt with.
-c      IF (VLAT(L).EQ.LHS) LHX=LHS
+      IF (VLAT(L).EQ.LHS) LHX=LHS
       VLAT(L)=LHX
       SLH=LHX*BYSHA
       MCCONT=MCCONT+1
       IF(MCCONT.EQ.1) MC1=.TRUE.
-      IF(MC1.AND.L.EQ.LMIN+1) THEN
-         FCONV(L)=FCONV_tmp   ! these are set here but do not make
-         FSSL(L)=FSSL_tmp     ! much sense at the moment...
-         FSUB(L)=FSUB_tmp
-      ENDIF
+C     IF(MC1.AND.L.EQ.LMIN+1) THEN
+C        FCONV(L)=FCONV_tmp   ! these are set here but do not make
+C        FSSL(L)=FSSL_tmp     ! much sense at the moment...
+C        FSUB(L)=FSUB_tmp
+C     ENDIF
 C****
 C**** DEPOSIT PART OF THE PLUME IN LOWER LAYER
 C****
@@ -920,7 +920,8 @@ C**** UPDATE ALL QUANTITIES CARRIED BY THE PLUME
 C****
 C     MCCONT=MCCONT+1                   !!!
 C     IF(MCCONT.EQ.1) MC1=.TRUE.        !!!
-      IF(MC1.AND.PLE(LMIN)-PLE(L+2).GE.450.) SVLATL(L)=LHX
+C     IF(MC1.AND.PLE(LMIN)-PLE(L+2).GE.450.) SVLATL(L)=LHX
+      SVLATL(L)=VLAT(L)
       SMPMAX=SMP
       SMOMPMAX(xymoms) =  SMOMP(xymoms)
       QMPMAX=QMP
@@ -1173,7 +1174,7 @@ C**** save new 'environment' profile for static stability calc.
 C****
 C**** REEVAPORATION AND PRECIPITATION
 C****
-      IF(MC1.AND.PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
+C     IF(MC1.AND.PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
         DO L=LMAX,LMIN,-1
           IF(COND(L).LT.CONDP(L)) CONDP(L)=COND(L)
           FCLW=0.
@@ -1187,7 +1188,7 @@ C**** Note that TRSVWML is in mass units unlike SVWMX
           TRCOND(1:NTX,L) = (1.-FCLW)*TRCOND(1:NTX,L)
 #endif
         END DO
-      END IF
+C     END IF
       PRCP=COND(LMAX)
       PRHEAT=CDHEAT(LMAX)
 #ifdef TRACERS_WATER
@@ -2186,7 +2187,7 @@ C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
         IF(WTEM.LT.1d-10) WTEM=1.d-10
         IF(LHX.EQ.LHE) THEN
           RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
-          QHEATC=(QHEAT(L)+CAREA(L)*(EC(L)+ER(L)))/LHX
+          QHEATC=(QHEAT(L)+FSSL(L)*CAREA(L)*(EC(L)+ER(L)))/LHX
           IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
         ELSE
           RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
