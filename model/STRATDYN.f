@@ -190,7 +190,7 @@ C****
       REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: UT,VT
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM) :: P
       REAL*8, INTENT(IN) :: DT1
-      REAL*8 G2DT,PIJ,TPHYS,ediff,ANGM,DPT
+      REAL*8 G2DT,PIJ,TPHYS,ediff,ANGM,DPT,DUANG
       INTEGER I,J,K,L,IP1,NDT,N,LMAX
 
       G2DT=GRAV*GRAV*DT1
@@ -299,32 +299,30 @@ C**** Update model winds
           END DO
         END IF
 C**** Save AM change and update U,V
-        ANGM=0.
+        ANGM = 0.
         DO L=1,LM
-          ANGM       = ANGM - DU(L)*AIRM(L)
+          ANGM = ANGM - DU(L)*AIRM(L)
           U(I,J,L) = U(I,J,L) + DU(L)
           V(I,J,L) = V(I,J,L) + DV(L)
         END DO
 
-        IF (ANG_GWD.GT.0) THEN  ! ADD IN ANG MOM
-          LMAX=LS1-1            ! BELOW PTOP
-          IF (ANG_GWD.GT.1) LMAX=LM ! OVER WHOLE COLUMN
+        if (ang_gwd.gt.0) then  ! add in ang mom
+          lmax=ls1-1            ! below ptop
+          if (ang_gwd.gt.1) lmax=lm ! over whole column
           DPT=0
           DO L=1,LMAX
             DPT=DPT+AIRM(L)
           END DO
-          DO L=1,LMAX
-            DU(L) = ANGM/DPT
-          END DO
+          DUANG = ANGM/DPT
           IF (MRCH.GT.0) THEN
             DO L=1,LMAX
-              DKE(I,J,L) = DKE(I,J,L) + DU(L)*(U(I,J,L)+0.5*DU(L))
-              DUT(I,J,L) = DUT(I,J,L) + DU(L)*AIRM(L)*DXYV(J)
-              AJL(J,L,JL_DUDTVDIF) = AJL(J,L,JL_DUDTVDIF) + DU(L)
+              DKE(I,J,L) = DKE(I,J,L) + DUANG*(U(I,J,L)+0.5*DUANG)
+              DUT(I,J,L) = DUT(I,J,L) + DUANG*AIRM(L)*DXYV(J)
+              AJL(J,L,JL_DUDTVDIF) = AJL(J,L,JL_DUDTVDIF) + DUANG
             END DO
           END IF
           DO L=1,LMAX
-            U(I,J,L) = U(I,J,L) + DU(L)
+            U(I,J,L) = U(I,J,L) + DUANG
           END DO
         END IF
 
@@ -1002,11 +1000,13 @@ C**** Save AM change
           DPT=DPT+DP(L)
         END DO
         DUANG = ANGM/DPT
-        DO L=1,LMAX
-          IF (MRCH.eq.2) THEN
+        IF (MRCH.eq.2) THEN
+          DO L=1,LMAX
             DKE(I,J,L) = DKE(I,J,L) + DUANG*(0.5*DUANG+UIL(I,L)+DUT(L))
             DUT3(I,J,L)=DUT3(I,J,L) + DUANG*DP(L)*DXYV(J)
-          END IF
+          END DO
+        END IF
+        DO L=1,LMAX
           DUT(L) = DUT(L) + DUANG
         END DO
       end if
