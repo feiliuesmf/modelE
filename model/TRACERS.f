@@ -359,10 +359,6 @@ C**** Tracers dry deposition flux.
       USE FLUXES, only : trsource,trflux1,trsrfflx
       USE TRACER_DIAG_COM, only : taijs,tajls,ijts_source,jls_source
      *     ,itcon_surf,ijts_isrc,jls_isrc
-#ifdef TRACERS_AEROSOLS_Koch
-     *    ,ijts_tau
-      USE AEROSOL_SOURCES, only: aer_tau
-#endif
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
       INTEGER n,ns,naij,najl,j,i
@@ -410,11 +406,6 @@ C**** diagnostics
          end do
 c        call DIAGTCA(itcon_surf(ns,n),n)  ????
         end do
-#ifdef TRACERS_AEROSOLS_Koch
-c accumulate hydrated optical thickness
-         naij = ijts_tau(n)  
-         taijs(:,:,naij) = taijs(:,:,naij) + aer_tau(:,:,n)
-#endif     
 C**** modify vertical moments (only from non-interactive sources)
         trmom( mz,:,:,1,n) = trmom( mz,:,:,1,n)-1.5*trflux1(:,:,n)
      *       *dtstep
