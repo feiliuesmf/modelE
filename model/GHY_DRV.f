@@ -1125,6 +1125,11 @@ c!!! do something with regional diag !!!
 c**** quantities accumulated for latitude-longitude maps in diagij
       aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdt*ptype
       aij(i,j,ij_beta)=aij(i,j,ij_beta)+abetad/nisurf
+      IF (MODDSF.EQ.0) THEN
+        AIJ(I,J,IJ_TRSDN)=AIJ(I,J,IJ_TRSDN)+TRHR(0,I,J)*PTYPE
+        AIJ(I,J,IJ_TRSUP)=AIJ(I,J,IJ_TRSUP)+(TRHR(0,I,J)-TRHDT/DTSURF)
+     *       *PTYPE
+      END IF
       if(modrd.eq.0)aij(i,j,ij_trnfp0)=aij(i,j,ij_trnfp0)+trhdt*ptype
      *     /dtsrc
       aij(i,j,ij_srtr)=aij(i,j,ij_srtr)+(srhdt+trhdt)*ptype
