@@ -9,7 +9,7 @@ if [[ $# -lt 5 ]] ; then
 fi
 # Input files from rundeck (actually ${RUNID}ln)
 # This script uses (inputs) TOPO,OSST,SICE,OCNML,MLMAX,VFLX,RSFIC
-#               (tmp files) OHT,OCNOUT,SRCOR,XCORR,OHTLP,RSFNEW,SNOW
+#               (tmp files) OHT,OHTnoID,OCNOUT,SRCOR,XCORR,OHTLP,RSFNEW,SNOW
 
 cd ..
 MODEL_E_ROOT=$PWD
@@ -22,7 +22,7 @@ if [[ -f ~/.modelErc ]]; then . ~/.modelErc; fi
 
 runID=$1
 cd $CMRUNDIR/$runID
-rm -f RSFIC OHT
+rm -f RSFIC OHT OHTnoID
 
 z12o_max=0
 while [[ ${z12o_max} != [1-9][0-9][0-9] ]] && [[ ${z12o_max} != [1-9][0-9] ]]
@@ -92,6 +92,9 @@ echo Output files in `pwd`:
 outfile=OTSPEC.$1.MXL${z12o_max}m.$3-$5
 mv OHT $outfile
 echo "Saved ocean heat transports in file: " $outfile
+outfile=OTSPEC.$1.MXL${z12o_max}m.noIceD.$3-$5
+mv OHTnoID $outfile
+echo "Saved ocean heat transports (no ice dynamics) in file: " $outfile
 
 mv OHTLP oht$1.$3-$5.lpl
 echo "Saved zonal ocean heat transports: " oht$1.$3-$5.lpl

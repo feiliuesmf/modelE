@@ -4,6 +4,7 @@
 !@+   imbalance) and writes the data onto a disk file.
 !@+   RSI is interpolated in time from the climatological
 !@+   ocean file for the run
+!@+   Now produces qfluxes w and w/o ice dynamics
 C****
 C**** Input files : VFLX = Vert flux data from model run
 C****               SICE = seaice file
@@ -30,10 +31,10 @@ C****
       integer months, monthe, year, month, itime1,
      *     last_day, kday, i, j, iu_TOPO, iu_VFLX, iu_XCORR, iu_SRCOR
      *     ,iu_SNOW,iok
-      REAL*8 AVFX(IM,JM),GSR,GVFXSR,SYEAR,SYEARS
-      real*8 VFSR, VF, XCORR
-      REAL*8 ASR(im,jm),AVFXSR(im,jm)
-      REAL*4 OAS(IM,JM,5), month_day(12)
+      REAL*8 AVFX(IM,JM,2),GSR,GVFXSR(2),SYEAR,SYEARS
+      real*8 VFSR, VF(2), XCORR(2)
+      REAL*8 ASR(im,jm),AVFXSR(im,jm,2)
+      REAL*4 OAS(IM,JM,8), month_day(12)
       CHARACTER*80 TITLE(4),TITLE0, RunID, file_name
       character*4 month_name(12), tmonth, tyear
       character*2 tday
@@ -138,12 +139,15 @@ C****
               DO I=1,IM
                 IF(FOCEAN(I,J).LE.0.) CYCLE
                 VFSR=(1.-RSI(I,J))*OA(I,J,5)+RSI(I,J)*OA(I,J,12)
-                VF = OA(I,J,4)
+                VF(1) = OA(I,J,4)
      *               + (1.-RSI(I,J))*(OA(I,J,6)+OA(I,J,7)+OA(I,J,8))
      *               + RSI(I,J)*(OA(I,J,9)+OA(I,J,10)+OA(I,J,11))
      *               + OA(I,J,13)
+                VF(2) = OA(I,J,4)    ! no ice dyn term
+     *               + (1.-RSI(I,J))*(OA(I,J,6)+OA(I,J,7)+OA(I,J,8))
+     *               + RSI(I,J)*(OA(I,J,9)+OA(I,J,10)+OA(I,J,11))
                 ASR(I,J)      = ASR(I,J)      + VFSR
-                AVFXSR(I,J)   = AVFXSR(I,J)   + VF
+                AVFXSR(I,J,:) = AVFXSR(I,J,:) + VF(:)
               END DO
             END DO
 C*
@@ -172,48 +176,61 @@ C****
 C**** DETERMINE THE SOLAR RADIATION CORRECTION FACTOR, XCORR, SO THAT
 C**** THE CORRECTED GLOBAL VERTICAL FLUX IS EQUAL TO ZERO
 C****
-      GSR    = ASR(1,JM)   *FOCEAN(1,JM)*IM*DXYP(JM)
-      GVFXSR = AVFXSR(1,JM)*FOCEAN(1,JM)*IM*DXYP(JM)
+      GSR      = ASR(1,JM)     *FOCEAN(1,JM)*IM*DXYP(JM)
+      GVFXSR(:)= AVFXSR(1,JM,:)*FOCEAN(1,JM)*IM*DXYP(JM)
       DO J=2,JM-1
       DO I=1,IM
-        GSR    = GSR    + ASR(I,J)   *FOCEAN(I,J)*DXYP(J)
-        GVFXSR = GVFXSR + AVFXSR(I,J)*FOCEAN(I,J)*DXYP(J)
+        GSR      = GSR       + ASR(I,J)     *FOCEAN(I,J)*DXYP(J)
+        GVFXSR(:)= GVFXSR(:) + AVFXSR(I,J,:)*FOCEAN(I,J)*DXYP(J)
       END DO
       END DO
       GSR    = GSR/years
-      GVFXSR = GVFXSR/years
-      XCORR = -GVFXSR/GSR
+      GVFXSR(:) = GVFXSR(:)/years
+      XCORR(:) = -GVFXSR(:)/GSR
       WRITE(6,*)  'GSR,GVFXSR,XCORR=',GSR,GVFXSR,XCORR
       call openunit("XCORR",iu_XCORR,.true.,.false.)
       call openunit("SRCOR",iu_SRCOR,.false.,.false.)
-      WRITE(iu_SRCOR,*) '  KOCEAN=1,SRCOR=',XCORR,','
+      WRITE(iu_SRCOR,*) '  KOCEAN=1,SRCOR=',XCORR(1),', (with icedyn)'
+      WRITE(iu_SRCOR,*) '  KOCEAN=1,SRCOR=',XCORR(2),', (no icedyn)'
       WRITE(iu_XCORR) XCORR
       call closeunit(iu_XCORR)
       call closeunit(iu_SRCOR)
 C****
       DO J=1,JM
       DO I=1,IM
-        AVFX(I,J) = (XCORR*ASR(I,J)+AVFXSR(I,J))/SYEARS
+        AVFX(I,J,:) = (XCORR(:)*ASR(I,J)+AVFXSR(I,J,:))/SYEARS
       END DO
       END DO
 C****
-      AVFX(2:IM,JM) = AVFX(1,JM)
+      do i=2,im
+        AVFX(i,JM,:) = AVFX(1,JM,:)
+      end do
 C****
 C**** Produce maps of ASR, AVFXSR, ASR+AVFXSR, and XCORR*ASR+AVFXSR
 C****
       DO J=1,JM
       DO I=1,IM
         OAS(I,J,5) = FOCEAN(I,J)
-        OAS(I,J,4) = AVFX(I,J)
         OAS(I,J,1) = ASR(I,J)/SYEARS
-        OAS(I,J,2) = AVFXSR(I,J)/SYEARS
-        OAS(I,J,3) = (ASR(I,J)+AVFXSR(I,J))/SYEARS
+        OAS(I,J,2) = AVFXSR(I,J,1)/SYEARS
+        OAS(I,J,3) = (ASR(I,J)+AVFXSR(I,J,1))/SYEARS
+        OAS(I,J,4) = AVFX(I,J,1)
+        OAS(I,J,6) = AVFXSR(I,J,2)/SYEARS
+        OAS(I,J,7) = (ASR(I,J)+AVFXSR(I,J,2))/SYEARS
+        OAS(I,J,8) = AVFX(I,J,2)
       END DO
       END DO
       CALL MAP1 (IM,JM,0,TITLE(1),OAS(1,1,1),OAS(1,1,5),1.,0.,0)
       CALL MAP1 (IM,JM,0,TITLE(2),OAS(1,1,2),OAS(1,1,5),1.,0.,0)
       CALL MAP1 (IM,JM,0,TITLE(3),OAS(1,1,3),OAS(1,1,5),1.,0.,0)
       CALL MAP1 (IM,JM,0,TITLE(4),OAS(1,1,4),OAS(1,1,5),1.,0.,0)
+C**** no ice dyn
+      do i=2,4
+        TITLE(i)=trim(TITLE(i))//" no IceD"
+      end do
+      CALL MAP1 (IM,JM,0,TITLE(2),OAS(1,1,6),OAS(1,1,5),1.,0.,0)
+      CALL MAP1 (IM,JM,0,TITLE(3),OAS(1,1,7),OAS(1,1,5),1.,0.,0)
+      CALL MAP1 (IM,JM,0,TITLE(4),OAS(1,1,8),OAS(1,1,5),1.,0.,0)
 C****
 !AOO not sure if this is needed, but just in case ...  part 3 of 3
       call finish_decomp()
