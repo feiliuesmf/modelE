@@ -85,7 +85,7 @@ C****
 #ifdef TRACERS_WATER
       TRUNOLI(:,I,J)=0.
 #endif
-      IF (PLICE.gt.0) THEN
+      IF (PLICE.gt.0 .and. PRCP.gt.0) THEN
 
         ENRGP=EPREC(I,J)      ! energy of precipitation
         SNOW=SNOWLI(I,J)
