@@ -447,12 +447,12 @@ C****
       USE DOMAIN_DECOMP, only : grid, GET
       USE TRACER_COM, only: ntm
 
-      USE TRDIAG_COM, only : taijln  => taijln_loc
-      USE TRDIAG_COM, only : taijn   => taijn_loc
-      USE TRDIAG_COM, only : taijs   => taijs_loc
-      USE TRDIAG_COM, only : tajln   => tajln_loc
-      USE TRDIAG_COM, only : tajls   => tajls_loc
-      USE TRDIAG_COM, only : tconsrv => tconsrv_loc
+      USE TRDIAG_COM, only : taijln_loc, taijln
+      USE TRDIAG_COM, only : taijn_loc,  taijn
+      USE TRDIAG_COM, only : taijs_loc,  taijs
+      USE TRDIAG_COM, only : tajln_loc,  tajln
+      USE TRDIAG_COM, only : tajls_loc,  tajls
+      USE TRDIAG_COM, only : tconsrv_loc,tconsrv
 
       USE TRDIAG_COM, only : pdsigjl
 
@@ -479,11 +479,6 @@ C****
       REAL*4 TAIJS4(IM,JM,ktaijs),TAJLN4(JM,LM,ktajlx,NTM)
       REAL*4 TAJLS4(JM,LM,ktajls),TCONSRV4(JM,ktcon,ntmxcon)
 
-!@var TA.._glob(..) dummy arrays for reading diagnostics files (ESMF)
-      REAL*8 TAIJLN_glob(im,jm,lm,ntm),TAIJN_glob(im,jm,ktaij,ntm)
-      REAL*8 TAIJS_glob(IM,JM,ktaijs),TAJLN_glob(JM,LM,ktajlx,NTM)
-      REAL*8 TAJLS_glob(JM,LM,ktajls),TCONSRV_glob(JM,ktcon,ntmxcon)
-
       INTEGER :: J_0H, J_1H
 
       CALL GET( grid,  J_STRT_HALO = J_0H,  J_STOP_HALO = J_1H )
@@ -494,23 +489,23 @@ C****
       SELECT CASE (IACTION)
       CASE (IOWRITE,IOWRITE_MON,IOWRITE_SINGLE)  
 C***  PACK distributed arrays into global ones in preparation for output
-        CALL PACK_DATA(grid,TAIJLN, TAIJLN_glob)
-        CALL PACK_DATA(grid,TAIJN , TAIJN_glob )
-        CALL PACK_DATA(grid,TAIJS , TAIJS_glob )
-        CALL PACK_J(grid,TAJLN  , TAJLN_glob )
-        CALL PACK_J(grid,TAJLS  , TAJLS_glob )
-        CALL PACK_J(grid,TCONSRV, TCONSRV_glob )
+        CALL PACK_DATA(grid,TAIJLN_loc, TAIJLN)
+        CALL PACK_DATA(grid,TAIJN_loc, TAIJN )
+        CALL PACK_DATA(grid,TAIJS_loc, TAIJS )
+        CALL PACK_J(grid,TAJLN_loc, TAJLN )
+        CALL PACK_J(grid,TAJLS_loc, TAJLS )
+        CALL PACK_J(grid,TCONSRV_loc, TCONSRV )
         SELECT CASE (IACTION)
           CASE (IOWRITE,IOWRITE_MON) ! output to standard restart file
           IF (AM_I_ROOT())  WRITE (kunit,err=10) MODULE_HEADER,
-     *                         TAIJLN_glob,TAIJN_glob,TAIJS_glob,
-     *                         TAJLN_glob ,TAJLS_glob,TCONSRV_glob,it
+     *                         TAIJLN,TAIJN,TAIJS,
+     *                         TAJLN ,TAJLS,TCONSRV,it
           CASE (IOWRITE_SINGLE)    ! output to acc file
             MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
             IF (AM_I_ROOT()) WRITE (kunit,err=10) MODULE_HEADER,
-     *       REAL(TAIJLN_glob,KIND=4),REAL(TAIJN_glob,KIND=4),
-     *       REAL(TAIJS_glob,KIND=4) ,REAL(TAJLN_glob,KIND=4),
-     *       REAL(TAJLS_glob,KIND=4) ,REAL(TCONSRV_glob,KIND=4),it
+     *       REAL(TAIJLN,KIND=4),REAL(TAIJN,KIND=4),
+     *       REAL(TAIJS,KIND=4) ,REAL(TAJLN,KIND=4),
+     *       REAL(TAJLS,KIND=4) ,REAL(TCONSRV,KIND=4),it
         END SELECT
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
@@ -522,12 +517,12 @@ C***  PACK distributed arrays into global ones in preparation for output
             go to 10  ! or should this be just a warning ??
           end if
 C****     Accumulate diagnostics (converting back to real*8)
-          TAIJLN =  TAIJLN+TAIJLN4(:,J_0H:J_1H,:,:) 
-          TAIJN =   TAIJN+TAIJN4(:,J_0H:J_1H,:,:)
-          TAIJS  =  TAIJS+TAIJS4(:,J_0H:J_1H,:)   
-          TAJLN =   TAJLN+TAJLN4(J_0H:J_1H,:,:,:)
-          TAJLS  =  TAJLS+TAJLS4(J_0H:J_1H,:,:)
-          TCONSRV = TCONSRV+TCONSRV4(J_0H:J_1H,:,:)
+          TAIJLN_loc =  TAIJLN_loc+TAIJLN4(:,J_0H:J_1H,:,:) 
+          TAIJN_loc =   TAIJN_loc+TAIJN4(:,J_0H:J_1H,:,:)
+          TAIJS_loc  =  TAIJS_loc+TAIJS4(:,J_0H:J_1H,:)   
+          TAJLN_loc =   TAJLN_loc+TAJLN4(J_0H:J_1H,:,:,:)
+          TAJLS_loc  =  TAJLS_loc+TAJLS4(J_0H:J_1H,:,:)
+          TCONSRV_loc = TCONSRV_loc+TCONSRV4(J_0H:J_1H,:,:)
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
@@ -535,20 +530,20 @@ C****     Accumulate diagnostics (converting back to real*8)
           END IF
         CASE (ioread)  ! restarts
           READ (kunit,err=10) HEADER,
-     *                         TAIJLN_glob,TAIJN_glob,TAIJS_glob,
-     *                         TAJLN_glob,TAJLS_glob,TCONSRV_glob,it
+     *                         TAIJLN,TAIJN,TAIJS,
+     *                         TAJLN,TAJLS,TCONSRV,it
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
             GO TO 10
           end IF
 C*** Unpack read global data into local distributed arrays
-          CALL UNPACK_DATA( grid,TAIJLN_glob, TAIJLN, local=.true. )
-          CALL UNPACK_DATA( grid,TAIJN_glob , TAIJN , local=.true. )
-          CALL UNPACK_DATA( grid,TAIJS_glob , TAIJS , local=.true. )
-          CALL UNPACK_J( grid,TAJLN_glob  , TAJLN,    local=.true. )
-          CALL UNPACK_J( grid,TAJLS_glob  , TAJLS,    local=.true. )
-          CALL UNPACK_J( grid,TCONSRV_glob, TCONSRV,  local=.true. )
+          CALL UNPACK_DATA( grid,TAIJLN, TAIJLN_loc, local=.true. )
+          CALL UNPACK_DATA( grid,TAIJN , TAIJN_loc , local=.true. )
+          CALL UNPACK_DATA( grid,TAIJS , TAIJS_loc , local=.true. )
+          CALL UNPACK_J( grid,TAJLN  , TAJLN_loc,    local=.true. )
+          CALL UNPACK_J( grid,TAJLS  , TAJLS_loc,    local=.true. )
+          CALL UNPACK_J( grid,TCONSRV, TCONSRV_loc,  local=.true. )
         END SELECT
       END SELECT
 
