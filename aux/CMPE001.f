@@ -296,8 +296,8 @@ C**** check which ocean
          BACKSPACE(1)
          IF (HEADER(1:6).eq."ICEDYN".and.KOCEAN1.eq.0) KOCEAN1=1
          IF (HEADER(1:6).eq."ICEDYN") READ(1) HEADER,ICEDYN1
-         print*,HEADER,ntm
 #ifdef TRACERS_ON
+         print*,HEADER,ntm
          if (debug) write(0,*) 'trying to read tracers'
          READ (1) HEADER,TR1,TRMOM1
 #ifdef TRACERS_WATER
