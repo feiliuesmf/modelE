@@ -598,7 +598,7 @@ c     To compute the drag coefficient,Stanton number and Dalton number
           lb=1.d30
         endif
         lscale(i)=l0*ls*lb/(l0*ls+l0*lb+ls*lb)
-        if (lscale(i).lt.0.5*kappa*zhat(i)) lscale(i)=0.5*kappa*zhat(i)
+c       if (lscale(i).lt.0.5*kappa*zhat(i)) lscale(i)=0.5*kappa*zhat(i)
       end do
 
       return
@@ -995,7 +995,7 @@ c     find ghmin,ghmax,gmmax0:
       ghmin=(-s4-2*d1+sqrt(del))/(2*(s5+2*d3))
       ghmin=int(ghmin*10000.)/10000.
       ghmax=(b1*0.53d0)**2
-      gmmax0=(b1*1.95d0)**2
+      gmmax0=(b1*0.34d0)**2  ! not in use yet
 
       ! for level 3 model only:
       g0=2.d0/3
