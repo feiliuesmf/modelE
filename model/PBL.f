@@ -422,6 +422,7 @@ c Diagnostics printed at a selected point:
 !@var TSTAR the temperature scale
 !@var QSTAR the moisture scale
 !@var LMONIN the Monin-Obukhov length scale
+      USE CONSTANT, only : teeny
       implicit none
 
       integer, intent(in) :: itype,n
@@ -454,6 +455,7 @@ c Diagnostics printed at a selected point:
       if (abs(qstar).lt.smin*abs(q(1)-qgrnd)) qstar=smin*(q(1)-qgrnd)
 
       lmonin = ustar*ustar*tgrnd/(kappa*grav*tstar)
+      if(abs(lmonin).lt.teeny) lmonin=sign(teeny,lmonin)
 c     To compute the drag coefficient,Stanton number and Dalton number
       call dflux(lmonin,ustar,vel1,z0m,z0h,z0q,zgs,cm,ch,cq,itype)
 
@@ -663,9 +665,10 @@ c  Here the atmosphere is unstable with respect to the ground:
 c *********************************************************************
       endif
 
-      dm=1./(1.-sqrt(cmn)*dpsim/kappa)**2
-      dh=sqrt(dm)/(1.-chn*dpsih/(kappa*sqrt(cmn)))
-      dq=sqrt(dm)/(1.-cqn*dpsiq/(kappa*sqrt(cmn)))
+      dm=1./(1.-dpsim/lzgsbyz0m)**2
+      dh=sqrt(dm)/(1.-dpsih/lzgsbyz0h)
+      dq=sqrt(dm)/(1.-dpsiq/lzgsbyz0q)
+
       if (dm.lt.1d-4) dm=1d-4
       if (dh.lt.1d-4) dh=1d-4
       if (dq.lt.1d-4) dq=1d-4
