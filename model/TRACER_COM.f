@@ -18,7 +18,7 @@
 
 C**** Each tracer has a variable name and a unique index
 !@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
-#ifndef TRACERS_WATER
+!#ifndef TRACERS_WATER
       character*8, parameter :: trname(ntm)=
      * (/ 'Air     ','SF6     ','Rn222   ','CO2     ','N2O     ',
      *    'CFC11   ','14CO2   ','CH4     ','O3      '/)
@@ -26,11 +26,11 @@ C**** Each tracer has a variable name and a unique index
       integer :: 
      *   n_Air,   n_SF6,   n_Rn222, n_CO2,   n_N2O,
      *   n_CFC11, n_14CO2, n_CH4,   n_O3 
-#else
-      integer, parameter :: ntm=1
-      character*8, parameter :: trname(ntm)=(/ 'Water   '/)
-      integer :: n_water=1
-#endif
+!#else
+!      integer, parameter :: ntm=1
+!      character*8, parameter :: trname(ntm)=(/ 'Water   '/)
+!      integer :: n_water=1
+!#endif
 
 C****    The following are set in tracer_IC
 !@var NTM_POWER: Power of 10 associated with each tracer (for printing)
@@ -79,6 +79,7 @@ C****
 !@param nWATER index for wetdep tracer type = water 
 !@+       (original condense method)
       integer, parameter :: nWD_TYPES=3, nGAS=1, nPART=2, nWATER=3
+!@param tr_evap_fact fraction of re-evaporation by tracer type
 C note, tr_evap_fact is not dimensioned as NTM:
       REAL*8, parameter, dimension (nWD_TYPES) :: tr_evap_fact=
      *     (/1.d0, 0.5d0,  1.d0/)
@@ -92,7 +93,6 @@ C note, tr_evap_fact is not dimensioned as NTM:
       real*8, dimension (ntm) :: tr_DHD
 !@var TRW0 default tracer concentration in water (kg/kg)
       real*8, dimension(ntm) :: trw0 
-!@param tr_evap_fact fraction of re-evaporation by tracer type
 !@var TRWM tracer in cloud liquid water amount (kg)
       real*8, dimension(im,jm,lm,ntm) :: trwm
 
