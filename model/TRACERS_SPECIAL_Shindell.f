@@ -1447,10 +1447,12 @@ C
 !@var J model latitude index
 !@param tune_land multiplier of flash rate over land to match observ.
 !@param tune_ocean multiplier of flash rate over land to match observ.
+!@param tune_NOx   multiplier of NOx production rate from lightning
       INTEGER, INTENT(IN) :: LMAX,LFRZ,I,J
       INTEGER lmax_temp
       REAL*8 HTCON,HTFRZ,flash,th,th2,th3,th4,zlt,CG
-      REAL*8, PARAMETER :: tune_land=3.5d0, tune_ocean=5.2d0
+C     REAL*8, PARAMETER :: tune_land=3.5d0, tune_ocean=5.2d0
+      REAL*8,PARAMETER::tune_land=2.6d0,tune_ocean=3.9d0,tune_NOx=0.67d0
 C
 c The folowing simple algorithm calculates the lightning
 c frequency in each gridbox using the moist convective cloud
@@ -1508,7 +1510,7 @@ c Given the number of cloud-to-ground flashes, we can now calculate
 c the NOx production rate based on the Price et al. (1997) JGR paper.
 c The units are grams of Nitrogen per minute:
 
-      RNOx_lgt(i,j)=15611.d0*(CG + 0.1d0*(flash-CG))
+      RNOx_lgt(i,j)=15611.d0*(CG + 0.1d0*(flash-CG))*tune_NOx
 
 C If flash is indeed in flashes/min, accumulate it in flashes:
        TAIJS(I,J,ijs_flash)=TAIJS(I,J,ijs_flash) + flash*60.d0
