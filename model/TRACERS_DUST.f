@@ -48,7 +48,9 @@ c      enddo
 
       CALL dust_emission
       CALL dust_grav
+#ifndef TRACERS_WATER
       CALL dust_wet
+#endif
       CALL dust_turb
 #endif
 

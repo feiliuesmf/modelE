@@ -819,20 +819,40 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 #ifdef TRACERS_DUST
       CASE('Clay')
       n_clay=n
-         ntm_power(n)=-9
-         trpdens(n)=2.5d3
+          ntm_power(n)=-9
+          trpdens(n)=2.5d3
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+#ifdef TRACERS_WATER
+          dowetdep(n)=.TRUE.
+#endif
       CASE('Silt1')
       n_silt1=n
-         ntm_power(n)=-9
-         trpdens(n)=2.65d3
+          ntm_power(n)=-9
+          trpdens(n)=2.65d3
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+#ifdef TRACERS_WATER
+          dowetdep(n)=.TRUE.
+#endif
       CASE('Silt2')
       n_silt2=n
-         ntm_power(n)=-9
-         trpdens(n)=2.65d3
+          ntm_power(n)=-9
+          trpdens(n)=2.65d3
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+#ifdef TRACERS_WATER
+          dowetdep(n)=.TRUE.
+#endif
       CASE('Silt3')
       n_silt3=n
-         ntm_power(n)=-9
-         trpdens(n)=2.65d3
+          ntm_power(n)=-9
+          trpdens(n)=2.65d3
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+#ifdef TRACERS_WATER
+          dowetdep(n)=.TRUE.
+#endif
 #endif
 
 #endif
@@ -2170,6 +2190,7 @@ c gravitational settling of ss2
           jls_ltop(k)=Lm
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
+#ifndef TRACERS_WATER
         k=k+1
           jls_3Dsource(nDustWet3Djl,n)=k
           lname_jls(k)='Loss by wet deposition of '//trname(n)
@@ -2177,6 +2198,7 @@ c gravitational settling of ss2
           jls_ltop(k)=Lm
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
+#endif
 #endif
 
 C**** Here are some more examples of generalised diag. configuration
@@ -3762,6 +3784,7 @@ c ss2 optical thickness
         ijts_power(k) = -13.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifndef TRACERS_WATER
       k=k+1
         ijts_source(nDustWetij,n)=k
         lname_ijts(k)='Wet deposition of '//trname(n)
@@ -3771,6 +3794,7 @@ c ss2 optical thickness
         ijts_power(k) = -13.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
 #endif
 
       end select
@@ -6528,7 +6552,8 @@ C
         CASE(nWATER)                          ! water/original method
           fq = 0.D0
         CASE(nPART)                           ! aerosols
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
+    (defined TRACERS_DUST)
           fq = -b_beta_DT*(EXP(-PREC*rc_wash)-1.D0)
           if (FCLOUD.lt.1.D-16) fq=0.d0
           if (fq.lt.0.) fq=0.d0
