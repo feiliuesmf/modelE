@@ -795,8 +795,7 @@ C****
   345 AMSI(K) = RSI(1,JM)*DXYP(JM)*MHS(K,1,JM)*FOCEAN(1,JM)+SFMSI(K)/IM
       IF(ASI.gt.DXYP(JM)*FOCEAN(1,JM))  GO TO 350
       RSI(1,JM)   = ASI*BYFOA(1,JM)
-      DO 346 K=1,NTRICE
-  346 MHS(K,1,JM) = AMSI(K)/ASI
+      IF (ASI.gt.0) MHS(1:NTRICE,1,JM) = AMSI(1:NTRICE)/ASI
       GO TO 400
 C**** Sea ice crunches into itself at North Pole box
   350 RSI(1,JM)   = 1d0
