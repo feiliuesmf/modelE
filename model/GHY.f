@@ -759,6 +759,7 @@ c     fr(l) is the fraction of roots in layer l
           betadl(l)=(1.d0-fice(l,2))*fr(l)*max((hw-h(l,2))/hw,zero)
           betad=betad+betadl(l)
  30     continue
+        if ( betad < 1.d-12 ) betad = 0.d0 ! to avoid 0/0 divisions
         abetad=betad            ! return to old diagnostics
 c     Get canopy conductivity cnc and gpp
         qv  = qsat(tp(0,2)+tfrz,lhe,pres) ! for cond_scheme==2
@@ -880,7 +881,7 @@ c     evapvw is wet evaporation from canopy (from interception)
 
 c     compute transpiration for separate layers (=0 for bare soil)
       evapdl(1:n,1:2) = 0.d0
-      if ( betad > 1d-12 ) then
+      if ( betad > 0.d0 ) then
         do l=1,n
           evapdl(l,2) = evapvd*betadl(l)/betad
         end do
