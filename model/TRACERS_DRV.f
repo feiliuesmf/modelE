@@ -3912,6 +3912,8 @@ C**** (not necessary associated with a particular tracer)
           ijts_power(k) = 5.
           units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
           scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
+      do L=1,LTOP
         k = k + 1
           ijs_NO3(L)=k
           ijts_index(k) = ntm
@@ -3921,6 +3923,8 @@ C**** (not necessary associated with a particular tracer)
           ijts_power(k) = 5.
           units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
           scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
+      do L=1,LTOP
         k = k + 1
           ijs_HO2(L)=k
           ijts_index(k) = ntm
@@ -3930,6 +3934,8 @@ C**** (not necessary associated with a particular tracer)
           ijts_power(k) = 7.
           units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
           scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
+      do L=1,LTOP
         k = k + 1
           ijs_JH2O2(L)=k
           ijts_index(k) = ntm
