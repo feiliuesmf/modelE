@@ -80,7 +80,9 @@ Cewg Between 24N and 40N, allow biomass burning from September to April.
       endif
 c I think units are: Kg S/box/yr
 c We need kg SO2/m2/s
-      cfac=tr_mm(nt)/32.d0/365.d0/sday  !*dtsrc
+c     cfac=tr_mm(nt)/32.d0/365.d0/sday  !*dtsrc
+c Actually they are kg SO2/box/yr:
+      cfac=1.d0/365.d0/sday
       do j=1,jm
       do i=1,im
       so2_src(i,j,1)=so2_ind_input(i,j)*cfac
