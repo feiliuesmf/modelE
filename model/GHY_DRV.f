@@ -834,7 +834,7 @@ c**** set conservation diagnostics for ground water mass and energy
 
 c**** read in vegetation data set: vdata
       call openunit("VEG",iu_VEG,.true.,.true.)
-      do k=1,11
+      do k=1,10  !  11 ????
         call readt (iu_VEG,0,vdata(1,1,K),im*jm,vdata(1,1,k),1)
       end do
 

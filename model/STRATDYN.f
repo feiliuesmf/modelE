@@ -66,7 +66,7 @@ C**** accumulated in the routines contained herein
       USE PARAM
       USE CONSTANT, only : twopi,kapa
       USE MODEL_COM, only : im,jm,lm,ls1,do_gwdrag,ptop,sig,psfmpt,sige
-      USE GEOM, only : areag,dxyv
+      USE GEOM, only : areag,dxyv,dlat_dg
       USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
      *     ,ld2,lshr,ldef,ldefm,zvarx,zvary,zvart,zwt,pks,nm,ek, cmtn
      *     ,cdef,cmc,pbreak,pbreaktop,defthresh
@@ -134,7 +134,7 @@ C**** box and a model grid box weighted by 1/EK; wave_length=root(area)
       EKS=0.
       DO J=2,JM
         EK1=TWOPI/SQRT(DXYV(J))                ! 2pi/grid_box_size
-        EK2=EK1*SQRT((360./IM)*(180./(JM-1)))  ! 2pi/1x1deg_box_size
+        EK2=EK1*SQRT((360./IM)*DLAT_DG)        ! 2pi/1x1deg_box_size
         EKX=0.
         if(EK2.gt.EK1) EKX=(EK2-EK1)/LOG(EK2/EK1) ! weighted mean
         EKS=EKS+EKX*DXYV(J)

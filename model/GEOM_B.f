@@ -16,8 +16,8 @@ C**** as though they were 1/IM of their actual area
       REAL*8, PARAMETER :: DLON = TWOPI*BYIM
 C**** For the wonderland model set DLON=DLON/3
 c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
-!@param  DLAT grid spacing in latitude (deg)
-      REAL*8  :: DLAT
+!@param  DLAT,DLAT_DG grid spacing in latitude (rad,deg)
+      REAL*8  :: DLAT,DLAT_DG
 !@param  FJEQ equatorial value of J
       REAL*8, PARAMETER :: FJEQ=.5*(1+JM)
 !@var  J1U index of southernmost latitude (currently 2, later 1)
