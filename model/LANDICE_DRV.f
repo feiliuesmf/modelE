@@ -21,7 +21,7 @@
      *     ,gtracer
 #ifdef TRACERS_OCEAN
      *     ,trgmelt
-      USE TRACER_COM :: trglac
+      USE TRACER_COM, only : trglac
 #endif
 #endif
       USE DAGCOM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
