@@ -14,8 +14,6 @@
       USE TRACER_COM, only : ntm,trname
 #endif
       IMPLICIT NONE
-CCC   SAVE
-CCC   SAVE  BGRID
 
       integer, parameter :: n=8  !@param n  no of pbl. layers
 
@@ -792,7 +790,7 @@ c                    -------------------------    1
 c                1   - - - - - - - - - - - - -
 c
 c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
-!@var The parameter BGRID determines how strongly non-linear the
+!@var bgrid determines how strongly non-linear the
 !@+   mapping is. BGRID=0 gives linear mapping. Increasing BGRID
 !@+   packs more points into the bottom of the layer.
 !@+   Bgrid is calculated in the beginning of this subroutine every
@@ -837,7 +835,7 @@ C$OMP  THREADPRIVATE(/GRIDS_99/)
       znpass=zn
       dxi=(zn-z1)/float(n-1)
       bgrid=max((dxi*bydzs-1.)/((zn-z1)*byzs-log(zn/z1)),0.d0)
-c     write(75,*) "bgrid, zn=",bgrid, zn
+
       b=bgrid
       zmin=z1
       zmax=zn
@@ -1221,8 +1219,7 @@ c     rhs(n-1)=max(0.5*(B1*lscale(j))**2*as2/(gm+teeny),teeny)
       factx=(dpdxr-dpdxr0)/(z(n)-z(1))
       facty=(dpdyr-dpdyr0)/(z(n)-z(1))
       do i=2,n-1
-        rhs(i)=t0(i)-0.5*dtime*(t(i+1)+t(i))*bygrav*
-     &         (v(i)*facty+u(i)*factx)
+        rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
       end do
 
       facth  = ch*usurf*dzh(1)/kh(1)
