@@ -119,14 +119,14 @@ endif
 	$(F) $<
 
 # RADIATION.f
-RADIATION.o: RADIATION.f
-	@touch .timestamp
-	$(F90) -c -static $(FFLAGS) $(EXTRA_FFLAGS) $<  $(COMP_OUTPUT)
-	-@if [ -s *.mod ] ; then for i in *.mod; do if [ ! -s $$i.sig ] || [ $$i -nt $$i.sig ] ; then echo $@ > $$i.sig; fi; done; fi
-	@touch -r .timestamp $@
-ifdef COMP_OUTPUT
-	@if [ -s $*.ERR ] ; then cat $*.ERR; else rm -f $*.ERR; fi
-endif
+#RADIATION.o: RADIATION.f
+#	@touch .timestamp
+#	$(F90) -c -static $(FFLAGS) $(EXTRA_FFLAGS) $<  $(COMP_OUTPUT)
+#	-@if [ -s *.mod ] ; then for i in *.mod; do if [ ! -s $$i.sig ] || [ $$i -nt $$i.sig ] ; then echo $@ > $$i.sig; fi; done; fi
+#	@touch -r .timestamp $@
+#ifdef COMP_OUTPUT
+#	@if [ -s $*.ERR ] ; then cat $*.ERR; else rm -f $*.ERR; fi
+#endif
 
 
 

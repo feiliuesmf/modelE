@@ -5,6 +5,7 @@ C**** Weak puddling; Land Ice Alb set to 80% (95% vis) in Greenl/Antarct
 
       INCLUDE 'BR00B.COM'
       SAVE
+
       CONTAINS
 
       SUBROUTINE SETNEW(NIPSET,IJYEAR,IJDAY,NVALUE,ILAYER,XVALUE)
@@ -31,6 +32,7 @@ C                                6       Volcanic Aer       0       0
 C                                7       Epsilon Clds       0       0
 C                                8       Refl Surface       0       0
 C                          ---------------------------------------------
+      SAVE
       IF(NIPSET.LT.9) THEN
       NYSPAR=30+NIPSET
       NDSPAR=40+NIPSET
@@ -422,6 +424,7 @@ C
       !INCLUDE 'BR00B.COM'
 C
 CF    CHARACTER*2  NLCHAR
+      SAVE
       CHARACTER*80 EPSTAG,DDINFO
 CF    CHARACTER*15 LLPATH/'/rad4/gcm00b/'/
 CF    CHARACTER*40 RFILE1/'rad00b.radfile1.sgpgxg.table8           '/
@@ -1670,6 +1673,7 @@ C                      -------------------------------------------------
 C                      Set Seasonal and Time (JDAY) Dependent Quantities
 C                      -------------------------------------------------
 C
+      SAVE
       JJDAYS=JDAY
       JYEARS=JYEAR
       IF(KJDAYS.GT.0)             JJDAYS=KJDAYS
@@ -1775,6 +1779,7 @@ C      The Radiation Model can accommodate arbitrary vertical resolution
 C      -----------------------------------------------------------------
 C
 C--------------------------------
+      SAVE
                       CALL GETO3D
                       CALL GETGAS
 C--------------------------------
@@ -1812,6 +1817,7 @@ ceq   DIMENSION UVWAVL(3),UVFACT(3)
 ceq   EQUIVALENCE (FSPARE(25),UVWAVL(1)),(FSPARE(28),UVFACT(1))
 ceq   EQUIVALENCE (ISPARE( 6),KUVFAC),(ISPARE( 7),KSNORM)
 C
+      SAVE
       DATA LMOREF/0/
 C
 C     DATA S00WM2/1366.2911D0/
@@ -2115,6 +2121,7 @@ ceq   DIMENSION XREF(5),YREF(5),ZREF(5)
 ceq   DIMENSION XNOW(5),YNOW(5),ZNOW(5)
 ceq   DIMENSION XDT0(5),YDT0(5),ZDT0(5)
 ceq   DIMENSION XDAT(5),XRAT(5),XFOR(5)
+      SAVE
       DIMENSION KFOR(5)
 C
 ceq   DIMENSION PPMVK0(12)
@@ -2217,6 +2224,7 @@ C
 C
 ceq   EQUIVALENCE (FSPARE(16),O3WJT0)
 C
+      SAVE
       DATA IFIRST/1/, MMOREF/0/, NL0/0/, N150MB/8/
 C
 C     ---------------------------------------------------------------
@@ -2581,6 +2589,7 @@ C
 ceq   EQUIVALENCE (AO3AV1(1),AO3AVE(1,1))
 ceq   EQUIVALENCE (SO3JFS(1,1,1),SO3JF(1,1)),(SO3JFS(1,1,2),SO3SO(1,1))
 C
+      SAVE
       DIMENSION XJDMO(14),HKMSPR(14),HKMAUT(14)
       DIMENSION CNCAUT(14),CNCSPR(14),DEGLAT(14)
       DATA DEGLAT/-85.0,-71.0,-59.0,-47.0,-35.0,-22.0,-9.0,
@@ -2851,6 +2860,7 @@ C
 C
       !INCLUDE 'BR00B.COM'
 C
+      SAVE
       DIMENSION SINLAT(46)
 ceq   DIMENSION PPMVDF(12),PPGRAD(12),SINLAT(46)
 ceq   EQUIVALENCE (FSPARE(181),PPMVDF(1)),(FSPARE(201),PPGRAD(1))
@@ -3157,6 +3167,7 @@ C
 C
       !INCLUDE 'BR00B.COM'
 C
+      SAVE
       DIMENSION SFWM2(18),SIGMA(18,6)
       DATA SFWM2/
      A 2.196E-03, 0.817E-03, 1.163E-03, 1.331E-03, 1.735E-03, 1.310E-03,
@@ -3286,6 +3297,7 @@ C                        FSBAER    SW   SETBAKonly Aerosol Optical Depth
 C                        FTBAER    LW   SETBAKonly Aerosol Optical Depth
 C                        -----------------------------------------------
 C
+      SAVE
       DIMENSION SGOLDH(5),TGOLDH(5)
 C
       DATA IFIRST/1/
@@ -3587,6 +3599,7 @@ C     Ptop 934  854  720  550  390  285  255  150  100   60   30   10
 C     Pbot 984  934  854  720  550  390  285  255  150  100   60   30
 C
 C
+      SAVE
       DIMENSION QXAERN(25),QSAERN(25),QGAERN(25)
       DIMENSION PLB12L(13),SRAX12(12),SRAS12(12),SRAG12(12),TRAX12(12)
       DATA PLB12L/
@@ -3993,6 +4006,7 @@ C       -------------------------------------------------------------
 C     Layr  1    2    3    4    5    6    7    8    9    10   11   12
 C     Ptop 934  854  720  550  390  285  255  150  100   60   30   10
 C     Pbot 984  934  854  720  550  390  285  255  150  100   60   30
+      SAVE
 
       DIMENSION PLB12L(13),SRAX12(12),SRAS12(12),SRAG12(12),TRAX12(12)
       DATA PLB12L/
@@ -4250,6 +4264,7 @@ C
 C
       !INCLUDE 'BR00B.COM'
 C
+      SAVE
       DIMENSION E24LAT(25),EJMLAT(47)
       DIMENSION HLATTF(4),HLATKM(5)
 C
@@ -4447,6 +4462,7 @@ C     ------------------------------------------------------------------
 C
 ceq   DIMENSION SRQV( 6,20),SRSV( 6,20),SRGV( 6,20),Q55V(   20),REFV(20)
 ceq   DIMENSION TRQV(33,20),TRSV(33,20),TRGV(33,20),TRAV(33,20),VEFV(20)
+      SAVE
       DIMENSION TRAB(33,20),V5(5),Q5(5),RV20(20),QV20(20)
 C
 ceq   EQUIVALENCE (SRVQEX(1,1,6),SRQV(1,1)),(SRVQSC(1,1,6),SRSV(1,1))
@@ -4638,6 +4654,7 @@ C     Define Solar,Thermal Cloud Single Scattering Albedo: SRCQPI( 6,15)
 C                                                          TRCQPI(33,15)
 C-----------------------------------------------------------------------
 C
+      SAVE
       DO 120 N=1,15
       DO 110 K=1,33
       TRCQAB(K,N)=TRCQEX(K,N)-TRCQSC(K,N)
@@ -5068,6 +5085,7 @@ ceq   EQUIVALENCE (FSPARE(75),FTRUFV)
 ceq   EQUIVALENCE (FSPARE(76),DTRUFS)
 ceq   EQUIVALENCE (FSPARE(77),DTRUFV)
 C
+      SAVE
       DIMENSION BOCVN(6),BEAVN(6),BOIVN(6),BLIVN(6),BSNVN(6),BVNSUR(6)
       DIMENSION XOCVN(6),XEAVN(6),XOIVN(6),XLIVN(6),XSNVN(6),XVNSUR(6)
 C
@@ -5620,6 +5638,7 @@ C     TAUGAS INPUT REQUIRES:  NL,TLM,ULGAS,XKCFC,PL,DPL,TAUTBL,ULOX,DUX
 C     TAUGAS OUTPUT DATA IS:  TAUN
 C
 C
+      SAVE
       DIMENSION IGASX(18),KGX(18),NUX(13),IGUX(13),NGX(4),IG1X(4),
      $ PX(19),XKCFCW(8,2),MLGAS(18),PDPU2(14),TAUX(33)
 C
@@ -5973,6 +5992,7 @@ ceq   EQUIVALENCE (FSPARE(1),WINDZF(1)),(FSPARE(4),WINDZT(1))
 ceq   EQUIVALENCE (FSPARE(7),TOTLZF(1)),(FSPARE(10),TOTLZT(1))
 ceq   EQUIVALENCE (FEMTRA(1),ECLTRA),(ISPARE(12),KCLDEM)
 C
+      SAVE
       DATA R6,R24/.16666667D0,4.1666667D-02/
       DATA A,B,C/0.3825D0,0.5742D0,0.0433D0/
 C
@@ -6614,6 +6634,7 @@ C                 NIR   Designates solar near-IR wavelengths (770>   nm)
 C                       VIS comprises .53 of S0, NIR comprises .47 of S0
 C     ------------------------------------------------------------------
 C
+      SAVE
       DIMENSION DKS0(16)
 C     ------------------------------------------------------------------
 C         Fractional solar flux k-distribution/pseudo-spectral intervals
@@ -7432,6 +7453,7 @@ C
 C
       !INCLUDE 'BR00B.COM'
 C
+      SAVE
       DIMENSION SALBTG(768,14),TAUGSA(1001,14)
       DIMENSION TAUTGD(122),TAUTGS(768)
       DIMENSION FFKG(4,3),RBBK(3)
@@ -7802,6 +7824,7 @@ C                          XMU (COSZ) SOLAR ZENITH ANGLE INTERPOLATION
 C                          DATA INTERVAL:  0.02  ON  [0.0 < XMU < 1.0]
 C                          -------------------------------------------
 C
+      SAVE
       XI=XMU*50.D0+0.999999D0
       IX=XI
       JX=IX+1
@@ -7889,6 +7912,7 @@ C     STDAER   Selects Mie Scattering Parameters for Aerosol Climatology
 C                     and applies PIAMAX, FSAERA, FTAERA Scaling Factors
 C                     --------------------------------------------------
 C
+      SAVE
       DIMENSION QXAER(6),QSAER(6),QCAER(6),ATAER(33)
       DIMENSION FSAERA(10),FTAERA(10),PIAMAX( 9)
       FSAERN=1.D0                ! FSAERA,FTAERA Scaling moved to GETAER
@@ -7919,6 +7943,7 @@ C     SDDUST     Selects Solar Mie Scattering Parameters for Desert Dust
 C                                     and applies FSDUST Scaling Factors
 C                                     ----------------------------------
 C
+      SAVE
       DIMENSION QQDUST(6),SSDUST(6),GGDUST(6)
 C
       RDI=0.0
@@ -7955,6 +7980,7 @@ C     TDDUST   Selects Thermal Mie Scattering Parameters for Desert Dust
 C                                     and applies FTDUST Scaling Factors
 C                                     ----------------------------------
 C
+      SAVE
       DIMENSION QDDUST(33),SDDUST(33),GDDUST(33),ADDUST(33)
 C
       RDI=0.0
@@ -7994,6 +8020,7 @@ C              SOLARM by dividing O3ABS by the corresponding fraction of
 C              the solar flux within the spectral interval DKS0(15)=0.05
 C              ---------------------------------------------------------
 C
+      SAVE
       O3ABS=AO3(460)
       IP=0
       XX=OCM*1.D+04
@@ -8067,6 +8094,7 @@ C                 INDEX < 10 is selective, INDEX > 10 is digit inclusive
 C                 KWRU directs the output to selected (KWRU) file number
 C     ------------------------------------------------------------------
 C
+      SAVE
       CHARACTER*8 FTYPE
       CHARACTER*3 TRABCD,TRAXSG
       DIMENSION TRABCD(5),TRAXSG(5),TRPI0K(25)
@@ -9851,6 +9879,7 @@ C                 KLIMIT = 0 full output,  KLIMIT > 0 abbreviated output
 C                 KWRU directs the output to selected (KWRU) file number
 C     ------------------------------------------------------------------
 C
+      SAVE
       CHARACTER*32 CHAER(4)
 ceq   EQUIVALENCE (GHGREF(1,1),XREF(1)),(GHGREF(1,2),YREF(1))
 ceq   EQUIVALENCE (GHGREF(1,3),ZREF(1))
@@ -10387,6 +10416,7 @@ C
 
       SUBROUTINE BOXAV1(DEGLAT,TAULAT,NLAT,JALIM,JBLIM,TAU)
       IMPLICIT REAL*8(A-H,O-Z)
+      SAVE
       DIMENSION DEGLAT(NLAT),TAULAT(NLAT)
 C
 C--------------------------------------------------------------------
@@ -10428,6 +10458,7 @@ C
 
       SUBROUTINE BOXAV2(DEGLAT,TAULAT,SIZLAT,NLAT,JALIM,JBLIM,SIZ)
       IMPLICIT REAL*8(A-H,O-Z)
+      SAVE
       DIMENSION DEGLAT(NLAT),TAULAT(NLAT),SIZLAT(NLAT)
 C
 C--------------------------------------------------------------------
@@ -11269,6 +11300,7 @@ C              BCWTJD    (Multiplicative Weight for BC TAU-Map JDEC)
 C
 C-------------------------------------------------------------------
 C
+      SAVE
       DIMENSION EYEAR(50),BCEHC(50),BCEBC(50),BCEDI(50),BCTOT(50)
 C
       DIMENSION BCE(5,45)
@@ -11401,6 +11433,7 @@ C              SUWTJD    (Multiplicative Weight for SU TAU-Map JDEC)
 C
 C-------------------------------------------------------------------
 C
+      SAVE
       DIMENSION EYEAR(50),SUANT(50),SUNAT(50)
 C
       DIMENSION SUE(3,41)
@@ -11511,6 +11544,7 @@ C
 C
       IMPLICIT REAL*8 (A-H,O-Z)
 C
+      SAVE
       DIMENSION GHG01(7,19),GHG02(7,19),GHG03(7,19),GHG04(7,19)
       DIMENSION GHG05(7,19),GHG06(7,19),GHG07(7,19),GHG08(7,19)
       DIMENSION GHG09(7,19),GHG10(7,19),GHG11(7,11)
@@ -11886,6 +11920,7 @@ C
 C
       IMPLICIT REAL*8 (A-H,O-Z)
 C
+      SAVE
       DIMENSION    PRS1(33),PRS2(33),PRS3(33),PRS4(33),PRS5(33),PRS6(33)
      1            ,DNS1(33),DNS2(33),DNS3(33),DNS4(33),DNS5(33),DNS6(33)
      2            ,TMP1(33),TMP2(33),TMP3(33),TMP4(33),TMP5(33),TMP6(33)
@@ -12266,6 +12301,7 @@ C                   PLANCK INTENSITY (W/M**2/STER) IS GIVEN BY PFOFTK/PI
 C
 C     ------------------------------------------------------------------
       IMPLICIT REAL*8 (A-H,O-Z)
+      SAVE
       DIMENSION BN(21),BD(21)
       DATA BN/1.D0,-1.D0,1.D0,-1.D0,1.D0,-1.D0,5.D0,-691.D0,7.D0
      1,-3617.D0,43867.D0,-174611.D0,854513.D0,-236364091.D0
@@ -12353,6 +12389,7 @@ C                   (UNITS FOR FLUXAB AND PFOFTK MUST BE IDENTICAL)
 C
 C     ------------------------------------------------------------------
       IMPLICIT REAL*8 (A-H,O-Z)
+      SAVE
       LOGICAL LOGFIT
       DATA DELFIT/1.D-06/
       DATA NMAX/20/
@@ -12452,6 +12489,7 @@ C     ------------------------------------------------------------------
 
       SUBROUTINE SPLINE(X,F,NXF,XX,FF,CUSPWM,CUSPWE,KXTRAP)
       IMPLICIT REAL*8(A-H,O-Z)
+      SAVE
       DIMENSION X(NXF),F(NXF)
 C
 C---------------------------------------------------------------------
@@ -12647,6 +12685,7 @@ C
 
       SUBROUTINE REPART(FXL,XLB,NXB,GYL,YLB,NYB)
       IMPLICIT REAL*8(A-H,O-Z)
+      SAVE
       DIMENSION FXL(NXB),XLB(NXB),GYL(NYB),YLB(NYB)
 C
 C     ------------------------------------------------------------------
@@ -12786,6 +12825,7 @@ C
 
       SUBROUTINE RETERP(FXL,XLB,NXB,GYL,YLB,NYB)
       IMPLICIT REAL*8(A-H,O-Z)
+      SAVE
       DIMENSION FXL(NXB),XLB(NXB),GYL(NYB),YLB(NYB)
 C
 C     ------------------------------------------------------------------
@@ -12921,6 +12961,7 @@ C
 
       SUBROUTINE FXGINT(F,X,NX,G,Y,NY,ALIM,BLIM,ABINT)
       IMPLICIT REAL*8(A-H,O-Z)
+      SAVE
       DIMENSION F(NX),X(NX),G(NY),Y(NY)
       DATA DELTA/1.D-07/
 C

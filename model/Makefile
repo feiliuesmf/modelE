@@ -189,7 +189,7 @@ newstart:
 
 htmldoc:
 	[ -d $(DOC_DIR) ] || mkdir $(DOC_DIR)
-	$(SCRIPTDIR)/gcmdoc.pl -D $(DOC_DIR) $(FSRCS)
+	$(SCRIPTDIR)/gcmdoc.pl -O $(DOC_DIR) -R $(RUN) $(FSRCS)
 
 clean:
 	rm -f *.LST *~ *.ERR *.CHK *.L
