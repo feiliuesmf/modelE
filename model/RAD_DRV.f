@@ -1272,8 +1272,13 @@ C*****************************************************
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
 C**** Save optical depth diags
       do n=1,NTRACE
-        if (ijts_tau(NTRIX(n)).gt.0) taijs(i,j,ijts_tau(NTRIX(n)))
-     *       =taijs(i,j,ijts_tau(NTRIX(n)))+SUM(TTAUSV(1:lm,n))
+        if (ijts_tau(1,NTRIX(n)).gt.0)
+     *    taijs(i,j,ijts_tau(1,NTRIX(n)))
+     *    =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
+        if (ijts_tau(2,NTRIX(n)).gt.0)
+     *    taijs(i,j,ijts_tau(2,NTRIX(n)))
+     *    =taijs(i,j,ijts_tau(2,NTRIX(n)))
+     *    +SUM(TTAUSV(1:lm,n))*OPNSKY
       end do
 #endif
 
@@ -1573,6 +1578,14 @@ c shortwave forcing (TOA or TROPO)
 c longwave forcing  (TOA or TROPO)
              if (ijts_fc(2,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
      *         ,ijts_fc(2,n))-rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
+c shortwave forcing (TOA or TROPO) clear sky
+             if (ijts_fc(5,n).gt.0) taijs(i,j,ijts_fc(5,n))=taijs(i,j
+     * ,ijts_fc(5,n))+rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2*(1.d0-
+     *  CFRAC(I,J))
+c longwave forcing  (TOA or TROPO) clear sky
+             if (ijts_fc(6,n).gt.0) taijs(i,j,ijts_fc(6,n))=taijs(i,j
+     * ,ijts_fc(6,n))-rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))*(1.d0-
+     *  CFRAC(I,J))
 c shortwave forcing at surface (if required)
              if (ijts_fc(3,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
      *         ,ijts_fc(3,n))+rsign*(SNFST(1,N,I,J)-SNFS(1,I,J))*CSZ2
