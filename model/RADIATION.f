@@ -8573,7 +8573,7 @@ C
      3      /5X,I2,' = KANORM = ',I1,'   0        SGP Atmos Column Norm'
      4      /5X,I2,' = KPFCO2 = ',I1,'   0        1=MOD CO2PROF: FPXCO2'
      5      /5X,I2,' = KPFOZO = ',I1,'   0        1=MOD O3 PROF: FPXOZO'
-     6      /5X,I2,' = KVEGA6 = ',I1,'   0        Schramm's ocn ice alb'
+     6      /5X,I2,' = KVEGA6 = ',I1,'   0        Schramm"s ocn ice alb'
      7      /5X,I2,' = KORDER = ',I1,'   0        WRITER k-d spec order'
      8      /5X,I2,' = unused = ',I1,'                                 '
      R      )

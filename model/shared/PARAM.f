@@ -56,7 +56,11 @@
 !@+       unchanged and only new parameters are added.
 !@+
 !@+   Read FAQ's for the full description.
-
+!@+ 
+!@+               CHANGE LOG:
+!@+ 04/18/02 added 3 bytes to ParamStr so that its size is divisible by 4
+!@+ (needed for portability SGI,LINUX <-> IBM,COMPAQ). Header renamed
+!@+ to "PARAM02 "
 
       implicit none
       save
@@ -73,13 +77,14 @@
       integer, parameter :: MAX_NAME_LEN = 32
       integer, parameter :: MAX_CHAR_LEN = 16
 
-      character*80 :: MODULE_HEADER='PARAM01 '
+      character*80 :: MODULE_HEADER='PARAM02 '
 
       type ParamStr
         character(MAX_NAME_LEN) name  ! parameter name
         integer indx                 ! storage for its value
         integer dim                   ! number of elements
-        character*1 attrib            ! type: real ('r') or int ('i')
+        character(1) attrib            ! type: real ('r') or int ('i')
+        character(1) reserved(3)
       end type ParamStr
 
       type (ParamStr), target :: Params(MAX_PARAMS)
@@ -174,6 +179,7 @@
       if ( num_param >= MAX_PARAMS ) then
         print *, 'PARAM: Maximal number of parameters exceeded'
         print *, 'PARAM: Please recompile param with bigger MAX_PARAMS'
+        call abort
         stop 'PARAM: Maximal number of parameters exceeded'
       endif
 
@@ -182,12 +188,14 @@
       PStr%name = name
       PStr%attrib = attrib
       PStr%dim = dim
+      PStr%reserved(1:3) = (/ ' ', ' ', ' ' /)
 
       select case (attrib)
         case ('i')
           if ( num_iparam+dim >= MAX_IPARAMS ) then
             print *, 'PARAM: Maximal number of int parameters exceeded'
             print *, 'PARAM: Recompile param with bigger MAX_IPARAMS'
+            call abort
             stop 'PARAM: Maximal number of int parameters exceeded'
           endif
           PStr%indx = num_iparam + 1
@@ -712,8 +720,14 @@
       backspace kunit
 
       if (HEADER(1:8).ne.MODULE_HEADER(1:8)) then
-        print *, 'WARNING: No parameter data'
-        return
+        if (HEADER(1:8).eq.'PARAM01 ') then
+          print *, 'WARNING: PARAM: Old format of parameter data.'
+          call read_param_comp01( kunit, ovrwrt )
+          return
+        else
+          print * , 'PARAM: No parameter header in input data'
+          stop 'PARAM: No parameter header in input data'
+        endif
       endif
 
       read( kunit, err=10 ) HEADER,
@@ -732,6 +746,18 @@
         print *, 'PARAM: please recompile param with bigger MAX_?PARAMS'
         print *, 'PARAM: ',num_param,num_rparam,num_iparam,num_cparam
         stop 'PARAM: parameter list in input file too long'
+      endif
+
+      if ( lnum_param < 1 ) return   ! no parameters in the records
+
+      ! this is a hack to fix the big/little endian conversion if 
+      ! the compiler missed it
+      if ( LParams(1)%dim > 65536 .or. LParams(1)%dim < 0 ) then
+        print *, 'WARNING: PARAM: wrong format in LParams - converting'
+        do n=1,lnum_param
+          call swap_bytes_4( LParams(n)%indx, 1 )
+          call swap_bytes_4( LParams(n)%dim,  1 )
+        enddo
       endif
 
       ! now merge the data just read with existing database
@@ -764,6 +790,14 @@
       write (MODULE_HEADER(9:80),'(i10,a)')
      *  num_param,' is the current number of parameters in database DB'
 
+#ifdef MACHINE_DEC
+      ! converting it manually to big-endian for COMPAQ compiler
+      do n=1,lnum_param
+        call swap_bytes_4( LParams(n)%indx, 1 )
+        call swap_bytes_4( LParams(n)%dim,  1 )
+      enddo
+#endif
+
       write( kunit, err=10 ) MODULE_HEADER,
      *     num_param, num_rparam, num_iparam, num_cparam,
      *     ( Params(n), n=1,min(num_param,MAX_PARAMS) ),
@@ -771,6 +805,15 @@
      *     ( Idata(n), n=1,min(num_iparam,MAX_IPARAMS) ),
      *     ( Cdata(n), n=1,min(num_cparam,MAX_CPARAMS) )
       return
+
+#ifdef MACHINE_DEC
+      ! and back to little-endian ...
+      do n=1,lnum_param
+        call swap_bytes_4( LParams(n)%indx, 1 )
+        call swap_bytes_4( LParams(n)%dim,  1 )
+      enddo
+#endif
+
  10   print *, 'PARAM: Error writing, unit = ', kunit
       stop 'PARAM: Error writing'
       end subroutine write_param
@@ -875,6 +918,105 @@
       enddo
       end subroutine lowcase
 
+!**** the code below is included for compatibility with older versions ****
+!**** it can be removed later when not needed any more                 ****
+
+      subroutine read_param_comp01( kunit, ovrwrt )
+      implicit none
+      type ParamStr_comp01
+        character(MAX_NAME_LEN) name ! parameter name
+        integer indx                 ! storage for its value
+        integer dim                   ! number of elements
+        character*1 attrib            ! type: real ('r') or int ('i')
+      end type ParamStr_comp01
+      integer, intent(in) :: kunit
+      logical, intent(in) :: ovrwrt
+      integer n, np
+      type (ParamStr_comp01), save :: LParams(MAX_PARAMS)
+      real*8, save :: LRdata(MAX_RPARAMS)
+      integer, save :: LIdata(MAX_IPARAMS)
+      character*(MAX_CHAR_LEN), save :: LCdata(MAX_CPARAMS)
+      integer lnum_param, lnum_rparam, lnum_iparam, lnum_cparam
+      character*80 HEADER
+
+      read( kunit, err=10 ) HEADER
+      backspace kunit
+
+      if (HEADER(1:8).ne.'PARAM01 ') then
+        print *, 'PARAM: No parameter header in input data'
+        stop 'PARAM: No parameter header in input data'
+      endif
+
+      read( kunit, err=10 ) HEADER,
+     *     lnum_param, lnum_rparam, lnum_iparam, lnum_cparam,
+     *     ( LParams(n), n=1,min(lnum_param,MAX_PARAMS) ),
+     *     ( LRdata(n), n=1,min(lnum_rparam,MAX_RPARAMS) ),
+     *     ( LIdata(n), n=1,min(lnum_iparam,MAX_IPARAMS) ),
+     *     ( LCdata(n), n=1,min(lnum_cparam,MAX_CPARAMS) )
+
+      if (     lnum_param  > MAX_PARAMS
+     *     .or. lnum_rparam > MAX_RPARAMS
+     *     .or. lnum_iparam > MAX_IPARAMS
+     *     .or. lnum_cparam > MAX_CPARAMS
+     *     ) then
+        print *, 'PARAM: parameter list in input file too long'
+        print *, 'PARAM: please recompile param with bigger MAX_?PARAMS'
+        print *, 'PARAM: ',num_param,num_rparam,num_iparam,num_cparam
+        stop 'PARAM: parameter list in input file too long'
+      endif
+
+      ! now merge the data just read with existing database
+      do n=1,lnum_param
+        if ( (.not. is_set_param(LParams(n)%name)) .or. ovrwrt ) then
+          select case( LParams(n)%attrib )
+          case ('i')
+            call set_aiparam( LParams(n)%name, LIdata(LParams(n)%indx),
+     *           LParams(n)%dim, 'o' )
+          case ('r')
+            call set_arparam( LParams(n)%name, LRdata(LParams(n)%indx),
+     *           LParams(n)%dim, 'o' )
+          case ('c')
+            call set_acparam( LParams(n)%name, LCdata(LParams(n)%indx),
+     *           LParams(n)%dim, 'o' )
+          end select
+        endif
+      enddo
+      return
+ 10   print *, 'PARAM: Error reading, unit = ', kunit
+      stop 'PARAM: Error reading'
+      end subroutine read_param_comp01
 
       end module param
+
+!**** this should be put somewhere else, but since it is used only ****
+!**** in this modedule I put it here for a while ...               ****
+
+      subroutine swap_bytes_4( value, dim )
+      integer dim
+      integer(4) value(dim)
+      integer(4) a
+      character(1) c(4), c1, c2
+      equivalence (a,c)
+      integer n
+!@sum  does conversion big<->little - endian for 4 byte data
+!@auth I. Aleinov
+!@ver 1.0
+      do n=1,dim
+        a = value(n)
+        c1 = c(1)
+        c2 = c(2)
+        c(1) = c(4)
+        c(2) = c(3)
+        c(3) = c2
+        c(4) = c1
+        value(n) = a
+      enddo
+      end subroutine swap_bytes_4
+
+
+
+
+
+
+
 
