@@ -2634,12 +2634,12 @@ ccc canopy
       if ( evapvw >= 0.d0 ) then  ! no dew
         evap_tmp(:m) = fc(0)+pr
 #ifdef TRACERS_SPECIAL_O18
-        if ( evap_tmp(1)*dts < wi(0,2) ) then
-        do mc=1,m
+        if ( evap_tmp(1)*dts < wi(0,2) .and. tp(0,2) > 0.d0 ) then
+          do mc=1,m
 ccc tr_name - loop over string comparisons deep inside the nested
 ccc loops...
-          evap_tmp(mc) = evap_tmp(mc) * fracvl( tp(0,2),tr_name(mc) )
-        enddo
+            evap_tmp(mc) = evap_tmp(mc) * fracvl( tp(0,2),tr_name(mc) )
+          enddo
         endif
 #endif
         tr_evap(:m,2) = tr_evap(:m,2) + evap_tmp(:m)*tr_wcc(:m,2)
@@ -2829,12 +2829,12 @@ ccc evap from bare soil
       if ( process_bare .and. evapb >= 0.d0 ) then        
         evap_tmp(:m) = evapb*(1.d0-fr_snow(1))
 #ifdef TRACERS_SPECIAL_O18
-        if ( evap_tmp(1)*dts < wi(1,1) ) then
-        do mc=1,m
+        if ( evap_tmp(1)*dts < wi(1,1) .and. tp(1,1) > 0.d0 ) then
+          do mc=1,m
 ccc tr_name - loop over string comparisons deep inside the nested
 ccc loops...
-          evap_tmp(mc) = evap_tmp(mc) * fracvl( tp(1,1),tr_name(mc) )
-        enddo
+            evap_tmp(mc) = evap_tmp(mc) * fracvl( tp(1,1),tr_name(mc) )
+          enddo
         endif
 #endif
         tr_w(:m,1,1) = tr_w(:m,1,1) - evap_tmp(:m)*tr_wc(:m,1,1)*dts
