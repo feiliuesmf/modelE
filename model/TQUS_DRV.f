@@ -141,12 +141,12 @@ C****         y-direction
           ma(:,1 ,l) = ssp
           ma(:,jm,l) = snp
           if (ma(1,1,l)/mb(1,1,l).lt.0.5) then
-            write(6,900)'ma(1,1,l) ysp: nc=',ma(1,1,l)/mb(1,1,l),nc
+            write(6,910)'ma(1,1,l) ysp: nc=',l,ma(1,1,l)/mb(1,1,l),nc
             mneg=.true.
             go to 595
           endif
           if (ma(1,jm,l)/mb(1,jm,l).lt.0.5) then
-            write(6,900)'ma(1,jm,l) ynp: nc=',ma(1,jm,l)/mb(1,jm,l),nc
+            write(6,910)'ma(1,jm,l) ynp: nc=',l,ma(1,jm,l)/mb(1,jm,l),nc
             mneg=.true.
             go to 595
           endif
@@ -218,6 +218,7 @@ C****
       end do
       RETURN
   900 format (1x,a,3i4,f10.4,i5)
+  910 format (1x,a,i4,f10.4,i5)
       END subroutine AADVQ0
 
       end MODULE TRACER_ADV
@@ -573,7 +574,7 @@ C**** Unscale poles
       integer :: nstep,ns,l,i
       double precision :: courmax,byn
 
-C**** decide how many timesteps to take 
+C**** decide how many timesteps to take
       DO 430 I=IM,IM*(JM-1)+1
       nstep=0
       courmax = 2.
