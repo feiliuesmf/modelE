@@ -5155,10 +5155,10 @@ c
       call get_lightning_NOx
       call apply_tracer_3Dsource(nLightning,n_NOx)
 c
-C**** Make sure that these 3D sources for all tracers start at 0.:
-      tr3Dsource(:,:,:,nChemistry,:)  = 0.
+C**** Make sure that these 3D sources for all chem tracers start at 0.:
+      tr3Dsource(:,:,:,nChemistry,1:ntm_chem)  = 0.
 #ifndef Shindell_Strat_chem
-      tr3Dsource(:,:,:,nStratwrite,:) = 0.
+      tr3Dsource(:,:,:,nStratwrite,1:ntm_chem) = 0.
 #endif
 C**** Call the model CHEMISTRY and STRATOSPHERE OVERWRITE:
            
