@@ -15,7 +15,7 @@ ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
 CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
-FLUXES                              ! fluxes
+FLUXES                              ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ! pick exactly one of the next 2 choices:
