@@ -765,7 +765,7 @@ c      USE PRTCOM, only :
      &     PLM,PLE,P1000K,linect,jmby2
       USE DAGCOM, only :
      &     ajk,ajl,asjl,ajlsp,kdiag,aijl,aijk,nwav_dag,kajlsp,LM_REQ
-     &     ,apj,aij,IJ_PHI1K
+     &     ,apj,aij,IJ_PHI1K,kgz
      &     ,qcheck, acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
      *     ,kep,ijl_u,ijl_v,ijl_dse,ijl_q,ijl_dp
      &     ,sname_jl=>name_jl,lname_jl,units_jl
@@ -1726,9 +1726,9 @@ C****   AMPLITUDE AND PHASE
 C****
             LINECT=63
       KM=0
-      DO K=1,7
-      IF (PMTOP.GT.PMB(K)) EXIT
-      KM=KM+1
+      DO K=1,KGZ
+        IF (PMTOP.GT.PMB(K)) EXIT
+        KM=KM+1
       ENDDO
       ELOFIM=.5*TWOPI-TWOPI/FIM
 
@@ -2484,6 +2484,7 @@ C**FREQUENCY BAND AVERAGE
 
       use MODEL_COM, only : IM,JM
       use DAGCOM, only : kaij,kaijx,lname_ij,name_ij,units_ij
+     *  ,kgz,pmb,ght
 
       IMPLICIT NONE
 
@@ -2494,14 +2495,6 @@ C**FREQUENCY BAND AVERAGE
       INTEGER :: ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
      *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_fland,
      *  ij_ntdsete, ij_dzt1, ij_dzt2, ij_dzt3, ij_dzt4, ij_dzt5, ij_dzt6
-
-!@var PMB: NPMB selected pressure levels (mb) for thickness temperatures
-!@+   and GHT = mean heights corresponding to those pressure levels
-      integer, parameter :: npmb=7
-      DOUBLE PRECISION, DIMENSION(npmb), PARAMETER :: PMB=(/
-     &     1000.,850.,700.,500.,300.,100.,30. /)
-      DOUBLE PRECISION, DIMENSION(npmb), PARAMETER :: GHT=(/
-     &     0.,1500.,3000.,5600.,9500.,16400.,24000. /)
 
 !@param LEGEND "contour levels" for ij-maps
       CHARACTER(LEN=40), DIMENSION(24), PARAMETER :: LEGEND=(/ !
@@ -2707,7 +2700,7 @@ c
 
       ij_dzt1 = k+1 ; ij_dzt2 = k+2 ; ij_dzt3 = k+3
       ij_dzt4 = k+4 ; ij_dzt5 = k+5 ; ij_dzt6 = k+6
-      do k1 = 1,npmb-1
+      do k1 = 1,kgz-1 
         name_ij(k+k1) = 'dztemp_1000-850'
         if(k1.gt.1) write(name_ij(k+k1)(8:15),
      *    '(i3.3,a1,i3.3,a1)') nint(pmb(k1)),'-',nint(pmb(k1+1)),' '
@@ -2716,7 +2709,7 @@ c
      *     '(i3.3,a1,i3.3,a1)') nint(pmb(k1)),'-',nint(pmb(k1+1)),' '
         units_ij(k+k1) = 'C'
       end do
-      k = k + npmb -1
+      k = k + kgz -1
 
       k = k + 1
       ij_grow = k
@@ -2898,8 +2891,8 @@ c**** precomputed fields: northward tranports by eddies
         anum=TENTDSE*(byiacc*scale_ij(ij_dsev))  ;  jgrid = 2
         adenom(1,1) = undef
 
-c**** group of npbm-1 thickness temperatures (from heights)
-      else if (k.ge.ij_dzt1 .and. k.le.ij_dzt1+npmb-2) then
+c**** group of kgz-1 thickness temperatures (from heights)
+      else if (k.ge.ij_dzt1 .and. k.le.ij_dzt1+kgz-2) then
         byiacc = 1./(idacc(ia_ij(ij_phi1k))+teeny) ; irange = ir_m80_28
         k1 = k-ij_dzt1+1  ; k2 = ij_phi1k + k1
         scalek = 1./(rgas*log(pmb(k1)/pmb(k1+1)))

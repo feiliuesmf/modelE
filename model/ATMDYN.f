@@ -812,7 +812,7 @@ C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
       CALL GWDRAG (P,U,V,T,TZ,DTLF)   ! strat
       CALL ADVECV (PC,U,V,P,UT,VT,Pijl,DTLF)     !PA->pijl
          MODDA=MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2)  ! strat
-         IF(MODDA.LT.MRCH) CALL DIAGA0 (T)   ! strat
+         IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
          FPEU(:,:) = 0.
          FPEV(:,:) = 0.
          FWVU(:,:) = 0.
@@ -858,8 +858,9 @@ C*** copy z-moment of temperature into contiguous memory
 C**** LOAD P TO PC
       PC(:,:)=P(:,:)
          IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
-           CALL DIAGA (U,V,T,P,Q,PIT,SD)
-           CALL DIAGB (U,V,T,P,Q,WM,DUT,DVT)
+           CALL CALC_AMPK(LS1-1)
+           CALL DIAGA
+           CALL DIAGB
            CALL EPFLUX (U,V,T,P)
          ENDIF
 C**** Restart after 8 steps due to divergence of solutions

@@ -155,6 +155,16 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       DOUBLE PRECISION,
      &     DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP) :: WAVE
 
+!@param KGZ number of pressure levels for geopotential height diag
+      INTEGER, PARAMETER :: KGZ = 7   !13
+!@param PMB pressure levels for geopotential heights (extends to strat)
+!@param GHT ~mean geopotential heights at PMB level (extends to strat)
+      REAL*8, DIMENSION(KGZ), PARAMETER ::
+     &     PMB=(/1000d0,850d0,700d0,500d0,300d0,100d0,30d0/),   !10d0,
+!     *     3.4d0,.7d0,.16d0,.07d0,.03d0/),
+     *     GHT=(/0.,1500.,3000.,5600.,9500.,16400.,24000./) !,30000.,
+!     *     40000.,50000.,61000.,67000.,72000./)
+
 !@param KACC total number of diagnostic elements
       INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ
      *     + JM*KAPJ + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +

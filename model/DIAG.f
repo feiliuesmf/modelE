@@ -360,7 +360,7 @@ C****   7  MAX TG1 OVER OCEAN ICE FOR CURRENT DAY (C)
 C****   8  MAX TG1 OVER LAND ICE FOR CURRENT DAY (C)
 C****
 
-      SUBROUTINE DIAGA (U,V,T,P,Q,PIT,SD)
+      SUBROUTINE DIAGA
 !@sum  DIAGA accumulate various diagnostics during dynamics
 !@auth Original Development Team
 !@ver  1.0
@@ -368,6 +368,7 @@ C****
      *     ,rvap,gamd
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
+     *     ,u,v,t,p,q
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
      *     ,imaxj,ravpn,ravps,sinp,bydxyv
       USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,J5NUV
@@ -376,21 +377,17 @@ C****
      *     ,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst,j_rictr,j_rostr,j_ltro
      *     ,j_ricst,j_rosst,j_lstr,j_gamm,j_gam,j_gamc,lstr,il_ueq
      *     ,il_veq,il_weq,il_teq,il_qeq,il_w50n,il_t50n,il_u50n,il_w70n
-     *     ,il_t70n,il_u70n,
+     *     ,il_t70n,il_u70n,   kgz,pmb,ght,
      &     JL_DTDYN,JL_ZMFNTMOM,JL_TOTNTMOM,JL_APE,JL_UEPAC,
      &     JL_VEPAC,JL_UWPAC,JL_VWPAC,JL_WEPAC,JL_WWPAC,
      &     JL_EPFLXN,JL_EPFLXV
-      USE DYNAMICS, only : pk,phi
+      USE DYNAMICS, only : pk,phi, pit,sd
       USE RADNCB, only : rqt,lm_req
       USE PBLCOM, only : tsavg
 
       IMPLICIT NONE
       SAVE
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: U,V,T,Q
-      DOUBLE PRECISION, DIMENSION(IM,JM) :: P
       LOGICAL POLE
-      DOUBLE PRECISION, DIMENSION(IM,JM) :: PIT
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM-1) :: SD
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: W
       COMMON/WORK2/W
       DOUBLE PRECISION, DIMENSION(LM) :: GMEAN
@@ -408,15 +405,6 @@ C****
       INTEGER, DIMENSION(LM) :: LUPA,LDNA
       DOUBLE PRECISION, DIMENSION(LM) :: D2SIG,PKS
       CHARACTER*16 TITLE
-!@param KGZ number of pressure levels for geopotential height diag
-      INTEGER, PARAMETER :: KGZ = 7   !13
-!@param PMB pressure levels for geopotential heights (extends to strat)
-!@param GHT ~mean geopotential heights at PMB level (extends to strat)
-      REAL*8, DIMENSION(KGZ), PARAMETER ::
-     &     PMB=(/1000d0,850d0,700d0,500d0,300d0,100d0,30d0/),   !10d0,
-!     *     3.4d0,.7d0,.16d0,.07d0,.03d0/),
-     *     GHT=(/0.,1500.,3000.,5600.,9500.,16400.,24000./) !,30000.,
-!     *     40000.,50000.,61000.,67000.,72000./)
       INTEGER :: IFIRST = 1
       DOUBLE PRECISION, PARAMETER :: ONE=1.,ZERO20=1.E-20,P1000=1000.
       INTEGER :: I,IM1,J,K,L,JET,JR,KM,LDN,LUP,
@@ -481,30 +469,18 @@ C****
 C****
 C**** CALCULATE PK AND TX, THE REAL TEMPERATURE
 C****
-      DO 80 L=1,LS1-1
-      PK(L,1,1)=(SIG(L)*P(1,1)+PTOP)**KAPA
+      DO 84 L=1,LM
       TX(1,1,L)=T(1,1,L)*PK(L,1,1)
-      PK(L,1,JM)=(SIG(L)*P(1,JM)+PTOP)**KAPA
       TX(1,JM,L)=T(1,JM,L)*PK(L,1,JM)
       DO 70 I=2,IM
       T(I,1,L)=T(1,1,L)
       T(I,JM,L)=T(1,JM,L)
-      PK(L,I,1)=PK(L,1,1)
       TX(I,1,L)=TX(1,1,L)
-      PK(L,I,JM)=PK(L,1,JM)
    70 TX(I,JM,L)=TX(1,JM,L)
       DO 80 J=2,JM-1
       DO 80 I=1,IM
-      PK(L,I,J)=(SIG(L)*P(I,J)+PTOP)**KAPA
    80 TX(I,J,L)=T(I,J,L)*PK(L,I,J)
-      DO 83 L=LS1,LM
-      DO 82 I=2,IM
-      T(I,1,L)=T(1,1,L)
-   82 T(I,JM,L)=T(1,JM,L)
-      DO 83 J=1,JM
-      DO 83 I=1,IM
-      PK(L,I,J)=PKS(L)
-   83 TX(I,J,L)=T(I,J,L)*PK(L,I,J)  !      PKS(L)
+   84 CONTINUE
 C****
 C**** CALCULATE PUV, THE MASS WEIGHTED PRESSURE
 C****
@@ -1209,7 +1185,7 @@ C**** ACCUMULATE TIME USED IN DIAGA
       RETURN
   999 FORMAT (' DTHETA/DP IS TOO SMALL AT J=',I4,' L=',I4,2F15.6)
 
-      ENTRY DIAGA0 (T)
+      ENTRY DIAGA0
 C****
 C**** INITIALIZE TJL0 ARRAY (FROM PRIOR TO ADVECTION)
 C****
@@ -1226,7 +1202,7 @@ C****
 C****
       END SUBROUTINE DIAGA
 
-      SUBROUTINE DIAGB (U,V,T,P,Q,WM,DUT,DVT)
+      SUBROUTINE DIAGB
 C****
 C**** CONTENTS OF AJK(J,K,N)  (SUM OVER LONGITUDE AND TIME OF)
 C**CP   1  DP  (PDN-PM(K+1);  PDN=MAX(PM(K+1),PS)
@@ -1293,6 +1269,7 @@ C****
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,psfmpt,
      &     mdyn,mdiag, ndaa,      !! skipse,
      &     sig,sige,dsig, Jhour
+     *     ,u,v,t,p,q,wm
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DAGCOM, only : ajk,aijk,aijl,ajlsp,speca,adiurn,nspher,
@@ -1311,12 +1288,9 @@ C****
      &      JK_DUDTTEM,JK_DTDTTEM,JK_EPFLXNCP,JK_EPFLXVCP,
      &      JK_UINST,JK_TOTDUDT,JK_TINST,
      &      JK_TOTDTDT,JK_EDDVTPT,JK_CLDH2O
-      USE DYNAMICS, only : phi
+      USE DYNAMICS, only : phi,dut,dvt
       IMPLICIT NONE
       SAVE
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: U,V,T,Q,WM
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: DUT,DVT
-      DOUBLE PRECISION, DIMENSION(IM,JM) :: P
       DOUBLE PRECISION, DIMENSION(IMH+1,NSPHER) :: KE
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: W,ZX,STB
       COMMON/WORK2/W,ZX,STB
