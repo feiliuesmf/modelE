@@ -1,7 +1,7 @@
 C**** CMPE001.F    CoMPare restartfiles for modelE          6/00
 C****
       USE MODEL_COM, only : im,jm,lm,ntype,imh
-      USE DAGCOM, ONLY: kacc,ktsf,KTD,kaj,nreg,kapj
+      USE DAGCOM, ONLY: kacc,ktsf,KTD,KOA,kaj,nreg,kapj
      *  ,kajl,lm_req,KASJL,KAIJ,KAIL,NEHIST,HIST_DAYS,KCON
      *  ,KSPECA,NSPHER,KTPE,NHEMI,HR_IN_DAY,NDIUVAR,NDIUPT
      *  ,Max12HR_sequ,NWAV_DAG,KWP,KAJK,KAIJK
@@ -38,7 +38,7 @@ ccc   snow data:
 ccc   land ice data
       REAL*8 LANDI1,LANDI2
       COMMON/LANDICB/ LANDI1(IM,JM,3),LANDI2(IM,JM,3)
-      COMMON/WORKO/  OA1(IM,JM,12),OA2(IM,JM,12)
+      COMMON/WORKO/  OA1(IM,JM,KOA),OA2(IM,JM,KOA)
       DIMENSION U1(IM,JM,LM),V1(IM,JM,LM),T1(IM,JM,LM),P1(IM,JM),Q1(IM
      *     ,JM,LM),WM1(IM,JM,LM)
       DIMENSION U2(IM,JM,LM),V2(IM,JM,LM),T2(IM,JM,LM),P2(IM,JM),Q2(IM
@@ -111,7 +111,7 @@ c        write(0,*) 'trying to read ocean'
          READ (1) HEADER
          BACKSPACE(1)
          IF (HEADER(1:8).eq."OCN01") THEN ! Qflux or fixed SST
-           KOCEAN1 = 1
+           KOCEAN1 = 0
 c        write(0,*) 'trying to read ocea1'
            READ(1) HEADER,TOCEAN1,Z1
          ELSE
@@ -142,16 +142,20 @@ c        write(0,*) 'trying to read mom'
          READ (1) HEADER,TMOM1,QMOM1
 c        write(0,*) 'trying to read radia'
          READ (1) HEADER,RQT1, S0,SRHR1,TRHR1,FSF1
+c        write(0,*) 'trying to read icedyn'
+         READ (1) HEADER
+         BACKSPACE(1)
+         IF (HEADER(1:6).eq."ICEDYN".and.KOCEAN1.eq.0) KOCEAN1=1
+         IF (HEADER(1:6).eq."ICEDYN") READ(1) HEADER,ICEDYN1
 c        write(0,*) 'trying to read diag'
-         IF (KOCEAN1.eq.2) READ(1) HEADER,ICEDYN1
          READ (1,ERR=100) HEADER,KEYNR,TSFREZ1,idacc1,DIAG1,TDIURN1,OA1
      *        ,ITAU2
          GOTO 200
  100     BACKSPACE(1)
          READ (1) HEADER,KEYNR,TSFREZ1,ITAU2
- 200     IF (KOCEAN1.eq.2) THEN
+ 200     IF (KOCEAN1.gt.0) THEN
 c        write(0,*) 'trying to read ocn3'
-           READ(1) HEADER,ODIAG1,itau2    !OIJ,OIJL,OL,OLNST,it
+           IF (KOCEAN1.eq.2) READ(1) HEADER,ODIAG1,itau2
            READ(1) HEADER,ICDIAG1
          END IF
 
@@ -187,7 +191,7 @@ c        write(0,*) 'trying to read ocean'
          READ (2) HEADER
          BACKSPACE(2)
          IF (HEADER(1:8).eq."OCN01") THEN ! Qflux or fixed SST
-           KOCEAN2 = 1
+           KOCEAN2 = 0
 c        write(0,*) 'trying to read ocea1'
            READ(2) HEADER,TOCEAN2,Z2
          ELSE
@@ -218,16 +222,20 @@ c        write(0,*) 'trying to read mom'
          READ (2) HEADER,TMOM2,QMOM2
 c        write(0,*) 'trying to read radia'
          READ (2) HEADER,RQT2, S0,SRHR2,TRHR2,FSF2
+c        write(0,*) 'trying to read icedyn'
+         READ (2) HEADER
+         BACKSPACE(2)
+         IF (HEADER(1:6).eq.'ICEDYN'.and.KOCEAN2.eq.0) KOCEAN2=1
+         IF (HEADER(1:6).eq.'ICEDYN') READ(2) HEADER,ICEDYN2
 c        write(0,*) 'trying to read diag'
-         IF (KOCEAN2.eq.2) READ(2) HEADER,ICEDYN2
          READ (2,ERR=300) HEADER,KEYNR,TSFREZ2,idacc2,DIAG2,TDIURN2,OA2
      *        ,ITAU2
          GOTO 400
  300     BACKSPACE(2)
          READ (2) HEADER,KEYNR,TSFREZ2,ITAU2
- 400     IF (KOCEAN2.eq.2) THEN
+ 400     IF (KOCEAN2.gt.0) THEN
 c        write(0,*) 'trying to read ocn3'
-           READ(2) HEADER,ODIAG2,itau2    !OIJ,OIJL,OL,OLNST,it
+           IF (KOCEAN2.eq.2) READ(2) HEADER,ODIAG2,itau2
            READ(2) HEADER,ICDIAG2
          END IF
 
@@ -253,7 +261,7 @@ C****
       ERRQ=COMP8 ('STRAT ',IM,JM,1      ,strat1 ,strat2 ) .or. ERRQ
       ERRQ=COMPi ('ISTRAT',2,IM,JM      ,istrat1,istrat2 ) .or. ERRQ
       IF (KOCEAN1.eq.KOCEAN2) THEN ! compare oceans else don't
-        IF (KOCEAN1.eq.1) THEN  ! Qflux/fixed
+        IF (KOCEAN1.le.1) THEN  ! Qflux/fixed
           ERRQ=COMP8LIJp('TOCEAN',3,IM,JM ,TOCEAN1,TOCEAN2).or.ERRQ
           ERRQ=COMP8 ('Z10   ',IM,JM,1    ,     Z1,     Z2).or.ERRQ
         ELSE                    ! coupled
@@ -262,6 +270,10 @@ C****
           ERRQ=COMP8LIJp('STRATI',NMST,4+LMI,1,STRAITI1,STRAITI2).or
      *         .ERRQ
           ERRQ=COMP8LIJp('ICEDYN',IMIC,JMIC,4,ICEDYN1,ICEDYN2).or.ERRQ
+          ERRQ=COMP8LIJp('ICEDAG',IMIC,JMIC,KICIJ,ICDIAG1,ICDIAG2).or
+     *         .ERRQ
+        END IF
+        IF (KOCEAN1.eq.1) THEN
           ERRQ=COMP8LIJp('ICEDAG',IMIC,JMIC,KICIJ,ICDIAG1,ICDIAG2).or
      *         .ERRQ
         END IF
@@ -336,7 +348,7 @@ c      else
       DAGPOS=DAGPOS+IM*JM*LM*6
       ERRQ=COMP8 ('TSFREZ',IM,JM,ktsf   ,TSFREZ1,TSFREZ2)
       ERRQ=COMP8 ('TDIURN',IM,JM,KTD    ,TDIURN1,TDIURN2)
-      ERRQ=COMP8p('OA    ',IM,JM,12     ,OA1,OA2)
+      ERRQ=COMP8p('OA    ',IM,JM,KOA    ,OA1,OA2)
 
       IF (KOCEAN1.eq.KOCEAN2.and.KOCEAN1.eq.2) THEN ! compare ocn diags
       DAGPOS=1
