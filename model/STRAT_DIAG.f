@@ -7,20 +7,22 @@
 !@auth B. Suozzo/J. Lerner
 !@ver  1.0
 C**** B-grid
-C**** INPUT:   U - Zonal wind (corners) (m s-1)
-C****          V - Meridional wind (corners) (m s-1)
-C****          W - dp/dt (downward) (P-T grid level edges) (mb m2 s-1)
+C**** INPUT:
+C****     U - Zonal wind (corners) (m s-1)
+C****     V - Meridional wind (corners) (m s-1)
+C****     W - dp/dt (downward) (P-T grid level edges) (mb m2 s-1)
 C****                (L=1 is ground level)
-C****          T - Potential Temperature (K)  real T = TH*(P(mb))**K
-C****          P - Pressure (mb) of column from 100mb to surface
-C**** OUTPUT:  FMY,FEY - North. flux of mean,eddy ang. mom.   m3 s-2
-C****          FMZ,FEZ - Vert. flux of mean,eddy ang. mom.    m3 mb s-2
-C****         COR,CORR - Coriolis term and transf. coriolis term  m3 s-2
-C****          FER1 - North. flux of error term 1   m2 s-2
-C****          ER21,ER22 - error term 2 parts 1 & 2  m s-2
-C****       FMYR,FEYR - Nor. flux of transf. mean,eddy ang. mom. m3 s-2
-C****     FMZR,FEZR - Vert. flx of transf. mean,eddy ang. mom. m3 mb s-2
-C****          RX - <v'th'>/<dth/dp> (U-V grid level edges)  (mb m s-1)
+C****     T - Potential Temperature (K)  real T = TH*(P(mb))**K
+C****     P - Pressure (mb) of column from 100mb to surface
+C**** OUTPUT:
+C****     FMY(j,l),FEY(j,l) - North. flux of mean,eddy ang. mom.   m3 s-2
+C****     FMZ(j,l),FEZ(j,l) - Vert. flux of mean,eddy ang. mom.    m3 mb s-2
+C****     COR(j,l),CORR(j,l) - Coriolis term and transf. coriolis term  m3 s-2
+C****     FER1(j,l) - North. flux of error term 1   m2 s-2
+C****     ER21(j,l),ER22(j,l) - error term 2 parts 1 & 2  m s-2
+C****     FMYR(j,l),FEYR(j,l) - Nor. flux of transf. mean,eddy ang. mom. m3 s-2
+C****  FMZR(j,l),FEZR(j,l) - Vert. flx of transf. mean,eddy ang. mom. m3 mb s-2
+C****     RX(j,l) - <v'th'>/<dth/dp> (U-V grid level edges)  (mb m s-1)
 C****                (L=1 is ground level)
 C****
 C**** Note: W(,,1) is really PIT, the pressure tendency, but is not used
@@ -144,7 +146,7 @@ C****
 C**** CORRELATIONS OF VARIOUS QUANTITIES
 C****
 C****
-C**** FMY .............. (VUdx) NORTHWARD MEAN MOMENTUM TRANSPORT
+C**** FMY(j,l) .............. (VUdx) NORTHWARD MEAN MOMENTUM TRANSPORT
 C****                         (m3 s-1)
       DO L=1,LM
         CALL HALO_UPDATE(grid, VI(:,L)   , from = NORTH)
@@ -158,7 +160,7 @@ C****                         (m3 s-1)
      *         * (UI(J,L)+UI(J+1,L))
         END DO
 C****
-C**** FEY, UV(I,J,L) ... (V'U'dx) NORTHWARD EDDY MOMENTUM TRANSPORT
+C**** FEY(j,l), UV(I,J,L) ... (V'U'dx) NORTHWARD EDDY MOMENTUM TRANSPORT
 C****                           (m3 s-2)
         DO I=1,IM
           IF (HAVE_SOUTH_POLE) UV(I,1,L)=0.
@@ -185,8 +187,8 @@ C****                           (m3 s-2)
       END DO
       END DO
 C****
-C**** FMZ .............. (WUdA) VERTICAL MEAN MOMENTUM TRANSPORT
-C**** FEZ, UW(I,J,L) ... (U'W'dA) VERTICAL EDDY MOMENTUM TRANSPORT
+C**** FMZ(j,l) .............. (WUdA) VERTICAL MEAN MOMENTUM TRANSPORT
+C**** FEZ(j,l), UW(I,J,L) ... (U'W'dA) VERTICAL EDDY MOMENTUM TRANSPORT
 C****                           (m3 mb s-2)
       UW(:,:,1)=0.
       DO L=2,LM
@@ -254,7 +256,7 @@ C****
         FER1(:,L)=0.
         ER21(:,L)=0.
         ER22(:,L)=0.
-C**** ERROR TERM 1 IS DIVERGENCE OF FER1: (m2 s-2)
+C**** ERROR TERM 1 IS DIVERGENCE OF FER1(j,l): (m2 s-2)
         IM1=IM-1
         I=IM
         DO IP1=1,IM
@@ -263,7 +265,7 @@ C**** ERROR TERM 1 IS DIVERGENCE OF FER1: (m2 s-2)
           IF (HAVE_NORTH_POLE)
      *        FER1(JM,L)=FER1(JM,L)+(U(IM1,JM,L)**2- U(IP1,JM,L)**2)
           DO J=J_0S,J_1S
-C? FER1 does not include COSP, yet ER1 = 1/COSV*(FER1(J,)-FER1(J-1,))
+C? FER1(j,l) does not include COSP, yet ER1 = 1/COSV*(FER1(J,)-FER1(J-1,))
             FER1(J,L)= FER1(J,L) + ((U(IM1,J,L)+U(I,J+1,L))**2
      *           - (U(IP1,J,L)+U(I,J+1,L))**2)
           END DO
@@ -285,7 +287,7 @@ c         END DO
           END DO
           IM1=I
         END DO
-CE*** ERROR TERM 2, PART 2  -  ER22:  (m s-2)
+CE*** ERROR TERM 2, PART 2  -  ER22(j,l):  (m s-2)
 CE    IM1=IM-1
 CE    I=IM
 CE    DO IP1=1,IM
@@ -447,7 +449,7 @@ C****
         END DO
       END DO
 C****
-C**** FEZR
+C**** FEZR(j,l)
 C****
       RXCL(:)=0.
       UCL(:)=0.
@@ -529,20 +531,21 @@ CW         WRITE (36,'('' TAU='',F12.0,''  IDUM(1)='',I6)') TAU,IDUM(1)
 !@ver  1.0
 C****
 C**** B-grid
-C**** INPUT: AEP contains the following quantities summed over time:
-C****        FMY,FEY - North. flux of mean,eddy ang. mom.   m3 s-2
-C****        FMZ,FEZ - Vert. flux of mean,eddy ang. mom.    m3 mb s-2
-C****        COR,CORR - coriolis term and transf. coriolis term  m3 s-2
-C****        FER1 - North. flux of error term 1   m2 s-2
-C****        ER21,ER22 - error term 2 parts 1 & 2  m s-2
-C****     FMYR,FEYR - Nor. flux of transf. mean,eddy ang. mom. m3 s-2
-C****   FMZR,FEZR - Vert. flx of transf. mean,eddy ang. mom. m3 mb s-2
+C**** INPUT:
+C****     AEP contains the following quantities summed over time:
+C****     FMY(j,l),FEY(j,l) - North. flux of mean,eddy ang. mom.   m3 s-2
+C****     FMZ(j,l),FEZ(j,l) - Vert. flux of mean,eddy ang. mom.    m3 mb s-2
+C****     COR(j,l),CORR(j,l) - coriolis term and transf. coriolis term  m3 s-2
+C****     FER1(j,l) - North. flux of error term 1   m2 s-2
+C****     ER21(j,l),ER22(j,l) - error term 2 parts 1 & 2  m s-2
+C****     FMYR(j,l),FEYR(j,l) - Nor. flux of transf. mean,eddy ang. mom. m3 s-2
+C****  FMZR(j,l),FEZR(j,l) - Vert. flx of transf. mean,eddy ang. mom. m3 mb s-2
 C**** OUTPUT:
 C****        DMF,DEF - Divergence of mean,eddy ang. mom.  m3 s-2
 C****        DMFR,DEFR - Div. of transf. mean,eddy ang. mom.  m3 s-2
-C****        COR,CORR - same as above   m3 s-2
+C****        COR(j,l),CORR(j,l) - same as above   m3 s-2
 C****        ER1,ER2 - error terms 1 and 2   m s-2
-C****   DUD,DUR - Delta U by Eulerian and transf. circulation  m s-2
+C****   DUD(j,l),DUR - Delta U by Eulerian and transf. circulation  m s-2
 C****
       USE MODEL_COM, only : im,jm,lm,sig,dsig,dtsrce=>dtsrc,psfmpt,fim
      *     ,idacc,ndaa,ls1,ptop
@@ -584,18 +587,18 @@ C**** ARRAYS CALCULATED HERE:
       REAL*8 ONES(JM+LM),PMO(LM),DP(LM)
       REAL*8 DXCOSV(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 c$$$      REAL*8, POINTER, DIMENSION(:,:) :: 
-c$$$     *   FMY,FEY,FMZ,FEZ,FMYR,FEYR,FMZR,FEZR,COR,CORR,FER1,ER21
-c$$$     *  ,ER22,VR,WR,RX,UI,VI,WI,DUT,DUD
+c$$$ /*    *   FMY,FEY,FMZ,FEZ,FMYR,FEYR,FMZR,FEZR,COR,CORR,FER1,ER21 */
+c$$$ /*    *  ,ER22,VR,WR,RX,UI,VI,WI,DUT,DUD */
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *   DUDS,DUR,DMF,DEF,DMFR,DEFR
 CW   *  ,DMY,DMZ,DEY,DEZ,DMYR,DMZR,DEYR,DEZR
      *  ,ER1,ER2,BYDPJL
 C**** common needed to pass from XEP to individual arrays (better way??)
 C**** Not clear how many of these are actually used.
-cBMP  COMMON /EPCOM/ FMY, FEY, FMZ, FEZ, FMYR, FEYR, FMZR, FEZR, COR,
-cBMP *     CORR, FER1, ER21, ER22, VR, WR, RX, UI, VI, WI, DUT, DUD
+cBMP /*  COMMON /EPCOM/ FMY, FEY, FMZ, FEZ, FMYR, FEYR, FMZR, FEZR, COR, */
+cBMP /* *     CORR, FER1, ER21, ER22, VR, WR, RX, UI, VI, WI, DUT, DUD */
       REAL*8,DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP) :: XEP
-cBMP  EQUIVALENCE (XEP,FMY)
+cBMP /*  EQUIVALENCE (XEP,FMY) */
       REAL*8 DTAEP,BYDT,SCALEP,SCALE1,BYIAEP
       INTEGER I,J,L,N,JL
 
@@ -704,7 +707,7 @@ CW        DEZR(J,L) = (FEZR(J,L+1)-FEZR(J,L))*BYDPJL(J,L)
         END DO
       END DO
 C****
-C**** ADD COR,CORR
+C**** ADD COR(j,l),CORR(j,l)
 C****
       DO L=1,LM
         DO J=J_0STG,J_1STG
@@ -726,7 +729,7 @@ C****
       END DO
       END DO
 C****
-C**** DUD,DUR total change in Eulerian, Transformed wind  (m s-2)
+C**** DUD(j,l),DUR total change in Eulerian, Transformed wind  (m s-2)
 C****
       DO L=1,LM
       DO J=J_0STG,J_1STG
@@ -773,7 +776,7 @@ C****
       END DO
       SCALEP=1
 CW      CALL WRITJL ('DUDT: EUL+SOURCE',DUDS,SCALEP)
-CW      CALL WRITJL ('DUDT: ENTIRE GCM',DUT,SCALEP) ! AJK-47 DIAGJK
+CW     /* CALL WRITJL ('DUDT: ENTIRE GCM',DUT,SCALEP) ! AJK-47 DIAGJK */
       CALL JLMAP (LNAME(1),SNAME(1),UNITS(1),POW(1),PMO,DUDS,SCALEP,ONES
      *     ,ONES,LM,2,2)
 C****
@@ -803,7 +806,7 @@ CW      WRITE (36,'(''TR: TRANSFORMED - EULERIAN'')')
 CW      SCALEP = 1.E6
 CW      CALL WRITJL ('DUDT: MEAN EULER',DMF,SCALEP)
 CW      CALL WRITJL ('DUDT: EDDY EULER',DEF,SCALEP)
-CW      CALL WRITJL ('DUDT: EULER CIRC',DUD,SCALEP)
+CW      /* CALL WRITJL ('DUDT: EULER CIRC',DUD,SCALEP) */
 CW      CALL WRITJL ('DUDT: MEAN TRANS',DMFR,SCALEP)
 CW      CALL WRITJL ('DUDT: EDDY TRANS',DEFR,SCALEP)
 CW      CALL WRITJL ('DUDT: TRANS-EULE',DUR,SCALEP)
