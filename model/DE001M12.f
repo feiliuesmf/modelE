@@ -268,7 +268,7 @@ C****  94  EAST-WEST GEOPOTENTIAL FLUX (W)                  /3600.*1 DY
 C****  95  NORTH-SOUTH GEOPOTENTIAL FLUX (W)                /3600.*1 DY
 C****  96  Energy Outflow by Rivers (10**10 W)     E-10/DTS*IDACC(1) RV
 C****  97  Mass Outflow by Rivers (10**5 kg/s)      E-5/DTS*IDACC(1) RV
-C****  98  FREE
+C****  98  DU/DT BY SDRAG (M S-2)                                  1 SD
 C****  99  FREE
 C**** 100  FREE
 C****
