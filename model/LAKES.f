@@ -21,14 +21,14 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       INTEGER IFLOW(IM,JM),JFLOW(IM,JM)
       INTEGER, PARAMETER :: NRVR = 42 !@param Number of specified rivers
 !@var IRVRMTH,JRVRMTH indexes for specified river mouths
-      INTEGER, DIMENSION(NRVR) :: IRVRMTH,JRVRMTH 
+      INTEGER, DIMENSION(NRVR) :: IRVRMTH,JRVRMTH
 
 !@param MINMLD minimum mixed layer depth in lake (m)
-      REAL*8, PARAMETER :: MINMLD = 1. 
+      REAL*8, PARAMETER :: MINMLD = 1.
 !@param TMAXRHO temperature of maximum density (pure water) (C)
-      REAL*8, PARAMETER :: TMAXRHO = 4. 
+      REAL*8, PARAMETER :: TMAXRHO = 4.
 !@param KVLAKE lake diffusion constant at mixed layer depth (m^2/s)
-      REAL*8, PARAMETER :: KVLAKE = 1d-5 
+      REAL*8, PARAMETER :: KVLAKE = 1d-5
 !@param TFL freezing temperature for lakes (=0 C)
       REAL*8, PARAMETER :: TFL = 0.
 !@param AC1LMIN, AC2LMIN minimum ice thickness for lake ice (kg/m^2)
@@ -59,11 +59,11 @@ C**** initiallize output
       ENRGFO=0. ; ACEFO=0. ; ACEFI=0. ; ENRGFI=0.
 
 C**** Calculate heat and mass fluxes to lake
-      ENRGO = F0DT-SROX*FSR2 ! in open water  
-      ENRGO2=     +SROX*FSR2 ! in open water, second layer  
+      ENRGO = F0DT-SROX*FSR2 ! in open water
+      ENRGO2=     +SROX*FSR2 ! in open water, second layer
       ENRGI = F2DT           ! under ice
       RUNO  =-EVAPO
-      RUNI  = RUN0 
+      RUNI  = RUN0
 C**** Bring up mass from second layer if required/allowed
       IF (MLAKE(1)+RUNO.lt.MINMLD*RHOW.and.MLAKE(2).gt.0) THEN
         DM2 = MIN(MLAKE(2),MINMLD*RHOW-(MLAKE(1)+RUNO))
@@ -86,7 +86,7 @@ C**** Apply fluxes to 2nd layer
 
 C**** Calculate energy in mixed layer (open ocean)
       IF (ROICE.LT.1d0) THEN
-        FHO=ELAKE(1)+ENRGO+DH2-(MLAKE(1)+DM2+RUNO)*TFL*SHW 
+        FHO=ELAKE(1)+ENRGO+DH2-(MLAKE(1)+DM2+RUNO)*TFL*SHW
         IF (FHO.LT.0) THEN ! FLUXES COOL WATER TO FREEZING, FORM ICE
           ACEFO =FHO/(TFL*(SHI-SHW)-LHM)
           ACEFO =MIN(ACEFO,MAX(MLAKE(1)+DM2+RUNO-MINMLD*RHOW,0d0))
@@ -94,10 +94,10 @@ C**** Calculate energy in mixed layer (open ocean)
           E2O=FHO-ENRGFO
         END IF
       END IF
-   
+
       IF (ROICE.GT.0) THEN
 C**** Calculate energy in mixed layer (under ice)
-        FHI=ELAKE(1)+DH2+ENRGI-(MLAKE(1)+DM2+RUNI)*TFL*SHW 
+        FHI=ELAKE(1)+DH2+ENRGI-(MLAKE(1)+DM2+RUNI)*TFL*SHW
         IF (FHI.LT.0) THEN ! FLUXES COOL WATER TO FREEZING, FORM ICE
           ACEFI =FHI/(TFL*(SHI-SHW)-LHM)
           ACEFI =MIN(ACEFI,MAX(MLAKE(1)+DM2+RUNI-MINMLD*RHOW,0d0))
@@ -113,11 +113,11 @@ C**** Update first layer variables
 
       ACEF1=0. ; ACEF2=0. ; ENRGF1=0. ; ENRGF2=0.
 C**** Take remaining energy and start to freeze second layer
-      FH2= ELAKE(1)-MLAKE(1)*TFL*SHW 
-      IF (FH2.LT.0) THEN 
+      FH2= ELAKE(1)-MLAKE(1)*TFL*SHW
+      IF (FH2.LT.0) THEN
         IF (MLAKE(2).gt.0) THEN
 C**** FH2=-ACEF2*(TLK2-TFL)*SHW+ACEF2*LHM
-          TLK2    =ELAKE(2)/(MLAKE(2)*SHW)          
+          TLK2    =ELAKE(2)/(MLAKE(2)*SHW)
           ACEF2   =-FH2/(TLK2*SHW-TFL*SHI+LHM)
           ACEF2   =MIN(ACEF2,MLAKE(2))
           ENRGF2  =ACEF2*(TFL*SHI-LHM)
@@ -125,8 +125,8 @@ C**** FH2=-ACEF2*(TLK2-TFL)*SHW+ACEF2*LHM
           ELAKE(2)=ELAKE(2)-ACEF2*TLK2*SHW
           MLAKE(2)=MLAKE(2)-ACEF2
         END IF
-        FH1= ELAKE(1)-MLAKE(1)*TFL*SHW 
-        IF (FH1.lt.0) THEN      ! all layer 2 froze, freeze layer 1 
+        FH1= ELAKE(1)-MLAKE(1)*TFL*SHW
+        IF (FH1.lt.0) THEN      ! all layer 2 froze, freeze layer 1
           ACEF1   =FH1/(TFL*(SHI-SHW)-LHM)
 C**** limit freezing if lake is between 50 and 20cm depth
           IF (MLAKE(1).lt.0.5d0*RHOW)
@@ -134,7 +134,7 @@ C**** limit freezing if lake is between 50 and 20cm depth
           ENRGF1  =ACEF1*(TFL*SHI-LHM)
           ELAKE(1)=ELAKE(1)-ENRGF1
           MLAKE(1)=MLAKE(1)-ACEF1
-          FH0     =ELAKE(1)-MLAKE(1)*TFL*SHW 
+          FH0     =ELAKE(1)-MLAKE(1)*TFL*SHW
           IF (FH0.lt.-1d-10) THEN ! max. amount of lake frozen, cool ice
             PRINT*,"Minimum lake level reached: rsi,mlake,elake",i0,j0
      *           ,roice,mlake(1)/rhow,elake(1)
@@ -146,7 +146,7 @@ C**** limit freezing if lake is between 50 and 20cm depth
 
 C**** combine mass and energy fluxes for output
 C**** Note that output fluxes are over open water/ice covered fractions
-C**** distribute ice fluxes according to flux amounts 
+C**** distribute ice fluxes according to flux amounts
       FRATO = 1d0
       FRATI = 1d0
       IF (E2I+E2O.lt.0) THEN
@@ -169,7 +169,7 @@ C**** distribute ice fluxes according to flux amounts
 !@var MLAKE,ELAKE mass and energy in lake layers (kg,J /m^2)
       REAL*8, INTENT(INOUT), DIMENSION(2) :: MLAKE,ELAKE
 !@var TKE turbulent kinetic energy input at surface of lake (J/m^2)
-!@var ROICE ice fraction 
+!@var ROICE ice fraction
       REAL*8, INTENT(IN) :: TKE,ROICE
 !@var HLAKE sill depth for lake (m)
       REAL*8, INTENT(IN) :: HLAKE
@@ -177,19 +177,19 @@ C**** distribute ice fluxes according to flux amounts
       REAL*8, INTENT(IN) :: DTSRC
 !@param MAXRHO,RHO0,BFAC freshwater density function approximation
       REAL*8, PARAMETER :: MAXRHO=1d3, RHO0=999.842594d0,
-     *     BFAC=(MAXRHO-RHO0)/16d0 
+     *     BFAC=(MAXRHO-RHO0)/16d0
 
-      REAL*8 TLK1, TLK2, HLT, MLT, DTK, E1N, E2N, ATKE, H1, H2, 
+      REAL*8 TLK1, TLK2, HLT, MLT, DTK, E1N, E2N, ATKE, H1, H2,
      *      DRHO, DML, DHML
 
 C**** Only mix if there is a second layer!
       IF (MLAKE(2).gt.0) THEN
         TLK1=ELAKE(1)/(MLAKE(1)*SHW)
-        TLK2=ELAKE(2)/(MLAKE(2)*SHW) 
+        TLK2=ELAKE(2)/(MLAKE(2)*SHW)
         HLT=ELAKE(1)+ELAKE(2)
         MLT=MLAKE(1)+MLAKE(2)
 C**** Test for static stability
-        IF ((TMAXRHO-TLK1)*(TLK2-TLK1).lt.0) THEN 
+        IF ((TMAXRHO-TLK1)*(TLK2-TLK1).lt.0) THEN
 C**** mix uniformly and set MLD to minimum
           MLAKE(1)=MAX(MINMLD*RHOW,(MLAKE(1)+MLAKE(2))-HLAKE*RHOW)
           MLAKE(2)=MLT-MLAKE(1)
@@ -208,7 +208,7 @@ C**** gradient is negative and deep water is at max density.
             ELAKE(2)=E2N
           END IF
 C**** entrain deep water if there is available TKE
-C**** take a factor of TKE and calculate change in PE 
+C**** take a factor of TKE and calculate change in PE
           IF (TKE.gt.0) THEN
             ATKE=0.2d0*TKE      ! 20% of TKE is available for mixing
             H1=MLAKE(1)/RHOW
@@ -310,14 +310,14 @@ C**** TANLK=TAN(ALPHA) = R/H for a conical lake of equivalent volume
           END IF
         END DO
       END DO
-  
+
       CALL PRINTLK("IN")
 C**** Set FTYPE array for lakes
       DO J=1,JM
         DO I=1,IM
           IF (FLAKE(I,J).gt.0) THEN
             FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
-            FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J) 
+            FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
             GTEMP(1,1,I,J)=TLAKE(I,J)
             GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*FLAKE(I,J)*DXYP(J))
      *           /((MWL(I,J)-MLDLK(I,J)*RHOW*FLAKE(I,J)*DXYP(J))*SHW)
@@ -346,7 +346,7 @@ C**** Create integral direction array KDIREC from CDIREC
         IF(KDIREC(I,J).lt.0 .or. KDIREC(I,J).gt.8)  KDIREC(I,J) = 0
 C**** Check for specified river mouths
         IF (ICHAR(CDIREC(I,J)).GE.65 .AND. ICHAR(CDIREC(I,J)).LE.90)
-     *       THEN 
+     *       THEN
           INM=INM+1
           IRVRMTH(INM)=I
           JRVRMTH(INM)=J
@@ -443,10 +443,10 @@ C****
 C**** Set conservation diagnostics for Lake mass and energy
       QCON=(/ F, F, F, T, T, T, F, F, T/)
       CALL SET_CON(QCON,"LAK MASS","(10**10 KG)      ",
-     *     "(10**3 KG/S)    ",1d-10,1d-3,icon_LKM)      
+     *     "(10**3 KG/S)    ",1d-10,1d-3,icon_LKM)
       QCON=(/ F, F, F, T, T, T, F, F, T/)
       CALL SET_CON(QCON,"LAK ENRG","(10**14 J)       ",
-     *     "(10**8 J/S)     ",1d-14,1d-8,icon_LKE)      
+     *     "(10**8 J/S)     ",1d-14,1d-8,icon_LKE)
 
       RETURN
 C****
@@ -613,7 +613,7 @@ C****
       WRITE(6,900) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE,JHOUR
      *     ,ITIME,DAYS
 C**** convert kg/(source time step) to km^3/mon
-      SCALERVR = 1d-9*SDAY*JDPERY/(JMPERY*RHOW*DTSRC) 
+      SCALERVR = 1d-9*SDAY*JDPERY/(JMPERY*RHOW*DTSRC)
       DO INM=1,NRVR,6
         DO I=1,6
           RVROUT(I) = SCALERVR*AIJ(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM)
@@ -704,7 +704,7 @@ C****
       USE DAGCOM, only : tsfrez,tf_lkon,tf_lkoff,aij,ij_lkon,ij_lkoff
       IMPLICIT NONE
       INTEGER IEND,IMAX,I,J,L
-!@var FDAILY fraction of energy available to be used for melting 
+!@var FDAILY fraction of energy available to be used for melting
       REAL*8 :: FDAILY = BY3
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL
       REAL*8 MSI2,ROICE,SNOW,ENRGW,ENRGUSED,ANGLE,RUN0
@@ -718,7 +718,7 @@ C**** months in a year.
         DO I=1,IMAXJ(J)
           IF (J.le.JM/2) THEN
 C**** initiallise/save South. Hemi. on Jan 1
-            IF (JDAY.eq.1 .and. TSFREZ(I,J,TF_LKOFF).ne.-999) THEN 
+            IF (JDAY.eq.1 .and. TSFREZ(I,J,TF_LKOFF).ne.-999) THEN
               AIJ(I,J,IJ_LKON)  = 12.*TSFREZ(I,J,TF_LKON)
               AIJ(I,J,IJ_LKOFF) = 12.*TSFREZ(I,J,TF_LKOFF)
               TSFREZ(I,J,TF_LKOFF) = -999.
@@ -777,26 +777,26 @@ C**** set ftype/gtemp arrays
 
 C**** Experimental code: not yet functional
 C**** Update lake fraction as a function of lake mass at end of day
-C**** Assume lake is conical 
+C**** Assume lake is conical
 C****   => A = pi*(h*tanlk)^2, M=(1/3)*pi*rho*h*(h*tanlk)^2
 C****
 c      IF (IEND.gt.0) THEN
 c        PRINT*,"TEST FLAKE CHANGE"
 c        DO J=1,JM
-c          DO I=1,IMAXJ(J)
-c            IF (FLAKE(I,J).gt.0) THEN
-c              PRINT*,"tan(a)",I,J,TANLK(I,J)
-c              PRINT*,FLAKE(I,J),(9d0*PI*(TANLK(I,J)*MWL(I,J)/RHOW)**2)
-c     *             **BY3/DXYP(J)
+c        DO I=1,IMAXJ(J)
+c          IF (FLAKE(I,J).gt.0) THEN
+c            PRINT*,"tan(a)",I,J,TANLK(I,J)
+c            PRINT*,FLAKE(I,J),(9d0*PI*(TANLK(I,J)*MWL(I,J)/RHOW)**2)
+c     *           **BY3/DXYP(J)
 C**** remove lakes that are too small ??
-c              IF (FLAKE(I,J).lt.0.005) THEN
-c             PRINT*,"Lake removal (too small)",I,J,MWL(I,J),GML(I,J),MLDLK(I,K)
-c                FLAKE(I,J) = 0.
-c              MLDLK(I,J)=MIN(MLDLK(I,J),MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J)))
-c              FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
-c              FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
-c            END IF
-c          END DO
+c            IF (FLAKE(I,J).lt.0.005) THEN
+c          PRINT*,"Lake->0 (too small)",I,J,MWL(I,J),GML(I,J),MLDLK(I,J)
+c          MLDLK(I,J)=MIN(MLDLK(I,J),MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J)))
+c              FLAKE(I,J) = 0.
+c            FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
+c            FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
+c          END IF
+c        END DO
 c        END DO
 c      END IF
 C****
@@ -842,7 +842,7 @@ C**** save diagnostics
 C**** calculate fluxes over whole box
         RUN0 =POLAKE*PRCP  + PLKICE* RUNOSI(I,J) + PLICE* RUNOLI(I,J)
         ERUN0=POLAKE*ENRGP ! PLKICE*ERUNOSI(I,J) + PLICE*ERUNOLI(I,J) = 0
-        
+
         MWL(I,J) = MWL(I,J) +  RUN0*DXYPJ
         GML(I,J) = GML(I,J) + ERUN0*DXYPJ
 
@@ -867,7 +867,7 @@ C****
 !@sum  GROUND_LK driver for applying surface fluxes to lake fraction
 !@auth Gavin Schmidt
 !@ver  1.0
-!@calls 
+!@calls
       USE CONSTANT, only : rhow,shw
       USE MODEL_COM, only : im,jm,flice,fland,hlake
      *     ,fearth,dtsrc,itlake,itlkice
@@ -886,11 +886,11 @@ C**** grid box variables
       REAL*8 ROICE, POLAKE, PLKICE, PEARTH, PLICE, DXYPJ
 !@var MLAKE,ELAKE mass and energy /m^2 for lake model layers
       REAL*8, DIMENSION(2) :: MLAKE,ELAKE
-C**** fluxes 
+C**** fluxes
       REAL*8 EVAPO, F2DT, F0DT, RUN0, ERUN0, RUNLI, RUNE, ERUNE,
      *     HLK1,TLK1,TLK2,TKE,SROX,FSR2, U2RHO
 C**** output from LKSOURC
-      REAL*8 ENRGFO, ACEFO, ACEFI, ENRGFI 
+      REAL*8 ENRGFO, ACEFO, ACEFI, ENRGFI
 
       INTEGER I,J,IMAX,JR
 
@@ -913,7 +913,7 @@ C**** Add land ice and surface runoff to lake variables
         RUNE =RUNOE(I,J)
         ERUNE=ERUNOE(I,J)
 C**** calculate flux over whole box
-        RUN0 =RUNLI*PLICE + RUNE*PEARTH 
+        RUN0 =RUNLI*PLICE + RUNE*PEARTH
         ERUN0=             ERUNE*PEARTH
         MWL(I,J) = MWL(I,J) + RUN0*DXYPJ
         GML(I,J) = GML(I,J) +ERUN0*DXYPJ
@@ -934,7 +934,7 @@ C**** calculate flux over whole box
         SROX =SOLAR(1,I,J)      ! solar radiation open lake (J/m^2)
         FSR2 =EXP(-MLDLK(I,J)*BYZETA)
 C**** get ice-ocean fluxes from sea ice routine (over ice fraction)
-        RUN0 =RUNOSI(I,J)        ! includes ACE2M term 
+        RUN0 =RUNOSI(I,J)        ! includes ACE2M term
         F2DT =ERUNOSI(I,J)
 C**** calculate kg/m^2, J/m^2 from saved variables
         MLAKE(1)=MLDLK(I,J)*RHOW
@@ -947,7 +947,7 @@ C**** calculate kg/m^2, J/m^2 from saved variables
         END IF
 C**** Limit FSR2 in the case of thin second layer
         FSR2=MIN(FSR2,MLAKE(2)/(MLAKE(1)+MLAKE(2)))
-        
+
         AJ(J,J_TG1, ITLAKE) =AJ(J,J_TG1, ITLAKE) +TLK1 *POLAKE
         AJ(J,J_EVAP,ITLAKE) =AJ(J,J_EVAP,ITLAKE) +EVAPO*POLAKE
         AJ(J,J_TYPE,ITLAKE) =AJ(J,J_TYPE,ITLAKE) +      POLAKE
@@ -957,8 +957,8 @@ C**** Limit FSR2 in the case of thin second layer
         AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TLK1 *POLAKE
         AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAPO*POLAKE
         AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAPO*POLAKE
-        
-C**** Apply fluxes and calculate the amount of ice formation            
+
+C**** Apply fluxes and calculate the amount of ice formation
         CALL LKSOURC (I,J,ROICE,MLAKE,ELAKE,RUN0,F0DT,F2DT,SROX,FSR2
      *       ,EVAPO,ENRGFO,ACEFO,ACEFI,ENRGFI)
 
@@ -983,7 +983,7 @@ C**** Resave prognostic variables
         GTEMP(1,1,I,J)=TLAKE(I,J)
         GTEMP(2,1,I,J)=TLK2       ! not used
 
-C**** Open lake diagnostics 
+C**** Open lake diagnostics
         AJ(J,J_TG2, ITLAKE)=AJ(J,J_TG2, ITLAKE)+TLK2*POLAKE
         IF (JR.ne.24) AREG(JR,J_TG2)=AREG(JR,J_TG2)+TLK2
      *       *POLAKE*DXYPJ

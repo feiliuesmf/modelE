@@ -5,18 +5,18 @@ E001: new modelE (based on B402A)
 Object modules: (in order of decreasing priority)
 E001M12_COM GEOM_B FLUXES           ! model modules
 ME001M12                            ! Main and model overhead
-DYNE001 DYNCOM                      ! dynamics 
+DYNE001 DYNCOM                      ! dynamics
 SOMTQ_COM QUSDEF QUSEM12            ! advection of tracers
 CLD01 CLD01_DRV_E001 CLD01_COM_E001 ! clouds modules
-SE001M12                            ! surface calculation 
-GHYCOM EE001M12 SLE001              ! land surface and soils 
-PBLCOM PBLDRV PBLE001               ! atmospheric pbl 
+SE001M12                            ! surface calculation
+GHYCOM EE001M12 SLE001              ! land surface and soils
+PBLCOM PBLDRV PBLE001               ! atmospheric pbl
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 OCNE001                             ! ocean modules
 snowmodel                           ! snow model
-RADNCB PE001M12 RE001               ! radiation modules 
+RADNCB PE001M12 RE001               ! radiation modules
 DAGCOM DE001M12 DEFACC DAGPRT       ! diagnostics
 const FFT72 UTILDBL RAND~           ! utilities
 POUT                                ! for post-processing
@@ -50,7 +50,7 @@ R=00BG/B
    IYEAR0=1950, CO2=-6., XCDLM=.0005,.00005,
    PTOP=150.,    ! from defaults: PSF=984., LS1=9,
    PLTOP=934.,854.,720.,550.,390., 285.,210.,150.,100.,60.,30.,10.,
-   KOCEAN=0,           U00wtr=.60, U00ice=.60,
+   KOCEAN=0,           U00wtr=.63, U00ice=.60,
    YEARI=1950,MONTHI=1,DATEI=1,HOURE=0,
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
    YEARE=1950,MONTHE=2,

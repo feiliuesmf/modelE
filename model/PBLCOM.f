@@ -37,7 +37,7 @@
      &     wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
       double precision, dimension(im,jm,4) :: ustar
 
-!@var egcm  3-d turbulent kinetic energy in the whole atmospher 
+!@var egcm  3-d turbulent kinetic energy in the whole atmospher
        real*8, dimension(im,jm,lm) :: egcm
 
 c      common /bleq/
@@ -45,9 +45,6 @@ c     &     wsavg,tsavg,qsavg,dclev,Z1O,usavg,vsavg,tauavg,ustar
 c!@var BLDATA handle for referring to all boundary layer data
 c      DOUBLE PRECISION, DIMENSION(IM,JM,12) :: BLDATA
 c      EQUIVALENCE(BLDATA(1,1,1),WSAVG(1,1))
-
-C**** model related constants (should really be taken from MODEL_COM)
-      integer, parameter ::  iq1=im/4+1,iq2=im/2+1,iq3=3*im/4+1
 
 C**** pressure gradient arrays
 c     double precision, dimension(im,jm) ::

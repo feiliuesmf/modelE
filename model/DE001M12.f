@@ -269,7 +269,7 @@ C****  95  NORTH-SOUTH GEOPOTENTIAL FLUX (W)                /3600.*1 DY
 C****  96  Energy Outflow by Rivers (10**10 W)     E-10/DTS*IDACC(1) RV
 C****  97  Mass Outflow by Rivers (10**5 kg/s)      E-5/DTS*IDACC(1) RV
 C****  98  DU/DT BY SDRAG (M S-2)                                  1 SD
-C****  99  LAST DAY OF ICE-FREE LAKE (DAYS)                       12 DA 
+C****  99  LAST DAY OF ICE-FREE LAKE (DAYS)                       12 DA
 C**** 100  LAST DAY OF ICED-UP LAKE (DAYS)                        12 DA
 C****
 C**** CONTENTS OF AIL(I,L,N)  (SUM OVER TIME OF)
@@ -367,7 +367,7 @@ C****
      &     ij_rsit,ij_rsnw,ij_slp,ij_snow,ij_t850,ij_ujet,ij_vjet,j_tx1,
      *     j_rsnow,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst,j_rictr,
      *     j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam,j_gamc
-      USE DYNAMICS, only : pk
+      USE DYNAMICS, only : pk,phi
       USE SEAICE_COM, only : snowi,rsi
       USE GHYCOM, only : snowe
       USE RADNCB, only : rqt,lm_req
@@ -392,9 +392,9 @@ C****
       DOUBLE PRECISION, DIMENSION(JM,LM-1) :: SDMEAN
       DOUBLE PRECISION, DIMENSION(IM,JM) :: PUV
       DOUBLE PRECISION, DIMENSION(LM_REQ) :: TRI
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: PHI,TX
+      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: TX
       DOUBLE PRECISION, DIMENSION(IM) :: THSEC,PSEC,SQRTP,PDA
-      COMMON/WORK3/PHI,TX
+      COMMON/WORK3/TX
       INTEGER, DIMENSION(LM) :: LUPA,LDNA
       DOUBLE PRECISION, DIMENSION(LM) :: D2SIG,PKS
       CHARACTER*16 TITLE
@@ -556,36 +556,8 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
      *     /TSAVG(I,J))**GBYRB-P1000)
   120 CONTINUE
       APJ(J,1)=APJ(J,1)+PI(J)
-C**** GEOPOTENTIALS CALCULATED FOR EACH LAYER
-      DO 160 I=1,IMAX
-      PIJ=P(I,J)
-      P1=SIG(1)*PIJ+PTOP
-      PUP=SIG(2)*PIJ+PTOP
-      IF (ABS(TX(I,J,2)-TX(I,J,1)).LT.EPSLON) GO TO 152
-      BBYGV=LOG(TX(I,J,1)/TX(I,J,2))/(RGAS*LOG(P1/PUP))
-      PHI(I,J,1)=ZATMO(I,J)+TX(I,J,1)
-     *  *(((PIJ+PTOP)/P1)**(RGAS*BBYGV)-1.)/BBYGV
-      PHI(I,J,2)=PHI(I,J,1)+(TX(I,J,1)-TX(I,J,2))/BBYGV
-      GO TO 154
-  152 PHI(I,J,1)=ZATMO(I,J)+RGAS*TX(I,J,1)*LOG((PIJ+PTOP)/P1)
-      PHI(I,J,2)=PHI(I,J,1)+RGAS*.5*(TX(I,J,1)+TX(I,J,2))*LOG(P1/PUP)
-  154 DO 160 L=3,LM
-      IF(L.GE.LS1) PIJ=PSFMPT
-      PDN=PUP
-      PUP=SIG(L)*PIJ+PTOP
-      IF (ABS(TX(I,J,L)-TX(I,J,L-1)).LT.EPSLON) GO TO 156
-      BBYGV=LOG(TX(I,J,L-1)/TX(I,J,L))/(RGAS*LOG(PDN/PUP))
-      PHI(I,J,L)=PHI(I,J,L-1)+(TX(I,J,L-1)-TX(I,J,L))/BBYGV
-      GO TO 160
-  156 PHI(I,J,L)=PHI(I,J,L-1)+RGAS*.5*(TX(I,J,L-1)+TX(I,J,L))
-     *  *LOG(PDN/PUP)
-  160 CONTINUE
-      IF (.NOT.POLE) GO TO 170
-      DO 162 L=1,LM
-      DO 162 I=2,IM
-  162 PHI(I,J,L)=PHI(1,J,L)
 C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
-  170 DO 180 I=1,IMAX
+      DO 180 I=1,IMAX
       PIJ=P(I,J)
       PL=SIG(1)*PIJ+PTOP
       K=1
@@ -1308,6 +1280,7 @@ C****
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DAGCOM, only : ajk,aijk,aijl,ajlsp,speca,adaily,nspher,
      &     nwav_dag,ndlypt,hr_in_day
+      USE DYNAMICS, only : phi
       IMPLICIT NONE
       SAVE
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: U,V,T,Q,WM
@@ -1319,8 +1292,8 @@ C****
       DOUBLE PRECISION, DIMENSION(JM,LM) ::
      &     STJK,DPJK,UJK,VJK,WJK,TJK,
      &     PSIJK,UP,TY,PSIP,WTJK,UVJK,WUJK
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: PHI,TX ! from diaga
-      COMMON/WORK3/PHI,TX
+      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: TX ! from diaga
+      COMMON/WORK3/TX
       DOUBLE PRECISION, DIMENSION(IM) :: PSEC,X1
       DOUBLE PRECISION, DIMENSION(LM) :: SHETH,PMO,PLO,DPM,DTH
       DOUBLE PRECISION, DIMENSION(LM+1) :: PM,PL
@@ -2133,11 +2106,10 @@ C****
       USE CONSTANT, only : grav,bygrav
       USE MODEL_COM, only : im,imh,jm,lm,
      &     IDACC,JEQ,LS1,MDIAG,P,PSF,PTOP,PSFMPT,SIG,SIGE,U,V
+      USE DYNAMICS, only : PHI
       USE DAGCOM, only : nwav_dag,wave,max12hr_sequ
       IMPLICIT NONE
       SAVE
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: PHI
-      COMMON/WORK3/PHI
 
       DOUBLE PRECISION, DIMENSION(0:IMH) :: AN,BN
 

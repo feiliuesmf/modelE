@@ -318,8 +318,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       REAL*4,  INTENT(IN) :: AOUT(LEN4)   !@var  AOUT   real*4 array
 
       write (iunit) it,aout,it
-      endfile iunit
-      backspace iunit
+      call flush(iunit)
       write (6,*) "Wrote to file ",TRIM(NAME(IUNIT)),", time=",it
       return
       END subroutine WRITEI

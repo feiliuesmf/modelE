@@ -17,11 +17,6 @@ C     HEMI   = 1 for northern hemisphere, -1 for southern hemisphere
 C     SHA    = specific heat at constant pressure (RGAS/KAPA)
 C     OMEGA2 = 2.*OMEGA where OMEGA is the angular frequency of
 C              the earth (sec)
-C     JVPO   = 2 at south pole, JM at north pole, otherwise not used
-C     IQ1    = IM/4+1
-C     IQ2    = IM/2+1
-C     IQ3    = 3*IM/4+1
-C     IM1    = I except at the poles, where it equals IM
 C     POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
 C
 C The quantities passed thru common block PBLOUT constitute the output
@@ -55,7 +50,7 @@ C --------------------------------------------------------------------
      &     , only : IM,JM,LM, t,q,u,v,p,ptop,ls1,psf
       USE DYNAMICS, only : pmid,pk,pedn
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
-      USE GEOM, only : idij,idjj,kmaxj
+      USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
       USE PBLCOM, ustar_type=>ustar
       USE SOCPBL, uij=>u,vij=>v,tij=>t,qij=>q,eij=>e
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
@@ -86,10 +81,8 @@ C
       REAL*8 Z0M,ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
       REAL*8 ttop,qtop,tgrnd,qgrnd,utop,vtop,z0h,z0q,ufluxs,vfluxs
      *     ,tfluxs,qfluxs,psitop,psisrf
-      INTEGER LDC,jvpo,L,k
+      INTEGER LDC,L,k
 
-      INTEGER, DIMENSION(IM) :: IDI,IDJ
-      INTEGER :: KMAX
 
       IF (ITYPE.GT.2) THEN
         Z0M=30./(10.**ROUGHL(I,J))
@@ -170,41 +163,31 @@ C *********************************************************************
       ppbl=pedn(l,i,j)      ! sige(l)*pij+ptop
 c      if (l.gt.ls1) ppbl=sige(l)*psfmpt+ptop
 c      phi=radian*(float(j-1)*180./float(jm-1)-90.)
-      coriol=sin(radian*(float(j-1)*180./float(jm-1)-90.))*omega2
+      coriol=sinp(j)*omega2
       ttop=tkv
       qtop=q(i,j,1)
       tgrnd=tgv
       qgrnd=qg
 
-      KMAX=KMAXJ(J)
-      do k=1,kmax
-         idi(k)=idij(k,i,j)
-         idj(k)=idjj(k,j)
-      enddo
-
+      utop=0. ; vtop=0. ;  ug=0. ; vg=0.
       if (pole) then
-        jvpo = idj(1)
-        utop=.25*(u(1,jvpo,1)-u(iq2,jvpo,1)
-     2          -(v(iq1,jvpo,1)-v(iq3,jvpo,1))*hemi)
-        vtop=.25*(v(1,jvpo,1)-v(iq2,jvpo,1)
-     2          +(u(iq1,jvpo,1)-u(iq3,jvpo,1))*hemi)
-        ug  =.25*(u(1,jvpo,l)-u(iq2,jvpo,l)
-     2          -(v(iq1,jvpo,l)-v(iq3,jvpo,l))*hemi)
-        vg  =.25*(v(1,jvpo,l)-v(iq2,jvpo,l)
-     2          +(u(iq1,jvpo,l)-u(iq3,jvpo,l))*hemi)
+        do k=1,kmaxj(j)
+          utop = utop + rapj(k,j)*(u(idij(k,i,j),idjj(k,j),1)*cosiv(k) -
+     2                        hemi*v(idij(k,i,j),idjj(k,j),1)*siniv(k))
+          vtop = vtop + rapj(k,j)*(v(idij(k,i,j),idjj(k,j),1)*cosiv(k) +
+     2                        hemi*u(idij(k,i,j),idjj(k,j),1)*siniv(k))
+          ug   = ug   + rapj(k,j)*(u(idij(k,i,j),idjj(k,j),L)*cosiv(k) -
+     2                        hemi*v(idij(k,i,j),idjj(k,j),L)*siniv(k))
+          vg   = vg   + rapj(k,j)*(v(idij(k,i,j),idjj(k,j),L)*cosiv(k) +
+     2                        hemi*u(idij(k,i,j),idjj(k,j),L)*siniv(k))
+        end do
       else
-c        utop=.25*(u(im1,j,1)+u(i,j,1)+u(im1,j+1,1)+u(i,j+1,1))
-c        vtop=.25*(v(im1,j,1)+v(i,j,1)+v(im1,j+1,1)+v(i,j+1,1))
-c        ug  =.25*(u(im1,j,l)+u(i,j,l)+u(im1,j+1,l)+u(i,j+1,l))
-c        vg  =.25*(v(im1,j,l)+v(i,j,l)+v(im1,j+1,l)+v(i,j+1,l))
-        utop=.25*(u(idi(1),idj(1),1)+u(idi(2),idj(2),1)+
-     &            u(idi(3),idj(3),1)+u(idi(4),idj(4),1))
-        vtop=.25*(v(idi(1),idj(1),1)+v(idi(2),idj(2),1)+
-     &            v(idi(3),idj(3),1)+v(idi(4),idj(4),1))
-        ug  =.25*(u(idi(1),idj(1),l)+u(idi(2),idj(2),l)+
-     &            u(idi(3),idj(3),l)+u(idi(4),idj(4),l))
-        vg  =.25*(v(idi(1),idj(1),l)+v(idi(2),idj(2),l)+
-     &            v(idi(3),idj(3),l)+v(idi(4),idj(4),l))
+        do k=1,kmaxj(j)
+          utop = utop + u(idij(k,i,j),idjj(k,j),1)*rapj(k,j)
+          vtop = vtop + v(idij(k,i,j),idjj(k,j),1)*rapj(k,j)
+          ug   = ug   + u(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
+          vg   = vg   + v(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
+        end do
       endif
 
       uij(:)=uabl(:,i,j,itype)
@@ -272,8 +255,9 @@ c  file that does not have this data stored.
 c -------------------------------------------------------------
       USE CONSTANT, only : lhe,lhs,tf
       USE MODEL_COM
+      USE GEOM, only : idij,idjj,imaxj,kmaxj,rapj,cosiv,siniv,sinp
       USE PBLCOM, ustar_type=>ustar
-      USE SOCPBL, only : npbl=>n,zgs,bgrid,inits,ccoeff0
+      USE SOCPBL, only : npbl=>n,zgs,bgrid,inits,ccoeff0,omega2
      & ,  uinit=>u,vinit=>v,tinit=>t,qinit=>q,einit=>e
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
@@ -290,16 +274,16 @@ c -------------------------------------------------------------
 !@var iu_CDN unit number for roughness length input file
       integer :: iu_CDN
 
-      real*8, parameter :: ohmega=7.292e-5,rvx=0.
+      real*8, parameter :: rvx=0.
 
       integer :: ilong  !@var ilong  longitude identifier
       integer :: jlat   !@var jlat  latitude identifier
       real*8 tgvdat(im,jm,4)
 
       integer :: itype  !@var itype surface type
-      integer i,j,iter,imax,im1,jvpo,lpbl !@var i,j,iter loop variable
+      integer i,j,k,iter,lpbl !@var i,j,k,iter loop variable
       real*8 pland,pwater,plice,psoil,poice,pocean,pi,radian,
-     *     ztop,elhx,coriol,tgrnd,pij,ps,psk,qgrnd,hemi
+     *     ztop,elhx,coriol,tgrnd,pij,ps,psk,qgrnd
      *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar
       real*8 qsat
 
@@ -315,22 +299,22 @@ C things to be done regardless of inipbl
 
 c     call pgrads1   !   added 6/19/00
       do j=1,jm
-        do i=1,im
-          pland=fland(i,j)
-          pwater=1.-pland
-          plice=flice(i,j)
-          psoil=fearth(i,j)
-          poice=rsi(i,j)*pwater
-          pocean=pwater-poice
-          tgvdat(i,j,1)=gtemp(1,1,i,j)+TF
-          if (pocean.le.0.) tgvdat(i,j,1)=0.
-          tgvdat(i,j,2)=gtemp(1,2,i,j)+TF
-          if (poice.le.0.)  tgvdat(i,j,2)=0.
-          tgvdat(i,j,3)=gtemp(1,3,i,j)+TF
-          if (plice.le.0.)  tgvdat(i,j,3)=0.
-          tgvdat(i,j,4)=gtemp(1,4,i,j)+TF
-          if (psoil.le.0.)  tgvdat(i,j,4)=0.
-        end do
+      do i=1,im
+        pland=fland(i,j)
+        pwater=1.-pland
+        plice=flice(i,j)
+        psoil=fearth(i,j)
+        poice=rsi(i,j)*pwater
+        pocean=pwater-poice
+        tgvdat(i,j,1)=gtemp(1,1,i,j)+TF
+        if (pocean.le.0.) tgvdat(i,j,1)=0.
+        tgvdat(i,j,2)=gtemp(1,2,i,j)+TF
+        if (poice.le.0.)  tgvdat(i,j,2)=0.
+        tgvdat(i,j,3)=gtemp(1,3,i,j)+TF
+        if (plice.le.0.)  tgvdat(i,j,3)=0.
+        tgvdat(i,j,4)=gtemp(1,4,i,j)+TF
+        if (psoil.le.0.)  tgvdat(i,j,4)=0.
+      end do
       end do
 
       pi=dacos(-1.d0)
@@ -343,20 +327,13 @@ c     call pgrads1   !   added 6/19/00
           elhx=lhs
         endif
         do j=1,jm
-          if ((j.eq.1).or.(j.eq.jm)) then
-            imax=1
-            else
-            imax=im
-          endif
           jlat=j
-       coriol=2.*sin(radian*(float(j-1)*180./float(jm-1)-90.))*ohmega
+          coriol=sinp(j)*omega2
 
-          im1=im
-          do i=1,imax
+          do i=1,imaxj(j)
             tgrnd=tgvdat(i,j,itype)
             if (tgrnd.eq.0.) then
               ipbl(i,j,itype)=0
-              im1=i
               go to 200
             endif
             ilong=i
@@ -365,35 +342,36 @@ c     call pgrads1   !   added 6/19/00
             psk=pek(1,i,j)    !expbyk(ps)
             qgrnd=qsat(tgrnd,elhx,ps)
 
+            utop = 0. ;  vtop = 0.
             if (j.eq.1) then
 c ******************************************************************
 c           At the south pole:
-              jvpo=2
-              hemi=-1.
-              utop=.25*(u(1,jvpo,1)-u(iq2,jvpo,1)
-     2                -(v(iq1,jvpo,1)-v(iq3,jvpo,1))*hemi)
-              vtop=.25*(v(1,jvpo,1)-v(iq2,jvpo,1)
-     2                +(u(iq1,jvpo,1)-u(iq3,jvpo,1))*hemi)
+              do k=1,kmaxj(j)
+                utop = utop + (u(idij(k,i,j),idjj(k,j),1)*cosiv(k) +
+     2                    v(idij(k,i,j),idjj(k,j),1)*siniv(k))*rapj(k,j)
+                vtop = vtop + (v(idij(k,i,j),idjj(k,j),1)*cosiv(k) -
+     2                    u(idij(k,i,j),idjj(k,j),1)*siniv(k))*rapj(k,j)
+              end do
 c ******************************************************************
-            endif
 
-            if (j.eq.jm) then
+            else if (j.eq.jm) then
 c ******************************************************************
 c     At the north pole:
-              jvpo=jm
-              hemi=1.
-              utop=.25*(u(1,jvpo,1)-u(iq2,jvpo,1)
-     2                -(v(iq1,jvpo,1)-v(iq3,jvpo,1))*hemi)
-              vtop=.25*(v(1,jvpo,1)-v(iq2,jvpo,1)
-     2                +(u(iq1,jvpo,1)-u(iq3,jvpo,1))*hemi)
+              do k=1,kmaxj(j)
+                utop = utop + (u(idij(k,i,j),idjj(k,j),1)*cosiv(k) -
+     2                    v(idij(k,i,j),idjj(k,j),1)*siniv(k))*rapj(k,j)
+                vtop = vtop + (v(idij(k,i,j),idjj(k,j),1)*cosiv(k) +
+     2                    u(idij(k,i,j),idjj(k,j),1)*siniv(k))*rapj(k,j)
+              end do
 c ******************************************************************
-            endif
 
-            if ((j.gt.1).and.(j.lt.jm)) then
+            else
 c ******************************************************************
 c     Away from the poles:
-              utop=.25*(u(im1,j,1)+u(i,j,1)+u(im1,j+1,1)+u(i,j+1,1))
-              vtop=.25*(v(im1,j,1)+v(i,j,1)+v(im1,j+1,1)+v(i,j+1,1))
+              do k=1,kmaxj(j)
+                utop = utop + u(idij(k,i,j),idjj(k,j),1)*rapj(k,j)
+                vtop = vtop + v(idij(k,i,j),idjj(k,j),1)*rapj(k,j)
+              end do
 c ******************************************************************
             endif
 
@@ -430,7 +408,6 @@ c ******************************************************************
 
             ipbl(i,j,itype)=1
             ustar_type(i,j,itype)=ustar
-            im1=i
 
  200      end do
         end do
@@ -477,18 +454,14 @@ c  this is retained and deleted in the update deck in the event this
 c  capability is added in future versions of the model.
 c ----------------------------------------------------------------------
       USE MODEL_COM
+      USE GEOM, only : imaxj
       USE PBLCOM, only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
      *     ,ipbl,ustar_type=>ustar
       IMPLICIT NONE
-      integer i,j,iter,lpbl,imax  !@var i,j,iter,lpbl loop variable
+      integer i,j,iter,lpbl  !@var i,j,iter,lpbl loop variable
 
       do j=1,jm
-        if ((j.eq.1).or.(j.eq.jm)) then
-          imax=1
-          else
-          imax=im
-        endif
-        do i=1,imax
+      do i=1,imaxj(j)
 
 c ******* itype=1: Ocean
 
@@ -578,7 +551,7 @@ c ******* itype=4: Land
             endif
           endif
 
-       end do
+      end do
       end do
 
       return

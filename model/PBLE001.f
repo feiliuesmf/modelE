@@ -22,7 +22,7 @@ C**** boundary layer parameters
       real*8, parameter :: kappa=0.40  !@var kappa  Von Karman constant
       real*8, parameter :: zgs=10. !@var zgs height of surface layer (m)
 
-C**** model related constants (should really be taken from MODEL_COM)
+C**** model related constants (should really be taken from E001M12_COM)
       real*8, parameter :: omega2 = 2.*omega !@var omega2 2*omega (s^-1)
 
 !@var  u  local due east component of wind
@@ -85,7 +85,7 @@ c  internals:
 !@var  dzh   dz evaluated at zhat(i)
 !@var  dz    dz evaluated at z(i)
 !@var  dxi   (z(n)-z(1))/(n-1)
-!@var  km    turbulent momentum tranport coefficient. 
+!@var  km    turbulent momentum tranport coefficient.
 !@var  kh    turbulent thermometric conductivity. computed
 !@var  ke    tranport coefficient for the turbulent kinetic energy.
 !@var  ipbl  stores bl properties of last time step
@@ -227,12 +227,12 @@ c Diagnostics printed at a selected point:
 !@sum Momentum flux = USTAR*USTAR
 !@sum Heat flux     = USTAR*TSTAR
 !@sum MOISTURE flux = USTAR*QSTAR
-!@sum 
-!@sum 
+!@sum
+!@sum
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@ver  1.0 (from PBLB336E)
 !@var USTAR the friction speed
-!@var TSTAR the temperature scale 
+!@var TSTAR the temperature scale
 !@var QSTAR the moisture scale
 !@var LMONIN the Monin-Obukhov length scale
       implicit none
@@ -277,7 +277,7 @@ c     To compute the drag coefficient,Stanton number and Dalton number
 
       subroutine getl1(e,zhat,dzh,lscale,n)
 !@sum   getl1 computes the master length scale of the turbulence model
-!@sum   on the secondary grid using Balckdard model 
+!@sum   on the secondary grid using Balckdard model
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var e z-profle of turbulent kinetic energy
@@ -333,7 +333,7 @@ c     To compute the drag coefficient,Stanton number and Dalton number
 !@var n number of vertical subgrid main layers
       implicit none
 
-      real*8, parameter :: lcoef=0.060, omega=7.292e-5
+      real*8, parameter :: lcoef=0.060
       real*8, dimension(n-1), intent(in) :: e,zhat,dzh
       real*8, dimension(n), intent(in) :: u,v,t
       real*8, dimension(n-1), intent(out) :: lscale
@@ -389,7 +389,7 @@ c     To compute the drag coefficient,Stanton number and Dalton number
 !@var z0h   = roughness length for temperature (m)
 !@var z0q   = roughness length for water vapor (m)
       implicit none
-      
+
       real*8,  intent(in) :: lmonin,ustar,vsurf,zgs
       integer,  intent(in) :: itype
       real*8,  intent(inout) :: z0m
@@ -507,7 +507,7 @@ c *********************************************************************
 !@sum   temperature, and moisture mixing ratio at height z.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
-!@var     z       height above ground at which soln is being computed (m)
+!@var     z       height above ground at which solution is computed (m)
 !@var     ustar   friction speed (m/sec)
 !@var     tstar   temperature scale (K)
 !@var     qstar   moisture scale
@@ -523,13 +523,13 @@ c *********************************************************************
       implicit none
 
       real*8,  intent(in) :: z,ustar,tstar,qstar,z0m,z0h,z0q
-      real*8,  intent(in) :: lmonin,tg,qg 
+      real*8,  intent(in) :: lmonin,tg,qg
       real*8,  intent(out) :: u,t,q
 
       real*8, parameter :: sigma=0.95,sigma1=1.-sigma
       real*8, parameter :: gamamu=19.3,gamahu=11.6,gamams=4.8,
      *     gamahs=8./sigma
-     
+
       real*8 zbyl,z0mbyl,z0hbyl,z0qbyl,dpsim,dpsih,dpsiq,xm,xm0,xh,xh0
      *     ,xq,xq0,lzbyz0m,lzbyz0h,lzbyz0q
 
@@ -578,13 +578,13 @@ c *********************************************************************
 
       subroutine griddr(z,zhat,xi,xihat,dz,dzh,z1,zn,bgrid,n)
 !@sum Computes altitudes on the vertical grid. The XI coordinates are
-!@sum uniformly spaced and are mapped in a log-linear fashion onto the Z
-!@sum grid. (The Z's are the physical coords.) Also computes the altitudes
-!@sum on the secondary grid, ZHAT(I), and the derivatives dxi/dz evaluated
-!@sum at both all Z(I) and ZHAT(I).
-!@sum The parameter BGRID determines how strongly non-linear the mapping is.
-!@sum BGRID=0 gives linear mapping. Increasing BGRID packs more points into
-!@sum the bottom of the layer.
+!@sum uniformly spaced and are mapped in a log-linear fashion onto the
+!@sum Z grid. (The Z's are the physical coords.) Also computes the
+!@sum altitudes on the secondary grid, ZHAT(I), and the derivatives
+!@sum dxi/dz evaluated at both all Z(I) and ZHAT(I).
+!@sum The parameter BGRID determines how strongly non-linear the
+!@sum mapping is. BGRID=0 gives linear mapping. Increasing BGRID
+!@sum packs more points into the bottom of the layer.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 c     Grids:
@@ -700,7 +700,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       real*8 :: g1,g2,g3,g4,g5,g6,g7,g8,prt,del
 
       prt=     0.82d0
-      b1=     19.3                                                         
+      b1=     19.3
       b123=b1**(2./3.)
       g1=       .1070
       g2=       .0032
@@ -725,19 +725,19 @@ c
       s5 = 2*g4
       s6 = 2.d0/3*g5*(3*g3**2-g2**2)-1.d0/2*g1*g5*(3*g3-g2)
      &     +3.d0/4*g1*(g6-g7)
-      write(67,*) "      d0=",d0
-      write(67,*) "      d1=",d1
-      write(67,*) "      d2=",d2
-      write(67,*) "      d3=",d3
-      write(67,*) "      d4=",d4
-      write(67,*) "      d5=",d5
-      write(67,*) "      s0=",s0
-      write(67,*) "      s1=",s1
-      write(67,*) "      s2=",s2
-      write(67,*) "      s3=",s3
-      write(67,*) "      s4=",s4
-      write(67,*) "      s5=",s5
-      write(67,*) "      s6=",s6
+      write(99,*) "      d0=",d0
+      write(99,*) "      d1=",d1
+      write(99,*) "      d2=",d2
+      write(99,*) "      d3=",d3
+      write(99,*) "      d4=",d4
+      write(99,*) "      d5=",d5
+      write(99,*) "      s0=",s0
+      write(99,*) "      s1=",s1
+      write(99,*) "      s2=",s2
+      write(99,*) "      s3=",s3
+      write(99,*) "      s4=",s4
+      write(99,*) "      s5=",s5
+      write(99,*) "      s6=",s6
 c
 c     find rimax:
 c
@@ -748,35 +748,35 @@ c
       c5=-s0+2*d2
       c6=2*d0
 
-      write(67,*) "c1=",c1
-      write(67,*) "c2=",c2
-      write(67,*) "c3=",c3
+      write(99,*) "c1=",c1
+      write(99,*) "c2=",c2
+      write(99,*) "c3=",c3
 c     c4-c6 are used in subroutine level2
-      write(67,*) "c4=",c4
-      write(67,*) "c5=",c5
-      write(67,*) "c6=",c6
+      write(99,*) "c4=",c4
+      write(99,*) "c5=",c5
+      write(99,*) "c6=",c6
       if(c3.eq.0.) then ! the case of Mellor-Yamada mdel
           rimax=-c2/c1
       else
           rimax=(-c2+sqrt(c2**2-4.*c1*c3))/(2*c1)
       endif
-      write(67,*) "rimax=",rimax
+      write(99,*) "rimax=",rimax
       rimax=int(rimax*1000.)/1000.
-      write(67,*) "rimax=",rimax
+      write(99,*) "rimax=",rimax
 c
 c     find ghmin:
 c
       del=(s4+2*d1)**2-8.*d0*(s5+2*d3)
-      write(67,*) "del=",del
+      write(99,*) "del=",del
       ghmin=(-s4-2*d1+sqrt(del))/(2*(s5+2*d3))
-      write(67,*) "ghmin=",ghmin
+      write(99,*) "ghmin=",ghmin
       ghmin=int(ghmin*10000.)/10000.
-      write(67,*) "ghmin=",ghmin
-      write(67,*) "ghmin/B1**2=",ghmin/B1**2
+      write(99,*) "ghmin=",ghmin
+      write(99,*) "ghmin/B1**2=",ghmin/B1**2
       ghmax=(0.53*b1)**2
       gmmax0=(1.95*b1)**2
-      write(67,*) "ghmax=",ghmax
-      write(67,*) "gmmax0=",gmmax0
+      write(99,*) "ghmax=",ghmax
+      write(99,*) "gmmax0=",gmmax0
       return
       end subroutine ccoeff0
 
@@ -1057,8 +1057,8 @@ c     M.J.Miller et al. 1992:
 !@var vtop due north component of the wind at the first GCM layer
 !@var dtime time step
 !@var coriol the Coriolis parameter
-!@var ug due east component of the geostrophic wind 
-!@var vg due north component of the geostrophic wind 
+!@var ug due east component of the geostrophic wind
+!@var vg due north component of the geostrophic wind
 !@var n number of vertical subgrid main layers
       implicit none
 
@@ -1316,7 +1316,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
 !@var  n number of sub-grid levels for the PBL
 !@var  tgrnd  temperature of the ground, at the roughness height
 !@var  qgrnd  moisture at the ground, at the roughness height
-!@var  zgrnd  
+!@var  zgrnd
 !@var  zgs  height of the surface layer (nominally 10 m)
 !@var  ztop height of the first model layer, approx 200 m if lm=9
 !@var  utop  x component of wind at the top of the layer
@@ -1556,10 +1556,10 @@ c ----------------------------------------------------------------------
 !@sum  bounds during the initialization process. (Sometimes the computed
 !@sum  wind speed iterated out in left field someplace, *way* outside
 !@sum  any reasonable range.) Tests and corrects both direction and
-!@sum  magnitude of the wind rotation with altitude. Tests the total wind
-!@sum  speed via comparison to similarity theory. Note that it works from
-!@sum  the top down so that it can assume that at level (i), level (i+1)
-!@sum  displays reasonable behavior.
+!@sum  magnitude of the wind rotation with altitude. Tests the total
+!@sum  wind speed via comparison to similarity theory. Note that it
+!@sum  works from the top down so that it can assume that at level (i),
+!@sum  level (i+1) displays reasonable behavior.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
       implicit none

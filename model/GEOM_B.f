@@ -57,6 +57,7 @@ C**** some B-grid conseravtion quantities
 !@var SINIV,COSIV,SINIP,COSIP longitud. sin,cos for wind,pressure grid
       REAL*8, DIMENSION(IM) :: SINIV,COSIV,SINIP,COSIP
 !@var  RAVJ scaling for A grid U/V to B grid points (func. of lat. j)
+!@var  RAPJ scaling for B grid -> A grid conversion (1/4,1/im at poles)
       REAL*8, DIMENSION(IM,JM) :: RAPJ,RAVJ
 !@var  IDJJ J index of adjacent U/V points for A grid (func. of lat. j)
       INTEGER, DIMENSION(IM,JM) :: IDJJ
@@ -81,7 +82,7 @@ c      USE MODEL_COM
 
       INTEGER :: I,J,K,IM1  !@var I,J,K,IM1  loop variables
       INTEGER :: JVPO,JMHALF
-      REAL*8  :: RAVPO,RAPPO
+      REAL*8  :: RAVPO
 
 c      DLON=TWOPI*BYIM
       DLAT=.5*TWOPI/(JM-1)
@@ -172,7 +173,7 @@ C**** adjacent velocity points
 
 C**** Calculate relative directions of polar box to nearby U,V points
       DO I=1,IM
-         SINIV(I)=SIN((I-1)*TWOPI*BYIM)  ! DLON)
+         SINIV(I)=SIN((I-1)*DLON) 
          COSIV(I)=COS((I-1)*TWOPI*BYIM)  ! DLON)
          LON(I)=DLON*(I-.5)
          SINIP(I)=SIN(LON(I))
@@ -184,16 +185,14 @@ C**** Conditions at the poles
          IF(J.EQ.1) THEN
             JVPO=2
             RAVPO=2.*RAPVN(1)
-            RAPPO=2.*RAVPN(1)
          ELSE
             JVPO=JM
             RAVPO=2.*RAPVS(JM)
-            RAPPO=2.*RAVPS(JM)
          END IF
          KMAXJ(J)=IM
          IMAXJ(J)=1
          RAVJ(1:KMAXJ(J),J)=RAVPO
-         RAPJ(1:KMAXJ(J),J)=RAPPO
+         RAPJ(1:KMAXJ(J),J)=BYIM
          IDJJ(1:KMAXJ(J),J)=JVPO
          DO K=1,KMAXJ(J)
             IDIJ(K,1:IM,J)=K
@@ -205,10 +204,10 @@ C**** Conditions at non-polar points
          IMAXJ(J)=IM
          DO K=1,2
             RAVJ(K,J)=RAPVS(J)
-            RAPJ(K,J)=RAVPS(J)
+            RAPJ(K,J)=RAVPS(J)     ! = .25
             IDJJ(K,J)=J
             RAVJ(K+2,J)=RAPVN(J)
-            RAPJ(K+2,J)=RAVPN(J)
+            RAPJ(K+2,J)=RAVPN(J)   ! = .25
             IDJJ(K+2,J)=J+1
          END DO
          IM1=IM

@@ -813,8 +813,8 @@ C****
       USE MODEL_COM, only :im,jm
       IMPLICIT NONE
 !@var NORDER order of shapiro filter (must be even)
-      INTEGER, INTENT(IN) :: NORDER 
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM) :: X 
+      INTEGER, INTENT(IN) :: NORDER
+      REAL*8, INTENT(INOUT), DIMENSION(IM,JM) :: X
       REAL*8, DIMENSION(IM)::XS
       REAL*8 RE4TON,XS1,XSIM1,XSI
       INTEGER I,J,N   !@var I,J,N  loop variables
@@ -842,7 +842,7 @@ C****
 !@auth Jean Lerner
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,ls1,psfmpt
-C**** 
+C****
       implicit none
       double precision, dimension(im,jm) :: p
       double precision, dimension(im,jm,lm) :: pijl
@@ -918,7 +918,7 @@ c               BYAM(L,I,J) = 1./AM(L,I,J)
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,ls1,dsig,psf,ptop
       USE GEOM, only : dxyp
-C**** 
+C****
       implicit none
       double precision, dimension(im,jm) :: p
       double precision, dimension(im,jm,lm) :: amp
@@ -934,7 +934,7 @@ C****
       enddo
       enddo
       return
-C**** 
+C****
       end subroutine calc_amp
 
       SUBROUTINE DYNAM
@@ -952,7 +952,7 @@ C****
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,JM) :: PRAT
-      REAL*8, DIMENSION(IM,JM,LM) :: UT,VT,TT,TZ,TZT,WMT,MA
+      REAL*8, DIMENSION(IM,JM,LM) :: UT,VT,TT,TZ,TZT,MA
       REAL*8, DIMENSION(IM,JM,LM) :: UX,VX,PIJL
       REAL*8 PA(IM,JM),PB(IM,JM),PC(IM,JM),FPEU(IM,JM),FPEV(IM,JM),
      *          FWVU(IM,JM),FWVV(IM,JM)
@@ -969,7 +969,6 @@ C****
       UT(:,:,:)  = U(:,:,:)
       VX(:,:,:)  = V(:,:,:)
       VT(:,:,:)  = V(:,:,:)
-      WMT(:,:,:) = WM(:,:,:)
 C*** copy z-moment of temperature into contiguous memory
       tz(:,:,:) = tmom(mz,:,:,:)
       PA(:,:) = P(:,:)
@@ -1065,8 +1064,8 @@ C*** copy z-moment of temperature into contiguous memory
 C**** LOAD P TO PC
       PC(:,:)=P(:,:)
          IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
-           CALL DIAGA (UT,VT,TT,PB,Q,PIT,SD)
-           CALL DIAGB (UT,VT,TT,PB,Q,WMT,DUT,DVT)
+           CALL DIAGA (U,V,T,P,Q,PIT,SD)
+           CALL DIAGB (U,V,T,P,Q,WM,DUT,DVT)
          ENDIF
       IF (NS.LT.NIdyn) GO TO 340
 C**** Scale WM mixing ratios to conserve liquid water
@@ -1083,7 +1082,7 @@ C**** Scale WM mixing ratios to conserve liquid water
 !@ver  1.0
 C**** As this is written, it must be called after the call to CALC_AMPK
 C**** after DYNAM (since it uses pk/pmid). It would be better if it used
-C**** SPA and PU directly from the dynamics. (Future work).     
+C**** SPA and PU directly from the dynamics. (Future work).
       USE CONSTANT, only : rgas
       USE MODEL_COM, only : im,jm,t,p,zatmo,sig
       USE GEOM, only : dyp,dxp
