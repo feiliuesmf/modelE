@@ -1008,6 +1008,25 @@ C**** Add plume tracers at LMAX
       IF(LMCMIN.EQ.0) LMCMIN=LMIN
       IF(LMCMAX.LT.MAXLVL) LMCMAX=MAXLVL
 C****
+C**** Partition condensate into precipitation and cloud water
+C****
+      IF(PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
+        DO L=LMAX,LMIN,-1
+          IF(COND(L).LT.CONDP(L)) CONDP(L)=COND(L)
+          FCLW=0.
+          IF (COND(L).GT.0) FCLW=(COND(L)-CONDP(L))/COND(L)
+          SVWMXL(L)=SVWMXL(L)+FCLW*COND(L)*BYAM(L)*FMC1
+          COND(L)=CONDP(L)
+#ifdef TRACERS_WATER
+C**** Apportion cloud tracers and condensation
+C**** Note that TRSVWML is in mass units unlike SVWMX
+          TRSVWML(1:NTX,L) = TRSVWML(1:NTX,L) + FCLW*TRCOND(1:NTX,L)
+     *         *FMC1
+          TRCOND(1:NTX,L) = (1.-FCLW)*TRCOND(1:NTX,L)
+#endif
+        END DO
+      END IF
+C****
 C**** PROCESS OF DOWNDRAFTING
 C****
       LDMIN=LMIN
@@ -1225,22 +1244,6 @@ C**** save new 'environment' profile for static stability calc.
 C****
 C**** REEVAPORATION AND PRECIPITATION
 C****
-      IF(PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
-        DO L=LMAX,LMIN,-1
-          IF(COND(L).LT.CONDP(L)) CONDP(L)=COND(L)
-          FCLW=0.
-          IF (COND(L).GT.0) FCLW=(COND(L)-CONDP(L))/COND(L)
-          SVWMXL(L)=SVWMXL(L)+FCLW*COND(L)*BYAM(L)*FMC1
-          COND(L)=CONDP(L)
-#ifdef TRACERS_WATER
-C**** Apportion cloud tracers and condensation
-C**** Note that TRSVWML is in mass units unlike SVWMX
-          TRSVWML(1:NTX,L) = TRSVWML(1:NTX,L) + FCLW*TRCOND(1:NTX,L)
-     *         *FMC1
-          TRCOND(1:NTX,L) = (1.-FCLW)*TRCOND(1:NTX,L)
-#endif
-        END DO
-      END IF
       PRCP=COND(LMAX)
       PRHEAT=CDHEAT(LMAX)
 #ifdef TRACERS_WATER
