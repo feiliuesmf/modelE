@@ -49,6 +49,7 @@ MACHINE = not_specified
 LIBS =
 INCS =
 F90_VERSION = 'Unknown compiler version'
+ECHO_FLAGS =
 
 UNAME = $(shell uname)
 
@@ -107,6 +108,7 @@ MACHINE = Linux
 ifndef COMPILER
 COMPILER = Absoft
 endif
+ECHO_FLAGS = -e
 
 ## This is for the VAST compiler (DOES NOT WORK)
 ifeq ($(COMPILER),Vast)
@@ -188,8 +190,6 @@ MACHINE = DEC
 F90 = f90
 CPP = /lib/cpp -P
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
-# this forces echo -n to work
-export CMD_ENV=bsd
 # CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_DEC
 # FFLAGS = -O2 -cpp
 # LFLAGS = -O2
@@ -229,7 +229,7 @@ FORCE:
 *.mod: FORCE
 
 %.mod: 
-	@echo -n checking $@:
+	@echo $(ECHO_FLAGS) checking $@: \\c
 #	@echo 'called rule for $@, depends on $^ built from: '`cat $@.sig`
 	@if [ "$<empty" = "empty" ]; then \
 	echo "No dependency for $@ : ";\
@@ -243,7 +243,7 @@ FORCE:
 # .timestemp is a hack to set proper times on .o and .mod
 # For the Absoft/Lahey/PGI compilers, we need to force a cpp run through
 %.o: %.f
-	@echo -n compiling $< ... $(MSG)
+	@echo $(ECHO_FLAGS)  compiling $< ... $(MSG) \\c
 	@touch .timestamp
 ifeq ($(COMPILER),Absoft)
 	cp $*.f $*.F
