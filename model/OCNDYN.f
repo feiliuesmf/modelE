@@ -1687,7 +1687,7 @@ C**** Input and Output: RM (kg) = tracer mass
 C****             RX,RY,RZ (kg) = first moments of tracer mass
 C****                    M (kg) = ocean mass
 C****
-      USE OCEAN, only : im,jm,lmo,lmm
+      USE OCEAN, only : im,jm,lmo,lmm,focean
       IMPLICIT NONE
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: RM,RX,RY,RZ
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: OIJL
@@ -1850,7 +1850,7 @@ C**** Input and Output: RM (kg) = tracer mass
 C****             RX,RY,RZ (kg) = first moments of tracer mass
 C****                    M (kg) = ocean mass
 C****
-      USE OCEAN, only : im,jm,lmo,lmm
+      USE OCEAN, only : im,jm,lmo,lmm,focean
       IMPLICIT NONE
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: RM,RX,RY,RZ
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: OIJL
@@ -2094,7 +2094,7 @@ C**** Input and Output: RM (kg) = tracer mass
 C****             RX,RY,RZ (kg) = first moments of tracer mass
 C****                    M (kg) = ocean mass
 C****
-      USE OCEAN, only : im,jm,lmo,lmm
+      USE OCEAN, only : im,jm,lmo,lmm,focean
       IMPLICIT NONE
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: RM,RX,RY,RZ
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: OIJL
