@@ -1373,7 +1373,7 @@ C**** to be used in the PBL, at the promary grids
 !@var DT1 time step (s)
       REAL*8, INTENT(IN) :: DT1
 !@var L(P)SDRAG lowest level at which SDRAG_lin is applied (near poles)
-C**** SDRAG_const is applied everywhere else above PTOP (150 mb)
+C**** SDRAG_const is applied from PTOP (150 mb) to P_CSDRAG
       REAL*8 WL,TL,RHO,CDN,X,BYPIJU,DP,DPL(LM)
 !@var DUT,DVT change in momentum (mb m^3/s)
 !@var DKE change in kinetic energy (m^2/s^2)
