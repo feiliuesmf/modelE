@@ -1022,8 +1022,6 @@
           temp   = c(2,n)
           c(2,n) = c(3,n)
           c(3,n) = temp
-        ! the next line is needed for stupid optimizers - do not delete
-          if ( n > 16384 ) print *, n,c(:,n)
         end do
       end subroutine swap_bytes_4
 
