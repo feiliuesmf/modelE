@@ -170,7 +170,7 @@ C**** output variables
       INTEGER :: LMCMAX,LMCMIN
 !@var LMCMAX upper-most convective layer
 !@var LMCMIN lowerest convective layer
-!@var AIRXL is convective mass flux (kg/m*m)
+!@var AIRXL is convective mass flux (mb)
       REAL*8 AIRXL
 !@var RNDSSL stored random number sequences
       REAL*8  RNDSSL(3,LM)
