@@ -36,12 +36,22 @@ C**** Initialize mass fluxes used by tracers and Q
       SDA(:,:,:) = 0.
 C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
   300 CONTINUE
-      UX(:,:,:)  = U(:,:,:)
-      UT(:,:,:)  = U(:,:,:)
-      VX(:,:,:)  = V(:,:,:)
-      VT(:,:,:)  = V(:,:,:)
+c     UX(:,:,:)  = U(:,:,:)
+c     UT(:,:,:)  = U(:,:,:)
+c     VX(:,:,:)  = V(:,:,:)
+c     VT(:,:,:)  = V(:,:,:)
 !     copy z-moment of temperature into contiguous memory
-      tz(:,:,:) = tmom(mz,:,:,:)
+c     tz(:,:,:) = tmom(mz,:,:,:)
+C$OMP  PARALLEL DO PRIVATE (L)
+      DO L=1,LM
+         UX(:,:,L)  = U(:,:,L)
+         UT(:,:,L)  = U(:,:,L)
+         VX(:,:,L)  = V(:,:,L)
+         VT(:,:,L)  = V(:,:,L)
+         TZ(:,:,L)  = TMOM(MZ,:,:,L)
+      ENDDO
+C$OMP  END PARALLEL DO
+C
       PA(:,:) = P(:,:)
       PB(:,:) = P(:,:)
       PC(:,:) = P(:,:)
@@ -97,16 +107,33 @@ C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q
          PVA(:,:,:)=PVA(:,:,:)+PV(:,:,:)
          SDA(:,:,1:LM-1)=SDA(:,:,1:LM-1)+SD(:,:,1:LM-1)
 C**** ADVECT Q AND T
-      TT(:,:,:) = T(:,:,:)
-      TZT(:,:,:)= TZ(:,:,:)
+CCC   TT(:,:,:) = T(:,:,:)
+CCC   TZT(:,:,:)= TZ(:,:,:)
+C$OMP  PARALLEL DO PRIVATE (L)
+      DO L=1,LM
+         TT(:,:,L)  = T(:,:,L)
+         TZT(:,:,L) = TZ(:,:,L)
+      ENDDO
+C$OMP  END PARALLEL DO
       call calc_amp(pc,ma)
       CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
 !     save z-moment of temperature in contiguous memory for later
-      tz(:,:,:) = tmom(mz,:,:,:)
+CCC   tz(:,:,:) = tmom(mz,:,:,:)
+C$OMP  PARALLEL DO PRIVATE (L)
+      DO L=1,LM
+         TZ(:,:,L) = TMOM(MZ,:,:,L)
+      ENDDO
+C$OMP  END PARALLEL DO
       CALL VDIFF (P,U,V,UT,VT,T,DTLF)          ! strat
       PC(:,:)    = .5*(P(:,:)+PC(:,:))
-      TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
-      TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
+CCC   TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
+CCC   TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
+C$OMP  PARALLEL DO PRIVATE (L)
+      DO L=1,LM
+         TT(:,:,L)  = .5*(T(:,:,L)+TT(:,:,L))
+         TZT(:,:,L) = .5*(TZ(:,:,L)+TZT(:,:,L))
+      ENDDO
+C$OMP  END PARALLEL DO
          DO L=1,LM
            AIJ(:,2:JM,IJ_FMV)  = AIJ(:,2:JM,IJ_FMV )+PV(:,2:JM,L)*DTLF
            AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PU(:, 1,L)*DTLF*BY3
@@ -238,7 +265,6 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
       END SUBROUTINE TrDYNAM
 #endif
 
-
       SUBROUTINE AFLUX (U,V,PIJL)
 !@sum  AFLUX Calculates horizontal/vertical air mass fluxes
 !@+    Input: U,V velocities, PIJL pressure
@@ -261,12 +287,12 @@ C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
       REAL*8, DIMENSION(IM) :: DUMMYS,DUMMYN
       INTEGER I,J,L,IP1,IM1
       REAL*8 PUS,PUN,PVS,PVN,PBS,PBN,SDNP,SDSP
-      REAL*8 WT
+      REAL*8 WT,DXDSIG,DYDSIG,PVSA(LM),PVNA(LM),xx
 C****
 C**** BEGINNING OF LAYER LOOP
 C****
-      pu(:,:,:) = 0.
-      pv(:,:,:) = 0.
+C$OMP  PARALLEL DO PRIVATE (I,J,L,IM1,IP1,DXDSIG,DYDSIG,DUMMYS,DUMMYN,
+C$OMP*                      PUS,PUN,PVS,PVN,PBS,PBN)
       DO 2000 L=1,LM
 C****
 C**** COMPUTATION OF MASS FLUXES     P,T  PU     PRIMARY GRID ROW
@@ -279,56 +305,20 @@ C**** COMPUTE PU, THE WEST-EAST MASS FLUX, AT NON-POLAR POINTS
       CALL AVRX (SPA(1,1,L))
       I=IM
       DO 2166 J=2,JM-1
+      DYDSIG = 0.25D0*DYP(J)*DSIG(L)
       DO 2165 IP1=1,IM
-      PU(I,J,L)=PU(I,J,L)+.25*DYP(J)*SPA(I,J,L)*
-     &        (PIJL(I,J,L)+PIJL(IP1,J,L))*DSIG(L)
+      PU(I,J,L)=DYDSIG*SPA(I,J,L)*(PIJL(I,J,L)+PIJL(IP1,J,L))
  2165 I=IP1
  2166 CONTINUE
 C**** COMPUTE PV, THE SOUTH-NORTH MASS FLUX
       IM1=IM
       DO 2172 J=2,JM
+      DXDSIG = 0.25D0*DXV(J)*DSIG(L)
       DO 2170 I=1,IM
-      PV(I,J,L)=PV(I,J,L)+.25*DXV(J)*(V(I,J,L)+V(IM1,J,L))*
-     *   (PIJL(I,J,L)+PIJL(I,J-1,L))*DSIG(L)
+      PV(I,J,L)=DXDSIG*(V(I,J,L)+V(IM1,J,L))*(PIJL(I,J,L)+PIJL(I,J-1,L))
+
  2170 IM1=I
  2172 CONTINUE
-      if(l.lt.ls1) then
-c modify uphill air mass fluxes around steep topography
-      do j=2,jm-1
-         i = im
-         do ip1=1,im
-            if((zatmo(ip1,j)-zatmo(i,j))*pu(i,j,l).gt.0.) then
-               if(pu(i,j,l).gt.0.) then
-                  wt = (pijl(ip1,j,l)/pijl(i,j,l)-sige(l+1))/dsig(l)
-               else
-                  wt = (pijl(i,j,l)/pijl(ip1,j,l)-sige(l+1))/dsig(l)
-               endif
-               if(wt.lt.1.) then
-                  if(wt.lt.0.) wt=0.
-                  pu(i,j,l+1) = pu(i,j,l+1) + pu(i,j,l)*(1.-wt)
-                  pu(i,j,l) = pu(i,j,l)*wt
-               endif
-            endif
-            i = ip1
-         enddo
-      enddo
-      do j=2,jm
-         do i=1,im
-            if((zatmo(i,j)-zatmo(i,j-1))*pv(i,j,l).gt.0.) then
-               if(pv(i,j,l).gt.0.) then
-                  wt = (pijl(i,j,l)/pijl(i,j-1,l)-sige(l+1))/dsig(l)
-               else
-                  wt = (pijl(i,j-1,l)/pijl(i,j,l)-sige(l+1))/dsig(l)
-               endif
-               if(wt.lt.1.) then
-                  if(wt.lt.0.) wt=0.
-                  pv(i,j,l+1) = pv(i,j,l+1) + pv(i,j,l)*(1.-wt)
-                  pv(i,j,l) = pv(i,j,l)*wt
-               endif
-            endif
-         enddo
-      enddo
-      endif
 C**** COMPUTE PU*3 AT THE POLES
       PUS=0.
       PUN=0.
@@ -343,6 +333,8 @@ C**** COMPUTE PU*3 AT THE POLES
       PUN=.25*DYP(JM-1)*PUN*PIJL(1,JM,L)*BYIM
       PVS=PVS*BYIM
       PVN=PVN*BYIM
+      PVSA(L)=PVS
+      PVNA(L)=PVN
       DUMMYS(1)=0.
       DUMMYN(1)=0.
       DO 1120 I=2,IM
@@ -364,45 +356,138 @@ C****
 C**** CONTINUITY EQUATION
 C****
 C**** COMPUTE CONV, THE HORIZONTAL MASS CONVERGENCE
+c     DO 1510 J=2,JM-1
+c     IM1=IM
+c     DO 1510 I=1,IM
+c     CONV(I,J,L)=(PU(IM1,J,L)-PU(I,J,L)+PV(I,J,L)-PV(I,J+1,L))
+c1510 IM1=I
+c     CONV(1,1,L)=-PVS
+c     CONV(1,JM,L)=PVN
+ 2000 CONTINUE
+C$OMP  END PARALLEL DO
+C****
+C**** END OF HORIZONTAL ADVECTION LAYER LOOP
+C****
+c
+c modify uphill air mass fluxes around steep topography
+      do 2015 j=2,jm-1
+      i = im
+      do 2010 ip1=1,im
+         xx = zatmo(ip1,j)-zatmo(i,j)
+         if(xx.eq.0.0)  go to 2007
+         DO 2005 L=1,LS1-1
+ccc         if((zatmo(ip1,j)-zatmo(i,j))*pu(i,j,l).gt.0.) then
+            if(xx*pu(i,j,l).gt.0.) then
+               if(pu(i,j,l).gt.0.) then
+                  wt = (pijl(ip1,j,l)/pijl(i,j,l)-sige(l+1))/dsig(l)
+               else
+                  wt = (pijl(i,j,l)/pijl(ip1,j,l)-sige(l+1))/dsig(l)
+               endif
+               if(wt.lt.1.) then
+                  if(wt.lt.0.) wt=0.
+                  pu(i,j,l+1) = pu(i,j,l+1) + pu(i,j,l)*(1.-wt)
+                  pu(i,j,l) = pu(i,j,l)*wt
+               else
+                  go to 2007
+               endif
+            endif
+ 2005    CONTINUE
+ 2007    CONTINUE
+         i = ip1
+ 2010 CONTINUE
+ 2015 CONTINUE
+ccc   do j=2,jm
+      do 2035 j=3,jm-1
+      do 2035 i=1,im
+         xx = zatmo(i,j)-zatmo(i,j-1)
+         if(xx.eq.0.0)  go to 2035
+         DO 2020 L=1,LS1-1
+ccc         if((zatmo(i,j)-zatmo(i,j-1))*pv(i,j,l).gt.0.) then
+            if(xx*pv(i,j,l).gt.0.) then
+               if(pv(i,j,l).gt.0.) then
+                  wt = (pijl(i,j,l)/pijl(i,j-1,l)-sige(l+1))/dsig(l)
+               else
+                  wt = (pijl(i,j-1,l)/pijl(i,j,l)-sige(l+1))/dsig(l)
+               endif
+               if(wt.lt.1.) then
+                  if(wt.lt.0.) wt=0.
+                  pv(i,j,l+1) = pv(i,j,l+1) + pv(i,j,l)*(1.-wt)
+                  pv(i,j,l) = pv(i,j,l)*wt
+               else
+                  go to 2035
+               endif
+            endif
+ 2020    CONTINUE
+ 2035 CONTINUE
+C
+C     Now Really Do  CONTINUITY EQUATION
+C
+C     COMPUTE CONV, THE HORIZONTAL MASS CONVERGENCE
+C
+C$OMP  PARALLEL DO PRIVATE (I,J,L,IM1)
+      DO 2400 L=1,LM
       DO 1510 J=2,JM-1
       IM1=IM
       DO 1510 I=1,IM
       CONV(I,J,L)=(PU(IM1,J,L)-PU(I,J,L)+PV(I,J,L)-PV(I,J+1,L))
  1510 IM1=I
-      CONV(1,1,L)=-PVS
-      CONV(1,JM,L)=PVN
- 2000 CONTINUE
-C****
-C**** END OF HORIZONTAL ADVECTION LAYER LOOP
-C****
+      CONV(1,1,L)=-PVSA(L)
+      CONV(1,JM,L)=PVNA(L)
+ 2400 CONTINUE
+C$OMP  END PARALLEL DO
+C
 C**** COMPUTE PIT, THE PRESSURE TENDENCY
-C     PIT(I,J)=CONV(I,J,1)
-      DO 2420 L=LM,2,-1
-      PIT(1,1)=PIT(1,1)+CONV(1,1,L)
-      PIT(1,JM)=PIT(1,JM)+CONV(1,JM,L)
-      DO 2420 J=2,JM-1
-      DO 2420 I=1,IM
- 2420 PIT(I,J)=PIT(I,J)+CONV(I,J,L)
-C**** COMPUTE SD, SIGMA DOT
-      SD(1, 1,LM-1)=CONV(1, 1,LM)
-      SD(1,JM,LM-1)=CONV(1,JM,LM)
-      DO 2430 J=2,JM-1
-      DO 2430 I=1,IM
- 2430 SD(I,J,LM-1)=CONV(I,J,LM)
-      DO 2435 L=LM-2,LS1-1,-1
-      SD(1, 1,L)=SD(1, 1,L+1)+CONV(1, 1,L+1)
-      SD(1,JM,L)=SD(1,JM,L+1)+CONV(1,JM,L+1)
-      DO 2435 J=2,JM-1
-      DO 2435 I=1,IM
-      SD(I, J,L)=SD(I, J,L+1)+CONV(I, J,L+1)
+CC    PIT(I,J)=CONV(I,J,1)
+C     DO 2420 L=LM,2,-1
+C     PIT(1,1)=PIT(1,1)+CONV(1,1,L)
+C     PIT(1,JM)=PIT(1,JM)+CONV(1,JM,L)
+C     DO 2420 J=2,JM-1
+C     DO 2420 I=1,IM
+C2420 PIT(I,J)=PIT(I,J)+CONV(I,J,L)
+C$OMP  PARALLEL DO PRIVATE(I,J,L)
+      DO 2420 J=1,JM
+         DO 2410 I=1,IMAXJ(J)
+         DO 2410 L=LM-1,1,-1
+            PIT(I,J)=PIT(I,J)+SD(I,J,L)
+ 2410    CONTINUE
+ 2420 CONTINUE
+C$OMP  END PARALLEL DO
+C**** COMPUTE SD, SIGMA DOT                        -------
+C     SD(1, 1,LM-1)=CONV(1, 1,LM)                     |
+C     SD(1,JM,LM-1)=CONV(1,JM,LM)             completely wasteful
+C     DO 2430 J=2,JM-1                                |
+C     DO 2430 I=1,IM                                  |
+C2430 SD(I,J,LM-1)=CONV(I,J,LM)                    -------
+C     DO 2435 L=LM-2,LS1-1,-1
+C     SD(1, 1,L)=SD(1, 1,L+1)+CONV(1, 1,L+1)
+C     SD(1,JM,L)=SD(1,JM,L+1)+CONV(1,JM,L+1)
+C     DO 2435 J=2,JM-1
+C     DO 2435 I=1,IM
+C     SD(I, J,L)=SD(I, J,L+1)+CONV(I, J,L+1)
+C2435 CONTINUE
+C$OMP  PARALLEL DO PRIVATE(I,J,L)
+      DO 2435 J=1,JM
+         DO 2430 I=1,IMAXJ(J)
+         DO 2430 L=LM-2,LS1-1,-1
+            SD(I,J,L)=SD(I,J,L+1)+SD(I,J,L)
+ 2430    CONTINUE
  2435 CONTINUE
-      DO 2440 L=LS1-2,1,-1
-      SD(1, 1,L)=SD(1, 1,L+1)+CONV(1, 1,L+1)-DSIG(L+1)*PIT(1, 1)
-      SD(1,JM,L)=SD(1,JM,L+1)+CONV(1,JM,L+1)-DSIG(L+1)*PIT(1,JM)
-      DO 2440 J=2,JM-1
-      DO 2440 I=1,IM
-      SD(I, J,L)=SD(I, J,L+1)+CONV(I, J,L+1)-DSIG(L+1)*PIT(I, J)
+C$OMP  END PARALLEL DO
+C     DO 2440 L=LS1-2,1,-1
+C     SD(1, 1,L)=SD(1, 1,L+1)+CONV(1, 1,L+1)-DSIG(L+1)*PIT(1, 1)
+C     SD(1,JM,L)=SD(1,JM,L+1)+CONV(1,JM,L+1)-DSIG(L+1)*PIT(1,JM)
+C     DO 2440 J=2,JM-1
+C     DO 2440 I=1,IM
+C     SD(I, J,L)=SD(I, J,L+1)+CONV(I, J,L+1)-DSIG(L+1)*PIT(I, J)
+C2440 CONTINUE
+C$OMP  PARALLEL DO PRIVATE(I,J,L)
+      DO 2440 J=1,JM
+         DO 2438 I=1,IMAXJ(J)
+         DO 2438 L=LS1-2,1,-1
+            SD(I,J,L)=SD(I,J,L+1)+SD(I,J,L)-DSIG(L+1)*PIT(I,J)
+ 2438    CONTINUE
  2440 CONTINUE
+C$OMP  END PARALLEL DO
       DO 2450 L=1,LM-1
       DO 2450 I=2,IM
       SD(I,1,L)=SD(1,1,L)
@@ -471,7 +556,7 @@ C****
      *  PA(IM,JM),PB(IM,JM),QT(IM,JM,LM),P(IM,JM,LM)
       REAL*8, DIMENSION(IM,JM,1) :: PU0
 
-      REAL*8 PKE(LM+1)
+      REAL*8 PKE(LS1:LM+1)
       REAL*8 SZ(IM,JM,LM),DT4,DT1
       REAL*8 PIJ,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,X
      *     ,BYDP
@@ -479,76 +564,85 @@ C****
       INTEGER I,J,L,IM1,IP1  !@var I,J,IP1,IM1,L loop variab.
 C****
       DT4=DT1/4.
-      DO 10 L=1,LM+1
-   10 PKE(L)=(SIGE(L)*PSFMPT+PTOP)**KAPA
+      DO L=LS1,LM+1
+        PKE(L)=(PSFMPT*SIGE(L)+PTOP)**KAPA
+      END DO
 C****
 C**** VERTICAL DIFFERENCING
 C****
-      DO 100 L=LS1,LM
-      DO 100 J=1,JM
-      DO 100 I=1,IM
-  100 SPA(I,J,L)=0.
-      DO 330 J=1,JM
-      DO 330 I=1,IMAXJ(J)
-      PIJ=P(I,J,1)
-      PDN=PIJ+PTOP
-      PKDN=PDN**KAPA
-      PHIDN=ZATMO(I,J)
+C$OMP  PARALLEL DO PRIVATE (L)
+      DO L=LS1,LM
+      SPA(:,:,L)=0.
+      END DO
+C$OMP  END PARALLEL DO
+C$OMP  PARALLEL DO PRIVATE(I,J,L,DP,P0,PIJ,PHIDN,TZBYDP,X,
+C$OMP*             BYDP,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP)
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
+        PIJ=P(I,J,1)
+        PDN=PIJ+PTOP
+        PKDN=PDN**KAPA
+        PHIDN=ZATMO(I,J)
 C**** LOOP OVER THE LAYERS
-      DO 310 L=1,LM
-      IF(L.LE.LS1-1) GO TO 290
-      PKPDN=PKDN*PDN
-      PKPPDN=PKPDN*PDN
-      DP=DSIG(L)*PSFMPT
-      BYDP=1./DP
-      P0=SIG(L)*PSFMPT+PTOP
-      TZBYDP=2.*SZ(I,J,L)*BYDP
-      X=T(I,J,L)+TZBYDP*P0
-      PUP=SIGE(L+1)*PSFMPT+PTOP
-      PKUP=PKE(L+1)
-      PKPUP=PKUP*PUP
-      PKPPUP=PKPUP*PUP
-      GO TO 300
-  290 PKPDN=PKDN*PDN
-      PKPPDN=PKPDN*PDN
-      DP=DSIG(L)*PIJ
-      BYDP=1./DP
-      P0=SIG(L)*PIJ+PTOP
-      TZBYDP=2.*SZ(I,J,L)*BYDP
-      X=T(I,J,L)+TZBYDP*P0
-      PUP=SIGE(L+1)*PIJ+PTOP
-      PKUP=PUP**KAPA
-      PKPUP=PKUP*PUP
-      PKPPUP=PKPUP*PUP
-C**** CALCULATE SPA, MASS WEIGHTED THROUGHOUT THE LAYER
-      SPA(I,J,L)=RGAS*((X+TZBYDP*PTOP)*(PKPDN-PKPUP)*BYKAPAP1
-     *     -X*PTOP*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
-     *     *BYDP
+        DO L=1,LM
+          PKPDN=PKDN*PDN
+          PKPPDN=PKPDN*PDN
+          IF(L.GE.LS1) THEN
+            DP=DSIG(L)*PSFMPT
+            BYDP=1./DP
+            P0=SIG(L)*PSFMPT+PTOP
+            TZBYDP=2.*SZ(I,J,L)*BYDP
+            X=T(I,J,L)+TZBYDP*P0
+            PUP=SIGE(L+1)*PSFMPT+PTOP
+            PKUP=PKE(L+1)
+            PKPUP=PKUP*PUP
+            PKPPUP=PKPUP*PUP
+          ELSE
+            DP=DSIG(L)*PIJ
+            BYDP=1./DP
+            P0=SIG(L)*PIJ+PTOP
+            TZBYDP=2.*SZ(I,J,L)*BYDP
+            X=T(I,J,L)+TZBYDP*P0
+            PUP=SIGE(L+1)*PIJ+PTOP
+            PKUP=PUP**KAPA
+            PKPUP=PKUP*PUP
+            PKPPUP=PKPUP*PUP
+C****   CALCULATE SPA, MASS WEIGHTED THROUGHOUT THE LAYER
+            SPA(I,J,L)=RGAS*((X+TZBYDP*PTOP)*(PKPDN-PKPUP)*BYKAPAP1
+     *      -X*PTOP*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
+     *      *BYDP
+          END IF
 C**** CALCULATE PHI, MASS WEIGHTED THROUGHOUT THE LAYER
-  300 PHI(I,J,L)=PHIDN+RGAS*(X*PKDN*BYKAPA-TZBYDP*PKPDN*BYKAPAP1
-     *  -(X*(PKPDN-PKPUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
-     *  *BYDP*BYKAPAP1)
+          PHI(I,J,L)=PHIDN+RGAS*(X*PKDN*BYKAPA-TZBYDP*PKPDN*BYKAPAP1
+     *      -(X*(PKPDN-PKPUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
+     *      *BYDP*BYKAPAP1)
 C**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
-      PHIDN=PHIDN+RGAS*(X*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPDN-PKPUP)
+          PHIDN=PHIDN+RGAS*(X*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPDN-PKPUP)
      *     *BYKAPAP1)
-      PDN=PUP
-  310 PKDN=PKUP
-  330 CONTINUE
+          PDN=PUP
+          PKDN=PKUP
+        END DO
+      END DO
+      END DO
+C$OMP END PARALLEL DO
 C**** SET POLAR VALUES FROM THOSE AT I=1
-      DO 340 L=1,LM
-      DO 340 I=2,IM
-      SPA(I,1,L)=SPA(1,1,L)
-      SPA(I,JM,L)=SPA(1,JM,L)
-      PHI(I,1,L)=PHI(1,1,L)
-  340 PHI(I,JM,L)=PHI(1,JM,L)
-         DO 3081 L=1,LM
-         DO 3081 J=1,JM
-         DO 3081 I=1,IM
- 3081    GZ(I,J,L)=PHI(I,J,L)
+      DO L=1,LM
+        SPA(2:IM,1,L)=SPA(1,1,L)
+        SPA(2:IM,JM,L)=SPA(1,JM,L)
+        PHI(2:IM,1,L)=PHI(1,1,L)
+        PHI(2:IM,JM,L)=PHI(1,JM,L)
+      END DO
+C$OMP  PARALLEL DO PRIVATE(L)
+      DO L=1,LM
+        GZ(:,:,L)=PHI(:,:,L)
+      END DO
+C$OMP END PARALLEL DO
 C****
 C**** PRESSURE GRADIENT FORCE
 C****
 C**** NORTH-SOUTH DERIVATIVE AFFECTS THE V-COMPONENT OF MOMENTUM
+C
+C$OMP  PARALLEL DO PRIVATE(I,IM1,J,L,FACTOR,FLUX)
       DO 3236 L=1,LM
       DO 3236 J=2,JM
       FACTOR = DT4*DXV(J)*DSIG(L)
@@ -560,11 +654,14 @@ C**** NORTH-SOUTH DERIVATIVE AFFECTS THE V-COMPONENT OF MOMENTUM
       DVT(IM1,J,L)=DVT(IM1,J,L)-FLUX
  3234 IM1=I
  3236 CONTINUE
+C$OMP  END PARALLEL DO
+C
 C**** SMOOTHED EAST-WEST DERIVATIVE AFFECTS THE U-COMPONENT
+C
+C$OMP  PARALLEL DO PRIVATE(I,IP1,J,L,FACTOR)
       DO 3300 L=1,LM
-      DO 3275 I=1,IM
-      PU(I,1,L)=0.
- 3275 PU(I,JM,L)=0.
+      PU(:,1,L)=0.
+      PU(:,JM,L)=0.
       I=IM
       DO 3290 J=2,JM-1
       DO 3280 IP1=1,IM
@@ -578,7 +675,8 @@ C**** SMOOTHED EAST-WEST DERIVATIVE AFFECTS THE U-COMPONENT
       DO 3294 I=1,IM
  3294 DUT(I,J,L)=DUT(I,J,L)+FACTOR*(PU(I,J,L)+PU(I,J-1,L))
  3300 CONTINUE
-
+C$OMP  END PARALLEL DO
+C
 C**** CALL DIAGNOSTICS
       IF(MRCH.GT.0) THEN
          IF(MODD5K.LT.MRCH) CALL DIAG5D (6,MRCH,DUT,DVT)
@@ -598,13 +696,17 @@ C****
       DO 3520 I=1,IM
       FD(I, 1)=FDSP
  3520 FD(I,JM)=FDNP
-
+C
+C$OMP  PARALLEL DO PRIVATE(I,IP1,J)
       DO 3530 J=2,JM
       I=IM
       DO 3525 IP1=1,IM
       RFDUX(I,J)=4./(FD(I,J)+FD(IP1,J)+FD(I,J-1)+FD(IP1,J-1))
  3525 I = IP1
  3530 CONTINUE
+C$OMP  END PARALLEL DO
+C
+C$OMP  PARALLEL DO PRIVATE(I,J,L,RFDU)
       DO 3550 L=1,LM
       DO 3550 J=2,JM
       RFDU=1./(PSFMPT*DXYV(J)*DSIG(L))
@@ -614,11 +716,12 @@ C****
       UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)*RFDU
  3540 CONTINUE
  3550 CONTINUE
+C$OMP  END PARALLEL DO
+C
       RETURN
       END SUBROUTINE PGF
 
-
-      SUBROUTINE AVRX (X)
+      SUBROUTINE AVRX0
 !@sum  AVRX Smoothes zonal mass flux and geopotential near the poles
 !@auth Original development team
 !@ver  1.0
@@ -628,15 +731,19 @@ C****
 C**** THIS VERSION OF AVRX DOES SO BY TRUNCATING THE FOURIER SERIES.
       IMPLICIT NONE
       REAL*8, INTENT(INOUT) :: X(IM,JM)
-      REAL*8, SAVE :: SM(IMH,JM),DRAT(JM)
-      REAL*8, SAVE, DIMENSION(IMH) :: BYSN
+CCC   REAL*8, SAVE :: SM(IMH,JM),DRAT(JM)
+CCC   REAL*8, SAVE, DIMENSION(IMH) :: BYSN
+      REAL*8  SM(IMH,JM),DRAT(JM),BYSN(IMH)
       REAL*8, DIMENSION(0:IMH) :: AN,BN
-      INTEGER, SAVE :: NMIN(JM)
-      INTEGER, SAVE :: IFIRST = 1
+CCC   INTEGER, SAVE :: NMIN(JM)
+CCC   INTEGER, SAVE :: IFIRST = 1
+      INTEGER NMIN(JM)
       INTEGER J,N
-
-      IF (IFIRST.EQ.1) THEN
-      IFIRST=0
+C
+      COMMON /AVRXX/ SM,DRAT,NMIN
+C
+CCC   IF (IFIRST.EQ.1) THEN
+CCC   IFIRST=0
 C     CALL FFT0(IM)
       DO N=1,IMH
         BYSN(N)=xAVRX/SIN(.5*DLON*N)
@@ -651,7 +758,10 @@ C     CALL FFT0(IM)
           ENDIF
  40     CONTINUE
  50   CONTINUE
-      END IF
+CCC   END IF
+      RETURN
+C****
+      ENTRY AVRX (X)
 C****
       DO 140 J=2,JM-1
       IF (DRAT(J).GT.1) GO TO 140
@@ -664,8 +774,7 @@ C****
       CALL FFTI(AN,BN,X(1,J))
   140 CONTINUE
       RETURN
-      END SUBROUTINE AVRX
-
+      END SUBROUTINE AVRX0
 
       SUBROUTINE FILTER
 !@sum  FILTER Performs 8-th order shapiro filter in zonal direction
@@ -696,6 +805,7 @@ C****
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
+C$OMP  PARALLEL DO PRIVATE(I,J)
       DO J=2,JM-1
         PSUMO(J)=0.
         DO I=1,IM
@@ -705,7 +815,9 @@ C****
           X(I,J)=(P(I,J)+PTOP)*Y(I,J)
         END DO
       END DO
+C$OMP  END PARALLEL DO
       CALL SHAP1D (8,X)
+C$OMP  PARALLEL DO PRIVATE(I,J,PSUMN,PDIF)
       DO J=2,JM-1
         PSUMN=0.
         DO I=1,IM
@@ -719,12 +831,16 @@ C**** reduce large variations (mainly due to topography)
           P(I,J)=P(I,J)-PDIF
         END DO
       END DO
+C$OMP  END PARALLEL DO
 C**** Scale mixing ratios (incl moments) to conserve mass/heat
+C$OMP  PARALLEL DO PRIVATE(I,J)
       DO J=2,JM-1
         DO I=1,IM
           PRAT(I,J)=POLD(I,J)/P(I,J)
         END DO
       END DO
+C$OMP  END PARALLEL DO
+C$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LS1-1
       DO J=2,JM-1
       DO I=1,IM
@@ -738,6 +854,7 @@ C**** Scale mixing ratios (incl moments) to conserve mass/heat
       END DO
       END DO
       END DO
+C$OMP  END PARALLEL DO
 #ifdef TRACERS_ON
 C**** In general, only an air tracer is affected by the filter
 C**** This fix conserves tracer concentration, BUT NOT MASS!
@@ -748,12 +865,14 @@ C**** But if n_air=0 this will cause problems...
       do n=1,ntm
       if (trname(n).ne.'Air') cycle
 !     if (itime.lt.itime_tr0(n)) cycle   !probably not needed
+C$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LS1-1
         DO J=2,JM-1
           DO I=1,IM
              trm(I,J,L,n)=  trm(I,J,L,n)/PRAT(I,J)
              trmom(:,I,J,L,n)=trmom(:,I,J,L,n)/PRAT(I,J)
       end do; end do; end do
+C$OMP  END PARALLEL DO
       end do
 #endif
       CALL CALC_AMPK(LS1-1)
@@ -763,24 +882,29 @@ C****
 C**** TEMPERATURE STRATIFICATION FILTER ON T
 C****
       AKAP=KAPA-.205
-      DO 260 L=1,LS1-1
-      DO 220 J=2,JM-1
-      DO 220 I=1,IM
-      Y(I,J)=(SIG(L)*P(I,J)+PTOP)**AKAP
-  220 X(I,J)=T(I,J,L)*Y(I,J)
-      CALL SHAP1D (8,X)
-      DO 240 J=2,JM-1
-      DO 240 I=1,IM
-  240 T(I,J,L)=X(I,J)/Y(I,J)
-  260 CONTINUE
-      DO 280 L=LS1,LM
-      DO 270 J=2,JM-1
-      DO 270 I=1,IM
-  270 X(I,J)=T(I,J,L)
-      CALL SHAP1D (8,X)
-      DO 280 J=2,JM-1
-      DO 280 I=1,IM
-  280 T(I,J,L)=X(I,J)
+C$OMP  PARALLEL DO PRIVATE (J,L,X,Y)
+      DO L=1,LM
+        IF(L.LT.LS1) THEN
+          DO J=2,JM-1
+            Y(:,J)=(SIG(L)*P(:,J)+PTOP)**AKAP
+            X(:,J)=T(:,J,L)*Y(:,J)
+          END DO
+          CALL SHAP1D (8,X)
+          DO J=2,JM-1
+            T(:,J,L)=X(:,J)/Y(:,J)
+          END DO
+        ELSE
+          DO J=2,JM-1
+            X(:,J)=T(:,J,L)
+          END DO
+          CALL SHAP1D (8,X)
+          DO J=2,JM-1
+            T(:,J,L)=X(:,J)
+          END DO
+        END IF
+      END DO
+C$OMP  END PARALLEL DO
+C
       RETURN
       END SUBROUTINE FILTER
 
@@ -829,6 +953,7 @@ C****
 C****
 C**** Filtering in east-west direction
 C****
+C$OMP  PARALLEL DO PRIVATE (I,J,L,N,X,X1,XI,XIM1,F2D)
       DO 350 L=1,LM
 C**** Filter U component of momentum
       IF(QFIL2D) GOTO 250
@@ -882,12 +1007,14 @@ C**** Filter V component of momentum
       DO 340 I=1,IM
   340 V(I,J,L) = V(I,J,L) + ISIGN*X(I)*by4toN
   350 CONTINUE
+C$OMP  END PARALLEL DO
 C****
 C**** Filtering in north-south direction
 C****
       IF(QFILY) THEN
       Y4TO8 = 1./(4.**NSHAP)
 C**** Filter U component of momentum
+C$OMP  PARALLEL DO PRIVATE (I,J,L,N,Y,YJ,YJM1)
       DO 650 L=1,LM
       DO 540 I=1,IM
       DO 510 J=1,JM
@@ -925,9 +1052,11 @@ C**** Filter V component of momentum
       DO 640 J=1,JM-1
   640 V(I,J,L) = V(I,J,L) + ISIGN*Y(J)*Y4TO8
   650 CONTINUE
+C$OMP  END PARALLEL DO
       END IF
 C****
       IF (MRCH.eq.2) THEN
+C$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP)
         DO L=1,LM
         DO J=2,JM
         I=IM
@@ -940,6 +1069,7 @@ C****
         END DO
         END DO
         END DO
+C$OMP  END PARALLEL DO
         CALL DIAGCD(5,UT,VT,DUT,DVT,DT1)
       END IF
       RETURN
@@ -1021,6 +1151,7 @@ C**** Fill in polar boxes
       P(2:IM,1) = P(1,1)
       P(2:IM,JM)= P(1,JM)
 
+C$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO J=1,JM
         DO I=1,IM
           DO L=1,LS1-1
@@ -1050,6 +1181,7 @@ C**** Fill in polar boxes
           SQRTP(I,J) = SQRT(P(I,J))
         END DO
       END DO
+C$OMP  END PARALLEL DO
 
       RETURN
       END SUBROUTINE CALC_AMPK
@@ -1065,16 +1197,25 @@ C****
       double precision, dimension(im,jm) :: p
       double precision, dimension(im,jm,lm) :: amp
       integer :: j,l
-      do l=1,ls1-1
-      do j=1,jm
-        amp(:,j,l) = p(:,j)*dxyp(j)*dsig(l)
+C
+C$OMP  PARALLEL DO PRIVATE(J,L)
+      DO L=1,LM
+        IF(L.LT.LS1) THEN
+ccc   do l=1,ls1-1
+          do j=1,jm
+            amp(:,j,l) = p(:,j)*dxyp(j)*dsig(l)
+          enddo
+ccc   enddo
+        ELSE
+ccc   do l=ls1,lm
+          do j=1,jm
+            amp(:,j,l) = (psf-ptop)*dxyp(j)*dsig(l)
+          enddo
+        END IF
+ccc   enddo
       enddo
-      enddo
-      do l=ls1,lm
-      do j=1,jm
-        amp(:,j,l) = (psf-ptop)*dxyp(j)*dsig(l)
-      enddo
-      enddo
+C$OMP  END PARALLEL DO
+C
       return
 C****
       end subroutine calc_amp
@@ -1222,6 +1363,7 @@ C**** (technically we should use U,V from before but this is ok)
       REAL*8, DIMENSION(LM) :: TL
 
 C**** Find WMO Definition of Tropopause to Nearest L
+C$OMP  PARALLEL DO PRIVATE (I,J,L,TL)
       do j=1,jm
       do i=1,imaxj(j)
         do l=1,lm
@@ -1231,6 +1373,7 @@ C**** Find WMO Definition of Tropopause to Nearest L
         AIJ(I,J,IJ_PTROP)=AIJ(I,J,IJ_PTROP)+PTROPO(I,J)
       end do
       end do
+C$OMP  END PARALLEL DO
       PTROPO(2:IM,1) = PTROPO(1,1)
       LTROPO(2:IM,1) = LTROPO(1,1)
       PTROPO(2:IM,JM)= PTROPO(1,JM)

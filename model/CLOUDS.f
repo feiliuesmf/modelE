@@ -59,7 +59,7 @@ C**** input variables
 !@var Miscellaneous vertical arrays set in driver
       REAL*8, DIMENSION(LM+1) :: PLE    !@var PLE pressure at layer edge
       REAL*8, DIMENSION(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,WMX
-     *     ,VSUBL,AJ8,AJ13,AJ50,AJ51,AJ52,AJ57,AQ,DPDT,RH1
+     *     ,VSUBL,AJ8,AJ13,AJ50,AJ51,AJ52,AJ57,AQ,DPDT
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -68,7 +68,6 @@ C**** input variables
 !@var TL, QL temperature, specific humidity of the layer
 !@var TH potential temperature (K)
 !@var RH relative humidity
-!@var RH1 relative humidity to compare with the threshold humidity
 !@var WMX cloud water mixing ratio (kg/Kg)
 !@var VSUBL downward vertical velocity due to cumulus subsidence (cm/s)
 !@var AJ8, AJ13, AJ50, AJ52, AJ57 dummy variables
@@ -166,7 +165,7 @@ CCOMP*  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
 CCOMP* ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX,LMCMIN,KMAX)
       COMMON/CLDPRV/RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
      *  ,TL,QL,TH,RH,WMX,VSUBL,AJ8,AJ11,AJ13,AJ50,AJ51,AJ52,AJ53,AJ57
-     *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
+     *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
      *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX,LMCMIN,KMAX
@@ -1277,16 +1276,17 @@ C**** functions
 
 !@param CM00 upper limit for autoconversion rate
 !@param AIRM0 scaling factor for computing rain evaporation
-      REAL*8, PARAMETER :: CM00=1.d-4, AIRM0=100.d0
+      REAL*8, PARAMETER :: CM00=1.d-4, AIRM0=100.d0, GbyAIRM0=GRAV/AIRM0
 
       REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
       REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
       REAL*8, DIMENSION(LM) ::
-     *     QSATL,RHF,ATH,SQ,ER,QHEAT,
+     *     QSATL,RHF,RH1,ATH,SQ,ER,QHEAT,
      *     CAREA,PREP,RH00,EC,WMXM
 !@var QSATL saturation water vapor mixing ratio
 !@var RHF environmental relative humidity
+!@var RH1 relative humidity to compare with the threshold humidity
 !@var ATH change in potential temperature
 !@var SQ ERMAX dummy variables
 !@var ER evaporation of precip
@@ -1565,12 +1565,12 @@ C**** COMPUTE EVAPORATION OF RAIN WATER, ER
 C     QCONV0=LHX*AQ(L)-RHN*SQ(L)*SHA*PLK(L)*ATH(L)
 C    *  -TEM*QSATL(L)*RHN
       IF(WMX(L).GT.0.)  THEN
-          ER(L)=(1.-RHN)*LHX*PREBAR(L+1)*GRAV/AIRM0
+          ER(L)=(1.-RHN)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
       ELSE     !  WMX(l).le.0.
         IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)  THEN
-          ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GRAV/AIRM0
+          ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
         ELSE
-          ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GRAV/AIRM0
+          ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
         END IF
       END IF
       ERMAX=LHX*PREBAR(L+1)*GRAV*BYAM(L)
@@ -1615,9 +1615,9 @@ C     IF(RH1(L).GT.1.) DRHDT=0.
 C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
   220 Q1=0.
       IF(WMX(L).GT.0.) PREP(L)=WMX(L)*BYDTsrc
-      ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GRAV/AIRM0
+      ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
       IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)
-     *  ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GRAV/AIRM0
+     *  ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
       ERMAX=LHX*PREBAR(L+1)*GRAV*BYAM(L)
       IF(ER(L).GT.ERMAX) ER(L)=ERMAX
       IF(ER(L).LT.0.) ER(L)=0.

@@ -24,6 +24,9 @@
       REAL*8 :: C41(0:9),C42(0:9),C43(0:9),C44(0:9),
      *          S41(  9),S42(  9),S43(  9),S44(  9)
       REAL*8 :: C21(0:18),C22(0:18),S21(0:18),S22(0:18)
+      COMMON /FFTCOM/ C240,C241,S241,C8,S8,C41,C42,C43,C44,
+     *                S41,S42,S43,S44,C21,C22,S21,S22
+C$OMP  THREADPRIVATE(/FFTCOM/)
 
       END MODULE FFT72
 C****
@@ -35,6 +38,7 @@ C****
       IMPLICIT NONE
       INTEGER IQ,N !@var IQ,N loop variables
       INTEGER, INTENT(IN) :: IM    !@var IM size of arrays (must=KM)
+C
       IF(IM.NE.KM)  GO TO 100
       DO N=0,KM/4
          C(N) = COS(TWOPI*N/dble(KM))

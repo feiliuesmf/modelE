@@ -3,6 +3,7 @@
       USE DYNAMICS, only : XAVRX
       USE constant, only : byrt2
       XAVRX = byrt2 ! for 4th order scheme, 1 for 2nd order scheme
+      CALL AVRX0
       RETURN
       END subroutine init_MOM
 
@@ -27,6 +28,7 @@
       INTEGER I,J,IP1,IM1,L,K  !@var I,J,IP1,IM1,L,K  loop variables
       REAL*8 VMASS,RVMASS,ALPH,PDT4,SDU,DT1,DT2,DT3,DT6,DT8,DT24
      *     ,FLUX,FLUXU,FLUXV
+      REAL*8 ASDU(IM,2:JM,LM-1)
 C****
          IF(MODD5K.LT.MRCH) CALL DIAG5F (U,V)
 C****
@@ -130,19 +132,27 @@ C**** CONSIDER P TO BE ZERO BEYOND THE POLES
       END DO
       END DO
 
-      DUT=0.
-      DVT=0.
+C     DUT=0.
+C     DVT=0.
+C$COMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM
+        DUT(:,1,L)=0.
+        DVT(:,1,L)=0.
       DO J=2,JM
       DO I=1,IM
         UT(I,J,L)=UT(I,J,L)*FDU(I,J,L)
         VT(I,J,L)=VT(I,J,L)*FDU(I,J,L)
+        DUT(I,J,L)=0.
+        DVT(I,J,L)=0.
       END DO
       END DO
       END DO
+C$COMP  END PARALLEL DO
 C****
 C**** BEGINNING OF LAYER LOOP : FIND HORIZONTAL FLUXES
 C****
+C$OMP  PARALLEL DO PRIVATE(I,J,L,IM1,IP1,FX,FX1,GY,GY1,
+C$OMP*                     FLUX,FLUXU,FLUXV)
       DO 300 L=1,LM
       I=IM
       DO 175 J=1,JM
@@ -249,23 +259,57 @@ C**** CONTRIBUTION FROM THE BIG STEP SOUTH-NORTH MASS FLUX
   250 I=IP1
   260 CONTINUE
   300 CONTINUE
+C$OMP  END PARALLEL DO
 C****
 C**** VERTICAL ADVECTION OF MOMENTUM
 C****
-      DO 310 L=1,LM-1
-      DO 310 J=2,JM
-      I=IM
-      DO 310 IP1=1,IM
-      SDU=DT2*((SD(I,J-1,L)+SD(IP1,J-1,L))*RAVPN(J-1)+
-     *  (SD(I,J,L)+SD(IP1,J,L))*RAVPS(J))
-      DUT(I,J,L)  =DUT(I,J,L)  +SDU*(U(I,J,L)+U(I,J,L+1))
-      DUT(I,J,L+1)=DUT(I,J,L+1)-SDU*(U(I,J,L)+U(I,J,L+1))
-      DVT(I,J,L)  =DVT(I,J,L)  +SDU*(V(I,J,L)+V(I,J,L+1))
-      DVT(I,J,L+1)=DVT(I,J,L+1)-SDU*(V(I,J,L)+V(I,J,L+1))
-  310 I=IP1
+C     DO 310 L=1,LM-1
+C     DO 310 J=2,JM
+C     I=IM
+C     DO 310 IP1=1,IM
+C     SDU=DT2*((SD(I,J-1,L)+SD(IP1,J-1,L))*RAVPN(J-1)+
+C    *  (SD(I,J,L)+SD(IP1,J,L))*RAVPS(J))
+C     DUT(I,J,L)  =DUT(I,J,L)  +SDU*(U(I,J,L)+U(I,J,L+1))
+C     DUT(I,J,L+1)=DUT(I,J,L+1)-SDU*(U(I,J,L)+U(I,J,L+1))
+C     DVT(I,J,L)  =DVT(I,J,L)  +SDU*(V(I,J,L)+V(I,J,L+1))
+C     DVT(I,J,L+1)=DVT(I,J,L+1)-SDU*(V(I,J,L)+V(I,J,L+1))
+C 310 I=IP1
+C$OMP  PARALLEL DO PRIVATE (I,J,L)
+      DO L=1,LM-1
+      DO J=2,JM
+         DO I=1,IM-1
+            ASDU(I,J,L)=DT2*((SD(I,J-1,L)+SD(I+1,J-1,L))*RAVPN(J-1)+
+     *                  (SD(I,J,L)+SD(I+1,J,L))*RAVPS(J))
+         END DO
+         ASDU(IM,J,L)=DT2*((SD(IM,J-1,L)+SD(1,J-1,L))*RAVPN(J-1)+
+     *                (SD(IM,J,L)+SD(1,J,L))*RAVPS(J))
+      END DO 
+      END DO 
+C$OMP  END PARALLEL DO
+      L=1
+      DO J=2,JM
+        DUT(:,J,L)  =DUT(:,J,L)  +ASDU(:,J,L)  *(U(:,J,L)+U(:,J,L+1))
+        DVT(:,J,L)  =DVT(:,J,L)  +ASDU(:,J,L)  *(V(:,J,L)+V(:,J,L+1))
+      END DO
+C$OMP  PARALLEL DO PRIVATE (J,L)
+      DO L=2,LM-1
+      DO J=2,JM
+         DUT(:,J,L)  =DUT(:,J,L)  -ASDU(:,J,L-1)*(U(:,J,L-1)+U(:,J,L))
+         DUT(:,J,L)  =DUT(:,J,L)  +ASDU(:,J,L)  *(U(:,J,L)+U(:,J,L+1))
+         DVT(:,J,L)  =DVT(:,J,L)  -ASDU(:,J,L-1)*(V(:,J,L-1)+V(:,J,L))
+         DVT(:,J,L)  =DVT(:,J,L)  +ASDU(:,J,L)  *(V(:,J,L)+V(:,J,L+1))
+      END DO
+      END DO
+C$OMP  END PARALLEL DO
+      L=LM
+      DO J=2,JM
+         DUT(:,J,L)=DUT(:,J,L)-ASDU(:,J,L-1)*(U(:,J,L-1)+U(:,J,L))
+         DVT(:,J,L)=DVT(:,J,L)-ASDU(:,J,L-1)*(V(:,J,L-1)+V(:,J,L))
+      END DO
 C**** CALL DIAGNOSTICS
          IF(MODD5K.LT.MRCH) CALL DIAG5D (4,MRCH,DUT,DVT)
          IF(MRCH.GT.0) CALL DIAGCD (1,U,V,DUT,DVT,DT1,PIT)
+C$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM
       DO J=2,JM
       DO I=1,IM
@@ -276,9 +320,11 @@ C**** CALL DIAGNOSTICS
       END DO
       END DO
       END DO
+C$OMP  END PARALLEL DO
 C****
 C**** CORIOLIS FORCE
 C****
+C$OMP  PARALLEL DO PRIVATE (I,IM1,J,L,FD,PDT4,ALPH)
       DO 430 L=1,LM
       IM1=IM
       DO 405 I=1,IM
@@ -304,9 +350,11 @@ C**** Set the Coriolis term to zero at the Poles:
   420 IM1=I
   425 CONTINUE
   430 CONTINUE
+C$OMP  END PARALLEL DO
 C**** CALL DIAGNOSTICS, ADD CORIOLIS FORCE INCREMENTS TO UT AND VT
          IF(MODD5K.LT.MRCH) CALL DIAG5D (5,MRCH,DUT,DVT)
          IF(MRCH.GT.0) CALL DIAGCD (2,U,V,DUT,DVT,DT1)
+C$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM
       DO J=2,JM
       DO I=1,IM
@@ -317,6 +365,7 @@ C**** CALL DIAGNOSTICS, ADD CORIOLIS FORCE INCREMENTS TO UT AND VT
       END DO
       END DO
       END DO
+C$OMP  END PARALLEL DO
 C****
 C**** UNDO SCALING PERFORMED AT BEGINNING OF ADVECV
 C****
@@ -362,15 +411,21 @@ C****
       END DO
       END DO
 
-      DUT=0.
-      DVT=0.
+C     DUT=0.
+C     DVT=0.
+C$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM
+        DUT(:,1,L)=0.
+        DVT(:,1,L)=0.
       DO J=2,JM
       DO I=1,IM
         UT(I,J,L)=UT(I,J,L)/FDU(I,J,L)
         VT(I,J,L)=VT(I,J,L)/FDU(I,J,L)
+        DUT(I,J,L)=0.
+        DVT(I,J,L)=0.
       END DO
       END DO
       END DO
+C$OMP  END PARALLEL DO
       RETURN
       END SUBROUTINE ADVECV

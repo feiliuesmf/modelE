@@ -91,6 +91,7 @@ C**** Initialise diagnostics
       FQU=0.  ; FQV=0.
 
 C**** Fill in values at the poles
+C$OMP  PARALLEL DO PRIVATE(I,L)
       DO L=1,LM
          RM(2:IM,1 ,L) =   RM(1,1 ,L)
          RM(2:IM,JM,L) =   RM(1,JM,L)
@@ -99,9 +100,11 @@ C**** Fill in values at the poles
             RMOM(:,I,JM,L) =  RMOM(:,1,JM,L)
          enddo
       enddo
+C$OMP  END PARALLEL DO
 C****
 C**** convert from concentration to mass units
 C****
+C$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
       DO J=1,JM
       DO I=1,IM
@@ -110,22 +113,49 @@ C****
       enddo
       enddo
       enddo
+C$OMP  END PARALLEL DO
 C****
 C**** Advect the tracer using the quadratic upstream scheme
 C****
-      mflx(:,:,:)=pu(:,:,:)*(.5*dt)
+CC    mflx(:,:,:)=pu(:,:,:)*(.5*dt)
+C$OMP  PARALLEL DO PRIVATE(L)
+       DO L=1,LM
+          mflx(:,:,l)=pu(:,:,l)*(.5*dt)
+       ENDDO
+C$OMP  END PARALLEL DO
       CALL AADVTX (RM,RMOM,MA,MFLX,QLIMIT,FQU)
-      mflx(:,1:jm-1,:)=pv(:,2:jm,:)*dt
-      mflx(:,jm,:)=0.
+CC    mflx(:,1:jm-1,:)=pv(:,2:jm,:)*dt
+CC    mflx(:,jm,:)=0.
+C$OMP  PARALLEL DO PRIVATE(L)
+       DO L=1,LM
+          mflx(:,1:jm-1,l)=pv(:,2:jm,l)*dt
+          mflx(:,jm,l)=0.
+       ENDDO
+C$OMP  END PARALLEL DO
       CALL AADVTY (RM,RMOM,MA,MFLX,QLIMIT,FQV)
-      mflx(:,:,1:lm-1)=sd(:,:,1:lm-1)*(-dt)
-      mflx(:,:,lm)=0.
+CC    mflx(:,:,1:lm-1)=sd(:,:,1:lm-1)*(-dt)
+CC    mflx(:,:,lm)=0.
+C$OMP  PARALLEL DO PRIVATE(L)
+      DO L=1,LM
+         IF(L.NE.LM)  THEN
+            MFLX(:,:,L)=SD(:,:,L)*(-DT)
+         ELSE
+            MFLX(:,:,L)=0.
+         END IF
+      ENDDO
+C$OMP  END PARALLEL DO
       CALL AADVTZ (RM,RMOM,MA,MFLX,QLIMIT)
-      mflx(:,:,:)=pu(:,:,:)*(.5*dt)
+CC    mflx(:,:,:)=pu(:,:,:)*(.5*dt)
+C$OMP  PARALLEL DO PRIVATE(L)
+       DO L=1,LM
+          mflx(:,:,l)=pu(:,:,l)*(.5*dt)
+       ENDDO
+C$OMP  END PARALLEL DO
       CALL AADVTX (RM,RMOM,MA,MFLX,QLIMIT,FQU)
 C****
 C**** convert from mass to concentration units
 C****
+C$OMP  PARALLEL DO PRIVATE(I,J,L,BYMA)
       DO L=1,LM
       DO J=1,JM
       DO I=1,IM
@@ -135,6 +165,7 @@ C****
       enddo
       enddo
       enddo
+C$OMP  END PARALLEL DO
       RETURN
       END
 
@@ -155,15 +186,20 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
-      use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
+ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
+      use QUSCOM, only : im,jm,lm, xstride
       use QUSDEF
       implicit none
-      double precision, dimension(im,jm,lm) :: rm,mass,mu
+      double precision, dimension(im,jm,lm) :: rm,mass,mu,hfqu
       double precision, dimension(NMOM,IM,JM,LM) :: rmom
       logical ::  qlimit
       DOUBLE PRECISION, INTENT(OUT), DIMENSION(IM,JM) :: FQU
-      integer :: i,j,l,ierr,nerr
+      DOUBLE PRECISION  AM(IM), F_I(IM), FMOM_I(NMOM,IM)
+      integer :: i,j,l,ierr,nerr,ICKERR
 c**** loop over layers and latitudes
+      ICKERR=0
+C$OMP  PARALLEL DO PRIVATE(J,L,AM,F_I,FMOM_I,IERR,NERR)
+C$OMP*          REDUCTION(+:ICKERR)
       do l=1,lm
       do j=2,jm-1
       am(:) = mu(:,j,l)
@@ -176,15 +212,29 @@ c****
         write(6,*) "Error in aadvtx: i,j,l=",nerr,j,l
         if (ierr.eq.2) then
           write(0,*) "Error in qlimit: abs(a) > 1"
-          call exit_rc(11)
+CCC       call exit_rc(11)
+          ICKERR=ICKERR+1
         end if
       end if
 c****
 c**** store tracer flux in fqu array
 c****
-      fqu(:,j)  = fqu(:,j) + f_i(:)
+CCC   fqu(:,j)  = fqu(:,j) + f_i(:)
+      hfqu(:,j,l)  = f_i(:)
       enddo ! j
       enddo ! l
+C$OMP  END PARALLEL DO
+c
+c     now sum into fqu
+c
+      do l=1,lm
+      do j=2,jm-1
+         fqu(:,j)  = fqu(:,j) + hfqu(:,j,l)
+      enddo ! j
+      enddo ! l
+C
+      IF(ICKERR.GT.0)  CALL EXIT_RC(11)
+C
       return
 c****
       end subroutine aadvtx
@@ -206,17 +256,23 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
-      use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
+ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
+      use QUSCOM, only : im,jm,lm, ystride,               byim
       use QUSDEF
       implicit none
       double precision, dimension(im,jm,lm) :: rm,mass,mv
       double precision, dimension(NMOM,IM,JM,LM) :: rmom
       logical ::  qlimit
       double precision, intent(out), dimension(im,jm) :: fqv
-      integer :: i,j,l,ierr,nerr
+      DOUBLE PRECISION  HFQV(IM,JM,LM),BM(JM),F_J(JM),FMOM_J(NMOM,JM)
+      integer :: i,j,l,ierr,nerr,ICKERR
       double precision ::
      &     m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
 c**** loop over layers
+      ICKERR=0
+C$OMP  PARALLEL DO PRIVATE(I,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZZM_SP,
+C$OMP*             BM,F_J,FMOM_J,RZM_NP,RZZM_NP,BM,IERR,NERR)
+C$OMP*             REDUCTION(+:ICKERR)
       do l=1,lm
 c**** scale polar boxes to their full extent
       mass(:,1:jm:jm-1,l)=mass(:,1:jm:jm-1,l)*im
@@ -251,12 +307,14 @@ c****
         write(6,*) "Error in aadvty: i,j,l=",i,nerr,l
         if (ierr.eq.2) then
           write(0,*) "Error in qlimit: abs(b) > 1"
-          call exit_rc(11)
+ccc       call exit_rc(11)
+          ICKERR=ICKERR+1
         endif
       end if
 c**** store tracer flux in fqv array
-      fqv(i,:) = fqv(i,:) + f_j(:)
-      fqv(i,jm) = 0.   ! play it safe
+ccc   fqv(i,:) = fqv(i,:) + f_j(:)
+ccc   fqv(i,jm) = 0.   ! play it safe
+      hfqv(i,:,l) = f_j(:)
       rmom(ihmoms,i,1 ,l) = 0.! horizontal moments are zero at pole
       rmom(ihmoms,i,jm,l) = 0.
       enddo ! end loop over longitudes
@@ -270,6 +328,19 @@ c**** average and unscale polar boxes
       rmom(mz ,:,jm,l) = (rzm_np  + sum(rmom(mz ,:,jm,l)-rzm_np ))*byim
       rmom(mzz,:,jm,l) = (rzzm_np + sum(rmom(mzz,:,jm,l)-rzzm_np))*byim
       enddo ! end loop over levels
+C$OMP  END PARALLEL DO
+c
+c     sum into fqv
+c
+      do l=1,lm
+      do i=1,im
+         fqv(i,:) = fqv(i,:) + hfqv(i,:,l)
+         fqv(i,jm) = 0.
+      enddo
+      enddo
+C
+      IF(ICKERR.GT.0)  CALL EXIT_RC(11)
+C
       return
 c****
       end subroutine aadvty
@@ -292,14 +363,19 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
-      use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
+ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
+      use QUSCOM, only : im,jm,lm, zstride
       use QUSDEF
       implicit none
       double precision, dimension(im,jm,lm) :: rm,mass,mw
       double precision, dimension(NMOM,IM,JM,LM) :: rmom
       logical ::  qlimit
-      integer :: i,j,l,ierr,nerr
+      DOUBLE PRECISION  CM(LM),F_L(LM),FMOM_L(NMOM,LM)
+      integer :: i,j,l,ierr,nerr,ICKERR
 c**** loop over latitudes and longitudes
+      ICKERR=0
+C$OMP  PARALLEL DO PRIVATE(I,J,CM,F_L,FMOM_L,IERR,NERR)
+C$OMP*          REDUCTION(+:ICKERR)
       do j=1,jm
       do i=1,im
       cm(:) = mw(i,j,:)
@@ -313,11 +389,15 @@ c****
         write(6,*) "Error in aadvtz: i,j,l=",i,j,nerr
         if (ierr.eq.2) then
           write(0,*) "Error in qlimit: abs(c) > 1"
-          call exit_rc(11)
+ccc       call exit_rc(11)
+          ICKERR=ICKERR+1
         endif
       end if
       enddo ! i
       enddo ! j
+C$OMP  END PARALLEL DO
+C
+      IF(ICKERR.GT.0)  CALL EXIT_RC(11)
       return
 c****
       end subroutine aadvtz
