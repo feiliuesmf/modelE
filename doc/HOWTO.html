@@ -1205,8 +1205,12 @@ KDIAG(1)  < 9 print Zonal/Regional budget pages
    2-7 only print global zonal means
    = 1 print all zonal diagnostics
 
-KDIAG(2)  < 9 print Latitude-height diagnostics
+KDIAG(2)  = 0 print Latitude-height diagnostics
+          = 1 print at most fields listed in file Ijk
+              (rearranging the lines of Ijk has no effect)
           = 8 Only print spectral analysis of standing eddies
+          = 9 skip all Latitude-height diagnostics
+          2-7 same as 1
 
 KDIAG(3)  = 0 standard printout, all binary files if QDIAG=.true.
           = 1 ij-fields as in list Iij, all ijk-fields
