@@ -80,7 +80,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE jplrts
 !@sum jplrts read/set up chemical reaction rates from JPL
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)
+!@ver  1.0 (based on cheminit0C5_M23p)
 !@calls lstnum
 c
 C**** GLOBAL parameters and variables:
@@ -151,7 +151,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE lstnum(at,ks)
 !@sum lstnum find molecule number in param list of molecules
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)
+!@ver  1.0 (based on cheminit0C5_M23p)
 c
 C**** GLOBAL parameters and variables:
 C
@@ -184,7 +184,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE phtlst
 !@sum phtlst read Photolysis Reactions and parameters
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)
+!@ver  1.0 (based on cheminit0C5_M23p)
 !@calls lstnum
 c
 C**** GLOBAL parameters and variables:
@@ -234,7 +234,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE reactn
 !@sum reactn read chemical and photochemical reaction lists
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)
+!@ver  1.0 (based on cheminit0C5_M23p)
 !@calls guide,printls
 c
 C**** GLOBAL parameters and variables:
@@ -261,7 +261,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE guide(npr,ndr,kpr,kdr,xx,nnn,ns,nre)
 !@sum guide read chemical and photochemical reaction lists
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)
+!@ver  1.0 (based on cheminit0C5_M23p)
 !@calls calcls
 C
 C**** GLOBAL parameters and variables:
@@ -296,7 +296,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE calcls(nn,ns,nnn,nns,ndr,kdr,nre)
 !@sum calcls Set up reaction lists for calculated gases (1 to ny)
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)
+!@ver  1.0 (based on cheminit0C5_M23p)
 C
 C Note: code could use more modernizations (e.g. the goto 5's):
 C
@@ -386,7 +386,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE printls
 !@sum printls print out some chemistry diagnostics (reaction lists)
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)
+!@ver  1.0 (based on cheminit0C5_M23p)
 C
 C**** GLOBAL parameters and variables:
 C
@@ -472,7 +472,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE wave
 !@sum wave Set up Wavelengths 200-730 nm, and O2 & O3 Cross Sections
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)
+!@ver  1.0 (based on cheminit0C5_M23p)
 C
 C**** GLOBAL parameters and variables:
 C
@@ -503,7 +503,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !@+   and standard O3 and T profiles and to set the appropriate reaction
 !@+   index.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)
+!@ver  1.0 (based on cheminit0C5_M23p)
 !@calls RD_TJPL,RD_PROF
 C
 C**** GLOBAL parameters and variables:
@@ -578,7 +578,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !@+   functions with temperature dependences. Current data originates
 !@+   from JPL'97.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)
+!@ver  1.0 (based on cheminit0C5_M23p)
 C
 C**** GLOBAL parameters and variables:
 C
@@ -707,7 +707,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE rd_prof(nj2)
 !@sum rd_prof input T & O3 reference profiles, define Black Carbon prof.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)
+!@ver  1.0 (based on cheminit0C5_M23p)
 C
 C**** GLOBAL parameters and variables:
 C
