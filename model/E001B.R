@@ -58,6 +58,7 @@ RADNA=o3trend.1951-2050.2
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Oct2000
+dH2O=dH2O_by_CH4
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
@@ -65,7 +66,6 @@ E001B (new modelE based on B402A - coupled version)
 R=00BG/B
 
 &&PARAMETERS
-CO2=-6.
 XCDLM=.0005,.00005
 KOCEAN=1
 U00wtr=.49
@@ -75,6 +75,7 @@ DT=450.,        ! from default: DTsrc=3600.,
 NSLP=0          ! saving SLP 0hrly
 Kvflxo=0        ! not saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
+isccp_diags=1
 &&END_PARAMETERS
 
  &INPUTZ

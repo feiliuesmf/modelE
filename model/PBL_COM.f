@@ -126,8 +126,8 @@
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "BLD01"
 
-      MODULE_HEADER(lhead+1:80) = 'R8 dim(im,jm):ws,ts,qs,'//
-     *  'LvlDC,us,vs,tau, u*(im,jm,4),ke(LM,im,jm)'
+      MODULE_HEADER(lhead+1:80) = 'R8 dim(ijm):ws,ts,qs,'//
+     *  'LvlDC,us,vs,tau,u*(.,4),ke(LM,.),tgv,qg'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file

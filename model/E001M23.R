@@ -55,6 +55,7 @@ RADNA=o3trend.1951-2050.2
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Oct2000
+dH2O=dH2O_by_CH4
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
@@ -62,7 +63,6 @@ E001M23 (new modelE based on B402A - strat. version)
 R=00BG/B
 
 &&PARAMETERS
-CO2=-6.
 XCDLM=.0005,.00005
 KOCEAN=0
 U00wtr=.49
@@ -76,6 +76,7 @@ NIsurf=4,            ! number of surface time steps
 NSLP=0          ! saving SLP 12hrly
 Kvflxo=0        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
+isccp_diags=1
 &&END_PARAMETERS
 
  &INPUTZ

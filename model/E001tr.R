@@ -65,6 +65,7 @@ RADNA=o3trend.1951-2050.2
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Oct2000
+dH2O=dH2O_by_CH4
 TOP_INDEX=top_index_72x46.ij
 CO2_IC=CO2ijl_IC_Jan1_scale334_M23  !wofsy+B140TQaM9
 CO2_FOS_FUEL=CO2_sources/gcm_data/CO2FOS_MRL_4X5
@@ -79,7 +80,6 @@ E001tr (new modelE based on B402A, uses dry adiab. adjustment; tracers)
 R=00BG/B
 
 &&PARAMETERS
-CO2=-6.
 XCDLM=.0005,.00005
 KOCEAN=0
 U00wtr=.49
@@ -90,6 +90,7 @@ to_volume_MixRat=1   ! for tracer printout
 NSLP=12         ! saving SLP 12hrly
 Kvflxo=1        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
+isccp_diags=1
 &&END_PARAMETERS
 
  &INPUTZ

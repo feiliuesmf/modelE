@@ -33,6 +33,7 @@ POUT                                ! post-processing output
 
 Data input files:
 AIC=DEC1958.rsfB394M12.modelE.14 ! initial conditions (atm. and ground)
+! GIC=GIC.E005gasA.1DEC1956 ! initial ground conditions (needed if ISTART=2)
 ! OSST/SICE: data rec. start with an integer M, where
 !     M=1 means Jan of the year mentioned in the file names (here 1950)
 !     In order that data and date agree, set IYEAR1=that year (1950)
@@ -59,6 +60,7 @@ RADNA=o3trend.1951-2050.2
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Oct2000
+dH2O=dH2O_by_CH4
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
@@ -66,7 +68,6 @@ E001C (new modelE based on B402A - prescribed ann. varying ocean)
 R=00BG/B
 
 &&PARAMETERS
-CO2=-6.
 XCDLM=.0005,.00005
 KOCEAN=0
 ocn_cycl=0
@@ -76,6 +77,7 @@ DT=450.,        ! from default: DTsrc=3600.,
 NSLP=12         ! saving SLP 12hrly
 Kvflxo=1        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
+isccp_diags=1
 &&END_PARAMETERS
 
  &INPUTZ

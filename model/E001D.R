@@ -32,12 +32,13 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.14
-OHT=OTSPEC.RB399AM12.M250D OCNML=Z1O.B4X5.cor
-MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
-OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
-EDDY=ED4X5 ! Eddy diffusivity for deep ocean mixing
+! The next 3 lines depend on the preliminary runs (prescr./shallow ocean)
+AIC=IMJAN.E001.O250D               ! initial conditions
+OHT=OTSPEC.E001.M250D.1951-1955    ! horizontal ocean heat transports
 TG3M=
+MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
+! OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
+EDDY=ED4X5 ! Eddy diffusivity for deep ocean mixing
 CDN=CD4X500S VEG=V72X46.1.cor
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
@@ -55,6 +56,7 @@ RADNA=o3trend.1951-2050.2
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Oct2000
+dH2O=dH20_by_CH4
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
@@ -62,16 +64,16 @@ E001D (new modelE based on B402A - Qflux + deep diffusion)
 R=00BG/B
 
 &&PARAMETERS
-CO2=-6.
 XCDLM=.0005,.00005
 KOCEAN=1
 U00wtr=.49
 U00ice=.50
-
+isccp_diags=1
 DT=450.,        ! from default: DTsrc=3600.,
 NSLP=12         ! saving SLP 12hrly
 Kvflxo=1        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
+
 &&END_PARAMETERS
 
  &INPUTZ

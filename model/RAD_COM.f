@@ -35,8 +35,12 @@
       INTEGER :: Aero_yr = 1951    ! always use annual cycle
 !@dbparam O3_yr obs.year of Ozone (if 0: time var)
       INTEGER :: O3_yr = 1951      ! always use annual cycle
-!@dbparam H2Ostrat stratospheric water vapour multiplication factor
+!@dbparam H2OstratX stratospheric water vapour multiplication factor
       REAL*8 :: H2OstratX = 1.
+!@dbparam H2ObyCH4 if not 0: add CH4 produced H2O into layers 1->LM
+      INTEGER :: H2ObyCH4 = 0
+!@var dH2O1 zonal H2O-prod.rate in kg/m^2/ppm_CH4/second in layer L
+      DOUBLE PRECISION, DIMENSION(JM,LM) :: dH2O
 !@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAl*8 :: RSDIST,SIND,COSD
 
