@@ -67,7 +67,8 @@ cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 !@var tr0ij initial vertical tracer concentration profile (kg/kg)
 !@var trij vertical tracer concentration profile (kg/kg)
 !@var trmomij vertical tracer concentration moment profile (kg/kg)
-      real*8, dimension(lm,ntm) :: tr0ij,trij
+!@var wc_nl non-local fluxes of tracers
+      real*8, dimension(lm,ntm) :: tr0ij,trij,wc_nl
 cc      real*8, dimension(nmom,lm,ntm) :: trmomij
 !@var trflx surface tracer flux (-w tr) (kg/kg m/s)
       real*8, dimension(ntm) :: trflx
@@ -107,8 +108,12 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
 !$OMP*   dze,dz,bydzerho,rhobydze,bydzrhoe,rhoebydz,tvs,uflx,vflx,
 !$OMP*   qflx,tvflx,ustar,ustar2,alpha1,dudz,dvdz,dtdz,dqdz,g_alpha,
 !$OMP*   an2,as2,ze,lscale,dbl,ldbl,wstar,kh,km,ke,wt,wq,uw,vw,
-!$OMP*   wt_nl,wq_nl,lmonin,p3,p4,x_surf,flux_bot,flux_top,t0ijl,tijl)
-!$OMP*    SCHEDULE(DYNAMIC,2)
+!$OMP*   wt_nl,wq_nl,lmonin,p3,p4,x_surf,flux_bot,flux_top,t0ijl,tijl
+#ifdef TRACERS_ON
+!$OMP*   ,n,trij,tr0ij,trflx,wc_nl
+#endif
+     &   ) SCHEDULE(DYNAMIC,2)
+
       loop_j_tq: do j=1,jm
         loop_i_tq: do i=1,imaxj(j)
 
@@ -217,7 +222,11 @@ C**** minus sign needed for ATURB conventions
           ! calculate turbulent diffusivities km,kh and ke
           call k_gcm(tvflx,qflx,ustar,wstar,dbl
      &        ,ze,lscale,e,qturb,an2,as2,dtdz,dqdz,dudz,dvdz
-     &        ,kh,km,ke,wt,wq,uw,vw,wt_nl,wq_nl,lm)
+     &        ,kh,km,ke,wt,wq,uw,vw,wt_nl,wq_nl
+#ifdef TRACERS_ON
+     &        ,trflx,wc_nl,ntm
+#endif
+     &        ,lm)
 
           call e_gcm(tvflx,wstar,ustar,dbl,lmonin,ze,g_alpha
      &              ,an2,as2,lscale,e,lm)
@@ -273,8 +282,11 @@ C**** Note that non-local effects for tracers can be included
 C**** parallel to the case of Q
           do n=1,ntm
             if (itime_tr0(n).le.itime) then
-              p4=0.
-              flux_bot=rhoe(1)*trflx(n) !tr0ij(1,n)
+              do l=2,lm-1
+                p4(l)=-(rhoe(l+1)*wc_nl(l+1,n)-rhoe(l)*wc_nl(l,n))
+     &                *bydzerho(l)
+              end do
+              flux_bot=rhoe(1)*trflx(n)+rhoe(2)*wc_nl(2,n)  !tr0ij(1,n)
               flux_top=0.
               call de_solver_main(trij(1,n),tr0ij(1,n),kh,p4,
      &             rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm)
@@ -306,7 +318,6 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
      2                 +(q(l)-q0(l))*PDSIG(L,I,J)*LHE/SHA
             AJL(J,L,JL_TRBKE)=AJL(J,L,JL_TRBKE)+e(l)
 #ifdef TRACERS_ON
-            write(99,*) "inside in  block"
             do n=1,ntm
               if (itime_tr0(n).le.itime) then
                 tajln(j,l,jlnt_turb,n)=tajln(j,l,jlnt_turb,n) +
@@ -995,7 +1006,12 @@ C****
 
       subroutine k_gcm(tvflx,qflx,ustar,wstar,dbl
      &  ,ze,lscale,e,qturb,an2,as2,dtdz,dqdz,dudz,dvdz
-     &  ,kh,km,ke,wt,wq,uw,vw,wt_nl,wq_nl,n)
+     &  ,kh,km,ke,wt,wq,uw,vw,wt_nl,wq_nl
+#ifdef TRACERS_ON
+     &  ,trflx,wc_nl,ntm
+#endif
+     &  ,n)
+
 !@sum k_gcm computes the turbulent stability functions Km, Kc
 !@+   and the non-local part of the fluxes
 !@auth  Ye Cheng/G. Hartke
@@ -1021,6 +1037,7 @@ C****
 !@var wt,wq,uw,vw turbulent fluxes
 !@var wt_nl non-local part of heat flux wt
 !@var wq_nl non-local part of moisture flux wq
+!@var wc_nl non-local part of tracer flux
 !@var n number of layers
 
       USE CONSTANT, only : teeny,by3
@@ -1030,6 +1047,13 @@ C****
       implicit none
 
       integer, intent(in) :: n
+#ifdef TRACERS_ON
+      integer, intent(in) :: ntm
+      real*8, dimension(n,ntm),intent(out) :: wc_nl
+      real*8, dimension(ntm),intent(in) :: trflx
+      integer nt
+#endif
+
       real*8, intent(in) :: tvflx,qflx,ustar,wstar,dbl
       real*8, dimension(n), intent(in) :: lscale,e,qturb,an2,as2
      &        ,dtdz,dqdz,dudz,dvdz
@@ -1068,11 +1092,21 @@ C****
               tmp=tmp0*tau
               wt_nl(j)=tmp*tvflx
               wq_nl(j)=tmp*qflx
+#ifdef TRACERS_ON
+              do nt=1,ntm
+                wc_nl(j,nt)=tmp*trflx(nt)
+              end do
+#endif
           else
               sh=(s4+s5*gh+s6*gm)*byden
               kh(j)=min(max(tau*e(j)*sh,khmin),kmax)
               wt_nl(j)=0.
               wq_nl(j)=0.
+#ifdef TRACERS_ON
+              do nt=1,ntm
+                wc_nl(j,nt)=0.
+              end do
+#endif
           endif
           ke(j)=5.*km(j)
           wt(j) = -kh(j)*dtdz(j)+wt_nl(j)
@@ -1156,6 +1190,8 @@ C****
 !@var ze height at the edge level (meters)
 !@var ldbl the (main) layer corresponding to top of pbl
 !@var dbl the height (in meters) of the pbl, at main layer
+!@+   this dbl is different from the dbl in module socpbl,
+!@+   the latter is itype dependent
 !@var n number of layers
 
       implicit none
@@ -1166,16 +1202,17 @@ C****
       real*8, intent(out) :: dbl
       integer, intent(out) :: ldbl
 
-      real*8, parameter :: fraction = 0.1d0
+      real*8, parameter :: dbl_max=3000.,fraction = 0.1d0
       real*8 :: e1p    ! a fraction of e(1)
-      integer :: j
+      integer :: l
 
       e1p=fraction*e(1)
-      do j=2,n
-        if (e(j).lt.e1p) exit
+      do l=2,n
+        if (e(l).lt.e1p) exit
       end do
-      ldbl=j-1
-      dbl=.5d0*(ze(j-1)+ze(j))  ! dbl is at main layer (j-1)
-      
+      ldbl=l-1
+      dbl=.5d0*(ze(l-1)+ze(l))  ! dbl is at main layer (l-1)
+      dbl=min(dbl,dbl_max)
+    
       return
       end subroutine find_pbl_top
