@@ -30,7 +30,7 @@ ccc   save
 c****
       use constant, only : grav,rgas,lhe,lhs
      *     ,sha,tf,rhow,deltx
-      use model_com, only : t,p,q,dtsrc,nisurf,dsig
+      use model_com, only : t,p,q,dtsrc,nisurf,dsig,qcheck
      *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
       use geom, only : imaxj,dxyp,bydxyp
       use dynamics, only : pk,pek,pedn,pdsig,am,byam

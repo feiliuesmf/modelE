@@ -3215,9 +3215,9 @@ C**** calculate condensate in equilibrium with source vapour
               alph=1./fracvs(tdegc,trname(ntix(n)))
 C**** kinetic fractionation can occur as a function of supersaturation
 C**** this is a hack from Georg Hoffmann
-c              supsat=1d0-2d-3*tdegc
-c              if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
-c     *             ,trname(ntix(n)))
+              supsat=1d0-2d-3*tdegc
+              if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
+     *             ,trname(ntix(n)))
             end if
             if (fq0.ne.1.) then ! just to be safe
               fq = alph * fq0/(1.+(alph-1.)*fq0)
@@ -3382,8 +3382,8 @@ c
           if (tdegc.ge.0) then
             alph=fracvl(tdegc,trname(ntix(n)))
 C**** below clouds kinetic effects with evap into unsaturated air
-c            if (QBELOW.and.heff.lt.1.) alph=kin_evap_prec(alph,heff
-c     *           ,trname(ntix(n)))
+            if (QBELOW.and.heff.lt.1.) alph=kin_evap_prec(alph,heff
+     *           ,trname(ntix(n)))
           else
             alph=fracvs(tdegc,trname(ntix(n)))
           end if

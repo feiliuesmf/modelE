@@ -1146,7 +1146,7 @@ C**** ADD PRECIPITATION AND LATENT HEAT BELOW
 C**** Isotopic equilibration of liquid precip with water vapour
       IF (TNX.gt.TF) THEN
         DO N=1,NTX
-          CALL ISOEQUIL(NTIX(N),TNX,QM(L),PRCP,TM(L,N),TRPRCP(N),1d0) !0.5d0)
+          CALL ISOEQUIL(NTIX(N),TNX,QM(L),PRCP,TM(L,N),TRPRCP(N),0.5d0)
         END DO
       END IF
 #endif
