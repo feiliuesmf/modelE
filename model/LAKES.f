@@ -638,9 +638,10 @@ C****
 C**** Calculate net mass and energy changes due to river flow
 C****
       FLOW = 0. ; EFLOW = 0.
-      FLOWO = 0. ; EFLOWO = 0.
+c      FLOWO = 0. ; EFLOWO = 0.  ! arrays now initialised in MELTSI
 #ifdef TRACERS_WATER
-      TRFLOW = 0. ; TRFLOWO = 0.
+      TRFLOW = 0.   
+c      TRFLOWO = 0.              ! array now initialised in MELTSI 
 #endif
       DO JU=2,JM-1
         DO IU=1,IM
@@ -689,15 +690,15 @@ C**** accumulate river runoff diags (moved from ground)
                 POICE =RSI(ID,JD)*FOCEAN(ID,JD)
                 POCEAN=(1.-RSI(ID,JD))*FOCEAN(ID,JD)
                 AJ(JD,J_RVRD,ITOCEAN)=AJ(JD,J_RVRD,ITOCEAN)+
-     *               POCEAN*DMM*BYDXYP(JD)
+     *               (1.-RSI(ID,JD))*DMM*BYDXYP(JD)
                 AJ(JD,J_ERVR,ITOCEAN)=AJ(JD,J_ERVR,ITOCEAN)+
-     *               POCEAN*DGM*BYDXYP(JD)
+     *               (1.-RSI(ID,JD))*DGM*BYDXYP(JD)
                 AJ(JD,J_RVRD,ITOICE)=AJ(JD,J_RVRD,ITOICE) +
-     *               POICE*DMM*BYDXYP(JD)
+     *               RSI(ID,JD)*DMM*BYDXYP(JD)
                 AJ(JD,J_ERVR,ITOICE)=AJ(JD,J_ERVR,ITOICE) +
-     *               POICE*DGM*BYDXYP(JD)
+     *               RSI(ID,JD)*DGM*BYDXYP(JD)
                 AIJ(ID,JD,IJ_F0OC)=AIJ(ID,JD,IJ_F0OC)+
-     *               POCEAN*DGM*BYDXYP(JD)
+     *               (1.-RSI(ID,JD))*DGM*BYDXYP(JD)
               END IF
               JR=JREG(ID,JD)
               AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+DMM
@@ -990,34 +991,14 @@ C****
 !@sum  daily_LAKE does lake things at the end of every day
 !@auth G. Schmidt
 !@ver  1.0
-      USE CONSTANT, only : shw,rhow,pi,by3,undef
-      USE MODEL_COM, only : im,jm,itlkice,jday
-      USE GEOM, only : imaxj,dxyp
-      USE LAKES_COM, only : tlake,mwl,gml,mldlk,flake,tanlk
-#ifdef TRACERS_WATER
-     *     ,trlake,ntm
-#endif
-      USE SEAICE, only : simelt,lmi,xsi,ace1i
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
-#ifdef TRACERS_WATER
-     *     ,trsi
-#endif
-      USE FLUXES, only : gtemp
-#ifdef TRACERS_WATER
-     *     ,gtracer
-#endif
-      USE DAGCOM, only : tsfrez,tf_lkon,tf_lkoff,aij,ij_lkon,ij_lkoff,aj
-     *     ,j_imelt,j_hmelt,areg,jreg
+      USE CONSTANT, only : undef
+      USE MODEL_COM, only : im,jm,jday
+      USE GEOM, only : imaxj
+      USE SEAICE_COM, only : rsi
+      USE LAKES_COM, only : flake
+      USE DAGCOM, only : tsfrez,tf_lkon,tf_lkoff,aij,ij_lkon,ij_lkoff
       IMPLICIT NONE
       INTEGER I,J,L,JR
-!@var FDAILY fraction of energy available to be used for melting
-      REAL*8 :: FDAILY = BY3
-      REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
-      REAL*8 MSI2,ROICE,SNOW,ENRGW,ENRGUSED,ANGLE,RUN0,SALT,POCEAN,TFO
-#ifdef TRACERS_WATER
-      REAL*8, DIMENSION(NTM,LMI) :: TRSIL
-      REAL*8, DIMENSION(NTM) :: TRUN0
-#endif
 
 C**** set and initiallise freezing diagnostics
 C**** Note that TSFREZ saves the last day of no-ice and some-ice.
@@ -1052,56 +1033,6 @@ C**** set ice on/off days
             IF (RSI(I,J).gt.0) TSFREZ(I,J,TF_LKOFF)=JDAY
           END IF
         END DO
-      END DO
-
-C**** Melt too small lake ice
-      DO J=1,JM
-      DO I=1,IMAXJ(J)
-        IF (FLAKE(I,J)*RSI(I,J) .GT. 0 .and. RSI(I,J).lt.1d-4) THEN
-          JR=JREG(I,J)
-          ROICE=RSI(I,J)
-          MSI2 =MSI(I,J)
-          SNOW =SNOWI(I,J)      ! snow mass
-          HSIL =HSI(:,I,J)      ! sea ice enthalpy
-          SSIL =0.              ! sea ice salt (always 0)
-          POCEAN=0.             ! ocean fraction (always 0)
-          TFO = 0.              ! freezing point (always 0)
-#ifdef TRACERS_WATER
-          TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice
-#endif
-          CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,TFO,TSIL,
-#ifdef TRACERS_WATER
-     *         TRSIL,TRUN0,
-#endif
-     *         ENRGUSED,RUN0,SALT)
-C**** SALT always 0 for lakes
-C**** accumulate diagnostics
-          AJ(J,J_HMELT,ITLKICE)=AJ(J,J_HMELT,ITLKICE)-ENRGUSED
-          AJ(J,J_IMELT,ITLKICE)=AJ(J,J_IMELT,ITLKICE)+    RUN0
-          AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ENRGUSED*DXYP(J)
-          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+    RUN0*DXYP(J)
-C**** RESAVE PROGNOSTIC QUANTITIES
-          GML(I,J)=GML(I,J)-FLAKE(I,J)*DXYP(J)*ENRGUSED
-          MWL(I,J)=MWL(I,J)+FLAKE(I,J)*DXYP(J)*RUN0
-          MLDLK(I,J)=MLDLK(I,J)+RUN0/RHOW
-          TLAKE(I,J)=TLAKE(I,J)-ENRGUSED/(MLDLK(I,J)*SHW*RHOW)
-          RSI(I,J)=ROICE
-          MSI(I,J)=MSI2
-          SNOWI(I,J)=SNOW
-          HSI(:,I,J)=HSIL(:)
-          SSI(:,I,J)=0.
-#ifdef TRACERS_WATER
-          TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+FLAKE(I,J)*DXYP(J)*TRUN0(:)
-          TRSI(:,:,I,J)=TRSIL(:,:)
-          GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
-     *         *DXYP(J))
-          GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I))
-#endif
-C**** set gtemp arrays
-          GTEMP(1:2,2,I,J) = TSIL(1:2)
-          GTEMP(1  ,1,I,J) = TLAKE(I,J)
-        END IF
-      END DO
       END DO
 
 C**** Experimental code: not yet functional
@@ -1142,9 +1073,9 @@ C****
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
 #endif
-      USE FLUXES, only : runpsi,runoli,prec,eprec,gtemp
+      USE FLUXES, only : runpsi,runoli,prec,eprec,gtemp,flowo,eflowo
 #ifdef TRACERS_WATER
-     *     ,trunpsi,trunoli,trprec,gtracer
+     *     ,trunpsi,trunoli,trprec,gtracer,trflowo
 #endif
       USE DAGCOM, only : aj,j_run
       IMPLICIT NONE
@@ -1170,11 +1101,18 @@ C**** calculate fluxes over whole box
         RUN0 =POLAKE*PRCP  + PLKICE* RUNPSI(I,J) + PLICE* RUNOLI(I,J)
         ERUN0=POLAKE*ENRGP ! PLKICE*ERUNPSI(I,J) + PLICE*ERUNOLI(I,J) =0
 
+C**** simelt is given as kg, so divide by area
+        IF (FLAKE(I,J).gt.0) THEN
+          RUN0  =RUN0+ FLOWO(I,J)*BYDXYP(J)
+          ERUN0=ERUN0+EFLOWO(I,J)*BYDXYP(J)
+        END IF
+
         MWL(I,J) = MWL(I,J) +  RUN0*DXYP(J)
         GML(I,J) = GML(I,J) + ERUN0*DXYP(J)
 #ifdef TRACERS_WATER
         TRUN0(:) = POLAKE*TRPREC(:,I,J)*BYDXYP(J)
      *       + PLKICE*TRUNPSI(:,I,J) + PLICE *TRUNOLI(:,I,J)
+        IF (FLAKE(I,J).gt.0) TRUN0(:)=TRUN0(:) + TRFLOWO(I,J)*BYDXYP(J)
         TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J) + TRUN0(:)*DXYP(J)
 #endif
 

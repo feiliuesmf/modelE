@@ -15,8 +15,9 @@
 !@var SRUNOSI salt in run off from sea/lake ice after surface (kg/m^2)
       REAL*8, DIMENSION(IM,JM) :: RUNOSI, ERUNOSI, SRUNOSI
 !@var RUNPSI run off from sea/lake ice after precip (kg/m^2)
+!@var ERUNPSI energy of run off from sea/lake ice after precip (J/m^2)
 !@var SRUNPSI salt in run off from sea/lake ice after precip (kg/m^2)
-      REAL*8, DIMENSION(IM,JM) :: RUNPSI, SRUNPSI
+      REAL*8, DIMENSION(IM,JM) :: RUNPSI, SRUNPSI   ! ,ERUNPSI (not yet)
 !@var RUNOE run off from earth (kg/m^2)
 !@var ERUNOE energy of run off from earth (J/m^2)
       REAL*8, DIMENSION(IM,JM) :: RUNOE, ERUNOE
@@ -62,8 +63,12 @@ C**** currently saved - should be replaced by fluxed quantities
 !@var qflux1 surface turbulent q-flux (=-<qw>)
       real*8, dimension(im,jm) :: uflux1,vflux1,tflux1,qflux1
 
-!@var FLOWO,EFLOWO runoff and energy of runoff into ocean (kg, J)
-      REAL*8, DIMENSION(IM,JM) :: FLOWO,EFLOWO
+C**** The E/S/FLOWO arrays are used to flux quantities to the ocean that
+C**** are not tied to the open water/ice covered fractions. This
+C**** is currently done for river flow and complete sea ice melt.
+!@var FLOWO,EFLOWO mass, energy from rivers/simelt into ocean (kg, J)
+!@var SFLOWO salt from simelt into ocean (kg)
+      REAL*8, DIMENSION(IM,JM) :: FLOWO,EFLOWO,SFLOWO
 
 !@var PREC precipitation (kg/m^2)
       REAL*8, DIMENSION(IM,JM) :: PREC

@@ -48,11 +48,11 @@ C**** Interface to PBL
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
       USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,
-     *     solar_ice_frac
+     *     solar_ice_frac,tfrez
       USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws
       USE LAKES_COM, only : mwl,mldlk,gml,flake
       USE LAKES, only : minmld
-      USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe
+      USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe,sss
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
 #ifdef TRACERS_ON
      *     ,trsrfflx,trsource
@@ -83,7 +83,7 @@ C**** Interface to PBL
       REAL*8, PARAMETER :: qmin=1.d-12
       REAL*8, PARAMETER :: S1BYG1 = BYRT3,
      *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
-      REAL*8 QSAT,DQSATDT,TOFREZ
+      REAL*8 QSAT,DQSATDT
       REAL*8 AREGIJ(7,3,IM,JM)
 c
 #ifdef TRACERS_ON
@@ -304,7 +304,11 @@ C**** fraction of solar radiation leaving layer 1 and 2
             OA(I,J,12)=OA(I,J,12)+SRHEAT*DTSURF
       Z2BY4L=ACE2/(RHOI*(4.*ALAMI))
       Z1BY6L=(Z1IBYL+SNOW*BYRLS)*BY6
-      CDTERM=1.5*TG2-.5*TOFREZ(I,J)
+      IF (FLAKE(I,J).gt.0) THEN
+        CDTERM=1.5*TG2
+      ELSE
+        CDTERM=1.5*TG2-.5*TFREZ(SSS(I,J))
+      END IF
       CDENOM=1./(2.*Z1BY6L+Z2BY4L)
       HC1=HC1I+SNOW*SHI
       BETA=1.

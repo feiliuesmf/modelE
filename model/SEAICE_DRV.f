@@ -134,6 +134,7 @@ C****
       USE TRACER_COM, only : ntm, trname
 #endif
       USE SEAICE, only : lmi,xsi,icelake,iceocean,ac2oim,alami,alpha
+     *     ,tfrez
       USE SEAICE_COM, only : msi,hsi,ssi,rsi
 #ifdef TRACERS_WATER
      *     ,trsi
@@ -149,7 +150,7 @@ C****
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 coriol,ustar,Tm,Sm,Si,Ti,dh,mflux,hflux,sflux,fluxlim
-     *     ,mlsh,tofrez   !,mfluxmax
+     *     ,mlsh   !,mfluxmax
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: Trm,Tri,trflux,tralpha
 #ifdef TRACERS_SPECIAL_O18
@@ -191,8 +192,8 @@ c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
 #endif
      *               mflux,sflux,hflux)
               ELSE ! for fixed SST assume freezing temp at base,implicit
-                hflux=alami*(Ti-tofrez(i,j))/(dh+alpha*dtsrc*alami*byshi
-     *               /(XSI(LMI)*MSI(I,J)))
+                hflux=alami*(Ti-tfrez(sss(i,j)))/(dh+alpha*dtsrc*alami
+     *               *byshi/(XSI(LMI)*MSI(I,J)))
                 mflux=0.
                 sflux=0.
 #ifdef TRACERS_WATER
@@ -241,7 +242,106 @@ C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
 
 C****
       RETURN
-      END
+      END SUBROUTINE UNDERICE
+
+      SUBROUTINE MELT_SI
+!@sum  MELT_SI driver for removal of too small ice fractions
+!@auth Gary Russell/Gavin Schmidt
+!@ver  1.0
+!@calls SEAICE:SIMELT
+      USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice,jhour
+      USE GEOM, only : dxyp,imaxj
+      USE DAGCOM, only : aj,j_imelt,j_hmelt,j_smelt,areg,jreg
+      USE SEAICE, only : simelt,tfrez
+      USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
+#ifdef TRACERS_WATER
+     *     ,trsi,ntm
+#endif
+      USE LAKES_COM, only : flake
+      USE FLUXES, only : sss,flowo,eflowo,sflowo
+#ifdef TRACERS_WATER
+     *     ,trflowo
+#endif
+      IMPLICIT NONE
+      REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
+      REAL*8 MSI2,ROICE,SNOW,ENRGW,ENRGUSED,ANGLE,RUN0,SALT,POCEAN,TFO
+     *     ,PWATER
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(NTM,LMI) :: TRSIL
+      REAL*8, DIMENSION(NTM) :: TRUN0
+#endif
+      INTEGER I,J,ITYPE,JR
+
+C**** ELIMINATE SMALL AMOUNTS OF SEA ICE ONCE A DAY
+C**** We could put this in daily but it then we need an extra routine to
+C**** add fluxes to oceans/lakes. This is a little more confusing, but
+C**** we can use the S/E/FLOWO arrays to pass the information.
+      IF (Jhour.eq.0) THEN
+        DO J=1,JM
+        DO I=1,IMAXJ(J)
+          PWATER=FOCEAN(I,J)+FLAKE(I,J)
+          POCEAN=FOCEAN(I,J)
+          RUN0=0. ; ENRGUSED=0. ; SALT=0.
+#ifdef TRACERS_WATER
+          TRUN0(:) = 0.
+#endif
+C**** Call simelt if small ice and (lake or q-flux ocean)
+          IF ( RSI(I,J).lt.1d-4 .and. ( (FLAKE(I,J)*RSI(I,J).gt.0)
+     *         .or. (KOCEAN.eq.1.and.POCEAN*RSI(I,J).gt.0) ) ) THEN
+            JR=JREG(I,J)
+            IF (POCEAN.gt.0) THEN
+              ITYPE =ITOICE
+              TFO = tfrez(sss(i,j))
+            ELSE
+              ITYPE =ITLKICE
+              TFO = 0.
+            END IF
+            ROICE=RSI(I,J)
+            MSI2=MSI(I,J)
+            SNOW=SNOWI(I,J)     ! snow mass
+            HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
+            SSIL(:)= SSI(:,I,J) ! sea ice salt
+#ifdef TRACERS_WATER
+            TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice
+#endif
+            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,TFO,TSIL
+#ifdef TRACERS_WATER
+     *           ,TRSIL,TRUN0
+#endif
+     *           ,ENRGUSED,RUN0,SALT)
+            
+C**** accumulate diagnostics
+            AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ENRGUSED
+            AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+    SALT
+            AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+    RUN0
+            AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ENRGUSED*DXYP(J)
+            AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+    SALT*DXYP(J)
+            AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+    RUN0*DXYP(J)
+C**** Update prognostic sea ice variables
+            RSI(I,J)=ROICE
+            MSI(I,J)=MSI2
+            SNOWI(I,J)=SNOW
+            HSI(:,I,J)=HSIL(:)
+            SSI(:,I,J)=SSIL(:)
+#ifdef TRACERS_WATER
+            TRSI(:,:,I,J)=TRSIL(:,:)
+#endif
+          END IF
+C**** Save fluxes (in kg, J etc.), positive into ocean
+          FLOWO(I,J) = RUN0*PWATER*DXYP(J)
+          EFLOWO(I,J)=-ENRGUSED*PWATER*DXYP(J) 
+          SFLOWO(I,J)= SALT*PWATER*DXYP(J)
+#ifdef TRACERS_WATER
+          TRFLOWO(:,I,J)=TRUN0(:)*PWATER*DXYP(J)
+#endif
+        END DO
+        END DO
+      ELSE
+        FLOWO=0. ; EFLOWO=0. ; SFLOWO=0.
+      END IF
+C****
+      RETURN
+      END SUBROUTINE MELT_SI
 
       SUBROUTINE GROUND_SI
 !@sum  GROUND_SI driver for applying surface + base fluxes to sea ice
@@ -271,7 +371,7 @@ C****
       REAL*8, DIMENSION(LMI) :: HSIL,SSIL
       REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,SROX(2)
      *     ,FMOC,FHOC,FSOC,POICE,PWATER,SCOVI
-      REAL*8 MSI1,MFLUX,HFLUX,SFLUX,TOFREZ,RUN,ERUN,SRUN,MELT12
+      REAL*8 MSI1,MFLUX,HFLUX,SFLUX,RUN,ERUN,SRUN,MELT12
       INTEGER I,J,JR,ITYPE
       LOGICAL WETSNOW
 #ifdef TRACERS_WATER
@@ -599,12 +699,12 @@ C****
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm,shi
       USE MODEL_COM, only : im,jm,kocean,focean
-      USE SEAICE, only : xsi,ace1i,ac2oim,ssi0
+      USE SEAICE, only : xsi,ace1i,ac2oim,ssi0,tfrez
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp
+      USE FLUXES, only : gtemp,sss
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
@@ -612,7 +712,7 @@ C****
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE. , iniOCEAN
       INTEGER I,J
-      REAL*8 MSI1,TFO,TOFREZ
+      REAL*8 MSI1,TFO
 
       IF (KOCEAN.EQ.0.and.iniOCEAN) THEN
 C****   set defaults for no ice case
@@ -625,7 +725,7 @@ C****   set defaults for no ice case
             IF (FOCEAN(I,J).gt.0) THEN
               SSI(1:2,I,J)=SSI0*XSI(1:2)*ACE1I
               SSI(3:4,I,J)=SSI0*XSI(3:4)*AC2OIM
-              TFO = TOFREZ(I,J)
+              TFO = TFREZ(SSS(I,J))
             ELSE
               SSI(:,I,J)  = 0.
               TFO = 0.

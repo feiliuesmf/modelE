@@ -5,7 +5,7 @@
 !@+    and fixed SST runs
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean)
-!@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN,DIAGCO,TOFREZ,
+!@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN,DIAGCO
 !@+    PRECIP_OC,GROUND_OC
       USE CONSTANT, only : lhm,rhow,rhoi,shw,shi,by12,byshi
       USE MODEL_COM, only : im,jm,lm,focean,fland,fearth,flice
@@ -618,31 +618,16 @@ C****
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : rhow,shw,twopi,edpery
-      USE MODEL_COM, only : im,jm,kocean,focean,jday,itoice,fland
-      USE GEOM, only : imaxj,dxyp
-      USE DAGCOM, only : aij,ij_toc2,ij_tgo2,aj,j_imelt,j_hmelt,j_smelt
-     *     ,areg,jreg
-      USE SEAICE, only : simelt,ace1i,lmi,xsi
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
-#ifdef TRACERS_WATER
-     *     ,trsi,ntm
-#endif
+      USE CONSTANT, only : twopi,edpery
+      USE MODEL_COM, only : im,jm,kocean,focean,jday
+      USE DAGCOM, only : aij,ij_toc2,ij_tgo2
       USE FLUXES, only : gtemp
-#ifdef TRACERS_WATER
-     *     ,gtracer
-#endif
       USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1O,tfo,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       IMPLICIT NONE
-      INTEGER I,J,JR
+      INTEGER I,J
       LOGICAL, INTENT(IN) :: end_of_day
-      REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
-      REAL*8 MSI2,ROICE,SNOW,TGW,WTRO,ENRGUSED,ANGLE,RUN0,SALT,POCEAN
-#ifdef TRACERS_WATER
-      REAL*8, DIMENSION(NTM,LMI) :: TRSIL
-      REAL*8, DIMENSION(NTM) :: TRUN0
-#endif
+      REAL*8 ANGLE
 
 C**** update ocean related climatologies
       CALL OCLIM(end_of_day)
@@ -672,52 +657,6 @@ C**** DO DEEP DIFFUSION IF REQUIRED
         CALL ODIFS
 C**** RESTRUCTURE THE OCEAN LAYERS
         CALL OSTRUC(.TRUE.)
-C**** AND ELIMINATE SMALL AMOUNTS OF SEA ICE
-        DO J=1,JM
-        DO I=1,IMAXJ(J)
-C**** Only melting of ocean ice (not lakes)
-          IF (FOCEAN(I,J)*RSI(I,J) .GT.0 .and.RSI(I,J).lt.1d-4) THEN
-            JR=JREG(I,J)
-            TGW=TOCEAN(1,I,J)
-            ROICE=RSI(I,J)
-            POCEAN=FOCEAN(I,J)
-            MSI2=MSI(I,J)
-            SNOW=SNOWI(I,J)     ! snow mass
-            HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
-            SSIL(:)= SSI(:,I,J) ! sea ice salt
-#ifdef TRACERS_WATER
-            TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice
-#endif
-            WTRO=Z1O(I,J)*RHOW
-            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,TFO,TSIL
-#ifdef TRACERS_WATER
-     *           ,TRSIL,TRUN0
-#endif
-     *           ,ENRGUSED,RUN0,SALT)
-C**** RUN0, SALT not needed for Qflux ocean
-C**** accumulate diagnostics
-            AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-ENRGUSED
-            AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+    SALT
-            AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+    RUN0
-            AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ENRGUSED*DXYP(J)
-            AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+    SALT*DXYP(J)
-            AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+    RUN0*DXYP(J)
-C**** RESAVE PROGNOSTIC QUANTITIES
-            TGW=TGW-ENRGUSED/(WTRO*SHW)
-            TOCEAN(1,I,J)=TGW
-            RSI(I,J)=ROICE
-            MSI(I,J)=MSI2
-            SNOWI(I,J)=SNOW
-            HSI(:,I,J)=HSIL(:)
-            SSI(:,I,J)=SSIL(:)
-#ifdef TRACERS_WATER
-            TRSI(:,:,I,J)=TRSIL(:,:)
-            GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
-#endif
-            GTEMP(1:2,2,I,J) = TSIL(1:2)
-          END IF
-        END DO
-        END DO
       END IF
 
 C**** set gtemp array for ocean temperature
@@ -846,9 +785,10 @@ C**** get ice-ocean fluxes from sea ice routine
           RUN0=RUNOSI(I,J)  ! includes ACE2M + basal term
           F2DT=ERUNOSI(I,J)
 c         SALT=SRUNOSI(I,J)
-C**** get river runoff
+C**** get river runoff/simelt flux
           RVRRUN = FLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
           RVRERUN=EFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
+c         RVRSRUN=SFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
           OA(I,J,4)=OA(I,J,4)+RVRERUN    ! add to surface energy budget
 
           AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+RUN0   *POICE
@@ -908,28 +848,6 @@ C**** store surface temperatures
       RETURN
 C****
       END SUBROUTINE GROUND_OC
-
-C**** This is here so that a coupled ocean is easier to implement
-
-      REAL*8 FUNCTION TOFREZ(I,J)
-!@sum  TOFREZ returns the value of the seawater freezing temp
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : focean
-      USE STATIC_OCEAN, only : tfo
-!@var I,J atmospheric grid point
-      INTEGER, INTENT(IN) :: I,J
-
-C**** for Q-flux ocean no variation with salinity is required
-      IF (FOCEAN(I,J).gt.0) THEN
-        TOFREZ = tfo
-      ELSE
-        TOFREZ = 0.
-      END IF
-
-      RETURN
-      END FUNCTION TOFREZ
-
 
       SUBROUTINE DIAGCO (M)
 !@sum  DIAGCO Keeps track of the ocean conservation properties
