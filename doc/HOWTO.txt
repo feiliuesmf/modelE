@@ -45,11 +45,10 @@ PART I: Basic user information
 
 Part II: Getting information from the diagnostics
 
-1) HOW-TO analyse the printout
+1) HOW-TO look at the output
 2) HOW-TO change what is included in the printout
 3) HOW-TO produce daily/monthly or seasonal diagnostics
-3) HOW-TO produce useful diagnostics from the ACC file
-4) HOW-TO produce netcdf/hdf output
+4) HOW-TO control the format of the binary output (i.e. GISS/netcdf/hdf etc.)
 
 Part III: The model code
 
@@ -89,11 +88,11 @@ The modelE code including source code, scripts and some documentation.
 This is stored through the CVS revision control system, and copies can
 be checked-out to your home directory using the following commands:
    export CVSDIR=/u/cmrun/cvs/repository
-   cvs checkout -r rel-1.0 modelE
+   cvs checkout -r modelE-1-0 modelE
    cvs tag -b your_tag_here
 
 This will create a directory modelE/ in your directory. The code will
-correspond to rel-1.0 - the first release. It will be tagged with your
+correspond to modelE-1-0 - the first release. It will be tagged with your
 own tag name so that your developments can be maintained by CVS, without
 conflicting with the main development branch.
 
@@ -110,7 +109,7 @@ Part I: Basic user tasks
 
 1) HOW-TO setup and run the GISS GCM:
 
-In order to run the GCM a 'rundeck' file (with a suffic .R) must be
+In order to run the GCM a 'rundeck' file (with a suffix .R) must be
 created. This contains information about the run you would like to
 perform, the fortran code that you intend to use, pre-processing
 options that are required, the boundary and initial conditions and any
@@ -121,18 +120,19 @@ The sub-directory 'decks' is the main control directory, most commands
 will be issued in this directory. Typing 'gmake' will produce some
 documentation.
 
-There are three sample rundecks: E001.R, E001A.R and E001B.R. These
-represent a standard fixed SST atmosphere only run, a Qflux run and a
-coupled ocean-atmosphere run, respectively. In order to make a rundeck
-that you can use and modify, type
+There are four sample rundecks: E001.R, E001A.R, E001B.R. and
+E001M23.R. These represent a standard fixed SST atmosphere only run, a
+Qflux run, a coupled ocean-atmosphere run and a stratospheric model
+run, respectively. In order to make a rundeck that you can use and
+modify, type 
 
-     gmake mkrun RUN=E001xyz
+     gmake rundeck RUN=E001xyz
 
 This will make a rundeck E001xyz.R (please use a unique name, based on
 your initials), that will be a copy of E001.R. To make a copy based on
 another of the sample decks, use, for instance,
 
-     gmake mkrun RUN=E001xyz RUNSRC=E001A
+     gmake rundeck RUN=E001xyz RUNSRC=E001A
 
 The list of fortran files within the rundeck determines which files
 are compiled into the executable. The compilation is automatic, and
@@ -334,7 +334,9 @@ specified length of time.
 4) HOW-TO stop and restart the GCM
 
 Use the command 'ssw E001xyz' to stop the model run in a controlled
-fashion. Restart it with the command 'run E001xyz'.
+fashion. Restart it with the command 'run E001xyz'. If you would like
+the run-time printout to be surpressed (to save filespace) use the
+command 'runn E001xyz'. The printout can always be recreated if needed.
 
 5) HOW-TO change boundary conditions
 
@@ -357,9 +359,9 @@ a line "SUBSCRIBE giss-gcm-users-l" in the body of the text.
 
 12) HOW-TO keep up-to-date
 
-Periodically, we will release new, improved versions of the model
-code. You will be notified through the mailing list, and you can
-decide whether to upgrade your code, or wait until a more suitable
+Periodically, we will release new, and hopefully improved versions of
+the model code. You will be notified through the mailing list, and you
+can decide whether to upgrade your code, or wait until a more suitable
 time. None of your changes will be lost if you upgrade. However, some
 conflicts may occur, though they should be minor. Detailed
 instructions will be given at the time.
@@ -373,13 +375,114 @@ would like to commit.
 
 Part II: Getting information from the diagnostics
 
-1) HOW-TO analyse the printout
+1) HOW-TO look at the output
+
+You can look at the output in two distinct ways: using the run-time
+printout, or using the post-processing program, pDE.
+
+  i) The run-time printout.
+	If you run the model using 'run' (as opposed to 'runn' which
+surpresses the printout) the model will produce a $RUNID.PRT file
+which can contain copious amounts of diagnostic information. It is
+split into a number of sections: (see next question for a list). This
+is produced each month (but can be contrlled using the KDIAG switches
+and NMONAV in the NAMELIST).
+
+  ii) Post-processed output:
+	Each month the program produces an 'acc' accumulated
+diagnostics file which contains all of the diagnostic information from
+the previous month. The program 'pDE' is an alternate entry point into
+the model that reads in any number of these files and a) creates a
+printout (as above) for the time period concerned and b) creates
+binary output of many more diagnostics. This can be used simply
+to recreate the monthly printout, but also to create longer term
+means (annual,seaonal, monthly climatologies etc.).
+
+For example, to recreate the printout;
+  for a single month: pdE JAN1987.acc.$RUNID
+  for all Januaries:  pdE JAN*.acc.$RUNID
+  for a whole year:   pdE *1987.acc.$RUNID
+
+A number of files will be created appropriate for the accumulated time
+period.  (xxxnnnn where xxx is a month or a season or ANN or DCD, and
+nnnn is a year or nrange of years).
+
+	xxxnnnn.PRT     the printout
+        xxxnnnn.j$RUNID zonal budget pages (ASCII Aplot format)
+        xxxnnnn.jk$RUNID latitude-height binary file
+        xxxnnnn.il$RUNID longitude-height binary file
+        xxxnnnn.ij$RUNID lat-lon binary file
+
+which can be read using the appropriate graphical software. 
+
 2) HOW-TO change what is included in the printout
+
+The swtiches KDIAG which are set in the NAMELIST control which
+subgroups of diagnostics are calculated and output. At present, there
+is no simple way to pick and choose exactly which diagnostics appear,
+although we are working on a scheme to do just that. Some of the
+following options are rarely used, and may soon be made obsolete.
+
+Current options are:
+
+KDIAG(1)  < 9 print Zonal/Regional budget pages 
+	  = 8 only print regional diagnostics 
+	  2-7 only print global zonal means
+	  = 1 print all zonal diagnostics
+
+KDIAG(2)  < 9 print Latitude-height diagnostics
+          = 8 Only print spectral analysis of standing eddies
+
+KDIAG(3)  < 9 print Latitude-Longitude fields
+          1-8 print first 9-KDIAG(3) pages  (will soon be obsolete)
+        -1 - -9 print -KDIAG(3) page  (will soon be obsolete)
+
+KDIAG(4)  < 9 print time history table of energies
+KDIAG(5)  < 9 print spectral analysis tables
+
+KDIAG(6)  < 9 print diurnal cycle diagnostics at selected points (up to 4)
+          1-4 print out for first 4-KDIAG(6) points (will soon be obsolete)
+        -1 - -4 print out for -KDIAG(6) point only.
+
+KDIAG(7)  < 9 print wave power tables
+
+KDIAG(9)  < 9 print out conservation diagnostics
+KDIAG(10) = 0 print out Longitude-height diagnostics
+KDIAG(11) < 9 print out river runoff diagnostics
+
 3) HOW-TO produce daily/monthly or seasonal diagnostics
-3) HOW-TO produce useful diagnostics from the ACC file
-4) HOW-TO produce netcdf/hdf output
 
+Controlling the frequency of output of the ACC files is done using the
+NAMELIST parameter NMONAV. This sets the number of months over which
+the diagnostics is accumulated. If it is set to 3, seasonal acc files
+are produced. If set to 12, you will get annual means. Higher numbers
+could be chosen, but are probably not very useful.
 
+Producing more frequent diagnostics is a little more problematic. We
+intend to provide the facility to output a limited number of
+instantaneous or averaged standard fields (T,Q,U,V,GZ,SLP) at 1,3,6,12
+or 24 hourly intervals. But currently, only instantaneous SLP is
+available. The hourly frequency is set by NSLP in the parameter list.
+
+You can however easily keep track of the running average of all the
+printout diagnostics using the NIPRNT switch in the parameter
+database. By setting this to a positive number, the diagnostics will
+be printed out that number of days. (i.e. setting NIPRNT=10, will
+print out the running average of the accumulated diagnostics at the
+end of each of the next ten days).
+
+4) HOW-TO control the format of the binary output (i.e. GISS/netcdf/hdf etc.)
+
+The binary output created from 'pdE' can be in a number of
+formats. Currently there are two options, the traditional GISS
+formats, and netcdf output. This is set by choosing to compile the
+model with POUT (for GISS-style output) or POUT_netcdf (for netcdf
+output). This is set in the rundeck. Note that the choice is made AT
+THE TIME OF COMPILATION OF THE MODEL EXECTUABLE. If you subsequently
+change your mind, you must edit the rundeck and recreate the
+executable (using 'gmake exe RUN=E001xyz').
+
+Other formats can be defined as you like with a suitable POUT_xyz.f file.
 
 Part III: The model code
 
@@ -388,7 +491,7 @@ Part III: The model code
 Variables (other than purely local variables) are defined in three
 main ways. Physical constants (real constants, not tuning parameters),
 are defined in const.f, model related variables (i.e. variables to do
-with how the model is run) are defined in E001M12_COM.f, and all other
+with how the model is run) are defined in MODEL_COM.f, and all other
 variables are defined in the physics MODULES. Variables that are on
 the model grid will be defined in the PHYS_COM module, while
 parameters and options for the local physics will be defined in the
@@ -398,11 +501,11 @@ related to and look there.
 For more brute force efforts, run the utility 'gcmdoc RUNNAME'. This
 will create a html document that indexes and defines all important
 variables (well not all, but most, ok some!). Alternatively grep -i
-"varname.*=" *.[fSU] will probably find it for you.
+"varname.*=" *.[fSU] will probably find it for you. (NOT YET AVAILABLE)
 
 2) HOW-TO follow the program structure
 
-The model is essentially on three levels. MAIN in ME001M12 is the
+The model is essentially on three levels. MAIN in MODELE.f is the
 top level and controls the time-stepping and deals with most of the
 model overhead. The time-step loop in MAIN is the principal path that
 the model follows. This is a very linear loop, and therefore is not
@@ -430,7 +533,21 @@ subroutine, and each important variable should have such a declaration
 makes html output from a rundeck containing (and sorting out) all this
 information. The various directives are all defined in the main model
 common block. If you introduce new variables or subroutines, you MUST
-define similar documentation.
+define similar documentation. (NOTE THAT GCMDOC IS NOT YET AVAILABLE).
+
+Currently defined keywords and syntax are:
+
+@sum     UNITNAME Brief summary/description of the current program unit or file
+@auth    Author  
+@ver     Version (a number plus any relevant comments)
+@calls   List of routines called in this program unit
+@cont    List of program units contained within a file or module + other info.
+@fun     FUNCNAME Denotes a function
+@param   PARAMNAME Denotes a parameter (in the FORTRAN sense)
+@var     VARNAME Denotes a variable (in the FORTRAN sense)
+@dbparam VARNAME Denotes a database parameter (in the modelE sense)
+@nlparam VARNAME Denotes a NAMELIST parameter (in the modelE sense)
+@+       Continuation line for @sum/@calls/@cont
 
 4) HOW-TO ensure that your code meets the new standards
 
@@ -488,23 +605,24 @@ Other diagnostics will be explained if and when I work them out.
 ModelE has introduced a FILEMANAGER system that controls the
 assignment of unit numbers and the opening of files. To add a new file
 to be read in, first define a short mnemonic for the file
-(i.e. "TRSRC" for the tracer source file). This is the name
-that you will assign in the rundeck to the file you wish to
-open. Secondly, prior to reading in the file, use the routine
-'getunit' to assign a unit number for the file using the mnemonic you
-gave it. ie.
+(i.e. "TRSRC" for the tracer source file). This is the name that you
+will assign in the rundeck to the file you wish to open. Secondly,
+prior to reading in the file, use the routine 'getunit' to assign a
+unit number for the file using the mnemonic you gave it. ie.
 
      USE FILEMANAGER
      INTEGER iu_trc1
      ....
-     call getunit("TRSRC",iu_trc1,.TRUE.,.TRUE.)
+     call openunit("TRSRC",iu_trc1,.TRUE.,.TRUE.)
      READ(iu_trc1) DATA1,DATA2....
+     call closeunit(iu_trc1)
 
 The first logical variable argument is true if the file is to be
 opened for unformatted (binary) read/write, .FALSE. for ASCII
 input. The second logical variable denotes whether this is an already
-existing file or not. The line in the rundeck should look something
-like (depending on the filename of course):
+existing file or not. These arguments are optional, and default to
+TRUE. The line in the rundeck should look something like (depending
+on the filename of course):
 
 TRSRC=tracer_sources.1970_1980.dat
 
