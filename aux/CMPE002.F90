@@ -253,21 +253,17 @@
       integer ioerr
       character*120 file_name(2)
       integer fd,i
-!AOO added calls ti init routines for dynamically allocated arrays.
-      call init_decomp(im,jm)
-      call init_dynamics(grid)
-      call init_model_com(grid)
+
       IF(IARGC().NE.2) then
          print *,"CMPE002 compares data in two restart files"
          print *,"Usage: CMPE002 file_1 file_2"
          call stop_model("Incorrect arguments",255)
       endif
 
-!** initialize domain decomposition if necessary
-#ifdef GSFC_COMPAT
+!AOO added calls ti init routines for dynamically allocated arrays.
       call init_decomp(im,jm)
+      call init_dynamics(grid)
       call init_model_com(grid)
-#endif
 !C****
 !C**** Read ReStartFiles
 !C****
@@ -495,15 +491,13 @@
 #  endif
 #endif
 
-     enddo
+      enddo
 
       print *," ------     Comparing data     -----"
       call do_compare
 
 !** not sure if this is needed, but just in case ...
-#ifdef GSFC_COMPAT
       call finish_decomp()
-#endif
 
       end
 
