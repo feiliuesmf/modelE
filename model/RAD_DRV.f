@@ -800,6 +800,7 @@ C     OUTPUT DATA
      *     ,AFLX_ST, hr_in_day,hr_in_month,ij_srntp,ij_trntp
      *     ,ij_clr_srntp,ij_clr_trntp,ij_clr_srnfg,ij_clr_trdng
      *     ,ij_clr_sruptoa,ij_clr_truptoa,aijk,ijl_cf
+     *     ,ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -1526,6 +1527,14 @@ C**** Optional calculation of CRF using a clear sky calc.
         CALL RCOMPX
         SNFSCRF(I,J)=SRNFLB(LM+LM_REQ+1)   ! always TOA
         TNFSCRF(I,J)=TRNFLB(LM+LM_REQ+1)   ! always TOA
+C       BEGIN AMIP
+        AIJ(I,J,IJ_SWDCLS)=AIJ(I,J,IJ_SWDCLS)+SRDFLB(1)*COSZ2(I,J)
+        AIJ(I,J,IJ_SWNCLS)=AIJ(I,J,IJ_SWNCLS)+SRNFLB(1)*COSZ2(I,J)
+        AIJ(I,J,IJ_LWDCLS)=AIJ(I,J,IJ_LWDCLS)+TRDFLB(1)
+        AIJ(I,J,IJ_SWNCLT)=AIJ(I,J,IJ_SWNCLT)+SRNFLB(LM+LM_REQ+1)
+     *   *COSZ2(I,J)
+        AIJ(I,J,IJ_LWNCLT)=AIJ(I,J,IJ_LWNCLT)+TRNFLB(LM+LM_REQ+1)
+C       END AMIP
       end if
       FTAUC=1.     ! default: turn on cloud tau
 

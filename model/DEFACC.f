@@ -1736,7 +1736,7 @@ c
       IJ_AINTRCP = k ! aintercep
       lname_ij(k) = 'PRECIPITATION INTERCEPTED BY CANOPY'
       units_ij(k) = 'mm/day'
-      name_ij(k) = 'runoff_ugrnd'
+      name_ij(k) = 'prec_int_canopy'
       ia_ij(k) = ia_src
       scale_ij(k) = SDAY/DTsrc
       iw_ij(k) = iw_veg
@@ -1794,7 +1794,7 @@ c
 c
       k=k+1 !
       IJ_SSH = k               !      3 SF
-      lname_ij(k) = 'SEA SURFACE HEIGHT'   
+      lname_ij(k) = 'SEA SURFACE HEIGHT'
       units_ij(k) = 'm'
       name_ij(k) = 'ssh'
       ia_ij(k) = ia_srf
@@ -2894,6 +2894,91 @@ c
       ia_ij(k) = ia_srf
       scale_ij(k) = 1.
       ir_ij(k) = ir_0_3550
+c
+      k=k+1 !
+      IJ_SWDCLS = k ! SW clear-sky down radiation surf (W/m**2) 2 RD
+      lname_ij(k) = 'SW CLR-SKY DOWNWARD RADIATION, SURFACE METHOD 2'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'swdcls'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m95_265
+c
+      k=k+1 !
+      IJ_SWNCLS = k ! SW clear-sky net radiation surf (W/m**2) 2 RD
+      lname_ij(k) = 'SW CLR-SKY NET RADIATION, SURFACE METHOD 2'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'swncls'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m95_265
+c
+      k=k+1 !
+      IJ_LWDCLS = k ! LW clear-sky down radiation surf (W/m**2) 2 RD
+      lname_ij(k) = 'LW CLR-SKY DOWNWARD RADIATION SURFACE METHOD 2'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'lwdcls'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m95_265
+c
+      k=k+1 !
+      IJ_SWNCLT = k ! SW clear-sky net radiation TOA (W/m**2) 2 RD
+      lname_ij(k) = 'SW CLR-SKY NET RADIATION TOA METHOD 2'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'swnclt'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m95_265
+c
+      k=k+1 !
+      IJ_LWNCLT = k ! LW clear-sky net radiation TOA (W/m**2) 2 RD
+      lname_ij(k) = 'LW CLR-SKY NET RADIATION TOA METHOD 2'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'lwnclt'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m95_265
+c
+      k=k+1 !
+      IJ_P1000 = k !
+      lname_ij(k) = '1000 hPa BELOW GROUND'  ! weighting functi
+      units_ij(k) = '%'
+      name_ij(k) = 'p_1000_freq'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_P925 = k !
+      lname_ij(k) = '925 hPa BELOW GROUND'  ! weighting functi
+      units_ij(k) = '%'
+      name_ij(k) = 'p_925_freq'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_P700 = k !
+      lname_ij(k) = '700 hPa BELOW GROUND'  ! weighting functi
+      units_ij(k) = '%'
+      name_ij(k) = 'p_700_freq'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_P600 = k !
+      lname_ij(k) = '600 hPa BELOW GROUND'  ! weighting functi
+      units_ij(k) = '%'
+      name_ij(k) = 'p_600_freq'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_P500 = k !
+      lname_ij(k) = '500 hPa BELOW GROUND'  ! weighting functi
+      units_ij(k) = '%'
+      name_ij(k) = 'p_500_freq'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 100.
 c
       if (k .gt. kaij) then
         write (6,*) 'ij_defs: Increase kaij=',kaij,' to at least ',k
@@ -4226,7 +4311,7 @@ c
       IJK_Q=k
       name_ijk(k) = 'q' !'QDPB'
       lname_ijk(k) = 'SPECIFIC HUMIDITY'! x delta p x 4, b-grid'
-      units_ijk(k) = 'g/kg' 
+      units_ijk(k) = 'g/kg'
       scale_ijk(k) = 0.25*1d3
       off_ijk(k)   = 0.
 c
@@ -4234,7 +4319,7 @@ c
       IJK_R=k
       name_ijk(k) = 'r' !'RHDPB'  (w.r.t water)
       lname_ijk(k) = 'RELATIVE HUMIDITY'! x delta p x 4, b-grid'
-      units_ijk(k) = '%' 
+      units_ijk(k) = '%'
       scale_ijk(k) = 25.0
       off_ijk(k)   = 0.
 c
@@ -4242,25 +4327,73 @@ c
       IJK_W=k
       name_ijk(k) = 'w' !'WDPB'
       lname_ijk(k) = 'OMEGA'!  a-grid
-      units_ijk(k) = 'Pa/s' 
-      scale_ijk(k) = 100. 
+      units_ijk(k) = 'Pa/s'
+      scale_ijk(k) = 100.
       jgrid_ijk(k) = 1
       off_ijk(k)   = 0.
 c
       k=k+1
       IJK_PF=k
-      name_ijk(k) = 'p' 
+      name_ijk(k) = 'pf'
       lname_ijk(k) = 'FRAC ABOVE SURF'
-      units_ijk(k) = '%' 
+      units_ijk(k) = '%'
       scale_ijk(k) = 100.0
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJK_UV=k
+      name_ijk(k) = 'U*V'
+      lname_ijk(k) = 'U-WIND*V-WIND'
+      units_ijk(k) = 'm**2/s**2'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJK_VQ=k
+      name_ijk(k) = 'V*Q'
+      lname_ijk(k) = 'V-WIND*SPECIFIC HUMIDITY'
+      units_ijk(k) = '(m/s)*kg/kg'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJK_VT=k
+      name_ijk(k) = 'V*T'
+      lname_ijk(k) = 'V-WIND*TEMPERATURE'
+      units_ijk(k) = '(m/s)*K)'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJK_UU=k
+      name_ijk(k) = 'U*U'
+      lname_ijk(k) = 'U-WIND*U-WIND'
+      units_ijk(k) = 'm**2/s**2'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJK_VV=k
+      name_ijk(k) = 'V*V'
+      lname_ijk(k) = 'V-WIND*V-WIND'
+      units_ijk(k) = 'm**2/s**2'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJK_TT=k
+      name_ijk(k) = 'T*T'
+      lname_ijk(k) = 'TEMPERATURE* TEMPERATURE'
+      units_ijk(k) = 'K**2'
+      scale_ijk(k) = 1.
       off_ijk(k)   = 0.
 c
       k=k+1
       IJL_CF=k    ! exception - cloud fraction is on model layers
       name_ijk(k) = 'cf' !'WDPB'
       lname_ijk(k) = 'CLOUD FRACTION'
-      units_ijk(k) = '%' 
-      scale_ijk(k) = 100. 
+      units_ijk(k) = '%'
+      scale_ijk(k) = 100.
       off_ijk(k)   = 0.
 c
       write (6,*) 'Number of AIJK diagnostics defined: kaijkmax=',k

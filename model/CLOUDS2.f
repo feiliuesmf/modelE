@@ -426,7 +426,7 @@ c for sulfur chemistry
       INTEGER,  PARAMETER :: ITMAX=50
 !@var FLAMW,FLAMG,FLAMI lamda for water, graupel and ice, respectively
 !@var WMAX specified maximum convective vertical velocity
-!@var WV convetive vertical velocity
+!@var WV convective vertical velocity
 !@var VT precip terminal velocity
 !@var DCW,DCG,DCI critical cloud particle sizes
 !@var FG, FI fraction for graupel and ice
@@ -1270,16 +1270,16 @@ C**** diagnostics
 #ifdef TRACERS_ON
 C**** Subsidence of tracers by Quadratic Upstream Scheme
       DO N=1,NTX
-        if (debug.and.n.eq.1) print*,"cld0",i_debug,ldmin,lmax
-     *       ,DTMR(LDMIN:LMAX,N),DTM(LDMIN:LMAX,N)
-        if (debug.and.n.eq.1) print*,"cld1",TM(LDMIN:LMAX,N)
+c        if (debug.and.n.eq.1) print*,"cld0",i_debug,ldmin,lmax
+c     *       ,DTMR(LDMIN:LMAX,N),DTM(LDMIN:LMAX,N)
+c        if (debug.and.n.eq.1) print*,"cld1",TM(LDMIN:LMAX,N)
       ML(LDMIN:LMAX) =  AIRM(LDMIN:LMAX) +    DMR(LDMIN:LMAX)
       TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N)+DTMOMR(:,LDMIN:LMAX,N)
       call adv1d(tm(ldmin,n),tmom(1,ldmin,n), f(ldmin),fmom(1,ldmin),
      &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierrt,lerrt)
       TM(LDMIN:LMAX,N) = TM(LDMIN:LMAX,N) +   DTM(LDMIN:LMAX,N)
-        if (debug .and.n.eq.1) print*,"cld2",TM(LDMIN:LMAX,N)
+c        if (debug .and.n.eq.1) print*,"cld2",TM(LDMIN:LMAX,N)
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) +DTMOM(:,LDMIN:LMAX,N)
       ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
       END DO
@@ -1389,8 +1389,8 @@ C**** (If 100% evaporation, allow all tracers to evaporate completely.)
       IF(FPRCP.eq.1.) THEN      !total evaporation
         DO N=1,NTX
           TM(L,N)   = TM(L,N)  + TRPRCP(N)
-          if (debug .and.n.eq.1) print*,"cld2",L,TM(L,N),TRPRCP(N),2
-     *         *FEVAP
+c         if (debug .and.n.eq.1) print*,"cld2",L,TM(L,N),TRPRCP(N),2
+c     *         *FEVAP
           TRPRCP(N) = 0.d0
         END DO
       ELSE ! otherwise, tracers evaporate dependent on type of tracer
@@ -1406,8 +1406,8 @@ C**** estimate effective humidity
           CALL GET_EVAP_FACTOR(N,TNX,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT
      *         ,ntix)
           TM(L,N) = TM(L,N)     + FPRCPT*TRPRCP(N)
-          if (debug .and.n.eq.1) print*,"cld3",L,TM(L,N),FPRCP
-     *         ,FPRCPT,TRPRCP(N)
+c          if (debug .and.n.eq.1) print*,"cld3",L,TM(L,N),FPRCP
+c     *         ,FPRCPT,TRPRCP(N)
           TRPRCP(N) = TRPRCP(N) - FPRCPT*TRPRCP(N)
         END DO
       END IF
@@ -1450,8 +1450,8 @@ cdmk GET_WASH now has gas dissolution, extra arguments
             TMFAC=0.
           ENDIF
           TM(L,N)=TM(L,N)*(1.-FWASHT)-THLAW
-          if (debug .and.n.eq.1) print*,"cld4",L,TM(L,N),FWASHT
-     *         ,THLAW
+c          if (debug .and.n.eq.1) print*,"cld4",L,TM(L,N),FWASHT
+c     *         ,THLAW
           TMOM(xymoms,L,N)=TMOM(xymoms,L,N) *
      &                (1.-FWASHT-TMFAC)
         END DO
@@ -3359,7 +3359,7 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
 C**** accumulate ptop/tauopt over columns for output
           if (itau.gt.1) then
             ctp   = ctp  +ptop(ibox)
-            tauopt=tauopt+ exp(-tau(ibox))
+            tauopt=tauopt+ max(exp(-tau(ibox)),1d-16)
             nbox = nbox + 1
           end if
         end if

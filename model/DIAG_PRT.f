@@ -514,7 +514,8 @@ c
      *     j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,j_rhdt,j_hz1,j_prcp,j_prcpss,
      *     j_prcpmc,j_hz0,j_hmelt,j_implh,j_shdt,j_evhdt,j_eprcp,j_erun,
      *     j_hz2,j_type,j_ervr,scale_j,stitle_j,lname_j,name_j,units_j,
-     *     k_j_out,ia_srf,ia_src,ia_rad,j_h2och4
+     *     k_j_out,ia_srf,ia_src,ia_rad,j_h2och4,
+     *     ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt
       USE BDJ
       IMPLICIT NONE
       REAL*8, DIMENSION(JM), SAVE :: S1
@@ -3794,7 +3795,7 @@ c**** ratios (the denominators)
               adenom(i,j) = 1-fland_glob(i,j) - aij(i,j,ij_rsoi)
      *             /(idacc(ia_ij(ij_rsoi))+teeny)
             end do
-            end do         
+            end do
           else if (index(lname_ij(k),' x POCEAN') .gt. 0) then
             do j=1,jm      ! full ocean box (no lake)
             do i=1,im
@@ -3853,10 +3854,45 @@ c**** ratios (the denominators)
      *             +teeny)
             end do
             end do
+          else if (index(lname_ij(k),' x P1000') .gt. 0) then
+            do j=1,jm
+            do i=1,im
+              adenom(i,j)=aij(i,j,ij_p1000)/(idacc(ia_ij(ij_p1000))
+     *             +teeny)
+            end do
+            end do
+          else if (index(lname_ij(k),' x P925') .gt. 0) then
+            do j=1,jm
+            do i=1,im
+              adenom(i,j)=aij(i,j,ij_p925)/(idacc(ia_ij(ij_p925))
+     *             +teeny)
+            end do
+            end do
           else if (index(lname_ij(k),' x P850') .gt. 0) then
             do j=1,jm
             do i=1,im
               adenom(i,j)=aij(i,j,ij_p850)/(idacc(ia_ij(ij_p850))
+     *             +teeny)
+            end do
+            end do
+          else if (index(lname_ij(k),' x P700') .gt. 0) then
+            do j=1,jm
+            do i=1,im
+              adenom(i,j)=aij(i,j,ij_p700)/(idacc(ia_ij(ij_p700))
+     *             +teeny)
+            end do
+            end do
+          else if (index(lname_ij(k),' x P600') .gt. 0) then
+            do j=1,jm
+            do i=1,im
+              adenom(i,j)=aij(i,j,ij_p600)/(idacc(ia_ij(ij_p600))
+     *             +teeny)
+            end do
+            end do
+          else if (index(lname_ij(k),' x P500') .gt. 0) then
+            do j=1,jm
+            do i=1,im
+              adenom(i,j)=aij(i,j,ij_p500)/(idacc(ia_ij(ij_p500))
      *             +teeny)
             end do
             end do
