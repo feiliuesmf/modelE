@@ -1214,6 +1214,9 @@ C**** one before seasalt2 in NTRACE array
           SNFST(NTRIX(n),I,J)=SRNFLB(LFRC)
           TNFST(NTRIX(n),I,J)=TRNFLB(LFRC)
           FSTOPX(n)=onoff ; FTTOPX(n)=onoff ! back to default
+          IF (trname(NTRIX(n)).eq."seasalt1") THEN ! for seasalt2 as well
+            FSTOPX(n+1)=onoff ; FTTOPX(n+1)=onoff
+          END IF
         end do
       end if
 #endif
