@@ -373,6 +373,7 @@ C--------------------------------------------------------
 !sl!@var FTAUSL,TAUSL,...  surface layer computations commented out: !sl
 !@var LBOTCL,LTOPCL  bottom and top cloud level (lbot < ltop)
 !@var O3_OUT column variable for exporting ozone field to rest of model
+!@var TTAUSV saves special aerosol optical thickness for diagnostic
 
       real*8, dimension(lx) :: TRDFLB,TRUFLB,TRNFLB,TRFCRL,
      *     SRDFLB,SRUFLB,SRNFLB,SRFHRL,O3_OUT
@@ -387,6 +388,7 @@ C--------------------------------------------------------
 !sl  K             ,FTAUSL(33),TAUSL(33)    ! input rather than output ?
 !nu  K             ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV   !nu = not used
 !sl  K             ,TRSLTS,TRSLTG,TRSLBS
+      real*8 TTAUSV(LX,8)
 
       integer :: LBOTCL,LTOPCL
 
@@ -403,7 +405,7 @@ C--------------------------------------------------------
 !sl  K             ,FTAUSL,TAUSL    ! input rather than output ?
 !nu  K             ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV   !nu = not used
 !sl  K             ,TRSLTS,TRSLTG,TRSLBS
-     K             ,O3_OUT
+     K             ,O3_OUT,TTAUSV
      L             ,LBOTCL,LTOPCL   ! integers last for alignment
 !$OMP THREADPRIVATE(/RADPAR_OUTPUT_IJDATA/)
 !nu   EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
@@ -3372,10 +3374,10 @@ C**** Optional Tracer aerosols initializations
       RTINFO(1,2,NT)=1.0
       RTINFO(1,3,NT)=AREFF
       RTINFO(1,4,NT)=0.0
-      RTINFO(1,5,NT)=1.33333333D0*AREFF*DENAER(NT)/Q55
-      RTINFO(1,6,NT)=1.33333333D0*AREFF*DENAER(NT)/Q55
+      RTINFO(1,5,NT)=1.33333333D0*AREFF*DENAER(NA)/Q55
+      RTINFO(1,6,NT)=1.33333333D0*AREFF*DENAER(NA)/Q55
       RTINFO(1,7,NT)=1.0
-      RTINFO(1,8,NT)=DENAER(NT)
+      RTINFO(1,8,NT)=DENAER(NA)
       RTINFO(1,9,NT)=Q55
       END DO
             !      Define default dry aerosol coefficients for N=2,190
@@ -3522,6 +3524,10 @@ C     ------------------------------------------------------------------
      +           *SRTQSC(K,NRHNAN(L,NA),NT)*RHFTAU
       SRBSCT(L,K)=SRBSCT(L,K)+SRTQSC(K,NRHNAN(L,NA),NT)*RHFTAU
       SRBGCB(L,K)=SRBGQL/(SRBSCT(L,K)+1.D-10)
+      if (K.EQ.6.and.FSTOPX(NT).EQ.1) then
+      TTAUSV(L,NT)=RHFTAU*SRTQEX(K,NRHNAN(L,NA),NT)
+      endif
+
       END DO
       END DO
       END DO
