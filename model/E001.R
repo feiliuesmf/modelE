@@ -15,6 +15,7 @@ OCNE001 LAKES LANDICE               ! ocean, lake and sea ice modules
 RE001                               ! setsur  rad.subr_incl._forcings 
 DE001M12  FFT72  UTILDBL            ! diag,utilities
 POUT                                ! for post-processing
+RANDSGI                             ! was missing ...
 
 Data input files:
 AIC=DEC1958.rsfB394M12

@@ -1,7 +1,27 @@
 # Makefile for Model E Atmosphere GCM B399+ 
-# Begin macro definitions
+.SUFFIXES:
+.SUFFIXES: .o .U .S .GCM .OCN .f .F .mod
 
-F	= fco2_f90
+######  Some user customizable settings:   ########
+
+# EXTRA_FFLAGS specifies some extra flags you want to pass 
+#to Fortarn compiler, like
+# -g        - include debugging information
+# -listing  - create listings (.L)
+EXTRA_FFLAGS = -listing
+
+# PROC_OUTPUT specifies if you want to send error output 
+# to the screen or to a file ( no arg = screen )
+#PROC_OUTPUT =   
+PROC_OUTPUT =  > $*.ERR 2>&1 
+
+#######       End of user settings       #########
+
+
+# General Definitions
+
+F90 = f90
+F       = fco2_90
 U	= uco2_f90
 SETUP	= setup_f90
 MKEXE	= mkexe_f90
@@ -9,52 +29,33 @@ RUNSRC	= E001
 RUN	= E001dummy       #$(RUNSRC)
 EXECDIR = /u/cmrun/modelE/exec
 LIBS	= -L/u/cmrun -lGCM -lgP 
-# Model common blocks 
-MCOM	= E001M12_COM.o const.o
-GEOCOM	= GEOM_B.o
-QUSCOM	= SOMTQ_COM.o
-GHYCOM  = GHYCOM.o
-DAGCOM  = DAGCOM.o
-RADCOM  = RADNCB.o
-PBLCOM  = PBLCOM.o
-CLDCOM  = CLD01_COM_E001.o
-LKCOM   = LAKES_COM.o
-COM	= $(MCOM) $(QUSCOM) $(GEOCOM)
-RCOM    = BR00B.COM # will eventually be contained in RE001.f,RADNCB.f
+DEPENDFILE = .depend.$(RUN)
 
-# Model object files
-MOBJ	= ME001M12.o
-DYOBJ   = DYNE001.o
-QOBJ    = QUSEM12.o SUBSIDEM12.o
-DOBJ	= DE001M12.o
-PBLOBJ	= PBLE001.o
-PBLDRV	= PBLDRV.o
-SLOBJ	= SLE001.o 
-POBJ	= PE001M12.o 
-EOBJ	= EE001M12.o
-SOBJ	= SE001M12.o 
-COBJ1   = CLD01.o
-COBJ2   = CLD01_DRV_E001.o
-ROBJ	= RE001.o
-OOBJ	= OCNE001.o
-UOBJ    = UTILDBL.o
-FFTOBJ  = FFT72.o
-RNDOBJ  = RANDSGI.o
-OUTOBJ  = POUT.o
-LOBJ    = LAKES.o
-LIOBJ   = LANDICE.o
-OBJ	= $(MOBJ) $(DYOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) \
-	  $(SOBJ) $(COBJ1) $(COBJ2) $(CLDCOM) $(ROBJ) $(UOBJ) $(OOBJ)  \
-	  $(COM) $(EOBJ) $(GHYCOM) $(DAGCOM) $(RADCOM) $(PBLCOM) $(PBLDRV) \
-          $(FFTOBJ) $(RNDOBJ) $(OUTOBJ) $(LKCOM) $(LOBJ) $(LIOBJ)
+# Compiler flags
 
-# Make rules for generating object files from GISS-Fortran files
-.SUFFIXES:
-.SUFFIXES: .o .U .S .GCM .OCN .f .F
+FFLAGS = -O2 -64 -mips4 -static -OPT:reorg_comm=off -w2 $(EXTRA_FFLAGS)
+
+# Lists of objects and dependencies
+# .depend is created with "make depend" command
+
+sinclude $(DEPENDFILE)
+FSRCS = $(OBJ_LIST:=.f)
+OBJS = $(OBJ_LIST:=.o)
+
+
+# Implicit rules
 
 # Standard fortran
+# .timestemp is a hack to set proper times on .o and .mod
 .f.o:
-	$(EXECDIR)/$(F) $<
+	@touch .timestamp
+	$(F90) -c $(FFLAGS) $<  $(PROC_OUTPUT)
+	@touch -r .timestamp $@
+
+.F.o:
+	@touch .timestamp
+	$(F90) -cpp -c $(FFLAGS) $<  $(PROC_OUTPUT)
+	@touch -r .timestamp $@
 
 # Update files
 .U.o:
@@ -64,48 +65,37 @@ OBJ	= $(MOBJ) $(DYOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) \
 .S.o:
 	$(EXECDIR)/$(F) $<
 
-.F.o:
-	$(EXECDIR)/$(F) $<
-
 # MAPS.GCM
 .GCM.o:
 	$(EXECDIR)/$(F) $<
-
 
 # FUNTABLE.OCN
 .OCN.o:
 	$(EXECDIR)/$(F) $<
 
-# Make object files dependent on relevant modules
-$(QUSCOM):	$(MCOM)
-$(GEOCOM):	$(MCOM)
-$(GHYCOM):	$(MCOM) $(SLOBJ)
-$(DAGCOM):	$(MCOM) $(RADCOM)
-$(RADCOM):	$(MCOM)
-$(CLDCOM):	$(MCOM) $(COBJ1)
-$(PBLCOM):	$(MCOM) $(PBLOBJ)
-$(LKCOM):	$(MCOM)
-$(DYOBJ):	$(COM) $(PBLCOM) $(OOBJ) $(DAGCOM)
-$(MOBJ):	$(COM) $(GHYCOM) $(DAGCOM) $(RNDOBJ) $(CLDCOM) $(PBLOBJ) $(DYOBJ) $(RADCOM) $(PBLCOM) $(OOBJ) $(UOBJ) $(LOBJ)
-$(POBJ):	$(COM) $(DAGCOM) $(ROBJ)  $(RNDOBJ) $(CLDCOM) $(RADCOM) $(PBLCOM) $(DYOBJ) $(OOBJ) $(UOBJ) $(LOBJ) $(LIOBJ)
-$(PBLDRV):	$(COM) $(PBLOBJ) $(PBLCOM) $(DYOBJ) $(OOBJ) $(UOBJ)
-$(SOBJ):	$(COM) $(DAGCOM) $(PBLOBJ) $(RADCOM) $(PBLCOM) $(DYOBJ) $(OOBJ)
-$(EOBJ):	$(COM) $(DAGCOM) $(GHYCOM) $(CLDCOM) $(PBLOBJ) $(RADCOM) $(PBLCOM) $(DYOBJ) $(UOBJ)
-$(DOBJ):	$(COM) $(DYOBJ) $(DAGCOM) $(RADCOM) $(PBLCOM) $(OOBJ)
-$(QOBJ):	$(COM) 
-$(ROBJ):	$(RCOM)
-$(OOBJ):	$(COM) $(UOBJ)
-$(COBJ1):	$(COM)
-$(COBJ2):	$(COM) $(COBJ1) $(CLDCOM) $(OOBJ) $(DAGCOM) $(RNDOBJ) $(DYOBJ) $(PBLCOM)
-$(LOBJ):	$(COM) $(LKCOM) $(DAGCOM)
+
+#########             TARGETS               ########
+
+# Extract list of object files from the rundeck $(RUN).R
+# and create dependencies
+depend:
+	perl -e 'print "OBJ_LIST = "; while(<> !~ /^Object +modules/ ){};' \
+	-e 'while(($$_=<>) !~ /(^Data +input)|(^ *$$)/)' \
+	-e '{chop; s/ *(!.*)*$$//;print "\\\n$$_";}print"\n\n";' \
+	< $(RUN).R > $(DEPENDFILE)
+	make depend_depend RUN=$(RUN)
+
+depend_depend:
+	sfmakedepend -H -f $(DEPENDFILE) $(FSRCS)
 
 # Compile the gcm
-gcm:	$(OBJ)
+gcm:	$(OBJS)
 
 # Make a current rundeck
-$(RUN).R:	$(RUNSRC).R
-mkrun:	$(RUN).R
-	mkrun $(RUNSRC) $(RUN) 
+mkrun: $(RUNSRC).R
+	if [ $(RUN) != $(RUNSRC) ]; then  \
+	sed 's/^'$(RUNSRC)'\([:\. ]\)/'$(RUN)'\1/g' $(RUNSRC).R > $(RUN).R ; \
+	fi;
 
 # Setup the gcm
 setup:	gcm
@@ -119,14 +109,14 @@ newstart:
 	rm -i /u/cmrun/$(RUN)/*
 
 clean:
-	rm -f *.LST *~ *.ERR *.CHK
+	rm -f *.LST *~ *.ERR *.CHK *.L
 
-# need to alter vclean to remove relevant .mod files
 vclean:
-	rm -f $(OBJ) 
+	rm -f *.o *.mod
 
 test:
 	echo $(RUN) $(EXECDIR) $(F) $(U) $(SETUP)
 
 cmp:    CMPE001.f
 	f90 -o CMPE001 CMPE001.f
+
