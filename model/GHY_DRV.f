@@ -884,7 +884,7 @@ c****
           ws(l,ibv)=thets(l,ibv)*dz(l)
         end do
       end do
-      ws(0,2)=.0001*alai
+      ws(0,2)=.0001d0*alai
       wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
 c****
       call xklh0
@@ -901,7 +901,7 @@ c****
 c****
 c shc(0,2) is the heat capacity of the canopy
       aa=ala(1,i0,j0)
-      shc(0,2)=(.010+.002*aa+.001*aa**2)*shw
+      shc(0,2)=(.010d0+.002d0*aa+.001d0*aa**2)*shw
 c****
 c htpr is the heat of precipitation.
 c shtpr is the specific heat of precipitation.
@@ -1134,7 +1134,7 @@ c****
           imax=imaxj(j)
           do i=1,imax
             do itype=1,3
-              snoage(itype,i,j)=1.+.98*snoage(itype,i,j)
+              snoage(itype,i,j)=1.+.98d0*snoage(itype,i,j)
             end do
             tsavg=tdiurn(i,j,5)/(nday*nisurf)
             if(32.+1.8*tsavg.lt.65.)

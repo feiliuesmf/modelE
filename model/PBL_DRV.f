@@ -79,7 +79,7 @@ C
       COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,PPBL,
      2               UG,VG,WG,ZMIX
 
-      REAL*8, PARAMETER ::  EPSLON=1.D-20,radian=3.141592654/180.
+      REAL*8, PARAMETER ::  EPSLON=1.D-20
       REAL*8 Z0M,ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
       REAL*8 ttop,qtop,tgrnd,qgrnd,utop,vtop,z0h,z0q,ufluxs,vfluxs
      *     ,tfluxs,qfluxs,psitop,psisrf
@@ -170,8 +170,6 @@ C**********************************************************************
 
 C *********************************************************************
       ppbl=pedn(l,i,j)      ! sige(l)*pij+ptop
-c      if (l.gt.ls1) ppbl=sige(l)*psfmpt+ptop
-c      phi=radian*(float(j-1)*180./float(jm-1)-90.)
       coriol=sinp(j)*omega2
       ttop=tkv
       qtop=q(i,j,1)
@@ -293,7 +291,7 @@ c -------------------------------------------------------------
 
       integer :: itype  !@var itype surface type
       integer i,j,k,iter,lpbl !@var i,j,k,iter loop variable
-      real*8 pland,pwater,plice,psoil,poice,pocean,pi,radian,
+      real*8 pland,pwater,plice,psoil,poice,pocean,
      *     ztop,elhx,coriol,tgrnd,pij,ps,psk,qgrnd
      *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar
       real*8 qsat,rvx
@@ -332,9 +330,6 @@ C things to be done regardless of inipbl
         if (psoil.le.0.)  tgvdat(i,j,4)=0.
       end do
       end do
-
-      pi=dacos(-1.d0)
-      radian=pi/180.
 
       do itype=1,4
         if ((itype.eq.1).or.(itype.eq.4)) then

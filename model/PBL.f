@@ -6,7 +6,7 @@
 !@cont ccoeff0,getk,eeqns,tqeqns,uveqns,tqeqns_sta,uveqns_sta
 !@cont inits,tcheck,ucheck,check1,output,rtsafe
 
-      USE CONSTANT, only : grav,omega
+      USE CONSTANT, only : grav,omega,pi,radian
       IMPLICIT NONE
       SAVE
       integer, parameter :: n=8  !@param n  no of pbl. layers
@@ -19,7 +19,7 @@
      *     ,s0,s1,s2,s3,s4,s5,s6,c1,c2,c3,c4,c5,c6,b1,b123
 
 C**** boundary layer parameters
-      real*8, parameter :: kappa=0.40  !@var kappa  Von Karman constant
+      real*8, parameter :: kappa=0.40d0  !@var kappa  Von Karman constant
       real*8, parameter :: zgs=10. !@var zgs height of surface layer (m)
 
 !@var  u  local due east component of wind
@@ -32,6 +32,10 @@ C**** boundary layer parameters
 
 !@var bgrid log-linear gridding parameter
       real*8 :: bgrid
+
+!@var smax,smin,cmax,cmin limits on drag coeffs.
+      real*8, parameter :: smax=0.25d0,smin=0.005d0,cmax=smax*smax,
+     *     cmin=smin*smin
 
       CONTAINS
 
@@ -97,7 +101,7 @@ c  internals:
       integer, intent(in) :: ilong,jlat,itype
 
       real*8 :: lmonin,tstar,qstar,ustar0,test
-      real*8, parameter ::  tol=1.e-4
+      real*8, parameter ::  tol=1d-4
       integer :: itmax
       integer, parameter :: iprint= 0,jprint=33  ! set iprint>0 to debug
       real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave,esave
@@ -234,8 +238,6 @@ c Diagnostics printed at a selected point:
 !@var LMONIN the Monin-Obukhov length scale
       implicit none
 
-      real*8, parameter ::  smax=0.25,smin=0.005,cmax=smax*smax,
-     *     cmin=smin*smin
       integer, intent(in) :: itype,n
       real*8, dimension(n), intent(in) :: u,v,t,q,z
       real*8, dimension(n-1), intent(in) :: km,kh,dzh
@@ -287,7 +289,7 @@ c     To compute the drag coefficient,Stanton number and Dalton number
 !@var n number of vertical subgrid main layers
       implicit none
 
-      real*8, parameter :: alpha=0.20
+      real*8, parameter :: alpha=0.20d0
       integer, intent(in) :: n    !@var n array dimension
       real*8, dimension(n-1), intent(out) :: lscale
       real*8, dimension(n-1), intent(in) :: e,zhat,dzh
@@ -331,7 +333,7 @@ c     To compute the drag coefficient,Stanton number and Dalton number
 !@var n number of vertical subgrid main layers
       implicit none
 
-      real*8, parameter :: lcoef=0.060
+      real*8, parameter :: lcoef=0.060d0
       real*8, dimension(n-1), intent(in) :: e,zhat,dzh
       real*8, dimension(n), intent(in) :: u,v,t
       real*8, dimension(n-1), intent(out) :: lscale
@@ -355,8 +357,8 @@ c     To compute the drag coefficient,Stanton number and Dalton number
           dudz=(u(i+1)-u(i))/dzh(i)
           dvdz=(v(i+1)-v(i))/dzh(i)
           as2=dudz*dudz+dvdz*dvdz
-          lmax  =0.53*sqrt(2.*e(i)/(an2+1.e-40))
-          lmax2 =1.95*sqrt(2.*e(i)/(as2+1.e-40))
+          lmax  =0.53*sqrt(2.*e(i)/(an2+1d-40))
+          lmax2 =1.95*sqrt(2.*e(i)/(as2+1d-40))
           lmax=min(lmax,lmax2)
           if (lscale(i).gt.lmax) lscale(i)=lmax
         endif
@@ -393,15 +395,13 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       real*8,  intent(inout) :: z0m
       real*8,  intent(out) :: cm,ch,cq,z0h,z0q
 
-      real*8, parameter :: nu=1.5e-5,num=0.135*nu,nuh=0.395*nu,
-     *     nuq=0.624*nu
-      real*8, parameter :: epslon=1.e-20
+      real*8, parameter :: nu=1.5d-5,num=0.135d0*nu,nuh=0.395d0*nu,
+     *     nuq=0.624d0*nu
+      real*8, parameter :: epslon=1d-20
 
-      real*8, parameter :: sigma=0.95,sigma1=1.-sigma
-      real*8, parameter :: gamamu=19.3,gamahu=11.6,gamams=4.8,
+      real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
+      real*8, parameter :: gamamu=19.3d0,gamahu=11.6d0,gamams=4.8d0,
      *     gamahs=8./sigma
-      real*8, parameter :: smax=0.25,smin=0.005,cmax=smax*smax,
-     *     cmin=smin*smin
 
       real*8 r0q,beta,zgsbyl,z0mbyl,z0hbyl,z0qbyl,cmn,chn,cqn,dpsim
      *     ,dpsih,dpsiq,xms,xm0,xhs,xh0,xqs,xq0,dm,dh,dq,lzgsbyz0m
@@ -410,19 +410,19 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       if ((itype.eq.1).or.(itype.eq.2)) then
 c *********************************************************************
 c  Compute roughness lengths using rough surface formulation:
-        z0m=num/ustar+0.018*ustar*ustar/grav
-        if (z0m.gt.0.2) z0m=0.2
-        if (ustar.le.0.02) then
+        z0m=num/ustar+0.018d0*ustar*ustar/grav
+        if (z0m.gt.0.2d0) z0m=0.2d0
+        if (ustar.le.0.02d0) then
           z0h=nuh/ustar
-          if (z0h.gt.0.5852) z0h=0.5852
+          if (z0h.gt.0.5852d0) z0h=0.5852d0
           z0q=nuq/ustar
-          if (z0q.gt.0.92444) z0q=0.92444
+          if (z0q.gt.0.92444d0) z0q=0.92444d0
           else
           r0q=(ustar*z0m/nu)**0.25
-          z0h=7.4*z0m*exp(-2.4604*r0q)
-          z0q=7.4*z0m*exp(-2.2524*r0q)
-          if (ustar.lt.0.2) then
-            beta=(ustar-0.02)/0.18
+          z0h=7.4*z0m*exp(-2.4604d0*r0q)
+          z0q=7.4*z0m*exp(-2.2524d0*r0q)
+          if (ustar.lt.0.2d0) then
+            beta=(ustar-0.02d0)/0.18d0
             z0h=(1.-beta)*nuh/ustar+beta*z0h
             z0q=(1.-beta)*nuq/ustar+beta*z0q
           endif
@@ -481,9 +481,9 @@ c *********************************************************************
       dm=1./(1.-sqrt(cmn)*dpsim/kappa)**2
       dh=sqrt(dm)/(1.-chn*dpsih/(kappa*sqrt(cmn)))
       dq=sqrt(dm)/(1.-cqn*dpsiq/(kappa*sqrt(cmn)))
-      if (dm.lt.1.e-4) dm=1.e-4
-      if (dh.lt.1.e-4) dh=1.e-4
-      if (dq.lt.1.e-4) dq=1.e-4
+      if (dm.lt.1d-4) dm=1d-4
+      if (dh.lt.1d-4) dh=1d-4
+      if (dq.lt.1d-4) dq=1d-4
 
       cm=dm*cmn
       ch=dh*chn
@@ -524,8 +524,8 @@ c *********************************************************************
       real*8,  intent(in) :: lmonin,tg,qg
       real*8,  intent(out) :: u,t,q
 
-      real*8, parameter :: sigma=0.95,sigma1=1.-sigma
-      real*8, parameter :: gamamu=19.3,gamahu=11.6,gamams=4.8,
+      real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
+      real*8, parameter :: gamamu=19.3d0,gamahu=11.6d0,gamams=4.8d0,
      *     gamahs=8./sigma
 
       real*8 zbyl,z0mbyl,z0hbyl,z0qbyl,dpsim,dpsih,dpsiq,xm,xm0,xh,xh0
@@ -616,7 +616,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       real*8, dimension(n-1), intent(out) :: zhat,xihat,dzh
       real*8, intent(in) :: z1,zn,bgrid
 
-      real*8, parameter ::  tolz=1.e-3
+      real*8, parameter ::  tolz=1d-3
       real*8 z1pass,znpass,b,xipass,lznbyz1
       common /grids_99/z1pass,znpass,b,xipass,lznbyz1
       real*8, external :: fgrid,fgrid2
@@ -678,7 +678,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       real*8 tsurf
       integer i  !@var i loop variable
 
-      tsurf=tgrnd+0.2*(ttop-tgrnd)
+      tsurf=tgrnd+0.2d0*(ttop-tgrnd)
       t(1)=tsurf
       do i=2,n-1
         t(i)=tsurf+(z(i)-z(1))*(ttop-tsurf)/(z(n)-z(1))
@@ -698,31 +698,31 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       real*8 :: g1,g2,g3,g4,g5,g6,g7,g8,prt,del
 
       prt=     0.82d0
-      b1=     19.3
+      b1=     19.3d0
       b123=b1**(2./3.)
-      g1=       .1070
-      g2=       .0032
-      g3=       .0864
-      g4=       .1000
-      g5=     11.04
-      g6=       .786
-      g7=       .643
-      g8=       .547
+      g1=       .1070d0
+      g2=       .0032d0
+      g3=       .0864d0
+      g4=       .1000d0
+      g5=     11.04d0
+      g6=       .786d0
+      g7=       .643d0
+      g8=       .547d0
 c
-      d0 = 3*g5**2
-      d1 = g5*(7*g4+3*g8)
-      d2 = g5**2*(3*g3**2-g2**2)-3.d0/4*(g6**2-g7**2)
-      d3 = g4*(4*g4+3*g8)
-      d4 = g4*(g2*g6-3*g3*g7-g5*(g2**2-g3**2))+g5*g8*(3*g3**2-g2**2)
-      d5 = 1.d0/4*(g2**2-3*g3**2)*(g6**2-g7**2)
-      s0 = 3.d0/2.*g1*g5**2
-      s1 = -g4*(g6+g7)+2*g4*g5*(g1-1.d0/3*g2-g3)+3.d0/2*g1*g5*g8
-      s2 = -3.d0/8*g1*(g6**2-g7**2)
+      d0 = 3.*g5**2
+      d1 = g5*(7.*g4+3.*g8)
+      d2 = g5**2*(3.*g3**2-g2**2)-3d0/4*(g6**2-g7**2)
+      d3 = g4*(4.*g4+3.*g8)
+      d4 = g4*(g2*g6-3.*g3*g7-g5*(g2**2-g3**2))+g5*g8*(3.*g3**2-g2**2)
+      d5 = 1d0/4.*(g2**2-3.*g3**2)*(g6**2-g7**2)
+      s0 = 3d0/2.*g1*g5**2
+      s1 = -g4*(g6+g7)+2.*g4*g5*(g1-1d0/3.*g2-g3)+3d0/2.*g1*g5*g8
+      s2 = -3d0/8.*g1*(g6**2-g7**2)
       s3 = 0.
-      s4 = 2*g5
-      s5 = 2*g4
-      s6 = 2.d0/3*g5*(3*g3**2-g2**2)-1.d0/2*g1*g5*(3*g3-g2)
-     &     +3.d0/4*g1*(g6-g7)
+      s4 = 2.*g5
+      s5 = 2.*g4
+      s6 = 2d0/3.*g5*(3.*g3**2-g2**2)-1d0/2.*g1*g5*(3.*g3-g2)
+     &     +3d0/4.*g1*(g6-g7)
 c      write(99,*) "      d0=",d0
 c      write(99,*) "      d1=",d1
 c      write(99,*) "      d2=",d2
@@ -742,9 +742,9 @@ c
       c1=s5+2*d3
       c2=-s1+s6+2*d4
       c3=-s2+2*d5
-      c4=s4+2*d1
-      c5=-s0+2*d2
-      c6=2*d0
+      c4=s4+2.*d1
+      c5=-s0+2.*d2
+      c6=2.*d0
 
 c      write(99,*) "c1=",c1
 c      write(99,*) "c2=",c2
@@ -756,7 +756,7 @@ c      write(99,*) "c6=",c6
       if(c3.eq.0.) then ! the case of Mellor-Yamada mdel
           rimax=-c2/c1
       else
-          rimax=(-c2+sqrt(c2**2-4.*c1*c3))/(2*c1)
+          rimax=(-c2+sqrt(c2**2-4.*c1*c3))/(2.*c1)
       endif
 c      write(99,*) "rimax=",rimax
       rimax=int(rimax*1000.)/1000.
@@ -764,15 +764,15 @@ c      write(99,*) "rimax=",rimax
 c
 c     find ghmin:
 c
-      del=(s4+2*d1)**2-8.*d0*(s5+2*d3)
+      del=(s4+2.*d1)**2-8.*d0*(s5+2.*d3)
 c      write(99,*) "del=",del
-      ghmin=(-s4-2*d1+sqrt(del))/(2*(s5+2*d3))
+      ghmin=(-s4-2.*d1+sqrt(del))/(2.*(s5+2.*d3))
 c      write(99,*) "ghmin=",ghmin
       ghmin=int(ghmin*10000.)/10000.
 c      write(99,*) "ghmin=",ghmin
 c      write(99,*) "ghmin/B1**2=",ghmin/B1**2
-      ghmax=(0.53*b1)**2
-      gmmax0=(1.95*b1)**2
+      ghmax=(0.53d0*b1)**2
+      gmmax0=(1.95d0*b1)**2
 c      write(99,*) "ghmax=",ghmax
 c      write(99,*) "gmmax0=",gmmax0
       return
@@ -828,7 +828,7 @@ c     at edge: e,lscale,km,kh,gm,gh
       real*8, dimension(n-1), intent(in) :: e,lscale,dzh
       real*8, dimension(n-1), intent(out) :: km,kh,ke,gma,gha
 
-      real*8, parameter ::  sq=0.02
+      real*8, parameter ::  sq=0.02d0
       real*8 :: an2,dudz,dvdz,as2,ell,den,qturb,tau,gh,gm,gmmax,sm,sh
       integer :: i,j  !@var i,j loop variable
 
@@ -935,7 +935,7 @@ c
       call TRIDIAG(sub,dia,sup,rhs,e,n-1)
 
       do j=1,n-1
-         if(e(j).lt.1.d-20) e(j)=1.d-20
+         if(e(j).lt.1d-20) e(j)=1d-20
       end do
 
       Return
@@ -1002,7 +1002,7 @@ c     M.J.Miller et al. 1992:
       wstar3=-1000.*grav*kh(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
      &                        -(q(2)-q(1)) )/dzh(1)
       if(wstar3.gt.0.) then
-        wstar2 = wstar3**(2./3.)
+        wstar2 = wstar3**(2d0/3d0)
       else
         wstar2 = 0.
       endif
@@ -1159,7 +1159,7 @@ c     M.J.Miller et al. 1992:
       wstar3=-1000.*grav*kh(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
      &                        -(q(2)-q(1)) )/dzh(1)
       if(wstar3.gt.0.) then
-        wstar2 = wstar3**(2./3.)
+        wstar2 = wstar3**(2d0/3d0)
       else
         wstar2 = 0.
       endif
@@ -1292,14 +1292,14 @@ c       rhs1(i)=-coriol*(u(i)-ug)
         aa=c1*ri*ri+c2*ri+c3
         bb=c4*ri+c5
         cc=c6
-        if(abs(aa).lt.1.e-8) then
+        if(abs(aa).lt.1d-8) then
           gm= -cc/bb
         else
           tmp=bb*bb-4.*aa*cc
           gm=(-bb-sqrt(tmp))/(2.*aa)
         endif
-        e(i)=0.5*(B1*lscale(i))**2*as2/(gm+1.e-20)
-        if(e(i).le. 1.e-40)  e(i)=1.e-40
+        e(i)=0.5*(B1*lscale(i))**2*as2/(gm+1d-20)
+        if(e(i).le. 1d-40)  e(i)=1d-40
       end do
 
       return
@@ -1341,17 +1341,15 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       real*8, dimension(n-1) :: zhat,xihat,dzh,lscale
       real*8 :: tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,ttop,qtop
      *     ,coriol,cm,ch,cq,lmonin
-     *     ,bgrid,ustar,pi,radian,z0m,z0h,z0q,hemi,psi1,psi0,psi
+     *     ,bgrid,ustar,z0m,z0h,z0q,hemi,psi1,psi0,psi
      *     ,usurf,tstar,qstar,ustar0,dtime,test
 
 c     integer, parameter ::  n=8
       integer, parameter ::  itmax=100
       integer, parameter ::  iprint= 0,jprint=25 ! set iprint>0 to debug
-      real*8, parameter ::  w=0.50,tol=1.e-4,epslon=1.e-20
+      real*8, parameter ::  w=0.50,tol=1d-4,epslon=1d-20
       integer :: i,j,iter  !@var i,j,iter loop variable
 
-      pi=dacos(-1.d0)
-      radian=pi/180.
       z0m=zgrnd
       z0h=z0m
       z0q=z0m
@@ -1384,12 +1382,12 @@ c Initialization for iteration:
         psi0=atan2(utop,abs(vtop))+1.5*pi
       endif
       psi=psi0+psi1
-      usurf=0.4*sqrt(utop*utop+vtop*vtop)
+      usurf=0.4d0*sqrt(utop*utop+vtop*vtop)
       u(1)=usurf*cos(psi)
       v(1)=usurf*sin(psi)
       t(1)=tgrnd-0.5*(tgrnd-ttop)
       q(1)=qgrnd-0.5*(qgrnd-qtop)
-      e(1)=1.e-2
+      e(1)=1d-2
         usave(1)=u(1)
         vsave(1)=v(1)
         tsave(1)=t(1)
@@ -1399,7 +1397,7 @@ c Initialization for iteration:
       v(n)=vtop
       t(n)=ttop
       q(n)=qtop
-      e(n-1)=2.e-2
+      e(n-1)=2d-2
 
       do i=2,n-1
         u(i)=u(1)+(u(n)  -u(1))*((z(i)-z(1))/(z(n)  -z(1)))
@@ -1561,10 +1559,9 @@ c ----------------------------------------------------------------------
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
       implicit none
-      real*8, parameter :: epslon=1.e-20
-      real*8, parameter :: pi=3.141592654, radian=pi/180.
+      real*8, parameter :: epslon=1d-20
       real*8, parameter :: psistb=15.*radian, psiuns=5.*radian
-      real*8, parameter :: gammau=19.3, gammas=4.8
+      real*8, parameter :: gammau=19.3d0, gammas=4.8d0
 
       integer, intent(in) :: n  !@var n array dimension
       real*8, dimension(n),intent(inout) :: u,v,z
@@ -1617,7 +1614,7 @@ c  set the wind magnitude to that given by similarity theory:
      3            2.*(atan(x)-atan(x0))
           endif
           utotal=(ustar/kappa)*(log(z(i)/z0m)-dpsim)
-          if (utotal.gt.utest) utotal=0.95*utest
+          if (utotal.gt.utest) utotal=0.95d0*utest
           u(i)=utotal*cos(psiu)
           v(i)=utotal*sin(psiu)
         endif
@@ -1682,14 +1679,14 @@ c  set the wind magnitude to that given by similarity theory:
 !@ver   1.0
 !@calls simil
       implicit none
-      real*8, parameter :: epslon=1.e-40
-      real*8, parameter :: degree=180./3.141592654
+      real*8, parameter :: epslon=1d-40
+      real*8, parameter :: degree=1./radian
 
-      real*8, parameter :: gammah=11.6
-      real*8, parameter :: gammam=19.3
-      real*8, parameter :: sigmat=0.95
+      real*8, parameter :: gammah=11.6d0
+      real*8, parameter :: gammam=19.3d0
+      real*8, parameter :: sigmat=0.95d0
       real*8, parameter :: betah=8./sigmat
-      real*8, parameter :: betam=4.8
+      real*8, parameter :: betam=4.8d0
 
       integer, intent(in) :: n,itype,iter,jlat,ilong
       real*8,  intent(in) :: lscale(n-1),lmonin
@@ -1742,9 +1739,9 @@ c  set the wind magnitude to that given by similarity theory:
         uflux=km(i)*shear*sign
         hflux=kh(i)*tgrad
         qflux=kh(i)*qgrad
-        bvfrq2=grav*log(t(i+1)/t(i))/dzh(i)+1.e-12
+        bvfrq2=grav*log(t(i+1)/t(i))/dzh(i)+1d-12
         shear2=((u(i+1)-u(i))/dzh(i))**2+
-     2         ((v(i+1)-v(i))/dzh(i))**2+1.e-8
+     2         ((v(i+1)-v(i))/dzh(i))**2+1d-8
         rich=bvfrq2/shear2
         write (99,3000) i,zhat(i),e(i),lscale(i),km(i),kh(i),
      2                    gm(i),gh(i),uflux,hflux,qflux,rich
@@ -1767,9 +1764,9 @@ c  set the wind magnitude to that given by similarity theory:
         dudzs=ustar*phim/(kappa*zhat(i))
         dtdzs=tstar*phih/(kappa*zhat(i))
         dqdzs=qstar*phih/(kappa*zhat(i))
-        uratio=dudzs/(dudz+1.e-40)
-        tratio=dtdzs/(dtdz+1.e-40)
-        qratio=dqdzs/(dqdz+1.e-40)
+        uratio=dudzs/(dudz+1d-40)
+        tratio=dtdzs/(dtdz+1d-40)
+        qratio=dqdzs/(dqdz+1d-40)
 
         dbydzh=1./dzh(i)
         shear2=dbydzh*dbydzh*((u(i+1)-u(i))**2+

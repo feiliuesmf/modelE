@@ -1068,22 +1068,16 @@ C****
 !@sum  DAILY performs daily model-related tasks and at start
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : orbit
+!@calls constant:orbit, calc_ampk, getdte
+      USE CONSTANT, only : orbit,omegt,obliq,eccn
       USE MODEL_COM, only : im,jm,p,itime,itimei,ptop,psf,ls1,jday
      *     ,iyear1,nday,jdpery,jyear,jmon,jdendofm,jdate,aMON,aMONTH
      *     ,jhour
       USE GEOM, only : areag,dxyp
       USE RADNCB, only : RSDIST,COSD,SIND
-
       IMPLICIT NONE
-
-      REAL*8 DELTAP,PBAR,SPRESS,SMASS
+      REAL*8 DELTAP,PBAR,SPRESS,SMASS,LAM
       INTEGER I,J,IEND,IDOZ1O
-
-      REAL*8 LAM
-
-C**** ORBITAL PARAMETERS FOR EARTH FOR YEAR 2000 A.D.
-      REAL*8, PARAMETER :: OMEGT = 282.9,OBLIQ=23.44,ECCN=.0167
 
       IF (IEND.eq.0.and.Itime.gt.ItimeI) GO TO 200
 C****

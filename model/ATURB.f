@@ -1054,6 +1054,7 @@ C****
 !@var s_ucell a scalar at secondary grids (ucell)
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
+      USE CONSTANT, only : by3
       USE GEOM, only : imaxj,idij,idjj,kmaxj,ravj
       implicit none
 
@@ -1084,10 +1085,8 @@ C****
              ip1=i+1
           endif
           do l=1,lm
-            s_ucell(l,i,2)=0.333333333333333d0*(s(l,1,1)
-     2               +s(l,i,2)+s(l,ip1,2))
-            s_ucell(l,i,jm)=0.333333333333333d0*(s(l,1,jm)
-     2               +s(l,i,jm-1)+s(l,ip1,jm-1))
+            s_ucell(l,i,2)=(s(l,1,1)+s(l,i,2)+s(l,ip1,2))*by3
+            s_ucell(l,i,jm)=(s(l,1,jm)+s(l,i,jm-1)+s(l,ip1,jm-1))*by3
           end do
         end do
 
@@ -1157,6 +1156,7 @@ ccccccccccccccccccccccccccccc
 !@var s_ucell s at secondary grids (ucell)
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
+      use constant, only : by3
       implicit none
 
       integer, intent(in) :: im,jm,lm
@@ -1187,10 +1187,8 @@ ccccccccccccccccccccccccccccc
              ip1=i+1
           endif
           do l=1,lm
-            s_ucell(l,i,2)=0.333333333333333d0*(s(l,1,1)
-     2               +s(l,i,2)+s(l,ip1,2))
-            s_ucell(l,i,jm)=0.333333333333333d0*(s(l,1,jm)
-     2               +s(l,i,jm-1)+s(l,ip1,jm-1))
+            s_ucell(l,i,2)=(s(l,1,1)+s(l,i,2)+s(l,ip1,2))*by3
+            s_ucell(l,i,jm)=(s(l,1,jm)+s(l,i,jm-1)+s(l,ip1,jm-1))*by3
           end do
         end do
 

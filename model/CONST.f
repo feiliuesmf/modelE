@@ -156,6 +156,15 @@ c**** SI reference gravity (at 45 deg) = 9.80665
 !@param bygrav 1/grav
       real*8,parameter :: bygrav = 1d0/grav
 
+C**** ORBITAL PARAMETERS FOR EARTH:  2000 A.D.  6000 BP   LGM
+!@param  OMEGT precession angle       282.9
+      real*8, parameter :: omegt = 282.9d0
+!@param  OBLIQ obliquity angle        23.44
+      real*8, parameter :: obliq = 23.44d0
+!@param  OMEGT precession angle       .0167
+      real*8, parameter :: eccn  = .0167d0
+
+
 C**** lapse rate related variables
 !@param GAMD dry adiabatic lapse rate (=0.0098 K/m)
       real*8, parameter :: gamd = grav*kapa/rgas
