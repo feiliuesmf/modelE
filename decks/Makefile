@@ -34,8 +34,8 @@ help:
 sinclude $(MODEL_DIR)/Rules.make
 
 rundeck:
-	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R -a \
-	-z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
+	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] && \
+	[ -z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
 	echo 'name $(RUN) is already used by somebody else'; \
 	echo 'please choose a unique one'; exit 1  ; fi
 	@if [ -s $(DECKS_REPOSITORY)/$(RUN).R -a $(OVERWRITE) != YES ];\
@@ -67,8 +67,8 @@ setup_script:
 	@if [ ! -d $(DECKS_REPOSITORY) ]; then \
 	 echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---';\
 	else \
-	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R -a \
-	    -z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
+	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] &&  \
+	    [ -z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
 	    echo 'name $(RUN) is already used by somebody else'; \
 	    echo 'please choose a unique one'; exit 1; \
 	  else \
@@ -99,8 +99,8 @@ setup_gfdl: gcm $(SETUP_GFDL)
 	@if [ ! -d $(DECKS_REPOSITORY) ]; then \
 	  echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---';\
 	else \
-	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R -a \
-	    -z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
+	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] && \
+	    [ -z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
 	    echo 'name $(RUN) is already used by somebody else'; \
 	    echo 'please choose a unique one'; exit 1; \
 	  else \
