@@ -3104,7 +3104,7 @@ C**** Note that currently everything is on same grid
 C****
       DO J=1,JM
         DO I=1,IMAXJ(J)
-          IF (FOCEAN(I,J).gt.0.and.MO(I,J,1).gt.0) THEN
+          IF (FOCEAN(I,J).gt.0.) THEN
             GO= G0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
             SO= S0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
             TO= TEMGS(GO,SO)
