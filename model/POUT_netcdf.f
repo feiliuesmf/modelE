@@ -931,3 +931,17 @@ C**** set dimensions
       call wrtarr(var_name,xijk)
       return
       end
+
+C**** These entries are to allow model compilation with netcdf output.
+C**** These subroutines need to be filled in so that diurn and hdiurn
+C**** output are available in netcdf format, following the example of
+C**** open_j/close_j/pout_j
+
+      subroutine open_diurn
+      entry close_diurn
+      entry pout_diurn
+      entry open_hdiurn
+      entry close_hdiurn
+      entry pout_hdiurn
+      
+      end subroutine open_diurn
