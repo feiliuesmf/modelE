@@ -2386,7 +2386,6 @@ c
       iDO_GWDRAG = k-IJ_GW1+1
       END IF
 
-      if (isccp_diags.eq.1) then
       k=k+1 !
       IJ_LCLDI = k
       lname_ij(k) = 'LOW LEVEL CLOUDINESS (ISCCP)'
@@ -2478,8 +2477,6 @@ c      name_ij(k) = 'MSU4'
 c      ia_ij(k) = ia_inst
 c      ir_ij(k) = ir_m80_28
 c      scale_ij(k) = 1.
-
-      end if
 
       k=k+1
       IJ_PTROP = k
