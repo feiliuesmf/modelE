@@ -44,6 +44,9 @@
 #endif
       implicit none
       integer :: l,k,n
+#ifdef regional_Ox_tracers
+      integer ntemp,n2
+#endif
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
       character*10 CMR
 #ifdef TRACERS_ON
@@ -63,8 +66,12 @@
 !@var title header read in from file
       REAL*8, DIMENSION(LM) :: PRES,tempOx2
       REAL*8, DIMENSION(LcorrOx) :: tempOx1
-      integer iu_data,m,j
+      integer iu_data,m,j,nq
       character*80 title
+#ifdef regional_Ox_tracers
+!@var Ox_a_tracer logical is true if Ox is one of the tracers
+      logical Ox_a_tracer
+#endif
 #endif
 
 C**** Set defaults for tracer attributes (all dimensioned ntm)
@@ -107,6 +114,17 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
+#ifdef Ox_regional_tracers
+      Ox_a_tracer=.false.
+      do n2=1,ntm; if(trname(n2).eq.'Ox')Ox_a_tracer=.true.; end do
+      if(.not.Ox_a_tracer)call stop_model(
+     &'Ox must be tracer if using regional Ox tracers; define 1st',255)
+      regOx_t=0.
+      regOx_b=0.
+      regOx_n=0.
+      regOx_s=0.
+      ntemp=0
+#endif
 #endif
 C**** Define individual tracer characteristics
       do n=1,ntm
@@ -280,16 +298,16 @@ c         read stratospheric correction from files:
      &                  tempOx2,.true.)
            CorrOx(J,:,M)=tempOx2(:)
           END DO   ; END DO
-C          Only alter Ox between 150 and 30 hPa (lower strat):
+C         Only alter Ox between 150 and 30 hPa (lower strat):
           DO L=1,LM
-             IF(PRES(L).lt.30.d0.or.PRES(L).gt.150.d0) 
-     &       corrOx(:,L,:)=1.0d0
+            IF(PRES(L).lt.30.d0.or.PRES(L).gt.150.d0) 
+     &      corrOx(:,L,:)=1.0d0
           END DO
 c          
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
-          F0(n) = 1.d0
+          F0(n) = 1.8d0
           HSTAR(n) = 1.d-2
 #endif
 
@@ -454,8 +472,93 @@ C + 18.% Pentane(5C) + 34.% higher Alkanes(7.5C) + 4.4% Ketones(4.6C)) +
 C 5.8% biomass burning x (51.9% Ethane(2C) + 15.1% Propane(3C)
 C + 4.5% Butane(4C) + 10.8% Pentane(5C) + 12.6% higher alkanes(8C)
 C + 5.1% Ketones(3.6C)) = 4.95 C
-C
 C This number wasn't adjusted when the vegetation source was added.
+
+#ifdef regional_Ox_tracers 
+      case ('OxREG1')
+      n_OxREG1 = n    
+          ntemp= n-(ntm-NregOx)
+          ntm_power(n) = -8
+          tr_mm(n) = 48.d0
+#ifdef TRACERS_DRYDEP
+          F0(n) = 1.8d0
+          HSTAR(n) = 1.d-2
+#endif
+          regOx_n(ntemp)=90.d0  !deg
+          regOx_s(ntemp)=30.d0  !deg
+          regOx_t(ntemp)=710.d0 !hPa
+          regOx_b(ntemp)=2000.d0 ! intentionally large
+
+      case ('OxREG2')
+      n_OxREG2 = n    
+          ntemp= n-(ntm-NregOx)
+          ntm_power(n) = -8
+          tr_mm(n) = 48.d0
+#ifdef TRACERS_DRYDEP
+          F0(n) = 1.8d0
+          HSTAR(n) = 1.d-2
+#endif
+          regOx_n(ntemp)=30.d0
+          regOx_s(ntemp)=-30.d0
+          regOx_t(ntemp)=710.d0
+          regOx_b(ntemp)=2000.d0 ! intentionally large
+
+      case ('OxREG3')
+      n_OxREG3 = n    
+          ntemp= n-(ntm-NregOx)
+          ntm_power(n) = -8
+          tr_mm(n) = 48.d0
+#ifdef TRACERS_DRYDEP
+          F0(n) = 1.8d0
+          HSTAR(n) = 1.d-2
+#endif
+          regOx_n(ntemp)=-30.d0
+          regOx_s(ntemp)=-90.d0
+          regOx_t(ntemp)=710.d0
+          regOx_b(ntemp)=2000.d0 ! intentionally large
+
+      case ('OxREG4')
+      n_OxREG4 = n    
+          ntemp= n-(ntm-NregOx)
+          ntm_power(n) = -8
+          tr_mm(n) = 48.d0
+#ifdef TRACERS_DRYDEP
+          F0(n) = 1.8d0
+          HSTAR(n) = 1.d-2
+#endif
+          regOx_n(ntemp)=90.d0
+          regOx_s(ntemp)=30.d0
+          regOx_t(ntemp)=245.d0
+          regOx_b(ntemp)=710.d0
+
+      case ('OxREG5')
+      n_OxREG5 = n    
+          ntemp= n-(ntm-NregOx)
+          ntm_power(n) = -8
+          tr_mm(n) = 48.d0
+#ifdef TRACERS_DRYDEP
+          F0(n) = 1.8d0
+          HSTAR(n) = 1.d-2
+#endif
+          regOx_n(ntemp)=30.d0
+          regOx_s(ntemp)=-30.d0
+          regOx_t(ntemp)=150.d0
+          regOx_b(ntemp)=710.d0
+
+      case ('OxREG6')
+      n_OxREG6 = n    
+          ntemp= n-(ntm-NregOx)
+          ntm_power(n) = -8
+          tr_mm(n) = 48.d0
+#ifdef TRACERS_DRYDEP
+          F0(n) = 1.8d0
+          HSTAR(n) = 1.d-2
+#endif 
+          regOx_n(ntemp)=-30.d0
+          regOx_s(ntemp)=-90.d0
+          regOx_t(ntemp)=245.d0
+          regOx_b(ntemp)=710.d0
+#endif
 #endif
  
 #ifdef TRACERS_AEROSOLS_Koch
@@ -1337,6 +1440,102 @@ C**** special unique to HTO
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
+      case ('OxREG1')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF OxREG1 BY CHEMISTRY IN TROPOSHPERE'
+        jls_ltop(k) = LS1-1
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF OxREG1 BY STRATOSPHERIC OVERWRITE'
+        jls_ltop(k) = LM
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+      case ('OxREG2')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF OxREG2 BY CHEMISTRY IN TROPOSHPERE'
+        jls_ltop(k) = LS1-1
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF OxREG2 BY STRATOSPHERIC OVERWRITE'
+        jls_ltop(k) = LM
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+                
+      case ('OxREG3')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF OxREG3 BY CHEMISTRY IN TROPOSHPERE'
+        jls_ltop(k) = LS1-1
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF OxREG3 BY STRATOSPHERIC OVERWRITE'
+        jls_ltop(k) = LM
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        
+      case ('OxREG4')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF OxREG4 BY CHEMISTRY IN TROPOSHPERE'
+        jls_ltop(k) = LS1-1
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF OxREG4 BY STRATOSPHERIC OVERWRITE'
+        jls_ltop(k) = LM
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        
+      case ('OxREG5')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF OxREG5 BY CHEMISTRY IN TROPOSHPERE'
+        jls_ltop(k) = LS1-1
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF OxREG5 BY STRATOSPHERIC OVERWRITE'
+        jls_ltop(k) = LM
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+      case ('OxREG6')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'trop_chem_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF OxREG6 BY CHEMISTRY IN TROPOSHPERE'
+        jls_ltop(k) = LS1-1
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF OxREG6 BY STRATOSPHERIC OVERWRITE'
+        jls_ltop(k) = LM
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
       case ('DMS')
         k = k + 1
         jls_source(1,n) = k
@@ -1651,6 +1850,24 @@ c
         jls_ltop(k)  = LS1-1
         jls_power(k) = -2. 
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+#ifdef regional_Ox_tracers
+c
+        k = k + 1
+        jls_Oxloss=k
+        sname_jls(k) = 'Ox_loss'
+        lname_jls(k) = 'Ox chemical loss'
+        jls_ltop(k)  = LS1-1
+        jls_power(k) = -2. 
+        units_jls(k) = unit_string(jls_power(k),'molecules/cm3/s')
+c
+        k = k + 1
+        jls_Oxprod=k
+        sname_jls(k) = 'Ox_prod'
+        lname_jls(k) = 'Ox chemical production'
+        jls_ltop(k)  = LS1-1
+        jls_power(k) = -2. 
+        units_jls(k) = unit_string(jls_power(k),'molecules/cm3/s')
+#endif
 #endif
 
 #ifdef TRACERS_AEROSOLS_Koch
@@ -2252,6 +2469,26 @@ C**** (not necessary associated with a particular tracer)
         ijts_power(k) = -10.
         units_ijts(k) = unit_string(ijts_power(k),'flash/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifdef regional_Ox_tracers
+      k = k+1
+        ijs_Oxloss=k
+        ijts_index(k) = ntm
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Ox chemical loss rate'
+        sname_ijts(k) = 'Ox_loss'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3/s')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      k = k+1
+        ijs_Oxprod=k
+        ijts_index(k) = ntm
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Ox chemical production rate'
+        sname_ijts(k) = 'Ox_prod'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3/s')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
 #endif
 
       if (k .gt. ktaijs) then
@@ -2465,7 +2702,7 @@ C**** First 12 are standard for all tracers and GCM
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
-      case ('Ox')
+      case ('Ox','OxREG1','OxREG2','OxREG3','OxREG4','OxREG5','OxREG6')
       kt_power_change(n) = -12
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
@@ -3168,6 +3405,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
      *   tr_mm
+#ifdef regional_Ox_tracers
+     *   ,NregOx,n_Ox
+#endif
 #ifdef TRACERS_WATER
      *  ,trwm,trw0,tr_wd_TYPE,nWATER
       USE LANDICE, only : ace1li,ace2li
@@ -3213,12 +3453,19 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #ifdef TRACERS_SPECIAL_Shindell
 !@var imonth dummy index for choosing the right month
       INTEGER imonth, J2
+#ifdef regional_Ox_tracers
+!@var byNregOx reciprocal of the number of regional Ox tracers
+      REAL*8 byNregOx
+#endif
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       REAL*8 dmsconc,dmstx
       INTEGER mon_unit, mont,ii,jj,ir,mm
 #endif
 
+#ifdef regional_Ox_tracers
+      byNregOx=1.d0/float(NregOx)
+#endif
       do n=1,ntm
 
       if (itime.eq.itime_tr0(n)) then
@@ -3467,7 +3714,11 @@ C         Place initial conditions into tracer mass array:
           trmom(:,:,:,:,n) = 0.
           J2=0
 #endif
-
+#ifdef regional_Ox_tracers
+        case ('OxREG1','OxREG2','OxREG3','OxREG4','OxREG5','OxREG6')
+          trm(:,:,:,n)=trm(:,:,:,n_Ox)*byNregOx
+#endif
+        
         case ('NOx')
           do l=1,lm; do j=1,jm; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
@@ -3733,7 +3984,7 @@ C         (lightning called from tracer_3Dsource)
           call read_Paraffin_sources(n,iact)
         case ('N2O5')
           tr3Dsource(:,:,:,:,n) = 0.
-          call get_sulfate  !not applied directly, used in chemistry.
+          call get_sulfate_N2O5 !not applied directly;used in chemistry.
         end select
       end do
 #endif
