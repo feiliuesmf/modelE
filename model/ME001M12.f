@@ -591,8 +591,6 @@ C**** The vertical layering
       END DO
       PSFMPT = PSF-PTOP
       PSTRAT = (PSF-PTOP)*(SIGE(LS1)-SIGE(LM+1))
-      write(6,*) 'sige',sige
-      write(6,*) 'sig ',sig
 C****
 C**** Get Ground conditions from a separate file - ISTART=1,2
 C****
@@ -752,8 +750,6 @@ C****                              perturbation is at most 1 degree C
         WRITE(6,*) 'Initial conditions were perturbed !!',IRAND
         IRAND=123456789  ! old Rand#gen: all seeds were >0 (RANDIBM)
       END IF
-      write(6,*) 'before setting amon/0 dtsrc,dt:',dtsrc,dt
-      write(6,*) 'after  setting amon/0 dtsrc,dt:',dtsrc,dt
       WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)')
      *  '0Model started on',datei,amonth(monthi),yeari,' Hr',houri,
      *  'ISTART =',ISTART,CLABEL(1:80)
@@ -778,8 +774,8 @@ C****                          used for REPEATS and delayed EXTENSIONS
         call getunit("AIC",iu_AIC,.true.,.true.)
         call io_rsf(iu_AIC,ItimeX,irerun,ioerr)
         if (ioerr.eq.1) goto 800
-         WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
-     *     ISTART,', HOUR=',ItimeX,' ',CLABEL(1:80)
+        WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
+     *    ISTART,', HOUR=',ItimeX,' ',CLABEL(1:80)
         MDYN=0 ; MCNDS=0 ; MRAD=0 ; MSURF=0 ; MDIAG=0 ; MELSE=0
         GO TO 500
 C****
@@ -813,7 +809,7 @@ C**** reason not to use ISTART=10 is trouble with the other file.)
          rewind kdisk0
          KDISK=3-KDISK0
          WRITE (6,'(A,I1,A,I1)')
-*          ' Read Error on fort.',kdisk0,' trying fort.',kdisk
+     *     ' Read Error on fort.',kdisk0,' trying fort.',kdisk
          KDISK0=KDISK
          call io_rsf(KDISK0,ItimeX,irestart,ioerr)
          if (ioerr.eq.1) go to 850
@@ -853,7 +849,6 @@ C**** Make sure  dtsrc/dt(dyn)  is a multiple of 2
 C****
       NIdyn = 2*nint(.5*dtsrc/dt)
       DT = DTsrc/NIdyn
-      write(6,*) 'after  redef. of dt dtsrc,dt:',dtsrc,dt
 C**** Restrict NMONAV to 1(default),2,3,4,6,12, i.e. a factor of 12
       if (NMONAV.lt. 1) NMONAV=1
       if (NMONAV.gt.12) NMONAV=12

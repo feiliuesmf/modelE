@@ -958,7 +958,7 @@ C****
       USE CONSTANT, only : by3
       USE E001M12_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
      *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1
-      USE GEOM, only : dyp,dxv,dxyp
+      USE GEOM, only : dyv,dxv
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : ptold,advecm,advecv,aflux,pgf,fltruv
      &     ,pu,pv,pit,sd,calc_amp
@@ -987,29 +987,17 @@ C****
 !?    NIdynO=MOD(NIdyn,2)   ! NIdyn odd is currently not an option
       DTFS=DT*2./3.
       DTLF=2.*DT
-      DO J=1,JM
-         DO I=1,IM
-            PTOLD(I,J)=P(I,J)
-         ENDDO
-      ENDDO
-      DO L=1,LM
-         DO J=1,JM
-            DO I=1,IM
-               UX(I,J,L)=U(I,J,L)
-               UT(I,J,L)=U(I,J,L)
-               VX(I,J,L)=V(I,J,L)
-               VT(I,J,L)=V(I,J,L)
-               WMT(I,J,L)=WM(I,J,L)
-            ENDDO
-         ENDDO
-      ENDDO
+      PTOLD(:,:) = P(:,:)
+      UX(:,:,:)  = U(:,:,:)
+      UT(:,:,:)  = U(:,:,:)
+      VX(:,:,:)  = V(:,:,:)
+      VT(:,:,:)  = V(:,:,:)
+      WMT(:,:,:) = WM(:,:,:)
 C*** copy z-moment of temperature into contiguous memory
       tz(:,:,:) = tmom(mz,:,:,:)
-      DO 311 J=1,JM
-      DO 311 I=1,IM
-      PA(I,J)=P(I,J)
-      PB(I,J)=P(I,J)
-  311 PC(I,J)=P(I,J)
+      PA(:,:) = P(:,:)
+      PB(:,:) = P(:,:)
+      PC(:,:) = P(:,:)
 C**** INITIAL FORWARD STEP, QX = Q + .667*DT*F(Q)
       NS=0
       MRCH=0
@@ -1044,9 +1032,7 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
       CALL PGF (UT,VT,PB,U,V,T,TZ,P,DTLF)
       CALL FLTRUV(UT,VT)
 C**** LOAD PB TO PA
-      DO 341 J=1,JM
-      DO 341 I=1,IM
-  341 PA(I,J)=PB(I,J)
+      PA(:,:) = PB(:,:)
 C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
   360 NS=NS+2
          MODD5K=MOD(NSTEP+NS-NIdyn+NDA5K*NIdyn+2,NDA5K*NIdyn+2)
@@ -1055,89 +1041,57 @@ C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
       CALL AFLUX (UT,VT,PA)
       CALL ADVECM (PC,P,DTLF)
       CALL ADVECV (PC,U,V,P,UT,VT,PA,DTLF)
-C     DO 352 L=1,LM
-      DO 352 J=1,JM
-      DO 352 I=1,IM
-      FPEU(I,J)=0.
-      FPEV(I,J)=0.
-      FWVU(I,J)=0.
-      FWVV(I,J)=0.
-      DO 352 L=1,LM
-      TT(I,J,L)=T(I,J,L)
-  352 TZT(I,J,L)=TZ(I,J,L)
+         FPEU(:,:) = 0.
+         FPEV(:,:) = 0.
+         FWVU(:,:) = 0.
+         FWVV(:,:) = 0.
+      TT(:,:,:) = T(:,:,:)
+      TZT(:,:,:)= TZ(:,:,:)
       call calc_amp(pc,ma)
       CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
 C*** copy z-moment of temperature into contiguous memory
       tz(:,:,:) = tmom(mz,:,:,:)
       call calc_amp(pc,ma)
       CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE. ,FWVU,FWVV)
-      DO 354 J=1,JM
-      DO 354 I=1,IM
-      PC(I,J)=0.5*(P(I,J)+PC(I,J))
-      AIJ(I,J,IJ_FPEU) = AIJ(I,J,IJ_FPEU)+FPEU(I,J)
-      AIJ(I,J,IJ_FPEV) = AIJ(I,J,IJ_FPEV)+FPEV(I,J)
-      AIJ(I,J,IJ_FQU) = AIJ(I,J,IJ_FQU)+FWVU(I,J)
-      AIJ(I,J,IJ_FQV) = AIJ(I,J,IJ_FQV)+FWVV(I,J)
-      DO 354 L=1,LM
-      TT(I,J,L)=0.5*(T(I,J,L)+TT(I,J,L))
-  354 TZT(I,J,L)=0.5*(TZ(I,J,L)+TZT(I,J,L))
-      DO 363 L=1,LM
-      DO 361 J=2,JM
-      DO 361 I=1,IM
-      AIJ(I,J,IJ_FMV)=AIJ(I,J,IJ_FMV)+PV(I,J,L)*DTLF
-  361 CONTINUE
-      DO 362 I=1,IM
-         AIJ(I,1,IJ_FMU)=AIJ(I,1,IJ_FMU)+PU(I,1,L)*DTLF*BY3
-         AIJ(I,JM,IJ_FMU)=AIJ(I,JM,IJ_FMU)+PU(I,JM,L)*DTLF*BY3
-      DO 362 J=2,JM-1
-      AIJ(I,J,IJ_FMU)=AIJ(I,J,IJ_FMU)+PU(I,J,L)*DTLF
-  362 CONTINUE
-  363 CONTINUE
+      PC(:,:)    = .5*(P(:,:)+PC(:,:))
+      TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
+      TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
+         AIJ(:,:,IJ_FPEU) = AIJ(:,:,IJ_FPEU)+FPEU(:,:)
+         AIJ(:,:,IJ_FPEV) = AIJ(:,:,IJ_FPEV)+FPEV(:,:)
+         AIJ(:,:,IJ_FQU)  = AIJ(:,:,IJ_FQU )+FWVU(:,:)
+         AIJ(:,:,IJ_FQV)  = AIJ(:,:,IJ_FQV )+FWVV(:,:)
+         DO L=1,LM
+           AIJ(:,2:JM,IJ_FMV)  = AIJ(:,2:JM,IJ_FMV )+PV(:,2:JM,L)*DTLF
+           AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PU(:, 1,L)*DTLF*BY3
+           AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+PU(:,JM,L)*DTLF*BY3
+           AIJ(:,2:JM-1,IJ_FMU)=AIJ(:,2:JM-1,IJ_FMU)+PU(:,2:JM-1,L)*DTLF
+         END DO
       CALL PGF (U,V,P,UT,VT,TT,TZT,PC,DTLF)
-      DO 366 L=1,LM
-         AIJ(I,1,IJ_FGZU)=AIJ(I,1,IJ_FGZU)+.5*PHI(1,1,L)+U(I,1,L)*DYP(1)
-     *        *DTLF
-         AIJ(I,JM,IJ_FGZU)=AIJ(I,JM,IJ_FGZU)+.5*PHI(1,JM,L)+U(I,JM,L)
-     *        *DYP(JM)*DTLF
-      I=IM
-      DO 366 IP1=1,IM
-      DO 366 J=2,JM-1
-      PP=.5*(PHI(I,J,L)+PHI(IP1,J,L))
-      UU=.5*(U(I,J,L)+U(I,J+1,L))
-      AIJ(I,J,IJ_FGZU)=AIJ(I,J,IJ_FGZU)+PP*UU*DYP(J)*DTLF
-      I=IP1
-  366 CONTINUE
-      DO 367 L=1,LM
-      DO 367 J=2,JM
-      IM1=IM
-      DO 367 I=1,IM
-      PP=.5*(PHI(I,J-1,L)+PHI(I,J,L))
-      VV=.5*(V(I,J,L)+V(IM1,J,L))
-      AIJ(I,J,IJ_FGZV)=AIJ(I,J,IJ_FGZV)+PP*VV*DXV(J)*DTLF
-      IM1=I
-  367 CONTINUE
+         DO L=1,LM
+         DO J=2,JM
+         IM1=IM
+         DO I=1,IM
+           PP=.5*(PHI(I,J-1,L)+PHI(I,J,L))
+           UU=.5*(U(I,J,L)+U(IM1,J,L))
+           AIJ(I,J,IJ_FGZU)=AIJ(I,J,IJ_FGZU)+PP*UU*DYV(J)*DTLF
+           VV=.5*(V(I,J,L)+V(IM1,J,L))
+           AIJ(I,J,IJ_FGZV)=AIJ(I,J,IJ_FGZV)+PP*VV*DXV(J)*DTLF
+         IM1=I
+         END DO
+         END DO
+         END DO
       CALL FLTRUV(U,V)
 C**** LOAD P TO PC
-      DO 371 J=1,JM
-      DO 371 I=1,IM
-  371 PC(I,J)=P(I,J)
+      PC(:,:)=P(:,:)
          IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
            CALL DIAGA (UT,VT,TT,PB,Q,PIT,SD)
            CALL DIAGB (UT,VT,TT,PB,Q,WMT,DUT,DVT)
          ENDIF
       IF (NS.LT.NIdyn) GO TO 340
 C**** Scale WM mixing ratios to conserve liquid water
-      DO J=1,JM
-        DO I=1,IM
-          PRAT(I,J)=PTOLD(I,J)/P(I,J)
-        END DO
-      END DO
+      PRAT(:,:)=PTOLD(:,:)/P(:,:)
       DO L=1,LS1-1
-        DO J=1,JM
-          DO I=1,IM
-           WM(I,J,L)=WM(I,J,L)*PRAT(I,J)
-          END DO
-        END DO
+        WM(:,:,L)=WM(:,:,L)*PRAT(:,:)
       END DO
       RETURN
       END SUBROUTINE DYNAM
