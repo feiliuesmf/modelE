@@ -17,26 +17,38 @@ c******************   TRACERS             ******************************
      &     ,dodrydep
 #endif
 #ifdef TRACERS_WATER
-     *     ,nWATER,nGAS,nPART,tr_wd_TYPE,trname
+     *     ,nWATER,nGAS,nPART,tr_wd_TYPE
+#endif
+#if (defined TRACERS_WATER) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+     &     ,trname
 #endif
 #ifdef TRACERS_DUST
      &     ,n_clay
 #endif
+#ifdef TRACERS_MINERALS
+     &     ,n_clayilli
+#endif
       use trdiag_com, only : taijn,tij_surf
+     *  ,taijs,ijts_isrc,jls_isrc,tajls
 #ifdef TRACERS_WATER
-     *     ,tij_evap,tij_grnd,jls_source,tajls,tij_soil
+     *     ,tij_evap,tij_grnd,tij_soil
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,tij_gsdep,itcon_dd
 #endif
-#ifdef TRACERS_DUST
-     &     ,ijts_source,taijs,tajls,jls_source,nDustEmij,nDustEmjl
+#if (defined TRACERS_WATER) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_MINERALS)
+     &     ,jls_source
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+     &     ,ijts_source,nDustEmij,nDustEmjl
 #endif
       use fluxes, only : trsource,trsrfflx
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer,trprec
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,pprec,pevap
 #endif
 #ifdef TRACERS_DRYDEP
@@ -55,17 +67,16 @@ c******************   TRACERS             ******************************
 #ifdef TRACERS_DRYDEP
      *     ,dep_vel,gs_vel
 #endif
-#ifdef TRACERS_DUST
+#ifdef TRACERS_AEROSOLS_Koch
+     *     ,DMS_flux, ss1_flux, ss2_flux
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,dust_flux
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       use tracer_sources, only : avg_modPT
 #endif
 
-#ifdef TRACERS_DUST
-      USE tracers_dust,ONLY : dust_emission_constraints,
-     &     local_dust_emission
-#endif
 
 ccc extra stuff which was present in "earth" by default
 #ifdef TRACERS_WATER
@@ -229,7 +240,7 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       implicit none
       integer, intent(in) :: i,j
       real*8, intent(in) :: ptype,dtsurf
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       integer n1
 #endif
       integer n,nx
@@ -246,7 +257,7 @@ ccc tracers
         tr_wsn_ij(n,1:nlsn, 1:2, i, j) = tr_wsn(nx,1:nlsn,1:2)
       enddo
 #endif
-#ifdef TRACERS_DUST
+#ifdef (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 c     saves precipitation for dust emission calculation at next time step
       pprec(i,j)=prec(i,j)
 c     saves evaporation for dust emission calculation at next time step
@@ -265,9 +276,61 @@ ccc accumulate tracer evaporation and runoff
      &       atr_evap(nx)/dtsurf *dxyp(j)*ptype
       enddo
 #endif
-#ifdef TRACERS_DRYDEP
-      do nx=1,ntx
+
+      DO nx=1,ntx
         n=ntix(nx)
+
+#ifdef TRACERS_AEROSOLS_Koch
+C**** technicallly these are ocean emissions, but if fixed datasets
+C**** are used, it can happen over land as well.
+        select case (trname(n))
+        case ('DMS')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+DMS_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
+     &         DMS_flux*dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
+     *         DMS_flux*dxyp(j)*ptype*dtsurf
+        case ('seasalt1')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss1_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
+     &         ss1_flux*dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
+     *         ss1_flux*dxyp(j)*ptype*dtsurf
+        case ('seasalt2')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss2_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
+     &         ss2_flux*dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
+     *         ss2_flux*dxyp(j)*ptype*dtsurf
+        end select
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+ccc dust emission from earth
+        SELECT CASE (trname(n))
+#ifdef TRACERS_DUST
+        CASE ('Clay','Silt1','Silt2','Silt3')
+          n1=n-n_clay+1
+#else
+#ifdef TRACERS_MINERALS
+      CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &      'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &      'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &      'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
+          n1=n-n_clayilli+1
+#endif
+#endif
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+dust_flux(n1)*dxyp(j)*ptype
+          taijs(i,j,ijts_source(nDustEmij,n))=
+     &         taijs(i,j,ijts_source(nDustEmij,n))+dust_flux(n1)*
+     &         dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_source(nDustEmjl,n))=
+     &         tajls(j,1,jls_source(nDustEmjl,n))+dust_flux(n1)*dxyp(j)*
+     &         ptype*dtsurf
+        END SELECT
+#endif
+
+#ifdef TRACERS_DRYDEP
+
 ccc accumulate tracer dry deposition
         if(dodrydep(n)) then
           rtsdt=rhosrf*trs(nx)*dtsurf
@@ -293,8 +356,8 @@ ccc accumulate tracer dry deposition
           dtr_dd(j,n,1)=dtr_dd(j,n,1)-ptype*rtsdt*dxyp(j)*dep_vel(n)
           dtr_dd(j,n,2)=dtr_dd(j,n,2)-ptype*rtsdt*dxyp(j)* gs_vel(n)
         end if
-      end do
 #endif
+      end do
 
 C**** Save surface tracer concentration whether calculated or not
       nx=0
@@ -612,7 +675,6 @@ c      prs=precss(i,j)/(dtsrc*rhow)
       prs=0.
       htpr=eprec(i,j)/dtsrc
 
-C>>>>>>>>>>>>>>>>>>>>>>>>
 ccc tracers variables
 
       tg1 = tearth(i,j)
@@ -877,6 +939,8 @@ c***********************************************************************
      *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
      *     ,idd_eds,idd_dbl,idd_ev,tf_day1,tf_last,ndiupt
      *     ,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
+     &     ,ij_aflmlt,ij_aeruns,ij_aerunu
+     &     ,ij_htsoil,ij_htsnow,ij_aintrcp
 
 
 
@@ -894,9 +958,9 @@ c***********************************************************************
      &    ,abetap,abetab,abeta
      &    ,acna,acnc,agpp
      &    ,aevap,aevapw,aevapd,aevapb
-     &    ,aruns,arunu,aeruns,aerunu
+     &    ,aruns,arunu,aeruns,aerunu,aflmlt,aintercep
      &    ,aepc,aepb,aepp,zw,tbcs
-     &    ,qs,ts
+     &    ,qs,ts,ngr=>n,ht,hsn,fr_snow,nsn
 
       use ghy_com, only : gdeep
 
@@ -987,13 +1051,21 @@ ccc the following values are returned by PBL
       if (moddsf.eq.0) then
         aij(i,j,ij_g15)=aij(i,j,ij_g15)+tp(1,1)
         aij(i,j,ij_g16)=aij(i,j,ij_g16)+tp(2,1)
-        aij(i,j,ij_g17)=aij(i,j,ij_g17)+tp(3,1)
+        aij(i,j,ij_g17)=aij(i,j,ij_g17)+tp(6,1)
         aij(i,j,ij_g21)=aij(i,j,ij_g21)+tp(0,2)
         aij(i,j,ij_g22)=aij(i,j,ij_g22)+tp(1,2)
         aij(i,j,ij_g23)=aij(i,j,ij_g23)+tp(2,2)
-        aij(i,j,ij_g24)=aij(i,j,ij_g24)+tp(3,2)
+        aij(i,j,ij_g24)=aij(i,j,ij_g24)+tp(6,2)
         aij(i,j,ij_g25)=aij(i,j,ij_g25)+fb*zw(1)+fv*zw(2)
       end if
+ccc accumulate total heat storage
+      if (moddsf.eq.0) then
+        aij(i,j,ij_htsoil)=aij(i,j,ij_htsoil) +
+     &       fb*sum(ht(1:ngr,1)) + fv*sum(ht(0:ngr,2))
+        aij(i,j,ij_htsnow)=aij(i,j,ij_htsnow)
+     &       + fb*fr_snow(1)*sum(hsn(1:nsn(1),1))
+     &       + fv*fr_snow(2)*sum(hsn(1:nsn(2),2))
+      endif
       trhdt=trheat*dtsurf-atrg
 c           for radiation find composite values over earth
 c           for diagnostic purposes also compute gdeep 1 2 3
@@ -1004,7 +1076,11 @@ c           for diagnostic purposes also compute gdeep 1 2 3
 
       aij(i,j,ij_rune)=aij(i,j,ij_rune)+aruns
       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)+arunu
+      aij(i,j,ij_aeruns)=aij(i,j,ij_aeruns)+aeruns
+      aij(i,j,ij_aerunu)=aij(i,j,ij_aerunu)+aerunu
       aij(i,j,ij_pevap)=aij(i,j,ij_pevap)+(aepc+aepb)
+      aij(i,j,ij_aflmlt)=aij(i,j,ij_aflmlt)+aflmlt
+      aij(i,j,ij_aintrcp)= aij(i,j,ij_aintrcp)+aintercep
 
       if ( warmer >= 0 ) then
         if(ts.lt.tf) tsfrez(i,j,tf_day1)=timez
@@ -1264,8 +1340,6 @@ c**** read topmodel parameters
         !!!if (istart.le.0) return
       endif
 
-
-      if (istart.le.0) return
 c****
 c**** initialize constants
 c****
@@ -1273,6 +1347,12 @@ c**** time step for ground hydrology
       dt=dtsurf
 c spgsn is the specific gravity of snow
       spgsn=.1d0
+
+ccc read and initialize vegetation here
+      call init_vegetation(redogh,istart)
+
+      ! no need to continue computations for postprocessing
+      if (istart.le.0) return
 
 c**** check whether ground hydrology data exist at this point.
       ghy_data_missing = .false.
@@ -1302,12 +1382,6 @@ c**** check whether ground hydrology data exist at this point.
         call stop_model(
      &       'Ground Hydrology data is missing at some cells',255)
       endif
-
-ccc read and initialize vegetation here
-      call init_vegetation(redogh,istart)
-
-      ! no need to continue computations for postprocessing
-      if (istart.le.0) return
 
       call hl0
 
@@ -2090,13 +2164,14 @@ c****
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       use DOMAIN_DECOMP, only : GLOBALSUM
       use ghy_com, only : snowe, tearth,wearth,aiearth,wbare,wvege
-     *     ,snowbv,fr_snow_ij,fr_snow_rad_ij, gdeep
+     *     ,snowbv,fr_snow_ij,fr_snow_rad_ij, gdeep, dzsn_ij, nsn_ij
       use veg_com, only : afb
       use diag_com, only : aj=>aj_loc,areg,aij=>aij_loc
      *     ,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
-     *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g28
-     *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow
+     *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g04,ij_g10,ij_g28
+     *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_gice, ij_gwtr1
+     &     ,ij_zsnow
       use fluxes, only : e0,e1,evapor,eprec
       implicit none
 
@@ -2169,13 +2244,22 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
 
         aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +f0dt+enrgp
         aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)
+        aij(i,j,ij_gwtr1) =aij(i,j,ij_gwtr1)+(wtr1+ace1)
+        aij(i,j,ij_gice) =aij(i,j,ij_gice)+(ace1+ace2)
         aij(i,j,ij_evape)=aij(i,j,ij_evape)+evap
-        do k=1,4
+        do k=1,3
           aij(i,j,ij_g01+k-1)=aij(i,j,ij_g01+k-1)+wbare(k,i,j)
           aij(i,j,ij_g07+k-1)=aij(i,j,ij_g07+k-1)+wvege(k-1,i,j)
         end do
+        aij(i,j,ij_g04)=aij(i,j,ij_g04)+wbare(6,i,j)
+        aij(i,j,ij_g10)=aij(i,j,ij_g10)+wvege(6,i,j)        
         aij(i,j,ij_g28)=aij(i,j,ij_g28)+snowbv(1,i,j)
         aij(i,j,ij_g29)=aij(i,j,ij_g29)+snowbv(2,i,j)
+        aij(i,j,ij_zsnow)=aij(i,j,ij_zsnow) + pearth *
+     &       ( afb(i,j)*fr_snow_ij(1,i,j)
+     &           * sum( dzsn_ij(1:nsn_ij(1,i,j),1,i,j) )
+     &       + (1.-afb(i,j))*fr_snow_ij(2,i,j)
+     &           * sum( dzsn_ij(1:nsn_ij(2,i,j),2,i,j) ) )
       end if
 c****
       end do

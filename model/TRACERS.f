@@ -46,7 +46,7 @@ C**** decide on AEROCOM or standard emissions
 C**** decide if preindustrial emissions  
       call sync_param("imPI",imPI)
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 C**** decide on AEROCOM or interactive emissions 
       CALL sync_param('imDUST',imDUST)
 #endif
@@ -932,8 +932,9 @@ C**** check whether air mass is conserved
      & ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
 #endif
-#ifdef TRACERS_DUST
-      USE tracers_dust,ONLY : hbaij
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      USE fluxes,ONLY : pprec,pevap
+      USE tracers_dust,ONLY : hbaij,ricntd
 #endif
       IMPLICIT NONE
 
@@ -986,8 +987,8 @@ C***    ESMF Exception: need to read global arrays-- delayed until exercised.
      *       ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
 #endif
-#ifdef TRACERS_DUST
-     &       ,hbaij
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+     &     ,hbaij,ricntd,pprec,pevap
 #endif
        END IF     !only root processor writes
 
@@ -1005,8 +1006,8 @@ C***    ESMF Exception: need to read global arrays-- delayed until exercised.
      *       ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
 #endif
-#ifdef TRACERS_DUST
-     &     ,hbaij
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+     &     ,hbaij,ricntd,pprec,pevap
 #endif
 C**** ESMF: Copy global read data into the corresponding local (distributed) arrays.
        DO ITM=1,NTM

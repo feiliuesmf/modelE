@@ -171,6 +171,14 @@ c**** check whether ground hydrology data exist at this point.
       endif
 
       entry upd_gh ! need to redo if vdata changes
+C****
+C**** Extract parameters from "grid" in case we entered here
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 c****
 c**** set the global arrays  ala, acs, afb, afr, anm, anf
 c****
@@ -292,14 +300,6 @@ c**** calculate root fraction afr averaged over vegetation types
       end do
 
       ! write(98,*) afr
-
-c**** recompute ground hydrology data if necessary (new soils data)
-      if (redogh) then
-        Cint(:,:)=0.0127D0      ! Internal foliage CO2(adf)
-        Qfol(:,:)=3.D-6         ! Foliage surface mixing ratio (adf)
-        cnc_ij(:,:) = 0.d0
-        print *, 'reset vegetation prognostic variables to defaults'
-      end if
 
       return
       end subroutine init_vegetation
@@ -426,7 +426,7 @@ c shc(0,2) is the heat capacity of the canopy
       aa=ala(1,i0,j0)
       shc(0,2)=(.010d0+.002d0*aa+.001d0*aa**2)*shw
 
-! This is a hack to prevent the program from using uninitialized 
+! This is a hack to prevent the program from using uninitialized
 ! radiation arrays at the beginning of the run.
 ! If program returns at this point, it sets only the data needed for
 ! ground hydrology but not the vegetation which is ok if veg_conductance

@@ -94,6 +94,8 @@ ccc   rundeck parameters  5/1/03 nyk
       real*8, intent(out) :: trans_sw_out
       real*8, intent(in) :: betad_in,tcan_in,qv_in,dt_in
 
+      ! call stop_model("veg_conductance called",255)
+
       betad = betad_in
       tcan = tcan_in
       qv = qv_in
@@ -265,6 +267,7 @@ c**** adjust canopy conductance for incoming solar radiation
       temp=sqrt(1.0D0-sigma)
       !Hack canopy reflectivity
       if (vegalbedo.eq.0) then !because radiation gets initialized late
+        call stop_model("vegalbedo == 0", 255)
         rhor=((1.0D0-temp)/(1.0D0+temp))*(2.0D0/(1.0D0+1.6D0*sbeta))
         !write (99,*) 'rhor', rhor
       else

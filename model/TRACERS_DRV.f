@@ -28,7 +28,7 @@
 !@+      +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
       USE LINOZ_CHEM_COM, only: dsol
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || defined (TRACERS_MINERALS)
       USE tracers_dust,ONLY : nDustTurbij,nDustWetij,
      &     nDustTurbjl,nDustWet3Djl
 #endif
@@ -846,13 +846,12 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       case ('H2O2_s')
       n_H2O2_s = n
           ntm_power(n) = -10
-          tr_mm(n) = 34.
-          tr_RKD(n) = 730. !mole/J or 7.4E4 M/atm (Drew uses 986.9)
+          tr_mm(n) = 34.016
+          tr_RKD(n) = 986.9 
           tr_DHD(n) = -5.52288d4 ! in J/mole = -13.2 kcal/mole.
           tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
-c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
-          HSTAR(N)=1.D5
+          HSTAR(n)=tr_RKD(n)*convert_HSTAR
           F0(n) = 1.d0
 #endif
       case ('seasalt1')
@@ -885,7 +884,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.5d3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=0.75D-06
+          trradius(n)=0.46D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -895,7 +894,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.65d3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=1.47D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -905,7 +904,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.65d3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=4.4D-06
+          trradius(n)=2.94D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -915,11 +914,214 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.65d3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=6.7D-06
+          trradius(n)=5.88D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+#else
+#ifdef TRACERS_MINERALS
+      CASE('ClayIlli')          ! http://webmineral.com/data/Illite.shtml
+      n_clayilli=n
+          ntm_power(n)=-9
+          trpdens(n)=2.61D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=0.46D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('ClayKaol')       ! http://www.webmineral.com/data/Kaolinite.shtml
+      n_claykaol=n
+          ntm_power(n)=-9
+          trpdens(n)=2.63D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=0.46D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('ClaySmec')       ! http://www.webmineral.com/data/Rectorite.shtml
+      n_claysmec=n
+          ntm_power(n)=-9
+          trpdens(n)=2.35D3     ! for Montmorillonite
+#ifdef TRACERS_DRYDEP
+          trradius(n)=0.46D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('ClayCalc')       ! http://www.webmineral.com/data/Calcite.shtml
+      n_claycalc=n
+          ntm_power(n)=-9
+          trpdens(n)=2.71D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=0.46D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('ClayQuar')       ! http://www.webmineral.com/data/Quartz.shtml
+      n_clayquar=n
+          ntm_power(n)=-9
+          trpdens(n)=2.62D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=0.46D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil1Quar')       ! http://www.webmineral.com/data/Quartz.shtml
+      n_sil1quar=n
+          ntm_power(n)=-9
+          trpdens(n)=2.62D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=1.47D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil1Feld')       ! http://www.mindat.org/min-1624.html
+      n_sil1feld=n
+          ntm_power(n)=-9
+          trpdens(n)=2.65D3     ! assumed, varies strongly among types
+#ifdef TRACERS_DRYDEP
+          trradius(n)=1.47D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil1Calc')       ! http://www.webmineral.com/data/Calcite.shtml
+      n_sil1calc=n
+          ntm_power(n)=-9
+          trpdens(n)=2.71D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=1.47D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil1Hema')       ! http://www.webmineral.com/data/Hematite.shtml
+      n_sil1hema=n
+          ntm_power(n)=-9
+          trpdens(n)=5.3D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=1.47D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil1Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
+      n_sil1gyps=n
+          ntm_power(n)=-9
+          trpdens(n)=2.3D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=1.47D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil2Quar')       ! http://www.webmineral.com/data/Quartz.shtml
+      n_sil2quar=n
+          ntm_power(n)=-9
+          trpdens(n)=2.62D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=2.94D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil2Feld')       ! http://www.mindat.org/min-1624.html
+      n_sil2feld=n
+          ntm_power(n)=-9
+          trpdens(n)=2.65D3     ! assumed, varies strongly among types
+#ifdef TRACERS_DRYDEP
+          trradius(n)=2.94D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil2Calc')       ! http://www.webmineral.com/data/Calcite.shtml
+      n_sil2calc=n
+          ntm_power(n)=-9
+          trpdens(n)=2.71D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=2.94D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil2Hema')       ! http://www.webmineral.com/data/Hematite.shtml
+      n_sil2hema=n
+          ntm_power(n)=-9
+          trpdens(n)=5.3D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=2.94D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil2Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
+      n_sil2gyps=n
+          ntm_power(n)=-9
+          trpdens(n)=2.3D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=2.94D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil3Quar')       ! http://www.webmineral.com/data/Quartz.shtml
+      n_sil3quar=n
+          ntm_power(n)=-9
+          trpdens(n)=2.62D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=5.88D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil3Feld')       ! http://www.mindat.org/min-1624.html
+      n_sil3feld=n
+          ntm_power(n)=-9
+          trpdens(n)=2.65D3     ! assumed, varies strongly among types
+#ifdef TRACERS_DRYDEP
+          trradius(n)=5.88D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil3Calc')       ! http://www.webmineral.com/data/Calcite.shtml
+      n_sil3calc=n
+          ntm_power(n)=-9
+          trpdens(n)=2.71D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=5.88D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil3Hema')       ! http://www.webmineral.com/data/Hematite.shtml
+      n_sil3hema=n
+          ntm_power(n)=-9
+          trpdens(n)=5.3D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=5.88D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+      CASE('Sil3Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
+      n_sil3gyps=n
+          ntm_power(n)=-9
+          trpdens(n)=2.3D3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=5.88D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
+#endif
 #endif
 
 #endif
@@ -2138,13 +2340,6 @@ c photolysis rate
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_3Dsource(2,n) = k
-        sname_jls(k) = 'Aircraft_source_of'//trname(n)
-        lname_jls(k) = 'BCII aircraft source'
-        jls_ltop(k) = LM
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
 c gravitational settling of BCII 
         k = k + 1
         jls_grav(n) = k
@@ -2166,6 +2361,13 @@ c gravitational settling of BCII
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Aging_source_of'//trname(n)
         lname_jls(k) = 'BCIA aging source'
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'Aircraft_source_of'//trname(n)
+        lname_jls(k) = 'BCIA aircraft source'
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -2296,8 +2498,12 @@ c gravitational settling of ss2
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
-#ifdef TRACERS_DUST
-        CASE('Clay','Silt1','Silt2','Silt3')
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+        CASE('Clay','Silt1','Silt2','Silt3',
+     &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
         k=k+1
           jls_source(nDustEmjl,n)=k
           lname_jls(k)='Emission of '//trname(n)
@@ -3327,15 +3533,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-        k = k + 1
-        ijts_3Dsource(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'BCII Aircraft source'
-        sname_ijts(k) = 'BCII_Aircraft_src'
-        ijts_power(k) = -12.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('BCIA')
         k = k + 1
@@ -3344,6 +3541,15 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BC Aging source'
         sname_ijts(k) = 'BC_Aging_Source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        k = k + 1
+        ijts_3Dsource(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'BCIA Aircraft source'
+        sname_ijts(k) = 'BCIA_Aircraft_src'
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -4215,8 +4421,12 @@ C**** Additional Special IJ diagnostics
       end do
 #endif
 
-#ifdef TRACERS_DUST
-      CASE('Clay','Silt1','Silt2','Silt3')
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+        CASE('Clay','Silt1','Silt2','Silt3',
+     &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
       k=k+1
         ijts_source(nDustEmij,n)=k
         lname_ijts(k)='Emission of '//trname(n)
@@ -4300,7 +4510,7 @@ c dust shortwave radiative forcing at surface
         scale_ijts(k) = 10.**(-ijts_power(k))
 c dust longwave radiative forcing at surface
         k = k + 1
-        ijts_fc(2,n) = k
+        ijts_fc(4,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_rad  
         lname_ijts(k) = trim(trname(n))//' LW Surf radiative forcing'
@@ -5370,7 +5580,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #ifdef TRACERS_WATER
      *  ,q,wm,flice,fearth
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,JMperY,JDperY
 #endif
       USE DOMAIN_DECOMP, only : GRID, GET
@@ -5383,7 +5593,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #ifdef regional_Ox_tracers
      *   ,NregOx,n_Ox
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &   ,imDUST
 #endif
 #ifdef TRACERS_WATER
@@ -5424,9 +5634,12 @@ C Read landuse parameters and coefficients for tracer dry deposition:
      * ,DMS_AER,SS1_AER,SS2_AER
      * ,SO2_src_3D,SO2_biosrc_3D,SO2_src
 #endif
-#ifdef TRACERS_DUST
-      USE tracers_dust,ONLY : hbaij,dryhr,frclay,frsilt,vtrsh,ers_data,
-     &   gin_data,table,x1,x2,x3,lim,ljm,lkm,d_dust
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      USE tracers_dust,ONLY : hbaij,ricntd,dryhr,frclay,frsilt,vtrsh,
+     &     ers_data,gin_data,table,x1,x2,x3,lim,ljm,lkm,d_dust
+#ifdef TRACERS_MINERALS
+     &     ,Mtrac,minfr
+#endif
 #endif
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr
@@ -5456,7 +5669,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       REAL*8 byNregOx
 #endif
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_MINERALS)
       include 'netcdf.inc'
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
@@ -5465,7 +5679,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       INTEGER mon_unit, mont,ii,jj,ir,mm,iuc,m,mmm,ll
       real*8 carbstuff,ccnv
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       INTEGER :: io_data,k
       INTEGER startd(3),countd(3),statusd
       INTEGER idd1,idd2,idd3,idd4,ncidd1,ncidd2,ncidd3,ncidd4
@@ -5955,9 +6169,15 @@ C         AM=kg/m2, and DXYP=m2:
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
 
-#ifdef TRACERS_DUST
-        CASE('Clay','Silt1','Silt2','Silt3')
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+        CASE('Clay','Silt1','Silt2','Silt3',
+     &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
           ! defaults ok
+          hbaij=0D0
+          ricntd=0D0
 #endif
 
       end select
@@ -6042,11 +6262,9 @@ c read in AEROCOM seasalt
           status=NF_CLOSE('SALT2',NCNOWRIT,ncidu)
       endif
 c read in AEROCOM SO2 emissions
-      if (imAER.eq.1) then
-      SO2_src(:,:,:)=0.d0
-      SO2_biosrc_3D(:,:,:,:)=0.d0
-      SO2_src_3D(:,:,:,:)=0.d0
 c Industrial
+      SO2_src(:,:,:)=0.d0
+      SO2_src_3D(:,:,:,:)=0.d0
       if (imPI.eq.0) then
       call openunit('SO2_IND',iuc,.false.)
       do mm=1,9999
@@ -6056,6 +6274,16 @@ c Industrial
       end do
   81  call closeunit(iuc)
       endif
+c volcano - continuous 
+      call openunit('SO2_VOLCANO',iuc,.false.)
+      do mm=1,99999
+      read(iuc,*) ii,jj,ll,carbstuff
+      if (ii.eq.0.) go to 83
+      SO2_src_3D(ii,jj,ll,1)=carbstuff/(sday*30.4d0)/12.d0
+      end do
+  83  call closeunit(iuc)
+      if (imAER.eq.1) then
+      SO2_biosrc_3D(:,:,:,:)=0.d0
 c Biomass 
       call openunit('SO2_BIOMASS',iuc,.false.)
       do mm=1,99999
@@ -6065,14 +6293,6 @@ c Biomass
       SO2_biosrc_3D(ii,jj,ll,mmm)=carbstuff/(sday*30.4d0)
       end do
   82  call closeunit(iuc)
-c volcano - continuous 
-      call openunit('SO2_VOLCANO',iuc,.false.)
-      do mm=1,99999
-      read(iuc,*) ii,jj,ll,carbstuff
-      if (ii.eq.0.) go to 83
-      SO2_src_3D(ii,jj,ll,1)=carbstuff/(sday*30.4d0)/12.d0
-      end do
-  83  call closeunit(iuc)
 c volcano - explosive 
       call openunit('SO2_VOLCANO_EXP',iuc,.false.)
       do mm=1,99999
@@ -6148,6 +6368,14 @@ c Now industrial and biomass
       OCI_src(ii,jj)=OCI_src(ii,jj)+carbstuff
       end do
  12   call closeunit(iuc)
+      do i=1,im
+      do j=j_0,J_1
+      ccnv=1.d0/(sday*30.4)  !*dxyp(j))
+c convert from month to second. dxyp??
+      BCI_src(i,j)=BCI_src(i,j)*ccnv/12.d0
+      OCI_src(i,j)=OCI_src(i,j)*ccnv/12.d0*1.3d0
+      end do
+      end do
       endif
       BCB_src(:,:,:,:)=0.d0
       OCB_src(:,:,:,:)=0.d0
@@ -6184,10 +6412,7 @@ c Now industrial and biomass
  14   call closeunit(iuc)
       do i=1,im
       do j=j_0,J_1
-      ccnv=1.d0/(sday*30.4)  !*dxyp(j))
-c convert from month to second. dxyp??
-      BCI_src(i,j)=BCI_src(i,j)*ccnv/12.d0
-      OCI_src(i,j)=OCI_src(i,j)*ccnv/12.d0*1.3d0
+      ccnv=1.d0/(sday*30.4) 
       do m=1,12 
       do l=1,7
       BCB_src(i,j,l,m)=BCB_src(i,j,l,m)*ccnv
@@ -6198,7 +6423,7 @@ c convert from month to second. dxyp??
       end do
       endif
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       IF (ifirst) THEN
 c     prescribed AEROCOM dust emissions
         IF (imDust == 1) THEN
@@ -6245,7 +6470,6 @@ c     prescribed AEROCOM dust emissions
 
         ELSE IF (imDUST == 0) THEN
 c     interactive dust emissions
-          hbaij=0D0
 c**** Read input: threshold speed
           CALL openunit('VTRSH',io_data,.true.,.true.)
           READ (io_data) vtrsh
@@ -6314,14 +6538,15 @@ c**** Read input: EMISSION LOOKUP TABLE data
             endif
           enddo
 
-#ifdef TRACERS_DUST_MINERAL8
-          CALL openunit('MINFR',io_data,.true.,.true.)
-          CALL closeunit(io_data)
-#endif
         ELSE
           CALL stop_model
      &     ('Stopped in tracer_IC: parameter imDUST must be 0 or 1',255)
         END IF
+#ifdef TRACERS_MINERALS
+        CALL openunit('MINFR',io_data,.true.,.true.)
+        READ(io_data) (((minfr(i,j,k),i=1,Im),j=1,Jm),k=1,Mtrac)
+        CALL closeunit(io_data)
+#endif
         ifirst=.FALSE.
       END IF
 
@@ -6767,11 +6992,13 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
          end do
       case ('BCII')
          do j=J_0,J_1
-            trsource(:,j,1,n) = BCI_src(:,j)
+            trsource(:,j,1,n) = BCI_src(:,j)  !*3.d0
+c arbitrary factor of 3
          end do
       case ('OCII')
          do j=J_0,J_1
-            trsource(:,j,1,n) = OCI_src(:,j)
+            trsource(:,j,1,n) = OCI_src(:,j)  !*2.d0
+c arbitrary factor of 2
             trsource(:,j,2,n) = OCT_src(:,j,jmon)
          end do
 #endif
@@ -6872,7 +7099,7 @@ C**** three 3D sources ( volcanos and biomass) read in from files
       tr3Dsource(:,J_0:J_1,lmAER+1:lm,4,n) = 0.
       call apply_tracer_3Dsource(4,n) ! biomass
 
-       case ('BCII')
+       case ('BCIA')
 C**** aircraft source for fresh industrial BC 
       tr3Dsource(:,J_0:J_1,:,2,n) = BCI_src_3d(:,J_0:J_1,:)
       call apply_tracer_3Dsource(2,n) ! aircraft
@@ -6996,8 +7223,8 @@ C**** Apply chemistry and stratosphere overwrite changes:
       CALL TIMER (MNOW,MCHEM)
 #endif
 
-#ifdef TRACERS_DUST
-c      CALL tracers_dust_old
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      CALL tracers_dust_old
 #endif
 
       return
@@ -7007,8 +7234,7 @@ c      CALL tracers_dust_old
 #ifdef TRACERS_WATER
 C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 
-      SUBROUTINE GET_COND_FACTOR(II,J,L,N,WMXTR,TEMP,TEMP0,LHX
-     *  ,FCLOUD,FQ0,fq,
+      SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,TEMP0,LHX,FCLOUD,FQ0,fq,
      *  TR_CONV,TRWML,TM,THLAW,TR_LEF,pl,ntix,CLDSAVT)
 !@sum  GET_COND_FACTOR calculation of condensate fraction for tracers
 !@+    within or below convective or large-scale clouds. Gas
@@ -7066,7 +7292,7 @@ c     *     , by3 /)
       REAL*8,  INTENT(IN), DIMENSION(ntm,lm) :: trwml
       REAL*8,  INTENT(IN), DIMENSION(lm,ntm) :: TM
       REAL*8,  INTENT(OUT):: fq,thlaw
-      INTEGER, INTENT(IN) :: II,J,L, N, ntix(ntm)
+      INTEGER, INTENT(IN) :: L, N, ntix(ntm)
       LOGICAL TR_CONV
       REAL*8 :: SUPSAT
 c
@@ -7151,41 +7377,38 @@ C**** this is a parameterisation from Georg Hoffmann
         CASE(nPART)                           ! particulate tracer
           fq = 0.D0                           ! defaults to zero.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
-    (defined TRACERS_DUST)
+    (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 c only dissolve if the cloud has grown
-#ifdef TRACERS_HETCHEM
-c      print*, trname(ntix(n)) ,ntix, n, ' NAME'
-      select case(trname(ntix(n)))
-      case('Clay')
-c       if (ii.eq.28.and.j.eq.36) 
-c     *  print*, ' SO4_D1' ,trm(ii,j,l,n_SO4_d1)/dtsrc , l
-         if (trm(ii,j,l,n_SO4_d1)/dtsrc  > 0.1 ) then
-            fq_aer(NTIX(N))  = 1.
-         else
-            fq_aer(NTIX(N))  = 0.
-         endif
+c#ifdef TRACERS_HETCHEM
+c      select case(trname(ntix(n)))
+c      case('Clay')
+c         if (trm(ii,j,l,n_SO4_d1)  > 0.1 ) then
+c            fq_aer(NTIX(N))  = 1.
+c         else
+c            fq_aer(NTIX(N))  = 0.
+c         endif
     
-      case('Silt1')
-         if (trm(ii,j,l,n_SO4_d2)/dtsrc  > 0.1 ) then
-            fq_aer(NTIX(N))  = 1.
-         else
-            fq_aer(NTIX(N))  = 0.
-         endif
+c      case('Silt1')
+c         if (trm(ii,j,l,n_SO4_d2)  > 0.1 ) then
+c            fq_aer(NTIX(N))  = 1.
+c         else
+c            fq_aer(NTIX(N))  = 0.
+c         endif
    
-      case('Silt2')
-         if (trm(ii,j,l,n_SO4_d3)/dtsrc  > 0.1 ) then
-            fq_aer(NTIX(N))  = 1.
-         else
-            fq_aer(NTIX(N))  = 0.
-         endif
-      case('Silt3')
-         if (trm(ii,j,l,n_SO4_d4)/dtsrc  > 0.1 ) then
-            fq_aer(NTIX(N))  = 1.
-         else
-            fq_aer(NTIX(N))  = 0.
-         endif
-      end select
-#endif
+c      case('Silt2')
+c         if (trm(ii,j,l,n_SO4_d3)  > 0.1 ) then
+c            fq_aer(NTIX(N))  = 1.
+c         else
+c            fq_aer(NTIX(N))  = 0.
+c         endif
+c      case('Silt3')
+c         if (trm(ii,j,l,n_SO4_d4)  > 0.1 ) then
+c            fq_aer(NTIX(N))  = 1.
+c         else
+c            fq_aer(NTIX(N))  = 0.
+c         endif
+c      end select
+c#endif
            CLDINC=CLDSAVT-FCLOUD 
           if (fq0.gt.0.and.CLDINC.gt.0.) then 
           if(LHX.EQ.LHE) then !liquid cloud
@@ -7198,11 +7421,11 @@ c complete dissolution in convective clouds
 c with double dissolution if partially soluble
           if (TR_CONV) then
            if (LHX.EQ.LHE) then !liquid cloud
-c              fq=(1.d0+fq_aer(ntix(n)))/2.d0
-               fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0
+               fq=(1.d0+fq_aer(ntix(n)))/2.d0
+c              fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0
            else
-c              fq=(1.d0+fq_aer(ntix(n)))/2.d0*0.05d0
-               fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0*0.05d0
+               fq=(1.d0+fq_aer(ntix(n)))/2.d0*0.05d0
+c              fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0*0.05d0
            endif
           endif
           if (FCLOUD.LT.1.D-16) fq=0.d0
@@ -7336,7 +7559,7 @@ C
           fq = 0.D0
         CASE(nPART)                           ! aerosols
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
-    (defined TRACERS_DUST)
+    (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
           fq = -b_beta_DT*(EXP(-PREC*rc_wash)-1.D0)
           if (FCLOUD.lt.1.D-16) fq=0.d0
           if (fq.lt.0.) fq=0.d0

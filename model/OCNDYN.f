@@ -568,8 +568,8 @@ C**** Check potential specific enthalpy/salinity
           END IF
           IF(SO1.gt.0.045 .or. SO1.lt.0.) THEN
             WRITE (6,*) 'After ',SUBR,': I,J,L,SO=',I,J,L,1d3*SO1
-            IF (SO1.gt.0.05 .or. SO1.lt.0. .and. .not. (I.eq.47.and.J.eq
-     *           .30)) QCHECKO=.TRUE.
+            IF ((SO1.gt.0.05 .or. SO1.lt.0.) .and. .not. (I.eq.47.and.
+     *           J.eq.30)) QCHECKO=.TRUE.
           END IF
           END DO
 C**** Check all ocean currents
@@ -2514,17 +2514,19 @@ C****
         ROICE = RSI(I,J)
         POCEAN=FOCEAN(I,J)*(1.-ROICE)
         POICE =FOCEAN(I,J)*ROICE
+        DXYPJ=DXYPJ*FOCEAN(I,J)     ! adjust areas for completeness
+        BYDXYPJ=BYDXYPJ/FOCEAN(I,J) ! no change to results
 C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
-        RUNO = (FLOWO(I,J)+ MELTI(I,J))/(FOCEAN(I,J)*DXYPJ)-
+        RUNO = (FLOWO(I,J)+ MELTI(I,J))/(DXYPJ)-
      *                                   RATOC(J)*EVAPOR(I,J,1)
-        RUNI = (FLOWO(I,J)+ MELTI(I,J))/(FOCEAN(I,J)*DXYPJ)+
+        RUNI = (FLOWO(I,J)+ MELTI(I,J))/(DXYPJ)+
      *                                   RATOC(J)*RUNOSI(I,J)
-        ERUNO=(EFLOWO(I,J)+EMELTI(I,J))/(FOCEAN(I,J)*DXYPJ)+
+        ERUNO=(EFLOWO(I,J)+EMELTI(I,J))/(DXYPJ)+
      *                                   RATOC(J)*E0(I,J,1)
-        ERUNI=(EFLOWO(I,J)+EMELTI(I,J))/(FOCEAN(I,J)*DXYPJ)+
+        ERUNI=(EFLOWO(I,J)+EMELTI(I,J))/(DXYPJ)+
      *                                   RATOC(J)*ERUNOSI(I,J)
-        SRUNO=SMELTI(I,J)/(FOCEAN(I,J)*DXYPJ)
-        SRUNI=SMELTI(I,J)/(FOCEAN(I,J)*DXYPJ)+RATOC(J)*SRUNOSI(I,J)
+        SRUNO=SMELTI(I,J)/(DXYPJ)
+        SRUNI=SMELTI(I,J)/(DXYPJ)+RATOC(J)*SRUNOSI(I,J)
         G0ML(:) =  G0M(I,J,:)
         GZML(:) = GZMO(I,J,:)
         SROX(1)=SOLAR(1,I,J)*RATOC(J) ! open water
@@ -2534,12 +2536,12 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
 #ifdef TRACERS_OCEAN
         TRO1(:) = TRMO(I,J,1,:)
 #ifdef TRACERS_WATER
-        TRUNO(:)=(TRFLOWO(:,I,J)+TRMELTI(:,I,J))/(FOCEAN(I,J)*DXYPJ)-
+        TRUNO(:)=(TRFLOWO(:,I,J)+TRMELTI(:,I,J))/(DXYPJ)-
      *       RATOC(J)*TREVAPOR(:,1,I,J) 
 #ifdef TRACERS_DRYDEP
      *       + RATOC(J)*trdrydep(:,1,i,j)
 #endif
-        TRUNI(:)=(TRFLOWO(:,I,J)+TRMELTI(:,I,J))/(FOCEAN(I,J)*DXYPJ)+
+        TRUNI(:)=(TRFLOWO(:,I,J)+TRMELTI(:,I,J))/(DXYPJ)+
      *       RATOC(J)*TRUNOSI(:,I,J)
 #else
         TRUNO(:)=0. ; TRUNI(:)=0.
@@ -2769,13 +2771,13 @@ C****
       DO J=1,JM
         DO I=1,IMAXJ(J)
           IF(FOCEAN(I,J).gt.0. .and. PREC(I,J).gt.0.)  THEN
-            MO (I,J,1)= MO(I,J,1) + (1d0-RSI(I,J))*PREC(I,J) +
-     *           RSI(I,J)*RUNPSI(I,J)
-            G0M(I,J,1)=G0M(I,J,1) + (1d0-RSI(I,J))*EPREC(I,J)
-            S0M(I,J,1)=S0M(I,J,1) + RSI(I,J)*SRUNPSI(I,J)
+            MO (I,J,1)= MO(I,J,1) + ((1d0-RSI(I,J))*PREC(I,J) +
+     *           RSI(I,J)*RUNPSI(I,J))*FOCEAN(I,J)
+            G0M(I,J,1)=G0M(I,J,1)+(1d0-RSI(I,J))*EPREC(I,J)*FOCEAN(I,J)
+            S0M(I,J,1)=S0M(I,J,1) + RSI(I,J)*SRUNPSI(I,J)*FOCEAN(I,J)
 #ifdef TRACERS_OCEAN
-            TRMO(I,J,1,:)=TRMO(I,J,1,:)+(1d0-RSI(I,J))*TRPREC(:,I,J)
-     *             +RSI(I,J)*TRUNPSI(:,I,J)
+            TRMO(I,J,1,:)=TRMO(I,J,1,:)+((1d0-RSI(I,J))*TRPREC(:,I,J)
+     *             +RSI(I,J)*TRUNPSI(:,I,J))*FOCEAN(I,J)
 #endif
           END IF
         END DO

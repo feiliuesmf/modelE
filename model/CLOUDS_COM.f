@@ -28,6 +28,10 @@ C**** some arrays here for compatility with new clouds
 #ifdef CLD_AER_CDNC
 !@var OLDNO, OLDNL old CDNC for ocean and land ,SMFPM:CTEI parameter
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OLDNO,OLDNL,SMFPM
+!@var LWC,Cld depth, cld tem,N, Re, LWP for 3 hrly diag save  
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CL3D,CD3D,CTEM
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CDN3D,CRE3D
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: CLWP       
 #endif
 
 C**** variables saved for radiation calculations
@@ -68,6 +72,7 @@ C**** variables used (and saved) for gravity wave drag calculations
      *                       CLDSAV1,FSS,
 #ifdef CLD_AER_CDNC
      *                       OLDNO,OLDNL,SMFPM,
+     *                       CL3D,CD3D,CTEM,CDN3D,CRE3D,CLWP,                       
 #endif
      *                       TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS,
      *                       ULS,VLS,UMC,VMC,TLS,QLS,
@@ -93,6 +98,12 @@ C**** variables used (and saved) for gravity wave drag calculations
      *             OLDNO(LM,IM,J_0H:J_1H),
      *             OLDNL(LM,IM,J_0H:J_1H),
      *             SMFPM(LM,IM,J_0H:J_1H),
+     *             CTEM(LM,IM,J_0H:J_1H),
+     *             CD3D(LM,IM,J_0H:J_1H),
+     *             CL3D(LM,IM,J_0H:J_1H),
+     *             CDN3D(LM,IM,J_0H:J_1H),
+     *             CRE3D(LM,IM,J_0H:J_1H),
+     *             CLWP(IM,J_0H:J_1H),
 #endif
      *              TAUSS(LM,IM,J_0H:J_1H),
      *              TAUMC(LM,IM,J_0H:J_1H),

@@ -30,6 +30,7 @@ ICEDYN_DRV ICEDYN  ! or: ICEDYN_DUM ! land ice modules
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
+RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output

@@ -318,14 +318,18 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
-     *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA
+     *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA,TRADEN
       USE RAD_COM, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,RHfix
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
+     *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
-     *     ,rad_interact_tr,rad_forc_lev,ntrix
+     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
+     *     ,rad_interact_tr,rad_forc_lev,ntrix,wttr
+      USE CLOUDS_COM, only : llow
+      USE DIAG_COM, only : iwrite,jwrite,itwrite
 #ifdef TRACERS_ON
       USE TRACER_COM
 #endif
@@ -371,10 +375,14 @@ C**** sync radiation parameters from input
       call sync_param( "volc_yr", volc_yr )
       call sync_param( "volc_day", volc_day )
       call sync_param( "aero_yr", aero_yr )
+      call sync_param( "dALBsnX", dALBsnX )
+      call sync_param( "albsn_yr", albsn_yr )
       call sync_param( "aermix", aermix , 13 )
       call sync_param( "FS8OPX", FS8OPX , 8 )
       call sync_param( "FT8OPX", FT8OPX , 8 )
       call sync_param( "RHfix", RHfix )
+      call sync_param( "CC_cdncx", CC_cdncx )
+      call sync_param( "OD_cdncx", OD_cdncx )
       call sync_param( "O3_yr", O3_yr )
       call sync_param( "PTLISO", PTLISO )
       call sync_param( "O3YR_max", O3YR_max )
@@ -475,6 +483,7 @@ C****
         COE(LR)=DTsrc*NRAD*COEX/(PLB(LR)-PLB(LR+1))
         PLB0(LR-LM) = PLB(LR+1)
       END DO
+      call reterp(vcdnc,pcdnc,7, cdncl,plb,llow+2)
       if (kradia.gt.1) then
         do l=1,ls1-1
           COE(L)=DTsrc*nrad*COEX/DSIG(L)
@@ -543,6 +552,7 @@ C****     1 SO4,  2 seasalt, 3 nitrate, 4 OCX organic carbons
 C****     5 BCI,  6 BCB,     7 dust,    8 H2SO4 volc
 C****  2b) set up the indexing array NTRIX to map the RADIATION tracers
 C****      to the main model tracers
+C****  2c) set up the weighting array WTTR to weight main model tracers
 C****
 C****  3) Use FSTOPX/FTTOPX(1:NTRACE) to scale them in RADIA
 C****  4) Set TRRDRY to dry radius
@@ -571,6 +581,8 @@ C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics
       NTRIX(1:NTRACE)=
      *     (/ n_sO4, n_seasalt1, n_seasalt2, n_OCIA, n_BCIA, n_BCB/)
+C**** define weighting (only used for clays so far)
+      WTTR(1:NTRACE) = 1d0
 C**** If some tracers are not being used reduce NTRACE accordingly
       NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #endif
@@ -586,15 +598,66 @@ C**** should also work if other aerosols are not used
 c tracer 7 is dust
       ITR(n1:NTRACE) = (/ 7,7,7,7,7,7,7 /)
       KRHTRA(n1:NTRACE)= 0.  ! no deliq for dust
-C**** particle size for dust  (from trradius?)
+C**** effective radii for dust
 c      TRRDRY(n1:NTRACE)=(/ .75d0, 2.2d0, 4.4d0, 6.7d0/)
-      TRRDRY(n1:NTRACE)=(/.1d0, .2d0, .4d0, .8d0, 1.d0, 2.d0, 4.d0/)
+      TRRDRY(n1:NTRACE)=(/0.132D0,0.23D0,0.416D0,0.766D0,1.386D0,
+     &     2.773D0,5.545D0/)
+C**** Particle density of dust
+      TRADEN(n1:NTRACE)=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,2.65D0/)
 C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics. Adjust if number of dust tracers changes.
       NTRIX(n1:NTRACE)=(/n_clay,n_clay,n_clay,n_clay,n_silt1,n_silt2,
      &     n_silt3/)
+C**** define weighting for different clays
+      WTTR(n1:NTRACE)=(/0.009D0,0.081D0,0.234D0,0.676D0,1D0,1D0,1D0/)
 C**** If some tracers are not being used reduce NTRACE accordingly
       NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
+#else
+#ifdef TRACERS_MINERALS
+C**** add minerals optionally to radiatively active aerosol tracers
+C**** so far all minerals have the properties of far traveled Saharan dust
+C**** to be changed soon
+      if (rad_interact_tr.gt.0) then ! turn off default dust
+        FS8OPX(7) = 0. ; FT8OPX(7) = 0.
+      end if
+      n1=NTRACE+1
+      NTRACE=NTRACE+ntm_dust+15  ! add dust tracers
+c tracer 7 is dust
+      ITR(n1:NTRACE) = (/7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
+     &     7,7,7,7,7,7,7,7,7,7,7,7,7,7/)
+      KRHTRA(n1:NTRACE)= 0.  ! no deliq for minerals
+C**** effective radii for minerals
+c      TRRDRY(n1:NTRACE)=(/ .75d0, 2.2d0, 4.4d0, 6.7d0/)
+      TRRDRY(n1:NTRACE)=(/0.132D0,0.23D0,0.416D0,0.766D0,0.132D0,0.23D0,
+     &     0.416D0,0.766D0,0.132D0,0.23D0,0.416D0,0.766D0,0.132D0,
+     &     0.23D0,0.416D0,0.766D0,0.132D0,0.23D0,0.416D0,0.766D0,
+     &     1.386D0,1.386D0,1.386D0,1.386D0,1.386D0,2.773D0,2.773D0,
+     &     2.773D0,2.773D0,2.773D0,5.545D0,5.545D0,5.545D0,5.545D0,
+     &     5.545D0/)
+C**** Particle density of dust
+      TRADEN(n1:NTRACE)=(/2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,
+     &     2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,
+     &     2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,2.65D0,2.65D0,2.65D0,2.65D0,
+     &     2.65D0,2.65D0,2.65D0,2.65D0,2.65D0,2.65D0,2.65D0,2.65D0,
+     &     2.65D0/)
+C**** Define indices to map model tracer arrays to radiation arrays
+C**** for the diagnostics. Adjust if number of dust tracers changes.
+      NTRIX(n1:NTRACE)=(/n_clayilli,n_clayilli,n_clayilli,n_clayilli,
+     &     n_claykaol,n_claykaol,n_claykaol,n_claykaol,n_claysmec,
+     &     n_claysmec,n_claysmec,n_claysmec,n_claycalc,n_claycalc,
+     &     n_claycalc,n_claycalc,n_clayquar,n_clayquar,n_clayquar,
+     &     n_clayquar,n_sil1quar,n_sil1feld,n_sil1calc,n_sil1hema,
+     &     n_sil1gyps,n_sil2quar,n_sil2feld,n_sil2calc,n_sil2hema,
+     &     n_sil2gyps,n_sil3quar,n_sil3feld,n_sil3calc,n_sil3hema,
+     &     n_sil3gyps/)
+C**** define weighting for different clays
+      WTTR(n1:NTRACE)=(/0.009D0,0.081D0,0.234D0,0.676D0,0.009D0,0.081D0,
+     &     0.234D0,0.676D0,0.009D0,0.081D0,0.234D0,0.676D0,0.009D0,
+     &     0.081D0,0.234D0,0.676D0,0.009D0,0.081D0,0.234D0,0.676D0,1D0,
+     &     1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0/)
+C**** If some tracers are not being used reduce NTRACE accordingly
+      NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
+#endif
 #endif
 
       if (ktrend.ne.0) then
@@ -609,6 +672,7 @@ C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
           call closeunit(iu)
         end if
       end if
+      call updBCd(1990) ; depoBC_1990 = depoBC
 C**** set up unit numbers for 14 more radiation input files
       DO IU=1,14
         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE                ! not used in GCM
@@ -699,7 +763,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC, kdeliq
      &             ,POCEAN,PEARTH,POICE,PLICE,PLAKE,COSZ,PVT
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
-     &             ,AGESN,SNOWE,SNOWOI,SNOWLI, ZSNWOI,ZOICE
+     &             ,AGESN,SNOWE,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
      *             ,TRACER,NTRACE,FSTOPX,FTTOPX,O3_IN,FTAUC
 C     OUTPUT DATA
@@ -712,7 +776,9 @@ C     OUTPUT DATA
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
-     *     ,rad_forc_lev,ntrix,cloud_rad_forc
+     *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
+     *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl
+     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -731,7 +797,9 @@ C     OUTPUT DATA
      *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      *     ,ij_clr_srincg,ij_CLDTPT,ij_cldt1t,ij_cldt1p,ij_cldcv1
      *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,ij_swcrf,ij_lwcrf
-     *     ,AFLX_ST, hr_in_day,hr_in_month
+     *     ,AFLX_ST, hr_in_day,hr_in_month,ij_srntp,ij_trntp
+     *     ,ij_clr_srntp,ij_clr_trntp,ij_clr_srnfg,ij_clr_trdng
+     *     ,ij_clr_sruptoa,ij_clr_truptoa,aijk,ijl_cf
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -752,7 +820,7 @@ C     OUTPUT DATA
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
-      REAL*8 U0GAS,taulim
+      REAL*8 U0GAS,taulim, xdalbs,sumda,tauda,fsnow
       COMMON/RADPAR_hybrid/U0GAS(LX,13)
 !$OMP  THREADPRIVATE(/RADPAR_hybrid/)
 
@@ -773,18 +841,20 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(0:LM+LM_REQ,IM,
      *     grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRA,SRHRA ! for adj.frc
-      REAL*8, DIMENSION(LM) :: TOTCLD
+      REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
+      INTEGER, SAVE :: JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff
      *     ,LFRC,JTIME
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,X,OPNSKY,CSZ2,tauup,taudn
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
-     *     ,tauex5,tauex6,tausct,taugcb
+     *     ,tauex5,tauex6,tausct,taugcb,dcdnc
      *     ,QR(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,CLDinfo(LM,3,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8 RANDXX ! temporary
       REAL*8 QSAT
-      LOGICAL NO_CLOUD_ABOVE
+      LOGICAL NO_CLOUD_ABOVE, set_clay,set_clayilli,set_claykaol,
+     &     set_claysmec,set_claycalc,set_clayquar
 C
       REAL*8  RDSS(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,RDMC(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
@@ -890,7 +960,37 @@ C**** Calculate mean cosine of zenith angle for the full radiation step
       JDAYR=JDAY
       JYEARR=JYEAR
 
+ccc the following lines should probably be moved somewhere else
+ccc but I have no idea what this code is doing...
+ccc somebody familiar with the code please check I.A.
+C*********************************************************
+C     Update time dependent radiative parameters each day
+      IF(JDAY.NE.JDLAST) THEN
+        if (albsn_yr.eq.0) then
+          call updBCd (JYEAR)
+        else
+          call updBCd (albsn_yr)
+        end if
+      end if
+C*********************************************************
       S0=S0X*S00WM2*RATLS0/RSDIST
+
+c**** find scaling factors for surface albedo reduction
+      sumda=im*dxyp(1)+im*dxyp(jm)*rsi(1,jm)
+      tauda=im*dxyp(1)*depobc_1990(1,1) +
+     *      im*dxyp(jm)*rsi(1,jm)*depobc_1990(1,46)
+      do j=2,jm-1
+         JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)
+         do i=1,im
+           ILON=INT(.5+(I-.5)*72./IM+.5)
+           fsnow = flice(i,j) + rsi(i,j)*(1-fland(i,j))
+           if(SNOWE_COM(I,J).gt.0.) fsnow = fsnow+fearth(i,j)
+           sumda = sumda + dxyp(j)*fsnow
+           tauda = tauda + dxyp(j)*fsnow*depobc_1990(ilon,jlat)
+         end do
+      end do
+      xdalbs=-dalbsnX*sumda/tauda
+      IF(QCHECK) write(6,*) 'coeff. for snow alb reduction',xdalbs
 
       if(kradia.le.0) then
       IF (QCHECK) THEN
@@ -990,7 +1090,9 @@ C****
       ADIURN_part=0.; HDIURN_part=0.
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
 !$OMP*   I,INCH,IH,IHM,IT, J, K,KR, L,LR,LFRC, N, onoff,OPNSKY,
-!$OMP*   CSZ2, PLAND,tauex5,tauex6,tausct,taugcb,
+!$OMP*   CSZ2, PLAND,tauex5,tauex6,tausct,taugcb,set_clay,
+!$OMP*   set_clayilli,set_claykaol,set_claysmec,set_claycalc,
+!$OMP*   set_clayquar,dcc_cdncl,dod_cdncl,dCDNC,
 !$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
 !$OMP*   COPYIN(/RADPAR_hybrid/)
 !$OMP*   SHARED(ITWRITE)
@@ -1031,6 +1133,9 @@ C****
 C**** DETERMINE CLOUDS (AND THEIR OPTICAL DEPTHS) SEEN BY RADIATION
 C****
       CSS=0. ; CMC=0. ; CLDCV=0. ; DEPTH=0. ; OPTDW=0. ; OPTDI=0.
+      call dCDNC_EST(ilon,jlat,pland, dCDNC)
+      dCC_CDNCL = CC_cdncx*dCDNC*CDNCL
+      dOD_CDNCL = OD_cdncx*dCDNC*CDNCL
       DO L=1,LM
         PIJ=PLIJ(L,I,J)
         QSS=Q(I,J,L)/(RHSAV(L,I,J)+1.D-20)
@@ -1047,8 +1152,8 @@ C****
         SIZEIC(L)=0.
         TOTCLD(L)=0.
 C**** Determine large scale and moist convective cloud cover for radia
-        IF (CLDSS(L,I,J).GT.RDSS(L,I,J)) THEN
-          TAUSSL=TAUSS(L,I,J)
+        IF (CLDSS(L,I,J)*(1.+dcc_cdncl(l)).GT.RDSS(L,I,J)) THEN
+          TAUSSL=TAUSS(L,I,J)*(1.+dod_cdncl(l))
           shl(L)=QSS
           CSS=1.
           AJL(J,L,JL_SSCLD)=AJL(J,L,JL_SSCLD)+CSS
@@ -1068,6 +1173,8 @@ C**** Determine large scale and moist convective cloud cover for radia
              CLDCV=1.
           TOTCLD(L)=1.
           AJL(J,L,JL_TOTCLD)=AJL(J,L,JL_TOTCLD)+1.
+C**** save 3D cloud fraction as seen by radiation
+          AIJK(I,J,L,IJL_CF)=AIJK(I,J,L,IJL_CF)+1.
           IF(TAUMCL.GT.TAUSSL) THEN
             SIZEWC(L)=CSIZMC(L,I,J)
             SIZEIC(L)=CSIZMC(L,I,J)
@@ -1219,7 +1326,8 @@ C**** Extra aerosol data
 C**** For up to NTRACE aerosols, define the aerosol amount to
 C**** be used (kg/m^2)
 C**** Only define TRACER is individual tracer is actually defined.
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_MINERALS)
 C**** loop over tracers that are passed to radiation.
 C**** Two special cases for black carbon and organic carbon where
 C**** more than one tracer is lumped together for radiation purposes
@@ -1231,17 +1339,8 @@ C**** more than one tracer is lumped together for radiation purposes
      *           trm(i,j,l,n_OCIA))*BYDXYP(J)
           case ("BCIA")
             TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYDXYP(J)
-          CASE ('Clay')
-            IF (n == n_clay) TRACER(L,n)=trm(i,j,l,NTRIX(n))*BYDXYP(J)
-     &           *0.01D0
-            IF (n == n_clay+1) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
-     &           BYDXYP(J)*0.08D0
-            IF (n == n_clay+2) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
-     &           BYDXYP(J)*0.23D0
-            IF (n == n_clay+3) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
-     &           BYDXYP(J)*0.66D0
           case default
-            TRACER(L,n)=trm(i,j,l,NTRIX(n))*BYDXYP(J)
+            TRACER(L,n)=wttr(n)*trm(i,j,l,NTRIX(n))*BYDXYP(J)
           end select
         end if
       end do
@@ -1292,6 +1391,7 @@ C**** Zenith angle and GROUND/SURFACE parameters
 c      print*,"snowage",i,j,SNOAGE(1,I,J)
 C**** set up parameters for new sea ice and snow albedo
       zsnwoi=snowoi/rhos
+      dALBsn = xdalbs*depobc(ilon,jlat)
       if (poice.gt.0.) then
         zoice=(ace1i+msi(i,j))/rhoi
         flags=flag_dsws(i,j)
@@ -1339,44 +1439,68 @@ C**** or not.
       onoff=0
       if (rad_interact_tr.gt.0) onoff=1
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_MINERALS)
 C**** Aerosols incl. Dust:
       if (NTRACE.gt.0) then
         FSTOPX(:)=onoff ; FTTOPX(:)=onoff
-        DO n=1,NTRACE
-          IF (trname(ntrix(n)) .EQ. 'Clay') THEN
-            SNFST(1,NTRIX(n),I,J)=0D0
-            TNFST(1,NTRIX(n),I,J)=0D0
-            SNFST(2,NTRIX(n),I,J)=0D0
-            TNFST(2,NTRIX(n),I,J)=0D0
-            EXIT
-          END IF
-        END DO
+        set_clay=.false.
+        set_clayilli=.FALSE.
+        set_claykaol=.FALSE.
+        set_claysmec=.FALSE.
+        set_claycalc=.FALSE.
+        set_clayquar=.FALSE.
         do n=1,NTRACE
           IF (trname(NTRIX(n)).eq."seasalt2") CYCLE ! not for seasalt2
+          IF (trname(ntrix(n)) == 'Clay' .AND. set_clay) cycle
+          IF (trname(ntrix(n)) == 'ClayIlli' .AND. set_clayilli) cycle
+          IF (trname(ntrix(n)) == 'ClayKaol' .AND. set_claykaol) cycle
+          IF (trname(ntrix(n)) == 'ClaySmec' .AND. set_claysmec) cycle
+          IF (trname(ntrix(n)) == 'ClayCalc' .AND. set_claycalc) cycle
+          IF (trname(ntrix(n)) == 'ClayQuar' .AND. set_clayquar) cycle
           FSTOPX(n)=1-onoff ; FTTOPX(n)=1-onoff ! turn on/off tracer
 C**** Warning: small bit of hardcoding assumes that seasalt1 is
 C**** one before seasalt2 in NTRACE array
           IF (trname(NTRIX(n)).eq."seasalt1") THEN ! add seasalt1 to seasalt2
             FSTOPX(n+1)=1-onoff ; FTTOPX(n+1)=1-onoff
           END IF
+C**** Do radiation calculations for all clay classes at once
+C**** Assumes that 4 clay tracers are adjacent in NTRACE array
+          SELECT CASE (trname(ntrix(n)))
+          CASE ('Clay')
+            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+            set_clay=.true.
+          CASE ('ClayIlli')
+            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+            set_clayilli=.true.
+          CASE ('ClayKaol')
+            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+            set_claykaol=.true.
+          CASE ('ClaySmec')
+            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+            set_claysmec=.true.
+          CASE ('ClayCalc')
+            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+            set_claycalc=.true.
+          CASE ('ClayQuar')
+            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+            set_clayquar=.true.
+          END SELECT
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
           CALL RCOMPX
-          IF (trname(ntrix(n)) .EQ. 'Clay') THEN
-            SNFST(1,NTRIX(n),I,J)=SNFST(1,NTRIX(n),I,J)+SRNFLB(1) ! surface forcing
-            TNFST(1,NTRIX(n),I,J)=TNFST(1,NTRIX(n),I,J)+TRNFLB(1)
-            SNFST(2,NTRIX(n),I,J)=SNFST(2,NTRIX(n),I,J)+SRNFLB(LFRC)
-            TNFST(2,NTRIX(n),I,J)=TNFST(2,NTRIX(n),I,J)+TRNFLB(LFRC)
-          ELSE
-            SNFST(1,NTRIX(n),I,J)=SRNFLB(1) ! surface forcing
-            TNFST(1,NTRIX(n),I,J)=TRNFLB(1)
-            SNFST(2,NTRIX(n),I,J)=SRNFLB(LFRC)
-            TNFST(2,NTRIX(n),I,J)=TRNFLB(LFRC)
-          END IF
+          SNFST(1,NTRIX(n),I,J)=SRNFLB(1) ! surface forcing
+          TNFST(1,NTRIX(n),I,J)=TRNFLB(1)
+          SNFST(2,NTRIX(n),I,J)=SRNFLB(LFRC)
+          TNFST(2,NTRIX(n),I,J)=TRNFLB(LFRC)
           FSTOPX(n)=onoff ; FTTOPX(n)=onoff ! back to default
           IF (trname(NTRIX(n)).eq."seasalt1") THEN ! for seasalt2 as well
             FSTOPX(n+1)=onoff ; FTTOPX(n+1)=onoff
           END IF
+          SELECT CASE (trname(ntrix(n)))
+          CASE ('Clay','ClayIlli','ClayKaol','ClaySmec','ClayCalc',
+     &           'ClayQuar')
+            fstopx(n+1:n+3)=onoff ; fttopx(n+1:n+3)=onoff  ! for clays as well
+          END SELECT
         end do
       end if
 #endif
@@ -1412,16 +1536,14 @@ C     Main RADIATIVE computations, SOLAR and THERMAL
       CALL RCOMPX
 C*****************************************************
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_MINERALS)
 C**** Save optical depth diags
       do n=1,NTRACE
-        if (ijts_tau(1,NTRIX(n)).gt.0)
-     *    taijs(i,j,ijts_tau(1,NTRIX(n)))
-     *    =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
-        if (ijts_tau(2,NTRIX(n)).gt.0)
-     *    taijs(i,j,ijts_tau(2,NTRIX(n)))
-     *    =taijs(i,j,ijts_tau(2,NTRIX(n)))
-     *    +SUM(TTAUSV(1:lm,n))*OPNSKY
+        if (ijts_tau(1,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(1,NTRIX(n)))
+     *       =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
+        if (ijts_tau(2,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(2,NTRIX(n)))
+     *       =taijs(i,j,ijts_tau(2,NTRIX(n)))+SUM(TTAUSV(1:lm,n))*OPNSKY
       end do
 #endif
 
@@ -1526,8 +1648,22 @@ C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (pointer)
       FSRDIR(I,J)=SRXVIS        ! direct visible solar at surface
       SRVISSURF(I,J)=SRDVIS     ! total visible solar at surface
 C**** Save clear sky/tropopause diagnostics here
-        AIJ(I,J,IJ_CLR_SRINCG)=AIJ(I,J,IJ_CLR_SRINCG)+
-     +                                    OPNSKY*SRDFLB(1)*CSZ2
+      AIJ(I,J,IJ_CLR_SRINCG)=AIJ(I,J,IJ_CLR_SRINCG)+OPNSKY*
+     *     SRDFLB(1)*CSZ2
+      AIJ(I,J,IJ_CLR_SRNFG)=AIJ(I,J,IJ_CLR_SRNFG)+OPNSKY*
+     *     SRNFLB(1)*CSZ2
+      AIJ(I,J,IJ_CLR_TRDNG)=AIJ(I,J,IJ_CLR_TRDNG)+OPNSKY*TRHR(0,I,J)
+      AIJ(I,J,IJ_CLR_SRUPTOA)=AIJ(I,J,IJ_CLR_SRUPTOA)+OPNSKY*
+     *     SRUFLB(LM+LM_REQ+1)*CSZ2
+      AIJ(I,J,IJ_CLR_TRUPTOA)=AIJ(I,J,IJ_CLR_TRUPTOA)+OPNSKY*
+     *     TRUFLB(LM+LM_REQ+1)
+      AIJ(I,J,IJ_CLR_SRNTP)=AIJ(I,J,IJ_CLR_SRNTP)+OPNSKY*
+     *     SRNFLB(LTROPO(I,J))*CSZ2
+      AIJ(I,J,IJ_CLR_TRNTP)=AIJ(I,J,IJ_CLR_TRNTP)+OPNSKY*
+     *     TRNFLB(LTROPO(I,J))
+      AIJ(I,J,IJ_SRNTP)=AIJ(I,J,IJ_SRNTP)+SRNFLB(LTROPO(I,J))*CSZ2
+      AIJ(I,J,IJ_TRNTP)=AIJ(I,J,IJ_TRNTP)+TRNFLB(LTROPO(I,J))
+
       DO IT=1,NTYPE
         AJ(J,J_CLRTOA,IT)=AJ(J,J_CLRTOA,IT)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
      *     *CSZ2-TRNFLB(LM+LM_REQ+1))*FTYPE(IT,I,J)
@@ -1795,7 +1931,8 @@ C**** CRF diags if required
      *          (TNFS(3,I,J)-TNFSCRF(I,J))
          end if
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) || (defined TRACERS_SPECIAL_Shindell)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS)
 C**** Generic diagnostics for radiative forcing calculations
 C**** Depending on whether tracers radiative interaction is turned on,
 C**** diagnostic sign changes
@@ -1814,17 +1951,17 @@ c longwave forcing  (TOA or TROPO)
      *         ,ijts_fc(2,n))-rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
 c shortwave forcing (TOA or TROPO) clear sky
              if (ijts_fc(5,n).gt.0) taijs(i,j,ijts_fc(5,n))=taijs(i,j
-     * ,ijts_fc(5,n))+rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2*(1.d0-
-     *  CFRAC(I,J))
+     *         ,ijts_fc(5,n))+rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
+     *         *(1.d0-CFRAC(I,J))
 c longwave forcing  (TOA or TROPO) clear sky
              if (ijts_fc(6,n).gt.0) taijs(i,j,ijts_fc(6,n))=taijs(i,j
-     * ,ijts_fc(6,n))-rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))*(1.d0-
-     *  CFRAC(I,J))
+     *         ,ijts_fc(6,n))-rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
+     *         *(1.d0-CFRAC(I,J))
 c shortwave forcing at surface (if required)
-             if (ijts_fc(3,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
+             if (ijts_fc(3,n).gt.0) taijs(i,j,ijts_fc(3,n))=taijs(i,j
      *         ,ijts_fc(3,n))+rsign*(SNFST(1,N,I,J)-SNFS(1,I,J))*CSZ2
 c longwave forcing at surface (if required)
-             if (ijts_fc(4,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
+             if (ijts_fc(4,n).gt.0) taijs(i,j,ijts_fc(4,n))=taijs(i,j
      *         ,ijts_fc(4,n))-rsign*(TNFST(1,N,I,J)-TNFS(1,I,J))
            end do
          end if
@@ -2569,4 +2706,115 @@ C****
       RETURN
       END SUBROUTINE ORBIT
 
+
+      subroutine dCDNC_EST(i,j,pland, dCDNC)
+!@sum  finds change in cloud droplet number concentration since 1850
+!@auth R. Ruedy
+!@ver  1.0
+      use radpar, only : anssdd, mdpi, mdcur
+      USE CONSTANT, only : pi
+      implicit none
+      integer, intent(in)  :: i,j ! grid coordinates w.r. 72x46 grid
+      real*8 , intent(in)  :: pland ! land fraction
+      real*8 , intent(out) :: dCDNC ! CDNC(cur)-CDNC(1850)
+
+      real*8, parameter, dimension(5) ::
+C                TROPOSPHERIC AEROSOL PARAMETERS
+C                  SO4     NO3    OCX    BCB   BCI
+     *  f_act=(/ 1.0d0,  1.0d0, 0.8d0, 0.6d0, .8d0/), ! soluble fraction
+     *  dens =(/1769d0, 1700d0,  1.d3,  1.d3, 1.d3/)  ! density
+
+      real*8, parameter, dimension(2) ::
+C                    Ocean         Land      ! r**3: r=.085,.052 microns
+     *  radto3 =(/ 614.125d-24, 140.608d-24/),  ! used for SO4,NO3,OC,BC
+     *  scl    =(/     162d0,       298d0/),  ! for Gultepe's formula
+     *  offset =(/     273d0,       595d0/)   ! for Gultepe's formula
+
+      integer it, n
+      real*8  An,An0,cdnc(2),cdnc0(2),fbymass1
+
+      do it=1,2  ! ocean, land
+        An0 = anssdd(i,j)  !  aerosol number of sea salt and dust
+        An  = An0          !  aerosol number of sea salt and dust
+        do n=1,4
+          fbymass1 =  F_act(n)*(.75d0/pi)/(dens(n)*radto3(it))
+          An0 = An0 + mdpi (n,i,j)*fbymass1   ! +fact*tot_mass/part_mass
+          An  = An  + mdcur(n,i,j)*fbymass1
+        end do
+        fbymass1 =  F_act(5)*(.75d0/pi)/(dens(5)*radto3(it))
+        An  = An  + mdcur(5,i,j)*fbymass1
+
+        if(An0.lt.1.) An0=1.
+        if(An .lt.1.) An =1.
+        cdnc0(it) = max( 20d0, scl(it)*log10(AN0)-offset(it))
+        cdnc (it) = max( 20d0, scl(it)*log10(AN )-offset(it))
+      end do
+
+      dCDNC = (1-pland)*(cdnc(1)-cdnc0(1))+pland *(cdnc(2)-cdnc0(2))
+      return
+      end subroutine dCDNC_EST
+
+      subroutine updBCd (year)
+!@sum  reads appropriate Black Carbon deposition data if necessary
+!@auth R. Ruedy
+!@ver  1.0
+      USE FILEMANAGER
+      USE RAD_COM, only : depoBC
+      implicit none
+      integer, intent(in)   :: year
+
+      integer,parameter :: imr=72,jmr=46
+      real*8  BCdep1(imr,jmr),BCdep2(imr,jmr),wt   ! to limit i/o
+
+      integer :: iu,year1,year2,year0,yearL=-2,year_old=-1
+      save       iu,year1,year2,year0,yearL,   year_old,BCdep1,BCdep2
+
+      character*80 title
+      real*4 BCdep4(imr,jmr)
+
+C**** check whether update is needed
+      if (year.eq.year_old) return
+      if (year_old.eq.yearL.and.year.gt.yearL) return
+      if (year_old.eq.year0.and.year.lt.year0) return
+
+      call openunit('BC_dep',iu,.true.,.true.)
+
+      if (year_old.lt.0) then
+C****   read whole input file and find range: year0->yearL
+   10   read(iu,end=20) title
+        read(title,*) yearL
+        go to 10
+      end if
+
+   20 rewind (iu)
+      read(iu) title,BCdep4
+      read(title,*) year0
+      BCdep1=BCdep4 ; BCdep2=BCdep4 ; year2=year0 ; year1=year0
+      if (year.le.year1)              year2=year+1
+
+      do while (year2.lt.year .and. year2.ne.yearL)
+         year1 = year2 ; BCdep1 = BCdep2
+         read (iu) title,BCdep4
+         read(title,*) year2
+         BCdep2 = BCdep4
+      end do
+
+      if(year.le.year1) then
+        wt = 0.
+      else if (year.ge.yearL) then
+        wt = 1.
+      else
+        wt = (year-year1)/(real(year2-year1,kind=8))
+      end if
+
+      write(6,*) 'Using BCdep data from year',year1+wt*(year2-year1)
+      call closeunit(iu)
+
+C**** Set the Black Carbon deposition array
+      depoBC(:,:) = BCdep1(:,:) + wt*(BCdep2(:,:)-BCdep1(:,:))
+
+      year_old = year
+
+      return
+      end subroutine updBCd
 

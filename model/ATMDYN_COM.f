@@ -119,7 +119,7 @@ c$$$      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
      $                MB(I_0H:I_1H,J_0H:J_1H,LM), 
      $                MA(I_0H:I_1H,J_0H:J_1H,LM), 
      $                DKE(I_0H:I_1H,J_0H:J_1H,LM), 
-     $              WSAVE(I_0H:I_1H,J_0H:J_1H,LM), 
+     $              WSAVE(I_0H:I_1H,J_0H:J_1H,LM-1), 
      $   STAT = IER)
 
       ! F90 pointers replace EQUIVALENCE

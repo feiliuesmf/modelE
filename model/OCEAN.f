@@ -66,6 +66,12 @@ C     *     ,CRSI,KRSI
 !@var iu_OSST,iu_SICE,iu_OCNML unit numbers for climatologies
       INTEGER iu_OSST,iu_SICE,iu_OCNML
 
+!@dbparam qflux_fix an energy leak (default=0; no fix for continuity)
+      INTEGER :: qflux_fix=0
+
+!@dbparam qfluxX multiplying factor for qfluxes 
+      REAL*8 :: qfluxX=1.
+
       CONTAINS
 
       SUBROUTINE OSTRUC(QTCHNG)
@@ -674,7 +680,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE SEAICE, only : qsfix, osurf_tilt
       USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
-     *     ,iu_ocnml,tocean,ocn_cycl,sss0
+     *     ,iu_ocnml,tocean,ocn_cycl,sss0,qflux_fix,qfluxX
       USE DIAG_COM, only : npts,icon_OCE,conpt0
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
@@ -690,7 +696,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 
       call get(grid,j_strt=j_0,j_stop=j_1)
 
-      if (kocean.eq.1) then
+      if (kocean.ge.1) then
 C****   set conservation diagnostic for ocean heat
         CONPT=CONPT0
         QCON=(/ F, F, F, T, F, T, F, T, T, F, F/)
@@ -699,6 +705,10 @@ C****   set conservation diagnostic for ocean heat
       end if
 
       if (istart.le.0) return
+
+      call sync_param( "qflux_fix",qflux_fix)
+
+      call sync_param( "qfluxX"   ,qfluxX)
 
 C**** if starting from AIC/GIC files need additional read for ocean
       if (istart.le.2) then
@@ -812,7 +822,7 @@ C**** update ocean related climatologies
       CALL OCLIM(end_of_day)
 
 C**** Set fourier coefficients for heat transport calculations
-      IF (KOCEAN.eq.1) THEN
+      IF (KOCEAN.ge.1) THEN
         ANGLE=TWOPI*JDAY/EDPERY
         SINANG=SIN(ANGLE)
         SN2ANG=SIN(2*ANGLE)
@@ -825,7 +835,7 @@ C**** Set fourier coefficients for heat transport calculations
       END IF
 
 C**** Only do this at end of the day
-      IF (KOCEAN.EQ.1.and.end_of_day) THEN
+      IF (KOCEAN.ge.1.and.end_of_day) THEN
         DO J=J_0,J_1
           DO I=1,IM
             AIJ(I,J,IJ_TOC2)=AIJ(I,J,IJ_TOC2)+TOCEAN(2,I,J)
@@ -892,7 +902,7 @@ C****
           ESIMELT=EMELTI(I,J)/(FOCEAN(I,J)*DXYP(J))
           OA(I,J,4)=OA(I,J,4)+ENRGP
 
-          IF (KOCEAN .EQ. 1) THEN
+          IF (KOCEAN .ge. 1) THEN
             TGW=TOCEAN(1,I,J)
             WTRO=Z1O(I,J)*RHOWS
             SNOW=SNOWI(I,J)
@@ -963,7 +973,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,trsi0
 #endif
-      USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,osourc,
+      USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,osourc,qfluxX,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE DOMAIN_DECOMP, only : GRID,GET,AM_I_ROOT,GLOBALSUM
       USE DIAG_COM, only : NREG, KAJ
@@ -1010,9 +1020,9 @@ C**** get river runoff/iceberg melt flux
           RVRERUN=(EFLOWO(I,J)+EGMELT(I,J))/(FOCEAN(I,J)*DXYPJ)
           OA(I,J,4)=OA(I,J,4)+RVRERUN ! add rvr E to surf. energy budget
 
-          IF (KOCEAN .EQ. 1) THEN
+          IF (KOCEAN .ge. 1) THEN
             WTRO=Z1O(I,J)*RHOWS
-            OTDT=DTSRC*(OTA(I,J,4)*SN4ANG+OTB(I,J,4)*CS4ANG
+            OTDT=qfluxX*DTSRC*(OTA(I,J,4)*SN4ANG+OTB(I,J,4)*CS4ANG
      *           +OTA(I,J,3)*SN3ANG+OTB(I,J,3)*CS3ANG
      *           +OTA(I,J,2)*SN2ANG+OTB(I,J,2)*CS2ANG
      *           +OTA(I,J,1)*SINANG+OTB(I,J,1)*COSANG+OTC(I,J))
@@ -1100,7 +1110,7 @@ C****
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
-      IF (KOCEAN.eq.1) THEN   ! qflux model
+      IF (KOCEAN.ge.1) THEN     ! qflux model
         areg_part = 0
       DO J=J_0,J_1
       DXYPJ=DXYP(J)
@@ -1194,7 +1204,7 @@ C****     (see DIAGCA)
       REAL*8, EXTERNAL :: conserv_OCE
 
 C**** OCEAN POTENTIAL ENTHALPY
-      IF (KOCEAN.gt.0) CALL conserv_DIAG(M,conserv_OCE,icon_OCE)
+      IF (KOCEAN.ge.1) CALL conserv_DIAG(M,conserv_OCE,icon_OCE)
 C****
       RETURN
       END SUBROUTINE DIAGCO

@@ -150,7 +150,7 @@ ccc   main accumulators
 
 ccc   diagnostics accumulatars
       real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,af0dt,af1dt
-     &      , agpp
+     &      , agpp,aflmlt,aintercep
 ccc   some accumulators that are currently not computed:
      &     ,acna,acnc
 ccc   beta''s
@@ -337,7 +337,7 @@ C***
       COMMON /GHYTPC/
      &     abeta,abetab,abetad,abetap,abetat,abetav,acna,acnc,agpp
      &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
-     &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu !veg alaie,
+     &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu,aflmlt,aintercep
      &     ,ashg,atrg,betad,betat,ch,gpp,d,devapbs_dt,devapvs_dt
      &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb  ! dt dlm
      &     ,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
@@ -1839,6 +1839,11 @@ ccc   main fluxes which should conserve water/energy
       end do
 ccc   end of main fluxes
 ccc   the rest of the fluxes (mostly for diagnostics)
+      aflmlt = aflmlt + ( fb*(flmlt(1)*fr_snow(1)+flmlt_scale(1))
+     $     + fv*(flmlt(2)*fr_snow(2)+flmlt_scale(2)) )*dts
+!      if(process_vege) aintercep = aintercep + pr - dripw(2) - drips(2)
+ccc   max in the following expression removes extra drip because of dew
+      aintercep = aintercep + fv*max(pr - dripw(2) - drips(2),0.d0)*dts
       aevapw = aevapw + evapvw*fw*(1.d0-fr_snow(2)*fm)*fv*dts
       aevapd = aevapd + evapvd*fd*(1.d0-fr_snow(2)*fm)*fv*dts
       aevapb = aevapb + evapb*(1.d0-fr_snow(1))*fb*dts
@@ -1889,6 +1894,8 @@ c penman evaporation.  should be called once after
 c accumulations are collected.
       aruns=rhow*aruns
       arunu=rhow*arunu
+      aflmlt=rhow*aflmlt
+      aintercep=rhow*aintercep
       aevapw=rhow*aevapw
       aevapd=rhow*aevapd
       aevapb=rhow*aevapb
@@ -1925,6 +1932,8 @@ c zero out accumulations
       aeruns=0.d0
       arunu=0.d0
       aerunu=0.d0
+      aflmlt=0.d0
+      aintercep=0.d0
 
       abetad=0.d0 ! not accumulated : do we need it?  YES
       abetav=0.d0 ! not accumulated : do we need it?

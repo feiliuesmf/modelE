@@ -48,6 +48,9 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 !@param BYZETA reciprocal of solar rad. extinction depth for lake (1/m)
       REAL*8, PARAMETER :: BYZETA = 1./0.35d0
 
+!@dbparam river_fac Factor to multiply runoff by to balance sea level
+      REAL*8 :: river_fac=1.    ! default = 1
+
       CONTAINS
 
       SUBROUTINE LKSOURC (I0,J0,ROICE,MLAKE,ELAKE,RUN0,FODT,FIDT,SROX
@@ -400,6 +403,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE LAKES
       USE LAKES_COM
       USE DIAG_COM, only : npts,icon_LKM,icon_LKE,title_con,conpt0
+      USE PARAM
       IMPLICIT NONE
       INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
@@ -444,6 +448,9 @@ C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
           END IF
         END DO
       END DO
+
+C**** Get parameters from rundeck
+      call sync_param("river_fac",river_fac)
 
       IF (INILAKE) THEN
 C**** Set lake variables from surface temperature
@@ -711,13 +718,13 @@ C****
       USE GEOM, only : dxyp,bydxyp
       USE DIAG_COM, only : aij=>aij_loc,
      *        ij_ervr,ij_mrvr,ij_f0oc,aj=>aj_loc,areg,jreg,
-     *        j_rvrd,j_ervr
+     *        j_rvrd,j_ervr,ij_fwoc
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : taijn,tij_rvr
       USE FLUXES, only : trflowo,gtracer
 #endif
       USE FLUXES, only : flowo,eflowo,gtemp,mlhc
-      USE LAKES, only : kdirec,rate,iflow,jflow
+      USE LAKES, only : kdirec,rate,iflow,jflow,river_fac
       USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
@@ -827,9 +834,12 @@ C**** the ocean level is below zero.
 C**** Note: this is diasabled until PE of precip is properly calculated
 C**** in atmosphere as well. Otherwise, there is an energy imbalance.
                 DPE=0.  ! DMM*(ZATMO(IU,JU)-MIN(0d0,ZATMO(ID,JD)))
+C**** possibly adjust mass (not heat) to allow for balancing of sea level
+                DMM=river_fac*DMM
                 FLOWO(ID,JD)=FLOWO(ID,JD)+DMM
                 EFLOWO(ID,JD)=EFLOWO(ID,JD)+DGM+DPE
 #ifdef TRACERS_WATER
+                DTM(:)=river_fac*DTM(:)
                 TRFLOWO(:,ID,JD) = TRFLOWO(:,ID,JD) + DTM(:)
 #endif
 C**** accumulate river runoff diags (moved from ground)
@@ -842,7 +852,8 @@ C**** accumulate river runoff diags (moved from ground)
                 AJ(JD,J_ERVR,ITOICE)=AJ(JD,J_ERVR,ITOICE) +
      *               RSI(ID,JD)*(DGM+DPE)*BYDXYP(JD)
                 AIJ(ID,JD,IJ_F0OC)=AIJ(ID,JD,IJ_F0OC)+
-     *               (1.-RSI(ID,JD))*(DGM+DPE)*BYDXYP(JD)
+     *               (DGM+DPE)*BYDXYP(JD)
+                AIJ(ID,JD,IJ_FWOC)=AIJ(ID,JD,IJ_FWOC)+DMM*BYDXYP(JD)
               END IF
               JR=JREG(ID,JD)
 C****              AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+DMM
@@ -1059,10 +1070,18 @@ C**** convert kg/(source time step) to km^3/mon
               IF (AIJ(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM),IJ_MRVR).gt.0)
      *             THEN
               if (to_per_mil(n).gt.0) then
-                TRRVOUT(I,N)=1d3*(TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1
-     *               +INM),TIJ_RVR,N)/(trw0(n)*AIJ(IRVRMTH(I-1+INM)
-     *               ,JRVRMTH(I-1+INM),IJ_MRVR)*BYDXYP(JRVRMTH(I-1+INM
-     *               ))) -1.)
+c                TRRVOUT(I,N)=1d3*(TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1
+c     *               +INM),TIJ_RVR,N)/(trw0(n)*AIJ(IRVRMTH(I-1+INM)
+c     *               ,JRVRMTH(I-1+INM),IJ_MRVR)*BYDXYP(JRVRMTH(I-1+INM
+c     *               ))) -1.)
+                if (TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM),TIJ_RVR
+     *               ,N_water).gt.0) then 
+                  TRRVOUT(I,N)=1d3*(TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1
+     *                 +INM),TIJ_RVR,N)/(trw0(n)*TAIJN(IRVRMTH(I-1+INM)
+     *                 ,JRVRMTH(I-1+INM),TIJ_RVR,N_water))-1.)
+                else 
+                  TRRVOUT(I,N)=undef
+                endif
               else
                 TRRVOUT(I,N)=scale_tij(TIJ_RVR,n)*TAIJN(IRVRMTH(I-1+INM)
      *               ,JRVRMTH(I-1+INM),TIJ_RVR,N)/(AIJ(IRVRMTH(I-1+INM)

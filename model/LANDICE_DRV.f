@@ -12,7 +12,8 @@
       USE CONSTANT, only : edpery,sday,lhm
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc
       USE GEOM, only : dxyp
-      USE LANDICE, only: ace1li,ace2li,glmelt_on
+      USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
+     *     ,glmelt_fac_sh
       USE LANDICE_COM, only : tlandi,snowli
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,trli0
@@ -67,6 +68,8 @@ C**** set GTEMP array for landice
 
 C**** Calculate (fixed) iceberg melt terms from Antarctica and Greenland
       call sync_param("glmelt_on",glmelt_on)
+      call sync_param("glmelt_fac_nh",glmelt_fac_nh)
+      call sync_param("glmelt_fac_sh",glmelt_fac_sh)
 
 C**** Note these parameters are highly resolution dependent!
 C**** Around Antarctica, fresh water is added from 78S to 62S 
@@ -106,6 +109,11 @@ C**** This information could be read in from a file.
 C****  Note that water goes in with as if it is ice at 0 deg.
 C****  Possibly this should be a function of in-situ freezing temp?
 C****
+C**** gmelt_fac_nh/sh should be used to match accumulation in control
+C**** run so that global mean sea level is nearly constant. We can't
+C**** get perfect values, but the drift should hopefully be less 
+C**** than 1 mm/year.
+C****
 C**** Antarctica
 ! accumulation (kg per source time step) per water column
 C**** integrate area (which will depend on resolution/landmask)
@@ -122,7 +130,7 @@ C**** integrate area (which will depend on resolution/landmask)
       END DO
       CALL GLOBALSUM(grid, FWAREA_part, FWAREA, all=.true.)
 
-      ACCPCA = ACCPDA*DTsrc/(EDPERY*SDAY*FWAREA)      ! kg/m^2
+      ACCPCA = glmelt_fac_sh*ACCPDA*DTsrc/(EDPERY*SDAY*FWAREA) ! kg/m^2
       DO J=MAX(J_0,JML),MIN(J_1,JMU)
         DO I=1,IM
           IF (FOCEAN(I,J).GT.0.) THEN
@@ -150,7 +158,7 @@ C**** integrate area (which will depend on resolution/landmask)
       END DO
       CALL GLOBALSUM(grid, FWAREA_part, FWAREA, all=.true.)
 
-      ACCPCG = ACCPDG*DTsrc/(EDPERY*SDAY*FWAREA)  ! kg/m^2 
+      ACCPCG = glmelt_fac_nh*ACCPDG*DTsrc/(EDPERY*SDAY*FWAREA)  ! kg/m^2 
       DO N=1,NBOX
         I=IFW(N)
         J=JFW(N)
@@ -316,11 +324,12 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN) + AREG_SUM         ! (Tg=0)
       USE GEOM, only : imaxj,dxyp,bydxyp
       USE LANDICE, only : lndice,ace1li,ace2li
       USE SEAICE_COM, only : rsi
+      USE SEAICE, only : rhos
       USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc
      *     ,jreg,ij_runli,ij_f1li,ij_erun2
      *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run
      *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_f0oc
-     *     ,j_rvrd,j_ervr,ij_mrvr,ij_ervr
+     *     ,j_rvrd,j_ervr,ij_mrvr,ij_ervr,ij_zsnow,ij_fwoc
       USE LANDICE_COM, only : snowli,tlandi
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trli0
@@ -421,6 +430,7 @@ C**** ACCUMULATE DIAGNOSTICS
         AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVLI
         AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*PLICE
         AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+PLICE
+        AIJ(I,J,IJ_ZSNOW)=AIJ(I,J,IJ_ZSNOW)+PLICE*SNOW/RHOS
 
         AJ(J,J_RUN,ITLANDI)  =AJ(J,J_RUN,ITLANDI)  +RUN0 *PLICE
         AJ(J,J_SNOW,ITLANDI) =AJ(J,J_SNOW,ITLANDI) +SNOW *PLICE
@@ -450,8 +460,8 @@ C**** Accumulate diagnostics related to iceberg flux here also
      *     * GMELT(I,J)*BYDXYP(J)
       AJ(J,J_ERVR,ITOICE)  = AJ(J,J_ERVR,ITOICE) +    RSI(I,J)
      *     *EGMELT(I,J)*BYDXYP(J)
-      AIJ(I,J,IJ_F0OC) = AIJ(I,J,IJ_F0OC)        +(1.-RSI(I,J))
-     *     *EGMELT(I,J)*BYDXYP(J)
+      AIJ(I,J,IJ_F0OC) = AIJ(I,J,IJ_F0OC)+EGMELT(I,J)*BYDXYP(J)
+      AIJ(I,J,IJ_FWOC) = AIJ(I,J,IJ_FWOC)+ GMELT(I,J)*BYDXYP(J)
       
       AREG_PART(JR,J,8)   = AREG_PART(JR,J,8) +  GMELT(I,J)
       AREG_PART(JR,J,9)   = AREG_PART(JR,J,9) + EGMELT(I,J)

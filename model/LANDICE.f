@@ -23,6 +23,10 @@
       REAL*8, PARAMETER :: HC2LI = ACE2LI*SHI
 !@dbparam glmelt_on determines whether glacial melt is used for oceans
       INTEGER :: glmelt_on = 1   ! default is 'on'
+!@dbparam glmelt_fac_nh is a factor to multiply glacial melt by in NH
+      REAL*8  :: glmelt_fac_nh = 1.d0
+!@dbparam glmelt_fac_sh is a factor to multiply glacial melt by in SH
+      REAL*8  :: glmelt_fac_sh = 1.d0
 
       CONTAINS
 
@@ -162,7 +166,7 @@ C**** FLUXES HEAT UP TG1 TO FREEZING POINT AND MELT SOME SNOW AND ICE
         IF (SNOW-EVAP.gt.RUN0) THEN  ! only snow melts
           TRUN0(:)=RUN0*(TRSNOW(:)-TREVAP(:))/(SNOW-EVAP)
           TRSNOW(:)=TRSNOW(:)-TREVAP(:)-TRUN0(:)
-        ELSE ! all snow + some ice melts 
+        ELSE ! all snow + some ice melts
           TRUN0(:)=TRSNOW(:)-TREVAP(:)+(ACE1LI-SNANDI)*TRLI(:)/(ACE2LI
      *         +ACE1LI)
           TRSNOW(:)=0.
@@ -191,7 +195,7 @@ C**** SOME ICE HAS MELTED OR EVAPORATED, TAKE IT FROM G2
         TG1=(TG1*SNANDI-TG2*DIFS)/ACE1LI
         EDIFS=DIFS*(TG2*SHI-LHM)
 #ifdef TRACERS_WATER
-c       TRLI(:)=TRLI(:)*(ACE2LI+ACE1LI)/(ACE2LI+ACE1LI-DIFS) 
+c       TRLI(:)=TRLI(:)*(ACE2LI+ACE1LI)/(ACE2LI+ACE1LI-DIFS)
         TRDIFS(:)=TRLI(:)*(DIFS/(ACE2LI+ACE1LI))
 #endif
       ELSE
@@ -227,7 +231,7 @@ C**** CALCULATE TG2
 !@var TRLNDI tracer amount in land ice (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRLNDI
 !@var TRLI0 default tracer conc. for land ice (kg/kg)
-      REAL*8, DIMENSION(NTM) :: TRLI0 
+      REAL*8, DIMENSION(NTM) :: TRLI0
 #endif
 
       END MODULE LANDICE_COM

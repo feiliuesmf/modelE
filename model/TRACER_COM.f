@@ -19,11 +19,6 @@ C
 C**** Each tracer has a variable name and a unique index
 !@param NTM number of tracers
 !@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
-#ifdef TRACERS_COSMO
-      integer, parameter :: ntm=4
-      character*8, parameter :: trname(ntm)=(/
-     *     'Pb210   ','Be7     ','Be10    ','Rn222   '/)
-#else
 #ifdef TRACERS_SPECIAL_O18
       integer, parameter :: ntm=3
       character*8, parameter :: trname(ntm)=(/
@@ -172,6 +167,18 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'OCII    ','OCIA    ','OCB     ','Clay    ','Silt1   ',
      *    'Silt2   ','Silt3   '/)
 #else
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_COSMO)
+      integer, parameter :: ntm=11
+      character*8, parameter :: trname(ntm)=(/
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2',
+     *     'Pb210   ','Be7     ','Be10    ','Rn222   '/)
+#else
+#ifdef TRACERS_COSMO
+      integer, parameter :: ntm=4
+      character*8, parameter :: trname(ntm)=(/
+     *     'Pb210   ','Be7     ','Be10    ','Rn222   '/)
+#else
 #ifdef TRACERS_AEROSOLS_Koch
       integer, parameter :: ntm=13
       character*8, parameter :: trname(ntm)=(/
@@ -189,6 +196,14 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
       character*8, parameter :: trname(ntm)=(/'Clay    ','Silt1   ',
      &     'Silt2   ','Silt3   '/)
 #else
+#ifdef TRACERS_MINERALS
+      INTEGER,PARAMETER :: Ntm=20,Ntm_dust=20
+      CHARACTER*8,PARAMETER :: TrName(Ntm)=(/
+     &     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &     'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &     'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps'/)
+#else
 #ifdef TRACERS_WATER
       integer, parameter :: ntm=2
       character*8, parameter :: trname(ntm)=(/'Air     ','Water   '/)
@@ -204,7 +219,9 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #endif
 #endif
 #endif
+#endif
 #endif 
+#endif
 #endif
 #endif
 #endif
@@ -243,7 +260,11 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *     n_OCII=0,  n_OCIA=0,  n_OCB=0,
      *     n_OxREG1=0,n_OxREG2=0,n_OxREG3=0,
      *     n_OxREG4=0,n_OxREG5=0,n_OxREG6=0,
-     &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0
+     &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0,
+     &     n_clayilli,n_claykaol,n_claysmec,n_claycalc,n_clayquar,
+     &     n_sil1quar,n_sil1feld,n_sil1calc,n_sil1hema,n_sil1gyps,
+     &     n_sil2quar,n_sil2feld,n_sil2calc,n_sil2hema,n_sil2gyps,
+     &     n_sil3quar,n_sil3feld,n_sil3calc,n_sil3hema,n_sil3gyps
 
 !@var 3D on-line radical array for interactive aerosol and gas
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oh_live
@@ -271,7 +292,7 @@ c for gas phase sulfur chemistry used by aerosol and chemistry models
 !@dbparam imPI is 0 for industrial simulations, 1 for pre-industrial
       integer :: imPI = 0
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 !@dbparam imDUST is 1 for AEROCOM-prescribed simulations, 0 interactive
       INTEGER :: imDUST=0
 #endif

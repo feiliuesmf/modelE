@@ -33,6 +33,7 @@ OCEAN OCNML                         ! ocean modules
 ICEDYN_DUM                          ! dummy ice dynamics
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
+RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 CONST FFT36 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
@@ -76,6 +77,7 @@ O3file_09=mar2004_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2004_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
+BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_8x10.ij
 MSU_wts=MSU.RSS.weights.data
 
@@ -90,7 +92,7 @@ ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 do_polefix=0    ! polefix enhancements not yet valid for real 8x10 resolution
 
 KOCEAN=0
-U00ice=.74   ! tune this first to get reas.alb/cldcvr 
+U00ice=.74   ! tune this first to get reas.alb/cldcvr
 U00wtrX=1.
 
 ! parameters that control the Shapiro filter

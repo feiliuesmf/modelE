@@ -30,6 +30,7 @@ ICEDYN_DRV ICEDYN  ! or: ICEDYN_DUM ! land ice modules
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
+RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
@@ -79,6 +80,7 @@ O3file_09=mar2004_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2004_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
+BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij
 MSU_wts=MSU.RSS.weights.data
 
@@ -125,6 +127,10 @@ ghg_day=0   ! use =182  to fix it at that day's value
 volc_yr=0   ! use =1979 to fix it at that year's value
 volc_day=0  ! use =182  to fix it at that day's value
 aero_yr=0   ! use =1979 to fix it at that year's value
+od_cdncx=0.        ! don't include 1st indirect effect
+cc_cdncx=0.0036    ! include 2nd indirect effect
+albsn_yr=0
+dalbsnX=.015
 o3_yr=0     ! use =1979 to fix it at that year's value
 
 ! parameters that control the Shapiro filter

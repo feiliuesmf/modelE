@@ -194,6 +194,12 @@ endif
 	cat $(DEPENDFILE)_tmp >> $(DEPENDFILE)
 	rm -f $(FSRCS_CPP) $(DEPENDFILE)_tmp
 	echo '---------         done with dependencies             ---------'
+ifeq ($(IGNORE_DEPEND),YES)
+	-rm $(DEPENDFILE)
+	touch $(DEPENDFILE)
+	echo '!!!!!!! WILL IGNORE DEPENDENCIES !!!!!!!!!!!'
+endif
+
 
 $(RUN_H): $(RUNDECK) FORCE
 	-@rm -f $(RUN_H_TMP)

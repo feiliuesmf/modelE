@@ -102,11 +102,11 @@ C****
 !@sum  OIJOUT prints out lat-lon diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0
-      USE CONSTANT, only : undef,teeny
+      USE CONSTANT, only : undef,teeny,rhows
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm,trw0,trname,ntrocn
+      USE TRACER_COM, only : ntm,trw0,trname,ntrocn,n_water
 #endif
       USE OCEAN, only : im,jm,lmo,focean,dxypo,ndyno,dts,dto
      *     ,imaxj,lmm,ze,dxvo,dypo
@@ -127,7 +127,7 @@ c for now we are assuming that igrid=jgrid in arguments to pout_ij
      *           LMINMF=1, LMAXMF=1,   KCMF(3) = (/ 3, 6, 9/),
      *           LMINSF=1, LMAXSF=LMO, KVDC(3) = (/ 3, 6, 9/)
       REAL*8 GOS,SOS,FAC,FACST,GSMAX,GSMIN,CKMIN,CKMAX,ACMIN,ACMAX
-     *     ,TSUM,TEMGS,QJ(JM),QSUM,MQ,DLON,byiacc
+     *     ,TSUM,TEMGS,QJ(JM),QSUM,MQ,DLON,byiacc,volgs
       CHARACTER NAME(KOLNST)*40,TITLE*80,lname*50,sname*30,units*50
       character*50 :: unit_string
 
@@ -201,6 +201,36 @@ C**** Loop over layers
       END IF
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
+C****
+C**** Ocean Potential Density (kg/m^3) (w.r.t. 0m)
+C****
+      LNAME="OCEAN POTENTIAL TEMPERATURE (SIGMA_0)"
+      UNITS="KG/M^3"
+      TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
+      TITLE(51:80)=XLB
+C**** Loop over layers
+      DO L=1,LMO
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
+        Q(I,J) = UNDEF
+        IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)  THEN
+          GOS = OIJL(I,J,L,IJL_G0M) / (OIJL(I,J,L,IJL_MO)*DXYPO(J))
+          SOS = OIJL(I,J,L,IJL_S0M) / (OIJL(I,J,L,IJL_MO)*DXYPO(J))
+          Q(I,J) = 1./VOLGS(GOS,SOS)
+        END IF
+      END DO
+      END DO
+      Q(2:IM,JM)=Q(1,JM)
+      Q(2:IM,1)=Q(1,1)
+      WRITE (LNAME(40:47),'(A5,I3)') 'Level',L
+      WRITE (TITLE(40:47),'(A5,I3)') 'Level',L
+      IF (L.lt.10) THEN
+        SNAME="oc_pot_den_L"//char(l+48)
+      ELSE
+        SNAME="oc_pot_den_L1"//char(mod(l,10)+48)
+      END IF
+      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
+      END DO
 #ifdef TRACERS_OCEAN
 C****
 C**** Ocean Tracers 
@@ -221,8 +251,10 @@ C**** Loop over layers
         Q(I,J) = UNDEF
         IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.) THEN
         if (to_per_mil(n).gt.0) THEN
-          Q(I,J)=1d3*(TOIJL(I,J,L,TOIJL_CONC,N)/((OIJL(I,J,L,IJL_MO)
-     *         *DXYPO(J)-OIJL(I,J,L,IJL_S0M))*trw0(n))-1.)
+          Q(I,J)=1d3*(TOIJL(I,J,L,TOIJL_CONC,N)/(TOIJL(I,J,L,TOIJL_CONC
+     *         ,n_water)*trw0(n))-1.)
+c          Q(I,J)=1d3*(TOIJL(I,J,L,TOIJL_CONC,N)/((OIJL(I,J,L,IJL_MO)
+c     *         *DXYPO(J)-OIJL(I,J,L,IJL_S0M))*trw0(n))-1.)
         else
           Q(I,J)=10.**(-ntrocn(n))*TOIJL(I,J,L,TOIJL_CONC,N)/
      *         (OIJL(I,J,L,IJL_MO)*DXYPO(J))
@@ -311,21 +343,22 @@ C****
       TITLE(51:80)=XLB
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
 C****
-C**** Vertical Mass Flux (10^-2 kg/s*m^2)
+C**** Vertical Velocity (cm/s)
 C****
-      DO K=1,3  !LMO
+      DO L=1,LMO-1
 c     IF(KVMF(K).le.0)  GO TO 370
-        L =KVMF(K)
-        LNAME="VERTICAL MASS FLUX"
-        UNITS="10^-2 kg/s*m^2"
+c        L =KVMF(K)
+        LNAME="DOWNWARD VERTICAL VELOCITY"
+        UNITS="cm/s"
         IF (L.lt.10) THEN
-          SNAME="vert_mflx_L"//char(l+48)
+          SNAME="vert_vel_L"//char(l+48)
         ELSE
-          SNAME="vert_mflx_L"//char(mod(l,10)+48)
+          SNAME="vert_vel_L1"//char(mod(l,10)+48)
         END IF
         DO J=1,JM
           DO I=1,IMAXJ(J)
-            Q(I,J) = 2d2*OIJL(I,J,L,IJL_MFW) / (IDACC(1)*NDYNO*DXYPO(J))
+            Q(I,J) = 2d2*OIJL(I,J,L,IJL_MFW)
+     *         / (RHOWS*IDACC(1)*NDYNO*DXYPO(J))
           END DO
         END DO
         Q(2:IM,JM)=Q(1,JM)
@@ -1100,7 +1133,7 @@ C**** Correct SF for mean E-W drift (SF over topography --> 0)
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : idacc
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm,trw0,trname,ntrocn
+      USE TRACER_COM, only : ntm,trw0,trname,ntrocn,n_water
 #endif
       USE OCEAN, only : im,jm,lmo,ze,imaxj,focean,ndyno,dypo,dts,dxvo
      *     ,dxypo
@@ -1115,7 +1148,7 @@ C**** Correct SF for mean E-W drift (SF over topography --> 0)
       REAL*8 XB0(JM,LMO,0:NBAS),X0(IM,LMO),XS(IM,LMO),
      *     XBG(JM,LMO,0:NBAS),XBS(JM,LMO,0:NBAS),XG(IM,LMO)
 #ifdef TRACERS_OCEAN
-      REAL*8 XBT(JM,LMO,0:NBAS,NTM),XT(IM,LMO,NTM)
+      REAL*8 XBT(JM,LMO,0:NBAS,NTM),XT(IM,LMO,NTM),XBTW(JM,LMO,0:NBAS)
 #endif
       CHARACTER TITLE*80,EW*1,NS*1,LNAME*50,SNAME*50,UNITS*50
       CHARACTER LABI*16,LABJ*16
@@ -1172,16 +1205,23 @@ C****
       XBS(:,:,4) = XBS(:,:,1) + XBS(:,:,2) + XBS(:,:,3)
 #ifdef TRACERS_OCEAN
       XBT(:,:,4,:)= XBT(:,:,1,:)+XBT(:,:,2,:)+XBT(:,:,3,:)
+      if (n_water.ne.0) XBTW(:,:,:) =  XBT(:,:,:,n_water)
 #endif
       DO KB=1,4
         DO J=1,JM
           DO L=1,LMO
-            IF (XB0(J,L,KB).ne.0.) THEN
+            IF (XB0(J,L,KB).ne.0) THEN
 #ifdef TRACERS_OCEAN
               do n=1,ntm
               if (to_per_mil(n).gt.0) then
-                XBT(j,l,kb,n)= 1d3*(XBT(j,l,kb,n)/
-     *               ((XB0(J,L,KB)*DXYPO(J)-XBS(J,L,KB))*trw0(n))-1.)
+                if (XBTW(j,l,kb).gt.0) then
+                  XBT(j,l,kb,n)= 1d3*(XBT(j,l,kb,n)/
+     *                 (XBTW(j,l,kb)*trw0(n))-1.)
+                else
+                  XBT(j,l,kb,n)=undef
+                end if
+c                XBT(j,l,kb,n)= 1d3*(XBT(j,l,kb,n)/
+c     *               ((XB0(J,L,KB)*DXYPO(J)-XBS(J,L,KB))*trw0(n))-1.)
               else
                 XBT(j,l,kb,n)= 10.**(-ntrocn(n))*XBT(j,l,kb,n)/
      *               (XB0(J,L,KB)*DXYPO(J))
@@ -1265,8 +1305,10 @@ C****
                 do n=1,ntm
                   if (to_per_mil(n).gt.0) then
                     XBT(j,l,1,n)=1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
-     *              ((OIJL(I,J,L,IJL_MO)*DXYPO(J)-OIJL(I,J,L,IJL_S0M))
-     *                   *trw0(n))-1.) 
+     *              (TOIJL(I,J,L,TOIJL_CONC,n_water)*trw0(n))-1.) 
+c                    XBT(j,l,1,n)=1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
+c     *              ((OIJL(I,J,L,IJL_MO)*DXYPO(J)-OIJL(I,J,L,IJL_S0M))
+c     *                   *trw0(n))-1.) 
                   else
                     XBT(j,l,1,n)= 10.**(-ntrocn(n))*TOIJL(I,J,L
      *                   ,TOIJL_CONC,n)/(OIJL(I,J,L,IJL_MO)*DXYPO(J))
@@ -1393,8 +1435,10 @@ C****
                 do n=1,ntm
                   if (to_per_mil(n).gt.0) then
                     XT(II,l,n)= 1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
-     *              ((OIJL(I,J,L,IJL_MO)*DXYPO(J)-OIJL(I,J,L,IJL_S0M))
-     *                   *trw0(n))-1.)
+     *              (TOIJL(I,J,L,TOIJL_CONC,n_water)*trw0(n))-1.)
+c                    XT(II,l,n)= 1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
+c     *              ((OIJL(I,J,L,IJL_MO)*DXYPO(J)-OIJL(I,J,L,IJL_S0M))
+c     *                   *trw0(n))-1.)
                   else
                     XT(II,l,n)= 10.**(-ntrocn(n))*TOIJL(I,J,L,TOIJL_CONC
      *                   ,n)/(OIJL(I,J,L,IJL_MO)*DXYPO(J))

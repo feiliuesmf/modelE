@@ -1,18 +1,17 @@
 E1M20.R GISS Model E  2004 modelE                 rar 12/01/03
 
-E1M20: replace this section by a description of what distinguishes this run ?
-       Use as many lines as you need. Look carefully at all the possible    ?
-       choices, particularly the lines containing '?'. In some cases, you   ?
-       will have to pick the appropriate choice to make this rundeck work   ?
+E1M20: replace this section by a description of what distinguishes this run   ?
+       Use as many lines as you need. Look carefully at all the possible      ?
+       choices, particularly the lines containing '?'.
        The final rundeck should contain no '?'
-       Check and modify the rest of the description below:                  ?
-modelE1 (3.0) 4x5 hor. grid with 20 lyrs, top at .1 mb (+ 3 rad.lyrs)       ?
-atmospheric composition from year 1880 !?1979
-ocean data: prescribed, 1876-1885 ? 1975-1984 climatology
-uses turbulence scheme (no dry conv), simple strat.drag (no grav.wave drag) ?
-time steps: dynamics 7.5 min leap frog; physics 30 min.; radiation 2.5 hrs  ?
-filters: U,V in E-W direction (after every dynamics time step)              ?
-         sea level pressure (after every physics time step)                 ?
+       Check and modify the rest of the description below:                    ?
+modelE1 (3.0) 4x5 hor. grid with 20 lyrs, top at .1 mb (+ 3 rad.lyrs)         ?
+atmospheric composition from year 1880 (or 1979)                   (see _yr)  ?
+ocean data: prescribed, 1876-1885 (or 1975-1984) climatology  (see OSST/SICE) ?
+uses turbulence scheme (not dry conv), simple strat.drag (not grav.wave drag) ?
+time steps: dynamics 7.5 min leap frog; physics 30 min.; radiation 2.5 hrs    ?
+filters: U,V in E-W direction (after every dynamics time step)                ?
+         sea level pressure (after every physics time step)                   ?
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -40,15 +39,16 @@ ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
+RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
     ! start up (from restart file of earlier run or) from observed conditions
-! AIC=1DEC????.rsfE???   ! or:    ! initial conditions (atm./ground), no GIC, ISTART=8 ?
-AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2 ?
-GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)                        ?
+! AIC=1DEC????.rsfE???   ! or:    ! initial conditions (atm./ground), no GIC, ISTART=8
+AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
+GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)
     ! ocean data for "prescribed ocean" runs : climatological ocean
 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
@@ -94,6 +94,7 @@ O3file_09=mar2004_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2004_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
+BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij
 MSU_wts=MSU.RSS.weights.data
 
@@ -122,9 +123,9 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
-U00ice=.59            ! U00ice up => albedo decreases   goals: nethtz0=0,plan.alb=30%
-U00wtrX=1.40    ! U00wtrX+.01=>nethtz0+.7                for global annual mean
-!1979 U00wtrX=1.39    ! delete ?yyyy for the appropriate choice, remove the other line
+U00ice=.59      ! increase U00ice to decrease albedo    goals: NetHtz0=0,plan.alb=30%
+U00wtrX=1.40    ! U00wtrX+.01=>nethtz0+.7                      for global annual mean
+!use  U00wtrX=1.39    for 1979 atmosphere/ocean
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
 
 CO2X=1.
@@ -144,6 +145,11 @@ ghg_day=182
 volc_yr=1880                                       ! =1979 , also change OSST,SICE,U00wtrX
 volc_day=182
 aero_yr=1880                                       ! =1979 , also change OSST,SICE,U00wtrX
+od_cdncx=0.        ! don't include 1st indirect effect
+cc_cdncx=0.0036    ! include 2nd indirect effect
+albsn_yr=1880
+dalbsnX=.015
+o3_yr=1880
 o3_yr=1880                                         ! =1979 , also change OSST,SICE,U00wtrX
 
 ! parameters that control the Shapiro filter

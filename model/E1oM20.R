@@ -43,6 +43,7 @@ ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                           ! ocean function look up table
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
+RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
@@ -88,6 +89,7 @@ O3file_09=mar2004_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2004_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
+BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij.ext
 MSU_wts=MSU.RSS.weights.data
 
@@ -116,8 +118,8 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 U00ice=.59      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
-?1880 U00wtrX=1.40    ! U00wtrX+.01=>nethtz0+.7                for global annual mean
-?1979 U00wtrX=1.39    ! delete ?yyyy for the appropriate choice, remove the other line
+U00wtrX=1.40    ! U00wtrX+.01=>nethtz0+.7                for global annual mean
+!?1979 U00wtrX=1.39    
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
 
 CO2X=1.
@@ -130,14 +132,18 @@ KSOLAR=2
 ! parameters that control the atmospheric/boundary conditions
 ! if set to 0, the current (day/) year is used: transient run
 crops_yr=1880 ! if -1, crops in VEG-file is used  ? 1979
-s0_yr=1880    ? 1979
+s0_yr=1880    !? 1979
 s0_day=182
-ghg_yr=1880   ? 1979
+ghg_yr=1880   !? 1979
 ghg_day=182
-volc_yr=1880  ? 1979
+volc_yr=1880  !? 1979
 volc_day=182
-aero_yr=1880  ? 1979
-o3_yr=1880    ? 1979
+aero_yr=1880  !? 1979
+od_cdncx=0.        ! don't include 1st indirect effect
+cc_cdncx=0.0036    ! include 2nd indirect effect
+albsn_yr=1880 !? 1979
+dalbsnX=.015
+o3_yr=1880    !? 1979
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)

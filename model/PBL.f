@@ -19,8 +19,14 @@
 #ifdef TRACERS_DRYDEP
      &     ,dodrydep
 #endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+     &     ,Ntm_dust
+#endif
 #ifdef TRACERS_DUST
-     &     ,n_clay,Ntm_dust
+     &     ,n_clay
+#endif
+#ifdef TRACERS_MINERALS
+     &     ,n_clayilli
 #endif
 #endif
       IMPLICIT NONE
@@ -123,7 +129,7 @@ CCC      real*8 :: bgrid
 #if defined(TRACERS_AEROSOLS_Koch)
      *     DMS_flux, ss1_flux, ss2_flux,
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ptype,dust_flux,wsubtke,wsubwd,wsubwm,
 #endif
 #endif
@@ -238,7 +244,7 @@ c  internals:
 C****
       real*8 :: sig0,delt,wt,wmin,wmax
       integer :: icase
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       REAL*8,INTENT(IN) :: ptype
       REAL*8,INTENT(OUT) :: dust_flux(Ntm_dust),wsubtke,wsubwd,wsubwm
       INTEGER :: n1
@@ -360,7 +366,7 @@ C**** generic calculations for all tracers
 C**** To use, uncomment next two lines and adapt the next chunk for
 C**** your tracers. The integrated wind value is passed back to SURFACE
 C**** and GHY_DRV. This may need to be tracer dependent?
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       delt = t(1)/(1.+q(1)*deltx) - tgrnd/(1.+qgrnd*deltx)
       CALL sig(e(1),mdf,dbl,delt,ch,wsm,t(1),wsubtke,wsubwd,wsubwm)
 #endif
@@ -388,7 +394,7 @@ C**** for all dry deposited tracers
       call get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar,ts,dep_vel)
 #endif
 
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       CALL dust_emission_constraints(ilong,jlat,itype,ptype,wsm)
 #endif
 
@@ -445,11 +451,21 @@ C****   4) tracers with interactive sources
         end select
 #endif
 
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 ccc dust emission from earth
       SELECT CASE (trname(ntix(itr)))
+#ifdef TRACERS_DUST
       CASE ('Clay','Silt1','Silt2','Silt3')
         n1=ntix(itr)-n_clay+1
+#else
+#ifdef TRACERS_MINERALS
+      CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &      'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &      'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &      'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
+        n1=ntix(itr)-n_clayilli+1
+#endif
+#endif
         CALL local_dust_emission(ilong,jlat,n1,wsm,ptype,dsrcflx)
         trcnst=dsrcflx*byrho
         dust_flux(n1)=dsrcflx
@@ -673,6 +689,7 @@ c     To compute the drag coefficient,Stanton number and Dalton number
 !@sum   dflux computes (dimensionless) surface fluxes of momemtun,
 !@+     heat and moisture (drag coefficient, Stanton number,
 !@+     and Dalton number)
+!@+     Now with explicit Sc and Pr number dependence
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var lmonin = Monin-Obukhov length (m)
@@ -687,6 +704,9 @@ c     To compute the drag coefficient,Stanton number and Dalton number
 !@var cq    = Dalton number
 !@var z0h   = roughness length for temperature (m)
 !@var z0q   = roughness length for water vapor (m)
+!@var Sc    = Schmidt (no relation) number (visc_air_kin/diff)
+!@var Pr    = Prandtl number (visc_air_kin/therm_diff)
+cgav  use constant, only :: nu=>visc_air_kin
       implicit none
 
       real*8,  intent(in) :: lmonin,ustar,vsurf,zgs
@@ -694,31 +714,38 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       real*8,  intent(inout) :: z0m
       real*8,  intent(out) :: cm,ch,cq,z0h,z0q
 
-      real*8, parameter :: nu=1.5d-5,num=0.135d0*nu,nuh=0.395d0*nu,
-     *     nuq=0.624d0*nu
+      real*8, parameter :: nu=1.5d-5,num=0.135d0*nu,
+     *     nuh=0.395d0*nu, nuq=0.624d0*nu,
+     *     Sc=0.595d0, Pr=0.71d0
 
       real*8 r0q,beta,zgsbyl,z0mbyl,z0hbyl,z0qbyl,cmn,chn,cqn,dpsim
      *     ,dpsih,dpsiq,xms,xm0,xhs,xh0,xqs,xq0,dm,dh,dq,lzgsbyz0m
-     *     ,lzgsbyz0h,lzgsbyz0q
+     *     ,lzgsbyz0h,lzgsbyz0q,X !nu ,nu_smooth,fac_rough
+C**** functional dependence on Sc,Pr for smooth, rough surfaces
+!nu   nu_smooth(X) = 30.*exp(-13.6d0*kappa*X**twoby3)
+!nu   fac_rough(X) = -7.3d0*kappa*sqrt(X)
 
       if ((itype.eq.1).or.(itype.eq.2)) then
 c *********************************************************************
 c  Compute roughness lengths using rough surface formulation:
+cgav    z0m=0.11d0*nu/ustar+0.011d0*ustar*ustar*bygrav ! COARE algorithm
         z0m=num/ustar+0.018d0*ustar*ustar*bygrav
         if (z0m.gt.0.2d0) z0m=0.2d0
 c       if (ustar.le.0.02d0) then
           z0h=nuh/ustar + 1.4d-5
+cgav      z0h=nu_smooth(Pr)/ustar + 1.4d-5
           if (z0h.gt.0.5852d0) z0h=0.5852d0
           z0q=nuq/ustar + 1.3d-4
+cgav      z0q=nu_smooth(Sc)/ustar + 1.3d-4
           if (z0q.gt.0.92444d0) z0q=0.92444d0
 c         else
 c         r0q=(ustar*z0m/nu)**0.25d0
-c         z0h=7.4*z0m*exp(-2.4604d0*r0q)
-c         z0q=7.4*z0m*exp(-2.2524d0*r0q)
+c         z0h=7.4*z0m*exp(fac_rough(Pr)*r0q)
+c         z0q=7.4*z0m*exp(fac_rough(Sc)*r0q)
 c         if (ustar.lt.0.2d0) then
 c           beta=(ustar-0.02d0)/0.18d0
-c           z0h=(1.-beta)*nuh/ustar+beta*z0h
-c           z0q=(1.-beta)*nuq/ustar+beta*z0q
+c           z0h=(1.-beta)*nu_smooth(Pr)/ustar+beta*z0h
+c           z0q=(1.-beta)*nu_smooth(Sc)/ustar+beta*z0q
 c         endif
 c       endif
 c *********************************************************************
@@ -755,7 +782,7 @@ c  Here the atmosphere is stable with respect to the ground:
         dpsih= sigma1*lzgsbyz0h-sigma*gamahs*(zgsbyl-z0hbyl)
         dpsiq= sigma1*lzgsbyz0q-sigma*gamahs*(zgsbyl-z0qbyl)
 c *********************************************************************
-        else
+      else
 c *********************************************************************
 c  Here the atmosphere is unstable with respect to the ground:
         xms  =    (1.-gamamu*zgsbyl)**0.25d0
@@ -1571,7 +1598,7 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
 
       dia(1) = 1.+factor
       sup(1) = -1.
-      rhs(1) = factor*uocean
+      rhs(1)  = factor*uocean
       rhs1(1) = factor*vocean
 
       dia(n) = 1.
@@ -1768,7 +1795,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       dia(1) = 1.+factor
       sup(1) = -1.
       rhs(1) = factor*uocean
-      rhs1(1) = factor*vocean
+      rhs1(1)= factor*vocean
 
       dia(n) = 1.
       sub(n) = 0.

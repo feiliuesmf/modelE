@@ -108,7 +108,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@param KTAIJS number of special lat/lon tracer diagnostics
       integer, parameter :: ktaijs= 182
 
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 !@param nDustEmij index of dust emission in ijts_source
       INTEGER,PARAMETER :: nDustEmij=1
 #endif
@@ -196,10 +196,14 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, PARAMETER :: ktajls=96
 #endif
 #else
+#ifdef TRACERS_MINERALS
+      INTEGER,PARAMETER :: ktajls=80
+#else
       INTEGER, PARAMETER :: ktajls=36   ! default
 #endif
+#endif
 
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 !@param nDustEmjl index of dust emission in jls_source
       INTEGER,PARAMETER :: nDustEmjl=1
 #endif

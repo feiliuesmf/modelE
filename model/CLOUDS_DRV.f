@@ -24,6 +24,7 @@
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
 #ifdef CLD_AER_CDNC
      *     ,oldno,oldnl,smfpm
+     *     ,ctem,cd3d,cl3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,ddm1,airx,lmc
       USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc,
@@ -31,11 +32,12 @@
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
-     &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,jl_mchphas
-     *     ,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui
-     *     ,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags
-     *     ,ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,hdiurn,
-     *     ntau,npres,aisccp,isccp_reg
+     &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,jl_mchphas,
+     *     jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui,
+     *     ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags,
+     *     ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,hdiurn,
+     *     ntau,npres,aisccp,isccp_reg,ij_precmc,ij_cldw,ij_cldi,
+     *     ij_fwoc,p_acc
 #ifdef CLD_AER_CDNC
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
@@ -78,8 +80,13 @@
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
      *     ,nlsw,nlsi,nmcw,nmci
      *     ,oldcdo,oldcdl,smfpml
+     *     ,sme
+     *     ,cteml,cd3dl,cl3dl,cdn3dl,cre3dl,smlwp
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
+#ifdef CLD_AER_CDNC
+     *     ,egcm
+#endif
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo,dke
       USE SEAICE_COM, only : rsi
@@ -127,7 +134,7 @@
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,ALPHAS
       REAL*8 :: DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV1,THV2,QG,TGV
       REAL*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG,SSTAB,DIFT,CSC
-     *     ,E,E1,ep,TSV
+     *     ,E,E1,ep,TSV,WM1,WMI
 !@var HCNDMC heating due to moist convection
 !@var PRCP precipitation
 !@var TPRCP temperature of mc. precip  (deg. C)
@@ -297,7 +304,7 @@ C****
 !$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 !$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT,TSV, WMERR,
-!$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep)
+!$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep,WM1,WMI)
 !$OMP*    SCHEDULE(DYNAMIC,2)
 !$OMP*    REDUCTION(+:ICKERR,JCKERR)
 C 
@@ -367,6 +374,14 @@ C**** other fields where L is the leading index
         OLDCDL(:)=OLDNL(:,I,J)
         OLDCDO(:)=OLDNO(:,I,J)  ! OLDN is for rsf save
         SMFPML(:)=SMFPM(:,I,J)
+        SME(:)  =egcm(:,I,J)  !saving 3D TKE value
+        CTEML(:) =CTEM(:,I,J)
+c       write(6,*)"CTEM_DRV",CTEML(L),CTEM(L,I,J)
+        CD3DL(:) =CD3D(:,I,J)
+        CL3DL(:) =CL3D(:,I,J)
+        CDN3DL(:)=CDN3D(:,I,J)
+        CRE3DL(:)=CRE3D(:,I,J)
+        SMLWP=CLWP(I,J)
 #endif
       DPDT(1:LS1-1)=SIG(1:LS1-1)*(P(I,J)-PTOLD(I,J))*BYDTsrc
       DPDT(LS1:LM)=0.
@@ -534,6 +549,7 @@ C         EPRCP=PRCP*TPRCP*SHI
           ENRGP=ENRGP+EPRCP-PRCP*LHM
           AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCP
         END IF
+        AIJ(I,J,IJ_PRECMC)=AIJ(I,J,IJ_PRECMC)+PRCP
 
         DO L=1,LMCMAX
           T(I,J,L)=  SM(L)*BYAM(L)
@@ -726,14 +742,25 @@ CCC     AREG(JR,J_EPRCP)=AREG(JR,J_EPRCP)+ENRGP*DXYP(J)
         AREGIJ(I,J,3)=ENRGP*DXYP(J)  ! add in after parallel region
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
-        IF (FOCEAN(I,J).gt.0) AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+
+        AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+
      *       ENRGP*FOCEAN(I,J)*(1.-RSI(I,J))
+        AIJ(I,J,IJ_FWOC)=AIJ(I,J,IJ_FWOC)+
+     *       PRCP*FOCEAN(I,J)*(1.-RSI(I,J))
 
       IF(ENRGP.LT.0.) THEN ! MODIFY SNOW AGES AFTER SNOW FALL
         DO ITYPE=1,3
           SNOAGE(ITYPE,I,J)=SNOAGE(ITYPE,I,J)*EXP(-PRCP)
         END DO
       END IF
+C**** some water diagnostics
+      WM1=0  ; WMI=0
+      DO L=1,LP50
+        WM1=WM1+WMX(L)*AIRM(L)
+        IF (SVLHXL(L).eq.LHS) WMI=WMI+WMX(L)*AIRM(L)
+      END DO
+c is this the same as IJ_WMSUM?
+      AIJ(I,J,IJ_CLDW)=AIJ(I,J,IJ_CLDW)+WM1*100.*BYGRAV   ! all condensate
+      AIJ(I,J,IJ_CLDI)=AIJ(I,J,IJ_CLDI)+WMI*100.*BYGRAV   ! ice only
 
 C**** Calculate ISCCP cloud diagnostics if required
       if (isccp_diags.eq.1) then
@@ -828,12 +855,21 @@ C**** WRITE TO GLOBAL ARRAYS
          OLDNL(:,I,J)=OLDCDL(:)
          OLDNO(:,I,J)=OLDCDO(:)
          SMFPM(:,I,J)=SMFPML(:)
+         egcm(:,I,J) = SME(:)
+         CTEM(:,I,J) =CTEML(:)
+         CD3D(:,I,J) =CD3DL(:)
+         CL3D(:,I,J) =CL3DL(:)
+         CDN3D(:,I,J)=CDN3DL(:)
+         CRE3D(:,I,J)=CRE3DL(:)
+         CLWP(I,J) = SMLWP
 #endif
       TTOLD(:,I,J)=TH(:)
       QTOLD(:,I,J)=QL(:)
 
       PREC(I,J)=PRCP            ! total precip mass (kg/m^2)
       EPREC(I,J)=ENRGP          ! energy of precipitation (J/m^2)
+C**** accumulate precip specially for SUBDD
+      P_acc(I,J)=P_acc(I,J)+PRCP
 C**** The PRECSS array is only used if a distinction is being made
 C**** between kinds of rain in the ground hydrology.
       PRECSS(I,J)=PRCPSS*100.*BYGRAV  ! large scale precip (kg/m^2)

@@ -8,7 +8,7 @@
 !@auth Nobody will claim responsibilty
       USE CONSTANT, only : rgas,lhm,lhe,lhs
      *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
-     *     ,deltx,teeny ! ,byrt3
+     *     ,deltx,teeny,rhows     ! ,byrt3
       USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM, HALO_UPDATE, SOUTH
       USE MODEL_COM, only : im,jm,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,dsig,ndasf,fland,flice,focean
@@ -65,16 +65,17 @@ C**** Interface to PBL
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
      *     ,idd_ev,idd_ldc,idd_dcf,hdiurn,ij_pblht,ndiuvar,NREG
-      USE LANDICE, only : z1e,z2li,hc1li
+     &     ,ij_sss,ij_trsup,ij_trsdn,ij_fwoc,ij_ssh
+      USE LANDICE, only : z1e,z2li,hc1li,hc2li
       USE LANDICE_COM, only : snowli
       USE SEAICE, only : xsi,ace1i,alami,byrli,byrls, ! z1i,
      *     solar_ice_frac
       USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws
       USE LAKES_COM, only : mwl,gml,flake
       USE LAKES, only : minmld
-      USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe
+      USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe,sss
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
-     *     ,uosurf,vosurf,uisurf,visurf
+     *     ,uosurf,vosurf,uisurf,visurf,ogeoza
 #ifdef TRACERS_ON
      *     ,trsrfflx,trsource
 #ifdef TRACERS_WATER
@@ -256,7 +257,7 @@ C****
 !$OMP*  RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT, ! QSCON,QSMUL,
 !$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TS,  ! TGDEN,
 !$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,
-!$OMP*  HEMI,POLE,UOCEAN,VOCEAN,QG_SAT,US,VS,WS,QSRF,pbl_args
+!$OMP*  HEMI,POLE,UOCEAN,VOCEAN,QG_SAT,US,VS,WS,QSRF,pbl_args,jr
 #if defined(TRACERS_ON)
 !$OMP*  ,n,nx,nsrc,rhosrf0,totflux
 #if defined(TRACERS_WATER)
@@ -331,6 +332,14 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
      &            tmp(idx1(:))
            END IF
          END DO
+         END IF
+C**** save some ocean diags regardless of PTYPE
+C**** SSH does not work for qflux/fixed SST configurations
+         IF (FOCEAN(I,J).gt.0. .and. MODDSF.eq.0) THEN
+           AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+GTEMP(1,1,I,J)
+           AIJ(I,J,IJ_SSS)=AIJ(I,J,IJ_SSS)+SSS(I,J)
+           AIJ(I,J,IJ_SSH)=AIJ(I,J,IJ_SSH)+OGEOZA(I,J)*BYGRAV+
+     *          RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I)/RHOWS 
          END IF
 C****
       DO ITYPE=1,3       ! no earth type
@@ -852,6 +861,8 @@ CCC  *       AREG(JR,J_TSRF)=AREG(JR,J_TSRF)+(TS-TF)*PTYPE*DXYP(J)
 C
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
         AIJ(I,J,IJ_SHDT)=AIJ(I,J,IJ_SHDT)+SHDT*PTYPE
+        AIJ(I,J,IJ_TRSDN)=AIJ(I,J,IJ_TRSDN)+TRHR(0,I,J)*PTYPE
+        AIJ(I,J,IJ_TRSUP)=AIJ(I,J,IJ_TRSUP)+(TRHR(0,I,J)-TRHDT)*PTYPE
         IF(MODRD.EQ.0) AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)+TRHDT
      *       *PTYPE/DTSRC
         AIJ(I,J,IJ_SRTR)=AIJ(I,J,IJ_SRTR)+(SRHEAT*DTSURF+TRHDT)*PTYPE
@@ -943,10 +954,11 @@ C****
         OA(I,J,6)=OA(I,J,6)+TRHDT
         OA(I,J,7)=OA(I,J,7)+SHDT
         OA(I,J,8)=OA(I,J,8)+EVHDT
-        IF (MODDSF.eq.0) AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+TG1
         AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAP*PTYPE
-        IF (FOCEAN(I,J).gt.0) AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC) +F0DT
-     *       *PTYPE
+        IF (FOCEAN(I,J).gt.0) THEN
+          AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC) +F0DT*PTYPE
+          AIJ(I,J,IJ_FWOC)=AIJ(I,J,IJ_FWOC) -EVAP*PTYPE
+        END IF
 C****
 !!!      CASE (2)  ! seaice
       else if ( ITYPE == 2 ) then

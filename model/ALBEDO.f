@@ -288,7 +288,7 @@ C     -------------------
      i     ILON,JLAT,
      i     AGESN,POCEAN,POICE,PEARTH,PLICE,PLAKE,zlake,
      i     TGO,TGOI,TGE,TGLI,ZOICE,FMP,ZSNWOI,zmp,
-     i     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC,WEARTH,WMAG,PVT,
+     i     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC,WEARTH,WMAG,PVT,dalbsn,
      i     flags,
      o     BXA,PRNB,PRNX,SRBALB,SRXALB,TRGALB,
      o     BGFEMD,BGFEMT,
@@ -308,7 +308,8 @@ C**** input from driver
       integer ILON,JLAT
       real*8 AGESN(3),POCEAN,POICE,PEARTH,PLICE,PLAKE,zlake,
      *     TGO,TGOI,TGE,TGLI,ZOICE,FMP,ZSNWOI,zmp,
-     *     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC(2),WEARTH,WMAG,PVT(11)
+     *     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC(2),WEARTH,WMAG,PVT(11),
+     &     dalbsn
       LOGICAL*4 :: flags
 C**** output
       real*8 BXA(7),PRNB(6,4),PRNX(6,4),SRBALB(6),SRXALB(6),TRGALB(33),
@@ -541,7 +542,11 @@ c**** obtained using the vegetation masking.
       DO L=1,6
         XEAVN(L)=BEAVN(L)
       END DO
-      DO L=1,6
+      DO L=1,2
+        BEAVN(L)=BEAVN(L)+max(0.d0,BSNVN(L)*(1.D0-EXPSNE)+dalbsn/L)
+        XEAVN(L)=XEAVN(L)+max(0.d0,XSNVN(L)*(1.D0-EXPSNE)+dalbsn/L)
+      END DO
+      DO L=3,6
         BEAVN(L)=BEAVN(L)+BSNVN(L)*(1.D0-EXPSNE)
         XEAVN(L)=XEAVN(L)+XSNVN(L)*(1.D0-EXPSNE)
       END DO
@@ -666,6 +671,12 @@ C**** set zenith angle dependence
           XOIVN(1:6)=BOIVN(1:6)
         END IF
         EXPSNO=1.-patchy
+
+c**** Reduce the Ocean Ice albedo by dalbsn
+        DO L=1,2
+          BOIVN(L) = max(0.d0,BOIVN(L)+dalbsn/L)
+          XOIVN(L) = max(0.d0,XOIVN(L)+dalbsn/L)
+        END DO
       end if  !  KSIALB.ne.1:  Schramm/Hansen
 C*
       ITOI=TGOI
@@ -741,7 +752,13 @@ C**** zenith angle dependence if required
           XLIVN(L)=BLIVN(L)
         END IF
       END DO
-C
+
+c**** Reduce the Land Ice albedo by dalbsn
+      DO L=1,2
+        BLIVN(L) = max(0.d0,BLIVN(L)+dalbsn/L)
+        XLIVN(L) = max(0.d0,XLIVN(L)+dalbsn/L)
+      END DO
+
       ITLI=TGLI
       WTLI=TGLI-ITLI
       ITLI=ITLI-ITPFT0

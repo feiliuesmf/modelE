@@ -15,7 +15,7 @@
       USE GEOM, only : dyv,dxv,dxyp,areag,bydxyp
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : ptold,pu,pv,pit,sd,phi,dut,dvt
-     &    ,pua,pva,sda,ps,mb,pk,pmid,sd_clouds,wsave
+     &    ,pua,pva,sda,ps,mb,pk,pmid,sd_clouds,wsave,pedn
       USE DIAG_COM, only : aij => aij_loc,ij_fmv,ij_fmu,ij_fgzu,ij_fgzv
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, GLOBALSUM
@@ -398,14 +398,16 @@ C**** Scale WM mixing ratios to conserve liquid water
       END DO
 !$OMP  END PARALLEL DO
 
-C**** Calculate 3D vertical velocity (take SD_CLOUDS which has units
-C**** mb*m2/s and convert to WSAVE, units of m/s):
       CALL CHECKSUM_COLUMN(grid,pmid, __LINE__, __FILE__)
+C**** Calculate 3D vertical velocity (take SDA which has units
+C**** mb*m2/s (but needs averaging over no. of leap frog timesteps)
+C**** and convert to WSAVE, units of m/s):
 !$OMP PARALLEL DO PRIVATE (l,i)
-      do l=1,lm
+      do l=1,lm-1
         do i=1,im
-          wsave(i,J_0:J_1,l)=sd_clouds(i,J_0:J_1,l)*bydxyp(J_0:J_1)*
-     &    rgas*T(i,J_0:J_1,l)*pk(l,i,J_0:J_1)*bygrav/pmid(l,i,J_0:J_1)
+         wsave(i,J_0:J_1,l)=2.*sda(i,J_0:J_1,l)*bydxyp(J_0:J_1)*
+     &   rgas*0.5*(T(i,J_0:J_1,l)*pk(l,i,J_0:J_1)+T(i,J_0:J_1,l+1)*
+     &   pk(l+1,i,J_0:J_1))*bygrav/(NIdyn*pedn(l+1,i,J_0:J_1))
         end do
       end do
 !$OMP END PARALLEL DO

@@ -71,6 +71,24 @@ C**** exactly the same as the default values.
       INTEGER :: Ikliq = -1  !  get kliq-array from restart file
 !@dbparam RHfix const.rel.humidity passed to radiation for aeros. tests
       REAL*8 :: RHfix = -1.  !  pass the current model rel.humidity
+!@dbparam dalbsnX global coeff for snow alb change by black carbon depos
+      REAL*8 ::  dalbsnX = 0.
+!@dbparam albsn_yr year of blk carb depos used for snow alb. reduction
+      INTEGER ::  albsn_yr = 1951
+
+!     variables related to aerosol indirect effects:
+!     (CDNC=cloud droplet number concentration)
+!@dbparam CC_CDNCx scaling factor relating cld cvr change and CDNC change
+      REAL*8 :: CC_CDNCX = .0000d0  ! .0036d0
+!@dbparam OC_CDNCx scaling factor relating cld opt depth and CDNC change
+      REAL*8 :: OD_CDNCX = .0000d0  ! .007d0
+!@var pcdnc,vcdnc pressure,vertical profile for cld.cvr change
+      real*8, parameter, dimension(7) ::
+     * pcdnc=(/984.d0, 964.d0, 934.d0, 884.d0, 810.d0, 710.d0, 550.d0/)
+     *,vcdnc=(/ .35d0,  .20d0,  .10d0,  .17d0,  .10d0,  .08d0,   0.d0/)
+!@var cdncl = vcdnc interpolated to current vertical resolution
+      real*8 cdncl(LM)
+
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: COSZ1
 !@dbparam S0X solar constant multiplication factor
@@ -85,7 +103,8 @@ C**** exactly the same as the default values.
       INTEGER :: Volc_yr = 1951 , Volc_day = 182
 !@dbparam Aero_yr obs.year of troposph.Aerosols (if 0: time var)
       INTEGER :: Aero_yr = 1951    ! always use annual cycle
-!@dbparam O3_yr obs.year of Ozone (if 0: time var)
+!@dbparam O3_yr obs.year of Ozone (if 0: time var, -yyyy: use decyyyy,
+!@+   janyyyy to find jan1-15,dec16-31,not dec of yyyy-1, jan of yyyy+1)
       INTEGER :: O3_yr = 1951      ! always use annual cycle
 !@dbparam crops_yr obs.year of crops (if 0: time var, -1: default)
       INTEGER :: crops_yr = -1
@@ -97,6 +116,8 @@ C**** exactly the same as the default values.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: dH2O
 !@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAL*8 :: RSDIST,SIND,COSD
+!@var depoBC,depoBC_1990 observed black carbon deposition (curr,1990)
+      REAL*8, DIMENSION(72,46) :: depoBC,depoBC_1990  ! rad.grid
 !@var ALB is SRNFLB(1)/(SRDFLB(1)+1.D-20),PLAVIS,PLANIR,ALBVIS,ALBNIR,
 !@+       SRRVIS,SRRNIR,SRAVIS,SRANIR (see RADIATION)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), TARGET :: ALB
@@ -127,6 +148,8 @@ C**** Local variables initialised in init_RAD
 
 !@var NTRIX Indexing array for optional aerosol interaction
       INTEGER, DIMENSION(ITRMAX) :: NTRIX = 0
+!@var WTTR weighting array for optional aerosol interaction
+      REAL*8, DIMENSION(ITRMAX) :: WTTR = 1.
 
       END MODULE RAD_COM
 
