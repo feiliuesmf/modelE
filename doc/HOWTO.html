@@ -53,7 +53,7 @@ in adding functionality or diagnostics.</P>
   <LI><A HREF="#part1_2"> HOW-TO set rundeck parameters</A>
      <OL>
        <LI> <A HREF="#part1_2a"> How to tune a specified ocean run
-     (using U00wtr) </A>
+     (using U00ice/HRMAX) </A>
        <LI> <A HREF="#part1_2b"> How to set up a Q-flux model with a
      single ocean layer </A>
        <LI> <A HREF="#part1_2c"> How to set up a Q-flux model with
@@ -280,9 +280,9 @@ documentation.
 
 There are a number of sample rundecks in the model/ directory
 (E001*.R). These represent runs with the standard fixed SST atmosphere
-only run (E001.R), a Qflux run (E001A.R), a coupled ocean-atmosphere
-run (E001B.R), a varying SST (AMIP style) run (E001C.R), a Qflux with
-deep diffusion (E001D.R), a stratospheric model (E001M23.R), a tracer
+only run (E001.R), a Qflux run (E001q.R), a coupled ocean-atmosphere
+run (E001o.R), a varying SST (AMIP style) run (E001a.R), a Qflux with
+deep diffusion (E001qd.R), a stratospheric model (E001M23.R), a tracer
 model (E001tr.R) etc. These should be used as templates for any runs
 you do.
 
@@ -328,7 +328,7 @@ rundeck will be created using
 This will make a rundeck E001xyz.R, that will be a copy of E001.R. To
 make a copy based on another of the sample decks, use, for instance,
 <pre>
-     gmake rundeck RUN=E001xyz RUNSRC=E001A
+     gmake rundeck RUN=E001xyz RUNSRC=E001q
 </pre>
 
 A copy of the new rundeck will be stored in the rundeck depository on
@@ -504,26 +504,26 @@ source files to tell gmake that they need to be recompiled.
           /u/exec/docE/params.txt.
 
 <p><A name="part1_2a"><b>A: How to TUNE a specified ocean run (using
-U00wtr)</b></a></p>
+U00ice/HRMAX)</b></a></p>
 <P>    It is desirable to run a specified ocean model in such a way that
        it is in RADIATIVE BALANCE, i.e. that the net flux of energy into
        the ocean (which has no effect, since ocean data are specified)
        is zero if averaged over a whole year. One way to roughly achieve
-       this goal is to pick the right value for U00wtr. That parameter
-       influences the cloud formation where the temperature is above 0C
-       and can therefore be used to change the radiative balance.</p>
+       this goal is to pick the right values for U00ice/HRMAX. These parameters
+       influence the cloud formation where the temperature is below 0C
+       and the cloud formation in the boundary layer respectively, and
+       can therefore be used to change the radiative balance.</p>
 
 <p>    Run the model for a year and find the annual mean net heating at
-       the ground (budget page). That quantity may change from year to
-       year within .5 W/m2 . Increasing U00wtr by .01 increases that
-       quantity by about .3 W/m2 . Rerun that year with a new value of
-       U00wtr hoping that the annual mean net heating at the ground
-       averages out to less than .3 W/m2 in absolute value over the next
+       the ground (GLOBAL: NET HEAT AT Z0, or OCEAN: NET HEAT Z0+RVR
+       budget pages). That quantity may change from year to year within
+       .5 W/m<sup>2</sup>. Increasing U00ice by .01 increases the cloud 
+       cover and planetary albedo. HRMAX can vary between 200 and 1000 m.
+       Increasing HRMAX increases the cloud cover in th boundary layer 
+       which has a warming effect. Rerun that year with the new values 
+       and hope that the annual mean net heating at the ground averages 
+       out to less than .3 W/m<sup>2</sup> in absolute value over the next
        few years.</P>
-
-<p>    Increasing U00ice works in the opposite direction but changes
-       the global cloud cover considerably. It could be used to tune
-       the cloud cover (before picking the final U00wtr).</P>
 
 <p>    Other ways to handle the rad. balance problem: Change the solar
        constant until rad. balance results (most people hate that way),
@@ -559,7 +559,7 @@ ocean layer</b></a></p>
        z0 is supposed to be close to 0 for annual mean. This Net
        Heat at z0 can be found on the first budget page for the global
        quantities. To get the balanced control run, you can adjust
-       U00wtr (see 1b). In your control run-decks, you have to have
+       U00ice/HRMAX (see 1b). In your control run-decks, you have to have
        Kvflxo=1. Then the model will save the data for the heat
        transport.</P>
 
@@ -612,7 +612,7 @@ model:
      In your Q-flux model run-decks, you have to
      <ol>
        <LI> specify KOCEAN=1;
-       <LI> make sure that U00wtr and U00ice are the same as in you
+       <LI> make sure that U00ice/HRMAX are the same as in your
      control run. Then your Q-flux model will be as well balanced
      as your control run.
        <LI> specify AIC and OHT as described above.
@@ -726,6 +726,13 @@ always be recreated if needed.</p>
        nearest neighbour to fill those points in. Make sure that the
        model is started with ISTART=6 in order to ensure that this is
        the case.</p>
+
+       <p>It may also be necessary to adjust the initial conditions to
+	ensure that the initial values are consistent with the new
+	topography. We are working on this to make sure that defaults are
+	resaonable regardless of the topography file, but this is not yet
+	finished.</p>
+
 </ol>
 
 <p><A name="part1_5"><b>5) HOW-TO change trace gas amounts</b></a></p>
@@ -825,8 +832,8 @@ need to be downloaded separately. </P>
 on has a different fortran compiler. Some variation has been fully
 allowed for (i.e. the standard SGI or IBM compilers and Absoft
 Profortran on a Linux system) and some attempts have been made to
-accomodate the DEC version, however, we do not have a stable testbed
-for that and therefore cannot guarantee it works.</P>
+accomodate the DEC/COMPAQ version, however, we do not have a stable testbed
+for that and therefore cannot guarantee it will always work.</P>
 
 <p>General problems will arise due to arbitrary compiler decisions on
 what to name compiled module files (which affects the determination of
@@ -940,6 +947,8 @@ for a period of 1-12 consecutive months).</p>
         monyear.ij$RUNID lat-lon binary file
         monyear.wp$RUNID Wave power binary file
         monyear.oij$RUNID lat-lon binary file for ocean diagnostics
+        monyear.ojl$RUNID lat-depth binary file for ocean diagnostics
+        monyear.oht$RUNID lat ASCII file for ocean heat transports 
 </pre>
 <p>which can be read using the appropriate graphical software. </p>
 
@@ -1012,13 +1021,22 @@ the diagnostics is accumulated. If it is set to 3, seasonal acc files
 are produced. If set to 12, you will get annual means. Higher numbers
 could be chosen, but are probably not very useful.</p>
 
-<p>Producing more frequent diagnostics is a little more problematic. We
-intend to provide the facility to output a limited number of
-instantaneous or averaged standard fields (T,Q,U,V,GZ,SLP) at 1,3,6,12
-or 24 hourly intervals. But currently, only instantaneous SLP is
-available. The hourly frequency is set by NSLP in the parameter list.</p>
+<p>Producing more frequent diagnostics is controlled by the SUBDAILY
+module. These diagnostic are currently limited to instantaneous values
+of standard fields (SAT,PREC,SLP,Z500,QS). More options can be added
+as cases in subroutine get_subdd in DIAG.f if required. The frequency
+of saving is controlled by the variable <tt>Nsubdd</tt> which is the
+number of hours between each snapshot (i.e. <tt>Nsubdd=1</tt> implies
+hourly diags, =24 daily). The variables saved are controlled by the
+string <tt>SUBDD</tt>, this is a space speerated list of names for the
+required diagnostic (i.e. <tt>SUBDD="SLP SAT"</tt> will produce
+diags. of the surface air temperature and sea level pressure. Each
+timeseries will be output one month at a time in files named
+SLPmmmyyyy and SATmmmyyyy for each month and year. Restarts will find
+the appropriate file and continue to append records as would be
+expected.</p>
 
-<p>You can however easily keep track of the running average of all the
+<p>You can easily keep track of the running average of all the
 printout diagnostics using the NIPRNT switch in the parameter
 database. By setting this to a positive number, the diagnostics will
 be printed out that number of days. (i.e. setting NIPRNT=10, will
@@ -1037,8 +1055,8 @@ THE TIME OF COMPILATION OF THE MODEL EXECTUABLE. If you subsequently
 change your mind, you must edit the rundeck and recreate the
 executable (using 'gmake exe RUN=E001xyz').</p>
 
-<p>Other formats can be defined as you like with a suitable POUT_xyz.f
-file.</p>
+<p>Other formats (HDF?) can be defined as you like with a suitable
+POUT_xyz.f file.</p>
 
 <p><A name="part2_5"><b>5) HOW-TO calculate a model score</b></a></p>
 
@@ -1294,7 +1312,7 @@ new diagnostic). Secondly, in DEFACC.f (subroutine ij_defs), add a definiton:
 previously defined. The lname and name are a long and short name
 strings which are used in TITLEs and 'get-by-name' code
 respectively. The units should be the units for the scaled output. The
-ia_ij index denots how often the diagnostic is accumulated (in this
+ia_ij index denotes how often the diagnostic is accumulated (in this
 case once every source time step, although this can very depending on
 where in the code it is done).  </p>
 
