@@ -81,14 +81,14 @@ c     real*8, dimension(n) :: u,v,t,q
 
 C**** parameters for surface fluxes
       !Hogstrom 1988:
-c     real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
-c     real*8, parameter :: gamamu=19.3d0,gamahu=11.6d0,gamams=6.d0,
-c    *     gamahs=7.8d0/sigma
+      real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
+      real*8, parameter :: gamamu=19.3d0,gamahu=11.6d0,gamams=6.d0,
+     *     gamahs=7.8d0/sigma
 
       ! Businger 1971:
-      real*8, parameter :: sigma=0.74d0,sigma1=1.-sigma
-      real*8, parameter :: gamamu=15.0d0,gamahu=9.d0,gamams=4.7d0,
-     *     gamahs=4.7d0/sigma
+ccc   real*8, parameter :: sigma=0.74d0,sigma1=1.-sigma
+ccc   real*8, parameter :: gamamu=15.0d0,gamahu=9.d0,gamams=4.7d0,
+ccc  *     gamahs=4.7d0/sigma
 
 C***
 C***  Thread-Private Common
