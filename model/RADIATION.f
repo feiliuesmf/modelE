@@ -25,7 +25,7 @@ C                    WINTER  SPRING  SUMMER  AUTUMN
 C**** parameters used for vegetation albedo
 !@var albvnd veg alb by veg type, season and band
       real*8, parameter :: ALBVND(NV,4,6) = RESHAPE( (/
-C     (1)  >SRBALB(6) = VIS  (330 - 770 nm)
+C     (1)  >SRBALB(6) = VIS  (300 - 770 nm)
 C        1     2     3     4     5     6     7     8     9    10    11
 C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
      1 .500, .067, .089, .089, .078, .100, .067, .061, .089, .000, .200,
@@ -12968,8 +12968,8 @@ C**** Bare ice:
           ali(3)=.055d0
           ali(4)=.036d0
         elseif (hin.ge.1. .and. hin.lt.2.) then
-          ali(1)=.77d0+.018d0*(hin-1)
-          ali(2)=.247d0+.196d0*(hin-1)
+          ali(1)=.77d0+.018d0*(hin-1.)
+          ali(2)=.247d0+.196d0*(hin-1.)
           ali(3)=.055d0
           ali(4)=.036d0
         elseif (hin.ge.2.) then
@@ -13032,31 +13032,47 @@ C**** Melt ponds:
         almp(4)=.03d0
 c**** combined sea ice albedo
         albtf(1:4)=albtf(1:4)*(1.-fmp)+almp(1:4)*fmp
+C**** Zenith angle dependence for dry snow only
         albtr(1:4)=albtr(1:4)*(1.-fmp)+almp(1:4)*fmp
+C**** Uncomment code below for zenith angle dependence for all types 
+C**** based on Dickinson (1981)
+C****          a = a1                                   cosz>0.5
+C****              a1 + (1-a1)*0.5 * (3/(1+4*cosz) -1) 0<cosz<.5
+C**** ==> a_diff = 0.84 a1 + 0.16 (integrating over cosz)
+C**** ==> a1= (a_diff-0.16)/0.84 
+c        if (cosz.gt.0.5) then
+c          albtr(1:4) = (albtf(1:4)-0.16d0)/0.84d0
+c        else
+c          albtr(1:4) = (1.5*(albtf(1:4)-0.16d0)/0.84d0+1.-2.*cosz)/
+c     *         (4.*cosz+1.)
+c        end if
 
         IF(KVEGA6.GT.0) THEN
 C**** 6 band albedo: map 4 Schramm wavelength intervals to 6 GISS ones
-C****  (1)  250-690    -->  330-770  (1)
-C****  (2) 690-1190    -->  770-860   (2)
-C****                  -->  860-1250  (3)
-C****  (3) 1190-2380   --> 1250-1500  (4)
-C****                  --> 1500-2200  (5)
-C****  (4) 2380-4000   --> 2200-4400  (6)
-          BOIVN(1)=albtf(1)
-          XOIVN(1)=albtr(1)
-          BOIVN(2:3)=albtf(2)
-          XOIVN(2:3)=albtr(2)
-          BOIVN(4:5)=albtf(3)
-          XOIVN(4:5)=albtr(3)
-          BOIVN(6)=albtf(4)
-          XOIVN(6)=albtr(4)
+C**** Band#  range  %solar(grnd)  range   %solar(grnd)  band# 
+C****  (1)  250-690  (49.3%)   -->  300-770    (58.5%) (1) 
+C****  (2) 690-1190  (34.9%)   -->  770-860     (8.6%) (2) 
+C****                          -->  860-1250   (19.5%) (3) 
+C****  (3) 1190-2380 (14.8%)   --> 1250-1500    (3.8%) (4) 
+C****                          --> 1500-2200    (7.6%) (5) 
+C****  (4) 2380-4000 (1.0%)    --> 2200-4000    (2.0%) (6) 
+C**** Adjust weighting to force same broadband albedo
+          BOIVN(1)=albtf(1)*.493d0/.585d0
+          XOIVN(1)=albtr(1)*.493d0/.585d0
+          BOIVN(2:3)=albtf(2)*.349d0/.281d0
+          XOIVN(2:3)=albtr(2)*.349d0/.281d0
+          BOIVN(4:5)=albtf(3)*.148d0/.114d0
+          XOIVN(4:5)=albtr(3)*.148d0/.114d0
+          BOIVN(6)=albtf(4)*.01d0/.02d0
+          XOIVN(6)=albtr(4)*.01d0/.02d0
         ELSE
 C**** 2 band albedo: weight the 3 NIR bands by the solar irradiance to
 C**** create a composite NIR value.
-          BOIVIS=albtf(1)
-          XOIVIS=albtr(1)
-          BOINIR=(.33d0*albtf(2)+.14d0*albtf(3)+.01d0*albtf(4))/.48d0
-          XOINIR=(.33d0*albtr(2)+.14d0*albtr(3)+.01d0*albtr(4))/.48d0
+C**** Adjust weighting to force same broadband albedo
+          BOIVIS=albtf(1)*.493d0/.585d0
+          XOIVIS=albtr(1)*.493d0/.585d0
+          BOINIR=(.349d0*albtf(2)+.148d0*albtf(3)+.01d0*albtf(4))/.415d0
+          XOINIR=(.349d0*albtr(2)+.148d0*albtr(3)+.01d0*albtr(4))/.415d0
         END IF
         EXPSNO=1.-patchy
 C**** end of Schramm's version

@@ -1474,24 +1474,23 @@ c        FSRI(3) = FSRI(2)*EXP(-KIEXT*MSI2*XSI(3)*BYRHOI)
 c        FSRI(4) = FSRI(2)*EXP(-KIEXT*MSI2*BYRHOI)
 
 c**** Set fractions of visible and near-ir bands based on weighting the
-c**** solar input by the approximate co-albedo. Could possibly be
-c**** retreived from radiation code
-c**** VIS: 250 - 690 nm,       NIR1= 690 - 1119 nm
-c****         52%,     and          33% of incoming solar
-c**** NIR2/3 (> 1119 nm assumed not to be transmitted)
+c**** solar input by the approximate co-albedo (ignoring melt ponds etc). 
+c**** VIS:  250 - 690 nm,       49.3% of incoming solar at ground 
+c**** NIR1: 690 - 1190 nm       34.9%       "       "   "    " 
+c**** NIR2/3 (> 1190 nm assumed not to be transmitted)
 c****
       if (hsnow.gt.0.02) then    ! same cutoff as for albedo
 c**** Extinction coefficients for snow depend on wetness
 c**** Since albedo does as well, absorbed fractions also vary
         if (wetsnow) then
-          fracvis =0.22d0 ;  fracnir1=0.32d0
+          fracvis =0.20d0 ;  fracnir1=0.33d0
           ksextvis=10.7d0 ; ksextnir1=118.d0
         else
-          fracvis =0.07d0 ;  fracnir1=0.30d0
+          fracvis =0.06d0 ;  fracnir1=0.31d0
           ksextvis=19.6d0 ; ksextnir1=196.d0
         end if
       else
-        fracvis=0.26d0 ; fracnir1=0.42d0
+        fracvis=0.24d0 ; fracnir1=0.43d0
         ksextvis=10.7d0 ; ksextnir1=118.d0
       end if
 
