@@ -15,8 +15,15 @@ C**** iii) check that LSHR,L500,LD2 are consistent for other resolutions
       USE MODEL_COM, only : im,jm,lm
       IMPLICIT NONE
       SAVE
-!@dnparam XCDNST parameters for GW drag (in param. database)
+!@dbparam XCDNST parameters for GW drag (in param. database)
       REAL*8, DIMENSION(2) :: XCDNST(2)
+!@dbparam CMTN parameter for GW MTN drag (in param. database)
+!@dbparam CDEF parameter for GW DEF drag (in param. database)
+!@dbparma CMC parameter for GW M. Convective drag (in param. database) 
+C**** (used to be FMC)
+      REAL*8 :: CMTN = .5, CDEF = 3., CMC = 2d-7 
+!@dbparam PBREAK p. level above which GW drag acts (in param. database)
+      REAL*8 :: PBREAK = 500.   ! default is 500mb
 !@var ZVART,ZVARX,ZVARY,ZWT topogrpahic variance
 C**** (must be in common due to read statement)
       REAL*8, DIMENSION(IM,JM) :: ZVART,ZVARX,ZVARY,ZWT
@@ -25,8 +32,8 @@ C**** (must be in common due to read statement)
       REAL*8, DIMENSION(IM,JM) :: DEFRM
 !@var LDEF,LDEFM deformation levels
       INTEGER LDEF,LDEFM
-!@var L500,LSHR,LD2 levels for various GW drag terms
-      INTEGER :: L500,LSHR,LD2 = LM   ! need default for LD2
+!@var LBREAK,LSHR,LD2 levels for various GW drag terms
+      INTEGER :: LBREAK,LSHR,LD2 = LM   ! need default for LD2
 
 !@dbparam QGWMTN =1 turns on GW Mountain Wave drag terms
 !@dbparam QGWSHR =1 turns on GW Shear drag terms
@@ -50,8 +57,9 @@ C**** (must be in common due to read statement)
 C**** DO_GWDRAG=true activates the printing of the diagnostics 
 C**** accumulated in the routines contained herein
       USE CONSTANT, only : twopi,kapa
-      USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,l500,ld2
-     *     ,lshr,ldef,ldefm,zvarx,zvary,zvart,zwt,pks,nm,ek
+      USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
+     *     ,ld2,lshr,ldef,ldefm,zvarx,zvary,zvart,zwt,pks,nm,ek, cmtn,
+     *     cdef,cmc,pbreak
       USE MODEL_COM, only : im,jm,lm,ls1,do_gwdrag,ptop,sig,psfmpt,sige
       USE GEOM, only : areag,dxyv
       USE FILEMANAGER
@@ -65,6 +73,10 @@ C**** define flag for optional diagnostics
 
 C**** sync gwdrag parameters from input
       call sync_param( "XCDNST", XCDNST, 2 )
+      call sync_param( "CMTN", CMTN)
+      call sync_param( "CDEF", CDEF)
+      call sync_param( "CMC", CMC)
+      call sync_param( "PBREAK", PBREAK)
 
 C**** sync more gwdrag parameters from input
       call sync_param( "QGWMTN", QGWMTN)
@@ -79,7 +91,7 @@ C**** need testing for other resolutions
         PLEV=PSFMPT*SIG(L)+PTOP
         PLEVE=PSFMPT*SIGE(L)+PTOP
         IF (PLEV.GE.700) LDEF=L
-        IF (PLEVE.GE.500.) L500=L+1
+        IF (PLEVE.GE.PBREAK) LBREAK=L+1
         IF (PLEVE.GE.300.) LSHR=L
         IF (PLEV.GE.200.) LDEFM=L
         IF (PLEV.GE.0.2d0) LD2=L
@@ -88,7 +100,7 @@ C**** need testing for other resolutions
      *     *SIG(LDEF)+PTOP,' LDEFM=',LDEFM
       WRITE (*,*) ' LEVELS FOR WIND SHEAR GENERATION: LSHR,LD2= ',LSHR
      *     ,LD2
-      WRITE (*,*) ' L500=',L500
+      WRITE (*,*) ' LBREAK=',LBREAK
 C****
 C**** TOPOGRAPHY VARIANCE FOR MOUNTAIN WAVES
 C****
@@ -409,20 +421,20 @@ C****
       USE MODEL_COM, only : im,jm,lm,byim,airx,lmc,nidyn,sig,sige
      *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
       USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm,
-     *     ,l500,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv
+     *     ,lbreak,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv,
+     *     cmtn,cdef,cmc
 C**** Do I need to put the common decalaration here also?
       USE GEOM, only : dxyv,bydxyv,fcor,imaxj,ravpn,ravps,rapvn,rapvs
       USE DAGCOM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
      &     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst
       IMPLICIT NONE
-!@var FMC is a tuning coefficient
 !@var BVF(LMC1) is Brunt-Vaissala frequency at top of convection
 !@var CLDHT is height of cloud = 8000*LOG(P(cloud bottom)/P(cloud top)
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: T,U,V,SZ
       REAL*8, INTENT(IN), DIMENSION(IM,JM) :: P
       REAL*8, INTENT(IN) :: DT1
-      REAL*8, PARAMETER :: FMC=2d-7, ERR=1d-20, H0=8000., XFROUD=1.
+      REAL*8, PARAMETER :: ERR=1d-20, H0=8000., XFROUD=1.
 !@var XLIMIT per timestep limit on mixing and drag
       REAL*8, PARAMETER :: XLIMIT=.1d0
 !@var ROTK should this be set from CONSTANT?
@@ -559,7 +571,7 @@ C****
       MUB(:,:)=0.
 C**** MOUNTAIN WAVES generate at 1 s.d. above topography ...
       IF (QGWMTN.eq.1) THEN
-        LD(1)=L500
+        LD(1)=LBREAK
         U0=(UL(1)*DSIG(1)+UL(2)*DSIG(2))/(SIGE(1)-SIGE(3))
         V0=(VL(1)*DSIG(1)+VL(2)*DSIG(2))/(SIGE(1)-SIGE(3))
         W0=SQRT(U0*U0+V0*V0)
@@ -573,14 +585,14 @@ C.... limit ZSD to be consistent with Froude no. (U0/BV0*ZSD) > 1
         IF (ZVAR.GT.(XFROUD*W0/BV0)**2) ZVAR=(XFROUD*W0/BV0)**2
         P0=(SIG(1)*DSIG(1)+SIG(2)*DSIG(2))/(SIGE(1)-SIGE(3))*PIJ+PTOP
         WT(1)=ZWT(I,J)
-        MU(1)=-.5*EK(1,J)/(H0*ROTK)*P0*BV0*W0*ZVAR
-        IF(MU(1)*(UL(L500)*UR(1)+VL(L500)*VR(1)).GE.0.) MU(1)=0.
+        MU(1)=-CMTN*EK(1,J)/(H0*ROTK)*P0*BV0*W0*ZVAR
+        IF(MU(1)*(UL(LBREAK)*UR(1)+VL(LBREAK)*VR(1)).GE.0.) MU(1)=0.
       END IF
 C**** DEFORMATION WAVE (X    d cm-2)
       IF (QGWDEF.eq.1) THEN
         IF (ZATMO(I,J)/GRAV.GT.1000.) GO TO 155
         IF (DEFRM(I,J).LT. 15d-6) GO TO 155 !  Threshold= 15e-6
-        FDEFRM=- 3.*GRAV/(1000.*15d-6)*DEFRM(I,J) !  3 d cm-2 x 15e-6
+        FDEFRM=- CDEF*GRAV/(1000.*15d-6)*DEFRM(I,J) !  3 d cm-2 x 15e-6
         DU=UL(LDEF +1)-UL(LDEF )
         DV=VL(LDEF +1)-VL(LDEF )
         DW=SQRT(DU**2        + DV**2       )
@@ -588,7 +600,7 @@ C**** DEFORMATION WAVE (X    d cm-2)
         VR(9)=DV       /(DW+ ERR)
         CN(9)=UL(LDEF )*UR(9)+VL(LDEF )*VR(9)
         MU(9)=FDEFRM
-        LD(9)=L500
+        LD(9)=LBREAK
       END IF
 C**** WIND SHEAR: USE SHEAR BETWEEN 7 AND 8 UNLESS CRIT. LEVEL ABOVE..
  155  IF (QGWSHR.eq.1) THEN
@@ -606,7 +618,7 @@ C**** WIND SHEAR: USE SHEAR BETWEEN 7 AND 8 UNLESS CRIT. LEVEL ABOVE..
         UR(2)=DU/(DW+ ERR)
         VR(2)=DV/(DW+ ERR)
         CN(2)=.5*((UL(L+1)+UL(L))*UR(2)+(VL(L+1)+VL(L))*VR(2))
-        MU(2)=-FCORU*PLE(L+1)*DW*DW/(240.*H0*(BVF(L+1)))
+        MU(2)=-FCORU*PLE(L+1)*DW*DW/(240.*H0*BVF(L+1))
       END IF
 C**** MOIST CONVECTIVE MASS FLUX BEGINS TWO LEVELS ABOVE CLOUD...
 C**** AMPLITUDE DEPENDS ON |U(SOURCE)-C|.
@@ -644,7 +656,7 @@ C**** Do nothing for shallow convection (below 800 mb)
         WSRC=SQRT(USRC*USRC+VSRC*VSRC)
         UR(3)=USRC/(WSRC+ ERR)
         VR(3)=VSRC/(WSRC+ ERR)
-        MU(3)=-EK(3,J)*FMC*BVF(LMC1-1)*PL(LMC1-1)*CLDHT**2
+        MU(3)=-EK(3,J)*CMC*BVF(LMC1-1)*PL(LMC1-1)*CLDHT**2
         MU(4)=MU(3)
         CN(3)=WSRC-10.
         CN(4)=WSRC+10.
