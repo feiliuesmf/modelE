@@ -127,8 +127,11 @@ C**** Some local constants
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE,
      &                          CHECKSUM_COLUMN, HALO_UPDATE_COLUMN,
      &                          GRID, SOUTH, NORTH, GLOBALSUM
+      USE DOMAIN_DECOMP, only : AM_I_ROOT
       IMPLICIT NONE
       REAL*8, DIMENSION(LM) :: GMEAN
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: 
+     &     GMEAN_part
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &        TIL,UI,UMAX,PI,EL,RI,DUDVSQ
       REAL*8, DIMENSION(NTYPE,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -169,6 +172,7 @@ C**** Some local constants
      *     I135W = IM*(180-135)/360+1  ! WEST EDGE OF 135 WEST
 
       REAL*8 QSAT
+      REAL*8 :: gsum, TMP(grid%J_STRT_HALO:grid%J_STOP_HALO)
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -386,8 +390,7 @@ C****
 C**** NORTHWARD GRADIENT OF TEMPERATURE: TROPOSPHERIC AND STRATOSPHERIC
 C****
       CALL CHECKSUM(grid, TX, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, TX, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, TX, FROM=NORTH)
+      CALL HALO_UPDATE(grid, TX, FROM=NORTH+SOUTH)
 
       DO J=J_0S,J_1S
 C**** MEAN TROPOSPHERIC NORTHWARD TEMPERATURE GRADIENT
@@ -635,6 +638,7 @@ C****
 !Not necessary here, done above      CALL HALO_UPDATE(grid, TX, FROM=SOUTH)
       CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, Q, FROM=SOUTH)
 
       DO J=J_0STG,J_1STG
       P4I=0.
@@ -690,7 +694,7 @@ C**** AVAILABLE POTENTIAL ENERGY
 C****
 C**** SET UP FOR CALCULATION
       DO 710 L=1,LM
-  710 GMEAN(L)=0.
+  710 GMEAN_part(:,L)=0.
       DO 740 J=J_0,J_1
       DO 720 I=1,IMAXJ(J)
   720 SQRTP(I)=SQRT(P(I,J))
@@ -703,8 +707,9 @@ C**** GMEAN CALCULATED FOR EACH LAYER, THJL, THSQJL ARRAYS FILLED
       DO 730 I=1,IMAXJ(J)
       THJL(J,L)=THJL(J,L)+T(I,J,L)*SQRTP(I)
       THSQJL(J,L)=THSQJL(J,L)+T(I,J,L)*T(I,J,L)*P(I,J)
-  730 GMEAN(L)=GMEAN(L)+(SIG(L)*P(I,J)+PTOP)*(T(I,J,LUP)-T(I,J,LDN))*
-     *  DXYP(J)/(P(I,J)*PK(L,I,J))
+  730 GMEAN_part(J,L)=GMEAN_part(J,L)+
+     *     (SIG(L)*P(I,J)+PTOP)*(T(I,J,LUP)-T(I,J,LDN))*
+     *     DXYP(J)/(P(I,J)*PK(L,I,J))
   740 CONTINUE
 C**** CALCULATE APE
       DO 760 L=1,LM
@@ -724,6 +729,7 @@ C**** CALCULATE APE
       ENDDO
       CALL GLOBALSUM(grid,THGM_part(:),THGM,ALL=.TRUE.)
       THGM=THGM/AREAG
+      CALL GLOBALSUM(grid,GMEAN_part(:,L),GMEAN(L),ALL=.TRUE.)
       GMEANL=GMEAN(L)/((SIG(LM1)-SIG(LP1))*AREAG)
       DO 760 J=J_0,J_1
   760 AJL(J,L,JL_APE)=AJL(J,L,JL_APE)+
@@ -743,55 +749,56 @@ C****
         AJL(J,L,JL_VWPAC)=AJL(J,L,JL_VWPAC)+V(I,J,L)
       END DO
       END DO
-      DO J=MAX(J_0,J5SUV),MIN(J_1,J5NUV)
       DO I=1,IM
-        AIL(I,L,IL_UEQ)=AIL(I,L,IL_UEQ)+U(I,J,L)
-        AIL(I,L,IL_VEQ)=AIL(I,L,IL_VEQ)+V(I,J,L)
+        CALL GLOBALSUM(grid, U(I,:,L), gsum, jband=(/J5SUV,J5NUV/))
+        IF (AM_I_ROOT()) AIL(I,L,IL_UEQ) = AIL(I,L,IL_UEQ)+gsum
+        CALL GLOBALSUM(grid, V(I,:,L), gsum, jband=(/J5SUV,J5NUV/))
+        IF (AM_I_ROOT()) AIL(I,L,IL_VEQ) = AIL(I,L,IL_VEQ)+gsum
       END DO
-      END DO
-      DO J=MAX(J_0,J5S),MIN(J_1,J5N)
       DO I=1,IM
-        AIL(I,L,IL_TEQ)=AIL(I,L,IL_TEQ)+(TX(I,J,L)-TF)
-        AIL(I,L,IL_QEQ)=AIL(I,L,IL_QEQ)+Q(I,J,L)/QSAT(TX(I,J,L),LHE
-     *       ,PMID(L,I,J))
+        CALL GLOBALSUM(grid, TX(I,:,L)-TF, gsum, jband=(/J5S,J5N/))
+        IF (AM_I_ROOT()) AIL(I,L,IL_TEQ) = AIL(I,L,IL_TEQ)+gsum
+        DO J = MAX(J_0,J5S),MIN(J_1,J5N)
+          TMP(J) = Q(I,J,L)/QSAT(TX(I,J,L),LHE,PMID(L,I,J))
+        END DO
+        CALL GLOBALSUM(grid, TMP, gsum, jband=(/J5S,J5N/))
+        IF (AM_I_ROOT()) AIL(I,L,IL_QEQ) = AIL(I,L,IL_QEQ)+gsum
       END DO
+
+      DO I=1,IM
+        CALL GLOBALSUM(grid, TX(I,:,L)-TF, gsum,jband=(/J50N,J50N/))
+        IF (AM_I_ROOT()) AIL(I,L,IL_T50N)=AIL(I,L,IL_T50N)+gsum
+        CALL GLOBALSUM(grid, U(I,:,L), gsum, jband =(/J50N,J50N+1/))
+        IF (AM_I_ROOT()) AIL(I,L,IL_U50N)=AIL(I,L,IL_U50N)+gsum
       END DO
-        IF(J_0 <= J50N .and. J_1 >= J50N) THEN
-          DO I=1,IM
-            AIL(I,L,IL_T50N)=AIL(I,L,IL_T50N)+(TX(I,J50N,L)-TF)
-            AIL(I,L,IL_U50N)=AIL(I,L,IL_U50N)+(U(I,J50N,L)+
-     *                       U(I,J50N+1,L))
-          END DO
-        ENDIF
-        IF(J_0 <= J70N .and. J_1 >= J70N) THEN
-          DO I=1,IM
-            AIL(I,L,IL_T70N)=AIL(I,L,IL_T70N)+(TX(I,J70N,L)-TF)
-            AIL(I,L,IL_U70N)=AIL(I,L,IL_U70N)+(U(I,J70N,L)+
-     *                       U(I,J70N+1,L))
-          END DO
-        ENDIF
+      DO I=1,IM
+        CALL GLOBALSUM(grid, TX(I,:,L)-TF, gsum,jband=(/J70N,J70N/))
+        IF (AM_I_ROOT()) AIL(I,L,IL_T70N)=AIL(I,L,IL_T70N)+gsum
+        CALL GLOBALSUM(grid, U(I,:,L), gsum, jband =(/J70N,J70N+1/))
+        IF (AM_I_ROOT()) AIL(I,L,IL_U70N)=AIL(I,L,IL_U70N)+gsum
       END DO
+
+      END DO ! L Loop
 C****
 C**** CERTAIN VERTICAL WIND AVERAGES
 C****
       DO L=1,LM-1
-      DO J=J_0S,J_1S
-        DO I=I135W,I110W        ! EAST PACIFIC
-          AJL(J,L,JL_WEPAC)=AJL(J,L,JL_WEPAC)+W(I,J,L)
+        DO J=J_0S,J_1S
+          DO I=I135W,I110W      ! EAST PACIFIC
+            AJL(J,L,JL_WEPAC)=AJL(J,L,JL_WEPAC)+W(I,J,L)
+          END DO
+          DO I=I150E,IM         ! WEST PACIFIC
+            AJL(J,L,JL_WWPAC)=AJL(J,L,JL_WWPAC)+W(I,J,L)
+          END DO
         END DO
-        DO I=I150E,IM           ! WEST PACIFIC
-          AJL(J,L,JL_WWPAC)=AJL(J,L,JL_WWPAC)+W(I,J,L)
+        DO I=1,IM
+          CALL GLOBALSUM(grid, W(I,:,L), gsum, jband=(/J5S,J5N/))
+          IF (AM_I_ROOT()) AIL(I,L,IL_WEQ) = AIL(I,L,IL_WEQ)+gsum
+          CALL GLOBALSUM(grid, W(I,:,L), gsum, jband=(/J50N,J50N/))
+          IF (AM_I_ROOT()) AIL(I,L,IL_W50N) = AIL(I,L,IL_W50N)+gsum
+          CALL GLOBALSUM(grid, W(I,:,L), gsum, jband=(/J70N,J70N/))
+          IF (AM_I_ROOT()) AIL(I,L,IL_W70N) = AIL(I,L,IL_W70N)+gsum
         END DO
-      END DO
-      DO I=1,IM
-        DO J=MAX(J_0,J5S),MIN(J_1,J5N)      ! +/- 5 DEG (APPROX.)
-          AIL(I,L,IL_WEQ) =AIL(I,L,IL_WEQ)+W(I,J,L)
-        END DO
-        IF(J_0 <= J50N .and. J_1 >= J50N)
-     &  AIL(I,L,IL_W50N)=AIL(I,L,IL_W50N)+W(I,J50N,L)
-        IF(J_0 <= J70N .and. J_1 >= J70N)
-     &  AIL(I,L,IL_W70N)=AIL(I,L,IL_W70N)+W(I,J70N,L)
-      END DO
       END DO
 C****
 C**** ELIASSEN PALM FLUX
@@ -979,7 +986,7 @@ c      REAL*8 :: ADIURNSUM,HDIURNSUM
 
       REAL*8, PARAMETER :: BIG=1.E20
       REAL*8 :: QSAT
-      LOGICAL :: pm_ge_ps(im,grid%j_strt_halo:grid%j_stop_halo,lm)
+      REAL*8 :: pm_ge_ps(im,grid%j_strt_halo:grid%j_stop_halo,lm)
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -991,7 +998,7 @@ c      REAL*8 :: ADIURNSUM,HDIURNSUM
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
-      pm_ge_ps(:,:,:)=.false.
+      pm_ge_ps(:,:,:)=-1.
 C****
 C**** INTERNAL QUANTITIES T,TH,Q,RH
 C****
@@ -1177,8 +1184,8 @@ C from the previous halo call.
       PS=SP+PTOP
       DO 286 L=1,LS1-1
   286 PL(L)=SP*SIGE(L)+PTOP
-      IF (PM(K+1).GE.PS) THEN
-        pm_ge_ps(i,j-1,k)=.true.
+      IF (PM(K+1).GE.PS) THEN 
+        pm_ge_ps(i,j,k) = 1.
         UDX(I,J,K)=BIG
       ELSE
         L=1
@@ -1293,13 +1300,15 @@ C**** ZX for distributed parallelization
 c****
       CALL CHECKSUM(GRID,UDX,__LINE__,__FILE__)
       CALL HALO_UPDATE( grid, UDX, from=NORTH )
+      CALL HALO_UPDATE( grid, pm_ge_ps, from=NORTH)
+
       DO J=J_0,J_1S
         DO K=1,KM
           DO I=1,IM
-            if (.not. pm_ge_ps(i,j,k)) then
-            IF (UDX(I,J,K).LT.BIG )  ZX(I,J,K)=-UDX(I,J,K)+UDX(I,J+1,K)
-            IF (UDX(I,J,K).GE.BIG)   ZX(I,J,K)=0.
-            IF (ZX(I,J,K).GE.BIG)    ZX(I,J,K)=0
+            if (pm_ge_ps(i,j+1,k) < 0) then
+            IF (UDX(I,J,K).LT.BIG ) ZX(I,J,K)=-UDX(I,J,K)+UDX(I,J+1,K)
+            IF (UDX(I,J,K).GE.BIG)  ZX(I,J,K)=0.
+            IF (ZX(I,J,K).GE.BIG)   ZX(I,J,K)=0
             end if
           END DO
         END DO
@@ -1608,6 +1617,7 @@ C**** DOUBLE POLAR WINDS
 
 C P already halo'ed; no need      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
 C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, W, FROM=SOUTH)
 
       DO 710 J=J_0STG,J_1STG
       UEARTH=RADIUS*OMEGA*COSV(J)
@@ -2539,8 +2549,9 @@ C**** TRANSFER RATES FOR KINETIC ENERGY IN THE DYNAMICS
       KE_part(:,:,:)=0.
 
       DO L=1,LM
-        KSPHER=KLAYER(L)
         DO J=J_0STG,J_1STG
+          KSPHER=KLAYER(L)
+          IF (J > JEQ) KSPHER= KSPHER+1
           DO KUV=1,2 ! loop over u,v
             IF(KUV.EQ.1) CALL FFT(DUT(1,J,L),FA,FB)
             IF(KUV.EQ.2) CALL FFT(DVT(1,J,L),FA,FB)
@@ -2631,6 +2642,9 @@ C****
       REAL*8, DIMENSION
      &  (IMH+1,NSPHER,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: KE_part
       REAL*8, DIMENSION(IMH+1,4) :: VAR
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,IMH+1,4)
+     &     :: VAR_part
+      REAL*8 :: VARSUM
       REAL*8, DIMENSION(2) :: TPE
       REAL*8               :: TPE_sum
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: TPE_psum
@@ -2791,13 +2805,14 @@ C***  320 THGSUM=THGSUM+THJSUM*DXYP(J)
   350 CONTINUE
 
       VAR(2:NM,1:2)=0.
+      VAR_part=0
       IF(HAVE_SOUTH_POLE) THEN
-        VAR(1,1)=.5*(THJSP(L)-THGM(L))**2*DXYP(1)*FIM
+        VAR_part(1,1,1)=.5*(THJSP(L)-THGM(L))**2*DXYP(1)*FIM
         GMSUM(1)=((THJSP(LUP)-THJSP(LDN))*DXYP(1)*(SIG(L)*P(1,1)+PTOP)/
      *       (SQRTP(1,1)*P(1,1)*PK(L,1,1)))*FIM
       END IF
       IF(HAVE_NORTH_POLE) THEN
-        VAR(1,2)=.5*(THJNP(L)-THGM(L))**2*DXYP(JM)*FIM
+        VAR_part(JM,1,2)=.5*(THJNP(L)-THGM(L))**2*DXYP(JM)*FIM
         GMSUM(JM)=((THJNP(LUP)-THJNP(LDN))*DXYP(JM)*
      *       (SIG(L)*P(1,JM)+PTOP)/(SQRTP(1,JM)*P(1,JM)*PK(L,1,JM)))*FIM
       END IF
@@ -2819,16 +2834,16 @@ C***  320 THGSUM=THGSUM+THJSUM*DXYP(J)
         GMSUM(J) = GMTMP * DXYP(J)
         CALL FFTE (X,X)
         DO N=1,NM
-          VAR(N,JHEMI)=VAR(N,JHEMI)+X(N)*DXYP(J)
+          VAR_part(J,N,JHEMI)=VAR_part(J,N,JHEMI)+X(N)*DXYP(J)
         END DO
         IF (J == JEQ-1) THEN
           DO N=1,NM
-            VAR(N,3)=X(N)*DXYP(J)
+            VAR_part(J,N,3)=X(N)*DXYP(J)
           END DO
         END IF
         IF (J == J45N-1) THEN
           DO N=1,NM
-            VAR(N,4)=X(N)*DXYP(J)
+            VAR_part(J,N,4)=X(N)*DXYP(J)
           END DO
         END IF
       END DO
@@ -2839,6 +2854,8 @@ C***  320 THGSUM=THGSUM+THJSUM*DXYP(J)
       KS=KLAYER(L)
       DO JHEMI=1,4
         DO N=1,NM
+          CALL GLOBALSUM(grid, VAR_part(:,N,JHEMI), VARSUM)
+          VAR(N,JHEMI) =  VARSUM
           APE(N,KS)=APE(N,KS)+VAR(N,JHEMI)*GMEAN
         END DO
         KS=KS+1
