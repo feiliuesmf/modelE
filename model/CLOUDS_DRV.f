@@ -12,7 +12,7 @@
      *     ,ntype,itime,fim,airx,lmc,focean,fland,flice
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
-      USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
+      USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj,dyp
       USE RANDOM
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
      *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss
@@ -20,11 +20,11 @@
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
-     &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,
-     &     jl_mchphas,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,
-     *     ij_ctpi,ij_taui,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,
-     *     ij_sstabx,isccp_diags,ndiupt,jl_cldmc,jl_cldss,jl_csizmc
-     *     ,jl_csizss
+     &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,jl_mchphas
+     *     ,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui
+     *     ,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags
+     *     ,ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,
+     *     ntau,npres,nisccp,aisccp,isccp_reg
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
 #ifdef TRACERS_WATER
@@ -67,7 +67,7 @@
 #ifdef TRACERS_ON
 !@var tmsave holds tracer value (for diagnostics)
       REAL*8 tmsave(lm,ntm),dtr_mc(jm,ntm),dtr_ss(jm,ntm)
-      INTEGER NX,N
+      INTEGER NX
 #endif
 
 !@var UC,VC,UZM,VZM velocity work arrays
@@ -77,7 +77,7 @@
 !@param ENTCON fractional rate of entrainment (km**-1)
       REAL*8,  PARAMETER :: ENTCON = .2d0
 
-      INTEGER I,J,K,L  !@var I,J,K,L loop variables
+      INTEGER I,J,K,L,N  !@var I,J,K,L,N loop variables
       INTEGER JR,KR,ITYPE,IT,IH,LP850,LP600
 !@var JR = JREG(I,J)
 !@var KR index for regional diagnostics
@@ -92,6 +92,7 @@
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,ALPHAS
       REAL*8 :: DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV1,THV2,QG,TGV
       REAL*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG,SSTAB,DIFT,CSC
+     *     ,E,E1,ep
 !@var HCNDMC heating due to moist convection
 !@var PRCP precipitation
 !@var TPRCP temperature of mc. precip  (deg. C)
@@ -105,7 +106,6 @@
 !@var DUDZ,DVDZ,DUDZS,DVDZS,DUDZG,DVDZG vertical wind gradients
 
 C**** parameters and variables for isccp diags
-      integer, parameter :: ntau=7,npres=7
       real*8, parameter :: bywc = 1./2.56d0 , byic= 1./2.13d0
       real*8 skt,conv(lm),qv(lm)
       real*8 pfull(lm),at(lm),cc(lm),dtau_s(lm),dtau_c(lm)
@@ -191,7 +191,7 @@ C$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IDI,IDJ,
 C$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, NBOX, PRCP,PFULL,PHALF,
 C$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 C$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT, WMERR,
-C$OMP*  LP600,LP850,CSC,DIFT)
+C$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep)
 C$OMP*    SCHEDULE(DYNAMIC,2)
 C$OMP*    REDUCTION(+:ICKERR,JCKERR)
 C
@@ -522,8 +522,18 @@ C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
 C       WRITE (6,*)'I,J,QG,TGV,THSV,RIS,RI1=',I,J,QG,TGV,THSV,RIS,RI1
       ENDIF
 
+c**** uncomment lines marked ECON to check energy conservation
+cECON  E = ( sum(TL(1:LP50)*AIRM(1:LP50))*SHA + sum(QL(1:LP50)
+cECON *     *AIRM(1:LP50))*LHE +sum( (WML(1:LP50)*(LHE-SVLHXL(1:LP50))
+cECON *     +SVWMXL(1:LP50)*(LHE-SVLATL(1:LP50)))*AIRM(1:LP50))  )*100.
+cECON *     *BYGRAV
+
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
       CALL LSCOND(IERR,WMERR,LERR)
+
+cECON  E1 = ( sum(TL(1:LP50)*AIRM(1:LP50))*SHA + sum(QL(1:LP50)
+cECON *     *AIRM(1:LP50))*LHE +sum(WMX(1:LP50)*(LHE-SVLHXL(1:LP50))
+cECON *     *AIRM(1:LP50)) )*100.*BYGRAV
 
 C**** Error reports
       IF (IERR.ne.0) WRITE(99,'(I10,3I4,A,D14.5,A)')
@@ -552,12 +562,17 @@ C**** NEED TO TAKE ACCOUNT OF LATENT HEAT THOUGH
 C       EPRCP=PRCPSS*100.*BYGRAV*TPRCP*SHW
         EPRCP=0.
         ENRGP=ENRGP+EPRCP
+cECON    ep=0.
       ELSE
 C       EPRCP=PRCPSS*100.*BYGRAV*TPRCP*SHI
         EPRCP=0.
         ENRGP=ENRGP+EPRCP-PRCPSS*100.*BYGRAV*LHM
+cECON    ep=-PRCPSS*100.*BYGRAV*LHM
         AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCPSS*100.*BYGRAV
       END IF
+
+cECON  if (abs(E-E1-ep).gt.0.01) print*,"energy err",i,j,E-E1-ep,
+cECON *     E,E1,ep,prcpss,lhp(1)
 
 C**** PRECIPITATION DIAGNOSTICS
         DO IT=1,NTYPE
@@ -636,6 +651,11 @@ C**** Sum over itau=2,ntau (itau=1 is no cloud)
           AIJ(I,J,IJ_HCLDI)= AIJ(I,J,IJ_HCLDI) + fq_isccp(itau,1)
      *         + fq_isccp(itau,2) + fq_isccp(itau,3)
         end do
+C**** Save area weighted isccp histograms
+        n=isccp_reg(j)
+        if (n.gt.0) then
+          AISCCP(:,:,n) = AISCCP(:,:,n) + fq_isccp(:,:)*DYP(j)
+        end if
       end if
 
 C**** Peak static stability diagnostic
@@ -875,14 +895,17 @@ C$OMP  END PARALLEL DO
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : grav,by3
-      USE MODEL_COM, only : dtsrc,ls1,sige,lm,psfmpt,ptop
+      USE MODEL_COM, only : dtsrc,ls1,sige,lm,psfmpt,ptop,plbot,jm
+      USE GEOM, only : lat_dg
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,HRMAX,ISC,lp50
+      USE CLOUDS_COM, only : llow,lmid,lhi
+      USE DAGCOM, only : nisccp,isccp_reg
       USE PARAM
 
       IMPLICIT NONE
       REAL*8 PLE
-      INTEGER L
+      INTEGER L,J
 
       call sync_param( 'U00wtrX', U00wtrX )
       call sync_param( 'U00ice', U00ice )
@@ -906,4 +929,34 @@ C**** SEARCH FOR THE 50 MB LEVEL
       END DO
       write(6,*) "Maximum level for LSCOND calculations (50mb): ",LP50
       
+C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
+      DO L=1,LM
+        LLOW=L
+        IF (.5*(PLbot(L+1)+PLbot(L+2)).LT.750.) EXIT ! was 786. 4/16/97
+      END DO
+      DO L=LLOW+1,LM
+        LMID=L
+        IF (.5*(PLbot(L+1)+PLbot(L+2)).LT.430.) EXIT
+      END DO
+      LHI=LM
+      IF (LMID+1.GT.LHI) LHI=LMID+1
+      WRITE (6,47) LLOW,LLOW+1,LMID,LMID+1,LHI
+ 47   FORMAT (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN',
+     *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
+
+C**** Define regions for ISCCP diagnostics
+      do j=1,jm
+        isccp_reg(j)=0.
+        if (lat_dg(j,1).ge.-60. .and. lat_dg(j,1).lt.-30.)
+     *       isccp_reg(j)=1
+        if (lat_dg(j,1).ge.-30. .and. lat_dg(j,1).lt.-15.)
+     *       isccp_reg(j)=2
+        if (lat_dg(j,1).ge.-15. .and. lat_dg(j,1).lt.15.)
+     *       isccp_reg(j)=3
+        if (lat_dg(j,1).ge.15. .and. lat_dg(j,1).lt.30.)
+     *       isccp_reg(j)=4
+        if (lat_dg(j,1).ge.30. .and. lat_dg(j,1).lt.60.)
+     *       isccp_reg(j)=5
+      end do
+
       END SUBROUTINE init_CLD

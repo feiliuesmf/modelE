@@ -43,7 +43,7 @@
 !@+     name - character*(*) - the name of the parameter which is a
 !@+       character string no longer than 32 bytes
 !@+     value - a scalar variable or a linear array of type: integer,
-!@+       real*8,character*1 to character*16
+!@+       real*8,character*1 to character*64
 !@+     dim - integer - dimension of an array; omit 'dim' for scalars
 !@+     opt - character*1 - an optional "option" (opt='o' means
 !@+       "overwrite")
@@ -75,7 +75,7 @@
       integer, parameter :: MAX_IPARAMS = 128
       integer, parameter :: MAX_CPARAMS = 64
       integer, parameter :: MAX_NAME_LEN = 32
-      integer, parameter :: MAX_CHAR_LEN = 32
+      integer, parameter :: MAX_CHAR_LEN = 64
 
       character*80 :: MODULE_HEADER='PARAM02 '
 
@@ -861,11 +861,11 @@
      $         write( kunit, '(20x,8g16.6)' )
      $        ( Rdata(Params(n)%indx+i), i=0,Params(n)%dim-nf-1 )
         case ('c')
-          write( kunit, '(1x,a16,a3,8a16)' )
+          write( kunit, '(1x,a16,a3,8a64)' )
      $         Params(n)%name, ' = ',
      $        ( Cdata(Params(n)%indx+i), i=0,min(Params(n)%dim,nf)-1 )
           if ( Params(n)%dim > nf )
-     $         write( kunit, '(20x,8a16)' )
+     $         write( kunit, '(20x,8a64)' )
      $        ( Cdata(Params(n)%indx+i), i=0,Params(n)%dim-nf-1 )
         end select
       enddo
@@ -1008,7 +1008,7 @@
       end module param
 
 !**** this should be put somewhere else, but since it is used only ****
-!**** in this modedule I put it here for a while ...               ****
+!**** in this module I put it here for a while ...                 ****
 
       subroutine swap_bytes_4( value, dim )
       integer dim

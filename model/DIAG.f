@@ -59,7 +59,7 @@ C****
      *     ,il_qeq,il_w50n,il_t50n,il_u50n,il_w70n,il_t70n,il_u70n
      *     ,kgz_max,pmb,ght,jl_dtdyn,jl_zmfntmom,jl_totntmom,jl_ape
      *     ,jl_uepac,jl_vepac,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac
-     *     ,jl_epflxn,jl_epflxv,ij_p850,z500
+     *     ,jl_epflxn,jl_epflxv,ij_p850,z500,rh_inst
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn
       USE PBLCOM, only : tsavg
 
@@ -85,7 +85,7 @@ C****
       REAL*8, PARAMETER :: ONE=1.,P1000=1000.
       INTEGER :: I,IM1,J,K,L,JET,JR,KM,LDN,LUP,
      &     IP1,LM1,LP1,LR,MBEGIN,
-     &     I150E,I110W,I135W,IT
+     &     I150E,I110W,I135W,IT,NINST
       REAL*8 THBAR ! external
       REAL*8 ::
      &     BBYGV,BDTDL,BYSDSG,CDTDL,DLNP,DLNP12,DLNP23,DBYSD,
@@ -205,13 +205,16 @@ C**** Use masking for 850 mb temp/humidity
           SELECT CASE (NINT(PMB(K)))
           CASE (850)            ! 850 mb
             nT = IJ_T850 ; nQ = IJ_Q850 ; nRH = IJ_RH850 ; qpress=.true.
+            ninst=1
             if (pmb(k).gt.pedn(l-1,i,j)) qpress = .false.
             if (qpress) aij(i,j,ij_p850) = aij(i,j,ij_p850) + 1.
           CASE (500)            ! 500 mb
             nT = IJ_T500 ; nQ = IJ_Q500 ; nRH = IJ_RH500 ; qpress=.true.
+            ninst=2
             q500 = .true.
           CASE (300)            ! 300 mb
             nT = IJ_T300 ; nQ = IJ_Q300 ; nRH = IJ_RH300 ; qpress=.true.
+            ninst=3
           END SELECT
 C**** calculate geopotential heights + temperatures
           IF (ABS(TX(I,J,L)-TX(I,J,L-1)).GE.EPSLON) THEN
@@ -236,6 +239,7 @@ C**** calculate geopotential heights + temperatures
             AIJ(I,J,nT)=AIJ(I,J,nT)+TIJK
             AIJ(I,J,nQ)=AIJ(I,J,nQ)+QIJK
             AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHE,PMB(K))
+            RH_inst(I,J,ninst)=QIJK/qsat(TIJK+TF,LHE,PMB(K))
           end if
 C****
           IF (K.LT.KGZ_max) THEN
@@ -2451,7 +2455,7 @@ C****
       INTEGER, DIMENSION(10) :: iu_subdd
 !@dbparam subdd string contains variables to save for sub-daily diags
 C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
-      CHARACTER*32 :: subdd = "SLP"
+      CHARACTER*64 :: subdd = "SLP"
 !@dbparam Nsubdd: DT_save_SUBDD =  Nsubdd*DTsrc sub-daily diag freq.
       INTEGER :: Nsubdd = 0
 
@@ -2523,12 +2527,14 @@ C****
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb
       USE MODEL_COM, only : p,ptop,zatmo
+      USE GEOM, only : imaxj
       USE PBLCOM, only : tsavg,qsavg
+      USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc
       USE FLUXES, only : prec
-      USE DAGCOM, only : z500
+      USE DAGCOM, only : z500,rh_inst
       IMPLICIT NONE
       REAL*4, DIMENSION(IM,JM) :: DATA
-      INTEGER :: I,J,k
+      INTEGER :: I,J,K,L
 
 C**** depending on namedd string choose what variables to output
       do k=1,kdd
@@ -2548,6 +2554,42 @@ C**** depending on namedd string choose what variables to output
           data=prec
         case ("Z500")     ! 500mb geopotential height
           data=z500
+        case ("RH850")    ! 850mb relative humidity (wrt water)
+          data=rh_inst(:,:,1)
+        case ("RH500")    ! 500mb relative humidity (wrt water)
+          data=rh_inst(:,:,2)
+        case ("RH300")    ! 300mb relative humidity (wrt water)
+          data=rh_inst(:,:,3)
+        case ("LCLD")     ! low level cloud cover
+          data=0.
+          do j=1,jm
+            do i=1,imaxj(j)
+              do l=1,llow
+                data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
+              end do
+            end do
+            data(:,j)=data(:,j)*100./real(imaxj(j),kind=8)
+          end do
+        case ("MCLD")         ! mid level cloud cover
+          data=0.
+          do j=1,jm
+            do i=1,imaxj(j)
+              do l=llow+1,lmid
+                data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
+              end do
+            end do
+            data(:,j)=data(:,j)*100./real(imaxj(j),kind=8)
+          end do
+        case ("HCLD")         ! high level cloud cover
+          data=0.
+          do j=1,jm
+            do i=1,imaxj(j)
+              do l=lmid+1,lhi
+                data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
+              end do
+            end do
+            data(:,j)=data(:,j)*100./real(imaxj(j),kind=8)
+          end do
         case default
           cycle
         end select
@@ -2820,6 +2862,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       AIL=0   ; ENERGY=0 ; CONSRV=0
       SPECA=0 ; ATPE=0 ; ADIURN=0 ; WAVE=0
       AJK=0   ; AIJK=0
+      AISCCP=0 
 #ifdef TRACERS_ON
       TACC=0.
 #endif

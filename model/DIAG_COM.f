@@ -173,6 +173,8 @@ C****   10 - 1: mid strat               1 and up : upp strat.
      *     "3.4 ","0.7 ",".16 ",".07 ",".03 " /)
 !@var Z500 saved instantaneous 500 mb height field
       REAL*8, DIMENSION(IM,JM) :: Z500
+!@var RH_inst saved instantaneous 850,500 + 300 mb relative hum.
+      REAL*8, DIMENSION(IM,JM,3) :: RH_inst
 
 !@param KACC total number of diagnostic elements
       INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ
@@ -544,6 +546,16 @@ c idacc-indices of various processes
 
 !@var XWON scale factor for diag. printout needed for Wonderland model
       REAL*8 :: XWON = TWOPI/(DLON*FIM)
+
+C**** parameters and variables for ISCCP diags
+!@param ntau, npress number of ISCCP optical depth and pressure categories 
+      integer, parameter :: ntau=7,npres=7
+!@param nisccp number of ISCCP histogram regions
+      integer, parameter :: nisccp = 5
+!@var isccp_reg latitudinal index for ISCCP histogram regions
+      integer :: isccp_reg(JM)
+!@var AISCCP accumlated array of ISCCP histogram
+      real*8 :: AISCCP(ntau,npres,nisccp)
 
       END MODULE DAGCOM
 

@@ -893,7 +893,7 @@ c      zhtb=6.
 c      else
 c      zhtb=6.
 cc     endif
-c spgsn is the specifig gravity of snow
+c spgsn is the specific gravity of snow
       spgsn=.1d0
 c
 c****

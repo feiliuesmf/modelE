@@ -293,7 +293,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
      *     ,OptDwX,OptDiX
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
-     *     ,lm_req,llow,lmid,lhi,coe,sinj,cosj,H2ObyCH4,dH2O
+     *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,calc_orb_par,paleo_orb_yr
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
@@ -473,20 +473,6 @@ C**** Optionally scale selected greenhouse gases
       IF(ghg_yr.gt.0) FULGAS(2)=FULGAS(2)*CO2X
       if(ghg_yr.gt.0) FULGAS(7)=FULGAS(7)*CH4X
       IF(H2OstratX.GE.0.) FULGAS(1)=FULGAS(1)*H2OstratX
-C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
-      DO L=1,LM
-        LLOW=L
-        IF (.5*(PLB(L+1)+PLB(L+2)).LT.750.) GO TO 44 ! was 786. 4/16/97
-      END DO
- 44   DO L=LLOW+1,LM
-        LMID=L
-        IF (.5*(PLB(L+1)+PLB(L+2)).LT.430.) GO TO 46
-      END DO
- 46   LHI=LM
-      IF (LMID+1.GT.LHI) LHI=LMID+1
-      WRITE (6,47) LLOW,LLOW+1,LMID,LMID+1,LHI
- 47   FORMAT (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN',
-     *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
 C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
 C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
       if(jwrite.gt.1500) call writet (6,itwrite,iwrite,jwrite,1,0)
@@ -522,11 +508,10 @@ C     OUTPUT DATA
      &          ,SRRVIS ,SRAVIS ,SRRNIR ,SRANIR
      &          ,BTEMPW
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
-     *     ,llow,lmid,lhi,coe,PLB0,shl0,tchg,ALB
-     *     ,OptDwX,OptDiX
+     *     ,coe,PLB0,shl0,tchg,ALB,OptDwX,OptDiX
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
-     *     cldmc,cldss,csizmc,csizss
+     *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi
       USE PBLCOM, only : wsavg,tsavg
       USE DAGCOM, only : aj,areg,jreg,aij,ail,ajl,asjl,adiurn,
      *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,

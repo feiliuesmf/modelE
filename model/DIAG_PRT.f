@@ -1,3 +1,42 @@
+#include "rundeck_opts.h"
+
+      subroutine print_diags(ipos)
+!@sum print_diag prints out binary and ascii diag output.
+!@auth  Original Development Team
+      USE MODEL_COM, only : itime,itimeI
+      USE DAGCOM, only : kdiag,keynr,keyct,isccp_diags
+      IMPLICIT NONE
+!@var ipos =1 (after input), =2 (current diags), =3 (end of diag period)
+      INTEGER, INTENT(IN) :: ipos
+
+      IF (KDIAG(1).LT.9) CALL DIAGJ
+      IF (KDIAG(2).LT.9) CALL DIAGJK
+      IF (KDIAG(10).LT.9) CALL DIAGIL
+      IF (KDIAG(7).LT.9) CALL DIAG7P
+      IF (KDIAG(3).LT.9) CALL DIAGIJ
+      IF (KDIAG(9).LT.9) CALL DIAGCP
+      IF (KDIAG(5).LT.9) CALL DIAG5P
+      IF (ipos.ne.2. .and. KDIAG(6).LT.9) CALL DIAGDD
+      IF (KDIAG(4).LT.9) CALL DIAG4
+      IF (KDIAG(11).LT.9) CALL diag_RIVER
+      IF (KDIAG(12).LT.9) CALL diag_OCEAN
+      IF (KDIAG(12).LT.9) CALL diag_ICEDYN
+      IF (isccp_diags.eq.1) CALL diag_ISCCP
+      IF (ipos.ne.2 .or. Itime.LE.ItimeI+1) THEN
+        CALL DIAGKN
+      ELSE                      ! RESET THE UNUSED KEYNUMBERS TO ZERO
+        KEYNR(1:42,KEYCT)=0
+      END IF
+#ifdef TRACERS_ON
+      IF (KDIAG(8).LT.9) then
+        CALL DIAGJLT
+        CALL DIAGIJT
+        CALL DIAGTCP
+      end if
+#endif
+      return
+      end subroutine print_diags
+
       MODULE BDJ
 !@sum  stores information for outputting composite zonal diagnostics
 !@auth M. Kelley
@@ -1927,10 +1966,19 @@ C**** Weighted average cloud sizes
       END DO
       n=JL_CSIZMC
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AJL(J,L,JL_CLDSS),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n=JL_CSIZSS
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,BX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+C**** this output is not required (very similar to jl_sscld etc.)
+c       n=JL_CLDMC
+c       SCALET = scale_jl(n)/idacc(ia_jl(n))
+c       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+c      &     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+c       n=JL_CLDSS
+c       SCALET = scale_jl(n)/idacc(ia_jl(n))
+c       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+c      &     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
 C****
 C**** ENERGY
 C****
@@ -5030,3 +5078,55 @@ C****
       NINTlimit = NINT( y )
       return
       end function NINTlimit
+
+      subroutine diag_isccp
+!@sum diag_isccp prints out binary and prt output for isccp histograms
+!@auth Gavin Schmidt
+      USE MODEL_COM, only : xlabel,lrunid,jm,fim,idacc
+      USE GEOM, only : dyp
+      USE DAGCOM, only : aisccp,isccp_reg,ntau,npres,nisccp,acc_period
+     *     ,qdiag,ia_src
+      USE FILEMANAGER
+      IMPLICIT NONE
+
+      CHARACTER*80 :: TITLE(nisccp) = (/
+     *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 60S-30S",
+     *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 30S-15S",
+     *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 15S-15N",
+     *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 15N-30N",
+     *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 30N-60N" /)
+!@var isccp_press pressure mid points for isccp histogram
+      INTEGER, PARAMETER :: isccp_press(npres) = (/ 90, 245, 375, 500,
+     *     630, 740, 900 /)
+      REAL*8 area(nisccp)
+      REAL*4 AX(ntau,npres)
+      INTEGER N,ITAU,IPRESS,J,IU_ISCCP
+
+C**** calculate area weightings 
+      do j=1,jm
+        n=isccp_reg(j)
+        if (n.gt.0) area(n)=area(n)+dyp(j)
+      end do
+
+C**** temporarily use a fixed binary format, needs to be tranferred to
+C**** POUT so that netcdf output can also be used
+      if (qdiag) call openunit(trim(acc_period)//'.isccp'//
+     *     XLABEL(1:LRUNID),iu_isccp,.true.,.false.)
+      do n=nisccp,1,-1   ! north to south
+        title(n)(65:80) = acc_period
+        write(6,100) title(n)
+        AX=100.*AISCCP(:,:,n)/(fim*idacc(ia_src)*area(n))
+        do ipress=1,npres
+          write(6,101) isccp_press(ipress),(AX(itau,ipress),itau=2,ntau)
+        end do
+        write(6,*)
+        if (qdiag) write(iu_isccp) TITLE(n),AX
+      end do
+      if (qdiag) call closeunit(iu_isccp)
+      RETURN
+
+ 100  FORMAT (1X,A80/1X,80('-')/3X,
+     *     'PRESS\TAU    0.  1.3  3.6  9.4  23   60   > ')
+ 101  FORMAT (5X,I3,7X,6F5.1)
+
+      end subroutine diag_isccp

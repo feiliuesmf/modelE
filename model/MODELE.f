@@ -528,7 +528,7 @@ C****
       USE TIMINGS, only : timing,ntimeacc
       USE PARAM
       USE PARSER
-      USE CONSTANT, only : grav,kapa,sday,shi,lhm,by3
+      USE CONSTANT, only : grav,kapa,sday,by3
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
      *     ,focean,flake0,flice,hlake,zatmo,plbot,sig,dsig,sige,kradia
      *     ,bydsig,xlabel,lrunid,nmonav,qcheck,irand,psf,ptop
@@ -774,6 +774,7 @@ C**** Set flag to initialise pbl and snow variables
         iniPBL=.TRUE.
         iniSNOW = .TRUE.  ! extract snow data from first soil layer
         iniOCEAN = .TRUE. ! read in ocean ic
+        if (istart.eq.1) redogh=.true.
 C**** Read in ground initial conditions
         call openunit("GIC",iu_GIC,.true.,.true.)
         ioerr=-1
@@ -1323,42 +1324,6 @@ C**** Add water to relevant tracers as well
 
       RETURN
       END SUBROUTINE DAILY
-
-      subroutine print_diags(ipos)
-!@sum print_diag prints out binary and ascii diag output.
-!@auth  Original Development Team
-      USE MODEL_COM, only : itime,itimeI
-      USE DAGCOM, only : kdiag,keynr,keyct
-      IMPLICIT NONE
-!@var ipos =1 (after input), =2 (current diags), =3 (end of diag period)
-      INTEGER, INTENT(IN) :: ipos
-
-      IF (KDIAG(1).LT.9) CALL DIAGJ
-      IF (KDIAG(2).LT.9) CALL DIAGJK
-      IF (KDIAG(10).LT.9) CALL DIAGIL
-      IF (KDIAG(7).LT.9) CALL DIAG7P
-      IF (KDIAG(3).LT.9) CALL DIAGIJ
-      IF (KDIAG(9).LT.9) CALL DIAGCP
-      IF (KDIAG(5).LT.9) CALL DIAG5P
-      IF (ipos.ne.2. .and. KDIAG(6).LT.9) CALL DIAGDD
-      IF (KDIAG(4).LT.9) CALL DIAG4
-      IF (KDIAG(11).LT.9) CALL diag_RIVER
-      IF (KDIAG(12).LT.9) CALL diag_OCEAN
-      IF (KDIAG(12).LT.9) CALL diag_ICEDYN
-      IF (ipos.ne.2 .or. Itime.LE.ItimeI+1) THEN
-        CALL DIAGKN
-      ELSE                      ! RESET THE UNUSED KEYNUMBERS TO ZERO
-        KEYNR(1:42,KEYCT)=0
-      END IF
-#ifdef TRACERS_ON
-      IF (KDIAG(8).LT.9) then
-        CALL DIAGJLT
-        CALL DIAGIJT
-        CALL DIAGTCP
-      end if
-#endif
-      return
-      end subroutine print_diags
 
       SUBROUTINE CHECKT (SUBR)
 !@sum  CHECKT Checks arrays for NaN/INF and reasonablness

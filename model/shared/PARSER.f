@@ -110,7 +110,7 @@
       integer np, i
       integer ivars(MAXDIM)
       real*8 rvars(MAXDIM)
-      character*16 cvars(MAXDIM)
+      character*64 cvars(MAXDIM)
 
       ! skip unrelated stuff
       do

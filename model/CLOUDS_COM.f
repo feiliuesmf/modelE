@@ -30,6 +30,9 @@ C**** variables saved for radiation calculations
 !@var CSIZMC,CSIZSS mc,ss effective cloud droplet radius (microns)
       REAL*8, DIMENSION(LM,IM,JM) :: CSIZMC,CSIZSS
 
+!@var LLOW,LMID,LHI max levels for low, mid and high clouds
+      INTEGER LLOW,LMID,LHI
+
       END MODULE CLOUDS_COM
 
       SUBROUTINE io_clouds(kunit,iaction,ioerr)
