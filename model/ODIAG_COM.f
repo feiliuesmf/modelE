@@ -323,7 +323,7 @@ C****
 !@ver  1.0
       USE ODIAG, only : oij,oijl,ol,olnst
 #ifdef TRACERS_OCEAN
-     *     ,toijl,toij,tlnst
+     *     ,toijl,tlnst
 #endif
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: isum  ! needed for plug-play compatibility
@@ -331,7 +331,7 @@ C****
       OIJ=0. ; OIJL=0. ; OL=0. ; OLNST=0. 
 
 #ifdef TRACERS_OCEAN
-      TOIJL=0. ; TLNST = 0. ; TOIJ=0.
+      TOIJL=0. ; TLNST = 0.
 #endif
 
       return

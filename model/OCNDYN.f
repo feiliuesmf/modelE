@@ -3078,7 +3078,8 @@ C**** Done!
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : trw0
 #endif
-      USE OCEAN, only : im,jm,imaxj,g0m,s0m,mo,dxypo,focean,lmm,ogeoz
+      USE OCEAN, only : im,jm,imaxj,g0m,s0m,mo,dxypo,focean,lmm,ogeoz,uo
+     *     ,vo
 #ifdef TRACERS_OCEAN
      *     ,trmo
 #endif

@@ -6,6 +6,9 @@
 !@ver  1.0
       USE MODEL_COM, only : im,jm
       USE ICEDYN, only : imic,jmic
+#ifdef TRACERS_OCEAN
+      USE TRACER_COM, only : ntm
+#endif
       IMPLICIT NONE
       SAVE
       
@@ -45,7 +48,7 @@ C**** Ice advection diagnostics
       INTEGER, PARAMETER :: KTICIJ=2
 !@var TICIJ  lat/lon ice dynamic tracer diagnostics
       REAL*8, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ
-!@var ticij_xxx indices for TICIJL diags
+!@var ticij_xxx indices for TICIJ diags
       INTEGER :: tICIJ_tusi,tICIJ_tvsi
 !@var lname_ticij Long names for TICIJ diagnostics
       CHARACTER*50, DIMENSION(KTICIJ) :: LNAME_TICIJ
@@ -159,7 +162,7 @@ C**** accumulate diagnostics
 #ifdef TRACERS_OCEAN
           READ (kunit,err=10) TR_HEADER,TICIJ4,it
 C**** accumulate diagnostics
-          TICIJL=TICIJL+TICIJL4
+          TICIJ=TICIJ+TICIJ4
           IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",TR_HEADER
      *           ,TR_MODULE_HEADER
@@ -351,7 +354,7 @@ C**** NOTE: UOSURF, VOSURF are expected to be on the C-grid
 c**** set north pole
       do i=1,im
         UIB  (i,jm)=USI(1,jm)
-        GWATX(i,jm)=UOSURF(1,jm,1)
+        GWATX(i,jm)=UOSURF(1,jm)
         PGFUB(i,jm)=PGFU(1,jm)
         VIB  (i,jm)=0.
         GWATY(i,jm)=0.
@@ -1139,6 +1142,9 @@ C**** set properties for TICIJ diagnostics
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
+#ifdef TRACERS_OCEAN
+      USE TRACER_COM, only : ntm,trname,ntrocn
+#endif
       USE DAGCOM, only : qdiag,acc_period
       USE ICEDYN_COM
       USE ICEDYN, only : focean
@@ -1148,6 +1154,7 @@ C**** set properties for TICIJ diagnostics
       INTEGER I,J,L,N,KXLB,ijgrid,IP1,k1,k
       CHARACTER XLB*30
       CHARACTER TITLE*80,lname*50,sname*30,units*50
+      character*50 :: unit_string
       REAL*8 QJ(JM),QSUM
       REAL*8 byiacc
 
