@@ -27,8 +27,11 @@ c 1st elem of ple_shift = glob mean surf pres
       ple_shift(2:lm+1) = ple(:)
 
 c refresh some global parameters that change over the course of a run
-      call iparm_defs
-      call dparm_defs
+!!! should the following lines will be really removed?
+!!! there are no dparm_defs, iparm_defs in DEFACC.f any more.
+!!! Those who familiar with this code please check. I.A.
+!!!      call iparm_defs
+!!!      call dparm_defs
 
       status = nf_create (trim(fileout), nf_clobber, ncid)
 c-----------------------------------------------------------------------
