@@ -3907,6 +3907,44 @@ C**** (not necessary associated with a particular tracer)
         units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3/s')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
+      do L=1,LTOP
+        k = k + 1
+          ijs_OH(L)=k
+          ijts_index(k) = ntm
+          ia_ijts(k) = ia_src
+          write(lname_ijts(k),'(a19,i2.2)') 'OH concentration L=',L
+          write(sname_ijts(k),'(a7,i2.2)') 'OH_con_',L
+          ijts_power(k) = 5.
+          units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        k = k + 1
+          ijs_NO3(L)=k
+          ijts_index(k) = ntm
+          ia_ijts(k) = ia_src
+          write(lname_ijts(k),'(a20,i2.2)') 'NO3 concentration L=',L
+          write(sname_ijts(k),'(a8,i2.2)') 'NO3_con_',L
+          ijts_power(k) = 5.
+          units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        k = k + 1
+          ijs_HO2(L)=k
+          ijts_index(k) = ntm
+          ia_ijts(k) = ia_src
+          write(lname_ijts(k),'(a20,i2.2)') 'HO2 concentration L=',L
+          write(sname_ijts(k),'(a8,i2.2)') 'HO2_con_',L
+          ijts_power(k) = 7.
+          units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        k = k + 1
+          ijs_JH2O2(L)=k
+          ijts_index(k) = ntm
+          ia_ijts(k) = ia_src
+          write(lname_ijts(k),'(a23,i2.2)') 'H2O2 photolysis rate L=',L
+          write(sname_ijts(k),'(a8,i2.2)') 'J(H2O2)_',L
+          ijts_power(k) = 2.
+          units_ijts(k) = unit_string(ijts_power(k),'s-1')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
 #endif
 
       if (k .gt. ktaijs) then
