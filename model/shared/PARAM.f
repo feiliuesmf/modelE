@@ -750,14 +750,18 @@
 
       if ( lnum_param < 1 ) return   ! no parameters in the records
 
-      ! this is a hack to fix the big/little endian conversion if
-      ! the compiler missed it
+#ifdef MACHINE_DEC
+      ! COMPAQ needs big/little endian conversion
+      do n=1,lnum_param
+        call swap_bytes_4( LParams(n)%indx, 1 )
+        call swap_bytes_4( LParams(n)%dim,  1 )
+      enddo
+#endif
+
+      ! checking big/little endian format, just in case
       if ( LParams(1)%dim > 65536 .or. LParams(1)%dim < 0 ) then
-        print *, 'WARNING: PARAM: wrong format in LParams - converting'
-        do n=1,lnum_param
-          call swap_bytes_4( LParams(n)%indx, 1 )
-          call swap_bytes_4( LParams(n)%dim,  1 )
-        enddo
+        print *, 'PARAM: wrong big/little endian format in LParams.'
+        stop 'PARAM: wrong big/little endian format in LParams'
       endif
 
       ! now merge the data just read with existing database
@@ -1008,6 +1012,8 @@
         c(2) = c(3)
         c(3) = c2
         c(4) = c1
+        ! the next line is needed for stupid optimizers - do not delete
+        if ( n > 16384 ) print *, a, c
         value(n) = a
       enddo
       end subroutine swap_bytes_4
