@@ -4200,7 +4200,7 @@ c dust shortwave radiative forcing at surface
         scale_ijts(k) = 10.**(-ijts_power(k))
 c dust longwave radiative forcing at surface
         k = k + 1
-        ijts_fc(2,n) = k
+        ijts_fc(4,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_rad  
         lname_ijts(k) = trim(trname(n))//' LW Surf radiative forcing'
