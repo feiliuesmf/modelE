@@ -1014,7 +1014,7 @@ c
      &         (v(i)*facty+u(i)*factx)
       end do
 
-c     M.J.Miller et al. 1992:
+c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
       wstar3=-1000.*grav*kh(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
      &                        -(q(2)-q(1)) )/dzh(1)
       if(wstar3.gt.0.) then
@@ -1093,7 +1093,7 @@ c     M.J.Miller et al. 1992:
         rhs(i)=q0(i)
       end do
 
-c     M.J.Miller et al. 1992:
+c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
       wstar3=-1000.*grav*kq(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
      &                        -(q(2)-q(1)) )/dzh(1)
       if(wstar3.gt.0.) then
@@ -1243,7 +1243,7 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
         rhs(i)=0.
       end do
 
-c     M.J.Miller et al. 1992:
+c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
       wstar3=-1000.*grav*kh(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
      &                        -(q(2)-q(1)) )/dzh(1)
       if(wstar3.gt.0.) then
@@ -1313,7 +1313,7 @@ c     M.J.Miller et al. 1992:
         rhs(i)=0.
       end do
 
-c     M.J.Miller et al. 1992:
+c     M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
       wstar3=-1000.*grav*kq(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
      &                        -(q(2)-q(1)) )/dzh(1)
       if(wstar3.gt.0.) then

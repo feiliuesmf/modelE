@@ -90,6 +90,7 @@ c       do j=1,jm
 c         do i=1,imaxj(j)
 c           do l=1,lm
 c              t2gcm(l,i,j)=egcm(l,i,j)*1.d-3
+c            write(97,*) j,i,l,egcm(l,i,j)
 c           end do
 c         end do
 c       end do
@@ -1070,8 +1071,8 @@ c     trapezoidal rule
         l1=l0*kz/(l0+kz)
         if (an2(j).gt.0.d0) then
           lmax  =0.53d0*sqrt(2.d0*e(j)/(an2(j)+1.d-40))
-          lmax2 =1.95d0*sqrt(2.d0*e(j)/(as2(j)+1.d-40))
-          lmax=min(lmax,lmax2)
+c         lmax2 =1.95d0*sqrt(2.d0*e(j)/(as2(j)+1.d-40))
+c         lmax=min(lmax,lmax2)
           if (l1.gt.lmax) l1=lmax
         endif
         ! if (l1.gt.dzedge(j)) l1=dzedge(j)
@@ -1330,7 +1331,6 @@ c output of 3m_eqns,3m_solve_sb0,3m_solve_sb0_more,more2,more3,more31,
 c more32, more33 on kirk:/u/acyxc/papers/third/3m_publication
 c tau=q2/epsilon=B1*ell/q, ell->0.4*z for small z (height)
 c each t obsorbs a lamda=g*alpha*tau, ga==g*alpha       --- 04/6/00
-c also, pay attention to the negative sign here in N2 definition!
 c
       implicit none
 
@@ -1339,7 +1339,7 @@ c
       real*8, intent(inout) :: wt,dutdz,dvtdz,dwtdz,dt2dz 
       real*8, intent(out) :: Ke,ew_rest
      
-      real*8, parameter :: c=1.d0/6.d0
+      real*8, parameter :: c=1.d0/8.d0
       real*8, SAVE :: c0,c1,c2,c3,c4,c5,c6,c7,c8,c9
       real*8, SAVE :: c10,c11,c12,c13,c14,c15
       real*8, SAVE :: c16,c17,c18,c19,c20,c21,c22,c23,c24,c25,c26,c27
@@ -1352,7 +1352,7 @@ c
       U=dudz*tau
       V=dvdz*tau
       S2=as2*tau*tau
-      N2=-an2*tau*tau
+      N2=an2*tau*tau
       wt    = ga*tau * wt
       dutdz = ga*tau * dutdz
       dvtdz = ga*tau * dvtdz

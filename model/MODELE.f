@@ -513,6 +513,7 @@ C****
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
+     &  ,egcm
       USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,jreg
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qdiag,oa
       USE LAKES_COM, only : flake
@@ -541,6 +542,9 @@ C****
       REAL*8 TIJL,CDM,TEMP,X
       REAL*4 XX4
       INTEGER Itime1,Itime2,ItimeX,IhrX,iargc
+
+!@ egcm_init_max maximum initial vaule of egcm
+      real*8, parameter :: egcm_init_max=0.5d0
 
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE., inilake = .FALSE.,
      &           iniSNOW = .FALSE.  ! true = restart from "no snow" rsf
@@ -793,6 +797,10 @@ C**** REPLACE TEMPERATURE BY POTENTIAL TEMPERATURE
           DO L=1,LM
             TTOLD(L,I,J)=T(I,J,L)
             QTOLD(L,I,J)=Q(I,J,L)
+          END DO
+C**** initialize egcm to be used in ATURB.f      
+          DO L=1,LM
+            egcm(l,i,j)=egcm_init_max/(float(l)**2)
           END DO
         END DO
         END DO
