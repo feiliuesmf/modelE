@@ -69,12 +69,6 @@ C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
 #endif
      *       WETSNOW)
 
-C**** check for snowice formation
-c        if (RHOI*(SNOW+ACE1I+MSI2).gt.(ACE1I+MSI2)*1030.) then
-c          print*,"snowice possibility",i,j,SNOW,MSI2+ACE1I,(SNOW+ACE1I
-c     *         +MSI2)/1030.-(ACE1I+MSI2)/RHOI
-c        end if
-
         SNOWI(I,J)  =SNOW
         RUNPSI(I,J) =RUN0
         SRUNPSI(I,J)=SRUN0
@@ -372,16 +366,17 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 !@calls SEAICE:SEA_ICE
-      USE CONSTANT, only : grav
+      USE CONSTANT, only : grav,rhows,rhow
       USE MODEL_COM, only : im,jm,dtsrc,fland,kocean,focean
      *     ,itoice,itlkice,jday,p,ptop
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,srunosi,solar
-     *     ,fmsi_io,fhsi_io,fssi_io,apress
+     *     ,fmsi_io,fhsi_io,fssi_io,apress,gtemp,sss
 #ifdef TRACERS_WATER
-     *     ,ftrsi_io,trevapor,trunosi
+     *     ,ftrsi_io,trevapor,trunosi,gtracer
 #endif
       USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix,debug
+     *     ,snowice, snow_ice
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -395,12 +390,14 @@ C****
       REAL*8, DIMENSION(LMI) :: HSIL,SSIL
       REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,SROX(2)
      *     ,FMOC,FHOC,FSOC,POICE,PWATER,SCOVI
-      REAL*8 MSI1,MFLUX,HFLUX,SFLUX,RUN,ERUN,SRUN,MELT12
+      REAL*8 MFLUX,HFLUX,SFLUX,RUN,ERUN,SRUN,MELT12
+      REAL*8 MSNWIC,HSNWIC,SSNWIC,SM,TM
       INTEGER I,J,JR,ITYPE
       LOGICAL WETSNOW
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: trsil
-      REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap,trrun
+      REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap,trrun,trsnwic,trm
+     *     ,tralpha
 #endif
 
       debug=.false.
@@ -431,15 +428,20 @@ C****
         HSIL(:) = HSI(:,I,J)  ! sea ice enthalpy
         SSIL(:) = SSI(:,I,J)  ! sea ice salt
         WETSNOW=FLAG_DSWS(I,J)  ! wetness of snow
+        Tm=GTEMP(1,1,I,J)    ! ocean mixed layer temperature (C)
 #ifdef TRACERS_WATER
         TREVAP(:) = TREVAPOR(:,2,I,J)
         FTROC(:)  = ftrsi_io(:,i,j)
         TRSIL(:,:)= TRSI(:,:,I,J)
+        Trm(:)=GTRACER(:,1,I,J)
+        Tralpha(:)=1d0  ! no fractionation for snow ice formation
 #endif
         IF (FOCEAN(I,J).gt.0) THEN
           ITYPE=ITOICE
+          Sm=SSS(I,J)           ! ocean mixed layer salinity (psu)
         ELSE
           ITYPE=ITLKICE
+          Sm=0.                 ! lakes always fresh
         END IF
 
         AIJ(I,J,IJ_RSOI) =AIJ(I,J,IJ_RSOI) +POICE
@@ -452,9 +454,8 @@ C****
      *       ,FMOC,FHOC,FSOC,RUN,ERUN,SRUN,WETSNOW,MELT12)
 
 C**** Decay sea ice salinity
-        MSI1 = ACE1I + SNOW
         if (.not. qsfix .and. FOCEAN(I,J).gt.0) then
-          CALL SSIDEC(I,J,MSI1,MSI2,HSIL,SSIL,DTsrc,
+          CALL SSIDEC(SNOW,MSI2,HSIL,SSIL,DTsrc,
 #ifdef TRACERS_WATER
      *         TRSIL,TRFLUX,
 #endif
@@ -463,6 +464,20 @@ C**** Decay sea ice salinity
           MFLUX=0. ; SFLUX=0. ; HFLUX=0.
 #ifdef TRACERS_WATER
           TRFLUX = 0.
+#endif
+        end if
+
+C**** Calculate snow-ice possibility
+        if (snow_ice .eq. 1 .and. FOCEAN(I,J).gt.0) then
+          call snowice(Tm,Sm,SNOW,MSI2,HSIL,SSIL,qsfix,
+#ifdef TRACERS_WATER
+     *         Trm,Tralpha,TRSIL,TRSNWIC,
+#endif
+     *         MSNWIC,HSNWIC,SSNWIC)
+        else
+          MSNWIC=0. ; SSNWIC=0. ; HSNWIC=0.
+#ifdef TRACERS_WATER
+          TRSNWIC = 0.
 #endif
         end if
 
@@ -483,12 +498,12 @@ C**** pond_melt accumulates in melt season only
         end if
 
 C**** Net fluxes to ocean
-        RUNOSI(I,J) = FMOC + RUN  + MFLUX
-        ERUNOSI(I,J)= FHOC + ERUN + HFLUX
-        SRUNOSI(I,J)= FSOC + SRUN + SFLUX
+        RUNOSI(I,J) = FMOC + RUN  + MFLUX + MSNWIC
+        ERUNOSI(I,J)= FHOC + ERUN + HFLUX + HSNWIC
+        SRUNOSI(I,J)= FSOC + SRUN + SFLUX + SSNWIC
         SOLAR(3,I,J)= SROX(2)
 #ifdef TRACERS_WATER
-        TRUNOSI(:,I,J) = FTROC(:) + TRRUN(:) + TRFLUX(:)
+        TRUNOSI(:,I,J) = FTROC(:) + TRRUN(:) + TRFLUX(:) + TRSNWIC(:)
 #endif
 
 C**** ACCUMULATE DIAGNOSTICS
@@ -501,19 +516,20 @@ C**** ACCUMULATE DIAGNOSTICS
           AIJ(I,J,IJ_MLTP)=AIJ(I,J,IJ_MLTP)+pond_melt(i,j)*POICE
 
           AJ(J,J_RSNOW,ITYPE)=AJ(J,J_RSNOW,ITYPE)+SCOVI
-          AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+(FMOC+RUN+MFLUX)*POICE
-          AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)+(FHOC+ERUN+HFLUX)
-     *         *POICE
-          AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+(FSOC+SRUN+SFLUX)
-     *         *POICE
+          AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+(FMOC+RUN+MFLUX
+     *         +MSNWIC)*POICE
+          AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)+(FHOC+ERUN+HFLUX
+     *         +HSNWIC)*POICE
+          AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+(FSOC+SRUN+SFLUX
+     *         +SSNWIC)*POICE
 
           AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+SCOVI*DXYP(J)
-          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+(FMOC+RUN+MFLUX)*POICE
-     *         *DXYP(J)
-          AREG(JR,J_HMELT)=AREG(JR,J_HMELT)+(FHOC+ERUN+HFLUX)*POICE
-     *         *DXYP(J)
-          AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+(FSOC+SRUN+SFLUX)*POICE
-     *         *DXYP(J)
+          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+(FMOC+RUN+MFLUX+MSNWIC)
+     *         *POICE*DXYP(J)
+          AREG(JR,J_HMELT)=AREG(JR,J_HMELT)+(FHOC+ERUN+HFLUX+HSNWIC)
+     *         *POICE*DXYP(J)
+          AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+(FSOC+SRUN+SFLUX+SSNWIC)
+     *         *POICE*DXYP(J)
 
       END IF
 C**** set total atmopsheric pressure anomaly in case needed by ocean
@@ -741,7 +757,7 @@ C****
       USE CONSTANT, only : byshi,lhm,shi,rhows
       USE MODEL_COM, only : im,jm,kocean,focean,flake0
       USE SEAICE, only : xsi,ace1i,ac2oim,ssi0,tfrez,oi_ustar0,silmfac
-     *     ,lmi
+     *     ,lmi,snow_ice
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -768,6 +784,9 @@ C**** is used, this is overwritten.
 C**** Adjust degree of lateral melt by changing silmfac
 C**** Default is 2.5d-8, but could be changed by a factor of 2.
       call sync_param("silmfac",silmfac)
+
+C**** Decide whether snow_ice formation is allowed
+      call sync_param("snow_ice",snow_ice)
 
 C**** clean up ice fraction that is possibly incorrect in I.C.
       DO J=1,JM

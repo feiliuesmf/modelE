@@ -56,6 +56,8 @@
       REAL*8 :: silmfac = 1.4d-8 ! = pi*(3d-6)/0.66/1000
 !@var silmpow exponent for temperature dependence of lateral melt
       REAL*8 :: silmpow = 1.36d0
+!@dbparam snow_ice =1 to allow for snow ice formation (default=0)
+      INTEGER :: snow_ice = 0
 !@var DEBUG flag
       LOGICAL DEBUG
 
@@ -1021,7 +1023,7 @@ C****
       RETURN
       END SUBROUTINE SIMELT
 
-      SUBROUTINE SSIDEC(I0,J0,MSI1,MSI2,HSIL,SSIL,DT,
+      SUBROUTINE SSIDEC(SNOW,MSI2,HSIL,SSIL,DT,
 #ifdef TRACERS_WATER
      &     TRSIL,TRFLUX,
 #endif
@@ -1038,7 +1040,7 @@ C****
 !@var MSI1 first mass layer ice thickness (kg/m^2)
 !@var DT source time step (s)
       REAL*8, INTENT(INOUT) :: MSI2
-      REAL*8, INTENT(IN) :: DT, MSI1
+      REAL*8, INTENT(IN) :: DT, SNOW
 !@var MFLUX,SFLUX,HFLUX mass, salt and heat flux arising from
 !@+   sea salinity decay
       REAL*8, INTENT(OUT) :: MFLUX,HFLUX,SFLUX
@@ -1055,8 +1057,8 @@ C****
       REAL*8 DSSI(3:LMI),DMSI(3:LMI),DHSI(3:LMI),TSIL(3:LMI),DS12
      *     ,DM12,DH12
       REAL*8 FMSI1,FMSI2,FMSI3,FSSI1,FSSI2,FSSI3,FHSI1,FHSI2,FHSI3
-      REAL*8 HSNOW,HICE,SICE,TICE
-      INTEGER L,I0,J0
+      REAL*8 HSNOW,HICE,SICE,TICE,MSI1
+      INTEGER L
 !@var dtssi decay time scale for sea ice salinity (days)
 !@var bydtssi decay constant for sea ice salinity (1/s)
       REAL*8, parameter :: dtssi=30.d0, bydtssi=1./(dtssi*sday)
@@ -1072,8 +1074,9 @@ C**** salinity in sea ice decays if it is above threshold level ssi0
 C**** check first layer (default ice and snow)
 C**** New formulation:
 C**** Split all upper mass layer fields into ice and snow components
+      MSI1=SNOW+ACE1I
       IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
-        HSNOW = (HSIL(1)-LHM*SSIL(1))*(MSI1-ACE1I)/(XSI(1)*MSI1)
+        HSNOW = (HSIL(1)-LHM*SSIL(1))*SNOW/(XSI(1)*MSI1)
       ELSE
         HSNOW = HSIL(1) + (HSIL(2)-LHM*SSIL(2))*(XSI(2)*MSI1-ACE1I)
      *       /(XSI(2)*MSI1)
@@ -1083,7 +1086,7 @@ CC    SSNOW = 0.   ! always zero
       SICE  = SSIL(1)+SSIL(2)
       TICE = ((HICE-LHM*SICE)/ACE1I+LHM)*BYSHI
 #ifdef TRACERS_WATER
-      TRSNOW(:) = TRSIL(:,1)*MIN((MSI1-ACE1I)/(XSI(1)*MSI1-SSIL(1)),1d0)
+      TRSNOW(:) = TRSIL(:,1)*MIN(SNOW/(XSI(1)*MSI1-SSIL(1)),1d0)
      *     +TRSIL(:,2)*MAX(1.-(ACE1I-SICE)/(XSI(2)*MSI1-SSIL(2)),0d0)
       TRICE(:)  = TRSIL(:,1)+TRSIL(:,2)-TRSNOW(:)
 #endif
@@ -1548,6 +1551,148 @@ c     tfrez = (a01 + a02*sss)*sss + a03*sss*sqrt(sss)+ dtdp*pr
       return
       end function tfrez
 
+      subroutine snowice(Tm,Sm,SNOW,MSI2,HSIL,SSIL,qsfix,
+#ifdef TRACERS_WATER
+     *         Trm,Tralpha,TRSIL,TRSNWIC,
+#endif
+     *         MSNWIC,HSNWIC,SSNWIC)
+      IMPLICIT NONE
+!@var Tm ocean mixed layer temperature (C)
+!@var Sm ocean mixed layer salinity (psu)
+      REAL*8, INTENT(IN) :: Tm, Sm
+!@var MSI1, MSI2 snow and ice mass in two mass layers (kg/m^2)
+      REAL*8, INTENT(INOUT) :: SNOW,MSI2
+!@var HSIL, SSIL energy and salt profiles in ice (J, kg)/m^2
+      REAL*8, DIMENSION(LMI), INTENT(INOUT) :: HSIL,SSIL
+!@var MSNWIC, HSNWIC, SSNWIC mass, energy and salt flux to ocean (<0) 
+      REAL*8, INTENT(OUT) :: MSNWIC, HSNWIC, SSNWIC
+!@var qsfix true if sea ice salinity is fixed
+      LOGICAL, INTENT(IN) :: qsfix
+#ifdef TRACERS_WATER
+!@var Trm tracer concentration in mixed layer
+!@var Tralpha fractionation for snow ice
+C**** Be careful to avoid taking too much tracer from ocean box
+      REAL*8, DIMENSION(NTM), INTENT(IN) :: Trm, Tralpha
+!@var TRSIL tracer profile in ice (kg/m^2)
+      REAL*8, DIMENSION(NTM,LMI), INTENT(INOUT) :: TRSIL
+!@var TRSNWIC tracer flux to ocean (<0) 
+      REAL*8, DIMENSION(NTM), INTENT(OUT) :: TRSNWIC
+!@var Tri tracer concentration in snow ice
+      REAL*8, DIMENSION(NTM) :: Tri, TRICE, TRSNOW, FTRSI2, FTRSI3
+#endif
+      REAL*8 DSNOW,Z0,MAXM,MAXME,Eoc,Esnow,Ei,Erat,Si,MSI1
+      REAL*8 SICE,HICE,HSNOW,FMSI2,FMSI3,FHSI2,FSSI2,FHSI3,FSSI3
+      INTEGER L
+
+C**** test for snow ice possibility      
+      IF (RHOI*SNOW.gt.(ACE1I+MSI2)*(RHOWS-RHOI)) THEN
+        MSI1=SNOW+ACE1I
+        Z0=(MSI1+MSI2)/RHOWS-(ACE1I+MSI2)/RHOI
+        MAXM=Z0*RHOWS*(RHOI-RHOS)/(RHOWS+RHOS-RHOI)
+
+C**** heat, salt, tracer amounts in snow, first layer ice
+        IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+          HSNOW = (HSIL(1)-LHM*SSIL(1))*(MSI1-ACE1I)/(XSI(1)*MSI1)
+        ELSE
+          HSNOW = HSIL(1) + (HSIL(2)-LHM*SSIL(2))*(XSI(2)*MSI1-ACE1I)
+     *         /(XSI(2)*MSI1)
+        END IF
+        HICE  = HSIL(1)+HSIL(2)-HSNOW
+        SICE  = SSIL(1)+SSIL(2)
+#ifdef TRACERS_WATER
+        TRSNOW(:) = TRSIL(:,1)*MIN((MSI1-ACE1I)/(XSI(1)*MSI1-SSIL(1))
+     *       ,1d0)+TRSIL(:,2)*MAX(1.-(ACE1I-SICE)/(XSI(2)*MSI1-SSIL(2))
+     *       ,0d0)
+        TRICE(:)  = TRSIL(:,1)+TRSIL(:,2)-TRSNOW(:)
+#endif
+
+C**** Check energy constraint on mass flux
+        if (qsfix) then
+          Si=1d3*ssi0
+        else
+          Si=fsss*Sm
+        end if
+c        Ei=EICE(TFREZ(Sm),Si) 
+        Ei=-LHM*(1.-0.001*Si)+ Tfrez(Sm)*shi
+        Esnow=HSNOW/SNOW
+        Eoc=Tm*SHW
+        ERAT=(Esnow-Ei)/(Ei-Eoc)
+
+        MAXME=Z0*RHOI*ERAT/(1.+ERAT*(RHOWS-RHOI)/RHOWS)
+        MAXM=MAX(0d0,MIN(MAXME,MAXM))   ! mass of sea water to be added
+
+        DSNOW=Z0*RHOI-MAXM*(RHOWS-RHOI)/RHOWS  ! loss of snow
+
+        FMSI2 = MAXM+DSNOW      ! mass of ice pushed down to layer 3
+
+C**** Add new ice 
+        SICE=SICE+MAXM*0.001d0*Si
+        HICE=HICE+MAXM*Eoc+DSNOW*Esnow
+#ifdef TRACERS_WATER
+C**** need to be careful with fractionation for tracers
+        Tri(:)=Tralpha(:)*Trm(:)
+        TRICE(:)=TRICE(:)+MAXM*Tri(:)+DSNOW*TRSNOW(:)/SNOW
+#endif
+        FSSI2 = FMSI2*SICE/(ACE1I+FMSI2)
+        FHSI2 = FMSI2*HICE/(ACE1I+FMSI2)
+C**** Update ice and snow concentrations
+#ifdef TRACERS_WATER
+        FTRSI2(:)=FMSI2*TRICE(:)/(ACE1I+FMSI2)
+        TRICE(:)=TRICE(:)-FTRSI2(:)
+        TRSNOW(:)=TRSNOW(:)*(SNOW-DSNOW)/SNOW
+#endif
+        SICE=SICE-FSSI2
+        HICE=HICE-FHSI2
+        HSNOW=HSNOW*(SNOW-DSNOW)/SNOW   ! snow temp remains const
+        SNOW=SNOW-DSNOW
+        MSI1=ACE1I+SNOW
+
+C**** Reconstitute upper layers
+        IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+          HSIL(1) = HICE*(ACE1I-XSI(2)*MSI1)/ACE1I + HSNOW
+          SSIL(1) = SICE*(ACE1I-XSI(2)*MSI1)/ACE1I ! + SSNOW
+#ifdef TRACERS_WATER
+          TRSIL(:,1) = TRICE(:)*(ACE1I-XSI(2)*MSI1)/ACE1I + TRSNOW(:)
+#endif
+        ELSE
+          HSIL(1) = HSNOW*XSI(1)*MSI1/(MSI1-ACE1I)
+          SSIL(1) = 0.          ! SSNOW*XSI(1)*MSI1/(MSI1-ACE1I)
+#ifdef TRACERS_WATER
+          TRSIL(:,1) = TRSNOW(:)*XSI(1)*MSI1/(MSI1-ACE1I)
+#endif
+        END IF
+        HSIL(2) = HICE - HSIL(1) + HSNOW
+        SSIL(2) = SICE - SSIL(1) ! + SSNOW
+#ifdef TRACERS_WATER
+        TRSIL(:,2) = TRICE(:) - TRSIL(:,1) + TRSNOW(:)
+#endif
+C**** lower level fluxes
+        FMSI3 = FMSI2*XSI(4)    ! mass of ice pushed down to layer 4
+        FSSI3 = FMSI3*(SSIL(3)+FSSI2)/(XSI(3)*MSI2+FMSI2)
+        FHSI3 = FMSI3*(HSIL(3)+FHSI2)/(XSI(3)*MSI2+FMSI2)
+#ifdef TRACERS_WATER
+        FTRSI3(:)=FMSI3*(TRSIL(:,3)+FTRSI2(:))/(XSI(3)*MSI2+FMSI2)
+#endif
+
+C**** Update lower layers
+        MSI2=MSI2+FMSI2
+        SSIL(3)=SSIL(3)+FSSI2-FSSI3
+        SSIL(4)=SSIL(4)      +FSSI3
+        HSIL(3)=HSIL(3)+FHSI2-FHSI3
+        HSIL(4)=HSIL(4)      +FHSI3
+#ifdef TRACERS_WATER
+        TRSIL(:,3) = TRSIL(:,3) + FTRSI2(:) - FTRSI3(:)
+        TRSIL(:,4) = TRSIL(:,4)             + FTRSI3(:)
+#endif
+
+C**** output flux (positive down)
+        MSNWIC = -MAXM
+        HSNWIC = MSNWIC*Eoc
+        SSNWIC = 0.001d0*Si*MSNWIC
+      END IF
+      RETURN
+      end subroutine snowice
+
       END MODULE SEAICE
 
       MODULE SEAICE_COM
@@ -1703,7 +1848,7 @@ C**** Check for reasonable values for ice variables
               WRITE(6,'(3a,3i3,6e12.4/1X,6e12.4)')
      *             'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,RSI(I,J)
               WRITE(6,*) HSI(:,I,J),MSI(I,J),SNOWI(I,J),SSI(:,I,J)
-              IF (TICE.gt.1d-1.or.TICE.lt.-100.) QCHECKI = .TRUE.
+              IF (TICE.gt.1d-3.or.TICE.lt.-100.) QCHECKI = .TRUE.
             END IF
             IF (SSI(L,I,J).lt.0) THEN
               WRITE(6,*) 'After ',SUBR,': I,J,L,SSI=',I,J,L,SSI(:,I
