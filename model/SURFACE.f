@@ -80,7 +80,10 @@ C**** Interface to PBL
       USE tracers_DRYDEP, only : dtr_dd
 #endif
       USE TRACER_DIAG_COM, only : taijn,tij_surf,taijs,ijts_isrc
-     *     ,tij_evap,tij_grnd,tajls,jls_source,jls_isrc
+     *     ,tajls,jls_source,jls_isrc
+#ifdef TRACERS_WATER
+           ,tij_evap,tij_grnd
+#endif
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,itcon_dd
 #endif
