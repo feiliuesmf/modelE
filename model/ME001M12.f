@@ -10,7 +10,7 @@ C**** Basic model II (OA,PALMER omitted) .5 box longitude shift
 C**** Pressure replaces Sigma above LS1 as the vertical coordinate
 C**** Modified for using new MC codes, radiation, 11 veg.types
 C**** Quadratic upstream scheme + 4th order scheme, Cor.term=0 at poles
-C**** Routines included: MAIN,INPUT,DAILY,CHECKT
+C**** Routines included: MAIN,INPUT,DAILY,CHECKT,CHECK3
 C**** f90 changes
 *****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
@@ -70,7 +70,7 @@ C**** INITIALIZE TIME PARAMETERS
       CALL CALC_AMPK(LM)
 
          MODD5K=1000
-      CALL CHECKT (1)
+      CALL CHECKT ('INPUT ')
       RUNON=-1.
       IF (TAU.GE.TAUE) GO TO 630
       RUNON=1.
@@ -171,7 +171,7 @@ C****
 
       CALL CALC_AMPK(LS1-1)
 
-      CALL CHECKT (2)
+      CALL CHECKT ('DYNAM ')
       CALL TIMER (MNOW,MINC,MDYN)
       PERCNT=100.*MDYN/(MNOW-MSTART)
 C     WRITE (6,'(A,I1,3X,A,I6,A,F6.2,I6,A5,2I7,F7.1,21X,A,F11.2)')
@@ -192,23 +192,22 @@ C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
 C     IF (MOD(NSTEP,NCNDS).NE.0) GO TO 400
       CALL MSTCNV
       CALL CONDSE
-      CALL CHECKT (3)
-C     CALL PRECIP
-C     CALL CHECKT (4)
+      CALL CHECKT ('CONDSE ')
+
       CALL TIMER (MNOW,MINC,MCNDS)
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NCNDS)
          IF (MODD5S.EQ.0) CALL DIAG9A (3)
 C**** RADIATION, SOLAR AND THERMAL
       CALL RADIA
-      CALL CHECKT (5)
+      CALL CHECKT ('RADIA ')
       CALL TIMER (MNOW,MINC,MRAD)
          IF (MODD5S.EQ.0) CALL DIAG5A (11,NCNDS)
          IF (MODD5S.EQ.0) CALL DIAG9A (4)
 C**** SURFACE INTERACTION AND GROUND CALCULATION
   400 CALL PRECIP
-      CALL CHECKT (4)
+      CALL CHECKT ('PRECIP')
       CALL SURFCE
-      CALL CHECKT (6)
+      CALL CHECKT ('SURFCE')
       CALL GROUND
          DO 408 J=1,JM
          DO 408 I=1,IM
@@ -219,14 +218,14 @@ C**** SURFACE INTERACTION AND GROUND CALCULATION
          AIJG(I,J,28)=AIJG(I,J,28)+GHDATA(I,J,28)
          AIJG(I,J,29)=AIJG(I,J,29)+GHDATA(I,J,29)
   408    CONTINUE
-      CALL CHECKT (7)
+      CALL CHECKT ('GROUND')
       CALL DRYCNV
-      CALL CHECKT (8)
+      CALL CHECKT ('DRYCNV')
       CALL TIMER (MNOW,MINC,MSURF)
          IF (MODD5S.EQ.0) CALL DIAG9A (5)
 C**** STRATOSPHERIC MOMENTUM DRAG
       CALL SDRAG
-      CALL CHECKT (9)
+      CALL CHECKT ('SDRAG ')
       CALL TIMER (MNOW,MINC,MSURF)
          IF (MODD5S.EQ.0) CALL DIAG5A (12,NCNDS)
          IF (MODD5S.EQ.0) CALL DIAG9A (6)
@@ -240,7 +239,7 @@ C**** SEA LEVEL PRESSURE FILTER
          IF (MODD5S.NE.0) CALL DIAG5A (1,0)
          CALL DIAG9A (1)
       CALL FILTER
-      CALL CHECKT (10)
+      CALL CHECKT ('FILTER')
       CALL TIMER (MNOW,MINC,MDYN)
          CALL DIAG5A (14,NFILTR)
          CALL DIAG9A (7)
@@ -282,7 +281,7 @@ C**** INCREASE SNOW AGE EACH DAY (independent of Ts)
   540    AIJ(I,J,60)=AIJ(I,J,60)+ODATA(I,J,5)
 C**** RESTRUCTURE THE OCEAN LAYERS AND ELIMINATE SMALL ICE BERGS
       CALL OSTRUC
-      CALL CHECKT (11)
+      CALL CHECKT ('OSTRUC')
       CALL TIMER (MNOW,MINC,MSURF)
       ENDIF
 C****
@@ -528,14 +527,13 @@ C****
      &     , only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq=>cqgs
      &  ,ipbl,bldata,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : aj,kacc,tsfrez,tdiurn,kdiag,keynr,jreg
-     &  ,TITREG,NAMREG,KREG
+     &  ,TITREG,NAMREG,KREG,iwrite,jwrite,itwrite,qcheck
       USE OCEAN, only : odata,OA
 
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION JC1(100),CLABEL1(39),RC1(161)
       CHARACTER*4 CLABEL1,RUNID
 
-c            COMMON/WORKO/OA(IM,JM,12)
       COMMON/WORK1/NLREC(256),SNOAGE(IM,JM,2)
 
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE.
@@ -545,11 +543,11 @@ c            COMMON/WORKO/OA(IM,JM,12)
       NAMELIST/INPUTZ/IM0,JM0,LM0,LS1,LBLM,LMCM,LSSM,KOCEAN,ISTART,
      *  KDISK,TAUP,TAUI,TAUE,TAUT,TAUO,NDYN,NCNDS,NRAD,NSURF,NGRND,
      *  NFILTR,NDAA,NDA5D,NDA5K,NDA5S,NDA4,NDASF,DT,TAU,XINT,IYEAR,
-     *  LHEx,LHMx,LHSx,RADIUSx,GRAVx,RGASx,KAPAx,OMEGAx,
      *     CCMCX,U00,S0X,CO2,SRCOR,
-     *     PTOP,PSF,PSL,PTRUNC,DLATx,DLONx,AREAGx,IRAND,IJRA,MFILTR
+     *     PTOP,PSF,PSL,PTRUNC,IRAND,IJRA,MFILTR
      *     ,NDIFS,KACC0,KEYCT,SKIPSE,USESLP,USEP,USET,KCOPY,XCDNST,IDACC
      *     ,KDIAG,NDZERO,NDPRNT,IJD6,NAMD6,SIG,SIGE,KTACC0
+     *     ,IWRITE,JWRITE,ITWRITE,QCHECK
       ISTART=10
 C**** READ SPECIAL REGIONS FROM UNIT 29 - IF AVAILABLE
 CC       KREG=0
@@ -1108,85 +1106,68 @@ C**** DO Z1O COMPUTATION ONLY IF BLDATA(I,J,5) DOES NOT CONTAIN Z1O
 C*****
   901 FORMAT ('0PRESSURE ADDED IN GMP IS',F10.6/)
       END
-      SUBROUTINE CHECKT (N)
-C****
-C**** THIS SUBROUTINE CHECKS WHETHER THE TEMPERATURES ARE REASONABLE
-C**** FOR DEBUGGING PURPOSES. IT IS TURNED ON BY SETTING IDACC(11)
-C**** TO BE POSITIVE.  REMEMBER TO SET IDACC(11) BACK TO ZERO AFTER
-C**** THE ERRORS ARE CORRECTED.
-C****
-      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
-      USE E001M12_COM
-      USE GEOM
-      USE GHYCOM
-     &  , only : ghdata
-      USE PBLCOM, only : bldata
-      USE OCEAN, only : ODATA
 
-      IMPLICIT REAL*8 (A-H,O-Z)
-      IF (IDACC(11).LE.0) RETURN
+      SUBROUTINE CHECKT (SUBR)
+!@sum  CHECKT Checks arrays for NaN/INF and reasonablness
+!@auth Original Development Team
+!@ver  1.0 
+
+C**** CHECKT IS TURNED ON BY SETTING QCHECK=.TRUE. IN NAMELIST
+C**** REMEMBER TO SET QCHECK BACK TO .FALSE. AFTER THE ERRORS ARE
+C**** CORRECTED.
+
+      USE E001M12_COM
+      USE DAGCOM, only : QCHECK
+      IMPLICIT NONE
+!@var SUBR identifies where CHECK was called from
+      CHARACTER*6, INTENT(IN) :: SUBR 
+
+      IF (QCHECK) THEN
 C**** Check all prog. arrays for Non-numbers
-      CALL CHECK3(U,IM,JM,LM,N,1)
-      CALL CHECK3(V,IM,JM,LM,N,2)
-      CALL CHECK3(T,IM,JM,LM,N,3)
-      CALL CHECK3(Q,IM,JM,LM,N,4)
-      CALL CHECK3(P,IM,JM, 1,N,5)
-      CALL CHECK3(GDATA,IM,JM,16,N,6)
-      CALL CHECK3(GHDATA,IM,JM,29,N,7)
-      CALL CHECK3(BLDATA,IM,JM,12,N,8)
-      CALL CHECK3(ODATA,IM,JM,5,N,9)
-C****
-C**** CHECK WHETHER GDATA ARE REASONABLE AND CONSISTENT OVER EARTH
-C****
-      X=1.001
-      DO 110 J=1,JM
-      IMAX=IMAXJ(J)
-      DO 110 I=1,IMAX
-      PEARTH=FEARTH(I,J)
-      IF (PEARTH.LE.0.) GO TO 110
-C-    IF (GDATA(I,J,2).GE.0..AND.GDATA(I,J,2)*GDATA(I,J,4).LE.0.)GOTO 50
-C-    WRITE (6,901) N,I,J,TAU,PEARTH,'SNW ',(GDATA(I,J,K),K=2,6)
-   50 TGL=GDATA(I,J,4)
-      WTRL=GDATA(I,J,5)
-      ACEL=GDATA(I,J,6)
-      IF ((TGL+60.)*(60.-TGL).GT.0.) GO TO 60
-      WRITE (6,901) N,I,J,TAU,PEARTH,'TG1 ',(GDATA(I,J,K),K=2,6)
-   60 IF (WTRL.GE.0..AND.ACEL.GE.0..AND.
-     *  (WTRL+ACEL).LE.X*WFCS(I,J)) GO TO 110
-      WRITE(6,901)N,I,J,TAU,PEARTH,'WTR ',(GDATA(I,J,K),K=2,6),WFCS(I,J)
-  110 CONTINUE
+         CALL CHECK3(U,IM,JM,LM,SUBR,'u ')
+         CALL CHECK3(V,IM,JM,LM,SUBR,'v ')
+         CALL CHECK3(T,IM,JM,LM,SUBR,'t ')
+         CALL CHECK3(Q,IM,JM,LM,SUBR,'q ')
+         CALL CHECK3(P,IM,JM,1,SUBR,'p ')
+         CALL CHECK3(WM,IM,JM,LM,SUBR,'wm')
+         CALL CHECK3(GDATA,IM,JM,16,SUBR,'gd')
+C**** Check PBL arrays      
+         CALL CHECKPBL(SUBR)
+C**** Check Ocean arrays      
+         CALL CHECKO(SUBR)
+C**** Check Earth arrays      
+         CALL CHECKE(SUBR)
+      END IF
       RETURN
-  901 FORMAT ('0GDATA OFF, N,I,J,TAU,PEARTH,',3I4,F14.1,F5.2,1X,A4/
-     *  ' SNW,x,TG1,WTR1,ICE1, WFC1 ',6F12.4)
       END
-      SUBROUTINE CHECK3(A,IM,JM,LM,ID,IFIELD)
-      IMPLICIT REAL*8 (A-H,O-Z)
-      DIMENSION A(IM,JM,LM)
-C CHECKS FOR NAN'S IN REAL 3-D ARRAYS. ALSO CHECKS FOR INF'S.
-C INPUT:
-C A  - REAL ARRAY
-C IM - MAXIMUM OF FIRST DIMENSION
-C JM - MAXIMUM OF SECOND DIMENSION
-C LM - MAXIMUM OF THIRD DIMENSION
-C ID - INTEGER ID
-C IFIELD - AN INTEGER ID'ING WHICH FIELD IS BEING TESTED.
-C OUTPUT:
-C PRINTS TO STANDARD OUTPUT ARRAY ELEMENT NUMBER AND ID
-      CHARACTER*16 STR
-      CHARACTER*3 :: FLD(9) = (/'u ','v ','t ','q ','p ','g ','gh',
-     *     'bl','o '/), RTN(11) = (/'INP','DYN','CND','PRC','RAD',
-     *     'SRF','GRD','DCN', 'SDG','FLT','OST'/)
-      DO 300 L=1,LM
-        DO 200 J=1,JM
-          DO 100 I=1,IM
-C           WRITE(STR,'(E16.8)')A(I,J,L)
-C           K=INDEX(STR,'N')+INDEX(STR,'n')
-            IF(.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.)) THEN
-            WRITE (6,*) FLD(IFIELD),': ',I,J,L,A(I,J,L),'after ',RTN(ID)
-              IF (J.LT.JM.AND.J.GT.1) STOP 'CHECK3'
-            ENDIF
-  100     CONTINUE
-  200   CONTINUE
-  300 CONTINUE
+
+      SUBROUTINE CHECK3(A,IN,JN,LN,SUBR,FIELD)
+!@sum  CHECK3 Checks for NaN/INF in real 3-D arrays
+!@auth Original development team
+!@ver  1.0
+      IMPLICIT NONE
+
+!@var IN,JN,LN size of 3-D array
+      INTEGER, INTENT(IN) :: IN,JN,LN
+!@var SUBR identifies where CHECK3 was called from
+      CHARACTER*6, INTENT(IN) :: SUBR
+!@var FIELD identifies the field being tested
+      CHARACTER*2, INTENT(IN) :: FIELD
+!@var A array being tested
+      REAL*8, DIMENSION(IN,JN,LN),INTENT(IN) :: A
+
+      INTEGER I,J,L !@var I,J,L loop variables
+
+      DO L=1,LN
+         DO J=1,JN
+            DO I=1,IN
+               IF(.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.)) THEN
+                  WRITE (6,*) FIELD,': ',I,J,L,A(I,J,L),'after '
+     *                 ,SUBR
+                  IF (J.LT.JN.AND.J.GT.1) STOP 'CHECK3'
+               END IF
+            END DO
+         END DO
+      END DO
       RETURN
       END

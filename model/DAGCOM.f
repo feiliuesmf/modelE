@@ -106,4 +106,9 @@ C**** DIAGNOSTIC ARRAYS
       CHARACTER*4 TITREG*80,NAMREG(2,23)
       COMMON/TNKREG/TITREG,NAMREG,KREG
 
+!@var IWRITE,JWRITE,ITWRITE grid point and surface type for diag. output
+      INTEGER :: IWRITE = 0, JWRITE = 0, ITWRITE = 0
+!@var QCHECK TRUE for running diagnostic checks
+      LOGICAL :: QCHECK = .FALSE.
+
       END MODULE DAGCOM

@@ -1799,15 +1799,16 @@ C**** ACCUMULATE ALL VERTICAL WINDS
       IHOUR=1.5+TOFDAY
       DO 558 J=1,JM
       DO 558 I=1,IM
-      DO 550 KR=1,4
-      IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) GO TO 554
-  550 CONTINUE
-      GO TO 558
-  554 IH=IHOUR
-      DO 556 INCH=1,INCHM
-      IF(IH.GT.24) IH=IH-24
-      ADAILY(IH,60,KR)=ADAILY(IH,60,KR)+1.E5*W(I,J,3)/DXYP(J)
-  556 IH=IH+1
+      DO KR=1,4
+         IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
+            IH=IHOUR
+            DO INCH=1,INCHM
+               IF(IH.GT.24) IH=IH-24
+               ADAILY(IH,60,KR)=ADAILY(IH,60,KR)+1.E5*W(I,J,3)/DXYP(J)
+               IH=IH+1
+            END DO
+         END IF
+      END DO
   558 CONTINUE
       DO 565 J=1,JM
       IMAX=IMAXJ(J)
@@ -6624,3 +6625,72 @@ C****
       ENTRY DIAG8(IPFLAG)
       RETURN
       END
+
+c      SUBROUTINE init_DIAG
+c!@sum  init_DIAG initiallises the diagnostics at beginning of month
+c!@auth Original Development Team
+c!@ver  1.0  
+c      USE DAGCOM
+c      IMPLICIT NONE
+c
+c      DO K=1,13
+c         IF (JDAY.EQ.NDZERO(K)) GO TO 260
+c      END DO
+c      GO TO 290
+c 260  TAU0=TAU
+c      IDAY0=IDAY
+c      TOFDY0=TOFDAY
+c      JDATE0=JDATE
+c      JMNTH0=JMONTH
+c      JYEAR0=JYEAR
+c
+c      IDACC(1:10)=0
+c      DO K=1,KACC
+c         AJ(K,1)=0.
+c      END DO
+c      DO J=1,JM
+c         DO I=1,IM
+c            AIJ(I,J,78)=1000.
+c         END DO
+c      END DO
+cC**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
+c 290  IF (JDAY.EQ.32) THEN
+c         DO J=1+JM/2,JM
+c            DO I=1,IM
+c               TSFREZ(I,J,1)=JDAY
+c            END DO
+c         END DO
+c         DO J=1,JM/2
+c            DO I=1,IM
+c               TSFREZ(I,J,2)=JDAY
+c            END DO
+c         END DO
+c      ELSEIF (JDAY.EQ.213) THEN
+c         DO J=1,JM/2
+c            DO I=1,IM 
+c              TSFREZ(I,J,1)=JDAY
+c            END DO
+c         END DO
+c      END IF
+cC**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
+c      DO J=1,JM
+c         DO I=1,IM
+c            TDIURN(I,J,1)= 1000.
+c            TDIURN(I,J,2)=-1000.
+c            TDIURN(I,J,3)= 1000.
+c            TDIURN(I,J,4)=-1000.
+c            TDIURN(I,J,5)=    0.
+c            TDIURN(I,J,6)=-1000.
+c            TDIURN(I,J,7)=-1000.
+c            TDIURN(I,J,8)=-1000.
+c            IF (FEARTH(I,J).LE.0.) THEN
+c               TSFREZ(I,J,1)=365.
+c               TSFREZ(I,J,2)=365.
+c            END IF
+c         END DO
+c      END DO
+c         
+c      END SUBROUTINE init_DIAG
+
+
+

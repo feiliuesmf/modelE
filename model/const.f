@@ -164,7 +164,7 @@ C****         COSD = cosine of the declination angle
 C****       LAMBDA = sun longitude in Earth's rotating reference frame
 C****
       IMPLICIT NONE
-c      IMPLICIT REAL*8 (A-H,O-Z)
+
       REAL*8 MA,LAMBDA
       REAL*8 SIND,COSD,SDIST,OBLIQ,ECCN,OMEGT,DAY
       REAL*8 PI,VERQNX,OMEGA,DOBLIQ,ECCEN,PERIHE,EA,DEA,BSEMI,COSEA

@@ -788,3 +788,20 @@ c ----------------------------------------------------------------------
      2      2.4772*x + 1.44509
       return
       end subroutine getb
+
+      SUBROUTINE CHECKPBL(SUBR)
+!@sum  CHECKPBL Checks whether PBL data are reasonable
+!@auth Original Development Team
+!@ver  1.0
+      USE E001M12_COM, only : im,jm
+      USE PBLCOM, only : bldata
+      IMPLICIT NONE
+
+!@var SUBR identifies where CHECK was called from
+      CHARACTER*6, INTENT(IN) :: SUBR
+
+C**** Check for NaN/INF in ocean data
+      CALL CHECK3(BLDATA,IM,JM,12,SUBR,'bl')
+
+      END SUBROUTINE CHECKPBL
+

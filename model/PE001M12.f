@@ -5,7 +5,7 @@ C**** to be used with R99E or later radiation  routines.  carbon/2
 C**** Constant pressure at L=LS1 and above (SIGE(LS1)=0., PLE(LS1)=PTOP)
 C**** Using 5 harmonics for horizontal ocean heat transport, thinner ice
 C**** Routines included:  PRECIP, COSZ0, RADIA,
-C****                     GROUND, DRYCNV, SDRAG, ORBIT
+C****                     GROUND, DRYCNV, SDRAG
 *****
 C*    Sea ice has four thermal layers
 C*    The lead fraction is ice thickness dependent
@@ -860,7 +860,8 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE CLOUDS, only : TAUSS,TAUMC,SVLHX,RHSAV,SVLAT,CLDSAV,
      *     CLDSS,CLDMC,CSIZE
       USE PBLCOM, only : wsavg,tsavg
-      USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,ail,ajl,asjl,adaily
+      USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,ail,ajl,asjl,adaily,
+     *     iwrite,jwrite,itwrite
       USE DYNAMICS, only : pk,pedn
       USE OCEAN, only : odata
 
@@ -900,9 +901,6 @@ C****
       QSAT(TM,PR,QLH)=3.797915*DEXP(QLH*(7.93252D-6-2.166847D-3/TM))/PR
          IF (MODRD.EQ.0) IDACC(2)=IDACC(2)+1
       IF (IFIRST.NE.1) GO TO 50
-         IW0=IDACC(11)/10000
-         JW0=(IDACC(11)-10000*IW0)/100
-         IWRT=IDACC(11)-10000*IW0-JW0*100
       IFIRST=0
       CALL COSZ0
       DTCNDS=NCNDS*DT
@@ -1125,29 +1123,30 @@ CF       LTOP=L
          AIJ(I,J,18)=AIJ(I,J,18)+SIGE(L+1)*PIJ+PTOP
          GO TO 285
   280    CONTINUE
-  285    DO 290 KR=1,4
-         IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) GO TO 292
-  290    CONTINUE
-         GO TO 300
-  292    IH=IHOUR
-         DO 294 INCH=1,INCHM
-         IF (IH.GT.24) IH=IH-24
-         ADAILY(IH,21,KR)=ADAILY(IH,21,KR)+TOTCLD(6)
-         ADAILY(IH,22,KR)=ADAILY(IH,22,KR)+TOTCLD(5)
-         ADAILY(IH,23,KR)=ADAILY(IH,23,KR)+TOTCLD(4)
-         ADAILY(IH,24,KR)=ADAILY(IH,24,KR)+TOTCLD(3)
-         ADAILY(IH,25,KR)=ADAILY(IH,25,KR)+TOTCLD(2)
-         ADAILY(IH,26,KR)=ADAILY(IH,26,KR)+TOTCLD(1)
-         ADAILY(IH,27,KR)=ADAILY(IH,27,KR)+CLDCV
-         ADAILY(IH,53,KR)=ADAILY(IH,53,KR)+TOTCLD(7)
-         ADAILY(IH,54,KR)=ADAILY(IH,54,KR)+TOTCLD(6)
-         ADAILY(IH,55,KR)=ADAILY(IH,55,KR)+TOTCLD(5)
-         ADAILY(IH,56,KR)=ADAILY(IH,56,KR)+TOTCLD(4)
-         ADAILY(IH,57,KR)=ADAILY(IH,57,KR)+TOTCLD(3)
-         ADAILY(IH,58,KR)=ADAILY(IH,58,KR)+TOTCLD(2)
-         ADAILY(IH,59,KR)=ADAILY(IH,59,KR)+TOTCLD(1)
-         ADAILY(IH,61,KR)=ADAILY(IH,61,KR)+CLDCV
-  294    IH=IH+1
+  285    DO KR=1,4
+            IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
+               IH=IHOUR
+               DO INCH=1,INCHM
+                  IF (IH.GT.24) IH=IH-24
+                  ADAILY(IH,21,KR)=ADAILY(IH,21,KR)+TOTCLD(6)
+                  ADAILY(IH,22,KR)=ADAILY(IH,22,KR)+TOTCLD(5)
+                  ADAILY(IH,23,KR)=ADAILY(IH,23,KR)+TOTCLD(4)
+                  ADAILY(IH,24,KR)=ADAILY(IH,24,KR)+TOTCLD(3)
+                  ADAILY(IH,25,KR)=ADAILY(IH,25,KR)+TOTCLD(2)
+                  ADAILY(IH,26,KR)=ADAILY(IH,26,KR)+TOTCLD(1)
+                  ADAILY(IH,27,KR)=ADAILY(IH,27,KR)+CLDCV
+                  ADAILY(IH,53,KR)=ADAILY(IH,53,KR)+TOTCLD(7)
+                  ADAILY(IH,54,KR)=ADAILY(IH,54,KR)+TOTCLD(6)
+                  ADAILY(IH,55,KR)=ADAILY(IH,55,KR)+TOTCLD(5)
+                  ADAILY(IH,56,KR)=ADAILY(IH,56,KR)+TOTCLD(4)
+                  ADAILY(IH,57,KR)=ADAILY(IH,57,KR)+TOTCLD(3)
+                  ADAILY(IH,58,KR)=ADAILY(IH,58,KR)+TOTCLD(2)
+                  ADAILY(IH,59,KR)=ADAILY(IH,59,KR)+TOTCLD(1)
+                  ADAILY(IH,61,KR)=ADAILY(IH,61,KR)+CLDCV
+                  IH=IH+1
+               END DO
+            END IF
+         END DO
 C****
   300 IF (MODRIJ.NE.0) GO TO 500
 C****
@@ -1201,7 +1200,7 @@ C-OLD FGOLDU(3)=XFRADJ*PEARTH
       FSF(I,J,2)=FSRNFG(3)   !  ocean ice
       FSF(I,J,3)=FSRNFG(4)   !  land ice
       FSF(I,J,4)=FSRNFG(2)   !  soil
-      IF(I.EQ.IW0.AND.J.EQ.JW0) CALL WRITER(6,IWRT)
+      IF(I.EQ.IWRITE.AND.J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
       SRHR(I,J,1)=SRNFLB(1)
       TRHR(I,J,1)=STBO*(POCEAN*TGO**4+POICE*TGOI**4+PLICE*TGLI**4
      *  +PEARTH*TGE**4)-TRNFLB(1)
@@ -1351,18 +1350,20 @@ C****
          DO 740 LR=1,3
          ASJL(J,LR,3)=ASJL(J,LR,3)+SRHRS(I,J,LR)*COSZ
   740    ASJL(J,LR,4)=ASJL(J,LR,4)+TRHRS(I,J,LR)
-         DO 742 KR=1,4
-         IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) GO TO 744
-  742    CONTINUE
-         GO TO 750
-  744    IH=IHOUR
-         DO 746 INCH=1,INCHM
-         IF (IH.GT.24) IH=IH-24
-         ADAILY(IH,2,KR)=ADAILY(IH,2,KR)+(1.-SNFS(I,J,4)/S0)
-         ADAILY(IH,3,KR)=ADAILY(IH,3,KR)+(1.-ALB(I,J,1))
-         ADAILY(IH,4,KR)=ADAILY(IH,4,KR)
-     *      +((SNFS(I,J,4)-SNFS(I,J,1))*COSZ-TNFS(I,J,4)+TNFS(I,J,1))
-  746    IH=IH+1
+         DO KR=1,4
+            IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
+               IH=IHOUR
+               DO INCH=1,INCHM
+                  IF (IH.GT.24) IH=IH-24
+                  ADAILY(IH,2,KR)=ADAILY(IH,2,KR)+(1.-SNFS(I,J,4)/S0)
+                  ADAILY(IH,3,KR)=ADAILY(IH,3,KR)+(1.-ALB(I,J,1))
+                  ADAILY(IH,4,KR)=ADAILY(IH,4,KR)
+     *                 +((SNFS(I,J,4)-SNFS(I,J,1))*COSZ-TNFS(I,J,4)
+     *                 +TNFS(I,J,1))
+                  IH=IH+1
+               END DO
+            END IF
+         END DO
   750    CONTINUE
          AJ(J,1)=AJ(J,1)+(S0*COSZ)*POCEAN
          BJ(J,1)=BJ(J,1)+(S0*COSZ)*PLAND

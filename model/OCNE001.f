@@ -495,6 +495,22 @@ C**** SET MARKER INDICATING BLDATA(.,.,5)=Z1O
 
       END MODULE OCEAN
 
+      SUBROUTINE CHECKO(SUBR)
+!@sum  CHECKO Checks whether Ocean are reasonable
+!@auth Original Development Team
+!@ver  1.0
+      USE E001M12_COM
+      USE OCEAN
+      IMPLICIT NONE
+
+!@var SUBR identifies where CHECK was called from
+      CHARACTER*6, INTENT(IN) :: SUBR
+
+C**** Check for NaN/INF in ocean data
+      CALL CHECK3(ODATA,IM,JM,5,SUBR,'od')
+
+      END SUBROUTINE CHECKO
+
 c      MODULE SEAICE
 c!@sum  SEAICE contains all the sea ice related subroutines
 c!@auth Original Development Team
