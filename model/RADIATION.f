@@ -6133,8 +6133,10 @@ C                            -------------------------------------------
       SRFHRL(N)=0.D0
       SKDFLB(N,16)=0.D0
       SKUFLB(N,16)=0.D0
-      SRKALB(N)=0.D0  ! for WRITER only
    10 CONTINUE
+      DO N=1,16
+        SRKALB(N)=0.D0          ! for WRITER only
+      END DO
       dblext=0. ; dblsct=0. ; dblgcb=0. ; dblpi0=0. ! for writer only
       skdflb=0. ; sknflb=0. ; skuflb=0.             ! for writer only
       skfhrl=0. ; srkgax=0. ; srkgad=0.             ! for writer only
