@@ -132,7 +132,8 @@ C**** TAJLN
       REAL*8, DIMENSION(JM,LM,ktajlx,NTM) :: TAJLN
 !@var jlnt_xx Names for TAJLN diagnostics
       INTEGER jlnt_conc,jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,
-     &  jlnt_vt_mm,jlnt_mc,jlnt_turb,jlnt_lscond
+     &  jlnt_vt_mm,jlnt_mc,jlnt_turb,jlnt_lscond, jlnt_bebe,
+     &  jlnt_bepb
 #ifdef TRACERS_WATER
      &     ,jlnt_cldh2o
 #endif

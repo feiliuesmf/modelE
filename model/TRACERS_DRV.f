@@ -56,6 +56,7 @@
 #ifdef TRACERS_WATER
       real*8 fracls
 #endif
+
 #if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
 !@param convert_HSTAR converts from mole/Joule to mole/(L*atm)
       real*8, parameter :: convert_HSTAR = 1.01325d2
@@ -561,7 +562,6 @@ C This number wasn't adjusted when the vegetation source was added.
 #endif
 #endif
  
-#ifdef TRACERS_AEROSOLS_Koch
       case ('DMS')
       n_DMS = n
           ntm_power(n) = -12
@@ -608,6 +608,47 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           HSTAR(n)=0.d0
           F0(n) = 0.d0
 #endif
+      case ('Be7')
+      n_Be7 = n
+!          ntsurfsrc(n) = 1
+          ntm_power(n) = -23        ! power of ten for tracer
+          tr_mm(n) = 7.d0
+          trdecay(n) =  1.51d-7
+          trpdens(n) = 1.7d3    !kg/m3 this is SO4 value
+          trradius(n) = 3.d-7  !again S04 value
+          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART ! same as SO4
+#ifdef TRACERS_DRYDEP
+          HSTAR(n)=0.d0
+          F0(n) = 0.d0
+#endif
+      case ('Be10')
+      n_Be10 = n
+!          ntsurfsrc(n) = 1
+          ntm_power(n) = -23
+          tr_mm(n) = 10.d0
+          trpdens(n) = 1.7d3   !kg/m3 this is SO4 value
+          trradius(n) = 3.d-7  !again S04 value
+          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART ! same as SO4
+#ifdef TRACERS_DRYDEP
+          HSTAR(n)=0.d0
+          F0(n) = 0.d0
+#endif
+      case ('Pb210')
+!          ntsurfsrc(n) = 1
+          n_Pb210 = n
+          ntm_power(n) = -22
+          tr_mm(n) = 210.d0
+          trdecay(n) = 9.85d-10
+          trpdens(n) = 1.7d3    !kg/m3 this is SO4 value
+          trradius(n) = 3.d-7  !again S04 value
+          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART ! same as SO4
+#ifdef TRACERS_DRYDEP
+          HSTAR(n)=0.d0
+          F0(n) = 0.d0
+#endif
       case ('H2O2_s')
       n_H2O2_s = n
           ntm_power(n) = -10
@@ -619,7 +660,6 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           HSTAR(N)=1.D5
           F0(n) = 1.d0
-#endif
 #endif
 #endif
       end select
@@ -1738,6 +1778,78 @@ c gravitational settling of SO4
         jls_ltop(k) = LM
         jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+        case ('Be7')
+c cosmogenic source from file
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'Cosmogenic_src_of'//trname(n)
+        lname_jls(k) = 'Be7 cosmogenic src'
+        jls_ltop(k) = lm 
+        jls_power(k) = -13.   !may need changing around
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c radioactive decay
+        k = k + 1
+        jls_decay(n) = k   ! special array for all radioactive sinks
+        sname_jls(k) = 'Decay_of_'//trname(n)
+        lname_jls(k) = 'Loss of Be7 by decay'
+        jls_ltop(k) = lm
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c gravitational settling
+        k = k + 1
+        jls_grav(n) = k   ! special array grav. settling sinks
+        sname_jls(k) = 'Grav_Settle_of_'//trname(n)
+        lname_jls(k) = 'Loss of Be7 by grav settling'
+        jls_ltop(k) = lm
+        jls_power(k) = -5.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+
+        case ('Be10')
+c cosmogenic source from file/same as Be7
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'Cosmogenic_src_of'//trname(n)
+        lname_jls(k) = 'Be10 cosmogenic src'
+        jls_ltop(k) = lm
+        jls_power(k) = -13.  !may need changing around
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c gravitational settling
+        k = k + 1
+        jls_grav(n) = k   ! special array grav. settling sinks
+        sname_jls(k) = 'Grav_Settle_of_'//trname(n)
+        lname_jls(k) = 'Loss of Be10 by grav settling'
+        jls_ltop(k) = lm
+        jls_power(k) = -5.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+        case ('Pb210')
+c source of Pb210 from Rn222 decay
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'Radioactive_src_of'//trname(n)
+        lname_jls(k) = 'Pb210 radioactive src'
+        jls_ltop(k) = lm
+        jls_power(k) =-8.  !may need to be changed
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c radioactive decay
+        k = k + 1
+        jls_decay(n) = k   ! special array for all radioactive sinks
+        sname_jls(k) = 'Decay_of_'//trname(n)
+        lname_jls(k) = 'Loss of Pb210 by decay'
+        jls_ltop(k) = lm
+        jls_power(k) = -11.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c gravitational settling
+        k = k + 1
+        jls_grav(n) = k   ! special array grav. settling sinks
+        sname_jls(k) = 'Grav_Settle_of_'//trname(n)
+        lname_jls(k) = 'Loss of Pb210 by grav settling'
+        jls_ltop(k) = lm
+        jls_power(k) = -11.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
         case ('H2O2_s')
 c gas phase source and sink of H2O2
         k = k + 1
@@ -3325,6 +3437,96 @@ C**** First 12 are standard for all tracers and GCM
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
+      case ('Be7')
+      itcon_3Dsrc(1,N) =13      
+      qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'COSMO SRC'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_grav(n) =14
+      qcon(itcon_grav(n)) = .true.  ; conpts(2) = 'GRAV SETTL'
+      qsum(itcon_grav(n)) = .true.
+#ifdef TRACERS_WATER
+      itcon_mc(n) =15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+      itcon_decay(n) = 18
+      qcon(itcon_decay(n)) = .true.; conpts(6) = 'DECAY'
+      qsum(itcon_decay(n)) = .true.     
+
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('Be10')
+      itcon_3Dsrc(1,N) =13      
+      qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'COSMO SRC'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_grav(n) =14
+      qcon(itcon_grav(n)) = .true.  ; conpts(2) = 'GRAV SETTL'
+      qsum(itcon_grav(n)) = .true.
+#ifdef TRACERS_WATER
+      itcon_mc(n) =15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('Pb210')
+      itcon_3Dsrc(1,N) =13      
+      qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'RADIO SRC'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_grav(n) =14
+      qcon(itcon_grav(n)) = .true.  ; conpts(2) = 'GRAV SETTL'
+      qsum(itcon_grav(n)) = .true.
+#ifdef TRACERS_WATER
+      itcon_mc(n) =15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+      itcon_decay(n) = 18
+      qcon(itcon_decay(n)) = .true.; conpts(6) = 'DECAY'
+      qsum(itcon_decay(n)) = .true.
+
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
       case ('H2O2_s')
       itcon_3Dsrc(1,N) = 13
       qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase src'
@@ -3467,7 +3669,6 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       byNregOx=1.d0/float(NregOx)
 #endif
       do n=1,ntm
-
       if (itime.eq.itime_tr0(n)) then
 
 #ifdef TRACERS_WATER
@@ -3493,6 +3694,24 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
 
         case ('SF6')
           trm(:,:,:,n) = 0.
+          trmom(:,:,:,:,n) = 0.
+
+        case('Be7')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+            end do; end do; end do
+          trmom(:,:,:,:,n) = 0.
+
+        case('Be10')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+          trmom(:,:,:,:,n) = 0.
+
+        case('Pb210')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
         case ('Rn222')
@@ -3832,6 +4051,7 @@ C         AM=kg/m2, and DXYP=m2:
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
+
         case('H2O2_s')
           do l=1,lm; do j=1,jm; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
@@ -3904,6 +4124,10 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE FLUXES, only: tr3Dsource
       USE TRACER_SOURCES, only: nLightning, nAircraft
 #endif
+#ifdef TRACERS_COSMO
+      USE COSMO_SOURCES, only: be7_src_3d
+#endif
+
       IMPLICIT NONE
       INTEGER n,iact,last_month
       data last_month/-1/
@@ -3998,6 +4222,16 @@ C         (lightning called from tracer_3Dsource)
       end do
 #endif
 
+#ifdef TRACERS_COSMO
+      do n=1,ntm
+        if (trname(n) .eq. "Be7" .OR. trname(n) .eq. "Be10") then
+          call read_Be_source
+        end if
+        end do
+#endif
+
+
+
 C****
 C**** Initialize tracers here to allow for tracers that 'turn on'
 C**** at the start of any day
@@ -4032,6 +4266,7 @@ C**** at the start of any day
 #ifdef TRACERS_AEROSOLS_Koch
        USE AEROSOL_SOURCES, only: DMS_src,SO2_src
 #endif
+
       implicit none
       integer :: i,j,ns,l,ky,n
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
@@ -4282,6 +4517,7 @@ c we assume 97% emission as SO2, 3% as sulfate (*tr_mm/tr_mm)
          end do
         end do
 #endif
+
       end select
 
       end do
@@ -4302,6 +4538,11 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRACER_SOURCES, only: nLightning, nAircraft,nStratwrite,
      &                          nChemistry
+#endif
+#ifdef TRACERS_COSMO
+      USE GEOM, only: dxyp,bydxyp
+      USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
+      USE COSMO_SOURCES, only: be7_src_3d
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only: SO2_src_3d
@@ -4356,6 +4597,21 @@ C**** two 3D sources (aircraft and volcanos) read in from files
         call apply_tracer_3Dsource(1,n) ! volcanos
         call apply_tracer_3Dsource(2,n) ! aircraft
 c      call apply_SO2_3Dsrc
+#endif
+#ifdef TRACERS_COSMO
+C****
+      case ('Be7')
+        tr3Dsource(:,:,:,1,n) = be7_src_3d(:,:,:) !cosmogenic src
+      call apply_tracer_3Dsource(1,n)
+C****
+      case ('Be10')
+c 0.55 is ratio of Be10 to Be7 production
+c 10./7. is ratio of molecular weights
+        tr3Dsource(:,:,:,1,n) = 0.55*10./7.*be7_src_3d(:,:,:) !cosmogenic src
+      call apply_tracer_3Dsource(1,n)
+C****
+      case('Pb210')
+      call apply_tracer_3Dsource(1,n) !radioactive decay of Rn222
 #endif
 
       end select
@@ -4430,7 +4686,7 @@ C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,lhe,tf,by3
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,nGAS,nPART,tr_wd_TYPE
      *     ,trname,ntm,lm,t_qlimit
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO)
      &     ,fq_aer
 #endif
 #ifdef TRACERS_SPECIAL_O18
@@ -4557,7 +4813,7 @@ C**** this is a parameterisation from Georg Hoffmann
 #endif
         CASE(nPART)                           ! particulate tracer
           fq = 0.D0                           ! defaults to zero.
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO)
           if(LHX.EQ.LHE.and.fq0.gt.0.) then
             fq = fq_aer(NTIX(N))*FCLOUD
 c complete dissolution in convective clouds
@@ -4688,7 +4944,7 @@ C
         CASE(nWATER)                          ! water/original method
           fq = 0.D0
         CASE(nPART)                           ! aerosols
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO)
           fq = -b_beta_DT*(DEXP(-PREC*rc_wash)-1.D0)
           if (FCLOUD.lt.1.D-16) fq=0.d0
 #endif
@@ -4758,3 +5014,5 @@ C**** no fractionation for ice evap
       RETURN
       END SUBROUTINE GET_EVAP_FACTOR
 #endif
+
+

@@ -3,7 +3,7 @@
       MODULE tracers_DRYDEP
 c
 !@sum  tracers_DRYDEP tracer dry deposition from Harvard CTM.
-!@+    Current version only calculates the "bulk surface reisitance
+!@+    Current version only calculates the "bulk surface resistance
 !@+    to deposition" component of the deposition velocity.
 !@auth D.J. Jacob and Y.H. Wang, modularized by G.M. Gardner, 
 !@+    adapted for GISS GCM by D. Koch, modelEified by G. Faluvegi

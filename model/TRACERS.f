@@ -477,8 +477,10 @@ C****
 !@sum TDECAY decays radioactive tracers every source time step
 !@auth Gavin Schmidt/Jean Lerner
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc
+      USE FLUXES, only : tr3Dsource
       USE GEOM, only : imaxj
-      USE TRACER_COM, only : ntm,trm,trmom,trdecay,itime_tr0
+      USE TRACER_COM, only : ntm,trm,trmom,trdecay,itime_tr0,n_Pb210,
+     &     trname, n_Rn222
 #ifdef TRACERS_WATER
      *     ,trwm
       USE SEAICE_COM, only : trsi
@@ -504,12 +506,19 @@ C****
         if (trdecay(n).gt.0. .and. itime.ge.itime_tr0(n)) then
 C**** Atmospheric decay
           told(:,:,:)=trm(:,:,:,n)
+
 #ifdef TRACERS_WATER
      *               +trwm(:,:,:,n)
           trwm(:,:,:,n)   = expdec(n)*trwm(:,:,:,n)
 #endif
+          if (trname(n) .eq. "Rn222") then
+            tr3Dsource(:,:,:,1,n_Pb210)= trm(:,:,:,n)*(1-expdec(n))*210.
+     *           /222./dtsrc
+          end if
+
           trm(:,:,:,n)    = expdec(n)*trm(:,:,:,n)
           trmom(:,:,:,:,n)= expdec(n)*trmom(:,:,:,:,n)
+
 #ifdef TRACERS_WATER
 C**** Note that ocean tracers are dealt with by separate ocean code.
 C**** Decay sea ice tracers
@@ -534,6 +543,8 @@ C**** atmospheric diagnostics
      *           -told(1:imaxj(j),j,l))
           enddo 
           enddo
+
+
           call DIAGTCA(itcon_decay(n),n)
         end if
       end do
@@ -575,7 +586,7 @@ C**** density and effective radius
 
       do n=1,ntm
         if (trradius(n).gt.0. .and. itime.ge.itime_tr0(n)) then
-C**** Gravitional settling 
+C**** Gravitational settling 
           do l=1,lm
           do j=1,jm
           do i=1,imaxj(j)
@@ -847,3 +858,10 @@ C**** check whether air mass is conserved
 #endif
       RETURN
       END SUBROUTINE io_tracer
+
+
+
+
+
+
+

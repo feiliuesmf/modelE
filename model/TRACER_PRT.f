@@ -363,7 +363,7 @@ C****
       REAL*8, DIMENSION(LM) :: PM
       REAL*8 :: scalet
       INTEGER :: J,L,N,K,jtpow,kw
-#ifdef TRACERS_SPECIAL_O18
+#if (defined TRACERS_SPECIAL_O18) || (defined TRACERS_COSMO)
       INTEGER :: n1,n2
       CHARACTER :: lname*80,sname*30,units*50
       REAL*8 :: dD, d18O
@@ -414,11 +414,14 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
      *     plm,a,scalet,ones,ones,lm,2,jgrid_jlq(k))
       else
 #endif
+
       scalet = scale_jln(n)*scale_jlq(k)/idacc(ia_jlq(k))
       jtpow = ntm_power(n)+jlq_power(k)
       scalet = scalet*10.**(-jtpow)
+
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
      *     plm,tajln(1,1,k,n),scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
+
 #ifdef TRACERS_WATER
       end if
 #endif
@@ -543,6 +546,53 @@ C**** some special JL diags for chemistry
       end do
       CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm,a,scalet
      *     ,ones,ones,jls_ltop(k),jwt_jls(k),jgrid_jls(k))
+#endif
+
+#ifdef TRACERS_COSMO
+C**** ratios : Be7/Pb210 and Be10/Be7
+      if (n_Be7.gt.0 .and. n_Be10.gt.0 .and. n_Pb210.gt.0) then
+        scalet = 1.
+        jtpow = 0.
+C*** ratio Be10/Be7
+        k=jlnt_conc 
+        do l=1,lm
+          do j=1,jm
+            if (tajln(j,l,k,n_Be7).gt.0) then
+              a(j,l)=tajln(j,l,k,n_Be10)/tajln(j,l,k,n_Be7)
+            else
+              a(j,l)=undef
+            end if
+          end do
+        end do
+        lname="Be10 to Be7 ratio"
+        sname="be10be7"
+        units=" "
+        CALL JLMAP_t (lname,sname,units,plm,a,scalet,ones,ones,lm,2
+     *       ,jgrid_jlq(k)) 
+
+C*** ratio Be7/Pb210
+        k=jlnt_conc  
+        do l=1,lm
+          do j=1,jm
+            if (tajln(j,l,k,n_Pb210).gt.0) then
+              a(j,l)=tajln(j,l,k,n_Be7)/tajln(j,l,k,n_Pb210)
+C*** scale by (Be7decay/mm_Be7)/(Pb210decay/mm_Pb210) to convert to mBq
+              a(j,l) = a(j,l)*trdecay(n_Be7)*tr_mm(n_Pb210)
+     *             /trdecay(n_Pb210)/tr_mm(n_Be7)
+            else
+              a(j,l)=undef
+            end if
+          end do
+        end do
+
+        lname="Be7 to Pb210 ratio"
+        sname="be7pb210"
+        units="mBq/mBq"        !be sure this is 1/scalet
+        scalet = 1.d0;
+        CALL JLMAP_t (lname,sname,units,plm,a,scalet,ones,ones,lm,2
+     *       ,jgrid_jlq(k))  
+      end if
+
 #endif
 
 #ifdef TRACERS_SPECIAL_O18
@@ -886,6 +936,40 @@ C**** Fill in maplet indices for sources and sinks
         scale(k) = scale_ijts(kx)
       end do
 
+#ifdef TRACERS_COSMO
+      if (n_Be7.gt.0 .and. n_Be10.gt.0 .and. n_Pb210.gt.0) then 
+C**** Be10/Be7
+        k=k+1
+        ijtype(k) = 3 !perform a ratio
+        name(k) = "be10be7_ij"
+        lname(k) = "surface ratio Be10 to Be7"
+        units(k) = " "
+        irange(k) = ir_0_180
+        iacc(k) = ia_srf
+        iord(k) = 1
+        aij1(:,:,k) = taijn(:,:,tij_surf,n_Be10) !set as numerator
+        aij2(:,:,k) = taijn(:,:,tij_surf,n_Be7) !set as denom
+        scale(k) = 1. 
+C**** Be7/Pb210
+        k=k+1
+        ijtype(k) = 3 !perform a ratio
+        name(k) = "be7pb210_ij"
+        lname(k) = "surface ratio Be7 to Pb210"
+        units(k) = "mBq/mBq "
+        irange(k) = ir_0_180
+        iacc(k) = ia_srf
+        iord(k) = 2
+        scale(k) = 1.d0 ! should be 1/units  
+        aij1(:,:,k) = taijn(:,:,tij_surf,n_Be7) !numerator
+C*** scale by (Be7decay/mm_Be7)/(Pb210decay/mm_Pb210) to convert to mBq
+        aij1(:,:,k)=aij1(:,:,k)*trdecay(n_Be7)*tr_mm(n_Pb210)
+     *             /trdecay(n_Pb210)/tr_mm(n_Be7)
+        aij1(:,:,k)=scale(k)*aij1(:,:,k)
+        aij2(:,:,k) = taijn(:,:,tij_surf,n_Pb210) !denominator
+      end if
+#endif
+
+
 #ifdef TRACERS_SPECIAL_O18
 C****
 C**** Calculations of deuterium excess (d=dD-d18O)
@@ -1128,5 +1212,4 @@ c**** Find final field and zonal, global, and hemispheric means
       RETURN
       END SUBROUTINE io_trdiag
 #endif
-
 

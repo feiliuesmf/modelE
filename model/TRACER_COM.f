@@ -18,6 +18,11 @@
 C**** Each tracer has a variable name and a unique index
 !@param NTM number of tracers
 !@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
+#ifdef TRACERS_COSMO
+      integer, parameter :: ntm=4
+      character*8, parameter :: trname(ntm)=(/
+     *     'Pb210   ','Be7     ','Be10    ','Rn222   '/)
+#else
 #ifdef TRACERS_SPECIAL_O18
       integer, parameter :: ntm=3
       character*8, parameter :: trname(ntm)=(/
@@ -93,6 +98,7 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
 #endif
 #endif
 #endif
+#endif
 #ifdef regional_Ox_tracers
 !@var NregOx number of regional Ox tracers
       integer, parameter :: NregOx=6
@@ -112,7 +118,7 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *     n_Alkenes,n_Paraffin,n_DMS, n_MSA,      n_SO2,
      *     n_SO4,    n_H2O2_s,n_ClOx,  n_BrOx,     n_HCl,
      *     n_HOCl,   n_ClONO2,n_HBr,   n_HOBr,     n_BrONO2,
-     *     n_CFC  
+     *     n_CFC, n_Pb210, n_Be7, n_Be10  
 #ifdef regional_Ox_tracers
      *     ,n_OxREG1,n_OxREG2,n_OxREG3,n_OxREG4,n_OxREG5,n_OxREG6
 #endif
@@ -177,6 +183,9 @@ C****
 #endif    
 #endif
 
+#ifdef TRACERS_COSMO
+#endif
+
 #if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
 !@param nGAS   index for wetdep tracer type = gas
 !@param nPART  index for wetdep tracer type = particle/aerosol
@@ -225,4 +234,10 @@ C note, tr_evap_fact is not dimensioned as NTM:
 #endif
 
       END MODULE TRACER_COM
+
+
+
+
+
+
 
