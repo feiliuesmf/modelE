@@ -74,16 +74,20 @@ C
 !@param RKBYPIM=8.*RBOLTZ/pi/MASSN2O55=8.*1.38062D-23/3.14159/1.793D-25
 !@param cboltz Boltzman's Constant = 1.3806d-19
 !@param dlogp 10.d0**(-2./16.)
+!@param dlogp2 10.d0**(-1./16.)
 !@param byradian 1/radian = conversion from radians to degrees
 !@param LCOalt number of levels in the COaltIN array 
 !@param LCH4alt number of levels in the CH4altIN array
-!@param LcorrOx number of levels in the corrOxIN array
 !@param JCOlat number of latitudes in the COlat array 
 !@param PCOalt pressures at LCOalt levels
 !@param PCH4alt pressures at LCH4alt levels
-!@param PcorrOx pressures at LcorrOx levels
 !@param LS1J first strat layer as function of J for chemistry
 !@param LS1Jmax max value in LS1J
+!@param NCFASTJ2 number of levels in the fastj2 atmosphere
+!@param NBFASTJ for fastj2 (=LM+1)
+!@param MXFASTJ "Number of aerosol/cloud types supplied from CTM"
+!@param dtausub # of optic. depths at top of cloud requiring subdivision
+!@param masfac Conversion factor for pressure to column density (fastj2)
       INTEGER, DIMENSION(JM), PARAMETER ::
      & LS1J = (/LS1,LS1,LS1,LS1,LS1,LS1,
      & LS1,LS1,LS1,LS1,LS1,LS1,LS1,LS1,LS1,LS1+1,LS1+1,LS1+1,
@@ -95,7 +99,6 @@ C
      & LCOalt =   23,
      & JCOlat =   19,
      & LCH4alt=    6,
-     & LcorrOX=    4,
      & p_1   =     2,
 #ifdef Shindell_Strat_chem
      & p_2   =   209,
@@ -141,6 +144,9 @@ C
      & NLFASTJ=  400,     !300 is arbitrary for now
      & NWFASTJ=   18, 
      & JPNL   =   23,
+     & NCFASTJ2 = 2*LM+2,  ! fastj2
+     & NBFASTJ  = LM+1,    ! fastj2
+     & MXFASTJ  =  3,      ! fastj2
 #else
      & p_2   =   111,
      & p_3   =   200,
@@ -230,6 +236,11 @@ C
      &                      zlbatm       = 4.d0,
      &                      CMEQ1        = 0.25d0,
      &                      byradian     = 1.d0/radian 
+#ifdef Shindell_Strat_chem
+     &                     ,dtausub      = 1.d0
+     &                     ,dlogp2       = 8.65964323d-1 !=10^(-.0625)
+     &                     ,masfac=100.d0*6.022d23/28.97d0/9.8d0/10.d0
+#endif
 
 !@dbparam ch4_init_sh,ch4_init_nh initial methane conc. (ppmv) 
 !@+       defaults are for 1990
@@ -237,15 +248,13 @@ C
 
 C Please note: since PCOalt is essentially the nominal 
 C pressures for the 23-level GCM, I'm going to use it
-C to define BrOx, ClOx, ClONOs, and HCl as well (GSF 8/03):
+C to define BrOx, ClOx, ClONOs, HCL, and OxIC as well (GSF 8/03):
       REAL*8, PARAMETER, DIMENSION(LCOalt) :: PCOalt = (/
      & 0.9720D+03,0.9445D+03,0.9065D+03,
      & 0.8515D+03,0.7645D+03,0.6400D+03,0.4975D+03,0.3695D+03,
      & 0.2795D+03,0.2185D+03,0.1710D+03,0.1335D+03,0.1016D+03,
      & 0.7120D+02,0.4390D+02,0.2470D+02,0.1390D+02,0.7315D+01,
      & 0.3045D+01,0.9605D+00,0.3030D+00,0.8810D-01,0.1663D-01/)
-      REAL*8, PARAMETER, DIMENSION(LcorrOx) :: PcorrOx = 
-     & (/133.5d0, 101.6d0, 71.2d0, 43.9d0/)
 C  
 C    These should really be defined in the run deck:
       LOGICAL, PARAMETER :: luselb            = .false.,
@@ -315,6 +324,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var npdep Number of pressure dependencies
 !@var jpdep Index of cross sections requiring P dependence
 !@var PFASTJ pressure sent to FASTJ
+!@var PFASTJ2 pressure at level boundarie, sent to FASTJ2
 !@var nss this is a copy of JPPJ that is read in from a file
 !@var jfacta Quantum yield (or multiplication factor) for photolysis
 !@var WBIN Boundaries of wavelength bins
@@ -337,19 +347,27 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var OREF     O3 reference profile
 !@var TREF     temperature reference profile
 !@var BREF     black carbon reference profile
+!@var OREF2    fastj2 O3 reference profile
+!@var TREF2    fastj2 temperature reference profile
+!@var BREF2    fastj2 black carbon reference profile
 !@var U0 cosine of the solar zenith angle
 !@var ZFASTJ Altitude of each fastj pressure level (approx.) (cm)
+!@var ZFASTJ2 Altitude of boundaries of model levels (cm) fastj2
 !@var RFLECT Surface albedo (Lamertian) in fastj
 !@var odtmp Optical depth (temporary array)
 !@var odsum Column optical depth
 !@var nlbatm Level of lower photolysis boundary - usually surface ('1')
-!@var aer obs fastj aerosol profile?
+!@var aer fastj aerosol profile?
 !@var O3J Ozone profile on photolysis grid
 !@var TJ Temperature profile on photolysis grid
+!@var TJ2 Temperature profile on fastj2 photolysis grid
 !@var DBC Mass of Black Carbon at each pressure level (g.cm-3)
+!@var DBC2 fastj2 Mass of Black Carbon at each model level (g/cm-3)
 !@var FFF Actinic flux at each level for each wavelength bin and level
 !@var DMFASTJ Total number density at each pressure level (cm-3)
-!@var DO3 Ozone number density at each pressure level (cm-3
+!@var DMFASTJ2 fastj2 Air column for each model level (molec/cm2)
+!@var DO3 Ozone column number density at each pressure level (molec/cm2)
+!@var DO32 fastj2 Ozone number density at each pressure level (")
 !@var XQO2   Absorption cross-section of O2
 !@var XQO3   Absorption cross-section of O3
 !@var DTAUDZ   Local extinction at each point
@@ -374,10 +392,10 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var ZJ photodissociation coefficient? (level,reaction)
 !@var RCLOUDFJ cloudiness (optical depth) parameter, radiation to fastj
 !@var SALBFJ surface albedo parameter from radiation to fastj
-!@var O3DLJI model ozone to radiation (calculated)
-!@var O3DLJI_clim model ozone to radiation (climatological)
 !@var COlat carbon monoxide latitude distribution for init cond (ppbv)
 !@var COaltIN adjustments of COlat by altitude (unitless,LCOalt levels)
+!@var OxICIN Ox initial conditions (unit=KG,LCOalt levels)
+!@var OxICINL column version of OxICIN
 !@var BrOxaltIN altitude dependence BrOx (unitless,LCOalt levels)
 !@var ClOxaltIN altitude dependence ClOx (unitless,LCOalt levels)
 !@var ClONO2altIN altitude dependence ClONO2 (unitless,LCOalt levels)
@@ -385,6 +403,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var CH4altINT tropical strat adjustments to CH4 (LCH4alt levels)
 !@var CH4altINX xtra-tropical strat adjustments to CH4 LCH4alt levels)
 !@var COalt adjustments of COlat by altitude (unitless,LM levels)
+!@var OxIC Ox initial conditions (unit=KG,LM levels)
+!@var OxICL column version of OxIC
 !@var BrOxalt altitude dependence BrOx (unitless,LM levels)
 !@var ClOxalt altitude dependence ClOx (unitless,LM levels)
 !@var ClONO2alt altitude dependence ClONO2 (unitless,LM levels)
@@ -397,7 +417,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var MODPHOT if MODPHOT=0 do photolysis, else skip it
 !@var TX temperature variable for master chem
 !@var ta, pres local arrays to hold temperature,pressure
-!@var TFASTJ temperature sent to FASTJ
+!@var TFASTJ temperature rpofile sent to FASTJ
 !@var O3_FASTJ ozone sent to fastj
 !@var FASTJLAT,FASTJLON latitude & LONGITUDE (degrees) for use in fastj
 !@var SZA the solar zenith angle (degrees)
@@ -422,10 +442,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var change change due to chemistry in mass/time
 !@var chemrate,photrate ?   
 !@var MDOFM cumulative days at end of each month
-!@var corrOxIN correction factor to tweak inital Ox in stratosphere 
-!@+   on LcorrOx levels
-!@var corrOx correction factor to tweak inital Ox in stratosphere 
-!@+   on LM levels
 !@var L75P first model level above nominal 75 hPa
 !@var L75M first model level below nominal 75 hPa
 !@var F75P interpolation coeff. of higher altitude value (units ln(P))
@@ -436,6 +452,9 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var F569M interpolation coeff. of lower altitude value (units ln(P))
 !@var DU_O3 total column ozone in latitude band
 !@var SF3 is H2O photolysis in Schumann-Runge Bands
+!@var AER2 fastj2 aerosol profile?
+!@var dtausub fastj2 ?
+!@var odcol Optical depth at each model level
       INTEGER nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M, 
      & lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,
      & NWWW,NK,nlbatm,NCFASTJ
@@ -453,6 +472,9 @@ C**************  V  A  R  I  A  B  L  E  S *******************
       INTEGER, DIMENSION(LM)           :: jndlv,jndlev
       INTEGER, DIMENSION(JPPJ)         :: jind
       INTEGER, DIMENSION(NLFASTJ)      :: jaddlv, jaddto
+#ifdef Shindell_Strat_chem
+                                          ,jadsub
+#endif
       INTEGER, DIMENSION(NJVAL)        :: jpdep  
       INTEGER, DIMENSION(12) , PARAMETER :: MDOFM =
      *     (/31,59,90,120,151,181,212,243,273,304,334,365/)
@@ -466,8 +488,6 @@ C
      & wprodHCHO,changeAlkylNit,changeHNO3,changeNOx,changeN2O5,
      & wprodCO,rlossN,rprodN,ratioN,pfactor,bypfactor,F75P,F75M,
      & F569P,F569M
-      REAL*8, DIMENSION(JM,LcorrOx,12) :: corrOxIN ! 12=month
-      REAL*8, DIMENSION(JM,LM,12)      :: corrOx
       REAL*8, DIMENSION(nc,LM)         :: y
       REAL*8, DIMENSION(n_rx,LM)       :: rr
       REAL*8, DIMENSION(JPPJ,LM,IM,JM) :: ss
@@ -481,7 +501,7 @@ C
       REAL*8, DIMENSION(n_oig,n_bnd3)  :: sech
       REAL*8, DIMENSION(IM,JM,LM)   :: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &                                yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
-     &                                TX,sulfate
+     &                                TX,sulfate,OxIC
       REAL*8, DIMENSION(M__)         :: AFASTJ,C1,HFASTJ,V1
       REAL*8, DIMENSION(M__), PARAMETER ::
      *     EMU = (/.06943184420297D0, .33000947820757D0,
@@ -509,7 +529,7 @@ C
       REAL*8, DIMENSION(NLFASTJ)       ::aer,ZFASTJ,O3J,TJ,DBC,DMFASTJ,
      &                                    XQO3,XQO2,DTAUDZ,TTAU,FTAU,
      &                                    PIAER,RZ,RQ,DO3,PIRAY
-      REAL*8, DIMENSION(LM)            ::odtmp,ta,pres,TFASTJ  !,TXL
+      REAL*8, DIMENSION(LM)            ::odtmp,ta,pres,TFASTJ
 C Multiplier of free trop [CO] by layer Badr & Probert 94 fig10 & 11,
 C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
       REAL*8, DIMENSION(LCOalt), PARAMETER ::  COaltIN = 
@@ -530,6 +550,8 @@ C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
      *     0.d0,0.d0,2.5d1,4.0d1,9.0d1,1.7d2,1.9d2,2.5d2,2.5d2,2.5d2,
      *     2.5d2,2.5d2,2.5d2,2.5d2/)
 #endif
+      REAL*8, DIMENSION(IM,JM,LCOalt) :: OxICIN
+      REAL*8, DIMENSION(      LCOalt) :: OxICINL
 C**** additional levsls for CH4 to avoid extrapolation...
       REAL*8, PARAMETER, DIMENSION(LCH4alt) :: PCH4alt = 
      &     (/569d0, 150d0, 100d0, 32d0, 3.2d0, 0.23d0/)
@@ -537,9 +559,9 @@ C**** additional levsls for CH4 to avoid extrapolation...
      *   CH4altINT =(/1.79d0, 1.75d0, 1.620d0,1.460d0,0.812d0,0.230d0/),
      *   CH4altINX =(/1.79d0, 1.75d0, 1.440d0,1.130d0,0.473d0,0.202d0/)    
 
-      REAL*8, DIMENSION(LM)            :: COalt,CH4altT,CH4altX
+      REAL*8, DIMENSION(LM)            :: COalt,CH4altT,CH4altX,OxICL
 #ifdef Shindell_Strat_chem
-     *                        ,BrOxalt,ClOxalt,ClONO2alt,HClalt
+     *                        ,BrOxalt,ClOxalt,ClONO2alt,HClalt,odcol                    
 #endif
       REAL*8, DIMENSION(NS)            :: VALJ
       REAL*8, DIMENSION(N__)           :: FJFASTJ
@@ -548,8 +570,6 @@ C**** additional levsls for CH4 to avoid extrapolation...
       REAL*8, DIMENSION(JPPJ)          :: jfacta
       REAL*8, DIMENSION(JPNL,JPPJ)      :: zj, JFASTJ
       REAL*8, DIMENSION(p_2,LM)         :: chemrate, photrate 
-C     REAL*8, DIMENSION(LX,JM,IM)       :: O3DLJI, O3DLJI_clim
-      REAL*8, DIMENSION(LM,JM,IM)       :: O3DLJI, O3DLJI_clim
 #ifdef Shindell_Strat_chem
       REAL*8, DIMENSION(2*(LM))         :: O3_FASTJ
 #else
@@ -566,6 +586,11 @@ C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
 #ifdef Shindell_Strat_chem
       REAL*8, DIMENSION(JM)             :: DU_O3
       REAL*8, DIMENSION(IM,JM,LM)       :: SF3
+      REAL*8, DIMENSION(MX,NBFASTJ)     :: AER2
+      REAL*8, DIMENSION(NBFASTJ)      :: TJ2,DO32,DBC2,ZFASTJ2,DMFASTJ2
+      REAL*8, DIMENSION(LM+3)           :: PFASTJ2
+      REAL*8, DIMENSION(51,18,12)       :: OREF2,TREF2
+      REAL*8, DIMENSION(51)             :: BREF2
 #endif
 C     
       LOGICAL                         fam,prnrts,prnchg,prnls      
@@ -595,5 +620,10 @@ C
      *     ,wfastj,BFASTJ,AFASTJ,AAFASTJ,CC,HFASTJ,C1,SFASTJ,U1,V1 
 !$OMP THREADPRIVATE(/FJAST_LOC/)
 
+#ifdef Shindell_Strat_chem
+      COMMON/FASTJ2_LOC/AER2,odcol,TJ2,jadsub,DO32,DBC2,ZFASTJ2,
+     &     DMFASTJ,PFASTJ2
+!$OMP THREADPRIVATE(/FJAST2_LOC/)
+#endif
 
       END MODULE TRCHEM_Shindell_COM
