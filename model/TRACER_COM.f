@@ -183,10 +183,6 @@ C****
 #endif    
 #endif
 
-#ifdef TRACERS_COSMO
-#endif
-
-#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
 !@param nGAS   index for wetdep tracer type = gas
 !@param nPART  index for wetdep tracer type = particle/aerosol
 !@param nWATER index for wetdep tracer type = water 
@@ -196,9 +192,12 @@ C****
       integer, dimension(ntm) :: tr_wd_TYPE
 !@var tr_RKD: Henry's Law coefficient (in mole/Joule please !)
       real*8, dimension(ntm) :: tr_RKD
+!@var tr_DHD: coefficient of temperature-dependence term of Henry's
+!@+   Law coefficient (in Joule/mole please !)
+      real*8, dimension(ntm) :: tr_DHD
 !@var fq_aer fraction of aerosol that condenses
       real*8 fq_aer(ntm)
-#endif      
+
 #ifdef TRACERS_WATER   
 !@param nWD_TYPES number of tracer types for wetdep purposes  
       integer, parameter :: nWD_TYPES=3 !(gas,particle,water)
@@ -206,9 +205,6 @@ C****
 C note, tr_evap_fact is not dimensioned as NTM:
       REAL*8, parameter, dimension(nWD_TYPES) :: tr_evap_fact=
      *     (/1.d0, 0.5d0,  1.d0/)
-!@var tr_DHD: coefficient of temperature-dependence term of Henry's
-!@+   Law coefficient (in Joule/mole please !)
-      real*8, dimension(ntm) :: tr_DHD
 !@var tr_H2ObyCH4 conc. of tracer in water from methane oxidation 
       real*8, dimension(ntm) :: tr_H2ObyCH4
 !@var dowetdep true if tracer has some form of wet deposition

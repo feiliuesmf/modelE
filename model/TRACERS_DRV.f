@@ -40,13 +40,10 @@
      & mass2vol,bymass2vol,CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,corrOxIN,corrOx,LcorrOx,PcorrOx,ch4_init_sh
      *     ,ch4_init_nh 
+#endif
       USE FILEMANAGER, only: openunit,closeunit
-#endif
       implicit none
-      integer :: l,k,n
-#ifdef regional_Ox_tracers
-      integer ntemp,n2
-#endif
+      integer :: l,k,n,ntemp,n2
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
       character*10 CMR
 #ifdef TRACERS_ON
@@ -89,13 +86,11 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       tcscale = 0.
 #endif
 #endif
-#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
       tr_wd_TYPE = nGas       !other options are nPART or nWATER
       tr_RKD = 0.
-      fq_aer = 0.
-#endif
-#ifdef TRACERS_WATER
       tr_DHD = 0.
+      fq_aer = 0.
+#ifdef TRACERS_WATER
       trli0 = 0.
       trsi0 = 0.
       tr_H2ObyCH4 = 0.
@@ -377,9 +372,7 @@ c
       n_HNO3 = n
           ntm_power(n) = -11
           tr_mm(n) = 63.018d0
-#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
           tr_RKD(n) = 2.073d3 ! in mole/J = 2.1d5 mole/(L atm)
-#endif
 #ifdef TRACERS_DRYDEP
           HSTAR(n)=1.d14
 #endif
@@ -388,16 +381,12 @@ c
       n_H2O2 = n
           ntm_power(n) = -11
           tr_mm(n) = 34.016d0
-#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
           tr_RKD(n) = 9.869d2    ! in mole/J = 1.d5 mole/(L atm)
-#endif
 #ifdef TRACERS_DRYDEP
           HSTAR(n)=tr_RKD(n)*convert_HSTAR
           F0(n) = 1.d0
 #endif
-#ifdef TRACERS_WATER
           tr_DHD(n) = -5.52288d4 ! in J/mole = -13.2 kcal/mole.
-#endif
 
       case ('CH3OOH')
       n_CH3OOH = n
@@ -411,9 +400,7 @@ c
       n_HCHO = n
           ntm_power(n) = -11
           tr_mm(n) = 30.026d0
-#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
           tr_RKD(n) = 6.218d1 ! mole/J = 6.3d3 mole/(L atm)
-#endif
 #ifdef TRACERS_DRYDEP
           HSTAR(n)=6.d3
 #endif
@@ -4535,13 +4522,13 @@ C****
       USE FLUXES, only: tr3Dsource
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
       USE MODEL_COM, only: itime
+      USE GEOM, only: dxyp,bydxyp
+      USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRACER_SOURCES, only: nLightning, nAircraft,nStratwrite,
      &                          nChemistry
 #endif
 #ifdef TRACERS_COSMO
-      USE GEOM, only: dxyp,bydxyp
-      USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
       USE COSMO_SOURCES, only: be7_src_3d
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
@@ -4685,10 +4672,7 @@ c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,lhe,tf,by3
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,nGAS,nPART,tr_wd_TYPE
-     *     ,trname,ntm,lm,t_qlimit
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO)
-     &     ,fq_aer
-#endif
+     *     ,trname,ntm,lm,t_qlimit,fq_aer
 #ifdef TRACERS_SPECIAL_O18
      &     ,supsatfac
 #endif
@@ -4776,7 +4760,7 @@ C**** in equilibrium with source vapour. Otherwise, use mid-point
 C**** temperature and estimate instantaneous fractionation. This gives
 C**** a very good estimate to complete integral
 C****
-            if (temp.ne.temp0) then  ! use instantaneous frac
+            if (abs(temp-temp0).gt.1d-14) then  ! use instantaneous frac
               tdegc=0.5*(temp0 + temp) -tf
 C**** Calculate alpha (fractionation coefficient)
                 if (LHX.eq.LHE) then ! cond to water
