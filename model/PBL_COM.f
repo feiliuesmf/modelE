@@ -128,10 +128,10 @@
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "BLD01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "BLD02"
 
       MODULE_HEADER(lhead+1:80) = 'R8 dim(ijm):ws,ts,qs,'//
-     *  'LvlDC,us,vs,tau,u*(.,4),ke(LM,.),tgv,qg'
+     *  'LvlDC,us,vs,tau,u*(.,4),ke(lijm),w2(lijm),tgv,qg'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
