@@ -4454,7 +4454,7 @@ C****
 C****
       NDAYS=IDACC(ia_12hr)/2
       IF (NDAYS.LE.0) RETURN
-      BYIDAC=1./NDAYS
+      BYIDAC=24./(NDAY*NDAYS)
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF (QDIAG)  call open_diurn
      &  (trim(acc_period)//'.diurn'//XLABEL(1:LRUNID),hr_in_day,NDIUVAR)
@@ -4559,7 +4559,7 @@ C**** KP packs the quantities for postprocessing (skipping unused)
           CASE DEFAULT
 C**** NORMAL QUANTITIES
             DO IH=1,HR_IN_MONTH+4
-              XHOUR(IH)=HDIURN(IH,KQ,KR)*SCALE_DD(KQ)
+              XHOUR(IH)=HDIURN(IH,KQ,KR)*SCALE_DD(KQ)*(24./NDAY)
             END DO
 C**** RATIO OF TWO QUANTITIES
           CASE ('LDC')
