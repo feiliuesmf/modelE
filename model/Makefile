@@ -83,7 +83,7 @@ RUN_H_TMP = tmp_cpp.h
 # Lists of objects and dependencies
 # 
 
-#ifneq ($(RUN).R,.R)
+ifneq ($(MAKECMDGOALS),rundeck)
 ifeq ($(shell [ -s $(RUNDECK) ] && echo yes),yes)
 OBJ_LIST = $(shell [ -s $(RUNDECK) ] && perl \
 	-e 'while(<> !~ /^Object +modules/ ){};' \
@@ -100,6 +100,11 @@ MODS = $(sort $(shell perl \
 	-e 'if(/^\s*module\s+(\w+)\s*$$/i) {print "$$1.mod ";} };' \
 	$(FSRCS)))
 endif
+endif
+
+
+info:
+	echo $(MAKECMDGOALS)
 
 
 #
