@@ -373,6 +373,7 @@ c integrate
          yy=0d0
          do ii=1,100
          x=w1+(w2-w1)*(ii-1)/99.d0
+         if (sig.eq.0) go to 22   ! added by gavin to prevent NaN
          besf=x*swind/(sig*sig)
          if (besf.gt.700.d0) go to 22
          exx=dexp(-(x*x+swind*swind)/(2.d0*sig*sig))
