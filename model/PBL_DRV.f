@@ -70,6 +70,9 @@ C          ,UG,VG,WG,ZMIX,W2_1
 #endif
 
       USE PBLCOM
+      use QUSDEF, only : mz
+      use SOMTQ_COM, only : tmom
+ 
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
@@ -77,7 +80,8 @@ C          ,UG,VG,WG,ZMIX,W2_1
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
 
       REAL*8, parameter :: dbl_max=3000. ! meters
-      REAL*8 Ts
+      real*8, parameter :: S1byG1=.57735d0
+      REAL*8 Ts,ts_guess
 
 #ifdef TRACERS_ON
       integer nx
@@ -182,6 +186,9 @@ C        roughness lengths from Brutsaert for rough surfaces
       dpdyr  = DPDY_BY_RHO(i,j)
       dpdxr0 = DPDX_BY_RHO_0(i,j)
       dpdyr0 = DPDY_BY_RHO_0(i,j)
+
+      ts_guess = ttop - tmom(mz,i,j,1)*S1byG1
+
       call advanc(
      3     coriol,utop,vtop,ttop,qtop,tgrndv,qgrnd,evap_max,fr_sat,
 #ifdef TRACERS_ON
@@ -191,7 +198,7 @@ C        roughness lengths from Brutsaert for rough surfaces
 #endif
 #endif
      4     ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,
-     5     uocean,vocean,i,j,itype)
+     5     uocean,vocean,ts_guess,i,j,itype)
 
       uabl(:,i,j,itype)=upbl(:)
       vabl(:,i,j,itype)=vpbl(:)

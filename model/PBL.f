@@ -121,7 +121,7 @@ CCC      real*8 :: bgrid
 #endif
 #endif
      4     ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,
-     5     uocean,vocean,ilong,jlat,itype)
+     5     uocean,vocean,ts_guess,ilong,jlat,itype)
 !@sum  advanc  time steps the solutions for the boundary layer variables
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
@@ -187,6 +187,7 @@ c  internals:
       implicit none
 
       real*8, intent(in) :: coriol,utop,vtop,ttop,qtop,uocean,vocean
+     *                      ,ts_guess
       real*8, intent(in) :: tgrnd,qgrnd,evap_max,fr_sat,ztop,dtime
       real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
       integer, intent(in) :: ilong,jlat,itype
@@ -295,7 +296,7 @@ C**** end special threadprivate common block
 
         if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
           call tfix(t,z,ttop,tgrnd,lmonin,tstar,ustar,kh(1),
-     *              ilong,jlat,n)
+     *              ts_guess,n)
         endif
 
         test=abs(2.*(ustar-ustar0)/(ustar+ustar0))
@@ -821,32 +822,25 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       return
       end subroutine griddr
 
-      subroutine tfix(t,z,ttop,tgrnd,lmonin,tstar,ustar,khs,
-     *                ilong,jlat,n)
+      subroutine tfix(t,z,ttop,tgrnd,lmonin,tstar,ustar,khs,ts_guess,n)
 !@sum   tfix
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
-      use QUSDEF, only : mz
-      use SOMTQ_COM, only : tmom,qmom
 
       implicit none
 
-      real*8, parameter :: S1byG1=.57735d0
-      integer, intent(in) :: ilong,jlat,n    !@var n  array dimension
+      integer, intent(in) :: n    !@var n  array dimension
       real*8, dimension(n),intent(in) :: z
       real*8, dimension(n),intent(inout) :: t
-      real*8, intent(in) :: ttop,tgrnd,ustar,khs
+      real*8, intent(in) :: ttop,tgrnd,ustar,khs,ts_guess
       real*8, intent(inout) :: lmonin,tstar
 
-      real*8 tsurf,dtdz
+      real*8 dtdz
       integer i  !@var i loop variable
 
-      dtdz = tmom(mz,ilong,jlat,1)
-      tsurf = ttop - dtdz*S1byG1
-
-      t(1)=tsurf
+      t(1)=ts_guess
       do i=2,n-1
-        t(i)=tsurf+(z(i)-z(1))*(ttop-tsurf)/(z(n)-z(1))
+        t(i)=t(1)+(z(i)-z(1))*(ttop-t(1))/(z(n)-z(1))
       end do
 
       dtdz   = (t(2)-t(1))/(z(2)-z(1))
