@@ -2241,7 +2241,7 @@ C**** HORIZONTAL SUMS AND TABLE ENTRIES
          XJL(J,K) = FLAT(J)*PRTFAC
       FLAT(J)=FLAT(J)*PRTFAC
          IF (DPJK(J,K,J1).EQ.0.) XJL(J,K) = -1.E30
-      MLAT(J)=NINT(FLAT(J))
+      MLAT(J)=NINT(MIN(1d5,MAX(-1d5,FLAT(J)))) ! prevent too large int?
   120 AHEML(JHEMI)=AHEML(JHEMI)+CX(J,K)*WTJ(J,JWT,J1)*PRTFAC
   130 AGLOB=AGLOB+AHEML(JHEMI) !/JWT no longer needed?
       AHEM(:) = AHEM(:) + AHEML(:)
