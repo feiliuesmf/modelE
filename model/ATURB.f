@@ -549,25 +549,19 @@ c     d/dt U = (u(1)-u0(1))/dtime
 c     d/dz uw = (uw(2)-uw(1))/dze(1), dze(1)=ze(2)-ze(1)
 c     uw(2)=-km(2)*(u(2)-u(1))/dz(1), dz(1)=z(2)-z(1)
 c     uw(1)=-uflx
+c     if U at first gcm layer has been updated, then uflx=0
 c     this is for U, similarly for V
 c     in addition, rho(1) and rhoe(2) are in place to balance the
 c     mass
 c     from the above, the following follow
 c
-c     alpha=dtime*km(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
-c     dia(1)=1.+alpha
-c     sup(1)=-alpha
-c     rhs(1)=u0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*uflx
-c     rhs1(1)=v0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*vflx
-c
-c     Lower boundary conditions:
-c     U(1) and V(1) have been updated in surfce anf earth subroutines
-c     so we can use them as lower boundary conditions
-c
-      dia(1)=1.
-      sup(1)=0.
+      alpha=dtime*km(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
+      dia(1)=1.+alpha
+      sup(1)=-alpha
       rhs(1)=u0(1)
       rhs1(1)=v0(1)
+c     rhs(1)=u0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*uflx
+c     rhs1(1)=v0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*vflx
 c
 c     Upper boundary conditions: U,V not changed by turbulence
 c
@@ -625,23 +619,17 @@ c     d/dt T = (T(1)-T0(1))/dtime
 c     d/dz wt = (wt(2)-wt(1))/dze(1), dze(1)=ze(2)-ze(1)
 c     wt(2)=-kh(2)*(T(2)-T(1))/dz(1), dz(1)=z(2)-z(1)
 c     wt(1)=-tflx
+c     if T at first gcm layer has been updated, then tflx=0
 c     this is for T, similarly for Q
 c     in addition, rho(1) and rhoe(2) are in place to balance the
 c     mass
 c     from the above, the following follow
 c
-c     alpha=dtime*khq(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
-c     dia(1)=1.+alpha
-c     sup(1)=-alpha
-c     rhs(1)=tq0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*sflx
-c
-c     Lower boundary conditions:
-c     t(1) and q(1) have been updated in surfce anf earth subroutines
-c     so we can use them as lower boundary conditions
-c
-      dia(1)=1.
-      sup(1)=0.
+      alpha=dtime*khq(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
+      dia(1)=1.+alpha
+      sup(1)=-alpha
       rhs(1)=tq0(1)
+c     rhs(1)=tq0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*sflx
 c
 c     Upper boundary conditions: T,Q not changed by turbulence
 c
