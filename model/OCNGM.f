@@ -284,7 +284,7 @@ C**** Loop for Fluxes in X-direction
       IF(LMU(IM1,J).ge.L) THEN
         MOFX = (MO(IM1,J,L) +  MO(I  ,J,L)) * DXYPO(J) *BYDXP(J) *0.5
         RFXT =(FXX(IM1,J,L) + FXZ(IM1,J,L))*MOFX
-        IF (QLIMIT) THEN  
+        IF (QLIMIT) THEN
 C**** If fluxes are more than 95% of tracer amount, limit fluxes
           IF (RFXT.gt.0.95d0*TRM(IM1,J,L).and.ABS(RFXT).gt.1d-20) THEN
 c            print*,"GMlimit1x",i,j,l,RFXT,FXX(IM1,J,L),FXZ(IM1,J,L)
@@ -312,7 +312,7 @@ C**** Loop for Fluxes in Y-direction
         MOFY =((MO(I,J-1,L)*BYDYP(J-1)*DXYPO(J-1)) +
      *         (MO(I,J  ,L)*BYDYP(J  )*DXYPO(J  )))*0.5
         RFYT =(FYY(I,J-1,L) + FYZ(I,J-1,L))*MOFY
-        IF (QLIMIT) THEN  
+        IF (QLIMIT) THEN
 C**** If fluxes are more than 95% of tracer amount, limit fluxes
           IF (RFYT.gt.0.95d0*TRM(I,J-1,L).and.ABS(RFYT).gt.1d-20) THEN
 c            print*,"GMlimit1y",i,j,l,RFYT,FYY(I,J-1,L),FYZ(I,J-1,L)
@@ -332,9 +332,9 @@ C**** Save Diagnostic, GIJL(2) = RFYT
         GIJL(I,J,L,2) = GIJL(I,J,L,2) + RFYT
       END IF
 C**** Gradient fluxes in Y direction affected by diagonal terms
-      IF (L.le.LMM(I,J)) TYM(I,J,L) = (TYM(I,J,L) - 
+      IF (L.le.LMM(I,J)) TYM(I,J,L) = (TYM(I,J,L) -
      *     3.*(FYY(I,J-1,L)+FYY(I,J,L))*MO(I,J,L)*DXYPO(J)*BYDYP(J))/
-     *     (1.+6.*DT4*(BYY(I,J-1,L)+BYY(I,J,L))*BYDYP(J)**2) 
+     *     (1.+6.*DT4*(BYY(I,J-1,L)+BYY(I,J,L))*BYDYP(J)**2)
 C**** END of I and J loops
   610 IM1 = I
       END DO
@@ -345,7 +345,7 @@ C**** Fluxes in Y-direction
         MOFY =((MO(1,JM-1,L)*BYDYP(JM-1)*DXYPO(JM-1)) +
      *         (MO(1,JM  ,L)*BYDYP(JM  )*DXYPO(JM  )))*0.5
         RFYT =(FYY(1,JM-1,L) + FYZ(1,JM-1,L))*MOFY
-        IF (QLIMIT) THEN  
+        IF (QLIMIT) THEN
 C**** If fluxes are more than 95% of tracer amount, limit fluxes
           IF (RFYT.gt.0.95d0*TRM(1,JM-1,L).and.ABS(RFYT).gt.1d-20) THEN
 c            print*,"GMlimit3y",1,jm,l,RFYT,FYY(1,JM-1,L),FYZ(1,JM-1,L)
@@ -365,7 +365,7 @@ C**** Save Diagnostic, GIJL(2) = RFYT
         GIJL(1,JM,L,2) = GIJL(1,JM,L,2) + RFYT/IM
       END IF
 C**** Gradient fluxes in Y direction affected by diagonal terms
-      IF (L.le.LMM(1,JM)) TYM(1,JM,L) = (TYM(1,JM,L) - 
+      IF (L.le.LMM(1,JM)) TYM(1,JM,L) = (TYM(1,JM,L) -
      *     3.*FYY(1,JM-1,L)*MO(1,JM,L)*DXYPO(JM)*BYDYP(JM)/IM)/
      *     (1.+12.*DT4*BYY(1,JM-1,L)*BYDYP(JM)**2)
  620  END DO
@@ -387,7 +387,7 @@ C**** Calculate new tracer/salinity/enthalpy
         MOFZ =((MO(I,J,L+1)*BYDH(I,J,L+1)) +
      *         (MO(I,J,L  )*BYDH(I,J,L  ))) * DXYPO(J) *0.5
         RFZT =(FZZ(I,J,L) +(FZX(I,J,L)+FZY(I,J,L))*(1.d0+ARAI))*MOFZ
-        IF (QLIMIT) THEN  
+        IF (QLIMIT) THEN
 C**** If fluxes are more than 95% of tracer amount, limit fluxes
           IF (RFZT.gt.0.95d0*TRM(I,J,L+1).and.ABS(RFZT).gt.1d-20) THEN
 c            print*,"GMlimit1z",i,j,l,RFZT,FZZ(i,J,L),FZX(i,j,l),FZY(I,J
@@ -428,7 +428,7 @@ C**** Calculate new tracer/salinity/enthalpy
         MOFZ =((MO(1,JM,L+1)*BYDH(1,JM,L+1)) +
      *         (MO(1,JM,L  )*BYDH(1,JM,L  ))) * DXYPO(JM) *0.5
         RFZT =(FZZ(1,JM,L)+FZY(1,JM,L)*(1d0+ARAI))*MOFZ
-        IF (QLIMIT) THEN  
+        IF (QLIMIT) THEN
 C**** If fluxes are more than 95% of tracer amount, limit fluxes
           IF (RFZT.gt.0.95d0*TRM(1,JM,L+1).and.ABS(RFZT).gt.1d-20) THEN
 c            print*,"GMlimit3z",1,jm,l,RFZT,FZZ(1,JM,L),FZY(1,JM
@@ -511,7 +511,7 @@ C**** SIX0, SIY0, SIX2, SIY2: four slopes that use RHOMZ(L)
         SIX2 = RHOX(IM1,J,L) * BYRHOZ(I,J,L)
         SIY2 = RHOY(I,J-1,L) * BYRHOZ(I,J,L)
         SIY0 = RHOY(I,J  ,L) * BYRHOZ(I,J,L)
-        IF (KPL(I,J).gt.L) THEN ! only limit slopes below ML
+        IF (KPL(I,J).gt.L.and.AINV(I,J).gt.0.) THEN ! limit slopes <ML
           BYAIDT = 1d0/(4.*DTS*(AINV(I,J)+ARIV(I,J)))
           DSX0 = DXPO(J) * DZV(I,J,L) * BYAIDT
           DSX2 = DXPO(J) * DZV(I,J,L) * BYAIDT
@@ -551,7 +551,7 @@ C**** SIX1, SIY1, SIX3, SIY3: four slopes that use RHOMZ(L-1)
         SIX3 = RHOX(IM1,J,L) * BYRHOZ(I,J,L-1)
         SIY1 = RHOY(I,J  ,L) * BYRHOZ(I,J,L-1)
         SIY3 = RHOY(I,J-1,L) * BYRHOZ(I,J,L-1)
-        IF (KPL(I,J).gt.L-1) THEN    ! only limit slopes below ML
+        IF (KPL(I,J).gt.L-1.and.AINV(I,J).gt.0.) THEN ! limit slopes <ML
           BYAIDT = 1d0/(4.*DTS*(AINV(I,J)+ARIV(I,J)))
           DSX1 = DXPO(J) * DZV(I,J,L-1) * BYAIDT
           DSX3 = DXPO(J) * DZV(I,J,L-1) * BYAIDT
