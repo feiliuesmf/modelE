@@ -1,7 +1,7 @@
       SUBROUTINE cheminit
 !@sum cheminit initialize model chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p2)
+!@ver  1.0 (based on cheminit0C5_M23p.f from model II)
 !@calls jplrts,phtlst,inphot,wave,reactn
 c
 C**** GLOBAL parameters and variables:

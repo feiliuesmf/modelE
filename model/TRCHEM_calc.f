@@ -1,7 +1,7 @@
       SUBROUTINE chemstep(I,J,change)
 !@sum chemstep Calculate new concentrations after photolysis & chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on chemcalc0C5_M23p.f but no additional chem diags.)
+!@ver  1.0 (based on chemcalc0C5.4_M23p.f from model II)
 !@calls rates,chem1,chem1prn
 c
 C**** GLOBAL parameters and variables:

@@ -9,7 +9,7 @@ c
 !@+   that includes only 289 nm - 800 nm  (later a single 205 nm add-on)
 !@+   uses special compact Mie code based on Feautrier/Auer/Prather ver.
 !@auth Oliver Wild/Lee Grenfell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3_fastjlg_ozone_M23)
+!@ver  1.0 (based on fastj000_M23p.f from model II)
 !@calls CTM_ADJ,INT_PROF,PRTATM,JVALUE,JRATET
 c
 C**** GLOBAL parameters and variables:
