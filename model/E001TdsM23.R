@@ -49,18 +49,18 @@ TRCHEM_master                       ! trop chem "driver"/strat prescrioption
 ! ----------------------------------
 TRACERS                             ! generic tracer code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
-CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
+CLOUDS2 CLOUDS2_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ! pick exactly one of the next 2 choices: ATURB or DRYCNV
-! ATURB                             ! turbulence in whole atmosphere
-DRYCNV                              ! drycnv
+ATURB                             ! turbulence in whole atmosphere
+! DRYCNV                              ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
-ICEDYN_DUM ICEDYN  ! or: ICEDYN_DRV ! dynamic ice modules
+ICEDYN_DUM ! or: ICEDYN ICEDYN_DRV  ! dynamic ice modules
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
@@ -148,7 +148,7 @@ CH4_WETL=methane/gcm_data/CH4WETL+TUNDRA_4X5  ! Monthly 0.9818; zonal also
 Label and Namelist:
 E001TdsM23 (modelE 2.3.4+ strat version with tropospheric chemsitry - 1950 conditions)
 R=00BG/B
-DTFIX=90
+DTFIX=180
 &&PARAMETERS
 X_SDRAG=.00025,.000025  ! used for lin. sdrag above P_SDRAG mb
 C_SDRAG=0.     ! no constant sdrag
@@ -161,8 +161,8 @@ PCONPEN=500.   ! penetrating convection defn for GWDRAG
 CMC = 0.0000003
 
 KOCEAN=0
-U00ice  = .60   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
-u00wtrx = 1.336
+U00ice  = .61   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
+u00wtrx = 1.259
 RWCLDOX= 1.5  !  wtr cld particle size *3/2 over ocean
 RICLDX = 0.3333!  ice cld particle size * 1(at 0mb)->1/3(at 1000mb)
 
@@ -171,15 +171,15 @@ KSIALB=0        ! 6-band albedo (Hansen) (=1 A.Lacis orig. 6-band alb)
 KSOLAR=2
 
 ! parameters that control the Shapiro filter
-DT_XUfilter=180. ! Shapiro filter on U in E-W direction; usually same as DT (below)
-DT_XVfilter=180. ! Shapiro filter on V in E-W direction; usually same as DT (below)
+DT_XUfilter=300. ! Shapiro filter on U in E-W direction; usually same as DT (below)
+DT_XVfilter=300. ! Shapiro filter on V in E-W direction; usually same as DT (below)
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
 LMCM=16              ! max level of moist convection
 XCDNST=300.,10000.   ! strat. gw drag parameters
-DT=180.,             ! from default: DTsrc=3600.,
-NIsurf=4,            ! number of surface time steps
+DT=300.,             ! from default: DTsrc=3600.,
+NIsurf=3,            ! number of surface time steps
 
 NSUBDD=0        ! saving sub-daily diags 12hrly
 Kvflxo=0        ! saving VFLXO (daily)
@@ -203,5 +203,5 @@ o3_yr=1950
    YEARI=1950,MONTHI=1,DATEI=1,HOURI=0,  !  from default: IYEAR1=YEARI
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,  KDIAG=0,2,2,9*0,9,
    YEARE=1950,MONTHE=2,
-   ISTART=7,IRANDI=0, YEARE=1950,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   ISTART=2,IRANDI=0, YEARE=1950,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END
