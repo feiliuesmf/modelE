@@ -1293,8 +1293,6 @@ C**** and save changes in KE for addition as heat later
       END DO
       END DO
 !$OMP  END PARALLEL DO
-      CALL CHECKSUMj(grid, AJL(:,:,JL_DAMMC),
-     &     __LINE__,__FILE__)
 
 
       if (isccp_diags.eq.1) CALL RINIT(seed) ! reset random number sequ.
