@@ -1304,6 +1304,25 @@ C****
 C**** WORK01  FAW    flux of surface water area (m^2) = USIDT*DYP
 C****         FASI   flux of sea ice area (m^2) = USIDT*DYP*RSIedge
 C****         FMSI   flux of sea ice mass (kg) or heat (J) or salt (kg)
+
+C**** Regularise ice concentration gradients to prevent advection errors
+      DO J=2,JM-1
+      DO I=1,IM
+        IF (RSI(I,J).gt.1d-4) THEN
+          IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =    RSI(I,J)
+          IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) =   -RSI(I,J)
+          IF(RSI(I,J)-RSIX(I,J).gt.1d0) RSIX(I,J) =    RSI(I,J)-1d0
+          IF(RSI(I,J)+RSIX(I,J).gt.1d0) RSIX(I,J) =1d0-RSI(I,J)
+          IF(RSI(I,J)-RSIY(I,J).lt.0.)  RSIY(I,J) =    RSI(I,J)
+          IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) =   -RSI(I,J)
+          IF(RSI(I,J)-RSIY(I,J).gt.1d0) RSIY(I,J) =    RSI(I,J)-1d0
+          IF(RSI(I,J)+RSIY(I,J).gt.1d0) RSIY(I,J) =1d0-RSI(I,J)
+        ELSE
+          RSIX(I,J) = 0.  ; RSIY(I,J) = 0.
+        END IF
+      END DO
+      END DO
+
 C**** set up local MSH array to contain all advected quantities
 C**** MHS(1:2) = MASS, MHS(3:6) = HEAT, MHS(7:10)=SALT
       MHS(1,:,:) = ACE1I + SNOWI
@@ -1742,3 +1761,21 @@ C****
       END SUBROUTINE IT2AT
 
 
+     SUBROUTINE init_icedyn(iniOCEAN)
+!@sum  init_STRAITS initializes strait variables
+!@auth Gary Russell/Gavin Schmidt
+!@ver  1.0
+      USE ICEDYN, only : RSIX,RSIY,USI,VSI
+      IMPLICIT NONE
+      LOGICAL, INTENT(IN) :: iniOCEAN
+
+C**** Initiallise ice dynamic variables if ocean model starts
+      if (iniOCEAN) THEN
+        RSIX=0.
+        RSIY=0.
+        USI=0.
+        VSI=0.
+      end if
+
+      RETURN
+      END SUBROUTINE init_icedyn
