@@ -1,4 +1,4 @@
-E001.R GISS Model E   tau->Itime                    gas 06/00
+E001.R GISS Model E                                 gas 06/00
 
 E001: new modelE (based on B402A)
 
@@ -43,16 +43,13 @@ Label and Namelist:
 E001 (new modelE based on B402A)
 R=00BG/B
  &INPUTZ
-   IYEAR0=1950, CO2=-6.,
-   PTOP=150., XCDLM=.0005,.00005,
-   KOCEAN=0,  S0X=1.,  U00wtr=.60, U00ice=.60,
-   SIGE=1.0000000,.9400480,.8441247,.6834533,.4796163,.2877698,
-        .1618705, .0719424, .0000000,-.0599520,-.1079137,-.1438849,
-        -.1678657,
+   IYEAR0=1950, CO2=-6., XCDLM=.0005,.00005,
+   PTOP=150.,    ! from defaults: PSF=984., LS1=9,
+   PLTOP=934.,854.,720.,550.,390., 285.,210.,150.,100.,60.,30.,10.,
+   KOCEAN=0,           U00wtr=.60, U00ice=.60,
    YEARI=1950,MONTHI=1,DATEI=1,HOURE=0,
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
    YEARE=1950,MONTHE=2,
-   DT=450.,        ! default DTsrc=3600.,
-       ! defaults: NRAD=5,NFILTR=2,NDAA=7,NDA5D=7,NDA5K=7,NDA5S=7,NDA4=24,
-   ISTART=3,KCOPY=2,NDPRNT(1)=-1,NSLP=-12,Noht=-24,YEARE=1950,MONTHE=1,HOURE=1,
+   DT=450.,        ! from default: DTsrc=3600.,
+   ISTART=3,KCOPY=2,NSLP=-12,Kvflxo=-1,YEARE=1950,MONTHE=1,HOURE=1,
  &END
