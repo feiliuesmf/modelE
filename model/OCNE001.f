@@ -35,6 +35,8 @@
       REAL*8, PARAMETER :: AC2OIM = Z2OIM*RHOI
 !@var TFO temperature of freezing ocean (C)
       REAL*8, PARAMETER :: TFO = -1.8
+!@var FLEADOC lead fraction for ocean ice (%)
+      REAL*8, PARAMETER :: FLEADOC = 0.06d0
 !@var ALAMI,ALAMS lambda coefficient for ice/snow J/(m*degC*sec)
       REAL*8, PARAMETER :: ALAMI=2.1762, ALAMS=0.35
 !@var RHOS density of snow (kg/m^3)
@@ -148,7 +150,7 @@ C**** REDUCE ICE EXTENT IF OCEAN TEMPERATURE IS GREATER THAN TFO
           TG2 = GDATA(I,J,7)    ! second layer sea ice temperature
           TG3 = GDATA(I,J,15)   ! third layer sea ice temperature
           TG4 = GDATA(I,J,16)   ! fourth layer sea ice temperature
-C***  CONVERT SEA ICE TEMPERATURE INTO ENTHALPY MINUS LATENT HEAT
+C**** CONVERT SEA ICE TEMPERATURE INTO ENTHALPY MINUS LATENT HEAT
           HSI1 = (SHI*TG1-LHM)*XSI1*MSI1
           HSI2 = (SHI*TG2-LHM)*XSI2*MSI1
           HSI3 = (SHI*TG3-LHM)*XSI3*MSI2
@@ -178,20 +180,20 @@ C**** Reduce the ice depth
           E_BOTTOM = ENRG*(POICE/(1.+GAMMA)) ! for bottom melting
           E_SIDE = ENRG*(PWATER+(POICE*GAMMA)/(1.+GAMMA)) ! for side melt.
           E_SIDE = ENRG-E_BOTTOM
-C***  MELT ICE VERTICALLY, AND THEN HORIZONTALLY
+C**** MELT ICE VERTICALLY, AND THEN HORIZONTALLY
           MELT = -XSI4*MSI2*ENRG/HSI4 ! melted ice at the bottom
           IF (MSI2-MELT .LT. AC2OIM) MELT = MSI2-AC2OIM
 C         FMSI3 = XSI3*MELT ! > 0.
           FHSI3 = HSI3*MELT/MSI2
           FHSI4 = HSI4*MELT*R4/MSI2
-C***  MELT SOME ICE HORIZONTALLY
+C**** MELT SOME ICE HORIZONTALLY
           DRSI = (ENRG+ROICE*FHSI4)/(HSI1+HSI2+HSI3+HSI4-FHSI4) ! < 0.
           ROICEN = ROICE+DRSI   ! new sea ice concentration
 c     SNOW = SNOW*(ROICE/ROICEN) ! new snow ice mass
           MSI2 = MSI2-MELT
           HSI3 = HSI3-FHSI3
           HSI4 = HSI4+FHSI3-FHSI4
-C***  CONVERT SEA ICE ENTHALPY MINUS LATENT HEAT INTO TEMPERATURE
+C**** CONVERT SEA ICE ENTHALPY MINUS LATENT HEAT INTO TEMPERATURE
           TG1 = (HSI1/(XSI1*MSI1) +LHM)/SHI ! temperatute of layer 1
           TG2 = (HSI2/(XSI2*MSI1) +LHM)/SHI ! temperatute of layer 2
           TG3 = (HSI3/(XSI3*MSI2) +LHM)/SHI ! temperatute of layer 3
@@ -497,7 +499,7 @@ C**** SET MARKER INDICATING THAT Z1O HAS BEEN SET
       END SUBROUTINE PREC_OC
 
       SUBROUTINE PREC_SI(SNOW,MSI2,MSI1,TG1,TG2,TG3,TG4,PRCP,TPRCP
-     *     ,EPRCP,RUN0,DIFS,EDIFS,ERUN2)
+     *     ,EPRCP,RUN0,DIFS,EDIFS,ERUN2,QFIXR)
 !@sum  PREC_SI Adds the precipitation to sea/lake ice
 !@auth Gary Russell
 !@ver  1.0
@@ -511,24 +513,26 @@ C**** SET MARKER INDICATING THAT Z1O HAS BEEN SET
       REAL*8 DIFS, EDIFS, ERUN2 ! for diagnostics 
       REAL*8 RUN0 ! runoff for ocean/lake
       REAL*8 HC_1 
+!@var QFIXR true if RSI and MSI2 are fixed (ie. for a fixed SST run)
+      LOGICAL QFIXR
 
       RUN0=0. ; DIFS=0. ; EDIFS=0. ; ERUN2=0.
-C*** sensible -  latent heat of precipit.
+C**** sensible -  latent heat of precipit.
       EPRE = EPRCP - PRCP*LHM ! total energy of precipitation;
-C***  CONVERT SEA ICE TEMPERATURE INTO ENTHALPY MINUS LATENT HEAT
+C**** CONVERT SEA ICE TEMPERATURE INTO ENTHALPY MINUS LATENT HEAT
       HSI1 = (SHI*TG1-LHM)*XSI1*MSI1
       HSI2 = (SHI*TG2-LHM)*XSI2*MSI1
       HSI3 = (SHI*TG3-LHM)*XSI3*MSI2
-      HSI4 = (SHI*tG4-LHM)*XSI4*MSI2
+      HSI4 = (SHI*TG4-LHM)*XSI4*MSI2
       HC_1 = XSI1*MSI1*SHI
       HSI1 = HSI1+EPRE
       IF (TPRCP.LT.0.) GO TO 180
       IF (EPRCP.LT.-TG1*HC_1) GO TO 160
-C***  ALL PRECIPITATION IS RAIN ABOVE 0degC
-C***  RAIN COMPRESSES SNOW INTO ICE
+C**** ALL PRECIPITATION IS RAIN ABOVE 0degC
+C**** RAIN COMPRESSES SNOW INTO ICE
       RAIN = PRCP
       IF (HSI1/LHM+XSI1*MSI1 .LE. 0.) GO TO 140
-C***  WARM RAIN MELTS SOME SNOW OR ICE
+C**** WARM RAIN MELTS SOME SNOW OR ICE
       MELT1 = HSI1/LHM+XSI1*MSI1 ! melted snow and ice (kg/m^2)
       RUN0=MELT1 + PRCP ! water mass flux to ocean (kg/m^2)
       IF (MSI1-ACE1I .LE. MELT1) GO TO 130
@@ -548,7 +552,7 @@ c     F1 = HSI1*(XSI1*FMSI2-XSI2*MELT1)/(XSI1*MSI1-MELT1)
       DIFS = FMSI2
       EDIFS = FHSI2
       ERUN2 = HSI3*FMSI2*R3/MSI2
-      IF (KOCEAN.NE.1) GO TO 380
+      IF (QFIXR) RETURN
       GO TO 210
   130 CONTINUE
 C**** RAIN MELTS ALL SNOW AND SOME ICE
@@ -564,13 +568,13 @@ C     FMSI1 = XSI1*(MSI1-ACE1I)-MELT1 ! < 0.(melted snow/ice mass)
       TG1 = (HSI1/(XSI1*MSI1)+LHM)/SHI ! first layer ice temperature
       EDIFS=FHSI2 ! for diagnostics
       ERUN2=EDIFS ! for diagnostics
-      IF (KOCEAN.NE.1) GO TO 380
+      IF (QFIXR) RETURN
       GO TO 210
   140 CONTINUE
 C**** RAIN COMPRESSES SNOW INTO ICE, SOME RAIN WILL FREEZE
       CMPRS = MIN(dSNdRN*RAIN, MSI1-ACE1I) ! all snow or part of rain
       IF (-HSI1/LHM-XSI1*MSI1 .LT. RAIN) GO TO 150
-C***  ALL RAIN FREEZES IN LAYER 1
+C**** ALL RAIN FREEZES IN LAYER 1
 C     FREZ1 = RAIN ! frozen rain
 C     FMSI1 = XSI1*CMPRS+FREZ1 ! downward ice mass flux from layer 1
       FMSI2 = CMPRS+RAIN ! downward ice mass flux from layer 2
@@ -589,7 +593,7 @@ C      F1 = HSI1*(XSI1*CMPRS+RAIN)/(XSI1*MSI1) ! for prescribed ice
       DIFS = FMSI2
       EDIFS = FHSI2
       ERUN2 = HSI3*FMSI2*R3/MSI2
-      IF (KOCEAN.NE.1) GO TO 380
+      IF (QFIXR) RETURN
       GO TO 210
   150 CONTINUE
 C**** JUST PART OF RAIN FREEZES IN LAYER 1
@@ -611,16 +615,16 @@ c      F1 = HSI1*(XSI1*CMPRS+FREZ1)/(XSI1*MSI1) ! for prescribed ice
       DIFS = FMSI2
       EDIFS = FHSI2
       ERUN2 = HSI3*FMSI2*R3/MSI2
-      IF (KOCEAN.NE.1) GO TO 380
+      IF (QFIXR) RETURN
       GO TO 210
   160 CONTINUE
-C***  PRECIPITATION IS A MIXTURE OF RAIN AND SNOW AT 0 degC
-C***  RAIN COMRESSES SNOW INTO ICE, SOME RAIN WILL FREEZE
+C**** PRECIPITATION IS A MIXTURE OF RAIN AND SNOW AT 0 degC
+C**** RAIN COMRESSES SNOW INTO ICE, SOME RAIN WILL FREEZE
       SNOW = -EPRCP/LHM ! snow fall
       RAIN = PRCP-SNOW  ! rain fall
       CMPRS = MIN(dSNdRN*RAIN, MSI1+SNOW-ACE1I) ! compression
       IF (-HSI1/LHM-XSI1*MSI1-SNOW .LT. RAIN) GO TO 170
-C***  ALL RAIN FREEZES IN LAYER 1
+C**** ALL RAIN FREEZES IN LAYER 1
 C     FREZ1 = RAIN ! frozen rain
       RUN0 =0.
       FMSI1 = XSI1*CMPRS+XSI2*SNOW+RAIN ! downward ice mass flux
@@ -639,10 +643,10 @@ c      F1 = HSI1*FMSI1/(XSI1*MSI1) ! for prescribed ice/ocean
       DIFS = FMSI2
       EDIFS = FHSI2
       ERUN2 = HSI3*FMSI2*R3/MSI2
-      IF (KOCEAN .NE. 1) GO TO 380
+      IF (QFIXR) RETURN
       GO TO 210
   170 CONTINUE
-C***  NOT ALL RAIN FREEZES IN LAYER 1
+C**** NOT ALL RAIN FREEZES IN LAYER 1
       FREZ1 = -HSI1/LHM-XSI1*MSI1-SNOW ! part of rain that freezes
       RUN0 = RAIN-FREZ1 ! water mass flux into the ocean
 C     FMSI1 = XSI1*CMPRS+XSI2*SNOW+FREZ1 ! downward ice mass flux
@@ -661,10 +665,10 @@ c      F1 = HSI1*(XSI1*CMPRS+XSI2*SNOW+FREZ1)/(XSI1*MSI1) ! prescribed
       DIFS = FMSI2
       EDIFS = FHSI2
       ERUN2 = HSI3*FMSI2*R3/MSI2
-      IF (KOCEAN .NE. 1) GO TO 380
+      IF (QFIXR) RETURN
       GO TO 210
   180 CONTINUE
-C***  ALL PRECIPITATION IS SNOW, SNOW AMOUNT INCREASES
+C**** ALL PRECIPITATION IS SNOW, SNOW AMOUNT INCREASES
       RUN0 = 0.
       IF (MSI1+PRCP .GT. SNOMAX+ACE1I) GO TO 190
 C     FMSI1 = XSI2*PRCP ! > 0.(snow fall to layer 1)
@@ -676,9 +680,9 @@ C     FMSI1 = XSI2*PRCP ! > 0.(snow fall to layer 1)
       HSI2 = HSI2+FHSI1
       TG1 = (HSI1/(XSI1*MSI1)+LHM)/SHI ! first layer ice temperature
       TG2 = (HSI2/(XSI2*MSI1)+LHM)/SHI ! second layer ice temperature
-      GO TO 380
+      RETURN
   190 CONTINUE
-C***  TOO MUCH SNOW HAS ACCUMULATED, SOME SNOW IS COMPACTED INTO ICE
+C**** TOO MUCH SNOW HAS ACCUMULATED, SOME SNOW IS COMPACTED INTO ICE
       FMSI2 = MSI1+PRCP-(0.9*SNOMAX+ACE1I) ! > 0.(compressed snow)
 C     FMSI1 = XSI2*PRCP+XSI1*FMSI2 ! > 0.(downward ice mass flux)
       FHSI1 = HSI1*(XSI2*PRCP+XSI1*FMSI2)/(XSI1*MSI1+PRCP) ! downward
@@ -691,11 +695,12 @@ c      F1 = HSI1*(XSI2*PRCP+XSI1*FMSI2)/(XSI1*MSI1) ! for prescribed
       EDIFS = FHSI2 ! energy of compressed snow mass
       HSI1 = HSI1-FHSI1
       TG1 = (HSI1/(XSI1*MSI1)+LHM)/SHI ! first layer ice temperature
-      IF (KOCEAN .EQ. 1) GO TO 210
-      ERUN2 = HSI3*FMSI2*R3/MSI2
-      H2 = HSI2+(FHSI1-FHSI2) ! for prescribed ice/ocean
-      TG2 = (H2/(XSI2*MSI1)+LHM)/SHI ! second layer ice temperature
-      GO TO 380
+      IF (QFIXR) THEN
+        ERUN2 = HSI3*FMSI2*R3/MSI2
+        H2 = HSI2+(FHSI1-FHSI2) ! for prescribed ice/ocean
+        TG2 = (H2/(XSI2*MSI1)+LHM)/SHI ! second layer ice temperature
+        RETURN
+      END IF
   210 CONTINUE
 C**** ADVECT ICE (usually downwards)
       HSI2 = HSI2+(FHSI1-FHSI2) ! for predicted ice/ocean
@@ -705,27 +710,20 @@ C**** ADVECT ICE (usually downwards)
       TG3 = (HSI3/(XSI3*MSI2)+LHM)/SHI ! third layer ice temperature
       TG4 = (HSI4/(XSI4*MSI2)+LHM)/SHI ! fourth layer ice temperature
       MSI2 = MSI2+FMSI2 ! second layer sea ice mass (kg/m^2)
- 380  CONTINUE
 
       RETURN 
       END SUBROUTINE PREC_SI
 
-      SUBROUTINE SEA_ICE(DTSRCE,SNOW,ROICE,PLAKE,TG1,TG2,TG3,TG4,
-     *     MSI2,F0DT,F1DT,EVAP,TGW,WTRO,OTDT,ENRGO,RUN0,RUN4,ERUN4,
-     *     DIFSI,EDIFSI,DIFS,EDIFS,ENRGFO,ACEFO,ACE2M,ACE2F,ENRGFI,F2DT)
-!@sum  SEA_ICE applies surface fluxes to ice coevered and ice free areas
+      SUBROUTINE SEA_ICE(DTSRCE,SNOW,ROICE,TG1,TG2,TG3,TG4,MSI1,MSI2
+     *     ,F0DT,F1DT,EVAP,HSI1,HSI2,HSI3,HSI4,TGW,RUN0
+     *     ,DIFSI,EDIFSI,DIFS,EDIFS,ACE2M,F2DT,TFW,QFIXR)
+!@sum  SEA_ICE applies surface fluxes to ice covered areas
 !@auth Gary Russell
 !@ver  1.0
 
       IMPLICIT NONE
 
       REAL*8, PARAMETER :: ALPHA = 1.0, dSNdML =0. 
-      REAL*8, PARAMETER :: YSI1 = XSI1*ACE1I/(ACE1I+AC2OIM),
-     *                     YSI2 = XSI2*ACE1I/(ACE1I+AC2OIM),
-     *                     YSI3 = XSI3*AC2OIM/(ACE1I+AC2OIM), 
-     *                     YSI4 = XSI4*AC2OIM/(ACE1I+AC2OIM)
-      REAL*8, PARAMETER :: Z2OIX = 4.9, 
-     *                     BYZICX=1./(Z1I+Z2OIX) 
       REAL*8,  INTENT(IN) :: DTSRCE
 !@var F0DT heat flux on the ice top surface (W/m^2)
       REAL*8,  INTENT(IN) :: F0DT
@@ -733,75 +731,32 @@ C**** ADVECT ICE (usually downwards)
       REAL*8,  INTENT(IN) :: F1DT
 !@var EVAP evaporation/dew on the top ice surface (kg/m^2)
       REAL*8,  INTENT(IN) :: EVAP 
-      REAL*8 PLAKE, ROICE, ROICEN, OPNOCN,  
-     *       SNOW, MSI1, MSI2, ACE2F, ACE2M, MELT1, MELT4,  
-     *       DEW, CMPRS, DRSI, DRI
+!@var QFIXR  true if RSI and MSI2 are fixed (ie. for fixed SST run)     
+      LOGICAL, INTENT(IN) :: QFIXR
+!@var TFW freezing temperature for water underlying ice (C)
+      REAL*8, INTENT(IN) :: TFW
+
+      REAL*8 ROICE, SNOW, MSI1, MSI2, ACE2M, MELT1, MELT4, DEW, CMPRS 
       REAL*8 TG1, TG2, TG3, TG4, HSI1, HSI2, HSI3, HSI4, 
-     *       FMSI1, FMSI2, FMSI3, FMSI4, 
-     *       FHSI1, FHSI2, FHSI3, FHSI4  
-!@var TGW and WTRO mixed layer temp.(C) and mass (kg/m^2)  
-      REAL*8 TGW, WTRO, OTDT, ENRGO
-      REAL*8 WTRI0, EIW0, ENRGIW, ENRGFI, WTRI1, EFIW, 
-     *       ENRGO0, EOFRZ, ENRGFO, ACEFO
-      REAL*8 WTRW0, ENRGW0, WTRW, ENRGW ! only for ocean 
+     *       FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4  
+!@var TGW mixed layer temp.(C)
+      REAL*8 TGW
       REAL*8 HC1, HC2, HC3, HC4 
       REAL*8 dF1dTI, dF2dTI, dF3dTI, dF4dTI, F1, F2, F3
-      REAL*8, INTENT(OUT) :: EDIFSI, ERUN4, F2DT ! for diagnostics 
-      REAL*8, INTENT(OUT) :: RUN0, RUN4, DIFSI, DIFS, EDIFS 
+      REAL*8, INTENT(OUT) :: EDIFSI, F2DT, RUN0, DIFSI, DIFS, EDIFS 
 C**** Initiallise output 
       F2DT=0. ; RUN0=0.  ; DIFSI=0. ; EDIFSI=0.
-      DIFS=0. ; EDIFS=0. ; ERUN4=0. ; RUN4=0.
+      DIFS=0. ; EDIFS=0. ; ACE2M=0.  
 
-      IF (KOCEAN .EQ. 1 ) THEN 
-        ENRGO0=WTRO*TGW*SHW
-        EOFRZ=WTRO*TFO*SHW
-        IF (ENRGO0+ENRGO.GE.EOFRZ) THEN
-C**** FLUXES RECOMPUTE TGW WHICH IS ABOVE FREEZING POINT FOR OCEAN
-          ENRGFO=0.
-          ACEFO=0.
-          IF (ROICE.LE.0.) THEN
-            TGW=TGW+(ENRGO/(WTRO*SHW)+TTRUNC)
-            RETURN
-          END IF
-        ELSE
-C**** FLUXES COOL TGO TO FREEZING POINT FOR OCEAN AND FORM SOME ICE
-c 80      ACEFO=(ENRGO0+ENRGO-EOFRZ)/(TFO*(SHI-SHW)-LHM)
- 80       ACEFO=(ENRGO0+ENRGO-EOFRZ)/(-LHM)
-          ENRGFO=ACEFO*(TFO*SHI-LHM)
-          IF (ROICE.LE.0.) THEN
-            ROICE=ACEFO/(ACE1I+AC2OIM)
-            TGW=TFO
-            SNOW=0.
-            TG1=TFO
-            TG2=TFO
-            TG3=TFO
-            TG4=TFO
-            MSI2=AC2OIM
-            RETURN
-          END IF
-        END IF
-      END IF 
-C****
       IF (ROICE .EQ. 0.) RETURN 
-      ACE2F=0. ! frozen ice at the bottom
-      ACE2M=0. ! melted ice at the bottom 
+      FMSI2=0 ; FHSI2=0 ; MELT1=0. ; MELT4=0.
 C****
       MSI1 = SNOW+ACE1I ! snow and first (physical) layer ice mass
-C***  CONVERT SEA ICE TEMPERATURE INTO ENTHALPY MINUS LATENT HEAT
+C**** CONVERT SEA ICE TEMPERATURE INTO ENTHALPY MINUS LATENT HEAT
       HSI1 = (SHI*TG1-LHM)*XSI1*MSI1 ! J/m^2
       HSI2 = (SHI*TG2-LHM)*XSI2*MSI1 ! J/m^2
       HSI3 = (SHI*TG3-LHM)*XSI3*MSI2 ! J/m^2
       HSI4 = (SHI*TG4-LHM)*XSI4*MSI2 ! J/m^2
-
-      IF (KOCEAN .EQ. 1) THEN
-        WTRI0=WTRO-(SNOW+ACE1I+MSI2) ! mixed layer mass below ice (kg/m^2)
-        EIW0=WTRI0*TGW*SHW      ! energy of mixed layer below ice (J/m^2) 
-        WTRW0=WTRO-ROICE*(SNOW+ACE1I+MSI2)
-        ENRGW0=WTRW0*TGW*SHW
-        RUN4=-EVAP
-        WTRW0 = WTRW0-ROICE*RUN4 ! water mass "+-" dew/evaporation
-        ERUN4=TGW*RUN4*SHW
-      END IF 
 C****
 C**** OCEAN ICE, CALCULATE TG1 AND 
 C****
@@ -809,18 +764,18 @@ C****
       HC2 = SHI*XSI2*MSI1 ! heat capacity of ice layer 2 (J/(degC*m^2))
       HC3 = SHI*XSI3*MSI2 ! heat capacity of ice layer 3 (J/(degC*m^2))
       HC4 = SHI*XSI4*MSI2 ! heat capacity of ice layer 4 (J/(degC*m^2))
-C***  CALCULATE AND APPLY DIFFUSIVE AND SURFACE ENERGY FLUXES
+C**** CALCULATE AND APPLY DIFFUSIVE AND SURFACE ENERGY FLUXES
 c      dF1dTI = 2.*DTSRCE/(ACE1I*BYRLI+SNOW*BYRLS) ! for non-Q-flux      
       dF2dTI = ALAMI*RHOI*DTSRCE/(0.5*XSI2*MSI1+0.5*XSI3*MSI2)
-C***           temperature derivative from F2 diffusive flux
+C****          temperature derivative from F2 diffusive flux
       dF3dTI = ALAMI*RHOI*DTSRCE*2./MSI2
-C***           temperature derivative from F3 diffusive flux
+C****          temperature derivative from F3 diffusive flux
       dF4dTI = ALAMI*RHOI*DTSRCE*2.*R4/MSI2
-C***           temperature derivative from F4 diffusive flux
+C****          temperature derivative from F4 diffusive flux
 CEXP  F2 = dF2dTI*(TG2-TG3) ! the diffusive
 CEXP  F3 = dF3dTI*(TG3-TG4) ! fluxes from
 CEXP  F4 = dF4dTI*(TG4-TGW) ! explicit method
-C***  DIFFUSIVE FLUXES FROM IMPLICIT METHOD
+C**** DIFFUSIVE FLUXES FROM IMPLICIT METHOD
 c      F1 = dF1dTI*(HC1*(TG1-TG2)+ALPHA*F0DT)/                       
 c     A     (HC1+ALPHA*dF1dTI)   ! for a non-Q-flux ocean model          
 c      F2 = dF2dTI*(HC2*(TG2-TG3)+ALPHA*F1)/                         
@@ -840,15 +795,13 @@ c     A     (HC2+ALPHA*dF2dTI) ! for a non-Q-flux ocean model
       IF (HSI1/LHM+XSI1*MSI1+DEW .LE. 0.) GO TO 160 ! go to freezing
 C**** FLUXES HEAT UP TG1 TO FREEZING POINT AND MELT SOME SNOW AND ICE
       MELT1 = HSI1/LHM+XSI1*MSI1+DEW ! melting + dew to layer 1
-      RUN0 = MELT1 ! water mass that flows to the ocean (kg/m^2)
-      IF (KOCEAN.EQ.1) WTRW0 = WTRW0+ROICE*RUN0 ! ocean mass (kg/m^2)
-C***  EVAPORATION FROM THE SURFACE
+C**** EVAPORATION FROM THE SURFACE
       IF (DEW .GT. 0.) GO TO 140 ! go to the dew case
-C***  DEW IS EVAPORATION NOW
-C***  EVAPORATION REDUCES SNOW OR ICE, MELT1>0.
+C**** DEW IS EVAPORATION NOW
+C**** EVAPORATION REDUCES SNOW OR ICE, MELT1>0.
       IF (MSI1-ACE1I+DEW .GT. MELT1) GO TO 130
-C***  ALL SNOW AND SOME ICE EVAPORATE AND MELT
-C***  ICE ADVECTION IS UPWARD INTO LAYER 2 FROM LAYER 3
+C**** ALL SNOW AND SOME ICE EVAPORATE AND MELT
+C**** ICE ADVECTION IS UPWARD INTO LAYER 2 FROM LAYER 3
       FMSI1 = XSI1*(MSI1-ACE1I)+DEW-MELT1 ! < 0.
 C*            upward mass flux from layer 2 into layer 1
       FMSI2 = MSI1-ACE1I+DEW-MELT1 ! < 0.
@@ -858,13 +811,11 @@ C*            upward mass flux from layer 3 into layer 2
       HSI1 = HSI1-FHSI1
       HSI2 = HSI2+(FHSI1-FHSI2)
       SNOW = 0. ! all snow evaporates and melts
-      DIFS = FMSI2 ! <0 (upward mass flux into layer 2)
-      EDIFS = FHSI2 ! energy of diffused ice mass DIFS
-      IF (KOCEAN.EQ.1) GO TO 170
+      IF (.not.QFIXR) GO TO 170
       GO TO 370
   130 CONTINUE
-C***  EVAPORATION AND MELTING REDUCE JUST SNOW AMOUNT
-C***  ICE ADVECTION IS DOWNWARD FROM LAYER 2 INTO LAYER 3
+C**** EVAPORATION AND MELTING REDUCE JUST SNOW AMOUNT
+C**** ICE ADVECTION IS DOWNWARD FROM LAYER 2 INTO LAYER 3
       FMSI2 = MIN(dSNdML*MELT1, MSI1-ACE1I+DEW-MELT1) ! > 0.
       FMSI1 = XSI1*FMSI2+XSI2*(DEW-MELT1)
       IF (FMSI1 .LT. 0.) FHSI1 = HSI2*FMSI1*R2/MSI1 ! upward
@@ -874,43 +825,37 @@ C***  ICE ADVECTION IS DOWNWARD FROM LAYER 2 INTO LAYER 3
       HSI2 = HSI2+(FHSI1-FHSI2)
       MSI1 = MSI1+DEW-MELT1-FMSI2 ! kg/m^2
       SNOW = MSI1-ACE1I
-      DIFS = FMSI2 ! >0 (downward mass flux from layer 2)
-      EDIFS = FHSI2 ! energy of diffused ice mass DIFS
-      IF (KOCEAN .EQ. 1) GO TO 210
+      IF (.not.QFIXR) GO TO 210
       GO TO 370
   140 CONTINUE
-C***  DEW INCREASES ICE AMOUNT,  MELT1 > 0.
+C**** DEW INCREASES ICE AMOUNT,  MELT1 > 0.
       IF (MSI1-ACE1I .GT. MELT1) GO TO 150
-C***  ALL SNOW AND SOME ICE MELT
+C**** ALL SNOW AND SOME ICE MELT
       FMSI1 = XSI1*(MSI1-ACE1I)+DEW-MELT1 ! upward into layer 1
       FMSI2 = MSI1-ACE1I+DEW-MELT1
       SNOW = 0.
       IF (FMSI2 .LE. 0.) THEN ! (if melting is greater than dew)
-C*** ADVECTION IS UPWARD INTO LAYER 2 FROM LAYER 3
+C****ADVECTION IS UPWARD INTO LAYER 2 FROM LAYER 3
         FHSI1 = HSI2*FMSI1*R2/MSI1 ! upward into layer 1 from layer 2
         FHSI2 = HSI3*FMSI2*R3/MSI2 ! upward into layer 2 from layer 3
         HSI1 = HSI1-FHSI1
         HSI2 = HSI2+(FHSI1-FHSI2)
-        DIFS = FMSI2 ! <0 upward ice mass into layer 2
-        EDIFS = FHSI2 ! energy of diffused ice mass DIFS
-        IF (KOCEAN .EQ. 1) GO TO 170
+        IF (.not.QFIXR) GO TO 170
         GO TO 370
       ENDIF
-C***  ICE ADVECTION IS DOWNWARD INTO LAYER 3 FROM LAYER 2
-C***  (if dew is greater than melting)
+C**** ICE ADVECTION IS DOWNWARD INTO LAYER 3 FROM LAYER 2
+C**** (if dew is greater than melting)
       IF (FMSI1 .LT. 0.) FHSI1 = HSI2*FMSI1*R2/MSI1 ! upward
       IF (FMSI1 .GE. 0.) FHSI1 = -LHM*FMSI1 ! downward into layer 2
       FHSI2 = HSI2*FMSI2*R2/MSI1 ! downward into layer 3 from layer 2
       HSI1 = HSI1-FHSI1
       HSI2 = HSI2+(FHSI1-FHSI2)
       MSI1 = ACE1I
-      DIFS = FMSI2 ! >0 (downward mass flux from layer 2)
-      EDIFS = FHSI2 ! energy of diffused ice mass DIFS
-      IF (KOCEAN .EQ. 1) GO TO 210
+      IF (.not.QFIXR) GO TO 210
       GO TO 370
   150 CONTINUE
-C***  MELTING REDUCES SNOW AMOUNT
-C***  ICE ADVECTION IS DOWNWARD FROM LAYER 2 INTO LAYER 3
+C**** MELTING REDUCES SNOW AMOUNT
+C**** ICE ADVECTION IS DOWNWARD FROM LAYER 2 INTO LAYER 3
       CMPRS = MIN(dSNdML*MELT1, MSI1-ACE1I-MELT1) ! > 0.
       FMSI1 = DEW+XSI1*CMPRS-XSI2*MELT1
       FMSI2 = DEW+CMPRS ! > 0. downward into layer 3 from layer 2
@@ -921,17 +866,15 @@ C***  ICE ADVECTION IS DOWNWARD FROM LAYER 2 INTO LAYER 3
       HSI2 = HSI2+(FHSI1-FHSI2)
       MSI1 = MSI1-MELT1-CMPRS ! new mass of the first physical layer
       SNOW = MSI1-ACE1I ! new snow mass after melting and compression
-      DIFS = FMSI2 ! >0 (downward mass flux from layer 2)
-      EDIFS = FHSI2 ! energy of diffused ice mass DIFS
-      IF (KOCEAN .EQ. 1) GO TO 210
+      IF (.not.QFIXR) GO TO 210
       GO TO 370
   160 CONTINUE
-C***  THE FIRST LAYER IS BELOW FREEZING
-C***  NO SNOW OR ICE MELTS IN LAYER 1
+C**** THE FIRST LAYER IS BELOW FREEZING
+C**** NO SNOW OR ICE MELTS IN LAYER 1
       IF (DEW .GT. 0.) GO TO 200 ! go to the dew case
       IF (MSI1-ACE1I+DEW .GE. 0.) GO TO 190
-C***  ALL SNOW AND SOME ICE EVAPORATE
-C***  ICE ADVECTION IS UPWARD INTO LAYER 2 FROM LAYER 3
+C**** ALL SNOW AND SOME ICE EVAPORATE
+C**** ICE ADVECTION IS UPWARD INTO LAYER 2 FROM LAYER 3
       FMSI1 = XSI1*(MSI1-ACE1I)+DEW ! < 0. upward into layer 1
       FMSI2 = MSI1-ACE1I+DEW ! < 0. upward into layer 2 from layer 3
       FHSI1 = HSI2*FMSI1*R2/MSI1 ! upward energy flux into layer 1
@@ -939,19 +882,12 @@ C***  ICE ADVECTION IS UPWARD INTO LAYER 2 FROM LAYER 3
       HSI1 = HSI1-FHSI1
       HSI2 = HSI2+(FHSI1-FHSI2)
       SNOW = 0. ! all snow evaporated
-      DIFS = FMSI2 ! <0 upward ice mass into layer 2
-      EDIFS = FHSI2 ! energy of diffused ice mass DIFS
-      IF (KOCEAN.EQ.1) GO TO 170
-      GO TO 370
+      IF (QFIXR) GO TO 370
   170 CONTINUE
       MSI1 = ACE1I
-         DIFSI = ROICE*DIFS
-         EDIFSI = ROICE*EDIFS
       IF (HSI4/LHM+XSI4*MSI2 .LE. 0.) GO TO 180 ! go to freezing case
-C***  FLUXES HEAT LAYER 4 TO FREEZING POINT AND MELT SOME ICE
+C**** FLUXES HEAT LAYER 4 TO FREEZING POINT AND MELT SOME ICE
       MELT4 = HSI4/LHM+XSI4*MSI2 ! > 0. melted ice from layer 4
-      ACE2M = MELT4
-      WTRW0 = WTRW0+ROICE*ACE2M
       FMSI3 = XSI4*FMSI2+XSI3*MELT4
       IF (FMSI3 .LE. 0.) FHSI3 = -LHM*FMSI3 ! upward into layer 3
       IF (FMSI3 .GT. 0.) FHSI3 = HSI3*FMSI3*R3/MSI2 ! downward
@@ -960,7 +896,7 @@ C***  FLUXES HEAT LAYER 4 TO FREEZING POINT AND MELT SOME ICE
       MSI2 = MSI2+FMSI2-MELT4 ! new ice mass of physical layer 2
       GO TO 230
   180 CONTINUE
-C***  NO ICE MELTS IN LAYER 4
+C**** NO ICE MELTS IN LAYER 4
 C     FMSI3 = XSI4*FMSI2 ! upward mass flux into layer 3 from layer 4
       FHSI3 = HSI4*FMSI2/MSI2 ! upward energy flux into layer 3
       HSI3 = HSI3+(FHSI2-FHSI3)
@@ -968,8 +904,8 @@ C     FMSI3 = XSI4*FMSI2 ! upward mass flux into layer 3 from layer 4
       MSI2 = MSI2+FMSI2
       GO TO 230
   190 CONTINUE
-C***  JUST SOME SNOW EVAPORATES
-C***  NO ADVECTION BETWEEN LAYER 2 AND 3
+C**** JUST SOME SNOW EVAPORATES
+C**** NO ADVECTION BETWEEN LAYER 2 AND 3
 C     FMSI1 = XSI2*DEW ! < 0. upward mass flux into layer 1
 C     FMSI2 = 0. ! no ice advection between layers 2 and 3
       FHSI1 = HSI2*DEW/MSI1 ! upward energy flux into layer 1
@@ -977,13 +913,10 @@ C     FMSI2 = 0. ! no ice advection between layers 2 and 3
       HSI2 = HSI2+FHSI1
       MSI1 = MSI1+DEW ! new ice mass of the first physical layer
       SNOW = MSI1-ACE1I ! new snow mass
-
-      IF (KOCEAN .NE. 1) GO TO 370
+      IF (QFIXR) GO TO 370
       IF (HSI4/LHM+XSI4*MSI2 .LE. 0.) GO TO 230 ! go to freezing case
-C***  FLUXES HEAT LAYER 4 TO FREEZING POINT AND MELT SOME ICE
+C**** FLUXES HEAT LAYER 4 TO FREEZING POINT AND MELT SOME ICE
       MELT4 = HSI4/LHM+XSI4*MSI2 ! melted ice from layer 4
-      ACE2M = MELT4
-      WTRW0 = WTRW0+ROICE*ACE2M
 C     FMSI3 = XSI3*MELT4 ! > 0. downward mass flux into layer 4
       FHSI3 = HSI3*MELT4/MSI2 ! downward heat flux into layer 4
       HSI3 = HSI3-FHSI3
@@ -991,59 +924,135 @@ C     FMSI3 = XSI3*MELT4 ! > 0. downward mass flux into layer 4
       MSI2 = MSI2-MELT4 ! new ice mass of the second physical layer
       GO TO 230
   200 CONTINUE
-C***  DEW INCREASES ICE AMOUNT, ADVECT ICE DOWNWARD
-C***  ICE ADVECTION IS DOWNWARD FROM LAYER 2 INTO LAYER 3
+C**** DEW INCREASES ICE AMOUNT, ADVECT ICE DOWNWARD
+C**** ICE ADVECTION IS DOWNWARD FROM LAYER 2 INTO LAYER 3
 C     FMSI1 = DEW ! > 0. downward mass flux into layer 2
       FMSI2 = DEW ! > 0. downward mass flux into layer 3
       FHSI1 = HSI1*FMSI2/(XSI1*MSI1+DEW) ! downward heat flux
       FHSI2 = HSI2*FMSI2*R2/MSI1 ! downward heat flux into layer 3
       HSI1 = HSI1-FHSI1
       HSI2 = HSI2+(FHSI1-FHSI2)
-      DIFS = FMSI2 ! >0 (downward mass flux from layer 2)
-      EDIFS = FHSI2 ! energy of diffused ice mass DIFS
-      IF (KOCEAN .EQ. 0) GO TO 370
+      IF (QFIXR) GO TO 370
   210 CONTINUE
-         DIFSI = ROICE*DIFS
-         EDIFSI = ROICE*EDIFS
       IF (HSI4/LHM+XSI4*MSI2 .GT. 0.) THEN
 C**** FLUXES HEAT UP TG2 TO FREEZING POINT AND MELT SOME ICE
         MELT4 = HSI4/LHM+XSI4*MSI2 ! melted ice from layer 4
-        ACE2M = MELT4
-        WTRW0 = WTRW0+ROICE*ACE2M
 C     FMSI3 = XSI4*FMSI2+XSI3*MELT4 ! > 0. downward into layer 4
         FHSI3 = HSI3*((XSI4/XSI3)*FMSI2+MELT4)/MSI2 ! downward
         HSI3 = HSI3+(FHSI2-FHSI3)
         HSI4 = HSI4+FHSI3
         MSI2 = MSI2+FMSI2-MELT4 ! new ice mass of physical layer 2
       ELSE
-C***  NO ICE MELTS IN LAYER 4
+C**** NO ICE MELTS IN LAYER 4
 C     FMSI3 = XSI4*FMSI2 ! > 0. downward mass flux into layer 4
         FHSI3 = HSI3*(XSI4/XSI3)*FMSI2/MSI2 ! downward heat flux
         HSI3 = HSI3+(FHSI2-FHSI3)
         HSI4 = HSI4+FHSI3
         MSI2 = MSI2+FMSI2
       END IF
-  230  CONTINUE
-C***  CALCULATE THE ENERGY OF THE WATER BELOW THE ICE AT FREEZING POINT
-C***  AND CHECK WHETHER NEW ICE MUST BE FORMED
+ 230  CONTINUE
+ 370  CONTINUE
+C**** save output diagnostics
+      DIFS  = FMSI2 ! <0 upward ice mass into layer 2
+      EDIFS = FHSI2 ! energy of diffused ice mass DIFS
+      DIFSI = ROICE*DIFS
+      EDIFSI= ROICE*EDIFS
+      ACE2M = MELT4             ! melted ice at the bottom
+      RUN0 = MELT1 ! water mass that flows to the ocean (kg/m^2)
+      RETURN 
+      END SUBROUTINE SEA_ICE 
+
+      SUBROUTINE OSOURC (SNOW,ROICE,TG1,TG2,TG3,TG4,MSI1,MSI2,HSI1,HSI2
+     *     ,HSI3,HSI4,TGW,WTRO,EIW0,OTDT,ENRGO,ERUN4,DIFSI,EDIFSI
+     *     ,ENRGFO,ACEFO,ACE2F,WTRW0,ENRGW0,ENRGFI,F2DT,TFW,FLEAD
+     *     ,QFIXR,QCMPR)
+!@sum  OSOURC applies fluxes under ice and on ice free areas of ocean
+!@auth Gary Russell
+!@ver  1.0
+      IMPLICIT NONE
+
+      REAL*8, PARAMETER :: YSI1 = XSI1*ACE1I/(ACE1I+AC2OIM),
+     *                     YSI2 = XSI2*ACE1I/(ACE1I+AC2OIM),
+     *                     YSI3 = XSI3*AC2OIM/(ACE1I+AC2OIM), 
+     *                     YSI4 = XSI4*AC2OIM/(ACE1I+AC2OIM)
+      REAL*8, PARAMETER :: Z2OIX = 4.9, 
+     *                     BYZICX=1./(Z1I+Z2OIX) 
+!@var QFIXR  true if RSI and MSI2 are fixed (ie. for fixed SST run)     
+      LOGICAL, INTENT(IN) :: QFIXR
+!@var QCMPR  true if ice should be compressed due to leads etc.
+      LOGICAL, INTENT(IN) :: QCMPR
+!@var TFW freezing temperature for water underlying ice (C)
+      REAL*8, INTENT(IN) :: TFW
+!@var FLEAD minimum lead fraction for ice (%)
+      REAL*8, INTENT(IN) :: FLEAD
+
+      REAL*8 ROICE, ROICEN, OPNOCN, SNOW, MSI1, MSI2, ACE2F, DRSI, DRI
+      REAL*8, INTENT(OUT) :: TG1, TG2, TG3, TG4
+      REAL*8, INTENT(INOUT) :: HSI1, HSI2, HSI3, HSI4 
+      REAl*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4  
+!@var TGW and WTRO mixed layer temp.(C) and mass (kg/m^2)  
+      REAL*8 TGW, WTRO, OTDT, ENRGO
+      REAL*8 WTRI0, EIW0, ENRGIW, ENRGFI, WTRI1, EFIW, 
+     *       ENRGO0, EOFRZ, ENRGFO, ACEFO
+      REAL*8 WTRW0, ENRGW0, WTRW, ENRGW ! only for ocean 
+      REAL*8, INTENT(INOUT) :: EDIFSI, DIFSI
+      REAL*8, INTENT(IN) :: F2DT, ERUN4
+      REAL*8 DIFS1
+
+      IF (KOCEAN .EQ. 1 ) THEN 
+        ENRGO0=WTRO*TGW*SHW
+        EOFRZ=WTRO*TFW*SHW
+        IF (ENRGO0+ENRGO.GE.EOFRZ) THEN
+C**** FLUXES RECOMPUTE TGW WHICH IS ABOVE FREEZING POINT FOR OCEAN
+          ENRGFO=0.
+          ACEFO=0.
+          IF (ROICE.LE.0.) THEN
+            TGW=TGW+(ENRGO/(WTRO*SHW)+TTRUNC)
+            RETURN
+          END IF
+        ELSE
+C**** FLUXES COOL TGO TO FREEZING POINT FOR OCEAN AND FORM SOME ICE
+c 80      ACEFO=(ENRGO0+ENRGO-EOFRZ)/(TFW*(SHI-SHW)-LHM)
+ 80       ACEFO=(ENRGO0+ENRGO-EOFRZ)/(-LHM)
+          ENRGFO=ACEFO*(TFW*SHI-LHM)
+          IF (ROICE.LE.0.) THEN
+            ROICE=ACEFO/(ACE1I+AC2OIM)
+            TGW=TFW
+            SNOW=0.
+            TG1=TFW
+            TG2=TFW
+            TG3=TFW
+            TG4=TFW
+            MSI2=AC2OIM
+            RETURN
+          END IF
+        END IF
+      END IF 
+C****
+      IF (ROICE.le.0) RETURN
+      ACE2F=0. ! frozen ice at the bottom
+
+      IF (QFIXR) GO TO 370
+C**** CALCULATE THE ENERGY OF THE WATER BELOW THE ICE AT FREEZING POINT
+C**** AND CHECK WHETHER NEW ICE MUST BE FORMED
       ENRGIW = F2DT+OTDT-ERUN4 ! heat flux to the ocean under ice
       ENRGFI = 0.
       WTRI1 = WTRO-(MSI1+MSI2) ! new mass of ocean (kg/m^2)
-      EFIW = WTRI1*TFO*SHW ! freezing energy of ocean mass WTRI1
+      EFIW = WTRI1*TFW*SHW ! freezing energy of ocean mass WTRI1
       IF (EIW0+ENRGIW .GT. EFIW) GO TO 250 ! go to no freezing case
-C***  FLUXES WOULD COOL TGW TO FREEZING POINT
-C***  AND FREEZE SOME MORE ICE
-c      ACE2F = (EIW0+ENRGIW-EFIW)/(TFO*(SHI-SHW)-LHM) !
+C**** FLUXES WOULD COOL TGW TO FREEZING POINT
+C**** AND FREEZE SOME MORE ICE
+c      ACE2F = (EIW0+ENRGIW-EFIW)/(TFW*(SHI-SHW)-LHM) !
       ACE2F = (EIW0+ENRGIW-EFIW)/(-LHM) !
 C*            ocean mass that freezes under the ice
-      ENRGFI = ACE2F*(TFO*SHI-LHM) ! energy of frozen ice
-C***  CALCULATE ADVECTIVE HEAT FLUX FROM LAYER 3 TO LAYER 4 OF ICE
+      ENRGFI = ACE2F*(TFW*SHI-LHM) ! energy of frozen ice
+C**** CALCULATE ADVECTIVE HEAT FLUX FROM LAYER 3 TO LAYER 4 OF ICE
 C     FMSI3 = -XSI3*ACE2F ! < 0.
 C     FMSI4 = -ACE2F
       FHSI3 = -HSI4*ACE2F*(XSI3/XSI4)/MSI2
-C***  COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
+C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       IF (ACEFO .GT. 0.) GO TO 240
-C***  NEW ICE IS FORMED BELOW OLD SEA ICE
+C**** NEW ICE IS FORMED BELOW OLD SEA ICE
       WTRW = WTRW0-ROICE*ACE2F ! new ocean mass
       ENRGW = ENRGW0+ROICE*(ENRGIW-ENRGFI)+(1.-ROICE)*ENRGO ! energy
       TGW = ENRGW/(WTRW*SHW)+TTRUNC ! new ocean temperature
@@ -1052,7 +1061,7 @@ C***  NEW ICE IS FORMED BELOW OLD SEA ICE
       MSI2 = MSI2+ACE2F ! new ice mass of physical layer 2
       GO TO 270
   240 CONTINUE
-C***  NEW ICE IS FORMED BELOW OLD SEA ICE AND ON OPEN OCEAN
+C**** NEW ICE IS FORMED BELOW OLD SEA ICE AND ON OPEN OCEAN
       WTRW = WTRW0-(1.-ROICE)*ACEFO-ROICE*ACE2F ! new ocean mass
       ENRGW = ENRGW0+(1.-ROICE)*(ENRGO-ENRGFO)+ROICE*(ENRGIW-ENRGFI)
       TGW = ENRGW/(WTRW*SHW)+TTRUNC ! new ocean temperature
@@ -1070,13 +1079,13 @@ C***  NEW ICE IS FORMED BELOW OLD SEA ICE AND ON OPEN OCEAN
       GO TO 270
   250 CONTINUE
       IF (ACEFO .GT. 0.) GO TO 260 ! new ice on the open ocean
-C***  NO NEW ICE IS FORMED UNDERNEATH THE OLD ONE
+C**** NO NEW ICE IS FORMED UNDERNEATH THE OLD ONE
       WTRW = WTRW0 ! new ocean mass
       ENRGW = ENRGW0+ROICE*ENRGIW+(1.-ROICE)*ENRGO ! energy of new oc.
       TGW = ENRGW/(WTRW*SHW)+TTRUNC ! new ocean temperature
       GO TO 270
   260 CONTINUE
-C***  NEW ICE IS FORMED ON THE OPEN OCEAN
+C**** NEW ICE IS FORMED ON THE OPEN OCEAN
       WTRW = WTRW0-(1.-ROICE)*ACEFO ! new ocean mass
       ENRGW = ENRGW0+(1.-ROICE)*(ENRGO-ENRGFO)+ROICE*ENRGIW
       TGW = ENRGW/(WTRW*SHW)+TTRUNC ! new ocean temperature
@@ -1090,10 +1099,9 @@ C***  NEW ICE IS FORMED ON THE OPEN OCEAN
       HSI4 = ((1.-ROICE)*ENRGFO*YSI4+ROICE*HSI4)/(ROICE+DRSI)
       ROICE = ROICE+DRSI ! new ice concentration
   270 CONTINUE
-      IF (PLAKE .GT. 0.) GO TO 360 ! no compression for lake ice
-C***  COMPRESS THE ICE HORIZONTALLY
+      IF (QCMPR) THEN           ! COMPRESS THE ICE HORIZONTALLY
       IF (MSI2 .GE. AC2OIM) GO TO 280 ! ice is thick enough
-C***  SEA ICE IS TOO THIN
+C**** SEA ICE IS TOO THIN
       ROICEN = ROICE*(ACE1I+MSI2)/(ACE1I+AC2OIM) ! new ice concentr.
       GO TO 290
   280 CONTINUE
@@ -1111,10 +1119,11 @@ C     FMSI3 = XSI3*FMSI4 ! < 0. upward ice mass flux into layer 3
       HSI4 = HSI4+(FHSI3-FHSI4)
       MSI2 = MSI2-FMSI4 ! new ice mass of second physical layer
 C     SNOW = SNOW   ! snow thickness is conserved 
-      DIFS = DRI*ACE1I/ROICE
-         EDIFSI = EDIFSI+ROICE*(HSI1+HSI2)*(DIFS/MSI1)*0.5
-         DIFSI = DIFSI+ROICE*DIFS
+      DIFS1 = DRI*ACE1I/ROICE
+      EDIFSI = EDIFSI+ROICE*(HSI1+HSI2)*(DIFS1/MSI1)*0.5
+      DIFSI = DIFSI+ROICE*DIFS1
       ROICE = ROICEN
+      END IF
 C**** RESAVE PROGNOSTIC QUANTITIES
   360 CONTINUE
   370 CONTINUE
@@ -1124,7 +1133,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
       TG4 = (HSI4/(XSI4*MSI2) +LHM)/SHI ! temperature of layer 4
 
       RETURN 
-      END SUBROUTINE SEA_ICE 
+      END SUBROUTINE OSOURC 
 
       END MODULE OCEAN
 

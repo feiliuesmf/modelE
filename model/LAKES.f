@@ -17,10 +17,6 @@ C****
 !@var BYXLI1,BYXLI2,BYXLI3,BYXLI4 reciprocals of XLIx
       REAL*8, PARAMETER :: BYXLI1=1./XLI1, BYXLI2=1./XLI2,
      *                     BYXLI3=1./XLI3, BYXLI4=1./XLI4
-!@var TFL freezing temperature for lakes (=0 C)
-      REAL*8, PARAMETER :: TFL = 0
-!@var FLEAD lead fraction for lakes
-      REAL*8, PARAMETER :: FLEAD=.05d0   ! = 0?
 !@var KDIREC directions for river flow 
 !**** (0 no flow, 1-8 anti-clockwise from top RH corner
 !@var IDPOLE,JDPOLE special directions for south pole flow

@@ -30,6 +30,8 @@ C****
       USE LANDICE, only : precli
       IMPLICIT NONE
       REAL*8 MSI1, MSI2
+!@var QFIXR true if RSI and MSI2 are fixed (ie. for fixed SST run)
+      LOGICAL QFIXR
 
       INTEGER I,J,L,K,IMAX,JR
       REAL*8 AENRGP,BENRGP,CENRGP,BEDIFS,CEDIFS,AEFO
@@ -170,10 +172,13 @@ C****
       TG2 = GDATA(I,J,7)  ! second layer sea ice temperature
       TG3 = GDATA(I,J,15) ! third layer sea ice temperature
       TG4 = GDATA(I,J,16) ! fourth layer sea ice temperature
+      QFIXR = .TRUE.
+      IF (KOCEAN.eq.1) QFIXR=.FALSE.
+c      IF (FLAKE(I,J).gt.0) QFIXR=.FALSE.   ! will soon be implemented
 
 C***  CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
       CALL PREC_SI(SNOW,MSI2,MSI1,TG1,TG2,TG3,TG4,PRCP,TPRCP,EPRCP
-     *     ,RUN0,DIFS,EDIFS,ERUN2)
+     *     ,RUN0,DIFS,EDIFS,ERUN2,QFIXR)
 
       IF (KOCEAN.EQ.1) THEN
         ODATA(I,J, 3)=MSI2
@@ -1140,8 +1145,9 @@ C****
      *     j_ace2,j_snow,j_run1,j_f2dt,j_evap,j_oht,j_omlt,j_edifs,
      *     j_f1dt,j_erun2,j_imelt,j_run2,j_dwtr2
 
-      USE OCEAN, only : odata,z1o,ace1i,ota,otb,otc,t50, sea_ice
-      USE LAKES_COM, only : mwl,gml
+      USE OCEAN, only : odata,z1o,ace1i,ota,otb,otc,t50,sea_ice,tfo
+     *     ,fleadoc,osourc
+      USE LAKES_COM, only : mwl,gml,tfl,fleadlk
       USE LANDICE, only : ace2li,lndice
       IMPLICIT NONE
 
@@ -1164,7 +1170,12 @@ C****
      *     ,ACE1,ACE2,SNOWS,WTR1S
      *     ,WTR2S,TG1S,TG2S,TGW,WTRO,TG1,TG2,TG3,TG4,WTR1,WTR2,RUN0,RUN4
      *     ,ERUN4,DIFSI,EDIFSI,DIFS,EDIFS,ENRGFO,ACEFO,ACE2M,ACE2F
-     *     ,ENRGFI,F2DT,POLAKE,PLKICE
+     *     ,ENRGFI,F2DT,POLAKE,PLKICE,MSI1,HSI1,HSI2
+     *     ,HSI3,HSI4,EIW0,WTRW0,ENRGW0,WTRI0
+!@var QFIXR  true if RSI and MSI2 are fixed (ie. for fixed SST run)     
+      LOGICAL QFIXR
+!@var QCMPR  true if ice should be compressed due to leads etc.
+      LOGICAL QCMPR
 C****
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
@@ -1302,11 +1313,11 @@ C****
         MWL(I,J) = MWL(I,J) - EVAP*POLAKE*DXYP(J)
         GML(I,J) = GML(I,J) + E0(I,J,1)*POLAKE*DXYP(J)
       END IF
+      TGW=ODATA(I,J,1)
       IF (KOCEAN .NE. 1) THEN ! .and. NOT LAKE?
            ATG2=ATG2+ODATA(I,J,1)*POCEAN
            TG2S=TG2S+ODATA(I,J,1)*POCEAN
       ELSE
-        TGW=ODATA(I,J,1)
         WTRO=Z1O(I,J)*RHOW
         F0DT=E0(I,J,1)
            AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+F0DT*POCEAN
@@ -1341,10 +1352,32 @@ C***  CALL SEA ICE SUBROUTINE
          AIJ(I,J,IJ_F0OI) =AIJ(I,J,IJ_F0OI) +F0DT*POICE
          AIJ(I,J,IJ_EVAPI)=AIJ(I,J,IJ_EVAPI)+EVAP*POICE
 
-      CALL SEA_ICE(DTSRCE,SNOW,ROICE,FLAKE(I,J),TG1,TG2,TG3,TG4,
-     *     MSI2,F0DT,F1DT,EVAP,TGW,WTRO,OTDT,ENRGO,RUN0,RUN4,ERUN4,
-     *     DIFSI,EDIFSI,DIFS,EDIFS,ENRGFO,ACEFO,ACE2M,ACE2F,ENRGFI,F2DT)
+      QFIXR = .TRUE.
+      QCMPR = .FALSE.
+      IF (KOCEAN.eq.1) QFIXR=.FALSE.
+      IF (KOCEAN.eq.1.and.FLAKE(I,J).le.0) QCMPR=.TRUE.
+c     IF (FLAKE(I,J).gt.0) QFIXR=.FALSE.   ! will soon be implemented
 
+      IF (KOCEAN .EQ. 1) THEN
+        WTRI0=WTRO-(SNOW+ACE1I+MSI2) ! mixed layer mass below ice (kg/m^2)
+        EIW0=WTRI0*TGW*SHW      ! energy of mixed layer below ice (J/m^2) 
+        WTRW0=WTRO-ROICE*(SNOW+ACE1I+MSI2)
+        ENRGW0=WTRW0*TGW*SHW
+        RUN4=-EVAP
+        WTRW0 = WTRW0-ROICE*RUN4 ! water mass "+-" dew/evaporation
+        ERUN4=TGW*RUN4*SHW
+      END IF 
+
+      CALL SEA_ICE(DTSRCE,SNOW,ROICE,TG1,TG2,TG3,TG4,MSI1,MSI2
+     *     ,F0DT,F1DT,EVAP,HSI1,HSI2,HSI3,HSI4,TGW,RUN0
+     *     ,DIFSI,EDIFSI,DIFS,EDIFS,ACE2M,F2DT,TFO,QFIXR)
+
+      IF (KOCEAN.EQ.1) WTRW0 = (WTRW0+ROICE*RUN0)+ROICE*ACE2M
+
+      CALL OSOURC(SNOW,ROICE,TG1,TG2,TG3,TG4,MSI1,MSI2,HSI1,HSI2,
+     *     HSI3,HSI4,TGW,WTRO,EIW0,OTDT,ENRGO,ERUN4,DIFSI,EDIFSI,
+     *     ENRGFO,ACEFO,ACE2F,WTRW0,ENRGW0,ENRGFI,F2DT,TFO,
+     *     FLEADOC,QFIXR,QCMPR)
 C****
 C**** RESAVE PROGNOSTIC QUANTITIES
 C****
