@@ -12,7 +12,8 @@
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm
 #ifdef TRACERS_WATER
-     & ,nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD, tr_evap_fact
+     &     ,nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD,
+     *     tr_evap_fact
 #endif
 #endif
 CCC   USE RANDOM
@@ -150,17 +151,17 @@ c for tracers in general, added by Koch
 !@var TMFAC used to adjust tracer moments
 #ifdef TRACERS_AEROSOLS_Koch
 c for sulfur chemistry
+!@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
       REAL*8 WA_VOL
       REAL*8, DIMENSION(NTM) ::SULFOUT,SULFIN,SULFINC
 c for diagnostics
       REAL*8, DIMENSION(LM,NTM) :: DT_SULF_MC,DT_SULF_SS
-!@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
 #endif
       COMMON/CLD_WTRTRCCOM/TRWML, TRSVWML,TRPRSS,TRPRMC
-     *  ,FQCONDT, FWASHT, FPRCPT, FQEVPT,WMXTR, b_beta_DT, precip_mm
-     *  ,THLAW,THWASH,TR_LEF,TMFAC,TMFAC2,TR_LEFT
+     *     ,FQCONDT, FWASHT, FPRCPT, FQEVPT,WMXTR, b_beta_DT, precip_mm
+     *     ,THLAW,THWASH,TR_LEF,TMFAC,TMFAC2,TR_LEFT
 #ifdef TRACERS_AEROSOLS_Koch
-     * ,WA_VOL,SULFOUT,SULFIN,SULFINC,DT_SULF_MC,DT_SULF_SS
+     *     ,WA_VOL,SULFOUT,SULFIN,SULFINC,DT_SULF_MC,DT_SULF_SS
 #endif
 !$OMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
 #endif
@@ -253,19 +254,19 @@ C**** functions
       REAL*8, DIMENSION(NMOM,LM,NTM) :: TMOMOLD,DTMOM,DTMOMR
       REAL*8, DIMENSION(NTM)      :: TMP,  TMPMAX,  TMDN, TENV
       REAL*8, DIMENSION(NMOM,NTM) :: TMOMP,TMOMPMAX,TMOMDN
+!@var TPOLD saved plume temperature after condensation for tracers
+!@+   (this is slightly different from SVTP or TPSAV)
+      REAL*8, DIMENSION(LM)       :: TPOLD
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM)      :: TRPRCP
       REAL*8, DIMENSION(NTM,LM)   :: TRCOND
-cdmks
       LOGICAL TR_CONV
 #ifdef TRACERS_AEROSOLS_Koch
       REAL*8 TMP_SUL(LM,NTM)
 c for debugging
-      REAL*8 TROLD
-     *   ,DT1(lm),DT2(lm),DT3(lm),DTM1(lm),DTM2(lm),DTM3(lm)
+      REAL*8 TROLD,DT1(lm),DT2(lm),DT3(lm),DTM1(lm),DTM2(lm),DTM3(lm)
       integer ll
 #endif
-cdmkf
       REAL*8 DTSUM,HEFF
 #endif
 #endif
@@ -404,9 +405,7 @@ C**** initiallise arrays of computed ouput
       trsvwml = 0.
       TRPRCP = 0.
       TRPRMC = 0.
-cdmks
       TR_CONV=.true.
-cdmkf
 #endif
 C**** zero out diagnostics
          MCFLX =0.
@@ -429,12 +428,10 @@ C**** SAVE ORIG PROFILES
 #ifdef TRACERS_ON
       TMOLD(:,1:NTX) = TM(:,1:NTX)
       TMOMOLD(:,:,1:NTX) = TMOM(:,:,1:NTX)
-cdmks
 #ifdef TRACERS_AEROSOLS_Koch
       DT1(:)=TM(:,1)
       DTM1(:)=TMOM(3,:,1)
 #endif
-cdmkf
 #endif
 C**** OUTER MC LOOP OVER BASE LAYER
       DO 600 LMIN=1,LMCM-1
@@ -533,12 +530,10 @@ C     IF(LMIN.LE.2) ITYPE=2          ! entraining & non-entraining
       FCTYPE=1.
 
       DO 570 IC=1,ITYPE
-cdmks
 #ifdef TRACERS_AEROSOLS_Koch
       DT2(:)=TM(:,1)
       DTM2(:)=TMOM(3,:,1)
 #endif
-cdmkf
 C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       DO L=1,LM
         COND(L)=0.
@@ -563,15 +558,14 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       DTMOM(:,:,1:NTX) = 0.
       DTMR(:,1:NTX) = 0.
       DTMOMR(:,:,1:NTX) = 0.
+      TPOLD = 0.
 #endif
 #ifdef TRACERS_WATER
       TRCOND = 0.
-cdmks
 #ifdef TRACERS_AEROSOLS_Koch
       DT_SULF_MC(:,1:NTX)=0.
       DT_SULF_SS(:,1:NTM)=0.
 #endif
-cdmkf
 #endif
       MC1=.FALSE.
       LHX=LHE
@@ -604,6 +598,7 @@ C     FPLUM0=FMP1*BYAM(LMIN)
         DTMR(LMIN,1:NTX)=-TMP(1:NTX)
       DTMOMR(xymoms,LMIN,1:NTX)=-TMOMP(xymoms,1:NTX)
       DTMOMR( zmoms,LMIN,1:NTX)=-TMOMOLD(zmoms,LMIN,1:NTX)*FPLUME
+      TPOLD(LMIN)=TPSAV(LMIN)  ! initial plume temperature
 #endif
       DO K=1,KMAX
          UMP(K)=UM(K,LMIN)*FPLUME
@@ -801,6 +796,10 @@ C****
       SMP=SMP+SLH*DQ/PLK(L)
       QMP=QMP-DQ
   292 DQSUM=DQSUM+DQ
+#ifdef TRACERS_ON
+C**** save plume temperature after possible condensation
+      TPOLD(L)=SMP*PLK(L)/MPLUME
+#endif
       FQCOND = 0
       IF(DQSUM.GE.0.) THEN
         IF (QMPT.gt.teeny) FQCOND = DQSUM/QMPT
@@ -814,23 +813,19 @@ C****
 #ifdef TRACERS_WATER
 C**** CONDENSING TRACERS
       WMXTR=DQSUM*BYAM(L)
-cdmks
 #ifdef TRACERS_AEROSOLS_Koch
       WA_VOL=COND(L)*1.d2*BYGRAV
       DO N=1,NTX
-      IF (FPLUME.GT.teeny) then
-      TMP_SUL(L,N)=TMP(N)/FPLUME
-      else
-      TMP_SUL(L,N)=0.
-      ENDIF
+        IF (FPLUME.GT.teeny) then
+          TMP_SUL(L,N)=TMP(N)/FPLUME
+        else
+          TMP_SUL(L,N)=0.
+        ENDIF
       END DO
-      CALL GET_SULFATE(L,TP,FPLUME,TR_CONV,WA_VOL,
-     *WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND,AIRM
-     *,LHX)
+      CALL GET_SULFATE(L,TPOLD(L),FPLUME,TR_CONV,WA_VOL,WMXTR,SULFIN
+     *     ,SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND,AIRM,LHX)
 #endif
-cdmkf
       DO N=1,NTX
-cdmks
 #ifdef TRACERS_AEROSOLS_Koch
 c first apply chemistry
 c removal of precursers
@@ -841,17 +836,13 @@ c formation of sulfate
 c below TR_LEFT(N) limits the amount of available tracer in gridbox
 #endif
         TR_LEF=1.D0
-cdmkf
-        CALL GET_COND_FACTOR(L,N,WMXTR,TP,LHX,FPLUME,FQCOND
-     *  ,FQCONDT,TR_CONV,TRCOND,TM,THLAW,TR_LEF)
-cdmk added last 6 arguments
-cdmks
+        CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
+     *       ,FQCOND,FQCONDT,TR_CONV,TRCOND,TM,THLAW,TR_LEF)
 #ifdef TRACERS_AEROSOLS_Koch
         TRCOND(N,L) = FQCONDT * TR_LEFT(N)*TMP(N) + TRCOND(N,L)
         TMP(N)         = TMP(N)   *(1.-FQCONDT*TR_LEFT(N))
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT*TR_LEFT(N))
 #else
-cdmkf
         TRCOND(N,L) = FQCONDT * TMP(N)
         TMP(N)         = TMP(N)   *(1.-FQCONDT)
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT)
@@ -1099,7 +1090,6 @@ C**** diagnostics
         DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))
       END DO
 #ifdef TRACERS_ON
-cdmks
 #ifdef TRACERS_AEROSOLS_Koch
 c debugging
       do l=1,lm
@@ -1110,7 +1100,6 @@ c debugging
       DT3(:)=TM(:,1)
       DTM3(:)=TMOM(3,:,1)
 #endif
-cdmkf
 C**** Subsidence of tracers by Quadratic Upstream Scheme
       DO N=1,NTX
       ML(LDMIN:LMAX) =  AIRM(LDMIN:LMAX) +    DMR(LDMIN:LMAX)
@@ -1127,7 +1116,6 @@ C**** save new 'environment' profile for static stability calc.
       DO L=1,LM
         SM1(L)=SM(L)
         QM1(L)=QM(L)
-cdmks
 #ifdef TRACERS_AEROSOLS_Koch
 c debugging
       do n=1,ntx
@@ -1149,7 +1137,6 @@ c debugging
 c     if (TM(L,N).lt.0.0) tm(l,n)=0.
       end do
 #endif
-cdmkf
       END DO
 #ifdef TRACERS_ON
       TM1(:,1:NTX) = TM(:,1:NTX)
@@ -1237,13 +1224,11 @@ C**** UPDATE TEMPERATURE AND HUMIDITY DUE TO NET REEVAPORATION IN CLOUDS
       SM(L)=SM(L)-(SLH*DQSUM+HEAT1)/PLK(L)
       SMOM(:,L) =  SMOM(:,L)*(1.-FSSUM)
       QM(L)=QM(L)+DQSUM
-cdmks debug
 #ifdef TRACERS_AEROSOLS_Koch
       do n=1,ntx
       if (tm(l,n).lt.0.) write(6,*)'sssc22',n,tm(l,n),l
       end do
 #endif
-cdmkf
 #ifdef TRACERS_WATER
 C**** Tracer net re-evaporation
 C**** (If 100% evaporation, allow all tracers to evaporate completely.)
@@ -1273,13 +1258,11 @@ C**** WASHOUT of TRACERS BELOW CLOUD
         WMXTR = PRCPMC*BYAM(L)
         precip_mm = PRCPMC*100.*bygrav
         b_beta_DT = FPLUME
-cdmks
 #ifdef TRACERS_AEROSOLS_Koch
         WA_VOL= precip_mm*DXYPJ
         CALL GET_SULFATE(L,TNX,FPLUME,TR_CONV,WA_VOL,WMXTR,SULFIN,
-     *  SULFINC,SULFOUT,TR_LEFT,TM,TRCOND,AIRM,LHX)
+     *       SULFINC,SULFOUT,TR_LEFT,TM,TRCOND,AIRM,LHX)
 #endif
-cdmkf
         DO N=1,NTX
 #ifdef TRACERS_AEROSOLS_Koch
           TRCOND(N,L)=TRCOND(N,L)*(1.+SULFINC(N))
@@ -1290,7 +1273,7 @@ cdmkf
 cdmk Here I took out GET_COND, since we are below cloud.
 cdmk GET_WASH now has gas dissolution, extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *    ,TNX,LHX,WMXTR,FPLUME,L,TM,TRCOND,THLAW)
+     *         ,TNX,LHX,WMXTR,FPLUME,L,TM,TRCOND,THLAW)
           TRCOND(N,L) = FWASHT*TM(L,N)+TRCOND(N,L)+THLAW
           IF (TM(L,N).GT.teeny) THEN
             TMFAC=THLAW/TM(L,N)
@@ -1469,10 +1452,8 @@ C**** -cooled rain, increasing COEFM enhances probability of snow.
 !@var FERT tracer-specific fraction of tracer in precipitate evaporating
       REAL*8 ::DTWRT,DTPRT,DTERT,DTQWT,FWTOQT,FQTOWT,FPRT,FERT,PRLIQ
 !@var BELOW_CLOUD logical- is the current level below cloud?
-cdmks
       LOGICAL TR_CONV
       REAL*8 FCLD_SV,THWASH
-cdmkf
 !@var CLOUD_YET logical- in L loop, has there been any cloud so far?
       LOGICAL BELOW_CLOUD,CLOUD_YET
 #endif
@@ -1576,10 +1557,8 @@ C**** initialise vertical arrays
       TRPRBAR = 0.
       BELOW_CLOUD=.false.
       CLOUD_YET=.false.
-cdmks
       FCLD_SV=0.
       TR_CONV = .false.
-cdmkf
 #endif
       DO L=1,LP50
         CAREA(L)=1.-CLDSAVL(L)
@@ -1613,13 +1592,11 @@ C**** COMPUTE THE LIMITING AUTOCONVERSION RATE FOR CLOUD WATER CONTENT
       VDEF=VVEL-VSUBL(L)
       IF(VDEF.GT.0.) CM0=CM00*10.**(-VDEF)
       FCLD=1.-CAREA(L)+1.E-20
-cdmks
 #ifdef TRACERS_WATER
       if (CAREA(L).LT.1.) then
         if (FCLD.GT.FCLD_SV) FCLD_SV=FCLD
       endif
 #endif
-cdmkf
 C**** COMPUTE THE PROBABILITY OF ICE FORMATION, FUNI, AND
 C**** THE PROBABLITY OF GLACIATION OF SUPER-COOLED WATER, PFR
 C**** DETERMINE THE PHASE MOISTURE CONDENSES TO
@@ -1816,7 +1793,6 @@ C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
         QHEAT(L)=-CAREA(L)*ER(L)
         WMNEW=0.
       END IF
-cdmks
 #ifdef TRACERS_WATER
 #ifdef TRACERS_AEROSOLS_Koch
       WA_VOL=0.
@@ -1825,7 +1801,6 @@ cdmks
       ENDIF
 #endif
 #endif
-cdmkf
 C**** PHASE CHANGE OF PRECIPITATION, FROM ICE TO WATER
 C**** This occurs if 0 C isotherm is crossed, or ice is falling into
 C**** a super-cooled water cloud (that has not had B-F occur).
@@ -1856,7 +1831,6 @@ C**** UPDATE NEW TEMPERATURE AND SPECIFIC HUMIDITY
         QHEAT(L)=QL(L)*LHX*BYDTsrc
         DWDT1=QHEAT(L)/LHX-PREP(L)+CAREA(L)*ER(L)/LHX
         WMNEW=WMX(L)+DWDT1*DTsrc
-cdmks
 #ifdef TRACERS_WATER
 #ifdef TRACERS_AEROSOLS_Koch
       IF (WMNEW.GT.teeny) THEN
@@ -1864,7 +1838,6 @@ cdmks
       ENDIF
 #endif
 #endif
-cdmkf
 C**** IF WMNEW .LT. 0., THE COMPUTATION IS UNSTABLE
         IF(WMNEW.LT.0.) THEN
           IERR=1
@@ -1907,7 +1880,6 @@ C**** adjust gradients down if Q decreases
 #ifdef TRACERS_WATER
 C**** update tracers from cloud formation (in- and below-cloud
 C****    precipitation, evaporation, condensation, and washout)
-cdmks
 #ifdef TRACERS_AEROSOLS_Koch
       WMXTR = WMX(L)
       IF (BELOW_CLOUD.and.WMX(L).LT.teeny) THEN
@@ -1918,8 +1890,7 @@ cdmks
         WA_VOL=precip_mm*DXYPJ
       ENDIF
       CALL GET_SULFATE(L,TL(L),FCLD,TR_CONV,WA_VOL
-     *  ,WMXTR,SULFIN,
-     *   SULFINC,SULFOUT,TR_LEFT,TM,TRWML,AIRM,LHX)
+     *     ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML,AIRM,LHX)
       DO N=1,NTX
         TRWML(N,L)=TRWML(N,L)*(1.+SULFINC(N))
         TM(L,N)=TM(L,N)*(1.+SULFIN(N))
@@ -1931,7 +1902,6 @@ cdmks
         endif
       END DO
 #endif
-cdmkf
       DO N=1,NTX
 c ---------------------- initialize fractions ------------------------
         FPRT  =0.
@@ -1944,12 +1914,10 @@ c ----------------------- calculate fractions --------------------------
 c precip. tracer evap
         CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FER,FERT)
         CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FWTOQ,FWTOQT)
-cdmks
         TR_LEF=1.D0
 #ifdef TRACERS_AEROSOLS_Koch
-           TR_LEF=TR_LEFT(N)
+        TR_LEF=TR_LEFT(N)
 #endif
-cdmkf
         IF(BELOW_CLOUD.and.WMX(L).lt.teeny) THEN
           precip_mm = PREBAR(L+1)*100.*dtsrc
           WMXTR = PREBAR(L+1)*grav*BYAM(L)*dtsrc
@@ -1957,14 +1925,14 @@ cdmkf
           if (wmxtr.lt.0.) wmxtr=0.
 cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *    ,TEMP,LHX,WMXTR,FCLD,L,TM,TRPRBAR,THWASH) !washout
+     *         ,TEMP,LHX,WMXTR,FCLD,L,TM,TRPRBAR,THWASH) !washout
         ELSE
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
           if (CM.GT.teeny) b_beta_DT = FCLD*CM*dtsrc
-          CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),LHX,FCLD,FQTOW
-     *    ,FQTOWT,TR_CONV,TRWML,TM,THLAW,TR_LEF)
+          CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
+     *         ,FQTOWT,TR_CONV,TRWML,TM,THLAW,TR_LEF)
           THWASH=0.
 cdmk added arguments above; THLAW added below (no way to factor this)
         END IF
@@ -2019,7 +1987,6 @@ C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
       IF(DQSUM.GT.0.) THEN
       WMX(L)=WMX(L)+DQSUM
       FCOND=DQSUM/QNEW
-cdmks
 #ifdef TRACERS_WATER
 #ifdef TRACERS_AEROSOLS_Koch
       WA_VOL=0.
@@ -2028,7 +1995,6 @@ cdmks
       ENDIF
 #endif
 #endif
-cdmkf
 C**** adjust gradients down if Q decreases
       QMOM(:,L)= QMOM(:,L)*(1.-FCOND)
 #ifdef TRACERS_WATER
@@ -2038,11 +2004,9 @@ cdmks  I took out some code above this that was for below cloud
 c   processes - this should be all in-cloud
 #ifdef TRACERS_AEROSOLS_Koch
       CALL GET_SULFATE(L,TL(L),FCLD,TR_CONV,WA_VOL,WMXTR,SULFIN,
-     *SULFINC,SULFOUT,TR_LEFT,TM,TRWML,AIRM,LHX)
+     *     SULFINC,SULFOUT,TR_LEFT,TM,TRWML,AIRM,LHX)
 #endif
-cdmkf
       DO N=1,NTX
-cdmks
         TR_LEF=1.
 #ifdef TRACERS_AEROSOLS_Koch
         TRWML(N,L)=TRWML(N,L)*(1.+SULFINC(N))
@@ -2053,8 +2017,8 @@ cdmks
 #endif
 c below TR_LEFT(N) limits the amount of available tracer in gridbox
 cdmkf and below, extra arguments for GET_COND, addition of THLAW
-        CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),LHX,FCLD,FCOND
-     *  ,FQCONDT,TR_CONV,TRWML,TM,THLAW,TR_LEF)
+        CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FCOND
+     *       ,FQCONDT,TR_CONV,TRWML,TM,THLAW,TR_LEF)
         IF (TM(L,N).GT.teeny) THEN
           TMFAC=THLAW/TM(L,N)
         ELSE

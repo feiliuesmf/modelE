@@ -3044,7 +3044,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
      *   tr_mm
 #ifdef TRACERS_WATER
      *  ,trwm,trw0,tr_wd_TYPE,nWATER
-      USE SOMTQ_COM, only : qmom
+      USE SOMTQ_COM, only : qmom,mz,mzz
       USE LANDICE, only : ace1li,ace2li
       USE LANDICE_COM, only : trli0,trsnowli,trlndi,snowli
       USE SEAICE, only : xsi,ace1i
@@ -3063,7 +3063,6 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #ifdef TRACERS_SPECIAL_Lerner
       USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
       USE PRATHER_CHEM_COM, only: nstrtc
-      USE QUSDEF, only : mz,mzz
 #endif
       USE FILEMANAGER, only: openunit,closeunit
 #ifdef TRACERS_SPECIAL_Shindell
@@ -3400,7 +3399,7 @@ C         AM=kg/m2, and DXYP=m2
             J2=NINT(float(J)*19.*BYJM)
             IF(J2.eq.0) J2=1
             DO I=1,IM
-              trm(i,j,l,n)=COlat(J2)*COalt(L)*1.E-9*TR_MM(n)*bymair*
+              trm(i,j,l,n)=COlat(J2)*COalt(L)*1.D-9*TR_MM(n)*bymair*
      &        am(L,I,J)*DXYP(J)
             END DO
           END DO
@@ -4015,7 +4014,7 @@ C**** Apply chemistry and stratosphere overwrite changes:
 #ifdef TRACERS_WATER
 C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 
-      SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,LHX,FCLOUD,FQ0,fq,
+      SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,TEMP0,LHX,FCLOUD,FQ0,fq,
      *  TR_CONV,TRWML,TM,THLAW,TR_LEF)
 !@sum  GET_COND_FACTOR calculation of condensate fraction for tracers
 !@+    within or below convective or large-scale clouds. Gas
@@ -4024,12 +4023,9 @@ C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 !@ver  1.0 (based on CB436TdsM23 CLOUDCHCC and CLOUDCHEM subroutines)
 c
 C**** GLOBAL parameters and variables:
-      USE CONSTANT, only: BYGASC, MAIR,teeny,lhe
+      USE CONSTANT, only: BYGASC, MAIR,teeny,lhe,tf,by3
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,nGAS,nPART,tr_wd_TYPE
-     *     ,trname,ntm,lm
-#ifdef TRACERS_SPECIAL_Shindell
-     &     ,t_qlimit
-#endif
+     *     ,trname,ntm,lm,t_qlimit
 #ifdef TRACERS_AEROSOLS_Koch
      &     ,fq_aer
 #endif
@@ -4059,9 +4055,17 @@ c
       REAL*8, PARAMETER :: BY298K=3.3557D-3
       REAL*8 Ppas, tfac, ssfac, RKD
 #ifdef TRACERS_SPECIAL_O18
-      real*8 tdegc,alph,fracvs,fracvl,kin_cond_ice
+      real*8 tdegc,alph,fracvs,fracvl,kin_cond_ice,fqi,gint
+      integer i
+!@param nstep no. of steps for integration of Rayleigh condensation
+      integer, parameter :: nstep=6   !8
+!@param wgt weightings for simpson's rule integration
+      real*8, parameter, dimension(nstep+1) ::
+     *     wgt = (/ by3, 4*by3, 2*by3, 4*by3, 2*by3, 4*by3, by3 /)
+c     *     wgt = (/ by3, 4*by3, 2*by3, 4*by3, 2*by3, 4*by3, 2*by3, 4*by3
+c     *     , by3 /)
 #endif
-      REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP, LHX, TR_LEF
+      REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP, TEMP0,LHX, TR_LEF
       REAL*8,  INTENT(IN), DIMENSION(ntm,lm) :: trwml
       REAL*8,  INTENT(IN), DIMENSION(lm,ntm) :: TM
       REAL*8,  INTENT(OUT):: fq,thlaw
@@ -4097,8 +4101,8 @@ c           ssfac=RKD*GASC*TEMP*clwc   ! Henry's Law
               if (fq.ge.1.) fq=1.d0
               thlaw=0.
             endif
-            if (FCLOUD.LT.1.E-16) fq=0.d0
-            if (FCLOUD.LT.1.E-16) thlaw=0.d0
+            if (FCLOUD.LT.1.D-16) fq=0.d0
+            if (FCLOUD.LT.1.D-16) thlaw=0.d0
 #ifdef TRACERS_SPECIAL_Shindell
             if(t_qlimit(NTIX(N)).and.fq.gt.1.)fq=1.!no negative tracers
 #endif
@@ -4106,28 +4110,53 @@ c           ssfac=RKD*GASC*TEMP*clwc   ! Henry's Law
 #endif
         CASE(nWATER)                          ! water tracer
 #ifdef TRACERS_SPECIAL_O18
-C**** calculate condensate in equilibrium with source vapour
-          if (fq0.gt.0.) then
-            tdegc=temp-tf
-            if (LHX.eq.LHE) then  ! cond to water
-              alph=1./fracvl(tdegc,trname(ntix(n)))
-            else  ! cond to ice
-              alph=1./fracvs(tdegc,trname(ntix(n)))
+          if (fq0.gt.0. .and. fq0.lt.1.) then
+C**** If process occurs at constant temperature, calculate condensate
+C**** in equilibrium with source vapour. Otherwise, integrate rayleigh
+C**** equations from temp0 to temp using simpson's rule.
+C****     fq = 1 - exp( int_t0^t1( alph*(dQ/dt)*(1/Q) dt ))
+C****        = 1 - exp( int_t0^t1( alph*(-fqi) dt ))
+C****
+            if (temp.ne.temp0) then  ! integrate
+              gint=0.
+              do i=1,nstep+1
+                tdegc=temp0 + dble(i-1)*(temp-temp0)/dble(nstep) -tf
+C**** assume that Q changes linearly with temp
+                fqi = fq0/(dble(nstep)-dble(i-1)*fq0)
+C**** Calculate alpha (fractionation coefficient)
+                if (LHX.eq.LHE) then ! cond to water
+                  alph=1./fracvl(tdegc,trname(ntix(n)))
+                else            ! cond to ice
+                  alph=1./fracvs(tdegc,trname(ntix(n)))
 C**** kinetic fractionation can occur as a function of supersaturation
 C**** this is a parameterisation from Georg Hoffmann
-              supsat=1d0-supsatfac*tdegc
-              if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
-     *             ,trname(ntix(n)))
-            end if
-            if (fq0.ne.1.) then ! just to be safe
-              fq = alph * fq0/(1.+(alph-1.)*fq0)
+                  supsat=1d0-supsatfac*tdegc
+                  if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
+     *                 ,trname(ntix(n)))
+                end if
+C**** Simpson's rule
+                gint=gint-wgt(i)*alph*fqi
+              end do
+              fq = 1.-exp(gint)
             else
-              fq = fq0
+C**** assume condensate in equilibrium with vapour at temp
+              tdegc=temp -tf
+              if (LHX.eq.LHE) then ! cond to water
+                alph=1./fracvl(tdegc,trname(ntix(n)))
+              else              ! cond to ice
+                alph=1./fracvs(tdegc,trname(ntix(n)))
+C**** kinetic fractionation can occur as a function of supersaturation
+C**** this is a parameterisation from Georg Hoffmann
+                supsat=1d0-supsatfac*tdegc
+                if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
+     *               ,trname(ntix(n)))
+              end if
+              fq = alph * fq0/(1.+(alph-1.)*fq0)
             end if
           else
-            fq = 0.d0
+            fq = fq0
           end if
-#else
+#else 
           fq = fq0
 #endif
         CASE(nPART)                           ! particulate tracer
@@ -4138,7 +4167,7 @@ C**** this is a parameterisation from Georg Hoffmann
 c complete dissolution in convective clouds
             if (TR_CONV) fq=1.d0
           endif
-          if (FCLOUD.LT.1.E-16) fq=0.d0
+          if (FCLOUD.LT.1.D-16) fq=0.d0
 #endif
 
         CASE DEFAULT                                ! error
@@ -4256,8 +4285,8 @@ C
      *            /(1.D0+ssfac)
             if (thlaw.lt.0.) thlaw=0.d0
             if (thlaw.gt.tm(l,NTIX(N))) thlaw=tm(l,NTIX(N))
-            if (FCLOUD.lt.1.E-16) fq=0.d0
-            if (FCLOUD.LT.1.E-16) thlaw=0.d0
+            if (FCLOUD.lt.1.D-16) fq=0.d0
+            if (FCLOUD.LT.1.D-16) thlaw=0.d0
           ENDIF
 #endif
         CASE(nWATER)                          ! water/original method
@@ -4265,7 +4294,7 @@ C
         CASE(nPART)                           ! aerosols
 #ifdef TRACERS_AEROSOLS_Koch
           fq = -b_beta_DT*(DEXP(-PREC*rc_wash)-1.D0)
-          if (FCLOUD.lt.1.E-16) fq=0.d0
+          if (FCLOUD.lt.1.D-16) fq=0.d0
 #endif
         CASE DEFAULT                          ! error
           call stop_model(
