@@ -5,17 +5,19 @@
       USE MODEL_COM, only : IM,JM
       IMPLICIT NONE
 
-!@var RUNOSI run off from sea/lake ice after surface (kg/m^2) 
-!@var ERUNOSI energy of run off from sea/lake ice after surface (J/m^2) 
-      REAL*8, DIMENSION(IM,JM) :: RUNOSI, ERUNOSI
-!@var RUNPSI run off from sea/lake ice after precip (kg/m^2) 
-      REAL*8, DIMENSION(IM,JM) :: RUNPSI
-!@var RUNOE run off from earth (kg/m^2) 
-!@var ERUNOE energy of run off from earth (J/m^2) 
+!@var RUNOSI run off from sea/lake ice after surface (kg/m^2)
+!@var ERUNOSI energy of run off from sea/lake ice after surface (J/m^2)
+!@var SRUNOSI salt in run off from sea/lake ice after surface (kg/m^2)
+      REAL*8, DIMENSION(IM,JM) :: RUNOSI, ERUNOSI, SRUNOSI
+!@var RUNPSI run off from sea/lake ice after precip (kg/m^2)
+!@var SRUNPSI salt in run off from sea/lake ice after precip (kg/m^2)
+      REAL*8, DIMENSION(IM,JM) :: RUNPSI, SRUNPSI
+!@var RUNOE run off from earth (kg/m^2)
+!@var ERUNOE energy of run off from earth (J/m^2)
       REAL*8, DIMENSION(IM,JM) :: RUNOE, ERUNOE
-!@var DMSI mass flux of sea ice under ice and on open water (kg/m^2) 
-!@var DHSI energy flux of sea ice under ice and on open water (J/m^2) 
-!@var DSSI salt flux of sea ice under ice and on open water (kg/m^2) 
+!@var DMSI mass flux of sea ice under ice and on open water (kg/m^2)
+!@var DHSI energy flux of sea ice under ice and on open water (J/m^2)
+!@var DSSI salt flux in sea ice under ice and on open water (kg/m^2)
       REAL*8, DIMENSION(2,IM,JM) :: DMSI, DHSI, DSSI
 !@var RUNOLI run off from land ice (kg/m^2) (Energy always=0)
       REAL*8, DIMENSION(IM,JM) :: RUNOLI
@@ -37,7 +39,7 @@ C**** surface energy fluxes defined over type
 C**** Momemtum stresses are calculated as if they were over whole box
 !@var DMUA,DMVA momentum flux from atmosphere for each type (kg/m s) 
       REAL*8, DIMENSION(IM,JM,NSTYPE) :: DMUA,DMVA
-!@var DMUI,DMVI momentum flux from sea ice to ocean (kg/m s) 
+!@var DMUI,DMVI momentum flux from sea ice to ocean (kg/m s)
       REAL*8, DIMENSION(IM,JM) :: DMUI,DMVI
 
 C**** currently saved - should be replaced by fluxed quantities

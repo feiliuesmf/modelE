@@ -569,10 +569,10 @@ C****
       USE CONSTANT, only : rhow,shw,twopi,edpery,by3
       USE MODEL_COM, only : im,jm,kocean,focean,jday,ftype,itocean
      *     ,itoice,fland
-      USE OCEAN, only : tocean,ostruc,oclim,z1O,
+      USE OCEAN, only : tocean,ostruc,oclim,z1O,tfo,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE DAGCOM, only : aij,ij_toc2,ij_tgo2
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi
+      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
       USE SEAICE, only : simelt,ace1i,lmi
       USE GEOM, only : imaxj
       USE FLUXES, only : gtemp
@@ -580,8 +580,9 @@ C****
       INTEGER I,J,IEND,IMAX
 !@var FDAILY fraction of energy available to be used for melting 
       REAL*8 :: FDAILY = BY3
-      REAL*8, DIMENSION(LMI) :: HSIL,TSIL
+      REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 MSI2,ROICE,SNOW,TGW,WTRO,WTRW,ENRGW,ENRGUSED,ANGLE,RUN0
+     *     ,SALT
 
 C**** update ocean related climatologies
       CALL OCLIM(IEND)
@@ -617,19 +618,21 @@ C**** AND ELIMINATE SMALL AMOUNTS OF SEA ICE
           DO I=1,IMAX
 C**** Only melting of ocean ice (not lakes)
             IF (FOCEAN(I,J)*RSI(I,J) .GT. 0.) THEN
-C**** REDUCE ICE EXTENT IF OCEAN TEMPERATURE IS GREATER THAN ZERO
-C**** (MELTING POINT OF ICE)
+C**** REDUCE ICE EXTENT IF OCEAN TEMPERATURE IS GREATER THAN THAN TFO
+C**** (FREEZING POINT OF WATER)
             TGW=TOCEAN(1,I,J)
-            IF (TGW.GT.0. .or. RSI(I,J).lt.1d-4) THEN
+            IF (TGW.GT.TFO .or. RSI(I,J).lt.1d-4) THEN
             ROICE=RSI(I,J)
             MSI2=MSI(I,J)
             SNOW=SNOWI(I,J)   ! snow mass
             HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
+            SSIL(:)= SSI(:,I,J) ! sea ice salt
             WTRO=Z1O(I,J)*RHOW
             WTRW=WTRO-ROICE*(SNOW + ACE1I + MSI2)
-            ENRGW=WTRW*TGW*SHW*FDAILY ! energy available for melting
-            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,TSIL,ENRGW,ENRGUSED,RUN0)
-C****       RUN0 not needed for Qflux ocean
+            ENRGW=WTRW*(TGW-TFO)*SHW*FDAILY ! energy available for melting
+            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,TSIL,ENRGW,ENRGUSED
+     *           ,RUN0,SALT)
+C****       RUN0, SALT not needed for Qflux ocean
 C**** RESAVE PROGNOSTIC QUANTITIES
             TGW=TGW-ENRGUSED/(WTRO*SHW)
             TOCEAN(1,I,J)=TGW

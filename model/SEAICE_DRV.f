@@ -11,16 +11,17 @@
       USE CONSTANT, only : byshi,lhm
       USE MODEL_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : runpsi,prec,eprec
-      USE SEAICE_COM, only : rsi,msi,snowi,hsi
+      USE FLUXES, only : runpsi,prec,eprec,srunpsi
+      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
       USE SEAICE, only : prec_si, ace1i, lmi,xsi
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2
      *     ,j_difs,j_run1,j_edifs,j_erun2,j_imelt
       USE FLUXES, only : gtemp
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(LMI) :: HSIL,TSIL
+      REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,FMOC,FHOC,DXYPJ,POICE,TFO,TOFREZ
+     *     ,SALT
       LOGICAL QFIXR
       INTEGER I,J,IMAX,JR,ITYPE,N
 
@@ -48,22 +49,22 @@
         SNOW=SNOWI(I,J)
         MSI2=MSI(I,J)
         HSIL(:) = HSI(:,I,J)      ! sea ice temperatures
+        SSIL(:) = SSI(:,I,J)      ! sea ice salt
 
         AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
 C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
 
-        CALL PREC_SI(SNOW,MSI2,HSIL,TSIL,PRCP,ENRGP,TFO,RUN0,FMOC,FHOC
-     *       ,QFIXR)
+        CALL PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,TFO,RUN0,SALT
+     *       ,FMOC,FHOC,QFIXR)
 
-        SNOWI(I,J)=SNOW
+        SNOWI(I,J)  =SNOW
         RUNPSI(I,J) =RUN0
-        HSI(1:2,I,J)=HSIL(1:2)
+        SRUNPSI(I,J)=SALT
+        HSI(:,I,J)=HSIL(:)
+c        SSI(:,I,J)=SSIL(:)
 C**** set gtemp array
         GTEMP(1:2,2,I,J)=TSIL(1:2)
-        IF (.not. QFIXR) THEN
-          HSI(3:4,I,J)=HSIL(3:4)
-          MSI(I,J)=MSI2
-        END IF
+        IF (.not. QFIXR) MSI(I,J)=MSI2
 
 C**** ACCUMULATE DIAGNOSTICS
         IF (QFIXR) THEN
@@ -89,8 +90,8 @@ C****
       USE MODEL_COM, only : im,jm,dtsrc,fland,kocean,focean
      *     ,itoice,itlkice
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : e0,e1,evapor,runosi,erunosi,solar
-      USE SEAICE_COM, only : rsi,msi,snowi,hsi
+      USE FLUXES, only : e0,e1,evapor,runosi,erunosi,srunosi,solar
+      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
       USE SEAICE, only : sea_ice,lmi,xsi,ace1i
       USE LAKES_COM, only : mwl,gml,flake
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,ij_rsoi,
@@ -98,9 +99,9 @@ C****
      *     j_f1dt,j_f2dt,j_evap,ij_evap,j_rsnow,ij_rsit,ij_rsnw,ij_snow
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(LMI) :: HSIL
+      REAL*8, DIMENSION(LMI) :: HSIL,SSIL
       REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,TFO,RUN0,SROX(2)
-     *     ,FMOC,FHOC,F2DT,DXYPJ,POICE,PWATER,SCOVI
+     *     ,FMOC,FHOC,F2DT,DXYPJ,POICE,PWATER,SCOVI,SALT
       LOGICAL QFIXR, QFLUXLIM
       REAL*8 FLUXLIM, TOFREZ
       INTEGER I,J,IMAX,JR,ITYPE
@@ -123,7 +124,8 @@ C****
         SROX(1)=SOLAR(2,I,J) ! solar radiation absorbed by sea ice (J/m^2)
         SNOW= SNOWI(I,J)  ! snow mass (kg/m^2)
         MSI2= MSI(I,J)
-        HSIL(:) = HSI(:,I,J)  ! first layer sea ice enthalpy
+        HSIL(:) = HSI(:,I,J)  ! sea ice enthalpy
+        SSIL(:) = SSI(:,I,J)  ! sea ice salt
         QFLUXLIM=.FALSE.
         IF (FOCEAN(I,J).gt.0) THEN
           ITYPE=ITOICE
@@ -146,16 +148,18 @@ C**** Limit lake-to-ice flux if lake is too shallow (< 20cm)
         AIJ(I,J,IJ_F0OI) =AIJ(I,J,IJ_F0OI) +F0DT*POICE
         AIJ(I,J,IJ_EVAPI)=AIJ(I,J,IJ_EVAPI)+EVAP*POICE
 
-        CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,MSI2,F0DT,F1DT,EVAP,SROX,TFO
-     *       ,RUN0,FMOC,FHOC,F2DT,QFIXR,QFLUXLIM,FLUXLIM)
+        CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP,SROX
+     *       ,TFO,RUN0,SALT,FMOC,FHOC,F2DT,QFIXR,QFLUXLIM,FLUXLIM)
         
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J) =SNOW
         HSI(:,I,J) =HSIL(:)
+c        SSI(:,I,J) =SSIL(:)
         IF (.not. QFIXR) MSI(I,J) = MSI2
 
         RUNOSI(I,J) = RUN0
         ERUNOSI(I,J)= F2DT
+        SRUNOSI(I,J)= SALT
         SOLAR(3,I,J)= SROX(2)
 
 C**** ACCUMULATE DIAGNOSTICS
@@ -199,17 +203,16 @@ C****
       USE MODEL_COM, only : im,jm,focean,kocean,ftype,fland
      *     ,itocean,itoice,itlake,itlkice
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : runosi,erunosi
-      USE SEAICE_COM, only : rsi,msi,snowi,hsi
+      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
       USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk
       USE DAGCOM, only : aj,areg,aij,jreg,j_tg1,j_tg2,j_rsi
      *     ,j_ace1,j_ace2,j_snow,ij_tg1,j_type
-      USE FLUXES, only : dmsi,dhsi,gtemp
+      USE FLUXES, only : dmsi,dhsi,dssi,gtemp
       USE LAKES_COM, only : flake
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(LMI) :: HSIL,TSIL
-      REAL*8 SNOW,ROICE,MSI2,ENRGFO,ACEFO,ACE2F,ENRGFI
+      REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
+      REAL*8 SNOW,ROICE,MSI2,ENRGFO,ACEFO,ACE2F,ENRGFI,SALTO,SALTI
      *     ,DXYPJ,POICE,PWATER,FLEAD
       LOGICAL QFIXR
       INTEGER I,J,IMAX,JR,ITYPE,ITYPEO
@@ -227,6 +230,7 @@ C****
         SNOW= SNOWI(I,J)      ! snow mass (kg/m^2)
         MSI2= MSI(I,J)
         HSIL(:) = HSI(:,I,J)      ! sea ice enthalpy
+        SSIL(:) = SSI(:,I,J)      ! sea ice salt
 
         IF (FOCEAN(I,J).gt.0) THEN
           FLEAD=FLEADOC
@@ -248,13 +252,16 @@ C****
         ACE2F=DMSI(2,I,J)
         ENRGFO=DHSI(1,I,J)
         ENRGFI=DHSI(2,I,J)
+        SALTO=DSSI(1,I,J)
+        SALTI=DSSI(2,I,J)
 
-        CALL ADDICE (SNOW,ROICE,HSIL,MSI2,TSIL,ENRGFO,ACEFO,ACE2F,ENRGFI
-     *       ,FLEAD,QFIXR)
+        CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACE2F
+     *       ,ENRGFI,SALTO,SALTI,FLEAD,QFIXR)
 
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J) =SNOW
         HSI(:,I,J) =HSIL(:)
+c        SSI(:,I,J) =SSIL(:)
         IF (.not. QFIXR) THEN
           RSI(I,J)=ROICE
           MSI(I,J)=MSI2
@@ -289,6 +296,7 @@ C**** replicate ice values at the north pole
         RSI(I,JM)=RSI(1,JM)
         MSI(I,JM)=MSI(1,JM)
         HSI(:,I,JM)=HSI(:,1,JM)
+        SSI(:,I,JM)=SSI(:,1,JM)
         SNOWI(I,JM)=SNOWI(1,JM)
         GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
       END DO
@@ -334,7 +342,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm
       USE MODEL_COM, only : im,jm,kocean
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi
+      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
       USE SEAICE, only : xsi,ace1i,ac2oim
       USE FLUXES, only : gtemp
       USE DAGCOM, only : npts,icon_MSI,icon_HSI,icon_SSI,title_con
@@ -353,6 +361,7 @@ C****   set defaults for no ice case
             SNOWI(I,J)  =0.
             HSI(1:2,I,J)=-LHM*XSI(1:2)*MSI1
             HSI(3:4,I,J)=-LHM*XSI(3:4)*AC2OIM
+            SSI(:,I,J)  = 0.
           END IF
         END DO
         END DO

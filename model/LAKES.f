@@ -637,6 +637,7 @@ C****
 !@sum  CHECKL checks whether the lake variables are reasonable.
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0 (based on LB265)
+      USE CONSTANT, only : rhow
       USE MODEL_COM, only : im,jm,hlake,fearth
       USE GEOM, only : dxyp
       USE DAGCOM, only : qcheck
@@ -666,23 +667,23 @@ C**** check for negative mass
             QCHECKL = .TRUE.
           END IF
 C**** check for reasonable lake surface temps
-          IF (TLAKE(I,J).ge.40 .or. TLAKE(I,J).lt.-0.1) THEN
+          IF (TLAKE(I,J).ge.40 .or. TLAKE(I,J).lt.-0.5) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,TSL=',I,J,TLAKE(I,J)
 c            QCHECKL = .TRUE.
           END IF
         END IF
 C**** Check total lake mass (<10%, >10x orig depth)
         IF(FLAKE(I,J).gt.0.) THEN
-          IF(MWL(I,J).lt.1d2*HLAKE(I,J)*DXYP(J)*FLAKE(I,J)) THEN
+          IF(MWL(I,J).lt.0.1d0*RHOW*HLAKE(I,J)*DXYP(J)*FLAKE(I,J)) THEN
             WRITE (6,*) 'After ',SUBR,
      *           ': I,J,FLAKE,HLAKE,lake level low=',I,J,FLAKE(I,J),
-     *           HLAKE(I,J),1d-3*MWL(I,J)/(DXYP(J)*FLAKE(I,J))
+     *           HLAKE(I,J),MWL(I,J)/(RHOW*DXYP(J)*FLAKE(I,J))
           END IF
-          IF(MWL(I,J).gt.1d4*MAX(HLAKE(I,J),1d0)*DXYP(J)*FLAKE(I,J))
-     *         THEN
+          IF(MWL(I,J).gt.RHOW*MAX(10.*HLAKE(I,J),3d1)*DXYP(J)*FLAKE(I,J)
+     *         )THEN
             WRITE (6,*) 'After ',SUBR,
      *           ': I,J,FLAKE,HLAKE,lake level high=',I,J,FLAKE(I,J),
-     *           HLAKE(I,J),1d-3*MWL(I,J)/(DXYP(J)*FLAKE(I,J))
+     *           HLAKE(I,J),MWL(I,J)/(RHOW*DXYP(J)*FLAKE(I,J))
           END IF
         END IF
       END DO
@@ -708,8 +709,8 @@ C****
       INTEGER IEND,IMAX,I,J,L
 !@var FDAILY fraction of energy available to be used for melting
       REAL*8 :: FDAILY = BY3
-      REAL*8, DIMENSION(LMI) :: HSIL,TSIL
-      REAL*8 MSI2,ROICE,SNOW,ENRGW,ENRGUSED,ANGLE,RUN0
+      REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
+      REAL*8 MSI2,ROICE,SNOW,ENRGW,ENRGUSED,ANGLE,RUN0,SALT
 
 C**** set and initiallise freezing diagnostics
 C**** Note that TSFREZ saves the last day of no-ice and some-ice.
@@ -755,9 +756,12 @@ C**** Also remove ice fractions less than 0.0001
               MSI2 =MSI(I,J)
               SNOW =SNOWI(I,J)   ! snow mass
               HSIL =HSI(:,I,J) ! sea ice enthalpy
+              SSIL =0.         ! sea ice salt (always 0)
 C**** energy of water available for melting
               ENRGW=TLAKE(I,J)*MLDLK(I,J)*SHW*RHOW*FDAILY
-              CALL SIMELT(ROICE,SNOW,MSI2,HSIL,TSIL,ENRGW,ENRGUSED,RUN0)
+              CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,TSIL,ENRGW,ENRGUSED
+     *             ,RUN0,SALT)
+C**** SALT always 0 for lakes
 C**** RESAVE PROGNOSTIC QUANTITIES
               GML(I,J)=GML(I,J)-FLAKE(I,J)*DXYP(J)*ENRGUSED
               MWL(I,J)=MWL(I,J)+FLAKE(I,J)*DXYP(J)*RUN0

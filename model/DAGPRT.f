@@ -3171,12 +3171,10 @@ C**** THIS ENTRY PRODUCES TABLES OF CONSERVATION QUANTITIES
 C****
 c      USE PRTCOM, only :
       USE CONSTANT, only :
-     &     sday,twopi
+     &     twopi
       USE MODEL_COM, only :
-     &     im,jm,lm,fim,
-     &     dtsrc,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
-     &     jyear,jyear0,nday,jeq,nfiltr,
-     &     itime,itime0,xlabel
+     &     jm,fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
+     &     jyear,jyear0,nday,jeq,itime,itime0,xlabel
       USE GEOM, only :
      &     areag,dlon,dxyp,dxyv,LAT_DG
       USE DAGCOM, only :

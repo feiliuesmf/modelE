@@ -3097,17 +3097,17 @@ C**** Atmospheric mass
       CALL SET_CON(QCON,"MASS    ","(KG/M**2)       ",
      *     "(10^-8 KG/S/M^2)",1d0,1d8,icon_MS)
 C**** Atmospheric total potential energy
-      QCON=(/ T, T, T, F, F, T, T, F, T, F, F/)
+      QCON=(/ T, T, T, F, F, T, T, F, F, F, F/)
       CALL SET_CON(QCON,"TPE     ","(10**5 J/M**2)  ",
      *     "(10**-2 W/M**2) ",1d-5,1d2,icon_TPE)
 C**** Atmospheric water mass
-      QCON=(/ T, T, F, F, F, T, F, F, T, F, F/)
+      QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
       CALL SET_CON(QCON,"WATER   ","(10**-2 KG/M**2)",
      *     "(10^-8 KG/S/M^2)",1d2,1d8,icon_WM)
 C**** Atmospheric water energy  
 C**** This is not currently a conserved quantity, but it should be.
 C**** Hence this diagnostic gives the error
-      QCON=(/ T, T, F, F, F, T, F, F, T, F, F/)
+      QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
       CALL SET_CON(QCON,"ENRG WAT","(J/M**2)        ",
      *     "(10^-6 J/S/M^2) ",1d0,1d6,icon_EWM)
 
@@ -3237,11 +3237,6 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       DO N=1,NPTS
         IF (QCON(N)) THEN
           NM = NM + 1
-          IF (NM.gt.KCON) THEN
-            WRITE(6,*) "KCON not large enough for extra conserv diags",
-     *           KCON,NI,NM,NQ,NAME_CON
-            STOP "Change KCON in diagnostic common block"
-          END IF
           NOFM(N+1,NQ) = NM
           TITLE_CON(NM) = " CHANGE OF "//TRIM(NAME_CON)//" BY "//
      *         CONPT(N)
@@ -3272,6 +3267,11 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       NSUM_CON(NS) = 0
       KCMX=NS
       ICON=NQ
+      IF (KCMX.gt.KCON) THEN
+        WRITE(6,*) "KCON not large enough for extra conserv diags",
+     *       KCON,NI,NM,NQ,NS,NAME_CON
+        STOP "Change KCON in diagnostic common block"
+      END IF
       RETURN
 C****
       END SUBROUTINE set_con

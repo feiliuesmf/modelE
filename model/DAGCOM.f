@@ -73,8 +73,8 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       INTEGER, DIMENSION(NPTS+1,NQUANT) :: NOFM
 !@var icon_xx indexes for conservation quantities
       INTEGER icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM,icon_LKM,icon_LKE
-     *     ,icon_EWM,icon_WTG,icon_HTG,icon_OCE,icon_OKE,icon_OAM
-     *     ,icon_OMS,icon_OSL,icon_MSI,icon_HSI,icon_SSI 
+     *     ,icon_EWM,icon_WTG,icon_HTG,icon_OCE,icon_MSI,icon_HSI
+     *     ,icon_SSI 
 !@var KCMX actual number of conservation diagnostics
       INTEGER :: KCMX = 23 ! take up first 23 indexes for special cases
 
