@@ -1237,13 +1237,13 @@ C****    But what WOULD be correct???
       do 190 l=2,ltopx
       pint = pnew(l)
       plbot = pold(1)
-      do lx = 1,lm_old
+      do lx = 1,lm_old-1     ! avoid reference to pold(lm_old+1)
         lbot = lx
         ltop = lbot+1
         pltop = pold(ltop)
         if (step.gt.0 .and. pint.le.pltop) go to 180
         if (step.lt.0 .and. pint.ge.pltop) go to 180
-        plbot = pltop
+        if (lx.lt.lm_old-1) plbot = pltop   ! don't end with plbot = pltop
       end do
   180 continue
       dist = (pint-pltop)/(plbot-pltop) !distance from upper boundary
