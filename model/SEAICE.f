@@ -550,14 +550,18 @@ C**** Calculate temperatures for diagnostics and radiation
       RETURN
       END SUBROUTINE ADDICE
 
-      SUBROUTINE SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,TSIL,ENRGW,ENRGUSED
-     *     ,RUN0,SALT)
+      SUBROUTINE SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,TFO,TSIL,ENRGW
+     *     ,ENRGUSED,RUN0,SALT)
 !@sum  SIMELT melts sea ice if surrounding water is warm
 !@auth Original Development Team
 !@ver  1.0
       IMPLICIT NONE
 !@var ENRGW energy available to melt ice (J/m^2)
       REAL*8, INTENT(IN) :: ENRGW
+!@var POCEAN ocean fraction (zero if lake)
+      REAL*8, INTENT(IN) :: POCEAN
+!@var TFO freezing temperature of water (C)
+      REAL*8, INTENT(IN) :: TFO
 !@var ROICE,SNOW,MSI2 ice variables (%,kg/m^2,kg/m^2)
       REAL*8, INTENT(INOUT) :: ROICE, SNOW, MSI2
 !@var HSIL ice enthalpy  (J/m^2)
@@ -582,12 +586,18 @@ C**** THE WARM OCEAN MELTS ALL THE SNOW AND ICE
       RUN0=ROICE*(MSI1+MSI2)    ! all ice is melted
       SALT=ROICE*(SSIL(1)+SSIL(2)+SSIL(3)+SSIL(4))
       ROICE=0.
+C**** set defaults
       SNOW=0.
       MSI2=AC2OIM
-      HSIL(1:2)=-LHM*XSI(1:2)*ACE1I
-      HSIL(3:4)=-LHM*XSI(3:4)*AC2OIM
-      SSIL(:)=0.
-      TSIL=0.
+      HSIL(1:2)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I
+      HSIL(3:4)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM
+      IF (POCEAN.gt.0) THEN
+        SSIL(1:2)=SSI0*XSI(1:2)*ACE1I
+        SSIL(3:4)=SSI0*XSI(3:4)*AC2OIM
+      ELSE
+        SSIL(:) = 0.
+      END IF
+      TSIL=TFO
       RETURN
       END IF
 C**** THE WARM OCEAN COOLS TO FREEZING POINT MELTING SOME SNOW AND ICE

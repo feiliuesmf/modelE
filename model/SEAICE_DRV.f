@@ -61,7 +61,7 @@ C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
         RUNPSI(I,J) =RUN0
         SRUNPSI(I,J)=SALT
         HSI(:,I,J)=HSIL(:)
-c        SSI(:,I,J)=SSIL(:)
+        SSI(:,I,J)=SSIL(:)
 C**** set gtemp array
         GTEMP(1:2,2,I,J)=TSIL(1:2)
         IF (.not. QFIXR) MSI(I,J)=MSI2
@@ -157,7 +157,7 @@ C**** Limit lake-to-ice flux if lake is too shallow (< 20cm)
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J) =SNOW
         HSI(:,I,J) =HSIL(:)
-c        SSI(:,I,J) =SSIL(:)
+        SSI(:,I,J) =SSIL(:)
         IF (.not. QFIXR) MSI(I,J) = MSI2
 
         RUNOSI(I,J) = RUN0
@@ -266,7 +266,7 @@ C****
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J) =SNOW
         HSI(:,I,J) =HSIL(:)
-c        SSI(:,I,J) =SSIL(:)
+        SSI(:,I,J) =SSIL(:)
         IF (.not. QFIXR) THEN
           RSI(I,J)=ROICE
           MSI(I,J)=MSI2
@@ -345,16 +345,16 @@ C****
 !@sum  init_ice initialises ice arrays
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : byshi,lhm
-      USE MODEL_COM, only : im,jm,kocean
+      USE CONSTANT, only : byshi,lhm,shi
+      USE MODEL_COM, only : im,jm,kocean,focean
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
-      USE SEAICE, only : xsi,ace1i,ac2oim
+      USE SEAICE, only : xsi,ace1i,ac2oim,ssi0
       USE FLUXES, only : gtemp
       USE DAGCOM, only : npts,icon_MSI,icon_HSI,icon_SSI,title_con
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER I,J
-      REAL*8 MSI1
+      REAL*8 MSI1,TFO,TOFREZ
 
       IF (KOCEAN.EQ.0) THEN
 C****   set defaults for no ice case
@@ -364,9 +364,16 @@ C****   set defaults for no ice case
             MSI1        =ACE1I
             MSI(I,J)    =AC2OIM
             SNOWI(I,J)  =0.
-            HSI(1:2,I,J)=-LHM*XSI(1:2)*MSI1
-            HSI(3:4,I,J)=-LHM*XSI(3:4)*AC2OIM
-            SSI(:,I,J)  = 0.
+            IF (FOCEAN(I,J).gt.0) THEN
+              SSI(1:2,I,J)=SSI0*XSI(1:2)*ACE1I
+              SSI(3:4,I,J)=SSI0*XSI(3:4)*AC2OIM
+              TFO = TOFREZ(I,J)
+            ELSE
+              SSI(:,I,J)  = 0.
+              TFO = 0.
+            END IF
+            HSI(1:2,I,J)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I
+            HSI(3:4,I,J)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM
           END IF
         END DO
         END DO
@@ -388,7 +395,7 @@ C**** Set conservation diagnostics for ice mass, energy, salt
      *     "(10^-3 J/S/M^2) ",1d-6,1d3,icon_HSI)
       QCON=(/ F, F, F, T, T, T, F, F, T, F, F/)
       CALL SET_CON(QCON,"ICE SALT","(10^-3 KG/M^2)  ",
-     *     "(10^-9 KG/S/M^2)",1d3,1d-9,icon_SSI)
+     *     "(10^-9 KG/S/M^2)",1d3,1d9,icon_SSI)
 C****
       END SUBROUTINE init_ice
 

@@ -710,7 +710,7 @@ C****
 !@var FDAILY fraction of energy available to be used for melting
       REAL*8 :: FDAILY = BY3
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
-      REAL*8 MSI2,ROICE,SNOW,ENRGW,ENRGUSED,ANGLE,RUN0,SALT
+      REAL*8 MSI2,ROICE,SNOW,ENRGW,ENRGUSED,ANGLE,RUN0,SALT,POCEAN,TFO
 
 C**** set and initiallise freezing diagnostics
 C**** Note that TSFREZ saves the last day of no-ice and some-ice.
@@ -757,10 +757,12 @@ C**** Also remove ice fractions less than 0.0001
               SNOW =SNOWI(I,J)   ! snow mass
               HSIL =HSI(:,I,J) ! sea ice enthalpy
               SSIL =0.         ! sea ice salt (always 0)
+              POCEAN=0.        ! ocean fraction (always 0)
+              TFO = 0.         ! freezing point (always 0) 
 C**** energy of water available for melting
               ENRGW=TLAKE(I,J)*MLDLK(I,J)*SHW*RHOW*FDAILY
-              CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,TSIL,ENRGW,ENRGUSED
-     *             ,RUN0,SALT)
+              CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,TFO,TSIL
+     *             ,ENRGW,ENRGUSED,RUN0,SALT)
 C**** SALT always 0 for lakes
 C**** RESAVE PROGNOSTIC QUANTITIES
               GML(I,J)=GML(I,J)-FLAKE(I,J)*DXYP(J)*ENRGUSED

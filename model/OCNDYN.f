@@ -384,8 +384,8 @@ C**** Calculate temperature (on atmos. grid)
               SSIL(:)= SSI(:,I,J) ! sea ice salt
 C**** calculate energy available for melting
               ENRGW=(GO1-GFREZS(SO1))*MO(I,J,1)*FDAILY 
-              CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,TSIL,ENRGW,ENRGUSED
-     *             ,RUN0,SALT)
+              CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,FOCEAN(I,J),TFO,TSIL
+     *             ,ENRGW,ENRGUSED,RUN0,SALT)
 C**** RESAVE PROGNOSTIC QUANTITIES
               G0M(I,J,1)=G0M(I,J,1) - ENRGUSED*DXYPO(J)
                MO(I,J,1)= MO(I,J,1) + RUN0
@@ -596,7 +596,7 @@ C****
 !@ver  1.0
       USE OCEAN, only : im,jm,fim,imaxj,focean,g0m,lmm,bydxypo
       IMPLICIT NONE
-!@var OCEANE zonal ocean potential enthalpy (J)
+!@var OCEANE zonal ocean potential enthalpy (J/m^2)
       REAL*8, DIMENSION(JM) :: OCEANE
       INTEGER I,J,L
 
@@ -683,7 +683,7 @@ C****
 !@ver  1.0
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,s0m,lmm,bydxypo
       IMPLICIT NONE
-!@var OSALT zonal ocean salt (kg)
+!@var OSALT zonal ocean salt (kg/m^2)
       REAL*8, DIMENSION(JM) :: OSALT
       INTEGER I,J,L
 
@@ -2317,7 +2317,6 @@ C**** Convert fluxes on atmospheric grid to oceanic grid
 C**** build in enough code to allow a different ocean grid.
 C**** Since the geometry differs on B and C grids, some processing
 C**** of fluxes is necessary anyway
-c      CALL PRECAT2OC(PRECA,EPRECA,RUNPSIA,RSIA,PREC,EPREC,RUNPSI,RSI)    
       DO J=2,JM
         DO I=1,IMAXJ(J)
           PREC  (I,J)=PRECA  (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2

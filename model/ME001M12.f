@@ -27,7 +27,7 @@ C****
 C**** If run is already done, just produce diagnostic printout
 C****
       IF (Itime.GE.ItimeE) then
-c        WRITE (6,'("1"/64(1X/))')
+         WRITE (6,'("1"/64(1X/))')
          IF (KDIAG(1).LT.9) CALL DIAGJ
          IF (KDIAG(2).LT.9) CALL DIAGJK
          IF (KDIAG(2).LT.9) CALL DIAGJL
@@ -1037,7 +1037,7 @@ C****
       CALL init_DIAG
       if(istart.gt.0) CALL init_QUS(im,jm,lm)
       IF (KDIAG(2).EQ.9.AND.SKIPSE.EQ.0..AND.KDIAG(3).LT.9) KDIAG(2)=8
-      WRITE (6,INPUTZ)
+      if(istart.gt.0) WRITE (6,INPUTZ)
       WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
       WRITE (6,'(A14,2I8)') "KACC0,KTACC0=",KACC0,KTACC0
       WRITE (6,'(A14,3I4)') "IM,JM,LM=",IM,JM,LM

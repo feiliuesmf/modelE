@@ -360,7 +360,6 @@ C****
       REAL*8 UT(IM,JM,LM),VT(IM,JM,LM),TT(IM,JM,LM),
      *  PA(IM,JM),PB(IM,JM),QT(IM,JM,LM),P(IM,JM,LM)
       REAL*8, DIMENSION(IM,JM,1) :: PU0
-      real*8 :: rho1
 
       REAL*8 PKE(LM+1)
       REAL*8 SZ(IM,JM,LM),DT4,DT1

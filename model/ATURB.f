@@ -87,7 +87,7 @@ c     integrate T,Q equations at tcells
             tij(l)=t_virtual(i,j,l)*p1000k  !virtual,potential temp.
             pij(l)=100.d0*(plij(l,i,j)*sig(l)+ptop)
             qij(l)=q(i,j,l)
-            eij(l)=egcm(i,j,l)
+            eij(l)=egcm(l,i,j)
             rhoeij(l)=rhoe(i,j,l)
             rhoij(l)=rho(i,j,l)
             u0ij(l)=uij(l)
@@ -152,7 +152,7 @@ c           test=test/float(lm-2)
             t_virtual(i,j,l)=tij(l)/p1000k
             q(i,j,l)=max(qij(l),qmin)
             t(i,j,l)=t_virtual(i,j,l)/(1.d0+RVX*Q(i,j,l))
-            egcm(i,j,l)=eij(l)
+            egcm(l,i,j)=eij(l)
             km_gcm(i,j,l)=km(l)
           end do
           dclev(i,j)=dbll

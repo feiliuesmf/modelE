@@ -36,11 +36,11 @@
      &     wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
       double precision, dimension(im,jm,4) :: ustar
 
-!@var egcm  3-d turbulent kinetic energy in the whole atmospher
-       real*8, dimension(im,jm,lm) :: egcm
+!@var egcm  3-d turbulent kinetic energy in the whole atmosphere
+      real*8, dimension(lm,im,jm) :: egcm
 
 !@var egcm  2-d turbulent fluxes
-       real*8, dimension(im,jm) :: uflux,vflux,tflux,qflux
+      real*8, dimension(im,jm) :: uflux,vflux,tflux,qflux
 
       END MODULE PBLCOM
 

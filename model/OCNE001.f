@@ -12,7 +12,7 @@
      *     cq=>cqgs,ipbl
       USE GEOM
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
-      USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim
+      USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0
       USE LANDICE_COM, only : snowli,tlandi
       USE FLUXES, only : gtemp
 
@@ -252,13 +252,14 @@ c     IF (RSI(I,J).GT.0.) THEN
 c     BYZICE=RHOI/(Z1I*RHOI+MSI(I,J))
 c     RSI(I,J)=RSI(I,J)*(1.-.06d0*(BYZICE-0.2d0))
 c     END IF
-C**** ZERO OUT SNOWOI, TG1OI, TG2OI IF THERE IS NO OCEAN ICE
+C**** SET DEFAULTS IF NO OCEAN ICE
             IF (RSI(I,J).LE.0.) THEN
-              HSI(1:2,I,J)=-LHM*XSI(1:2)*ACE1I
-              HSI(3:4,I,J)=-LHM*XSI(3:4)*AC2OIM
-              SSI(:,I,J)=0.
+              HSI(1:2,I,J)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I
+              HSI(3:4,I,J)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM
+              SSI(1:2,I,J)=SSI0*XSI(1:2)*ACE1I
+              SSI(3:4,I,J)=SSI0*XSI(3:4)*AC2OIM
               SNOWI(I,J)=0.
-              GTEMP(1:2,2,I,J)=0.
+              GTEMP(1:2,2,I,J)=TFO
             END IF
           END IF
         END DO
@@ -634,8 +635,8 @@ C**** (FREEZING POINT OF WATER)
             WTRO=Z1O(I,J)*RHOW
             WTRW=WTRO-ROICE*(SNOW + ACE1I + MSI2)
             ENRGW=WTRW*(TGW-TFO)*SHW*FDAILY ! energy available for melting
-            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,TSIL,ENRGW,ENRGUSED
-     *           ,RUN0,SALT)
+            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,FOCEAN(I,J),TFO,TSIL
+     *           ,ENRGW,ENRGUSED,RUN0,SALT)
 C****       RUN0, SALT not needed for Qflux ocean
 C**** RESAVE PROGNOSTIC QUANTITIES
             TGW=TGW-ENRGUSED/(WTRO*SHW)
