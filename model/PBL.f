@@ -16,8 +16,8 @@
 
       real*8, dimension(n) :: sub,dia,sup,rhs,rhs1
 
-      real*8 :: rimax,ghmin,ghmax,gmmax0,d0,d1,d2,d3,d4,d5
-     *     ,s0,s1,s2,s3,s4,s5,s6,c1,c2,c3,c4,c5,c6,b1,b123
+      real*8 :: rimax,ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
+     *     ,s0,s1,s2,s3,s4,s5,s6,c1,c2,c3,c4,c5,b1,b123,b2
 
 C**** boundary layer parameters
       real*8, parameter :: kappa=0.40d0 !@var kappa  Von Karman constant
@@ -708,6 +708,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
 
       prt=     0.82d0
       b1=     19.3d0
+      b2=     15.8d0
       b123=b1**(2./3.)
       g1=       .1070d0
       g2=       .0032d0
@@ -718,72 +719,40 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       g7=       .643d0
       g8=       .547d0
 c
-      d0 = 3.*g5**2
-      d1 = g5*(7.*g4+3.*g8)
-      d2 = g5**2*(3.*g3**2-g2**2)-3d0/4*(g6**2-g7**2)
-      d3 = g4*(4.*g4+3.*g8)
-      d4 = g4*(g2*g6-3.*g3*g7-g5*(g2**2-g3**2))+g5*g8*(3.*g3**2-g2**2)
-      d5 = 1d0/4.*(g2**2-3.*g3**2)*(g6**2-g7**2)
-      s0 = 3d0/2.*g1*g5**2
-      s1 = -g4*(g6+g7)+2.*g4*g5*(g1-1d0/3.*g2-g3)+3d0/2.*g1*g5*g8
-      s2 = -3d0/8.*g1*(g6**2-g7**2)
-      s3 = 0.
-      s4 = 2.*g5
-      s5 = 2.*g4
-      s6 = 2d0/3.*g5*(3.*g3**2-g2**2)-1d0/2.*g1*g5*(3.*g3-g2)
-     &     +3d0/4.*g1*(g6-g7)
-c      write(99,*) "      d0=",d0
-c      write(99,*) "      d1=",d1
-c      write(99,*) "      d2=",d2
-c      write(99,*) "      d3=",d3
-c      write(99,*) "      d4=",d4
-c      write(99,*) "      d5=",d5
-c      write(99,*) "      s0=",s0
-c      write(99,*) "      s1=",s1
-c      write(99,*) "      s2=",s2
-c      write(99,*) "      s3=",s3
-c      write(99,*) "      s4=",s4
-c      write(99,*) "      s5=",s5
-c      write(99,*) "      s6=",s6
-c
+      d1=(7*g4/3+g8)/g5
+      d2=(g3**2-g2**2/3)-1./(4*g5**2)*(g6**2-g7**2)
+      d3=g4/(3*g5**2)*(4*g4+3*g8)
+      d4=g4/(3*g5**2)*(g2*g6-3*g3*g7-g5*(g2**2-g3**2))
+     &   +g8/g5*(g3**2-g2**2/3)
+      d5=-1./(4*g5**2)*(g3**2-g2**2/3)*(g6**2-g7**2)
+      s0=g1/2
+      s1=-g4/(3*g5**2)*(g6+g7)+2*g4/(3*g5)*(g1-g2/3-g3)+g1/(2*g5)*g8
+      s2=-g1/(8*g5**2)*(g6**2-g7**2)
+      s3=0.d0
+      s4=2/(3*g5)
+      s5=2*g4/(3*g5**2)
+      s6=2/(3*g5)*(g3**2-g2**2/3)-g1/(2*g5)*(g3-g2/3)
+     &   +g1/(4*g5**2)*(g6-g7)
+ 
 c     find rimax:
-c
-      c1=s5+2*d3
-      c2=-s1+s6+2*d4
-      c3=-s2+2*d5
-      c4=s4+2.*d1
-      c5=-s0+2.*d2
-      c6=2.*d0
 
-c      write(99,*) "c1=",c1
-c      write(99,*) "c2=",c2
-c      write(99,*) "c3=",c3
-c     c4-c6 are used in subroutine level2
-c      write(99,*) "c4=",c4
-c      write(99,*) "c5=",c5
-c      write(99,*) "c6=",c6
-      if(c3.eq.0.) then ! the case of Mellor-Yamada mdel
-          rimax=-c2/c1
-      else
-          rimax=(-c2+sqrt(c2**2-4.*c1*c3))/(2.*c1)
-      endif
-c      write(99,*) "rimax=",rimax
+      c1=s5+2*d3
+      c2=s1-s6-2*d4
+      c3=-s2+2*d5
+      c4=s4+2*d1
+      c5=-s0+2*d2
+
+      rimax=(c2+sqrt(c2**2-4*c1*c3))/(2*c1)
       rimax=int(rimax*1000.)/1000.
-c      write(99,*) "rimax=",rimax
-c
-c     find ghmin:
-c
-      del=(s4+2.*d1)**2-8.*d0*(s5+2.*d3)
-c      write(99,*) "del=",del
-      ghmin=(-s4-2.*d1+sqrt(del))/(2.*(s5+2.*d3))
-c      write(99,*) "ghmin=",ghmin
+ 
+c     find ghmin,ghmax,gmmax0:
+ 
+      del=(s4+2*d1)**2-8*(s5+2*d3)
+      ghmin=(-s4-2*d1+sqrt(del))/(2*(s5+2*d3))
       ghmin=int(ghmin*10000.)/10000.
-c      write(99,*) "ghmin=",ghmin
-c      write(99,*) "ghmin/B1**2=",ghmin/B1**2
-      ghmax=(0.53d0*b1)**2
-      gmmax0=(1.95d0*b1)**2
-c      write(99,*) "ghmax=",ghmax
-c      write(99,*) "gmmax0=",gmmax0
+      ghmax=(b1*0.53)**2
+      gmmax0=(b1*1.95)**2
+
       return
       end subroutine ccoeff0
 
@@ -854,10 +823,10 @@ c-----------------------------------------------------------------------
         gm=tau*tau*as2
         if(gh.lt.ghmin) gh=ghmin
         if(gh.gt.ghmax) gh=ghmax
-        gmmax=(d0+d1*gh+d3*gh*gh)/(d2+d4*gh)
+        gmmax=(1+d1*gh+d3*gh*gh)/(d2+d4*gh)
         gmmax=min(gmmax,gmmax0)
         if(gm.gt.gmmax) gm=gmmax
-        den=d0+d1*gh+d2*gm+d3*gh*gh+d4*gh*gm+d5*gm*gm
+        den=1+d1*gh+d2*gm+d3*gh*gh+d4*gh*gm+d5*gm*gm
         sm=(s0+s1*gh+s2*gm)/den
         sh=(s4+s5*gh+s6*gm)/den
 c       km(i)=min(max(tau*e(i)*sm,1.5d-5),100.d0)
@@ -1438,9 +1407,9 @@ c       rhs1(i)=-coriol*(u(i)-ug)
         as2=max(dudz*dudz+dvdz*dvdz,1.d-20)
         ri=an2/as2
         if(ri.gt.rimax) ri=rimax
-        aa=c1*ri*ri+c2*ri+c3
+        aa=c1*ri*ri-c2*ri+c3
         bb=c4*ri+c5
-        cc=c6
+        cc=2.d0
         if(abs(aa).lt.1d-8) then
           gm= -cc/bb
         else

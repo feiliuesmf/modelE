@@ -939,7 +939,7 @@ c     at edge: e,lscale,km,kh,gm,gh
 !@var an2 Brunt-Vaisala frequency, grav/T*dTdz
 !@var sq stability constant for e, adjustable
       USE CONSTANT, only : grav
-      USE SOCPBL, only : ghmin,ghmax,gmmax0,d0,d1,d2,d3,d4,d5
+      USE SOCPBL, only : ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
      *     ,s0,s1,s2,s3,s4,s5,s6,b1
 
       implicit none
@@ -967,10 +967,10 @@ c     at edge: e,lscale,km,kh,gm,gh
         gmi=tau*tau*as2
         if(ghi.lt.ghmin) ghi=ghmin
         if(ghi.gt.ghmax) ghi=ghmax
-        gmmax=(d0+d1*ghi+d3*ghi*ghi)/(d2+d4*ghi)
+        gmmax=(1+d1*ghi+d3*ghi*ghi)/(d2+d4*ghi)
         gmmax=min(gmmax,gmmax0)
         if(gmi.gt.gmmax) gmi=gmmax
-        den=d0+d1*ghi+d2*gmi+d3*ghi*ghi+d4*ghi*gmi+d5*gmi*gmi
+        den=1+d1*ghi+d2*gmi+d3*ghi*ghi+d4*ghi*gmi+d5*gmi*gmi
         sm=(s0+s1*ghi+s2*gmi)/den
         sh=(s4+s5*ghi+s6*gmi)/den
         taue=tau*e(i)
@@ -978,10 +978,6 @@ c     at edge: e,lscale,km,kh,gm,gh
         kh(i)=max(taue*sh,2.5d-5)
         kq(i)=kh(i)
         ke(i)=max(taue*sq,1.5d-5)
-c       km(i)=min(max(taue*sm,1.5d-5),100.d0)
-c       kh(i)=min(max(taue*sh,2.5d-5),100.d0)
-c       kq(i)=2.*kh(i)
-c       ke(i)=min(max(taue*sq,1.5d-5),100.d0)
         gm(i)=gmi
         gh(i)=ghi
       end do
