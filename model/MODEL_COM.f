@@ -271,8 +271,8 @@ C**** Possible additions to this file: FTYPE, (remove rsi from seaice?)
         WRITE (kunit,err=10) it,XLABEL,nday,iyear1,itimei,itimee,itime0,
      *       NTIMEACC,TIMING(1:NTIMEACC),TIMESTR(1:NTIMEACC)
 C**** doc line: basic model parameters
-        write(label2(14:80),'(4i4,a)') im,jm,lm,ls1,' PLbot(lm+1) (R*4)'
-        WRITE (kunit,err=10) LABEL2,SNGL(PTOP+PSFMPT*SIGE)
+        write(label2(14:29),'(4i4)') im,jm,lm,ls1
+        WRITE (kunit,err=10) LABEL2
 C**** write parameters database here
         call write_param(kunit)
       CASE (IOREAD:)          ! label always from input file

@@ -471,8 +471,6 @@ C****
       USE PARAM
       USE PARSER
       USE SOIL_DRV, only: init_gh
-
-
       IMPLICIT NONE
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG unit numbers for input files
       INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG
@@ -533,6 +531,14 @@ C**** Other speciality descriptions can be added/used locally
       CALL SET_TIMER("     SURFACE",MSURF)
       CALL SET_TIMER(" DIAGNOSTICS",MDIAG)
       CALL SET_TIMER("       OTHER",MELSE)
+C****
+C**** Set some documentary parameters in the database
+C****
+      call set_param("IM",IM)
+      call set_param("JM",JM)
+      call set_param("LM",LM)
+      call set_param("LS1",LS1)
+      call set_param("PLBOT",PSFMPT*SIGE(1:LM+1)+PTOP,LM+1)
 C****
 C**** Print Header and Label (2 lines) from rundeck
 C****
