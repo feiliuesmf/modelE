@@ -29,7 +29,7 @@ c
 #ifdef regional_Ox_tracers
      &                  ,NregOx,n_OxREG1
 #endif
-      USE CONSTANT, only: radian,gasc,mair,mb2kg,pi
+      USE CONSTANT, only: radian,gasc,mair,mb2kg,pi,avog
       USE TRACER_DIAG_COM, only : jls_N2O5sulf,tajls,taijs,ijs_JH2O2
      &                           ,ijs_NO3
       USE TRCHEM_Shindell_COM
@@ -68,14 +68,13 @@ C**** Local parameters and variables and arguments:
 !@var chg106,chg107,chg108,chg109 reaction rates for het rxns on pscs
 !@var rmrClOx,rmrBrOx dummy vars with mixing ratios of halogens
 !@var rmv dummy variable for halogne removal in trop vs height
-!@var airvol Air volume in grid cell
 !@var changeL 2D array holds the local change due to chem or strat 
 !@+   overwrite until adding to tr3Dsource (replaces 4D "change")
       REAL*8, DIMENSION(LM,NTM) :: changeL
-      REAL*8, DIMENSION(LM) :: airvol
       REAL*8 :: CH4FACT,FACTj,r179
       REAL*8, DIMENSION(LM) :: PRES2
       REAL*8 FASTJ_PFACT, FACT1, bydtsrc, byam75
+      REAL*8 fact_so4
 !@var pfactor to convert units on species chemical changes
 !@var bypfactor to convert units on species chemical changes
 !@var dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,changeAldehyde,
@@ -153,7 +152,7 @@ C**** (note this section is already done in DIAG.f)
         END DO
       END DO
 C
-!$OMP  PARALLEL DO PRIVATE (airvol, changeL, FASTJ_PFACT,
+!$OMP  PARALLEL DO PRIVATE (changeL, FASTJ_PFACT,
 !$OMP* rlossN,rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3,
 !$OMP* gwprodN2O5,wprod_sulf,wprodCO,dNO3,wprodHCHO,prod_sulf,rveln2o5,
 !$OMP* changeAldehyde,changeAlkenes,changeIsoprene,changeHCHO,
@@ -197,10 +196,6 @@ c      initialize the 2D change variable:
 c      save presure and temperature in local arrays:
        pres(L)=PMID(L,I,J)
        ta(L)=TX(I,J,L)
-c
-c Air volume for sulfate SA calculation (m3)
-       airvol(L)=(((DXYP(J)*AM(L,I,J)*1.d3)/mair)*gasc
-     &      *ta(L))/pres(L)*100.d0 
 c
 c      calculate M and set fixed ratios for O2 & H2:
        y(nM,L)=pres(L)/(ta(L)*1.38d-19)
@@ -484,22 +479,23 @@ C
 C      Off-line sulfate fields to run in uncoupled mode 
 C      give SO4 in cm2/cm3 'surface area density'.
 C
-C      On-line sulfate in coupled mode must be converted to cm2/cm3
-C      Assume a monodispersed aerosol with radius 0.078 microns
-C
+C      On-line sulfate in coupled mode must be converted 
+C      to aerosol surface (cm2 aerosol/cm3 air) via 
+C      aerosol volume fraction (cm3 aerosol/cm3 air)
+C      Assume a monodispersed aerosol with diameter 0.078 microns
+C      Specific aerosol density = 1.1g/cm3 (1.7g/cm3 ?)
+C      See Dentener and Crutzen, 1993 for details.
+C      Mr[sulfate] = 96.0g; Mr[(NH4)HSO4] = 115.0gC
 C*****************************************************************
 c
        do L=1,LTROPO(I,J) ! (troposphere)
 
          if (coupled_chem.eq.1) then
-C Convert units of kg sulfate to cm2 sulfate /cm3 air
-C Number of particles * mean surface area
-C Mean surface area of sulfate particle = 7.6E-10 cm2
-C Total surface area per grid box (cm2)
-        sulfate(I,J,L)=(trm(I,J,L,n_SO4)*1.d3)/tr_mm(n_SO4)
-     &     *6.022d23*7.6d-10
-C Divide by grid box volume (cm3)
-         sulfate(I,J,L)=sulfate(I,J,L)/(airvol(L)*1.d6)
+C Convert SO4 from mass (kg) to aerosol surface per grid box
+         fact_so4=(BYDXYP(J)*BYAM(L,I,J)*(28.0D0/96.0D0)*
+     &   y(nM,L)*96.0D0)
+         sulfate(I,J,L)=(trm(I,J,L,n_SO4)*fact_so4*3.0D0)
+     &   /(3.9D-6*avog*1.1D0)
          endif
 
          pfactor=dxyp(J)*AM(L,I,J)/y(nM,L)
