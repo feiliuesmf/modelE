@@ -118,7 +118,7 @@ C**** Tracer input/output common block for PBL
       real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
       integer n,nx,ntx
       integer, dimension(ntm) :: ntix
-      common /trspec/trtop,trs,trsfac,trconstflx,ntx
+      common /trspec/trtop,trs,trsfac,trconstflx,ntx,ntix
       real*8 totflux
       integer nsrc
 #ifdef TRACERS_WATER
@@ -308,37 +308,6 @@ c**** loop over ground time steps
       rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
-      do nx=1,ntx
-        n=ntix(nx)
-C**** Set surface boundary conditions for tracers depending on whether
-C**** they are water or another type of tracer
-#ifdef TRACERS_WATER
-C**** The select is used to distinguish water from gases or particle
-        select case (tr_wd_TYPE(n))
-        case (nWATER)
-C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
-          trsfac(nx)=1.
-          trconstflx(nx)=gtracer(n,itype,i,j)*QG
-C**** no fractionation from ground (yet)
-          trgrnd(nx)=gtracer(n,itype,i,j)*QG
-        case (nGAS, nPART)
-#endif
-C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
-C**** is a non-soluble tracer mixed in.)
-C**** Calculate trsfac (set to zero for const flux)
-          trsfac(nx)=0.
-C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
-          rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
-          totflux=0.
-          do nsrc=1,ntsurfsrc(n)
-            totflux = totflux+trsource(i,j,nsrc,n)
-          end do
-          trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
-#ifdef TRACERS_WATER
-        end select
-#endif
-      end do
-#endif
 #ifdef TRACERS_WATER
 C**** Quick and dirty calculation of water tracer amounts in
 C**** soils to ensure conservation. Should be replaced with proper
@@ -379,6 +348,38 @@ C**** calculate new tracer ratio after precip
           trsoil_rat(nx)=(trsoil_tot(nx)+dtsurf*trpr(nx))
      *         /(rhow*(wsoil_tot+dtsurf*pr))
         end if
+      end do
+#endif
+C****
+      do nx=1,ntx
+        n=ntix(nx)
+#ifdef TRACERS_WATER
+C**** Set surface boundary conditions for tracers depending on whether
+C**** they are water or another type of tracer
+C**** The select is used to distinguish water from gases or particle
+        select case (tr_wd_TYPE(n))
+        case (nWATER)
+C**** no fractionation from ground (yet)
+          trgrnd(nx)=gtracer(n,itype,i,j)*QG
+C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
+          trsfac(nx)=1.
+          trconstflx(nx)=trgrnd(nx)
+        case (nGAS, nPART)
+#endif
+C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
+C**** is a non-soluble tracer mixed in.)
+C**** Calculate trsfac (set to zero for const flux)
+          trsfac(nx)=0.
+C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
+          rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
+          totflux=0.
+          do nsrc=1,ntsurfsrc(n)
+            totflux = totflux+trsource(i,j,nsrc,n)
+          end do
+          trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
+#ifdef TRACERS_WATER
+        end select
+#endif
       end do
 #endif
 c***********************************************************************

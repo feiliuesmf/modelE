@@ -83,7 +83,6 @@ C**** Interface to PBL
       REAL*8 AREGIJ(3,IM,JM,5)
 c
 
-
 #ifdef TRACERS_ON
 C**** Tracer input/output common block for PBL
 !@var trsfac, trconstflx factors in surface flux boundary cond.
@@ -92,7 +91,7 @@ C**** Tracer input/output common block for PBL
       real*8 rhosrf0, totflux
       integer n,nx,ntx,nsrc
       integer, dimension(ntm) :: ntix
-      common /trspec/trtop,trs,trsfac,trconstflx,ntx
+      common /trspec/trtop,trs,trsfac,trconstflx,ntx,ntix
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: tevaplim,trgrnd
       real*8  TEV,dTEVdTQS,tevap,dTQS,TDP,TDT1,FRACVL,FRACVS,FRACLK
@@ -371,11 +370,8 @@ C**** are water or another type of tracer
 C**** The select is used to distinguish water from gases or particle
         select case (tr_wd_TYPE(n))
         case (nWATER)
-C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
-          trsfac(nx)=1.
-          trconstflx(nx)=gtracer(n,itype,i,j)*QG
 #ifdef TRACERS_SPECIAL_O18
-          if (ELHX.eq.LHE) then   ! liquid water => fractionation
+          if (ITYPE.eq.1) then   ! liquid water => fractionation
             trgrnd(nx)=gtracer(n,itype,i,j)*QG*FRACVL(TG1,trname(n))
           else   ! ice, no fractionation
             trgrnd(nx)=gtracer(n,itype,i,j)*QG
@@ -383,6 +379,9 @@ C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
 #else
             trgrnd(nx)=gtracer(n,itype,i,j)*QG
 #endif
+C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
+          trsfac(nx)=1.
+          trconstflx(nx)=trgrnd(nx)
         case (nGAS, nPART)
 #endif
 C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there

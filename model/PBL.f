@@ -11,7 +11,7 @@
 
       USE CONSTANT, only : grav,omega,pi,radian,bygrav,teeny
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm
+      USE TRACER_COM, only : ntm,trname
 #endif
       IMPLICIT NONE
 CCC   SAVE
@@ -112,7 +112,7 @@ C$OMP  THREADPRIVATE (/PBLPAR/,/PBLOUT/)
       subroutine advanc(
      3     coriol,utop,vtop,ttop,qtop,tgrnd,qgrnd,evap_max,fr_sat,
 #ifdef TRACERS_ON
-     *     trs,trtop,trsfac,trconstflx,ntx,
+     *     trs,trtop,trsfac,trconstflx,ntx,ntix,
 #ifdef TRACERS_WATER
      *     tr_evap_max,
 #endif
@@ -161,6 +161,7 @@ c   output:
 !@var  trsfac  factor for trs in surface boundary condition
 !@var  trconstflx  constant component of surface tracer flux
 !@var  ntx  number of tracers to loop over
+!@var  ntix index of tracers used in pbl
 #ifdef TRACERS_WATER
 !@var  tr_evap_max max amount of possible tracer evaporation
 #endif
@@ -188,12 +189,16 @@ c  internals:
       real*8, intent(in), dimension(ntm) :: trconstflx,trsfac
       real*8, intent(out), dimension(ntm) :: trs
       integer, intent(in) :: ntx
+      integer, intent(in), dimension(ntm) :: ntix
       real*8, dimension(n,ntm) :: trsave
       real*8 trcnst,trsf,cqsave
       real*8, dimension(n-1) :: kqsave
       integer itr
 #ifdef TRACERS_WATER
       real*8, intent(in), dimension(ntm) :: tr_evap_max
+#ifdef TRACERS_SPECIAL_O18
+      real*8 fk,fraclk,fracvl
+#endif
 #endif
 #endif
 
@@ -343,6 +348,26 @@ C**** be inside the iteration. Use moisture diffusivity
 C**** Tracers need to multiply trsfac and trconstflx by cq*Usurf
         trcnst=trconstflx(itr)*cqsave*wsh
         trsf=trsfac(itr)*cqsave*wsh
+#ifdef TRACERS_SPECIAL_O18
+C**** Isotope tracers have different fractionations dependent on
+C**** type and direction of flux
+        select case (itype)
+        case (1)                ! ocean: kinetic fractionation
+          fk = fraclk(wsh,trname(ntix(itr)))
+          trcnst = trcnst * fk
+          trsf = trsf * fk
+        case (2:4)              ! other types
+C**** tracers are now passive, so use 'upstream' concentration
+          if (q(1)-qgrnd.gt.0.) then  ! dew
+            trcnst = 0.
+            trsf = trsf*(q(1)-qgrnd)/(q(1)*fracvl(tgrnd
+     *           ,trname(ntix(itr))))
+          else
+            trcnst = trcnst*(1.-q(1)/qgrnd)
+            trsf = 0.
+          end if
+        end select
+#endif
 #endif
         call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
      *       ,trcnst,trtop(itr),

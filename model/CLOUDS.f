@@ -1749,8 +1749,6 @@ C**** Isotopic equilibration of the liquid Precip and water vapour
 C**** only if T> -20 deg ??? 
         PRLIQ = (PREBAR(L)-PREICE(L))*DTsrc*BYAM(L)*GRAV
         IF (TL(L)-TF.GT.-20.AND.PRLIQ.gt.0) THEN
-          IF (TRPRBAR(N,L) - TRPRICE(N,L).lt.0) print*,"trprice error",n
-     *         ,l,TRPRBAR(N,L),TRPRICE(N,L)
           TRPRLIQ = MAX(0d0,TRPRBAR(N,L) - TRPRICE(N,L))
           CALL ISOEQUIL(NTIX(N),TL(L),QL(L),PRLIQ,TM(L,N),TRPRLIQ)
           TRPRBAR(N,L) = TRPRLIQ + TRPRICE(N,L)

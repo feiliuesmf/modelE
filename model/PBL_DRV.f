@@ -65,11 +65,11 @@ C**** Tracer input/output common block
 !@var trsfac, trconstflx factors in surface flux boundary cond.
 !@var ntx number of tracers that need pbl calculation
       real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
+      integer, dimension(ntm) :: ntix
       integer itr,n,ntx
-      common /trspec/trtop,trs,trsfac,trconstflx,ntx
+      common /trspec/trtop,trs,trsfac,trconstflx,ntx,ntix
 #endif
 c
-
       REAL*8 ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
       REAL*8 ttop,qtop,tgrndv,qgrnd,utop,vtop,ufluxs,vfluxs
      *     ,tfluxs,qfluxs,psitop,psisrf
@@ -213,7 +213,7 @@ c1003 format(a,4(1pe14.4))
       call advanc(
      3     coriol,utop,vtop,ttop,qtop,tgrndv,qgrnd,evap_max,fr_sat,
 #ifdef TRACERS_ON
-     *     trs,trtop,trsfac,trconstflx,ntx,
+     *     trs,trtop,trsfac,trconstflx,ntx,ntix,
 #ifdef TRACERS_WATER
      *     tr_evap_max,
 #endif
