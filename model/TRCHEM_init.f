@@ -14,6 +14,9 @@ C
      &                          lprn,jprn,iprn,ay,nss,pHOx,pOx,pNOx,
      &                          yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,
      &                          yRXPAR,yXO2N
+#ifdef SHINDELL_STRAT_CHEM
+     &                          ,pCLOx,pCLx,pOClOx,pBrOx
+#endif
 c
       IMPLICIT NONE
 c
@@ -31,7 +34,11 @@ C
       read(iu_data,100)prnls,prnrts,prnchg,lprn,jprn,iprn
  100  format(/3(50x,l1/),3(50x,i8/))
       read(iu_data,110)ay
+#ifdef SHINDELL_STRAT_CHEM
  110  format(3(///10(a8)),(///5(a8)))
+#else
+ 110  format(5(///10(a8)),(///2(a8)))
+#endif
       call closeunit(iu_data)
 C
 C     Read JPL chemical reactions/rates from unit JPLRX:
@@ -53,22 +60,22 @@ c     Set up arrays of reaction numbers involving each molecule.
 C
 C     Initialize a few (IM,JM,LM) arrays, first hour only:
       IF(Itime.eq.ItimeI) THEN
-        pHOx     =1.
-        pOx      =1.
-        pNOx     =1.
-        yCH3O2   =1.E5
-        yC2O3    =0.
-        yROR     =0.
-        yXO2     =0.
-        yAldehyde=0.
-        yNO3     =0.
-        yXO2N    =0.
-        yRXPAR   =0.
-#ifdef Shindell_Strat_chem
-        pClOx    =1.
-        pClx     =0.
-        pOClOx   =0.
-        pBrOx    =1.
+        pHOx     =1.d0
+        pOx      =1.d0
+        pNOx     =1.d0
+        yCH3O2   =1.d5
+        yC2O3    =0.d0
+        yROR     =0.d0
+        yXO2     =0.d0
+        yAldehyde=0.d0
+        yNO3     =0.d0
+        yXO2N    =0.d0
+        yRXPAR   =0.d0
+#ifdef SHINDELL_STRAT_CHEM
+        pClOx    =1.d0
+        pClx     =0.d0
+        pOClOx   =0.d0
+        pBrOx    =1.d0
 #endif
       END IF
 C
@@ -127,7 +134,9 @@ C
          end if
        else                     ! read heterogeneous reactions
          if(i.eq.nr-(nhet-1))read(iu_data,22)ate
-         call stop_model('jplrts not set up to read hetero. rxns.', 255)
+         read(iu_data,31)ate
+         write(6,30) i,ate(1),' + ',ate(2),
+     *   ' --> ',ate(3),' + ',ate(4)
        end if ! (i.le.nr-nhet)
 c
       do j=1,2
@@ -142,7 +151,8 @@ C
   22  format(/10x,4a8/)
   25  format(//32x,2f7.1,i6)
   16  format(4x,a8,1x,a8,3x,a8,1x,a8,e8.2,f8.0,i4)
-  30  format(1x,i2,2x,a8,a3,a8,a5,a8,a3,a8)
+  31  format(4x,a8,1x,a8,3x,a8,1x,a8)
+  30  format(1x,i3,2x,a8,a3,a8,a5,a8,a3,a8)
       call closeunit(iu_data)
       return
       end SUBROUTINE jplrts
@@ -320,8 +330,8 @@ C
       INTEGER, DIMENSION(p_4)    :: kdr
       INTEGER, DIMENSION(p_3)    :: ndr
       INTEGER nre, nns, ns, k, j, i, ij, i2, newfam, ifam, ii
-      INTEGER, DIMENSION(ns,p_2) :: nn  ! Can't do this anymore ??
-      INTEGER, DIMENSION(nns,p_2):: nnn ! Can't do this anymore ??
+      INTEGER, DIMENSION(ns,p_2) :: nn 
+      INTEGER, DIMENSION(nns,p_2):: nnn
 
       k=1
       nfam(numfam+1)=ny+1
@@ -486,7 +496,7 @@ C
       INTEGER lw
 C
       do lw=1,n_bnd3
-          wlt(lw)=195.+5.*float(lw)
+          wlt(lw)=195.d0+5.d0*real(lw)
 c         sech(2,x)=O3 cross sections, sech(1,x)=O2 cross sections
           sech(2,lw)=sO3(lw)
           if(lw.le.9) then
@@ -510,6 +520,9 @@ C**** GLOBAL parameters and variables:
 C
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: jfacta, jlabel,jppj
+#ifdef SHINDELL_STRAT_CHEM
+CCC                            ,MXFASTJ,MIEDX2,TITLEA,NAA
+#endif
 c
       IMPLICIT NONE
 c
@@ -541,7 +554,7 @@ c Read in quantum yield jfacta and fastj label jlabel
          read(iu_data,'(78x,f5.1,2x,a7)',err=20) temp1,temp2
          jfacta(ipr) = temp1
          jlabel(ipr) = temp2
-         jfacta(ipr)=jfacta(ipr)/100.d0
+         jfacta(ipr)=jfacta(ipr)*1.d-2 
          go to 10
       endif
  20   call closeunit(iu_data)
@@ -568,6 +581,16 @@ c Read in T & O3 climatology
       CALL RD_PROF(iu_data)
       call closeunit(iu_data)
 c
+#ifdef SHINDELL_STRAT_CHEM
+c  Ensure all aerosol types are valid selections
+c     do i=1,MXFASTJ
+c       write(6,1000) MIEDX(i),TITLEA(MIEDX(i))
+c       if(MIEDX(i).gt.NAA.or.MIEDX(i).le.0) then
+c         write(6,1200) MIEDX(i),NAA
+c         stop
+c       endif
+c     enddo
+#endif
       return
       end SUBROUTINE inphot
 C
