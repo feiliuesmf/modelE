@@ -19,6 +19,7 @@ C*************************************************************
 !@auth Gavin Schmidt (based on code from Jinlun Zhang)
       USE CONSTANT, only : radian,radius
       USE MODEL_COM, only : im,jm
+      USE SEAICE, only : osurf_tilt
       IMPLICIT NONE
       SAVE
 C**** Definition for ice advection grid (EDIT FOR ADVSI GRID CHANGE)
@@ -127,30 +128,32 @@ C NOW SET UP FORCING FIELD
       DO I=1,NX1
 
 C FIRST DO WIND
-       FORCEX(I,J)=GAIRX(i,j)
-       FORCEY(I,J)=GAIRY(i,j)
+        FORCEX(I,J)=GAIRX(i,j)
+        FORCEY(I,J)=GAIRY(i,j)
 
 C NOW ADD IN CURRENT FORCE
-       IF(J.GT.NY1/2) THEN
-         FORCEX(I,J)=FORCEX(I,J)+DWATN(I,J)*(COSWAT*GWATX(I,J)
-     1        -SINWAT*GWATY(I,J))
-         FORCEY(I,J)=FORCEY(I,J)+DWATN(I,J)*(SINWAT*GWATX(I,J)
-     1        +COSWAT*GWATY(I,J))
-       ELSE
-         FORCEX(I,J)=FORCEX(I,J)+DWATN(I,J)*(COSWAT*GWATX(I,J)
-     1        +SINWAT*GWATY(I,J))
-         FORCEY(I,J)=FORCEY(I,J)+DWATN(I,J)*(-SINWAT*GWATX(I,J)
-     1        +COSWAT*GWATY(I,J))
-       END IF
-
-C NOW ADD IN TILT 
+        IF(J.GT.NY1/2) THEN
+          FORCEX(I,J)=FORCEX(I,J)+DWATN(I,J)*(COSWAT*GWATX(I,J)
+     1         -SINWAT*GWATY(I,J))
+          FORCEY(I,J)=FORCEY(I,J)+DWATN(I,J)*(SINWAT*GWATX(I,J)
+     1         +COSWAT*GWATY(I,J))
+        ELSE
+          FORCEX(I,J)=FORCEX(I,J)+DWATN(I,J)*(COSWAT*GWATX(I,J)
+     1         +SINWAT*GWATY(I,J))
+          FORCEY(I,J)=FORCEY(I,J)+DWATN(I,J)*(-SINWAT*GWATX(I,J)
+     1         +COSWAT*GWATY(I,J))
+        END IF
+        
+C     NOW ADD IN TILT 
+        if (osurf_tilt.eq.1) then
 C**** This assumes explicit knowledge of sea surface tilt
-       FORCEX(I,J)=FORCEX(I,J)+AMASS(I,J)*PGFUB(I,J)
-       FORCEY(I,J)=FORCEY(I,J)+AMASS(I,J)*PGFVB(I,J)
+          FORCEX(I,J)=FORCEX(I,J)+AMASS(I,J)*PGFUB(I,J)
+          FORCEY(I,J)=FORCEY(I,J)+AMASS(I,J)*PGFVB(I,J)
+        else
 C**** Otherwise estimate tilt using geostrophy
-c       FORCEX(I,J)=FORCEX(I,J)-COR(I,J)*GWATY(I,J)
-c       FORCEY(I,J)=FORCEY(I,J)+COR(I,J)*GWATX(I,J)
-
+          FORCEX(I,J)=FORCEX(I,J)-COR(I,J)*GWATY(I,J)
+          FORCEY(I,J)=FORCEY(I,J)+COR(I,J)*GWATX(I,J)
+        end if
       END DO
       END DO
 

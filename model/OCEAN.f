@@ -531,7 +531,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE FLUXES, only : gtracer
 #endif
       USE FLUXES, only : gtemp,sss,uosurf,vosurf,uisurf,visurf,ogeoza
-      USE SEAICE, only : qsfix
+      USE SEAICE, only : qsfix, osurf_tilt
       USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
      *     ,iu_ocnml,tocean,ocn_cycl,sss0
@@ -638,6 +638,10 @@ C**** Also zero out surface height variations
       END DO
 C**** keep salinity in sea ice constant for fixed-SST and qflux models
       qsfix = .true.
+C**** Make sure to use geostrophy for ocean tilt term in ice dynamics
+C**** (if required). Since ocean currents are zero, this implies no sea
+C**** surface tilt term.
+      osurf_tilt = 0
 C****
       RETURN
       END SUBROUTINE init_OCEAN
