@@ -13,7 +13,7 @@ C**** describes the observations.
 !@var NDIAG number of target diagnostics
       INTEGER, PARAMETER :: LMAX=33, NDIAG=25
 C****
-      CHARACTER OBS(LMAX)*63, RMS(0:LMAX,2)*140, FILEIN*80, TITLE1*80,
+      CHARACTER OBS(LMAX)*63, RMS(0:LMAX,2)*140, TITLE1*80,
      *     TITLE2*80, RUN*20, DATE*8, MONFILE(2)*80
       REAL*4 TOTAL(20,2),DATA1(IM,JM),DATA2(IM,JM)
       CHARACTER*7, DIMENSION(2) :: MONTH =(/'January','   July'/)
@@ -222,8 +222,6 @@ C****
       WRITE (0,*)
      *' Example:  RMS E001 JAN1950-1955.ijE001 JUL1950-1955.ijE001'
       GO TO 999
-  801 WRITE (0,*) ' Error opening datafile: ',FILEIN(1:40)
-      STOP 801
 C****
   901 FORMAT (A17,2X,A)
   921 FORMAT (F7.2)
