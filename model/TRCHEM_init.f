@@ -8,7 +8,6 @@ C**** GLOBAL parameters and variables:
 C
       USE FILEMANAGER, only: openunit,closeunit
       USE MODEL_COM, only: Itime, ItimeI, IM, LM
-      USE RADPAR, only: O3DLJ
       USE TRCHEM_Shindell_COM, only:nc,ny,numfam,JPPJ,nn,ks,nps,nds,
      &                          ndnr,kps,kds,kpnr,kdnr,nnr,kss,nr,npnr,
      &                          nr2,nr3,nmm,nhet,prnls,prnrts,prnchg,
