@@ -454,9 +454,9 @@ C**** save output diagnostics
       END SUBROUTINE SEA_ICE
 
       SUBROUTINE ADDICE (SNOW,ROICE,HSIL,MSI2,TSIL,DIFSI,EDIFSI,ENRGFO
-     *     ,ACEFO,ACE2F,ENRGFI,FLEAD,QFIXR,QCMPR)
+     *     ,ACEFO,ACE2F,ENRGFI,FLEAD,QFIXR)
 !@sum  ADDICE adds ice formed in the ocean to ice variables
-!@auth Gary Russell
+!@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       IMPLICIT NONE
 
@@ -467,8 +467,6 @@ C**** save output diagnostics
      *                     BYZICX=1./(Z1I+Z2OIX)
 !@var QFIXR  true if RSI and MSI2 are fixed (ie. for fixed SST run)
       LOGICAL, INTENT(IN) :: QFIXR
-!@var QCMPR  true if ice should be compressed due to leads etc.
-      LOGICAL, INTENT(IN) :: QCMPR
 !@var FLEAD minimum lead fraction for ice (%)
       REAL*8, INTENT(IN) :: FLEAD
       REAL*8, INTENT(IN) ::  ENRGFI, ENRGFO, ACEFO, ACE2F
@@ -482,7 +480,7 @@ C**** save output diagnostics
       REAL*8 ROICEN, OPNOCN, DRSI, DRI, MSI1
       REAL*8 DIFS1
 
-      EDIFSI=0. ; DIFSI=0.
+      EDIFSI=0. ; DIFSI=0. 
       IF (.not.QFIXR .and. ROICE.LE.0. .and. ACEFO.gt.0) THEN
         ROICE=ACEFO/(ACE1I+AC2OIM)
         SNOW=0.
@@ -493,16 +491,10 @@ C****   TSIL=(ENRGFO/ACEFO + LHM)*BYSHI ! but hsi is primary var.
         HSIL(4) = (ENRGFO/ACEFO)*XSI(4)*AC2OIM
         MSI1=ACE1I
         MSI2=AC2OIM
-        TSIL(1:2)=(HSIL(1:2)/(XSI(1:2)*MSI1)+LHM)*BYSHI
-        TSIL(3:4)=(HSIL(3:4)/(XSI(3:4)*MSI2)+LHM)*BYSHI
-        RETURN
-      END IF
-C****
-      TSIL=0.
-      IF (ROICE.le.0) RETURN
+      ELSEIF (ROICE.gt.0) THEN
 
       MSI1=SNOW+ACE1I
-      IF (QFIXR) GO TO 370
+      IF (.not. QFIXR) THEN
       IF (ACE2F.le.0) GO TO 250 ! go to no freezing case
 C**** CALCULATE ADVECTIVE HEAT FLUX FROM LAYER 3 TO LAYER 4 OF ICE
 C     FMSI3 = -XSI(3)*ACE2F ! < 0.
@@ -528,13 +520,10 @@ C**** MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
      A       (ROICE+DRSI)
       HSIL(4) = ((1.-ROICE)*ENRGFO*YSI(4)+ROICE*(HSIL(4)+FHSI3+ENRGFI))/
      A       (ROICE+DRSI)
-      ROICE = MIN(ROICE+DRSI,1d0) ! new ice concentration
+      ROICE = ROICE+DRSI ! new ice concentration
       GO TO 270
   250 CONTINUE
-      IF (ACEFO .GT. 0.) GO TO 260 ! new ice on the open ocean
-C**** NO NEW ICE IS FORMED UNDERNEATH THE OLD ONE
-      GO TO 270
-  260 CONTINUE
+      IF (ACEFO .GT. 0.) THEN ! new ice on the open ocean
 C**** NEW ICE IS FORMED ON THE OPEN OCEAN
       DRSI = (1.-ROICE)*ACEFO/(ACE1I+AC2OIM) ! new ice on the open oc.
       SNOW = SNOW*ROICE/(ROICE+DRSI) ! redistributed over old and new
@@ -545,18 +534,13 @@ C**** MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
       HSIL(2) = ((1.-ROICE)*ENRGFO*YSI(2)+ROICE*HSIL(2))/(ROICE+DRSI)
       HSIL(3) = ((1.-ROICE)*ENRGFO*YSI(3)+ROICE*HSIL(3))/(ROICE+DRSI)
       HSIL(4) = ((1.-ROICE)*ENRGFO*YSI(4)+ROICE*HSIL(4))/(ROICE+DRSI)
-      ROICE = MIN(ROICE+DRSI,1d0) ! new ice concentration
+      ROICE = ROICE+DRSI ! new ice concentration
+      END IF
   270 CONTINUE
-      IF (QCMPR) THEN           ! COMPRESS THE ICE HORIZONTALLY
-      IF (MSI2 .GE. AC2OIM) GO TO 280 ! ice is thick enough
-C**** SEA ICE IS TOO THIN
-      ROICEN = ROICE*(ACE1I+MSI2)/(ACE1I+AC2OIM) ! new ice concentr.
-      GO TO 290
-  280 CONTINUE
+C**** COMPRESS THE ICE HORIZONTALLY IF TOO THIN OR LEAD FRAC. TOO SMALL
       OPNOCN=FLEAD*(RHOI/(ACE1I+MSI2)-BYZICX)
-      IF ((1.-ROICE) .GE. OPNOCN) GO TO 360
-      ROICEN = 1.-OPNOCN
- 290  CONTINUE
+      IF (MSI2.LT.AC2OIM .or. ROICE.GT.1.-OPNOCN) THEN 
+      ROICEN = MIN(ROICE*(ACE1I+MSI2)/(ACE1I+AC2OIM),1.-OPNOCN)
       DRSI = ROICEN-ROICE ! < 0. compressed ice concentration
       DRI = ROICE-ROICEN ! > 0. for diagnostics
 C     FMSI3 = XSI(3)*FMSI4 ! < 0. upward ice mass flux into layer 3
@@ -571,15 +555,29 @@ C     SNOW = SNOW   ! snow thickness is conserved
       EDIFSI = ROICE*(HSIL(1)+HSIL(2))*(DIFS1/MSI1)*0.5
       DIFSI = ROICE*DIFS1
       ROICE = ROICEN
+C**** 
       END IF
-C**** RESAVE PROGNOSTIC QUANTITIES
-  360 CONTINUE
-  370 CONTINUE
+C**** 
+      END IF
+C**** 
+      END IF
+C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-4) => rsi=(1-OPNOCN))
+      OPNOCN=FLEAD*(RHOI/(ACE1I+MSI2)-BYZICX)
+      IF (.not. QFIXR .and. ROICE.gt.(1.-OPNOCN-1d-4)) THEN
+        ROICEN = 1.-OPNOCN
+        DRSI = ROICEN-ROICE ! > 0
+        FMSI4 = (MSI1+MSI2)*(DRSI/ROICEN) ! upward ice mass into layer 4
+        FHSI3 = HSIL(4)*FMSI4*(XSI(3)/XSI(4))/MSI2 ! upward heat flux
+        FHSI4 = (HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4))*(DRSI/ROICEN)
+        HSIL(3) = HSIL(3)-FHSI3
+        HSIL(4) = HSIL(4)+(FHSI3-FHSI4)
+        MSI2 = MSI2-FMSI4       ! new ice mass of second physical layer
+C       SNOW = SNOW   ! snow thickness is conserved
+        ROICE = ROICEN
+      END IF
 C**** Calculate temperatures for diagnostics and radiation
-      TSIL(1) = (HSIL(1)/(XSI(1)*MSI1) +LHM)*BYSHI ! temperature layer 1
-      TSIL(2) = (HSIL(2)/(XSI(2)*MSI1) +LHM)*BYSHI ! temperature layer 2
-      TSIL(3) = (HSIL(3)/(XSI(3)*MSI2) +LHM)*BYSHI ! temperature layer 3
-      TSIL(4) = (HSIL(4)/(XSI(4)*MSI2) +LHM)*BYSHI ! temperature layer 4
+      TSIL(1:2)=(HSIL(1:2)/(XSI(1:2)*MSI1)+LHM)*BYSHI ! temp. layer 1/2
+      TSIL(3:4)=(HSIL(3:4)/(XSI(3:4)*MSI2)+LHM)*BYSHI ! temp. layer 3/4
 
       RETURN
       END SUBROUTINE ADDICE
@@ -607,7 +605,7 @@ c      REAL*8 E_BOTTOM,GAMMA,HCRIT,HICE,ACE
 
       MSI1 = SNOW + ACE1I
       ENRGI = HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4) ! energy in seaice [J/m^2]
-      IF (ROICE*ENRGI+ENRGW.LT.0.) GO TO 230
+      IF (ROICE*ENRGI+ENRGW.GE.0. .or. ROICE.lt.1d-4) THEN
 C**** THE WARM OCEAN MELTS ALL THE SNOW AND ICE
       ENRGUSED=-ROICE*ENRGI     ! only some energy is used
       RUN0=ROICE*(MSI1+MSI2)    ! all ice is melted
@@ -618,6 +616,7 @@ C**** THE WARM OCEAN MELTS ALL THE SNOW AND ICE
       HSIL(3:4)=-LHM*XSI(3:4)*AC2OIM
       TSIL=0.
       RETURN
+      END IF
 C**** THE WARM OCEAN COOLS TO 0 DEGREES MELTING SOME SNOW AND ICE
 C**** Reduce the ice depth
  230  ENRGUSED=ENRGW            ! all energy is used

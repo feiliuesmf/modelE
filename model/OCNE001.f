@@ -119,9 +119,8 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
      *     ,X2,Z1OMIN,RSINEW,TIME,FRAC,MSINEW
 !@var JDLAST julian day that OCLIM was last called
       INTEGER, SAVE :: JDLAST=0
-!@var MONTHO current month for climatology reading
 !@var IMON current month for climatology reading
-      INTEGER, SAVE :: MONTHO = 0, IMON = 0
+      INTEGER, SAVE :: IMON = 0
 
       IF (KOCEAN.EQ.1) GO TO 500
 C****
@@ -146,8 +145,8 @@ C****  RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****  MSI  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
 C**** READ IN OBSERVED OCEAN DATA
-      IF (JMON.EQ.MONTHO) GO TO 400
-      IF (MONTHO.EQ.0) THEN
+      IF (JMON.EQ.IMON) GO TO 400
+      IF (IMON.EQ.0) THEN
 C****    READ IN LAST MONTH'S END-OF-MONTH DATA
          LSTMON=JMON-1
          IF(LSTMON.EQ.0) LSTMON=12
@@ -159,7 +158,7 @@ C****    COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
         ERSI0=ERSI1
       END IF
 C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
-      MONTHO=JMON
+      IMON=JMON
       IF (JMON.EQ.1) THEN
          REWIND iu_OSST
          REWIND iu_SICE
@@ -553,7 +552,7 @@ C****
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : rhow,shw,twopi,edpery
+      USE CONSTANT, only : rhow,shw,twopi,edpery,by3
       USE E001M12_COM, only : im,jm,kocean,focean,jday,ftype,itocean
      *     ,itoice,fland
       USE OCEAN, only : tocean,ostruc,oclim,z1O,
@@ -565,6 +564,8 @@ C****
       USE FLUXES, only : gtemp
       IMPLICIT NONE
       INTEGER I,J,IEND,IMAX
+!@var FDAILY fraction of energy available to be used for melting 
+      REAL*8 :: FDAILY = BY3
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL
       REAL*8 MSI2,ROICE,SNOW,TGW,WTRO,WTRW,ENRGW,ENRGUSED,ANGLE,RUN0
 
@@ -605,18 +606,18 @@ C**** Only melting of ocean ice (not lakes)
 C**** REDUCE ICE EXTENT IF OCEAN TEMPERATURE IS GREATER THAN ZERO
 C**** (MELTING POINT OF ICE)
             TGW=TOCEAN(1,I,J)
-            IF (TGW.LE.0.) CYCLE
+            IF (TGW.GT.0. .or. RSI(I,J).lt.1d-4) THEN
             ROICE=RSI(I,J)
             MSI2=MSI(I,J)
             SNOW=SNOWI(I,J)   ! snow mass
             HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
             WTRO=Z1O(I,J)*RHOW
             WTRW=WTRO-ROICE*(SNOW + ACE1I + MSI2)
-            ENRGW=WTRW*TGW*SHW  ! energy of water available for melting
+            ENRGW=WTRW*TGW*SHW*FDAILY ! energy available for melting
             CALL SIMELT(ROICE,SNOW,MSI2,HSIL,TSIL,ENRGW,ENRGUSED,RUN0)
 C****       RUN0 not needed for Qflux ocean
 C**** RESAVE PROGNOSTIC QUANTITIES
-            TGW=(ENRGW-ENRGUSED)/(WTRO*SHW)
+            TGW=TGW-ENRGUSED/(WTRO*SHW)
             TOCEAN(1,I,J)=TGW
             RSI(I,J)=ROICE
             MSI(I,J)=MSI2
@@ -626,6 +627,7 @@ C**** set ftype/gtemp arrays
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
             FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
             GTEMP(1:2,2,I,J) = TSIL(1:2)
+            END IF
             END IF
           END DO
         END DO

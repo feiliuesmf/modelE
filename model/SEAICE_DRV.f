@@ -210,7 +210,7 @@ C****
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL
       REAL*8 SNOW,ROICE,MSI2,DIFSI,EDIFSI,ENRGFO,ACEFO,ACE2F,ENRGFI
      *     ,DXYPJ,POICE,PWATER,FLEAD
-      LOGICAL QFIXR,QCMPR
+      LOGICAL QFIXR
       INTEGER I,J,IMAX,JR,ITYPE,ITYPEO
 
       DO J=1,JM
@@ -233,18 +233,14 @@ C****
           ITYPEO=ITOCEAN
           IF (KOCEAN.eq.1) THEN
             QFIXR=.FALSE.
-            QCMPR=.TRUE.
           ELSE
             QFIXR=.TRUE.
-            QCMPR=.FALSE.
           END IF
         ELSE
           FLEAD=FLEADLK
           ITYPE=ITLKICE
           ITYPEO=ITLAKE
           QFIXR=.FALSE.
-c          QCMPR=.FALSE.
-          QCMPR=.TRUE.   ! allow compression now that minimum is thinner
         END IF
 
         ACEFO=DMSI(1,I,J)
@@ -253,7 +249,7 @@ c          QCMPR=.FALSE.
         ENRGFI=DHSI(2,I,J)
 
         CALL ADDICE (SNOW,ROICE,HSIL,MSI2,TSIL,DIFSI,EDIFSI
-     *       ,ENRGFO,ACEFO,ACE2F,ENRGFI,FLEAD,QFIXR,QCMPR)
+     *       ,ENRGFO,ACEFO,ACE2F,ENRGFI,FLEAD,QFIXR)
 
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J) =SNOW
@@ -269,12 +265,10 @@ C**** set gtemp array
         GTEMP(1:2,2,I,J)=TSIL(1:2)
 
 C**** ACCUMULATE DIAGNOSTICS
-        IF (QCMPR) THEN
-          AJ(J,J_DIFS, ITYPE)=AJ(J,J_DIFS, ITYPE)+DIFSI *PWATER
-          AJ(J,J_EDIFS,ITYPE)=AJ(J,J_EDIFS,ITYPE)+EDIFSI*PWATER
-          IF (JR.ne.24) AREG(JR,J_DIFS)=AREG(JR,J_DIFS)+DIFSI*PWATER
-     *         *DXYPJ
-        END IF
+        AJ(J,J_DIFS, ITYPE)=AJ(J,J_DIFS, ITYPE)+DIFSI *PWATER
+        AJ(J,J_EDIFS,ITYPE)=AJ(J,J_EDIFS,ITYPE)+EDIFSI*PWATER
+        IF (JR.ne.24) AREG(JR,J_DIFS)=AREG(JR,J_DIFS)+DIFSI*PWATER
+     *       *DXYPJ
         AJ(J,J_TG1, ITYPE)=AJ(J,J_TG1, ITYPE)+TSIL(1)*POICE
         AJ(J,J_TG2, ITYPE)=AJ(J,J_TG2, ITYPE)+TSIL(2)*POICE
         AJ(J,J_RSI, ITYPE)=AJ(J,J_RSI, ITYPE)+        POICE
