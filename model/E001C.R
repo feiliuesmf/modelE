@@ -17,7 +17,9 @@ CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-ATURB                               ! turbulence in whole atmosphere
+! use either DRYCNV or ATURB (but not both or none)
+DRYCNV                              ! dry adiabatic adjustment
+! ATURB    ! no quite ready yet     ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
@@ -29,10 +31,16 @@ CONST FFT72 UTILDBL RAND~           ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.12
-OHT=OTSPEC.RB399AM12.M250D OCNML=Z1O.B4X5.cor
-MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
-OSST=OST4X5.B.1950.M02.Hadl1.1   SICE=SICE4X5.B.1950.M02.Hadl1.1   ! ocn
+AIC=DEC1958.rsfB394M12.modelE.12 ! initial conditions (atm. and ground)
+! OSST/SICE: data rec. start with an integer M, where
+!     M=1 means Jan of the year mentioned in the file names (here 1950)
+!     In order that data and date agree, set IYEAR1=that year (1950)
+OSST=OST4X5.B.1950.M02.Hadl1.1  ! ocean data   Feb 1950 - almost present
+SICE=SICE4X5.B.1950.M02.Hadl1.1 ! sea ice data Feb 1950 - almost present
+! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp.  not needed if ocn prescribed
+! OCNML=Z1O.B4X5.cor         ! mixed layer depth not needed if ocn prescribed
+! MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp. not needed if ocn prescribed
+! EDDY=ED4X5 ! Eddy diffusivity for deep ocean mixing - not needed
 CDN=CD4X500S VEG=V72X46.1.cor
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
@@ -60,9 +68,8 @@ CO2=-6.
 XCDLM=.0005,.00005
 KOCEAN=0
 ocn_cycl=0
-U00wtr=.50
+U00wtr=.47
 U00ice=.50
-
 DT=450.,        ! from default: DTsrc=3600.,
 NSLP=12         ! saving SLP 12hrly
 Kvflxo=1        ! saving VFLXO (daily)

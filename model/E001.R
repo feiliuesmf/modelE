@@ -10,14 +10,16 @@ Object modules: (in order of decreasing priority)
 RES_M12                             ! horiz/vert resolution
 MODEL_COM GEOM_B                    ! model variables and geometry
 MODELE                              ! Main and model overhead
-PARAM PARSER                        ! parameter database 
+PARAM PARSER                        ! parameter database
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-ATURB                               ! turbulence in whole atmosphere
+! use either DRYCNV or ATURB (but not both or none)
+DRYCNV                              ! dry adiabatic adjustment
+! ATURB    ! no quite ready yet     ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
@@ -29,10 +31,12 @@ CONST FFT72 UTILDBL RAND~           ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.12
-OHT=OTSPEC.RB399AM12.M250D OCNML=Z1O.B4X5.cor
-MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
-OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
+AIC=DEC1958.rsfB394M12.modelE.12 ! initial conditions (atm. and ground)
+! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp.  not needed if ocn prescribed
+! OCNML=Z1O.B4X5.cor         ! mixed layer depth not needed if ocn prescribed
+! MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp. not needed if ocn prescribed
+OSST=OST4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
+SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
 CDN=CD4X500S VEG=V72X46.1.cor
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
@@ -52,14 +56,14 @@ RADNE=topcld.trscat8
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
-E001 (new modelE based on B402A)
+E001 (new modelE based on B402A, uses dry adiab. adjustment)
 R=00BG/B
 
 &&PARAMETERS
 CO2=-6.
 XCDLM=.0005,.00005
 KOCEAN=0
-U00wtr=.50
+U00wtr=.47
 U00ice=.50
 
 DT=450.,        ! from default: DTsrc=3600.,
@@ -69,9 +73,8 @@ KCOPY=2         ! saving acc + rsf
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0,
+   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
-                       !  from default: IYEAR1=YEARI
    YEARE=1950,MONTHE=2,
    ISTART=7,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,
  &END

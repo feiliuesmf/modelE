@@ -10,18 +10,20 @@ Object modules: (in order of decreasing priority)
 RES_M12                             ! horiz/vert resolution
 MODEL_COM GEOM_B                    ! model variables and geometry
 MODELE                              ! Main and model overhead
-PARAM PARSER                        ! parameter database 
+PARAM PARSER                        ! parameter database
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-ATURB                               ! turbulence in whole atmosphere
+! use either DRYCNV or ATURB (but not both or none)
+DRYCNV                              ! dry adiabatic adjustment
+! ATURB    ! no quite ready yet     ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
-OCEAN OCNML                         ! ocean modules 
+OCEAN OCNML                         ! ocean modules
 SNOW                                ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
@@ -29,10 +31,16 @@ CONST FFT72 UTILDBL RAND~           ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.12
-OHT=OTSPEC.RB399AM12.M250D OCNML=Z1O.B4X5.cor
-MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
-OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
+!
+! The next 2 lines depend on the current control with prescr. ocean
+AIC=IMJAN.E001.O250D               ! initial conditions
+OHT=OTSPEC.E001.M250D.1951-1955    ! horizontal ocean heat transports
+! base the above 2 lines on the preliminary run with prescribed ocean
+!
+OCNML=Z1O.B4X5.cor                 ! ocn data: mixed layer depth
+MLMAX=Z1OMAX.B4X5.250M.cor         ! ocn data: ann. max. mixed layer depth
+! OSST=OST4X5.B.1946-55avg.Hadl1.1 ! not needed since ocn is predicted
+! SICE=SICE4X5.B.1946-55avg.Hadl1.1 !not needed since ocn is predicted
 CDN=CD4X500S VEG=V72X46.1.cor
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
@@ -59,19 +67,17 @@ R=00BG/B
 CO2=-6.
 XCDLM=.0005,.00005
 KOCEAN=1
-U00wtr=.50
+U00wtr=.47
 U00ice=.50
 
-DT=450.,        ! from default: DTsrc=3600.,
+DT=450.         ! from default: DTsrc=3600.,
 NSLP=12         ! saving SLP 12hrly
-Kvflxo=1        ! saving VFLXO (daily)
+Kvflxo=0        ! don't save VFLXO (daily) if ocn is predicted
 KCOPY=2         ! saving acc + rsf
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0,
-   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
-                       !  from default: IYEAR1=YEARI
-   YEARE=1950,MONTHE=2,
+   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
+   YEARE=1980,MONTHE=1,DATEE=1,HOURE=0,
    ISTART=7,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,
  &END
