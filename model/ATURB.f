@@ -471,11 +471,37 @@ cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
       CALL CHECKSUM(GRID, v_3d,__LINE__,__FILE__,STGR=.true.)
 
       CALL HALO_UPDATE(grid, u_3d, from=NORTH)
+
+C**** Use halo values of plij from southern neighbor to complete that
+C     neighbor's update of AJL in this process (i.e. using PLIJ 
+C     contribution at J_0-1 to finish accumulation into AJL(J_0,:,:) )
+        CALL HALO_UPDATE_COLUMN(grid, PLIJ, from=SOUTH)
+ 
 ! ACCUMULATE DIAGNOSTICS for u and v
 C*** Adapt  use of idjj stencil to do correct calculation in distributed
 C    parallel version.
-C   ......first skip j_1 (do later below)
-      do j=J_0,J_1-1
+
+C Contribution at southern border        
+      IF (HAVE_SOUTH_POLE) THEN
+        J=1
+      ELSE
+        J=J_0H
+      END IF
+      KMAX=KMAXJ(J)
+      DO I=1,IMAXJ(J)
+        DO L=1,LM
+          DO K=1,KMAX
+            RAK=RAVJ(K,J)
+            IDIK=IDIJ(K,I,J)
+            IDJK=IDJJ(K,J)
+            IF (IDJK >= J_0)
+     &        AJL(IDJK,L,JL_DAMDC)=AJL(IDJK,L,JL_DAMDC)
+     &        +(U_3d(IDIK,IDJK,L)-u_3d_old(L,IDIK,IDJK))*PLIJ(L,I,J)*RAK
+          ENDDO
+        ENDDO
+      ENDDO
+
+      do j=J_0S,J_1-1
         KMAX=KMAXJ(J)
         DO I=1,IMAXJ(J)
           DO L=1,LM
@@ -520,27 +546,7 @@ C     NOT the north pole -- k=3,4 contr. to be added by southern neighbor).
           ENDDO
         ENDDO
       end if
-C**** Use halo values of plij from southern neighbor to complete that
-C     neighbor's update of AJL in this process (i.e. using PLIJ 
-C     contribution at J_0-1 to finish accumulation into AJL(J_0,:,:) )
-        CALL CHECKSUM_COLUMN(grid, PLIJ, __LINE__, __FILE__)
-        CALL HALO_UPDATE_COLUMN(grid, PLIJ, from=SOUTH)
-      if (.not. HAVE_SOUTH_POLE) then
-C**** Halo update of PLIJ from the south 
-        J=J_0-1
-        DO I=1,IMAXJ(J)
-          DO L=1,LM
-            DO K=3,4
-              RAK=RAVJ(K,J)
-              IDIK=IDIJ(K,I,J)
-              IDJK=IDJJ(K,J)
-              AJL(IDJK,L,JL_DAMDC)=AJL(IDJK,L,JL_DAMDC)
-     &        +(U_3d(IDIK,IDJK,L)-u_3d_old(L,IDIK,IDJK))*PLIJ(L,I,J)*RAK
-            ENDDO
-          ENDDO
-        ENDDO
-      end if
- 
+
 C**** Save additional changes in KE for addition as heat later
 !$OMP  PARALLEL DO PRIVATE (L,I,J)
       DO L=1,LM
@@ -1072,8 +1078,6 @@ C****
 
 
       u=0.d0; v=0.d0
-      CALL CHECKSUM_COLUMN(grid, U_A,__LINE__,__FILE__)
-      CALL CHECKSUM_COLUMN(grid, V_A,__LINE__,__FILE__)
       CALL HALO_UPDATE_COLUMN(grid,U_A, from=SOUTH)
       CALL HALO_UPDATE_COLUMN(grid,V_A, from=SOUTH)
 
