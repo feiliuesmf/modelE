@@ -444,7 +444,7 @@ C****   Read in time history of well-mixed greenhouse gases
         call ghghst(iu)
         call closeunit(iu)
         if (H2ObyCH4.gt.0..and.Kradia.le.0) then
-C****     Read in dH2O: H2O prod.rate in kg/m^2 per second and ppm_CH4
+C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
           call openunit('dH2O',iu,.false.,.true.)
           call getqma(iu,lat_dg,plbx,dh2o,lm,jm)
           call closeunit(iu)
@@ -1270,7 +1270,7 @@ C**** read headers/latitudes
       read(iu,'(a)') title
       write(*,*) title
 
-C**** read heights z(km) and data (kg/km^3)
+C**** read heights z(km) and data (kg/km^3/year)
       do l=lma,1,-1
         read(iu,'(a)') title
         write(*,*) title

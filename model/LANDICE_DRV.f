@@ -19,7 +19,9 @@
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
+      USE DAGCOM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
       IMPLICIT NONE
+      LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER I,J
 
 C**** set GTEMP array for landice
@@ -37,6 +39,14 @@ C**** set GTEMP array for landice
           END IF
         END DO
       END DO
+
+C**** Set conservation diagnostics for land ice mass, energy
+      QCON=(/ F, F, F, T, T, F, F, F, T, F, F/)
+      CALL SET_CON(QCON,CONPT0,"LAND ICE","(KG/M^2)        ",
+     *     "(10**-9 KG/SM^2)",1d0,1d9,icon_MLI)
+      QCON=(/ F, F, F, T, T, F, F, F, T, F, F/)
+      CALL SET_CON(QCON,CONPT0,"LNDI ENR","(10**6 J/M^2)   ",
+     *     "(10**-3 W/M^2)  ",1d-6,1d3,icon_HLI)
 C****
       END SUBROUTINE init_LI
 
@@ -250,3 +260,55 @@ C****
       END DO
       END DO
       END SUBROUTINE GROUND_LI
+
+      SUBROUTINE conserv_MLI(ICE)
+!@sum  conserv_MLI calculates total amount of snow and ice in land ice
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : im,jm,fim,flice
+      USE GEOM, only : imaxj
+      USE LANDICE_COM, only : snowli
+      USE LANDICE, only : lndice,ace1li,ace2li
+      IMPLICIT NONE
+!@var ICE total land ice snow and ice mass (kg/m^2)
+      REAL*8, DIMENSION(JM) :: ICE
+      INTEGER I,J
+
+      DO J=1,JM
+        ICE(J)=0
+        DO I=1,IMAXJ(J)
+          ICE(J)=ICE(J)+FLICE(I,J)*(ACE1LI+ACE2LI+SNOWLI(I,J))
+        END DO
+      END DO
+      ICE(1) =FIM*ICE(1)
+      ICE(JM)=FIM*ICE(JM)
+      RETURN
+C****
+      END SUBROUTINE conserv_MLI
+
+      SUBROUTINE conserv_HLI(EICE)
+!@sum  conserv_HLI calculates total land ice energy 
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE CONSTANT, only : shi,lhm
+      USE MODEL_COM, only : im,jm,fim,flice
+      USE GEOM, only : imaxj
+      USE LANDICE_COM, only : snowli,tlandi
+      USE LANDICE, only : ace1li,ace2li
+      IMPLICIT NONE
+!@var EICE total land ice energy (J/m^2)
+      REAL*8, DIMENSION(JM) :: EICE
+      INTEGER I,J
+
+      DO J=1,JM
+        EICE(J)=0
+        DO I=1,IMAXJ(J)
+          EICE(J)=EICE(J)+FLICE(I,J)*((TLANDI(1,I,J)*SHI-LHM)*(ACE1LI
+     *         +SNOWLI(I,J))+(TLANDI(2,I,J)*SHI-LHM)*ACE2LI)
+        END DO
+      END DO
+      EICE(1) =FIM*EICE(1)
+      EICE(JM)=FIM*EICE(JM)
+      RETURN
+C****
+      END SUBROUTINE conserv_HLI

@@ -1636,7 +1636,8 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
 #endif
       USE DAGCOM, only : icon_AM,icon_KE,icon_MS,icon_TPE
      *     ,icon_WM,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG
-     *     ,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI,icon_LHSI,title_con
+     *     ,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI,icon_LHSI,icon_MLI
+     *     ,icon_HLI,title_con
       USE SOIL_DRV, only: conserv_WTG,conserv_HTG
       IMPLICIT NONE
 !@var M index denoting from where DIAGCA is called
@@ -1659,6 +1660,7 @@ C****
       REAL*8, EXTERNAL :: conserv_AM,conserv_KE,conserv_MS,conserv_PE
      *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_OMSI
      *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI
+     *     ,conserv_MLI,conserv_HLI
       REAL*8 MNOW
       INTEGER NT
 
@@ -1696,6 +1698,10 @@ C**** LAKE ICE MASS, ENERGY
 C**** GROUND WATER AND ENERGY
       CALL conserv_DIAG(M,conserv_WTG,icon_WTG)
       CALL conserv_DIAG(M,conserv_HTG,icon_HTG)
+
+C**** LAND ICE MASS AND ENERGY
+      CALL conserv_DIAG(M,conserv_MLI,icon_MLI)
+      CALL conserv_DIAG(M,conserv_HLI,icon_HLI)
 
 C**** OCEAN CALLS ARE DEALT WITH SEPARATELY
       CALL DIAGCO (M)

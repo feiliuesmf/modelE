@@ -192,7 +192,7 @@ c
      *     j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,j_rhdt,j_hz1,j_prcp,j_prcpss,
      *     j_prcpmc,j_hz0,j_hmelt,j_implh,j_shdt,j_evhdt,j_eprcp,j_erun,
      *     j_hz2,j_type,j_ervr,scale_j,stitle_j,lname_j,name_j,units_j,
-     *     k_j_out,ia_srf,ia_src,ia_rad
+     *     k_j_out,ia_srf,ia_src,ia_rad,j_h2och4
       USE BDJ
       IMPLICIT NONE
       REAL*8, DIMENSION(JM), SAVE ::S1
@@ -357,7 +357,7 @@ C**** select output format depending on field name
       CASE ('evap','prec','ross_num_strat','ross_num_trop'
      *       ,'ross_radius_strat','ross_radius_trop','ht_runoff'
      *       ,'river_discharge','ice_melt','impl_m_flux','ht_rvr_disch',
-     *       'wat_runoff','ssprec','mcprec'
+     *       'wat_runoff','ssprec','mcprec','h2o_from_ch4'
      *       ,'lapse_rate','lapse_rate_m','lapse_rate_c'
      *       ,'ht_thermocline','salt_runoff','s_ice_melt')
         WRITE (6,911) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
@@ -456,7 +456,7 @@ C****
 C**** select output format based on field name
       SELECT CASE (name_j(N)(3:len_trim(name_j(N))))
       CASE ('evap','prec','ocn_lak_ice_frac','snow_cover'
-     *     ,'ht_ice_melt','impl_m_flux','impl_ht'
+     *     ,'ht_ice_melt','impl_m_flux','impl_ht','h2o_from_ch4'
      *     ,'ice_melt','ht_runoff','wat_g1','river_discharge'
      *     ,'ht_rvr_disch','ice_g1','snowdp','wat_runoff','ssprec'
      *     ,'mcprec','atmh2o','ht_thermocline','salt_runoff'

@@ -188,7 +188,7 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
          CALL TIMER (MNOW,MSURF)
 C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
-         CALL CHECKT ('CONDSE ')
+         CALL CHECKT ('CONDSE')
          CALL TIMER (MNOW,MCNDS)
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)
          IF (MODD5S.EQ.0) CALL DIAGCA (3)
@@ -1238,7 +1238,7 @@ C****
 !@calls constant:orbit, calc_ampk, getdte
       USE MODEL_COM, only : im,jm,lm,ls1,ptop,psf,p,q
      *     ,itime,itimei,iyear1,nday,jdpery,jdendofm
-     *     ,jyear,jmon,jday,jdate,jhour,aMON,aMONTH
+     *     ,jyear,jmon,jday,jdate,jhour,aMON,aMONTH,ftype
       USE GEOM, only : areag,dxyp
       USE DYNAMICS, only : byAM
       USE RE001, only : ghgam,ghgyr2,ghgyr1
@@ -1248,6 +1248,7 @@ C****
       USE TRACER_COM, only: trm,tr_wd_type,nwater,tr_H2ObyCH4,itime_tr0
      *     ,ntm
 #endif
+      USE DAGCOM, only : aj,j_h2och4
       IMPLICIT NONE
       REAL*8 DELTAP,PBAR,SPRESS,SMASS,LAM,xCH4
       INTEGER i,j,l,iy,n
@@ -1317,6 +1318,7 @@ C**** Add water to relevant tracers as well
             end if
           end do
 #endif
+          aj(j,j_h2och4,:)=aj(j,j_h2och4,:)+xCH4*dH2O(j,l)*ftype(:,i,j)
         end do
         end do
         end do

@@ -361,20 +361,20 @@ c
       ia_j(k) = ia_src
 c
       k=k+1
-      J_SRUN = k ! SRUNOFF (kg/m**2/day)                            1 GP
-      name_j(k) = 'salt_runoff'
-      lname_j(k) = 'SALT IN RUNOFF'
-      units_j(k) = '10^-3 kg/m^2/day'
-      stitle_j(k)= '0SALT RUN  (x1K)'
-      scale_j(k) = 1000.*SDAY/DTSRC
-      ia_j(k) = ia_src
+      J_H2OCH4 = k               !                                 1 GP
+      name_j(k) = 'h2o_from_ch4'
+      lname_j(k) = 'WATER DERIVED FROM CH4 OXIDATION IN STRATOSPHERE'
+      units_j(k) = '10^6 mm/day'
+      stitle_j(k)= ' H2O BY CH4(x1M)'
+      scale_j(k) = 1d6
+      ia_j(k) = ia_12hr
 c
       k=k+1
       J_SMELT= k ! salt flux associated with ice melt/formation   1 GD
       name_j(k) = 's_ice_melt'
       lname_j(k) = 'SALT IN ICE MELT/FORMATION'
       units_j(k) = '10^-3 kg/m^2/day'
-      stitle_j(k)= ' SALT MELT (x1K)'
+      stitle_j(k)= '0SALT MELT (x1K)'
       scale_j(k) = 1000.*SDAY/DTSRC
       ia_j(k) = ia_src
 c

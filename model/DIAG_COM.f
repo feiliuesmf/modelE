@@ -73,7 +73,7 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@var NPTS number of points at which standard conserv. diags are called
       INTEGER, PARAMETER :: NPTS = 11
 !@param NQUANT Number of conserved quantities in conservation diags
-      INTEGER, PARAMETER :: NQUANT=20
+      INTEGER, PARAMETER :: NQUANT=22
 !@param KCON number of conservation diagnostics
       INTEGER, PARAMETER :: KCON=150
 !@var CONSRV conservation diagnostics
@@ -90,7 +90,7 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@var icon_xx indexes for conservation quantities
       INTEGER icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM,icon_LKM
      *     ,icon_LKE,icon_EWM,icon_WTG,icon_HTG,icon_OCE,icon_OMSI
-     *     ,icon_OHSI,icon_OSSI,icon_LMSI,icon_LHSI
+     *     ,icon_OHSI,icon_OSSI,icon_LMSI,icon_LHSI,icon_MLI,icon_HLI
 !@var KCMX actual number of conservation diagnostics
       INTEGER :: KCMX = 25 ! take up first 25 indexes for special cases
 !@var CONPT0 default titles for each point where conserv diags. are done
@@ -283,7 +283,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     J_PRCP, J_TX, J_TX1, J_TSRF, J_DTSGST, J_DTDGTR, J_RICST,
      *     J_RICTR, J_ROSST, J_ROSTR, J_RSI, J_TYPE, J_RSNOW,
      *     J_OHT, J_DTDJS, J_DTDJT, J_LSTR, J_LTRO, J_EPRCP,
-     *     J_RUN, J_ERUN, J_SRUN, J_HZ0,
+     *     J_RUN, J_ERUN, J_HZ0, J_H2OCH4,
      *     J_RVRD,J_ERVR,J_IMELT, J_HMELT, J_SMELT,J_IMPLM, J_IMPLH,
      *     J_WTR1,J_ACE1, J_WTR2,J_ACE2, J_SNOW, J_BRTEMP, J_HZ2,
      *     J_PCLDSS,J_PCLDMC, J_PCLD,J_CTOPP, J_PRCPSS, J_PRCPMC, J_QP,
