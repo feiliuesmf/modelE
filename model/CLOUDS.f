@@ -1819,6 +1819,24 @@ C**** ACCUMULATE SOME DIAGNOSTICS
          HCNDSS=HCNDSS+(TNEW-TOLD)*AIRM(L)
          SSHR(L)=SSHR(L)+(TNEW-TOLD)*AIRM(L)
       END DO  ! end of loop over L
+
+C**** Set final precip value and fix phase if necessary.
+C**** Super-cooled precipitation should freeze on impact with 
+C**** sub-zero surfaces, but since rain temperature is not conserved
+C**** (and so rain always falls as 0 degrees) we need to freeze it 
+C**** prior to leaving the atmosphere. This fix also deals with
+C**** possibility that super-cooled water would actual freeze before
+C**** falling until this is specifically dealt with. 
+      IF (TL(1).lt.TF .AND. SVLHXL(1).eq.LHE) THEN
+        HPHASE=-LHM*PREBAR(1)*GRAV*BYAM(1)
+        TL(1)=TL(1)-DTsrc*HPHASE/SHA
+        TH(1)=TL(1)/PLK(1)
+        PPHASE=LHS
+      END IF
+      PRCPSS=MAX(0d0,PREBAR(1)*GRAV*DTsrc) ! fix small round off err
+#ifdef TRACERS_WATER
+      TRPRSS(1:NTX)=MAX(0d0,TRPRBAR(1:NTX,1))
+#endif
 C****
 C**** CLOUD-TOP ENTRAINMENT INSTABILITY
 C****
@@ -1993,10 +2011,7 @@ C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
       TAUSSL(L)=1.5d3*TEM/(FCLD*RCLDE+teeny)
       IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
  388  IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM
-      PRCPSS=MAX(0d0,PREBAR(1)*GRAV*DTsrc) ! fix small round off err
-#ifdef TRACERS_WATER
-      TRPRSS(1:NTX)=MAX(0d0,TRPRBAR(1:NTX,1))
-#endif
+
 C**** CALCULATE OPTICAL THICKNESS
       DO L=1,LM
       CLDSAVL(L)=CLDSSL(L)
