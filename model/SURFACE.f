@@ -214,13 +214,6 @@ C**** Set up tracers for PBL calculation if required
       ntx = nx
 #endif
 
-      Call CHECKSUM(GRID, uosurf, __LINE__, __FILE__,STGR=.true.)
-      Call CHECKSUM(GRID, vosurf, __LINE__, __FILE__,STGR=.true.)
-      Call CHECKSUM(GRID, uisurf, __LINE__, __FILE__,STGR=.true.)
-      Call CHECKSUM(GRID, visurf, __LINE__, __FILE__,STGR=.true.)
-      Call CHECKSUM(GRID, u     , __LINE__, __FILE__,STGR=.true.)
-      Call CHECKSUM(GRID, v     , __LINE__, __FILE__,STGR=.true.)
-
       Call HALO_UPDATE(GRID, uosurf, FROM=SOUTH+NORTH)
       Call HALO_UPDATE(GRID, vosurf, FROM=SOUTH+NORTH)
       Call HALO_UPDATE(GRID, uisurf, FROM=SOUTH+NORTH)
