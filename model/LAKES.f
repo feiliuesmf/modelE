@@ -349,7 +349,7 @@ C****
       USE CONSTANT, only : rhow,shw,tf,pi,grav,undef
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
      *     ,focean,fearth,fland
-      USE GEOM, only : dxyp,dxv,dyv,dxp,imaxj
+      USE GEOM, only : dxyp,dxv,dyv,dxp,dyp,imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
@@ -380,7 +380,18 @@ C****         TANLK    Lake slope (tan(alpha)) (1)
 C****
 C**** FIXDCB  FLAKE0    Original Lake fraction (1)
 C****
-      FLAKE = FLAKE0
+      FLAKE = FLAKE0   ! this is only here until FLAKE is variable
+
+C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
+      DO J=1,JM
+        DO I=1,IM
+          IF (FLAKE(I,J).gt.0 .and. HLAKE(I,J).lt.1.) THEN
+            print*,"Warning: Fixing HLAKE",i,j,FLAKE(I,J),HLAKE(I,J)
+     *           ,"--> 1m"
+            HLAKE(I,J)=1.
+          END IF
+        END DO
+      END DO
 
       IF (INILAKE) THEN
 C**** Set lake variables from surface temperature
@@ -389,6 +400,9 @@ C**** This is just an estimate for the initiallisation
           DO I=1,IM
 c            FLAKE(I,J) = FLAKE0(I,J)
             IF (FLAKE(I,J).gt.0) THEN
+              IF (HLAKE(I,J).lt.1.) print*,
+     *             "HLAKE too small for lake fraction",i,j,HLAKE(I,J)
+     *             ,FLAKE(I,J) 
               TLAKE(I,J) = MAX(0d0,TSAVG(I,J)-TF)
               MWL(I,J)   = RHOW*HLAKE(I,J)*FLAKE(I,J)*DXYP(J)
               MLK1       = MINMLD*RHOW*FLAKE(I,J)*DXYP(J)
@@ -517,7 +531,7 @@ C****
           CASE (0)
             IFLOW(I,J) = I
             JFLOW(I,J) = J
-            DHORZ(I,J) = 0.
+            DHORZ(I,J) = 0.5*SQRT(DXP(J)*DXP(J)+DYP(J)*DYP(J))
           CASE (1)
             IFLOW(I,J) = I+1
             JFLOW(I,J) = J+1
@@ -590,13 +604,13 @@ C****
             JD=JFLOW(IU,JU)
             ID=IFLOW(IU,JU)
             DZDH  = (ZATMO(IU,JU)-ZATMO(ID,JD)) / (GRAV*DHORZ(IU,JU))
-            SPEED = SPEED0*DZDH/DZDH1
-            IF(SPEED.lt.SPMIN)  SPEED = SPMIN
-            IF(SPEED.gt.SPMAX)  SPEED = SPMAX
-            RATE(IU,JU) = DTsrc*SPEED/DHORZ(IU,JU)
           ELSE
-            RATE(IU,JU) = 1.
+            DZDH  = ZATMO(IU,JU) / (GRAV*DHORZ(IU,JU))
           END IF
+          SPEED = SPEED0*DZDH/DZDH1
+          IF(SPEED.lt.SPMIN)  SPEED = SPMIN
+          IF(SPEED.gt.SPMAX)  SPEED = SPMAX
+          RATE(IU,JU) = DTsrc*SPEED/DHORZ(IU,JU)
         END DO
       END DO
 
@@ -1207,7 +1221,6 @@ C**** output from LKSOURC
       ROICE=RSI(I,J)
       PLKICE=FLAKE(I,J)*ROICE
       POLAKE=FLAKE(I,J)*(1.-ROICE)
-
 C**** Add land ice and surface runoff to lake variables
       IF (FLAND(I,J).gt.0) THEN
         PLICE =FLICE(I,J)
@@ -1367,10 +1380,10 @@ C****
       USE SEAICE_COM, only : rsi,hsi,msi,snowi
       IMPLICIT NONE
       CHARACTER*2, INTENT(IN) :: STR
-      INTEGER, PARAMETER :: NDIAG=2   !6
+      INTEGER, PARAMETER :: NDIAG=1 !2   !6
       INTEGER I,J,N,IDIAG(NDIAG),JDIAG(NDIAG)
-      DATA IDIAG/16,59/, !   ,53,15,18,22/,  !23/,  !10/,
-     *     JDIAG/33,35/  !,32,37,33,25/   !22/  !,40/
+      DATA IDIAG/40/, !   ,53,15,18,22/,  !23/,  !10/,
+     *     JDIAG/39/  !,32,37,33,25/   !22/  !,40/
       REAL*8 HLK2,TLK2, TSIL(4)
 
       IF (.NOT.QCHECK) RETURN
@@ -1391,7 +1404,7 @@ C****
      *         *BYSHI
           TSIL(3:4) = (HSI(3:4,I,J)/(XSI(3:4)*MSI(I,J))+LHM)*BYSHI
         END IF
-        WRITE(99,*) STR,I,J,TLAKE(I,J),TLK2,MLDLK(I,J),HLK2
+        WRITE(99,*) STR,I,J,FLAKE(I,J),TLAKE(I,J),TLK2,MLDLK(I,J),HLK2
      *       ,RSI(I,J),MSI(I,J)/RHOI,SNOWI(I,J)/RHOW,TSIL(1:4)
       END DO
 
