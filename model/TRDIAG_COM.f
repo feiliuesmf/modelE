@@ -2,7 +2,7 @@
 
       MODULE TRACER_DIAG_COM
 !@sum Tracer diagnostic arrays
-!@+    Mostly tracer independent, but this may deped on applications
+!@+    Mostly tracer independent, but this may depend on applications
 !@auth Jean Lerner
 !ver   1.0
       USE MODEL_COM, only: im,jm,lm
@@ -101,13 +101,21 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 
 C**** TAJLN
 !@parm ktajl,ktajlx number of TAJL tracer diagnostics;
-!@+          ktajlx includes composits
-      INTEGER, PARAMETER :: ktajl=8, ktajlx=ktajl+2
+!@+          ktajlx includes composites
+#ifdef TRACERS_WATER
+      INTEGER, PARAMETER :: ktajl=9 
+#else
+      INTEGER, PARAMETER :: ktajl=8 
+#endif
+     &     ,ktajlx=ktajl+2
 !@var TAJLN  vertical tracer diagnostics (all tracers)
       REAL*8, DIMENSION(JM,LM,ktajlx,NTM) :: TAJLN
 !@var jlnt_xx Names for TAJLN diagnostics
       INTEGER jlnt_conc,jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,
      &  jlnt_vt_mm,jlnt_mc,jlnt_turb,jlnt_lscond
+#ifdef TRACERS_WATER
+     &     ,jlnt_cldh2o
+#endif
 !@var SNAME_JLN: Names of lat-sigma tracer JL diagnostics
       character(len=30), dimension(ktajlx,ntm) :: sname_jln
 !@var LNAME_JLN,UNITS_JLN: descriptions/units of tracer JL diagnostics

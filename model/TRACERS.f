@@ -85,6 +85,18 @@ C**** Tracer concentration
         if (to_per_mil(n).gt.0) units_jln(k,n) = unit_string(0,cmr(n))
 #endif
 
+#ifdef TRACERS_WATER
+C****   TRACER CONCENTRATION IN CLOUD WATER 
+        k = k + 1
+        jlnt_cldh2o = k
+        sname_jln(k,n) = trim(trname(n))//'_WM_CONC' 
+        lname_jln(k,n) = trim(trname(n))//' CLOUD WATER CONCENTRATION' 
+        jlq_power(k) = 0.
+        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),cmr(n))
+        scale_jlq(k) = 1.d0
+        scale_jln(n) = MMR_to_VMR(n)
+        if (to_per_mil(n).gt.0) units_jln(k,n) = unit_string(0,cmr(n))
+#endif
 C**** Physical processes affecting tracers
 C****   F (TOTAL NORTHWARD TRANSPORT OF TRACER MASS)  (kg)
         k = k + 1 
@@ -94,6 +106,7 @@ C****   F (TOTAL NORTHWARD TRANSPORT OF TRACER MASS)  (kg)
      &     trim(trname(n))//' MASS'
         jlq_power(k) = 11.
         jgrid_jlq(k) = 2
+        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
 C****   STM/SM (MEAN MERIDIONAL N.T. OF TRACER MASS)  (kg)
         k = k + 1 
         jlnt_nt_mm = k
@@ -102,6 +115,7 @@ C****   STM/SM (MEAN MERIDIONAL N.T. OF TRACER MASS)  (kg)
      &     trim(trname(n))//' MASS BY MERIDIONAL CIRC.'
         jlq_power(k) = 10.
         jgrid_jlq(k) = 2
+        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
 C****   F (TOTAL VERTICAL TRANSPORT OF TRACER MASS)  (kg)
         k = k + 1
         jlnt_vt_tot = k
@@ -109,6 +123,7 @@ C****   F (TOTAL VERTICAL TRANSPORT OF TRACER MASS)  (kg)
         lname_jln(k,n) = 'TOTAL VERTICAL TRANSPORT OF '//
      &     trim(trname(n))//' MASS'
         jlq_power(k) = 11.
+        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
 C****   STM/SM (MEAN MERIDIONAL V.T. OF TRACER MASS)  (kg)
         k = k + 1
         jlnt_vt_mm = k
@@ -116,6 +131,7 @@ C****   STM/SM (MEAN MERIDIONAL V.T. OF TRACER MASS)  (kg)
         lname_jln(k,n) = 'VERTICAL TRANS. OF '//
      &     trim(trname(n))//' MASS BY MERIDIONAL CIRC.'
         jlq_power(k) = 10.
+        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
 C****   TMBAR-TM (CHANGE OF TRACER MASS BY MOIST CONVEC)(kg)
         k = k + 1
         jlnt_mc = k
@@ -123,6 +139,7 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY MOIST CONVEC)(kg)
         lname_jln(k,n) = 'CHANGE OF '//
      &     trim(trname(n))//' MASS BY MOIST CONVECTION'
         jlq_power(k) = 10.
+        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
 C****   TMBAR-TM (CHANGE OF TRACER MASS BY Large-scale CONDENSE)  (kg)
         k = k + 1
         jlnt_lscond = k
@@ -130,6 +147,7 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY Large-scale CONDENSE)  (kg)
         lname_jln(k,n) ='CHANGE OF '//
      &     trim(trname(n))//' MASS BY LARGE-SCALE CONDENSE'
         jlq_power(k) = 10.
+        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
 C****   TMBAR-TM (CHANGE OF TRACER MASS BY DRY CONVEC)  (kg)
         k = k + 1
         jlnt_turb = k
@@ -137,6 +155,8 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY DRY CONVEC)  (kg)
         lname_jln(k,n) = 'CHANGE OF '//
      &     trim(trname(n))//' MASS BY TURBULENCE/DRY CONVECTION'
         jlq_power(k) = 10.
+        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
+
       end do
 
       if (k.gt. ktajl) then
@@ -144,12 +164,6 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY DRY CONVEC)  (kg)
      &   'tjl_defs: Increase ktajl=',ktajl,' to at least ',k
         call stop_model('ktajl too small',255)
       end if
-
-C**** Construct UNITS string for output
-      do n=1,ntm
-      do k=2,ktajl
-      units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
-      end do; end do
 
 C**** CONTENTS OF TAIJLN(I,J,LM,N)  (SUM OVER TIME OF)
 C****        TML (M*M * KG TRACER/KG AIR)

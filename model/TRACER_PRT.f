@@ -11,7 +11,7 @@
 !@sum TRACEA accumulates tracer concentration diagnostics (IJL, JL)
 !@auth J.Lerner
 !@ver  1.0
-      USE MODEL_COM, only: im,jm,lm,itime
+      USE MODEL_COM, only: im,jm,lm,itime,wm
       USE GEOM, only: imaxj,bydxyp
       USE SOMTQ_COM, only: mz  
       USE TRACER_COM 
@@ -52,6 +52,19 @@ C**** Zonal mean concentration
         tajln(j,l,jlnt_conc,n) = tajln(j,l,jlnt_conc,n)+tsum/asum
       enddo; enddo
 !$OMP END PARALLEL DO
+
+#ifdef TRACERS_WATER
+C**** Zonal mean cloud water concentration
+!$OMP PARALLEL DO PRIVATE (L,J,TSUM,ASUM)
+      do l=1,lm
+      do j=1,jm
+        tsum = sum(trwm(1:imaxj(j),j,l,n)) !sum over i
+        asum = sum(wm(1:imaxj(j),j,l)*am(l,1:imaxj(j),j))    !sum over i
+        tajln(j,l,jlnt_cldh2o,n) = tajln(j,l,jlnt_cldh2o,n)+tsum/asum
+      enddo; enddo
+!$OMP END PARALLEL DO
+#endif
+
   600 continue
       return
       end SUBROUTINE TRACEA
@@ -404,6 +417,36 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
 #ifdef TRACERS_WATER
       end if
 #endif
+
+#ifdef TRACERS_WATER
+C****
+C**** TRACER CLOUD WATER CONCENTRATION
+C****
+      k = jlnt_cldh2o
+
+      if (to_per_mil(n).gt.0) then
+C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
+        scalet = 1.
+        jtpow = 0.
+        do l=1,lm
+        do j=1,jm
+        if (tajln(j,l,k,n_water).gt.0) then
+          a(j,l)=1d3*(tajln(j,l,k,n)/(trw0(n)*tajln(j,l,k,n_water))-1.)
+        else
+          a(j,l)=undef 
+        end if
+        end do
+        end do
+        CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
+     *       plm,a,scalet,ones,ones,lm,2,jgrid_jlq(k))
+      else
+        scalet = scale_jln(n)*scale_jlq(k)/idacc(ia_jlq(k))
+        jtpow = ntm_power(n)+jlq_power(k)
+        scalet = scalet*10.**(-jtpow)
+        CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
+     *       plm,tajln(1,1,k,n),scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
+      end if
+#endif
 C****
 C**** NORTHWARD TRANSPORTS: Total and eddies
 C****
@@ -490,10 +533,11 @@ C****
       if (n_H2O18.gt.0 .and. n_HDO.gt.0) then
         n1=n_H2O18
         n2=n_HDO
-        k=jlnt_conc
         scalet = 1.
         jtpow = 0.
-        
+
+C**** Concentration in water vapour        
+        k=jlnt_conc
         do l=1,lm
           do j=1,jm
             if (tajln(j,l,k,n_water).gt.0) then
@@ -512,6 +556,28 @@ C****
         units="per mil"
         CALL JLMAP_t (lname,sname,units,plm,a,scalet,ones,ones,lm,2
      *       ,jgrid_jlq(k)) 
+
+C**** Concentration in cloud water
+        k=jlnt_cldh2o
+        do l=1,lm
+          do j=1,jm
+            if (tajln(j,l,k,n_water).gt.0) then
+              d18O=1d3*(tajln(j,l,k,n1)/(trw0(n1)*tajln(j,l,k,n_water))
+     *             -1.)
+              dD=1d3*(tajln(j,l,k,n2)/(trw0(n2)*tajln(j,l,k,n_water))
+     *             -1.)
+              a(j,l)=dD-8.*d18O
+            else
+              a(j,l)=undef 
+            end if
+          end do
+        end do
+        lname="Deuterium excess in cloud water"
+        sname="dexcess_cldh2o"
+        units="per mil"
+        CALL JLMAP_t (lname,sname,units,plm,a,scalet,ones,ones,lm,2
+     *       ,jgrid_jlq(k)) 
+
       end if
 #endif
 
