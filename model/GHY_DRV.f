@@ -1152,7 +1152,7 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       fr_snow_rad_ij(:,:,:) = 0.d0
       do j=1,jm
         do i=1,im
-          if ( fearth(i,j) <= 0.d0 ) then
+          if ( fearth(i,j) > 0.d0 ) then
             do ibv=1,2
               call snow_cover(fr_snow_rad_ij(ibv,i,j),
      &             snowbv(ibv,i,j), top_dev_ij(i,j) )
