@@ -320,9 +320,9 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
      *     ,FS8OPX,FT8OPX,AERMIX
-      USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
-     *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
-     *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O
+      USE RADNCB, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
+     *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
+     *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,calc_orb_par,paleo_orb_yr
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
@@ -355,7 +355,11 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 C**** sync radiation parameters from input
       call sync_param( "S0X", S0X )
       call sync_param( "CO2X", CO2X )
+      call sync_param( "N2OX", N2OX )
       call sync_param( "CH4X", CH4X )
+      call sync_param( "CFC11X", CFC11X )
+      call sync_param( "CFC12X", CFC12X )
+      call sync_param( "XGHGX", XGHGX )
       call sync_param( "H2OstratX", H2OstratX )
       call sync_param( "H2ObyCH4", H2ObyCH4 )
       call sync_param( "S0_yr", S0_yr )
@@ -573,7 +577,11 @@ C**** Save initial (currently permanent and global) Q in rad.layers
       write(6,*) 'spec.hum in rad.equ.layers:',shl0
 C**** Optionally scale selected greenhouse gases
       IF(ghg_yr.gt.0) FULGAS(2)=FULGAS(2)*CO2X
+      IF(ghg_yr.gt.0) FULGAS(6)=FULGAS(6)*N2OX
       if(ghg_yr.gt.0) FULGAS(7)=FULGAS(7)*CH4X
+      if(ghg_yr.gt.0) FULGAS(8)=FULGAS(8)*CFC11X
+      if(ghg_yr.gt.0) FULGAS(9)=FULGAS(9)*CFC12X
+      if(ghg_yr.gt.0) FULGAS(11)=FULGAS(11)*XGHGX ! other GHGases
       IF(H2OstratX.GE.0.) FULGAS(1)=FULGAS(1)*H2OstratX
 C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
 C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total

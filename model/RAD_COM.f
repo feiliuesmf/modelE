@@ -73,12 +73,10 @@ C**** exactly the same as the default values.
       REAL*8 :: S0X = 1.
 !@dbparam S0_yr,S0_day obs.date of solar constant (if 0: time var)
       INTEGER :: S0_yr = 1951 , S0_day = 182
-!@dbparam CO2X carbon dioxide multiplication factor
-      REAL*8 :: CO2X = 1.
+!@dbparam CO2X,... scaling factors for CO2 N2O CH4 CFC11 CFC12 XGHG
+      REAL*8 :: CO2X=1.,N2OX=1.,CH4X=1., CFC11X=1.,CFC12X=1.,XGHGX=1.
 !@dbparam GHG_yr,GHG_day obs.date of well-mixed GHgases (if 0: time var)
       INTEGER :: GHG_yr = 1951 , GHG_day = 182
-!@dbparam CH4X methane  multiplication factor
-      REAL*8 :: CH4X = 1.
 !@dbparam Volc_yr,Volc_day obs.date of Volc.Aerosols (if 0: time var)
       INTEGER :: Volc_yr = 1951 , Volc_day = 182
 !@dbparam Aero_yr obs.year of troposph.Aerosols (if 0: time var)
@@ -126,7 +124,7 @@ C**** Local variables initialised in init_RAD
       USE MODEL_COM, ONLY : IM, JM, LM
       USE RADNCB, ONLY : LM_REQ
       USE RADNCB, ONLY : RQT, Tchg, SRHR, TRHR, FSF, FSRDIR, SRVISSURF,
-     *     SRDN, CFRAC, RCLD, O3_rad_save, O3_tracer_save, KLIQ, COSZ1, 
+     *     SRDN, CFRAC, RCLD, O3_rad_save, O3_tracer_save, KLIQ, COSZ1,
      *     dH2O, ALB, SALB, SINJ, COSJ
 
       IMPLICIT NONE
