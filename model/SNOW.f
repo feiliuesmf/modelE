@@ -571,7 +571,7 @@ ccc      water_down = 0.d0
       water_to_ground = water_to_ground + water_down*fract_cover
 
 ccc update dz
-      do n=1,n
+      do n=1,nl
         if( hsn(n).gt.0.d0 .or. isn(n).lt.EPS ) then
           dz(n) = 0.d0
         else if( hsn(n) .gt. -wsn(n)*lat_fusion ) then
