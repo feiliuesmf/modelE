@@ -91,7 +91,7 @@ ccc   land ice data
 C**** coupled model ocean data (cannot be read in from module for
 C**** compatibility across model configurations)
       INTEGER, PARAMETER :: NMST=12, LMO=13
-      INTEGER, PARAMETER :: KOIJ=5,KOIJL=22,KOL=6,KOLNST=8,
+      INTEGER, PARAMETER :: KOIJ=6,KOIJL=22,KOL=6,KOLNST=8,
      *     KACCO=IM*JM*KOIJ + IM*JM*LMO*KOIJL + LMO*KOL + LMO*NMST
      *     *KOLNST
       REAL*8 OCEAN1(IM,JM,LMO*11+1),OCEAN2(IM,JM,LMO*11+1)
@@ -200,11 +200,11 @@ C**** check which ocean
          READ (1) HEADER,sne1,te1,wtre1,ace1,snag1,fsat1,qge1
          if (debug) write(0,*) 'trying to read soils'
          READ (1) HEADER,wb1,wv1,htb1,htv1,snbv1
-         if (debug) write(0,*) 'trying to read vegetation'
-         READ (1) HEADER,ci1,qfol1,cnc1
 #ifdef TRACERS_WATER
          READ (1) HEADER,TRSOIL1
 #endif
+         if (debug) write(0,*) 'trying to read vegetation'
+         READ (1) HEADER,ci1,qfol1,cnc1
          if (debug) write(0,*) 'trying to read snow'
          READ (1) HEADER,NSN1,ISN1,DZSN1,WSN1,HSN1,FR_SNOW1
 #ifdef TRACERS_WATER
@@ -316,11 +316,11 @@ c        if (debug) write(0,*) 'trying to read gdata'
          READ (2) HEADER,sne2,te2,wtre2,ace2,snag2,fsat2,qge2
 c        if (debug) write(0,*) 'trying to read soils'
          READ (2) HEADER,wb2,wv2,htb2,htv2,snbv2
-c        if (debug) write(0,*) 'trying to read vegetation'
-         READ (2) HEADER,ci2,qfol2,cnc2
 #ifdef TRACERS_WATER
          READ (2) HEADER,TRSOIL2
 #endif
+c        if (debug) write(0,*) 'trying to read vegetation'
+         READ (2) HEADER,ci2,qfol2,cnc2
 c        if (debug) write(0,*) 'trying to read snow'
          READ (2) HEADER,NSN2,ISN2,DZSN2,WSN2,HSN2,FR_SNOW2
 #ifdef TRACERS_WATER
