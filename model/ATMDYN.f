@@ -908,6 +908,7 @@ C****
       REAL*8, INTENT(OUT) :: PA(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8, INTENT(IN) :: DT1
       INTEGER I,J,L  !@var I,J,L  loop variables
+      INTEGER IM1 ! @var IM1 = I - 1
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -927,9 +928,10 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
         DO I=1,IMAXJ(J)
           PA(I,J)=P(I,J)+(DT1*PIT(I,JJ(J))*BYDXYP(J))
           IF (PA(I,J)+PTOP.GT.1160. .or. PA(I,J)+PTOP.LT.350.) THEN
+            IM1 = 1 + MOD(I-1,IM)
             WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),ZATMO(I,J),DT1,
-     *           (U(I-1,J,L),U(I,J,L),U(I-1,J+1,L),U(I,J+1,L),
-     *            V(I-1,J,L),V(I,J,L),V(I-1,J+1,L),V(I,J+1,L),
+     *           (U(IM1,J,L),U(I,J,L),U(IM1,J+1,L),U(I,J+1,L),
+     *            V(IM1,J,L),V(I,J,L),V(IM1,J+1,L),V(I,J+1,L),
      *            T(I,J,L),Q(I,J,L),L=1,LM)
             write(6,*) "Pressure diagnostic error"
             IF (PA(I,J)+PTOP.lt.250. .or. PA(I,J)+PTOP.GT.1200.)
