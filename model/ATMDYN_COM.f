@@ -134,6 +134,9 @@ cgsfc      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
       SD  => CONV(:,:,2:)
       PIT => CONV(:,:,1)
 
+      !hack to remove NaNs from "SD" - possible mistake somewhere
+      CONV(:,:,:) = 0.d0
+
       ! I-J arrays
       ALLOCATE(  SQRTP(I_0H:I_1H,J_0H:J_1H), 
      $          PTROPO(I_0H:I_1H,J_0H:J_1H),

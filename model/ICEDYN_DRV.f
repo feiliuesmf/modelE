@@ -765,7 +765,8 @@ c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
 #endif
       USE DIAG_COM, only : oa
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM) :: FAW,FASI,FXSI,FYSI
+!      REAL*8, DIMENSION(IM) :: FAW,FASI,FXSI,FYSI
+      REAL*8, DIMENSION(0:IM) :: FAW,FASI,FXSI,FYSI
 !@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
 #ifndef TRACERS_WATER
       INTEGER, PARAMETER :: NTRICE=2+2*LMI
@@ -823,7 +824,7 @@ C**** Regularise ice concentration gradients to prevent advection errors
 C**** set up local MHS array to contain all advected quantities
 C**** MHS(1:2) = MASS, MHS(3:6) = HEAT, MHS(7:10)=SALT
 C**** Currently this is on atmospheric grid
-      MHS(1,:,:) = ACE1I + SNOWI
+      MHS(1,:,J_0:J_1) = ACE1I + SNOWI(:,J_0:J_1)
       MHS(2,:,:) = MSI
       DO L=1,LMI
         MHS(L+2,:,:) = HSI(L,:,:)

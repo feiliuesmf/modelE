@@ -93,6 +93,9 @@ C**** Some local constants
      &          FCUVB(0:IMH, J_0H:J_1H, LM, 2),
      &     STAT = IER)
 
+      !hack hack hack!
+      TX(:,:,:) = 0.d0
+
       RETURN
       END SUBROUTINE ALLOC_DIAG_LOC
 
