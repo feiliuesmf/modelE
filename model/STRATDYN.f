@@ -821,8 +821,7 @@ C    *  3E12.3,'  DFT=',E12.3)
         IF (N.LT.9) THEN
          AJL(J,L,N+JL_gwFirst)=AJL(J,L,N+JL_gwFirst)+DUTN
         ELSE
-        !AJL(J,L,JL_DUDFMDRG)=AJL(J,L,JL_DUDFMDRG)+DUTN
-         AJL(J,L,JL_gwFirst)=AJL(J,L,JL_gwFirst)+DUTN
+         AJL(J,L,JL_gwFirst)=AJL(J,L,JL_gwFirst)+DUTN  !JL_DUDFMDRG
         ENDIF
   390 CONTINUE
   400 CONTINUE

@@ -546,6 +546,7 @@ C****
      *  jk_psi_cp,jk_dudt_epdiv,jk_stdev_dp,
      *  jk_dtempdt_econv,jl_phi_amp_wave1,jl_phi_phase_wave1,
      *  jl_epflx_div,jk_vt_dse_e,jk_vt_lh_eddy,jk_vt_se_eddy,
+     *  JL_EPFLXNm2s2,JL_EPFLXVm2s2,
      *  jk_tot_vt_se,jk_psi_tem,jk_epflx_v,
      *  jk_nt_eqgpv,jk_dyn_conv_eddy_geop,jk_nt_sheat_e,
      *  jk_dyn_conv_dse,jk_seke,jk_eke,
@@ -572,84 +573,80 @@ c derived JL-arrays
 c
       k = kajl
 c
-      k = k + 1 
-      jl_rad_cool = k
+      k = k + 1                               
+      jl_rad_cool = k                         ; jgrid_jl(k) = 1
       sname_jl(k) = 'rad_cool'
       lname_jl(k) = 'TOTAL RADIATION COOLING RATE'
       units_jl(k) = '10**13 WATTS/UNIT SIGMA'
-      jgrid_jl(k) = 1
       k = k + 1 
-      jl_phi_amp_wave1 = k
+      jl_phi_amp_wave1 = k                    ; jgrid_jl(k) = 1
       sname_jl(k) = 'phi_amp_wave1'
       lname_jl(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1'
       units_jl(k) = 'METERS'
-      jgrid_jl(k) = 1
       k = k + 1 
-      sname_jl(k) = 'phi_amp_wave2'
+      sname_jl(k) = 'phi_amp_wave2'           ; jgrid_jl(k) = 1
       lname_jl(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 2'
       units_jl(k) = 'METERS'
-      jgrid_jl(k) = 1
       k = k + 1 
-      sname_jl(k) = 'phi_amp_wave3'
+      sname_jl(k) = 'phi_amp_wave3'           ; jgrid_jl(k) = 1
       lname_jl(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 3'
       units_jl(k) = 'METERS'
-      jgrid_jl(k) = 1
       k = k + 1 
-      sname_jl(k) = 'phi_amp_wave4'
+      sname_jl(k) = 'phi_amp_wave4'           ; jgrid_jl(k) = 1
       lname_jl(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4'
       units_jl(k) = 'METERS'
-      jgrid_jl(k) = 1
       k = k + 1 
-      jl_phi_phase_wave1 = k
+      jl_phi_phase_wave1 = k                  ; jgrid_jl(k) = 1
       sname_jl(k) = 'phi_phase_wave1'
       lname_jl(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1'
       units_jl(k) = 'DEG WEST LONG'
-      jgrid_jl(k) = 1
       k = k + 1 
-      sname_jl(k) = 'phi_phase_wave2'
+      sname_jl(k) = 'phi_phase_wave2'         ; jgrid_jl(k) = 1
       lname_jl(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 2'
       units_jl(k) = 'DEG WEST LONG'
-      jgrid_jl(k) = 1
       k = k + 1 
-      sname_jl(k) = 'phi_phase_wave3'
+      sname_jl(k) = 'phi_phase_wave3'         ; jgrid_jl(k) = 1
       lname_jl(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 3'
       units_jl(k) = 'DEG WEST LONG'
-      jgrid_jl(k) = 1
       k = k + 1 
-      sname_jl(k) = 'phi_phase_wave4'
+      sname_jl(k) = 'phi_phase_wave4'         ; jgrid_jl(k) = 1
       lname_jl(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4'
       units_jl(k) = 'DEG WEST LONG'
-      jgrid_jl(k) = 1
       k = k + 1 
-      jl_epflx_div = k
+      JL_EPFLXNm2s2 = k                       ; jgrid_jl(k) = 2
+      sname_jl(k) = 'epflx_northm2s2'
+      lname_jl(k) = 'NORTHWARD ELIASSEN-PALM FLUX'
+      units_jl(k) = 'M*M/S*S'
+      k = k + 1 
+      JL_EPFLXVm2s2 = k                       ; jgrid_jl(k) = 1
+      sname_jl(k) = 'epflx_vertm2s2'
+      lname_jl(k) = 'VERTICAL ELIASSEN-PALM FLUX'
+      units_jl(k) = 'M*M/S*S'
+      k = k + 1 
+      jl_epflx_div = k                        ; jgrid_jl(k) = 1
       sname_jl(k) = 'epflx_div'
       lname_jl(k) = 'DIVERGENCE OF THE ELIASSEN-PALM FLUX'
       units_jl(k) = '10**17 JOULES/UNIT SIGMA'
-      jgrid_jl(k) = 1
       k=k+1      
-      jl_mcdrgpm10 = k
+      jl_mcdrgpm10 = k                        ; jgrid_jl(k) = 2
       sname_jl(k) = 'dudt_mcdrgpm10' 
       lname_jl(k) = 'DU/DT BY STRAT. MC DRAG  C=+/-10R'
       units_jl(k) = '10**-6 M/S**2'
-      jgrid_jl(k) = 2
       k=k+1      
-      jl_mcdrgpm40 = k
+      jl_mcdrgpm40 = k                        ; jgrid_jl(k) = 2
       sname_jl(k) = 'dudt_mcdrgpm40' !AJL24+25
       lname_jl(k) = 'DU/DT BY STRAT. MC DRAG  C=+/-40R'
       units_jl(k) = '10**-6 M/S**2'
-      jgrid_jl(k) = 2
       k=k+1      
-      jl_mcdrgpm20 = k
+      jl_mcdrgpm20 = k                        ; jgrid_jl(k) = 2
       sname_jl(k) = 'dudt_mcdrgpm20' !AJL26+27
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+/-20R'
       units_jl(k) = '10**-6 M/S**2'
-      jgrid_jl(k) = 2
       k=k+1      
-      jl_sumdrg = k
+      jl_sumdrg = k                           ; jgrid_jl(k) = 2
       sname_jl(k) = 'dudt_sumdrg' !AJL(18+20-27)
       lname_jl(k) = 'ZONAL WIND CHANGE BY MTN+DEFORM+SHR+MC DRAG'
       units_jl(k) = '10**-6 M/S**2'
-      jgrid_jl(k) = 2
 
 c Check the count
       if (k .gt. KAJLx) then
@@ -871,8 +868,8 @@ c Check the count
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(JM) ::
-     &     BYP,BYPV,BYDAPO,BYPDA,DXCOSV,ONESPO
-     &    ,DXYPPO,DACOSV
+     &     BYP,BYPV,BYDAPO,BYPDA,CBYPDA,CBYPV,DXCOSV,
+     &     DXYPPO,DACOSV,ONESPO
       DOUBLE PRECISION, DIMENSION(JM+LM) :: ONES
       DOUBLE PRECISION, DIMENSION(JM,LM) :: AX,BX,CX,DX,VX,EX
       DOUBLE PRECISION, DIMENSION(JM,LM_REQ) :: ARQX
@@ -896,11 +893,11 @@ c Check the count
 
       DOUBLE PRECISION ::
      &     AREA,BY100G,BYDP2,BYDPK,BYFSQ,BYIACN,BYIADA,BYIARD,BYIMDA,
-     &     BYN,BYRCOS,BDN,BUP,
+     &     BYN,BYRCOS,BDN,BUP, 
      &     DAM4,DXCVN,DXCVS,DALPHA,DE4TI,DP,DPG,DPH,DPTI,DTHDP,DTHETA,
      &     EL4QI,ELOFIM,   GBYRSQ,GSQ,
      &     PDN,PIG,PIH,PMK,PUP,PUTI,PVTI,RHO,
-     &     SCALET,SCALES,SCALEV,SCALEW,
+     &     SCALET,SCALES,SCALEV,SCALEW,SCALETn,
      &     SDDP,SKEI,SMALL,SN,SNAMI,SNDEGI,SNELGI,SQM,SQN,SZNDEG,SZNELG,
      &     THDN,THETA,THUP,TX,UDXN,UDXS,UX,WTKP1,WTN,WTNK,
      &     WTS,WTSK,XWON
@@ -957,7 +954,10 @@ c      BYDXYP(J)=1./DXYP(J)
    51 PJ(J,2)=PJ(J,2)+AJK(J,K,JK_DPB)
       BYP(J)=1./(PJ(J,1)+1.D-20)
       BYPDA(J)=BYP(J)*BYDXYP(J)
-   52 BYPV(J)=1./(PJ(J,2)+1.D-20)
+      BYPV(J)=1./(PJ(J,2)+1.D-20)
+      CBYPV(J)=COSV(J)*BYPV(J)
+      CBYPDA(J)=COSV(J)*BYPDA(J)
+   52 CONTINUE
 C****
 C**** INITIALIZE DELTA SIGMA IN PRESSURE COORDINATES
 C****
@@ -1377,7 +1377,7 @@ C**** NOR. TRANSPORT OF QUASI-GEOSTROPHIC POT. VORTICITY BY EDDIES
       CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,AX,SCALET,BYPDA,ONES,KM,2,JGRID_jk(n))
 C****
-C**** ELIASSEN PALM FLUX:  NORTHWARD, VERTICAL, DIVERGENCE
+C**** Wave Energy (ELIASSEN PALM) FLUX:  NORTHWARD, VERTICAL, DIVERGENCE
 C****
       SCALET=25.D-11*XWON*BYIADA*BYGRAV
       SMALL=1.D-20
@@ -1812,15 +1812,25 @@ C**** U, V AND W VELOCITY FOR WEST PACIFIC
 C****
 C**** ELIASSEN-PALM FLUX : NORTHWARD, VERTICAL, DIVERGENCE
 C****
-      n = JL_EPFLXN
+      n = JL_EPFLXN      ! in JOULES/UNIT SIGMA
       SCALET=scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),
      &     PLM,AJL(1,1,n),SCALET,DXCOSV,ONES,LM,1,JGRID_JL(n))
-      n = JL_EPFLXV
+      n = JL_EPFLXNm2s2  ! in m2/s2
+      SCALETn=RADIUS/DYP(3)
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),
+     &     PLM,AJL(1,1,JL_EPFLXN),SCALETn,CBYPV,ONES,LM,1,JGRID_JL(n))
+      n = JL_EPFLXV      ! in JOULES
       SCALEV=scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),
      &     PLE,AJL(1,1,n),SCALEV,COSP,ONES,LM-1,1,JGRID_JL(n))
+      n = JL_EPFLXVm2s2  ! in m2/s2
+      SCALEV=.125*RADIUS
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),
+     &     PLE,AJL(1,1,JL_EPFLXV),SCALEV,CBYPDA,BYDSIG,LM-1,1,
+     &     JGRID_JL(n))
       DXCVS=DXCOSV(2)
+      AX = 0.
       DO J=2,JM-1
       BDN=0.
       DXCVN=DXCOSV(J+1)
@@ -1832,9 +1842,6 @@ C****
       ENDDO
       DXCVS=DXCVN
       ENDDO
-      DO 550 L=1,LM
-      AX(1,L)=0.
-  550 AX(JM,L)=0.
       n = jl_epflx_div
       CALL JLMAP(LNAME_jl(n),SNAME_jl(n),UNITS_jl(n),
      &     PLM,AX,SCALET,ONES,ONES,LM,1,jgrid_jl(n))
