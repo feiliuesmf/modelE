@@ -27,13 +27,15 @@ C**** have to wait.
      &    ,ndims_out,dimids_out,file_dimlens
      &    ,units,long_name,missing,real_att_name,real_att
      &    ,disk_dtype,prog_dtype,lat_dg
-     &    ,iu_ij,im,jm,lm,lm_req,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp
-     &    ,iu_diurn,iu_hdiurn
+     &    ,iu_ij,im,jm,lm,lm_req,im_data
+     &    ,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
 
 !@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
       integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
 !@var im,jm,lm,lm_req local dimensions set in open_* routines
-      integer :: im,jm,lm,lm_req
+!@var im_data inner dimension of arrays passed to pout_*
+!     it will differ from im because of array padding to hold means, etc.
+      integer :: im,jm,lm,lm_req,im_data
 !@var JMMAX maximum conceivable JM
       INTEGER, PARAMETER :: JMMAX=200
 !@var LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
@@ -145,12 +147,13 @@ c-----------------------------------------------------------------------
 
       end module ncout
 
-      subroutine wrtgattc(att_name,att)
+      subroutine wrtgattc(att_name,att,n)
       use ncout
       implicit none
       include 'netcdf.inc'
+      integer :: n
       character(len=30) :: att_name
-      character(len=100) :: att
+      character(len=n) :: att
 c-----------------------------------------------------------------------
 c write global attribute of type character
 c-----------------------------------------------------------------------
@@ -1099,8 +1102,8 @@ C**** set dimensions
 !@auth M. Kelley
 !@ver  1.0
       USE DAGCOM, only : ndiupt,namdd,ijdd
-      USE NCOUT, only : im,jm,lm,iu_diurn,set_dim_out,def_dim_out,
-     &     out_fid,outfile,units,long_name,ndims_out,open_out,prog_dtype
+      USE NCOUT, only : im,jm,lm,im_data,iu_diurn,set_dim_out
+     &   ,def_dim_out,out_fid,outfile,units,long_name,ndims_out,open_out
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
@@ -1119,6 +1122,7 @@ C**** set dimensions
 
 C**** set dimensions
       im=hr_in_period
+      im_data=hr_in_period+1 ! default; change before calling pout_diurn
       jm=NDIUVAR_gcm
 
       dim_name='hour'; call def_dim_out(dim_name,im)
@@ -1134,7 +1138,7 @@ C**** set dimensions
      &        trim(istr)//','//trim(jstr)
       enddo
       att_name='locations'
-      call wrtgattc(att_name,loc_info)
+      call wrtgattc(att_name,loc_info,100)
 
 c      ndims_out = 1
 c      dim_name='hour'; call set_dim_out(dim_name,1)
@@ -1145,7 +1149,7 @@ c      var_name='hour';call wrtarr(var_name,hours)
       end subroutine open_diurn
 
       subroutine close_diurn
-!@sum  OPEN_DIURN closes the average diurnal cycle netcdf output file
+!@sum  CLOSE_DIURN closes the average diurnal cycle netcdf output file
 !@auth M. Kelley
 !@ver  1.0
       USE NCOUT
@@ -1168,7 +1172,7 @@ c      var_name='hour';call wrtarr(var_name,hours)
       CHARACTER*16, DIMENSION(jm) :: UNITS_IN,NAME_IN,SNAME_IN
       CHARACTER*4, INTENT(IN) :: NAMDD ! name of current output region
       INTEGER, INTENT(IN) :: HR_IN_PERIOD,KP,IJDD1,IJDD2
-      REAL*8, DIMENSION(HR_IN_PERIOD+1,jm), INTENT(IN) :: FHOUR
+      REAL*8, DIMENSION(im_data,jm), INTENT(IN) :: FHOUR
 
       character(len=30) :: var_name,dim_name
       integer :: k
@@ -1198,13 +1202,29 @@ c      var_name='hour';call wrtarr(var_name,hours)
 ! note: hdiurn output routines simply call diurn output routines;
 ! to avoid file unit conflicts, open_hdiurn cannot be called if
 ! any files are currently open through open_diurn
+      use NCOUT
+      use MODEL_COM, only : idacc ! get the number of hours in this month
+      use DAGCOM, only : ia_src
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
       INTEGER, INTENT(IN) :: hr_in_month,NDIUVAR_gcm
+      character(len=30) :: att_name
+      integer, parameter :: lenatt=300
+      character(len=lenatt) :: att_str
+      character(len=1), parameter :: nl=achar(10)
 !
-! extra 4 hours for radiation end-of-month wraparound
-      call open_diurn(filename,hr_in_month+4,NDIUVAR_gcm)
+      call open_diurn(filename,idacc(ia_src),NDIUVAR_gcm)
+! input arrays will have extra 4 hours b/c radiation end-of-month wraparound
+      im_data=hr_in_month+4
+
+      att_name='note'
+      att_str=nl//
+     & 'Variables calculated in the radiation routine may have'//nl//
+     & 'zero values at the beginning of the month if that routine'//nl//
+     & 'is not called every hour.  Fill in with the last value'//nl//
+     & 'from the previous month.'
+      call wrtgattc(att_name,att_str,lenatt)
 
       return
       end subroutine open_hdiurn
@@ -1230,11 +1250,10 @@ c      var_name='hour';call wrtarr(var_name,hours)
       CHARACTER*16, DIMENSION(jm) :: UNITS_IN,NAME_IN,SNAME_IN
       CHARACTER*4, INTENT(IN) :: NAMDD ! name of current output region
       INTEGER, INTENT(IN) :: HR_IN_PERIOD,KP,IJDD1,IJDD2
-      REAL*8, DIMENSION(HR_IN_PERIOD+4,jm), INTENT(IN) :: FHOUR
+      REAL*8, DIMENSION(im_data,jm), INTENT(IN) :: FHOUR
 
-c the +3 is because pout_diurn expects fhour(hr_in_period+1,jm)
       call pout_diurn(SNAME_IN,NAME_IN,UNITS_IN,
-     &     FHOUR,NAMDD,IJDD1,IJDD2,HR_IN_PERIOD+3,kp)
+     &     FHOUR,NAMDD,IJDD1,IJDD2,HR_IN_PERIOD,kp)
 
       return
       end subroutine POUT_hdiurn
