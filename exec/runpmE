@@ -11,7 +11,6 @@ $modelerc = (getpwuid($>))[7]."/.modelErc";
 if ( -f $modelerc ) {
   open MODELERC, $modelerc or die "can't open $modelerc";
   while(<MODELERC>) {
-    last if /abc/;
     ($CMRUNDIR = $1) if /^ *CMRUNDIR *= *(\S+)/;
     $EXECDIR = $1 if /^ *EXECDIR *= *(\S+)/;
   }
@@ -66,7 +65,8 @@ if( $dt == 0 ) {
   exit;
 }
 
-($tau, $date) = split " ",`$EXECDIR/qc_e -r fort.[12] | grep -v WARNING`;
+($dummy, $tau, $date) = 
+    split " ",`$EXECDIR/qc_e -r fort.[12] | grep QCRESTART_DATA`;
 $taun = $tau + 48;
 
 seek I,0,0;
