@@ -645,6 +645,7 @@ c#endif
               end if
               fluxd = trm(i,j,l,n)*fgrfluxd ! total flux down
               trm(i,j,l,n) = trm(i,j,l,n)*(1.-fgrfluxd)+fluxu
+              if (1.-fgrfluxd.le.1d-16) trm(i,j,l,n) = fluxu
               trmom(zmoms,i,j,l,n) = trmom(zmoms,i,j,l,n)*(1.-fgrfluxd)
             end do
           end do
