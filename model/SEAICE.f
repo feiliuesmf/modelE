@@ -592,10 +592,11 @@ C****
 !@var DTRIMP implicit tracer flux required to maintain minimum ice 
 !@+   thickness if ice fraction is fixed 
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: DTRIMP
-      REAL*8, DIMENSION(NTM) :: FTRSI3,FTRSI4
+      REAL*8, DIMENSION(NTM) :: FTRSI3,FTRSI4,TRSNOW,TRICE
       INTEGER N
 #endif
-      REAL*8 FMSI4, FHSI3, FHSI4, FSSI3, FSSI4, DHM, DSM, DTM, SS12
+      REAL*8, DIMENSION(LMI) :: FRI
+      REAL*8 FMSI4, FHSI3, FHSI4, FSSI3, FSSI4, HSNOW, HICE, SICE
       REAL*8 ROICEN, OPNOCN, DRSI, MSI1
 
       DMIMP=0. ; DHIMP=0. ; DSIMP=0.
@@ -624,85 +625,110 @@ C****   TSIL=(ENRGFO/ACEFO + LHM)*BYSHI ! but hsi is primary var.
         MSI2=AC2OIM
       ELSEIF (ROICE.gt.0) THEN
 C**** Create new ice in partially ice-covered ocean
-      IF (ACEFI.le.0) GO TO 250 ! go to no freezing case
+      IF (ACEFI.gt.0) THEN 
 C**** CALCULATE ADVECTIVE HEAT FLUX FROM LAYER 3 TO LAYER 4 OF ICE
-CC    FMSI3 = -XSI(3)*ACEFI ! < 0.
-CC    FMSI4 = -ACEFI
-      FHSI3 = -HSIL(4)*ACEFI*(XSI(3)/XSI(4))/MSI2
-      FSSI3 = -SSIL(4)*ACEFI*(XSI(3)/XSI(4))/MSI2
+CC      FMSI3 = -XSI(3)*ACEFI ! < 0.
+CC      FMSI4 = -ACEFI
+        FHSI3 = -HSIL(4)*ACEFI*(XSI(3)/XSI(4))/MSI2
+        FSSI3 = -SSIL(4)*ACEFI*(XSI(3)/XSI(4))/MSI2
 #ifdef TRACERS_WATER
-      FTRSI3(:) = -TRSIL(:,4)*ACEFI*(XSI(3)/XSI(4))/MSI2
+        FTRSI3(:) = -TRSIL(:,4)*ACEFI*(XSI(3)/XSI(4))/MSI2
 #endif
-C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
-      IF (ACEFO .GT. 0.) GO TO 240
-C**** NEW ICE IS FORMED BELOW OLD SEA ICE
-      HSIL(3) = HSIL(3)-FHSI3
-      HSIL(4) = HSIL(4)+(FHSI3+ENRGFI)
-      SSIL(3) = SSIL(3)-FSSI3
-      SSIL(4) = SSIL(4)+(FSSI3+SALTI)
+      ELSE
+        FHSI3 = 0. ; FSSI3 = 0. 
 #ifdef TRACERS_WATER
-      TRSIL(:,3) = TRSIL(:,3) - FTRSI3(:)
-      TRSIL(:,4) = TRSIL(:,4) +(FTRSI3(:)+TRI(:))
+        FTRSI3(:) = 0.
 #endif
-      MSI2 = MSI2+ACEFI ! new ice mass of physical layer 2
-      GO TO 270
-  240 CONTINUE
-C**** NEW ICE IS FORMED BELOW OLD SEA ICE AND ON OPEN OCEAN
-      DRSI = (1.-ROICE)*ACEFO/(ACE1I+AC2OIM) ! new ice on the open oc.
-      SNOW = SNOW*ROICE/(ROICE+DRSI) ! redistributed over old and new
-      MSI1 = SNOW + ACE1I ! mass of layer 1
-C**** MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
-      MSI2 = (DRSI*AC2OIM+ROICE*(MSI2+ACEFI))/(ROICE+DRSI) ! layer 2
-      HSIL(1:2)=((1.-ROICE)*ENRGFO*YSI(1:2)+ROICE*HSIL(1:2))/
-     *     (ROICE+DRSI)
-      HSIL(3) = ((1.-ROICE)*ENRGFO*YSI(3)+ROICE*(HSIL(3)-FHSI3))/
-     A     (ROICE+DRSI)
-      HSIL(4) = ((1.-ROICE)*ENRGFO*YSI(4)+ROICE*(HSIL(4)+FHSI3+ENRGFI))/
-     A     (ROICE+DRSI)
-      SSIL(1:2)=((1.-ROICE)*SALTO*YSI(1:2)+ROICE*SSIL(1:2))/(ROICE+DRSI)
-      SSIL(3) = ((1.-ROICE)*SALTO*YSI(3)+ROICE*(SSIL(3)-FSSI3))/
-     A     (ROICE+DRSI)
-      SSIL(4) = ((1.-ROICE)*SALTO*YSI(4)+ROICE*(SSIL(4)+FSSI3+SALTI))/
-     A     (ROICE+DRSI)
-#ifdef TRACERS_WATER
-      DO N=1,NTM
-        TRSIL(N,1:2)=((1.-ROICE)*TRO(N)*YSI(1:2)+ROICE*TRSIL(N,1:2))
-     *       /(ROICE+DRSI)
-        TRSIL(N,3) = ((1.-ROICE)*TRO(N)*YSI(3)+ROICE*(TRSIL(N,3)
-     *       -FTRSI3(N)))/(ROICE+DRSI)
-        TRSIL(N,4) = ((1.-ROICE)*TRO(N)*YSI(4)+ROICE*(TRSIL(N,4)
-     *       +FTRSI3(N)+TRI(N)))/(ROICE+DRSI)
-      END DO
-#endif
-      ROICE = ROICE+DRSI ! new ice concentration
-      GO TO 270
-  250 CONTINUE
-      IF (ACEFO .GT. 0.) THEN ! new ice on the open ocean
-C**** NEW ICE IS FORMED ON THE OPEN OCEAN
-      DRSI = (1.-ROICE)*ACEFO/(ACE1I+AC2OIM) ! new ice on the open oc.
-      SNOW = SNOW*ROICE/(ROICE+DRSI) ! redistributed over old and new
-      MSI1 = SNOW + ACE1I ! mass of layer 1
-C**** MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
-      MSI2 = (DRSI*AC2OIM+ROICE*MSI2)/(ROICE+DRSI) ! layer 2
-      HSIL(1:4)=((1.-ROICE)*ENRGFO*YSI(1:4)+ROICE*HSIL(1:4))/
-     *     (ROICE+DRSI)
-      SSIL(1:4)=((1.-ROICE)*SALTO*YSI(1:4)+ROICE*SSIL(1:4))/(ROICE+DRSI)
-#ifdef TRACERS_WATER
-      DO N=1,NTM
-        TRSIL(N,1:4)=((1.-ROICE)*TRO(N)*YSI(1:4)+ROICE*TRSIL(N,1:4))
-     *       /(ROICE+DRSI)
-      END DO
-#endif
-      ROICE = ROICE+DRSI ! new ice concentration
       END IF
-  270 CONTINUE
+
+      IF (ACEFO .EQ. 0.) THEN
+C**** NEW ICE IS ONLY FORMED BELOW OLD SEA ICE
+        HSIL(3) = HSIL(3)-FHSI3
+        HSIL(4) = HSIL(4)+(FHSI3+ENRGFI)
+        SSIL(3) = SSIL(3)-FSSI3
+        SSIL(4) = SSIL(4)+(FSSI3+SALTI)
+#ifdef TRACERS_WATER
+        TRSIL(:,3) = TRSIL(:,3) - FTRSI3(:)
+        TRSIL(:,4) = TRSIL(:,4) +(FTRSI3(:)+TRI(:))
+#endif
+        MSI2 = MSI2+ACEFI       ! new ice mass of physical layer 2
+      ELSE
+C**** NEW ICE IS FORMED ON OPEN OCEAN AND POSSIBLY BELOW OLD SEA ICE
+        DRSI = (1.-ROICE)*ACEFO/(ACE1I+AC2OIM) ! new ice on the open oc.
+        ROICEN=ROICE+DRSI
+C**** New formulation:
+C**** Split all upper mass layer fields into ice and snow components
+        HSNOW = HSIL(1)*MIN(SNOW/(XSI(1)*MSI1),1d0) +
+     *          HSIL(2)*MAX(1.-ACE1I/(XSI(2)*MSI1),0d0)
+        HICE  = HSIL(1)+HSIL(2)-HSNOW
+CC      SSNOW = 0.   ! always zero
+        SICE  = SSIL(1)+SSIL(2)
+#ifdef TRACERS_WATER
+        TRSNOW(:) = TRSIL(:,1)*MIN(SNOW/(XSI(1)*MSI1-SSIL(1)),1d0) +
+     *       TRSIL(:,2)*MAX(1.-(ACE1I-SICE)/(XSI(2)*MSI1-SSIL(2)),0d0)
+        TRICE(:)  = TRSIL(:,1)+TRSIL(:,2)-TRSNOW(:)
+#endif
+C**** distribute snow variables over new ice extent
+        SNOW = SNOW*(ROICE/ROICEN)
+        HSNOW = HSNOW*(ROICE/ROICEN)
+CC      SSNOW = SSNOW*(ROICE/ROICEN)  ! always zero
+#ifdef TRACERS_WATER
+        TRSNOW(:) = TRSNOW(:)*(ROICE/ROICEN)
+#endif
+C**** Add new ice to ice variables
+        HICE=((1.-ROICE)*ENRGFO*ACE1I/(ACE1I+AC2OIM)+ROICE*HICE)/ROICEN
+        SICE=((1.-ROICE)*SALTO *ACE1I/(ACE1I+AC2OIM)+ROICE*SICE)/ROICEN
+#ifdef TRACERS_WATER
+        TRICE(:)=((1.-ROICE)*TRO(:)*ACE1I/(ACE1I+AC2OIM)+ROICE*TRICE(:))
+     *       /ROICEN
+#endif
+C**** reconstitute upper thermal layers
+        MSI1 = SNOW + ACE1I     ! mass of layer 1
+CC      MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
+        IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+          HSIL(1) = HICE*(ACE1I-XSI(2)*MSI1)/ACE1I + HSNOW
+          SSIL(1) = SICE*(ACE1I-XSI(2)*MSI1)/ACE1I ! + SSNOW
+#ifdef TRACERS_WATER
+          TRSIL(:,1) = TRICE(:)*(ACE1I-XSI(2)*MSI1)/ACE1I + TRSNOW(:)
+#endif
+        ELSE
+          HSIL(1) = HSNOW*XSI(1)*MSI1/SNOW
+          SSIL(1) = 0.          ! SSNOW*XSI(1)*MSI1/SNOW
+#ifdef TRACERS_WATER
+          TRSIL(:,1) = TRSNOW(:)*XSI(1)*MSI1/SNOW
+#endif
+        END IF
+        HSIL(2) = HICE - HSIL(1) + HSNOW
+        SSIL(2) = SICE - SSIL(1) ! + SSNOW 
+#ifdef TRACERS_WATER
+        TRSIL(:,2) = TRICE(:) - TRSIL(:,1) + TRSNOW(:)
+#endif
+C**** add new ice to old ice (not including snow)
+        MSI2 = (DRSI*AC2OIM+ROICE*(MSI2+ACEFI))/ROICEN ! layer 2
+C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
+        HSIL(3)=((1.-ROICE)*ENRGFO*YSI(3)+ROICE*(HSIL(3)-FHSI3))/ROICEN
+        HSIL(4)=((1.-ROICE)*ENRGFO*YSI(4)+ROICE*(HSIL(4)+FHSI3+ENRGFI)
+     *       )/ROICEN
+        SSIL(3)=((1.-ROICE)*SALTO*YSI(3)+ROICE*(SSIL(3)-FSSI3))/ROICEN
+        SSIL(4)=((1.-ROICE)*SALTO*YSI(4)+ROICE*(SSIL(4)+FSSI3+SALTI))
+     *       /ROICEN
+#ifdef TRACERS_WATER
+        DO N=1,NTM
+          TRSIL(N,3)=((1.-ROICE)*TRO(N)*YSI(3)+ROICE*(TRSIL(N,3)
+     *         -FTRSI3(N)))/ROICEN
+          TRSIL(N,4)=((1.-ROICE)*TRO(N)*YSI(4)+ROICE*(TRSIL(N,4)
+     *         +FTRSI3(N)+TRI(N)))/ROICEN
+        END DO
+#endif
+        ROICE = ROICEN          ! new ice concentration
+      END IF
 C**** COMPRESS THE ICE HORIZONTALLY IF TOO THIN OR LEAD FRAC. TOO SMALL
       OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2))) 
       IF ((ROICE*(ACE1I+MSI2)).gt.5.*RHOI) OPNOCN=0.  ! no leads for h>5
       IF (MSI2.LT.AC2OIM .or. ROICE.GT.1.-OPNOCN) THEN
       ROICEN = MIN(ROICE*(ACE1I+MSI2)/(ACE1I+AC2OIM),1.-OPNOCN)
       DRSI = ROICEN-ROICE ! < 0. compressed ice concentration
-C     FMSI3 = XSI(3)*FMSI4 ! < 0. upward ice mass flux into layer 3
+CC    FMSI3 = XSI(3)*FMSI4 ! < 0. upward ice mass flux into layer 3
       FMSI4 = (MSI1+MSI2)*(DRSI/ROICEN) ! upward ice mass into layer 4
       FHSI3 = HSIL(4)*FMSI4*(XSI(3)/XSI(4))/MSI2 ! upward heat flux
       FHSI4 = (HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4))*(DRSI/ROICEN)
@@ -720,7 +746,7 @@ C     FMSI3 = XSI(3)*FMSI4 ! < 0. upward ice mass flux into layer 3
       TRSIL(:,4) = TRSIL(:,4) +(FTRSI3(:)-FTRSI4(:))
 #endif
       MSI2 = MSI2-FMSI4 ! new ice mass of second physical layer
-C     SNOW = SNOW   ! snow thickness is conserved
+CC    SNOW = SNOW   ! snow thickness is conserved
       ROICE = ROICEN
 C****
       END IF
@@ -733,7 +759,7 @@ C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
       IF (ROICE.gt.(1.-OPNOCN-1d-3)) THEN
         ROICEN = 1.-OPNOCN
         DRSI = ROICEN-ROICE ! +ve
-        FMSI4 = (MSI1+MSI2)*(DRSI/ROICEN) ! >0 ice mass out of layer 4
+        FMSI4 = (ACE1I+MSI2)*(DRSI/ROICEN) ! >0 ice mass out of layer 4
         FHSI4 = HSIL(4)*FMSI4/(XSI(4)*MSI2)
         FSSI4 = SSIL(4)*FMSI4/(XSI(4)*MSI2)
         FHSI3 = HSIL(3)*FMSI4/MSI2 ! downward heat flux into layer 4 
@@ -743,34 +769,68 @@ C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
         FTRSI3(:) = TRSIL(:,3)*FMSI4/MSI2
 #endif
         MSI2=MSI2-FMSI4         ! new ice mass of second physical layer
-C**** redistribute heat/salt/tracer from change of mass
-        DHM=FHSI4/(MSI1+MSI2)
-        HSIL(1:2)=(ROICE/ROICEN)*(HSIL(1:2)+DHM*XSI(1:2)*MSI1)
-        HSIL(3)  =(ROICE/ROICEN)*(HSIL(3)+DHM*XSI(3)*MSI2 -FHSI3)
-        HSIL(4)  =(ROICE/ROICEN)*(HSIL(4)+DHM*XSI(4)*MSI2 +FHSI3-FHSI4)
-C**** salinity complicated since no salt is put in snow 
-        DSM=FSSI4/(MSI1+MSI2)
-        SS12=(ROICE/ROICEN)*(SSIL(1)+SSIL(2)+DSM*MSI1)
-        IF (ACE1I.gt.XSI(2)*MSI1) THEN
-          SSIL(1)=SS12*(ACE1I-XSI(2)*MSI1)/ACE1I
+        FRI(1)=ACE1I/(ACE1I+MSI2)
+        FRI(3:4)=XSI(3:4)*MSI2/(ACE1I+MSI2)
+C**** New formulation:
+C**** Split all upper mass layer fields into ice and snow components
+        HSNOW = HSIL(1)*MIN(SNOW/(XSI(1)*MSI1),1d0) +
+     *          HSIL(2)*MAX(1.-ACE1I/(XSI(2)*MSI1),0d0)
+        HICE  = HSIL(1)+HSIL(2)-HSNOW
+CC      SSNOW = 0.   ! always zero
+        SICE  = SSIL(1)+SSIL(2)
+#ifdef TRACERS_WATER
+        TRSNOW(:) = TRSIL(:,1)*MIN(SNOW/(XSI(1)*MSI1-SSIL(1)),1d0) +
+     *       TRSIL(:,2)*MAX(1.-(ACE1I-SICE)/(XSI(2)*MSI1-SSIL(2)),0d0)
+        TRICE(:)  = TRSIL(:,1)+TRSIL(:,2)-TRSNOW(:)
+#endif
+C**** distribute snow variables over new ice extent
+        SNOW = SNOW*(ROICE/ROICEN)
+        HSNOW = HSNOW*(ROICE/ROICEN)
+CC      SSNOW = SSNOW*(ROICE/ROICEN)  ! always zero
+#ifdef TRACERS_WATER
+        TRSNOW(:) = TRSNOW(:)*(ROICE/ROICEN)
+#endif
+C**** Add new ice to ice variables
+        HICE = (ROICE/ROICEN)*(FHSI4*FRI(1)+HICE)
+        SICE = (ROICE/ROICEN)*(FSSI4*FRI(1)+SICE)
+#ifdef TRACERS_WATER
+        TRICE(:)=(ROICE/ROICEN)*(FTRSI4(:)*FRI(1)+TRICE(:))
+#endif
+C**** reconstitute upper thermal layers
+        MSI1 = SNOW + ACE1I     ! mass of layer 1
+CC      MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
+        IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+          FRI(1)=(ACE1I-XSI(2)*MSI1)/ACE1I
+          HSIL(1) = HICE*FRI(1) + HSNOW
+          SSIL(1) = SICE*FRI(1) ! + SSNOW
+#ifdef TRACERS_WATER
+          TRSIL(:,1) = TRICE(:)*FRI(1) + TRSNOW(:)
+#endif
         ELSE
-          SSIL(1)= 0.
+          HSIL(1) = HSNOW*XSI(1)*MSI1/SNOW
+          SSIL(1) = 0.          ! SSNOW*XSI(1)*MSI1/SNOW
+#ifdef TRACERS_WATER
+          TRSIL(:,1) = TRSNOW(:)*XSI(1)*MSI1/SNOW
+#endif
         END IF
-        SSIL(2)=SS12-SSIL(1)
-        SSIL(3)  =(ROICE/ROICEN)*(SSIL(3)+DSM*XSI(3)*MSI2 -FSSI3)
-        SSIL(4)  =(ROICE/ROICEN)*(SSIL(4)+DSM*XSI(4)*MSI2 +FSSI3-FSSI4)
+        HSIL(2) = HICE - HSIL(1) + HSNOW
+        SSIL(2) = SICE - SSIL(1) ! + SSNOW 
+#ifdef TRACERS_WATER
+        TRSIL(:,2) = TRICE(:) - TRSIL(:,1) + TRSNOW(:)
+#endif
+        HSIL(3) = (ROICE/ROICEN)*(HSIL(3)+FHSI4*FRI(3)-FHSI3)
+        HSIL(4) = (ROICE/ROICEN)*(HSIL(4)+FHSI4*FRI(4)+FHSI3-FHSI4)
+        SSIL(3) = (ROICE/ROICEN)*(SSIL(3)+FSSI4*FRI(3)-FSSI3)
+        SSIL(4) = (ROICE/ROICEN)*(SSIL(4)+FSSI4*FRI(4)+FSSI3-FSSI4)
 #ifdef TRACERS_WATER
         DO N=1,NTM
-          DTM=FTRSI4(N)/(MSI1+MSI2)
-          TRSIL(N,1:2)=(ROICE/ROICEN)*(TRSIL(N,1:2)+DTM*XSI(1:2)*MSI1)
-          TRSIL(N,3) = (ROICE/ROICEN)*(TRSIL(N,3)+DTM*XSI(3)*MSI2
+          TRSIL(N,3) = (ROICE/ROICEN)*(TRSIL(N,3)+FTRSI4(N)*FRI(3)
      *         -FTRSI3(N))
-          TRSIL(N,4) = (ROICE/ROICEN)*(TRSIL(N,4)+DTM*XSI(4)*MSI2
+          TRSIL(N,4) = (ROICE/ROICEN)*(TRSIL(N,4)+FTRSI4(N)*FRI(4)
      *         +FTRSI3(N)-FTRSI4(N))
         END DO
 #endif
-C       SNOW = SNOW   ! snow thickness is conserved
-        ROICE = ROICEN
+        ROICE = ROICEN          ! new ice concentration
       END IF
       END IF
       ELSE
@@ -902,46 +962,53 @@ C****
       REAL*8, INTENT(INOUT), DIMENSION(NTM,LMI) :: TRSIL
 !@var TRFLUX tracer flux arising from sea salinity decay
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: TRFLUX
-      REAL*8, DIMENSION(NTM) :: FTRSI1,FTRSI2,FTRSI3
-      REAL*8, DIMENSION(NTM,LMI) :: DTRSI
+      REAL*8, DIMENSION(NTM) :: FTRSI1,FTRSI2,FTRSI3,DTR12,TRSNOW,TRICE
+      REAL*8, DIMENSION(NTM,3:LMI) :: DTRSI
       INTEGER N
 #endif
 
-      REAL*8 DSSI(LMI),DMSI(LMI),DHSI(LMI),SS12,DS12
+      REAL*8 DSSI(3:LMI),DMSI(3:LMI),DHSI(3:LMI),SS12,DS12,DM12,DH12
       REAL*8 FMSI1,FMSI2,FMSI3,FSSI1,FSSI2,FSSI3,FHSI1,FHSI2,FHSI3
+      REAL*8 HSNOW,HICE,SICE
       INTEGER L,I0,J0
 !@var dtssi decay time scale for sea ice salinity (days)
 !@var bydtssi decay constant for sea ice salinity (1/s)
       REAL*8, parameter :: dtssi=30.d0, bydtssi=1./(dtssi*sday)
 
-      DSSI = 0. ; DMSI = 0. ;  DHSI = 0.
+      DSSI = 0. ; DMSI = 0. ; DHSI = 0.
+      DS12 = 0. ; DM12 = 0. ; DH12 = 0.
 #ifdef TRACERS_WATER
+      DTR12(:)  = 0.
       DTRSI(:,:)= 0.
 #endif
 C**** salinity in sea ice decays if it is above threshold level ssi0
 
 C**** check first layer (default ice and snow)
-      IF(SSIL(1)+SSIL(2).GT.ssi0*ACE1I) THEN
-        DS12 = (SSIL(1)+SSIL(2)-ACE1I*ssi0)*DT*BYDTSSI
-        IF (ACE1I.gt.XSI(2)*MSI1) THEN
-          DSSI(1) = (ACE1I-XSI(2)*MSI1)*DS12/ACE1I
-          DSSI(2) = DS12-DSSI(1)
-        ELSE
-          DSSI(1) = 0.
-          DSSI(2) = DS12
-        END IF
-        DMSI(1:2) = DSSI(1:2)
-        DHSI(1:2) = DMSI(1:2)*HSIL(1:2)/(XSI(1:2)*MSI1)
-        SSIL(1:2) = SSIL(1:2)-DSSI(1:2)
-        HSIL(1:2) = HSIL(1:2)-DHSI(1:2)
+C**** New formulation:
+C**** Split all upper mass layer fields into ice and snow components
+      HSNOW = HSIL(1)*MIN((MSI1-ACE1I)/(XSI(1)*MSI1),1d0) +
+     *        HSIL(2)*MAX(1.-ACE1I/(XSI(2)*MSI1),0d0)
+      HICE  = HSIL(1)+HSIL(2)-HSNOW
+CC    SSNOW = 0.   ! always zero
+      SICE  = SSIL(1)+SSIL(2)
+#ifdef TRACERS_WATER
+      TRSNOW(:) = TRSIL(:,1)*MIN((MSI1-ACE1I)/(XSI(1)*MSI1-SSIL(1)),1d0)
+     *     +TRSIL(:,2)*MAX(1.-(ACE1I-SICE)/(XSI(2)*MSI1-SSIL(2)),0d0)
+      TRICE(:)  = TRSIL(:,1)+TRSIL(:,2)-TRSNOW(:)
+#endif
+
+C**** calculate removal of excess salinity
+      IF (SICE.GT.ssi0*ACE1I) THEN
+        DS12 = (SICE-ACE1I*ssi0)*DT*BYDTSSI
+        DM12 = DS12
+        DH12 = DM12*HICE/ACE1I
 #ifdef TRACERS_WATER
 C**** no tracer removed if pure salt is lost
-c        DO N=1,NTM
-c          DTRSI(N,1:2) = (DMSI(1:2)-DSSI(1:2))*TRSIL(N,1:2)/
-c     *       (XSI(1:2)*MSI1)
-c          TRSIL(N,1:2) = TRSIL(N,1:2)-DTRSI(N,1:2)
-c        END DO
+c       DTR12(:) = (DM12-DS12)*TRICE(:)/(ACE1I-SICE)
+c       TRICE(:) = TRICE(:)-DT12(:)
 #endif
+        SICE=SICE-DS12
+        HICE=HICE-DH12
       END IF
 
 C**** check remaining layers
@@ -950,30 +1017,48 @@ C**** check remaining layers
           DSSI(L) = (SSIL(L)-ssi0*XSI(L)*MSI2)*DT*BYDTSSI
           DMSI(L) = DSSI(L)
           DHSI(L) = DMSI(L)*HSIL(L)/(XSI(L)*MSI2)
-          SSIL(L) = SSIL(L) - DSSI(L)
-          HSIL(L) = HSIL(L) - DHSI(L)
 #ifdef TRACERS_WATER
 C**** no tracer removed if pure salt is lost
-c          DTRSI(:,L) = (DMSI(L)-DSSI(L))*TRSIL(:,L)/(XSI(L)*MSI2)
-c          TRSIL(:,L) = TRSIL(:,L)-DTRSI(:,L)
+c         DTRSI(:,L)=(DMSI(L)-DSSI(L))*TRSIL(:,L)/(XSI(L)*MSI2-SSIL(L))
+c         TRSIL(:,L)=TRSIL(:,L)-DTRSI(:,L)
 #endif
+          SSIL(L) = SSIL(L) - DSSI(L)
+          HSIL(L) = HSIL(L) - DHSI(L)
         END IF
       END DO
+
 C**** Calculate fluxes required to rebalance layers
-C**** Mass/heat moves from layer 2 to 1 (salt as well, but this is
-C**** dealt with later)
-      FMSI1 = -DMSI(1)
-      FHSI1 = FMSI1*HSIL(2)/(XSI(2)*MSI1-DMSI(2))
-#ifdef TRACERS_WATER
-      FTRSI1(:) = FMSI1*TRSIL(:,2)/(XSI(2)*MSI1-DMSI(2))
-#endif
 C**** Mass/heat/salt moves from layer 3 to 2
-      FMSI2 = -(DMSI(1)+DMSI(2))
+      FMSI2 = -DM12
       FHSI2 = FMSI2*HSIL(3)/(XSI(3)*MSI2-DMSI(3))
       FSSI2 = FMSI2*SSIL(3)/(XSI(3)*MSI2-DMSI(3))
 #ifdef TRACERS_WATER
       FTRSI2(:) = FMSI2*TRSIL(:,3)/(XSI(3)*MSI2-DMSI(3))
 #endif
+
+C**** reconstitute upper layers
+      IF (DM12.gt.0) THEN
+        IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+          HSIL(1) = (HICE-FHSI2)*(ACE1I-XSI(2)*MSI1)/ACE1I + HSNOW
+          SSIL(1) = (SICE-FSSI2)*(ACE1I-XSI(2)*MSI1)/ACE1I ! + SSNOW
+#ifdef TRACERS_WATER
+          TRSIL(:,1) = (TRICE(:)-FTRSI2(:))*(ACE1I-XSI(2)*MSI1)/ACE1I +
+     *         TRSNOW(:)
+#endif
+        ELSE
+          HSIL(1) = HSNOW*XSI(1)*MSI1/(MSI1-ACE1I)
+          SSIL(1) = 0.          ! SSNOW*XSI(1)*MSI1/(MSI1-ACE1I)
+#ifdef TRACERS_WATER
+          TRSIL(:,1) = TRSNOW(:)*XSI(1)*MSI1/(MSI1-ACE1I)
+#endif
+        END IF
+        HSIL(2) = HICE - HSIL(1) - FHSI2 + HSNOW 
+        SSIL(2) = SICE - SSIL(1) - FSSI2 ! + SSNOW 
+#ifdef TRACERS_WATER
+        TRSIL(:,2) = TRICE(:) - TRSIL(:,1) - FTRSI2(:) + TRSNOW(:)
+#endif
+      END IF
+
 C**** Mass/heat moves between layers 3 to 4
       FMSI3 = XSI(3)*DMSI(4)+XSI(4)*(FMSI2-DMSI(3))
       IF (FMSI3.gt.0) THEN      ! downward flux to layer 4
@@ -990,25 +1075,13 @@ C**** Mass/heat moves between layers 3 to 4
 #endif
       END IF
 
-C**** Apply the fluxes
-      HSIL(1)=HSIL(1)- FHSI1
-      HSIL(2)=HSIL(2)+(FHSI1-FHSI2)
+C**** Apply the second mass layer fluxes
       HSIL(3)=HSIL(3)+(FHSI2-FHSI3)
       HSIL(4)=HSIL(4)+ FHSI3
-C**** salinity spread evenly over upper ice layer
-      SS12=(SSIL(1)+SSIL(2))-FSSI2
-      IF (ACE1I.gt.XSI(2)*MSI1) THEN
-        SSIL(1)=SS12*(ACE1I-XSI(2)*MSI1)/ACE1I
-      ELSE
-        SSIL(1)= 0.
-      END IF
-      SSIL(2)=SS12-SSIL(1)
       SSIL(3)=SSIL(3)+(FSSI2-FSSI3)
       SSIL(4)=SSIL(4)+ FSSI3
 #ifdef TRACERS_WATER
 C**** Apply the tracer fluxes
-      TRSIL(:,1)=TRSIL(:,1)- FTRSI1(:)
-      TRSIL(:,2)=TRSIL(:,2)+(FTRSI1(:)-FTRSI2(:))
       TRSIL(:,3)=TRSIL(:,3)+(FTRSI2(:)-FTRSI3(:))
       TRSIL(:,4)=TRSIL(:,4)+ FTRSI3(:)
 #endif
@@ -1016,12 +1089,12 @@ c     MSI1 = MSI1 - (DMSI(1)+DMSI(2)) - FMSI2 ! stays fixed
       MSI2 = MSI2 - (DMSI(3)+DMSI(4)) + FMSI2
 
 C**** output fluxes and diagnostics
-      MFLUX = SUM(DMSI)         ! mass flux to ocean
-      HFLUX = SUM(DHSI)         ! energy flux to ocean
-      SFLUX = SUM(DSSI)         ! salt flux to ocean
+      MFLUX = DM12+SUM(DMSI(3:LMI))         ! mass flux to ocean
+      HFLUX = DH12+SUM(DHSI(3:LMI))         ! energy flux to ocean
+      SFLUX = DS12+SUM(DSSI(3:LMI))         ! salt flux to ocean
 #ifdef TRACERS_WATER
       DO N=1,NTM
-        TRFLUX(N)=SUM(DTRSI(N,:)) ! tracer flux to ocean
+        TRFLUX(N)=DTR12(N)+SUM(DTRSI(N,3:LMI)) ! tracer flux to ocean
       END DO
 #endif
 C****
