@@ -208,7 +208,9 @@ C**** Local variables initialised in init_RAD
           CALL PACK_COLUMN(grid, Tchg, Tchg_glob)
           ! Next line intentionally broken - need to create interface
           ! for pack on integers
-          kliq_glob(10000000:,:,:,J_0:J_1) = kliq_glob(:,:,:,J_0:J_1)
+          DO k = 1, 4
+            Call PACK_COLUMN(grid, kliq(:,k,:,:), kliq_glob(:,k,:,:))
+          END DO
           WRITE (kunit,err=10) MODULE_HEADER_F,Tchg_glob,kliq_glob
         CASE (IOREAD:)
           SELECT CASE  (IACTION)

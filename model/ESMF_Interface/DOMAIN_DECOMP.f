@@ -248,6 +248,7 @@
       interface PACK_COLUMN
          module procedure PACK_COLUMN_1D
          module procedure PACK_COLUMN_2D
+         module procedure PACK_COLUMN_i2D
          module procedure PACK_COLUMN_3D
       end interface
 
@@ -3938,6 +3939,23 @@ C------------------------------------
       RETURN
       END SUBROUTINE PACK_COLUMN_2D
 
+      SUBROUTINE PACK_COLUMN_i2D(grd_dum,ARR,ARR_GLOB)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      INTEGER, INTENT(IN) ::
+     &        ARR(:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+      INTEGER, INTENT(INOUT) :: ARR_GLOB(:,:,:)
+      INTEGER :: I, K
+
+      DO K=1,SIZE(ARR,1)
+        DO I = 1, SIZE(ARR,2)
+          CALL ARRAYGATHER(grd_dum,ARR(K,I,:),ARR_GLOB(K,I,:))
+        END DO
+      END DO
+
+      RETURN
+      END SUBROUTINE PACK_COLUMN_i2D
 
       SUBROUTINE PACK_COLUMN_3D(grd_dum,ARR,ARR_GLOB)
       IMPLICIT NONE
