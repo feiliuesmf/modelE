@@ -815,7 +815,7 @@ C****
   911 FORMAT (5X,13F5.0)
   912 FORMAT (5X,12F5.0)
       END SUBROUTINE get_14CO2_IC
-
+#endif
 
 #ifdef TRACERS_WATER
 C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------------

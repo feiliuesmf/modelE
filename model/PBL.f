@@ -312,6 +312,8 @@ C**** For heat and mositure
 C**** tracer calculations are passive and therefore do not need to 
 C**** be inside the iteration. Use moisture diffusivity
       do itr=1,ntx
+        trcnst=trconstflx(itr)
+        trsf=trsfac(itr)
 #ifdef TRACERS_WATER
 C**** Tracers need to multiply trsfac and trconstflx by cq*Usurf
         trcnst=trconstflx(itr)*cqsave*wsh
