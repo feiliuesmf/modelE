@@ -92,9 +92,10 @@ print "setting up run $runID\n";
 print "output files will be saved in $SAVEDISK/$runID\n";
 
 ## Create the run directory if necessary
-mkdir $RunDir, 0777 & $umask_inv 
-    or die "Can't create $RunDir. Aborting setup.\n";
-
+if ( ! -d $RunDir ) {
+    mkdir $RunDir, 0777 & $umask_inv 
+	or die "Can't create $RunDir. Aborting setup.\n";
+}
 
 ## Check that link is not already correct (added by gavin)
 if ( -e $runID ) {
