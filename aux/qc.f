@@ -61,7 +61,7 @@ C**** check for arguments
       IF (QCMIN) THEN ! output in minutes
         FAC = FACT*xfac
       ELSE            ! output in percentages
-        FAC = 100./TOT
+        if(TOT.gt.0) FAC = 100./TOT
       END IF
       IF (TOT.gt.0) THEN
         WRITE (6,906) FACT*TOT,(TIMESTR(N),FAC*TIMING(N),N=1,3)
