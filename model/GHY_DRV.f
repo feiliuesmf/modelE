@@ -234,9 +234,9 @@ C**** Calculate first layer tracer concentration
         end if
       end do
       ntx = nx
-#ifdef TRACERS_WATER
-      TEVAPW=0. ; TEVAPD=0. ; TEVAPB=0. ; TRRUNS=0. ; TRRUNU=0.
-#endif
+c#ifdef TRACERS_WATER
+c      TEVAPW=0. ; TEVAPD=0. ; TEVAPB=0. ; TRRUNS=0. ; TRRUNU=0.
+c#endif
 #endif
 c**** new quantities to be zeroed out over ground timesteps
 cddd         aruns=0.
@@ -400,7 +400,6 @@ ccc just for test - setting all soil to saturated
 ccc actually PBL needs evap (kg/m^2*s) / rho_air
       evap_max = evap_max_ij(i,j) * 1000.d0 / rhosrf0
       fr_sat = fr_sat_ij(i,j)
-      !print *, "evap lim. = ", evap_max, fr_sat
 #ifdef TRACERS_WATER
 c**** water tracers are also flux limited
       tr_evap_max(1:ntx) = evap_max * trsoil_rat(1:ntx)
@@ -464,23 +463,26 @@ c     call qsbal
 
 #ifdef TRACERS_WATER
 C**** reset tracer variables
-      wsoil_tot=wsoil_tot-(aevapw+aevapd+aevapb+aruns+arunu)/rhow
+c      wsoil_tot=wsoil_tot-(aevapw+aevapd+aevapb+aruns+arunu)/rhow
+      wsoil_tot=wsoil_tot-(aevap+aruns+arunu)/rhow
       do nx=1,ntx
         n=ntix(nx)
         if (tr_wd_TYPE(n).eq.nWATER) THEN
 c**** fix outputs to mean ratio (TO BE REPLACED BY WITHIN SOIL TRACERS)
         trruns(nx)=aruns * trsoil_rat(nx) ! kg/m^2
         trrunu(nx)=arunu * trsoil_rat(nx)
-#ifdef TRACERS_SPECIAL_O18
-        tevapw(nx)=aevapw * trsoil_rat(nx)*fracvl(tp(1,1),trname(n))
-#else
-        tevapw(nx)=aevapw * trsoil_rat(nx)
-#endif
-        tevapd(nx)=aevapd * trsoil_rat(nx)
-        tevapb(nx)=aevapb * trsoil_rat(nx)
+c#ifdef TRACERS_SPECIAL_O18
+c        tevapw(nx)=aevapw * trsoil_rat(nx)*fracvl(tp(1,1),trname(n))
+c#else
+c        tevapw(nx)=aevapw * trsoil_rat(nx)
+c#endif
+c        tevapd(nx)=aevapd * trsoil_rat(nx)
+c        tevapb(nx)=aevapb * trsoil_rat(nx)
+        tevapw(nx)=aevap * trsoil_rat(nx)
 c**** update ratio
-        trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+tevapd(nx)+tevapb(nx)
-     *       +trruns(nx)+trrunu(nx)) 
+c        trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+tevapd(nx)+tevapb(nx)
+c     *       +trruns(nx)+trrunu(nx)) 
+        trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+trruns(nx)+trrunu(nx)) 
         trsoil_rat(nx)=trsoil_tot(nx)/(rhow*wsoil_tot)
         trbare(n,1:ngm,i,j) = trsoil_rat(nx)*w(1:ngm,1)*rhow
         trvege(n,:,i,j) = trsoil_rat(nx)*w(:,2)*rhow
@@ -572,7 +574,7 @@ C****
       do nx=1,ntx
         n=ntix(nx)
         if (tr_wd_TYPE(n).eq.nWATER) THEN
-          tevap = tevapw(nx)+tevapd(nx)+tevapb(nx)
+          tevap = tevapw(nx) ! +tevapd(nx)+tevapb(nx)
           tdp = tevap*dxyp(j)*ptype
           tdt1 = trsrfflx(i,j,n)*dtsurf
           if (trm(i,j,1,n)+tdt1+tdp.lt.0.and.tdp.lt.0) then

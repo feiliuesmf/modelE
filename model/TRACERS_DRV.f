@@ -3352,14 +3352,14 @@ c
       RETURN
       END SUBROUTINE GET_WASH_FACTOR
 
-      SUBROUTINE GET_EVAP_FACTOR(N,TEMP,QBELOW,HEFF,FQ0,fq)
+      SUBROUTINE GET_EVAP_FACTOR(N,TEMP,LHX,QBELOW,HEFF,FQ0,fq)
 !@sum  GET_EVAP_FACTOR calculation of the evaporation fraction
 !@+    for tracers.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on CB436TdsM23 EVAPD and WASH_EVAP routines)
 c
 C**** GLOBAL parameters and variables:
-      USE CONSTANT, only : tf
+      USE CONSTANT, only : tf,lhe
       USE TRACER_COM, only: tr_evap_fact, tr_wd_TYPE,nwater,trname
       USE CLOUDS, only: NTIX
 c
@@ -3371,7 +3371,7 @@ C**** Local parameters and variables and arguments:
 !@var N index for tracer number loop
       INTEGER, INTENT(IN) :: N
       REAL*8,  INTENT(OUT):: FQ
-      REAL*8,  INTENT(IN) :: FQ0,TEMP
+      REAL*8,  INTENT(IN) :: FQ0,TEMP,LHX
 !@var QBELOW true if evap is occuring below cloud
       LOGICAL, INTENT(IN) :: QBELOW
 !@var HEFF effective relative humidity for evap occuring below cloud
@@ -3387,13 +3387,14 @@ c
       case (nWater)
 #ifdef TRACERS_SPECIAL_O18
           tdegc=temp-tf
-          if (tdegc.ge.0) then
+          if (lhx.eq.lhe) then
             alph=fracvl(tdegc,trname(ntix(n)))
 C**** below clouds kinetic effects with evap into unsaturated air
             if (QBELOW.and.heff.lt.1.) alph=kin_evap_prec(alph,heff
      *           ,trname(ntix(n)))
           else
-            alph=fracvs(tdegc,trname(ntix(n)))
+C**** no fractionation for ice evap?
+            alph=1.   ! fracvs(tdegc,trname(ntix(n)))
           end if
           if (fq0.ne.1.) then
            if (fq0.lt.0.9) then ! approximate

@@ -855,7 +855,7 @@ C**** (If 100% evaporation, allow all tracers to evaporate completely.)
           TMDN(N)     = TMDN(N) + TRCOND(N,L)
           TRCOND(N,L) = 0.D0
         ELSE ! otherwise, tracers evaporate dependent on type of tracer
-          CALL GET_EVAP_FACTOR(N,TNX,.FALSE.,1d0,FQEVP,FQEVPT)
+          CALL GET_EVAP_FACTOR(N,TNX,LHX,.FALSE.,1d0,FQEVP,FQEVPT)
           TMDN(N)     = TMDN(N)     + FQEVPT * TRCOND(N,L)
           TRCOND(N,L) = TRCOND(N,L) - FQEVPT * TRCOND(N,L)
         END IF
@@ -1124,7 +1124,7 @@ C**** estimate effective humidity
           heff=1.
         end if
         DO N=1,NTX
-          CALL GET_EVAP_FACTOR(N,TNX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT)
+          CALL GET_EVAP_FACTOR(N,TNX,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT)
           TM(L,N) = TM(L,N)     + FPRCPT*TRPRCP(N)
           TRPRCP(N) = TRPRCP(N) - FPRCPT*TRPRCP(N)
         END DO
@@ -1300,7 +1300,7 @@ C**** functions
 !@var FQTOWT tracer-specific fraction of gas tracer condensing in CLW
 !@var FPRT tracer-specific fraction of tracer in CLW that precipitates
 !@var FERT tracer-specific fraction of tracer in precipitate evaporating
-      REAL*8 ::DTWRT,DTPRT,DTERT,DTQWT,FWTOQT,FQTOWT,FPRT,FERT
+      REAL*8 ::DTWRT,DTPRT,DTERT,DTQWT,FWTOQT,FQTOWT,FPRT,FERT,PRLIQ
 !@var BELOW_CLOUD logical- is the current level below cloud?
 !@var CLOUD_YET logical- in L loop, has there been any cloud so far?
       LOGICAL BELOW_CLOUD,CLOUD_YET
@@ -1694,9 +1694,9 @@ c ---------------------- initialize fractions ------------------------
         FWTOQT=0.
 c ----------------------- calculate fractions --------------------------
 c precip. tracer evap
-        CALL GET_EVAP_FACTOR(N,TL(L),.FALSE.,1d0,FER,FERT)
+        CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FER,FERT)
 c clw tracer evap
-        CALL GET_EVAP_FACTOR(N,TL(L),.FALSE.,1d0,FWTOQ,FWTOQT)
+        CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FWTOQ,FWTOQT)
         IF(BELOW_CLOUD) THEN
           precip_mm = PREBAR(L+1)*100.*dtsrc
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT) !washout
@@ -1731,8 +1731,9 @@ C**** Isotopic equilibration of the CLW and water vapour
         END IF
 C**** Isotopic equilibration of Precip (if liquid) and water vapour
 C**** Note that precip is either all water or all ice
-        IF (LHX.eq.LHE .AND. PREBAR(L).gt.0) THEN
-          CALL ISOEQUIL(NTIX(N),TL(L),.TRUE.,QL(L),PREBAR(L),TM(L,N)
+        IF (LHX.eq.LHE .AND. PREBAR(L).gt.0 .AND. QL(L).gt.0) THEN
+          PRLIQ=PREBAR(L)*DTSrc*BYAM(L)*GRAV
+          CALL ISOEQUIL(NTIX(N),TL(L),.TRUE.,QL(L),PRLIQ,TM(L,N)
      *         ,TRPRBAR(N,L),1d0)
         END IF
 #endif
