@@ -220,6 +220,11 @@ C****
         OAS(I,J,8) = AVFX(I,J,2)
       END DO
       END DO
+C**** fix diagnostic polar boxes
+      DO I=2,IM
+        OAS(I, 1,:) = OAS(1, 1,:)
+        OAS(I,JM,:) = OAS(1,JM,:)
+      END DO
       CALL MAP1 (IM,JM,0,TITLE(1),OAS(1,1,1),OAS(1,1,5),1.,0.,0)
       CALL MAP1 (IM,JM,0,TITLE(2),OAS(1,1,2),OAS(1,1,5),1.,0.,0)
       CALL MAP1 (IM,JM,0,TITLE(3),OAS(1,1,3),OAS(1,1,5),1.,0.,0)

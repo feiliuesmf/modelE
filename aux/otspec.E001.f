@@ -126,6 +126,7 @@ C*
 C**** Zero out spectral coefficients
 C*
       CV = 0. ; AV = 0. ; BV = 0. ; AE = 0. ; BE = 0.
+      AMPOT = 0. ; PHAOT = 0. ; COTS = 0.
       FLAND = 1. - FOCEAN
 C****
 C**** Calculate spherical geometry
@@ -280,6 +281,15 @@ C**** Compute phase and amplitude of ocean transports
         COTS(I,J,:)  = COT(I,J,:)
       END DO
       END DO
+C**** fix diagnostic polar boxes
+      DO I=2,IM
+        AMPOT(I, 1,:)=AMPOT(1, 1,:)
+        AMPOT(I,JM,:)=AMPOT(1,JM,:)
+        PHAOT(I, 1,:)=PHAOT(1, 1,:)
+        PHAOT(I,JM,:)=PHAOT(1,JM,:)
+        COTS(I, 1,:) = COTS(1, 1,:)
+        COTS(I,JM,:) = COTS(1,JM,:)
+      END DO
       TAU4 = itime
       CALL MAP1 (IM,JM,ITIME,TITLE(1),AMPOT(1,1,1),SNGL(FOCEAN),1.,0.,0)
       CALL MAP1 (IM,JM,ITIME,TITLE(2),PHAOT(1,1,1),SNGL(FOCEAN),1.,0.,0)
@@ -344,7 +354,7 @@ C**** Output aplot format file of ocean heat transports
       write(iu_OHTLP,*) 'Global Northward Ocean Heat Transport '
       write(iu_OHTLP,*) 'Latitude'
       write(iu_OHTLP,*) '10**15 W'
-      write(iu_OHTLP,*) ' lat  ',RunID,' ',trim(RunID)//"_noIceD"
+      write(iu_OHTLP,*) ' lat  ',trim(RunID),' ',trim(RunID)//"_noIceD"
       do j=2,jm
         write(iu_OHTLP,*) lat_dg(j,2),1d-15*onht(j,:)
       end do
