@@ -33,7 +33,7 @@
       CHARACTER*8 :: HEADER, MODULE_HEADER = "QUS01"
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE)            ! output to standard restart file
+      CASE (:IOWRITE)           ! output to standard restart file
         WRITE (KUNIT,ERR=10) MODULE_HEADER,TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX
      *     ,TYZ,QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ
       CASE (IOREAD:)            ! input from restart file

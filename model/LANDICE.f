@@ -145,7 +145,7 @@ C**** CALCULATE TG2
       CHARACTER*8 :: HEADER, MODULE_HEADER = "GLAIC01"
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE)            ! output to standard restart file
+      CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,SNOWLI,TLANDI
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,SNOWLI,TLANDI

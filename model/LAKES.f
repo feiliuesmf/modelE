@@ -24,11 +24,9 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 !@sum  init_LAKES initiallises lake variables
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : shi,lhm,rhow
-      USE E001M12_COM, only : im,jm,gdata,flake,zatmo,dtsrc,flice,hlake
-     *     ,kocean
+      USE CONSTANT, only : rhow
+      USE E001M12_COM, only : im,jm,flake,zatmo,dtsrc,flice,hlake
       USE OCEAN, only : tocean
-      USE SEAICE, only : ace1i
       USE GEOM, only : dxyp,dxv,dyv,dxp,imaxj
       USE LAKES
       USE LAKES_COM
@@ -36,7 +34,6 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 
       IMPLICIT NONE
       LOGICAL inilake
-      REAL*8 HLI1,HLI2,HLI3,HLI4
 !@var I,J,I72,IU,JU,ID,JD,IMAX loop variables
       INTEGER I,J,I72,IU,JU,ID,JD,IMAX
       INTEGER iu_RVR
@@ -201,7 +198,7 @@ C****
 C**** RIVERF transports lake water from each GCM grid box to its
 C**** downstream neighbor according to the river direction file.
 C****
-      USE CONSTANT, only : shi,lhm,grav,shw,rhow
+      USE CONSTANT, only : grav,shw,rhow
       USE E001M12_COM, only : im,jm,flake,focean,zatmo,hlake
       USE GEOM, only : dxyp
       USE LAKES
@@ -309,7 +306,6 @@ C****
 !@sum  CHECKL checks whether the lake variables are reasonable.
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0 (based on LB265)
-      USE CONSTANT, only : shi,lhm
       USE E001M12_COM, only : IM,JM,FLAKE,HLAKE
       USE GEOM, only : DXYP
       USE DAGCOM, only : QCHECK

@@ -46,7 +46,7 @@
       REAL*8, DIMENSION(6) :: RADDUM
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE)            ! output to standard restart file
+      CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,S0,S0X,CO2,RSDIST,SIND,COSD,
      *     RQT,SRHR,TRHR,FSF
       CASE (IOREAD:)

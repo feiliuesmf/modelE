@@ -61,7 +61,7 @@ C**** replacements for GDATA
       CHARACTER*8 :: HEADER, MODULE_HEADER = "EARTH01"
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE)            ! output to standard restart file
+      CASE (:IOWRITE)            ! output to standard restart file
 c       WRITE (kunit,err=10) MODULE_HEADER,TEARTH,WEARTH,AIEARTH,SNOWE
          WRITE (kunit,err=10) MODULE_HEADER,GDATA
       CASE (IOREAD:)            ! input from restart file
@@ -94,7 +94,7 @@ c        READ (kunit,err=10) HEADER,TEARTH,WEARTH,AIEARTH,SNOWE
       CHARACTER*8 :: HEADER, MODULE_HEADER = "SOILS01"
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE)            ! output to standard restart file
+      CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,wbare,wvege,htbare,htvege
      *       ,snowbv
       CASE (IOREAD:)            ! input from restart file
@@ -126,7 +126,7 @@ c        READ (kunit,err=10) HEADER,TEARTH,WEARTH,AIEARTH,SNOWE
       CHARACTER*8 :: HEADER, MODULE_HEADER = "SNOW01"
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE)            ! output to standard restart file
+      CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ
      *       ,HSN_IJ,FR_SNOW_IJ ! ,SNOAGE
       CASE (IOREAD:)            ! input from restart file

@@ -36,7 +36,7 @@
       CHARACTER*8 :: HEADER, MODULE_HEADER = "LAKE01"
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE)            ! output to standard restart file
+      CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,T50,MWL,TLAKE,GML
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,T50,MWL,TLAKE,GML

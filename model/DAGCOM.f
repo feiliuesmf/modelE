@@ -200,7 +200,7 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@auth Gavin Schmidt
 !@ver  1.0
       USE E001M12_COM, only : ioread,iowrite,iowrite_single,irestart,
-     *     irsfic,irerun
+     *     irsfic,irerun,iowrite_mon
       USE DAGCOM
       IMPLICIT NONE
 
@@ -225,6 +225,8 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
      *     SNGL(CONSRV),SNGL(SPECA),SNGL(ATPE),SNGL(ADAILY),SNGL(WAVE),
      *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),SNGL(TDIURN),
      *     KEYNR,it
+      CASE (IOWRITE_MON)        ! output to monthly restart file
+        WRITE (kunit,err=10) it
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,TSFREZ,AJ,BJ,CJ,AREG,APJ,AJL,ASJL,
      *       AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK,

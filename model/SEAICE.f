@@ -6,30 +6,30 @@
       USE CONSTANT, only : lhm,rhoi,rhow,shi,shw
       IMPLICIT NONE
 
-!@var XSI1,XSI2,XSI3,XSI4 fractions of mass layer in each temp. layer
+!@param XSI1,XSI2,XSI3,XSI4 fractions of mass layer in each temp. layer
       REAL*8, PARAMETER :: XSI1=0.5d0, XSI2=0.5d0,
      *                     XSI3=0.5d0, XSI4=0.5d0
-!@var BYXSIn recipricol of XSIn
+!@param BYXSIn recipricol of XSIn
       REAL*8, PARAMETER :: BYXSI1=1./XSI1, BYXSI2=1./XSI2,
      *                     BYXSI3=1./XSI3, BYXSI4=1./XSI4
-!@var Z1I thickness of first layer ice (m)
+!@param Z1I thickness of first layer ice (m)
       REAL*8, PARAMETER :: Z1I = .1d0
-!@var ACE1I ice mass first layer (kg/m^2)
+!@param ACE1I ice mass first layer (kg/m^2)
       REAL*8, PARAMETER :: ACE1I = Z1I*RHOI
-!@var HC1I heat capacity of first layer ice (J/m^2)
+!@param HC1I heat capacity of first layer ice (J/m^2)
       REAL*8, PARAMETER :: HC1I = ACE1I*SHI
-!@var Z2OIM thickness of 2nd layer ice (m)
+!@param Z2OIM thickness of 2nd layer ice (m)
       REAL*8, PARAMETER :: Z2OIM = .4d0
-!@var AC2OIM ice mass 2nd layer (kg/m^2)
+!@param AC2OIM ice mass 2nd layer (kg/m^2)
       REAL*8, PARAMETER :: AC2OIM = Z2OIM*RHOI
-!@var ALAMI,ALAMS lambda coefficient for ice/snow J/(m*degC*sec)
+!@param ALAMI,ALAMS lambda coefficient for ice/snow J/(m*degC*sec)
       REAL*8, PARAMETER :: ALAMI=2.1762d0, ALAMS=0.35d0
-!@var RHOS density of snow (kg/m^3)
+!@param RHOS density of snow (kg/m^3)
       REAL*8, PARAMETER :: RHOS = 300.0
-!@var BYRLI,BYRLS reciprical of density*lambda
+!@param BYRLI,BYRLS reciprical of density*lambda
       REAL*8, PARAMETER :: BYRLI = 1./(RHOI*ALAMI),
      *     BYRLS = 1./(RHOS*ALAMS)
-!@var LMI number of temperature layers in ice
+!@param LMI number of temperature layers in ice
       INTEGER, PARAMETER :: LMI = 4
 
       CONTAINS
@@ -720,7 +720,7 @@ c      REAL*8, DIMENSION(LMI,IM,JM) :: HSI
       CHARACTER*8 :: HEADER, MODULE_HEADER = "SICE01"
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE)            ! output to standard restart file
+      CASE (:IOWRITE)            ! output to standard restart file
 c         WRITE (kunit,err=10) MODULE_HEADER,RSI,HSI,SNOW,MSI
          WRITE (kunit,err=10) MODULE_HEADER,RSI,TSI,SNOWI,MSI
       CASE (IOREAD:)            ! input from restart file

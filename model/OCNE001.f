@@ -11,8 +11,7 @@
      *     cq=>cqgs,ipbl
       USE GEOM
       USE SEAICE_COM, only : rsi,msi
-      USE SEAICE, only : xsi1,xsi2,xsi3,xsi4,ace1i,z1i,ac2oim
-     *     ,byxsi3,byxsi4
+      USE SEAICE, only : xsi1,xsi2,xsi3,xsi4,ace1i,z1i
 
       IMPLICIT NONE
 !@param LMOM number of layers for deep ocean diffusion
@@ -640,7 +639,7 @@ C****
       CHARACTER*8 :: HEADER, MODULE_HEADER = "OCN01"
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE)            ! output to standard restart file
+      CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,TOCEAN,OA,Z1O
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,TOCEAN,OA,Z1O

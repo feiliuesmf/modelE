@@ -260,7 +260,7 @@ C**** KCOPY > 1 : SAVE THE RESTART INFORMATION
                CALL RFINAL (IRAND)
                OPEN(30,FILE=AMON0(1:3)//CYEAR//'.rsf'//LABEL1(1:LLAB1),
      *              FORM='UNFORMATTED')
-               call io_rsf(30,Itime,iowrite,ioerr)
+               call io_rsf(30,Itime,iowrite_mon,ioerr)
 
                CLOSE (30)
              END IF

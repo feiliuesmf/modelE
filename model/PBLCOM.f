@@ -68,7 +68,7 @@ C**** pressure gradient arrays
       CHARACTER*8 :: HEADER, MODULE_HEADER = "PBL01"
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE)            ! output to standard restart file
+      CASE (:IOWRITE)            ! output to standard restart file
         WRITE (KUNIT,ERR=10) MODULE_HEADER,UABL,VABL,TABL,QABL,EABL,
      *     CMGS,CHGS,CQGS,IPBL
       CASE (IOREAD:)            ! input from restart file
@@ -100,7 +100,7 @@ C**** pressure gradient arrays
       CHARACTER*8 :: HEADER, MODULE_HEADER = "BLD01"
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE)            ! output to standard restart file
+      CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,wsavg,tsavg,qsavg,dclev
      *       ,usavg,vsavg,tauavg,ustar
       CASE (IOREAD:)            ! input from restart file

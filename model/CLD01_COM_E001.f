@@ -60,7 +60,7 @@ C**** variables saved for radiation calculations
       INTEGER LDUM1
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE)           ! output to standard restart file
+      CASE (:IOWRITE)           ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,U00wtr,U00ice,LMCM,TTOLD,
      *     QTOLD,SVLHX,RHSAV,CLDSAV
       CASE (IOREAD:)            ! input from restart file
