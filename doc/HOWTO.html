@@ -555,9 +555,17 @@ KDIAG(1)  < 9 print Zonal/Regional budget pages
 KDIAG(2)  < 9 print Latitude-height diagnostics
           = 8 Only print spectral analysis of standing eddies
 
-KDIAG(3)  < 9 print Latitude-Longitude fields
-          1-8 print first 9-KDIAG(3) pages  (will soon be obsolete)
-        -1 - -9 print -KDIAG(3) page  (will soon be obsolete)
+KDIAG(3)  = 0 standard printout, all binary files if QCHECK=.true.
+          = 1 output acc. to list Iij, ijk-fields omitted
+          = 2 ij and ijk fields are handled according to list Iij
+          = 8 full list Iij of available fields is produced; this list may
+              be edited : don't touch lines starting with 'List' or 'list'
+                          you may delete any other lines
+                          you may rearrange the remaining ij-fields 
+                          you may add blank maplets 
+          = 9 ij and ijk diagnostics are skipped
+          3-7 same as 2
+
 
 KDIAG(4)  < 9 print time history table of energies
 KDIAG(5)  < 9 print spectral analysis tables

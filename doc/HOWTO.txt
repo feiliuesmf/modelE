@@ -312,7 +312,7 @@ specified length of time.
        computations (see /u/cmrun/model/notes/deep.ocean.doc). A new
        file has to be created ('TG3M' in the rundeck) using 'gmake
        auxdeep RUN=E001xyz' and then running 'mkdeep *.oda.*'. This
-       creates the initial conditions and climatology at the base of the 
+       creates the initial conditions and climatology at the base of the
        mixed layer. Use E001D.R as a rundeck template.
 
    D: How to use parameters to control numerical instabilities
@@ -361,7 +361,7 @@ ii) Other gases are slightly more probelmatic, although we are working
 on that. Essentially they should be able to be adjusted using the
 'FULGAS' array in init_RAD in a similar way to CO2. Stratospheric
 water vapour is more complicated and requires hacking about in the
-radiation code. Not recommended for the novice. 
+radiation code. Not recommended for the novice.
 
 7) HOW-TO have a perpetual winter
 
@@ -386,15 +386,15 @@ iii) continental configuration. Change the boundary condition files
      CONST.f) but also SDAY, and depending on how you define an 'hour', the
      number of seconds in an hour, or the number of hours in the
      day. Remember that dtsrc must divide into sday exactly.
- vi) Solar constant. This can be set by the multiplicative factor S0X 
-     within RAD_DRV.f (I think)  
+ vi) Solar constant. This can be set by the multiplicative factor S0X
+     within RAD_DRV.f (I think)
 vii) Aerosol/dust amounts. These can be changed within RAD_DRV.f or by
      changing the RADN input files.
 
 9) HOW-TO move to Mars
 
 Like travelling back in time, only more complicated. Oh, and no water.
-Note that the length of year is set by EDPERY in CONST.f. 
+Note that the length of year is set by EDPERY in CONST.f.
 
 10) HOW-TO move to Wonderland
 
@@ -450,7 +450,7 @@ and NMONAV in the NAMELIST).
   ii) Post-processed output:
  Each month the program produces an 'acc' accumulated
 diagnostics file which contains all of the diagnostic information from
-the previous month. The program 'pDE' (in the exec directory) is an
+the previous month. The program 'pdE' (in the exec directory) is an
 alternate entry point into the model that reads in any number of these
 files and a) creates a printout (as above) for the time period
 concerned and b) creates binary output of many more diagnostics. This
@@ -478,7 +478,7 @@ which can be read using the appropriate graphical software.
 
 2) HOW-TO change what is included in the printout
 
-The swtiches KDIAG which are set in the NAMELIST control which
+The switches KDIAG which are set in the NAMELIST control which
 subgroups of diagnostics are calculated and output. At present, there
 is no simple way to pick and choose exactly which diagnostics appear,
 although we are working on a scheme to do just that. Some of the
@@ -489,16 +489,24 @@ which binary output to produce.
 Current options are:
 
 KDIAG(1)  < 9 print Zonal/Regional budget pages
-   = 8 only print regional diagnostics
-   2-7 only print global zonal means
-   = 1 print all zonal diagnostics
+          = 8 only print regional diagnostics
+          2-7 only print global zonal means
+          = 1 print all zonal diagnostics
 
 KDIAG(2)  < 9 print Latitude-height diagnostics
           = 8 Only print spectral analysis of standing eddies
 
-KDIAG(3)  < 9 print Latitude-Longitude fields
-          1-8 print first 9-KDIAG(3) pages  (will soon be obsolete)
-        -1 - -9 print -KDIAG(3) page  (will soon be obsolete)
+KDIAG(3)  = 0 standard printout, all binary files if QCHECK=.true.
+            1 output acc. to list Iij, ijk-fields omitted
+            2 ij and ijk fields are handled according to list Iij
+            8 full list Iij of available fields is produced; this list may
+              be edited : don't touch lines starting with 'List' or 'list'
+                          you may delete any other lines
+                          you may rearrange the remaining ij-fields
+                          you may add blank maplets
+          = 9 ij and ijk diagnostics are skipped
+            9 ij and ijk diagnostics are skipped
+          3-7 same as 2
 
 KDIAG(4)  < 9 print time history table of energies
 KDIAG(5)  < 9 print spectral analysis tables
@@ -631,7 +639,7 @@ straight ahead and modify your version. Compare the results from that
 with the standard control run. As you extend your modifications, make
 sure to 'commit' your changes at appropriate points (on your branch
 only) so that you can retrieve the code from any intermediate (but
-functional) point. 
+functional) point.
 
 6) HOW-TO add functionality - B: introducing new sub-modules
 
@@ -642,7 +650,7 @@ DRYCNV if required). The issue is mainly one of keeping the interface
 clean and consistent. Unless what you propose will directly influence
 multiple parts of the model, it is best to keep your new code as
 modular (single column for instance) as possible, and only interact
-with the main code through the relevant drivers. 
+with the main code through the relevant drivers.
 
 In particular, if there is an exisiting call to an equivalent routine,
 keep the call statement the same for the old and new versions (and you
@@ -658,11 +666,11 @@ inserting a new option much more straightforward. If it is used, limit
 its use to the absolute minimum (i.e. to decide whether to call the
 new routine or not). We specifically do not want multiply threaded
 options with any of the physics routines since that makes maintenence
-much more problematic. 
+much more problematic.
 
-In any file where the directive is to used, there must be an 
+In any file where the directive is to used, there must be an
 
-#include "rundeck_opts.h" 
+#include "rundeck_opts.h"
 
 statement at the top of the file. The coding then follows standard practice:
 
@@ -674,7 +682,7 @@ To set this option, add a line to the preprocessing option part of the
 rundeck.
 
 Preprocessor Options
-#define NEW_FUNCTION                  ! do new function 
+#define NEW_FUNCTION                  ! do new function
 End Preprocessor Options
 
 The gmake command will recompile the relevant routines every time you
@@ -697,13 +705,13 @@ local physics process, it should be declared and defined in the local
 physics module. You MUST give it a default value, and ensure it is
 tagged with a '@dbparam' comment that explains what it does.
 
-In the initialisation for this module, you need to add a line 
+In the initialisation for this module, you need to add a line
 
-	call sync_param("NEWPARAM",newparam)
+ call sync_param("NEWPARAM",newparam)
 
 which will set the value of newparam from the parameter database, if
 it has been set from the input rundeck, or from a restart. (see
-FAQ.txt for more details on how this works). 
+FAQ.txt for more details on how this works).
 
 In the rundeck you need only add to the &&PARAMETERS...&&END_PARAMETERS
 block a line like this:
@@ -711,7 +719,7 @@ block a line like this:
 NEWPARAM=1        ! NEWPARAM sets something for XYZ
 
 Of course, you should use a more obvious name! If no value is set in
-the rundeck, the default value will be used. 
+the rundeck, the default value will be used.
 
 8) HOW-TO add functionality - D: adding new diagnostics
 
@@ -854,11 +862,11 @@ bug (one that could change the results).
 
 These problems can arise in a number of circumstances:
   i) the rsf file is incomplete (a prognostic variable has not been
-    saved). This is quite easy to spot and fix. 
+    saved). This is quite easy to spot and fix.
  ii) a variable is not being properly initiallised. This is
     quite tricky to find. What happens is that the first time it is used,
     it is zero, but subsequently it is not. Thus at a restart it is set to
-    zero again, changing the results. Try compiling with an option 
+    zero again, changing the results. Try compiling with an option
     (-DEBUG:trap_uninitialized=ON on the SGI compiler) that sets all
     un-initialised numbers to NaN, therefore causing a crash if they are
     used.
@@ -880,7 +888,7 @@ Restart problems can be caught though. There are three times at which
 they occur, on the source time step cycle, on the radiation time-step
 cycle, or at the daily cycle. Occasionally problems can arise
 mid-month if any climatologies are being used. However, most problems
-can be detected within the first two hours. 
+can be detected within the first two hours.
 
 Start from a any fort.[12] file. Save it, and call it rsf0. In the
 rundeck (the 'I' file in the run directory), set NDISK=1 in the
@@ -892,9 +900,9 @@ and run the model again. Save the new restart files as rsf1a and rsf2a.
 
 Now you have two copies of the first and second hour rsf files. In
 order to compare them, use the program CMPE001 (compiled using 'gmake
-aux RUN=E001xyx'). 
+aux RUN=E001xyx').
 
-CMPE001 rsf1 rsf1a 
+CMPE001 rsf1 rsf1a
 
 will go through the rsf files array by array and output any
 discrepencies. If no numbers are output, the arrays are identical. If
@@ -906,7 +914,7 @@ somewhere. Again, judge by the arrays that are affected which routine
 it is likely to be in. If neither set of rsf files differ, then you
 need to do this procedure again either starting at hour 4 (assuming a
 radaition related problem and a 5 hour radiation time step), or at
-hour 23 (assuming a daily related problem). 
+hour 23 (assuming a daily related problem).
 
 14) HOW-TO get an innovation included in everybody's versions
 
