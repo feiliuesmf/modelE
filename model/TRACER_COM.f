@@ -19,11 +19,6 @@ C
 C**** Each tracer has a variable name and a unique index
 !@param NTM number of tracers
 !@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
-#ifdef TRACERS_COSMO
-      integer, parameter :: ntm=4
-      character*8, parameter :: trname(ntm)=(/
-     *     'Pb210   ','Be7     ','Be10    ','Rn222   '/)
-#else
 #ifdef TRACERS_SPECIAL_O18
       integer, parameter :: ntm=3
       character*8, parameter :: trname(ntm)=(/
@@ -172,6 +167,18 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'OCII    ','OCIA    ','OCB     ','Clay    ','Silt1   ',
      *    'Silt2   ','Silt3   '/)
 #else
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_COSMO)
+      integer, parameter :: ntm=11
+      character*8, parameter :: trname(ntm)=(/
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2',
+     *     'Pb210   ','Be7     ','Be10    ','Rn222   '/)
+#else
+#ifdef TRACERS_COSMO
+      integer, parameter :: ntm=4
+      character*8, parameter :: trname(ntm)=(/
+     *     'Pb210   ','Be7     ','Be10    ','Rn222   '/)
+#else
 #ifdef TRACERS_AEROSOLS_Koch
       integer, parameter :: ntm=13
       character*8, parameter :: trname(ntm)=(/
@@ -214,6 +221,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #endif
 #endif
 #endif 
+#endif
 #endif
 #endif
 #endif
