@@ -530,6 +530,8 @@ C**** set up geometry needed
         DO J=1,JM
           BYDYP(J)=1d0/DYPO(J)
           BYDXP(J)=1d0/DXPO(J)
+        END DO
+        DO J=1,JM-1
           BYDYV(J)=1d0/DYVO(J)
         END DO
 C**** Calculate level at 1km depth
