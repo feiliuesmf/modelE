@@ -1517,7 +1517,8 @@ C**** to snow. Increasing COEFT reduces temperature range of super
 C**** -cooled rain, increasing COEFM enhances probability of snow.
       REAL*8, PARAMETER :: CM00=1.d-4, AIRM0=100.d0, GbyAIRM0=GRAV/AIRM0
       REAL*8, PARAMETER :: HEFOLD=500.,COEFM=10.,COEFT=2.5
-      REAL*8, PARAMETER :: COESIG=1d-3,COEEC=1000.,ERP=2.
+      REAL*8, PARAMETER :: COESIG=1d-3,COEEC=1000.
+      INTEGER, PARAMETER :: ERP=2
       REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
       REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
