@@ -31,8 +31,11 @@ need to know how to alter the code. Part II dealing with examining the
 diagnostics, while Part III deals with more technical issues involved
 in adding functionality or diagnostics.</P>
 
-<P><A HREF="#part0">PART 0: Getting the code</A></P>
-
+<P><A HREF="#part0">PART 0: Getting the code and configuring the model</A></P>
+<OL>
+  <LI><A HREF="#part0_1"> HOW-TO get the code from the CVS repository</A>
+  <LI><A HREF="#part0_2"> HOW-TO configure modelE on your machine</A>
+</OL>
 <P><A HREF="#part1">PART I: Basic user information</A></P>
 <OL>
   <LI><A HREF="#part1_1"> HOW-TO setup and run the GISS GCM</A>
@@ -53,6 +56,8 @@ in adding functionality or diagnostics.</P>
      instabilities </A>
        <LI> <A HREF="#part1_2e"> How to use IRANDI to create an
      ensemble of runs </A>
+       <LI> <A HREF="#part1_2f"> How to fall back to a smaller time step 
+     automatically</A>
      </OL>
   <LI> <A HREF="#part1_3"> HOW-TO stop and restart the GCM</A>
   <LI> <A HREF="#part1_4"> HOW-TO change boundary conditions</A>
@@ -132,9 +137,11 @@ diagnostics</A></P>
 
 <hr>
 
-<h3><A name="part0">Part 0: Getting the code</A></h3>
+<h3><A name="part0">Part 0: Getting the code and configuring the model</A></h3>
 
-<p>The modelE code including source code, scripts and some documentation.
+<p><A name="part0_1"><b>1) HOW-TO get the code from the CVS repository</b></a></p>
+
+<p>The modelE code includes source code, scripts and some documentation.
 This is stored through the CVS revision control system, and copies can
 be checked-out to your home directory using the following commands:</p>
 <tt>
@@ -159,6 +166,26 @@ by sending a message to Majordomo@giss.nasa.gov with a line</P>
 <p>in the body of the text. This is to ensure that you are notified of
 bug fixes and new releases. Also this is a forum for you to ask
 questions about the model.</p>
+
+<p><A name="part0_2"><b>2) HOW-TO configure modelE on your machine</b></a></p>
+
+For modelE to work properly you have to create a configuration file
+<tt>.modelErc</tt> in your home directory. This file keeps some system-wide
+information (such as your directory structure) which is common to all
+modelE runs you do on current machine. To create this file go to the
+directory <tt>modelE/decks</tt> and execute:</p>
+<tt>
+gmake config<br>
+</tt>
+<p>This will create <tt>.modelErc</tt> file with default settings, which
+are adjusted for <tt>ra.giss.nasa.gov</tt>. So if you are working on
+GISS <tt>ra</tt> or <tt>poncho</tt> then you are set. On all other
+machines you should edit the file <tt>.modelErc</tt> to describe your
+working environment. <tt>.modelErc</tt> also allows you to set some 
+personal preferences like to which email address you want the notifications 
+to be sent when the program stops or whether you want a verbose
+output during the compilation. It contains short descriptions for all
+configurable parameters.</p>
 
 <hr>
 
@@ -291,11 +318,11 @@ was compiled, and the CVS branch that the user was on.</p>
 
 <p> Once a successful 'setup' is done, use the command
 <pre>
-  run E001xyz
+  runE E001xyz
 </pre>
 to set the model running for the specified length of the run.</p>
 
-<p> If you need to stop the run at any point, use the 'ssw E001xyz'
+<p> If you need to stop the run at any point, use the 'sswE E001xyz'
 command to do it in a controlled fashion (ensuring that all variables
 are saved correctly, and that no printout gets stuck in a buffer).
 Using 'run E001xyz' subsequently picks up from where you left off.
@@ -499,13 +526,30 @@ runs</b></a></p>
        so it will not affect later extensions or reruns, since it is
        then automatically removed from the file 'I'.</p>
 
+<p><A name="part1_2f"><b>F: How to fall back to a smaller time step 
+automatically</b></a></p>
+<p>    The atmospheric dynamics code uses a fixed time step which is
+       defined by the rundeck parameter DT. If the program stops because
+       of the atmospheric instability due to the fact that DT is too big, 
+       one has to restart it with a smaller time step, then stop and restart 
+       it again with a normal time step.</p>
+<p>    This process can be done automatically. To set the model for an
+       automatic restart one has to add to the rundeck a line</p>
+<p>
+       DTFIX=<i>new_time_step</i>
+</p>
+<p>    after the label but before the &amp;&amp;PARAMETERS instruction.
+       If such line is present and the model stops due to too big DT
+       then the model will restart with DT=<i>new_time_step</i>, compute
+       48 hours of model time, then stop and restart with the normal time
+       step. Corresponding .PRT files will be saved.</p>
 
 <p><A name="part1_3"><b>3) HOW-TO stop and restart the GCM</b></a></p>
 
-<p>Use the command 'ssw E001xyz' to stop the model run in a controlled
-fashion. Restart it with the command 'run E001xyz'. If you would like
+<p>Use the command 'sswE E001xyz' to stop the model run in a controlled
+fashion. Restart it with the command 'runE E001xyz'. If you would like
 the run-time printout to be suppressed (to save filespace) use the
-command 'runn E001xyz'. The monthly/seasonal/annual printout can
+command 'runE -q E001xyz'. The monthly/seasonal/annual printout can
 always be recreated if needed.</p>
 
 <p><A name="part1_4"><b>4) HOW-TO change boundary conditions</b></a></p>
