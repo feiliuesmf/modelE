@@ -297,7 +297,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt                                       
 !@ver  1.0                                                              
       USE OCEAN, only : im,jm,dts,dxypo,bydxypo
-      USE SEAICE_COM, only : lmi,rsi,hsi,msi2=>msi,snowi
+      USE SEAICE_COM, only : lmi,rsi,hsi,msi2=>msi,snowi,ssi
       USE SEAICE, only : xsi,ace1i
       USE STRAITS
       USE ICEDYN, only : rsix,rsiy
@@ -305,8 +305,8 @@ C****
       IMPLICIT NONE
 
       REAL*8, SAVE ::  WDST(NMST),BYWDST(NMST)
-      REAL*8 HMSI(LMI), MSI(2,IM,JM)                                        
-      REAL*8 MMSI1,MMSI2,USTDT,DRSIST,ASI,ASIST,DHSI,ALPHA,RMEAN
+      REAL*8 HMSI(LMI), MSI(2,IM,JM), SMSI(LMI)            
+      REAL*8 MMSI1,MMSI2,USTDT,DRSIST,ASI,ASIST,DHSI,DSSI,ALPHA,RMEAN
       INTEGER I,J,K,L,N
       INTEGER, SAVE :: IFIRST=1
 C****
@@ -361,7 +361,8 @@ C****
       MMSI2 = ASI*MSI(2,I,J) + ASIST*MSIST(2,N)                         
       DO K=1,LMI                                                       
         HMSI(K) = ASI*HSI(K,I,J) + ASIST*HSIST(K,N)                     
-      END DO                                                            
+        SMSI(K) = ASI*SSI(K,I,J) + ASIST*SSIST(K,N)                     
+      END DO                                                           
 C     USI(I,J) = USI(I,J)*ASI / (ASI+ASIST)                             
 C     VSI(I,J) = VSI(I,J)*ASI / (ASI+ASIST)                             
         OLNST(2,N,LN_ICFL) = OLNST(2,N,LN_ICFL) - ASIST*(MSIST(1,N)
@@ -378,7 +379,8 @@ C     VSI(I,J) = VSI(I,J)*ASI / (ASI+ASIST)
       MSI(1,I,J) = MMSI1 / (ASI+ASIST)                                  
       MSI(2,I,J) = MMSI2 / (ASI+ASIST)                                  
       DO K=1,LMI                                                       
-        HSI(K,I,J) = HMSI(K) / (ASI+ASIST)                              
+        HSI(K,I,J) = HMSI(K) / (ASI+ASIST)
+        SSI(K,I,J) = SMSI(K) / (ASI+ASIST)
       END DO                                                            
       GO TO 300                                                         
 C**** Sea ice crunches into itself and completely covers grid box       
@@ -387,11 +389,17 @@ C**** Sea ice crunches into itself and completely covers grid box
       MSI(1,I,J) = MMSI1   / (ASI+ASIST)                                
       HSI(1,I,J) = HMSI(1) / (ASI+ASIST)                                
       HSI(2,I,J) = HMSI(2) / (ASI+ASIST)                                
+      SSI(1,I,J) = SMSI(1) / (ASI+ASIST)                                
+      SSI(2,I,J) = SMSI(2) / (ASI+ASIST)                                
       MSI(2,I,J) = (MMSI1+MMSI2)*BYDXYPO(J) - MSI(1,I,J)                
       DHSI = (HMSI(1)+HMSI(2)+HMSI(3)+HMSI(4))*(BYDXYPO(J) -            
      *     1d0/(ASI+ASIST))                                             
       HSI(3,I,J) = HMSI(3) / (ASI+ASIST) + XSI(3)*DHSI                    
       HSI(4,I,J) = HMSI(4) / (ASI+ASIST) + XSI(4)*DHSI                    
+      DSSI = (SMSI(1)+SMSI(2)+SMSI(3)+SMSI(4))*(BYDXYPO(J) -            
+     *     1d0/(ASI+ASIST))                                             
+      SSI(3,I,J) = SMSI(3) / (ASI+ASIST) + XSI(3)*DSSI                    
+      SSI(4,I,J) = SMSI(4) / (ASI+ASIST) + XSI(4)*DSSI                    
 C****                                                                   
 C**** Eastern ocean box may send sea ice into strait                    
 C****                                                                   
@@ -424,6 +432,8 @@ C****
      *             (RSIST(N) + DRSIST)                                  
       DO K=1,LMI                                                       
         HSIST(K,N) = (RSIST(N)*HSIST(K,N) + DRSIST*HSI(K,I,J)) /        
+     *       (RSIST(N) + DRSIST)                                        
+        SSIST(K,N) = (RSIST(N)*SSIST(K,N) + DRSIST*SSI(K,I,J)) /        
      *       (RSIST(N) + DRSIST)                                        
       END DO                                                            
       RSIST(N) = RSIST(N) + DRSIST                                      
@@ -467,6 +477,7 @@ C****
       MMSI2 = ASI*MSI(2,I,J) + ASIST*MSIST(2,N)                         
       DO K=1,LMI                                                       
         HMSI(K) = ASI*HSI(K,I,J) + ASIST*HSIST(K,N)                     
+        SMSI(K) = ASI*SSI(K,I,J) + ASIST*SSIST(K,N)                     
       END DO                                                            
 C     USI(I,J) = USI(I,J)*ASI / (ASI+ASIST)                             
 C     VSI(I,J) = VSI(I,J)*ASI / (ASI+ASIST)                             
@@ -485,6 +496,7 @@ C     VSI(I,J) = VSI(I,J)*ASI / (ASI+ASIST)
       MSI(2,I,J) = MMSI2 / (ASI+ASIST)                                  
       DO K=1,LMI                                                       
         HSI(K,I,J) = HMSI(K) / (ASI+ASIST)                              
+        SSI(K,I,J) = SMSI(K) / (ASI+ASIST)                              
       END DO                                                            
       GO TO 700                                                         
 C**** Sea ice crunches into itself and completely covers grid box       
@@ -493,11 +505,17 @@ C**** Sea ice crunches into itself and completely covers grid box
       MSI(1,I,J) = MMSI1 / (ASI+ASIST)                                  
       HSI(1,I,J) = HMSI(1) / (ASI+ASIST)                                
       HSI(2,I,J) = HMSI(2) / (ASI+ASIST)                                
+      SSI(1,I,J) = SMSI(1) / (ASI+ASIST)                                
+      SSI(2,I,J) = SMSI(2) / (ASI+ASIST)                                
       MSI(2,I,J) = (MMSI1+MMSI2)*BYDXYPO(J) - MSI(1,I,J)                
       DHSI = (HMSI(1)+HMSI(2)+HMSI(3)+HMSI(4))*(BYDXYPO(J) -            
      *     1d0/(ASI+ASIST))                                             
       HSI(3,I,J) = HMSI(3) / (ASI+ASIST) + XSI(3)*DHSI                    
       HSI(4,I,J) = HMSI(4) / (ASI+ASIST) + XSI(4)*DHSI                    
+      DSSI = (SMSI(1)+SMSI(2)+SMSI(3)+SMSI(4))*(BYDXYPO(J) -            
+     *     1d0/(ASI+ASIST))                                             
+      SSI(3,I,J) = SMSI(3) / (ASI+ASIST) + XSI(3)*DSSI                    
+      SSI(4,I,J) = SMSI(4) / (ASI+ASIST) + XSI(4)*DSSI                    
 C****                                                                   
 C**** Western ocean box may send sea ice into strait                    
 C****                                                                   
@@ -530,6 +548,8 @@ C****
      *             (RSIST(N) + DRSIST)                                  
       DO K=1,LMI                                                       
         HSIST(K,N) = (RSIST(N)*HSIST(K,N) + DRSIST*HSI(K,I,J)) /        
+     *             (RSIST(N) + DRSIST)                                  
+        SSIST(K,N) = (RSIST(N)*SSIST(K,N) + DRSIST*SSI(K,I,J)) /        
      *             (RSIST(N) + DRSIST)                                  
       END DO                                                            
       RSIST(N)   =  RSIST(N) + DRSIST                                   

@@ -2837,8 +2837,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ima=>im,jma=>jm
-      USE GEOM, only : dxyp
-      USE OCEAN, only : imo=>im,jmo=>jm,dxypo,bydxypo,imaxj
+      USE OCEAN, only : imo=>im,jmo=>jm,imaxj,ratoc
       IMPLICIT NONE
 !@var QCONSERV true if integrated field must be conserved
       LOGICAL, INTENT(IN) :: QCONSERV
@@ -2848,16 +2847,14 @@ C****
       REAL*8, INTENT(IN), DIMENSION(NF,IMA,JMA) :: FIELDA
 !@var FIELDO array on oceanic tracer grid
       REAL*8, INTENT(OUT), DIMENSION(NF,IMO,JMO) :: FIELDO
-      REAL*8 RAT
       INTEGER I,J
 
 C**** currently no need for interpolation, 
 C**** just scaling due to area differences for fluxes 
       IF (QCONSERV) THEN
         DO J=1,JMO
-          RAT = DXYP(J)*BYDXYPO(J)
           DO I=1,IMAXJ(J)
-            FIELDO(:,I,J) = FIELDA(:,I,J)*RAT
+            FIELDO(:,I,J) = FIELDA(:,I,J)*RATOC(J)
           END DO
         END DO
         DO I=2,IMO
@@ -2869,15 +2866,15 @@ C**** just scaling due to area differences for fluxes
       END IF
 C****
       RETURN
-      END 
+      END SUBROUTINE AT2OT
 
       SUBROUTINE OT2AT(FIELDO,FIELDA,NF,QCONSERV)
 !@sum  OT2AT interpolates Ocean Tracer grid to Atm Tracer grid
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ima=>im,jma=>jm
-      USE GEOM, only : imaxj,bydxyp
-      USE OCEAN, only : imo=>im,jmo=>jm,dxypo
+      USE GEOM, only : imaxj
+      USE OCEAN, only : imo=>im,jmo=>jm,rocat
       IMPLICIT NONE
 !@var QCONSERV true if integrated field must be conserved
       LOGICAL, INTENT(IN) :: QCONSERV
@@ -2894,9 +2891,8 @@ C**** currently no need for interpolation,
 C**** just scaling due to area differences for fluxes 
       IF (QCONSERV) THEN
         DO J=1,JMA
-          RAT = BYDXYP(J)*DXYPO(J)
           DO I=1,IMAXJ(J)
-            FIELDA(:,I,J) = FIELDO(:,I,J)*RAT
+            FIELDA(:,I,J) = FIELDO(:,I,J)*ROCAT(J)
           END DO
         END DO
         DO I=2,IMA
@@ -2908,15 +2904,15 @@ C**** just scaling due to area differences for fluxes
       END IF
 C****
       RETURN
-      END 
+      END SUBROUTINE OT2AT
 
       SUBROUTINE AT2OV(FIELDA,FIELDO,NF,QCONSERV,QU)
 !@sum  OT2AT interpolates Atm Tracer grid to Ocean Velocity grid
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ima=>im,jma=>jm
-      USE GEOM, only : imaxj,dxyp
-      USE OCEAN, only : imo=>im,jmo=>jm,bydxypo,dxyno,dxyso,dxyvo
+      USE GEOM, only : imaxj
+      USE OCEAN, only : imo=>im,jmo=>jm,ramvn,ramvs,ratoc
       IMPLICIT NONE
 !@var QCONSERV true if integrated field must be conserved
 !@var QU true if u-velocity pts. are wanted (false for v velocity pts.)
@@ -2927,53 +2923,56 @@ C****
       REAL*8, INTENT(IN), DIMENSION(NF,IMA,JMA) :: FIELDA
 !@var FIELDO array on oceanic tracer grid
       REAL*8, INTENT(OUT), DIMENSION(NF,IMO,JMO) :: FIELDO
-      REAL*8 RAT,RATJ,RATJP1
       INTEGER I,J,IP1
 
 C**** Ocean velocities are on C grid
       IF (QU) THEN  ! interpolate onto U points
-        DO J=1,JMO-1
-          RAT = DXYP(J)*BYDXYPO(J)
-          I=IMO
-          DO IP1=1,IMO
-            FIELDO(:,I,J) = 0.5*RAT*(FIELDA(:,I,J)+FIELDA(:,IP1,J))
-            I=IP1
-          END DO
-        END DO
-C**** do poles
-        RAT = DXYP(JMO)*BYDXYPO(JMO)
-        FIELDO(:,1,JMO)=0.
-        FIELDO(:,1,1)=0.
-        DO I=1,IMO
-          FIELDO(:,1,JMO) = FIELDO(:,1,JMO) + FIELDA(:,I,JMO)
-          FIELDO(:,1,  1) = FIELDO(:,1,  1) + FIELDA(:,I,  1)
-        END DO
-        FIELDO(:,1,JMO) = FIELDO(:,1,JMO)*RAT/IMO
-        FIELDO(:,1,  1) = FIELDO(:,1,  1)*RAT/IMO
-        DO I=2,IMO
-          FIELDO(:,I,JMO) = FIELDO(:,1,JMO)
-          FIELDO(:,I,  1) = FIELDO(:,1,  1)
-        END DO
-      ELSE  ! interpolate onto V points
         IF (QCONSERV) THEN
           DO J=1,JMO-1
-            RATJ=DXYP(J)*BYDXYPO(J)
-            RATJP1=DXYP(J+1)*BYDXYPO(J+1)
-            DO I=1,IMO
-              FIELDO(:,I,J) = (RATJ*DXYNO(J)*FIELDA(:,I,J)+RATJP1
-     *             *DXYSO(J+1)*FIELDA(:,I,J+1))/DXYVO(J)
+            I=IMO
+            DO IP1=1,IMO
+              FIELDO(:,I,J)=0.5*RATOC(J)*(FIELDA(:,I,J)+FIELDA(:,IP1,J))
+              I=IP1
             END DO
           END DO
-          FIELDO(:,:,JMO) = 0.
+        ELSE
+          DO J=1,JMO-1
+            I=IMO
+            DO IP1=1,IMO
+              FIELDO(:,I,J) = 0.5*(FIELDA(:,I,J)+FIELDA(:,IP1,J))
+              I=IP1
+            END DO
+          END DO
+        END IF
+C**** do poles
+        IF (QCONSERV) THEN
+          DO I=1,IMO
+            FIELDO(:,I,JMO) = FIELDA(:,1,JMO)*RATOC(JMO)
+            FIELDO(:,I,  1) = FIELDA(:,1,  1)*RATOC(JMO)
+          END DO
+        ELSE
+          DO I=1,IMO
+            FIELDO(:,I,JMO) = FIELDO(:,1,JMO)
+            FIELDO(:,I,  1) = FIELDO(:,1,  1)
+          END DO
+        END IF
+      ELSE                      ! interpolate onto V points
+        IF (QCONSERV) THEN
+          DO J=1,JMO-1
+            DO I=1,IMO
+              FIELDO(:,I,J) = RATOC(J)*RAMVN(J)*FIELDA(:,I,J)+
+     *             RATOC(J+1)*RAMVS(J+1)*FIELDA(:,I,J+1)
+            END DO
+          END DO
         ELSE
           DO J=1,JMO-1
             DO I=1,IMO
               FIELDO(:,I,J) = 0.5*(FIELDA(:,I,J)+FIELDA(:,I,J+1))
             END DO
           END DO
-          FIELDO(:,:,JMO) = 0.
         END IF
+        FIELDO(:,:,JMO) = 0.
       END IF
 C****
       RETURN
-      END 
+      END SUBROUTINE AT2OV

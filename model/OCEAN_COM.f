@@ -30,6 +30,8 @@ C**** ocean geometry (should this be in a seperate module?)
       REAL*8, DIMENSION(LMO) :: DSIGO,SIGO
       REAL*8, DIMENSION(0:LMO) :: SIGEO,ZE
       INTEGER, DIMENSION(IM,JM) :: LMM,LMU,LMV
+!@var RATOC,ROCAT Ratio of areas for converting atm. fluxes to ocean
+      REAL*8, DIMENSION(JM) :: RATOC,ROCAT
 
       REAL*8, DIMENSION(IM,JM) :: HATMO,HOCEAN,FOCEAN
 C**** ocean related parameters

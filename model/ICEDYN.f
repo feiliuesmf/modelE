@@ -25,6 +25,8 @@ C**** ice dynamics input/output/work variables
       REAl*8, DIMENSION(NX1) :: DXT,DXU,BYDX2,BYDXR
       REAl*8, DIMENSION(NY1) :: DYT,DYU,BYDY2,BYDYR,CST,CSU,TNGT,TNG
      *     ,SINE
+!@var RATIC,RICAT area ratios for atmospheric tracer grid to ice grid
+      REAL*8, DIMENSION(NY1) :: RATIC, RICAT
 
 !@var OIPHI ice-ocean turning angle (25 degrees)
 !@var ECCEN value of eccentricity for ellipse
@@ -83,11 +85,12 @@ C****
       USE CONSTANT, only : radian,twopi,rhoi,radius,rhow
 C**** Dynamic sea ice should be on the ocean grid
       USE OCEAN, only : im,jm,focean,lmu,lmv,uo,vo,dxyno,dxyso,dxyvo
-     *     ,dxypo,lmm,bydxypo
+     *     ,dxypo,lmm,bydxypo,ratoc,rocat
       USE GEOM, only : dxyp
       USE ICEDYN, only : rsix,rsiy,usi,vsi,nx1,ny1,press,heffm,uvm,out
      *     ,dwatn,cor,sinen,dxt,dxu,dyt,dyu,cst,csu,tngt,tng,sine,usidt
      *     ,vsidt,bydx2,bydxr,bydxdy,bydy2,bydyr,dts,sinwat,coswat,oiphi
+     *     ,ratic,ricat
       USE FLUXES, only : dmua,dmva,dmui,dmvi
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
@@ -156,6 +159,9 @@ c****
       TNGT(NY1)=TNGT(NY1-1)
       TNG(NY1)=TNG(NY1-1)
       CSU(NY1)=CSU(NY1-1)
+C**** set area ratios for converting fluxes
+      RATIC = RATOC  ! currently the same as for ocean
+      RICAT = ROCAT
 c**** Set land masks for tracer and velocity points
 C**** This is defined based on the ocean grid
       do j=1,ny1
@@ -219,12 +225,11 @@ c**** set up outflow mask
 c**** initialize heff and area
       do j=1,NY1
         do i=2,NX1-1
-          RAT=DXYP(J)*BYDXYPO(J)
           HEFF(I,J,3)=0.
           HEFF(I,J,2)=0.
           AREA(I,J,3)=1.
           AREA(I,J,2)=1.
-          HEFF(I,J,1)=RSI(I-1,J)*RAT*(ACE1I+MSI(I-1,J))*BYRHOI
+          HEFF(I,J,1)=RSI(I-1,J)*RATIC(J)*(ACE1I+MSI(I-1,J))*BYRHOI
           HEFF(I,J,1)=HEFF(I,J,1)*OUT(I,J)
           AREA(I,J,1)=RSI(I-1,J)
         enddo
@@ -250,8 +255,7 @@ C**** Replicate polar boxes
 
       do j=1,NY1
         do i=2,NX1-1
-          RAT=DXYP(J)*BYDXYPO(J)
-          HEFF(I,J,1)=RSI(I-1,J)*RAT*(ACE1I+MSI(I-1,J))*BYRHOI
+          HEFF(I,J,1)=RSI(I-1,J)*RATIC(J)*(ACE1I+MSI(I-1,J))*BYRHOI
           HEFF(I,J,1)=HEFF(I,J,1)*OUT(I,J)
           AREA(I,J,1)=RSI(I-1,J)
         enddo
@@ -300,7 +304,7 @@ C**** Convert to stress over ice fraction only,  and convert to ocean area
       DO J=1,JM
         DO I=1,IM
           IF (RSI(I,J).gt.0) THEN 
-            RAT=DXYP(J)/(RSI(I,J)*DXYPO(J))
+            RAT=RATIC(J)/RSI(I,J)
             DMUA(I,J,2) = DMUA(I,J,2)*RAT
             DMVA(I,J,2) = DMVA(I,J,2)*RAT
           ELSE
@@ -1608,3 +1612,87 @@ C**** Set atmospheric arrays
 C****
       RETURN
       END
+
+      SUBROUTINE AT2IT(FIELDA,FIELDI,NF,QCONSERV)
+!@sum  AT2IT interpolates Atm Tracer grid to Dynamic Ice Tracer grid
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : ima=>im,jma=>jm
+      USE ICEDYN, only : nx1,ny1,ratic
+      IMPLICIT NONE
+!@var QCONSERV true if integrated field must be conserved
+      LOGICAL, INTENT(IN) :: QCONSERV
+!@var N number of fields
+      INTEGER, INTENT(IN) :: NF
+!@var FIELDA array on atmospheric tracer grid
+      REAL*8, INTENT(IN), DIMENSION(NF,IMA,JMA) :: FIELDA
+!@var FIELDI array on dynamic ice tracer grid
+      REAL*8, INTENT(OUT), DIMENSION(NF,NX1,NY1) :: FIELDI
+      INTEGER I,J
+
+C**** currently no need for interpolation, 
+C**** just scaling due to area differences for fluxes 
+C**** and shift one box in longitude
+      IF (QCONSERV) THEN
+        DO J=1,NY1
+          DO I=2,NX1-1
+            FIELDI(:,I,J) = FIELDA(:,I-1,J)*RATIC(J)
+          END DO
+        END DO
+      ELSE
+        DO J=1,NY1
+          DO I=2,NX1-1
+            FIELDI(:,I,J) = FIELDA(:,I-1,J)
+          END DO
+        END DO
+      END IF
+      FIELDI(:,1,J)=FIELDI(:,NX1-1,J)
+      FIELDI(:,NX1,J)=FIELDI(:,2,J)  
+C****
+      RETURN
+      END SUBROUTINE AT2IT
+
+
+      SUBROUTINE IT2AT(FIELDI,FIELDA,NF,QCONSERV)
+!@sum  IT2AT interpolates Dynamic Ice Tracer grid to Atm Tracer grid
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : ima=>im,jma=>jm
+      USE GEOM, only : imaxj
+      USE ICEDYN, only : nx1,ny1,ricat
+      IMPLICIT NONE
+!@var QCONSERV true if integrated field must be conserved
+      LOGICAL, INTENT(IN) :: QCONSERV
+!@var N number of fields
+      INTEGER, INTENT(IN) :: NF
+!@var FIELDA array on atmospheric tracer grid
+      REAL*8, INTENT(OUT), DIMENSION(NF,IMA,JMA) :: FIELDA
+!@var FIELDI array on dynamic ice tracer grid
+      REAL*8, INTENT(IN), DIMENSION(NF,NX1,NY1) :: FIELDI
+      INTEGER I,J
+
+C**** currently no need for interpolation, 
+C**** just scaling due to area differences for fluxes 
+C**** and shift one box in longitude
+      IF (QCONSERV) THEN
+        DO J=1,JMA
+          DO I=1,IMAXJ(J)
+            FIELDA(:,I,J) = FIELDI(:,I+1,J)*RICAT(J)
+          END DO
+        END DO
+      ELSE
+        DO J=1,JMA
+          DO I=1,IMAXJ(J)
+            FIELDA(:,I,J) = FIELDA(:,I+1,J)
+          END DO
+        END DO
+      END IF
+      DO I=2,IMA
+        FIELDA(:,I,  1)=FIELDA(:,1,JMA)
+        FIELDA(:,I,JMA)=FIELDI(:,1,  1)  
+      END DO
+C****
+      RETURN
+      END SUBROUTINE IT2AT
+
+

@@ -4,6 +4,7 @@ C****
 !@auth Gary Russell
 !@ver  1.0  
       USE CONSTANT, only : twopi,radius,omega
+      USE GEOM, only : dxyp,bydxyp
       USE OCEAN
       IMPLICIT NONE
       INTEGER I,J
@@ -56,6 +57,11 @@ C**** Calculate area ratios for applying source terms to V winds
   130 RAMVS(J+1) = DXYSO(J+1)/(DXYNO(J)+DXYSO(J+1))
       RAMVS(1  ) = 0.
       RAMVN(JM ) = 0.
+C**** Calculate area ratios for converting atmospheric grid to ocean
+      DO J=1,JM
+        RATOC(J)=DXYP(J)*BYDXYPO(J)
+        ROCAT(J)=DXYPO(J)*BYDXYP(J)
+      END DO
 C**** calculate SINI/COSI terms for C grid
       DO I=1,IM
         SINIC(I) = SIN((I-.5)*TWOPI/IM)

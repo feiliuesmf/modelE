@@ -136,7 +136,7 @@ C**** limit freezing if lake is between 50 and 20cm depth
           ELAKE(1)=ELAKE(1)-ENRGF1
           MLAKE(1)=MLAKE(1)-ACEF1
           FH0     =ELAKE(1)-MLAKE(1)*TFL*SHW
-          IF (FH0.lt.-1d-10) THEN ! max. amount of lake frozen, cool ice
+          IF (FH0.lt.-1d-8) THEN ! max. amount of lake frozen, cool ice
             PRINT*,"Minimum lake level reached: rsi,mlake,elake",i0,j0
      *           ,roice,mlake(1)/rhow,elake(1)
             ENRGF1  =ENRGF1+FH0

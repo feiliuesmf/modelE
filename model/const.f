@@ -48,6 +48,8 @@ c**** lhs(T) = lhs(0) + (shv-shi) T (in C)
       real*8,parameter :: lhe = 2.5d6
 !@param lhm   latent heat of melt at 0 C (334590 J/kg) 
       real*8,parameter :: lhm = 3.34d5
+!@param bylhm  1/lhm 
+      real*8,parameter :: bylhm = 1./lhm
 !@param lhs  latent heat of sublimation at 0 C (J/kg)
       real*8,parameter :: lhs = lhe+lhm
 

@@ -65,11 +65,12 @@ C****
 
 !@var RSIST Sea ice fraction in strait
 !@var RSIXST Center of sea ice in strait (m) 
-!@var MSIST Mass of ice within strait (kg/m**2)
-!@var HSIST Enthalphy of ice within strait (J/m**2)
+!@var MSIST Mass of ice within strait (kg)
+!@var HSIST Enthalpy of ice within strait (J)
+!@var SSIST Salinity of ice within strait (kg)
       REAL*8, DIMENSION(NMST) :: RSIST,RSIXST
       REAL*8, DIMENSION(2,NMST) :: MSIST
-      REAL*8, DIMENSION(LMI,NMST) :: HSIST
+      REAL*8, DIMENSION(LMI,NMST) :: HSIST,SSIST
 
       END MODULE STRAITS
 
@@ -91,13 +92,13 @@ C****
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,MUST,G0MST,GXMST,GZMST,S0MST
-     *       ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST
+     *       ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
         CASE (IRSFIC)           ! initial conditions
         CASE (ioread,irerun)    ! restarts
           READ (kunit,err=10) HEADER,MUST,G0MST,GXMST,GZMST,S0MST
-     *         ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST
+     *         ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
           IF (HEADER.NE.MODULE_HEADER) THEN
             PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER

@@ -11,7 +11,7 @@
      &     , only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
      *     cq=>cqgs,ipbl
       USE GEOM
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi
+      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
       USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim
       USE LANDICE_COM, only : snowli,tlandi
       USE FLUXES, only : gtemp
@@ -23,8 +23,6 @@
 
 !@var TFO temperature of freezing ocean (C)
       REAL*8, PARAMETER :: TFO = -1.8d0
-!@var SSIMEAN mean salinity in sea ice (1) (3.2 ppt)
-      REAL*8, PARAMETER :: SSIMEAN = 0.0032d0 
 !@var TOCEAN temperature of the ocean (C)
       REAL*8, DIMENSION(3,IM,JM) :: TOCEAN
 
@@ -241,6 +239,8 @@ C**** RSI uses quadratic fit
             MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
 C**** adjust enthalpy so that temperature remains constant
             HSI(3:4,I,J)=HSI(3:4,I,J)*(MSINEW/MSI(I,J))
+C**** adjust salt so that salinity remains constant
+            SSI(3:4,I,J)=SSI(3:4,I,J)*(MSINEW/MSI(I,J))
             MSI(I,J)=MSINEW
 C**** set ftype arrays
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
@@ -256,6 +256,7 @@ C**** ZERO OUT SNOWOI, TG1OI, TG2OI IF THERE IS NO OCEAN ICE
             IF (RSI(I,J).LE.0.) THEN
               HSI(1:2,I,J)=-LHM*XSI(1:2)*ACE1I
               HSI(3:4,I,J)=-LHM*XSI(3:4)*AC2OIM
+              SSI(:,I,J)=0.
               SNOWI(I,J)=0.
               GTEMP(1:2,2,I,J)=0.
             END IF
@@ -270,6 +271,7 @@ C**** REPLICATE VALUES AT POLE (for prescribed data only)
           RSI(I,JM)=RSI(1,JM)
           MSI(I,JM)=MSI(1,JM)
           HSI(:,I,JM)=HSI(:,1,JM)
+          SSI(:,I,JM)=SSI(:,1,JM)
           GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
 C**** set ftype arrays
           FTYPE(ITOICE ,I,JM)=FOCEAN(1,JM)*    RSI(1,JM)
@@ -803,10 +805,10 @@ C****
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,erunosi,e0,e1,evapor,dmsi,dhsi,dssi,
      *     flowo,eflowo,gtemp
-      USE OCEAN, only : tocean,z1o,ota,otb,otc,tfo,osourc,ssimean,
+      USE OCEAN, only : tocean,z1o,ota,otb,otc,tfo,osourc,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE SEAICE_COM, only : rsi,msi,snowi
-      USE SEAICE, only : ace1i
+      USE SEAICE, only : ace1i,ssi0
       USE DAGCOM, only : aj,aij,areg,jreg,ij_f0oc,j_run2
      *     ,j_dwtr2,j_tg1,j_tg2,j_evap,j_oht,j_omlt,j_erun2,j_imelt
      *     ,ij_tgo,ij_tg1,ij_evap,ij_evapo,j_type,oa
@@ -899,8 +901,8 @@ C**** Store mass and energy fluxes for formation of sea ice
           DMSI(2,I,J)=ACE2F
           DHSI(1,I,J)=ENRGFO
           DHSI(2,I,J)=ENRGFI
-          DSSI(1,I,J)=SSIMEAN*ACEFO   ! assume constant mean salinity
-          DSSI(2,I,J)=SSIMEAN*ACE2F
+          DSSI(1,I,J)=SSI0*ACEFO   ! assume constant mean salinity
+          DSSI(2,I,J)=SSI0*ACE2F
 C**** store surface temperatures
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
 
