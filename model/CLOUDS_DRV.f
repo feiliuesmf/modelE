@@ -36,6 +36,7 @@
 #ifdef CLD_AER_CDNC
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
+     *     ,ij_3drwm,ij_3drws,ij_3drim,ij_3dris
 #endif
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname
@@ -75,7 +76,9 @@
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
      *     ,kmax,ra,pl,ple,plk,rndssl,lhp,pland,debug,ddmflx
 #ifdef CLD_AER_CDNC
-     *     ,cdncwm,cdncim,cdncws,cdncis,oldcdo,oldcdl,smfpml
+     *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
+     *     ,nlsw,nlsi,nmcw,nmci
+     *     ,oldcdo,oldcdl,smfpml
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
@@ -446,12 +449,6 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
           AJL(J,L,JL_MCMFLX)=AJL(J,L,JL_MCMFLX)+MCFLX(L)
           AJL(J,L,JL_CLDMC) =AJL(J,L,JL_CLDMC) +CLDMCL(L)
           AJL(J,L,JL_CSIZMC)=AJL(J,L,JL_CSIZMC)+CSIZEL(L)*CLDMCL(L)
-#ifdef CLD_AER_CDNC
-          AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+CDNCWM(L)*CLDMCL(L)
-          AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+CDNCIM(L)*CLDMCL(L)
-          AJL(J,L,JL_CNUMWM)=AJL(J,L,JL_CNUMWM)+CDNCWM(L)*CLDMCL(L)
-          AJL(J,L,JL_CNUMIM)=AJL(J,L,JL_CNUMIM)+CDNCIM(L)*CLDMCL(L)
-#endif
         END DO
         DO IT=1,NTYPE
           AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
@@ -472,7 +469,20 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
             HDIURN(IHM,IDD_SMC ,KR)=HDIURN(IHM,IDD_SMC ,KR)+CLDSLWIJ
           END IF
         END DO
-
+#ifdef CLD_AER_CDNC
+        DO L =1,LM
+        IF (NMCW.ge.1) then
+         AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)   !/NMCW
+         AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)   !/NMCW
+         AJL(J,L,JL_CNUMWM)=AJL(J,L,JL_CNUMWM)+ACDNWM(L)   !/NMCW
+        ENDIF
+        IF (NMCI.ge.1) then
+         AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)    !/NMCI
+         AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)   !/NMCI
+         AJL(J,L,JL_CNUMIM)=AJL(J,L,JL_CNUMIM)+ACDNIM(L)   !/NMCI
+        ENDIF
+        ENDDO
+#endif
 C**** ACCUMULATE PRECIP
         PRCP=PRCPMC*100.*BYGRAV
 C**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
@@ -799,14 +809,6 @@ C**** between kinds of rain in the ground hydrology.
         AJL(J,L,JL_RHE)=AJL(J,L,JL_RHE)+RH1(L)
         AJL(J,L,JL_CLDSS) =AJL(J,L,JL_CLDSS) +CLDSSL(L)
         AJL(J,L,JL_CSIZSS)=AJL(J,L,JL_CSIZSS)+CSIZEL(L)*CLDSSL(L)
-#ifdef CLD_AER_CDNC
-        AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+CDNCWS(L)*CLDSSL(L)
-        AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+CDNCIS(L)*CLDSSL(L)
-        AJL(J,L,JL_CNUMWS)=AJL(J,L,JL_CNUMWS)+CDNCWS(L)*CLDSSL(L)
-        AJL(J,L,JL_CNUMIS)=AJL(J,L,JL_CNUMIS)+CDNCIS(L)*CLDSSL(L)
-c       if(CDNCWS(L).gt.1200.)write(6,*)"DF",AIJ(I,J,IJ_3dNWS),CDNCWS(L)
-c    &  ,L
-#endif
 
         T(I,J,L)=TH(L)
         Q(I,J,L)=QL(L)
@@ -842,6 +844,24 @@ CCC     ENDDO
             END DO
          END IF
       ENDDO
+#ifdef CLD_AER_CDNC
+        DO L=1,LM
+         IF (NLSW.ge.1) then
+          AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L) !/NLSW
+          AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L)  !/NLSW
+          AJL(J,L,JL_CNUMWS)=AJL(J,L,JL_CNUMWS)+ACDNWS(L)  !/NLSW
+c     if(AIJ(I,J,IJ_3dNWS).gt.1500.)write(6,*)"OUTDRV",AIJ(I,J,IJ_3dNWS)
+c    * ,ACDNWS,NLSW,itime
+         ENDIF
+        IF(NLSI.ge.1) then
+         AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+ACDNIS(L)!/NLSI
+         AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)!/NLSI
+         AJL(J,L,JL_CNUMIS)=AJL(J,L,JL_CNUMIS)+ACDNIS(L)!/NLSI
+        ENDIF
+c     if(AIJ(I,J,IJ_3dNWS).gt.1500.)write(6,*)"ODRV",AIJ(I,J,IJ_3dNWS)
+c    * ,ACDNWS(L),L
+        ENDDO
+#endif
 
 #ifdef TRACERS_ON
 C**** TRACERS: Use only the active ones
