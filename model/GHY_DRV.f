@@ -86,6 +86,9 @@ c****
 #ifdef TRACERS_WATER
      *     ,nWATER,nGAS,nPART,tr_wd_TYPE,trname
 #endif
+#ifdef TRACERS_DUST
+     &     ,n_clay
+#endif
       use tracer_diag_com, only : taijn,tij_surf
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd,jls_source,tajls,tij_soil
@@ -93,9 +96,15 @@ c****
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,tij_gsdep,itcon_dd
 #endif
+#ifdef TRACERS_DUST
+     &     ,ijts_source,taijs,nDustEmij,nDustEmjl
+#endif
       use fluxes, only : trsource,trsrfflx
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer,trprec
+#endif
+#ifdef TRACERS_DUST
+     &     ,dustflux
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
@@ -137,6 +146,11 @@ c****
       use tracer_sources, only : avg_modPT
 #endif
       use snow_drvm, only : snow_cover_same_as_rad
+#ifdef TRACERS_DUST
+      USE tracers_dust,ONLY : dust_emission_constraints,
+     &     local_dust_emission
+#endif
+
       implicit none
 
       integer, intent(in) :: ns,moddsf,moddd
@@ -151,6 +165,9 @@ c****
 
 #ifdef TRACERS_ON
       integer n,nx,nsrc
+#ifdef TRACERS_DUST
+      INTEGER :: n1
+#endif
       real*8 totflux(ntm)
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: trsoil_tot,tevapw,tevapd,
@@ -261,6 +278,9 @@ C**** halo update u and v for distributed parallelization
 #endif
 #if defined(TRACERS_DRYDEP)
 !$OMP*   ,tdryd,tdd,td1,rtsdt
+#endif
+#ifdef TRACERS_DUST
+!$OMP&   ,n1
 #endif
 #endif
 !$OMP*   )
@@ -715,6 +735,25 @@ ccc accumulate tracer dry deposition
           dtr_dd(j,n,2)=dtr_dd(j,n,2)-ptype*rtsdt*dxyp(j)* gs_vel(n)
         end if
       end do
+#endif
+#ifdef TRACERS_DUST
+ccc dust emission from earth
+      CALL dust_emission_constraints(i,j)
+      DO nx=1,ntx
+        n=ntix(nx)
+        SELECT CASE (trname(n))
+        CASE ('Clay','Silt1','Silt2','Silt3')
+          n1=n-n_clay+1
+          CALL local_dust_emission(i,j,n1)
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+dustflux(i,j,n1)
+          taijs(i,j,ijts_source(nDustEmij,n))=
+     &         taijs(i,j,ijts_source(nDustEmij,n))+dustflux(i,j,n1)*
+     &         dtsurf
+          tajls(j,1,jls_source(nDustEmjl,n))=
+     &         tajls(j,1,jls_source(nDustEmjl,n))+dustflux(i,j,n1)*
+     &         dtsurf
+        END SELECT
+      END DO
 #endif
 c****
 c**** accumulate diagnostics
