@@ -294,57 +294,60 @@ c Aerosol chemistry
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl,ltopn
       save ifirst,itopen,iuc
 
+C**** initialise source arrays
+!$OMP PARALLEL DO PRIVATE (L)
+      do l=1,lm
+        tr3Dsource(:,:,l,1,n_DMS)=0. ! DMS chem sink
+        tr3Dsource(:,:,l,1,n_MSA)=0. ! MSA chem sink
+        tr3Dsource(:,:,l,3,n_SO2)=0. ! SO2 chem source
+        tr3Dsource(:,:,l,4,n_SO2)=0. ! SO2 chem sink
+        tr3Dsource(:,:,l,1,n_SO4)=0. ! SO4 chem source
+        tr3Dsource(:,:,l,1,n_H2O2_s)=0. ! H2O2 chem source
+        tr3Dsource(:,:,l,2,n_H2O2_s)=0. ! H2O2 chem sink
+      end do
+!$OMP END PARALLEL DO
+
 c Set ltopn variable for 23 or 12 layer model
-       if (lm.eq.23) then
-       ltopn=ls1-1
-       else
-       ltopn=lm
-       endif
+      if (lm.eq.23) then
+        ltopn=ls1-1
+      else
+        ltopn=lm
+      endif
 
 C Coupled mode: use on-line radical concentrations
-           if (coupled_chem.eq.1) then
-            DO L=1,ltopn
-            DO J=1,jm
-            DO i=1,im
-            oh(i,j,l)=oh_live(i,j,l)
-            tno3(i,j,l)=no3_live(i,j,l)
-
+      if (coupled_chem.eq.1) then
+!$OMP PARALLEL DO PRIVATE (L)
+        DO L=1,ltopn
+          oh(:,:,l)=oh_live(:,:,l)
+          tno3(:,:,l)=no3_live(:,:,l)
 c Set h2o2_s =0 and use on-line h2o2 from chemistry
-            trm(i,j,l,n_h2o2_s)=0.0
-            end do
-            end do
-            end do
-            endif
+          trm(:,:,l,n_h2o2_s)=0.0
+        end do
+!$OMP END PARALLEL DO
+      endif
 
-           if (coupled_chem.eq.0) then
+      if (coupled_chem.eq.0) then
 c Use this for chem inputs from B4360C0M23, from Drew
 
         call openunit('AER_CHEM',iuc,.true.)
         do ii=1,jmon
-        read(iuc) ichemi
-        read(iuc) ohr
-        read(iuc) dho2r
-        read(iuc) perjr
-        read(iuc) tno3r
+          read(iuc) ichemi
+          read(iuc) ohr
+          read(iuc) dho2r
+          read(iuc) perjr
+          read(iuc) tno3r
         end do
         call closeunit(iuc)
 
 c need to scale TNO3, OH and PERJ using cosine of zenith angle
- 27   CALL SCALERAD
+        CALL SCALERAD
       endif
 
-       dtt=dtsrc
+      dtt=dtsrc
+C**** THIS LOOP SHOULD BE PARALLELISED
       do 20 l=1,ltopn
       do 21 j=1,jm
       do 22 i=1,imaxj(j)
-C**** initialise source arrays
-       tr3Dsource(i,j,l,1,n_DMS)=0.  ! DMS chem sink
-       tr3Dsource(i,j,l,1,n_MSA)=0.  ! MSA chem sink
-       tr3Dsource(i,j,l,3,n_SO2)=0.  ! SO2 chem source
-       tr3Dsource(i,j,l,4,n_SO2)=0.  ! SO2 chem sink
-       tr3Dsource(i,j,l,1,n_SO4)=0.  ! SO4 chem source
-       tr3Dsource(i,j,l,1,n_H2O2_s)=0. ! H2O2 chem source
-       tr3Dsource(i,j,l,2,n_H2O2_s)=0. ! H2O2 chem sink
 c
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
@@ -353,67 +356,67 @@ c
 
 c DMM is number density of air in molecules/cm3
       dmm=ppres/(.082d0*te)*6.02d20
-       ohmc = oh(i,j,l)  !oh is alread in units of molecules/cm3
+      ohmc = oh(i,j,l)          !oh is alread in units of molecules/cm3
 
-       do 23 n=1,ntm
+      do 23 n=1,ntm
 
-       select case (trname(n))
-
+        select case (trname(n))
+          
         case ('DMS')
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA
 C***2.DMS + OH -> SO2
 C***3.DMS + NO3 -> HNO3 + SO2
-       r1 = 1.7d-22*dmm*0.21d0*1.d-20*exp(7810.d0*tt)/
-     *(1.d0+5.5d-20*exp(7460.d0*tt)*dmm*0.21d0*1.d-11)*ohmc
-       d1 = exp(-r1*dtsrc)
-       r2 = 9.6d-12 * exp(-234.d0*tt)*ohmc
-       d2 = exp(-r2*dtsrc)
-c NO3 is in mixing ratio: convert to molecules/cm3
+          r1 = 1.7d-22*dmm*0.21d0*1.d-20*exp(7810.d0*tt)/
+     *         (1.d0+5.5d-20*exp(7460.d0*tt)*dmm*0.21d0*1.d-11)*ohmc
+          d1 = exp(-r1*dtsrc)
+          r2 = 9.6d-12 * exp(-234.d0*tt)*ohmc
+          d2 = exp(-r2*dtsrc)
+c     NO3 is in mixing ratio: convert to molecules/cm3
 c - not necessary for Shindell source
-       if (l.gt.8) then
-       ttno3=0.d0
-       go to 87
-       endif
-       ttno3 = tno3(i,j,l) !*6.02d20*ppres/(.082056d0*te)
- 87    r3 = ttno3*1.9d-13*exp(520.d0*tt)
-       d3= exp(-r3*dtsrc)
-       ddno3=r3*trm(i,j,l,n)/tr_mm(n)*1000.d0*dtsrc
-       dddms=trm(i,j,l,n)/tr_mm(n)*1000.d0
-       if (ddno3.gt.dddms) ddno3=dddms
+          if (l.gt.8) then
+            ttno3=0.d0
+            go to 87
+          endif
+          ttno3 = tno3(i,j,l)   !*6.02d20*ppres/(.082056d0*te)
+ 87       r3 = ttno3*1.9d-13*exp(520.d0*tt)
+          d3= exp(-r3*dtsrc)
+          ddno3=r3*trm(i,j,l,n)/tr_mm(n)*1000.d0*dtsrc
+          dddms=trm(i,j,l,n)/tr_mm(n)*1000.d0
+          if (ddno3.gt.dddms) ddno3=dddms
 
-       ddno3=ddno3*0.9
+          ddno3=ddno3*0.9
 C DMS losses: eqns 1, 2 ,3
 
-       tr3Dsource(i,j,l,1,n) = trm(i,j,l,n)*(d1*d2-1.)/dtsrc
+          tr3Dsource(i,j,l,1,n) = trm(i,j,l,n)*(d1*d2-1.)/dtsrc
 
-       dmssink=ddno3*tr_mm(n)/1000.d0
+          dmssink=ddno3*tr_mm(n)/1000.d0
 
-       if (dmssink.gt.trm(i,j,l,n)+tr3Dsource(i,j,l,1,n)*dtsrc)
-     *      dmssink=trm(i,j,l,n)+tr3Dsource(i,j,l,1,n)*dtsrc
-       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) - dmssink/dtsrc
-
+          if (dmssink.gt.trm(i,j,l,n)+tr3Dsource(i,j,l,1,n)*dtsrc)
+     *         dmssink=trm(i,j,l,n)+tr3Dsource(i,j,l,1,n)*dtsrc
+          tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) - dmssink/dtsrc
+          
         case ('MSA')
 C MSA gain: eqn 1
 
           tr3Dsource(i,j,l,1,n) = 0.25d0*Tr_mm(n)/Tr_mm(n_dms)*trm(i,j
      *         ,l,n_dms)*(1.d0 -D1)*SQRT(D2)/dtsrc
-
-       case ('SO2')
+          
+        case ('SO2')
 c SO2 production from DMS
-         tr3Dsource(i,j,l,3,n) = (0.75*tr_mm(n)/tr_mm(n_dms)*trm(i,j,l
-     *        ,n_dms)*(1.d0 - d1)*sqrt(d2)+ tr_mm(n)/tr_mm(n_dms)*trm(i
-     *        ,j,l,n_dms)*(1.d0 - d2)*sqrt(d1)+dmssink*tr_mm(n)
-     *        /tr_mm(n_dms))/dtsrc
-
-
-         najl = jls_NO3
-         tajls(j,l,najl) = tajls(j,l,najl)+ttno3
-       end select
-
- 23    CONTINUE
- 22    CONTINUE
- 21    CONTINUE
- 20    CONTINUE
+          tr3Dsource(i,j,l,3,n) = (0.75*tr_mm(n)/tr_mm(n_dms)*trm(i,j,l
+     *         ,n_dms)*(1.d0 - d1)*sqrt(d2)+ tr_mm(n)/tr_mm(n_dms)*trm(i
+     *         ,j,l,n_dms)*(1.d0 - d2)*sqrt(d1)+dmssink*tr_mm(n)
+     *         /tr_mm(n_dms))/dtsrc
+          
+          
+          najl = jls_NO3
+          tajls(j,l,najl) = tajls(j,l,najl)+ttno3
+        end select
+        
+ 23   CONTINUE
+ 22   CONTINUE
+ 21   CONTINUE
+ 20   CONTINUE
 
 cg this is now done automatically in apply_tracer_3Dsource
 cg       call DIAGTCA(itcon_3Dsrc(3,n_SO2),n_SO2)
@@ -428,41 +431,41 @@ cg       call DIAGTCA(itcon_3Dsrc(3,n_SO2),n_SO2)
       mm=am(l,i,j)*dxyp(j)
       tt = 1.d0/te
       dmm=ppres/(.082d0*te)*6.02d20
-       ohmc = oh(i,j,l)  !oh is alread in units of molecules/cm3
+      ohmc = oh(i,j,l)          !oh is alread in units of molecules/cm3
 
-       do 33 n=1,ntm
+      do 33 n=1,ntm
 
-       select case (trname(n))
+        select case (trname(n))
 
 
-       case ('SO2')
+        case ('SO2')
 c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
-       rk4 = 4.0d-20 *((tt*300.d0)**(3.3d0))*dmm*1.d-11
-       ek4 = 1.d0/(1.d0 + ((log10(rk4/2.0d-12))**2.d0))
-       r4 = ohmc * (rk4/(1.d0 + rk4/2.0d-12))*(0.45d0**ek4)
-       d4 = exp(-r4*dtsrc)
-c      IF (I.EQ.30.AND.J.EQ.30.and.L.EQ.2) WRITE(6,*)'msulf',TE,DMM,
-c    *  PPRES,RK4,EK4,R4,D4,ohmc
-       IF (d4.GE.1.) d4=0.99999d0
-
-       tr3Dsource(i,j,l,4,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc
-
+          rk4 = 4.0d-20 *((tt*300.d0)**(3.3d0))*dmm*1.d-11
+          ek4 = 1.d0/(1.d0 + ((log10(rk4/2.0d-12))**2.d0))
+          r4 = ohmc * (rk4/(1.d0 + rk4/2.0d-12))*(0.45d0**ek4)
+          d4 = exp(-r4*dtsrc)
+c     IF (I.EQ.30.AND.J.EQ.30.and.L.EQ.2) WRITE(6,*)'msulf',TE,DMM,
+c     *  PPRES,RK4,EK4,R4,D4,ohmc
+          IF (d4.GE.1.) d4=0.99999d0
+          
+          tr3Dsource(i,j,l,4,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc
+          
 c diagnostics to save oxidant fields
-        najl = jls_OHconk
-        tajls(j,l,najl) = tajls(j,l,najl)+oh(i,j,l)
-        najl = jls_HO2con
-        tajls(j,l,najl) = tajls(j,l,najl)+dho2(i,j,l)
+          najl = jls_OHconk
+          tajls(j,l,najl) = tajls(j,l,najl)+oh(i,j,l)
+          najl = jls_HO2con
+          tajls(j,l,najl) = tajls(j,l,najl)+dho2(i,j,l)
 
-       case('SO4')
+        case('SO4')
 C SO4 production
 
-         tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n)+tr_mm(n)
-     *        /tr_mm(n_so2)*trm(i,j,l,n_so2)*(1.d0 -d4)/dtsrc
+          tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n)+tr_mm(n)
+     *         /tr_mm(n_so2)*trm(i,j,l,n_so2)*(1.d0 -d4)/dtsrc
 
 
-       case('H2O2_s')
+        case('H2O2_s')
 
-       if (coupled_chem.eq.1) go to 140
+          if (coupled_chem.eq.1) go to 140
 
 c hydrogen peroxide formation and destruction:
 C***5.H2O2 +hv -> 2OH
@@ -473,43 +476,41 @@ C     HO2 + HO2 + M ->
 C     HO2 + HO2 + H2O ->
 C     HO2 + HO2 + H2O + M ->
 
-       r6 = 2.9d-12 * exp(-160.d0*tt)*ohmc
-       d6 = exp(-r6*dtsrc)
-       ek9 = 2.2d-13*exp(600.d0*tt)
-       ek9t = 1.9d-20*dmm*0.78d0*exp(980.d0*tt)*1.d-13
-       ch2o = q(i,j,l)*6.02d20*28.97d0/18.d0*ppres/(.082d0*te)
-       eh2o = 1.+1.4d-21*exp(2200.d0*tt)*ch2o
-       dho2mc = dho2(i,j,l)      !/mm*1.292/.033*6.02e17
-       dho2kg = dho2(i,j,l)*mm*te*.082056d0/(ppres*28.97d0*6.02d20)
-       eeee = eh2o*(ek9+ek9t)*dtt*dho2mc
-       xk9 = dho2kg*eeee
+          r6 = 2.9d-12 * exp(-160.d0*tt)*ohmc
+          d6 = exp(-r6*dtsrc)
+          ek9 = 2.2d-13*exp(600.d0*tt)
+          ek9t = 1.9d-20*dmm*0.78d0*exp(980.d0*tt)*1.d-13
+          ch2o = q(i,j,l)*6.02d20*28.97d0/18.d0*ppres/(.082d0*te)
+          eh2o = 1.+1.4d-21*exp(2200.d0*tt)*ch2o
+          dho2mc = dho2(i,j,l)  !/mm*1.292/.033*6.02e17
+          dho2kg = dho2(i,j,l)*mm*te*.082056d0/(ppres*28.97d0*6.02d20)
+          eeee = eh2o*(ek9+ek9t)*dtt*dho2mc
+          xk9 = dho2kg*eeee
 c H2O2 production: eqn 9
 
-       tr3Dsource(i,j,l,1,n) = tr_mm(n)*xk9/dtsrc
+          tr3Dsource(i,j,l,1,n) = tr_mm(n)*xk9/dtsrc
 
 c H2O2 losses:5 and 6
-       r5 = perj(i,j,l)
-       d5 = exp(-r5*dtsrc)
+          r5 = perj(i,j,l)
+          d5 = exp(-r5*dtsrc)
 
-       tr3Dsource(i,j,l,2,n)=(trm(i,j,l,n))*(d5*d6-1.d0)
-     *      /dtsrc
+          tr3Dsource(i,j,l,2,n)=(trm(i,j,l,n))*(d5*d6-1.d0)
+     *         /dtsrc
+          
+          najl = jls_phot
+          tajls(j,l,najl) = tajls(j,l,najl)+perj(i,j,l)
 
-        najl = jls_phot
-        tajls(j,l,najl) = tajls(j,l,najl)+perj(i,j,l)
+        end select
 
-       end select
+ 140    CONTINUE
 
- 140     CONTINUE
+ 33   CONTINUE
+ 32   CONTINUE
+ 31   CONTINUE
+ 30   CONTINUE
 
-
-
- 33    CONTINUE
- 32    CONTINUE
- 31    CONTINUE
- 30    CONTINUE
-
-       RETURN
-       END subroutine aerosol_gas_chem
+      RETURN
+      END subroutine aerosol_gas_chem
 
 
       SUBROUTINE SCALERAD
