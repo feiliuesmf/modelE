@@ -1689,7 +1689,7 @@ c precip. tracer evap
 c clw tracer evap
         CALL GET_EVAP_FACTOR(N,TL(L),.FALSE.,1d0,FWTOQ,FWTOQT)
         IF(BELOW_CLOUD) THEN
-          precip_mm = PREBAR(L+1)
+          precip_mm = PREBAR(L+1)*100.*dtsrc
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT) !washout
           WMXTR = PREBAR(L+1)*grav*BYAM(L)*dtsrc
         ELSE
