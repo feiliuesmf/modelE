@@ -2654,9 +2654,13 @@ C****
       CHARACTER*10, DIMENSION(kddmax) :: namedd
 !@var iu_subdd array of unit numbers for sub-daily diags output
       INTEGER, DIMENSION(kddmax) :: iu_subdd
+!@var subddt = subdd + subdd1 = all variables for sub-daily diags
+      CHARACTER*128 :: subddt = " "
 !@dbparam subdd string contains variables to save for sub-daily diags
+!@dbparam subdd1 additional string of variables for sub-daily diags
 C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
-      CHARACTER*128 :: subdd = "SLP"
+      CHARACTER*64  :: subdd  = "SLP"
+      CHARACTER*64  :: subdd1 = " "
 !@dbparam Nsubdd: DT_save_SUBDD =  Nsubdd*DTsrc sub-daily diag freq.
       INTEGER :: Nsubdd = 0
 !@dbparam LmaxSUBDD: the max L when writing "ALL" levels
@@ -2673,27 +2677,30 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       integer :: i,j,k,kunit,kk
 
       call sync_param( "subdd" ,subdd)
+      call sync_param( "subdd1" ,subdd1)
       call sync_param( "Nsubdd",Nsubdd)
       call sync_param( "LmaxSUBDD",LmaxSUBDD)
 
       if (nsubdd.ne.0) then
+C**** combine strings subdd1 and subdd2:
+        subddt=trim(subdd)//' '//subdd1
 C**** calculate how many names
         k=0
         i=1
- 10     j=index(subdd(i:len(subdd))," ")
+ 10     j=index(subddt(i:len(subddt))," ")
         if (j.gt.1) then
           k=k+1
           i=i+j
         else
           i=i+1
         end if
-        if (i.lt.len(subdd)) goto 10
+        if (i.lt.len(subddt)) goto 10
         kdd=k
         if (kdd.gt.kddmax) call stop_model
      *       ("Increase kddmax: No. of sub-daily diags too big",255)
 
 C**** make array of names
-        read(subdd,*) namedd(1:kdd)
+        read(subddt,*) namedd(1:kdd)
 
 C**** open units and position
 C**** Some names have more than one unit associated (i.e. "ZALL")
