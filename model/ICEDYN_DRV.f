@@ -287,9 +287,9 @@ C**** DMUA is defined over the whole box (not just over ptype)
 C**** Convert to stress over ice fraction only (on atmospheric grid)
       DO J=1,JM
         DO I=1,IM
-          IF (RSI(I,J).gt.0) THEN
-            DMUA(I,J,2) = DMUA(I,J,2)/RSI(I,J)
-            DMVA(I,J,2) = DMVA(I,J,2)/RSI(I,J)
+          IF (FOCEAN(I,J)*RSI(I,J).gt.0) THEN
+            DMUA(I,J,2) = DMUA(I,J,2)/(FOCEAN(I,J)*RSI(I,J))
+            DMVA(I,J,2) = DMVA(I,J,2)/(FOCEAN(I,J)*RSI(I,J))
           ELSE
             DMUA(I,J,2) = 0.
             DMVA(I,J,2) = 0.
@@ -432,7 +432,8 @@ C**** interpolate ice velocity and stress from B grid to C grid in atm
           IF (abs(USI(I,J)).lt.1d-10) USI(I,J)=0
           DMUI(I,J) = 0.5*(dmu(i+1,j-1)+dmu(i+1,j))
 C**** Rescale DMUI to be net momentum into ocean
-          DMUI(I,J) = 0.5*DMUI(I,J)*(RSI(I,J)+RSI(IP1,J))
+          DMUI(I,J) = 0.5*DMUI(I,J)*(FOCEAN(I,J)*RSI(I,J)+FOCEAN(IP1,J)
+     *         *RSI(IP1,J))
           i=ip1
         enddo
       enddo
@@ -442,10 +443,11 @@ C**** Rescale DMUI to be net momentum into ocean
           IF (abs(VSI(I,J)).lt.1d-10) VSI(I,J)=0
           DMVI(I,J) = 0.5*(dmv(i,j)+dmv(i+1,j))
 C**** Rescale DMVI to be net momentum into ocean
-          IF (J.lt.JM-1) DMVI(I,J) = 0.5*DMVI(I,J)*(RSI(I,J)*DXYN(J)
-     *         +RSI(I,J+1)*DXYS(J+1))/DXYV(J+1)
-          IF (J.eq.JM-1) DMVI(I,JM-1) = 0.5*DMVI(I,JM-1)*(RSI(I,JM-1)
-     *         *DXYN(JM-1)+RSI(1,JM)*DXYS(JM))/DXYV(JM)
+          IF (J.lt.JM-1) DMVI(I,J) = 0.5*DMVI(I,J)*(FOCEAN(I,J)*RSI(I,J)
+     *         *DXYN(J)+FOCEAN(I,J+1)*RSI(I,J+1)*DXYS(J+1))/DXYV(J+1)
+          IF (J.eq.JM-1) DMVI(I,JM-1) = 0.5*DMVI(I,JM-1)*(FOCEAN(I,JM-1)
+     *         *RSI(I,JM-1)*DXYN(JM-1)+FOCEAN(1,JM)*RSI(1,JM)*DXYS(JM))
+     *         /DXYV(JM)
         enddo
       enddo
       usi(1:im,1)=0.
@@ -589,7 +591,7 @@ C**** Regularise ice concentration gradients to prevent advection errors
 
 C**** set up local MHS array to contain all advected quantities
 C**** MHS(1:2) = MASS, MHS(3:6) = HEAT, MHS(7:10)=SALT
-C**** Currently this is on atmopsheric grid
+C**** Currently this is on atmospheric grid
       MHS(1,:,:) = ACE1I + SNOWI
       MHS(2,:,:) = MSI
       DO L=1,LMI
