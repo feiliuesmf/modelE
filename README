@@ -53,11 +53,15 @@ The following is a list of targets currently supported by Makefile:
  rundeck - create new rundeck
  depend  - create dependencies for specified rundeck
  gcm     - compile object files and build executable for specified rundeck
- aux     - compile auxiliary programs
- setup   - do setup for specified rundeck
- clean   - remove listings and error files
- vclean  - remove object files, .mod files and dependencies
- newstart - remove all files in the run directory
- mkexe   - compile gcm and put executable into RUN directory
+ aux     - compile standard auxiliary programs'
+ auxqflux- compile auxiliary programs for computing qflux'
+ auxdeep - compile auxiliary programs for setting deep ocean'
+ setup   - do setup for specified rundeck'
+ clean   - remove listings and error files'
+ vclean  - remove object files, .mod files and dependencies'
+ newstart- remove all files in the run directory'
+ exe     - compile gcm and put executable into RUN directory'
+ htmldoc - create web-based documentation for this RUN'
 
 If you run "gmake" without arguments it will print a short help.
+
