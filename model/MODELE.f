@@ -321,7 +321,7 @@ C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
             monacc(m) = 1
           end do
           call openunit(aDATE(1:7)//'.acc'//XLABEL(1:LRUNID),iu_ACC,
-     *         .true.,.false.) 
+     *         .true.,.false.)
           call io_rsf (iu_ACC,Itime,iowrite_single,ioerr)
           call closeunit(iu_ACC)
 C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
@@ -329,14 +329,14 @@ C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
             CALL RFINAL (IRAND)
             call set_param( "IRAND", IRAND, 'o' )
             call openunit('1'//aDATE(8:14)//'.rsf'//XLABEL(1:LRUNID)
-     *           ,iu_RSF,.true.,.false.) 
+     *           ,iu_RSF,.true.,.false.)
             call io_rsf(iu_RSF,Itime,iowrite_mon,ioerr)
             call closeunit(iu_RSF)
           END IF
 C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
           IF (KCOPY.GT.2) THEN
             call openunit(aDATE(1:7)//'.oda'//XLABEL(1:LRUNID)
-     *           ,iu_ODA,.true.,.false.) 
+     *           ,iu_ODA,.true.,.false.)
             call io_oda(iu_ODA,Itime,iowrite,ioerr)
             call closeunit(iu_ODA)
           END IF
@@ -346,7 +346,7 @@ C**** PRINT AND ZERO OUT THE TIMING NUMBERS
         CALL TIMER (MNOW,MDIAG)
         TOTALT=.01*(MNOW-MSTART)      ! in seconds
         DO M=1,NTIMEACC
-          PERCENT(M) = TIMING(M)/TOTALT
+          PERCENT(M) = TIMING(M)/(TOTALT+.00001)
         END DO
         DTIME = NDAY*TOTALT/(60.*(Itime-Itime0))  ! minutes/day
         WRITE (6,'(/A,F7.2,A,10(A13,F5.1)//)')
@@ -1025,7 +1025,7 @@ C**** as residual terms. (deals with SP=>DP problem)
         END IF
       END DO
       END DO
-     
+
 C**** set land components of FTYPE array. Summation is necessary for
 C**** cases where Earth and Land Ice are lumped together
       FTYPE(ITLANDI,:,:)=0.
