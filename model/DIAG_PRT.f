@@ -4604,7 +4604,7 @@ C**** All titles/names etc. implicitly assume that this will be done.
 
       CHARACTER XLB*24,TITLEX*56
       CHARACTER*80 TITLEL(LM)
-      REAL*8 SMAP(IM,JM,LM),SMAPJK(JM,LM)
+      REAL*8 SMAP(IM,JM,LM),SMAPJK(JM,LM),SMAPK(LM)
       REAL*8 flat,press,dp
       CHARACTER*8 CPRESS(LM)
       INTEGER i,j,l,kxlb,ni,kcomp,k,iu_Iij
@@ -4637,7 +4637,6 @@ C****
          call closeunit(iu_Iij)
       end if
 
-      SMAP(:,:,:) = UNDEF
       KXLB = INDEX(XLABEL(1:11),'(')-1
       IF(KXLB.le.0) KXLB = 10
       XLB = ' '
@@ -4658,6 +4657,7 @@ C**** Select fields
      *       trim(units_ijk(k))//", UV grid)"
         SMAP(:,:,:) = UNDEF
         SMAPJK(:,:) = UNDEF
+        SMAPK(:)    = UNDEF
         IF (K.le.kaijk) THEN     !  simple cases
           DO L=1,LM
             DO J=2,JM
@@ -4697,7 +4697,7 @@ C**** Select fields
           END DO
         END IF
         CALL POUT_IJK(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *       ,SMAP,SMAPJK,UNDEF,jgrid_ijk(k))
+     *       ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
       END DO
 C****
       call close_ijk
