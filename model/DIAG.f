@@ -2562,14 +2562,14 @@ C****
 !@+   every ABS(NSUBDD) hours.
 !@+   Current options: SLP, PS, SAT, PREC, QS, LCLD, MCLD, HCLD, PTRO
 !@+                    QLAT, QSEN, SWDN, SWUP, LWDN, STAUX, STAUY,
-!@+                    ICEF, SNOWD
+!@+                    ICEF, SNOWD, TCLD, SST, SIT
 !@+                    Z*, R*, T*  (on any fixed pressure level)
 !@+                    U*, V*, W*  (on any model level)
 !@+                    Ox*         (on any model level with chemistry)
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair,sha
-     *     ,lhe,rhow
+     *     ,lhe,rhow,undef
       USE MODEL_COM, only : lm,p,ptop,zatmo,dtsrc,u,v,focean,fearth
      *     ,flice
       USE GEOM, only : imaxj,dxyp
@@ -2577,11 +2577,12 @@ C****
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc
       USE DYNAMICS, only : ptropo,am,wsave
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
+     *     ,gtemp
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
       USE GHYCOM, only : snowe
-      USE RADNCB, only : trhr,srdn,salb
+      USE RADNCB, only : trhr,srdn,salb,cfrac
       USE DAGCOM, only : z_inst,rh_inst,t_inst,kgz_max,pmname
       IMPLICIT NONE
       REAL*4, DIMENSION(IM,JM) :: DATA
@@ -2610,6 +2611,26 @@ C**** simple diags
           end do
         case ("SAT")      ! surf. air temp (C)
           data=tsavg-tf
+        case ("SST")      ! sea surface temp (C)
+          do j=1,jm
+            do i=1,imaxj(j)
+              if (FOCEAN(I,J)+FLAKE(I,J).gt.0) then
+                data(i,j)=GTEMP(1,1,i,j)
+              else
+                data(i,j)=undef
+              end if
+            end do
+          end do
+        case ("SIT")      ! surface ice temp (C)
+          do j=1,jm
+            do i=1,imaxj(j)
+              if (RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J)).gt.0) then
+                data(i,j)=GTEMP(1,2,i,j)
+              else
+                data(i,j)=undef
+              end if
+            end do
+          end do
         case ("QS")       ! surf humidity (kg/kg)
           data=qsavg
         case ("PREC")     ! precip (mm/day)
@@ -2635,14 +2656,14 @@ C**** simple diags
           data=srdn*salb
         case ("LWDN")     ! thermal downward flux at surface (W/m^2)
           data=TRHR(0,:,:)
-        case ("ICEF")           ! ice fraction over open water
-          data=RSI
+        case ("ICEF")           ! ice fraction over open water (%)
+          data=RSI*100.
         case ("STAUX")          ! E-W surface stress (N/m^2)
           data=uflux1
         case ("STAUY")          ! N-S surface stress (N/m^2)
           data=vflux1
         case ("LCLD")           ! low level cloud cover (%)
-          data=0.
+          data=0.               ! Warning: these can be greater >100!
           do j=1,jm
             do i=1,imaxj(j)
               do l=1,llow
@@ -2651,8 +2672,8 @@ C**** simple diags
               data(i,j)=data(i,j)*100./real(llow,kind=8)
             end do
           end do
-        case ("MCLD")     ! mid level cloud cover (%)
-          data=0.
+        case ("MCLD")           ! mid level cloud cover (%)
+          data=0.               ! Warning: these can be greater >100!
           do j=1,jm
             do i=1,imaxj(j)
               do l=llow+1,lmid
@@ -2661,8 +2682,8 @@ C**** simple diags
               data(i,j)=data(i,j)*100./real(lmid-llow,kind=8)
             end do
           end do
-        case ("HCLD")     ! high level cloud cover (%)
-          data=0.
+        case ("HCLD")           ! high level cloud cover (%)
+          data=0.               ! Warning: these can be greater >100!
           do j=1,jm
             do i=1,imaxj(j)
               do l=lmid+1,lhi
@@ -2671,6 +2692,8 @@ C**** simple diags
               data(i,j)=data(i,j)*100./real(lhi-lmid,kind=8)
             end do
           end do
+        case ("TCLD")           ! total cloud cover (%) (As seen by rad)
+          data=cfrac*100.
         case ("PTRO")           ! tropopause pressure (mb)
           data = ptropo
         case default
