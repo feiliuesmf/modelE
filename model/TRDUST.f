@@ -228,22 +228,31 @@ c     prescribed AEROCOM dust emission
         dsrcflx=0D0
       ELSE
 
+#ifdef TRACERS_DUST
+
         dsrcflx=d_dust(i,j,n,jday)/Sday/dxyp(j)/ptype
 
+#else
 #ifdef TRACERS_MINERALS
       
         SELECT CASE(trname(n))
-        CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &        'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps')
+        CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar')
           n1=n-n_clayilli+1
+          dsrcflx=d_dust(i,j,1,jday)
+        CASE ('Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps')
+          n1=n-n_clayilli+1
+          dsrcflx=d_dust(i,j,2,jday)
         CASE ('Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps')
           n1=n-n_clayilli-4
+          dsrcflx=d_dust(i,j,3,jday)
         CASE ('Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
           n1=n-n_clayilli-9
+          dsrcflx=d_dust(i,j,4,jday)
         END SELECT
 
-        dsrcflx=dsrcflx*minfr(i,j,n1)
+        dsrcflx=dsrcflx*minfr(i,j,n1)/Sday/dxyp(j)/ptype
 
+#endif
 #endif
 
       END IF

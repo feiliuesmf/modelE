@@ -6438,15 +6438,15 @@ c**** Read input: EMISSION LOOKUP TABLE data
             endif
           enddo
 
-#ifdef TRACERS_MINERALS
-          CALL openunit('MINFR',io_data,.true.,.true.)
-          READ(io_data) (((minfr(i,j,k),i=1,Im),j=1,Jm),k=1,Mtrac)
-          CALL closeunit(io_data)
-#endif
         ELSE
           CALL stop_model
      &     ('Stopped in tracer_IC: parameter imDUST must be 0 or 1',255)
         END IF
+#ifdef TRACERS_MINERALS
+        CALL openunit('MINFR',io_data,.true.,.true.)
+        READ(io_data) (((minfr(i,j,k),i=1,Im),j=1,Jm),k=1,Mtrac)
+        CALL closeunit(io_data)
+#endif
         ifirst=.FALSE.
       END IF
 
@@ -7120,7 +7120,7 @@ C**** Apply chemistry and stratosphere overwrite changes:
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-c      CALL tracers_dust_old
+      CALL tracers_dust_old
 #endif
 
       return
