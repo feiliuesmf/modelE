@@ -1,7 +1,8 @@
+#include "rundeck_opts.h"
       SUBROUTINE cheminit
 !@sum cheminit initialize model chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p.f from model II)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23.f)
 !@calls jplrts,phtlst,inphot,wave,reactn
 c
 C**** GLOBAL parameters and variables:
@@ -35,9 +36,9 @@ C
  100  format(/3(50x,l1/),3(50x,i8/))
       read(iu_data,110)ay
 #ifdef SHINDELL_STRAT_CHEM
- 110  format(3(///10(a8)),(///5(a8)))
+ 110  format(5(///10(a8)),(///3(a8)))
 #else
- 110  format(5(///10(a8)),(///2(a8)))
+ 110  format(3(///10(a8)),(///5(a8)))
 #endif
       call closeunit(iu_data)
 C
@@ -87,7 +88,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE jplrts
 !@sum jplrts read/set up chemical reaction rates from JPL
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 !@calls lstnum
 c
 C**** GLOBAL parameters and variables:
@@ -161,7 +162,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE lstnum(at,ks)
 !@sum lstnum find molecule number in param list of molecules
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 c
 C**** GLOBAL parameters and variables:
 C
@@ -194,7 +195,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE phtlst
 !@sum phtlst read Photolysis Reactions and parameters
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 !@calls lstnum
 c
 C**** GLOBAL parameters and variables:
@@ -244,7 +245,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE reactn
 !@sum reactn read chemical and photochemical reaction lists
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 !@calls guide,printls
 c
 C**** GLOBAL parameters and variables:
@@ -271,7 +272,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE guide(npr,ndr,kpr,kdr,xx,nnn,ns,nre)
 !@sum guide read chemical and photochemical reaction lists
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 !@calls calcls
 C
 C**** GLOBAL parameters and variables:
@@ -306,7 +307,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE calcls(nn,ns,nnn,nns,ndr,kdr,nre)
 !@sum calcls Set up reaction lists for calculated gases (1 to ny)
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 C
 C Note: code could use more modernizations (e.g. the goto 5's):
 C
@@ -396,7 +397,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE printls
 !@sum printls print out some chemistry diagnostics (reaction lists)
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 C
 C**** GLOBAL parameters and variables:
 C
@@ -482,7 +483,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE wave
 !@sum wave Set up Wavelengths 200-730 nm, and O2 & O3 Cross Sections
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 C
 C**** GLOBAL parameters and variables:
 C
@@ -513,7 +514,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !@+   and standard O3 and T profiles and to set the appropriate reaction
 !@+   index.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 !@calls RD_TJPL,RD_PROF
 C
 C**** GLOBAL parameters and variables:
@@ -521,7 +522,7 @@ C
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: jfacta, jlabel,jppj
 #ifdef SHINDELL_STRAT_CHEM
-CCC                            ,MXFASTJ,MIEDX2,TITLEA,NAA
+     &                  ,MXFASTJ,MIEDX2,title_aer_pf,NAA
 #endif
 c
       IMPLICIT NONE
@@ -583,13 +584,16 @@ c Read in T & O3 climatology
 c
 #ifdef SHINDELL_STRAT_CHEM
 c  Ensure all aerosol types are valid selections
-c     do i=1,MXFASTJ
-c       write(6,1000) MIEDX(i),TITLEA(MIEDX(i))
-c       if(MIEDX(i).gt.NAA.or.MIEDX(i).le.0) then
-c         write(6,1200) MIEDX(i),NAA
-c         stop
-c       endif
-c     enddo
+      do i=1,MXFASTJ
+        write(6,1001) MIEDX2(i),title_aer_pf(MIEDX2(i))
+        if(MIEDX2(i).gt.NAA.or.MIEDX2(i).le.0) then
+          write(6,1201) MIEDX2(i),NAA
+          call stop_model('Problem in inphot.',255)
+        endif
+      enddo
+ 1001 format('Using Aerosol type: ',i2,1x,a)
+ 1201 format('Aerosol type ',i1,' unsuitable; supplied values must be',
+     $       ' between 1 and ',i1)
 #endif
       return
       end SUBROUTINE inphot
@@ -601,7 +605,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !@+   functions with temperature dependences. Current data originates
 !@+   from JPL'97.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 C
 C**** GLOBAL parameters and variables:
 C
@@ -610,6 +614,9 @@ C
      &                          PAA,zpdep,npdep,jpdep,lpdep,NS,TITLE0,
      &                          NW1,NW2,TITLEJ,JPPJ,jind,jlabel,jfacta,
      &                          title_aer_pf,QO2,QO3
+#ifdef SHINDELL_STRAT_CHEM
+     &                          ,SSA,RAA,NP
+#endif
 c
       IMPLICIT NONE
 c
@@ -665,12 +672,16 @@ C---Read remaining species:  X-sections at 2 T's
       READ(NJ1,'(A)') TITLE0
 c
 c---Pressure dependencies
+#ifdef SHINDELL_STRAT_CHEM
+      npdep=0
+#else
       read(NJ1,104) npdep
       do k=1,npdep
         read(NJ1,105) lpdep(k),(zpdep(iw,k),iw=1,nwww)
         write(6,201)  lpdep(k),(zpdep(iw,k),iw=1,nwww)
       enddo
       read(NJ1,'(A)') TITLE0
+#endif
 c
 c---Zero index arrays
       jind=0
@@ -681,9 +692,11 @@ C---Set mapping index
         do k=1,jppj
           if(jlabel(k).eq.titlej(1,j)) jind(k)=j
         enddo
+#ifndef SHINDELL_STRAT_CHEM
         do k=1,npdep
           if(lpdep(k).eq.titlej(1,j)) jpdep(j)=k
         enddo
+#endif
       enddo
       do k=1,jppj
         if(jfacta(k).eq.0.d0)
@@ -699,9 +712,26 @@ C---Set mapping index
       enddo
 c
 C---Read aerosol phase functions:
+#ifdef SHINDELL_STRAT_CHEM
+      read(NJ1,'(A10,I5,/)') TITLE0,NAA
+      if(NAA.gt.NP)then 
+        write(6,350) NAA
+        call stop_model('NAA too large in RD_TJPL',255)
+      endif
+      
+      NK=4        ! Fix number of wavelengths at 4
+      do j=1,NAA
+        read(NJ1,110) title_aer_pf(j)
+        do k=1,NK
+          read(NJ1,*) WAAFASTJ(k,j),QAAFASTJ(k,j),RAA(k,j),SSA(k,j),
+     &                (PAA(i,k,j),i=1,8)
+        enddo
+      enddo
+#else
       READ(NJ1,'(A10,I5)') TITLE0,NAA
       write(6,*)'Title0 is',Title0
       write(6,*)'NAA is',NAA
+
       DO J=1,NAA
         READ(NJ1,'(A5,I3,I2,14F5.0)') title_aer_pf(J),JJ,NK,
      $            (WAAFASTJ(K,J),QAAFASTJ(K,J),K=1,NK)
@@ -709,20 +739,28 @@ C---Read aerosol phase functions:
           READ(NJ1,'(8X,8F9.5)') (PAA(I,K,J), I=1,8)
         ENDDO
       ENDDO
+#endif   
       write(6,*) 'Aerosol phase functions & wavelengths'
       DO J=1,NAA
-      write(6,'(1x,A8,I2,A,9F8.1)')
-     $              title_aer_pf(J),J,'  wavel=',(WAAFASTJ(K,J),K=1,NK)
-      write(6,'(9x,I2,A,9F8.4)') J,'  Qext =',(QAAFASTJ(K,J),K=1,NK)
-      ENDDO
+        write(6,'(1x,A8,I2,A,9F8.1)')
+     $             title_aer_pf(J),J,'  wavel=',(WAAFASTJ(K,J),K=1,NK)
+        write(6,'(9x,I2,A,9F8.4)') J,'  Qext =',(QAAFASTJ(K,J),K=1,NK)
+      ENDDO   
 C--------
   101 FORMAT(8E10.3)
+#ifdef SHINDELL_STRAT_CHEM
+  102 FORMAT((10X,6E10.3)/(10X,6E10.3)/(10X,6E10.3))
+  103 FORMAT(A7,F3.0,6E10.3/(10X,6E10.3)/(10X,6E10.3))
+#else
   102 FORMAT(10X,7E10.3)
   103 FORMAT(A7,F3.0,7E10.3)
+#endif
   104 FORMAT(13x,i2)
   105 FORMAT(A7,3x,7E10.3)
+  110 format(3x,a20)
   200 format(1x,' x-sect:',a10,3(3x,f6.2))
   201 format(1x,' pr.dep:',a10,7(1pE10.3))
+  350 format(' Too many phase functions supplied; increase NP to ',i2)
       RETURN
       END SUBROUTINE RD_TJPL
 C
@@ -730,11 +768,16 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE rd_prof(nj2)
 !@sum rd_prof input T & O3 reference profiles, define Black Carbon prof.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 C
 C**** GLOBAL parameters and variables:
 C
-      USE TRCHEM_Shindell_COM, only: TITLE0, TREF, OREF, BREF
+      USE TRCHEM_Shindell_COM, only: TITLE0,
+#ifdef SHINDELL_STRAT_CHEM
+     & TREF2, OREF2, BREF2, ZZHT
+#else 
+     & TREF, OREF, BREF
+#endif
 c
       IMPLICIT NONE
 c
@@ -744,6 +787,9 @@ C
 !@var ia,i,m,l,lat,mon,ntlats,ntmons,n216 local dummy variables
       INTEGER, INTENT(IN) :: nj2
       integer ia, i, m, l, lat, mon, ntlats, ntmons, n216
+#ifdef SHINDELL_STRAT_CHEM
+      REAL*8 ofac, ofak
+#endif
 C
       READ(NJ2,'(A)') TITLE0
       WRITE(6,'(1X,A)') TITLE0
@@ -754,13 +800,43 @@ C
         READ(NJ2,'(1X,I3,3X,I2)') LAT, MON
         M = MIN(12, MAX(1, MON))
         L = MIN(18, MAX(1, (LAT+95)/10))
+#ifdef SHINDELL_STRAT_CHEM
+        READ(NJ2,'(3X,11F7.1)') (TREF2(I,L,M), I=1,41)
+        READ(NJ2,'(3X,11F7.4)') (OREF2(I,L,M), I=1,31)
+#else
         READ(NJ2,'(3X,11F7.1)') (TREF(I,L,M), I=1,41)
         READ(NJ2,'(3X,11F7.4)') (OREF(I,L,M), I=1,31)
+#endif
       ENDDO
-      do i=1,41
-        BREF(i)=10.d0*1.0d-11
-        if(i.gt.11) BREF(i)=0.d0
+C      
+#ifdef SHINDELL_STRAT_CHEM      
+c
+c  Extend climatology to 100 km
+      ofac=exp(-2.d5/ZZHT)
+      do i=32,51
+        ofak=ofac**(i-31)
+        do m=1,ntmons
+          do l=1,ntlats
+            oref2(i,l,m)=oref2(31,l,m)*ofak
+          enddo
+        enddo
       enddo
+      do l=1,ntlats
+        do m=1,ntmons
+          do i=42,51
+            tref2(i,l,m)=tref2(41,l,m)
+          enddo
+        enddo
+      enddo
+c
+c Approximate Black Carbon up to 10 km; surface 200 ng/m3  (Liousse et al)
+c Scale: 1 ng/m3 = 1.0d-15 g/cm3 (1.0d-11 g/m2/cm as BREF is in cm))
+      do i=1,6;  BREF2(i) =10.d0*1.0d-11; end do
+      do i=7,51; BREF2(i) =0.d0         ; end do
+#else
+      do i=1,11 ; BREF(i) =10.d0*1.0d-11; end do
+      do i=12,41; BREF(i) =0.d0         ; end do
+#endif
       return
  1000 format(1x,'Data: ',i3,' Lats x ',i2,' Months')
 C
