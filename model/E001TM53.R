@@ -84,6 +84,7 @@ O3trend=aug2003_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.1850-2050.Mar2002
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij
+MSU_wts=MSU.RSS.weights.data
 CO2_IC=CO2ijl_IC_Jan1_scale334_M23  !wofsy+B140TQaM9
 CO2_FOS_FUEL=CO2_sources/gcm_data/CO2FOS_MRL_4X5
 CO2_FERT=CO2_sources/gcm_data/CO2fert01_4X5

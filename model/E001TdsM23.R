@@ -114,6 +114,7 @@ O3trend=aug2003_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.1850-2050.Mar2002
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij.ext
+MSU_wts=MSU.RSS.weights.data
 !-----------------------------------------------
 MOLEC=chem_files/ds3ch4_moleculesE
 JPLRX=chem_files/gs_jpl00_trop_15_fix

@@ -77,6 +77,7 @@ O3trend=aug2003_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.1850-2050.Mar2002
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij.ext
+MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:
 E001M23 (ModelE1 (3.0) based on B402A - strat. version - 1950 conditions)

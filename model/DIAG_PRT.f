@@ -3186,12 +3186,13 @@ C**FREQUENCY BAND AVERAGE
 
 !@var ij_xxx non single-aij diagnostic names
       INTEGER :: ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
-     *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_fland,
-     *  ij_ntdsete, ij_dzt1, ij_albgv, ij_colh2o
+     *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_ntdsete,
+     *  ij_fland, ij_dzt1, ij_albgv, ij_colh2o !,ij_msu2,ij_msu3,ij_msu4
 
 !@var SENTDSE stand.eddy northw. transport of dry static energy * 16
 !@var TENTDSE trans.eddy northw. transport of dry static energy * 16
-      REAL*8, DIMENSION(IM,JM) :: SENTDSE,TENTDSE
+!@var TMSU2-4 MSU channel 2-4 temperatures (C)
+      REAL*8, DIMENSION(IM,JM) :: SENTDSE,TENTDSE, TMSU2,TMSU3,TMSU4
 
       contains
 
@@ -3386,6 +3387,24 @@ c
       lname_ij(k) = 'PRECIPITABLE WATER'
       units_ij(k) = 'cm'
 
+      k = k + 1
+      ij_msu2 = k
+      name_ij(k) = 'Tmsu_ch2'
+      lname_ij(k) = 'MSU-channel 2 TEMPERATURE'
+      units_ij(k) = 'C'
+
+      k = k + 1
+      ij_msu3 = k
+      name_ij(k) = 'Tmsu_ch3'
+      lname_ij(k) = 'MSU-channel 3 TEMPERATURE'
+      units_ij(k) = 'C'
+
+      k = k + 1
+      ij_msu4 = k
+      name_ij(k) = 'Tmsu_ch4'
+      lname_ij(k) = 'MSU-channel 4 TEMPERATURE'
+      units_ij(k) = 'C'
+
 c Check the count
       if (k .gt. kaijx) then
         write (6,*) 'Increase kaijx=',kaijx,' to at least ',k
@@ -3545,7 +3564,7 @@ c**** ratios (the denominators)
 
 c**** compound quantities defined with their attributes (k > kaij)
 c****
-      iwt = iw_all ; igrid = 1; jgrid = 1 ; irange = ir_pct    ! defaults
+      iwt = iw_all ; igrid = 1; jgrid = 1 ; irange = ir_pct   ! defaults
       name  = name_ij(k)
       lname = lname_ij(k) ; units = units_ij(k)
 
@@ -3627,7 +3646,7 @@ c**** ratios: albedos from reflected radiation
         end do
         end do
 
-c**** precomputed fields: northward tranports by eddies
+c**** precomputed fields: northward tranports by eddies, Tmsu
       else if (k.eq.ij_ntdsese) then                   ! standing eddies
         byiacc=1./(idacc(ia_ij(ij_dsev))+teeny)   ; irange = ir_m95_265
         anum=SENTDSE*(byiacc*scale_ij(ij_dsev))  ;  igrid = 2; jgrid = 2
@@ -3637,6 +3656,15 @@ c**** precomputed fields: northward tranports by eddies
         byiacc=1./(idacc(ia_ij(ij_dsev))+teeny)   ; irange = ir_m1_3
         anum=TENTDSE*(byiacc*scale_ij(ij_dsev))  ;  igrid = 2; jgrid = 2
         isumz = 1 ; isumg = 2
+
+      else if (k.eq.ij_msu2) then                   ! T_msu_ch2
+        anum=tmsu2  ; igrid = 2; jgrid = 2 ; irange = ir_m80_28
+
+      else if (k.eq.ij_msu3) then                   ! T_msu_ch3
+        anum=tmsu3  ; igrid = 2; jgrid = 2 ; irange = ir_m80_28
+
+      else if (k.eq.ij_msu4) then                   ! T_msu_ch4
+        anum=tmsu4  ; igrid = 2; jgrid = 2 ; irange = ir_m80_28
 
 c**** group of kgz_max-1 thickness temperatures (from heights)
       else if (k.ge.ij_dzt1 .and. k.le.ij_dzt1+kgz_max-2) then
@@ -3856,6 +3884,8 @@ C**** Collect the appropriate weight-arrays in WT_IJ
         wt_ij(i,j,7) = fearth(i,j)*(1.-(vdata(i,j,1)+vdata(i,j,10)))
       end do
       end do
+C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)
+      call diag_msu
 C**** CACULATE STANDING AND TRANSIENT EDDY NORTHWARD TRANSPORT OF DSE
       SENTDSE = 0
       TENTDSE = 0
@@ -5381,3 +5411,133 @@ C**** write the binary file
  101  FORMAT (5X,I3,7X,6F5.1)
 
       end subroutine diag_isccp
+
+      subroutine diag_msu
+!@sum diag_msu computes MSU channel 2,3,4 temperatures as weighted means
+!@auth Reto A Ruedy (input file created by Makiko Sato)
+      use filemanager
+      USE CONSTANT
+      USE DAGCOM
+      USE MODEL_COM
+      USE BDIJ
+
+      implicit none
+
+      integer, parameter :: nmsu=200 , ncols=4
+      real*8 plbmsu(nmsu),wmsu(ncols,nmsu) ;  save plbmsu,wmsu
+      real*8 tlmsu(nmsu),tmsu(ncols,im,jm)
+      real*8 plb(0:lm+2),tlb(0:lm+2),tlm(lm)
+
+      integer i,j,l,n,ip1,iu_msu  ;           integer, save :: ifirst=1
+      real*8  ts,pland,dp
+
+      if(ifirst.eq.1) then
+c**** read in the weights file
+        call openunit('MSU_wts',iu_msu,.false.,.true.)
+        do n=1,4
+          read(iu_msu,*)
+        end do
+
+        do l=1,nmsu
+          read(iu_msu,*) plbmsu(l),(wmsu(n,l),n=1,ncols)
+        end do
+
+        call closeunit(iu_msu)
+        ifirst=0
+      end if
+
+c**** Collect temperatures and pressures (on the secondary grid)
+      do i=2,im
+        aij(i,1,ij_ts)=aij(1,1,ij_ts)
+        aij(i,jm,ij_ts)=aij(1,jm,ij_ts)
+      end do
+      do j=2,jm
+      i=IM
+      do ip1=1,im
+        ts=.25*(aij(i,j,ij_ts)+aij(i,j-1,ij_ts)+
+     +      aij(ip1,j,ij_ts)+aij(ip1,j-1,ij_ts))/idacc(ia_src)
+        pland=.25*(fland(i,j)+fland(i,j-1)+fland(ip1,j)+fland(ip1,j-1))
+        plb(lm+1)=pmtop
+        do l=lm,1,-1
+          dp=aijk(i,j,l,ijk_dp)
+          plb(l)=plb(l+1)+dp/idacc(ia_dga)
+          tlm(l)=ts
+          if(dp.gt.0.) tlm(l)=.25*aijk(i,j,l,ijk_t)/dp - tf
+        end do
+c**** find edge temperatures (assume continuity and given means)
+        tlb(0)=ts ; plb(0)=plbmsu(1) ; tlb(1)=ts
+        do l=1,lm
+           tlb(l+1)=2*tlm(l)-tlb(l)
+        end do
+        tlb(lm+2)=tlb(lm+1) ; plb(lm+2)=0.
+        call vntrp1 (lm+2,plb,tlb, nmsu-1,plbmsu,tlmsu)
+c**** find MSU channel 2,3,4 temperatures
+        tmsu(:,i,j)=0.
+        do l=1,nmsu-1
+          tmsu(:,i,j)=tmsu(:,i,j)+tlmsu(l)*wmsu(:,l)
+        end do
+        tmsu2(i,j)=(1-pland)*tmsu(1,i,j)+pland*tmsu(2,i,j)
+        tmsu3(i,j)=tmsu(3,i,j)
+        tmsu4(i,j)=tmsu(4,i,j)
+        i=ip1
+      end do
+      end do
+
+      return
+      end subroutine diag_msu
+
+      SUBROUTINE VNTRP1 (KM,P,AIN,  LMA,PE,AOUT)
+C**** Vertically interpolates a 1-D array
+C**** Input:       KM = number of input pressure levels
+C****            P(K) = input pressure levels (mb)
+C****          AIN(K) = input quantity at level P(K)
+C****             LMA = number of vertical layers of output grid
+C****           PE(L) = output pressure levels (mb) (edges of layers)
+C**** Output: AOUT(L) = output quantity: mean between PE(L-1) & PE(L)
+C****
+      implicit none
+      integer, intent(in) :: km,lma
+      REAL*8, intent(in)  :: P(0:KM),AIN(0:KM),    PE(0:LMA)
+      REAL*8, intent(out) :: AOUT(LMA)
+
+      integer k,k1,l
+      real*8 pdn,adn,pup,aup,psum,asum
+
+C****
+      PDN = PE(0)
+      ADN = AIN(0)
+      K=1
+C**** Ignore input levels below ground level pe(0)=p(0)
+      IF(P(1).GT.PE(0)) THEN
+         DO K1=2,KM
+         K=K1
+         IF(P(K).LT.PE(0)) THEN  ! interpolate to ground level
+           ADN=AIN(K)+(AIN(K-1)-AIN(K))*(PDN-P(K))/(P(K-1)-P(K))
+           GO TO 300
+         END IF
+         END DO
+         STOP 'VNTRP1 - error - should not get here'
+      END IF
+C**** Integrate - connecting input data by straight lines
+  300 DO 330 L=1,LMA
+      ASUM = 0.
+      PSUM = 0.
+      PUP = PE(L)
+  310 IF(P(K).le.PUP)  GO TO 320
+      PSUM = PSUM + (PDN-P(K))
+      ASUM = ASUM + (PDN-P(K))*(ADN+AIN(K))/2.
+      PDN  = P(K)
+      ADN  = AIN(K)
+      K=K+1
+      IF(K.LE.KM) GO TO 310
+      stop 'VNTRP1 - should not happen'
+C****
+  320 AUP  = AIN(K) + (ADN-AIN(K))*(PUP-P(K))/(PDN-P(K))
+      PSUM = PSUM + (PDN-PUP)
+      ASUM = ASUM + (PDN-PUP)*(ADN+AUP)/2.
+      AOUT(L) = ASUM/PSUM
+      PDN = PUP
+  330 ADN = AUP
+C****
+      RETURN
+      END subroutine vntrp1
