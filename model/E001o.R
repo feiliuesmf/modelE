@@ -25,9 +25,10 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM ! dynamic ocean modules
-OCNDYN OSTRAITS OCNGM OCNKPP ICEDYN    ! dynamic ocean routines
+OCNDYN OSTRAITS OCNGM OCNKPP           ! dynamic ocean routines
 ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                           ! ocean function look up table
+ICEDYN ICEDYN_DRV                   ! ice dynamics
 SNOW                                ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
@@ -35,16 +36,16 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.15
-OIC=OIC4X5LD.Z12.cor4.CLEV94.DEC01   ! ocean initial conditions
+AIC=DEC1958.rsfB394M12.modelE.15.ext
+OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01   ! ocean initial conditions
 OFTAB=OFTABLE_NEW               ! ocean function table
-AVR=AVR4X5LD.Z12.modelE         ! ocean filter
-KBASIN=KB4X513.OCN              ! ocean basin designations
-TOPO_OC=Z72X46N.cor4 ! ocean bdy.cond
-CDN=CD4X500S VEG=V72X46.1.cor
-SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
+AVR=AVR4X5LD.Z12.gas1.modelE         ! ocean filter
+KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
+TOPO_OC=Z72X46N_gas.1 ! ocean bdy.cond
+CDN=CD4X500S.ext VEG=V72X46.1.cor.ext
+SOIL=S4X50093.ext TOPO=Z72X46N_gas.1 ! bdy.cond
 REG=REG4X5           ! special regions-diag
-RVR=RD4X525.RVR      ! river direction file
+RVR=RD4X525.gas1.RVR      ! river direction file
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=kdist33.tautabs4
 RADN3=miescatpar.abcdv
