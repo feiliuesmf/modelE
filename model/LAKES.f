@@ -1187,6 +1187,14 @@ C**** simelt is given as kg, so divide by area
           TLAKE(I,J)=(HLK1*FLAKE(I,J)+ERUN0)/(MLDLK(I,J)*FLAKE(I,J)
      *         *RHOW*SHW)
           GTEMP(1,1,I,J)=TLAKE(I,J)
+          IF (MWL(I,J).gt.(1d-10+MLDLK(I,J))*RHOW*FLAKE(I,J)*DXYP(J))
+     *         THEN
+            GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*MLDLK(I,J)*RHOW
+     *           *FLAKE(I,J)*DXYP(J))/(SHW*(MWL(I,J)-MLDLK(I,J)
+     *           *RHOW*FLAKE(I,J)*DXYP(J)))
+          ELSE
+            GTEMP(2,1,I,J)=TLAKE(I,J)
+          END IF
 #ifdef TRACERS_WATER
           GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *         *DXYP(J))
