@@ -846,7 +846,7 @@ C**** accumulate river runoff diags (moved from ground)
               END IF
               JR=JREG(ID,JD)
 C****              AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+DMM
-              AREG_part(JR,1,JU)=AREG_part(JR,1,JU)+DMM
+              AREG_part(JR,1,JD)=AREG_part(JR,1,JD)+DMM
 C****              AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+DGM+DPE
               AREG_part(JR,2,JU)=AREG_part(JR,2,JU)+DGM+DPE
               AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) + DMM
