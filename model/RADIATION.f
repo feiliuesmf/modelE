@@ -6199,7 +6199,10 @@ C       ----------------------------------------------------------------
       DO 320 L=1,NL
       TRFCRL(L)=TRNFLB(L+1)-TRNFLB(L)
   320 CONTINUE
-      PFW=10.D0*TRUFTW
+
+C**** Window region and spectr. integrated total flux diagnostics
+      PFW=max( 1.0001d-2, 10.D0*TRUFTW )
+      IF(PFW.GT.629.999d0) PFW=629.999d0
       IPF=PFW
       IF(IPF.LT.10) GO TO 330
       DPF=PFW-IPF
@@ -6215,17 +6218,21 @@ C       ----------------------------------------------------------------
   340 CONTINUE
       PFW=10.D0*PFW
       IPF=PFW
-      IF(IPF.LT.1) IPF=1
+C     IF(IPF.LT.1) IPF=1
   350 CONTINUE
       BTEMPW=TKPFW(IPF)+DPF*(TKPFW(IPF+1)-TKPFW(IPF))
+
       DO 390 II=1,3
-      PFW=TOTLZF(II)
+      PFW=max( 1.d0, TOTLZF(II) )
+      IF(PFW.GT.899.999d0) PFW=899.999d0
       IPF=PFW
       DPF=PFW-IPF
-      IF(IPF.LT.1) IPF=1
-      IF(IPF.GT.899) IPF=899
+C     IF(IPF.LT.1) IPF=1
+C     IF(IPF.GT.899) IPF=899
       TOTLZT(II)=TKPFT(IPF)+DPF*(TKPFT(IPF+1)-TKPFT(IPF))
-      PFW=10.D0*WINDZF(II)
+
+      PFW=max( 1.0001d-2, 10.D0*WINDZF(II) )
+      IF(PFW.GT.629.999d0) PFW=629.999d0
       IPF=PFW
       IF(IPF.LT.10) GO TO 360
       DPF=PFW-IPF
