@@ -11,9 +11,9 @@ C**** Some helpful arrays (arrays should be L first)
 !@var  PDSIG  Surface pressure * DSIG(L) (mb)
       REAL*8, DIMENSION(LM,IM,JM) :: PDSIG
 !@var  AM  Air mass of each box (kg/m^2)
-!      REAL*8, DIMENSION(LM,IM,JM) :: AM     ! PLIJ*DSIG(L)*100/grav
+      REAL*8, DIMENSION(LM,IM,JM) :: AM     ! PLIJ*DSIG(L)*100/grav
 !@var  BYAM  1/Air mass (m^2/kg)
-!      REAL*8, DIMENSION(LM,IM,JM) :: BYAM
+      REAL*8, DIMENSION(LM,IM,JM) :: BYAM
 !@var  PMID  Pressure at mid point of box (mb)
       REAL*8, DIMENSION(LM,IM,JM) :: PMID    ! SIG(L)*PLIJ+PTOP
 !@var  PK   PMID**KAPA
