@@ -102,17 +102,17 @@ C**** OF FIRST LAYER.
 C****
       MODULE SLE001
 
-      USE CONSTANT, only : stbo,tfrz=>tf
+      USE CONSTANT, only : stbo,tfrz=>tf,sha,lhe
       IMPLICIT NONE
-      PRIVATE :: QSAT
       SAVE
       !INCLUDE 'soils45.COM'
       REAL*8 C
+      REAL*8 QSAT,DQSATDT
 c      REAL*8 STBO
       INTEGER NEXP
 c      PARAMETER (STBO=5.67032E-8)
       PARAMETER (NEXP=6)
-      PARAMETER (C=2.3025851)
+      PARAMETER (C=2.3025851d0)
 C**** INCLUDE FILE FOR SOILS45
       REAL*8 A1,A2,A3,AA,ABETA,ABETAB,ABETAD,ABETAP,ABETAT,ABETAV
      *     ,ACNA,ACNC,ADIFS,AEDIFS,AEPB,AEPC,AEPP,AERUNS,AERUNU
@@ -120,20 +120,20 @@ C**** INCLUDE FILE FOR SOILS45
      *     ,ALAI,ALAIC,ALAIE,ALAMA,ALAMBR,ALAMI,ALAMS,ALAMSN,ALAMW
      *     ,ALGDEL,ALHG,ALPH0,ALPH0O,ALPLS1,ARG,ARUNS,ARUNU,ASHG,ATRG
      *     ,BA,BETA,BETAB,BETAD,BETADL,BETAS,BETAT,BETAV,C1,CC,CH
-      REAL*8 CNA,CNC,CPFAC,D,D1,D2,DAY,DD,DEDIFS,DELH1,DELHN,DELT,DENOM
+      REAL*8 CNA,CNC,CPFAC,D,D1,D2,DAY,DD,DEDIFS,DELH1,DELHN,DENOM
      *     ,DFH,DFLUX,DFUNC,DIF,DIFF,DL,DLDZ2,DLM,DQDT,DR,DRNF,DRS,DT
-     *     ,DTM,DTM1,DTM2,DTPL,DTR,DTS,DZ,ED,EDELT,EDDY,EL0,ELH,EPB,EPC
+     *     ,DTM,DTM1,DTM2,DTPL,DTR,DTS,DZ,ED,EDDY,EL0,ELH,EPB,EPC
      *     ,EPEN,EPS,EVAP,EVAPD,EVAPS,EVAPW,F,FB,FBV,FD,FH,FICE,FICEC
-     *     ,FLMT,FM,FR,FRDN,FRUP,FSN,FTP,FUNC,FV,FW,GAA,GABC,GAMMA
+     *     ,FLMT,FM,FR,FRDN,FRUP,FSN,FTP,FUNC,FV,FW,GAA,GABC
       REAL*8 GCA,GM,H,H0,HCWT,HCWTA,HCWTB,HCWTI,HCWTW,HL,HLM,HMAT,HMIN
      *     ,HOUR,HS,HTC,HTPRS,HW,HZ,ONE,PEARTH,PFAC,PHASE,PM,PMAX,PR,PRE
      *     ,PRES,PRFAC,PRFR,PTMP,PTMPS,Q,Q1,QB,QC,QG,QK,QL,QLDT,QM1,QS
      *     ,QSO,RHO,RHO3,RNF,RNFF,RNFS,RS,S,SAT,SCNDS,SCS0,SCSIM,SCSRE
-     *     ,SDSTNC,SFV,SGMM,SHA,SHC,SHCC,SHI,SHTPR,SHV,SHW,SLA0,SLIM
+     *     ,SDSTNC,SFV,SGMM,SHC,SHCC,SHI,SHTPR,SHV,SHW,SLA0,SLIM
      *     ,SLRE,SNC,SNDP,SNK,SNKH,SNOWD,SNOWDU,SNOWF,SNOWFS,SNOWM,SNSH
-      REAL*8 SPGSN,SRHT,SRHT0,SVH,SXTN,T0,T450,TB0,TBCS,TC0,TCS,TEMP
+      REAL*8 SPGSN,SRHT,SRHT0,SVH,SXTN,T450,TB0,TBCS,TC0,TCS,TEMP
      *     ,TESTH,THETA,THETM,THETS,THM,THR,THR0,THR1,THR2
-     *     ,THRM,TOL,TP,TPC,TRUNC,TRHT,TS,TWOPI,U1,V1,VH,VSM,W,WC,WET1
+     *     ,THRM,TOL,TP,TPC,TRUNC,TRHT,TS,U1,V1,VH,VSM,W,WC,WET1
      *     ,WET2,WFC1,WFC2,WMIN,WS,XA,XB,XDEN,XI,XINFC,XK,XK1,XK2
      *     ,XKH,XKHM,XKL,XKLM,XKLU,XKU,XKU1,XKU2,XKUD,XL,XLTH,XLW,XNUM
      *     ,XS,XSH,XSHA,XTOL,XW,Z,ZB,ZC,Z1,ZERO,ZHTB,ZS,ZW
@@ -157,7 +157,7 @@ ccc WHO PUT I, J INTO GLOBAL VARIABLES !!???!!!%&*%
      & ,SNOWM
      & ,ID,IGCM
       COMMON/SPAR/THETA(0:NG,2),THETS(0:NG,2),F(0:NG,2)
-     & ,FH(0:NG,2),ZB(NG),ZC(NG),ZHTB,SB(33),SHW,SHI,FSN,ELH,SDSTNC,SHA
+     & ,FH(0:NG,2),ZB(NG),ZC(NG),ZHTB,SB(33),SHW,SHI,FSN,ELH,SDSTNC
      & ,SHV,SHC(0:NG,2),ALAMW,ALAMI,ALAMA,ALAMSN,ALAMBR,ALAMS(IMT-1)
      & ,XKH(NG,2),XKHM(NG,2),FR(NG),RNF(2),RNFF(NG,2),H(0:NG,2)
      & ,XK(0:NG,2),XINFC(2),SNK(0:NG,2),SNKH(0:NG,2),SHCLC,D(0:NG,2)
@@ -177,43 +177,43 @@ C     COMMON/WEIGHT/A(4,IMT-1),B(4,IMT-1),P(4,IMT-1)
       COMMON /CMHEAT/ THRM(2),SNSH(2),XLTH(2),ALTH(2)
       double precision, dimension(4,imt-1), parameter :: a=reshape(
      &     (/                  ! matric potential coefficients for
-     &     .2514,  0.0136, -2.8319,  0.5958,   ! sand
-     &     .1481,  1.8726,  0.1025, -3.6416,   ! loam
-     &     .2484,  2.4842,  0.4583, -3.9470,   ! clay
-     &     .8781, -5.1816, 13.2385,-11.9501/), ! peat
+     &     .2514d0,  0.0136d0, -2.8319d0,  0.5958d0,   ! sand
+     &     .1481d0,  1.8726d0,  0.1025d0, -3.6416d0,   ! loam
+     &     .2484d0,  2.4842d0,  0.4583d0, -3.9470d0,   ! clay
+     &     .8781d0, -5.1816d0, 13.2385d0,-11.9501d0/), ! peat
      &     (/4,imt-1/))
       double precision, dimension(4,imt-1), parameter :: b=reshape(
      &     (/                  ! conductivity coefficients for
-     &     -0.4910, -9.8945,  9.7976, -3.2211,   ! sand
-     &     -0.3238,-12.9013,  3.4247,  4.4929,   ! loam
-     &     -0.5187,-13.4246,  2.8899,  5.0642,   ! clay
-     &     -3.0848,  9.5497,-26.2868, 16.6930/), ! peat
+     &     -0.4910d0, -9.8945d0,  9.7976d0, -3.2211d0,   ! sand
+     &     -0.3238d0,-12.9013d0,  3.4247d0,  4.4929d0,   ! loam
+     &     -0.5187d0,-13.4246d0,  2.8899d0,  5.0642d0,   ! clay
+     &     -3.0848d0,  9.5497d0,-26.2868d0, 16.6930d0/), ! peat
      &     (/4,imt-1/))
       double precision, dimension(4,imt-1), parameter :: p=reshape(
      &     (/                  ! diffusivity coefficients for
-     &     -0.1800, -7.9999,  5.5685, -1.8868,   ! sand
-     &     -0.1000,-10.0085,  3.6752,  1.2304,   ! loam
-     &     -0.1951, -9.7055,  2.7418,  2.0054,   ! clay
-     &     -2.1220,  5.9983,-16.9824,  8.7615/), ! peat
+     &     -0.1800d0, -7.9999d0,  5.5685d0, -1.8868d0,   ! sand
+     &     -0.1000d0,-10.0085d0,  3.6752d0,  1.2304d0,   ! loam
+     &     -0.1951d0, -9.7055d0,  2.7418d0,  2.0054d0,   ! clay
+     &     -2.1220d0,  5.9983d0,-16.9824d0,  8.7615d0/), ! peat
      &     (/4,imt-1/))
       DIMENSION ARG(IMT-1)
       DIMENSION SAT(IMT-1)
-      DATA SAT/.394,.537,.577,.885/
+      DATA SAT/.394d0,.537d0,.577d0,.885d0/
       DIMENSION SNOWDU(2)
       DIMENSION XSHA(NG,2),XSH(NG,2),GABC(3),HCWT(IMT-1)
       DIMENSION QG(2),XK2(2),AK2(2)
       DIMENSION BETAS(2)
       DIMENSION RSAR(8),ALAMIN(8),ALAMAX(8),LADAY(8),AROOT(8),BROOT(8)
       DIMENSION VHGHT(8)
-      DATA AROOT/ 12.5,  0.9,  0.8, 0.25, 0.25, 0.25,  1.1,  0.9/
-      DATA BROOT/  1.0,  0.9,  0.4, 2.00, 2.00, 2.00,  0.4,  0.9/
-      DATA ALAMAX/ 1.5,  2.0,  2.5,  4.0,  6.0, 10.0,  8.0,  4.5/
-      DATA ALAMIN/ 1.0,  1.0,  1.0,  1.0,  1.0,  8.0,  6.0,  1.0/
+      DATA AROOT/ 12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0/
+      DATA BROOT/  1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0/
+      DATA ALAMAX/ 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0/
+      DATA ALAMIN/ 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0/
       DATA  LADAY/ 196,  196,  196,  196,  196,  196,  196,  196/
-      DATA   RSAR/100., 100., 200., 200., 200., 300., 250., 125./
-      DATA  VHGHT/ 0.1,  1.5,   5.,  15.,  20.,  30.,  25., 1.75/
+      DATA   RSAR/100d0, 100d0, 200d0, 200d0, 200d0, 300d0,250d0, 125d0/
+      DATA  VHGHT/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0/
       DIMENSION SHCAP(IMT)
-      DATA SHCAP/2.E6,2.E6,2.E6,2.5E6,2.4E6/
+      DATA SHCAP/2d6,2d6,2d6,2.5d6,2.4d6/
 
 ccc I hate to do it, but as a quick solution I declare snow variables
 ccc as global ones ...
@@ -221,7 +221,7 @@ ccc as global ones ...
       INTEGER ISN(2),NSN(2)
       REAL*8  DZSN(NLSN,2),WSN(NLSN,2),HSN(NLSN,2),TSN1(2),FR_SNOW(2)
       REAL*8  FLMLT(2),FHSNG(2),THRMSN(2),HESN(2),SNSHSN(2)
-      REAL*8  TBS, TCS, SNSHS
+      REAL*8  TBS, SNSHS
 
 ccc the following looks like diagnistic output
       REAL*8 ETBCS, ESNOWD, EZW, EWTR1, EICE1, ETP(0:NGM,2)
@@ -279,7 +279,7 @@ C**** SET UP SNOWD VARIABLES
 C**** FRACTION OF WET CANOPY FW
       FW=THETA(0,2)
 C**** DETERMINE FM FROM SNOWD DEPTH AND MASKING DEPTH
-      FM=1.-EXP(-SNOWD(2)/(SNOWM+1.E-12))
+      FM=1.-EXP(-SNOWD(2)/(SNOWM+1d-12))
 C**** CORRECT FRACTION OF WET CANOPY BY SNOW FRACTION
       FW=FW+FM*(1.-FW)
       FD=1.-FW
@@ -312,7 +312,7 @@ C     ALGDEL=ALOG(1.+ALPH0)
 C
       integer I,J
       ZERO=0.
-      XKUD=2.78E-5
+      XKUD=2.78d-5
       JCM=NINT(LOG(FLOAT(NTH))/LOG(2.))
       DO 600 IBV=1,2
       XK(N+1,IBV)=0.0
@@ -432,7 +432,7 @@ C SOLVE FOR ALPH0 IN S=((1+ALPH0)**N-1)/ALPH0
       ALPH0=1./8.
    10 ALPH0O=ALPH0
       ALPH0=(S*ALPH0+1.)**(1./NTH)-1.
-      IF(ABS(ALPH0O-ALPH0).GE.1.E-8) GO TO 10
+      IF(ABS(ALPH0O-ALPH0).GE.1d-8) GO TO 10
       ALPLS1=1.0+ALPH0
       ALGDEL=LOG(1.+ALPH0)
       DO 100 J=1,NTH
@@ -440,7 +440,7 @@ C SOLVE FOR ALPH0 IN S=((1+ALPH0)**N-1)/ALPH0
       DELHN=ALPLS1*DELHN
   100 CONTINUE
       MMAX=100
-      XTOL=1.E-6
+      XTOL=1d-6
       DO 200 I=1,IMT-1
       THM(0,I)=1.00
       DO 150 J=1,NTH
@@ -554,14 +554,6 @@ C**** SOILS28   Common block     9/25/90
       real*8 evap_max(2)
 ccc added declarations for local vars:
       real*8 QM1DT, XKF, TBS1, TCS1, qcv, qcs, epcs
-c      real*8 TX,PX,QSAT
-      real*8 qsat_dt, TX, PX
-C**** MIXING RATIO FOR GIVEN TEMPERATURE TX(C) AND PRESSURE PX(MB)
-!      QSAT(TX,PX)=.622 * 33.8639*( (0.00738*TX+0.8072)**8 -
-!     *               0.000019*ABS(1.8*TX+48)+0.001316 )/PX
-      qsat_dt(TX,PX) =
-     &             .622 * 33.8639*( 8.*0.00738*(0.00738*TX+0.8072)**7 -
-     &               0.000019*sign(1.8d0,1.8d0*TX+48.)  )/PX
 
       ZERO=0.
 ccc first compute maximal amount of water available for evaporation
@@ -575,7 +567,7 @@ ccc first compute maximal amount of water available for evaporation
       enddo
 C**** QM1 HAS MASS OF WATER VAPOR IN FIRST ATMOSPHERE LAYER, KG M-2
 ccc changing QM1 here is messy - may be fix later
-      IF(IGCM.EQ.-1) QM1=1.E+7
+      IF(IGCM.EQ.-1) QM1=1d+7
       QM1DT=.001*QM1/DT
 C CNA IS THE CONDUCTANCE OF THE ATMOSPHERE
       CNA=CH*VSM
@@ -600,18 +592,19 @@ ccc debugging!!! - trying to fix evaporation from snow
       ENDIF
       TBCS=FB*TBS1+FV*TCS1
 C CALCULATE BARE SOIL AND CANOPY MIXING RATIOS
-      QB = QSAT(TBS1,PRES)
-c     QC = QSAT(TCS1,PRES)
-      qcv = QSAT(TP(0,2),PRES)
-      qcs = QSAT(TSN1(2),PRES)
+      QB = QSAT(TBS1+TFRZ,LHE,PRES)
+c     QC = QSAT(TCS1+TFRZ,LHE,PRES)
+      qcv = QSAT(TP(0,2)+TFRZ,LHE,PRES)
+      qcs = QSAT(TSN1(2)+TFRZ,LHE,PRES)
+
       QC = FM*qcs + (1.-FM)*qcv
 C ON FIRST ITERATION, ASSUME BETA'S = 1
       BETAB=1.
       BETAV=1.
       IF(IGCM.GE.0 .AND. IGCM.LE.3)
      & QS=(FB*BETAB*CNA*QB+FV*BETAV*CNA*QC+XL*Q1)
-     & /(FB*BETAB*CNA+FV*BETAV*CNA+XL+1.E-12)
-      EPS=2.E-5
+     & /(FB*BETAB*CNA+FV*BETAV*CNA+XL+1d-12)
+      EPS=2d-5
 C BARE SOILS DIFFUSIVITY DD
       DD=D(1,1)
 C BETAD IS THE THE ROOT BETA FOR TRANSPIRATION.
@@ -654,7 +647,7 @@ C**** LIMIT THE WET CANOPY EVAPORATION TO CANOPY WATER
       EVAPW=MIN(EVAPW,W(0,2)/DT)
       EVAPD=(1.-FM)*EPC*FD
 C**** IF POSITIVE EVAPORATION, LIMIT DRY CANOPY EVAPORATION TO TRANS
-      BETAT=CNC/(CNC+CNA+1.E-12)
+      BETAT=CNC/(CNC+CNA+1d-12)
       EVAPD=MIN(EVAPD,EVAPD*BETAT)
       EVAPD = MIN( EVAPD, evap_max(2) )  ! limit to max amount of water
       ELSE
@@ -726,8 +719,10 @@ c     SNSH(2)=SHA*RHO*CNA*(TCS1-TS+TFRZ)
       SNSH(2)=SHA*RHO*CNA*(TP(0,2)-TS+TFRZ)
       snshs = SHA*RHO*CNA*(TSN1(2)-TS+TFRZ)
       snsh_dt = SHA*RHO*CNA
-      epb_dt = RHO3*CNA*qsat_dt(TBS1,PRES)
-      evaps_dt = RHO3*CNA*qsat_dt(TSN1(2),PRES)*FM
+      epb_dt = RHO3*CNA*qsat(TBS1+TFRZ,LHE,PRES)*DQSATDT(TBS1+TFRZ,LHE)
+      evaps_dt = RHO3*CNA*qsat(TSN1(2)+TFRZ,LHE,PRES)
+     *     *DQSATDT(TSN1(2)+TFRZ,LHE)
+
       RETURN
       END SUBROUTINE QSBAL
       SUBROUTINE FLG
@@ -773,7 +768,7 @@ C UPWARD FLUX FROM WET CANOPY, INCLUDING EVAPORATION FROM SNOW.
       PTMPS=PTMPS-EVAPW
       PTMP=PR-PRS-(SNOWF-SNOWFS)
 C USE EFFECTS OF SUBGRID SCALE PRECIPITATION TO CALCULATE DRIP
-      PM=1.E-6
+      PM=1d-6
       PMAX=FD*PM
       DRS=MAX(PTMPS-PMAX,ZERO)
       DR=DRS
@@ -904,7 +899,7 @@ C**** UNDERGROUND RUNOFF IS A SINK
    10 SNK(L,IBV)=RNFF(L,IBV)
 C**** REMOVE TRANSPIRED WATER FROM SOIL LAYERS
       DO 15 L=1,N
-   15 SNK(L,2)=SNK(L,2)+EVAPD*BETADL(L)/(BETAD+1.E-12)
+   15 SNK(L,2)=SNK(L,2)+EVAPD*BETADL(L)/(BETAD+1d-12)
 C**** INCLUDE EFFECTS OF SURFACE RUNOFF IN SINK FROM FIRST SOIL LAYERS
       DO 20 IBV=1,2
    20 SNK(1,IBV)=SNK(1,IBV)+RNF(IBV)
@@ -933,8 +928,8 @@ C**** TRUNC - FIX FOR TRUNCATION ON IBM MAINFRAMES
       !INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
       ZERO=0.
-      TRUNC=1.E-6
-      TRUNC=1.E-12
+      TRUNC=1d-6
+      TRUNC=1d-12
 ccc was 0 in older version - not sure if it is important
 ccc      TRUNC = 0.
 C PREVENT OVER/UNDERSATURATION OF LAYERS 2-N
@@ -1068,7 +1063,7 @@ C AT SATURATION TO .035 AT 0 WATER, FOLLOWING DEVRIES.
       integer I, J
       DO 2 IBV=1,2
       DO 2 L=1,N
-      GAA=.298*THETA(L,IBV)/(THETS(L,IBV)+1.E-6)+.035
+      GAA=.298*THETA(L,IBV)/(THETS(L,IBV)+1d-6)+.035
       GCA=1.-2.*GAA
       HCWTA=(2./(1.+BA*GAA)+1./(1.+BA*GCA))/3.
 C XW,XI,XA ARE THE VOLUME FRACTIONS.  DON'T COUNT SNOW IN SOIL LAYER 1
@@ -1244,7 +1239,7 @@ C**** SOILS28   Common block     9/25/90
       LL=2-IBV
       DO 10 L=LL,N
       TP(L,IBV)=0.
-      IF(W(L,IBV).GE.1.E-12)THEN
+      IF(W(L,IBV).GE.1d-12)THEN
          FICE(L,IBV)=-HT(L,IBV)/(FSN*W(L,IBV))
          ELSE
          FICE(L,IBV)=0.
@@ -1560,13 +1555,10 @@ C****
 C**** ACCUMULATES GCM DIAGNOSTICS
       !INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
-C**** MIXING RATIO FOR GIVEN TEMPERATURE TX(C) AND PRESSURE PX(MB)
-c      REAL*8 TX,PX,QSAT
-c      QSAT(TX,PX)=.622 * 33.8639*( (0.00738*TX+0.8072)**8 -
-c     *               0.000019*ABS(1.8*TX+48)+0.001316 )/PX
-C****
 C**** THE FOLLOWING LINES WERE ORIGINALLY CALLED BEFORE RETP,
 C**** RETH, AND HYDRA.
+      REAL*8 QSATS
+
       AERUNS=AERUNS+SHW*(FB*TP(1,1)*RNF(1)+FV*TP(1,2)*RNF(2))*DTS
       ADIFS=ADIFS-DTS*(F(2,1)*FB+F(2,2)*FV)
       DEDIFS=F(2,1)*TP(2,1)
@@ -1656,20 +1648,24 @@ C**** CALCULATION OF PENMAN VALUE OF POTENTIAL EVAPORATION, AEPP
       H0=FB*(SNSH(1)+XLTH(1))+FV*(SNSH(2)+XLTH(2))
 C     H0=-ATRG/DT+SRHT+TRHT
 CCC   H0=-THRM(2)+SRHT+TRHT
-      EL0=ELH*1.E-3
+      EL0=ELH*1d-3
       CNA=CH*VSM
       CPFAC=SHA*RHO*CNA
-      T0=TS-TFRZ
-      EDELT=100.*PRES*(QSAT(T0,PRES)-QS)/0.622
-      GAMMA=SHA*100.*PRES/(0.622*EL0)
-      IF(1.8*T0+48.0 .LT. 0.) THEN
-         DELT=33.8639*(8.*0.00738*(0.00738*T0+0.8072)**7.+0.000019*1.8)
-     *       *100.0
-      ELSE
-         DELT=33.8639*(8.*0.00738*(0.00738*T0+0.8072)**7.-0.000019*1.8)
-     *       *100.0
-      END IF
-      EPEN=(DELT*H0+CPFAC*EDELT)/(EL0*(DELT+GAMMA))
+C**** replaced by standard function
+c      T0=TS-TFRZ
+c      EDELT=100.*PRES*(QSAT(TS,LHE,PRES)-QS)/0.622
+c      GAMMA=SHA*100.*PRES/(0.622*EL0)
+c      IF(1.8*T0+48.0 .LT. 0.) THEN
+c         DELT=33.8639*(8.*0.00738*(0.00738*T0+0.8072)**7.+0.000019*1.8)
+c     *       *100.0
+c      ELSE
+c         DELT=33.8639*(8.*0.00738*(0.00738*T0+0.8072)**7.-0.000019*1.8)
+c     *       *100.0
+c      END IF
+c      EPEN=(DELT*H0+CPFAC*EDELT)/(EL0*(DELT+GAMMA))
+      QSATS=QSAT(TS,LHE,PRES)
+      DQDT = DQSATDT(TS,LHE)*QSATS
+      EPEN=(DQDT*H0+CPFAC*(QSATS-QS))/(EL0*DQDT+SHA)
       AEPP=EPEN*DT
       ABETAP=1.
       IF(AEPP.GT.0.)ABETAP=(AEVAPW+AEVAPD+AEVAPB)/AEPP
@@ -1741,15 +1737,17 @@ C**** SOILS28   Common block     9/25/90
 !      DIMENSION QG(2),XK2(2),AK2(2),AK3(2)
 !      DIMENSION BETAS(2)
       T450=450.
-      T0=TS-TFRZ
-      IF(1.8*T0+48.0 .LT. 0.) THEN
-         DELT=33.8639*(8.*0.00738*(0.00738*T0+0.8072)**7.+0.000019*1.8)
-     *       *100.0
-      ELSE
-         DELT=33.8639*(8.*0.00738*(0.00738*T0+0.8072)**7.-0.000019*1.8)
-     *       *100.0
-      END IF
-      DQDT=.622*DELT/(100.*PRES)
+C**** replaced with standard function
+c      T0=TS-TFRZ
+c      IF(1.8*T0+48.0 .LT. 0.) THEN
+c         DELT=33.8639*(8.*0.00738*(0.00738*T0+0.8072)**7.+0.000019*1.8)
+c     *       *100.0
+c      ELSE
+c         DELT=33.8639*(8.*0.00738*(0.00738*T0+0.8072)**7.-0.000019*1.8)
+c     *       *100.0
+c      END IF
+c      DQDT=.622*DELT/(100.*PRES)
+      DQDT=DQSATDT(TS,PRES)*QSAT(TS,LHE,PRES)
       QG(1)=QB
       QG(2)=QC
 C****
@@ -1760,7 +1758,7 @@ C**** FIRST CALCULATE TIMESTEP FOR WATER MOVEMENT IN SOIL.
       DO 30 L=1,N
       DLDZ2=MAX(DLDZ2,D(L,IBV)/DZ(L)**2)
    30 CONTINUE
-      DTM=SGMM/(DLDZ2+1.E-12)
+      DTM=SGMM/(DLDZ2+1d-12)
       IF(Q(4,1).GT.0.)DTM=MIN(DTM,T450)
       DTM1=DTM
       if ( DTM .lt. 0. ) call abort()
@@ -1771,7 +1769,7 @@ C**** NEXT CALCULATE TIMESTEP FOR HEAT MOVEMENT IN SOIL.
       XK1=XKH(L,IBV)
       AK1=(SHC(L,IBV)+((1.-FICE(L,IBV))*SHW+FICE(L,IBV)*SHI)
      & *W(L,IBV))/DZ(L)
-      DTM=MIN(DTM,.5*AK1*DZ(L)**2/(XK1+1.E-12))
+      DTM=MIN(DTM,.5*AK1*DZ(L)**2/(XK1+1d-12))
    40 CONTINUE
       DTM2=DTM
       if ( DTM .lt. 0. ) call abort()
@@ -1798,7 +1796,7 @@ C**** USE TIMESTEP BASED ON COEFFICIENT OF DRAG
      & + 8.*STBO*(TP(L,IBV)+TFRZ)**3
       AK2(IBV)=SHC(L,IBV)+((1.-FICE(L,IBV))*SHW+FICE(L,IBV)*SHI)
      & *W(L,IBV)
-      DTM=MIN(DTM,AK2(IBV)/(XK2(IBV)+1.E-12))
+      DTM=MIN(DTM,AK2(IBV)/(XK2(IBV)+1d-12))
       IF(IBV.EQ.1)DTM3=DTM
       IF(IBV.EQ.2)DTM4=DTM
 C
@@ -1985,7 +1983,7 @@ C**** OUTPUT:
 C**** ZW(2) - WATER TABLE FOR IBV=1 AND 2, M
       !INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
-      TOL=1.E-6
+      TOL=1d-6
       DO 100 IBV=1,2
 C**** FIND NON-SATURATED LAYER
       DO 10 L=N,1,-1
@@ -1997,7 +1995,7 @@ C**** RETRIEVE MATRIC POTENTIAL
 C     WRITE(6,*) 'ID,N,L,HMAT,IBV,XK(L,IBV)',ID,N,L,HMAT,IBV,XK(L,IBV)
       HMAT=H(L,IBV)-ZC(L)
 C**** CALCULATE DENOMINATOR, AND KEEP ZW ABOVE ZB(L+1)
-      IF(XK(L,IBV).LE.1.E-20) THEN
+      IF(XK(L,IBV).LE.1d-20) THEN
            DENOM=-2.*HMAT/DZ(L)
            GO TO 90
            END IF
@@ -2005,7 +2003,7 @@ C**** CALCULATE DENOMINATOR, AND KEEP ZW ABOVE ZB(L+1)
    90 CONTINUE
 C**** CALCULATE WATER TABLE
 C     WRITE(6,*) 'DENOM',DENOM
-      ZW(IBV)=ZB(L)-SQRT(-2.*HMAT*DZ(L)/(DENOM+1.E-20))
+      ZW(IBV)=ZB(L)-SQRT(-2.*HMAT*DZ(L)/(DENOM+1d-20))
   100 CONTINUE
       RETURN
       END SUBROUTINE WTAB
@@ -2021,14 +2019,6 @@ C**** GCM (I)TIME CAN BE EXAMINED, AS WELL AS GCM ID TO DETERMINE
 C**** WHETHER TO PRINT OUT.
       RETURN
       END SUBROUTINE OUTGH
-
-      FUNCTION QSAT(TX,PX)
-C**** MIXING RATIO FOR GIVEN TEMPERATURE TX(C) AND PRESSURE PX(MB)
-      REAL*8 TX,PX,QSAT
-      QSAT=.622 * 33.8639*( (0.00738*TX+0.8072)**8 -
-     *               0.000019*ABS(1.8*TX+48)+0.001316 )/PX
-      END FUNCTION QSAT
-
 
 C***********************************************************************
       SUBROUTINE SNWLSI(DT,ELH,FSN,EPOT,SNSH,SRHT,TRHT,PR,HTPR,XKTH,CTH,

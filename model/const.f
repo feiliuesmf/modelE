@@ -4,11 +4,6 @@
 !@ver  1.0
 !@cont ORBIT
 
-C**** Note that there are often two definitions used here: the one that
-C**** is current and the 'standard' definition to which we will move.
-C**** Note also some non-double precision numbers, temporarily for
-C**** consistency
-
 C**** Conventions: 'by' implies reciprocal, 'rt' implies square root
 
 C**** Numerical constants
@@ -36,7 +31,6 @@ C**** Physical constants
 
 !@param stbo Stefan-Boltzmann constant (W/m^2 K^4)
       real*8,parameter :: stbo =5.67051d-8 !current best estimate
-c      real*8,parameter :: stbo = 5.67032e-8
 
 !@param lhe   latent heat of evap at 0 C (J/kg)
 c**** lhe(T) = 2.5008d6 - 2.3d3 T (in C)
@@ -82,14 +76,12 @@ c**** For 10xCO2 M_A = 29.0129  => rgas = 286.58
       real*8,parameter :: mair = 28.9655d0
 !@param rgas gas constant (287.05 J/K kg)
       real*8,parameter :: rgas = 1d3 * gasc / mair ! = 287.05...
-c      real*8,parameter :: rgas = 287.
 
 !@param mwat molecular weight of water vapour
       real*8,parameter :: mwat = 18.015d0
 !@param rvap  gas constant for water vapour (461.5 J/K kg)
 c**** defined as R/M_W = 1000* 8.314510 J/mol K /18.015 g/mol
       real*8,parameter :: rvap = 1d3 * gasc / mwat ! = 461.5...
-c      real*8,parameter :: rvap = 461.5
 
 !@param mrat  mass ratio of air to water vapour (0.62197)
       real*8,parameter :: mrat = mwat/mair    ! = 0.62197....
@@ -99,7 +91,6 @@ c      real*8,parameter :: rvap = 461.5
 !@param kapa ideal gas law exponent  (.2862)
 c**** kapa = (g-1)/g where g=1.401 = c_p/c_v
       real*8,parameter :: kapa = (srat - 1.)/srat  ! =.2862....
-c      real*8,parameter :: kapa = .286d0
 !@param bykapa,bykapap1,bykapap2 various useful reciprocals of kapa
       real*8,parameter :: bykapa = 1./kapa
       real*8,parameter :: bykapap1 = 1./(kapa+1.)
