@@ -144,21 +144,9 @@ sinclude $(MODEL_DIR)/Rules.make
 #
 # extract list of modules from fortran files
 #
-# !!! only SGI, IBM and Linux(Absoft) are supported so far
-# !!! may cause problems when compiling gcmlib.a for DEC or Linux(non-Absoft)
-ifneq ($(FSRCS)empty,empty)
-ifneq ($(MACHINE),IBM)
-MODS = $(sort $(shell perl \
-	-e 'while(<>){ tr/a-z/A-Z/;'\
-	-e 'if(/^\s*module\s+(\w+)\s*$$/i) {print "$$1.mod ";} };' \
-	$(FSRCS)))
-else
-MODS = $(sort $(shell perl \
-	-e 'while(<>){ tr/A-Z/a-z/;'\
-	-e 'if(/^\s*module\s+(\w+)\s*$$/i) {print "$$1.mod ";} };' \
-	$(FSRCS)))
-endif
-endif
+MODS = $(shell perl \
+	-e 'while(<>){ push @a, /(\S+\.mod)\s*:/gi; } print join " ",@a;' \
+	$(DEPENDFILE) )
 
 #########             TARGETS               ########
 
