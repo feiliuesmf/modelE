@@ -78,7 +78,7 @@ C**** Fill in USURF,VSURF at poles (Shouldn't this be done already?)
       USURF(I,JM)=USURF(1,JM)*COSI(I)+VSURF(1,JM)*SINI(I)
    60 VSURF(I,JM)=VSURF(1,JM)*COSI(I)-USURF(1,JM)*SINI(I)
 C**** Calculate RHO(I,J,L)
-      DO L=1,LS1-1  ! LTM
+      DO L=1,LS1-1
       DO J=1,JM
       DO I=1,IMAXJ(J)
         RHO(I,J,L)=   BYRGAS*(P(I,J)*SIG(L)+PTOP)/(T(I,J,L)*PK(I,J,L))
@@ -325,7 +325,7 @@ C**** Do I need to put the common decalaration here also?
      *     ,rapvs
       USE DAGCOM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
-     &     ,jl_dudfmdrg,jl_sdifcoef,jl_dtdtsdrg
+     &     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst
       USE FILEMANAGER
       USE PARAM
       IMPLICIT NONE
@@ -809,9 +809,10 @@ C 985 FORMAT (1X,'L,N=',2I4,'  DWT=',1P,E12.3,'  UL,VL,WL=',
 C    *  3E12.3,'  DFT=',E12.3)
       IF (MRCH.NE.2) GO TO 390
         IF (N.LT.9) THEN
-         AJL(J,L,N+19)=AJL(J,L,N+19)+DUTN
+         AJL(J,L,N+JL_gwFirst)=AJL(J,L,N+JL_gwFirst)+DUTN
         ELSE
-         AJL(J,L,JL_DUDFMDRG)=AJL(J,L,JL_DUDFMDRG)+DUTN
+        !AJL(J,L,JL_DUDFMDRG)=AJL(J,L,JL_DUDFMDRG)+DUTN
+         AJL(J,L,JL_gwFirst)=AJL(J,L,JL_gwFirst)+DUTN
         ENDIF
   390 CONTINUE
   400 CONTINUE

@@ -25,7 +25,7 @@ C****                (L=1 is ground level)
 C****
 C**** Note: W(,,1) is really PIT, the pressure tendency, but is not used
 C****
-      USE MODEL_COM, only : im,jm,lm,sig,dsig,sige,psfmpt
+      USE MODEL_COM, only : im,jm,lm,sig,dsig,sige,psfmpt,byim
       USE GEOM, only : dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp
       USE DAGCOM, only : ajl,kajl,kep
       USE DAGPCOM, only : pl=>plm
@@ -38,7 +38,6 @@ c      COMMON /WORK1/ W(IM,JM,LM),WORKX(IM,JM,7*LM+3)
       REAL*8, INTENT(IN), DIMENSION(IM,JM) :: P
 
 C**** NOTE: AEP was a seperate array but is now saved in AJL (pointer?)
-!@var AEP accumulated E-P flux diagnostics
 c      REAL*8, DIMENSION(JM,LM,KEP) :: AEP
 
 C**** ARRAYS CALCULATED HERE:
@@ -82,17 +81,17 @@ C**** WI(J,L) ... ZONAL AVERAGE VERTICAL WIND (mb m2 s-1)
 C****
 C**** STB(J,L) ... DELTA THETA             (PRESSURE EDGES)
 C****
-      DO J=1,JM
-        DO L=2,LM
+      DO L=2,LM
+        DO J=1,JM
           STB(J,L) = TI(J,L)-TI(J,L-1)
           IF(STB(J,L).LT.1d-2) THEN
-CW       IF(STB(J,L).LT.1d-3)
+CW         IF(STB(J,L).LT.1d-3)
 CW   *     WRITE (*,*) 'STB < .001 AT J,L,STB:',J,L,STB(J,L)
             STB(J,L)=1d-2
           ENDIF
         END DO
-        STB(J,1)  = 1d-2
       END DO
+      STB(:,1)  = 1d-2
 C****
 C**** CORRELATIONS OF VARIOUS QUANTITIES
 C****
@@ -256,7 +255,7 @@ C****               (U-wind grid, level edges)  (m mb s-1)
      *         * (T(I,J-1,L-1)+T(I,J,L-1) - (TI(J-1,L-1)+TI(J,L-1)))
           I=IP1
         END DO
-        RX(J,L) = .25/IM * RX(J,L) *
+        RX(J,L) = .25*BYIM * RX(J,L) *
      *       (PL(L)-PL(L-1))/(STB(J-1,L)+STB(J,L))
       END DO
       END DO
@@ -435,7 +434,6 @@ C****
       USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
       IMPLICIT NONE
 C**** NOTE: AEP was a seperate array but is now saved in AJL (pointer?)
-!@var AEP accumulated E-P flux diagnostics
 c      REAL*8, DIMENSION(JM,LM,KEP) :: AEP
 
 c      COMMON /PROGCB/ U,V,T,SX,SY,SZ,P,Q   !not used?
@@ -666,7 +664,7 @@ CW      CALL WRITJL ('DUDT: TRANS-EULE',DUR,SCALEP)
 !@sum  AVGI average a 3-dimensional array in the x-direction
 !@auth B. Suozzo
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,lm
+      USE MODEL_COM, only : im,jm,lm,BYIM
       USE GEOM, only : imaxj
       IMPLICIT NONE
 
@@ -699,7 +697,7 @@ C****
           DO I=1,IM
             XXI = XXI + X(I,J,L)
           END DO
-          XI(J,L) = XXI/IM
+          XI(J,L) = XXI*BYIM
         END DO
       END DO
 C****

@@ -127,8 +127,8 @@ C****  14  FREE                                                    4 DA
 C****  15  FREE                                                    4 DA
 C****  16  (TH*SQRT(P)-THGM)**2/GMEAN(PR**(1-KAPA)*DTH/DPR)        4 DA
 C****  17  T-T0 (change of Th by dynamics)                         4 DA
-C****  18  DU/DT BY STRAT DEFORM DRAG (M/S)                        1 SD
-C****  19  PCLD*P (TOTAL)                                          1 CN
+C****  18  PCLD*P (TOTAL)                                          1 CN
+C****  19  DU/DT BY STRAT DEFORM DRAG (M/S)                        1 SD
 C****  20  DU/DT BY STRAT MTN DRAG (M S)                           1 SD
 C****  21  DU/DT BY STRAT SHR DRAG (M S)                           1 SD
 C****  22  DU/DT BY STRAT MC DRAG C=-10 (M/S)                      1 SD

@@ -2568,12 +2568,6 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
-      jl_dudfmdrg = k
-      name_jl(k) = 'dudt_dfmdrg' !'AJL18'
-      lname_jl(k) = 'DU/DT BY STRAT DEFORM DRAG'
-      units_jl(k) = 'M/S'
-c
-      k=k+1
       jl_totcld = k
       name_jl(k) = 'totcld' !'AJL19'
       lname_jl(k) = 'TOTAL CLOUD COVER' !'PCLD*P (TOTAL)'
@@ -2581,6 +2575,16 @@ c
       scale_jl(k) = 100.*BYIM
       ia_jl(k) = ia_rad
       jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_gwFirst = k   ! The next consececutive n are Gravity Wave
+      jl_dudfmdrg = k
+      name_jl(k) = 'dudt_dfmdrg' !'AJL18'
+      lname_jl(k) = 'DU/DT BY STRAT DEFORM DRAG'
+      units_jl(k) = '10**-6 M/S/S'
+      scale_jl(k) = 1.D6/(FIM*DTsrc)
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 2
 c
       k=k+1
       jl_dumtndrg = k
@@ -2595,43 +2599,58 @@ c
       jl_dushrdrg = k
       name_jl(k) = 'dudt_shrdrg'
       lname_jl(k) = 'DU/DT BY STRAT SHR DRAG'
-      units_jl(k) = 'M/S'
+      units_jl(k) = '10**-6 M/S/S'
+      scale_jl(k) = 1.D6/(FIM*DTsrc)
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 2
 c
       k=k+1
       jl_dumcdrgm10 = k
       name_jl(k) = 'dudt_mcdrgm10' !'AJL22'
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-10'
-      units_jl(k) = 'M/S'
+      units_jl(k) = '10**-6 M/S/S'
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 2
 c
       k=k+1
       jl_dumcdrgp10 = k
       name_jl(k) = 'dudt_mcdrgp10' !'AJL23'
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+10'
-      units_jl(k) = 'M/S'
+      units_jl(k) = '10**-6 M/S/S'
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 2
 c
       k=k+1
       jl_dumcdrgm40 = k
       name_jl(k) = 'dudt_mcdrgm40' !'AJL24'
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-40'
-      units_jl(k) = 'M/S'
+      units_jl(k) = '10**-6 M/S/S'
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 2
 c
       k=k+1
       jl_dumcdrgp40 = k
       name_jl(k) = 'dudt_mcdrgp40' !'AJL25'
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+40'
-      units_jl(k) = 'M/S'
+      units_jl(k) = '10**-6 M/S/S'
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 2
 c
       k=k+1
       jl_dumcdrgm20 = k
       name_jl(k) = 'dudt_mcdrgm20' !'AJL26'
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-20'
-      units_jl(k) = 'M/S'
-c
+      units_jl(k) = '10**-6 M/S/S'
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 2
+c Last of the Gravity Wave JL's
       k=k+1
       jl_dumcdrgp20 = k
       name_jl(k) = 'dudt_mcdrgp20' !'AJL27'
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+20'
-      units_jl(k) = 'M/S'
+      units_jl(k) = '10**-6 M/S/S'
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 2
 c
       k=k+1
       jl_sscld = k

@@ -330,7 +330,7 @@ C****      names, indices, units, idacc-numbers, etc.
      &    ,JL_dtdyn,JL_dudfmdrg,JL_totcld,JL_dumtndrg
      &    ,JL_dushrdrg,JL_dumcdrgm10,JL_dumcdrgp10,JL_dumcdrgm40
      &    ,JL_dumcdrgp40,JL_dumcdrgm20,JL_dumcdrgp20,JL_sscld
-     &    ,JL_mccld,JL_FREE30,JL_sdifcoef,JL_dudtsdif
+     &    ,JL_mccld,JL_FREE30,JL_sdifcoef,JL_dudtsdif,JL_gwFirst
      &    ,JL_dtdtsdrg,JL_FREE34,JL_FREE35,JL_epflxv
      &    ,JL_epflxn,JL_damdc,JL_dammc,JL_40
      &    ,JL_uepac,JL_vepac,JL_wepac,JL_uwpac
