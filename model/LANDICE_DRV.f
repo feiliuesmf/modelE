@@ -26,7 +26,7 @@ C****
 !@sum  PRECIP_LI driver for applying precipitation to land ice fraction
 !@auth Original Development team
 !@ver  1.0
-!@calls PRECLI
+!@calls LANDICE:PRECLI
       USE MODEL_COM, only : im,jm,flice,itlandi
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runoli,prec,eprec
@@ -88,7 +88,7 @@ C       AJ(J,J_ERUN1,ITLANDI)=AJ(J,J_ERUN1,ITLANDI)+ERUN0*PLICE ! (Tg=0)
 !@sum  GROUND_LI driver for applying surface fluxes to land ice fraction
 !@auth Original Development team
 !@ver  1.0
-!@calls LNDICE
+!@calls LANDICE:LNDICE
       USE MODEL_COM, only : im,jm,flice,itlandi
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runoli

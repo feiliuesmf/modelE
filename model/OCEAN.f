@@ -658,7 +658,6 @@ C****
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Original Development Team
 !@ver  1.0
-!@calls
       USE CONSTANT, only : rhow,shw
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,dxyp
@@ -722,7 +721,7 @@ C****
 !@sum  GROUND_OC driver for applying surface fluxes to ocean fraction
 !@auth Original Development Team
 !@ver  1.0
-!@calls OSOURC
+!@calls OCEAN:OSOURC
       USE CONSTANT, only : rhow,shw
       USE MODEL_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
      *     ,itoice

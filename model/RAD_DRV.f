@@ -280,6 +280,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 !@sum  init_RAD initialises radiation code
 !@auth Original Development Team
 !@ver  1.0
+!@calls RE001:RCOMP1
       USE CONSTANT, only : grav,bysha,twopi
       USE MODEL_COM, only : jm,lm,dsig,sige,psfmpt,ptop,dtsrc,nrad
       USE GEOM, only : dlat
@@ -402,7 +403,7 @@ C****
 !@sum  RADIA adds the radiation heating to the temperatures
 !@auth Original Development Team
 !@ver  1.0
-!@calls tropwmo, rcompt, rcompx, cosz, coszt
+!@calls tropwmo, RE001:rcompt, RE001:rcompx, RE001:writer, coszs, coszt
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo
       USE MODEL_COM
       USE GEOM

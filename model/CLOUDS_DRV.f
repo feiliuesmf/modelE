@@ -1,8 +1,8 @@
       SUBROUTINE CONDSE
 !@sum   CONDSE driver for moist convection AND large-scale condensation
-!@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
+!@auth  M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver   1.0 (taken from CB265)
-!@calls MSTCNV and LSCOND
+!@calls CLOUDS:MSTCNV,CLOUDS:LSCOND
 
       USE CONSTANT, only : bygrav,lhm,rgas,grav
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth

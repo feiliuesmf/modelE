@@ -11,7 +11,6 @@ C**** This file contains all SGI specific code
 
       FUNCTION RANDU (X)
 !@sum   RANDU calculates a random number based on the seed IX
-!@calls RAN
       REAL*8 X                       !@var X      dummy variable
       REAL*4 RAN                     !@fun RAN    SGI intrinsic func.
       REAL*8 :: RANDU                !@var RANDU  random number

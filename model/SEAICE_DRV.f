@@ -7,7 +7,7 @@
 !@sum  PRECIP_SI driver for applying precipitation to sea ice fraction
 !@auth Original Development team
 !@ver  1.0
-!@calls PRECSI
+!@calls seaice:prec_si
       USE CONSTANT, only : byshi,lhm
       USE MODEL_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
       USE GEOM, only : imaxj,dxyp
@@ -88,7 +88,7 @@ C****
 !@sum  GROUND_SI driver for applying surface fluxes to sea ice fraction
 !@auth Original Development team
 !@ver  1.0
-!@calls SEA_ICE
+!@calls SEAICE:SEA_ICE
       USE CONSTANT, only : lhm,byshi,rhow
       USE MODEL_COM, only : im,jm,dtsrc,fland,kocean,focean
      *     ,itoice,itlkice
@@ -204,7 +204,7 @@ C****
 !@sum  FORM_SI driver for adding new sea ice
 !@auth Original Development team
 !@ver  1.0
-!@calls SEA_ICE
+!@calls seaice:addice
       USE MODEL_COM, only : im,jm,focean,kocean,ftype,fland
      *     ,itocean,itoice,itlake,itlkice
       USE GEOM, only : imaxj,dxyp

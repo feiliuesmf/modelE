@@ -1025,10 +1025,8 @@ C**** CALCULATE OPTICAL THICKNESS
       REAL*8, INTENT(OUT) :: WMERR
       REAL*8 LHX,LHXUP
 
-      REAL*8, PARAMETER :: CM00=1.d-4
 !@param CM00 upper limit for autoconversion rate
-      REAL*8, PARAMETER :: WM0=.5d-3   !@param WM0
-      REAL*8, PARAMETER :: EPS=.622d0  !@param EPS
+      REAL*8, PARAMETER :: CM00=1.d-4
 
       REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
       REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
