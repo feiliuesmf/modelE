@@ -111,14 +111,31 @@ while(<I>) {
 close I;
 close IX;
 
+$new_style = 0;
+if ( `grep IFILE ./${runID}` =~ /IFILE/ ) { $new_style = 1; }
+
 ## running the model with dt=DTFIX until $taun
+if ( $new_style ) {
 print <<`EOC`;
     echo 'Trying automatic fixup' >> I
     mv $runID.PRT ERR.$runID.PRT.$date
     ./${runID} -r -i Ix -l $runID.PRT.dt$dt.$date
 EOC
+} else { ## hack for compatibility with older runs
+print <<`EOC`;
+    echo 'Trying automatic fixup' >> I
+    mv $runID.PRT ERR.$runID.PRT.$date
+    touch lock
+    ./${runID}ln
+    ./$runID.exe < Ix > $runID.PRT.dt$dt.$date; rc=\$?
+    ./${runID}uln
+    rm -f lock
+    exit \$rc
+EOC
+}
 
 $rcode = $? >> 8;
+
 if ( $rcode == 13 ) {
   exec "$EXECDIR/runE $runID $MP_SET_NUMTHREADS"; 
 } else {
