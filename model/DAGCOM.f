@@ -116,8 +116,8 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       DOUBLE PRECISION, DIMENSION(IM,JM,LM,KAIJL) :: AIJL
 
 !@param NWAV_DAG number of components in spectral diagnostics
-      INTEGER, PARAMETER :: NWAV_DAG=min(9,imh) 
-!@param KAJLSP number of spectral diagnostics   
+      INTEGER, PARAMETER :: NWAV_DAG=min(9,imh)
+!@param KAJLSP number of spectral diagnostics
       INTEGER, PARAMETER :: KAJLSP=3
 !@var AJLSP spectral diagnostics
       DOUBLE PRECISION, DIMENSION(JM,LM,0:NWAV_DAG,KAJLSP) :: AJLSP
@@ -130,14 +130,14 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       INTEGER, PARAMETER :: KWP=12
 !@var WAVE frequency diagnostics (wave power)
       DOUBLE PRECISION,
-     &     DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP) :: WAVE  
+     &     DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP) :: WAVE
 
 !@param KACC total number of diagnostic elements
       INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ
      *     + JM*KAPJ + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +
      *     IM*LM*KAIL + IM*JM*KAIJG + NEHIST*HIST_DAYS + JM*KCON +
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDLYVAR*NDLYPT
-     *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK + 
+     *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
      *     IM*JM*LM*KAIJK + IM*JM*LM*KAIJL + JM*LM*(1+NWAV_DAG)*KAJLSP
 
 c      COMMON /ACCUM/ AJ,BJ,CJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
@@ -277,8 +277,8 @@ c     &  AJK,AIJK,AIJL,AJLSP
 !@sum  io_diag reads and writes diagnostics to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite,iowrite_single,
-     *     irsfic,irerun,iowrite_mon
+      USE E001M12_COM, only : ioread,irerun,irsfic,        
+     *     iowrite,iowrite_mon,iowrite_single
       USE DAGCOM
       IMPLICIT NONE
 
