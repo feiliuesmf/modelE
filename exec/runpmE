@@ -76,7 +76,7 @@ open I,"I" or die "can't open file: I\n";
 
 $dt = 0;
 while(<I>) {
-  $dt = $1 if /\bDTFIX *= *(\d+)\b/;
+  $dt = $1 if /\bDTFIX *= *(\d+)\b/i;
   last if /^ *&&PARAMETERS/;
   }
 
@@ -91,6 +91,7 @@ if ( ! $date ) {
     `echo "Could not extract time/date from the restart files" >> $runID.PRT`;
     `echo "Will not restart" >> $runID.PRT`;
     `cat $runID.PRT | tail -100 | Mail -s $subj_msg $owner` if $owner;
+    exit;
 }
 
 $taun = $tau + 48;
