@@ -96,6 +96,7 @@ KSOLAR=2
 DT_XUfilter=180. ! Shapiro filter on U in E-W direction; usually same as DT (below)
 DT_XVfilter=180. ! Shapiro filter on V in E-W direction; usually same as DT (below)
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
+DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
 LMCM=26              ! max level of moist convection
 XCDNST=300.,10000.   ! strat. gw drag parameters

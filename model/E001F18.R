@@ -93,6 +93,7 @@ KSOLAR=2
 DT_XUfilter=200. ! Shapiro filter on U in E-W direction; usually same as DT (below)
 DT_XVfilter=200. ! Shapiro filter on V in E-W direction; usually same as DT (below)
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
+DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
 DT=200.,      ! from default: DTsrc=3600.,
 

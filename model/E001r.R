@@ -112,6 +112,7 @@ o3_yr=1979
 DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT
 DT_XVfilter=450. ! Shapiro filter on V in E-W direction; usually same as DT
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
+DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
          ! most other parameters are irrelevant
 NSUBDD=0            ! don't touch this line
