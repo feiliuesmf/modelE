@@ -1,3 +1,33 @@
+Major changes from version modelE-1-3-3
+=======================================
+
+- Advection of Q now done outside dynamics loop
+
+- tracer code for air mass and water mass tracers (uses preprocessing
+  directives set from the run deck)
+
+- parallelisation directives for atmospheric model
+
+- new sea ice albedo formulation using prognostic meltponds
+
+- changes to boundary layer cloud specifications
+
+- fix for mass fluxes over topography to prevent unrealistic
+  precipitation hotspots
+
+- Gary's ocean model now fully coupled (plug and play option)
+
+- Multiple vertical resolutions available
+
+- new interface for radiation to allow more control of greenhouse
+  gases, aerosols etc. from rundeck.
+
+- .modelErc file in home directory to set up a local distribution on
+  any machine
+
+- automatic compilation of online documentation for any particular
+  configuration. 
+
 Major Changes from Model II'
 ============================
 
@@ -96,4 +126,4 @@ New physics
   - lake temperature/ice cover are now predicted using a two layer
     energy/mass conserving model.
 
-  - Turbulence is now applied throughtout the atmosphere (ATURB.f).
+  - Turbulence can now be applied throughtout the atmosphere (ATURB.f).

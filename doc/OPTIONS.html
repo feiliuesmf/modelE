@@ -17,14 +17,16 @@ change to be effected. (i.e. 'gmake exe RUN=E001xyz')</p>
 
 <p>This is a brief list of the current options:</p>
 <ul>
-<li> Resolution (horizontal and vertical)
+<li> Example Resolutions (horizontal and vertical)
 
 <pre>
 RES_M12   ! 4x5 (medium resolution) 12 vertical layers 
-RES_M23:  ! 4x5 (medium resolution) 23 vertical layers (incl. stratosphere)
+RES_M16   ! 4x5 (medium resolution) 16 vertical layers (up to 0.3mb)
+RES_M23   ! 4x5 (medium resolution) 23 vertical layers (incl. stratosphere)
 </pre>
 
-<p>Other resolutions can be used as required. Note that these files
+<p>Other resolutions (sych as M16, M18, M20 with or without
+stratospheric code) can be used as required. Note that these files
 also contain some dummy routines that can be replaced by other options
 (see below).</p>
 
@@ -72,6 +74,7 @@ The deep diffusion Qflux model also requires: EDDY and TG3M<br>
 <pre>
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM !
 OCNDYN OSTRAITS OCNGM OCNKPP OCNFUNTAB ! - Russell Dynamic Ocean
+ODIAG_PRT                              ! 
 ICEDYN                                 !
 </pre>
 
@@ -115,8 +118,7 @@ FFT144: Suitable for IM=144 models
 
 <p>
 Tracers are implemented through a combination of 'plug and play' and user 
-routines.  Some tracer code is embedded in MAIN, INPUT, CONDSE, MSTCNV, 
-LSCOND, DIFFUS, DYNAM, DEF_ACC, DIAGCA, reset_DIAG, and io_rsf through the use 
+routines.  Some tracer code is embedded in the main model through the use 
 of pre-processing directives.  To activate the directives, change the 
 rundeck line: </p>
 <pre>
@@ -125,27 +127,39 @@ to
 #define TRACERS_ON                  ! include tracers code
 </pre>
 
-Also, 'plug in':
+Three preprocessing directives have been defined so far: TRACERS_ON is
+for all tracers, TRACERS_WATER is used if any tracers interact with
+the hydrologic cycle in the atmopshere/sea-ice/lakes and rivers, and
+TRACERS_OCEAN if tracer advection in the ocean is required (currently
+only functional with the the GISS OCEAN option).  Also, 'plug in':
 <pre>
-TRACER_COM TRACERS       ! trace gasses (depend on individual tracers)
-TQUS_DRV                 ! advection of trace gasses
-TRACER_PRT               ! tracer diagnostics
+TRACERS                             ! trace gases (generic)
+TRACER_COM TRACERS_Air              ! air mass tracers
+!TRACER_Water_COM TRACERS_Water     ! water mass tracers
+TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 </pre>
-<p>The plug-in code does not need pre-processing directives since it pertains 
-entirely to tracers.
-TQUS_DRV and TRACER_PRT were written to be independent of tracer type.
-For most users, only TRACER_COM and TRACERS need be changed.  The tracers in
-these routines are for illustrative purposes only.  However, the 'Air' tracer
-may prove useful as a diagnostic tool since it is designed to mimic the 
-movement of air mass.  The user is responsible for checking that tracer 
-subroutines are called at the appropriate times in MAIN for his purpose.
-Be sure to check that .f files with tracer directives start with
-#include "rundeck_opts.h"
-Tracers parameters that can be changed in the rundeck: </p>
-<pre>
+<p> 
+
+TRACERS, TRDIAG_COM and TRACER_PRT were written to be independent of
+tracer type.  For most users, only TRACER_COM and TRACERS_Air need be
+changed (a second example for water mass tracers can be run using the
+TRACER_Water_COM and TRACERS_Water modules). The tracers in these
+routines are for illustrative purposes only. However, the 'Air' and 'Water'
+tracers are very useful as diagnostic tools since they are designed to
+mimic the movement of air and water mass. The user is responsible for checking
+that tracer subroutines are called at the appropriate times in MAIN
+for his purpose.  Be sure to check that .f files with tracer
+directives start with #include "rundeck_opts.h" Tracers parameters
+that can be changed in the rundeck: </p> 
+
+<pre> 
 to_volume_MixRat=1: tracer concentration printout in volume mixing ratio
 to_volume_MixRat=0: tracer concentration printout in mass mixing ratio
 itime_tr0: the model time at which each tracer 'turns on'.</pre>
+</pre>
+
+<p> Note that tracer code involving the ocean needs the OCN_TRACER
+module, in addtion to those specified above.  </p>
 
 </ul>
 </BODY>

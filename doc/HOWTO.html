@@ -80,6 +80,7 @@ diagnostics</A></P>
      diagnostics</A>
 <LI><A HREF="#part2_4"> HOW-TO control the format of the binary output
      (i.e. GISS/netcdf/hdf etc.)</A>
+<LI><A HREF="#part2_5"> HOW-TO calculate a model score
 </OL>
 
 <P><A HREF="#part3">Part III: The model code</A></P>
@@ -111,6 +112,11 @@ diagnostics</A></P>
        everybody's versions</A>
 </OL>
 
+<P><A HREF="#appendix">Appendix: Some Technical details</A></P>
+<OL>
+  <LI><A HREF="#app_1"> HOW-TO create and manage cvs revisions</A>
+</OL>
+
 <P>Finally, CREDITS where CREDITS are due:
 <UL>
   <LI>For ongoing development (who to blame for the current shambles):<BR>
@@ -133,16 +139,17 @@ This is stored through the CVS revision control system, and copies can
 be checked-out to your home directory using the following commands:</p>
 <tt>
    export CVSROOT=/u/cmrun/cvs/repository<br>
-   cvs checkout -r modelE-1-1 modelE<br>
+   cvs checkout -r modelE-2 modelE<br>
    cd modelE<br>
    cvs tag -b your_tag_here<br>
    cvs update -r your_tag_here<br>
 </tt>
 
-<p>This will create a directory modelE/ in your directory. The code will
-correspond to modelE-1-1 - the current release. It will be tagged with your
-own tag name so that your developments can be maintained by CVS, without
-conflicting with the main development branch.</P>
+<p>This will create a directory modelE/ in your directory. The code
+will correspond to modelE-2. Please check to see if this is the
+latest release. It will be tagged with your own tag name so that your
+developments can be maintained by CVS, without conflicting with the
+main development branch.</P>
 
 <p>Please subscribe to the mailing list 'giss-gcm-users-l@giss.nasa.gov'
 by sending a message to Majordomo@giss.nasa.gov with a line</P>
@@ -170,10 +177,13 @@ The sub-directory 'decks' is the main control directory, most commands
 will be issued in this directory. Typing 'gmake' will produce some
 documentation.
 
-There are five sample rundecks: E001.R, E001A.R, E001B.R., E001D.R and
-E001M23.R. These represent a standard fixed SST atmosphere only run, a
-Qflux run, a coupled ocean-atmosphere run, a Qflux with deep diffusion
-run and a stratospheric model run, respectively.
+There are a number of sample rundecks in the model/ directory
+(E001*.R). These represent runs with the standard fixed SST atmosphere
+only run (E001.R), a Qflux run (E001A.R), a coupled ocean-atmosphere
+run (E001B.R), a varying SST (AMIP style) run (E001C.R), a Qflux with
+deep diffusion (E001D.R), a stratospheric model (E001M23.R), a tracer
+model (E001tr.R) etc. These should be used as templates for any runs
+you do.
 
 <OL>
    <LI> <A name="part1_1a"><b> How to select a rundeck name </b></A>
@@ -287,9 +297,9 @@ to set the model running for the specified length of the run.</p>
 
 <p> If you need to stop the run at any point, use the 'ssw E001xyz'
 command to do it in a controlled fashion (ensuring that all variables
-are saved correctly, and that no printout gets stuck in a
-buffer). using 'run E001xyz' subsequently picks up from where you left
-off. </p>
+are saved correctly, and that no printout gets stuck in a buffer).
+Using 'run E001xyz' subsequently picks up from where you left off.
+</p>
 
 <p> If you would like to update the executable (putting in new
 printout, or fixing an error etc.) without starting from 'setup' all
@@ -645,21 +655,22 @@ should either be commented out or adjusted for the local situation.</P>
 
 <p>The biggest problem will be if the machine you wish to run the code
 on has a different fortran compiler. Some variation has been fully
-allowed for (i.e. the standard SGI or IBM compilers) and some attempts
-have been made to accomodate the DEC version or a couple of Linux
-compilers, however, we do not have a stable test bed for these and
-therefore cannot guarantee they will work.</P>
+allowed for (i.e. the standard SGI or IBM compilers and Absoft
+Profortran on a Linux system) and some attempts have been made to
+accomodate the DEC version, however, we do not have a stable test bed
+for that and therefore cannot guarantee it works.</P>
 
 <p>General problems will arise due to arbitrary compiler decisions on
 what to name compiled module files (which affects the determination of
 the inter-routine dependencies). Edit model/Rules.make to fix this.
 The code is compilable without using the 'static' option, which
 removes many of the problems that used to occur. Most of the compiler
-dependent code (that we have discovered) can be found in the versions
-of RANDxyz.f. These involve system calls to the CPU clock, the
-calculation of pseudo-random numbers, and the setting of exit
-codes. We would be very interested in further compiler dependencies if
-found.</p>
+dependent code (that we have discovered) can be found in
+SYSTEM.f. These involve system calls to the CPU clock, the calculation
+of pseudo-random numbers, and the setting of exit codes. We would be
+very interested in further compiler dependencies if found. Different
+compilers are dealt with using preprocessor directives from the
+Makefile. </p>
 
 <p><A name="part1_13"><b>13) HOW-TO add to this documentation</b></a></p>
 
@@ -684,7 +695,7 @@ printout, or using the post-processing program, pdE.</p>
 suppresses the printout) the model will produce a $RUNID.PRT file
 which can contain copious amounts of diagnostic information. It is
 split into a number of sections: (see next question for a list). This
-is produced each month (but can be contrlled using the KDIAG switches
+is produced each month (but can be controlled using the KDIAG switches
 and NMONAV in the NAMELIST).</p>
 
   <li> <p>Post-processed output:</p>
@@ -709,8 +720,8 @@ and NMONAV in the NAMELIST).</p>
        and contain at least ${RUNID}ln  ${RUNID}uln  ${RUNID}.exe .
        The output files will end up in the PRESENT WORKING DIRECTORY which
        may be /u/cmrun/$RUNID or any other directory;
-       names and order of the inputfiles are irrelevant (as long as the format of the
-       files is compatible with the model ${RUNID}).  
+       names and order of the inputfiles are irrelevant (as long as the 
+       format of the files is compatible with the model ${RUNID}).  
        </p>
        
        <p>It is possible to use pdE to average acc-files from several runs,
@@ -736,6 +747,7 @@ for a period of 1-12 consecutive months).</p>
         monyear.il$RUNID longitude-height binary file
         monyear.ij$RUNID lat-lon binary file
         monyear.wp$RUNID Wave power binary file
+        monyear.oij$RUNID lat-lon binary file for ocean diagnostics
 </pre>
 <p>which can be read using the appropriate graphical software. </p>
 
@@ -836,6 +848,40 @@ executable (using 'gmake exe RUN=E001xyz').</p>
 <p>Other formats can be defined as you like with a suitable POUT_xyz.f
 file.</p>
 
+<p><A name="part2_5"><b>5) HOW-TO calculate a model score</b></a></p>
+
+<p>There is an RMS.f program in the aux/ directory which calculates a
+'score' for a model run based on the RMS difference with some selected
+observations.  It is compiled whenever the 'gmake aux RUN=....'
+command is run. Like CMPE001 or qc, it is technically model dependent
+(since it uses im,jm etc.), but in practice you will not need to
+recompile it for every version. The executable will be put into the
+RUNNAME_bin directory (i.e. for gmake aux RUN=E001xyz, the executable
+will be E001xyz_bin/RMS). Running RMS on its own gives its usage.</p>
+
+<p>You should produce diagnostic files over at least a five year mean. So
+for a particular run, use pdE to create the JAN and JUL averages</p>
+
+<pre>
+      cd E001xyz
+      pdE E001xyz JAN195[1-5].accE001xyz    # => JAN1951-1955.ijE001xyz
+      pdE E001xyz JAN195[1-5].accE001xyz    # => JUL1951-1955.ijE001xyz
+</pre>
+
+<p>Make sure that the TOPO file is linked:</p>
+
+<pre>
+      E001xyzln</pre>
+
+<p>and then run RMS</P>
+
+<pre>
+      ~/modelE/decks/E001xyz_bin/RMS E001xyz JAN1951-1955.ijE001xyz JUL1951-1955.ijE001xyz</pre>
+
+<p>This will create a file 'E001xyz' in the directory
+/u/cmrun/modelE/RMS, which you can compare with other existing versions.
+</P>
+
 <hr>
 <h3><A name="part3"><b>Part III: The model code</b></a></h3>
 
@@ -926,7 +972,7 @@ complications in keeping things straight.</p>
 can be retrieved at any time. So for minor modifications to the code
 (i.e. slightly different formulation of a particular term), go
 straight ahead and modify your version. Compare the results from that
-with the standard control run. As you extend your modifications, make
+with a standard control run. As you extend your modifications, make
 sure to 'commit' your changes at appropriate points (on your branch
 only) so that you can retrieve the code from any intermediate (but
 functional) point. </p>
@@ -989,7 +1035,7 @@ create, you should modify the <a href = "OPTIONS.html"> OPTIONS.html
 
   <li><A name="part3_5c"><b>C: Introducing a new parameter</b></a>
 
-<p>Only introduce a new parameter if you would like to be able to vary
+<p>Introduce a new parameter if you would like to be able to vary
 it's value at run time without recompiling the model (i.e. an
 adjustable parameter, or an option switch for instance). Firstly,
 decide who should own the parameter. That is likely to be one of the
@@ -1031,6 +1077,53 @@ module, insert a call to 'SET_CON' this sets up the points at which
 the diagnostic is called, and how it is output. (see init_DIAG for
 more detailed instructions). Thirdly, you must increase NQUANT by 1,
 and KCON by 2+number of points at which you are saving the value.</p>
+
+<p><b> Adding a new lat-lon diagnostic: </b> These are the most common
+diagnostics to add and are relatively straightforward. There are three
+components to a new AIJ diagnostic: the declaration, the definition,
+and the accumulation. Everything else is done automatically. First of
+all, define a variable in DIAG_COM.f which will be an index for this
+diagnostic such as ij_xyz (where xyz is some clear mnemonic for your
+new diagnostic). Secondly, in DEFACC.f (subroutine ij_defs), add a definiton: 
+<pre>
+      k=k+1 ! new diagnostic XYZ 
+      ij_xyz = k
+      lname_ij(k) = 'XYZ DIAGNOSTIC'
+      units_ij(k) = 'XYZ_UNIT'
+      name_ij(k) = 'XYZ'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+</pre>
+
+<p> The counter k ensures that each ij diagnostic has a unique index
+(which you don't need to know) which is set to the variable you
+previously defined. The lname and name are a long and short name
+strings which are used in TITLEs and 'get-by-name' code
+respectively. The units should be the units for the scaled output. The
+ia_ij index denots how often the diagnostic is accumulated (in this
+case once every source time step, although this can very depending on
+where in the code it is done).  </p>
+
+<p> The ij diagnostics can also be weighted (by surface type area,
+cloud amount, pressure etc.). This is signified by a string such as '
+x POICE' in the long name of the array for a variable weighting, or by
+setting iw_ij(k) for a fixed weighting. Look in ij_defs for
+examples.</p>
+
+<p> The ij diagnostics can optionally appear in the ascii printout as
+well as the binary output. For this to happen, you must set a
+'colorbar' for the pritnout by setting ir_ij to a suitable bar. Look
+at the LEGEND array in DIAG_COM.f for possible values. For the output
+to appear, you need to specifically ask for that to happen in
+DIAG_PRT.f. The array 'iord' in DIAGIJ defines all the ij
+printouts. You can either add to it (and make sure to increase the
+number of 'kmaplets' accordingly), or simply replace an existing
+maplet. </p>
+
+<p> Finally, put in the code that accumulates your chosen variable
+somewhere in the model. Make sure to USE the correct index from
+DAGCOM. Remember that all ij diagnostics will appear in the
+*.ijE001xyz file after using 'pdE'.</p>
 
 <p>Other diagnostics will be explained if and when we work them out.</P>
 
@@ -1244,6 +1337,40 @@ development team. If you wish to make a lot of changes and be part of
 the ongoing development of modelE, then please read the
 <a href="http://www.giss.nasa.gov/~gavin/gcm_develop.html">developers
 guide</a> and then come and talk to me (gavin@giss.nasa.gov).</p>
+
+<h3><A name="appendix">Appendix: Some Technical Notes</a></h3>
+
+<p><A name="app_1"><b>1) HOW-TO create and manage cvs revisions</b></a></p>
+
+<p> Every so often when the code is at a realtively stable stage, a
+revision will be declared and users will have access to any fixes/new
+physics/ etc. up to that point. This is done using (in the working
+directory):</p>
+<tt>
+   cvs tag modelE-x<br>
+</tt>
+
+<p> However, it sometimes happens that bugs are discovered that affect
+an already frozen version, but that upgrading to a new frozen version
+is impractical for some reason. Thus we will make an offshoot of the
+previously frozen version that only contains the fixes. This is done
+by checking out the latest frozen version (as outlined in <a
+href="#part1_1>Part I</a>). Use a branch name such as
+<tt>update-x</tt>. Once you are on the branch, make the fixes that you
+require and commit them. Then, declare a revision (with a suitable
+revision name).</b>
+ 
+<tt>
+   cvs tag modelE-x-1<br>
+</tt>
+
+<p> Now people should be able to update to the fixed release with
+little or no problems using (in their working dir.): </p>
+
+<tt>
+   cvs update -j modelE-x-1<br>
+</tt>
+
 
 </BODY>
 </HTML>
