@@ -136,6 +136,9 @@ c     real*8,parameter :: shv = 4.*rvap  ????
 !@var visc_air dynamic viscosity of air (kg/m s)
       real*8,parameter :: visc_air = 1.7d-5
 
+!@var visc_air_kin kinematic viscosity of air (m^2/ s)
+      real*8,parameter :: visc_air_kin = 1.46d-5
+
 !@var avog Avogadro's constant (atmos/mole)
       real*8,parameter :: avog=6.023d23
 
