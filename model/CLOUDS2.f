@@ -64,7 +64,6 @@ C**** Set-able variables
       integer, dimension(ntm) :: ntix
       integer ntx
 #endif
-      INTEGER,PARAMETER :: ncol =20    !@var ncol number of subcolumns
 
 C**** input variables
       LOGICAL DEBUG
@@ -80,7 +79,7 @@ C**** input variables
       REAL*8, DIMENSION(LM+1) :: PLE,LHP
       REAL*8, DIMENSION(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,WMX
      *     ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1
-     *     ,FSSL,FSUB,FCONV,FMCL,VLAT,DDMFLX
+     *     ,FSSL,FSUB,FCONV,FMCL,VLAT,DDMFLX,WTURB
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -101,6 +100,7 @@ C**** input variables
 !@var FSUB subsiding fraction
 !@var FMCL grid fraction for moist convection
 !@var VLAT dummy variable
+!@var WTURB turbulent vertical velocity (m)
       REAL*8, DIMENSION(LM+1) :: PRECNVL
 !@var PRECNVL convective precip entering the layer top
 C**** new arrays must be set to model arrays in driver (before MSTCNV)
@@ -125,7 +125,7 @@ C**** new arrays must be set to model arrays in driver (after MSTCNV)
 !@var AREWS and AREWM are moist cnv, and large scale Reff arrays (um)
 !@var CTTEM,CD3DL,CL3DL,SMLWP are cld temp, cld LWC, cld thickness, LWP
       REAL*8, DIMENSION(LM) ::CTEML,CD3DL,CL3DL,CDN3DL,CRE3DL
-      REAL*8 SMLWP 
+      REAL*8 SMLWP
 !@var SME is the TKE in 1 D from e(l) = egcm(l,i,j)  (m^2/s^2)
       REAL*8, DIMENSION(LM)::SME
       INTEGER NLSW,NLSI,NMCW,NMCI
@@ -201,8 +201,7 @@ C**** output variables
       REAL*8 AIRXL,PRHEAT
 !@var RNDSSL stored random number sequences
       REAL*8  RNDSSL(3,LM)
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 !@var prebar1 copy of variable prebar
       REAL*8 prebar1(Lm+1)
 #endif
@@ -230,12 +229,11 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,SME
      *  ,CTEML,CD3DL,CL3DL,SMLWP,CDN3DL,CRE3DL
 #endif
-     *  ,FSUB,FCONV,FSSL,FMCL
+     *  ,FSUB,FCONV,FSSL,FMCL,WTURB
 #ifdef CLD_AER_CDNC
      *  ,NLSW,NLSI,NMCW,NMCI
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      *  ,prebar1
 #endif
      *  ,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
@@ -423,19 +421,22 @@ c for sulfur chemistry
 !@param ITMAX max iteration index
 !@param CN0 constant use in computing FLAMW, etc
 !@param PN tuning exponential for computing WV
-      REAL*8,  PARAMETER :: CN0=8.d6,PN=1.d0
+!@param AIRM0 air mass used to compute convective cloud cover
+      REAL*8,  PARAMETER :: CN0=8.d6,PN=1.d0,AIRM0=100.d0
       REAL*8,  PARAMETER :: RHOG=400.,RHOIP=100.
       INTEGER,  PARAMETER :: ITMAX=50
 !@var FLAMW,FLAMG,FLAMI lamda for water, graupel and ice, respectively
 !@var WMAX specified maximum convective vertical velocity
-!@var WV convective vertical velocity
+!@var WV convetive vertical velocity
 !@var VT precip terminal velocity
 !@var DCW,DCG,DCI critical cloud particle sizes
 !@var FG, FI fraction for graupel and ice
 !@var FITMAX set to ITMAX
 !@var CONDMU convective condensate in Kg/m^3
+!@var TTURB, TRATIO, BYPBLM dummy variables
+!@var HPBL, PBLM PBL height (m) and air mass in PBL (mb)
       REAL*8 :: FLAMW,FLAMG,FLAMI,WMAX,WV,DCW,DCG,DCI,FG,FI,FITMAX,DDCW
-     *     ,VT,CONDMU
+     *     ,VT,CONDMU,HPBL,PBLM,TTURB,TRATIO,BYPBLM
       INTEGER K,L,N  !@var K,L,N loop variables
       INTEGER ITYPE  !@var convective cloud types
 !@var IERR,LERR error reports from advection
@@ -512,6 +513,19 @@ C**** SAVE ORIG PROFILES
       DT_SULF_MC(1:NTM,:)=0.
 #endif
 #endif
+C**** CALULATE PBL HEIGHT AND MASS
+      PBLM=0.
+      HPBL=0.
+      DO L=1,DCL
+      IF(L.LT.DCL) THEN
+         PBLM=PBLM+AIRM(L)
+         HPBL=HPBL+AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
+      ELSE
+         PBLM=PBLM+.5d0*AIRM(L)
+         HPBL=HPBL+.5d0*AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
+      END IF
+      END DO
+      BYPBLM=1.d0/PBLM
 C**** OUTER MC LOOP OVER BASE LAYER
       DO 600 LMIN=1,LMCM-1
       MAXLVL=0
@@ -650,6 +664,9 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       LHX=LHE
       MPLUME=MIN(AIRM(LMIN),AIRM(LMIN+1))
       IF(MPLUME.GT.FMP2) MPLUME=FMP2
+C                             ! WTURB=SQRT(.66666667*EGCM(L,I,J))
+      TTURB=HPBL/WTURB(LMIN)
+      IF(TTURB/DTsrc.GT.1.) MPLUME=MPLUME*DTsrc/TTURB
       IF(ITYPE.EQ.2) THEN
       FCTYPE=1.
       IF(MPLUME.GT.FMP0) FCTYPE=FMP0/MPLUME
@@ -961,7 +978,7 @@ C**** save plume temperature after possible condensation
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
       ELSE ! mixed phase
-        FG=(TP-TI)/(TF-TI)
+        FG=(TP-TF+40.)*0.025d0
         FI=1.-FG
         CONDIP=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
@@ -1272,16 +1289,16 @@ C**** diagnostics
 #ifdef TRACERS_ON
 C**** Subsidence of tracers by Quadratic Upstream Scheme
       DO N=1,NTX
-c        if (debug.and.n.eq.1) print*,"cld0",i_debug,ldmin,lmax
-c     *       ,DTMR(LDMIN:LMAX,N),DTM(LDMIN:LMAX,N)
-c        if (debug.and.n.eq.1) print*,"cld1",TM(LDMIN:LMAX,N)
+        if (debug.and.n.eq.1) print*,"cld0",i_debug,ldmin,lmax
+     *       ,DTMR(LDMIN:LMAX,N),DTM(LDMIN:LMAX,N)
+        if (debug.and.n.eq.1) print*,"cld1",TM(LDMIN:LMAX,N)
       ML(LDMIN:LMAX) =  AIRM(LDMIN:LMAX) +    DMR(LDMIN:LMAX)
       TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N)+DTMOMR(:,LDMIN:LMAX,N)
       call adv1d(tm(ldmin,n),tmom(1,ldmin,n), f(ldmin),fmom(1,ldmin),
      &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierrt,lerrt)
       TM(LDMIN:LMAX,N) = TM(LDMIN:LMAX,N) +   DTM(LDMIN:LMAX,N)
-c        if (debug .and.n.eq.1) print*,"cld2",TM(LDMIN:LMAX,N)
+        if (debug .and.n.eq.1) print*,"cld2",TM(LDMIN:LMAX,N)
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) +DTMOM(:,LDMIN:LMAX,N)
       ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
       END DO
@@ -1328,18 +1345,31 @@ C since a fraction (FCLW) of TRCOND was removed above.
      *                CDHM)*FMC1
       DO 540 L=LMAX-1,1,-1
       IF(PRCP.LE.0.) GO TO 530
-      FCLOUD=CCMUL*CCM(L)*BYAM(L+1)
-      IF(PLE(LMIN)-PLE(L+2).GE.450.) FCLOUD=CCMUL1*CCM(L)*BYAM(L+1)
-      IF(L.LT.LMIN) FCLOUD=CCMUL*CCM(LMIN)*BYAM(LMIN+1)
+C                             ! WTURB=SQRT(.66666667*EGCM(L,I,J))
+      TTURB=HPBL/WTURB(L)
+      TRATIO=TTURB/DTsrc
+      FCLOUD=CCMUL*CCM(L)*BYPBLM*TRATIO
+      IF(TRATIO.GT.1.) FCLOUD=CCMUL*CCM(L)*BYPBLM
+      IF(LMIN.GT.DCL) FCLOUD=CCMUL*CCM(L)/AIRM0
+      IF(PLE(LMIN)-PLE(L+2).GE.450.) FCLOUD=5.d0*FCLOUD
+      IF(L.LT.LMIN) THEN
+        FCLOUD=CCMUL*CCM(LMIN)*BYPBLM*TRATIO
+        IF(TRATIO.GT.1.) FCLOUD=CCMUL*CCM(LMIN)*BYPBLM
+        IF(LMIN.GT.DCL) FCLOUD=CCM(LMIN)/AIRM0
+      END IF
       IF(PLE(LMIN)-PLE(LMAX+1).LT.450.) THEN
-        IF(L.EQ.LMAX-1) FCLOUD=CCMUL2*CCM(L)*BYAM(L+1)
+        IF(L.EQ.LMAX-1) THEN
+          FCLOUD=CCMUL2*CCM(L)*BYPBLM*TRATIO
+          IF(TRATIO.GT.1.) FCLOUD=CCMUL2*CCM(L)*BYPBLM
+          IF(LMIN.GT.DCL) FCLOUD=CCMUL2*CCM(L)/AIRM0
+        END IF
         IF(L.LT.LMIN) FCLOUD=0.
       ENDIF
       IF(FCLOUD.GT.1.) FCLOUD=1.
       FEVAP=.5*CCM(L)*BYAM(L+1)
       IF(L.LT.LMIN) FEVAP=.5*CCM(LMIN)*BYAM(LMIN+1)
       IF(FEVAP.GT..5) FEVAP=.5
-      CLDMCL(L+1)=MIN(CLDMCL(L+1)+FCLOUD*FMC1,1d0)
+      CLDMCL(L+1)=CLDMCL(L+1)+FCLOUD*FMC1
       CLDREF=CLDMCL(L+1)
       IF(PLE(LMAX+1).GT.700..AND.CLDREF.GT.CLDSLWIJ)
      *  CLDSLWIJ=CLDREF
@@ -1391,8 +1421,8 @@ C**** (If 100% evaporation, allow all tracers to evaporate completely.)
       IF(FPRCP.eq.1.) THEN      !total evaporation
         DO N=1,NTX
           TM(L,N)   = TM(L,N)  + TRPRCP(N)
-c         if (debug .and.n.eq.1) print*,"cld2",L,TM(L,N),TRPRCP(N),2
-c     *         *FEVAP
+          if (debug .and.n.eq.1) print*,"cld2",L,TM(L,N),TRPRCP(N),2
+     *         *FEVAP
           TRPRCP(N) = 0.d0
         END DO
       ELSE ! otherwise, tracers evaporate dependent on type of tracer
@@ -1408,8 +1438,8 @@ C**** estimate effective humidity
           CALL GET_EVAP_FACTOR(N,TNX,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT
      *         ,ntix)
           TM(L,N) = TM(L,N)     + FPRCPT*TRPRCP(N)
-c          if (debug .and.n.eq.1) print*,"cld3",L,TM(L,N),FPRCP
-c     *         ,FPRCPT,TRPRCP(N)
+          if (debug .and.n.eq.1) print*,"cld3",L,TM(L,N),FPRCP
+     *         ,FPRCPT,TRPRCP(N)
           TRPRCP(N) = TRPRCP(N) - FPRCPT*TRPRCP(N)
         END DO
       END IF
@@ -1452,8 +1482,8 @@ cdmk GET_WASH now has gas dissolution, extra arguments
             TMFAC=0.
           ENDIF
           TM(L,N)=TM(L,N)*(1.-FWASHT)-THLAW
-c          if (debug .and.n.eq.1) print*,"cld4",L,TM(L,N),FWASHT
-c     *         ,THLAW
+          if (debug .and.n.eq.1) print*,"cld4",L,TM(L,N),FWASHT
+     *         ,THLAW
           TMOM(xymoms,L,N)=TMOM(xymoms,L,N) *
      &                (1.-FWASHT-TMFAC)
         END DO
@@ -1480,8 +1510,7 @@ C**** Isotopic equilibration of liquid precip with water vapour
 #endif
   540 CONTINUE
 C****
-      IF(PRCP.GT.0.) CLDMCL(1)=MIN(CLDMCL(1)+CCM(LMIN)*BYAM(LMIN+1)*FMC1
-     *     ,1d0)
+      IF(PRCP.GT.0.) CLDMCL(1)=CLDMCL(1)+CCM(LMIN)*BYAM(LMIN+1)*FMC1
       PRCPMC=PRCPMC+PRCP*FMC1
 #ifdef TRACERS_WATER
       TRPRMC(1:NTX) = TRPRMC(1:NTX) + TRPRCP(1:NTX)*FMC1
@@ -1623,7 +1652,7 @@ C**** -cooled rain, increasing COEFM enhances probability of snow.
       REAL*8, PARAMETER :: CM00=1.d-4, AIRM0=100.d0, GbyAIRM0=GRAV/AIRM0
       REAL*8, PARAMETER :: HEFOLD=500.,COEFM=10.,COEFT=2.5
       REAL*8, PARAMETER :: COESIG=1d-3,COEEC=1000.
-      INTEGER, PARAMETER :: ERP=2    
+      INTEGER, PARAMETER :: ERP=2
       REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
       REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
@@ -2438,8 +2467,7 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
         END IF
         WMX(L)=0.
       END IF
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       prebar1(l)=prebar(l)
 #endif
 C**** set phase of condensation for next box down
@@ -2709,7 +2737,7 @@ c    * SCDNCW,NLSW
       END DO
 #ifdef CLD_AER_CDNC
         SMLWP=WMSUM
-#endif 
+#endif
 
 C**** CALCULATE OPTICAL THICKNESS
       DO L=1,LP50
@@ -2735,23 +2763,23 @@ C**** CALCULATE OPTICAL THICKNESS
       DO L=1,LP50
 
        IF(LHX.EQ.LHE) CDN3DL=SCDNCW
-       IF(LHX.EQ.LHE) CRE3DL=RCLDE 
-       IF(LHX.EQ.LHS) CRE3DL=RCLDE 
+       IF(LHX.EQ.LHE) CRE3DL=RCLDE
+       IF(LHX.EQ.LHS) CRE3DL=RCLDE
        PRS = (PL(1)-PTOP)/SIG(1)
 
-       IF (L.GE.ls1) THEN                                       
-         PPRES = (SIG(L)*(PSF-PTOP)+PTOP)*9.869d-4 !in atm       
-         DPP= (SIGE(L+1)-SIGE(L))*(PSF-PTOP)*9.869d-4           
-         TEMPR=(TL(L)/PLK(L))*(SIG(L)*(PSF-PTOP)+PTOP)**KAPA         
-       ELSE                                                
-         PPRES = (SIG(L)*PRS+PTOP)*9.869d-4 !in atm    
-         DPP= (SIGE(L+1)-SIGE(L))*PRS*9.869d-4          
-         TEMPR=(TL(L)/PLK(L))*(SIG(L)*PRS+PTOP)**KAPA       
-       ENDIF                                                 
+       IF (L.GE.ls1) THEN
+         PPRES = (SIG(L)*(PSF-PTOP)+PTOP)*9.869d-4 !in atm
+         DPP= (SIGE(L+1)-SIGE(L))*(PSF-PTOP)*9.869d-4
+         TEMPR=(TL(L)/PLK(L))*(SIG(L)*(PSF-PTOP)+PTOP)**KAPA
+       ELSE
+         PPRES = (SIG(L)*PRS+PTOP)*9.869d-4 !in atm
+         DPP= (SIGE(L+1)-SIGE(L))*PRS*9.869d-4
+         TEMPR=(TL(L)/PLK(L))*(SIG(L)*PRS+PTOP)**KAPA
+       ENDIF
 
-       RHODK=PPRES/.082d0/TEMPR*28.97d0                                 
+       RHODK=PPRES/.082d0/TEMPR*28.97d0
        IF (CLDSSL(L).GT.0.d0) CL3DL(L)=WMX(L)*RHODK/CLDSSL(L)
-       CTEML(L)=TEMPR                                           
+       CTEML(L)=TEMPR
        D3DL(L)=DPP/PPRES*TEMPR/GRAV*0.082d0*101325.d0/1000.d0/0.029d0
        IF(CLDSSL(L).GT.0.d0) CD3DL(L)=-1.d0*D3DL(L)*CLDSAVL(L)/CLDSSL(L)
 c      write(6,*)"CT",D3DL(l),CD3DL(l),CLDSAVL(L),CLDSSL(L),L,DPP,
@@ -2761,7 +2789,7 @@ c      if(CTEML(L).gt.290.)write(6,*)"CE",CTEML(L),CD3Dl(L),CL3DL(L),L
 
       END DO
 
-#endif 
+#endif
 
       RETURN
       END SUBROUTINE LSCOND
@@ -2779,7 +2807,6 @@ C-----------------------------------------------------------------------
       USE CONSTANT, only : bygrav, wtmair=>mair, bymrat,avog
       USE RANDOM, only : rinit,rfinal,randu
       USE MODEL_COM, only : nlev=>lm,qcheck
-      USE CLOUDS, only : ncol
       implicit none
 !@var  overlap type: 1=max, 2=rand,  3=max/rand
 !@var  top_height 1 = adjust top height, that is compute infrared
@@ -2789,6 +2816,7 @@ C-----------------------------------------------------------------------
       INTEGER, PARAMETER :: top_height=1, overlap=3
 !@var  emsfc_lw    longwave emissivity of surface at 10.5 microns
       REAL*8, PARAMETER :: emsfc_lw=0.99d0
+      INTEGER,PARAMETER :: ncol =20    !@var ncol number of subcolumns
       REAL*8, PARAMETER :: byncol = 1d0/ncol
 !@var pc1bylam Planck constant c1 by wavelength (10.5 microns)
       REAL*8, PARAMETER :: pc1bylam = 1.439d0/10.5d-4
@@ -2877,7 +2905,6 @@ C-----------------------------------------------------------------------
       real*8, dimension(ncol) :: tau,tb,ptop,emcld,fluxtop,
      *     trans_layers_above
       real*8, parameter :: isccp_taumin = 0.1d0
-      real*8 :: randxx
 
       INTEGER  JERR
 
@@ -2991,7 +3018,6 @@ cc    CALL RFINAL(SEED)
 
         if (ilev.eq.1) then
           do ibox=1,ncol
-            randxx = randu(xx)
             ! if max overlap
             if (overlap.eq.1) then
               ! select pixels spread evenly
@@ -3002,7 +3028,7 @@ cc    CALL RFINAL(SEED)
               ! part the gridbox ( some will be converted into
               ! convective pixels below )
               threshold(ibox)=
-     *        cca(ibox,ilev)+(1-cca(ibox,ilev))*randxx
+     *        cca(ibox,ilev)+(1-cca(ibox,ilev))*randu(xx)
             endif
           enddo
         endif
@@ -3363,7 +3389,7 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
 C**** accumulate ptop/tauopt over columns for output
           if (itau.gt.1) then
             ctp   = ctp  +ptop(ibox)
-            tauopt=tauopt+ max(exp(-tau(ibox)),1d-16)
+            tauopt=tauopt+ exp(-tau(ibox))
             nbox = nbox + 1
           end if
         end if

@@ -28,10 +28,6 @@ C**** some arrays here for compatility with new clouds
 #ifdef CLD_AER_CDNC
 !@var OLDNO, OLDNL old CDNC for ocean and land ,SMFPM:CTEI parameter
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OLDNO,OLDNL,SMFPM
-!@var LWC,Cld depth, cld tem,N, Re, LWP for 3 hrly diag save  
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CL3D,CD3D,CTEM
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CDN3D,CRE3D
-      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: CLWP       
 #endif
 
 C**** variables saved for radiation calculations
@@ -66,19 +62,18 @@ C**** variables used (and saved) for gravity wave drag calculations
 !@+    run time
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID
       USE MODEL_COM, ONLY : IM,LM
       USE CLOUDS_COM, ONLY : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV,
      *                       CLDSAV1,FSS,
 #ifdef CLD_AER_CDNC
      *                       OLDNO,OLDNL,SMFPM,
-     *                       CL3D,CD3D,CTEM,CDN3D,CRE3D,CLWP,                       
 #endif
      *                       TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS,
      *                       ULS,VLS,UMC,VMC,TLS,QLS,
      *                       TMC,QMC,DDM1,AIRX,LMC
       IMPLICIT NONE
-      TYPE (DIST_GRID), INTENT(IN) :: grid
+      TYPE (DYN_GRID), INTENT(IN) :: grid
 
       INTEGER :: J_1H, J_0H
       INTEGER :: IER
@@ -98,12 +93,6 @@ C**** variables used (and saved) for gravity wave drag calculations
      *             OLDNO(LM,IM,J_0H:J_1H),
      *             OLDNL(LM,IM,J_0H:J_1H),
      *             SMFPM(LM,IM,J_0H:J_1H),
-     *             CTEM(LM,IM,J_0H:J_1H),
-     *             CD3D(LM,IM,J_0H:J_1H),
-     *             CL3D(LM,IM,J_0H:J_1H),
-     *             CDN3D(LM,IM,J_0H:J_1H),
-     *             CRE3D(LM,IM,J_0H:J_1H),
-     *             CLWP(IM,J_0H:J_1H),
 #endif
      *              TAUSS(LM,IM,J_0H:J_1H),
      *              TAUMC(LM,IM,J_0H:J_1H),
@@ -151,8 +140,6 @@ C**** Initialise some output used in dynamics
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
-      USE DOMAIN_DECOMP, only : AM_I_ROOT
-      USE DOMAIN_DECOMP, only : PACK_COLUMN, UNPACK_COLUMN
       USE CLOUDS_COM
       IMPLICIT NONE
 
@@ -162,57 +149,27 @@ C**** Initialise some output used in dynamics
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "CLD01"
-      REAL*8, DIMENSION(LM,IM,JM) :: TTOLD_glob,QTOLD_glob
-     &                              ,SVLHX_glob,RHSAV_glob,CLDSAV_glob
-#ifdef CLD_AER_CDNC
-           ,OLDNO_glob,OLDNL_glob,SMFPM_glob
-#endif
 
       write(MODULE_HEADER(lhead+1:80),'(a)')
      *'R8 dim(im,jm,lm):potT,Hum,LatHeat,RHum,CldCv,NO,NL,SM (all old)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output to standard restart file
-        CALL PACK_COLUMN(grid, TTOLD,  TTOLD_glob)
-        CALL PACK_COLUMN(grid, QTOLD,  QTOLD_glob)
-        CALL PACK_COLUMN(grid, SVLHX,  SVLHX_glob)
-        CALL PACK_COLUMN(grid, RHSAV,  RHSAV_glob)
-        CALL PACK_COLUMN(grid, CLDSAV, CLDSAV_glob)
+        WRITE (kunit,err=10) MODULE_HEADER,
+     *     TTOLD,QTOLD,SVLHX,RHSAV,CLDSAV
 #ifdef CLD_AER_CDNC
-        CALL PACK_COLUMN(grid, OLDNO, OLDNO_glob) 
-        CALL PACK_COLUMN(grid, OLDNL, OLDNL_glob) 
-        CALL PACK_COLUMN(grid, SMFPM, SMFPM_glob) 
+     *     ,OLDNO,OLDNL,SMFPM
 #endif
-        IF (AM_I_ROOT()) THEN
-          WRITE (kunit,err=10) MODULE_HEADER,
-     *       TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob
-#ifdef CLD_AER_CDNC
-     *       ,OLDNO_glob,OLDNL_glob,SMFPM_glob
-#endif
-        END IF
-
       CASE (IOREAD:)            ! input from restart file
-        if (AM_I_ROOT()) 
-     *  READ (kunit,err=10) HEADER,
-     *     TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob
+        READ (kunit,err=10) HEADER,
+     *     TTOLD,QTOLD,SVLHX,RHSAV,CLDSAV
 #ifdef CLD_AER_CDNC
-     *     ,OLDNO_glob,OLDNL_glob,SMFPM_glob
+     *     ,OLDNO,OLDNL,SMFPM
 #endif
         IF (HEADER(1:15).NE.MODULE_HEADER(1:15)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
-C***ESMF: Unpack global arrays into distributed local arrays.
-        CALL UNPACK_COLUMN(grid, TTOLD_glob , TTOLD , local=.false.)
-        CALL UNPACK_COLUMN(grid, QTOLD_glob , QTOLD , local=.false.)
-        CALL UNPACK_COLUMN(grid, SVLHX_glob , SVLHX , local=.false.)
-        CALL UNPACK_COLUMN(grid, RHSAV_glob , RHSAV , local=.false.)
-        CALL UNPACK_COLUMN(grid, CLDSAV_glob, CLDSAV, local=.false.)
-#ifdef CLD_AER_CDNC
-        CALL UNPACK_COLUMN(grid, OLDNO_glob , OLDNO , local=.false.)
-        CALL UNPACK_COLUMN(grid, OLDNL_glob , OLDNL , local=.false.)
-        CALL UNPACK_COLUMN(grid, SMFPM_glob , SMFPM , local=.false.)
-#endif
       END SELECT
 
       RETURN

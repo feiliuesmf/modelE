@@ -13,51 +13,47 @@
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,jyear,jmon
 #endif
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,GET
-      USE DOMAIN_DECOMP, only : CHECKSUM, NORTH,SOUTH
-      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN,CHECKSUM_COLUMN
-      USE DOMAIN_DECOMP, only : GLOBALSUM,AM_I_ROOT
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
       USE RANDOM
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
-#ifdef CLD_AER_CDNC 
+#ifdef CLD_AER_CDNC
      *     ,oldno,oldnl,smfpm
-     *     ,ctem,cd3d,cl3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1
      *     ,uls,vls,umc,vmc,tls,qls,tmc,qmc,ddm1,airx,lmc
-      USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc,
-     *     ajl=>ajl_loc,ail,adiurn,jreg,ij_pscld,
+      USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
-     &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,jl_mchphas,
-     *     jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui,
-     *     ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags,
-     *     ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,hdiurn,
-     *     ntau,npres,aisccp,isccp_reg,ij_precmc,ij_cldw,ij_cldi,
-     *     ij_fwoc,p_acc,ndiuvar,nisccp
-#ifdef CLD_AER_CDNC 
+     &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,jl_mchphas
+     *     ,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui
+     *     ,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags
+     *     ,ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,hdiurn,
+     *     ntau,npres,aisccp,isccp_reg
+#ifdef CLD_AER_CDNC
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
-     *     ,ij_3drwm,ij_3drws,ij_3drim,ij_3dris
 #endif
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname
 #ifdef TRACERS_WATER
      *     ,trwm,trw0,dowetdep
 #endif
+#ifdef TRACERS_HETCHEM
+     *     , n_SO4_d1, n_SO4_d2, n_SO4_d3, n_SO4_d4
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE LIGHTNING, only : RNOx_lgt
 #endif
-      USE TRDIAG_COM,only: tajln=>tajln_loc,jlnt_mc,jlnt_lscond,itcon_mc
+      USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
      *     ,itcon_ss
 #ifdef TRACERS_WATER
-     *     ,jls_prec,taijn=>taijn_loc,tajls=>tajls_loc,tij_prec
+     *     ,jls_prec,taijn,tajls,tij_prec
 #ifdef TRACERS_AEROSOLS_Koch
-     *     ,jls_incloud,taijs=>taijs_loc,ijts_aq
+     *     ,jls_incloud
 #endif
 #endif
       USE CLOUDS, only : tm,tmom ! local  (i,j)
@@ -77,26 +73,15 @@
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
      *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1
-     *     ,smommc,smomls,qmommc,qmomls,ddmflx,ncol
-#ifdef CLD_AER_CDNC 
-     *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
-     *     ,nlsw,nlsi,nmcw,nmci
-     *     ,oldcdo,oldcdl,smfpml
-     *     ,sme
-     *     ,cteml,cd3dl,cl3dl,cdn3dl,cre3dl,smlwp
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     *     ,prebar1
-#endif
-      USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
+     *     ,smommc,smomls,qmommc,qmomls,ddmflx,wturb
 #ifdef CLD_AER_CDNC
-     *     ,egcm
+     *     ,cdncws,cdncis,cdncwm,cdncim,oldcdo,oldcdl,smfpml
 #endif
+      USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo,dke
       USE SEAICE_COM, only : rsi
-      USE GHY_COM, only : snoage
+      USE GHYCOM, only : snoage
       USE LAKES_COM, only : flake
       USE FLUXES, only : prec,eprec,precss,gtemp
 #ifdef TRACERS_WATER
@@ -106,10 +91,6 @@
       use tracer_sources, only : avg_modPT
 #endif
       USE FILEMANAGER, only: openunit,closeunit
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      USE tracers_dust,ONLY : prelay
-#endif
       IMPLICIT NONE
 
 #ifdef TRACERS_ON
@@ -118,6 +99,12 @@
      *       dtr_mc(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm),
      *       dtr_ss(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm)
       INTEGER NX
+#ifdef TRACERS_AEROSOLS_Koch
+      real*8, save, dimension(im,jm) :: a_sulf=0. ,cc_sulf=0.
+      real*8 cm_sulft  !nu ,cm_sulf (? not defined/used, only redefined)
+      integer, save :: iuc_s
+      logical, save :: ifirst=.true.
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
 !@var Lfreeze Lowest level where temperature is below freezing (TF)
       INTEGER Lfreeze
@@ -151,7 +138,7 @@ c     *           ULS,VLS,UMC,VMC,TLS,QLS,TMC,QMC
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,ALPHAS
       REAL*8 :: DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV1,THV2,QG,TGV
       REAL*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG,SSTAB,DIFT,CSC
-     *     ,E,E1,ep,TSV,q0,q1,q2,WM1,WMI
+     *     ,E,E1,ep,TSV,q0,q1,q2
 !@var HCNDMC heating due to moist convection
 !@var PRCP precipitation
 !@var TPRCP temperature of mc. precip  (deg. C)
@@ -182,76 +169,26 @@ C        not clear yet whether they still speed things up
 Cred*                   end Reduced Arrays 1
       INTEGER ICKERR, JCKERR, JERR, seed, NR
       REAL*8  RNDSS(3,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
-CRKF...FIX
-      REAL*8  AJEQIL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
+      REAL*8  AJEQIL(J5N-J5S+1,IM,LM),
      *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
-      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      REAL*8  :: AJEQIL_SUM(IM,LM)
-      REAL*8, DIMENSION(
-     &        size(AREG,1), 3)  :: AREG_SUM
-      INTEGER :: ibox
-      REAL*8  :: randxx
-      REAL*8, DIMENSION(
-     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3 )
-     &        :: AREG_part
-
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUVAR, NDIUPT) :: hdiurn_part
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUVAR, NDIUPT) :: adiurn_part
-      INTEGER, PARAMETER :: n_idx1 = 5
-      INTEGER, PARAMETER :: n_idx2 = 3
-      INTEGER, PARAMETER :: n_idx3 = 6
-      REAL*8, DIMENSION(N_IDX3,grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUPT) :: hdiurn_temp
-      REAL*8, DIMENSION(N_IDX3,grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUPT) :: adiurn_temp
-      REAL*8, DIMENSION(N_IDX3, NDIUPT) :: HDIURNSUM, ADIURNSUM
-      INTEGER :: idx1(n_idx1), idx2(n_idx2), idx3(n_idx3)
-      REAL*8 :: tmp(NDIUVAR)
-      REAL*8, 
-     *  DIMENSION(ntau,npres,nisccp,grid%J_STRT_HALO:grid%J_STOP_HALO)::
-     *     AISCCP_part
-      REAL*8 :: AISCCPSUM(ntau,npres,nisccp)
-      INTEGER :: ii, ivar
-
-C**** Initialize
-      AJEQIL(:,:,:)=0.
-      hdiurn_part = 0
-      adiurn_part = 0
-      AISCCP_part = 0
-      idx1 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC /)
-      idx2 = (/ IDD_PR, IDD_ECND, IDD_SSP /)
-      idx3 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC, IDD_SSP /)
-
+      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0SG,J_1SG
 
 C**** define local grid
-      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
-     &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
-     &               J_STRT_HALO=J_0H,    J_STOP_HALO=J_1H,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE,
-     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE        )
+      J_0  =GRID%J_STRT
+      J_1  =GRID%J_STOP
+      J_0H =GRID%J_STRT_HALO
+      J_1H =GRID%J_STOP_HALO
+      J_0S =GRID%J_STRT_SKP
+      J_1S =GRID%J_STOP_SKP
+      J_0SG=GRID%J_STRT_STGR
+      J_1SG=GRID%J_STOP_STGR
 
 C
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
 C
-C     Burn some random numbers corresponding to latitudes off
-C     processor
-      DO J=1,J_0-1
-      DO I=1,IMAXJ(J)
-        DO L=LP50,1,-1
-          DO NR=1,3
-            randxx = RANDU(xx) ! burn
-          END DO
-        END DO
-      END DO
-      END DO
-
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         DO L=LP50,1,-1
@@ -262,23 +199,8 @@ C     processor
 C     Do not bother to save random numbers for isccp_clouds
       END DO
       END DO
-
-      DO J=J_1+1,JM
-      DO I=1,IMAXJ(J)
-        DO L=LP50,1,-1
-          DO NR=1,3
-            randxx = RANDU(xx) ! burn
-          END DO
-        END DO
-      END DO
-      END DO
-
 C     But save the current seed in case isccp_routine is activated
       if (isccp_diags.eq.1) CALL RFINAL(seed)
-C
-C**** UDATE HALOS of U and V FOR DISTRIBUTED PARALLELIZATION
-      CALL HALO_UPDATE(grid, U, from= NORTH)
-      CALL HALO_UPDATE(grid, V, from= NORTH)
 C
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
@@ -300,13 +222,13 @@ C**** COMPUTE ZONAL MEAN U AND V AT POLES
         VZM(2,L)=0.
       ENDDO
       DO L=1,LM
-        IF(HAVE_SOUTH_POLE) THEN
+        IF(GRID%HAVE_SOUTH_POLE) THEN
           DO I=1,IM
             UZM(1,L)=UZM(1,L)+UC(I,2,L)
             VZM(1,L)=VZM(1,L)+VC(I,2,L)
           ENDDO
         ENDIF
-        IF(HAVE_NORTH_POLE) THEN
+        IF(GRID%HAVE_NORTH_POLE) THEN
           DO I=1,IM
             UZM(2,L)=UZM(2,L)+UC(I,JM,L)
             VZM(2,L)=VZM(2,L)+VC(I,JM,L)
@@ -338,33 +260,24 @@ C**** MAIN J LOOP
 C****
        ICKERR=0
        JCKERR=0
-
-       ! Burn random numbers for earlier latitudes here.
-       ! Actuall generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
-      if (isccp_diags.eq.1) then
-       DO J = 1, J_0-1
-         DO I = 1, IMAXJ(J)
-           DO ibox = 1, NCOL*(LM+1)
-             randxx = RANDU(xx) ! burn random numbers
-           END DO
-         END DO
-       END DO
-      end if
 !$OMP  PARALLEL DO PRIVATE (
 #ifdef TRACERS_ON
 !$OMP*  NX,tmsave,tmomsv,
 #endif
-!$OMP*  tmp,ALPHAS,ALPHA1,ALPHA2,AT,BYDH1S,BYDH12, CC,CONV,CTP,
+!$OMP*  ALPHAS,ALPHA1,ALPHA2,AT,BYDH1S,BYDH12, CC,CONV,CTP,
 !$OMP*  DH1S,DH12,DTDZ,DTDZG,DTDZS,DUDZ,DUDZG,DUDZS,DVDZ,DVDZG,DVDZS,
 !$OMP*  DTAU_S,DTAU_C,DEM_S,DEM_C, FQ_ISCCP, ENRGP,EPRCP,
 !$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IDI,IDJ,
 #ifdef TRACERS_SPECIAL_Shindell
 !$OMP*  Lfreeze,
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+!$OMP*  cm_sulft,
+#endif
 !$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 !$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT,TSV, WMERR,
-!$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep,q0,q1,q2,WM1,WMI)
+!$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep,q0,q1,q2)
 !$OMP*    SCHEDULE(DYNAMIC,2)
 !$OMP*    REDUCTION(+:ICKERR,JCKERR)
 C
@@ -426,24 +339,17 @@ C**** PRESSURES, AND PRESSURE TO THE KAPA
       PLK(:)=PK(:,I,J)
       AIRM(:)=PDSIG(:,I,J)
       BYAM(:)=1./AIRM(:)
+      WTURB(:)=SQRT(.6666667*EGCM(:,I,J))
 C**** other fields where L is the leading index
       SVLHXL(:)=SVLHX(:,I,J)
       TTOLDL(:)=TTOLD(:,I,J)
       CLDSAVL(:)=CLDSAV(:,I,J)
       CLDSV1(:)=CLDSAV1(:,I,J)
       RH(:)=RHSAV(:,I,J)
-#ifdef CLD_AER_CDNC 
+#ifdef CLD_AER_CDNC
         OLDCDL(:)=OLDNL(:,I,J)
         OLDCDO(:)=OLDNO(:,I,J)  ! OLDN is for rsf save
         SMFPML(:)=SMFPM(:,I,J)
-        SME(:)  =egcm(:,I,J)  !saving 3D TKE value
-        CTEML(:) =CTEM(:,I,J)
-c       write(6,*)"CTEM_DRV",CTEML(L),CTEM(L,I,J)
-        CD3DL(:) =CD3D(:,I,J)
-        CL3DL(:) =CL3D(:,I,J)
-        CDN3DL(:)=CDN3D(:,I,J)
-        CRE3DL(:)=CRE3D(:,I,J)
-        SMLWP=CLWP(I,J)
 #endif
       FSSL(:)=FSS(:,I,J)
       DPDT(1:LS1-1)=SIG(1:LS1-1)*(P(I,J)-PTOLD(I,J))*BYDTsrc
@@ -570,7 +476,7 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
 CCC       IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
 CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
           IF(J.GE.J5S.AND.J.LE.J5N)     ! add in after parallel region
-     *      AJEQIL(I,J,L) = (DGDSM(L)+DPHASE(L))*
+     *      AJEQIL(J-J5S+1,I,L) = (DGDSM(L)+DPHASE(L))*
      *                            (DXYP(J)*BYDSIG(L))
           AJL(J,L,JL_MCHEAT)=AJL(J,L,JL_MCHEAT)+
      &         (DPHASE(L)+DGDSM(L))*BYDSIG(L)
@@ -579,6 +485,12 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
           AJL(J,L,JL_MCMFLX)=AJL(J,L,JL_MCMFLX)+MCFLX(L)
           AJL(J,L,JL_CLDMC) =AJL(J,L,JL_CLDMC) +CLDMCL(L)
           AJL(J,L,JL_CSIZMC)=AJL(J,L,JL_CSIZMC)+CSIZEL(L)*CLDMCL(L)
+#ifdef CLD_AER_CDNC
+          AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+CDNCWM(L)*CLDMCL(L)
+          AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+CDNCIM(L)*CLDMCL(L)
+          AJL(J,L,JL_CNUMWM)=AJL(J,L,JL_CNUMWM)+CDNCWM(L)*CLDMCL(L)
+          AJL(J,L,JL_CNUMIM)=AJL(J,L,JL_CNUMIM)+CDNCIM(L)*CLDMCL(L)
+#endif
         END DO
         DO IT=1,NTYPE
           AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
@@ -587,37 +499,21 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
         AREGIJ(I,J,1)=PRCPMC*DXYP(J)  ! add in after parallel region
         DO KR=1,NDIUPT
           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-            tmp(IDD_PR)  =+PRCPMC
-            tmp(IDD_ECND)=+HCNDMC  
-            tmp(IDD_MCP) =+PRCPMC  
-            tmp(IDD_DMC) =+CLDDEPIJ
-            tmp(IDD_SMC) =+CLDSLWIJ
-            hdiurn_part(J,idx1(:),kr)=hdiurn_part(J,idx1(:),kr)+
-     &           tmp(idx1(:))
-            adiurn_part(J,idx1(:),kr)=adiurn_part(J,idx1(:),kr)+
-     &           tmp(idx1(:))
+            ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPMC
+            ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDMC
+            ADIURN(IH,IDD_MCP ,KR)=ADIURN(IH,IDD_MCP ,KR)+PRCPMC
+            ADIURN(IH,IDD_DMC ,KR)=ADIURN(IH,IDD_DMC ,KR)+CLDDEPIJ
+            ADIURN(IH,IDD_SMC ,KR)=ADIURN(IH,IDD_SMC ,KR)+CLDSLWIJ
+            HDIURN(IHM,IDD_PR  ,KR)=HDIURN(IHM,IDD_PR  ,KR)+PRCPMC
+            HDIURN(IHM,IDD_ECND,KR)=HDIURN(IHM,IDD_ECND,KR)+HCNDMC
+            HDIURN(IHM,IDD_MCP ,KR)=HDIURN(IHM,IDD_MCP ,KR)+PRCPMC
+            HDIURN(IHM,IDD_DMC ,KR)=HDIURN(IHM,IDD_DMC ,KR)+CLDDEPIJ
+            HDIURN(IHM,IDD_SMC ,KR)=HDIURN(IHM,IDD_SMC ,KR)+CLDSLWIJ
           END IF
         END DO
-#ifdef CLD_AER_CDNC
-        DO L =1,LM
-        IF (NMCW.ge.1) then
-         AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)   !/NMCW
-         AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)   !/NMCW
-         AJL(J,L,JL_CNUMWM)=AJL(J,L,JL_CNUMWM)+ACDNWM(L)   !/NMCW
-        ENDIF
-        IF (NMCI.ge.1) then
-         AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)    !/NMCI
-         AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)   !/NMCI
-         AJL(J,L,JL_CNUMIM)=AJL(J,L,JL_CNUMIM)+ACDNIM(L)   !/NMCI
-        ENDIF
-        ENDDO
-#endif
+
 C**** ACCUMULATE PRECIP
         PRCP=PRCPMC*100.*BYGRAV
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-        precnvl(1)=precnvl(1)+prcpmc*bygrav
-#endif
 C**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
 C**** NEED TO TAKE ACCOUNT OF LATENT HEAT THOUGH
         IF (TPRCP.gt.0) THEN
@@ -630,7 +526,6 @@ C         EPRCP=PRCP*TPRCP*SHI
           ENRGP=ENRGP+EPRCP-PRCP*LHM
           AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCP
         END IF
-        AIJ(I,J,IJ_PRECMC)=AIJ(I,J,IJ_PRECMC)+PRCP
 
         DO L=1,LMCMAX
           T(I,J,L)=(1.-FSSL(L))*SM(L)*BYAM(L)+FSSL(L)*TLS(I,J,L)
@@ -758,14 +653,14 @@ C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
         DTDZS=(THV1-THSV)*BYDH1S
         DTDZ=(THV2-THV1)*BYDH12
 CAOO        IF (J.EQ.1) THEN
-        IF(HAVE_SOUTH_POLE .AND. J.EQ.J_0) THEN
+        IF(GRID%HAVE_SOUTH_POLE .AND. J.EQ.J_0) THEN
           DUDZ=(UZM(1,2)-UZM(1,1))*BYDH12
           DVDZ=(VZM(1,2)-VZM(1,1))*BYDH12
           DUDZS=(UZM(1,1)-US)*BYDH1S
           DVDZS=(VZM(1,1)-VS)*BYDH1S
         ENDIF
 CAOO        IF (J.EQ.JM) THEN
-        IF(HAVE_NORTH_POLE .AND. J.EQ.J_1) THEN
+        IF(GRID%HAVE_NORTH_POLE .AND. J.EQ.J_1) THEN
           DUDZ=(UZM(2,2)-UZM(2,1))*BYDH12
           DVDZ=(VZM(2,2)-VZM(2,1))*BYDH12
           DUDZS=(UZM(2,1)-US)*BYDH1S
@@ -823,27 +718,17 @@ CCC      AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
          AREGIJ(I,J,2)=PRCPSS*DXYP(J)  ! add in after parallel region
          DO KR=1,NDIUPT
            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-             tmp(IDD_PR)  =+PRCPSS
-             tmp(IDD_ECND)=+HCNDSS  
-             tmp(IDD_SSP) =+PRCPSS  
-             hdiurn_part(J,idx2(:),kr)=hdiurn_part(J,idx2(:),kr)+
-     &            tmp(idx2(:))
-             adiurn_part(J,idx2(:),kr)=adiurn_part(J,idx2(:),kr)+
-     &            tmp(idx2(:))
+             ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPSS
+             ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDSS
+             ADIURN(IH,IDD_SSP ,KR)=ADIURN(IH,IDD_SSP ,KR)+PRCPSS
+             HDIURN(IHM,IDD_PR  ,KR)=HDIURN(IHM,IDD_PR  ,KR)+PRCPSS
+             HDIURN(IHM,IDD_ECND,KR)=HDIURN(IHM,IDD_ECND,KR)+HCNDSS
+             HDIURN(IHM,IDD_SSP ,KR)=HDIURN(IHM,IDD_SSP ,KR)+PRCPSS
            END IF
          END DO
 
 C**** TOTAL PRECIPITATION AND AGE OF SNOW
       PRCP=PRCP+PRCPSS*100.*BYGRAV
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      DO l=1,lm
-         prelay(i,j,l)=((prebar1(l)*DTsrc*100.+precnvl(l)*100.)+
-     &   (prebar1(l+1)*DTsrc*100.+precnvl(l+1)*100.))/2.
-      END DO
-#endif
-
 C**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
 C**** NEED TO TAKE ACCOUNT OF LATENT HEAT THOUGH
       IF (LHP(1).ne.LHS) THEN
@@ -870,25 +755,14 @@ CCC     AREG(JR,J_EPRCP)=AREG(JR,J_EPRCP)+ENRGP*DXYP(J)
         AREGIJ(I,J,3)=ENRGP*DXYP(J)  ! add in after parallel region
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
-        AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+
+        IF (FOCEAN(I,J).gt.0) AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+
      *       ENRGP*FOCEAN(I,J)*(1.-RSI(I,J))
-        AIJ(I,J,IJ_FWOC)=AIJ(I,J,IJ_FWOC)+
-     *       PRCP*FOCEAN(I,J)*(1.-RSI(I,J))
 
       IF(ENRGP.LT.0.) THEN ! MODIFY SNOW AGES AFTER SNOW FALL
         DO ITYPE=1,3
           SNOAGE(ITYPE,I,J)=SNOAGE(ITYPE,I,J)*EXP(-PRCP)
         END DO
       END IF
-C**** some water diagnostics
-      WM1=0  ; WMI=0
-      DO L=1,LP50
-        WM1=WM1+WMX(L)*AIRM(L)
-        IF (SVLHXL(L).eq.LHS) WMI=WMI+WMX(L)*AIRM(L)
-      END DO
-c is this the same as IJ_WMSUM?
-      AIJ(I,J,IJ_CLDW)=AIJ(I,J,IJ_CLDW)+WM1*100.*BYGRAV   ! all condensate
-      AIJ(I,J,IJ_CLDI)=AIJ(I,J,IJ_CLDI)+WMI*100.*BYGRAV   ! ice only
 
 C**** Calculate ISCCP cloud diagnostics if required
       if (isccp_diags.eq.1) then
@@ -953,8 +827,7 @@ C**** Sum over itau=2,ntau (itau=1 is no cloud)
 C**** Save area weighted isccp histograms
         n=isccp_reg(j)
         if (n.gt.0) then
-          AISCCP_part(:,:,n,J) = AISCCP_part(:,:,n,J) + 
-     &         fq_isccp(:,:)*DXYP(j)
+          AISCCP(:,:,n) = AISCCP(:,:,n) + fq_isccp(:,:)*DXYP(j)
         end if
       end if
 
@@ -981,17 +854,10 @@ C**** WRITE TO GLOBAL ARRAYS
       CSIZSS(:,I,J)=CSIZEL(:)
 
       RHSAV(:,I,J)=RH(:)
-#ifdef CLD_AER_CDNC 
+#ifdef CLD_AER_CDNC
          OLDNL(:,I,J)=OLDCDL(:)
          OLDNO(:,I,J)=OLDCDO(:)
          SMFPM(:,I,J)=SMFPML(:)
-         egcm(:,I,J) = SME(:) 
-         CTEM(:,I,J) =CTEML(:)
-         CD3D(:,I,J) =CD3DL(:)
-         CL3D(:,I,J) =CL3DL(:)
-         CDN3D(:,I,J)=CDN3DL(:)
-         CRE3D(:,I,J)=CRE3DL(:)
-         CLWP(I,J) = SMLWP
 #endif
 
       TTOLD(:,I,J)=TH(:)
@@ -999,8 +865,6 @@ C**** WRITE TO GLOBAL ARRAYS
 
       PREC(I,J)=PRCP            ! total precip mass (kg/m^2)
       EPREC(I,J)=ENRGP          ! energy of precipitation (J/m^2)
-C**** accumulate precip specially for SUBDD
-      P_acc(I,J)=P_acc(I,J)+PRCP
 C**** The PRECSS array is only used if a distinction is being made
 C**** between kinds of rain in the ground hydrology.
       PRECSS(I,J)=PRCPSS*100.*BYGRAV  ! large scale precip (kg/m^2)
@@ -1014,9 +878,14 @@ C**** update running-average of precipitation (in mm/day):
         AJL(J,L,JL_MCLDHT)=AJL(J,L,JL_MCLDHT)+DCTEI(L)
         AJL(J,L,JL_RHE)=AJL(J,L,JL_RHE)+RH1(L)
         AJL(J,L,JL_CLDSS) =AJL(J,L,JL_CLDSS) +CLDSSL(L)
-c       write(6,*) "CTEM_DRV",CTEML(L),CTEM(I,J,L),L,I,J
         AJL(J,L,JL_CSIZSS)=AJL(J,L,JL_CSIZSS)+CSIZEL(L)*CLDSSL(L)
 
+#ifdef CLD_AER_CDNC
+        AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+CDNCWS(L)*CLDSSL(L)
+        AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+CDNCIS(L)*CLDSSL(L)
+        AJL(J,L,JL_CNUMWS)=AJL(J,L,JL_CNUMWS)+CDNCWS(L)*CLDSSL(L)
+        AJL(J,L,JL_CNUMIS)=AJL(J,L,JL_CNUMIS)+CDNCIS(L)*CLDSSL(L)
+#endif
         T(I,J,L)=TH(L)*FSSL(L)+TMC(I,J,L)*(1.-FSSL(L))
         Q(I,J,L)=QL(L)*FSSL(L)+QMC(I,J,L)*(1.-FSSL(L))
         SMOM(:,L)=SMOM(:,L)*FSSL(L)+SMOMMC(:,L)*(1.-FSSL(L))
@@ -1071,30 +940,14 @@ CCC  *          (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
             END DO
          END IF
       ENDDO
-#ifdef CLD_AER_CDNC
-        DO L=1,LM
-         IF (NLSW.ge.1) then
-          AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L) !/NLSW
-          AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L)  !/NLSW
-          AJL(J,L,JL_CNUMWS)=AJL(J,L,JL_CNUMWS)+ACDNWS(L)  !/NLSW
-c     if(AIJ(I,J,IJ_3dNWS).gt.1500.)write(6,*)"OUTDRV",AIJ(I,J,IJ_3dNWS)
-c    * ,ACDNWS,NLSW,itime
-         ENDIF
-        IF(NLSI.ge.1) then
-         AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+ACDNIS(L)!/NLSI
-         AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)!/NLSI
-         AJL(J,L,JL_CNUMIS)=AJL(J,L,JL_CNUMIS)+ACDNIS(L)!/NLSI
-        ENDIF
-c     if(AIJ(I,J,IJ_3dNWS).gt.1500.)write(6,*)"ODRV",AIJ(I,J,IJ_3dNWS)
-c    * ,ACDNWS(L),L
-c       STOP "CLOUDS2_DRV_F26"
-        ENDDO
-#endif
 cECON      q2 = sum((Q(I,J,:)+WMX(:))*AIRM(:))*100.*BYGRAV+PRCP
 cECON if (abs(q0-q2).gt.1d-13) print*,"pr1",i,j,q0,q1,q2,prcp,prcpss*100
 cECON     *     *bygrav
 
 #ifdef TRACERS_ON
+#ifdef TRACERS_AEROSOLS_Koch
+      cm_sulft=0.
+#endif
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
         n = ntix(nx)
@@ -1119,11 +972,22 @@ C**** TRACERS: Use only the active ones
      *           dt_sulf_mc(n,l)*(1.-fssl(l))
             tajls(j,l,jls_incloud(2,n))=tajls(j,l,jls_incloud(2,n))+
      *           dt_sulf_ss(n,l)
-          if (ijts_aq(n).gt.0) then
-            taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+
-     *           dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
-          endif
           end if
+c save for cloud-sulfate correlation
+          if (trname(n).eq.'SO4') then
+#ifdef TRACERS_HETCHEM
+            if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,nx)/24.
+     *                                    +tm(l,n_SO4_d1)/24.
+     *                                    +tm(l,n_SO4_d2)/24.
+     *                                    +tm(l,n_SO4_d3)/24.
+     *                                    +tm(l,n_SO4_d4)/24.
+#else
+            if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,nx)/24.
+#endif
+            cm_sulft=cldmcl(l)+cldssl(l)
+            if (cm_sulft.gt.1.) cm_sulft=1.
+!nu ??      if (cm_sulft.gt.cm_sulf) cm_sulf=cm_sulft
+           end if
 #endif
         end do
 #ifdef TRACERS_WATER
@@ -1139,8 +1003,11 @@ C**** diagnostics
         end if
 #endif
       end do
+#ifdef TRACERS_AEROSOLS_Koch
+      cc_sulf(i,j)=cc_sulf(i,j)+cm_sulft/24.
 #endif
-      
+#endif
+
       END DO
 C**** END OF MAIN LOOP FOR INDEX I
 
@@ -1180,92 +1047,53 @@ C
 C**** Save the conservation quantities for tracers
       do nx=1,ntx
         n=ntix(nx)
-        if (itcon_mc(n).gt.0) call diagtcb(dtr_mc(:,nx),itcon_mc(n),n)
-        if (itcon_ss(n).gt.0) call diagtcb(dtr_ss(:,nx),itcon_ss(n),n)
+        if (itcon_mc(n).gt.0) call diagtcb(dtr_mc(1,nx),itcon_mc(n),n)
+        if (itcon_ss(n).gt.0) call diagtcb(dtr_ss(1,nx),itcon_ss(n),n)
       end do
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+      if (jhour.eq.23) then
+        if (ifirst) then
+          call openunit("CLD_SO4",iuc_s,.true.,.false.)
+          ifirst=.false.
+        endif
+        if ((jyear.eq.1950.and.jmon.eq.12).or.
+     *       (jyear.eq.1951.and.jmon.le.11)) then
+          write(iuc_s) jyear,jmon,jdate,
+     *         (SNGL(a_sulf(I,1)),I=1,IM*JM),
+     *         (SNGL(cc_sulf(I,1)),I=1,IM*JM)
+        endif
+c     call closeunit(iuc_s)
+        a_sulf(:,:)=0.
+        cc_sulf(:,:)=0.
+      endif
 #endif
 
 C**** Delayed summations (to control order of summands)
-C
-C First: Set to zero all (non-zero) terms that are not meant to be added in
-C        the global summ into AIL below.
       DO J=MAX(J_0,J5S),MIN(J_1,J5N)
-        DO I=1,IM
-          IF(LMC(1,I,J).LE.0) THEN
-            AJEQIL(I,J,:)=0.
-          ELSE
-            AJEQIL(I,J,LMC(2,I,J):)=0.
-          END IF
-        END DO
-      END DO
-C Second: Add all contributions to be summed into AIL into a dummy array.
-          CALL GLOBALSUM(GRID,AJEQIL,AJEQIL_SUM,jband=(/J5S,J5N/))
-C Third: Store the accumulations into AIL:
-      IF (AM_I_ROOT()) THEN
-        DO I=1,IM
-          DO L=1,LM
-            AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+AJEQIL_SUM(I,L)
+      DO I=1,IM
+        IF(LMC(1,I,J).GT.0) THEN
+          DO L=1,LMC(2,I,J)-1
+            AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+AJEQIL(J-J5S+1,I,L)
           END DO
-        END DO
-      END IF
-C**** Accumulate AISCCP array
-      CALL GLOBALSUM(grid,AISCCP_part(1:ntau,1:npres,1:nisccp,:),
-     &   AISCCPSUM(1:ntau,1:npres,1:nisccp))
-      AISCCP(1:ntau,1:npres,1:nisccp)=
-     &   AISCCP(1:ntau,1:npres,1:nisccp) +
-     &   AISCCPSUM(1:ntau,1:npres,1:nisccp)
-
-C****Accumulate diagnostigs into AREG in a way that insures bitwise
-C    identical results regardless of number of distributed processes used.
-      AREG_part(:,J_0H:J_1H,1:3) = 0
+        END IF
+      END DO
+      END DO
+C
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
          JR=JREG(I,J)
          IF(LMC(1,I,J).GT.0)
-     *     AREG_part(JR,J,1)=AREG_part(JR,J,1)+AREGIJ(I,J,1)
-         AREG_part(JR,J,2)=AREG_part(JR,J,2)+AREGIJ(I,J,2)
-         AREG_part(JR,J,3) =AREG_part(JR,J,3) +AREGIJ(I,J,3)
+     *     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+AREGIJ(I,J,1)
+         AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+AREGIJ(I,J,2)
+         AREG(JR,J_EPRCP) =AREG(JR,J_EPRCP) +AREGIJ(I,J,3)
       END DO
       END DO
-
-     
-      CALL GLOBALSUM(GRID, AREG_part(1:SIZE(AREG,1),:,1:3), 
-     &   AREG_SUM(1:SIZE(AREG,1), 1:3), ALL=.TRUE.)
-      AREG(1:SIZE(AREG,1),J_PRCPMC) = 
-     &   AREG(1:SIZE(AREG,1),J_PRCPMC) + AREG_SUM(1:SIZE(AREG,1),1)
-
-      AREG(1:SIZE(AREG,1),J_PRCPSS) = 
-     &   AREG(1:SIZE(AREG,1),J_PRCPSS) + AREG_SUM(1:SIZE(AREG,1),2)
-
-      AREG(1:SIZE(AREG,1),J_EPRCP ) = 
-     &   AREG(1:SIZE(AREG,1),J_EPRCP ) + AREG_SUM(1:SIZE(AREG,1),3)
-
-      DO kr = 1, ndiupt
-        DO ii = 1, N_IDX3
-          ivar = idx3(ii)
-          ADIURN_temp(ii,:,kr)=ADIURN_part(:,ivar,kr)
-          HDIURN_temp(ii,:,kr)=HDIURN_part(:,ivar,kr)
-        END DO
-      END DO
-      CALL GLOBALSUM(grid, ADIURN_temp(1:N_IDX3,:,1:ndiupt),
-     &    ADIURNSUM(1:N_IDX3,1:ndiupt))
-      CALL GLOBALSUM(grid, HDIURN_temp(1:N_IDX3,:,1:ndiupt),
-     &    HDIURNSUM(1:N_IDX3,1:ndiupt))
-      DO kr = 1, ndiupt
-        DO ii = 1, N_IDX3
-          ivar = idx3(ii)
-          IF (AM_I_ROOT()) THEN
-            ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM(ii,kr)
-            HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM(ii,kr)
-          END IF
-        END DO
-      END DO
-
 C
 C     NOW REALLY UPDATE THE MODEL WINDS
 C
 CAOO      J=1
-      IF(HAVE_SOUTH_POLE) THEN
+      IF(GRID%HAVE_SOUTH_POLE) THEN
         DO K=1,IM ! KMAXJ(J)
           IDI(K)=IDIJ(K,1,1)
           IDJ(K)=IDJJ(K,1)
@@ -1277,60 +1105,26 @@ CAOO      J=1
           END DO
         END DO
       ENDIF
-          CALL HALO_UPDATE_COLUMN(grid, UKM, from=SOUTH)
-          CALL HALO_UPDATE_COLUMN(grid, VKM, from=SOUTH)
 C
 !$OMP  PARALLEL DO PRIVATE(I,J,K,L,IDI,IDJ)
       DO L=1,LM
-        if (.not. HAVE_SOUTH_POLE) then
-
-C**** ....then, accumulate neighbors contribution to
-C**** U,V, at the J=J_0 (B-grid) corners --i.e.do a
-C**** K=3,4 iterations on the newly updated J=J_0-1 box.
-          J=J_0-1
-          DO K=3,4  !  KMAXJ(J)
-            IDJ(K)=IDJJ(K,J)
-          END DO
-          DO I=1,IM
-            DO K=3,4 ! KMAXJ(J)
-              IDI(K)=IDIJ(K,I,J)
-              U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
-              V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
-            END DO
-          END DO
-        end if           !NOT SOUTH POLE
-        DO J=J_0S,J_1-1       !J_1 updated below
-          DO K=1,4  !  KMAXJ(J)
-            IDJ(K)=IDJJ(K,J)
-          END DO
-          DO I=1,IM
-            DO K=1,4 ! KMAXJ(J)
-              IDI(K)=IDIJ(K,I,J)
-              U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
-              V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
-            END DO
-          END DO
-        END DO
-C**** First half of loop cycle for j=j_1 for internal blocks
-        IF (.not. HAVE_NORTH_POLE) then
-          J=J_1
-          DO K=1,2  !  KMAXJ(J)
-            IDJ(K)=IDJJ(K,J)
-          END DO
-          DO I=1,IM
-            DO K=1,2 ! KMAXJ(J)
-              IDI(K)=IDIJ(K,I,J)
-              U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
-              V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
-            END DO
-          END DO
-        ENDIF
-      END DO       !LM
-
+      DO J=J_0S,J_1S
+         DO K=1,4  !  KMAXJ(J)
+           IDJ(K)=IDJJ(K,J)
+         END DO
+         DO I=1,IM
+         DO K=1,4 ! KMAXJ(J)
+           IDI(K)=IDIJ(K,I,J)
+           U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
+           V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
+         END DO
+         END DO
+      END DO
+      END DO
 !$OMP  END PARALLEL DO
 C
 CAOO      J=JM
-      IF(HAVE_NORTH_POLE) THEN
+      IF(GRID%HAVE_NORTH_POLE) THEN
         DO K=1,IM  !  KMAXJ(J)
           IDI(K)=IDIJ(K,1,JM)
           IDJ(K)=IDJJ(K,JM)
@@ -1342,12 +1136,12 @@ CAOO      J=JM
           END DO
         END DO
       END IF
-C     
+C
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 C**** and save changes in KE for addition as heat later
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
-      DO J=J_0STG,J_1STG
+      DO J=J_0SG,J_1SG
       DO I=1,IM
          AJL(J,L,JL_DAMMC)=AJL(J,L,JL_DAMMC)+
      &         (U(I,J,L)-UC(I,J,L))*PDSIG(L,I,J)
@@ -1357,7 +1151,6 @@ C**** and save changes in KE for addition as heat later
       END DO
       END DO
 !$OMP  END PARALLEL DO
-
 
       if (isccp_diags.eq.1) CALL RINIT(seed) ! reset random number sequ.
 
@@ -1375,7 +1168,7 @@ C**** and save changes in KE for addition as heat later
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00
       USE CLOUDS_COM, only : llow,lmid,lhi
-      USE DIAG_COM, only : nisccp,isccp_reg,isccp_late
+      USE DAGCOM, only : nisccp,isccp_reg,isccp_late
       USE PARAM
 
       IMPLICIT NONE
@@ -1428,7 +1221,7 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
 
 C**** Define regions for ISCCP diagnostics
-      do j=1,JM ! purposefully not J_0,J_1
+      do j=J_0,J_1
         isccp_reg(j)=0
         do n=1,nisccp
            if(lat_dg(j,1).ge.isccp_late(n) .and.
