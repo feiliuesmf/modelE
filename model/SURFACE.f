@@ -45,6 +45,9 @@ C**** Interface to PBL
 #ifdef TRACERS_DRYDEP
      *     ,dep_vel
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+     *     ,DMS_flux, ss1_flux, ss2_flux
+#endif
 #endif
       USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
@@ -459,6 +462,16 @@ C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
             totflux = totflux+trsource(i,j,nsrc,n)
           end do
           trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
+#ifdef TRACERS_AEROSOLS_Koch
+        select case (trname(ntix(nx)))
+	case ('DMS')
+	trconstflx(nx)=1.d0/rhosrf0
+	case ('seasalt1')
+	trconstflx(nx)=1.d0/rhosrf0
+	case ('seasalt2')
+	trconstflx(nx)=1.d0/rhosrf0
+	end select
+#endif
 #ifdef TRACERS_WATER
 !!!        end select
         endif
@@ -678,6 +691,16 @@ C****
      &       tdryd*ptype
           dtr_dd(j,n)=dtr_dd(j,n)+tdd
         end if
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+        select case (trname(n))
+	case ('DMS')
+	trsrfflx(i,j,n)=trsrfflx(i,j,n)+DMS_flux*dxyp(j)
+	case ('seasalt1')
+	trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss1_flux*dxyp(j)
+	case ('seasalt2')
+	trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss2_flux*dxyp(j)
+	end select
 #endif
 #ifdef TRACERS_WATER
       END DO
