@@ -539,6 +539,7 @@ c       FS8OPX = (/0d0, 0d0, 1d0, 0d0, 2d0, 2d0,  1d0 , 1d0/)
         FS8OPX = (/0d0, 0d0, 1d0, 0d0, 0d0, 0d0,  1d0 , 1d0/)
         FT8OPX = (/0d0, 0d0, 1d0, 0d0, 0d0, 0d0, 1.3d0, 1d0/)
       end if
+c       NTRACE=0
       NTRACE=6
       TRRDRY=(/ .2d0, .44d0, 1.7d0, .3d0, .1d0, .1d0, .1d0, .1d0/)
 c tracer 1 is sulfate, tracers 2 and 3 are seasalt
@@ -1534,6 +1535,7 @@ C**** Depending on whether tracers radiative interaction is turned on,
 C**** diagnostic sign changes
          rsign=1.
          if (rad_interact_tr.gt.0) rsign=-1.
+         if (ntrace.gt.0) then
          do n=1,ntm
 c shortwave forcing
            if (ijts_fc(1,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
@@ -1542,6 +1544,7 @@ c longwave forcing
            if (ijts_fc(2,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
      *          ,ijts_fc(2,n))-rsign*(TNFST(N,I,J)-TNFS(4,I,J))
          end do
+         end if
 #endif
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(0,I,J)*CSZ2/
      *        (ALB(I,J,1)+1.D-20))
