@@ -8,9 +8,10 @@
       IMPLICIT NONE
       CHARACTER*80 FILEIN
       INTEGER N,NARGS,K,iargc,KFILE,I,days_togo
-      INTEGER :: ioerr=0, KSTART=1
+      INTEGER :: ioerr=0, KSTART=1, ItimeMax=0
       REAL*8 TOT,yrs_togo,FAC,FACT
-      LOGICAL :: QCALL = .FALSE., QCMIN=.FALSE.
+      LOGICAL :: QCALL = .FALSE., QCMIN=.FALSE., QCRESTART=.FALSE.
+!@var QCRESTART if TRUE compute max Itime and do printout for "runpm"
 
       NARGS = IARGC()
       IF(NARGS.LE.0)  GO TO 800
@@ -22,6 +23,8 @@ C**** check for arguments
           QCALL=.TRUE.
         CASE ("t","T")
           QCMIN=.TRUE.
+        CASE ("r","R")
+          QCRESTART=.TRUE.
         END SELECT
         KSTART=KSTART+1
         GOTO 10
@@ -35,6 +38,11 @@ C**** check for arguments
       call io_label(10,Itime,ioread,ioerr)
       if (ioerr.eq.1) go to 860
       CLOSE (10)
+
+      if ( QCRESTART ) then ! find max Itime and skip the rest of the loop
+        ItimeMax = max ( ItimeMax, Itime )
+        cycle
+      endif
 
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
@@ -76,15 +84,24 @@ c       write (6,*) "IDACC = ",(IDACC(I),I=1,12)
       end if
       END IF
       END DO
+      if ( QCRESTART ) then ! print data needed for restart
+        call getdte(
+     &       ItimeMax,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+        write(6,"(I10,1X,I2,'-',I2.2,'-',I4.4,)")
+c        write(6,*)
+     &       ItimeMax*24/Nday, Jmon, Jdate, Jyear
+      endif
       Stop
   800 continue
-      write(6,*) " Usage: qc [-a] [-t] FILE1 [FILE2...]"
+      write(6,*) " Usage: qc [-a] [-t] [-r] FILE1 [FILE2...]"
       write(6,*) " Where FILE1,2.. are modelE files ",
      *     "(rsf/acc/fort.[12])"
       write(6,*) "  -a  output all header information, otherwise"
       write(6,*) "      only timing info is printed"
       write(6,*) "  -t  output absolute minutes for each sub-section,"
       write(6,*) "      otherwise percentage time is printed"
+      write(6,*) "  -r  find maximal Itime and do printout in a format,"
+      write(6,*) "      convenient for restart script (runpm)"
       STOP
   850 continue
       write(6,*) "Cannot open file ",FILEIN
