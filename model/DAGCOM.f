@@ -301,7 +301,7 @@ c     &  AJK,AIJK,AIJL,AJLSP
      *     SNGL(AREG),SNGL(APJ),SNGL(AJL),
      *     SNGL(ASJL),SNGL(AIJ),SNGL(AIL),SNGL(AIJG),SNGL(ENERGY),
      *     SNGL(CONSRV),SNGL(SPECA),SNGL(ATPE),SNGL(ADAILY),SNGL(WAVE),
-     *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),SNGL(TDIURN),
+     *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),
      *     it
       CASE (IOWRITE_MON)        ! output to end-of-month restart file
         WRITE (kunit,err=10) MODULE_HEADER,KEYNR,TSFREZ,it
