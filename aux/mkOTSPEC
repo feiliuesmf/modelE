@@ -24,6 +24,12 @@ runID=$1
 cd $CMRUNDIR/$runID
 rm -f RSFIC OHT
 
+z12o_max=0
+while [[ ${z12o_max} != [1-9][0-9][0-9] ]] && [[ ${z12o_max} != [1-9][0-9] ]]
+do echo "Enter the maximal mixed layer depth (m) as an integer (11-999)"
+   read z12o_max
+done
+
 do_uln=1 ; if [[ ! -L TOPO ]] ; then ${runID}ln ; do_uln=0 ; fi
 
 echo 'Enter rsf file for new initial conditions'
@@ -56,9 +62,10 @@ echo "Done"
 echo " "
   mv SRCOR  SRCOR.line.$1.$3-$5
 
-echo "Finding climatological ocean temperatures below mixed layer..."
-echo "  ${BIN_DIR}/dec31.exe > dec31.PRT"
-if ( ! ${BIN_DIR}/dec31.exe > dec31.PRT ) then
+echo "Finding climatological ocean temperatures below mixed layer"
+echo "assuming a max. mixed layer depth of ${z12o_max}m ....."
+echo "  ${BIN_DIR}/ocnIC.exe $2 ${z12o_max}.d0 > ocnIC.$4.$5.${z12o_max}.PRT"
+if ( !  ${BIN_DIR}/ocnIC.exe $2 ${z12o_max}.d0 > ocnIC.$4.$5.${z12o_max}.PRT ) then
     echo " "
     echo "  Problem determining mixed layer data. Aborting."
     exit
@@ -66,9 +73,9 @@ fi
 echo "Done"
 echo " "
 
-echo "Computing transports..."
-echo "  ${BIN_DIR}/otspec.E001.exe $1 $2 $3 $4 $5 > otspec.$1.$3-$5.PRT"
-if (! ${BIN_DIR}/otspec.E001.exe $1 $2 $3 $4 $5 > otspec.$1.$3-$5.PRT ) then
+echo "Computing transports..." ; out=otspec.$1.MXL${z12o_max}m.$3-$5.PRT
+echo "  ${BIN_DIR}/otspec.E001.exe $1 $2 $3 $4 $5 ${z12o_max}.d0 > $out"
+if ( !  ${BIN_DIR}/otspec.E001.exe $1 $2 $3 $4 $5 ${z12o_max}.d0 > $out ) then
     echo " "
     echo "  Problem computing transports. Aborting."
     exit
@@ -77,14 +84,14 @@ echo Done
 echo " "
 
 echo Output files in `pwd`:
-outfile=OTSPEC.$1.M250D.$3-$5
+outfile=OTSPEC.$1.MXL${z12o_max}m.$3-$5
 mv OHT $outfile
 echo "Saved ocean heat transports in file: " $outfile
 
 mv OHTLP oht$1.$3-$5.lpl
-echo "Saved zonal ocean heat transports: " oht$1.$3-$5.lpl
+echo "Saved zonal ocean heat transports: " oht$1.MXL${z12o_max}m.$3-$5.lpl
 
-icfile=${rsfic##*/}.O250D
+icfile=${rsfic##*/}.MXL${z12o_max}m
 mv RSFNEW $icfile ;       #do--put on raid, link to /giss
 echo "Saved modified init. condition file: " $icfile
 $BIN_DIR/qc $icfile

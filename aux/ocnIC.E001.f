@@ -1,14 +1,14 @@
-      program dec31
-!@sum dec31 integrate ocean heat fluxes through to dec31 and
+      program ocnIC
+!@sum ocnIC integrates ocean heat fluxes through 1 year and
 !@+   writes an output disk file containing ALL ocean data
-!@+   The values are obtained by integrating in time from Day 1 and
+!@+   The values are obtained by integrating in time and
 !@+   applying subroutine OSTRUC.
 C****
 C**** Output:
 C****       TOCEAN(1) = mixed layer temperature
-C****       TOCEAN(2) = mean temperature from mixed layer to annual maximum
+C****       TOCEAN(2) = mean temperature from mixed layer to ann max
 C****       TOCEAN(3) = ocean temperature at annual maximum mixed layer
-C****         Z1O = current mixed layer depth (on Dec 31)
+C****         Z1O = current mixed layer depth (at end of year)
 C****
 C**** Input: OSST = climatological ocean data
 C****        SICE = sea ice data
@@ -22,11 +22,16 @@ C****
       USE FLUXES, only : sss
       USE FILEMANAGER
       implicit none
-      integer i, j, k, last_day, kday, jday0, IH,
-     *     months, monthe, month, iu_TOPO, iu_MLMAX, iu_SNOW, iu_OCNOUT
+      integer i, j, k, m, last_day, kday, jday0, IH,
+     *     months, month, iu_TOPO, iu_MLMAX, iu_SNOW, iu_OCNOUT
       REAL*4 month_day(12)
+      real*8 z1ox(im,jm),z12o_max
       CHARACTER*80 TITLE
       data month_day /31,28,31,30,31,30,31,31,30,31,30,31/
+      call getarg(1,title)
+      read (title,*) months
+      call getarg(2,title)
+      read (title,*) z12o_max
 C****
 C**** Read in FOCEAN - ocean fraction
 C****
@@ -40,12 +45,6 @@ C**** Read in aux. sea-ice file
 C*
       call openunit("SICE",iu_SICE,.true.,.true.)
       CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
-C*
-C**** Read in Z12O, the annual maximum mixed layer depth
-C*
-      call openunit("MLMAX",iu_MLMAX,.true.,.true.)
-      CALL READT (iu_MLMAX,0,Z12O,IM*JM,Z12O,1)
-      call closeunit(iu_MLMAX)
 C****
 C**** Calculate spherical geometry
 C****
@@ -54,6 +53,22 @@ C**** set up unit numbers for ocean climatologies
       call openunit("OSST",iu_OSST,.true.,.true.)
 C**** Set up unit number of mixed layer depth climatogies
       call openunit("OCNML",iu_OCNML,.true.,.true.)
+C**** find and limit ocean ann max mix layer depths
+      z12o = 0.
+      do m=1,12
+        CALL READT (iu_OCNML,0,z1ox,IM*JM,z1ox,1)
+        do j=1,jm
+        do i=1,im
+ccc       z12o(i,j)=min( z12o_max , max(z12o(i,j),z1ox(i,j)) )
+ccc   the above line could substitute for next 3 lines: same results ?
+          if (focean(i,j).gt.0. .and. z1ox(i,j).gt.z12o_max)
+     *        z1ox(i,j)=z12o_max
+          if (z1ox(i,j).gt.z12o(i,j)) z12o(i,j)=z1ox(i,j)
+        end do
+        end do
+      end do
+      rewind iu_OCNML
+      write(6,*) 'Mixed Layer Depths limited to',z12o_max
 C**** open snow file
       call openunit("SNOW",iu_SNOW,.true.,.true.)
 C**** define sea surface salinity (needed for OCLIM)
@@ -61,10 +76,9 @@ C**** define sea surface salinity (needed for OCLIM)
 C****
 C**** Loop over days of the year
 C****
-      jday = 0
-      months = 1
-      monthe = 12
-      do month = months, monthe
+      jday = JDendOfM(months-1)   
+      do m = months, months+11
+        month = 1 + mod(m-1,12)
         last_day = month_day(month)
         do kday = 1,last_day
 C*
@@ -85,7 +99,7 @@ C***  Read in ocean ice snow data
           READ(iu_SNOW) TITLE,SNOWI
           WRITE (6,*) TITLE
 
-          IF(month.eq.1 .and. kday.eq.1) THEN
+          IF(m.eq.months .and. kday.eq.1) THEN
 C**** Initialize TOCEAN(2) and TOCEAN(3) on Day 1
             DO J = 1,JM
               DO I = 1,IM
@@ -112,7 +126,7 @@ C****
       call closeunit(iu_OCNOUT)
       WRITE (6,940)
 C****
-C**** PRODUCE MAPS OF OCEAN DATA ON DEC 31
+C**** PRODUCE MAPS OF OCEAN DATA ON LAST DAY
 C****
       jday0=1
       IH=24*(JDAY0-1)

@@ -304,7 +304,7 @@ C**** accumulate diagnostics
               AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)-FOCEAN(I,J)
      *             *(RSINEW-RSI(I,J))*(MSINEW+ACE1I+SNOWI(I,J))
               AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)-FOCEAN(I,J)
-     *             *(RSINEW-RSI(I,J))*SUM(HSI(1:4,I,J)) 
+     *             *(RSINEW-RSI(I,J))*SUM(HSI(1:4,I,J))
             END IF
 C**** adjust enthalpy and salt so temperature/salinity remain constant
             HSI(3:4,I,J)=HSI(3:4,I,J)*(MSINEW/MSI(I,J))
@@ -549,7 +549,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE FILEMANAGER
       USE PARAM
       USE MODEL_COM, only : im,jm,fland,flice,kocean,focean
-     *     ,fearth,iyear1,ioreadnt
+     *     ,fearth,iyear1,ioreadnt,jmpery
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
@@ -564,9 +564,12 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       LOGICAL, INTENT(IN) :: iniOCEAN  ! true if starting from ic.
       CHARACTER CONPT(NPTS)*10
-!@var iu_OHT,iu_MLMAX unit numbers for reading in input files
-      INTEGER :: iu_OHT,iu_MLMAX,iu_GIC
-      INTEGER :: I,J,ISTART,ioerr
+!@var iu_OHT unit number for reading in ocean heat transports & z12o_max
+      INTEGER :: iu_OHT,iu_GIC
+      INTEGER :: I,J,m,ISTART,ioerr
+!@var z12o_max maximal mixed layer depth (m) for qflux model
+      real*8 :: z12o_max
+      real*8 z1ox(im,jm)
 
 C**** if starting from AIC/GIC files need additional read for ocean
       if (istart.le.2 .and. istart.gt.0) then
@@ -597,20 +600,32 @@ C****   Read in constant factor relating RSI to MSI from sea ice clim.
         CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
 
       else !  IF (KOCEAN.eq.1) THEN
-C****   Set up unit number of observed mixed layer depth data
-        call openunit("OCNML",iu_OCNML,.true.,.true.)
-
 C****   DATA FOR QFLUX MIXED LAYER OCEAN RUNS
 C****   read in ocean heat transport coefficients
         call openunit("OHT",iu_OHT,.true.,.true.)
-        READ (iu_OHT) OTA,OTB,OTC
+        READ (iu_OHT) OTA,OTB,OTC,z12o_max
         WRITE(6,*) "Read ocean heat transports from OHT"
         call closeunit (iu_OHT)
 
-C****   read in ocean max mix layer depth
-        call openunit("MLMAX",iu_MLMAX,.true.,.true.)
-        CALL READT (iu_MLMAX,0,Z12O,IM*JM,Z12O,1)
-        call closeunit (iu_MLMAX)
+C****   Set up unit number of observed mixed layer depth data
+        call openunit("OCNML",iu_OCNML,.true.,.true.)
+
+C****   find and limit ocean ann max mix layer depths
+        z12o = 0.
+        do m=1,jmpery
+          CALL READT (iu_OCNML,0,z1ox,IM*JM,z1ox,1)
+          do j=1,jm
+          do i=1,im
+ccc         z12o(i,j)=min( z12o_max , max(z12o(i,j),z1ox(i,j)) )
+ccc     the above line could substitute for next 3 lines w/o any change
+            if (focean(i,j).gt.0. .and. z1ox(i,j).gt.z12o_max)
+     *          z1ox(i,j)=z12o_max
+            if (z1ox(i,j).gt.z12o(i,j)) z12o(i,j)=z1ox(i,j)
+          end do
+          end do
+        end do
+        rewind iu_OCNML
+        write(6,*) 'Mixed Layer Depths limited to',z12o_max
 
 C****   initialise deep ocean arrays if required
         call init_ODEEP(iniOCEAN)
@@ -648,7 +663,7 @@ C**** Set fluxed arrays for oceans
           SSS(I,J) = 0.
         END IF
 C**** For the time being assume zero surface velocities for drag calc
-        uosurf(i,j)=0. ; vosurf(i,j)=0. 
+        uosurf(i,j)=0. ; vosurf(i,j)=0.
         uisurf(i,j)=0. ; visurf(i,j)=0.
       END DO
       END DO
@@ -746,7 +761,7 @@ C****
             WTRO=Z1O(I,J)*RHOW
             RUN0=RUNPSI(I,J)
             SNOW=SNOWI(I,J)
-            SMSI0=MSI(I,J)+ACE1I+SNOW+RUN0-PRCP ! initial ice 
+            SMSI0=MSI(I,J)+ACE1I+SNOW+RUN0-PRCP ! initial ice
 
             SIMELT = MELTI(I,J)/(FOCEAN(I,J)*DXYP(J))
             ESIMELT=EMELTI(I,J)/(FOCEAN(I,J)*DXYP(J))
@@ -816,7 +831,7 @@ C**** grid box variables
 C**** prognostic variables
       REAL*8 TGW, WTRO, SMSI, ROICE
 C**** fluxes
-      REAL*8 EVAPO, EVAPI, FIDT, FODT, OTDT, RVRRUN, RVRERUN, RUN0, 
+      REAL*8 EVAPO, EVAPI, FIDT, FODT, OTDT, RVRRUN, RVRERUN, RUN0,
      *     SALT
 C**** output from OSOURC
       REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACEFI, ENRGFI

@@ -18,6 +18,7 @@ C****        OHT - OTSPEC.RB150.M250D
 C****      OHTLP - line plottable zonal northward heat transports
 C****     RSFNEW - augmented restart file
 C****
+      USE PARAM
       USE CONSTANT, only : twopi,sday
       USE MODEL_COM, only: im,jm,lm,iowrite_mon,irerun
       USE TIMINGS, only : ntimeacc,timing,timestr
@@ -30,7 +31,7 @@ C****
       USE FILEMANAGER
       implicit none
       integer first_month, first_year, last_month,
-     *        last_year, years, year, i, j, k,iok
+     *        last_year, years, year, i, j, k,m,iok
       integer months, monthe, itime1, month, kday, last_day
       REAL*8 COT(IM,JM),AOT(IM,JM,4),BOT(IM,JM,4)
       REAL*4 AMPOT(IM,JM),PHAOT(IM,JM),COTS(IM,JM),TAU4
@@ -42,6 +43,7 @@ C****
      *     ,iu_XCORR,iu_OHT
       INTEGER ItimeX
       REAL*8 onht(jm),toceansv(3,IM,JM)
+      real*8 z1ox(im,jm),z12o_max
 C****
       character*4 month_name(12), tmonth, tyear
       data month_name /'JAN ','FEB ','MAR ','APR ','MAY ','JUN ',
@@ -78,6 +80,8 @@ C****
       call getarg(5,title0)
       read(title0,*) last_year
       years = last_year-first_year+1
+      call getarg(6,title0)
+      read(title0,*) z12o_max
 C*
       call openunit("XCORR",iu_XCORR,.true.,.true.)
       READ(iu_XCORR) XCORR
@@ -94,12 +98,6 @@ C*
       call openunit("TOPO",iu_TOPO,.true.,.true.)
       CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
       call closeunit(iu_TOPO)
-C*
-C**** Read in annual maximum mixed layer depth
-C*
-      call openunit("MLMAX",iu_MLMAX,.true.,.true.)
-      CALL READT (iu_MLMAX,0,Z12O,IM*JM,Z12O,1)
-      call closeunit(iu_MLMAX)
 C*
 C**** Read in ocean data below mixed layer on December 31
 C*
@@ -121,6 +119,22 @@ C**** set up unit numbers for ocean climatologies
       call openunit("OSST",iu_OSST,.true.,.true.)
 C**** Set up unit number of mixed layer depth climatogies
       call openunit("OCNML",iu_OCNML,.true.,.true.)
+C**** find and limit ocean ann max mix layer depths
+      z12o = 0.
+      do m=1,jmpery
+        CALL READT (iu_OCNML,0,z1ox,IM*JM,z1ox,1)
+        do j=1,jm
+        do i=1,im
+ccc       z12o(i,j)=min( z12o_max , max(z12o(i,j),z1ox(i,j)) )
+ccc   the above line could substitute for next 3 lines: same results ?
+          if (focean(i,j).gt.0. .and. z1ox(i,j).gt.z12o_max)
+     *        z1ox(i,j)=z12o_max
+          if (z1ox(i,j).gt.z12o(i,j)) z12o(i,j)=z1ox(i,j)
+        end do
+        end do
+      end do
+      rewind iu_OCNML
+      write(6,*) 'Mixed Layer Depths limited to',z12o_max
 C**** define sea surface salinity (needed for OCLIM)
       sss(:,:)=sss0
 C****
@@ -243,7 +257,7 @@ C****
 C**** Write ocean transports spectral coefficients to disk
 C****
       call openunit("OHT",iu_OHT,.true.,.false.)
-      WRITE (iu_OHT) BOT,AOT,COT
+      WRITE (iu_OHT) BOT,AOT,COT,z12o_max
       print*,"OHT comp:",BOT(71,23,1:4),AOT(71,23,1:4),COT(71,23)
       call closeunit(iu_OHT)
 
