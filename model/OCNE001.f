@@ -114,12 +114,14 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       INTEGER, INTENT(IN) :: IDOZ1O
 
-      INTEGER n,MD,J,I,LSTMON,K,MDMAX,IMAX
+      INTEGER n,J,I,LSTMON,K,IMAX
       REAL*8 PLICEN,PLICE,POICE,POCEAN,RSICSQ,ZIMIN,ZIMAX,X1
      *     ,X2,Z1OMIN,RSINEW,TIME,FRAC,MSINEW
 !@var JDLAST julian day that OCLIM was last called
       INTEGER, SAVE :: JDLAST=0
-!@var IMON current month for climatology reading
+!@var IMON0 current month for SST climatology reading
+      INTEGER, SAVE :: IMON0 = 0
+!@var IMON current month for ocean mixed layer climatology reading
       INTEGER, SAVE :: IMON = 0
 
       IF (KOCEAN.EQ.1) GO TO 500
@@ -145,8 +147,8 @@ C****  RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****  MSI  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
 C**** READ IN OBSERVED OCEAN DATA
-      IF (JMON.EQ.IMON) GO TO 400
-      IF (IMON.EQ.0) THEN
+      IF (JMON.EQ.IMON0) GO TO 400
+      IF (IMON0.EQ.0) THEN
 C****    READ IN LAST MONTH'S END-OF-MONTH DATA
          LSTMON=JMON-1
          IF(LSTMON.EQ.0) LSTMON=12
@@ -158,7 +160,7 @@ C****    COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
         ERSI0=ERSI1
       END IF
 C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
-      IMON=JMON
+      IMON0=JMON
       IF (JMON.EQ.1) THEN
          REWIND iu_OSST
          REWIND iu_SICE
@@ -178,7 +180,6 @@ C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
           IF(ARSI(I,J).LE.0. .or. ARSI(I,J).GT.1.) CYCLE
           BRSI(I,J)=ERSI1(I,J)-ERSI0(I,J) ! quadratic fit
           CRSI(I,J)=3.*(ERSI1(I,J)+ERSI0(I,J)) - 6.*ARSI(I,J)
-          MD=MDMAX+JDATE-16
           IF(ABS(CRSI(I,J)) .GT. ABS(BRSI(I,J))) THEN ! linear fits
             RSICSQ=CRSI(I,J)*(ARSI(I,J)*CRSI(I,J) - .25*BRSI(I,J)**2 -
      *           CRSI(I,J)**2*BY12)
