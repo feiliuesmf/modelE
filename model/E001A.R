@@ -13,7 +13,7 @@ SE001M12 EE001M12   PBLE001  SLE001 ! surfce and its subr
 PBLDRV                              ! surfce and its subr
 OCNE001 SEAICE LAKES LANDICE        ! ocean, lake and sea ice modules
 RE001                               ! setsur  rad.subr_incl._forcings
-DE001M12  FFT72  UTILDBL RANDSGI    ! diag,utilities
+DE001M12  FFT72  UTILDBL RAND~      ! diag,utilities
 POUT                                ! for post-processing
 snowmodel sweep3d                   ! snow model
 
