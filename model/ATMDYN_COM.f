@@ -70,11 +70,18 @@ c$$$      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
 !@var SMASS local but "SAVE"d array ADVECV in MOMEN2ND made global
 !@    here since its use does not go beyond ATMDYN that calls ADVECV
       REAL*8, ALLOCATABLE:: SMASS(:)
+      END MODULE DYNAMICS
 
-      CONTAINS
 
-      SUBROUTINE INIT_DYNAMICS(grid)
+      SUBROUTINE ALLOC_DYNAMICS(grid)
       USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE RESOLUTION , ONLY : LM
+      USE DYNAMICS, ONLY : PLIJ,PDSIG,AM,BYAM,PMID,PK,PEDN,PEK,
+     $                     SD_CLOUDS,GZ,PU,PV,CONV,PHI,SPA,DUT,
+     $                     DVT,PUA,PVA,SDA,MB,MA,DKE,WSAVE,SD,PIT,
+     $                     SQRTP,PTROPO,LTROPO,PTOLD,DPDX_BY_RHO,
+     $                     DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0,
+     $                     PS,SMASS
       IMPLICIT NONE
       TYPE (DYN_GRID), INTENT(IN) :: grid
 
@@ -151,7 +158,6 @@ c$$$      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
       SD_CLOUDS(I_0H:I_1H,J_0H:J_1H,1:LM) = 0.d0
       PIT(:,:) = 0.d0
 
-      END SUBROUTINE INIT_DYNAMICS
+      END SUBROUTINE ALLOC_DYNAMICS
 
-      END MODULE DYNAMICS
 
