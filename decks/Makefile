@@ -143,3 +143,5 @@ config configure:
 	@echo '$(MODELERC) created.'
 	@echo 'You may want to edit it manually to customize the options.'
 
+update:
+	$(MAKE) -C $(MODEL_E_ROOT) $@ RELEASE=$(RELEASE)
