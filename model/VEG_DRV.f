@@ -501,7 +501,7 @@ c shc(0,2) is the heat capacity of the canopy
       save   year1,year2,year_old,vdata0,crop1,crop2,iu      ! to limit i/o
 
       character*80 title
-      real*4 crop4(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      real*4 crop4(im,jm)
 
       INTEGER :: I_0, I_1, J_1, J_0
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
