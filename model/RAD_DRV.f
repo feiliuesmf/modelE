@@ -1806,8 +1806,7 @@ C**** daily diagnostics
 !@sum  reads history for nghg well-mixed greenhouse gases
 !@auth R. Ruedy
 !@ver  1.0
-
-      USE RADPAR, only : nghg,nyrsghg,ghgyr1,ghgyr2,ghgam
+      USE RADPAR  !, only : nghg,nyrsghg,ghgyr1,ghgyr2,ghgam
       USE RADNCB, only : ghg_yr
       IMPLICIT NONE
       INTEGER iu,n,k

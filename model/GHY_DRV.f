@@ -1679,7 +1679,7 @@ c**** check for reasonable temperatures over earth
       use surf_albedo, only: albvnh  !nyk
       use sle001, only : fb,fv,ws
       use veg_drv, only : veg_set_cell
-
+      use domain_decomp
       implicit none
       real*8 tsavg,wfc1
       real*8 aleafmass, aalbveg0, fvp, sfv  !nyk veg ! , aleafmasslast
