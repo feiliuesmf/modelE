@@ -131,7 +131,7 @@ c****
 
       integer, intent(in) :: ns,moddsf,moddd
       integer i,j,l,kr,jr,itype,ih,ibv
-      real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws,rcdhws 
+      real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws,rcdhws
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat,wtr2av    !,dhgs
      *     ,wfc1,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij,psoil,pearth
      *     ,warmer,brun0,berun0,bts,bevhdt,brunu,berunu
@@ -1905,7 +1905,7 @@ c****
                 !write (99,*) 'fv',fv
                 !write (99,*) 'ALBVNH',ALBVNH(iv+1,1,northsouth)
               end do
-              aalbveg(i,j) = 0.
+              aalbveg(i,j) = 0.08D0
               if(sfv.gt.0.) aalbveg(i,j) = aalbveg0/sfv !nyk
              !write (99,*) 'daily aalbveg', aalbveg(i,j)
             end if

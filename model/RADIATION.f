@@ -172,7 +172,7 @@ C**** miscellaneous tuning parameters
 
 C**** ALBVNH is set only once a day then saved
 !@var ALBVNH hemispherically varying vegetation albedo
-      real*8, dimension(NV,6,2), public :: ALBVNH  !nyk made public for veg
+      real*8, dimension(NV,6,2) :: ALBVNH 
 
 
 !@var GZSNOW asymmetry parameter for snow over three types
@@ -813,7 +813,7 @@ C      ACID1 SSALT SLFT1 SLFT2 BSLT1 BSLT2 DUST1 DUST2 DUST3 CARB1 CARB2
 !nu  2   0.91995,   0.78495,   0.63594,   0.31482,   0.47513/)
 
       real*8, dimension(10) ::       ! ANT (nitrate) not yet implemented
-C                       TROPOSPHERIC AEROSOL PARAMETERS             
+C                       TROPOSPHERIC AEROSOL PARAMETERS
 C                  BCI  OCI  SUI  SEA  SUN    ANT  OCN  OCB  BCB  SSB
      *   REAERO=(/ 0.1, 0.3, 0.3, 2.0, 0.3,   1.0, 0.3, 0.3, 0.2, 0.5/)
      *  ,VEAERO=(/ 0.2, 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2, 0.2/)

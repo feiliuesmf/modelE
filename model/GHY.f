@@ -724,7 +724,7 @@ ccc make sure that important vars are initialized (needed for ibv hack)
       betadl(:) = 0.d0
       betad = 0.d0
       abetad = 0.d0
-      cnc = 0.d0
+      cnc = 0.
       acna = 0.d0
       acnc = 0.d0
 
@@ -777,9 +777,9 @@ c     fr(l) is the fraction of roots in layer l
         abetad=betad            ! return to old diagnostics
 c     Get canopy conductivity cnc and gpp
         if ( cond_scheme.eq.1 ) then !if switch added by nyk 5/1/03
+          gpp=0       ! dummy value for GPP if old cond_scheme
           call cond
-          gpp=0                 ! dummy value for GPP if old cond_scheme
-        else                    ! cond_scheme=2 or anything else
+        else        ! cond_scheme=2 or anything else
           ! veg uses qv, so it should be computed before "call veg"
           qv  = qsat(tp(0,2)+tfrz,lhe,pres)
           call veg              ! added by adf
@@ -944,8 +944,6 @@ c**** adjust canopy conductance for incoming solar radiation
       real*8, parameter :: Oi=20.9D0
 !@var k Canopy nitrogen extinction coefficient (?unitless).
       real*8, parameter :: k=0.11D0
-!@var srht0 Incident shortwave radiation >0 (W/m2).
-      real*8 srht0
 !@var PAR Incident photosynthetically active radiation (umol/m2/s).
       real*8 PAR
 !@var tk Canopy temperature (K).
@@ -996,10 +994,10 @@ c**** adjust canopy conductance for incoming solar radiation
       real*8 dQs
 !@var CNCN New equilibrium canopy conductance to water (m/s).
       real*8 CNCN
-!@var dCNC Change in canopy conductance to reach equilibrium (m/s).
-      real*8 dCNC
-!@var dCNC_max Maximum possible change in CNC over timestep (m/s).
-      real*8 dCNC_max
+!nu@var dCNC Change in canopy conductance to reach equilibrium (m/s).
+!nu   real*8 dCNC
+!nu@var dCNC_max Maximum possible change in CNC over timestep (m/s).
+!nu   real*8 dCNC_max
 !@var gt Conductance from inside foliage to surface height at 30m (m/s).
       real*8 gt
 !@var EPS to stop dbzs
@@ -1009,14 +1007,12 @@ c**** adjust canopy conductance for incoming solar radiation
 !----------------------------------------------------------------------!
 ! Make sure is some leaf area (m2/m2).
       if(alai.le.EPS)alai=EPS
-! Make sure radiation is not negative.
-      srht0=max(srht,zero)
 ! Convert radiation from W/m2 (total shortwave) to umol/m2/s (PAR).
 ! Really want incident here, but I think srht is absorbed. Based on
 ! Hansen et al. (1983), assume vegetation albedo is about 0.08, and
 ! so allow for this here.  2.3 umol/J for conversion from shortwave to
 ! fraction that is PAR (Monteith & Unsworth).
-      !PAR=2.3d0*srht0/(1.0D0-0.08D0)
+!nu    PAR=2.3d0*max(srht,zero)/(1.0D0-0.08D0)
 ! Replaced back-calculation with actual incident PAR at surface.
 ! nyk  For 400-700 nm, energy is 3.3-6 umol photons/J.
 !      Top-of-atmosphere flux-weighted average of energy is 4.54 umol/J.
@@ -1024,7 +1020,7 @@ c**** adjust canopy conductance for incoming solar radiation
 !      485 nm for conversion, which gives 4.05 umol/J.
       PAR=4.05d0*parinc          !W/m2 to umol/m2/s
 !      write (99,*) 'PAR umol/m2/s',PAR,'PARsrht',
-!     $     2.3d0*srht0/(1.0D0-0.08D0)
+!     $     2.3d0*max(srht,zero)/(1.0D0-0.08D0)
       !DEBUG
 ! Convert canopy temperature from oC to K.
       tk=tp(0,2)+tfrz
@@ -1101,14 +1097,14 @@ c**** adjust canopy conductance for incoming solar radiation
 !----------------------------------------------------------------------!
 ! New equilibrium canopy conductance to moisture (m/s). betaD removed
 ! from here to allow Ci to be calculated.
-      CNCN=(1.0D0-0.0075D0*vh)*650.0D-6*Anet_max*
+      CNCN=betad*(1.0D0-0.0075D0*vh)*650.0D-6*Anet_max*
      &   ((Ci+0.004D0)/(Ci+EPS))*2.8D0**(-80.0D0*dQs)
 ! Required change in canopy conductance to reach equilibrium (m/s).
-      dCNC=CNCN-CNC
-! Limit CNC change over timestep because of guard cell mechanics (m/s).
-      dCNC_max=dt*alai*(0.006D0-0.00006D0)/1800.0D0
-      if( dCNC.gt.dCNC_max)CNCN=CNC+dCNC_max
-      IF(-dCNC.gt.dCNC_max)CNCN=CNC-dCNC_max
+!nu   dCNC=CNCN-CNC
+!nu Limit CNC change over timestep because of guard cell mechanics (m/s)
+!nu   dCNC_max=dt*alai*(0.006D0-0.00006D0)/1800.0D0
+!nu   if( dCNC.gt.dCNC_max)CNCN=CNC+dCNC_max
+!nu   IF(-dCNC.gt.dCNC_max)CNCN=CNC-dCNC_max
 ! Biological limits of absolute CNC (m/s).
       if(CNCN.gt.0.006*alai)CNCN=0.006*alai
 ! Following should be included, but causes the GCM to crash. Need to ask
@@ -1127,10 +1123,9 @@ c**** adjust canopy conductance for incoming solar radiation
 ! to watch out for is that setting Ci like this does not conserve CO2.
       if(Cin.lt.EPS)Cin=EPS
 ! Gross primary productivity (kg[C]/m2/s).
-      GPP=0.012D-6*Anet
-! Canopy conductance for next timestep (m/s). betaD put in here to
-! stop crash in GCM. ###
-      CNC=betad*CNCN
+      GPP=0.012D-6*Anet   ! should be dependent on conductance ??
+! Canopy conductance for next timestep (m/s).
+      CNC=CNCN
 !----------------------------------------------------------------------!
       return
       end subroutine veg
@@ -1144,29 +1139,30 @@ c**** adjust canopy conductance for incoming solar radiation
 !----------------------------------------------------------------------!
       implicit none
 !----------------------------------------------------------------------!
-      integer JMAX,J,it
-      real*8 A,B,S,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,m1,msat
+!Passed parameters
+      real*8 B,S,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,m1,msat
       real*8 sigma,temp,rhor,kdf,kbl
-      real*8 EPS,OST,OS,ST,ERROR
 !----------------------------------------------------------------------!
-      parameter (EPS=1.D-3,JMAX=6)
+!Local variables
+!nu   real*8, parameter :: EPS=1.D-3
+      integer, parameter :: MAXIT=6
+      integer IT, canopylayers
+      real*8 A, OST,OS,ST,ERROR
 !----------------------------------------------------------------------!
       A=0.0D0
       OST=-1.D30
       OS= -1.D30
-      it=1
-      do 11 J=1,JMAX
-         CALL TRAPZD(A,B,ST,J,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,
-     &               n2,m1,msat,sigma,temp,rhor,kdf,kbl,it)
+      canopylayers=1
+      do 11 IT=1,MAXIT
+         CALL TRAPZD(A,B,ST,IT,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,
+     &               n2,m1,msat,sigma,temp,rhor,kdf,kbl,canopylayers)
          S=(4.D0*ST-OST)/3.D0
          ERROR=ABS(S-OS)
-!   IF (ABS(S-OS).lt.EPS*ABS(OS)) RETURN
-         IF (ERROR.lt.0.1D0) then
-           RETURN
-         endif
+!nu      IF (ERROR.lt.EPS*ABS(OS)) RETURN
+         IF (ERROR.lt.0.1D0) RETURN
          OS=S
          OST=ST
-         if(j.gt.1) it=it*2
+         if(IT.gt.1) canopylayers=canopylayers*2
    11 enddo
 !      write(99,*) 'Too many steps.'
 !      write(99,*) S,ERROR,100.0D0*ERROR/S
@@ -1174,17 +1170,17 @@ c**** adjust canopy conductance for incoming solar radiation
       end subroutine qsimp
 !----------------------------------------------------------------------!
       subroutine trapzd(A,B,S,N,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,
-     &n1,n2,m1,msat,sigma,temp,rhor,kdf,kbl,it)
+     &n1,n2,m1,msat,sigma,temp,rhor,kdf,kbl,canopylayers)
 !----------------------------------------------------------------------!
 ! Integrates canopy photosynthesis over canopy layers using Simpson's
 ! Rule (Press et al., 19??).
 !----------------------------------------------------------------------!
       implicit none
 !----------------------------------------------------------------------!
-      integer IT,TNM,N,J
+      integer N,canopylayers, L
       real*8 A,B,S,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,m1,msat
       real*8 sigma,temp,rhor,kdf,kbl
-      real*8 DEL,X,SUM
+      real*8 DEL,X,SUM,RCL
 !@var func1 Mean net photosynthesis at Lc (umol[CO2]/m2/s).
       real*8 func1
 !@var func2 Mean net photosynthesis at Lc (umol[CO2]/m2/s).
@@ -1196,17 +1192,17 @@ c**** adjust canopy conductance for incoming solar radiation
      &             msat,sigma,temp,rhor,kdf,kbl,B,func2)
          S=0.5D0*(B-A)*(func1+func2)
       else
-         TNM=IT
-         DEL=(B-A)/float(TNM)
+         RCL=canopylayers   ! convert to real*8
+         DEL=(B-A)/RCL
          X=A+0.5D0*DEL
          SUM=0.D0
-         do 11 J=1,IT
+         do 11 L=1,canopylayers
            call phot(X,I0dr,I0df,Ci,T,P,nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,m1,
      &               msat,sigma,temp,rhor,kdf,kbl,B,func1)
            SUM=SUM+func1
            X=X+DEL
    11    continue
-         S=0.5D0*(S+(B-A)*SUM/float(TNM))
+         S=0.5D0*(S+(B-A)*SUM/RCL
       endif
       return
       end subroutine trapzd
