@@ -279,7 +279,7 @@ C**** TRACERS: Use only the active ones
      &          (tm(l,nx)-trm(i,j,l,n))
           tmsave(l,nx) = tm(l,nx) ! save for tajln(large-scale condense)
 #ifdef TRACERS_WATER
-          trwml(l,nx) = trwm(i,j,l,n)+trsvwml(l,nx)
+          trwml(nx,l) = trwm(i,j,l,n)+trsvwml(nx,l)
           trprec(n,i,j) = trprmc(nx)
 #endif
         end do
@@ -499,7 +499,7 @@ C**** TRACERS: Use only the active ones
           tajln(j,l,jlnt_lscond,n) = tajln(j,l,jlnt_lscond,n) +
      &          (tm(l,nx)-tmsave(l,nx))
 #ifdef TRACERS_WATER
-          trwm(i,j,l,n) = trwml(l,nx)
+          trwm(i,j,l,n) = trwml(nx,l)
 #endif
         end do
 #ifdef TRACERS_WATER

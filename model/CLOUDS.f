@@ -102,7 +102,7 @@ C**** new arrays must be set to model arrays in driver (after COND)
 #ifdef TRACERS_WATER
 !@var TRWML Vertical profile of liquid water tracers (kg)
 !@var TRSVWML New liquid water tracers from m.c. (kg) 
-      REAL*8, DIMENSION(LM,NTM) :: TRWML, TRSVWML
+      REAL*8, DIMENSION(NTM,LM) :: TRWML, TRSVWML
 !@var TRPRSS super-saturated tracer precip (kg)
 !@var TRPRMC moist convective tracer precip (kg)
       REAL*8, DIMENSION(NTM)    :: TRPRSS,TRPRMC
@@ -697,10 +697,10 @@ C****
       SMP=SMP+SLH*DQ/PLK(L)
       QMP=QMP-DQ
   292 DQSUM=DQSUM+DQ
-      IF(DQSUM.GE.0.) THEN
       FQCOND = 0
-      IF (QMPT.gt.teeny) FQCOND = DQSUM/QMPT
-       QMOMP(xymoms) =  QMOMP(xymoms)*(1.-FQCOND)
+      IF(DQSUM.GE.0.) THEN
+        IF (QMPT.gt.teeny) FQCOND = DQSUM/QMPT
+        QMOMP(xymoms) =  QMOMP(xymoms)*(1.-FQCOND)
       ELSE  ! no change
         DQSUM=0.
         SMP=SMPT
