@@ -9,7 +9,7 @@
       private
       save
 
-      public daily_earth, ground_e, init_gh, earth, conserv_wtg
+      public daily_earth, ground_e, init_gh,upd_gh, earth, conserv_wtg
      $     ,conserv_htg
 
       real*8 cosday,sinday
@@ -1019,8 +1019,8 @@ c**** zero-out vdata(11) until it is properly read in
         vdata(:,:,11) = 0.
         call closeunit(iu_VEG)
 C**** Update vegetation file if necessary (i.e. crops_yr =0 or >0)
-      if(crops_yr.eq.0) call updveg(jyear)
-      if(crops_yr.gt.0) call updveg(crops_yr)
+      if(crops_yr.eq.0) call updveg(jyear,.false.)
+      if(crops_yr.gt.0) call updveg(crops_yr,.false.)
 
         if (istart.le.2) then ! initialize foliage arrays (adf)
           Cint(:,:)=0.0127D0  ! internal CO2
@@ -1109,19 +1109,6 @@ c      zhtb=6.
 cc     endif
 c spgsn is the specific gravity of snow
       spgsn=.1d0
-c
-c****
-c**** initialize global arrays  ala, acs, afb, afr, anm, anf
-c****
-      ala(:,:,:)=0.
-      acs(:,:,:)=0.
-      afb(:,:)=0.
-      afr(:,:,:)=0.
-      acs(1,:,:)=.01d0
-      anm(:,:)=0.0D0            ! Global mean canopy N array (adf)
-      anf(:,:)=0.0D0            ! Global Rubisco factors (adf)
-      almass(:,:,:)=0.0D0       ! Global leaf mass at a time, nyk
-      aalbveg(:,:)=0.08D0        ! Grid vegetation albedo, nyk DUMMY
 
 c**** check whether ground hydrology data exist at this point.
       ghy_data_missing = .false.
@@ -1155,6 +1142,22 @@ c**** check whether ground hydrology data exist at this point.
         call stop_model(
      &       'Ground Hydrology data is missing at some cells',255)
       endif
+      call hl0
+
+      entry upd_gh(redogh,inisnow) ! need to redo if vdata changes
+c****
+c**** set the global arrays  ala, acs, afb, afr, anm, anf
+c****
+      ala(:,:,:)=0.
+      acs(:,:,:)=0.
+      avh(:,:)=0.
+      afb(:,:)=0.
+      afr(:,:,:)=0.
+      acs(1,:,:)=.01d0
+      anm(:,:)=0.0D0            ! Global mean canopy N array (adf)
+      anf(:,:)=0.0D0            ! Global Rubisco factors (adf)
+      almass(:,:,:)=0.0D0       ! Global leaf mass at a time, nyk
+!rar  aalbveg(:,:)=0.08D0 ! no need, it is set in daily_earth 
 
       do j=1,jm
         if(j.le.jm/2) then
@@ -1254,7 +1257,6 @@ c      print *,'canopy conductance related parameter c1:',c1
 c      prfr=.1d0
 c      print *,'fraction (by area) of precipitation prfr:',prfr
 c      print *,' '
-      call hl0
 c****
 c code transplanted from subroutine input
 c**** recompute ground hydrology data if necessary (new soils data)
@@ -1422,7 +1424,7 @@ c****     copy soils prognostic quantities to model variables
 
           end if
         end do
-      end do
+        end do
       end if
 
 c**** set snow fraction for albedo computation (used by RAD_DRV.f)
@@ -1882,7 +1884,7 @@ c**** check for reasonable temperatures over earth
       logical, intent(in) :: end_of_day
 
 C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
-      if(crops_yr.eq.0) call updveg(jyear)
+      if(crops_yr.eq.0) call updveg(jyear,.true.)
       if(cond_scheme.eq.2) call updsur (0,jday)
 c****
 c**** find leaf-area index & water field capacity for ground layer 1
@@ -2207,15 +2209,17 @@ ccc just checking ...
 
       end subroutine check_ghy_conservation
 
-      subroutine updveg (year)
+      subroutine updveg (year,reset_veg)
 !@sum  reads appropriate crops data and updates the vegetation file
 !@auth R. Ruedy
 !@ver  1.0
       USE FILEMANAGER
       USE MODEL_COM, only : im,jm,vdata
       USE GEOM, only : imaxj
+      use soil_drv, only : upd_gh
       implicit none
       integer, intent(in) :: year
+      logical, intent(in) :: reset_veg
 
       real*8 wt,crop(im,jm),crops         ! temporary vars
 
@@ -2271,6 +2275,7 @@ C**** Modify the vegetation fractions
          end if
       end do
       end do
+      if(reset_veg) call upd_gh(.false.,.false.)
 
       year_old = year
 
