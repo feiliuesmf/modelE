@@ -659,7 +659,7 @@ c****
       print *,'interstream distance (m) sdstnc:',sdstnc
       c1=90.
       print *,'canopy conductance related parameter c1:',c1
-      prfr=.1
+      prfr=.1d0
       print *,'fraction (by area) of precipitation prfr:',prfr
       print *,' '
       call hl0

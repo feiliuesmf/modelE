@@ -377,11 +377,11 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 !@var NAME name of record being read
       USE FILEMANAGER, only : NAME=>nameunit
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: IUNIT        !@var  IUNIT  file unit number
-      INTEGER, INTENT(IN) :: IT,ITdif   !@var  current time,time step
-      INTEGER, INTENT(IN) :: LEN4       !@var  LENGTH of array in words
+      INTEGER, INTENT(IN) :: IUNIT !@var IUNIT  file unit number
+      INTEGER, INTENT(IN) :: IT,ITdif !@var IT,ITdif current time,dt
+      INTEGER, INTENT(IN) :: LEN4 !@var LENGTH of array in words
       INTEGER :: IT1,IT2   !@var  time_tags at start,end of each record
-      INTEGER :: N                      !@var  N      loop variable
+      INTEGER :: N              !@var  N      loop variable
 
       read (iunit,end=10,err=50) it1,(it2,n=1,len4+1)
       if(it.gt.it1) go to 30

@@ -6,7 +6,7 @@
 !@ver  1.0 (Based originally on B399)
       USE MODEL_COM
       USE RANDOM
-      USE DAGCOM, only : keyct,keynr,kdiag,oa,monacc
+      USE DAGCOM, only : keyct,keynr,kdiag,oa,monacc,koa
       USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
@@ -74,12 +74,12 @@ C****
       if (Kvflxo.ne.0) then
         write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
         call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
-        call IO_pos(iu_VFLXO,Itime,2*im*jm*12,Nday)
+        call io_POS(iu_VFLXO,Itime,2*im*jm*koa,Nday)
       end if
       if (Nslp.ne.0) then
         write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
         call openunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.)
-        call IO_pos(iu_SLP,Itime,im*jm,Nslp)
+        call io_POS(iu_SLP,Itime,im*jm,Nslp)
       end if
 C****
 C**** MAIN LOOP

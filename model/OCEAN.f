@@ -507,6 +507,7 @@ C**** DATA FOR QFLUX MIXED LAYER OCEAN RUNS
 C**** read in ocean heat transport coefficients
       call openunit("OHT",iu_OHT,.true.,.true.)
       READ (iu_OHT) OTA,OTB,OTC
+      WRITE(6,*) "Read ocean heat transports from OHT"
       call closeunit (iu_OHT)
 
 C**** read in ocean max mix layer depth
