@@ -50,6 +50,8 @@ in adding functionality or diagnostics.</P>
        processors</A> 
        <LI> <A HREF="#part1_1f"> How to specify individual compilation
        options for certain files</A>
+       <LI> <A HREF="#part1_1g"> How to specify the stack size for a
+       particular run</A>
      </OL>
   <LI><A HREF="#part1_2"> HOW-TO set rundeck parameters</A>
      <OL>
@@ -304,7 +306,7 @@ importantly, fail) in compiling the code using any other compiler.</p>
 
 <p> Note that the parallelization used in the code is based on the
 OpenMP shared memory architecture. This is not appropriate for
-multi-processing on a distributed memory platform (such as a Beowlf
+multi-processing on a distributed memory platform (such as a Beowulf
 cluster). For machines that share a number of processors per board,
 the OpenMP directives will work up to that number of processors. We
 are moving towards a domain decomposition/MPI approach (which will be
@@ -314,15 +316,20 @@ functional.</p>
 <p> Many GCM subroutines declare temporary arrays which, in FORTRAN, reside in
 a part of the computer's memory known in computer parlance as the "stack."
 It is essential that a user's stack size be large enough to accommodate these
-arrays; a minimum value of 8192 kilobytes is recommended, with stack requirements
-increasing with model resolution.
+arrays.
+It is recommended that the stack is set to at least 32768 KB for the 
+basic 12 layer 4x5 grid run. Runs with higher resolutions and/or
+tracers may require bigger stack.
 Default stack sizes vary among different computing environments, but
-can be easily adjusted.  Unfortunately this parameter must be
-explicitly set by the user rather than by the GCM setup scripts.
-Stack size is set by commands native to a user's $SHELL;
-for example, a <tt>bash</tt> user would type <tt>ulimit -s 32768</tt> to get a stack
-size of 32768 kb. Mysterious crashes in the radiation are quite often related to
-a too small stack.</p>
+can be easily adjusted. Stack size is set by commands native to a
+user's  $SHELL; for example, a <tt>bash</tt> user would type 
+<tt>ulimit -s 32768</tt> to set  a stack size of 32768 kb. Mysterious
+crashes in the radiation are  quite often related to
+a too small stack. It is possible to declare the required stack size
+inside the GCM configuration files in which case the GCM scripts will
+attempt to allocate appropriate stack before running the model (see
+the section <A HREF="#part1_1g"> How to specify the stack size for a
+particular run</A>  of this document).</p>
 
 <hr>
 
@@ -544,6 +551,38 @@ with debugging information and with default reals set to <tt>REAL*8</tt>.</p>
 <p>One should keep in mind that changing an option inside the rundeck
 doesn't force automatic recompilation. One needs to 'touch' corresponding
 source files to tell gmake that they need to be recompiled.
+
+
+   <LI> <A name="part1_1g"><b> How to specify the stack size for a
+   particular run</b></A>
+
+<p>When running the model one should make sure that the stack size is
+big enough for the allocation of all temporary (automatic) arrays and
+variables. One can set it for the current SHELL session by executing
+<tt>ulimit -s stack_size_in_KB</tt>, but one should keep in mind that
+once the stack size is set it can not be increased (one has to start a
+new SHELL session to increase the numbers set by <tt>ulimit</tt>). 
+The GCM scripts provide an option to specify the stack size which will
+be set for a particular model run at the execution time. To utilize this
+option one should add to the rundeck
+a section <tt>Run Options</tt> right before
+the section <tt>Object modules</tt> and inside this section include a
+line <tt>STACKSIZE=stack_size_in _KB</tt>. For example, for the stack
+size to be set to 64M the corresponding part of the rundeck should look
+<pre>
+...
+End Preprocessor Options
+
+Run Options
+STACKSIZE=65536
+
+Object modules: (in order of decreasing priority)
+...
+</pre>
+The GCM script will attempt to set the stack size to the specified
+number and will give a warning if it can't do this, but will continue
+execution anyway. This option will not change the stack size of your
+current shell session.
 
  </ol>
 
