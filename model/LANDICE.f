@@ -138,8 +138,9 @@ C**** Tracer concentration in ice assumed constant
 !@var TRDIFS implicit tracer flux at base of ice (kg/m^2)
       REAL*8, DIMENSION(NTM), INTENT(OUT) :: TRDIFS
 #endif
-
       REAL*8 :: SNANDI,HC1,ENRG1
+      INTEGER N
+
 C**** initiallize output
       EDIFS=0. ; DIFS=0. ; RUN0=0.
 #ifdef TRACERS_WATER
@@ -150,14 +151,6 @@ C**** CALCULATE TG1
       SNANDI=SNOW+ACE1LI-EVAP
       HC1=SNANDI*SHI
       ENRG1=F0DT+EVAP*(TG1*SHI-LHM)-F1DT
-#ifdef TRACERS_WATER
-      IF (SNOW.gt.EVAP) THEN  ! only snow evaporates
-        TRSNOW(:)=TRSNOW(:)-TREVAP(:)
-      ELSE  ! all snow + some ice evaporates
-c       TRLI(:)=TRLI(:)-(TREVAP(:)-TRSNOW(:))
-        TRSNOW(:)=0.
-      END IF
-#endif
       IF (ENRG1.GT.-TG1*HC1) THEN
 C**** FLUXES HEAT UP TG1 TO FREEZING POINT AND MELT SOME SNOW AND ICE
         RUN0=(ENRG1+TG1*HC1)/LHM
@@ -165,17 +158,29 @@ C**** FLUXES HEAT UP TG1 TO FREEZING POINT AND MELT SOME SNOW AND ICE
         SNANDI=SNANDI-RUN0
 #ifdef TRACERS_WATER
         IF (SNOW-EVAP.gt.RUN0) THEN  ! only snow melts
-          TRUN0(:)=RUN0*TRSNOW(:)/(SNOW-EVAP)
-          TRSNOW(:)=TRSNOW(:)-TRUN0(:)
+          TRUN0(:)=RUN0*(TRSNOW(:)-TREVAP(:))/(SNOW-EVAP)
+          TRSNOW(:)=TRSNOW(:)-TREVAP(:)-TRUN0(:)
         ELSE ! all snow + some ice melts 
-          TRUN0(:)=TRSNOW(:)+(ACE1LI-SNANDI)*TRLI(:)/(ACE2LI+ACE1LI)
+          TRUN0(:)=TRSNOW(:)-TREVAP(:)+(ACE1LI-SNANDI)*TRLI(:)/(ACE2LI
+     *         +ACE1LI)
           TRSNOW(:)=0.
 c         TRLI(:)=TRLI(:)*(1.- ((ACE1LI-SNANDI)/(ACE2LI+ACE1LI)))
+          do n=1,ntm
+            TRUN0(N)=MAX(TRUN0(N),0d0)
+          end do
         END IF
 #endif
       ELSE
 C**** FLUXES RECOMPUTE TG1 WHICH IS BELOW FREEZING POINT
         TG1=TG1+ENRG1/HC1
+#ifdef TRACERS_WATER
+        if (SNOW.gt.EVAP) THEN
+          TRSNOW(:)=TRSNOW(:)-TREVAP(:)
+        else
+c         TRLI(:)=TRLI(:)-(TREVAP(:)-TRSNOW(:))
+          TRSNOW(:)=0.
+        end if
+#endif
       END IF
       IF (SNANDI.LT.ACE1LI) THEN
 C**** SOME ICE HAS MELTED OR EVAPORATED, TAKE IT FROM G2

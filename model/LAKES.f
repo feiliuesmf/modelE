@@ -697,7 +697,7 @@ c              END IF
               if (flake(iu,ju).gt.0) then
                 DTM(:) = DMM*GTRACER(:,1,IU,JU)
               else
-                DTM(:) = DMM*TRLAKE(:,1,IU,JU)/(MWL(IU,JU)+teeny)
+                DTM(:) = DMM*TRLAKE(:,1,IU,JU)/MWL(IU,JU)
               end if
               TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
 #endif
@@ -999,14 +999,34 @@ C**** Check conservation of water tracers in lake
           errmax = 0. ; imax=1 ; jmax=1
           do j=1,jm
           do i=1,imaxj(j)
-            if (flake(i,j).gt.0) then
-            relerr=max(
-     *             abs(trlake(n,1,i,j)-mldlk(i,j)*rhow*flake(i,j)*dxyp(j
-     *             ))/trlake(n,1,i,j),abs(trlake(n,1,i,j)+trlake(n,2,i,j
-     *             )-mwl(i,j))/(trlake(n,1,i,j)+trlake(n,2,i,j)))
-            if (relerr.gt.errmax) then
-              imax=i ; jmax=j ; errmax=relerr
-            end if
+            if (fearth(i,j).gt.0) then
+              if (flake(i,j).gt.0) then
+                relerr=max(
+     *               abs(trlake(n,1,i,j)-mldlk(i,j)*rhow*flake(i,j)
+     *               *dxyp(j))/trlake(n,1,i,j),abs(trlake(n,1,i,j)
+     *               +trlake(n,2,i,j)-mwl(i,j))/(trlake(n,1,i,j)
+     *               +trlake(n,2,i,j)))
+              else
+                if ((mwl(i,j).eq.0 .and. trlake(n,1,i,j)+trlake(n,2,i,j)
+     *               .gt.0) .or. (mwl(i,j).gt.0 .and. trlake(n,1,i,j)
+     *               +trlake(n,2,i,j).eq.0))  then
+                  print*,"CHECKL ",SUBR,i,j,mwl(i,j),trlake(n,1:2,i,j)
+                  relerr=0.
+                else
+                  if (mwl(i,j).gt.1d-20) then
+                    relerr=abs(trlake(n,1,i,j)
+     *                 +trlake(n,2,i,j)-mwl(i,j))/(trlake(n,1,i,j)
+     *                 +trlake(n,2,i,j))
+                  else
+                    if (mwl(i,j).gt.0) print*,"CHECKL2 ",SUBR,i,j,mwl(i
+     *                   ,j),trlake(n,1:2,i,j)
+                    relerr=0.
+                  end if
+                end if
+              end if
+              if (relerr.gt.errmax) then
+                imax=i ; jmax=j ; errmax=relerr
+              end if
             end if
           end do
           end do
