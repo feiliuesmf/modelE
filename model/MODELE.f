@@ -18,14 +18,14 @@
 #endif
       IMPLICIT NONE
 
-      INTEGER I,J,L,K,M,KSS6,MSTART,MNOW,MODD5D,months,ioerr,Ldate,n
+      INTEGER I,J,L,K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,n
       INTEGER iu_VFLXO,iu_SLP,iu_ACC,iu_RSF,iu_ODA
       INTEGER :: MDUM = 0
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
       REAL*8 DTIME,PELSE,PDIAG,PSURF,PRAD,PCDNS,PDYN,TOTALT
 
       CHARACTER aDATE*14
-ccc      CHARACTER*8 :: LABSSW,OFFSSW = 'XXXXXXXX'
+      CHARACTER*8 :: LABSSW       ! old_ssw ???
       external stop_model
 
 C****
@@ -38,7 +38,6 @@ C****
 C**** If run is already done, just produce diagnostic printout
 C****
       IF (Itime.GE.ItimeE) then     ! includes ISTART<1 case
-c        WRITE (6,'("1"/64(1X/))')
          IF (KDIAG(1).LT.9) CALL DIAGJ
          IF (KDIAG(2).LT.9) CALL DIAGJK
          IF (KDIAG(10).LT.9) CALL DIAGIL
@@ -60,9 +59,9 @@ c        WRITE (6,'("1"/64(1X/))')
 #endif
          CALL exit_rc (13)  ! no output files are affected
       END IF
-ccc      WRITE (3) OFFSSW
-ccc      CLOSE (3)
-      call sys_signal( 15, stop_model )
+      WRITE (3) 'XXXXXXXX'        ! old_ssw ???
+      CLOSE (3)                   ! old_ssw ???
+ccc   call sys_signal( 15, stop_model )  ! new_ssw ???
          MSTART=MNOW
          DO M=1,NTIMEACC
            MSTART= MSTART-TIMING(M)
@@ -418,12 +417,11 @@ C**** CPU TIME FOR CALLING DIAGNOSTICS
       CALL TIMER (MNOW,MDIAG)
 C**** TEST FOR TERMINATION OF RUN
 ccc
-ccc      IF (MOD(Itime,Nssw).eq.0) READ (3,END=210) LABSSW
-ccc  210 CLOSE (3)
-ccc      IF (LABSSW.ne.offssw) THEN
-      if ( OFFSSW ) then
+      IF (MOD(Itime,Nssw).eq.0) READ (3,END=210) LABSSW ! old_ssw ???
+  210 CLOSE (3)                                         ! old_ssw ???
+      IF (LABSSW.ne.'XXXXXXXX') THEN                    ! old_ssw ???
+ccc   if (MOD(Itime,Nssw).eq.0 .and. stop_on) then      ! new_ssw ???
 C**** FLAG TO TERMINATE RUN WAS TURNED ON (GOOD OLE SENSE SWITCH 6)
-         KSS6=1
          WRITE (6,'("0SENSE SWITCH 6 HAS BEEN TURNED ON.")')
          EXIT
       END IF
@@ -446,15 +444,15 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      *             ///4(1X,33("****")/))')
      *  ' PROGRAM TERMINATED NORMALLY - Internal clock time:',ITIME
       IF (Itime.ge.ItimeE) CALL exit_rc (13)
-      CALL exit_rc (12)             ! stopped because of SSW6
+      CALL exit_rc (12)               ! voluntary temporary termination
       END
 
 
-      subroutine stop_model
-      USE MODEL_COM, only : OFFSSW
-      implicit none
-      OFFSSW = .true.
-      end subroutine stop_model
+      subroutine stop_model                        
+      USE MODEL_COM, only : stop_on                
+      implicit none                                
+      stop_on = .true.                             
+      end subroutine stop_model                    
 
 
       subroutine init_Model

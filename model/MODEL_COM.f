@@ -161,8 +161,8 @@ C**** Variables specific for stratosphere and/or strat diagnostics
 !@nlparam QCHECK TRUE for running diagnostic checks
       LOGICAL :: QCHECK = .FALSE.
 
-!@var OFFSSW TRUE stops the model (set with "kill -15 PID)
-      LOGICAL :: OFFSSW = .FALSE.
+!@var stop_on TRUE stops the model (set with "kill -15 PID)
+      LOGICAL :: stop_on = .FALSE.   
 
       END MODULE MODEL_COM
 
