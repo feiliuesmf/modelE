@@ -24,7 +24,7 @@
      *     ,ntm,trsi
 #endif
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,j_imelt
-     *     ,j_smelt
+     *     ,j_smelt,ij_fwio,ij_htio,ij_stio
       USE DOMAIN_DECOMP, only : GRID
       USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
@@ -109,6 +109,12 @@ C**** Accumulate diagnostics for ice fraction
         AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+RUN0 *POICE
         AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+SRUN0*POICE
 c       AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)+ERUN *POICE  ! ==0
+        IF (FOCEAN(I,J).gt.0) THEN
+          AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(RUN0-SRUN0)*POICE
+c         AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)+ERUN*POICE       ! ==0
+          AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SRUN0*POICE
+        END IF
+
 C**** Accumulate regional diagnostics
         AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+RUN0 *POICE*DXYP(J)
         AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+SRUN0*POICE*DXYP(J)
@@ -271,7 +277,8 @@ C****
       USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice ! ,itime
      *     ,itocean,itlake,dtsrc                               ! ,nday
       USE GEOM, only : dxyp,imaxj
-      USE DAGCOM, only : aj,j_imelt,j_hmelt,j_smelt,areg,jreg
+      USE DAGCOM, only : aj,aij,j_imelt,j_hmelt,j_smelt,areg,jreg
+     *     ,ij_fwio,ij_htio,ij_stio
       USE SEAICE, only : simelt,tfrez
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
 #ifdef TRACERS_WATER
@@ -345,6 +352,12 @@ C**** now include lat melt for lakes and any RSI < 1
      *           ,ENRGMAX,ENRGUSED,RUN0,SALT)
 
 C**** accumulate diagnostics
+           IF (FOCEAN(I,J).gt.0) THEN
+             AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(RUN0-SALT)*PWATER
+             AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)-ENRGUSED*PWATER
+             AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SALT*PWATER
+           END IF
+
            AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ENRGUSED*ROICE*PWATER
            AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+    SALT*ROICE*PWATER
            AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+    RUN0*ROICE*PWATER
@@ -410,9 +423,9 @@ C****
      *     ,trsi,ntm
 #endif
       USE LAKES_COM, only : mwl,gml,flake
-      USE DAGCOM, only : aj,areg,aij,jreg,ij_erun2,ij_rsoi,ij_msi2
+      USE DAGCOM, only : aj,areg,aij,jreg,ij_erun2,ij_rsoi,ij_msi
      *     ,j_imelt,j_hmelt,j_smelt,j_rsnow,ij_rsit,ij_rsnw,ij_snow
-     *     ,ij_mltp
+     *     ,ij_mltp,ij_zsnow,ij_fwio,ij_htio,ij_stio
       USE DOMAIN_DECOMP, only : GRID
       USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
@@ -483,7 +496,7 @@ C****
         END IF
 
         AIJ(I,J,IJ_RSOI) =AIJ(I,J,IJ_RSOI) +POICE
-        AIJ(I,J,IJ_MSI2) =AIJ(I,J,IJ_MSI2) +MSI2*POICE
+        AIJ(I,J,IJ_MSI) =AIJ(I,J,IJ_MSI) + (ACE1I+MSI2)*POICE
 
         CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP,SROX
 #ifdef TRACERS_WATER
@@ -553,6 +566,13 @@ C**** snow cover diagnostic now matches that seen by the radiation
           AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*POICE
           AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+POICE
           AIJ(I,J,IJ_MLTP)=AIJ(I,J,IJ_MLTP)+pond_melt(i,j)*POICE
+          AIJ(I,J,IJ_ZSNOW)=AIJ(I,J,IJ_ZSNOW)+POICE*SNOW/RHOS
+          IF (FOCEAN(I,J).gt.0) THEN
+            AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(RUNOSI(I,J)-SRUNOSI(I,J))
+     *           *POICE
+            AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)+ERUNOSI(I,J)*POICE
+            AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SRUNOSI(I,J)*POICE
+          END IF
 
           AJ(J,J_RSNOW,ITYPE)=AJ(J,J_RSNOW,ITYPE)+SCOVI
           AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+(FMOC+RUN+MFLUX
@@ -596,7 +616,7 @@ C****
 #endif
       USE DAGCOM, only : aj,areg,aij,jreg,j_rsi,j_ace1,j_ace2,j_snow
      *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2,j_implh
-     *     ,j_implm,ij_smfx
+     *     ,j_implm,ij_smfx,ij_fwio,ij_htio,ij_stio
       USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi,debug
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
 #ifdef TRACERS_WATER
@@ -672,6 +692,14 @@ C****
         TRI(:) = DTRSI(:,2,I,J)
 #endif
 C**** ice formation diagnostics on the atmospheric grid
+        IF (FOCEAN(I,J).gt.0) THEN
+          AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO) - POCEAN*(ACEFO-SALTO)
+     *         - POICE*(ACEFI-SALTI)
+          AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO) - POCEAN* ENRGFO
+     *         - POICE* ENRGFI
+          AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO) - POCEAN* SALTO
+     *         - POICE* SALTI
+        END IF
 C**** open ocean diagnostics
         AJ(J,J_SMELT,ITYPEO)=AJ(J,J_SMELT,ITYPEO)-SALTO *POCEAN
         AJ(J,J_HMELT,ITYPEO)=AJ(J,J_HMELT,ITYPEO)-ENRGFO*POCEAN

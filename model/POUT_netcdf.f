@@ -27,13 +27,13 @@ C**** have to wait.
      &    ,ndims_out,dimids_out,file_dimlens,var_name
      &    ,units,long_name,missing,real_att_name,real_att
      &    ,disk_dtype,prog_dtype,lat_dg
-     &    ,iu_ij,im,jm,lm,lm_req,im_data
+     &    ,iu_ij,im,jm,lm,lm_req,im_data,iu_ijl
      &    ,iu_ijk,iu_il,iu_j,iu_jc,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
      &    ,iu_wp,def_missing,srt,cnt,write_whole_array
 
 !@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
       integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
-     &     ,iu_jc,iu_wp
+     &     ,iu_jc,iu_wp,iu_ijl
 !@var im,jm,lm,lm_req local dimensions set in open_* routines
 !@var im_data inner dimension of arrays passed to pout_*
 !     it will differ from im because of array padding to hold means, etc.
@@ -1023,16 +1023,24 @@ C**** set dimensions
       lm=lm_gcm
 
       dim_name='longitude'; call def_dim_out(dim_name,im)
-      dim_name='latitude'; call def_dim_out(dim_name,jm-1)
+      dim_name='latitude'; call def_dim_out(dim_name,jm)
+      dim_name='lonb'; call def_dim_out(dim_name,im)
+      dim_name='latb'; call def_dim_out(dim_name,jm-1)
       dim_name='p'; call def_dim_out(dim_name,lm)
 
       ndims_out = 1
       dim_name='longitude'; call set_dim_out(dim_name,1)
       units='degrees_east'
-      var_name='longitude';call wrtdarr(lon_dg(1,2))
+      var_name='longitude';call wrtdarr(lon_dg(1,1))
       dim_name='latitude'; call set_dim_out(dim_name,1)
       units='degrees_north'
-      var_name='latitude';call wrtdarr(lat_dg(2,2))
+      var_name='latitude';call wrtdarr(lat_dg(1,1))
+      dim_name='lonb'; call set_dim_out(dim_name,1)
+      units='degrees_east'
+      var_name='lonb';call wrtdarr(lon_dg(1,2))
+      dim_name='latb'; call set_dim_out(dim_name,1)
+      units='degrees_north'
+      var_name='latb';call wrtdarr(lat_dg(2,2))
       dim_name='p'; call set_dim_out(dim_name,1)
       units='mb'
       var_name='p'; call wrtdarr(plm)
@@ -1082,6 +1090,7 @@ C**** set dimensions
 
       out_fid = iu_ijk
 
+      if (ijgrid.eq.2) then
 c pack first-j-empty :,jm,lm array to memory-contiguous :,jm-1,lm array
       lpack = 1
       jpack = 0
@@ -1096,14 +1105,22 @@ c pack first-j-empty :,jm,lm array to memory-contiguous :,jm-1,lm array
          xjk(jpack,lpack) = xjk(j,l)
       enddo
       enddo
+      end if
 
 ! (re)set shape of output array
       ndims_out = 3
 
-      dim_name = 'longitude'
-      call set_dim_out(dim_name,1)
-      dim_name = 'latitude'
-      call set_dim_out(dim_name,2)
+      if (ijgrid.eq.1) then
+        dim_name = 'longitude'
+        call set_dim_out(dim_name,1)
+        dim_name = 'latitude'
+        call set_dim_out(dim_name,2)
+      else
+        dim_name = 'lonb'
+        call set_dim_out(dim_name,1)
+        dim_name = 'latb'
+        call set_dim_out(dim_name,2)
+      end if
       dim_name = 'p'
       call set_dim_out(dim_name,3)
 
@@ -1113,6 +1130,7 @@ c pack first-j-empty :,jm,lm array to memory-contiguous :,jm-1,lm array
 
       call wrtdarr(xijk)
 
+      if (ijgrid.eq.2) then
 c unpack memory-contiguous :,jm-1,lm memory to first-j-empty :,jm,lm array
       lpack = 1 + ((jm-1)*lm)/jm
       jpack = (jm-1)*lm - (lpack-1)*jm
@@ -1127,6 +1145,114 @@ c unpack memory-contiguous :,jm-1,lm memory to first-j-empty :,jm,lm array
          endif
       enddo
       enddo
+      end if
+
+      return
+      end
+
+      subroutine open_ijl(filename,im_gcm,jm_gcm,lm_gcm)
+!@sum  OPEN_IJL opens the lat-lon-layer binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE GEOM, only : lon_dg,lat_dg
+      USE NCOUT, only : im,jm,lm,iu_ijl,set_dim_out,def_dim_out,out_fid
+     *     ,outfile,units,ndims_out,open_out,var_name
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+!@var IM_GCM,JM_GCM,LM_GCM dimensions for ijl output
+      INTEGER, INTENT(IN) :: im_gcm,jm_gcm,lm_gcm
+      INTEGER :: l,lev(lm_gcm)
+!
+      character(len=30) :: dim_name
+
+      outfile = trim(filename)//".nc"
+
+! define output file
+      call open_out
+      iu_ijl = out_fid
+
+C**** set dimensions
+      im=im_gcm
+      jm=jm_gcm
+      lm=lm_gcm
+
+      dim_name='longitude'; call def_dim_out(dim_name,im)
+      dim_name='latitude'; call def_dim_out(dim_name,jm)
+      dim_name='level'; call def_dim_out(dim_name,lm)
+
+      ndims_out = 1
+      dim_name='longitude'; call set_dim_out(dim_name,1)
+      units='degrees_east'
+      var_name='longitude';call wrtdarr(lon_dg(1,1))
+      dim_name='latitude'; call set_dim_out(dim_name,1)
+      units='degrees_north'
+      var_name='latitude';call wrtdarr(lat_dg(1,1))
+      dim_name='level'; call set_dim_out(dim_name,1)
+      units=' '
+      do l=1,lm
+        lev(l)=l
+      end do
+      var_name='level'; call wrtdarr(lev)
+
+      return
+      end subroutine open_ijl
+
+      subroutine close_ijl
+!@sum  CLOSE_IJL closes the lat-lon-layer binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE NCOUT
+      IMPLICIT NONE
+
+      out_fid = iu_ijl
+      call close_out
+
+      return
+      end subroutine close_ijl
+
+      subroutine POUT_IJL(TITLE,SNAME,LNAME,UNITS_IN,XIJL,XJL,XL,IJGRID)
+!@sum  POUT_IJL output lat-lon-layer binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE NCOUT
+      IMPLICIT NONE
+!@var TITLE 80 byte title including description and averaging period
+      CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
+!@var SNAME short name of field
+      CHARACTER, INTENT(IN) :: SNAME*30
+!@var LNAME long name of field
+      CHARACTER, INTENT(IN) :: LNAME*50
+!@var UNITS units of field
+      CHARACTER, INTENT(IN) :: UNITS_IN*50
+!@var XIJK lat/lon/height output field
+      REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: XIJL
+!@var XJK lat sum/mean of output field
+      REAL*8, DIMENSION(JM,LM), INTENT(INOUT) :: XJL
+!@var XK global sum/mean of output field
+      REAL*8, DIMENSION(LM), INTENT(IN) :: XL
+!@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
+      INTEGER, INTENT(IN) :: IJGRID
+
+      character(len=30) :: dim_name
+
+      out_fid = iu_ijl
+
+! (re)set shape of output array
+      ndims_out = 3
+
+      dim_name = 'longitude'
+      call set_dim_out(dim_name,1)
+      dim_name = 'latitude'
+      call set_dim_out(dim_name,2)
+      dim_name = 'level'
+      call set_dim_out(dim_name,3)
+
+      var_name=sname
+      long_name=lname
+      units=units_in
+
+      call wrtdarr(xijl)
 
       return
       end

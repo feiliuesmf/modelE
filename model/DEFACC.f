@@ -1656,14 +1656,13 @@ c
       ir_ij(k) = ir_0_710
 c
       k=k+1 !
-      IJ_ZSNOW = k ! snow thickness
-      lname_ij(k) = 'LAND SNOW THICKNESS'
+      IJ_ZSNOW = k ! snow thickness over all surface types
+      lname_ij(k) = 'SNOW THICKNESS'
       units_ij(k) = 'm'
       name_ij(k) = 'zsnow'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
-      iw_ij(k) = iw_soil
-      ir_ij(k) = ir_0_710
+      ir_ij(k) = ir_0_4
 c
       k=k+1 !
       IJ_QS   = k ! QS                                (NO PRT)  3 SF
@@ -1737,19 +1736,28 @@ c
       k=k+1 !
       IJ_SSS = k               !      3 SF
       lname_ij(k) = 'SEA SURFACE SALINITY'    ! layer 1
-      units_ij(k) = 'C'
+      units_ij(k) = 'psu'
       name_ij(k) = 'sss'
       ia_ij(k) = ia_srf
       scale_ij(k) = 1.
       iw_ij(k) = iw_ocn
 c
       k=k+1 !
-      IJ_MSI2 = k ! ACE2OI= MSI2*POICE  (KG/m**2)        1 GD
-      lname_ij(k) = 'LAYER 2 OCEAN ICE MASS x POICE'
-      units_ij(k) = '10^3 kg/m^2'
-      name_ij(k) = 'MSI2'
+      IJ_SSH = k               !      3 SF
+      lname_ij(k) = 'SEA SURFACE HEIGHT'   
+      units_ij(k) = 'm'
+      name_ij(k) = 'ssh'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      iw_ij(k) = iw_ocn
+c
+      k=k+1 !
+      IJ_MSI = k ! ACE2OI+ACE1I= (MSI2+MSI1)*POICE/RHOI (m)   1 GD
+      lname_ij(k) = 'OCEAN ICE THICKNESS x POICE'
+      units_ij(k) = 'm'
+      name_ij(k) = 'ZSI'
       ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-3
+      scale_ij(k) = 1./RHOI
 cc    iw_ij(k) = iw_oic !! built in
       ir_ij(k) = ir_0_4
 c
@@ -1815,7 +1823,7 @@ c     iw built-in
       ir_ij(k) = ir_0_3_15
 c
       k=k+1 !
-      IJ_F0OC = k ! F0DT*POCEAN, NET HEAT AT Z0  (J/m**2)    1 GD
+      IJ_F0OC = k ! NET HEAT INTO OCEAN (INCL. RIVERS + ICEBERGS)
       lname_ij(k) = 'NET HEAT INTO OCEAN x POCEAN'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'netht_osurf'
@@ -1823,6 +1831,38 @@ c
       scale_ij(k) = 1./DTsrc
 c     iw built-in
       ir_ij(k) = ir_m530_190
+c
+      k=k+1 !
+      IJ_FWOC = k ! NET FRESH WATER AT Z0 (INCL RIVERS + ICEBERGS)
+      lname_ij(k) = 'NET FRESH WATER INTO OCEAN x POCEAN'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'netfw_osurf'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+c
+      k=k+1 !
+      IJ_FWIO = k ! NET FRESH WATER AT ICE-OCEAN INTERFACE
+      lname_ij(k) = 'NET ICE-OCEAN FRESH WATER x POCEAN'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'netfw_icoc'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+c
+      k=k+1 !
+      IJ_HTIO = k ! NET HEAT AT ICE-OCEAN INTERFACE
+      lname_ij(k) = 'NET ICE-OCEAN HEAT x POCEAN'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'netht_icoc'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+c
+      k=k+1 !
+      IJ_STIO = k ! NET SALT AT ICE-OCEAN INTERFACE
+      lname_ij(k) = 'NET ICE-OCEAN SALT x POCEAN'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'netst_icoc'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
 c
       k=k+1 !
       IJ_F0OI = k ! F0DT*POICE, NET HEAT AT Z0  (J/m**2)     1 GD
@@ -1965,7 +2005,7 @@ c
       lname_ij(k) = 'ATMOSPHERIC WATER VAPOUR'
       units_ij(k) = 'kg/m^2'
       name_ij(k) = 'qatm'
-      ia_ij(k) = ia_src
+      ia_ij(k) = ia_dga
       scale_ij(k) = 1.
       ir_ij(k) = ir_0_18
 c
@@ -4139,6 +4179,39 @@ c
       lname_ijk(k) = 'SPECIFIC HUMIDITY'! x delta p x 4, b-grid'
       units_ijk(k) = 'kg/kg' !'10**-5'
       scale_ijk(k) = 0.25    !*1d5
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJK_R=k
+      name_ijk(k) = 'r' !'RHDPB'  (w.r.t water)
+      lname_ijk(k) = 'RELATIVE HUMIDITY'! x delta p x 4, b-grid'
+      units_ijk(k) = '%' 
+      scale_ijk(k) = 25.0
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJK_W=k
+      name_ijk(k) = 'w' !'WDPB'
+      lname_ijk(k) = 'OMEGA'!  a-grid
+      units_ijk(k) = 'Pa/s' 
+      scale_ijk(k) = 100. 
+      jgrid_ijk(k) = 1
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJK_PF=k
+      name_ijk(k) = 'p' 
+      lname_ijk(k) = 'FRACTION ABOVE SURFACE'
+      units_ijk(k) = '%' 
+      scale_ijk(k) = 100.0
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CF=k    ! exception - cloud fraction is on model layers
+      name_ijk(k) = 'cf' !'WDPB'
+      lname_ijk(k) = 'CLOUD FRACTION'
+      units_ijk(k) = '%' 
+      scale_ijk(k) = 100. 
       off_ijk(k)   = 0.
 c
       write (6,*) 'Number of AIJK diagnostics defined: kaijkmax=',k

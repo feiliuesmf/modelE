@@ -8,7 +8,7 @@
 !@auth Nobody will claim responsibilty
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6,byshi
-     *     ,byrhoi,deltx,byrt3,teeny
+     *     ,byrhoi,deltx,byrt3,teeny,rhows
       USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM, HALO_UPDATE, SOUTH
       USE DOMAIN_DECOMP, only : NORTH
       USE MODEL_COM, only : im,jm,lm,fim,dtsrc,nisurf,u,v,t,p,q
@@ -62,7 +62,7 @@ C**** Interface to PBL
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
      *     ,idd_ev,idd_ldc,idd_dcf,hdiurn,ij_pblht,ij_sss,ij_trsup
-     *     ,ij_trsdn
+     *     ,ij_trsdn,ij_fwoc,ij_ssh
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
       USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,
@@ -72,7 +72,7 @@ C**** Interface to PBL
       USE LAKES, only : minmld
       USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe,sss
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
-     *     ,uosurf,vosurf,uisurf,visurf
+     *     ,uosurf,vosurf,uisurf,visurf,ogeoza
 #ifdef TRACERS_ON
      *     ,trsrfflx,trsource
 #ifdef TRACERS_WATER
@@ -301,6 +301,13 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
              HDIURN(IHM,IDD_Q1,KR)=HDIURN(IHM,IDD_Q1,KR)+Q1
            END IF
          END DO
+         END IF
+C**** save some ocean diags regardless of PTYPE
+         IF (FOCEAN(I,J).gt.0. .and. MODDSF.eq.0) THEN
+           AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+GTEMP(1,1,I,J)
+           AIJ(I,J,IJ_SSS)=AIJ(I,J,IJ_SSS)+SSS(I,J)
+           AIJ(I,J,IJ_SSH)=AIJ(I,J,IJ_SSH)+OGEOZA(I,J)*BYGRAV+
+     *          RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I)/RHOWS 
          END IF
 C****
       DO ITYPE=1,3       ! no earth type
@@ -919,13 +926,11 @@ C****
         OA(I,J,6)=OA(I,J,6)+TRHDT
         OA(I,J,7)=OA(I,J,7)+SHDT
         OA(I,J,8)=OA(I,J,8)+EVHDT
-        IF (MODDSF.eq.0) THEN
-          AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+TG1
-          AIJ(I,J,IJ_SSS)=AIJ(I,J,IJ_SSS)+SSS(I,J)
-        END IF
         AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAP*PTYPE
-        IF (FOCEAN(I,J).gt.0) AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC) +F0DT
-     *       *PTYPE
+        IF (FOCEAN(I,J).gt.0) THEN
+          AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC) +F0DT*PTYPE
+          AIJ(I,J,IJ_FWOC)=AIJ(I,J,IJ_FWOC) -EVAP*PTYPE
+        END IF
 C****
 !!!      CASE (2)  ! seaice
       else if ( ITYPE == 2 ) then

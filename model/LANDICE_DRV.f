@@ -273,10 +273,11 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
       USE GEOM, only : imaxj,dxyp,bydxyp
       USE LANDICE, only : lndice,ace1li,ace2li
       USE SEAICE_COM, only : rsi
+      USE SEAICE, only : rhos
       USE DAGCOM, only : aj,areg,aij,jreg,ij_runli,ij_f1li,ij_erun2
      *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run
      *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_f0oc
-     *     ,j_rvrd,j_ervr,ij_mrvr,ij_ervr
+     *     ,j_rvrd,j_ervr,ij_mrvr,ij_ervr,ij_zsnow,ij_fwoc
       USE LANDICE_COM, only : snowli,tlandi
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trli0
@@ -364,6 +365,7 @@ C**** ACCUMULATE DIAGNOSTICS
         AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVLI
         AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*PLICE
         AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+PLICE
+        AIJ(I,J,IJ_ZSNOW)=AIJ(I,J,IJ_ZSNOW)+PLICE*SNOW/RHOS
 
         AJ(J,J_RUN,ITLANDI)  =AJ(J,J_RUN,ITLANDI)  +RUN0 *PLICE
         AJ(J,J_SNOW,ITLANDI) =AJ(J,J_SNOW,ITLANDI) +SNOW *PLICE
@@ -393,8 +395,8 @@ C**** Accumulate diagnostics related to iceberg flux here also
      *     * GMELT(I,J)*BYDXYP(J)
       AJ(J,J_ERVR,ITOICE)  = AJ(J,J_ERVR,ITOICE) +    RSI(I,J)
      *     *EGMELT(I,J)*BYDXYP(J)
-      AIJ(I,J,IJ_F0OC) = AIJ(I,J,IJ_F0OC)        +(1.-RSI(I,J))
-     *     *EGMELT(I,J)*BYDXYP(J)
+      AIJ(I,J,IJ_F0OC) = AIJ(I,J,IJ_F0OC)+EGMELT(I,J)*BYDXYP(J)
+      AIJ(I,J,IJ_FWOC) = AIJ(I,J,IJ_FWOC)+ GMELT(I,J)*BYDXYP(J)
       
       AREG(JR,J_RVRD) = AREG(JR,J_RVRD) +  GMELT(I,J)
       AREG(JR,J_ERVR) = AREG(JR,J_ERVR) + EGMELT(I,J)

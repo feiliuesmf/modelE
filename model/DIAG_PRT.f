@@ -5243,17 +5243,16 @@ c
 !@sum  IJKMAP output 3-D constant pressure output fields
 !@auth G. Schmidt
 !@ver  1.0
-C**** Note that since all IJK diags are weighted w.r.t pressure, all
+C**** Note that since many IJK diags are weighted w.r.t pressure, all
 C**** diagnostics must be divided by the accumulated pressure
 C**** All titles/names etc. implicitly assume that this will be done.
-      USE CONSTANT, only :
-     &     grav,sha,undef
-      USE MODEL_COM, only :
-     &     im,jm,lm,
-     &     PTOP,SIG,PSFMPT,XLABEL,LRUNID
+C**** IJL diags are done separately
+      USE CONSTANT, only :  grav,sha,undef
+      USE MODEL_COM, only : im,jm,lm,PTOP,SIG,PSFMPT,XLABEL,LRUNID,idacc
       USE DAGCOM, only : kdiag,jgrid_ijk,
      &     aijk,acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
      *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk,kaijkx
+     *     ,ijl_cf,ijk_w,ia_rad,ia_dga
       use filemanager
       IMPLICIT NONE
 
@@ -5308,31 +5307,18 @@ C****
 
 C**** Select fields
       DO K=1,KAIJKx
-        if (.not.Qk(k).or.k.eq.ijk_dp) cycle
-        TITLEX = lname_ijk(k)(1:17)//"   at        mb ("//
-     *       trim(units_ijk(k))//", UV grid)"
+        if (.not.Qk(k).or.k.eq.ijk_dp.or.k.eq.ijl_cf) cycle
         SMAP(:,:,:) = UNDEF
         SMAPJK(:,:) = UNDEF
         SMAPK(:)    = UNDEF
-        IF (K.le.kaijk) THEN     !  simple cases
-          DO L=1,LM
-            DO J=2,JM
-              NI = 0
-              FLAT = 0.
-              DO I=1,IM
-                DP=AIJK(I,J,L,IJK_DP)
-                IF(DP.GT.0.) THEN
-                  SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/DP+OFF_IJK(K)
-                  FLAT = FLAT+SMAP(I,J,L)
-                  NI = NI+1
-                END IF
-              END DO
-              IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-            END DO
-            WRITE(TITLEX(23:30),'(A)') CPRESS(L)
-            TITLEL(L) = TITLEX//XLB
-          END DO
-        ELSEIF (name_ijk(K).eq.'z') THEN ! special compound case
+        if (jgrid_ijk(k).eq.1) then
+          TITLEX = lname_ijk(k)(1:17)//"   at        mb ("//
+     *         trim(units_ijk(k))//")"
+        else
+          TITLEX = lname_ijk(k)(1:17)//"   at        mb ("//
+     *         trim(units_ijk(k))//", UV grid)"
+        end if
+        IF (name_ijk(K).eq.'z') THEN ! special compound case
           DO L=1,LM
             DO J=2,JM
               NI = 0
@@ -5351,12 +5337,74 @@ C**** Select fields
             WRITE(TITLEX(23:30),'(A)') CPRESS(L)
             TITLEL(L) = TITLEX//XLB
           END DO
+        ELSEIF (jgrid_ijk(k).eq.1 .or. name_ijk(k).eq."p") THEN ! no dp weight
+          DO L=1,LM
+            DO J=1,JM
+              NI = 0
+              FLAT = 0.
+              DO I=1,IM
+                SMAP(I,J,L) = SCALE_IJK(k)*AIJK(I,J,L,K)/IDACC(ia_dga)
+                FLAT = FLAT+SMAP(I,J,L)
+                NI = NI+1
+              END DO
+              IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+            END DO
+            WRITE(TITLEX(23:30),'(A)') CPRESS(L)
+            TITLEL(L) = TITLEX//XLB
+          END DO
+        ELSE    !  simple b-grid cases
+          DO L=1,LM
+            DO J=2,JM
+              NI = 0
+              FLAT = 0.
+              DO I=1,IM
+                DP=AIJK(I,J,L,IJK_DP)
+                IF(DP.GT.0.) THEN
+                  SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/DP+OFF_IJK(K)
+                  FLAT = FLAT+SMAP(I,J,L)
+                  NI = NI+1
+                END IF
+              END DO
+              IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+            END DO
+            WRITE(TITLEX(23:30),'(A)') CPRESS(L)
+            TITLEL(L) = TITLEX//XLB
+          END DO
         END IF
         CALL POUT_IJK(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
      *       ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
       END DO
 C****
       call close_ijk
+C****
+C**** ijl output
+C****
+      call open_ijl(trim(acc_period)//'.ijl'//XLABEL(1:LRUNID),im,jm,lm)
+
+      k=ijl_cf
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+C****
+      call close_ijl
 C****
       RETURN
       END SUBROUTINE IJKMAP

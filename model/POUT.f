@@ -18,6 +18,7 @@ C**** have to wait.
       implicit none
 !@var iu_ij,iu_jl,iu_il,iu_j,iu_diurn,iu_hdiurn !units for selected diag. output
       integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_diurn,iu_hdiurn,iu_isccp
+     *     ,iu_ijl
 #ifdef TRACERS_ON
 !@var iu_jc unit for tracer conservation diagnostics
       integer iu_jc
@@ -461,6 +462,70 @@ C**** set dimensions
       ENDDO
       return
       end subroutine POUT_IJK
+
+      subroutine open_ijl(filename,im_gcm,jm_gcm,lm_gcm)
+!@sum  OPEN_IJK opens the lat-lon-layer binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE GISSOUT
+      USE FILEMANAGER
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+!@var IM_GCM,JM_GCM,LM_GCM dimensions for ij output
+      INTEGER, INTENT(IN) :: im_gcm,jm_gcm,lm_gcm
+
+      call openunit(filename,iu_ijl,.true.,.false.)
+
+C**** set dimensions
+      im=im_gcm
+      jm=jm_gcm
+      lm=lm_gcm
+
+      return
+      end subroutine open_ijl
+
+      subroutine close_ijl
+!@sum  CLOSE_IJL closes the lat-lon-layer binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE GISSOUT
+      USE FILEMANAGER
+      IMPLICIT NONE
+      call closeunit(iu_ijl)
+      return
+      end subroutine close_ijl
+
+      subroutine POUT_IJL(TITLE,SNAME,LNAME,UNITS,XIJL,XJL,XL,IJGRID)
+!@sum  POUT_IJL outputs lat-lon-layer binary records
+!@auth M. Kelley
+!@ver  1.0
+      USE GISSOUT
+      IMPLICIT NONE
+!@var TITLE 80 byte title including description and averaging period
+      CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
+!@var SNAME short name of field
+      CHARACTER, INTENT(IN) :: SNAME*30
+!@var LNAME long name of field
+      CHARACTER, INTENT(IN) :: LNAME*50
+!@var UNITS units of field
+      CHARACTER, INTENT(IN) :: UNITS*50
+!@var XIJK lat/lon/height output field
+      REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: XIJL
+!@var XJK lat sum/mean of output field
+      REAL*8, DIMENSION(JM,LM), INTENT(IN) :: XJL
+!@var XK global sum/mean of output field
+      REAL*8, DIMENSION(LM), INTENT(IN) :: XL
+!@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
+      INTEGER, INTENT(IN) :: IJGRID
+      INTEGER :: K
+
+      DO K=1,LM
+         WRITE(iu_ijl) TITLE(K), REAL(XIJL(:,:,K),KIND=4),
+     &     REAL(XJL(:,K),KIND=4), REAL(XL(K),KIND=4)
+      ENDDO
+      return
+      end subroutine POUT_IJL
 
       subroutine open_isccp(filename,ntau,npres,nisccp)
 !@sum  OPEN_ISCCP opens the binary output file of ISCCP histograms

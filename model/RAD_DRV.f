@@ -756,7 +756,7 @@ C     OUTPUT DATA
      *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,ij_swcrf,ij_lwcrf
      *     ,AFLX_ST, hr_in_day,hr_in_month,ij_srntp,ij_trntp
      *     ,ij_clr_srntp,ij_clr_trntp,ij_clr_srnfg,ij_clr_trdng
-     *     ,ij_clr_sruptoa,ij_clr_truptoa
+     *     ,ij_clr_sruptoa,ij_clr_truptoa,aijk,ijl_cf
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -1056,6 +1056,8 @@ C**** Determine large scale and moist convective cloud cover for radia
              CLDCV=1.
           TOTCLD(L)=1.
           AJL(J,L,JL_TOTCLD)=AJL(J,L,JL_TOTCLD)+1.
+C**** save 3D cloud fraction as seen by radiation
+          AIJK(I,J,L,IJL_CF)=AIJK(I,J,L,IJL_CF)+1.
           IF(TAUMCL.GT.TAUSSL) THEN
             SIZEWC(L)=CSIZMC(L,I,J)
             SIZEIC(L)=CSIZMC(L,I,J)

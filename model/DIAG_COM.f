@@ -147,7 +147,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJK
 
 !@param KAIJK,KAIJX number of lat/lon constant pressure diagnostics
-      INTEGER, PARAMETER :: KAIJK=6 , kaijkx=kaijk+100
+      INTEGER, PARAMETER :: KAIJK=10, kaijkx=kaijk+100
 !@var KAIJK lat/lon constant pressure diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: AIJK
 
@@ -337,7 +337,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_SLP, IJ_UJET, IJ_VJET, IJ_PCLDL, IJ_PCLDM, IJ_PCLDH,
      *     IJ_BTMPW, IJ_SRREF, IJ_SRVIS, IJ_TOC2, IJ_TAUS, IJ_TAUUS,
      *     IJ_TAUVS, IJ_GWTR, IJ_QS, IJ_STRNGTS, IJ_ARUNU, IJ_DTGDTS,
-     *     IJ_PUQ, IJ_PVQ, IJ_TGO, IJ_MSI2, IJ_TGO2, IJ_EVAPO,
+     *     IJ_PUQ, IJ_PVQ, IJ_TGO, IJ_MSI, IJ_TGO2, IJ_EVAPO,
      *     IJ_EVAPI, IJ_EVAPLI,IJ_EVAPE, IJ_F0OC,IJ_F0OI,IJ_F0LI,IJ_F0E,
      *     IJ_F1LI, IJ_SNWF, IJ_TSLI, IJ_ERUN2, IJ_SHDTLI, IJ_EVHDT,
      *     IJ_TRHDT, IJ_TMAX, IJ_TMIN, IJ_TMNMX, IJ_PEVAP, IJ_TMAXE,
@@ -350,7 +350,8 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_GICE, IJ_GWTR1, IJ_ZSNOW, IJ_AFLMLT,
      *     IJ_SRNTP,IJ_TRNTP,IJ_CLR_SRNTP,IJ_CLR_TRNTP, IJ_TRSDN,
      *     IJ_TRSUP, IJ_CLR_SRNFG,IJ_CLR_TRDNG,IJ_CLR_SRUPTOA,
-     *     IJ_CLR_TRUPTOA, IJ_CLDW, IJ_CLDI, IJ_QM
+     *     IJ_CLR_TRUPTOA, IJ_CLDW, IJ_CLDI, IJ_QM, IJ_SSH, IJ_FWOC,
+     *     IJ_FWIO, IJ_HTIO, IJ_STIO
 #ifdef CLD_AER_CDNC
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
      *     ,ij_3drwm,ij_3drim,ij_3drws,ij_3dris
@@ -510,7 +511,8 @@ C****      names, indices, units, idacc-numbers, etc.
       integer, dimension(kajkx) :: pow_jk
 
 !@var IJK_xxx AIJK diagnostic names
-      INTEGER :: IJK_U, IJK_V, IJK_DSE, IJK_DP, IJK_T, IJK_Q
+      INTEGER :: IJK_U, IJK_V, IJK_DSE, IJK_DP, IJK_T, IJK_Q, IJK_R,
+     *     IJK_W, IJK_PF, IJL_CF
 !@var SCALE_IJK scaling for weighted AIJK diagnostics
       REAL*8, DIMENSION(KAIJKx) :: SCALE_IJK
 !@var OFF_IJK offset for weighted AIJK diagnostics

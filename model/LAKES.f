@@ -648,7 +648,7 @@ C****
      *     ,itocean,itoice,fland
       USE GEOM, only : dxyp,bydxyp
       USE DAGCOM, only : aij,ij_ervr,ij_mrvr,ij_f0oc,aj,areg,jreg,j_rvrd
-     *     ,j_ervr
+     *     ,j_ervr,ij_fwoc
 #ifdef TRACERS_WATER
       USE TRACER_DIAG_COM, only : taijn,tij_rvr
       USE FLUXES, only : trflowo,gtracer
@@ -740,7 +740,8 @@ C**** accumulate river runoff diags (moved from ground)
                 AJ(JD,J_ERVR,ITOICE)=AJ(JD,J_ERVR,ITOICE) +
      *               RSI(ID,JD)*(DGM+DPE)*BYDXYP(JD)
                 AIJ(ID,JD,IJ_F0OC)=AIJ(ID,JD,IJ_F0OC)+
-     *               (1.-RSI(ID,JD))*(DGM+DPE)*BYDXYP(JD)
+     *               (DGM+DPE)*BYDXYP(JD)
+                AIJ(ID,JD,IJ_FWOC)=AIJ(ID,JD,IJ_FWOC)+DMM*BYDXYP(JD)
               END IF
               JR=JREG(ID,JD)
               AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+DMM

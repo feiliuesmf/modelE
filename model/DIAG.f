@@ -110,7 +110,7 @@ C**** Some local constants
       USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,j5nuv
      *     ,j5suv,j5s,j5n,aij,ij_dtdp,ij_dsev,ij_phi1k,ij_pres,ij_puq
      *     ,ij_pvq,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
-     *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300
+     *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300,ij_qm
      *     ,ij_q300,ij_ujet,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs
      *     ,j_dtdgtr,j_dtsgst,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst
      *     ,j_lstr,j_gamm,j_gam,j_gamc,lstr,il_ueq,il_veq,il_weq,il_teq
@@ -118,7 +118,7 @@ C**** Some local constants
      *     ,kgz_max,pmb,ght,jl_dtdyn,jl_zmfntmom,jl_totntmom,jl_ape
      *     ,jl_uepac,jl_vepac,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac
      *     ,jl_epflxn,jl_epflxv,ij_p850,z_inst,rh_inst,t_inst,plm
-      USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn
+      USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn,am
       USE PBLCOM, only : tsavg
       USE DIAG_LOC, only : w,tx,lupa,ldna,jet,tjl0
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
@@ -331,6 +331,7 @@ C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
           DO I=1,IMAXJ(J)
             JR=JREG(I,J)
             PIJ=PLIJ(L,I,J)
+            AIJ(I,J,IJ_QM)=AIJ(I,J,IJ_QM)+Q(I,J,L)*AM(L,I,J)
             DO IT=1,NTYPE
               AJ(J,J_TX,IT)=AJ(J,J_TX,IT)+(TX(I,J,L)-TF)*FTYPE(IT,I,J)
      *             *DBYSD
@@ -875,12 +876,12 @@ C****
       USE CONSTANT, only : lhe,omega,sha,tf,teeny
       USE MODEL_COM, only :
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,psfmpt,jdate,
-     &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm,km=>lm
+     &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DAGCOM, only : ajk,aijk,speca,nspher,  ! adiurn,hdiurn
      &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
-     *     ,ijk_dse,klayer,idd_w,ijdd,
+     *     ,ijk_dse,klayer,idd_w,ijdd,ijk_r,ijk_w,ijk_pf,
      &      JK_DPA,JK_DPB,JK_TEMP,JK_HGHT,JK_Q,JK_THETA,
      &      JK_RH,JK_U,JK_V,JK_ZMFKE,JK_TOTKE,JK_ZMFNTSH,
      &      JK_TOTNTSH,JK_ZMFNTGEO,JK_TOTNTGEO,JK_ZMFNTLH,
@@ -910,7 +911,7 @@ C****
       INTEGER ::
      &     I,IH,IHM,IM1,INCH,INCHM,IP1,IZERO,J,J45N,
      &     JHEMI,K,KDN,KR,KS,KS1,KSPHER,KUP,KX,L,
-     &     LUP,MBEGIN,N,NM
+     &     LUP,MBEGIN,N,NM,KM
 
       REAL*8 ::
      &     BYDP,BYFIM,DP,DPDN,DPDX,DPDY,
@@ -936,6 +937,7 @@ C****
 C****
 C**** INTERNAL QUANTITIES T,TH,Q,RH
 C****
+      KM=LM
       QLH=LHE
       DO 170 J=J_0,J_1
       DO 170 K=1,KM
@@ -1184,6 +1186,9 @@ C**** ACCUMULATE HERE
       AIJK(I,J,K,IJK_DP) =AIJK(I,J,K,IJK_DP) +DPK
       AIJK(I,J,K,IJK_T)  =AIJK(I,J,K,IJK_T)  +PT4K
       AIJK(I,J,K,IJK_Q)  =AIJK(I,J,K,IJK_Q)  +PQ4K
+      AIJK(I,J,K,IJK_R)  =AIJK(I,J,K,IJK_R)  +
+     *     PQ4K/QSAT(0.25*PT4K/DPK,LHE,PM(K))
+      AIJK(I,J,K,IJK_PF)  =AIJK(I,J,K,IJK_PF)+1.
 C**** EDDY TRANSPORT OF THETA;  VORTICITY
   334 PS4I=PS4I+PS4K
       PSV4I=PSV4I+BYDP*PVK*PS4K
@@ -1376,8 +1381,10 @@ C**** ACCUMULATE ALL VERTICAL WINDS
       DO 565 J=J_0,J_1
       DO 565 K=1,KM
       WI=0.
-      DO 562 I=1,IMAXJ(J)
-  562 WI=WI+W(I,J,K)
+      DO I=1,IMAXJ(J)
+        WI=WI+W(I,J,K)
+        AIJK(I,J,K,IJK_W)=AIJK(I,J,K,IJK_W)+W(I,J,K)
+      END DO
   565 AJK(J,K,JK_VVEL)=AJK(J,K,JK_VVEL)+WI
 C****
 C**** ACCUMULATE T,Z,Q VERTICAL TRANSPORTS
@@ -2652,6 +2659,9 @@ C****
      *       ,n_SO4_d1,n_SO4_d2, n_SO4_d3, n_SO4_d4, n_SO4_s1, n_SO4_s2
 #endif
 #endif
+#ifdef TRACERS_SPECIAL_O18
+      USE TRACER_COM, only : n_water, n_HDO, trm, trw0
+#endif
       IMPLICIT NONE
       SAVE
 !@var kddmax maximum number of sub-daily diags output files
@@ -2719,7 +2729,7 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
           if (namedd(k)(len_trim(namedd(k))-2:len_trim(namedd(k))).eq.
      *         "ALL") then
             select case (namedd(k)(1:1))
-            case ("U", "V", "W")! velocities on model layers
+            case ("U", "V", "W", "C")! velocities/cloud opt depth on layers
               kunit=kunit+1
               write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
               call openunit(name,iu_SUBDD(kunit),.true.,.false.)
@@ -2735,6 +2745,13 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
             case ("O")  ! Ox tracer
               kunit=kunit+1
               write(name,'(A2,A3,A7)') namedd(k)(1:2),'ALL',aDATE(1:7)
+              call openunit(name,iu_SUBDD(kunit),.true.,.false.)
+              call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
+#endif
+#ifdef TRACERS_SPECIAL_O18
+            case ("D")  ! HDO tracer
+              kunit=kunit+1
+              write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
               call openunit(name,iu_SUBDD(kunit),.true.,.false.)
               call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
 #endif
@@ -2767,7 +2784,7 @@ C**** close and re-open units
           if (namedd(k)(len_trim(namedd(k))-2:len_trim(namedd(k))).eq.
      *         "ALL") then
             select case (namedd(k)(1:1))
-            case ("U", "V", "W")! velocities on model layers
+            case ("U", "V", "W", "C")! velocities on model layers
               kunit=kunit+1
               write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
               call openunit(name,iu_SUBDD(kunit),.true.,.false.)
@@ -2781,6 +2798,12 @@ C**** close and re-open units
             case ("O")  ! Ox tracer
               kunit=kunit+1
               write(name,'(A2,A3,A7)') namedd(k)(1:2),'ALL',aDATE(1:7)
+              call openunit(name,iu_SUBDD(kunit),.true.,.false.)
+#endif
+#ifdef TRACERS_SPECIAL_O18
+            case ("D")  ! HDO tracer
+              kunit=kunit+1
+              write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
               call openunit(name,iu_SUBDD(kunit),.true.,.false.)
 #endif
             end select
@@ -2802,8 +2825,9 @@ C****
 !@+                    QLAT, QSEN, SWD, SWU, LWD, STX, STY,
 !@+                    ICEF, SNOWD, TCLD, SST, SIT
 !@+                    Z*, R*, T*  (on any fixed pressure level)
-!@+                    U*, V*, W*  (on any model level)
+!@+                    U*, V*, W*, C*  (on any model level)
 !@+                    Ox*         (on any model level with chemistry)
+!@+                    D*          (HDO on any model level)
 !@+                    SO4
 #ifdef CLD_AER_CDNC
 !@+                    CTEM,CD3D,CL3D,CDN3D,CRE3D,CLWP
@@ -2817,9 +2841,9 @@ C****
      *     ,flice
       USE GEOM, only : imaxj,dxyp
       USE PBLCOM, only : tsavg,qsavg
-      USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc
+      USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc,taumc,tauss,fss
 #ifdef CLD_AER_CDNC
-     *           ,tauss,taumc,ctem,cd3d,cl3d,cdn3d,cre3d,clwp
+     *           ,ctem,cd3d,cl3d,cdn3d,cre3d,clwp
 #endif
       USE DYNAMICS, only : ptropo,am,wsave
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
@@ -3012,7 +3036,7 @@ C**** write out
             end do
             cycle
           end if
-        case ("U","V","W")    ! velocity levels
+        case ("U","V","W","C")    ! velocity/clouds on levels
           if (namedd(k)(2:4) .eq. "ALL") then
             kunit=kunit+1
             do kp=1,LmaxSUBDD
@@ -3024,6 +3048,16 @@ C**** write out
               case ("W")
                 data=wsave(:,:,kp) ! vertical velocity
 C**** fix polar values for W only (calculated on tracer points)
+                data(2:im,1) =data(1,1)
+                data(2:im,jm)=data(1,jm)
+              case ("C")
+                do j=1,jm
+                  do i=1,imaxj(j)
+                    data(i,j)=(1.-fss(kp,i,j))*taumc(kp,i,j)+fss(kp,i,j)
+     *                   *tauss(kp,i,j)
+                  end do
+                end do
+C**** fix polar values 
                 data(2:im,1) =data(1,1)
                 data(2:im,jm)=data(1,jm)
               end select
@@ -3088,6 +3122,49 @@ C**** get model level
                 do i=1,imaxj(j)
                   data(i,j)=1d6*trm(i,j,l,n_Ox)*mair/
      *                 (tr_mm(n_Ox)*am(l,i,j)*dxyp(j))
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+C**** write out
+              call writei(iu_subdd(kunit),itime,data,im*jm)
+              cycle
+            end if
+          end do
+#endif
+#ifdef TRACERS_SPECIAL_O18
+        case ("D")        ! HDO tracer (permil)
+          if (namedd(k)(2:4) .eq. "ALL") then
+            kunit=kunit+1
+            do kp=1,LmaxSUBDD
+              do j=1,jm
+                do i=1,imaxj(j)
+                  data(i,j)=1d3*(trm(i,j,kp,n_HDO)/(trm(i,j,kp,n_water)
+     *                 *trw0(n_HDO))-1.)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+C**** write out
+              call writei(iu_subdd(kunit),itime,data,im*jm)
+            end do
+            cycle
+          end if
+C**** get model level
+          do l=1,lm
+            if (l.lt.10) then
+              write(namel,'(I1)') l
+            else
+              write(namel,'(I2)') l
+            end if
+            if (trim(namedd(k)(2:5)) .eq. trim(namel)) then
+              kunit=kunit+1
+              do j=1,jm
+                do i=1,imaxj(j)
+                  data(i,j)=1d3*(trm(i,j,kp,n_HDO)/(trm(i,j,kp,n_water)
+     *                 *trw0(n_HDO))-1.)
                 end do
               end do
 C**** fix polar values
