@@ -8,7 +8,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_M12                             ! horiz/vert resolution
-MODEL_COM GEOM_B                    ! model variables and geometry
+MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
