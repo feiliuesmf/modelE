@@ -107,7 +107,7 @@ ocn_cycl=1      ! =0 if ocean varies from year to year
 
 ! drag params if grav.wave drag is not used and top is at .01mb
 X_SDRAG=.001,.0001  ! used above P(P)_sdrag mb (and in top layer)
-C_SDRAG=.0001       ! constant SDRAG above PTOP=150mb
+C_SDRAG=.0002       ! constant SDRAG above PTOP=150mb
 P_sdrag=1.          ! linear SDRAG only above 1mb (except near poles)
 PP_sdrag=20.        ! linear SDRAG above PP_sdrag mb near poles
 P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
@@ -121,7 +121,7 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 U00ice=.60      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
-U00wtrX=1.34    ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
+U00wtrX=1.345   ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
 !        U00wtrX=1.25    ! use with 1880 atmosphere/ocean
 !1979    U00wtrX=1.22    ! use with 1979 atmosphere/ocean
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)

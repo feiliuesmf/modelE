@@ -151,7 +151,7 @@ c****
       real*8 totflux(ntm)
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: trsoil_tot,tevapw,tevapd,
-     *     tevapb,trruns,trrunu,trsoil_rat 
+     *     tevapb,trruns,trrunu,trsoil_rat
       real*8, dimension(ntm,0:ngm,2) :: trw
       real*8, dimension(ntm,2) :: trsnowd
       real*8  tdp, tdt1, wsoil_tot, frac, tevap
@@ -478,7 +478,7 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
 #endif
       end do
 #endif
-      
+
       call pbl(i,j,itype,ptype)
 c****
       cdm = cmgs(i,j,itype)
@@ -688,7 +688,7 @@ ccc accumulate tracer evaporation and runoff
         n=ntix(nx)
 ccc accumulate tracer dry deposition
         if(dodrydep(n)) then
-          rtsdt=rhosrf*trs(nx)*dtsurf 
+          rtsdt=rhosrf*trs(nx)*dtsurf
           tdryd=-rtsdt*(dep_vel(n)+gs_vel(n))          ! kg/m2
           tdd = tdryd*dxyp(j)*ptype                    ! kg
           td1 = (trsrfflx(i,j,n)+totflux(nx))*dtsurf   ! kg
@@ -971,7 +971,7 @@ c**** 11*ngm+1           sl
 !@+ (do not read it from files)
       integer :: ghy_default_data = 0
 
-C****	define local grid
+C**** define local grid
       integer J_0, J_1
 
 C****
@@ -1263,7 +1263,7 @@ ccc still not quite correct (assumes fw=1)
       logical, intent(in) :: reset_prognostic
       integer i,j
 
-C****	define local grid
+C**** define local grid
       integer J_0, J_1
 
 C****
@@ -1380,13 +1380,12 @@ c**** set up layers
       qk(1:imt,1:ngm)=qk_ij(i0,j0,1:imt,1:ngm)
       sl=sl_ij(i0,j0)
 
-
+      n=0
       do k=1,ngm
         if(dz(k).le.0.) exit
+        n=k                
       end do
-      n=k-1
-   !  print *,'>>>>>> n= ', n
-      !n = ngm
+          
       if(n.le.0) then
          write (99,*) 'ghinij:  n <= 0:  i,j,n=',i0,j0,n,(dz(k),k=1,43)
          call stop_model('stopped in GHY_DRV.f',255)
@@ -1599,7 +1598,7 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
 !@var subr identifies where check was called from
       character*6, intent(in) :: subr
 
-C****	define local grid
+C**** define local grid
       integer I_0, I_1
       integer J_0, J_1
 
@@ -1668,7 +1667,7 @@ c**** check for reasonable temperatures over earth
       integer northsouth,iv  !nyk
       logical, intent(in) :: end_of_day
 
-C****	define local grid
+C**** define local grid
       integer J_0, J_1
 
 C****
@@ -1807,7 +1806,7 @@ c****
      *     ,pearth,enrgp,scove
       integer i,j,jr,k
 
-C****	define local grid
+C**** define local grid
       integer J_0, J_1
 
 C****
@@ -1891,7 +1890,7 @@ c****
       integer i,j,n
       real*8 wij,fb
 
-C****	define local grid
+C**** define local grid
       integer :: J_0, J_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -1934,7 +1933,7 @@ c****
       integer i,j
       real*8 hij,fb,fv
 
-C****	define local grid
+C**** define local grid
       integer J_0, J_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -1989,7 +1988,7 @@ ccc of the 'surface' to check water conservation
       real*8 fb,fv
 ccc enrgy check not implemented yet ...
 
-C****	define local grid
+C**** define local grid
       integer J_0, J_1
 
 C****
