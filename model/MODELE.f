@@ -1148,6 +1148,9 @@ C***********************************************************************
 
 C**** initialize Lrunid (length of the identifying part of XLABEL)
 C****
+      IF (INDEX(XLABEL,'(').gt.17) call stop_model
+     *     ('INPUT: Rundeck name too long. Shorten to 16 char or less'
+     *     ,255)
       LRUNID = INDEX(XLABEL(1:16),'(') -1
       IF (LRUNID.LT.1) LRUNID=16
       if (index(XLABEL(1:LRUNID),' ').gt.0)
