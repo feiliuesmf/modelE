@@ -19,7 +19,7 @@
 !@var level the turb. model level, 25 is to solve e differential eqn
 !@var non_local logical variable, true is to turn on non-local calc.
 
-      USE CONSTANT, only : grav,deltx,lhe,sha,by3
+      USE CONSTANT, only : grav,deltx,lhe,sha,by3,teeny
       USE MODEL_COM, only :
      *      im,jm,lm,sig,sige,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,p,itime
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
@@ -53,7 +53,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
      &    ,rhoebydz,bydzerho,rho,rhoe,dz,dze,gm,gh
      &    ,km,kh,kq,ke,kt2,kwt,gc_wt,gc_wq,gc_ew,gc_w2t,gc_wt2
      &    ,lscale,qturb,p2,p3,p4,rhobydze,bydzrhoe,uw,vw,w2,wt,wt0
-     &    ,w2,gc_wt_by_t2,wq,wq0
+     &    ,gc_wt_by_t2,wq,wq0
 
       real*8, dimension(lm,im,jm) :: u_3d_old,rho_3d,rhoe_3d,dz_3d
      &    ,dze_3d,u_3d_agrid,v_3d_agrid,t_3d_virtual,km_3d,km_3d_bgrid
@@ -171,6 +171,8 @@ C**** minus sign needed for ATURB conventions
           end do
 #endif
 
+          if(abs(uflx).lt.teeny) uflx=sign(teeny,uflx)
+          if(abs(vflx).lt.teeny) vflx=sign(teeny,vflx)
           ustar=(uflx*uflx+vflx*vflx)**(0.25d0)
           ustar2=ustar*ustar
           alpha1=atan2(vflx,uflx)
