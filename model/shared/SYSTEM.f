@@ -138,7 +138,10 @@
 !@ver  1.0 (SGI,IBM,Linux,DEC)
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: unit !@var unit 
-#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) \
+      INTEGER status
+#if defined(MACHINE_SGI)
+      call flush(unit,status)
+#elif defined(MACHINE_Linux) || defined(MACHINE_DEC) \
  || defined(MACHINE_MAC)
       call flush(unit) !!! should check if it works for Absoft and DEC
 #elif defined( MACHINE_IBM )
