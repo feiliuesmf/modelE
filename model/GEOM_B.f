@@ -99,7 +99,7 @@ C**** of the 1D array are needed by all processes.
 
       INTEGER :: I,J,K,IM1  !@var I,J,K,IM1  loop variables
       INTEGER :: JVPO,JMHALF
-      REAL*8  :: RAVPO
+      REAL*8  :: RAVPO,LAT1,COSP1,DXP1
       INTEGER J_0,J_1,J_0S,J_1S,J_0STG,J_1STG
 
 C**** latitudinal spacing depends on whether you have even spacing or
@@ -139,10 +139,26 @@ C****Update halos for arrays cosp, dxp, and lat
       CALL HALO_UPDATE( grid, COSP, from=SOUTH)
       CALL HALO_UPDATE( grid, DXP , from=SOUTH)
       CALL HALO_UPDATE( grid, LAT , from=SOUTH)
+
+      LAT1    = DLAT*(1.-FJEQ)
+      COSP1   = COS(LAT1)
+      DXP1    = RADIUS*DLON*COSP1
+
       DO J=J_0STG,J_1STG
         COSV(J) = .5*(COSP(J-1)+COSP(J))
         DXV(J)  = .5*(DXP(J-1)+DXP(J))
         DYV(J)  = RADIUS*(LAT(J)-LAT(J-1))
+C**** The following corrections have no effect for half polar boxes
+C**** but are important for full and quarter polar box cases.
+        IF (J.eq.2) THEN
+          COSV(J) = .5*(COSP1+COSP(J))
+          DXV(J)  = .5*(DXP1+DXP(J))
+        END IF
+        IF (J.eq.JM) THEN
+          COSV(J) = .5*(COSP(J-1)+COSP1)
+          DXV(J)  = .5*(DXP(J-1)+DXP1)
+        END IF
+C****
       END DO
 C****POLES
       IF (grid%HAVE_SOUTH_POLE) THEN
@@ -234,12 +250,12 @@ C****POLE
         WTJ(1,2,2)=0.
       END IF
 
-C**** CALCULATE CORIOLIS PARAMETER
+C**** CALCULATE CORIOLIS PARAMETER (NOW RESOLUTION INDEPENDENT)
 c      OMEGA = TWOPI*(EDPERD+EDPERY)/(EDPERD*EDPERY*SDAY)
       IF (grid%HAVE_SOUTH_POLE)
-     &      FCOR(1)  = -RADIUS*OMEGA*.5*COSP(2)*DXV(2)
+     &      FCOR(1)  = -OMEGA*DXV(2)*DXV(2)/DLON
       IF (grid%HAVE_NORTH_POLE)
-     &      FCOR(JM) = RADIUS*OMEGA*.5*COSP(JM-1)*DXV(JM)    ! = -FCOR(1)
+     &      FCOR(JM) = OMEGA*DXV(JM)*DXV(JM)/DLON
 C****Update halo for DXV array
       CALL CHECKSUM(grid,DXV, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid,DXV, from=NORTH)
