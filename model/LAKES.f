@@ -686,6 +686,7 @@ C**** Only overflow if lake mass is above sill height (HLAKE (m))
             MWLSILL = RHOW*HLAKE(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
             IF(MWL(IU,JU).gt.MWLSILL) THEN
               DMM = (MWL(IU,JU)-MWLSILL)*RATE(IU,JU)
+              IF (MWL(IU,JU)-DMM.lt.1d-20) DMM=MWL(IU,JU)
 c              IF (FLAKE(IU,JU).gt.0) THEN
 c                MLM=RHOW*MLDLK(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
 c                DMM=MIN(DMM,MLM)   ! not necessary since MLM>TOTD-HLAKE
@@ -793,6 +794,14 @@ C****
 #ifdef TRACERS_WATER
             TRLAKE(:,1,I,J) = TRLAKE(:,1,I,J) + TRFLOW(:,I,J)
 #endif
+C**** remove pathologically small values
+            IF (MWL(I,J).lt.1d-20) THEN
+              MWL(I,J)=0.
+              GML(I,J)=0.
+#ifdef TRACERS_WATER
+              TRLAKE(:,1:2,I,J) = 0.
+#endif
+            END IF
             IF (FLAKE(I,J).gt.0) THEN
               HLK1=(MLDLK(I,J)*RHOW)*TLAKE(I,J)*SHW
               MLDLK(I,J)=MLDLK(I,J)+FLOW(I,J)/(RHOW*FLAKE(I,J)*DXYP(J))
@@ -823,6 +832,13 @@ C**** accounting fix to ensure river flow with no lakes is counted
 #ifdef TRACERS_WATER
       TRLAKE(:,1,1,1) = TRLAKE(:,1,1,1) + TRFLOW(:,1,1)
 #endif
+      IF (MWL(1,1).lt.1d-20) THEN
+        MWL(1,1)=0.
+        GML(1,1)=0.
+#ifdef TRACERS_WATER
+        TRLAKE(:,1:2,1,1) = 0.
+#endif
+      END IF
       IF (FLAKE(1,1).gt.0) THEN
         HLK1=(MLDLK(1,1)*RHOW)*TLAKE(1,1)*SHW
         MLDLK(1,1)=MLDLK(1,1)+FLOW(1,1)/(RHOW*FLAKE(1,1)*DXYP(1))
@@ -970,19 +986,19 @@ C**** check for negative mass
             QCHECKL = .TRUE.
           END IF
 C**** check for reasonable lake surface temps
-          IF (TLAKE(I,J).ge.40 .or. TLAKE(I,J).lt.-0.5) THEN
+          IF (TLAKE(I,J).ge.50 .or. TLAKE(I,J).lt.-0.5) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,TSL=',I,J,TLAKE(I,J)
 c            QCHECKL = .TRUE.
           END IF
         END IF
-C**** Check total lake mass (<10%, >10x orig depth)
+C**** Check total lake mass ( <0.4 m, >20x orig depth)
         IF(FLAKE(I,J).gt.0.) THEN
-          IF(MWL(I,J).lt.0.1d0*RHOW*HLAKE(I,J)*DXYP(J)*FLAKE(I,J)) THEN
+          IF(MWL(I,J).lt.0.4d0*RHOW*DXYP(J)*FLAKE(I,J)) THEN
             WRITE (6,*) 'After ',SUBR,
      *           ': I,J,FLAKE,HLAKE,lake level low=',I,J,FLAKE(I,J),
      *           HLAKE(I,J),MWL(I,J)/(RHOW*DXYP(J)*FLAKE(I,J))
           END IF
-          IF(MWL(I,J).gt.RHOW*MAX(10.*HLAKE(I,J),3d1)*DXYP(J)*FLAKE(I,J)
+          IF(MWL(I,J).gt.RHOW*MAX(20.*HLAKE(I,J),3d1)*DXYP(J)*FLAKE(I,J)
      *         )THEN
             WRITE (6,*) 'After ',SUBR,
      *           ': I,J,FLAKE,HLAKE,lake level high=',I,J,FLAKE(I,J),
@@ -1413,8 +1429,8 @@ C****
       CHARACTER*2, INTENT(IN) :: STR
       INTEGER, PARAMETER :: NDIAG=1 !2   !6
       INTEGER I,J,N,IDIAG(NDIAG),JDIAG(NDIAG)
-      DATA IDIAG/40/, !   ,53,15,18,22/,  !23/,  !10/,
-     *     JDIAG/39/  !,32,37,33,25/   !22/  !,40/
+      DATA IDIAG/23/, !   ,53,15,18,22/,  !23/,  !10/,
+     *     JDIAG/40/  !,32,37,33,25/   !22/  !,40/
       REAL*8 HLK2,TLK2, TSIL(4)
 
       IF (.NOT.QCHECK) RETURN
