@@ -325,7 +325,7 @@ to set the model running for the specified length of the run.</p>
 <p> If you need to stop the run at any point, use the 'sswE E001xyz'
 command to do it in a controlled fashion (ensuring that all variables
 are saved correctly, and that no printout gets stuck in a buffer).
-Using 'run E001xyz' subsequently picks up from where you left off.
+Using 'runE E001xyz' subsequently picks up from where you left off.
 </p>
 
 <p> If you would like to update the executable (putting in new
@@ -335,7 +335,7 @@ over again, you can use
   gmake exe RUN=E001xyz
 </pre>
 which will recompile the fortran, and replace the executable file in
-the run directory. Then 'run E001xyz' will pick up from where you
+the run directory. Then 'runE E001xyz' will pick up from where you
 stopped previously, but with the new code. Any changes to the CVS
 information between the initial setup and the new code will be
 recorded in the central rundeck repository.</p>
@@ -606,14 +606,14 @@ always be recreated if needed.</p>
 
 <p>This is not as obvious as it should be:
 <ol>
-<li> CO2 levels can be set simply from the rundeck. Setting CO2=3 for
+<li> (OBSOLETE) CO2 levels can be set simply from the rundeck. Setting CO2=3 for
 instance will give CO2 level three times as high as the default (which
 is the CO2 level on July 1, 1981 = 311.098). Setting CO2 to be a
 negative integer, will allow the CO2 to vary according to a number of
 different scenarios (i.e. observations until 1998, various projections
 subsequently).
 
-<li> Other gases are slightly more problematic, although we are working
+<li> (OBSOLETE) Other gases are slightly more problematic, although we are working
 on that. Essentially they should be able to be adjusted using the
 'FULGAS' array in init_RAD in a similar way to CO2. Stratospheric
 water vapour is more complicated and requires hacking about in the
@@ -688,20 +688,18 @@ instructions will be given at the time.</p>
 <p><A name="part1_12"><b>12) HOW-TO move the model offsite</b></a></p>
 
 <p>The model code itself is self-contained. Thus it should be
-transportable offsite. However, certain scripts contain references to
-central directories on Ra or the other GISS machines, though we are
-working to increase their portability. Notably, the 'setup_e' script,
-and the location of the 'central rundeck repository' outlined in the
-Makefiles. These will have to edited.  Of course, the input data files
-are not part of the release, and will need to be downloaded
-separately. Some utilities used by 'setup_e' are likewise local and
-should either be commented out or adjusted for the local situation.</P>
+transportable offsite. However, certain directories and scripts need
+to be configured for the local set up. Use 'gmake config' to create
+the '.modelErc' file in your home directory. Edit this to customise
+your structure, including the central directory (which is /u/cmrun/ by
+default). The input data files are not part of the release, and will
+need to be downloaded separately. </P>
 
-<p>The biggest problem will be if the machine you wish to run the code
+<p>The biggest problem may be if the machine you wish to run the code
 on has a different fortran compiler. Some variation has been fully
 allowed for (i.e. the standard SGI or IBM compilers and Absoft
 Profortran on a Linux system) and some attempts have been made to
-accomodate the DEC version, however, we do not have a stable test bed
+accomodate the DEC version, however, we do not have a stable testbed
 for that and therefore cannot guarantee it works.</P>
 
 <p>General problems will arise due to arbitrary compiler decisions on
@@ -735,7 +733,7 @@ printout, or using the post-processing program, pdE.</p>
 <ol>
   <li> <p>The run-time printout.</p>
 
-       <p>If you run the model using 'run' (as opposed to 'runn' which
+       <p>If you run the model using 'runE' (as opposed to 'runE -q' which
 suppresses the printout) the model will produce a $RUNID.PRT file
 which can contain copious amounts of diagnostic information. It is
 split into a number of sections: (see next question for a list). This
@@ -1111,16 +1109,18 @@ almost certainly sufficient for any new need for diagnostics that
 arises. However, it can seem complex and difficult to use. As
 improvements in ease of use occur, it will get easier to modify.</p>
 
-<p><b> Adding a new conservation diagnostic: </b> These arrays keep track of
-the zonal average of any quantity, and note which routines change
-those values. They are useful in understanding the overall
+<p><b> Adding a new conservation diagnostic: </b> These arrays keep
+track of the zonal average of any quantity, and note which routines
+change those values. They are useful in understanding the overall
 mass/energy/tracer budgets. To add a new conservation quantity, first
 write a routine that returns the zonally averaged quantity in
 question. Secondly, in the 'init' subroutine for the relevant physical
 module, insert a call to 'SET_CON' this sets up the points at which
 the diagnostic is called, and how it is output. (see init_DIAG for
 more detailed instructions). Thirdly, you must increase NQUANT by 1,
-and KCON by 2+number of points at which you are saving the value.</p>
+and KCON by 2+number of points at which you are saving the value.
+Setting the equivalent for tracer conservation diagnostics is similar
+to the above.  </p>
 
 <p><b> Adding a new lat-lon diagnostic: </b> These are the most common
 diagnostics to add and are relatively straightforward. There are three
@@ -1169,6 +1169,17 @@ somewhere in the model. Make sure to USE the correct index from
 DAGCOM. Remember that all ij diagnostics will appear in the
 *.ijE001xyz file after using 'pdE'.</p>
 
+<p><b> Adding a new zonal 'budget' page diagnostic: </b> These
+diagnostics store the zonal mean of various quantities and fluxes. The
+routine 'j_defs' in DEFACC.f controls their printout. The diags are
+output in the order they appear in the listing, with the exception of
+derived composite ratios which appear where specified in
+DIAG_PRT.f. If you want to add a simple scaled diag, define the index
+'J_XYZ' in DIAG_COM.f, set up the meta-information in DEFACC.f, and
+accumulate it at the relevant point in the code. The output format for
+the values can be optionally changed in DIAG_PRT.f using the name you
+give the diagnostic. Ratios are a little more complicated.</p>
+
 <p>Other diagnostics will be explained if and when we work them out.</P>
 
   <li><A name="part3_5e"><b>D: Adding extra timing information</b></a>
@@ -1197,7 +1208,7 @@ assignment of unit numbers and the opening of files. To add a new file
 to be read in, first define a short mnemonic for the file
 (i.e. "TRSRC" for the tracer source file). This is the name that you
 will assign in the rundeck to the file you wish to open. Secondly,
-prior to reading in the file, use the routine 'getunit' to assign a
+prior to reading in the file, use the routine 'openunit' to assign a
 unit number for the file using the mnemonic you gave it. ie.</p>
 <pre>
      USE FILEMANAGER

@@ -1,35 +1,79 @@
-Major changes from version modelE-1-3-3
-=======================================
+Major changes from version modelE-1-3-3 to modelE-2-0
+=====================================================
 
-- Advection of Q now done outside dynamics loop
+Atmospheric Model:
 
-- tracer code for air mass and water mass tracers (uses preprocessing
-  directives set from the run deck)
+ - Advection of Q now done outside dynamics loop
 
-- parallelisation directives for atmospheric model
+ - New sea ice albedo scheme (pudlling and snowage replaced with
+   prognostic melt-pond fraction and wet/dry snow flag).
 
-- new sea ice albedo formulation using prognostic meltponds
+ - solar radiation penetration through sea ice now wavelength dependent
 
-- changes to boundary layer cloud specifications
+ - the basal fluxes between the ice and ocean are calculated using a new
+   turbulence scheme. New routines UNDERICE, iceocean, icelake.
 
-- fix for mass fluxes over topography to prevent unrealistic
-  precipitation hotspots
+ - parallelisation directives for atmospheric model
 
-- Gary's ocean model now fully coupled (plug and play option)
+ - changes to boundary layer cloud specifications
 
-- Multiple vertical resolutions available
+ - improvements to turbulence calculations
 
-- new interface for radiation to allow more control of greenhouse
-  gases, aerosols etc. from rundeck.
+ - fix for mass fluxes over topography to prevent unrealistic
+   precipitation hotspots
 
-- .modelErc file in home directory to set up a local distribution on
-  any machine
+ - Multiple vertical resolutions available
 
-- automatic compilation of online documentation for any particular
-  configuration. 
+ - new interface for radiation to allow more control of greenhouse
+   gases, aerosols etc. from rundeck.
 
-Major Changes from Model II'
-============================
+ - Adjustable input of CH4 related stratospheric water vapour
+
+ - Numerous parameters for the gravity wave drag  adjustable from the rundeck 
+
+Coupled Model:
+
+ - Gary's ocean model now fully coupled (plug and play option)
+
+ - Ocean heat transport diagnostic in printout
+
+ - much more extensive ocean diagnostics
+
+Tracer code:
+
+ - tracer code for air mass and water mass tracers (uses preprocessing
+   directives set from the run deck)
+
+ - wet/dry deposition code for general tracers (aerosols, particles,
+   water and soluble gases)
+
+ - multiple example tracers pre-coded
+
+Diagnostics: 
+
+ - Numerous errors in diagnostic printout fixed
+
+ - Re-arrangement of budget pages to provide more relevant info.
+
+ - Conservation diagnostics for AM and KE actually add up.
+
+Run Envrionment:
+
+ - .modelErc file in home directory to enable a configuration to set
+   up a local distribution on any machine
+
+ - automatic compilation of online documentation for any particular
+   configuration. 
+
+ - new 'lock' file method for preventing un-intended writing over of files.
+
+ - MUST USE COMMANDS 'runE' and 'sswE' to start and stop model
+
+ - automatic re-starting with smaller timestep for some crashes (set from 
+   initial rundeck)
+
+Major Changes from Model II' to modelE-1-3-3
+============================================
 
 Variable name changes/re-definitions:
 
