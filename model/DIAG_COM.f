@@ -158,9 +158,9 @@ C****   10 - 1: mid strat               1 and up : upp strat.
      *     3.4d0,.7d0,.16d0,.07d0,.03d0/),
      *     GHT=(/0.,1500.,3000.,5600.,9500.,16400.,24000.,30000.,
      *     40000.,50000.,61000.,67000.,72000./)
-      CHARACTER*3, DIMENSION(KGZ), PARAMETER :: PMNAME=(/
-     *     "1K ","850","700","500","300","100","30 ","10 ",
-     *     "3.4","0.7",".16",".07",".03" /)
+      CHARACTER*4, DIMENSION(KGZ), PARAMETER :: PMNAME=(/
+     *     "1000","850 ","700 ","500 ","300 ","100 ","30  ","10  ",
+     *     "3.4 ","0.7 ",".16 ",".07 ",".03 " /)
 
 !@param KACC total number of diagnostic elements
       INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ

@@ -2838,12 +2838,10 @@ c
 
       ij_dzt1 = k+1
       do k1 = 1,kgz_max-1
-        name_ij(k+k1) = 'dztemp_1000-850'
-        if(k1.gt.1) write(name_ij(k+k1)(8:15),
-     *    '(a3,a1,a3,a1)') PMNAME(k1),'-',PMNAME(k1+1),' '
-        lname_ij(k+k1) = 'THICKNESS TEMP 1000-850'
-        if(k1.gt.1) write(lname_ij(k+k1)(16:23),
-     *    '(a3,a1,a3,a1)') PMNAME(k1),'-',PMNAME(k1+1),' '
+        name_ij(k+k1) = 'dztemp_'//trim(pmname(k1))//
+     *    '-'//trim(pmname(k1+1))
+        lname_ij(k+k1) = 'THICKNESS TEMP '//trim(pmname(k1))//
+     *    '-'//pmname(k1+1)
         units_ij(k+k1) = 'C'
       end do
       k = k + kgz_max -1
@@ -3733,6 +3731,7 @@ C****
       CHARACTER*16 :: SPHERE(4)=
      *     (/'TROPOSPHERE     ','LOW STRATOSPHERE',
      *       'MID STRATOSPHERE','UPP STRATOSPHERE'/)
+      REAL*8,DIMENSION(4) :: SCALEK=(/1.,1.,10.,10./)
 
       INTEGER ::
      &     I,IUNITJ,IUNITW,J,J45N,
@@ -3804,20 +3803,20 @@ C**** WRITE HEADINGS
       WRITE (6,901) XLABEL
       WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE,JHOUR,
      *  IUNITJ,IUNITW
-      DO 670 KROW=1,2+ISTRAT
+      DO 670 KROW=1,2+ISTRAT !one for each level (trp/lstr/mstr/ustr)
       IF (JM.GE.25.AND.KROW.EQ.2) WRITE (6,901)
       WRITE (6,903) LATITD(KPAGE),SPHERE(KROW)
       KSPHER=4*(KROW-1)+KPAGE
 C**** WRITE KINETIC AND AVAILABLE POTENTIAL ENERGY BY WAVE NUMBER
       DO 610 M=1,KSPECA
-      F0(M)=SPECA(1,M,KSPHER)*SCALET(M)
+      F0(M)=SPECA(1,M,KSPHER)*SCALET(M)*SCALEK(KROW)
       MN(M)=NINT(F0(M))
   610 FNSUM(M)=0.
       WRITE (6,904) MN
       DO 630 N=2,NM
       KSPHER=4*(KROW-1)+KPAGE
       DO 620 M=1,KSPECA
-      FNM=SPECA(N,M,KSPHER)*SCALET(M)
+      FNM=SPECA(N,M,KSPHER)*SCALET(M)*SCALEK(KROW)
       MN(M)=NINT(FNM)
   620 FNSUM(M)=FNSUM(M)+FNM
       NM1=N-1
