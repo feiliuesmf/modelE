@@ -471,7 +471,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND,ItimeI,PSFMPT,PSTRAT,SIG,SIGE,UOdrag
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
-     $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag
+     $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,ang_uv
       USE PARAM
       implicit none
       INTEGER L,LCSDRAG
