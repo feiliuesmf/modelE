@@ -499,8 +499,10 @@ c  define extra variables to be passed in surfc:
         vegalbedo = aalbveg(i,j)
 ! Internal foliage CO2 concentration (mol/m3).
         Ci=Cint(i,j)
+        Cin = Ci  ! initialize it for cases when "veg" is not called
 ! Foliage surface mixing ratio (kg/kg).
         Qf=Qfol(i,j)
+        Qfn = Qf  ! initialize it for cases when "veg" is not called
       end if
 !----------------------------------------------------------------------!
   !    zs    =zgs  !!! will not need after qsbal is replaced

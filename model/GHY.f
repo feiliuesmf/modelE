@@ -601,7 +601,7 @@ c**** soils28   common block     9/25/90
      &     -0.1951d0, -9.7055d0,  2.7418d0,  2.0054d0, ! clay
      &     -2.1220d0,  5.9983d0,-16.9824d0,  8.7615d0/), ! peat
      &     (/4,imt-1/))
-      real*8 :: sat(imt-1) = (/.394d0,.537d0,.577d0,.885d0/)
+      real*8, parameter :: sat(imt-1) = (/.394d0,.537d0,.577d0,.885d0/)
       real*8 a1,a2,a3,alph0o,alpls1,arg(imt-1),delh1,delhn,dfunc,alph0
       real*8 diff,func,hmin,hs,s,sxtn,testh,xtol
       integer i,j,l,k,m,mmax
@@ -780,6 +780,8 @@ c     Get canopy conductivity cnc and gpp
           call cond
           gpp=0                 ! dummy value for GPP if old cond_scheme
         else                    ! cond_scheme=2 or anything else
+          ! veg uses qv, so it should be computed before "call veg"
+          qv  = qsat(tp(0,2)+tfrz,lhe,pres)
           call veg              ! added by adf
         endif
         betat=cnc/(cnc+cna+1d-12)
@@ -932,15 +934,16 @@ c**** adjust canopy conductance for incoming solar radiation
       implicit none
 !----------------------------------------------------------------------!
 !@var Ca Atmospheric CO2 concentration at surface height (mol/m3).
-      real*8 :: Ca=0.0127D0
+      real*8, parameter :: Ca=0.0127D0
 !@var sigma Leaf scattering coefficient (?unitless).
-      real*8 :: sigma=0.2D0,temp
+      real*8, parameter :: sigma=0.2D0
+      real*8  temp
 !@var kdf Canopy extinction coeff. for diffuse radiation (unitless).
-      real*8 :: kdf=0.71D0
+      real*8, parameter :: kdf=0.71D0
 !@var Oi Internal foliage O2 partial pressure (kPa).
-      real*8 :: Oi=20.9D0
+      real*8, parameter :: Oi=20.9D0
 !@var k Canopy nitrogen extinction coefficient (?unitless).
-      real*8 :: k=0.11D0
+      real*8, parameter :: k=0.11D0
 !@var srht0 Incident shortwave radiation >0 (W/m2).
       real*8 srht0
 !@var PAR Incident photosynthetically active radiation (umol/m2/s).
@@ -1220,9 +1223,9 @@ c**** adjust canopy conductance for incoming solar radiation
       real*8 sigma,temp,rhor,kdf,kbl,alai
 !----------------------------------------------------------------------!
 !@var alpha Intrinsic quantum efficiency (?units).
-      real*8 :: alpha=0.08D0
+      real*8, parameter :: alpha=0.08D0
 !@var ka Chlorophyll extinction coefficient (?units).
-      real*8 :: ka=0.005D0
+      real*8, parameter :: ka=0.005D0
 !@var n3 Ratio of foliage chlorophyll to N (?units).
       real*8 n3
 !@var Lc Cumulative LAI from top of canopy (m2/m2).
