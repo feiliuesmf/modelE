@@ -593,7 +593,10 @@ C     FPLUM0=FMP1*BYAM(LMIN)
       DQMOMR(xymoms,LMIN)=-QMOMP(xymoms)
       DQMOMR(zmoms,LMIN)=-QMOMOLD(zmoms,LMIN)*FPLUME
 #ifdef TRACERS_ON
-      TMP(1:NTX) = TMOLD(LMIN,1:NTX)*FPLUME
+C**** This is a fix to prevent very occasional plumes that take out
+C**** too much tracer mass. Should not affect water tracers, but
+C**** can impact tracers with very sharp vertical gradients
+      TMP(1:NTX) = MIN(TMOLD(LMIN,1:NTX)*FPLUME,0.95d0*TM(LMIN,1:NTX))
       TMOMP(xymoms,1:NTX)=TMOMOLD(xymoms,LMIN,1:NTX)*FPLUME
         DTMR(LMIN,1:NTX)=-TMP(1:NTX)
       DTMOMR(xymoms,LMIN,1:NTX)=-TMOMP(xymoms,1:NTX)
