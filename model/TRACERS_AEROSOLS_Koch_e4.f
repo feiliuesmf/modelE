@@ -598,6 +598,15 @@ c need to scale TNO3, OH and PERJ using cosine of zenith angle
       do 21 j=1,jm   
       do 22 i=1,imaxj(j)    
 
+C**** initialise source arrays
+       tr3Dsource(i,j,l,1,n_DMS)=0.  ! DMS chem sink
+       tr3Dsource(i,j,l,1,n_MSA)=0.  ! MSA chem sink
+       tr3Dsource(i,j,l,3,n_SO2)=0.  ! SO2 chem source
+       tr3Dsource(i,j,l,4,n_SO2)=0.  ! SO2 chem sink
+       tr3Dsource(i,j,l,1,n_SO4)=0.  ! SO4 chem source
+       tr3Dsource(i,j,l,1,n_H2O2_s)=0. ! H2O2 chem source      
+       tr3Dsource(i,j,l,2,n_H2O2_s)=0. ! H2O2 chem sink
+
 c ptop,psf(surface),psfmpt,sige,sig
 c I used to have to treat these differently above the tropopause??
 c pmid=plij*sig(l)+ptop ;plij=p or psf-ptop 
@@ -1290,6 +1299,11 @@ c can't be more than moles going in:
       DO 21 J=1,JM  
       DO 20 I=1,IMAXJ(J)
 
+C**** initialise source arrays
+        tr3Dsource(i,j,l,2,n_SO4)=0.
+        tr3Dsource(i,j,l,5,n_SO2)=0.
+        tr3Dsource(i,j,l,3,n_H2O2_s)=0.
+
       amass=am(l,i,j)*DXYP(j)   !kg
       ppas=pmid(l,i,j)*100.    !Pa
       te=pk(l,i,j)*t(i,j,l)
@@ -1412,7 +1426,7 @@ cg       trm(i,j,l,n)=trm(i,j,l,n)*(1.d0+sulfin)
 cg       trmom(:,i,j,l,n)=trmom(:,i,j,l,n)*trm(i,j,l,n)/th2o2
 
        tr3Dsource(i,j,l,3,n)=trm(i,j,l,n)*sulfin/dtsrc
-       
+
 c      if (l.eq.2.and.j.eq.34) write(6,*)'H2O2',i,sulfin,th2o2,
 c    * trm(i,j,l,n)
 c      tt3=tt3+trm(i,j,l,n)-th2o2 
