@@ -441,7 +441,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var FASTJLAT,FASTJLON latitude & LONGITUDE (degrees) for use in fastj
 !@var SZA the solar zenith angle (degrees)
 !@var JFASTJ photolysis rates
-!@var RVELN2O5, prod_sulf unknown
 !@var sulfate N2O5 sulfate sink (formerly SRC(I,J,L,20) variable)   
 !@var prod_sulfate  N2O5 change by sulfate reactions in mass units
 !@var wprod_sulf N2O5 change by sulfate reactions in molecules/cm3/s
@@ -451,13 +450,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var nr2 #of mono+bi-molecular reactions read in from gs_jpl00_trop_15
 !@var nmm #of monomolecular     reactions read in from gs_jpl00_trop_15
 !@var nhet #of heterogenous     reactions read in from gs_jpl00_trop_15
-!@var pfactor to convert units on species chemical changes
-!@var bypfactor to convert units on species chemical changes
-!@var dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,changeAldehyde,changeCl,
-!@+   changeAlkenes,changeIsoprene,changeHCHO,changeAlkylNit,
-!@+   changeHNO3,changeNOx,changeN2O5,wprodHCHO working variables to 
-!@+   calculate nighttime chemistry changes
-!@var rlossN,rprodN,ratioN variables for nitrogen conservation
 !@var ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom variables for nitrogen
 !@+   conservation (strat)
 !@var chemrate,photrate ?   
@@ -509,11 +501,8 @@ C
       CHARACTER*8, DIMENSION(nc)       :: ay
 C      
       REAL*8 ZFLUX,ZREFL,ZU0,U0,RFLECT,odsum,XLTAU,TANHT,
-     & BYFJM,FASTJLAT,FASTJLON,SZA,RVELN2O5,
-     & prod_sulf,DT2,wprod_sulf,dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,
-     & changeAldehyde,changeAlkenes,changeIsoprene,changeHCHO,
-     & wprodHCHO,changeAlkylNit,changeHNO3,changeNOx,changeN2O5,
-     & wprodCO,rlossN,rprodN,ratioN,pfactor,bypfactor,F75P,F75M,
+     & BYFJM,FASTJLAT,FASTJLON,SZA,DT2,
+     & F75P,F75M,
      & F569P,F569M
 #ifdef SHINDELL_STRAT_CHEM
      & ,ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom,changeCl
@@ -638,14 +627,11 @@ C
       CHARACTER*7, DIMENSION(JPPJ) :: jlabel
       CHARACTER*7, DIMENSION(3)    :: lpdep
 C
-      COMMON/CHEM_LOC/bypfactor
-     & ,changeAldehyde,changeAlkenes,changeAlkylNit
-     & ,changeIsoprene,changeHCHO,changeHNO3,changeNOx,changeN2O5
-     & ,chemrate,dest,dNO3,FASTJLAT
-     & ,FFF,gwprodHNO3,gprodHNO3,gwprodN2O5,O3_FASTJ,PFASTJ,photrate
-     & ,pfactor,pres,prod_sulf,prod,RFLECT,rlossN,rprodN,ratioN,rr
-     & ,RVELN2O5,SZA
-     & ,ta,TANHT,TFASTJ,U0,VALJ,wprod_sulf,wprodHCHO,wprodCO
+      COMMON/CHEM_LOC/chemrate,dest,FASTJLAT
+     & ,FFF,O3_FASTJ,PFASTJ,photrate
+     & ,pres,prod,RFLECT,rr
+     & ,SZA
+     & ,ta,TANHT,TFASTJ,U0,VALJ
      & ,WTAU,y,zj,jndlv
      & ,jndlev,jaddlv,jaddto,MIEDX,NCFASTJ  ! integers last (alignment)
 !$OMP THREADPRIVATE(/CHEM_LOC/)

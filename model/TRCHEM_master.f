@@ -75,6 +75,17 @@ C**** Local parameters and variables and arguments:
       REAL*8 :: CH4FACT,FACTj,r179
       REAL*8, DIMENSION(LM) :: PRES2
       REAL*8 FASTJ_PFACT, FACT1, bydtsrc, byam75
+!@var pfactor to convert units on species chemical changes
+!@var bypfactor to convert units on species chemical changes
+!@var dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,changeAldehyde,
+!@+   changeAlkenes,changeIsoprene,changeHCHO,changeAlkylNit,
+!@+   changeHNO3,changeNOx,changeN2O5,wprodHCHO working variables to 
+!@+   calculate nighttime chemistry changes
+!@var rlossN,rprodN,ratioN variables for nitrogen conservation
+      REAL*8 rlossN,rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3
+     *     ,gwprodN2O5,wprod_sulf,wprodCO,dNO3,wprodHCHO,prod_sulf
+     *     ,RVELN2O5,changeAldehyde,changeAlkenes,changeAlkylNit
+     &     ,changeIsoprene,changeHCHO,changeHNO3,changeNOx,changeN2O5
 #ifdef SHINDELL_STRAT_CHEM
       REAL*8, DIMENSION(LM)      :: ClOx_old 
       REAL*8, DIMENSION(LM), PARAMETER      :: thick = (/
@@ -90,7 +101,7 @@ C**** Local parameters and variables and arguments:
       REAL*8 :: CH4_569
       LOGICAL error
 !@var I,J,L,N,igas,inss,LL,Lqq,JJ,J3,L2,n2 dummy loop variables
-      INTEGER igas,LL,I,J,L,N,inss,Lqq,JJ,J3,L2,n2,Jqq,Iqq
+      INTEGER igas,LL,I,J,L,N,inss,Lqq,J3,L2,n2,Jqq,Iqq
 !@var imonth,m only needed to choose Ox strat correction factors
       INTEGER imonth,m
 #ifdef regional_Ox_tracers
@@ -141,10 +152,11 @@ C**** (note this section is already done in DIAG.f)
         END DO
       END DO
 C
-!$OMP  PARALLEL DO PRIVATE (airvol, changeL, FASTJ_PFACT, 
-#ifdef regional_Ox_tracers
-!$OMP* bysumOx, sumOx,
-#endif
+!$OMP  PARALLEL DO PRIVATE (airvol, changeL, FASTJ_PFACT,
+!$OMP* rlossN,rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3,
+!$OMP* gwprodN2O5,wprod_sulf,wprodCO,dNO3,wprodHCHO,prod_sulf,rveln2o5,
+!$OMP* changeAldehyde,changeAlkenes,changeIsoprene,changeHCHO,
+!$OMP* changeAlkylNit,changeHNO3,changeNOx,changeN2O5,
 #ifdef SHINDELL_STRAT_CHEM
 !$OMP* CLTOT, ClOx_old, COLMO2, changeClONO2, changeClOx,
 !$OMP* changehetClONO2, changeHOCl, changeHCl,
@@ -152,7 +164,7 @@ C
 !$OMP* pscx, rmrclox, rmrbrox, rmrox, rmv,
 #endif
 #ifdef regional_Ox_tracers
-!$OMP* n2,
+!$OMP* bysumOx, sumOx,     n2,
 #endif
 !$OMP* LL, I, igas, inss, J, L, Lqq, N, error )
 !$OMP* SHARED (N_NOX,N_HNO3,N_N2O5,N_HCHO,N_ALKENES,N_ISOPRENE,
