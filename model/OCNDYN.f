@@ -522,7 +522,7 @@ C****
       USE SEAICE_COM, only : rsi
       USE OCEAN
       IMPLICIT NONE
-      REAL*8 SALIM,GO1,SO1,relerr,errmax
+      REAL*8 SALIM,GO1,SO1,relerr,errmax,temgs
       LOGICAL QCHECKO
       INTEGER I,J,L,n,imax,jmax,lmax
 !@var SUBR identifies where CHECK was called from
@@ -558,13 +558,14 @@ C**** Check potential specific enthalpy/salinity
           GO1 = G0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
           SO1 = S0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
           IF(GO1.lt.-10000. .or. GO1.gt.200000.) THEN
-            WRITE (6,*) 'After ',SUBR,': I,J,L,GO=',I,J,L,GO1
+            WRITE (6,*) 'After ',SUBR,': I,J,L,GO=',I,J,L,GO1,TEMGS(GO1
+     *           ,SO1)
             IF (GO1.lt.-20000. .or. GO1.gt.200000.) QCHECKO=.TRUE.
           END IF
           IF(SO1.gt.0.045 .or. SO1.lt.0.) THEN
             WRITE (6,*) 'After ',SUBR,': I,J,L,SO=',I,J,L,1d3*SO1
-            IF (SO1.gt.0.05 .or. SO1.lt.0.) QCHECKO=.TRUE.
-            IF (I.eq.47.and.J.eq.30) QCHECKO=.FALSE.
+            IF (SO1.gt.0.05 .or. SO1.lt.0. .and. .not. (I.eq.47.and.J.eq
+     *           .30)) QCHECKO=.TRUE.
           END IF
           END DO
 C**** Check all ocean currents
@@ -589,9 +590,9 @@ C**** Check ocean salinity in each eighth box for the first layer
      *         *ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J,1))+S0M(I,J,1))
      *         /(MO(I,J,1)*DXYPO(J)).lt.SALIM)  GO TO 240
           WRITE (6,*) 'After ',SUBR,': I,J,S0,SX,SY,SZ=',I,J,
-     *         S0M(I,J,1)/(MO(I,J,1)*DXYPO(J)),SXMO(I,J,1)/(MO(I,J,1)
-     *         *DXYPO(J)),SYMO(I,J,1)/(MO(I,J,1)*DXYPO(J)),SZMO(I,J,1)
-     *         /(MO(I,J,1)*DXYPO(J))
+     *         1d3*S0M(I,J,1)/(MO(I,J,1)*DXYPO(J)),1d3*SXMO(I,J,1)/(MO(I
+     *         ,J,1)*DXYPO(J)),1d3*SYMO(I,J,1)/(MO(I,J,1)*DXYPO(J)),1d3
+     *         *SZMO(I,J,1)/(MO(I,J,1)*DXYPO(J))
           QCHECKO=.TRUE.
  240      CONTINUE
         END IF
