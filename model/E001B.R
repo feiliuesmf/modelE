@@ -25,7 +25,7 @@ const FFT72 UTILDBL RAND~           ! utilities
 POUT                                ! for post-processing
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.8
+AIC=DEC1958.rsfB394M12.modelE.9
 OIC=OIC4X5LD.Z12.CLEV94.DEC01S  ! ocean initial conditions
 OFTAB=OFTABLE_NEW               ! ocean function table  
 AVR=AVR4X5LD.Z12                ! ocean filter
