@@ -240,7 +240,7 @@ C**** Calculate total snow and ice in upper layers
         SICE = SSIL(2)
         HSNOW = HSNOW + (HSIL(2)-LHM*SICE)*(XSI(2)*MSI1-ACE1I)/(XSI(2)
      $       *MSI1)
-        HICE = HICE + (HSIL(2)-LHM*SICE)*ACE1I/(XSI(2)*MSI1)
+        HICE = HICE + (HSIL(2)-LHM*SICE)*ACE1I/(XSI(2)*MSI1) + LHM*SICE
 #ifdef TRACERS_WATER
         TRSNOW(:) = TRSNOW(:) + TRSIL(:,2)*(XSI(2)*MSI1-ACE1I)
      *       /(XSI(2)*MSI1-SSIL(2))
