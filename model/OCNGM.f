@@ -342,7 +342,6 @@ C**** Add and Subtract horizontal Y fluxes
         END IF
 C**** Save Diagnostic, GIJL(2) = RFYT
         GIJL(1,JM  ,L,2) = GIJL(1,JM  ,L,2) + RFYT/IM
-        GIJL(1,JM-1,L,2) = GIJL(1,JM-1,L,2) - RFYT
       END IF
 C**** Loop for Fluxes in Z-direction
       IF(KPL(1,JM).gt.L) GO TO 620
@@ -361,7 +360,6 @@ C**** Add and Subtract vertical flux. Note +ve upward flux
         END IF
 C**** Save Diagnostic, GIJL(3) = RFZT
         GIJL(1,JM,L  ,3) = GIJL(1,JM,L  ,3) + RFZT
-        GIJL(1,JM,L+1,3) = GIJL(1,JM,L+1,3) - RFZT
       END IF
   620 END DO
       RETURN

@@ -525,7 +525,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 #endif
       USE FLUXES, only : gtemp,sss,ui2rho
       USE SEAICE, only : qsfix
-      USE SEAICE_COM, only : snowi,rsi
+      USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
      *     ,iu_ocnml,tocean,ocn_cycl
       USE DAGCOM, only : npts,icon_OCE
@@ -744,8 +744,8 @@ C****
       USE GEOM, only : imaxj,dxyp
       USE DAGCOM, only : aj,areg,jreg,j_implm,j_implh,
      *     j_oht,j_imelt,j_hmelt,j_smelt,oa
-      USE FLUXES, only : runosi,erunosi,e0,e1,evapor,dmsi,dhsi,dssi,
-     *     flowo,eflowo,gtemp
+      USE FLUXES, only : runosi,erunosi,srunosi,e0,e1,evapor,dmsi,dhsi
+     *     ,dssi,flowo,eflowo,gtemp
 #ifdef TRACERS_WATER
      *     ,dtrsi
 #endif
@@ -762,7 +762,7 @@ C**** grid box variables
 C**** prognostic variables
       REAL*8 TGW, WTRO, SMSI, ROICE
 C**** fluxes
-      REAL*8 EVAPO, EVAPI, F2DT, F0DT, OTDT, RVRRUN, RVRERUN, RUN0
+      REAL*8 EVAPO, EVAPI, F2DT, F0DT, OTDT, RVRRUN, RVRERUN, RUN0, SALT
 C**** output from OSOURC
       REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACE2F, ENRGFI
 
@@ -784,17 +784,17 @@ C**** output from OSOURC
 C**** get ice-ocean fluxes from sea ice routine
           RUN0=RUNOSI(I,J)  ! includes ACE2M + basal term
           F2DT=ERUNOSI(I,J)
-c         SALT=SRUNOSI(I,J)
+          SALT=SRUNOSI(I,J)
 C**** get river runoff/simelt flux
           RVRRUN = FLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
           RVRERUN=EFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
-c         RVRSRUN=SFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
+c          RVRSRUN=SFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
           OA(I,J,4)=OA(I,J,4)+RVRERUN    ! add to surface energy budget
 
           AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+RUN0   *POICE
-c         AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+SALT   *POICE
+          AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+SALT   *POICE
           AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+RUN0*POICE*DXYP(J)
-c         AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+SALT*POICE*DXYP(J)
+          AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+SALT*POICE*DXYP(J)
 
           IF (KOCEAN .EQ. 1) THEN
             WTRO=Z1O(I,J)*RHOW

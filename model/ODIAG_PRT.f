@@ -22,8 +22,9 @@ C**** Calculate latitudes
       DO J=1,JM
         FLAT(J,1)  = JDLAT*(J-JEQ+0.5)  ! primary grid
       END DO
+      FLAT(1,2)=-90.
       DO J=1,JM-1
-        FLAT(J,2)  = JDLAT*(J-JEQ)  ! secondary grid
+        FLAT(J+1,2)  = JDLAT*(J-JEQ)  ! secondary grid  (shifted by 1)
       END DO
 C**** Calculate longitudes
       DLON=360./REAL(IM,KIND=8)
@@ -547,7 +548,7 @@ C****
       USE ODIAG
       IMPLICIT NONE
       REAL*8, DIMENSION(JM-1,0:LMO,0:4) :: SFM,SFS
-      REAL*8, DIMENSION(JM-1,LMO+1) :: XJL
+      REAL*8, DIMENSION(JM+3,LMO+1) :: XJL
       INTEGER I,J,K,L,NS,N,KB,IP1
      *     ,LMSTMIN(LMO),SUMORMN(LMO),JEQ,JDLAT,KXLB
       REAL*8 FAC,FACST
@@ -568,9 +569,9 @@ C****
         lname(1:31)=TITLE(1:31)
         sname='sf_'//trim(BASIN(KB))
         units='Sv'
-        XJL(:,1:LMO+1)=SFM(:,0:LMO,KB)
+        XJL(2:JM,1:LMO+1)=SFM(1:JM-1,0:LMO,KB)
         IF (QDIAG) CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LMO+1,XJL
-     *       ,FLEV(1,2),"Latitude","Depth (m)")
+     *       ,FLEV(0,2),"Latitude","Depth (m)")
 C****
 C**** Write data to PRinT file
 C****
@@ -578,7 +579,8 @@ c        WRITE (6,921) 'Southern Hemisphere',(NINT(FLAT(J,2)),J=1,JEQ)
 c        DO L=0,LMO
 c          WRITE (6,922) FLEV(L,2),(NINT(SFM(J,L,KB)),J=1,JEQ)
 c        END DO
-c       WRITE (6,921) 'Northern Hemisphere',(NINT(FLAT(J,2)),J=JEQ,JM-1)
+c        WRITE (6,921) 'Northern Hemisphere',(NINT(FLAT(J,2)),J=JEQ,
+c    *     JM-1)
 c        DO L=0,LMO
 c          WRITE (6,922) FLEV(L,2),(NINT(SFM(J,L,KB)),J=JEQ,JM-1)
 c        END DO
@@ -607,9 +609,9 @@ c        TITLE(1:8)=TRIM(BASIN(KB))
 c        lname(1:31)=TITLE(1:31)
 c        sname='salt_sf_'//trim(BASIN(KB))
 c        units='Sv'
-c        XJL(:,1:LMO+1)=SFS(:,0:LMO,KB)
+c        XJL(2:JM,1:LMO+1)=SFS(1:JM-1,0:LMO,KB)
 c        IF (QDIAG) CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LMO+1,XJL
-c     *       ,FLEV(1,2),"Latitude","Depth (m)")
+c     *       ,FLEV(0,2),"Latitude","Depth (m)")
 c      END DO
 C****
       RETURN
@@ -755,6 +757,7 @@ C**** Input:
 C**** Output:
 !@var    SF = stream function (kg/s)
 C****
+      USE CONSTANT, only : undef
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst
       USE ODIAG, only : kbasin
@@ -764,7 +767,6 @@ C****
       REAL*8, INTENT(IN), DIMENSION(LMO,NMST) :: OLNST
       REAL*8, INTENT(OUT), DIMENSION(JM-1,0:LMO,0:4) :: SF
       REAL*8, DIMENSION(4) :: SUMB
-      REAL*8 :: UNDEF = 0.
       INTEGER :: KB,I,J,L,K
 C****
 C**** Zero out the Stream Function at the ocean bottom
@@ -887,7 +889,7 @@ C****
 !@sum  OBASIN Read in KBASIN: 0=continent,1=Atlantic,2=Pacific,3=Indian
 !@auth G. Russell
 !@ver  1.0
-      USE OCEAN, only : IM,JM
+      USE OCEAN, only : IM,JM,focean
       USE ODIAG, only : kbasin
       USE FILEMANAGER
       IMPLICIT NONE
@@ -895,7 +897,6 @@ C****
       INTEGER J,I,iu_KB
 C****
 C**** read in basin data
-c      OPEN  (3,FILE='/u/gavin/gissgcm/data/KB4X512.OCN')
       call openunit('KBASIN',iu_KB,.false.,.true.)
 
       READ  (iu_KB,900) TITLE
@@ -911,6 +912,8 @@ c      OPEN  (3,FILE='/u/gavin/gissgcm/data/KB4X512.OCN')
         SELECT CASE (CBASIN(I,J))
         CASE DEFAULT
           KBASIN(I,J) = 0
+          IF (FOCEAN(I,J).gt.0) WRITE(6,*)
+     *         "Warning: Ocean box not defined in KBASIN ",i,j
         CASE ('A')
           KBASIN(I,J) = 1
         CASE ('P')
