@@ -16,7 +16,7 @@ print_usage help all:
 	echo 'It WILL NOT work with standard "make" which comes with the '
 	echo 'system (unless you are on Linux). If you see error messages'
 	echo 'above or below this message, that means that you are using'
-	echo 'wrong (not GNU) "make" command.'
+	echo 'the wrong (not GNU) "make" command.'
 	echo 'This Makefile automatically recognizes and supports three'
 	echo 'types of systems: SGI, IBM workstation and Linux PC. Though'
 	echo '"setup" currently works only on SGIs.'
@@ -39,8 +39,8 @@ print_usage help all:
 	echo
 	echo '          Recommended usage:'
 	echo 'The targets are made in order: "rundeck", "depend", "gcm", "setup",'
-	echo 'but since Makefile automatically creates necessary targets, you'
-	echo 'do not have to make all of them manually.'
+	echo 'but since Makefile automatically creates the necessary targets,'
+	echo 'you do not have to make all of them manually.'
 	echo 'You should always start with "rundeck", it will NOT be created automatically'
 	echo 'as it was in previous version. You may (and should) always skip "depend".'
 	echo 'So if you want to compile gcm and set up a run with a name "my_run"'
@@ -216,7 +216,7 @@ endif
 	if [ ! -d $(BIN_DIR) ]; then mkdir $(BIN_DIR); fi
 	mv $(RUN).exe $(BIN_DIR)
 	echo '--------------------------------------------------------------'
-	echo '---------       GCM successfuly compiled             ---------'
+	echo '---------       GCM successfully compiled            ---------'
 	echo '---------    executable $(RUN).exe was created     ---------'
 	echo '--------------------------------------------------------------'
 
