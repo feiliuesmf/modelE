@@ -1294,7 +1294,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : grav,rgas
       USE MODEL_COM, only : im,jm,lm,ls1,psfmpt,u,v,sige,bydsig,ptop,t
-     *    ,x_sdrag,c_sdrag,lsdrag,lpsdrag,ang_sdrag,itime
+     *  ,q,x_sdrag,c_sdrag,lsdrag,lpsdrag,ang_sdrag,itime
       USE GEOM, only : cosv,dxyn,dxys
       USE DAGCOM, only : ajl,jl_dudtsdrg
       USE DYNAMICS, only : pk,pdsig
@@ -1304,7 +1304,7 @@ C****
       REAL*8, INTENT(IN) :: DT1
 !@var L(P)SDRAG lowest level at which SDRAG_lin is applied (near poles)
 C**** SDRAG_const is applied everywhere else above PTOP (150 mb)
-      REAL*8 WL,RHO,CDN,X,BYPIJU,DP,DPL(LM)
+      REAL*8 WL,TL,RHO,CDN,X,BYPIJU,DP,DPL(LM)
 !@var DUT,DVT change in momentum (mb m^3/s)
       REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT
       INTEGER I,J,L,IP1
@@ -1324,7 +1324,17 @@ C*
       I=IM
       DO IP1=1,IM
         WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
-        RHO=(PSFMPT*SIGE(L+1)+PTOP)/(RGAS*T(I,J,L)*PK(L,I,J))
+        TL=T(I,J,L)*PK(L,I,J)
+C**** check Q and T to make sure they are within physical bounds
+        if (Q(i,j,l).lt.0.) then
+          write(99,*) 'SDRAG:',itime,i,j,l,'Q=',Q(I,J,L),'-> 0.'
+          Q(i,j,l)=0
+        end if
+        if (TL.lt.100..or.TL.gt.373.) then
+          write(99,*) 'SDRAG:',itime,i,j,l,'T=',TL
+          call exit_rc(11)
+        end if
+        RHO=(PSFMPT*SIGE(L+1)+PTOP)/(RGAS*TL)
                     CDN=C_SDRAG
         IF (cd_lin) CDN=X_SDRAG(1)+X_SDRAG(2)*WL
         X=DT1*RHO*CDN*WL*GRAV*BYDSIG(L)*BYPIJU
@@ -1332,7 +1342,7 @@ C*
           write(99,*)'SDRAG: ITime,I,J,PSFMPT,X,RHO,CDN,U,V'
      *         ,ITime,I,J,PSFMPT,X,RHO,CDN,U(I,J,L),V(I,J,L)
      *         ,' If problem persists, winds are too high! '
-     *         ,'Try setting XCDLM smaller.'
+     *         ,'Try setting X_SDRAG smaller.'
           X=1.
         END IF
 C**** adjust diags for possible difference between DT1 and DTSRC

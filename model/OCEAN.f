@@ -271,6 +271,7 @@ C**** Ensure that lead fraction is consistent with kocean=1 case
               END IF
             END IF
 C**** accumulate diagnostics
+            IF(MSI(I,J).eq.0) MSI(I,J)=MSINEW
             IF (end_of_day) THEN
               AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+
      *           (SNOWI(I,J)+ACE1I)*(RSINEW-RSI(I,J))+

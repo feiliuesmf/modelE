@@ -170,7 +170,7 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       logical, optional, intent(in) :: qbin, qold
       character*11 form, status
       integer name_len
-                        
+
 C**** set default options
       form = "FORMATTED"
       status = "UNKNOWN"
@@ -385,6 +385,21 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       write (6,*) "Wrote to file ",TRIM(NAME(IUNIT)),", time=",it
       return
       END subroutine WRITEI
+
+      subroutine READI (iunit,it,ain,it1,len4,iok)
+!@sum  READI reads array surrounded by IT (for post processing)
+!@auth  Original Development Team
+!@ver   1.0
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: IUNIT,LEN4
+      INTEGER, INTENT(out) :: IT,it1,iok ! iok: 0='ok',1='not ok'
+      real*4  AIN(LEN4)
+      iok = 0
+      read(iunit,end=555) it,ain,it1
+      return
+  555 iok=1
+      return
+      end subroutine readi
 
       subroutine io_POS (iunit,it,len4,itdif)
 !@sum   io_POS  positions a seq. output file for the next write operat'n
