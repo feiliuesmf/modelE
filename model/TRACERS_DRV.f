@@ -2434,8 +2434,8 @@ c     tmominit = 0.
         case ('H2O18')        ! d18O=-80
           trinit=0.92d0*trw0(n)
           tmominit = trinit
-        case ('HDO')   ! dD=-650
-          trinit=0.35d0*trw0(n)
+        case ('HDO')   ! dD=-630
+          trinit=0.37d0*trw0(n)
           tmominit = trinit
         case ('HTO')
           trinit=0.

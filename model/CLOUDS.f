@@ -1143,9 +1143,10 @@ C**** ADD PRECIPITATION AND LATENT HEAT BELOW
       TRPRCP(1:NTX) = TRPRCP(1:NTX) + TRCOND(1:NTX,L)
 #ifdef TRACERS_SPECIAL_O18
 C**** Isotopic equilibration of liquid precip with water vapour
-      IF (TNX.gt.TF) THEN
+      IF (LHX.eq.LHE .and. PRCP.gt.0) THEN
         DO N=1,NTX
-          CALL ISOEQUIL(NTIX(N),TNX,QM(L),PRCP,TM(L,N),TRPRCP(N),0.5d0)
+          CALL ISOEQUIL(NTIX(N),TNX,.TRUE.,QM(L),PRCP,TM(L,N),TRPRCP(N)
+     *         ,0.5d0)
         END DO
       END IF
 #endif
@@ -1729,16 +1730,17 @@ C**** need separate accounting for liquid/solid precip
         IF (LHX.EQ.LHS) TRPRICE(N,L) = TRPRICE(N,L) + DTPRT
         IF (PREICE(L).eq.0) TRPRICE(N,L)=0.  ! remove round off error
 C**** Isotopic equilibration of the CLW and water vapour
-        IF (TL(L).gt.TF .and. WMX(L).gt.0) THEN  ! only if above freezing
-          CALL ISOEQUIL(NTIX(N),TL(L),QL(L),WMX(L),TM(L,N),TRWML(N,L)
-     *         ,1d0)
+        IF (LHX.eq.LHE .and. WMX(L).gt.0) THEN  ! only if liquid
+          CALL ISOEQUIL(NTIX(N),TL(L),.TRUE.,QL(L),WMX(L),TM(L,N)
+     *         ,TRWML(N,L),1d0)
         END IF
 C**** Isotopic equilibration of the liquid Precip and water vapour
 C**** only if T> pure ice limit temperature
         PRLIQ = (PREBAR(L)-PREICE(L))*DTsrc*BYAM(L)*GRAV
-        IF (TL(L).GT.TI.AND.PRLIQ.gt.0) THEN
+        IF (LHX.eq.LHE .AND. PRLIQ.gt.0) THEN
           TRPRLIQ = MAX(0d0,TRPRBAR(N,L) - TRPRICE(N,L))
-          CALL ISOEQUIL(NTIX(N),TL(L),QL(L),PRLIQ,TM(L,N),TRPRLIQ,1d0)
+          CALL ISOEQUIL(NTIX(N),TL(L),.TRUE.,QL(L),PRLIQ,TM(L,N),TRPRLIQ
+     *         ,1d0) 
           TRPRBAR(N,L) = TRPRLIQ + TRPRICE(N,L)
         END IF
 #endif

@@ -167,13 +167,14 @@ C****
       END FUNCTION FRACLK
 
 #ifdef TRACERS_SPECIAL_O18
-      SUBROUTINE ISOEQUIL(N,TEMP,QMV,QML,TRMV,TRML,FEQ)
+      SUBROUTINE ISOEQUIL(N,TEMP,LIQU,QMV,QML,TRMV,TRML,FEQ)
 !@sum ISOEQUIL equilibrates isotopes in vapor & liquid/solid reservoirs
 !@auth Gavin Schmidt/Georg Hoffmann
       USE CONSTANT, only : tf
       USE TRACER_COM, only: trname,tr_wd_TYPE,nWATER
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: N
+      LOGICAL, INTENT(IN) :: LIQU !@var LIQU true if QML is liquid
       REAL*8, INTENT(IN) :: TEMP  !@var TEMP temperature (K)
 !@var QMV,QML vapour and liquid water masses (kg or kg/m^2)
       REAL*8, INTENT(IN) :: QMV,QML
@@ -187,7 +188,7 @@ C****
       CASE(nWATER)
         TDEGC = TEMP - TF
         IF (QMV.GT.0.) THEN
-          IF (TDEGC.GE.0.) THEN
+          IF (LIQU) THEN
             ZALPH = 1./FRACVL(TDEGC,trname(N))
           ELSE
             ZALPH = 1./FRACVS(TDEGC,trname(N))
