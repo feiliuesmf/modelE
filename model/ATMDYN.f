@@ -966,9 +966,10 @@ C
 !@sum  FLTRUV Filters 2 gridpoint noise from the velocity fields
 !@auth Original development team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,dt_UVfilter
-      USE GEOM, only : dxyn,dxys
-      USE DYNAMICS, only : pdsig
+      USE CONSTANT, only : sha
+      USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,dt_UVfilter,t
+      USE GEOM, only : dxyn,dxys,idij,idjj,rapj,imaxj,kmaxj
+      USE DYNAMICS, only : pdsig,pk
 C**********************************************************************
 C**** FILTERING IS DONE IN X-DIRECTION WITH A 8TH ORDER SHAPIRO
 C**** FILTER. THE EFFECT OF THE FILTER IS THAT OF DISSIPATION AT
@@ -977,14 +978,15 @@ C**********************************************************************
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: U,V
       REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: UT,VT
-      REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT,USAVE,VSAVE
+      REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT,USAVE,VSAVE,DKE
       REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM),DP,Xby4toN
       REAL*8 :: DT1=0.
 cq    LOGICAL*4 QFILY,QFIL2D
-      INTEGER NSHAP,ISIGN,    I,J,L,N,IP1  !@var I,J,L,N  loop variables
-      REAL*8 by4toN,          Y4TO8,YJ,YJM1,X1,XI,XIM1, BY16
-      PARAMETER (BY16=1./16.)
-      PARAMETER (NSHAP=8,ISIGN=(-1.0)**(NSHAP-1),by4toN=1./(4.**NSHAP))
+      INTEGER I,J,K,L,N,IP1  !@var I,J,L,N  loop variables
+      REAL*8 Y4TO8,YJ,YJM1,X1,XI,XIM1
+      INTEGER, PARAMETER :: NSHAP=8, ISIGN=(-1.0)**(NSHAP-1)
+      REAL*8, PARAMETER :: BY16=1./16., by4toN=1./(4.**NSHAP) 
+      REAL*8 ediff
 C****
 cq       QFILY  = .FALSE.
 cq       QFIL2D = .FALSE.
@@ -1106,6 +1108,8 @@ C$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP)
         DO IP1=1,IM
           DP=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
      *           +(PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*DXYS(J  ))
+          DKE(I,J,L)=0.5*(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L)-USAVE(I,J
+     *         ,L)*USAVE(I,J,L)-VSAVE(I,J,L)*VSAVE(I,J,L))
           DUT(I,J,L)=(U(I,J,L)-USAVE(I,J,L))*DP
           DVT(I,J,L)=(V(I,J,L)-VSAVE(I,J,L))*DP
           I=IP1
@@ -1114,6 +1118,22 @@ C$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP)
         END DO
 C$OMP  END PARALLEL DO
         CALL DIAGCD(5,UT,VT,DUT,DVT,DT1)
+
+C***** Add in dissipiated KE as heat locally
+C$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
+        DO L=1,LM
+          DO J=1,JM
+            DO I=1,IMAXJ(J)
+              ediff=0.
+              DO K=1,KMAXJ(J)   ! loop over surrounding vel points
+                ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
+              END DO
+              T(I,J,L)=T(I,J,L)-ediff/(SHA*PK(L,I,J))
+            END DO
+          END DO
+        END DO
+C$OMP  END PARALLEL DO
+
       END IF
       RETURN
       END SUBROUTINE FLTRUV
