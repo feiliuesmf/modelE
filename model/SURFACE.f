@@ -471,11 +471,11 @@ C****
         F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
         dSNdTG=-RCDHWS*KHS*SHA/(DHGS+KHS)
         dQGdTG=QG_SAT*DQSATDT(TG,ELHX) ! d(QG)/dTG
-        dEVdTG = -dQGdTG*LHE*RCDQWS*KHS/(DGS+KHS) ! d(EVHEAH)/dTG
+        dEVdTG = -dQGdTG*LHE*RCDQWS*KHS/(DGS+KHS) ! d(EVHEAT)/dTG
         dTRdTG = -4*STBO*TG*TG*TG ! d(TRHEAT)/dTG
         dF0dTG = dSNdTG+dEVdTG+dTRdTG ! d(F0)/dTG
 C       dSNdHS = RCDHWS ! d(SHEAT)/dHS - kg/(sec*m^2)
-        dEVdQS = LHE*RCDQWS     ! d(EVHEAH)/dQS
+        dEVdQS = LHE*RCDQWS     ! d(EVHEAT)/dQS
         HSDEN = -(1.+2.*S1BYG1)*DTSURF*PGK*BETA*dSNdTG+MA1*PKDN*SHA
         HSCON = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/HSDEN ! (J*sec)/kg
         HSMUL=-(1.+2.*S1BYG1)*DTSURF*PGK*BETA*dSNdTG/HSDEN ! J/(kg*degC)

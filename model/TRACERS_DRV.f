@@ -159,8 +159,10 @@ C**** Get solar variability coefficient from namelist if it exits
 #endif
       case ('Water')
       n_Water = n
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
           trw0(n) = 1.
           ntrocn(n)= 0
+#endif
 #ifdef TRACERS_WATER
           ntm_power(n) = -4
           tr_mm(n) = mwat

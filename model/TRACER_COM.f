@@ -25,7 +25,6 @@ C**** Each tracer has a variable name and a unique index
      *     'Water   ','H2O18   ','HDO     '/)  !,'HTO     '/)
 #else     
 #ifdef TRACERS_SPECIAL_Lerner     
-     !@param NTM number of tracers
       integer, parameter :: ntm=9
       character*8, parameter :: trname(ntm)= (/
      *     'Air     ','SF6     ','Rn222   ','CO2     ','N2O     ',
