@@ -581,15 +581,17 @@ C                    1      2      3       4       5
 
 !@var FSXAER,FTXAER scales solar,thermal opt.depth for var. aerosols:
 !@+          1: total 2:background 3: AClim 4:dust 5:volcanic
-      real*8, dimension(5) ::  FSXAER=(/1.,1.,1.,1.,1./)
-      real*8, dimension(5) ::  FTXAER=(/1.,1.,1.,1.,1./)
-      real*8 FSTAER,FSBAER,FSAAER,FSDAER,FSVAER
-     *      ,FTTAER,FTBAER,FTAAER,FTDAER,FTVAER
-      EQUIVALENCE (FSXAER(1),FSTAER),  (FTXAER(1),FTTAER)
-      EQUIVALENCE (FSXAER(2),FSBAER),  (FTXAER(2),FTBAER)
-      EQUIVALENCE (FSXAER(3),FSAAER),  (FTXAER(3),FTAAER)
-      EQUIVALENCE (FSXAER(4),FSDAER),  (FTXAER(4),FTDAER)
-      EQUIVALENCE (FSXAER(5),FSVAER),  (FTXAER(5),FTVAER)
+!g95      real*8, dimension(5) ::  FSXAER=(/1.,1.,1.,1.,1./)
+!g95      real*8, dimension(5) ::  FTXAER=(/1.,1.,1.,1.,1./)
+!g95      real*8 FSTAER,FSBAER,FSAAER,FSDAER,FSVAER
+!g95     *      ,FTTAER,FTBAER,FTAAER,FTDAER,FTVAER
+!g95      EQUIVALENCE (FSXAER(1),FSTAER),  (FTXAER(1),FTTAER)
+!g95      EQUIVALENCE (FSXAER(2),FSBAER),  (FTXAER(2),FTBAER)
+!g95      EQUIVALENCE (FSXAER(3),FSAAER),  (FTXAER(3),FTAAER)
+!g95      EQUIVALENCE (FSXAER(4),FSDAER),  (FTXAER(4),FTDAER)
+!g95      EQUIVALENCE (FSXAER(5),FSVAER),  (FTXAER(5),FTVAER)
+      real*8 :: FSTAER=1.,FSBAER=1.,FSAAER=1.,FSDAER=1.,FSVAER=1.
+     *      ,FTTAER=1.,FTBAER=1.,FTAAER=1.,FTDAER=1.,FTVAER=1.
 
 !@var FTAUC factor to control cloud optical depth in radiation calc.
 !@+   =1 for full expression, =0 for clear sky calculation.
@@ -1737,7 +1739,13 @@ C--------------------------------
       RETURN
       END SUBROUTINE RCOMPX
 
-      SUBROUTINE SETSOL(JYEARS,JJDAYS)
+
+      subroutine UPDSOL(JYEARS,JJDAYS)
+      INTEGER, INTENT(IN) :: JYEARS,JJDAYS
+      call SETSOL(JYEARS,JJDAYS,1)
+      end subroutine UPDSOL
+
+      SUBROUTINE SETSOL(JYEARS,JJDAYS,UPDSOL_flag)
       IMPLICIT NONE
 C-----------------------------------------------------------------------
 C
@@ -1822,10 +1830,13 @@ C
 C-----------------------------------------------------------------------
       REAL*8, PARAMETER :: CORFAC=1366.2911D0/1366.4487855D0
       INTEGER, INTENT(IN) :: JYEARS,JJDAYS
+      INTEGER, INTENT(IN), optional :: UPDSOL_flag
       INTEGER, SAVE :: LMOREF=0
       INTEGER JMO,LMO,Is0x,K,I,NWSUV,II,J
       REAL*8 FLXSUM,F1FLUX,F2FLUX,F3FLUX,UVNORM,XX,OCM
      *     ,TAUK,UVWAVA,UVWAVB,AO33
+
+      if ( present(UPDSOL_flag) ) goto 777
 
       IF(KSOLAR.GE.0) THEN
 C                                           Lean99 Solar Flux, UV Option
@@ -1940,11 +1951,10 @@ C                              -----------------------------------------
 
       RETURN
 
-
 C--------------------------------
-      ENTRY UPDSOL(JYEARS,JJDAYS)
+!      ENTRY UPDSOL(JYEARS,JJDAYS)
 C--------------------------------
-
+ 777  continue
 
       IF(KSOLAR.LT.1) GO TO 300
       IF(JYEARS.LT.1) GO TO 300
@@ -2043,6 +2053,7 @@ C                                         ------------------------------
       RETURN
       END SUBROUTINE SETSOL
 
+
       SUBROUTINE SETGHG(JYEARG,JJDAYG)
       IMPLICIT NONE
 C
@@ -2086,10 +2097,15 @@ C
       PPMV80(11)=XREF(6)/1000.d0   ! YREF11/1000.D0
       PPMV80(12)=XREF(7)/1000.D0   ! ZREF12/1000.D0
       RETURN
+      end SUBROUTINE SETGHG
 C
 C--------------------------------
-      ENTRY UPDGHG(JYEARG,JJDAYG)
+!      ENTRY UPDGHG(JYEARG,JJDAYG)
 C--------------------------------
+      subroutine UPDGHG(JYEARG,JJDAYG)
+      INTEGER, INTENT(IN) :: JYEARG,JJDAYG
+      REAL*8 TREF,TNOW
+      INTEGER I
 C
       TNOW=JYEARG+(JJDAYG-0.999D0)/366.D0
 C
@@ -2115,7 +2131,7 @@ C
       FULGAS(12)=XNOW(7)/XREF(7) ! ZNOW12/ZREF12
 C
       RETURN
-      END SUBROUTINE SETGHG
+      end subroutine UPDGHG
 
       SUBROUTINE UPDO3D(JYEARO,JJDAYO)
 
@@ -2512,12 +2528,17 @@ c     write(0,*) 'WTTI,WTTJ, WTSI,WTSJ',WTTI,WTTJ, WTSI,WTSJ
       RETURN
       END SUBROUTINE O3_WTS
 
-      SUBROUTINE SETGAS
+      
+      subroutine GETGAS
+      call SETGAS(1)
+      end subroutine GETGAS
+
+      SUBROUTINE SETGAS( GETGAS_flag)
       IMPLICIT NONE
 C-----------------------------------------------------------------------
 C     Global   U.S. (1976) Standard Atmosphere  P, T, Geo Ht  Parameters
 C-----------------------------------------------------------------------
-
+      integer, optional :: GETGAS_flag
       REAL*8, PARAMETER, DIMENSION(36) ::
      *     P36 = (/
      $1.2000D+03, .9720D+03, .9445D+03, .9065D+03, .8515D+03, .7645D+03,
@@ -2542,6 +2563,8 @@ C-----------------------------------------------------------------------
       REAL*8 RADLAT,RHP,EST,FWB,FWT,PLT,DP,EQ,ES,ACM,HI,FI,HL,HJ,FJ,DH
      *     ,FF,GGVDF,ZT,ZB,EXPZT,EXPZB,PARTTR,PARTTG,PTRO,DL,DLS,DLN
      *     ,Z0LAT,SUMCOL,ULGASL
+
+      if ( present(GETGAS_flag) ) goto 777
 
       IF(IFIRST.EQ.1) THEN
       DO 90 I=1,MLAT46
@@ -2714,8 +2737,9 @@ C****
 
 
 C-----------------
-      ENTRY GETGAS
+!      ENTRY GETGAS
 C-----------------
+ 777  continue
 C                        ---------------------------------------------
 C                        Specify ULGAS: Get Gas Absorption from TAUGAS
 C                        ---------------------------------------------
@@ -2851,8 +2875,14 @@ C-----------------
       RETURN
       END SUBROUTINE SETGAS
 
-      SUBROUTINE SETO2A
+
+      subroutine GETO2A
+      call SETO2A(1)
+      end subroutine GETO2A
+
+      SUBROUTINE SETO2A( GETO2A_flag )
       IMPLICIT NONE
+      integer,optional :: GETO2A_flag
 
       REAL*8, PARAMETER ::
      *     SFWM2(18) = (/
@@ -2890,6 +2920,8 @@ C-----------------
       INTEGER, SAVE :: IFIRST=1
       REAL*8 FSUM,SUMMOL,ZCOS,WSUM,TAU,DLFLUX,WTI,WTJ
       INTEGER I,J,K,L,JI,JJ,N,LL
+
+      if ( present(GETO2A_flag) ) goto 777
 
       IF(IFIRST.EQ.1) THEN
       NL0=NL
@@ -2935,8 +2967,9 @@ C-----------------
       RETURN
 
 C-----------------
-      ENTRY GETO2A
+!      ENTRY GETO2A
 C-----------------
+ 777  continue
 
 C              ---------------------------------------------------------
 C              UV absorption by Oxygen is expressed as a fraction of the
@@ -2962,8 +2995,14 @@ C              ---------------------------------------------------------
       RETURN
       END SUBROUTINE SETO2A
 
-      SUBROUTINE SETBAK
+
+      subroutine GETBAK
+      call SETBAK(1)
+      end subroutine GETBAK
+
+      SUBROUTINE SETBAK( GETBAK_flag )
       IMPLICIT NONE
+      integer, optional :: GETBAK_flag
 C     ------------------------------------------------------------------
 C     SETBAK,GETBAK  Initializes Background Aerosol Specification, i.e.,
 C                    Aerosol Composition and Distribution that is set in
@@ -2989,6 +3028,8 @@ C                        -----------------------------------------------
       REAL*8 C,BC,ABC,HXPB,HXPT,ABCD,SRAQX,SRAQS
      *      ,SUMABS,EXTSUM,SCTSUM,COSSUM
       INTEGER I,J,K,L,JJ
+
+      if ( present(GETBAK_flag) ) goto 777
 
 C**** Background aerosols
 C     ------------------------------------------------------------------
@@ -3094,9 +3135,9 @@ C-----------------------------------------------------------------------
       RETURN
 
 C-----------------
-      ENTRY GETBAK
+!      ENTRY GETBAK
 C-----------------
-
+ 777  continue
 C     ------------------------------------------------------------------
 C     GETBAK   Specifies Background Aerosol Contribution and Initializes
 C                    (1) Thermal Radiation Aerosol Coefficient Table:
@@ -3147,10 +3188,14 @@ C                                                                -------
       END SUBROUTINE SETBAK
 
 
-      SUBROUTINE SETAER
+      subroutine GETAER
+      call SETAER(1)
+      end subroutine GETAER
 
+      SUBROUTINE SETAER( GETAER_flag )
 cc    INCLUDE  'rad00def.radCOMMON.f'
       IMPLICIT NONE
+      integer, optional :: GETAER_flag
 C     ---------------------------------------------------------------
 C     GISS MONTHLY-MEAN (1850-2050)  TROPOSPHERIC AEROSOL CLIMATOLOGY
 C     ---------------------------------------------------------------
@@ -3186,6 +3231,8 @@ C     ------------------------------------------------------------------
       REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55,RHDNA,RHDTNA
       REAL*8          TTAULX(LX,ITRMAX),   SRBGQL
       INTEGER K,L,NA,N,NRH,M,KDREAD,NT
+
+      if ( present(GETAER_flag) ) goto 777
 
       IF(MADAER.LE.0) GO TO 150
       DO 110 NA=1,4
@@ -3300,8 +3347,9 @@ C**** Optional Tracer aerosols initializations
 
 
 C-----------------
-      ENTRY GETAER
+!      ENTRY GETAER
 C-----------------
+ 777  continue
 
       NRHNAN(:,:) = 1
       DO 230 L=1,NL
@@ -3856,7 +3904,7 @@ C                        -----------------------------------------------
 
 C     Select Desert Dust (NA=7) Mie scattering parameters for REDUST(N)
 !nu   REAL*8 TAUCON(8),pidust(8)
-      INTEGER, INTENT(IN) :: JYEARD,JJDAYD
+      !INTEGER, INTENT(IN) :: JYEARD,JJDAYD
       REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX,8)
       INTEGER I,J,K,L,N,MI,MJ
 
@@ -3868,12 +3916,15 @@ C     Select Desert Dust (NA=7) Mie scattering parameters for REDUST(N)
   110 CONTINUE
 
       RETURN
-
+      end SUBROUTINE SETDST
 
 C--------------------------------
-      ENTRY UPDDST(JYEARD,JJDAYD)
+!      ENTRY UPDDST(JYEARD,JJDAYD)
 C--------------------------------
-
+      subroutine UPDDST(JYEARD,JJDAYD)
+      INTEGER, INTENT(IN) :: JYEARD,JJDAYD
+      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX,8)
+      INTEGER I,J,K,L,N,MI,MJ
 C     ------------------------------------------------------------------
 C     Makes DDJDAY(9,8,72,46) from TDUST(72,46,9,8,12) read in in RCOMP1
 C
@@ -3900,11 +3951,14 @@ C      -----------------------------------------------------------------
   530 CONTINUE
   540 CONTINUE
       RETURN        !  DDJDAY(9,8,72,46) is used in GETDST via ILON,JLAT
-
+      end subroutine UPDDST
 
 C-----------------
-      ENTRY GETDST
+!      ENTRY GETDST
 C-----------------
+      subroutine GETDST
+      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX,8)
+      INTEGER I,J,K,L,N,MI,MJ
 
       DO 200 N=1,8
       CALL REPART(DDJDAY(1,N,ILON,JLAT),PLBA09,10,DTAULX(1,N),PLB,NLP)
@@ -3954,9 +4008,19 @@ C                              ----------------------------------------
   300 CONTINUE
 
       RETURN
-      END SUBROUTINE SETDST
+      end subroutine GETDST
 
-      SUBROUTINE SETVOL
+
+      subroutine UPDVOL(JYEARV,JDAYVA)
+      INTEGER, INTENT(IN) :: JYEARV,JDAYVA
+      call SETVOL(JYEARV,JDAYVA)
+      end subroutine UPDVOL
+
+      subroutine GETVOL
+      call SETVOL(GETVOL_flag=1)
+      end subroutine GETVOL
+
+      SUBROUTINE SETVOL(JYEARV,JDAYVA,GETVOL_flag)
       IMPLICIT NONE
 
       REAL*8, SAVE :: E24LAT(25),EJMLAT(47)
@@ -3967,7 +4031,7 @@ cx    INTEGER, SAVE :: LATVOL = 0   ! not ok for grids finer than 72x46
 !nu   real*8, parameter :: htplim=1.d-3
       REAL*8, SAVE :: FSXTAU,FTXTAU
       INTEGER, SAVE :: NJ25,NJJM
-      INTEGER, INTENT(IN) :: JYEARV,JDAYVA
+      INTEGER, INTENT(IN), optional :: JYEARV,JDAYVA,GETVOL_flag
       INTEGER J,L,MI,MJ,K
       REAL*8 XYYEAR,XYI,WMI,WMJ,SUM,SIZVOL !nu ,SUMHTF
 
@@ -3987,6 +4051,9 @@ C     -----------------------------------------------------------------
 C     VEFF0   Selects Size Distribution Variance (this affects Thermal)
 C     REFF0   Selects Effective Particle Size for Archive Volcanic Data
 C     -----------------------------------------------------------------
+
+      if ( present(JYEARV) ) goto 777 ! UPDVOL
+      if ( present (GETVOL_flag) ) goto 778 ! GETVOL
 
       FSXTAU=FSTAER*FSVAER
       FTXTAU=FTTAER*FTVAER
@@ -4021,8 +4088,9 @@ C     ------------------
 
 
 C--------------------------------
-      ENTRY UPDVOL(JYEARV,JDAYVA)
+!      ENTRY UPDVOL(JYEARV,JDAYVA)
 C--------------------------------
+ 777  continue
 
 C                                          (Makiko's 1850-1999 data)
 C                                          -------------------------
@@ -4056,9 +4124,9 @@ C                                          -------------------------
 
 
 C-----------------
-      ENTRY GETVOL
+!      ENTRY GETVOL
 C-----------------
-
+ 778   continue
 cx    IF(MRELAY.GT.0)    GO TO 300
 cx    IF(JLAT.EQ.LATVOL) GO TO 350  ! not ok for grids finer than 72x46
 
@@ -4117,7 +4185,13 @@ C                      ------------------------------------------------
       RETURN
       END SUBROUTINE SETVOL
 
-      SUBROUTINE SETQVA(VEFF)
+
+      subroutine GETQVA(SIZVOL)
+      REAL*8, INTENT(IN) :: SIZVOL
+      call SETQVA(SIZVOL=SIZVOL)
+      end subroutine GETQVA
+
+      SUBROUTINE SETQVA(VEFF,SIZVOL)
       IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     SETQVA   Selects (interpolates) H2SO4 Mie Parameters for specified
@@ -4136,9 +4210,11 @@ C     SRVQEX Volcanic Aerosol sizes (Reff) range from 0.1 to 5.0 microns
 C     To utilize equal interval interpolation, Reff N=9,20 are redefined
 C     so Volcanic Aerosol sizes have effective range of 0.1-2.0 microns.
 C     ------------------------------------------------------------------
-      REAL*8, INTENT(IN) :: SIZVOL,VEFF
+      REAL*8, INTENT(IN), optional :: SIZVOL,VEFF
       REAL*8 REFN,RADX,WTJHI,WTJLO
       INTEGER I,K,N,JRXLO,JRXHI
+
+      if ( present(SIZVOL) ) goto 777
 
       DO 130 N=1,20
       RV20(N)=REFV20(N,1)
@@ -4251,9 +4327,9 @@ C     ------------------------------------------------------------------
       RETURN
 
 C-------------------------
-      ENTRY GETQVA(SIZVOL)
+!      ENTRY GETQVA(SIZVOL)
 C-------------------------
-
+ 777  continue
 C     ------------------------------------------------------------------
 C     Volcanic Aerosol sizes have effective range of  0.1 - 2.0 microns.
 C     ------------------------------------------------------------------
@@ -4309,7 +4385,7 @@ C
 C     Define Solar,Thermal Cloud Single Scattering Albedo: SRCQPI( 6,15)
 C                                                          TRCQPI(33,15)
 C-----------------------------------------------------------------------
-      INTEGER, INTENT(IN) :: JYEARE,JJDAYE
+      !INTEGER, INTENT(IN) :: JYEARE,JJDAYE
       REAL*8 SIZWCL,SIZICL,XRW,XMW,XPW,EPS,VEP,VEP1,VEP2,VEPP,TAUWCL
      *     ,TAUICL,QAWATK,QPWATK,SRCGFW,QXWATK,QSWATK,QGWATK,XRI,XMI,XPI
      *     ,QAICEK,QPICEK,SRCGFC,QXICEK,QSICEK,QGICEK,SCTTAU,GCBICE
@@ -4347,9 +4423,17 @@ C                          --------------------------------------------
   180 CONTINUE
 
       RETURN
+      end SUBROUTINE SETCLD
 C-----------------
-      ENTRY GETCLD
+!      ENTRY GETCLD
 C-----------------
+      subroutine GETCLD
+      REAL*8 SIZWCL,SIZICL,XRW,XMW,XPW,EPS,VEP,VEP1,VEP2,VEPP,TAUWCL
+     *     ,TAUICL,QAWATK,QPWATK,SRCGFW,QXWATK,QSWATK,QGWATK,XRI,XMI,XPI
+     *     ,QAICEK,QPICEK,SRCGFC,QXICEK,QSICEK,QGICEK,SCTTAU,GCBICE
+     *     ,SCTGCB,TCTAUW,TCTAUC,ALWATK,WTI,WTW,ALICEK,TRCTCI,XJDAY,XMO
+     *     ,WTMJ,WTMI
+      INTEGER I,J,N,K,L,LBOTCW,LTOPCW,LBOTCI,LTOPCI,IRWAT,IRICE,MI,MJ
 
 C-----------------------------------------------------------------------
 C           Define:    TRCALK(LX,33)  Thermal Radiation Cloud Absorption
@@ -4573,14 +4657,21 @@ C     ------------------------------------------------------------------
   360 CONTINUE
 
       RETURN
-
+      end subroutine GETCLD
 
 C--------------------------------
-      ENTRY UPDEPS(JYEARE,JJDAYE)
+!      ENTRY UPDEPS(JYEARE,JJDAYE)
 C--------------------------------
-
+      subroutine UPDEPS(JYEARE,JJDAYE)
 C                 Select ISCCP-Based Cloud Heterogeneity Time Dependence
 C                 ------------------------------------------------------
+      INTEGER, INTENT(IN) :: JYEARE,JJDAYE
+      REAL*8 SIZWCL,SIZICL,XRW,XMW,XPW,EPS,VEP,VEP1,VEP2,VEPP,TAUWCL
+     *     ,TAUICL,QAWATK,QPWATK,SRCGFW,QXWATK,QSWATK,QGWATK,XRI,XMI,XPI
+     *     ,QAICEK,QPICEK,SRCGFC,QXICEK,QSICEK,QGICEK,SCTTAU,GCBICE
+     *     ,SCTGCB,TCTAUW,TCTAUC,ALWATK,WTI,WTW,ALICEK,TRCTCI,XJDAY,XMO
+     *     ,WTMJ,WTMI
+      INTEGER I,J,N,K,L,LBOTCW,LTOPCW,LBOTCI,LTOPCI,IRWAT,IRICE,MI,MJ
 
       XJDAY=JJDAYE-0.999D0
       XMO=XJDAY/30.5D0+.5D0
@@ -4601,12 +4692,12 @@ C                 ------------------------------------------------------
   420 CONTINUE
 
       RETURN
-
+      end subroutine UPDEPS
 
 C-----------------
-      ENTRY GETEPS
+!      ENTRY GETEPS
 C-----------------
-
+      subroutine GETEPS
 C             ----------------------------------------------------------
 C                     Select Cloud Heterogeneity CLDEPS Options
 C             EPSCON  Column Cloud Inhomogeneity EPSILON (when KCLDEP=1)
@@ -4617,6 +4708,12 @@ C                     KCLDEP =  2  Keeps whatever is specified in CLDEPS
 C                     KCLDEP =  3  Uses: Column EPCOL(72,46) Climatology
 C                     KCLDEP =  4  Uses: Ht Dep EPLOW, EPMID, EPHIG Data
 C                     --------------------------------------------------
+      REAL*8 SIZWCL,SIZICL,XRW,XMW,XPW,EPS,VEP,VEP1,VEP2,VEPP,TAUWCL
+     *     ,TAUICL,QAWATK,QPWATK,SRCGFW,QXWATK,QSWATK,QGWATK,XRI,XMI,XPI
+     *     ,QAICEK,QPICEK,SRCGFC,QXICEK,QSICEK,QGICEK,SCTTAU,GCBICE
+     *     ,SCTGCB,TCTAUW,TCTAUC,ALWATK,WTI,WTW,ALICEK,TRCTCI,XJDAY,XMO
+     *     ,WTMJ,WTMI
+      INTEGER I,J,N,K,L,LBOTCW,LTOPCW,LBOTCI,LTOPCI,IRWAT,IRICE,MI,MJ
 
       IF(KCLDEP.EQ.0) THEN
       DO 510 L=1,NL
@@ -4644,7 +4741,7 @@ C                     --------------------------------------------------
       ENDIF
 
       RETURN
-      END SUBROUTINE SETCLD
+      end subroutine GETEPS
 
 
       SUBROUTINE TAUGAS

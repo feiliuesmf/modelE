@@ -6,7 +6,19 @@
 C**** semi-random cloud overlap (computed opt.d+diagn)
 C**** to be used with R99E or later radiation  routines.  carbon/2
 C****
-      SUBROUTINE COSZ0
+
+      module RAD_COSZ0
+
+      contains 
+
+      subroutine COSZS (ROT1,ROT2,COSZ,COSZA)
+      REAL*8 ROT1,ROT2
+      REAL*8, DIMENSION(:,:) :: COSZ,COSZA
+      call COSZT (ROT1,ROT2,COSZ,COSZA)
+      end subroutine COSZS
+
+      !SUBROUTINE COSZ0
+      subroutine COSZT (ROT1,ROT2,COSZ,COSZA)
 !@sum  COSZ0 calculates Earth's zenith angle, weighted by time/sunlight
 !@auth Original Development Team
 !@ver  1.0
@@ -18,19 +30,24 @@ C****
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
       IMPLICIT NONE
       SAVE
-      REAL*8, DIMENSION(IM) :: LT1,LT2,SLT1,SLT2,S2LT1,S2LT2
+      REAL*8 ROT1,ROT2
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     *     COSZ,COSZA
+     *     COSZ
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+     &     , optional :: COSZA
+      REAL*8, DIMENSION(IM) :: LT1,LT2,SLT1,SLT2,S2LT1,S2LT2
 C**** ZERO1 HAS TO EQUAL THE CUT-OFF VALUE FOR COSZ USED IN SOLAR
 C**** COSZS WORKS CORRECTLY ONLY IF ZERO1 >> 1.D-3
       REAL*8, PARAMETER :: ZERO1=1.D-2
       INTEGER I,J
       REAL*8 S2DAWN,S2DUSK,ECOSZ,ECOSQZ,CLT1,CLT2,ZERO2,CDUSK,DUSK,DAWN
-     *     ,SDUSK,SDAWN,CJCD,SJSD,SR1,CR1,SR2,CR2,ROT1,ROT2,DROT
+     *     ,SDUSK,SDAWN,CJCD,SJSD,SR1,CR1,SR2,CR2,DROT
       INTEGER :: I_0, I_1, J_0, J_1
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+
+      if ( present(COSZA) ) goto 777 ! COSZS
 C****
-      ENTRY COSZT (ROT1,ROT2,COSZ)
+!      ENTRY COSZT (ROT1,ROT2,COSZ)
 C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -145,7 +162,8 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       RETURN
 C****
 C****
-      ENTRY COSZS (ROT1,ROT2,COSZ,COSZA)
+!      ENTRY COSZS (ROT1,ROT2,COSZ,COSZA)
+ 777  continue
 C****
 C**** THIS ENTRY COMPUTES THE ZENITH ANGLE TWICE, FIRST WEIGHTED BY THE
 C**** DAYTIME HOURS FROM ROT1 TO ROT2 AND SECONDLY WEIGHTED BY THE
@@ -295,7 +313,9 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       END IF
   900 CONTINUE
       RETURN
-      END
+      END subroutine COSZT
+
+      end module RAD_COSZ0
 
       SUBROUTINE init_RAD(istart)
 !@sum  init_RAD initialises radiation code
@@ -309,16 +329,17 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,kradia
       USE DOMAIN_DECOMP, only : grid, get, write_parallel
       USE GEOM, only : dlat,lat_dg
-      USE RADPAR, only : rcomp1,writer,writet       ! routines
-     &     ,PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR
+      USE RADPAR, only : !rcomp1,writer,writet       ! routines
+     &      PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR
      *     ,KCLDEM,KSIALB,KSOLAR, SHL, snoage_fac_max, KZSNOW
      *     ,KYEARS,KJDAYS,MADLUV, KYEARG,KJDAYG,MADGHG
      *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER , O3YR_max
      *     ,KYEARD,KJDAYD,MADDST, KYEARV,KJDAYV,MADVOL
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
-     *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
+!g95     *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
      *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA,TRADEN
+      USE RADPAR, only : rcomp1, writer, writet
       USE RAD_COM, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,RHfix
@@ -335,7 +356,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 #endif
       IMPLICIT NONE
 
-      INTEGER J,L,LR,LONR,LATR,n1,istart
+      INTEGER J,L,LR,n1,istart ! LONR,LATR
       REAL*8 COEX,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS,PLBx(LM+1)
      *     ,pyear
 !@var NRFUN indices of unit numbers for radiation routines
@@ -727,18 +748,26 @@ C**** Save initial (currently permanent and global) Q in rad.layers
       write(out_line,*) 'spec.hum in rad.equ.layers:',shl0
       call write_parallel(trim(out_line),unit=6)
 
-      ENTRY SETATM               ! dummy routine in gcm
-      ENTRY GETVEG(LONR,LATR)    ! dummy routine in gcm
+      !ENTRY SETATM               ! dummy routine in gcm
+      !ENTRY GETVEG(LONR,LATR)    ! dummy routine in gcm
       RETURN
       END SUBROUTINE init_RAD
+
+      subroutine SETATM
+      end subroutine SETATM
+
+      subroutine GETVEG(LONR,LATR)
+      integer LONR,LATR
+      end subroutine GETVEG
 
       SUBROUTINE daily_RAD(end_of_day)
 !@sum  daily_RAD sets radiation parameters that change every day
 !@auth G. Schmidt
 !@calls RADPAR:RCOMPT
       USE MODEL_COM, only : jday,jyear
-      USE RADPAR, only : rcompt,writet,FULGAS,JYEARR=>JYEAR,JDAYR=>JDAY
+      USE RADPAR, only : FULGAS,JYEARR=>JYEAR,JDAYR=>JDAY
      *     ,xref,KYEARV
+      USE RADPAR, only : rcompt,writet
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
      *     ,ghg_yr,co2ppm,Volc_yr
       USE DIAG_COM, only : iwrite,jwrite,itwrite
@@ -785,8 +814,8 @@ C**** Define CO2 (ppm) for rest of model
       USE MODEL_COM
       USE GEOM
       USE RADPAR
-     &  , only : writer,rcompx ! routines
-     &          ,lx  ! for threadprivate copyin common block
+     &  , only :  ! routines
+     &           lx  ! for threadprivate copyin common block
      &          ,tauwc0,tauic0 ! set in radpar block data
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY,FULGAS
@@ -806,6 +835,7 @@ C     OUTPUT DATA
      &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS ,SRDVIS
      &          ,BTEMPW ,O3_OUT ,TTAUSV ,SRAEXT ,SRASCT ,SRAGCB
      &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
+      USE RADPAR, only : writer,rcompx
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
@@ -846,6 +876,7 @@ C     OUTPUT DATA
       USE DOMAIN_DECOMP, ONLY: grid,GET, write_parallel
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
       USE DOMAIN_DECOMP, ONLY: GLOBALSUM, AM_I_ROOT, HERE
+      USE RAD_COSZ0, only : COSZT,COSZS
 
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
@@ -2228,7 +2259,8 @@ c***            HDIURN_part(IHM,1,KR,J)=S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
      &    + DIURNSUMc(1,1:NDIUPT)
 
       RETURN
-      END
+      END SUBROUTINE RADIA
+
 
       SUBROUTINE GHGHST(iu)
 !@sum  reads history for nghg well-mixed greenhouse gases
