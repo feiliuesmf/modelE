@@ -129,6 +129,9 @@ CCC      real*8 :: bgrid
 #if defined(TRACERS_ON) && defined(TRACERS_DRYDEP)
      *     dep_vel,
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+     *     DMS_flux, ss1_flux, ss2_flux,
+#endif
      4     psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,
      5     uocean,vocean,ts_guess,ilong,jlat,itype)
 !@sum  advanc  time steps the solutions for the boundary layer variables
@@ -218,6 +221,9 @@ c  internals:
 #endif
 #ifdef TRACERS_DRYDEP
       real*8 , intent(out), dimension(ntm) :: dep_vel
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+      real*8, intent(out) :: DMS_flux, ss1_flux, ss2_flux
 #endif
 #endif
       real*8 :: lmonin,tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
@@ -407,6 +413,19 @@ C**** tracers are now passive, so use 'upstream' concentration
 #ifdef TRACERS_DRYDEP
 C**** Tracer Dry Deposition boundary condition for dry dep tracers:
         if(dodrydep(ntix(itr))) trsf=trsfac(itr)*dep_vel(ntix(itr))
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+        select case (trname(ntix(itr)))
+	case ('DMS')
+	call read_DMS_sources(wsm,itype,ilong,jlat,DMS_flux)
+	trcnst=trconstflx(itr)*DMS_flux
+	case ('seasalt1')
+	call read_seasalt_sources(wsm,itype,1,ilong,jlat,ss1_flux)
+	trcnst=trconstflx(itr)*ss1_flux
+	case ('seasalt2')
+	call read_seasalt_sources(wsm,itype,2,ilong,jlat,ss2_flux)
+	trcnst=trconstflx(itr)*ss2_flux 
+	end select
 #endif
         call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
      *       ,trcnst,trtop(itr),
