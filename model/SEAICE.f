@@ -1616,16 +1616,19 @@ C**** heat, salt, tracer amounts in snow, first layer ice
 #endif
 
 C**** Check energy constraint on mass flux
+C**** Si is the salinity only in the frozen sea water part
         if (qsfix) then
           Si=1d3*ssi0
         else
           Si=fsss*Sm
         end if
 c        Ei=EICE(TFREZ(Sm),Si) 
-        Ei=-LHM*(1.-0.001*Si)+ Tfrez(Sm)*shi
+        Ei=-LHM*(1.-0.001d0*Si)+ Tfrez(Sm)*shi
         Esnow=HSNOW/SNOW
         Eoc=Tm*SHW
-        ERAT=(Esnow-Ei)/(Ei-Eoc)
+C**** correction to ERAT to account for actual salinity in MAXM+DSNOW
+c       ERAT=(Esnow-Ei)/(Ei-Eoc)
+        ERAT=(Esnow-Ei+0.001d0*Si*LHM)/(Ei-Eoc)
 
         MAXME=Z0*RHOI*ERAT/(1.+ERAT*(RHOWS-RHOI)/RHOWS)
         MAXM=MAX(0d0,MIN(MAXME,MAXM))   ! mass of sea water to be added
