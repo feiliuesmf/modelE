@@ -314,7 +314,7 @@ C**** now include lat melt for lakes and any RSI < 1
             SNOW=SNOWI(I,J)     ! snow mass
             HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
             SSIL(:)= SSI(:,I,J) ! sea ice salt
-            ENRGMAX= (Tm-TFO)*MLHC(I,J) ! max energy available for melt
+            ENRGMAX= MAX(Tm-TFO,0d0)*MLHC(I,J) ! max energy for melt 
 #ifdef TRACERS_WATER
             TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice
 #endif
