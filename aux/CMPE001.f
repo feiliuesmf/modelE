@@ -54,6 +54,22 @@ ccc   land ice data
       COMMON /KEYS/ KEYNR(42,50)
       REAL*8 LAKE1,LAKE2
       COMMON /LAKE/LAKE1(IM,JM,4),LAKE2(IM,JM,4)
+C**** coupled model ocean data
+      INTEGER, PARAMETER :: NMST=12, LMO=13
+      INTEGER, PARAMETER :: KOIJ=11,KOIJL=22,KOL=6,KOLNST=8,
+     *     KACCO=IM*JM*KOIJ + IM*JM*LMO*KOIJL + LMO*KOL + LMO*NMST
+     *     *KOLNST
+      REAL*8 OCEAN1(IM,JM,LMO*11+1),OCEAN2(IM,JM,LMO*11+1)
+      REAL*8 STRAITS1(LMO,NMST,7),STRAITS2(LMO,NMST,7)
+      REAL*8 STRAITI1(NMST,4+LMI),STRAITI2(NMST,4+LMI)
+      REAL*8 ICEDYN1(IM,JM,4),ICEDYN2(IM,JM,4)
+      REAL*8 ODIAG1(KACCO),ODIAG2(KACCO)
+      COMMON /ODAG1/OIJ1(IM,JM,KOIJ),OIJL1(IM,JM,LMO,KOIJL),
+     *     OL1(LMO,KOL),OLNST1(LMO,NMST,KOLNST)
+      COMMON /ODAG2/OIJ2(IM,JM,KOIJ),OIJL2(IM,JM,LMO,KOIJL),
+     *     OL2(LMO,KOL),OLNST2(LMO,NMST,KOLNST)
+      EQUIVALENCE (ODIAG1,OIJ1),(ODIAG2,OIJ2)
+C****
       INTEGER DAGPOS,DAGPOS1,DAGPOS2
       LOGICAL ERRQ,COMP8,COMP8p,COMPI,COMP8LIJp,COMPILIJ
       INTEGER itau1,itau2
@@ -67,7 +83,18 @@ C****
          READ (1) ITAU1,JC,C,RC
          READ (1)
          READ (1) HEADER,U1,V1,T1,P1,Q1,WM1
-         READ (1) HEADER,TOCEAN1,Z1
+C**** check which ocean
+         READ (1) HEADER
+         BACKSPACE(1)
+         IF (HEADER.eq."OCN01") THEN ! Qflux or fixed SST
+           KOCEAN1 = 1
+           READ(1) HEADER,TOCEAN1,Z1
+         ELSE
+           KOCEAN1 = 2
+           READ(1) HEADER,OCEAN1
+           READ(1) HEADER,STRAITS1,STRAITI1
+           READ(1) HEADER,DYNICE1
+         END IF
          READ (1) HEADER,LAKE1
          READ (1) HEADER,RSI1,TSI1,SNOWI1,MSI1
          READ (1) HEADER,GDATA1
@@ -80,6 +107,9 @@ C****
          READ (1) HEADER,TMOM1,QMOM1
          READ (1) HEADER,S0,S0X,CO2,RSD,SIND,COSD,RQT1,SRHR1,TRHR1,FSF1
          READ (1) HEADER,KEYNR,TSFREZ1,DIAG1,TDIURN1,OA1,ITAU2
+         IF (KOCEAN1.eq.2) THEN
+           READ(1) HEADER,ODIAG1,itau2    !OIJ,OIJL,OL,OLNST,it
+         END IF
 
       IF (ITAU1.ne.ITAU2) then
          WRITE (6,*) 'FILE 1 NOT READ CORRECTLY. IHOUR,IHOURB =',itau1
@@ -95,7 +125,18 @@ C****
          READ (2) ITAU1,JC,C,RC
          READ (2)
          READ (2) HEADER,U2,V2,T2,P2,Q2,WM2
-         READ (2) HEADER,TOCEAN2,Z2
+C**** check which ocean
+         READ (2) HEADER
+         BACKSPACE(2)
+         IF (HEADER.eq."OCN01") THEN ! Qflux or fixed SST
+           KOCEAN2 = 1
+           READ(2) HEADER,TOCEAN2,Z2
+         ELSE
+           KOCEAN2 = 2
+           READ(2) HEADER,OCEAN2
+           READ(2) HEADER,STRAITS2,STRAITI2
+           READ(2) HEADER,DYNICE2
+         END IF
          READ (2) HEADER,LAKE2
          READ (2) HEADER,RSI2,TSI2,SNOWI2,MSI2
          READ (2) HEADER,GDATA2
@@ -108,6 +149,9 @@ C****
          READ (2) HEADER,TMOM2,QMOM2
          READ (2) HEADER,S0,S0X,CO2,RSD,SIND,COSD,RQT2,SRHR2,TRHR2,FSF2
          READ (2) HEADER,KEYNR,TSFREZ2,DIAG2,TDIURN2,OA2,ITAU2
+         IF (KOCEAN2.eq.2) THEN
+           READ(2) HEADER,ODIAG2,itau2    !OIJ,OIJL,OL,OLNST,it
+         END IF
 
       IF (itau1.ne.itau2) then
          WRITE (6,*) 'FILE 2 NOT READ CORRECTLY. IHOUR,IHOURB =',itau1
@@ -128,9 +172,18 @@ C****
       ERRQ=COMP8 ('T     ',IM,JM,LM     ,T1 ,T2 ) .or. ERRQ
       ERRQ=COMP8 ('Q     ',IM,JM,LM     ,Q1 ,Q2 ) .or. ERRQ
       ERRQ=COMP8 ('P     ',IM,JM,1      ,P1 ,P2 ) .or. ERRQ
-
-      ERRQ=COMP8LIJp('TOCEAN',3,IM,JM      ,TOCEAN1,TOCEAN2) .or. ERRQ
-      ERRQ=COMP8 ('Z10   ',IM,JM,1      ,     Z1,     Z2) .or. ERRQ
+      IF (KOCEAN1.eq.KOCEAN2) THEN ! compare oceans else don't
+        IF (KCOEAN1.eq.1) THEN  ! Qflux/fixed
+          ERRQ=COMP8LIJp('TOCEAN',3,IM,JM ,TOCEAN1,TOCEAN2).or.ERRQ
+          ERRQ=COMP8 ('Z10   ',IM,JM,1    ,     Z1,     Z2).or.ERRQ
+        ELSE                    ! coupled
+          ERRQ=COMP8LIJp('OCEAN ',IM,JM,11*LMO+1,OCEAN1,OCEAN2).or.ERRQ
+          ERRQ=COMP8LIJp('STRATO',LMO,NMST,7,STRAITS1,STRAITS2).or.ERRQ
+          ERRQ=COMP8LIJp('STRATI',NMST,4+LMI,1,STRAITI1,STRAITI2).or
+     *         .ERRQ
+          ERRQ=COMP8LIJp('ICEDYN',IM,JM,4,ICEDYN1,ICEDYN2).or.ERRQ
+        END IF
+      END IF
       ERRQ=COMP8 ('RSI   ',IM,JM,1      ,   RSI1,   RSI2) .or. ERRQ
       ERRQ=COMP8LIJp('TEMPSI',LMI,IM,JM    ,   TSI1,   TSI2) .or. ERRQ
       ERRQ=COMP8p('SNOWI ',IM,JM,1      , SNOWI1, SNOWI2) .or. ERRQ
@@ -200,6 +253,18 @@ c      else
       ERRQ=COMP8 ('TSFREZ',IM,JM,4      ,TSFREZ1,TSFREZ2)
       ERRQ=COMP8 ('TDIURN',IM,JM,KTD    ,TDIURN1,TDIURN2)
       ERRQ=COMP8p('OA    ',IM,JM,12     ,OA1,OA2)
+
+      IF (KOCEAN1.eq.KOCEAN2.and.KOCEAN1.eq.2) THEN ! compare ocean diags
+      DAGPOS=1
+      ERRQ=COMP8('OIJ   ',IM,JM,KOIJ,ODIAG1(DAGPOS),ODIAG2(DAGPOS))
+      DAGPOS=DAGPOS+IM*JM*KOIJ
+      ERRQ=COMP8('OIJL  ',IM,JM,LMO*KOIJL,ODIAG1(DAGPOS),ODIAG2(DAGPOS))
+      DAGPOS=DAGPOS+IM*JM*LMO*KOIJL
+      ERRQ=COMP8('OL    ',LMO,KOL,1   ,ODIAG1(DAGPOS),ODIAG2(DAGPOS))
+      DAGPOS=DAGPOS+LMO*KOL
+      ERRQ=COMP8('OLNST ',LMO,NMST,KOLNST,ODIAG1(DAGPOS),ODIAG2(DAGPOS))
+      END IF
+
 c      endif
       STOP
 C****
