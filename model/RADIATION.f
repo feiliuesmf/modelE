@@ -336,10 +336,10 @@ C----------------
 !@var FSTOPX,FTTOPX scales optional aerosols (solar,thermal component)
       real*8    :: FSTOPX(8),FTTOPX(8)
 !@var O3_IN column variable for importing ozone field from rest of model
-!@var use_tracer_ozone =0 normal case, =1 means
+!@var use_tracer_ozone =0 normal case, =1 means that
 !@+   RCOMPX will use O3_IN(L) for U0GAS(L,3) for GCM levels
       real*8, dimension(lx) :: O3_IN
-      integer use_tracer_ozone
+      integer use_tracer_ozone   
       LOGICAL*4 :: flags
 
       COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX
@@ -878,7 +878,7 @@ CKoch   DRYM2G=(/5.000, 2.866, 8.000, 8.000, 9.000, 9.000, 1.000,1.000/)
 !nu     RHTMAG=(/1.788, 3.310, 1.756, 1.163, 1.000, 1.000, 1.000,1.000/)
 !nu alt RHTMAG=(/1.982, 3.042, 1.708, 1.033, 1.000, 1.000, 1.000,1.000/)
 !old *  WETM2G=(/8.345, 2.866, 7.811, 5.836, 9.000, 9.000, 1.000,1.000/)
-     * ,WETM2G=(/9.086, 2.634, 7.598, 5.180, 9.000, 9.000, 1.000,1.000/)
+     * ,WETM2G=(/9.250, 2.634, 7.598, 5.180, 9.000, 9.000, 1.000,1.000/)
      * ,Q55DRY=(/2.191, 2.499, 3.069, 3.010, 1.560, 1.560, 1.000,1.000/)
 
      * ,DENAER=(/1.760, 2.165, 1.725, 1.500, 1.300, 1.300, 2.000,2.000/)
@@ -3424,11 +3424,11 @@ C-----------------
       DO 230 L=1,NL
       IF(RHL(L).GT.0.9005D0) THEN
       XRH=(RHL(L)-0.899499D0)*1000.D0
-      NRH=XRH+64
-      IF(NRH.GT.164) NRH=164
+      NRH=XRH+90
+      IF(NRH.GT.189) NRH=189
       ELSE
       XRH=RHL(L)*100.D0+0.5D0
-      NRH=XRH-26
+      NRH=XRH
       IF(NRH.LT.0) NRH=0
       ENDIF
       DO 220 NA=1,4

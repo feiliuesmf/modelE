@@ -319,7 +319,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
-     *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA
+     *     ,FS8OPX,FT8OPX,AERMIX,KRHAER, TRRDRY,KRHTRA
       USE RADNCB, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx
@@ -369,6 +369,8 @@ C**** sync radiation parameters from input
       call sync_param( "volc_yr", volc_yr )
       call sync_param( "volc_day", volc_day )
       call sync_param( "aero_yr", aero_yr )
+      call sync_param( "aermix", aermix , 13 )
+      call sync_param( "kRHaer", kRHaer , 4  )
       call sync_param( "O3_yr", O3_yr )
       call sync_param( "PTLISO", PTLISO )
       call sync_param( "KSOLAR", KSOLAR )
@@ -514,6 +516,8 @@ caer  FS8OPX = (/1., 1., 1., 1., 2., 2.,    1.   ,   1./)     solar
 caer  FT8OPX = (/1., 1., 1., 1., 1., 1.,    1.3d0,   1./)     thermal
 C**** The last 2 entries are used to scale the other 2 aerosol types:
 C**** 7. Dust aerosols, 8. Volcanic aerosols
+C**** Particle size of the first 4 groups has RelHum dependence; if
+C**** KRHaer(1->4)=1 the model RH is used; 0 uses RH=0%, -1 uses RH=70%
 
 C**** To add up to 8 further aerosols:
 C****  1) set NTRACE to the number of extra aerosol fields
@@ -528,7 +532,7 @@ C****  5) Set KRHTRA=1 if aerosol has RH dependence, 0 if not
 C**** Note: whereas FSXAER/FTXAER are global (shared), FSTOPX/FTTOPX
 C****       have to be reset for each grid box to allow for the way it
 C****       is used in RADIA (TRACERS_AEROSOLS_Koch)
-caer   NTRACE = 0.
+caer   NTRACE = 0
 caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
 caer   TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
 caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
@@ -544,7 +548,7 @@ c       NTRACE=0
       TRRDRY=(/ .2d0, .44d0, 1.7d0, .3d0, .1d0, .1d0, .1d0, .1d0/)
 c tracer 1 is sulfate, tracers 2 and 3 are seasalt
       ITR = (/ 1,2,2,4, 5,6,0,0 /)
-      KRHTRA=(/1,1,1,1,0,0,1,1/)
+      KRHTRA=(/1,1,1,1, 0,0,1,1/)
 #endif
 
       if (ktrend.ne.0) then
@@ -1079,10 +1083,10 @@ C**** Only define TRACER is individual tracer is actually defined.
      *       trm(i,j,l,n_seasalt1)/DXYP(J)
         if (n_seasalt2.gt.0.) TRACER(L,3)=
      *       trm(i,j,l,n_seasalt2)/DXYP(J)
-        if (n_OCII.gt.0.or.n_OCIA.gt.0.or.n_OCB.gt.0) 
-     *  TRACER(L,4)=(trm(i,j,l,n_OCB)+ 
+        if (n_OCII.gt.0.or.n_OCIA.gt.0.or.n_OCB.gt.0)
+     *  TRACER(L,4)=(trm(i,j,l,n_OCB)+
      *  trm(i,j,l,n_OCII)+trm(i,j,l,n_OCIA))/DXYP(J)
-        if (n_BCII.gt.0.or.n_BCIA.gt.0) TRACER(L,5)= 
+        if (n_BCII.gt.0.or.n_BCIA.gt.0) TRACER(L,5)=
      *  (trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))/DXYP(J)
         if (n_BCB.gt.0) TRACER(L,6)=trm(i,j,l,n_BCB)/DXYP(J)
 #endif
@@ -1189,19 +1193,19 @@ C**** seasalt forcing
           FSTOPX(2)=0.d0 ; FTTOPX(2)=0.d0
           FSTOPX(3)=0.d0 ; FTTOPX(3)=0.d0
 C**** OC forcing
-          FSTOPX(4)=1.d0 ; FTTOPX(4)=1.d0 ! turn on OC 
+          FSTOPX(4)=1.d0 ; FTTOPX(4)=1.d0 ! turn on OC
           CALL RCOMPX
           SNFST(N_OCIA,I,J)=SRNFLB(4+LM)
           TNFST(N_OCIA,I,J)=TRNFLB(4+LM)-TRNFLB(1)
           FSTOPX(4)=0.d0 ; FTTOPX(4)=0.d0
 C**** BCI forcing
-          FSTOPX(5)=1.d0 ; FTTOPX(5)=1.d0 ! turn on BCI 
+          FSTOPX(5)=1.d0 ; FTTOPX(5)=1.d0 ! turn on BCI
           CALL RCOMPX
           SNFST(N_BCIA,I,J)=SRNFLB(4+LM)
           TNFST(N_BCIA,I,J)=TRNFLB(4+LM)-TRNFLB(1)
           FSTOPX(5)=0.d0 ; FTTOPX(5)=0.d0
 C**** BCB forcing
-          FSTOPX(6)=1.d0 ; FTTOPX(6)=1.d0 ! turn on BCB 
+          FSTOPX(6)=1.d0 ; FTTOPX(6)=1.d0 ! turn on BCB
           CALL RCOMPX
           SNFST(N_BCB,I,J)=SRNFLB(4+LM)
           TNFST(N_BCB,I,J)=TRNFLB(4+LM)-TRNFLB(1)
@@ -1223,19 +1227,19 @@ c seasalt forcing
           FSTOPX(2)=1.d0 ; FTTOPX(2)=1.d0
           FSTOPX(3)=1.d0 ; FTTOPX(3)=1.d0
 C**** OC forcing
-          FSTOPX(4)=0.d0 ; FTTOPX(4)=0.d0 ! turn off OC 
+          FSTOPX(4)=0.d0 ; FTTOPX(4)=0.d0 ! turn off OC
           CALL RCOMPX
           SNFST(N_OCIA,I,J)=SRNFLB(4+LM)
           TNFST(N_OCIA,I,J)=TRNFLB(4+LM)-TRNFLB(1)
           FSTOPX(4)=1.d0 ; FTTOPX(4)=1.d0
 C**** BCI forcing
-          FSTOPX(5)=0.d0 ; FTTOPX(5)=0.d0 ! turn off BCI 
+          FSTOPX(5)=0.d0 ; FTTOPX(5)=0.d0 ! turn off BCI
           CALL RCOMPX
           SNFST(N_BCIA,I,J)=SRNFLB(4+LM)
           TNFST(N_BCIA,I,J)=TRNFLB(4+LM)-TRNFLB(1)
           FSTOPX(5)=1.d0 ; FTTOPX(5)=1.d0
 C**** BCB forcing
-          FSTOPX(6)=0.d0 ; FTTOPX(6)=0.d0 ! turn off BCI 
+          FSTOPX(6)=0.d0 ; FTTOPX(6)=0.d0 ! turn off BCI
           CALL RCOMPX
           SNFST(N_BCB,I,J)=SRNFLB(4+LM)
           TNFST(N_BCB,I,J)=TRNFLB(4+LM)-TRNFLB(1)
