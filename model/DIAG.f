@@ -3214,9 +3214,11 @@ C**** add in epsilon=1d-5 to avoid roundoff mistakes
 
 C**** Calculate the max number of geopotential heights
       do k=1,kgz
-        kgz_max = k
         if (pmb(k).le.pmtop) exit
+        kgz_max = k
       end do
+      write(6,'(a)') "Geopotential height diagnostics at (mb): "
+      write(6,'(20F9.3)') PMB(1:kgz_max)
 
 c**** Initialize acc-array names, units, idacc-indices
       call def_acc

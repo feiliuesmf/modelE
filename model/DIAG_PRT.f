@@ -3022,7 +3022,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       call ij_titlex
 C**** standard printout
       nmaplets = 42+(kgz_max-1)*2 ; nmaps = 2
-      iord(1:42) = (/            ! 72 maplets
+      iord(1:42) = (/            
      *  ij_topo,    ij_fland,   ij_rsoi,     ! pg  1  row 1
      *  ij_rsnw,    ij_snow,    ij_rsit,     !        row 2
      *  ij_prec,    ij_evap,    ij_shdt,     ! pg  2  row 1
