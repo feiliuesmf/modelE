@@ -501,8 +501,8 @@ c Aerosol chemistry
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl
 #ifdef TRACERS_SPECIAL_Shindell
 !@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
-      integer maxl
 #endif
+      integer maxl
       save ifirst,itopen,iuc
 
 C**** initialise source arrays
