@@ -686,6 +686,7 @@ ccc   local variables
       real*8, parameter :: hw = -100.d0
 !@var betadl transpiration efficiency for each soil layer
       real*8 betadl(ngm) ! used in evaps_limits only
+      real*8 pot_evap_can
 
 c     cna is the conductance of the atmosphere
       cna=ch*vsm
@@ -756,8 +757,17 @@ c     canopy conductivity cnc
         abetat=betat            ! return to old diagnostics
         acna=cna                ! return to old diagnostics
         acnc=cnc                ! return to old diagnostics
-        evap_max_dry(ibv) = min( evap_max(ibv),
-     &       betat*rho3*cna*( qsat(tp(0,2)+tfrz,lhe,pres) - qs ) )
+        pot_evap_can = betat*rho3*cna*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
+        evap_max_dry(ibv) = 0.d0
+        if ( betad > 0.d0 ) then
+          do l=1,n
+            evap_max_dry(ibv) = evap_max_dry(ibv)
+     &           +  min( pot_evap_can*betadl(l)/betad,
+     &         (w(l,ibv)-dz(l)*thetm(l,ibv))/dt )
+          enddo
+        endif
+!        evap_max_dry(ibv) = min( evap_max(ibv),
+!     &       betat*rho3*cna*( qsat(tp(0,2)+tfrz,lhe,pres) - qs ) )
                    ! may be pr should be included somehow in e_m_d
       endif
 
