@@ -5,9 +5,9 @@
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@ver  1.0 (from PBLB336E)
 !@cont pbl,advanc,stars,getl,dflux,simil,griddr,tfix
-!@cont ccoeff0,getk,e_eqn,t_eqn,q_eqn,uv_eqn
+!@cont ccoeff0,getk,e_eqn,t_eqn,q_eqn,tr_eqn,uv_eqn,level2
 !@cont t_eqn_sta,q_eqn_sta,uv_eqn_sta
-!@cont inits,tcheck,ucheck,check1,output,rtsafe
+!@cont inits,tcheck,ucheck,check1,output,rtsafe,fgrid2
 
       USE CONSTANT, only : grav,omega,pi,radian,bygrav,teeny,deltx,tf
      &                     ,by3
@@ -208,7 +208,7 @@ c  internals:
 
       real*8 :: lmonin,tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau
-      real*8, parameter ::  tol=1d-3,w=.5d0
+      real*8, parameter ::  tol=2d-3,w=.5d0
       integer, parameter ::  itmax=50
       integer, parameter :: iprint=0,jprint=41  ! set iprint>0 to debug
       real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave
@@ -448,6 +448,10 @@ c Diagnostics printed at a selected point:
       if (abs(tstar).lt.smin*abs(t(1)-tgrnd)) tstar=smin*(t(1)-tgrnd)
       if (abs(qstar).lt.smin*abs(q(1)-qgrnd)) qstar=smin*(q(1)-qgrnd)
 
+      ustar  = max(ustar,teeny)
+      if (abs(tstar).lt.teeny) tstar=teeny
+      if (abs(qstar).lt.teeny) qstar=teeny
+
       lmonin = ustar*ustar*tgrnd/(kappa*grav*tstar)
       if(abs(lmonin).lt.teeny) lmonin=sign(teeny,lmonin)
 c     To compute the drag coefficient,Stanton number and Dalton number
@@ -484,20 +488,21 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       real*8 l0,l1,an2,dudz,dvdz,as2,lmax,lmax2
 
       l0=.16d0*dbl ! Moeng and Sullivan 1994
-      if (l0.lt.zhat(1)) l0=zhat(1)
+c     if (l0.lt.zhat(1)) l0=zhat(1)
 
-      l1=kappa*zhat(1)
-      lscale(1)=l0*l1/(l0+l1)
+c     l1=kappa*zhat(1)
+c     lscale(1)=l0*l1/(l0+l1)
 
-      do i=2,n-1
+c     do i=2,n-1
+      do i=1,n-1
         l1=kappa*zhat(i)
         lscale(i)=l0*l1/(l0+l1)
-        if (t(i+1).gt.t(i)) then
-          an2=2.*grav*(t(i+1)-t(i))/((t(i+1)+t(i))*dzh(i))
-          lmax  =0.53d0*sqrt(2.*e(i)/max(an2,teeny))
-          if (lscale(i).gt.lmax) lscale(i)=lmax
-        endif
-        if (lscale(i).lt.0.5*kappa*zhat(i)) lscale(i)=0.5*kappa*zhat(i)
+c       if (t(i+1).gt.t(i)) then
+c         an2=2.*grav*(t(i+1)-t(i))/((t(i+1)+t(i))*dzh(i))
+c         lmax  =0.53d0*sqrt(2.*e(i)/max(an2,teeny))
+c         if (lscale(i).gt.lmax) lscale(i)=lmax
+c       endif
+c       if (lscale(i).lt.0.5*kappa*zhat(i)) lscale(i)=0.5*kappa*zhat(i)
       end do
 
       return
@@ -959,7 +964,7 @@ c     at edge: e,lscale,km,kh,gm,gh
       real*8, dimension(n-1), intent(in) :: e,lscale,dzh
       real*8, dimension(n-1), intent(out) :: km,kh,kq,ke,gma,gha
 
-      real*8, parameter :: se=0.1d0,kmax=100.d0
+      real*8, parameter :: se=0.04d0,kmax=100.d0
      &  ,kmmin=1.5d-5,khmin=2.5d-5,kqmin=2.5d-5,kemin=1.5d-5
       real*8 :: an2,dudz,dvdz,as2,ell,den,qturb,tau,gh,gm,gmmax,sm,sh
      &  ,sq,sq_by_sh,taue
@@ -976,7 +981,7 @@ c     at edge: e,lscale,km,kh,gm,gh
         gh=tau*tau*an2
         gm=tau*tau*as2
         if(gh.lt.ghmin) gh=ghmin
-        if(gh.gt.ghmax) gh=ghmax
+        ! if(gh.gt.ghmax) gh=ghmax
         gmmax=(1+d1*gh+d3*gh*gh)/(d2+d4*gh)
         if(gm.gt.gmmax) gm=gmmax
         den=1+d1*gh+d2*gm+d3*gh*gh+d4*gh*gm+d5*gm*gm
@@ -1700,7 +1705,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       integer, save :: iter_count=0
       integer, parameter ::  itmax=100
       integer, parameter ::  iprint=0,jprint=41 ! set iprint>0 to debug
-      real*8, parameter ::  w=0.50,tol=1d-3
+      real*8, parameter ::  tol=2d-3,w=.5d0
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 
 c**** special threadprivate common block (compaq compiler stupidity)
