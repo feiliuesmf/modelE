@@ -170,7 +170,7 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@var TDIURN diurnal range temperature diagnostics
       DOUBLE PRECISION, DIMENSION(IM,JM,KTD) :: TDIURN
 
-!@nlparams KDIAG array of flags to control diagnostics printout
+!@nlparam KDIAG array of flags to control diagnostics printout
       INTEGER, DIMENSION(12) :: KDIAG
 
 !@param NKEYNR number of key number diagnostics
@@ -182,9 +182,9 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@var KEYCT next index in KEYNR to be used (1->nkeymo)
       INTEGER :: KEYCT = 1
 
-!@nlparams IWRITE,JWRITE,ITWRITE control rad.debug output (i,j,amount)
+!@nlparam IWRITE,JWRITE,ITWRITE control rad.debug output (i,j,amount)
       INTEGER :: IWRITE = 0, JWRITE = 0, ITWRITE = 0
-!@nlparams QCHECK TRUE for running diagnostic checks
+!@nlparam QCHECK TRUE for running diagnostic checks
       LOGICAL :: QCHECK = .FALSE.
 
 !@var OA generic diagnostic array for ocean heat transport calculations

@@ -930,7 +930,7 @@ c     at edge: e,lscale,km,kh,gm,gh
 !@var v a  y-component at secondary grids (ucell)
 !@var u_tcell an x-component at primary grids (tcell)
 !@var v_tcell a  y-component at primary grids (tcell)
-!@aut  Ye Cheng
+!@auth Ye Cheng
 !@ver  1.0
       USE GEOM, only : imaxj,idij,idjj,kmaxj,rapj,cosiv,siniv
       implicit none
@@ -989,7 +989,7 @@ C****
 !@var vf a  y-component at primary grids (tcell)
 !@var uf_ucell an x-component at secondary grids (ucell)
 !@var vf_ucell an y-component at secondary grids (ucell)
-!@aut  Ye Cheng
+!@auth Ye Cheng
 !@ver  1.0
       USE GEOM, only : imaxj,idij,idjj,kmaxj,ravj,cosiv,siniv
       implicit none
@@ -1044,7 +1044,7 @@ C****
 !@+   Note that all arrays here are of dimension (lm,im,jm)
 !@var s a scalar at primary grids (tcell)
 !@var s_ucell a scalar at secondary grids (ucell)
-!@aut  Ye Cheng/G. Hartke
+!@auth Ye Cheng/G. Hartke
 !@ver  1.0
       USE GEOM, only : imaxj,idij,idjj,kmaxj,ravj
       implicit none

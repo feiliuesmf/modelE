@@ -3,7 +3,7 @@
 .SUFFIXES: .o .U .S .GCM .OCN .f .F
 .SUFFIXES:
 
-.PHONY: mkrun depend gcm setup clean vclean newstart mkexe cmp .R 
+.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R 
 
 #
 # Print Usage if no targets were given
@@ -23,7 +23,7 @@ print_usage help all:
 	@echo
 	@echo The following is a list of supported targets:
 	@echo
-	@echo ' mkrun   - create new rundeck'
+	@echo ' rundeck - create new rundeck'
 	@echo ' depend  - create dependencies for specified rundeck'
 	@echo ' gcm     - compile object files and build executable for specified rundeck'
 	@echo ' aux     - compile standard auxiliary programs'
@@ -31,19 +31,19 @@ print_usage help all:
 	@echo ' setup   - do setup for specified rundeck'
 	@echo ' clean   - remove listings and error files'
 	@echo ' vclean  - remove object files, .mod files and dependencies'
-	@echo ' newstart - remove all files in the run directory'
-	@echo ' mkexe   - compile gcm and put executable into RUN directory'
+	@echo ' newstart- remove all files in the run directory'
+	@echo ' exe     - compile gcm and put executable into RUN directory'
 	@echo
 	@echo '          Recommended usage:'
-	@echo 'The targets are made in order: "mkrun", "depend", "gcm", "setup",'
+	@echo 'The targets are made in order: "rundeck", "depend", "gcm", "setup",'
 	@echo 'but since Makefile automatically creates necessary targets, you'
 	@echo 'do not have to make all of them manually.'
-	@echo 'You should always start with "mkrun", it will NOT be created automatically'
+	@echo 'You should always start with "rundeck", it will NOT be created automatically'
 	@echo 'as it was in previous version. You may (and should) always skip "depend".'
 	@echo 'So if you want to compile gcm and set up a run with a name "my_run"'
 	@echo 'typically you will have to execute the commands:'
 	@echo
-	@echo '       gmake mkrun RUN=my_run'
+	@echo '       gmake rundeck RUN=my_run'
 	@echo '       gmake gcm RUN=my_run'
 	@echo '       gmake setup RUN=my_run'
 	@echo
@@ -110,7 +110,7 @@ sinclude $(MODEL_DIR)/Rules.make
 #########             TARGETS               ########
 
 # Make a current rundeck
-mkrun:
+rundeck:
 	@if [ ! -s $(RUNDECKSRC) ]; then \
 	echo 'Source rundeck $(RUNDECKSRC) does not exist'; exit 1; fi
 	@if [ "$(RUN)" = "" ]; then \
@@ -166,7 +166,7 @@ setup:  $(BIN_DIR)/$(RUN).exe
 	@$(SETUP) $(RUN)
 
 # Mkexe the gcm
-mkexe:	$(BIN_DIR)/$(RUN).exe
+exe:	$(BIN_DIR)/$(RUN).exe
 	@if [ ! -s /u/cmrun/$(RUN)/I ] ; then \
 	echo 'directory /u/cmrun/$(RUN) or input files inside it are missing';\
 	echo 'you should make "setup" first'; \
