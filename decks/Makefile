@@ -34,10 +34,10 @@ help:
 sinclude $(MODEL_DIR)/Rules.make
 
 rundeck:
-	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] && \
-	! find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER) > /dev/null; then \
+	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R -a \
+	-z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
 	echo 'name $(RUN) is already used by somebody else'; \
-	echo 'please choose a unique one'; exit 1; fi
+	echo 'please choose a unique one'; exit 1  ; fi
 	@if [ -s $(DECKS_REPOSITORY)/$(RUN).R -a $(OVERWRITE) != YES ];\
 	then echo '$(RUN).R already exists in repository'; \
 	echo 'use OVERWRITE=YES to overwrite'; \
@@ -45,6 +45,8 @@ rundeck:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) RUNSRC=$(RUNSRC)
 	@cp -f $(RUN).R $(DECKS_REPOSITORY)/$(RUN).R
 	@chmod 644 $(DECKS_REPOSITORY)/$(RUN).R      #just in case ...
+	@echo '### Information below describes your run. Do not delete! ###'\
+	    >> $(DECKS_REPOSITORY)/$(RUN).R
 
 gcm $(BIN_DIR)/$(RUN).exe depend:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
@@ -63,10 +65,10 @@ setup_script:
 	@echo '---------       Looks like it was compiled OK        ---------'
 	@echo '----- Saving Rundeck and other info to global repository -----'
 	@if [ ! -d $(DECKS_REPOSITORY) ]; then \
-	  echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---';\
+	 echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---';\
 	else \
-	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] && \
-	  ! find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER) > /dev/null; then \
+	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R -a \
+	    -z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
 	    echo 'name $(RUN) is already used by somebody else'; \
 	    echo 'please choose a unique one'; exit 1; \
 	  else \
@@ -97,8 +99,8 @@ setup_gfdl: gcm $(SETUP_GFDL)
 	@if [ ! -d $(DECKS_REPOSITORY) ]; then \
 	  echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---';\
 	else \
-	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] && \
-	  ! find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER) > /dev/null; then \
+	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R -a \
+	    -z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
 	    echo 'name $(RUN) is already used by somebody else'; \
 	    echo 'please choose a unique one'; exit 1; \
 	  else \
@@ -135,7 +137,7 @@ clean vclean:
 	$(MAKE) -C $(AUX_DIR) $@
 
 exe:  $(BIN_DIR)/$(RUN).exe
-	@if find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER) >/dev/null; then \
+	@if [ -n "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ] ; then \
 	echo 'Rundeck in repository is ok - will add info'; \
 	else \
 	if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] ; then \
