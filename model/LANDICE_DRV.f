@@ -11,6 +11,7 @@
 !@ver  1.0
       USE CONSTANT, only : edpery,sday,lhm
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc
+      USE GEOM, only : dxyp
       USE LANDICE, only: ace1li,ace2li,glmelt_on
       USE LANDICE_COM, only : tlandi,snowli
 #ifdef TRACERS_WATER
@@ -39,10 +40,10 @@ C****
 
       INTEGER, PARAMETER :: NBOXMAX=18
       INTEGER IFW(NBOXMAX),JFW(NBOXMAX)
-      INTEGER :: JML, JMU, IML1, IMU1, IML2, IMU2, NBOX, NGRID
-      REAL*8 ACCPCA,ACCPCG
+      INTEGER :: JML, JMU, IML1, IMU1, IML2, IMU2, NBOX
+      REAL*8 ACCPCA,ACCPCG,FWAREA
       LOGICAL :: do_glmelt
-      INTEGER I,J,N,NOC
+      INTEGER I,J,N
 
 C**** set GTEMP array for landice
       DO J=1,JM
@@ -72,13 +73,13 @@ C**** determined by the direction in the river flow file.
 C**** This information could be read in from a file.
       IF (JM.eq.46) THEN        ! 4x5
         JML=4 ; JMU=8 ; IML1=24 ; IMU1=36  
-        IML2=69 ; IMU2=11 ; NBOX=10 ; NGRID=111
+        IML2=69 ; IMU2=11 ; NBOX=10 
         IFW(1:NBOX) = (/26,25,25,25,29,29,30,31,32,33/)
         JFW(1:NBOX) = (/39,40,41,42,39,40,40,40,41,42/)
         do_glmelt=.true.
       ELSEIF (JM.eq.90) THEN    ! 2x2.5
         JML=7 ; JMU=11 ; IML1=48 ; IMU1=69 
-        IML2=136 ; IMU2=18 ; NBOX=18 ; NGRID=196
+        IML2=136 ; IMU2=18 ; NBOX=18 
         IFW(1:NBOX) = (/50,50,51,51,51,52,53,56,56,57,58,59,60,61,62,63
      *       ,64,64/)
         JFW(1:NBOX) = (/82,81,80,79,78,77,76,76,77,78,78,78,79,79,79,80
@@ -103,48 +104,55 @@ C****  Possibly this should be a function of in-situ freezing temp?
 C****
 C**** Antarctica
 ! accumulation (kg per source time step) per water column
-      ACCPCA = ACCPDA*DTsrc/(EDPERY*SDAY*FLOAT(NGRID))
-      NOC=0
+C**** integrate area (which will depend on resolution/landmask)
+      FWAREA=0.
       DO J=JML,JMU
         DO I=1,IM
           IF (FOCEAN(I,J).GT.0.) THEN
             IF ((I.GE.IML1.AND.I.LE.IMU1) .or. I.GE.IML2 .or. I.LE
      *           .IMU2) THEN
-              GMELT(I,J)  =  ACCPCA   ! kg 
-              EGMELT(I,J) = -LHM*ACCPCA  ! J
-#ifdef TRACERS_OCEAN
-              TRGMELT(:,I,J)= trglac(:)*ACCPCA  ! kg
-#endif
-              NOC=NOC+1
+              FWAREA=FWAREA+DXYP(J)*FOCEAN(I,J)
             END IF
           END IF
         END DO
       END DO
-      IF (NOC.ne.NGRID) THEN
-        WRITE(*,*) "Landmask has changed: Please correct NGRID to ",NOC,
-     *      " in init_LI"
-        call stop_model("init_LI: Landmask error 1",255)
-      END IF
+
+      ACCPCA = ACCPDA*DTsrc/(EDPERY*SDAY*FWAREA)      ! kg/m^2
+      DO J=JML,JMU
+        DO I=1,IM
+          IF (FOCEAN(I,J).GT.0.) THEN
+            IF ((I.GE.IML1.AND.I.LE.IMU1) .or. I.GE.IML2 .or. I.LE
+     *           .IMU2) THEN
+              GMELT(I,J)  =  ACCPCA*DXYP(J)*FOCEAN(I,J)  ! kg
+              EGMELT(I,J) = -LHM*ACCPCA *DXYP(J)*FOCEAN(I,J) ! J
+#ifdef TRACERS_OCEAN
+              TRGMELT(:,I,J)= trglac(:)*ACCPCA*DXYP(J)*FOCEAN(I,J)  ! kg
+#endif
+            END IF
+          END IF
+        END DO
+      END DO
 
 C**** Greenland
 ! accumulation (kg per source time step) per water column
-      ACCPCG = ACCPDG*DTsrc/(EDPERY*SDAY*FLOAT(NBOX)) 
-      NOC=0
+C**** integrate area (which will depend on resolution/landmask)
+      FWAREA=0.
       DO N=1,NBOX
         I=IFW(N)
         J=JFW(N)
-        IF (FOCEAN(I,J).gt.0) NOC=NOC+1
-        GMELT(I,J)  =  ACCPCG
-        EGMELT(I,J) = -LHM*ACCPCG
+        FWAREA=FWAREA+DXYP(J)*FOCEAN(I,J)      
+      END DO
+
+      ACCPCG = ACCPDG*DTsrc/(EDPERY*SDAY*FWAREA)  ! kg/m^2 
+      DO N=1,NBOX
+        I=IFW(N)
+        J=JFW(N)
+        GMELT(I,J)  =  ACCPCG*DXYP(J)*FOCEAN(I,J)   ! kg
+        EGMELT(I,J) = -LHM*ACCPCG*DXYP(J)*FOCEAN(I,J)   ! J
 #ifdef TRACERS_OCEAN
-        TRGMELT(:,I,J) = trglac(:)*ACCPCG
+        TRGMELT(:,I,J) = trglac(:)*ACCPCG*DXYP(J)*FOCEAN(I,J)  ! kg
 #endif
       END DO
-      IF (NOC.ne.NBOX) THEN
-        WRITE(*,*) "Landmask has changed: Please correct NBOX to ",NOC,
-     *      " in init_LI"
-        call stop_model("init_LI: Landmask error 2",255)
-      END IF
       end if
 
 C**** Set conservation diagnostics for land ice mass, energy

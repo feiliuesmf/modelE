@@ -853,10 +853,11 @@ C**** Default is 2.5d-8, but could be changed by a factor of 2.
 C**** Decide whether snow_ice formation is allowed
       call sync_param("snow_ice",snow_ice)
 
-C**** clean up ice fraction that is possibly incorrect in I.C.
+C**** clean up ice fraction/sea ice salinity possibly incorrect in I.C.
       DO J=J_0, J_1
       DO I=1,IM
         IF (FOCEAN(I,J)+FLAKE0(I,J).eq.0 .and. RSI(i,j).gt.0) RSI(I,J)=0
+        IF (RSI(I,J).gt.0 .and. FLAKE0(I,J).gt.0) SSI(:,I,J)=0.
       END DO
       END DO
       IF (KOCEAN.EQ.0.and.iniOCEAN) THEN
