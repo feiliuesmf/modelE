@@ -59,7 +59,7 @@ C****
      *     ,il_qeq,il_w50n,il_t50n,il_u50n,il_w70n,il_t70n,il_u70n
      *     ,kgz_max,pmb,ght,jl_dtdyn,jl_zmfntmom,jl_totntmom,jl_ape
      *     ,jl_uepac,jl_vepac,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac
-     *     ,jl_epflxn,jl_epflxv,ij_p850,z500,rh_inst,t_inst
+     *     ,jl_epflxn,jl_epflxv,ij_p850,z_inst,rh_inst,t_inst
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn
       USE PBLCOM, only : tsavg
 
@@ -85,7 +85,7 @@ C****
       REAL*8, PARAMETER :: ONE=1.,P1000=1000.
       INTEGER :: I,IM1,J,K,L,JET,JR,KM,LDN,LUP,
      &     IP1,LM1,LP1,LR,MBEGIN,
-     &     I150E,I110W,I135W,IT,NINST
+     &     I150E,I110W,I135W,IT
       REAL*8 THBAR ! external
       REAL*8 ::
      &     BBYGV,BDTDL,BYSDSG,CDTDL,DLNP,DLNP12,DLNP23,DBYSD,
@@ -95,7 +95,7 @@ C****
      *     PKE,PL,PRQ1,PRT,PU4I,PUP,PUV4I,PV4I,PVTHP,
      *     QLH,ROSSX,SDMN,SDPU,SMALL,SP,SP2,SS,T4,THETA,THGM,THMN,TPIL,
      *     TZL,UAMAX,UMN,UPE,VPE,X,Z4,THI,TIJK,QIJK
-      LOGICAL qpress,q500
+      LOGICAL qpress,qabove
       INTEGER nT,nQ,nRH
       REAL*8 QSAT
 
@@ -194,8 +194,8 @@ C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
         DO I=1,IMAXJ(J)
           K=1
           L=1
-          rh_inst(i,j,1:3) = undef ; t_inst(i,j,1:3) = undef
-          z500(i,j) = undef
+          rh_inst(:,i,j) = undef ; t_inst(:,i,j) = undef
+          z_inst(:,i,j) = undef
  172      L=L+1
           PDN=PMID(L-1,I,J)
           PL=PMID(L,I,J)
@@ -203,20 +203,16 @@ C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
 C**** Select pressure levels on which to save temperature and humidity
 C**** Use masking for 850 mb temp/humidity
  174      qpress = .false.
-          q500=.false.
+          qabove = pmb(k).le.pedn(l-1,i,j)
           SELECT CASE (NINT(PMB(K)))
           CASE (850)            ! 850 mb
             nT = IJ_T850 ; nQ = IJ_Q850 ; nRH = IJ_RH850 ; qpress=.true.
-            ninst=1
-            if (pmb(k).gt.pedn(l-1,i,j)) qpress = .false.
+            if (.not. qabove) qpress = .false.
             if (qpress) aij(i,j,ij_p850) = aij(i,j,ij_p850) + 1.
           CASE (500)            ! 500 mb
             nT = IJ_T500 ; nQ = IJ_Q500 ; nRH = IJ_RH500 ; qpress=.true.
-            ninst=2
-            q500 = .true.
           CASE (300)            ! 300 mb
             nT = IJ_T300 ; nQ = IJ_Q300 ; nRH = IJ_RH300 ; qpress=.true.
-            ninst=3
           END SELECT
 C**** calculate geopotential heights + temperatures
           IF (ABS(TX(I,J,L)-TX(I,J,L-1)).GE.EPSLON) THEN
@@ -226,23 +222,25 @@ C**** calculate geopotential heights + temperatures
      *           *GRAV)
             IF (qpress) TIJK=(TX(I,J,L)-TF
      *           +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
-            IF (q500) Z500(I,J)=(PHI(I,J,L)
+            IF (qabove) Z_inst(K,I,J)=(PHI(I,J,L)
      *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)
      *           *GRAV)
           ELSE
             AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
      *           -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
             IF (qpress) TIJK=TX(I,J,L)-TF
-            if (q500) Z500(I,J)=(PHI(I,J,L)
+            IF (qabove) Z_inst(K,I,J)=(PHI(I,J,L)
      *           -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
           END IF
-          if (qpress) then
+          if (qabove) then
             QIJK=Q(I,J,L)+(Q(I,J,L-1)-Q(I,J,L))*(PMB(K)-PL)/(PDN-PL)
-            AIJ(I,J,nT)=AIJ(I,J,nT)+TIJK
-            AIJ(I,J,nQ)=AIJ(I,J,nQ)+QIJK
-            AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHE,PMB(K))
-            RH_inst(I,J,ninst)=QIJK/qsat(TIJK+TF,LHE,PMB(K))
-            T_inst(I,J,ninst) =TIJK
+            RH_inst(K,I,J)=QIJK/qsat(TIJK+TF,LHE,PMB(K))
+            T_inst(K,I,J) =TIJK
+            if (qpress) then
+              AIJ(I,J,nT)=AIJ(I,J,nT)+TIJK
+              AIJ(I,J,nQ)=AIJ(I,J,nQ)+QIJK
+              AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHE,PMB(K))
+            end if
           end if
 C****
           IF (K.LT.KGZ_max) THEN
@@ -2531,23 +2529,27 @@ C****
       subroutine get_subdd
 !@sum get_SUBDD saves instantaneous variables at sub-daily frequency
 !@+   every ABS(NSUBDD) hours.
-!@+   Current options: SLP, SAT, PREC, QS, Z500, RH850, RH500, RH300,
-!@+                    LCLD, MCLD, HCLD
+!@+   Current options: SLP, SAT, PREC, QS, LCLD, MCLD, HCLD
+!@+                    Z*, R*, T*  (on any fixed pressure level)
+!@+                    U*, V*      (on any model level)
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf
-      USE MODEL_COM, only : p,ptop,zatmo,dtsrc,u,v
+      USE MODEL_COM, only : lm,p,ptop,zatmo,dtsrc,u,v
       USE GEOM, only : imaxj
       USE PBLCOM, only : tsavg,qsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc
       USE FLUXES, only : prec
-      USE DAGCOM, only : z500,rh_inst,t_inst
+      USE DAGCOM, only : z_inst,rh_inst,t_inst,kgz_max,pmname
       IMPLICIT NONE
       REAL*4, DIMENSION(IM,JM) :: DATA
-      INTEGER :: I,J,K,L
+      INTEGER :: I,J,K,L,kp
+      CHARACTER namel*3
 
 C**** depending on namedd string choose what variables to output
       do k=1,kdd
+
+C**** simple diags
         select case (namedd(k))
         case ("SLP")      ! sea level pressure (mb)
           do j=1,jm
@@ -2562,32 +2564,6 @@ C**** depending on namedd string choose what variables to output
           data=qsavg
         case ("PREC")     ! precip (mm/day)
           data=sday*prec/dtsrc
-        case ("Z500")     ! 500mb geopotential height
-          data=z500
-        case ("RH850")    ! 850mb relative humidity (wrt water)
-          data=rh_inst(:,:,1)
-        case ("RH500")    ! 500mb relative humidity (wrt water)
-          data=rh_inst(:,:,2)
-        case ("RH300")    ! 300mb relative humidity (wrt water)
-          data=t_inst(:,:,3)
-        case ("T850")     ! 850mb temperature (C)
-          data=t_inst(:,:,1)
-        case ("T500")     ! 500mb temperature (C)
-          data=t_inst(:,:,2)
-        case ("T300")     ! 300mb temperature (C)
-          data=t_inst(:,:,3)
-        case ("UL2")      ! level 2 U velocity
-          data = U(:,:,2)
-        case ("UL4")      ! level 4 U velocity
-          data = U(:,:,4)
-        case ("UL6")      ! level 6 U velocity
-          data = U(:,:,6)
-        case ("VL2")      ! level 2 V velocity
-          data = U(:,:,2)
-        case ("VL4")      ! level 4 V velocity
-          data = V(:,:,4)
-        case ("VL6")      ! level 6 V velocity
-          data = V(:,:,6)
         case ("LCLD")     ! low level cloud cover (%)
           data=0.
           do j=1,jm
@@ -2619,13 +2595,55 @@ C**** depending on namedd string choose what variables to output
             end do
           end do
         case default
-          cycle
+          goto 10
         end select
 C**** fix polar values
         data(2:im,1) =data(1,1)
         data(2:im,jm)=data(1,jm)
 C**** write out
         call writei(iu_subdd(k),itime,data,im*jm)
+        cycle
+
+C**** diags on fixed pressure levels or velocity
+ 10     select case (namedd(k)(1:1))
+        case ("Z","R","T")      ! heights, relative humidity or temp
+C**** get pressure level
+          do kp=1,kgz_max
+            if (namedd(k)(2:5) .eq. PMNAME(kp)) then
+              select case (namedd(k)(1:1)) 
+              case ("Z")        ! geopotential heights
+                data=z_inst(kp,:,:)
+              case ("R")        ! relative humidity (wrt water)
+                data=rh_inst(kp,:,:)
+              case ("T")        ! temperature (C)
+                data=t_inst(kp,:,:)
+              end select
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+              exit
+            end if
+          end do
+        case ("U","V")        ! velocity levels
+C**** get model level
+          do l=1,lm
+            write(namel,'(I3)') l
+            if (trim(namedd(k)(2:5)) .eq. trim(namel)) then
+              select case (namedd(k)(1:1)) 
+              case ("U")        ! U velocity
+                data=u(:,:,l)
+              case ("V")        ! V velocity
+                data=v(:,:,l)
+              end select
+              exit
+            end if
+          end do
+        case default
+          cycle
+        end select
+C**** write out
+        call writei(iu_subdd(k),itime,data,im*jm)
+
       end do
 c****
       return

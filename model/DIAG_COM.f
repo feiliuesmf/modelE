@@ -166,7 +166,7 @@ C**** parameters and variables for ISCCP diags
 !@var AISCCP accumlated array of ISCCP histogram
       real*8 :: AISCCP(ntau,npres,nisccp)
 
-!@param KGZ number of pressure levels for geopotential height diag
+!@param KGZ number of pressure levels for some diags
       INTEGER, PARAMETER :: KGZ = 13
 !@param kgz_max is the actual number of geopotential heights saved
       INTEGER kgz_max
@@ -183,11 +183,10 @@ C**** parameters and variables for ISCCP diags
      *     "3.4 ","0.7 ",".16 ",".07 ",".03 " /)
 
 C**** Instantaneous constant pressure level fields
-!@var Z500 saved instantaneous 500 mb height field
-!@var RH_inst saved instantaneous 850,500 + 300 mb relative hum.
-!@var T_inst saved instantaneous 850,500 + 300 mb temperature
-      REAL*8, DIMENSION(IM,JM) :: Z500
-      REAL*8, DIMENSION(IM,JM,3) :: RH_inst,T_inst
+!@var Z_inst saved instantaneous height field (at PMB levels)
+!@var RH_inst saved instantaneous relative hum (at PMB levels)
+!@var T_inst saved instantaneous temperature(at PMB levels)
+      REAL*8, DIMENSION(KGZ,IM,JM) :: Z_inst,RH_inst,T_inst
 
 !@param KACC total number of diagnostic elements
       INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ
