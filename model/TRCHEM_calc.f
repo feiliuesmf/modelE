@@ -7,9 +7,9 @@
 c
 C**** GLOBAL parameters and variables:
 C
-      USE DOMAIN_DECOMP, only : GRID, GET
+CCCCC USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only       : im,jm,lm
-#ifdef regional_Ox_tracers
+#if (defined regional_Ox_tracers) || (defined SHINDELL_STRAT_CHEM)
      &                            ,ptop,psf,sig
 #endif
       USE DYNAMICS, only        : am, byam,LTROPO
@@ -34,12 +34,13 @@ CCC  &                            ,ijs_OxL1,taijs
      &                   yCH3O2,yC2O3,yXO2,yXO2N,yRXPAR,yAldehyde,
      &                   yROR,nCH3O2,nC2O3,nXO2,nXO2N,nRXPAR,
      &                   nAldehyde,nROR,nr,nn,dt2,nss,ks,dest,prod,
-     &                   ny,nhet,rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
+     &                   ny,rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
      &                   prnchg,y,bymass2vol,kss,nps,kps,nds,kds,
      &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,changeAldehyde
 #ifdef SHINDELL_STRAT_CHEM
-     &                   ,SF3
+     &                   ,SF3,ratioNs,ratioN2,rNO2frac,nO,nClO,nBrO
+     &                   ,rNOfrac,rNOdenom,nOClO,nCl,nBr,changeCl
 #endif
 c
       IMPLICIT NONE
@@ -71,7 +72,8 @@ C**** Local parameters and variables and arguments:
 !@var changeH2O chemical change in H2O
 !@var Oxcorr account for Ox change from within NOx partitioning
 !@var rNO3prod,rNO2prod,rNOprod to acct for dOx from NOx partitioning
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: change
+CCCCC REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: change
+      REAL*8, DIMENSION(IM,JM,LM,ntm)     :: change
       REAL*8, DIMENSION(LM)               :: rMAbyM,sv_changeN2O,
      &changeH2O,Oxcorr
       INTEGER, INTENT(IN) :: I,J
@@ -80,6 +82,11 @@ C**** Local parameters and variables and arguments:
       INTEGER, PARAMETER :: iHO2NO2form=98,iN2O5form=99,
      &iPANform=101,iHO2NO2_OH=18,iHO2NO2decomp=91,iN2O5decomp=92
      &,iPANdecomp=29
+!@param JN J around 30 N
+!@param JS J around 30 S
+!@param JNN,JSS Js for "high-lat" definition
+      INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
+      INTEGER, PARAMETER :: JNN = 5*JM/6, JSS= JM/6 + 1
 #else
       INTEGER, PARAMETER :: iHO2NO2form=51,iN2O5form=52,
      &iPANform=54,iHO2NO2_OH=18,iHO2NO2decomp=45,iN2O5decomp=46
@@ -92,12 +99,15 @@ C**** Local parameters and variables and arguments:
      & changeA,sumP,tempiter,tempiter2,sumC,sumN,sumH,sumB,sumO,sumA,
      & dxbym2v,changeX,vClONO2,vBrONO2,conc2mass,rNO3prod,rNO2prod,
      & rNOprod
+#if (defined regional_Ox_tracers) || (defined SHINDELL_STRAT_CHEM)
+!@var PRES local nominal pressure for regional Ox tracers
+      REAL*8, DIMENSION(LM) :: PRES
+#endif
 #ifdef regional_Ox_tracers
 !@var Oxloss Ox chemical loss for use with regional Ox tracers
 !@var Oxprod Ox chemical production for use with regional Ox tracers
 !@var nREG index of regional Ox tracer number
-!@var PRES local nominal pressure for regional Ox tracers
-      REAL*8, DIMENSION(LM) :: Oxloss, Oxprod, PRES
+      REAL*8, DIMENSION(LM) :: Oxloss, Oxprod
       INTEGER nREG
 #endif
 !@param nlast either ntm or ntm-NregOx for chemistry loops
@@ -108,14 +118,14 @@ C**** Local parameters and variables and arguments:
      &                              ntm_chem
 #endif
 
-      INTEGER J_0H, J_1H
+CCCC  INTEGER J_0H, J_1H
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+CCCC  CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
 
-      ALLOCATE ( change(IM,J_0H:J_1H,LM,ntm) )
+CCCC  ALLOCATE ( change(IM,J_0H:J_1H,LM,ntm) )
 
 C
 C     TROPOSPHERIC CHEMISTRY ONLY or TROP+STRAT:
@@ -126,6 +136,11 @@ C     TROPOSPHERIC CHEMISTRY ONLY or TROP+STRAT:
 #endif
       maxT=LTROPO(I,J)
 
+#if (defined regional_Ox_tracers) || (defined SHINDELL_STRAT_CHEM)
+      do L=1,maxL
+       PRES(L)=SIG(L)*(PSF-PTOP)+PTOP
+      end do
+#endif
       do L=1,maxT
        y(nCH3O2,L)   =yCH3O2(I,J,L)
        y(nC2O3,L)    =yC2O3(I,J,L)
@@ -179,12 +194,14 @@ c     add Br source using CFC photolysis as proxy
       enddo
 c
 c     Remove some lower strat polar HNO3 in PSCs
-      do L=LS1-2,LS1+3
-       stop  ' layer dependence 3 '
-       if(ta(L).lt.198)then
-       if(J.le.17.or.J.ge.39)dest(n_HNO3,L)=
-     *  dest(n_HNO3,L)-0.05*y(n_HNO3,L)
-       endif
+      do L=1,maxL
+       IF(PRES(L).lt.245.d0 .and. PRES(L).ge.31.6d0)THEN
+         if(ta(L).lt.198)then
+C this was:if(J.le.17.or.J.ge.39)dest(n_HNO3,L)=
+           if(J.le.JS+1.or.J.ge.JNN+1)dest(n_HNO3,L)=
+     *     dest(n_HNO3,L)-0.05*y(n_HNO3,L)
+         endif
+       END IF
       enddo
 #endif
 c
@@ -405,7 +422,7 @@ c      account for NO2 that then goes via NO2+O->NO+O2, NO2->NO+O
      *  rr(26,L)*y(nO,L)+ss(1,L,I,J))
        Oxcorr(L)=(rNO2prod-rNOprod)*rNO2frac*dt2*y(nNO,L)/y(n_NOx,L)
        if(Oxcorr(L).gt.-1d18.and.Oxcorr(L).lt.1d18)then
-        dest(nOx,L)=dest(nOx,L)-Oxcorr(L)
+        dest(n_Ox,L)=dest(n_Ox,L)-Oxcorr(L)
        else
         write(6,*) 'Oxcorr fault NO2:',ratioNs,ratioN2,rNO2frac,
      &   rNO2prod,rNOprod
@@ -420,7 +437,7 @@ c      account for NO that then goes via NO+O3->NO2+O2 or NO+O+M->NO2+M
         if(l.le.maxT)then
 c        Troposphere
          rNOdenom=rNOdenom+rr(20,L)*yCH3O2(I,J,L)
-     &   +rr(39,L)*y(nC2O3,L)+4.2c-12*exp(180/ta(L))*y(nXO2,L)
+     &   +rr(39,L)*y(nC2O3,L)+4.2d-12*exp(180/ta(L))*y(nXO2,L)
         else
 c        Stratosphere
          rNOdenom=rNOdenom+rr(64,L)*y(nClO,L)+
@@ -429,7 +446,7 @@ c        Stratosphere
        rNOfrac=rNOfrac/rNOdenom
        Oxcorr(L)=(rNOprod-rNO2prod)*rNOfrac*dt2*y(nNO2,L)/y(n_NOx,L)
        if(Oxcorr(L).gt.-1d18.and.Oxcorr(L).lt.1d18)then
-        dest(nOx,L)=dest(nOx,L)-Oxcorr(L)
+        dest(n_Ox,L)=dest(n_Ox,L)-Oxcorr(L)
        else
         write(6,*) 'Oxcorr fault NO:',I,J,L,ratioNs,ratioN2,rNOfrac,
      &   rNO2prod,rNOprod,y(nNO2,L),y(nNO,L),rNOdenom,y(nO,L),y(nO3,L)
@@ -488,7 +505,7 @@ c
 c
          call chem1prn(kps,2,kss,nps,photrate,4,1,igas,total,maxl,I,J)
 #ifdef SHINDELL_STRAT_CHEM
-       if(igas.eq.nOx)write(6,110) 'Ox change due to within NOx rxns  ',
+       if(igas.eq.n_Ox)write(6,110)'Ox change due to within NOx rxns  ',
      *    -Oxcorr(lprn)
 #endif
 c
@@ -751,7 +768,7 @@ c
 c        Set HOBr to equilibrium when necessary
          if(igas.eq.n_HOBr.and.(-dest(igas,L).ge.y(n_HOBr,L).or.
      &    chemrate(73,L).gt.0.5*y(n_BrOx,L)))then
-          rnewval=(rr(73,L)*y(n_BrO,L)*y(nHO2,L))/
+          rnewval=(rr(73,L)*y(nBrO,L)*y(nHO2,L))/
      *     (ss(24,L,i,j)+1.d-12)
           if(rnewval.lt.1.)rnewval=1.
           change(I,J,L,igas)=(rnewval-y(n_HOBr,L))
@@ -931,9 +948,9 @@ c       Next insure balance between dNOx and sum of dOthers
      *  (change(I,J,L,n_AlkylNit))*mass2vol(n_AlkylNit)
 #ifdef SHINDELL_STRAT_CHEM
           if(L.ge.maxT+1)sumN=sumN+
-     *     change(I,J,L,n_ClONO2,L)*mass2vol(n_ClONO2)+
-     *     change(I,J,L,n_BrONO2,L)*mass2vol(n_BrONO2)
-         dNOx=change(I,J,L,n_NOx,L)*mass2vol(n_NOx)+
+     *     change(I,J,L,n_ClONO2)*mass2vol(n_ClONO2)+
+     *     change(I,J,L,n_BrONO2)*mass2vol(n_BrONO2)
+         dNOx=change(I,J,L,n_NOx)*mass2vol(n_NOx)+
      *    2*sv_changeN2O(L)*mass2vol(n_N2O)
 #else
         dNOx=change(I,J,L,n_NOx)*mass2vol(n_NOx)
@@ -960,10 +977,10 @@ c          reduce N destruction to match NOx prodcution
            if(change(I,J,L,n_AlkylNit).lt.0.)sumD=sumD+
      *     change(I,J,L,n_AlkylNit)*mass2vol(n_AlkylNit)
 #ifdef SHINDELL_STRAT_CHEM
-           if(change(I,J,L,n_ClONO2,L).lt.0)sumD=sumD+
-     *      change(I,J,L,n_ClONO2,L)*mass2vol(n_ClONO2)
-           if(change(I,J,L,n_BrONO2,L).lt.0)sumD=sumD+
-     *      change(I,J,L,n_BrONO2,L)*mass2vol(n_BrONO2)
+           if(change(I,J,L,n_ClONO2).lt.0)sumD=sumD+
+     *      change(I,J,L,n_ClONO2)*mass2vol(n_ClONO2)
+           if(change(I,J,L,n_BrONO2).lt.0)sumD=sumD+
+     *      change(I,J,L,n_BrONO2)*mass2vol(n_BrONO2)
 #endif
            newD=(sumN/ratio)+sumD-sumN
            ratioD=newD/sumD
@@ -978,15 +995,15 @@ c          reduce N destruction to match NOx prodcution
            if(change(I,J,L,n_AlkylNit).lt.0.)change(I,J,L,n_AlkylNit)=
      *     change(I,J,L,n_AlkylNit)*ratioD
 #ifdef SHINDELL_STRAT_CHEM
-           vClONO2=change(I,J,L,n_ClONO2,L)*(1-ratioD)
-           if(change(I,J,L,n_ClONO2,L).lt.0)change(I,J,L,n_ClONO2,L)=
-     *      change(I,J,L,n_ClONO2,L)*ratioD
-           change(I,J,L,n_ClOx,L)=change(I,J,L,n_ClOx,L)+vClONO2*
+           vClONO2=change(I,J,L,n_ClONO2)*(1-ratioD)
+           if(change(I,J,L,n_ClONO2).lt.0)change(I,J,L,n_ClONO2)=
+     *      change(I,J,L,n_ClONO2)*ratioD
+           change(I,J,L,n_ClOx)=change(I,J,L,n_ClOx)+vClONO2*
      *      (mass2vol(n_ClONO2)/mass2vol(n_ClOx)) !ensure Cl cons
-           vBrONO2=change(I,J,L,n_BrONO2,L)*(1-ratioD)
-           if(change(I,J,L,n_BrONO2,L).lt.0)change(I,J,L,n_BrONO2,L)=
-     *      change(I,J,L,n_BrONO2,L)*ratioD
-           change(I,J,L,n_BrOx,L)=change(I,J,L,n_BrOx,L)+vBrONO2*
+           vBrONO2=change(I,J,L,n_BrONO2)*(1-ratioD)
+           if(change(I,J,L,n_BrONO2).lt.0)change(I,J,L,n_BrONO2)=
+     *      change(I,J,L,n_BrONO2)*ratioD
+           change(I,J,L,n_BrOx)=change(I,J,L,n_BrOx)+vBrONO2*
      *      (mass2vol(n_BrONO2)/mass2vol(n_BrOx)) !ensure Br cons
 #endif
           endif
@@ -996,7 +1013,7 @@ c          reduce NOx production to match N loss
            change(I,J,L,n_NOx)=change(I,J,L,n_NOx)*ratio
 #ifdef SHINDELL_STRAT_CHEM
            change(I,J,L,n_NOx)=change(I,J,L,n_NOx)-
-     *      2*sv_changeN2O(L)*mass2vol(n_N2O))/mass2vol(n_NOx)
+     *      2.d0*sv_changeN2O(L)*mass2vol(n_N2O)/mass2vol(n_NOx)
 #endif
           endif
          else
@@ -1015,10 +1032,10 @@ c          reduce N production to match NOx loss
            if(change(I,J,L,n_AlkylNit).gt.0.)sumP=sumP+
      *     change(I,J,L,n_AlkylNit)*mass2vol(n_AlkylNit)
 #ifdef SHINDELL_STRAT_CHEM
-           if(change(I,J,L,n_ClONO2,L).gt.0)sumP=sumP+
-     *      change(I,J,L,n_ClONO2,L)*mass2vol(n_ClONO2)
-           if(change(I,J,L,n_BrONO2,L).gt.0)sumP=sumP+
-     *      change(I,J,L,n_BrONO2,L)*mass2vol(n_BrONO2)
+           if(change(I,J,L,n_ClONO2).gt.0)sumP=sumP+
+     *      change(I,J,L,n_ClONO2)*mass2vol(n_ClONO2)
+           if(change(I,J,L,n_BrONO2).gt.0)sumP=sumP+
+     *      change(I,J,L,n_BrONO2)*mass2vol(n_BrONO2)
 #endif
            newP=(sumN/ratio)+sumP-sumN
            ratioP=newP/sumP
@@ -1033,15 +1050,15 @@ c          reduce N production to match NOx loss
            if(change(I,J,L,n_AlkylNit).gt.0.)change(I,J,L,n_AlkylNit)=
      *        change(I,J,L,n_AlkylNit)*ratioP
 #ifdef SHINDELL_STRAT_CHEM
-           vClONO2=change(I,J,L,n_ClONO2,L)*(1-ratioP)
-           if(change(I,J,L,n_ClONO2,L).gt.0)change(I,J,L,n_ClONO2,L)=
-     *      change(I,J,L,n_ClONO2,L)*ratioP
-           change(I,J,L,n_ClOx,L)=change(I,J,L,n_ClOx,L)+vClONO2*
+           vClONO2=change(I,J,L,n_ClONO2)*(1-ratioP)
+           if(change(I,J,L,n_ClONO2).gt.0)change(I,J,L,n_ClONO2)=
+     *      change(I,J,L,n_ClONO2)*ratioP
+           change(I,J,L,n_ClOx)=change(I,J,L,n_ClOx)+vClONO2*
      *      (mass2vol(n_ClONO2)/mass2vol(n_ClOx)) !ensure Cl cons
-           vBrONO2=change(I,J,L,n_BrONO2,L)*(1-ratioP)
-           if(change(I,J,L,n_BrONO2,L).gt.0)change(I,J,L,n_BrONO2,L)=
-     *      change(I,J,L,n_BrONO2,L)*ratioP
-           change(I,J,L,n_BrOx,L)=change(I,J,L,n_BrOx,L)+vBrONO2*
+           vBrONO2=change(I,J,L,n_BrONO2)*(1-ratioP)
+           if(change(I,J,L,n_BrONO2).gt.0)change(I,J,L,n_BrONO2)=
+     *      change(I,J,L,n_BrONO2)*ratioP
+           change(I,J,L,n_BrOx)=change(I,J,L,n_BrOx)+vBrONO2*
      *      (mass2vol(n_BrONO2)/mass2vol(n_BrOx)) !ensure Br cons
 #endif
           endif
@@ -1084,7 +1101,7 @@ c
 c     Remove some of the HNO3 formed heterogeneously, as it doesn't come
 c     back to the gas phase
       do L=maxT+1,LM
-       change(I,J,L,n_HNO3,L)=change(I,J,L,n_HNO3,L)-
+       change(I,J,L,n_HNO3)=change(I,J,L,n_HNO3)-
      *  0.005*rr(105,L)*y(n_HNO3,L)*dt2
      *  *(dxyp(J)*rMAbyM(L))/(mass2vol(n_HNO3))
       enddo
@@ -1154,7 +1171,6 @@ c*** tracer masses & slopes are now updated in apply_tracer_3Dsource ***
 c*** calculate chemical changes for regional Ox tracers ***
         if(igas.gt.nlast) then
           nREG=igas-nlast
-          PRES(L)=SIG(L)*(PSF-PTOP)+PTOP
           change(I,J,L,igas)=trm(I,J,L,igas)*Oxloss(L)/trm(I,J,L,n_Ox)
 C ----- in region criterion -----
           if(lat_dg(J,1).ge.regOx_s(nREG).and.(lat_dg(J,1).lt.
@@ -1194,16 +1210,16 @@ c     No bromine chemistry or HOCl chemistry in troposphere
      *    change(I,J,L,igas)=0.
          if(L.le.maxT.and.igas.eq.n_HBr.or.igas.eq.n_HOBr)
      *    change(I,J,L,igas)=0.
-         if(L.lt.LS1-3.and.igas.eq.n_HOCl)change(I,J,L,igas)=0.
-         stop  ' layer dependence 4 '
+         if(PRES(L).lt.300.d0.and.igas.eq.n_HOCl)change(I,J,L,igas)=0.
 #endif
        end do    ! L
       end do     ! igas
 
 #ifdef  SHINDELL_STRAT_CHEM
 c     No ozone chemistry (for now) at mesospheric levels
-      change(I,J,LM,n_Ox)=0.
-      change(I,J,LM-1,n_Ox)=0.
+      do L=1,maxl
+        if(PRES(L).lt.2.d-1) change(I,J,L,n_Ox)=0.d0
+      end do
 #endif
 
 C**** special diags not associated with a particular tracer
@@ -1218,7 +1234,7 @@ C**** special diags not associated with a particular tracer
  156  format(1x,a8,a2,e13.3,a16)
 c
 
-      DEALLOCATE ( change )
+CCCC  DEALLOCATE ( change )
 
       return
       end SUBROUTINE chemstep
@@ -1231,7 +1247,7 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: nr,chemrate,photrate,rr,y,nn,dt2,
-     &                          ss,ks,ny,dest,prod,JPPJ
+     &                          ss,ks,ny,dest,prod,JPPJ,nhet
 c
       IMPLICIT NONE
 c
@@ -1244,11 +1260,14 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(IN) :: I,J
 c
       do kalt=1,maxl
-        do ireac=1,nr
+        do ireac=1,nr-nhet       ! non-heterogeneous
           chemrate(ireac,kalt)=rr(ireac,kalt)*y(nn(1,ireac),kalt)*
      &    y(nn(2,ireac),kalt)*dt2
         enddo
-        do ireac=1,JPPJ
+        do ireac=nr-nhet+1,nr    ! heterogeneous
+          chemrate(ireac,kalt)=rr(ireac,kalt)*y(nn(1,ireac),kalt)*dt2
+        enddo
+        do ireac=1,JPPJ          ! photolysis
           photrate(ireac,kalt)=ss(ireac,kalt,I,J)*y(ks(ireac),kalt)*dt2
         enddo
 c       Initialize change arrays
