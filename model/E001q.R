@@ -1,6 +1,6 @@
-E001C.R GISS Model E                                 gas 06/00
+E001q.R GISS Model E                                 gas 06/00
 
-E001C: new modelE (based on B402A) prescribed ann.varying ocean data
+E001q: new modelE (Qflux version)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -32,17 +32,16 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.15 ! initial conditions (atm. and ground)
-! GIC=GIC.E005gasA.1DEC1956 ! initial ground conditions (needed if ISTART=2)
-! OSST/SICE: data rec. start with an integer M, where
-!     M=1 means Jan of the year mentioned in the file names (here 1950)
-!     In order that data and date agree, set IYEAR1=that year (1950)
-OSST=OST4X5.B.1950.M02.Hadl1.1  ! ocean data   Feb 1950 - almost present
-SICE=SICE4X5.B.1950.M02.Hadl1.1 ! sea ice data Feb 1950 - almost present
-! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp.  not needed if ocn prescribed
-! OCNML=Z1O.B4X5.cor         ! mixed layer depth not needed if ocn prescribed
-! MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp. not needed if ocn prescribed
-! EDDY=ED4X5 ! Eddy diffusivity for deep ocean mixing - not needed
+!
+! The files in the next 2 lines are created by aux/mkOTSPEC.E001.M250D
+AIC=1JAN1956.rsfE001.O250D         ! initial conditions 
+OHT=OTSPEC.E001.M250D.1951-1955    ! horizontal ocean heat transports
+! base the above 2 lines on the preliminary run with prescribed ocean
+!
+OCNML=Z1O.B4X5.cor                 ! ocn data: mixed layer depth
+MLMAX=Z1OMAX.B4X5.250M.cor         ! ocn data: ann. max. mixed layer depth
+! OSST=OST4X5.B.1946-55avg.Hadl1.1 ! not needed since ocn is predicted
+! SICE=SICE4X5.B.1946-55avg.Hadl1.1 !not needed since ocn is predicted
 CDN=CD4X500S VEG=V72X46.1.cor
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
@@ -55,8 +54,8 @@ RADN5=trop8aer.tau5090.minimum
 RADN6=dust8.tau9x8x13
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
-RADN9=solar.lean99.uvflux           ! need KSOLAR<2
-! RADN9=solar.lean02.ann.uvflux     ! need KSOLAR=2
+RADN9=solar.lean99.uvflux          ! need KSOLAR<2
+! RADN9=solar.lean02.ann.uvflux    ! need KSOLAR=2
 RADNA=o3trend.1951-2050.2
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
@@ -65,27 +64,24 @@ dH2O=dH2O_by_CH4
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
-E001C (new modelE based on B402A - prescribed ann. varying ocean)
+E001q (E001 - Qflux version)
 R=00BG/B
 
 &&PARAMETERS
-XCDLM=.0005,.00005
-KOCEAN=0
-ocn_cycl=0
-U00ice=.50   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
-HRMAX=1000.  ! tune this to get rad.equilibrium (range: 100.-1500. meters)
+XCDLM=.00025,.000025
+KOCEAN=1
+U00ice=.50   ! use same as preliminary run w/ prescribed ocean
+HRMAX=1000.  ! use same as preliminary run w/ prescribed ocean
 KSOLAR=1
-DT=450.,        ! from default: DTsrc=3600.,
+DT=450.         ! from default: DTsrc=3600.,
 NSLP=12         ! saving SLP 12hrly
-Kvflxo=1        ! saving VFLXO (daily)
+Kvflxo=0        ! don't save VFLXO (daily) if ocn is predicted
 KCOPY=2         ! saving acc + rsf
 isccp_diags=1
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1951,MONTHI=1,DATEI=1,HOURI=0,
-   YEARE=1957,MONTHE=1,DATEE=1,HOURE=0,
-   IYEAR1=1950  ! has to be consistent with OSST/SICE files
-   YEARE=1951,MONTHE=2,
-   ISTART=7,IRANDI=0, YEARE=1951,MONTHE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
+   YEARE=1980,MONTHE=1,DATEE=1,HOURE=0,
+   ISTART=7,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END

@@ -1,6 +1,6 @@
-E001A.R GISS Model E                                 gas 06/00
+E001o.R GISS Model E                                 gas 06/00
 
-E001A: new modelE (Qflux version)
+E001o: new modelE (based on B402A - coupled version)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -18,13 +18,16 @@ CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-! pick exactly one of the next 2 choices: ATURB or DRYCNV
+! pick exactly one of the next 2 choices:
 ! ATURB                             ! turbulence in whole atmosphere
 DRYCNV                              ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
-OCEAN OCNML                         ! ocean modules
+ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM ! dynamic ocean modules
+OCNDYN OSTRAITS OCNGM OCNKPP ICEDYN    ! dynamic ocean routines
+ODIAG_PRT                              ! ocean diagnostic print out
+OCNFUNTAB                           ! ocean function look up table
 SNOW                                ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
@@ -32,16 +35,12 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-!
-! The next 2 lines depend on the current control with prescr. ocean
-AIC=IMJAN.E001.O250D               ! initial conditions
-OHT=OTSPEC.E001.M250D.1951-1955    ! horizontal ocean heat transports
-! base the above 2 lines on the preliminary run with prescribed ocean
-!
-OCNML=Z1O.B4X5.cor                 ! ocn data: mixed layer depth
-MLMAX=Z1OMAX.B4X5.250M.cor         ! ocn data: ann. max. mixed layer depth
-! OSST=OST4X5.B.1946-55avg.Hadl1.1 ! not needed since ocn is predicted
-! SICE=SICE4X5.B.1946-55avg.Hadl1.1 !not needed since ocn is predicted
+AIC=DEC1958.rsfB394M12.modelE.15
+OIC=OIC4X5LD.Z12.cor4.CLEV94.DEC01   ! ocean initial conditions
+OFTAB=OFTABLE_NEW               ! ocean function table
+AVR=AVR4X5LD.Z12.modelE         ! ocean filter
+KBASIN=KB4X513.OCN              ! ocean basin designations
+TOPO_OC=Z72X46N.cor4 ! ocean bdy.cond
 CDN=CD4X500S VEG=V72X46.1.cor
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
@@ -64,24 +63,26 @@ dH2O=dH2O_by_CH4
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
-E001A (new modelE based on B402A - Qflux version)
+E001o (new modelE based on B402A - coupled version)
 R=00BG/B
 
 &&PARAMETERS
 XCDLM=.0005,.00005
 KOCEAN=1
-U00ice=.50   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
-HRMAX=1000.  ! tune this to get rad.equilibrium (range: 100.-1500. meters)
+U00ice=.50   ! use same value as corresponding run with prescribed ocean 
+HRMAX=1000.  ! use same value as corresponding run with prescribed ocean 
 KSOLAR=1
-DT=450.         ! from default: DTsrc=3600.,
-NSLP=12         ! saving SLP 12hrly
-Kvflxo=0        ! don't save VFLXO (daily) if ocn is predicted
+DT=450.,        ! from default: DTsrc=3600.,
+NSLP=0          ! saving SLP 0hrly
+Kvflxo=0        ! not saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
 isccp_diags=1
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
-   YEARE=1980,MONTHE=1,DATEE=1,HOURE=0,
+   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0,
+   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
+                       !  from default: IYEAR1=YEARI
+   YEARE=1950,MONTHE=2,
    ISTART=7,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END

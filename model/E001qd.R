@@ -1,6 +1,6 @@
-E001B.R GISS Model E                                 gas 06/00
+E001qd.R GISS Model E                                 gas 06/00
 
-E001B: new modelE (based on B402A - coupled version)
+E001qd: new modelE (Qflux version with deep diffusion)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -18,16 +18,13 @@ CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-! pick exactly one of the next 2 choices:
+! pick exactly one of the next 2 choices:  ATURB or DRYCNV
 ! ATURB                             ! turbulence in whole atmosphere
 DRYCNV                              ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
-ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM ! dynamic ocean modules
-OCNDYN OSTRAITS OCNGM OCNKPP ICEDYN    ! dynamic ocean routines
-ODIAG_PRT                              ! ocean diagnostic print out
-OCNFUNTAB                           ! ocean function look up table
+OCEAN ODEEP                         ! ocean modules
 SNOW                                ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
@@ -35,12 +32,13 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.15
-OIC=OIC4X5LD.Z12.cor4.CLEV94.DEC01   ! ocean initial conditions
-OFTAB=OFTABLE_NEW               ! ocean function table
-AVR=AVR4X5LD.Z12.modelE         ! ocean filter
-KBASIN=KB4X513.OCN              ! ocean basin designations
-TOPO_OC=Z72X46N.cor4 ! ocean bdy.cond
+! The next 3 lines depend on the preliminary runs (prescr./shallow ocean)
+AIC=1JAN1961.rsfE001q               ! initial conditions
+OHT=OTSPEC.E001.M250D.1951-1955     ! horizontal ocean heat transports
+TG3M=TG3M.E001q.19711980            ! created by 'mkdeep'
+MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
+! OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
+EDDY=ED4X5 ! Eddy diffusivity for deep ocean mixing
 CDN=CD4X500S VEG=V72X46.1.cor
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
@@ -53,30 +51,30 @@ RADN5=trop8aer.tau5090.minimum
 RADN6=dust8.tau9x8x13
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
-RADN9=solar.lean99.uvflux          ! need KSOLAR<2
-! RADN9=solar.lean02.ann.uvflux    ! need KSOLAR=2
+RADN9=solar.lean99.uvflux             ! need KSOLAR<2
+! RADN9=solar.lean02.ann.uvflux       ! need KSOLAR=2
 RADNA=o3trend.1951-2050.2
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Oct2000
-dH2O=dH2O_by_CH4
+dH2O=dH20_by_CH4
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
-E001B (new modelE based on B402A - coupled version)
+E001qd (new modelE based on B402A - Qflux + deep diffusion)
 R=00BG/B
 
 &&PARAMETERS
-XCDLM=.0005,.00005
+XCDLM=.00025,.000025
 KOCEAN=1
-U00ice=.50   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
-HRMAX=1000.  ! tune this to get rad.equilibrium (range: 100.-1500. meters)
+U00ice=.50   ! use same values as in corr. run with climatological ocean 
+HRMAX=1000.  ! use same values as in corr. run with climatological ocean 
 KSOLAR=1
+isccp_diags=1
 DT=450.,        ! from default: DTsrc=3600.,
-NSLP=0          ! saving SLP 0hrly
+NSLP=12         ! saving SLP 12hrly
 Kvflxo=0        ! not saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
-isccp_diags=1
 &&END_PARAMETERS
 
  &INPUTZ
