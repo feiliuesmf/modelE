@@ -609,7 +609,7 @@ C**** moved up.
          FMC1=1.d0-FSSL_tmp+teeny
       END IF
 
-C**** adjust MPLUME to take account of restricted area of subsidence 
+C**** adjust MPLUME to take account of restricted area of subsidence
 C**** (i.e. MPLUME is now a greater fraction of the relevant airmass.
       MPLUME=MPLUME/FMC1
 
@@ -630,7 +630,7 @@ C**** fix to prevent too much being taken out after first time
 #ifdef TRACERS_ON
 C**** This is a fix to prevent very occasional plumes that take out
 C**** too much tracer mass. This can impact tracers with very sharp
-C**** vertical gradients 
+C**** vertical gradients
       TMP(1:NTX) = MIN(TMOLD(LMIN,1:NTX)*FPLUME,0.95d0*TM(LMIN,1:NTX))
       TMOMP(xymoms,1:NTX)=TMOMOLD(xymoms,LMIN,1:NTX)*FPLUME
         DTMR(LMIN,1:NTX)=-TMP(1:NTX)
@@ -697,7 +697,7 @@ c      IF (VLAT(L).EQ.LHS) LHX=LHS
       MCCONT=MCCONT+1
       IF(MCCONT.EQ.1) MC1=.TRUE.
       IF(MC1.AND.L.EQ.LMIN+1) THEN
-         FCONV(L)=FCONV_tmp   ! these are set here but do not make 
+         FCONV(L)=FCONV_tmp   ! these are set here but do not make
          FSSL(L)=FSSL_tmp     ! much sense at the moment...
          FSUB(L)=FSUB_tmp
       ENDIF
@@ -922,7 +922,7 @@ C**** CONDENSING TRACERS
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT)
       END DO
 #endif
-      TAUMCL(L)=TAUMCL(L)+DQSUM
+      TAUMCL(L)=TAUMCL(L)+DQSUM*FMC1
       CDHEAT(L)=SLH*COND(L)
       CDHSUM=CDHSUM+CDHEAT(L)
       IF(ETADN.GT.1d-10) CDHDRT=CDHDRT+SLH*COND(L)
@@ -1005,7 +1005,7 @@ C****
       IF (COND(L).gt.0.) FQEVP = DQEVP/COND(L)
       QMDN=QMDN+DQEVP
       COND(L)=COND(L)-DQEVP
-      TAUMCL(L)=TAUMCL(L)-DQEVP
+      TAUMCL(L)=TAUMCL(L)-DQEVP*FMC1
       CDHEAT(L)=CDHEAT(L)-DQEVP*SLH
       EVPSUM=EVPSUM+DQEVP*SLH
 #ifdef TRACERS_WATER
@@ -1161,11 +1161,11 @@ C**** diagnostics
         IF(L.EQ.LMAX) FCDH=CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM
         FCDH1=0.
         IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
-        MCFLX(L)=MCFLX(L)+CCM(L)
-        DGDSM(L)=DGDSM(L)+PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1
-        DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))
-        DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))
-        DDMFLX(L)=DDMFLX(L)+DDM(L)
+        MCFLX(L)=MCFLX(L)+CCM(L)*FMC1
+        DGDSM(L)=DGDSM(L)+(PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
+        DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
+        DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))*FMC1
+        DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
       END DO
 #ifdef TRACERS_ON
 C**** Subsidence of tracers by Quadratic Upstream Scheme
@@ -1214,7 +1214,8 @@ C Note that all of the tracers that condensed do not precipitate here,
 C since a fraction (FCLW) of TRCOND was removed above.
       TRPRCP(1:NTX) = TRCOND(1:NTX,LMAX)
 #endif
-         DPHASE(LMAX)=DPHASE(LMAX)+CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM
+         DPHASE(LMAX)=DPHASE(LMAX)+(CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+
+     *                CDHM)*FMC1
       DO 540 L=LMAX-1,1,-1
       IF(PRCP.LE.0.) GO TO 530
       FCLOUD=CCMUL*CCM(L)*BYAM(L+1)
@@ -1315,8 +1316,8 @@ C**** CONDENSING and WASHOUT of TRACERS BELOW CLOUD
 #endif
          FCDH1=0.
          IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
-         DPHASE(L)=DPHASE(L)-SLH*DQSUM+FCDH1-HEAT1
-         DQCOND(L)=DQCOND(L)-SLH*DQSUM
+         DPHASE(L)=DPHASE(L)+(-SLH*DQSUM+FCDH1-HEAT1)*FMC1
+         DQCOND(L)=DQCOND(L)-SLH*DQSUM*FMC1
 C**** ADD PRECIPITATION AND LATENT HEAT BELOW
   530 PRHEAT=CDHEAT(L)+SLH*PRCP
       PRCP=PRCP+COND(L)
@@ -1354,7 +1355,7 @@ C**** ADJUSTMENT TO CONSERVE CP*T
         SUMAJ=0.
         SUMDP=0.
         DO L=LMCMIN,LMCMAX
-          SUMDP=SUMDP+AIRM(L)
+          SUMDP=SUMDP+AIRM(L)*FMC1
           SUMAJ=SUMAJ+DGDSM(L)
         END DO
         DO L=1,LM
@@ -1362,7 +1363,7 @@ C**** ADJUSTMENT TO CONSERVE CP*T
 C         FMCL(L)=FMC1                 ! may be generalized
         END DO
         DO L=LMCMIN,LMCMAX
-          DGDSM(L)=DGDSM(L)-SUMAJ*AIRM(L)/SUMDP
+          DGDSM(L)=DGDSM(L)-SUMAJ*AIRM(L)*FMC1/SUMDP
           SM(L)=SM(L)-SUMAJ*AIRM(L)/(SUMDP*PLK(L))
         END DO
 C**** LOAD MASS EXCHANGE ARRAY FOR GWDRAG
