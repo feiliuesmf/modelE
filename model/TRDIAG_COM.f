@@ -73,7 +73,11 @@ C**** TAIJN
 
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@parm KTAIJS number of special lat/lon tracer diagnostics
+#ifdef TRACERS_SPECIAL_Shindell
       integer, parameter :: ktaijs=26
+#else
+      integer, parameter :: ktaijs=25
+#endif
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, DIMENSION(IM,JM,ktaijs) :: TAIJS
 !@var ijts_source tracer independent array for TAIJS surface src. diags
@@ -118,7 +122,11 @@ C**** TAJLN
 
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@parm ktajls number of source/sink TAJLS tracer diagnostics;
+#ifdef TRACERS_SPECIAL_Shindell
       INTEGER, PARAMETER :: ktajls=58
+#else
+      INTEGER, PARAMETER :: ktajls=34
+#endif
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
       REAL*8, DIMENSION(JM,LM,ktajls) :: TAJLS
 !@var jls_source tracer independent array for TAJLS surface src. diags
