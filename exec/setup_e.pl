@@ -163,7 +163,7 @@ while (<RFILE>) {
     if ( /Label *and *Namelist/ ) { last; }
     print PRT " $_";
     s/!.*//;
-    push @data_files, /([\w.+_-]+\s*=\s*[\w.+_-]+)/g;
+    push @data_files, /([\w.+_-]+\s*=\s*[\w.\/+_-]+)/g;
 }
 
 open RUNIDLN, ">$runID"."ln" or die "can't open ${runID}ln for writing\n";
