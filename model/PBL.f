@@ -2372,7 +2372,6 @@ C**** moist convection contribution beta/frac_conv = 200.
       wm=200.d0*mdf
 C**** sigma
       sig=wm+wd+wtke
-      print*,"sigw",wm,wd,wtke
       return
       end
 
@@ -2396,19 +2395,28 @@ C**** integrate distribution from wmin to wmax using Simpsons' rule
 C**** depending on icase, integral is done on w, w^2 or w^3
 C**** Integration maybe more efficient with a log transform (putting
 C**** more points near wmin), but that's up to you...
-      bysig2=1./(sig*sig)
-      wint=0
-      do i=1,nstep+1
-        x=wmin+(wmax-wmin)*(i-1)/dble(nstep)
-        if (i.eq.1.or.i.eq.nstep+1) then
-          wint=wint+sgsw(x,ws,wt,bysig2,icase)*by3
-        elseif (mod(i,2).eq.0) then
-          wint=wint+4d0*sgsw(x,ws,wt,bysig2,icase)*by3
+C**** Use approximate value for small sig and unresolved delta function
+      if ((wmax-wmin).lt.sig*dble(nstep)) then
+        bysig2=1./(sig*sig)
+        wint=0
+        do i=1,nstep+1
+          x=wmin+(wmax-wmin)*(i-1)/dble(nstep)
+          if (i.eq.1.or.i.eq.nstep+1) then
+            wint=wint+sgsw(x,ws,wt,bysig2,icase)*by3
+          elseif (mod(i,2).eq.0) then
+            wint=wint+4d0*sgsw(x,ws,wt,bysig2,icase)*by3
+          else
+            wint=wint+2d0*sgsw(x,ws,wt,bysig2,icase)*by3
+          end if
+        end do
+        wint=wint*(wmax-wmin)/dble(nstep)
+      else                      ! approximate delta function
+        if (ws.ge.wmin.and.ws.le.wmax) then
+          wint = ws**(icase-1)*(ws-wt)
         else
-          wint=wint+2d0*sgsw(x,ws,wt,bysig2,icase)*by3
+          wint = 0.
         end if
-      end do
-      wint=wint*(wmax-wmin)/dble(nstep)
+      end if
 
       return
       end
@@ -2416,17 +2424,19 @@ C**** more points near wmin), but that's up to you...
       real*8 function sgsw(x,ws,wt,bysig2,icase)
 !@sum sgsw function to be integrated for sgs wind calc
 !@auth Reha Cakmur/Gavin Schmidt
+      use constant, only : pi
       implicit none
       real*8, intent(in) :: x,ws,wt,bysig2
       integer, intent(in) :: icase
       real*8 :: besf,exx,bessi0
 
       besf=x*ws*bysig2
-      if (0.5*(x*x+ws*ws)*bysig2.lt.100.d0 .or. besf.lt.100d0 ) then
-        exx=exp(-0.5*(x*x+ws*ws)*bysig2)
+      if (besf.lt.200d0 ) then
+        exx=exp(-0.5d0*(x*x+ws*ws)*bysig2)
         sgsw=(x)**(icase)*(x-wt)*bysig2*BESSI0(besf)*exx
-      else
-        sgsw=0.
+      else ! use bessel function expansion for large besf
+        sgsw=(x)**(icase)*(x-wt)*bysig2*exp(-0.5d0*(x-ws)**2*bysig2)
+     *       /sqrt(besf*2*pi)
       end if
       
       return
