@@ -2741,6 +2741,7 @@ C-----------------------------------------------------------------------
       real*8, dimension(ncol) :: tau,tb,ptop,emcld,fluxtop,
      *     trans_layers_above
       real*8, parameter :: isccp_taumin = 0.1d0
+      real*8 :: randxx
 
       INTEGER  JERR
 
@@ -2854,6 +2855,7 @@ cc    CALL RFINAL(SEED)
 
         if (ilev.eq.1) then
           do ibox=1,ncol
+            randxx = randu(xx)
             ! if max overlap
             if (overlap.eq.1) then
               ! select pixels spread evenly
@@ -2864,7 +2866,7 @@ cc    CALL RFINAL(SEED)
               ! part the gridbox ( some will be converted into
               ! convective pixels below )
               threshold(ibox)=
-     *        cca(ibox,ilev)+(1-cca(ibox,ilev))*randu(xx)
+     *        cca(ibox,ilev)+(1-cca(ibox,ilev))*randxx
             endif
           enddo
         endif
