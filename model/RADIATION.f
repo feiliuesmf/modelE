@@ -4742,6 +4742,10 @@ C     ----------------------------------------------------------
       DO 100 L=1,NL
       TRGXLK(L,K)=0.D0
   100 CONTINUE
+C                          MLGAS DEF.
+C                          ----------
+C     H2O: 1,4,5   CO2: 2,6,7   O3: 3,8,9   N2O: 10,11,12   CH4: 13
+C     SO2: 14,15   CFC: 16-19   WVCON: 20
 
       DO 110 I=1,20
       MLGAS(I)=1
@@ -4749,7 +4753,7 @@ C     ----------------------------------------------------------
 
 C              KWVCON = ON/OFF flag for water vapor continuum absorption
 C              ---------------------------------------------------------
-      IF(KWVCON.LT.1) MLGAS(18)=0
+      IF(KWVCON.LT.1) MLGAS(20)=0
 
       UH2O=1.D-10
       UCO2=1.D-10
