@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE LAKES
 !@sum  LAKES subroutines for Lakes and Rivers
 !@auth Gavin Schmidt/Gary Russell
@@ -252,7 +254,7 @@ C****
 !@sum  init_LAKES initiallises lake variables
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : rhow,shw,tf,pi,grav
+      USE CONSTANT, only : rhow,shw,tf,pi,grav,undef
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake,ftype
      *     ,itlake,itlkice,focean,fearth,fland
       USE GEOM, only : dxyp,dxv,dyv,dxp,imaxj
@@ -304,7 +306,7 @@ c            FLAKE(I,J) = FLAKE0(I,J)
               GML(I,J)   = 0.
               MLDLK(I,J) = MINMLD
             END IF
-            TSFREZ(I,J,3:4) = -999.
+            TSFREZ(I,J,3:4) = undef
           END DO
         END DO
       END IF
@@ -713,7 +715,7 @@ C****
 !@sum  daily_LAKE does lake things at the end of every day
 !@auth G. Schmidt
 !@ver  1.0
-      USE CONSTANT, only : shw,rhow,pi,by3
+      USE CONSTANT, only : shw,rhow,pi,by3,undef
       USE MODEL_COM, only : im,jm,ftype,itlake,itlkice,jday
       USE LAKES_COM, only : tlake,mwl,gml,mldlk,flake,tanlk
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
@@ -737,22 +739,26 @@ C**** months in a year.
         DO I=1,IMAXJ(J)
           IF (J.le.JM/2) THEN
 C**** initiallise/save South. Hemi. on Jan 1
-            IF (JDAY.eq.1 .and. TSFREZ(I,J,TF_LKOFF).ne.-999) THEN
+            IF (JDAY.eq.1 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) THEN
               AIJ(I,J,IJ_LKON)  = 12.*TSFREZ(I,J,TF_LKON)
               AIJ(I,J,IJ_LKOFF) = 12.*TSFREZ(I,J,TF_LKOFF)
-              TSFREZ(I,J,TF_LKOFF) = -999.
+              TSFREZ(I,J,TF_LKOFF) = undef
             END IF
           ELSE
 C**** initiallise/save North. Hemi. on Jul 1
-            IF (JDAY.eq.182 .and. TSFREZ(I,J,TF_LKOFF).ne.-999) THEN
-              AIJ(I,J,IJ_LKON)  = 12.*TSFREZ(I,J,TF_LKON)
-              AIJ(I,J,IJ_LKOFF) = 12.*TSFREZ(I,J,TF_LKOFF)
-              TSFREZ(I,J,TF_LKOFF) = -999.
+C**** Note that for continuity across the new year, the julian days
+C**** are counted from July 1 (NH only).
+            IF (JDAY.eq.182 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) THEN
+              AIJ(I,J,IJ_LKON)  = 12.*MOD(NINT(TSFREZ(I,J,TF_LKON))+184
+     *             ,365) 
+              AIJ(I,J,IJ_LKOFF) = 12.*MOD(NINT(TSFREZ(I,J,TF_LKOFF))+184
+     *             ,365) 
+              TSFREZ(I,J,TF_LKOFF) = undef
             END IF
           END IF
 C**** set ice on/off days
           IF (FLAKE(I,J).gt.0) THEN
-            IF (RSI(I,J).eq.0.and.TSFREZ(I,J,TF_LKOFF).eq.-999.)
+            IF (RSI(I,J).eq.0.and.TSFREZ(I,J,TF_LKOFF).eq.undef)
      *           TSFREZ(I,J,TF_LKON)=JDAY
             IF (RSI(I,J).gt.0) TSFREZ(I,J,TF_LKOFF)=JDAY
           END IF

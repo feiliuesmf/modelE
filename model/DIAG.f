@@ -334,17 +334,17 @@ C****
      *     ,u,v,t,p,q
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
      *     ,imaxj,ravpn,ravps,sinp,bydxyv
-      USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,J5NUV
-     *     ,J5SUV,J5S,J5N,aij,ij_dtdp,ij_dsev,ij_phi1k,ij_pres,ij_puq
+      USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,j5nuv
+     *     ,j5suv,j5s,j5n,aij,ij_dtdp,ij_dsev,ij_phi1k,ij_pres,ij_puq
      *     ,ij_pvq,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
      *     ,ij_q300,ij_ujet,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs
      *     ,j_dtdgtr,j_dtsgst,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst
      *     ,j_lstr,j_gamm,j_gam,j_gamc,lstr,il_ueq,il_veq,il_weq,il_teq
      *     ,il_qeq,il_w50n,il_t50n,il_u50n,il_w70n,il_t70n,il_u70n
-     *     ,KGZ_max,pmb,ght,JL_DTDYN,JL_ZMFNTMOM,JL_TOTNTMOM,JL_APE
-     *     ,JL_UEPAC,JL_VEPAC,JL_UWPAC,JL_VWPAC,JL_WEPAC,JL_WWPAC
-     *     ,JL_EPFLXN,JL_EPFLXV
-      USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd
+     *     ,kgz_max,pmb,ght,jl_dtdyn,jl_zmfntmom,jl_totntmom,jl_ape
+     *     ,jl_uepac,jl_vepac,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac
+     *     ,jl_epflxn,jl_epflxv,ij_p850
+      USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn
       USE RADNCB, only : rqt,lm_req
       USE PBLCOM, only : tsavg
 
@@ -473,10 +473,13 @@ C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
           PL=PMID(L,I,J)
           IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
 C**** Select pressure levels on which to save temperature and humidity
+C**** Use masking for 850 mb temp/humidity
  174      qpress = .false.
           SELECT CASE (NINT(PMB(K)))
           CASE (850)            ! 850 mb
             nT = IJ_T850 ; nQ = IJ_Q850 ; qpress = .true.
+            if (pmb(k).gt.pedn(l-1,i,j)) qpress = .false.
+            if (qpress) aij(i,j,ij_p850) = aij(i,j,ij_p850) + 1.
           CASE (500)            ! 500 mb 
             nT = IJ_T500 ; nQ = IJ_Q500 ; qpress = .true.
           CASE (300)            ! 300 mb
@@ -495,15 +498,8 @@ C**** calculate geopotential heights + temperatures
      *           -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
             IF (qpress) AIJ(I,J,nT)=AIJ(I,J,nT)+(TX(I,J,L)-TF)
           END IF
-C**** Humidity is interpolated or extrapolated straight down (to avoid Q<0)
-          if (qpress) then
-            if (PMB(K).gt.PDN) then
-              AIJ(I,J,nQ)=AIJ(I,J,nQ)+Q(I,J,L)
-            else
-              AIJ(I,J,nQ)=AIJ(I,J,nQ)+(Q(I,J,L)+(Q(I,J,L-1)-Q(I,J,L))*
-     *             (PMB(K)-PL)/(PDN-PL))
-            end if
-          end if
+          if (qpress) AIJ(I,J,nQ)=AIJ(I,J,nQ)+(Q(I,J,L)+
+     *         (Q(I,J,L-1)-Q(I,J,L))*(PMB(K)-PL)/(PDN-PL))
 C****
           IF (K.LT.KGZ_max) THEN
             K=K+1

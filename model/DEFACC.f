@@ -1151,6 +1151,14 @@ c
       end if
 c
       k=k+1 !  
+      IJ_P850 = k ! 
+      lname_ij(k) = 'FREQUENCY OF 850mb PRESSURE'  ! weighting function
+      units_ij(k) = '%'
+      name_ij(k) = 'P850'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 100.
+c
+      k=k+1 !  
       IJ_T300 = k ! 
       lname_ij(k) = 'TEMPERATURE AT 300mb'
       units_ij(k) = 'C'
@@ -1170,7 +1178,7 @@ c
 c
       k=k+1 !  'AIJ016'
       IJ_T850 = k ! 
-      lname_ij(k) = 'TEMPERATURE AT 850mb'
+      lname_ij(k) = 'TEMPERATURE AT 850mb x P850'
       units_ij(k) = 'C'
       name_ij(k) = 'T850'
       ia_ij(k) = ia_dga
@@ -1197,7 +1205,7 @@ c
 c
       k=k+1 
       IJ_Q850 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 850mb'
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 850mb x P850'
       units_ij(k) = 'g/kg'
       name_ij(k) = 'Q850'
       ia_ij(k) = ia_dga
@@ -1600,7 +1608,7 @@ c
       k=k+1 !  'AIJ058'
       IJ_MSI2 = k ! ACE2OI= MSI2*POICE  (KG/m**2)        1 GD
       lname_ij(k) = 'LAYER 2 OCEAN ICE MASS x POICE'
-      units_ij(k) = 'tons/m^2'
+      units_ij(k) = '10^3 kg/m^2'
       name_ij(k) = 'MSI2'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d-3
@@ -1908,7 +1916,7 @@ c
       k=k+1 !  'AIJ097'
       IJ_MRVR = k ! Mass Outflow by Rivers (10**5 kg/s)  E-5/DTS*1 RV
       lname_ij(k) = 'Mass Outflow by Rivers'
-      units_ij(k) = '100 tons/s'
+      units_ij(k) = '10^5 kg/s'
       name_ij(k) = 'MRVR'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d-5/DTsrc
@@ -1925,7 +1933,7 @@ c
 c
       k=k+1 !  'AIJ099'
       IJ_LKON = k
-      lname_ij(k) = 'LAST DAY OF ICE-FREE LAKE'
+      lname_ij(k) = 'LAST DAY OF ICE-FREE LAKE (NH-181)'
       units_ij(k) = 'JULIAN DAY'
       name_ij(k) = 'LKONDAY'
       ia_ij(k) = ia_inst        ! only works for ann.means w/ NMONAV=1 ?
@@ -1934,7 +1942,7 @@ c
 c
       k=k+1 !  'AIJ100'
       IJ_LKOFF = k
-      lname_ij(k) = 'LAST DAY OF ICED-UP LAKE'
+      lname_ij(k) = 'LAST DAY OF ICED-UP LAKE (NH-181)'
       units_ij(k) = 'JULIAN DAY'
       name_ij(k) = 'LKOFFDAY'
       ia_ij(k) = ia_inst        ! only works for ann.means w/ NMONAV=1 ?
@@ -2439,6 +2447,22 @@ C**** Also include MSU radiation diagnotsics here
       name_ij(k) = 'SSI2'
       ia_ij(k) = ia_src
       scale_ij(k) = 1d3
+
+      k=k+1
+      IJ_MLTP = k
+      lname_ij(k) = 'SEA ICE MELT POND MASS x POICE'
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'MLTP'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+
+      k=k+1
+      IJ_FRMP = k
+      lname_ij(k) = 'SEA ICE MELT POND FRACTION x POICE'
+      units_ij(k) = '%'
+      name_ij(k) = 'FRMP'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 100.
 
       IF (KOCEAN.eq.0) THEN
         k=k+1

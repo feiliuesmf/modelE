@@ -3164,6 +3164,12 @@ c**** ratios (the denominators)
               adenom(i,j)=aij(i,j,ij_tcldi) * byiacc
             end do
             end do
+          else if (index(lname_ij(k),' x P850') .gt. 0) then
+            do j=1,jm
+            do i=1,im
+              adenom(i,j)=aij(i,j,ij_p850) * byiacc
+            end do
+            end do
           end if
           lname_ij(k)(k1:80) = ' '    ; lname = lname_ij(k)
         end if

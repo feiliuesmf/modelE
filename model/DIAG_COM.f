@@ -306,7 +306,8 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV,
      *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SDRAG,
      *     IJ_LKON, IJ_LKOFF, IJ_PTROP, IJ_TSI, IJ_SSI1, IJ_SSI2,
-     *     IJ_SMFX, IJ_MSU2, IJ_MSU2R, IJ_MSU3, IJ_MSU4
+     *     IJ_SMFX, IJ_MSU2, IJ_MSU2R, IJ_MSU3, IJ_MSU4, IJ_MLTP,
+     *     IJ_FRMP, IJ_P850
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER :: IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
      *     IJ_G08,IJ_G09,IJ_G10,IJ_G11,IJ_G12,IJ_G13,IJ_G14,IJ_G15,
