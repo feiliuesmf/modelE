@@ -10,7 +10,6 @@
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj,dyp
@@ -74,9 +73,7 @@
 
 #ifdef TRACERS_ON
 !@var tmsave holds tracer value (for diagnostics)
-      REAL*8 tmsave(lm,ntm),
-     *       dtr_mc(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm),
-     *       dtr_ss(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm)
+      REAL*8 tmsave(lm,ntm),dtr_mc(jm,ntm),dtr_ss(jm,ntm)
       INTEGER NX
 #ifdef TRACERS_AEROSOLS_Koch
 c       real*8 a_sulf(im,jm),cc_sulf(im,jm)
@@ -89,8 +86,7 @@ c       integer nc_tr,id,ixx,ix1,ixm1,iuc_s
 #endif
 
 !@var UC,VC,UZM,VZM velocity work arrays
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) 
-     *        :: UC,VC
+      REAL*8, DIMENSION(IM,JM,LM) :: UC,VC
       REAL*8, DIMENSION(2,LM) :: UZM,VZM
 
 !@param ENTCON fractional rate of entrainment (km**-1)
@@ -141,26 +137,14 @@ C        not clear yet whether they still speed things up
       REAL*8  TMOMIL(NMOM,IM,LM),  QMOMIL(NMOM,IM,LM)
 Cred*                   end Reduced Arrays 1
       INTEGER ICKERR, JCKERR, JERR, seed, NR
-      REAL*8  RNDSS(3,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
-      REAL*8  AJEQIL(J5N-J5S+1,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO), 
-     *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
+      REAL*8  RNDSS(3,LM,IM,JM),xx
+      REAL*8  AJEQIL(J5N-J5S+1,IM,JM), AREGIJ(IM,JM,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
-      REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM), 
-     *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
-      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0SG,J_1SG
+      REAL*8  UKM(4,IM,2:JM-1,LM), VKM(4,IM,2:JM-1,LM)
 C
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
 C
-      J_0  =GRID%J_STRT
-      J_1  =GRID%J_STOP
-      J_0H =GRID%J_STRT_HALO
-      J_1H =GRID%J_STOP_HALO
-      J_0S =GRID%J_STRT_SKP
-      J_1S =GRID%J_STOP_SKP
-      J_0SG=GRID%J_STRT_STGR
-      J_1SG=GRID%J_STOP_STGR
-
-      DO J=J_0,J_1
+      DO J=1,JM
       DO I=1,IMAXJ(J)
         DO L=LP50,1,-1
           DO NR=1,3
@@ -184,18 +168,12 @@ C**** COMPUTE ZONAL MEAN U AND V AT POLES
         VZM(2,L)=0.
       ENDDO
       DO L=1,LM
-        IF(GRID%HAVE_SOUTH_POLE) THEN
-          DO I=1,IM
-            UZM(1,L)=UZM(1,L)+UC(I,J_0S,L)
-            VZM(1,L)=VZM(1,L)+VC(I,J_0S,L)
-          ENDDO
-        ENDIF
-        IF(GRID%HAVE_NORTH_POLE) THEN
-          DO I=1,IM
-            UZM(2,L)=UZM(2,L)+UC(I,J_1,L)
-            VZM(2,L)=VZM(2,L)+VC(I,J_1,L)
-          ENDDO
-        ENDIF
+        DO I=1,IM
+          UZM(1,L)=UZM(1,L)+UC(I,2,L)
+          UZM(2,L)=UZM(2,L)+UC(I,JM,L)
+          VZM(1,L)=VZM(1,L)+VC(I,2,L)
+          VZM(2,L)=VZM(2,L)+VC(I,JM,L)
+        ENDDO
         UZM(1,L)=UZM(1,L)/FIM
         UZM(2,L)=UZM(2,L)/FIM
         VZM(1,L)=VZM(1,L)/FIM
@@ -240,7 +218,7 @@ C****
 !$OMP*    SCHEDULE(DYNAMIC,2)
 !$OMP*    REDUCTION(+:ICKERR,JCKERR)
 C
-      DO J=J_0,J_1
+      DO J=1,JM
 C
 Cred* Reduced Arrays 2
 C
@@ -547,15 +525,13 @@ C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
         BYDH12=1./DH12
         DTDZS=(THV1-THSV)*BYDH1S
         DTDZ=(THV2-THV1)*BYDH12
-CAOO        IF (J.EQ.1) THEN
-        IF(GRID%HAVE_SOUTH_POLE .AND. J.EQ.J_0) THEN
+        IF (J.EQ.1) THEN
           DUDZ=(UZM(1,2)-UZM(1,1))*BYDH12
           DVDZ=(VZM(1,2)-VZM(1,1))*BYDH12
           DUDZS=(UZM(1,1)-US)*BYDH1S
           DVDZS=(VZM(1,1)-VS)*BYDH1S
         ENDIF
-CAOO        IF (J.EQ.JM) THEN
-        IF(GRID%HAVE_NORTH_POLE .AND. J.EQ.J_1) THEN
+        IF (J.EQ.JM) THEN
           DUDZ=(UZM(2,2)-UZM(2,1))*BYDH12
           DVDZ=(VZM(2,2)-VZM(2,1))*BYDH12
           DUDZS=(UZM(2,1)-US)*BYDH1S
@@ -910,7 +886,7 @@ c     endif
 #endif
 
 C**** Delayed summations (to control order of summands)
-      DO J=MAX(J_0,J5S),MIN(J_1,J5N)
+      DO J=J5S,J5N
       DO I=1,IM
         IF(LMC(1,I,J).GT.0) THEN
           DO L=1,LMC(2,I,J)-1
@@ -920,7 +896,7 @@ C**** Delayed summations (to control order of summands)
       END DO
       END DO
 C
-      DO J=J_0,J_1
+      DO J=1,JM
       DO I=1,IMAXJ(J)
          JR=JREG(I,J)
          IF(LMC(1,I,J).GT.0)
@@ -932,23 +908,21 @@ C
 C
 C     NOW REALLY UPDATE THE MODEL WINDS
 C
-CAOO      J=1
-      IF(GRID%HAVE_SOUTH_POLE) THEN
-        DO K=1,IM ! KMAXJ(J)
-           IDI(K)=IDIJ(K,1,J_0)
-           IDJ(K)=IDJJ(K,J_0)
-        END DO
-        DO L=1,LM
-          DO K=1,IM ! KMAXJ(J)
-             U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKP1(K,L)
-             V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKP1(K,L)
-          END DO
-        END DO
-      ENDIF
+      J=1
+      DO K=1,IM ! KMAXJ(J)
+         IDI(K)=IDIJ(K,1,J)
+         IDJ(K)=IDJJ(K,J)
+      END DO
+      DO L=1,LM
+      DO K=1,IM ! KMAXJ(J)
+         U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKP1(K,L)
+         V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKP1(K,L)
+      END DO
+      END DO
 C
 !$OMP  PARALLEL DO PRIVATE(I,J,K,L,IDI,IDJ)
       DO L=1,LM
-      DO J=J_0S,J_1S
+      DO J=2,JM-1
          DO K=1,4  !  KMAXJ(J)
             IDJ(K)=IDJJ(K,J)
          END DO
@@ -963,25 +937,23 @@ C
       END DO
 !$OMP  END PARALLEL DO
 C
-CAOO      J=JM
-      IF(GRID%HAVE_NORTH_POLE) THEN
-        DO K=1,IM  !  KMAXJ(J)
-           IDI(K)=IDIJ(K,1,J_1)
-           IDJ(K)=IDJJ(K,J_1)
-        END DO
-        DO L=1,LM
-          DO K=1,IM  !  KMAXJ(J)
-             U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKPJM(K,L)
-             V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKPJM(K,L)
-          END DO
-        END DO
-      ENDIF
+      J=JM
+      DO K=1,IM  !  KMAXJ(J)
+         IDI(K)=IDIJ(K,1,J)
+         IDJ(K)=IDJJ(K,J)
+      END DO
+      DO L=1,LM
+      DO K=1,IM  !  KMAXJ(J)
+         U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKPJM(K,L)
+         V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKPJM(K,L)
+      END DO
+      END DO
 C
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 C**** and save changes in KE for addition as heat later
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
-      DO J=J_0SG,J_1SG
+      DO J=2,JM
       DO I=1,IM
          AJL(J,L,JL_DAMMC)=AJL(J,L,JL_DAMMC)+
      &         (U(I,J,L)-UC(I,J,L))*PDSIG(L,I,J)
@@ -1003,7 +975,6 @@ C**** and save changes in KE for addition as heat later
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : grav,by3
       USE MODEL_COM, only : dtsrc,ls1,sige,lm,psfmpt,ptop,plbot,jm
-      USE DOMAIN_DECOMP, only : GRID
       USE GEOM, only : lat_dg
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld
@@ -1014,10 +985,6 @@ C**** and save changes in KE for addition as heat later
       IMPLICIT NONE
       REAL*8 PLE
       INTEGER L,J
-      INTEGER :: J_0,J_1
-
-      J_0 =GRID%J_STRT
-      J_1 =GRID%J_STOP
 
       call sync_param( 'U00wtrX', U00wtrX )
       call sync_param( 'U00ice', U00ice )
@@ -1060,7 +1027,7 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
 
 C**** Define regions for ISCCP diagnostics
-      do j=J_0,J_1
+      do j=1,jm
         isccp_reg(j)=0.
         if (lat_dg(j,1).ge.-60. .and. lat_dg(j,1).lt.-45.)
      *       isccp_reg(j)=1

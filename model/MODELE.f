@@ -18,8 +18,6 @@
       USE DAGCOM, only : oa,monacc,koa
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
-      USE FLUXES, only : init_fluxes
-      USE CLOUDS_COM, only : init_clouds_com
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
@@ -38,8 +36,6 @@
         call init_decomp(im,jm)
         call init_dynamics(grid)
         call init_model_com(grid)
-        call init_fluxes(grid)
-        call init_clouds_com(grid)
 C****
 C**** Processing command line options
 C****
