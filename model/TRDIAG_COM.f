@@ -205,14 +205,14 @@ C----------------------------------------------------
 C----------------------------------------------------
       END MODULE TRACER_DIAG_COM
 
-      SUBROUTINE SET_TCON(QCON,NAME_CON,QSUM,INST_UNIT,SUM_UNIT,INST_SC
-     *     ,CHNG_SC, itr,CONPTs)
+      SUBROUTINE SET_TCON(QCON,NAME_CON,QSUM,INST_UNIT,SUM_UNIT
+     *     ,INST_SC,CHNG_SC, itr,CONPTs)
 !@sum  SET_TCON assigns conservation diagnostic array indices
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only: sday
       USE MODEL_COM, only: dtsrc,nfiltr
-      USE DAGCOM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src,CONPT
+      USE DAGCOM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src,conpt0
       USE TRACER_DIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
      *     ,nofmt,ia_tcon,name_tconsrv,lname_tconsrv,units_tconsrv
      *     ,ntcons
@@ -237,8 +237,8 @@ C----------------------------------------------------
       CHARACTER*20, INTENT(IN) :: SUM_UNIT
 !@var ITR index for the tracer
       INTEGER, INTENT(IN) :: ITR
-!@var CONPTS
-      CHARACTER*16, DIMENSION(ntcons) :: CONPTS
+!@var CONPTS conservation diag points for special tracer diags
+      CHARACTER*16, INTENT(IN), DIMENSION(ntcons) :: CONPTS
       CHARACTER*11 CHGSTR
       INTEGER NI,NM,NS,N,k
 
@@ -268,9 +268,9 @@ C****
           CHGSTR=" CHANGE OF "
           if (n.le.npts+1) then
             TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
-     *         CONPT(N-1)
+     *         CONPT0(N-1)
             name_tconsrv(NM,itr) =
-     *           "chg_"//trim(sname)//"_"//TRIM(CONPT(N-1)(1:3))
+     *           "chg_"//trim(sname)//"_"//TRIM(CONPT0(N-1)(1:3))
           else
             IF (.not. QSUM(N)) CHGSTR="     DELTA "
             TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
