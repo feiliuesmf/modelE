@@ -7,7 +7,7 @@
       use model_com, only : im,jm
       implicit none
       private
-ccc   save
+      save
 
       public daily_earth, ground_e, init_gh, earth, conserv_wtg
      $     ,conserv_htg
@@ -32,10 +32,6 @@ c****
      *     ,sha,tf,rhow,deltx
       use model_com, only : t,p,q,dtsrc,nisurf,dsig,qcheck
      *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
-!----------------------------------------------------------------------!
-! adf
-     *     ,Cint,Qfol
-!----------------------------------------------------------------------!
       use geom, only : imaxj,dxyp,bydxyp
       use dynamics, only : pk,pek,pedn,pdsig,am,byam
       use somtq_com, only : mz
@@ -97,6 +93,10 @@ c****
      &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
      *     snowe,tearth,wearth,aiearth,afb,
      &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
+!----------------------------------------------------------------------!
+! adf
+     *     ,Cint,Qfol
+!----------------------------------------------------------------------!
 #ifdef TRACERS_WATER
      &     ,tr_wbare,tr_wvege,tr_wsn_ij,ntm
 #endif
@@ -962,6 +962,13 @@ c**** read in vegetation data set: vdata
 c**** zero-out vdata(11) until it is properly read in
         vdata(:,:,11) = 0.
         call closeunit(iu_VEG)
+!----------------------------------------------------------------------!
+! adf
+        if (istart.le.2) then ! initiallize foliage arrays
+          Cint(:,:)=0.0127D0
+          Qfol(:,:)=3.D-6
+        end if
+!----------------------------------------------------------------------!
         if (istart.le.0) return ! Why ?
 c**** read soils parameters
         call openunit("SOIL",iu_SOIL,.true.,.true.)

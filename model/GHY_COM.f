@@ -27,6 +27,14 @@ C file opened in fortran unformatted sequential access mode
 C containing its contents in a contiguous real*4 block
       COMMON/SDATA/ DZ_IJ,Q_IJ,QK_IJ,SL_IJ
 
+!----------------------------------------------------------------------!
+! adf
+!@var Cint Internal foliage CO2 concentration (mol/m3)
+      REAL*8, DIMENSION(IM,JM) :: Cint
+!@var Qfol Foliage surface mixing ratio (kg/kg)
+      REAL*8, DIMENSION(IM,JM) :: Qfol
+!----------------------------------------------------------------------!
+
       REAL*8, DIMENSION(NGM,IM,JM) :: AFR
       REAL*8, DIMENSION(3,IM,JM) :: ALA,ACS
       REAL*8, DIMENSION(IM,JM) :: AFB,AVH
@@ -142,7 +150,7 @@ ccc TRSNOWBV is not used
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "SOILS01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "SOILS02"
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSOILS01"
@@ -153,18 +161,20 @@ ccc TRSNOWBV is not used
      *     ,'),TRSNOWBV(',ntm,'2)'
 #endif
 
-      write(MODULE_HEADER(lhead+1:80),'(a6,i1,a11,i1,a)') 'R8 Wb(',
-     *   ngm,',ijm), dim(',ngm+1,',ijm):Wv,HTb,HTv, SNWbv(2,ijm)'
+      write(MODULE_HEADER(lhead+1:80),'(a6,i1,a11,i1,a,a)') 'R8 Wb(',
+     *   ngm,',ijm), dim(',ngm+1,',ijm):Wv,HTb,HTv, SNWbv(2,ijm),'
+     *     ,'Cint,Qfol'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,wbare,wvege,htbare,htvege
-     *       ,snowbv
+     *       ,snowbv,Cint,Qfol
 #ifdef TRACERS_WATER
         WRITE (kunit,err=10) TRMODULE_HEADER,TR_WBARE,TR_WVEGE,TRSNOWBV0
 #endif
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
+        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv,
+     *     Cint,Qfol
         IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
