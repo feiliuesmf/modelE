@@ -90,8 +90,10 @@ c     than threshold dryhr to permit dust emission
             ELSE
               pmei(i,j)=.FALSE.
             END IF
+          ELSE
+            ricntd(i,j)=0.
+            pmei(i,j)=.FALSE.
           END IF
-          IF (hbaijd > 0) ricntd(i,j)=0.
         END DO
       END DO
 
