@@ -4,9 +4,39 @@
 !@ver  1.0
       USE QUSDEF
       USE MODEL_COM, only : im,jm,lm
+      USE DOMAIN_DECOMP, only : grid
       IMPLICIT NONE
       SAVE
-      REAL*8, DIMENSION(NMOM,IM,JM,LM) :: TMOM,QMOM
+!     REAL*8, DIMENSION(NMOM,IM, GRID%J_STRT_HALO:GRID%J_STOP_HALO ,LM)  
+!    &        :: TMOM,QMOM
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TMOM,QMOM
+
+      CONTAINS
+
+      SUBROUTINE INIT_SMOMTQ(grid)
+!@sum  init_smomtq allocates the arrays in this module which
+!@+    must now be dynamic for the distributed memory implementation.
+!@auth Rosalinda de Fainchtein
+!@ver  1.0
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+
+      INTEGER :: I_0H, I_1H, J_1H, J_0H
+      INTEGER :: IER
+
+      INTEGER :: I,J,L
+
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+      J_0H = grid%J_STRT_HALO
+      J_1H = grid%J_STOP_HALO
+
+      ALLOCATE ( TMOM(NMOM , I_0H:I_1H , J_0H:J_1H , LM) )
+      ALLOCATE ( QMOM(NMOM , I_0H:I_1H , J_0H:J_1H , LM) )
+
+
+      END SUBROUTINE INIT_SMOMTQ
 
       END MODULE SOMTQ_COM
 
@@ -15,6 +45,7 @@
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
+      USE DOMAIN_DECOMP, only : grid
       USE SOMTQ_COM
       IMPLICIT NONE
 
@@ -46,13 +77,29 @@
 
       subroutine tq_zmom_init(t,q)
       USE MODEL_COM, only : im,jm,lm,sige,sig
+      USE DOMAIN_DECOMP, ONLY: grid
       USE SOMTQ_COM
       implicit none
-      REAL*8, dimension(im,jm,lm) :: t,q
+      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm) :: t,q
       integer :: i,j,l
       REAL*8 :: rdsig
+
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      J_0 = grid%J_STRT
+      J_1 = grid%J_STOP
+      J_0S = grid%J_STRT_SKP
+      J_1S = grid%J_STOP_SKP
+      J_0STG = grid%J_STRT_STGR
+      J_1STG = grid%J_STOP_STGR
+
 C**** INITIALIZES VERTICAL SLOPES OF T,Q
-      DO J=1,JM
+      DO J=J_0,J_1
       DO I=1,IM
          RDSIG=(SIG(1)-SIGE(2))/(SIG(1)-SIG(2))
          TMOM(MZ,I,J,1)=(T(I,J,2)-T(I,J,1))*RDSIG

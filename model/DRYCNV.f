@@ -7,6 +7,7 @@
 !@ver  1.0
       USE CONSTANT, only : lhe,sha,deltx
       USE MODEL_COM
+      USE DOMAIN_DECOMP, only : grid
       USE GEOM
       USE QUSDEF, only : nmom,zmoms,xymoms
       USE SOMTQ_COM, only : tmom,qmom
@@ -21,7 +22,9 @@
 
       integer, intent(in) :: LBASE_MIN,LBASE_MAX
       real*8, intent(in) :: dtime  ! dummy variable
-      REAL*8, DIMENSION(IM,JM,LM) :: UT,VT
+!23456789012345678901234567890123456789012345678901234567890123456789012
+      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LM) :: 
+     &        UT,VT
       REAL*8, DIMENSION(LM) :: DP
 c      COMMON/WORK2/UT,VT,DP   ! is this necessary?
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
@@ -31,8 +34,11 @@ c      COMMON/WORK2/UT,VT,DP   ! is this necessary?
       INTEGER I,J,L,K,IMAX,KMAX,IM1,LMAX,LMIN
 C
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
-      REAL*8  UKM(4,IM,2:JM-1,LM), VKM(4,IM,2:JM-1,LM)
-      INTEGER  LRANG(2,IM,JM)
+
+!RKF: No halo needed by UKM or VMK. Not used at the poles.
+      REAL*8  UKM(4,IM,grid%J_STRT_SKP:grid%J_STOP_SKP,LM)
+      REAL*8  VKM(4,IM,grid%J_STRT_SKP:grid%J_STOP_SKP,LM)
+      INTEGER  LRANG(2,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
 C
       REAL*8, DIMENSION(NMOM) :: TMOMS,QMOMS
       REAL*8 DOK,PIJBOT,PIJ,PKMS,THPKMS,QMS
@@ -44,11 +50,28 @@ C
       REAL*8 SDPL,BYSDPL
 #endif
 
+      INTEGER ::  J_1, J_0
+      INTEGER ::  J_1H, J_0H
+      INTEGER ::  J_1S, J_0S
+      INTEGER ::  J_1STG, J_0STG
+
+      J_0   = grid%J_STRT
+      J_1   = grid%J_STOP
+
+      J_0H  = grid%J_STRT_HALO
+      J_1H  = grid%J_STOP_HALO
+
+      J_0S  = grid%J_STRT_SKP 
+      J_1S  = grid%J_STOP_SKP 
+
+      J_0STG= grid%J_STRT_STGR
+      J_1STG= grid%J_STOP_STGR
+
       if(LBASE_MAX.GE.LM) call stop_model('DRYCNV: LBASE_MAX.GE.LM',255)
 
       ! update w2gcm at 1st GCM layer
       w2gcm=0.d0
-      do j=1,jm
+      do j=j_0,j_1
       do i=1,im
          w2gcm(1,i,j)=w2_l1(i,j)
       end do
@@ -66,7 +89,7 @@ C**** OUTSIDE LOOPS OVER J AND I
 #endif
 !$OMP*   THM,TVMS,THETA,TMOMS,THPKMS, UMS,VMS)
 !$OMP*   SCHEDULE(DYNAMIC,2)
-      JLOOP: DO J=1,JM
+      JLOOP: DO J=J_0,J_1
       POLE=.FALSE.
       IF (J.EQ.1.OR.J.EQ.JM) POLE=.TRUE.
 
@@ -223,23 +246,25 @@ C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
 C
 C     NOW REALLY UPDATE THE MODEL WINDS
 C
-      J=1
-      DO K=1,KMAXJ(J)
-        IDI(K)=IDIJ(K,1,J)
-        IDJ(K)=IDJJ(K,J)
-        RA(K) =RAVJ(K,J)
-      END DO
-      LMIN=LRANG(1,1,J)
-      LMAX=LRANG(2,1,J)
-      DO L=LMIN,LMAX
-      DO K=1,KMAXJ(J)
-        U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKP1(K,L)*RA(K)
-        V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKP1(K,L)*RA(K)
-        AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
-     *     UKP1(K,L)*PLIJ(L,1,J)*RA(K)
-      END DO ; END DO
+      IF (grid%HAVE_SOUTH_POLE) then
+       J=1
+       DO K=1,KMAXJ(J)
+         IDI(K)=IDIJ(K,1,J)
+         IDJ(K)=IDJJ(K,J)
+         RA(K) =RAVJ(K,J)
+       END DO
+       LMIN=LRANG(1,1,J)
+       LMAX=LRANG(2,1,J)
+       DO L=LMIN,LMAX
+        DO K=1,KMAXJ(J)
+          U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKP1(K,L)*RA(K)
+          V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKP1(K,L)*RA(K)
+          AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
+     *       UKP1(K,L)*PLIJ(L,1,J)*RA(K)
+       END DO ; END DO
+      END IF   !END SOUTH POLE
 C
-      DO J=2,JM-1
+      DO J=J_0S, J_1S
         KMAX=KMAXJ(J)
         DO K=1,KMAX
            IDJ(K)=IDJJ(K,J)
@@ -259,27 +284,29 @@ C
         END DO
       END DO
 C
-      J=JM
-      KMAX=KMAXJ(J)
-      DO K=1,KMAX
-        IDI(K)=IDIJ(K,1,J)
-        IDJ(K)=IDJJ(K,J)
-        RA(K) =RAVJ(K,J)
-      END DO
-      LMIN=LRANG(1,1,J)
-      LMAX=LRANG(2,1,J)
-      DO L=LMIN,LMAX
-      DO K=1,KMAX
-        U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKPJM(K,L)*RA(K)
-        V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKPJM(K,L)*RA(K)
-        AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
-     *      UKPJM(K,L)*PLIJ(L,1,J)*RA(K)
-      END DO ; END DO
+      IF (grid%HAVE_NORTH_POLE) THEN
+       J=JM
+       KMAX=KMAXJ(J)
+       DO K=1,KMAX
+         IDI(K)=IDIJ(K,1,J)
+         IDJ(K)=IDJJ(K,J)
+         RA(K) =RAVJ(K,J)
+       END DO
+       LMIN=LRANG(1,1,J)
+       LMAX=LRANG(2,1,J)
+       DO L=LMIN,LMAX
+        DO K=1,KMAX
+          U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKPJM(K,L)*RA(K)
+          V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKPJM(K,L)*RA(K)
+          AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
+     *        UKPJM(K,L)*PLIJ(L,1,J)*RA(K)
+       END DO ; END DO
+      ENDIF   !END NORTH POLE
 
 C**** Save additional changes in KE for addition as heat later
 !$OMP  PARALLEL DO PRIVATE (L,I,J)
       DO L=1,LM
-      DO J=2,JM
+      DO J=J_0STG, J_1STG
       DO I=1,IM
         DKE(I,J,L)=DKE(I,J,L)+0.5*(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L)
      *       -UT(I,J,L)*UT(I,J,L)-VT(I,J,L)*VT(I,J,L))

@@ -572,7 +572,8 @@ C****
      *     ,ioread_single,irsfic,irsficnt,iowrite_single,ioreadnt
      *     ,irsficno,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name
-      USE SOMTQ_COM, only : tmom,qmom
+      USE DOMAIN_DECOMP, only : grid
+      USE SOMTQ_COM, only : init_smomtq,tmom,qmom
       USE GEOM, only : geom_b,imaxj
       USE RANDOM
       USE RADNCB, only : rqt,lm_req
@@ -620,6 +621,10 @@ C****
      *     ,IHOURE, HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
+
+CRKF Allocate the arrays tmom and qmom
+      call init_smomtq(grid)
+
 C****
 C**** Default setting for ISTART : restart from latest save-file (10)
 C****

@@ -12,10 +12,13 @@ C****
       USE MODEL_COM
       USE GEOM, only : dlat,dlon,lon,sinip,cosip
       USE RADNCB, only : cosd,sind,sinj,cosj
+      USE DOMAIN_DECOMP, ONLY: grid
+      USE DOMAIN_DECOMP, ONLY: HALO_UPDATE, CHECKSUM
       IMPLICIT NONE
       SAVE
       REAL*8, DIMENSION(IM) :: LT1,LT2,SLT1,SLT2,S2LT1,S2LT2
-      REAL*8, DIMENSION(IM,JM) :: COSZ,COSZA
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+     *     COSZ,COSZA
       COMMON/WORK5/LT1,LT2,SLT1,SLT2,S2LT1,S2LT2
 C**** ZERO1 HAS TO EQUAL THE CUT-OFF VALUE FOR COSZ USED IN SOLAR
 C**** COSZS WORKS CORRECTLY ONLY IF ZERO1 >> 1.D-3
@@ -23,8 +26,19 @@ C**** COSZS WORKS CORRECTLY ONLY IF ZERO1 >> 1.D-3
       INTEGER I,J,L
       REAL*8 S2DAWN,S2DUSK,ECOSZ,ECOSQZ,CLT1,CLT2,ZERO2,CDUSK,DUSK,DAWN
      *     ,SDUSK,SDAWN,CJCD,SJSD,SR1,CR1,SR2,CR2,ROT1,ROT2,DROT
+      INTEGER :: I_0, I_1, J_0, J_1
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
 C****
       ENTRY COSZT (ROT1,ROT2,COSZ)
+C****
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      J_0 = grid%J_STRT
+      J_1 = grid%J_STOP
+      J_0S = grid%J_STRT_SKP
+      J_1S = grid%J_STOP_SKP
+      J_0STG = grid%J_STRT_STGR
+      J_1STG = grid%J_STOP_STGR
 C****
 C**** THIS ENTRY COMPUTES THE ZENITH ANGLE WEIGHTED BY DAYTIME
 C**** HOURS FROM ROT1 TO ROT2, GREENWICH MEAN TIME IN RADIANS.  ROT1
@@ -49,29 +63,32 @@ C****
 C**** CALCULATION FOR POLAR GRID BOXES
 C****
       DO J=1,JM,JM-1
-        SJSD=SINJ(J)*SIND
-        CJCD=COSJ(J)*COSD
-        IF (SJSD+CJCD.GT.ZERO1) THEN
-          IF (SJSD-CJCD.LT.0.) THEN
+        IF(((J .EQ. 1) .AND. (grid%HAVE_SOUTH_POLE)) .OR. 
+     *     ((J .EQ. JM) .AND. (grid%HAVE_NORTH_POLE))) THEN
+           SJSD=SINJ(J)*SIND
+           CJCD=COSJ(J)*COSD
+           IF (SJSD+CJCD.GT.ZERO1) THEN
+              IF (SJSD-CJCD.LT.0.) THEN
 C**** AVERAGE COSZ FROM DAWN TO DUSK NEAR THE POLES
-            DUSK=ACOS(-SJSD/CJCD)
-            SDUSK=SQRT(CJCD*CJCD-SJSD*SJSD)/CJCD
-            DAWN=-DUSK
-            SDAWN=-SDUSK
-            COSZ(1,J)=(SJSD*(DUSK-DAWN)+CJCD*(SDUSK-SDAWN))/TWOPI
-          ELSE
+                 DUSK=ACOS(-SJSD/CJCD)
+                 SDUSK=SQRT(CJCD*CJCD-SJSD*SJSD)/CJCD
+                 DAWN=-DUSK
+                 SDAWN=-SDUSK
+                 COSZ(1,J)=(SJSD*(DUSK-DAWN)+CJCD*(SDUSK-SDAWN))/TWOPI
+              ELSE
 C**** CONSTANT DAYLIGHT NEAR THE POLES
-            COSZ(1,J)=SJSD
-          END IF
-        ELSE
+                 COSZ(1,J)=SJSD
+              END IF
+           ELSE
 C**** CONSTANT NIGHTIME NEAR THE POLES
-          COSZ(1,J)=0.
+              COSZ(1,J)=0.
+           END IF
         END IF
       END DO
 C****
 C**** LOOP OVER NON-POLAR LATITUDES
 C****
-      DO 500 J=2,JM-1
+      DO 500 J=J_0S,J_1S
       SJSD=SINJ(J)*SIND
       CJCD=COSJ(J)*COSD
       IF (SJSD+CJCD.GT.ZERO1) THEN
@@ -156,40 +173,43 @@ C****
 C**** CALCULATION FOR POLAR GRID BOXES
 C****
       DO J=1,JM,JM-1
-        SJSD=SINJ(J)*SIND
-        CJCD=COSJ(J)*COSD
-        IF (SJSD+CJCD.GT.ZERO1) THEN
-          IF (SJSD-CJCD.LT.0.) THEN
+        IF(((J .EQ. 1) .AND. (grid%HAVE_SOUTH_POLE)) .OR. 
+     *     ((J .EQ. JM) .AND. (grid%HAVE_NORTH_POLE))) THEN
+           SJSD=SINJ(J)*SIND
+           CJCD=COSJ(J)*COSD
+           IF (SJSD+CJCD.GT.ZERO1) THEN
+              IF (SJSD-CJCD.LT.0.) THEN
 C**** AVERAGE COSZ FROM DAWN TO DUSK NEAR THE POLES
-            CDUSK=-SJSD/CJCD
-            DUSK=ACOS(CDUSK)
-            SDUSK=SQRT(CJCD*CJCD-SJSD*SJSD)/CJCD
-            S2DUSK=2.*SDUSK*CDUSK
-            DAWN=-DUSK
-            SDAWN=-SDUSK
-            S2DAWN=-S2DUSK
-            ECOSZ=SJSD*(DUSK-DAWN)+CJCD*(SDUSK-SDAWN)
-            ECOSQZ=SJSD*ECOSZ+CJCD*(SJSD*(SDUSK-SDAWN)+
-     *           .5*CJCD*(DUSK-DAWN+.5*(S2DUSK-S2DAWN)))
-            COSZ(1,J)=ECOSZ/TWOPI
-            COSZA(1,J)=ECOSQZ/ECOSZ
-          ELSE
+                 CDUSK=-SJSD/CJCD
+                 DUSK=ACOS(CDUSK)
+                 SDUSK=SQRT(CJCD*CJCD-SJSD*SJSD)/CJCD
+                 S2DUSK=2.*SDUSK*CDUSK
+                 DAWN=-DUSK
+                 SDAWN=-SDUSK
+                 S2DAWN=-S2DUSK
+                 ECOSZ=SJSD*(DUSK-DAWN)+CJCD*(SDUSK-SDAWN)
+                 ECOSQZ=SJSD*ECOSZ+CJCD*(SJSD*(SDUSK-SDAWN)+
+     *                .5*CJCD*(DUSK-DAWN+.5*(S2DUSK-S2DAWN)))
+                 COSZ(1,J)=ECOSZ/TWOPI
+                 COSZA(1,J)=ECOSQZ/ECOSZ
+              ELSE
 C**** CONSTANT DAYLIGHT NEAR THE POLES
-            ECOSZ=SJSD*TWOPI
-            ECOSQZ=SJSD*ECOSZ+.5*CJCD*CJCD*TWOPI
-            COSZ(1,J)=ECOSZ/TWOPI
-            COSZA(1,J)=ECOSQZ/ECOSZ
-          END IF
-        ELSE
+                 ECOSZ=SJSD*TWOPI
+                 ECOSQZ=SJSD*ECOSZ+.5*CJCD*CJCD*TWOPI
+                 COSZ(1,J)=ECOSZ/TWOPI
+                 COSZA(1,J)=ECOSQZ/ECOSZ
+              END IF
+           ELSE
 C**** CONSTANT NIGHTIME NEAR THE POLES
-          COSZ(1,J)=0.
-          COSZA(1,J)=0.
+              COSZ(1,J)=0.
+              COSZA(1,J)=0.
+           END IF
         END IF
       END DO
 C****
 C**** LOOP OVER NON-POLAR LATITUDES
 C****
-      DO 900 J=2,JM-1
+      DO 900 J=J_0S,J_1S
       SJSD=SINJ(J)*SIND
       CJCD=COSJ(J)*COSD
       IF (SJSD+CJCD.GT.ZERO1) THEN
@@ -543,6 +563,8 @@ C     OUTPUT DATA
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : gtemp
+      USE DOMAIN_DECOMP, ONLY: grid
+      USE DOMAIN_DECOMP, ONLY: HALO_UPDATE, CHECKSUM
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
@@ -550,10 +572,15 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       COMMON/RADPAR_hybrid/U0GAS(LX,13)
 !$OMP  THREADPRIVATE(/RADPAR_hybrid/)
 
-      REAL*8, DIMENSION(IM,JM) :: COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
-      REAL*8, DIMENSION(4,IM,JM) :: SNFS,TNFS
-      REAL*8, DIMENSION(LM_REQ,IM,JM) :: TRHRS,SRHRS
-      REAL*8, DIMENSION(0:LM+LM_REQ,IM,JM) :: TRHRA,SRHRA ! for adj.frc
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+     *     COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
+      REAL*8, DIMENSION(4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+     *     SNFS,TNFS
+      REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+     *     TRHRS,SRHRS
+      REAL*8, DIMENSION(0:LM+LM_REQ,IM,
+     *     grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+     *     TRHRA,SRHRA ! for adj.frc
       REAL*8, DIMENSION(LM) :: TOTCLD
 
       INTEGER, SAVE :: JDLAST = -9
@@ -561,13 +588,27 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY,CSZ2,tauup,taudn
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi
-     *     ,QR(LM,IM,JM),CLDinfo(LM,3,IM,JM)
+     *     ,QR(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+     *     ,CLDinfo(LM,3,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8 QSAT
       LOGICAL NO_CLOUD_ABOVE
 C
-      REAL*8  RDSS(LM,IM,JM),RDMC(IM,JM), AREGIJ(7,IM,JM)
+      REAL*8  RDSS(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+     *     ,RDMC(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+     *     ,AREGIJ(7,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       INTEGER ICKERR,JCKERR,KCKERR
+      INTEGER :: I_0, I_1, J_0, J_1
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
 C
+C****
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      J_0 = grid%J_STRT
+      J_1 = grid%J_STOP
+      J_0S = grid%J_STRT_SKP
+      J_1S = grid%J_STOP_SKP
+      J_0STG = grid%J_STRT_STGR
+      J_1STG = grid%J_STOP_STGR
 C****
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
@@ -610,7 +651,7 @@ C****   total: dimrad_sv= IM*JM*(7*LM + 3*LM_REQ + 23) => RAD_COM.f
           call stop_model('RADIA: input file bad or too short',255)
         end if
 C****   Find arrays derived from P : PEdn and PK (forcing experiments)
-        do j=1,jm
+        do j=j_0,j_1
         do i=1,imaxj(j)
           pedn(LM+1,i,j) = SIGE(LM+1)*PSFMPT+PTOP
         do l=1,lm
@@ -643,7 +684,7 @@ C*********************************************************
 C****   Calculate mean strat water conc
         STRATQ=0.
         MSTRAT=0.
-        DO J=1,JM
+        DO J=J_0,J_1
           STRJ=0.
           MSTJ=0.
           DO I=1,IMAXJ(J)
@@ -666,13 +707,13 @@ C
 C**** GET THE RANDOM NUMBERS OUTSIDE PARALLEL REGIONS
 C**** but keep MC calculation seperate from SS clouds
 C**** MC clouds are considered as a block for each I,J grid point
-      DO J=1,JM                    ! complete overlap
+      DO J=J_0,J_1                    ! complete overlap
       DO I=1,IMAXJ(J)
         RDMC(I,J) = RANDU(X)
       END DO
       END DO
 C**** SS clouds are considered as a block for each continuous cloud
-      DO J=1,JM                    ! semi-random overlap
+      DO J=J_0,J_1                    ! semi-random overlap
       DO I=1,IMAXJ(J)
         NO_CLOUD_ABOVE = .TRUE.
         DO L=LM,1,-1
@@ -705,7 +746,7 @@ C****
 !$OMP*   SHARED(ITWRITE)
 !$OMP    DO SCHEDULE(DYNAMIC,2)
 !$OMP*   REDUCTION(+:ICKERR,JCKERR,KCKERR)
-      DO 600 J=1,JM
+      DO 600 J=J_0,J_1
       NL=LM+LM_REQ ; NLP=NL+1   ! radiation allows var. # of layers
 C**** Radiation input files use a 72x46 grid independent of IM and JM
 C**** (ilon,jlat) is the 4x5 box containing the center of box (i,j)
@@ -1119,7 +1160,7 @@ C****
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C****
 C       delayed accumulation to preserve order of summation
-         DO J=1,JM
+         DO J=J_0,J_1
          DO I=1,IMAXJ(J)
            JR=JREG(I,J)
            AREG(JR,J_PCLDSS)=AREG(JR,J_PCLDSS)+AREGIJ(1,I,J)
@@ -1132,7 +1173,7 @@ C       delayed accumulation to preserve order of summation
          END DO
          END DO
 C
-         DO 780 J=1,JM
+         DO 780 J=J_0,J_1
          DXYPJ=DXYP(J)
          DO L=1,LM
            DO I=1,IMAXJ(J)
@@ -1240,7 +1281,7 @@ C****
 C****
 C**** Update radiative equilibrium temperatures
 C****
-      DO J=1,JM
+      DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           DO LR=1,LM_REQ
             RQT(LR,I,J)=RQT(LR,I,J)+(SRHRS(LR,I,J)*COSZ2(I,J)
@@ -1251,7 +1292,7 @@ C****
 C****
 C**** Update other temperatures every physics time step
 C****
-  900 DO J=1,JM
+  900 DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           DO L=1,LM
             T(I,J,L)=T(I,J,L)+(SRHR(L,I,J)*COSZ1(I,J)+TRHR(L,I,J))*
@@ -1317,7 +1358,8 @@ C**** daily diagnostics
       implicit none
       integer, parameter:: jma=18,lma=24
       integer m,iu,jm,lm,j,j1,j2,l,ll,ldn(lm),lup(lm)
-      real*8 PLB(lm+1),dH2O(jm,lm,12),dglat(jm)
+      real*8 PLB(lm+1),dH2O(jm,lm,12)
+     *     ,dglat(jm)
       real*4 pb(0:lma+1),h2o(jma,0:lma),xlat(jma),z(lma),dz(0:lma)
       character*100 title
       real*4 pdn,pup,w1,w2,dh,fracl
