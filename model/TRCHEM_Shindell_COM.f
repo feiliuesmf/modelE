@@ -415,7 +415,7 @@ C
       REAL*8, DIMENSION(2*(LS1-1))      :: O3_FASTJ
       REAL*8, DIMENSION(19)             :: COlat
       REAL*8, DIMENSION(n_igas,LM)      :: dest, prod
-      REAL*8, DIMENSION(NTM)            :: mass2vol, bymass2vol, F0
+      REAL*8, DIMENSION(NTM)            :: mass2vol,bymass2vol,F0,HSTAR
       REAL*8, DIMENSION(IM,JM,LM,ntm)   :: change
       REAL*8, DIMENSION(NLFASTJ,NLFASTJ):: WTAU
       REAL*8, DIMENSION(IM,(JM-3)/3)    :: avg67 
@@ -454,7 +454,7 @@ C Law constants? In any case, the ones below are in mole/(L atm). The
 C conversion to mole/Joule, which I used in wet dep is:
 C  mole/Joule = mole/(Pa*m3) X (101325. Pa/atm) X (1.E-6 m3/cm3)
 C  X (1.E3 cm3 / L) = mole/(L*atm)           GSF 5/22/02
-      DATA HSTAR/1.D-2,1.D-2,0.D0,  1.D5,1.D5,3.D2,  6.D3,0D0.,0D0.,
+      DATA HSTAR/1.D-2,1.D-2,0.D0,  1.D5,1.D5,3.D2,  6.D3,0.D0,0.D0,
      &         0.D0,3.68D0,1.3D-2,  0.D0,0.D0,0.D0/    
 C
       END MODULE TRCHEM_Shindell_COM
