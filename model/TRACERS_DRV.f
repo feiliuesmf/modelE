@@ -3845,6 +3845,40 @@ c ss2 optical thickness
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
+C**** Additional Special IJ diagnostics 
+      do L=1,LTOP
+        k = k + 1
+          ijs_dms_dens(L)=k
+          ijts_index(k) = ntm
+          ia_ijts(k) = ia_src
+          write(lname_ijts(k),'(a20,i2.2)') 'DMS concentration L=',L
+          write(sname_ijts(k),'(a8,i2.2)') 'DMS_con_',L
+          ijts_power(k) = 6.
+          units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
+      do L=1,LTOP
+       k = k + 1
+          ijs_so2_dens(L)=k
+          ijts_index(k) = ntm
+          ia_ijts(k) = ia_src
+          write(lname_ijts(k),'(a20,i2.2)') 'SO2 concentration L=',L
+          write(sname_ijts(k),'(a8,i2.2)') 'SO2_con_',L
+          ijts_power(k) = 6.
+          units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
+      do L=1,LTOP
+        k = k + 1
+          ijs_so4_dens(L)=k
+          ijts_index(k) = ntm
+          ia_ijts(k) = ia_src
+          write(lname_ijts(k),'(a20,i2.2)') 'SO4 concentration L=',L
+          write(sname_ijts(k),'(a8,i2.2)') 'SO4_con_',L
+          ijts_power(k) = 6.
+          units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
 #endif
 
 #ifdef TRACERS_DUST
@@ -5815,6 +5849,10 @@ C**** Tracer specific call for CH4
 
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Daily tracer-specific calls to read 2D and 3D sources:
+          if (COUPLED_CHEM.ne.1) then
+          call get_dms_offline   !not applied directly;used in chemistry.
+          call get_so2_offline   !not applied directly;used in chemistry.
+          endif
       do n=1,ntm
         select case (trname(n))
         case ('NOx')
@@ -6748,3 +6786,62 @@ C**** no fractionation for ice evap
       RETURN
       END SUBROUTINE GET_EVAP_FACTOR
 #endif
+      SUBROUTINE GET_SULF_GAS_RATES
+!@sum  GET_SULF_GAS_RATES calculation of rate coefficients for
+!@+    gas phase sulfur oxidation chemistry 
+!@auth Bell
+!@ver  1.0
+        USE MODEL_COM, only: im,jm,lm,t
+        USE DYNAMICS, only: pmid,am,pk,LTROPO
+        USE GEOM, only: dxyp,imaxj
+        USE TRACER_COM, only: rsulf1,rsulf2,rsulf3,rsulf4 
+
+      real*8 ppres,te,tt,mm,dmm,rk4,ek4
+ 
+C Initialise
+       rsulf1(:,:,:)=0.0
+       rsulf2(:,:,:)=0.0
+       rsulf3(:,:,:)=0.0
+       rsulf4(:,:,:)=0.0
+
+C Reactions
+C***1.DMS + OH -> 0.75SO2 + 0.25MSA
+C***2.DMS + OH -> SO2
+C***3.DMS + NO3 -> HNO3 + SO2
+C***4.SO2 + OH -> SO4 + HO2
+
+      do l=1,LM
+      do j=1,jm
+      do i=1,imaxj(j)
+c
+      if(l.le.ltropo(i,j)) then
+
+C Calculate effective temperature
+
+      ppres=pmid(l,i,j)*9.869d-4 !in atm
+      te=pk(l,i,j)*t(i,j,l)
+      mm=am(l,i,j)*dxyp(j)
+      tt = 1.d0/te
+
+c DMM is number density of air in molecules/cm3
+      dmm=ppres/(.082d0*te)*6.02d20
+
+       rsulf1(i,j,l) = 1.7d-22*dmm*0.21d0*1.d-20*exp(7810.d0*tt)/
+     * (1.d0+5.5d-20*exp(7460.d0*tt)*dmm*0.21d0*1.d-11)
+
+       rsulf2(i,j,l) = 9.6d-12*exp(-234.d0*tt)
+
+       rsulf3(i,j,l) = 1.9d-13*exp(520.d0*tt)
+
+       rk4 = 4.0d-20 *((tt*300.d0)**(3.3d0))*dmm*1.d-11
+       ek4 = 1.d0/(1.d0 + ((log10(rk4/2.0d-12))**2.d0))
+          
+       rsulf4(i,j,l) = (rk4/(1.d0 + rk4/2.0d-12))*(0.45d0**ek4)
+
+       endif
+
+        end do
+        end do
+        end do
+
+      END SUBROUTINE GET_SULF_GAS_RATES

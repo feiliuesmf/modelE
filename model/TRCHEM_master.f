@@ -21,7 +21,8 @@ c
      &                  n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,n_Isoprene,
      &                  n_AlkylNit,n_Alkenes,n_Paraffin,ntm_chem,
      &                  n_DMS, n_MSA, n_SO2,n_SO4,n_H2O2_s,
-     &                  oh_live,no3_live,nChemistry,nStratwrite
+     &                  oh_live,no3_live,nChemistry,nStratwrite,
+     &                  rsulf1,rsulf2,rsulf3,rsulf4
 #ifdef SHINDELL_STRAT_CHEM
      &                  ,n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,n_BrOx,
      &                  n_BrONO2,n_CFC,n_HOBR
@@ -114,6 +115,10 @@ C++++ First, some INITIALIZATIONS :
       bydtsrc = 1.d0/dtsrc
       BYFJM=1.d0/float(JM)
       PRES2(:)=SIG(:)*(PSF-PTOP)+PTOP
+
+C Calculation of gas phase reaction rates for sulfur chemistry
+      CALL GET_SULF_GAS_RATES
+
 C
 c Set "chemical time step". Really this is a method of applying only
 c a fraction of the chemistry change to the tracer mass for the first
@@ -219,6 +224,21 @@ c
          y(igas,L)=trm(I,J,L,igas)*y(nM,L)*mass2vol(igas)*
      *   BYDXYP(J)*BYAM(L,I,J)
        enddo
+
+C Concentrations of DMS and SO2 for sulfur chemistry 
+       if (coupled_chem.eq.1) then
+         ydms(i,j,l)=trm(i,j,l,n_dms)*y(nM,L)*(28.0D0/62.0D0)*
+     &   BYDXYP(J)*BYAM(L,I,J)
+         yso2(i,j,l)=trm(i,j,l,n_so2)*y(nM,L)*(28.0D0/64.0D0)*
+     &   BYDXYP(J)*BYAM(L,I,J)
+       endif
+
+        if (coupled_chem.eq.0) then
+C Convert from pptv to molecule cm-3
+          ydms(i,j,l)=dms_offline(i,j,l)*1.0D-12*y(nM,L)
+          yso2(i,j,l)=so2_offline(i,j,l)*1.0D-12*y(nM,L)
+       endif
+
 c
 c      If desired, fix the methane concentration used in chemistry
        if(fix_CH4_chemistry.eq.1) THEN
@@ -528,6 +548,8 @@ c        calculate change in NO3:
          dNO3=rr(7,L)*y(nNO2,L)*y(n_Ox,L)-(rr(24,L)*y(nNO2,L)+
      &        2*rr(25,L)*yNO3(I,J,L))*yNO3(I,J,L) -(rr(36,L)
      &        *y(n_Alkenes,L)+rr(32,L)*y(n_Isoprene,L))*yNO3(I,J,L)
+C DMS+NO3->
+     &    -ydms(i,j,l)*rsulf3(i,j,l)*yNO3(I,J,L)
 #ifdef SHINDELL_STRAT_CHEM
          dNO3=dNO3-(rr(28,L)*y(n_HCHO,L)+rr(99,L)*y(nNO2,L))
      &        *yNO3(I,J,L)+rr(92,L)*y(n_N2O5,L)
