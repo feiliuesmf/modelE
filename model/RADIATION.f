@@ -2382,7 +2382,8 @@ C**** Prior to first year of data, cycle through first year of data
         end do
       end if
 
-      if(IY.LE.1) then ! READ strat O3 time trend for strat O3 interpol.
+      if(IY.LE.1.and.nfo3.gt.1) then
+                       ! READ strat O3 time trend for strat O3 interpol.
         call openunit (OTFILE,ifile,qbinary)
         READ (IFILE) OTREND    ! strat O3 time-trend OTREND(JM,18,2412)
         call closeunit (ifile)
