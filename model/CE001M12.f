@@ -16,6 +16,7 @@ C**** Subsid only works on non-plume portion of column (properly!)
       USE SOMTQ_COM
       USE RANDOM
       USE GEOM
+      USE PBLCOM, only : tsavg
       USE DAGCOM, only : aj,bj,cj,dj,aij,ajl,ail,adaily,jreg
       USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold
       
@@ -1492,7 +1493,7 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
       IF(LHX.EQ.LHS) RH00(L)=U00
       IF(L.EQ.1) THEN
         HDEP=AIRM(L)*TL(L)*RGAS/(1000.*GRAV*PL(L))
-        TS=BLDATA(I,J,2)
+        TS=TSAVG(I,J)
         RH00(L)=1.-9.8d0*LHE*HDEP/(461.5d0*TS*TS)
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF
@@ -1500,7 +1501,7 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
         HDEP=0.
         DO 216 LN=L,1,-1
   216   HDEP=HDEP+AIRM(LN)*TL(LN)*RGAS/(1000.*GRAV*PL(LN))
-        TS=BLDATA(I,J,2)
+        TS=TSAVG(I,J)
         RH00(L)=1.-9.8d0*LHE*HDEP/(461.5d0*TS*TS)
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF

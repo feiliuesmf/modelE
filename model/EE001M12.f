@@ -30,7 +30,8 @@ C****
      &    ZMIXE=>Z1,CN=>CDN,P1,PBLP=>PPBL,
      &    TGPASS=>TG,TKPASS=>T1,VGM=>VG,EDDY
       USE CLOUDS, only : PREC,TPREC
-      USE SOCPBL, only : ipbl,pbl,zgs
+      USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
+      USE SOCPBL, only : zgs
       USE DAGCOM, only : aijg,aij,tsfrez,tdiurn,bj,dj,adaily,jreg
       USE DYNAMICS, only : pmid,pk,pek,pedn
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -39,17 +40,15 @@ C****
       COMMON/WORK2/UT(IM,JM,LM),VT(IM,JM,LM),DU1(IM,JM),
      *  DV1(IM,JM)
       COMMON/WORK3/E0(IM,JM,4),E1(IM,JM,4),EVAPOR(IM,JM,4),
-     *  TGRND(IM,JM,4),BLTEMP(IM,JM,8)
+     *  TGRND(IM,JM,4)
          COMMON/oldDAG/GDEEP(IM,JM,3)
-      COMMON/RDATA/ROUGHL(IM,JM)
 C****
       COMMON /WORKLS/PRCSS(IM,JM)
 C**** Interface to PBL
-      COMMON /PBLPAR/ZS1,PIJ,PSK,TGV,TKV,THV1,QG,HEMI,
-     2               DTSURF,JVPO,IM1,POLE
+      COMMON /PBLPAR/ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
 
       COMMON /PBLOUT/US,VS,WS,TSV,QSRF,PSI,DBL,EDVISC,EDS1,
-     2               USTAR,PPBL,CDM,CDH,CDQ,UG,VG,WG,ZMIX
+     2               PPBL,UG,VG,WG,ZMIX
 
       LOGICAL POLE
       DATA STBO/.5672573E-7/    !SHV/0./,SHW/4185./,SHI/2060./,
@@ -87,17 +86,6 @@ C****    22-27  HEAT CONTENT OF VEGETATED SOIL LAYER 1-6 (J M-2)
 C****       28  SNOW DEPTH OVER BARE SOIL (M)
 C****       29  SNOW DEPTH OVER VEGETATED SOIL (M)
 C****
-C**** BLDATA 1  COMPOSITE SURFACE WIND MAGNITUDE (M/S)
-C****        2  COMPOSITE SURFACE AIR TEMPERATURE (K)
-C****        3  COMPOSITE SURFACE AIR SPECIFIC HUMIDITY (1)
-C****        4  LAYER TO WHICH DRY CONVECTION MIXES (1)
-C****        5  MIXED LAYER DEPTH (Z1O NOT YET PART OF RESTART FILE)
-C****        6  COMPOSITE SURFACE U WIND
-C****        7  COMPOSITE SURFACE V WIND
-C****        8  COMPOSITE SURFACE MOMENTUM TRANSFER (TAU)
-C****
-C**** ROUGHL    LOG(30./ROUGHNESS LENGTH) (LOGARITHM TO BASE 10)
-C****
       IF(IFIRST.EQ.0) GO TO 30
       IFIRST=0
 
@@ -130,12 +118,10 @@ C****
 C**** CONDITIONS AT THE SOUTH POLE
       IF(J.EQ.1) THEN
          POLE = .TRUE.
-         JVPO=2
       ENDIF
 C**** CONDITIONS AT THE NORTH POLE
       IF(J.EQ.JM) THEN
          POLE=.TRUE.
-         JVPO=JM
       ENDIF
 C**** ZERO OUT SURFACE DIAGNOSTICS WHICH WILL BE SUMMED OVER LONGITUDE
   100    BTRHDT=0.
@@ -266,8 +252,11 @@ C**** LOOP OVER GROUND TIME STEPS
       TGV=TG*(1.+QG*RVX)
 C***********************************************************************
 C***
-      CALL PBL(I,J,ITYPE)
+      CALL PBL(I,J,ITYPE,PTYPE)
 C***
+      CDM = cmgs(i,j,itype)
+      CDH = chgs(i,j,itype)
+      CDQ = cqgs(i,j,itype)
 C***********************************************************************
 C**** CALCULATE QS
          dhgs=(zmix-zgs)*cdh*ws
@@ -361,6 +350,7 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       WSS=WSS+WS*PTYPE
       TSS=TSS+TS*PTYPE
       QSS=QSS+QS*PTYPE
+      QSAVG(I,J)=QSAVG(I,J)+QSS
       TAUS=TAUS+CDM*WS*WS*PTYPE
          QSATS=QSAT(TS,PS,ELHX)
          RTAUS=RTAUS+RCDMWS*WS*PTYPE
@@ -418,16 +408,11 @@ C****   IMPLICIT TIME STEPS
 C****
 C**** UPDATE SURFACE AND FIRST LAYER QUANTITIES
 C****
- 5000 BLDATA(I,J,1)=WSS+BLTEMP(I,J,1)
-      BLDATA(I,J,2)=TSS+BLTEMP(I,J,2)
-      BLDATA(I,J,3)=QSS+BLTEMP(I,J,3)
-      BLDATA(I,J,6)=USS+BLTEMP(I,J,6)
-      BLDATA(I,J,7)=VSS+BLTEMP(I,J,7)
-      BLDATA(I,J,8)=TAUS+BLTEMP(I,J,8)
-         TDIURN(I,J,5)=TDIURN(I,J,5)+(BLDATA(I,J,2)-TF)
-         IF(BLDATA(I,J,2).GT.TDIURN(I,J,6)) TDIURN(I,J,6)=BLDATA(I,J,2)
-C        IF(BLDATA(I,J,2).GT.AIJ(I,J,76)) AIJ(I,J,76)=BLDATA(I,J,2)
-C        IF(BLDATA(I,J,2).LT.AIJ(I,J,77)) AIJ(I,J,77)=BLDATA(I,J,2)
+ 5000 CONTINUE
+         TDIURN(I,J,5)=TDIURN(I,J,5)+(TSAVG(I,J)-TF)
+         IF(TSAVG(I,J).GT.TDIURN(I,J,6)) TDIURN(I,J,6)=TSAVG(I,J)
+C        IF(TSAVG(I,J).GT.AIJ(I,J,76)) AIJ(I,J,76)=TSAVG(I,J)
+C        IF(TSAVG(I,J).LT.AIJ(I,J,77)) AIJ(I,J,77)=TSAVG(I,J)
       IF(PEARTH.LE.0.)  GO TO 6000
 C****
 C**** ACCUMULATE DIAGNOSTICS

@@ -863,6 +863,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE RANDOM
       USE CLOUDS, only : TAUSS,TAUMC,SVLHX,RHSAV,SVLAT,CLDSAV,
      *     CLDSS,CLDMC,CSIZE
+      USE PBLCOM, only : wsavg,tsavg
       USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,ail,ajl,asjl,adaily
       USE DYNAMICS, only : pk,pedn
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -872,7 +873,6 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *  TRHRS(IM,JM,3),SRHRS(IM,JM,3),ALB(IM,JM,9)
       COMMON/WORK2c/ TOTCLD(LM)
 
-      COMMON/RDATA/ROUGHL(IM,JM)
       DIMENSION COE(LM+3)
       LOGICAL POLE
 c      DATA TF/273.16/
@@ -896,9 +896,6 @@ C****       11  AGE OF SNOW OVER EARTH (DAYS)
 C****       12  LAND ICE SNOW AMOUNT (KG/M**2)
 C****       13  LAND ICE TEMPERATURE OF FIRST LAYER (C)
 C****
-C**** BLDATA 1  COMPOSITE SURFACE WIND MAGNITUDE (M/S)
-C****        2  COMPOSITE SURFACE AIR TEMPERATURE (K)
-C****        5  MIXED LAYER DEPTH (Z1O NOT YET PART OF RESTART FILE)
 C****
 C**** VDATA  1-11 RATIOS FOR THE 11 VEGETATION TYPES (1)
 C****
@@ -1187,7 +1184,7 @@ C****
       TGOI=GDATA(I,J,3)+TF
       TGLI=GDATA(I,J,13)+TF
       TGE=GDATA(I,J,4)+TF
-      TS=BLDATA(I,J,2)
+      TS=TSAVG(I,J)
       SNOWOI=GDATA(I,J,1)
       SNOWLI=GDATA(I,J,12)
       SNOWE=GDATA(I,J,2)
@@ -1197,7 +1194,7 @@ C****
       WEARTH=(GDATA(I,J,5)+GDATA(I,J,6))/(WFCS(I,J)+1.D-20)
       DO 430 K=1,11
   430 PVT(K)=VDATA(I,J,K)
-      WS=BLDATA(I,J,1)
+      WS=WSAVG(I,J)
 C-OLD FGOLDU(2)=XFRADJ*(1.-PEARTH)
 C-OLD FGOLDU(3)=XFRADJ*PEARTH
       ILON=NINT(.5+(I-.5)*72./IM)
@@ -1468,6 +1465,7 @@ C****
      *     ,rhow,rhoi,shv,shw,shi
       USE E001M12_COM
       USE GEOM
+      USE PBLCOM, only : tsavg
       USE DAGCOM, only : aj,bj,cj,dj,aij,jreg
       IMPLICIT REAL*8 (A-H,O-Z)
 C*
@@ -1519,11 +1517,11 @@ C***  Make 50 day mean of surface air temperature
 C***    for lake ice extent calculation
 C*
       FACT_T50 = 1.-1./(24.*50.)
-      FACT_BLDATA = 1./(24.*50.)
+      FACT_TSAVG = 1./(24.*50.)
       DO J = 1,JM
         DO I = 1,IM
           T50(I,J) = T50(I,J)*FACT_T50
-     *             + (BLDATA(I,J,2)-273.16)*FACT_BLDATA
+     *             + (TSAVG(I,J)-273.16)*FACT_TSAVG
         END DO
       END DO
 C*

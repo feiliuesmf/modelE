@@ -343,6 +343,7 @@ C****
       USE DYNAMICS, only : pk
       USE GEOM
       USE RADNCB, only : rqt
+      USE PBLCOM, only : tsavg
       USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,apj,ajl,asjl,ail
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION U(IM,JM,LM),V(IM,JM,LM),T(IM,JM,LM),P(IM,JM),Q(IM,JM,LM)
@@ -510,7 +511,7 @@ C    *  **GBYRB-P1000)
       AIJ(I,J,29)=AIJ(I,J,29)+POICE+PLICE+PSNOW
 C     AIJ(I,J,33)=AIJ(I,J,33)+(TS-273.16)
       AIJ(I,J,38)=AIJ(I,J,38)+((P(I,J)+PTOP)*(1.+BBYG*ZATMO(I,J)/
-     *  BLDATA(I,J,2))**GBYRB-P1000)
+     *  TSAVG(I,J))**GBYRB-P1000)
   120 CONTINUE
       AJ(J,22)=AJ(J,22)+AT1
       BJ(J,22)=BJ(J,22)+BT1
@@ -6606,13 +6607,14 @@ C**** WRITTEN TO THE BEGINNING OF UNIT 16.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
+      USE PBLCOM, only : tsavg
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK1/SLP(IM,JM)
       BBYG=.0065/GRAV
       GBYRB=GRAV/(.0065*RGAS)
       DO 10 J=1,JM
       DO 10 I=1,IM
-   10 SLP(I,J)=(P(I,J)+PTOP)*(1.+BBYG*ZATMO(I,J)/BLDATA(I,J,2))**GBYRB
+   10 SLP(I,J)=(P(I,J)+PTOP)*(1.+BBYG*ZATMO(I,J)/TSAVG(I,J))**GBYRB
       WRITE (16) SNGL(TAU),((SNGL(SLP(I,J)),I=1,IM),J=1,JM),SNGL(TAU)
       ENDFILE 16
       BACKSPACE 16

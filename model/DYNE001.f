@@ -848,6 +848,7 @@ C****
       USE E001M12_COM
       USE SOMTQ_COM
 c      USE CLOUDS, only : WM
+      USE PBLCOM, only : tsavg
 c      IMPLICIT REAL*8 (A-H,O-Z)
       IMPLICIT NONE
       REAL*8 X,XS,Y
@@ -869,7 +870,7 @@ C****
       DO 120 I=1,IM
          PSUMO(J)=PSUMO(J)+P(I,J)
          POLD(I,J)=P(I,J)      ! Save old pressure
-      Y(I,J)=(1.+BBYG*ZATMO(I,J)/BLDATA(I,J,2))**GBYRB
+      Y(I,J)=(1.+BBYG*ZATMO(I,J)/TSAVG(I,J))**GBYRB
   120 X(I,J)=(P(I,J)+PTOP)*Y(I,J)
       CALL SHAP1D (8)
       DO 150 J=2,JM-1

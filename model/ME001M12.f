@@ -23,8 +23,8 @@ C**** f90 changes
       USE RADNCB, only : RQT,SRHR,TRHR,FSF
       USE CLOUDS, only : TTOLD,QTOLD,SVLHX,RHSAV
      *     ,CLDSAV,MSTCNV,CONDSE
-      USE SOCPBL, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
-     *     cq=>cqgs,ipbl
+      USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
+     *     cq=>cqgs,ipbl,bldata
       USE DAGCOM, only : aj,kacc,aij,aijg,tsfrez,tdiurn,keynr,kdiag
       USE DYNAMICS, only : DYNAM,FILTER,CALC_AMPK
 
@@ -35,7 +35,6 @@ CBUDG*  QTABLE(27,9,3),EHIST(20),KEYDS(42)
             COMMON/WORKO/OA(IM,JM,12)
 
       PARAMETER (XSI1=0.5, XSI2=0.5, XSI3=0.5, XSI4=0.5)
-      COMMON/RDATA/ROUGHL(IM,JM)
       CHARACTER CYEAR*4,CMMND*80
       CHARACTER*8 :: LABSSW,OFFSSW = 'XXXXXXXX'
       CHARACTER*80 TITLE_T
@@ -526,9 +525,9 @@ C****
       USE RANDOM
       USE RADNCB, only : RQT,SRHR,TRHR,FSF
       USE CLOUDS, only : TTOLD,QTOLD,SVLHX,RHSAV,CLDSAV
-      USE SOCPBL
+      USE PBLCOM
      &     , only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq=>cqgs
-     *     ,ipbl
+     &  ,ipbl,bldata,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : aj,kacc,tsfrez,tdiurn,kdiag,keynr,jreg
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION JC1(100),CLABEL1(39),RC1(161)
@@ -538,7 +537,6 @@ C****
       COMMON/WORK1/NLREC(256),SNOAGE(IM,JM,2)
 
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE.
-      COMMON/RDATA/ROUGHL(IM,JM)
 
       CHARACTER*8 RECORD(10),NLREC*80,TITREG*80,NAMREG(23)
       COMMON/TNKREG/TITREG,NAMREG,KREG
@@ -628,7 +626,7 @@ C****
       DO 120 J=1,JM
       DO 120 I=1,IM
       P(I,J)=PSF-PTOP
-      BLDATA(I,J,2)=TEMP
+      TSAVG(I,J)=TEMP
       DO 120 L=1,LM
       U(I,J,L)=0.
       V(I,J,L)=0.
@@ -656,7 +654,7 @@ C****
       DO L=1,LM
       CALL READT (9,0,Q(1,1,L),IM*JM,Q(1,1,L),1)       ! Q
       END DO
-      CALL READT (9,0,BLDATA(1,1,2),IM*JM,BLDATA(1,1,2),1)  ! Tsurf
+      CALL READT (9,0,TSAVG(1,1),IM*JM,TSAVG(1,1),1)  ! Tsurf
       REWIND 9
 C**** new: GDATA(8) UNUSED,GDATA(9-11) SNOW AGE OVER OCN.ICE,L.ICE,EARTH
   210 READ(7,ERR=830) GDATA,GHDATA,(ODATA(I,1,1),I=1,IM*JM*2)
@@ -668,30 +666,30 @@ C**** Check whether a proper TAUI is given - initialize TAU=model time
       END IF
       TAU=TAUI
       TAUX=TAUI
-      BLDATA(1,1,1)=SQRT(U(1,2,1)*U(1,2,1)+V(1,2,1)*V(1,2,1))
-      BLDATA(1,1,6)=U(1,2,1)
-      BLDATA(1,1,7)=V(1,2,1)
-      BLDATA(1,JM,1)=SQRT(U(1,JM,1)*U(1,JM,1)+V(1,JM,1)*V(1,JM,1))
-      BLDATA(1,JM,6)=U(1,JM,1)
-      BLDATA(1,JM,7)=V(1,JM,1)
+      WSAVG(1,1)=SQRT(U(1,2,1)*U(1,2,1)+V(1,2,1)*V(1,2,1))
+      USAVG(1,1)=U(1,2,1)
+      VSAVG(1,1)=V(1,2,1)
+      WSAVG(1,JM)=SQRT(U(1,JM,1)*U(1,JM,1)+V(1,JM,1)*V(1,JM,1))
+      USAVG(1,JM)=U(1,JM,1)
+      VSAVG(1,JM)=V(1,JM,1)
       DO 225 J=2,JM-1
       IM1=IM
       DO 225 I=1,IM
-      BLDATA(I,J,1)=.25*SQRT(
+      WSAVG(I,J)=.25*SQRT(
      *   (U(IM1,J,1)+U(I,J,1)+U(IM1,J+1,1)+U(I,J+1,1))**2
      *  +(V(IM1,J,1)+V(I,J,1)+V(IM1,J+1,1)+V(I,J+1,1))**2)
-      BLDATA(I,J,6)=.25*(U(IM1,J,1)+U(I,J,1)+U(IM1,J+1,1)+U(I,J+1,1))
-      BLDATA(I,J,7)=.25*(V(IM1,J,1)+V(I,J,1)+V(IM1,J+1,1)+V(I,J+1,1))
+      USAVG(I,J)=.25*(U(IM1,J,1)+U(I,J,1)+U(IM1,J+1,1)+U(I,J+1,1))
+      VSAVG(I,J)=.25*(V(IM1,J,1)+V(I,J,1)+V(IM1,J+1,1)+V(I,J+1,1))
   225 IM1=I
       CDM=.001
       DO 260 J=1,JM
       DO 260 I=1,IM
 C**** SET SURFACE MOMENTUM TRANSFER TAU0
-      BLDATA(I,J,8)=CDM*BLDATA(I,J,1)**2
+      TAUAVG(I,J)=CDM*WSAVG(I,J)**2
 C**** SET LAYER THROUGH WHICH DRY CONVECTION MIXES TO 1
-      BLDATA(I,J,4)=1.
+      DCLEV(I,J)=1.
 C**** SET SURFACE SPECIFIC HUMIDITY FROM FIRST LAYER HUMIDITY
-      BLDATA(I,J,3)=Q(I,J,1)
+      QSAVG(I,J)=Q(I,J,1)
 C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
       DO 230 K=1,3
   230 RQT(I,J,K)=T(I,J,LM)
@@ -723,7 +721,7 @@ C**** INITIALIZE TSFREZ
       DO 285 ITYPE=1,4
       DO 285 J=1,JM
       DO 285 I=1,IM
-  285 BLDATA(I,J,8+ITYPE)=BLDATA(I,J,1)*SQRT(CDM)
+  285 USTAR(I,J,ITYPE)=WSAVG(I,J)*SQRT(CDM)
 CALT  GO TO 327       ! possibility to make tracer slopes more realistic
       GO TO 350
 C****
@@ -911,7 +909,10 @@ C*       Atmospheric topography
 C*       adjust to give geopotential height
       ZATMO = ZATMO*GRAV
       REWIND 26
-      if(iniPBL) call pblini
+c
+      iunit=19 ! file containing roughness length data
+      call pblini(iniPBL,iunit)
+c
 C!!!! Added 09/07/95 -rar-
 C**** READ IN MAXIMUM MIXED LAYER DEPTHS FOR PREDICTED OCEAN RUNS
       IF(KOCEAN.GT.0) THEN
@@ -1022,9 +1023,9 @@ C****
       USE GEOM
       USE SLE001
      &  , only : cosday=>cost, sinday=>sint
-      USE SOCPBL
+      USE PBLCOM
      &     , only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
-     *     cq=>cqgs,ipbl
+     *     cq=>cqgs,ipbl,bldata
       USE DYNAMICS, only : CALC_AMPK
 
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -1364,6 +1365,7 @@ C****
       USE GEOM
       USE GHYCOM
      &  , only : ghdata
+      USE PBLCOM, only : bldata
       IMPLICIT REAL*8 (A-H,O-Z)
       IF (IDACC(11).LE.0) RETURN
 C**** Check all prog. arrays for Non-numbers

@@ -9,28 +9,11 @@
 C --------------------------------------------------------------------
 C     ABL model using second order closure model -- Greg Hartke
 C --------------------------------------------------------------------
-      USE E001M12_COM, only : im,jm,lm
       IMPLICIT NONE
 
       integer, parameter :: n=8  !@param n  no of pbl. layers
 
-!@var uabl boundary layer profile for zonal wind
-!@var vabl boundary layer profile for meridional wind
-!@var tabl boundary layer profile for temperature
-!@var qabl boundary layer profile for humidity
-      real*8, save, dimension(n,im,jm,4) :: uabl,vabl,tabl,qabl
-!@var eabl boundary layer profile for turbulent KE (calc. on secondary grid)
-      real*8, save, dimension(n,im,jm,4) :: eabl
-
-!@var cmgs drag coefficient (dimensionless surface momentum flux)
-!@var chgs Stanton number   (dimensionless surface heat flux)
-!@var cqgs Dalton number    (dimensionless surface moisture flux)
-      real*8, save, dimension(im,jm,4) :: cmgs,chgs,cqgs
-
-!@var ipbl flag for whether pbl properties were calculated at last timestep
-      integer, save, dimension(im,jm,4) :: ipbl
-
-      real*8, save, dimension(im,jm) ::  dpdxr,dpdyr,phi,dpdxr0,dpdyr0
+      real*8, save ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
       real*8, save, dimension(n) :: sub,dia,sup,rhs,rhs1
 
@@ -44,232 +27,17 @@ C**** boundary layer parameters
 C**** model related constants (should be taken directly from E001M12_COM)
       real*8, parameter :: grav=9.81   !@var grav gravitational accel.
       real*8, save :: omega2          !@var omega2 2*omega (s^-1)
-      integer, parameter ::  iq1=im/4+1,iq2=im/2+1,iq3=3*im/4+1
 
 c      real*8 expbyk
 
+c@var u,v,t,q,e local boundary layer profiles
+      real*8, dimension(n) :: u,v,t,q
+      real*8, dimension(n-1) :: e
+
+c@var bgrid log-linear gridding parameter
+      real*8, save :: bgrid
+
       CONTAINS
-
-      SUBROUTINE PBL(I,J,ITYPE)
-C --------------------------------------------------------------------
-C     Variable definitions:
-C
-C The variables passed thru the common block PBLPAR are parameters
-C  necessary to do the PBL solution. These variables have been passed
-C  from subroutine SURFCE or subroutine EARTH. The variables are:
-C
-C     ZGS    = height of the surface layer which is 10 m everywhere.
-C     ZS1    = height of the first model layer (m)
-C     PIJ    = surface pressure at gridpoint (i,j) (mb)
-C     PSK    = surface pressure to the power KAPA
-C     TGV    = virtual potential temperature of the ground (K)
-C     TKV    = virtual potential temperature of first model layer (K)
-C     THV1   = virtual temperature of the first model layer (K)
-C     HEMI   = 1 for northern hemisphere, -1 for southern hemisphere
-C     SHA    = specific heat at constant pressure (RGAS/KAPA)
-C     OMEGA2 = 2.*OMEGA where OMEGA is the angular frequency of
-C              the earth (sec)
-C     JVPO   = 2 at south pole, JM at north pole, otherwise not used
-C     IQ1    = IM/4+1
-C     IQ2    = IM/2+1
-C     IQ3    = 3*IM/4+1
-C     IM1    = I except at the poles, where it equals IM
-C     POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
-C
-C The quantities passed thru common block PBLOUT constitute the output
-C  from this PBL subroutine. The variables are:
-C
-C     US     = x component of surface wind, postive eastward (m/sec)
-C     VS     = y component of surface wind, positive northward (m/sec)
-C     WS     = magnitude of the surface wind (m/sec)
-C     TSV    = virtual potential temperature of the surface (K)
-C     QS     = surface value of the specific moisture
-C     PSI    = difference in direction between geostrophic and surface
-C              winds (radians)
-C     DBL    = boundary layer height (m)
-C     KM     = momentum transport coefficient charavterizing the
-C              boundary layer (m**2/sec)
-C     KH     = heat transport coefficient evaluated at ZGS (m**2/sec)
-C     USTAR  = friction speed (square root of momentum flux) (m/sec)
-C     PPBL   = pressure at DBL (mb)
-C     CM     = drag coefficient (dimensionless surface momentum flux)
-C     CH     = Stanton number   (dimensionless surface heat flux)
-C     CQ     = Dalton number    (dimensionless surface moisture flux)
-C     UG     = x component of the geostrophic wind, positive eastward
-C              (m/sec)
-C     VG     = y component of the geostrophic wind, positive northward
-C              (m/sec)
-C     WG     = magnitude of the geostrophic wind (m/sec)
-C
-C --------------------------------------------------------------------
-      USE CONSTANT, only :  rgas,grav
-      USE E001M12_COM
-     &     , only : IM,JM, bldata, t,q,u,v,p,ptop,ls1,psf
-      USE DYNAMICS, only : pmid,pk,pedn
-      
-      IMPLICIT NONE
-
-      INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
-      INTEGER, INTENT(IN) :: ITYPE  !@var ITYPE surface type
-C
-C        ocean and ocean ice are treated as rough surfaces
-C        roughness lengths from Brutsaert for rough surfaces
-C
-
-      REAL*8, DIMENSION(IM,JM) :: ROUGHL
-      COMMON/RDATA/ROUGHL
-
-      REAL*8 KMSURF,KHSURF
-      LOGICAL POLE
-
-      REAL*8 ZS1,PIJ,PSK,TGV,TKV,THV1,QG,HEMI,DTSURF
-      REAL*8 US,VS,WS,TSV,QS,PSI,DBL,KM,KH,USTAR,PPBL,
-     2               CM,CH,CQ,UG,VG,WG,ZMIX
-
-      COMMON /PBLPAR/ZS1,PIJ,PSK,TGV,TKV,THV1,QG,HEMI,
-     2               DTSURF,JVPO,IM1,POLE
-c      COMMON /PBLPAR/ZS1,PIJ,PSK,TGV,TKV,THV1,QG,HEMI,DTSURF,
-c     *     JVPO,IM1,POLE
-
-      COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,USTAR,PPBL,
-     2               CM,CH,CQ,UG,VG,WG,ZMIX
-
-      REAL*8, PARAMETER ::  EPSLON=1.D-20,radian=3.141592654/180.
-      REAL*8 Z0M,ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,phi,coriol
-      REAL*8 ttop,qtop,tgrnd,qgrnd,utop,vtop,z0h,z0q,ufluxs,vfluxs
-     *     ,tfluxs,qfluxs,psitop,psisrf
-      INTEGER LDC,jvpo,im1,L
-
-C**** BLDATA 1  COMPOSITE SURFACE WIND MAGNITUDE (M/S)
-C****        2  COMPOSITE SURFACE AIR TEMPERATURE (K)
-C****        3  COMPOSITE SURFACE AIR SPECIFIC HUMIDITY (1)
-C****        4  LAYER TO WHICH DRY CONVECTION MIXES (1)
-C****        5  MIXED LAYER DEPTH (Z1O NOT YET PART OF RESTART FILE)
-C****        6  COMPOSITE SURFACE U WIND
-C****        7  COMPOSITE SURFACE V WIND
-C****        8  COMPOSITE SURFACE MOMENTUM TRANSFER (TAU)
-C new     9-12  ustar for each ITYPE (sqrt of srfc momentum flux) (m/s)
-C****
-C**** ROUGHL    LOG10(ZGS/ROUGHNESS LENGTH), prescribed with ZGS=30 m.
-C****
-      IF (ITYPE.GT.2) THEN
-        Z0M=30./(10.**ROUGHL(I,J))
-      ENDIF
-      ztop=zgs+zs1
-      IF (TKV.EQ.TGV) TGV=1.0001*TGV
-      IF (TKV.GE.TGV) THEN
-C **********************************************************************
-C ********** ATMOSPHERE IS STABLE WITH RESPECT TO THE GROUND ***********
-C
-C  DETERMINE THE VERTICAL LEVEL CORRESPONDING TO THE HEIGHT OF THE PBL:
-C   WHEN ATMOSPHERE IS STABLE, CAN COMPUTE DBL BUT DO NOT KNOW THE
-C   INDEX OF THE LAYER.
-C
-        USTAR=BLDATA(I,J,8+ITYPE)
-        DBL=0.3*USTAR/OMEGA2
-        if (dbl.le.ztop) then
-C THE VERTICAL LEVEL FOR WHICH WG IS COMPUTED IS THE FIRST:
-          dbl=ztop
-          L=1
-          ELSE
-          if (dbl.gt.3000.) dbl=3000.
-C FIND THE VERTICAL LEVEL NEXT HIGHER THAN DBL AND COMPUTE WG THERE:
-          zpbl=ztop
-          pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
-          tl1=t(i,j,1)*pk(1,i,j)  !expbyk(pl1)
-          do l=2,ls1
-            pl=pmid(l,i,j)        !pij*sig(l)+ptop
-            tl=t(i,j,l)*pk(l,i,j) !expbyk(pl)
-            tbar=thbar(tl1,tl)
-            zpbl=zpbl+(rgas/grav)*tbar*(pl1-pl)/pl1
-            if (zpbl.ge.dbl) go to 200
-            pl1=pl
-            tl1=tl
-          end do
-200       CONTINUE
-        ENDIF
-C *********************************************************************
-        ELSE
-C *********************************************************************
-C ********* ATMOSPHERE IS UNSTABLE WITH RESPECT TO THE GROUND *********
-C
-C  LDC IS THE LEVEL TO WHICH DRY CONVECTION MIXES. IF THE BOUNDARY
-C   LAYER HEIGHT IS LESS THAN 3 KM, ASSIGN LDC TO L, OTHERWISE MUST
-C   FIND INDEX FOR NEXT MODEL LAYER ABOVE 3 KM:
-C
-        LDC=BLDATA(I,J,4)
-        IF (LDC.EQ.0) LDC=1
-        if (ldc.eq.1) then
-          dbl=ztop
-          l=1
-          else
-          zpbl=ztop
-          pl1=pmid(1,i,j)          !pij*sig(1)+ptop
-          tl1=t(i,j,1)*pk(1,i,j)   !expbyk(pl1)
-          zpbl1=ztop
-          do l=2,ldc
-            pl=pmid(l,i,j)         !pij*sig(l)+ptop
-            tl=t(i,j,l)*pk(l,i,j)  !expbyk(pl)
-            tbar=thbar(tl1,tl)
-            zpbl=zpbl+(rgas/grav)*tbar*(pl1-pl)/pl1
-            if (zpbl.ge.3000.) then
-              zpbl=zpbl1
-              go to 400
-            endif
-            pl1=pl
-            tl1=tl
-            zpbl1=zpbl
-          end do
-400       continue
-          l=l-1
-          dbl=zpbl
-        endif
-C**********************************************************************
-      ENDIF
-
-C *********************************************************************
-      ppbl=pedn(l,i,j)      ! sige(l)*pij+ptop
-c      if (l.gt.ls1) ppbl=sige(l)*(psf-ptop)+ptop
-      phi=radian*(float(j-1)*180./float(jm-1)-90.)
-      coriol=sin(phi)*omega2
-      ttop=tkv
-      qtop=q(i,j,1)
-      tgrnd=tgv
-      qgrnd=qg
-
-      if (pole) then
-        utop=.25*(u(1,jvpo,1)-u(iq2,jvpo,1)
-     2          -(v(iq1,jvpo,1)-v(iq3,jvpo,1))*hemi)
-        vtop=.25*(v(1,jvpo,1)-v(iq2,jvpo,1)
-     2          +(u(iq1,jvpo,1)-u(iq3,jvpo,1))*hemi)
-        ug  =.25*(u(1,jvpo,l)-u(iq2,jvpo,l)
-     2          -(v(iq1,jvpo,l)-v(iq3,jvpo,l))*hemi)
-        vg  =.25*(v(1,jvpo,l)-v(iq2,jvpo,l)
-     2          +(u(iq1,jvpo,l)-u(iq3,jvpo,l))*hemi)
-        else
-        utop=.25*(u(im1,j,1)+u(i,j,1)+u(im1,j+1,1)+u(i,j+1,1))
-        vtop=.25*(v(im1,j,1)+v(i,j,1)+v(im1,j+1,1)+v(i,j+1,1))
-        ug  =.25*(u(im1,j,l)+u(i,j,l)+u(im1,j+1,l)+u(i,j+1,l))
-        vg  =.25*(v(im1,j,l)+v(i,j,l)+v(im1,j+1,l)+v(i,j+1,l))
-      endif
-
-      call advanc(us,vs,tsv,qs,kmsurf,khsurf,ustar,ug,vg,cm,ch,cq,
-     2            z0m,z0h,z0q,coriol,utop,vtop,ttop,qtop,tgrnd,
-     3            qgrnd,zgs,ztop,zmix,dtsurf,ufluxs,vfluxs,
-     4            tfluxs,qfluxs,i,j,itype)
-
-      ws    =sqrt(us*us+vs*vs)
-      wg    =sqrt(ug*ug+vg*vg)
-      km    =kmsurf
-      kh    =khsurf
-      psitop=atan2(vg,ug+epslon)
-      psisrf=atan2(vs,us+epslon)
-      psi   =psisrf-psitop
-      bldata(i,j,8+itype)=ustar
-C ******************************************************************
-
-      RETURN
-      END SUBROUTINE PBL
 
       subroutine advanc(us,vs,tsv,qs,kmsurf,khsurf,ustar,ug,vg,cm,ch,cq,
      2                  z0m,z0h,z0q,coriol,utop,vtop,ttop,qtop,tgrnd,
@@ -366,10 +134,6 @@ c ----------------------------------------------------------------------
 c ----------------------------------------------------------------------
       implicit none
  
-!@var u,v,t,q,e local boundary layer profiles
-      real*8, dimension(n) :: u,v,t,q
-      real*8, dimension(n-1) :: e
-
       real*8 us,vs,tsv,qs,kmsurf,khsurf,ustar,ug,vg,cm,ch,cq,
      2     z0m,z0h,z0q,coriol,utop,vtop,ttop,qtop,tgrnd,
      3     qgrnd,zgs,ztop,zmix,dtime,ufluxs,vfluxs,
@@ -385,18 +149,11 @@ c ----------------------------------------------------------------------
       real*8, dimension(n) :: z,dz,xi
       real*8, dimension(n-1) :: zhat,dzh,xihat,km,kh,ke,gm,gh
       real*8, dimension(n) :: usave,vsave,tsave,qsave,esave
-      integer :: ifirst = 1
-      real*8, save :: bgrid
 
       integer i,j,iter  !@var i,j,iter loop variable 
       integer ::  itmax
-      real*8 zdummy
 c
       itmax=1
-      if (ifirst.eq.1) then
-        call getb(zgs,zdummy,bgrid)
-        ifirst=0
-      endif
 
 c     if(abs(bgrid-0.29269d0).gt.0.01) then
 c     write(99,*) bgrid,ilong,jlat,itype
@@ -406,29 +163,17 @@ c     endif
       zmix=dzh(1)+zgs
 
       do i=1,n-1
-        u(i)=uabl(i,ilong,jlat,itype)
-        v(i)=vabl(i,ilong,jlat,itype)
-        t(i)=tabl(i,ilong,jlat,itype)
-        q(i)=qabl(i,ilong,jlat,itype)
-        e(i)=eabl(i,ilong,jlat,itype)
         usave(i)=u(i)
         vsave(i)=v(i)
         tsave(i)=t(i)
         qsave(i)=q(i)
         esave(i)=e(i)
       end do
-      u(n)=uabl(n,ilong,jlat,itype)
-      v(n)=vabl(n,ilong,jlat,itype)
-      t(n)=tabl(n,ilong,jlat,itype)
-      q(n)=qabl(n,ilong,jlat,itype)
       usave(n)=u(n)
       vsave(n)=v(n)
       tsave(n)=t(n)
       qsave(n)=q(n)
 
-      cm=cmgs(ilong,jlat,itype)
-      ch=chgs(ilong,jlat,itype)
-      cq=cqgs(ilong,jlat,itype)
 c ----------------------------------------------------------------------
 c First, make trial advances of the solutions of the prognostic fields.
 c   Must first compute subsidiary quantities such as length scale,
@@ -457,7 +202,7 @@ c     ustar0=ustar
 
       call uveqns(usave,vsave,u,v,z,km,dz,dzh,
      2            ustar,cm,z0m,utop,vtop,dtime,coriol,
-     3            ug,vg,ilong,jlat,n)
+     3            ug,vg,n)
 
 c     if ((itype.eq.4).or.(itype.eq.3)) then
         if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
@@ -499,7 +244,7 @@ c       ustar0=ustar
 
         call uveqns(usave,vsave,u,v,z,km,dz,dzh,
      2              ustar,cm,z0m,utop,vtop,dtime,coriol,
-     3              ug,vg,ilong,jlat,n)
+     3              ug,vg,n)
 
         if ((iter.eq.1).and.(itmax.eq.2)) then
 c         call elevl2(e,u,v,t,km,kh,lscale,dzh,ustar,n)
@@ -510,28 +255,12 @@ c         call elevl2(e,u,v,t,km,kh,lscale,dzh,ustar,n)
 300   continue
 c ----------------------------------------------------------------------
 
-      do i=1,n-1
-        uabl(i,ilong,jlat,itype)=u(i)
-        vabl(i,ilong,jlat,itype)=v(i)
-        tabl(i,ilong,jlat,itype)=t(i)
-        qabl(i,ilong,jlat,itype)=q(i)
-        eabl(i,ilong,jlat,itype)=e(i)
-      end do
-      uabl(n,ilong,jlat,itype)=u(n)
-      vabl(n,ilong,jlat,itype)=v(n)
-      tabl(n,ilong,jlat,itype)=t(n)
-      qabl(n,ilong,jlat,itype)=q(n)
-
       us    = u(1)
       vs    = v(1)
       tsv   = t(1)
       qs    = q(1)
       kmsurf= km(1)
       khsurf= kh(1)
-      cmgs(ilong,jlat,itype)=cm
-      chgs(ilong,jlat,itype)=ch
-      cqgs(ilong,jlat,itype)=cq
-      ipbl(ilong,jlat,itype)=1
 
       ufluxs=km(1)*(u(2)-u(1))/dzh(1)
       vfluxs=km(1)*(v(2)-v(1))/dzh(1)
@@ -907,51 +636,6 @@ c *********************************************************************
 
       return
       end subroutine simil
-
-      subroutine getb(zgs,ztop,bgrid)
-c ----------------------------------------------------------------------
-c This routine computes the value of bgrid to be used in the gridding
-c  scheme. This parameter determines the strength of the logarithmic
-c  component in the log-linear scheme. This fitting for bgrid was
-c  determined by doing a series of off-line runs comparing the reduced
-c  domain simulation to the full BL simulation and determining the value
-c  of bgrid that gave the best fit for a range of ztop = [50.,200.] m
-c  for the reduced domain simulation.
-c This form for z1 = zgs + zs1 (in terms of GCM parameters) yields an
-c  average value for zs1. The quantity theta was computed on the
-c  assumption of zs1=200 m from the original 9-layer model (actually
-c  was misconstrued as z1 = 200 m when it should have been zs1 = 200 m)
-c  and is then applied to all vertical resolutions.
-c
-c Input:
-c
-c    zgs   = The height of the surface layer.
-c
-c Output:
-c
-c    ztop  = The height of the top of the BL simulation domain.
-c            Corresponds to the height of the middle of the first model
-c            layer and is only needed if the BL fields require
-c            initialization.
-c    bgrid = The parameter that determines the strength of the log
-c            term in the log-linear gridding scheme.
-c ----------------------------------------------------------------------
-      USE CONSTANT, only : rgas
-      USE E001M12_COM, only : sige,psf,ptop
-      IMPLICIT NONE
-
-      REAL*8, INTENT(IN) :: ZGS
-      REAL*8, INTENT(OUT) :: ZTOP,BGRID
-      real*8 theta,z1,x
-
-      theta=269.0727251
-      z1=zgs+0.5*(1.-sige(2))*(psf-ptop)*rgas*theta/(grav*psf)
-      x=z1/100.
-      ztop=z1
-      bgrid=0.177427*x**4 - 1.0504*x**3 + 2.34169*x**2 -
-     2      2.4772*x + 1.44509
-      return
-      end subroutine getb
 
       subroutine griddr(z,zhat,xi,xihat,dz,dzh,z1,zn,bgrid,n)
 c ----------------------------------------------------------------------
@@ -1433,7 +1117,7 @@ c ----------------------------------------------------------------------
 
       subroutine uveqns(u0,v0,u,v,z,km,dz,dzh,
      2                  ustar,cm,z0m,utop,vtop,dtime,coriol,
-     3                  ug,vg,ilong,jlat,n)
+     3                  ug,vg,n)
 c ----------------------------------------------------------------------
 c this routine computes the matrices for the solutions of the u and v
 c  fields as well as appling the boundary conditions.
@@ -1456,8 +1140,6 @@ c ----------------------------------------------------------------------
       real*8, parameter :: epslon=1.e-40
 
       integer, intent(in) :: n    !@var n  array dimension
-      integer, intent(in) :: ilong  !@var ilong  longitude identifier
-      integer, intent(in) :: jlat   !@var jlat  latitude identifier
       real*8 u0(n),v0(n),u(n),v(n),z(n)
       real*8 km(n-1),dz(n),dzh(n-1)
       real*8 ustar,cm,z0m,utop,vtop,dtime,coriol,ug,vg
@@ -1475,11 +1157,11 @@ c  components are zeroed to accomodate boundary conditions:
       end do
 c ----------------------------------------------------------------------
 c now compute the rhss. components (1) and (n) are assigned as bcs:
-      factx=(dpdxr(ilong,jlat)-dpdxr0(ilong,jlat))/(z(n)-z(1))
-      facty=(dpdyr(ilong,jlat)-dpdyr0(ilong,jlat))/(z(n)-z(1))
+      factx=(dpdxr-dpdxr0)/(z(n)-z(1))
+      facty=(dpdyr-dpdyr0)/(z(n)-z(1))
       do i=2,n-1
-        dpdx=factx*(z(i)-z(1))+dpdxr0(ilong,jlat)
-        dpdy=facty*(z(i)-z(1))+dpdyr0(ilong,jlat)
+        dpdx=factx*(z(i)-z(1))+dpdxr0
+        dpdy=facty*(z(i)-z(1))+dpdyr0
         rhs(i)=u0(i)+dtime*(coriol*v(i)-dpdx)
         rhs1(i)=v0(i)-dtime*(coriol*u(i)+dpdy)
 c       rhs(i)=u0(i)+dtime*coriol*(v(i)-vg)
@@ -1575,7 +1257,7 @@ c
       end subroutine tqeqns_sta
 
       subroutine uveqns_sta(u,v,z,km,dz,dzh,
-     2            ustar,cm,utop,vtop,coriol,ilong,jlat,n)
+     2            ustar,cm,utop,vtop,coriol,n)
 c ----------------------------------------------------------------------
 c  computes the static solutions of the u and v
 c  the boundary conditions at the bottom are:
@@ -1586,8 +1268,6 @@ c ----------------------------------------------------------------------
       implicit none
 
       integer, intent(in) :: n    !@var n  array dimension
-      integer, intent(in) :: ilong  !@var ilong  longitude identifier
-      integer, intent(in) :: jlat   !@var jlat  latitude identifier
       real*8 u(n),v(n),z(n),km(n-1),dz(n),dzh(n-1)
       real*8 ustar,cm,utop,vtop,coriol
 
@@ -1601,12 +1281,12 @@ c ----------------------------------------------------------------------
           dia(i)=-(sub(i)+sup(i))
        end do
 c ----------------------------------------------------------------------
-      factx=(dpdxr(ilong,jlat)-dpdxr0(ilong,jlat))/(z(n)-z(1))
-      facty=(dpdyr(ilong,jlat)-dpdyr0(ilong,jlat))/(z(n)-z(1))
+      factx=(dpdxr-dpdxr0)/(z(n)-z(1))
+      facty=(dpdyr-dpdyr0)/(z(n)-z(1))
       write(99,*) factx,facty
       do i=2,n-1
-        dpdx=factx*(z(i)-z(1))+dpdxr0(ilong,jlat)
-        dpdy=facty*(z(i)-z(1))+dpdyr0(ilong,jlat)
+        dpdx=factx*(z(i)-z(1))+dpdxr0
+        dpdy=facty*(z(i)-z(1))+dpdyr0
         rhs(i)=(coriol*v(i)-dpdx)
         rhs1(i)=-(coriol*u(i)+dpdy)
 c       rhs(i)=coriol*(v(i)-vg)
@@ -1823,11 +1503,6 @@ c  static solutions of the Level 2 turbulence equations.
 c ----------------------------------------------------------------------
       implicit none
 
-!@var u,v,t,q,e local boundary layer profiles
-      real*8, dimension(n) :: u,v,t,q
-      real*8, dimension(n-1) :: e
-      common /pblvar/u,v,t,q,e
-
       real*8, parameter ::  w=0.50,tol=1.e-4,epslon=1.e-20
 c      integer, parameter ::  n=8
       integer, parameter ::  itmax=100
@@ -1936,7 +1611,7 @@ c ----------------------------------------------------------------------
         call tqeqns_sta(u,v,t,q,kh,dz,dzh,
      2            ch,cq,tgrnd,qgrnd,ttop,qtop,n)
         call uveqns_sta(u,v,z,km,dz,dzh,
-     2            ustar,cm,utop,vtop,coriol,ilong,jlat,n)
+     2            ustar,cm,utop,vtop,coriol,n)
 
         call tcheck(t,tgrnd,n)
         call tcheck(q,qgrnd,n)
@@ -2348,481 +2023,6 @@ c ----------------------------------------------------------------------
 
       END MODULE SOCPBL
 
-      subroutine pblini
-c -------------------------------------------------------------
-c These routines include the array ipbl which indicates if the
-c  computation for a particular ITYPE was done last time step.
-c Sets up the initialization of wind, temperature, and moisture
-c  fields in the boundary layer. The initial values of these
-c  fields are obtained by solving the static equations of the
-c  Level 2 model. This is used when starting from a restart
-c  file that does not have this data stored.
-c -------------------------------------------------------------
-      USE CONSTANT, only : lhe,lhs
-      USE E001M12_COM
-      USE SOCPBL, only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
-     *     ,ipbl,getb,zgs,iq1,iq2,iq3,inits
-      USE DYNAMICS, only : pmid,pk,pedn,pek
-      IMPLICIT NONE
-
-      real*8, parameter :: ohmega=7.292e-5,rvx=0.
-
-!@var uinit,vinti,tinit,qinit,einit local boundary layer profiles
-      real*8, dimension(npbl) :: uinit,vinit,tinit,qinit
-      real*8, dimension(npbl-1) :: einit
-      common /pblvar/uinit,vinit,tinit,qinit,einit
-
-      integer :: ilong  !@var ilong  longitude identifier
-      integer :: jlat   !@var jlat  latitude identifier
-      real*8 tgvdat(im,jm,4)
-      
-      REAL*8, DIMENSION(IM,JM) :: ROUGHL
-      common /rdata/roughl
-
-      integer :: itype  !@var itype surface type
-      integer i,j,iter,imax,im1,jvpo,lpbl !@var i,j,iter loop variable 
-      real*8 pland,pwater,plice,psoil,poice,pocean,pi,radian,
-     *     ztop,bgrid,elhx,phi,coriol,tgrnd,pij,ps,psk,qgrnd,hemi
-     *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar
-      real*8 qsat,tm,pm,qlh
-      qsat(tm,pm,qlh)=3.797915*exp(qlh*(7.93252d-6-2.166847d-3/tm))/pm
-
-      call pgrads1   !   added 6/19/00
-      do j=1,jm
-        do i=1,im
-          pland=fland(i,j)
-          pwater=1.-pland
-          plice=flice(i,j)
-          psoil=fearth(i,j)
-          poice=odata(i,j,2)*pwater
-          pocean=pwater-poice
-          tgvdat(i,j,1)=odata(i,j,1) +273.16
-          if (pocean.le.0.) tgvdat(i,j,1)=0.
-          tgvdat(i,j,2)=gdata(i,j,3) +273.16
-          if (poice.le.0.)  tgvdat(i,j,2)=0.
-          tgvdat(i,j,3)=gdata(i,j,13)+273.16
-          if (plice.le.0.)  tgvdat(i,j,3)=0.
-          tgvdat(i,j,4)=gdata(i,j,4) +273.16
-          if (psoil.le.0.)  tgvdat(i,j,4)=0.
-        end do
-      end do
-
-      call readt (19,0,roughl,im*jm,roughl,1)
-      rewind 19
-      pi=dacos(-1.d0)
-      radian=pi/180.
-
-      call getb(zgs,ztop,bgrid)
-
-      do itype=1,4
-        if ((itype.eq.1).or.(itype.eq.4)) then
-          elhx=lhe
-          else
-          elhx=lhs
-        endif
-        do j=1,jm
-          if ((j.eq.1).or.(j.eq.jm)) then
-            imax=1
-            else
-            imax=im
-          endif
-          jlat=j
-          phi=radian*(float(j-1)*180./float(jm-1)-90.)
-          coriol=2.*sin(phi)*ohmega
-
-          im1=im
-          do i=1,imax
-            tgrnd=tgvdat(i,j,itype)
-            if (tgrnd.eq.0.) then
-              ipbl(i,j,itype)=0
-              im1=i
-              go to 200
-            endif
-            ilong=i
-            pij=p(i,j)
-            ps=pedn(1,i,j)    !pij+ptop
-            psk=pek(1,i,j)    !expbyk(ps)
-            qgrnd=qsat(tgrnd,ps,elhx)
-
-            if (j.eq.1) then
-c ******************************************************************
-c           At the south pole:
-              jvpo=2
-              hemi=-1.
-              utop=.25*(u(1,jvpo,1)-u(iq2,jvpo,1)
-     2                -(v(iq1,jvpo,1)-v(iq3,jvpo,1))*hemi)
-              vtop=.25*(v(1,jvpo,1)-v(iq2,jvpo,1)
-     2                +(u(iq1,jvpo,1)-u(iq3,jvpo,1))*hemi)
-c ******************************************************************
-            endif
-
-            if (j.eq.jm) then
-c ******************************************************************
-c     At the north pole:
-              jvpo=jm
-              hemi=1.
-              utop=.25*(u(1,jvpo,1)-u(iq2,jvpo,1)
-     2                -(v(iq1,jvpo,1)-v(iq3,jvpo,1))*hemi)
-              vtop=.25*(v(1,jvpo,1)-v(iq2,jvpo,1)
-     2                +(u(iq1,jvpo,1)-u(iq3,jvpo,1))*hemi)
-c ******************************************************************
-            endif
-
-            if ((j.gt.1).and.(j.lt.jm)) then
-c ******************************************************************
-c     Away from the poles:
-              utop=.25*(u(im1,j,1)+u(i,j,1)+u(im1,j+1,1)+u(i,j+1,1))
-              vtop=.25*(v(im1,j,1)+v(i,j,1)+v(im1,j+1,1)+v(i,j+1,1))
-c ******************************************************************
-            endif
-
-            qtop=q(i,j,1)
-            ttop=t(i,j,1)*(1.+qtop*rvx)*psk
-            if (itype.gt.2) then
-              zgrnd=30./(10.**roughl(i,j))
-              else
-              zgrnd=0.1
-            endif
-            call inits(tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,
-     2                 ttop,qtop,coriol,cm,ch,cq,bgrid,ustar,
-     3                 ilong,jlat,itype)
-            cmgs(i,j,itype)=cm
-            chgs(i,j,itype)=ch
-            cqgs(i,j,itype)=cq
-
-            do lpbl=1,npbl
-              uabl(lpbl,i,j,itype)=uinit(lpbl)
-              vabl(lpbl,i,j,itype)=vinit(lpbl)
-              tabl(lpbl,i,j,itype)=tinit(lpbl)
-              qabl(lpbl,i,j,itype)=qinit(lpbl)
-            end do
-
-            do lpbl=1,npbl-1
-              eabl(lpbl,i,j,itype)=einit(lpbl)
-            end do
-
-            ipbl(i,j,itype)=1
-            bldata(i,j,8+itype)=ustar
-            im1=i
-
- 200      end do
-        end do
-c     write (99,1000) itype
-      end do
-
-      return
- 1000 format (1x,//,1x,'completed initialization, itype = ',i2,//)
-      end subroutine pblini
-
-      subroutine loadbl
-c ----------------------------------------------------------------------
-c             This routine checks to see if ice has
-c              melted or frozen out of a grid box.
-c
-c For ITYPE=1 (ocean; melted ocean ice since last time step):
-c  If there was no computation made for ocean at the last time step,
-c  this time step may start from ocean ice result. If there was no
-c  ocean nor ocean ice computation at the last time step, nothing
-c  need be done.
-c
-c For ITYPE=2 (ocean ice; frozen from ocean since last time step):
-c  If there was no computation made for ocean ice at the last time step,
-c  this time step may start from ocean result. If there was no
-c  ocean nor ocean ice computation at the last time step, nothing
-c  need be done.
-c
-c For ITYPE=3 (land ice; frozen on land since last time step):
-c  If there was no computation made for land ice at the last time step,
-c  this time step may start from land result. If there was no
-c  land ice nor land computation at the last time step, nothing
-c  need be done.
-c
-c For ITYPE=4 (land; melted land ice since last time step):
-c  If there was no computation made for land at the last time step,
-c  this time step may start from land ice result. If there was no
-c  land nor land ice computation at the last time step, nothing
-c  need be done.
-c
-c In the current version of the GCM, there is no need to check the
-c  land or land ice components of the grid box for ice formation and
-c  melting because pland and plice are fixed. The source code to do
-c  this is retained and deleted in the update deck in the event this
-c  capability is added in future versions of the model.
-c ----------------------------------------------------------------------
-      USE E001M12_COM
-      USE SOCPBL, only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
-     *     ,ipbl
-      IMPLICIT NONE
-      integer i,j,iter,lpbl,imax  !@var i,j,iter,lpbl loop variable 
-
-      do j=1,jm
-        if ((j.eq.1).or.(j.eq.jm)) then
-          imax=1
-          else
-          imax=im
-        endif
-        do i=1,imax
-
-c ******* itype=1: Ocean
-
-          if (ipbl(i,j,1).eq.0) then
-            if (ipbl(i,j,2).eq.1) then
-              do lpbl=1,npbl-1
-                 uabl(lpbl,i,j,1)=uabl(lpbl,i,j,2)
-                 vabl(lpbl,i,j,1)=vabl(lpbl,i,j,2)
-                 tabl(lpbl,i,j,1)=tabl(lpbl,i,j,2)
-                 qabl(lpbl,i,j,1)=qabl(lpbl,i,j,2)
-                 eabl(lpbl,i,j,1)=eabl(lpbl,i,j,2)
-              end do
-              uabl(npbl,i,j,1)=uabl(npbl,i,j,2)
-              vabl(npbl,i,j,1)=vabl(npbl,i,j,2)
-              tabl(npbl,i,j,1)=tabl(npbl,i,j,2)
-              qabl(npbl,i,j,1)=qabl(npbl,i,j,2)
-              cmgs(i,j,1)=cmgs(i,j,2)
-              chgs(i,j,1)=chgs(i,j,2)
-              cqgs(i,j,1)=cqgs(i,j,2)
-              bldata(i,j,9)=bldata(i,j,10)
-            endif
-          endif
-
-c ******* itype=2: Ocean ice
-
-          if (ipbl(i,j,2).eq.0) then
-            if (ipbl(i,j,1).eq.1) then
-              do lpbl=1,npbl-1
-                 uabl(lpbl,i,j,2)=uabl(lpbl,i,j,1)
-                 vabl(lpbl,i,j,2)=vabl(lpbl,i,j,1)
-                 tabl(lpbl,i,j,2)=tabl(lpbl,i,j,1)
-                 qabl(lpbl,i,j,2)=qabl(lpbl,i,j,1)
-                 eabl(lpbl,i,j,2)=eabl(lpbl,i,j,1)
-              end do
-              uabl(npbl,i,j,2)=uabl(npbl,i,j,1)
-              vabl(npbl,i,j,2)=vabl(npbl,i,j,1)
-              tabl(npbl,i,j,2)=tabl(npbl,i,j,1)
-              qabl(npbl,i,j,2)=qabl(npbl,i,j,1)
-              cmgs(i,j,2)=cmgs(i,j,1)
-              chgs(i,j,2)=chgs(i,j,1)
-              cqgs(i,j,2)=cqgs(i,j,1)
-              bldata(i,j,10)=bldata(i,j,9)
-            endif
-          endif
-
-c ******* itype=3: Land ice
-
-          if (ipbl(i,j,3).eq.0) then
-            if (ipbl(i,j,4).eq.1) then
-              do lpbl=1,npbl-1
-                 uabl(lpbl,i,j,3)=uabl(lpbl,i,j,4)
-                 vabl(lpbl,i,j,3)=vabl(lpbl,i,j,4)
-                 tabl(lpbl,i,j,3)=tabl(lpbl,i,j,4)
-                 qabl(lpbl,i,j,3)=qabl(lpbl,i,j,4)
-                 eabl(lpbl,i,j,3)=eabl(lpbl,i,j,4)
-              end do
-              uabl(npbl,i,j,3)=uabl(npbl,i,j,4)
-              vabl(npbl,i,j,3)=vabl(npbl,i,j,4)
-              tabl(npbl,i,j,3)=tabl(npbl,i,j,4)
-              qabl(npbl,i,j,3)=qabl(npbl,i,j,4)
-              cmgs(i,j,3)=cmgs(i,j,4)
-              chgs(i,j,3)=chgs(i,j,4)
-              cqgs(i,j,3)=cqgs(i,j,4)
-              bldata(i,j,11)=bldata(i,j,12)
-            endif
-          endif
-
-c ******* itype=4: Land
-
-          if (ipbl(i,j,4).eq.0) then
-            if (ipbl(i,j,3).eq.1) then
-              do lpbl=1,npbl-1
-                 uabl(lpbl,i,j,4)=uabl(lpbl,i,j,3)
-                 vabl(lpbl,i,j,4)=vabl(lpbl,i,j,3)
-                 tabl(lpbl,i,j,4)=tabl(lpbl,i,j,3)
-                 qabl(lpbl,i,j,4)=qabl(lpbl,i,j,3)
-                 eabl(lpbl,i,j,4)=eabl(lpbl,i,j,3)
-              end do
-              uabl(npbl,i,j,4)=uabl(npbl,i,j,3)
-              vabl(npbl,i,j,4)=vabl(npbl,i,j,3)
-              tabl(npbl,i,j,4)=tabl(npbl,i,j,3)
-              qabl(npbl,i,j,4)=qabl(npbl,i,j,3)
-              cmgs(i,j,4)=cmgs(i,j,3)
-              chgs(i,j,4)=chgs(i,j,3)
-              cqgs(i,j,4)=cqgs(i,j,3)
-              bldata(i,j,12)=bldata(i,j,11)
-            endif
-          endif
-
-       end do
-      end do
-
-      return
-      end subroutine loadbl
-
-      subroutine pgrads1
-      USE CONSTANT, only : rgas
-      USE E001M12_COM
-      USE GEOM, only : dyp,dxp
-      USE SOCPBL, only : dpdxr,dpdyr,phi,dpdxr0,dpdyr0,iq1,iq2,iq3
-      USE DYNAMICS, only : pmid,pk,pedn
-      IMPLICIT NONE
-
-      integer i,j,iter  !@var i,j,iter loop variable 
-      real*8 p1k,t1,pij,rho1,dpx,dpy,dypsp,dypnp,rhojm,p1
-      integer index1,index2
-c      real*8 expbyk
-
-c     for gcm main level 1:
-      call geopot
-
-      do j=2,jm-1
-        do i=1,im
-
-          pij=p(i,j)
-          p1=100.*pmid(1,i,j)      !(pij*sig(1)+ptop)
-          t1=t(i,j,1)*pk(1,i,j)    !expbyk(pij*sig(1)+ptop)
-          rho1=p1/(rgas*t1)
-
-          index1=i+1
-          index2=i-1
-          if (i.eq.1) then
-            index2=im
-          endif
-          if (i.eq.im) then
-            index1=1
-          endif
-          dpx=100.*(p(index1,j)-p(index2,j))*sig(1)
-
-          dpdxr(i,j)=0.5*dpx/(dxp(j)*rho1)+0.5*
-     2               (phi(index1,j)-phi(index2,j))/dxp(j)
-
-          dpy=100.*(p(i,j+1)-p(i,j-1))*sig(1)
-
-          dpdyr(i,j)=0.5*dpy/(dyp(j)*rho1)+0.5*
-     2               (phi(i,j+1)-phi(i,j-1))/dyp(j)
-
-c         at the surface:
-          dpx=100.*(p(index1,j)-p(index2,j))
-
-          dpdxr0(i,j)=0.5*dpx/(dxp(j)*rho1)+0.5*
-     2               (ZATMO(index1,j)-ZATMO(index2,j))/dxp(j)
-
-          dpy=100.*(p(i,j+1)-p(i,j-1))
-
-          dpdyr0(i,j)=0.5*dpy/(dyp(j)*rho1)+0.5*
-     2               (ZATMO(i,j+1)-ZATMO(i,j-1))/dyp(j)
-
-       end do
-      end do
-
-      i=1
-      j=1
-      pij=p(i,j)
-      p1=100.*pmid(1,i,j)            !(pij*sig(1)+ptop)
-      t1=t(i,j,1)*pk(1,i,j)          !expbyk(pij*sig(1)+ptop)
-      rho1 =p1/(rgas*t1)
-      dypsp=2.*dyp(1)
-
-      j=jm
-      pij=p(i,j)
-      p1=100.*pmid(1,i,j)            !(pij*sig(1)+ptop)
-      t1=t(i,j,1)*pk(1,i,j)          !expbyk(pij*sig(1)+ptop)
-      rhojm=p1/(rgas*t1)
-      dypnp=2.*dyp(jm)
-
-      dpdxr(1, 1)=0.25*(p(iq1  ,   2)-p(iq3  ,   2)+
-     2                  p(iq1+1,   2)-p(iq3+1,   2))*sig(1)*100./
-     3                 (dypsp*rho1)+
-     4            0.125*(phi(iq1  ,   2)-phi(iq3  ,   2)+
-     5                  phi(iq1+1,   2)-phi(iq3+1,   2))/dypsp
-      dpdyr(1, 1)=0.25*(p(    1,   2)-p(iq2  ,   2)+
-     2                  p(    2,   2)-p(iq2+1,   2))*sig(1)*100./
-     3                 (dypsp*rho1)+
-     4            0.125*(phi(    1,   2)-phi(iq2  ,   2)+
-     5                  phi(    2,   2)-phi(iq2+1,   2))/dypsp
-
-      dpdxr(1,jm)=0.25*(p(iq1  ,jm-1)-p(iq3  ,jm-1)+
-     2                  p(iq1+1,jm-1)-p(iq3+1,jm-1))*sig(1)*100./
-     3                 (dypnp*rhojm)+
-     4            0.125*(phi(iq1  ,jm-1)-phi(iq3  ,jm-1)+
-     5                  phi(iq1+1,jm-1)-phi(iq3+1,jm-1))/dypnp
-      dpdyr(1,jm)=0.25*(p(iq2  ,jm-1)-p(    1,jm-1)+
-     2                  p(iq2+1,jm-1)-p(    2,jm-1))*sig(1)*100./
-     3                 (dypnp*rhojm)+
-     4            0.125*(phi(iq2  ,jm-1)-phi(    1,jm-1)+
-     5                  phi(iq2+1,jm-1)-phi(    2,jm-1))/dypnp
-
-c     at the surface:
-
-      dpdxr0(1, 1)=0.25*(p(iq1  ,   2)-p(iq3  ,   2)+
-     2                  p(iq1+1,   2)-p(iq3+1,   2))*100./
-     3                 (dypsp*rho1)+
-     4            0.125*(ZATMO(iq1  ,   2)-ZATMO(iq3  ,   2)+
-     5                   ZATMO(iq1+1,   2)-ZATMO(iq3+1,   2))/dypsp
-      dpdyr0(1, 1)=0.25*(p(    1,   2)-p(iq2  ,   2)+
-     2                  p(    2,   2)-p(iq2+1,   2))*100./
-     3                 (dypsp*rho1)+
-     4            0.125*(ZATMO(    1,   2)-ZATMO(iq2  ,   2)+
-     5                   ZATMO(    2,   2)-ZATMO(iq2+1,   2))/dypsp
-
-
-
-      dpdxr0(1,jm)=0.25*(p(iq1  ,jm-1)-p(iq3  ,jm-1)+
-     2                  p(iq1+1,jm-1)-p(iq3+1,jm-1))*100./
-     3                 (dypnp*rhojm)+
-     4            0.125*(ZATMO(iq1  ,jm-1)-ZATMO(iq3  ,jm-1)+
-     5                   ZATMO(iq1+1,jm-1)-ZATMO(iq3+1,jm-1))/dypnp
-      dpdyr0(1,jm)=0.25*(p(iq2  ,jm-1)-p(    1,jm-1)+
-     2                  p(iq2+1,jm-1)-p(    2,jm-1))*100./
-     3                 (dypnp*rhojm)+
-     4            0.125*(ZATMO(iq2  ,jm-1)-ZATMO(    1,jm-1)+
-     5                   ZATMO(iq2+1,jm-1)-ZATMO(    2,jm-1))/dypnp
-
-      return
-      end subroutine pgrads1
-
-      subroutine geopot
-      USE CONSTANT, only : rgas,grav
-      USE E001M12_COM
-      USE SOCPBL, only : phi,zgs
-      USE DYNAMICS, only : pmid,pk,pedn
-      IMPLICIT NONE
-
-c      real*8 expbyk
-
-      integer i,j,iter  !@var i,j,iter loop variable 
-      real*8 p1,p1k,pij,t1,z1
-
-c     note: ZATMO(I,J) is the geopotential height (9.81*zatm)
-c
-c     for GCM main level 1:
-      do j=2,jm-1
-        do i=1,im
-          pij=p(i,j)
-          p1=pmid(1,i,j)     !pij*sig(1)+ptop
-          p1k=pk(1,i,j)      !expbyk(p1)
-          t1=t(i,j,1)*p1k
-          z1=zgs+0.5*dsig(1)*rgas*t1*pij/(p1*grav)
-          phi(i,j)=grav*z1+ZATMO(I,J)
-        end do
-      end do
-      i=1
-      j=1
-      pij=p(i,j)
-      p1=pmid(1,i,j)          !pij*sig(1)+ptop
-      p1k=pk(1,i,j)           !expbyk(p1)
-      t1=t(i,j,1)*p1k
-      z1=zgs+0.5*dsig(1)*rgas*t1*pij/(p1*grav)
-      phi(i,j)=grav*z1+ZATMO(I,J)
-
-      j=jm
-      pij=p(i,j)
-      p1=pmid(1,i,j)          !pij*sig(1)+ptop
-      p1k=pk(1,i,j)           !expbyk(p1)
-      t1=t(i,j,1)*p1k
-      z1=zgs+0.5*dsig(1)*rgas*t1*pij/(p1*grav)
-      phi(i,j)=grav*z1+ZATMO(I,J)
-      return
-      end subroutine geopot
-
       function fgrid(z)
 !@sum   fgrid computes functional relationship between z and xi
 !@auth  Ye Cheng/G. Hartke
@@ -2836,4 +2036,3 @@ c     for GCM main level 1:
       fgrid=z+bgrid*((zn-z1)*log(z/z1)-(z-z1)*lznbyz1)-xi
       return
       end function fgrid
-

@@ -23,7 +23,9 @@ C****
       USE SOMTQ_COM
       USE GEOM
       USE RADNCB, only : trhr,fsf,cosz1
-      USE SOCPBL, only : ipbl,pbl,omega2,zgs
+      USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
+     &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
+      USE SOCPBL, only : omega2,zgs
       USE DAGCOM, only : aij,tdiurn,aj,bj,cj,dj,ajl,adaily,jreg
       USE DYNAMICS, only : pmid,pk,pedn,pek
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -36,18 +38,16 @@ C*
       REAL*8, DIMENSION(IM) :: RA !@var
       REAL*8, DIMENSION(IM) :: UMS,VMS !@var
       COMMON/WORK3/E0(IM,JM,4),E1(IM,JM,4),EVAPOR(IM,JM,4),
-     *  TGRND(IM,JM,4),BLTEMP(IM,JM,8)
+     *  TGRND(IM,JM,4)
             COMMON/WORKO/OA(IM,JM,12)
       COMMON /CIRCLE/PI,RADIAN,DEGREE
-      COMMON /RDATA/ROUGHL(IM,JM)
       DIMENSION SINI(IM),COSI(IM),               TGRN2(IM,JM,4)
       LOGICAL POLE
 
-      COMMON /PBLPAR/ZS1,PIJ,PSK,TGV,TKV,THV1,QG,HEMI,
-     2               DTSURF,JVPO,IM1,POLE
+      COMMON /PBLPAR/ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
 
-      COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,USTAR,PPBL,
-     2               CM,CH,CQ,UG,VG,WG,ZMIX
+      COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,PPBL,
+     2               UG,VG,WG,ZMIX
 
       parameter (qmin=1.e-12)
 
@@ -86,26 +86,12 @@ C****       14  LAND ICE TEMPERATURE OF SECOND LAYER (C)
 C****       15  OCEAN ICE TEMPERATURE OF THIRD LAYER (C)
 C****       16  OCEAN ICE TEMPERATURE OF FOURTH LAYER (C)
 C****
-C**** BLDATA 1  COMPOSITE SURFACE WIND MAGNITUDE (M/S)
-C****        2  COMPOSITE SURFACE AIR TEMPERATURE (K)
-C****        3  COMPOSITE SURFACE AIR SPECIFIC HUMIDITY (1)
-C****        4  LAYER TO WHICH DRY CONVECTION MIXES (1)
-C****        5  MIXED LAYER DEPTH (Z1O NOT YET PART OF RESTART FILE)
-C****        6  COMPOSITE SURFACE U WIND
-C****        7  COMPOSITE SURFACE V WIND
-C****        8  COMPOSITE SURFACE MOMENTUM TRANSFER (TAU)
-C****
-C**** ROUGHL    LOG(ZGS/ROUGHNESS LENGTH) (LOGARITHM TO BASE 10)
-C****
       NSTEPS=NSURF*NSTEP/NDYN
       IF(IFIRST.NE.1) GO TO 30
       IFIRST=0
       PI=ACOS(-1.D0)
       DEGREE=180./PI
       RADIAN=PI/180.
-c      CALL DREAD (19,ROUGHL,IM*JM,ROUGHL)
-      CALL READT (19,0,ROUGHL,IM*JM,ROUGHL,1)
-      REWIND 19
 c      ZGS=10.
       OMEGA2=2.*OMEGA
 
@@ -144,9 +130,6 @@ C*
 C*
       DO 40 K=1,12
    40 E0(I,J,K)=0.
-      DO 45 I=1,IM*JM*8
-        BLTEMP(I,1,1)=0.
-45    CONTINUE
          IHOUR=1.5+TOFDAY
       call pgrads1
 C****
@@ -210,6 +193,15 @@ C**** ZERO OUT SURFACE DIAGNOSTICS WHICH WILL BE SUMMED OVER LONGITUDE
          IF(J.GE.JEQ) WARMER=SPRING
       IM1=IM
       DO 6000 I=1,IMAX
+
+      ! until pbl loops over i,j,itype
+      WSAVG(I,J)=0.
+      TSAVG(I,J)=0.
+      QSAVG(I,J)=0.
+      USAVG(I,J)=0.
+      VSAVG(I,J)=0.
+      TAUAVG(I,J)=0.
+
 C****
 C**** DETERMINE SURFACE CONDITIONS
 C****
@@ -367,7 +359,10 @@ C**********************************************************************
       QG=QSAT(TG,PS,ELHX)
       TGV=TG*(1.+QG*RVX)
 C =====================================================================
-      CALL PBL(I,J,ITYPE)
+      CALL PBL(I,J,ITYPE,PTYPE)
+      CM = cmgs(i,j,itype)
+      CH = chgs(i,j,itype)
+      CQ = cqgs(i,j,itype)
       DHGS=(ZMIX-ZGS)*CH*WS
       DQGS=(ZMIX-ZGS)*CQ*WS
       DGS =DQGS
@@ -575,12 +570,7 @@ C****   IMPLICIT TIME STEPS
 C****
 C**** UPDATE SURFACE AND FIRST LAYER QUANTITIES
 C****
-5000  BLTEMP(I,J,1)=WSS
-      BLTEMP(I,J,2)=TSS
-      BLTEMP(I,J,3)=QSS
-      BLTEMP(I,J,6)=USS
-      BLTEMP(I,J,7)=VSS
-      BLTEMP(I,J,8)=TAUS
+5000  CONTINUE
 C****
 C**** ACCUMULATE DIAGNOSTICS
 C****
@@ -753,7 +743,7 @@ C**** OUTSIDE LOOPS OVER J AND I
             IDI(K)=IDIJ(K,I,J)
             IDJ(K)=IDJJ(K,J)
          END DO
-      BLDATA(I,J,4)=1.
+      DCLEV(I,J)=1.
       IF(T(I,J,1)*(1.+Q(I,J,1)*RVX).LE.
      *   T(I,J,2)*(1.+Q(I,J,2)*RVX)) GO TO 8500
 C**** MIX HEAT AND MOISTURE THROUGHOUT THE BOUNDARY LAYER
@@ -804,7 +794,7 @@ C**** MIX THROUGH SUMSEQUENT LAYERS
       RDP=1./(P(I,J)*SIGE(1)-PIJ*SIGE(LMAX+1))
       THM=THPKMS/PKMS
       QMS=QMS*RDP
-      BLDATA(I,J,4)=LMAX
+      DCLEV(I,J)=LMAX
       PIJ=P(I,J)
       DO 8180 L=1,LMAX
       IF(L.EQ.LS1) PIJ=(PSF-PTOP)
