@@ -763,7 +763,7 @@
 
       if ( lnum_param < 1 ) return   ! no parameters in the records
 
-#ifdef MACHINE_DEC
+#if (defined MACHINE_DEC) || (defined MACHINE_Linux)
       ! COMPAQ needs big/little endian conversion
       do n=1,lnum_param
         call swap_bytes_4( LParams(n)%indx, 1 )
