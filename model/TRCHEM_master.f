@@ -1,7 +1,7 @@
       SUBROUTINE masterchem
 !@sum masterchem main chemistry routine
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_master_apr1902_M23)
+!@ver  1.0 (based on ds3ch4_master_0C4.1_M23)
 !@calls photoj,checktracer,Crates,Oxinit,HOxfam,NOxfam,chemstep
 C
 C PLEASE SEE THE WARNINGS IN THE STRATOSPHERIC OVERWRITE SECTION.
@@ -378,7 +378,7 @@ C
          changeHCHO=(rr(36,I,J,L)*y(n_Alkenes,L)+
      &              rr(32,I,J,L)*y(n_Isoprene,L)*0.03)*yNO3(I,J,L)*dt2
      &              -gwprodHNO3+(rr(31,I,J,L)*y(n_Isoprene,L)*0.9
-     &              +rr(35,I,J,L)*y(n_Alkenes,L))*y(nO3,L)*dt2
+     &              +rr(35,I,J,L)*y(n_Alkenes,L))*y(nO3,L)*0.64*dt2
 C
          changeAlkylNit=rr(32,I,J,L)*y(n_Isoprene,L)*
      &   yNO3(I,J,L)*dt2*0.9
