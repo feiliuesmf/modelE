@@ -604,7 +604,7 @@ C**** Try simply removing spaces for compactness
       WRITE(iu_hdiurn,*) "Hourly Value"
       WRITE(iu_hdiurn,'(A4,100A)') "Hour",(NAME(K),K=1,kp)
 
-      DO I=1,HR_IN_period+4
+      DO I=1,HR_IN_period
         WRITE(iu_hdiurn,'(I4,100(1X,F9.3))') I,(FHOUR(i,K),K=1,kp)
       END DO
       WRITE(iu_hdiurn,*)
