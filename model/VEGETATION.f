@@ -295,20 +295,23 @@ c**** adjust canopy conductance for incoming solar radiation
 !----------------------------------------------------------------------!
 ! New equilibrium canopy conductance to moisture (m/s). betaD removed
 ! from here to allow Ci to be calculated.
+! *betaD put back here, otherwise inconsistent calculation of dCNC
       CNCN=betad*(1.0D0-0.0075D0*vh)*650.0D-6*Anet_max*
      &   ((Ci+0.004D0)/(Ci+EPS))*2.8D0**(-80.0D0*dQs)
 ! Required change in canopy conductance to reach equilibrium (m/s).
-!nu   dCNC=CNCN-CNC
+      dCNC=CNCN-CNC
 !nu Limit CNC change over timestep because of guard cell mechanics (m/s)
-!nu   dCNC_max=dt*alai*(0.006D0-0.00006D0)/1800.0D0
-!nu   if( dCNC.gt.dCNC_max)CNCN=CNC+dCNC_max
-!nu   IF(-dCNC.gt.dCNC_max)CNCN=CNC-dCNC_max
+      dCNC_max=dt*alai*(0.006D0-0.00006D0)/1800.0D0
+      if( dCNC.gt.dCNC_max)CNCN=CNC+dCNC_max
+      IF(-dCNC.gt.dCNC_max)CNCN=CNC-dCNC_max
 ! Biological limits of absolute CNC (m/s).
       if(CNCN.gt.0.006*alai)CNCN=0.006*alai
 ! Following should be included, but causes the GCM to crash. Need to ask
 ! Igor about this (seems to result in transpiration of non-existent
 ! soil water). This left in to allow Ci to be calculated, and so
 ! betaD moved from CNCN above to CNC below.
+!NOTE:  Water balance issue due to not modeling canopy water content
+!       explicitly.  This needs to be considered at some point. -nyk
       if(CNCN.lt.0.00006*alai)CNCN=0.00006*alai
 ! Total conductance from inside foliage to surface height at 30m (m/s),
 ! where CO2 is assumed at Ca.
