@@ -77,8 +77,6 @@ C**** boundary layer parameters
 !@var  tr local tracer profile (passive scalars)
       real*8, dimension(n,ntm) :: tr
 #endif
-!@var lmonin = Monin-Obukhov length (m)
-      REAL*8 :: lmonin
 
 C**** parameters for surface fluxes
       !Hogstrom 1988:
@@ -345,15 +343,6 @@ C**** type and direction of flux
         tg =tg1+tf
         select case (itype)
         case (1)                ! ocean: kinetic fractionation
-C**** Adjustment to ocean temperature based on Cappa et al, 2003
-C**** need: constants shv,sha,shw,lhe,stbo,rhow,rgas
-c        RHOSRF=100.*psurf/(RGAS*t(1))
-c        qnet = (LHE+tg1*SHV)*cqsave*wsh*RHOSRF*(q(1)-qgrnd) + 
-c     *       SHA*ch*wsh*RHOSRF*(t(1)-tg) + trhr0-STBO*(tg*tg)*(tg*tg)
-c        tg1 = tg1 - qnet/(0.009d0*ustar*shw*rhow)
-c        print*,ilong,jlat,qnet/(0.009d0*ustar*shw*rhow),(LHE+tg1*SHV)
-c     *       *cqsave*wsh*RHOSRF*(q(1)-qgrnd),SHA*ch*wsh*RHOSRF*(t(1)-tg)
-c     *       ,trhr0,STBO*(tg*tg)*(tg*tg)
           fk = fraclk(wsm,trname(ntix(itr)))
           trcnst = trcnst * fk * fracvl(tg1,trname(ntix(itr)))
           trsf = trsf * fk

@@ -10,7 +10,6 @@ c
       USE CONSTANT, only   : pi, mair, mwat, radian
       USE DYNAMICS, only   : am, byam, PMID, PK
       USE GEOM, only       : BYDXYP,dxyp
-      USE RE001, only : TAUWC, TAUIC
       USE TRACER_COM, only : ntm, trm, TR_MM
 c
       IMPLICIT NONE
