@@ -5,7 +5,7 @@ E001tr: new modelE (based on B402A with sample tracers)
 
 Preprocessor Options
 #define TRACERS_ON          ! include tracers code
-!#define TRACER_SPECIAL_Lerner     ! include special tracer code 
+!#define TRACER_SPECIAL_Lerner     ! include special tracer code
 !#define TRACERS_WATER      ! include water tracers code
 End Preprocessor Options
 
@@ -57,7 +57,8 @@ RADN5=trop8aer.tau5090.minimum
 RADN6=dust8.tau9x8x13
 RADN7=STRATAER.VOL.1950-2000.Jul99
 RADN8=cloud.epsilon4.72x46
-RADN9=solar.lean99.uvflux
+RADN9=solar.lean99.uvflux           ! need KSOLAR<2
+! RADN9=solar.lean02.ann.uvflux     ! need KSOLAR=2
 RADNA=o3trend.1951-2050.2
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
@@ -100,7 +101,7 @@ XCDLM=.0005,.00005
 KOCEAN=0
 U00wtr=.49
 U00ice=.50
-
+KSOLAR=1
 DT=450.,        ! from default: DTsrc=3600.,
 to_volume_MixRat=1,1,1, 1,1,1, 1,1,1,   ! for tracer printout
 NSLP=12         ! saving SLP 12hrly

@@ -918,9 +918,9 @@ C
       USE GEOM, only : dxyn,dxys
       USE DYNAMICS, only : pdsig
 C**********************************************************************
-C**** FILTERING IS DONE IN BOTH DIMENSIONS WITH A 8TH ORDER SHAPIRO
+C**** FILTERING IS DONE IN X-DIRECTION WITH A 8TH ORDER SHAPIRO
 C**** FILTER. THE EFFECT OF THE FILTER IS THAT OF DISSIPATION AT
-C**** THE SMALLEST SCALES.
+C**** THE SMALLEST SCALES. (Y-dir and 2D filter commented out 'cq')
 C**********************************************************************
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: U,V
@@ -928,24 +928,14 @@ C**********************************************************************
       REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT,USAVE,VSAVE
       REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM),DP
       REAL*8 :: DT1=0.
-      LOGICAL*4, SAVE :: QFILY,QFILX,QFIL2D
-      INTEGER, SAVE :: NSHAP,ISIGN
-      REAL*8, SAVE :: by4toN
-      INTEGER I,J,L,N,IP1  !@var I,J,L,N  loop variables
-      REAL*8 Y4TO8,YJ,YJM1,X1,XI,XIM1, BY16
-      INTEGER,SAVE :: IFIRST = 1
+cq    LOGICAL*4 QFILY,QFIL2D
+      INTEGER NSHAP,ISIGN,    I,J,L,N,IP1  !@var I,J,L,N  loop variables
+      REAL*8 by4toN,          Y4TO8,YJ,YJM1,X1,XI,XIM1, BY16
       PARAMETER (BY16=1./16.)
+      PARAMETER (NSHAP=8,ISIGN=(-1.0)**(NSHAP-1),by4toN=1./(4.**NSHAP))
 C****
-      IF(IFIRST.EQ.1) THEN
-         IFIRST = 0
-C        CALL FFT0(IM)
-         QFILY  = .FALSE.
-         QFILX  = .TRUE.
-         QFIL2D = .FALSE.
-         NSHAP  = 8
-         ISIGN  = (-1.0)**(NSHAP-1)
-         by4toN  = 1./(4.**NSHAP)
-      ENDIF
+cq       QFILY  = .FALSE.
+cq       QFIL2D = .FALSE.
 C****
       IF (MRCH.eq.2) THEN
         USAVE=U ; VSAVE=V
@@ -956,7 +946,7 @@ C****
 C$OMP  PARALLEL DO PRIVATE (I,J,L,N,X,X1,XI,XIM1,F2D)
       DO 350 L=1,LM
 C**** Filter U component of momentum
-      IF(QFIL2D) GOTO 250
+cq    IF(QFIL2D) GOTO 250
       DO 240 J=2,JM
       DO 210 I=1,IM
   210 X(I) = U(I,J,L)
@@ -970,28 +960,28 @@ C**** Filter U component of momentum
   230 X(IM)= XIM1-X(IM)-X(IM)+X1
       DO 240 I=1,IM
   240 U(I,J,L) = U(I,J,L) + ISIGN*X(I)*by4toN
-      GOTO 270
-  250 DO 255,J=2,JM-1
-      F2D(1,J)=.125*(U(IM,J,L)+U(1,J+1,L)+U(2,J,L)+
-     *                  U(1,J-1,L)-4.*U(1,J,L))+
-     *        BY16*(U(IM,J-1,L)+U(IM,J+1,L)+U(2,J+1,L)+
-     *              U(2,J-1,L)-4.*U(1,J,L))
-      DO 260,I=2,IM-1
-      F2D(I,J)=.125*(U(I-1,J,L)+U(I,J+1,L)+U(I+1,J,L)+
-     *                  U(I,J-1,L)-4.*U(I,J,L))+
-     *        BY16*(U(I-1,J-1,L)+U(I-1,J+1,L)+U(I+1,J+1,L)+
-     *              U(I+1,J-1,L)-4.*U(I,J,L))
-  260 CONTINUE
-      F2D(IM,J)=.125*(U(IM-1,J,L)+U(IM,J+1,L)+U(1,J,L)+
-     *                  U(IM,J-1,L)-4.*U(IM,J,L))+
-     *        BY16*(U(IM-1,J-1,L)+U(IM-1,J+1,L)+U(1,J+1,L)+
-     *              U(1,J-1,L)-4.*U(IM,J,L))
-  255 CONTINUE
-      DO 265,J=2,JM-1
-      DO 265,I=1,IM
-        U(I,J,L)=U(I,J,L)+F2D(I,J)
-  265 CONTINUE
-  270 CONTINUE
+cq    GOTO 270
+cq250 DO 255,J=2,JM-1
+cq    F2D(1,J)=.125*(U(IM,J,L)+U(1,J+1,L)+U(2,J,L)+
+cq   *                  U(1,J-1,L)-4.*U(1,J,L))+
+cq   *        BY16*(U(IM,J-1,L)+U(IM,J+1,L)+U(2,J+1,L)+
+cq   *              U(2,J-1,L)-4.*U(1,J,L))
+cq    DO 260,I=2,IM-1
+cq    F2D(I,J)=.125*(U(I-1,J,L)+U(I,J+1,L)+U(I+1,J,L)+
+cq   *                  U(I,J-1,L)-4.*U(I,J,L))+
+cq   *        BY16*(U(I-1,J-1,L)+U(I-1,J+1,L)+U(I+1,J+1,L)+
+cq   *              U(I+1,J-1,L)-4.*U(I,J,L))
+cq260 CONTINUE
+cq    F2D(IM,J)=.125*(U(IM-1,J,L)+U(IM,J+1,L)+U(1,J,L)+
+cq   *                  U(IM,J-1,L)-4.*U(IM,J,L))+
+cq   *        BY16*(U(IM-1,J-1,L)+U(IM-1,J+1,L)+U(1,J+1,L)+
+cq   *              U(1,J-1,L)-4.*U(IM,J,L))
+cq255 CONTINUE
+cq    DO 265,J=2,JM-1
+cq    DO 265,I=1,IM
+cq      U(I,J,L)=U(I,J,L)+F2D(I,J)
+cq265 CONTINUE
+cq270 CONTINUE
 C**** Filter V component of momentum
       DO 340 J=2,JM
       DO 310 I=1,IM
@@ -1011,49 +1001,49 @@ C$OMP  END PARALLEL DO
 C****
 C**** Filtering in north-south direction
 C****
-      IF(QFILY) THEN
-      Y4TO8 = 1./(4.**NSHAP)
+cq    IF(QFILY) THEN
+cq    Y4TO8 = 1./(4.**NSHAP)
 C**** Filter U component of momentum
-C$OMP  PARALLEL DO PRIVATE (I,J,L,N,Y,YJ,YJM1)
-      DO 650 L=1,LM
-      DO 540 I=1,IM
-      DO 510 J=1,JM
-  510 Y(J) = U(I,J,L)
-      DO 530 N=1,NSHAP
-         Y(0)    = Y(2)
-         Y(JM+1) = Y(JM-1)
-         YJM1 = Y(0)
-         DO 520 J=1,JM
-            YJ   = Y(J)
-            Y(J) = YJM1-YJ-YJ+Y(J+1)
-  520    YJM1 = YJ
-  530 CONTINUE
-      DO 540 J=1,JM
-  540 U(I,J,L) = U(I,J,L) + ISIGN*Y(J)*Y4TO8
+cqC$OMP  PARALLEL DO PRIVATE (I,J,L,N,Y,YJ,YJM1)
+cq    DO 650 L=1,LM
+cq    DO 540 I=1,IM
+cq    DO 510 J=1,JM
+cq510 Y(J) = U(I,J,L)
+cq    DO 530 N=1,NSHAP
+cq       Y(0)    = Y(2)
+cq       Y(JM+1) = Y(JM-1)
+cq       YJM1 = Y(0)
+cq       DO 520 J=1,JM
+cq          YJ   = Y(J)
+cq          Y(J) = YJM1-YJ-YJ+Y(J+1)
+cq520    YJM1 = YJ
+cq530 CONTINUE
+cq    DO 540 J=1,JM
+cq540 U(I,J,L) = U(I,J,L) + ISIGN*Y(J)*Y4TO8
 C**** Make U winds at poles to be uniform
-      DO 560 J=1,JM,JM-1
-      YJ = 0.
-      DO 550 I=1,IM
-  550 YJ = YJ + U(I,J,L)
-      DO 560 I=1,IM
-  560 U(I,J,L) = YJ*BYIM
+cq    DO 560 J=1,JM,JM-1
+cq    YJ = 0.
+cq    DO 550 I=1,IM
+cq550 YJ = YJ + U(I,J,L)
+cq    DO 560 I=1,IM
+cq560 U(I,J,L) = YJ*BYIM
 C**** Filter V component of momentum
-      DO 640 I=1,IM
-      DO 610 J=1,JM-1
-  610 Y(J) = V(I,J,L)
-      DO 630 N=1,NSHAP
-      YJM1 = Y(1)
-      Y(1) = Y(2)-Y(1)
-      DO 620 J=2,JM-2
-      YJ   = Y(J)
-      Y(J) = YJM1-YJ-YJ+Y(J+1)
-  620 YJM1 = YJ
-  630 Y(JM-1)= YJM1-Y(JM-1)
-      DO 640 J=1,JM-1
-  640 V(I,J,L) = V(I,J,L) + ISIGN*Y(J)*Y4TO8
-  650 CONTINUE
-C$OMP  END PARALLEL DO
-      END IF
+cq    DO 640 I=1,IM
+cq    DO 610 J=1,JM-1
+cq610 Y(J) = V(I,J,L)
+cq    DO 630 N=1,NSHAP
+cq    YJM1 = Y(1)
+cq    Y(1) = Y(2)-Y(1)
+cq    DO 620 J=2,JM-2
+cq    YJ   = Y(J)
+cq    Y(J) = YJM1-YJ-YJ+Y(J+1)
+cq620 YJM1 = YJ
+cq630 Y(JM-1)= YJM1-Y(JM-1)
+cq    DO 640 J=1,JM-1
+cq640 V(I,J,L) = V(I,J,L) + ISIGN*Y(J)*Y4TO8
+cq650 CONTINUE
+cqC$OMP  END PARALLEL DO
+cq    END IF
 C****
       IF (MRCH.eq.2) THEN
 C$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP)

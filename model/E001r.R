@@ -51,7 +51,8 @@ RADN5=trop8aer.tau5090.minimum
 RADN6=dust8.tau9x8x13
 RADN7=STRATAER.VOL.1950-2000.Jul99
 RADN8=cloud.epsilon4.72x46
-RADN9=solar.lean99.uvflux
+RADN9=solar.lean99.uvflux             ! need KSOLAR<2
+! RADN9=solar.lean02.ann.uvflux       ! need KSOLAR=2
 RADNA=o3trend.1951-2050.2
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
@@ -81,7 +82,7 @@ P_sdrag=20.         ! irrelevant
 KOCEAN=0            ! irrelevant
 U00wtr=.50          ! irrelevant
 U00ice=.50          ! irrelevant
-
+KSOLAR=1
 NIsurf=2            ! irrelevant
 DT=300.             ! irrelevant
 

@@ -291,7 +291,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,ple0,ql0  ! saved to avoid OMP-copyin of input arrays
       USE RE001, only : setnew,rcomp1,writer             ! routines
      &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLE=>PLB, PTOPTR
-     *     ,KCLDEM,KVEGA6,MOZONE, QL=>SHL
+     *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, QL=>SHL
       USE FILEMANAGER
       USE PARAM
       IMPLICIT NONE
@@ -324,6 +324,7 @@ C**** sync radiation parameters from input
       call sync_param( "aero_yr", aero_yr )
       call sync_param( "O3_yr", O3_yr )
       call sync_param( "MOZONE", MOZONE )
+      call sync_param( "KSOLAR", KSOLAR )
 
 C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       PHIS=-.25*TWOPI
@@ -381,7 +382,7 @@ C****
 C**** Radiative forcings are either constant = obs.value at given yr/day
 C****    or time dependent (year=0); if day=0 an annual cycle is used
 C****                                         even if the year is fixed
-      CALL SETNEW(11,s0_yr ,s0_day , 1,0,0.D0) ! also sets KSOLAR (arg4)
+      CALL SETNEW(11,s0_yr ,s0_day , KSOLAR,0,0.D0) 
       CALL SETNEW( 2,ghg_yr,ghg_day, 0,0,0.D0)     ! well-mixed GHGases
       if(ghg_yr.gt.0) CALL SETNEW(13,0,0,0,0,0.D0) ! skip GHG-updating
       CALL SETNEW( 3,O3_yr   ,0 ,0,0,0.D0)  ! ozone (ann.cycle)

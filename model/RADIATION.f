@@ -1470,37 +1470,43 @@ CF    RFILEN(LP3:LP4)=RFILE9
 CF    OPEN (NRFU,FILE=RFILEN,FORM='FORMATTED',STATUS='OLD')
 cg    OPEN (NRFU,FORM='FORMATTED',STATUS='OLD')               ! CF
 C
-      READ(NRFU,9000) TITLE
- 9000 FORMAT(1A80)
-      READ(NRFU,9001) (WSLEAN(I),I=1,190)
- 9001 FORMAT(5F14.2)
-      READ(NRFU,9000) TITLE
-      READ(NRFU,9002) (DSLEAN(I),I=1,190)
- 9002 FORMAT(5E14.3)
-      DO 901 I=1,190
-      WSLEAN(I)=WSLEAN(I)/1000.D0
-      DSLEAN(I)=DSLEAN(I)/1000.D0
-      W1LEAN(I)=WSLEAN(I)-0.5D0*DSLEAN(I)
-  901 CONTINUE
-      READ(NRFU,9000) TITLE
-      READ(NRFU,9000) TITLE
-      DO 904 I=1,Ms0X
-      READ(NRFU,9003) IYEAR,IMONTH,TSI1(I),TSI2(I)
- 9003 FORMAT(2I6,3F17.6)
-      READ(NRFU,9004) (FSLEAN(K),K=1,190)
- 9004 FORMAT(5E14.6)
-      SUM=0.D0
-      DO 902 J=1,190
-      SUM=SUM+FSLEAN(J)*DSLEAN(J)
-  902 CONTINUE
-      SFNORM=TSI1(I)/SUM
-      DO 903 J=1,190
-      UVLEAN(I,J)=FSLEAN(J)*SFNORM
-  903 CONTINUE
-  904 CONTINUE
+      READ(NRFU,'(a80)') TITLE
+      READ(NRFU,'(5F14.2)') (WSLEAN(I),I=1,190)
+      READ(NRFU,'(a80)') TITLE
+      READ(NRFU,'(5E14.3)') (DSLEAN(I),I=1,190)
+      DO I=1,190
+        WSLEAN(I)=WSLEAN(I)/1000.D0
+        DSLEAN(I)=DSLEAN(I)/1000.D0
+        W1LEAN(I)=WSLEAN(I)-0.5D0*DSLEAN(I)
+      END DO
+      READ(NRFU,'(a80)') TITLE
+      READ(NRFU,'(a80)') TITLE
+      IF(KSOLAR.LT.2) THEN
+C****   Read in monthly-mean data
+        DO I=1,Ms0X
+          READ(NRFU,'(2I6,3F17.6)') IYEAR,IMONTH,TSI1(I),TSI2(I)
+          READ(NRFU,'(5E14.6)')     (FSLEAN(K),K=1,190)
+          SUM=0.D0
+          DO K=1,190
+            SUM=SUM+FSLEAN(K)*DSLEAN(K)
+          END DO
+          SFNORM=TSI1(I)/SUM
+          DO K=1,190
+            UVLEAN(I,K)=FSLEAN(K)*SFNORM
+          END DO
+        END DO
+      ELSE
+C****   Read in annual-mean data
+        DO I=1,Ms0X
+          READ(NRFU,'(F12.1,2F15.4)',end=949) yr2S0,TSI1(I),TSI2(I)
+          if(I.eq.1) yr1S0 = yr2S0
+          READ(NRFU,'(5E14.6)')               (UVLEAN(I,K),K=1,190)
+        END DO
+      END IF
 cg    CLOSE(NRFU)
 C
   949 CONTINUE
+      if(ksolar.gt.1) write(6,*) 'read S0-history: ',yr1S0,' - ',yr2S0
 C
 C
 C-----------------------------------------------------------------------
@@ -1935,6 +1941,7 @@ C
 C     KSOLAR=-1  Reproduces Thekaekhara Ozone Absorption, e.g., XRAD83XX
 C     KSOLAR= 0  Uses Lean99 Solar Flux as set for Time= (JYEARS,JJDAYS)
 C     KSOLAR= 1  Sets Lean99 Solar Flux to Current Time= (JYEARS,JJDAYS)
+C     KSOLAR= 2  same as 1 but based on annual (not monthly) data
 C                (JJDAYS used to select the specified Monthly-Mean Flux)
 C
 C-----------------------------------------------------------------------
@@ -1968,10 +1975,18 @@ C
       IF(KSOLAR.GE.0) THEN
 C                                           Lean99 Solar Flux, UV Option
 C                                           ----------------------------
-      JMO=1+JJDAYS/30.5D0
-      IF(JMO.GT.12) JMO=12
-      LMO=(JYEARS-iy1S0)*12+JMO
-      IF(LMO.GT.Ms0X) LMO=MS0XM10y+MOD(LMO-MS0XM10y,mcycs0) ! cycle data
+      if(Ksolar.lt.2) then    ! monthly data
+        JMO=1+JJDAYS/30.5D0
+        IF(JMO.GT.12) JMO=12
+        LMO=(JYEARS-iy1S0)*12+JMO
+        IF(LMO.GT.Ms0X) LMO=LMO-mcycs0*((LMO-Ms0X+mcycs0-1)/mcycs0)
+        IF(LMO.LT.1) LMO=LMO+mcycs0*((mcycs0-lmo)/mcycs0)
+      else                    ! annual data
+        Is0x = nint( yr2s0-yr1s0+1 )
+        lmo = nint( jyears - yr1s0 + 1.5 )
+        IF(LMO.GT.Is0X) LMO=LMO-icycs0*((LMO-Is0X+icycs0-1)/icycs0)
+        IF(LMO.LT.1) LMO=LMO+icycs0*((icycs0-lmo)/icycs0)
+      end if
       LMOREF=LMO
 C
 C                        IF(MADLUV.EQ.0) Default Option is then in force
@@ -2078,10 +2093,18 @@ C
       IF(KSOLAR.LT.1) GO TO 300
       IF(JYEARS.LT.1) GO TO 300
 C
-      JMO=1+JJDAYS/30.5D0
-      IF(JMO.GT.12) JMO=12
-      LMO=(JYEARS-iy1S0)*12+JMO
-      IF(LMO.GT.Ms0X) LMO=MS0XM10y+MOD(LMO-MS0XM10y,mcycs0)
+      if(Ksolar.lt.2) then    ! monthly data       ksolar=1
+        JMO=1+JJDAYS/30.5D0
+        IF(JMO.GT.12) JMO=12
+        LMO=(JYEARS-iy1S0)*12+JMO
+        IF(LMO.GT.Ms0X) LMO=LMO-mcycs0*((LMO-Ms0X+mcycs0-1)/mcycs0)
+        IF(LMO.LT.1) LMO=LMO+mcycs0*((mcycs0-lmo)/mcycs0)
+      else                    ! annual data        ksolar=2
+        Is0x = nint( yr2s0-yr1s0+1 )
+        lmo = nint( jyears - yr1s0 + 1.5 )
+        IF(LMO.GT.Is0X) LMO=LMO-icycs0*((LMO-Is0X+icycs0-1)/icycs0)
+        IF(LMO.LT.1) LMO=LMO+icycs0*((icycs0-lmo)/icycs0)
+      end if
 C
       IF(LMO.EQ.LMOREF) GO TO 300
 C
@@ -10291,7 +10314,9 @@ C-------------
   300 CONTINUE
 C-------------
 C
+      if(ksolar.lt.0) go to 9999
       LMO=(1950-iy1S0)*12+1
+      if(ksolar.gt.1) LMO=nint(1950 - yr1s0 + 1.5)
       DO 310 I=1,5
       SFL0(I)=0.D0
   310 CONTINUE
@@ -10303,7 +10328,17 @@ C
                                  SFL0(5)=SFL0(5)+UVLEAN(LMO,K)*DSLEAN(K)
   320 CONTINUE
 C
-      WRITE(KW,6300) JYRREF,JYRNOW,SFL0(5)
+      if(ksolar.eq.2)
+     *   WRITE(KW,6299) int(yr1s0),int(yr2s0),JYRREF,JYRNOW,SFL0(5)
+      if(ksolar.lt.2) WRITE(KW,6300) JYRREF,JYRNOW,SFL0(5)
+ 6299 FORMAT(/' (3)=INDEX  Annual-mean Solar flux (from J.Lean annual'
+     +      ,I6,'-',I4,' data) for JYRREF=',I4,' to JYRNOW=',I4,'  mid',
+     +      ,' 1950 Ref S00WM2=',F9.4/12X,'Solar UV Spectral Flux W/m2'
+     +      ,T57,'Delta Solar UV Spectral Flux W/m2'
+     +      ,T97,'Solar UV Spectral Flux Ratios'
+     +      /'  YEAR    0-280 280-320 320-360 360-400   Total '
+     +      ,6X,'0-280 280-320 320-360 360-400   Total '
+     +      ,4X,'0-280 280-320 320-360 360-400   Total ')
  6300 FORMAT(/' (3)=INDEX  Annual-mean Solar flux (from J.Lean monthly'
      +      ,' 1882-1998 data) for JYRREF=',I4,' to JYRNOW=',I4,'  Jan'
      +      ,' 1950 Ref S00WM2=',F9.4/12X,'Solar UV Spectral Flux W/m2'
@@ -10313,6 +10348,17 @@ C
      +      ,6X,'0-280 280-320 320-360 360-400   Total '
      +      ,4X,'0-280 280-320 320-360 360-400   Total ')
 C
+      if(ksolar.lt.2) then
+        mavg = 12
+        iyr1 = iy1s0
+        lmax = ms0x
+        icyc = mcycs0
+      else
+        mavg = 1
+        iyr1 = yr1s0
+        lmax = nint( yr2s0-yr1s0+1 )
+        icyc = icycs0
+      end if
       DO 370 J=JYRREF,JYRNOW
       KWSKIP=0
       IF(J.GT.JYRREF) KWSKIP=KLIMIT
@@ -10321,10 +10367,11 @@ C
       DO 330 I=1,5
       SFLX(I)=0.D0
   330 CONTINUE
-      LMO=(JYEARS-iy1S0)*12
-      DO 350 M=1,12
+      LMO=(JYEARS-iyr1)*mavg
+      DO 350 M=1,mavg
       LMO=LMO+1
-      IF(LMO.GT.Ms0X) LMO=MS0XM10y+MOD(LMO-MS0XM10y,mcycs0)
+      IF(LMO.GT.lmax) LMO=LMO-icyc*((LMO-lmax+icyc-1)/icyc)
+      IF(LMO.LT.1) LMO=LMO+icyc*((icyc-LMO)/icyc)
       DO 340 K=1,190
       IF(K.LE.NSW1)              SFLX(1)=SFLX(1)+UVLEAN(LMO,K)*DSLEAN(K)
       IF(K.GT.NSW1.AND.K.LE.NSW2)SFLX(2)=SFLX(2)+UVLEAN(LMO,K)*DSLEAN(K)
@@ -10334,7 +10381,7 @@ C
   340 CONTINUE
   350 CONTINUE
       DO 360 I=1,5
-      SFLX(I)=SFLX(I)/12.D0
+      SFLX(I)=SFLX(I)/mavg
       DFLX(I)=SFLX(I)-SFL0(I)
       RFLX(I)=SFLX(I)/SFL0(I)
   360 CONTINUE
@@ -13549,4 +13596,3 @@ c     DATA  QAERO / LX*0.0, LX*0.0, LX*0.0, LX*0.0, LX*0.0, LX*0.0 /
 c     DATA  TRAXNL / LX*0.0 /
 C
 c     END BLOCK DATA RADBET
-C     ALERT!!! LX=57 is for a 53-layer model (i.e., LX=LM+4)

@@ -3,8 +3,9 @@ C     If LX is changed, need to change data statements in
 C     BLOCK DATA RADPAR that initialize PLB and HLB
       IMPLICIT REAL*8(A-H,O-Z)
       PARAMETER (LX=57,iy1O3=1951,iy2O3=2050,MO3X=12*(iy2O3-iy1O3+1),
-     *  iy1S0=1882,iy2S0=1998,mcycs0=120,MS0X=12*(iy2S0-iy1S0+1),
-     *  MS0XM10y=MS0X-mcycs0+1)
+     *  iy1S0=1882,iy2S0=1998,icycs0=10,
+     *  MS0X=12*(iy2S0-iy1S0+1),mcycs0=icycs0*12)
+      REAL*4 yr1S0,yr2S0
       REAL*4 TROAER,VDBCSU,TDUST,EPLMHC,UVLEAN
 !offl REAL*4 FVEG11,FOLGIZ      !  needed only for offline use
       REAL*4 ATAU98,SIZE98,HTF498,O3CLIM

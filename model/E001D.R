@@ -51,7 +51,8 @@ RADN5=trop8aer.tau5090.minimum
 RADN6=dust8.tau9x8x13
 RADN7=STRATAER.VOL.1950-2000.Jul99
 RADN8=cloud.epsilon4.72x46
-RADN9=solar.lean99.uvflux
+RADN9=solar.lean99.uvflux             ! need KSOLAR<2
+! RADN9=solar.lean02.ann.uvflux       ! need KSOLAR=2
 RADNA=o3trend.1951-2050.2
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
@@ -68,12 +69,12 @@ XCDLM=.0005,.00005
 KOCEAN=1
 U00wtr=.49
 U00ice=.50
+KSOLAR=1
 isccp_diags=1
 DT=450.,        ! from default: DTsrc=3600.,
 NSLP=12         ! saving SLP 12hrly
 Kvflxo=1        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
-
 &&END_PARAMETERS
 
  &INPUTZ
