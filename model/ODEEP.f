@@ -404,17 +404,3 @@ C****
       RETURN
       END SUBROUTINE diag_OCEAN
 
-      SUBROUTINE DUMMY_OCN
-!@sum  DUMMY necessary entry points for non-dynamic oceans
-!@auth Gavin Schmidt
-!@ver  1.0
-      ENTRY ADVSI
-      ENTRY io_icedyn
-      ENTRY io_icdiag
-      ENTRY init_icedyn
-      ENTRY reset_icdiag
-      ENTRY diag_ICEDYN
-
-      RETURN
-      END SUBROUTINE DUMMY_OCN
-

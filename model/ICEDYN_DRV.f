@@ -211,7 +211,7 @@ C****
 !@+    Note that the ice velocities are calculated on the ice grid
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
-      USE CONSTANT, only : rhoi,grav,omega
+      USE CONSTANT, only : rhoi,grav,omega,rhow
       USE MODEL_COM, only : im,jm,p,ptop,dts=>dtsrc,focean
       USE GEOM, only : dxyn,dxys,dxyv,dxyp,bydxyp,dxp,dyv,imaxj
       USE ICEDYN, only : imic,jmic,nx1,ny1,press,heffm,uvm,dwatn,cor
@@ -252,7 +252,8 @@ C**** atmospheric pressure graident term does not in general produce a
 C**** horizontal force in a solid (such as ice).
 
 C**** calculate sea surface tilt on atmospheric C grid 
-C**** (using OGEOZA on atmospheric grid)
+C**** (using OGEOZA on atmospheric grid plus displacement of free
+C**** surface due to presence of ice)
 C**** PGF is an accelaration
       PGFU(1:IM,JM)=0
       DO J=2,JM-1
@@ -262,7 +263,9 @@ C**** PGF is an accelaration
      *         RSI(I,J)+RSI(IP1,J).gt.0.) THEN
 c            PGFU(I,J)=-((APRESS(IP1,J)-APRESS(I,J))*BYRHOI
 c     *           +OGEOZA(IP1,J)-OGEOZA(I,J))/DXP(J)
-            PGFU(I,J)=-(OGEOZA(IP1,J)-OGEOZA(I,J))/DXP(J)
+            PGFU(I,J)=-(OGEOZA(IP1,J)-OGEOZA(I,J)+
+     *           (RSI(IP1,J)*(MSI(IP1,J)+SNOWI(IP1,J)+ACE1I)
+     *           -RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I))/RHOW  )/DXP(J)
           ELSE
             PGFU(I,J)=0.
           END IF
@@ -275,7 +278,9 @@ c     *           +OGEOZA(IP1,J)-OGEOZA(I,J))/DXP(J)
      *         RSI(I,J)+RSI(I,J+1).gt.0.) THEN
 c            PGFV(I,J)=-((APRESS(I,J+1)-APRESS(I,J))*BYRHOI
 c     *           +OGEOZA(I,J+1)-OGEOZA(I,J))/DYV(J+1)
-            PGFV(I,J)=-(OGEOZA(I,J+1)-OGEOZA(I,J))/DYV(J+1)
+            PGFV(I,J)=-(OGEOZA(I,J+1)-OGEOZA(I,J)+
+     *           (RSI(I,J+1)*(MSI(I,J+1)+SNOWI(I,J+1)+ACE1I) -
+     *           RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I))/RHOW  )/DYV(J+1)
           ELSE
             PGFV(I,J)=0.
           END IF
@@ -529,7 +534,7 @@ C****
 !@+    etc. will need to be interpolated back and forth).
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : byshi,lhm,grav
-      USE MODEL_COM, only : im,jm,focean,p,ptop
+      USE MODEL_COM, only : im,jm,focean,p,ptop,kocean
       USE GEOM, only : dxyp,dyp,dxp,dxv,bydxyp,imaxj
 c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
       USE ICEDYN_COM, only : usidt,vsidt,rsix,rsiy,rsisave,icij,ij_musi
@@ -542,10 +547,11 @@ c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp,apress
+      USE FLUXES, only : gtemp,apress,msicnv
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
+      USE DAGCOM, only : oa
       IMPLICIT NONE
       REAL*8, DIMENSION(IM) :: FAW,FASI,FXSI,FYSI
 !@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
@@ -951,42 +957,64 @@ C**** End of loop over I
 C**** End of loop over J
   640 CONTINUE
 
+      IF (KOCEAN.eq.1) THEN ! full ocean calculation, adjust sea ice
 C**** set global variables from local array
 C**** Currently on atmospheric grid, so no interpolation necessary
-      SNOWI(:,:)= MAX(0d0,MHS(1,:,:) - ACE1I)
-      MSI(:,:)  = MHS(2,:,:)
-      DO L=1,LMI
-        HSI(L,:,:) = MHS(L+2,:,:)
-        SSI(L,:,:) = MHS(L+2+LMI,:,:)
+        DO J=1,JM
+          DO I=1,IMAXJ(J)
+C**** Fresh water sea ice mass convergence
+            MSICNV(I,J) = RSI(I,J)*(MHS(1,I,J)+MHS(2,I,J)-SUM(MHS(3
+     *           +LMI:2*LMI+2,I,J))) - RSISAVE(I,J)*(ACE1I+SNOWI(I,J)
+     *           +MSI(I,J)-SUM(SSI(:,I,J)))
+C**** sea ice prognostic variables
+            SNOWI(I,J)= MAX(0d0,MHS(1,I,J) - ACE1I)
+            MSI(I,J)  = MHS(2,I,J)
+            DO L=1,LMI
+              HSI(L,I,J) = MHS(L+2,I,J)
+              SSI(L,I,J) = MHS(L+2+LMI,I,J)
 #ifdef TRACERS_WATER
-        DO ITR=1,NTM
-          TRSI(ITR,L,:,:)=MHS(L+2+(1+ITR)*LMI,:,:)
-        END DO
+              DO ITR=1,NTM
+                TRSI(ITR,L,I,J)=MHS(L+2+(1+ITR)*LMI,I,J)
+              END DO
 #endif
-      END DO
+            END DO
+          END DO
+        END DO
 C**** Set atmospheric arrays
-      DO J=1,JM
-        DO I=1,IMAXJ(J)
-          IF (FOCEAN(I,J).gt.0) THEN
+        DO J=1,JM
+          DO I=1,IMAXJ(J)
+            IF (FOCEAN(I,J).gt.0) THEN
 C**** set total atmopsheric pressure anomaly in case needed by ocean
-            APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
-     *           *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
-            GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
-     *           (XSI(1:2)*MHS(1,I,J))+LHM)*BYSHI
+              APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
+     *             *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
+              GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
+     *             (XSI(1:2)*MHS(1,I,J))+LHM)*BYSHI
 #ifdef TRACERS_WATER
-            GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MHS(1,I,J)
-     *           -SSI(1,I,J))
+              GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MHS(1,I,J)
+     *             -SSI(1,I,J))
 #endif
-          END IF
+            END IF
+          END DO
         END DO
-      END DO
-      DO I=2,IM ! North pole
-        APRESS(I,JM)=APRESS(1,JM)
-        GTEMP(1:2,2,I,JM)= GTEMP(1:2,2,1,JM)
+        DO I=2,IM               ! North pole
+          APRESS(I,JM)=APRESS(1,JM)
+          GTEMP(1:2,2,I,JM)= GTEMP(1:2,2,1,JM)
 #ifdef TRACERS_WATER
-        GTRACER(:,2,I,JM)=GTRACER(:,2,1,JM)
+          GTRACER(:,2,I,JM)=GTRACER(:,2,1,JM)
 #endif
-      END DO
+        END DO
+C**** For qflux model need to adjust diagnostics
+        CALL ADVSI_DIAG
+      ELSE                      ! fixed SST case, save implied heat convergence
+        DO J=1,JM
+          DO I=1,IMAXJ(J)
+            OA(I,J,13)=OA(I,J,13)+(RSI(I,J)*SUM(MHS(3:2+LMI,I,J))
+     *           -RSISAVE(I,J)*SUM(HSI(1:LMI,I,J)))
+C**** reset sea ice concentration
+            RSI(I,J)=RSISAVE(I,J)
+          END DO
+        END DO
+      END IF
 C****
       RETURN
       END SUBROUTINE ADVSI
@@ -1290,3 +1318,8 @@ C**** Name and scale are tracer dependent
 C****
       RETURN
       END SUBROUTINE diag_ICEDYN
+
+      SUBROUTINE ADVSI_DIAG
+!@sum ADVSI_DIAG dummy routine
+      RETURN
+      END

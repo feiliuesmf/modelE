@@ -404,13 +404,13 @@ C**** limit it to the annual maxmimal mixed layer depth z12o
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
           WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN
  602      FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,2F10.3)
-          Z1O(I,J)=Z1OMIN
-          IF (Z1O(I,J).GT.Z12O(I,J)) THEN
+          Z1O(I,J)=MIN(Z1OMIN, z12o(i,j))
+          IF (Z1OMIN.GT.Z12O(I,J)) THEN
 C****       ICE DEPTH+1>MAX MIXED LAYER DEPTH :
 C****       lose the excess mass to the deep ocean
 C**** Calculate freshwater mass to be removed, and then any energy/salt
-            MSINEW=MSI(I,J)*(1.-RHOW*(Z1O(I,J)-Z12O(I,J))/(FWSIM(I,J)
-     *           -ACE1I-SNOWI(I,J)))
+            MSINEW=MSI(I,J)*(1.-RHOW*(Z1OMIN-Z12O(I,J))/(FWSIM(I,J)
+     *           -RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2.I,J)))))
             HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
             SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
 #ifdef TRACERS_WATER
@@ -431,8 +431,8 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
       END SUBROUTINE OCLIM
 
       SUBROUTINE OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,RUN0,FODT,FIDT,RVRRUN
-     *     ,RVRERUN,EVAPO,EVAPI,TFW,RUN4O,ERUN4O,RUN4I
-     *     ,ERUN4I,ENRGFO,ACEFO,ACEFI,ENRGFI)
+     *     ,RVRERUN,EVAPO,EVAPI,TFW,RUN4O,ERUN4O
+     *     ,RUN4I,ERUN4I,ENRGFO,ACEFO,ACEFI,ENRGFI)
 !@sum  OSOURC applies fluxes to ocean in ice-covered and ice-free areas
 !@+    ACEFO/I are the freshwater ice amounts,
 !@+    ENRGFO/I is total energy (including a salt component)
@@ -526,7 +526,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
 #endif
-      USE FLUXES, only : gtemp,sss,uosurf,vosurf,uisurf,visurf
+      USE FLUXES, only : gtemp,sss,uosurf,vosurf,uisurf,visurf,ogeoza
       USE SEAICE, only : qsfix
       USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
@@ -602,19 +602,6 @@ ccc     the above line could substitute for next 3 lines w/o any change
 C****   initialise deep ocean arrays if required
         call init_ODEEP(iniOCEAN)
 
-C****   IF SNOWI(I,J)<0, THE OCEAN PART WAS CHANGED TO LAND ICE
-C****   BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
-        DO J=1,JM
-        DO I=1,IM
-          IF(SNOWI(I,J).GE.-1.) CYCLE
-          FLICE(I,J)=1-FLAND(I,J)+FLICE(I,J)
-          FLAND(I,J)=1.
-          FEARTH(I,J)=1.-FLICE(I,J)
-          FOCEAN(I,J)=0.
-          WRITE(6,'(2I3,'' OCEAN WAS CHANGED TO LAND ICE'')') I,J
-        END DO
-        END DO
-
 C*****  set conservation diagnostic for ocean heat
         CONPT=CONPT0
         QCON=(/ F, F, F, T, F, T, F, T, T, F, F/)
@@ -637,6 +624,8 @@ C**** Set fluxed arrays for oceans
 C**** For the time being assume zero surface velocities for drag calc
         uosurf(i,j)=0. ; vosurf(i,j)=0.
         uisurf(i,j)=0. ; visurf(i,j)=0.
+C**** Also zero out surface height variations
+        ogeoza(i,j)=0.
       END DO
       END DO
 C**** keep salinity in sea ice constant for fixed-SST and qflux models
@@ -887,36 +876,45 @@ C**** store surface temperatures
 C****
       END SUBROUTINE OCEANS
 
-      SUBROUTINE DYNSI
-!@sum DYNSI simple coding to estimate ice-ocean friction velocity
+      SUBROUTINE ADVSI_DIAG
+!@sum  ADVSI_DIAG adjust diagnostics for qflux if ADVSI used
 !@auth Gavin Schmidt
-      USE CONSTANT, only : rhow
-      USE MODEL_COM, only : im,jm,kocean,focean,dtsrc
-      USE GEOM, only : imaxj
-      USE SEAICE, only : oi_ustar0
+      USE CONSTANT, only : shw
+      USE MODEL_COM, only : focean,im,jm,itocean,itoice
+      USE GEOM, only : dxyp,imaxj
+      USE STATIC_OCEAN, only : tocean
       USE SEAICE_COM, only : rsi
-      USE FLUXES, only : UI2rho,dmua,dmva
-
+      USE FLUXES, only : fwsim,msicnv
+      USE DAGCOM, only : aj,areg,J_IMPLM,J_IMPLH,jreg
       IMPLICIT NONE
-      INTEGER I,J
-      REAL*8 ustar1
+      INTEGER I,J,JR
+      REAL*8 DXYPJ,RUN4,ERUN4,TGW,POICE,POCEAN
 
-      IF (KOCEAN.eq.1) THEN
-        DO J=1,JM
-        DO I=1,IMAXJ(J)
-c          UI2rho(I,J) = rhow*(oi_ustar0)**2  ! default
-C**** with wind stress dependence
-          if (rsi(i,j)*focean(i,j).gt.0) then
-            ustar1= SQRT(SQRT(DMUA(I,J,2)**2+DMVA(I,J,2)**2)/(RSI(i,j)
-     *           *focean(i,j)*DTSRC*RHOW))
-            UI2rho(I,J)=rhow*(oi_ustar0*max(1d0,1d3*ustar1))**2
-          end if
-        END DO
-        END DO
-      END IF
+      DO J=1,JM
+      DXYPJ=DXYP(J)
+      DO I=1,IMAXJ(J)
+        JR=JREG(I,J)
+        POICE=FOCEAN(I,J)*RSI(I,J)
+        POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
+        IF (FOCEAN(I,J).gt.0) THEN
+          TGW  = TOCEAN(1,I,J)
+          RUN4  = MSICNV(I,J)
+          ERUN4 = TGW*SHW*RUN4
+C**** Open Ocean diagnostics
+          AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)+RUN4 *POCEAN
+          AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)+ERUN4*POCEAN
+C**** Ice-covered ocean diagnostics
+          AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)+RUN4 *POICE
+          AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)+ERUN4*POICE
+C**** regional diagnostics
+          AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+RUN4 *FOCEAN(I,J)*DXYPJ
+          AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+ERUN4*FOCEAN(I,J)*DXYPJ
+        END IF
+      END DO
+      END DO
 
       RETURN
-      END SUBROUTINE DYNSI
+      END
 
       SUBROUTINE DIAGCO (M)
 !@sum  DIAGCO Keeps track of the ocean conservation properties

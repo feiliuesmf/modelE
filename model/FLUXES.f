@@ -100,6 +100,9 @@ C**** sea ice melt.
       REAL*8, DIMENSION(IM,JM) :: APRESS
 !@var FWSIM fresh water sea ice mass (kg/m^2) (used for qflux model)
       REAL*8, DIMENSION(IM,JM) :: FWSIM
+!@var MSICNV fresh water sea ice mass convergence after advsi (kg/m^2)
+!@+   (used for qflux model)
+      REAL*8, DIMENSION(IM,JM) :: MSICNV
 
 #ifdef TRACERS_ON
 !@var TRSOURCE non-interactive surface sources/sinks for tracers (kg/s)
