@@ -46,6 +46,9 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 !@param BYZETA reciprocal of solar rad. extinction depth for lake (1/m)
       REAL*8, PARAMETER :: BYZETA = 1./0.35d0
 
+!@dbparam river_fac Factor to multiply runoff by to balance sea level
+      REAL*8 :: river_fac=1.    ! default = 1
+
       CONTAINS
 
       SUBROUTINE LKSOURC (I0,J0,ROICE,MLAKE,ELAKE,RUN0,FODT,FIDT,SROX
@@ -367,6 +370,7 @@ C****
       USE PBLCOM, only : tsavg
       USE LAKES
       USE LAKES_COM
+      USE PARAM
       USE DAGCOM, only : npts,icon_LKM,icon_LKE,title_con,conpt0
       IMPLICIT NONE
 
@@ -400,6 +404,9 @@ C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
           END IF
         END DO
       END DO
+
+C**** Get parameters from rundeck
+      call sync_param("river_fac",river_fac)
 
       IF (INILAKE) THEN
 C**** Set lake variables from surface temperature
@@ -654,7 +661,7 @@ C****
       USE FLUXES, only : trflowo,gtracer
 #endif
       USE FLUXES, only : flowo,eflowo,gtemp,mlhc
-      USE LAKES, only : kdirec,rate,iflow,jflow
+      USE LAKES, only : kdirec,rate,iflow,jflow,river_fac
       USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
@@ -725,9 +732,12 @@ C**** the ocean level is below zero.
 C**** Note: this is diasabled until PE of precip is properly calculated
 C**** in atmosphere as well. Otherwise, there is an energy imbalance.
                 DPE=0.  ! DMM*(ZATMO(IU,JU)-MIN(0d0,ZATMO(ID,JD)))
+C**** possibly adjust mass (not heat) to allow for balancing of sea level
+                DMM=river_fac*DMM
                 FLOWO(ID,JD)=FLOWO(ID,JD)+DMM
                 EFLOWO(ID,JD)=EFLOWO(ID,JD)+DGM+DPE
 #ifdef TRACERS_WATER
+                DTM(:)=river_fac*DTM(:)
                 TRFLOWO(:,ID,JD) = TRFLOWO(:,ID,JD) + DTM(:)
 #endif
 C**** accumulate river runoff diags (moved from ground)
