@@ -1342,7 +1342,7 @@ C****
 C****
       IF (PWATER.LE.0.) GO TO 400
 C****
-C**** OCEAN
+C**** OCEAN AND LAKE
 C****
       EVAP=EVAPOR(I,J,1)
          ATG1=ATG1+ODATA(I,J,1)*POCEAN

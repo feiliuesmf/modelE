@@ -266,7 +266,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 !@ver   1.0
       USE FILEMANAGER, only : NAME !@var NAME name of record being read
       IMPLICIT NONE
-      INTEGER :: IUNIT             !@var  IUNIT  file unit number
+      INTEGER, INTENT(IN) :: IUNIT             !@var  IUNIT  file unit number
       INTEGER, INTENT(IN) :: NSKIP !@var  NSKIP  no. of chars. to skip
       INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
       INTEGER, INTENT(IN) :: IPOS  !@var  IPOS   no. of recs. to advance

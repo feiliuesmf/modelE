@@ -20,7 +20,8 @@ C**** f90 changes
 
       USE DAGCOM, only : aj,kacc,aij,tsfrez,keynr,kdiag,ij_tgo2
       USE DYNAMICS, only : FILTER,CALC_AMPK
-      USE OCEAN, only : ODATA,OA
+      USE OCEAN, only : ODATA,OA,dm,iu_osst,iu_sice,iu_ocnml
+      USE FILEMANAGER, only : getunit
 
       IMPLICIT NONE
 
@@ -57,7 +58,10 @@ C**** INITIALIZE TIME PARAMETERS
       IDAY=1+ITAU/I24
       TOFDAY=(ITAU-(IDAY-1)*I24)/XINT
          MODD5K=1000
-      CALL DAILY0
+      CALL DAILY(0)
+      CALL daily_EARTH(0)
+      CALL daily_LAKE
+      CALL daily_OCEAN(0)
       CALL CALC_AMPK(LM)
          CALL CHECKT ('INPUT ')
 
@@ -180,13 +184,14 @@ C****
       IF (EVENT(HR24)) THEN
          CALL DIAG5A (1,0)
          CALL DIAG9A (1)
-      CALL DAILY
+      CALL DAILY(1)
       CALL TIMER (MNOW,MINC,MELSE)
          NDAILY=SDAY/DT
          CALL DIAG5A (16,NDAILY)
          CALL DIAG9A (8)
-      call daily_SNOW
-      call daily_OCEAN
+      call daily_EARTH(1)
+      CALL daily_LAKE
+      call daily_OCEAN(1)
          CALL CHECKT ('DAILY ')
       CALL TIMER (MNOW,MINC,MSURF)
       END IF
@@ -374,7 +379,7 @@ C****
 
       IMPLICIT NONE
 
-      INTEGER, DIMENSION(3) :: IDUM
+      INTEGER, DIMENSION(2) :: IDUM
       INTEGER, DIMENSION(13) :: NDZERO,NDPRNT
       INTEGER, DIMENSION(2,4) :: IJD6
       INTEGER, DIMENSION(12) :: IDACC
@@ -389,19 +394,18 @@ C****
      *  NRAD,NSURF,NGRND,NFILTR,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
      *  MLAST,MDYN,MCNDS,MRAD,MSURF,    MDIAG,MELSE,MODRD,MODD5K,MODD5S,
      *  IYEAR,IDAY,IDAY0,JYEAR,JYEAR0,  JDAY,JDATE,JDATE0,NSTEP,MRCH,
-     *  KTACC0,IDUM   ,NDZERO    ,NDPRNT    ,  IJD6     ,IDACC
+     *  KTACC0,MONTH,IDUM   ,NDZERO    ,NDPRNT    ,  IJD6     ,IDACC
 
       DOUBLE PRECISION, DIMENSION(LM) :: SIG
       DOUBLE PRECISION, DIMENSION(LM+1) :: SIGE
       DOUBLE PRECISION, DIMENSION(4) :: TAUTR0
-      DOUBLE PRECISION, DIMENSION(60+2*(36-LM)) :: RDM2
+      DOUBLE PRECISION, DIMENSION(161-29-2*LM) :: RDM2
       DOUBLE PRECISION ::  TAU,TAU0,TOFDAY,TOFDY0,DT,TAUP,TAUI,TAUE,TAUT
      *     ,TAUO,PTOP,PSF,PSDRAG,PTRUNC,XINT,
      *     SKIPSE,USESLP,USEP,USET,RSDIST,SIND,COSD,PSFMPT,PSTRAT
        COMMON /RPARMB/
-     *  TAU,TAU0,TOFDAY,TOFDY0,DT,      TAUP,TAUI,TAUE,TAUT,TAUO,
-     *  PTOP,PSF,PSDRAG,PTRUNC,
-     *         XINT,                 SKIPSE,USESLP,USEP,USET,
+     *  TAU,TAU0,TOFDAY,TOFDY0,DT,   TAUP,TAUI,TAUE,TAUT,TAUO,
+     *  PTOP,PSF,PSDRAG,PTRUNC,XINT, SKIPSE,USESLP,USEP,USET,
      *  RSDIST,SIND,COSD,SIG,SIGE,   TAUTR0,PSFMPT,PSTRAT,RDM2
 
 
@@ -592,8 +596,8 @@ C**** new: GDATA(8) UNUSED,GDATA(9-11) SNOW AGE OVER OCN.ICE,L.ICE,EARTH
       CLOSE (iu_GIC)
 C**** Check whether a proper TAUI is given - initialize TAU=model time
   220 IF(TAUI.LT.0.) THEN
-         WRITE(6,*) 'PLEASE SET TAUI IN THE RUNDECK'
-         STOP 'ERROR: TAUI UNDEFINED'
+        WRITE(6,*) 'PLEASE SET TAUI IN THE RUNDECK'
+        STOP 'ERROR: TAUI UNDEFINED'
       END IF
       TAU=TAUI
       TAUX=TAUI
@@ -604,15 +608,15 @@ C**** Check whether a proper TAUI is given - initialize TAU=model time
       USAVG(1,JM)=U(1,JM,1)
       VSAVG(1,JM)=V(1,JM,1)
       DO J=2,JM-1
-         IM1=IM
-         DO I=1,IM
-            WSAVG(I,J)=.25*SQRT(
-     *           (U(IM1,J,1)+U(I,J,1)+U(IM1,J+1,1)+U(I,J+1,1))**2
-     *           +(V(IM1,J,1)+V(I,J,1)+V(IM1,J+1,1)+V(I,J+1,1))**2)
-            USAVG(I,J)=.25*(U(IM1,J,1)+U(I,J,1)+U(IM1,J+1,1)+U(I,J+1,1))
-            VSAVG(I,J)=.25*(V(IM1,J,1)+V(I,J,1)+V(IM1,J+1,1)+V(I,J+1,1))
-            IM1=I
-         END DO
+        IM1=IM
+        DO I=1,IM
+          WSAVG(I,J)=.25*SQRT(
+     *         (U(IM1,J,1)+U(I,J,1)+U(IM1,J+1,1)+U(I,J+1,1))**2
+     *         +(V(IM1,J,1)+V(I,J,1)+V(IM1,J+1,1)+V(I,J+1,1))**2)
+          USAVG(I,J)=.25*(U(IM1,J,1)+U(I,J,1)+U(IM1,J+1,1)+U(I,J+1,1))
+          VSAVG(I,J)=.25*(V(IM1,J,1)+V(I,J,1)+V(IM1,J+1,1)+V(I,J+1,1))
+          IM1=I
+        END DO
       END DO
       CDM=.001
       DO J=1,JM
@@ -625,48 +629,46 @@ C**** SET SURFACE SPECIFIC HUMIDITY FROM FIRST LAYER HUMIDITY
       QSAVG(I,J)=Q(I,J,1)
 C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
       DO K=1,3
-         RQT(I,J,K)=T(I,J,LM)
+        RQT(I,J,K)=T(I,J,LM)
       END DO
 C**** REPLACE TEMPERATURE BY POTENTIAL TEMPERATURE
       DO L=1,LS1-1
-         RHSAV(I,J,L)=.85
-         CLDSAV(I,J,L)=0.
-         SVLHX(I,J,L)=0.
-         T(I,J,L)=T(I,J,L)/(SIG(L)*P(I,J)+PTOP)**KAPA
+        RHSAV(I,J,L)=.85
+        CLDSAV(I,J,L)=0.
+        SVLHX(I,J,L)=0.
+        T(I,J,L)=T(I,J,L)/(SIG(L)*P(I,J)+PTOP)**KAPA
       END DO
       DO L=LS1,LM
-         RHSAV(I,J,L)=.85
-         CLDSAV(I,J,L)=0.
-         SVLHX(I,J,L)=0.
-         T(I,J,L)=T(I,J,L)/((SIG(L)*(PSF-PTOP)+PTOP)**KAPA)
+        RHSAV(I,J,L)=.85
+        CLDSAV(I,J,L)=0.
+        SVLHX(I,J,L)=0.
+        T(I,J,L)=T(I,J,L)/((SIG(L)*(PSF-PTOP)+PTOP)**KAPA)
       END DO
       DO L=1,LM
-         TTOLD(I,J,L)=T(I,J,L)
-         QTOLD(I,J,L)=Q(I,J,L)
-         WM(I,J,L)=0.
+        TTOLD(I,J,L)=T(I,J,L)
+        QTOLD(I,J,L)=Q(I,J,L)
+        WM(I,J,L)=0.
       END DO
       IF (LS1.LE.LM) THEN
 C**** SET STRATOSPHERIC SPECIFIC HUMIDITY TO 3.D-6
-         DO L=LS1,LM
-            Q(I,J,L)=3.D-6
-         END DO
+        DO L=LS1,LM
+          Q(I,J,L)=3.D-6
+        END DO
       END IF
       END DO
       END DO
 C**** INITIALIZE TSFREZ
-      DO J=1,JM
-         DO I=1,IM
-            TSFREZ(I,J,1)=365.
-            TSFREZ(I,J,2)=365.
-         END DO
-      END DO
+      TSFREZ(:,:,1:2)=365.
+C**** Initiallise surface friction velocity
       DO ITYPE=1,4
-         DO J=1,JM
-            DO I=1,IM
-               USTAR(I,J,ITYPE)=WSAVG(I,J)*SQRT(CDM)
-            END DO
-         END DO
+        DO J=1,JM
+          DO I=1,IM
+            USTAR(I,J,ITYPE)=WSAVG(I,J)*SQRT(CDM)
+          END DO
+        END DO
       END DO
+C**** Initiallise T50 
+      T50=TSAVG
 CALT  GO TO 327       ! possibility to make tracer slopes more realistic
       GO TO 350
 C****
@@ -717,46 +719,48 @@ C**** ISTART=6 ; start from run B120 (no QUS, only 1 snow age)
      *  RQT,SRHR,TRHR,TSFREZ
       CLOSE (iu_AIC)
       DO J=1,JM
-         DO I=1,IM
-            SNOAGE(I,J,1)=GDATA(I,J,11)
-            SNOAGE(I,J,2)=GDATA(I,J,11)
-         END DO
+        DO I=1,IM
+          SNOAGE(I,J,1)=GDATA(I,J,11)
+          SNOAGE(I,J,2)=GDATA(I,J,11)
+        END DO
       END DO
       redoGH=.TRUE.
 C**** INITIALIZE VERTICAL SLOPES OF T,Q
   327 DO J=1,JM
-         DO I=1,IM
-            RDSIG=(SIG(1)-SIGE(2))/(SIG(1)-SIG(2))
-            TZ(I,J,1)=(T(I,J,2)-T(I,J,1))*RDSIG
-            QZ(I,J,1)=(Q(I,J,2)-Q(I,J,1))*RDSIG
-            IF (Q(I,J,1)+QZ(I,J,1).LT.0.) QZ(I,J,1) = -Q(I,J,1)
-            DO L=2,LM-1
-               RDSIG=(SIG(L)-SIGE(L+1))/(SIG(L-1)-SIG(L+1))
-               TZ(I,J,L)=(T(I,J,L+1)-T(I,J,L-1))*RDSIG
-               QZ(I,J,L)=(Q(I,J,L+1)-Q(I,J,L-1))*RDSIG
-               IF (Q(I,J,L)+QZ(I,J,L).LT.0.) QZ(I,J,L) = -Q(I,J,L)
-            END DO
-            RDSIG=(SIG(LM)-SIGE(LM+1))/(SIG(LM-1)-SIG(LM))
-            TZ(I,J,LM)=(T(I,J,LM)-T(I,J,LM-1))*RDSIG
-            QZ(I,J,LM)=(Q(I,J,LM)-Q(I,J,LM-1))*RDSIG
-            IF (Q(I,J,LM)+QZ(I,J,LM).LT.0.) QZ(I,J,LM) = -Q(I,J,LM)
-         END DO
+        DO I=1,IM
+          RDSIG=(SIG(1)-SIGE(2))/(SIG(1)-SIG(2))
+          TZ(I,J,1)=(T(I,J,2)-T(I,J,1))*RDSIG
+          QZ(I,J,1)=(Q(I,J,2)-Q(I,J,1))*RDSIG
+          IF (Q(I,J,1)+QZ(I,J,1).LT.0.) QZ(I,J,1) = -Q(I,J,1)
+          DO L=2,LM-1
+            RDSIG=(SIG(L)-SIGE(L+1))/(SIG(L-1)-SIG(L+1))
+            TZ(I,J,L)=(T(I,J,L+1)-T(I,J,L-1))*RDSIG
+            QZ(I,J,L)=(Q(I,J,L+1)-Q(I,J,L-1))*RDSIG
+            IF (Q(I,J,L)+QZ(I,J,L).LT.0.) QZ(I,J,L) = -Q(I,J,L)
+          END DO
+          RDSIG=(SIG(LM)-SIGE(LM+1))/(SIG(LM-1)-SIG(LM))
+          TZ(I,J,LM)=(T(I,J,LM)-T(I,J,LM-1))*RDSIG
+          QZ(I,J,LM)=(Q(I,J,LM)-Q(I,J,LM-1))*RDSIG
+          IF (Q(I,J,LM)+QZ(I,J,LM).LT.0.) QZ(I,J,LM) = -Q(I,J,LM)
+        END DO
       END DO
  350  CONTINUE
+C**** Set flag to initialise pbl variables if they are not in I.C.      
       iniPBL=.TRUE.
-      inilake=.TRUE.
 C**** Set TAU to TAUI for initial starts
-  398 IF (TAUI.LT.0.) TAUI=TAUX
+ 398  IF (TAUI.LT.0.) TAUI=TAUX
       TAU=TAUI
-  399 REWIND 9
+ 399  CONTINUE
+C**** Set flag to initialise lake variables if they are not in I.C.      
+      inilake=.TRUE.
       WRITE (6,'(A,I4,F11.2,3X,A/)')
-     *  '0ATMOSPHERIC I.C. ISTART,TAUX=',ISTART,TAUX,CLABEL1(1:80)
+     *     '0ATMOSPHERIC I.C. ISTART,TAUX=',ISTART,TAUX,CLABEL1(1:80)
 C**** Check consistency of TAU and TAUX (from IC)
       IF (MOD(TAUX-TAU,8760.D0).NE.0.) THEN
-         WRITE (6,'(A,2F11.2)')
-     *     '0 *******  I.C. and TAU are inconsistent', TAUX,TAU
-         IF (TAUX.NE.TAUP) STOP 'ERROR: TAU I.C. and TAU inconsistent'
-      ENDIF
+        WRITE (6,'(A,2F11.2)')
+     *       '0 *******  I.C. and TAU are inconsistent', TAUX,TAU
+        IF (TAUX.NE.TAUP) STOP 'ERROR: TAU I.C. and TAU inconsistent'
+      END IF
       GO TO 500
 C****
 C**** RESTART ON DATA SETS 1 OR 2, ISTART=10-13
@@ -856,13 +860,15 @@ c      FLICE = (FLICE/(FLAND+1.D-20))
       CALL READT (iu_TOPO,0,HLAKE,IM*JM,HLAKE,2)   ! Lake Depths
       REWIND iu_TOPO
 
-C**** Init pbl (and read in file containing roughness length data)
-      call pblini(iniPBL)
+C**** Initialise pbl (and read in file containing roughness length data)
+      CALL init_pbl(iniPBL)
 C**** Initialise lake variables (including river directions)
-      call init_LAKES(inilake)   
+      CALL init_LAKES(inilake)   
 
-C**** read in ocean heat transports and max. mixed layer depths
-      IF(KOCEAN.EQ.1) CALL OHT_INIT
+C**** Initiallise ocean variables 
+C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
+C****  KOCEAN = 0 => RSI/MSI factor 
+      CALL init_OCEAN
 
 C**** READ IN VEGETATION DATA SET: VDATA AND VADATA
       call getunit("VEG",iu_VEG,.TRUE.)
@@ -874,7 +880,7 @@ C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS
 C**** Recompute GHDATA if redoGH (new soils data)
 C****
-      CALL GHINIT (DT*NDYN/NSURF,redoGH)
+      CALL init_GH(DT*NDYN/NSURF,redoGH)
       IF (redoGH) THEN
         WRITE (*,*) 'GHDATA WAS MADE FROM GDATA'
 C****   Copy Snow age info into GDATA array
@@ -906,7 +912,7 @@ C**** MAKE NRAD A MULTIPLE OF NCNDS
       IF (KDIAG(2).EQ.9.AND.SKIPSE.EQ.0..AND.KDIAG(3).LT.9) KDIAG(2)=8
          KACC0=KACC
       WRITE (6,INPUTZ)
-      WRITE (6,'(A6,12I6)') "IDACC=",(IDACC(I),I=1,12)
+      WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
       WRITE (6,'(A14,2I8)') "KACC0,KTACC0=",KACC0,KTACC0
       WRITE (6,'(A14,3I4)') "IM,JM,LM=",IM,JM,LM
       RETURN
@@ -954,25 +960,19 @@ C****
       STOP 'ERROR: TAUE TOO LARGE, SINCE TAU<TAUP'
       END
 
-      SUBROUTINE DAILY
-C****
-C**** THIS SUBROUTINE PERFORMS THOSE FUNCTIONS OF THE PROGRAM WHICH
-C**** TAKE PLACE AT THE BEGINNING OF A NEW DAY.
-C****
-      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
-     *     ,rhow,edpery,orbit
+      SUBROUTINE DAILY(IEND)
+!@sum  DAILY performs daily model-related tasks and at start
+!@auth Original Development Team
+!@ver  1.0
+      USE CONSTANT, only : orbit
       USE E001M12_COM
-      USE GEOM
-      USE SLE001
-     &  , only : cosday=>cost, sinday=>sint
-      USE PBLCOM, only : bldata
-      USE DYNAMICS, only : CALC_AMPK
-      USE OCEAN, only : OCLIM0,OCLIM,KLAKE
+      USE GEOM, only : areag,dxyp
+      USE DYNAMICS, only : calc_ampk
 
       IMPLICIT NONE
 
-      REAL*8 DOZ1O,DELTAP,PBAR,SPRESS,PEARTH,WFC1,SMASS,TSAVG
-      INTEGER I,J,IMAX
+      REAL*8 DELTAP,PBAR,SPRESS,SMASS
+      INTEGER I,J,IEND,IDOZ1O
 
       CHARACTER*4 :: AMONTH(12) = (/
      *  'JAN ','FEB ','MAR ','APR ','MAY ','JUNE',
@@ -985,17 +985,18 @@ C****
 C**** ORBITAL PARAMETERS FOR EARTH FOR YEAR 2000 A.D.
       REAL*8, PARAMETER :: OMEGT = 282.9,OBLIQ=23.44,ECCN=.0167
 
+      IF (IEND.eq.0.and.TAU.GT.TAUI+DT/7200.) GO TO 200
 C****
 C**** THE GLOBAL MEAN PRESSURE IS KEPT CONSTANT AT PSF MILLIBARS
 C****
 C**** CALCULATE THE CURRENT GLOBAL MEAN PRESSURE
-  100 SMASS=0.
+      SMASS=0.
       DO J=1,JM
-         SPRESS=0.
-         DO I=1,IM
-            SPRESS=SPRESS+P(I,J)
-         END DO
-         SMASS=SMASS+SPRESS*DXYP(J)
+        SPRESS=0.
+        DO I=1,IM
+          SPRESS=SPRESS+P(I,J)
+        END DO
+        SMASS=SMASS+SPRESS*DXYP(J)
       END DO
       PBAR=SMASS/AREAG+PTOP
 C**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
@@ -1005,8 +1006,6 @@ C**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
       CALL CALC_AMPK(LS1-1)
 
       WRITE (6,'(A25,F10.6/)') '0PRESSURE ADDED IN GMP IS',DELTAP
-      DOZ1O=1.
-      KLAKE=0
 C****
 C**** CALCULATE THE DAILY CALENDAR
 C****
@@ -1017,40 +1016,11 @@ C****
       END DO
   220 JDATE=JDAY-JDOFM(MONTH)
       JMONTH=AMONTH(MONTH)
+
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
       CALL ORBIT (OBLIQ,ECCN,OMEGT,DFLOAT(JDAY)-.5,RSDIST,SIND,COSD,LAM)
-C****
-C**** FIND LEAF-AREA INDEX & WATER FIELD CAPACITY FOR GROUND LAYER 1
-C****
-      COSDAY=COS(TWOPI/EDPERY*JDAY)
-      SINDAY=SIN(TWOPI/EDPERY*JDAY)
-      DO J=1,JM
-         DO I=1,IM
-            PEARTH=FEARTH(I,J)
-            WFCS(I,J)=24.
-            IF (PEARTH.GT.0.) THEN
-               CALL GHINIJ(I,J,WFC1)
-               WFCS(I,J)=RHOW*WFC1 ! canopy part changes
-            END IF
-         END DO
-      END DO
-
-C      IF (KOCEAN.EQ.1) GO TO 500 ! Lake Ice is prescribed for KOCEAN=1
-      CALL OCLIM(DOZ1O)
-
+      
       RETURN
-C****
-      ENTRY DAILY0
-C**** DO Z1O COMPUTATION ONLY IF BLDATA(I,J,5) DOES NOT CONTAIN Z1O
-      DOZ1O=0.
-      IF (BLDATA(IM,1,5).NE.-9999.) DOZ1O=1.
-
-      CALL OCLIM0
-      KLAKE=1
-      IF (TAU.GT.TAUI+DT/7200.) GO TO 200
-      KLAKE=0
-      GO TO 100
-C*****
       END
 
       SUBROUTINE CHECKT (SUBR)
@@ -1133,10 +1103,10 @@ C**** Temporary io_rsf
       USE CLD01_COM_E001, only : U00wtr,U00ice,LMCM,TTOLD,QTOLD,SVLHX
      *     ,RHSAV,CLDSAV
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
-     *     cq=>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,mld,usavg,vsavg
+     *     cq=>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg
      *        ,tauavg,ustar
       USE DAGCOM
-      USE OCEAN, only : ODATA,OA,T50
+      USE OCEAN, only : ODATA,OA,T50,Z1O
       USE LAKES_COM, only : MWL,TSL,GML
 
       IMPLICIT NONE
@@ -1167,7 +1137,7 @@ C**** need a blank line to fool 'qrsfnt' etc.
          WRITE (kunit,err=10) "OCN01  ",ODATA,OA,T50,MWL,TSL,GML
          WRITE (kunit,err=10) "ERT01  ",GDATA
          WRITE (kunit,err=10) "SOL01  ",wbare,wvege,htbare,htvege,snowbv
-         WRITE (kunit,err=10) "BLD01  ",wsavg,tsavg,qsavg,dclev,mld
+         WRITE (kunit,err=10) "BLD01  ",wsavg,tsavg,qsavg,dclev,Z1O
      *        ,usavg,vsavg,tauavg,ustar
          WRITE (kunit,err=10) "PBL01  ",uabl,vabl,tabl,qabl,eabl,cm,ch
      *        ,cq,ipbl
@@ -1188,7 +1158,7 @@ C**** need a blank line to fool 'qrsfnt' etc.
          READ (kunit,err=10) HEADER,ODATA,OA,T50,MWL,TSL,GML
          READ (kunit,err=10) HEADER,GDATA
          READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
-         READ (kunit,err=10) HEADER,wsavg,tsavg,qsavg,dclev,mld,usavg
+         READ (kunit,err=10) HEADER,wsavg,tsavg,qsavg,dclev,Z1O,usavg
      *        ,vsavg,tauavg,ustar
          READ (kunit,err=10) HEADER,uabl,vabl,tabl,qabl,eabl,cm,ch,cq
      *        ,ipbl

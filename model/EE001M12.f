@@ -511,7 +511,7 @@ C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
       RETURN
       END
 
-      SUBROUTINE GHINIT (DTSURF,redoGH)
+      SUBROUTINE init_GH(DTSURF,redoGH)
 C**** Modifications needed for split of bare soils into 2 types
       USE CONSTANT, only : twopix=>twopi,rhow,edpery
       USE E001M12_COM, only : im,jm,fearth,vdata,gdata,tau,jeq
@@ -714,7 +714,7 @@ C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
       END IF
 
       RETURN
-      END SUBROUTINE GHINIT
+      END SUBROUTINE init_GH
 
       SUBROUTINE GHINIJ (I0,J0, WFCAP)
 C**** INPUT:
@@ -994,22 +994,43 @@ C**** Check for reasonable temperatures over earth
 
       END SUBROUTINE CHECKE
 
-      SUBROUTINE daily_SNOW
-!@sum  daily_SNOW updates the snow ages every day
+      SUBROUTINE daily_EARTH(IEND)
+!@sum  daily_EARTH performs daily tasks for EARTH related functions
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : IM,JM,GDATA,NSURF
-      USE GEOM, only : IMAXJ
-      USE DAGCOM, only : AIJ,TDIURN,IJ_STRNGTS,IJ_DTGDTS,IJ_TMAXE
-     *     ,IJ_TDSL,IJ_TMNMX
+      USE CONSTANT, only : rhow,twopi,edpery
+      USE E001M12_COM, only : im,jm,gdata,nsurf,jday,fearth,wfcs
+      USE GEOM, only : imaxj
+      USE DAGCOM, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
+     *     ,ij_tdsl,ij_tmnmx
+      USE SLE001
+     &  , only : cosday=>cost, sinday=>sint
       IMPLICIT NONE
-      REAL*8 TSAVG
+      REAL*8 TSAVG,WFC1
       INTEGER I,J,IMAX
-
-C**** INCREASE SNOW AGE EACH DAY (independent of Ts)
+      INTEGER, INTENT(IN) :: IEND  !@var IEND 1 if at end of day
+C****
+C**** FIND LEAF-AREA INDEX & WATER FIELD CAPACITY FOR GROUND LAYER 1
+C****
+      COSDAY=COS(TWOPI/EDPERY*JDAY)
+      SINDAY=SIN(TWOPI/EDPERY*JDAY)
       DO J=1,JM
-         IMAX=IMAXJ(J)
-         DO I=1,IMAX
+        DO I=1,IM
+          WFCS(I,J)=24.
+          IF (FEARTH(I,J).GT.0.) THEN
+            CALL GHINIJ(I,J,WFC1)
+            WFCS(I,J)=RHOW*WFC1 ! canopy part changes
+          END IF
+        END DO
+      END DO
+
+      IF (IEND.eq.1) THEN
+C****
+C**** INCREASE SNOW AGE EACH DAY (independent of Ts)
+C****
+        DO J=1,JM
+          IMAX=IMAXJ(J)
+          DO I=1,IMAX
             GDATA(I,J,9)=1.+.98*GDATA(I,J,9)
             GDATA(I,J,10)=1.+.98*GDATA(I,J,10)
             GDATA(I,J,11)=1.+.98*GDATA(I,J,11)
@@ -1018,12 +1039,14 @@ C**** INCREASE SNOW AGE EACH DAY (independent of Ts)
      *           AIJ(I,J,IJ_STRNGTS)=AIJ(I,J,IJ_STRNGTS)+(33.-1.8*TSAVG)
             AIJ(I,J,IJ_DTGDTS)=AIJ(I,J,IJ_DTGDTS)+18.*((TDIURN(I,J,2)-
      *           TDIURN(I,J,1))/(TDIURN(I,J,4)-TDIURN(I,J,3)+1.D-20)-1.)
-         AIJ(I,J,IJ_TDSL)=AIJ(I,J,IJ_TDSL)+(TDIURN(I,J,4)-TDIURN(I,J,3))
+            AIJ(I,J,IJ_TDSL)=AIJ(I,J,IJ_TDSL)+
+     *           (TDIURN(I,J,4)-TDIURN(I,J,3))
             AIJ(I,J,IJ_TMAXE)=AIJ(I,J,IJ_TMAXE)+(TDIURN(I,J,4)-273.16)
             IF (TDIURN(I,J,6).LT.AIJ(I,J,IJ_TMNMX))
      *           AIJ(I,J,IJ_TMNMX)=TDIURN(I,J,6)
-         END DO
-      END DO
+          END DO
+        END DO
+      END IF
 
       RETURN
-      END SUBROUTINE daily_SNOW
+      END SUBROUTINE daily_EARTH

@@ -2,14 +2,15 @@
 !@sum  OCEAN contains all the ocean (+ sea ice temporarily) subroutines
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean)
-!@cont OSTRUC,OCLIM,OCLIM0,PREC_OC,PREC_SI,SEA_ICE
+!@cont OSTRUC,OCLIM,init_OCEAN,uset_OCEAN,daily_OCEAN,PREC_OC,PREC_SI,
+!@cont SEA_ICE
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
      *     ,rhow,rhoi,shw,shi
       USE E001M12_COM, only : im,jm,lm,gdata,focean,flake,fland,fearth
-     *     ,flice,TAU,KOCEAN,JDATE,JDAY,MONTH
+     *     ,flice,tau,kocean,jdate,jday,month
       USE PBLCOM
      &     , only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
-     *     cq=>cqgs,ipbl,bldata
+     *     cq=>cqgs,ipbl,Z1O
       USE GEOM
 
       IMPLICIT NONE
@@ -44,18 +45,17 @@ c      REAL*8, DIMENSION(IM,JM,LMSI) :: HSI
       REAL*8, SAVE,DIMENSION(IM,JM,4) :: OTA,OTB
       REAL*8, SAVE,DIMENSION(IM,JM) :: OTC
 
-!@var Z1O ocean mixed layer depth
+!@var Z1O ocean mixed layer depth (temporarily in PBLCOM)
 !@var Z12O annual maximum ocean mixed layer depth
-      REAL*8, SAVE,DIMENSION(IM,JM) :: Z1O,Z12O
+      REAL*8, SAVE,DIMENSION(IM,JM) :: Z12O
 
-      REAL*8, PRIVATE,DIMENSION(IM,JM) :: DM,AOST,EOST1,EOST0,BOST
+      REAL*8, DIMENSION(IM,JM) :: DM,AOST,EOST1,EOST0,BOST
      *     ,COST,ARSI,ERSI1,ERSI0,BRSI,CRSI
-      INTEGER, PRIVATE,DIMENSION(IM,JM) ::  KRSI
+      INTEGER, DIMENSION(IM,JM) ::  KRSI
       COMMON/OOBS/DM,AOST,EOST1,EOST0,BOST,COST,ARSI,ERSI1,ERSI0,BRSI
      *     ,CRSI,KRSI
 
       REAL*8, SAVE,DIMENSION(IM,JM) :: T50
-      INTEGER KLAKE
 !@var iu_OSST,iu_SICE,iu_OCNML unit numbers for climatologies
       INTEGER iu_OSST,iu_SICE,iu_OCNML
 
@@ -206,7 +206,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
       RETURN
       END SUBROUTINE OSTRUC
 
-      SUBROUTINE OCLIM(DOZ1O)
+      SUBROUTINE OCLIM(IDOZ1O)
 !@sum OCLIM calculates daily ocean data from ocean/sea ice climatologies
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean or fixed SST/fixed lakes)
@@ -217,9 +217,10 @@ C**** RESAVE PROGNOSTIC QUANTITIES
       REAL*8 XZO(IM,JM),XZN(IM,JM)
       INTEGER IDOFM(0:13)
       DATA IDOFM /-15,16,47,75,106,136,167,197,228,259,289,320,350,381/
+      INTEGER, INTENT(IN) :: IDOZ1O
 
       INTEGER n,MD,J,I,LSTMON,K,MDMAX,IMAX,IMON
-      REAL*8 PLICEN,PLICE,POICE,POCEAN,RSICSQ,ZIMIN,ZIMAX,DOZ1O,X1
+      REAL*8 PLICEN,PLICE,POICE,POCEAN,RSICSQ,ZIMIN,ZIMAX,X1
      *     ,X2,Z1OMIN,RSINEW,TIME,FRAC
       INTEGER :: JDOFM(13) = (
      *     /0,31,59,90,120,151,181,212,243,273,304,334,365/)
@@ -228,10 +229,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
 !@var MONTHO current month for climatology reading
       INTEGER, SAVE :: MONTHO = 0
 
-      REAL*8 FACTOR,T_ICE,T_NOICE
-       IF (KOCEAN.EQ.1.AND.KLAKE.EQ.1) GO TO 500
-       IF (KOCEAN.EQ.1) GO TO 470
-
+      IF (KOCEAN.EQ.1) GO TO 500
 C****
 C**** OOBS AOST     monthly Average Ocean Surface Temperature
 C****      BOST     1st order Moment of Ocean Surface Temperature
@@ -368,41 +366,13 @@ C**** REPLICATE VALUES AT POLE
   460 ODATA(I,JM,K)=ODATA(1,JM,K)
       RETURN
 C****
-C**** Calculate Lake Ice extent for current day from 50-day-mean Ts
-C****
-  470 ZIMIN=.5 ! minimum lake ice thickness
-      ZIMAX=2. ! maximum lake ice thickness
-      T_ICE = -8.  ! surface air temperature for 100% ice cover
-      T_NOICE = 0. ! surface air temperature for no ice cover
-      FACTOR = 1./(T_ICE-T_NOICE)
-      DO J=1,JM
-        IMAX=IMAXJ(J)
-        DO I=1,IMAX
-          IF (FLAKE(I,J) .GT. 0.) THEN ! linear fit for -8< T50 <0
-            RSINEW = MIN(1d0,MAX(0d0,(T50(I,J)-T_NOICE)*FACTOR))
-            ODATA(I,J,2)=RSINEW
-            ODATA(I,J,3)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
-            IF (RSINEW.LE.0.) THEN
-              GDATA(I,J,1)=0.
-              GDATA(I,J,3)=0.
-              GDATA(I,J,7)=0.
-              GDATA(I,J,15)=0.
-              GDATA(I,J,16)=0.
-            END IF
-          END IF
-        END DO
-      END DO
-C****
 C**** CALCULATE DAILY OCEAN MIXED LAYER DEPTHS FROM CLIMATOLOGY
 C****
 C**** SAVE PREVIOUS DAY'S MIXED LAYER DEPTH IN WORK2
-  500 DO 510 J=1,JM
-      DO 510 I=1,IM
-CORR  NEXT LINE NOT NEEDED IF Z1O WERE PART OF THE RESTART FILE
-      Z1O(I,J)=BLDATA(I,J,5)
-  510 Z1OOLD(I,J)=Z1O(I,J)
-C*** COMPUTE Z1O ONLY AT THE BEGINNING OF A DAY (OR AT TAUI)
-      IF (DOZ1O.EQ.0.) RETURN
+ 500  Z1OOLD=Z1O
+C**** COMPUTE Z1O ONLY AT THE BEGINNING OF A DAY (OR AT TAUI)
+C**** Check mark to see if Z1O needs to be set initially
+      IF (IDOZ1O.eq.0.and. Z1O(IM,1).eq.-9999.) RETURN
 C**** Read in climatological ocean mixed layer depths efficiently
       IF (JDLAST.eq.0) THEN ! need to read in first month climatology
         IMON=1          ! IMON=January
@@ -428,17 +398,18 @@ C**** Read in climatological ocean mixed layer depths efficiently
         IF (JDAY.LE.IDOFM(IMON)) GO TO 530
         IMON=IMON+1          ! read in new month of climatological data
         XZO = XZN
-        IF (IMON.EQ.13)  REWIND iu_OCNML
+        IF (IMON.EQ.13) REWIND iu_OCNML
       END IF
       CALL READT (iu_OCNML,0,XZN,IM*JM,XZN,1)
  530  JDLAST=JDAY
+      REWIND iu_OCNML
 C**** INTERPOLATE OCEAN DATA TO CURRENT DAY
       FRAC = DBLE(IDOFM(IMON)-JDAY)/(IDOFM(IMON)-IDOFM(IMON-1))
       DO 610 J=1,JM
       DO 610 I=1,IM
       Z1O(I,J)=FRAC*XZO(I,J)+(1.-FRAC)*XZN(I,J)
 
-      IF (ODATA(I,J,2)*FOCEAN(I,J).LE.0.) GO TO 610
+      IF (ODATA(I,J,2)*FOCEAN(I,J).le.0) GO TO 610
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
       Z1OMIN=1.+(RHOI*Z1I+GDATA(I,J,1)+ODATA(I,J,3))/RHOW
       IF (Z1O(I,J).GE.Z1OMIN) GO TO 605
@@ -449,8 +420,8 @@ C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
 C**** ICE DEPTH+1>MAX MIXED LAYER DEPTH : CHANGE OCEAN TO LAND ICE
       PLICE=FLICE(I,J)
       PLICEN=1.-FEARTH(I,J)
-      POICE=(1.-FLAND(I,J))*ODATA(I,J,2)
-      POCEAN=(1.-FLAND(I,J))*(1.-ODATA(I,J,2))
+      POICE=FOCEAN(I,J)*ODATA(I,J,2)
+      POCEAN=FOCEAN(I,J)*(1.-ODATA(I,J,2))
       GDATA(I,J,12)=(GDATA(I,J,12)*PLICE+GDATA(I,J,1)*POICE)/PLICEN
       GDATA(I,J,13)=(GDATA(I,J,13)*PLICE+
      *  (GDATA(I,J,3)*XSI1+GDATA(I,J,7)*XSI2)*POICE+
@@ -486,34 +457,15 @@ C**** Transfer PBL-quantities
   606 FORMAT(F6.1,'% OCEAN ICE AND',F6.1,'% OPEN OCEAN WERE',
      *  ' CHANGED TO LAND ICE AT TAU,I,J',F10.1,2I4)
   610 CONTINUE
-  620 REWIND iu_OCNML
 C**** PREVENT Z1O, THE MIXED LAYER DEPTH, FROM EXCEEDING Z12O
       DO 630 J=1,JM
       DO 630 I=1,IM
       IF (Z1O(I,J).GT.Z12O(I,J)-.01) Z1O(I,J)=Z12O(I,J)
-CORR  NEXT LINE NOT NEEDED IF Z1O WERE PART OF THE RESTART FILE
-      BLDATA(I,J,5)=Z1O(I,J)
   630 CONTINUE
-C**** SET MARKER INDICATING BLDATA(.,.,5)=Z1O
-      BLDATA(IM,1,5)=-9999.
+C**** SET MARKER INDICATING THAT Z1O HAS BEEN SET
+      Z1O(IM,1)=-9999.
       RETURN
       END SUBROUTINE OCLIM
-
-      SUBROUTINE OCLIM0
-!@sum  OCLIM0 reads in mixed layer depths at the start
-!@auth Original Development Team
-!@ver  1.0 (Q-flux ocean or fixed SST/fixed lakes)
-      USE FILEMANAGER
-      IMPLICIT NONE
-C**** set up unit numbers for ocean climatologies
-      call getunit("OSST",iu_OSST,.TRUE.)
-      call getunit("SICE",iu_SICE,.TRUE.)
-      IF (KOCEAN.eq.1) call getunit("OCNML",iu_OCNML,.TRUE.)
-
-      CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
-
-      RETURN
-      END SUBROUTINE OCLIM0
 
       SUBROUTINE PREC_OC(TGW,WTRO,PRCP,ENRGP,ERUN4)
 C****                                                                      
@@ -1183,53 +1135,69 @@ C**** Check for NaN/INF in ocean data
 
       END SUBROUTINE CHECKO
 
-      SUBROUTINE OHT_INIT
-!@sum READ IN OCEAN HEAT TRANSPORTS AND MAXIMUM MIXED LAYER
-!@sum DEPTHS FOR PREDICTED OCEAN RUNS
+      SUBROUTINE init_OCEAN
+!@sum init_OCEAN initiallises ocean variables 
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,fland,flice,gdata
-      USE OCEAN, only : OTA,OTB,OTC,Z12O
+      USE E001M12_COM, only : im,jm,fland,flice,gdata,kocean
+      USE OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice,iu_ocnml
       USE FILEMANAGER
-
       IMPLICIT NONE
 !@var iu_OHT,iu_MLMAX unit numbers for reading in input files
       INTEGER :: iu_OHT,iu_MLMAX
       INTEGER :: I,J
 
-C**** read ocean heat transport coefficients
+C**** set up unit numbers for ocean climatologies
+      call getunit("OSST",iu_OSST,.TRUE.)
+      call getunit("SICE",iu_SICE,.TRUE.)
+
+C**** Read in constant factor relating RSI to MSI from sea ice clim.
+      CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
+
+      IF (KOCEAN.eq.1) THEN
+C**** Set up unit number of mixed layer depth climatogies
+      call getunit("OCNML",iu_OCNML,.TRUE.)
+
+C**** DATA FOR QFLUX MIXED LAYER OCEAN RUNS
+C**** read in ocean heat transport coefficients
       call getunit("OHT",iu_OHT,.TRUE.)
       READ (iu_OHT) OTA,OTB,OTC
       CLOSE (iu_OHT)
 
-C**** read ocean max mix layer depth
+C**** read in ocean max mix layer depth
       call getunit("MLMAX",iu_MLMAX,.TRUE.)
       CALL READT (iu_MLMAX,0,Z12O,IM*JM,Z12O,1)
       CLOSE (iu_MLMAX)
 
-C****   IF GDATA(I,J,1)<0, THE OCEAN PART WAS CHANGED TO LAND ICE
-C****   BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
+C**** IF GDATA(I,J,1)<0, THE OCEAN PART WAS CHANGED TO LAND ICE
+C**** BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
       DO J=1,JM
-         DO I=1,IM
-            IF(GDATA(I,J,1).GE.-1.) CYCLE
-            FLICE(I,J)=1-FLAND(I,J)+FLICE(I,J)
-            FLAND(I,J)=1.
-            WRITE(6,'(2I3,'' OCEAN WAS CHANGED TO LAND ICE'')') I,J
-         ENDDO
-      ENDDO
-      END SUBROUTINE OHT_INIT
+        DO I=1,IM
+          IF(GDATA(I,J,1).GE.-1.) CYCLE
+          FLICE(I,J)=1-FLAND(I,J)+FLICE(I,J)
+          FLAND(I,J)=1.
+          WRITE(6,'(2I3,'' OCEAN WAS CHANGED TO LAND ICE'')') I,J
+        END DO
+      END DO
+      END IF
 
-      SUBROUTINE daily_OCEAN
+      END SUBROUTINE init_OCEAN
+
+      SUBROUTINE daily_OCEAN(IEND)
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
 !@ver  1.0
       USE E001M12_COM, only : IM,JM,KOCEAN
-      USE OCEAN, only : ODATA,OSTRUC
+      USE OCEAN, only : ODATA,OSTRUC,OCLIM
       USE DAGCOM, only : AIJ, IJ_ODATA4,IJ_TGO2
       IMPLICIT NONE
-      INTEGER I,J
+      INTEGER I,J,IEND
 
-      IF (KOCEAN.EQ.1) THEN
+C**** update ocean related climatologies      
+      CALL OCLIM(IEND)
+
+C**** Only do this at end of the day
+      IF (KOCEAN.EQ.1.and.IEND.eq.1) THEN
          DO J=1,JM
             DO I=1,IM
                AIJ(I,J,IJ_ODATA4)=AIJ(I,J,IJ_ODATA4)+ODATA(I,J,4)

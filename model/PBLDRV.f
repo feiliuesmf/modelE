@@ -258,7 +258,7 @@ C ******************************************************************
       RETURN
       END SUBROUTINE PBL
 
-      subroutine pblini(inipbl)
+      subroutine init_pbl(inipbl)
 c -------------------------------------------------------------
 c These routines include the array ipbl which indicates if the
 c  computation for a particular ITYPE was done last time step.
@@ -436,7 +436,7 @@ c     write (99,1000) itype
 
       return
  1000 format (1x,//,1x,'completed initialization, itype = ',i2,//)
-      end subroutine pblini
+      end subroutine init_pbl
 
       subroutine loadbl
 c ----------------------------------------------------------------------

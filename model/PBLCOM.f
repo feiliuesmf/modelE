@@ -37,11 +37,11 @@ C****        8  COMPOSITE SURFACE MOMENTUM TRANSFER (TAU)
 C new     9-12  ustar for each ITYPE (sqrt of srfc momentum flux) (m/s)
 
       double precision, dimension(im,jm) ::
-     &     wsavg,tsavg,qsavg,dclev,mld,usavg,vsavg,tauavg
+     &     wsavg,tsavg,qsavg,dclev,Z1O,usavg,vsavg,tauavg
       double precision, dimension(im,jm,4) :: ustar
 
       common /bleq/
-     &     wsavg,tsavg,qsavg,dclev,mld,usavg,vsavg,tauavg,ustar
+     &     wsavg,tsavg,qsavg,dclev,Z1O,usavg,vsavg,tauavg,ustar
       DOUBLE PRECISION, DIMENSION(IM,JM,12) :: BLDATA
       EQUIVALENCE(BLDATA(1,1,1),WSAVG(1,1))
 

@@ -7405,7 +7405,7 @@ C**** NAME_IJ(IJ_TS1)    = "TS1"    ; IA_IJ(IJ_TS1) = 4
       NAME_IJ(IJ_FGZV)   = "FGZV"   ; IA_IJ(IJ_FGZV) = 1
       NAME_IJ(IJ_ERVR)   = "ERVR"   ; IA_IJ(IJ_ERVR) = 1
       NAME_IJ(IJ_MRVR)   = "MRVR"   ; IA_IJ(IJ_MRVR) = 1
-      NAME_IJ(IJ_SDRAG)  = "IJ_SDRAG" ; IA_IJ(IJ_SDRAG) = 1
+      NAME_IJ(IJ_SDRAG)  = "SDRAG"  ; IA_IJ(IJ_SDRAG) = 1
 
 C**** AJ diagnostic names: (SUM OVER LONGITUDE AND TIME)
 C**** NAME     NO.    DESCRIPTION   (SCALE)*IDACC  LOCATION 
