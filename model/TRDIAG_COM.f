@@ -199,7 +199,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, DIMENSION(NTM) :: jls_grav
 !@var jls_prec tracer independent array for precipitation/wet dep
       INTEGER, DIMENSION(2,NTM) :: jls_prec
-!@var jwt_jls: Weighting index for jls diags 1=by area, 2=simple average
+!@var jwt_jls: Weighting index for jls diags 1=simple average, 2=by area
       integer, dimension(ktajls) :: jwt_jls
 !@var SNAME_JLS: Names of lat-sigma tracer JL sources/sinks
       character(len=30), dimension(ktajls) :: sname_jls
