@@ -205,7 +205,7 @@ ccc the following is just for check
      &    srht, trht, snht, htpr, evaporation, pr, dt,
      &    t_ground, dz_ground, fract_cover,
      &    tsn_surf, water_to_ground, heat_to_ground,
-     &    radiation_out, snsh_dt, evap_dt )
+     &    radiation_out, snsh_dt, evap_dt , fb_or_fv )
       implicit none
 !@sum  a wrapper that calles real snow_adv (introduced for debugging)
 !@auth I.Aleinov
@@ -214,7 +214,7 @@ ccc input:
       integer nl
       real*8 srht, trht, snht, htpr, evaporation
       real*8 pr, dt, t_ground, dz_ground, fract_cover
-      real*8 snsh_dt, evap_dt
+      real*8 snsh_dt, evap_dt, fb_or_fv
 ccc output:
       real*8 water_to_ground, heat_to_ground, tsn_surf
       real*8 radiation_out
@@ -256,6 +256,7 @@ ccc for debug
      &    radiation_out, snsh_dt, evap_dt, retcode )
 
 ccc for debug
+      if (fb_or_fv .le. 0.) return
       do i=1,nl
          total_energy = total_energy + hsn(i)*fract_cover
          enddo
@@ -390,7 +391,7 @@ ccc partial cover
         if (fract_cover.gt.1.d0 .or. fract_cover.lt.EPS) then
           if ( DEB_CH == 0 )
      $         call openunit("snow_debug", DEB_CH, .false., .false.)
-          write(DEB_CH,*) 'ERROR: fract_cover= ', fract_cover
+          write(DEB_CH,*) 'EROOR: fract_cover= ', fract_cover
           write(DEB_CH,*) dz(1), fresh_snow
           if ( fract_cover.gt.1.d0 ) fract_cover = 1.d0
           if ( fract_cover.lt.EPS ) fract_cover = EPS
@@ -571,7 +572,7 @@ ccc      water_down = 0.d0
       water_to_ground = water_to_ground + water_down*fract_cover
 
 ccc update dz
-      do n=1,nl
+      do n=1,n
         if( hsn(n).gt.0.d0 .or. isn(n).lt.EPS ) then
           dz(n) = 0.d0
         else if( hsn(n) .gt. -wsn(n)*lat_fusion ) then

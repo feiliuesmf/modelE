@@ -1127,7 +1127,7 @@ c     xw,xi,xa are the volume fractions.  don't count snow in soil lyr 1
      &         + xb*hcwtb*alambr
           xden=xw*hcwtw+xi*hcwti+xa*hcwta+xsh(l,ibv)+xb*hcwtb
           xkh(l,ibv)=xnum/xden
-          if ( xkh(l,ibv) .lt. 0.d0 ) stop 'xklh: heat conductivity<0' 
+          if ( xkh(l,ibv) .lt. 0.d0 ) stop 'xklh: heat conductivity<0'
         end do
       end do
 c     get the average conductivity between layers
@@ -1321,7 +1321,6 @@ c**** soils28   common block     9/25/90
           endif
         end do
       end do
-
 ccc this is a fix for undefined tsn1 at the beginning of soil routines
 ccc probably should be moved to some other place
       do ibv=1,2
@@ -1962,7 +1961,7 @@ ccc         implicit real*8 (a-h,o-z)
 
       real*8 dts
 ccc  snshsn(2) is global !
-      real*8 epotsn(2),srhtsn(2),trhtsn(2)
+      real*8 epotsn(2),srhtsn(2),trhtsn(2),fbfv(2)
 ccc      real*8 xkthsn(2),cthsn(2)
 
 ccc  local vars:
@@ -1989,6 +1988,8 @@ c!      cthsn(2)=shc(1,2)
 
       evap_sn_dt(1) = epb_dt
       evap_sn_dt(2) = evaps_dt
+      fbfv(1) = fb
+      fbfv(2) = fv
       do ibv=1,2
 c!!! should pass ground properties to snow_adv
         call snow_adv(dzsn(1,ibv), wsn(1,ibv), hsn(1,ibv), nsn(ibv),
@@ -1997,7 +1998,7 @@ c!!! should pass ground properties to snow_adv
      $       pr, dts,
      &       tp(1,ibv), dz(1), fr_snow(ibv),
      &       tsn_surf, flmlt(ibv), fhsng(ibv),
-     &       thrmsn(ibv), snsh_dt, evap_sn_dt(ibv) )
+     &       thrmsn(ibv), snsh_dt, evap_sn_dt(ibv) , fbfv(ibv) )
 
         flmlt(ibv) = flmlt(ibv)/dts
         fhsng(ibv) = fhsng(ibv)/dts
@@ -2066,7 +2067,7 @@ ccc better check it
           write(99,*) 'snowd corrected: old=', snowd(ibv)
           snowd(ibv) = w(1,ibv)-dz(1)*thetm(1,ibv) - 1.d-10
           write(99,*) '                 new=', snowd(ibv)
-          if ( snowd(ibv) .lt. -0.001d0 ) stop 'set_snow: neg. snow'   
+          if ( snowd(ibv) .lt. -0.001d0 ) stop 'set_snow: neg. snow'
           if ( snowd(ibv) .lt. 0.d0 ) snowd(ibv) = 0.d0 ! rounding error
        endif
 
