@@ -273,15 +273,15 @@ C**** CALL DIAGNOSTICS
          IF(MODD5K.LT.MRCH) CALL DIAG5D (4,MRCH,DUT,DVT)
          IF(MRCH.GT.0) CALL DIAG9D (1,DT1,U,V,DUT,DVT,PIT)
       DO L=1,LM
-         DO J=2,JM
-            DO I=1,IM
-               UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)
-               VT(I,J,L)=VT(I,J,L)+DVT(I,J,L)
-               DUT(I,J,L)=0.
-               DVT(I,J,L)=0.
-            ENDDO
-         ENDDO
-      ENDDO
+      DO J=2,JM
+      DO I=1,IM
+        UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)
+        VT(I,J,L)=VT(I,J,L)+DVT(I,J,L)
+        DUT(I,J,L)=0.
+        DVT(I,J,L)=0.
+      END DO
+      END DO
+      END DO
 C****
 C**** CORIOLIS FORCE
 C****
@@ -315,15 +315,15 @@ C**** CALL DIAGNOSTICS, ADD CORIOLIS FORCE INCREMENTS TO UT AND VT
          IF(MODD5K.LT.MRCH) CALL DIAG5D (5,MRCH,DUT,DVT)
          IF(MRCH.GT.0) CALL DIAG9D (2,DT1,U,V,DUT,DVT,PIT)
       DO L=1,LM
-         DO J=2,JM
-            DO I=1,IM
-               UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)
-               VT(I,J,L)=VT(I,J,L)+DVT(I,J,L)
-               DUT(I,J,L)=0.
-               DVT(I,J,L)=0.
-            ENDDO
-         ENDDO
-      ENDDO
+      DO J=2,JM
+      DO I=1,IM
+        UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)
+        VT(I,J,L)=VT(I,J,L)+DVT(I,J,L)
+        DUT(I,J,L)=0.
+        DVT(I,J,L)=0.
+      END DO
+      END DO
+      END DO
 C****
 C**** UNDO SCALING PERFORMED AT BEGINNING OF ADVECV
 C****
@@ -354,16 +354,12 @@ C****
      *     ,zatmo,sig,modd5k,bydsig
       USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp
       USE DYNAMICS, only : gz,pu,pit,phi,spa,fd,dut,dvt
-     *     ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
-     *     ,PMID,PK
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,JM,LM) :: U,V,T
       REAL*8, DIMENSION(IM,JM) :: P,RFDUX
       REAL*8 UT(IM,JM,LM),VT(IM,JM,LM),TT(IM,JM,LM),
      *  PA(IM,JM),PB(IM,JM),QT(IM,JM,LM)
-      REAL*8, DIMENSION(IM,JM,1) :: PU0
-      real*8 :: rho1
 
       REAL*8 PKE(LM+1)
       REAL*8 SZ(IM,JM,LM),DT4,DT1
@@ -444,52 +440,6 @@ C**** SET POLAR VALUES FROM THOSE AT I=1
 C****
 C**** PRESSURE GRADIENT FORCE
 C****
-C**** (Pressure gradient)/density at first layer and surface
-C**** to be used in the PBL
-      DPDY_BY_RHO=0.
-      DPDY_BY_RHO_0=0.
-      IM1=IM
-      DO I=1,IM
-        DO J=2,JM
-          rho1=100.*pmid(1,i,j)/(rgas*t(i,j,1)*pk(1,i,j))
-          FLUX=(PHI(I,J,1)-PHI(I,J-1,1))/DYP(J)
-     2         +100.*(P(I,J)-P(I,J-1))*SIG(1)/(rho1*DYP(J))
-          DPDY_BY_RHO(I,J)=DPDY_BY_RHO(I,J)+FLUX
-          DPDY_BY_RHO(IM1,J)=DPDY_BY_RHO(IM1,J)+FLUX
-          FLUX=(ZATMO(I,J)-ZATMO(I,J-1))/DYP(J)
-     2         +100.*(P(I,J)-P(I,J-1))/(rho1*DYP(J))
-          DPDY_BY_RHO_0(I,J)=DPDY_BY_RHO_0(I,J)+FLUX
-          DPDY_BY_RHO_0(IM1,J)=DPDY_BY_RHO_0(IM1,J)+FLUX
-        END DO
-        IM1=I
-      END DO
-c
-      DPDX_BY_RHO=0.
-      DPDX_BY_RHO_0=0.
-      I=IM
-      DO IP1=1,IM
-        PU(I,1,1)=0.
-        PU(I,JM,1)=0.
-        PU0(I,1,1)=0.
-        PU0(I,JM,1)=0.
-        DO J=2,JM-1
-          rho1=100.*pmid(1,i,j)/(rgas*t(i,j,1)*pk(1,i,j))
-          PU(I,J,1)=(PHI(IP1,J,1)-PHI(I,J,1))/DXP(J)
-     2              +100.*(P(IP1,J)-P(I,J))*SIG(1)/(rho1*DXP(J))
-          PU0(I,J,1)=(ZATMO(IP1,J)-ZATMO(I,J))/DXP(J)
-     2               +100.*(P(IP1,J)-P(I,J))/(rho1*DXP(J))
-        END DO
-        I=IP1
-      END DO
-      CALL AVRX (PU(1,1,1))
-      CALL AVRX (PU0(1,1,1))
-      DO J=2,JM
-        DO I=1,IM
-          DPDX_BY_RHO(I,J)=DPDX_BY_RHO(I,J)+0.5*(PU(I,J,1)+PU(I,J-1,1))
-          DPDX_BY_RHO_0(I,J)=DPDX_BY_RHO_0(I,J)+
-     2                       0.5*(PU0(I,J,1)+PU0(I,J-1,1))
-        END DO
-      END DO
 C****
 C**** NORTH-SOUTH DERIVATIVE AFFECTS THE V-COMPONENT OF MOMENTUM
       DO 3236 L=1,LS1-1
@@ -1127,3 +1077,68 @@ C**** Scale WM mixing ratios to conserve liquid water
       RETURN
       END SUBROUTINE DYNAM
 
+      SUBROUTINE PGRAD_PBL
+!@sum  PGRAD_PBL calculates surface/layer 1 pressure gradients for pbl
+!@auth Ye Cheng
+!@ver  1.0
+C**** As this is written, it must be called after the call to CALC_AMPK
+C**** after DYNAM (since it uses pk/pmid). It would be better if it used
+C**** SPA and PU directly from the dynamics. (Future work).     
+      USE CONSTANT, only : rgas
+      USE E001M12_COM, only : im,jm,t,p,zatmo,sig
+      USE GEOM, only : dyp,dxp
+      USE DYNAMICS, only : phi,pu,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
+     *     ,dpdx_by_rho_0,pmid,pk
+      IMPLICIT NONE
+      REAL*8, DIMENSION(IM,JM,1) :: PU0
+      REAL*8 rho1,FLUX
+      INTEGER I,J,IP1,IM1
+
+C**** (Pressure gradient)/density at first layer and surface
+C**** to be used in the PBL
+      DPDY_BY_RHO=0.
+      DPDY_BY_RHO_0=0.
+      IM1=IM
+      DO I=1,IM
+        DO J=2,JM
+          rho1=100.*pmid(1,i,j)/(rgas*t(i,j,1)*pk(1,i,j))
+          FLUX=(PHI(I,J,1)-PHI(I,J-1,1))/DYP(J)
+     2         +100.*(P(I,J)-P(I,J-1))*SIG(1)/(rho1*DYP(J))
+          DPDY_BY_RHO(I,J)=DPDY_BY_RHO(I,J)+FLUX
+          DPDY_BY_RHO(IM1,J)=DPDY_BY_RHO(IM1,J)+FLUX
+          FLUX=(ZATMO(I,J)-ZATMO(I,J-1))/DYP(J)
+     2         +100.*(P(I,J)-P(I,J-1))/(rho1*DYP(J))
+          DPDY_BY_RHO_0(I,J)=DPDY_BY_RHO_0(I,J)+FLUX
+          DPDY_BY_RHO_0(IM1,J)=DPDY_BY_RHO_0(IM1,J)+FLUX
+        END DO
+        IM1=I
+      END DO
+c
+      DPDX_BY_RHO=0.
+      DPDX_BY_RHO_0=0.
+      I=IM
+      DO IP1=1,IM
+        PU(I,1,1)=0.
+        PU(I,JM,1)=0.
+        PU0(I,1,1)=0.
+        PU0(I,JM,1)=0.
+        DO J=2,JM-1
+          rho1=100.*pmid(1,i,j)/(rgas*t(i,j,1)*pk(1,i,j))
+          PU(I,J,1)=(PHI(IP1,J,1)-PHI(I,J,1))/DXP(J)
+     2              +100.*(P(IP1,J)-P(I,J))*SIG(1)/(rho1*DXP(J))
+          PU0(I,J,1)=(ZATMO(IP1,J)-ZATMO(I,J))/DXP(J)
+     2               +100.*(P(IP1,J)-P(I,J))/(rho1*DXP(J))
+        END DO
+        I=IP1
+      END DO
+      CALL AVRX (PU(1,1,1))
+      CALL AVRX (PU0(1,1,1))
+      DO J=2,JM
+        DO I=1,IM
+          DPDX_BY_RHO(I,J)=DPDX_BY_RHO(I,J)+0.5*(PU(I,J,1)+PU(I,J-1,1))
+          DPDX_BY_RHO_0(I,J)=DPDX_BY_RHO_0(I,J)+
+     2                       0.5*(PU0(I,J,1)+PU0(I,J-1,1))
+        END DO
+      END DO
+C****
+      END SUBROUTINE PGRAD_PBL

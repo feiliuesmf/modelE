@@ -124,11 +124,8 @@ C****
       CALL DYNAM
 
       CALL CALC_AMPK(LS1-1)
-
-C****
-C**** CALL OCEAN DYNAMIC ROUTINES
-C****
-      CALL ODYNAM
+C**** calculate some dynamic variables for the PBL
+      CALL PGRAD_PBL
 
          CALL CHECKT ('DYNAM ')
          CALL TIMER (MNOW,MDYN)
@@ -210,6 +207,11 @@ C**** SEA LEVEL PRESSURE FILTER
            CALL DIAG5A (14,NFILTR*NIdyn)
            CALL DIAG9A (9)
       END IF
+C****
+C**** CALL OCEAN DYNAMIC ROUTINES
+C****
+      CALL ODYNAM
+
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
