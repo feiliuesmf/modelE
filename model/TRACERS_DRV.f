@@ -7120,7 +7120,7 @@ C**** Apply chemistry and stratosphere overwrite changes:
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-      CALL tracers_dust_old
+c      CALL tracers_dust_old
 #endif
 
       return
