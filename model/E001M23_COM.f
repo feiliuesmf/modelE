@@ -1,12 +1,12 @@
       MODULE MODEL_COM
-!@sum  MODEL_COM Main model variables 4x5 deg Model, 12 layers
+!@sum  MODEL_COM Main model variables 4x5 deg Model, 23 layers
 !@auth Original Development Team
 !@ver  1.0
       IMPLICIT NONE
       SAVE
 !@var IM,JM longitudinal and latitudinal number of grid boxes
 !@var LM number of vertical levels (limited to 40 by BR00B.COM)
-      INTEGER, PARAMETER :: IM=72,JM=46,LM=12
+      INTEGER, PARAMETER :: IM=72,JM=46,LM=23
 
 !@var IMH half the number of latitudinal boxes
       INTEGER, PARAMETER :: IMH=IM/2
@@ -315,13 +315,13 @@ C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "E001M12"
+      CHARACTER*8 :: HEADER, MODULE_HEADER = "STRAT"
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE) ! output to end-of-month restart file
-        WRITE (kunit,err=10) MODULE_HEADER,U,V,T,P,Q,WM
+        WRITE (kunit,err=10) MODULE_HEADER,U,V,T,P,Q,WM,AIRX,LMC
       CASE (IOREAD:)          ! input from restart file
-        READ (kunit,err=10) HEADER,U,V,T,P,Q,WM
+        READ (kunit,err=10) HEADER,U,V,T,P,Q,WM,AIRX,LMC
         IF (HEADER.ne.MODULE_HEADER) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
@@ -332,28 +332,3 @@ C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
       RETURN
       END SUBROUTINE io_model
 
-      SUBROUTINE GWDRAG
-!@sum Dwdrag dummy routine for non-stratospheric models
-      RETURN
-      END SUBROUTINE GWDRAG
-
-      SUBROUTINE VDIFF
-!@sum VDIFF dummy routine for non-stratospheric models
-      RETURN
-      END SUBROUTINE VDIFF
-
-      SUBROUTINE EPFLUX
-!@sum EPFLUX dummy routine for non-stratospheric models
-      RETURN
-      END SUBROUTINE EPFLUX
-
-      SUBROUTINE EPFLXI
-!@sum EPFLXI dummy routine for non-stratospheric models
-      RETURN
-      END SUBROUTINE EPFLXI
-
-
-      SUBROUTINE diaga0
-!@sum diaga0 dummy routine for non-stratospheric models
-      RETURN
-      END SUBROUTINE diaga0

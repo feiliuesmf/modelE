@@ -3119,7 +3119,7 @@ C**** Hence this diagnostic gives the error
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : Itime,jhour,jdate,jmon,amon,jyear,
-     *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc
+     *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc,u
       USE DAGCOM
       IMPLICIT NONE
       INTEGER :: isum  !@var if =1 preparation for adding up acc-files
@@ -3138,6 +3138,8 @@ C**** Hence this diagnostic gives the error
       SPECA=0 ; ATPE=0 ; ADAILY=0 ; WAVE=0
       AJK=0   ; AIJK=0 ; AIJL=0   ; AJLSP=0
 
+     
+      CALL EPFLXI (U)  ! strat
       if (isum.eq.1) return
 
       AIJ(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1

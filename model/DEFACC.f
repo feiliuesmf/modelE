@@ -1987,7 +1987,7 @@ c
       units_jl(k) = 'unknown'
 c
       k=k+1
-      name_jl(k) = 'AJL32'
+      name_jl(k) = 'AJL32'     ! gwdrag
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c

@@ -931,12 +931,15 @@ C****
 
       REAL*8 DTFS,DTLF,PP,UU,VV
       INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
-      INTEGER NS    !? ,NIdynO
+      INTEGER NS, NSOLD,MODDA    !? ,NIdynO
 
 !?    NIdynO=MOD(NIdyn,2)   ! NIdyn odd is currently not an option
       DTFS=DT*2./3.
       DTLF=2.*DT
+      NS=0
+      NSOLD=0                            ! strat
       PTOLD(:,:) = P(:,:)
+  300 CONTINUE
       UX(:,:,:)  = U(:,:,:)
       UT(:,:,:)  = U(:,:,:)
       VX(:,:,:)  = V(:,:,:)
@@ -947,38 +950,36 @@ C*** copy z-moment of temperature into contiguous memory
       PB(:,:) = P(:,:)
       PC(:,:) = P(:,:)
 C**** INITIAL FORWARD STEP, QX = Q + .667*DT*F(Q)
-      NS=0
       MRCH=0
 C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
       CALL CALC_PIJL(LM,P,PIJL)
       CALL AFLUX (U,V,PIJL)
       CALL ADVECM (P,PB,DTFS)
+      CALL GWDRAG (PB,UX,VX,T,TZ,DTFS)   ! strat
+      CALL VDIFF (PB,UX,VX,T,Q,DTFS)     ! strat
       CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
       CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
       CALL FLTRUV(UX,VX)
-!?    IF (NIdynO.EQ.1) GO TO 320
 C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
       MRCH=-1
 C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
       CALL CALC_PIJL(LS1-1,PB,PIJL)
       CALL AFLUX (UX,VX,PIJL)
       CALL ADVECM (P,PA,DT)
+      CALL GWDRAG (PA,UT,VT,T,TZ,DT)   ! strat
+      CALL VDIFF (PA,UT,VT,T,Q,DT)     ! strat
       CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
       CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
       CALL FLTRUV(UT,VT)
       GO TO 360
-C**** INITIAL BACKWARD STEP IS EVEN, Q = Q + DT*F(QX)
-!?320 NS=1
-!?       MODD5K=MOD(NSTEP+NS-NIdyn+NDA5K*NIdyn+2,NDA5K*NIdyn+2)
-!?    MRCH=1
-C     CALL DYNAM (U,V,T,P,Q,UX,VX,TX,PX,QT,DT)
-CD       DIAGA SHOULD BE CALLED HERE BUT THEN ARRAYS MUST BE CHANGED
 C**** ODD LEAP FROG STEP, QT = QT + 2*DT*F(Q)
   340 MRCH=-2
 C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
       CALL CALC_PIJL(LS1-1,P,PIJL)
       CALL AFLUX (U,V,PIJL)
       CALL ADVECM (PA,PB,DTLF)
+      CALL GWDRAG (PB,UT,VT,T,TZ,DTLF)   ! strat
+      CALL VDIFF (PB,UT,VT,T,Q,DTLF)     ! strat
       CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
       CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
       CALL FLTRUV(UT,VT)
@@ -992,7 +993,10 @@ C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
       CALL CALC_PIJL(LS1-1,PA,PIJL)
       CALL AFLUX (UT,VT,PIJL)
       CALL ADVECM (PC,P,DTLF)
+      CALL GWDRAG (P,U,V,T,TZ,DTLF)   ! strat
       CALL ADVECV (PC,U,V,P,UT,VT,Pijl,DTLF)     !PA->pijl
+         MODDA=MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2)  ! strat
+         IF(MODDA.LT.MRCH) CALL DIAGA0 (T)   ! strat
          FPEU(:,:) = 0.
          FPEV(:,:) = 0.
          FWVU(:,:) = 0.
@@ -1005,6 +1009,7 @@ C*** copy z-moment of temperature into contiguous memory
       tz(:,:,:) = tmom(mz,:,:,:)
       call calc_amp(pc,ma)
       CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE. ,FWVU,FWVV)
+      CALL VDIFF (P,U,V,T,Q,DTLF)        ! strat
       PC(:,:)    = .5*(P(:,:)+PC(:,:))
       TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
       TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
@@ -1039,8 +1044,17 @@ C**** LOAD P TO PC
          IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
            CALL DIAGA (U,V,T,P,Q,PIT,SD)
            CALL DIAGB (U,V,T,P,Q,WM,DUT,DVT)
+           CALL EPFLUX (U,V,T,P)
          ENDIF
-      IF (NS.LT.NIdyn) GO TO 340
+C**** Restart after 8 steps due to divergence of solutions
+C**** STRATOSPHERIC MOMENTUM DRAG must be called at least once
+!     IF (NS.LT.NIdyn) GO TO 340
+      IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
+!!!!! need to calculate arg for sdrag (if strat model)
+      CALL CALC_AMPK(LS1-1)
+      CALL SDRAG (LM,DT*(NS-NSOLD))
+      NSOLD=NS
+      IF (NS.LT.NIdyn) GO TO 300
 C**** Scale WM mixing ratios to conserve liquid water
       PRAT(:,:)=PTOLD(:,:)/P(:,:)
       DO L=1,LS1-1

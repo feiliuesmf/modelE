@@ -106,7 +106,10 @@ C**** output variables
       INTEGER :: LMCMAX,LMCMIN
 !@var LMCMAX upper-most convective layer
 !@var LMCMIN lowerest convective layer
+!@var AIRXL is convective mass flux (kg/m*m)
+      REAL*8 AIRXL
 
+C**** functions
       REAL*8 :: QSAT, DQSATDT
 !@var QSAT saturation humidity
 !@var DQSATDT dQSAT/dT
@@ -952,15 +955,21 @@ C****
   600 CONTINUE
       IF(LMCMIN.GT.0) THEN
 C**** ADJUSTMENT TO CONSERVE CP*T
-      SUMAJ=0.
-      SUMDP=0.
-      DO 605 L=LMCMIN,LMCMAX
-      SUMDP=SUMDP+AIRM(L)
-      SUMAJ=SUMAJ+AJ13(L)
-  605 CONTINUE
-      DO 606 L=LMCMIN,LMCMAX
-         AJ13(L)=AJ13(L)-SUMAJ*AIRM(L)/SUMDP
-  606 SM(L)=SM(L)-SUMAJ*AIRM(L)/(SUMDP*PLK(L))
+        SUMAJ=0.
+        SUMDP=0.
+        DO L=LMCMIN,LMCMAX 
+          SUMDP=SUMDP+AIRM(L)
+          SUMAJ=SUMAJ+AJ13(L)
+        END DO
+        DO L=LMCMIN,LMCMAX
+          AJ13(L)=AJ13(L)-SUMAJ*AIRM(L)/SUMDP
+          SM(L)=SM(L)-SUMAJ*AIRM(L)/(SUMDP*PLK(L))
+        END DO
+C**** LOAD MASS EXCHANGE ARRAY FOR GWDRAG                               
+        AIRXL = 0.
+        DO L=LMCMIN,LMCMAX
+          AIRXL = AIRXL+AJ8(L)
+        END DO
       END IF
 C**** CALCULATE OPTICAL THICKNESS
       WCONST=1.d-3*(WMU*(1.-PEARTH)+WMUL*PEARTH)

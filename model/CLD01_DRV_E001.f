@@ -7,7 +7,7 @@
       USE CONSTANT, only : bygrav,lhm,rgas,grav,kapa
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,sig,DTsrc,ftype
-     *     ,ntype,itime,fim
+     *     ,ntype,itime,fim,airx,lmc
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
       USE CLD01_COM_E001, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
@@ -20,7 +20,7 @@
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,mstcnv,qs,us,vs,dcl
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,lpbl,taussl,cldssl,cldsavl,
-     *     prcpss,hcndss,aj55,BYDTsrc,lscond
+     *     prcpss,hcndss,aj55,BYDTsrc,lscond,airxl
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,dclev
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adaily,jreg,ij_pscld
      *     ,ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec
@@ -155,6 +155,9 @@ C**** SET PRECIPITATION AND LATENT HEAT
       PREC(I,J)=0.
       TPRCP=T(I,J,1)*PK(1,I,J)-TF
 
+C**** SET DEFAULT FOR AIR MASS FLUX (STRAT MODEL)
+      AIRX(I,J)=0.
+
 C**** MOIST CONVECTION
       CALL MSTCNV
 
@@ -198,6 +201,9 @@ C**** WRITE TO SOME GLOBAL ARRAYS
             Q(I,J,L)=  QM(L)*BYAM(L)
             CSIZMC(L,I,J)=CSIZEL(L)
          END DO
+         AIRX(I,J) = AIRXL*DXYP(J)
+         LMC(1,I,J) = LMCMIN
+         LMC(2,I,J) = LMCMAX+1
       END IF
 C****
 C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS

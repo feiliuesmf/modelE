@@ -123,7 +123,6 @@ C****
          IF (MODD5D.EQ.0) CALL DIAG9A (1)
       CALL DYNAM
 
-      CALL CALC_AMPK(LS1-1)
 C**** calculate some dynamic variables for the PBL
       CALL PGRAD_PBL
 
@@ -199,10 +198,7 @@ C**** if aturb_on=.false., CALCULATE DRY CONVECTION ABOVE PBL
 
 C**** CALL OCEAN DYNAMIC ROUTINES
       CALL ODYNAM
-
-C**** STRATOSPHERIC MOMENTUM DRAG
-      CALL SDRAG(LM,DTSRC)
-         CALL CHECKT ('SDRAG ')
+         CALL CHECKT ('OCEAN ')
          CALL TIMER (MNOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAG9A (9)
          IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)          ! ?
