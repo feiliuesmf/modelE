@@ -84,6 +84,17 @@ C**** Tracer concentration
 #ifdef TRACERS_WATER
         if (to_per_mil(n).gt.0) units_jln(k,n) = unit_string(0,cmr(n))
 #endif
+C**** Tracer mass
+        k = k + 1
+        jlnt_mass = k
+        sname_jln(k,n) = trim(trname(n))//'_MASS' 
+        lname_jln(k,n) = trim(trname(n))//' MASS' 
+        jlq_power(k) = 0.
+        units_jln(k,n) = unit_string(ntm_power(n)+5+jlq_power(k)
+     *       ,'kg/m^2')
+        scale_jlq(k) = 1.d0
+        scale_jln(n) = 1.d0
+
 #ifdef TRACERS_WATER
 C****   TRACER CONCENTRATION IN CLOUD WATER
         k = k + 1
@@ -349,8 +360,7 @@ C**** Tracers dry deposition flux.
 
 
       SUBROUTINE apply_tracer_2Dsource(dtstep)
-!@sum apply_tracer_2Dsource adds non-interactive surface sources 
-!@+       to tracers
+!@sum apply_tracer_2Dsource adds surface sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only : jm
       USE GEOM, only : imaxj
@@ -392,18 +402,18 @@ C**** diagnostics
 C**** trflux1 is total flux into first layer
           trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)
         end do
-C**** Interactive sources
-C**** diagnostics
-        do ns=1,ntisurfsrc(n)
-         naij = ijts_isrc(ns,n)  
-         taijs(:,:,naij) = taijs(:,:,naij) + trsrfflx(:,:,n)*dtstep
-         najl = jls_isrc(ns,n)   
-         do j=1,jm
-           tajls(j,1,najl) = tajls(j,1,najl)+
-     *         sum(trsrfflx(1:imaxj(j),j,n))*dtstep
-         end do
-c        call DIAGTCA(itcon_surf(ns,n),n)  ????
-        end do
+cC**** Interactive sources  ! this is definitely not right.
+cC**** diagnostics
+c        do ns=1,ntisurfsrc(n)
+c         naij = ijts_isrc(ns,n)  
+c         taijs(:,:,naij) = taijs(:,:,naij) + trsrfflx(:,:,n)*dtstep
+c         najl = jls_isrc(ns,n)   
+c         do j=1,jm
+c           tajls(j,1,najl) = tajls(j,1,najl)+
+c     *         sum(trsrfflx(1:imaxj(j),j,n))*dtstep
+c         end do
+cc        call DIAGTCA(itcon_surf(ns,n),n)  ????
+c        end do
 C**** modify vertical moments (only from non-interactive sources)
         trmom( mz,:,:,1,n) = trmom( mz,:,:,1,n)-1.5*trflux1(:,:,n)
      *       *dtstep
@@ -905,10 +915,3 @@ C**** check whether air mass is conserved
 #endif
       RETURN
       END SUBROUTINE io_tracer
-
-
-
-
-
-
-

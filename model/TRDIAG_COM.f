@@ -137,15 +137,15 @@ C**** TAJLN
 !@param ktajl,ktajlx number of TAJL tracer diagnostics;
 !@+          ktajlx includes composites
 #ifdef TRACERS_WATER
-      INTEGER, PARAMETER :: ktajl=9 
+      INTEGER, PARAMETER :: ktajl=10 
 #else
-      INTEGER, PARAMETER :: ktajl=8 
+      INTEGER, PARAMETER :: ktajl=9
 #endif
      &     ,ktajlx=ktajl+2
 !@var TAJLN  vertical tracer diagnostics (all tracers)
       REAL*8, DIMENSION(JM,LM,ktajlx,NTM) :: TAJLN
 !@var jlnt_xx Names for TAJLN diagnostics
-      INTEGER jlnt_conc,jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,
+      INTEGER jlnt_conc,jlnt_mass,jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,
      &  jlnt_vt_mm,jlnt_mc,jlnt_turb,jlnt_lscond, jlnt_bebe,
      &  jlnt_bepb
 #ifdef TRACERS_WATER

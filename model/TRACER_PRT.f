@@ -43,13 +43,14 @@ C**** Average concentration; surface concentration; total mass
         taijn(i,j,tij_conc,n) = taijn(i,j,tij_conc,n)+tsum/asum
       enddo; enddo
 !$OMP END PARALLEL DO
-C**** Zonal mean concentration
+C**** Zonal mean concentration and mass
 !$OMP PARALLEL DO PRIVATE (L,J,TSUM,ASUM)
       do l=1,lm
       do j=1,jm
         tsum = sum(trm(1:imaxj(j),j,l,n)) !sum over i
         asum = sum(am(l,1:imaxj(j),j))    !sum over i
         tajln(j,l,jlnt_conc,n) = tajln(j,l,jlnt_conc,n)+tsum/asum
+        tajln(j,l,jlnt_mass,n) = tajln(j,l,jlnt_mass,n)+tsum
       enddo; enddo
 !$OMP END PARALLEL DO
 
@@ -451,12 +452,18 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       end if
 #endif
 
-#ifdef TRACERS_AEROSOL_Koch
+#ifdef TRACERS_AEROSOLS_Koch
 C****
-C**** Mass diagnostic
+C**** Mass diagnostic (this is saved for everyone, but only output
+C**** for Dorothy for the time being)
 C****
       k=jlnt_mass
+      scalet = scale_jln(n)*scale_jlq(k)/idacc(ia_jlq(k))
+      jtpow = ntm_power(n)+5+jlq_power(k)
+      scalet = scalet*10.**(-jtpow)
 
+      CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
+     *     plm,tajln(1,1,k,n),scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
 
 #endif
 
