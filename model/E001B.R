@@ -23,6 +23,7 @@ SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM ! dynamic ocean modules
 OCNDYN OSTRAITS OCNGM OCNKPP ICEDYN    ! dynamic ocean routines
+ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                           ! ocean function look up table
 SNOW                                ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
