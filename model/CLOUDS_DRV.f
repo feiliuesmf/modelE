@@ -130,8 +130,8 @@ C**** COMPUTE ZONAL MEAN U AND V AT POLES
 C****
 C**** MAIN J LOOP
 C****
-      KMAX=KMAXJ(J)
       DO J=1,JM
+      KMAX=KMAXJ(J)
 C****
 C**** MAIN I LOOP
 C****
