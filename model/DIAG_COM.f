@@ -11,7 +11,7 @@
       SAVE
 C**** Accumulating_period information
       INTEGER, DIMENSION(12) :: MONACC  !@var MONACC(1)=#Januaries, etc
-      CHARACTER*12 ACC_PERIOD           !@var string MONyyr1-yyr2
+      CHARACTER*12 :: ACC_PERIOD='PARTIAL'    !@var string MONyyr1-yyr2
 !@var AMON0,JMON0,JDATE0,JYEAR0,JHOUR0,Itime0  beg.of acc-period
 
 C**** ACCUMULATING DIAGNOSTIC ARRAYS

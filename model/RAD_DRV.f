@@ -287,7 +287,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE RADNCB, only : s0x,co2,lm_req,llow,lmid,lhi,coe,sinj,cosj
       USE RE001, only : setnew,rcomp1,writer             ! routines
      &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLE=>PLB, PTOPTR
-     *     ,KCLDEM,KVEGA6
+     *     ,KCLDEM,KVEGA6,MOZONE
       USE FILEMANAGER
       USE PARAM
       IMPLICIT NONE
@@ -308,6 +308,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 C**** sync radiation parameters from input
       call sync_param( "S0X", S0X )
       call sync_param( "CO2", CO2 )
+      call sync_param( "MOZONE", MOZONE )
 
 C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       PHIS=-.25*TWOPI
@@ -675,9 +676,9 @@ C**** set up parameters for new sea ice albedo
         fmp=min(1.118d0*sqrt(pond_melt(i,j)/rhow),1d0)
         hmp=min(0.8d0*fmp,0.9d0*hin)
       else
-        hin = 0. ; flags=.FALSE. ; fmp=0. ; hmp=0. 
+        hin = 0. ; flags=.FALSE. ; fmp=0. ; hmp=0.
       endif
-C**** 
+C****
       WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
       if (wearth.gt.1.) wearth=1.
       DO K=1,11

@@ -1180,16 +1180,18 @@ C                             ------------------------------------------
       DO 476 J=1,46
       DO 475 I=1,72
       DO 471 L=1,7
-      WJLO3(L)=WJ1890(I,J,L,M)
+      ACML=7.991D+05*1.D-09*(PLB08(L)-PLB08(L+1))/1013.25D0
+      WJLO3(L)=WJ1890(I,J,L,M)*ACML
   471 CONTINUE
-      CALL REPART(WJLO3,PLB08,9,OZONXX,PLB,NL1)
+      CALL REPART(WJLO3,PLB08,8,OZONXX,PLB,NL1)
       DO 472 L=1,NL
       WJ1890(I,J,L,M)=OZONXX(L)
   472 CONTINUE
       DO 473 L=1,7
-      WJLO3(L)=WJ1979(I,J,L,M)
+      ACML=7.991D+05*1.D-09*(PLB08(L)-PLB08(L+1))/1013.25D0
+      WJLO3(L)=WJ1979(I,J,L,M)*ACML
   473 CONTINUE
-      CALL REPART(WJLO3,PLB08,9,OZONXX,PLB,NL1)
+      CALL REPART(WJLO3,PLB08,8,OZONXX,PLB,NL1)
       DO 474 L=1,NL
       WJ1979(I,J,L,M)=OZONXX(L)
   474 CONTINUE
@@ -1405,7 +1407,7 @@ C                                      Monthly-Mean Solar UV (1882-1998)
 C                                      ---------------------------------
 C
 C
-      IF(MADLUV.LT.1) GO TO 909
+      IF(MADLUV.LT.1) GO TO 949
       NRFU=NRFUN(9)
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE9
@@ -1441,13 +1443,6 @@ C
   903 CONTINUE
   904 CONTINUE
 cg    CLOSE(NRFU)
-      GO TO 949
-  909 CONTINUE
-      DO 911 I=1,190
-      WSLEAN(I)=WSLEAN(I)/1000.D0
-      DSLEAN(I)=DSLEAN(I)/1000.D0
-      W1LEAN(I)=WSLEAN(I)-0.5D0*DSLEAN(I)
-  911 CONTINUE
 C
   949 CONTINUE
 C
@@ -2251,9 +2246,11 @@ C       4       C        C + D + B      D (below 150mb)      (2)
 C                                     + B (above 150mb)      (3)
 C       5      C/E     C/E + D + B      D (below 150mb)      (2)
 C                                     + B (above 150mb)      (3) **
-C
-C       6     (Same as 5, but also writes O3CLIM Climatology to disk)
-C       7     (Same as 5, READ O3CLIM Climatology directly from disk)
+C       Special options: same as 5 but
+C       6     writes O3CLIM Climatology to disk
+C       7     READ O3CLIM Climatology directly from disk
+C       8     uses Wang-Jacob 1890 data below 150 mb
+C       9     uses Wang-Jacob 1979 data below 150 mb
 C     ---------------------------------------------------------------
 C     NOTE:  (1)  If NCARO3=1, then London's NCAR O3 data is selected
 C            (2)  O3WJT0 extends W-J time rate lon dep change (years)
@@ -2386,8 +2383,7 @@ C--------------------------------
       ENTRY UPDO3D(JYEARO,JJDAYO)
 C--------------------------------
 C
-      IF(MOZONE.LT.2) THEN
-      XJDAY=JJDAYO-0.999D0
+      XJDAY=JJDAYO-0.999D0   ! needed for MOZONE<2 and also MOZONE>7
       XPMO=XJDAY/30.5D0+1.D0/24.D0
       MPI=XPMO
       WTMPJ=XPMO-MPI
@@ -2395,6 +2391,7 @@ C
       IF(MPI.LT.1) MPI=12
       MPJ=MPI+1
       IF(MPJ.GT.12) MPJ=1
+      IF(MOZONE.LT.2) THEN
 C
 C     -----------------------------------------------------------------
 C        Ozone Data Latitude Coverage is given at 10 degree Intervals
@@ -2554,6 +2551,23 @@ C
       U0GAS(L,3)=O3DLJ(L,JLAT)*FACTOR
   710 CONTINUE
       ENDIF
+C
+C          -------------------------------------------------------------
+C          Mozone=8: replace Ozone below 150mb by 1890 Wang-Jacobs data
+C          Mozone=9: replace Ozone below 150mb by 1979 Wang-Jacobs data
+C          -------------------------------------------------------------
+C
+      IF (MOZONE.EQ.8) THEN
+        DO L=1,N150MB
+        U0GAS(L,3)=WJ1890(ILON,JLAT,L,MPI)*WTMPI +
+     +             WJ1890(ILON,JLAT,L,MPJ)*WTMPJ
+        END DO
+      ELSE IF (MOZONE.EQ.9) THEN
+        DO L=1,N150MB
+        U0GAS(L,3)=WJ1979(ILON,JLAT,L,MPI)*WTMPI +
+     +             WJ1979(ILON,JLAT,L,MPJ)*WTMPJ
+        END DO
+      END IF
 C
       RETURN
       END SUBROUTINE SETO3D
@@ -5436,7 +5450,7 @@ C                                         ------------------------------
   500 CONTINUE
       IF(POICE.LT.1.D-04) GO TO 600
 
-C**** This albedo specification comes from Schramm et al 96     
+C**** This albedo specification comes from Schramm et al 96
 C**** Actually uses 4 spectral bands, but we calculate a
 C**** weighted average for the two bands used in this code.
        if(hin.gt.0. .and. hin.lt.1.)then
@@ -5465,7 +5479,7 @@ C**** weighted average for the two bands used in this code.
              als1=.871d0
              als2=.702d0
              als3=.079d0
-             als4=.001d0 
+             als4=.001d0
              patchy=1d0
            else
              patchy=hsn/(hsn+0.02d0)
@@ -5476,19 +5490,19 @@ C**** weighted average for the two bands used in this code.
      *       (.33d0*als2+.14d0*als3+.01d0*als4)/.48d0*patchy
            alnirr=alnirf
          else         ! dry snow
-           als1d=.98d0-.008d0*cosz 
-           als2d=.902d0-.116d0*cosz 
-           als3d=.384d0-.222d0*cosz 
+           als1d=.98d0-.008d0*cosz
+           als2d=.902d0-.116d0*cosz
+           als3d=.384d0-.222d0*cosz
            als4d=.053d0-.0047d0*cosz
            als1f=.975d0
            als2f=.832d0
            als3f=.25d0
            als4f=.025d0
-           alvisf=als1f 
+           alvisf=als1f
            alvisr=als1d
-           alnirf=(.33d0*als2f+.14d0*als3f+.01d0*als4f)/.48d0 
-           alnirr=(.33d0*als2d+.14d0*als3d+.01d0*als4d)/.48d0 
-         endif 
+           alnirf=(.33d0*als2f+.14d0*als3f+.01d0*als4f)/.48d0
+           alnirr=(.33d0*als2d+.14d0*als3d+.01d0*als4d)/.48d0
+         endif
        endif
 C**** Melt ponds
        almp1=.15d0+exp(-8.1d0*hmp-.47d0)
@@ -5498,7 +5512,7 @@ C**** Melt ponds
 c**** combined sea ice albedo
        alvisf=alvisf*(1.-fmp)+almp1*fmp
        alvisr=alvisr*(1.-fmp)+almp1*fmp
-       alnirf=alnirf*(1.-fmp)+ 
+       alnirf=alnirf*(1.-fmp)+
      *  (.33d0*almp2+.14d0*almp3+.01d0*almp4)/.48d0*fmp
        alnirr=alnirr*(1.-fmp)+
      *  (.33d0*almp2+.14d0*almp3+.01d0*almp4)/.48d0*fmp
