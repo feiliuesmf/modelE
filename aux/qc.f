@@ -9,16 +9,6 @@
       USE TIMINGS
       USE PARAM
       IMPLICIT NONE
-      NAMELIST/INPUTZ/ KOCEAN,PTOP,PSF,LS1,DTsrc
-C****    List of parameters that COULD be changed during a run:
-     *     ,DT,  NRAD,NIsurf,NFILTR, MFILTR
-     *     ,SKIPSE,  NDAA,NDA5D,NDA5K,NDA5S,NDA4,NDASF
-     *     ,U00wtr,U00ice,LMCM, S0X,CO2,XCDLM,IRAND
-     *     ,Nslp,Kvflxo,KCOPY,Ndisk, Nssw        ,keyct ! keyct??
-     *     ,KDIAG,NIPRNT,NMONAV,IJD6,NAMD6
-     *     ,IWRITE,JWRITE,ITWRITE,QCHECK
-     *     ,IYEAR0,KACC0,KTACC0
-
       CHARACTER*80 FILEIN(5),DIR*60
       INTEGER N,Itime1,NARGS,K,iargc,KSTART,KFILE,I
       INTEGER :: ioerr=0 
@@ -78,8 +68,8 @@ C**** problem reading file => assume a run directory in /u/cmrun
       END IF
       IF (QCALL) THEN
         write (6,*) "IM,JM,LM = ",IM,JM,LM
+        call print_param(6)
         write (6,*) "IDACC = ",(IDACC(I),I=1,12)
-        write (6,inputz)
         write (6,*) 
       END IF
       END DO
