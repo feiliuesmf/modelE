@@ -2,10 +2,8 @@
       SUBROUTINE masterchem
 !@sum masterchem main chemistry routine
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on masterchem0C9.2_M23p but non-parallel!)
+!@ver  1.0 (based on masterchem0C9.2_M23p)
 !@calls photoj,checktracer,Crates,Oxinit,HOxfam,NOxfam,chemstep
-C
-C To parallelize, see masterchem0C9_M23p vs. ds3ch4_master_0C4.2_M23
 C
 C PLEASE SEE THE WARNINGS IN THE STRATOSPHERIC OVERWRITE SECTION.
 c

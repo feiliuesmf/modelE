@@ -1,7 +1,7 @@
       SUBROUTINE cheminit
 !@sum cheminit initialize model chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p2, but not parallel)
+!@ver  1.0 (based on cheminit0C5_M23p2)
 !@calls jplrts,phtlst,inphot,wave,reactn
 c
 C**** GLOBAL parameters and variables:
@@ -66,7 +66,6 @@ C     Initialize a few (IM,JM,LM) arrays, first hour only:
 C       Also, initialize the ozone-radiation interaction fields:
         call openunit('O3D_IC',iu_data,.true.,.true.)
         READ(iu_data)O3DLJI,O3DLJI_clim 
-c        READ(iu_data)title,O3DLJI_clim ; WRITE(6,*)'READING: ',title
         close(iu_data)
       END IF
 C

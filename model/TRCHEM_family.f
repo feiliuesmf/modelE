@@ -5,7 +5,7 @@ C
       SUBROUTINE Oxinit(lmax,I,J)
 !@sum Oxinit Find O,O1D and Ox initial conc assuming equilibrium with O3
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on famchem0C8_M23p but not parallel)
+!@ver  1.0 (based on famchem0C8_M23p)
 c
 C**** GLOBAL parameters and variables:
 c
