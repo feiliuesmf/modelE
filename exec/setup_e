@@ -7,9 +7,9 @@
 ## is really a symbolic link to /some_big_external_disk/RUNID
 ## Modified from setup by gas (06/00) to include:
 ##   - use current directory not /u/cmrun for object files
-##   - checks links 
+##   - checks links
 ##   - extra link from /u/cmrun to rundir
-##   - output of WARN.f90 if compilation not successful 
+##   - output of WARN.f90 if compilation not successful
 ##   - added search for data files in /u/cmrun
 ##   - PROBLEM: $retc does not take STOP nn as the correct return code. Fixed
 ##   - changed files from numbers to names
@@ -29,7 +29,7 @@
 
 ## Use arg1 to create the run-directory
    p=`pwd`  # use current directory to avoid conflicts with main code
-            # gas 06/00 originally  p= '/u/cmrun' ; 
+            # gas 06/00 originally  p= '/u/cmrun' ;
    cd $p ; RUNID=$1 ;  RFILE=$1.R ; BLANK=' ';
    if [[ ! -s $RFILE ]];
    then  echo File does not exist: $RFILE;  exit 1;  fi
@@ -71,7 +71,7 @@
    fi
 ## Also link to /u/cmrun  (added by gavin)
    if [[ -L /u/cmrun/$RUNID ]]; then
-     if [[ `ls -l "/u/cmrun/$RUNID" | awk '{print $11}'` != $Xdisk/$RUNID ]] 
+     if [[ `ls -l "/u/cmrun/$RUNID" | awk '{print $11}'` != $Xdisk/$RUNID ]]
      then
        rm /u/cmrun/$RUNID
        ln -s $Xdisk/$RUNID /u/cmrun/$RUNID ; fi
@@ -134,8 +134,8 @@
          else echo " $t NOT found in $DIRS" ; exit 82
          fi
 #  Make sure that linking works for numbers as well as names ie. n:=>fort.n
-	 if [[ `echo $n | grep "[A-Za-z]" ` == "" ]] ; then n=fort.$n ; fi
-         if [[ $n != "AIC" && $n != "OIC" && $n != "GIC" && $n != "fort.9" ]] 
+  if [[ `echo $n | grep "[A-Za-z]" ` == "" ]] ; then n=fort.$n ; fi
+         if [[ $n != "AIC" && $n != "OIC" && $n != "GIC" && $n != "fort.9" ]]
          then echo ln -s ${pt} $n >> "$RUNID"ln
               echo rm $n >> "$RUNID"uln
          else ln -s ${pt} $n ; echo "using $pt for IC only"
@@ -165,8 +165,8 @@
       do if [[ $i = '!'* ]] ; then break ; fi
        echo -n " $i" >> I
       done
-      echo >> I	
-      read LINE 
+      echo >> I
+      read LINE
    done
 
 ## Run the 1st hour then clean up
@@ -178,7 +178,7 @@
    rm -f AIC GIC OIC  #fort.[789]
    "$RUNID"uln
    if [[ $retc -ne 13 && $retc -ne 12 ]] then
-     echo Problem encountered while running hour 1; exit 4 ; 
+     echo Problem encountered while running hour 1; exit 4 ;
    else
      echo 1st hour completed sucessfully
    fi
@@ -195,13 +195,17 @@
    echo "$RUNID"ln > E
    #  echo "export XLFRTEOPTS=namelist=old:nlwidth=133" >> E
    echo " ${RUNID}.exe < I > ${RUNID}.PRT " >> E
+   echo ' rc=$? ' >> E
    echo "$RUNID"uln >> E
+   echo "/u/exec/runpm $RUNID" '$rc' "$( whoami )" >> E
    chmod ugo+x  E
 ## create executable script file RUNID
    echo "$RUNID"ln > $RUNID
    #  echo "export XLFRTEOPTS=namelist=old:nlwidth=133" >> $RUNID
    echo " $RUNID"'.exe < I > /dev/null' >> $RUNID
+   echo ' rc=$? ' >> $RUNID
    echo "$RUNID"uln >> $RUNID
+   echo "/u/exec/runpm $RUNID" '$rc' "$( whoami )" >> $RUNID
    chmod ugo+x  $RUNID
 ## overwrite RUNID.I omitting ISTART=.. line.
    exec < I
@@ -217,9 +221,4 @@
    cp "$RUNID".tmp I
    rm "$RUNID".tmp
    chmod go+rw *
-
-## Add Mail command to uln-file
-   mkmsg="cat $RUNID.PRT nohup.out | tail -100 | "
-   mkmsg="$mkmsg Mail -s $RUNID $( whoami )@giss.nasa.gov"
-   echo $mkmsg >> ${RUNID}uln
 } &
