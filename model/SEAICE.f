@@ -59,9 +59,9 @@
 
       SUBROUTINE PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,RUN0,SRUN0,
 #ifdef TRACERS_WATER
-     *     TRSIL,TRPRCP,TRUN0,
+     &     TRSIL,TRPRCP,TRUN0,
 #endif
-     *     WETSNOW)
+     &     WETSNOW)
 !@sum  PREC_SI Adds the precipitation to sea/lake ice
 !@auth Gary Russell
 !@ver  1.0
@@ -253,9 +253,9 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
       END SUBROUTINE PREC_SI
 
       SUBROUTINE SEA_ICE(DTSRCE,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP
-     *     ,SROX,
+     &     ,SROX,
 #ifdef TRACERS_WATER
-     *     TRSIL,TREVAP,FTROC,TRUN,
+     &     TRSIL,TREVAP,FTROC,TRUN,
 #endif
      *     FMOC,FHOC,FSOC,RUN,ERUN,SRUN,WETSNOW,MELT12)
 !@sum  SEA_ICE applies surface fluxes to ice covered areas
@@ -264,6 +264,7 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
       IMPLICIT NONE
 
       REAL*8, PARAMETER :: dSNdML =0.
+!@var DTSRCE source time step (s)
       REAL*8, INTENT(IN) :: DTSRCE
 !@var F0DT heat flux on the ice top surface (J/m^2)
       REAL*8, INTENT(IN) :: F0DT
@@ -296,10 +297,16 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
      *     TRMELT1,TRMLET2,TRMELT3,TRMELT4,TRDEW,TRMELT2
       INTEGER N
 #endif
-
+!@var ROICE sea ice fraction of open water
       REAL*8, INTENT(IN) :: ROICE
+!@var HSIL enthalpy of ice layers (J/m^2)
+!@var SSIL salt in ice layers (kg/m^2)
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL, SSIL
+!@var SNOW snow mass (kg/m^2)
+!@var MSI1 first layer ice mass (= SNOW + ACE1I) (kg/m^2)
+!@var MSI2 second layer ice mass (kg/m^2)
       REAL*8, INTENT(INOUT) :: SNOW, MSI2
+!@var TSIL temperature of ice layers (C) 
       REAL*8, DIMENSION(LMI) :: TSIL
       REAL*8 MSI1, MELT1, MELT2, MELT3, MELT4, SNMELT, DSNOW
       REAL*8 DEW, CMPRS, DEW1, DEW2, EVAP1
@@ -538,9 +545,9 @@ C****
       END SUBROUTINE SEA_ICE
 
       SUBROUTINE ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO
-     *     ,ACEFO,ACEFI,ENRGFI,SALTO,SALTI,
+     &     ,ACEFO,ACEFI,ENRGFI,SALTO,SALTI,
 #ifdef TRACERS_WATER
-     *     TRSIL,TRO,TRI,DTRIMP,
+     &     TRSIL,TRO,TRI,DTRIMP,
 #endif
      *     DMIMP,DHIMP,DSIMP,FLEAD,QFIXR)
 !@sum  ADDICE adds ice formed in the ocean to ice variables
@@ -553,19 +560,37 @@ C****
      *       XSI(3)*AC2OIM/(ACE1I+AC2OIM),XSI(4)*AC2OIM/(ACE1I+AC2OIM)/)
       REAL*8, PARAMETER :: Z2OIX = 4.9,
      *                     BYZICX=1./(Z1I+Z2OIX)
-!@var QFIXR  true if RSI and MSI2 are fixed (ie. for fixed SST run)
+!@var QFIXR true if RSI and MSI2 are fixed (ie. for fixed SST run)
       LOGICAL, INTENT(IN) :: QFIXR
 !@var FLEAD minimum lead fraction for ice (%)
       REAL*8, INTENT(IN) :: FLEAD
+!@var ACEFO ice mass formed in ocean for open water fraction (kg/m^2)
+!@var ACEFI ice mass formed in ocean for ice covered fraction (kg/m^2)
+!@var ENRGFO energy of ice formed in ocean for open water frac (J/m^2)
+!@var ENRGFI energy of ice formed in ocean for ice covered frac (J/m^2)
+!@var SALTO salt in ice formed in ocean for open water frac (kg/m^2)
+!@var SALTI salt in ice formed in ocean for ice covered frac (kg/m^2)
       REAL*8, INTENT(IN) ::  ENRGFI, ENRGFO, ACEFO, ACEFI, SALTO, SALTI
-!@var ROICE,SNOW,MSI1,MSI2
+!@var ROICE  ice fraction over open water
+!@var SNOW snow amount on ice (kg/m^2) 
+!@var MSI2 second mass layer ice thickness (kg/m^2) 
       REAL*8, INTENT(INOUT) :: ROICE, SNOW, MSI2
+!@var HSIL enthalpy of ice layers (J/m^2)
+!@var SSIL salt in ice layers (kg/m^2)
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL,SSIL
+!@var TSIL temperature of ice layers (C)
       REAL*8, INTENT(OUT), DIMENSION(LMI) :: TSIL
+!@var DMIMP,DSIMP,DHIMP implicit mass,salt and heat fluxes required
+!@+   to maintain minimum ice thickness if ice fraction is fixed 
       REAL*8, INTENT(OUT) :: DMIMP,DSIMP,DHIMP
 #ifdef TRACERS_WATER
+!@var TRSIL tracer amount in ice layers (kg/m^2)
       REAL*8, INTENT(INOUT), DIMENSION(NTM,LMI) :: trsil
+!@var TRO tracer in ice formed in ocean for open water frac (kg/m^2)
+!@var TRI tracer in ice formed in ocean for ice covered frac (kg/m^2)
       REAL*8, INTENT(IN), DIMENSION(NTM) :: tro,tri
+!@var DTRIMP implicit tracer flux required to maintain minimum ice 
+!@+   thickness if ice fraction is fixed 
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: DTRIMP
       REAL*8, DIMENSION(NTM) :: FTRSI3,FTRSI4
       INTEGER N
@@ -772,9 +797,9 @@ C**** Calculate temperatures for diagnostics and radiation
 
       SUBROUTINE SIMELT(DT,ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,Tm,TFO,TSIL,
 #ifdef TRACERS_WATER
-     *     TRSIL,TRUN0,
+     &     TRSIL,TRUN0,
 #endif
-     *     ENRGUSED,RUN0,SALT)
+     &     ENRGUSED,RUN0,SALT)
 !@sum  SIMELT melts sea ice laterally and if it is too small
 !@+    Note: all amounts are with respect to the ocean/lake fraction
 !@auth Original Development Team
@@ -853,20 +878,29 @@ C****
 
       SUBROUTINE SSIDEC(I0,J0,MSI1,MSI2,HSIL,SSIL,DT,
 #ifdef TRACERS_WATER
-     *             TRSIL,TRFLUX,
+     &     TRSIL,TRFLUX,
 #endif
-     *     MFLUX,HFLUX,SFLUX)
+     &     MFLUX,HFLUX,SFLUX)
 !@sum  SSIDEC decays salinity in sea ice
 !@auth Jiping Liu
 !@ver  1.0
       IMPLICIT NONE
 
+!@var HSIL enthalpy of ice layers (J/m^2)
+!@var SSIL salt in ice layers (kg/m^2)
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: SSIL,HSIL
+!@var MSI2 second mass layer ice thickness (kg/m^2) 
+!@var MSI1 first mass layer ice thickness (kg/m^2) 
+!@var DT source time step (s)
       REAL*8, INTENT(INOUT) :: MSI2
       REAL*8, INTENT(IN) :: DT, MSI1
+!@var MFLUX,SFLUX,HFLUX mass, salt and heat flux arising from 
+!@+   sea salinity decay
       REAL*8, INTENT(OUT) :: MFLUX,HFLUX,SFLUX
 #ifdef TRACERS_WATER
+!@var TRSIL tracer amount in ice layers (kg/m^2)
       REAL*8, INTENT(INOUT), DIMENSION(NTM,LMI) :: TRSIL
+!@var TRFLUX tracer flux arising from sea salinity decay
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: TRFLUX
       REAL*8, DIMENSION(NTM) :: FTRSI1,FTRSI2,FTRSI3
       REAL*8, DIMENSION(NTM,LMI) :: DTRSI
@@ -996,9 +1030,9 @@ C****
 
       subroutine iceocean(Ti,Si,Tm,Sm,dh,ustar,Coriol,dtsrc,mlsh,
 #ifdef TRACERS_WATER
-     *     Tri,Trm,trflux,tralpha,
+     &     Tri,Trm,trflux,tralpha,
 #endif
-     *     mflux,sflux,hflux)
+     &     mflux,sflux,hflux)
 !@sum  iceocean calculates fluxes at base of sea ice
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -1023,7 +1057,7 @@ C****
 C****  G_mole_T = 12.5 * 13.8d0**(2d0/3d0) - 6. = 65.9d0
 C****  G_mole_S = 12.5 * 2432d0**(2d0/3d0) - 6. = 2255d0
       real*8, parameter :: G_mole_T = 65.9d0 , G_mole_S = 2255d0
-!@var Si salinity in lowest ice layer (psu)
+!@var Si,Sm salinity in lowest ice layer and mixed layer (psu)
 !@var Ti,Tm temperatures in ice and mixed layer (C)
 !@var dh distance from center of bottom ice layer to base of ice (m)
       real*8, intent(in) :: Ti,Si,Tm,Sm,dh
@@ -1031,9 +1065,8 @@ C****  G_mole_S = 12.5 * 2432d0**(2d0/3d0) - 6. = 2255d0
 !@var ustar friction velocity at ice-ocean interface (m/s)
       real*8, intent(in) :: ustar,Coriol
 !@var dtsrc source time step (s)
-!@var mfluxmax maximum melt rate allowed (kg/m^2 s)
-!@var mlsh mixed layer specific heat capactity (J/m^2 C)
-      real*8, intent(in) :: dtsrc,mlsh          !,mfluxmax
+!@var mlsh mixed layer specific heat capactity (J/m^2 C) (UNUSED)
+      real*8, intent(in) :: dtsrc,mlsh
 !@var mflux,sflux,hflux mass, salt and heat fluxes at base of ice
       real*8, intent(out) :: mflux,sflux,hflux
 #ifdef TRACERS_WATER
@@ -1047,6 +1080,7 @@ C****  G_mole_S = 12.5 * 2432d0**(2d0/3d0) - 6. = 2255d0
 #endif
 
 !@var g_T,g_S turbulent exchange velocities (m/s)
+!@var G_turb turbulent diffusion term
 !@var Sb,Sb0 final and initial estimate for salinity at interface (psu)
       real*8 :: G_turb,g_T,g_S,Sb,Sb0
 !@var dSbdSb differential of Sb with respect to initial Sb0
@@ -1162,9 +1196,9 @@ C****
 
       subroutine icelake(Ti,Tm,dh,dtsrc,mlsh,
 #ifdef TRACERS_WATER
-     *     Tri,Trm,trflux,tralpha,
+     &     Tri,Trm,trflux,tralpha,
 #endif
-     *     mflux,hflux)
+     &     mflux,hflux)
 !@sum  icelake calculates fluxes at base of lake ice (no salinity)
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -1173,15 +1207,20 @@ C****
 !@+   -lam_i Ti/dh - rho_m shw g_T Tm = -m Lh(Tib) + m shw Tib   (2)
 !@+     with  Tib=Ti m>0,  or Tib=0. m<0        (4)
       implicit none
+!@var mflux,hflux mass and heat fluxes at base of ice
       real*8, intent(out) :: mflux,hflux
-      real*8, intent(in) :: Ti,Tm,dh,dtsrc,mlsh     !,mfluxmax
+!@var dtsrc source time step (s)
+!@var Ti,Tm temperatures in ice and upper lake layer (C)
+!@var dh distance from center of bottom ice layer to base of ice (m)
+!@var mlsh mixed layer specific heat capactity (J/m^2 C) (UNUSED)
+      real*8, intent(in) :: Ti,Tm,dh,dtsrc,mlsh
 C**** Assume constant g_T = 5d-5, g_S = 0.04 * g_T m/s
 !@var rsg = rhow * shw * g_T turbulent energy flux (J/m^2 s)
 !@var rgS = rhow * g_S turbulent tracer flux (kg/m^2 s)
       real*8, parameter ::  rsg = rhow*shw*5d-5, rgS=rhow*2d-8
       real*8 left2, lh, m, alamdh
 #ifdef TRACERS_WATER
-!@var Tri,Trm tracer concentration in ice and mixed layer (kg/kg)
+!@var Tri,Trm tracer concentration in ice and upper lake layer (kg/kg)
 !@var tralpha tracer fraction going into ice (1)
       real*8, dimension(ntm), intent(in) :: Trm,Tri,tralpha
 !@var trflux tracer mass flux at base
@@ -1320,7 +1359,7 @@ c****
       implicit none
 !@var sss sea surface salinity (psu)
       real*8, intent(in) :: sss
-!@var gauge pressure (default=0) (Pa)
+!@var press gauge pressure (default=0) (Pa)
       real*8, intent(in), optional :: press
 !@var tfrez approx. freezing point of sea water (C)
       real*8 tfrez,pr
@@ -1444,7 +1483,7 @@ C**** albedo calculations
       USE MODEL_COM
       USE GEOM, only : imaxj
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm, trname
+      USE TRACER_COM, only : ntm, trname, t_qlimit
 #endif
       USE SEAICE, only : lmi,xsi,ace1i
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
@@ -1511,6 +1550,7 @@ c            QCHECKI = .TRUE.
 #ifdef TRACERS_WATER
       do n=1,ntm
 C**** check negative tracer mass        
+        if (t_qlimit(n)) then
         do j=1,jm
           do i=1,imaxj(j)
             if (rsi(i,j).gt.0) then
@@ -1525,6 +1565,7 @@ C**** check negative tracer mass
             end if
           end do
         end do
+        end if
 C**** Check conservation of water tracers in sea ice
         if (trname(n).eq.'Water') then
           errmax = 0. ; imax=1 ; jmax=1
