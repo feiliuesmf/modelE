@@ -78,7 +78,7 @@ FORCE:
 %.mod: 
 	@echo -n checking $@:
 #	@echo 'called rule for $@, depends on $^ built from: '`cat $@.sig`
-	@if [ "`cat $@.sig`" != "$<" ]; then \
+	@if [ ! -s $@.sig ] || [ "`cat $@.sig`" != "$<" ]; then \
 	echo "  dependencies for $@ have changed - recompiling"; \
 	rm -f $<; $(MAKE) $< RUN=$(RUN); else echo '  ok'; fi
 

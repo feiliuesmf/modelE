@@ -88,7 +88,13 @@ OBJ_LIST = $(shell [ -s $(RUNDECK) ] && perl \
 sinclude $(DEPENDFILE)
 FSRCS = $(OBJ_LIST:=.f)
 OBJS = $(OBJ_LIST:=.o)
+
+MODS = $(sort $(shell perl \
+	-e 'while(<>){ tr/a-z/A-Z/;'\
+	-e 'if(/^\s*module\s+(\w+)\s*$$/i) {print "$$1.mod ";} };' \
+	$(FSRCS)))
 endif
+
 
 #
 #include rules here
@@ -135,7 +141,7 @@ endif
 	@echo '---------    executable $(RUN).exe was created       ---------'
 	@echo '--------------------------------------------------------------'
 
-gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(OBJS) NCACC.o
+gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(MODS) $(OBJS) NCACC.o
 	ar cr $(RUN).a $(OBJS) NCACC.o
 	@if [ ! -d $(BIN_DIR) ]; then mkdir $(BIN_DIR); fi
 	mv $(RUN).a $(BIN_DIR)
