@@ -263,6 +263,12 @@
         call openunit( file_name(i), fd, .true., .true. )
         call io_rsf( fd, Itime(i), ioread, ioerr )
         call closeunit( fd )
+        if ( ioerr == 1 ) then
+           print *, 'There was an error while reading input file.'
+           print *, 'You are probably using incompatible version'
+           print *, 'of CMPE002. Try to recompile it.'
+           stop
+        endif
         print *,"read file: ", trim(file_name(i)),"  time= ",Itime(i)
         ! data from model_com
         check("u",u)
