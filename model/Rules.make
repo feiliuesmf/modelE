@@ -63,6 +63,21 @@ FFLAGS = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745
 LFLAGS = -64 -O2 -mips4 -lfastm -mp -OPT:reorg_common=OFF -Wl,-woff,134 -Wl,-woff,15
 endif
 
+# SGI-32 - specific options here
+ifeq ($(UNAME),IRIX)
+MACHINE = SGI
+F90 = f90
+CPP = /lib/cpp -P
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -H
+F       = $(SCRIPTS_DIR)/fco2_90
+U       = $(SCRIPTS_DIR)/uco2_f90
+CPPFLAGS = -DMACHINE_SGI
+FFLAGS = -cpp -O2 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745
+LFLAGS = -O2 -mips4 -lfastm -mp -OPT:reorg_common=OFF -Wl,-woff,134 -Wl,-woff,15
+endif
+
+
+
 # Linux - specific options here
 ifeq ($(UNAME),Linux)
 MACHINE = Linux
