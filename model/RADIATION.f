@@ -12755,8 +12755,8 @@ C
       XOCVIS=XOCVIS*(1.D0-FRFOAM)+FRFOAM*AVFOAM
       BOCNIR=BOCNIR*(1.D0-FRFOAM)+FRFOAM*ANFOAM
       XOCNIR=XOCNIR*(1.D0-FRFOAM)+FRFOAM*ANFOAM
-      IF(KVEGA6.GT.0) THEN      ! fill in higher bands 
-        DO L=3,6                ! 1/2 already equivalenced 
+      IF(KVEGA6.GT.0) THEN      ! fill in higher bands
+        DO L=3,6                ! 1/2 already equivalenced
           BOCVN(L)=BOCNIR
           XOCVN(L)=XOCNIR
         END DO
@@ -13012,8 +13012,8 @@ C**** assume decrease for each band is proportional
           end if
 C**** make sure it doesn't get too low!
           snagfac=min(0.5d0,snagfac*AGESN(2))
-c          alsf(1:4)=alsf(1:4)*(1.-snagfac)
-c          alsd(1:4)=alsd(1:4)*(1.-snagfac)
+          alsf(1:4)=alsf(1:4)*(1.-snagfac)
+          alsd(1:4)=alsd(1:4)*(1.-snagfac)
 C****
           albtf(1:4)=albtf(1:4)*(1.-patchy)+alsf(1:4)*patchy
           albtr(1:4)=albtr(1:4)*(1.-patchy)+alsd(1:4)*patchy
