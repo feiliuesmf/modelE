@@ -85,8 +85,9 @@ C**** Interface to PBL
      *     ,trdrydep
       use tracers_DRYDEP, only : dtr_dd
 #endif
-      USE TRDIAG_COM, only : taijn,tij_surf,taijs,ijts_isrc
-     *     ,tajls,jls_source,jls_isrc
+      USE TRDIAG_COM, only : taijn=>taijn_loc , tij_surf
+      USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_isrc
+      USE TRDIAG_COM, only : tajls=>tajls_loc,jls_source,jls_isrc
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd
 #endif

@@ -16,6 +16,9 @@
 
 #ifndef USE_ESMF
       ! Place holders for the real things
+      TYPE ESMF_VM
+         Integer :: i
+      END TYPE ESMF_VM
       TYPE ESMF_DELayout
          Integer :: i
       END TYPE ESMF_DELayout
@@ -388,9 +391,8 @@
       INTEGER :: NP_LON
 !@var NP_LAT number of meridional     processes.
       INTEGER :: NP_LAT
-!@var MY_RANK index of _this_ process among 2D process topology.
-      PUBLIC :: MY_RANK
-      INTEGER :: MY_RANK
+!@var MY_PET index of _this_ PET (analagous to MPI rank)
+      INTEGER :: my_pet
 !@var RANK_LON index of _this_ process in azimuthal set.
       INTEGER :: RANK_LON
 !@var RANK_LAT_RANK index of _this_ process in meridional set.
@@ -412,27 +414,27 @@
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(INOUT) :: grd_dum
       INTEGER, INTENT(IN) :: IM, JM
-      integer             :: rc
+      INTEGER             :: rc
+      INTEGER             :: pet
       CHARACTER(LEN=20) :: buffer
+#ifdef USE_ESMF
+      Type (ESMF_VM) :: vm
+#endif
 
 #ifdef USE_ESMF
       ! Initialize ESMF
-      compmodelE  = ESMF_GridCompCreate("ModelE ESMF", rc=rc)
-      call ESMF_GridCompGet(compmodelE, layout=ESMF_LAYOUT_def,
-     &      rc=rc)
+      Call ESMF_Initialize(vm=vm, rc=rc)
+      Call ESMF_VMGet(vm, localPET = my_pet, petCount = NPES, rc=rc)
+      compmodelE  = ESMF_GridCompCreate(vm,"ModelE ESMF", rc=rc)
 
       ! The default layout is not what we want - it splits in the "I" direction.
-      call ESMF_DELayoutGetSize(ESMF_LAYOUT_def, NP_LON, NP_LAT, rc=rc)
-      ESMF_LAYOUT = ESMF_DELayoutCreate(
-     &   (/ (pe, pe = 0, NP_LON * NP_LAT-1) /), 2,
-     &   (/1, NP_LON * NP_LAT /),
-     &   (/ 0,0 /), rc)
-      Call ESMF_DELayoutDestroy(ESMF_LAYOUT_def, rc)
-      call ESMF_DELayoutGetSize(ESMF_LAYOUT, NP_LON, NP_LAT, rc=rc)
-      call ESMF_DELayoutGetDEPosition(ESMF_LAYOUT, RANK_LON, RANK_LAT,
-     &                                rc=rc)
-      RANK_LON = RANK_LON-1
-      RANK_LAT = RANK_LAT-1
+      ESMF_Layout = ESMF_DELayoutCreate(vm, 
+     & dePetList=(/ (pet,pet=0,NPES) /), deCountList = (/ 1, NPES /))
+
+      NP_LON = 1
+      NP_LAT = NPES
+      RANK_LAT = my_pet
+      RANK_LON = 0
 #else
       NP_LON = 1
       NP_LAT = 1
@@ -440,16 +442,12 @@
       RANK_LAT = 0
 #endif
       
-
       call INIT_GRID(grd_dum,IM,JM)
       WRITE(*,*)'INIT_APP: ', IM, JM, NP_LON, NP_LAT, RANK_LON, RANK_LAT
 
-      NPES     = NP_LON * NP_LAT
-      MY_RANK  = NP_LON*RANK_LAT + RANK_LON
-
 #ifdef DEBUG_DECOMP
       IF (AM_I_ROOT()) CALL openunit('CHKSUM_DECOMP', CHECKSUM_UNIT)
-      WRITE(buffer,'(a,i3.3)') 'LOG_',my_rank
+      WRITE(buffer,'(a,i3.3)') 'LOG_',my_pet
       CALL openunit(TRIM(buffer), grd_dum%log_unit)
 #endif
 
@@ -474,14 +472,15 @@
       range_max(1)=360.; range_max(2)=90.
 
 #ifdef USE_ESMF
-      grd_dum%ESMF_GRID = ESMF_GridCreate(numDims=numDims, 
-     &        counts=grid_size,
-     &        min=range_min, max=range_max, layout=ESMF_LAYOUT,
-     &        horz_gridtype=ESMF_GridType_XY,
-     &        horz_stagger=ESMF_GridStagger_C,
-     &        horz_coord_system=ESMF_CoordSystem_Cartesian,
-     &        name="source grid", rc=rc)
+      grd_dum%ESMF_GRID = ESMF_GridCreateHorzXYUni(counts=grid_size,
+     &     minGlobalCoordPerDim=range_min, 
+     &     maxGlobalCoordPerDim=range_max, 
+     &     horzStagger=ESMF_GRID_HORZ_STAGGER_C_NE,
+     &     name="source grid", rc=rc)
 
+      Call ESMF_GridDistribute(grid=grd_dum%ESMF_GRID, 
+     &     delayout = ESMF_Layout, rc=rc)
+      Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
       Call ESMF_GRID_BOUNDS(grd_dum%ESMF_GRID, RANK_LON, RANK_LAT,
      &        I0_DUM, I1_DUM, J0_DUM, J1_DUM)
 
@@ -533,7 +532,7 @@
       grd_dum%HAVE_EQUATOR    = 
      &      (J0_DUM <= J_EQUATOR) .AND. (J1_DUM >= J_EQUATOR)
 
-      WRITE(*,*)'init_grid: ',my_rank,grd_dum%j_strt,grd_dum%j_stop
+      WRITE(*,*)'init_grid: ',my_pet,grd_dum%j_strt,grd_dum%j_stop
       END SUBROUTINE INIT_GRID
 
       SUBROUTINE GET(grd_dum, I_STRT, I_STOP, 
@@ -1853,7 +1852,7 @@ C****  convert from real*4 to real*8
       integer                                       :: status
       integer                                       :: recvcount
       
-      integer                                       :: I, J, deId
+      integer                                       :: I, J
       integer                                       :: NX, NY
       integer                                       :: I1, IN
       integer                                       :: J1, JN
@@ -1861,22 +1860,21 @@ C****  convert from real*4 to real*8
       
       real (kind=8), allocatable                    :: var(:)
       
-      call ESMF_GridGetAllAxisIndex(egrid, AI, rc=status)
-      call ESMF_GridGetDELayout(egrid, layout=layout, rc=status)
+
+      allocate (sendcounts(NPES), displs(0:NPES), stat=status)
       
-      
-      call ESMF_DELayoutGetNumDEs(layout, nDEs, rc=status)
-      allocate (sendcounts(nDEs), displs(0:nDEs), stat=status)
-      
-      call ESMF_DELayoutGetDEID(layout, deId, rc=status)
-      if (deId==root) then
+      if (AM_I_ROOT()) then
         allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
       else
          allocate(var(0:0), stat=status)
       endif
       
+      Allocate(AI(1:NPES,2))
+      Call ESMF_GridGetAllAxisIndex(egrid, globalAI=AI, 
+     &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
+      
       displs(0) = 0
-      do I = 1,nDEs
+      do I = 1,NPES
         J = I - 1
         I1 = AI(I,1)%min
         IN = AI(I,1)%max
@@ -1884,31 +1882,31 @@ C****  convert from real*4 to real*8
         JN = AI(I,2)%max
         
         sendcounts(I) = (IN - I1 + 1) * (JN - J1 + 1)
-        if (J == deId) then
+        if (J == MY_PET) then
           recvcount = sendcounts(I)
         endif
         displs(I) = displs(J) + sendcounts(I)
-        if (deId == root) then
+        if (MY_PET == root) then
           
           var(displs(J):displs(I)-1) = 
      &         RESHAPE(global_array(I1:IN,J1:JN), 
      &         shape=(/sendcounts(I)/))
         endif
       enddo
-      
+
       call MPI_ScatterV(
      &       var, sendcounts, displs, MPI_DOUBLE_PRECISION,
      &       local_array, recvcount,  MPI_DOUBLE_PRECISION,
      &       root, MPI_COMM_WORLD, status)
       
-cgsfc      if (deId == root) then
         deallocate(VAR, stat=status)
-cgsfc      endif
       
       deallocate(sendcounts, displs, stat=status)
+      Deallocate(AI)
 #else
       local_array=global_array
 #endif
+      
       
       end subroutine ESMF_ArrayScatter_IJ
 
@@ -1925,7 +1923,7 @@ cgsfc      endif
       integer                                       :: status
       integer                                       :: recvcount
 
-      integer                                       :: I, J, deId
+      integer                                       :: I, J
       integer                                       :: NX, NY
       integer                                       :: I1, IN
       integer                                       :: J1, JN
@@ -1933,20 +1931,18 @@ cgsfc      endif
 
       integer      , allocatable                    :: var(:)
 
-      call ESMF_GridGetAllAxisIndex(egrid, AI, rc=status)
-      call ESMF_GridGetDELayout(egrid, layout=layout, rc=status)
+      Allocate(AI(1:NPES,2))
+      Call ESMF_GridGetAllAxisIndex(egrid, globalAI=AI, 
+     &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
 
+      allocate (sendcounts(NPES), displs(0:NPES), stat=status)
 
-      call ESMF_DELayoutGetNumDEs(layout, nDEs, rc=status)
-      allocate (sendcounts(nDEs), displs(0:nDEs), stat=status)
-
-      call ESMF_DELayoutGetDEID(layout, deId, rc=status)
-      if (deId==root) then
+      if (AM_I_ROOT()) then
         allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
       endif
 
       displs(0) = 0
-      do I = 1,nDEs
+      do I = 1,NPES
         J = I - 1
         I1 = AI(I,1)%min
         IN = AI(I,1)%max
@@ -1954,11 +1950,11 @@ cgsfc      endif
         JN = AI(I,2)%max
 
         sendcounts(I) = (IN - I1 + 1) * (JN - J1 + 1)
-        if (J == deId) then
+        if (J == MY_PET) then
           recvcount = sendcounts(I)
         endif
         displs(I) = displs(J) + sendcounts(I)
-        if (deId == root) then
+        if (AM_I_ROOT()) then
          
           var(displs(J):displs(I)-1) =
      &         RESHAPE(global_array(I1:IN,J1:JN),
@@ -1970,11 +1966,12 @@ cgsfc      endif
      &     MPI_INTEGER         , local_array, recvcount,
      &     MPI_INTEGER         , root, MPI_COMM_WORLD, status)
 
-      if (deId == root) then
+      if (AM_I_ROOT()) then
         deallocate(VAR, stat=status)
       endif
 
       deallocate(sendcounts, displs, stat=status)
+      deallocate(AI)
 #else
       local_array=global_array
 #endif
@@ -1995,7 +1992,7 @@ cgsfc      endif
       integer                                       :: status
       integer                                       :: recvcount
 
-      integer                                       :: I, J, deId
+      integer                                       :: I, J
       integer                                       :: NX, NY
       integer                                       :: I1, IN
       integer                                       :: J1, JN
@@ -2003,20 +2000,17 @@ cgsfc      endif
 
       integer      , allocatable                    :: var(:)
 
-      call ESMF_GridGetAllAxisIndex(egrid, AI, rc=status)
-      call ESMF_GridGetDELayout(egrid, layout=layout, rc=status)
+      Allocate(AI(1:NPES,2))
+      Call ESMF_GridGetAllAxisIndex(egrid, globalAI=AI, 
+     &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
+      allocate (sendcounts(NPES), displs(0:NPES), stat=status)
 
-
-      call ESMF_DELayoutGetNumDEs(layout, nDEs, rc=status)
-      allocate (sendcounts(nDEs), displs(0:nDEs), stat=status)
-
-      call ESMF_DELayoutGetDEID(layout, deId, rc=status)
-      if (deId==root) then
+      if (AM_I_ROOT()) then
         allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
       endif
 
       displs(0) = 0
-      do I = 1,nDEs
+      do I = 1,NPES
         J = I - 1
         I1 = AI(I,1)%min
         IN = AI(I,1)%max
@@ -2024,11 +2018,11 @@ cgsfc      endif
         JN = AI(I,2)%max
 
         sendcounts(I) = (IN - I1 + 1) * (JN - J1 + 1)
-        if (J == deId) then
+        if (J == MY_PET) then
           recvcount = sendcounts(I)
         endif
         displs(I) = displs(J) + sendcounts(I)
-        if (deId == root) then
+        if (AM_I_ROOT()) then
 
           var(displs(J):displs(I)-1) =
      &         RESHAPE(global_array(I1:IN,J1:JN),
@@ -2040,15 +2034,15 @@ cgsfc      endif
      &     MPI_LOGICAL         , local_array, recvcount,
      &     MPI_LOGICAL         , root, MPI_COMM_WORLD, status)
 
-      if (deId == root) then
+      if (AM_I_ROOT()) then
         deallocate(VAR, stat=status)
       endif
 
       deallocate(sendcounts, displs, stat=status)
+      deallocate(AI)
 #else
       local_array=global_array
 #endif
-
       end subroutine ESMF_LArrayScatter_IJ
 
 
@@ -2066,38 +2060,34 @@ cgsfc      endif
       integer                                       :: status
       integer                                       :: recvcount
       
-      integer                                       :: I, J, deId
+      integer                                       :: I, J
       integer                                       :: NY
       integer                                       :: J1, JN
       
       
       real (kind=8), allocatable                    :: var(:)
 
+      Allocate(AI(1:NPES,2))
+      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI, 
+     &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
+      allocate (sendcounts(NPES), displs(0:NPES), stat=status)
       
-      call ESMF_GridGetAllAxisIndex(grid, AI, rc=status)
-      call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
-      
-      
-      call ESMF_DELayoutGetNumDEs(layout, nDEs, rc=status)
-      allocate (sendcounts(nDEs), displs(0:nDEs), stat=status)
-      
-      call ESMF_DELayoutGetDEID(layout, deId, rc=status)
-      if (deId==root) then
+      if (AM_I_ROOT()) then
         allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
       endif
       
       displs(0) = 0
-      do I = 1,nDEs
+      do I = 1,NPES
         J = I - 1
         J1 = AI(I,2)%min
         JN = AI(I,2)%max
         
         sendcounts(I) = (JN - J1 + 1)
-        if (J == deId) then
+        if (J == MY_PET) then
           recvcount = sendcounts(I)
         endif
         displs(I) = displs(J) + sendcounts(I)
-        if (deId == root) then
+        if (AM_I_ROOT()) then
           
           var(displs(J):displs(I)-1) = global_array(J1:JN)
         endif
@@ -2109,15 +2099,16 @@ cgsfc      endif
      &     MPI_DOUBLE_PRECISION, root, MPI_COMM_WORLD, status)
       
       
-      if (deId == root) then
+      if (AM_I_ROOT()) then
         deallocate(VAR, stat=status)
       endif
       
       deallocate(sendcounts, displs, stat=status)
+      deallocate(AI)
 #else
       local_array=global_array
 #endif
-      
+
       end subroutine ESMF_ArrayScatter_J
 
 #ifdef USE_ESMF
@@ -2133,7 +2124,7 @@ cgsfc      endif
       integer                                       :: status
       integer                                       :: sendcount
       
-      integer                                       :: I, J, deId
+      integer                                       :: I, J
       integer                                       :: NX, NY
       integer                                       :: I1, IN
       integer                                       :: J1, JN
@@ -2142,18 +2133,16 @@ cgsfc      endif
       real (kind=8), allocatable                    :: var(:)
       
 
-      call ESMF_GridGetAllAxisIndex(grid, AI, rc=status)
-      call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
+      Allocate(AI(1:NPES,2))
+      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI, 
+     &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
+
+      allocate (recvcounts(NPES), displs(0:NPES), stat=status)
       
-      
-      call ESMF_DELayoutGetNumDEs(layout, nDEs, rc=status)
-      allocate (recvcounts(nDEs), displs(0:nDEs), stat=status)
-      
-      call ESMF_DELayoutGetDEID(layout, deId, rc=status)
       allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
       
       displs(0) = 0
-      do I = 1,nDEs
+      do I = 1,NPES
         J = I - 1
         I1 = AI(I,1)%min
         IN = AI(I,1)%max
@@ -2161,7 +2150,7 @@ cgsfc      endif
         JN = AI(I,2)%max
         
         recvcounts(I) = (IN - I1 + 1) * (JN - J1 + 1)
-        if (J == deId) then
+        if (J == MY_PET) then
           sendcount = recvcounts(I)
         endif
         displs(I) = displs(J) + recvcounts(I)
@@ -2172,8 +2161,8 @@ cgsfc      endif
      &     var, recvcounts, displs, 
      &     MPI_DOUBLE_PRECISION, root, MPI_COMM_WORLD, status)
       
-      if (deId == root) then
-        do I = 1,nDEs
+      if (AM_I_ROOT()) then
+        do I = 1,NPES
           J = I - 1
           I1 = AI(I,1)%min
           IN = AI(I,1)%max
@@ -2189,7 +2178,7 @@ cgsfc      endif
       
       deallocate(VAR, stat=status)
       deallocate(recvcounts, displs, stat=status)
-      
+      deallocate(AI)
       end subroutine Esmf_ArrayGather_IJ
 
 !--------------------------------
@@ -2198,14 +2187,13 @@ cgsfc      endif
       integer      , dimension (:,:) :: local_array, global_array
 
       type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
-      type (ESMF_DELayout)                          :: layout
       integer, allocatable, dimension(:)            ::
      &     recvcounts, displs
       integer                                       :: nDEs
       integer                                       :: status
       integer                                       :: sendcount
 
-      integer                                       :: I, J, deId
+      integer                                       :: I, J
       integer                                       :: NX, NY
       integer                                       :: I1, IN
       integer                                       :: J1, JN
@@ -2214,18 +2202,16 @@ cgsfc      endif
       integer      , allocatable                    :: var(:)
 
 
-      call ESMF_GridGetAllAxisIndex(grid, AI, rc=status)
-      call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
+      Allocate(AI(1:NPES,2))
+      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI, 
+     &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
 
+      allocate (recvcounts(NPES), displs(0:NPES), stat=status)
 
-      call ESMF_DELayoutGetNumDEs(layout, nDEs, rc=status)
-      allocate (recvcounts(nDEs), displs(0:nDEs), stat=status)
-
-      call ESMF_DELayoutGetDEID(layout, deId, rc=status)
       allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
 
       displs(0) = 0
-      do I = 1,nDEs
+      do I = 1,NPES
         J = I - 1
         I1 = AI(I,1)%min
         IN = AI(I,1)%max
@@ -2233,7 +2219,7 @@ cgsfc      endif
         JN = AI(I,2)%max
 
         recvcounts(I) = (IN - I1 + 1) * (JN - J1 + 1)
-        if (J == deId) then
+        if (J == MY_PET) then
           sendcount = recvcounts(I)
         endif
         displs(I) = displs(J) + recvcounts(I)
@@ -2244,8 +2230,8 @@ cgsfc      endif
      &     var, recvcounts, displs,
      &     MPI_INTEGER         , root, MPI_COMM_WORLD, status)
 
-      if (deId == root) then
-        do I = 1,nDEs
+      if (AM_I_ROOT()) then
+        do I = 1,NPES
           J = I - 1
           I1 = AI(I,1)%min
           IN = AI(I,1)%max
@@ -2258,9 +2244,10 @@ cgsfc      endif
      &         size(local_array,2)/))
         enddo
       endif
-
       deallocate(VAR, stat=status)
       deallocate(recvcounts, displs, stat=status)
+      DEALLOCATE(AI)
+
 
       end subroutine Esmf_IArrayGather_IJ
 
@@ -2270,32 +2257,29 @@ cgsfc      endif
       logical      , dimension (:,:) :: local_array, global_array
 
       type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
-      type (ESMF_DELayout)                          :: layout
       integer, allocatable, dimension(:)            ::
      &     recvcounts, displs
       integer                                       :: nDEs
       integer                                       :: status
       integer                                       :: sendcount
 
-      integer                                       :: I, J, deId
+      integer                                       :: I, J
       integer                                       :: NX, NY
       integer                                       :: I1, IN
       integer                                       :: J1, JN
 
       logical      , allocatable                    :: var(:)
 
-      call ESMF_GridGetAllAxisIndex(e_grid, AI, rc=status)
-      call ESMF_GridGetDELayout(e_grid, layout=layout, rc=status)
+      Allocate(AI(1:NPES,2))
+      Call ESMF_GridGetAllAxisIndex(e_grid, globalAI=AI, 
+     &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
+      allocate (recvcounts(NPES), displs(0:NPES), stat=status)
 
-      call ESMF_DELayoutGetNumDEs(layout, nDEs, rc=status)
-      allocate (recvcounts(nDEs), displs(0:nDEs), stat=status)
-
-      call ESMF_DELayoutGetDEID(layout, deId, rc=status)
       allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
 
 
       displs(0) = 0
-      do I = 1,nDEs
+      do I = 1,NPES
         J = I - 1
         I1 = AI(I,1)%min
         IN = AI(I,1)%max
@@ -2303,7 +2287,7 @@ cgsfc      endif
         JN = AI(I,2)%max
 
         recvcounts(I) = (IN - I1 + 1) * (JN - J1 + 1)
-        if (J == deId) then
+        if (J == MY_PET) then
           sendcount = recvcounts(I)
         endif
         displs(I) = displs(J) + recvcounts(I)
@@ -2313,8 +2297,8 @@ cgsfc      endif
      &     var, recvcounts, displs,
      &     MPI_LOGICAL, root, MPI_COMM_WORLD, status)
 
-      if (deId == root) then
-        do I = 1,nDEs
+      if (AM_I_ROOT()) then
+        do I = 1,NPES
           J = I - 1
           I1 = AI(I,1)%min
           IN = AI(I,1)%max
@@ -2330,7 +2314,7 @@ cgsfc      endif
 
       deallocate(VAR, stat=status)
       deallocate(recvcounts, displs, stat=status)
-
+      Deallocate(AI)
       end subroutine Esmf_LArrayGather_IJ
 !------------------------------------------------------------
 
@@ -2341,39 +2325,35 @@ cgsfc      endif
       real (kind=8), dimension (:) :: local_array, global_array
       
       type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
-      type (ESMF_DELayout)                          :: layout
       integer, allocatable, dimension(:)            :: 
      &     recvcounts, displs
       integer                                       :: nDEs
       integer                                       :: status
       integer                                       :: sendcount
       
-      integer                                       :: I, J, deId
+      integer                                       :: I,J
       integer                                       :: NY
       integer                                      :: J1, JN
       
       
       real (kind=8), allocatable                    :: var(:)
       
+      Allocate(AI(1:NPES,2))
+      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI, 
+     &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
+
+      allocate (recvcounts(NPES), displs(0:NPES), stat=status)
       
-      call ESMF_GridGetAllAxisIndex(grid, AI, rc=status)
-      call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
-      
-      
-      call ESMF_DELayoutGetNumDEs(layout, nDEs, rc=status)
-      allocate (recvcounts(nDEs), displs(0:nDEs), stat=status)
-      
-      call ESMF_DELayoutGetDEID(layout, deId, rc=status)
       allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
       
       displs(0) = 0
-      do I = 1,nDEs
+      do I = 1,NPES
         J = I - 1
         J1 = AI(I,2)%min
         JN = AI(I,2)%max
         
         recvcounts(I) = (JN - J1 + 1)
-        if (J == deId) then
+        if (J == MY_PET) then
           sendcount = recvcounts(I)
         endif
         displs(I) = displs(J) + recvcounts(I)
@@ -2384,8 +2364,8 @@ cgsfc      endif
      &     var, recvcounts, displs, 
      &     MPI_DOUBLE_PRECISION, root, MPI_COMM_WORLD, status)
       
-      if (deId == root) then
-        do I = 1,nDEs
+      if (AM_I_ROOT()) then
+        do I = 1,NPES
           J = I - 1
           J1 = AI(I,2)%min
           JN = AI(I,2)%max
@@ -2396,7 +2376,7 @@ cgsfc      endif
       
       deallocate(VAR, stat=status)
       deallocate(recvcounts, displs, stat=status)
-      
+      deallocate(AI)
       end subroutine Esmf_ArrayGather_J
 
 !---------------------------
@@ -2406,14 +2386,14 @@ cgsfc      endif
       INTEGER, dimension (:) :: local_array, global_array
       
       type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
-      type (ESMF_DELayout)                          :: layout
+
       integer, allocatable, dimension(:)            :: 
      &     recvcounts, displs
       integer                                       :: nDEs
       integer                                       :: status
       integer                                       :: sendcount
       
-      integer                                       :: I, J, deId
+      integer                                       :: I,J
       integer                                       :: NY
       integer                                      :: J1, JN
       
@@ -2421,24 +2401,22 @@ cgsfc      endif
       integer, allocatable                    :: var(:)
       
       
-      call ESMF_GridGetAllAxisIndex(grid, AI, rc=status)
-      call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
+      Allocate(AI(1:NPES,2))
+      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI, 
+     &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
+
+      allocate (recvcounts(NPES), displs(0:NPES), stat=status)
       
-      
-      call ESMF_DELayoutGetNumDEs(layout, nDEs, rc=status)
-      allocate (recvcounts(nDEs), displs(0:nDEs), stat=status)
-      
-      call ESMF_DELayoutGetDEID(layout, deId, rc=status)
       allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
       
       displs(0) = 0
-      do I = 1,nDEs
+      do I = 1,NPES
         J = I - 1
         J1 = AI(I,2)%min
         JN = AI(I,2)%max
         
         recvcounts(I) = (JN - J1 + 1)
-        if (J == deId) then
+        if (J == MY_PET) then
           sendcount = recvcounts(I)
         endif
         displs(I) = displs(J) + recvcounts(I)
@@ -2449,8 +2427,8 @@ cgsfc      endif
      &     var, recvcounts, displs, 
      &     MPI_INTEGER, root, MPI_COMM_WORLD, status)
       
-      if (deId == root) then
-        do I = 1,nDEs
+      if (AM_I_ROOT()) then
+        do I = 1,NPES
           J = I - 1
           J1 = AI(I,2)%min
           JN = AI(I,2)%max
@@ -2461,6 +2439,7 @@ cgsfc      endif
       
       deallocate(VAR, stat=status)
       deallocate(recvcounts, displs, stat=status)
+      Deallocate(AI)
       
       end subroutine Esmf_ArrayGather_J_int
 
@@ -2631,12 +2610,12 @@ cgsfc      endif
 
     ! local vars
    
-        type (ESMF_DELayout) :: layout
+        integer :: counts(2)
         integer :: status
    
-        call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
-        call ESMF_DELayoutGetSize(layout, nx, ny, rc=status)
-   
+        NX = 1
+        NY = NPES
+
       end subroutine ESMF_GRID_PE_LAYOUT
 
     !---------------------------
@@ -2650,12 +2629,9 @@ cgsfc      endif
    
         integer :: status
    
-        call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
-        call ESMF_DELayoutGetDEPosition(layout, NX0, NY0, rc=status)
-    !ALT: the next 2 lines are needed since ESMF adds 1 to indices (not symmetri
-c)
-        NX0 = NX0-1
-        NY0 = NY0-1
+        call ESMF_GridGet(grid, delayout=layout, rc=status)
+        NX0 = 0
+        NY0 = my_pet
 
       end subroutine ESMF_GRID_MY_PE_LOC
 
@@ -2894,10 +2870,8 @@ c)
         end if
       
 #ifdef USE_ESMF
-    !    call ESMF_DELayoutBcast(layout, data, 1, root, rc=status)
-    ! Fortran interface takes only 1d real arrays - call C wrapper directly    
-        call c_ESMC_DELayoutBcast(layout, data, 1, root, ESMF_KIND_I4, 
-     &         status)
+        CALL MPI_BCAST(data, 1, MPI_INTEGER, root, 
+     &       MPI_COMM_WORLD, status)
 #endif
     
         return
@@ -2967,10 +2941,8 @@ c)
         end if
       
 #ifdef USE_ESMF
-    !    call ESMF_DELayoutBcast(layout, data, size(data), root, rc=status)
-    ! Fortran interface takes only 1d real arrays - call C wrapper directly    
-        call c_ESMC_DELayoutBcast(layout, data, size(data), root, 
-     &         ESMF_KIND_I4, status)
+        CALL MPI_BCAST(data, size(data), MPI_INTEGER, root, 
+     &       MPI_COMM_WORLD, status)
 #endif
     
         return
@@ -3041,10 +3013,8 @@ c)
         end if
       
 #ifdef USE_ESMF
-    !    call ESMF_DELayoutBcast(layout, data, size(data), root, rc=status)
-    ! Fortran interface takes only 0d real arrays - call C wrapper directly    
-          call c_ESMC_DELayoutBcast(layout, data, size(data), root,
-     &             ESMF_R8, status)
+        CALL MPI_BCAST(data, Size(data), MPI_DOUBLE_PRECISION, root, 
+     &       MPI_COMM_WORLD, status)
 #endif
     
         return
@@ -3065,9 +3035,10 @@ c)
         integer :: status
    
         type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
-   
 
-        call ESMF_GridGetAllAxisIndex(grid, AI, rc=status)
+        Allocate(AI(1:NPES,2))
+        call ESMF_GridGetAllAxisIndex(grid, AI, 
+     &       horzRelLoc=ESMF_CELL_CENTER, rc=status)
         deId = ESMF_GRID_PE_NUM_FM_PE_LOC(grid, X_LOC, Y_LOC)
    
 
@@ -3079,6 +3050,7 @@ c)
         J1 = AI(deId,2)%min
         JN = AI(deId,2)%max
    
+        Deallocate(AI)
       end subroutine ESMF_GRID_BOUNDS
 #endif
     !---------------------------
@@ -3087,13 +3059,11 @@ c)
         type (ESMF_DELayout) :: layout
         logical              :: R
 
-        integer :: deId
         integer :: status
 
 #ifdef USE_ESMF
         R = .false.
-        call ESMF_DELayoutGetDEID(layout, deId, rc=status)
-        if (deId == root) R = .true.
+        if (my_pet == root) R = .true.
 #else
         R = .true.
 #endif
@@ -3133,9 +3103,8 @@ c)
         integer :: status
 
 #ifdef USE_ESMF
-        call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
-        call ESMF_DELayoutGetDEIDat(layout, x_loc, y_loc, deId, 
-     &       rc=status)
+        call ESMF_GridGet(grid, delayout=layout, rc=status)
+        deid = y_loc
 #else
         deid = 1
 #endif
@@ -3186,7 +3155,7 @@ c)
 
         call ESMF_GRID_WORLD(GRID,IM_WORLD,JM_WORLD)
 #ifdef USE ESMF
-        call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
+        call ESMF_GridGet(grid, delayout=layout, rc=status)
 #endif
 
         allocate(VAR(IM_WORLD,JM_WORLD), stat=status)
@@ -3236,7 +3205,7 @@ c)
             integer                                       :: status
             integer                                       :: recvcount
     
-            integer                                       :: I, J, deId
+            integer                                       :: I,J
             integer                                       :: NX, NY
             integer                                       :: I1, IN
             integer                                       :: J1, JN
@@ -3245,20 +3214,18 @@ c)
             real (kind=8), allocatable                    :: var(:)
     
     
-            call ESMF_GridGetAllAxisIndex(grid, AI, rc=status)
-            call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
+        Allocate(AI(1:NPES,2))
+      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI, 
+     &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
     
+            allocate (sendcounts(NPES), displs(0:NPES), stat=status)
     
-            call ESMF_DELayoutGetNumDEs(layout, nDEs, rc=status)
-            allocate (sendcounts(nDEs), displs(0:nDEs), stat=status)
-    
-            call ESMF_DELayoutGetDEID(layout, deId, rc=status)
-            if (deId==root) then
+            if (AM_I_ROOT()) then
                allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
             endif
     
             displs(0) = 0
-            do I = 1,nDEs
+            do I = 1,NPES
                J = I - 1
                I1 = AI(I,1)%min
                IN = AI(I,1)%max
@@ -3266,11 +3233,11 @@ c)
                JN = AI(I,2)%max
                
                sendcounts(I) = (IN - I1 + 1) * (JN - J1 + 1)
-               if (J == deId) then
+               if (J == MY_PET) then
                   recvcount = sendcounts(I)
                endif
                displs(I) = displs(J) + sendcounts(I)
-               if (deId == root) then
+               if (AM_I_ROOT()) then
                   
                   var(displs(J):displs(I)-1) = 
      &               RESHAPE(global_array(I1:IN,J1:JN), 
@@ -3284,12 +3251,12 @@ c)
      &       MPI_DOUBLE_PRECISION, root, MPI_COMM_WORLD, status)
     
     
-            if (deId == root) then
+            if (AM_I_ROOT()) then
                deallocate(VAR, stat=status)
             endif
     
             deallocate(sendcounts, displs, stat=status)
-                              
+            deallocate(AI)
           end subroutine ArrayScatter
 #endif    
       end subroutine ESMF_READ_GRID_VAR_8_2D
@@ -3424,7 +3391,7 @@ c)
         var = -9.0 ! dummy init
     
 #ifdef USE_ESMF
-        call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
+        call ESMF_GridGet(grid, delayout=layout, rc=status)
     
         call Esmf_ArrayGather(grid, A, VAR)
 #else
@@ -3561,7 +3528,7 @@ c)
         integer status
         integer, dimension(ESMF_MAXGRIDDIM) :: dims
 
-        call ESMF_GridGet(grid, global_cell_dim=dims, rc=status)
+        call ESMF_GridGet(grid, globalcellcountperdim=dims, rc=status)
    
         IM_WORLD = dims(1)
         JM_WORLD = dims(2)
@@ -3591,7 +3558,7 @@ c)
 
       REAL*8 :: junk(1) = 0.
       
-      call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
+      call ESMF_GridGet(grid, delayout=layout, rc=status)
       call ESMF_GRID_PE_LAYOUT(grid, npx, npy)
       call ESMF_GRID_MY_PE_LOC(grid,  px,  py) 
       
@@ -3668,7 +3635,7 @@ c)
       integer                 :: status
       REAL*8 :: junk(size(A,1))
       
-      call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
+      call ESMF_GridGet(grid, delayout=layout, rc=status)
       call ESMF_GRID_PE_LAYOUT(grid, npx, npy)
       call ESMF_GRID_MY_PE_LOC(grid,  px,  py) 
       
@@ -3796,7 +3763,7 @@ cgsfc      ENDIF
       integer                 :: status
       REAL*8 :: junk(size(A,1),size(A,2))
       
-      call ESMF_GridGetDELayout(grid, layout=layout, rc=status)
+      call ESMF_GridGet(grid, delayout=layout, rc=status)
       call ESMF_GRID_PE_LAYOUT(grid, npx, npy)
       call ESMF_GRID_MY_PE_LOC(grid,  px,  py) 
       

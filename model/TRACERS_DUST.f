@@ -502,8 +502,8 @@ c**** Wet Deposition
       USE qusdef,ONLY : zmoms
       USE fluxes,ONLY : tr3Dsource
       USE tracer_com,ONLY : n_clay,Ntm_dust,trpdens,trm,trmom
-      USE trdiag_com,ONLY : jls_grav,jls_3Dsource,taijn,
-     &     tajls
+      USE trdiag_com,ONLY : jls_grav,jls_3Dsource,taijn=>taijn_loc
+      USE trdiag_com,ONLY :  tajls
 #ifdef TRACERS_DRYDEP
      &     ,tij_gsdep
 #endif

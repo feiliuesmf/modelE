@@ -720,7 +720,7 @@ C****
      *        ij_ervr,ij_mrvr,ij_f0oc,aj=>aj_loc,areg,jreg,
      *        j_rvrd,j_ervr,ij_fwoc
 #ifdef TRACERS_WATER
-      USE TRDIAG_COM, only : taijn,tij_rvr
+      USE TRDIAG_COM, only : taijn , tij_rvr
       USE FLUXES, only : trflowo,gtracer
 #endif
       USE FLUXES, only : flowo,eflowo,gtemp,mlhc
@@ -1020,18 +1020,21 @@ C****
 !@sum  diag_RIVER prints out the river outflow for various rivers
 !@auth Gavin Schmidt
 !@ver  1.0
+!@sum  ESMF: This subroutine should only be called from a serial region.
+!@&          It is NOT parallelized.
+ 
       USE CONSTANT, only : rhow,sday,teeny,undef
       USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
      *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH, 
      *    WRITE_PARALLEL
       USE GEOM, only : bydxyp
-      USE DIAG_COM, only : aij=>aij_loc,ij_mrvr
+      USE DIAG_COM, only : aij,ij_mrvr
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm,trname,trw0,n_water,itime_tr0
      *     ,tr_wd_type,nwater
-      USE TRDIAG_COM, only : taijn,tij_rvr,to_per_mil,units_tij
-     *     ,scale_tij
+      USE TRDIAG_COM, only : taijn
+      USE TRDIAG_COM, only : tij_rvr,to_per_mil,units_tij,scale_tij
 #endif
       USE LAKES, only : irvrmth,jrvrmth,namervr,nrvr
       IMPLICIT NONE
@@ -1392,7 +1395,7 @@ C****
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
-      USE TRDIAG_COM,only: taijn,tij_lk1,tij_lk2
+      USE TRDIAG_COM,only: taijn=>taijn_loc , tij_lk1,tij_lk2
 #endif
       USE LAKES, only : lkmix,lksourc,byzeta,minmld
       IMPLICIT NONE

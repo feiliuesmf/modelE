@@ -6009,11 +6009,10 @@ C****
       USE TRDIAG_COM, only : TAIJS , TAIJS_loc
       USE TRDIAG_COM, only : TAJLN , TAJLN_loc
       USE TRDIAG_COM, only : TAJLS , TAJLS_loc
-      USE TRDIAG_COM, only : PDSIGJL,PDSIGJL_loc
       USE TRDIAG_COM, only : TCONSRV,TCONSRV_loc
 #endif
       USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, PACK_DATAj, GET
-      USE DOMAIN_DECOMP, ONLY : CHECKSUMj
+      USE DOMAIN_DECOMP, ONLY : CHECKSUMj,CHECKSUM
       IMPLICIT NONE
       INTEGER :: J_0, J_1, J_0H, J_1H
       REAL*8, ALLOCATABLE :: tmp(:,:)
@@ -6031,16 +6030,15 @@ C****
       CALL PACK_DATA (GRID, TSFREZ_loc,  TSFREZ)
 
 #ifdef TRACERS_ON
-!     CALL PACK_DATA (GRID, TAIJLN_loc, TAIJLN)
-!     CALL PACK_DATA (GRID, TAIJN_loc , TAIJN)
-!     CALL PACK_DATA (GRID, TAIJS_loc , TAIJS)
-!     CALL PACK_DATAj(GRID, TAJLN_loc , TAJLN)
-!     CALL PACK_DATAj(GRID, TAJLS_loc , TAJLS)
-!     CALL PACK_DATAj(GRID, PDSIGJL_loc, PDSIGJL)
-!     CALL PACK_DATAj(GRID, TCONSRV_loc, TCONSRV)
+      CALL PACK_DATA (GRID, TAIJLN_loc, TAIJLN)
+      CALL PACK_DATA (GRID, TAIJN_loc , TAIJN)
+      CALL PACK_DATA (GRID, TAIJS_loc , TAIJS)
+      CALL PACK_DATAj(GRID, TAJLN_loc , TAJLN)
+      CALL PACK_DATAj(GRID, TAJLS_loc , TAJLS)
+      CALL PACK_DATAj(GRID, TCONSRV_loc, TCONSRV)
+      CALL CHECKSUM(grid, TAIJS, __LINE__,__FILE__)
 #endif
       
-
 ! Now the external arrays
       CALL PACK_DATA(GRID, fland, fland_glob)
       CALL PACK_DATA(GRID, fearth, fearth_glob)
@@ -6077,6 +6075,14 @@ C****
       USE DIAG_COM, only : AJL,  AJL_loc
       USE DIAG_COM, only : CONSRV, CONSRV_loc
       USE DIAG_COM, only : TSFREZ, TSFREZ_loc
+#ifdef TRACERS_ON
+      USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc
+      USE TRDIAG_COM, only : TAIJN , TAIJN_loc
+      USE TRDIAG_COM, only : TAIJS , TAIJS_loc
+      USE TRDIAG_COM, only : TAJLN , TAJLN_loc
+      USE TRDIAG_COM, only : TAJLS , TAJLS_loc
+      USE TRDIAG_COM, only : TCONSRV,TCONSRV_loc
+#endif
       USE DOMAIN_DECOMP, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
       USE DOMAIN_DECOMP, ONLY : CHECKSUMj
       IMPLICIT NONE
@@ -6090,6 +6096,15 @@ C****
       CALL UNPACK_DATAj(GRID, AJL,  AJL_loc,local=.false.)
       CALL UNPACK_DATAj(GRID, CONSRV,  CONSRV_loc,local=.false.)
       CALL UNPACK_DATA (GRID, TSFREZ,  TSFREZ_loc,local=.false.)
+
+#ifdef TRACERS_ON
+      CALL UNPACK_DATA (GRID, TAIJLN, TAIJLN_loc,local=.false.)
+      CALL UNPACK_DATA (GRID, TAIJN , TAIJN_loc,local=.false.)
+      CALL UNPACK_DATA (GRID, TAIJS , TAIJS_loc,local=.false.)
+      CALL UNPACK_DATAj(GRID, TAJLN , TAJLN_loc,local=.false.)
+      CALL UNPACK_DATAj(GRID, TAJLS , TAJLS_loc,local=.false.)
+      CALL UNPACK_DATAj(GRID, TCONSRV, TCONSRV_loc,local=.false.)
+#endif
 
       CALL CHECKSUMj(GRID, CONSRV_loc, __LINE__,__FILE__)
 

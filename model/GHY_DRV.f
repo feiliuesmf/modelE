@@ -31,8 +31,8 @@ c******************   TRACERS             ******************************
 #ifdef TRACERS_MINERALS
      &     ,n_clayilli
 #endif
-      use trdiag_com, only : taijn,tij_surf
-     *  ,taijs,ijts_isrc,jls_isrc,tajls
+      use trdiag_com, only : taijn=>taijn_loc,tij_surf
+     *  ,taijs,ijts_isrc,jls_isrc,tajls=>tajls_loc
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd,tij_soil
 #endif

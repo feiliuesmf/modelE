@@ -380,6 +380,8 @@ C**** Check for reasonable values for ocean variables
 
       SUBROUTINE diag_OCEAN
 !@sum  diag_OCEAN prints out diagnostics for ocean
+!@$    ESMF: It should only be called from a serial region.
+!@$          It is NOT parallelized.
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : jm,lrunid,xlabel,idacc

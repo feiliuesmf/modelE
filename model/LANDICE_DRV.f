@@ -342,7 +342,7 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN) + AREG_SUM         ! (Tg=0)
 #endif
 #ifdef TRACERS_OCEAN
      *     ,trgmelt
-      USE TRDIAG_COM, only : taijn,tij_rvr
+      USE TRDIAG_COM, only : taijn=>taijn_loc , tij_rvr
 #endif
 #endif
       USE DOMAIN_DECOMP, only : GRID,GET

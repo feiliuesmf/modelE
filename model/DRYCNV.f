@@ -17,7 +17,7 @@
       USE DIAG_COM, only : ajl=>ajl_loc,jl_trbhr,jl_damdc,jl_trbdlht
 #ifdef TRACERS_ON
       USE TRACER_COM, only: TRM,TRMOM,NTM
-      USE TRDIAG_COM, only: TAJLN,JLNT_TURB
+      USE TRDIAG_COM, only: TAJLN=>TAJLN_loc,JLNT_TURB
 #endif
       USE DYNAMICS, only : pk,pdsig,plij,dke
       USE PBLCOM, only : dclev,w2gcm,w2_l1

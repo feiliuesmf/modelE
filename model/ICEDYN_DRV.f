@@ -1489,6 +1489,8 @@ C**** set properties for TICIJ diagnostics
 
       SUBROUTINE diag_ICEDYN
 !@sum  diag_ICEDYN prints out diagnostics for ice dynamics
+!@&    ESMF: It should only be called from a serial region.
+!@$          It is NOT parallelized
 !@auth Gavin Schmidt
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0

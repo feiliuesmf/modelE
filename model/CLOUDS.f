@@ -216,7 +216,6 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,OLDCDL,OLDCDO,SMFPML
      *  ,SME
      *  ,CTEML,CD3DL,CL3DL,SMLWP,CDN3DL,CRE3DL
-#endif
      *  ,NLSW,NLSI,NMCW,NMCI
 #endif
      *  ,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)

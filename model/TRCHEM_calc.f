@@ -19,6 +19,7 @@ C
 #endif
       USE TRDIAG_COM, only : jls_OHcon,jls_H2Omr,jls_day,tajls,
      &                           taijs,ijs_OH,ijs_HO2 !ijs_OxL1
+!     USE TRDIAG_COM, only : taijs=>taijs_loc
 #ifdef regional_Ox_tracers
      &  ,jls_Oxloss,jls_Oxprod,ijs_Oxprod,ijs_Oxloss
 #endif

@@ -817,10 +817,12 @@ C     OUTPUT DATA
       USE DOMAIN_DECOMP, ONLY: grid,write_parallel
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
       USE DOMAIN_DECOMP, ONLY: GLOBALSUM, AM_I_ROOT, HERE
+      USE DOMAIN_DECOMP, ONLY: CHECKSUM
+
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
      *     ,n_OCIA,N_OCII,n_clay
-      USE TRDIAG_COM, only: taijs,ijts_fc,ijts_tau
+      USE TRDIAG_COM, only: taijs=>taijs_loc,ijts_fc,ijts_tau
 #endif
       IMPLICIT NONE
 C

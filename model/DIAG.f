@@ -3979,8 +3979,14 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       USE DIAG_COM
       USE PARAM
 #ifdef TRACERS_ON
-      USE TRDIAG_COM, only: TAIJLN,TAIJN,TAIJS,TAJLN,TAJLS,TCONSRV
+      USE TRDIAG_COM, only: TAIJLN_loc
+      USE TRDIAG_COM, only: TAIJN_loc
+      USE TRDIAG_COM, only: taijs=>TAIJS_loc
+      USE TRDIAG_COM, only: TAJLN=>TAJLN_loc
+      USE TRDIAG_COM, only: TAJLS=>TAJLS_loc
+      USE TRDIAG_COM, only: TCONSRV=>TCONSRV_loc
 #endif
+      USE DOMAIN_DECOMP, only: grid, CHECKSUM
       IMPLICIT NONE
       INTEGER :: isum !@var isum if =1 preparation to add up acc-files
       INTEGER jd0
@@ -3991,14 +3997,16 @@ C**** Initiallise ice freeze diagnostics at beginning of run
         if (isum.eq.1) return
         go to 100
       end if
-      AJ_loc=0    ; AREG=0
+      AJ_loc=0    ; AREG=0 
+
       APJ_loc=0   ; AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
       AIL=0   ; ENERGY=0 ; CONSRV_loc=0
-      SPECA=0 ; ATPE=0 ; ADIURN=0 ; WAVE=0
+      SPECA=0 ; ATPE=0 ; WAVE=0
       AJK_loc=0   ; AIJK_loc=0 ; HDIURN=0
       AISCCP=0
 #ifdef TRACERS_ON
-      TAIJLN=0 ; TAIJN=0 ; TAIJS=0 ; TAJLN=0 ; TAJLS=0 ; TCONSRV=0
+       TAJLN=0 ; TAJLS=0 ; TCONSRV=0
+      TAIJLN_loc=0. ; TAIJN_loc=0. ; TAIJS=0.
 #endif
       call reset_ODIAG(isum)  ! ocean diags if required
       call reset_icdiag       ! ice dynamic diags if required

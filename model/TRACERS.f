@@ -390,7 +390,8 @@ C**** Tracers dry deposition flux.
       USE QUSDEF, only : mz,mzz
       USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc,ntisurfsrc
       USE FLUXES, only : trsource,trflux1,trsrfflx
-      USE TRDIAG_COM, only : taijs,tajls,ijts_source,jls_source
+      USE TRDIAG_COM, only : taijs=>taijs_loc
+      USE TRDIAG_COM, only : tajls=>tajls_loc,ijts_source,jls_source
      *     ,itcon_surf,ijts_isrc,jls_isrc
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       IMPLICIT NONE
@@ -479,8 +480,8 @@ C****
       USE QUSDEF, only: nmom
       USE TRACER_COM, only : ntm,trm,trmom,trname
       USE FLUXES, only : tr3Dsource
-      USE TRDIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
-     *     ,ijts_3Dsource,taijs
+      USE TRDIAG_COM, only : tajls=>tajls_loc,jls_3Dsource,itcon_3Dsrc
+     *     ,ijts_3Dsource,taijs=>taijs_loc
       USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
 !@var MOM true (default) if moments are to be modified
@@ -553,7 +554,7 @@ C****
       USE LANDICE_COM, only : trlndi,trsnowli
       USE GHY_COM, only : tr_wbare,tr_wvege,tr_wsn_ij
 #endif
-      USE TRDIAG_COM, only : tajls,jls_decay,itcon_decay
+      USE TRDIAG_COM, only : tajls=>tajls_loc,jls_decay,itcon_decay
       USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
       real*8, save, dimension(ntm) :: expdec = 1.
@@ -632,7 +633,7 @@ C****
       USE DYNAMICS, only : gz,pmid,pk
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius
      *     ,trname
-      USE TRDIAG_COM, only : tajls,jls_grav
+      USE TRDIAG_COM, only : tajls=>tajls_loc,jls_grav
       IMPLICIT NONE
       real*8 :: stokevdt,fgrfluxd,fluxd,fluxu,press,airden,temp,rh,qsat
      *     ,vgs

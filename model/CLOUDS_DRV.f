@@ -51,12 +51,12 @@
 #ifdef TRACERS_SPECIAL_Shindell
       USE LIGHTNING, only : RNOx_lgt
 #endif
-      USE TRDIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
+      USE TRDIAG_COM,only: tajln=>tajln_loc,jlnt_mc,jlnt_lscond,itcon_mc
      *     ,itcon_ss
 #ifdef TRACERS_WATER
-     *     ,jls_prec,taijn,tajls,tij_prec
+     *     ,jls_prec,taijn=>taijn_loc,tajls=>tajls_loc,tij_prec  !use trdiag_com
 #ifdef TRACERS_AEROSOLS_Koch
-     *     ,jls_incloud,ijts_aq,taijs
+     *     ,jls_incloud,ijts_aq,taijs                 !use trdiag_com
 #endif
 #endif
       USE CLOUDS, only : tm,tmom ! local  (i,j)

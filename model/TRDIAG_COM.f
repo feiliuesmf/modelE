@@ -291,7 +291,6 @@ C**** include some extra troposphere only ones
 #endif
 !@var PDSIGJL temporary storage for mean pressures for jl diags
       REAL*8, DIMENSION(JM,LM)            :: PDSIGJL
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PDSIGJL_loc
 
       END MODULE TRDIAG_COM
 
@@ -440,12 +439,26 @@ C****
 !@sum  io_trdiag reads and writes tracer diagnostics arrays to file
 !@auth Jean Lerner
 !@ver  1.0
+      USE MODEL_COM, only: im,jm,lm
       USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irerun,ioread_single,lhead
       USE DOMAIN_DECOMP, only : PACK_DATA,PACK_J,UNPACK_DATA,UNPACK_J
       USE DOMAIN_DECOMP, only : AM_I_ROOT
-      USE DOMAIN_DECOMP, only : GET
-      USE TRDIAG_COM
+      USE DOMAIN_DECOMP, only : grid, GET
+      USE TRACER_COM, only: ntm
+
+      USE TRDIAG_COM, only : taijln  => taijln_loc
+      USE TRDIAG_COM, only : taijn   => taijn_loc
+      USE TRDIAG_COM, only : taijs   => taijs_loc
+      USE TRDIAG_COM, only : tajln   => tajln_loc
+      USE TRDIAG_COM, only : tajls   => tajls_loc
+      USE TRDIAG_COM, only : tconsrv => tconsrv_loc
+
+      USE TRDIAG_COM, only : pdsigjl
+
+      USE TRDIAG_COM, only : ktaij, ktaijs, ktajlx, ktajls, ktcon
+      USE TRDIAG_COM, only : ntmxcon
+
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -561,6 +574,5 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE ( TAJLS_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
       ALLOCATE ( TCONSRV_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
 #endif
-      ALLOCATE ( PDSIGJL_loc(  J_0H:J_1H,LM    ), stat=status )
       RETURN
       END SUBROUTINE ALLOC_TRDIAG_COM

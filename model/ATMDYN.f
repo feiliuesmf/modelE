@@ -491,7 +491,7 @@ C****
       USE TRACER_COM, only: itime_tr0,trm,trmom,trname,t_qlimit,ntm
       USE TRACER_ADV
       USE TRDIAG_COM, only:
-     &  jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,TAJLN
+     &  jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,TAJLN=>TAJLN_loc
       IMPLICIT NONE
       REAL*8 DTLF,byncyc
       INTEGER N

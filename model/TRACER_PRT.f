@@ -16,7 +16,18 @@
       USE GEOM, only: imaxj,bydxyp
       USE SOMTQ_COM, only: mz
       USE TRACER_COM
-      USE TRDIAG_COM
+      USE TRDIAG_COM, only : taijln => taijln_loc
+      USE TRDIAG_COM, only : taijn  => taijn_loc
+      USE TRDIAG_COM, only : tajln  => tajln_loc
+
+!!!!  USE TRDIAG_COM, only : taijln 
+!!!!  USE TRDIAG_COM, only : taijn 
+!!!!  USE TRDIAG_COM, only : tajln
+      USE TRDIAG_COM, only : tij_mass
+      USE TRDIAG_COM, only : tij_conc
+      USE TRDIAG_COM, only : jlnt_conc
+      USE TRDIAG_COM, only : jlnt_mass
+      USE TRDIAG_COM, only : jlnt_cldh2o
       USE DYNAMICS, only: am,byam
       implicit none
 
@@ -95,7 +106,7 @@ C**** Zonal mean cloud water concentration
 !@ver  1.0
       USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only : jm
-      USE TRDIAG_COM, only: tconsrv,nofmt,title_tcon
+      USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
       IMPLICIT NONE
 !@var M index denoting which process changed the tracer
       INTEGER, INTENT(IN) :: m
@@ -197,7 +208,7 @@ C****
 !@ver  1.0
       USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only: jm,fim
-      USE TRDIAG_COM, only: tconsrv,nofmt,title_tcon
+      USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
       IMPLICIT NONE
 
 !@var M index denoting which process changed the tracer
@@ -245,8 +256,10 @@ C**** No need to save current value
 !@sum  DIAGCP produces tables of the conservation diagnostics
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
+!@ESMF This subroutine should only be called from a serial region.
+!      It is NOT parallelized.
+
       USE CONSTANT, only: teeny, twopi
-      USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only:
      &     jm,fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,nday,jeq,itime,itime0,xlabel,lrunid
@@ -259,7 +272,7 @@ C**** No need to save current value
       USE DIAG_COM, only: inc=>incj,xwon,kdiag,qdiag,acc_period
       IMPLICIT NONE
 
-      INTEGER, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: MAREA
+      INTEGER, DIMENSION(JM) :: MAREA
       REAL*8, DIMENSION(KTCON) :: FGLOB
       REAL*8, DIMENSION(2,KTCON) :: FHEM
 c GISS-ESMF EXCEPTIONAL CASE
@@ -275,24 +288,12 @@ C**** Arrays needed for full output and pdE
       CHARACTER*30, DIMENSION(KTCON) :: SNAMEO
       CHARACTER*50, DIMENSION(KTCON) :: UNITSO
 
-      INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
       if (kdiag(8).ge.2) return
 C**** CALCULATE SCALING FACTORS
       IF (IDACC(12).LT.1) IDACC(12)=1
 C**** Calculate areas
-      DO J=J_0,J_1
+      DO J=1,JM
         MAREA(J)=1.D-10*XWON*FIM*DXYP(J)+.5
       END DO
       AGLOB=1.D-10*AREAG*XWON
@@ -309,7 +310,7 @@ C****
       IF (itime.LT.itime_tr0(N)) cycle
 C**** CALCULATE SUM OF CHANGES
 C**** LOOP BACKWARDS SO THAT INITIALIZATION IS DONE BEFORE SUMMATION!
-      DO J=J_0,J_1
+      DO J=1,JM
         DO K=KTCON,1,-1
           IF (NSUM_TCON(K,N).eq.0) THEN
             TCONSRV(J,K,N)=0.
@@ -454,6 +455,8 @@ C**** Construct UNITS string for output
 C****
 C**** THIS ROUTINE PRODUCES LATITUDE BY LAYER TABLES OF TRACERS
 C****
+!@ESMF This routine should only be called from a serial region.
+!@     It is NOT parallelized.
       USE CONSTANT, only : undef,teeny
       USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only: jm,lm,fim,itime,idacc,xlabel,lrunid,psfmpt
@@ -461,33 +464,55 @@ C****
       USE GEOM, only: bydxyp,dxyp,lat_dg
       USE TRACER_COM
       USE DIAG_COM, only: linect,plm,acc_period,qdiag,lm_req,apj,ia_dga
-      USE TRDIAG_COM
+      USE TRDIAG_COM, only : PDSIGJL 
+      USE TRDIAG_COM, only : tajln  
+      USE TRDIAG_COM, only : tajls 
+      USE TRDIAG_COM, only : lname_jln
+      USE TRDIAG_COM, only : sname_jln
+      USE TRDIAG_COM, only : units_jln
+      USE TRDIAG_COM, only : scale_jln
+
+      USE TRDIAG_COM, only : lname_jls
+      USE TRDIAG_COM, only : sname_jls
+      USE TRDIAG_COM, only : units_jls
+      USE TRDIAG_COM, only : scale_jls
+
+      USE TRDIAG_COM, only : jls_power
+      USE TRDIAG_COM, only : jls_ltop
+
+      USE TRDIAG_COM, only :    ia_jls
+      USE TRDIAG_COM, only :   jwt_jls
+      USE TRDIAG_COM, only : jgrid_jls
+      USE TRDIAG_COM, only : jls_3Dsource
+
+      USE TRDIAG_COM, only : jlnt_conc
+      USE TRDIAG_COM, only : jlnt_mass
+      USE TRDIAG_COM, only : jlnt_cldh2o
+      USE TRDIAG_COM, only : jlnt_nt_tot
+      USE TRDIAG_COM, only : jlnt_nt_mm 
+      USE TRDIAG_COM, only : jlnt_lscond
+      USE TRDIAG_COM, only : jlnt_turb
+      USE TRDIAG_COM, only : jlnt_vt_tot
+      USE TRDIAG_COM, only : jlnt_vt_mm
+      USE TRDIAG_COM, only : jlnt_mc
+
+      USE TRDIAG_COM, only : jgrid_jlq
+      USE TRDIAG_COM, only :    ia_jlq
+      USE TRDIAG_COM, only : scale_jlq
+      USE TRDIAG_COM, only : jlq_power
+      USE TRDIAG_COM, only : to_per_mil
+      USE TRDIAG_COM, only : ktajls
       USE BDJLT
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ONESPO
-     *     ,BYAPO
-      REAL*8, DIMENSION((GRID%J_STOP_HALO-GRID%J_STRT_HALO+1)+LM) :: 
-     &                                                          ONES
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: A
+      REAL*8, DIMENSION(1:JM)   :: ONESPO, BYAPO
+      REAL*8, DIMENSION(JM+LM) :: ONES
+      REAL*8, DIMENSION(JM,LM) :: A
       REAL*8, DIMENSION(LM) :: PM
       REAL*8 :: scalet
       INTEGER :: J,L,N,K,jtpow,kw,n1,n2
       CHARACTER :: lname*80,sname*30,units*50
       REAL*8 :: dD, d18O
-
-      INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG) call open_jl(trim(acc_period)//'.jlt'//XLABEL(1:LRUNID)
@@ -501,17 +526,17 @@ C****
       do l=1,lm
         pm(l)=psfmpt*sige(l+1)+ptop
       end do
-      onespo(J_0S:J_1S)  = 1.d0
-      IF (HAVE_SOUTH_POLE) onespo(1)  = fim
-      IF (HAVE_NORTH_POLE) onespo(jm) = fim
+      onespo(1:JM)  = 1.d0
+      onespo(1)  = fim
+      onespo(jm) = fim
       ones(:) = 1.d0
-      byapo(J_0:J_1)=bydxyp(J_0:J_1)*onespo(J_0:J_1)/fim 
+      byapo(1:JM)=bydxyp(1:JM)*onespo(1:JM)/fim 
       do L=1,LS1-1
-        pdsigjl(J_0:J_1,L)=dsig(l)*onespo(J_0:J_1)*APJ(J_0:J_1,1)/
+        pdsigjl(1:JM,L)=dsig(l)*onespo(1:JM)*APJ(1:JM,1)/
      *     (fim*IDACC(ia_dga)+teeny)
       end do
       do L=LS1,LM
-        pdsigjl(J_0:J_1,L)=psfmpt*dsig(l)
+        pdsigjl(1:JM,L)=psfmpt*dsig(l)
       end do
 
       linect = 65
@@ -535,7 +560,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       scalet = 1.
       jtpow = 0.
       do l=1,lm
-      do j=J_0,J_1
+      do j=1,JM
         if (tajln(j,l,k,n_water).gt.0) then
           a(j,l)=1d3*(tajln(j,l,k,n)/(trw0(n)*tajln(j,l,k,n_water))-1.)
         else
@@ -590,7 +615,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
         scalet = 1.
         jtpow = 0.
         do l=1,lm
-        do j=J_0,J_1
+        do j=1,JM
         if (tajln(j,l,k,n_water).gt.0) then
           a(j,l)=1d3*(tajln(j,l,k,n)/(trw0(n)*tajln(j,l,k,n_water))-1.)
         else
@@ -615,7 +640,7 @@ C****
       a(:,:) = 0.
       k = jlnt_nt_tot
       do 205 l=1,lm
-      do 205 j=J_0,J_1S
+      do 205 j=1,JM-1
   205 a(j+1,l) = tajln(j,l,k,n)
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
       jtpow = ntm_power(n)+jlq_power(k)
@@ -623,7 +648,7 @@ C****
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
      *  plm,a,scalet,ones,ones,lm,1,jgrid_jlq(k))
       do 210 l=1,lm
-      do 210 j=J_0,J_1S
+      do 210 j=1,JM-1
   210 a(j+1,l) = tajln(j,l,k,n) -tajln(j,l,jlnt_nt_mm,n)
       k = jlnt_nt_eddy
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
@@ -642,7 +667,7 @@ C****
      *  pm,tajln(1,1,k,n),scalet,ones,ones,lm-1,1,jgrid_jlq(k))
       a(:,:) = 0.
       do 260 l=1,lm-1
-      do 260 j=J_0,J_1
+      do 260 j=1,JM
   260 a(j,l) = tajln(j,l,k,n)-tajln(j,l,jlnt_vt_mm,n)
       k = jlnt_vt_eddy
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
@@ -736,7 +761,7 @@ C**** some special JL diags for chemistry
       kw=jls_day
       scalet = scale_jls(k)*10.**(-jls_power(k))
       do l=1,lm
-        do j=J_0,J_1
+        do j=1,jm
           a(j,l)=tajls(j,l,k)/(tajls(j,1,kw)+teeny)
         end do
       end do
@@ -752,7 +777,7 @@ C**** ratios : Be7/Pb210 and Be10/Be7
 C*** ratio Be10/Be7
         k=jlnt_conc
         do l=1,lm
-          do j=J_0,J_1
+          do j=1,JM
             if (tajln(j,l,k,n_Be7).gt.0) then
               a(j,l)=tajln(j,l,k,n_Be10)/tajln(j,l,k,n_Be7)
             else
@@ -769,7 +794,7 @@ C*** ratio Be10/Be7
 C*** ratio Be7/Pb210
         k=jlnt_conc
         do l=1,lm
-          do j=J_0,J_1
+          do j=1,JM
             if (tajln(j,l,k,n_Pb210).gt.0) then
               a(j,l)=tajln(j,l,k,n_Be7)/tajln(j,l,k,n_Pb210)
 C*** scale by (Be7decay/mm_Be7)/(Pb210decay/mm_Pb210) to convert to mBq
@@ -805,7 +830,7 @@ C****
 C**** Concentration in water vapour
         k=jlnt_conc
         do l=1,lm
-          do j=J_0,J_1
+          do j=1,jm
             if (tajln(j,l,k,n_water).gt.0) then
               d18O=1d3*(tajln(j,l,k,n1)/(trw0(n1)*tajln(j,l,k,n_water))
      *             -1.)
@@ -826,7 +851,7 @@ C**** Concentration in water vapour
 C**** Concentration in cloud water
         k=jlnt_cldh2o
         do l=1,lm
-          do j=J_0,J_1
+          do j=1,jm
             if (tajln(j,l,k,n_water).gt.0) then
               d18O=1d3*(tajln(j,l,k,n1)/(trw0(n1)*tajln(j,l,k,n_water))
      *             -1.)
@@ -909,19 +934,6 @@ cBMP - added
       REAL*8, DIMENSION(JM+3,LM+1) :: XJL ! for binary output
       CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
-
-      INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C form title string
       title = trim(lname)//' ('//trim(units)//')'
@@ -1036,11 +1048,51 @@ C****
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
 !@auth Jean Lerner (adapted from work of G. Russell,M. Kelley,R. Ruedy)
 !@ver   1.0
+!@ESMF This routine should only be called from a serial region.
+!@     It is NOT parallelized.
+
       USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
      *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
       USE DIAG_COM
-      USE TRDIAG_COM
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) || (defined TRACERS_SPECIAL_Shindell)
+!     USE DIAG_COM, only : ij_cldcv
+#endif
+
+
+      USE TRDIAG_COM, only : taijln
+      USE TRDIAG_COM, only : taijn
+      USE TRDIAG_COM, only : taijs
+
+      USE TRDIAG_COM, only : sname_ijt
+      USE TRDIAG_COM, only : lname_ijt
+      USE TRDIAG_COM, only : units_ijt
+      USE TRDIAG_COM, only : ir_ijt
+      USE TRDIAG_COM, only : ia_ijt
+      USE TRDIAG_COM, only : scale_ijt
+
+      USE TRDIAG_COM, only : sname_tij
+      USE TRDIAG_COM, only : lname_tij
+      USE TRDIAG_COM, only : units_tij
+      USE TRDIAG_COM, only : scale_tij
+
+      USE TRDIAG_COM, only : tij_mass
+#ifdef TRACERS_DRYDEP
+      USE TRDIAG_COM, only : tij_drydep
+      USE TRDIAG_COM, only : tij_gsdep 
+#endif
+      USE TRDIAG_COM, only : tij_prec
+      USE TRDIAG_COM, only : tij_grnd
+
+      USE TRDIAG_COM, only : lname_ijts
+      USE TRDIAG_COM, only : sname_ijts
+      USE TRDIAG_COM, only : units_ijts
+      USE TRDIAG_COM, only : scale_ijts
+      USE TRDIAG_COM, only : ia_ijts
+
+      USE TRDIAG_COM, only : ktaij, ktaijs, to_per_mil, ijts_index
+
+
       USE DIAG_SERIAL, only : MAPTXT
       IMPLICIT NONE
 
@@ -1078,8 +1130,8 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 
 c**** always skip unused fields
       Qk = .true.
-
 C**** Fill in the undefined pole box duplicates
+      print *, 'In DIAGIjt: taijs(1,1,10)=',taijs(1,1,10)
       do i=2,im
         taijln(i,1,:,:) = taijln(1,1,:,:)
         taijln(i,jm,:,:) = taijln(1,jm,:,:)
@@ -1088,6 +1140,8 @@ C**** Fill in the undefined pole box duplicates
         taijs (i,1,:) = taijs(1,1,:)
         taijs (i,jm,:) = taijs(1,jm,:)
       end do
+      print *, 'In DIAGIjt: taijs(1,1,10)=',taijs(1,1,10)
+      print *, 'In DIAGIjt: taijs(2,1,10)=',taijs(2,1,10)
 
 C**** Fill in maplet indices for tracer concentrations
       k = 0
