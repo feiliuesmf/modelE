@@ -339,6 +339,7 @@ C**********************************************************************
       DO 3600 NG=1,NGRNDZ
       TG=TG1+TF
       QG=QSAT(TG,ELHX,PS)
+      IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG=0.98d0*QG
       TGV=TG*(1.+QG*deltx)
 C =====================================================================
       CALL PBL(I,J,ITYPE,PTYPE)
