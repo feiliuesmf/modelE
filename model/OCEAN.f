@@ -159,7 +159,6 @@ C now allocated from ALLOC_STATIC OCEAN      REAL*8, SAVE :: XZO(IM,JM),XZN(IM,J
       INTEGER :: J_0,J_1
       LOGICAL :: HAVE_NORTH_POLE
 
-      CALL HERE(__FILE__,__LINE__)
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       IF (KOCEAN.EQ.1) GO TO 500
@@ -187,29 +186,22 @@ C****  MSI  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
 C**** READ IN OBSERVED OCEAN DATA
       
-      CALL HERE(__FILE__,__LINE__)
       IF (JMON.EQ.IMON0) GO TO 400
-      CALL HERE(__FILE__,__LINE__)
       IF (IMON0.EQ.0) THEN
 C****   READ IN LAST MONTH'S END-OF-MONTH DATA
-         CALL HERE(__FILE__,__LINE__)
         if (ocn_cycl.ge.1) then
           LSTMON=JMON-1
           if (lstmon.eq.0) lstmon = 12
-          CALL HERE(__FILE__,__LINE__)
           CALL READT_PARALLEL
      *           (grid,iu_SICE,NAMEUNIT(iu_SICE),IM*JM,ERSI0,LSTMON)
           if (ocn_cycl.eq.1) then
-             CALL HERE(__FILE__,__LINE__)
             CALL READT_PARALLEL
      *           (grid,iu_OSST,NAMEUNIT(iu_OSST),IM*JM,EOST0,LSTMON)
           else ! if (ocn_cycl.eq.2) then
             LSTMON=JMON-1+(JYEAR-IYEAR1)*JMperY
   290       read (iu_OSST) M
             if (m.lt.lstmon) go to 290
-            CALL HERE(__FILE__,__LINE__)
             CALL BACKSPACE_PARALLEL( iu_OSST )
-            CALL HERE(__FILE__,__LINE__)
             CALL MREAD_PARALLEL
      *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),m,IM*JM,EOST0)
             WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M
@@ -218,19 +210,14 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
           end if
         else   !  if (ocn_cycl.eq.0) then
           LSTMON=JMON-1+(JYEAR-IYEAR1)*JMperY
-          CALL HERE(__FILE__,__LINE__)
   300     read (iu_OSST) M
           if (m.lt.lstmon) go to 300
-          CALL HERE(__FILE__,__LINE__)
           CALL BACKSPACE_PARALLEL( iu_OSST )
-          CALL HERE(__FILE__,__LINE__)
   310     read (iu_SICE) m
           if (m.lt.lstmon) go to 310
           CALL BACKSPACE_PARALLEL( iu_SICE )
-          CALL HERE(__FILE__,__LINE__)
           CALL MREAD_PARALLEL
      *           (GRID,iu_OSST,NAMEUNIT(iu_OSST), m,IM*JM,EOST0)
-          CALL HERE(__FILE__,__LINE__)
           CALL MREAD_PARALLEL
      *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),m1,IM*JM,ERSI0)
           WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M,M1
@@ -248,22 +235,18 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
         if (jmon.eq.1) then
           if (ocn_cycl.eq.1) CALL REWIND_PARALLEL( iu_OSST )
           CALL REWIND_PARALLEL( iu_SICE )
-          CALL HERE(__FILE__,__LINE__)
           read (iu_SICE)  
         end if
-          CALL HERE(__FILE__,__LINE__)
         CALL READT_PARALLEL
      *           (grid,iu_SICE,NAMEUNIT(iu_SICE),0,TEMP_LOCAL,1)
         ARSI  = TEMP_LOCAL(:,:,1)
         ERSI1 = TEMP_LOCAL(:,:,2)
         if (ocn_cycl.eq.1) then
-          CALL HERE(__FILE__,__LINE__)
           CALL READT_PARALLEL
      *           (grid,iu_OSST,NAMEUNIT(iu_OSST),0,TEMP_LOCAL,1)
           AOST  = TEMP_LOCAL(:,:,1)
           EOST1 = TEMP_LOCAL(:,:,2)
         else  ! if (ocn_cycl.eq.2) then
-          CALL HERE(__FILE__,__LINE__)
           CALL MREAD_PARALLEL
      *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),M,0,TEMP_LOCAL)
           AOST  = TEMP_LOCAL(:,:,1)
@@ -273,12 +256,10 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
      &       call stop_model('Error: Ocean data',255)
         end if
       else   !  if (ocn_cycl.eq.0) then
-          CALL HERE(__FILE__,__LINE__)
         CALL MREAD_PARALLEL
      *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),M,0,TEMP_LOCAL)
         AOST  = TEMP_LOCAL(:,:,1)
         EOST1 = TEMP_LOCAL(:,:,2)
-          CALL HERE(__FILE__,__LINE__)
         CALL MREAD_PARALLEL
      *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),M1,0,TEMP_LOCAL)
         ARSI  = TEMP_LOCAL(:,:,1)
