@@ -12,17 +12,17 @@ C**** must be compiled after the model
       USE GHYCOM, only : ghdata,snowe,tearth,wearth,aiearth,snoage
       USE RADNCB, only : rqt,lm_req
       USE CLD01_COM_E001, only : ttold,qtold,svlhx,rhsav,cldsav
-      USE DAGCOM, only : keynr
+      USE DAGCOM, only : keynr,tsfrez
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq
      *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE OCEAN, only : tocean,z1o
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
-      USE SEAICE, only : ace1i,xsi
+      USE SEAICE, only : ace1i,xsi,ac2oim
       USE LANDICE_COM, only : tlandi,snowli
-      USE LAKES_COM, only : t50
+      USE LAKES_COM, only : flake
       IMPLICIT NONE
       CHARACTER infile*60, outfile*60
-      INTEGER IARGC,iu_AIC,I,J,L,N,ioerr
+      INTEGER IARGC,iu_AIC,I,J,L,N,ioerr,iu_TOPO
       REAL*8 TAUX,X   ! ? temporary for compatibility only
       REAL*8 MSI1
       INTEGER ItimeX
@@ -58,7 +58,7 @@ C**** must be compiled after the model
      E     (((CLDSAV(L,I,J),I=1,IM),J=1,JM),L=1,LM),
      4     ((((TMOM(N,I,J,L),I=1,IM),J=1,JM),L=1,LM),N=1,9),
      4     ((((QMOM(N,I,J,L),I=1,IM),J=1,JM),L=1,LM),N=1,9),
-     6     (((RQT(L,I,J),I=1,IM),J=1,JM),L=1,LM_REQ),T50
+     6     (((RQT(L,I,J),I=1,IM),J=1,JM),L=1,LM_REQ)
       CLOSE (iu_AIC)
 
       ItimeX=NINT(TAUX)
@@ -67,13 +67,34 @@ C**** must be compiled after the model
 C**** convert sea ice temperatures into enthalpy
       DO J=1,JM
         DO I=1,IM
-          MSI1=SNOWI(I,J)+ACE1I
-          HSI(1,I,J) = (SHI*HSI(1,I,J)-LHM)*XSI(1)*MSI1
-          HSI(2,I,J) = (SHI*HSI(2,I,J)-LHM)*XSI(2)*MSI1
-          HSI(3,I,J) = (SHI*HSI(3,I,J)-LHM)*XSI(3)*MSI(I,J)
-          HSI(4,I,J) = (SHI*HSI(4,I,J)-LHM)*XSI(4)*MSI(I,J)
+          IF (RSI(I,J).gt.0) THEN
+            MSI1=SNOWI(I,J)+ACE1I
+            HSI(1,I,J) = (SHI*MIN(HSI(1,I,J),0d0)-LHM)*XSI(1)*MSI1
+            HSI(2,I,J) = (SHI*MIN(HSI(2,I,J),0d0)-LHM)*XSI(2)*MSI1
+            HSI(3,I,J) = (SHI*MIN(HSI(3,I,J),0d0)-LHM)*XSI(3)*MSI(I,J)
+            HSI(4,I,J) = (SHI*MIN(HSI(4,I,J),0d0)-LHM)*XSI(4)*MSI(I,J)
+          ELSE
+            MSI(I,J)=AC2OIM
+            SNOWI(I,J)=0.
+            HSI(1,I,J) = -LHM*XSI(1)*ACE1I
+            HSI(2,I,J) = -LHM*XSI(2)*ACE1I
+            HSI(3,I,J) = -LHM*XSI(3)*AC2OIM
+            HSI(4,I,J) = -LHM*XSI(4)*AC2OIM
+          END IF
         END DO
       END DO
+
+C**** initialize TSFREZ to defaults
+      TSFREZ(:,:,1:2)=365.
+      TSFREZ(:,:,3:4)=-999.
+
+C**** read in FLAKE data
+      iu_TOPO=10
+      OPEN(iu_TOPO,FILE="/u/cmrun/Z72X46N.cor4",FORM="UNFORMATTED"
+     *     ,STATUS="OLD") 
+      READ (iu_TOPO)
+      CALL READT (iu_TOPO,0,FLAKE,IM*JM,FLAKE,1) ! Lake fraction
+      close (iu_TOPO)
 
       OPEN(iu_AIC,FILE=trim(outfile),
      *     FORM="UNFORMATTED",STATUS="UNKNOWN")
