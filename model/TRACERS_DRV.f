@@ -7029,6 +7029,11 @@ C****
       USE AEROSOL_SOURCES, only: SO2_src_3d,BCI_src_3d,BCB_src,
      *     OCB_src,SO2_biosrc_3D,lmAER
       USE PBLCOM, only: dclev
+c Laki emissions
+      USE DYNAMICS, only: LTROPO
+      USE CONSTANT, only: sday
+      USE MODEL_COM, only: jday,jyear
+      USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
 #endif
       implicit none
       INTEGER n,ns,najl,i,j,l,mnow,blay
@@ -7081,6 +7086,23 @@ C****
 #ifdef TRACERS_AEROSOLS_Koch
       case ('SO2')
 C**** three 3D sources (aircraft, volcanos and biomass) read in from files
+c  Laki
+      if (JYEAR.eq.1783) then
+       do j=1,10
+       if (JMON.eq.LAKI_MON(j).and.JDAY.eq.LAKI_DAY(j)) then
+       do l=1,5
+        SO2_src_3d(33,40,l,1)=SO2_src_3d(33,40,l,1)+LAKI_AMT_T(j)
+     *          /sday*1000.d0/5.d0
+       end do
+       ltpp=LTROPO(33,40)
+       do l=ltpp+1,ltpp+3
+        SO2_src_3d(33,40,l,1)=SO2_src_3d(33,40,l,1)+LAKI_AMT_S(j)
+     *          /sday*1000.d0/3.d0
+       end do
+       endif
+       enddo
+      endif
+c End Laki code
       tr3Dsource(:,J_0:J_1,:,1,n) = SO2_src_3d(:,J_0:J_1,:,1)*0.975d0
       call apply_tracer_3Dsource(1,n) ! volcanos
       tr3Dsource(:,J_0:J_1,:,2,n) = SO2_src_3d(:,J_0:J_1,:,2)

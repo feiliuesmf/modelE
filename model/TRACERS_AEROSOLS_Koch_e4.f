@@ -46,6 +46,20 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      *   tno3r,oh,dho2,perj,tno3,o3_offline
       real*8, DIMENSION(IM,JM,LM,ntm):: aer_tau
       END MODULE AEROSOL_SOURCES
+
+      MODULE LAKI_SOURCE
+      IMPLICIT NONE
+      SAVE
+      INTEGER, DIMENSION(10), PARAMETER :: LAKI_MON = (/6,6,6,
+     * 6,7,7,8,9,9,10/)
+      INTEGER, DIMENSION(10), PARAMETER :: LAKI_DAY = (/8,11,14,
+     * 27,9,29,31,7,26,25/)
+      REAL*8, DIMENSION(10), PARAMETER :: LAKI_AMT_T = (/1.98,
+     * 3.17,4.41,2.55,2.09,3.10,1.82,1.39,1.03,0.78/)
+      REAL*8, DIMENSION(10), PARAMETER :: LAKI_AMT_S = (/8.42,
+     * 13.53,18.79,10.85,8.91,13.20,7.78,5.91,4.37,3.32/)
+      END MODULE LAKI_SOURCE
+
       subroutine get_O3_offline
 !@sum read in ozone fields for aqueous oxidation
 c
