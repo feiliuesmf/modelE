@@ -481,9 +481,13 @@ C**** If land but no ocean, and no direction, print warning
           WRITE(6,*) "Land box has no river direction I,J: ",I,J
      *     ,FOCEAN(I,J),FLAND(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH(I,J)
         END IF
-        KDIREC(I,J) = KD
 C**** Default direction is down (if ocean box), or no outlet (if not)
-        IF(KD.lt.0 .or. KD.gt.8)  KDIREC(I,J) = 0
+C**** Also ensure that all ocean boxes are done properly
+        IF ((KD.lt.0 .or. KD.gt.8) .or. FOCEAN(I,J).eq.1.) THEN
+          KDIREC(I,J)=0.
+        ELSE
+          KDIREC(I,J) = KD
+        END IF
 C**** Check for specified river mouths
         IF (KD.GE.17 .AND. KD.LE.42) THEN
           INM=INM+1
