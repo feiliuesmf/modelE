@@ -20,6 +20,9 @@
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
       USE RANDOM
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
+#ifdef CLD_AER_CDNC
+     *     ,oldno,oldnl,smfpm
+#endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,ddm1,airx,lmc
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
@@ -30,6 +33,10 @@
      *     ,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags
      *     ,ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,hdiurn,
      *     ntau,npres,aisccp,isccp_reg
+#ifdef CLD_AER_CDNC
+     *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
+     *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
+#endif
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname
 #ifdef TRACERS_WATER
@@ -63,6 +70,9 @@
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
      *     ,kmax,ra,pl,ple,plk,rndssl,lhp,pland,debug,ddmflx
+#ifdef CLD_AER_CDNC
+     *     ,cdncwm,cdncim,cdncws,cdncis,oldcdo,oldcdl,smfpml
+#endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo,dke
@@ -318,6 +328,11 @@ C**** other fields where L is the leading index
       TTOLDL(:)=TTOLD(:,I,J)
       CLDSAVL(:)=CLDSAV(:,I,J)
       RH(:)=RHSAV(:,I,J)
+#ifdef CLD_AER_CDNC
+        OLDCDL(:)=OLDNL(:,I,J)
+        OLDCDO(:)=OLDNO(:,I,J)  ! OLDN is for rsf save
+        SMFPML(:)=SMFPM(:,I,J)
+#endif
       DPDT(1:LS1-1)=SIG(1:LS1-1)*(P(I,J)-PTOLD(I,J))*BYDTsrc
       DPDT(LS1:LM)=0.
       DO L=1,LM
@@ -436,6 +451,12 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
           AJL(J,L,JL_MCMFLX)=AJL(J,L,JL_MCMFLX)+MCFLX(L)
           AJL(J,L,JL_CLDMC) =AJL(J,L,JL_CLDMC) +CLDMCL(L)
           AJL(J,L,JL_CSIZMC)=AJL(J,L,JL_CSIZMC)+CSIZEL(L)*CLDMCL(L)
+#ifdef CLD_AER_CDNC
+          AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+CDNCWM(L)*CLDMCL(L)
+          AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+CDNCIM(L)*CLDMCL(L)
+          AJL(J,L,JL_CNUMWM)=AJL(J,L,JL_CNUMWM)+CDNCWM(L)*CLDMCL(L)
+          AJL(J,L,JL_CNUMIM)=AJL(J,L,JL_CNUMIM)+CDNCIM(L)*CLDMCL(L)
+#endif
         END DO
         DO IT=1,NTYPE
           AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
@@ -761,8 +782,13 @@ C**** WRITE TO GLOBAL ARRAYS
       CLDSAV(:,I,J)=CLDSAVL(:)
       SVLHX(:,I,J)=SVLHXL(:)
       CSIZSS(:,I,J)=CSIZEL(:)
-
       RHSAV(:,I,J)=RH(:)
+
+#ifdef CLD_AER_CDNC
+         OLDNL(:,I,J)=OLDCDL(:)
+         OLDNO(:,I,J)=OLDCDO(:)
+         SMFPM(:,I,J)=SMFPML(:)
+#endif
       TTOLD(:,I,J)=TH(:)
       QTOLD(:,I,J)=QL(:)
 
@@ -778,6 +804,14 @@ C**** between kinds of rain in the ground hydrology.
         AJL(J,L,JL_RHE)=AJL(J,L,JL_RHE)+RH1(L)
         AJL(J,L,JL_CLDSS) =AJL(J,L,JL_CLDSS) +CLDSSL(L)
         AJL(J,L,JL_CSIZSS)=AJL(J,L,JL_CSIZSS)+CSIZEL(L)*CLDSSL(L)
+#ifdef CLD_AER_CDNC
+        AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+CDNCWS(L)*CLDSSL(L)
+        AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+CDNCIS(L)*CLDSSL(L)
+        AJL(J,L,JL_CNUMWS)=AJL(J,L,JL_CNUMWS)+CDNCWS(L)*CLDSSL(L)
+        AJL(J,L,JL_CNUMIS)=AJL(J,L,JL_CNUMIS)+CDNCIS(L)*CLDSSL(L)
+c       if(CDNCWS(L).gt.1200.)write(6,*)"DF",AIJ(I,J,IJ_3dNWS),CDNCWS(L)
+c    &  ,L
+#endif
 
         T(I,J,L)=TH(L)
         Q(I,J,L)=QL(L)
