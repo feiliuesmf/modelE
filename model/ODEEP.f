@@ -210,7 +210,7 @@ C**** Thus it is only initiallised here for case ii).
           IF (FOCEAN(I,J).gt.0) THEN
             OCEANE(J)=OCEANE(J)+(TOCEAN(1,I,J)*Z1O(I,J)
      *           +TOCEAN(2,I,J)*(Z12O(I,J)-Z1O(I,J)))*SHW*RHOWS
-            DO L=1,LMOM
+            DO L=2,LMOM
               OCEANE(J)=OCEANE(J)+(RTGO(L,I,J)*DZ(L)*SHW*RHOWS)
             END DO
           END IF
