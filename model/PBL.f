@@ -271,7 +271,12 @@ C**** end special threadprivate common block
 
       do iter=1,itmax
 
-        call getl(e,u,v,t,zhat,dzh,lscale,dbl,n)
+        if(iter.eq.1) then
+          call getl1(e,zhat,dzh,lscale,n)
+        else
+          call getl(e,u,v,t,zhat,dzh,lmonin,ustar,lscale,dbl,n)
+        endif
+
         call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
         call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
@@ -332,7 +337,8 @@ C**** end special threadprivate common block
       end do
 c     write(97,*) "iter=",iter,ustar
 
-      wsm = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
+      wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
+      wsm = wsh
 
 #ifdef TRACERS_ON
 C**** tracer calculations are passive and therefore do not need to
@@ -486,7 +492,37 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       return
       end subroutine stars
 
-      subroutine getl(e,u,v,t,zhat,dzh,lscale,dbl,n)
+      subroutine getl1(e,zhat,dzh,lscale,n)
+  !@sum getl1 estimates the master length scale of the turbulence model
+  !@+   on the secondary grid
+  !@auth  Ye Cheng/G. Hartke
+      implicit none
+  
+      integer, intent(in) :: n     !@var n  array dimension
+      real*8, dimension(n-1), intent(in) :: e,zhat,dzh
+      real*8, dimension(n-1), intent(out) :: lscale
+      real*8, parameter :: alpha=0.2d0
+  
+      real*8 :: sum1,sum2,l0,l1
+      integer :: j
+  
+      sum1=0.
+      sum2=0.
+      do j=1,n-1
+        sum1=sum1+sqrt(e(j))*zhat(j)*dzh(j)
+        sum2=sum2+sqrt(e(j))*dzh(j)
+      end do
+      l0=alpha*sum1/sum2
+  
+      do j=1,n-1
+        l1=kappa*zhat(j)
+        lscale(j)=l0*l1/(l0+l1)
+      end do
+  
+      return
+      end subroutine getl1
+
+      subroutine getl(e,u,v,t,zhat,dzh,lmonin,ustar,lscale,dbl,n)
 !@sum   getl computes the master length scale of the turbulence model
 !@+     on the secondary grid. l0 in this routine is 0.16*(pbl height)
 !@+     according to the LES data (Moeng and Sullivan 1992)
@@ -508,25 +544,43 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       real*8, dimension(n-1), intent(in) :: e,zhat,dzh
       real*8, dimension(n), intent(in) :: u,v,t
       real*8, dimension(n-1), intent(out) :: lscale
-      real*8, intent(in) :: dbl
+      real*8, intent(in) :: dbl,lmonin,ustar
 
       integer :: i   !@var i  array dimension
-      real*8 l0,l1,an2,dudz,dvdz,as2,lmax,lmax2
+      real*8 kz,l0,ls,lb,an2,an,dudz,dvdz,as2,qty,qturb,zeta
 
       l0=.16d0*dbl ! Moeng and Sullivan 1994
+
       if (l0.lt.zhat(1)) l0=zhat(1)
 
-      l1=kappa*zhat(1)
-      lscale(1)=l0*l1/(l0+l1)
+      kz=kappa*zhat(1)
+      lscale(1)=l0*kz/(l0+kz)
 
       do i=2,n-1
-        l1=kappa*zhat(i)
-        lscale(i)=l0*l1/(l0+l1)
+        kz=kappa*zhat(i)
+        zeta=zhat(i)/lmonin
+        ! Nakanishi (2001)
+        if(zeta.ge.1.) then
+          ls=kz/3.7
+        elseif(zeta.ge.0.) then
+          ls=kz/(1.+2.7*zeta)
+        else
+          ls=kz*(1.-100.*zeta)**0.2
+        endif
         if (t(i+1).gt.t(i)) then
           an2=2.*grav*(t(i+1)-t(i))/((t(i+1)+t(i))*dzh(i))
-          lmax  =0.53d0*sqrt(2.*e(i)/max(an2,teeny))
-          if (lscale(i).gt.lmax) lscale(i)=lmax
+          an=sqrt(an2)
+          qturb=sqrt(2*e(i))
+          if(zeta.ge.0.) then
+             lb=qturb/an
+          else
+             qty=(ustar/((-kappa*lmonin*l0**2)**(1./3.)*an))**0.5
+             lb=qturb*(1.+5.*qty)/an
+          endif
+        else
+          lb=1.d30
         endif
+        lscale(i)=l0*ls*lb/(l0*ls+l0*lb+ls*lb)
         if (lscale(i).lt.0.5*kappa*zhat(i)) lscale(i)=0.5*kappa*zhat(i)
       end do
 
@@ -571,21 +625,21 @@ c *********************************************************************
 c  Compute roughness lengths using rough surface formulation:
         z0m=num/ustar+0.018d0*ustar*ustar*bygrav
         if (z0m.gt.0.2d0) z0m=0.2d0
-        if (ustar.le.0.02d0) then
-          z0h=nuh/ustar
+c       if (ustar.le.0.02d0) then
+          z0h=nuh/ustar + 1.4d-5
           if (z0h.gt.0.5852d0) z0h=0.5852d0
-          z0q=nuq/ustar
+          z0q=nuq/ustar + 1.3d-4
           if (z0q.gt.0.92444d0) z0q=0.92444d0
-          else
-          r0q=(ustar*z0m/nu)**0.25
-          z0h=7.4*z0m*exp(-2.4604d0*r0q)
-          z0q=7.4*z0m*exp(-2.2524d0*r0q)
-          if (ustar.lt.0.2d0) then
-            beta=(ustar-0.02d0)/0.18d0
-            z0h=(1.-beta)*nuh/ustar+beta*z0h
-            z0q=(1.-beta)*nuq/ustar+beta*z0q
-          endif
-        endif
+c         else
+c         r0q=(ustar*z0m/nu)**0.25
+c         z0h=7.4*z0m*exp(-2.4604d0*r0q)
+c         z0q=7.4*z0m*exp(-2.2524d0*r0q)
+c         if (ustar.lt.0.2d0) then
+c           beta=(ustar-0.02d0)/0.18d0
+c           z0h=(1.-beta)*nuh/ustar+beta*z0h
+c           z0q=(1.-beta)*nuq/ustar+beta*z0q
+c         endif
+c       endif
 c *********************************************************************
       else
 c *********************************************************************
@@ -1807,7 +1861,12 @@ c Initialization for iteration:
       ustar0=0.
       do iter=1,itmax
 
-        call getl(e,u,v,t,zhat,dzh,lscale,dbl,n)
+        if(iter.eq.1) then
+          call getl1(e,zhat,dzh,lscale,n)
+        else
+          call getl(e,u,v,t,zhat,dzh,lmonin,ustar,lscale,dbl,n)
+        endif
+
         call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
         call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
