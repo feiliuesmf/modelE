@@ -16,6 +16,9 @@
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
       USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim,ls1
+#ifdef TRACERS_SPECIAL_Shindell
+     & ,ptop,psf,sig,lm
+#endif
       USE DAGCOM, only: ia_src,ia_12hr,ir_log2,npts
       USE TRACER_COM
 #ifdef TRACERS_ON
@@ -33,7 +36,9 @@
       USE SEAICE_COM, only : trsi0
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only : mass2vol,bymass2vol
+      USE TRCHEM_Shindell_COM,only:COaltIN,LCOalt,PCOalt,COalt,
+     & mass2vol,bymass2vol,CH4altINT,CH4altINX,LCH4alt,PCH4alt,
+     & CH4altX,CH4altT
 #endif
       implicit none
       integer :: l,k,n
@@ -49,6 +54,10 @@
 #if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
 !@param convert_HSTAR converts from mole/Joule to mole/(L*atm)
       real*8, parameter :: convert_HSTAR = 1.01325d2
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+!@var PRES local nominal pressure for verticle interpolations
+      REAL*8, DIMENSION(LM) :: PRES
 #endif
 
 C**** Set defaults for tracer attributes (all dimensioned ntm)
@@ -86,6 +95,9 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
 #endif
 #ifdef TRACERS_OCEAN
       trglac = 0.
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
 #endif
 C**** Define individual tracer characteristics
       do n=1,ntm
@@ -150,15 +162,18 @@ C**** Define individual tracer characteristics
       case ('CH4')
       n_CH4 = n
           tr_mm(n) = 16.d0
-#ifdef TRACERS_SPECIAL_Shindell
-          ntsurfsrc(n) = 14
-          ntm_power(n) = -8
-#endif
 #ifdef TRACERS_SPECIAL_Lerner
           ntsurfsrc(n) = 14
           ntm_power(n) = -9
           n_MPtable(n) = 3
           tcscale(n_MPtable(n)) = 1.
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+          ntsurfsrc(n) = 14
+          ntm_power(n) = -8
+C         Interpolate CH4 altitude-dependence to model resolution:
+         CALL LOGPINT(LCH4alt,PCH4alt,CH4altINT,LM,PRES,CH4altT,.true.)
+         CALL LOGPINT(LCH4alt,PCH4alt,CH4altINX,LM,PRES,CH4altX,.true.)
 #endif
 
       case ('O3')
@@ -317,7 +332,9 @@ C**** Get solar variability coefficient from namelist if it exits
           ntm_power(n) = -8
           ntsurfsrc(n) = 2 ! industrial + biomass burning
           tr_mm(n) = 28.01d0
-
+C         Interpolate CO altitude-dependence to model resolution:
+          CALL LOGPINT(LCOalt,PCOalt,COaltIN,LM,PRES,COalt,.true.) 
+      
       case ('PAN')
       n_PAN = n
           ntm_power(n) = -11
@@ -2953,6 +2970,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       call cheminit ! **** Initialize the chemistry ****
+      call special_layers_init
 #endif
 #endif
       return
@@ -3439,9 +3457,6 @@ C****
 !@auth Jean Lerner
 C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only: jmon,itime
-#ifdef TRACERS_SPECIAL_Shindell
-     & ,ptop,psf,sig,lm
-#endif
       USE TRACER_COM, only: ntm,trname,itime_tr0
 #ifdef TRACERS_SPECIAL_Lerner
       USE TRACER_MPchem_COM, only: n_MPtable,tcscale,STRATCHEM_SETUP
@@ -3450,16 +3465,11 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_SPECIAL_Shindell
       USE FLUXES, only: tr3Dsource
       USE TRACER_SOURCES, only: nLightning, nAircraft
-      USE TRCHEM_Shindell_COM,only:OxIC,COaltIN,corrOx
-     &  ,LCOalt,PCOalt,COalt
+      USE TRCHEM_Shindell_COM,only:OxIC,corrOx
 #endif
       IMPLICIT NONE
       INTEGER n,iact,last_month
       data last_month/-1/
-#ifdef TRACERS_SPECIAL_Shindell
-!@var PRES local nominal pressure for verticle interpolations
-      REAL*8, DIMENSION(LM) :: PRES
-#endif
 
 #ifdef TRACERS_SPECIAL_Lerner
       if (iact.eq.0) then
@@ -3517,11 +3527,6 @@ C**** Tracer specific call for CH4
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
-C**** upon initialization only, interpolate COalt array:
-      if (iact.eq.0) then
-        PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
-        CALL LOGPINT(LCOalt,PCOalt,COaltIN,LM,PRES,COalt) 
-      end if
 C**** Daily tracer-specific calls to read 2D and 3D sources:
       do n=1,ntm
         select case (trname(n))
