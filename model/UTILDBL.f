@@ -473,3 +473,26 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       print *, 'closed ', iu_AIC
       end
 #endif
+
+      function unit_string (pow10,ending)
+!@sum Construct a units string with nice properties (no embedded blanks)
+!@auth G. Schmidt, J. Lerner
+C**** If a trailing ')' is supplied, it is assumed that a leading 
+C****      '(' is required, so it is inserted
+      character*(*) ending,unit_string
+      character*10 tpow
+      integer pow10
+
+      tpow = ' '
+      if(pow10.ne.0) then
+         write(tpow,'(i3)') pow10
+         if (index(ending,')') .ne.0) then 
+           tpow='(10^'//trim(adjustl(tpow))
+         else
+           tpow= '10^'//trim(adjustl(tpow))
+         end if
+      endif
+      unit_string = trim(tpow)//trim(ending)
+      return
+      end function unit_string
+
