@@ -962,7 +962,7 @@ c formation of sulfate
 
 #endif
         TR_LEF=1.D0
-        CALL GET_COND_FACTOR(i_debug,j_debug,L,N,WMXTR,TPOLD(L),TPOLD(L
+        CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L
      *       -1),LHX,FPLUME,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF
      *       ,PL(L),ntix,CLDSAVT)
         TRCOND(N,L) = FQCONDT * TMP(N) + TRCOND(N,L)
@@ -2207,7 +2207,7 @@ cdmk change GET_WASH below - extra arguments
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
           b_beta_DT = FCLD*CM*dtsrc
-          CALL GET_COND_FACTOR(i_debug,j_debug,L,N,WMXTR,TL(L),TL(L),LHX
+          CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX
      *         ,FCLD,FQTOW,FQTOWT,.false.,TRWML,TM,THLAW,TR_LEF,PL(L)
      *         ,ntix,CLDSAVT)
 cdmk added arguments above; THLAW added below (no way to factor this)
@@ -2308,7 +2308,7 @@ c   processes - this should be all in-cloud
 #endif
 c below TR_LEFT(N) limits the amount of available tracer in gridbox
 cdmkf and below, extra arguments for GET_COND, addition of THLAW
-      CALL GET_COND_FACTOR(i_debug,j_debug,L,N,WMXTR,TL(L),TL(L),LHX
+      CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX
      *,FCLD,FCOND,FQCONDT,.false.,TRWML,TM,THLAW,TR_LEF,pl(l),ntix
      *,CLDSAVT)
         IF (TM(L,N).GT.teeny) THEN
