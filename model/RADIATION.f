@@ -8047,7 +8047,7 @@ C
      +      ,2X,'Aerosol Global    Ocean     Land  Desert    Haze')
  6103 FORMAT(1X,'FULGAS=',F5.3,F10.5,F7.3,F9.5,F8.5,4F9.5
      +      ,2X,'FGOLDH=',F7.5,2F9.6,2F8.5)
- 6104 FORMAT(1H+,T84,'T'
+ 6104 FORMAT(1X,T84,'T'
      +      /1X,'FULGAS=',1P,1E7.1,1P,2E8.1,1P,2E8.1,1P,4E9.1
      +      ,' S','FGOLDH=',1P,1E7.1,1P,2E9.2,1P,2E8.1)
  6105 FORMAT(1X,'PPM(1)=(now)',2X,F8.3,8X,F8.5,F8.5,4(1X,F8.7)
