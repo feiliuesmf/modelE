@@ -64,8 +64,8 @@ F       = $(SCRIPTS_DIR)/fco2_90
 U	= $(SCRIPTS_DIR)/uco2_f90
 CPPFLAGS = -DMACHINE_SGI
 #FFLAGS = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745
-#FFLAGS = -ftpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500
-FFLAGS = -cpp -Wp,-P -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52
+FFLAGS = -ftpp -macro_expand -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52 
+#FFLAGS = -cpp -Wp,-P -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52
 FFLAGSF = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -freeform
 LFLAGS = -64 -O2 -mips4 -lfastm -OPT:reorg_common=OFF
 ifeq ($(MP),YES)
@@ -137,9 +137,20 @@ F90 = lf95
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend 
 CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux
-FFLAGS = -O
+FFLAGS = -O -Cpp
 LFLAGS = 
-F90_VERSION = $(shell $(F90) --version)
+F90_VERSION = $(shell $(F90) --version | grep Release)
+ifeq ($(MP),YES)
+FFLAGS += --openmp
+FFLAGSF += --openmp
+LFLAGS += --openmp
+endif
+ifeq ($(COMPILE_WITH_TRAPS),YES)
+FFLAGS += --trap
+LFLAGS += --trap
+FFLAGSF += --trap
+LFLAGSF += --trap
+endif
 endif
 
 ## This is for the Absoft PROfortran compiler
