@@ -12,9 +12,20 @@ C**** NEWER VERSION THAT EXPECTS ARRAYS ON INDIVIDUAL RECORDS
      *     JM*LM*KAJK +IM*JM*LM*6 + IM*JM*LM*5 + JM*LM*10*3)
       COMMON/TADV/TMOM1(IM,JM,9*LM),TMOM2(IM,JM,9*LM)
       COMMON/QADV/QMOM1(IM,JM,9*LM),QMOM2(IM,JM,9*LM)
-      COMMON/BNDYCB1/ ODATA1(IM,JM,5),GDATA1(IM,JM,16),BLDATA1(IM,JM,12)
-      COMMON/BNDYCB2/ ODATA2(IM,JM,5),GDATA2(IM,JM,16),BLDATA2(IM,JM,12)
+      COMMON/BNDYCB1/TOCEAN1(3,IM,JM),GDATA1(IM,JM,16),BLDATA1(IM,JM,11)
+     *     ,Z1(IM,JM)
+      COMMON/BNDYCB2/TOCEAN2(3,IM,JM),GDATA2(IM,JM,16),BLDATA2(IM,JM,11)
+     *     ,Z2(IM,JM)
+ccc   ice data:
+      INTEGER, PARAMETER  :: LMI=4
+      REAL*8 MSI1,MSI2
+      COMMON/SICECB/ RSI1(IM,JM),TSI1(LMI,IM,JM),MSI1(IM,JM),SNOWI1(IM
+     *     ,JM),RSI2(IM,JM),TSI2(LMI,IM,JM),MSI2(IM,JM),SNOWI2(IM,JM)
       COMMON/RADNCB/ RADN1(IM,JM,9+2*LM),RADN2(IM,JM,9+2*LM)
+ccc   snow data:
+      INTEGER, PARAMETER  :: NLSN=3
+      COMMON/SNOWCB/ ISNOW1(4,IM,JM),ISNOW2(4,IM,JM),
+     *     SNOW1(2+6*NLSN,IM,JM),SNOW2(2+6*NLSN,IM,JM)
       COMMON/WORKO/  OA1(IM,JM,12),OA2(IM,JM,12)
       DIMENSION U1(IM,JM,LM),V1(IM,JM,LM),T1(IM,JM,LM),P1(IM,JM),Q1(IM
      *     ,JM,LM),WM1(IM,JM,LM)
@@ -35,17 +46,8 @@ C**** NEWER VERSION THAT EXPECTS ARRAYS ON INDIVIDUAL RECORDS
       REAL*8 LAKE1,LAKE2
       COMMON /LAKE/T501(IM,JM),T502(IM,JM),LAKE1(IM,JM,3),LAKE2(IM,JM,3)
       INTEGER DAGPOS,DAGPOS1,DAGPOS2
-      LOGICAL ERRQ,COMP8
+      LOGICAL ERRQ,COMP8,COMPI
       INTEGER itau1,itau2
-ccc   snow data:
-      INTEGER, PARAMETER  :: NLSN=3
-      INTEGER, DIMENSION(IM,JM,2)     :: NSN1, NSN2
-      INTEGER, DIMENSION(IM,JM,2)     :: ISN1, ISN2
-      REAL*8, DIMENSION(IM,JM,NLSN,2) :: DZSN1, DZSN2
-      REAL*8, DIMENSION(IM,JM,NLSN,2) :: WSN1, WSN2
-      REAL*8, DIMENSION(IM,JM,NLSN,2) :: HSN1, HSN2
-      REAL*8, DIMENSION(IM,JM,2)      :: FR_SNOW1, FR_SNOW2
-
 C****
       IF(IARGC().NE.2)  GO TO 800
 C****
@@ -58,15 +60,17 @@ C****
          READ (1) ITAU1,JC,C,RC
          READ (1) 
          READ (1) HEADER,U1,V1,T1,P1,Q1,WM1
-         READ (1) HEADER,ODATA1,OA1,T501,LAKE1
+         READ (1) HEADER,TOCEAN1,OA1,Z1
+         READ (1) HEADER,T501,LAKE1
+         READ (1) HEADER,RSI1,TSI1,SNOWI1,MSI1
          READ (1) HEADER,GDATA1
          READ (1) HEADER,GHDATA1
-         READ (1) HEADER,NSN1,ISN1,DZSN1,WSN1,HSN1,FR_SNOW1
+         READ (1) HEADER,ISNOW1,SNOW1
          READ (1) HEADER,BLDATA1
          READ (1) HEADER,PBL1,pblb1,ipbl1
          READ (1) HEADER,U00wtr,U00ice,LMCM,CLOUD1
          READ (1) HEADER,TMOM1,QMOM1
-         READ (1) HEADER,S0X,CO2,RADN1
+         READ (1) HEADER,S0,S0X,CO2,RSDIST,SIND,COSD,RADN1
          READ (1) HEADER,TSFREZ1,DIAG1,TDIURN1,KEYNR,ITAU2
 
       IF (ITAU1.ne.ITAU2) then
@@ -83,15 +87,17 @@ C****
          READ (2) ITAU1,JC,C,RC
          READ (2) 
          READ (2) HEADER,U2,V2,T2,P2,Q2,WM2
-         READ (2) HEADER,ODATA2,OA2,T502,LAKE2
+         READ (2) HEADER,TOCEAN2,OA2,Z2
+         READ (2) HEADER,T502,LAKE2
+         READ (2) HEADER,RSI2,TSI2,SNOWI2,MSI2
          READ (2) HEADER,GDATA2
          READ (2) HEADER,GHDATA2
-         READ (2) HEADER,NSN2,ISN2,DZSN2,WSN2,HSN2,FR_SNOW2
+         READ (2) HEADER,ISNOW2,SNOW2
          READ (2) HEADER,BLDATA2
          READ (2) HEADER,PBL2,pblb2,ipbl2
          READ (2) HEADER,U00wtr,U00ice,LMCM,CLOUD2
          READ (2) HEADER,TMOM2,QMOM2
-         READ (2) HEADER,S0X,CO2,RADN2
+         READ (2) HEADER,S0,S0X,CO2,RSDIST,SIND,COSD,RADN2
          READ (2) HEADER,TSFREZ2,DIAG2,TDIURN2,KEYNR,ITAU2
 
       IF (itau1.ne.itau2) then
@@ -101,7 +107,7 @@ C****
       END IF
       CLOSE (2)
 
-      WRITE (6,*) 'Unit 2 read.  IHOUR2 =',tau1,'   ',LABEL
+      WRITE (6,*) 'Unit 2 read.  IHOUR2 =',itau1,'   ',LABEL
 C****
 C**** Compare arrays
 C**** ERRQ flags whether any discrepancies have occurred
@@ -114,18 +120,24 @@ C****
       ERRQ=COMP8 ('Q     ',IM,JM,LM     ,Q1 ,Q2 ) .or. ERRQ
       ERRQ=COMP8 ('P     ',IM,JM,1      ,P1 ,P2 ) .or. ERRQ
 
-      ERRQ=COMP8 ('ODATA ',IM,JM,5      ,ODATA1 ,ODATA2 ) .or. ERRQ
+      ERRQ=COMP8 ('TOCEAN',3,IM,JM      ,TOCEAN1,TOCEAN2) .or. ERRQ
+      ERRQ=COMP8 ('Z10   ',IM,JM,1      ,     Z1,     Z2) .or. ERRQ
+      ERRQ=COMP8 ('RSI   ',IM,JM,1      ,   RSI1,   RSI2) .or. ERRQ
+      ERRQ=COMP8 ('TEMPSI',LMI,IM,JM    ,   TSI1,   TSI2) .or. ERRQ
+      ERRQ=COMP8 ('MSI   ',IM,JM,2      ,   MSI1,   MSI2) .or. ERRQ
       ERRQ=COMP8 ('GDATA ',IM,JM,16     ,GDATA1 ,GDATA2 ) .or. ERRQ
       ERRQ=COMP8 ('GHDATA',IM,JM,4*NGM+5,GHDATA1,GHDATA2) .or. ERRQ
       ERRQ=COMP8 ('BLDATA',IM,JM,12     ,BLDATA1,BLDATA2) .or. ERRQ
+      ERRQ=COMP8 ('SNOW  ',2+6*NLSN,IM,JM,SNOW1 ,SNOW2  ) .or. ERRQ
+      ERRQ=COMPI ('ISNOW ',2,IM,JM      ,ISNOW1 ,ISNOW2 ) .or. ERRQ
 
       ERRQ=COMP8 ('PBL   ',npbl,IM*JM,5*4,PBL1  ,PBL2  ) .or. ERRQ
       ERRQ=COMP8 ('PBLB  ',IM,JM,3*4     ,PBLB1 ,PBLB2 ) .or. ERRQ
-      ERRQ=COMP8 ('CLOUD ',IM,JM,5*LM    ,CLOUD1,CLOUD2) .or. ERRQ
+      ERRQ=COMP8 ('CLOUD ',5*LM,IM,JM    ,CLOUD1,CLOUD2) .or. ERRQ
       ERRQ=COMP8 ('WM    ',IM,JM,LM      ,WM1   ,WM2   ) .or. ERRQ
       ERRQ=COMP8 ('TMOM  ',IM,JM,9*LM    ,TMOM1 ,TMOM2 ) .or. ERRQ
       ERRQ=COMP8 ('QMOM  ',IM,JM,9*LM    ,QMOM1 ,QMOM2 ) .or. ERRQ
-      ERRQ=COMP8 ('RADN  ',IM,JM,9+2*LM  ,RADN1 ,RADN2 ) .or. ERRQ
+      ERRQ=COMP8 ('RADN  ',9+2*LM,IM,JM  ,RADN1 ,RADN2 ) .or. ERRQ
       ERRQ=COMP8 ('T50   ',IM,JM,1       ,T501  ,T502  ) .or. ERRQ
       ERRQ=COMP8 ('LAKE  ',IM,JM,3       ,LAKE1 ,LAKE2 ) .or. ERRQ
 
@@ -283,3 +295,58 @@ c     IF(ICNT.GT.0) WRITE(6,*) '#pts = ',ICNT
   900 FORMAT (' ',A6)
   901 FORMAT (3I4,E30.20,2E30.20)
       END FUNCTION COMP8
+
+      FUNCTION COMPI (LABEL,IM,JM,LM,I1,I2)
+C****
+C**** COMPI compares two integer arrays and prints any discrepancies to
+C**** the line printer.
+C**** RETURNS .FALSE. IF NO DISCREPANCIES
+C****
+      LOGICAL COMPI
+      INTEGER I1(IM,JM,LM),I2(IM,JM,LM),I2MAX,I1MAX
+      REAL*8 DIF,DIFMAX
+      CHARACTER*6 LABEL
+      COMPI = .FALSE.
+      NP = 0
+      ICNT = 0
+      WRITE (6,900) LABEL
+      DO 20 L=1,LM
+      DIFMAX = 0.
+      IMAX=0
+      JMAX=0
+      LMAX=0
+      I1MAX=0
+      I2MAX=0
+      DO 10 J=1,JM
+      DO 10 I=1,IM
+      IF (I2(I,J,L)*I1(I,J,L).EQ.0 .AND. I2(I,J,L)+I1(I,J,L).NE.0 
+     *        .and. I2(I,J,L).NE.I1(I,J,L)) THEN
+         WRITE (6,901) I,J,L,I1(I,J,L),I2(I,J,L)
+         NP = NP+1
+         IF(NP.GE.10)  RETURN
+      ELSE
+         DIF = ABS(I2(I,J,L)-I1(I,J,L)) / (ABS(I1(I,J,L)) + 1.D-30)
+c         IF (DIF.NE.0.) PRINT*,I,J,L,DIF
+         IF(DIF.NE.0.) ICNT = ICNT + 1
+         IF(DIF.LE.DIFMAX)  GO TO 10
+         DIFMAX = DIF
+         IMAX=I
+         JMAX=J
+         LMAX=L
+         I1MAX=I1(I,J,L)
+         I2MAX=I2(I,J,L)
+c      WRITE (6,901) I,J,L,I1(I,J,L),I2(I,J,L),DIF
+c      NP = NP+1
+c      IF(NP.GE.10)  RETURN
+      END IF
+ 10   CONTINUE
+      IF (IMAX.ne.0) then
+         WRITE (6,901) IMAX,JMAX,LMAX,I1MAX,I2MAX,DIFMAX
+         COMPI = .TRUE.
+      endif
+ 20   CONTINUE
+c     IF(ICNT.GT.0) WRITE(6,*) '#pts = ',ICNT
+      RETURN
+  900 FORMAT (' ',A6)
+  901 FORMAT (3I4,E30.20,2E30.20)
+      END FUNCTION COMPI
