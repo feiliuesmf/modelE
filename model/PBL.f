@@ -338,7 +338,9 @@ C**** end special threadprivate common block
       end do
 c     write(97,*) "iter=",iter,ustar
 
-      wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
+c**** cannot update wsh without taking care that wsh used for tracers is
+c**** the same as that used for q
+c      wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
       wsm = wsh
 
 C**** Preliminary coding for use of sub-gridscale wind distribution
