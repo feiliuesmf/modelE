@@ -398,7 +398,7 @@ C**** tracers are now passive, so use 'upstream' concentration
               trcnst = trcnst*(1.-q(1)/qgrnd)
               trsf = 0.
             end if
-          endx select
+          end select
 #endif
         end if
 #endif
