@@ -751,6 +751,15 @@ C****
 #ifdef TRACERS_DRYDEP
       write(6,*) '...and tracer dry deposition'
 #endif
+#ifdef EDGAR_HYDE_SOURCES
+      write(6,*) '...and EDGAR HYDE sources instead of GISS'
+#endif
+#ifdef SHINDELL_STRAT_CHEM
+      write(6,*) '...and Drew Shindell stratospheric chemistry'
+#endif
+#ifdef regional_Ox_tracers
+      write(6,*) '...and regional Ox tracers'
+#endif
 C****
 C**** Print and Copy Namelist parameter changes to disk so they may be
 C**** read in repeatedly. Then read them in to overwrite the defaults
