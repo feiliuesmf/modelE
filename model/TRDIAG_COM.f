@@ -91,7 +91,12 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #ifdef TRACERS_SPECIAL_Shindell
 !@var ijs_XXX index for diags not specific to a certain tracer
       INTEGER ijs_flash,ijs_CtoG    ! ,ijs_OxL1
+#ifdef regional_Ox_tracers
+      INTEGER ijs_Oxloss, ijs_Oxprod
+      integer, parameter :: ktaijs=30
+#else
       integer, parameter :: ktaijs=28
+#endif
 #else
       integer, parameter :: ktaijs=25
 #endif
@@ -156,7 +161,12 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #ifdef TRACERS_SPECIAL_Shindell
 !@var jls_XXX index for diags not specific to a certain tracer
       INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf,jls_day
+#ifdef regional_Ox_tracers
+      INTEGER jls_Oxloss, jls_Oxprod
+      INTEGER, PARAMETER :: ktajls=76
+#else
       INTEGER, PARAMETER :: ktajls=62
+#endif
 #else
       INTEGER, PARAMETER :: ktajls=34
 #endif
