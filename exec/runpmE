@@ -1,0 +1,95 @@
+#!/usr/bin/perl
+
+## default settings
+$CMRUNDIR='/u/cmrun';
+$EXECDIR='/u/exec';
+
+$modelerc = (getpwuid($>))[7]."/.modelErc";
+
+if ( -f $modelerc ) {
+  open MODELERC, $modelerc or die "can't open $modelerc";
+  while(<MODELERC>) {
+    last if /abc/;
+    ($CMRUNDIR = $1) if /^ *CMRUNDIR *= *(\S+)/;
+    $EXECDIR = $1 if /^ *EXECDIR *= *(\S+)/;
+  }
+  close MODELERC;
+}
+
+$runID = shift;
+$rcode = shift;
+$owner = shift;
+
+if ( ! $rcode ) { print "Usage: $0 RunID rcode [owner]\n"; exit; }
+
+if ( $rcode == 12 ) {
+  `echo "$runID sswd" | Mail -s "$runID sswd" $owner` if $owner; 
+  exit;
+  }
+
+if ( $rcode == 13 ) {
+  `echo "$runID reached TAUE" | Mail -s "$runID ended" $owner` if $owner;
+  exit;
+  }
+
+## possible bomb - try automatic fixup
+chdir "$CMRUNDIR/$runID" or die "$CMRUNDIR/$runID not found\n";
+
+## the following block should check return codes. Disabled for now.
+## check return code
+#if( $rcode != 27 ) {
+#  `echo "No automatic fixup for return code: $rcode" >> nohup.out`;
+#  `cat $runID.PRT nohup.out | tail -100 | Mail -s $runID $owner` if $owner;
+#  exit;
+#}
+
+## check for lock file
+if ( -e "lock" ) {
+  `echo "lock file is present: suspect non-clean stop >> nohup.out`;
+  `echo  Will not restart" >> nohup.out`;
+  `cat $runID.PRT nohup.out | tail -100 | Mail -s $runID $owner` if $owner;
+  exit;
+}
+
+open I,"I" or die "can't open file: I\n";
+
+$dt = 0;
+while(<I>) {
+  $dt = $1 if /\bDTFIX *= *(\d+)\b/;
+  print "$dt : $_";
+  last if /^ *&&PARAMETERS/;
+  }
+
+if( $dt == 0 ) {
+  `echo "$runID not set up for automatic fixup" >> nohup.out`;
+  `cat $runID.PRT nohup.out | tail -100 | Mail -s $runID $owner` if $owner;
+  exit;
+}
+
+($tau, $date) = split " ",`$EXECDIR/qc_e -r fort.[12]`;
+$taun = $tau + 48;
+
+seek I,0,0;
+open IX, ">Ix" or die "can't open 'Ix' for writing\n";
+while(<I>) {
+  print IX " DT=$dt.,\n" if /^ *&&END_PARAMETERS/i;
+  print IX " ISTART=99,IHOURE=$taun,\n" if /^ *&end/i;
+  print IX;
+}
+
+close I;
+close IX;
+
+`echo ' ' >> I ; echo "Bombed $date" >> I ; tail -1 nohup.out >> I`;
+`mv $runID.PRT ERR.$runID.PRT.$date`;
+`touch lock; "$runID"ln`; 
+`$runID.exe < Ix > $runID.PRT.dt$dt.$date`; $rcode = $? >> 8;
+print "rcode = $rcode\n";
+`"$runID"uln; rm -f lock`;
+if ( $rcode == 13 ) {
+  exec "$EXECDIR/runE $runID"; 
+} else {
+  `echo "$runID: fixup failed" >> nohup.out`;
+  `cat $runID.PRT.dt$dt.$date nohup.out | tail -100 | Mail -s $runID $owner` if $owner;
+}
+

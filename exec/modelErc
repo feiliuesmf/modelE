@@ -10,11 +10,11 @@ DECKS_REPOSITORY=/u/cmrun/modelE/decks
 CMRUNDIR=/u/cmrun
 
 # GCMSEARCHPATH - list of directories to search for gcm input files
-GCMSEARCHPATH=/u/cmrun:/raid1:/gcm2:/HOSTS/Ipcc2
+GCMSEARCHPATH=/u/cmrun
 
 # EXECDIR - path to directory with some extra executables not included 
 # into modelE CVS distribution
-EXECDIR=/u/cmrun/modelE/exec
+EXECDIR=/u/exec
 
 # NETCDFHOME - path to location of netcdf library. Leave blank if netcdf
 # is not installed on this computer
@@ -26,7 +26,12 @@ SAVEDISK=/raid1
 
 ## Customizable setings for Makefile ##
 
-# OVERWRITE - can "gmake rundeck" overwrite files already in repository
+# MAILTO - email address of the user. When the program ends/crashes
+# all notifications will be sent to this address. If not specified
+# `whoami` will be used.
+MAILTO=
+
+# OVERWRITE - can "gmake rundeck" overwrite files already in repository?
 OVERWRITE=NO
 
 # OUTPUT_TO_FILES - if set to YES all errors and warnings will be sent

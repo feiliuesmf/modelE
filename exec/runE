@@ -1,0 +1,34 @@
+#!/bin/ksh
+## RUN     Run Climate Model saving the printout  10/21/91
+   CMRUNDIR='/u/cmrun'
+   OPTS=
+   if [[ -f ~/.modelErc ]]; then . ~/.modelErc; fi
+
+   if [[ $# -le 0 ]] ; then
+      echo "Usage: runE [-q] RUNID"
+      exit; fi
+
+   while [[ $1 = -* ]] ; do OPTS="$OPTS $1"; shift; done
+   RUNID=$1
+
+   if [[ ! -d $CMRUNDIR/$RUNID ]] ; then
+      echo "Run directory not found: $CMRUNDIR/$RUNID"
+      exit ; fi
+
+## check if this run is already running
+   if [[ -f $CMRUNDIR/$RUNID/lock ]]; then
+     echo "            **********************                "
+     echo "$RUNID seems to be already running in $CMRUNDIR/$RUNID"
+     echo "If you think it is an error, then most probably this"
+     echo "task was interrupted in an unusual way. Please check."
+     echo "Then remove the lock file:"
+     echo "$CMRUNDIR/$RUNID/lock"
+     echo "and restart the runE."
+     echo "            **********************                "
+     exit 1
+   fi
+
+   cd "$CMRUNDIR/$RUNID"
+   nohup nice -19 ksh ./$RUNID $OPTS &
+   echo "$RUNID started"
+   if [[ $OPTS = *-q* ]]; then echo "printout will not be saved"; fi

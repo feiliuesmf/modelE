@@ -22,6 +22,7 @@
    EXECDIR="/u/exec"
    SAVEDISK="/raid1"
    GCMSEARCHPATH="/u/cmrun"
+   MAILTO=
 
 ## if ~/.modelErc is present get settings from there
    if [[ -f ~/.modelErc ]]; then
@@ -30,9 +31,11 @@
    else
      echo "~/.modelErc is not present. Using default settings."
    fi
+   if [[ $MAILTO = '' ]]; then MAILTO=`whoami`; fi
    echo CMRUNDIR = $CMRUNDIR
    echo GCMSEARCHPATH = $GCMSEARCHPATH
    echo SAVEDISK = $SAVEDISK
+   echo MAILTO = $MAILTO
 
    job=$( basename $0 )
    if [[ $# -eq 0 ]]; then
@@ -63,7 +66,7 @@
    if [[ ! -s $RFILE ]];
    then  echo File does not exist: $RFILE;  exit 1;  fi
 
-   echo "setting up run $1  PrintOption=$PRT ($job 9/19/97)"
+   echo "setting up run $1"
    echo "output files are saved in $Xdisk/$1"
 
 ## Create the proper environment
@@ -133,21 +136,6 @@
          n=${i%%'='*}
          t=${i##*'='}
          if [[ -a $GCMSEARCHPATH'/'$t ]] ; then pt=$GCMSEARCHPATH'/'$t
-### can I remove all the rest of these dirs ?
-         elif [[ -a $t ]] ; then pt=$t
-         elif [[ -a $p'/'$t ]] ; then pt=$p'/'$t
-         elif [[ -a '/HOSTS/Ra'$CMRUN/$t ]]
-         then pt='/HOSTS/Ra'$CMRUN/$t
-         elif [[ -a '/HOSTS/Ra/raid1/'$t ]]
-         then pt='/HOSTS/Ra/raid1/'$t
-         elif [[ -a '/HOSTS/Ipcc2/gcm1/'$t ]]
-         then pt='/HOSTS/Ipcc2/gcm1/'$t
-         elif [[ -a '/HOSTS/Ipcc2/gcm1/'$t.gz && $n == "AIC" ]]
-         then cp -p '/HOSTS/Ipcc2/gcm1/'$t.gz AIC.gz
-              gunzip AIC.gz ; pt='/HOSTS/Ipcc2/gcm1/'$t.gz
-              echo "uncompressing AIC; ignore ln-error msg"
-         elif [[ -a '/HOSTS/Ra/raid4/'$t ]]
-         then pt='/HOSTS/Ra/raid4/'$t
          else echo " $t NOT found in $GCMSEARCHPATH" ; exit 82
          fi
 #  Make sure that linking works for numbers as well as names ie. n:=>fort.n
@@ -204,48 +192,42 @@
      echo 1st hour completed sucessfully
    fi
 
-## move printout to M-disk after successful initialization
-   if [[ $PRT = [Pp]* ]] then $EXECDIR/prt ${RUNID} ; fi
-## prepare output for vi-editor (no lines longer than 133 characters)
-   awk '{ print length($0) }' *.PRT | sort -n  | tail -1 | read width
-   if [[ $width -gt 140 ]] ; then $EXECDIR/chop ${RUNID}.PRT > /dev/null
-      mv ${RUNID}.PRT.chop ${RUNID}.PRT ; fi
-
-### Can we leave only either "$RUNID" or "E" ?
-
-## Prepare for restart
-## create executable script file E
-   echo 'touch lock' > E
-   echo "./$RUNID"ln >> E
-   #  echo "export XLFRTEOPTS=namelist=old:nlwidth=133" >> E
-   echo " ./${RUNID}.exe < I > ${RUNID}.PRT " >> E
-   echo ' rc=$? ' >> E
-   echo "./$RUNID"uln >> E
-   echo "$EXECDIR/runpm $RUNID" '$rc' "$( whoami )" >> E
-   echo 'rm -f lock' >> E
-   chmod ugo+x  E
 ## create executable script file RUNID
    echo 'touch lock' > $RUNID
+   echo "PRTFILE=${RUNID}.PRT"  >> $RUNID
+   echo 'if [[ $# -ge 1 && $1 = "-q" ]]; then'  >> $RUNID
+   echo '  PRTFILE="/dev/null"; fi' >> $RUNID
    echo "./$RUNID"ln >> $RUNID
    #  echo "export XLFRTEOPTS=namelist=old:nlwidth=133" >> $RUNID
-   echo " ./$RUNID"'.exe < I > /dev/null' >> $RUNID
+   echo " ./$RUNID"'.exe < I > $PRTFILE' >> $RUNID
    echo ' rc=$? ' >> $RUNID
    echo "./$RUNID"uln >> $RUNID
-   echo "$EXECDIR/runpm $RUNID" '$rc' "$( whoami )" >> $RUNID
    echo 'rm -f lock' >> $RUNID
+   echo "exec $EXECDIR/runpmE $RUNID" '$rc' "$MAILTO" >> $RUNID
+## end of RUNID script
+
    chmod ugo+x  $RUNID
 ## overwrite RUNID.I omitting ISTART=.. line.
-   exec < I
-   read LINE  ; echo "$LINE" >  "$RUNID".tmp
-   read LINE  ; echo "$LINE" >> "$RUNID".tmp
-   read LINE  ; echo ' '"$LINE" >> "$RUNID".tmp
-#  echo ' ISTART=99,' >> "$RUNID".tmp
-   while read LINE
-   do if [[ $LINE != *'ISTART='* ]] then
-        echo ' '"$LINE" >> "$RUNID".tmp
-     fi
-   done
-   cp "$RUNID".tmp I
-   rm "$RUNID".tmp
+   grep -v "ISTART=" I > I.tmp
+   mv -f I.tmp I
    chmod go+rw *
 } &
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
