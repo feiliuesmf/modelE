@@ -322,7 +322,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,FS8OPX,FT8OPX,AERMIX
       USE RADNCB, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
-     *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,
+     *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,calc_orb_par,paleo_orb_yr
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
