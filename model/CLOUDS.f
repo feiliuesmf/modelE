@@ -1316,7 +1316,8 @@ C**** functions
      *     ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1
      *     ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
      *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD,FCOND,HDEPx
-!@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,HRISE dummy variables
+     *     ,PMW,PRATW
+!@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,HRISE,PMW,PRATW dummy variables
 !@var AIRMR
 !@var CBF enhancing factor for precip conversion
 !@var CK ratio of cloud top jumps in moist static energy and total water
@@ -1446,6 +1447,9 @@ C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
       PML=WMX(L)*AIRM(L)*BYGRAV
       PRATIO=PMI/(PML+1.E-20)
       IF(PRATIO.GT.10.) PRATIO=10.
+      PMW=(PREBAR(L+1)-PREICE(L+1))*DTsrc
+      PRATW=PML/(PMW+1.E-20)
+      IF(PRATW.GT.10.) PRATW=10.
       CBF=1.+1.*EXP(-((TL(L)-258.16d0)/10.)**2)
       CBFC0=.5*CM0*CBF*DTsrc
       PFR=(1.-EXP(-(PRATIO*PRATIO)))*(1.-EXP(-(CBFC0*CBFC0)))
@@ -1468,8 +1472,12 @@ C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
           IF(LHX.EQ.LHE) BANDF=.TRUE.
           LHX=LHS
         ENDIF
-        IF(LHXUP.EQ.LHE) LHX=LHE
-        IF(LHXUP.EQ.LHE) BANDF=.FALSE.
+        PFR=(1.-EXP(-(PRATW*PRATW)))*(1.-EXP(-(CBFC0*CBFC0)))
+        IF(PFR.GT.RANDNO.AND.LHX.EQ.LHS) BANDF=.TRUE.
+        IF(LHXUP.EQ.LHE.AND.PFR.LE.RANDNO) THEN  
+          LHX=LHE
+          BANDF=.FALSE.
+        ENDIF
       END IF
 C**** COMPUTE RELATIVE HUMIDITY
       QSATL(L)=QSAT(TL(L),LHX,PL(L))
@@ -1627,6 +1635,10 @@ C**** In such a case, no energy of phase change is needed.
       IF(L.LT.LM .AND. PREICE(L+1).GT.0. .AND. LHX.EQ.LHE) THEN
         HPHASE=LHM*PREICE(L+1)*GRAV*BYAM(L)
         PREICE(L+1)=0.
+      ENDIF
+C**** PHASE CHANGE OF PRECIP, FROM WATER TO ICE
+      IF(BANDF .AND. LHXUP.EQ.LHE .AND. PREBAR(L+1).GT.0.) THEN
+        HPHASE=-LHM*PREBAR(L+1)*GRAV*BYAM(L)
       ENDIF
 C**** COMPUTE THE PRECIP AMOUNT ENTERING THE LAYER TOP
       IF (ER(L).eq.ERMAX) THEN ! to avoid round off problem
@@ -1822,12 +1834,12 @@ C**** ACCUMULATE SOME DIAGNOSTICS
       END DO  ! end of loop over L
 
 C**** Set final precip value and fix phase if necessary.
-C**** Super-cooled precipitation should freeze on impact with 
+C**** Super-cooled precipitation should freeze on impact with
 C**** sub-zero surfaces, but since rain temperature is not conserved
-C**** (and so rain always falls as 0 degrees) we need to freeze it 
+C**** (and so rain always falls as 0 degrees) we need to freeze it
 C**** prior to leaving the atmosphere. This fix also deals with
 C**** possibility that super-cooled water would actual freeze before
-C**** falling until this is specifically dealt with. 
+C**** falling until this is specifically dealt with.
       IF (TL(1).lt.TF .AND. SVLHXL(1).eq.LHE) THEN
         HPHASE=-LHM*PREBAR(1)*GRAV*BYAM(1)
         TL(1)=TL(1)-DTsrc*HPHASE/SHA
