@@ -16,13 +16,14 @@
 !@var mout 0:don't call dout; 1:call dout
 !@var itest longitude at which to call dout
 !@var jtest latitude at which to call dout
-      USE DYNAMICS, only : pmid,pk,pedn
+      USE DYNAMICS, only : pmid,pk,pedn,pdsig,plij
       USE MODEL_COM, only :
      *      im,jm,lm,sig,sige,u,v,t,q,p
      *     ,vt_on      
-      USE CONSTANT, only : kapa,deltx
+      USE CONSTANT, only : kapa,deltx,lhe,sha
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux,egcm
-      USE GEOM, only : imaxj
+      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj
+      USE DAGCOM, only : ajl
 
       IMPLICIT NONE
 
@@ -33,6 +34,7 @@
       real*8, dimension(lm) :: rhoebydz,bydzerho
       real*8, dimension(lm) :: km,kh,ke,lscale,gm,gh,rhoij,rhoeij
       real*8, dimension(lm) :: dzij,dzeij
+      real*8, dimension(im,jm,lm) :: uold
       real*8, dimension(lm,im,jm) :: rho,rhoe
       real*8, dimension(lm,im,jm) :: dz,dzedge
       real*8, dimension(lm) :: peij,ttest
@@ -47,9 +49,9 @@
       integer, save :: ifirst=1
       real*8, save :: p1000k=1.d0
       real*8 :: uflx,vflx,tflx,qflx,pijgcm,pl,rvx
-      real*8 :: temp0,ustar2,dbll,reserv,test,check
-      integer :: loc,icount
-      integer :: i,j,l,iter  !@var i,j,l,iter loop variable
+      real*8 :: temp0,ustar2,dbll,reserv,test,check,t0ijl,rak
+      integer :: loc,icount,imax,kmax,idik,idjk
+      integer :: i,j,l,k,iter  !@var i,j,l,iter loop variable
 
       if (ifirst.eq.1) then
         p1000k=p00**kapa
@@ -153,9 +155,15 @@ c     integrate T,Q equations at tcells
           do l=1,lm
             t_virtual(l,i,j)=tij(l)/p1000k
             q(i,j,l)=max(qij(l),qmin)
+            t0ijl=t(i,j,l)
             t(i,j,l)=t_virtual(l,i,j)/(1.d0+RVX*Q(i,j,l))
             egcm(l,i,j)=eij(l)
             km_gcm(l,i,j)=km(l)
+c           ACCUMULATE DIAGNOSTICS
+            AJL(J,L,12)=AJL(J,L,12)
+     2                 +(T(I,J,L)-t0ijl)*PK(L,I,J)*PLIJ(L,I,J)
+            AJL(J,L,55)=AJL(J,L,55)
+     2                 +(Q(I,J,L)-q0ij(l))*PDSIG(L,I,J)*LHE/SHA
           end do
           dclev(i,j)=dbll
 c
@@ -201,6 +209,7 @@ c     call ave_to_ucell(t_virtual,tv_ucell,im,jm,lm)
             rhoij(l)=rho_ucell(l,i,j)
             u0ij(l)=uij(l)
             v0ij(l)=vij(l)
+            uold(i,j,l)=uij(l)
           end do
           do l=1,lm-1
             dzij(l)=dz_ucell(l,i,j)
@@ -225,6 +234,23 @@ c         vflx  =vflux_ucell(i,j)
  
         end do loop_i_uv 
       end do loop_j_uv
+
+c     ACCUMULATE DIAGNOSTICS
+      DO J=1,JM
+        IMAX=IMAXJ(J)
+        KMAX=KMAXJ(J)
+        DO I=1,IMAX
+           DO L=1,LM
+             DO K=1,KMAX
+               RAK=RAVJ(K,J)
+               IDIK=IDIJ(K,I,J)
+               IDJK=IDJJ(K,J)
+               AJL(IDJK,L,38)=AJL(IDJK,L,38)
+     &           +(U(IDIK,IDJK,L)-uold(IDIK,IDJK,L))*PLIJ(L,I,J)*RAK
+             ENDDO
+          ENDDO
+        ENDDO
+      ENDDO 
 
       return
       end subroutine diffus
