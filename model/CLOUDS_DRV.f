@@ -11,7 +11,7 @@
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype
      *     ,ntype,itime,fim,airx,lmc,focean,fland,flice
       USE QUSDEF, only : nmom
-      USE SOMTQ_COM, only : tmom,qmom
+      USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
       USE RANDOM
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
@@ -26,14 +26,14 @@
 #ifdef TRACERS_WATER
      *     ,jls_source,taijn,tajls,tij_prec
 #endif
-      USE CLOUDS, only : tm,trmomij=>tmom      ! local  (i,j)
+      USE CLOUDS, only : tm,tmom ! local  (i,j)
      *     ,ntx,ntix              ! global (same for all i,j)
 #ifdef TRACERS_WATER
      *     ,trwml,trsvwml,trprmc,trprss
 #endif
 #endif
       USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subroutines
-     *     ,airm,byam,etal,sm,smomij=>smom,qm,qmomij=>qmom
+     *     ,airm,byam,etal,sm,smom,qm,qmom
      *     ,tl,ris,ri1,ri2,aj8,aj11,aj13,aj50,aj51,aj52,aj53,aj57
      *     ,wml,sdl,u_0,v_0,um,vm,qs,us,vs,dcl,airxl,prcpss,hcndss
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl
@@ -202,10 +202,10 @@ C
          WMIL(:,L) = WM(:,J,L)
       END DO
       DO L=1,LM
-         TMOMIL(:,:,L) = TMOM(:,:,J,L)
+         TMOMIL(:,:,L) = T3MOM(:,:,J,L)
       END DO
       DO L=1,LM
-         QMOMIL(:,:,L) = QMOM(:,:,J,L)
+         QMOMIL(:,:,L) = Q3MOM(:,:,J,L)
       END DO
 Cred* end Reduced Arrays 2
 #ifdef TRACERS_ON
@@ -250,13 +250,13 @@ C**** other fields where L is the leading index
       DO L=1,LM
 C**** TEMPERATURES
         SM(L)  =T(I,J,L)*AIRM(L)
-Cred    SMOMIJ(:,L) =TMOM(:,I,J,L)*AIRM(L)
-        SMOMIJ(:,L) =TMOMIL(:,I,L)*AIRM(L)
+Cred    SMOM(:,L) =T3MOM(:,I,J,L)*AIRM(L)
+        SMOM(:,L) =TMOMIL(:,I,L)*AIRM(L)
         TL(L)=T(I,J,L)*PLK(L)
 C**** MOISTURE (SPECIFIC HUMIDITY)
         QM(L)  =Q(I,J,L)*AIRM(L)
-Cred    QMOMIJ(:,L) =QMOM(:,I,J,L)*AIRM(L)
-        QMOMIJ(:,L) =QMOMIL(:,I,L)*AIRM(L)
+Cred    QMOM(:,L) =Q3MOM(:,I,J,L)*AIRM(L)
+        QMOM(:,L) =QMOMIL(:,I,L)*AIRM(L)
 Cred    WML(L)=WM(I,J,L)
         WML(L)=WMIL(I,L)
 C**** others
@@ -273,7 +273,7 @@ C**** TRACERS: Use only the active ones
       do nx=1,ntx
       do l=1,lm
         tm(l,nx) = trm(i,j,l,ntix(nx))
-        trmomij(:,l,nx) = trmom(:,i,j,l,ntix(nx))
+        tmom(:,l,nx) = trmom(:,i,j,l,ntix(nx))
       end do
       end do
 #endif
@@ -583,11 +583,11 @@ C**** WRITE TO GLOBAL ARRAYS
         T(I,J,L)=TH(L)
         Q(I,J,L)=QL(L)
 C**** update moment changes
-Cred    TMOM(:,I,J,L)=SMOMIJ(:,L)*BYAM(L)
-Cred    QMOM(:,I,J,L)=QMOMIJ(:,L)*BYAM(L)
+Cred    T3MOM(:,I,J,L)=SMOM(:,L)*BYAM(L)
+Cred    Q3MOM(:,I,J,L)=QMOM(:,L)*BYAM(L)
 Cred    WM(I,J,L)=WMX(L)
-        TMOMIL(:,I,L)=SMOMIJ(:,L)*BYAM(L)
-        QMOMIL(:,I,L)=QMOMIJ(:,L)*BYAM(L)
+        TMOMIL(:,I,L)=SMOM(:,L)*BYAM(L)
+        QMOMIL(:,I,L)=QMOM(:,L)*BYAM(L)
         WMIL(I,L)=WMX(L)
 
 C**** UPDATE MODEL WINDS
@@ -625,7 +625,7 @@ C**** TRACERS: Use only the active ones
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
 #endif
           trm(i,j,l,n) = tm(l,nx)
-          trmom(:,i,j,l,n) = trmomij(:,l,nx)
+          trmom(:,i,j,l,n) = tmom(:,l,nx)
           tajln(j,l,jlnt_lscond,n) = tajln(j,l,jlnt_lscond,n) +
      &          (tm(l,nx)-tmsave(l,nx))
 #ifdef TRACERS_WATER
@@ -656,10 +656,10 @@ C****
             WM(:,J,L) = WMIL(:,L)
          END DO
          DO L=1,LM
-            TMOM(:,:,J,L) = TMOMIL(:,:,L)
+            T3MOM(:,:,J,L) = TMOMIL(:,:,L)
          END DO
          DO L=1,LM
-            QMOM(:,:,J,L) = QMOMIL(:,:,L)
+            Q3MOM(:,:,J,L) = QMOMIL(:,:,L)
          END DO
 Cred*       end Reduced Arrays 3
       END DO
