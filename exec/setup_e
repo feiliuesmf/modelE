@@ -82,9 +82,9 @@
    echo "0Run $RUNID"  > $RUNID/$RUNID.PRT
 
 ## Move executable from current directory to $p/$RUNID
-   if [[ ! -f $RUNID.exe ]] ; then echo $RUNID.exe not found; exit 1; fi
+   if [[ ! -f $RUNID.bin/$RUNID.exe ]] ; then echo $RUNID.exe not found; exit 1; fi
 
-   mv -f $RUNID.exe $p/$RUNID/$RUNID.exe
+   cp -f $RUNID.bin/$RUNID.exe $p/$RUNID/$RUNID.exe
 
 ## Read RFILE until "Data input files:" is encountered
    read VAR1 VAR2 VAR3
