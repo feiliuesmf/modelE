@@ -80,17 +80,28 @@ c**** assuming CO2 displaces other gases equally M_A=28.9602 + n*0.00527
 c**** where n is multiple of present day CO2 conc (350 ppm)
 c**** For 4xCO2  M_A = 28.9813  => rgas = 286.89
 c**** For 10xCO2 M_A = 29.0129  => rgas = 286.58
-c      real*8,parameter :: rgas =287.05d0  
+!param gasc  gas constant J/mol K
+c     real*8,parameter :: gasc = 8.314510d0
+!@param mair molecular weight of dry air 
+c     real*8,parameter :: mair = 28.9655d0 
+c     real*8,parameter :: rgas = 1d3 * gasc / mair ! = 287.05...
       real*8,parameter :: rgas = 287.
 
 !@param rvap  gas constant for water vapour (J/K kg)
 c**** defined as R/M_W = 1000* 8.314510 J/mol K /18.015 g/mol
-c      real*8,parameter :: rvap =461.53d0
+!@param mwat molecular weight of water vapour 
+c     real*8,parameter :: mwat = 18.015d0 
+c     real*8,parameter :: rvap = 1d3 * gasc / mwat ! = 461.5...
       real*8,parameter :: rvap = 461.5
+
+!@param mrat  mass ratio of air to water vapour 
+c     real*8,parameter :: mrat = mwat/mair    ! = 0.62197....
 
 !@param kapa ideal gas law exponent  (1)
 c**** constant = (g-1)/g where g=1401 = c_p/c_v 
-c      real*8,parameter :: kapa =.2862d0   ! best value
+!@param srat ratio of specific heats of air and vapour
+c     real*8,parameter :: srat = 1401d0
+c     real*8,parameter :: kapa = (srat - 1.)/srat  ! =.2862....
       real*8,parameter :: kapa = .286     !d0
 !@param bykapa,bykapap1,bykapap2 various useful reciprocals of kapa
       real*8,parameter :: bykapa = 1./kapa
@@ -106,8 +117,15 @@ c      real*8,parameter :: kapa =.2862d0   ! best value
 c**** shv is currently assumed to be zero to aid energy conservation in
 c**** the atmosphere. Once the heat content associated with water
 c**** vapour is included, this can be set to the standard value
-c      real*8,parameter :: shv = sha/1401. ! = c_p/g
+c     real*8,parameter :: shv = sha/srat 
       real*8,parameter :: shv = 0.
+
+C**** Useful conversion factors
+
+!@param pa2mb,mb2pa conversion from Pascals to milli-bars
+      real*8,parameter :: pa2mb = 1d-2, mb2pa = 1d2
+!@param kgpa2mm,mm2kgpa conversion from kg/m^2 water to mm 
+      real*8,parameter :: kgpa2mm = 1d0, mm2kgpa = 1d0
 
 C**** Astronomical constants
 

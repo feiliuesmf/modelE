@@ -130,7 +130,7 @@ C**** ZERO OUT SURFACE DIAGNOSTICS WHICH WILL BE SUMMED OVER LONGITUDE
          BEDIFS=0.
          BERUNU=0.
          BRUNU=0.
-         JEQ=1+JM/2
+c         JEQ=1+JM/2
          IF(J.LT.JEQ) WARMER=-SPRING
          IF(J.GE.JEQ) WARMER=SPRING
       IM1=IM
@@ -491,8 +491,7 @@ C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
       SUBROUTINE GHINIT (DTSURF,SHCLC0,IUNIT,redoGH)
 C**** Modifications needed for split of bare soils into 2 types
       USE CONSTANT, only : twopix=>twopi,rhow,edpery
-      USE E001M12_COM, only : im,jm,fearth,vdata,gdata,tau
-      USE GEOM, only : FJEQ
+      USE E001M12_COM, only : im,jm,fearth,vdata,gdata,tau,jeq
       USE GHYCOM
       USE SLE001
      &  , sinday=>sint,cosday=>cost
@@ -579,7 +578,7 @@ C****
 C**** Initialize global arrays  ALA, ACS, AFB, AFR
 C****
       TWOPI=6.283185
-c      FJEQ=(JM+1)/2.
+
       ALA(:,:,:)=0.
       ACS(:,:,:)=0.
       AFB(:,:)=0.
@@ -604,7 +603,7 @@ C**** CALCULATE LAI, CS COEFFICICENTS
       SVH=0.
       DO 250 IV=1,8
       PHASE=TWOPI*LADAY(IV)/365.
-      IF(J.LT.FJEQ) PHASE=PHASE+TWOPI/2.
+      IF(J.LT.JEQ) PHASE=PHASE+TWOPI/2.
       FV=VDATA(I,J,IV+1)
       SFV=SFV+FV
       SVH=SVH+FV*VHGHT(IV)

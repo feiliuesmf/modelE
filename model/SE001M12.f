@@ -189,7 +189,7 @@ C**** ZERO OUT SURFACE DIAGNOSTICS WHICH WILL BE SUMMED OVER LONGITUDE
          ATS=0.
          BTS=0.
          CTS=0.
-         JEQ=1+JM/2
+c         JEQ=1+JM/2
          IF(J.LT.JEQ) WARMER=-SPRING
          IF(J.GE.JEQ) WARMER=SPRING
       IM1=IM
@@ -712,7 +712,7 @@ C****
      *  -2.*(DU1(1,JM)*COSI(I)+DV1(1,JM)*SINI(I))*RAPVS(JM)
  7600 V(I,JM,1)=V(I,JM,1)
      *  -2.*(DV1(1,JM)*COSI(I)-DU1(1,JM)*SINI(I))*RAPVS(JM)
-      DO 7700 J=2,JMM1
+      DO 7700 J=2,JM-1
       I=IM
       DO 7700 IP1=1,IM
       U(I,J,1)=U(I,J,1)-(DU1(I,J)+DU1(IP1,J))*RAPVS(J)

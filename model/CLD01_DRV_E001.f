@@ -26,7 +26,7 @@
 !@var UC,VC velocity work arrays
       REAL*8, DIMENSION(IM,JM,LM) :: UC,VC
 
-      INTEGER, PARAMETER :: JEQ = JM/2 + 1 !@param JEQ  N. equatorial gridpoint
+c      INTEGER, PARAMETER :: JEQ = JM/2 + 1 !@param JEQ  N. equatorial gridpoint
       REAL*8,  PARAMETER :: ENTCON = .2d0  !@param ENTCON  ???
 
       INTEGER I,J,K,L  !@var I,J,K,L loop variables
@@ -451,11 +451,12 @@ C**** ADD IN CHANGE OF MOMENTUM BY CTEI
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : rgas,grav,lhe,lhs,kapa,bysha,sday
-      USE E001M12_COM, only : dt,ncnds
+      USE E001M12_COM, only : dt,ncnds,LS1
       USE CLD01
 
       IMPLICIT NONE
 
+      LMCM = LS1-1
       DTCNDS=NCNDS*DT
       BYDTCN=1./DTCNDS
 

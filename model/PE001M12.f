@@ -563,7 +563,7 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       SPHIS=-1.
       CPHIS=0.
       DO 20 J=1,JM-1
-      PHIN=(TWOPI/(JMM1+JMM1))*(J-.5*JM)
+      PHIN=(TWOPI/(2*JM-2))*(J-.5*JM)
       SPHIN=SIN(PHIN)
       CPHIN=COS(PHIN)
       PHIM=(PHIN*SPHIN+CPHIN-PHIS*SPHIS-CPHIS)/(SPHIN-SPHIS)
@@ -944,9 +944,9 @@ C**** New options (currently not used)
       IF(CO2.GE.0.) FULGAS(2)=CO2REF*CO2
          CALL WRITER (6,0)
          INCHM=NRAD/NDYN
-         JEQ=1+JM/2
-         J50N=(50.+90.)*JMM1/180.+1.5
-         J70N=(70.+90.)*JMM1/180.+1.5
+c         JEQ=1+JM/2
+         J50N=(50.+90.)*(JM-1)/180.+1.5
+         J70N=(70.+90.)*(JM-1)/180.+1.5
 C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
          DO 43 L=1,LM
          LLOW=L

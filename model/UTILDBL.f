@@ -33,10 +33,11 @@ C****
 !@sum   EXPBYK exponentiates pressure by KAPA
 !@auth  Compiler development made original version obsolete
 !@ver   1.0
+      USE CONSTANT, only : kapa
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: X      !@var X          input pressure
       REAL*8 :: EXPBYK             !@var EXPBYK     output P^KAPA
-c      EXPBYK=X**KAPA   !should be double precision from parameter.inc
+c      EXPBYK=X**KAPA
       EXPBYK=X**.286
       RETURN
       END

@@ -382,7 +382,7 @@ C****   RXXM,RYYM,RZZM (kg) = second moments of tracer mass
 C****                M (kg) = fluid mass
 C****
       USE E001M12_COM
-     &   , ONLY : IM,JM,LM
+     &   , ONLY : IM,JM,LM,bytest=>BYIM
       IMPLICIT REAL*8 (A-H,M,O-Z)
       REAL*8 RXM(IM,JM,LM), RYM(IM,JM,LM), RZM(IM,JM,LM),
      *      RXXM(IM,JM,LM),RYYM(IM,JM,LM),RZZM(IM,JM,LM),
@@ -393,7 +393,7 @@ C****
       COMMON /WORK04/ B(JM),BM(JM), F(JM),FX(JM),FY(JM),
      *  FZ(JM),FXX(JM),FYY(JM),FZZ(JM),FXY(JM),FZX(JM),FYZ(JM)
       DIMENSION FQV(IM,JM)
-      BYIM = 1./IM
+      BYIM = 1./IM  ! to be replaced by BYIM from E001M12_COM
 C**** Loop over layers and longitudes
       DO 440 L=1,LM
       SBMS  = 0.
