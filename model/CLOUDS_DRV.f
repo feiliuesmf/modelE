@@ -34,6 +34,9 @@
       USE FILEMANAGER, only: openunit,closeunit
 #endif
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE LIGHTNING, only : RNOx_lgt
+#endif
       USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
      *     ,itcon_ss
 #ifdef TRACERS_WATER
@@ -49,9 +52,6 @@
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,dt_sulf_mc,dt_sulf_ss
 #endif
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-      USE LIGHTNING, only : i_lgt,j_lgt,RNOx_lgt
 #endif
 #endif
       USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subroutines
@@ -82,6 +82,10 @@
 c       real*8 a_sulf(im,jm),cc_sulf(im,jm)
 c       integer nc_tr,id,ixx,ix1,ixm1,iuc_s
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+!@var Lfreeze Lowest level where temperature is below freezing (TF)
+      INTEGER Lfreeze
+#endif 
 #endif
 
 !@var UC,VC,UZM,VZM velocity work arrays
@@ -187,6 +191,10 @@ C**** Find the ntx active tracers ntix(1->ntx
         ntix(nx) = n
       end do
       ntx = nx
+#ifdef TRACERS_SPECIAL_Shindell
+C**** Make sure the NOx from lightning is initialized:
+      RNOx_lgt=0.
+#endif
 #endif
 C****
 C**** MAIN J LOOP
@@ -201,6 +209,9 @@ C****
 !$OMP*  DH1S,DH12,DTDZ,DTDZG,DTDZS,DUDZ,DUDZG,DUDZS,DVDZ,DVDZG,DVDZS,
 !$OMP*  DTAU_S,DTAU_C,DEM_S,DEM_C, FQ_ISCCP, ENRGP,EPRCP,
 !$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IDI,IDJ,
+#ifdef TRACERS_SPECIAL_Shindell
+!$OMP*  LMCMAX,Lfreeze,
+#endif
 !$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 !$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT, WMERR,
@@ -321,14 +332,6 @@ C**** temperature of precip is based on pre-mstcnv profile
 
 C**** SET DEFAULT FOR AIR MASS FLUX (STRAT MODEL)
       AIRX(I,J)=0.
-
-#ifdef TRACERS_SPECIAL_Shindell
-C**** Save current i,j for lightning calculation in MSTCNV:
-       i_lgt = i
-       j_lgt = j
-       RNOx_lgt(i,j) = 0.
-#endif
-
 C****
 C**** Energy conservation note: For future reference the energy function
 C**** for these column calculations (assuming energy reference level
@@ -352,6 +355,21 @@ C**** Error reports
 ccc     if (ierr.eq.2) call stop_model("Subsid error: abs(c) > 1",255)
         if (ierr.eq.2) ickerr = ickerr + 1
       end if
+C
+#ifdef TRACERS_SPECIAL_Shindell
+C**** Calculate NOx from lightning:
+C**** first, need the local freezing level:
+      IF(LMCMAX.gt.0)THEN
+        Lfreeze=1
+        DO L=1,LMCMAX
+          IF(T(I,J,L)*PK(L,I,J).lt.TF) THEN
+            Lfreeze=L
+            EXIT
+          END IF
+        END DO
+        CALL calc_lightning(I,J,LMCMAX,Lfreeze) 
+      END IF
+#endif
 
 C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
       IF (LMCMIN.GT.0) THEN
