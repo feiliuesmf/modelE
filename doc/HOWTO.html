@@ -300,9 +300,11 @@ workstations. For Linux, Macs or PCs, the choice of compiler is wider,
 and we have not been able to test all possibilities. The Absoft
 ProFortran compiler works well, as do the Lahey/Fujitsu and Portland
 Group compilers. We have been unable (as yet) to get the model to
-compile with the Intel or VAST compilers due to internal errors in
-those products. Please let us know if you succeed (or more
-importantly, fail) in compiling the code using any other compiler.</p>
+compile with the VAST compilers due to internal errors in those
+products. For the NAG and Intel compilers (versions 7.1.037, and
+version 8) some support is offered, but there are a couple of issues
+(see below). Please let us know if you succeed (or more importantly,
+fail) in compiling the code using any other compiler.</p>
 
 <p> Note that the parallelization used in the code is based on the
 OpenMP shared memory architecture. This is not appropriate for
@@ -313,23 +315,54 @@ are moving towards a domain decomposition/MPI approach (which will be
 clear if you look at the code), but this effort is not yet complete or
 functional.</p>
 
-<p> Many GCM subroutines declare temporary arrays which, in FORTRAN, reside in
-a part of the computer's memory known in computer parlance as the "stack."
-It is essential that a user's stack size be large enough to accommodate these
-arrays.
-It is recommended that the stack is set to at least 32768 KB for the
-basic 12 layer 4x5 grid run. Runs with higher resolutions and/or
-tracers may require bigger stack.
+<p> Many GCM subroutines declare temporary arrays which, in FORTRAN,
+reside in a part of the computer's memory known in computer parlance
+as the "stack."  It is essential that a user's stack size be large
+enough to accommodate these arrays.  It is recommended that the stack
+is set to at least 32768 KB for the basic 12 layer 4x5 grid run. Runs
+with higher resolutions and/or tracers may require bigger stack.
 Default stack sizes vary among different computing environments, but
 can be easily adjusted. Stack size is set by commands native to a
-user's  $SHELL; for example, a <tt>bash</tt> user would type
-<tt>ulimit -s 32768</tt> to set  a stack size of 32768 kb. Mysterious
-crashes in the radiation are  quite often related to
-a too small stack. It is possible to declare the required stack size
-inside the GCM configuration files in which case the GCM scripts will
-attempt to allocate appropriate stack before running the model (see
-the section <A HREF="#part1_1g"> How to specify the stack size for a
-particular run</A>  of this document).</p>
+user's $SHELL; for example, a <tt>bash</tt> user would type <tt>ulimit
+-s 32768</tt> to set a stack size of 32768 kb. Mysterious crashes in
+the radiation are quite often related to a too small stack. It is
+possible to declare the required stack size inside the GCM
+configuration files in which case the GCM scripts will attempt to
+allocate appropriate stack before running the model (see the section
+<A HREF="#part1_1g"> How to specify the stack size for a particular
+run</A> of this document).</p>
+
+<p>
+<ul> <bf>Compiler peculiarities</bf>
+<li> <ul>Intel (version 7.1.037): 
+	<li> In RAD_COM.f comment out line 10 "SAVE"
+	<li> function mark in DIAG.f does not work. Replace 
+	whole routine with mark=" ". 
+	<li> If on a little-endian machine, the reading and writing of
+	the Param derived type in read_param, write_param (and
+	read_param_comp01) (PARAM.f) must be replaced with reading/writing of
+	the individual elements. i.e. replace 
+<pre>
+      read( kunit, err=10 ) HEADER,
+	....
+     *     (LParams(n), n=1,min(lnum_param,MAX_PARAMS) ),
+</pre>
+	with
+<pre>
+     *     (LParams(n)%name,LParams(n)%indx,LParams(n)%dim,
+     *       LParams(n)%attrib, n=1,min(lnum_param,MAX_PARAMS) ),
+</pre>
+	and similarly for the writes.
+     </ul>
+
+<li> <ul>Intel (version 8.0.046):	
+	<li> While the model compiles, some automatic arrays are not 
+	properly dimensioned and so hard coding of array sizes is 
+        necessary. Many (all?) <tt>(grid%j_strt:grid%j_stop)</tt> type 
+        constructions need to be replaced with <tt>(JM)</tt> etc. We
+	have not verified that this does actually fix all problems.
+     </ul>	
+</ul>
 
 <hr>
 
@@ -1395,16 +1428,18 @@ could be chosen, but are probably not very useful.</p>
 
 <p>Producing more frequent diagnostics is controlled by the SUBDAILY
 module. The frequency of saving is controlled by the variable
-<tt>Nsubdd</tt> which is the number of hours between each snapshot
-(i.e. <tt>Nsubdd=1</tt> implies hourly diags, =24 daily).  The
-variables saved are controlled by the string <tt>SUBDD</tt>, which is
-a space seperated list of names for the required diagnostics.  These
-are currently limited to instantaneous values of some standard fields
-(SAT, PS, PREC, SLP, QS, LCLD, MCLD, HCLD, PTRO, QLAT, QSEN, SWD,
-SWU, LWD, STX, STY, ICEF, SNOWD, TCLD, SST, SIT), the
-geopotential height, relative humidity and temperature on any (or all)
-of the following fixed pressure levels (if available): 1000, 850, 700,
-500, 300, 100, 30 , 10, 3.4, 0.7, .16, .07, .03, and velocities on any
+<tt>Nsubdd</tt> which is the number of internal timesteps between each
+snapshot (i.e. <tt>Nsubdd=1</tt> implies diags every timestep, =24
+daily (if dtsrc=3600), =48 is daily for dtsrc=1800).  The variables
+saved are controlled by the strings <tt>SUBDD, SUBDD1</tt>, which are
+space seperated lists of names for the required diagnostics.  These
+are currently limited to instantaneous values (with some exceptions as
+noted below) of some standard fields (SLP, PS, SAT, PREC, QS, LCLD,
+MCLD, HCLD, PTRO QLAT, QSEN, SWD, SWU, LWD, LWU, LWT, STX, STY, ICEF,
+SNOWD, TCLD, SST, SIT, US, VS, TMIN, TMAX), the geopotential height,
+relative and specific humidity and temperature on any (or all) of the
+following fixed pressure levels (if available): 1000, 850, 700, 500,
+300, 100, 30 , 10, 3.4, 0.7, .16, .07, .03, and velocities on any
 model level. The fixed pressure level diags are set using Z850, R700
 and T100, for instance, to request the 850 mb geopotential height, 700
 mb relative humidity and 100 mb temperatures, respectively. Requests
@@ -1424,6 +1459,17 @@ fields. Each timeseries will be output one month at a time in files
 named SLPmmmyyyy and SATmmmyyyy (for example) for each month and
 year. Restarts will find the appropriate file and continue to append
 records as would be expected.</p>
+
+<p> There are three minor special cases to the procedure outlined
+above. i) PREC will give the accumulated precipitation over the Nsubdd
+period. ii) TMIN and TMAX are the minimum and maximum daily composite
+surface air temperatures at each grid point, and therefore can only be
+output once a day. Note that Nsubdd must divide into the daily number
+of internal timesteps for this to work properly. i.e. if dtsrc=1800s,
+there are 48 internal time steps per day. If Nsubdd=6 (denoting 3
+hourly output), TMIN and TMAX will be output correctly at midnight UTC once a
+day. However, if Nsubdd=5 (2.5 hourly output), TMIN and TMAX will only
+be output every five days as the output hour coincides with midnight UTC.</p>
 
 <p>You can easily keep track of the running average of all the
 printout diagnostics using the NIPRNT switch in the parameter
