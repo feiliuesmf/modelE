@@ -547,8 +547,9 @@ C**** Calculate previous ice mass (before fluxes applied)
 C**** Calculate extra mass flux to ocean, balanced by deep removal
       RUN4O=-EVAPO+RVRRUN  ! open ocean
       RUN4I=-EVAPI+RVRRUN  ! under ice
-      ERUN4O=RUN4O*TGW*SHW ! corresponding heat flux at bottom (open)
-      ERUN4I=RUN4I*TGW*SHW !                              (under ice)
+! force energy consveration
+      ERUN4O=0. ! RUN4O*TGW*SHW ! corresponding heat flux at bottom (open)
+      ERUN4I=0. ! RUN4I*TGW*SHW !                              (under ice)
 
 C**** Calculate heat fluxes to ocean
       ENRGO  = FODT+OTDT+RVRERUN-ERUN4O ! in open water
@@ -891,7 +892,7 @@ C**** Calculate effect of lateral melt of sea ice
 
 C**** Additional mass (precip) is balanced by deep removal
             RUN4=PRCP
-            ERUN4=RUN4*TGW*SHW
+            ERUN4=0. ! RUN4*TGW*SHW ! force energy consveration
 
             IF (POICE.LE.0.) THEN
               ENRGW=TGW*WTRO*SHW + ENRGP - ERUN4
@@ -1072,7 +1073,7 @@ C****
         IF (FOCEAN(I,J).gt.0) THEN
           TGW  = TOCEAN(1,I,J)
           RUN4  = MSICNV(I,J)
-          ERUN4 = TGW*SHW*RUN4
+          ERUN4 = 0.  ! TGW*SHW*RUN4 ! force energy consveration
 C**** Ensure that we don't run out of ocean if ice gets too thick
           IF (POICE.GT.0) THEN
             Z1OMIN=1.+FWSIM(I,J)/(RHOWS*RSI(I,J))
