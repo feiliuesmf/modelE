@@ -261,8 +261,11 @@ C****      10  SHDT   (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
 C****      11  EVHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
 C****      12  SRHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
 C****
+C**** Extra array needed for dealing with advected ice
+C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
+C****
 !@param KOA number of diagnostics needed for ocean heat transp. calcs
-      INTEGER, PARAMETER :: KOA = 12
+      INTEGER, PARAMETER :: KOA = 13  ! 12
       REAL*8, DIMENSION(IM,JM,KOA) :: OA
 
 C****

@@ -328,9 +328,9 @@ C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS
 C****
       IF (Kvflxo.NE.0.) THEN
          IF (MOD(Itime,NDAY).eq.0) THEN
-            call WRITEI (iu_vflxo,Itime,OA,2*im*jm*12)
+            call WRITEI (iu_vflxo,Itime,OA,2*im*jm*koa)
 C**** ZERO OUT INTEGRATED QUANTITIES
-            OA(:,:,4:12)=0.
+            OA(:,:,4:KOA)=0.
          ELSEIF (MOD(Itime,NDAY/2).eq.0) THEN
             call vflx_OCEAN
          END IF
