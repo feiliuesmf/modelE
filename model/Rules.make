@@ -119,7 +119,7 @@ FORCE:
 	@touch .timestamp
 	@echo -n Compiling $<...
 	@if [ $(COMPILER) = Absoft ] ; then cpp -traditional -E $(CPPFLAGS) $< $*.F ; $(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $*.F  $(COMP_OUTPUT) ; rm $*.F ; else $(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $*.f  $(COMP_OUTPUT) ; fi
-	-@if [ -s `ls *.mod | tail -1 ` ] ; then for i in *.mod; do if [ ! -s $$i.sig ] || [ $$i -nt $$i.sig ] ; then echo $@ > $$i.sig; fi; done; fi
+	-@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; do if [ ! -s $$i.sig ] || [ $$i -nt $$i.sig ] ; then echo $@ > $$i.sig; fi; done; fi 
 	@touch -r .timestamp $@
 ifdef COMP_OUTPUT
 	@if [ -s $*.ERR ] ; then echo ; cat $*.ERR; else echo Done ; rm -f $*.ERR; fi

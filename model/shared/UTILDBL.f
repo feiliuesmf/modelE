@@ -408,6 +408,36 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       stop 'io_POS: read error'
       END subroutine io_POS
 
+      SUBROUTINE CHECK3(A,IN,JN,LN,SUBR,FIELD)
+!@sum  CHECK3 Checks for NaN/INF in real 3-D arrays
+!@auth Original development team
+!@ver  1.0
+      IMPLICIT NONE
+
+!@var IN,JN,LN size of 3-D array
+      INTEGER, INTENT(IN) :: IN,JN,LN
+!@var SUBR identifies where CHECK3 was called from
+      CHARACTER*6, INTENT(IN) :: SUBR
+!@var FIELD identifies the field being tested
+      CHARACTER*2, INTENT(IN) :: FIELD
+!@var A array being tested
+      REAL*8, DIMENSION(IN,JN,LN),INTENT(IN) :: A
+      LOGICAL QCHECK3
+      INTEGER I,J,L !@var I,J,L loop variables
+
+      DO L=1,LN
+      DO J=1,JN
+      DO I=1,IN
+        IF (.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.)) THEN
+          WRITE (6,*) FIELD,': ',I,J,L,A(I,J,L),'after ',SUBR
+          IF (J.LT.JN.AND.J.GT.1) QCHECK3 = .TRUE.
+        END IF
+      END DO
+      END DO
+      END DO
+      IF (QCHECK3) STOP 'CHECK3'
+      RETURN
+      END SUBROUTINE CHECK3
 
 #ifdef TEST_FM
       program test_FM

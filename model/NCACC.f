@@ -126,8 +126,8 @@ c ajl
 c-----------------------------------------------------------------------
       dimids(1)=lat_did
       dimids(2)=sig_did
-      call ncdefarr(name_jl,lname_jl,units_jl,
-     &     ncid,kajl,nf_real,2,dimids)
+      call ncdefarr(sname_jl,lname_jl,units_jl,
+     &     ncid,kajlx,nf_real,2,dimids)
 c-----------------------------------------------------------------------
 c asjl
 c-----------------------------------------------------------------------
@@ -199,8 +199,8 @@ c ajk
 c-----------------------------------------------------------------------
       dimids(1)=latb_did
       dimids(2)=sig_did
-      call ncdefarr(name_jk,lname_jk,units_jk,
-     &     ncid,kajk,nf_real,2,dimids)
+      call ncdefarr(sname_jk,lname_jk,units_jk,
+     &     ncid,kajkx,nf_real,2,dimids)
 c-----------------------------------------------------------------------
 c aijk
 c-----------------------------------------------------------------------
@@ -239,7 +239,7 @@ c-----------------------------------------------------------------------
       enddo
       call ncwrtdbl(name_reg,ncid,nreg,kaj,areg)
       call ncwrtdbl(name_pj,ncid,jm,kapj,apj)
-      call ncwrtdbl(name_jl,ncid,jm*lm,kajl,ajl)
+      call ncwrtdbl(sname_jl,ncid,jm*lm,kajlx,ajl)
       call ncwrtdbl(name_sjl,ncid,jm*lm_req,kasjl,asjl)
       call ncwrtdbl(name_ij,ncid,im*jm,kaij,aij)
       call ncwrtdbl(name_il,ncid,im*lm,kail,ail)
@@ -250,7 +250,7 @@ c-----------------------------------------------------------------------
       var_name='ADIURN'; call ncwrtdbl1(var_name,ncid,adiurn)
       call ncwrtdbl(name_wave,ncid,re_and_im*Max12hr_sequ*NWAV_DAG,
      &     kwp,wave)
-      call ncwrtdbl(name_jk,ncid,jm*lm,kajk,ajk)
+      call ncwrtdbl(sname_jk,ncid,jm*lm,kajkx,ajk)
       call ncwrtdbl(name_ijk,ncid,im*jm*lm,kaijk,aijk)
 c-----------------------------------------------------------------------
 c close netcdf file

@@ -41,6 +41,7 @@ c      INTEGER, PARAMETER :: LMOM = 9    ! good for 1000m
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER :: iu_tg3m,iu_EDDY,L
+      CHARACTER*80 TITLE
 
 !@param FAC ratio of adjacent deep ocean layers 
 C**** NOTE: For LMOM is 9 this value gives a total depth of 1000m

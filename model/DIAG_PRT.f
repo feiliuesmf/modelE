@@ -3255,7 +3255,7 @@ c**** Find, then display the appropriate array
         if (k .gt. 0 .and. Qk(k)) then
           call ij_mapk (k,smap,smapj,gm,jgrid,irange,name,lname,units)
           title=trim(lname)//' ('//trim(units)//')'
-          call cmap(smap,smapj,gm,irange,title,line,kcolmn,nlines)
+          call maptxt(smap,smapj,gm,irange,title,line,kcolmn,nlines)
           if(qcheck) call pout_ij(title//xlb,name,lname,units,
      *                            smap,smapj,gm,jgrid)
           Qk(k) = .false.
@@ -3301,8 +3301,8 @@ C****
       END SUBROUTINE DIAGIJ
 
 
-      subroutine cmap (smap,smapj,gm,irange,title,line,kcol,nlines)
-!@sum cmap prints a maplet onto 1/3 of a virtual half-page line(1-51)
+      subroutine maptxt (smap,smapj,gm,irange,title,line,kcol,nlines)
+!@sum  maptxt prints a maplet onto 1/3 of a virtual half-page line(1-51)
 !@auth R.Ruedy
 !@ver  1.0
       use model_com, only : im,jm,fland
@@ -3384,7 +3384,7 @@ c**** last line: legend (there is a little more space in col 1 and 2)
       nlines = k+1
 
       return
-      end subroutine cmap
+      end subroutine maptxt
 
 
       SUBROUTINE IJMAP (title,smap,smapj,jgrid)
