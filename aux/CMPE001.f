@@ -138,9 +138,6 @@ C**** compatibility across model configurations)
      &     yC2O31,yROR1,yXO21,yAldehyde1,yXO2N1,yRXPAR1,
      &     yNO32,pHOx2,pNOx2,pOx2,yCH3O22,yC2O32,yROR2,yXO22,
      &     yAldehyde2,yXO2N2,yRXPAR2,temp1,temp2
-      REAL*8, DIMENSION(JM,4,12) :: corrOx1,corrOx2
-      REAL*8, DIMENSION(LM,JM,IM):: O3DLJI1,O3DLJI_clim1,
-     &     O3DLJI2,O3DLJI_clim2
       REAL*8, DIMENSION(jppj,IM,JM,LM) :: ss1,ss2
 #endif
 #endif
@@ -244,8 +241,7 @@ C**** check which ocean
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *        ,yNO31,pHOx1,pNOx1,pOx1,yCH3O21,yC2O31,yROR1,yXO21
-     *        ,yAldehyde1,yXO2N1,yRXPAR1,corrOx1,O3DLJI1,O3DLJI_clim1
-     *        ,ss1
+     *        ,yAldehyde1,yXO2N1,yRXPAR1,ss1
 #endif
 #endif
          if (debug) write(0,*) 'trying to read diag'
@@ -360,8 +356,7 @@ c        if (debug) write(0,*) 'trying to read icedyn'
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *        ,yNO32,pHOx2,pNOx2,pOx2,yCH3O22,yC2O32,yROR2,yXO22
-     *        ,yAldehyde2,yXO2N2,yRXPAR2,corrOx2,O3DLJI2,O3DLJI_clim2
-     *        ,ss2
+     *        ,yAldehyde2,yXO2N2,yRXPAR2,ss2
 #endif
 #endif
 c        if (debug) write(0,*) 'trying to read diag'
@@ -499,9 +494,6 @@ C****
       ERRQ=COMP8('yAldeh',IM,JM,LM    ,yAldehyde1,yAldehyde2).or. ERRQ
       ERRQ=COMP8('yXO2N ',IM,JM,LM    , yXO2N1  , yXO2N2  )  .or. ERRQ
       ERRQ=COMP8('yRXPAR',IM,JM,LM    , yRXPAR1 , yRXPAR2 )  .or. ERRQ
-      ERRQ=COMP8('corrOx',JM, 4,12    , corrOx1 , corrOx2 )  .or. ERRQ
-      ERRQ=COMP8('O3DLJI',40,JM,IM    , O3DLJI1 , O3DLJI2 )  .or. ERRQ
-      ERRQ=COMP8('O3clim',40,JM,IM,O3DLJI_clim1,O3DLJI_clim2).or. ERRQ
       DO K1=1,JPPJ
         WRITE(6,*)'K1=',K1
         temp1(:,:,:) = ss1(K1,:,:,:)
