@@ -24,7 +24,7 @@ C****
       USE CLD01_COM_E001, only : PREC,TPREC
       USE DAGCOM, only : aj,bj,cj,dj,aij,jreg
       USE OCEAN, only : ODATA,OA,XSI1,XSI2,XSI3,XSI4,R2,R3,TTRUNC,Z1I
-     *     ,Z2OIM,ACE1I,AC2OIM,TFO
+     *     ,Z2OIM,ACE1I,AC2OIM,TFO,Z1O
 
       IMPLICIT REAL*8 (A-H,O-Z)
 C*
@@ -34,7 +34,6 @@ C*
 
       DATA Z1E/.1/,Z2LI/2.9/
 
-      DATA IFIRST/1/
 C****
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
@@ -67,8 +66,6 @@ C*
 C*    PREC   - Precipitation from atmosphere (kg/m^2)
 C*    EPRCP  - Energy of precipitation (J/m^2)
 C*
-      IF (IFIRST.NE.1) GO TO 10
-      IFIRST=0
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
@@ -76,7 +73,6 @@ C****
       HC1I=ACE1I*SHI
       HC1DE=Z1E*1129950.
 C*
-   10 CONTINUE
 C*
       DO 980 J=1,JM
       IMAX=IMAXJ(J)
@@ -1482,7 +1478,7 @@ C****
       USE PBLCOM, only : tsavg
       USE DAGCOM, only : aj,bj,cj,dj,aij,jreg
       USE OCEAN, only : odata,XSI1,XSI2,XSI3,XSI4,R1,R2,R3,R4,TTRUNC,Z1I
-     *     ,Z2OIM,ACE1I,AC2OIM,OTA,OTB,OTC,TFO,T50
+     *     ,Z2OIM,ACE1I,AC2OIM,OTA,OTB,OTC,TFO,T50,Z1O
 
       IMPLICIT REAL*8 (A-H,O-Z)
 C*
@@ -1495,7 +1491,6 @@ C*
 
       DATA ALAMI/2.1762/,Z2LI/2.9/,Z1E/.1/,Z2E/4./,Z2OIX/4.9/
 
-      DATA IFIRST/1/
 C****
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
@@ -1534,12 +1529,6 @@ C*
         END DO
       END DO
 C*
-      IF (IFIRST.NE.1) GO TO 50
-      IFIRST=0
-      IF (KOCEAN.NE.1) GO TO 10
-      READ (12) OTA,OTB,OTC
-C     CALL DREAD (17,OTA,IM*JM*3,OTA)
-      REWIND 12
    10 DTSRCE=NDYN*DT
 c      ACE1I=Z1I*RHOI
 c      AC2OIM=Z2OIM*RHOI

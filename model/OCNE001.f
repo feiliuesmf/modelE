@@ -6,7 +6,7 @@
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
      *     ,rhow,rhoi,shw,shi
       USE E001M12_COM, only : im,jm,lm,gdata,focean,flake,fland,fearth
-     *     ,flice,Z1O,Z12O,TAU,KOCEAN,JDATE,JDAY,MONTH
+     *     ,flice,TAU,KOCEAN,JDATE,JDAY,MONTH
       USE PBLCOM
      &     , only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
      *     cq=>cqgs,ipbl,bldata
@@ -44,6 +44,9 @@ c      REAL*8, DIMENSION(IM,JM,LMSI) :: HSI
       REAL*8, SAVE,DIMENSION(IM,JM,4) :: OTA,OTB
       REAL*8, SAVE,DIMENSION(IM,JM) :: OTC
 
+!@var Z1O ocean mixed layer depth
+!@var Z12O annual maximum ocean mixed layer depth
+      REAL*8, SAVE, DIMENSION(IM,JM) :: Z1O,Z12O
 
       REAL*8, PRIVATE,DIMENSION(IM,JM) :: DM,AOST,EOST1,EOST0,BOST
      *     ,COST,ARSI,ERSI1,ERSI0,BRSI,CRSI
@@ -552,6 +555,36 @@ C**** Check for NaN/INF in ocean data
       CALL CHECK3(ODATA,IM,JM,5,SUBR,'od')
 
       END SUBROUTINE CHECKO
+
+      SUBROUTINE OHT_INIT(IUNIT_OHT,IUNIT_MLMAX)
+!@sum READ IN OCEAN HEAT TRANSPORTS AND MAXIMUM MIXED LAYER
+!@sum DEPTHS FOR PREDICTED OCEAN RUNS
+!@auth Original Development Team
+!@ver  1.0
+! reads ocean heat transport coefficients from IUNIT_OHT
+! reads ocean max mix layer depth from IUNIT_MLMAX
+      USE E001M12_COM, only : im,jm,fland,flice,gdata
+      USE OCEAN, only : OTA,OTB,OTC,Z12O
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: IUNIT_OHT,IUNIT_MLMAX
+      INTEGER :: I,J
+C
+      READ (IUNIT_OHT) OTA,OTB,OTC
+      REWIND IUNIT_OHT
+C
+      CALL READT (IUNIT_MLMAX,0,Z12O,IM*JM,Z12O,1)
+      REWIND IUNIT_MLMAX
+C****   IF GDATA(I,J,1)<0, THE OCEAN PART WAS CHANGED TO LAND ICE
+C****   BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
+      DO J=1,JM
+         DO I=1,IM
+            IF(GDATA(I,J,1).GE.-1.) CYCLE
+            FLICE(I,J)=1-FLAND(I,J)+FLICE(I,J)
+            FLAND(I,J)=1.
+            WRITE(6,'(2I3,'' OCEAN WAS CHANGED TO LAND ICE'')') I,J
+         ENDDO
+      ENDDO
+      END SUBROUTINE OHT_INIT
 
 c      MODULE SEAICE
 c!@sum  SEAICE contains all the sea ice related subroutines

@@ -913,22 +913,14 @@ C*       adjust to give geopotential height
 c
       iunit=19 ! file containing roughness length data
       call pblini(iniPBL,iunit)
-c
-C!!!! Added 09/07/95 -rar-
-C**** READ IN MAXIMUM MIXED LAYER DEPTHS FOR PREDICTED OCEAN RUNS
+
       IF(KOCEAN.GT.0) THEN
-        CALL READT (14,0,Z12O,IM*JM,Z12O,1)
-        REWIND 14
-C****   IF GDATA(I,J,1)<0, THE OCEAN PART WAS CHANGED TO LAND ICE
-C****   BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
-        DO 764 J=1,JM
-        DO 764 I=1,IM
-        IF(GDATA(I,J,1).GE.-1.) GO TO 764
-        FLICE(I,J)=1-FLAND(I,J)+FLICE(I,J)
-        FLAND(I,J)=1.
-        WRITE(6,'(2I3,'' OCEAN WAS CHANGED TO LAND ICE'')') I,J
-  764   CONTINUE
+C read in ocean heat transports and max. mixed layer depths
+        IUNIT1=12
+        IUNIT2=14
+        CALL OHT_INIT(IUNIT1,IUNIT2)
       END IF
+
 C**** READ IN VEGETATION DATA SET: VDATA AND VADATA
       DO 765 K=1,11
   765 CALL READT (23,0,VDATA(1,1,K),IM*JM,VDATA(1,1,K),1)
