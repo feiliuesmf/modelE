@@ -2966,7 +2966,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       USE CONSTANT, only: mair,rhow
       USE MODEL_COM, only: itime,im,jm,lm,ls1
 #ifdef TRACERS_SPECIAL_Shindell
-     & ,jday,JEQ
+     & ,jday,JEQ,ptop,psf,sig
 #endif
 #ifdef TRACERS_WATER
      *  ,q,wm,flice,fearth
@@ -2997,7 +2997,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
       USE FILEMANAGER, only: openunit,closeunit
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM,only:OxIC,O3MULT,COlat,COalt,MDOFM,corrOx
+      USE TRCHEM_Shindell_COM,only:OxIC,O3MULT,COlat,COaltIN,MDOFM 
+     &  ,corrOx,LCOalt,PCOalt,COalt,JCOlat
 #endif
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr
@@ -3013,8 +3014,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       REAL*8, PARAMETER :: bymair = 1.d0/mair, byjm =1.d0/JM
 #ifdef TRACERS_SPECIAL_Shindell
 !@var imonth dummy index for choosing the right month
-!@var j2 dummy
+!@var PRES local nominal pressure for verticle interpolations
       INTEGER imonth, J2
+      REAL*8, DIMENSION(LM) :: PRES
 #endif
 
       do n=1,ntm
@@ -3324,11 +3326,15 @@ C         Apply the model-dependant stratospheric Ox corrections:
 #ifdef TRACERS_SPECIAL_Shindell
         case('CO')
 C         COlat=ppbv, COalt=no unit, TR_MM(n)*bymair=ratio of mol.wt.,
-C         AM=kg/m2, and DXYP=m2
+C         AM=kg/m2, and DXYP=m2, but first, interpolate COalt onto 
+C         model vertical grid:
+          DO L=1,LM
+            PRES(L)=SIG(L)*(PSF-PTOP)+PTOP
+          END DO
+          CALL LOGPINT(LCOalt,PCOalt,COaltIN,LM,PRES,COalt) 
           DO L=1,LM
           DO J=1,JM
-            J2=NINT(float(J)*19.*BYJM)
-            IF(J2.eq.0) J2=1
+            J2=MAX(1,NINT(float(J)*float(JCOlat)*BYJM))
             DO I=1,IM
               trm(i,j,l,n)=COlat(J2)*COalt(L)*1.D-9*TR_MM(n)*bymair*
      &        am(L,I,J)*DXYP(J)
