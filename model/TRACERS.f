@@ -752,7 +752,7 @@ C**** check whether air mass is conserved
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,
-     & yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,OxIC,corrOx,ss,
+     & yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,corrOx,ss,
      & SALBFJ,RCLOUDFJ,O3DLJI,O3DLJI_clim,JPPJ
 #endif
       IMPLICIT NONE
@@ -789,7 +789,7 @@ C**** check whether air mass is conserved
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
-     *     ,yXO2N,yRXPAR,OxIC,corrOx,SALBFJ,RCLOUDFJ,O3DLJI
+     *     ,yXO2N,yRXPAR,corrOx,SALBFJ,RCLOUDFJ,O3DLJI
      *     ,O3DLJI_clim,((ss(K1,K2,1,1),K1=1,jppj),K2=1,IM*JM*LM)
 #endif
 #ifdef TRACERS_DRYDEP
@@ -804,7 +804,7 @@ C**** check whether air mass is conserved
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *       ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
-     *       ,yXO2N,yRXPAR,OxIC,corrOx,SALBFJ,RCLOUDFJ,O3DLJI
+     *       ,yXO2N,yRXPAR,corrOx,SALBFJ,RCLOUDFJ,O3DLJI
      &       ,O3DLJI_clim,((ss(K1,K2,1,1),K1=1,jppj),K2=1,IM*JM*LM)
 #endif
 #ifdef TRACERS_DRYDEP
