@@ -1178,12 +1178,16 @@ C****
       DO KB=1,4
         DO J=1,JM
           DO L=1,LMO
-            IF (XB0(J,L,KB).ne.0.) THEN
+            IF (XB0(J,L,KB).ne.0) THEN
 #ifdef TRACERS_OCEAN
               do n=1,ntm
               if (to_per_mil(n).gt.0) then
-                XBT(j,l,kb,n)= 1d3*(XBT(j,l,kb,n)/
-     *               (XBT(j,l,kb,n_water)*trw0(n))-1.)
+                if (XBT(j,l,kb,n_water).gt.0) then
+                  XBT(j,l,kb,n)= 1d3*(XBT(j,l,kb,n)/
+     *                 (XBT(j,l,kb,n_water)*trw0(n))-1.)
+                else
+                  XBT(j,l,kb,n)=undef
+                end if
 c                XBT(j,l,kb,n)= 1d3*(XBT(j,l,kb,n)/
 c     *               ((XB0(J,L,KB)*DXYPO(J)-XBS(J,L,KB))*trw0(n))-1.)
               else
