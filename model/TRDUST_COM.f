@@ -25,8 +25,8 @@
       REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
      &     52.D-9/)
 #else !default case
-      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/2.7D-9,2.7D-9,2.7D-9,
-     &     2.7D-9/)
+      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/2.2D-9,2.2D-9,2.2D-9,
+     &     2.2D-9/)
 #endif
 #else
 #ifdef TRACERS_MINERALS
@@ -36,10 +36,10 @@
      &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,
      &     52.D-9/)
 #else !default case
-      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/2.7D-9,2.7D-9,2.7D-9,
-     &     2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,
-     &     2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,
-     &     2.7D-9/)
+      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/2.2D-9,2.2D-9,2.2D-9,
+     &     2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,
+     &     2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,
+     &     2.2D-9/)
 #endif
 #endif
 #endif
@@ -54,7 +54,7 @@
 #ifdef TRACERS_DUST_CUB_SAH
       REAL*8 :: Fracn(Ntm_dust)=(/By6,By8,By8,By8/)
 #else !default case
-      REAL*8 :: Fracn(Ntm_dust)=(/0.17D0,By4,By4,By4/)
+      REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,By4,By4,By4/)
 #endif
 #else
 #ifdef TRACERS_MINERALS
@@ -63,7 +63,7 @@
       REAL*8 :: Fracn(Ntm_dust)=(/By6,By6,By6,By6,By6,By8,By8,By8,By8,
      &     By8,By8,By8,By8,By8,By8,By8,By8,By8,By8,By8/)
 #else !default case
-      REAL*8 :: Fracn(Ntm_dust)=(/0.17D0,0.17D0,0.17D0,0.17D0,0.17D0,
+      REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,0.18D0,0.18D0,0.18D0,0.18D0,
      &     By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4/)
 #endif
 #endif
