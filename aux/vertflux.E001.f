@@ -40,7 +40,7 @@ C****
       DATA TITLE/'Uncorrected annual solar radiation (W/m**2)',
      2           'Vertical flux excluding solar radiation (W/m**2)',
      3           'Uncorrected annual vertical flux (W/m**2)',
-     4           'Corrected annual vertical flux (W/m**2), run B113I'/
+     4           'Corrected annual vertical flux (W/m**2)'/
 C****
 C**** Contents of OA(I,J,K) saved from the GCM
 C****
@@ -141,6 +141,7 @@ C****
 C* 
 C**** WRITE OUT OA(I,J,1) FOR THE LAST YEAR  
 C* 
+      write(6,*) "Output Snow amount to unit 77"
       IF (JYEAR .EQ. LAST_YEAR) THEN 
          write (tday, '(i2.2)') kday
          TITLE0='SNOW AMOUNT ON SEA ICE, '//tyear//', '//tmonth//
@@ -152,7 +153,6 @@ C*
          END DO
          END DO 
 C* 
-         write(*,*) title0
          WRITE(77) TITLE0,SNOWI 
       end if 
       end do
@@ -193,52 +193,12 @@ C****
       OAS(I,J,1) = ASR(I,J)/SYEARS
       OAS(I,J,2) = AVFXSR(I,J)/SYEARS
   810 OAS(I,J,3) = (ASR(I,J)+AVFXSR(I,J))/SYEARS
-      CALL MAP1 (IM,JM,0.,TITLE(1),OAS(1,1,1),OAS(1,1,5),1.,0.,26)
-      CALL MAP1 (IM,JM,0.,TITLE(2),OAS(1,1,2),OAS(1,1,5),1.,0.,26)
-      CALL MAP1 (IM,JM,0.,TITLE(3),OAS(1,1,3),OAS(1,1,5),1.,0.,26)
-      CALL MAP1 (IM,JM,0.,TITLE(4),OAS(1,1,4),OAS(1,1,5),1.,0.,26)
+      CALL MAP1 (IM,JM,0,TITLE(1),OAS(1,1,1),OAS(1,1,5),1.,0.,26)
+      CALL MAP1 (IM,JM,0,TITLE(2),OAS(1,1,2),OAS(1,1,5),1.,0.,26)
+      CALL MAP1 (IM,JM,0,TITLE(3),OAS(1,1,3),OAS(1,1,5),1.,0.,26)
+      CALL MAP1 (IM,JM,0,TITLE(4),OAS(1,1,4),OAS(1,1,5),1.,0.,26)
 C****
       STOP
- 555  write (*,*) ' Reached end of file ',file_name  
-c      write (*,*) ' jyear= ',jyear,' month= ',month,' day= ',kday  
+ 555  write (0,*) ' Error: Premature end of file ',file_name  
       END
-
-      SUBROUTINE CHECK3(A,IN,JN,LN,SUBR,FIELD)
-!@sum  CHECK3 Checks for NaN/INF in real 3-D arrays
-!@auth Original development team
-!@ver  1.0
-      IMPLICIT NONE
-
-!@var IN,JN,LN size of 3-D array
-      INTEGER, INTENT(IN) :: IN,JN,LN
-!@var SUBR identifies where CHECK3 was called from
-      CHARACTER*6, INTENT(IN) :: SUBR
-!@var FIELD identifies the field being tested
-      CHARACTER*2, INTENT(IN) :: FIELD
-!@var A array being tested
-      REAL*8, DIMENSION(IN,JN,LN),INTENT(IN) :: A
-
-      INTEGER I,J,L !@var I,J,L loop variables
-
-      DO L=1,LN
-         DO J=1,JN
-            DO I=1,IN
-               IF (.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.)) THEN
-                  WRITE (6,*) FIELD,': ',I,J,L,A(I,J,L),'after '
-     *                 ,SUBR
-                  IF (J.LT.JN.AND.J.GT.1) STOP 'CHECK3'
-               END IF
-            END DO
-         END DO
-      END DO
-      RETURN
-      END SUBROUTINE CHECK3
-
-
-
-
-
-
-
-
 

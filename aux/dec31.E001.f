@@ -140,7 +140,9 @@ C*
            END DO
            END DO
          END IF 
-         end do
+       end do
+       print*,"Z1O,Z12O,TOCEAN(1:3)",Z1O(71,23),Z12O(71,23),TOCEAN(1:3
+     *      ,71,23)
       end do
       CLOSE(77) 
 C****
@@ -163,7 +165,7 @@ C****
       REWIND 27
       WRITE (6,940)
 C****
-C**** PRODUCE MAPS OF OCEAN DATA ON NOVEMBER 30
+C**** PRODUCE MAPS OF OCEAN DATA ON DEC 31
 C****
       jday0=1
       IH=24*(JDAY0-1)
@@ -174,38 +176,6 @@ C****
       STOP
 C****
   940 FORMAT ('0Z1O, TG2O and TG12O written on unit 2,',
-     *  ' SEP30.M65.Z')
+     *  ' DEC31.M25OD')
       END
-
-      SUBROUTINE CHECK3(A,IN,JN,LN,SUBR,FIELD)
-!@sum  CHECK3 Checks for NaN/INF in real 3-D arrays
-!@auth Original development team
-!@ver  1.0
-      IMPLICIT NONE
-
-!@var IN,JN,LN size of 3-D array
-      INTEGER, INTENT(IN) :: IN,JN,LN
-!@var SUBR identifies where CHECK3 was called from
-      CHARACTER*6, INTENT(IN) :: SUBR
-!@var FIELD identifies the field being tested
-      CHARACTER*2, INTENT(IN) :: FIELD
-!@var A array being tested
-      REAL*8, DIMENSION(IN,JN,LN),INTENT(IN) :: A
-
-      INTEGER I,J,L !@var I,J,L loop variables
-
-      DO L=1,LN
-         DO J=1,JN
-            DO I=1,IN
-               IF (.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.)) THEN
-                  WRITE (6,*) FIELD,': ',I,J,L,A(I,J,L),'after '
-     *                 ,SUBR
-                  IF (J.LT.JN.AND.J.GT.1) STOP 'CHECK3'
-               END IF
-            END DO
-         END DO
-      END DO
-      RETURN
-      END SUBROUTINE CHECK3
-
 

@@ -53,8 +53,10 @@ C**** check for arguments
       ELSE            ! output in percentages 
         FAC = 100./TOT 
       END IF
-      WRITE (6,906) FACT*TOT,(TIMESTR(N),FAC*TIMING(N),N=1,3)
-      WRITE (6,907) (TIMESTR(N),FAC*TIMING(N),N=4,NTIMEACC)
+      IF (TOT.gt.0) THEN
+        WRITE (6,906) FACT*TOT,(TIMESTR(N),FAC*TIMING(N),N=1,3)
+        WRITE (6,907) (TIMESTR(N),FAC*TIMING(N),N=4,NTIMEACC)
+      END IF
       IF (QCALL) THEN
         call print_param(6)
 c       write (6,*) "IDACC = ",(IDACC(I),I=1,12)

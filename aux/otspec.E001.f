@@ -25,7 +25,7 @@ C**** Output:
 C****        30 - OTSPEC.RB150.M250D
 C**** Output: unit  9 - augmented restart file
 C****
-      USE CONSTANT, only : omega
+      USE CONSTANT, only : twopi,sday
       USE MODEL_COM, only: im,jm,lm,iowrite_mon,irerun  
       USE TIMINGS, only : ntimeacc,timing,timestr 
       USE OCEAN 
@@ -36,7 +36,7 @@ C****
       USE FILEMANAGER
       implicit none
       integer first_month, first_year, last_month, 
-     *        last_year, jyears, jyear, i, j, k, imax
+     *        last_year, jyears, jyear, i, j, k
       integer months, monthe, itime1, month, kday, last_day
       REAL*8 COT(IM,JM),AOT(IM,JM,4),BOT(IM,JM,4)
       REAL*4  AMPOT(IM,JM),PHAOT(IM,JM),COTS(IM,JM),TAU4
@@ -110,6 +110,7 @@ C**** Read in ocean data below mixed layer on December 31
 C*
       READ (27) Z1O,Z1O,Z1O,TG2O,TG12O,Z1O
       WRITE(6,*)'Z1O, TG2O, TG12O read on unit 27',Z1O(71,23),Z1O(71,24)
+     *     ,TG2O(71,23),TG2O(71,24),TG12O(71,23),TG12O(71,24)
 C* 
 C**** Zero out spectral coefficients
 C* 
@@ -188,9 +189,7 @@ C****
 C**** Calculate the vertical flux (J/m**2) and ocean energy (J/m**2)
 C****
       DO 310 J=1,JM
-      IMAX=IM
-      IF((J.EQ.1).OR.(J.EQ.JM))  IMAX=1
-      DO 310 I=1,IMAX
+      DO 310 I=1,IMAXJ(J)
       IF(PWATER(I,J).LE.0.)  GO TO 310
       VFX = OA(I,J,4)
      * + (1.-ROICE(I,J))*(OA(I,J,6)+OA(I,J,7)+OA(I,J,8)+XCORR*OA(I,J,5))
@@ -213,7 +212,7 @@ C*
       end do
       end do
   320 CONTINUE
-      SYEARS = 86400.*365.*JYEARS
+      SYEARS = SDAY*365.*JYEARS
 C****
 C**** SCALE AV TO W/M**2 , AE TO J/M**2 TO CALCULATE SPECTRAL COEFF
 C****
@@ -228,35 +227,31 @@ C****
 C****
 C**** Calculate the ocean transports spectral coefficients
 C****
-c      OMEG = TWOPI/(86400.*365.)
-      OMEG=OMEGA
+      OMEG = TWOPI/(SDAY*365.)
       DO 410 J=1,JM
-      IMAX=IM
-      IF((J.EQ.1).OR.(J.EQ.JM))  IMAX=1
-      DO 410 I=1,IMAX
+      DO 410 I=1,IMAXJ(J)
       IF(PWATER(I,J).LE.0.)  GO TO 410
-      COT(I,J) =               - CV(I,J)
+      COT(I,J) =                      - CV(I,J)
       DO 405 K=1,4
       AOT(I,J,K) =  BE(I,J,K)*K*OMEG - AV(I,J,K)
   405 BOT(I,J,K) = -AE(I,J,K)*K*OMEG - BV(I,J,K)
   410 CONTINUE
 C**** Compute phase and amplitude of ocean transports
       DO 420 J=1,JM
-      IMAX=IM
-      IF((J.EQ.1).OR.(J.EQ.JM))  IMAX=1
-      DO 420 I=1,IMAX
+      DO 420 I=1,IMAXJ(J)
       IF(PWATER(I,J).LE.0.)  GO TO 420
       AMPOT(I,J) = SQRT(AOT(I,J,1)*AOT(I,J,1)+BOT(I,J,1)*BOT(I,J,1))
       PHAOT(I,J) = ATAN2(BOT(I,J,1),AOT(I,J,1))*365./TWOPI
   420 COTS(I,J)  = COT(I,J)
       TAU4 = itime
-      CALL MAP1 (IM,JM,TAU4,TITLE(1),AMPOT,PWATER,1.,0.,26)
-      CALL MAP1 (IM,JM,TAU4,TITLE(2),PHAOT,PWATER,1.,0.,26)
-      CALL MAP1 (IM,JM,TAU4,TITLE(3),COTS,PWATER,1.,0.,26)
+      CALL MAP1 (IM,JM,ITIME,TITLE(1),AMPOT,PWATER,1.,0.,26)
+      CALL MAP1 (IM,JM,ITIME,TITLE(2),PHAOT,PWATER,1.,0.,26)
+      CALL MAP1 (IM,JM,ITIME,TITLE(3),COTS,PWATER,1.,0.,26)
 C****
 C**** Write ocean transports spectral coefficients to disk
 C****
       WRITE (30) BOT,AOT,COT
+      print*,"OHT comp:",BOT(71,23,1:4),AOT(71,23,1:4),COT(71,23)
 
 C**** Combine final restart file of PRESCRIBED OCEAN DATA model run
 C**** with mean & bottom temperature of 2nd ocean layer to create
@@ -311,36 +306,4 @@ C**** Output aplot format file of ocean heat transports
       STOP
  555  write (*,*) ' Reached end of file ',file_name  
       END
-
-      SUBROUTINE CHECK3(A,IN,JN,LN,SUBR,FIELD)
-!@sum  CHECK3 Checks for NaN/INF in real 3-D arrays
-!@auth Original development team
-!@ver  1.0
-      IMPLICIT NONE
-
-!@var IN,JN,LN size of 3-D array
-      INTEGER, INTENT(IN) :: IN,JN,LN
-!@var SUBR identifies where CHECK3 was called from
-      CHARACTER*6, INTENT(IN) :: SUBR
-!@var FIELD identifies the field being tested
-      CHARACTER*2, INTENT(IN) :: FIELD
-!@var A array being tested
-      REAL*8, DIMENSION(IN,JN,LN),INTENT(IN) :: A
-
-      INTEGER I,J,L !@var I,J,L loop variables
-
-      DO L=1,LN
-         DO J=1,JN
-            DO I=1,IN
-               IF (.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.)) THEN
-                  WRITE (6,*) FIELD,': ',I,J,L,A(I,J,L),'after '
-     *                 ,SUBR
-                  IF (J.LT.JN.AND.J.GT.1) STOP 'CHECK3'
-               END IF
-            END DO
-         END DO
-      END DO
-      RETURN
-      END SUBROUTINE CHECK3
-
 
