@@ -437,7 +437,8 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
      *           (U(I-1,J,L),U(I,J,L),U(I-1,J+1,L),U(I,J+1,L),
      *            V(I-1,J,L),V(I,J,L),V(I-1,J+1,L),V(I,J+1,L),
      *            T(I,J,L),Q(I,J,L),L=1,LM)
-            stop "Pressure diagnostic error"
+            write(6,*) "Pressure diagnostic error"
+            call exit_rc(11)
           END IF
         END DO
       END DO
