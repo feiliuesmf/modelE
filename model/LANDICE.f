@@ -271,7 +271,8 @@ C**** CALCULATE TG2
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
       USE DOMAIN_DECOMP, only : grid, ARRAYGATHER, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : PACK, UNPACK, PACK_COLUMN, UNPACK_COLUMN
+      USE DOMAIN_DECOMP, only : PACK_DATA, UNPACK_DATA, PACK_COLUMN, 
+     &                          UNPACK_COLUMN
       USE LANDICE_COM
       IMPLICIT NONE
 
@@ -303,7 +304,7 @@ C**** CALCULATE TG2
 
       CASE (:IOWRITE)            ! output to standard restart file
 C**** Gather into global arrays
-        CALL PACK(grid,SNOWLI,SNOWLI_GLOB)  	
+        CALL PACK_DATA(grid,SNOWLI,SNOWLI_GLOB)  	
         CALL PACK_COLUMN( grid,TLANDI,TLANDI_GLOB )  	
         IF (AM_I_ROOT())
      &    WRITE (kunit,err=10) MODULE_HEADER,SNOWLI_GLOB,TLANDI_GLOB
@@ -324,7 +325,7 @@ C**** Gather into global arrays
 C****** Get useful ESMF parameters
         CALL GET( GRID, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
 C****** Load data into distributed arrays
-        CALL UNPACK( GRID, SNOWLI_GLOB, SNOWLI,local=.true. )
+        CALL UNPACK_DATA( GRID, SNOWLI_GLOB, SNOWLI,local=.true. )
         CALL UNPACK_COLUMN( GRID, TLANDI_GLOB, TLANDI,local=.true. )
 !       SNOWLI(    1:IM,J_0H:J_1H) = SNOWLI_GLOB(1:IM,J_0H:J_1H)
 !       TLANDI(1:2,1:IM,J_0H:J_1H) = TLANDI_GLOB(1:2,1:IM,J_0H:J_1H)

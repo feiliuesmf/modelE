@@ -341,7 +341,7 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
 !@ver  1.0
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
       USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, CHECKSUM
-      USE DOMAIN_DECOMP, ONLY : PACK, UNPACK, AM_I_ROOT
+      USE DOMAIN_DECOMP, ONLY : PACK_DATA, UNPACK_DATA, AM_I_ROOT
       IMPLICIT NONE
 
       REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
@@ -618,9 +618,9 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
 C**** Pack the distributed arrays into temporary global arrays in preparation
 C**** for call to TRIDIAG.
       DO I=1,NX1
-        CALL PACK( GRID, AV(J_0H:,I), AV_GLOB(1:,I) )
-        CALL PACK( GRID, BV(J_0H:,I), BV_GLOB(1:,I) )
-        CALL PACK( GRID, CV(J_0H:,I), CV_GLOB(1:,I) )
+        CALL PACK_DATA( GRID, AV(J_0H:,I), AV_GLOB(1:,I) )
+        CALL PACK_DATA( GRID, BV(J_0H:,I), BV_GLOB(1:,I) )
+        CALL PACK_DATA( GRID, CV(J_0H:,I), CV_GLOB(1:,I) )
       END DO
 
       DO I=2,NXLCYC
@@ -660,7 +660,7 @@ C**** for call to TRIDIAG.
       END DO
 
 C**** Pack the distributed array VRT into the global array VRT_GLOB.
-      CALL PACK(GRID,VRT,VRT_GLOB)
+      CALL PACK_DATA(GRID,VRT,VRT_GLOB)
 C****DEGUB
 CCC      write(*,*)'call to tridiag in 1300 loop: i=',i,bv_glob(2,i) 
       IF (AM_I_ROOT())
@@ -668,7 +668,7 @@ CCC      write(*,*)'call to tridiag in 1300 loop: i=',i,bv_glob(2,i)
      &               U_tmp_GLOB(2),NYPOLE-1)
 
 C**** Unpack the output global arrays into the corresponding distributed ones.
-      CALL UNPACK(grid, U_TMP_GLOB, U_tmp)
+      CALL UNPACK_DATA(grid, U_TMP_GLOB, U_tmp)
 
 c      DO J=J_0S,J_NYP
 c      CVV(J)=CV(J,I)
@@ -772,9 +772,9 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
 C**** Pack the distributed arrays into temporary global arrays in preparation
 C**** for call to TRIDIAG.
       DO I=1,NX1
-        CALL PACK( GRID, AV(J_0H:,I), AV_GLOB(1:,I) )
-        CALL PACK( GRID, BV(J_0H:,I), BV_GLOB(1:,I) )
-        CALL PACK( GRID, CV(J_0H:,I), CV_GLOB(1:,I) )
+        CALL PACK_DATA( GRID, AV(J_0H:,I), AV_GLOB(1:,I) )
+        CALL PACK_DATA( GRID, BV(J_0H:,I), BV_GLOB(1:,I) )
+        CALL PACK_DATA( GRID, CV(J_0H:,I), CV_GLOB(1:,I) )
       END DO
 
       DO 1301 I=2,NXLCYC
@@ -809,7 +809,7 @@ C**** for call to TRIDIAG.
       END DO
 
 C**** Pack distributed array VRT into temporary global one.
-      CALL PACK(GRID, VRT, VRT_GLOB)
+      CALL PACK_DATA(GRID, VRT, VRT_GLOB)
 
       IF (AM_I_ROOT())
      &  CALL TRIDIAG(AV_GLOB(2,I),BV_GLOB(2,I),CV_GLOB(2,I),VRT_GLOB(2),
@@ -817,7 +817,7 @@ C**** Pack distributed array VRT into temporary global one.
 
 C**** Unpack the tridiag output global array into the corresponding distributed
 C**** one.
-      CALL UNPACK(GRID, U_TMP_GLOB, U_TMP)
+      CALL UNPACK_DATA(GRID, U_TMP_GLOB, U_TMP)
 
 c      DO J=J_0S,J_NYP
 c      CVV(J)=CV(J,I)
