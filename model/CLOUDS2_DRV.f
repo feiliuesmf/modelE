@@ -906,14 +906,15 @@ C**** TRACERS: Use only the active ones
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
 #endif
-          trm(i,j,l,n) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
-          trmom(:,i,j,l,n) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.
-     *         -fssl(l))
           tajln(j,l,jlnt_lscond,n) = tajln(j,l,jlnt_lscond,n) +
      &         tm(l,nx)-trm(i,j,l,n)*fssl(l)
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
           trwm(i,j,l,n) = trwml(nx,l)
+#endif
+          trm(i,j,l,n) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
+          trmom(:,i,j,l,n) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.
+     *         -fssl(l))
 #ifdef TRACERS_AEROSOLS_Koch
           if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
      *         H2O2_s") then
@@ -929,7 +930,6 @@ c save for cloud-sulfate correlation
             if (cm_sulft.gt.1.) cm_sulft=1.
 !nu ??      if (cm_sulft.gt.cm_sulf) cm_sulf=cm_sulft
            end if
-#endif
 #endif
         end do
 #ifdef TRACERS_WATER
