@@ -1196,6 +1196,7 @@ c****
       use model_com, only : fearth,itearth
       use geom, only : imaxj,dxyp
       use ghycom, only : snowe, tearth,wearth,aiearth,wbare,wvege,snowbv
+     *     ,fr_snow_ij,afb
       use dagcom, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_tg2,j_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
      *     ,j_snow,j_f2dt,j_f1dt,j_evap,j_type,ij_g01,ij_g07,ij_g28
@@ -1228,8 +1229,10 @@ c****
         enrgp=eprec(i,j)      ! including latent heat
 
 c**** accumulate diagnostics
-        scove=0.
-        if (snowe(i,j).gt.0.) scove=pearth
+        scove = pearth *
+     *       ( afb(i,j)*fr_snow_ij(1,i,j)
+     *       + (1.-afb(i,j))*fr_snow_ij(2,i,j) )
+        !if (snowe(i,j).gt.0.) scove=pearth
         aj(j,j_rsnow,itearth)=aj(j,j_rsnow,itearth)+scove
         areg(jr,j_rsnow)=areg(jr,j_rsnow)+scove*dxypj
         aij(i,j,ij_rsnw)=aij(i,j,ij_rsnw)+scove
