@@ -83,7 +83,7 @@
       REAL*8, INTENT(OUT) :: RUN0, SRUN0
       REAL*8 :: BYMSI2, FMSI1, FMSI2, FMSI3, FHSI1, FHSI2, FHSI3,
      *     CMPRS, SNWF, RAIN, FREZ1, MSI1, FSSI2,
-     *     FSSI3, MELT1, SMELT1, SMELT12, DSNOW, SS12, FSSI1
+     *     FSSI3, MELT1, SMELT1, DSNOW, SS12, FSSI1
 #ifdef TRACERS_WATER
 !@var TRSIL tracer amount in ice layers (kg/m^2)
       REAL*8, DIMENSION(NTM,LMI), INTENT(INOUT) :: TRSIL
@@ -115,7 +115,7 @@ C**** Calculate whether rain causes freezing or melting in first layer
 C**** Calculate remaining snow and necessary mass flux using
 C**** SNOW =SNOW  + SNWF  - CMPRS - MELT1
 C**** ACE1I=ACE1I + FREZ1 + CMPRS - FMSI2
-C**** SALTI=SALTI - SMELT12       - FSSI2
+C**** SALTI=SALTI - SMELT1        - FSSI2
 
 C**** Calculate changes to snow
       IF (SNOW+SNWF.GT.MELT1) THEN ! some snow remains
@@ -223,7 +223,7 @@ C**** Apply the tracer fluxes
 C**** Diagnostics for output
       RUN0 = MELT1+(RAIN-FREZ1) ! runoff mass to ocean
       IF (RUN0.lt.1d-13) RUN0=0. ! clean up roundoff errors
-      SRUN0 = SMELT12           ! salt in runoff
+      SRUN0 = SMELT1             ! salt in runoff
 c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)      
 
 #ifdef TRACERS_WATER
@@ -1207,6 +1207,7 @@ c**** Since albedo does as well, absorbed fractions also vary
         end if
       else
         fracvis=0.26d0 ; fracnir1=0.42d0
+        ksextvis=10.7d0 ; ksextnir1=118.d0
       end if
 
 C**** calculate sucessive fractions assuming each band is attenuated
