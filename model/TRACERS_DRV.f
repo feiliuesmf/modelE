@@ -707,9 +707,9 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       n_SO4_d1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 96.   !!!! WELCHE MASSE????? das ist sulfat atommasse.. nicht dust!!!
-          trpdens(n)=2.5d3   !kg/m3 this is sulfate value
-          trradius(n)=1.5d-6 !m
+          tr_mm(n) = 96.   !!!! Sulfat
+          trpdens(n)=2.5d3   !kg/m3 this is clay density
+          trradius(n)=0.75D-06 !m
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('SO4_d2')
@@ -717,8 +717,8 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=2.65d3   !kg/m3 this is sulfate value
-          trradius(n)=2.5d-6 !m
+          trpdens(n)=2.65d3   !kg/m3 this is silt1 value
+          trradius(n)=2.2D-06 !m
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('SO4_d3')
@@ -726,8 +726,8 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=2.65d3   !kg/m3 this is sulfate value
-          trradius(n)=3.d-6 !m
+          trpdens(n)=2.65d3   !this is silt2 value
+          trradius(n)=4.4D-06 !m this is silt2 value
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('SO4_d4')
@@ -735,8 +735,26 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=2.65d3   !kg/m3 this is sulfate value
-          trradius(n)=8.d-6 !m
+          trpdens(n)=2.65d3   !kg/m3 this is silt3 value
+          trradius(n)=6.7D-06 !m this is silt3 value
+          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+      case ('SO4_s1')
+      n_SO4_s1 = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 96.   !!!! Sulfat
+          trpdens(n)=1.7d3   !kg/m3 
+          trradius(n)=3.d-7 !m
+          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+      case ('SO4_s2')
+      n_SO4_s2 = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 96.   !!!! Sulfat
+          trpdens(n)=1.7d3   !kg/m3 this is clay density
+          trradius(n)=3.D-7 !m
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 #endif
@@ -869,6 +887,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           trradius(n)=0.75D-06
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
       CASE('Silt1')
       n_silt1=n
           ntm_power(n)=-9
@@ -876,6 +895,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           trradius(n)=2.2D-06
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
       CASE('Silt2')
       n_silt2=n
           ntm_power(n)=-9
@@ -883,6 +903,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           trradius(n)=4.4D-06
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
       CASE('Silt3')
       n_silt3=n
           ntm_power(n)=-9
@@ -890,6 +911,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           trradius(n)=6.7D-06
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
 #endif
 
 #endif
@@ -5028,7 +5050,7 @@ C**** set some defaults
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
 #ifdef TRACERS_HETCHEM
-      case ('SO4_d1', 'SO4_d2', 'SO4_d3', 'SO4_d4')
+      case ('SO4_s1','SO4_s2','SO4_d1', 'SO4_d2', 'SO4_d3', 'SO4_d4')
       itcon_3Dsrc(1,N) = 13
       qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
       qsum(itcon_3Dsrc(1,N)) = .true.
@@ -5809,7 +5831,7 @@ C         AM=kg/m2, and DXYP=m2:
 
         case('MSA', 'SO2', 'SO4', 'SO4_d1', 'SO4_d2', 'SO4_d3','SO4_d4',
      *         'BCII', 'BCIA', 'BCB', 'OCII', 'OCIA', 'OCB', 'H2O2_s',
-     *         'seasalt1', 'seasalt2')
+     *         'seasalt1', 'seasalt2','SO4_s1','SO4_s2')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
@@ -6009,6 +6031,22 @@ c Now industrial and biomass
  12   call closeunit(iuc)
       endif
       BCB_src(:,:,:,:)=0.d0
+      OCB_src(:,:,:,:)=0.d0
+      if (imAER.eq.0) then
+      call openunit('BC_BIOMASS',iuc,.false.)
+      do mm=1,12
+      do mmm=1,9999
+      read(iuc,*) ii,jj,carbstuff
+      if (ii.eq.0.) go to 71
+      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
+      carbstuff=carbstuff*1000.d0/30.4d0/sday
+      BCB_src(ii,jj,1,mm)=carbstuff
+      OCB_src(ii,jj,1,mm)=carbstuff*7.9d0
+      end do
+ 71   continue
+      end do
+      call closeunit(iuc)
+      else ! AEROCOM
       call openunit('BC_BIOMASS',iuc,.false.)
       do mm=1,99999
       read(iuc,*) ii,jj,mmm,ll,carbstuff 
@@ -6017,7 +6055,6 @@ c Now industrial and biomass
       BCB_src(ii,jj,ll,mmm)=carbstuff
       end do
  13   call closeunit(iuc)
-      OCB_src(:,:,:,:)=0.d0
       call openunit('OC_BIOMASS',iuc,.false.)
       do mm=1,99999
       read(iuc,*) ii,jj,mmm,ll,carbstuff 
@@ -6040,6 +6077,7 @@ c convert from month to second. dxyp??
       end do
       end do
       end do
+      endif
 #endif
 #ifdef TRACERS_DUST
       IF (ifirst) THEN
@@ -6539,10 +6577,12 @@ C****
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only: SO2_src_3d,BCI_src_3d,BCB_src,
      *     OCB_src,SO2_biosrc_3D,lmAER
+      USE PBLCOM, only: dclev
 #endif
       implicit none
-      INTEGER n,ns,najl,i,j,l,mnow
+      INTEGER n,ns,najl,i,j,l,mnow,blay
       INTEGER J_0, J_1
+      
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -6615,14 +6655,31 @@ C**** aircraft source for fresh industrial BC
 
        case ('BCB')
 C**** biomass source for BC 
-      tr3Dsource(:,J_0:J_1,lmAER+1:lm,1,n) = 0.
+      tr3Dsource(:,J_0:J_1,:,1,n) = 0.
+      if (imAER.eq.0) then
+      do j=J_0,J_1; do i=1,im
+      blay=int(dclev(i,j)+0.5)
+      do l=1,blay
+      tr3Dsource(i,j,l,1,n) = BCB_src(i,j,1,jmon)/real(blay)
+      end do
+      end do; end do
+      else
       tr3Dsource(:,J_0:J_1,1:lmAER,1,n) = BCB_src(:,J_0:J_1,:,jmon)
+      endif
       call apply_tracer_3Dsource(1,n) ! biomass 
-
        case ('OCB')
 C**** biomass source for OC 
-      tr3Dsource(:,J_0:J_1,lmAER+1:lm,1,n) = 0.
+      tr3Dsource(:,J_0:J_1,:,1,n) = 0.
+      if (imAER.eq.0) then
+      do j=J_0,J_1; do i=1,im
+      blay=int(dclev(i,j)+0.5)
+      do l=1,blay
+      tr3Dsource(i,j,l,1,n) = OCB_src(i,j,1,jmon)/real(blay)
+      end do
+      end do; end do
+      else
       tr3Dsource(:,J_0:J_1,1:lmAER,1,n) = OCB_src(:,J_0:J_1,:,jmon)
+      endif
       call apply_tracer_3Dsource(1,n) ! biomass 
 #endif
 #ifdef TRACERS_COSMO
@@ -6673,10 +6730,9 @@ C****
        call apply_tracer_3Dsource(3,n_H2O2_s) ! H2O2 het chem sink
 
 #ifdef TRACERS_HETCHEM
+       call apply_tracer_3Dsource(1,n_SO4_s1) ! SO4 chem prod on ss1
+       call apply_tracer_3Dsource(1,n_SO4_s2) ! SO4 chem prod on ss2
        call apply_tracer_3Dsource(1,n_SO4_d1) ! SO4 chem prod on dust
-       call apply_tracer_3Dsource(2,n_SO4_d1) ! SO4 Dry Dep
-       call apply_tracer_3Dsource(3,n_SO4_d1) ! SO4 Wet Dep
-       call apply_tracer_3Dsource(4,n_SO4_d1) ! SO4 Grav Settling
        call apply_tracer_3Dsource(1,n_SO4_d2) ! SO4 chem prod on dust
        call apply_tracer_3Dsource(1,n_SO4_d3) ! SO4 chem prod on dust
        call apply_tracer_3Dsource(1,n_SO4_d4) ! SO4 chem prod on dust
@@ -6727,7 +6783,8 @@ c      CALL tracers_dust
 #ifdef TRACERS_WATER
 C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 
-      SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,TEMP0,LHX,FCLOUD,FQ0,fq,
+      SUBROUTINE GET_COND_FACTOR(II,J,L,N,WMXTR,TEMP,TEMP0,LHX
+     *  ,FCLOUD,FQ0,fq,
      *  TR_CONV,TRWML,TM,THLAW,TR_LEF,pl,ntix,CLDSAVT)
 !@sum  GET_COND_FACTOR calculation of condensate fraction for tracers
 !@+    within or below convective or large-scale clouds. Gas
@@ -6741,6 +6798,11 @@ C**** GLOBAL parameters and variables:
      *     ,trname,ntm,lm,t_qlimit,fq_aer
 #ifdef TRACERS_SPECIAL_O18
      &     ,supsatfac
+#endif
+#ifdef TRACERS_HETCHEM
+     *     ,trm ,n_SO4_d1, n_SO4_d2, n_SO4_d3, n_SO4_d4
+
+      USE MODEL_COM, only  : dtsrc
 #endif
 c      USE CLOUDS, only: PL, NTIX
 c
@@ -6780,7 +6842,7 @@ c     *     , by3 /)
       REAL*8,  INTENT(IN), DIMENSION(ntm,lm) :: trwml
       REAL*8,  INTENT(IN), DIMENSION(lm,ntm) :: TM
       REAL*8,  INTENT(OUT):: fq,thlaw
-      INTEGER, INTENT(IN) :: L, N, ntix(ntm)
+      INTEGER, INTENT(IN) :: II,J,L, N, ntix(ntm)
       LOGICAL TR_CONV
       REAL*8 :: SUPSAT
 c
@@ -6866,6 +6928,39 @@ C**** this is a parameterisation from Georg Hoffmann
           fq = 0.D0                           ! defaults to zero.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO)
 c only dissolve if the cloud has grown
+#ifdef TRACERS_HETCHEM
+c      print*, trname(ntix(n)) ,ntix, n, ' NAME'
+      select case(trname(ntix(n)))
+      case('Clay')
+c       if (ii.eq.28.and.j.eq.36) 
+c     *  print*, ' SO4_D1' ,trm(ii,j,l,n_SO4_d1)/dtsrc , l
+         if (trm(ii,j,l,n_SO4_d1)/dtsrc  > 0.1 ) then
+            fq_aer(NTIX(N))  = 1.
+         else
+            fq_aer(NTIX(N))  = 0.
+         endif
+    
+      case('Silt1')
+         if (trm(ii,j,l,n_SO4_d2)/dtsrc  > 0.1 ) then
+            fq_aer(NTIX(N))  = 1.
+         else
+            fq_aer(NTIX(N))  = 0.
+         endif
+   
+      case('Silt2')
+         if (trm(ii,j,l,n_SO4_d3)/dtsrc  > 0.1 ) then
+            fq_aer(NTIX(N))  = 1.
+         else
+            fq_aer(NTIX(N))  = 0.
+         endif
+      case('Silt3')
+         if (trm(ii,j,l,n_SO4_d4)/dtsrc  > 0.1 ) then
+            fq_aer(NTIX(N))  = 1.
+         else
+            fq_aer(NTIX(N))  = 0.
+         endif
+      end select
+#endif
            CLDINC=CLDSAVT-FCLOUD 
           if (fq0.gt.0.and.CLDINC.gt.0.) then 
           if(LHX.EQ.LHE) then !liquid cloud
@@ -6878,9 +6973,11 @@ c complete dissolution in convective clouds
 c with double dissolution if partially soluble
           if (TR_CONV) then
            if (LHX.EQ.LHE) then !liquid cloud
-               fq=(1.d0+fq_aer(ntix(n)))/2.d0
+c              fq=(1.d0+fq_aer(ntix(n)))/2.d0
+               fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0
            else
-               fq=(1.d0+fq_aer(ntix(n)))/2.d0*0.05d0
+c              fq=(1.d0+fq_aer(ntix(n)))/2.d0*0.05d0
+               fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0*0.05d0
            endif
           endif
           if (FCLOUD.LT.1.D-16) fq=0.d0

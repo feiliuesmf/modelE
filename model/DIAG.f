@@ -2648,6 +2648,9 @@ C****
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       USE TRACER_COM, only : n_SO4
+#ifdef TRACERS_HETCHEM
+     *       n_SO4_d1,n_SO4_d2, n_SO4_d3, n_SO4_d4, n_SO4_ds1, n_SO4_s2
+#endif
 #endif
       IMPLICIT NONE
       SAVE
@@ -2936,7 +2939,16 @@ C**** simple diags
         case ("SO4")      ! sulfate in L=1
           do j=1,jm
           do i=1,imaxj(j)
-            data(i,j)=trm(i,j,1,n_SO4)
+            data(i,j)=trm(i,j,1,n_SO4)                
+#ifdef TRACERS_HETCHEM
+     *               +trm(i,j,1,n_SO4_d1)
+     *               +trm(i,j,1,n_SO4_d2)
+     *               +trm(i,j,1,n_SO4_d3)
+     *               +trm(i,j,1,n_SO4_d4)
+     *               +trm(i,j,1,n_SO4_s1)
+     *               +trm(i,j,1,n_SO4_s2)
+#endif
+
           end do
           end do
 #endif
