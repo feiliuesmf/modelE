@@ -1289,7 +1289,9 @@ C**** solve for boundary values (uses Newton-Rapheson with bounds)
 C**** Estimate initial boundary salinity
       Sb0 = 0.75d0*Sm+0.25d0*Si
       do i=1,niter
-        Tb = -mu*Sb0            ! freezing point at salinity Sb0
+C**** we use the fill tfrez calc here, but assume for simplicity that
+C**** the gradient w.r.t. T is still = -mu below.
+        Tb = tfrez(Sb0)   ! -mu*Sb0  ! freezing point at salinity Sb0
 C**** calculate left hand side of equation 2
         left2 = -alamdh*(Ti-Tb) + rsg*(Tb-Tm)
 C**** depending on whether there is freezing or melting, the sea ice
@@ -1357,6 +1359,7 @@ C**** Cap mass flux at at 90% of bottom layer
       if (m.gt.0.9d0*2.*dh*rhoi/dtsrc) then
         m=0.9d0*2.*dh*rhoi/dtsrc
       end if
+
       mflux = m                       ! (kg/m^2 s)
       sflux = 1d-3*m*Sib              ! (kg/m^2 s)
       hflux = alamdh*(Ti-Tb) - m*lh +m*shw*Tb ! (J/m^2 s)
@@ -1548,9 +1551,9 @@ c****
       pr=0.
       if (present(press)) pr=press
 C**** linear approximation
-      tfrez = -mu*sss + dtdp*pr
+c      tfrez = -mu*sss + dtdp*pr
 C**** UNESCO formula (1983)
-c     tfrez = (a01 + a02*sss)*sss + a03*sss*sqrt(sss)+ dtdp*pr
+      tfrez = (a01 + a02*sss)*sss + a03*sss*sqrt(sss)+ dtdp*pr
 
       return
       end function tfrez

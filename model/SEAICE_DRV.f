@@ -130,7 +130,7 @@ C****
       USE TRACER_COM, only : ntm, trname
 #endif
       USE SEAICE, only : lmi,xsi,icelake,iceocean,ac2oim,alami,alpha
-     *     ,tfrez
+     *     ,tfrez,debug
       USE SEAICE_COM, only : msi,hsi,ssi,rsi
 #ifdef TRACERS_WATER
      *     ,trsi
