@@ -91,9 +91,10 @@ C****   TRACER CONCENTRATION IN CLOUD WATER
         sname_jln(k,n) = trim(trname(n))//'_WM_CONC' 
         lname_jln(k,n) = trim(trname(n))//' CLOUD WATER CONCENTRATION' 
         jlq_power(k) = 0.
-        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),cmr(n))
+        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)
+     *       ,'kg/kg water')
         scale_jlq(k) = 1.d0
-        scale_jln(n) = MMR_to_VMR(n)
+        scale_jln(n) = 1.d0
         if (to_per_mil(n).gt.0) units_jln(k,n) = unit_string(0,cmr(n))
 #endif
 C**** Physical processes affecting tracers
