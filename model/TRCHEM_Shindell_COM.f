@@ -64,6 +64,8 @@ C
 !@param pfix_O2 fixed ratio of O2/M
 !@param pfix_H2 fixed ratio of H2/M
 !@param pfix_Aldehyde fixed ratio of Aldehyde/M for initial conditions
+!@param fix_CH4_chemistry logical whether or not to used a fixed 
+!@+     value for methane in the chemistry code
 !@param pfix_CH4_S fixed ratio of CH4/M in South. Hemis. (if used)
 !@param pfix_CH4_S fixed ratio of CH4/M in South. Hemis. (if used)
 !@param MWabyMWw ratio of molecular weights of air/water
@@ -169,7 +171,8 @@ C
      &                      CMEQ1        = 0.25D0,
      &                      byradian     = 1.d0/radian
 C  
-      LOGICAL, PARAMETER :: luselb       = .false.
+      LOGICAL, PARAMETER :: luselb            = .false.,
+     &                      fix_CH4_chemistry = .false.
 c
 C**************  V  A  R  I  A  B  L  E  S *******************  
 !@var nn reactant's number in mol list, first index reactant 1 or 2,
@@ -192,7 +195,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var nir length of photodissociation spectra of gas (# of non-zero
 !@+   absorption cross sections)
 !@var lprn,jprn,iprn l, j, and i point for chemistry debugging
-!@var ay name of gas being considered, in 2 four character strings
+!@var ay name of gas being considered
 !@var y concentration of gas, 1st index=gas number, 2nd=verticle level
 !@var rr rate constant of chemical reaction, first index - reaction
 !@+   number, 2nd is i, 3rd is j, 4th is verticle level
@@ -353,7 +356,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
       INTEGER, DIMENSION(NJVAL)        :: jpdep  
       INTEGER, DIMENSION(12)           :: MDOFM    
 C      
-      REAL*4, DIMENSION(2,n_spc)       :: ay
+      CHARACTER*8, DIMENSION(n_spc)    :: ay
 C      
       REAL*8 ZFLUX,ZREFL,ZU0,U0,RFLECT,odsum,XLTAU,TANHT,CH4FACT,FACTj,
      & r179m2v,BYFJM,FASTJLAT,FASTJLON,SZA,RVELN2O5,
