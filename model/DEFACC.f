@@ -32,7 +32,7 @@ c-----------------------------------------------------------------------
       use MODEL_COM, only : jm,lm,ls1,dtsrc,fim,sige,kocean
       use DAGCOM
       implicit none
-      integer :: k
+      integer :: k,kk
 c
       do k=1,kaj
          write(name_j(k),'(a2,i3.3)') 'AJ',k
@@ -775,6 +775,9 @@ c
         stop 'kaj too small'
       end if
       write (6,*) 'Number of AJ diagnostics defined: kajmax=',k
+      do kk=1,k
+        write (6,'(i4,'':'',a)') kk,trim(lname_j(kk))
+      end do
 
       return
       end subroutine j_defs
@@ -784,7 +787,7 @@ c
       use MODEL_COM
       use DAGCOM
       implicit none
-      integer :: k
+      integer :: k,kk
 c
       do k=1,kaij
          write(name_ij(k),'(a3,i3.3)') 'AIJ',k
@@ -2332,6 +2335,9 @@ c      scale_ij(k) = 1.
       end if
 
       write (6,*) 'Number of AIJ diagnostics defined: kaijmax=',k
+      do kk=1,k
+        write (6,'(i4,'':'',a)') kk,trim(lname_ij(kk))
+      end do
       return
       end subroutine ij_defs
 
@@ -2342,7 +2348,7 @@ c      scale_ij(k) = 1.
       use DAGCOM
       implicit none
       real*8 :: bydj,bydjuv,daeq
-      integer :: k,j
+      integer :: k,j,kk
 c
       do k=1,kail
          write(name_il(k),'(a3,i3.3)') 'AIL',k
@@ -2469,6 +2475,9 @@ c
       ia_il(k)    = ia_dga
 c
       write (6,*) 'Number of IL diagnostics defined: kailmax=',k
+      do kk=1,k
+        write (6,'(i4,'':'',a)') kk,trim(lname_il(kk))
+      end do
       return
       end subroutine il_defs
 
@@ -2479,7 +2488,7 @@ c
       use GEOM, only : dlon
       use DAGCOM
       implicit none
-      integer :: k
+      integer :: k,kk
 c
       do k=1,kajlx
          write(sname_jl(k),'(a3,i3.3)') 'AJL',k
@@ -2941,6 +2950,9 @@ c
       end if
 
       write (6,*) 'Number of AJL diagnostics defined: kajlmax=',k
+      do kk=1,k
+        write (6,'(i4,'':'',a)') kk,trim(lname_jl(kk))
+      end do
       return
       end subroutine jl_defs
 
@@ -2949,7 +2961,7 @@ c
       use MODEL_COM, only : byim
       use DAGCOM
       implicit none
-      integer :: k
+      integer :: k,kk
 c
       do k=1,kasjl
          write(name_sjl(k),'(a4,i3.3)') 'ASJL',k
@@ -2988,6 +3000,9 @@ c
       ia_sjl(k) = ia_rad
 c
       write (6,*) 'Number of ASJL diagnostics defined: kasjlmax=',k
+      do kk=1,k
+        write (6,'(i4,'':'',a)') kk,trim(lname_sjl(kk))
+      end do
       return
       end subroutine sjl_defs
 
@@ -2997,7 +3012,7 @@ c
       use GEOM, only : dlon
       use DAGCOM
       implicit none
-      integer :: k
+      integer :: k,kk
 c
       do k=1,kajkx
          write(sname_jk(k),'(a3,i3.3)') 'AJK',k
@@ -3418,6 +3433,9 @@ c
       jgrid_jk(k) = 1
 c
       write (6,*) 'Number of AJK diagnostics defined: kajkmax=',k
+      do kk=1,k
+        write (6,'(i4,'':'',a)') kk,trim(lname_jk(kk))
+      end do
       return
       end subroutine jk_defs
 
@@ -3425,7 +3443,7 @@ c
       use CONSTANT, only : bygrav,tf
       use DAGCOM
       implicit none
-      integer :: k
+      integer :: k,kk
 c
       do k=1,kaijkx
          write(name_ijk(k),'(a4,i3.3)') 'AIJK',k
@@ -3487,6 +3505,9 @@ c
       off_ijk(k)   = 0.
 c
       write (6,*) 'Number of AIJK diagnostics defined: kaijkmax=',k
+      do kk=1,k
+        write (6,'(i4,'':'',a)') kk,trim(lname_ijk(kk))
+      end do
       return
       end subroutine ijk_defs
 
@@ -3494,7 +3515,7 @@ c
       subroutine wave_defs
       use DAGCOM
       implicit none
-      integer :: k
+      integer :: k,kk
 c
       do k=1,kwp
          write(name_wave(k),'(a5,i3.3)') 'WAVEP',k
@@ -3565,6 +3586,9 @@ c
       units_wave(k) = 'unknown'
 c
       write (6,*) 'Number of Wave diagnostics defined: kwavemax=',k
+      do kk=1,k
+        write (6,'(i4,'':'',a)') kk,trim(name_wave(kk))
+      end do
       return
       end subroutine wave_defs
 
@@ -3643,7 +3667,7 @@ c
       use MODEL_COM, only : dtsrc,nisurf
       use DAGCOM
       implicit none
-      integer :: k
+      integer :: k,kk
 c
       do k=1,NDIUVAR
          write(name_dd(k),'(a5,i3.3)') 'DIURN',k
@@ -4047,5 +4071,8 @@ c
       lname_dd(k)=' MCP*100'
 
       write (6,*) 'Number of Diurn diagnostics defined: kaddmax=',k
+      do kk=1,k
+        write (6,'(i4,'':'',a)') kk,trim(lname_dd(kk))
+      end do
       return
       end subroutine diurn_defs
