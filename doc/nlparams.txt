@@ -122,22 +122,25 @@ KDIAG(1->12) - Suppressing printout if >0
   KDIAG(i) may be used to (partially) suppress type i diagn. printout
       i=1  budget pages,zonal means: do  all if        kdiag(1)=0
                               do all but 23 regions if kdiag(1)=1
-                              do global tables only if kdiag(1)=2-7
+                              do global tables only if kdiag(1)=2 
                               do regional only if      kdiag(1)=8
                               do nothing  if           kdiag(1)=9
-           (regional statistics are only printed even if qdiag=.true.)
-        2  latitude-height tables   skip if kdiag(2)=8-9
-        3  lat-lon maps             skip if kdiag(3)=9
-           kdiag(3)=0-8:
+           (no binaries for regional statistics, even if qdiag=.true.)
+        2  latitude-height tables   kdiag(2)=9  skip all
+             kdiag(2)=2 produce at most the tables listed in Ijk 
+             Editing Ijk: just delete lines, rearranging has no effect
+        3  lat-lon maps             
+           kdiag(3)=
             0 standard printout, all binary files if QDIAG=.true.
             1 ij-fields as in list Iij, all ijk-fields
-           2-6 ij and ijk fields are handled according to list Iij
+            2 ij and ijk fields are handled according to list Iij
             7 ij-fields as in list Iij, no ijk-fields are produced
-            8 full list Iij of available fields is produced; this list may
-              be edited : don't touch lines starting with 'List' or 'list'
-                          you may delete any other lines
-                          you may rearrange the remaining ij-fields
-                          you may add blank maplets
+            9 suppress all ij and ijk fields
+            Editing Iij: don't touch lines starting with 'List' or 'list'
+                         you may delete any other lines
+                         you may rearrange the remaining ij-fields
+                         you may add blank maplets (up to 10)
+            
         4  energy history           skip if kdiag(4)=9
         5  spectral analysis        skip if kdiag(5)=9
         6  diurnal diagnostics      skip if kdiag(6)>3
