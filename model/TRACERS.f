@@ -299,6 +299,7 @@ C****
 !@sum apply_tracer_3Dsource adds 3D sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only : jm,im,lm
+      USE CONSTANT, only : teeny
       USE GEOM, only : imaxj
       USE TRACER_COM, only : ntm,trm,trmom,nt3Dsrc
       USE QUSDEF, only: nmom
@@ -306,7 +307,7 @@ C****
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
-      REAL*8 del_trm
+      REAL*8 fr3d
       INTEGER n,ns,najl,i,j,l
 
 C**** This is tracer independent coding designed to work for all
@@ -318,11 +319,15 @@ C**** Modify tracer amount, moments, and diagnostics
           do l=1,lm
           do j=1,jm
           do i=1,imaxj(j)
-            del_trm = trm(i,j,l,n)*tr3Dsource(i,j,l,ns,n)*dtstep
-            trm(i,j,l,n) = trm(i,j,l,n)-del_trm
-            tajls(j,l,najl) = tajls(j,l,najl)-del_trm
-            trmom(1:nmom,i,j,l,n) = trmom(1:nmom,i,j,l,n)
-     *        *(1.-tr3Dsource(i,j,l,ns,n)*dtstep)
+C**** calculate fractional loss
+            if (tr3Dsource(i,j,l,ns,n).lt.0.) then
+              fr3d = -tr3Dsource(i,j,l,ns,n)*dtstep/(trm(i,j,l,n)+teeny)
+              trmom(1:nmom,i,j,l,n) = trmom(1:nmom,i,j,l,n)*(1.-fr3d)
+            end if
+C**** update tracer mass and diagnostics
+            trm(i,j,l,n) = trm(i,j,l,n)+tr3Dsource(i,j,l,ns,n)*dtstep
+            tajls(j,l,najl) = tajls(j,l,najl)+
+     *                                  tr3Dsource(i,j,l,ns,n)*dtstep
           end do; end do; end do
           call DIAGTCA(itcon_3Dsrc(ns,n),n)
         end do
@@ -455,11 +460,12 @@ C****
 
       SUBROUTINE read_monthly_sources(iu,jdlast,tlca,tlcb,data)
 !@sum Read in monthly sources and interpolate to current day
-!@+   Calling routine must have the two lines:
+!@+   Calling routine must have the lines:
+!@+      real*8 tlca(im,jm),tlcb(im,jm)
 !@+      data jdlast /0/
-!@+      save jdlast
+!@+      save jdlast,tlca,tlcb
 !@+   Input: iu, the fileUnit#; jdlast
-!@+   Output: interpolated data array
+!@+   Output: interpolated data array + two monthly data arrays
 !@auth Jean Lerner and others
       USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
       implicit none

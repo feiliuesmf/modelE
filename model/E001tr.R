@@ -1,7 +1,7 @@
 E001tr.R GISS Model E with sample tracers               jal 10/01
 
 E001tr: new modelE (based on B402A with sample tracers)
- Air mass, SF6, RN222, CO2, 14CO2, CFC-11, CH4, N2O, O3
+ Air mass, SF6, RN222, CO2, 14CO2, CFC-11, CH4, N2O, O3, Water
 
 Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
@@ -16,9 +16,7 @@ PARAM PARSER                        ! parameter database
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q and tracer gases
-! pick one of the next two lines
 TRACER_COM TRACERS_Air              ! air mass tracers
-! TRACER_Water_COM TRACERS_Water    ! water mass tracers
 TRACERS                             ! generic tracer code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules

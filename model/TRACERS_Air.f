@@ -20,7 +20,7 @@
       USE MODEL_COM, only: dtsrc
       USE TRACER_COM
       USE TRACER_DIAG_COM
-      USE CONSTANT, only: mair,sday
+      USE CONSTANT, only: mair,mwat,sday
       USE PARAM
       implicit none
       integer :: l,k,n
@@ -33,16 +33,21 @@
       INTEGER :: to_volume_MixRat=0 
       character*50 :: unit_string
 
-C**** Tracer sources and sinks
-C**** Defaults for jls (sources, sinks, etc.)
-C**** These need to be 'hand coded' depending on circumstances
-      do k=1,ktajls  ! max number of sources and sinks
-        jgrid_jls(k) = 1
-        ia_jls(k) = ia_src
-        scale_jls(k) = 1./DTsrc
-      end do
-      jls_index(:) = 0
-
+C**** Set defaults for tracer attributes (all dimensioned ntm)
+      itime_tr0 = 0
+      t_qlimit = .true.
+      needtrs = .false.
+      trdecay = 0.d0
+      nt3Dsrc = 0;
+      ntsurfsrc = 0
+      trpdens = 0
+      trradius = 0
+#ifdef TRACERS_WATER
+       tr_wd_TYPE = nGas   ! or  nPART  or nWATER
+       tr_DHD = 0.
+       tr_RKD = 0.
+       trw0 = 0
+#endif
 C**** Define individual tracer characteristics
       do n=1,ntm
       select case (trname(n))
@@ -68,84 +73,81 @@ C**** Define individual tracer characteristics
           trdecay(n) = 0.d0
           nt3Dsrc(n) = 0;  ntsurfsrc(n) = 1
           trpdens(n) = 0;  trradius(n) = 0
-
+#ifdef TRACERS_WATER
+          tr_wd_TYPE = nGas
+#endif
       case ('Rn222')
       n_Rn222 = n
-          itime_tr0(n) = 0.
           ntm_power(n) = -21
           tr_mm(n) = 222.d0
-          t_qlimit(n) = .true.
-          needtrs(n) = .false.
           trdecay(n) = 2.1d-6
-          nt3Dsrc(n) = 0;  ntsurfsrc(n) = 1
-          trpdens(n) = 0;  trradius(n) = 0
+          ntsurfsrc(n) = 1
 
       case ('CO2')
       n_CO2 = n
-          itime_tr0(n) = 0.
           ntm_power(n) = -6
           tr_mm(n) = 44.d0
           t_qlimit(n) = .false.
-          needtrs(n) = .false.
-          trdecay(n) = 0.d0
-          nt3Dsrc(n) = 0;  ntsurfsrc(n) = 6
-          trpdens(n) = 0;  trradius(n) = 0
+          ntsurfsrc(n) = 6
 
       case ('N2O')
       n_N2O = n
-          itime_tr0(n) = 0.
           ntm_power(n) = -9
           tr_mm(n) = 44.d0
-          t_qlimit(n) = .true.
-          needtrs(n) = .false.
-          trdecay(n) = 0.d0
-          nt3Dsrc(n) = 1;  ntsurfsrc(n) = 1
-          trpdens(n) = 0;  trradius(n) = 0
+          nt3Dsrc(n) = 1
+          ntsurfsrc(n) = 1
 
       case ('CFC11')   !!! should start April 1
       n_CFC11 = n
           itime_tr0(n) = 0.
           ntm_power(n) = -12
           tr_mm(n) = 137.4d0
-          t_qlimit(n) = .true.
-          needtrs(n) = .false.
-          trdecay(n) = 0.d0
-          nt3Dsrc(n) = 1;  ntsurfsrc(n) = 1
-          trpdens(n) = 0;  trradius(n) = 0
+          nt3Dsrc(n) = 1
+          ntsurfsrc(n) = 1
 
       case ('14CO2')   !!! should start 10/16
       n_14CO2 = n
           itime_tr0(n) = 0.
           ntm_power(n) = -18
           tr_mm(n) = 46.d0
-          t_qlimit(n) = .true.
-          needtrs(n) = .false.
-          trdecay(n) = 0.d0
-          nt3Dsrc(n) = 0;  ntsurfsrc(n) = 1
-          trpdens(n) = 0;  trradius(n) = 0
+          ntsurfsrc(n) = 1
+
       case ('CH4')
       n_CH4 = n
-          itime_tr0(n) = 0.
           ntm_power(n) = -9
           tr_mm(n) = 16.d0
-          t_qlimit(n) = .true.
-          needtrs(n) = .false.
-          trdecay(n) = 0.d0
-          nt3Dsrc(n) = 2;  ntsurfsrc(n) = 14
-          trpdens(n) = 0;  trradius(n) = 0
+          nt3Dsrc(n) = 2
+          ntsurfsrc(n) = 14
+
       case ('O3')
       n_O3 = n
-          itime_tr0(n) = 0.
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
-          t_qlimit(n) = .true.
-          needtrs(n) = .false.
-          trdecay(n) = 0.d0
-          nt3Dsrc(n) = 2;  ntsurfsrc(n) = 0
-          trpdens(n) = 0;  trradius(n) = 0
+          nt3Dsrc(n) = 2
+
+#ifdef TRACERS_WATER
+      case ('Water')
+      n_water = n
+          ntm_power(n) = -5
+          tr_mm(n) = mwat
+          needtrs(n) = .true.
+          tr_wd_TYPE(n) = nWater
+          tr_DHD(n) = 1.d5
+          trw0(n) = 1.
+#endif
 
       end select
       end do
+
+C**** Tracer sources and sinks
+C**** Defaults for jls (sources, sinks, etc.)
+C**** These need to be 'hand coded' depending on circumstances
+      do k=1,ktajls  ! max number of sources and sinks
+        jgrid_jls(k) = 1
+        ia_jls(k) = ia_src
+        scale_jls(k) = 1./DTsrc
+      end do
+      jls_index(:) = 0
 
 C****
 C**** Set some diags that are the same regardless
@@ -428,6 +430,18 @@ C****
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),' kg/s')
 
+#ifdef TRACERS_WATER
+      case ('Water')
+       k = k + 1
+        jls_source(1,n)=k
+        sname_jls(k) = 'Surface_source_'//trname(n)
+        lname_jls(k) = 'EVAPORATION OF '//trname(n)
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),' kg/s')
+#endif
+
 C**** Here are some more examples of generalised diag. configuration
 c      n = n_dust
 c        k = k + 1 
@@ -708,6 +722,19 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
+#ifdef TRACERS_WATER
+      case ('Water')
+      k = k + 1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Water Evaporative SOURCE'
+        sname_ijts(k) = 'water_evap'
+        ijts_power(k) = 0.
+        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
+
       end select
       end do
 
@@ -860,6 +887,18 @@ C**** First 12 are standard for all tracers and GCM
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
+#ifdef TRACERS_WATER
+      case ('Water')
+      itcon_mc(n) = 13
+      qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 14
+      qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs
+#endif
+
 C**** Here are some more examples of conservation diag configuration
 C**** Gravitional settling:
 c      n=n_dust
@@ -888,17 +927,32 @@ C**** print out total tracer diagnostic array size
 !@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner
       USE MODEL_COM, only: itime,im,jm,lm,ls1
+#ifdef TRACERS_WATER
+     *  ,q,wm,flice,fearth
+      USE LANDICE, only : ace1li,ace2li
+      USE SEAICE_COM, only : rsi,msi,snowi,trsi,trsi0,ssi
+      USE SEAICE, only : xsi,ace1i
+      USE LAKES_COM, only : trlake,mwl,mldlk,flake
+      USE GHYCOM, only : trbare,trvege,trsnowbv,wbare,wvege,snowbv
+      USE FLUXES, only : gtracer
+#endif
       USE GEOM, only: dxyp,bydxyp
       USE CONSTANT, only: mair
       USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
       USE PBLCOM, only: npbl,trabl
+#ifdef TRACERS_WATER
+     *  ,qabl
+#endif
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
      *   tr_mm
+#ifdef TRACERS_WATER
+     *  ,trwm,trw0
+#endif
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr
       CHARACTER*80 title
-      REAL*8 CFC11ic,ic14CO2(im,jm,lm)
+      REAL*8 CFC11ic,ic14CO2(im,jm,lm),conv
       REAL*4 CO2ic(im,jm,lm),N2Oic(jm,lm),CH4ic(jm,lm)
       EQUIVALENCE (CO2ic,N2Oic,ic14CO2,CH4ic)
 
@@ -1005,14 +1059,84 @@ c    *         tltzzm(j,lr,1)*am(l,:,j)*dxyp(j)*tr_mm(n)/mair
 c           end do
           end do
 
+#ifdef TRACERS_WATER
+      case ('Water')
+          do l=1,lm
+          do j=1,jm
+            trm(:,j,l,n) =  q(:,j,l)*am(l,:,j)*dxyp(j)
+            trwm(:,j,l,n)= wm(:,j,l)*am(l,:,j)*dxyp(j)
+C**** for gradients defined on air mass
+            do i=1,im
+              trmom(:,i,j,l,n) = qmom(:,i,j,l)*am(l,i,j)*dxyp(j)
+            end do
+C**** for gradients defined on water mass (should be an option?)
+c           trmom(:,:,j,l,n) = 0.
+          end do; enddo
+          do i=2,im
+            trm(i, 1,:,n) = trm(1, 1,:,n) !poles
+            trm(i,jm,:,n) = trm(1,jm,:,n) !poles
+            trwm(i, 1,:,n)= trwm(1, 1,:,n) !poles
+            trwm(i,jm,:,n)= trwm(1,jm,:,n) !poles
+            trmom(:,i, 1,:,n)=0.
+            trmom(:,i,jm,:,n)=0.
+          enddo
+
+          do j=1,jm
+          do i=1,im
+C**** lakes
+            if (flake(i,j).gt.0) then
+              trlake(n,1,i,j)=trw0(n)*mldlk(i,j)*rhow*flake(i,j)*dxyp(j)
+              trlake(n,2,i,j)=trw0(n)*mwl(i,j)-trlake(n,1,i,j)
+              gtracer(n,1,i,j)=trw0(n)
+            end if
+c**** ice
+            if (rsi(i,j).gt.0) then
+              trsi(n,1,i,j)=trsi0(n)*
+     *             (xsi(1)*(snowi(i,j)+ace1i)-ssi(1,i,j))
+              trsi(n,2,i,j)=trsi0(n)*
+     *             (xsi(2)*(snowi(i,j)+ace1i)-ssi(2,i,j))
+              trsi(n,3,i,j)=trsi0(n)*(xsi(3)*msi(i,j)-ssi(3,i,j))
+              trsi(n,4,i,j)=trsi0(n)*(xsi(4)*msi(i,j)-ssi(4,i,j))
+              gtracer(n,2,i,j)=trsi0(n)
+            else
+              gtracer(n,2,i,j)=0.
+            end if
+c**** landice
+            if (flice(i,j).gt.0) then
+              trlndi(n,i,j)=trli0(n)*(ace1li+ace2li)
+              trsnowli(n,i,j)=trli0(n)*snowli(i,j)
+              gtracer(n,3,i,j)=trli0(n)
+            else
+              gtracer(n,3,i,j)=0.
+            end if
+c**** earth
+            if (fearth(i,j).gt.0) then
+              conv=rhow  ! convert from m to kg/m^2
+              trbare  (n,:,i,j)=trw0(n)*wbare (:,i,j)*conv
+              trvege  (n,:,i,j)=trw0(n)*wvege (:,i,j)*conv
+              trsnowbv(n,1,i,j)=trw0(n)*snowbv(1,i,j)*conv
+              trsnowbv(n,2,i,j)=trw0(n)*snowbv(2,i,j)*conv
+              gtracer (n,4,i,j)=trw0(n)
+            else
+              gtracer(n,4,i,j)=0.
+            end if
+          end do
+          end do
+#endif
+
       end select
 
 C**** Initialise pbl profile if necessary
+!!!!! >>>>>> THIS IS NOT RIGHT YET FOR ALL CASES (Gavin will fix)
       if (needtrs(n)) then
         do it=1,4
         do j=1,jm
         do ipbl=1,npbl
+#ifndef TRACERS_WATER
           trabl(ipbl,n,:,j,it) = trm(:,j,1,n)*byam(1,:,j)*bydxyp(j)
+#else
+          trabl(ipbl,n,:,j,it) = trw0(n)*qabl(ipbl,:,j,it)
+#endif
         end do
         end do
         end do
@@ -1021,6 +1145,10 @@ C**** Initialise pbl profile if necessary
       write(6,*) ' Tracer ',trname(n),' initialized at itime=',itime
       end if
       end do
+#ifdef TRACERS_WATER
+C**** Initialise ocean tracers if necessary
+      call tracer_ic_ocean
+#endif
 C****
       end subroutine tracer_IC
 
@@ -1424,6 +1552,12 @@ C****
      *   -trm(:,j,1,n))*by_dt
       end do
 
+C****
+C**** No non-interactive surface sources of Water
+C****
+      case ('Water')
+        trsource(:,:,:,n)=0
+
       end select
 
       end do
@@ -1639,7 +1773,8 @@ C**** Apply the chemistry
       do j=1,jm
       do i=1,imaxj(j)
         do l = 1,ltropo(i,j)
-          if (l.le.ls1) tr3Dsource(i,j,l,ns,n) = frqlos(i,j,l)
+          if (l.le.ls1) 
+    *     tr3Dsource(i,j,l,ns,n) = -frqlos(i,j,l)*trm(i,j,l,n)
         end do
       end do
       end do
