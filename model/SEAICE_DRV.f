@@ -183,7 +183,8 @@ C**** Ice lowest layer conditions
 C**** for the Salinity thermodynamics case (or something similar)
 c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
               IF (KOCEAN.eq.1) THEN
-                Ustar = MAX(5d-4,SQRT(UI2rho(I,J)/RHOW))
+C**** should we calculate ocean rho(Tm,Sm) here?
+                Ustar = MAX(5d-4,SQRT(UI2rho(I,J)/RHOW)) 
                 Sm = SSS(I,J)
                 mlsh = MLHC(I,J)
                 call iceocean(Ti,Si,Tm,Sm,dh,Ustar,Coriol,dtsrc,mlsh,
@@ -393,7 +394,7 @@ C****
 #ifdef TRACERS_WATER
       TRUNOSI(:,I,J) = 0.
 #endif
-      IF (PWATER.gt.0) THEN
+      IF (PWATER*ROICE.gt.0) THEN
 
         F0DT=E0(I,J,2) ! heat flux to the top ice surface (J/m^2)
         F1DT=E1(I,J,2) ! heat flux between 1st and 2nd ice layer (J/m^2)
@@ -699,22 +700,29 @@ C****
 !@sum  init_ice initialises ice arrays
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : byshi,lhm,shi
+      USE CONSTANT, only : byshi,lhm,shi,rhow
       USE MODEL_COM, only : im,jm,kocean,focean
-      USE SEAICE, only : xsi,ace1i,ac2oim,ssi0,tfrez
+      USE SEAICE, only : xsi,ace1i,ac2oim,ssi0,tfrez,oi_ustar0
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp,sss
+      USE FLUXES, only : gtemp,sss,ui2rho
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
       USE DAGCOM, only : npts,icon_MSI,icon_HSI,icon_SSI,title_con
+      USE PARAM
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE. , iniOCEAN
       INTEGER I,J
       REAL*8 MSI1,TFO
+
+C**** set up a default ice-ocean stress field. This can be changed by 
+C**** adjusting oi_ustar0 in the parameter list. If ice dynamics is used,
+C**** this is overwritten.  
+      call sync_param("oi_ustar0",oi_ustar0)
+      UI2rho = rhow*(oi_ustar0)**2
 
       IF (KOCEAN.EQ.0.and.iniOCEAN) THEN
 C****   set defaults for no ice case

@@ -521,14 +521,13 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 !@ver  1.0
       USE FILEMANAGER
       USE PARAM
-      USE CONSTANT, only : rhow
       USE MODEL_COM, only : im,jm,fland,flice,kocean,focean
      *     ,fearth,iyear1
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
 #endif
-      USE FLUXES, only : gtemp,sss,ui2rho
+      USE FLUXES, only : gtemp,sss
       USE SEAICE, only : qsfix
       USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
@@ -611,12 +610,8 @@ C**** Set gtemp array for oceans
       END DO
 C**** keep salinity in sea ice constant for fixed-SST and qflux models
       qsfix = .true.
-
-C**** set up a default ice-ocean stress field (ustar=0.005 m/s)
-      UI2rho = rhow*(5d-3)**2
-
-      RETURN
 C****
+      RETURN
       END SUBROUTINE init_OCEAN
 
       SUBROUTINE daily_OCEAN(end_of_day)

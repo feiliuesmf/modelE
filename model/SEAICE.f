@@ -49,6 +49,8 @@
       LOGICAL :: QSFIX = .false.
 !@var alpha implicity for heat diffusion in sea ice (1=fully implicit)
       REAL*8, PARAMETER :: ALPHA = 1.0
+!@dbparam oi_ustar0 default ice-ocean friction velocity (m/s) 
+      REAL*8 :: oi_ustar0 = 5d-3  
 
       CONTAINS
 
@@ -1403,8 +1405,7 @@ C**** Check for reasonable values for ice variables
             IF (L.gt.2) TICE = (HSI(L,I,J)/(XSI(L)*MSI(I,J))+LHM)/SHI
             IF (HSI(L,I,J).gt.0.or.TICE.gt.1d-4.or.TICE.lt.-80.) THEN
               WRITE(6,*) 'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,HSI(:,I
-     *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J),sqrt(UI2RHO(I,J)
-     *             /rhow)
+     *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J)
               if (HSI(L,I,J).gt.0.or.TICE.gt.0.01.or.TICE.lt.-80.)
      *             QCHECKI = .TRUE.
             END IF
