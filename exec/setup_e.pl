@@ -195,17 +195,28 @@ foreach $_ ( @data_files ) {
 
 if ( $flag_missing_data_files ) { exit 1; }
 
-## Architecture-dependent settings
-$uname = `uname`;
-if ( $uname =~ /IRIX64/ ) {
-    print RUNIDLN "export PAGESIZE_DATA=64 PAGESIZE_STACK=64\n";
-} elsif ( $uname =~ /AIX/ ) {
-    print RUNIDLN "export NAMELIST=OLD\n";
-}
 
 close RUNIDLN;
 close RUNIDULN;
-chmod 0777 & $umask_inv, "${runID}ln", "${runID}uln";
+
+open RUNTIMEOPTS, ">runtime_opts" or die "can't create runtime_opts\n";
+## Architecture-dependent settings
+$uname = `uname`;
+if ( $uname =~ /IRIX64/ ) {
+    print RUNTIMEOPTS "export PAGESIZE_DATA=64 PAGESIZE_STACK=64\n";
+} elsif ( $uname =~ /AIX/ ) {
+    print RUNTIMEOPTS "export NAMELIST=OLD\n";
+}
+print RUNTIMEOPTS <<EOF;
+    if [ `ulimit -s` -lt $MIN_STACK ] ; then
+      ulimit -s $MIN_STACK || \\
+        echo "!!! Could not set required stack size !!!" ;
+      echo "current stack: `ulimit -s`"
+    fi
+EOF
+
+close RUNTIMEOPTS;
+chmod 0777 & $umask_inv, "${runID}ln", "${runID}uln", "runtime_opts";
 
 open I, ">I" or die "can't open 'I' for writing\n";
 ## Check signature
@@ -247,12 +258,7 @@ if ( ! defined $pid ) {
 print <<`EOC`;
     umask $umask_str
     touch lock
-    if [ `ulimit -s` -lt $MIN_STACK ] ; then
-      ulimit -s $MIN_STACK || ( \
-        echo "!!! Could not set required stack size !!!"; \
-        echo "!!! The program may not run properly !!!" )
-      echo "current stack: `ulimit -s`"
-    fi
+    . ./runtime_opts
     rm -f error_message 2> /dev/null
     ./"$runID"ln
     ./"$runID".exe -i I >> ${runID}.PRT
@@ -300,16 +306,12 @@ print RUNID <<EOF;
             exit 1
       esac
     done
-    if [ `ulimit -s` -lt $MIN_STACK ] ; then
-      ulimit -s $MIN_STACK || \\
-        echo "!!! Could not set required stack size !!!" ;
-      echo "current stack: `ulimit -s`"
-    fi
     umask $umask_str
     if [ -f lock ] ; then
       echo 'lock file present - aborting' ; exit 1 ; fi
     touch lock
     rm -f error_message 2> /dev/null
+    . ./runtime_opts
     ./${runID}ln
     ./${runID}.exe -i \$IFILE > \$PRTFILE
     rc=\$?

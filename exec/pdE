@@ -34,6 +34,9 @@ EOF
 fi
 
 rm -f error_message
+if [ -f $RUNDIR/runtime_opts ] ; then
+  . $RUNDIR/runtime_opts
+fi
 do_uln=0 ; if [ ! -L TOPO ] ; then $RUNDIR/${runID}ln ; do_uln=1 ; fi
 $RUNDIR/${runID}.exe -i Ipd $* < Ipd > pd.PRT
 # hack to process older runs (which don't support -i)
