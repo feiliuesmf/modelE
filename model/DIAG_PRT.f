@@ -4439,7 +4439,7 @@ C****
 !@auth G. Russell
 !@ver  1.0
       USE MODEL_COM, only :
-     &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID
+     &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID,NDAY
       USE DAGCOM, only :   kdiag,qdiag,acc_period,units_dd,
      &     adiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd,name_dd
      *     ,ia_12hr
@@ -4521,7 +4521,7 @@ C****
 !@+       exactly to same numbers as in DIAGDD.
 !@auth J. Lerner
 !@ver  1.0
-      USE MODEL_COM, only :   JDendOfM,JMON,
+      USE MODEL_COM, only :   JDendOfM,JMON,NDAY,
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID
       USE DAGCOM, only :   kdiag,qdiag,acc_period,units_dd,hr_in_month,
      &   hdiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd,name_dd
