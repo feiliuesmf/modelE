@@ -9,6 +9,7 @@ SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
 DECKS_DIR = $(shell pwd)
 BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
 
+USER = $(shell whoami)
 HOMEDIR = $(wildcard ~)
 MODELERC = $(HOMEDIR)/.modelErc
 # getting options from configuration files
@@ -33,8 +34,8 @@ help:
 sinclude $(MODEL_DIR)/Rules.make
 
 rundeck:
-	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R \
-	-a ! -O $(DECKS_REPOSITORY)/$(RUN).R ]; then \
+	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] && \
+	! [ `find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)` ]; then \
 	echo 'name $(RUN) is already used by somebody else'; \
 	echo 'please choose a unique one'; exit 1; fi
 	@if [ -s $(DECKS_REPOSITORY)/$(RUN).R -a $(OVERWRITE) != YES ];\
@@ -54,8 +55,8 @@ setup: gcm
 	@if [ ! -d $(DECKS_REPOSITORY) ]; then \
 	  echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---';\
 	else \
-	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R \
-	  -a ! -O $(DECKS_REPOSITORY)/$(RUN).R ]; then \
+	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] && \
+	  ! [ `find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)` ]; then \
 	    echo 'name $(RUN) is already used by somebody else'; \
 	    echo 'please choose a unique one'; exit 1; \
 	  else \
@@ -86,8 +87,8 @@ setup_gfdl: gcm $(SETUP_GFDL)
 	@if [ ! -d $(DECKS_REPOSITORY) ]; then \
 	  echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---';\
 	else \
-	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R \
-	  -a ! -O $(DECKS_REPOSITORY)/$(RUN).R ]; then \
+	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] && \
+	  ! [ `find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)` ]; then \
 	    echo 'name $(RUN) is already used by somebody else'; \
 	    echo 'please choose a unique one'; exit 1; \
 	  else \
@@ -124,7 +125,7 @@ clean vclean:
 	$(MAKE) -C $(AUX_DIR) $@
 
 exe:  $(BIN_DIR)/$(RUN).exe
-	@if [ ! -O $(DECKS_REPOSITORY)/$(RUN).R ]; then \
+	@if ! [ `find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)` ]; then \
 	echo 'Either you didn''t run setup yet or the rundeck name $(RUN)'; \
 	echo 'belongs to somebody else'; echo 'please check'; exit 1; fi
 	@if [ ! -s $(CMRUNDIR)/$(RUN)/I ] ; then \

@@ -190,7 +190,7 @@ else
 	  $(COMP_OUTPUT)
 endif
 	-@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
-	  do if [ ! -s $$i.sig ] || [ $$i -nt $$i.sig ] ; then \
+	  do if [ ! -s $$i.sig ] || [ `find $$i -newer $$i.sig` ] ; then \
 	  echo $@ > $$i.sig; fi; done; fi 
 	@touch -r .timestamp $@
 	@if [ -s $*.ERR ] ; then echo $(MSG); else echo Done $(MSG); fi
