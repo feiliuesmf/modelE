@@ -51,6 +51,7 @@ C**** ocean related parameters
       REAL*8, DIMENSION(IM,JM) :: OPRESS
 !@var OGEOZ ocean geopotential at surface (m^2/s^2)
       REAL*8, DIMENSION(IM,JM) :: OGEOZ
+      REAL*8, DIMENSION(IM,JM) :: OGEOZ_SV
 
 #ifdef TRACERS_OCEAN
 !@var TRMO,TXMO,TYMO,TZMO tracer amount (+moments) in ocean (kg)      

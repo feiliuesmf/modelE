@@ -4,15 +4,14 @@
 !@sum  OCEANS integrates ocean source terms and dynamics
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : grav
-      USE MODEL_COM, only : idacc,modd5s,p,ptop,msurf
+      USE MODEL_COM, only : idacc,modd5s,msurf
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : t_qlimit,ntm
       USE OCEAN, only : trmo,txmo,tymo,tzmo
 #endif
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo,
-     *     symo,szmo,dts,dtofs,dto,dtolf,opress,bydxypo,mdyno,msgso
-     *     ,ratoc,imaxj,focean,ogeoz
+     *     symo,szmo,dts,dtofs,dto,dtolf,bydxypo,mdyno,msgso
+     *     ,ratoc,imaxj,focean,ogeoz,ogeoz_sv
       USE ODIAG, only : oijl,oij,ijl_mo,ijl_g0m,ijl_s0m,ijl_gflx
      *     ,ijl_sflx,ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl,ij_ssh
 #ifdef TRACERS_OCEAN
@@ -28,16 +27,7 @@
 C****
 C**** Integrate Ocean Dynamics terms
 C****
-C**** Calculate pressure anomaly at ocean surface (and scale for areas)
-C**** Updated using latest sea ice
-      DO J=1,JM
-        DO I=1,IMAXJ(J)
-          OPRESS(I,J) = RATOC(J)*(100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
-     *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV)
-        END DO
-      END DO
-      OPRESS(2:IM,1)  = OPRESS(1,1)
-      OPRESS(2:IM,JM) = OPRESS(1,JM)
+      OGEOZ_SV=OGEOZ
 
 C**** Apply surface fluxes to ocean
       CALL GROUND_OC
@@ -179,7 +169,7 @@ c        CALL CHECKO ('STADVI')
       USE OCEAN, only : im,jm,lmo,focean,ze1,zerat,sigeo,dsigo,sigo,lmm
      *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
-     *     ,ndyno,opress,imaxj,bydxypo
+     *     ,ndyno,imaxj,bydxypo,ogeoz_sv
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE SW2OCEAN, only : init_solar
       IMPLICIT NONE
@@ -359,6 +349,7 @@ C**** Multiply specific quantities by mass
   370 CONTINUE
 C**** Initiallise geopotential field (needed by KPP)
       OGEOZ = 0.
+      OGEOZ_SV = 0.
 
       END IF
 
@@ -443,19 +434,19 @@ C****
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCDYN01"
 #ifdef TRACERS_OCEAN
 !@var TRHEADER Character string label for individual records
-      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCDYN01"
+      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCDYN02"
 
       write (TRMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
      *     'R8 dim(im,jm,',LMO,',',NTM,'):TRMO,TX,TY,TZ'
 #endif
 
       write (MODULE_HEADER(lhead+1:80),'(a13,i2,a)') 'R8 dim(im,jm,',
-     *   LMO,'):M,U,V,G0,GX,GY,GZ,S0,SX,SY,SZ, OGEOZ(im,jm)'
+     *   LMO,'):M,U,V,G0,GX,GY,GZ,S0,SX,SY,SZ, OGZ,OGZSV'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO
-     *     ,S0M,SXMO,SYMO,SZMO,OGEOZ
+     *     ,S0M,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
 #ifdef TRACERS_OCEAN
        WRITE (kunit,err=10) TRMODULE_HEADER,TRMO,TXMO,TYMO,TZMO
 #endif
@@ -465,7 +456,7 @@ C****
             READ (kunit)
           CASE (ioread,irerun) ! restarts
             READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
-     *           ,SXMO,SYMO,SZMO,OGEOZ
+     *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER
      *             ,MODULE_HEADER
@@ -2312,7 +2303,7 @@ C**** Reduce South-North gradient of tracers
 !@auth Gary Russell
 !@ver  1.0
       USE OCEAN, only : im,jm,uo,vo,mo,dxyso,dxyno,dxyvo,lmu,lmv,cosic
-     *     ,sinic
+     *     ,sinic,ratoc
       USE FLUXES, only : dmua,dmva,dmui,dmvi
       IMPLICIT NONE
       INTEGER I,J,IP1
@@ -2323,6 +2314,16 @@ C****         DMVA(1)  V momentum downward into open ocean (kg/m*s)
 C****         DMUA(2,JM,1)  polar atmo. mass slowed to zero (kg/m**2)
 C****         DMUI     U momentum downward from sea ice (kg/m*s)
 C****         DMVI     V momentum downward from sea ice (kg/m*s)
+
+C**** Scale stresses for ocean area
+      DO J=1,JM
+        DO I=1,IM
+          DMUA(I,J,1)=RATOC(J)*DMUA(I,J,1)
+          DMVA(I,J,1)=RATOC(J)*DMVA(I,J,1)
+          DMUI(I,J)=RATOC(J)*DMUI(I,J)
+          DMVI(I,J)=RATOC(J)*DMVI(I,J)
+        END DO
+      END DO
 C****
 C**** Surface stress is applied to U component
 C****
@@ -2362,14 +2363,15 @@ C**** Surface stress is applied to V component at the North Pole
 !@sum  GROUND_OC adds vertical fluxes into the ocean
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
+      USE CONSTANT, only : grav
       USE GEOM, only : dxyp,bydxyp
       USE OCEAN, only : im,jm,mo,g0m,s0m,focean,gzmo,imaxj,dxypo,bydxypo
-     *     ,lmo,lmm,ratoc,rocat
+     *     ,lmo,lmm,ratoc,rocat,opress
 #ifdef TRACERS_OCEAN
      *     ,trmo,ntm
 #endif
       USE FLUXES, only : solar,e0,evapor,dmsi,dhsi,dssi,runosi,erunosi
-     *     ,flowo,eflowo,sflowo,srunosi
+     *     ,flowo,eflowo,sflowo,srunosi,apress
 #ifdef TRACERS_OCEAN
      *     ,trflowo,trevapor,dtrsi,trunosi
 #endif
@@ -2439,12 +2441,19 @@ C**** Store mass and energy fluxes for formation of sea ice
         DTRSI(:,1,I,J)=DTROO(:)*ROCAT(J)
         DTRSI(:,2,I,J)=DTROI(:)*ROCAT(J)
 #endif
+
+C**** Calculate pressure anomaly at ocean surface (and scale for areas)
+C**** Updated using latest sea ice (this ensures that total column mass
+C**** is consistent for OGEOZ calculation). 
+        OPRESS(I,J) = RATOC(J)*(APRESS(I,J))+GRAV*(
+     *       (1.-RSI(I,J))*DMSI(1,I,J) + RSI(I,J)*DMSI(2,I,J))
+
         END IF
       END DO
       END DO
-C**** calculate and store store surface temperatures
-      CALL TOC2SST
 
+      OPRESS(2:IM,1)  = OPRESS(1,1)
+      OPRESS(2:IM,JM) = OPRESS(1,JM)
 C****
       RETURN
       END SUBROUTINE GROUND_OC
@@ -3082,7 +3091,7 @@ C**** Done!
       USE TRACER_COM, only : trw0
 #endif
       USE OCEAN, only : im,jm,imaxj,g0m,s0m,mo,dxypo,focean,lmm,ogeoz,uo
-     *     ,vo
+     *     ,vo,ogeoz_sv
 #ifdef TRACERS_OCEAN
      *     ,trmo
 #endif
@@ -3117,7 +3126,8 @@ C****
               TO= TEMGS(GO2,SO2)
             END IF
             GTEMP(2,1,I,J)= TO
-            OGEOZA(I,J)=OGEOZ(I,J)   ! atmospheric grid Ocean height
+   ! atmospheric grid Ocean height
+            OGEOZA(I,J)=0.5*(OGEOZ(I,J)+OGEOZ_SV(I,J))
             UOSURF(I,J)=UO(I,J,1)
             VOSURF(I,J)=VO(I,J,1)
 C**** set GTEMP array for ice as well (possibly changed by STADVI)

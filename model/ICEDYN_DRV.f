@@ -220,12 +220,13 @@ C****
       USE ICEDYN_COM, only : usi,vsi,usidt,vsidt,rsisave,icij,ij_usi
      *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi
       USE FLUXES, only : dmua,dmva,dmui,dmvi,UI2rho,ogeoza,uosurf,vosurf
+     *     ,apress
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       IMPLICIT NONE
       SAVE
 C**** intermediate calculation for pressure gradient terms
-      REAL*8, DIMENSION(IM,JM) :: PGFU,PGFV,APRESS
+      REAL*8, DIMENSION(IM,JM) :: PGFU,PGFV
 C****
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
       REAL*8 :: hemi
@@ -243,16 +244,8 @@ C**** save current value of sea ice concentration for ADVSI
 C**** RSISAVE is on atmospheric grid
       RSISAVE(:,:)=RSI(:,:)
 
-C**** Calculate pressure anomaly at surface
+C**** Pressure anomaly at surface APRESS is calculated by sea ice routines
 C**** APRESS is on atmospheric grid
-      DO J=1,JM
-        DO I=1,IMAXJ(J)
-          APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+
-     *         RSI(I,J)*(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
-        END DO
-      END DO
-      APRESS(2:IM,1)  = APRESS(1,1)
-      APRESS(2:IM,JM) = APRESS(1,JM)
 
 C**** calculate sea surface tilt (incl. atmospheric pressure term)
 C**** on atmospheric C grid (using OGEOZA on atmospheric grid)
@@ -526,9 +519,9 @@ C****
 !@+    At some point this will change (USIDT/VSIDT on ice grid, and RSI
 !@+    etc. will need to be interpolated back and forth).
 !@auth Gary Russell/Gavin Schmidt
-      USE CONSTANT, only : byshi,lhm
-      USE MODEL_COM, only : im,jm,focean
-      USE GEOM, only : dxyp,dyp,dxp,dxv,bydxyp
+      USE CONSTANT, only : byshi,lhm,grav
+      USE MODEL_COM, only : im,jm,focean,p,ptop
+      USE GEOM, only : dxyp,dyp,dxp,dxv,bydxyp,imaxj
 c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
       USE ICEDYN_COM, only : usidt,vsidt,rsix,rsiy,rsisave,icij,ij_musi
      *     ,ij_mvsi,ij_husi,ij_hvsi,ij_susi,ij_svsi
@@ -540,7 +533,7 @@ c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp
+      USE FLUXES, only : gtemp,apress
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
@@ -965,8 +958,11 @@ C**** Currently on atmospheric grid, so no interpolation necessary
       END DO
 C**** Set atmospheric arrays
       DO J=1,JM
-        DO I=1,IM
+        DO I=1,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
+C**** set total atmopsheric pressure anomaly in case needed by ocean
+            APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
+     *           *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
             GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MHS(1,I,J))
      *           +LHM)*BYSHI
 #ifdef TRACERS_WATER
@@ -975,6 +971,13 @@ C**** Set atmospheric arrays
 #endif
           END IF
         END DO
+      END DO
+      DO I=2,IM ! North pole
+        APRESS(I,JM)=APRESS(1,JM)
+        GTEMP(1:2,2,I,JM)= GTEMP(1:2,2,1,JM)
+#ifdef TRACERS_WATER
+        GTRACER(:,2,I,JM)=GTRACER(:,2,1,JM)
+#endif
       END DO
 C****
       RETURN

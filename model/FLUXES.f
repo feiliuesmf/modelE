@@ -87,6 +87,8 @@ C**** is currently done for river flow and complete sea ice melt.
       REAL*8, DIMENSION(IM,JM) :: MLHC
 !@var UOSURF, VOSURF ocean surface velocity (m/s)
       REAL*8, DIMENSION(IM,JM) :: UOSURF,VOSURF
+!@var APRESS total atmos + sea ice pressure (at base of sea ice) (Pa)
+      REAL*8, DIMENSION(IM,JM) :: APRESS
 
 #ifdef TRACERS_ON
 !@var TRSOURCE non-interactive surface sources/sinks for tracers (kg/s)

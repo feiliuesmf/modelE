@@ -10,11 +10,11 @@
 !@auth Original Development team
 !@ver  1.0
 !@calls seaice:prec_si
-      USE CONSTANT, only : byshi,lhm,teeny,rhoi
+      USE CONSTANT, only : byshi,lhm,teeny,rhoi,grav
       USE MODEL_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
-     *     ,jday,itocean,itlake
+     *     ,jday,itocean,itlake,p,ptop
       USE GEOM, only : imaxj,dxyp,bydxyp
-      USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp
+      USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,apress
 #ifdef TRACERS_WATER
      *     ,trprec,trunpsi,gtracer
 #endif
@@ -115,8 +115,15 @@ C**** Accumulate regional diagnostics
 c       AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ERUN *POICE*DXYP(J) ! ==0
 
       END IF
+
+C**** Calculate pressure anomaly at surface
+      APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+
+     *     RSI(I,J)*(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
+
       END DO
       END DO
+      APRESS(2:IM,1)  = APRESS(1,1)
+      APRESS(2:IM,JM) = APRESS(1,JM)
 C****
       END SUBROUTINE PRECIP_SI
 
@@ -357,12 +364,12 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 !@calls SEAICE:SEA_ICE
-      USE CONSTANT, only : lhm,byshi,rhow
+      USE CONSTANT, only : lhm,byshi,rhow,grav
       USE MODEL_COM, only : im,jm,dtsrc,fland,kocean,focean
-     *     ,itoice,itlkice,jday
+     *     ,itoice,itlkice,jday,p,ptop
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,srunosi,solar
-     *     ,fmsi_io,fhsi_io,fssi_io
+     *     ,fmsi_io,fhsi_io,fssi_io,apress
 #ifdef TRACERS_WATER
      *     ,ftrsi_io,trevapor,trunosi
 #endif
@@ -500,8 +507,14 @@ C**** ACCUMULATE DIAGNOSTICS
      *         *DXYP(J)
 
       END IF
+C**** set total atmopsheric pressure anomaly in case needed by ocean
+      APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
+     *     *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
+
       END DO
       END DO
+      APRESS(2:IM,1)  = APRESS(1,1)
+      APRESS(2:IM,JM) = APRESS(1,JM)
 C****
       END SUBROUTINE GROUND_SI
 
