@@ -5625,12 +5625,10 @@ c 1.3 converts OC to OM
       else ! AEROCOM
       call openunit('TERPENE',mon_unit,.false.)
       do mmm=1,99999
-c      read(mon_unit,*) ii,jj,mm,carbstuff
-      read(mon_unit,*) ii,jj,carbstuff  ! temp fix
+      read(mon_unit,*) ii,jj,mm,carbstuff
       if (ii.eq.0.) go to 18
       carbstuff=carbstuff/(sday*30.4d0)
-c      OCT_src(ii,jj,mm)=carbstuff
-      OCT_src(ii,jj,:)=carbstuff  ! temp fix
+      OCT_src(ii,jj,mm)=carbstuff
       end do
  18   continue
       call closeunit(mon_unit)
