@@ -177,7 +177,6 @@ C       TGRND(4,I,J)=GTEMP(1,4,I,J)
 C**** Zero out fluxes summed over type and surface time step
       E0=0. ; E1=0. ; EVAPOR=0. ; RUNOE=0. ; ERUNOE=0.
       DMUA=0. ; DMVA=0. ; SOLAR=0.
-      AREG_part = 0.
 #ifdef TRACERS_WATER
       TREVAPOR = 0. ; TRUNOE = 0.
 #endif
@@ -189,6 +188,7 @@ C****
 C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NIsurf TIMES EVERY HOUR
 C****
       DO NS=1,NIsurf
+         AREG_part = 0.
          MODDSF=MOD(NSTEPS+NS-1,NDASF*NIsurf+1)
          IF(MODDSF.EQ.0) IDACC(3)=IDACC(3)+1
          MODDD=MOD(1+ITime/NDAY+NS,NIsurf)   ! 1+ not really needed ??
