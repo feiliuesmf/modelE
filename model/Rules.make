@@ -128,8 +128,8 @@ endif
 ifeq ($(COMPILER),Intel)
 F90 = efc
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
-FFLAGS = -fpp -O2 -w95 -w90 -cm -tpp2 -common_args
-FFLAGSF = -fpp -O2 -FR -w95 -w90 -cm -tpp2 -common_args
+FFLAGS = -fpp -Wp,-P -O2 -w95 -w90 -cm -tpp2 -common_args
+FFLAGSF = -fpp -Wp,-P -O2 -FR -w95 -w90 -cm -tpp2 -common_args
 LFLAGS = -O2 -w95 -w90 -tpp2 -common_args -Vaxlib
 CPP = /lib/cpp -P -traditional
 CPPFLAGS = -DMACHINE_Linux
@@ -151,9 +151,9 @@ endif
 ifeq ($(COMPILER),Intel8)
 F90 = ifort
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
-FFLAGS = -fpp -O2 -tpp2 -convert big_endian -assume dummy_aliases
-FFLAGSF = -fpp -O2 -tpp2 -convert big_endian -free -assume dummy_aliases
-LFLAGS = -O2 -tpp2 -convert big_endian -assume dummy_aliases
+FFLAGS = -fpp -O2 -Wp,-P -tpp2 -convert big_endian -assume dummy_aliases
+FFLAGSF = -fpp -O2 -Wp,-P -tpp2 -convert big_endian -free -assume dummy_aliases
+LFLAGS = -O2 -tpp2 -assume dummy_aliases
 CPP = /lib/cpp -P -traditional
 CPPFLAGS = -DMACHINE_Linux
 F90_VERSION = $(shell $(F90) -v 2>&1)
