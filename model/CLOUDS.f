@@ -1745,11 +1745,9 @@ C****
       IF(RH00(L).GT.1.) RH00(L)=1.
       RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
 C**** Set precip phase to be the same as the cloud, unless precip above
-C**** is ice and temperatures after ice melt would still be below TFrez
+C**** is ice and temperatures are below TFrez
       LHP(L)=LHX
-      IF (LHP(L+1).eq.LHS .and.
-     *     TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA)
-     *     LHP(L)=LHP(L+1)
+      IF (LHP(L+1).eq.LHS .and. TL(L).lt.TF) LHP(L)=LHP(L+1)
 C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
       IF(WMX(L).GT.0.) THEN
         RHO=1d5*PL(L)/(RGAS*TL(L))
