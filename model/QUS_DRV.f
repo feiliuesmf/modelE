@@ -87,6 +87,9 @@ c****
       INTEGER :: I,J,L
       DOUBLE PRECISION :: BYMA
 
+C**** Initialise diagnostics
+      FQU=0.  ; FQV=0.
+
 C**** Fill in values at the poles
       DO L=1,LM
          RM(2:IM,1 ,L) =   RM(1,1 ,L)

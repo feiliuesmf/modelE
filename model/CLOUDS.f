@@ -783,7 +783,9 @@ C****
 C     TNX=SMDN*PLK(L)/DDRAFT
 C     QNX=QMDN/DDRAFT
       LHX=LHE
-      IF(TPSAV(L).LT.TF) LHX=LHS
+      IF (L.GE.LMIN) THEN  ! avoids reference to uninitiallised value???
+        IF(TPSAV(L).LT.TF) LHX=LHS
+      END IF
       SLH=LHX*BYSHA
 C     QSATC=QSAT(TNX,LHX,PL(L))
 c     DQ=(QSATC-QNX)/(1.+SLH*QSATC*DQSATDT(TNX,LHX))
@@ -1059,7 +1061,9 @@ C     IF(QN-QSATC.LE.0.) GO TO 520
       QNX=QMOLD(L)*BYAM(L)
       LHX=LHE
       IF(TNX.LT.TF) LHX=LHS
-      IF(L.GT.LMIN.AND.TPSAV(L).GE.TF) LHX=LHE
+      IF(L.GT.LMIN) THEN    ! needed to avoid unintiallised value
+        IF (TPSAV(L).GE.TF) LHX=LHE
+      END IF
       SLH=LHX*BYSHA
       DQSUM=0.
       DO 510 N=1,3

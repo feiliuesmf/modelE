@@ -1504,7 +1504,7 @@ C**** Note that FL[GS] are upward fluxes.
       SZML(LMIJ,IQ,JQ)=(SZML(LMIJ,IQ,JQ)+3d0*FLS(LMIJ-1))
      *     /(1d0+DTBYDZ2*AKVS(LMIJ-1))
 C**** Diagnostics for non-local transport and vertical diffusion
-       DO L=1,LMIJ
+       DO L=1,LMIJ-1
          OIJL(I,J,L,IJL_KVM) = OIJL(I,J,L,IJL_KVM) + AKVM(L)
          OIJL(I,J,L,IJL_KVG) = OIJL(I,J,L,IJL_KVG) + AKVG(L)
          OIJL(I,J,L,IJL_WGFL)= OIJL(I,J,L,IJL_WGFL) + FLG(L) ! heat flux
@@ -1512,7 +1512,9 @@ C**** Diagnostics for non-local transport and vertical diffusion
 c         OIJL(I,J,L,IJL_KVS) = OIJL(I,J,L,IJL_KVS) + AKVS(L)
 c         OIJL(I,J,L,IJL_KVGG) = OIJL(I,J,L,IJL_KVGG) + AKVG(L)*GHATG(L)
 c         OIJL(I,J,L,IJL_KVSG) = OIJL(I,J,L,IJL_KVSG) + AKVS(L)*GHATS(L)
+       END DO
 C**** Also set vertical diagnostics
+       DO L=1,LMIJ
          OL(L,L_RHO) = OL(L,L_RHO) + RHO(L)
          OL(L,L_TEMP)= OL(L,L_TEMP)+ TEMGS(G(L),S(L))
          OL(L,L_SALT)= OL(L,L_SALT)+ S(L)
@@ -1796,7 +1798,7 @@ C**** No surface fluxes
      *     /(1d0+DTBYDZ2*AKVG(LMIJ-1))
       SZML(LMIJ,IQ)=(SZML(LMIJ,IQ)+3d0*FLS(LMIJ-1))
      *     /(1d0+DTBYDZ2*AKVS(LMIJ-1))
-      DO L=1,LMIJ
+      DO L=1,LMIJ-1
         OLNST(L,N,LN_KVG) = OLNST(L,N,LN_KVG) + AKVG(L)
         OLNST(L,N,LN_KVM) = OLNST(L,N,LN_KVM) + AKVM(L)
 C       OLNST(L,N,LN_KVS) = OLNST(L,N,LN_KVS) + AKVS(L)

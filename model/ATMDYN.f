@@ -1212,7 +1212,7 @@ c****  -----------------
 c****       ztm  lineare Interpolation in p**kappa
 c****     gamma  dt/dp = a * kappa + papm1(jx,jk)**(kappa-1.)
 
-      do jk=iplimb+1,iplimt-1
+      do jk=iplimb+1,iplimt       ! -1 ?????
         zpmk(jk)=0.5*(pk(jk-1)+pk(jk))
         
         zpm(jk)=zpmk(jk)**zzkap ! p mitte

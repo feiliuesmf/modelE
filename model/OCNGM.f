@@ -232,10 +232,12 @@ C**** Calculate fluxes in Z-direction
 C**** Diagonal      :  Need BYDH for divF!
       FZZ(I,J,L) = DT4*BZZ(I,J,L)*(TR(I,J,L+1)-TR(I,J,L))*BYDZV(I,J,L)
 C**** Off-diagonal X:  May need to use IM2,IM1,I and F(IM1)
-      FZX(I,J,L) = DT4DX * (AZX(I,J,L) * TR(IM1,J,L) +
-     *              BZX(I,J,L) * TR(I,J,L)  +
-     *              CZX(I,J,L) * TR(IP1,J,L)  +
+      FZX(I,J,L) = DT4DX * (BZX(I,J,L) * TR(I,J,L) +
      *              EZX(I,J,L+1) * TR(I,J,L+1)) !EZX=0 for LMU(IorIM1)=0
+      IF(LMM(IM1,J).gt.L) FZX(I,J,L) = FZX(I,J,L) + DT4DX * AZX(I,J,L)
+     *     * TR(IM1,J,L)
+      IF(LMM(IP1,J).gt.L) FZX(I,J,L) = FZX(I,J,L) + DT4DX * CZX(I,J,L)
+     *     * TR(IP1,J,L) 
 C**** Skip for L+1 greater than LMM(I,J)
       IF(LMM(IM1,J).gt.L) FZX(I,J,L) =  FZX(I,J,L) +
      *     DT4DX * AEZX(I,J,L+1) * TR(IM1,J,L+1)
@@ -243,10 +245,12 @@ C**** Skip for L+1 greater than LMM(I,J+1)
       IF(LMM(IP1,J).gt.L) FZX(I,J,L) =  FZX(I,J,L) +
      *     DT4DX * CEZX(I,J,L+1) * TR(IP1,J,L+1)
 C**** Off-diagonal Y:  May need to use JM2,J-1,J and F(J-1)
-      FZY(I,J,L) = DT4DY * (AZY(I,J,L) * TR(I,J-1,L) +
-     *              BZY(I,J,L) * TR(I,J,L) +
-     *              CZY(I,J,L) * TR(I,J+1,L) +
+      FZY(I,J,L) = DT4DY * (BZY(I,J,L) * TR(I,J,L) +
      *              EZY(I,J,L+1) * TR(I,J,L+1)) !EZY=0 for LMV(JorJ-1)=0
+      IF(LMM(I,J-1).gt.L) FZY(I,J,L) = FZY(I,J,L) + DT4DY * AZY(I,J,L)
+     *     * TR(I,J-1,L)
+      IF(LMM(I,J+1).gt.L) FZY(I,J,L) = FZY(I,J,L) + DT4DY * CZY(I,J,L)
+     *     * TR(I,J+1,L)
 C**** Skip for L+1 greater than LMM(I,J)
       IF(LMM(I,J-1).gt.L) FZY(I,J,L) =  FZY(I,J,L) +
      *     DT4DY * AEZY(I,J,L+1) * TR(I,J-1,L+1)
@@ -595,20 +599,27 @@ C**** Calculate average density + gradients over [1,LUP]
               END IF
             END DO
             ARHO  = ARHO / DBLE(LAV)
-            IF (LAVX.gt.0) ARHOX = ARHOX / DBLE(LAVX)
-            IF (LAVY.gt.0) ARHOY = ARHOY / DBLE(LAVY)
-            IF (LAV.gt.1) THEN
-              ARHOZ = 2.*(RHO(I,J,LAV)-RHO(I,J,1))/
-     *             (ZE(LAV)+ZE(LAV-1)-ZE(1))
-            ELSE
-              ARHOZ = 0.
+            IF (LAVX.gt.0.and.LAVY.gt.0) THEN
+              IF (LAVX.gt.0) ARHOX = ARHOX / DBLE(LAVX)
+              IF (LAVY.gt.0) ARHOY = ARHOY / DBLE(LAVY)
+              IF (LAV.gt.1) THEN
+                ARHOZ = 2.*(RHO(I,J,LAV)-RHO(I,J,1))/
+     *               (ZE(LAV)+ZE(LAV-1)-ZE(1))
+              ELSE
+                ARHOZ = 0.
+              END IF
+              IF (ARHOZ.gt.0) THEN   ! avoid occasional inversions
+                AN = SQRT(GRAV * ARHOZ / ARHO)
+              ELSE
+                AN = 0.
+              END IF
+              RD = AN * HUP / CORI
+              IF (RD.gt.ABS(J-.5*(JM+1))*DYPO(J)) RD=SQRT(AN*HUP/BETA)
+              BYTEADY = GRAV * SQRT(ARHOX*ARHOX + ARHOY*ARHOY) / (AN
+     *             *ARHO)
+              IF (AN.gt.0) AINV(I,J) = AMU * RD**2 * BYTEADY ! was = AIN
+              ARIV(I,J) = ARAI * AINV(I,J) ! was = ARI
             END IF
-            AN = SQRT(GRAV * ARHOZ / ARHO)
-            RD = AN * HUP / CORI
-            IF (RD.gt.ABS(J-.5*(JM+1))*DYPO(J)) RD=SQRT(AN*HUP/BETA)
-            BYTEADY = GRAV * SQRT(ARHOX*ARHOX + ARHOY*ARHOY) / (AN*ARHO)
-            IF (AN.gt.0) AINV(I,J) = AMU * RD**2 * BYTEADY ! was = AIN
-            ARIV(I,J) = ARAI * AINV(I,J) ! was = ARI
           END IF
           IM1=I
         END DO

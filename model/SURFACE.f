@@ -53,20 +53,20 @@ C**** Interface to PBL
 
       INTEGER I,J,K,IM1,IP1,KR,JR,NS,NSTEPS,MODDSF,MODDD
      *     ,KMAX,IMAX,ITYPE,NGRNDZ,NG,IH
-      REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1,P1K,H0M1,HZM1
-     *     ,PGK,HS,PKDN,DXYPJ,BETAS,EVHDTS,CDMS,CDHS,CDQS,EDS1S,PPBLS
+      REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1,P1K,H0M1
+     *     ,PGK,PKDN,DXYPJ,BETAS,EVHDTS,CDMS,CDHS,CDQS,EDS1S,PPBLS
      *     ,EVAPS,DBLS,BETA,ELHX,ACE2,CDTERM,CDENOM,HC1,dF1dTG,HCG1,HCG2
      *     ,DTGRND,EVHDT,F1DT,CM,CH,CQ,DHGS,DQGS,DGS,BETAUP,EVHEAT,F0,F1
      *     ,DSHDTG,DQGDTG,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG,dEVdQS
      *     ,HSDEN,HSCON,HSMUL,dHS,dQS,dT2,dTS,DQ1X,EVHDT0,EVAP,F0DT
      *     ,FTEVAP,VAP,TIMEZ,PWATER,PXSOIL,PSK,TH1,Q1,THV1,TFS
-     *     ,RMBYA,Q0M1,QZM1,TSS,QSS,TAUS,RTAUS,RTAUUS,RTAUVS,TG1S
+     *     ,RMBYA,Q0M1,TSS,QSS,TAUS,RTAUS,RTAUUS,RTAUVS,TG1S
      *     ,QGS,SRHDTS,TRHDTS,SHDTS,UGS,PTYPE,TG1,SRHEAT,SNOW,TG2,SHDT
      *     ,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT,QSDEN
      *     ,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,ZS1CO,USS
-     *     ,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L,THZ1,QZ1,POC,POI
+     *     ,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L,QZ1,POC,POI
      *     ,PLK,PLKI,EVAPLIM,F1DTS,HICE,HSNOW,HICE1,HSNOW1,F2,FSRI(2)
-     *     ,PSIS,HTLIM
+     *     ,PSIS,HTLIM   ! THZ1,HZM1,HS,QZM1,
 
       REAL*8 MSUM, MA1, MSI1, MSI2,tmp
       REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
@@ -145,6 +145,7 @@ C****
       vflux(I,J)=0.
       tflux(I,J)=0.
       qflux(I,J)=0.
+      EVAPLIM = 0. ; HTLIM=0.  ! need initialisation
 C****
 C**** DETERMINE SURFACE CONDITIONS
 C****
@@ -173,11 +174,11 @@ C      QZ1 = QZ(I,J,1) ! vertical gradient of specific humidity
       MSUM = (PS*100.)/GRAV ! total column mass of atmosphere (kg/m^2)
       MA1 = RMBYA ! mass of lowest atmospheric layer (kg/m^2)
       H0M1 = TH1*SHA*MA1*DXYP(J) ! mean pot.enthalpy of lowest atm. (J)
-      HZM1 = THZ1*SHA*MA1*DXYP(J) ! vert. grad. of lowest pot. enth.(J)
+c      HZM1 = THZ1*SHA*MA1*DXYP(J) ! vert. grad. of lowest pot. enth.(J)
       Q0M1 = Q1*MA1*DXYP(J) ! mean water vapor of lowest atmosphere (kg)
-      QZM1 = QZ1*MA1*DXYP(J) ! vert. grad. of lowest layer  vapor (kg)
+c      QZM1 = QZ1*MA1*DXYP(J) ! vert. grad. of lowest layer  vapor (kg)
       PGK = (PS*100.)**KAPA
-      HS = (H0M1-HZM1*S1BYG1)*PGK/(DXYP(J)*MA1) ! pot. spec. enth.(J/kg)
+c      HS = (H0M1-HZM1*S1BYG1)*PGK/(DXYP(J)*MA1) ! pot. spec. enth.(J/kg)
       PKDN = (GRAV*(MSUM-MA1*0.25))**KAPA
 #ifdef TRACERS_ON
 C**** Set up tracers for PBL calculation if required

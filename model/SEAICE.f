@@ -562,7 +562,7 @@ C****
       RETURN
       END SUBROUTINE SIMELT
 
-      SUBROUTINE SSIDEC(MSI1,MSI2,HSIL,SSIL,DT,MFLUX,HFLUX,SFLUX)
+      SUBROUTINE SSIDEC(I0,J0,MSI1,MSI2,HSIL,SSIL,DT,MFLUX,HFLUX,SFLUX)
 !@sum  SSIDEC decays salinity in sea ice 
 !@auth Jiping Liu
 !@ver  1.0
@@ -574,9 +574,8 @@ C****
       REAL*8, INTENT(OUT) :: MFLUX,HFLUX,SFLUX
 
       REAL*8 DSSI(LMI),DMSI(LMI),DHSI(LMI),SS12,DS12
-      REAL*8 FMSI1,FMSI2,FMSI3,FMSI4,FSSI1,FSSI2,FSSI3,FSSI4,
-     *       FHSI1,FHSI2,FHSI3,FHSI4
-      INTEGER L
+      REAL*8 FMSI1,FMSI2,FMSI3,FSSI1,FSSI2,FSSI3,FHSI1,FHSI2,FHSI3
+      INTEGER L,I0,J0
 !@var dtssi decay time scale for sea ice salinity (days)
 !@var bydtssi decay constant for sea ice salinity (1/s)
       REAL*8, parameter :: dtssi=30.d0, bydtssi=1./(dtssi*sday)
@@ -599,6 +598,7 @@ C**** check first layer (default ice and snow)
         SSIL(1:2) = SSIL(1:2)-DSSI(1:2)
         HSIL(1:2) = HSIL(1:2)-DHSI(1:2)
       END IF
+
 C**** check remaining layers
       DO L=3,LMI
         IF (SSIL(L).GT.ssi0*XSI(L)*MSI2) THEN 
@@ -620,7 +620,7 @@ C**** Mass/heat/salt moves from layer 3 to 2
       FHSI2 = FMSI2*HSIL(3)/(XSI(3)*MSI2-DMSI(3))
       FSSI2 = FMSI2*SSIL(3)/(XSI(3)*MSI2-DMSI(3))
 C**** Mass/heat moves between layers 3 to 4
-      FMSI3 = XSI(3)*(FMSI4+DMSI(4))+XSI(4)*(FMSI2-DMSI(3))
+      FMSI3 = XSI(3)*DMSI(4)+XSI(4)*(FMSI2-DMSI(3))
       IF (FMSI3.gt.0) THEN      ! downward flux to layer 4
         FHSI3 = FMSI3*HSIL(3)/(XSI(3)*MSI2-DMSI(3))
         FSSI3 = FMSI3*SSIL(3)/(XSI(3)*MSI2-DMSI(3))
@@ -628,12 +628,12 @@ C**** Mass/heat moves between layers 3 to 4
         FHSI3 = FMSI3*HSIL(4)/(XSI(4)*MSI2-DMSI(4))
         FSSI3 = FMSI3*SSIL(4)/(XSI(4)*MSI2-DMSI(4))
       END IF
-      
+
 C**** Apply the fluxes
       HSIL(1)=HSIL(1)- FHSI1
       HSIL(2)=HSIL(2)+(FHSI1-FHSI2)
       HSIL(3)=HSIL(3)+(FHSI2-FHSI3)
-      HSIL(4)=HSIL(4)+(FHSI3-FHSI4)
+      HSIL(4)=HSIL(4)+ FHSI3
 C**** salinity spread evenly over upper ice layer
       SS12=(SSIL(1)+SSIL(2))-FSSI2
       IF (ACE1I.gt.XSI(2)*MSI1) THEN 
@@ -643,9 +643,10 @@ C**** salinity spread evenly over upper ice layer
       END IF
       SSIL(2)=SS12-SSIL(1)
       SSIL(3)=SSIL(3)+(FSSI2-FSSI3)
-      SSIL(4)=SSIL(4)+(FSSI3-FSSI4)
+      SSIL(4)=SSIL(4)+ FSSI3
 c     MSI1 = MSI1 - (DMSI(1)+DMSI(2)) - FMSI2 ! stays fixed
       MSI2 = MSI2 - (DMSI(3)+DMSI(4)) + FMSI2
+
 C**** output fluxes and diagnostics 
       MFLUX = SUM(DMSI)         ! mass flux to ocean
       HFLUX = SUM(DHSI)         ! energy flux to ocean
@@ -787,8 +788,8 @@ c         lh = lhm*(1.+mu*Sib/Ti) + (Ti+mu*Sib)*(shw-shi) - shw*(Ti-Tb)
 C**** define fluxes (positive down)
 C**** Cap mass flux at at 90% of bottom layer
       if (m.gt.0.9d0*2.*dh*rhoi/dtsrc) then
-        print*,"Iceocean: Basal flux limited",m,0.9d0*2.*dh*rhoi/dtsrc
-     *       ,Ti,Si,Tm,Sm,Tb,Sb,ustar,Coriol,mlsh
+c        print*,"Iceocean: Basal flux limited",m,0.9d0*2.*dh*rhoi/dtsrc
+c     *       ,Ti,Si,Tm,Sm,Tb,Sb,ustar,Coriol,mlsh
         m=0.9d0*2.*dh*rhoi/dtsrc
       end if
 c      m = min(m,mfluxmax)
@@ -827,8 +828,8 @@ C**** define fluxes (positive down)
       m = -left2/lh
 C**** Cap mass flux at 90% of bottom layer 
       if (m.gt.0.9d0*2.*dh*rhoi/dtsrc) then
-        print*,"Icelake: Basal flux limited",m,0.9d0*2.*dh*rhoi/dtsrc,Ti
-     *       ,Tm,mlsh
+c        print*,"Icelake: Basal flux limited",m,0.9d0*2.*dh*rhoi/dtsrc,Ti
+c     *       ,Tm,mlsh
         m=0.9d0*2.*dh*rhoi/dtsrc
       end if
 c      m = min(m,dh/dtsrc)
@@ -973,16 +974,19 @@ C**** Check for reasonable values for ice variables
      *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J),sqrt(UI2RHO(I,J)
      *             /rhow)
 c              QCHECKI = .TRUE.
+              STOP
             END IF
             IF (SSI(L,I,J).lt.0) THEN
               WRITE(6,*) 'After ',SUBR,': I,J,L,SSI=',I,J,L,SSI(:,I
      *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J)
               QCHECKI = .TRUE.
+              STOP
             END IF
           END DO
           IF (SNOWI(I,J).lt.0) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,SNOWI=',I,J,SNOWI(I,J)
             QCHECKI = .TRUE.
+            STOP
           END IF
         END DO
       END DO

@@ -1064,14 +1064,14 @@ C**** (Check this!)
      *       (AJK(J,K  ,jk_temp)/(AJK(J,K-1,jk_dpa)+1.D-20)
      *       -AJK(J,K-1,jk_temp)/(AJK(J,K-1,jk_dpa)+1.D-20))
      *       *(PME(K)-PLM(K-1))/(PLM(K)-PLM(K-1))))
-c        IF(RHO(J,K).LE.1.D-10) THEN
+        IF(RHO(J,K).LE.1.D-10) THEN
 c          print*,"rho<1d-10",j,k,rho(j,k)
-c          RHO(J,K)=100.*PME(K)/(RGAS*(tf+AJK(J+1,K-1,jk_temp)/
-c     *         (AJK(J+1,K-1,jk_dpa)+1.D-20)+
-c     *         (AJK(J+1,K  ,jk_temp)/(AJK(J+1,K-1,jk_dpa)+1.D-20)
-c     *         -AJK(J+1,K-1,jk_temp)/(AJK(J+1,K-1,jk_dpa)+1.D-20))
-c     *         *(PME(K)-PLM(K-1))/(PLM(K)-PLM(K-1))))
-c        END IF
+          RHO(J,K)=100.*PME(K)/(RGAS*(tf+AJK(J+1,K-1,jk_temp)/
+     *         (AJK(J+1,K-1,jk_dpa)+1.D-20)+
+     *         (AJK(J+1,K  ,jk_temp)/(AJK(J+1,K-1,jk_dpa)+1.D-20)
+     *         -AJK(J+1,K-1,jk_temp)/(AJK(J+1,K-1,jk_dpa)+1.D-20))
+     *         *(PME(K)-PLM(K-1))/(PLM(K)-PLM(K-1))))
+        END IF
       END DO
       END DO
 C****
@@ -2428,10 +2428,11 @@ C**** INITIALIZE CERTAIN QUANTITIES
       linect = 65
 
       DO K=1,KAIL
-        XIL=AIL(:,:,K)*SCALE_IL(K)/IDACC(IA_IL(K))
         sname=name_il(k)
         lname=lname_il(k)
         unit=units_il(k)
+        if (lname.ne.'unused') then
+        XIL=AIL(:,:,K)*SCALE_IL(K)/IDACC(IA_IL(K))
         SELECT CASE (sname)
 ! Centered in L; secondary grid; hor. mean; vert. sum
         CASE ('u_equator','v_equator','u_70N','u_50N')
@@ -2449,6 +2450,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
         CASE ('rad_cool_equator') ! also 'rad_cool_50N','rad_cool_70N'
           CALL ILMAP(sname,lname,unit,PLM,XIL,BYDSIG,LM,1,1)
         END SELECT
+        end if
       END DO
       if(qdiag) call close_il
       RETURN
@@ -2891,6 +2893,9 @@ C**FREQUENCY BAND AVERAGE
       integer ibar,n
       character*1 mark
 
+      if (val .eq. undef) then
+        mark=' '
+      else
       select case (ibar)
       case (ib_pct)                                ! 0.....100 %
         n = 2.5 + val
@@ -2935,7 +2940,7 @@ c          if (n .gt. 13) n = (n+123)/10
         end if
         mark = cbar(ib_npp)(n:n)                  ! use ib_npp
       end select
-      if (val .eq. undef) mark=' '
+      end if
 
       return
       end function mark
@@ -3103,6 +3108,7 @@ c Check the count
 c**** Find & scale the numerators and find the appropriate denominators
 c****
       adenom = 1.                                             ! default
+      anum = 0.
 
 c**** the standard cases: aij(.,.,k) or aij(.,.,k)/aij(.,.,k1)
       if (k .le. kaij) then
@@ -3835,6 +3841,7 @@ C**** CALCULATE FINAL ANGULAR MOMENTUM + KINETIC ENERGY ON VELOCITY GRID
         FHEM(1,N)=.5*FEQ
         FHEM(2,N)=.5*FEQ
         CNSLAT(JEQ,N)=FEQ/(FIM*DXYV(JEQ))
+        CNSLAT(1,N)=0.
         DO JSH=2,JEQ-1
           JNH=2+JM-JSH
           FSH=CONSRV(JSH,N)*SCALE_CON(N)/(IDACC(IA_CON(N))+1d-20)

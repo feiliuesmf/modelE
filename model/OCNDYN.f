@@ -2312,7 +2312,6 @@ C****
       DMOO=0. ; DEOO=0. ; DMOI=0. ; DEOI=0. ; DSOO=0. ; DSOI=0.
 
       LSR = MIN(LSRPD,LMIJ)
-      IF (ROICE.lt.1d0) THEN
 C****
 C**** Open Ocean
 C****
@@ -2324,6 +2323,7 @@ C****
         TMOO(N) = TRMO(N)*BYDXYPJ+TRUNO(N)
       END DO
 #endif
+      IF (ROICE.lt.1d0) THEN
 C**** Remove insolation from layer 1 that goes to lower layers
       IF (LSR.gt.1) GMOO = GMOO - SROX(1)*FSR(2)
 
@@ -2343,10 +2343,10 @@ C**** GOO*MOO = GFOO*(MOO-DMOO) + (TFOO*SHCI-ELHM)*DMOO
 C****
 C**** Ocean underneath the ice
 C****
+      MOI  = MO + RUNI
+      GMOI = G0ML(1)*BYDXYPJ + ERUNI
+      SMOI = S0M*BYDXYPJ + SRUNI
       IF(ROICE.gt.0.) THEN
-        MOI  = MO + RUNI
-        GMOI = G0ML(1)*BYDXYPJ + ERUNI
-        SMOI = S0M*BYDXYPJ + SRUNI
 C**** Remove insolation from layer 1 that goes to lower layers
         IF (LSR.gt.1) GMOI = GMOI - SROX(2)*FSR(2)
 

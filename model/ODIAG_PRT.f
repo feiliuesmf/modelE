@@ -76,7 +76,7 @@ C****
       DO J=1,JM
       DO I=1,IMAXJ(J)
         Q(I,J) = SKIP
-        IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).le.0.)  THEN
+        IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)  THEN
           GOS = OIJL(I,J,L,IJL_G0M) / (OIJL(I,J,L,IJL_MO)*DXYP(J))
           SOS = OIJL(I,J,L,IJL_S0M) / (OIJL(I,J,L,IJL_MO)*DXYP(J))
           Q(I,J) = TEMGS(GOS,SOS)
@@ -91,7 +91,7 @@ C****
       DO J=1,JM
       DO I=1,IMAXJ(J)
         Q(I,J) = SKIP
-        IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).le.0.) 
+        IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.) 
      *       Q(I,J) = 1.E3*OIJL(I,J,L,IJL_S0M) / (OIJL(I,J,L,IJL_MO)
      *       *DXYP(J))
       END DO
@@ -252,18 +252,18 @@ c      call ijmap (title,sfijm,skip,1)
 C****
 C**** Calculate Salt Stream Function and write it
 C****
-      FAC   = -1.E-6/(IDACC(1)*NDYNO*DTO)
-      FACST = -.5E-6/(IDACC(1)*NDYNO*DTO)
-      CALL STRMIJ (OIJL(1,1,1,IJL_SFLX),FAC,OLNST(1,1,LN_SFLX),FACST
-     *     ,SFIJS)
+c      FAC   = -1.E-6/(IDACC(1)*NDYNO*DTO)
+c      FACST = -.5E-6/(IDACC(1)*NDYNO*DTO)
+c      CALL STRMIJ (OIJL(1,1,1,IJL_SFLX),FAC,OLNST(1,1,LN_SFLX),FACST
+c     *     ,SFIJS)
 C**** Subtract .035 times the Mass Stream Function
-      DO J=1,JM
-        DO I=1,IM
-          IF (SFIJS(I,J).ne.SKIP) SFIJS(I,J) = SFIJS(I,J)-35.*SFIJM(I,J)
-        END DO
-      END DO
-      TITLE = NAME(2)//'  Run '//XLABEL(1:6)
-      WRITE(TITLE(63:80),'(A6,I4)') JMON0,JYEAR0
+c      DO J=1,JM
+c        DO I=1,IM
+c          IF (SFIJS(I,J).ne.SKIP) SFIJS(I,J) = SFIJS(I,J)-35.*SFIJM(I,J)
+c        END DO
+c      END DO
+c      TITLE = NAME(2)//'  Run '//XLABEL(1:6)
+c      WRITE(TITLE(63:80),'(A6,I4)') JMON0,JYEAR0
 c      WRITE(2) TITLE,SFIJS
 C**** Output Key diagnostics: Gulf Stream, ACC, Kuroshio
       WRITE(6,'(A17)') "Key horizontal mass stream function diags:"
@@ -329,19 +329,19 @@ c      WRITE (6,920) TITLE
 C****
 C**** Calculate Salt Stream Function and write it
 C****
-      FAC   = -1.E-6/(IDACC(1)*NDYNO*DTO)
-      FACST = -.5E-6/(IDACC(1)*NDYNO*DTO)
-      CALL STRMJL(OIJL(1,1,1,IJL_SFLX),FAC,OLNST(1,1,LN_SFLX),FACST,SFS)
-C**** Subtract .035 times the Mass Stream Function
-      DO KB=1,4
-        DO L=0,LMO-1
-        DO J=1,JM-1
-          IF (SFS(J,L,KB).ne.SKIP) SFS(J,L,KB) = SFS(J,L,KB) -
-     *         35.*SFM(J,L,KB)
-        END DO
-        END DO
-c        CALL WRITED (KB,NAMESF(KB+4),SFS(1,0,KB))
-      END DO
+c      FAC   = -1.E-6/(IDACC(1)*NDYNO*DTO)
+c      FACST = -.5E-6/(IDACC(1)*NDYNO*DTO)
+c      CALL STRMJL(OIJL(1,1,1,IJL_SFLX),FAC,OLNST(1,1,LN_SFLX),FACST,SFS)
+cC**** Subtract .035 times the Mass Stream Function
+c      DO KB=1,4
+c        DO L=0,LMO-1
+c        DO J=1,JM-1
+c          IF (SFS(J,L,KB).ne.SKIP) SFS(J,L,KB) = SFS(J,L,KB) -
+c     *         35.*SFM(J,L,KB)
+c        END DO
+c        END DO
+cc        CALL WRITED (KB,NAMESF(KB+4),SFS(1,0,KB))
+c      END DO
 C**** 
 C**** vertical diagnostics
 C****
@@ -596,10 +596,12 @@ C****
           ELSE
             L=0
   620       L=L+1       ! SKIP below bottom values
-            IF (SF(J,L,K).eq.0 .and. SF(J,L-1,K).eq.0) THEN
-              SF(J,L:LMO,K) = SKIP
-            ELSE
-              GOTO 620
+            IF (L.LE.LMO) THEN
+              IF (SF(J,L,K).eq.0 .and. SF(J,L-1,K).eq.0) THEN
+                SF(J,L:LMO,K) = SKIP
+              ELSE
+                GOTO 620
+              END IF
             END IF
           END IF
         END DO
@@ -667,58 +669,56 @@ C**** Output:
 !@var    SF = stream function (kg/s)
 C****
       USE CONSTANT, only : skip=>undef
-      USE OCEAN, only : im,jm,lmo
-      USE STRAITS, only : nmst
+      USE OCEAN, only : im,jm,lmo,lmm
+      USE STRAITS, only : nmst,lmst
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: FAC,FACST
       REAL*8, INTENT(IN), DIMENSION(IM,JM,LMO,2) :: OIJL
       REAL*8, INTENT(IN), DIMENSION(LMO,NMST) :: OLNST
       REAL*4, INTENT(OUT), DIMENSION(IM,JM) :: SF
       REAL*4, DIMENSION(4) :: SUMB
-      INTEGER :: KB,I,J,L
-      REAL*4 TSUM
+      INTEGER :: I,J,L
+      REAL*8 TSUM
 C****
 C**** Integrate up from South Pole
 C****
       SF=0
       DO J=2,JM-1
-        DO I=1,IM
-          SF(I,J) = SF(I,J-1)
-          DO L=1,LMO
-            SF(I,J) = SF(I,J) + OIJL(I,J,L,1)*FAC
-          END DO
+      DO I=1,IM
+        SF(I,J) = SF(I,J-1)
+        DO L=1,LMM(I,J)
+          SF(I,J) = SF(I,J) + OIJL(I,J,L,1)*FAC
         END DO
+      END DO
 C****
 C**** Add strait flow from to the Stream Function
 C****
-      DO L=1,LMO
 C**** Fury & Hecla: (19,42) to (20,40)
-      IF (J.eq.41) SF(19,41) = SF(19,41) + OLNST(L,1)*FACST
+      IF (J.eq.41) SF(19,41) = SF(19,41) + SUM(OLNST(1:LMST(1),1))*FACST
 C**** Nares: (22,43) to (24,44)
-      IF (J.eq.44) SF(22,44) = SF(22,44) + OLNST(L,2)*FACST
-      IF (J.eq.44) SF(23,44) = SF(23,44) + OLNST(L,2)*FACST
+      IF (J.eq.44) SF(22,44) = SF(22,44) + SUM(OLNST(1:LMST(2),2))*FACST
+      IF (J.eq.44) SF(23,44) = SF(23,44) + SUM(OLNST(1:LMST(2),2))*FACST
 C**** Gibrater: (35,32) to (37,33)
-      IF (J.eq.33) SF(35,33) = SF(35,33) + OLNST(L,3)*FACST
-      IF (J.eq.33) SF(36,33) = SF(36,33) + OLNST(L,3)*FACST
+      IF (J.eq.33) SF(35,33) = SF(35,33) + SUM(OLNST(1:LMST(3),3))*FACST
+      IF (J.eq.33) SF(36,33) = SF(36,33) + SUM(OLNST(1:LMST(3),3))*FACST
 C**** Engish: (36,36) to (37,37)
-      IF (J.eq.37) SF(36,37) = SF(36,37) + OLNST(L,4)*FACST
+      IF (J.eq.37) SF(36,37) = SF(36,37) + SUM(OLNST(1:LMST(4),4))*FACST
 C**** Bosporous: (42,33) to (43,34)
-      IF (J.eq.34) SF(42,34) = SF(42,34) + OLNST(L,6)*FACST
+      IF (J.eq.34) SF(42,34) = SF(42,34) + SUM(OLNST(1:LMST(6),6))*FACST
 C**** Red Sea: (44,29) to (45,28)
-      IF (J.eq.29) SF(44,29) = SF(44,29) + OLNST(L,7)*FACST
+      IF (J.eq.29) SF(44,29) = SF(44,29) + SUM(OLNST(1:LMST(7),7))*FACST
 C**** Bab-al-Mandab: (45,28) to (46,27)
-      IF (J.eq.28) SF(45,28) = SF(45,28) + OLNST(L,8)*FACST
+      IF (J.eq.28) SF(45,28) = SF(45,28) + SUM(OLNST(1:LMST(8),8))*FACST
 C**** Hormuz: (47,30) to (49,29)
-      IF (J.eq.30) SF(47,30) = SF(47,30) + OLNST(L,9)*FACST
-      IF (J.eq.30) SF(48,30) = SF(48,30) + OLNST(L,9)*FACST
+      IF (J.eq.30) SF(47,30) = SF(47,30) + SUM(OLNST(1:LMST(9),9))*FACST
+      IF (J.eq.30) SF(48,30) = SF(48,30) + SUM(OLNST(1:LMST(9),9))*FACST
 C**** Korea: (62,32) to (63,33)
-      IF (J.eq.33) SF(62,33) = SF(62,33) + OLNST(L,11)*FACST
+      IF (J.eq.33) SF(62,33) = SF(62,33)+SUM(OLNST(1:LMST(11),11))*FACST
 C**** Soya: (64,34) to (65,35)
-      IF (J.eq.35) SF(64,35) = SF(64,35) + OLNST(L,12)*FACST
+      IF (J.eq.35) SF(64,35) = SF(64,35)+SUM(OLNST(1:LMST(12),12))*FACST
 C**** Malacca: (56,25) to (58,24), 
-      IF (J.eq.25) SF(56,25) = SF(56,25) + OLNST(L,10)*FACST
-      IF (J.eq.25) SF(57,25) = SF(57,25) + OLNST(L,10)*FACST
-      END DO
+      IF (J.eq.25) SF(56,25) = SF(56,25)+SUM(OLNST(1:LMST(10),10))*FACST
+      IF (J.eq.25) SF(57,25) = SF(57,25)+SUM(OLNST(1:LMST(10),10))*FACST
       END DO
 C**** Correct SF for mean E-W drift (SF over topography --> 0)
       TSUM=0 
@@ -728,7 +728,7 @@ C**** Correct SF for mean E-W drift (SF over topography --> 0)
       TSUM=TSUM/4.
       DO J=1,JM-1
         DO I=1,IM
-          IF (SF(I,J).ne.SKIP) SF(I,J)=SF(I,J)-TSUM
+          SF(I,J)=SF(I,J)-TSUM
         END DO
       END DO
       RETURN
