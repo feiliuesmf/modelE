@@ -38,8 +38,8 @@ POUT                                ! post-processing output
 Data input files:
 AIC=DEC1958.rsfB394M12.modelE.15.ext
 OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01   ! ocean initial conditions
-OFTAB=OFTABLE_NEW               ! ocean function table
-AVR=AVR4X5LD.Z12.gas1.modelE         ! ocean filter
+OFTAB=OFTABLE_NEW                    ! ocean function table
+AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
 KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
 TOPO_OC=Z72X46N_gas.1 ! ocean bdy.cond
 CDN=CD4X500S.ext VEG=V72X46.1.cor.ext
