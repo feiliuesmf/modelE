@@ -1542,10 +1542,16 @@ C**** check tracers
 !@auth I. Aleinov
 !@ver 1.0
       USE MODEL_COM
+      USE FILEMANAGER, only : openunit,closeunit
       integer :: ItimeMax=-1, Itime1, Itime2, itm, ioerr1=-1, ioerr2=-1
+      integer :: iu_rsf
 
-      call io_label(1,Itime1,itm,ioread,ioerr1)
-      call io_label(2,Itime2,itm,ioread,ioerr2)
+      call openunit(rsf_file_name(1),iu_rsf,.true.)
+      call io_label(iu_rsf,Itime1,itm,ioread,ioerr1)
+      call closeunit(iu_rsf)
+      call openunit(rsf_file_name(2),iu_rsf,.true.)
+      call io_label(iu_rsf,Itime2,itm,ioread,ioerr2)
+      call closeunit(iu_rsf)
 
       if ( ioerr1==-1 ) ItimeMax = Itime1
       if ( ioerr2==-1 ) ItimeMax = max( ItimeMax, Itime2 )
