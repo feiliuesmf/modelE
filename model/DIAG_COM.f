@@ -35,7 +35,7 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       REAL*8, DIMENSION(JM,KAPJ) :: APJ
 
 !@param KAJL,KAJLX number of AJL diagnostics,KAJLX includes composites
-      INTEGER, PARAMETER :: KAJL=54+KEP, KAJLX=KAJL+50
+      INTEGER, PARAMETER :: KAJL=70+KEP, KAJLX=KAJL+50
 !@var AJL latitude/height diagnostics
       REAL*8, DIMENSION(JM,LM,KAJL) :: AJL
 
@@ -302,6 +302,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_PHI30, IJ_PHI10, IJ_PHI3p4, IJ_PHI0p7, IJ_PHI0p16,
      *     IJ_PHI0p07, IJ_PHI0p03, IJ_T850, IJ_T500, IJ_T300, IJ_Q850,
      *     IJ_Q500, IJ_Q300, IJ_PMCCLD, IJ_CLDTPPR, IJ_CLDCV, IJ_DSEV,
+     *     IJ_CLDTPT, IJ_CLDCV1, IJ_CLDT1T,IJ_CLDT1P, 
      *     IJ_RH1, IJ_RH850, IJ_RH500, IJ_RH300,
      *     IJ_TRNFP0, IJ_SRTR, IJ_NETH, IJ_SRNFP0, IJ_SRINCP0, IJ_SRNFG,
      *     IJ_SRINCG, IJ_TG1, IJ_RSIT, IJ_TDSL, IJ_TDCOMP, IJ_DTDP,
@@ -315,10 +316,10 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_TRHDT, IJ_TMAX, IJ_TMIN, IJ_TMNMX, IJ_PEVAP, IJ_TMAXE,
      *     IJ_WMSUM, IJ_PSCLD, IJ_PDCLD, IJ_DCNVFRQ, IJ_SCNVFRQ,
      *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV, IJ_SSTABX,
-     *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, 
+     *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR,
      *     IJ_LKON, IJ_LKOFF, IJ_LKICE, IJ_PTROP, IJ_TTROP, IJ_TSI,
      *     IJ_SSI1,IJ_SSI2,IJ_SMFX, IJ_MSU2, IJ_MSU2R, IJ_MSU3, IJ_MSU4,
-     *     IJ_MLTP,IJ_FRMP, IJ_P850
+     *     IJ_MLTP,IJ_FRMP, IJ_P850, IJ_CLR_SRINCG
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER :: IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
      *     IJ_G08,IJ_G09,IJ_G10,IJ_G11,IJ_G12,IJ_G13,IJ_G14,IJ_G15,
@@ -421,6 +422,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,jl_wwpac,jl_47,jl_zmfntmom,jl_totntmom,jl_mchphas,jl_mcdtotw
      *     ,jl_dudtsdrg,jl_mcldht,jl_trbke,jl_trbdlht,jl_mcheat,jl_mcdry
      *     ,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss
+     *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
 
 !@var SNAME_JL Names of lat-sigma JL diagnostics
       character(len=30), dimension(kajlx) :: sname_jl

@@ -2385,6 +2385,53 @@ c      scale_ij(k) = 1.
         scale_ij(k) = 2.
       END IF
 
+      k=k+1 !
+      IJ_CLR_SRINCG = k ! SRINCG*CLRSKY (W/m**2)            2 RD
+      lname_ij(k) = 'CLR SKY INCIDENT SOLAR RADIATION, SRF x CLRSKY'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'CLR_SRINCG'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_CLDCV1 = k ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
+      lname_ij(k) = 'TAU>1 CLOUD COVER'
+      units_ij(k) = '%'
+      name_ij(k) = 'CLDCV1'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_CLDT1P  = k ! P-CLOUD TOP   (100 PA)                  2 RD
+      lname_ij(k) = 'CLOUD TAU=1 PRESSURE x TAU>1 CLOUD COVER'
+      units_ij(k) = 'mb'
+      name_ij(k) = 'CLDT1P'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+cc    iw_ij(k) = iw_cldcv  ! built in
+      ir_ij(k) = ir_0_1775
+c
+      k=k+1 !
+      IJ_CLDTPT = k !
+      lname_ij(k) = 'CLOUD TOP TEMPERATURE x TOTAL CLOUD COVER'
+      units_ij(k) = 'C'
+      name_ij(k) = 'CLDTPT'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+cc    iw_ij(k) = iw_cldcv  ! built in
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
+      IJ_CLDT1T = k !
+      lname_ij(k) = 'CLOUD TAU=1 TEMPERATURE x TAU>1 CLOUD COVER'
+      units_ij(k) = 'C'
+      name_ij(k) = 'CLDT1T'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+cc    iw_ij(k) = iw_cldcv  ! built in
+      ir_ij(k) = ir_m80_28
+
       if (k .gt. kaij) then
         write (6,*) 'ij_defs: Increase kaij=',kaij,' to at least ',k
         call stop_model( 'kaij too small', 255 )
@@ -3036,6 +3083,59 @@ c
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 c
+      k=k+1
+      jl_wcld = k
+      sname_jl(k) = 'wcld' !
+      lname_jl(k) = 'WATER CLOUD COVER' !'PCLD*P'
+      units_jl(k) = '%'
+      scale_jl(k) = 100.*BYIM
+      ia_jl(k) = ia_rad
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_icld = k
+      sname_jl(k) = 'icld' !
+      lname_jl(k) = 'ICE CLOUD COVER' !'PCLD*P'
+      units_jl(k) = '%'
+      scale_jl(k) = 100.*BYIM
+      ia_jl(k) = ia_rad
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_wcod = k
+      sname_jl(k) = 'wcod' !
+      lname_jl(k) = 'WATER CLOUD OPTICAL DEPTH' ! od*wcldcv
+      units_jl(k) = '/1000mb'
+c     scale_jl(k) = 1000.*BYIM ! /dp  built in
+c     ia_jl(k) = ia_rad
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_icod = k
+      sname_jl(k) = 'icod' !
+      lname_jl(k) = 'ICE CLOUD OPTICAL DEPTH'   ! od*icldcv
+      units_jl(k) = '/1000mb'
+c     scale_jl(k) = 1000.*BYIM ! /dp  built in
+c     ia_jl(k) = ia_rad
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_wcsiz= k
+      sname_jl(k) = 'wcsiz'
+      lname_jl(k) = 'EFFECTIVE WATER CLOUD PARTICLE SIZE' ! SIZ*OPT.DPTH
+      units_jl(k) = 'micron'
+      scale_jl(k) = byim
+      ia_jl(k) = ia_rad
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_icsiz= k
+      sname_jl(k) = 'icsiz'
+      lname_jl(k) = 'EFFECTIVE ICE CLOUD PARTICLE SIZE' ! SIZ*OPT.DPTH
+      units_jl(k) = 'micron'
+      scale_jl(k) = byim
+      ia_jl(k) = ia_rad
+      jgrid_jl(k) = 1
 
       if (k .gt. kajl) then
         write (6,*) 'jl_defs: Increase kajl=',kajl,' to at least ',k

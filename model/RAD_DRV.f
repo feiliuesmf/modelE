@@ -497,10 +497,11 @@ C****
       USE RE001
      &  , only : writer,rcompx,rcompt ! routines
      &          ,lx  ! for threadprivate copyin common block
+     &          ,tauwc0,tauic0 ! set in radpar block data
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY
 C     INPUT DATA  (i,j) dependent
-     &             ,JLAT,ILON, PLB ,TLM ,SHL
+     &             ,JLAT,ILON, PLB ,TLB,TLM ,SHL, ltopcl
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC
      &             ,POCEAN,PEARTH,POICE,PLICE,COSZ,PVT
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
@@ -528,6 +529,8 @@ C     OUTPUT DATA
      *     ,il_r70n,ijdd,idd_cl7,idd_cl6,idd_cl5,idd_cl4,idd_cl3,idd_cl2
      *     ,idd_cl1,idd_ccv,idd_isw,idd_palb,idd_galb,idd_absa,j5s,j5n
      *     ,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld,ij_frmp
+     *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
+     *     ,ij_clr_srincg,ij_CLDTPT,ij_cldt1t,ij_cldt1p,ij_cldcv1
      *     ,AFLX_ST
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
       USE SEAICE, only : rhos,ace1i,rhoi
@@ -540,7 +543,7 @@ C     OUTPUT DATA
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
-      REAL*8 U0GAS,FSPARE
+      REAL*8 U0GAS,FSPARE,taulim
       COMMON/RADCOM_hybrid/U0GAS(LX,12),FSPARE(998)
 C$OMP  THREADPRIVATE(/RADCOM_hybrid/)
 
@@ -551,10 +554,11 @@ C$OMP  THREADPRIVATE(/RADCOM_hybrid/)
       REAL*8, DIMENSION(LM) :: TOTCLD
 
       INTEGER, SAVE :: JDLAST = -9
-      INTEGER I,J,L,K,KR,LR,JR,IH,INCH,JK,IT,iy,iend
+      INTEGER I,J,L,K,KR,LR,JR,IH,INCH,JK,IT,iy,iend,icc1
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
-     *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY,CSZ2
-     *     ,MSTRAT,STRATQ,STRJ,MSTJ,QR(LM,IM,JM),CLDinfo(LM,3,IM,JM)
+     *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY,CSZ2,tauup,taudn
+     *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ
+     *     ,QR(LM,IM,JM),CLDinfo(LM,3,IM,JM)
       REAL*8 QSAT
       LOGICAL NO_CLOUD_ABOVE
 C
@@ -571,6 +575,9 @@ C****
 C**** VDATA  1-11 RATIOS FOR THE 11 VEGETATION TYPES (1)
 C****
 
+C**** limit optical cloud depth from below: taulim
+      taulim=min(tauwc0,tauic0) ! currently both .001
+      tauwc0 = taulim ; tauic0 = taulim
 C**** Calculate mean cosine of zenith angle for the current physics step
       ROT1=(TWOPI*MOD(ITIME,NDAY))/NDAY  ! MOD(ITIME,NDAY)*TWOPI/NDAY ??
       ROT2=ROT1+TWOPI*DTsrc/SDAY
@@ -591,7 +598,7 @@ C**** Calculate mean cosine of zenith angle for the current physics step
           write(6,*) 'RAD input file bad or too short:',itime,it,iy,iend
           call stop_model('RADIA: input file bad or too short',255)
         end if
-C****   Find arrays derived from read-in fields
+C****   Find arrays derived from P : PEdn and PK (forcing experiments)
         do j=1,jm
         do i=1,imaxj(j)
           pedn(LM+1,i,j) = SIGE(LM+1)*PSFMPT+PTOP
@@ -646,18 +653,20 @@ C****   Calculate mean strat water conc
       END IF
 C
 C**** GET THE RANDOM NUMBERS OUTSIDE PARALLEL REGIONS
-C**** but keep MC calculation seperate from SS clouds     
+C**** but keep MC calculation seperate from SS clouds
 C**** MC clouds are considered as a block for each I,J grid point
-      DO J=1,JM
+      DO J=1,JM                    ! complete overlap
       DO I=1,IMAXJ(J)
         RDMC(I,J) = RANDU(X)
       END DO
       END DO
 C**** SS clouds are considered as a block for each continuous cloud
-      DO J=1,JM
+      DO J=1,JM                    ! semi-random overlap
       DO I=1,IMAXJ(J)
         NO_CLOUD_ABOVE = .TRUE.
         DO L=LM,1,-1
+          IF(TAUSS(L,I,J).le.taulim) CLDSS(L,I,J)=0.
+          IF(TAUMC(L,I,J).le.taulim) CLDMC(L,I,J)=0.
           IF(CLDSS(L,I,J).GT.0.) THEN
             IF (NO_CLOUD_ABOVE) THEN
               RANDSS = RANDU(X)
@@ -678,20 +687,20 @@ C****
       ICKERR=0
       JCKERR=0
 C$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH, ELHX,
-C$OMP*   I,INCH,IH,IT, J, K,KR, L,LR, OPNSKY, CSZ2,
+C$OMP*   I,INCH,IH,IT, J, K,KR, L,LR,icc1, OPNSKY, CSZ2,
 C$OMP*   PLAND,PIJ, QSS, TOTCLD,TAUSSL,TAUMCL)
 C$OMP*   COPYIN(/RADCOM_hybrid/)
 C$OMP*   SHARED(ITWRITE)
 C$OMP    DO SCHEDULE(DYNAMIC,2)
 C$OMP*   REDUCTION(+:ICKERR,JCKERR)
       DO 600 J=1,JM
-      ! can't we replace it with J ?
+C**** Radiation input files use a 72x46 grid independent of IM and JM
+C**** (ilon,jlat) is the 4x5 box containing the center of box (i,j)
       JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)  !  lat_index w.r.to 72x46 grid
 C****
 C**** MAIN I LOOP
 C****
       DO I=1,IMAXJ(J)
-      ! can't we replace it with I?
       ILON=INT(.5+(I-.5)*72./IM+.5)       !  lon_index w.r.to 72x46 grid
 CCC      JR=JREG(I,J)
 C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
@@ -715,7 +724,7 @@ C****
 C****
 C**** DETERMINE CLOUDS (AND THEIR OPTICAL DEPTHS) SEEN BY RADIATION
 C****
-      CSS=0. ; CMC=0. ; DEPTH=0.
+      CSS=0. ; CMC=0. ; CLDCV=0. ; DEPTH=0.
       DO L=1,LM
         PIJ=PLIJ(L,I,J)
         QSS=Q(I,J,L)/(RHSAV(L,I,J)+1.D-20)
@@ -731,17 +740,15 @@ C****
         SIZEIC(L)=0.
         TOTCLD(L)=0.
 C**** Determine large scale and moist convective cloud cover for radia
-        IF (CLDSS(L,I,J).GE.RDSS(L,I,J).AND.TAUSS(L,I,J).GT.0.) THEN
+        IF (CLDSS(L,I,J).GT.RDSS(L,I,J)) THEN
           TAUSSL=TAUSS(L,I,J)
           shl(L)=QSS
           CSS=1.
           AJL(J,L,JL_SSCLD)=AJL(J,L,JL_SSCLD)+CSS
-          TOTCLD(L)=1.
         END IF
-        IF (CLDMC(L,I,J).GE.RDMC(I,J).AND.TAUMC(L,I,J).GT.0.) THEN
+        IF (CLDMC(L,I,J).GT.RDMC(I,J)) THEN
           CMC=1.
           AJL(J,L,JL_MCCLD)=AJL(J,L,JL_MCCLD)+CMC
-          TOTCLD(L)=1.
           DEPTH=DEPTH+PDSIG(L,I,J)
           IF(TAUMC(L,I,J).GT.TAUSSL) THEN
             TAUMCL=TAUMC(L,I,J)
@@ -750,29 +757,38 @@ C**** Determine large scale and moist convective cloud cover for radia
             shl(L)=QSAT(TLm(L),ELHX,PMID(L,I,J))
           END IF
         END IF
-        AJL(J,L,JL_TOTCLD)=AJL(J,L,JL_TOTCLD)+TOTCLD(L)
         IF(TAUSSL+TAUMCL.GT.0.) THEN
+             CLDCV=1.
+          TOTCLD(L)=1.
+          AJL(J,L,JL_TOTCLD)=AJL(J,L,JL_TOTCLD)+1.
           IF(TAUMCL.GT.TAUSSL) THEN
             SIZEWC(L)=CSIZMC(L,I,J)
             SIZEIC(L)=CSIZMC(L,I,J)
             IF(SVLAT(L,I,J).EQ.LHE) THEN
               TAUWC(L)=TAUMCL
+              AJL(j,l,jl_wcld)=AJL(j,l,jl_wcld)+1.
             ELSE
               TAUIC(L)=TAUMCL
+              AJL(j,l,jl_icld)=AJL(j,l,jl_icld)+1.
             END IF
           ELSE
             SIZEWC(L)=CSIZSS(L,I,J)
             SIZEIC(L)=CSIZSS(L,I,J)
             IF(SVLHX(L,I,J).EQ.LHE) THEN
               TAUWC(L)=TAUSSL
+              AJL(j,l,jl_wcld)=AJL(j,l,jl_wcld)+1.
             ELSE
               TAUIC(L)=TAUSSL
+              AJL(j,l,jl_icld)=AJL(j,l,jl_icld)+1.
             END IF
           END IF
+          AJL(j,l,jl_wcod) =AJL(j,l,jl_wcod)+tauwc(l)
+          AJL(j,l,jl_icod) =AJL(j,l,jl_icod)+tauic(l)
+          AJL(j,l,jl_wcsiz)=AJL(j,l,jl_wcsiz)+sizewc(l)*tauwc(l)
+          AJL(j,l,jl_icsiz)=AJL(j,l,jl_icsiz)+sizeic(l)*tauic(l)
         END IF
       END DO
-C**** effective cloud cover diagnostics 
-         CLDCV=CMC+CSS-CMC*CSS
+C**** effective cloud cover diagnostics
          OPNSKY=1.-CLDCV
          DO IT=1,NTYPE
            AJ(J,J_PCLDSS,IT)=AJ(J,J_PCLDSS,IT)+CSS  *FTYPE(IT,I,J)
@@ -806,13 +822,7 @@ CCC      AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
          GO TO 275
   270    CONTINUE
   275    CONTINUE
-         DO 280 L=LM,1,-1
-         PIJ=PLIJ(L,I,J)
-         IF (TOTCLD(L).NE.1.) GO TO 280
-         AIJ(I,J,IJ_CLDTPPR)=AIJ(I,J,IJ_CLDTPPR)+SIGE(L+1)*PIJ+PTOP
-         GO TO 285
-  280    CONTINUE
-  285    DO KR=1,NDIUPT
+         DO KR=1,NDIUPT
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              DO INCH=1,NRAD
                IH=1+MOD(JHOUR+INCH-1,24)
@@ -982,6 +992,8 @@ C****
       ALB(I,J,8)=SRAVIS
       ALB(I,J,9)=SRANIR
 C**** Save clear sky/tropopause diagnostics here
+        AIJ(I,J,IJ_CLR_SRINCG)=AIJ(I,J,IJ_CLR_SRINCG)+
+     +                                    OPNSKY*SRDFLB(1)*CSZ2
       DO IT=1,NTYPE
         AJ(J,J_CLRTOA,IT)=AJ(J,J_CLRTOA,IT)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
      *     *CSZ2-TRNFLB(LM+LM_REQ+1))*FTYPE(IT,I,J)
@@ -1002,7 +1014,27 @@ CCC  *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
      *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
       AREGIJ(7,I,J)=
      *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
-C****
+C**** Save cloud top diagnostics here
+      if (CLDCV.le.0.) go to 590
+      AIJ(I,J,IJ_CLDTPPR)=AIJ(I,J,IJ_CLDTPPR)+plb(ltopcl+1)
+      AIJ(I,J,IJ_CLDTPT)=AIJ(I,J,IJ_CLDTPT)+(tlb(ltopcl+1) - tf)
+C**** Save cloud tau=1 related diagnostics here (opt.depth=1 level)
+      tauup=0. 
+      DO L=LM,1,-1
+        taucl=tauwc(l)+tauic(l)
+        taudn=tauup+taucl
+        if (taudn.gt.1.) then
+          aij(i,j,ij_cldcv1)=aij(i,j,ij_cldcv1)+1.
+          wtlin=(1.-tauup)/taucl
+          aij(i,j,ij_cldt1t)=aij(i,j,ij_cldt1t)+( tlb(l+1)-tf +
+     +          (tlb(l)-tlb(l+1))*wtlin )
+          aij(i,j,ij_cldt1p)=aij(i,j,ij_cldt1p)+( plb(l+1)+
+     +          (plb(l)-plb(l+1))*wtlin )
+          go to 590
+        end if
+      end do
+  590 continue
+
       END DO
 C****
 C**** END OF MAIN LOOP FOR I INDEX
@@ -1241,7 +1273,7 @@ C**** read heights z(km) and data (kg/km^3)
       end do
 
 C**** Find edge heights and pressures
-      dz(0) = 0.      
+      dz(0) = 0.
       dz(1) = z(2)-z(1)
       do l=2,lma-1
          dz(l)=.5*(z(l+1)-z(l-1))

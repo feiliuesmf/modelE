@@ -1787,6 +1787,51 @@ C**** TOTAL, SUPER SATURATION, CONVECTIVE CLOUD COVER, EFFECTIVE RH
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AJL(1,1,n),SCALET,ONESPO,ONES,LM,2,JGRID_JL(n))
+C**** WATER CLOUD COVER AND ICE CLOUD COVER
+      n = JL_wcld
+      SCALET = scale_jl(n)/idacc(ia_jl(n))
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,AJL(1,1,n),SCALET,ONESPO,ONES,LM,2,JGRID_JL(n))
+      n = JL_icld
+      SCALET = scale_jl(n)/idacc(ia_jl(n))
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,AJL(1,1,n),SCALET,ONESPO,ONES,LM,2,JGRID_JL(n))
+C**** WATER AND ICE CLOUD  optical depth
+      SCALET = 1000./PSFMPT
+      DO L=1,LM
+      DO J=1,JM
+        AX(J,L) = AJL(J,L,JL_WCOD)/(AJL(J,L,JL_WCLD)+teeny)
+        BX(J,L) = AJL(J,L,JL_ICOD)/(AJL(J,L,JL_ICLD)+teeny)
+      END DO
+      END DO
+      n=JL_WCOD
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,AX,SCALET,ONES,BYDSIG,LM,2,JGRID_JL(n))
+      n=JL_ICOD
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,BX,SCALET,ONES,BYDSIG,LM,2,JGRID_JL(n))
+C**** Water and ice cloud particle sizes (weighted by opt depths)
+      SCALET = 1.
+      DO L=1,LM
+      DO J=1,JM
+        IF (AJL(J,L,JL_WCOD).gt.0) THEN
+          AX(J,L) = AJL(J,L,JL_WCSIZ)/AJL(J,L,JL_WCOD)
+        ELSE
+          AX(J,L) = 0.
+        END IF
+        IF (AJL(J,L,JL_ICOD).gt.0) THEN
+          BX(J,L) = AJL(J,L,JL_ICSIZ)/AJL(J,L,JL_ICOD)
+        ELSE
+          BX(J,L) = 0.
+        END IF
+      END DO
+      END DO
+      n=JL_WCSIZ
+      CALL JLVMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n),AJL(1,1,JL_WCOD))
+      n=JL_ICSIZ
+      CALL JLVMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,BX,SCALET,ONES,ONES,LM,2,JGRID_JL(n),AJL(1,1,JL_ICOD))
 C**** TURBULENT KINETIC ENERGY
       n = JL_TRBKE
       SCALET = scale_jl(n)/idacc(ia_jl(n))
@@ -2272,6 +2317,9 @@ C****
       if(sname.eq.'dudt_mtndrg') then ! make sumfac an argument ... ???
          SUMFAC=10.                   ! ... to avoid this if-block  ???
          IWORD=4
+      else if(sname.eq.'wcod'.or.sname.eq.'icod') then
+         SUMFAC=SDSIG/SCALET
+         IWORD=1
       endif
       DO 140 L=LMAX,1,-1
       FGLOB=0.
@@ -2365,6 +2413,136 @@ c      FLAT(J)=FLAT(J)*PRTFAC
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
       END SUBROUTINE JLMAP
 
+      SUBROUTINE JLVMAP(LNAME,SNAME,UNITS,POW10P,
+     &     PL,AX,SCALET,SCALEJ,SCALEL,LMAX,JWT,J1,VWT)
+C****
+C**** THIS ROUTINE PRODUCES LAYER BY LATITUDE TABLES ON THE LINE
+C**** PRINTER.  THE INTERIOR NUMBERS OF THE TABLE ARE CALCULATED AS
+C****               AX * SCALET * SCALEJ * SCALEL.
+C**** WHEN JWT=1, THE INSIDE NUMBERS ARE NOT AREA WEIGHTED AND THE
+C****    HEMISPHERIC AND GLOBAL NUMBERS ARE SUMMATIONS.
+C**** WHEN JWT=2, ALL NUMBERS ARE PER UNIT AREA.
+C**** J1 INDICATES PRIMARY OR SECONDARY GRID.
+C**** THE BOTTOM LINE IS CALCULATED USING VWT(J,L) AS VERTICAL WEIGHTS
+C****
+      USE CONSTANT, only : teeny
+      USE MODEL_COM, only :
+     &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
+      USE GEOM, only :
+     &     LAT_DG,WTJ,JRANGE_HEMI
+      USE DAGCOM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect,jmby2
+      IMPLICIT NONE
+
+!@var units string containing output field units
+      CHARACTER(LEN=50) :: UNITS
+!@var lname string describing output field
+      CHARACTER(LEN=50) :: LNAME
+!@var sname string referencing output field
+      CHARACTER(LEN=30) :: SNAME
+!@var title string, formed as concatentation of lname//units
+      CHARACTER(LEN=64) :: TITLE
+
+      REAL*8, DIMENSION(JM) :: FLAT,ASUM,SVWTJ
+      REAL*8, DIMENSION(2) :: FHEM,HSUM,HVWT
+
+
+      INTEGER :: J1,JWT,LMAX
+      REAL*8 :: SCALET,SCALER,PRTFAC
+      INTEGER :: POW10P
+      REAL*8, DIMENSION(JM,LM) :: AX,VWT
+      REAL*8, DIMENSION(JM,LM_REQ) :: ARQX
+      REAL*8, DIMENSION(JM) :: SCALEJ,SCALJR
+      REAL*8, DIMENSION(LM) :: SCALEL
+      REAL*8, DIMENSION(LM_REQ) :: SCALLR
+      REAL*8, DIMENSION(LM+LM_REQ) :: PL
+
+      CHARACTER*4 DASH,WORD(4)
+      DATA DASH/'----'/,WORD/'SUM','MEAN',' ','.1*'/
+
+      INTEGER :: IWORD,J,JH,JHEMI,K,L
+      REAL*8 :: FGLOB,GSUM,SUMFAC,GVWT
+
+      REAL*8, DIMENSION(JM+3,LM+LM_REQ+1) :: XJL ! for binary output
+      CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80,TPOW*8
+      DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
+
+C form title string
+      PRTFAC = 10.**(-pow10p)
+      title = trim(lname)//' ('//trim(units)//')'
+      if(pow10p.ne.0) then
+         write(tpow,'(i3)') pow10p
+         tpow='10**'//trim(adjustl(tpow))
+         title = trim(lname)//' ('//trim(tpow)//' '//trim(units)//')'
+      endif
+C****
+C**** PRODUCE A LATITUDE BY LAYER TABLE OF THE ARRAY A
+C****
+   10 LINECT=LINECT+LMAX+7
+      IF (LINECT.LE.60) GO TO 20
+      WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+      LINECT=LMAX+8
+   20 WRITE (6,901) TITLE,(DASH,J=J1,JM,INC)
+      WRITE (6,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
+      WRITE (6,905) (DASH,J=J1,JM,INC)
+         DO 40 L=1,LM+LM_REQ+1
+         DO 40 J=1,JM+3
+   40    XJL(J,L) = -1.E30
+
+      SUMFAC=1.
+      IWORD=3
+
+      HSUM=0. ; GSUM=0. ; HVWT=0. ; GVWT=0.
+      ASUM=0. ; SVWTJ=0.
+      DO 140 L=LMAX,1,-1
+      FGLOB=0.
+      DO 130 JHEMI=1,2
+      FHEM(JHEMI)=0.
+      DO 120 J=JRANGE_HEMI(1,JHEMI,J1),JRANGE_HEMI(2,JHEMI,J1)
+      FLAT(J)=AX(J,L)*SCALET*SCALEJ(J)*SCALEL(L)
+         XJL(J,L) = FLAT(J)   *PRTFAC
+      FLAT(J)=FLAT(J)*PRTFAC
+      ASUM(J)=ASUM(J)+FLAT(J)*VWT(J,L)
+      SVWTJ(J)=SVWTJ(J)+VWT(J,L)
+      HSUM(JHEMI)=HSUM(JHEMI)+FLAT(J)*WTJ(J,JWT,J1)*VWT(J,L)
+      HVWT(JHEMI)=HVWT(JHEMI)+WTJ(J,JWT,J1)*VWT(J,L)
+  120 FHEM(JHEMI)=FHEM(JHEMI)+FLAT(J)*WTJ(J,JWT,J1)
+      GSUM=GSUM+HSUM(JHEMI)
+      GVWT=GVWT+HVWT(JHEMI)
+  130 FGLOB=FGLOB+FHEM(JHEMI)/JWT
+         XJL(JM+3,L)=FHEM(1)   ! SOUTHERN HEM
+         XJL(JM+2,L)=FHEM(2)   ! NORTHERN HEM
+         XJL(JM+1,L)=FGLOB     ! GLOBAL
+      WRITE (6,902) PL(L),FGLOB,FHEM(2),FHEM(1),
+     &        (NINT(FLAT(J)),J=JM,J1,-INC)
+         CALL KEYNRL (SNAME,L,FLAT)
+  140 CONTINUE
+      WRITE (6,905) (DASH,J=J1,JM,INC)
+C**** Vertical means
+      DO J=J1,JM
+        ASUM(J) = ASUM(J)/(SVWTJ(J)+teeny)
+      end do
+      HSUM(1) = HSUM(1)/(HVWT(1)+teeny)
+      HSUM(2) = HSUM(2)/(HVWT(2)+teeny)
+      GSUM    = GSUM/(GVWT+teeny)
+         DO 180 J=J1,JM
+  180    XJL(J   ,LM+LM_REQ+1)=ASUM(J)
+         XJL(JM+3,LM+LM_REQ+1)=HSUM(1)          ! SOUTHERN HEM
+         XJL(JM+2,LM+LM_REQ+1)=HSUM(2)          ! NORTHERN HEM
+         XJL(JM+1,LM+LM_REQ+1)=GSUM             ! GLOBAL
+         XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
+         TITLEO=TITLE//XLB
+         IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
+     *        J1,LMAX,XJL,PL,CLAT,CPRES)
+      WRITE (6,903) WORD(IWORD),GSUM*SUMFAC,HSUM(2)*SUMFAC,
+     *   HSUM(1)*SUMFAC,(NINT(ASUM(J)*SUMFAC),J=JM,J1,-INC)
+      RETURN
+  901 FORMAT ('0',30X,A64/2X,32('-'),24A4)
+  902 FORMAT (1X,F8.3,3F8.1,1X,24I4)
+  903 FORMAT (1X,A6,2X,3F8.1,1X,24I4)
+  904 FORMAT ('  P(MB)   ',A4,' G      NH      SH  ',24I4)
+  905 FORMAT (2X,32('-'),24A4)
+  907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
+      END SUBROUTINE JLVMAP
 
       SUBROUTINE DIAGIL
 !@sum  DIAGIL prints out longitude/height diagnostics
@@ -3088,6 +3266,20 @@ c**** ratios (the denominators)
             do j=1,jm
             do i=1,im
               adenom(i,j)=aij(i,j,ij_cldcv)/(idacc(ia_ij(ij_cldcv))
+     *             +teeny)
+            end do
+            end do
+          else if (index(lname_ij(k),' x TAU>1 CLOUD') .gt. 0) then
+            do j=1,jm
+            do i=1,im
+              adenom(i,j)=aij(i,j,ij_cldcv1)/(idacc(ia_ij(ij_cldcv1))
+     *             +teeny)
+            end do
+            end do
+          else if (index(lname_ij(k),' x CLRSKY') .gt. 0) then
+            do j=1,jm
+            do i=1,im
+              adenom(i,j)=1.-aij(i,j,ij_cldcv)/(idacc(ia_ij(ij_cldcv))
      *             +teeny)
             end do
             end do
