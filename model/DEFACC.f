@@ -2419,24 +2419,24 @@ c
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
 
-      k=k+1 
-      IJ_TSI = k 
+      k=k+1
+      IJ_TSI = k
       lname_ij(k) = 'SEA ICE TEMPERATURE (MASS LAYER 2) x POICE'
       units_ij(k) = 'C'
       name_ij(k) = 'TEMPSI'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
 
-      k=k+1 
-      IJ_SSI1 = k 
+      k=k+1
+      IJ_SSI1 = k
       lname_ij(k) = 'SEA ICE SALINITY (MASS LAYER 1) x POICE'
       units_ij(k) = 'psu'
       name_ij(k) = 'SSI1'
       ia_ij(k) = ia_src
       scale_ij(k) = 1d3
 
-      k=k+1 
-      IJ_SSI2 = k 
+      k=k+1
+      IJ_SSI2 = k
       lname_ij(k) = 'SEA ICE SALINITY (MASS LAYER 2) x POICE'
       units_ij(k) = 'psu'
       name_ij(k) = 'SSI2'
@@ -2444,8 +2444,8 @@ c
       scale_ij(k) = 1d3
 
       IF (KOCEAN.eq.0) THEN
-        k=k+1 
-        IJ_SMFX = k 
+        k=k+1
+        IJ_SMFX = k
         lname_ij(k) = 'SEA ICE IMPLICIT MASS FLUX'
         units_ij(k) = 'kg/m^2'
         name_ij(k) = 'SIMSFX'
@@ -3503,6 +3503,7 @@ c
          lname_ijk(k) = 'unused'
          units_ijk(k) = 'unused'
          scale_ijk(k) = 1.
+         jgrid_ijk(k) = 2
          off_ijk(k)   = 0.
       enddo
 c

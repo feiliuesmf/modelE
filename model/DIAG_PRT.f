@@ -2498,20 +2498,21 @@ C****
 C**** TITLES FOR SUBROUTINE DIAG7
 C****
       COMMON/D7COM/TITLE
-      CHARACTER*64 TITLE(12)
+      CHARACTER*66 TITLE(12)
       DATA TITLE/
-     1'WAVE POWER FOR U NEAR 850 MB AND EQUATOR (DAY*(m/s)^2)       ',
-     2'WAVE POWER FOR V NEAR 850 MB AND EQUATOR (DAY*(m/s)^2)       ',
-     3'WAVE POWER FOR U NEAR 300 MB AND EQUATOR (10 DAY*(m/s)^2)    ',
-     4'WAVE POWER FOR V NEAR 300 MB AND EQUATOR (DAY*(m/s)^2)       ',
-     5'WAVE POWER FOR U NEAR 50 MB AND EQUATOR (10 DAY*(m/s)^2)     ',
-     6'WAVE POWER FOR V NEAR 50 MB AND EQUATOR (DAY*(m/s)^2)        ',
-     7'WAVE POWER FOR PHI AT 922 MB AND 50 DEG NORTH (10**3 DAY*m^2)',
-     8'WAVE POWER FOR PHI AT 700 MB AND 50 DEG NORTH (10**3 DAY*m^2)',
-     9'WAVE POWER FOR PHI AT 500 MB AND 50 DEG NORTH (10**3 DAY*m^2)',
-     A'WAVE POWER FOR PHI AT 300 MB AND 50 DEG NORTH (10**3 DAY*m^2)',
-     B'WAVE POWER FOR PHI AT 100 MB AND 50 DEG NORTH (10**4 DAY*m^2)',
-     C'WAVE POWER FOR PHI AT 10 MB AND 50 DEG NORTH (10**4 DAY*m^2) '/
+     1'WAVE POWER FOR U NEAR 850 MB AND EQUATOR (DAY*(m/s)^2)    ',
+     2'WAVE POWER FOR V NEAR 850 MB AND EQUATOR (DAY*(m/s)^2)    ',
+     3'WAVE POWER FOR U NEAR 300 MB AND EQUATOR (10 DAY*(m/s)^2) ',
+     4'WAVE POWER FOR V NEAR 300 MB AND EQUATOR (DAY*(m/s)^2)    ',
+     5'WAVE POWER FOR U NEAR 50 MB AND EQUATOR (10 DAY*(m/s)^2)  ',
+     6'WAVE POWER FOR V NEAR 50 MB AND EQUATOR (DAY*(m/s)^2)     ',
+     7'WAVE POWER FOR PHI AT 922 MB AND 50 DEG N. (10**3 DAY*m^2)',
+     8'WAVE POWER FOR PHI AT 700 MB AND 50 DEG N. (10**3 DAY*m^2)',
+     9'WAVE POWER FOR PHI AT 500 MB AND 50 DEG N. (10**3 DAY*m^2)',
+     A'WAVE POWER FOR PHI AT 300 MB AND 50 DEG N. (10**3 DAY*m^2)',
+     B'WAVE POWER FOR PHI AT 100 MB AND 50 DEG N. (10**4 DAY*m^2)',
+     C'WAVE POWER FOR PHI AT 10 MB AND 50 DEG N. (10**4 DAY*m^2) '/
+!      .........1.........2.........3.........4.........5.........6
       END BLOCK DATA BDWP
 
 
@@ -2519,18 +2520,23 @@ C****
 C****
 C**** THIS ENTRY PRINTS THE TABLES
 C****
-      USE DAGCOM, only :
-     &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ
-      USE MODEL_COM, only :
-     &     im,IDACC,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL
+      USE DAGCOM, only : qdiag,
+     &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ,acc_period
+      USE MODEL_COM, only :  
+     &     im,IDACC,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,lrunid
       IMPLICIT NONE
 
       INTEGER, DIMENSION(44) :: IPOWER
       DOUBLE PRECISION, DIMENSION(120) :: POWER
       DOUBLE PRECISION, DIMENSION(43) :: XPOWER
       DOUBLE PRECISION, DIMENSION(13) :: FPE
-      DOUBLE PRECISION, DIMENSION(13,3,4) :: FFPE
-      DOUBLE PRECISION, DIMENSION(43,9,3,4) :: FPOWER
+!     Arrays for pdE
+      DOUBLE PRECISION, DIMENSION(43+1,NWAV_DAG+1) :: FPOWER 
+      DOUBLE PRECISION, DIMENSION(41,2) :: period_e       
+      DOUBLE PRECISION, DIMENSION(nwav_dag) :: xnwav     
+      CHARACTER XLB*14,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80,TPOW*8
+      DATA CLAT/'PERIOD EASTWARD'/,CPRES/'N'/,CBLANK/' '/
+      character lname*50,sname*30,units*50
 
       INTEGER, PARAMETER :: MMAX=12,NUAMAX=120,NUBMAX=15
 
@@ -2540,8 +2546,7 @@ C****
       DOUBLE PRECISION, DIMENSION(12) :: SCALET
       DATA SCALET/1.,1., .1,1., .1,1., 4*1.D-3,1.D-4,1.D-5/
 
-      DOUBLE PRECISION ::
-     &     BYIA12,PNU,POWX,VAR
+      DOUBLE PRECISION :: BYIA12,PNU,POWX,VAR
 
       INTEGER ::
      &     IDACC9,K,KPAGE,KQ,KTABLE,
@@ -2557,6 +2562,23 @@ C**** PATCH NEEDED IF SEVERAL RESTART FILES WERE ACCUMULATED
       WAVE(:,:,:,:)=WAVE(:,:,:,:)*BYIA12
   320 CONTINUE
       IF (IDACC9.GT.Max12HR_sequ) IDACC9=Max12HR_sequ
+
+C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+C**** NOTE: there are 41 periods.  Fpower is padded for POUT
+C**** Save inverse period (day) so coordinate is monotonic
+      IF(QDIAG) then
+        do k=1,41
+          period_e(41+1-k,1) = (k-25)  !/60.
+          period_e(41+1-k,2) = (k-17)  !/60.
+        end do
+          call open_jl(trim(acc_period)//'.wp'//XLABEL(1:LRUNID)
+     *     ,41,NMAX,0,period_e)
+      do n=1,nmax
+        xnwav(n) = n
+      end do
+      XLB=' '//acc_period(1:3)//' '//acc_period(4:12)
+      fpower = -1.E30
+      end if
 C****
 C**** OUTPUT WAVE POWER AT THE EQUATOR
 C****
@@ -2589,13 +2611,19 @@ C****
       XPOWER(42)=10.*SCALET(KQ)*VAR
       XPOWER(43)=1000.*SCALET(KQ)*(VAR-PNU)
       DO 370 NS=1,43
-         FPOWER(NS,NX,KTABLE,KPAGE)=XPOWER(NS)
       IPOWER(NS)=XPOWER(NS)+.5
   370 CONTINUE
+        DO NS=1,41
+          FPOWER(41+1-NS,N)=XPOWER(NS)
+        END DO
+          FPOWER(42,N)=XPOWER(42)
+          FPOWER(43,N)=XPOWER(43)
   380 WRITE (6,902) N,(IPOWER(NS),NS=1,43)
-         DO 385 M=1,MMAXP1
-  385    FFPE(M,KTABLE,KPAGE)=FPE(M)
-  390 WRITE (6,903) (FPE(M),M=1,MMAXP1)
+      WRITE (6,903) (FPE(M),M=1,MMAXP1)
+      TITLEO=TITLE(KQ)//'*60day'//XLB
+      IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
+     *         1,NMAX,FPOWER,xnwav,CLAT,CPRES)
+  390 CONTINUE
   400 CONTINUE
 C****
 C**** OUTPUT WAVE POWER AT 50 DEG NORTH
@@ -2630,14 +2658,21 @@ C****
       XPOWER(42)=10.*SCALET(KQ)*VAR
       XPOWER(43)=1000.*SCALET(KQ)*(VAR-PNU)
       DO 470 NS=1,43
-         FPOWER(NS,NX,KTABLE,KPAGE)=XPOWER(NS)
       IPOWER(NS)=XPOWER(NS)+.5
   470 CONTINUE
+        DO NS=1,41
+          FPOWER(41+1-NS,N)=XPOWER(NS)
+        END DO
+          FPOWER(42,N)=XPOWER(42)
+          FPOWER(43,N)=XPOWER(43)
   480 WRITE (6,902) N,(IPOWER(NS),NS=1,43)
-         DO 485 M=1,MMAXP1
-  485    FFPE(M,KTABLE,KPAGE)=FPE(M)
-  490 WRITE (6,903) (FPE(M),M=1,MMAXP1)
+      WRITE (6,903) (FPE(M),M=1,MMAXP1)
+      TITLEO=TITLE(KQ)//'*60day'//XLB
+      IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
+     *         2,NMAX,FPOWER,xnwav,CLAT,CPRES)
+  490 CONTINUE
   500 CONTINUE
+      if(qdiag) call close_jl
       RETURN
 C****
   901 FORMAT ('0',30X,A64,8X,'*1/60 (1/DAY)'/'   PERIOD EASTWARD--',
@@ -4613,7 +4648,7 @@ C**** All titles/names etc. implicitly assume that this will be done.
       USE MODEL_COM, only :
      &     im,jm,lm,
      &     PTOP,SIG,PSFMPT,XLABEL,LRUNID
-      USE DAGCOM, only : kdiag,
+      USE DAGCOM, only : kdiag,jgrid_ijk,
      &     aijk,acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
      *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk,kaijkx
       use filemanager
@@ -4621,7 +4656,7 @@ C**** All titles/names etc. implicitly assume that this will be done.
 
       CHARACTER XLB*24,TITLEX*56
       CHARACTER*80 TITLEL(LM)
-      REAL*8 SMAP(IM,JM-1,LM),SMAPJK(JM-1,LM)
+      REAL*8 SMAP(IM,JM,LM),SMAPJK(JM,LM)
       REAL*8 flat,press,dp
       CHARACTER*4 CPRESS(LM)
       INTEGER i,j,l,kxlb,ni,kcomp,k,iu_Iij
@@ -4677,22 +4712,22 @@ C**** Select fields
         if (.not.Qk(k).or.k.eq.ijk_dp) cycle
         TITLEX = lname_ijk(k)(1:17)//"   at        mb ("//
      *       trim(units_ijk(k))//", UV grid)"
+        SMAP(:,:,:) = UNDEF
+        SMAPJK(:,:) = UNDEF
         IF (K.le.kaijk) THEN     !  simple cases
           DO L=1,LM
             DO J=2,JM
               NI = 0
               FLAT = 0.
-              SMAPJK(J-1,L) = UNDEF
               DO I=1,IM
                 DP=AIJK(I,J,L,IJK_DP)
-                SMAP(I,J-1,L) = UNDEF
                 IF(DP.GT.0.) THEN
-                  SMAP(I,J-1,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/DP+OFF_IJK(K)
-                  FLAT = FLAT+SMAP(I,J-1,L)
+                  SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/DP+OFF_IJK(K)
+                  FLAT = FLAT+SMAP(I,J,L)
                   NI = NI+1
                 END IF
               END DO
-              IF (NI.GT.0) SMAPJK(J-1,L) = FLAT/NI
+              IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
             END DO
             WRITE(TITLEX(27:30),'(A)') CPRESS(L)
             TITLEL(L) = TITLEX//XLB
@@ -4702,25 +4737,23 @@ C**** Select fields
             DO J=2,JM
               NI = 0
               FLAT = 0.
-              SMAPJK(J-1,L) = UNDEF
               DO I=1,IM
                 DP=AIJK(I,J,L,IJK_DP)
-                SMAP(I,J-1,L) = UNDEF
                 IF(DP.GT.0.) THEN
-                  SMAP(I,J-1,L) = SCALE_IJK(k)*(AIJK(I,J,L,IJK_DSE)-
+                  SMAP(I,J,L) = SCALE_IJK(k)*(AIJK(I,J,L,IJK_DSE)-
      *                 SHA*AIJK(I,J,L,IJK_T))/DP
-                  FLAT = FLAT+SMAP(I,J-1,L)
+                  FLAT = FLAT+SMAP(I,J,L)
                   NI = NI+1
                 END IF
               END DO
-              IF (NI.GT.0) SMAPJK(J-1,L) = FLAT/NI
+              IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
             END DO
             WRITE(TITLEX(27:30),'(A)') CPRESS(L)
             TITLEL(L) = TITLEX//XLB
           END DO
         END IF
         CALL POUT_IJK(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *       ,SMAP,SMAPJK,UNDEF)
+     *       ,SMAP,SMAPJK,UNDEF,jgrid_ijk(k))
       END DO
 C****
       call close_ijk

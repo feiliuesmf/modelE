@@ -358,7 +358,7 @@ C**** set dimensions
       return
       end subroutine close_ijk
 
-      subroutine POUT_IJK(TITLE,SNAME,LNAME,UNITS,XIJK,XJK,XK)
+      subroutine POUT_IJK(TITLE,SNAME,LNAME,UNITS,XIJK,XJK,XK,IJGRID)
 !@sum  POUT_IJK outputs lat-lon-height binary records
 !@auth M. Kelley
 !@ver  1.0
@@ -373,19 +373,18 @@ C**** set dimensions
 !@var UNITS units of field
       CHARACTER, INTENT(IN) :: UNITS*50
 !@var XIJK lat/lon/height output field
-      REAL*8, DIMENSION(IM,JM-1,LM), INTENT(IN) :: XIJK
+      REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: XIJK
 !@var XJK lat sum/mean of output field
-      REAL*8, DIMENSION(JM-1,LM), INTENT(IN) :: XJK
+      REAL*8, DIMENSION(JM,LM), INTENT(IN) :: XJK
 !@var XK global sum/mean of output field
       REAL*8, DIMENSION(LM), INTENT(IN) :: XK
+!@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
+      INTEGER, INTENT(IN) :: IJGRID
       INTEGER :: I,K
 
       DO K=1,LM
-         WRITE(iu_ijk) TITLE(K),
-c fill in missing first row for GISS format(should put in missing value)
-     &        (0.,i=1,im),SNGL(XIJK(:,:,K)),
-     &        0.           , SNGL(XJK(:,K)),
-     &        SNGL(XK(K))
+         WRITE(iu_ijk) TITLE(K), SNGL(XIJK(:,:,K)),
+     &     SNGL(XJK(:,K)), SNGL(XK(K))
       ENDDO
       return
       end

@@ -418,6 +418,8 @@ C****      names, indices, units, idacc-numbers, etc.
       character(len=30), dimension(kaijkx) :: name_ijk
 !@var LNAME_IJK,UNITS_IJK Descriptions/Units of IJK diagnostics
       character(len=50), dimension(kaijkx) :: lname_ijk,units_ijk
+!@var jgrid_ijk 1=primary grid  2=secondary grid
+      integer, dimension(KAIJKx) :: jgrid_ijk
 
       character(len=20), dimension(kwp) :: name_wave,units_wave
       character(len=80), dimension(kwp) :: lname_wave
