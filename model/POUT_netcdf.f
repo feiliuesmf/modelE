@@ -351,9 +351,9 @@ c like wrtdarrn but for character data
 !@sum  OPEN_IJ opens the lat-lon binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE GEOM, only : lon_dg,lat_dg
+      USE GEOM, only : lon_dg,lat_dg,dxyp,dxv,dyp,dxyv
       USE NCOUT, only : iu_ij,im,jm,set_dim_out,def_dim_out,units
-     *     ,outfile,out_fid,ndims_out,open_out,var_name
+     *     ,outfile,out_fid,ndims_out,open_out,var_name,long_name
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
@@ -378,18 +378,30 @@ C**** set dimensions
       dim_name='latb'; call def_dim_out(dim_name,jm-1)
 
       ndims_out = 1
+c primary grid
       dim_name='longitude'; call set_dim_out(dim_name,1)
       units='degrees_east'
       var_name='longitude';call wrtdarr(lon_dg(1,1))
       dim_name='latitude'; call set_dim_out(dim_name,1)
       units='degrees_north'
       var_name='latitude';call wrtdarr(lat_dg(1,1))
+      units='m2'; long_name='primary gridbox area'
+      var_name='area';call wrtdarr(dxyp)
+      units='m'
+      long_name='north-south grid length'
+      var_name='dy';call wrtdarr(dyp)
+c secondary grid
       dim_name='lonb'; call set_dim_out(dim_name,1)
       units='degrees_east'
       var_name='lonb'; call wrtdarr(lon_dg(1,2))
       dim_name='latb'; call set_dim_out(dim_name,1)
       units='degrees_north'
       var_name='latb'; call wrtdarr(lat_dg(2,2))
+      units='m2'; long_name='secondary gridbox area'
+      var_name='areab';call wrtdarr(dxyv(2))
+      units='m'
+      long_name='east-west grid length at secondary latitudes'
+      var_name='dxb';call wrtdarr(dxv(2))
 
       return
       end subroutine open_ij
