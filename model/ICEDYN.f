@@ -606,7 +606,7 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
 
 C**** Pack the distributed arrays into temporary global arrays in preparation
 C**** for call to TRIDIAG.
-      DO I=1,NX1
+      DO I=2,NXLCYC
         CALL PACK_DATA( GRID, AV(J_0H:,I), AV_GLOB(1:,I) )
         CALL PACK_DATA( GRID, BV(J_0H:,I), BV_GLOB(1:,I) )
         CALL PACK_DATA( GRID, CV(J_0H:,I), CV_GLOB(1:,I) )
@@ -1082,13 +1082,13 @@ c set cyclic conditions on eastern and western boundary
 !@sum  vpicedyn is the entry point into the viscous-plastic ice 
 !@+    dynamics code
 !@auth Gavin Schmidt (based on code from J. Zhang)
-      USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH,GLOBALSUM
       USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
       USE ICEDYN, only : nx1,ny1,form,relax,uice,vice,uicec,vicec
       IMPLICIT NONE
       REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
      &        USAVE,VSAVE
-      REAL*8 rms
+      REAL*8 rms, rms_part(grid%J_STRT_HALO:grid%J_STOP_HALO)
       INTEGER kki,i,j
       INTEGER :: J_0,J_1,J_0S,J_1S
 
@@ -1157,13 +1157,14 @@ C NOW SET U(1)=U(2) AND SAME FOR V
       END DO
 
       if (kki.gt.1) then ! test convergence
-        rms=0.
+        rms_part=0.
         do i=1,nx1
            do j=j_0,j_1
-            rms=rms+(USAVE(i,j)-UICE(i,j,1))**2+(VSAVE(i,j)-VICE(i,j,1))
-     *           **2
+            rms_part(j)=rms_part(j)+
+     *           (USAVE(i,j)-UICE(i,j,1))**2+(VSAVE(i,j)-VICE(i,j,1))**2
           end do
         end do
+        CALL GLOBALSUM(grid, rms_part, rms, all=.true.)
       end if
 
       if (kki.eq.20) then
