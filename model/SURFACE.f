@@ -6,19 +6,19 @@
 !@+   drag.  It also calculates instantaneous surface temperature,
 !@+   surface specific humidity, and surface wind components.
 !@auth Nobody will claim responsibilty
-      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
-     *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6,byshi
-     *     ,byrhoi,deltx,byrt3,teeny
+      USE CONSTANT, only : rgas,lhm,lhe,lhs
+     *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
+     *     ,deltx,teeny ! ,byrt3
       USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM, HALO_UPDATE, SOUTH
       USE DOMAIN_DECOMP, only : NORTH
-      USE MODEL_COM, only : im,jm,lm,fim,dtsrc,nisurf,u,v,t,p,q
-     *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
-     *     ,fearth,nday,modrd,itime,jhour,sige,byim,itocean
+      USE MODEL_COM, only : im,jm,dtsrc,nisurf,u,v,t,p,q
+     *     ,idacc,dsig,ndasf,fland,flice,focean
+     *     ,nday,modrd,itime,jhour,itocean
      *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag,jdate
       USE GEOM, only : dxyp,imaxj,bydxyp,idjj,idij,rapj,kmaxj,sinip
      *     ,cosip
-      USE SOMTQ_COM, only : tmom,qmom,mz,nmom
-      USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij,am,byam
+      USE SOMTQ_COM, only : tmom,qmom,mz
+      USE DYNAMICS, only : pmid,pk,pedn,pek,am,byam
       USE RAD_COM, only : trhr,fsf,cosz1
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
@@ -33,9 +33,9 @@
 #endif
 #endif
 C**** Interface to PBL
-      USE SOCPBL, only : zgs,ZS1,TGV,TKV,QG_SAT,QG_AVER,HEMI,DTSURF,POLE
-     &     ,US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KHS,KQS !,PPBL ! ,KMS
-     &     ,UG,VG,WG,WINT
+      USE SOCPBL, only : ZS1,TGV,TKV,QG_SAT,QG_AVER,HEMI,DTSURF,POLE
+     &     ,US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KHS !,KQS !,PPBL ! ,KMS
+     &     ,UG,VG,WG !,WINT
 
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,dclev
       USE PBL_DRV, only : pbl,evap_max,fr_sat,uocean,vocean,psurf,trhr0
@@ -62,14 +62,14 @@ C**** Interface to PBL
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
      *     ,idd_ev,idd_ldc,idd_dcf,hdiurn,ij_pblht
-      USE LANDICE, only : hc2li,z1e,z2li,hc1li
+      USE LANDICE, only : z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
-      USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,
-     *     solar_ice_frac,tfrez
+      USE SEAICE, only : xsi,ace1i,alami,byrli,byrls, ! z1i,
+     *     solar_ice_frac
       USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws
-      USE LAKES_COM, only : mwl,mldlk,gml,flake
+      USE LAKES_COM, only : mwl,gml,flake
       USE LAKES, only : minmld
-      USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe,sss
+      USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
      *     ,uosurf,vosurf,uisurf,visurf
 #ifdef TRACERS_ON
@@ -97,19 +97,19 @@ C**** Interface to PBL
       REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1K
      *     ,BETA,ELHX,ACE2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
      *     ,CM,CH,CQ,BETAUP,EVHEAT,F0,F1,DSHDTG,DQGDTG
-     *     ,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG,dEVdQS,HSDEN,HSCON
-     *     ,HSMUL,dHS,dQS,dT2,dTS,DQ1X,EVHDT0,EVAP,F0DT,FTEVAP,PWATER
+     *     ,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG !,HSDEN,HSCON !,dEVdQS
+     *     ,dT2,DQ1X,EVHDT0,EVAP,F0DT,FTEVAP,PWATER !,HSMUL,dHS,dQS,dTS
      *     ,PSK,Q1,THV1,PTYPE,TG1,SRHEAT,SNOW,TG2
      *     ,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT
-     *     ,QSDEN,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP
-     *     ,Z1BY6L,QZ1,EVAPLIM,F2,FSRI(2),HTLIM
+     *     ,T2DEN,T2CON,T2MUL,FQEVAP ! ,QSDEN,QSCON,QSMUL,TGDEN
+     *     ,Z1BY6L,EVAPLIM,F2,FSRI(2),HTLIM
 
       REAL*8 MA1, MSI1
       REAL*8, DIMENSION(NSTYPE,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *                                                       TGRND,TGRN2
       REAL*8, PARAMETER :: qmin=1.d-12
-      REAL*8, PARAMETER :: S1BYG1 = BYRT3,
-     *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
+      REAL*8, PARAMETER :: ! S1BYG1 = BYRT3, Z1IBYL=Z1I/ALAMI,
+     &     Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
       REAL*8 QSAT,DQSATDT
       REAL*8, DIMENSION(7,3,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
      *                                                         AREGIJ
@@ -210,14 +210,14 @@ C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
 !$OMP   PARALLEL DO PRIVATE (ACE2, BETA,BETAUP,   CM,CH,CQ,
 !$OMP*  CDTERM,CDENOM,DSHDTG,DQGDTG,DEVDTG,DTRDTG,
-!$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DSNDTG,DEVDQS,
-!$OMP*  DHS,DQS,DT2,DTS, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0,
-!$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HCG1,HCG2,HSDEN,HSCON,
-!$OMP*  HSMUL,HTLIM,I,ITYPE,IDTYPE,IM1, J,K,
+!$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DSNDTG,   ! DEVDQS,
+!$OMP*  DT2, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0, ! DHS,DQS,DTS,
+!$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HCG1,HCG2,  ! HSDEN,HSCON,
+!$OMP*  HTLIM,I,ITYPE,IDTYPE,IM1, J,K, !,HSMUL
 !$OMP*  KR, MA1,MSI1, PS,P1K,PLAND,PWATER,
-!$OMP*  PLICE,PIJ,POICE,POCEAN,PTYPE,PSK, Q1,QSDEN,
-!$OMP*  QSCON,QSMUL, RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT,
-!$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TGDEN,TS,
+!$OMP*  PLICE,PIJ,POICE,POCEAN,PTYPE,PSK, Q1, ! QSDEN,
+!$OMP*  RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT, ! QSCON,QSMUL,
+!$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TS,  ! TGDEN,
 !$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L
 #if defined(TRACERS_ON)
 !$OMP*  ,n,nx,nsrc,rhosrf0,totflux
