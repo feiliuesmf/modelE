@@ -44,14 +44,13 @@ c****
      &    abetad,abetav,abetat,
      &    abetap,abetab,abeta,
      &    acna,acnc,
-     &    aevapw,aevapd,aevapb,
+     &    aevap,aevapw,aevapd,aevapb,
      &    aruns,arunu,aeruns,aerunu,
-     &    aepc,aepb,aepp,afhg,af0dt,af1dt,zw,tbcs,
-     &    qm1,q1,qs,
-     &    pres,rho,ts,vsm,ch,srht,trht,zs, !cd,snht,
-     &           z1,
-     &    eddy,
-     &    nlsn,isn,nsn,dzsn,wsn,hsn,fr_snow
+     &    aepc,aepb,aepp,af0dt,af1dt,zw,tbcs,
+     &    qm1,qs,
+     &    pres,rho,ts,vsm,ch,srht,trht, !cd,snht,
+     &    nlsn,nsn,dzsn,wsn,hsn,fr_snow
+     &     ,ghy_debug
 
       use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
@@ -107,7 +106,7 @@ c****
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat,wtr2av
      *     ,wfc1,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij,psoil,pearth
      *     ,warmer,brun0,berun0,bts,bevhdt,brunu,berunu
-     *     ,bshdt,btrhdt,timez,spring,zs1co
+     *     ,bshdt,btrhdt,timez,spring,zs1co,q1
 
 !@var rhosrf0 estimated surface air density
       real*8 rhosrf0
@@ -150,6 +149,13 @@ c****        1-6 heat content of vegetated soil layer 1-6 (j m-2)
 c**** snowbv  1  snow depth over bare soil (m)
 c****         2  snow depth over vegetated soil (m)
 c****
+ccc for debugging only -will remove later
+cddd      real*8 acc_water, acc_energy, acc_energy_2, acc_pearth
+cddd      real*8 :: energy_old(2,im,jm) = 0.d0
+cddd      acc_water=0.d0
+cddd      acc_energy=0.d0
+cddd      acc_energy_2=0.d0
+cddd      acc_pearth=0.d0
 
       dtsurf=dtsrc/nisurf
       zs1co=.5*dsig(1)*rgas/grav
@@ -172,7 +178,7 @@ C$OMP  PARALLEL DO PRIVATE
 C$OMP*  (ACE2AV, ELHX,EVAP,EVHDT, CDM,CDH,CDQ,
 C$OMP*   I,ITYPE, J, KR, L,MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
 C$OMP*   QG_NSAT,QSATS, RHOSRF,RHOSRF0,RCDMWS,RCDHWS, SRHDT,SRHEAT,SHDT,
-C$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TRHDT,TG2AV, WARMER,WFC1,WTR2AV
+C$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TRHDT,TG2AV, WARMER,WFC1,WTR2AV,q1
 #ifdef TRACERS_ON
 C$OMP*   ,n,nx,totflux,nsrc
 #ifdef TRACERS_WATER
@@ -233,21 +239,20 @@ C**** Calculate first layer tracer concentration
 #endif
 #endif
 c**** new quantities to be zeroed out over ground timesteps
-         aruns=0.
-         arunu=0.
-         aeruns=0.
-         aerunu=0.
-      aevapw=0.
-      aevapd=0.
-      aevapb=0.
-         alhg=0.
-         aepc=0.
-         aepb=0.
-         afhg=0.
-         atrg=0.
-      ashg=0.
-         af0dt=0.
-         af1dt=0.
+cddd         aruns=0.
+cddd         arunu=0.
+cddd         aeruns=0.
+cddd         aerunu=0.
+cddd      aevapw=0.
+cddd      aevapd=0.
+cddd      aevapb=0.
+cddd         alhg=0.
+cddd         aepc=0.
+cddd         aepb=0.
+cddd         atrg=0.
+cddd      ashg=0.
+cddd         af0dt=0.
+cddd         af1dt=0.
 c****
 c**** earth
 c****
@@ -273,7 +278,7 @@ c      prs=precss(i,j)/(dtsrc*rhow)
       snowd(1:2)  = snowbv(1:2,i,j)
 ccc extracting snow variables
       nsn(1:2)          = nsn_ij    (1:2, i, j)
-      isn(1:2)          = isn_ij    (1:2, i, j)
+      !isn(1:2)          = isn_ij    (1:2, i, j)
       dzsn(1:nlsn, 1:2) = dzsn_ij   (1:nlsn, 1:2, i, j)
       wsn(1:nlsn, 1:2)  = wsn_ij    (1:nlsn, 1:2, i, j)
       hsn(1:nlsn, 1:2)  = hsn_ij    (1:nlsn, 1:2, i, j)
@@ -428,9 +433,9 @@ c  define extra variables to be passed in surfc:
       ch    =cdh
       srht  =srheat
       trht  =trheat
-      zs    =zgs  !!! will not need after qsbal is replaced
-      z1    =zmix  !!! will not need after qsbal is replaced
-      eddy  =khs   !!! will not need after qsbal is replaced
+  !    zs    =zgs  !!! will not need after qsbal is replaced
+  !    z1    =zmix  !!! will not need after qsbal is replaced
+  !    eddy  =khs   !!! will not need after qsbal is replaced
 c     tspass=ts
 c **********************************************************************
 c *****
@@ -489,7 +494,7 @@ c       trsnowbv(n,:,i,j) = trsnowd(nx,:)
 #endif
 ccc copy snow variables back to storage
       nsn_ij    (1:2, i, j)         = nsn(1:2)
-      isn_ij    (1:2, i, j)         = isn(1:2)
+      !isn_ij    (1:2, i, j)         = isn(1:2)
       dzsn_ij   (1:nlsn, 1:2, i, j) = dzsn(1:nlsn,1:2)
       wsn_ij    (1:nlsn, 1:2, i, j) = wsn(1:nlsn,1:2)
       hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
@@ -542,11 +547,12 @@ c**** calculate fluxes using implicit time step for non-ocean points
       uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*(us-uocean)
       vflux1(i,j)=vflux1(i,j)+ptype*rcdmws*(vs-vocean)
 c**** accumulate surface fluxes and prognostic and diagnostic quantities
-      evap=aevapw+aevapd+aevapb
+      !evap=aevapw+aevapd+aevapb
+      evap = aevap
       evapor(i,j,4)=evapor(i,j,4)+evap
+      evhdt=-alhg
 C**** hack to correct energy flux
-c      evhdt=-alhg
-      evhdt=-evap*lhe
+ccc      evhdt=-evap*lhe ! hopefully not needed any more
       shdt=-ashg
       dth1(i,j)=dth1(i,j)-shdt*ptype/(sha*ma1*p1k)
       dq1(i,j) =dq1(i,j)+evap*ptype/ma1
@@ -712,11 +718,28 @@ c**** quantities accumulated for surface type tables in diagj
         aj(j,j_tg2 ,itearth)=aj(j,j_tg2 ,itearth)+  tg2av*pearth
         aj(j,j_type,itearth)=aj(j,j_type,itearth)+        pearth
       end if
+
+ccc for debugging only -will remove later
+cddd      acc_water = acc_water +
+cddd     &     (ghy_debug%water(1)*fb + ghy_debug%water(2)*fv)
+cddd     &     *pearth*dxyp(j)
+cddd      acc_energy = acc_energy +
+cddd     &     (ghy_debug%energy(1)*fb + ghy_debug%energy(2)*fv)
+cddd     &     *pearth*dxyp(j)
+cddd      acc_energy_2 = acc_energy_2 +
+cddd     &     abs(ghy_debug%energy(1)*fb + ghy_debug%energy(2)*fv)
+cddd     &     *pearth*dxyp(j)
+cddd      acc_pearth = acc_pearth + pearth*dxyp(j)
       end do loop_i
       end do loop_j
 C$OMP  END PARALLEL DO
 C
 C
+ccc for debugging only -will remove later
+cddd      !print *,'zzz total water ', acc_water / acc_pearth
+cddd      print *,'zzz total energy ', acc_energy / acc_pearth,
+cddd     &     acc_energy_2 / acc_pearth
+
       DO 825 J=1,JM
       DO 825 I=1,IMAXJ(J)
          IF(FEARTH(I,J).LE.0.0)  GO TO 825
@@ -761,8 +784,7 @@ ccc                               currently using only topography part
 c**** modifications needed for split of bare soils into 2 types
       use filemanager
       use param
-      use constant, only : twopi,rhow,edpery,sha,shw_const=>shw,
-     *     shi_const=>shi,lhe,lhm
+      use constant, only : twopi,rhow,edpery,sha
       use model_com, only : fearth,vdata,itime,nday,jeq
       use dagcom, only : npts,icon_wtg,icon_htg,conpt0
       use sle001
@@ -876,27 +898,27 @@ c**** water quantities are density times usual values in mks
 c**** to get volumetric units
 c**** 1m water = 1000 kg m-2; 1m3 water = 1000 kg
 c fsn is the heat of fusion
-      fsn= lhm * rhow
+c      fsn= lhm * rhow
 c elh is the heat of vaporization
-      elh= lhe * rhow
+c      elh= lhe * rhow
 c the sh's are the specific heat capacaties
-      shw= shw_const * rhow
-      shi= shi_const * rhow
+c      shw= shw_const * rhow
+c      shi= shi_const * rhow
 c      sha= sha_const
 c      shv=1911.
 c the alam's are the heat conductivities
-      alamw=.573345d0
-      alami=2.1762d0
-      alama=.025d0
+c      alamw=.573345d0
+c      alami=2.1762d0
+c      alama=.025d0
 ccc alamsn is not used
 c      alamsn=0.088d0
-      alambr=2.9d0
-      alams(1)=8.8d0
-      alams(2)=2.9d0
-      alams(3)=2.9d0
-      alams(4)=.25d0
+c      alambr=2.9d0
+c      alams(1)=8.8d0
+c      alams(2)=2.9d0
+c      alams(3)=2.9d0
+c      alams(4)=.25d0
 c hw is the wilting point in meters
-      hw=-100
+c      hw=-100
 c zhtb is depth for combining heat layers for stability
 ccc looks like zhtb is not used
 c      if(q(4,1).lt..01)then
@@ -1010,15 +1032,15 @@ c**** calculate root fraction afr averaged over vegetation types
         end do
       end do
 c****
-      print *,' '
-      print *,'soils parameters'
-      sdstnc=100.
-      print *,'interstream distance (m) sdstnc:',sdstnc
-      c1=90.
-      print *,'canopy conductance related parameter c1:',c1
-      prfr=.1d0
-      print *,'fraction (by area) of precipitation prfr:',prfr
-      print *,' '
+c      print *,' '
+c      print *,'soils parameters'
+c      sdstnc=100.
+c      print *,'interstream distance (m) sdstnc:',sdstnc
+c      c1=90.
+c      print *,'canopy conductance related parameter c1:',c1
+c      prfr=.1d0
+c      print *,'fraction (by area) of precipitation prfr:',prfr
+c      print *,' '
       call hl0
 c****
 c code transplanted from subroutine input
@@ -1099,10 +1121,6 @@ C**** Calculate mean tracer ratio
         end do
       end do
 
-ccc   some extra code from snowmodel ghinit
-      so_%rosmp = 8.  ! no idea what this number means, but it is used
-                      ! in computation of runoff
-
 ccc   init snow here
 ccc hope this is the right place to split first layer into soil
 ccc and snow  and to set snow arrays
@@ -1115,7 +1133,7 @@ ccc!!! restart file (without snow model data)
           pearth=fearth(i,j)
           if(pearth.le.0.) then
             nsn_ij(:,i,j)     = 0
-            isn_ij(:,i,j)     = 0
+            !isn_ij(:,i,j)     = 0
             dzsn_ij(:,:,i,j)  = 0.
             wsn_ij(:,:,i,j)   = 0.
             hsn_ij(:,:,i,j)   = 0.
@@ -1135,7 +1153,7 @@ ccc!!! restart file (without snow model data)
             call set_snow
 
             nsn_ij    (1:2, i, j)         = nsn(1:2)
-            isn_ij    (1:2, i, j)         = isn(1:2)
+            !isn_ij    (1:2, i, j)         = isn(1:2)
             dzsn_ij   (1:nlsn, 1:2, i, j) = dzsn(1:nlsn,1:2)
             wsn_ij    (1:nlsn, 1:2, i, j) = wsn(1:nlsn,1:2)
             hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
@@ -1182,7 +1200,7 @@ c**** wfcap - water field capacity of top soil layer, m
 c****
       use snow_model, only : i_earth,j_earth
       use sle001, only : dz,qk,ngm,imt,ng,zb,zc,fr,q,sl,xklh0 !spgsn,
-     *     ,fb,fv,snowm,alai,alaie,rs,prs,ijdebug,n !alaic,vh,
+     *     ,fb,fv,snowm,alaie,rs,prs,ijdebug,n !alaic,vh,
      *     ,thets,thetm,ws,thm,nth,shc,shw,htprs,pr !shcap,shtpr,
      *     ,htpr
      *     ,top_index
@@ -1193,7 +1211,7 @@ c****
       real*8 wfcap
       integer l,ibv,k,i
       real*8 aa,one
-      real*8 alaic,vh,shtpr
+      real*8 alaic,vh,shtpr,alai
       real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
 
       one=1.
@@ -1666,7 +1684,7 @@ c****
 !@auth Gavin Schmidt
 !@ver  1.0
       use model_com, only : fim,fearth
-      use geom, only : imaxj
+      use geom, only : imaxj, dxyp
       use sle001, only : ngm
       use ghycom, only : htbare,htvege,afb,fr_snow_ij,nsn_ij,hsn_ij
       implicit none
@@ -1678,20 +1696,90 @@ c****
       do j=1,jm
         heatg(j)=0
         do i=1,imaxj(j)
-          if (fearth(i,j).gt.0) then
-            fb=afb(i,j)
-            fv=(1.d0-fb)
-            hij=fb*sum( htbare(1:ngm,i,j) )
+          if (fearth(i,j).le.0) cycle
+          fb=afb(i,j)
+          fv=(1.d0-fb)
+          hij=fb*sum( htbare(1:ngm,i,j) )
      &       +  fv*sum( htvege(0:ngm,i,j) )
      &       +  fb*fr_snow_ij(1,i,j)*sum( hsn_ij(1:nsn_ij(1,i,j),1,i,j))
      &       +  fv*fr_snow_ij(2,i,j)*sum( hsn_ij(1:nsn_ij(2,i,j),2,i,j))
-            heatg(j)=heatg(j)+fearth(i,j)*hij
-          end if
+          heatg(j)=heatg(j)+fearth(i,j)*hij
         end do
       end do
       heatg(1) =fim*heatg(1)
       heatg(jm)=fim*heatg(jm)
 c****
+ccc debugging ...
+ccc      print *,'conserv_htg energy ',
+ccc     &     sum(heatg(1:jm)*dxyp(1:jm))/(sum(dxyp(1:jm))*im)
       end subroutine conserv_htg
 
+ 
       end module soil_drv
+
+
+      subroutine check_ghy_conservation( flag )
+ccc debugging program: cam be put at the beginning and at the end 
+ccc of the 'surface' to check water conservation
+      use constant, only : rhow
+      use geom, only : imaxj
+      use model_com, only : im,jm,fearth
+      use fluxes, only : prec,evapor,runoe
+      use sle001, only : ngm
+      use ghycom, only : wbare,wvege,htbare,htvege,snowbv,afb,dz_ij
+      implicit none
+      integer flag
+      real*8 total_water(im,jm), error_water
+      real*8, save :: old_total_water(im,jm)
+      real*8 total_energy(im,jm), error_energy
+      real*8, save :: old_total_energy(im,jm)
+      integer i,j,n
+      real*8 fb,fv
+ccc enrgy check not implemented yet ...
+
+      do j=1,jm
+        do i=1,imaxj(j)
+          if ( fearth(i,j) <= 0.d0 ) cycle
+
+ccc just checking ...
+          do n = 1,ngm
+            if ( dz_ij(i,j,n) .le. 0.d0 )
+     &           call stop_model('incompatible dz',255)
+          enddo
+
+          fb = afb(i,j)
+          fv = 1.d0 - fb
+          total_water(i,j) = fb*sum( wbare(1:ngm,i,j) )
+     &         + fv*sum( wvege(0:ngm,i,j) )
+     &         + fb*snowbv(1,i,j) + fv*snowbv(2,i,j)
+        end do
+      end do
+
+      ! call stop_model('just testing...',255)
+
+      if ( flag == 0 ) then
+        old_total_water(:,:) = total_water(:,:)
+        return
+      endif
+
+      do j=1,jm
+        do i=1,imaxj(j)
+
+          !print *,'fearth = ', i, j, fearth(i,j)
+ 
+          if ( fearth(i,j) <= 0.d0 ) cycle
+          fb = afb(i,j)
+          fv = 1.d0 - fb
+          error_water = ( total_water(i,j) - old_total_water(i,j) )*rhow
+     &         - prec(i,j) + evapor(i,j,4) + runoe(i,j)
+
+          !print *, 'err H2O: ', i, j, error_water
+
+  !        if ( abs( error_water ) > 1.d-9 ) print *, 'error'
+          if ( abs( error_water ) > 1.d-9 ) call stop_model(  ! was -15
+     &         'check_ghy_conservation: water conservation problem',255)
+
+        end do
+      end do
+      
+      end subroutine check_ghy_conservation

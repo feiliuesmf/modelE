@@ -1,6 +1,9 @@
 !@sum contains code related to 3 layers snow model
 !@auth I.Aleinov
 !@ver  1.0
+
+#define DEBUG_SNOW
+
       MODULE SNOW_MODEL
 !@sum SNOW_MODEL does column physics for 3 layers snow model
 !@auth I.Aleinov
@@ -19,7 +22,7 @@
       SAVE
       PRIVATE
 
-      PUBLIC snow_adv,i_earth, j_earth
+      PUBLIC snow_adv, snow_redistr, snow_fraction, i_earth, j_earth
 
 ccc physical parameters
 !@var rho_fresh_snow density of fresh snow (kg m-3)
@@ -88,7 +91,7 @@ ccc      real*8, parameter :: MIN_SNOW_THICKNESS =  0.01d0  ! was 0.09d0
           ice = -hsn(n)/lat_fusion
           free_water = wsn(n) - ice
 c!!!                may be ice*max_fract_water ??
-          water_down = max(0d0, free_water - wsn(n)*max_fract_water)
+          water_down = max(0d0, free_water - ice*max_fract_water)
           wsn(n) = wsn(n) - water_down
           !/* should I reduce dz here ??? */
           !/* dz(n) = dz(n) * min( ice/ice_old, 1.d0 )  */
@@ -97,73 +100,79 @@ c!!!                may be ice*max_fract_water ??
         else !/* all frozen */
           if (wsn(n)+EPS .lt. ice_old) dz(n) = dz(n)*wsn(n)/ice_old
           dz(n) = min( dz(n), wsn(n)*rho_water/rho_fresh_snow )
-          endif
-        enddo
+        endif
+        dz(n) = max( dz(n), wsn(n)*rho_water/rho_ice )
+      enddo
       return
       end subroutine pass_water
 
 
-      subroutine snow_redistr(dz, wsn, hsn, nl,
-     &                         dzo, wsno, hsno, nlo, fract_cover)
+      subroutine snow_fraction(
+     &     dz, nl, prsnow, dt, fract_cover, fract_cover_new)
+!@sum computes new snow fraction and returns it in fract_cover_new
+!@auth I.Aleinov
+!@ver  1.0
+      implicit none
+      integer nl
+      real*8 dz(TOTAL_NL+1), prsnow, dt
+      real*8 fract_cover, fract_cover_new
+      real*8 dz_aver, fresh_snow
+
+      fresh_snow = rho_water/rho_fresh_snow * prsnow*dt
+ 
+      dz_aver = sum(dz(1:nl))*fract_cover + fresh_snow
+
+      fract_cover_new = min( 1.d0, dz_aver/MIN_SNOW_THICKNESS )
+      if ( fract_cover_new < MIN_FRACT_COVER ) fract_cover_new = 0.d0
+
+      return
+      end subroutine snow_fraction
+
+
+      subroutine snow_redistr(
+     &     dz, wsn, hsn, nl, fract_cover_ratio )
 !@sum  redistributes snow between the layers
 !@auth I.Aleinov
 !@ver  1.0
       implicit none
-      integer nl,nlo
-      real*8 dz(nl+1), wsn(nl), hsn(nl)
-      real*8 dzo(nl+1), wsno(nl), hsno(nl)
-      real*8 fract_cover
+      integer nl
+      real*8 dz(TOTAL_NL+1), wsn(TOTAL_NL), hsn(TOTAL_NL)
+      real*8 fract_cover_ratio
+      integer nlo
+      real*8 dzo(TOTAL_NL+1), wsno(TOTAL_NL), hsno(TOTAL_NL)
       integer n, no
       real*8 total_dz, ddz, delta, fract
-      real*8 fract_cover_new, fract_cover_ratio
 
-      total_dz = 0.d0
-      do n=1,nlo
-        total_dz = total_dz + dzo(n)
-        enddo
+c$$$      if( fract_cover_new .lt. MIN_FRACT_COVER ) then
+c$$$        print *, 'snow_redistr: fract_cover_new < MIN_FRACT_COVER'
+c$$$        print *, 'fract_cover_new = ', fract_cover_new
+c$$$        call stop_model(
+c$$$     &       'snow_redistr: fract_cover_new < MIN_FRACT_COVER',255)
+c$$$      endif
 
-      fract_cover_new =
-     &          min( 1.d0, total_dz*fract_cover/MIN_SNOW_THICKNESS )
+      if ( dz(1) == 0.d0 ) return  ! no snow - nothing to redistribute
 
-      if( fract_cover_new .lt. MIN_FRACT_COVER ) then
-        fract_cover = 0.d0
-        nl = 1
-        dz(1) = 0.d0
-        wsn(1) = 0.d0
-        hsn(1) = 0.d0
-        return
-        endif
+      dzo(1:nl)  = dz(1:nl)
+      wsno(1:nl) = wsn(1:nl)
+      hsno(1:nl) = hsn(1:nl)
+      nlo = nl
 
-      fract_cover_ratio = fract_cover/fract_cover_new
+      total_dz = sum( dzo(1:nl) )
+
+      !fract_cover_ratio = fract_cover/fract_cover_new
       total_dz = total_dz*fract_cover_ratio
 
       if ( total_dz .gt. MIN_SNOW_THICKNESS*1.5d0 ) then
         nl = TOTAL_NL
+        dz(1) = MIN_SNOW_THICKNESS
+        dz(2:nl) = (total_dz-dz(1))/(nl-1)
       else
         nl = 1
-        endif
+        dz(1) = total_dz
+      endif
 
-c!!!  trying one layer model ...
-c!!      nl = 1
-
-      if ( total_dz .gt. 0.16d0 .and. nl.gt.1 ) then
-        dz(1) = 0.05d0   ! trying thinner upper layer
-c!!        dz(1) = 0.10d0
-        ddz = (total_dz-dz(1))/(nl-1)
-        do n=2,nl
-          dz(n) = ddz
-          enddo
-      else
-        ddz = total_dz/nl
-        do n=1,nl
-          dz(n) = ddz
-          enddo
-        endif
-
-      do n=1,TOTAL_NL
-        wsn(n) = 0.d0
-        hsn(n) = 0.d0
-        enddo
+      wsn(1:TOTAL_NL) = 0.d0
+      hsn(1:TOTAL_NL) = 0.d0
 
       no = 0
       delta = 0.d0
@@ -178,9 +187,8 @@ c!!        dz(1) = 0.10d0
         fract = ddz/(dzo(no)*fract_cover_ratio)
 ccc the following is just for check
           if ( fract.lt.-EPS .or. fract.gt.1.d0+EPS ) then
-            print *, 'internal error 3 in snow_redistr'
             print *, 'fract= ', fract
-            call stop_model('snow_redistr: error 3',255)
+            call stop_model('snow_redistr: internal error 3',255)
             endif
         wsn(n) = wsn(n) - fract*wsno(no)*fract_cover_ratio
         hsn(n) = hsn(n) - fract*hsno(no)*fract_cover_ratio
@@ -190,22 +198,20 @@ ccc the following is just for check
           delta = ddz
         else
           if ( abs(fract).gt.EPS ) then
-            print *,'internal error 1 in snow_redistr'
             print *, 'fract= ', fract
-            call stop_model('snow_redistr: error 1',255)
+            call stop_model('snow_redistr: internal error 1',255)
             endif
           endif
         enddo
 
-      fract_cover = fract_cover_new
       return
       end subroutine snow_redistr
 
 
       subroutine snow_adv(dz, wsn, hsn, nl,
      &    srht, trht, snht, htpr, evaporation, pr, dt,
-     &    t_ground, dz_ground, fract_cover,
-     &    tsn_surf, water_to_ground, heat_to_ground,
+     &    t_ground, dz_ground,
+     &    water_to_ground, heat_to_ground,
      &    radiation_out, snsh_dt, evap_dt, fb_or_fv )
       implicit none
 !@sum  a wrapper that calles real snow_adv (introduced for debugging)
@@ -214,11 +220,11 @@ ccc the following is just for check
 ccc input:
       integer nl
       real*8 srht, trht, snht, htpr, evaporation
-      real*8 pr, dt, t_ground, dz_ground, fract_cover
+      real*8 pr, dt, t_ground, dz_ground
       real*8 snsh_dt, evap_dt, fb_or_fv
 
 ccc output:
-      real*8 water_to_ground, heat_to_ground, tsn_surf
+      real*8 water_to_ground, heat_to_ground
       real*8 radiation_out
 ccc data arrays
       real*8 dz(nl+1), wsn(nl), hsn(nl)
@@ -226,11 +232,11 @@ ccc data arrays
 ccc tracer variables
 !@var tr_flux flux of water between snow layers (>0 is down) (m/s)
       real*8 tr_flux(0:TOTAL_NL)
-      real*8 wsn_o(MAX_NL), fract_cover_o, evap_o
+      real*8 wsn_o(MAX_NL), evap_o
       integer nl_o
 
 ccc for debug
-      real*8 total_energy  !, lat_evap
+      real*8 total_energy, total_water  !, lat_evap
       integer i, retcode
       integer, save :: counter=0
 
@@ -240,35 +246,42 @@ ccc for debug
 ccc for tracers
       wsn_o(:) = 0.d0
       nl_o = nl
-      fract_cover_o = fract_cover
       wsn_o(1:nl) = wsn(1:nl)
       evap_o = evaporation
 
 ccc checking if the model conserves energy (part 1) (for debugging)
       total_energy = 0.d0
+      total_water = 0.d0
       do i=1,nl
-        total_energy = total_energy - hsn(i)*fract_cover
+        total_energy = total_energy - hsn(i)
+        total_water = total_water - wsn(i)
       enddo
 
       call snow_adv_1(dz, wsn, hsn, nl,
      &    srht, trht, snht, htpr, evaporation, pr, dt,
-     &    t_ground, dz_ground, fract_cover,
-     &    tsn_surf, water_to_ground, heat_to_ground,
+     &    t_ground, dz_ground,
+     &    water_to_ground, heat_to_ground,
      &    radiation_out, snsh_dt, evap_dt, retcode )
 
       if (fb_or_fv .le. 0.) return
 ccc checking if the model conserves energy (part 2) (for debugging)
       do i=1,nl
-        total_energy = total_energy + hsn(i)*fract_cover
+        total_energy = total_energy + hsn(i)
+        total_water = total_water + wsn(i)
       enddo
       total_energy = total_energy -
      &    (srht+trht-snht-lat_evap*evaporation+htpr)*dt
-      total_energy = total_energy + heat_to_ground + radiation_out*dt
+      total_energy = total_energy + heat_to_ground*dt + radiation_out*dt
       if ( abs(total_energy) .gt. 1.d0 ) then
         print*, "total energy error",i_earth, j_earth,total_energy,
-     *       heat_to_ground,radiation_out*dt
+     *       heat_to_ground*dt,radiation_out*dt
         call stop_model('snow_adv: total energy error',255)
       end if
+      total_water = total_water
+     &     - (pr - evaporation - water_to_ground)*dt
+      if ( abs(total_water)/dt .gt. 1.d-15 )
+     &     call stop_model('snow_adv: water conservation error',255)
+      
 
 c$$$    if( fr_type .lt. 1.d-6 .and. abs(total_energy) .gt. 1.d-6 ) then
 c$$$      print*, "total energy error",i_earth, j_earth,total_energy
@@ -278,18 +291,17 @@ c$$$    endif
 ccc for tracers
       tr_flux(0) = pr - evaporation
       do i=1,TOTAL_NL
-        tr_flux(i) = -(wsn(i)*fract_cover - wsn_o(i)*fract_cover_o)/dt
+        tr_flux(i) = -(wsn(i) - wsn_o(i))/dt
      &       + tr_flux(i-1)
       enddo
 ccc checking if preserve water
-      if ( abs( tr_flux(TOTAL_NL) - water_to_ground/dt ) > 1.d-15 ) then
+      if ( abs( tr_flux(TOTAL_NL) - water_to_ground ) > 1.d-15 ) then
         if ( DEB_CH == 0 )
      $       call openunit("snow_debug", DEB_CH, .false., .false.)
         write(DEB_CH,*) "snow_adv: H2O error "
-     &       , abs( tr_flux(TOTAL_NL) - water_to_ground/dt )
-     &       , tr_flux(TOTAL_NL) , water_to_ground/dt
-     &       , fract_cover, fract_cover_o
-     &       , nl, nl_o, tsn_surf, counter, evaporation, evap_o
+     &       , abs( tr_flux(TOTAL_NL) - water_to_ground )
+     &       , tr_flux(TOTAL_NL) , water_to_ground
+     &       , nl, nl_o, counter, evaporation, evap_o
         !call abort
         !stop 'snow_adv: H2O error'
       endif
@@ -300,8 +312,8 @@ ccc checking if preserve water
 
       subroutine snow_adv_1(dz, wsn, hsn, nl,
      &    srht, trht, snht, htpr, evaporation, pr, dt,
-     &    t_ground, dz_ground, fract_cover,
-     &    tsn_surf, water_to_ground, heat_to_ground,
+     &    t_ground, dz_ground,
+     &    water_to_ground, heat_to_ground,
      &    radiation_out, snsh_dt, evap_dt, retcode )
       implicit none
 !@sum main program that does column snow physics
@@ -310,28 +322,29 @@ ccc checking if preserve water
 ccc input:
       integer nl
       real*8 srht, trht, snht, htpr, evaporation
-      real*8 pr, dt, t_ground, dz_ground, fract_cover
+      real*8 pr, dt, t_ground, dz_ground
       real*8 snsh_dt, evap_dt
 
 ccc constants: (now defined as global params)
       real*8 k_ground, c_ground
 ccc output:
-      real*8 water_to_ground, heat_to_ground, tsn_surf
+      real*8 water_to_ground, heat_to_ground
       real*8 radiation_out
       integer retcode
 
 ccc main parameters: layer thickness, water equivalent, heat content
       real*8 dz(nl+1), wsn(nl), hsn(nl)
-      real*8 dzo(MAX_NL+1), wsno(MAX_NL), hsno(MAX_NL)
+ccc!!! I wonder if the following arrays should have dim (nl) instead
+ccc    of (MAX_NL) to force the allocation on a stack (for OpenMP) ?
       real*8 tsn(MAX_NL+1), csn(MAX_NL), ksn(MAX_NL+1), isn(MAX_NL)
+      real*8 wsn_o(MAX_NL), hsn_o(MAX_NL), dz_o(MAX_NL+1)
 
       real*8 water_down, heat_down, fresh_snow, rho_snow, flux_in
       real*8 mass_layer, mass_above, scale_rho
-      real*8 fract_cover_old, flux_in_deriv, flux_corr
+      real*8 flux_in_deriv, flux_corr
       real*8 delta_tsn_impl ! shft of temperature due to implicit method
-      integer have_snow, n, nlo
-
-ccc common for debug
+      integer n, nl_o
+      real*8 dz_he(MAX_NL+1)
 
 ccc!!!  check if lat_evap shoud be replaced by heat of sublimation
 
@@ -339,167 +352,63 @@ ccc !!! ground properties should be passed as formal parameters !!!
       k_ground =        3.4d0    !/* W K-1 m */    /* --??? */
       c_ground =        1.d5     !/* J m-3 K-1 */  /* -- ??? */
 
+ccc will need initial values if all snow melted and for tracers
+      wsn_o(1:nl) = wsn(1:nl)
+      hsn_o(1:nl) = hsn(1:nl)
+      dz_o(1:nl) = dz(1:nl)
+      nl_o = nl
+
+      !!! just to deceive the optimizer
+      if ( dz_o(1) > 1.d6 ) call stop_model("snow_adv_1: what?!!",255)
+
+ccc just in case, may need reasonable tsn(1) if all melted
+      tsn(1) = 0.d0
+
 ccc fluxes in/out
       heat_to_ground = 0.d0
       water_to_ground = 0.d0
 
-c!!!  this is for debugging
-      do n=1,nl
-        if(fract_cover .gt. EPS) then
-          if(wsn(n).gt.EPS .and.
-     &       wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) then
-            print*,"wsn error 1",i_earth, j_earth,n,wsn(n),
-     *       wsn(n)/dz(n)*rho_water
-     *           ,rho_fresh_snow
-            call stop_model('snow_adv_1: wsn error 1',255)
-          end if
-          endif
-        enddo
+#ifdef DEBUG_SNOW
+      call check_rho_snow( dz, wsn, nl )
+#endif
 
-ccc the following lines fix the problem with initial call
-ccc with fract_cover==1 and dz(1)<MIN_SNOW_THICKNESS
-      if( fract_cover .ge. 1.d0-EPS .and. nl .eq. 1
-     &    .and. dz(1) .lt. MIN_SNOW_THICKNESS ) then
-ccc condition nl .eq. 1  was put to the statement above
-ccc the following if should be removed if it works ok with thicker snow
-        if( nl .ne. 1 ) then
-          print *, 'OOPS: nl= ',nl,' fract_cover= ',fract_cover
-     &              ,'dz= ', dz
-          call stop_model('snow_adv_1: impossible',255)
-          endif
-        fract_cover = dz(1)/MIN_SNOW_THICKNESS
-ccc        if( fract_cover .lt. EPS ) then
-c!!!  use fract_cover == 1 for debug only !!!!
-        if( fract_cover .lt. MIN_FRACT_COVER ) then
-          fract_cover = 0.d0
-          heat_to_ground = hsn(1)
-          water_to_ground = wsn(1)
-          dz(1) = 0.d0
-          hsn(1) = 0.d0
-          wsn(1) = 0.d0
-          else
-          dz(1) = MIN_SNOW_THICKNESS
-          hsn(1) = hsn(1)/fract_cover
-          wsn(1) = wsn(1)/fract_cover
-          endif
-        endif
 
 ccc compute amount of fresh snow
 ccc !!! insert evaporation into computation of the amount of fresh snow
+ccc use fresh_snow only to change the depth of the first layer
       fresh_snow = rho_water/rho_fresh_snow
      &                * min(pr*dt-evaporation*dt, -htpr*dt/lat_fusion)
-      if(fresh_snow.lt.0.d0) fresh_snow = 0.d0
-
-      if( fract_cover .lt. MIN_FRACT_COVER .and.
-     & fresh_snow.lt.MIN_SNOW_THICKNESS*MIN_FRACT_COVER) then ! no snow
-        fract_cover = 0.d0
-        tsn_surf = t_ground
-        heat_to_ground = heat_to_ground
-     &      +(srht+trht-sigma*(tsn_surf+tfrz)**4
-     &      -lat_evap*evaporation-snht+htpr)*dt
-        radiation_out = sigma*(tsn_surf+tfrz)**4
-        water_to_ground = water_to_ground + (pr-evaporation)*dt
-        retcode = 1
-        return
-      endif
-
-      if ( fract_cover.lt.1.d0 .and.
-     &   fresh_snow .lt. MIN_SNOW_THICKNESS*(1.d0-fract_cover) ) then
-ccc partial cover
-        hsn(1) = hsn(1)*fract_cover
-        wsn(1) = wsn(1)*fract_cover
-        fract_cover =
-     &           (dz(1)*fract_cover + fresh_snow)/MIN_SNOW_THICKNESS
-
-        if (fract_cover.gt.1.d0 .or. fract_cover.lt.EPS) then
-          if ( DEB_CH == 0 )
-     $         call openunit("snow_debug", DEB_CH, .false., .false.)
-          write(DEB_CH,*) 'ERROR: fract_cover= ', fract_cover
-          write(DEB_CH,*) 'dz1,fresh_snow=',dz(1), fresh_snow
-          if ( fract_cover.gt.1.d0 ) fract_cover = 1.d0
-          if ( fract_cover.lt.EPS ) fract_cover = EPS
-        endif
-
-        dz(1) = MIN_SNOW_THICKNESS
-        hsn(1) = hsn(1)/fract_cover
-        wsn(1) = wsn(1)/fract_cover
-ccc all precipitation falls on the snow
-        water_down = pr*dt/fract_cover
-        heat_down = htpr*dt/fract_cover
-      else
-ccc full cover
-        hsn(1) = hsn(1)*fract_cover
-        wsn(1) = wsn(1)*fract_cover
-        dz(1) = dz(1)*fract_cover
-        fract_cover = 1.d0
+      if(fresh_snow > 0.d0) then
         dz(1) = dz(1) + fresh_snow
-        water_down = pr*dt
-        heat_down = htpr*dt
+      else
+        if ( wsn(1) < EPS ) goto 1000
+        !goto 1000
       endif
 
-ccc !!! subtract evaporation somewhere here
-      water_down = water_down  - evaporation*dt
+ccc water and heat to pass through the snow pack
+      water_down = (pr - evaporation)*dt
+      heat_down = htpr*dt
+ccc will include heat of evaporation later
 c!!      heat_down = heat_down - lat_evap*evaporation*dt
 
-      water_to_ground = water_to_ground -
-     &                  evaporation*dt*(1.d0-fract_cover)
-
-c!!!  this is for debugging
-      do n=1,nl
-        if((wsn(n)+water_down+evaporation*dt)/dz(n)*rho_water+EPS
-     &      .lt.rho_fresh_snow) then
-          print*,"wsn error 2",i_earth, j_earth,n,wsn(n),(wsn(n)+
-     *       water_down+evaporation*dt)/dz(n)*rho_water,rho_fresh_snow
-          call stop_model('snow_adv_1: wsn error 2',255)
-        end if
-      enddo
+!#ifdef DEBUG_SNOW
+!      call check_rho_snow( dz, wsn, nl )
+!#endif
 
       call pass_water( wsn, hsn, dz, nl, water_down, heat_down,
      &                       lat_fusion, max_fract_water,
      &                       rho_water, rho_fresh_snow)
-      heat_to_ground = heat_to_ground + heat_down*fract_cover
-      water_to_ground = water_to_ground + water_down*fract_cover
+      heat_to_ground = heat_to_ground + heat_down/dt
+      water_to_ground = water_to_ground + water_down/dt
 
-c!!!  this is for debugging
-      do n=1,nl
-        if(wsn(n).gt.EPS .and.
-     &     wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) then
-          print*,"wsn error 3",i_earth, j_earth,n,wsn(n),
-     *    wsn(n)/dz(n)*rho_water
-     *         ,rho_fresh_snow
-          call stop_model('snow_adv_1: wsn error 3',255)
-        end if
-      enddo
+      if ( sum( wsn(1:nl) ) < EPS ) goto 1000
 
-ccc redistribute snow over the layers
-      fract_cover_old = fract_cover
-      nlo = nl
-      do n=1,nl
-        dzo(n) = dz(n)
-        hsno(n) = hsn(n)
-        wsno(n) = wsn(n)
-      enddo
+#ifdef DEBUG_SNOW
+      call check_rho_snow( dz, wsn, nl )
+#endif
 
-      call snow_redistr(dz, wsn, hsn, nl,
-     &                         dzo, wsno, hsno, nlo, fract_cover)
+      call snow_redistr(dz, wsn, hsn, nl, 1.d0)
       dz(nl+1) = dz_ground
-
-ccc check if there is any snow at all ?
-ccc      if ( fract_cover.lt.EPS ) then   !/* no snow left ... */
-c!!! disable fractional cover for debugging
-      if ( fract_cover.lt.MIN_FRACT_COVER ) then   !/* debugging !!!*/
-        tsn_surf = t_ground
-        heat_to_ground = heat_to_ground +
-     &       ( srht+trht-sigma*(tsn_surf+tfrz)**4
-     &      -lat_evap*evaporation-snht )*dt
-        radiation_out = sigma*(tsn_surf+tfrz)**4
-        do n=1,nlo
-           heat_to_ground = heat_to_ground + hsno(n)*fract_cover_old
-           water_to_ground = water_to_ground + wsno(n)*fract_cover_old
-        enddo
-        retcode = 2
-        return
-      endif
 
 ccc compute spec. heat and thermal conductivity
       do n=1,nl
@@ -526,7 +435,7 @@ ccc compute temperature of the layers (and amount of ice)
       tsn(nl+1) = t_ground
 
 c!!! this is for debugging
-c      if(tsn(1).lt.-120.d0) call abort
+      if(tsn(1).lt.-120.d0) call stop_model("SNOW:tsn<-120",255)
 
 ccc compute incomming heat flux (from atm.)
 ccc include all fluxes except htpr (which is already included)
@@ -539,34 +448,29 @@ ccc include all fluxes except htpr (which is already included)
       flux_in_deriv =
      &     -4.d0*sigma*(tsn(1)+tfrz)**3 - lat_evap*evap_dt - snsh_dt
 
-ccc      heat_to_ground = heat_to_ground + flux_in*dt*(1.d0-fract_cover)
-      heat_to_ground = heat_to_ground + (1.d0-fract_cover)*dt
-     & * ( srht+trht-sigma*(t_ground+tfrz)**4
-     &   -lat_evap*(evaporation+evap_dt*(t_ground-tsn(1)))
-     &   -snht-snsh_dt*(t_ground-tsn(1)) )
+      radiation_out = sigma*(tsn(1)+tfrz)**4
 
-      radiation_out = fract_cover*sigma*(tsn(1)+tfrz)**4
-     &   +  (1.d0-fract_cover)
-     & * ( sigma*(t_ground+tfrz)**4
-     &   +lat_evap*evap_dt*(t_ground-tsn(1))
-     &   +snsh_dt*(t_ground-tsn(1)) )
+ccc this is a hack to keep heat_eq stable: force dz >= 0.1
+      !dz_he(1:nl+1) = dz(1:nl+1)
+      !dz_he(1) = max( dz_he(1), MIN_SNOW_THICKNESS )
 
 ccc solve heat equation
-
       call heat_eq(
      &     dz, tsn, hsn, csn, ksn, nl,
      &     flux_in, flux_in_deriv, flux_corr, dt )
 
-      heat_to_ground = heat_to_ground + flux_in*dt*fract_cover
+c!!! this is for debugging
+      if(tsn(1).lt.-120.d0) call stop_model("SNOW:he:tsn<-120",255)
+
+      heat_to_ground = heat_to_ground + flux_in
 
 ccc now redistribute extra flux proportionallly to input derivatives
 ccc snht_out_cor, delta_tsn_impl
       delta_tsn_impl = flux_corr / flux_in_deriv
-ccc      radiation_out = radiation_out - flux_corr*fract_cover
       radiation_out = radiation_out -
-     &     (-4.d0*sigma*(tsn(1)+tfrz)**3)*delta_tsn_impl*fract_cover
-      snht = snht + snsh_dt * delta_tsn_impl * fract_cover
-      evaporation = evaporation + evap_dt * delta_tsn_impl * fract_cover
+     &     (-4.d0*sigma*(tsn(1)+tfrz)**3)*delta_tsn_impl
+      snht = snht + snsh_dt * delta_tsn_impl
+      evaporation = evaporation + evap_dt * delta_tsn_impl
 
 ccc and now remove (add) water due to extra evaporation.
 c!!! this may make wsn(1) negative, the only way I see now to prevent it
@@ -574,16 +478,9 @@ c!!! is to keep minimal thickness of snow big enough
 
       water_down = - evap_dt * delta_tsn_impl * dt ! ??
 
-c!!!  this is for debugging
-      do n=1,nl
-        if(wsn(n).gt.EPS .and.
-     &     wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) then
-          print*,"wsn error 4",i_earth, j_earth,n,wsn(n),
-     *    wsn(n)/dz(n)*rho_water
-     *         ,rho_fresh_snow
-          call stop_model('snow_adv_1: wsn error 4',255)
-        end if
-      enddo
+#ifdef DEBUG_SNOW
+      call check_rho_snow( dz, wsn, nl )
+#endif
 
 ccc pass extra water down
 ccc      water_down = 0.d0
@@ -591,41 +488,13 @@ ccc      water_down = 0.d0
       call pass_water( wsn, hsn, dz, nl, water_down, heat_down,
      &                       lat_fusion, max_fract_water,
      &                       rho_water, rho_fresh_snow)
-      heat_to_ground = heat_to_ground + heat_down*fract_cover
-      water_to_ground = water_to_ground + water_down*fract_cover
+      heat_to_ground = heat_to_ground + heat_down/dt
+      water_to_ground = water_to_ground + water_down/dt
 
-ccc update dz
-      do n=1,nl
-        if( hsn(n).gt.0.d0 .or. isn(n).lt.EPS ) then
-          dz(n) = 0.d0
-        else if( hsn(n) .gt. -wsn(n)*lat_fusion ) then
-          dz(n) = dz(n) * min( (-hsn(n)/lat_fusion)/isn(n), 1.d0)
-        endif
-      enddo
+      if ( sum( wsn(1:nl) ) < EPS ) goto 1000
 
-ccc redistribute snow over the layers
-      fract_cover_old = fract_cover
-      nlo = nl
-      do n=1,nl
-        dzo(n) = dz(n)
-        hsno(n) = hsn(n)
-        wsno(n) = wsn(n)
-      enddo
-
-      call snow_redistr(dz, wsn, hsn, nl,
-     &                         dzo, wsno, hsno, nlo, fract_cover)
+      call snow_redistr(dz, wsn, hsn, nl, 1.d0)
       dz(nl+1) = dz_ground
-
-ccc check if there is any snow at all ?
-      if ( fract_cover.lt.MIN_FRACT_COVER ) then   !/* debudgging !!!*/
-        tsn_surf = t_ground
-        do n=1,nl
-           heat_to_ground = heat_to_ground + hsno(n)*fract_cover_old
-           water_to_ground = water_to_ground + wsno(n)*fract_cover_old
-        enddo
-        retcode = 3
-        return
-      endif
 
 ccc compute temperature of the layers
       do n=1,nl
@@ -658,27 +527,9 @@ ccc repack the layers
         endif
       enddo
 
-      tsn_surf = tsn(1)
-
-c!!!  this is for debugging
-      do n=1,nl
-        if(wsn(n).gt.EPS .and.
-     &     wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) then
-          print*,"wsn error 5",i_earth, j_earth,n,wsn(n),
-     *    wsn(n)/dz(n)*rho_water
-     *         ,rho_fresh_snow
-          call stop_model('snow_adv_1: wsn error 5',255)
-        end if
-      enddo
-
-c!!! this is for debugging
-ccc      if(tsn(1).lt.-120.d0) call abort
-
-      if ( i_earth.eq.6300 .and. j_earth.eq.3200) then
-        if ( DEB_CH == 0 )
-     $       call openunit("snow_debug", DEB_CH, .false., .false.)
-         write(DEB_CH,*) tsn(1), hsn(1), wsn(1), dz(1), fract_cover, nl
-      endif
+#ifdef DEBUG_SNOW
+      call check_rho_snow( dz, wsn, nl )
+#endif
 
 c!!! this is for debugging
       if(tsn(1).lt.-120.d0) then
@@ -686,7 +537,23 @@ c!!! this is for debugging
         call stop_model('snow_adv_1: tsn error',255)
       end if
 
+      if ( radiation_out > 500.d0 ) call stop_model("SNOW:T>0",255)
+
       retcode = 0
+      return
+
+ 1000 continue ! all melted
+ccc!!! may create water_to_ground<0 if evaporation is not properly
+ccc    limited. Check later.
+      water_to_ground = sum( wsn_o(1:nl_o) )/dt + pr - evaporation
+      heat_to_ground  = sum( hsn_o(1:nl_o) )/dt + htpr
+     &     - lat_evap*evaporation
+     &     - snht + srht + trht - sigma*(tsn(1)+tfrz)**4
+      radiation_out = sigma*(tsn(1)+tfrz)**4
+      if ( radiation_out > 500.d0 ) call stop_model("SNOW:T>0",255)
+      wsn(1:nl) = 0.d0
+      hsn(1:nl) = 0.d0
+      nl = 1
       return
       end subroutine snow_adv_1
 
@@ -737,6 +604,13 @@ c!!        if( tsn(n) .ge. 0.d0 ) eta(n) = 0.d0
 ccc      gamma = .5d0
 c!! I am trying to make it nearly expicit for a test !!!
       gamma = .5d0
+
+!!! testing: trying to improve stability
+ccc switching to explicit method for very thin snow
+      if ( dz(1) < MIN_SNOW_THICKNESS * .5d0 ) then
+        eta(1) = 1.d0
+        gamma = 1.d0
+      endif
 
 ccc In general we are trying to use half-implicit method (gamma = .5d0)
 ccc on the interface. But this introduces a systematic error when
@@ -814,6 +688,33 @@ ccc flux to the ground :
 
       return
       end subroutine heat_eq
+
+      subroutine check_rho_snow( dz, wsn, nl )
+      integer nl
+      real*8 dz(nl+1), wsn(nl)
+      integer n
+      do n=1,nl
+        if( wsn(n) < EPS ) cycle
+        if ( wsn(n)/dz(n)*rho_water+EPS < rho_fresh_snow) then
+          print *,"rho_snow < rho_fresh_snow at i,j=",i_earth, j_earth
+          print *,"n, wsn, rho_sn, rho_fresh= ", n,wsn(n),
+     *         wsn(n)/dz(n)*rho_water ,rho_fresh_snow
+          call stop_model('check_rho_snow: rho < rho_fresh_snow',255)
+        end if
+      enddo
+
+      do n=1,nl
+        if( wsn(n) < EPS ) cycle
+        if ( wsn(n)/dz(n)*rho_water-EPS > rho_ice) then
+          print *,"rho_snow > rho_ice at i,j=",i_earth, j_earth
+          print *,"n, wsn, rho_sn, rho_ice= ", n,wsn(n),
+     *         wsn(n)/dz(n)*rho_water ,rho_ice
+          call stop_model('check_rho_snow: rho > rho_ice',255)
+        end if
+      enddo
+      
+
+      end subroutine check_rho_snow
 
       END MODULE SNOW_MODEL
 
