@@ -2,7 +2,7 @@
 !@sum  CLD01 column physics of moist conv. and large-scale condensation
 !@auth M.S.Yao/T. Del Genio (modifications by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
-!@cont MSTCNV_loc,CONDSE_loc
+!@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
      *     ,by3,tf,bytf,rvap,bygrav
       USE E001M12_COM, only : IM,LM,TAU
@@ -21,7 +21,7 @@ c      REAL*8, PARAMETER :: BYGRAV=1.d0/GRAV !@param BYGRAV = 1/grav
       REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD
 
-      REAL*8 :: DTCNDS,PK1000,BYBR,SLHE,SLHS
+      REAL*8 :: DTCNDS,BYBR,SLHE,SLHS
      *     ,BYDTCN,AXCONS,BXCONS,DTPERD,AGESNX,DQDTX,XMASS
 
 C**** Set-able variables from NAMELIST
@@ -80,7 +80,7 @@ C**** output variables
 
       CONTAINS
 
-      SUBROUTINE MSTCNV_LOC
+      SUBROUTINE MSTCNV
 !@sum  MSTCNV moist convective processes (precip, convective clouds,...)
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
@@ -1029,9 +1029,9 @@ C**** CALCULATE OPTICAL THICKNESS
       END DO
 
       RETURN
-      END SUBROUTINE MSTCNV_LOC
+      END SUBROUTINE MSTCNV
 
-      SUBROUTINE CONDSE_LOC(I0,J0)
+      SUBROUTINE LSCOND(I0,J0)
 !@sum  CONDSE_LOC column physics of large scale condensation
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
@@ -1560,9 +1560,8 @@ C**** CALCULATE OPTICAL THICKNESS
       IF(WMX(L).LE.0.) SVLHXL(L)=0.
       END DO
 
-
       RETURN
-      END SUBROUTINE CONDSE_LOC
+      END SUBROUTINE LSCOND
 C****
       SUBROUTINE CTMIX (RM,RX,RY,RZ,RXX,RXY,RYY,RYZ,RZZ,RZX,L,FMAIR,
      *     FMIX,FRAT,LM)

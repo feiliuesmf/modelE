@@ -1,4 +1,4 @@
-      SUBROUTINE MC_COND
+      SUBROUTINE CONDSE
 !@sum   MSTCNV driver for moist convction
 !@sum   CONDSE driver for large-scale condensation
 !@auth  M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
@@ -17,11 +17,12 @@
      *     ,aj50,aj51,aj52,aj57,aj8,aj11,wml,sdl,u_0,v_0,um,vm,tf
      *     ,prcpmc,pearth,ts,bygrav,taumcl,cldmcl,svwmxl,svlatl,svlhxl
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
-     *     ,mstcnv_loc
+     *     ,mstcnv
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,lpbl,taussl,cldssl,cldsavl,
-     *     prcpss,hcndss,aj55,bydtcn,condse_loc
+     *     prcpss,hcndss,aj55,bydtcn,lscond
       USE PBLCOM, only : tsavg
-      USE DAGCOM  !, only : aj,bj,cj,areg,aij,ajl,ail,adaily,jreg
+      USE DAGCOM, only : aj,bj,cj,areg,aij,ajl,ail,adaily,jreg,ij_pscld
+     *     ,ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,j_prcpmc,j_prcpss
       USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold,pdsig
       USE OCEAN, only : odata
 
@@ -126,7 +127,7 @@ C**** SET PRECIPITATION AND LATENT HEAT
 
 C**** MOIST CONVECTION
 
-      CALL MSTCNV_LOC
+      CALL MSTCNV
 
 C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
       IF (LMCMIN.GT.0) THEN
@@ -184,7 +185,7 @@ C****
 
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
 
-      CALL CONDSE_LOC(I,J)
+      CALL LSCOND(I,J)
 
 C**** Accumulate diagnostics of CONDSE
          AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
@@ -275,7 +276,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       END DO
 
       RETURN
-      END SUBROUTINE MC_COND
+      END SUBROUTINE CONDSE
 
       SUBROUTINE init_CLD
 !@sum  init_CLD initialises parameters for MSTCNV and CONDSE
@@ -294,7 +295,6 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       BXCONS=.622d0/RGAS
       AXCONS=LOG(6.1071D0)
       XMASS=0.1d0*DTCNDS*GRAV
-      PK1000=1000.**KAPA
       BYBR=((1.-BRCLD)*(1.-2.*BRCLD))**BY3
       SLHE=LHE*BYSHA
       SLHS=LHS*BYSHA
