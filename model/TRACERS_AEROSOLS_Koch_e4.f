@@ -44,6 +44,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       real*8, DIMENSION(IM,JM):: PBLH = 0,shdtt = 0.   ! ,MDF
       real*8, DIMENSION(IM,JM,LM):: ohr,dho2r,perjr,
      *   tno3r,oh,dho2,perj,tno3,o3_offline
+      real*4, DIMENSION(IJ,JM):: ohsr
       real*8, DIMENSION(IM,JM,LM,ntm):: aer_tau
       END MODULE AEROSOL_SOURCES
 
@@ -497,6 +498,7 @@ c     endif
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
      & dho2,perj,
      * tno3,o3_offline
+     * ,ohsr
        USE CONSTANT, only : mair
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: which_trop
@@ -574,6 +576,24 @@ c Use this for chem inputs from B4360C0M23, from Drew
           read(iuc) dho2r
           read(iuc) perjr
           read(iuc) tno3r
+        end do
+        call closeunit(iuc)
+
+        call openunit('AER_OH_STRAT',iuc,.true.)
+        do ii=1,jmon
+        do ll=1,lm
+         read(iuc) ohsr
+         do i=1,im
+         do j=1,jm
+         if (ll.ge.ltropo(i,j)) then
+          if (j.eq.1.or.j.eq.46) then
+          if (i.lt.72) ohsr(i,j)=ohsr(72,j)
+          endif
+           ohr(i,j,ll)=ohsr(i,j)*1.D5
+         end if
+         end do
+         end do
+        end do
         end do
         call closeunit(iuc)
 
