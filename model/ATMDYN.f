@@ -4,13 +4,13 @@
 !@sum  DYNAM Integrate dynamic terms
 !@auth Original development team
 !@ver  1.0
-      USE CONSTANT, only : by3,sha,mb2kg
+      USE CONSTANT, only : by3,sha,mb2kg,rgas,bygrav
       USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
      *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,byim,dt_UVfilter,psf
-      USE GEOM, only : dyv,dxv,dxyp,areag
+      USE GEOM, only : dyv,dxv,dxyp,areag,bydxyp
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : ptold,pu,pv,pit,sd,phi,dut,dvt
-     &    ,pua,pva,sda,ps,mb,pk
+     &    ,pua,pva,sda,ps,mb,pk,pmid,sd_clouds,wsave
       USE DAGCOM, only : aij,ij_fmv,ij_fmu,ij_fgzu,ij_fgzv
       IMPLICIT NONE
 
@@ -214,6 +214,17 @@ C**** Scale WM mixing ratios to conserve liquid water
         WM(:,:,L)=WM(:,:,L)*PRAT(:,:)
       END DO
 !$OMP  END PARALLEL DO
+
+C**** Calculate 3D vertical velocity (take SD_CLOUDS which has units
+C**** mb*m2/s and convert to WSAVE, units of m/s):
+!$OMP PARALLEL DO PRIVATE (l,i)
+      do l=1,lm
+        do i=1,im
+          wsave(i,:,l)=sd_clouds(i,:,l)*bydxyp(:)*rgas*
+     &    T(i,:,l)*pk(l,i,:)*bygrav/pmid(l,i,:)
+        end do
+      end do
+!$OMP END PARALLEL DO
 
       RETURN
       END SUBROUTINE DYNAM
