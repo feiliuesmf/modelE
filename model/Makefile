@@ -89,7 +89,8 @@ $(ROBJ):	$(RCOM)
 gcm:	$(OBJ)
 
 # Make a current rundeck
-mkrun:	
+$(RUN).R:	$(RUNSRC).R
+mkrun:	$(RUN).R
 	mkrun $(RUNSRC) $(RUN) 
 
 # Setup the gcm
