@@ -103,150 +103,161 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       RETURN
       END
 
+
       MODULE FILEMANAGER
 !@sum  FILEMANAGER keeps data concerning the files and unit numbers
-!@auth Gavin Schmidt
+!@ver  2.0
+      implicit none
+      save
+      private
+
+      public openunit, closeunit, print_open_units
+      public openunits, closeunits, nameunit
+
+!@param MINUNIT, MAXUNIT - min and max unit number allowed
+      integer, parameter :: MINUNIT = 50, MAXUNIT = 98
+      integer, parameter :: TOTALUNITS = MAXUNIT-MINUNIT+1
+
+      type UnitStr
+        logical in_use                     ! is the unit in use or not
+        character*16 filename              ! the name on the file
+      end type UnitStr
+
+      type (UnitStr) :: Units( MINUNIT : MAXUNIT ) 
+      data  Units  / TOTALUNITS*UnitStr(.false.," ") /
+
+      contains
+
+      function nameunit( unit )
+!@sum returns the name of the file corresponding to unit <unit>
+      implicit none
+      character*16 nameunit
+      integer, intent(in) :: unit
+
+      if ( unit>MAXUNIT .or. unit<MINUNIT
+     $     .or. .not. Units(unit)%in_use ) then
+        write(6,*) "FILEMANAGER: asked name of a wrong unit: ",unit
+        stop "FILEMANAGER: asked name of a wrong unit"
+      endif
+      nameunit = Units(unit)%filename
+      end function nameunit
+      
+
+      subroutine findunit( unit )
+!@sum finds available unit
+      implicit none
+      integer, intent(out) :: unit
+
+      do unit=MINUNIT,MAXUNIT
+        if ( .not. Units(unit)%in_use ) return
+      enddo
+      write(6,*) "FILEMANAGER: Maximum file number reached"
+      call print_open_units
+      stop "FILEMANAGER: Maximum file number reached"
+      end subroutine findunit
+
+
+      subroutine openunit( filename, iunit, qbin, qold )
+!@sum opens the file <filename> and returns its unit in <unit> 
+      implicit none
+!@var unit - unit of opened file
+      integer, intent(out) :: iunit
+!@var filename - name of the file to open
+      character*(*), intent(in) :: filename
+!@var qbin, qold - .true. if file is binary, old (.false. by default)
+      logical, optional, intent(in) :: qbin, qold
+      character*11 form, status
+      integer name_len
+
+C**** set default options
+      form = "FORMATTED"
+      status = "REPLACE"
+C**** parse options
+      if( present(qbin) .and. qbin ) form = "UNFORMATTED"
+      if( present(qold) .and. qold ) status = "OLD"
+
+      call findunit( iunit )
+
+      open( iunit, FILE=filename, FORM=form, STATUS=status, ERR=10 )
+
+      Units(iunit)%in_use = .true.
+      name_len = len_trim(filename)
+      Units(iunit)%filename = filename( max(1,name_len-15) : name_len )
+      return
+
+ 10   write(6,*) "FILEMANAGER: Error opening file ",trim(filename)
+      stop 'FILEMANAGER: FILE OPENING ERROR'
+      end subroutine openunit
+
+      subroutine closeunit( unit )
+!@sum closes the file the file corresponding to unit <unit>
+      implicit none
+!@var unit - unit of the file to close
+      integer, intent(in) :: unit
+      
+      if ( unit>MAXUNIT .or. unit<MINUNIT
+     $     .or. .not. Units(unit)%in_use ) then
+        write(6,*) "FILEMANAGER: attempt to close wrong unit: ",unit
+        stop "FILEMANAGER: attempt to close wrong unit"
+      endif
+
+      close( unit )
+      Units(unit)%in_use = .false.
+      Units(unit)%filename = " "
+      end subroutine closeunit
+
+
+      subroutine print_open_units
+!@sum prints info on open units (for debugging)
+      implicit none
+      integer unit
+      
+      write(6,*) "FILEMANAGER: Open Units:"
+      do unit=MINUNIT,MAXUNIT
+        if ( Units(unit)%in_use ) then
+          write(6,*) "unit = ", unit, "file = ", Units(unit)%filename
+        endif
+      enddo
+      end subroutine print_open_units
+      
+
+      SUBROUTINE OPENUNITS(FILENM,IUNIT,QBIN,NREQ)
+!@sum  OPENUNITS sets unit number for requested files and opens them
+!@auth Gavin Schmidt, simplified by I. Aleinov
 !@ver  1.0
       IMPLICIT NONE
-
-!@param IUNIT0 starting unit for GCM files
-      INTEGER, PARAMETER :: IUNIT0 = 50
-!@param IUNITMX maxiumum unit number allowed
-      INTEGER, PARAMETER :: IUNITMX = 98
-!@var NUNIT number of already opened files (initially zero)
-      INTEGER, SAVE :: NUNIT = 0
-!@var NAME name of unit number (or at least first ten characters)
-      CHARACTER*10 :: NAME(IUNIT0:IUNITMX)
-
-      CONTAINS
-
-      SUBROUTINE SETUNIT(IUNIT)
-!@sum  SETUNIT reserves a number 
-!@auth Gavin Schmidt
-!@ver  1.0
-      IMPLICIT NONE
-
-!@var IUNIT unit number for file in current request
-      INTEGER, INTENT(OUT) :: IUNIT
-
-      IF (IUNIT0+NUNIT.gt.IUNITMX)
-     *     STOP "SETUNIT: Maximum file number reached"
-C**** Set unit number
-      IUNIT = IUNIT0 + NUNIT
-C**** increment no of files
-      NUNIT = NUNIT + 1
-      RETURN
-      END SUBROUTINE SETUNIT
-
-      SUBROUTINE USEUNIT(FILENM,IUNIT,QBIN,QOLD)
-!@sum USEUNIT closes and reopens a reserved unit for a requested file
-!@auth Gavin Schmidt
-!@ver  1.0
-      IMPLICIT NONE
-
-!@var IUNIT unit number for file in current request
-      INTEGER, INTENT(IN) :: IUNIT
-!@var FILENAME name of file to open
-      CHARACTER*(*), INTENT(IN) :: FILENM
-!@var QOLD,QBIN true if (old) binary file is to be opened (UNFORMATTED)
-      LOGICAL, INTENT(IN) :: QBIN,QOLD
-
-C**** Open file
-      CLOSE (IUNIT)
-      IF (QOLD) THEN
-        IF (QBIN) THEN
-          OPEN(IUNIT,FILE=FILENM,FORM="UNFORMATTED",
-     *       STATUS="OLD",ERR=10)
-        ELSE
-          OPEN(IUNIT,FILE=FILENM,FORM="FORMATTED",
-     *       STATUS="OLD",ERR=10)
-        END IF
-      ELSE
-        IF (QBIN) THEN
-          OPEN(IUNIT,FILE=FILENM,FORM="UNFORMATTED",ERR=10)
-        ELSE
-          OPEN(IUNIT,FILE=FILENM,FORM="FORMATTED",ERR=10)
-        END IF
-      END IF
-C**** set NAME for error tracking purposes
-      NAME (IUNIT) = FILENM
-      RETURN
- 10   WRITE(6,*) "Error opening file ",TRIM(FILENM)
-      STOP 'USEUNIT: FILE OPENING ERROR'
-      END SUBROUTINE USEUNIT
-
-      SUBROUTINE GETUNIT(FILENM,IUNIT,QBIN,QOLD)
-!@sum  GETUNIT sets a unit number for a requested file and opens it
-!@auth Gavin Schmidt
-!@ver  1.0
-      IMPLICIT NONE
-
-!@var IUNIT unit number for file in current request
-      INTEGER, INTENT(OUT) :: IUNIT
-!@var FILENAME name of file to open
-      CHARACTER*(*), INTENT(IN) :: FILENM
-!@var QOLD,QBIN true if (old) binary file is to be opened (UNFORMATTED)
-      LOGICAL, INTENT(IN) :: QBIN,QOLD
-
-      CALL SETUNIT(IUNIT)
-      CALL USEUNIT(FILENM,IUNIT,QBIN,QOLD)
-
-      RETURN
-      END SUBROUTINE GETUNIT
-
-      SUBROUTINE GETUNITS(FILENM,IUNIT,QBIN,NREQ)
-!@sum  GETUNITS sets unit number for requested files and opens them
-!@auth Gavin Schmidt
-!@ver  1.0
-      IMPLICIT NONE
-
-!@var NREQ number of file unit numbers requested
-      INTEGER, INTENT(IN) :: NREQ
 !@var IUNIT unit numbers for files in current request
       INTEGER, INTENT(OUT), DIMENSION(*) :: IUNIT
-!@var FILENAME name of file to open
+!@var FILENM name of file to open
       CHARACTER*(*), INTENT(IN), DIMENSION(*) :: FILENM
+!@var IUNIT unit numbers for files in current request
+      INTEGER, INTENT(OUT), DIMENSION(*) :: IUNIT
 !@var QBIN true if binary file is to be opened (UNFORMATTED)
       LOGICAL, INTENT(IN), DIMENSION(*) :: QBIN
+!@var NREQ number of file unit numbers requested
+      INTEGER, INTENT(IN) :: NREQ
       INTEGER I !@var I loop variable
 
-      IF (IUNIT0+NUNIT+NREQ-1.gt.IUNITMX)
-     *     STOP "GETUNITS: Maximum file number reached"
-
       DO I=1,NREQ
-C**** Set unit number
-        IUNIT(I) = IUNIT0 + NUNIT
-C**** Open file
-        IF (QBIN(I)) THEN
-          OPEN(IUNIT(I),FILE=FILENM(I),FORM="UNFORMATTED",
-     *         STATUS="OLD",ERR=10)
-        ELSE
-          OPEN(IUNIT(I),FILE=FILENM(I),FORM="FORMATTED",
-     *         STATUS="OLD",ERR=10)
-        END IF
-C**** set NAME for error tracking purposes
-        WRITE(NAME(IUNIT(I)),'(A8,I2)') FILENM(1:8),I
-C**** increment no of files
-        NUNIT = NUNIT + 1
+        call openunit( FILENM(I), IUNIT(I), QBIN(I) )
       END DO
-      RETURN
- 10   WRITE(6,*) "Error opening file ",TRIM(FILENM(I))
-      STOP 'GETUNITS: FILE OPENING ERROR'
-      END SUBROUTINE GETUNITS
+      END SUBROUTINE OPENUNITS
 
-      SUBROUTINE CLOSEUNITS
-!@sum  CLOSEUNIT closes all previously opened files and resets NUNIT
-!@auth Gavin Schmidt
+
+      SUBROUTINE CLOSEUNITS( IUNIT, NREQ)
+!@sum  CLOSEUNITS closes files corresponding to units IUNIT
+!@auth Gavin Schmidt, I. Aleinov
 !@ver  1.0
       IMPLICIT NONE
-      INTEGER IUNIT
+!@var IUNIT unit numbers for files in current request
+      INTEGER, INTENT(IN), DIMENSION(*) :: IUNIT
+!@var NREQ number of file unit numbers
+      INTEGER, INTENT(IN) :: NREQ
+      INTEGER I
 
-      DO IUNIT=IUNIT0,IUNIT0+NUNIT-1
-        CLOSE(IUNIT)
+      DO I=1,NREQ
+        call closeunit( IUNIT(I) )
       END DO
-      NUNIT = 0
-
-      RETURN
       END SUBROUTINE CLOSEUNITS
 
       END MODULE FILEMANAGER
@@ -255,7 +266,8 @@ C**** increment no of files
 !@sum   DREAD   read in real*4 array and convert to real*8
 !@auth  Original Development Team
 !@ver   1.0
-      USE FILEMANAGER, only : NAME !@var NAME name of record being read
+!@var NAME name of record being read
+      USE FILEMANAGER, only : NAME=>nameunit 
       IMPLICIT NONE
       INTEGER :: IUNIT                    !@var  IUNIT  file unit number
       INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
@@ -281,7 +293,8 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 !@sum   MREAD   read in integer and real*4 array and convert to real*8
 !@auth  Original Development Team
 !@ver   1.0
-      USE FILEMANAGER, only : NAME !@var NAME name of record being read
+!@var NAME name of record being read
+      USE FILEMANAGER, only : NAME=>nameunit
       IMPLICIT NONE
       INTEGER :: IUNIT                    !@var  IUNIT  file unit number
       INTEGER, INTENT(OUT) :: M           !@var  M      initial integer
@@ -310,7 +323,8 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 !@sum   READT  read in title and real*4 array and convert to real*8
 !@auth  Original Development Team
 !@ver   1.0
-      USE FILEMANAGER, only : NAME !@var NAME name of record being read
+!@var NAME name of record being read
+      USE FILEMANAGER, only : NAME=>nameunit 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: IUNIT        !@var  IUNIT  file unit number
       INTEGER, INTENT(IN) :: NSKIP    !@var  NSKIP  no. of R*4's to skip
@@ -342,7 +356,8 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 !@sum   WRITEI  writes array surrounded by IT and secures it
 !@auth  Original Development Team
 !@ver   1.0
-      use FILEMANAGER, only : NAME !@var NAME name of record being read
+!@var NAME name of record being read
+      USE FILEMANAGER, only : NAME=>nameunit 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: IUNIT        !@var  IUNIT  file unit number
       INTEGER, INTENT(IN) :: IT         !@var  time_tag, 1st & last word
@@ -359,7 +374,8 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 !@sum   io_POS  positions a seq. output file for the next write operat'n
 !@auth  Original Development Team
 !@ver   1.0
-      use FILEMANAGER, only : NAME !@var NAME name of record being read
+!@var NAME name of record being read
+      USE FILEMANAGER, only : NAME=>nameunit 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: IUNIT        !@var  IUNIT  file unit number
       INTEGER, INTENT(IN) :: IT,ITdif   !@var  current time,time step
@@ -387,3 +403,38 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
    50 write (6,*) "Read error on: ",TRIM(NAME(IUNIT)),", it1/it=",it1,it
       stop 'io_POS: read error'
       END subroutine io_POS
+
+
+#ifdef TEST_FM
+      program test_FM
+      use filemanager
+      implicit none
+      integer :: iu_AIC, iunit = 10
+
+      call openunit("AIC",iu_AIC,.true.,.true.)
+      print *, 'opened ', iu_AIC
+      call closeunit(iu_AIC)
+      call openunit("AIC",iu_AIC,.true.,.true.)
+      print *, 'opened ', iu_AIC
+      call closeunit(iu_AIC)
+
+      stop
+
+      open( iunit, FILE="AIC",
+     $     FORM="UNFORMATTED", STATUS="OLD", ERR=10 )
+      print *, 'opened '
+      stop
+
+          OPEN(IUNIT,FILE='AIC',FORM="UNFORMATTED",
+     *       STATUS="OLD",ERR=10)
+
+          print *, 'opened '
+          
+
+ 10   write(6,*) "test_FM: Error opening file ", "AIC"
+      stop 'FM: FILE OPENING ERROR'
+
+
+      print *, 'closed ', iu_AIC
+      end
+#endif

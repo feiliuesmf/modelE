@@ -569,13 +569,13 @@ C**** 6*NGM+1 - 11*NGM   QK(IS,NGM)
 C**** 11*NGM+1           SL
 C
 C READ SOILS PARAMETERS
-      call getunit("SOIL",iu_SOIL,.true.,.true.)
+      call openunit("SOIL",iu_SOIL,.true.,.true.)
       CALL DREAD (iu_SOIL,DZ_IJ,IM*JM*(11*NGM+1),DZ_IJ)
-      CLOSE (iu_SOIL)
+      call closeunit (iu_SOIL)
 ccc read topmodel parameters
-      call getunit("TOP_INDEX",iu_TOP_INDEX,.true.,.true.)
+      call openunit("TOP_INDEX",iu_TOP_INDEX,.true.,.true.)
       call READT(iu_TOP_INDEX,0,TOP_INDEX_IJ,IM*JM,TOP_INDEX_IJ,1)
-      close (iu_TOP_INDEX)
+      call closeunit (iu_TOP_INDEX)
 C
 ccc  for debug:
 c      do j=1,46

@@ -140,7 +140,7 @@ C****
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs 
-      USE FILEMANAGER, only : getunit
+      USE FILEMANAGER, only : openunit,closeunit
       USE SW2OCEAN, only : init_solar
       USE TIMINGS, only : timing,ntimeacc
       IMPLICIT NONE
@@ -174,7 +174,7 @@ C**** Calculate ZE, SIGEO, DSIGO and SIGO
       DSIGO(L) = SIGEO(L) - SIGEO(L-1)
   120 SIGO(L) = (SIGEO(L) + SIGEO(L-1))*5d-1
 C**** Read in table function for specific volume
-      CALL getunit("OFTAB",iu_OFTAB,.TRUE.,.TRUE.)
+      CALL openunit("OFTAB",iu_OFTAB,.TRUE.,.TRUE.)
       READ  (iu_OFTAB) TITLE,VGSP
       WRITE (6,*) 'Read from unit ',iu_OFTAB,': ',TITLE
       READ  (iu_OFTAB) TITLE,TGSP
@@ -187,14 +187,14 @@ C**** Read in table function for specific volume
       WRITE (6,*) 'Read from unit ',iu_OFTAB,': ',TITLE
       READ  (iu_OFTAB) TITLE,BGSP
       WRITE (6,*) 'Read from unit ',iu_OFTAB,': ',TITLE
-      CLOSE (iu_OFTAB)
+      call closeunit(iu_OFTAB)
 
 C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
-      call getunit("TOPO_OC",iu_TOPO,.true.,.true.)
+      call openunit("TOPO_OC",iu_TOPO,.true.,.true.)
       CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
       CALL READT (iu_TOPO,0,HATMO ,IM*JM,HATMO ,4) ! Atmo. Topography
       CALL READT (iu_TOPO,0,HOCEAN,IM*JM,HOCEAN,1) ! Ocean depths
-      CLOSE(iu_TOPO)
+      call closeunit(iu_TOPO)
 
 C**** Calculate LMM and modify HOCEAN
       DO 170 J=1,JM
@@ -220,8 +220,9 @@ C**** Calculate LMV
 C****
       IF(iniOCEAN) THEN
 C**** Initialize a run from ocean initial conditions
-      CALL getunit("OIC",iu_OIC,.TRUE.,.TRUE.)
+      CALL openunit("OIC",iu_OIC,.TRUE.,.TRUE.)
       READ  (iu_OIC,ERR=820) TITLE,MO4,G0M4,GZM4,S0M4,SZM4
+      call closeunit(iu_OIC)
       WRITE (6,*) 'OIC read from unit ',iu_OIC,': ',TITLE
 C**** Calculate layer mass from column mass and check for consistency
       DO 313 J=1,JM
@@ -918,7 +919,7 @@ C****
       USE CONSTANT, only : twopi
       USE OCEAN, only : im,jm,lmo,dxyp=>dxypo,dxp=>dxpo,dyp=>dypo,dxv
      *     =>dxvo,dyv=>dyvo
-      USE FILEMANAGER, only : getunit
+      USE FILEMANAGER, only : openunit, closeunit
       IMPLICIT NONE
       REAL*8, PARAMETER :: DLON=TWOPI/IM
       INTEGER, PARAMETER :: NMAX=IM/2, NSEGM=7, INDM=90365
@@ -949,9 +950,9 @@ C**** Calculate  cos(TWOPI*N*I/IM)  and  sin(TWOPI*N*I/IM)
       AVCOS(I,N) = AVCOS(IN,1)
    20 AVSIN(I,N) = AVSIN(IN,1)
 C**** Read in reduction contribution matrices from disk
-      call getunit("AVR",iu_AVR,.TRUE.,.TRUE.)
+      call openunit("AVR",iu_AVR,.TRUE.,.TRUE.)
       READ  (iu_AVR) TITLE,NSEG,IMIN,ILEN,INDEX,REDUCO
-      CLOSE (iu_AVR)
+      call closeunit (iu_AVR)
       WRITE (6,*) 'Read on unit ',iu_AVR,': ',TITLE
       END IF
 C****

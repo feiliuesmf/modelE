@@ -614,10 +614,10 @@ C**** Calculate average density + gradients over [1,LUP]
         END DO
       END DO
       IF (IFIRST.eq.1) THEN  !output GM diffusion coefficient 
-        call getunit('ODIFF',iu_ODIFF,.true.,.false.)
+        call openunit('ODIFF',iu_ODIFF,.true.,.false.)
         TITLE = "Visbeck scaling for GM coefficient m^2/s"
         WRITE(iu_ODIFF) TITLE,((REAL(AINV(i,J)),i=1,im),j=1,jm)
-        CLOSE (iu_ODIFF)
+        call closeunit(iu_ODIFF)
         IFIRST = 0
       END IF
       RETURN

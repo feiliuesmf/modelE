@@ -7,7 +7,7 @@
 !@sum SNOW_MODEL does column physics for 3 layers snow model
 !@auth I.Aleinov
 !@ver  1.0
-      USE FILEMANAGER, only: getunit
+      USE FILEMANAGER, only: openunit
       USE CONSTANT, only :
      $     rho_water => rhow,   ! (kg m-3)
      $     rho_ice => rhoi,     ! (kg m-3)
@@ -371,7 +371,7 @@ ccc partial cover
 
         if (fract_cover.gt.1.d0 .or. fract_cover.lt.EPS) then
           if ( DEB_CH == 0 )
-     $         call getunit("snow_debug", DEB_CH, .false., .false.)
+     $         call openunit("snow_debug", DEB_CH, .false., .false.)
           write(DEB_CH,*) 'EROOR: fract_cover= ', fract_cover
           write(DEB_CH,*) dz(1), fresh_snow
           if ( fract_cover.gt.1.d0 ) fract_cover = 1.d0
@@ -634,7 +634,7 @@ ccc      if(tsn(1).lt.-120.d0) call abort
 
       if ( i_earth.eq.6300 .and. j_earth.eq.3200) then
         if ( DEB_CH == 0 )
-     $       call getunit("snow_debug", DEB_CH, .false., .false.)
+     $       call openunit("snow_debug", DEB_CH, .false., .false.)
          write(DEB_CH,*) tsn(1), hsn(1), wsn(1), dz(1), fract_cover, nl
       endif
 

@@ -372,9 +372,13 @@ C**** New options (currently not used)
 C**** set up unit numbers for 14 radiation input files
       DO IU=1,14
         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE ! not used in GCM
-        call getunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
+        call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
       END DO
       CALL RCOMP1 (MADVEL,NRFUN) ! MAD 1-6: O3 TrAer Dust VAer Clds SoUV
+      DO IU=1,14
+        IF (IU.EQ.12.OR.IU.EQ.13) CYCLE ! not used in GCM
+        call closeunit(NRFUN(IU))
+      END DO
       CO2REF=FULGAS(2)
       IF(CO2.GE.0.) FULGAS(2)=CO2REF*CO2
       CALL WRITER (6,0)

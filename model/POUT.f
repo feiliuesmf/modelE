@@ -20,7 +20,7 @@ C**** have to wait.
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
 
-      call getunit(filename,iu_ij,.true.,.false.)
+      call openunit(filename,iu_ij,.true.,.false.)
       return
       end subroutine open_ij
 
@@ -29,8 +29,9 @@ C**** have to wait.
 !@auth M. Kelley
 !@ver  1.0
       USE DAGCOM, only : iu_ij
+      USE FILEMANAGER
       IMPLICIT NONE
-      close(iu_ij)
+      call closeunit(iu_ij)
       return
       end subroutine close_ij
 
@@ -64,7 +65,7 @@ C**** have to wait.
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
 
-      call getunit(filename,iu_jl,.true.,.false.)
+      call openunit(filename,iu_jl,.true.,.false.)
       return
       end subroutine open_jl
 
@@ -127,7 +128,7 @@ C**** have to wait.
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
 
-      call getunit(filename,iu_il,.true.,.false.)
+      call openunit(filename,iu_il,.true.,.false.)
       return
       end subroutine open_il
 
@@ -136,8 +137,9 @@ C**** have to wait.
 !@auth M. Kelley
 !@ver  1.0
       USE DAGCOM, only : iu_il
+      USE FILEMANAGER
       IMPLICIT NONE
-      close(iu_il)
+      call closeunit(iu_il)
       return
       end subroutine close_il
 
@@ -185,8 +187,9 @@ C**** have to wait.
 !@auth M. Kelley
 !@ver  1.0
       USE DAGCOM, only : iu_j
+      USE FILEMANAGER
       IMPLICIT NONE
-      close(iu_j)
+      call closeunit(iu_j)
       return
       end subroutine close_j
 
@@ -200,7 +203,7 @@ C**** have to wait.
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
 
-      call getunit(filename,iu_j,.false.,.false.)
+      call openunit(filename,iu_j,.false.,.false.)
       return
       end subroutine open_j
 

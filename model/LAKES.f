@@ -330,7 +330,7 @@ C**** Set FTYPE array for lakes
 C****
 C**** Always initiallise River direction and Rate
 C**** Read in CDIREC: Number = octant direction, Letter = river mouth
-      call getunit("RVR",iu_RVR,.false.,.true.)
+      call openunit("RVR",iu_RVR,.false.,.true.)
       READ  (iu_RVR,910) TITLEI
       WRITE (6,*) 'River Direction file read: ',TITLEI
       READ  (iu_RVR,910)
@@ -339,7 +339,7 @@ C**** Read in CDIREC: Number = octant direction, Letter = river mouth
           READ  (iu_RVR,911) (CDIREC(I,J),I=I72-71,I72)
         END DO
       END DO
-      CLOSE (iu_RVR)
+      call closeunit (iu_RVR)
 C**** Create integral direction array KDIREC from CDIREC
       INM=0
       DO J=1,JM

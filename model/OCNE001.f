@@ -508,26 +508,26 @@ C**** Check for NaN/INF in ocean data
       INTEGER :: I,J
 
 C**** set up unit numbers for ocean climatologies
-      call getunit("OSST",iu_OSST,.true.,.true.)
-      call getunit("SICE",iu_SICE,.true.,.true.)
+      call openunit("OSST",iu_OSST,.true.,.true.)
+      call openunit("SICE",iu_SICE,.true.,.true.)
 
 C**** Read in constant factor relating RSI to MSI from sea ice clim.
       CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
 
       IF (KOCEAN.eq.1) THEN
 C**** Set up unit number of mixed layer depth climatogies
-      call getunit("OCNML",iu_OCNML,.true.,.true.)
+      call openunit("OCNML",iu_OCNML,.true.,.true.)
 
 C**** DATA FOR QFLUX MIXED LAYER OCEAN RUNS
 C**** read in ocean heat transport coefficients
-      call getunit("OHT",iu_OHT,.true.,.true.)
+      call openunit("OHT",iu_OHT,.true.,.true.)
       READ (iu_OHT) OTA,OTB,OTC
-      CLOSE (iu_OHT)
+      call closeunit (iu_OHT)
 
 C**** read in ocean max mix layer depth
-      call getunit("MLMAX",iu_MLMAX,.true.,.true.)
+      call openunit("MLMAX",iu_MLMAX,.true.,.true.)
       CALL READT (iu_MLMAX,0,Z12O,IM*JM,Z12O,1)
-      CLOSE (iu_MLMAX)
+      call closeunit (iu_MLMAX)
 
 C**** IF SNOWI(I,J)<0, THE OCEAN PART WAS CHANGED TO LAND ICE
 C**** BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
@@ -1021,8 +1021,9 @@ C****
 C**** READ IN EDDY DIFFUSIVITY AT BASE OF MIXED LAYER
 C****
       IF (IFIRST.EQ.1) THEN
-        CALL getunit("EDDY",iu_EDDY,.TRUE.,.TRUE.)
+        CALL openunit("EDDY",iu_EDDY,.TRUE.,.TRUE.)
         CALL READT (iu_EDDY,0,EDO,IM*JM,EDO,1)
+        call closeunit(iu_EDDY)
 C**** DEFINE THE VERTICAL LAYERING EVERYWHERE EXCEPT LAYER 1 THICKNESS
         DZ(2)=10.
         DZO(1)=0.5*DZ(2)   ! 10./SQRT(FAC)

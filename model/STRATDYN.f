@@ -406,9 +406,9 @@ C**** LEVEL FOR WIND SHEAR WAVE GENERATION
 C****
 C**** TOPOGRAPHY VARIANCE FOR MOUNTAIN WAVES
 C****
-      call getunit("ZVAR",iu_ZVAR,.true.,.true.)
+      call openunit("ZVAR",iu_ZVAR,.true.,.true.)
       CALL READT (iu_ZVAR,0,ZVART,IM*JM*4,ZVART,1)
-      REWIND iu_ZVAR
+      call closeunit(iu_ZVAR)
 
       DO 20 J=JM-1,1,-1
       DO 20 I=1,IM

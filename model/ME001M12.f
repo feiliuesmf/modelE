@@ -7,7 +7,7 @@
       USE MODEL_COM
       USE RANDOM
       USE DAGCOM, only : keynr,kdiag,oa,monacc
-      USE FILEMANAGER, only : getunit,useunit
+      USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
       IMPLICIT NONE
@@ -72,12 +72,12 @@ C**** Open and position output history files if needed
 C****
       if (Kvflxo.ne.0) then
         write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
-        call getunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
+        call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
         call IO_pos(iu_VFLXO,Itime,2*im*jm*12,Nday)
       end if
       if (Nslp.ne.0) then
         write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
-        call getunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.)
+        call openunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.)
         call IO_pos(iu_SLP,Itime,im*jm,Nslp)
       end if
 C****
@@ -106,11 +106,13 @@ C**** CHECK FOR BEGINNING OF EACH MONTH => RESET DIAGNOSTICS
           call reset_DIAG(0)
           if (Kvflxo.ne.0) then
             write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
-            call useunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.) 
+            call closeunit( iu_VFLXO )
+            call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.) 
           end if
           if (Nslp.ne.0) then
             write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
-            call useunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.) 
+            call closeunit( iu_SLP )
+            call openunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.) 
           end if
         end if
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
@@ -459,7 +461,7 @@ C****
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck,oa
      &  ,iu_ij,iu_jl,iu_il,iu_j
       USE LAKES_COM, only : flake
-      USE FILEMANAGER, only : getunit,setunit,useunit
+      USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : timing,ntimeacc
       USE PARAM
       USE PARSER
@@ -577,7 +579,7 @@ C****                     8 - from current model M-file             ****
 C****                                                               ****
 C***********************************************************************
 C**** get unit for atmospheric initial conditions if needed
-      IF (ISTART.gt.1) call getunit("AIC",iu_AIC,.true.,.true.)
+      IF (ISTART.gt.1) call openunit("AIC",iu_AIC,.true.,.true.)
 C****
 C**** Set quantities that are derived from the namelist parameters
 C****
@@ -613,7 +615,7 @@ C**** Set flag to initialise pbl and snow variables
         iniSNOW = .TRUE.  ! extract snow data from first soil layer
         iniOCEAN = .TRUE. ! read in ocean ic
 C**** Read in ground initial conditions
-        call getunit("GIC",iu_GIC,.true.,.true.)
+        call openunit("GIC",iu_GIC,.true.,.true.)
         ioerr=-1
         call io_ocean  (iu_GIC,ioread,ioerr)
         call io_seaice (iu_GIC,ioread,ioerr)
@@ -624,7 +626,7 @@ C**** Read in ground initial conditions
           WRITE(6,*) "I/O ERROR IN GIC FILE: KUNIT=",iu_GIC
           STOP "INPUT: GIC READ IN ERROR"
         end if
-        close (iu_GIC)
+        call closeunit (iu_GIC)
       END IF
 C****
 C**** Get primary Atmospheric data from NMC tapes - ISTART=2
@@ -652,7 +654,6 @@ Csoon   READ (iu_AIC) XLABEL(1:80)
         CALL READT (iu_AIC,0,Q(1,1,L),IM*JM,Q(1,1,L),1) ! Q
         END DO
         CALL READT (iu_AIC,0,TSAVG(1,1),IM*JM,TSAVG(1,1),1)  ! Tsurf
-        CLOSE (iu_AIC)
       END IF
 C****
 C**** Derive other data from primary data if necessary - ISTART=1,2
@@ -733,7 +734,6 @@ C**** I.C FROM RESTART FILE WITH almost COMPLETE DATA    ISTART=7
 C****
       CASE (7)             ! converted model II' (B399) format (no snow)
         call io_rsf(iu_AIC,IhrX,irsfic,ioerr)
-        CLOSE (iu_AIC)
         if (ioerr.eq.1) goto 800
         iniSNOW = .TRUE.      ! extract snow data from first soil layer
         iniOCEAN = .TRUE. ! read in ocean ic
@@ -742,7 +742,6 @@ C****   Data from current type of RESTART FILE           ISTART=8
 C****
       CASE (8)  ! no need to read SRHR,TRHR,FSF,TSFREZ,diag.arrays
         call io_rsf(iu_AIC,IhrX,irsfic,ioerr)
-        CLOSE (iu_AIC)
         if (ioerr.eq.1) goto 800
         iniOCEAN = .TRUE. ! read in ocean ic
       END SELECT
@@ -770,6 +769,8 @@ C****        perturbation is at most 1 degree C
         END DO
         WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
       END IF
+C**** Close "AIC" here if it was opened
+      IF (ISTART.gt.1) call closeunit(iu_AIC)
 C**** Sending parameters which had just been set to the DB
       ! the following lines overwrite rundeck parameters
       ! the following are NON-rundeck parameters
@@ -799,19 +800,20 @@ C****
 C****   SUM DIAGNOSTICS OVER INPUT FILES     ISTART<0
 C****
         monacc = 0
-        call setunit(iu_AIC)
         do k=1,iargc()
           call getarg(k,filenm)
-          call useunit(filenm,iu_AIC,.true.,.true.)
+          call openunit(filenm,iu_AIC,.true.,.true.)
           call io_rsf(iu_AIC,itime,ioread_single,ioerr)
+          call closeunit(iu_AIC)
         end do
         GO TO 500
 C****
 C****   DATA FROM end-of-month RESTART FILE     ISTART=9
 C****                          used for REPEATS and delayed EXTENSIONS
       CASE (9)    ! no need to read diag.arrays
-        call getunit("AIC",iu_AIC,.true.,.true.)
+        call openunit("AIC",iu_AIC,.true.,.true.)
         call io_rsf(iu_AIC,Itime,irerun,ioerr)
+        call closeunit(iu_AIC)
         if (ioerr.eq.1) goto 800
         WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
      *    ISTART,', TIME=',Itime,' ',XLABEL(1:80) ! sho input file label
@@ -944,14 +946,15 @@ C**** CALCULATE SPHERICAL GEOMETRY
       CALL CALC_AMPK(LM)
 
 C**** READ SPECIAL REGIONS FROM UNIT 29
-      call getunit("REG",iu_REG,.true.,.true.)
+      call openunit("REG",iu_REG,.true.,.true.)
       READ(iu_REG) TITREG,JREG,NAMREG
       WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
+      call closeunit(iu_REG)
 
 C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
 C**** Note that FLAKE0 is read in only to provide initial values
 C**** Actual array is set from restart file.
-      call getunit("TOPO",iu_TOPO,.true.,.true.)
+      call openunit("TOPO",iu_TOPO,.true.,.true.)
 
       CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
       CALL READT (iu_TOPO,0,FLAKE0,IM*JM,FLAKE0,1) ! Orig. Lake fraction
@@ -961,7 +964,7 @@ C****
       CALL READT (iu_TOPO,0,ZATMO,IM*JM,ZATMO,1)   ! Topography
       ZATMO = ZATMO*GRAV                           ! Geopotential
       CALL READT (iu_TOPO,0,HLAKE,IM*JM,HLAKE,2)   ! Lake Depths
-      CLOSE (iu_TOPO)
+      call closeunit(iu_TOPO)
 
 C**** Initialise some modules before finalising Land/Ocean/Lake/LI mask
 C**** Initialize ice
@@ -1002,11 +1005,11 @@ C**** cases where Earth and Land Ice are lumped together
 
 C**** READ IN VEGETATION DATA SET: VDATA
 c     if(istart.gt.0) then
-        call getunit("VEG",iu_VEG,.true.,.true.)
+        call openunit("VEG",iu_VEG,.true.,.true.)
         DO K=1,11
           CALL READT (iu_VEG,0,VDATA(1,1,K),IM*JM,VDATA(1,1,K),1)
         END DO
-        CLOSE (iu_VEG)
+        call closeunit(iu_VEG)
 c     end if
 C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS

@@ -305,9 +305,9 @@ c -------------------------------------------------------------
       endif
 
 C things to be done regardless of inipbl
-      call getunit("CDN",iu_CDN,.TRUE.,.true.)
+      call openunit("CDN",iu_CDN,.TRUE.,.true.)
       call readt (iu_CDN,0,roughl,im*jm,roughl,1)
-      close (iu_CDN)
+      call closeunit(iu_CDN)
 
       call ccoeff0
       call getb(zgs,ztop,bgrid)
