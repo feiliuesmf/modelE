@@ -1189,7 +1189,7 @@ c
       name_ij(k) = 'Q300'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_180
+      ir_ij(k) = ir_0_18
 c
       k=k+1 
       IJ_Q500 = k 
@@ -1198,7 +1198,7 @@ c
       name_ij(k) = 'Q500'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_180
+      ir_ij(k) = ir_0_18
 c
       k=k+1 
       IJ_Q850 = k
@@ -1206,8 +1206,8 @@ c
       units_ij(k) = 'g/kg'
       name_ij(k) = 'Q850'
       ia_ij(k) = ia_dga
-      scale_ij(k) = 1d4
-      ir_ij(k) = ir_0_180
+      scale_ij(k) = 1d3
+      ir_ij(k) = ir_0_18
 c
       k=k+1 !  'AIJ017'
       IJ_PMCCLD = k ! PCLDMC (1)  (COMPOSITE OVER ATMOSPHERE) 2 RD
