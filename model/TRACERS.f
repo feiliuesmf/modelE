@@ -43,6 +43,8 @@ C**** set super saturation parameter for isotopes if needed
 #ifdef TRACERS_AEROSOLS_Koch
 C**** decide on AEROSOM or standard emissions 
       call sync_param("imAER",imAER)
+C**** decide if preindustrial emissions  
+      call sync_param("imPI",imPI)
 #endif
 
 C**** Get factor to convert from mass mixing ratio to volume mr

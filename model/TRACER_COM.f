@@ -186,6 +186,10 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
      *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
      *    'OCII    ','OCIA    ','OCB     '/)
+c use these for Rutgers runs
+c     integer, parameter :: ntm=4
+c     character*8, parameter :: trname(ntm)=(/
+c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #else
 #ifdef TRACERS_DUST
 !@var Ntm_dust number of dust tracers
@@ -273,8 +277,9 @@ c for gas phase sulfur chemistry used by aerosol and chemistry models
 #ifdef TRACERS_AEROSOLS_Koch
 !@dbparam imAER is 1 for AEROCOM-prescribed simulations, 0 otherwise
       integer :: imAER = 1
+!@dbparam imPI is 0 for industrial simulations, 1 for pre-industrial
+      integer :: imPI = 0
 #endif
-
 #ifdef TRACERS_ON
 !@var NTM_POWER: Power of 10 associated with each tracer (for printing)
       integer, dimension(ntm) :: ntm_power

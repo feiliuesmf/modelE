@@ -5215,7 +5215,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
      *   tr_mm
 #ifdef TRACERS_AEROSOLS_Koch
-     *   ,imAER,n_SO2
+     *   ,imAER,n_SO2,imPI
 #endif
 #ifdef regional_Ox_tracers
      *   ,NregOx,n_Ox
@@ -5792,6 +5792,7 @@ c read in AEROCOM SO2 emissions
       SO2_biosrc_3D(:,:,:,:)=0.d0
       SO2_src_3D(:,:,:,:)=0.d0
 c Industrial
+      if (imPI.eq.0) then
       call openunit('SO2_IND',iuc,.false.)
       do mm=1,9999
       read(iuc,*) ii,jj,carbstuff
@@ -5799,11 +5800,13 @@ c Industrial
       SO2_src(ii,jj,1)=carbstuff/(sday*30.4)/12.d0
       end do
   81  call closeunit(iuc)
+      endif
 c Biomass 
       call openunit('SO2_BIOMASS',iuc,.false.)
       do mm=1,99999
       read(iuc,*) ii,jj,mmm,ll,carbstuff
       if (ii.eq.0.) go to 82
+      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
       SO2_biosrc_3D(ii,jj,ll,mmm)=carbstuff/(sday*30.4d0)
       end do
   82  call closeunit(iuc)
@@ -5860,6 +5863,7 @@ c 1.3 converts OC to OM
       endif
 c Now industrial and biomass
       BCI_src(:,:)=0.d0
+      if (imPI.eq.0) then
       call openunit('BC_BIOFUEL',iuc,.false.)
       do mm=1,9999
       read(iuc,*) ii,jj,carbstuff
@@ -5889,11 +5893,13 @@ c Now industrial and biomass
       OCI_src(ii,jj)=OCI_src(ii,jj)+carbstuff
       end do
  12   call closeunit(iuc)
+      endif
       BCB_src(:,:,:,:)=0.d0
       call openunit('BC_BIOMASS',iuc,.false.)
       do mm=1,99999
       read(iuc,*) ii,jj,mmm,ll,carbstuff 
       if (ii.eq.0.) go to 13
+      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
       BCB_src(ii,jj,ll,mmm)=carbstuff
       end do
  13   call closeunit(iuc)
@@ -5902,6 +5908,7 @@ c Now industrial and biomass
       do mm=1,99999
       read(iuc,*) ii,jj,mmm,ll,carbstuff 
       if (ii.eq.0.) go to 14
+      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
       OCB_src(ii,jj,ll,mmm)=carbstuff
       end do
  14   call closeunit(iuc)
