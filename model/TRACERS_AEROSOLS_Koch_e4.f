@@ -287,7 +287,7 @@ c     units are kg salt/m2/s
      *     ,jls_OHconk,jls_HO2con,jls_NO3,jls_phot
       USE MODEL_COM, only: im,jm,jmon,ls1,lm,dtsrc,t,q,jday,
      * coupled_chem
-      USE DYNAMICS, only: pmid,am,pk
+      USE DYNAMICS, only: pmid,am,pk,LTROPO
       USE GEOM, only: dxyp,imaxj
       USE FLUXES, only: tr3Dsource
       USE FILEMANAGER, only: openunit,closeunit
@@ -305,7 +305,7 @@ c Aerosol chemistry
      * r5,d5,dmssink
       real*8 bciage,ociage
       integer i,j,l,n,iuc,iun,itau,ixx1,ixx2,ichemi,itopen,itt,
-     * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl,ltopn
+     * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl
       save ifirst,itopen,iuc
 
 C**** initialise source arrays
@@ -325,17 +325,10 @@ C**** initialise source arrays
       end do
 !$OMP END PARALLEL DO
 
-c Set ltopn variable for 23 or 12 layer model
-      if (lm.eq.23) then
-        ltopn=ls1-1
-      else
-        ltopn=lm
-      endif
-
 C Coupled mode: use on-line radical concentrations
       if (coupled_chem.eq.1) then
 !$OMP PARALLEL DO PRIVATE (L)
-        DO L=1,ltopn
+        DO L=1,LM
           oh(:,:,l)=oh_live(:,:,l)
           tno3(:,:,l)=no3_live(:,:,l)
 c Set h2o2_s =0 and use on-line h2o2 from chemistry
@@ -363,10 +356,12 @@ c need to scale TNO3, OH and PERJ using cosine of zenith angle
 
       dtt=dtsrc
 C**** THIS LOOP SHOULD BE PARALLELISED
-      do 20 l=1,ltopn
+      do 20 l=1,LM
       do 21 j=1,jm
       do 22 i=1,imaxj(j)
 c
+      if(l.le.ltropo(i,j)) then
+
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
       mm=am(l,i,j)*dxyp(j)
@@ -444,6 +439,7 @@ c SO2 production from DMS
         end select
         
  23   CONTINUE
+        endif
  22   CONTINUE
  21   CONTINUE
  20   CONTINUE
@@ -452,9 +448,11 @@ cg this is now done automatically in apply_tracer_3Dsource
 cg       call DIAGTCA(itcon_3Dsrc(3,n_SO2),n_SO2)
 
 
-      do 30 l=1,ltopn
+      do 30 l=1,lm
       do 31 j=1,jm
       do 32 i=1,imaxj(j)
+
+      if(l.le.ltropo(i,j)) then
 
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
@@ -535,6 +533,7 @@ c H2O2 losses:5 and 6
  140    CONTINUE
 
  33   CONTINUE
+        endif
  32   CONTINUE
  31   CONTINUE
  30   CONTINUE
