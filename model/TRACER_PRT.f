@@ -340,6 +340,11 @@ C****
       REAL*8, DIMENSION(LM) :: PM
       REAL*8 :: scalet
       INTEGER :: J,L,N,K,jtpow
+#ifdef TRACERS_SPECIAL_O18
+      INTEGER :: n1,n2
+      CHARACTER :: lname*80,sname*30,units*50
+      REAL*8 :: dD, d18O
+#endif
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG) call open_jl(trim(acc_period)//'.jlt'//XLABEL(1:LRUNID)
@@ -470,6 +475,39 @@ C****
         CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),
      *    plm,tajls(1,1,k),scalet,ones,ones,jls_ltop(k),1,jgrid_jls(k))
       end do
+
+#ifdef TRACERS_SPECIAL_O18
+C****
+C**** Calculations of deuterium excess (d=dD-8*d18O)
+C**** Note: some of these definitions probably belong in JLt_TITLEX
+C****
+      if (n_H2O18.gt.0 .and. n_HDO.gt.0) then
+        n1=n_H2O18
+        n2=n_HDO
+        k=jlnt_conc
+        scalet = 1.
+        jtpow = 0.
+        
+        do l=1,lm
+          do j=1,jm
+            if (tajln(j,l,k,n_water).gt.0) then
+              d18O=1d3*(tajln(j,l,k,n1)/(trw0(n1)*tajln(j,l,k,n_water))
+     *             -1.)
+              dD=1d3*(tajln(j,l,k,n2)/(trw0(n2)*tajln(j,l,k,n_water))
+     *             -1.)
+              a(j,l)=dD-8.*d18O
+            else
+              a(j,l)=undef 
+            end if
+          end do
+        end do
+        lname="Deuterium excess"
+        sname="dexcess"
+        units="per mil"
+        CALL JLMAP_t (lname,sname,units,plm,a,scalet,ones,ones,lm,2
+     *       ,jgrid_jlq(k)) 
+      end if
+#endif
 
       if (qdiag) call close_jl
       RETURN
@@ -622,6 +660,9 @@ C****
       IMPLICIT NONE
 
       integer, parameter :: ktmax = (lm+ktaij)*ntm+ktaijs
+#ifdef TRACERS_SPECIAL_O18
+     *     + 2+lm      ! include dexcess diags
+#endif
 !@var Qk: if Qk(k)=.true. field k still has to be processed
       logical, dimension (ktmax) :: Qk
 !@var Iord: Index array, fields are processed in order Iord(k), k=1,2,..
@@ -637,7 +678,7 @@ C****
       CHARACTER xlb*32,title*48
 !@var LINE virtual half page (with room for overstrikes)
       CHARACTER*133 LINE(53)
-      INTEGER ::  I,J,K,kx,L,M,N,kcolmn,nlines,jgrid
+      INTEGER ::  I,J,K,kx,L,M,N,kcolmn,nlines,jgrid,n1,n2
       REAL*8 :: DAYS,gm
 
       if (kdiag(8).ge.1) return
@@ -700,7 +741,7 @@ C**** Fill in maplet indices for tracer sums/means and ground conc
         aij1(:,:,k) = taijn(:,:,l,n)
         aij2(:,:,k) = 1.
 #ifdef TRACERS_WATER
-        if (to_per_mil(n).gt.0) then
+        if (to_per_mil(n).gt.0 .and. l.ne.tij_mass) then
         aij1(:,:,k)=1d3*(taijn(:,:,l,n)-taijn(:,:,l,n_water)*trw0(n))
         aij2(:,:,k)=taijn(:,:,l,n_water)*trw0(n)
         ijtype(k) = 3
@@ -727,6 +768,63 @@ C**** Fill in maplet indices for sources and sinks
         aij2(:,:,k) = 1.
         scale(k) = scale_ijts(kx)
       end do
+
+#ifdef TRACERS_SPECIAL_O18
+C****
+C**** Calculations of deuterium excess (d=dD-d18O)
+C****
+      if (n_H2O18.gt.0 .and. n_HDO.gt.0) then
+        n1=n_H2O18
+        n2=n_HDO
+C**** precipitation
+        k=k+1
+        n=tij_prec
+        ijtype(k) = 3
+        name(k) = "prec_ij_dex"
+        lname(k) = "Deuterium excess in precip"
+        units(k) = "per mil"
+        irange(k) = ir_m45_130
+        iacc(k) = ia_src
+        iord(k) = 1
+        aij1(:,:,k) = 1d3*(taijn(:,:,tij_prec,n2)/trw0(n2)-
+     *                8.*taijn(:,:,tij_prec,n1)/trw0(n1)+
+     *                7.*taijn(:,:,tij_prec,n_water))
+        aij2(:,:,k) = taijn(:,:,tij_prec,n_water)
+        scale(k) = 1.
+C**** ground concentration
+        k=k+1
+        n=tij_grnd
+        ijtype(k) = 3
+        name(k) = "grnd_ij_dex"
+        lname(k) = "Deuterium excess at Ground"
+        units(k) = "per mil"
+        irange(k) = ir_m45_130
+        iacc(k) = ia_src
+        iord(k) = 2
+        aij1(:,:,k) = 1d3*(taijn(:,:,tij_grnd,n2)/trw0(n2)-
+     *                8.*taijn(:,:,tij_grnd,n1)/trw0(n1)+
+     *                7.*taijn(:,:,tij_grnd,n_water))
+        aij2(:,:,k) = taijn(:,:,tij_grnd,n_water)
+        scale(k) = 1.
+C**** water vapour
+        do l=1,lm
+          k=k+1
+          ijtype(k) = 3
+          name(k) = "wvap_ij_dex"
+          lname(k) = "Deuterium excess water vapour Level"
+          write(lname(k)(36:38),'(I3)') l
+          units(k) = "per mil"
+          irange(k) = ir_m45_130
+          iacc(k) = ia_src
+          iord(k) = l+2
+          aij1(:,:,k) = 1d3*(taijln(:,:,l,n2)/trw0(n2)-
+     *         8.*taijln(:,:,l,n1)/trw0(n1)+
+     *         7.*taijln(:,:,l,n_water))
+          aij2(:,:,k) = taijln(:,:,l,n_water)
+          scale(k) = 1.
+        end do
+      end if
+#endif
 
 !     nmaplets = ktmax   ! (lm+ktaij)*ntm+ktaijs
       nmaplets = k
