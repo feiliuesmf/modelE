@@ -27,28 +27,30 @@ C**** Numerical constants
       real*8,parameter :: by6 =1./6d0  !@param by6  1/6
       real*8,parameter :: by9 =1./9d0  !@param by9  1/9
       real*8,parameter :: by12=1./12d0 !@param by12 1/12
-!@param skip Missing value
-      real*8,parameter :: skip=-999999.
+!@param undef Missing value
+      real*8,parameter :: undef=-1.d30
+!@param tiny  small positive value used in num/(den+tiny) to avoid 0/0
+      real*8,parameter :: tiny=1.d-30
 
 C**** Physical constants
 
 !@param stbo Stefan-Boltzmann constant (W/m^2 K^4)
       real*8,parameter :: stbo =5.67051d-8 !current best estimate
 
-c**** Latent heats: 
+c**** Latent heats:
 c**** Note that for energy conservation the efective latent heat at any
 c**** temperature must follow these formulae (assuming a reference
 c**** temperature of 0 Celcius, and constant specific heats).
 c**** If specific heats vary as a function of temperature, the extra
-c**** term becomes an integral 
+c**** term becomes an integral
 c**** lhe(T) = lhe(0) + (shv-shw) T (in C)
 c**** lhm(T) = lhm(0) + (shw-shi) T (in C)
 c**** lhs(T) = lhs(0) + (shv-shi) T (in C)
-!@param lhe   latent heat of evap at 0 C (2.5008d6 J/kg) 
+!@param lhe   latent heat of evap at 0 C (2.5008d6 J/kg)
       real*8,parameter :: lhe = 2.5d6
-!@param lhm   latent heat of melt at 0 C (334590 J/kg) 
+!@param lhm   latent heat of melt at 0 C (334590 J/kg)
       real*8,parameter :: lhm = 3.34d5
-!@param bylhm  1/lhm 
+!@param bylhm  1/lhm
       real*8,parameter :: bylhm = 1./lhm
 !@param lhs  latent heat of sublimation at 0 C (J/kg)
       real*8,parameter :: lhs = lhe+lhm
@@ -123,7 +125,7 @@ c**** kapa = (g-1)/g where g=1.401 = c_p/c_v
 c**** shv is currently assumed to be zero to aid energy conservation in
 c**** the atmosphere. Once the heat content associated with water
 c**** vapour is included, this can be set to the standard value
-c**** Literature values are 1911 (Arakawa), 1952 (Wallace and Hobbs) 
+c**** Literature values are 1911 (Arakawa), 1952 (Wallace and Hobbs)
 c**** Smithsonian Met Tables = 4*rvap + delta = 1858--1869 ????
 c     real*8,parameter :: shv = 4.*rvap  ????
       real*8,parameter :: shv = 0.
@@ -199,7 +201,7 @@ C**** Intermediate quantities:
 !@var BSEMI  = semi minor axis in units of the semi major axis
 !@var GREENW = longitude of Greenwich in the Earth's reference frame
 
-C**** Output: 
+C**** Output:
 !@var SDIST = square of distance to the sun in units of semi major axis
 !@var SIND = sine of the declination angle
 !@var COSD = cosine of the declination angle
@@ -207,7 +209,7 @@ C**** Output:
       IMPLICIT NONE
       REAL*8, PARAMETER :: VERQNX = 79.
       REAL*8, INTENT(IN) :: OBLIQ,ECCN,OMEGT,DAY
-      REAL*8, INTENT(OUT) :: SIND,COSD,SDIST,LAMBDA 
+      REAL*8, INTENT(OUT) :: SIND,COSD,SDIST,LAMBDA
 
       REAL*8 MA,OMEGA,DOBLIQ,ECCEN,PERIHE,EA,DEA,BSEMI,COSEA
      *     ,SINEA,TA,SUNX,SUNY,GREENW,SINDD

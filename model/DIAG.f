@@ -9,7 +9,7 @@ C****
 !@sum  DAGCOMP Diagnostic model variables used in the printouts
 !@auth Jean Lerner
 !@ver  1.0
-      USE MODEL_COM, only : lm
+      USE MODEL_COM, only : im,jm,lm
       USE RADNCB, only : LM_REQ
       IMPLICIT NONE
       SAVE
@@ -18,6 +18,11 @@ C****
       DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PLM
 !@var P1000K scaling to change reference pressure from 1mb to 1000mb
       DOUBLE PRECISION :: P1000K
+!@var inci,incj print increments for i and j, so maps/tables fit on page
+      integer, parameter :: inci=(im+35)/36,incj=(JM+23)/24, jmby2=jm/2
+!@var linect = current line on page of print out
+      integer linect
+
       END MODULE DAGPCOM
 
 C****                                                             IDACC

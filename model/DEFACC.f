@@ -932,7 +932,7 @@ c
       implicit none
       integer :: k
 c
-      do k=1,kaij
+      do k=1,kaijx
          write(name_ij(k),'(a3,i3.3)') 'AIJ',k
          lname_ij(k) = 'unused'
          units_ij(k) = 'unused'
@@ -2499,7 +2499,7 @@ c
 c
       k=k+1
       name_jl(k) = 'AJL20'
-      lname_jl(k) = 'DU/DT BY STRAT MTN DRAG' 
+      lname_jl(k) = 'DU/DT BY STRAT MTN DRAG'
       units_jl(k) = 'M/S'
 c
       k=k+1
@@ -3107,7 +3107,7 @@ c
       implicit none
       integer :: k
 c
-      do k=1,kaijk
+      do k=1,kaijkx
          write(name_ijk(k),'(a4,i3.3)') 'AIJK',k
          lname_ijk(k) = 'unused'
          units_ijk(k) = 'unused'

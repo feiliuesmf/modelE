@@ -44,8 +44,8 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@var ASJL latitude/height supplementary diagnostics (merge with AJL?)
       DOUBLE PRECISION, DIMENSION(JM,LM_REQ,KASJL) :: ASJL
 
-!@param KAIJ number of AIJ diagnostics
-      INTEGER, PARAMETER :: KAIJ=150
+!@param KAIJ,KAIJX number of AIJ diagnostics, KAIJX includes composites
+      INTEGER, PARAMETER :: KAIJ=150 , KAIJX=KAIJ+100
 !@var AIJ latitude/longitude diagnostics
       DOUBLE PRECISION, DIMENSION(IM,JM,KAIJ) :: AIJ
 
@@ -128,13 +128,13 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@var AJK zonal constant pressure diagnostics
       DOUBLE PRECISION, DIMENSION(JM,LM,KAJK) :: AJK
 
-!@param KAIJK number of lat/lon constant pressure diagnostics
-      INTEGER, PARAMETER :: KAIJK=6
+!@param KAIJK,KAIJX number of lat/lon constant pressure diagnostics
+      INTEGER, PARAMETER :: KAIJK=6 , kaijkx=kaijk+100
 !@var KAIJK lat/lon constant pressure diagnostics
       DOUBLE PRECISION, DIMENSION(IM,JM,LM,KAIJK) :: AIJK
 
-!@param KAIJL number of three dimensional diagnostics
-      INTEGER, PARAMETER :: KAIJL=5
+!@param KAIJL,KAIJLx number of three dimensional diagnostics
+      INTEGER, PARAMETER :: KAIJL=5 , kaijlx=kaijl+100
 !@var AIJL three dimensional diagnostics
       DOUBLE PRECISION, DIMENSION(IM,JM,LM,KAIJL) :: AIJL
 
@@ -289,11 +289,11 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var SCALE_IJ scaling for weighted AIJ diagnostics
       REAL*8, DIMENSION(KAIJ) :: SCALE_IJ
 !@var NAME_IJ,UNITS_IJ Names/Units of lat/lon IJ diagnostics
-      character(len=20), dimension(kaij) :: name_ij,units_ij
+      character(len=20), dimension(kaijx) :: name_ij,units_ij
 !@var LNAME_IJ Long names of lat/lon IJ diagnostics
-      character(len=80), dimension(kaij) :: lname_ij
+      character(len=80), dimension(kaijx) :: lname_ij
 !@var IW_IJ weighting indices for IJ diagnostics
-      integer, dimension(kaij) :: iw_ij
+      integer, dimension(kaijx) :: iw_ij
 !@var nwts_ij = number of weight-ij-arrays used in IJ-diagnostics
       integer, parameter :: nwts_ij = 7
 !@var wt_ij various weight-arrays use in ij-diagnostics
@@ -302,11 +302,11 @@ C****      names, indices, units, idacc-numbers, etc.
       integer, parameter :: iw_all=1 , iw_ocn=2 , iw_lake=3,
      *   iw_lice=4 , iw_soil=5 , iw_bare=6 , iw_veg=7
 !@var IR_IJ range indices for IJ diagnostics
-      integer, dimension(kaij) :: ir_ij
+      integer, dimension(kaijx) :: ir_ij
 !@var IA_IJ IDACC indexes for lat/lon IJ diagnostics
-      integer, dimension(kaij) :: ia_ij
+      integer, dimension(kaijx) :: ia_ij
 !@var jgrid_ij 1=primary grid  2=secondary grid
-      integer, dimension(kaij) :: jgrid_ij
+      integer, dimension(kaijx) :: jgrid_ij
 
 !@var NAME_JL Names of lat-sigma JL diagnostics
       character(len=30), dimension(kajl) :: name_jl
@@ -338,23 +338,23 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var IJK_xxx AIJK diagnostic names
       INTEGER :: IJK_U, IJK_V, IJK_DSE, IJK_DP, IJK_T, IJK_Q
 !@var SCALE_IJK scaling for weighted AIJK diagnostics
-      REAL*8, DIMENSION(KAIJK) :: SCALE_IJK
+      REAL*8, DIMENSION(KAIJKx) :: SCALE_IJK
 !@var OFF_IJK offset for weighted AIJK diagnostics
-      REAL*8, DIMENSION(KAIJK) :: OFF_IJK
+      REAL*8, DIMENSION(KAIJKx) :: OFF_IJK
 
 !@var NAME_IJK Names of lon-lat-pressure IJK diagnostics
-      character(len=30), dimension(kaijk) :: name_ijk
+      character(len=30), dimension(kaijkx) :: name_ijk
 !@var LNAME_IJK,UNITS_IJK Descriptions/Units of IJK diagnostics
-      character(len=50), dimension(kaijk) :: lname_ijk,units_ijk
+      character(len=50), dimension(kaijkx) :: lname_ijk,units_ijk
 
 !@var IJL_xxx AIJL diagnostic names
       INTEGER :: IJL_U, IJL_V, IJL_DSE, IJL_DP, IJL_Q
 !@var SCALE_IJL scaling for weighted AIJL diagnostics
-      REAL*8, DIMENSION(KAIJK) :: SCALE_IJL
+      REAL*8, DIMENSION(KAIJLx) :: SCALE_IJL
 !@var NAME_IJL Names of lon-lat-pressure IJL diagnostics
-      character(len=20), dimension(kaijl) :: name_ijl,units_ijl
+      character(len=20), dimension(kaijlx) :: name_ijl,units_ijl
 !@var LNAME_IJL,UNITS_IJL Descriptions/Units of IJL diagnostics
-      character(len=80), dimension(kaijl) :: lname_ijl
+      character(len=80), dimension(kaijlx) :: lname_ijl
 
       character(len=20), dimension(kwp) :: name_wave,units_wave
       character(len=80), dimension(kwp) :: lname_wave

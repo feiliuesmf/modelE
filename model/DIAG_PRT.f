@@ -762,7 +762,7 @@ c      USE PRTCOM, only :
       USE GEOM, only :
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
       USE DAGPCOM, only :
-     &     PLM,PLE,P1000K
+     &     PLM,PLE,P1000K,linect,jmby2
       USE DAGCOM, only :
      &     ajk,ajl,asjl,ajlsp,kdiag,aijl,aijk,nwav_dag,kajlsp,LM_REQ
      &     ,apj,aij,IJ_PHI1K
@@ -788,9 +788,6 @@ c      USE PRTCOM, only :
       DOUBLE PRECISION, DIMENSION(2,LM,2) :: DSHEM
       DOUBLE PRECISION, DIMENSION(LM,2) :: DSGLOB
       COMMON/WORK5/DSJK,DSHEM,DSGLOB
-
-      INTEGER :: LINECT,JMHALF,INC
-      COMMON/DJLCOM/LINECT,JMHALF,INC
 
       DOUBLE PRECISION, DIMENSION(JM,LM,0:NWAV_DAG,KAJLSP):: SPSTAD
       DOUBLE PRECISION, DIMENSION(JM,LM,0:NWAV_DAG,KAJLSP):: SPTRAN
@@ -836,8 +833,6 @@ C**** INITIALIZE CERTAIN QUANTITIES
       LMP1=LM+1
       KM=LM
       KMM1=KM-1
-      INC=1+(JM-1)/24
-      JMHALF=JM/2
       BY100G=.01*BYGRAV
       DO 30 L=1,LM
       PKM(L)=PLM(L)**KAPA
@@ -892,8 +887,8 @@ C****
       DO 58 JHEMI=1,2
       DPH=0.
       PIH=0.
-      DO 55 JH=1,JMHALF
-      J=(JHEMI-1)*(JMHALF-J0)+JH+J0
+      DO 55 JH=1,jmby2
+      J=(JHEMI-1)*(jmby2-J0)+JH+J0
       DSJK(J,K,J1)=AJK(J,K,J1)/(PJ(J,J1)+1.D-20)
       DPH=DPH+AJK(J,K,J1)*WTJ(J,2,J1)
    55 PIH=PIH+PJ(J,J1)*WTJ(J,2,J1)
@@ -1689,6 +1684,7 @@ C****
       SUBROUTINE JKMAP(LNAME,SNAME,UNITS,
      &     PM,AX,SCALE,SCALEJ,SCALEK,KMAX,JWT,J1)
       USE DAGCOM, only : QCHECK,acc_period,iu_jl,lm_req
+      USE DAGPCOM, only : inc=>incj,linect,jmby2
       USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
       USE GEOM, only :
@@ -1713,8 +1709,6 @@ C****
       DOUBLE PRECISION, DIMENSION(LM,2) :: DSGLOB
       COMMON/WORK5/DSJK,DSHEM,DSGLOB
 
-      INTEGER :: LINECT,JMHALF,INC
-      COMMON/DJLCOM/LINECT,JMHALF,INC
 
       INTEGER :: J1,JWT,KMAX
       DOUBLE PRECISION :: SCALE,SCALER
@@ -1763,8 +1757,8 @@ C**** HORIZONTAL SUMS AND TABLE ENTRIES
       AGLOB=0.
       DO 130 JHEMI=1,2
       AHEM(JHEMI)=0.
-      DO 120 JH=1,JMHALF
-      J=(JHEMI-1)*(JMHALF-J0)+JH+J0
+      DO 120 JH=1,jmby2
+      J=(JHEMI-1)*(jmby2-J0)+JH+J0
       FLAT(J)=CX(J,K)/(DSJK(J,K,J1)+1.D-20)
          XJL(J,K) = FLAT(J)
          IF (DSJK(J,K,J1).EQ.0.) XJL(J,K) = -1.E30
@@ -1802,8 +1796,8 @@ C**** VERTICAL SUMS
       AGLOB=0.
       DO 200 JHEMI=1,2
       AHEM(JHEMI)=0.
-      DO 190 JH=1,JMHALF
-      J=(JHEMI-1)*(JMHALF-J0)+JH+J0
+      DO 190 JH=1,jmby2
+      J=(JHEMI-1)*(jmby2-J0)+JH+J0
       AHEM(JHEMI)=AHEM(JHEMI)+ASUM(J)*WTJ(J,JWT,J1)*SUMFAC
   190 CONTINUE
   200 AGLOB=AGLOB+AHEM(JHEMI)/JWT
@@ -1841,8 +1835,8 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       FGLOB=0.
       DO 250 JHEMI=1,2
       AHEM(JHEMI)=0.
-      DO 240 JH=1,JMHALF
-      J=(JHEMI-1)*(JMHALF-J0)+JH-J0
+      DO 240 JH=1,jmby2
+      J=(JHEMI-1)*(jmby2-J0)+JH-J0
       FLATJ=ARQX(J,L)*SCALER*SCALJR(J)*SCALLR(L)
          XJL(J,L+KMAX) = FLATJ
       MLAT(J)=NINT(FLATJ)
@@ -1876,6 +1870,7 @@ C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
       USE DAGCOM, only : QCHECK,acc_period,iu_jl,LM_REQ
+      USE DAGPCOM, only : inc=>incj,linect,jmby2
       USE MODEL_COM, only :
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
@@ -1895,8 +1890,6 @@ C****
       DOUBLE PRECISION, DIMENSION(JM) :: FLAT,ASUM
       DOUBLE PRECISION, DIMENSION(2) :: FHEM,HSUM
 
-      INTEGER :: LINECT,JMHALF,INC
-      COMMON/DJLCOM/LINECT,JMHALF,INC
 
       INTEGER :: J1,JWT,LMAX
       DOUBLE PRECISION :: SCALE,SCALER
@@ -1951,8 +1944,8 @@ C****
       FGLOB=0.
       DO 130 JHEMI=1,2
       FHEM(JHEMI)=0.
-      DO 120 JH=1,JMHALF
-      J=(JHEMI-1)*(JMHALF-J0)+JH+J0
+      DO 120 JH=1,jmby2
+      J=(JHEMI-1)*(jmby2-J0)+JH+J0
       FLAT(J)=AX(J,L)*SCALE*SCALEJ(J)*SCALEL(L)
          XJL(J,L) = FLAT(J)
       MLAT(J)=NINT(FLAT(J))
@@ -1976,7 +1969,7 @@ C****
      &     sname.eq.'phi_phase_wave2' .or.
      &     sname.eq.'phi_phase_wave3' .or.
      &     sname.eq.'phi_phase_wave4' ) return
-      ASUM(JMHALF+1)=ASUM(JMHALF+1)/J1
+      ASUM(jmby2+1)=ASUM(jmby2+1)/J1
       DO 150 J=J1,JM
   150 MLAT(J)=NINT(ASUM(J)*SUMFAC)
          DO 180 J=J1,JM
@@ -2016,8 +2009,8 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       FGLOB=0.
       DO 220 JHEMI=1,2
       FHEM(JHEMI)=0.
-      DO 210 JH=1,JMHALF
-      J=(JHEMI-1)*(JMHALF-J0)+JH-J0
+      DO 210 JH=1,jmby2
+      J=(JHEMI-1)*(jmby2-J0)+JH-J0
       FLATJ=ARQX(J,L)*SCALER*SCALJR(J)*SCALLR(L)
          XJL(J,L+LMAX) = FLATJ
       MLAT(J)=NINT(FLATJ)
@@ -2042,7 +2035,7 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,lm,bydsig,idacc,xlabel,lrunid
-      USE DAGPCOM, only : plm,ple
+      USE DAGPCOM, only : plm,ple,linect
       USE DAGCOM, only : ail,lm_req,acc_period, qcheck,lname_il,name_il
      *     ,units_il,scale_il,ia_il,kail
       IMPLICIT NONE
@@ -2056,6 +2049,8 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 
 C**** INITIALIZE CERTAIN QUANTITIES
       ONES(1:LM)=1.
+
+      linect = 65
 
       DO K=1,KAIL
         XIL=AIL(:,:,K)*SCALE_IL(K)/IDACC(IA_IL(K))
@@ -2087,6 +2082,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       SUBROUTINE ILMAP (sname,lname,unit,PL,AX,SCALEL,LMAX,JWT
      *     ,ISHIFT)
       USE DAGCOM, only : qcheck,acc_period,iu_il
+      USE DAGPCOM, only : inc=>inci,linect
       USE CONSTANT, only : twopi
       USE MODEL_COM, only : im,jm,lm,dsig,jdate,jdate0,amon,amon0,jyear
      *     ,jyear0,sige,xlabel
@@ -2107,14 +2103,11 @@ C**** INITIALIZE CERTAIN QUANTITIES
       DOUBLE PRECISION, DIMENSION(IM) :: ASUM
       INTEGER, DIMENSION(IM) :: MLON
       INTEGER, INTENT(IN) :: JWT,ISHIFT
-      INTEGER :: I,K,L,LMAX,LINECT,JMHALF,INC
+      INTEGER :: I,K,L,LMAX
 C****
 C**** PRODUCE A LONGITUDE BY LAYER TABLE OF THE ARRAY A
 C****
-      INC=1+(JM-1)/24
-      JMHALF=JM/2
-      LINECT=65
-C**** ISHIFT: When=2, print longitude indices off center (U-grid)
+!@var ISHIFT: When=2, print longitude indices off center (U-grid)
       LINECT=LINECT+LMAX+7
       IF (LINECT.GT.60) THEN
         WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
@@ -2403,20 +2396,14 @@ C**FREQUENCY BAND AVERAGE
 !@auth M. Kelley
 
       use MODEL_COM, only : IM,JM
-      use DAGCOM, only : kaij
+      use DAGCOM, only : kaij,kaijx,lname_ij,name_ij,units_ij
 
       IMPLICIT NONE
 
-!@param nij_c maximal possible number of compound ij-format fields
-      integer, parameter :: nij_c=50
+!@param nij_o total number of diagnostic ij-format fields
+      integer nij_o
 
-!@var units string containing output field units
-      CHARACTER(LEN=50), DIMENSION(nij_c) :: UNITS_ij_c
-!@var lname string describing output field
-      CHARACTER(LEN=50), DIMENSION(nij_c) :: LNAME_ij_c = 'unused'
-!@var sname string referencing output field in self-desc. output file
-      CHARACTER(LEN=30), DIMENSION(nij_c) :: SNAME_ij_c
-!@var ij_xxx non-single_aij diagnostic names
+!@var ij_xxx non single-aij diagnostic names
       INTEGER :: ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
      *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_fland,
      *  ij_ntdsete, ij_dzt1, ij_dzt2, ij_dzt3, ij_dzt4, ij_dzt5, ij_dzt6
@@ -2484,16 +2471,14 @@ C**FREQUENCY BAND AVERAGE
 !@var TENTDSE trans.eddy northw. transport of dry static energy * 16
       DOUBLE PRECISION, DIMENSION(IM,JM) :: SENTDSE,TENTDSE
 
-!@var UNDEF = flag for undefined expression
-      real*8, parameter :: undef = 1.d-30
 
       contains
 
-      function mark (val,ibar)
+      function mark (val,ibar,undef)
 !@sum  mark selects a character (color) based on value and color bar
 !@auth R. Ruedy
 !@ver  1.0
-      real*8 val
+      real*8 val,undef
       integer ibar,n
       character*1 mark
 
@@ -2550,8 +2535,8 @@ c          if (n .gt. 13) n = (n+123)/10
 
       END MODULE BDIJ
 
-      SUBROUTINE IJ_TITLE_c
-!@sum  IJ_TITLES titles etc for composite ij output
+      SUBROUTINE IJ_TITLEX
+!@sum  IJ_TITLEX titles etc for composite ij output
 !@auth G. Schmidt/M. Kelley
 !@ver  1.0
       USE BDIJ
@@ -2562,109 +2547,109 @@ c
 c
       k = k + 1
       ij_topo = k
-      sname_ij_c(k-kaij) = 'topog'
-      lname_ij_c(k-kaij) = 'TOPOGRAPHY'
-      units_ij_c(k-kaij) = 'METERS'
+      name_ij(k) = 'topog'
+      lname_ij(k) = 'TOPOGRAPHY'
+      units_ij(k) = 'METERS'
 
       k = k + 1
       ij_fland = k
-      sname_ij_c(k-kaij) = 'frac_land'
-      lname_ij_c(k-kaij) = 'LAND COVERAGE'
-      units_ij_c(k-kaij) = '%'
+      name_ij(k) = 'frac_land'
+      lname_ij(k) = 'LAND COVERAGE'
+      units_ij(k) = '%'
 
       k = k + 1
       ij_jet = k
-      sname_ij_c(k-kaij) = 'jet_speed'
-      lname_ij_c(k-kaij) = 'JET SPEED'
-      units_ij_c(k-kaij) = 'METERS/SEC'
+      name_ij(k) = 'jet_speed'
+      lname_ij(k) = 'JET SPEED'
+      units_ij(k) = 'METERS/SEC'
 
       k = k + 1
       ij_wsmn = k
-      sname_ij_c(k-kaij) = 'rt_usmn2_vsmn2'
-      lname_ij_c(k-kaij) = 'SURF WIND SPEED FROM Uav,Vav'
-      units_ij_c(k-kaij) = 'M/S'
+      name_ij(k) = 'rt_usmn2_vsmn2'
+      lname_ij(k) = 'SURF WIND SPEED FROM Uav,Vav'
+      units_ij(k) = 'M/S'
 
       k = k + 1
       ij_jetdir = k
-      sname_ij_c(k-kaij) = 'jet_dir'
-      lname_ij_c(k-kaij) = 'JET DIRECTION'
-      units_ij_c(k-kaij) = 'CW NOR'
+      name_ij(k) = 'jet_dir'
+      lname_ij(k) = 'JET DIRECTION'
+      units_ij(k) = 'CW NOR'
 
       k = k + 1
       ij_wsdir = k
-      sname_ij_c(k-kaij) = 'srf_wind_dir'
-      lname_ij_c(k-kaij) = 'SURFACE WIND DIRECTION'
-      units_ij_c(k-kaij) = 'CW NOR'
+      name_ij(k) = 'srf_wind_dir'
+      lname_ij(k) = 'SURFACE WIND DIRECTION'
+      units_ij(k) = 'CW NOR'
 
       k = k + 1
       ij_netrdp = k
-      sname_ij_c(k-kaij) = 'net_rad_planet'
-      lname_ij_c(k-kaij) = 'NET RAD. OF PLANET'
-      units_ij_c(k-kaij) = 'WATTS/M**2'
+      name_ij(k) = 'net_rad_planet'
+      lname_ij(k) = 'NET RAD. OF PLANET'
+      units_ij(k) = 'WATTS/M**2'
 
       k = k + 1
       ij_albp = k
-      sname_ij_c(k-kaij) = 'plan_alb'
-      lname_ij_c(k-kaij) = 'PLANETARY ALBEDO'
-      units_ij_c(k-kaij) = '%'
+      name_ij(k) = 'plan_alb'
+      lname_ij(k) = 'PLANETARY ALBEDO'
+      units_ij(k) = '%'
 
       k = k + 1
       ij_albg = k
-      sname_ij_c(k-kaij) = 'grnd_alb'
-      lname_ij_c(k-kaij) = 'GROUND ALBEDO'
-      units_ij_c(k-kaij) = '%'
+      name_ij(k) = 'grnd_alb'
+      lname_ij(k) = 'GROUND ALBEDO'
+      units_ij(k) = '%'
 
       k = k + 1
       ij_albv = k
-      sname_ij_c(k-kaij) = 'vis_alb'
-      lname_ij_c(k-kaij) = 'VISUAL ALBEDO'
-      units_ij_c(k-kaij) = '%'
+      name_ij(k) = 'vis_alb'
+      lname_ij(k) = 'VISUAL ALBEDO'
+      units_ij(k) = '%'
 
       k = k + 1
       ij_ntdsese = k
-      sname_ij_c(k-kaij) = 'stand_eddy_nt_dse'
-      lname_ij_c(k-kaij) = 'NT DRY STAT ENR BY ST ED' ! NORTHWD TRANSP
-      units_ij_c(k-kaij) = 'E14 WT'
+      name_ij(k) = 'stand_eddy_nt_dse'
+      lname_ij(k) = 'NT DRY STAT ENR BY ST ED' ! NORTHWD TRANSP
+      units_ij(k) = 'E14 WT'
 
       k = k + 1
       ij_ntdsete = k
-      sname_ij_c(k-kaij) = 'trans_eddy_nt_dse'
-      lname_ij_c(k-kaij) = 'NT DRY STAT ENR BY TR ED' ! NORTHWD TRANSP
-      units_ij_c(k-kaij) = 'E14 WT'
+      name_ij(k) = 'trans_eddy_nt_dse'
+      lname_ij(k) = 'NT DRY STAT ENR BY TR ED' ! NORTHWD TRANSP
+      units_ij(k) = 'E14 WT'
 
       ij_dzt1 = k+1 ; ij_dzt2 = k+2 ; ij_dzt3 = k+3
       ij_dzt4 = k+4 ; ij_dzt5 = k+5 ; ij_dzt6 = k+6
       do k1 = 1,npmb-1
-        sname_ij_c(k-kaij+k1) = 'dztemp_1000-850'
-        if(k1.gt.1) write(sname_ij_c(k-kaij+k1)(8:15),
+        name_ij(k+k1) = 'dztemp_1000-850'
+        if(k1.gt.1) write(name_ij(k+k1)(8:15),
      *    '(i3.3,a1,i3.3,a1)') nint(pmb(k1)),'-',nint(pmb(k1+1)),' '
-        lname_ij_c(k-kaij+k1) = 'THICKNESS TEMP 1000-850'
-        if(k1.gt.1) write(lname_ij_c(k-kaij+k1)(16:23),
+        lname_ij(k+k1) = 'THICKNESS TEMP 1000-850'
+        if(k1.gt.1) write(lname_ij(k+k1)(16:23),
      *     '(i3.3,a1,i3.3,a1)') nint(pmb(k1)),'-',nint(pmb(k1+1)),' '
-        units_ij_c(k-kaij+k1) = 'C'
+        units_ij(k+k1) = 'C'
       end do
       k = k + npmb -1
 
       k = k + 1
       ij_grow = k
-      sname_ij_c(k-kaij) = 'grow_seas'
-      lname_ij_c(k-kaij) = 'GROWING SEASON'
-      units_ij_c(k-kaij) = 'days'
+      name_ij(k) = 'grow_seas'
+      lname_ij(k) = 'GROWING SEASON'
+      units_ij(k) = 'days'
 
-      if (k-kaij .gt. nij_c) then
-        write (6,*) 'Increase nij_c=',nij_c,' to at least ',k-kaij
-        stop 'IJ_TITLES: nij_c too small'
+      if (k .gt. kaijx) then
+        write (6,*) 'Increase kaijx=',kaijx,' to at least ',k
+        stop 'IJ_TITLES: kaijx too small'
       end if
 
-      END SUBROUTINE IJ_TITLE_c
+      END SUBROUTINE IJ_TITLEX
 
-      subroutine ij_mapk (k,smap,smapj,gm,jgrid,irange,name,lname,units)
-!@sum ij_mapk returns the map data and related terms for the k-th field
+      subroutine IJ_MAPk (k,smap,smapj,gm,jgrid,irange,name,lname,units)
+!@sum IJ_MAPk returns the map data and related terms for the k-th field
       USE DAGCOM
       USE CONSTANT, only :
-     &     grav,rgas,sday,twopi,sha,kapa,bygrav,tf
+     &     grav,rgas,sday,twopi,sha,kapa,bygrav,tf,undef,tiny
       USE MODEL_COM, only :
-     &     im,jm,fim,jeq,byim,DTsrc,
+     &     im,jm,fim,jeq,byim,DTsrc,ptop,
      &     FLAND,FLICE,FEARTH,FOCEAN,   IDACC,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID,ZATMO
@@ -2679,7 +2664,7 @@ c
       integer i,j,k1,k2,k,iwt,jgrid,irange,n1,n2
       character(len=20) name,units
       character(len=80) lname
-      real*8 :: gm, off, byiacc, scalek, tiny=1.d-30
+      real*8 :: gm, off, byiacc, scalek
 
       adenom = 1.                                             ! default
       if (k.eq.ij_dsev) adenom(1,1) = undef    ! zonal mean -> zonal sum
@@ -2688,8 +2673,18 @@ c
 c**** the standard case (and numerator of ratios)
         name = name_ij(k) ; lname = lname_ij(k) ; units = units_ij(k)
         iwt = iw_ij(k) ; jgrid = jgrid_ij(k) ; irange = ir_ij(k)
+c**** offsets ("  + " or "  - " in lname_ij, i.e. 2 blanks,+|-,1 blank)
         off = 0.
-        if (k .eq. ij_tmnmx) off = tf  ! should do in accum-phase ??
+        k1 = index(lname_ij(k),'  - ')
+        if (k1 .le. 0) k1 = index(lname_ij(k),'  + ')
+        if (k1 .gt. 0) then
+          if (index(lname_ij(k),'  + TF ') .gt. 0) then
+            off = TF                       ! should do in accum-phase ??
+          else if (index(lname_ij(k),'  - PTOP') .gt. 0)  then
+            off = -ptop
+          end if
+          lname_ij(k)(k1:80) = ' ' ; lname = lname_ij(k)
+        end if
         byiacc = 1./(idacc(ia_ij(k))+tiny)
         do j=1,jm
         do i=1,im
@@ -2697,9 +2692,9 @@ c**** the standard case (and numerator of ratios)
         end do
         end do
 
+c**** ratios (the denominators)
         k1 = index(lname_ij(k),' x ')
         if (k1 .gt. 0) then
-c**** ratios (the denominators)
           if (index(lname_ij(k),' x POCEAN') .gt. 0) then
             do j=1,jm
             do i=1,im
@@ -2732,10 +2727,10 @@ c**** ratios (the denominators)
 c**** compound quantities defined with their attributes
 c****
       iwt = iw_all ; jgrid = 1 ; irange = ir_pct    ! defaults
-      name  = sname_ij_c(k-kaij)
-      lname = lname_ij_c(k-kaij) ; units = units_ij_c(k-kaij)
+      name  = name_ij(k)
+      lname = lname_ij(k) ; units = units_ij(k)
 
-c**** time independent arrays
+c**** time independent arrays (k > kaij)
       if      (k.eq.ij_topo)  then
         anum = zatmo*bygrav    ; irange = ir_0_3550
 
@@ -2847,8 +2842,8 @@ c**** length of growing season   (not quite right ???)
 !@sum ij_avg finds num/den and various averages from num and den
 !@auth R.Ruedy
 !@ver  1.0
-      USE MODEL_COM, only :
-     &     im,jm,fim,jeq
+      USE MODEL_COM, only :  im,jm,fim,jeq
+      USE CONSTANT, only :  undef
       USE GEOM, only : wtj
       USE BDIJ
       USE DAGCOM
@@ -2909,7 +2904,7 @@ c**** fill in some key numbers
 !@auth Gary Russell,Maxwell Kelley,Reto Ruedy
 !@ver   1.0
 c     USE DAGCOM, only : QCHECK,acc_period,iu_ij
-      USE CONSTANT, only : sha
+      USE CONSTANT, only : sha,tiny
       USE MODEL_COM, only :
      &     im,jm,lm,byim,
      &     FLAND,FLICE,FEARTH,FOCEAN,vdata,
@@ -2926,29 +2921,29 @@ c    &     IJ_DSEV,IJ_TRNFP0,IJ_SRNFP0,IJ_SLP,IJ_TS !not a generic subr.
 
       IMPLICIT NONE
 
-!@var Qtodo: if Qtodo(k)=.true. field k still has to be processed
-      logical, dimension (kaij+nij_c) :: Qtodo = .true.
+!@var Qk: if Qk(k)=.true. field k still has to be processed
+      logical, dimension (kaijx) :: Qk = .true.
 !@var Iord: Index array, fields are processed in order Iord(k), k=1,2,..
 !@+     only important for fields 1->nmaplets+nmaps (appear in printout)
 !@+     Iord(k)=0 indicates that a blank space replaces a maplet
-      INTEGER Iord(kaij+nij_c+10),nmaplets,nmaps
+      INTEGER Iord(kaijx+10),nmaplets,nmaps ! 10 extra blank maplets
       REAL*8, DIMENSION(IM,JM) :: SMAP
       REAL*8, DIMENSION(JM) :: SMAPJ
       CHARACTER xlb*32,title*48,lname*80,name*20,units*20
 !@var LINE virtual half page (with room for overstrikes)
       CHARACTER*133 LINE(53)
 
-      INTEGER ::   I,J,K,L,M,N,kcolmn,nlines,jgrid,irange
+      INTEGER ::   I,J,K,L,M,N,kcolmn,nlines,jgrid,irange,iu_Iij
 
       DOUBLE PRECISION ::
      &     DAYS,ZNDE16,ZS,DPTI,PVTI,gm,
-     &     DE4TI,BYDPK,SZNDEG,tiny=1d-20
+     &     DE4TI,BYDPK,SZNDEG
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QCHECK) call open_ij(trim(acc_period)//'.ij'//XLABEL(1:LRUNID))
 
 C**** INITIALIZE CERTAIN QUANTITIES
-      call ij_title_c
+      call ij_titlex
 C**** standard printout
       nmaplets = 60 ; nmaps = 2
       iord(1:nmaplets+nmaps) = (/            ! 60 maplets
@@ -2970,20 +2965,17 @@ C**** standard printout
      *  ij_dzt4,    ij_dzt5,    ij_dzt6,     !        row 2
      *  ij_gwtr,    ij_wmsum,   ij_dcnvfrq,  ! pg  9  row 1
      *  ij_scnvfrq, ij_pdcld,   ij_pscld,    !        row 2
-     *  ij_sdrag, 0, 0, 0, 0, 0,             ! pg 10
+     *  ij_sdrag, 0, 0,        0, 0, 0,      ! pg 10
 c***                                        2  full page maps
      *  ij_slp,ij_ts/)
 
 c**** always skip unused fields
-      do k=1,kaij
-        if (index(lname_ij(k),'unused').gt.0) Qtodo(k) = .false.
-      end do
-      do k=1,nij_c
-        if (index(lname_ij_c(k),'unused').gt.0) Qtodo(kaij+k) = .false.
+      do k=1,kaijx
+        if (index(lname_ij(k),'unused').gt.0) Qk(k) = .false.
       end do
 
       if (kdiag(3).gt.0) call set_ijout (kdiag(3),nmaplets,nmaps,
-     *  Iord,Qtodo)
+     *  Iord,Qk,iu_Iij)
 
       xlb=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)
 C****
@@ -3057,13 +3049,13 @@ c**** print header lines
         if (kcolmn .eq. 1) line=' '
 c**** Find, then display the appropriate array
         k = Iord(n)
-        if (k .gt. 0 .and. Qtodo(k)) then
+        if (k .gt. 0 .and. Qk(k)) then
           call ij_mapk (k,smap,smapj,gm,jgrid,irange,name,lname,units)
           title=trim(lname)//' ('//trim(units)//')'
           call cmap(smap,smapj,gm,irange,title,line,kcolmn,nlines)
           if(qcheck) call pout_ij(title//xlb,name,lname,units,
      *                            smap,smapj,gm,jgrid)
-          Qtodo(k) = .false.
+          Qk(k) = .false.
         end if
 c**** copy virtual half-page to paper if appropriate
         if (kcolmn.eq.3 .or. n.eq.nmaplets) then
@@ -3076,26 +3068,26 @@ c**** copy virtual half-page to paper if appropriate
 C**** Print out full-page digital maps
       do n=nmaplets+1,nmaplets+nmaps
         k = Iord(n)
-      if (k.le.0 .or. .not.Qtodo(k)) cycle
+      if (k.le.0 .or. .not.Qk(k)) cycle
         call ij_mapk (k,smap,smapj,gm,jgrid,irange,name,lname,units)
         title=trim(lname)//' ('//trim(units)//')'
         call ijmap (title//xlb,smap,smapj,jgrid)
         if(qcheck) call pout_ij(title//xlb,name,lname,units,smap,smapj,
      *                          gm,jgrid)
-        Qtodo(k) = .false.
+        Qk(k) = .false.
       end do
 
       if (.not.qcheck) return
 C**** produce binary files of remaining fields if appropriate
-      do k=1,kaij+nij_c
-        if (Qtodo(k)) then
+      do k=1,kaijx
+        if (Qk(k)) then
           call ij_mapk (k,smap,smapj,gm,jgrid,irange,name,lname,units)
           title=trim(lname)//' ('//trim(units)//')'
           call pout_ij(title//xlb,name,lname,units,smap,smapj,gm,jgrid)
         end if
       end do
       call close_ij
-      CALL IJKMAP
+      if (kdiag(3).lt.7) CALL IJKMAP (iu_Iij)
 
       RETURN
 C****
@@ -3111,22 +3103,22 @@ C****
 !@ver  1.0
       use model_com, only : im,jm,fland
       use bdij
+      use constant, only : undef
+      use dagpcom, only : inci,incj
 
       IMPLICIT NONE
 
       real*8, dimension(im,jm) :: smap
       real*8, dimension(jm) :: smapj
       real*8  gm,val,zmax,zmin
-      integer irange,kcol,k,k1,ifm,nz1,nz2,n1,n2,inc,ibar,i,j
+      integer irange,kcol,k,k1,ifm,nz1,nz2,n1,n2,ibar,i,j
      *  ,nlines
       character(len=133), dimension(53) :: line
       character(len=36) :: title
 
-c**** to fit frame, show only every inc'th box in i and j direction
-      inc = 1+(jm-1)/24
 c**** find first and last column for zonal means nz1,nz2 and maps n1,n2
-      nz1 = 2 + (kcol-1)*(9+im/inc) ; nz2 = nz1 + 4
-      n1  = nz2 + 2  ;  n2 = n1 + im/inc - 1
+      nz1 = 2 + (kcol-1)*(9+im/inci) ; nz2 = nz1 + 4
+      n1  = nz2 + 2  ;  n2 = n1 + im/inci - 1
 c**** pick color bar and format for zonal mean according to the range
       ibar = ib_of_legnd(irange)
       zmax = 999.9 ; zmin = -99.9
@@ -3144,7 +3136,7 @@ c**** title on line 1
       line(1)(n1:n2) = title(1:36) ; line(1)(1:1) = '0'  ! line feed
 c**** use 2 lines for each shown latitude because of overstrike
       k=0
-      do j=jm,1,-inc
+      do j=jm,1,-incj
         k = k+2
 c**** zonal mean
         val=0.
@@ -3158,14 +3150,14 @@ c**** zonal mean
         end if
 c**** mark selected longitudes for each selected latitude
         k1 = n1-1
-        do i=1,im,inc
+        do i=1,im,inci
           k1 = k1+1
           val = undef
           if (smap(i,j).ne.undef) val = smap(i,j)*fac_legnd(irange)
 c**** for angles, change range from -180->180 to 0-360 (fac=.1)
           if (irange.eq.ir_angl .and. val.lt.-.5) val = val+36.
           if (irange.eq.ir_angl .and. val.le..1) val = .1
-          line(k)(k1:k1) = mark(val,ibar)
+          line(k)(k1:k1) = mark(val,ibar,undef)
           if (fland(i,j).gt..5) line(k+1)(k1:k1) = line(k)(k1:k1)
           line(k+1)(1:1) = '+'             !  overstrike
         end do
@@ -3179,7 +3171,7 @@ c**** below map, show global mean and mark each quarter with a '+'
         if (kcol.eq.1) write(line(k)(nz1:nz2),'(i5)') nint(gm)
         if (kcol.gt.1) write(line(k)(nz1:nz2),'(i7)') nint(gm)
       end if
-      do k1 = n1,n2,im/(4*inc)
+      do k1 = n1,n2,im/(4*inci)
         line(k)(k1:k1) = '+'
       end do
 c**** last line: legend (there is a little more space in col 1 and 2)
@@ -3196,6 +3188,7 @@ c**** last line: legend (there is a little more space in col 1 and 2)
      &     JYEAR,JYEAR0,Itime,Itime0,XLABEL,lrunid
       USE GEOM, only :
      &     LAT_DG,LON_DG
+      use dagpcom, only : inc=>inci
       IMPLICIT NONE
 
       CHARACTER*48 TITLE
@@ -3206,7 +3199,7 @@ c**** last line: legend (there is a little more space in col 1 and 2)
       REAL*8, DIMENSION(IM,JM) :: SMAP
       REAL*8, DIMENSION(JM) :: SMAPJ
       DOUBLE PRECISION :: DAYS
-      INTEGER :: I,INC,J,jgrid
+      INTEGER :: I,J,jgrid
 
 C**** WRITE HEADER LINES
       DAYS=(Itime-Itime0)/DFLOAT(nday)
@@ -3214,7 +3207,6 @@ C**** WRITE HEADER LINES
       WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,
      *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
       WRITE(6,900) TITLE(1:48)
-      INC=(IM+35)/36
       DO I=1,IM
         WRITE(LINE(I),'(I3)') I
       end do
@@ -3257,8 +3249,8 @@ C****
   940 FORMAT(' ')
       END SUBROUTINE IJMAP
 
-      subroutine set_ijout (iopt,nmaplets,nmaps,Iord,Qtodo)
-!@sum set_ijout either lists or sets which fields are processed
+      subroutine set_ijout (iopt,nmaplets,nmaps,Iord,Qk,iu_Iij)
+!@sum set_ijout either lists or sets the fields to be processed
 !@auth Reto A. Ruedy
 !@ver  1.0
       USE DAGCOM
@@ -3267,54 +3259,46 @@ C****
 
       IMPLICIT NONE
       character*80 line
-      logical, dimension (kaij+nij_c) :: Qtodo
-      INTEGER Iord(kaij+nij_c+10),nmaplets,nmaps,iopt,iu_Iij,k,
+      logical, dimension (kaijx) :: Qk
+      INTEGER Iord(kaijx+10),nmaplets,nmaps,iopt,iu_Iij,k,
      *   n,kmap(3)
 
-c**** Just list what's available - then stop
+c**** Just list what's available - then do same for ijk-fields ???
       if (iopt .eq. 8) then
         call openunit('Iij',iu_Iij,.false.,.false.)
         write (iu_Iij,'(a)') 'List of fields shown as maplets'
         do n=1,nmaplets
           k = Iord(n)
-          Qtodo(k) = .false.
-          if (k.eq.0) then
+          Qk(k) = .false.
+          if (k.le.0) then
              write (iu_Iij,'(i3,1x,a)') k, '  blank maplet'
-          else if (k.le.kaij) then
-             write (iu_Iij,'(i3,1x,a)') k,lname_ij(k)
           else
-             write (iu_Iij,'(i3,1x,a)') k,lname_ij_c(k-kaij)
+             write (iu_Iij,'(i3,1x,a)') k,lname_ij(k)
           end if
         end do
         write (iu_Iij,'(a)') 'List of fields shown as 1-pg maps'
         do n=nmaplets+1,nmaplets+nmaps
           k = Iord(n)
-          Qtodo(k) = .false.
-          if (k.eq.0) then
+          Qk(k) = .false.
+          if (k.le.0) then
              cycle
-          else if (k.le.kaij) then
-             write (iu_Iij,'(i3,1x,a)') k,lname_ij(k)
           else
-             write (iu_Iij,'(i3,1x,a)') k,lname_ij_c(k-kaij)
+             write (iu_Iij,'(i3,1x,a)') k,lname_ij(k)
           end if
         end do
         write (iu_Iij,'(a)') 'List of other fields in binary output'
-        do k=1,kaij+nij_c
-          if (.not.Qtodo(k)) cycle
-          if (k.le.kaij) then
-             write (iu_Iij,'(i3,1x,a)') k,lname_ij(k)
-          else
-             write (iu_Iij,'(i3,1x,a)') k,lname_ij_c(k-kaij)
-          end if
+        do k=1,kaijx
+          if (.not.Qk(k)) cycle
+          write (iu_Iij,'(i3,1x,a)') k,lname_ij(k)
         end do
-        Qtodo = .false.
-        stop 'created file Iij'
+        Qk = .false.
+        CALL IJKMAP (iu_Iij)
       end if
 
-c**** Redefine nmaplets,nmaps,Iord,Qtodo if 0 < kdiag(3) < 8
+c**** Redefine nmaplets,nmaps,Iord,Qk if 0 < kdiag(3) < 8
       call openunit('Iij',iu_Iij,.false.,.true.)
 
-      nmaplets = 0 ; nmaps = 0 ; Iord = 0 ; Qtodo = .false.
+      nmaplets = 0 ; nmaps = 0 ; Iord = 0 ; Qk = .false.
 
       kmap = 0 ; n=0 ; k=0
    10 read (iu_Iij,'(a)',end=20) line
@@ -3324,7 +3308,7 @@ c**** Redefine nmaplets,nmaps,Iord,Qtodo if 0 < kdiag(3) < 8
       end if
       k = k+1
       read(line,'(i3)') Iord(k)
-      Qtodo(Iord(k)) = .true.
+      Qk(Iord(k)) = .true.
       kmap(n) = kmap(n) + 1
       go to 10
 
@@ -3346,6 +3330,7 @@ c      USE PRTCOM, only :
      &     areag,dlon,dxyp,dxyv,LAT_DG
       USE DAGCOM, only :
      &     consrv,kcon,scale_con,title_con,nsum_con,ia_con,kcmx
+      use dagpcom, only : inc=>incj
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM) :: MAREA
@@ -3357,7 +3342,7 @@ c      USE PRTCOM, only :
      *     DASH = ('----')
       DOUBLE PRECISION, PARAMETER :: XWON = TWOPI/(DLON*FIM)
 
-      INTEGER :: inc,j,jhemi,jnh,jp1,jpm,jsh,jv1,jvm,jx,n
+      INTEGER :: j,jhemi,jnh,jp1,jpm,jsh,jv1,jvm,jx,n
       DOUBLE PRECISION :: aglob,ahem,feq,fnh,fsh,days
 C**** CALCULATE SCALING FACTORS
       IF (IDACC(12).LT.1) IDACC(12)=1
@@ -3416,7 +3401,6 @@ C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
       AGLOB=1.D-10*AREAG*XWON
       AHEM=1.D-10*(.5*AREAG)*XWON
 C**** LOOP OVER HEMISPHERES
-      INC=1+(JM-1)/24
       DAYS=(Itime-Itime0)/DFLOAT(nday)
       DO N=1,KCMX
         DO J=1,JM
@@ -4195,45 +4179,28 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
   915 FORMAT('0')
       END SUBROUTINE DIAGKS
 
-      MODULE BDIJK
-!@sum  stores information for outputting lon-lat-press diagnostics
-!@auth M. Kelley
-      IMPLICIT NONE
-!@param nijk_out number of composite ijk output fields
-      integer, parameter :: nijk_out=1
-
-!@var units_ijk_o string containing output field units
-      CHARACTER(LEN=50), DIMENSION(nijk_out) :: UNITS_IJK_O
-!@var lname_ijk_o string describing output field
-      CHARACTER(LEN=50), DIMENSION(nijk_out) :: LNAME_IJK_O
-!@var name_ijk_o ref. string for output field
-      CHARACTER(LEN=30), DIMENSION(nijk_out) :: NAME_IJK_O
-!@var scale_ijk_o scaling for output field
-      REAL*8, DIMENSION(nijk_out) :: scale_ijk_o
-
-      END MODULE BDIJK
-
       SUBROUTINE IJK_TITLES
 !@sum  IJK_TITLES extra titles for composite ijk output
 !@auth G. Schmidt/M. Kelley
 !@ver  1.0
       USE CONSTANT, only : bygrav
-      USE BDIJK
+      USE DAGCOM, only : kaijk,kaijkx,UNITS_IJK,NAME_IJK,LNAME_IJK,
+     *   units_ijk,name_ijk,lname_ijk,scale_ijk  !  dagcom
       IMPLICIT NONE
       INTEGER :: K
 c
-      k = 0
+      k = kaijk
 c
       k = k + 1
-      name_ijk_o(k) = 'HEIGHT'
-      lname_ijk_o(k) = 'HEIGHT'
-      units_ijk_o(k) = 'm'
-      scale_ijk_o(k) = 0.25*BYGRAV
+      name_ijk(k) = 'HEIGHT'
+      lname_ijk(k) = 'HEIGHT'
+      units_ijk(k) = 'm'
+      scale_ijk(k) = 0.25*BYGRAV
 
       return
       END SUBROUTINE IJK_TITLES
 
-      SUBROUTINE IJKMAP
+      SUBROUTINE IJKMAP (iu_Iij)
 !@sum  IJKMAP output 3-D constant pressure output fields
 !@auth G. Schmidt
 !@ver  1.0
@@ -4241,23 +4208,22 @@ C**** Note that since all IJK diags are weighted w.r.t pressure, all
 C**** diagnostics must be divided by the accumulated pressure
 C**** All titles/names etc. implicitly assume that this will be done.
       USE CONSTANT, only :
-     &     grav,sha
+     &     grav,sha,undef
       USE MODEL_COM, only :
      &     im,jm,lm,
      &     PTOP,SIG,PSFMPT,XLABEL,LRUNID
-      USE DAGCOM, only :
+      USE DAGCOM, only : kdiag,
      &     aijk,acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
-     *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk
-      USE BDIJK, only :
-     &     name_ijk_o,lname_ijk_o,units_ijk_o,scale_ijk_o
+     *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk,kaijkx
       IMPLICIT NONE
 
       CHARACTER XLB*24,TITLEX*56
       CHARACTER*80 TITLEL(LM)
       REAL*8 SMAP(IM,JM-1,LM),SMAPJK(JM-1,LM)
-      REAL*8 UNDEF,flat,press,dp
+      REAL*8 flat,press,dp
       CHARACTER*4 CPRESS(LM)
-      INTEGER i,j,l,kxlb,ni,kcomp,k
+      INTEGER i,j,l,kxlb,ni,kcomp,k,iu_Iij
+      logical, dimension (kaijkx) :: Qk = .true.
 
 C**** OPEN PLOTTABLE OUTPUT FILE
       call open_ijk(trim(acc_period)//'.ijk'//XLABEL(1:LRUNID))
@@ -4265,7 +4231,21 @@ C****
 C**** INITIALIZE CERTAIN QUANTITIES
 C****
       call ijk_titles
-      UNDEF = -1.E30
+      if (kdiag(3).eq.8) then
+         write (iu_Iij,'(a)') 'list of 3-d fields'
+         do k=1,kaijkx
+           if (lname_ijk(k).ne.'unused')
+     *        write (iu_Iij,'(i3,1x,a)') k,lname_ijk(k)
+         end do
+         stop 'created file Iij'
+      else if (kdiag(3).gt.1) then
+         Qk = .false.
+   10    read (iu_Iij,'(i3)',end=20) k
+         Qk(k) = .true.
+         go to 10
+   20    continue
+      end if
+
       SMAP(:,:,:) = UNDEF
       KXLB = INDEX(XLABEL(1:11),'(')-1
       IF(KXLB.le.0) KXLB = 10
@@ -4285,11 +4265,11 @@ C****
       END DO
 
 C**** Select fields
-      kcomp=0
-      DO K=1,KAIJK
-        IF (K.ne.IJK_DSE .and. K.ne.IJK_DP) THEN
-          TITLEX = lname_ijk(k)(1:19)//"   at        mb ("//
-     *         trim(units_ijk(k))//", UV grid)"
+      DO K=1,KAIJKx
+        if (.not.Qk(k).or.lname_ijk(k).eq.'unused'.or.k.eq.ijk_dp) cycle
+        TITLEX = lname_ijk(k)(1:19)//"   at        mb ("//
+     *       trim(units_ijk(k))//", UV grid)"
+        IF (K.le.kaijk) THEN     !  simple cases
           DO L=1,LM
             DO J=2,JM
               NI = 0
@@ -4309,12 +4289,7 @@ C**** Select fields
             WRITE(TITLEX(27:30),'(A)') CPRESS(L)
             TITLEL(L) = TITLEX//XLB
           END DO
-          CALL POUT_IJK(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *         ,SMAP,SMAPJK,UNDEF)
-        ELSEIF (K.eq.IJK_DSE) THEN ! special compound case
-          kcomp=kcomp+1
-          TITLEX = lname_ijk_o(kcomp)(1:19)//"   at        mb ("//
-     *         trim(units_ijk_o(kcomp))//", UV grid)"
+        ELSEIF (name_ijk(K).eq.'HEIGHT') THEN ! special compound case
           DO L=1,LM
             DO J=2,JM
               NI = 0
@@ -4324,7 +4299,7 @@ C**** Select fields
                 DP=AIJK(I,J,L,IJK_DP)
                 SMAP(I,J-1,L) = UNDEF
                 IF(DP.GT.0.) THEN
-                  SMAP(I,J-1,L) = SCALE_IJK_O(kcomp)*(AIJK(I,J,L,K)-
+                  SMAP(I,J-1,L) = SCALE_IJK(k)*(AIJK(I,J,L,IJK_DSE)-
      *                 SHA*AIJK(I,J,L,IJK_T))/DP
                   FLAT = FLAT+SMAP(I,J-1,L)
                   NI = NI+1
@@ -4335,9 +4310,9 @@ C**** Select fields
             WRITE(TITLEX(27:30),'(A)') CPRESS(L)
             TITLEL(L) = TITLEX//XLB
           END DO
-          CALL POUT_IJK(TITLEL,name_ijk_o(kcomp),lname_ijk_o(kcomp)
-     *         ,units_ijk_o(kcomp),SMAP,SMAPJK,UNDEF)
         END IF
+        CALL POUT_IJK(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *       ,SMAP,SMAPJK,UNDEF)
       END DO
 C****
       call close_ijk
