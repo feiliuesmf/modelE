@@ -780,7 +780,7 @@ C                    1      2      3       4       5
 
 !@var FTAUC factor to control cloud optical depth in radiation calc.
 !@+   =1 for full expression, =0 for clear sky calculation.
-      real*8 :: FTAUC = 1.
+      real*8 :: FTAUC ! to be set in calling routine, thread-private !
 
 !@var PIVMAX limits PI0 of volcanic aerosols
       real*8 :: PIVMAX=1.0
@@ -3656,7 +3656,7 @@ C       Pre-Industrial+Natural 1850 Level  Industrial Process  BioMBurn
 C       ---------------------------------  ------------------  --------
 C        1    2    3    4    5    6    7    8    9   10   11   12   13
 C       SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
-C    +  1.0, 1.0, .26, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9/
+C    +  1.0, 1.0, 1.0, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9/
 
 C      A6YEAR          PRE                  SUI         OCI        BCI
 C     ------------------------------------------------------------------
@@ -4063,7 +4063,7 @@ C                              ----------------------------------------
       REAL*8  HLATTF(4)
       REAL*8, PARAMETER :: HLATKM(5) = (/15.0, 20.0, 25.0, 30.0, 35.0/)
 cx    INTEGER, SAVE :: LATVOL = 0   ! not ok for grids finer than 72x46
-                                                               
+
       real*8, parameter :: htplim=1.d-3
       REAL*8, SAVE :: FSXTAU,FTXTAU
       INTEGER, SAVE :: NJ25,NJJM

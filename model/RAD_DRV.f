@@ -516,7 +516,7 @@ C****  ---------------------------------  ------------------  --------
 C****   1    2    3    4    5    6    7    8    9   10   11   12   13
 C****  SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
 C**** using the following default scaling/tuning factors  AERMIX(1-13)
-C****  1.0, 1.0, .26, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9
+C****  1.0, 1.0, 1.0, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9
 C**** The 8 groups are (adding dust and volcanic aerosols as 7. and 8.)
 C**** 1. Sulfates (industr and natural), 2. Sea Salt, 3. Nitrates
 C**** 4. Organic Carbons, 5. industr Black Carbons(BC), 6. Biomass BC
