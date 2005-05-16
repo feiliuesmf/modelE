@@ -1,3 +1,6 @@
+c     integer iio,jjo,iia,jja,nwgta2o,nwgto2a
+c     parameter (iio=181,jjo=180,iia=72,jja=46,nwgta2o=jjo
+c    .                 ,nwgto2a=4*jja)
       integer nwgta2o,nwgto2a,nwgta2o2
       parameter (nwgta2o=18,nwgto2a=29,nwgta2o2=18)
 c

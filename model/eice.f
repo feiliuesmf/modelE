@@ -16,7 +16,8 @@ c
      .     paybak,borrow,total,totalx,qmax,qmx(jdm),heatfx,dtdflx,
      .     icex(idm,jdm),work(idm,jdm),dm,salflx2(idm,jdm),top,thkinv
       integer imx(jdm),jmx(jdm),k1
-      logical dosmoo
+      logical dosmoo,pump
+      data pump/.true./
 c
 c --- tmelt  = melting point (deg)
 c --- thin   = min. ice thickness (m)
@@ -78,6 +79,13 @@ c
      .          (tmelt*shi-lhm*(1.-0.001*fsss*saln(i,j,k1n))) ! > 0
         salflx2(i,j)=                   ! salflx: g/m2/sec fresh WT + salt flux
      .               odmsi(i,j)*saln(i,j,k1n)*(1.-fsss)
+c
+c       if (i.eq.itest .and. j.eq.jtest) then
+c       write(*,'(2i3,a,f6.2,4f10.4,6f6.2)')
+c    .   i,j,' ch1 ic/fx/br/odm/sst/tml/tm/s/ds/sf='
+c    .  ,oice(i,j),oflxa2o(i,j),borrow,odmsi(i,j)
+c    .  ,temp(i,j,k1n),tmxl,tmelt,saln(i,j,k1n)
+c       endif
       endif
 c
 c --- build up time integrals of surface fluxes
@@ -89,7 +97,7 @@ c --- build up time integrals of surface fluxes
 c
 c --- deposit brine below 500 m or in bottom fourth of column in SH
 c
-      if (salflx2(i,j).gt.0..and.i.gt.xpivn) then
+      if (salflx2(i,j).gt.0..and.i.gt.xpivn.and.pump) then
         top=min(500.*onem,p(i,j,kk+1)*.75)
         thkinv=1./(p(i,j,kk+1)-top)
         do 11 k=1,kk

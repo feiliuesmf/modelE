@@ -83,8 +83,6 @@ ccc      if (slave) call pipe_init(.false.)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
-cd    write(*,'(a,i8,7i5,a)')'chk =',
-cd   .    Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon
 c
       if (mod(jhour,nhr).eq.0.and.mod(itime,nday/24).eq.0) then
 c$OMP PARALLEL DO
@@ -121,9 +119,9 @@ c --- accumulate
 css  . +(erunosi(ia,ja)+erunpsi(ia,ja))*rsi(ia,ja))           ! ice
      . + erunosi(ia,ja)*rsi(ia,ja))                           ! ice
      .                                 /(3600.*real(nhr))
-      asalt(ia,ja)=asalt(ia,ja)                               ! kg/m*m/sec salt
-     .+((srunosi(ia,ja)+srunpsi(ia,ja))*rsi(ia,ja)            !
-     .   +smelti(ia,ja)/(dxyp(ja)*focean(ia,ja)))             !
+      asalt(ia,ja)=asalt(ia,ja)                            ! kg/m*m/sec salt
+     .+((srunosi(ia,ja)+srunpsi(ia,ja))*rsi(ia,ja)         !
+     .   +smelti(ia,ja)/(dxyp(ja)*focean(ia,ja)))          !
      .                             /(3600.*real(nhr))
        aice(ia,ja)= aice(ia,ja) + rsi(ia,ja)*dtsrc/(real(nhr)*3600.)
 c --- dmua on B-grid, dmui on C-grid; Nick aug04
@@ -139,8 +137,12 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
 c$OMP END PARALLEL DO
 c
 cd    nsavea=nsavea+1
+      write(*,'(a,i8,7i5,a)')'chk =',
+     .    Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon
       if (mod(jhour,nhr).gt.0.or.mod(itime,nday/24).eq.0) return
 cd    print *,' chk agcm saved over hr=',nsavea*24/nday
+      write(*,'(a,i8,7i5,a)')'chk2=',
+     .    Itime,Jhour,nday,mod(itime,nday/24)
 cd    nsavea=0
 c
       call veca2o(ataux,atauy,taux,tauy)          !wind stress
@@ -159,6 +161,7 @@ c$OMP PARALLEL DO
      .     write(*,'(f6.2,a,2i4,f6.2,a,f6.2)')
      .   oice(i,j),' bad sst at=',i,j,temp(i,j,1),' new s=',
      . sofsig(th3d(i,j,1)+thbase,-1.8)
+css     if (oice(i,j).gt. .3 .and. i.ge.xpivn) then
         if (oice(i,j).gt. .5) then
           do k=1,kk
           temp(i,j,k   )=min(temp(i,j,k),-1.8)
@@ -243,6 +246,9 @@ c
 c
 c --- set up parameters defining the geographic environment
 c
+css   call geopar                ! moved to agcm for zero start or below
+css   call inicon                ! moved to agcm
+c
       watcum=0.
       empcum=0.
 c
@@ -268,6 +274,11 @@ c
       endif
 c
       if (nstepi.le.0) stop 'wrong nstepi'
+c
+c     print *,' shown below oice'
+c     call zebra(oice,iio,iio,jjo)
+c     print *,' shown below aflxa2o'
+c     call zebra(aflxa2o,iia,iia,jja)
 c
 c$OMP PARALLEL DO
       do 202 j=1,jj
@@ -321,6 +332,9 @@ c
       total_time = total_time + cnuity_time               ! total
 c     call sstbud(0,'  initialization',temp(1,1,k1n))
 c
+ccc      write (string,'(a12,i8)') 'cnuity, step',nstep
+ccc      call comparall(m,n,mm,nn,string)
+c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (diag_ape)
      .  q=hyc_pechg1(dp(1,1,k1m),th3d(1,1,k1m),32)
@@ -339,6 +353,9 @@ c
      . write (501,103) time,'  APE change due to time smoothing: ',
      .  hyc_pechg2(dp(1,1,k1m),th3d(1,1,k1m),32)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ccc      write (string,'(a12,i8)') 'tsadvc, step',nstep
+ccc      call comparall(m,n,mm,nn,string)
+c
       before = after
       momtum_time = 0.0
       call momtum(m,n,mm,nn,k1m,k1n)
@@ -347,6 +364,9 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       momtum_total_time = momtum_total_time + momtum_time
       total_time = total_time + momtum_time
 c
+ccc      write (string,'(a12,i8)') 'momtum, step',nstep
+ccc      call comparall(m,n,mm,nn,string)
+c
       before = after
       barotp_time = 0.0
       call barotp(m,n,mm,nn,k1m,k1n)
@@ -354,6 +374,9 @@ c
       barotp_time = real(after-before,4)/real(rate,4)
       barotp_total_time = barotp_total_time + barotp_time
       total_time = total_time + barotp_time
+c
+ccc      write (string,'(a12,i8)') 'barotp, step',nstep
+ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
       convec_time = 0.0
@@ -369,6 +392,9 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
      .  hyc_pechg2(dp(1,1,k1n),th3d(1,1,k1n),31)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
+ccc      write (string,'(a12,i8)') 'convec, step',nstep
+ccc      call comparall(m,n,mm,nn,string)
+c
       before = after
       diapfl_time = 0.0
       call diapfl(m,n,mm,nn,k1m,k1n)
@@ -383,6 +409,9 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
      .  hyc_pechg2(dp(1,1,k1n),th3d(1,1,k1n),31)*2./mixfrq
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
+ccc      write (string,'(a12,i8)') 'diapfl, step',nstep
+ccc      call comparall(m,n,mm,nn,string)
+c
       before = after
       thermf_time = 0.0
       call thermf(m,n,mm,nn,k1m,k1n)
@@ -390,6 +419,9 @@ c
       thermf_time = real(after-before,4)/real(rate,4)
       thermf_total_time = thermf_total_time + thermf_time
       total_time = total_time + thermf_time
+c
+ccc      write (string,'(a12,i8)') 'thermf, step',nstep
+ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
       enloan_time = 0.0
@@ -414,6 +446,9 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
      .  hyc_pechg2(dp(1,1,k1n),th3d(1,1,k1n),31)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
+ccc      write (string,'(a12,i8)') 'mxlayr, step',nstep
+ccc      call comparall(m,n,mm,nn,string)
+c
       before = after
       hybgen_time = 0.0
       call hybgen(m,n,mm,nn,k1m,k1n)
@@ -422,6 +457,8 @@ c
       hybgen_total_time = hybgen_total_time + hybgen_time
       total_time = total_time + hybgen_time
 c
+ccc      write (string,'(a12,i8)') 'hybgrd, step',nstep
+ccc      call comparall(m,n,mm,nn,string)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (diag_ape)
      . write (501,103) time,'  APE change due to vert.regridding:',
@@ -556,16 +593,16 @@ ccc     .     'mx.lay. salin. (.01 mil)')
      .     'ice coverage (cm)')
         call prtmsk(maska,asst,util3,iia,iia,jja,0.,1.,
      .     'asst ')
-ccc      do 77 j=1,jj1
-ccc      do 77 l=1,isu(j)
-ccc     do 77 i=ifu(j,l),ilu(j,l)
-ccc 77   util1(i,j)=u(i,j,k1n)+ubavg(i,j,n)
+      do 77 j=1,jj1
+      do 77 l=1,isu(j)
+      do 77 i=ifu(j,l),ilu(j,l)
+ 77   util1(i,j)=u(i,j,k1n)+ubavg(i,j,n)
 ccc      call prtmsk(iu,util1,util3,idm,ii1,jj1,0.,1000.,
 ccc     .     'u vel. (mm/s), layer 1')
-ccc      do 78 i=1,ii1
-ccc      do 78 l=1,jsv(i)
-ccc      do 78 j=jfv(i,l),jlv(i,l)
-ccc 78   util2(i,j)=v(i,j,k1n)+vbavg(i,j,n)
+      do 78 i=1,ii1
+      do 78 l=1,jsv(i)
+      do 78 j=jfv(i,l),jlv(i,l)
+ 78   util2(i,j)=v(i,j,k1n)+vbavg(i,j,n)
 ccc      call prtmsk(iv,util2,util3,idm,ii1,jj1,0.,1000.,
 ccc     .     'v vel. (mm/s), layer 1')
 ccc      call prtmsk(iu,ubavg(1,1,n),util3,idm,ii1,jj1,0.,1000.,
@@ -581,8 +618,8 @@ c$OMP PARALLEL DO
       osst(i,j)=osst(i,j)+temp(i,j,k1n)*baclin/(3600.*real(nhr))
       osss(i,j)=osss(i,j)+saln(i,j,k1n)*baclin/(3600.*real(nhr))
       osiav(i,j)=osiav(i,j)+odmsi(i,j)*baclin*dtsrc/(3600.*real(nhr)) !kg/m2=>kg*.5*hr/m2
-      omlhc(i,j)=spcifh*max(dp(i,j,k1n)/onem,thkmin)/thref          !J/(m2*C)
-      oogeoza(i,j)=(montg(i,j,1)+thref*pbavg(i,j,m))*g/(thref*onem) !m^2/s^2
+      omlhc(i,j)=spcifh*max(dp(i,j,k1n)/onem,thkmin)/thref  ! J/(m2*C)
+      oogeoza(i,j)=(montg(i,j,1)+thref*pbavg(i,j,m))*g/(thref*onem) ! m^2/s^2
  201  continue
 c$OMP END PARALLEL DO
 c

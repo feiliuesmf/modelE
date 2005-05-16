@@ -165,6 +165,9 @@ c
 
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
+
+      print *,'SUBR=',SUBR
+      write(*,'(10f7.2)') ((gtemp(1,1,i,j),i=1,10),j=15,20)
       write(*,'(a)') 'focean'
       write(*,'(10f7.2)') ((focean(i,j),i=1,10),j=15,20)
       END SUBROUTINE CHECKO

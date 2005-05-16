@@ -29,9 +29,9 @@ c --- 'batrop' = barotropic time step
 c --- 'diagfq' = number of days between model diagnostics (incl.output)
       data baclin,batrop/3600.,120./,diagfq/365./          ! 2deg full global
 c
-c --- 'thkdff' = diffusion velocity (cm/s) for thickness diffusion
-c --- 'veldff' = diffusion velocity (cm/s) for momentum dissipation
-c --- 'temdff' = diffusion velocity (cm/s) for temp/salin. mixing
+c --- 'thkdff' = diffusion velocity (m/s) for thickness diffusion
+c --- 'veldff' = diffusion velocity (m/s) for momentum dissipation
+c --- 'temdff' = diffusion velocity (m/s) for temp/salin. mixing
 c --- 'viscos' is nondimensional, used in deformation-dependent viscosity
 c --- 'vertmx' = scale velocity for vertical momentum mixing (m/s)
       data thkdff/.002/,veldff/.1/,temdff/.02/,viscos/0.3/,vertmx/0./
@@ -43,6 +43,7 @@ c --- 'h1'     = depth interval used in lateral weighting of hor.pres.grad.
 c --- 'thkmin' = minimum mixed-layer thickness (m)
 c --- 'acurcy' = permissible roundoff error in column integral calc.
       data diapyc/3.e-7/,mixfrq/12/			!  mixfrq=2/day
+css   data diapyc/.3e-4/,mixfrq/12/			!  mixfrq=2/day
       data h1/98060./,thkmin/20./,acurcy/1.e-11/
 c
 c --- slip=+1  for free-slip boundary cond., slip=-1  for non-slip cond.
@@ -115,23 +116,29 @@ c     flnmovt = location (pathname) of ovtn.xxxxxx files
 c     flnmlat = location (pathname) of lat/lon at vorticity points
 c
       data flnmlat/
-     .   '/giss2/giss/sun/cplinput/latlonij.4bin'/
+     .   '/raid10/nick/HYCOM_KPP/cplinput/latlonij.4bin'/
       data flnmdep/
-     .   '/giss2/giss/sun/cplinput/depth181x180c.4bin'/
+     .   '/raid10/nick/HYCOM_KPP/cplinput/depth181x180c.4bin'/
       data flnmint/
-     .   '/giss2/giss/sun/cplinput/temp181x180jan_lt_SL.asc'/
+     .   '/raid10/nick/HYCOM_KPP/cplinput/temp181x180jan_lt_SL.asc'/
       data flnmins/
-     .   '/giss2/giss/sun/cplinput/salt181x180jan_lt_SL.asc'/
+     .   '/raid10/nick/HYCOM_KPP/cplinput/salt181x180jan_lt_SL.asc'/
       data flnminp/
-     .   '/giss2/giss/sun/cplinput/pout181x180jan_lt_SL.asc'/
+     .   '/raid10/nick/HYCOM_KPP/cplinput/pout181x180jan_lt_SL.asc'/
+c     data flnmint/
+c    .   '/raid10/nick/HYCOM_KPP/cplinput/temp181x180x16jan_lt2.asc'/
+c     data flnmins/
+c    .   '/raid10/nick/HYCOM_KPP/cplinput/salt181x180x16jan_lt2.asc'/
+c     data flnminp/
+c    .   '/raid10/nick/HYCOM_KPP/cplinput/pout181x180x16jan_lt2.asc'/
       data flnmbas/
-     .   '/giss2/giss/sun/cplinput/basinmasks.181x180b'/
-      data flnma2o    /'/giss2/giss/sun/cplinput/flxa2o.8bin'/
-      data flnma2o_tau/'/giss2/giss/sun/cplinput/taua2o.8bin'/
-      data flnmo2a    /'/giss2/giss/sun/cplinput/ssto2a.8bin'/
-      data flnmcoso   /'/giss2/giss/sun/cplinput/cososino.8bin'/
-      data flnmcosa   /'/giss2/giss/sun/cplinput/cosasina.8bin'/
-      data flnmijuv   /'/giss2/giss/sun/cplinput/ijuvo2a.8bin'/
+     .   '/raid10/nick/HYCOM_KPP/cplinput/basinmasks.181x180b'/
+      data flnma2o    /'/raid10/nick/HYCOM_KPP/cplinput/flxa2o.8bin'/
+      data flnma2o_tau/'/raid10/nick/HYCOM_KPP/cplinput/taua2o.8bin'/
+      data flnmo2a    /'/raid10/nick/HYCOM_KPP/cplinput/ssto2a.8bin'/
+      data flnmcoso   /'/raid10/nick/HYCOM_KPP/cplinput/cososino.8bin'/
+      data flnmcosa   /'/raid10/nick/HYCOM_KPP/cplinput/cosasina.8bin'/
+      data flnmijuv   /'/raid10/nick/HYCOM_KPP/cplinput/ijuvo2a.8bin'/
       data flnmovt/'./'/
 c
       end

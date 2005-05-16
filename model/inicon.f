@@ -193,8 +193,13 @@ c     do 21 j=1,jj
 c     do 21 l=1,isp(j)
 c     do 21 i=ifp(j,l),ilp(j,l)
 css   omlhc(i,j)=spcifh*p(i,j,2)/(onem *thref)           ! J/m*m C
+c     thermb(i,j,k)=kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k))
+c    .             *(1000.+th3d(i,j,k)+thbase)
+c     thermb(i,j,k+kk)=thermb(i,j,k)
 c21   continue
 cc$OMP END PARALLEL DO
+      write(800,'(a,i5)') 'restart',nstep0
+      write(800,'(8f13.8)') ((dp(115,170,k)/onem),k=1,2*kk)
       end if				!  nstep0 > 0  or  = 0
 c
       if (itest.gt.0.and.jtest.gt.0) write (lp,103) nstep,itest,jtest,
@@ -203,6 +208,7 @@ c
      .  thstar(itest,jtest,k)+thbase,dp(itest,jtest,k)/onem,
      .  p(itest,jtest,k+1)/onem,montg(itest,jtest,k)/g,k=1,kk)
  103  format (i9,2i5,a/(28x,i3,2f8.2,f8.2,2f8.1,f8.3))
+c
 c
 c     print *,' inicon gtemp'
 c     call zebra(utila,iia,iia,jja)

@@ -332,6 +332,18 @@ c
  906  dl2vib(i,j)=(1.-wgtib(i,j))*dl2v(ib,j)+wgtib(i,j)*slip*dl2v(i,j)
 c$OMP END PARALLEL DO
 c
+ccc      do j=1,jdm
+ccc      ja=mod(j-2+jj,jj)+1
+ccc      do i=1,idm
+ccc      ia=mod(i-2+ii,ii)+1
+ccc      mask(i,j)=iq(i,j)+iu(i,j)+iv(i,j)
+ccc      mask(i,j)=mask(i,j)+iu(i,ja )
+ccc      mask(i,j)=mask(i,j)+iv(ia ,j)
+ccc      end do
+ccc      end do
+ccc      write (text,'(a,i3,i8)') 'potvor k=',k,nstep
+ccc      call compare(potvor,mask,text)
+c
 c --- ----------
 c --- u equation
 c --- ----------
@@ -845,6 +857,7 @@ c$OMP END PARALLEL DO
 c
       return
       end
+c
 c
       real function hfharm(a,b)
 c --- harmonic mean divided by 2

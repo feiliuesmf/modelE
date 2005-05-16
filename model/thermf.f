@@ -14,10 +14,40 @@ c
      .     rmean,tmean,smean,vmean,boxvol,emnp(idm,jdm),slfcol(jdm),
      .     watcol(jdm),empcol(jdm),rhocol(jdm),temcol(jdm),salcol(jdm)
       integer iprime,ktop
-      real qsatur
+      real qsatur,totl,eptt,salrlx
       external qsatur
       data ktop/3/
 ccc      data ktop/2/			!  normally set to 3
+css   data salrlx/0.3215e-7/          !  1/(1 yr)
+      data salrlx/0.6430e-8/          !  1/(5 yr)
+c
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c --- optional: weak salinity restoring via corrective surface flux
+c
+ccc      if (mod(time+.0001,30.).lt..0002) then            !  once a month
+ccc        totl=0.
+ccc        eptt=0.
+cccc$OMP PARALLEL DO REDUCTION(+:totl,eptt)
+ccc        do 8 j=1,jj
+ccc        do 8 k=1,kk
+ccc        do 8 l=1,isp(j)
+ccc        do 8 i=ifp(j,l),ilp(j,l)
+ccc        eptt=eptt+oemnp(i,j)*scp2(i,j)
+ccc 8      totl=totl+saln(i,j,k)*dp(i,j,k)*scp2(i,j)
+cccc$OMP END PARALLEL DO
+ccc        totl=totl/g                                     !  10^-3 kg
+cccc
+cccc --- initialize total salt content
+ccc        if (saltot.le.0.) saltot=totl
+cccc --- determine corrective flux using multi-year relaxation time scale
+ccc        pcpcor=(totl-saltot)*salrlx                     !  10^-3 kg/sec
+ccc     .   *thref/35.                                     !  => m^3/sec
+ccc     .   /eptt                                          !  => rel. units
+ccc        write (lp,'(i9,a,f9.5,a,f7.2)') nstep,
+ccc     .  '  overall salt gain (psu):',(totl-saltot)*thref/(area*avgbot),
+ccc     .  '  => precip bias(%):',100.*pcpcor
+ccc      end if
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c$OMP PARALLEL DO PRIVATE(kn)
       do 66 j=1,jj
@@ -59,9 +89,10 @@ c
 c
 c --- emnp = evaporation minus precipitation over open water (m/sec)
 css   emnp(i,j)=(evapw*thref/evaplh + prcp)*(1.-covice(i,j))
+css   emnp(i,j)=oemnp(i,j)*(1.+pcpcor)
       emnp(i,j)=oemnp(i,j)
 c --- salflx = salt flux (10^-3 kg/m^2/sec) in +p direction, salt from SI added
-css   salflx(i,j)=saln(i,j,k1n)*(osalt(i,j)*fsss-emnp(i,j)/thref)
+c     salflx(i,j)=saln(i,j,k1n)*(osalt(i,j)*fsss-emnp(i,j)/thref)
 css   salflx(i,j)=-35.0*emnp(i,j)/thref+osalt(i,j)*1.e3
       salflx(i,j)=-saln(i,j,k1n)*emnp(i,j)/thref+osalt(i,j)*1.e3
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
