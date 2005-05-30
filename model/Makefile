@@ -295,7 +295,7 @@ endif
 	echo '--------------------------------------------------------------'
 
 gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(MODS) $(OBJSA)
-	ar cr $(RUN).a $(OBJSA)
+	ar rcs $(RUN).a $(OBJSA)
 	if [ ! -d $(BIN_DIR) ]; then mkdir $(BIN_DIR); fi
 	mv $(RUN).a $(BIN_DIR)
 
