@@ -358,7 +358,7 @@ ccc accumulate tracer dry deposition
           tdryd=-rtsdt*(dep_vel(n)+gs_vel(n))          ! kg/m2
           tdd = tdryd*dxyp(j)*ptype                    ! kg
           td1 = (trsrfflx(i,j,n)+totflux(nx))*dtsurf   ! kg
-          if (trm(i,j,1,n)+td1+tdd.lt.0.and.tdd.lt.0) then
+          if (trm(i,j,1,n)+td1+tdd.le.0.and.tdd.lt.0) then
             if (qcheck) write(99,*) "limiting tdryd earth",i,j,n,tdd
      *           ,trm(i,j,1,n),td1,trs(nx),trtop(nx)
             tdd= -max(trm(i,j,1,n)+td1,0d0)
