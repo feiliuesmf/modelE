@@ -1,4 +1,4 @@
- 
+  
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
@@ -1263,7 +1263,7 @@ C                               ----------------------------------------
       DO K=1,5
         READ (NRFU) TITLE,VTAUR4
         DO J=1,24
-          SUM=0.  
+          SUM=0.
         DO I=1,1800
           V4TAUR(I,J,K)=VTAUR4(I,J)
           SUM=SUM+VTAUR4(I,J)
@@ -1401,7 +1401,15 @@ C****   Read in annual-mean data
         DO I=1,Ms0X
           READ(NRFU,'(F12.1,2F15.4)',end=908) yr2S0,TSI1(I),TSI2(I)
           if(I.eq.1) yr1S0 = yr2S0
-          READ(NRFU,'(5E14.6)')               (UVLEAN(I,K),K=1,190)
+          READ(NRFU,'(5E14.6)')               (FSLEAN(K),K=1,190)
+          SUM=0.D0
+          DO K=1,190
+            SUM=SUM+FSLEAN(K)*DSLEAN(K)
+          END DO
+          SFNORM=TSI1(I)/SUM
+          DO K=1,190
+            UVLEAN(I,K)=FSLEAN(K)*SFNORM
+          END DO
         END DO
   908   write(6,*) 'read S0-history: ',yr1S0,' - ',yr2S0
       END IF
@@ -2528,7 +2536,7 @@ c     write(0,*) 'WTTI,WTTJ, WTSI,WTSJ',WTTI,WTTJ, WTSI,WTSJ
       RETURN
       END SUBROUTINE O3_WTS
 
-      
+
       subroutine GETGAS
       call SETGAS(1)
       end subroutine GETGAS
@@ -4116,9 +4124,9 @@ C                                          -------------------------
 !nu   SUM=0
 !nu   DO K=1,4
 !nu   SUM=SUM+HTFLAT(J,K)
-!nu   END DO 
+!nu   END DO
 !nu   TAULAT(J)=SUM
-!nu   END DO 
+!nu   END DO
 
       RETURN
 
