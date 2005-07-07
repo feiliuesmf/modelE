@@ -9,7 +9,7 @@ C****
 
       module RAD_COSZ0
 
-      contains 
+      contains
 
       subroutine COSZS (ROT1,ROT2,COSZ,COSZA)
       REAL*8 ROT1,ROT2
@@ -533,7 +533,7 @@ C****                                         even if the year is fixed
       if(KYEARO.gt.0) KYEARO=-KYEARO              ! use ONLY KYEARO-data
       KYEARA=Aero_yr ; KJDAYA=0 ;       MADAER=1 !trop.aeros (ann.cycle)
       KYEARV=Volc_yr ; KJDAYV=Volc_day; MADVOL=1   ! Volc. Aerosols
-      if(KYEARV.eq.-2000) KYEARV=0  
+      if(KYEARV.eq.-2000) KYEARV=0
 C**** NO time history (yet), except for ann.cycle, for forcings below;
 C****  if KJDAY?=day0 (1->365), data from that day are used all year
       KYEARD=0       ; KJDAYD=0 ;       MADDST=1   ! Desert dust
@@ -714,7 +714,7 @@ C****   Read in time history of well-mixed greenhouse gases
         call openunit('GHG',iu,.false.,.true.)
         call ghghst(iu)
         call closeunit(iu)
-        if (H2ObyCH4.gt.0..and.Kradia.le.0) then
+        if (H2ObyCH4.ne.0..and.Kradia.le.0) then
 C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
           call openunit('dH2O',iu,.false.,.true.)
           call getqma(iu,lat_dg,plbx,dh2o,lm,jm)
@@ -1862,9 +1862,9 @@ C       delayed accumulation to preserve order of summation
            AREG_part(JR,J,7) = AREG_part(JR,J,7) + AREGIJ(7,I,J)
          END DO
          END DO
-         
+
          CALL GLOBALSUM(grid, AREG_PART(:,:,1:7), AREGSUM(:,1:7))
-         idx1 = (/ J_PCLDSS, J_PCLDMC, J_CLDDEP, J_PCLD, 
+         idx1 = (/ J_PCLDSS, J_PCLDMC, J_CLDDEP, J_PCLD,
      &        J_CLRTOA, J_CLRTRP, J_TOTTRP /)
          AREG(:,idx1) = AREG(:,idx1) + AREGSUM(:,1:7)
 C

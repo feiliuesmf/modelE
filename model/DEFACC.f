@@ -2029,6 +2029,7 @@ c
       name_ij(k) = 'pot_evap'
       ia_ij(k) = ia_src
       scale_ij(k) = SDAY/DTsrc
+      iw_ij(k) = iw_soil
       ir_ij(k) = ir_0_26_150
 c
       k=k+1 !
