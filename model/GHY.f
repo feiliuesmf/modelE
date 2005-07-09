@@ -261,7 +261,8 @@ ccc   evaporation limiting data which one needs to pass the pbl
       real*8, public :: evap_max_sat, evap_max_nsat, fr_sat
 
 ccc   potential evaporation
-      real*8 epb, epv
+!@var epb,epbs,epv,epvs potential evaporation (b-bare, v-vege, s-snow)
+      real*8 epb, epv, epbs, epvs, epvg
 
 ccc   evaporation fluxes: these are pure fluxes over m^2
 ccc   i.e. they are not multiplied by any fr_...
@@ -339,7 +340,7 @@ C***
 !$   &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
 !$   &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu,aflmlt,aintercep
 !$   &     ,ashg,atrg,betad,betat,ch,gpp,d,devapbs_dt,devapvs_dt
-!$   &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb  ! dt dlm
+!$   &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb,epbs,epvs,epvg  ! dt dlm
 !$   &     ,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
 !$   &     ,evapbs,evapdl,evapvd,evapvs,evapvw,evapvg,f !evapor,
 !$   &     ,fb,fc,fch,fd,fd0,fh,fhsng,fhsng_scale,fice,flmlt,flmlt_scale
@@ -696,8 +697,8 @@ ccc   local variables
       real*8 :: qb, qbs, qv, qvs, qvg
 !      real*8 :: qb, qbs, qvs
 !----------------------------------------------------------------------!
-!@var epb,epbs,epv,epvs potential evaporation (b-bare, v-vege, s-snow)
-      real*8 :: epbs, epvs, epvg ! , epb, epv
+!!!@var epb,epbs,epv,epvs potential evaporation (b-bare, v-vege, s-snow)
+!      real*8 :: epbs, epvs, epvg ! , epb, epv
 !@var rho3,cna,qm1dt local variable
       real*8 rho3, cna, qm1dt
       integer ibv, k
@@ -1858,8 +1859,15 @@ ccc   max in the following expression removes extra drip because of dew
       aevapd = aevapd + evapvd*fd*(1.d0-fr_snow(2)*fm)*fv*dts
       aevapb = aevapb + evapb*(1.d0-fr_snow(1))*fb*dts
 !!! I guess we need to accumulate evap from snow here
-      aepc=aepc+(epv*fv*dts)
-      aepb=aepb+(epb*fb*dts)
+!      aepc=aepc+(epv*fv*dts)
+!      aepb=aepb+(epb*fb*dts)
+      aepc=aepc+( epv*(1.d0-fr_snow(2)*fm) + epvs*fr_snow(2)*fm )*fv*dts
+#ifdef EVAP_VEG_GROUND
+      ! next line is probably not correct (need to use something more
+      ! sophisticated for epvg)
+      aepc=aepc+( epvg*(1.d0-fr_snow(2)) )*fv*dts
+#endif
+      aepb=aepb+( epb*(1.d0-fr_snow(1)) + epbs*fr_snow(1) )*fb*dts
       !Accumulate GPP, nyk, like evap_tot(2)
       agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
 
