@@ -12,6 +12,8 @@ BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
 USER = $(shell whoami)
 HOMEDIR = $(wildcard ~)
 MODELERC = $(HOMEDIR)/.modelErc
+#default number of processors for setup
+NPROC = 1
 # getting options from configuration files
 # default modelE configuration file:
 include $(SCRIPTS_DIR)/modelErc
