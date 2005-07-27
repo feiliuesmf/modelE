@@ -1788,9 +1788,19 @@ C**** albedo calculations
      *     flag_dsws(IM, J_0H:J_1H),
      *     STAT=IER)
 
+!hack hack hack !!!!!!!! 
+      rsi = 0.d0   !!!!  call to io_seaice may be missing during postproc.
+      SNOWI = 0.d0
+      MSI = 0.d0
+      pond_melt = 0.d0
+      flag_dsws  = .false.
+
       ALLOCATE( HSI(LMI, IM, J_0H:J_1H),
      *     SSI(LMI, IM, J_0H:J_1H),
      *     STAT=IER)
+
+      hsi = 0.d0
+      ssi = 0.d0
 
 #ifdef TRACERS_WATER
       ALLOCATE( TRSI(NTM, LMI, IM, J_0H:J_1H),

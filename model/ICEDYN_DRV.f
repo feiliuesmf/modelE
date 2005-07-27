@@ -215,12 +215,16 @@ C****
 !@var it input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
 !@var ICIJ4 dummy arrays for reading diag. files
-      REAL*4, DIMENSION(IMIC,JMIC,KICIJ)  :: ICIJ4
+      REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ4
+      REAL*4, DIMENSION(IMIC,JMIC,KICIJ)  :: ICIJ4_GLOB
+      REAL*8, DIMENSION(IMIC,JMIC,KICIJ)  :: ICIJ4_GLOB8
       REAL*8, DIMENSION(IMIC,JMIC,KICIJ)  :: ICIJ_GLOB
       INTEGER :: J_0H_MIC, J_1H_MIC
 
 #ifdef TRACERS_WATER
-      REAL*4, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ4
+      REAL*8, DIMENSION(:,:,:,:), allocatable  :: TICIJ4
+      REAL*4, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ4_GLOB
+      REAL*8, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ4_GLOB8
       REAL*8, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ_GLOB
 !@var TR_HEADER Character string label for individual tracer records
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TRICDIAG01"
@@ -258,25 +262,41 @@ C****
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
         CASE (ioread_single)    ! accumulate diagnostic files
-          READ (kunit,err=10) HEADER,ICIJ4,it
+          if ( AM_I_ROOT() ) then
+            READ (kunit,err=10) HEADER,ICIJ4_GLOB,it
+            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",HEADER
+     *           ,MODULE_HEADER
+              GO TO 10
+            END IF
+          endif
 C**** accumulate diagnostics
+          allocate( ICIJ4(IMIC, J_0H_MIC:J_1H_MIC, KICIJ) )
+          ICIJ4 = 0.d0 ! should do "halo_ipdate" instead?
+          ICIJ4_GLOB8 = ICIJ4_GLOB ! convert to real*8
+          CALL UNPACK_DATA(grid_MIC, ICIJ4_GLOB8, ICIJ4)
+          call ESMF_BCAST(grid_MIC, it)
           ICIJ(:,J_0H_MIC:J_1H_MIC,:)=ICIJ(:,J_0H_MIC:J_1H_MIC,:)
      &                            +ICIJ4(:,J_0H_MIC:J_1H_MIC,:)
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER
-     *           ,MODULE_HEADER
-            GO TO 10
-          END IF
+          deallocate( ICIJ4 )
 #ifdef TRACERS_WATER
-          READ (kunit,err=10) TR_HEADER,TICIJ4,it
+          if ( AM_I_ROOT() ) then
+            READ (kunit,err=10) TR_HEADER,TICIJ4_GLOB,it
+            IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TR_HEADER
+     *             ,TR_MODULE_HEADER
+              GO TO 10
+            END IF
+          endif
 C**** accumulate diagnostics
+          allocate( TICIJ4(IMIC, J_0H_MIC:J_1H_MIC, KTICIJ, NTM) )
+          TICIJ4 = 0.d0 ! should do "halo_ipdate" instead?
+          TICIJ4_GLOB8 = TICIJ4_GLOB ! convert to real*8
+          CALL UNPACK_DATA(grid_MIC, TICIJ4_GLOB8, TICIJ4)
+          call ESMF_BCAST(grid_MIC, it)
           TICIJ(:,J_0H_MIC:J_1H_MIC,:,:)=TICIJ(:,J_0H_MIC:J_1H_MIC,:,:)
      &                                 +TICIJ4(:,J_0H_MIC:J_1H_MIC,:,:)
-          IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",TR_HEADER
-     *           ,TR_MODULE_HEADER
-            GO TO 10
-          END IF
+          deallocate( TICIJ4 )
 #endif
         CASE (ioread,irerun)    ! restarts
           if ( AM_I_ROOT() ) then
