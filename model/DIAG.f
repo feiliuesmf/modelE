@@ -981,6 +981,7 @@ C****
       USE DYNAMICS, only : phi,dut,dvt,plij,sd
       USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP, only : HALO_UPDATEj
       USE DOMAIN_DECOMP, only : SOUTH, NORTH, GLOBALSUM
       IMPLICIT NONE
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE
@@ -1168,9 +1169,10 @@ C from the previous halo call.
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
       CALL HALO_UPDATE(grid, Q, FROM=SOUTH)
       CALL HALO_UPDATE(grid, T, FROM=SOUTH)
-      DO L=1,LM
-         CALL HALO_UPDATE(grid, STJK(:,L), FROM=SOUTH)
-      END DO
+      CALL HALO_UPDATEj(grid, STJK, FROM=SOUTH)
+c***      DO L=1,LM
+c***         CALL HALO_UPDATE(grid, STJK(:,L), FROM=SOUTH)
+c***      END DO
 
       DO 390 J=J_0STG,J_1STG
       I=IM
@@ -1691,9 +1693,10 @@ C****
       KDN=K-1
       IF (K.EQ.1) KDN=1
 
-      DO L=1,LM
-         CALL HALO_UPDATE(grid, TJK(:,L), FROM=SOUTH)
-      END DO
+      CALL HALO_UPDATEj(grid, TJK, FROM=SOUTH)
+c***      DO L=1,LM
+c***         CALL HALO_UPDATE(grid, TJK(:,L), FROM=SOUTH)
+c***      END DO
 
       DO 780 J=J_0STG,J_1STG
       TY(J,K)=(TJK(J,K)-TJK(J-1,K))/DYV(J)
@@ -1703,17 +1706,25 @@ C**** E-P FLUX NORTHWARD COMPONENT
      *  (PMO(KUP)-PMO(KDN))-UVJK(J,K)
   780 CONTINUE
 
-      DO L=1,LM
-         CALL HALO_UPDATE(grid, PSIJK(:,L), FROM=NORTH)
-         CALL HALO_UPDATE(grid, UJK(:,L), FROM=NORTH)
-         CALL HALO_UPDATE(grid, VJK(:,L), FROM=NORTH)
-         If (L > 1) THEN
-           CALL HALO_UPDATE(grid, WJK(:,L), FROM=NORTH)
-         END IF
-         CALL HALO_UPDATE(grid, UP(:,L), FROM=NORTH)
-         CALL HALO_UPDATE(grid, TY(:,L), FROM=NORTH)
-         CALL HALO_UPDATE(grid, PSIP(:,L), FROM=NORTH)
-      END DO
+      CALL HALO_UPDATEj(grid, PSIJK, FROM=NORTH)
+      CALL HALO_UPDATEj(grid, UJK, FROM=NORTH)
+      CALL HALO_UPDATEj(grid, VJK, FROM=NORTH)
+      CALL HALO_UPDATEj(grid, WJK, FROM=NORTH)
+      CALL HALO_UPDATEj(grid, UP, FROM=NORTH)
+      CALL HALO_UPDATEj(grid, TY, FROM=NORTH)
+      CALL HALO_UPDATEj(grid, PSIP, FROM=NORTH)
+
+c***      DO L=1,LM
+c***         CALL HALO_UPDATE(grid, PSIJK(:,L), FROM=NORTH)
+c***         CALL HALO_UPDATE(grid, UJK(:,L), FROM=NORTH)
+c***         CALL HALO_UPDATE(grid, VJK(:,L), FROM=NORTH)
+c***         If (L > 1) THEN
+c***           CALL HALO_UPDATE(grid, WJK(:,L), FROM=NORTH)
+c***         END IF
+c***         CALL HALO_UPDATE(grid, UP(:,L), FROM=NORTH)
+c***         CALL HALO_UPDATE(grid, TY(:,L), FROM=NORTH)
+c***         CALL HALO_UPDATE(grid, PSIP(:,L), FROM=NORTH)
+c***      END DO
 
       DO 800 J=J_0S,J_1S
       DO 800 K=2,KM-1
@@ -2580,16 +2591,17 @@ C****
       USE DIAG_COM, only : speca,atpe,nspher,kspeca,klayer
       USE DIAG_COM, only : SQRTM
       USE DYNAMICS, only : sqrtp,pk
-      USE DOMAIN_DECOMP, only : GRID,GET,CHECKSUM,HALO_UPDATE
+      USE DOMAIN_DECOMP, only : GRID,GET,CHECKSUM,HALO_UPDATE, AM_I_ROOT
       USE DOMAIN_DECOMP, only : GLOBALSUM, SOUTH, WRITE_PARALLEL
+
       IMPLICIT NONE
       INTEGER :: M5,NDT
       REAL*8, DIMENSION(IM) :: X
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE,APE
       REAL*8, DIMENSION
      &  (IMH+1,GRID%J_STRT_HALO:GRID%J_STOP_HALO,NSPHER) :: KE_part
-      REAL*8, DIMENSION(IMH+1,4) :: VAR
-      REAL*8, DIMENSION(IMH+1,GRID%J_STRT_HALO:GRID%J_STOP_HALO,4)
+      REAL*8, DIMENSION(IMH+1,4,LM) :: VAR
+      REAL*8, DIMENSION(IMH+1,4,LM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
      &     :: VAR_part
       REAL*8 :: VARSUM
       REAL*8, DIMENSION(2) :: TPE
@@ -2607,12 +2619,12 @@ CMoved to DAGCOM so it could be declared allocatable      REAL*8, SAVE, DIMENSIO
       INTEGER :: I,IJL2,IP1,J,J45N,JH,JHEMI,JP,K,KS,KSPHER,L,LDN,
      &     LUP,MAPE,MKE,MNOW,MTPE,N,NM
 
-      REAL*8 :: GMEAN,GMTMP,SQRTPG,SUMI,SUMT,THGSUM,THJSUM
+      REAL*8 :: GMEAN(LM),GMTMP,SQRTPG,SUMI,SUMT,THGSUM,THJSUM
       REAL*8 :: THGSUM_part(grid%J_STRT_HALO:grid%J_STOP_HALO)
-      REAL*8 :: GMSUM(grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8 :: GMSUM(grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
 
       INTEGER :: J_0S,J_1S,J_0STG,J_1STG
-      LOGICAl :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       CALL GET(GRID, J_STRT_SKP=J_0S   , J_STOP_SKP=J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
@@ -2652,17 +2664,22 @@ C***  810 WRITE (6,910) M5
 C****  910 FORMAT ('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5A.  M5=',I5)
       call stop_model('INCORRECT VALUE OF M5 WHEN CALLING DIAG5A.',255)
 C**** MASS FOR KINETIC ENERGY
-  200 I=IM
+  200 CONTINUE
 
+      I=IM
       CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+      DO J=J_0STG,J_1STG
+        DO  IP1=1,IM
+          SQRTM(I,J)=SQRT(.5*((P(I,J)+P(IP1,J))*DXYS(J)+(P(I,J-1)+
+     *         P(IP1,J-1))*DXYN(J-1)))
+          I=IP1
+        END DO
+      END DO
 
-      DO 202 J=J_0STG,J_1STG
-      DO 202 IP1=1,IM
-      SQRTM(I,J)=SQRT(.5*((P(I,J)+P(IP1,J))*DXYS(J)+(P(I,J-1)+
-     *  P(IP1,J-1))*DXYN(J-1)))
-  202 I=IP1
 C****
-  205 MAPE=MKE+1
+  205 CONTINUE
+
+      MAPE=MKE+1
       KE(:,:)=0.
       KE_part(:,:,:)=0.
 C**** CURRENT KINETIC ENERGY
@@ -2701,113 +2718,127 @@ cgsfc              IF(K.EQ.LM)KSPHER=KSPHER+1
         ENDDO
       ENDDO
 
-      CALL GLOBALSUM(grid, KE_part(1:NM,:,1:NSPHER), 
-     &   KE(1:NM,1:NSPHER), ALL=.TRUE.)
+      CALL GLOBALSUM(grid, KE_part, KE, ALL=.true.)
 
-      IF (NDT.EQ.0) GO TO 260
+      IF (NDT /= 0) THEN
 C**** TRANSFER RATES AS DIFFERENCES OF KINETIC ENERGY
-      DO 250 KS=1,NSPHER
-      DO 250 N=1,NM
-  250 SPECA(N,MKE,KS)=SPECA(N,MKE,KS)+(KE(N,KS)-SPECA(N,19,KS))/NDT
-  260 DO 270 KS=1,NSPHER
-      DO 270 N=1,NM
-  270 SPECA(N,19,KS)=KE(N,KS)
+        DO KS=1,NSPHER
+          DO N=1,NM
+           SPECA(N,MKE,KS)=SPECA(N,MKE,KS)+(KE(N,KS)-SPECA(N,19,KS))/NDT
+          END DO
+        END DO
+      END IF
+      DO KS=1,NSPHER
+        DO N=1,NM
+          SPECA(N,19,KS)=KE(N,KS)
+        END DO
+      END DO
+
 C****
 C**** POTENTIAL ENERGY
 C****
   296 CONTINUE
+
       APE(:,:)=0.
 C**** CURRENT AVAILABLE POTENTIAL ENERGY
-      LUP=0
-  300 LUP=LUP+1
-      IF(LUP.GE.LS1) THEN
-        IF(HAVE_SOUTH_POLE) THJSP(LUP) = T(1,1,LUP)*SQRTPG
-        IF(HAVE_NORTH_POLE) THJNP(LUP) = T(1,JM,LUP)*SQRTPG
-      ELSE
-        IF(HAVE_SOUTH_POLE) THJSP(LUP)=T(1,1,LUP)*SQRTP(1,1)
-        IF(HAVE_NORTH_POLE) THJNP(LUP)=T(1,JM,LUP)*SQRTP(1,JM)
-      ENDIF
-      IF(HAVE_SOUTH_POLE) THGSUM_part(1)  = FIM*THJSP(LUP)*DXYP(1)
-      IF(HAVE_NORTH_POLE) THGSUM_part(JM) = FIM*THJNP(LUP)*DXYP(JM)
-C***      THGSUM=FIM*(THJSP(LUP)*DXYP(1)+THJNP(LUP)*DXYP(JM))
-      DO J=J_0S,J_1S
-        THJSUM=0.
-        DO I=1,IM
-          THJSUM=THJSUM+T(I,J,LUP)*SQRTP(I,J)
-        ENDDO
-        THGSUM_part(J) = THJSUM*DXYP(J)
-      ENDDO
-C***  320 THGSUM=THGSUM+THJSUM*DXYP(J)
-      CALL GLOBALSUM(grid, THGSUM_part, THGSUM, ALL=.TRUE.)
-      THGM(LUP)=THGSUM/AREAG
-      IF (LUP.GE.2) GO TO 350
-      LDN=LUP
-      L=LUP
-      GO TO 300
-  350 CONTINUE
 
-      VAR(2:NM,1:2)=0.
-      VAR_part=0
-      IF(HAVE_SOUTH_POLE) THEN
-        VAR_part(1,1,1)=.5*(THJSP(L)-THGM(L))**2*DXYP(1)*FIM
-        GMSUM(1)=((THJSP(LUP)-THJSP(LDN))*DXYP(1)*(SIG(L)*P(1,1)+PTOP)/
-     *       (SQRTP(1,1)*P(1,1)*PK(L,1,1)))*FIM
-      END IF
-      IF(HAVE_NORTH_POLE) THEN
-        VAR_part(1,JM,2)=.5*(THJNP(L)-THGM(L))**2*DXYP(JM)*FIM
-        GMSUM(JM)=((THJNP(LUP)-THJNP(LDN))*DXYP(JM)*
+      DO L = 0, LM
+        LDN = MAX(L - 1, 1)
+        LUP = MIN(L + 1,LM)
+
+        IF (L < LM) THEN
+          IF(LUP.GE.LS1) THEN
+            IF(HAVE_SOUTH_POLE) THJSP(LUP) = T(1,1,LUP)*SQRTPG
+            IF(HAVE_NORTH_POLE) THJNP(LUP) = T(1,JM,LUP)*SQRTPG
+          ELSE
+            IF(HAVE_SOUTH_POLE) THJSP(LUP)=T(1,1,LUP)*SQRTP(1,1)
+            IF(HAVE_NORTH_POLE) THJNP(LUP)=T(1,JM,LUP)*SQRTP(1,JM)
+          ENDIF
+          IF(HAVE_SOUTH_POLE) THGSUM_part(1)  = FIM*THJSP(LUP)*DXYP(1)
+          IF(HAVE_NORTH_POLE) THGSUM_part(JM) = FIM*THJNP(LUP)*DXYP(JM)
+          
+          DO J=J_0S,J_1S
+            THJSUM=0.
+            DO I=1,IM
+              THJSUM=THJSUM+T(I,J,LUP)*SQRTP(I,J)
+            ENDDO
+            THGSUM_part(J) = THJSUM*DXYP(J)
+          ENDDO
+          
+          CALL GLOBALSUM(grid, THGSUM_part, THGSUM, ALL=.TRUE.)
+          THGM(LUP)=THGSUM/AREAG
+          
+        End IF
+
+        IF (LUP < 2) CYCLE
+
+        VAR(2:NM,1:2,L)=0.
+        VAR_part(:,:,L,:)=0
+        IF(HAVE_SOUTH_POLE) THEN
+          VAR_part(1,1,L,1)=.5*(THJSP(L)-THGM(L))**2*DXYP(1)*FIM
+         GMSUM(1,L)=((THJSP(LUP)-THJSP(LDN))*DXYP(1)*
+     *         (SIG(L)*P(1,1)+PTOP)/
+     *         (SQRTP(1,1)*P(1,1)*PK(L,1,1)))*FIM
+        END IF
+        IF(HAVE_NORTH_POLE) THEN
+          VAR_part(1,2,L,JM)=.5*(THJNP(L)-THGM(L))**2*DXYP(JM)*FIM
+          GMSUM(JM,L)=((THJNP(LUP)-THJNP(LDN))*DXYP(JM)*
      *       (SIG(L)*P(1,JM)+PTOP)/(SQRTP(1,JM)*P(1,JM)*PK(L,1,JM)))*FIM
-      END IF
-
-      DO J=J_0S,J_1S
-
-        IF (J < JEQ) THEN
-          JHEMI = 1
-        ELSE
-          JHEMI = 2
         END IF
-
-        GMTMP = 0
-        DO I=1,IM
-          X(I)=T(I,J,L)*SQRTP(I,J)-THGM(L)
-          GMTMP=GMTMP+(T(I,J,LUP)-T(I,J,LDN))*(SIG(L)*P(I,J)+PTOP)/
-     *        (P(I,J)*PK(L,I,J))
-        END DO
-        GMSUM(J) = GMTMP * DXYP(J)
-        CALL FFTE (X,X)
-        DO N=1,NM
-          VAR_part(N,J,JHEMI)=VAR_part(N,J,JHEMI)+X(N)*DXYP(J)
-        END DO
-        IF (J == JEQ-1) THEN
-          DO N=1,NM
-            VAR_part(N,J,3)=X(N)*DXYP(J)
+        
+        DO J=J_0S,J_1S
+          
+          IF (J < JEQ) THEN
+            JHEMI = 1
+          ELSE
+            JHEMI = 2
+          END IF
+          
+          GMTMP = 0
+          DO I=1,IM
+            X(I)=T(I,J,L)*SQRTP(I,J)-THGM(L)
+            GMTMP=GMTMP+(T(I,J,LUP)-T(I,J,LDN))*(SIG(L)*P(I,J)+PTOP)/
+     *           (P(I,J)*PK(L,I,J))
           END DO
-        END IF
-        IF (J == J45N-1) THEN
+          GMSUM(J,L) = GMTMP * DXYP(J)
+          CALL FFTE (X,X)
           DO N=1,NM
-            VAR_part(N,J,4)=X(N)*DXYP(J)
+            VAR_part(N,JHEMI,L,J)=VAR_part(N,JHEMI,L,J)+X(N)*DXYP(J)
           END DO
-        END IF
+          IF (J == JEQ-1) THEN
+            DO N=1,NM
+              VAR_part(N,3,L,J)=X(N)*DXYP(J)
+            END DO
+          END IF
+          IF (J == J45N-1) THEN
+            DO N=1,NM
+              VAR_part(N,4,L,J)=X(N)*DXYP(J)
+            END DO
+          END IF
+        END DO
+        
       END DO
-
-      CALL GLOBALSUM(grid, GMSUM, GMEAN, ALL=.TRUE.)
-      GMEAN=DSIG(L)*AREAG*(SIG(LDN)-SIG(LUP))/GMEAN
-
+        
+      CALL GLOBALSUM(grid, GMSUM, GMEAN)
       CALL GLOBALSUM(grid, VAR_part, VAR)
-      KS=KLAYER(L)
-      DO JHEMI=1,4
-        DO N=1,NM
-          APE(N,KS)=APE(N,KS)+VAR(N,JHEMI)*GMEAN
+
+      IF (AM_I_ROOT()) THEN
+        DO L = 1, LM
+          LDN = MAX(L - 1, 1)
+          LUP = MIN(L + 1,LM)
+          GMEAN(L)=DSIG(L)*AREAG*(SIG(LDN)-SIG(LUP))/GMEAN(L)
+          KS=KLAYER(L)
+          DO JHEMI=1,4
+            DO N=1,NM
+              APE(N,KS)=APE(N,KS)+VAR(N,JHEMI,L)*GMEAN(L)
+            END DO
+            KS=KS+1
+          END DO
         END DO
-        KS=KS+1
-      END DO
-      IF (L.EQ.LM) GO TO 450
-      LDN=L
-      L=LUP
-      IF (LUP.LT.LM) GO TO 300
-      GO TO 350
+      END IF
 C**** CURRENT TOTAL POTENTIAL ENERGY
  450  CONTINUE
+
       IF (HAVE_SOUTH_POLE) THEN
         J=1
         SUMT=0
@@ -2839,19 +2870,27 @@ C**** CURRENT TOTAL POTENTIAL ENERGY
       END DO
       CALL GLOBALSUM(grid, TPE_psum, TPE_sum, TPE)
 
-      IF (NDT.EQ.0) GO TO 520
-      MTPE=MTPEOF(MAPE)
+      IF (NDT /= 0) THEN
+        MTPE=MTPEOF(MAPE)
+
 C**** TRANSFER RATES AS DIFFERENCES FOR POTENTIAL ENERGY
-      DO 510 KS=1,NSPHER
-      DO 510 N=1,NM
-  510 SPECA(N,MAPE,KS)=SPECA(N,MAPE,KS)+(APE(N,KS)-SPECA(N,20,KS))/NDT
-      ATPE(MTPE,1)=ATPE(MTPE,1)+(TPE(1)-ATPE(8,1))/NDT
-      ATPE(MTPE,2)=ATPE(MTPE,2)+(TPE(2)-ATPE(8,2))/NDT
-  520 DO 530 KS=1,NSPHER
-      DO 530 N=1,NM
-  530 SPECA(N,20,KS)=APE(N,KS)
+        DO KS=1,NSPHER
+          DO N=1,NM
+        SPECA(N,MAPE,KS)=SPECA(N,MAPE,KS)+(APE(N,KS)-SPECA(N,20,KS))/NDT
+          END DO
+        END DO
+
+        ATPE(MTPE,1)=ATPE(MTPE,1)+(TPE(1)-ATPE(8,1))/NDT
+        ATPE(MTPE,2)=ATPE(MTPE,2)+(TPE(2)-ATPE(8,2))/NDT
+      END IF
+      DO KS=1,NSPHER
+        DO N=1,NM
+          SPECA(N,20,KS)=APE(N,KS)
+        END DO
+      END DO
       ATPE(8,1)=TPE(1)
       ATPE(8,2)=TPE(2)
+
       IF (M5.EQ.2) THEN
 C**** ACCUMULATE MEAN KINETIC ENERGY AND MEAN POTENTIAL ENERGY
         DO KS=1,NSPHER
@@ -2863,6 +2902,7 @@ C**** ACCUMULATE MEAN KINETIC ENERGY AND MEAN POTENTIAL ENERGY
         ATPE(1,1)=ATPE(1,1)+TPE(1)
         ATPE(1,2)=ATPE(1,2)+TPE(2)
       END IF
+
       CALL TIMER (MNOW,MDIAG)
       RETURN
       END SUBROUTINE DIAG5A

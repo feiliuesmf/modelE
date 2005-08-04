@@ -5,7 +5,10 @@
       USE RESOLUTION, only : im,jm,lm,ls1,kep,istrat,
      *     psf,pmtop,ptop,psfmpt,pstrat,plbot
 !      USE DOMAIN_DECOMP, only : grid
-      USE ESMF_CUSTOM_MOD, ONLY: FIELD
+!AOO      USE ESMF_CUSTOM_MOD, ONLY: FIELD
+#ifdef USE_FVCORE
+      USE ESMF_MOD, only: esmf_clock
+#endif
       IMPLICIT NONE
 ! just to make all compilers happy (should check later)
 #if ! defined(COMPILER_G95)
@@ -109,6 +112,10 @@ C**** (Simplified) Calendar Related Terms
 !@var JMON0,JDATE0,JYEAR0,JHOUR0 date-info about Itime0 (beg.of acc.per)
       INTEGER :: ItimeI,ItimeE,   Itime0,JMON0,JDATE0,JYEAR0,JHOUR0
 
+!@var ESMF clock required for some interfaces
+#ifdef USE_FVCORE
+      Type (ESMF_CLOCK) :: clock
+#endif
 !@dbparam DTSRC source time step (s)   = 1 ITU
       REAL*8 :: DTsrc = 3600.
 !@dbparam DT (atmospheric) dynamics time step (s)
@@ -235,9 +242,9 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       USE MODEL_COM, ONLY : NTYPE
       USE MODEL_COM, ONLY : ZATMO,HLAKE,FLAND,FOCEAN,FLICE,FLAKE0,
      *                      FEARTH,WFCS,P,U,V,T,Q,WM,FTYPE
-      USE ESMF_CUSTOM_MOD, ONLY: modelE_grid
-      USE ESMF_CUSTOM_MOD, ONLY: ESMF_CELL_SFACE
-      USE ESMF_CUSTOM_MOD, ONLY: ESMF_CELL_CENTER
+!AOO      USE ESMF_CUSTOM_MOD, ONLY: modelE_grid
+!AOO      USE ESMF_CUSTOM_MOD, ONLY: ESMF_CELL_SFACE
+!AOO      USE ESMF_CUSTOM_MOD, ONLY: ESMF_CELL_CENTER
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid

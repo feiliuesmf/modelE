@@ -7,6 +7,20 @@
       IMPLICIT NONE
       INTEGER, SAVE :: IX            !@var IX     random number seed
 
+! Parameters used for "burning" sequences of random numbers
+#if defined( MACHINE_DEC )
+      INTEGER, PARAMETER :: A_linear = 69069
+#elif defined(MACHINE_SGI) \
+ || ( defined(MACHINE_Linux) && ! defined(COMPILER_G95) ) \
+ || ( defined(MACHINE_MAC) && defined(COMPILER_ABSOFT) )
+! don't know how RAN() is implemented, so bun
+#else
+      INTEGER, PARAMETER :: A_linear = 65539
+#endif
+      INTEGER, PARAMETER :: MAX_BITS = 31
+      INTEGER, PARAMETER :: B_Half = 2**(MAX_BITS-1)
+      INTEGER, PARAMETER :: B_linear = B_Half + (B_Half-1) ! 2147483647 = 2^31-1
+
       CONTAINS
 
 #if defined(MACHINE_SGI) \
@@ -32,10 +46,10 @@
       REAL*8 X                       !@var X      dummy variable
       REAL*8 :: RANDU                !@var RANDU  random number
       INTEGER :: IY                  !@var IY     dummy integer
-   10 IY=IX*65539
+   10 IY=IX*A_linear
       SELECT CASE (IY)
       CASE (:-1)
-         IY=(IY+2147483647)+1
+         IY=(IY+B_linear)+1
       CASE (0)
          IX=1
          GO TO 10
@@ -63,6 +77,7 @@
       RETURN
       END SUBROUTINE RFINAL
 
+#if defined( MACHINE_DEC )
       SUBROUTINE BURN_RANDOM(n)
 !@sum  BURN_RANDOM burns a set number of random numbers. It is used to
 !                  maintain bit-wise correspondence on parallel runs.
@@ -70,11 +85,39 @@
       integer, intent(in) :: n
       integer :: i
       real*8 x, randss
-      do i=1,n
-        randss= randu(x)
+      integer :: a, b ! linear coefficient
+      integer :: nn
+      a = A_linear
+      nn = n
+      b = 1
+      do i=1,MAX_BITS
+        If (mod(nn,2) == 1) ix = ix * a + b
+        b=(a+1)*b
+        a=a*a
+        nn=nn/2
+        If (nn == 0) Exit
       end do
       return
       end subroutine burn_random
+#else
+      Subroutine burn_random(n)
+      Integer :: n
+      Integer :: i
+      Real*8  :: x
+
+      Write(6,*) ' ***********************************************'
+      Write(6,*) ' Warning: slow implementation of burn_random()  '
+      Write(6,*) ' on this platform.  Better performance can be   '
+      Write(6,*) ' achieved by using a recursion relation for most'
+      Write(6,*) ' random number generators. (contact Tom Clune)  '
+      Write(6,*) ' ***********************************************'
+
+      Do i = 1, n
+        x = RANDU(x)
+      End Do
+
+      End Subroutine burn_random
+#endif 
 
       END MODULE RANDOM
 

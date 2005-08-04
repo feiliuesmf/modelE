@@ -369,8 +369,11 @@ ifeq ($(FVCORE),YES)
   endif
   CPPFLAGS += -DUSE_FVCORE
   FVINC = -I$(FVCORE_ROOT)/$(UNAME)/include
-  INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio $(FVINC)/GMAO_cfio $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp
-  LIBS += -L$(FVCORE_ROOT)/$(UNAME)/lib -lGMAO_gfio -lGMAO_cfio -lGEOS_Base -lGEOS_Shared -lGMAO_pilgrim -lFVdycore_GridComp
+  INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio $(FVINC)/GMAO_cfio $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp  -I/unsipp/trayanov/esmf/esmf_2_0_0/mod/modg/OSF1.default.64.default
+  LIBS += -L$(FVCORE_ROOT)/$(UNAME)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio -lGMAO_cfio -lGEOS_Shared -lGEOS_Base -L/unsipp/trayanov/esmf/esmf_2_0_0/lib/libg/OSF1.default.64.default
+endif
+ifeq ($(SKIP_FV),YES)
+  CPPFLAGS+=-DSKIP_FV
 endif
 #
 # Check for extra options specified in modelErc
@@ -388,6 +391,7 @@ endif
 
 # access new interfaces in sub-directory.
 FFLAGS+= -I$(ESMF_Interface) $(INCS)
+FFLAGSF += -I$(ESMF_Interface) $(INCS)
 CPPFLAGS+=$(INCS)
 
 #

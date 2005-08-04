@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-
+CAOO   Just to test CVS
       PROGRAM GISS_modelE
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
@@ -9,6 +9,7 @@
       USE PARAM
       USE MODEL_COM
       USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT
+      USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
       USE DYNAMICS
       USE RAD_COM, only : dimrad_sv
       USE RANDOM
@@ -19,6 +20,17 @@
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
       USE DIAG_SERIAL, only : print_diags
+#ifdef USE_FVCORE
+      USE FV_INTERFACE_MOD, only: fv_core
+      USE FV_INTERFACE_MOD, only: Initialize
+      USE FV_INTERFACE_MOD, only: Compute_Tendencies
+      USE FV_INTERFACE_MOD, only: Run
+      USE FV_INTERFACE_MOD, only: Checkpoint
+      USE FV_INTERFACE_MOD, only: Finalize
+      USE FV_INTERFACE_MOD, only: init_app_clock
+      USE MODEL_COM, only: clock
+      USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
+#endif
       USE ATMDYN, only : DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
      &     ,DISSIP,FILTER,CALC_AMPK
 #ifdef TRACERS_ON
@@ -29,20 +41,26 @@
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
       INTEGER iu_VFLXO,iu_ACC,iu_RSF,iu_ODA
       INTEGER :: MDUM = 0
+
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
       REAL*8 DTIME,TOTALT
 
       CHARACTER aDATE*14
       CHARACTER*8 :: flg_go='___GO___'      ! green light
+      integer :: iflag=1
       external sig_stop_model
 C**** Command line options
       LOGICAL :: qcrestart=.false.
       CHARACTER*32 :: ifile
       real :: lat_min=-90.,lat_max=90.,longt_min=0.,longt_max=360.
       real*8 :: tloopbegin, tloopend
+#ifdef USE_FVCORE
+      Character(Len=*), Parameter :: fv_config = 'fv_config.rc'
+      Type (FV_CORE) :: fv
+#endif
       integer :: tloopcurrent
 
-        call init_app(grid,im,jm)
+        call init_app(grid,im,jm,lm)
         call alloc_drv()
 C****
 C**** Processing command line options
@@ -58,6 +76,15 @@ C****
          CALL TIMER (MNOW,MDUM)
 
       CALL INPUT (istart,ifile)
+
+C****
+C**** Initialize FV dynamical core (ESMF component) if requested
+C****
+#ifdef USE_FVCORE
+      Call Initialize(fv, vm, grid%esmf_grid, clock,fv_config)
+#endif
+
+
 C****
 C**** If run is already done, just produce diagnostic printout
 C****
@@ -134,6 +161,9 @@ C**** write restart information alternately onto 2 disk files
      *        call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
          call io_rsf(iu_RSF,Itime,iowrite,ioerr)
          IF (AM_I_ROOT()) call closeunit(iu_RSF)
+#ifdef USE_FVCORE
+         call Checkpoint(fv, clock)
+#endif
          WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     '0Restart file written on fort.',KDISK,'Year',
      *     JYEAR,aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
@@ -174,7 +204,13 @@ C****
          IF (MODD5D.EQ.0) IDACC(7)=IDACC(7)+1
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
+#ifdef USE_FVCORE
+      CALL Compute_Tendencies(fv)
+#endif
       CALL DYNAM
+#ifdef USE_FVCORE
+      CALL Run(fv, clock)
+#endif
       CALL CHECKT ('DYNAM1')
       CALL QDYNAM  ! Advection of Q by integrated fluxes
       CALL CHECKT ('DYNAM2')
@@ -453,11 +489,20 @@ C**** CPU TIME FOR CALLING DIAGNOSTICS
 C**** TEST FOR TERMINATION OF RUN
 ccc
       IF (MOD(Itime,Nssw).eq.0) then
+       IF (AM_I_ROOT()) then
         flg_go = '__STOP__'     ! stop if flagGoStop if missing
+        iflag=0
         open(3,file='flagGoStop',form='FORMATTED',status='OLD',err=210)
         read (3,'(A8)',end=210) flg_go
         close (3)
  210    continue
+        IF (flg_go .eq. '___GO___') iflag=1
+        call ESMF_BCAST( grid, iflag)
+       else
+        call ESMF_BCAST( grid, iflag)
+        if (iflag .eq. 1) flg_go = '___GO___'
+        if (iflag .eq. 0) flg_go = '__STOP__'
+       end if
       endif
       IF (flg_go.ne.'___GO___' .or. stop_on) THEN
 C**** Flag to continue run has been turned off
@@ -480,12 +525,16 @@ C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
      *     call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
       call io_rsf(iu_RSF,Itime,iowrite,ioerr)
       IF (AM_I_ROOT()) call closeunit(iu_RSF)
+#ifdef USE_FVCORE
+         call Finalize(fv, clock)
+#endif
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *  '0Restart file written on fort.',KDISK,'Year',JYEAR,
      *     aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
 
 C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
-      WRITE (6,'(/////4(1X,33("****")/)//,A,I8
+      IF (AM_I_ROOT()) 
+     *   WRITE (6,'(/////4(1X,33("****")/)//,A,I8
      *             ///4(1X,33("****")/))')
      *  ' PROGRAM TERMINATED NORMALLY - Internal clock time:',ITIME
 
@@ -656,7 +705,12 @@ C****
       USE SOIL_DRV, only: init_gh
       USE DOMAIN_DECOMP, only : grid, GET, READT_PARALLEL
       USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE
+#ifdef USE_FVCORE
+      USE FV_INTERFACE_MOD, only: init_app_clock
+      USE MODEL_COM, only: clock
+#endif
       USE ATMDYN, only : init_ATMDYN,CALC_AMPK
+
       IMPLICIT NONE
       CHARACTER(*) :: ifile
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF unit numbers for input files
@@ -831,6 +885,13 @@ C**** Get those parameters which are needed in this subroutine
       if(is_set_param("IRAND"))  call get_param( "IRAND", IRAND )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
       if(is_set_param("Kradia")) call get_param( "Kradia", Kradia )
+
+#ifdef USE_FVCORE
+      ! need a clock to satisfy ESMF interfaces
+      clock = init_app_clock( (/ YEARI, MONTHI, DATEI, HOURI, 0, 0 /),
+     &                        (/ YEARE, MONTHE, DATEE, HOURE, 0, 0 /),
+     &             interval = int(dt) )
+#endif
 
 C***********************************************************************
 C****                                                               ****
@@ -1415,7 +1476,7 @@ C****
      *     ,ntm
 #endif
       USE DIAG_COM, only : aj=>aj_loc,j_h2och4
-      USE DOMAIN_DECOMP, only : grid, GET, GLOBALSUM
+      USE DOMAIN_DECOMP, only : grid, GET, GLOBALSUM, AM_I_ROOT
       USE ATMDYN, only : CALC_AMPK
       IMPLICIT NONE
       REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4
@@ -1483,7 +1544,9 @@ C****   Add obs. H2O generated by CH4(*H2ObyCH4) using a 2 year lag
         if (iy.lt.1) iy=1
         if (iy.gt.ghgyr2-ghgyr1+1) iy=ghgyr2-ghgyr1+1
         xCH4=ghgam(3,iy)*H2ObyCH4
-        write(6,*) 'add in stratosphere: H2O gen. by CH4(ppm)=',xCH4
+        If (AM_I_ROOT()) 
+     &    write(6,*) 'add in stratosphere: H2O gen. by CH4(ppm)=',xCH4
+
         do l=1,lm
         do j=J_0,J_1
         do i=1,imaxj(j)

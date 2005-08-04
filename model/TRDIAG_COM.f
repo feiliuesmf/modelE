@@ -39,6 +39,8 @@ C**** TAIJLN
 !@var TAIJLN 3D tracer diagnostics (all tracers)
       real*8, dimension(IM,JM,LM,ntm)         :: taijln
       real*8, allocatable, dimension(:,:,:,:) :: taijln_loc
+      real*4, dimension(IM,JM,LM,ntm)         :: taijln4
+      real*8, allocatable, dimension(:,:,:,:) :: taijln4_loc
 !@var SNAME_IJT, UNITS_IJT: Names and units of lat-sigma tracer IJ diags
       character(len=30), dimension(lm,ntm) :: sname_ijt,units_ijt
 !@var LNAME_IJT: descriptions of tracer IJ diagnostics
@@ -83,6 +85,8 @@ C**** TAIJN
 !@var TAIJN lat/lon tracer diagnostics (all tracers)
       real*8, dimension(IM,JM,ktaij,ntm)      :: taijn
       real*8, allocatable, dimension(:,:,:,:) :: taijn_loc
+      real*4, dimension(IM,JM,ktaij,ntm)      :: taijn4
+      real*8, allocatable, dimension(:,:,:,:) :: taijn4_loc
 !@var SCALE_TIJ: printout scaling factor for tracer IJK diagnostics
       REAL*8, dimension(ktaij,ntm) :: scale_tij
 !@var SNAME_TIJ,UNITS_TIJ: Names and units of lat-sigma tracer diags
@@ -123,6 +127,8 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, DIMENSION(IM,JM,ktaijs)       :: TAIJS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS_loc
+      REAL*4, DIMENSION(IM,JM,ktaijs)       :: TAIJS4
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS4_loc
 !@var ijts_source tracer independent array for TAIJS surface src. diags
       INTEGER ijts_source(ntsurfsrcmax,ntm)
 !@var ijts_isrc tracer independent array for TAIJS interactive srf. src.
@@ -164,6 +170,8 @@ C**** TAJLN
 !@var TAJLN  vertical tracer diagnostics (all tracers)
       REAL*8, DIMENSION(JM,LM,ktajlx,ntm)     :: TAJLN
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN_loc
+      REAL*4, DIMENSION(JM,LM,ktajlx,ntm)     :: TAJLN4
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN4_loc
 !@var jlnt_xx Names for TAJLN diagnostics
       INTEGER jlnt_conc,jlnt_mass,jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,
      &  jlnt_vt_mm,jlnt_mc,jlnt_turb,jlnt_lscond, jlnt_bebe,
@@ -227,6 +235,8 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
       REAL*8, DIMENSION(JM,LM,ktajls)       :: TAJLS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS_loc
+      REAL*4, DIMENSION(JM,LM,ktajls)       :: TAJLS4
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS4_loc
 !@var jls_source tracer independent array for TAJLS surface src. diags
       INTEGER jls_source(ntsurfsrcmax,ntm)
 !@var jls_isrc tracer independent array for TAJLS interactive surface src. diags
@@ -270,6 +280,8 @@ C**** include some extra troposphere only ones
 !@var TCONSRV conservation diagnostics for tracers
       REAL*8, DIMENSION(JM,ktcon,ntmxcon)   :: TCONSRV
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV_loc
+      REAL*4, DIMENSION(JM,ktcon,ntmxcon)   :: TCONSRV4
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV4_loc
 !@var SCALE_TCON scales for tracer conservation diagnostics
       REAL*8, DIMENSION(ktcon,ntmxcon) :: SCALE_TCON
 !@var TITLE_TCON titles for tracer conservation diagnostics
@@ -471,6 +483,13 @@ C****
       USE TRDIAG_COM, only : tajls_loc,  tajls
       USE TRDIAG_COM, only : tconsrv_loc,tconsrv
 
+      USE TRDIAG_COM, only : taijln4_loc, taijln4
+      USE TRDIAG_COM, only : taijn4_loc,  taijn4
+      USE TRDIAG_COM, only : taijs4_loc,  taijs4
+      USE TRDIAG_COM, only : tajln4_loc,  tajln4
+      USE TRDIAG_COM, only : tajls4_loc,  tajls4
+      USE TRDIAG_COM, only : tconsrv4_loc,tconsrv4
+
       USE TRDIAG_COM, only : pdsigjl
 
       USE TRDIAG_COM, only : ktaij, ktaijs, ktajlx, ktajls, ktcon
@@ -492,9 +511,9 @@ C****
      *  ktacc=IM*JM*LM*NTM + IM*JM*ktaij*NTM + IM*JM*ktaijs +
      *        JM*LM*ktajlx*NTM + JM*LM*ktajls + JM*ntmxcon*ktcon
 !@var TA..4(...) dummy arrays for reading diagnostics files
-      REAL*4 TAIJLN4(im,jm,lm,ntm),TAIJN4(im,jm,ktaij,ntm)
-      REAL*4 TAIJS4(IM,JM,ktaijs),TAJLN4(JM,LM,ktajlx,NTM)
-      REAL*4 TAJLS4(JM,LM,ktajls),TCONSRV4(JM,ktcon,ntmxcon)
+!     REAL*4 TAIJLN4(im,jm,lm,ntm),TAIJN4(im,jm,ktaij,ntm)
+!     REAL*4 TAIJS4(IM,JM,ktaijs),TAJLN4(JM,LM,ktajlx,NTM)
+!     REAL*4 TAJLS4(JM,LM,ktajls),TCONSRV4(JM,ktcon,ntmxcon)
 
       INTEGER :: J_0H, J_1H
 
@@ -527,24 +546,40 @@ C***  PACK distributed arrays into global ones in preparation for output
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
         CASE (ioread_single)    ! accumulate diagnostic files
-          READ (kunit,err=10) HEADER,
-     *       TAIJLN4,TAIJN4,TAIJS4,TAJLN4,TAJLS4,TCONSRV4,it_check
-          if (it.ne.it_check) then
-            PRINT*,"io_trdiag: compare TAIJLN,TAIJLN4, ... dimensions"
-            go to 10  ! or should this be just a warning ??
+          if ( AM_I_ROOT() ) then
+            READ (kunit,err=10) HEADER,
+     *         TAIJLN4,TAIJN4,TAIJS4,TAJLN4,TAJLS4,TCONSRV4,it_check
+            if (it.ne.it_check) then
+              PRINT*,"io_trdiag: compare TAIJLN,TAIJLN4, ... dimensions"
+              go to 10  ! or should this be just a warning ??
+            end if
+            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",HEADER
+     *             ,MODULE_HEADER
+              GO TO 10
+            END IF
           end if
-C****     Accumulate diagnostics (converting back to real*8)
-          TAIJLN_loc =  TAIJLN_loc+TAIJLN4(:,J_0H:J_1H,:,:) 
-          TAIJN_loc =   TAIJN_loc+TAIJN4(:,J_0H:J_1H,:,:)
-          TAIJS_loc  =  TAIJS_loc+TAIJS4(:,J_0H:J_1H,:)   
-          TAJLN_loc =   TAJLN_loc+TAJLN4(J_0H:J_1H,:,:,:)
-          TAJLS_loc  =  TAJLS_loc+TAJLS4(J_0H:J_1H,:,:)
-          TCONSRV_loc = TCONSRV_loc+TCONSRV4(J_0H:J_1H,:,:)
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER
-     *           ,MODULE_HEADER
-            GO TO 10
-          END IF
+          
+C*** Unpack read global data into (real*8) local distributed arrays
+          CALL UNPACK_DATA( grid, real(TAIJLN4,kind=8), TAIJLN4_loc)
+          CALL UNPACK_DATA( grid, real(TAIJN4,kind=8) , TAIJN4_loc)
+          CALL UNPACK_DATA( grid, real(TAIJS4,kind=8) , TAIJS4_loc)
+          CALL UNPACK_J( grid, real(TAJLN4,kind=8)  , TAJLN4_loc)
+          CALL UNPACK_J( grid, real(TAJLS4,kind=8)  , TAJLS4_loc)
+          CALL UNPACK_J( grid, real(TCONSRV4,kind=8), TCONSRV4_loc)
+
+C****     Accumulate diagnostics (converted back to real*8)
+          TAIJLN_loc =  TAIJLN_loc+TAIJLN4_loc(:,J_0H:J_1H,:,:) 
+          TAIJN_loc =   TAIJN_loc+TAIJN4_loc(:,J_0H:J_1H,:,:)
+          TAIJS_loc  =  TAIJS_loc+TAIJS4_loc(:,J_0H:J_1H,:)   
+          TAJLN_loc =   TAJLN_loc+TAJLN4_loc(J_0H:J_1H,:,:,:)
+          TAJLS_loc  =  TAJLS_loc+TAJLS4_loc(J_0H:J_1H,:,:)
+          TCONSRV_loc = TCONSRV_loc+TCONSRV4_loc(J_0H:J_1H,:,:)
+!         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+!           PRINT*,"Discrepancy in module version ",HEADER
+!    *           ,MODULE_HEADER
+!           GO TO 10
+!         END IF
         CASE (ioread)  ! restarts
           if ( AM_I_ROOT() ) then
             READ (kunit,err=10) HEADER,
@@ -588,6 +623,14 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE ( TAJLN_loc(    J_0H:J_1H,LM,ktajlx,ntm), stat=status )
       ALLOCATE ( TAJLS_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
       ALLOCATE ( TCONSRV_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
+
+      ALLOCATE ( TAIJLN4_loc(IM,J_0H:J_1H,LM,ntm), stat=status )
+      ALLOCATE ( TAIJN4_loc( IM,J_0H:J_1H,ktaij,ntm), stat=status )
+      ALLOCATE ( TAIJS4_loc( IM,J_0H:J_1H,ktaijs   ), stat=status )
+      ALLOCATE ( TAJLN4_loc(    J_0H:J_1H,LM,ktajlx,ntm), stat=status )
+      ALLOCATE ( TAJLS4_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
+      ALLOCATE ( TCONSRV4_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
+
 #endif
       RETURN
       END SUBROUTINE ALLOC_TRDIAG_COM

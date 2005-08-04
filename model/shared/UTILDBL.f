@@ -514,6 +514,7 @@ C****      '(' is required, so it is inserted
       integer :: mpi_err
 #ifdef USE_ESMF
       include 'mpif.h'
+      integer :: rank
 #endif
 
 c**** don't call sync_param if the error is in 'PARAM' to avoid loops
@@ -523,11 +524,17 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
         write (6,*) " Error in PARAM: Can't use sync_param."
         write (6,*) " Will use default dump_core = ", dump_core
       endif
-
-      write (6,'(//2(" ",132("*")/))')
-      write (6,*) ' Program terminated due to the following reason:'
-      write (6,*) ' >>  ', message, '  <<'
-      write (6,'(/2(" ",132("*")/))')
+#ifdef USE_ESMF      
+      call mpi_comm_rank(MPI_COMM_WORLD, rank, mpi_err)
+#else
+      rank =0
+#endif
+      If (rank == 0) Then
+        write (6,'(//2(" ",132("*")/))')
+        write (6,*) ' Program terminated due to the following reason:'
+        write (6,*) ' >>  ', message, '  <<'
+        write (6,'(/2(" ",132("*")/))')
+      End If
 
       if ( retcode .ne. 12 .and. retcode .ne. 13 ) then
         open( iu_err, file='error_message',

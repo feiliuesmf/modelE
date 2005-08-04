@@ -1233,8 +1233,8 @@ C**** to ALLOC_ICEDYN.
       End If
       init = .true.
 
-      CALL INIT_GRID(grid_MIC, IMIC, JMIC)
-      CALL INIT_GRID(grid_NXY, NX1, NY1)
+      CALL INIT_GRID(grid_MIC, IMIC, JMIC, 1)
+      CALL INIT_GRID(grid_NXY, NX1, NY1,1)
       CALL GET( grid_NXY, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H, 
      &                J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
 

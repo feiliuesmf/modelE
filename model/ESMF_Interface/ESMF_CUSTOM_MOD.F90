@@ -23,13 +23,13 @@ Module ESMF_CUSTOM_MOD
 !!$$ USE ESMF_MOD, Only: Field_HaloStore => ESMF_FieldHaloStore
 !!$$ USE ESMF_MOD, Only: Field_Halo => ESMF_FieldHalo
 
-  Use FieldComm, Only: Field_Halo
-  Use FieldComm, Only: Field_Reduce
+!AOO  Use FieldComm, Only: Field_Halo
+!AOO  Use FieldComm, Only: Field_Reduce
 !!$$ Use FieldComm, Only: Field_Redist
-  Use FieldComm, Only: Field_Gather
+!AOO  Use FieldComm, Only: Field_Gather
 !!$$ Use FieldComm, Only: Field_Scatter
 
-  USE FieldComm, Only: FIELD_SUM, FIELD_MAX, FIELD_MIN
+!AOO  USE FieldComm, Only: FIELD_SUM, FIELD_MAX, FIELD_MIN
 
   Use ESMF_MOD, Only: ESMF_CELL_NFACE
   Use ESMF_MOD, Only: ESMF_CELL_SFACE
@@ -64,10 +64,10 @@ Module ESMF_CUSTOM_MOD
   Public :: Field_GetDataPointer
   Public :: Field_SetDataPointer
 
-  Public :: Field_Halo
-  Public :: Field_Reduce
+!AOO  Public :: Field_Halo
+!AOO  Public :: Field_Reduce
   !!$$Public :: Field_Redist
-  Public :: Field_Gather
+!AOO  Public :: Field_Gather
   !!$$Public :: Field_Scatter
 
   Public :: ESMF_CELL_NFACE
@@ -78,7 +78,7 @@ Module ESMF_CUSTOM_MOD
 
   Public :: KIND_R4
   Public :: KIND_R8
-  Public :: FIELD_SUM, FIELD_MAX, FIELD_MIN
+!AOO  Public :: FIELD_SUM, FIELD_MAX, FIELD_MIN
   Public :: NORTH, SOUTH
   Public :: ESMF_SUCCESS
 
@@ -124,7 +124,7 @@ Module ESMF_CUSTOM_MOD
      Module Procedure Field_Deallocate_Integer_3D
   End Interface
 
-  Integer, Parameter :: N_DIMENSIONS = 2
+  Integer, Parameter :: N_DIMENSIONS = 3
 
 Contains
 
@@ -132,14 +132,16 @@ Contains
     Use ESMF_MOD, Only: ESMF_KIND_R8
 
 #ifdef USE_ESMF
-    Use ESMF_MOD, Only: ESMF_GRID_HORZ_STAGGER_B_SW
+    Use ESMF_MOD, Only: ESMF_GRID_HORZ_STAGGER_A
     USE ESMF_MOD, Only: ESMF_Initialize
-    USE ESMF_MOD, Only: ESMF_GridCreateHorzXYUni
+    USE ESMF_MOD, Only: ESMF_GridCreateHorzLatLonUni
     USE ESMF_MOD, Only: ESMF_SUCCESS
     USE ESMF_MOD, Only: ESMF_VMGet
     USE ESMF_MOD, Only: ESMF_DELayoutCreate
     USE ESMF_MOD, Only: ESMF_GridDistribute
     USE ESMF_MOD, Only: ESMF_GridGetDELocalAI
+    USE ESMF_MOD, Only: ESMF_TRUE, ESMF_FALSE
+    USE ESMF_MOD, Only: ESMF_GridAddVertHeight
 #else
     USE ESMF_MOD_private, Only: Grid_Create
 #endif
@@ -151,7 +153,7 @@ Contains
     Integer, Intent(In) :: jm ! num latitudes (incl. poles)
     Integer, Intent(In) :: lm ! num levels
     Integer, Intent(Out), Optional :: rc ! return code
-    Type (ESMF_AxisIndex) :: AI(2)
+    Type (ESMF_AxisIndex) :: AI(N_DIMENSIONS)
 
 
     Real(Kind=ESMF_KIND_R8), Parameter :: lat_min = -90
@@ -161,7 +163,9 @@ Contains
 
 #ifdef USE_ESMF
     Integer :: my_pet, n_pet, pet
+    Integer :: L
     Type (ESMF_DELayout) :: modelE_DElayout
+    REAL*8 :: deltaZ
 #endif
 
 
@@ -170,11 +174,22 @@ Contains
 #endif
 
 #ifdef USE_ESMF
-    modelE_grid = ESMF_GridCreateHorzXYUni(counts = (/ IM, JM /), &
+    modelE_grid = ESMF_GridCreateHorzLatLonUni(counts = (/ IM, JM /), &
          & minGlobalCoordPerDim = (/ lon_min, lat_min /), &
          & maxGlobalCoordPerDim = (/ lon_max, lat_max /), &
-         & horzStagger=ESMF_GRID_HORZ_STAGGER_B_SW, &
-         & name = "modelE default ESMF grid", rc=rc)
+         & horzStagger=ESMF_GRID_HORZ_STAGGER_A, &
+         & name = "modelE default ESMF grid", &
+         & periodic = (/ ESMF_TRUE, ESMF_FALSE /), rc=rc)
+
+    deltaZ = 1.0d0
+    call ESMF_GridAddVertHeight(modelE_grid, &
+         delta=(/(deltaZ, L=1,LM) /),        &
+         rc=rc)
+!!$$    modelE_grid = ESMF_GridCreateHorzXYUni(counts = (/ IM, JM /), &
+!!$$         & minGlobalCoordPerDim = (/ lon_min, lat_min /), &
+!!$$         & maxGlobalCoordPerDim = (/ lon_max, lat_max /), &
+!!$$         & horzStagger=ESMF_GRID_HORZ_STAGGER_B_SW, &
+!!$$         & name = "modelE default ESMF grid", rc=rc)
 
     Call ESMF_VMGet(modelE_vm, localPET=my_pet, petCount=n_pet, rc=rc)
     modelE_DElayout = ESMF_DELayoutCreate(modelE_vm, deCountList = (/ 1, n_PET /))
@@ -210,6 +225,7 @@ Contains
     USE ESMF_MOD, Only: ESMF_GridGetDELocalAI
     USE ESMF_MOD, Only: ESMF_RelLoc
     USE ESMF_MOD, Only: ESMF_CELL_CENTER
+    USE ESMF_MOD, Only: ESMF_CELL_CELL
 #else
     USE ESMF_MOD_private, Only : Grid_Get
 #endif
@@ -226,21 +242,22 @@ Contains
     Integer, Optional, Intent(Out) :: J_equator
 
     Type (ESMF_Grid), Pointer :: pGrid
-    Integer :: grid_size(2) ! global
+    Integer :: grid_size(3) ! global
     Integer :: rc
 #ifdef USE_ESMF
     Type (ESMF_RelLoc) :: horzRelLoc = ESMF_CELL_CENTER
 #else
     Integer :: horzRelLoc = ESMF_CELL_CENTER
 #endif
-    Type (ESMF_AxisIndex) :: AI_local(2)
+    Type (ESMF_AxisIndex) :: AI_local(3)
 
     pGrid => modelE_grid ! default
     If (Present(aGrid)) pGrid => aGrid
 
 #ifdef USE_ESMF
     Call ESMF_GridGet(pGrid, horzRelLoc, globalCellCountPerDim = grid_size)
-    Call ESMF_GridGetDELocalAI(pGrid, AIPerDim=AI_local, horzrelloc=horzRelLoc, rc=rc)
+    Call ESMF_GridGetDELocalAI(pGrid, AIPerDim=AI_local, horzrelloc=horzRelLoc, &
+    & vertrelloc=ESMF_CELL_CELL,rc=rc)
 #else
     Call Grid_Get(pGrid, AI_Local)
     grid_size = AI_Local%max
@@ -265,7 +282,7 @@ Contains
        halo(1) = AI_local(1)
   !!$$ halo(3) = AI_local(3)
 
-       Call ESMF_GridGetDELocalAI(pGrid, AIPerDim=AI_local, horzrelloc=horzRelLoc, total=.true., rc=rc)
+       Call ESMF_GridGetDELocalAI(pGrid, AIPerDim=AI_local,  horzrelloc=horzRelLoc, vertrelloc=ESMF_CELL_CELL, total=.true., rc=rc)
        halo(2)%min = AI_local(2)%min - 1
        halo(2)%max = AI_local(2)%max - 1
 #else
@@ -291,6 +308,7 @@ Contains
     Use ESMF_MOD, Only: ESMF_Array 
     Use ESMF_MOD, Only: ESMF_ArrayCreate 
     Use ESMF_MOD, Only: ESMF_CELL_CENTER 
+    Use ESMF_MOD, Only: ESMF_CELL_CELL
     Use ESMF_MOD, Only: ESMF_DATA_REF 
     Use ESMF_MOD, Only: ESMF_GridGetDELocalAI 
     Use ESMF_MOD, Only: ESMF_ArrayGet 
@@ -313,7 +331,7 @@ Contains
     Character(Len=*), Intent(In), Optional :: name 
     Integer, Intent(Out), Optional   :: rc 
  
-    Type (ESMF_AxisIndex) :: AI(2) 
+    Type (ESMF_AxisIndex) :: AI(N_DIMENSIONS) 
 #ifdef USE_ESMF 
     Type (ESMF_FieldDataMap) :: map 
     Type (ESMF_Array) :: tmpArray 
@@ -432,7 +450,7 @@ Contains
     Character(Len=*), Intent(In), Optional :: name 
     Integer, Intent(Out), Optional   :: rc 
  
-    Type (ESMF_AxisIndex) :: AI(2) 
+    Type (ESMF_AxisIndex) :: AI(N_DIMENSIONS) 
 #ifdef USE_ESMF 
     Type (ESMF_FieldDataMap) :: map 
     Type (ESMF_Array) :: tmpArray 
@@ -551,7 +569,7 @@ Contains
     Character(Len=*), Intent(In), Optional :: name 
     Integer, Intent(Out), Optional   :: rc 
  
-    Type (ESMF_AxisIndex) :: AI(2) 
+    Type (ESMF_AxisIndex) :: AI(N_DIMENSIONS) 
 #ifdef USE_ESMF 
     Type (ESMF_FieldDataMap) :: map 
     Type (ESMF_Array) :: tmpArray 
@@ -670,7 +688,7 @@ Contains
     Character(Len=*), Intent(In), Optional :: name 
     Integer, Intent(Out), Optional   :: rc 
  
-    Type (ESMF_AxisIndex) :: AI(2) 
+    Type (ESMF_AxisIndex) :: AI(N_DIMENSIONS) 
 #ifdef USE_ESMF 
     Type (ESMF_FieldDataMap) :: map 
     Type (ESMF_Array) :: tmpArray 
@@ -789,7 +807,7 @@ Contains
     Character(Len=*), Intent(In), Optional :: name 
     Integer, Intent(Out), Optional   :: rc 
  
-    Type (ESMF_AxisIndex) :: AI(2) 
+    Type (ESMF_AxisIndex) :: AI(N_DIMENSIONS) 
 #ifdef USE_ESMF 
     Type (ESMF_FieldDataMap) :: map 
     Type (ESMF_Array) :: tmpArray 
@@ -908,7 +926,7 @@ Contains
     Character(Len=*), Intent(In), Optional :: name 
     Integer, Intent(Out), Optional   :: rc 
  
-    Type (ESMF_AxisIndex) :: AI(2) 
+    Type (ESMF_AxisIndex) :: AI(N_DIMENSIONS) 
 #ifdef USE_ESMF 
     Type (ESMF_FieldDataMap) :: map 
     Type (ESMF_Array) :: tmpArray 
@@ -1027,7 +1045,7 @@ Contains
     Character(Len=*), Intent(In), Optional :: name 
     Integer, Intent(Out), Optional   :: rc 
  
-    Type (ESMF_AxisIndex) :: AI(2) 
+    Type (ESMF_AxisIndex) :: AI(N_DIMENSIONS) 
 #ifdef USE_ESMF 
     Type (ESMF_FieldDataMap) :: map 
     Type (ESMF_Array) :: tmpArray 
@@ -1146,7 +1164,7 @@ Contains
     Character(Len=*), Intent(In), Optional :: name 
     Integer, Intent(Out), Optional   :: rc 
  
-    Type (ESMF_AxisIndex) :: AI(2) 
+    Type (ESMF_AxisIndex) :: AI(N_DIMENSIONS) 
 #ifdef USE_ESMF 
     Type (ESMF_FieldDataMap) :: map 
     Type (ESMF_Array) :: tmpArray 
@@ -1265,7 +1283,7 @@ Contains
     Character(Len=*), Intent(In), Optional :: name 
     Integer, Intent(Out), Optional   :: rc 
  
-    Type (ESMF_AxisIndex) :: AI(2) 
+    Type (ESMF_AxisIndex) :: AI(N_DIMENSIONS) 
 #ifdef USE_ESMF 
     Type (ESMF_FieldDataMap) :: map 
     Type (ESMF_Array) :: tmpArray 

@@ -61,9 +61,11 @@ tests:
 
 setup_nocomp:
 	@[ -d $(BIN_DIR) ] || mkdir $(BIN_DIR)
-	@cp $(CMRUNDIR)/$(RUN)/$(RUN).exe $(BIN_DIR)/$(RUN).exe || \
-	{ echo "No executable in run directory"; \
-	echo "You have to run 'gmake setup ...' first"; exit 1; }
+	@if [ ! -e $(BIN_DIR)/$(RUN).exe ]; then \
+	  cp $(CMRUNDIR)/$(RUN)/$(RUN).exe $(BIN_DIR)/$(RUN).exe || \
+	  { echo "No executable in run directory"; \
+	  echo "You have to run 'gmake setup ...' first"; exit 1; } \
+	fi
 	$(MAKE) setup_script RUN=$(RUN)
 
 setup_script:

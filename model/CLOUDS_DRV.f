@@ -212,15 +212,7 @@ C
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
 C 
 C     Burn random numbers from latitudes to the south
-      DO J=1,J_0-1
-        DO I=1,IMAXJ(J)
-          DO L=LP50,1,-1
-            DO NR=1,3
-              RANDXX = RANDU(xx)
-            END DO
-          END DO
-        END DO
-      END DO
+      CALL BURN_RANDOM(SUM(IMAXJ(1:J_0-1))*LP50*3)
 
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
@@ -233,15 +225,7 @@ C     Do not bother to save random numbers for isccp_clouds
       END DO
       END DO
 
-      DO J=J_1+1, JM
-        DO I=1,IMAXJ(J)
-          DO L=LP50,1,-1
-            DO NR=1,3
-              RANDXX = RANDU(xx)
-            END DO
-          END DO
-        END DO
-      END DO
+      Call BURN_RANDOM(SUM(IMAXJ(J_1+1:JM))*LP50*3)
 
 C     But save the current seed in case isccp_routine is activated
       if (isccp_diags.eq.1) CALL RFINAL(seed)
@@ -304,15 +288,9 @@ C****
        JCKERR=0
 
        ! Burn random numbers for earlier latitudes here.
-       ! Actuall generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
+       ! Actual generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
       if (isccp_diags.eq.1) then
-       DO J = 1, J_0-1
-         DO I = 1, IMAXJ(J)
-           DO ibox = 1, NCOL*(LM+1)
-             randxx = RANDU(xx) ! burn random numbers
-           END DO
-         END DO
-       END DO
+        CALL BURN_RANDOM(SUM(IMAXJ(1:J_0-1))*NCOL*(LM+1))
       end if
 
 

@@ -49,7 +49,7 @@ C**** must be compiled after the model
         STOP
       END IF
 
-        call init_app(grid,im,jm)
+        call init_app(grid,im,jm,lm)
         call alloc_drv()
 
       IF (IARGC() >= 3 ) extend_gh = .true.

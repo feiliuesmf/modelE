@@ -775,7 +775,7 @@ C****
       USE GEOM, only : bydxyp,imaxj
       USE DYNAMICS, only : pit
       USE DOMAIN_DECOMP, only : grid, GET
-      USE DOMAIN_DECOMP, only : HALO_UPDATE
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, GLOBALSUM
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: P(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
@@ -784,35 +784,56 @@ C****
       INTEGER I,J,L  !@var I,J,L  loop variables
       INTEGER IM1 ! @var IM1 = I - 1
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H
+      INTEGER :: J_0, J_1, J_0H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
-     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
-     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
-     &               J_STRT_HALO=J_0H,
+      INTEGER :: n_exception, n_exception_all
+
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE )
 
 C**** COMPUTE PA, THE NEW SURFACE PRESSURE
-      CALL HALO_UPDATE(grid, U, FROM=NORTH)
-      CALL HALO_UPDATE(grid, V, FROM=NORTH)
-      DO J=J_0,J_1
+      ! 1st pass count warning/termination events
+      ! This avoides the need for 2 halo fills during normal
+      ! execution.
+      n_exception = 0
+      outer_loop:  DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           PA(I,J)=P(I,J)+(DT1*PIT(I,JJ(J))*BYDXYP(J))
           IF (PA(I,J)+PTOP.GT.1160. .or. PA(I,J)+PTOP.LT.350.) THEN
-            IM1 = 1 + MOD(I-1,IM)
-            WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),ZATMO(I,J),DT1,
-     *           (U(IM1,J,L),U(I,J,L),U(IM1,J+1,L),U(I,J+1,L),
-     *            V(IM1,J,L),V(I,J,L),V(IM1,J+1,L),V(I,J+1,L),
-     *            T(I,J,L),Q(I,J,L),L=1,LM)
-            write(6,*) "Pressure diagnostic error"
-            IF (PA(I,J)+PTOP.lt.250. .or. PA(I,J)+PTOP.GT.1200.)
-     &           call stop_model('ADVECM: Pressure diagnostic error',11)
-          END IF
+            n_exception = n_exception + 1
+            IF (PA(I,J)+PTOP.lt.250. .or. PA(I,J)+PTOP.GT.1200.) 
+     *           Exit outer_loop
+          End If
         END DO
-      END DO
+      END DO outer_loop
+
+      Call GLOBALSUM(grid, n_exception, n_exception_all, all=.true.)
+      IF (n_exception_all > 0) Then ! need halos 
+        CALL HALO_UPDATE(grid, U, FROM=NORTH)
+        CALL HALO_UPDATE(grid, V, FROM=NORTH)
+      END IF
+
+      IF (n_exception > 0)  Then ! 2nd pass report problems
+        Do J = J_0, J_1
+          DO I = 1, IMAXJ(J)
+            IF (PA(I,J)+PTOP.GT.1160. .or. PA(I,J)+PTOP.LT.350.) THEN
+              IM1 = 1 + MOD(I-1,IM)
+              WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),ZATMO(I,J),DT1,
+     *             (U(IM1,J,L),U(I,J,L),U(IM1,J+1,L),U(I,J+1,L),
+     *             V(IM1,J,L),V(I,J,L),V(IM1,J+1,L),V(I,J+1,L),
+     *             T(I,J,L),Q(I,J,L),L=1,LM)
+              write(6,*) "Pressure diagnostic error"
+              IF (PA(I,J)+PTOP.lt.250. .or. PA(I,J)+PTOP.GT.1200.)
+     &          call stop_model('ADVECM: Pressure diagnostic error',11)
+            END IF
+          END DO
+        END DO
+      END IF
+
       IF (HAVE_SOUTH_POLE) PA(2:IM, 1)=PA(1,1)
       IF (HAVE_NORTH_POLE) PA(2:IM,JM)=PA(1,JM)
+
 C****
       RETURN
   990 FORMAT (/'0PRESSURE DIAGNOSTIC     I,J,MRCH,P,PA=',3I4,2F10.2/
@@ -968,24 +989,32 @@ C
 C
 C**** SMOOTHED EAST-WEST DERIVATIVE AFFECTS THE U-COMPONENT
 C
+C Although PU appears to require a halo update, the halos
+C of PHI, SPA, and P enable implementation without the additional halo.
+C
 !$OMP  PARALLEL DO PRIVATE(I,IP1,J,L,FACTOR)
-      DO 3300 L=1,LM
-      IF (HAVE_SOUTH_POLE) PU(:,1,L)=0.
-      IF (HAVE_NORTH_POLE) PU(:,JM,L)=0.
-      I=IM
-      DO 3290 J=J_0STG,J_1STG
-      DO 3280 IP1=1,IM
-      PU(I,J,L)=(P(IP1,J,L)+P(I,J,L))*(PHI(IP1,J,L)-PHI(I,J,L))+
-     *  (SPA(IP1,J,L)+SPA(I,J,L))*(P(IP1,J,L)-P(I,J,L))
- 3280 I=IP1
- 3290 CONTINUE
-      CALL AVRX (PU(1,J_0H,L))
-      CALL HALO_UPDATE(grid, PU(:,:,L), FROM=SOUTH)
-      DO 3294 J=J_0STG,J_1STG
-      FACTOR = -DT4*DYV(J)*DSIG(L)
-      DO 3294 I=1,IM
- 3294 DUT(I,J,L)=DUT(I,J,L)+FACTOR*(PU(I,J,L)+PU(I,J-1,L))
- 3300 CONTINUE
+      DO L=1,LM
+        IF (HAVE_SOUTH_POLE) PU(:,1,L)=0.
+        IF (HAVE_NORTH_POLE) PU(:,JM,L)=0.
+        I=IM
+
+        DO J=Max(2,J_0STG-1),J_1STG
+          DO IP1=1,IM
+            PU(I,J,L)=(P(IP1,J,L)+P(I,J,L))*(PHI(IP1,J,L)-PHI(I,J,L))+
+     *           (SPA(IP1,J,L)+SPA(I,J,L))*(P(IP1,J,L)-P(I,J,L))
+            I=IP1
+          END DO
+        END DO
+
+        CALL AVRX (PU(1,J_0H,L),jrange=(/MAX(2,J_0H),MIN(JM-1,J_1H)/))
+
+        DO J=J_0STG,J_1STG
+          FACTOR = -DT4*DYV(J)*DSIG(L)
+          DO I=1,IM
+            DUT(I,J,L)=DUT(I,J,L)+FACTOR*(PU(I,J,L)+PU(I,J-1,L))
+          END DO
+        END DO
+      END DO
 !$OMP  END PARALLEL DO
 
 c correct for erroneous dxyv at the poles
@@ -1055,7 +1084,7 @@ C
       RETURN
       END SUBROUTINE PGF
 
-      SUBROUTINE AVRX(X)
+      SUBROUTINE AVRX(X,jrange)
 !@sum  AVRX Smoothes zonal mass flux and geopotential near the poles
 !@auth Original development team
 !@ver  1.0
@@ -1069,11 +1098,9 @@ C**** THIS VERSION OF AVRX DOES SO BY TRUNCATING THE FOURIER SERIES.
       IMPLICIT NONE
       REAL*8, INTENT(INOUT), optional ::
      &     X(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
-CCC   REAL*8, SAVE :: SM(IMH,grid%J_STRT_HALO:grid%J_STOP_HALO)
-CCC   REAL*8, SAVE :: DRAT(grid%J_STRT_HALO:grid%J_STOP_HALO)
-CCC   REAL*8, SAVE, DIMENSION(IMH) :: BYSN
-      REAL*8, ALLOCATABLE, SAVE  :: SM(:,:), DRAT(:)
-      REAL*8  BYSN(IMH)
+      Integer, Intent(In), optional :: jrange(2)
+      REAL*8, ALLOCATABLE, SAVE  :: DRAT(:)
+      REAL*8, SAVE ::  BYSN(IMH)
       REAL*8, DIMENSION(0:IMH) :: AN,BN
 CCC   INTEGER, SAVE :: NMIN(grid%J_STRT_HALO:grid%J_STOP_HALO)
 CCC   INTEGER, SAVE :: IFIRST = 1
@@ -1081,13 +1108,14 @@ CCC   INTEGER, SAVE :: IFIRST = 1
       INTEGER J,N
       LOGICAL, SAVE :: init = .false.
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H, J0, J1
       REAL*8, SAVE :: xAVRX
       INTEGER order
 
       if ( present(X) ) goto 1000
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+     &               J_STRT_HALO = J_0H, J_STOP_HALO = J_1H,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 C
       call moment_enq_order(order)
@@ -1102,39 +1130,48 @@ C
       IF (.NOT. init) THEN
         init = .true.
 C       CALL FFT0(IM)
-        ALLOCATE(SM(IMH,J_0:J_1), DRAT(J_0:J_1), NMIN(J_0:J_1))
+        j0 = MAX(1,J_0H)
+        j1 = MIN(JM,J_1H)
+        ALLOCATE(DRAT(j0:j1), NMIN(j0:j1))
         DO N=1,IMH
           BYSN(N)=xAVRX/SIN(.5*DLON*N)
         END DO
-        DO 50 J=J_0S,J_1S
+        DO J=j0,j1
           DRAT(J) = DXP(J)*BYDYP(3)
-          DO 40 N=IMH,1,-1
-            SM(N,J) = BYSN(N)*DRAT(J)
-            IF(SM(N,J).GT.1.) THEN
+          DO N=IMH,1,-1
+            IF(BYSN(N)*DRAT(J) .GT.1.) THEN
               NMIN(J) = N+1
-              GO TO 50
+              EXIT
             ENDIF
- 40       CONTINUE
- 50     CONTINUE
+          END DO
+        END DO
       END IF
       RETURN
 C****
 !!!      ENTRY AVRX (X)
  1000 continue
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 
-      DO 140 J=J_0S,J_1S
-      IF (DRAT(J).GT.1) GO TO 140
-      CALL FFT (X(1,J),AN,BN)
-      DO N=NMIN(J),IMH-1
-        AN(N)=SM(N,J)*AN(N)
-        BN(N)=SM(N,J)*BN(N)
+      If (Present(jrange)) Then
+        j0 = jrange(1)
+        j1 = jrange(2)
+      Else
+        CALL GET(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
+        j0=J_0S
+        j1=J_1S
+      End If
+        
+      DO J=j0,j1
+        IF (DRAT(J).GT.1) CYCLE
+        CALL FFT (X(1,J),AN,BN)
+        DO N=NMIN(J),IMH-1
+          AN(N)=BYSN(N)*DRAT(J) * AN(N)
+          BN(N)=BYSN(N)*DRAT(J) * BN(N)
+        END DO
+        AN(IMH) = BYSN(IMH)*DRAT(J) * AN(IMH)
+        CALL FFTI(AN,BN,X(1,J))
       END DO
-      AN(IMH) = SM(IMH,J)*AN(IMH)
-      CALL FFTI(AN,BN,X(1,J))
-  140 CONTINUE
+
       RETURN
       END SUBROUTINE AVRX
 
@@ -1541,7 +1578,8 @@ c         if(have_north_pole) call isotropuv(u,v,+1)
       endif
 
 C**** Conserve angular momentum along latitudes
-      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
+c***  The following halo is not needed because PDSIG halo is up to date
+c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
 !$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP,ANGM,DPT)
       DO L=1,LM
         DO J=J_0STG,J_1STG
@@ -1794,16 +1832,17 @@ C****
       USE CONSTANT, only : bygrav,kapa
       USE MODEL_COM, only : im,jm,lm,ls1,p,dsig,sig,sige,ptop,psfmpt
       USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
-      USE DOMAIN_DECOMP, Only : grid, GET
+      USE DOMAIN_DECOMP, Only : grid, GET, HALO_UPDATE, SOUTH
       IMPLICIT NONE
 
       INTEGER :: I,J,L  !@var I,J,L  loop variables
       INTEGER, INTENT(IN) :: LMAX !@var LMAX max. level for update
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
+     &               J_STRT_HALO= J_0H,
      &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
@@ -1816,9 +1855,10 @@ C**** Note Air mass is calculated in (kg/m^2)
 C**** Fill in polar boxes
       IF (HAVE_SOUTH_POLE) P(2:IM,1) = P(1,1)
       IF (HAVE_NORTH_POLE) P(2:IM,JM)= P(1,JM)
+      Call HALO_UPDATE(grid, P, FROM=SOUTH)
 
 !$OMP  PARALLEL DO PRIVATE (I,J,L)
-      DO J=J_0,J_1
+      DO J=J_0H,J_1 ! filling halo for P is faster than PDSIG
         DO I=1,IM
           DO L=1,LS1-1
             PLIJ(L,I,J) = P(I,J)
@@ -2044,7 +2084,8 @@ c**** Extract domain decomposition info
 C*
       BYPIJU=1./PSFMPT
       DUT=0. ; DVT=0.
-      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
+c***  The following halo is not needed because PDSIG halo is up to date
+c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
       DO L=LS1,LM
       DO J=J_0STG, J_1STG
       cd_lin=.false.

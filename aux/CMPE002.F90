@@ -230,7 +230,7 @@
 !AOO dynamically allocated arrays
       use domain_decomp, only : init_app, grid, finish_app
       use model_com, only : ioread
-      use model_com, only : im,jm
+      use model_com, only : im,jm,lm
 !ccc  modules with data to compare
       use model_com, only : u,v,t,q,p
 #ifdef CHECK_OCEAN
@@ -313,7 +313,7 @@
       endif
 
 !AOO added calls ti init routines for dynamically allocated arrays.
-      call init_app(grid,im,jm)
+      call init_app(grid,im,jm,lm)
       call alloc_drv()
 
 !C****

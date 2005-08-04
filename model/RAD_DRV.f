@@ -1117,32 +1117,20 @@ C**** but keep MC calculation seperate from SS clouds
 C**** MC clouds are considered as a block for each I,J grid point
 
 C force random number generation for all latitudes for parallel consistency
-      DO J=1,J_0-1
-        DO I = 1,IMAXJ(J)
-          RANDSS = RANDU(X) !burn a random number
-        END DO
-      END DO
+      CALL BURN_RANDOM(SUM(IMAXJ(1:J_0-1)))
+
       DO J=J_0,J_1                    ! complete overlap
       DO I=1,IMAXJ(J)
         RDMC(I,J) = RANDU(X)
       END DO
       END DO
-      DO J=J_1+1,JM
-        DO I = 1,IMAXJ(J)
-          RANDSS = RANDU(X) !burn a random number
-        END DO
-      END DO
+
+      CALL BURN_RANDOM(SUM(IMAXJ(J_1+1:JM)))
 
 C**** SS clouds are considered as a block for each continuous cloud
 C
 C force random number generation for all latitudes for parallel consistency
-      DO J=1,J_0-1
-        DO I = 1, IMAXJ(J)
-          DO L=LM,1,-1
-            RANDSS = RANDU(X) ! burn a random number
-          END DO
-        END DO
-      END DO
+      CALL BURN_RANDOM(SUM(IMAXJ(1:J_0-1))*LM)
 
       DO J=J_0,J_1                    ! semi-random overlap
       DO I=1,IMAXJ(J)
@@ -1164,13 +1152,8 @@ C force random number generation for all latitudes for parallel consistency
         END DO
       END DO
       END DO
-      DO J=J_1+1,JM
-        DO I = 1, IMAXJ(J)
-          DO L=LM,1,-1
-            RANDSS = RANDU(X) ! burn a random number
-          END DO
-        END DO
-      END DO
+
+      CALL BURN_RANDOM(SUM(IMAXJ(J_1+1:JM))*LM)
 
       end if                    ! kradia le 0
 

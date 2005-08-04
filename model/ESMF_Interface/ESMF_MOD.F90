@@ -62,6 +62,7 @@ Module ESMF_MOD_private
 
   Public :: MAXSTR
   Integer, Parameter :: MAXSTR = 100
+  Integer, Parameter :: N_DIMENSIONS = 3 ! dimensions of grid
 
   Public :: ESMF_DATATYPE, ESMF_DATAKIND
   Public :: ESMF_DATA_REAL, ESMF_DATA_INTEGER
@@ -101,7 +102,7 @@ Module ESMF_MOD_private
      Integer :: IM
      Integer :: JM
      Integer :: LM
-     Type (AxisIndex) :: global(3)
+     Type (AxisIndex) :: global(N_DIMENSIONS)
   End Type Grid
 
   Type HaloDirection
@@ -705,12 +706,12 @@ Contains
   Subroutine Grid_Get(aGrid, ai)
     Implicit None
     Type (Grid) :: aGrid
-    Type (AxisIndex) :: ai(2)
+    Type (AxisIndex) :: ai(N_DIMENSIONS)
 
   !!$$ ai%min = (/ 1, 1, 1 /)
   !!$$ ai%max = (/ aGrid%im, aGrid%jm, aGrid%lm /)
-    ai%min = (/ 1, 1 /)
-    ai%max = (/ aGrid%im, aGrid%jm /)
+    ai%min = (/ 1, 1, 1 /)
+    ai%max = (/ aGrid%im, aGrid%jm, aGrid%lm /)
 
   End Subroutine Grid_Get
 
