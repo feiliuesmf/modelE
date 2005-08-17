@@ -1,5 +1,5 @@
 .SUFFIXES:
-all:  ESMF_MOD.o ESMF_CUSTOM_MOD.o FieldComm.o assert.o
+all:  ESMF_MOD.o ESMF_CUSTOM_MOD.o assert.o
 
 # dependencies
 ESMF_MOD.o: 		ESMF_MOD.F90
