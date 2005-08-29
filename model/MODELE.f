@@ -19,6 +19,9 @@ CAOO   Just to test CVS
       USE DIAG_COM, only : oa,monacc,koa
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
+#ifdef TRACERS_DUST
+     &    ,ahourly
+#endif
       USE DIAG_SERIAL, only : print_diags
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: fv_core
@@ -365,6 +368,9 @@ C****
       if (Nsubdd.ne.0) then
         if (mod(Itime+1,Nsubdd).eq.0) call get_subdd
       end if
+#ifdef TRACERS_DUST
+      call ahourly
+#endif
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****

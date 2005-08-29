@@ -746,7 +746,9 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       IF (KDIAG(9).LT.9) CALL DIAGCP
       IF (KDIAG(5).LT.9) CALL DIAG5P
       IF (ipos.ne.2. .and. KDIAG(6).LT.9) CALL DIAGDD
+#ifndef TRACERS_DUST
       IF (KDIAG(13).LT.9) CALL DIAGDH
+#endif
       IF (KDIAG(4).LT.9) CALL DIAG4
       IF (KDIAG(11).LT.9) CALL diag_RIVER
       IF (KDIAG(12).LT.9) CALL diag_OCEAN
@@ -5344,23 +5346,57 @@ C****
       REAL*8, DIMENSION(HR_IN_DAY+1) :: XHOUR
       INTEGER, DIMENSION(HR_IN_DAY+1) :: MHOUR
       REAL*8 :: AVE,AVED,AVEN,BYIDAC
-      INTEGER :: I,IH,IREGF,IREGL,IS,K,KP,KQ,KR,NDAYS
+      INTEGER :: I,IH,IREGF,IREGL,IS,K,KP,KQ,KR,NDAYS,ndiu
       CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO,SNAMEO
       REAL*8, DIMENSION(HR_IN_DAY+1,NDIUVAR) :: FHOUR
+
+      INTEGER :: ipout,modkr,mpout
+      LOGICAL :: qsplit=.FALSE.
+      CHARACTER :: cpout*1
 C****
       NDAYS=IDACC(ia_12hr)/2
       IF (NDAYS.LE.0) RETURN
       BYIDAC=24./(NDAY*NDAYS)
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+#ifndef TRACERS_DUST
       IF (QDIAG)  call open_diurn
      &  (trim(acc_period)//'.diurn'//XLABEL(1:LRUNID),hr_in_day,NDIUVAR)
+#endif
 C****
 C**** KP packs the quantities for postprocessing (skipping unused)
       IREGF=1
       IREGL=NDIUPT-KDIAG(6)       ! kd6=KDIAG(6)>0: skip last kd6 points
       IF (KDIAG(6).LT.0.AND.KDIAG(6).GE.-NDIUPT) IREGF=-KDIAG(6)
       IF (KDIAG(6).LT.0) IREGL=IREGF       ! kd6<0: show only point -kd6
+#ifdef TRACERS_DUST
+      ndiu=0
+      DO kq=1,Ndiuvar
+        IF (lname_dd(kq).EQ."unused") CYCLE
+        ndiu=ndiu+1
+      END DO
+      mpout=INT(2000/ndiu)
+      IF (ndiu*iregl > 2000) qsplit=.TRUE. ! 2000 netcdf variables maximum
+      ipout=0
+#endif
       DO KR=IREGF,IREGL
+#ifdef TRACERS_DUST
+        modkr=MOD(kr,mpout)
+        IF (qsplit .AND. modkr == 1) THEN
+          ipout=ipout+1
+          IF (ipout <= 9) THEN
+            WRITE(cpout,'(I1)') ipout
+          ELSE
+            WRITE(cpout,'(I2)') ipout
+          END IF
+          IF (qdiag) CALL open_diurn
+     &         (trim(acc_period)//'.diurn'//cpout
+     &         //XLABEL(1:LRUNID),hr_in_day,NDIUVAR)
+        ELSE IF (.NOT. qsplit .AND. modkr == 1) THEN
+          IF (qdiag) CALL open_diurn
+     &         (trim(acc_period)//'.diurn'
+     &         //XLABEL(1:LRUNID),hr_in_day,NDIUVAR)
+        END IF
+#endif
         WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
         WRITE (6,903) NAMDD(KR),IJDD(1,KR),IJDD(2,KR),(I,I=1,HR_IN_DAY)
         KP = 0
@@ -5399,9 +5435,14 @@ C**** RATIO OF TWO QUANTITIES
           UNITSO(KP)=UNITS_DD(KQ)(1:16)
         END DO
         IF (QDIAG) CALL POUT_DIURN(SNAMEO,LNAMEO,UNITSO,FHOUR,
-     *     NAMDD(KR),IJDD(1,KR),IJDD(2,KR),HR_IN_DAY,KP)
+     *       NAMDD(KR),IJDD(1,KR),IJDD(2,KR),HR_IN_DAY,KP)
+#ifdef TRACERS_DUST
+        IF ((modkr == 0 .OR. kr == iregl) .AND. qdiag) CALL close_diurn
+#endif
       END DO
+#ifndef TRACERS_DUST
       IF (QDIAG) call close_diurn
+#endif
       RETURN
 C****
   901 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
@@ -5416,6 +5457,7 @@ C****
 !@+       exactly to same numbers as in DIAGDD.
 !@auth J. Lerner
 !@ver  1.0
+#ifndef TRACERS_DUST
       USE MODEL_COM, only :   JDendOfM,JMON,NDAY,
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID
       USE DIAG_COM, only :   kdiag,qdiag,acc_period,units_dd,hr_in_month
@@ -5479,6 +5521,7 @@ C**** RATIO OF TWO QUANTITIES
      *     NAMDD(KR),IJDD(1,KR),IJDD(2,KR),HR_IN_MONTH,KP)
       END DO
       IF (QDIAG) call close_hdiurn
+#endif
       RETURN
 C****
   901 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)

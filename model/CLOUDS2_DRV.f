@@ -36,13 +36,20 @@
      &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,jl_mchphas,
      *     jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui,
      *     ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags,
+#ifdef TRACERS_DUST
+     *     ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,
+#else
      *     ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,hdiurn,
+#endif
      *     ntau,npres,aisccp,isccp_reg,ij_precmc,ij_cldw,ij_cldi,
-     *     ij_fwoc,p_acc,ndiuvar,nisccp
+     *     ij_fwoc,p_acc,ndiuvar,nisccp,adiurn_dust
 #ifdef CLD_AER_CDNC
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
      *     ,ij_3drwm,ij_3drws,ij_3drim,ij_3dris
+#endif
+#ifdef TRACERS_DUST
+     &     ,idd_wet
 #endif
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname
@@ -199,18 +206,26 @@ CRKF...FIX
      &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3 )
      &        :: AREG_part
 
+#ifndef TRACERS_DUST
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: hdiurn_part
+#endif
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: adiurn_part
       INTEGER, PARAMETER :: n_idx1 = 5
       INTEGER, PARAMETER :: n_idx2 = 3
       INTEGER, PARAMETER :: n_idx3 = 6
+#ifndef TRACERS_DUST
       REAL*8, DIMENSION(N_IDX3,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: hdiurn_temp
+#endif
       REAL*8, DIMENSION(N_IDX3,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: adiurn_temp
+#ifdef TRACERS_DUST
+      REAL*8, DIMENSION(N_IDX3, NDIUPT) :: ADIURNSUM
+#else
       REAL*8, DIMENSION(N_IDX3, NDIUPT) :: HDIURNSUM, ADIURNSUM
+#endif
       INTEGER :: idx1(n_idx1), idx2(n_idx2), idx3(n_idx3)
       REAL*8 :: tmp(NDIUVAR)
       REAL*8,
@@ -221,7 +236,9 @@ CRKF...FIX
 
 C**** Initialize
       AJEQIL(:,:,:)=0.
+#ifndef TRACERS_DUST
       hdiurn_part = 0
+#endif
       adiurn_part = 0
       AISCCP_part = 0
       idx1 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC /)
@@ -571,8 +588,10 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
             tmp(IDD_MCP) =+PRCPMC
             tmp(IDD_DMC) =+CLDDEPIJ
             tmp(IDD_SMC) =+CLDSLWIJ
+#ifndef TRACERS_DUST
             hdiurn_part(J,idx1(:),kr)=hdiurn_part(J,idx1(:),kr)+
      &           tmp(idx1(:))
+#endif
             adiurn_part(J,idx1(:),kr)=adiurn_part(J,idx1(:),kr)+
      &           tmp(idx1(:))
           END IF
@@ -805,8 +824,10 @@ CCC      AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
              tmp(IDD_PR)  =+PRCPSS
              tmp(IDD_ECND)=+HCNDSS
              tmp(IDD_SSP) =+PRCPSS
+#ifndef TRACERS_DUST
              hdiurn_part(J,idx2(:),kr)=hdiurn_part(J,idx2(:),kr)+
      &            tmp(idx2(:))
+#endif
              adiurn_part(J,idx2(:),kr)=adiurn_part(J,idx2(:),kr)+
      &            tmp(idx2(:))
            END IF
@@ -1115,6 +1136,19 @@ C**** diagnostics
      *         ,jls_prec(2,n))+trprec(n,i,j)*focean(i,j)*bydxyp(j)
           taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) +
      *         trprec(n,i,j)*bydxyp(j)
+#ifdef TRACERS_DUST
+          IF (adiurn_dust == 1) THEN
+            DO kr=1,Ndiupt
+              IF(i == ijdd(1,kr) .AND. j == ijdd(2,kr)) THEN
+                SELECT CASE (trname(n))
+                CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
+                  adiurn(ih,idd_wet,kr)=adiurn(ih,idd_wet,kr)
+     &                 +trprec(n,i,j)*bydxyp(j)/Dtsrc
+                END SELECT
+              END IF
+            END DO
+          END IF
+#endif
         end if
 #endif
       end do
@@ -1223,19 +1257,25 @@ C    identical results regardless of number of distributed processes used.
         DO ii = 1, N_IDX3
           ivar = idx3(ii)
           ADIURN_temp(ii,:,kr)=ADIURN_part(:,ivar,kr)
+#ifndef TRACERS_DUST
           HDIURN_temp(ii,:,kr)=HDIURN_part(:,ivar,kr)
+#endif
         END DO
       END DO
       CALL GLOBALSUM(grid, ADIURN_temp(1:N_IDX3,:,1:ndiupt),
      &    ADIURNSUM(1:N_IDX3,1:ndiupt))
+#ifndef TRACERS_DUST
       CALL GLOBALSUM(grid, HDIURN_temp(1:N_IDX3,:,1:ndiupt),
      &    HDIURNSUM(1:N_IDX3,1:ndiupt))
+#endif
       DO kr = 1, ndiupt
         DO ii = 1, N_IDX3
           ivar = idx3(ii)
           IF (AM_I_ROOT()) THEN
             ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM(ii,kr)
+#ifndef TRACERS_DUST
             HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM(ii,kr)
+#endif
           END IF
         END DO
       END DO

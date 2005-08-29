@@ -348,7 +348,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
-     *     ,rad_interact_tr,rad_forc_lev,ntrix,wttr
+     *     ,rad_interact_tr,rad_forc_lev,ntrix,wttr,nrad_clay
       USE CLOUDS_COM, only : llow
       USE DIAG_COM, only : iwrite,jwrite,itwrite
 #ifdef TRACERS_ON
@@ -617,6 +617,7 @@ C**** should also work if other aerosols are not used
         FS8OPX(7) = 0. ; FT8OPX(7) = 0.
       end if
       n1=NTRACE+1
+      nrad_clay=n1
       NTRACE=NTRACE+ntm_dust+3  ! add dust tracers
 c tracer 7 is dust
       ITR(n1:NTRACE) = 7
@@ -840,14 +841,21 @@ C     OUTPUT DATA
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
-     *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl
+     *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
+#ifdef TRACERS_DUST
+     &     ,srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
+#endif
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
       USE PBLCOM, only : wsavg,tsavg
       USE DIAG_COM, only : aj=>aj_loc,areg,jreg,aij=>aij_loc,
+#ifdef TRACERS_DUST
+     *     ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn,
+#else
      *     ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn,hdiurn,
+#endif
      *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,
      *     j_clddep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
      *     ij_cldtppr,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
@@ -864,6 +872,7 @@ C     OUTPUT DATA
      *     ,ij_clr_srntp,ij_clr_trntp,ij_clr_srnfg,ij_clr_trdng
      *     ,ij_clr_sruptoa,ij_clr_truptoa,aijk,ijl_cf
      *     ,ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt, NREG
+     &     ,adiurn_dust
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -880,9 +889,9 @@ C     OUTPUT DATA
 
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
-     *     ,n_OCIA,N_OCII,n_clay
+     *     ,n_OCIA,N_OCII
       USE TRDIAG_COM, only: taijs=>taijs_loc,ijts_fc,ijts_tau,
-     &     ijts_tausub,ijts_fcsub
+     &     ijts_tausub,ijts_fcsub,ijts_3dtau
 #endif
       IMPLICIT NONE
 C
@@ -904,6 +913,10 @@ C     INPUT DATA   partly (i,j) dependent, partly global
 !@+   radiative forcing calculations
       REAL*8,DIMENSION(2,NTRACE,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)::
      *     SNFST,TNFST
+!@var snfst_ozone,tnfst_ozone like snfst,tnfst for special case ozone for
+!@+   which ntrace fields are not defined
+      REAL*8,DIMENSION(2,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     snfst_ozone,tnfst_ozone
 #endif
       REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRS,SRHRS
@@ -1503,6 +1516,15 @@ C**** or not.
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_MINERALS)
+c if ozone also interacts with radiation it needs to be set
+c   to default here
+#ifdef TRACERS_SPECIAL_Shindell
+C**** Ozone:
+      if (rad_interact_tr.gt.0) then
+      O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
+      use_tracer_ozone=1
+      endif
+#endif
 C**** Aerosols incl. Dust:
       if (NTRACE.gt.0) then
         FSTOPX(:)=onoff ; FTTOPX(:)=onoff
@@ -1568,10 +1590,10 @@ C**** Ozone:
       use_tracer_ozone=1-onoff
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
       CALL RCOMPX
-      SNFST(1,n_Ox,I,J)=SRNFLB(1)  ! surface
-      TNFST(1,n_Ox,I,J)=TRNFLB(1)
-      SNFST(2,n_Ox,I,J)=SRNFLB(LFRC)
-      TNFST(2,n_Ox,I,J)=TRNFLB(LFRC)
+      SNFST_ozone(1,I,J)=SRNFLB(1)  ! surface
+      TNFST_ozone(1,I,J)=TRNFLB(1)
+      SNFST_ozone(2,I,J)=SRNFLB(LFRC)
+      TNFST_ozone(2,I,J)=TRNFLB(LFRC)
       use_tracer_ozone=onoff
 #endif
 
@@ -1606,7 +1628,7 @@ C**** Save optical depth diags
       do n=1,NTRACE
         SELECT CASE (trname(ntrix(n)))
         CASE ('Clay')
-          n1=n-n_clay+1
+          n1=n-nrad_clay+1
           IF (ijts_tausub(1,ntrix(n),n1) > 0)
      &         taijs(i,j,ijts_tausub(1,ntrix(n),n1))
      &         =taijs(i,j,ijts_tausub(1,ntrix(n),n1))
@@ -1615,14 +1637,53 @@ C**** Save optical depth diags
      &         taijs(i,j,ijts_tausub(2,ntrix(n),n1))
      &         =taijs(i,j,ijts_tausub(2,ntrix(n),n1))
      &         +SUM(ttausv(1:Lm,n))*OPNSKY
+          if (ijts_3Dtau(1,NTRIX(n)).gt.0) 
+     *         taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n1)))
+     *         =taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n1)))+TTAUSV(1:lm,n)
         CASE DEFAULT
           if (ijts_tau(1,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(1,NTRIX(n)))
      *         =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
           if (ijts_tau(2,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(2,NTRIX(n)))
      *         =taijs(i,j,ijts_tau(2,NTRIX(n)))
      &         +SUM(TTAUSV(1:lm,n))*OPNSKY
+          if (ijts_3Dtau(1,NTRIX(n)).gt.0) 
+     *         taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n)))
+     *         =taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n)))+TTAUSV(1:lm,n)
         END SELECT
       end do
+#endif
+
+#ifdef TRACERS_DUST
+      IF (adiurn_dust == 1) THEN
+        DO n=1,NTRACE
+          SELECT CASE (trname(ntrix(n)))
+          CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
+            ttausv_save(i,j,ntrix(n),1)=ttausv(1,n)
+            ttausv_save(i,j,ntrix(n),2)=ttausv(2,n)
+            ttausv_save(i,j,ntrix(n),3)=ttausv(3,n)
+            ttausv_save(i,j,ntrix(n),4)=ttausv(4,n)
+            ttausv_save(i,j,ntrix(n),5)=ttausv(5,n)
+            ttausv_save(i,j,ntrix(n),6)=ttausv(6,n)
+            ttausv_save(i,j,ntrix(n),7)=ttausv(7,n)
+            ttausv_save(i,j,ntrix(n),8)=ttausv(8,n)
+            ttausv_save(i,j,ntrix(n),9)=ttausv(9,n)
+            ttausv_save(i,j,ntrix(n),10)=ttausv(10,n)
+            ttausv_save(i,j,ntrix(n),11)=ttausv(11,n)
+
+            ttausv_cs_save(i,j,ntrix(n),1)=ttausv(1,n)*OPNSKY
+            ttausv_cs_save(i,j,ntrix(n),2)=ttausv(2,n)*OPNSKY
+            ttausv_cs_save(i,j,ntrix(n),3)=ttausv(3,n)*OPNSKY
+            ttausv_cs_save(i,j,ntrix(n),4)=ttausv(4,n)*OPNSKY
+            ttausv_cs_save(i,j,ntrix(n),5)=ttausv(5,n)*OPNSKY
+            ttausv_cs_save(i,j,ntrix(n),6)=ttausv(6,n)*OPNSKY
+            ttausv_cs_save(i,j,ntrix(n),7)=ttausv(7,n)*OPNSKY
+            ttausv_cs_save(i,j,ntrix(n),8)=ttausv(8,n)*OPNSKY
+            ttausv_cs_save(i,j,ntrix(n),9)=ttausv(9,n)*OPNSKY
+            ttausv_cs_save(i,j,ntrix(n),10)=ttausv(10,n)*OPNSKY
+            ttausv_cs_save(i,j,ntrix(n),11)=ttausv(11,n)*OPNSKY
+          END SELECT
+        END DO
+      END IF
 #endif
 
       IF(I.EQ.IWRITE.AND.J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
@@ -1721,6 +1782,33 @@ C****
       ALB(I,J,8)=SRAVIS
       ALB(I,J,9)=SRANIR
 
+#ifdef TRACERS_DUST
+      IF (adiurn_dust == 1) THEN
+        srnflb_save(i,j,1)=srnflb(1)
+        srnflb_save(i,j,2)=srnflb(2)
+        srnflb_save(i,j,3)=srnflb(3)
+        srnflb_save(i,j,4)=srnflb(4)
+        srnflb_save(i,j,5)=srnflb(5)
+        srnflb_save(i,j,6)=srnflb(6)
+        srnflb_save(i,j,7)=srnflb(7)
+        srnflb_save(i,j,8)=srnflb(8)
+        srnflb_save(i,j,9)=srnflb(9)
+        srnflb_save(i,j,10)=srnflb(10)
+        srnflb_save(i,j,11)=srnflb(11)
+        trnflb_save(i,j,1)=trnflb(1)
+        trnflb_save(i,j,2)=trnflb(2)
+        trnflb_save(i,j,3)=trnflb(3)
+        trnflb_save(i,j,4)=trnflb(4)
+        trnflb_save(i,j,5)=trnflb(5)
+        trnflb_save(i,j,6)=trnflb(6)
+        trnflb_save(i,j,7)=trnflb(7)
+        trnflb_save(i,j,8)=trnflb(8)
+        trnflb_save(i,j,9)=trnflb(9)
+        trnflb_save(i,j,10)=trnflb(10)
+        trnflb_save(i,j,11)=trnflb(11)
+      END IF
+#endif
+
       SRDN(I,J) = SRDFLB(1)     ! save total solar flux at surface
 C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (pointer)
       FSRDIR(I,J)=SRXVIS        ! direct visible solar at surface
@@ -1804,9 +1892,11 @@ C****
          IH=IHM
          IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
          ADIURN(IH,idx,:) = ADIURN(IH,idx,:) + DIURNSUM
+#ifndef TRACERS_DUST
          IHM = IHM+(JDATE-1)*HR_IN_DAY
          IF(IHM.GT.HR_IN_MONTH) CYCLE
          HDIURN(IHM,idx,:) = HDIURN(IHM,idx,:) + DIURNSUM
+#endif
       END DO
 
 
@@ -1968,11 +2058,15 @@ C**** diagnostic sign changes
 C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          LFRC=3                 ! TOA
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
-         if (ntrace.gt.0 .or. n_Ox.gt.0 ) then
+         if (ntrace.gt.0) then
 #ifdef TRACERS_AEROSOLS_Koch
            snfst0(:,:,i,j)=0.D0
            tnfst0(:,:,i,j)=0.D0
 #endif
+c     ..........
+c     accumulation of forcings for tracers for which ntrace fields are
+c     defined
+c     ..........
            set_clayilli=.FALSE.
            set_claykaol=.FALSE.
            set_claysmec=.FALSE.
@@ -1981,7 +2075,7 @@ C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
            do n=1,ntrace
              SELECT CASE (trname(ntrix(n)))
              CASE ('Clay')
-               n1=n-n_clay+1
+               n1=n-nrad_clay+1
 c shortwave forcing (TOA or TROPO) of Clay sub size classes
                if (ijts_fcsub(1,ntrix(n),n1) > 0)
      &              taijs(i,j,ijts_fcsub(1,ntrix(n),n1))
@@ -2079,7 +2173,41 @@ c longwave forcing at surface (if required)
 #endif
            end do
          end if
+
+c     ..........
+c     accumulation of forcings for special case ozone (ntrace fields
+c     not defined)
+c     ..........
+         IF (n_Ox > 0) THEN
+c shortwave forcing (TOA or TROPO)
+           if (ijts_fc(1,n_Ox).gt.0)
+     &          taijs(i,j,ijts_fc(1,n_Ox))=taijs(i,j,ijts_fc(1,n_Ox))
+     &          +rsign*(SNFST_ozone(2,I,J)-SNFS(LFRC,I,J))*CSZ2
+c longwave forcing  (TOA or TROPO)
+           if (ijts_fc(2,n_Ox).gt.0)
+     &          taijs(i,j,ijts_fc(2,n_Ox))=taijs(i,j,ijts_fc(2,n_Ox))
+     &          -rsign*(TNFST_ozone(2,I,J)-TNFS(LFRC,I,J))
+c shortwave forcing (TOA or TROPO) clear sky
+           if (ijts_fc(5,n_Ox).gt.0)
+     &          taijs(i,j,ijts_fc(5,n_Ox))=taijs(i,j,ijts_fc(5,n_Ox))
+     &          +rsign*(SNFST_ozone(2,I,J)-SNFS(LFRC,I,J))*CSZ2
+     &          *(1.d0-CFRAC(I,J))
+c longwave forcing  (TOA or TROPO) clear sky
+           if (ijts_fc(6,n_Ox).gt.0)
+     &          taijs(i,j,ijts_fc(6,n_Ox))=taijs(i,j,ijts_fc(6,n_Ox))
+     &          -rsign*(TNFST_ozone(2,I,J)-TNFS(LFRC,I,J))
+     &          *(1.d0-CFRAC(I,J))
+c shortwave forcing at surface (if required)
+           if (ijts_fc(3,n_Ox).gt.0)
+     &          taijs(i,j,ijts_fc(3,n_Ox))=taijs(i,j,ijts_fc(3,n_Ox))
+     &          +rsign*(SNFST_ozone(1,I,J)-SNFS(1,I,J))*CSZ2
+c longwave forcing at surface (if required)
+           if (ijts_fc(4,n_Ox).gt.0)
+     &          taijs(i,j,ijts_fc(4,n_Ox))=taijs(i,j,ijts_fc(4,n_Ox))
+     &          -rsign*(TNFST_ozone(1,I,J)-TNFS(1,I,J))           
+         END IF
 #endif
+
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(0,I,J)*CSZ2/
      *        (ALB(I,J,1)+1.D-20))
          AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
@@ -2101,9 +2229,11 @@ c longwave forcing at surface (if required)
          IH=IHM
          IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
          ADIURN(IH,idxb,:) = ADIURN(IH,idxb,:) + DIURNSUMb
+#ifndef TRACERS_DUST
          IHM = IHM+(JDATE-1)*HR_IN_DAY
          IF(IHM.GT.HR_IN_MONTH) CYCLE
          HDIURN(IHM,idxb,:) = HDIURN(IHM,idxb,:) + DIURNSUMb
+#endif
       End Do
 
          DO L=1,LM
@@ -2212,8 +2342,10 @@ c***            HDIURN_part(IHM,1,KR,J)=S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
      &    DIURNSUMc(1:1,1:NDIUPT), ALL=.TRUE.)
       ADIURN(IH,IDD_ISW,1:NDIUPT)=ADIURN(IH,IDD_ISW,1:NDIUPT)
      &    + DIURNSUMc(1,1:NDIUPT)
+#ifndef TRACERS_DUST
       HDIURN(IHM,IDD_ISW,1:NDIUPT)=HDIURN(IHM,IDD_ISW,1:NDIUPT)
      &    + DIURNSUMc(1,1:NDIUPT)
+#endif
 
       RETURN
       END SUBROUTINE RADIA

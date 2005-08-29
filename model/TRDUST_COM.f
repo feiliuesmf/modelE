@@ -12,19 +12,11 @@
 
       IMPLICIT NONE
 
-!@param nDustTurbij index of dust dry turbulent deposition in ijts_source
-!@param nDustWetij index of dust wet deposition in ijts_source
-      INTEGER,PARAMETER :: nDustTurbij=2,
-     &                     nDustWetij=4
-!@param nDustTurbjl index of dust dry turbulent deposition in jls_source
-!@param nDustWetjl index of dust wet deposition in jls_3Dsource
-      INTEGER,PARAMETER :: nDustTurbjl=2,
-     &                     nDustWet3Djl=2
 !@param uplfac uplift factor for each size class of soil dust [kg*s**2/m**5]
 #ifdef TRACERS_DUST_CUB_SAH
       REAL*8,PARAMETER :: Upclsi=52.D-9
 #else !default case
-      REAL*8,PARAMETER :: Upclsi=2.2D-9
+      REAL*8,PARAMETER :: Upclsi=12.068996D-9
 #endif
 #ifdef TRACERS_DUST_CUB_SAH
 !@param By8 0.25d0/2d0
@@ -35,10 +27,8 @@
 !@param fracn fraction of uplifted soil for each size class of dust [1]
 #ifdef TRACERS_DUST_CUB_SAH
       REAL*8 :: Fracl=By6,Frasi=By8
-c      REAL*8 :: Fracn(Ntm_dust)=(/By6,By8,By8,By8/)
 #else !default case
-      REAL*8 :: Fracl=0.18D0,Frasi=By4
-c      REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,By4,By4,By4/)
+      REAL*8 :: Fracl=0.092335D0,Frasi=0.226916D0
 #endif
 !@var hbaij  accumulated precipitation - evaporation balance
       REAL*8 :: hbaij(im,jm),ricntd(im,jm)
@@ -58,8 +48,8 @@ c      REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,By4,By4,By4/)
 !@var qdust flag whether conditions for dust emission are fulfilled
       LOGICAL :: qdust(Im,Jm)
       REAL*4 :: ers_data(im,jm,JMperY),gin_data(im,jm)
-      INTEGER,PARAMETER :: lim=294,ljm=244,lkm=9
-      REAL*8 :: curint(Im,Jm),table(lim,ljm,lkm),x1(lim),x2(ljm),x3(lkm)
+      INTEGER,PARAMETER :: lim=220,ljm=220,lkm=22
+      REAL*8 :: pdfint(Im,Jm),table(lim,ljm,lkm),x1(lim),x2(ljm),x3(lkm)
       REAL*8 :: wsubtke_com(Im,Jm),wsubwd_com(Im,Jm),wsubwm_com(Im,Jm)
       REAL*8 :: prelay(im,jm,Lm)
 !@var d_dust Prescribed daily dust emissions

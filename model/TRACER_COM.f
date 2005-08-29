@@ -314,6 +314,13 @@ c for gas phase sulfur chemistry used by aerosol and chemistry models
     (defined TRACERS_QUARZHEM)
 !@dbparam imDUST is 1 for AEROCOM-prescribed simulations, 0 interactive
       INTEGER :: imDUST=0
+!@param lim dimension 1 of lookup table for mean surface wind speed integration
+!@param ljm dimension 2 of lookup table for mean surface wind speed integration
+      INTEGER,PARAMETER :: kim=234,kjm=234
+!@var table1 array for lookup table for calculation of mean surface wind speed
+!@var x11 index of table1 for GCM surface wind speed from 0 to 50 m/s
+!@var x21 index of table1 for sub grid scale velocity scale (sigma)
+      REAL*8 :: table1(kim,kjm),x11(kim),x21(kjm)
 #endif
 #ifdef TRACERS_ON
 !@var NTM_POWER: Power of 10 associated with each tracer (for printing)

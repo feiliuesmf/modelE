@@ -2980,6 +2980,39 @@ c
       name_ij(k) = 'p_500_freq'
       ia_ij(k) = ia_dga
       scale_ij(k) = 100.
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      k=k+1
+      ij_wsgcm = k
+      lname_ij(k) = 'GCM SURFACE WIND SPEED'
+      name_ij(k) = 'wsgcm'
+      units_ij(k) = 'm/s'
+      ia_ij(k)= ia_srf
+      k=k+1
+      ij_wspdf = k
+      lname_ij(k) = 'PDF MEAN SURFACE WIND SPEED'
+      name_ij(k) = 'wspdf'
+      units_ij(k) = 'm/s'
+      ia_ij(k) = ia_srf
+      k=k+1
+      IJ_wdry = k
+      lname_ij(k) = 'DRY CONVECTIVE VELOCITY SCALE'
+      name_ij(k) = 'wsubwd'
+      units_ij(k) = 'm/s'
+      ia_ij(k) = ia_srf
+      k=k+1 
+      IJ_wtke = k
+      lname_ij(k) = 'TKE VELOCITY SCALE'
+      name_ij(k) = 'wsubtke'
+      units_ij(k) = 'm/s'
+      ia_ij(k) = ia_srf
+      k=k+1
+      IJ_wmoist = k
+      lname_ij(k) = 'MOIST CONVECTIVE VELOCITY SCALE'
+      name_ij(k) = 'wsubwm'
+      units_ij(k) = 'm/s'
+      ia_ij(k) = ia_srf
+#endif
 c
       if (k .gt. kaij) then
         write (6,*) 'ij_defs: Increase kaij=',kaij,' to at least ',k
@@ -4965,6 +4998,1749 @@ c
       units_dd(k)='0.01 mm/day'
       scale_dd(k)=100.*100.*SDAY/(DTsrc*GRAV)
       lname_dd(k)=' MCP*100'
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IF (adiurn_dust == 1) THEN
+c
+      k=k+1
+      IDD_WTKE=k
+      name_dd(k)='WTKE'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' WTKE'
+c
+      k=k+1
+      IDD_WD=k
+      name_dd(k)='WD'
+      units_dd(k)='m/s'   
+      scale_dd(k)=1.
+      lname_dd(k)=' WD'
+c
+      k=k+1
+      IDD_WM=k
+      name_dd(k)='WM'
+      units_dd(k)='m/s'   
+      scale_dd(k)=1.
+      lname_dd(k)=' WM'
+c 
+      k=k+1 
+      IDD_WSGCM=k 
+      name_dd(k)='WSGCM' 
+      units_dd(k)='m/s' 
+      scale_dd(k)=10. 
+      lname_dd(k)=' WSGCM*10' 
+c
+      k=k+1 
+      IDD_WSPDF=k 
+      name_dd(k)='WSPDF' 
+      units_dd(k)='m/s' 
+      scale_dd(k)=10. 
+      lname_dd(k)=' WSPDF*10' 
+c
+      k=k+1
+      IDD_WTRSH=k
+      name_dd(k)='WTRSH'
+      units_dd(k)='m/s'
+      scale_dd(k)=10.
+      lname_dd(k)=' WTRSH*10'
+c
+      END IF
+#endif
+#ifdef TRACERS_DUST
+      IF (adiurn_dust == 1) THEN
+
+      k=k+1
+      IDD_U1=k
+      name_dd(k)='U_L1'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' U_L1'
+c
+      k=k+1
+      IDD_U2=k   
+      name_dd(k)='U_L2'   
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' U_L2'   
+c     
+      k=k+1
+      IDD_U3=k
+      name_dd(k)='U_L3'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' U_L3'
+c     
+      k=k+1
+      IDD_U4=k
+      name_dd(k)='U_L4'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' U_L4'
+c     
+      k=k+1
+      IDD_U5=k
+      name_dd(k)='U_L5'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' U_L5'
+c     
+      k=k+1
+      IDD_U6=k
+      name_dd(k)='U_L6'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' U_L6'
+c     
+      k=k+1
+      IDD_U7=k
+      name_dd(k)='U_L7'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' U_L7'
+c     
+      k=k+1
+      IDD_U8=k
+      name_dd(k)='U_L8'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' U_L8'
+c     
+      k=k+1
+      IDD_U9=k
+      name_dd(k)='U_L9'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' U_L9'
+c     
+      k=k+1
+      IDD_U10=k
+      name_dd(k)='U_L10'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' U_L10'
+c     
+      k=k+1
+      IDD_U11=k
+      name_dd(k)='U_L11'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' U_L11'
+c     
+      k=k+1
+      IDD_V1=k
+      name_dd(k)='V_L1'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.   
+      lname_dd(k)=' V_L1'
+c
+      k=k+1
+      IDD_V2=k
+      name_dd(k)='V_L2'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' V_L2'
+c
+      k=k+1
+      IDD_V3=k
+      name_dd(k)='V_L3'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' V_L3'
+c
+      k=k+1
+      IDD_V4=k
+      name_dd(k)='V_L4'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' V_L4'
+c
+      k=k+1
+      IDD_V5=k
+      name_dd(k)='V_L5'  
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' V_L5'
+c
+      k=k+1
+      IDD_V6=k
+      name_dd(k)='V_L6'   
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' V_L6'
+c     
+      k=k+1
+      IDD_V7=k
+      name_dd(k)='V_L7'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.   
+      lname_dd(k)=' V_L7'
+c
+      k=k+1
+      IDD_V8=k
+      name_dd(k)='V_L8'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' V_L8'
+c
+      k=k+1
+      IDD_V9=k
+      name_dd(k)='V_L9'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' V_L9'
+c
+      k=k+1
+      IDD_V10=k
+      name_dd(k)='V_L10'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' V_L10'
+c
+      k=k+1
+      IDD_V11=k
+      name_dd(k)='V_L11'  
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' V_L11'
+c
+      k=k+1
+      IDD_UV1=k
+      name_dd(k)='UV_L1'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UV_L1'
+c
+      k=k+1
+      IDD_UV2=k
+      name_dd(k)='UV_L2'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UV_L2'
+c
+      k=k+1
+      IDD_UV3=k
+      name_dd(k)='UV_L3'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UV_L3'
+c
+      k=k+1
+      IDD_UV4=k
+      name_dd(k)='UV_L4'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UV_L4'
+c
+      k=k+1
+      IDD_UV5=k
+      name_dd(k)='UV_L5'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UV_L5'
+c
+      k=k+1
+      IDD_UV6=k
+      name_dd(k)='UV_L6'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UV_L6'
+c
+      k=k+1
+      IDD_UV7=k
+      name_dd(k)='UV_L7'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UV_L7'
+c
+      k=k+1
+      IDD_UV8=k
+      name_dd(k)='UV_L8'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UV_L8'
+c
+      k=k+1
+      IDD_UV9=k
+      name_dd(k)='UV_L9'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UV_L9'
+c
+      k=k+1
+      IDD_UV10=k
+      name_dd(k)='UV_L10'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UV_L10'
+c
+      k=k+1
+      IDD_UV11=k
+      name_dd(k)='UV_L11'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UV_L11'
+c
+      k=k+1
+      IDD_T1=k
+      name_dd(k)='T_L1'
+      units_dd(k)='K'
+      scale_dd(k)=1.   
+      lname_dd(k)=' T_L1'
+c
+      k=k+1
+      IDD_T2=k
+      name_dd(k)='T_L2'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' T_L2'
+c
+      k=k+1
+      IDD_T3=k
+      name_dd(k)='T_L3'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' T_L3'
+c
+      k=k+1
+      IDD_T4=k
+      name_dd(k)='T_L4'
+      units_dd(k)='K'
+      scale_dd(k)=1.   
+      lname_dd(k)=' T_L4'
+c
+      k=k+1
+      IDD_T5=k
+      name_dd(k)='T_L5'
+      units_dd(k)='K'
+      scale_dd(k)=1.   
+      lname_dd(k)=' T_L5'
+c
+      k=k+1
+      IDD_T6=k
+      name_dd(k)='T_L6'
+      units_dd(k)='K'
+      scale_dd(k)=1.   
+      lname_dd(k)=' T_L6'
+c
+      k=k+1
+      IDD_T7=k
+      name_dd(k)='T_L7'
+      units_dd(k)='K'
+      scale_dd(k)=1.   
+      lname_dd(k)=' T_L7'
+c
+      k=k+1
+      IDD_T8=k
+      name_dd(k)='T_L8'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' T_L8'
+c
+      k=k+1
+      IDD_T9=k
+      name_dd(k)='T_L9'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' T_L9'
+c
+      k=k+1
+      IDD_T10=k
+      name_dd(k)='T_L10'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' T_L10'
+c
+      k=k+1
+      IDD_T11=k
+      name_dd(k)='T_L11'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' T_L11'
+c
+      k=k+1
+      IDD_QQ1=k
+      name_dd(k)='Q_L1'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1.   
+      lname_dd(k)=' Q_L1'
+c
+      k=k+1
+      IDD_QQ2=k
+      name_dd(k)='Q_L2'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1.   
+      lname_dd(k)=' Q_L2'
+c
+      k=k+1
+      IDD_QQ3=k
+      name_dd(k)='Q_L3'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1.
+      lname_dd(k)=' Q_L3'
+c
+      k=k+1
+      IDD_QQ4=k
+      name_dd(k)='Q_L4'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1.
+      lname_dd(k)=' Q_L4'
+c
+      k=k+1
+      IDD_QQ5=k
+      name_dd(k)='Q_L5'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1.
+      lname_dd(k)=' Q_L5'
+c
+      k=k+1   
+      IDD_QQ6=k
+      name_dd(k)='Q_L6'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1.
+      lname_dd(k)=' Q_L6'
+c
+      k=k+1
+      IDD_QQ7=k
+      name_dd(k)='Q_L7'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1.
+      lname_dd(k)=' Q_L7'
+c
+      k=k+1   
+      IDD_QQ8=k
+      name_dd(k)='Q_L8'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1.
+      lname_dd(k)=' Q_L8'
+c
+      k=k+1   
+      IDD_QQ9=k
+      name_dd(k)='Q_L9'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1.
+      lname_dd(k)=' Q_L9'
+c
+      k=k+1   
+      IDD_QQ10=k
+      name_dd(k)='Q_L10'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1.
+      lname_dd(k)=' Q_L10'
+c
+      k=k+1   
+      IDD_QQ11=k
+      name_dd(k)='Q_L11'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1.
+      lname_dd(k)=' Q_L11'
+c
+      k=k+1   
+      IDD_P1=k
+      name_dd(k)='P_L1'
+      units_dd(k)='100.*mb'
+      scale_dd(k)=100.
+      lname_dd(k)=' P_L1'
+c
+      k=k+1   
+      IDD_P2=k
+      name_dd(k)='P_L2'
+      units_dd(k)='100.*mb'
+      scale_dd(k)=100.
+      lname_dd(k)=' P_L2'
+c
+      k=k+1   
+      IDD_P3=k
+      name_dd(k)='P_L3'
+      units_dd(k)='100.*mb'
+      scale_dd(k)=100.
+      lname_dd(k)=' P_L3'
+c
+      k=k+1   
+      IDD_P4=k
+      name_dd(k)='P_L4'
+      units_dd(k)='100.*mb'
+      scale_dd(k)=100.
+      lname_dd(k)=' P_L4'
+c
+      k=k+1   
+      IDD_P5=k
+      name_dd(k)='P_L5'
+      units_dd(k)='100.*mb'
+      scale_dd(k)=100.
+      lname_dd(k)=' P_L5'
+c
+      k=k+1   
+      IDD_P6=k
+      name_dd(k)='P_L6'
+      units_dd(k)='100.*mb'
+      scale_dd(k)=100.
+      lname_dd(k)=' P_L6'
+c
+      k=k+1
+      IDD_P7=k
+      name_dd(k)='P_L7'
+      units_dd(k)='100.*mb'
+      scale_dd(k)=100.
+      lname_dd(k)=' P_L7'
+c
+      k=k+1   
+      IDD_P8=k
+      name_dd(k)='P_L8'
+      units_dd(k)='100.*mb'
+      scale_dd(k)=100.
+      lname_dd(k)=' P_L8'
+c
+      k=k+1   
+      IDD_P9=k
+      name_dd(k)='P_L9'
+      units_dd(k)='100.*mb'
+      scale_dd(k)=100.
+      lname_dd(k)=' P_L9'
+c
+      k=k+1   
+      IDD_P10=k
+      name_dd(k)='P_L10'
+      units_dd(k)='100.*mb'
+      scale_dd(k)=100.
+      lname_dd(k)=' P_L10'
+c
+      k=k+1   
+      IDD_P11=k
+      name_dd(k)='P_L11'
+      units_dd(k)='100.*mb'
+      scale_dd(k)=100.
+      lname_dd(k)=' P_L11'
+c
+      k=k+1
+      IDD_W1=k
+      name_dd(k)='W_L1'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' W_L1'
+c
+      k=k+1
+      IDD_W2=k
+      name_dd(k)='W_L2'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' W_L2'
+c
+      k=k+1
+      IDD_W3=k
+      name_dd(k)='W_L3'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' W_L3'
+c
+      k=k+1
+      IDD_W4=k
+      name_dd(k)='W_L4'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' W_L4'
+c
+      k=k+1
+      IDD_W5=k
+      name_dd(k)='W_L5'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' W_L5'
+c
+      k=k+1
+      IDD_W6=k
+      name_dd(k)='W_L6'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' W_L6'
+c
+      k=k+1   
+      IDD_W7=k
+      name_dd(k)='W_L7'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' W_L7'
+c
+      k=k+1   
+      IDD_W8=k
+      name_dd(k)='W_L8'  
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' W_L8'
+c
+      k=k+1   
+      IDD_W9=k
+      name_dd(k)='W_L9'  
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' W_L9'
+c
+      k=k+1    
+      IDD_W10=k
+      name_dd(k)='W_L10' 
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' W_L10'
+c
+      k=k+1   
+      IDD_W11=k
+      name_dd(k)='W_L11'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' W_L11'
+c
+      k=k+1
+      IDD_PHI1=k
+      name_dd(k)='PHI_L1'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' PHI_L1'
+c
+      k=k+1
+      IDD_PHI2=k
+      name_dd(k)='PHI_L2'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' PHI_L2'
+c
+      k=k+1
+      IDD_PHI3=k
+      name_dd(k)='PHI_L3'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' PHI_L3'
+c
+      k=k+1
+      IDD_PHI4=k
+      name_dd(k)='PHI_L4'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' PHI_L4'
+c
+      k=k+1
+      IDD_PHI5=k
+      name_dd(k)='PHI_L5'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' PHI_L5'
+c
+      k=k+1
+      IDD_PHI6=k
+      name_dd(k)='PHI_L6'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' PHI_L6'
+c
+      k=k+1
+      IDD_PHI7=k
+      name_dd(k)='PHI_L7'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' PHI_L7'
+c
+      k=k+1
+      IDD_PHI8=k
+      name_dd(k)='PHI_L8'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' PHI_L8'
+c
+      k=k+1
+      IDD_PHI9=k
+      name_dd(k)='PHI_L9'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' PHI_L9'
+c
+      k=k+1
+      IDD_PHI10=k
+      name_dd(k)='PHI_L10'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' PHI_L10'
+c
+      k=k+1
+      IDD_PHI11=k
+      name_dd(k)='PHI_L11'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' PHI_L11'
+c
+      k=k+1   
+      IDD_LOAD1=k
+      name_dd(k)='LOAD_L1'
+      units_dd(k)='10^-5 kg/m**2'
+      scale_dd(k)=1.e5
+      lname_dd(k)=' LOAD_L1'
+c     
+      k=k+1
+      IDD_LOAD2=k
+      name_dd(k)='LOAD_L2'
+      units_dd(k)='10^-5 kg/m**2'   
+      scale_dd(k)=1.e5
+      lname_dd(k)=' LOAD_L2'
+c     
+      k=k+1
+      IDD_LOAD3=k
+      name_dd(k)='LOAD_L3'
+      units_dd(k)='10^-5 kg/m**2'
+      scale_dd(k)=1.e5
+      lname_dd(k)=' LOAD_L3'
+c     
+      k=k+1
+      IDD_LOAD4=k
+      name_dd(k)='LOAD_L4'
+      units_dd(k)='10^-5 kg/m**2'
+      scale_dd(k)=1.e5
+      lname_dd(k)=' LOAD_L4'
+c     
+      k=k+1
+      IDD_LOAD5=k
+      name_dd(k)='LOAD_L5'
+      units_dd(k)='10^-5 kg/m**2'
+      scale_dd(k)=1.e5
+      lname_dd(k)=' LOAD_L5'
+c     
+      k=k+1
+      IDD_LOAD6=k
+      name_dd(k)='LOAD_L6'
+      units_dd(k)='10^-5 kg/m**2'
+      scale_dd(k)=1.e5
+      lname_dd(k)=' LOAD_L6'
+c     
+      k=k+1
+      IDD_LOAD7=k
+      name_dd(k)='LOAD_L7'
+      units_dd(k)='10^-5 kg/m**2'
+      scale_dd(k)=1.e5
+      lname_dd(k)=' LOAD_L7'
+c     
+      k=k+1
+      IDD_LOAD8=k
+      name_dd(k)='LOAD_L8'
+      units_dd(k)='10^-5 kg/m**2'
+      scale_dd(k)=1.e5
+      lname_dd(k)=' LOAD_L8'
+c     
+      k=k+1
+      IDD_LOAD9=k
+      name_dd(k)='LOAD_L9'
+      units_dd(k)='10^-5 kg/m**2'
+      scale_dd(k)=1.5
+      lname_dd(k)=' LOAD_L9'
+c     
+      k=k+1
+      IDD_LOAD10=k
+      name_dd(k)='LOAD_L10'
+      units_dd(k)='10^-5 kg/m**2'
+      scale_dd(k)=1.e5
+      lname_dd(k)=' LOAD_L10'
+c     
+      k=k+1
+      IDD_LOAD11=k
+      name_dd(k)='LOAD_L11'
+      units_dd(k)='10^-5 kg/m**2'
+      scale_dd(k)=1.e5
+      lname_dd(k)=' LOAD_L11'
+c
+      k=k+1
+      IDD_CONC1=k
+      name_dd(k)='CONC_L1'
+      units_dd(k)='10^-8 kg/kg air'
+      scale_dd(k)=1.e8
+      lname_dd(k)=' CONC_L1'
+c
+      k=k+1
+      IDD_CONC2=k
+      name_dd(k)='CONC_L2'
+      units_dd(k)='10^-8 kg/kg air'
+      scale_dd(k)=1.e8
+      lname_dd(k)=' CONC_L2'
+c
+      k=k+1
+      IDD_CONC3=k
+      name_dd(k)='CONC_L3'
+      units_dd(k)='10^-8 kg/kg air'
+      scale_dd(k)=1.e8
+      lname_dd(k)=' CONC_L3'
+c
+      k=k+1
+      IDD_CONC4=k
+      name_dd(k)='CONC_L4'
+      units_dd(k)='10^-8 kg/kg air'
+      scale_dd(k)=1.e8
+      lname_dd(k)=' CONC_L4'
+c
+      k=k+1
+      IDD_CONC5=k
+      name_dd(k)='CONC_L5'
+      units_dd(k)='10^-8 kg/kg air'
+      scale_dd(k)=1.e8
+      lname_dd(k)=' CONC_L5'
+c
+      k=k+1
+      IDD_CONC6=k
+      name_dd(k)='CONC_L6'
+      units_dd(k)='10^-8 kg/kg air'
+      scale_dd(k)=1.e8
+      lname_dd(k)=' CONC_L6'
+c
+      k=k+1
+      IDD_CONC7=k
+      name_dd(k)='CONC_L7'
+      units_dd(k)='10^-8 kg/kg air'
+      scale_dd(k)=1.e8
+      lname_dd(k)=' CONC_L7'
+c
+      k=k+1
+      IDD_CONC8=k
+      name_dd(k)='CONC_L8'
+      units_dd(k)='10^-8 kg/kg air'
+      scale_dd(k)=1.e8
+      lname_dd(k)=' CONC_L8'
+c
+      k=k+1
+      IDD_CONC9=k
+      name_dd(k)='CONC_L9'
+      units_dd(k)='10^-8 kg/kg air'
+      scale_dd(k)=1.e8
+      lname_dd(k)=' CONC_L9'
+c
+      k=k+1
+      IDD_CONC10=k
+      name_dd(k)='CONC_L10'
+      units_dd(k)='10^-8 kg/kg air'
+      scale_dd(k)=1.e8
+      lname_dd(k)=' CONC_L10'
+c
+      k=k+1
+      IDD_CONC11=k
+      name_dd(k)='CONC_L11'
+      units_dd(k)='10^-8 kg/kg air'
+      scale_dd(k)=1.e8
+      lname_dd(k)=' CONC_L11'
+c
+      k=k+1
+      IDD_EMIS=k  
+      name_dd(k)='EMIS'
+      units_dd(k)='10^-13 kg/m^2/s'
+      scale_dd(k)=1.e13
+      lname_dd(k)=' EMIS'
+      k=k+1
+      IDD_EMIS2=k  
+      name_dd(k)='EMIS2'
+      units_dd(k)='10^-13 kg/m^2/s'
+      scale_dd(k)=1.e13
+      lname_dd(k)=' EMIS2'
+c
+      k=k+1
+      IDD_WET=k
+      name_dd(k)='DEPWET'
+      units_dd(k)='10^-13 kg/m^2/s'
+      scale_dd(k)=1.e13
+      lname_dd(k)=' DEPOWET'
+      k=k+1
+      IDD_GRAV=k
+      name_dd(k)='DEPGRAV'
+      units_dd(k)='10^-13 kg/m^2/s'
+      scale_dd(k)=1.e13
+      lname_dd(k)=' DEPOGRAV'
+      k=k+1
+      IDD_TURB=k
+      name_dd(k)='DEPTURB'
+      units_dd(k)='10^-13 kg/m^2/s'
+      scale_dd(k)=1.e13
+      lname_dd(k)=' DEPOTURB'
+c
+      k=k+1
+      IDD_TAU1=k
+      name_dd(k)='TAU_L1'
+      units_dd(k)='1.'
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_L1'
+c     
+      k=k+1
+      IDD_TAU2=k  
+      name_dd(k)='TAU_L2' 
+      units_dd(k)='1.'     
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_L2' 
+c     
+      k=k+1
+      IDD_TAU3=k  
+      name_dd(k)='TAU_L3' 
+      units_dd(k)='1.'     
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_L3' 
+c     
+      k=k+1
+      IDD_TAU4=k  
+      name_dd(k)='TAU_L4' 
+      units_dd(k)='1.'     
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_L4' 
+c     
+      k=k+1
+      IDD_TAU5=k  
+      name_dd(k)='TAU_L5' 
+      units_dd(k)='1.'     
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_L5' 
+c     
+      k=k+1
+      IDD_TAU6=k  
+      name_dd(k)='TAU_L6' 
+      units_dd(k)='1.'     
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_L6' 
+c     
+      k=k+1
+      IDD_TAU7=k  
+      name_dd(k)='TAU_L7' 
+      units_dd(k)='1.'     
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_L7' 
+c     
+      k=k+1
+      IDD_TAU8=k  
+      name_dd(k)='TAU_L8' 
+      units_dd(k)='1.'     
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_L8' 
+c
+      k=k+1
+      IDD_TAU9=k
+      name_dd(k)='TAU_L9'
+      units_dd(k)='1.'
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_L9'
+c
+      k=k+1
+      IDD_TAU10=k
+      name_dd(k)='TAU_L10'
+      units_dd(k)='1.'
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_L10'
+c
+      k=k+1
+      IDD_TAU11=k
+      name_dd(k)='TAU_L11'
+      units_dd(k)='1.'
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_L11'
+c
+      k=k+1
+      IDD_TAU_CS1=k
+      name_dd(k)='TAU_CS_L1'
+      units_dd(k)='1.'
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_CS_L1'
+c
+      k=k+1
+      IDD_TAU_CS2=k
+      name_dd(k)='TAU_CS_L2'
+      units_dd(k)='1.'   
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_CS_L2'
+c
+      k=k+1
+      IDD_TAU_CS3=k
+      name_dd(k)='TAU_CS_L3'
+      units_dd(k)='1.'   
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_CS_L3'
+c
+      k=k+1
+      IDD_TAU_CS4=k
+      name_dd(k)='TAU_CS_L4'
+      units_dd(k)='1.'   
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_CS_L4'
+c
+      k=k+1
+      IDD_TAU_CS5=k
+      name_dd(k)='TAU_CS_L5'
+      units_dd(k)='1.'   
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_CS_L5'
+c
+      k=k+1
+      IDD_TAU_CS6=k
+      name_dd(k)='TAU_CS_L6'
+      units_dd(k)='1.'
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_CS_L6'
+c
+      k=k+1
+      IDD_TAU_CS7=k
+      name_dd(k)='TAU_CS_L7'
+      units_dd(k)='1.'
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_CS_L7'
+c
+      k=k+1
+      IDD_TAU_CS8=k
+      name_dd(k)='TAU_CS_L8'
+      units_dd(k)='1.'
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_CS_L8'
+c
+      k=k+1
+      IDD_TAU_CS9=k
+      name_dd(k)='TAU_CS_L9'
+      units_dd(k)='1.'
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_CS_L9'
+c
+      k=k+1
+      IDD_TAU_CS10=k
+      name_dd(k)='TAU_CS_L10'
+      units_dd(k)='1.'
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_CS_L10'
+c
+      k=k+1
+      IDD_TAU_CS11=k
+      name_dd(k)='TAU_CS_L11'
+      units_dd(k)='1.'
+      scale_dd(k)=1.
+      lname_dd(k)=' TAU_CS_L11'
+c
+      k=k+1
+      IDD_SR1=k
+      name_dd(k)='SRNFLB_L1'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' SRNFLB_L1'
+c
+      k=k+1
+      IDD_SR2=k
+      name_dd(k)='SRNFLB_L2'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' SRNFLB_L2'
+c
+      k=k+1
+      IDD_SR3=k
+      name_dd(k)='SRNFLB_L3'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' SRNFLB_L3'
+c
+      k=k+1
+      IDD_SR4=k
+      name_dd(k)='SRNFLB_L4'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' SRNFLB_L4'
+c
+      k=k+1
+      IDD_SR5=k
+      name_dd(k)='SRNFLB_L5'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' SRNFLB_L5'
+c
+      k=k+1
+      IDD_SR6=k
+      name_dd(k)='SRNFLB_L6'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' SRNFLB_L6'
+c
+      k=k+1
+      IDD_SR7=k
+      name_dd(k)='SRNFLB_L7'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' SRNFLB_L7'
+c
+      k=k+1
+      IDD_SR8=k
+      name_dd(k)='SRNFLB_L8'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' SRNFLB_L8'
+c
+      k=k+1
+      IDD_SR9=k
+      name_dd(k)='SRNFLB_L9'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' SRNFLB_L9'
+c
+      k=k+1
+      IDD_SR10=k
+      name_dd(k)='SRNFLB_L10'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' SRNFLB_L10'
+c
+      k=k+1
+      IDD_SR11=k
+      name_dd(k)='SRNFLB_L11'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' SRNFLB_L11'
+c
+      k=k+1
+      IDD_TR1=k
+      name_dd(k)='TRNFLB_L1'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TRNFLB_L1'
+c
+      k=k+1
+      IDD_TR2=k
+      name_dd(k)='TRNFLB_L2'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TRNFLB_L2'
+c
+      k=k+1
+      IDD_TR3=k
+      name_dd(k)='TRNFLB_L3'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TRNFLB_L3'
+c
+      k=k+1
+      IDD_TR4=k
+      name_dd(k)='TRNFLB_L4'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TRNFLB_L4'
+c
+      k=k+1
+      IDD_TR5=k
+      name_dd(k)='TRNFLB_L5'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TRNFLB_L5'
+c
+      k=k+1
+      IDD_TR6=k
+      name_dd(k)='TRNFLB_L6'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TRNFLB_L6'
+c
+      k=k+1
+      IDD_TR7=k
+      name_dd(k)='TRNFLB_L7'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TRNFLB_L7'
+c
+      k=k+1
+      IDD_TR8=k
+      name_dd(k)='TRNFLB_L8'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TRNFLB_L8'
+c
+      k=k+1
+      IDD_TR9=k
+      name_dd(k)='TRNFLB_L9'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TRNFLB_L9'
+c
+      k=k+1
+      IDD_TR10=k
+      name_dd(k)='TRNFLB_L10'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TRNFLB_L10'
+c
+      k=k+1
+      IDD_TR11=k
+      name_dd(k)='TRNFLB_L11'
+      units_dd(k)='W/m**2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TRNFLB_L11'
+c
+      k=k+1
+      IDD_WS2=k
+      name_dd(k)='WS^2'
+      units_dd(k)='m^2/s^2'
+      scale_dd(k)=1.
+      lname_dd(k)=' WS^2'
+c
+      k=k+1
+      IDD_USTAR=k
+      name_dd(k)='USTAR'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' USTAR'
+c
+      k=k+1
+      IDD_US3=k 
+      name_dd(k)='USTAR3'
+      units_dd(k)='m^3/s^3'
+      scale_dd(k)=1.
+      lname_dd(k)=' USTAR3'
+c
+      k=k+1
+      IDD_STRESS=k   
+      name_dd(k)='WSTRESS'
+      units_dd(k)='Nm^-2'
+      scale_dd(k)=1.
+      lname_dd(k)=' WSTRESS'
+c
+      k=k+1
+      IDD_LMON=k
+      name_dd(k)='LMONIN'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' LMONIN'
+c
+      k=k+1
+      IDD_RIFL=k
+      name_dd(k)='RI_FLUX'
+      units_dd(k)='1.'
+      scale_dd(k)=1.
+      lname_dd(k)=' RI_FLUX'
+c
+      k=k+1
+      IDD_ZPBL1=k
+      name_dd(k)='ZPBL_L1'
+      units_dd(k)='m'  
+      scale_dd(k)=1.   
+      lname_dd(k)=' ZPBL_L1'
+c
+      k=k+1
+      IDD_ZPBL2=k
+      name_dd(k)='ZPBL_L2'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' ZPBL_L2'
+c
+      k=k+1
+      IDD_ZPBL3=k
+      name_dd(k)='ZPBL_L3'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' ZPBL_L3'
+c
+      k=k+1
+      IDD_ZPBL4=k
+      name_dd(k)='ZPBL_L4'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' ZPBL_L4'
+c
+      k=k+1
+      IDD_ZPBL5=k
+      name_dd(k)='ZPBL_L5'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' ZPBL_L5'
+c
+      k=k+1
+      IDD_ZPBL6=k
+      name_dd(k)='ZPBL_L6'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' ZPBL_L6'
+c
+      k=k+1
+      IDD_ZPBL7=k
+      name_dd(k)='ZPBL_L7'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' ZPBL_L7'
+c     
+      k=k+1
+      IDD_ZPBL8=k
+      name_dd(k)='ZPBL_L8'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' ZPBL_L8'
+c
+      k=k+1
+      IDD_UABL1=k
+      name_dd(k)='UABL_L1'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UABL_L1'
+c
+      k=k+1
+      IDD_UABL2=k
+      name_dd(k)='UABL_L2'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UABL_L2'
+c
+      k=k+1
+      IDD_UABL3=k
+      name_dd(k)='UABL_L3'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UABL_L3'
+c
+      k=k+1
+      IDD_UABL4=k
+      name_dd(k)='UABL_L4'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UABL_L4'
+c
+      k=k+1
+      IDD_UABL5=k
+      name_dd(k)='UABL_L5'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UABL_L5'
+c
+      k=k+1
+      IDD_UABL6=k
+      name_dd(k)='UABL_L6'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UABL_L6'
+c
+      k=k+1
+      IDD_UABL7=k
+      name_dd(k)='UABL_L7'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UABL_L7'
+c
+      k=k+1
+      IDD_UABL8=k
+      name_dd(k)='UABL_L8'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UABL_L8'
+c
+      k=k+1
+      IDD_VABL1=k
+      name_dd(k)='VABL_L1'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' VABL_L1'
+c
+      k=k+1
+      IDD_VABL2=k
+      name_dd(k)='VABL_L2'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' VABL_L2'
+c
+      k=k+1
+      IDD_VABL3=k
+      name_dd(k)='VABL_L3'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' VABL_L3'
+c
+      k=k+1
+      IDD_VABL4=k
+      name_dd(k)='VABL_L4'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' VABL_L4'
+c
+      k=k+1
+      IDD_VABL5=k
+      name_dd(k)='VABL_L5'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' VABL_L5'
+c
+      k=k+1
+      IDD_VABL6=k
+      name_dd(k)='VABL_L6'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' VABL_L6'
+c
+      k=k+1
+      IDD_VABL7=k
+      name_dd(k)='VABL_L7'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' VABL_L7'
+c
+      k=k+1
+      IDD_VABL8=k
+      name_dd(k)='VABL_L8'
+      units_dd(k)='m/s'
+      scale_dd(k)=1. 
+      lname_dd(k)=' VABL_L8'
+c
+      k=k+1
+      IDD_UVABL1=k
+      name_dd(k)='UVABL_L1'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UVABL_L1'
+c
+      k=k+1
+      IDD_UVABL2=k
+      name_dd(k)='UVABL_L2'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UVABL_L2'
+c
+      k=k+1
+      IDD_UVABL3=k
+      name_dd(k)='UVABL_L3'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UVABL_L3'
+c
+      k=k+1
+      IDD_UVABL4=k
+      name_dd(k)='UVABL_L4'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UVABL_L4'
+c
+      k=k+1
+      IDD_UVABL5=k
+      name_dd(k)='UVABL_L5'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UVABL_L5'
+c
+      k=k+1
+      IDD_UVABL6=k
+      name_dd(k)='UVABL_L6'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UVABL_L6'
+c
+      k=k+1
+      IDD_UVABL7=k
+      name_dd(k)='UVABL_L7'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UVABL_L7'
+c
+      k=k+1
+      IDD_UVABL8=k
+      name_dd(k)='UVABL_L8'
+      units_dd(k)='m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' UVABL_L8'
+c
+      k=k+1
+      IDD_TABL1=k
+      name_dd(k)='TABL_L1'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' TABL_L1'
+c
+      k=k+1
+      IDD_TABL2=k
+      name_dd(k)='TABL_L2'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' TABL_L2'
+c
+      k=k+1
+      IDD_TABL3=k
+      name_dd(k)='TABL_L3'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' TABL_L3'
+c
+      k=k+1
+      IDD_TABL4=k
+      name_dd(k)='TABL_L4'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' TABL_L4'
+c
+      k=k+1
+      IDD_TABL5=k
+      name_dd(k)='TABL_L5'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' TABL_L5'
+c
+      k=k+1
+      IDD_TABL6=k
+      name_dd(k)='TABL_L6'
+      units_dd(k)='K'
+      scale_dd(k)=1. 
+      lname_dd(k)=' TABL_L6'
+c
+      k=k+1
+      IDD_TABL7=k
+      name_dd(k)='TABL_L7'
+      units_dd(k)='K'
+      scale_dd(k)=1. 
+      lname_dd(k)=' TABL_L7'
+c
+      k=k+1
+      IDD_TABL8=k
+      name_dd(k)='TABL_L8'
+      units_dd(k)='K'
+      scale_dd(k)=1. 
+      lname_dd(k)=' TABL_L8'
+c
+      k=k+1
+      IDD_QABL1=k
+      name_dd(k)='QABL_L1'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1. 
+      lname_dd(k)=' QABL_L1'
+c
+      k=k+1
+      IDD_QABL2=k
+      name_dd(k)='QABL_L2'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1. 
+      lname_dd(k)=' QABL_L2'
+c
+      k=k+1
+      IDD_QABL3=k
+      name_dd(k)='QABL_L3'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1. 
+      lname_dd(k)=' QABL_L3'
+c
+      k=k+1
+      IDD_QABL4=k
+      name_dd(k)='QABL_L4'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1. 
+      lname_dd(k)=' QABL_L4'
+c
+      k=k+1
+      IDD_QABL5=k
+      name_dd(k)='QABL_L5'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1. 
+      lname_dd(k)=' QABL_L5'
+c
+      k=k+1
+      IDD_QABL6=k
+      name_dd(k)='QABL_L6'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1.
+      lname_dd(k)=' QABL_L6'
+c
+      k=k+1
+      IDD_QABL7=k
+      name_dd(k)='QABL_L7'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1.
+      lname_dd(k)=' QABL_L7'
+c
+      k=k+1
+      IDD_QABL8=k
+      name_dd(k)='QABL_L8'
+      units_dd(k)='kg/kg'
+      scale_dd(k)=1.
+      lname_dd(k)=' QABL_L8'
+c
+      k=k+1
+      IDD_ZHAT1=k
+      name_dd(k)='ZHAT_L1'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' ZHAT_L1'
+c
+      k=k+1
+      IDD_ZHAT2=k
+      name_dd(k)='ZHAT_L2'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' ZHAT_L2'
+c
+      k=k+1
+      IDD_ZHAT3=k
+      name_dd(k)='ZHAT_L3'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' ZHAT_L3'
+c
+      k=k+1
+      IDD_ZHAT4=k
+      name_dd(k)='ZHAT_L4'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' ZHAT_L4'
+c
+      k=k+1
+      IDD_ZHAT5=k
+      name_dd(k)='ZHAT_L5'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' ZHAT_L5'
+c
+      k=k+1
+      IDD_ZHAT6=k
+      name_dd(k)='ZHAT_L6'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' ZHAT_L6'
+c
+      k=k+1
+      IDD_ZHAT7=k
+      name_dd(k)='ZHAT_L7'
+      units_dd(k)='m'
+      scale_dd(k)=1. 
+      lname_dd(k)=' ZHAT_L7'
+c
+      k=k+1
+      IDD_E1=k   
+      name_dd(k)='TKE_L1'
+      units_dd(k)='m^2/s^2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TKE_L1'
+c
+      k=k+1
+      IDD_E2=k
+      name_dd(k)='TKE_L2'
+      units_dd(k)='m^2/s^2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TKE_L2'
+c
+      k=k+1
+      IDD_E3=k
+      name_dd(k)='TKE_L3'
+      units_dd(k)='m^2/s^2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TKE_L3'
+c
+      k=k+1
+      IDD_E4=k
+      name_dd(k)='TKE_L4'
+      units_dd(k)='m^2/s^2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TKE_L4'
+c
+      k=k+1
+      IDD_E5=k
+      name_dd(k)='TKE_L5'
+      units_dd(k)='m^2/s^2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TKE_L5'
+c
+      k=k+1
+      IDD_E6=k
+      name_dd(k)='TKE_L6'
+      units_dd(k)='m^2/s^2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TKE_L6'
+c
+      k=k+1
+      IDD_E7=k
+      name_dd(k)='TKE_L7'
+      units_dd(k)='m^2/s^2'
+      scale_dd(k)=1.
+      lname_dd(k)=' TKE_L7'
+c
+      k=k+1
+      IDD_KM1=k
+      name_dd(k)='KM_L1'
+      units_dd(k)='m^2/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' KM_L1'
+c
+      k=k+1
+      IDD_KM2=k  
+      name_dd(k)='KM_L2'  
+      units_dd(k)='m^2/s' 
+      scale_dd(k)=1.
+      lname_dd(k)=' KM_L2'  
+c
+      k=k+1
+      IDD_KM3=k  
+      name_dd(k)='KM_L3'  
+      units_dd(k)='m^2/s' 
+      scale_dd(k)=1.
+      lname_dd(k)=' KM_L3'  
+c
+      k=k+1
+      IDD_KM4=k  
+      name_dd(k)='KM_L4'  
+      units_dd(k)='m^2/s' 
+      scale_dd(k)=1.
+      lname_dd(k)=' KM_L4'  
+c
+      k=k+1
+      IDD_KM5=k  
+      name_dd(k)='KM_L5'  
+      units_dd(k)='m^2/s' 
+      scale_dd(k)=1.
+      lname_dd(k)=' KM_L5'  
+c
+      k=k+1
+      IDD_KM6=k  
+      name_dd(k)='KM_L6'  
+      units_dd(k)='m^2/s' 
+      scale_dd(k)=1.
+      lname_dd(k)=' KM_L6'  
+c
+      k=k+1
+      IDD_KM7=k  
+      name_dd(k)='KM_L7'  
+      units_dd(k)='m^2/s' 
+      scale_dd(k)=1.
+      lname_dd(k)=' KM_L7'  
+c
+      k=k+1
+      IDD_RI1=k
+      name_dd(k)='RI_L1'
+      units_dd(k)='1.'
+      scale_dd(k)=1.
+      lname_dd(k)=' RI_L1'
+c     
+      k=k+1
+      IDD_RI2=k
+      name_dd(k)='RI_L2'
+      units_dd(k)='1.'   
+      scale_dd(k)=1.
+      lname_dd(k)=' RI_L2'
+c     
+      k=k+1
+      IDD_RI3=k
+      name_dd(k)='RI_L3'
+      units_dd(k)='1.'   
+      scale_dd(k)=1.
+      lname_dd(k)=' RI_L3'
+c     
+      k=k+1
+      IDD_RI4=k
+      name_dd(k)='RI_L4'
+      units_dd(k)='1.'   
+      scale_dd(k)=1.
+      lname_dd(k)=' RI_L4'
+c     
+      k=k+1
+      IDD_RI5=k
+      name_dd(k)='RI_L5'
+      units_dd(k)='1.'   
+      scale_dd(k)=1.
+      lname_dd(k)=' RI_L5'
+c     
+      k=k+1
+      IDD_RI6=k
+      name_dd(k)='RI_L6'
+      units_dd(k)='1.'   
+      scale_dd(k)=1.
+      lname_dd(k)=' RI_L6'
+c     
+      k=k+1
+      IDD_RI7=k
+      name_dd(k)='RI_L7'
+      units_dd(k)='1.'   
+      scale_dd(k)=1.
+      lname_dd(k)=' RI_L7'
+
+      END IF
+#endif
+
+      if (k .gt. Ndiuvar) then
+        write (6,*) 'idd_defs: Increase Ndiuvar=',Ndiuvar,
+     &       ' to at least ',k
+        call stop_model( 'Ndiuvar too small', 255 )
+      end if
 
       write (6,*) 'Number of Diurn diagnostics defined: kaddmax=',k
       if(.not.qcheck) return

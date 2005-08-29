@@ -42,8 +42,10 @@
 
 !@var US     = x component of surface wind, positive eastward (m/s)
 !@var VS     = y component of surface wind, positive northward (m/s)
-!@var WSM    = magnitude of the surface wind - ocean currents (m/s)
-!@var WSH    = magnitude of surface wind modified by buoyancy flux(m/s)
+!@var WSGCM  = magnitude of the GCM surface wind - ocean currents (m/s)
+!@var WSPDF  = mean surface wind calculated from PDF of wind speed (m/s)
+!@var WSH    = magnitude of GCM surf wind - ocean curr + buoyancy flux(m/s)
+!@var WSM    = (=WSH) magn of GCM surf wind - ocean curr + buoyancy flux(m/s)
 !@var TSV    = virtual potential temperature of the surface (K)
 !@var QS     = surface value of the specific moisture
 !@var DBL    = boundary layer height (m)
@@ -66,6 +68,7 @@
       real*8 :: w2_1,mdf
       real*8 :: us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
      *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,XCDpbl=1d0
+     &         ,wsgcm,wspdf
 
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
       real*8 :: rimax,ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
@@ -106,7 +109,7 @@ C***
 !$OMP  THREADPRIVATE (/PBLTPC/)
 
       COMMON /PBLOUT/US,VS,WSM,WSH,TSV,QSRF,DBL,KMS,KHS,KQS,
-     *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,W2_1,MDF
+     *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,W2_1,MDF,wsgcm,wspdf
 !$OMP  THREADPRIVATE (/PBLOUT/)
 
 CCC !@var bgrid log-linear gridding parameter
@@ -138,7 +141,8 @@ CCC      real*8 :: bgrid
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &     ptype,dust_flux,wsubtke,wsubwd,wsubwm,
+     &     ptype,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm,
+     &     zhat,lmonin,dust_event1,dust_event2,wtrsh,
 #endif
 #endif
      4     psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,
@@ -239,15 +243,14 @@ c  internals:
       real*8, intent(out) :: DMS_flux, ss1_flux, ss2_flux
 #endif
 #endif
-      real*8 :: lmonin,tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
+      real*8 :: tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau
       real*8, parameter ::  tol=1d-3,w=.5d0
       integer, parameter ::  itmax=50
       integer, parameter :: iprint=0,jprint=41  ! set iprint>0 to debug
-      real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave
+      real*8, dimension(n) :: dz,xi,usave,vsave,tsave,qsave
      *       ,usave1,vsave1,tsave1,qsave1
-      real*8, dimension(n-1) :: lscale,zhat,dzh,xihat,km,kh,kq,ke,gm,gh
-     *     ,esave,esave1
+      real*8, dimension(n-1) :: lscale,dzh,xihat,kh,kq,ke,esave,esave1
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 C****
       real*8 :: sig0,delt,wt,wmin,wmax
@@ -255,9 +258,17 @@ C****
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       REAL*8,INTENT(IN) :: ptype
-      REAL*8,INTENT(OUT) :: dust_flux(Ntm_dust),wsubtke,wsubwd,wsubwm
+      REAL*8,INTENT(OUT) :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),
+     &     wsubtke,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
       INTEGER :: n1
-      REAL*8 :: dsrcflx
+      REAL*8 :: dsrcflx,dsrcflx2
+      REAL*8,INTENT(OUT) :: z(n)
+      REAL*8,INTENT(OUT) :: km(n-1),gh(n-1),gm(n-1),zhat(n-1)
+      REAL*8,INTENT(OUT) :: lmonin
+#else
+      REAL*8,DIMENSION(n) :: z
+      REAL*8,DIMENSION(n-1) :: zhat,km,gm,gh
+      REAL*8 :: lmonin
 #endif
 
 !@var  u  local due east component of wind
@@ -369,6 +380,10 @@ c**** cannot update wsh without taking care that wsh used for tracers is
 c**** the same as that used for q
 c      wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
       wsm = wsh
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      wsgcm=sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
+#endif
 
 C**** Preliminary coding for use of sub-gridscale wind distribution
 C**** generic calculations for all tracers
@@ -378,7 +393,8 @@ C**** and GHY_DRV. This may need to be tracer dependent?
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       delt = t(1)/(1.+q(1)*deltx) - tgrnd/(1.+qgrnd*deltx)
-      CALL sig(e(1),mdf,dbl,delt,ch,wsm,t(1),wsubtke,wsubwd,wsubwm)
+      CALL sig(e(1),mdf,dbl,delt,ch,wsgcm,t(1),wsubtke,wsubwd,wsubwm)
+      CALL get_wspdf(wsubtke,wsubwd,wsubwm,wsgcm,wspdf)
 #endif
 csgs      sig0 = sig(e(1),mdf,dbl,delt,ch,wsh,t(1))
 csgsC**** possibly tracer specific coding
@@ -406,7 +422,8 @@ C**** for all dry deposited tracers
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      CALL dust_emission_constraints(ilong,jlat,itype,ptype,wsm)
+      CALL dust_emission_constraints(ilong,jlat,itype,ptype,wsgcm,
+     &   dust_event1,dust_event2,wtrsh)
 #endif
 
 C**** loop over tracers
@@ -485,9 +502,19 @@ ccc dust emission from earth
 #endif
 #endif
         END SELECT
-        CALL local_dust_emission(ilong,jlat,n1,wsm,ptype,dsrcflx)
-        trcnst=dsrcflx*byrho
-        dust_flux(n1)=dsrcflx
+        SELECT CASE (trname(ntix(itr)))
+          CASE ('Clay','Silt1','Silt2','Silt3','Silt4',
+     &          'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &          'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &          'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &          'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &          'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+          CALL local_dust_emission(ilong,jlat,ntix(itr),wsgcm,ptype,
+     &         dsrcflx,dsrcflx2)
+          trcnst=dsrcflx*byrho
+          dust_flux(n1)=dsrcflx
+          dust_flux2(n1)=dsrcflx2
+        END SELECT
 #endif
 
 C**** solve tracer transport equation
@@ -2576,4 +2603,249 @@ C**** Use approximate value for small sig and unresolved delta function
       end if
       end function bessi0
 
+      SUBROUTINE get_wspdf(wsubtke,wsubwd,wsubwm,wsgcm,wspdf)
+!@sum calculates mean surface wind speed using the integral over the
+!@sum probability density function of the wind speed from lookup table
+!@auth Reha Cakmur/Jan Perlwitz
 
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+
+      USE tracer_com,ONLY : kim,kjm,table1,x11,x21
+
+      IMPLICIT NONE
+
+c Input:
+!@var wsubtke velocity scale of sub grid scale turbulence
+!@var wsubwd velocity scale of sub grid scale dry convection
+!@var wsubwm velocity scale of sub grid scale moist convection
+!@var wsgcm GCM surface wind
+
+      REAL*8,INTENT(IN) :: wsubtke,wsubwd,wsubwm,wsgcm
+
+c Output:
+!@var wspdf mean surface wind speed from integration over PDF
+
+      REAL*8,INTENT(OUT) :: wspdf
+
+!@param Mcfrac fraction of grid box with moist convection
+      REAL*8,PARAMETER :: Mcfrac=0.05
+
+!@var sigma standard deviation of sub grid fluctuations
+      REAL*8 :: sigma,ans,dy
+
+      REAL*8 :: work_wspdf1,work_wspdf2,wsgcm1
+
+      wsgcm1=wsgcm
+
+c     This is the case when wsgcm is very small and we set it 
+c     equal to one of the smallest values in the table index 
+
+      IF (wsgcm1 < 0.0005) wsgcm1=0.0005D0
+
+c     If sigma <= 0.0005:
+
+      wspdf=wsgcm1
+
+c     There is no moist convection, sigma is composed of TKE and DRY
+c     convective velocity scale
+      IF (wsubwm == 0.) THEN
+        sigma=wsubtke+wsubwd
+        IF (sigma > 0.0005) THEN
+c     Linear Polynomial fit (Default)
+          CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
+c     Cubic Polynomial fit (Not Used, Optional) 
+c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
+          wspdf=exp(ans)
+        END IF
+      ELSE
+
+c     When there is moist convection, the sigma is the combination of
+c     all three subgrid scale parameters (i.e. independent or dependent)
+c     Takes into account that the moist convective velocity scale acts
+c     only over 5% (mcfrac) of the area.
+
+        work_wspdf1=0.D0
+        sigma=wsubtke+wsubwd+wsubwm
+        IF (sigma > 0.0005) THEN
+c     Linear Polynomial fit (Default) 
+          CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
+c     Cubic Polynomial fit (Not Used, Optional)  
+c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
+          work_wspdf1=exp(ans)*mcfrac
+        END IF
+
+        work_wspdf2=0.D0
+        sigma=wsubtke+wsubwd
+        IF (sigma > 0.0005) THEN
+c     Linear Polynomial fit (Default) 
+          CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
+c     Cubic Polynomial fit (Not Used, Optional)  
+c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
+          work_wspdf2=exp(ans)*(1.d0-mcfrac)
+        END IF
+        wspdf=work_wspdf1+work_wspdf2
+
+      END IF
+#endif
+
+      RETURN
+      END SUBROUTINE get_wspdf
+
+      SUBROUTINE polint2dlin(x1a,x2a,ya,m,n,x1,x2,y,dy)
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IMPLICIT NONE
+      INTEGER,INTENT(IN) :: m,n
+      REAL*8,INTENT(IN) :: x1a(m),x2a(n),ya(m,n),x1,x2
+      REAL*8,INTENT(OUT) :: dy,y
+      INTEGER, PARAMETER :: nmax=2
+      INTEGER j,k,jjj,iii,xx,yy
+      REAL*8 ymtmp(nmax),yntmp(nmax),x11(nmax),x22(nmax)
+
+      call locatepbl(x1a,m,x1,xx)
+      call locatepbl(x2a,n,x2,yy)
+
+      do k=1,nmax
+        iii=k
+        do j=1,nmax
+          jjj=j
+          yntmp(j)=ya(xx+jjj-1,yy+iii-1)
+          x11(j)=x1a(xx+jjj-1)
+        enddo
+        if (yntmp(1).eq.-1000.) then
+          ymtmp(k)=-1000.
+          x22(k)=x2a(yy+iii-1)
+        else
+          call polintpbl(x11,yntmp,nmax,x1,ymtmp(k),dy)
+          x22(k)=x2a(yy+iii-1)
+        endif
+      enddo
+      if (ymtmp(1).eq.-1000.) then
+        y=-1000.
+      else
+        call polintpbl(x22,ymtmp,nmax,x2,y,dy)
+      endif
+#endif
+
+      return
+      END SUBROUTINE polint2dlin
+C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
+
+      SUBROUTINE polint2dcub(x1a,x2a,ya,m,n,x1,x2,y,dy)
+  
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IMPLICIT NONE
+      INTEGER,INTENT(IN) :: m,n
+      REAL*8,INTENT(IN) :: x1a(m),x2a(n),ya(m,n),x1,x2
+      REAL*8,INTENT(OUT) :: dy,y
+      INTEGER, PARAMETER :: nmax=4
+      INTEGER j,k,jjj,iii,xx,yy
+      REAL*8 ymtmp(nmax),yntmp(nmax),x11(nmax),x22(nmax)
+  
+      call locatepbl(x1a,m,x1,xx)
+      call locatepbl(x2a,n,x2,yy)
+
+      do k=1,nmax
+        iii=k-1
+        do j=1,nmax
+          jjj=j-1
+          yntmp(j)=ya(xx+jjj-1,yy+iii-1)
+          x11(j)=x1a(xx+jjj-1)
+        enddo
+        if (yntmp(1).eq.-1000..or.yntmp(2).eq.-1000.) then
+          ymtmp(k)=-1000.
+          x22(k)=x2a(yy+iii-1)
+        else
+          call polintpbl(x11,yntmp,nmax,x1,ymtmp(k),dy)
+          x22(k)=x2a(yy+iii-1)
+        endif
+      enddo
+      if (ymtmp(1).eq.-1000..or.ymtmp(2).eq.-1000.) then
+        y=-1000.
+      else
+        call polintpbl(x22,ymtmp,nmax,x2,y,dy)
+      endif
+#endif
+
+      return
+      END SUBROUTINE polint2dcub 
+C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.  
+
+      SUBROUTINE polintpbl(xa,ya,n,x,y,dy)
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: n
+      REAL*8, INTENT(OUT) :: y,dy
+      REAL*8, INTENT(IN) :: x,xa(n),ya(n)
+      INTEGER i,m,ns
+      REAL*8 den,dif,dift,ho,hp,w,c(n),d(n)
+
+      ns=1
+      dif=abs(x-xa(1))
+      do 11 i=1,n
+        dift=abs(x-xa(i))
+        if (dift.lt.dif) then
+          ns=i
+          dif=dift
+        endif
+        c(i)=ya(i)
+        d(i)=ya(i)
+ 11   continue
+      y=ya(ns)
+      ns=ns-1
+      do 13 m=1,n-1
+        do 12 i=1,n-m
+          ho=xa(i)-x
+          hp=xa(i+m)-x
+          w=c(i+1)-d(i)
+          den=ho-hp
+          if(den.eq.0.d0)CALL stop_model('failure in polint in pbl',255)
+          den=w/den
+          d(i)=hp*den
+          c(i)=ho*den
+ 12     continue
+        if (2*ns.lt.n-m)then
+          dy=c(ns+1)
+        else
+          dy=d(ns)
+          ns=ns-1
+        endif
+        y=y+dy
+ 13   continue
+#endif
+
+      return
+      END SUBROUTINE polintpbl
+C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
+
+      SUBROUTINE locatepbl(xx,n,x,j)
+!@sum locates parameters of integration in lookup table
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      implicit none
+      INTEGER, INTENT(IN):: n
+      INTEGER, INTENT(OUT):: j
+      REAL*8, INTENT(IN):: x,xx(n)
+      INTEGER jl,jm,ju
+      jl=0
+      ju=n+1
+10    if(ju-jl.gt.1)then
+        jm=(ju+jl)/2
+        if((xx(n).gt.xx(1)).eqv.(x.gt.xx(jm)))then
+          jl=jm
+        else
+          ju=jm
+        endif
+      goto 10
+      endif
+      j=jl
+#endif
+
+      return
+      END SUBROUTINE locatepbl

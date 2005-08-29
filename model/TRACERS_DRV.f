@@ -28,11 +28,6 @@
 !@+      +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
       USE LINOZ_CHEM_COM, only: dsol
 #endif
-#if (defined TRACERS_DUST) || defined (TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      USE tracers_dust,ONLY : nDustTurbij,nDustWetij,
-     &     nDustTurbjl,nDustWet3Djl
-#endif
 #ifdef TRACERS_WATER
       USE LANDICE_COM, only : trli0    ! should these be in tracer_com?
       USE SEAICE_COM, only : trsi0
@@ -2562,15 +2557,24 @@ c gravitational settling of ss2
 
         k=k+1
           jls_source(nDustEmjl,n)=k
-          lname_jls(k)='Emission of '//trname(n)
+          lname_jls(k)='Emission of '//TRIM(trname(n))
           sname_jls(k)=TRIM(trname(n))//'_emission'
           jls_ltop(k)=1
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
+#ifdef TRACERS_DUST
+        k=k+1
+          jls_source(nDustEm2jl,n)=k
+          lname_jls(k)='Cubic emission of '//TRIM(trname(n))
+          sname_jls(k)=TRIM(trname(n))//'_emission2'
+          jls_ltop(k)=1
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+#endif
 #ifndef TRACERS_DRYDEP
         k=k+1
           jls_source(nDustTurbjl,n)=k
-          lname_jls(k)='Turbulent deposition of '//trname(n)
+          lname_jls(k)='Turbulent deposition of '//TRIM(trname(n))
           sname_jls(k)=TRIM(trname(n))//'_turb_depo'
           jls_ltop(k)=1
           jls_power(k)=1
@@ -2578,7 +2582,8 @@ c gravitational settling of ss2
 #endif
         k=k+1
           jls_grav(n)=k
-          lname_jls(k)='Gain by gravitational settling of '//trname(n)
+          lname_jls(k)='Gain by gravitational settling of '
+     &         //TRIM(trname(n))
           sname_jls(k)=TRIM(trname(n))//'_grav_sett'
           jls_ltop(k)=Lm
           jls_power(k)=1
@@ -2586,7 +2591,7 @@ c gravitational settling of ss2
 #ifndef TRACERS_WATER
         k=k+1
           jls_3Dsource(nDustWet3Djl,n)=k
-          lname_jls(k)='Loss by wet deposition of '//trname(n)
+          lname_jls(k)='Loss by wet deposition of '//TRIM(trname(n))
           sname_jls(k)=TRIM(trname(n))//'_wet_depo'
           jls_ltop(k)=Lm
           jls_power(k)=1
@@ -2701,6 +2706,31 @@ c Oxidants
         jls_power(k) =5
         scale_jls(k) =byim
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
+#endif
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      k = k + 1
+      jls_spec(nDustEv1jl)=k
+      lname_jls(k)='No. dust events'
+      sname_jls(k)='no_dust_ev1'
+      jls_ltop(k)=1
+      scale_jls(k)=Sday*byim/Dtsrc
+      units_jls(k)='1/d'
+      k = k + 1
+      jls_spec(nDustEv2jl)=k
+      lname_jls(k)='No. dust events above threshold wind'
+      sname_jls(k)='no_dust_ev2'
+      jls_ltop(k)=1
+      scale_jls(k)=Sday*byim/Dtsrc
+      units_jls(k)='1/d'
+      k = k + 1
+      jls_spec(nDustWthjl)=k
+      lname_jls(k)='Threshold velocity for dust emission'
+      sname_jls(k)='wtrsh'
+      jls_ltop(k)=1
+      scale_jls(k)=byim
+      units_jls(k)='m/s'
 #endif
 
       if (k.gt. ktajls) then
@@ -4487,17 +4517,28 @@ C**** Additional Special IJ diagnostics
      &   'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
         k=k+1
         ijts_source(nDustEmij,n)=k
-        lname_ijts(k)='Emission of '//trname(n)
+        lname_ijts(k)='Emission of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_emission'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifdef TRACERS_DUST
+        k=k+1
+        ijts_source(nDustEm2ij,n)=k
+        lname_ijts(k)='Cubic emission of '//TRIM(trname(n))
+        sname_ijts(k)=TRIM(trname(n))//'_emission2'
+        ijts_index(k)=n
+        ia_ijts(k)=ia_src
+        ijts_power(k) = -13.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
 #ifndef TRACERS_DRYDEP
       k=k+1
         ijts_source(nDustTurbij,n)=k
-        lname_ijts(k)='Turbulent Deposition of '//trname(n)
+        lname_ijts(k)='Turbulent Deposition of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_turb_depo'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
@@ -4508,7 +4549,7 @@ C**** Additional Special IJ diagnostics
 #ifndef TRACERS_WATER
       k=k+1
         ijts_source(nDustWetij,n)=k
-        lname_ijts(k)='Wet deposition of '//trname(n)
+        lname_ijts(k)='Wet deposition of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_wet_depo'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
@@ -4897,6 +4938,51 @@ C**** (not necessary associated with a particular tracer)
           units_ijts(k) = unit_string(ijts_power(k),'s-1')
           scale_ijts(k) = 10.**(-ijts_power(k))
       end do
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      k = k + 1
+      ijts_spec(nDustEv1ij)=k
+      lname_ijts(k)='No. dust events'
+      sname_ijts(k)='no_dust_ev1'
+      ijts_index(k)=Ntm_dust
+      ia_ijts(k)=ia_src
+      scale_ijts(k)=Sday/Dtsrc
+      units_ijts(k)='1/d'
+      k = k + 1
+      ijts_spec(nDustEv2ij)=k
+      lname_ijts(k)='No. dust events above threshold wind'
+      sname_ijts(k)='no_dust_ev2'
+      ijts_index(k)=Ntm_dust
+      ia_ijts(k)=ia_src
+      scale_ijts(k)=Sday/Dtsrc
+      units_ijts(k)='1/d'
+      k = k + 1
+      ijts_spec(nDustWthij)=k
+      lname_ijts(k)='Threshold velocity for dust emission'
+      sname_ijts(k)='wtrsh'
+      ijts_index(k)=Ntm_dust
+      ia_ijts(k)=ia_src
+      scale_ijts(k)=1.
+      units_ijts(k)='m/s'
+#endif
+#ifdef TRACERS_DUST
+c       do n=1,ntm
+c       select case(trname(n))
+c     CASE('Clay','Silt1','Silt2','Silt3','Silt4')
+c     do L=1,LTOP
+c       k = k + 1
+c         ijts_3Dtau(l,n)=k
+c         ijts_index(k) = n
+c         ia_ijts(k) = ia_rad
+c         write(lname_ijts(k),'(a12,i2.2)') trname(n)' tau L=    ',L
+c         write(sname_ijts(k),'(a12,i2.2)') 'tau_3D_'//trname(n) ,L
+c         ijts_power(k) = -2.
+c         units_ijts(k) = unit_string(ijts_power(k),' ')
+c         scale_ijts(k) = 10.**(-ijts_power(k))
+c     end do
+c     end select
+c     end do
 #endif
 
       if (k .gt. ktaijs) then
@@ -5891,7 +5977,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &   ,imDUST
+     &   ,imDUST,kjm,table1,x11,x21
 #endif
 #ifdef TRACERS_WATER
      *  ,trwm,trw0,tr_wd_TYPE,nWATER
@@ -5982,7 +6068,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       INTEGER :: io_data,k
       INTEGER startd(3),countd(3),statusd
       INTEGER idd1,idd2,idd3,idd4,ncidd1,ncidd2,ncidd3,ncidd4
-      REAL*4 :: work(IM,JM)
+      REAL*4 :: work(Im,Jm)
+      REAL*8 :: sum
       LOGICAL,SAVE :: ifirst=.TRUE.
 #endif
 
@@ -6727,6 +6814,28 @@ c convert from month to second. dxyp??
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       IF (ifirst) THEN
+
+c     read in lookup table for calculation of mean surface wind speed from PDF
+        CALL openunit('LKTAB1',io_data,.true.,.true.)
+        READ (io_data) table1
+        CALL closeunit(io_data)
+c     index of table for sub grid scale velocity (sigma) from 0.0001 to 50 m/s
+        sum=0.d0
+        DO j=1,kjm
+          IF (j <= 30) THEN
+            sum=sum+0.0001d0+float(j-1)*0.00008d0
+            x21(j)=sum
+          ELSE IF (j > 30) THEN
+            sum=sum-0.055254d0+0.005471d0*float(j)-
+     &           1.938365d-4*float(j)**2.d0+
+     &           3.109634d-6*float(j)**3.d0-
+     &           2.126684d-8*float(j)**4.d0+
+     &           5.128648d-11*float(j)**5.d0
+            x21(j)=sum
+          END IF
+        END DO
+c     index of table for GCM surface wind speed from 0.0001 to 50 m/s 
+        x11(:)=x21(:)
 c     prescribed AEROCOM dust emissions
         IF (imDust == 1) THEN
           statusd=NF_OPEN('dust_bin1',NCNOWRIT,ncidd1)
@@ -6806,42 +6915,27 @@ c**** Read input: EMISSION LOOKUP TABLE data
             READ(io_data) ((table(i,j,k),i=1,lim),j=1,ljm)
           END DO
           call closeunit(io_data)
-          do k=1,lkm
-            x3(k)=5.d0+1.d0*k
-          enddo
-
-          do j=1,ljm
-            if (j.le.5) then
-              x2(j)=.001d0*j
-            endif
-            if (j.gt.5.and.j.le.104) then
-              x2(j)=0.005d0*j-0.02d0
-            endif
-            if (j.gt.104.and.j.le.194) then
-              x2(j)=0.05d0*j-4.7d0
-            endif
-            if (j.gt.194) then
-              x2(j)=0.5d0*j-92.d0
-            endif
-          enddo
-          do i=1,lim
-            if (i.le.51) then
-              x1(i)=.0001d0*(i-1)
-            endif
-            if (i.gt.51.and.i.le.59) then
-              x1(i)=0.005d0*i-.25d0
-            endif
-            if (i.gt.59.and.i.le.258) then
-              x1(i)=0.05d0*i-2.95d0
-            endif
-            if (i.gt.258.and.i.le.278) then
-              x1(i)=0.5d0*i-119.5d0
-            endif
-            if (i.gt.278) then
-              x1(i)=1.d0*i-259.d0
-            endif
-          enddo
-
+c index of table for threshold velocity from 6.5 to 17 m/s
+          DO k=1,lkm
+            x3(k)=6.d0+0.5d0*k
+          END DO
+c index of table for sub grid scale velocity (sigma) from .0001 to 30 m/s
+          sum=0.d0
+          DO j=1,ljm
+            IF (j <= 30) THEN
+              sum=sum+0.0001d0+float(j-1)*0.00008d0
+              x2(j)=sum
+            ELSE IF (j > 30) THEN
+              sum=sum-0.055254d0+0.005471d0*float(j)-
+     &             1.938365d-4*float(j)**2.d0+
+     &             3.109634d-6*float(j)**3.d0-
+     &             2.126684d-8*float(j)**4.d0+
+     &             5.128648d-11*float(j)**5.d0
+              x2(j)=sum
+            END IF
+          END DO
+c index of table for GCM surface wind speed from 0.0001 to 30 m/s
+          x1(:)=x2(:)
         ELSE
           CALL stop_model
      &     ('Stopped in tracer_IC: parameter imDUST must be 0 or 1',255)

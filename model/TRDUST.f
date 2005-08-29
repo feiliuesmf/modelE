@@ -1,32 +1,33 @@
 #include "rundeck_opts.h"
-      SUBROUTINE dust_emission_constraints(i,j,itype,ptype,wsm)
+      SUBROUTINE dust_emission_constraints(i,j,itype,ptype,wsgcm,
+     &     dsteve1,dsteve2,soilvtrsh)
 !@sum  local constrainsts for dust tracer emission valid for all dust bins
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      USE model_com,ONLY : dtsrc,nisurf,jmon,wfcs
+      USE model_com,ONLY : dtsrc,nisurf,wfcs
       USE tracer_com,ONLY : imDUST
       USE fluxes,ONLY : prec,pprec,pevap
       USE ghy_com,ONLY : snowe,wearth,aiearth
-      USE tracers_dust,ONLY : curint,dryhr,ers_data,hbaij,lim,ljm,qdust,
+      USE tracers_dust,ONLY : pdfint,dryhr,hbaij,lim,ljm,lkm,qdust,
      &     ricntd,table,vtrsh,x1,x2,x3,wsubtke_com,wsubwd_com,wsubwm_com
       USE pbl_drv,ONLY : wsubtke,wsubwd,wsubwm
 
       IMPLICIT NONE
 
       INTEGER,INTENT(IN) :: i,j,itype
-      REAL*8,INTENT(IN) :: ptype,wsm
+      REAL*8,INTENT(IN) :: ptype,wsgcm
+      REAL*8,INTENT(OUT) :: dsteve1,dsteve2,soilvtrsh
 
+      REAL*8 :: mcfrac=0.05
       REAL*8 :: hbaijold,hbaijd
       REAL*8 :: soilwet
       LOGICAL :: pmei
       REAL*8 :: sigma,ans,dy
-      REAL*8 :: soilvtrsh,workij1,workij2
+      REAL*8 :: workij1,workij2,wsgcm1
 
       IF (imDUST == 0) THEN
-
-#ifndef DUST_EMISSION_EXTERN
 
 #ifdef TRACERS_DUST_CUB_SAH
 c     Checking whether accumulated precipitation - evaporation
@@ -48,82 +49,167 @@ c     than threshold dryhr to permit dust emission
       END IF
 
       IF (pmei .AND. snowe(i,j) <= 1 .AND. vtrsh(i,j) > 0. .AND.
-     &     wsm > vtrsh(i,j)) THEN
+     &     wsgcm > vtrsh(i,j)) THEN
         qdust(i,j)=.TRUE.
       ELSE
         qdust(i,j)=.FALSE.
       END IF
 #else !default case
-      IF (itype == 4 .AND. snowe(i,j) <= 1
-     &     .AND. ers_data(i,j,jmon) < -13. .AND.
-     &     ers_data(i,j,jmon) /= -99.) THEN
+      IF (itype == 4 .AND. snowe(i,j) <= 1) THEN
         qdust(i,j)=.TRUE.
       ELSE
         qdust(i,j)=.FALSE.
+        dsteve1=0.D0
+        dsteve2=0.D0
+        soilvtrsh=0.D0
       END IF
 
       IF (qdust(i,j)) THEN
 
         soilwet=(WEARTH(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
         if (soilwet.gt.1.) soilwet=1.d0
-        soilvtrsh=8.d0*(exp(0.25d0*soilwet))
+        soilvtrsh=8.d0*(exp(0.7d0*soilwet))
 
-        curint(i,j)=0.d0
+        pdfint(i,j)=0.d0
         workij1=0.d0
         workij2=0.d0
+        wsgcm1=wsgcm
 
 c     There is no moist convection, sigma is composed of TKE and DRY
 c     convective velocity scale
-
-        if (wsubwm == 0.) then
+        IF (wsubwm == 0.) THEN
           sigma=wsubtke+wsubwd
-          if (sigma > 0.1 .OR. wsm > 1.) then
-            call ratint2(x1,x2,x3,table,lim,ljm,wsm,sigma,soilvtrsh,ans,
-     &           dy)
-            curint(i,j)=exp(ans)
-          endif
-        endif
+c     No need to calculate the emission below these values since
+c     the emission is zero
+          IF (sigma > 0.1 .OR. wsgcm1 > 1.) THEN
+c     This is the case when sigma is very small and we approximate
+c     the function by standard dust emission formula
+            IF (sigma < 0.0005 .AND. wsgcm1 > 1.) THEN
+              IF (wsgcm1 > soilvtrsh) THEN
+                pdfint(i,j)=(wsgcm1-soilvtrsh)*wsgcm1**2.D0
+              ELSE
+                pdfint(i,j)=0.d0
+              END IF
+c     This is the case when wsgcm1 is very small and we set it
+c     equal to one of the smallest values in the table index
+            ELSE IF (sigma > 0.1 .AND. wsgcm1 < 0.0005) THEN
+              wsgcm1=0.0005d0
+c     Linear Polynomial fit (Default)
+              CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
+     &             soilvtrsh,ans,dy)
+c     Cubic Polynomial fit (Not Used, Optional)
+c              CALL polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1, 
+c     &             sigma,soilvtrsh,ans,dy)
+              pdfint(i,j)=exp(ans)
+            ELSE
+c     Linear Polynomial fit (Default)
+              CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
+     &             soilvtrsh,ans,dy)
+c     Cubic Polynomial fit (Not Used, Optional) 
+c              CALL polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,
+c     &             sigma,soilvtrsh,ans,dy)
+              pdfint(i,j)=exp(ans)
+            END IF
+          END IF
+
+        ELSE
 
 c     When there is moist convection, the sigma is the combination of
 c     all three subgrid scale parameters (i.e. independent or dependent)
 c     Takes into account that the moist convective velocity scale acts
 c     only over 5% of the area.
 
-        if (wsubwm /= 0.) then
           sigma=wsubtke+wsubwd+wsubwm
-          if (sigma > 0.1 .OR. wsm > 1.) then
-            call ratint2(x1,x2,x3,table,lim,ljm,wsm,sigma,soilvtrsh,ans,
-     &           dy)
-            workij1=exp(ans)*0.05 !!!0.05 for the MC area
-          endif
+c     No need to calculate the emission below these values since
+c     the emission is Zero
+          IF (sigma > 0.1 .OR. wsgcm1 > 1.) THEN
+c     This is the case when sigma is very small and we approximate
+c     the function by standard dust emission formula
+            IF (sigma < 0.0005 .AND. wsgcm1 > 1.) THEN
+              IF (wsgcm1 > soilvtrsh) THEN
+                workij1=mcfrac*(wsgcm1-soilvtrsh)*wsgcm1**2.D0
+              ELSE
+                workij1=0.d0
+              END IF
+c     This is the case when wsgcm1 is very small and we set it
+c     equal to one of the smallest values in the table index
+            ELSE IF (sigma > 0.1 .AND. wsgcm1 < 0.0005) THEN
+              wsgcm1=0.0005d0
+c     Linear Polynomial fit (Default)
+              CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
+     &             soilvtrsh,ans,dy)
+c     Cubic Polynomial fit (Not Used, Optional)
+c               call polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,
+c     &              sigma,soilvtrsh,ans,dy)
+              workij1=mcfrac*exp(ans)
+            ELSE
+c     Linear Polynomial fit (Default)
+              CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
+     &             soilvtrsh,ans,dy)
+c     Cubic Polynomial fit (Not Used, Optional)
+c               CALL polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,
+c     &              sigma,soilvtrsh,ans,dy)
+              workij1=mcfrac*exp(ans)
+            END IF
+          END IF
 
           sigma=wsubtke+wsubwd
-          if (sigma > 0.1 .OR. wsm > 1.) then
-            call ratint2(x1,x2,x3,table,lim,ljm,wsm,sigma,soilvtrsh,ans,
-     &           dy)
-            workij2=exp(ans)*0.95 !!!0.95 for the rest
-          endif
-          curint(i,j)=workij1+workij2
-        endif
+c     No need to calculate the emission below these values since
+c     the emission is Zero
+          IF (sigma > 0.1 .OR. wsgcm1 > 1.) THEN
+c     This is the case when sigma is very small and we approximate
+c     the function by standard dust emission formula
+            IF (sigma < 0.0005 .AND. wsgcm1 > 1.) THEN
+              IF (wsgcm1 > soilvtrsh) THEN
+                workij2=(1.d0-mcfrac)*(wsgcm1-soilvtrsh)*wsgcm1**2.D0
+              ELSE
+                workij2=0.d0
+              END IF
+c     This is the case when wsgcm1 is very small and we set it
+c     equal to one of the smallest values in the table index
+            ELSE IF (sigma > 0.1 .AND. wsgcm1 < 0.0005) THEN
+              wsgcm1=0.0005d0
+c     Linear Polynomial fit (Default)
+              CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
+     &             soilvtrsh,ans,dy)
+c     Cubic Polynomial fit (Not Used, Optional)
+c               CALL polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,
+c     &              sigma,soilvtrsh,ans,dy)
+              workij2=(1.d0-mcfrac)*exp(ans)
+            ELSE
+c     Linear Polynomial fit (Default)
+              CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
+     &             soilvtrsh,ans,dy)
+c     Cubic Polynomial fit (Not Used, Optional)
+c               CALL polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,
+c     &              sigma,soilvtrsh,ans,dy)
+              workij2=(1.d0-mcfrac)*exp(ans)
+            END IF
+          END IF
+          pdfint(i,j)=workij1+workij2
+        END IF
 
-        if (sigma == 0.) then
-          if (wsm > soilvtrsh) then
-            curint(i,j)=(wsm-soilvtrsh)*wsm**2
-          else
-            curint(i,j)=0D0
-          endif
-        endif
+        IF (sigma == 0.) THEN
+          IF (wsgcm1 > soilvtrsh) THEN
+            pdfint(i,j)=(wsgcm1-soilvtrsh)*wsgcm1**2.D0
+          ELSE
+            pdfint(i,j)=0.D0
+          END IF
+        END IF
+
+        IF (pdfint(i,j) > 0.D0) THEN
+          dsteve1=1.D0
+        ELSE
+          dsteve1=0.D0
+        END IF
+
+        IF (vtrsh(i,j) > 0. .AND. wsgcm1 > vtrsh(i,j)) THEN
+          dsteve2=1.D0
+        ELSE
+          dsteve2=0.D0
+        END IF
 
       END IF
-#endif
-#else
-
-      IF (itype == 4) THEN
-        wsubtke_com(i,j)=wsubtke
-        wsubwd_com(i,j)=wsubwd
-        wsubwm_com(i,j)=wsubwm
-      END IF
-      
 #endif
 
       ELSE IF (imDUST == 1) THEN
@@ -139,31 +225,30 @@ c     only over 5% of the area.
       RETURN
       END SUBROUTINE dust_emission_constraints
 
-      SUBROUTINE local_dust_emission(i,j,n,wsm,ptype,dsrcflx)
+      SUBROUTINE local_dust_emission(i,j,n,wsgcm,ptype,dsrcflx,dsrcflx2)
 !@sum  selects routine for calculating local dust source flux
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       USE constant,ONLY : sday
-      USE model_com,ONLY : jday
+      USE model_com,ONLY : jday,jmon
       USE geom,ONLY : dxyp
       USE tracer_com,ONLY : trname,imDUST,n_clayilli
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,FrHeQu
 #endif
-      USE tracers_dust,ONLY : curint,Fracl,Frasi,frclay,frsilt,gin_data,
-     &     qdust,upclsi,vtrsh,d_dust
+      USE tracers_dust,ONLY : pdfint,Fracl,Frasi,frclay,frsilt,gin_data,
+     &     qdust,upclsi,vtrsh,d_dust,ers_data
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,minfr
 #endif
 
-#ifndef DUST_EMISSION_EXTERN
       IMPLICIT NONE
 
       INTEGER,INTENT(IN) :: i,j,n
-      REAL*8,INTENT(IN) :: ptype,wsm
-      REAL*8,INTENT(OUT) :: dsrcflx
+      REAL*8,INTENT(IN) :: ptype,wsgcm
+      REAL*8,INTENT(OUT) :: dsrcflx,dsrcflx2
 
       INTEGER :: n1
       REAL*8 :: frtrac
@@ -173,6 +258,7 @@ c     Interactive dust emission
 
       IF (.NOT. qdust(i,j)) THEN
         dsrcflx=0D0
+        dsrcflx2=0.D0
       ELSE
 #ifdef TRACERS_DUST
 
@@ -185,7 +271,7 @@ c     Interactive dust emission
           frtrac=frsilt(i,j)*Frasi
         END SELECT
 
-        dsrcflx=Upclsi*frtrac*(wsm-vtrsh(i,j))*wsm**2
+        dsrcflx=Upclsi*frtrac*(wsgcm-vtrsh(i,j))*wsgcm**2
 
 #else ! default case
 
@@ -196,7 +282,20 @@ c     Interactive dust emission
           frtrac=Frasi
         END SELECT
 
-        dsrcflx=Upclsi*frtrac*gin_data(i,j)*curint(i,j)
+c ..........
+c dust emission above threshold from sub grid scale wind fluctuations
+c ..........
+        dsrcflx=Upclsi*frtrac*ers_data(i,j,jmon)*gin_data(i,j)
+     &       *pdfint(i,j)
+c ..........
+c emission according to cubic scheme
+c ..........
+        IF (vtrsh(i,j) > 0. .AND. wsgcm > vtrsh(i,j)) THEN
+          dsrcflx2=Upclsi*frtrac*gin_data(i,j)*ers_data(i,j,jmon)
+     &         *(wsgcm-vtrsh(i,j))*wsgcm**2
+        ELSE
+          dsrcflx2=0.D0
+        END IF
 
 #endif
 #else
@@ -243,7 +342,7 @@ c     Interactive dust emission
           frtrac=frsilt(i,j)*FrHeQu*Frasi
         END SELECT
 
-        dsrcflx=minfr(i,j,n1)*Upclsi*frtrac*(wsm-vtrsh(i,j))*wsm**2
+        dsrcflx=minfr(i,j,n1)*Upclsi*frtrac*(wsgcm-vtrsh(i,j))*wsgcm**2
 
 #else ! default case
 
@@ -264,7 +363,8 @@ c     Interactive dust emission
           frtrac=FrHeQu*Frasi
         END SELECT
 
-        dsrcflx=minfr(i,j,n1)*Upclsi*frtrac*gin_data(i,j)*curint(i,j)
+        dsrcflx=minfr(i,j,n1)*Upclsi*frtrac*ers_data(i,j,jmon)
+     &       *gin_data(i,j)*pdfint(i,j)
 
 #endif
 #endif
@@ -275,7 +375,7 @@ c     Interactive dust emission
 c     prescribed AEROCOM dust emission
 
       IF (.NOT. qdust(i,j)) THEN
-        dsrcflx=0D0
+        dsrcflx=0.D0
       ELSE
 
 #ifdef TRACERS_DUST
@@ -338,127 +438,110 @@ c     prescribed AEROCOM dust emission
       END IF
 
 #endif
-#endif
             
       RETURN
       END SUBROUTINE local_dust_emission
 
-      SUBROUTINE ratint2(x1a,x2a,x3a,ya,m,n,x1,x2,x3,y,dy)
+      SUBROUTINE polint3dlin(x1a,x2a,x3a,ya,m,n,lkm,x1,x2,x3,y,dy) 
+ 
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) 
+
+      implicit none 
+      INTEGER, INTENT(IN) :: m,n,lkm 
+      REAL*8, INTENT(IN) :: x1,x2,x3,x1a(m),x2a(n),x3a(lkm),ya(m,n,lkm) 
+      REAL*8, INTENT(OUT):: y,dy 
+      INTEGER, PARAMETER :: nmax=2
+      INTEGER i,j,k,jjj,iii,xx,yy,zz,kkk 
+      REAL*8 ymtmp(nmax),yntmp(nmax),x11(nmax),x22(nmax),x33(nmax) 
+      real*8 yotmp(nmax) 
+ 
+      call locate(x1a,m,x1,xx) 
+      call locate(x2a,n,x2,yy) 
+      call locate(x3a,lkm,x3,zz) 
+
+      do i=1,nmax
+         kkk=i
+         x33(i)=x3a(zz+kkk-1)
+         do k=1,nmax
+            iii=k
+            x22(k)=x2a(yy+iii-1)  
+            do j=1,nmax
+               jjj=j
+               x11(j)=x1a(xx+jjj-1)
+               yntmp(j)=ya(xx+jjj-1,yy+iii-1,zz+kkk-1)
+            enddo
+            if (yntmp(1).eq.-1000) then
+               ymtmp(k)=-1000.
+            else
+               call polint(x11,yntmp,nmax,x1,ymtmp(k),dy)
+            endif
+         enddo
+         if (ymtmp(1).eq.-1000) then
+            yotmp(i)=-1000.
+         else
+            call polint(x22,ymtmp,nmax,x2,yotmp(i),dy)
+         endif
+      enddo
+      if (yotmp(2).eq.-1000)  then
+         y=-1000.
+      else
+         call polint(x33,yotmp,nmax,x3,y,dy)
+      endif
+#endif
+      return
+      END SUBROUTINE POLINT3DLIN
+C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
+
+      SUBROUTINE polint3dcub(x1a,x2a,x3a,ya,m,n,lkm,x1,x2,x3,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       implicit none
-      INTEGER, INTENT(IN) :: m,n
-      INTEGER NMAX,MMAX
-      REAL*8, INTENT(IN) :: x1,x2,x3,x1a(m),x2a(n),x3a(9),ya(m,n,9)
+      INTEGER, INTENT(IN) :: m,n,lkm
+      REAL*8, INTENT(IN) :: x1,x2,x3,x1a(m),x2a(n),x3a(lkm),ya(m,n,lkm)
       REAL*8, INTENT(OUT):: y,dy
-      PARAMETER (NMAX=4,MMAX=4)
+      INTEGER, PARAMETER :: nmax=4
       INTEGER i,j,k,jjj,iii,xx,yy,zz,kkk
-      REAL*8 ymtmp(MMAX),yntmp(nmax),x11(4),x22(4),x33(4)
-      real*8 yotmp(MMAX)
+      REAL*8 ymtmp(nmax),yntmp(nmax),x11(nmax),x22(nmax),x33(nmax)
+      real*8 yotmp(nmax)
 
       call locate(x1a,m,x1,xx)
       call locate(x2a,n,x2,yy)
-      call locate(x3a,9,x3,zz)
+      call locate(x3a,lkm,x3,zz)
 
-      do i=1,4
-         if (zz.eq.1) then
-            kkk=i
-         else
-            kkk=i-1
-         endif
+      do i=1,nmax
+         kkk=i-1
          x33(i)=x3a(zz+kkk-1)
-         do k=1,4
+         do k=1,nmax
             iii=k-1
             x22(k)=x2a(yy+iii-1)
-            do j=1,4
+            do j=1,nmax
                jjj=j-1
                x11(j)=x1a(xx+jjj-1)
                yntmp(j)=ya(xx+jjj-1,yy+iii-1,zz+kkk-1)
-c               print *,yntmp(j)
             enddo
             if (yntmp(1).eq.-1000.or.yntmp(2).eq.-1000.) then
                ymtmp(k)=-1000.
             else
-               call ratint(x11,yntmp,4,x1,ymtmp(k),dy)
+               call polint(x11,yntmp,nmax,x1,ymtmp(k),dy)
             endif
          enddo
          if (ymtmp(1).eq.-1000.or.ymtmp(2).eq.-1000.) then
             yotmp(i)=-1000.
          else
-            call ratint(x22,ymtmp,4,x2,yotmp(i),dy)
+            call polint(x22,ymtmp,nmax,x2,yotmp(i),dy)
          endif
-c       print *,yotmp(i)
       enddo
-      if (yotmp(1).eq.-1000.or.yotmp(2).eq.-1000.)  then
+      if (yotmp(3).eq.-1000.or.yotmp(4).eq.-1000.)  then
          y=-1000.
       else
-         if (x3.ge.2.*x1) then
-            call polint(x33,yotmp,4,x3,y,dy)
-         else
-            call ratint(x33,yotmp,4,x3,y,dy)
-         endif
+         call polint(x33,yotmp,nmax,x3,y,dy)
       endif
 #endif
-
       return
-      END SUBROUTINE RATINT2
+      END SUBROUTINE POLINT3DCUB
 C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
-
-      SUBROUTINE ratint(xa,ya,n,x,y,dy)
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      IMPLICIT NONE
-
-      INTEGER NMAX
-      INTEGER, INTENT(IN) :: n
-      REAL*8, INTENT(IN) :: x,xa(n),ya(n)
-      real*8 TINY
-      REAL*8, INTENT(OUT) :: y,dy
-      PARAMETER (NMAX=4,TINY=1.d-25)
-      INTEGER i,m,ns
-      REAL*8 dd,h,hh,t,w,c(NMAX),d(NMAX)
-      ns=1
-      hh=abs(x-xa(1))
-      do 11 i=1,n
-        h=abs(x-xa(i))
-        if (h.eq.0.d0)then
-          y=ya(i)
-          dy=0.0d0
-          return
-        else if (h.lt.hh) then
-          ns=i
-          hh=h
-        endif
-        c(i)=ya(i)
-        d(i)=ya(i)+TINY
-11    continue
-      y=ya(ns)
-      ns=ns-1
-      do 13 m=1,n-1
-        do 12 i=1,n-m
-          w=c(i+1)-d(i)
-          h=xa(i+m)-x
-          t=(xa(i)-x)*d(i)/h
-          dd=t-c(i+1)
-          if(dd.eq.0.d0) CALL stop_model('failure in ratint',255)
-          dd=w/dd
-          d(i)=c(i+1)*dd
-          c(i)=t*dd
- 12     continue
-        if (2*ns.lt.n-m)then
-          dy=c(ns+1)
-        else
-          dy=d(ns)
-        ns=ns-1
-        endif
-        y=y+dy
-13    continue
-#endif
-
-      return
-      END SUBROUTINE RATINT
 
       SUBROUTINE polint(xa,ya,n,x,y,dy)
 
@@ -468,12 +551,10 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: n
-      INTEGER NMAX
       REAL*8, INTENT(OUT) :: y,dy
       REAL*8, INTENT(IN) :: x,xa(n),ya(n)
-      PARAMETER (NMAX=300)
       INTEGER i,m,ns
-      REAL*8 den,dif,dift,ho,hp,w,c(NMAX),d(NMAX)
+      REAL*8 den,dif,dift,ho,hp,w,c(n),d(n)
       ns=1
       dif=abs(x-xa(1))
       do 11 i=1,n
@@ -510,8 +591,6 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 
       return
       END SUBROUTINE POLINT
-
-
 
       SUBROUTINE locate(xx,n,x,j)
 

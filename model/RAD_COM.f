@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       MODULE RAD_COM
 !@sum  RAD_COM Model radiation arrays and parameters
 !@auth Original Development Team
@@ -56,6 +57,13 @@ C**** exactly the same as the default values.
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRVISSURF
 !@var SRDN Total incident solar at surface (W/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRDN  ! saved in rsf
+!@var srnflb_save  Net solar radiation (W/m^2)
+!@var trnflb_save  Net thermal radiation (W/m^2)
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: srnflb_save,trnflb_save
+!@var ttausv_save  Tracer optical thickness
+!@var ttausv_cs_save  Tracer optical thickness clear sky
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_save,
+     &     ttausv_cs_save
 
 !@var CFRAC Total cloud fraction as seen be radiation
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CFRAC ! saved in rsf
@@ -150,6 +158,8 @@ C**** Local variables initialised in init_RAD
       INTEGER, DIMENSION(ITRMAX) :: NTRIX = 0
 !@var WTTR weighting array for optional aerosol interaction
       REAL*8, DIMENSION(ITRMAX) :: WTTR = 1.
+!@var nrad_clay index of clay in arrays for optional aerosol interaction
+      INTEGER :: nrad_clay
 
       END MODULE RAD_COM
 
@@ -162,10 +172,14 @@ C**** Local variables initialised in init_RAD
       USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE DOMAIN_DECOMP, ONLY : GET
       USE MODEL_COM, ONLY : IM, JM, LM
+#ifdef TRACERS_ON
+      USE tracer_com,ONLY : Ntm
+#endif
       USE RAD_COM, ONLY : LM_REQ
       USE RAD_COM, ONLY : RQT, Tchg, SRHR, TRHR, FSF, FSRDIR, SRVISSURF,
      *     SRDN, CFRAC, RCLD, O3_rad_save, O3_tracer_save, KLIQ, COSZ1,
-     *     dH2O, ALB, SALB, SINJ, COSJ
+     *     dH2O, ALB, SALB, SINJ, COSJ,srnflb_save,trnflb_save,
+     &     ttausv_save,ttausv_cs_save
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -193,6 +207,12 @@ C**** Local variables initialised in init_RAD
      *     ALB(IM, J_0H:J_1H, 9),
      *     SINJ(J_0H:J_1H),
      *     COSJ(J_0H:J_1H),
+     &     srnflb_save(Im,J_0H:J_1H,Lm),
+     &     trnflb_save(Im,J_0H:J_1H,Lm),
+#ifdef TRACERS_ON
+     &     ttausv_save(Im,J_0H:J_1H,Ntm,Lm),
+     &     ttausv_cs_save(Im,J_0H:J_1H,Ntm,Lm),
+#endif
      *     STAT=IER)
 
       KLIQ = 1
@@ -208,6 +228,9 @@ C**** Local variables initialised in init_RAD
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,ioread_single
      *         ,lhead,Kradia,irsficnt,irsficno
+#ifdef TRACERS_ON
+      USE tracer_com,ONLY : Ntm
+#endif
       USE RAD_COM
       USE PARAM
       USE DOMAIN_DECOMP, ONLY : GRID, GET, AM_I_ROOT
@@ -235,6 +258,11 @@ C**** Local variables initialised in init_RAD
      &           SRDN_GLOB, CFRAC_GLOB, SALB_GLOB
       REAL*8, DIMENSION(LM, IM, JM) :: RCLD_GLOB, O3_rad_save_GLOB,
      &           O3_tracer_save_GLOB
+      REAL*8,DIMENSION(Im,Jm,Lm) :: srnflb_save_glob,trnflb_save_glob
+#ifdef TRACERS_ON
+      REAL*8,DIMENSION(Im,Jm,Ntm,Lm) :: ttausv_save_glob,
+     &     ttausv_cs_save_glob
+#endif
       INTEGER :: J_0,J_1
       INTEGER :: k
 
@@ -288,6 +316,12 @@ C**** Local variables initialised in init_RAD
         CALL PACK_COLUMN(grid, RCLD          , RCLD_GLOB)
         CALL PACK_COLUMN(grid, O3_rad_save   , O3_rad_save_GLOB)
         CALL PACK_COLUMN(grid, O3_tracer_save, O3_tracer_save_GLOB)
+        CALL PACK_DATA(grid,srnflb_save,srnflb_save_glob)
+        CALL PACK_DATA(grid,trnflb_save,trnflb_save_glob)
+#ifdef TRACERS_ON
+        CALL PACK_DATA(grid,ttausv_save,ttausv_save_glob)
+        CALL PACK_DATA(grid,ttausv_cs_save,ttausv_cs_save_glob)
+#endif
 
         IF (AM_I_ROOT())
      *     WRITE (kunit,err=10) MODULE_HEADER,RQT_GLOB,KLIQ_GLOB
@@ -295,6 +329,10 @@ C**** Local variables initialised in init_RAD
      *      ,S0,  SRHR_GLOB, TRHR_GLOB, FSF_GLOB , FSRDIR_GLOB
      *      ,SRVISSURF_GLOB, SALB_GLOB, SRDN_GLOB, CFRAC_GLOB,RCLD_GLOB
      *      ,O3_rad_save_GLOB,O3_tracer_save_GLOB
+#ifdef TRACERS_DUST
+     &      ,srnflb_save_glob,trnflb_save_glob,ttausv_save_glob
+     &      ,ttausv_cs_save_glob
+#endif
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
         CASE (ioread,IRERUN)  ! input for restart, rerun or extension
@@ -305,6 +343,10 @@ C**** Local variables initialised in init_RAD
      *       ,S0,  SRHR_GLOB, TRHR_GLOB, FSF_GLOB , FSRDIR_GLOB
      *       ,SRVISSURF_GLOB, SALB_GLOB, SRDN_GLOB, CFRAC_GLOB,RCLD_GLOB
      *       ,O3_rad_save_GLOB,O3_tracer_save_GLOB
+#ifdef TRACERS_DUST
+     &       ,srnflb_save_glob,trnflb_save_glob,ttausv_save_glob
+     &       ,ttausv_cs_save_glob
+#endif
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER,
      *               MODULE_HEADER
@@ -329,6 +371,12 @@ C**** Local variables initialised in init_RAD
           CALL UNPACK_COLUMN(grid, O3_rad_save_glob   ,O3_rad_save)
           CALL UNPACK_COLUMN(grid, O3_tracer_save_glob,
      &         O3_tracer_save)
+          CALL UNPACK_DATA(grid,srnflb_save_glob,srnflb_save)
+          CALL UNPACK_DATA(grid,trnflb_save_glob,trnflb_save)
+#ifdef TRACERS_ON
+          CALL UNPACK_DATA(grid,ttausv_save_glob,ttausv_save)
+          CALL UNPACK_DATA(grid,ttausv_cs_save_glob,ttausv_cs_save)
+#endif
 
 
         CASE (IRSFIC,irsficnt,IRSFICNO)  ! restart file of prev. run
@@ -347,4 +395,3 @@ C**** Local variables initialised in init_RAD
  10   IOERR=1
       RETURN
       END SUBROUTINE io_rad
-

@@ -218,7 +218,7 @@ C****
 !@var NT index denoting tracer number
       INTEGER, INTENT(IN) :: nt
 !@var DTRACER change of conserved quantity at this time
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DTRACER
+      REAL*8, DIMENSION(Jm) :: DTRACER
       INTEGER :: j,nm
       REAL*8 stm
 
@@ -1247,7 +1247,8 @@ C**** Fill in maplet indices for sources and sinks
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
        if (name(k)(1:3).eq.'tau'.or.name(k)(1:3).eq.'swf'.or
-     *  .name(k)(1:3).eq.'lwf') ijtype(k)=2
+     *  .name(k)(1:3).eq.'lwf' .OR. name(k)(1:3) .EQ. 'no_' .OR.
+     &   name(k)(1:5) .EQ. 'wtrsh') ijtype(k)=2
        if (name(k)(5:6).eq.'CS') then
        ijtype(k)=3
        aij1(:,:,k)=aij1(:,:,k)*scale(k)

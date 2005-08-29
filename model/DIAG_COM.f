@@ -135,22 +135,59 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@param HR_IN_DAY hours in day
       INTEGER, PARAMETER :: HR_IN_DAY=24
 !@param NDIUVAR number of diurnal diagnostics
+#ifdef TRACERS_DUST
+      INTEGER, PARAMETER :: NDIUVAR=302
+#else
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+      INTEGER, PARAMETER :: NDIUVAR=61
+#else
       INTEGER, PARAMETER :: NDIUVAR=56
+#endif
+#endif
 !@param NDIUPT number of points where diurnal diagnostics are kept
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      INTEGER, PARAMETER :: NDIUPT=34
+#else
       INTEGER, PARAMETER :: NDIUPT=4
+#endif
+!@dpparam adiurn_dust  flag to switch on/off intra daily diagnostics for dust
+!@+                    default=1 (on)
+      INTEGER :: adiurn_dust=1
 !@dbparam IJDD,NAMDD (i,j)-coord.,names of boxes w/diurnal cycle diag
       INTEGER, DIMENSION(2,NDIUPT) :: IJDD
       CHARACTER*4, DIMENSION(NDIUPT) :: NAMDD
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      DATA IJDD
+     &    /63,17,  17,34,  37,27,  13,23,  43,28,
+     &     41,31,  36,30,  34,30,  39,28,  49,33,
+     &     40,28,  23,13,  35,30,  41,30,  42,31,
+     &     45,32,  39,27,  36,29,  49,34,  64,16,
+     &     64,17,  62,16,  41,28,  36,28,  57,34,
+     &     38,31,  51,30,  63,16,  23,14,  37,30,
+     &     23,12,  41,29,  37,29,  40,31 /
+      DATA NAMDD   
+     &    /'AUSD', 'MWST', 'SAHL', 'EPAC', 'AF01',
+     &     'AF02', 'AF03', 'AF04', 'AF05', 'ASA1',
+     &     'AF06', 'AME1', 'AF07', 'AF08', 'AF09',
+     &     'ARAB', 'AF10', 'AF11', 'ASA2', 'AUS1',
+     &     'AUS2', 'AUS3', 'AF12', 'AF13', 'ASA3',
+     &     'AF14', 'ASA4', 'AUS4', 'AME2', 'AF15',
+     &     'AME3', 'AF16', 'AF17', 'AF18' /
+#else
       DATA        IJDD    /  63,17,  17,34,  37,27,  13,23 /
       DATA        NAMDD   / 'AUSD', 'MWST', 'SAHL', 'EPAC' /
+#endif
 !@var ADIURN diurnal diagnostics (24 hour cycles at selected points)
       REAL*8, DIMENSION(HR_IN_DAY,NDIUVAR,NDIUPT) :: ADIURN
 !@param HR_IN_MONTH hours in month
       INTEGER, PARAMETER :: HR_IN_MONTH=HR_IN_DAY*31
+#ifndef TRACERS_DUST
 !@var HDIURN hourly diagnostics (hourly value at selected points)
 !@+     Same quantities as ADIURN but not averaged over the month
       REAL*8, DIMENSION(HR_IN_MONTH,NDIUVAR,NDIUPT) :: HDIURN
-
+#endif
 !@param KAJK number of zonal constant pressure diagnostics
 !@param KAJKX number of zonal constant pressure composit diagnostics
       INTEGER, PARAMETER :: KAJK=51, KAJKX=KAJK+100
@@ -375,6 +412,10 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
      *     ,ij_3drwm,ij_3drim,ij_3drws,ij_3dris
 #endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
+#endif
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER :: IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
      *     IJ_G08,IJ_G09,IJ_G10,IJ_G11,IJ_G12,IJ_G13,IJ_G14,IJ_G15,
@@ -575,6 +616,56 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IDD_CL5, IDD_CL4, IDD_CL3, IDD_CL2, IDD_CL1, IDD_W, IDD_CCV,
      *     IDD_SSP, IDD_MCP
 
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      INTEGER :: idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf,idd_wtrsh
+#endif
+#ifdef TRACERS_DUST
+      INTEGER :: idd_u1,idd_u2,idd_u3,idd_u4,idd_u5,idd_u6,idd_u7
+     *     ,idd_u8,idd_u9,idd_u10,idd_u11,idd_v1,idd_v2,idd_v3,idd_v4
+     *     ,idd_v5,idd_v6,idd_v7,idd_v8,idd_v9,idd_v10,idd_v11
+     *     ,idd_uv1,idd_uv2,idd_uv3,idd_uv4,idd_uv5,idd_uv6,idd_uv7
+     *     ,idd_uv8,idd_uv9,idd_uv10,idd_uv11,idd_t1,idd_t2,idd_t3
+     *     ,idd_t4,idd_t5,idd_t6,idd_t7,idd_t8,idd_t9,idd_t10,idd_t11
+     *     ,idd_qq1,idd_qq2,idd_qq3,idd_qq4,idd_qq5,idd_qq6,idd_qq7
+     *     ,idd_qq8,idd_qq9,idd_qq10,idd_qq11,idd_p1,idd_p2,idd_p3
+     *     ,idd_p4,idd_p5,idd_p6,idd_p7,idd_p8,idd_p9,idd_p10,idd_p11
+     *     ,idd_w1,idd_w2,idd_w3,idd_w4,idd_w5,idd_w6
+     *     ,idd_w7,idd_w8,idd_w9,idd_w10,idd_w11,idd_phi1,idd_phi2
+     *     ,idd_phi3,idd_phi4,idd_phi5,idd_phi6,idd_phi7,idd_phi8
+     *     ,idd_phi9,idd_phi10,idd_phi11  
+     *     ,idd_load1,idd_load2,idd_load3,idd_load4,idd_load5
+     *     ,idd_load6,idd_load7,idd_load8,idd_load9,idd_load10
+     *     ,idd_load11,idd_conc1,idd_conc2,idd_conc3,idd_conc4
+     *     ,idd_conc5,idd_conc6,idd_conc7,idd_conc8,idd_conc9  
+     *     ,idd_conc10,idd_conc11,idd_emis,idd_emis2
+     *     ,idd_tau1,idd_tau2,idd_tau3,idd_tau4
+     *     ,idd_tau5,idd_tau6,idd_tau7,idd_tau8,idd_tau9,idd_tau10
+     *     ,idd_tau11,idd_tau_cs1,idd_tau_cs2,idd_tau_cs3,idd_tau_cs4
+     *     ,idd_tau_cs5,idd_tau_cs6,idd_tau_cs7,idd_tau_cs8
+     *     ,idd_tau_cs9,idd_tau_cs10,idd_tau_cs11,idd_sr1,idd_sr2
+     *     ,idd_sr3,idd_sr4,idd_sr5,idd_sr6,idd_sr7,idd_sr8,idd_sr9
+     *     ,idd_sr10,idd_sr11,idd_tr1,idd_tr2,idd_tr3,idd_tr4
+     *     ,idd_tr5,idd_tr6,idd_tr7,idd_tr8,idd_tr9,idd_tr10,idd_tr11
+     *     ,idd_ws2,idd_ustar,idd_us3,idd_stress,idd_lmon,idd_rifl
+     *     ,idd_zpbl1,idd_zpbl2,idd_zpbl3,idd_zpbl4
+     *     ,idd_zpbl5,idd_zpbl6,idd_zpbl7,idd_zpbl8
+     *     ,idd_uabl1,idd_uabl2,idd_uabl3,idd_uabl4,idd_uabl5
+     *     ,idd_uabl6,idd_uabl7,idd_uabl8,idd_vabl1,idd_vabl2
+     *     ,idd_vabl3,idd_vabl4,idd_vabl5,idd_vabl6,idd_vabl7
+     *     ,idd_vabl8,idd_uvabl1,idd_uvabl2,idd_uvabl3
+     *     ,idd_uvabl4,idd_uvabl5,idd_uvabl6,idd_uvabl7
+     *     ,idd_uvabl8,idd_tabl1,idd_tabl2,idd_tabl3,idd_tabl4
+     *     ,idd_tabl5,idd_tabl6,idd_tabl7,idd_tabl8,idd_qabl1   
+     *     ,idd_qabl2,idd_qabl3,idd_qabl4,idd_qabl5,idd_qabl6
+     *     ,idd_qabl7,idd_qabl8,idd_zhat1,idd_zhat2,idd_zhat3
+     *     ,idd_zhat4,idd_zhat5,idd_zhat6,idd_zhat7,idd_e1,idd_e2
+     *     ,idd_e3,idd_e4,idd_e5,idd_e6,idd_e7,idd_km1,idd_km2
+     *     ,idd_km3,idd_km4,idd_km5,idd_km6,idd_km7,idd_ri1,idd_ri2
+     *     ,idd_ri3,idd_ri4,idd_ri5,idd_ri6,idd_ri7
+     &     ,idd_wet,idd_grav,idd_turb
+#endif
+
 !@var tf_xxx tsfrez diagnostic names
       INTEGER :: tf_day1,tf_last,tf_lkon,tf_lkoff
       character(len=20), dimension(ktsf) :: name_tsf,units_tsf
@@ -694,7 +785,9 @@ c idacc-indices of various processes
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
      *     IM*JM*LM*KAIJK+ntau*npres*nisccp
+#ifndef TRACERS_DUST
      *     + HR_IN_MONTH*NDIUVAR*NDIUPT
+#endif
 !@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
       REAL*4 AJ4(JM,KAJ,NTYPE),AREG4(NREG,KAJ),APJ4(JM,KAPJ)
       REAL*4 AJL4(JM,LM,KAJL),ASJL4(JM,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
@@ -704,7 +797,9 @@ c idacc-indices of various processes
       REAL*4 WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP)
       REAL*4 AJK4(JM,LM,KAJK),AIJK4(IM,JM,LM,KAIJK)
       REAL*4 AISCCP4(ntau,npres,nisccp)
+#ifndef TRACERS_DUST
       REAL*4 HDIURN4(HR_IN_MONTH,NDIUVAR,NDIUPT)
+#endif
       REAL*4 TSFREZ4(IM,JM,KTSF),AFLX4(LM+LM_REQ+1,IM,JM,5)
       integer monac1(12),i_ida,i_xtra,it_check
 !@var Kcomb counts acc-files as they are added up
@@ -768,7 +863,7 @@ c idacc-indices of various processes
      *       READ (kunit,err=10) HEADER,idac1(2),AFLX4,monac1
           CALL UNPACK_COLUMN(grid, REAL(AFLX4,KIND=8),
      *                                          AFLX_ST)
-	  CALL ESMF_BCAST(grid,idac1)
+          CALL ESMF_BCAST(grid,idac1)
           CALL ESMF_BCAST(grid,monac1)
           IDACC(2) = IDACC(2) + IDAC1(2)
           monacc = monacc + monac1
@@ -811,7 +906,11 @@ C**** The regular model (Kradia le 0)
           WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
      *     idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,
      *     AIL, ENERGY,CONSRV,
+#ifdef TRACERS_DUST
+     *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
+#else
      *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
+#endif
      *     TDIURN_glob,OA_glob,it
         END IF
       CASE (IOWRITE_SINGLE)     ! output in single precision
@@ -838,7 +937,11 @@ C**** The regular model (Kradia le 0)
      *     REAL(SPECA,KIND=4),REAL(ATPE,KIND=4),REAL(ADIURN,KIND=4),
      *     REAL(WAVE,KIND=4),REAL(AJK,KIND=4),
      *     REAL(AIJK,KIND=4),
+#ifdef TRACERS_DUST
+     *     REAL(AISCCP,KIND=4),
+#else
      *     REAL(AISCCP,KIND=4),REAL(HDIURN,KIND=4),
+#endif
      *     monacc,it
         END IF
       CASE (IOWRITE_MON)        ! output to end-of-month restart file
@@ -853,7 +956,11 @@ C**** The regular model (Kradia le 0)
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
      *       idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
      *       ENERGY,CONSRV,
+#ifdef TRACERS_DUST
+     *       SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
+#else
      *       SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
+#endif
      *       TDIURN_glob,OA_glob,it
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
@@ -868,7 +975,11 @@ C**** The regular model (Kradia le 0)
         If (AM_I_ROOT()) Then
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ4,
      *       idac1, AJ4,AREG4,APJ4,AJL4,ASJL4,AIJ4,AIL4,ENERGY4,CONSRV4,
+#ifdef TRACERS_DUST
+     *       SPECA4,ATPE4,ADIURN4,WAVE4,AJK4,AIJK4,AISCCP4,
+#else
      *       SPECA4,ATPE4,ADIURN4,WAVE4,AJK4,AIJK4,AISCCP4,HDIURN4,
+#endif
      *       monac1,it_check
           if(it.ne.it_check) then
             PRINT*,"io_diags: compare aj,aj4, ... dimensions"
@@ -884,7 +995,11 @@ C**** The regular model (Kradia le 0)
           ENERGY=ENERGY+ENERGY4
           SPECA=SPECA+SPECA4 ; ATPE=ATPE+ATPE4 ; ADIURN=ADIURN+ADIURN4
           WAVE=WAVE+WAVE4
+#ifdef TRACERS_DUST
+          AISCCP=AISCCP+AISCCP4
+#else
           AISCCP=AISCCP+AISCCP4 ; HDIURN=HDIURN+HDIURN4
+#endif
           IDACC = IDACC + IDAC1
         End If
 
@@ -948,7 +1063,9 @@ C**** The regular model (Kradia le 0)
         CALL ESMF_BCAST(grid, ADIURN)
         CALL ESMF_BCAST(grid, WAVE  )
         CALL ESMF_BCAST(grid, AISCCP)
+#ifndef TRACERS_DUST
         CALL ESMF_BCAST(grid, HDIURN)
+#endif
         CALL ESMF_BCAST(grid, it    )
       End Subroutine BCAST_Scalars
 

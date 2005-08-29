@@ -53,6 +53,11 @@ c******************   TRACERS             ******************************
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,ijts_source,nDustEmij,nDustEmjl
+     &     ,ijts_spec,nDustEv1ij,nDustEv2ij,nDustWthij
+     &     ,jls_spec,nDustEv1jl,nDustEv2jl,nDustWthjl
+#endif
+#ifdef TRACERS_DUST
+     &     ,nDustEm2ij,nDustEm2jl
 #endif
       use fluxes, only : trsource,trsrfflx
 #ifdef TRACERS_WATER
@@ -83,7 +88,8 @@ c******************   TRACERS             ******************************
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &     ,dust_flux
+     &     ,dust_flux,dust_flux2,z,km,gh,gm,zhat,lmonin,wsubtke,wsubwd
+     &     ,wsubwm,dust_event1,dust_event2,wtrsh
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       use tracer_sources, only : avg_modPT
@@ -249,6 +255,9 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
  !     use socpbl, only : dtsurf
       use geom, only : dxyp
       use sle001, only : nsn,fb,fv
+#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
+      USE trdiag_com,ONLY : rts_save
+#endif
       implicit none
       integer, intent(in) :: i,j
       real*8, intent(in) :: ptype,dtsurf,rhosrf
@@ -258,7 +267,7 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
 #endif
       integer n,nx
 #ifdef TRACERS_DRYDEP
-      real*8 tdryd,tdd,td1,rtsdt
+      real*8 tdryd,tdd,td1,rtsdt,rts
 #endif
 
 ccc tracers
@@ -341,12 +350,20 @@ ccc dust emission from earth
 #endif
 #endif
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+dust_flux(n1)*dxyp(j)*ptype
-          taijs(i,j,ijts_source(nDustEmij,n))=
-     &         taijs(i,j,ijts_source(nDustEmij,n))+dust_flux(n1)*
-     &         dxyp(j)*ptype*dtsurf
-          tajls(j,1,jls_source(nDustEmjl,n))=
-     &         tajls(j,1,jls_source(nDustEmjl,n))+dust_flux(n1)*dxyp(j)*
-     &         ptype*dtsurf
+          taijs(i,j,ijts_source(nDustEmij,n))
+     &         =taijs(i,j,ijts_source(nDustEmij,n))+dust_flux(n1)
+     &         *dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_source(nDustEmjl,n))
+     &         =tajls(j,1,jls_source(nDustEmjl,n))+dust_flux(n1)*dxyp(j)
+     &         *ptype*dtsurf
+#ifdef TRACERS_DUST
+          taijs(i,j,ijts_source(nDustEm2ij,n))
+     &         =taijs(i,j,ijts_source(nDustEm2ij,n))+dust_flux2(n1)
+     &         *dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_source(nDustEm2jl,n))
+     &         =tajls(j,1,jls_source(nDustEm2jl,n))
+     &         +dust_flux2(n1)*dxyp(j)*ptype*dtsurf
+#endif
         END SELECT
 #endif
 
@@ -354,7 +371,8 @@ ccc dust emission from earth
 
 ccc accumulate tracer dry deposition
         if(dodrydep(n)) then
-          rtsdt=rhosrf*trs(nx)*dtsurf
+          rts=rhosrf*trs(nx)
+          rtsdt=rts*dtsurf                             ! kg*s/m^3
           tdryd=-rtsdt*(dep_vel(n)+gs_vel(n))          ! kg/m2
           tdd = tdryd*dxyp(j)*ptype                    ! kg
           td1 = (trsrfflx(i,j,n)+totflux(nx))*dtsurf   ! kg
@@ -367,6 +385,9 @@ ccc accumulate tracer dry deposition
           else
             trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdd/dtsurf
           end if
+#ifdef TRACERS_DUST
+          rts_save(i,j)=rts
+#endif
 ! trdrydep downward flux by surface type (kg/m^2)
           trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - tdryd
 ! diagnose turbulent and settling fluxes separately
@@ -411,6 +432,24 @@ ccc not sure about the code below. hopefully that''s what is meant above
      *       +trevapor(n,itype,i,j)*ptype
       enddo
 #endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+c ..........
+c Accumulates dust events. One diagnostic field for all dust tracers
+c ..........
+      taijs(i,j,ijts_spec(nDustEv1ij))=taijs(i,j,ijts_spec(nDustEv1ij))
+     &     +dust_event1
+      tajls(j,1,jls_spec(nDustEv1jl))=tajls(j,1,jls_spec(nDustEv1jl))
+     &     +dust_event1
+      taijs(i,j,ijts_spec(nDustEv2ij))=taijs(i,j,ijts_spec(nDustEv2ij))
+     &     +dust_event2
+      tajls(j,1,jls_spec(nDustEv2jl))=tajls(j,1,jls_spec(nDustEv2jl))
+     &     +dust_event2
+      taijs(i,j,ijts_spec(nDustWthij))=taijs(i,j,ijts_spec(nDustWthij))
+     &     +wtrsh*ptype
+      tajls(j,1,jls_spec(nDustWthjl))=tajls(j,1,jls_spec(nDustWthjl))
+     &     +wtrsh*ptype
+#endif
 #ifdef INTERACTIVE_WETLANDS_CH4
 C**** update running-average of ground temperature:
       call running_average(tg1,I,J,avg_modPT(I,J,2),nisurf,2)
@@ -436,10 +475,38 @@ c***********************************************************************
 !@auth I. Alienov/F. Abramopolous
       use model_com, only : im,jm
       use veg_drv, only : cosday,sinday
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      USE pbl_drv,ONLY : dust_flux,dust_flux2,z,km,gh,gm,zhat,lmonin,
+     &     wsubtke,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
+#endif
       use diag_com, only : idd_ts,idd_tg1,idd_qs
      *     ,idd_qg,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
      *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
      *     ,idd_eds,idd_dbl,idd_ev
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     *     ,idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf,idd_wtrsh
+#endif
+#ifdef TRACERS_DUST
+     *     ,idd_ws2,idd_ustar,idd_us3,idd_stress,idd_lmon
+     *     ,idd_rifl,idd_zpbl1,idd_zpbl2,idd_zpbl3,idd_zpbl4
+     *     ,idd_zpbl5,idd_zpbl6,idd_zpbl7,idd_zpbl8
+     *     ,idd_uabl1,idd_uabl2,idd_uabl3,idd_uabl4,idd_uabl5
+     *     ,idd_uabl6,idd_uabl7,idd_uabl8,idd_vabl1,idd_vabl2
+     *     ,idd_vabl3,idd_vabl4,idd_vabl5,idd_vabl6,idd_vabl7
+     *     ,idd_vabl8,idd_uvabl1,idd_uvabl2,idd_uvabl3
+     *     ,idd_uvabl4,idd_uvabl5,idd_uvabl6,idd_uvabl7
+     *     ,idd_uvabl8,idd_tabl1,idd_tabl2,idd_tabl3,idd_tabl4
+     *     ,idd_tabl5,idd_tabl6,idd_tabl7,idd_tabl8,idd_qabl1
+     *     ,idd_qabl2,idd_qabl3,idd_qabl4,idd_qabl5,idd_qabl6
+     *     ,idd_qabl7,idd_qabl8,idd_zhat1,idd_zhat2,idd_zhat3
+     *     ,idd_zhat4,idd_zhat5,idd_zhat6,idd_zhat7,idd_e1,idd_e2
+     *     ,idd_e3,idd_e4,idd_e5,idd_e6,idd_e7,idd_km1,idd_km2
+     *     ,idd_km3,idd_km4,idd_km5,idd_km6,idd_km7,idd_ri1,idd_ri2
+     *     ,idd_ri3,idd_ri4,idd_ri5,idd_ri6,idd_ri7
+     &     ,idd_emis,idd_emis2,idd_grav,idd_turb
+#endif
       implicit none
       private
       save
@@ -461,7 +528,15 @@ c***********************************************************************
       real*8 :: snow_cover_coef = .15d0
 
       ! Indexes used for adiurn and hdiurn
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+      INTEGER,PARAMETER :: n_idx=28
+#else
+#ifdef TRACERS_DUST
+      INTEGER,PARAMETER :: n_idx=114
+#else
       INTEGER, PARAMETER :: n_idx = 22
+#endif
+#endif
 
       contains
 
@@ -518,7 +593,11 @@ c****
 
       use diag_com , only : j_trhdt,j_shdt,j_evhdt,j_evap,j_erun,j_run
      &     ,j_tsrf,j_tg1,j_tg2,areg,jreg,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
+#ifdef TRACERS_DUST
+     &     ,adiurn,NDIUPT
+#else
      &     ,adiurn,hdiurn,NDIUPT
+#endif
 #ifdef TRACERS_ON
       use ghy_tracers, only : ghy_tracers_set_step,ghy_tracers_set_cell,
      &     ghy_tracers_save_cell
@@ -574,13 +653,21 @@ C**** Work array for regional diagnostic accumulation
 
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: adiurn_part
+#ifndef TRACERS_DUST
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: hdiurn_part
+#endif
       REAL*8, DIMENSION(N_IDX,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: adiurn_temp
+#ifndef TRACERS_DUST
       REAL*8, DIMENSION(N_IDX,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: hdiurn_temp
+#endif
+#ifdef TRACERS_DUST
+      REAL*8, DIMENSION(N_IDX, NDIUPT) :: ADIURNSUM
+#else
       REAL*8, DIMENSION(N_IDX, NDIUPT) :: ADIURNSUM, HDIURNSUM
+#endif
       INTEGER :: ih, ihm, ii, ivar, kr
       INTEGER :: idx(n_idx)
 
@@ -617,13 +704,42 @@ C**** halo update u and v for distributed parallelization
        call halo_update(grid, V, from=NORTH)
 
        adiurn_part = 0
+#ifndef TRACERS_DUST
        hdiurn_part = 0
-      idx = 
+#endif
+
+       idx = 
      &     (/ idd_ts,  idd_tg1, idd_qs,  idd_qg,  idd_swg, 
      &        idd_lwg, idd_sh,  idd_lh,  idd_hz0, idd_ug,
      &        idd_vg,  idd_wg,  idd_us,  idd_vs,  idd_ws,
      &        idd_cia, idd_cm,  idd_ch,  idd_cq,  idd_eds,
-     &        idd_dbl, idd_ev /)
+     &        idd_dbl, idd_ev
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &      ,idd_wsgcm,idd_wspdf,idd_wtke,idd_wd,idd_wm,idd_wtrsh
+#endif
+#ifdef TRACERS_DUST
+     &      ,idd_emis,idd_emis2,idd_turb,idd_grav
+     &      ,idd_ws2,idd_ustar,idd_us3,idd_stress,idd_lmon,idd_rifl
+     &      ,idd_zpbl1,idd_zpbl2,idd_zpbl3,idd_zpbl4,idd_zpbl5,idd_zpbl6
+     &      ,idd_zpbl7,idd_zpbl8
+     &      ,idd_uabl1,idd_uabl2,idd_uabl3,idd_uabl4,idd_uabl5,idd_uabl6
+     &      ,idd_uabl7,idd_uabl8
+     &      ,idd_vabl1,idd_vabl2,idd_vabl3,idd_vabl4,idd_vabl5,idd_vabl6
+     &      ,idd_vabl7,idd_vabl8
+     &      ,idd_uvabl1,idd_uvabl2,idd_uvabl3,idd_uvabl4,idd_uvabl5
+     &      ,idd_uvabl6,idd_uvabl7,idd_uvabl8
+     &      ,idd_tabl1,idd_tabl2,idd_tabl3,idd_tabl4,idd_tabl5,idd_tabl6
+     &      ,idd_tabl7,idd_tabl8
+     &      ,idd_qabl1,idd_qabl2,idd_qabl3,idd_qabl4,idd_qabl5,idd_qabl6
+     &      ,idd_qabl7,idd_qabl8
+     &      ,idd_zhat1,idd_zhat2,idd_zhat3,idd_zhat4,idd_zhat5,idd_zhat6
+     &      ,idd_zhat7
+     &      ,idd_e1,idd_e2,idd_e3,idd_e4,idd_e5,idd_e6,idd_e7
+     &      ,idd_km1,idd_km2,idd_km3,idd_km4,idd_km5,idd_km6,idd_km7
+     &      ,idd_ri1,idd_ri2,idd_ri3,idd_ri4,idd_ri5,idd_ri6,idd_ri7
+#endif
+     &      /)
 
 !$OMP  PARALLEL DO PRIVATE
 !$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
@@ -836,7 +952,11 @@ c****
       call ghy_diag( i,j,ns,moddsf,moddd
      &     ,rcdmws,cdm,cdh,cdq,qg
      &     ,aregij, pbl_args, pbl_args%dtsurf
-     &     ,adiurn_part, hdiurn_part, idx)
+     &     ,adiurn_part
+#ifndef TRACERS_DUST
+     &     ,hdiurn_part
+#endif
+     &     ,idx)
 
 c**** update tracers
 #ifdef TRACERS_ON
@@ -856,19 +976,25 @@ c**** update tracers
         DO ii = 1, N_IDX
           ivar = idx(ii)
           ADIURN_temp(ii,:,kr)=ADIURN_part(:,ivar,kr)
+#ifndef TRACERS_DUST
           HDIURN_temp(ii,:,kr)=HDIURN_part(:,ivar,kr)
+#endif
         END DO
       END DO
       CALL GLOBALSUM(grid, ADIURN_temp(1:N_IDX,:,1:ndiupt),
      &    ADIURNSUM(1:N_IDX,1:ndiupt))
+#ifndef TRACERS_DUST
       CALL GLOBALSUM(grid, HDIURN_temp(1:N_IDX,:,1:ndiupt),
      &    HDIURNSUM(1:N_IDX,1:ndiupt))
+#endif
       DO kr = 1, ndiupt
         DO ii = 1, N_IDX
           ivar = idx(ii)
           IF (AM_I_ROOT()) THEN
             ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM(ii,kr)
+#ifndef TRACERS_DUST
             HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM(ii,kr)
+#endif
           END IF
         END DO
       END DO
@@ -938,7 +1064,11 @@ c***********************************************************************
       subroutine ghy_diag( i,j,ns,moddsf,moddd
      &     ,rcdmws,cdm,cdh,cdq,qg
      &     ,aregij, pbl_args, dtsurf
-     &     ,adiurn_part, hdiurn_part, idx )
+     &     ,adiurn_part
+#ifndef TRACERS_DUST
+     &     ,hdiurn_part
+#endif
+     &     ,idx)
 
       use diag_com , only : aij=>aij_loc
      *     ,tsfrez=>tsfrez_loc,tdiurn,aj=>aj_loc,areg,jreg
@@ -954,11 +1084,18 @@ c***********************************************************************
      *     ,idd_eds,idd_dbl,idd_ev,tf_day1,tf_last,ndiupt
      *     ,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu
-     &     ,ij_htsoil,ij_htsnow,ij_aintrcp,ij_trsdn,ij_trsup
-
-
-
+     &     ,ij_htsoil,ij_htsnow,ij_aintrcp,ij_trsdn,ij_trsup,adiurn_dust
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
+#endif
+#ifdef TRACERS_DUST
+      USE PBLCOM,ONLY : eabl,uabl,vabl,tabl,qabl
+#endif
       use constant, only : tf
+#ifdef TRACERS_DUST
+     &     ,grav
+#endif
       use model_com, only : dtsrc,nisurf,jdate
      *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
       use DOMAIN_DECOMP, only : grid
@@ -983,8 +1120,19 @@ c***********************************************************************
  !    &     ,khs,ug,vg,wg
  !     use pbl_drv, only : uocean,vocean
       use pbl_drv, only : t_pbl_args
+#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
+     &     ,dep_vel,gs_vel
+#endif
 
-
+#ifdef TRACERS_DUST
+      USE tracer_com,ONLY : Ntm_dust,n_clay
+#ifdef TRACERS_DRYDEP
+     &     ,dodrydep
+#endif
+#endif
+#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
+      USE trdiag_com,ONLY : rts_save
+#endif
 
       implicit none
       integer, intent(in) :: i,j,ns,moddsf,moddd
@@ -994,8 +1142,10 @@ c***********************************************************************
       real*8, intent(in) :: dtsurf
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: adiurn_part
+#ifndef TRACERS_DUST
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: hdiurn_part
+#endif
       INTEGER, INTENT(IN) :: idx(:)
 
       real*8 timez
@@ -1003,14 +1153,18 @@ c***********************************************************************
       real*8 warmer,spring,trheat,evhdt
       integer, parameter :: itype=4
       integer kr,ih,ihm,jr
-
-
+#ifdef TRACERS_DUST
+      INTEGER :: n,n1
+#endif
 
       REAL*8 :: tmp(NDIUVAR)
 
 ccc the following values are returned by PBL
       real*8 us,vs,ws,wsm,psi,dbl,khs,ug,vg,wg
-
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,wsgcm,wspdf
+#endif
       us = pbl_args%us
       vs = pbl_args%vs
       ws = pbl_args%ws
@@ -1021,7 +1175,11 @@ ccc the following values are returned by PBL
       ug = pbl_args%ug
       vg = pbl_args%vg
       wg = pbl_args%wg
-
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      wsgcm=pbl_args%wsgcm
+      wspdf=pbl_args%wspdf
+#endif
 
       timez=jday+(mod(itime,nday)+(ns-1.)/nisurf)/nday ! -1 ??
       if(jday.le.31) timez=timez+365.
@@ -1160,8 +1318,19 @@ c**** quantities accumulated for latitude-longitude maps in diagij
         aij(i,j,ij_pblht)=aij(i,j,ij_pblht)+dbl*ptype
 chyd       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)
 chyd      *  +   (40.6*psoil+.72*(2.*(tss-tfs)-(qsatss-qss)*lhe/sha))
-c**** quantities accumulated hourly for diagDD
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        aij(i,j,ij_wsgcm)=aij(i,j,ij_wsgcm)+wsgcm*ptype
+        aij(i,j,ij_wspdf)=aij(i,j,ij_wspdf)+wspdf*ptype
+        aij(i,j,ij_wdry)=aij(i,j,ij_wdry)+wsubwd*ptype
+        aij(i,j,ij_wtke)=aij(i,j,ij_wtke)+wsubtke*ptype
+        aij(i,j,ij_wmoist)=aij(i,j,ij_wmoist)+wsubwm*ptype
+#endif
+
       endif
+
+c**** quantities accumulated hourly for diagDD
       if ( moddd == 0 ) then
         do kr=1,ndiupt
           if(i.eq.ijdd(1,kr).and.j.eq.ijdd(2,kr)) then
@@ -1189,11 +1358,159 @@ c**** quantities accumulated hourly for diagDD
             tmp(idd_eds)=+khs*ptype
             tmp(idd_dbl)=+dbl*ptype
             tmp(idd_ev)=+aevap*ptype
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+            IF (adiurn_dust == 1) THEN
+              tmp(idd_wsgcm)=+wsgcm*ptype
+              tmp(idd_wspdf)=+wspdf*ptype
+              tmp(idd_wtke)=+wsubtke*ptype
+              tmp(idd_wd)=+wsubwd*ptype
+              tmp(idd_wm)=+wsubwm*ptype
+              tmp(idd_wtrsh)=+wtrsh*ptype
+            END IF
+#endif
+#ifdef TRACERS_DUST
+            IF (adiurn_dust == 1) THEN
+
+              tmp(idd_emis)=0.D0
+              tmp(idd_emis2)=0.D0
+              tmp(idd_turb)=0.D0
+              tmp(idd_grav)=0.D0
+              DO n=1,Ntm_dust
+                n1=n_clay+n-1
+                tmp(idd_emis)=tmp(idd_emis)+dust_flux(n)*ptype
+                tmp(idd_emis2)=tmp(idd_emis2)+dust_flux2(n)*ptype
+#ifdef TRACERS_DRYDEP
+                IF (dodrydep(n)) THEN
+                  tmp(idd_turb)=tmp(idd_turb)+ptype*rts_save(i,j)
+     &                 *dep_vel(n1)
+                  tmp(idd_grav)=tmp(idd_grav)+ptype*rts_save(i,j)
+     &                 *gs_vel(n1)
+                END IF
+#endif
+              END DO
+
+              tmp(idd_ws2)=+ws*ws*ptype
+              tmp(idd_ustar)=+pbl_args%ustar*ptype
+              tmp(idd_us3)=+ptype*pbl_args%ustar*pbl_args%ustar
+     &             *pbl_args%ustar
+              tmp(idd_stress)=+rcdmws*wsm*ptype
+              tmp(idd_lmon)=+lmonin*ptype
+              tmp(idd_rifl)=
+     &             +ptype*grav*(ts-(tg1+tf))*pbl_args%zgs
+     &             /(ws*ws*(tg1+tf))
+
+              tmp(idd_zpbl1)=+ptype*z(1)
+              tmp(idd_zpbl2)=+ptype*z(2)
+              tmp(idd_zpbl3)=+ptype*z(3)
+              tmp(idd_zpbl4)=+ptype*z(4)
+              tmp(idd_zpbl5)=+ptype*z(5)
+              tmp(idd_zpbl6)=+ptype*z(6)
+              tmp(idd_zpbl7)=+ptype*z(7)
+              tmp(idd_zpbl8)=+ptype*z(8)
+
+              tmp(idd_uabl1)=+ptype*uabl(1,i,j,itype)
+              tmp(idd_uabl2)=+ptype*uabl(2,i,j,itype)
+              tmp(idd_uabl3)=+ptype*uabl(3,i,j,itype)
+              tmp(idd_uabl4)=+ptype*uabl(4,i,j,itype)
+              tmp(idd_uabl5)=+ptype*uabl(5,i,j,itype)
+              tmp(idd_uabl6)=+ptype*uabl(6,i,j,itype)
+              tmp(idd_uabl7)=+ptype*uabl(7,i,j,itype)
+              tmp(idd_uabl8)=+ptype*uabl(8,i,j,itype)
+
+              tmp(idd_vabl1)=+ptype*vabl(1,i,j,itype)
+              tmp(idd_vabl2)=+ptype*vabl(2,i,j,itype)
+              tmp(idd_vabl3)=+ptype*vabl(3,i,j,itype)
+              tmp(idd_vabl4)=+ptype*vabl(4,i,j,itype)
+              tmp(idd_vabl5)=+ptype*vabl(5,i,j,itype)
+              tmp(idd_vabl6)=+ptype*vabl(6,i,j,itype)
+              tmp(idd_vabl7)=+ptype*vabl(7,i,j,itype)
+              tmp(idd_vabl8)=+ptype*vabl(8,i,j,itype)
+
+              tmp(idd_uvabl1)=
+     *             +ptype*sqrt( uabl(1,i,j,itype)*uabl(1,i,j,itype)
+     *             +            vabl(1,i,j,itype)*vabl(1,i,j,itype))
+              tmp(idd_uvabl2)=
+     *             +ptype*sqrt( uabl(2,i,j,itype)*uabl(2,i,j,itype)
+     *             +            vabl(2,i,j,itype)*vabl(2,i,j,itype)) 
+              tmp(idd_uvabl3)=
+     *             +ptype*sqrt( uabl(3,i,j,itype)*uabl(3,i,j,itype)
+     *             +            vabl(3,i,j,itype)*vabl(3,i,j,itype)) 
+              tmp(idd_uvabl4)=
+     *             +ptype*sqrt( uabl(4,i,j,itype)*uabl(4,i,j,itype)
+     *             +            vabl(4,i,j,itype)*vabl(4,i,j,itype)) 
+              tmp(idd_uvabl5)=
+     *             +ptype*sqrt( uabl(5,i,j,itype)*uabl(5,i,j,itype)
+     *             +            vabl(5,i,j,itype)*vabl(5,i,j,itype)) 
+              tmp(idd_uvabl6)=
+     *             +ptype*sqrt( uabl(6,i,j,itype)*uabl(6,i,j,itype)
+     *             +            vabl(6,i,j,itype)*vabl(6,i,j,itype)) 
+              tmp(idd_uvabl7)=
+     *             +ptype*sqrt( uabl(7,i,j,itype)*uabl(7,i,j,itype)
+     *             +            vabl(7,i,j,itype)*vabl(7,i,j,itype)) 
+              tmp(idd_uvabl8)=
+     *             +ptype*sqrt( uabl(8,i,j,itype)*uabl(8,i,j,itype)
+     *             +            vabl(8,i,j,itype)*vabl(8,i,j,itype)) 
+
+              tmp(idd_tabl1)=+ptype*tabl(1,i,j,itype)
+              tmp(idd_tabl2)=+ptype*tabl(2,i,j,itype)
+              tmp(idd_tabl3)=+ptype*tabl(3,i,j,itype)
+              tmp(idd_tabl4)=+ptype*tabl(4,i,j,itype)
+              tmp(idd_tabl5)=+ptype*tabl(5,i,j,itype)
+              tmp(idd_tabl6)=+ptype*tabl(6,i,j,itype)
+              tmp(idd_tabl7)=+ptype*tabl(7,i,j,itype)
+              tmp(idd_tabl8)=+ptype*tabl(8,i,j,itype)
+
+              tmp(idd_qabl1)=+ptype*qabl(1,i,j,itype)
+              tmp(idd_qabl2)=+ptype*qabl(2,i,j,itype)
+              tmp(idd_qabl3)=+ptype*qabl(3,i,j,itype)
+              tmp(idd_qabl4)=+ptype*qabl(4,i,j,itype)
+              tmp(idd_qabl5)=+ptype*qabl(5,i,j,itype)
+              tmp(idd_qabl6)=+ptype*qabl(6,i,j,itype)
+              tmp(idd_qabl7)=+ptype*qabl(7,i,j,itype)
+              tmp(idd_qabl8)=+ptype*qabl(8,i,j,itype)
+
+              tmp(idd_zhat1)=+ptype*zhat(1)
+              tmp(idd_zhat2)=+ptype*zhat(2)
+              tmp(idd_zhat3)=+ptype*zhat(3)
+              tmp(idd_zhat4)=+ptype*zhat(4)
+              tmp(idd_zhat5)=+ptype*zhat(5)
+              tmp(idd_zhat6)=+ptype*zhat(6)
+              tmp(idd_zhat7)=+ptype*zhat(7)
+
+              tmp(idd_e1)=+eabl(1,i,j,itype)*ptype
+              tmp(idd_e2)=+eabl(2,i,j,itype)*ptype
+              tmp(idd_e3)=+eabl(3,i,j,itype)*ptype
+              tmp(idd_e4)=+eabl(4,i,j,itype)*ptype
+              tmp(idd_e5)=+eabl(5,i,j,itype)*ptype
+              tmp(idd_e6)=+eabl(6,i,j,itype)*ptype
+              tmp(idd_e7)=+eabl(7,i,j,itype)*ptype
+
+              tmp(idd_km1)=+ptype*km(1)
+              tmp(idd_km2)=+ptype*km(2)
+              tmp(idd_km3)=+ptype*km(3)
+              tmp(idd_km4)=+ptype*km(4)
+              tmp(idd_km5)=+ptype*km(5)
+              tmp(idd_km6)=+ptype*km(6)
+              tmp(idd_km7)=+ptype*km(7)
+
+              tmp(idd_ri1)=+ptype*gh(1)/(gm(1)+1.d-20)
+              tmp(idd_ri2)=+ptype*gh(2)/(gm(2)+1.d-20)
+              tmp(idd_ri3)=+ptype*gh(3)/(gm(3)+1.d-20)
+              tmp(idd_ri4)=+ptype*gh(4)/(gm(4)+1.d-20)
+              tmp(idd_ri5)=+ptype*gh(5)/(gm(5)+1.d-20)
+              tmp(idd_ri6)=+ptype*gh(6)/(gm(6)+1.d-20)
+              tmp(idd_ri7)=+ptype*gh(7)/(gm(7)+1.d-20)
+
+            END IF
+#endif
             
             ADIURN_part(J,idx(:),kr)=ADIURN_part(J,idx(:),kr) +
      *           tmp(idx(:))
+#ifndef TRACERS_DUST
             HDIURN_part(J,idx(:),kr)=HDIURN_part(J,idx(:),kr) +
-     *           tmp(idx(:))     
+     *           tmp(idx(:))
+#endif
 
           end if
         end do

@@ -35,7 +35,12 @@ C**** Tracer input/output common block for PBL
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      REAL*8 :: dust_flux(Ntm_dust),wsubtke,wsubwd,wsubwm
+      REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),wsubtke,wsubwd,
+     &   wsubwm,dust_event1,dust_event2,wtrsh
+!@param npbl  no of pbl. layers
+      INTEGER,PARAMETER :: npbl=8
+      REAL*8 :: z(npbl),km(npbl-1),gh(npbl-1),gm(npbl-1),zhat(npbl-1),
+     &     lmonin
 #endif
       common /trspec/trtop,trs,trsfac,trconstflx
 #ifdef TRACERS_WATER
@@ -49,7 +54,8 @@ C**** Tracer input/output common block for PBL
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &     ,dust_flux,wsubtke,wsubwd,wsubwm
+     &     ,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm,zhat
+     &     ,lmonin,dust_event1,dust_event2,wtrsh
 #endif
 
 !$OMP  THREADPRIVATE (/trspec/)
@@ -64,6 +70,14 @@ C**** Tracer input/output common block for PBL
         real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq
         ! the following args needed for diagnostics
         real*8 psi,dbl,khs,ug,vg,wg
+#ifdef TRACERS_DUST
+        ! additional args for dust tracer diagnostics
+        REAL*8 :: ustar,zgs
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,wsgcm,wspdf
+#endif
       end type t_pbl_args
 
       contains
@@ -94,6 +108,10 @@ C          ,UG,VG,WG,W2_1
      &     ,ustar,cm,ch,cq,z0m,w2_1
 #ifdef TRACERS_ON
      *     ,tr
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,wsgcm,wspdf
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only: PBLH
 #endif
@@ -310,7 +328,8 @@ C        roughness lengths from Brutsaert for rough surfaces
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &     ptype,dust_flux,wsubtke,wsubwd,wsubwm,
+     &     ptype,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm,
+     &     zhat,lmonin,dust_event1,dust_event2,wtrsh,
 #endif
 #endif
      4     psurf,trhr0,ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,
@@ -380,7 +399,15 @@ ccc put data backto pbl_args structure
       pbl_args%ug = ug
       pbl_args%vg = vg
       pbl_args%wg = wg
-
+#ifdef TRACERS_DUST
+      pbl_args%ustar = ustar
+      pbl_args%zgs = zgs
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      pbl_args%wsgcm=wsgcm
+      pbl_args%wspdf=wspdf
+#endif
 
       RETURN
       END SUBROUTINE PBL
