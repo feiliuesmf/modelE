@@ -392,7 +392,7 @@ C**** Tracers dry deposition flux.
       USE MODEL_COM, only : jm
       USE GEOM, only : imaxj
       USE QUSDEF, only : mz,mzz
-      USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc,ntisurfsrc
+      USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc,ntisurfsrc,trname
       USE FLUXES, only : trsource,trflux1,trsrfflx
       USE TRDIAG_COM, only : taijs=>taijs_loc
       USE TRDIAG_COM, only : tajls=>tajls_loc,ijts_source,jls_source
@@ -421,9 +421,13 @@ C**** diagnostics
           naij = ijts_source(ns,n)
           taijs(:,:,naij) = taijs(:,:,naij) + trsource(:,:,ns,n)*dtstep
           najl = jls_source(ns,n)
-          do j=J_0,J_1
-            tajls(j,1,najl) = tajls(j,1,najl)+
-     *           sum(trsource(1:imaxj(j),j,ns,n))*dtstep
+          IF (najl > 0) THEN
+            DO J=1,Jm
+              tajls(j,1,najl) = tajls(j,1,najl)+
+     *             sum(trsource(1:imaxj(j),j,ns,n))*dtstep
+            END  DO
+          END IF
+          DO J=1,Jm
             dtracer(j)=0.
             do i=1,imaxj(j)
               dtracer(j)=dtracer(j)+trsource(i,j,ns,n)*dtstep
@@ -526,7 +530,8 @@ C**** calculate fractional loss
 C**** update tracer mass and diagnostics
         trm(i,j,l,n) = trm(i,j,l,n)+tr3Dsource(i,j,l,ns,n)*dtsrc
         if (1.-fr3d.le.1d-16) trm(i,j,l,n) = 0.
-        tajls(j,l,najl)=tajls(j,l,najl)+tr3Dsource(i,j,l,ns,n)*dtsrc
+        IF (jls_3Dsource(ns,n) > 0) tajls(j,l,najl)
+     &       =tajls(j,l,najl)+tr3Dsource(i,j,l,ns,n)*dtsrc
         taijsum(i,j,l)=tr3Dsource(i,j,l,ns,n)*dtsrc
       end do; end do; end do
 !$OMP END PARALLEL DO
@@ -536,7 +541,7 @@ C**** update tracer mass and diagnostics
           taijs(i,j,naij) = taijs(i,j,naij) + sum(taijsum(i,j,:))
         end do
       end do
-      end if 
+      end if
       call DIAGTCA(itcon_3Dsrc(ns,n),n)
 C****
       RETURN
@@ -687,12 +692,14 @@ c#endif
 !$OMP END PARALLEL DO
 
           najl = jls_grav(n)
-          do l=1,lm
-          do j=1,jm
-            tajls(j,l,najl)=tajls(j,l,najl)+sum(trm(1:imaxj(j),j,l,n)
-     *           -told(1:imaxj(j),j,l))
-          enddo 
-          enddo
+          IF (najl > 0) THEN
+            do l=1,lm
+              do j=1,jm
+                tajls(j,l,najl)=tajls(j,l,najl)
+     &               +sum(trm(1:imaxj(j),j,l,n)-told(1:imaxj(j),j,l))
+              enddo
+            enddo
+          END IF
         end if
       end do
 C****
