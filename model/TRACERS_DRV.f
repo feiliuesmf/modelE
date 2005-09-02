@@ -1218,6 +1218,7 @@ C**** These need to be 'hand coded' depending on circumstances
         ia_jls(k) = ia_src
         scale_jls(k) = 1./DTsrc
       end do
+      jls_grav=0
 #ifdef TRACERS_WATER
 C**** set defaults for some precip/wet-dep related diags
       jls_prec(:,:)=0    
@@ -5661,23 +5662,51 @@ C**** set some defaults
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
-      case ('BCIA', 'OCIA')
+      case ('BCIA')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging source'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Aircraft source'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_mc(n) = 15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n,1)=17
+        qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
+        qsum(itcon_dd(n,1)) = .false.
+        itcon_dd(n,2)=18
+        qcon(itcon_dd(n,2)) = .true. ; conpts(6) = 'GRAV SET'
+        qsum(itcon_dd(n,2)) = .false.
+      end if
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('OCIA')
       itcon_3Dsrc(1,N) = 13
       qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging source'
       qsum(itcon_3Dsrc(1,N)) = .true.
       itcon_mc(n) = 14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
       qsum(itcon_mc(n)) = .false.
       itcon_ss(n) = 15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
       if(dodrydep(n)) then
         itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+        qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
         qsum(itcon_dd(n,1)) = .false.
         itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+        qcon(itcon_dd(n,2)) = .true. ; conpts(6) = 'GRAV SET'
         qsum(itcon_dd(n,2)) = .false.
       end if
 #endif
@@ -7436,6 +7465,7 @@ c Laki emissions
       implicit none
       INTEGER n,ns,najl,i,j,l,mnow,blay
       INTEGER J_0, J_1
+      INTEGER :: ltpp
       
 C****
 C**** Extract useful local domain parameters from "grid"
