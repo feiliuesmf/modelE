@@ -91,7 +91,7 @@ C**** (Simplified) Calendar Related Terms
       integer :: JDendOfM(0:JMPERY) = (
      *     /0,31,59,90,120,151,181,212,243,273,304,334,365/)
       integer :: JDmidOfM(0:JMPERY+1) = (
-     *     /-15,16,47,75,106,136,167,197,228,259,289,320,350,381/)
+     *     /-15,16,45,75,106,136,167,197,228,259,289,320,350,381/)
 
 !@var AMON,AMONTH(0:12)  (3-4 letter) names for current,all months
 !@var AMON0  (3-4 letter) name of first month of the current acc-period
