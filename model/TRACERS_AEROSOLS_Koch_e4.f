@@ -44,7 +44,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       real*8, DIMENSION(IM,JM):: PBLH = 0,shdtt = 0.   ! ,MDF
       real*8, DIMENSION(IM,JM,LM):: ohr,dho2r,perjr,
      *   tno3r,oh,dho2,perj,tno3,o3_offline
-      real*4, DIMENSION(IJ,JM):: ohsr
+      real*4, DIMENSION(Im,JM):: ohsr
       real*8, DIMENSION(IM,JM,LM,ntm):: aer_tau
       END MODULE AEROSOL_SOURCES
 
@@ -83,8 +83,8 @@ c
       character*80 title   
       character*10 :: mon_files(nmons) = (/'O3_FIELD'/)
       logical      :: mon_bins(nmons)=(/.true./) ! binary file?
-      real*8 frac
       REAL*8, DIMENSION(IM,JM,levo3,1) :: src
+      REAL*8,DIMENSION(Im,Jm,levo3),SAVE :: tlca,tlcb
       save jdlast,mon_units,imon,ifirst
 
 
@@ -93,20 +93,17 @@ c      o3_offline(:,:,:)=0.0d0
 c
 C     Read it in here and interpolated each day.
 C
-      jdlast = jday -1
       if (ifirst) call openunits(mon_files,mon_units,mon_bins,nmons)
-      if (ifirst.and.jday.gt.0) jdlast = jday -1
-      ifirst = .false.
+      IF (ifirst) jdlast=jday-1
       j = 0
       do k=nanns+1,1
         j = j+1
         call read_monthly_O3_3D_source(levo3,mon_units(j),jdlast,
-     *   src(1,1,1,k),frac,imon(j))
+     *       tlca,tlcb,src(1,1,1,k),imon(j),ifirst)
       end do
+      ifirst=.FALSE.
       jdlast = jday
 
-      write(6,*) 'Read in ozone offline fields for in cloud oxidation 
-     *  interpolated to current day',frac
       call sys_flush(6)
 
       do k=nanns+1,1; DO l=1,lm; DO J=1,JM; DO I=1,IM
@@ -119,73 +116,88 @@ C
 
       END SUBROUTINE get_O3_offline
 
-      SUBROUTINE read_monthly_O3_3D_source(Ldim,iu,jdlast,
-     * data1,frac,imon)
+      SUBROUTINE read_monthly_O3_3D_source(Ldim,iu,jdlast,tlca,tlcb,
+     *     data1,imon,ifirst)
 !@sum Read in monthly sources and interpolate to current day
 !@ Author Greg Faluvegi 
 !@+   Calling routine must have the lines:
 !@+      real*8 tlca(im,jm,Ldim,nm),tlcb(im,jm,Ldim,nm)
 !@+      integer imon(nm)   ! nm=number of files that will be read
-!@+      data jdlast /0/
 !@+      save jdlast,tlca,tlcb,imon
 !@+   Input: iu, the fileUnit#; jdlast
 !@+   Output: interpolated data array + two monthly data arrays
       USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
       implicit none
+
 !@var Ldim how many vertical levels in the read-in file?
+      INTEGER,INTENT(IN) :: Ldim,iu,jdlast
+      LOGICAL,INTENT(IN) :: ifirst
+
+      INTEGER,INTENT(INOUT) :: imon
+      REAL*8,DIMENSION(Im,Jm,Ldim),INTENT(INOUT) :: tlca,tlcb
+
+      REAL*8,INTENT(OUT) :: data1(im,jm,Ldim)
+
 !@var L dummy vertical loop variable
-      integer Ldim,L
-      real*8 frac, A2D(im,jm), B2D(im,jm)
-      real*8 tlca(im,jm,Ldim),tlcb(im,jm,Ldim),data1(im,jm,Ldim)
-      integer imon,iu,jdlast
-C
-      if (jdlast.EQ.0) then   ! NEED TO READ IN FIRST MONTH OF DATA
-           read(iu)
-        imon=1                ! imon=January
-        if (jday.le.16)  then ! JDAY in Jan 1-15, first month is Dec
+      INTEGER :: L
+!@var imom saves month for interpolation
+      INTEGER,SAVE :: imom
+!@var frac weighting factor for interpolation between months
+!@var A2D,B2D 2 dimensional fields to read in data
+      REAL*8 :: frac,A2D(im,jm),B2D(im,jm)
+
+      IF (ifirst) THEN          ! NEED TO READ IN FIRST MONTH OF DATA AT START
+        REWIND iu
+        imon=1                  ! imon=January
+        if (jday < 16)  then    ! JDAY in Jan 1-15, first month is Dec
           do L=1,LDim*11
             read(iu)
           end do
           DO L=1,Ldim
-            call readt(iu,0,A2D,im*jm,A2D,1)
+            call readt(iu,0,A2D,im*jm,A2D,1) ! read in December
             tlca(:,:,L)=A2d(:,:)
           END DO
           rewind iu
-        else              ! JDAY is in Jan 16 to Dec 16, get first month
-  120     imon=imon+1
-          if (jday.gt.idofm(imon) .AND. imon.le.12) go to 120
+        else                    ! JDAY is in Jan 16 to Dec 16, get first month
+          imon=1
+          DO WHILE (jday >= idofm(imon) .AND. imon <= 12)
+            imon=imon+1
+          END DO
           do L=1,Ldim*(imon-2)
             read(iu)
           end do
           DO L=1,Ldim
-            call readt(iu,0,A2D,im*jm,A2D,1)
+            call readt(iu,0,A2D,im*jm,A2D,1) ! read in current month
             tlca(:,:,L)=A2d(:,:)
           END DO
-          if (imon.eq.13)  rewind iu
+          IF (imon == 13) REWIND iu
         end if
-      else                         ! Do we need to read in second month?
-        if (jday.ne.jdlast+1) then ! Check that data is read in daily
-          if (jday.ne.1 .OR. jdlast.ne.365) then
-            write(6,*)
-     *      'Bad values in Tracer 3D Source:JDAY,JDLAST=',JDAY,JDLAST
-            call stop_model('Bad values in Tracer 3D Source.',255)
-          end if
-          imon=imon-12             ! New year
-          go to 130
-        end if
-        if (jday.le.idofm(imon)) go to 130
-        imon=imon+1                ! read in new month of data
-        tlca(:,:,:) = tlcb(:,:,:)
-        if (imon.eq.13) rewind iu
-      end if
-      DO L=1,Ldim
-        call readt(iu,0,B2D,im*jm,B2D,1)
-        tlcb(:,:,L)=B2D(:,:)
-      END DO
-  130 continue
+      END IF
+c ..........
+c Read in next month at start or when middle of the current month is reached
+c ..........
+      IF (ifirst .OR. (jday == idofm(imon) .AND. jday /= jdlast)) THEN
+        IF (.NOT. ifirst) THEN
+          tlca(:,:,:) = tlcb(:,:,:)
+          IF (imon == 12) REWIND iu
+        END IF
+        DO L=1,Ldim
+          CALL readt(iu,0,B2D,im*jm,B2D,1) ! read in next month
+          tlcb(:,:,L)=B2D(:,:)
+        END DO
+        IF (jday >= idofm(imon)) imon=imon+1
+        imom=imon
+        IF (imon == 13) imon=1
+      END IF
+      IF (jday == 1) imom=1
+
 c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      frac = float(idofm(imom)-jday)/(idofm(imom)-idofm(imom-1))
       data1(:,:,:) = tlca(:,:,:)*frac + tlcb(:,:,:)*(1.-frac)
+
+      write(6,*) 'Read in ozone offline fields for in cloud oxidation 
+     *     interpolated to current day',frac
+
       return
       end subroutine read_monthly_O3_3D_source
 
@@ -489,6 +501,9 @@ c     endif
       USE TRDIAG_COM, only : tajls   !,jls_3Dsource,itcon_3Dsrc
      *     ,jls_OHconk,jls_HO2con,jls_NO3,jls_phot
      *     , taijs, ijs_dms_dens,ijs_so2_dens,ijs_so4_dens
+#ifdef TRACERS_SPECIAL_Shindell
+     &     ,jls_OHcon
+#endif
       USE MODEL_COM, only: im,jm,jmon,ls1,lm,dtsrc,t,q,jday,
      * coupled_chem
       USE DYNAMICS, only: pmid,am,pk,LTROPO,byam
@@ -775,7 +790,11 @@ c     *  PPRES,RK4,EK4,R4,D4,ohmc
 #endif        
           
 c diagnostics to save oxidant fields
+#ifdef TRACERS_SPECIAL_Shindell
+          najl = jls_OHcon
+#else
           najl = jls_OHconk
+#endif
           tajls(j,l,najl) = tajls(j,l,najl)+oh(i,j,l)
           najl = jls_HO2con
           tajls(j,l,najl) = tajls(j,l,najl)+dho2(i,j,l)
