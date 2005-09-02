@@ -890,6 +890,9 @@ C     OUTPUT DATA
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
      *     ,n_OCIA,N_OCII
+#ifdef TRACERS_AEROSOLS_Koch
+     *     ,SNFST0,TNFST0
+#endif
       USE TRDIAG_COM, only: taijs=>taijs_loc,ijts_fc,ijts_tau,
      &     ijts_tausub,ijts_fcsub,ijts_3dtau
 #endif

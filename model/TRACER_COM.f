@@ -309,6 +309,10 @@ c for gas phase sulfur chemistry used by aerosol and chemistry models
       integer :: imAER = 1
 !@dbparam imPI is 0 for industrial simulations, 1 for pre-industrial
       integer :: imPI = 0
+!@dbparam aer_int_yr indicates year of emission
+      integer :: aer_int_yr = 0
+!@var SNFST0,TNFST0 are instantaneous SW, LW aerosol forcings for AEROCOM
+      real*8 SNFST0(2,NTM,IM,JM),TNFST0(2,NTM,IM,JM)
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
