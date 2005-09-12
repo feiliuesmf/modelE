@@ -51,7 +51,8 @@ C**** decide if preindustrial emissions
 C**** decide on AEROCOM or interactive emissions 
       CALL sync_param('imDUST',imDUST)
 #endif
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+#ifdef TRACERS_QUARZHEM
+      CALL sync_param('FreeFe',FreeFe)
       CALL sync_param('FrHeQu',FrHeQu)
 #endif
 
@@ -1066,7 +1067,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         call ESMF_BCAST( grid, yCl2O2 )
 #endif
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
         call ESMF_BCAST( grid, hbaij )
         call ESMF_BCAST( grid, ricntd )
         call ESMF_BCAST( grid, pprec )

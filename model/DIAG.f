@@ -4380,7 +4380,8 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       APJ_loc=0   ; AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
       AIL=0   ; ENERGY=0 ; CONSRV_loc=0
       SPECA=0 ; ATPE=0 ; WAVE=0
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       AJK_loc=0   ; AIJK_loc=0
 #else
       AJK_loc=0   ; AIJK_loc=0 ; HDIURN=0

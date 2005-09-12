@@ -184,9 +184,13 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@param HR_IN_MONTH hours in month
       INTEGER, PARAMETER :: HR_IN_MONTH=HR_IN_DAY*31
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
 !@var HDIURN hourly diagnostics (hourly value at selected points)
 !@+     Same quantities as ADIURN but not averaged over the month
       REAL*8, DIMENSION(HR_IN_MONTH,NDIUVAR,NDIUPT) :: HDIURN
+#endif
+#endif
 #endif
 !@param KAJK number of zonal constant pressure diagnostics
 !@param KAJKX number of zonal constant pressure composit diagnostics
@@ -786,7 +790,11 @@ c idacc-indices of various processes
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
      *     IM*JM*LM*KAIJK+ntau*npres*nisccp
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
      *     + HR_IN_MONTH*NDIUVAR*NDIUPT
+#endif
+#endif
 #endif
 !@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
       REAL*4 AJ4(JM,KAJ,NTYPE),AREG4(NREG,KAJ),APJ4(JM,KAPJ)
@@ -798,7 +806,11 @@ c idacc-indices of various processes
       REAL*4 AJK4(JM,LM,KAJK),AIJK4(IM,JM,LM,KAIJK)
       REAL*4 AISCCP4(ntau,npres,nisccp)
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
       REAL*4 HDIURN4(HR_IN_MONTH,NDIUVAR,NDIUPT)
+#endif
+#endif
 #endif
       REAL*4 TSFREZ4(IM,JM,KTSF),AFLX4(LM+LM_REQ+1,IM,JM,5)
       integer monac1(12),i_ida,i_xtra,it_check
@@ -906,7 +918,8 @@ C**** The regular model (Kradia le 0)
           WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
      *     idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,
      *     AIL, ENERGY,CONSRV,
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
 #else
      *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
@@ -937,7 +950,8 @@ C**** The regular model (Kradia le 0)
      *     REAL(SPECA,KIND=4),REAL(ATPE,KIND=4),REAL(ADIURN,KIND=4),
      *     REAL(WAVE,KIND=4),REAL(AJK,KIND=4),
      *     REAL(AIJK,KIND=4),
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      *     REAL(AISCCP,KIND=4),
 #else
      *     REAL(AISCCP,KIND=4),REAL(HDIURN,KIND=4),
@@ -956,7 +970,8 @@ C**** The regular model (Kradia le 0)
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
      *       idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
      *       ENERGY,CONSRV,
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      *       SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
 #else
      *       SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
@@ -975,7 +990,8 @@ C**** The regular model (Kradia le 0)
         If (AM_I_ROOT()) Then
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ4,
      *       idac1, AJ4,AREG4,APJ4,AJL4,ASJL4,AIJ4,AIL4,ENERGY4,CONSRV4,
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      *       SPECA4,ATPE4,ADIURN4,WAVE4,AJK4,AIJK4,AISCCP4,
 #else
      *       SPECA4,ATPE4,ADIURN4,WAVE4,AJK4,AIJK4,AISCCP4,HDIURN4,
@@ -995,7 +1011,8 @@ C**** The regular model (Kradia le 0)
           ENERGY=ENERGY+ENERGY4
           SPECA=SPECA+SPECA4 ; ATPE=ATPE+ATPE4 ; ADIURN=ADIURN+ADIURN4
           WAVE=WAVE+WAVE4
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
           AISCCP=AISCCP+AISCCP4
 #else
           AISCCP=AISCCP+AISCCP4 ; HDIURN=HDIURN+HDIURN4
@@ -1064,7 +1081,11 @@ C**** The regular model (Kradia le 0)
         CALL ESMF_BCAST(grid, WAVE  )
         CALL ESMF_BCAST(grid, AISCCP)
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
         CALL ESMF_BCAST(grid, HDIURN)
+#endif
+#endif
 #endif
         CALL ESMF_BCAST(grid, it    )
       End Subroutine BCAST_Scalars

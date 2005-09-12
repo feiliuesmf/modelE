@@ -29,7 +29,18 @@
 #ifdef TRACERS_DUST
      &     ,idd_wet
 #endif
-      USE tracer_com,ONLY : n_clay,Ntm_dust,trm,trmom
+      USE tracer_com,ONLY : Ntm_dust,trm,trmom
+#ifdef TRACERS_DUST
+     &     ,n_clay
+#else
+#ifdef TRACERS_MINERALS
+     &     ,n_clayilli
+#else
+#ifdef TRACERS_QUARZHEM
+     &     ,n_sil1quhe
+#endif
+#endif
+#endif
       USE trdiag_com,ONLY : ijts_source,jls_3Dsource,nDustWetij,
      &     nDustWet3Djl
       USE trdiag_com,ONLY : taijs=>taijs_loc
@@ -41,13 +52,25 @@
       IMPLICIT NONE
 
       REAL*8,PARAMETER :: Z=700.
-      INTEGER :: i,j,ih,kr,l,n,n1,naij,najl,layer
+      INTEGER :: i,j,ih,kr,l,n,n1,naij,najl,layer,n_fidx
       INTEGER,DIMENSION(Jm) :: lwdep
       REAL*8,DIMENSION(jm) :: h
       REAL*8 :: y
       REAL*8 :: cloudlay,sum1,cloudfrac(im,jm),height,cldmc1(im,jm,lm)
 
       ih=jhour+1
+
+#ifdef TRACERS_DUST
+      n_fidx=n_clay
+#else
+#ifdef TRACERS_MINERALS
+      n_fidx=n_clayilli
+#else
+#ifdef TRACERS_QUARZHEM
+      n_fidx=n_sil1quhe
+#endif
+#endif
+#endif
 
 #ifdef WET_DEPO_Ina
       DO J=1,6
@@ -77,7 +100,7 @@
       
 c**** Wet Deposition
       DO n=1,Ntm_dust
-        n1=n_clay+n-1
+        n1=n_fidx+n-1
         tr3Dsource(:,:,:,nDustWet3Djl,n1)=0D0
         trsrfflx(:,:,n1)=0D0
         DO j=1,Jm
@@ -96,7 +119,7 @@ c**** Wet Deposition
       END DO
 
       DO n=1,Ntm_dust
-        n1=n_clay+n-1
+        n1=n_fidx+n-1
         naij=ijts_source(nDustWetij,n1)
         najl=jls_3Dsource(nDustWet3Djl,n1)
         taijs(:,:,naij)=taijs(:,:,naij)+trsrfflx(:,:,n1)*Dtsrc
@@ -120,7 +143,7 @@ c**** Wet Deposition
 #else
 
       DO n=1,Ntm_dust
-        n1=n_clay+n-1
+        n1=n_fidx+n-1
         tr3Dsource(:,:,:,nDustWet3Djl,n1)=0D0
         trsrfflx(:,:,n1)=0D0
         DO j=1,Jm

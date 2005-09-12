@@ -77,7 +77,8 @@ C**** Interface to PBL
      *     ,idd_q5,idd_q4,idd_q3,idd_q2,idd_q1,idd_qs,idd_qg,idd_swg
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      *     ,idd_ev,idd_ldc,idd_dcf,ij_pblht,ndiuvar,NREG
 #else
      *     ,idd_ev,idd_ldc,idd_dcf,hdiurn,ij_pblht,ndiuvar,NREG
@@ -1232,7 +1233,11 @@ C****
       IF (AM_I_ROOT()) THEN
          ADIURN(ih,idx4,:)=ADIURN(ih,idx4,:)   + DIURNSUM
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
          HDIURN(ihm,idx4,:)=HDIURN(ihm,idx4,:) + DIURNSUM
+#endif
+#endif
 #endif
       END IF
       
@@ -1312,7 +1317,11 @@ C**** For distributed implementation - ensure point is on local process.
        IF (AM_I_ROOT()) THEN
           ADIURN(ih,idx3,:)=ADIURN(ih,idx3,:)   + DIURNSUMb
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
           HDIURN(ihm,idx3,:)=HDIURN(ihm,idx3,:) + DIURNSUMb
+#endif
+#endif
 #endif
        END IF
 

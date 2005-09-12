@@ -30,7 +30,7 @@
      &     ,n_clayilli
 #else
 #ifdef TRACERS_QUARZHEM
-     &     ,n_clayquhe
+     &     ,n_sil1quhe
 #endif
 #endif
 #endif
@@ -492,12 +492,12 @@ ccc dust emission from earth
      &        'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &        'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &        'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &        'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+     &        'Sil1QuHe','Sil2QuHe','Sil3QuHe')
           n1=ntix(itr)-n_clayilli+1
 #else
 #ifdef TRACERS_QUARZHEM
-        CASE ('ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          n1=ntix(itr)-n_clayquhe+1
+        CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
+          n1=ntix(itr)-n_sil1quhe+1
 #endif
 #endif
 #endif
@@ -508,7 +508,7 @@ ccc dust emission from earth
      &          'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &          'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &          'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &          'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+     &          'Sil1QuHe','Sil2QuHe','Sil3QuHe')
           CALL local_dust_emission(ilong,jlat,ntix(itr),wsgcm,ptype,
      &         dsrcflx,dsrcflx2)
           trcnst=dsrcflx*byrho

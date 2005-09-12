@@ -671,13 +671,12 @@ C**** to be changed soon
         FS8OPX(7) = 0. ; FT8OPX(7) = 0.
       end if
       n1=NTRACE+1
-      NTRACE=NTRACE+ntm_dust+15  ! add dust tracers
+      NTRACE=NTRACE+ntm_min+15  ! add mineral tracers
 c tracer 7 is dust
       ITR(n1:NTRACE) = (/7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
      &     7,7,7,7,7,7,7,7,7,7,7,7,7,7/)
       KRHTRA(n1:NTRACE)= 0.  ! no deliq for minerals
 C**** effective radii for minerals
-c      TRRDRY(n1:NTRACE)=(/ .75d0, 2.2d0, 4.4d0, 6.7d0/)
       TRRDRY(n1:NTRACE)=(/0.132D0,0.23D0,0.416D0,0.766D0,0.132D0,0.23D0,
      &     0.416D0,0.766D0,0.132D0,0.23D0,0.416D0,0.766D0,0.132D0,
      &     0.23D0,0.416D0,0.766D0,0.132D0,0.23D0,0.416D0,0.766D0,
@@ -705,6 +704,30 @@ C**** define weighting for different clays
      &     0.234D0,0.676D0,0.009D0,0.081D0,0.234D0,0.676D0,0.009D0,
      &     0.081D0,0.234D0,0.676D0,0.009D0,0.081D0,0.234D0,0.676D0,1D0,
      &     1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0/)
+C**** If some tracers are not being used reduce NTRACE accordingly
+      NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
+#endif
+#ifdef TRACERS_QUARZHEM
+C**** add quartz/hematite optionally to radiatively active aerosol tracers
+C**** so far all minerals have the properties of far traveled Saharan dust
+C**** to be changed soon
+      if (rad_interact_tr.gt.0) then ! turn off default dust
+        FS8OPX(7) = 0. ; FT8OPX(7) = 0.
+      end if
+      n1=NTRACE+1
+      NTRACE=NTRACE+Ntm_quhe    ! add quartz/hematite aggregate tracers
+c tracer 7 is dust
+      ITR(n1:NTRACE) = (/7,7,7/)
+      KRHTRA(n1:NTRACE)= 0.  ! no deliq for quartz/hematite aggregates
+C**** effective radii for quartz/hematite
+      TRRDRY(n1:NTRACE)=(/1.386D0,2.773D0,5.545D0/)
+C**** Particle density of quartz/hematite
+      TRADEN(n1:NTRACE)=(/2.65D0,2.65D0,2.65D0/)
+C**** Define indices to map model tracer arrays to radiation arrays
+C**** for the diagnostics. Adjust if number of dust tracers changes.
+      NTRIX(n1:NTRACE)=(/n_sil1quhe,n_sil2quhe,n_sil3quhe/)
+C**** define weighting
+      WTTR(n1:NTRACE)=(/1.D0,1.D0,1.D0/)
 C**** If some tracers are not being used reduce NTRACE accordingly
       NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #endif
@@ -851,7 +874,8 @@ C     OUTPUT DATA
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
       USE PBLCOM, only : wsavg,tsavg
       USE DIAG_COM, only : aj=>aj_loc,areg,jreg,aij=>aij_loc,
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      *     ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn,
 #else
      *     ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn,hdiurn,
@@ -1405,7 +1429,7 @@ C**** For up to NTRACE aerosols, define the aerosol amount to
 C**** be used (kg/m^2)
 C**** Only define TRACER is individual tracer is actually defined.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 C**** loop over tracers that are passed to radiation.
 C**** Two special cases for black carbon and organic carbon where
 C**** more than one tracer is lumped together for radiation purposes
@@ -1518,7 +1542,7 @@ C**** or not.
       if (rad_interact_tr.gt.0) onoff=1
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 c if ozone also interacts with radiation it needs to be set
 c   to default here
 #ifdef TRACERS_SPECIAL_Shindell
@@ -1626,7 +1650,7 @@ C     Main RADIATIVE computations, SOLAR and THERMAL
 C*****************************************************
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 C**** Save optical depth diags
       do n=1,NTRACE
         SELECT CASE (trname(ntrix(n)))
@@ -1896,9 +1920,13 @@ C****
          IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
          ADIURN(IH,idx,:) = ADIURN(IH,idx,:) + DIURNSUM
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
          IHM = IHM+(JDATE-1)*HR_IN_DAY
          IF(IHM.GT.HR_IN_MONTH) CYCLE
          HDIURN(IHM,idx,:) = HDIURN(IHM,idx,:) + DIURNSUM
+#endif
+#endif
 #endif
       END DO
 
@@ -2233,9 +2261,13 @@ c longwave forcing at surface (if required)
          IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
          ADIURN(IH,idxb,:) = ADIURN(IH,idxb,:) + DIURNSUMb
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
          IHM = IHM+(JDATE-1)*HR_IN_DAY
          IF(IHM.GT.HR_IN_MONTH) CYCLE
          HDIURN(IHM,idxb,:) = HDIURN(IHM,idxb,:) + DIURNSUMb
+#endif
+#endif
 #endif
       End Do
 
@@ -2346,8 +2378,12 @@ c***            HDIURN_part(IHM,1,KR,J)=S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
       ADIURN(IH,IDD_ISW,1:NDIUPT)=ADIURN(IH,IDD_ISW,1:NDIUPT)
      &    + DIURNSUMc(1,1:NDIUPT)
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
       HDIURN(IHM,IDD_ISW,1:NDIUPT)=HDIURN(IHM,IDD_ISW,1:NDIUPT)
      &    + DIURNSUMc(1,1:NDIUPT)
+#endif
+#endif
 #endif
 
       RETURN

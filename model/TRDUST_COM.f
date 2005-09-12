@@ -53,7 +53,7 @@
       REAL*8 :: wsubtke_com(Im,Jm),wsubwd_com(Im,Jm),wsubwm_com(Im,Jm)
       REAL*8 :: prelay(im,jm,Lm)
 !@var d_dust Prescribed daily dust emissions
-      REAL*8 :: d_dust(Im,Jm,Ntm_dust,JDperY)
+      REAL*8 :: d_dust(Im,Jm,4,JDperY)
 #endif
 
       END MODULE tracers_dust

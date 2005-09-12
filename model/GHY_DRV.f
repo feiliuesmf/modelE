@@ -28,13 +28,13 @@ c******************   TRACERS             ******************************
      &     ,trname
 #endif
 #ifdef TRACERS_DUST
-     &     ,n_clay
+     &     ,n_clay,imDust
 #else
 #ifdef TRACERS_MINERALS
      &     ,n_clayilli
 #else
 #ifdef TRACERS_QUARZHEM
-     &     ,n_clayquhe
+     &     ,n_sil1quhe
 #endif
 #endif
 #endif
@@ -340,12 +340,12 @@ ccc dust emission from earth
      &        'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &        'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &        'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &        'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+     &        'Sil1QuHe','Sil2QuHe','Sil3QuHe')
           n1=n-n_clayilli+1
 #else
 #ifdef TRACERS_QUARZHEM
-        CASE ('ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          n1=n-n_clayquhe+1
+        CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
+          n1=n-n_sil1quhe+1
 #endif
 #endif
 #endif
@@ -357,13 +357,16 @@ ccc dust emission from earth
      &         =tajls(j,1,jls_source(nDustEmjl,n))+dust_flux(n1)*dxyp(j)
      &         *ptype*dtsurf
 #ifdef TRACERS_DUST
-          taijs(i,j,ijts_source(nDustEm2ij,n))
-     &         =taijs(i,j,ijts_source(nDustEm2ij,n))+dust_flux2(n1)
-     &         *dxyp(j)*ptype*dtsurf
-          tajls(j,1,jls_source(nDustEm2jl,n))
-     &         =tajls(j,1,jls_source(nDustEm2jl,n))
-     &         +dust_flux2(n1)*dxyp(j)*ptype*dtsurf
+          IF (imDust == 0) THEN
+            taijs(i,j,ijts_source(nDustEm2ij,n))
+     &           =taijs(i,j,ijts_source(nDustEm2ij,n))+dust_flux2(n1)
+     &           *dxyp(j)*ptype*dtsurf
+            tajls(j,1,jls_source(nDustEm2jl,n))
+     &           =tajls(j,1,jls_source(nDustEm2jl,n))
+     &           +dust_flux2(n1)*dxyp(j)*ptype*dtsurf
+          END IF
 #endif
+
         END SELECT
 #endif
 
@@ -593,7 +596,8 @@ c****
 
       use diag_com , only : j_trhdt,j_shdt,j_evhdt,j_evap,j_erun,j_run
      &     ,j_tsrf,j_tg1,j_tg2,areg,jreg,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      &     ,adiurn,NDIUPT
 #else
      &     ,adiurn,hdiurn,NDIUPT
@@ -654,16 +658,25 @@ C**** Work array for regional diagnostic accumulation
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: adiurn_part
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: hdiurn_part
+#endif
+#endif
 #endif
       REAL*8, DIMENSION(N_IDX,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: adiurn_temp
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
       REAL*8, DIMENSION(N_IDX,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: hdiurn_temp
 #endif
-#ifdef TRACERS_DUST
+#endif
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       REAL*8, DIMENSION(N_IDX, NDIUPT) :: ADIURNSUM
 #else
       REAL*8, DIMENSION(N_IDX, NDIUPT) :: ADIURNSUM, HDIURNSUM
@@ -705,7 +718,11 @@ C**** halo update u and v for distributed parallelization
 
        adiurn_part = 0
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
        hdiurn_part = 0
+#endif
+#endif
 #endif
 
        idx = 
@@ -954,7 +971,11 @@ c****
      &     ,aregij, pbl_args, pbl_args%dtsurf
      &     ,adiurn_part
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
      &     ,hdiurn_part
+#endif
+#endif
 #endif
      &     ,idx)
 
@@ -977,15 +998,23 @@ c**** update tracers
           ivar = idx(ii)
           ADIURN_temp(ii,:,kr)=ADIURN_part(:,ivar,kr)
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
           HDIURN_temp(ii,:,kr)=HDIURN_part(:,ivar,kr)
+#endif
+#endif
 #endif
         END DO
       END DO
       CALL GLOBALSUM(grid, ADIURN_temp(1:N_IDX,:,1:ndiupt),
      &    ADIURNSUM(1:N_IDX,1:ndiupt))
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
       CALL GLOBALSUM(grid, HDIURN_temp(1:N_IDX,:,1:ndiupt),
      &    HDIURNSUM(1:N_IDX,1:ndiupt))
+#endif
+#endif
 #endif
       DO kr = 1, ndiupt
         DO ii = 1, N_IDX
@@ -993,7 +1022,11 @@ c**** update tracers
           IF (AM_I_ROOT()) THEN
             ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM(ii,kr)
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
             HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM(ii,kr)
+#endif
+#endif
 #endif
           END IF
         END DO
@@ -1066,7 +1099,11 @@ c***********************************************************************
      &     ,aregij, pbl_args, dtsurf
      &     ,adiurn_part
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
      &     ,hdiurn_part
+#endif
+#endif
 #endif
      &     ,idx)
 
@@ -1143,8 +1180,12 @@ c***********************************************************************
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: adiurn_part
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: hdiurn_part
+#endif
+#endif
 #endif
       INTEGER, INTENT(IN) :: idx(:)
 
@@ -1508,8 +1549,12 @@ c**** quantities accumulated hourly for diagDD
             ADIURN_part(J,idx(:),kr)=ADIURN_part(J,idx(:),kr) +
      *           tmp(idx(:))
 #ifndef TRACERS_DUST
+#ifndef TRACERS_MINERALS
+#ifndef TRACERS_QUARZHEM
             HDIURN_part(J,idx(:),kr)=HDIURN_part(J,idx(:),kr) +
      *           tmp(idx(:))
+#endif
+#endif
 #endif
 
           end if

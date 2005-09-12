@@ -1129,16 +1129,6 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 1.
 #endif
 #ifdef TRACERS_QUARZHEM
-      CASE('ClayQuHe')
-      n_clayquhe=n
-          ntm_power(n)=-9
-          trpdens(n)=(1-FrHeQu)*DenQuarz+FrHeQu*DenHema
-#ifdef TRACERS_DRYDEP
-          trradius(n)=0.46D-06
-#endif
-          fq_aer(n)=0.
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
       CASE('Sil1QuHe')
       n_sil1quhe=n
           ntm_power(n)=-9
@@ -2554,7 +2544,7 @@ c gravitational settling of ss2
      &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &       'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+     &       'Sil1QuHe','Sil2QuHe','Sil3QuHe')
 
         k=k+1
           jls_source(nDustEmjl,n)=k
@@ -2564,13 +2554,15 @@ c gravitational settling of ss2
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
 #ifdef TRACERS_DUST
-        k=k+1
+        IF (imDust == 0) THEN
+          k=k+1
           jls_source(nDustEm2jl,n)=k
           lname_jls(k)='Cubic emission of '//TRIM(trname(n))
           sname_jls(k)=TRIM(trname(n))//'_emission2'
           jls_ltop(k)=1
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
+        END IF
 #endif
 #ifndef TRACERS_DRYDEP
         k=k+1
@@ -4515,7 +4507,7 @@ C**** Additional Special IJ diagnostics
      &   'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &   'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &   'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &   'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+     &   'Sil1QuHe','Sil2QuHe','Sil3QuHe')
         k=k+1
         ijts_source(nDustEmij,n)=k
         lname_ijts(k)='Emission of '//TRIM(trname(n))
@@ -4526,6 +4518,7 @@ C**** Additional Special IJ diagnostics
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_DUST
+        IF (imDust == 0) THEN
         k=k+1
         ijts_source(nDustEm2ij,n)=k
         lname_ijts(k)='Cubic emission of '//TRIM(trname(n))
@@ -4535,6 +4528,7 @@ C**** Additional Special IJ diagnostics
         ijts_power(k) = -13.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        END IF
 #endif
 #ifndef TRACERS_DRYDEP
       k=k+1
@@ -4787,7 +4781,7 @@ c dust longwave radiative forcing at surface of four sub size classes
      &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &     'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &     'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &     'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+     &     'Sil1QuHe','Sil2QuHe','Sil3QuHe')
 c dust optical thickness
           k = k + 1
           ijts_tau(1,n) = k
@@ -5917,7 +5911,7 @@ C**** set some defaults
      &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &     'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &     'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &     'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+     &     'Sil1QuHe','Sil2QuHe','Sil3QuHe')
       itcon_mc(n) =13
       qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
       qsum(itcon_mc(n)) = .false.
@@ -6591,7 +6585,7 @@ C         AM=kg/m2, and DXYP=m2:
      &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &       'ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+     &       'Sil1QuHe','Sil2QuHe','Sil3QuHe')
           ! defaults ok
           hbaij=0D0
           ricntd=0D0
