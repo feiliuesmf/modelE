@@ -618,10 +618,11 @@ c Diagnostics printed at a selected point:
       qstar  = kq(1)*dqdz/ustar
       zgs    = z(1)
       if (ustar.gt.smax*vel1) ustar=smax*vel1
-      if (abs(tstar).gt.smax*abs(t(1)-tgrnd)) tstar=smax*(t(1)-tgrnd)
-      if (abs(qstar).gt.smax*abs(q(1)-qgrnd)) qstar=smax*(q(1)-qgrnd)
       if (ustar.lt.smin*vel1) ustar=smin*vel1
+      if (abs(tstar).gt.smax*abs(t(1)-tgrnd)) tstar=smax*(t(1)-tgrnd)
       if (abs(tstar).lt.smin*abs(t(1)-tgrnd)) tstar=smin*(t(1)-tgrnd)
+      if (tstar.eq.0.) tstar=teeny
+      if (abs(qstar).gt.smax*abs(q(1)-qgrnd)) qstar=smax*(q(1)-qgrnd)
       if (abs(qstar).lt.smin*abs(q(1)-qgrnd)) qstar=smin*(q(1)-qgrnd)
 
       lmonin = ustar*ustar*tgrnd/(kappa*grav*tstar)
@@ -2638,8 +2639,8 @@ c Output:
 
       wsgcm1=wsgcm
 
-c     This is the case when wsgcm is very small and we set it 
-c     equal to one of the smallest values in the table index 
+c     This is the case when wsgcm is very small and we set it
+c     equal to one of the smallest values in the table index
 
       IF (wsgcm1 < 0.0005) wsgcm1=0.0005D0
 
@@ -2654,7 +2655,7 @@ c     convective velocity scale
         IF (sigma > 0.0005) THEN
 c     Linear Polynomial fit (Default)
           CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional) 
+c     Cubic Polynomial fit (Not Used, Optional)
 c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
           wspdf=exp(ans)
         END IF
@@ -2668,9 +2669,9 @@ c     only over 5% (mcfrac) of the area.
         work_wspdf1=0.D0
         sigma=wsubtke+wsubwd+wsubwm
         IF (sigma > 0.0005) THEN
-c     Linear Polynomial fit (Default) 
+c     Linear Polynomial fit (Default)
           CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional)  
+c     Cubic Polynomial fit (Not Used, Optional)
 c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
           work_wspdf1=exp(ans)*mcfrac
         END IF
@@ -2678,9 +2679,9 @@ c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
         work_wspdf2=0.D0
         sigma=wsubtke+wsubwd
         IF (sigma > 0.0005) THEN
-c     Linear Polynomial fit (Default) 
+c     Linear Polynomial fit (Default)
           CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
-c     Cubic Polynomial fit (Not Used, Optional)  
+c     Cubic Polynomial fit (Not Used, Optional)
 c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
           work_wspdf2=exp(ans)*(1.d0-mcfrac)
         END IF
@@ -2734,7 +2735,7 @@ c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
 C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 
       SUBROUTINE polint2dcub(x1a,x2a,ya,m,n,x1,x2,y,dy)
-  
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       IMPLICIT NONE
@@ -2744,7 +2745,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       INTEGER, PARAMETER :: nmax=4
       INTEGER j,k,jjj,iii,xx,yy
       REAL*8 ymtmp(nmax),yntmp(nmax),x11(nmax),x22(nmax)
-  
+
       call locatepbl(x1a,m,x1,xx)
       call locatepbl(x2a,n,x2,yy)
 
@@ -2771,8 +2772,8 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 #endif
 
       return
-      END SUBROUTINE polint2dcub 
-C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.  
+      END SUBROUTINE polint2dcub
+C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 
       SUBROUTINE polintpbl(xa,ya,n,x,y,dy)
 
