@@ -335,7 +335,7 @@ c for sulfur chemistry
       REAL*8 :: FCLW
 
 !@var IERRT,LERRT error reports from advection
-      INTEGER :: IERRT,LERRT
+      INTEGER :: IERRT,LERRT,LLOW,LHIGH
       INTEGER, INTENT(IN) :: i_debug,j_debug
       INTEGER LDRAFT,LMAX,LMIN,MCCONT,MAXLVL
      *     ,MINLVL,ITER,IC,LFRZ,NSUB,LDMIN
@@ -417,7 +417,7 @@ c for sulfur chemistry
 !@var TEMWM,TEM,WTEM,WCONST dummy variables
 !@var WORK work done on convective plume
 
-      LOGICAL MC1  !@var MC1 true for the first convective event
+      LOGICAL MC1, RFMC1 !@var MC1 true for the first convective event
 
       REAL*8,  PARAMETER :: CK1 = 1.       !@param CK1 a tunning const.
 !@param RHOG,RHOIP density of graupel and ice particles
@@ -695,6 +695,55 @@ C**** moved up.
          IF(FSSL_tmp.GT.1.d0-CLDMIN) FSSL_tmp=1.d0-CLDMIN
          FMC1=1.d0-FSSL_tmp+teeny
       ELSE
+C**** guard against possibility of too big a plume
+        MPLUME=MIN(0.95d0*AIRM(LMIN)*FMC1,MPLUME)
+      END IF
+      RFMC1=.FALSE.
+  160 IF (MC1) THEN
+         RFMC1=.TRUE.
+         FCONV_tmp=MPLUM1/AIRM(LMIN+1)
+         IF(FCONV_tmp.GT.1.d0) FCONV_tmp=1.d0
+         FSUB_tmp=1.d0+(PL(LMIN)-PL(LMAX)-100.d0)/200.d0
+         IF(FSUB_tmp.GT.1.d0/(FCONV_tmp+1.d-20)-1.d0)
+     *        FSUB_tmp=1.d0/(FCONV_tmp+1.d-20)-1.d0
+         IF(FSUB_tmp.LT.1.d0) FSUB_tmp=1.d0
+         IF(FSUB_tmp.GT.5.d0) FSUB_tmp=5.d0
+         FSSL_tmp=1.d0-(1.d0+FSUB_tmp)*FCONV_tmp
+         IF(FSSL_tmp.LT.CLDMIN) FSSL_tmp=CLDMIN
+         IF(FSSL_tmp.GT.1.d0-CLDMIN) FSSL_tmp=1.d0-CLDMIN
+         FMC1=1.d0-FSSL_tmp+teeny
+C        MCCONT=0
+C        MC1=.FALSE.
+         MPLUME=MPLUM1*FCTYPE
+      DO L=1,LM
+        COND(L)=0.
+        CDHEAT(L)=0.
+        CONDP(L)=0.
+        DM(L)=0.
+        DMR(L)=0.
+        CCM(L)=0.
+        DDM(L)=0.
+      END DO
+      DUM(1:KMAX,:)=0.
+      DVM(1:KMAX,:)=0.
+      DSM(:) = 0.
+      DSMOM(:,:) = 0.
+      DSMR(:) = 0.
+      DSMOMR(:,:) = 0.
+      DQM(:) = 0.
+      DQMOM(:,:) = 0.
+      DQMR(:) = 0.
+      DQMOMR(:,:) = 0.
+#ifdef TRACERS_ON
+      DTM(:,1:NTX) = 0.
+      DTMOM(:,:,1:NTX) = 0.
+      DTMR(:,1:NTX) = 0.
+      DTMOMR(:,:,1:NTX) = 0.
+      TPOLD = 0.
+#endif
+#ifdef TRACERS_WATER
+      TRCOND = 0.
+#endif
 C**** guard against possibility of too big a plume
         MPLUME=MIN(0.95d0*AIRM(LMIN)*FMC1,MPLUME)
       END IF
@@ -1073,6 +1122,9 @@ C**** Tracers at top of plume
       IF (LMAX.LT.LM) GO TO 220   ! CHECK FOR NEXT POSSIBLE LMAX
 C**** UPDATE CHANGES CARRIED BY THE PLUME IN THE TOP CLOUD LAYER
   340 IF(LMIN.EQ.LMAX) GO TO 600
+      IF(MC1.AND.MCCONT.GT.1) THEN ! GO TO 160
+        IF (.NOT.RFMC1) GO TO 160
+      END IF
       IF(TPSAV(LMAX).GE.TF) LFRZ=LMAX
       DM(LMAX)=DM(LMAX)+MPMAX
       DSM(LMAX)=DSM(LMAX)+SMPMAX
@@ -1372,7 +1424,7 @@ C                             ! WTURB=SQRT(.66666667*EGCM(L,I,J))
       FEVAP=.5*CCM(L)*BYAM(L+1)
       IF(L.LT.LMIN) FEVAP=.5*CCM(LMIN)*BYAM(LMIN+1)
       IF(FEVAP.GT..5) FEVAP=.5
-      CLDMCL(L+1)=MIN(CLDMCL(L+1)+FCLOUD*FMC1,1d0)
+      CLDMCL(L+1)=MIN(CLDMCL(L+1)+FCLOUD*FMC1,FMC1)
       CLDREF=CLDMCL(L+1)
       IF(PLE(LMAX+1).GT.700..AND.CLDREF.GT.CLDSLWIJ)
      *  CLDSLWIJ=CLDREF
@@ -1514,7 +1566,7 @@ C**** Isotopic equilibration of liquid precip with water vapour
   540 CONTINUE
 C****
       IF(PRCP.GT.0.) CLDMCL(1)=MIN(CLDMCL(1)+CCM(LMIN)*BYAM(LMIN+1)*FMC1
-     *     ,1d0)
+     *     ,FMC1)
       PRCPMC=PRCPMC+PRCP*FMC1
 #ifdef TRACERS_WATER
       TRPRMC(1:NTX) = TRPRMC(1:NTX) + TRPRCP(1:NTX)*FMC1
@@ -1734,7 +1786,7 @@ c for sulfur chemistry
      *     ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1
      *     ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
      *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,RCLD,FCOND
-     *     ,PRATM,SMN12,SMO12
+     *     ,PRATM,SMN12,SMO12,QF
        real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
@@ -1799,7 +1851,7 @@ c for sulfur chemistry
 !@var WMNEW updated cloud water mixing ratio
 !@var WTEM cloud water density (g m**-3)
 !@var VVEL vertical velocity (cm/s)
-!@var FCOND dummy variables
+!@var FCOND QF dummy variables
       INTEGER LN,ITER !@var LN,ITER loop variables
       LOGICAL BANDF  !@var BANDF true if Bergero-Findeisen proc. occurs
       LOGICAL FORM_CLOUDS !@var FORM_CLOUDS true if clouds are formed
@@ -2371,7 +2423,24 @@ C**** Note that precip is either all water or all ice
       END DO
 #endif
 C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
-      IF(RH(L).GT.1.) THEN
+C     QSATL(L)=QSAT(TL(L),LHX,PL(L))   ! =QSATC
+      RH1(L)=QL(L)/QSATC
+      IF(LHX.EQ.LHS) THEN
+        IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+        IF(CAREA(L).GT.1.) CAREA(L)=1.
+        IF(RH(L).GT.1.) CAREA(L)=0.
+        IF(WMX(L).LE.0.) CAREA(L)=1.
+        QF=(QL(L)-QSATC*(1.-CAREA(L)))/(CAREA(L)+teeny)
+        IF(QF.LT.0.) WRITE(6,*) 'L CA QF Q QSA=',L,CAREA(L),QF,QL(L),
+     *               QSATC
+        QSATE=QSAT(TL(L),LHE,PL(L))
+        RHW=.00536d0*TL(L)-.276d0
+        RH1(L)=QF/QSATE
+        IF(TL(L).LT.238.16) RH1(L)=QF/(QSATE*RHW)
+      END IF
+C     IF(RH1(L).LE.1. .AND. RH(L).GT.1.4) WRITE(6,*) 'L T RH RH1 RHW,
+C    * QL QSAT=',L,TL(L),RH(L),RH1(L),RHW,QL(L),QSATE
+      IF(RH1(L).GT.1.) THEN    ! RH was used in old versions
       SLH=LHX*BYSHA
       DQSUM=0.
       DO N=1,3
@@ -2752,12 +2821,12 @@ C**** CALCULATE OPTICAL THICKNESS
           BMAX=1.-EXP(-(CLDSV1(L)/.3d0))
           IF(CLDSV1(L).GE..95d0) BMAX=CLDSV1(L)
           IF(L.EQ.1.OR.L.LE.DCL) THEN
-            CLDSSL(L)=CLDSSL(L)+(BMAX-CLDSSL(L))*CKIJ
+            CLDSSL(L)=MIN(CLDSSL(L)+(BMAX-CLDSSL(L))*CKIJ,FSSL(L))
             TAUSSL(L)=TAUSSL(L)*CLDSV1(L)/(CLDSSL(L)+teeny)
           ENDIF
           IF(TAUSSL(L).LE.0.) CLDSSL(L)=0.
           IF(L.GT.DCL .AND. TAUMCL(L).LE.0.) THEN
-            CLDSSL(L)=CLDSSL(L)**(2.*BY3)
+            CLDSSL(L)=MIN(CLDSSL(L)**(2.*BY3),FSSL(L))
             TAUSSL(L)=TAUSSL(L)*CLDSV1(L)**BY3
           END IF
         END IF
@@ -3125,6 +3194,7 @@ cc    CALL RFINAL(SEED)
           end if
 
           tau(ibox)=tau(ibox)+dtautmp(ibox)
+          if(tau(ibox).gt.100.d0) tau(ibox)=100.d0
         end do
       end do
 !     ---------------------------------------------------!

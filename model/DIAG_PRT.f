@@ -1067,6 +1067,7 @@ C****
 C**** set weighting for denominator (different only for J_TYPE)
       MD=M
       IF (name_j(N).eq.'J_surf_type_frac') MD=0
+C     print *, __LINE__, __FILE__, M
       DO J=1,JM
 C**** Sum over types
           QJ=0
