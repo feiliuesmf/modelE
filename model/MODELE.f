@@ -19,9 +19,6 @@ CAOO   Just to test CVS
       USE DIAG_COM, only : oa,monacc,koa
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
-#ifdef TRACERS_DUST
-     &    ,ahourly
-#endif
       USE DIAG_SERIAL, only : print_diags
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: fv_core

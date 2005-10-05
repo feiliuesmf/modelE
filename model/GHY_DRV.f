@@ -16,6 +16,10 @@ c******************   TRACERS             ******************************
       use sle001,ONLY : aevap
 #endif
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,Ntm_dust
+#endif
 #ifdef TRACERS_DRYDEP
      &     ,dodrydep
 #endif
@@ -65,7 +69,13 @@ c******************   TRACERS             ******************************
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &     ,prec,pprec,pevap
+     &     ,prec,pprec,pevap,dust_flux_glob,trs_glob
+#ifdef TRACERS_DRYDEP
+     &     ,depo_turb_glob,depo_grav_glob
+#endif
+#endif
+#ifdef TRACERS_DUST
+     &     ,dust_flux2_glob
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
@@ -263,7 +273,7 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       real*8, intent(in) :: ptype,dtsurf,rhosrf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      integer n1
+      integer n1,n_fidx
 #endif
       integer n,nx
 #ifdef TRACERS_DRYDEP
@@ -411,6 +421,10 @@ C**** Save surface tracer concentration whether calculated or not
           if (needtrs(n)) then
             nx=nx+1
             taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)+trs(nx)*ptype
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+            trs_glob(i,j,itype,n)=trs(nx)*ptype
+#endif
           else
             taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
@@ -453,6 +467,45 @@ c ..........
       tajls(j,1,jls_spec(nDustWthjl))=tajls(j,1,jls_spec(nDustWthjl))
      &     +wtrsh*ptype
 #endif
+
+c     ..........
+c     save global variables for subdaily diagnostics
+c     ..........
+
+#ifdef TRACERS_DUST
+      n_fidx=n_clay
+#else
+#ifdef TRACERS_MINERALS
+      n_fidx=n_clayilli
+#else
+#ifdef TRACERS_QUARZHEM
+      n_fidx=n_clayquhe
+#endif
+#endif
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      DO n=1,Ntm_dust
+        n1=n_fidx+n-1
+        dust_flux_glob(i,j,n)=dust_flux(n)*ptype
+#ifdef TRACERS_DUST
+        dust_flux2_glob(i,j,n)=dust_flux2(n)*ptype
+#endif
+      END DO
+#endif
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+#ifdef TRACERS_DRYDEP
+      DO n=1,Ntm
+        IF (dodrydep(n)) THEN
+          depo_turb_glob(i,j,itype,n)=ptype*rts*dep_vel(n)
+          depo_grav_glob(i,j,itype,n)=ptype*rts*gs_vel(n)
+        END IF
+      END DO
+#endif
+#endif
+
 #ifdef INTERACTIVE_WETLANDS_CH4
 C**** update running-average of ground temperature:
       call running_average(tg1,I,J,avg_modPT(I,J,2),nisurf,2)
@@ -1422,7 +1475,7 @@ c**** quantities accumulated hourly for diagDD
                 tmp(idd_emis)=tmp(idd_emis)+dust_flux(n)*ptype
                 tmp(idd_emis2)=tmp(idd_emis2)+dust_flux2(n)*ptype
 #ifdef TRACERS_DRYDEP
-                IF (dodrydep(n)) THEN
+                IF (dodrydep(n1)) THEN
                   tmp(idd_turb)=tmp(idd_turb)+ptype*rts_save(i,j)
      &                 *dep_vel(n1)
                   tmp(idd_grav)=tmp(idd_grav)+ptype*rts_save(i,j)

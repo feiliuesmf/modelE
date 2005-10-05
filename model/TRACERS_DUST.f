@@ -18,13 +18,14 @@
 !@sum  Computes dust wet deposition
 !@auth Reha Cakmur, Jan Perlwitz, Ina Tegen
 
+#ifndef TRACERS_WATER
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       USE constant,ONLY : Grav
       USE resolution,ONLY : Im,Jm,Lm
       USE geom,ONLY : bydxyp
       USE model_com,ONLY : Dtsrc,zatmo,jhour
-      USE fluxes,ONLY : prec,trsrfflx,tr3Dsource
+      USE fluxes,ONLY : prec,trsrfflx,tr3Dsource,trprec_dust
       USE diag_com,ONLY : ndiupt,ijdd,adiurn,adiurn_dust
 #ifdef TRACERS_DUST
      &     ,idd_wet
@@ -217,12 +218,15 @@ c**** Wet Deposition
 #endif
             endif
 
+            trprec_dust(n,i,j)=trsrfflx(i,j,n1)*Dtsrc
+
           END DO
         END DO
       END DO
 
 #endif
 
+#endif
 #endif
 
       RETURN

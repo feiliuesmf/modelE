@@ -123,6 +123,16 @@ C**** Interface to PBL
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer
 #endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,trs_glob
+#ifdef TRACERS_DRYDEP
+     &     ,depo_turb_glob,depo_grav_glob
+#endif
+#endif
+#ifdef TRACERS_DUST
+     &     ,dust_flux2_glob
+#endif
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
       use tracers_DRYDEP, only : dtr_dd
@@ -394,6 +404,7 @@ C**** Calculate first layer tracer concentration
         end if
       end do
 #endif
+
 C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
          IF(MODDD.EQ.0) THEN
          DO KR=1,NDIUPT
@@ -977,6 +988,22 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
 
         END IF
 
+c     ..........
+c     save global variables for subdaily diagnostics
+c     ..........
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+#ifdef TRACERS_DRYDEP
+      DO n=1,Ntm
+        IF (dodrydep(n)) THEN
+          depo_turb_glob(i,j,itype,n)=ptype*rts*dep_vel(n)
+          depo_grav_glob(i,j,itype,n)=ptype*rts*gs_vel(n)
+        END IF
+      END DO
+#endif
+#endif
+
 C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
         IF(MODDD.EQ.0) THEN
           DO KR=1,NDIUPT
@@ -1023,8 +1050,8 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
                 tmp(idd_grav)=0.D0
 #ifdef TRACERS_DRYDEP
                 DO n=1,Ntm_dust
-                  IF (dodrydep(n)) THEN
-                    n1=n_clay+n-1
+                  n1=n_clay+n-1
+                  IF (dodrydep(n1)) THEN
                     tmp(idd_turb)=+ptype*rts*dep_vel(n1)
                     tmp(idd_grav)=+ptype*rts*gs_vel(n1)
                   END IF
@@ -1158,6 +1185,10 @@ C**** Save surface tracer concentration whether calculated or not
           if (needtrs(n)) then
             nx=nx+1
             taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)+trs(nx)*ptype
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+            trs_glob(i,j,itype,n)=trs(nx)*ptype
+#endif
           else
             taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
