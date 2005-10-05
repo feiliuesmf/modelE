@@ -273,7 +273,7 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       real*8, intent(in) :: ptype,dtsurf,rhosrf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      integer n1,n_fidx
+      integer n1
 #endif
       integer n,nx
 #ifdef TRACERS_DRYDEP
@@ -472,21 +472,9 @@ c     ..........
 c     save global variables for subdaily diagnostics
 c     ..........
 
-#ifdef TRACERS_DUST
-      n_fidx=n_clay
-#else
-#ifdef TRACERS_MINERALS
-      n_fidx=n_clayilli
-#else
-#ifdef TRACERS_QUARZHEM
-      n_fidx=n_clayquhe
-#endif
-#endif
-#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       DO n=1,Ntm_dust
-        n1=n_fidx+n-1
         dust_flux_glob(i,j,n)=dust_flux(n)*ptype
 #ifdef TRACERS_DUST
         dust_flux2_glob(i,j,n)=dust_flux2(n)*ptype
