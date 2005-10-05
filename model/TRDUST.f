@@ -327,13 +327,13 @@ c ..........
           zfac=frsilt(i,j)*Frasi
           frtrac=zfac*minfr(i,j,n1)
 #ifdef TRACERS_QUARZHEM
-     &         -zfac*DMIN1((1.D0-FreeFe)*minfr(i,j,9),minfr(i,j,n1))
+     &         -zfac*MIN((1.D0-FreeFe)*minfr(i,j,9),DBLE(minfr(i,j,n1)))
 #endif
 #endif
 #ifdef TRACERS_QUARZHEM
         CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
           frtrac=frsilt(i,j)*Frasi
-     &         *DMIN1((1.D0-FreeFe)*minfr(i,j,9),minfr(i,j,6))
+     &         *MIN((1.D0-FreeFe)*minfr(i,j,9),DBLE(minfr(i,j,6)))
 #endif
         END SELECT
 
@@ -352,12 +352,14 @@ c ..........
         CASE ('Sil1Quar','Sil2Quar','Sil3Quar')
           frtrac=Frasi*minfr(i,j,n1)
 #ifdef TRACERS_QUARZHEM
-     &         -Frasi*DMIN1((1.D0-FreeFe)*minfr(i,j,9),minfr(i,j,n1))
+     &         -Frasi
+     &         *MIN((1.D0-FreeFe)*minfr(i,j,9),DBLE(minfr(i,j,n1)))
 #endif
 #endif
 #ifdef TRACERS_QUARZHEM
         CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          frtrac=Frasi*DMIN1((1.D0-FreeFe)*minfr(i,j,9),minfr(i,j,6))
+          frtrac=Frasi
+     &         *MIN((1.D0-FreeFe)*minfr(i,j,9),DBLE(minfr(i,j,6)))
 #endif
         END SELECT
 
@@ -419,12 +421,12 @@ c     prescribed AEROCOM dust emission
         CASE ('Sil1Quar','Sil2Quar','Sil3Quar')
           frtrac=minfr(i,j,n1)
 #ifdef TRACERS_QUARZHEM
-     &         -DMIN1((1.D0-FreeFe)*minfr(i,j,9),minfr(i,j,n1))
+     &         -MIN((1.D0-FreeFe)*minfr(i,j,9),DBLE(minfr(i,j,n1)))
 #endif
 #endif
 #ifdef TRACERS_QUARZHEM
         CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          frtrac=DMIN1((1.D0-FreeFe)*minfr(i,j,9),minfr(i,j,6))
+          frtrac=MIN((1.D0-FreeFe)*minfr(i,j,9),DBLE(minfr(i,j,6)))
 #endif
 #ifdef TRACERS_MINERALS
         CASE DEFAULT
