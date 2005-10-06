@@ -380,8 +380,13 @@ c     prescribed AEROCOM dust emission
 
 #ifdef TRACERS_DUST
 
-        n1=n-n_clay+1
-        dsrcflx=d_dust(i,j,n1,jday)/Sday/dxyp(j)/ptype
+        SELECT CASE(trname(n))
+        CASE ('Clay','Silt1','Silt','Silt3')
+          n1=n-n_clay+1
+          dsrcflx=d_dust(i,j,n1,jday)/Sday/dxyp(j)/ptype
+        CASE DEFAULT
+          dsrcflx=0.D0
+        END SELECT
 
 #else
 #ifdef TRACERS_MINERALS
