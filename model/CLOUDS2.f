@@ -14,6 +14,11 @@
 #ifdef TRACERS_WATER
      &     ,nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD,
      *     tr_evap_fact
+#else
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,Ntm_dust
+#endif
 #endif
 #endif
 CCC   USE RANDOM
@@ -168,11 +173,35 @@ C**** new arrays must be set to model arrays in driver (after LSCOND)
 c for diagnostics
       REAL*8, DIMENSION(NTM,LM) :: DT_SULF_MC,DT_SULF_SS
 #endif
+#else
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+!@var tm_dust vertical profile of dust/mineral tracers [kg]
+      REAL*8,DIMENSION(Lm,Ntm_dust) :: tm_dust
+!@var tmom_dust vertical profiles of dust/mineral tracer moments [kg]
+      REAL*8,DIMENSION(nmom,Lm,Ntm_dust) :: tmom_dust
+!@var trprc_dust dust/mineral tracer precip [kg]
+      REAL*8,DIMENSION(Lm,Ntm_dust) :: trprc_dust
+#endif
+#endif
+#ifdef TRACERS_WATER
       COMMON/CLD_WTRTRCCOM/TRWML, TRSVWML,TRPRSS,TRPRMC
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,DT_SULF_MC,DT_SULF_SS
 #endif
+#else
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      COMMON/CLD_PRECDUST/ tm_dust,tmom_dust,trprc_dust
+#endif
+#endif
+#ifdef TRACERS_WATER
 !$OMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
+#else
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+!$OMP  THREADPRIVATE (/CLD_PRECDUST/)
+#endif
 #endif
 #endif
 

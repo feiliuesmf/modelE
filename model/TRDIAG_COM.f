@@ -121,9 +121,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@param nDustEmij index of dust emission in ijts_source
       INTEGER,PARAMETER :: nDustEmij=1
 !@param nDustTurbij index of dust dry turbulent deposition in ijts_source
-!@param nDustWetij index of dust wet deposition in ijts_source
-      INTEGER,PARAMETER :: nDustTurbij=3,
-     &                     nDustWetij=4
+      INTEGER,PARAMETER :: nDustTurbij=3
 !@param nDustEv1ij index of number of dust events below threshold wind
 !@param nDustEv1ij in ijts_spec
 !@param nDustEv2ij index of number of dust events above threshold wind
@@ -166,6 +164,13 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_spec index for TAIJS for special diags. not associated with single
 !@var ijts_spec tracer
       INTEGER :: ijts_spec(MaxSpec)
+#ifndef TRACERS_WATER
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+!@var ijts_wet tracer independent array for TAIJS wet depo diagnostics
+      INTEGER :: ijts_wet(Ntm)
+#endif
+#endif
 !@var ijts_3Dsource tracer independent array for TAIJS 3D src. diags
       INTEGER ijts_3Dsource(nt3Dsrcmax,ntm)
 !@var SNAME_IJTS, UNITS_IJTS: Names & units of lat-sigma tracer diags
@@ -258,9 +263,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@param nDustEmjl index of dust emission in jls_source
       INTEGER,PARAMETER :: nDustEmjl=1
 !@param nDustTurbjl index of dust dry turbulent deposition in jls_source
-!@param nDustWetjl index of dust wet deposition in jls_3Dsource
-      INTEGER,PARAMETER :: nDustTurbjl=3,
-     &                     nDustWet3Djl=1
+      INTEGER,PARAMETER :: nDustTurbjl=3
 !@param nDustEv1jl index of number of dust events below threshold wind
 !@param nDustEv1jl in jls_spec
 !@param nDustEv2jl index of number of dust events above threshold wind
@@ -290,6 +293,13 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, DIMENSION(NTM) :: jls_grav
 !@var jls_prec tracer independent array for precipitation/wet dep
       INTEGER, DIMENSION(2,NTM) :: jls_prec
+#ifndef TRACERS_WATER
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+!@var jls_wet tracer independent array for wet deposition
+      INTEGER,DIMENSION(NTM) :: jls_wet
+#endif
+#endif
 !@var jls_spec index for TAJLS for special diagnostics not associated with
 !@var jls_spec single tracer
       INTEGER :: jls_spec(MaxSpec)
@@ -359,6 +369,13 @@ C**** include some extra troposphere only ones
 #ifdef TRACERS_DRYDEP
 !@var itcon_dd Index array for dry deposition conserv. diags
       INTEGER, DIMENSION(ntmxcon,2) :: itcon_dd
+#endif
+#ifndef TRACERS_WATER
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+!@var itcon_wt Index array for dust/mineral dust deposition conserv. diags
+      INTEGER,DIMENSION(ntmxcon) :: itcon_wt
+#endif
 #endif
 #endif
 !@var PDSIGJL temporary storage for mean pressures for jl diags

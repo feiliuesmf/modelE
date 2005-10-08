@@ -56,6 +56,22 @@
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname
 #ifdef TRACERS_WATER
      *     ,trwm,trw0,dowetdep
+#else
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,Ntm_dust
+#endif
+#ifdef TRACERS_DUST
+     &     ,n_clay,imDust
+#else
+#ifdef TRACERS_MINERALS
+     &     ,n_clayilli
+#else
+#ifdef TRACERS_QUARZHEM
+     &     ,n_sil1quhe
+#endif
+#endif
+#endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE LIGHTNING, only : RNOx_lgt
@@ -67,6 +83,11 @@
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,jls_incloud,taijs=>taijs_loc,ijts_aq
 #endif
+#else
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,jls_wet,ijts_wet,taijs=>taijs_loc,tajls=>tajls_loc,itcon_wt
+#endif
 #endif
       USE CLOUDS, only : tm,tmom ! local  (i,j)
      *     ,ntx,ntix              ! global (same for all i,j)
@@ -74,6 +95,11 @@
      *     ,trwml,trsvwml,trprmc,trprss
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,dt_sulf_mc,dt_sulf_ss
+#endif
+#else
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,tm_dust,tmom_dust,trprc_dust
 #endif
 #endif
 #endif
@@ -109,6 +135,11 @@ C    *     ,egcm                       ! not needed
       USE FLUXES, only : prec,eprec,precss,gtemp
 #ifdef TRACERS_WATER
      *     ,trprec
+#else
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,trprec_dust
+#endif
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       use tracer_sources, only : avg_modPT
@@ -125,6 +156,12 @@ C    *     ,egcm                       ! not needed
       REAL*8 tmsave(lm,ntm),tmomsv(nmom,lm,ntm),
      *       dtr_mc(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm),
      *       dtr_ss(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm)
+#ifndef TRACERS_WATER
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      REAL*8 :: dtr_wt(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm)
+#endif
+#endif
       INTEGER NX
 #ifdef TRACERS_SPECIAL_Shindell
 !@var Lfreeze Lowest level where temperature is below freezing (TF)
@@ -243,6 +280,12 @@ CRKF...FIX
      *     AISCCP_part
       REAL*8 :: AISCCPSUM(ntau,npres,nisccp)
       INTEGER :: ii, ivar
+#ifndef TRACERS_WATER
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      INTEGER :: n1,n_fidx
+#endif
+#endif
 
 C**** Initialize
       AJEQIL(:,:,:)=0.
@@ -370,6 +413,12 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
 !$OMP*  Lfreeze,
 #endif
+#ifndef TRACERS_WATER
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+!$OMP*  n1,n_fidx,
+#endif
+#endif
 !$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 !$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT,TSV, WMERR,
@@ -400,6 +449,12 @@ C
 Cred* end Reduced Arrays 2
 #ifdef TRACERS_ON
       dtr_mc(j,:)=0. ; dtr_ss(j,:)=0.
+#ifndef TRACERS_WATER
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      dtr_wt(j,:)=0.D0
+#endif
+#endif
 #endif
       kmax = kmaxj(j)
 C****
@@ -1132,8 +1187,7 @@ C**** TRACERS: Use only the active ones
           trwm(i,j,l,n) = trwml(nx,l)
 #endif
           trm(i,j,l,n) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
-          trmom(:,i,j,l,n) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.
-     *         -fssl(l))
+          trmom(:,i,j,l,n) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.-fssl(l))
 #ifdef TRACERS_AEROSOLS_Koch
           if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
      *         H2O2_s") then
@@ -1176,6 +1230,66 @@ C**** diagnostics
       end do
 #endif
 
+#ifndef TRACERS_WATER
+c     ..........
+c     call simple wet deposition scheme for dust/mineral tracers
+c     ..........
+
+#ifdef TRACERS_DUST
+      n_fidx=n_clay
+#else
+#ifdef TRACERS_MINERALS
+      n_fidx=n_clayilli
+#else
+#ifdef TRACERS_QUARZHEM
+      n_fidx=n_sil1quhe
+#endif
+#endif
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+
+      DO n=1,Ntm_dust
+        n1=n_fidx+n-1
+        DO l=1,Lm
+          tm_dust(l,n)=trm(i,j,l,n1)
+          tmom_dust(:,l,n)=trmom(:,i,j,l,n1)
+        END DO
+      END DO
+
+      CALL dust_wet(i,j)
+
+      DO n=1,Ntm_dust
+        n1=n_fidx+n-1
+        trprec_dust(n,i,j)=0.D0
+        DO l=1,Lm
+          dtr_wt(j,n1)=dtr_wt(j,n1)+tm_dust(l,n)-trm(i,j,l,n1)
+          trm(i,j,l,n1)=tm_dust(l,n)
+          trmom(:,i,j,l,n1)=tmom_dust(:,l,n)
+          trprec_dust(n,i,j)=trprec_dust(n,i,j)+trprc_dust(l,n)
+          tajls(j,l,jls_wet(n1))=tajls(j,l,jls_wet(n1))
+     &         +trprc_dust(l,n)
+          taijs(i,j,ijts_wet(n1))=taijs(i,j,ijts_wet(n1))
+     &         +trprc_dust(l,n)
+        END DO
+      END DO
+
+#endif
+
+#ifdef TRACERS_DUST
+      IF (adiurn_dust == 1) THEN
+        DO n=1,Ntm_dust
+          DO kr=1,Ndiupt
+            IF(i == ijdd(1,kr) .AND. j == ijdd(2,kr)) THEN
+              adiurn(ih,idd_wet,kr)=adiurn(ih,idd_wet,kr)
+     &             +trprec_dust(n,i,j)*bydxyp(j)/Dtsrc
+            END IF
+          END DO
+        END DO
+      END IF
+#endif
+#endif
+
       END DO
 C**** END OF MAIN LOOP FOR INDEX I
 
@@ -1215,8 +1329,14 @@ C
 C**** Save the conservation quantities for tracers
       do nx=1,ntx
         n=ntix(nx)
-        if (itcon_mc(n).gt.0) call diagtcb(dtr_mc(:,nx),itcon_mc(n),n)
-        if (itcon_ss(n).gt.0) call diagtcb(dtr_ss(:,nx),itcon_ss(n),n)
+        if (itcon_mc(n).gt.0) call diagtcb(dtr_mc(1,nx),itcon_mc(n),n)
+        if (itcon_ss(n).gt.0) call diagtcb(dtr_ss(1,nx),itcon_ss(n),n)
+#ifndef TRACERS_WATER
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        if (itcon_wt(n).gt.0) call diagtcb(dtr_wt(1,nx),itcon_wt(n),n)
+#endif
+#endif
       end do
 #endif
 

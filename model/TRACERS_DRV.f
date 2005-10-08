@@ -2583,7 +2583,7 @@ c gravitational settling of ss2
           units_jls(k)=unit_string(jls_power(k),'kg/s')
 #ifndef TRACERS_WATER
         k=k+1
-          jls_3Dsource(nDustWet3Djl,n)=k
+          jls_wet(n)=k
           lname_jls(k)='Loss by wet deposition of '//TRIM(trname(n))
           sname_jls(k)=TRIM(trname(n))//'_wet_depo'
           jls_ltop(k)=Lm
@@ -4543,7 +4543,7 @@ C**** Additional Special IJ diagnostics
 #endif
 #ifndef TRACERS_WATER
       k=k+1
-        ijts_source(nDustWetij,n)=k
+        ijts_wet(n)=k
         lname_ijts(k)='Wet deposition of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_wet_depo'
         ijts_index(k)=n
@@ -5927,6 +5927,14 @@ C**** set some defaults
         qcon(itcon_dd(n,2)) = .true. ; conpts(4) = 'GRAV SET'
         qsum(itcon_dd(n,2)) = .false.
       end if
+#endif
+#ifndef TRACERS_WATER
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      itcon_wt(n)=17
+      qcon(itcon_wt(n)) = .true. ; conpts(5) = 'WET DEP'
+      qsum(itcon_wt(n)) = .false.
+#endif
 #endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
@@ -7665,11 +7673,6 @@ C**** Apply chemistry and stratosphere overwrite changes:
 #endif
       end do
       CALL TIMER (MNOW,MCHEM)
-#endif
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      CALL tracers_dust_old
 #endif
 
       return
