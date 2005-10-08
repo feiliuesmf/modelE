@@ -197,10 +197,12 @@ C**** sea ice melt and iceberg/glacial melt.
 
       USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE FLUXES
+#ifdef TRACERS_ON
       USE tracer_com,ONLY : Ntm
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,Ntm_dust
+#endif
 #endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
