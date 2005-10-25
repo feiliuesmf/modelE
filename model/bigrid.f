@@ -40,8 +40,9 @@ c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib,nzero) REDUCTION(+:nfill)
         if (depth(ib,j).le.0.) nzero=nzero+1
         if (depth(i,ja).le.0.) nzero=nzero+1
         if (depth(i,jb).le.0.) nzero=nzero+1
-        if (nzero.eq.3) then
+        if (nzero.ge.3) then
           write (lp,'(a,i4,a,i4,a)') ' depth(',i,',',j,') set to zero'
+          stop 'pre-process depth'
           depth(i,j)=0.
           nfill=nfill+1
         end if

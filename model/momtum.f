@@ -12,11 +12,12 @@ c
      .     wgtia(idm,jdm),wgtib(idm,jdm),wgtja(idm,jdm),wgtjb(idm,jdm),
      .     dpxy,dpia,dpib,dpja,dpjb,visca,viscb,ptopl,pbotl,cutoff,q,
      .     dt1inv,phi,plo,ubot,vbot,thkbop,thk,thka,thkb,avg,slab,
-     .     olda,oldb
+     .     olda,oldb,botvel,drcoef
       real dl2u(idm,jdm),dl2uja(idm,jdm),dl2ujb(idm,jdm),
      .     dl2v(idm,jdm),dl2via(idm,jdm),dl2vib(idm,jdm)
       integer kan,jcyc
       character text*20
+      data drcoef/.003/
       real kappaf,hfharm
       external kappaf,hfharm
 c
@@ -78,7 +79,7 @@ c
 c --- bottom drag (standard bulk formula)
 c
       thkbop=thkbot*onem
-c$OMP PARALLEL DO PRIVATE(kn,jb,phi,plo,ubot,vbot)
+c$OMP PARALLEL DO PRIVATE(kn,jb,phi,plo,ubot,vbot,botvel)
       do 804 j=1,jj
       jb=mod(j     ,jj)+1
       do 804 l=1,isp(j)
@@ -98,8 +99,9 @@ c
       do 804 i=ifp(j,l),ilp(j,l)
       ubot=ubavg(i,j,n)+ubavg(i+1,j,n)+util1(i,j)/thkbop
       vbot=vbavg(i,j,n)+vbavg(i,jb ,n)+util2(i,j)/thkbop
- 804  drag(i,j)=min(.003*(.25*sqrt(ubot*ubot+vbot*vbot)+cbar)/thkbot,
-     .              1./delt1)				!  units: 1/s
+      botvel=.25*sqrt(ubot*ubot+vbot*vbot)+cbar
+      ustarb(i,j)=sqrt(drcoef)*botvel
+ 804  drag(i,j)=min(drcoef*botvel/thkbot,.5/delt1)              ! units: 1/s
 c$OMP END PARALLEL DO
 c
 c --- store r.h.s. of barotropic u/v eqn. in -ubrhs,vbrhs-
@@ -118,7 +120,7 @@ c
      . *(pvtrop(i,j)+pvtrop(i,jb ))*.125
 c
       stresx(i,j)=(taux(i,j)+taux(i-1,j))*.5
-     .            *g/min(ekman*onem,depthu(i,j))	!  units: m/s^2
+     .            *g/min(ekman*onem,depthu(i,j))        !  units: m/s^2
 c --- reduce stress under ice
 ccc      stresx(i,j)=stresx(i,j)*(1.-.45*(covice(i,j)+covice(i-1,j)))
  69   continue
@@ -131,7 +133,7 @@ c
      . *(pvtrop(i,j)+pvtrop(i+1,j))*.125
 c
       stresy(i,j)=(tauy(i,j)+tauy(i,ja))*.5
-     .            *g/min(ekman*onem,depthv(i,j))	!  units: m/s^2
+     .            *g/min(ekman*onem,depthv(i,j))        !  units: m/s^2
 c --- reduce stress under ice
 ccc      stresy(i,j)=stresy(i,j)*(1.-.45*(covice(i,j)+covice(i,ja )))
  70   continue
@@ -144,7 +146,7 @@ c$OMP PARALLEL DO
       do 814 i=1,ii
       dl2u(i,j)=0.
       dl2v(i,j)=0.
-      vort(i,j)=huge			!  diagnostic use
+      vort(i,j)=huge                        !  diagnostic use
 c --- spatial weighting function for pressure gradient calculation:
       util1(i,j)=0.
  814  util2(i,j)=0.
@@ -851,7 +853,7 @@ c
       do 867 i=ifp(j,l),ilp(j,l)
       pbavg(i,j,n)=pbavg(i,j,m)
       pbavav(i,j)=pbavav(i,j)+pbavg(i,j,m)
-      montav(i,j)=montav(i,j)+montg(i,j,1)
+      sfhtav(i,j)=sfhtav(i,j)+montg(i,j,1)
  867  continue
 c$OMP END PARALLEL DO
 c

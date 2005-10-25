@@ -12,8 +12,8 @@ c --- call this routine if bottom topography has been altered in any way.
 c --- note: removing grid points entirely (by setting their depth to
 c --- zero) should be done elsewhere, i.e., before bigrid is called.
 c
-      if (idm.eq.181 .and. jdm.eq.180)		!  global 2 deg grid
-     .   pbot(166,179)=150.*onem
+ccc      if (idm.eq.181 .and. jdm.eq.180)               !  global 2 deg grid
+ccc     .   pbot(166,179)=150.*onem
 c
 c$OMP PARALLEL DO PRIVATE(factor)
       do 3 j=1,jj
@@ -24,7 +24,7 @@ c
  1    p(i,j,k+1)=p(i,j,k)+dp(i,j,k)
 c
       do 2 i=ifp(j,l),ilp(j,l)
-      pbot(i,j)=max(pbot(i,j),100.*onem)
+      pbot(i,j)=max(pbot(i,j),30.*onem)    ! 30m minimum
       if (abs(p(i,j,kk+1)-pbot(i,j)).gt.onem)
      .  write (lp,'(2i5,a,2f9.1)') i,j,
      .   '  old/new bottom depth:',p(i,j,kk+1)/onem,pbot(i,j)/onem

@@ -10,7 +10,7 @@ c
 #include "common_blocks.h"
 c
       real uvdep,a,b,damp
-      data damp/5.e-6/		!  inverse time scale for coastal wave damping
+      data damp/5.e-6/                !  inverse time scale for coastal wave damping
 c
 c --- function for determining depth at u,v points
       uvdep(a,b)=min(a,b)

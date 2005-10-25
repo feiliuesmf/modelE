@@ -1,6 +1,6 @@
 c-----------------------------------------------------------------------------
       real c1,c2,c3,c4,c5,c6,c7,c8,c9,qttt,qtt,qt,qs,qst,qpt,qpst,qptt
-     .    ,pref,sclkap,qthref,reftem,refsal,refprs
+     .    ,pref,sclkap,reftem,refsal,refprs
 c
 ccc      data c1,c2,c3,c4,c5,c6,c7/
 c --- coefficients for sigma-0 (based on Brydon & Sun fit)
@@ -19,31 +19,35 @@ c    .  3.524143E-06/
      . -2.936529E-03, 3.068372E-05, 3.343679E-05, 1.135806E-04,
      .  3.620535E-06/
 c
-      data pref/2000.e4/					!  SI units
-c --- coefficients for sigma-4 (based on Brydon & Sun fit)
-ccc     .  1.92362E+01,-8.82080E-02, 7.73552E-01,-5.46858E-03,-2.31866E-03,
-ccc     .  2.11306E-05, 2.82474E-05/
-ccc      data pref/4000.e4/					!  SI units
+c --- sub-coefficients for locally referenced sigma
+c --- a fit towards Jackett & McDougall (1995)
+      real, parameter, dimension(7) ::
+     &  alphap = (/ -0.1364705627213484   , 0.04681812123458564,
+     &               0.80700383913187     ,-0.007453530323180844,
+     &              -0.002944183249153631 , 0.00003435702568990446,
+     &               0.0000348657661057688 /)
+     & ,betap  = (/  0.05064226654169138  ,-0.0003571087848996894,
+     &              -0.0000876148051892879, 5.252431910751829e-6,
+     &               1.579762259448864e-6 ,-3.466867400295792e-8,
+     &              -1.687643078774232e-8 /)
+     & ,gammap = (/ -5.526396144304812e-6 , 4.885838128243163e-8,
+     &               9.96026931578033e-9  ,-7.251389796582352e-10,
+     &              -3.987360250058777e-11, 4.006307891935698e-12,
+     &               8.26367520608008e-13 /)
 c
-c --- coefficients for kappa^(theta):
+c --- coefficients for kappa^(theta) (revised Sun et al. 1999):
 c
-      data sclkap/1.e-11/,qthref/1.e3/		      !  SI units
+      data sclkap/1.e-11/                                      !  SI units
       data qttt,qtt,qt,qs,qst,qpt,qpst,qptt,reftem,refsal/
-c --- reference: t= 0.0, s=34.0, p=0 bar
-ccc     . -3.07410328E-05, 4.60243067E-03,-2.90445096E-01,-1.09102601E-01,
-ccc     .  7.95549079E-04, 1.08918830E-09, 1.42421130E-11,-1.31927315E-11,
-ccc     .   0.0, 34.0/
-c --- reference: t= 0.0, s=35.0, p=0 bar
-ccc     . -3.07410328E-05, 4.60243067E-03,-2.89649547E-01,-1.09102601E-01,
-ccc     .  7.95549079E-04, 1.10343041E-09, 1.42421130E-11,-1.31927315E-11,
-ccc     .   0.0, 35.0/
-c --- reference: t= 3.0, s=35.0, p=0 bar
-     . -3.07410328E-05, 4.32576137E-03,-2.62884494E-01,-1.05540980E-01,
-     .  7.76025039E-04, 1.02498399E-09, 1.49520781E-11,-1.31927314E-11,
-     .   3.0, 35.0/
+c --- reference: t= 1.0, s=34.0, p=0 bar,kap(4.5,34.5,1.e7)=  0.09265729
+     . -3.03869352E-05, 4.47509519E-03,-2.80147157E-01,-1.07490547E-01,
+     .  7.82551293E-04, 1.04449450E-09, 1.44433359E-11,-1.31383707E-11,
+     .   1.0, 34.0/
 c
 c> Revision history:
 c>
 c> Mar. 1999 - made thermobaric coefficients conform to Brydon & Sun
 c> Nov. 2002 - updated thermobaric coefficients
+c> May  2003 - further expansion of thermobaric options
+c> July 2005 - added coeeficients for in-situ density (alphap,betap,gammap)
 c-----------------------------------------------------------------------------

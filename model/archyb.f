@@ -12,13 +12,15 @@ c
 #include "common_blocks.h"
 #include "cpl.h"
 c
-      integer no,nop,length
+      integer no,nop,length,nt
       real factor,vol,tts2,temavg,sst
      .    ,icearea,icevol,icearean,icevoln,iceareas,icevols
-      character flnm*20,intvl*5
+      character flnm*40,intvl*5
+      character what*12
       real*4 real4(idm,jdm)
      .   ,time4,watcum4,empcum4,thref4,thbase4,theta4(kdm)
       integer*4 length4,idm4,jdm4,kdm4,nstep4
+      integer*4 irecl ! specific record lenth, processor dependent
 c
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 c --- check if ogcm date matches agcm date
@@ -31,14 +33,16 @@ c
       write(flnm,'(a3,i4.4,2a)') amon,Jyear,'.out',xlabel(1:lrunid)
 c
       write (lp,*) 'shown below: sea surface height'
-      call zebra(util1,idm,ii1,jj)
+      call zebra(srfhgt,idm,ii1,jj)
       write (lp,*) 'shown below: sea surface temperature'
       call zebra(temp(1,1,1+nn),idm,ii1,jj)
 c
       write (intvl,'(i4.4,a)') jdate,' ' 
       nop=13
-      no=4096
-      length=((idm*jdm+no+15)/no)*no           ! f90 on compac for real*4
+      no=4096 
+      inquire (iolength=irecl)  real4(1,1) ! length of an unformatted real*4  
+                                           ! irecl=1 on COMPAQ, irecl=4 on SGI
+      length=irecl*((idm*jdm+no+15)/no)*no   
 c
       write (lp,'(a/9x,a)') 'storing history data in',flnm
 c
@@ -60,48 +64,58 @@ c
 c
       no=no+1
       call r8tor4(ubavg(1,1,n),real4)
-      write (nop,rec=no) 'ubavg       ',1,real4
+      write (nop,rec=no) 'ubavg       ',0,real4
+      write (lp,100)     'ubavg       ',0,no
       no=no+1
       call r8tor4(vbavg(1,1,n),real4)
-      write (nop,rec=no) 'vbavg       ',1,real4
-ccc   no=no+1
-ccc   call r8tor4(pbavg(1,1,n),real4)
-ccc   write (nop,rec=no) 'pbavg       ',1,real4
+      write (nop,rec=no) 'vbavg       ',0,real4
+      write (lp,100)     'vbavg       ',0,no
       no=no+1
-      call r8tor4(util1,real4)
-      write (nop,rec=no) 'srfht       ',1,real4
+      call r8tor4(srfhgt,real4)
+      write (nop,rec=no) 'srfhgt      ',0,real4
+      write (lp,100)     'srfhgt      ',0,no
       no=no+1
-c
       call r8tor4(dpmixl(1,1),real4)
-c
-      write (nop,rec=no) 'mix_dpth(m) ',1,real4
+      write (nop,rec=no) 'mix_dpth    ',0,real4
+      write (lp,100)     'mix_dpth    ',0,no
       no=no+1
       call r8tor4(oice,real4)
-      write (nop,rec=no) 'icecover(%) ',1,real4
+      write (nop,rec=no) 'icecover(%) ',0,real4
+      write (lp,100)     'iceconver(%)',0,no
 c
       do 75 k=1,kk
       kn=k+nn
       no=no+1
       call r8tor4(u(1,1,kn),real4)
       write (nop,rec=no) 'u           ',k,real4
+      write (lp,100)     'u           ',k,no
       no=no+1
       call r8tor4(v(1,1,kn),real4)
       write (nop,rec=no) 'v           ',k,real4
+      write (lp,100)     'v           ',k,no
       no=no+1
       call r8tor4(dp(1,1,kn),real4)
       write (nop,rec=no) 'dp          ',k,real4
+      write (lp,100)     'dp          ',k,no
       no=no+1
       call r8tor4(temp(1,1,kn),real4)
       write (nop,rec=no) 'temp        ',k,real4
+      write (lp,100)     'temp        ',k,no
       no=no+1
       call r8tor4(saln(1,1,kn),real4)
       write (nop,rec=no) 'saln        ',k,real4
+      write (lp,100)     'saln        ',k,no
       no=no+1
       call r8tor4(th3d(1,1,kn),real4)
       write (nop,rec=no) 'th3d        ',k,real4
-      no=no+1
-      call r8tor4(tracer(1,1,k),real4)
-      write (nop,rec=no) 'tracer      ',k,real4
+      write (lp,100)     'th3d        ',k,no
+      do nt=1,ntrcr
+        no=no+1
+        call r8tor4(tracer(1,1,k,nt),real4)
+        write (what,'(a7,i2)') 'tracer ',nt
+        write (nop,rec=no) what,k,real4
+        write (lp,100)     what,k,no
+      end do
  75   continue
 c
 c --- output time-averaged fields
@@ -151,12 +165,15 @@ c
       no=no+1
       call r8tor4(uflxav(1,1,k),real4)
       write (nop,rec=no) 'uflxav_'//intvl,k,real4
+      write (lp,100)     'uflxav_'//intvl,k,no
       no=no+1
       call r8tor4(vflxav(1,1,k),real4)
       write (nop,rec=no) 'vflxav_'//intvl,k,real4
+      write (lp,100)     'vflxav_'//intvl,k,no
       no=no+1
       call r8tor4(diaflx(1,1,k),real4)
       write (nop,rec=no) 'diaflx_'//intvl,k,real4
+      write (lp,100)     'diaflx_'//intvl,k,no
  58   continue
 c
 c$OMP PARALLEL DO
@@ -170,63 +187,85 @@ c$OMP PARALLEL DO
       do 56 l=1,isp(j)
       do 56 i=ifp(j,l),ilp(j,l)
       pbavav(i,j)=pbavav(i,j)*factor
- 56   montav(i,j)=montav(i,j)*factor+thref*pbavav(i,j)
+      sfhtav(i,j)=sfhtav(i,j)*factor+thref*pbavav(i,j)
+      dpmxav(i,j)=dpmxav(i,j)*factor
+ 56   oiceav(i,j)=oiceav(i,j)*factor
 c$OMP END PARALLEL DO
 c
       write (lp,'(3a)') 'shown below: ',intvl,'- day SSH average'
-      call zebra(montav,idm,ii1,jj)
+      call zebra(sfhtav,idm,ii1,jj)
       write (lp,'(3a)') 'shown below: ',intvl,'- day SST average'
       call zebra(temav,idm,ii1,jj)
 c
       no=no+1
       call r8tor4(ubavav,real4)
-      write (nop,rec=no) 'ubavav_'//intvl,1,real4
+      write (nop,rec=no) 'ubavav_'//intvl,0,real4
+      write (lp,100)     'ubavav_'//intvl,0,no
       no=no+1
       call r8tor4(vbavav,real4)
-      write (nop,rec=no) 'vbavav_'//intvl,1,real4
-ccc   no=no+1
-ccc   call r8tor4(pbavav,real4)
-ccc   write (nop,rec=no) 'pbavav_'//intvl,1,real4
+      write (nop,rec=no) 'vbavav_'//intvl,0,real4
+      write (lp,100)     'vbavav_'//intvl,0,no
       no=no+1
-      call r8tor4(montav,real4)
-      write (nop,rec=no) 'sfhtav_'//intvl,1,real4
+      call r8tor4(sfhtav,real4)
+      write (nop,rec=no) 'sfhtav_'//intvl,0,real4
+      write (lp,100)     'sfhtav_'//intvl,0,no
+      no=no+1
+      call r8tor4(dpmxav,real4)
+      write (nop,rec=no) 'dpmxav_'//intvl,0,real4
+      write (lp,100)     'dpmxav_'//intvl,0,no
+      no=no+1
+      call r8tor4(oiceav,real4)
+      write (nop,rec=no) 'oiceav_'//intvl,1,real4
+      write (lp,100)     'oiceav_'//intvl,0,no
 c
       do 57 k=1,kk
       no=no+1
       call r8tor4(uav(1,1,k),real4)
       write (nop,rec=no) '   uav_'//intvl,k,real4
+      write (lp,100)     '   uav_'//intvl,k,no
       no=no+1
       call r8tor4(vav(1,1,k),real4)
       write (nop,rec=no) '   vav_'//intvl,k,real4
+      write (lp,100)     '   vav_'//intvl,k,no
       no=no+1
       call r8tor4(dpav(1,1,k),real4)
       write (nop,rec=no) '  dpav_'//intvl,k,real4
+      write (lp,100)     '  dpav_'//intvl,k,no
       no=no+1
       call r8tor4(temav(1,1,k),real4)
       write (nop,rec=no) ' temav_'//intvl,k,real4
+      write (lp,100)     ' temav_'//intvl,k,no
       no=no+1
       call r8tor4(salav(1,1,k),real4)
       write (nop,rec=no) ' salav_'//intvl,k,real4
+      write (lp,100)     ' salav_'//intvl,k,no
       no=no+1
       call r8tor4(th3av(1,1,k),real4)
       write (nop,rec=no) 'th3dav_'//intvl,k,real4
+      write (lp,100)     'th3dav_'//intvl,k,no
  57   continue
 c
 c --- time-averaged surface fluxes:
       no=no+1
       call r8tor4(eminpav,real4)
-      write (nop,rec=no) 'eminpav'//intvl,1,real4
+      write (nop,rec=no) 'eminpav'//intvl,0,real4
+      write (lp,100)     'eminpav'//intvl,0,no
       no=no+1
       call r8tor4(surflav,real4)
-      write (nop,rec=no) 'surflav'//intvl,1,real4
+      write (nop,rec=no) 'surflav'//intvl,0,real4
+      write (lp,100)     'surflav'//intvl,0,no
       no=no+1
       call r8tor4(tauxav,real4)
-      write (nop,rec=no) ' tauxav'//intvl,1,real4
+      write (nop,rec=no) ' tauxav'//intvl,0,real4
+      write (lp,100)     ' tauxav'//intvl,0,no
       no=no+1
       call r8tor4(tauyav,real4)
-      write (nop,rec=no) ' tauyav'//intvl,1,real4
+      write (nop,rec=no) ' tauyav'//intvl,0,real4
+      write (lp,100)     ' tauyav'//intvl,0,no
 c
       close (unit=nop)
+ 100  format (9x,a,' (layer',i3,') archived as record',i5)
+      write (lp,*) no,' records archived'
 c
 c$OMP PARALLEL DO
       do 60 j=1,jj
@@ -240,7 +279,9 @@ c
       ubavav(i,j)=0.
       vbavav(i,j)=0.
       pbavav(i,j)=0.
- 601  montav(i,j)=0.
+      dpmxav(i,j)=0.
+      sfhtav(i,j)=0.
+ 601  oiceav(i,j)=0.
 c
       do 60 k=1,kk
       do 602 i=1,ii
@@ -283,3 +324,5 @@ c
 c> Revision history:
 c>
 c> June 2001 - corrected sign error in diaflx
+c> Feb. 2005 - added multiple tracer capability
+c> June 2005 - reordered output fields, added time-av'ged mxlyr & ice temp/th

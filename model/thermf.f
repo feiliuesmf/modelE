@@ -17,7 +17,7 @@ c
       real qsatur,totl,eptt,salrlx
       external qsatur
       data ktop/3/
-ccc      data ktop/2/			!  normally set to 3
+ccc      data ktop/2/                        !  normally set to 3
 css   data salrlx/0.3215e-7/          !  1/(1 yr)
       data salrlx/0.6430e-8/          !  1/(5 yr)
 c
@@ -55,7 +55,7 @@ c$OMP PARALLEL DO PRIVATE(kn)
       kn=k+nn
       do 66 l=1,isp(j)
       do 66 i=ifp(j,l),ilp(j,l)
-      if (glue(i,j).gt.1. .and. saln(i,j,kn).gt.40.)		!  Med fudge
+      if (glue(i,j).gt.1. .and. saln(i,j,kn).gt.40.)                !  Med fudge
      .  saln(i,j,kn)=saln(i,j,kn)+(40.-saln(i,j,kn))*baclin*3.e-8
  66   p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
 c$OMP END PARALLEL DO
@@ -100,7 +100,7 @@ c
 cdiag if (i.eq.itest.and.j.eq.jtest) write (lp,100) nstep,i,j,
 cdiag.  '   taux      tauy      surflx      emnp       oice    ustar',
 cdiag. taux(i,j),tauy(i,j),surflx(i,j),emnp(i,j),oice(i,j),ustar(i,j)
- 100    format(i9,2i5,a/18x,1p7e10.3/19x,a/18x,5e10.3)
+ 100    format(i9,2i5,a/18x,1p,7e10.3/19x,a/18x,5e10.3)
 c
       watcol(j)=watcol(j)+surflx(i,j)*scp2(i,j)
       empcol(j)=empcol(j)+emnp(i,j)*scp2(i,j)
@@ -137,15 +137,15 @@ c
       write (lp,'(9x,''resulting saln drift from e-p (psu/century):''
      .                                                     ,f9.3)')
      .  -empcum*35./(avgbot*area*(nstep-nstep0)) *36500.*86400.
-      write (lp,'(i9,''salt residual (kg/year)'',3f9.2)') nstep,
-     .  slfcum*365.*86400.*g*1.e-3/onem
+css   write (lp,'(i9,''salt residual (T/year)'',3f9.2)') nstep,
+css  .  slfcum*365.*86400.*g/onem
       write (lp,'(9x,''resulting saln drift from sflx (psu/century):''
      .                                                     ,f9.3)')
      .  slfcum*36500.*86400.*g/(avgbot*area*onem)
       write (lp,'(i9,a,3f9.3)') nstep,' mean surf. sig,temp,saln:',
      .    rmean/area+thbase,tmean/area,smean/area
 c
-      end if				!  diagno = .true.
+      end if                                !  diagno = .true.
 c
       if (nstep.eq.nstep0+1 .or. diagno) then
       rmean=0.
@@ -168,7 +168,7 @@ c$OMP+ REDUCTION(+:rmean,smean,tmean,vmean)
 c$OMP END PARALLEL DO
       write (lp,'(i9,a,3f9.3)') nstep,' mean basin sig,temp,saln:',
      .    rmean/vmean+thbase,tmean/vmean,smean/vmean
-      end if				!  diagno = .true.
+      end if                                !  diagno = .true.
 c
       return
       end

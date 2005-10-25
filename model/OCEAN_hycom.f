@@ -86,16 +86,16 @@ css  *   LMO,'):M,U,V,G0,GX,GY,GZ,S0,SX,SY,SZ, OGZ,OGZSV'
 c
       write(*,'(a,i9,f9.0)')'chk ocean write at nstep/day=',nstep,time
       write (MODULE_HEADER(lhead+1:80),'(a,i8,f8.1,a)')
-     . ' 181x180',nstep,time,' u,v,dp,t,s,th,ub,vb,pb,pb,psi,thk'
+     . 'u,v,dp,t,s,th,tb,ub,vb,pb,pb,psi,thk,mxl,uf,vf,df,tcr3+o18+a8'
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
 css     WRITE (kunit,err=10) MODULE_HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO
 css  *     ,S0M,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
         WRITE (kunit,err=10) MODULE_HEADER,nstep,time
      . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk
-     . ,thkk,uflxav,vflxav,diaflx
+     . ,thkk,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
-     . ,pbavav,montav,eminpav,surflav,tauxav,tauyav
+     . ,pbavav,sfhtav,eminpav,surflav,tauxav,tauyav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
 #ifdef TRACERS_OCEAN
        WRITE (kunit,err=10) TRMODULE_HEADER,tracer
@@ -109,9 +109,9 @@ css         READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
 css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
             READ (kunit,err=10) HEADER,nstep0,time0
      . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk
-     . ,thkk,uflxav,vflxav,diaflx
+     . ,thkk,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
-     . ,pbavav,montav,eminpav,surflav,tauxav,tauyav
+     . ,pbavav,sfhtav,eminpav,surflav,tauxav,tauyav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
       write(*,'(a,i9,f9.0)')'chk ocean read at nstep/day=',nstep0,time0
             nstep=nstep0
@@ -134,9 +134,9 @@ css         READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
 css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
             READ (kunit,err=10) HEADER,nstep0,time0
      . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk
-     . ,thkk,uflxav,vflxav,diaflx
+     . ,thkk,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
-     . ,pbavav,montav,eminpav,surflav,tauxav,tauyav
+     . ,pbavav,sfhtav,eminpav,surflav,tauxav,tauyav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
       write(*,'(a,i9,f9.0)')'chk ocean read at nstep/day=',nstep0,time0
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN

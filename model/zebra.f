@@ -14,24 +14,64 @@ c
 c --- ii  may be smaller than  idim, the first (row) dimension of 'array'
 c --- in the calling program. thus, plotting of partial arrays is possible.
 c
+      implicit none
+      integer lgth,idim,ii,jj,i,j
+      parameter (lgth=1600)
+      integer lp,imn,imx,jmn,jmx,
+     .        imnj(lgth),imxj(lgth),jmnj(lgth),jmxj(lgth)
+      real sqrt2,contur,q,ratio,amn,amx,amnj(lgth),amxj(lgth)
       common/linepr/lp
-c
       real array(idim,jj)
       data sqrt2/1.414/
 c
-      amx=-1.e25
-      amn= 1.e25
-      do 1 j=1,jj
-      do 1 i=1,ii
-      amx=max(amx,array(i,j))
- 1    amn=min(amn,array(i,j))
+      write (lp,'(a,3i6)') 'ZEBRA call with arguments',idim,ii,jj
+      if (jj.gt.lgth) stop '(insuff. workspace in zebra: increase lgth)'
 c
-      if (amx.gt.amn) go to 2
+c$OMP PARALLEL DO
+      do 1 j=1,jj
+      amxj(j)=-1.e33
+      amnj(j)= 1.e33
+      imnj(j)=-1
+      imxj(j)=-1
+      do 1 i=1,ii
+      if (amxj(j).lt.array(i,j)) then
+        amxj(j)=array(i,j)
+        imxj(j)=i
+        jmxj(j)=j
+      end if
+      if (amnj(j).gt.array(i,j)) then
+        amnj(j)=array(i,j)
+        imnj(j)=i
+        jmnj(j)=j
+      end if
+ 1    continue
+c$OMP END PARALLEL DO
+c
+      amx=-1.e33
+      amn= 1.e33
+      imn=-1
+      imx=-1
+      jmn=-1
+      jmx=-1
+      do 2 j=1,jj
+      if (amx.lt.amxj(j)) then
+        amx=amxj(j)
+        imx=imxj(j)
+        jmx=jmxj(j)
+      end if
+      if (amn.gt.amnj(j)) then
+        amn=amnj(j)
+        imn=imnj(j)
+        jmn=jmnj(j)
+      end if
+ 2    continue
+c
+      if (amx.gt.amn) go to 3
       write (lp,100) array(1,1)
  100  format (//' field to be contoured is constant ...',1pe15.5/)
       return
 c
- 2    contur=(amx-amn)/6.
+ 3    contur=(amx-amn)/6.
       q=10.**int(log10(contur))
       if (contur.lt.1.) q=q/10.
       ratio=contur/q
@@ -39,9 +79,9 @@ c
       if (ratio.le.sqrt2*5.)  contur=q*5.
       if (ratio.le.sqrt2*2.)  contur=q*2.
       if (ratio.le.sqrt2)     contur=q
-      write (lp,101) contur,amn,amx
- 101  format (' contour interval in plot below is',1pe9.1,
-     .        6x,'min/max =',2e11.3/)
+      write (lp,101) contur,amn,imn,jmn,amx,imx,jmx
+ 101  format ('contour interval in plot below is',1pe9.1,
+     . 6x,'min =',e11.3,'  at',2i5/48x,'max =',e11.3,'  at',2i5)
       call digplt(array,idim,ii,jj,contur)
 c
       return

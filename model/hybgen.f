@@ -1,7 +1,8 @@
       subroutine hybgen(m,n,mm,nn,k1m,k1n)
 c
-c --- hycom version 0.9.10
+c --- hycom version 0.9.12
 c --- this version allows switching between T/S and rho/S conservation
+c --- and between pcm and ppm
 c
       implicit none
 c
@@ -16,129 +17,32 @@ c
       real sigref,delp,dp0,dp0abv,dpsum,zinteg,tinteg,sinteg,uvintg,
      .     uvscl,siga,sigb,za,zb,phi,plo,pa,pb,dsgdt,dsgds,scalt,scals,
      .     tup,sup,tem,sal,thhat,s_hat,t_hat,p_hat,q,q1,q2,slak,
-     .     torho,totem,tosal,tndcyr,tndcyt,tndcys,displ(kdm+1)
+     .     torho,totem,tosal,totrc,totuv,tndrho,tndtem,tndsal,tndtrc,
+     .     tdcyuv,scale,displ(kdm+1)
       real targt(kdm+1),dens(kdm),ttem(kdm),ssal(kdm),pres(kdm+1),
      .     uold(kdm),vold(kdm),pold(kdm+1),pnew(kdm+1),dplist(kdm),
-     .     trac(kdm),trcint
-      logical abort,tscnsv,vrbos
-      data tscnsv/.true./		! if true, go with T/S conservation
+     .     trac(kdm,ntrcr)
+      logical abort,tscnsv,vrbos,useppm
+      data tscnsv/.true./          ! if true, go with T/S conservation
       data abort/.false./
+      data useppm/.true./
       real sigocn,tofsig,dsigdt,dsigds,cushn
       external sigocn,tofsig,dsigdt,dsigds,cushn
-      integer lyr,k1,kp,iunit,lpunit,ko,khyb
+      integer lyr,k1,kp,iunit,lpunit,ko,nt
      .        ,ntot2,ntot3,nwrk2,nwrk3
      .        ,ntot2d(jdm),ntot3d(jdm),nwrk2d(jdm),nwrk3d(jdm)
       common/nmpipe/iunit,lpunit
-      character text*20
-      data uvscl/0.02/			!  2 cm/s
+      character info*16
+      data uvscl/0.02/                  !  2 cm/s
       data scalt,scals/30.,10./
-      parameter (slak=.5/86400.)	! intfc nudging time scale: 2 days
-ccc   parameter (slak=1./86400.)	! intfc nudging time scale: 1 day
-ccc   parameter (slak=1.e6)		! intfc nudging time scale: 1 microsec
+      parameter (slak=.5/86400.)        ! intfc nudging time scale: 2 days
+ccc   parameter (slak=1./86400.)        ! intfc nudging time scale: 1 day
+ccc   parameter (slak=1.e6)             ! intfc nudging time scale: 1 microsec
 c
       data (dplist(k),k=1,kdm)/
- 
-     .   20.0, 5.0, 7.6, 9.8,11.6,13.0,14.0,14.6,
-     .   14.9,15.0,15.0,15.0,15.0,15.0,15.0,15.0/
-
-ccc     .    5.0, 8.8,12.2,15.2,17.8,20.0,21.9,23.6,
-ccc     .   25.1,26.4,27.5,28.4,29.1,29.6,29.9,30.0/	!  350.5
-
-ccc     .    5.0, 8.8,12.3,15.5,18.4,21.0,23.3,25.3,
-ccc     .   27.0,28.4,29.5,30.4,31.1,31.6,31.9,32.0/	!  371.5
-
-ccc     .    5.0, 8.9,12.5,15.8,18.8,21.5,23.9,26.0,
-ccc     .   27.8,29.3,30.5,31.4,32.1,32.6,32.9,33.0/	!  382.0
-
-ccc     .    5.0, 9.3,13.2,16.7,19.8,22.5,24.9,27.0,
-ccc     .   28.8,30.3,31.5,32.4,33.1,33.6,33.9,34.0/	!  396.0
-
-ccc     .    5.0, 9.6,13.8,17.6,21.0,24.0,26.6,28.8,
-ccc     .   30.6,32.0,33.1,33.9,34.4,34.7,34.9,35.0/	!  415.0
-
-ccc     .    5.0, 9.6,13.8,17.6,21.0,24.0,26.6,28.8,
-ccc     .   30.7,32.3,33.6,34.6,35.3,35.7,35.9,36.0/	!  420.5
-
-ccc     .    5.0,10.0,14.6,18.8,22.6,26.0,29.0,31.6,
-ccc     .   33.8,35.6,37.0,38.0,38.6,38.9,39.0,39.0/    !  457.5
-
-ccc     .   20.0, 5.0, 7.6, 9.8,11.6,13.0,14.0,14.6,14.9,15.0,
-ccc     .   15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0/	!  275.5 total
-
-ccc     .   20.0, 5.0, 8.1,10.9,13.5,15.9,18.1,20.1,21.9,23.5,
-ccc     .   24.9,26.1,27.1,27.9,28.5,29.0,29.4,29.7,29.9,30.0/  !  439.5
-
-ccc     .    5.0, 8.3,11.2,13.8,16.2,18.4,20.4,22.2,23.8,25.2,
-ccc     .   26.4,27.4,28.2,28.9,29.5,30.0,30.4,30.7,30.9,31.0/  !  457.9
-
-ccc     .    5.0, 8.5,11.6,14.4,17.0,19.4,21.6,23.6,25.4,27.0,
-ccc     .   28.4,29.6,30.6,31.4,32.0,32.4,32.7,32.9,33.0,33.0/  !  489.5
-
-ccc     .    5.0, 8.6,11.9,14.9,17.7,20.3,22.7,24.9,26.9,28.7,
-ccc     .   30.3,31.7,32.9,33.9,34.7,35.3,35.7,35.9,36.0,36.0/  !  524.0
-
-ccc     .    5.0, 8.8,12.3,15.5,18.4,21.0,23.4,25.6,27.6,29.4,
-ccc     .   31.0,32.4,33.6,34.6,35.4,36.0,36.4,36.7,36.9,37.0/  !  537.0
-
-ccc     .    5.0, 8.8,12.3,15.5,18.4,21.1,23.6,25.9,28.0,29.9,
-ccc     .   31.6,33.1,34.4,35.5,36.4,37.1,37.6,37.9,38.0,38.0/  !  548.1
-
-ccc     .    5.0, 9.0,12.6,15.9,18.9,21.7,24.3,26.7,28.9,30.9,
-ccc     .   32.7,34.3,35.7,36.9,37.9,38.7,39.3,39.7,39.9,40.0/  !  569.0
-
-ccc     .    5.0, 9.2,13.0,16.4,19.5,22.4,25.1,27.6,29.9,32.0,
-ccc     .   33.9,35.6,37.1,38.4,39.5,40.4,41.1,41.6,41.9,42.0/  !  591.6
-
-ccc     .    5.0, 9.5,13.6,17.4,20.9,24.1,27.0,29.6,31.9,33.9,
-ccc     .   35.7,37.3,38.7,39.9,40.9,41.7,42.3,42.7,42.9,43.0/  !  618.0
-
-ccc     .    5.0, 9.5,13.6,17.4,20.9,24.1,27.0,29.6,31.9,34.0,
-ccc     .   35.9,37.6,39.1,40.4,41.5,42.4,43.1,43.6,43.9,44.0/  !  624.5
-
-ccc     .    5.0, 9.7,14.0,17.9,21.5,24.8,27.8,30.5,32.9,35.0,
-ccc     .   36.9,38.6,40.1,41.4,42.5,43.4,44.1,44.6,44.9,45.0/  !  640.6
-
-ccc     .    5.0, 9.8,14.2,18.3,22.1,25.6,28.8,31.7,34.3,36.6,
-ccc     .   38.6,40.3,41.7,42.9,43.9,44.7,45.3,45.7,45.9,46.0/  !  661.4
-
-ccc     .    5.0,10.0,14.6,18.8,22.7,26.3,29.6,32.6,35.3,37.7,
-ccc     .   39.8,41.6,43.1,44.3,45.2,45.9,46.4,46.7,46.9,47.0/  !  679.5
-
-ccc     .    5.0,10.0,14.6,18.9,22.9,26.6,30.0,33.1,35.9,38.4,
-ccc     .   40.6,42.5,44.1,45.4,46.4,47.1,47.6,47.9,48.0,48.0/  !  693.0
-
-ccc     .    5.0,10.0,14.6,18.9,22.9,26.6,30.0,33.1,35.9,38.4,
-ccc     .   40.6,42.5,44.1,45.4,46.5,47.4,48.1,48.6,48.9,49.0/  !  696.5
-
-ccc     .    5.0,10.1,14.9,19.4,23.6,27.5,31.1,34.4,37.4,40.1,
-ccc     .   42.5,44.6,46.4,47.9,49.1,50.0,50.6,50.9,51.0,51.0/  !  727.5
-
-ccc     .    5.0,10.3,15.2,19.8,24.1,28.1,31.8,35.2,38.3,41.1,
-ccc     .   43.6,45.8,47.7,49.3,50.6,51.6,52.3,52.7,52.9,53.0/  !  748.4
-
-ccc     .    5.0,11.0,16.6,21.8,26.6,31.0,35.0,38.6,41.8,44.6,
-ccc     .   47.0,49.0,50.6,51.8,52.7,53.3,53.7,53.9,54.0,54.0/  !  792.0
-
-ccc     .    5.0,11.0,16.6,21.8,26.6,31.0,35.0,38.6,41.8,44.6,
-ccc     .   47.0,49.0,50.6,51.9,52.9,53.7,54.3,54.7,54.9,55.0/  !  796.0
-
-ccc     .    5.0,11.2,17.0,22.4,27.4,32.0,36.2,40.0,43.4,46.4,
-ccc     .   49.0,51.2,53.0,54.4,55.4,56.1,56.6,56.9,57.0,57.0/  !  827.6
-
-ccc     .    5.0,11.2,17.0,22.4,27.4,32.0,36.2,40.0,43.4,46.4,
-ccc     .   49.0,51.2,53.0,54.4,55.5,56.4,57.1,57.6,57.9,58.0/  !  831.1
-
-ccc     .    5.0,11.2,17.0,22.4,27.4,32.0,36.2,40.0,43.4,46.4,
-ccc     .   49.1,51.5,53.6,55.4,56.9,58.1,59.0,59.6,59.9,60.0/  !  844.1
-
-ccc     .    5.0,11.5,17.6,23.3,28.6,33.5,38.0,42.1,45.8,49.1,
-ccc     .   52.0,54.5,56.6,58.3,59.6,60.6,61.3,61.7,61.9,62.0/  !  883.0
-
-ccc     .    5.0,11.5,17.6,23.3,28.6,33.5,38.0,42.1,45.8,49.1,
-ccc     .   52.0,54.5,56.6,58.4,59.9,61.1,62.0,62.6,62.9,63.0/  !  887.5
-
-ccc     .    5.0,12.0,18.6,24.8,30.6,36.0,41.0,45.6,49.8,53.6,
-ccc     .   57.0,60.0,62.6,64.8,66.6,68.0,69.0,69.6,69.9,70.0/  !  974.5
+     .    5.0, 5.0, 7.6, 9.8,11.6,13.0,14.0,14.6,
+     .   14.9,15.0,15.0,15.0,15.0,15.0,15.0,15.0,
+     .   15.0,15.0,15.0,15.0/
 c
       sigref=1000.*thref
 c
@@ -166,10 +70,10 @@ c$OMP END PARALLEL DO
 c
       abort=.false.
 c$OMP PARALLEL DO PRIVATE(torho,totem,tosal,kp,q,q1,q2,tem,sal,dsgdt,
-c$OMP+ dsgds,t_hat,s_hat,thhat,tup,sup,p_hat,tndcyr,tndcyt,tndcys,kn,
+c$OMP+ dsgds,t_hat,s_hat,thhat,tup,sup,p_hat,tndrho,tndtem,tndsal,kn,
 c$OMP+ dens,ttem,ssal,pres,targt,dp0,dp0abv,dpsum,k1,tinteg,sinteg,phi,
-c$OMP+ plo,pa,pb,ntot2,ntot3,nwrk2,nwrk3,trac,trcint,displ,vrbos,khyb)
-c$OMP+ SHARED(abort)
+c$OMP+ plo,pa,pb,ntot2,ntot3,nwrk2,nwrk3,trac,vrbos,pold,pnew,info,
+c$OMP+ displ,totrc,tndtrc,scale) SHARED(abort)
       do 12 j=1,jj
       ntot2=0
       ntot3=0
@@ -187,6 +91,7 @@ c
       dens(k)=th3d(i,j,kn)
       ttem(k)=temp(i,j,kn)
       ssal(k)=saln(i,j,kn)
+      if (dotrcr) trac(k,:)=tracer(i,j,k,:)
       pres(k+1)=pres(k)+dp(i,j,kn)
  3    targt(k)=theta(k)
 c
@@ -221,18 +126,14 @@ c
         kp=k
       else
 c
-c --- fill massless layers on sea floor with data from above
-c
-        if (vrbos)
-     .    write (lp,'(i9,2i5,a,i3,a,i3/(10f8.4))') nstep,i,j,
-     .    '  absorb layer',k,' in',kp,(pres(k1+1)-pres(k1),k1=kp+1,kk)
+c --- absorb near-massless layers on sea floor in layer above
 c
         q1=max(epsil,pres(k  )-pres(kp))
         q2=max(   0.,pres(k+1)-pres(k ))
         q=q1/(q1+q2)
         if (q.lt.0. .or. q.gt.1.) then
           write (lp,*) 'i,j,q1,q2,q=',i,j,q1,q2,q
-          abort=.true.
+ccc          abort=.true.
         end if
         ttem(kp)=ttem(kp)*q+ttem(k)*(1.-q)
         ssal(kp)=ssal(kp)*q+ssal(k)*(1.-q)
@@ -240,14 +141,22 @@ c
         ttem(k)=ttem(kp)
         ssal(k)=max(ssal(kp),salmin(k))
         dens(k)=dens(kp)
+        if (dotrcr) then
+          trac(kp,:)=trac(kp,:)*q+trac(k,:)*(1.-q)
+          trac(k,:)=trac(kp,:)
+        end if
+c
+        if (vrbos)
+     .   write (lp,'(i9,2i5,a,i3,a,i3,5x,a,f8.3)') nstep,i,j,
+     .    '  absorb layer',k,' in',kp,'new rho:',dens(kp)+thbase
       end if
  4    continue
 c
       do 11 k=kp+1,kk
  11   pres(k)=pres(kk+1)
 c
-      do 16 k=1,kk
- 16   dpold(i,j,k)=pres(k+1)-pres(k)
+      do 23 k=1,kk
+ 23   dpold(i,j,k)=pres(k+1)-pres(k)
 c
       do 10 k=3,kk
 c
@@ -311,7 +220,7 @@ c --- combine upper sublayer with layer k-1
           if (q.lt.0. .or. q.gt.1.) then
             write (lp,*) 'i,j,k,p_hat,pres(k),q=',
      .                    i,j,k,p_hat,pres(k),q
-            abort=.true.
+ccc            abort=.true.
           end if
           ssal(k-1)=sup    *q+ssal(k-1)*(1.-q)
           if (tscnsv) then
@@ -320,6 +229,7 @@ c --- combine upper sublayer with layer k-1
           else
             ttem(k-1)=tofsig(dens(k-1)+thbase,ssal(k-1))
           end if
+          if (dotrcr) trac(k-1,:)=trac(k,:)*q+trac(k-1,:)*(1.-q)
 c
           if (vrbos)
      .    write (lp,'(22x,a,2f7.3,0p,f8.2)') '  old/new th(k-1):',
@@ -335,9 +245,11 @@ c
  10   continue
       ntot2=ntot2+1
 c
+      do 29 k=1,kk+1
+ 29   pold(k)=pres(k)
+c
 c --- try to restore isopycnic conditions by moving layer interfaces
 c
-      khyb=kk
       dpsum=0.
       do 8 k=1,kk
       ntot3=ntot3+1
@@ -362,21 +274,23 @@ c --- maintain constant thickness in layer 1
 c --- layer 1 is too thin. entrain water from layers below
           p_hat=min(p_hat,pres(2)+
      .          max(onecm,10.*slak*delt1*(p_hat-pres(2))))
+          info='layer too thin  '
           go to 5
         else if (p_hat.lt.pres(2)) then
 c --- layer 1 is too thick. expell layer 1 water into layer 2
           p_hat=max(p_hat,pres(2)+
      .          min(-onecm,10.*slak*delt1*(p_hat-pres(2))))
+          info='layer too thick '
 c
           if (vrbos) write (lp,105)
-     .     i,j,k,'lower intfc',pres(k+1)/onem,'=>',p_hat/onem
- 105      format (2i5,i3,2(3x,a,f9.3))
+     .     i,j,k,info,'lower intfc',pres(k+1)/onem,'=>',p_hat/onem
+ 105      format (2i5,i3,2x,a,'  try moving',2(1x,a,f9.3))
 c
           q=(pres(2)-p_hat)/max(pres(3)-p_hat,epsil)
           if (q.lt.0. .or. q.gt.1.) then
             write (lp,*) 'i,j,k,pres(2),p_hat,q=',
      .                    i,j,k,pres(2),p_hat,q
-            abort=.true.
+ccc            abort=.true.
           end if
           ssal(2)=ssal(2)*(1.-q)+ssal(1)*q
           if (tscnsv) then
@@ -389,9 +303,8 @@ c
           pres(2)=p_hat
           nwrk3=nwrk3+1
         end if
-        khyb=1				!  layer 1 is in hybrid domain
         go to 8
-      end if				!  k = 1
+      end if                              !  k = 1
 c
 c --- are we dealing with a near-massless layer on the sea floor?
       if (pres(k).eq.pres(kk+1)) dens(k)=max(targt(k),dens(k))
@@ -402,27 +315,28 @@ c --- is lower intfc too close to the surface?
       if (k.lt.kk .and. p_hat.gt.pres(k+1)) then
         p_hat=min(p_hat,pres(k+1)+
      .        max(onecm,slak*delt1*(p_hat-pres(k+1))))
-        khyb=k				!  layer k is in hybrid domain
+        info='too close to srf'
         go to 5
       end if
 c
 c --- is density noticeably different from target value?
       if (abs(dens(k)-targt(k)).lt..1*sigjmp) go to 8
 c
-      if (dens(k).le.targt(k)) go to 7		!  layer too light
+      if (dens(k).le.targt(k)) go to 7          !  layer too light
 c
 c --- water in layer k is too  d e n s e . dilute with water from layer k-1
 c                              ^^^^^^^^^
-      if (k.eq.2) go to 6			!  don't touch layer 1
-      q=(targt(k)-dens(k))/max(targt(k)-dens(k-1),sigjmp)
+      if (k.eq.2) go to 6                       !  don't touch layer 1
+      q=(targt(k)-dens(k))/max(targt(k)-dens(k-1),sigjmp*10.)
       p_hat=pres(k)*(1.-q)+pres(k+1)*q
 c
 c --- maintain minimum layer thickess of layer k-1
       p_hat=pres(k-1)+cushn(p_hat-pres(k-1),dp0abv)
       p_hat=min(p_hat,.5*(pres(k-1)+pres(k+1)))
+      info='layer too dense '
 c
       if (vrbos) write (lp,105)
-     . i,j,k,'upper intfc',pres(k)/onem,'=>',p_hat/onem
+     . i,j,k,info,'upper intfc',pres(k)/onem,'=>',p_hat/onem
 c
       if (p_hat.lt.pres(k)) then
 c
@@ -430,29 +344,30 @@ c --- upper intfc moves up. entrain layer k-1 water into layer k
 c
         p_hat=max(p_hat,pres(k-1),pres(k)+
      .        min(-onecm,slak*delt1*(p_hat-pres(k))))
-        if (k-1.le.khyb) then			!  use plm
+        if (useppm .and. 
+     .    abs(dens(k-1)-targt(k-1)).gt..1*sigjmp) then         !  use ppm
           displ(1)=0.
           displ(2)=0.
           displ(3)=p_hat-pres(k)
           displ(4)=0.
           if (vrbos)
      .    write (lp,'(2i5,i3,a)') i,j,k,'  entrain from layer above'
-          call plmad3(pres(k-2),displ,ssal(k-2),ssal(k-2),vrbos)
+          call ppmad3(pres(k-2),displ,ssal(k-2),ssal(k-2),vrbos)
           if (tscnsv) then
-            call plmad3(pres(k-2),displ,ttem(k-2),ttem(k-2),vrbos)
+            call ppmad3(pres(k-2),displ,ttem(k-2),ttem(k-2),vrbos)
             dens(k-1)=sigocn(ttem(k-1),ssal(k-1))-thbase
             dens(k  )=sigocn(ttem(k  ),ssal(k  ))-thbase
           else
-            call plmad3(pres(k-2),displ,dens(k-2),dens(k-2),vrbos)
+            call ppmad3(pres(k-2),displ,dens(k-2),dens(k-2),vrbos)
             ttem(k-1)=tofsig(dens(k-1)+thbase,ssal(k-1))
             ttem(k  )=tofsig(dens(k  )+thbase,ssal(k  ))
           end if
-        else					!  use pcm
+        else                                                   !  use pcm
           q=(pres(k)-p_hat)/max(pres(k+1)-p_hat,epsil)
           if (q.lt.0. .or. q.gt.1.) then
             write (lp,*) 'i,j,k,p_hat,pres(k),q=',
      .                    i,j,k,p_hat,pres(k),q
-            abort=.true.
+ccc            abort=.true.
           end if
           ssal(k)=ssal(k)*(1.-q)+ssal(k-1)*q
           if (tscnsv) then
@@ -466,37 +381,36 @@ c
         pres(k)=p_hat
         nwrk3=nwrk3+1
 c
-      else if (p_hat.gt.pres(k)) then		!  p_hat > pres(k)
+      else if (p_hat.gt.pres(k)) then            !  p_hat > pres(k)
 c
 c --- layer k-1 is too thin for allowing upper intfc to move up.  instead,
 c --- move upper interface down and entrain layer k water into layer k-1
 c
         p_hat=min(p_hat,pres(k+1),pres(k)+
      .        max(onecm,slak*delt1*(p_hat-pres(k))))
-        khyb=k-1			!  layer k-1 is in hybrid domain
-        if (k.lt.kk) then		!  use plm
+        if (useppm .and. k.lt.kk) then                           !  use ppm
           if (vrbos)
      .    write (lp,'(2i5,i3,a)') i,j,k,'  detrain into layer above'
           displ(1)=0.
           displ(2)=p_hat-pres(k)
           displ(3)=0.
           displ(4)=0.
-          call plmad3(pres(k-1),displ,ssal(k-1),ssal(k-1),vrbos)
+          call ppmad3(pres(k-1),displ,ssal(k-1),ssal(k-1),vrbos)
           if (tscnsv) then
-            call plmad3(pres(k-1),displ,ttem(k-1),ttem(k-1),vrbos)
+            call ppmad3(pres(k-1),displ,ttem(k-1),ttem(k-1),vrbos)
             dens(k-1)=sigocn(ttem(k-1),ssal(k-1))-thbase
             dens(k  )=sigocn(ttem(k  ),ssal(k  ))-thbase
           else
-            call plmad3(pres(k-1),displ,dens(k-1),dens(k-1),vrbos)
+            call ppmad3(pres(k-1),displ,dens(k-1),dens(k-1),vrbos)
             ttem(k-1)=tofsig(dens(k-1)+thbase,ssal(k-1))
             ttem(k  )=tofsig(dens(k  )+thbase,ssal(k  ))
           end if
-        else					!  use pcm
+        else                                                     !  use pcm
           q=(p_hat-pres(k))/max(p_hat-pres(k-1),epsil)
           if (q.lt.0. .or. q.gt.1.) then
             write (lp,*) 'i,j,k,p_hat,pres(k),q=',
      .                    i,j,k,p_hat,pres(k),q
-            abort=.true.
+ccc            abort=.true.
           end if
           ssal(k-1)=ssal(k-1)*(1.-q)+ssal(k)*q
           if (tscnsv) then
@@ -518,7 +432,6 @@ c
      .    pres(k+1).lt.p_hat) then
         p_hat=min(p_hat,pres(k)+
      .        max(onecm,slak*delt1*(p_hat-pres(k))))
-        khyb=k				!  layer k is in hybrid domain
         go to 5
       end if
       go to 8
@@ -527,43 +440,45 @@ c --- water in layer k is too  l i g h t . dilute with water from layer k+1
 c                              ^^^^^^^^^
  7    if (k.ge.kk .or. pres(k+1).gt.pres(kk+1)-onemm) go to 8
 c
-      q=(dens(k)-targt(k))/max(dens(k+1)-targt(k),sigjmp)
+      q=(dens(k)-targt(k))/max(dens(k+1)-targt(k),sigjmp*10.)
       p_hat=pres(k+1)*(1.-q)+pres(k)*q
 c
 c --- curtail downward growth of layers (esp. lowest hybrid layer)
       p_hat=max(pres(k+1),min(p_hat,.5*(pres(k)+pres(k+2))))
       p_hat=min(p_hat,pres(k+1)+
      .      max(onecm,slak*delt1*(p_hat-pres(k+1))))
+      info='layer too light '
 c
  5    p_hat=min(p_hat,pres(k+2))
       if (p_hat.gt.pres(k+1)+onemm) then
 c
         if (vrbos) write (lp,105)
-     .   i,j,k,'lower intfc',pres(k+1)/onem,'=>',p_hat/onem
+     .   i,j,k,info,'lower intfc',pres(k+1)/onem,'=>',p_hat/onem
 c
-        if (k.le.khyb .and. k.lt.kk-1) then	!  use plm
+        if (useppm .and. k.lt.kk-1 .and.
+     .    abs(dens(k+1)-targt(k+1)).gt..1*sigjmp) then          !  use ppm
           if (vrbos)
      .    write (lp,'(2i5,i3,a)') i,j,k,'  entrain from layer below'
           displ(1)=0.
           displ(2)=p_hat-pres(k+1)
           displ(3)=0.
           displ(4)=0.
-          call plmad3(pres(k),displ,ssal(k),ssal(k),vrbos)
+          call ppmad3(pres(k),displ,ssal(k),ssal(k),vrbos)
           if (tscnsv) then
-            call plmad3(pres(k),displ,ttem(k),ttem(k),vrbos)
+            call ppmad3(pres(k),displ,ttem(k),ttem(k),vrbos)
             dens(k  )=sigocn(ttem(k  ),ssal(k  ))-thbase
             dens(k+1)=sigocn(ttem(k+1),ssal(k+1))-thbase
           else
-            call plmad3(pres(k),displ,dens(k),dens(k),vrbos)
+            call ppmad3(pres(k),displ,dens(k),dens(k),vrbos)
             ttem(k  )=tofsig(dens(k  )+thbase,ssal(k  ))
             ttem(k+1)=tofsig(dens(k+1)+thbase,ssal(k+1))
           end if
-        else					!  use pcm
+        else                                                     !  use pcm
           q=(p_hat-pres(k+1))/max(p_hat-pres(k),epsil)
           if (q.lt.0. .or. q.gt.1.) then
             write (lp,*) 'i,j,k,p_hat,pres(k+1),q=',
      .                    i,j,k,p_hat,pres(k+1),q
-            abort=.true.
+ccc            abort=.true.
           end if
           ssal(k)=ssal(k)*(1.-q)+ssal(k+1)*q
           if (tscnsv) then
@@ -579,26 +494,71 @@ c
       end if
  8    continue
 c
-      tndcyr=-torho
-      tndcyt=-totem
-      tndcys=-tosal
+      if (dotrcr) then
+c
+c --- evaluate effect of regridding on tracer field(s)
+c
+        vrbos=.false.
+cdiag   if (i.eq.itest .and. j.eq.jtest) vrbos=.true.
+c
+        pnew(1)=pres(1)
+c
+        do 21 k=1,kk
+        pnew(k+1)=pres(k+1)
+ 21     displ(k+1)=pnew(k+1)-pold(k+1)
+        displ(   1)=0.
+        displ(kk+1)=0.
+c
+        do nt=1,ntrcr
+          scale=1.e-99
+          totrc=0.
+          do 22 k=1,kk
+          totrc=totrc+trac(k,nt)*(pold(k+1)-pold(k))
+ 22       scale=scale+abs(trac(k,nt))
+c
+          do k=1,kk-2
+            if (pnew(k+1).lt.pnew(k) .or. pnew(k+1).gt.pold(k+2)) then
+ccc              write (lp,'(a,3i5)') 'trcr monotonicity problems at',i,j,k
+ccc              write (lp,'(a/(8f9.0))') 'pold:',pold
+ccc              write (lp,'(a/(8f9.0))') 'pnew:',pnew
+              pnew(k+1)=max(pnew(k),min(pnew(k+1),pold(k+2)))
+              displ(k+1)=pnew(k+1)-pold(k+1)
+            end if
+          end do
+c
+          call ppmadv(kk,pold,displ,trac(1,nt),trac(1,nt),vrbos)
+c
+          tndtrc=-totrc
+          do 20 k=1,kk
+          tracer(i,j,k,nt)=trac(k,nt)
+ 20       tndtrc=tndtrc+trac(k,nt)*(pnew(k+1)-pnew(k))
+c
+          if (abs(tndtrc)*kk.gt.acurcy*scale*pnew(kk+1))
+     .     write (lp,104) i,j,'  hybgen - bad trcr.intgl.:',totrc,
+     .      tndtrc,tndtrc/(scale*pnew(kk+1))
+        end do                          !  ntrcr
+      end if                            !  dotrcr
+c
+      tndrho=-torho
+      tndtem=-totem
+      tndsal=-tosal
       do k=1,kk
-        tndcyr=tndcyr+dens(k)*(pres(k+1)-pres(k))
-        tndcyt=tndcyt+ttem(k)*(pres(k+1)-pres(k))
-        tndcys=tndcys+ssal(k)*(pres(k+1)-pres(k))
+        tndrho=tndrho+dens(k)*(pres(k+1)-pres(k))
+        tndtem=tndtem+ttem(k)*(pres(k+1)-pres(k))
+        tndsal=tndsal+ssal(k)*(pres(k+1)-pres(k))
       end do
       if (tscnsv) then
-        if (abs(tndcyt).gt.acurcy*10.*pres(kk+1))
+        if (abs(tndtem).gt.acurcy*10.*pres(kk+1))
      .   write (lp,104) i,j,'  hybgen - bad temp.intgl.:',totem,
-     .    tndcyt,tndcyt/(10.*pres(kk+1))
+     .    tndtem,tndtem/(10.*pres(kk+1))
       else
-        if (abs(tndcyr).gt.acurcy*thbase*pres(kk+1))
+        if (abs(tndrho).gt.acurcy*thbase*pres(kk+1))
      .   write (lp,104) i,j,'  hybgen - bad dens.intgl.:',torho,
-     .    tndcyr,tndcyr/(thbase*pres(kk+1))
+     .    tndrho,tndrho/(thbase*pres(kk+1))
       end if
-      if (abs(tndcys).gt.acurcy*35.*pres(kk+1))
+      if (abs(tndsal).gt.acurcy*35.*pres(kk+1))
      . write (lp,104) i,j,'  hybgen - bad saln.intgl.:',tosal,
-     .  tndcys,tndcys/(35.*pres(kk+1))
+     .  tndsal,tndsal/(35.*pres(kk+1))
  104  format (2i5,a,1p,2e15.7,e9.1)
 c
       if (vrbos) then
@@ -620,7 +580,7 @@ c
       saln(i,j,kn)=ssal(k)
       p(i,j,k+1)=pres(k+1)
       dp(i,j,kn)=pres(k+1)-pres(k)
-      diaflx(i,j,k)=diaflx(i,j,k)+(dp(i,j,kn)-dpold(i,j,k))	!  diapyc.flux
+      diaflx(i,j,k)=diaflx(i,j,k)+(dp(i,j,kn)-dpold(i,j,k))      !  diapyc.flux
  2    continue
 c
       ntot2d(j)=ntot2
@@ -654,94 +614,6 @@ c
  88   continue
 c$OMP END PARALLEL DO
 c
-      call dpudpv(nn)
-c
-c$OMP PARALLEL DO PRIVATE(kn,pold,pnew,displ,trac,uold,vold,vrbos)
-      do 13 j=1,jj
-c
-      if (trcout) then
-c
-c --- evaluate effect of regridding on tracer field(s)
-c
-        do 20 l=1,isp(j)
-        do 20 i=ifp(j,l),ilp(j,l)
-c
-        vrbos=.false.
-cdiag   if (i.eq.itest .and. j.eq.jtest) vrbos=.true.
-c
-        pold(1)=p(i,j,1)
-        pnew(1)=p(i,j,1)
-c
-        do 21 k=1,kk
-        pold(k+1)=pold(k)+dpold(i,j,k)
-        pnew(k+1)=p(i,j,k+1)
-        displ(k+1)=pnew(k+1)-pold(k+1)
- 21     trac(k)=tracer(i,j,k)
-        displ(   1)=0.
-        displ(kk+1)=0.
-c
-        call plmadv(kk,pold,displ,trac,trac,vrbos)
-c
-        do 20 k=1,kk
- 20     tracer(i,j,k)=trac(k)
-c
-      end if				!  trcout
-c
-c --- evaluate effect of regridding on -u-
-c
-      do 14 l=1,isu(j)
-      do 14 i=ifu(j,l),ilu(j,l)
-c
-      vrbos=.false.
-cdiag if (i.eq.itest .and. j.eq.jtest) vrbos=.true.
-c
-      pold(1)=p(i,j,1)
-      pnew(1)=p(i,j,1)
-c
-      do 15 k=1,kk
-      kn=k+nn
-      uold(k)=u(i,j,kn)
-      pold(k+1)=pu(i,j,k+1)
-      pnew(k+1)=pnew(k)+dpu(i,j,kn)
-      pu(i,j,k+1)=pnew(k+1)
- 15   displ(k+1)=pnew(k+1)-pold(k+1)
-      displ(   1)=0.
-      displ(kk+1)=0.
-c
-      call plmadv(kk,pold,displ,uold,uold,vrbos)
-c
-      do 14 k=1,kk
- 14   u(i,j,k+nn)=uold(k)
-c
-c --- evaluate effect of regridding on -v-
-c
-      do 24 l=1,isv(j)
-      do 24 i=ifv(j,l),ilv(j,l)
-c
-      vrbos=.false.
-cdiag if (i.eq.itest .and. j.eq.jtest) vrbos=.true.
-c
-      pold(1)=p(i,j,1)
-      pnew(1)=p(i,j,1)
-c
-      do 25 k=1,kk
-      kn=k+nn
-      vold(k)=v(i,j,kn)
-      pold(k+1)=pv(i,j,k+1)
-      pnew(k+1)=pnew(k)+dpv(i,j,kn)
-      pv(i,j,k+1)=pnew(k+1)
- 25   displ(k+1)=pnew(k+1)-pold(k+1)
-      displ(   1)=0.
-      displ(kk+1)=0.
-c
-      call plmadv(kk,pold,displ,vold,vold,vrbos)
-c
-      do 24 k=1,kk
- 24   v(i,j,k+nn)=vold(k)
-c
- 13   continue
-c$OMP END PARALLEL DO
-c
 c$OMP PARALLEL DO
       do 9 j=1,jj
       do 9 k=1,kk
@@ -751,6 +623,174 @@ c$OMP PARALLEL DO
 c$OMP END PARALLEL DO
 c
       call dpudpv(nn)
+c
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+cc c$OMP PARALLEL DO PRIVATE(kn,pold,pnew,displ,trac,uold,vold,vrbos)
+cc       do 13 j=1,jj
+cc c
+cc c --- evaluate effect of regridding on -u-
+cc c
+cc       do 14 l=1,isu(j)
+cc       do 14 i=ifu(j,l),ilu(j,l)
+cc c
+cc       vrbos=.false.
+cc       if (i.eq.itest .and. j.eq.jtest) vrbos=.true.
+cc c
+cc       pold(1)=p(i,j,1)
+cc       pnew(1)=p(i,j,1)
+cc c
+cc       do 15 k=1,kk
+cc       kn=k+nn
+cc       uold(k)=u(i,j,kn)
+cc       pold(k+1)=pu(i,j,k+1)
+cc       pnew(k+1)=pnew(k)+dpu(i,j,kn)
+cc       pu(i,j,k+1)=pnew(k+1)
+cc  15   displ(k+1)=pnew(k+1)-pold(k+1)
+cc       displ(   1)=0.
+cc       displ(kk+1)=0.
+cc c
+cc       do k=1,kk-2
+cc         if (pnew(k+1).lt.pnew(k  ) .or. pnew(k+1).gt.pold(k+2)) then
+cc ccc          write (lp,'(a,3i5)') '-u- monotonicity problems at',i,j,k
+cc ccc          write (lp,'(a/(8f9.0))') 'pold:',pold
+cc ccc          write (lp,'(a/(8f9.0))') 'pnew:',pnew
+cc           pnew(k+1)=max(pnew(k),min(pnew(k+1),pold(k+2)))
+cc           displ(k+1)=pnew(k+1)-pold(k+1)
+cc         end if
+cc       end do
+cc c
+cc       call ppmadv(kk,pold,displ,uold,uold,vrbos)
+cc c
+cc       do 14 k=1,kk
+cc  14   u(i,j,k+nn)=uold(k)
+cc c
+cc c --- evaluate effect of regridding on -v-
+cc c
+cc       do 24 l=1,isv(j)
+cc       do 24 i=ifv(j,l),ilv(j,l)
+cc c
+cc       vrbos=.false.
+cc       if (i.eq.itest .and. j.eq.jtest) vrbos=.true.
+cc c
+cc       pold(1)=p(i,j,1)
+cc       pnew(1)=p(i,j,1)
+cc c
+cc       do 25 k=1,kk
+cc       kn=k+nn
+cc       vold(k)=v(i,j,kn)
+cc       pold(k+1)=pv(i,j,k+1)
+cc       pnew(k+1)=pnew(k)+dpv(i,j,kn)
+cc       pv(i,j,k+1)=pnew(k+1)
+cc  25   displ(k+1)=pnew(k+1)-pold(k+1)
+cc       displ(   1)=0.
+cc       displ(kk+1)=0.
+cc c
+cc       do k=1,kk-2
+cc         if (pnew(k+1).lt.pnew(k  ) .or. pnew(k+1).gt.pold(k+2)) then
+cc ccc          write (lp,'(a,3i5)') '-v- monotonicity problems at',i,j,k
+cc ccc          write (lp,'(a/(8f9.0))') 'pold:',pold
+cc ccc          write (lp,'(a/(8f9.0))') 'pnew:',pnew
+cc           pnew(k+1)=max(pnew(k),min(pnew(k+1),pold(k+2)))
+cc           displ(k+1)=pnew(k+1)-pold(k+1)
+cc         end if
+cc       end do
+cc c
+cc       call ppmadv(kk,pold,displ,vold,vold,vrbos)
+cc c
+cc       do 24 k=1,kk
+cc  24   v(i,j,k+nn)=vold(k)
+cc c
+cc  13   continue
+cc c$OMP END PARALLEL DO
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c$OMP PARALLEL DO PRIVATE(ja,pold,pnew,uold,vold,totuv,
+c$OMP+ tdcyuv,phi,plo,pa,pb,uvintg,kn)
+      do 13 j=1,jj
+      ja=mod(j-2+jj,jj)+1
+c
+c --- integrate -u- over new depth intervals
+c
+      do 14 l=1,isu(j)
+      do 14 i=ifu(j,l),ilu(j,l)
+c
+      pold(1)=0.
+      pnew(1)=0.
+      totuv=0.
+c
+      do 15 k=1,kk
+      kn=k+nn
+      uold(k)=u(i,j,kn)
+      pold(k+1)=pu(i,j,k+1)
+      pnew(k+1)=pnew(k)+dpu(i,j,kn)
+ 15   totuv=totuv+uold(k)*(pold(k+1)-pold(k))
+      tdcyuv=-totuv
+c
+      do 18 k=1,kk
+      phi=pnew(k+1)
+      plo=pnew(k  )
+      if (phi.gt.plo) then
+        uvintg=0.
+        pb=plo
+        do 16 ko=1,kk
+        if (pold(ko+1).le.plo) go to 16
+        pa=pb
+        pb=min(phi,pold(ko+1))
+        uvintg=uvintg+uold(ko)*(pb-pa)
+        if (pa.ge.phi) go to 17
+ 16     continue
+ 17     tdcyuv=tdcyuv+uvintg
+        u(i,j,k+nn)=uvintg/(phi-plo)
+      end if
+ 18   continue
+c
+      if (abs(tdcyuv).gt.acurcy*uvscl*pold(kk+1))
+     . write (lp,104) i,j,'  hybgen - bad u intgl.',totuv,
+     .  tdcyuv,tdcyuv/(uvscl*pold(kk+1))
+ 14   continue
+c
+c --- integrate -v- over new depth intervals
+c
+      do 24 l=1,isv(j)
+      do 24 i=ifv(j,l),ilv(j,l)
+c
+      pold(1)=0.
+      pnew(1)=0.
+      totuv=0.
+c
+      do 25 k=1,kk
+      kn=k+nn
+      vold(k)=v(i,j,kn)
+      pold(k+1)=pv(i,j,k+1)
+      pnew(k+1)=pnew(k)+dpv(i,j,kn)
+ 25   totuv=totuv+vold(k)*(pold(k+1)-pold(k))
+      tdcyuv=-totuv
+c
+      do 28 k=1,kk
+      phi=pnew(k+1)
+      plo=pnew(k  )
+      if (phi.gt.plo) then
+        uvintg=0.
+        pb=plo
+        do 26 ko=1,kk
+        if (pold(ko+1).le.plo) go to 26
+        pa=pb
+        pb=min(phi,pold(ko+1))
+        uvintg=uvintg+vold(ko)*(pb-pa)
+        if (pa.ge.phi) go to 27
+ 26     continue
+ 27     tdcyuv=tdcyuv+uvintg
+        v(i,j,k+nn)=uvintg/(phi-plo)
+      end if
+ 28   continue
+c
+      if (abs(tdcyuv).gt.acurcy*uvscl*pold(kk+1))
+     . write (lp,104) i,j,'  hybgen - bad v intgl.',totuv,
+     .  tdcyuv,tdcyuv/(uvscl*pold(kk+1))
+ 24   continue
+c
+ 13   continue
+c$OMP END PARALLEL DO
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 cdiag if (itest.gt.0 .and. jtest.gt.0) then
 cdiag   write (lp,103) nstep,itest,jtest,
@@ -784,9 +824,9 @@ c
       end
 c
 c
-      subroutine plmad3(x,dx,y,ynew,diagno)
+      subroutine ppmad3(x,dx,y,ynew,diagno)
 c
-c --- advection by piecewise linear method
+c --- advection by piecewise parabolic method
 c --- this is a special version taylored to nmax = 3
 c                                           ^^^^^^^^
 c --- input variables:
@@ -798,75 +838,101 @@ c --- output variables:
 c --- ynew(nmax) - function values after advection (overwriting of -y- allowed)
 c
       implicit none
-      integer nmax,ndim,n
-      parameter (nmax=3,ndim=3)
-      real x(nmax+1),dx(nmax+1),y(nmax),ynew(nmax),total,tndcy,onemu
-     .    ,ytmp(ndim),slope(ndim),yleft,yrigh,wgt,slab,dxnew,acurcy
+      integer nmax,n
+      parameter (nmax=3)
+      real x(nmax+1),dx(nmax+1),y(nmax),ynew(nmax),total,tndcy,scale,
+     .     ytmp(nmax),wdth,slab,dxnew,acurcy,a,b,c,athird,onemu,yl,yr
       logical diagno
       data acurcy/1.e-11/,onemu/.098/
-      if (ndim.lt.nmax) stop '(ndim too small in plmadv)'
+      parameter (athird=1./3.)
 c
       total=0.
+      scale=1.e-99
       do 3 n=1,nmax
       if (x(n).gt.x(n+1)+onemu) then
-        write (*,'(a,4f9.0)') 'error: pressure inversion in plmadv',x
-        stop '(plmadv)'
+        write (*,'(a,4f9.0)') 'error: x not monotonic in ppmad3',x
+        stop '(ppmad3)'
       end if
 c
       ytmp(n)=y(n)*(x(n+1)-x(n))
       ynew(n)=y(n)
- 3    total=total+ytmp(n)
+      total=total+ytmp(n)
+ 3    scale=scale+abs(ytmp(n))
+      scale=scale/float(nmax)
 c
-c --- get -y- slope at point -2-
+c --- construct parabola whose integral over [-.5,+.5] equals y(2) and
+c --- which goes though points [-.5,(y(1)+y(2))/2], [+.5,(y(2)+y(3))/2]
 c
-      if (y(2).le.min(y(1),y(3)) .or.
-     .    y(2).ge.max(y(1),y(3))) then
-        slope(2)=0.
-      else if ((y(3)-y(1))*(y(1)+y(3)-2.*y(2)).gt.0.) then
-        slope(2)=y(2)-y(1)
-      else
-        slope(2)=y(3)-y(2)
+      yl=.5*(y(1)+y(2))
+      yr=.5*(y(3)+y(2))
+      a=1.5*y(2)-.25*(yl+yr)
+      b=yr-yl
+      c=6.*(.5*(yl+yr)-y(2))
+      if (abs(yr-yl) .lt. 6.*abs(.5*(yl+yr)-y(2))) then
+c
+c --- apex of parabola lies inside interval [-.5,+.5].
+c --- => need to change curve to prevent over- and undershoots
+c
+        if (abs(yr-yl) .gt. 2.*abs(.5*(yl+yr)-y(2))) then
+c --- put apex of parabola on edge of interval [-.5,+.5]
+          if ((yr-yl)*(.5*(yl+yr)-y(2)) .gt. 0.) then
+c --- apex at x=-.5
+            a=.25*(3.*y(2)+yl)
+            c=3.*(y(2)-yl)
+            b=c
+          else
+c --- apex at x=+.5
+            a=.25*(3.*y(2)+yr)
+            c=3.*(y(2)-yr)
+            b=-c
+          end if
+        else                    !  -1/6 < x < +1/6
+c --- can't put apex on edge of interval. only option is to flatten curve
+          a=y(2)
+          b=0.
+          c=0.
+        end if
       end if
 c
 c --- now transport -y- across cell boundaries
 c
-      yleft=y(2)-.5*slope(2)
-      yrigh=y(2)+.5*slope(2)
       if (dx(2).gt.0.) then
 c --- velocity at left edge is negative. export slab to cell on left
-        wgt=.5*dx(2)/(x(3)-x(2))
-        slab=(yrigh*wgt+yleft*(1.-wgt))*dx(2)
+        wdth= dx(2)/(x(3)-x(2))
+        slab=(x(3)-x(2))*
+     .   wdth*(a+b*.5*(wdth-1.)+c*(.25-wdth*(.5-wdth*athird)))
         ytmp(2)=ytmp(2)-slab
         ytmp(1)=ytmp(1)+slab
       end if
       if (dx(3).lt.0.) then
 c --- velocity at right edge is positive. export slab to cell on right
-        wgt=-.5*dx(3)/(x(3)-x(2))
-        slab=-(yleft*wgt+yrigh*(1.-wgt))*dx(3)
+        wdth=-dx(3)/(x(3)-x(2))
+        slab=(x(3)-x(2))*
+     .   wdth*(a+b*.5*(1.-wdth)+c*(.25-wdth*(.5-wdth*athird)))
         ytmp(2)=ytmp(2)-slab
         ytmp(3)=ytmp(3)+slab
       end if
 c
-      if (diagno) write (*,100) 'plmadv in: ',x,y
+      if (diagno) write (*,100) 'ppmad3 in: ',x,y
  100  format (a,4f9.0,3f9.4)
 c
       tndcy=-total
       do 5 n=1,nmax
       dxnew=x(n+1)-x(n)+dx(n+1)-dx(n)
-      if (dxnew.ne.0.) ynew(n)=ytmp(n)/dxnew
+      if (dxnew.gt.0.) ynew(n)=ytmp(n)/dxnew
  5    tndcy=tndcy+ynew(n)*dxnew
-      if (abs(tndcy).gt.acurcy*abs(total)) write (*,'(a,1p,2e11.3)')
-     .  'plmadv - bad intgl.:',total,tndcy
+      if (abs(tndcy).gt.acurcy*max(abs(total),scale*x(nmax+1)))
+     .  write (*,'(a,1p,2e11.3)') 'ppmad3 - bad intgl.:',total,tndcy
 c
-      if (diagno) write (*,100) 'plmadv out:',dx,ynew
+      if (diagno) write (*,100) 'ppmad3 out:',dx,ynew
 c
       return
       end
 c
 c
-      subroutine plmadv(nmax,x,dx,y,ynew,diagno)
+      subroutine ppmadv(nmax,x,dx,y,ynew,diagno)
 c
-c --- advection by piecewise linear method
+c --- advection by piecewise parabolic method
 c --- this version is customized for recursive updating of cell boundaries
 c                                    ^^^^^^^^^
 c --- input variables:
@@ -878,70 +944,97 @@ c --- output variables:
 c --- ynew(nmax) - function values after advection (overwriting of -y- allowed)
 c
       implicit none
-      integer nmax,ndim,n,na,nb,m
-      parameter (ndim=25)
+      integer nmax,n,na,nb,m
       real x(nmax+1),dx(nmax+1),y(nmax),ynew(nmax),
-     .     xtmp(ndim+1),ytmp(ndim),slope(ndim),yold(ndim),
-     .     yleft,yrigh,wgt,slab,dxnew,acurcy,total,tndcy,onemu,uvscl
+     .     xtmp(nmax+1),ytmp(nmax),yold(nmax),athird,a,b,c,
+     .     wdth,slab,dxnew,acurcy,total,tndcy,onemu,scale,yl,yr
       logical diagno
-      data acurcy/1.e-11/,onemu/.098/,uvscl/.02/
-      if (ndim.lt.nmax) stop '(ndim too small in plmadv)'
+      data acurcy/1.e-12/,onemu/.098/
+      parameter (athird=1./3.)
 c
       total=0.
+      scale=1.e-99
       do 3 n=1,nmax
       if (x(n).gt.x(n+1)+onemu) then
-        write (*,'(a/(8f9.0))') 'error: x not monotonic in plmadv:',x
-        stop
+        write (*,'(a/(2(a,i2),a/8f9.0))')
+     .   'monotonicity error in ppmadv: x(',n,') > x(',n+1,')',x
+        stop '(ppmadv)'
       end if
 c
       xtmp(n)=x(n)
       ytmp(n)=y(n)*(x(n+1)-x(n))
       yold(n)=y(n)
       ynew(n)=y(n)
- 3    total=total+ytmp(n)
+      total=total+ytmp(n)
+ 3    scale=scale+abs(ytmp(n))
+      scale=scale/float(nmax)
       xtmp(nmax+1)=x(nmax+1)
 c
       do 4 n=1,nmax
-      na=max(   1,n-1)			!  non-cyclic
-      nb=min(nmax,n+1)			!  non-cyclic
+      na=max(   1,n-1)                  !  non-cyclic
+      nb=min(nmax,n+1)                  !  non-cyclic
       if (xtmp(n)+dx(n).lt.xtmp(na )-onemu .or.
      .    xtmp(n)+dx(n).gt.xtmp(n+1)+onemu) then
-        write (*,'(a,i3/(i3,3f15.2))') 'error: x+dx out of bounds, n =',
-     .   n,(m,x(m),dx(m),xtmp(m),m=1,n-1),
-     .      n,x(n),dx(n),xtmp(n)+dx(n),n+1,x(n+1)
-        stop
+        write (*,'(a,i3/(i3,3f15.2))')
+     .   'ppmadv error: x+dx out of bounds, n =',
+     .    n,(m,x(m),dx(m),xtmp(m),m=1,n-1),
+     .    n,x(n),dx(n),xtmp(n)+dx(n),n+1,x(n+1)
+        stop '(ppmadv)'
       end if
 c
       if (xtmp(n+1).gt.xtmp(n)) then
 c
-c --- get -y- slope at point -n-
+c --- construct parabola whose integral over [-.5,+.5] equals y(n) and
+c --- which goes though points [-.5,(y(na)+y(n))/2], [+.5,(y(n)+y(nb))/2]
 c
-        if (y(n).le.min(y(na),y(nb)) .or.
-     .      y(n).ge.max(y(na),y(nb))) then
-          slope(n)=0.
-        else if ((y(nb)-y(na))*(y(na)+y(nb)-2.*y(n)).gt.0.) then
-          slope(n)=y(n)-y(na)
-        else
-          slope(n)=y(nb)-y(n)
+      yl=.5*(y(na)+y(n))
+      yr=.5*(y(nb)+y(n))
+      a=1.5*y(n)-.25*(yl+yr)
+      b=yr-yl
+      c=6.*(.5*(yl+yr)-y(n))
+      if (abs(yr-yl) .lt. 6.*abs(.5*(yl+yr)-y(n))) then
+c
+c --- apex of parabola lies inside interval [-.5,+.5].
+c --- => need to change curve to prevent over- and undershoots
+c
+        if (abs(yr-yl) .gt. 2.*abs(.5*(yl+yr)-y(n))) then
+c --- put apex of parabola on edge of interval [-.5,+.5]
+          if ((yr-yl)*(.5*(yl+yr)-y(n)) .gt. 0.) then
+c --- apex at x=-.5
+            a=.25*(3.*y(n)+yl)
+            c=3.*(y(n)-yl)
+            b=c
+          else
+c --- apex at x=+.5
+            a=.25*(3.*y(n)+yr)
+            c=3.*(y(n)-yr)
+            b=-c
+          end if
+        else                   !  -1/6 < x < +1/6
+c --- can't put apex on edge of interval. only option is to flatten curve
+          a=y(n)
+          b=0.
+          c=0.
         end if
+      end if
 c
 c --- now transport -y- across cell boundaries
 c
-        yleft=y(n)-.5*slope(n)
-        yrigh=y(n)+.5*slope(n)
-        if (dx(n).gt.0.) then
+      if (dx(n).gt.0.) then
 c --- velocity at left edge is negative. export slab to cell on left
-          wgt=.5*dx(n)/(xtmp(n+1)-xtmp(n))
-          slab=(yrigh*wgt+yleft*(1.-wgt))*dx(n)
-          ytmp(n )=ytmp(n )-slab
-          ytmp(na)=ytmp(na)+slab
+        wdth=min(1.,dx(n)/(xtmp(n+1)-xtmp(n)))
+        slab=(xtmp(n+1)-xtmp(n))*
+     .   wdth*(a+b*.5*(wdth-1.)+c*(.25-wdth*(.5-wdth*athird)))
+        ytmp(n )=ytmp(n )-slab
+        ytmp(na)=ytmp(na)+slab
         end if
         if (dx(n+1).lt.0.) then
 c --- velocity at right edge is positive. export slab to cell on right
-          wgt=-.5*dx(n+1)/(xtmp(n+1)-xtmp(n))
-          slab=-(yleft*wgt+yrigh*(1.-wgt))*dx(n+1)
-          ytmp(n )=ytmp(n )-slab
-          ytmp(nb)=ytmp(nb)+slab
+        wdth=min(1.,-dx(n+1)/(xtmp(n+1)-xtmp(n)))
+        slab=(xtmp(n+1)-xtmp(n))*
+     .   wdth*(a+b*.5*(1.-wdth)+c*(.25-wdth*(.5-wdth*athird)))
+        ytmp(n )=ytmp(n )-slab
+        ytmp(nb)=ytmp(nb)+slab
         end if
       end if
 c
@@ -951,17 +1044,17 @@ c
       tndcy=-total
       do 5 n=1,nmax
       dxnew=xtmp(n+1)-xtmp(n)
-      if (dxnew.ne.0.) ynew(n)=ytmp(n)/dxnew
+      if (dxnew.gt.0.) ynew(n)=ytmp(n)/dxnew
  5    tndcy=tndcy+ynew(n)*dxnew
-      if (abs(tndcy).gt.acurcy*max(abs(total),uvscl*x(nmax+1))) then
-        write (*,'(a,1p,2e11.3)') 'plmadv - bad intgl.:',total,tndcy
-        write (*,100) 'plmadv:',
+      if (abs(tndcy).gt.acurcy*max(abs(total),scale*x(nmax+1))) then
+        write (*,'(a,1p,2e11.3)') 'ppmadv - bad intgl.:',total,tndcy
+        write (*,100) 'ppmadv:',
      .   (n,x(n),yold(n),dx(n),xtmp(n),ynew(n),n=1,nmax)
       end if
 c
-      if (diagno) write (*,100) 'plmadv:',
+      if (diagno) write (*,100) 'ppmadv:',
      .   (n,x(n),yold(n),dx(n),xtmp(n),ynew(n),n=1,nmax)
- 100  format (a/(i3,f14.1,f14.7,2f14.1,f14.7))
+ 100  format (a/(i3,0pf14.1,1pe17.7,0p,2f14.1,1pe17.7))
 c
       return
       end
@@ -979,8 +1072,8 @@ c --- if delp >>  0, -cushn- returns -delp-
 c --- if delp <<  0, -cushn- returns -dp0-
 c
       real delp,dp0,qq,x1,factor
-ccc   parameter (x1=4.)			!  used in Bleck&Benjamin 1993
-ccc   parameter (x1=6.)			!  used in Bleck 2001
+ccc   parameter (x1=4.)                 !  used in Bleck&Benjamin 1993
+ccc   parameter (x1=6.)                 !  used in Bleck 2001
       parameter (x1=8.)
 c
       parameter (factor=.25/(x1-1.))
@@ -1025,3 +1118,7 @@ c> Nov. 2003 - accelerated relaxation time for 1st interface (slak x 10)
 c> Nov. 2004 - allowed -dplist- values to shrink near equator
 c> Nov. 2004 - conversion to piecewise linear advection scheme (PLM)
 c> Nov. 2004 - extended PLM advection to velocity field
+c> Dec. 2004 - changed from PLM to PPM (piecewise parabolic)
+c> Dec. 2004 - added code to update dpu/dpv(n) (loop 9 and dpudpv call)
+c> Apr. 2005 - changed sigjmp to 10*sigjmp in formulae computing p_hat
+c> May  2005 - ppmadv: bounded wdth by 1 (loop 4)

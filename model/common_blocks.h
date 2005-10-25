@@ -13,13 +13,13 @@ c-----------------------------------------------------------------------------
      .,th3d(idm,jdm,2*kdm)                    ! potential density
      .,thstar(idm,jdm,kdm)                    ! virtual potential density
      .,thermb(idm,jdm,2*kdm)                  ! difference thstar - th3d
-     .,diaflx(idm,jdm,kdm)                    ! time integral of diapyc.flux
      .,psikk(idm,jdm)                         ! init.montg.pot. in bottom layer
      .,thkk(idm,jdm)                          ! init.thstar in bottom layer
      .,dpmixl(idm,jdm)                        ! Kraus-Turner mixed layer depth
+     .,srfhgt(idm,jdm)                        ! sea surface height
 c
       real u,v,dp,dpold,dpu,dpv,p,pu,pv,latij,lonij,corio,potvor,
-     .     temp,saln,th3d,thstar,thermb,diaflx,psikk,thkk,dpmixl
+     .     temp,saln,th3d,thstar,thermb,psikk,thkk,dpmixl,srfhgt
 c
       c o m m o n
      . montg(idm,jdm,kdm)                     ! montgomery potential
@@ -44,12 +44,17 @@ c
      .,dpuav(idm,jdm,kdm),dpvav(idm,jdm,kdm)
      .,temav(idm,jdm,kdm),salav(idm,jdm,kdm)
      .,th3av(idm,jdm,kdm), dpav(idm,jdm,kdm)
-     .,ubavav(idm,jdm),vbavav(idm,jdm),pbavav(idm,jdm),montav(idm,jdm)
+     .,ubavav(idm,jdm),vbavav(idm,jdm),pbavav(idm,jdm),sfhtav(idm,jdm)
      .,uflxav(idm,jdm,kdm),vflxav(idm,jdm,kdm)
+     .,diaflx(idm,jdm,kdm)                    ! time integral of diapyc.flux
      .,tauxav(idm,jdm),tauyav(idm,jdm),eminpav(idm,jdm),surflav(idm,jdm)
+     .,ufxcum(idm,jdm,kdm),vfxcum(idm,jdm,kdm),dpinit(idm,jdm,kdm)
+     .,dpmxav(idm,jdm),oiceav(idm,jdm)
 c
-      real uav,vav,dpuav,dpvav,temav,salav,th3av,dpav,ubavav,vbavav,
-     .     pbavav,montav,uflxav,vflxav,tauxav,tauyav,eminpav,surflav
+      real uav,vav,dpuav,dpvav,temav,salav,th3av,dpav,ubavav,vbavav
+     .    ,pbavav,sfhtav,uflxav,vflxav,diaflx,tauxav,tauyav,eminpav
+     .    ,surflav,ufxcum,vfxcum,dpinit
+     .    ,dpmxav,oiceav
 c
       c o m m o n
      . util1(idm,jdm),util2(idm,jdm)          ! arrays for temporary storage
@@ -82,12 +87,11 @@ c
      . uja(idm,jdm),ujb(idm,jdm)              ! velocities at lateral
      .,via(idm,jdm),vib(idm,jdm)              !          neighbor points
      .,pbot(idm,jdm)                          ! bottom pressure at t=0
-     .,tracer(idm,jdm,kdm)                    ! inert tracer (optional)
+     .,tracer(idm,jdm,kdm,ntrcr)              ! inert tracer (optional)
      .,tprime(idm,jdm)                        ! temp.change due to surflx
      .,sgain(idm,kdm)                         ! salin.changes from diapyc.mix.
      .,surflx(idm,jdm)                        ! surface thermal energy flux
      .,salflx(idm,jdm)                        ! surface salinity flux
-     .,klist(idm,jdm)                         ! k-index of layer below mixl'r
 c    .,thkice(idm,jdm)                        ! grid-cell avg. ice thknss (cm)
 c    .,covice(idm,jdm)                        ! ice coverage (rel.units)
 c    .,temice(idm,jdm)                        ! ice surf.temp.
@@ -95,6 +99,7 @@ c    .,odhsi(idm,jdm)                         ! heat borrowed from frozen
      .,odmsi(idm,jdm)                         ! newly formed ice
      .,omlhc(idm,jdm)
      .,dmfz(idm,jdm)                          ! ice mass due to freezing
+     .,klist(idm,jdm)                         ! k-index of layer below mixl'r
 c
       real uja,ujb,via,vib,pbot,tracer,tprime,sgain,surflx,salflx
 c    .   ,thkice,covice,temice,omlhc,dmfz,odhsi
@@ -106,11 +111,11 @@ c --- diagno      output model fields and diagnostic messages
 c --- thermo      use thermodynamic forcing functions
 c --- windf       include wind stress in forcing functions
 c --- relax       activate lateral boundary nudging
-c --- trcrin      initialize tracer from restart file
 c --- trcout      advect tracer and save results in history/restart file
+c --- dotrcr      perform column physics operations on tracer array(s)
 c
-      logical diagno,thermo,windf,relax,trcrin,trcout
-      common/swtchs/diagno,thermo,windf,relax,trcrin,trcout
+      logical diagno,thermo,windf,relax,trcout,dotrcr
+      common/swtchs/diagno,thermo,windf,relax,trcout,dotrcr
 c
       c o m m o n  /frcing/                   !  monthly forcing fields
      . taux(idm,jdm)                          !  wind stress in x direction
@@ -122,35 +127,36 @@ c    .,oprec(idm,jdm)                         !  precipitation
 c    .,oevap(idm,jdm)                         !  evaportation
      .,oemnp(idm,jdm)                         !  e - p 
      .,oflxa2o(idm,jdm),oice(idm,jdm)
-     .,ustar(idm,jdm)                         ! friction velocity
+     .,ustar(idm,jdm)                         ! surface friction velocity
+     .,ustarb(idm,jdm)                        ! bottom friction velocity
      .,osalt(idm,jdm)                         ! saltflux from SI(kg/m*m)
-     .,sswflx(idm,jdm)                        ! shortwave flux in kpp
 c
      .,freshw(idm,jdm)                        !  river & glacier runoff
      .,diafor(idm,jdm)                        !  imposed diapycnal forcing
-     .,rmu(nrelax)                            !  weights for lateral b.c. relax.
 c
 c     real taux,tauy,wndspd,radflx,airtmp,precip,vapmix,freshw,diafor
-c    .    ,rmu,pwall,swall,twall
-      real taux,tauy,oice,oemnp,ustar,oflxa2o,osalt,sswflx
-      real freshw,diafor,rmu
+c    .    ,pwall,swall,twall
+      real taux,tauy,oice,oemnp,ustar,ustarb,oflxa2o,osalt
+      real freshw,diafor
 c
-      common/varbls/time,time0,delt1,dlt,w0,w1,w2,w3,ws0,ws1,ws2,ws3,
-     .      area,avgbot,watcum,empcum,slfcum,sala2o
+      common/varbls/time,time0,delt1,dlt,w0,w1,w2,w3,ws0,ws1,ws2,ws3
+     .     ,area,avgbot,watcum,empcum,slfcum,sala2o
      .     ,nstep,nstep0,nstepi,lstep,l0,l1,l2,l3,ls0,ls1,ls2,ls3
+     .     ,oddev
 c
       real time,time0,delt1,dlt,w0,w1,w2,w3,ws0,ws1,ws2,ws3,
      .     area,avgbot,watcum,empcum,slfcum,sala2o
       integer nstep,nstep0,nstepi,lstep,l0,l1,l2,l3,ls0,ls1,ls2,ls3
+     .       ,oddev
 c
 c --- 'baclin' = baroclinic time step
 c --- 'batrop' = barotropic time step
 c --- 'thkdff' = diffusion velocity (cm/s) for thickness diffusion
 c --- 'veldff' = diffusion velocity (cm/s) for momentum dissipation
 c --- 'temdff' = diffusion velocity (cm/s) for temp/salin. mixing
-c --- 'viscos' is nondimensional, used in deformation-dependent viscosity
+c --  'viscos' is nondimensional, used in deformation-dependent viscosity
 c --- 'diapyc' = diapycnal diffusivity times buoyancy freq. (cm**2/s**2)
-c --- 'mixfrq' = number of time steps between diapycnal mixing calculations
+c --- 'trcfrq' = number of time steps between tracer transport calculations
 c --- 'h1'     = depth interval used in lateral weighting of hor.pres.grad.
 c --- slip = +1  for free-slip boundary cond., slip = -1  for non-slip cond.
 c --- 'cbar'   = rms flow speed (cm/s) for linear bottom friction law
@@ -171,12 +177,12 @@ c
      .              veldff,temdff,viscos,diapyc,vertmx,h1,slip,cbar,
      .              diagfq,wuv1,wuv2,wts1,wts2,acurcy,wbaro,thkmin,
      .              thkbot,ekman,sigjmp,salmin(kdm),
-     .              mixfrq,ntracr,nhr
+     .              trcfrq,ntracr,nhr
 c
       real sigma,theta,thbase,baclin,batrop,thkdff,veldff,temdff,viscos,
      .     diapyc,vertmx,h1,slip,cbar,diagfq,wuv1,wuv2,wts1,wts2,acurcy,
      .     wbaro,thkmin,thkbot,ekman,sigjmp,salmin
-      integer mixfrq,ntracr,nhr
+      integer trcfrq,ntracr,nhr
 c
 c --- 'tenm,onem,...' = pressure thickness values corresponding to 10m,1m,...
 c --- 'g'      = gravity acceleration
@@ -199,11 +205,10 @@ c --- grid point where detailed diagnostics are desired:
       common/testpt/itest,jtest
       integer itest,jtest
 c
-c ---      gridn   --  grid size in degrees longitude,
-c ---      xpivn   --  the i index of the equator
+c ---      equatn   --  the i index of the equator
 c
-      common/grdparms/xpivn,gridn
-      real xpivn,gridn
+      common/grdparms/equatn
+      real equatn
 c
       character*60 flnmdep,flnmrsi,flnmrso,flnmarc,flnmfor,flnmovt
      .            ,flnmini,flnmriv,flnmbas,flnmdia,flnmlat

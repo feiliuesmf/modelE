@@ -1,6 +1,8 @@
 c-----------------------------------------------------------------------------
-      integer idm,jdm,kdm,ms,nrelax,iia,jja,iio,jjo
-      parameter (idm=181,jdm=180,kdm=16,ms=10,nrelax=1)
+      integer idm,jdm,kdm,ms,iia,jja,iio,jjo,ntrcr,iold
+      real equato
+      parameter (idm=195,jdm=180,kdm=20,ms=15,ntrcr=1,equato=115.
+     .                                               ,iold=181)
       parameter (iia=72,jja=46,iio=idm,jjo=jdm)
 c
 c --- ms-1  = max. number of interruptions of any grid row or column by land

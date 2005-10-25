@@ -9,9 +9,9 @@ c --- input  variables: uflxo,vflxo,sigold,pold,kold,thetn
 c --- output variables: uflxn,vflxn,signew,pnew,knew
 c
       implicit none
-#include "dimensions.h"
-#include "dimension2.h"
-#include "common_blocks.h"
+      include 'dimensions.h'
+      include 'dimension2.h'
+      include 'common_blocks.h'
 c
       integer kold,knew,ko
 c
@@ -27,19 +27,21 @@ c
      .     uold(idm,kdm),vold(idm,kdm),oldsig(idm,kdm),
      .     pinteg,uinteg,vinteg,phi,plo,pa,pb,siga,sigb,q,
      .     plft,prgt,pblft,pbrgt,delp,uvscal
-      data uvscal/1.e5/			!  velocity x mesh size  --  SI
-ccc   data uvscal/1.e9/			!  velocity x mesh size  --  cgs
+      logical abort
+      data abort/.false./
+      data uvscal/1.e5/                        !  velocity x mesh size  --  SI
+ccc   data uvscal/1.e9/                        !  velocity x mesh size  --  cgs
 c
 c$OMP PARALLEL DO PRIVATE(ja,colinr,cloutr,pinteg,siga,sigb,phi,plo,
 c$OMP+ pa,pb,q,oldsig)
       do 1 j=1,jj
-      ja=mod(j-2+jdm,jdm)+1
+      ja=mod(j-2+jj,jj)+1
 c
       do 1 l=1,isp(j)
 c
       do 2 k=1,knew
       do 2 i=ifp(j,l),ilp(j,l)
- 2    signew(i,j,k)=theta(k)
+ 2    signew(i,j,k)=thetn(k)
 c
 c --- remove density inversions from input profile
       do 29 i=ifp(j,l),ilp(j,l)
@@ -52,7 +54,7 @@ c
  101  format (2i5,a/(30x,i3,f9.3,f10.2,2f9.3))
  102  format (2i5,a/(30x,i3,2(0p,f10.2,1p,e10.2)))
 cdiag if (i.eq.itest .and. j.eq.jtest) then
-cdiag   write (lp,102) itest,jtest,
+cdiag   write (*,102) itest,jtest,
 cdiag.  '  reflux -- old profile:    dpthu     u         dpthv     v',
 cdiag.  (k,.5*(pold(i,j,k+1)+pold(i-1,j,k+1))/onem,uflxo(i,j,k),
 cdiag.     .5*(pold(i,j,k+1)+pold(i,ja ,k+1))/onem,vflxo(i,j,k),
@@ -66,13 +68,13 @@ c
 c --- column integrals (colin/clout) are computed for diagnostic purposes only
       cloutr(i)=0.
  104  format (2i4,i3,a,1p,2e15.7)
-cdiag if (i.eq.itest.and.j.eq.jtest) write (lp,104) i,j,kold,'  colin:',
+cdiag if (i.eq.itest.and.j.eq.jtest) write (*,104) i,j,kold,'  colin:',
 cdiag.   oldsig(i,kold),(pold(i,j,kold+1)-pold(i,j,kold))
  3    colinr(i)=oldsig(i,kold)*(pold(i,j,kold+1)-pold(i,j,kold))
 c
       do 9 k=1,kold-1
       do 9 i=ifp(j,l),ilp(j,l)
-cdiag if (i.eq.itest.and.j.eq.jtest) write (lp,104) i,j,k,'  colin:',
+cdiag if (i.eq.itest.and.j.eq.jtest) write (*,104) i,j,k,'  colin:',
 cdiag.  oldsig(i,k),(pold(i,j,k+1)-pold(i,j,k))
  9    colinr(i)=colinr(i)+oldsig(i,k)*(pold(i,j,k+1)-pold(i,j,k))
 c
@@ -94,7 +96,7 @@ c
       pinteg=pinteg+pold(i,j,kold+1)*(sigb-siga)
 c
  25   pnew(i,j,k+1)=pinteg/(signew(i,j,k+1)-signew(i,j,k))
-cdiag if (i.eq.itest.and.j.eq.jtest) write (lp,104) i,j,k,'  clout:',
+cdiag if (i.eq.itest.and.j.eq.jtest) write (*,104) i,j,k,'  clout:',
 cdiag.    signew(i,j,k),(pnew(i,j,k+1)-pnew(i,j,k))
       cloutr(i)=cloutr(i)+signew(i,j,k)*(pnew(i,j,k+1)-pnew(i,j,k))
 c --- remove effect of roundoff errors on monotonicity
@@ -102,27 +104,27 @@ c --- remove effect of roundoff errors on monotonicity
  4    continue
 c
       do 6 i=ifp(j,l),ilp(j,l)
-cdiag if (i.eq.itest.and.j.eq.jtest) write (lp,104) i,j,knew,'  clout:',
+cdiag if (i.eq.itest.and.j.eq.jtest) write (*,104) i,j,knew,'  clout:',
 cdiag.    signew(i,j,knew),(pnew(i,j,knew+1)-pnew(i,j,knew))
       cloutr(i)=cloutr(i)+signew(i,j,knew)
      .   *(pnew(i,j,knew+1)-pnew(i,j,knew))
       if (abs(cloutr(i)-colinr(i)).gt.acurcy*thbase*pold(i,j,kold+1))
-     .  write (lp,100) i,j,'  dens. column intgl. error:',colinr(i),
+     .  write (*,100) i,j,'  reflux - bad dens.intgl.',colinr(i),
      .    cloutr(i),(cloutr(i)-colinr(i))/colinr(i)
- 100  format (2i5,a,1p,2e15.7,e9.1)
+ 100  format (2i5,a,1p,2e16.8,e9.1)
  6    continue
  1    continue
 c$OMP END PARALLEL DO
 c
-cdiag write (lp,'(2i5,a/(8f9.3))') itest,jtest,' old density profile:',
+cdiag write (*,'(2i5,a/(8f9.3))') itest,jtest,' old density profile:',
 cdiag.   (sigold(itest,jtest,k)+thbase,k=1,kold)
-cdiag write (lp,'(2i5,a/(8f9.3))') itest,jtest,' new density profile:',
+cdiag write (*,'(2i5,a/(8f9.3))') itest,jtest,' new density profile:',
 cdiag.   (signew(itest,jtest,k)+thbase,k=1,knew)
 c
 c$OMP PARALLEL DO PRIVATE(ja,colinu,colinv,cloutu,cloutv,uinteg,vinteg,
-c$OMP+ siga,sigb,phi,plo,pa,pb,q,delp,uold,vold)
+c$OMP+ siga,sigb,phi,plo,pa,pb,q,delp,uold,vold) SHARED(abort)
       do 21 j=1,jj
-      ja=mod(j-2+jdm,jdm)+1
+      ja=mod(j-2+jj,jj)+1
 c
       do 24 k=1,kold
       do 24 i=1,ii
@@ -144,9 +146,13 @@ c
         colinu(i)=colinu(i)+uold(i,k)
         uold(i,k)=uold(i,k)/delp
       else
-        if (k.eq.1) stop '(reflux error loop 18)'
-        uold(i,k-1)=uold(i,k-1)+uold(i,k)
-        uold(i,k)=0.
+        if (k.eq.1) then
+          write (*,'(a,2i5)') 'reflux error in loop 18 -- i,j =',i,j
+          abort=.true.
+        else
+          uold(i,k-1)=uold(i,k-1)+uold(i,k)
+          uold(i,k)=0.
+        end if
       end if
  18   continue
 c
@@ -172,7 +178,7 @@ c
 c
       do 22 i=ifu(j,l),ilu(j,l)
       if (abs(cloutu(i)-colinu(i)).gt.acurcy*uvscal*depthu(i,j))
-     .    write (lp,100) i,j,'  u column intgl. error:',colinu(i),
+     .  write (*,100) i,j,'  reflux - bad u intgl.',colinu(i),
      .      cloutu(i),(cloutu(i)-colinu(i))/colinu(i)
  22   continue
 c
@@ -191,9 +197,13 @@ c
         colinv(i)=colinv(i)+vold(i,k)
         vold(i,k)=vold(i,k)/delp
       else
-        if (k.eq.1) stop '(reflux error loop 20)'
-        vold(i,k-1)=vold(i,k-1)+vold(i,k)
-        vold(i,k)=0.
+        if (k.eq.1) then
+          write (*,'(a,2i5)') 'reflux error in loop 20 -- i,j =',i,j
+          abort=.true.
+        else
+          vold(i,k-1)=vold(i,k-1)+vold(i,k)
+          vold(i,k)=0.
+        end if
       end if
  20   continue
 c
@@ -219,14 +229,14 @@ c
 c
       do 23 i=ifv(j,l),ilv(j,l)
       if (abs(cloutv(i)-colinv(i)).gt.acurcy*uvscal*depthv(i,j))
-     .    write (lp,100) i,j,'  v column intgl. error:',colinv(i),
+     .  write (*,100) i,j,'  reflux - bad v intgl.',colinv(i),
      .      cloutv(i),(cloutv(i)-colinv(i))/colinv(i)
  23   continue
 c
 cdiag do 21 l=1,isp(j)
 cdiag do 21 i=ifp(j,l),ilp(j,l)
 cdiag if (i.eq.itest .and. j.eq.jtest) then
-cdiag   write (lp,102) itest,jtest,
+cdiag   write (*,102) itest,jtest,
 cdiag.  '  reflux -- new profile:    dpthu     u         dpthv     v',
 cdiag.  (k,.5*(pnew(i,j,k+1)+pnew(i-1,j,k+1))/onem,uflxn(i,j,k),
 cdiag.     .5*(pnew(i,j,k+1)+pnew(i,ja ,k+1))/onem,vflxn(i,j,k),
@@ -235,5 +245,6 @@ cdiag end if
 c
  21   continue
 c$OMP END PARALLEL DO
+      if (abort) stop '(reflux)'
       return
       end

@@ -4,6 +4,7 @@ c --- diffusion equation - tri-diagonal matrix
 c ------------------------------------------------------------------
 c
       subroutine tridcof(diff,tri,nlayer,tcu,tcc,tcl)
+ccc   use mod_xc  ! HYCOM communication interface
       implicit none
 c
       include 'dimensions.h'
@@ -18,13 +19,10 @@ c --- input
 c
 c --- output
       real tcu(kdm),      ! upper coeff. for (k-1) on k line of trid.matrix
-     +     tcc(kdm),      ! central ...      (k  ) ..
-     +     tcl(kdm)       ! lower .....      (k-1) ..
+     &     tcc(kdm),      ! central ...      (k  ) ..
+     &     tcl(kdm)       ! lower .....      (k-1) ..
 c --- common tridiagonal factors
       real tri(kdm,0:1)   ! dt/dz/dz factors in trid. matrix
-c
-c --- local
-css   integer k
 c
 c --- in the surface layer
       tcu(1)=0.
@@ -45,12 +43,12 @@ c --- in the bottom layer
 
 ***********************************************************************
 
-      subroutine tridrhs(h,yo,diff,ghat,ghatflux,tri,nlayer,rhs)
+      subroutine tridrhs(h,yo,diff,ghat,ghatflux,tri,nlayer,rhs,delt1)
+ccc   use mod_xc  ! HYCOM communication interface
       implicit none
 c
       include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
 c
 c --- compute right hand side of tridiagonal matrix for scalar fields:
 c --- =  yo (old field) 
@@ -64,10 +62,11 @@ c ---                     dzb(nlayer)*yo(nlayer+1)
 c
 c --- input
       real h(kdm),         ! layer thickness
-     +     yo(kdm+1),      ! old profile
-     +     diff(kdm+1),    ! diffusivity profile on interfaces
-     +     ghat(kdm+1),    ! ghat turbulent flux   
-     +     ghatflux        ! surface flux for ghat: includes solar flux
+     &     yo(kdm+1),      ! old profile
+     &     diff(kdm+1),    ! diffusivity profile on interfaces
+     &     ghat(kdm+1),    ! ghat turbulent flux   
+     &     ghatflux,       ! surface flux for ghat: includes solar flux
+     &     delt1           ! time step
       integer nlayer
 c
 c --- output
@@ -75,22 +74,19 @@ c --- output
 c
       real tri(kdm,0:1)    ! dt/dz/dz factors in trid. matrix
 c
-c --- local
-css   integer k
-c
 c --- in the top layer
       rhs(1)=yo(1)+delt1/h(1)*(ghatflux*diff(2)*ghat(2))
 c
 c --- inside the domain 
       do 10 k=2,nlayer-1
       rhs(k)=yo(k)+delt1/h(k)*
-     +      (ghatflux*(diff(k+1)*ghat(k+1)-diff(k)*ghat(k)))
+     &      (ghatflux*(diff(k+1)*ghat(k+1)-diff(k)*ghat(k)))
  10   continue
 c
 c --- in the bottom layer     
       k=nlayer
       rhs(k)=yo(k)+delt1/h(k)*
-     +      (ghatflux*(diff(k+1)*ghat(k+1)-diff(k)*ghat(k)))
+     &      (ghatflux*(diff(k+1)*ghat(k+1)-diff(k)*ghat(k)))
 c
       return
       end
@@ -98,6 +94,7 @@ c
 ***********************************************************************
 
       subroutine tridmat(tcu,tcc,tcl,nlayer,h,rhs,yo,yn,diff)
+ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- solve tridiagonal matrix for new vector yn, given right hand side
 c --- vector rhs.
@@ -111,21 +108,18 @@ c
 c
 c --- input
       real tcu (kdm),     ! upper coeff. for (k-1) on k line of tridmatrix
-     +     tcc (kdm),     ! central ...      (k  ) ..
-     +     tcl (kdm),     ! lower .....      (k-1) ..
-     +     h  (kdm),      ! layer thickness
-     +     rhs(kdm),      ! right hand side
-     +     yo(kdm+1),     ! old field
-     +     diff(kdm+1),   ! diffusivity profile
-     +     gam(kdm)       ! temporary array for tridiagonal solver
+     &     tcc (kdm),     ! central ...      (k  ) ..
+     &     tcl (kdm),     ! lower .....      (k-1) ..
+     &     h  (kdm),      ! layer thickness
+     &     rhs(kdm),      ! right hand side
+     &     yo(kdm+1),     ! old field
+     &     diff(kdm+1),   ! diffusivity profile
+     &     gam(kdm)       ! temporary array for tridiagonal solver
       real bet            ! ...
       integer nlayer
 c
 c --- output
       real yn(kdm+1)      ! new field
-c
-c --- local
-css   integer k
 c
 c --- solve tridiagonal matrix.
       bet=tcc(1)
@@ -134,18 +128,23 @@ c --- solve tridiagonal matrix.
       gam(k)=tcl(k-1)/bet
       bet=tcc(k)-tcu(k)*gam(k)
       if(bet.eq.0.) then
-      write(6,*) '** algorithm for solving tridiagonal matrix fails'
-      write(6,*) '** bet=',bet
-      write(6,*) '** k=',k,' tcc=',tcc(k),' tcu=',tcu(k),
-     .           ' gam=',gam(k)
-      bet=1.E-12
+        write(lp,*) 
+        write(lp,*) '** algorithm for solving tridiagonal matrix fails'
+        write(lp,*) '** bet=',bet
+        write(lp,*) '** k=',k,' tcc=',tcc(k),' tcu=',tcu(k),
+     &              ' gam=',gam(k)
+        call flush(lp)
+        stop '(tridmat)'
+*       bet=1.E-12
       endif
-c     to avoid "Underflow" at single precision on the sun
       yn(k) =      (rhs(k)  - tcu(k)  *yn(k-1)  )/bet
+c     to avoid "Underflow" at single precision on the sun
 c     yni   =      (rhs(k)  - tcu(k)  *yn(k-1)  )/bet 
-c     yn(k) = max( (rhs(k)  - tcu(k)  *yn(k-1)  )/bet , 1.E-12 )
-c     if(yni.lt.0.) 
-c    . yn(k) =min( (rhs(k)  - tcu(k)  *yn(k-1)  )/bet ,-1.E-12 )
+c     if(yni.lt.0.) then
+c       yn(k) =min( (rhs(k)  - tcu(k)  *yn(k-1)  )/bet ,-1.E-12 )
+c     else
+c       yn(k) = max( (rhs(k)  - tcu(k)  *yn(k-1)  )/bet , 1.E-12 )
+c     endif
  21   continue
 c
       do 22 k=nlayer-1,1,-1

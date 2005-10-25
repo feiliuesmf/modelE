@@ -340,7 +340,7 @@ c$OMP PARALLEL DO PRIVATE(kn,old)
       do 39 i=ifp(j,l),ilp(j,l)
       old=dp(i,j,kn)
       dp(i,j,kn)=dp(i,j,kn)*pbot(i,j)/p(i,j,kk+1)
-      diaflx(i,j,k)=diaflx(i,j,k)+(dp(i,j,kn)-old)		! diapyc.flux
+      diaflx(i,j,k)=diaflx(i,j,k)+(dp(i,j,kn)-old)                ! diapyc.flux
  39   p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
 c$OMP END PARALLEL DO
 c

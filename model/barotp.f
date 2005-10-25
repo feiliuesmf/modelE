@@ -13,7 +13,7 @@ c
       integer lll,ml,nl,mn,ll,kan,jcyc
       logical vthenu,mxing
       character text*20
-      data damp/1.e-6/			!  newtonian damping
+      data damp/1.e-6/                        !  newtonian damping
 c
 c --- ------------------------------------------------------------------------
 c --- advance barotropic equations from baroclinic time level -m- to level -n-
@@ -31,7 +31,7 @@ c
       mxing=.false.
 ccc      if (mod(4*lll,lstep).eq.0) mxing=.true.
       if (mod(2*lll,lstep).eq.0) mxing=.true.
-ccc      mxing=.true.				!  mix every time step
+ccc      mxing=.true.                                !  mix every time step
 c
 c --- continuity equation
 c
@@ -92,7 +92,7 @@ c --- lateral turb. momentum flux (at vorticity points)
      .            *scq2(i,jb)*2./(scuy(i,j)+scuy(i,jb))
  822  continue
 c$OMP END PARALLEL DO
-      end if				!  mxing = .true.
+      end if                                !  mxing = .true.
 c
 c$OMP PARALLEL DO PRIVATE(jb,utndcy,uglue)
       do 841 j=1,jj
@@ -175,7 +175,7 @@ c --- lateral turb. momentum flux (at vorticity points)
      .            *scq2(ib,j)*2./(scvx(i,j)+scvx(ib,j))
  823  continue
 c$OMP END PARALLEL DO
-      end if				!  mxing = .true.
+      end if                                !  mxing = .true.
 c
 c$OMP PARALLEL DO PRIVATE(ja,vtndcy,vglue)
       do 842 j=1,jj
@@ -238,3 +238,4 @@ c> Aug. 1997 - transferred loops preceding loop 840 to momeq2.f
 c> May  2000 - modified j-1,j+1 to accomodate both channel & closed basin b.c.
 c> Oct. 2000 - added regional viscosity enhancement ('glue(i,j)')
 c> Oct. 2002 - added lateral mixing terms to the momentum equations
+c> Sep. 2005 - referenced to dampu/dampv eliminated

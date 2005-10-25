@@ -140,6 +140,13 @@ c
       real*8 tauxa(iia,jja),tauya(iia,jja),tauxo(iio,jjo),tauyo(iio,jjo)
      .      ,nward(iio,jjo),eward(iio,jjo),tta,tto,sin
 c
+c$OMP PARALLEL DO
+      do 10 j=1,jj
+      do 10 i=1,ii
+      nward(i,j)=0.
+ 10   eward(i,j)=0.
+c$OMP END PARALLEL DO
+c
 c --- rotate taux/tauy to n/e orientation at local p point on panam grid
 c --- average to p point for rotation
 c$OMP PARALLEL DO PRIVATE(jb,sin)

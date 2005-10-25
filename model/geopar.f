@@ -12,9 +12,10 @@ c
       include 'common_blocks.h'
       include 'cpl.h'
       include 'a2o.h'
+      include 'kprf_arrays.h'
 c
       real realat,sphdis,glufac,zero
-      integer idim,jdim,length,iz,jz
+      integer idim,jdim,length,iz,jz,nt
       character util(idm*jdm+14)*2,preambl(5)*79
       real*4 real4(idm,jdm),lat4(idm,jdm,4),lon4(idm,jdm,4)
 c --- 'glufac' = regional viscosity enhancement factor
@@ -40,25 +41,25 @@ c$OMP PARALLEL DO
  9    depths(i,j)=real4(i,j)
 c$OMP END PARALLEL DO
 c
-c --- set minimum depth to be 150m
+c --- set minimum depth to be 30m - done in advance
 cccc$OMP PARALLEL DO
-      do 7 j=1,jj
-      do 7 i=1,ii
- 7    if (depths(i,j).gt.0) depths(i,j)=max(100.,depths(i,j))
+c     do 7 j=1,jj
+c     do 7 i=1,ii
+c7    if (depths(i,j).gt.0.) depths(i,j)=max(30.,depths(i,j))
 cccc$OMP END PARALLEL DO
 c
-c --- reset the Denmark Strait
+c --- reset the Denmark Strait - done in advance
 c
-      depths(69,168)=798.
-      depths(69,169)=798.
-      depths(70,167)=798.
-      depths(70,168)=798.
-      depths(71,167)=798.
+c     depths(69,168)=798.
+c     depths(69,169)=798.
+c     depths(70,167)=798.
+c     depths(70,168)=798.
+c     depths(71,167)=798.
 c
-c --- reset the Iceland-Faeroes ridge
-      do i=72,74
-      depths(i,175)=798.
-      end do
+c --- reset the Iceland-Faeroes ridge - done in advance
+c     do i=72,74
+c     depths(i,175)=798.
+c     end do
 c
       write (lp,*) 'shown below: bottom depth'
       call zebra(depths,idm,ii1,jj)
@@ -110,7 +111,7 @@ c$OMP PARALLEL DO PRIVATE(ja,jb)
       jb=mod(j     ,jj)+1
       do 56 i=1,ii
 c
-      corio(i,j)=sind(latij(i,j,4))*4.*pi/86164.	!  86400 * 365 / 366
+      corio(i,j)=sind(latij(i,j,4))*4.*pi/86164.        !  86400 * 365 / 366
 c
       scpy(i,j)=sphdis(latij(i,j ,2),lonij(i,j ,2),
      .                 latij(i,jb,2),lonij(i,jb,2))
@@ -212,10 +213,29 @@ c$OMP PARALLEL DO
       depthu(i,j)=huge
       depthv(i,j)=huge
       tprime(i,j)=huge
+c
+      srfhgt(i,j)=zero
+      dpmixl(i,j)=zero
+      oice(i,j)=zero
+      taux(i,j)=zero
+      tauy(i,j)=zero
+      oflxa2o(i,j)=zero
+      osalt(i,j)=zero
+      oemnp(i,j)=zero
+      ustar(i,j)=zero
+      sswflx(i,j)=zero
+c
       ubavav(i,j)=zero
       vbavav(i,j)=zero
       pbavav(i,j)=zero
-      montav(i,j)=zero
+      sfhtav(i,j)=zero
+      dpmxav(i,j)=zero
+      oiceav(i,j)=zero
+      eminpav(i,j)=zero
+      surflav(i,j)=zero
+      tauxav(i,j)=zero
+      tauyav(i,j)=zero
+c
       do 209 k=1,kk
       u  (i,j,k   )=huge
       u  (i,j,k+kk)=huge
@@ -223,6 +243,10 @@ c$OMP PARALLEL DO
       v  (i,j,k+kk)=huge
       uflx(i,j,k)=huge
       vflx(i,j,k)=huge
+      ufxcum(i,j,k)=huge
+      vfxcum(i,j,k)=huge
+      dpinit(i,j,k)=huge
+      dpold (i,j,k)=huge
       dp (i,j,k   )=huge
       dp (i,j,k+kk)=huge
       dpu(i,j,k   )=huge
@@ -238,18 +262,20 @@ c
       thermb(i,j,k+kk)=huge
       thermb(i,j,k   )=huge
       thstar(i,j,k)=huge
-      tracer(i,j,k)=zero
-      diaflx(i,j,k)=zero
+      do nt=1,ntrcr
+        tracer(i,j,k,nt)=zero
+      end do
       uav(i,j,k)=zero
       vav(i,j,k)=zero
       dpuav(i,j,k)=zero
       dpvav(i,j,k)=zero
+      dpav (i,j,k)=zero
       temav(i,j,k)=zero
       salav(i,j,k)=zero
       th3av(i,j,k)=zero
-      dpav (i,j,k)=zero
       uflxav(i,j,k)=zero
       vflxav(i,j,k)=zero
+      diaflx(i,j,k)=zero
  209  continue
 c$OMP END PARALLEL DO
 c
@@ -328,6 +354,7 @@ c
       dpu(i,j,k   )=0.
       dpu(i,j,k+kk)=0.
       uflx(i,j,k)=0.
+      ufxcum(i,j,k)=0.
       u(i,j,k   )=0.
  158  u(i,j,k+kk)=0.
 c$OMP END PARALLEL DO
@@ -381,6 +408,7 @@ c
       dpv(i,j,k   )=0.
       dpv(i,j,k+kk)=0.
       vflx(i,j,k)=0.
+      vfxcum(i,j,k)=0.
       v(i,j,k   )=0.
  168  v(i,j,k+kk)=0.
       write (lp,*) '... array layout completed'
@@ -442,8 +470,8 @@ c     open(301,file='agcmgdsz.8bin',status='unknown',form='unformatted')
 c     write(301)dxyp
 c     close(301)
 c
-      if (iio*jjo*((nwgta2o*2 +1)*4+nwgta2o *8).ne.9513360 .or.
-     .    iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8).ne.9513360 .or.
+      if (iio*jjo*((nwgta2o*2 +1)*4+nwgta2o *8).ne.10249200 .or.
+     .    iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8).ne.10249200 .or.
      .    iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8).ne.1550016 ) then
         print *,' wrong coupler=',iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8)
      .  ,iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8)
@@ -474,13 +502,13 @@ c
         stop '(wrong iz/jz in cososino.8bin)'
       endif
 c
-      open(23,file=flnmcosa,form='unformatted',status='old')
-      read(23) iz,jz,cosa,sina
-      close(23)
-      if (iz.ne.iia .or. jz.ne.jja) then
-        print *,' iz,jz=',iz,jz
-        stop '(wrong iz/jz in cosasina.8bin)'
-      endif
+c     open(23,file=flnmcosa,form='unformatted',status='old')
+c     read(23) iz,jz,cosa,sina
+c     close(23)
+c     if (iz.ne.iia .or. jz.ne.jja) then
+c       print *,' iz,jz=',iz,jz
+c       stop '(wrong iz/jz in cosasina.8bin)'
+c     endif
 c
 c     write (lp,*) 'shown below: cosa '
 c     call zebra(cosa,iia,iia,jja)

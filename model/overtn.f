@@ -15,25 +15,29 @@ c
 #include "common_blocks.h"
 c
       integer nbasin
-      parameter (nbasin=3)		!  3 basins (Atl.,Ind.,Pac.)
+      parameter (nbasin=3)                !  3 basins (Atl.,Ind.,Pac.)
       character text*48,flnm*60,ocean(nbasin+1)*8
       real flux(kdm,idm,nbasin+1),heatfl(idm,nbasin+1),sunda(kdm+1),
      .     uflxnw(idm,jdm,kdm),vflxnw(idm,jdm,kdm),signw(idm,jdm,kdm),
      .     pnw(idm,jdm,kdm+1),work(kdm,idm),scale,thru,reviof,x,x1,x3,
      .     thrufl,suheat(kdm+1),
      .     saltfl(idm,nbasin+1),susalt(kdm+1)
-      integer iub,num,imin,imax,indoi,indoj1,indoj2,nio,nb,
-     .        no,imx,imn,it,io,keep,iof,
-     .        imno,imxo,ioa,iob,lgth,maskk(kdm,idm)
+      integer iub,num,imin,imax,indoi,indoj1,indoj2,nio,nb
+     .       ,no,imx,imn,it,io,keep,iof,idrk1,jdrk1,idrk2,jdrk2
+     .       ,imno,imxo,ioa,iob,lgth,maskk(kdm,idm)
 c
       common /basins/ iub(nbasin+1,idm,jdm),num(idm,nbasin+1),
      .       imin(nbasin+1),imax(nbasin+1)
+      save   /basins/
 c
       data ocean/'ATLANTIC','  INDIAN',' PACIFIC','  GLOBAL'/
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- specify segment of -u- points representing Indonesian throughflow
-      data indoi/118/,indoj1,indoj2/55,67/		!  2.0 deg (ieq=115)
+c     data indoi/118/,indoj1,indoj2/54,70/                !  2.0 deg (ieq=115)
+c     data idrk1,jdrk1/148,147/,idrk2,jdrk2/158,149/        !  2.0 deg (ieq=115)
+      data indoi/129/,indoj1,indoj2/53,70/                !  2.0 deg (ieq=122)
+      data idrk1,jdrk1/162,147/,idrk2,jdrk2/172,149/        !  2.0 deg (ieq=122)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       iof(i)=2*i-2
       reviof(x)=.5*(x+2.)
@@ -97,8 +101,8 @@ c
 c
       do 30 k=1,kk+1
       sunda(k)=sunda(k)/onem * 1.e-6
-      susalt(k)=.5*susalt(k)/(-35.*onem) * 1.e-6	! S-ward > 0
- 30   suheat(k)=.5*suheat(k)*spcifh/g * 1.e-15		! S-ward > 0
+      susalt(k)=.5*susalt(k)/(-35.*onem) * 1.e-6        ! S-ward > 0
+ 30   suheat(k)=.5*suheat(k)*spcifh/g * 1.e-15                ! S-ward > 0
 c
 c --- transform hybrid mass fluxes to isopycnal fluxes
 c
@@ -116,10 +120,10 @@ c --- integrate meridional mass fluxes in zonal direction
       if (iub(nb,i,j).eq.1) then
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- optional: exclude mediterranean
-        if (jdm.eq.180) then		!  2.0 deg, equator at i=115
+        if (jdm.eq.180) then                !  2.0 deg, equator at i=115
           if ((i.ge.  91 .and. i.le.  98 .and. j.le.  18)
      .   .or. (i .ge. 95 .and. i.le.  96 .and. j .ge.178)) go to 1
-        else if (jdm.eq.256) then	!  1.4 deg, equator at i=64
+        else if (jdm.eq.256) then        !  1.4 deg, equator at i=64
           if ((i.ge.  29 .and. i.le.  41 .and. j.le.  26)
      .   .or. (i .ge. 36 .and. i.le.  37 .and. j .ge.253)) go to 1
         else
@@ -127,7 +131,7 @@ c --- optional: exclude mediterranean
           stop '(jdm)'
         end if
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        flux(k,i,nb)=flux(k,i,nb)-uflxnw(i,j,k)/onem * 1.e-6	! => Sv
+        flux(k,i,nb)=flux(k,i,nb)-uflxnw(i,j,k)/onem * 1.e-6        ! => Sv
       end if
  1    continue
 c
@@ -147,8 +151,8 @@ c
      .                         *(temp(i,j,km)+temp(i-1,j,km))
       end if
  11   continue
-      saltfl(i,nb)=-.5*saltfl(i,nb)/(-35.*onem) * 1.e-6		! N-ward > 0
- 112  heatfl(i,nb)=-.5*heatfl(i,nb)*spcifh/g * 1.e-15		! N-ward > 0
+      saltfl(i,nb)=-.5*saltfl(i,nb)/(-35.*onem) * 1.e-6                ! N-ward > 0
+ 112  heatfl(i,nb)=-.5*heatfl(i,nb)*spcifh/g * 1.e-15                ! N-ward > 0
 c
 c --- add mass fluxes vertically to produce stream function values
       do 2 k=1,kk
@@ -172,12 +176,12 @@ c --- subtract heat transport through indonesian passage
       if (nbasin.gt.2) then
        if (nb.eq.2) then
         do 41 i=indoi,imax(nb)
-        saltfl(i,nb)=saltfl(i,nb)+susalt(kk+1)		!  Indian
- 41     heatfl(i,nb)=heatfl(i,nb)+suheat(kk+1)		!  Indian
+        saltfl(i,nb)=saltfl(i,nb)+susalt(kk+1)                !  Indian
+ 41     heatfl(i,nb)=heatfl(i,nb)+suheat(kk+1)                !  Indian
        else if (nb.eq.3) then
         do 51 i=indoi+1,imax(nb)
-        saltfl(i,nb)=saltfl(i,nb)-susalt(kk+1)		!  Pacific
- 51     heatfl(i,nb)=heatfl(i,nb)-suheat(kk+1)		!  Pacific
+        saltfl(i,nb)=saltfl(i,nb)-susalt(kk+1)                !  Pacific
+ 51     heatfl(i,nb)=heatfl(i,nb)-suheat(kk+1)                !  Pacific
        end if
       end if
 c
@@ -269,8 +273,8 @@ c
 c
 c --- compute throughflow through various passages
 c
-      x1=thrufl(148,147,158,149,'(Drake Passage)')	!  2.0 deg global
-      x3=thrufl(118,70,118,54,'(Indonesia)')		!  2.0 deg global
+      x1=thrufl(idrk1,jdrk1,idrk2,jdrk2,'(Drake Passage)')
+      x3=thrufl(indoi,indoj1,indoi,indoj2,'(Indonesia)')
 c
       keep=lp
       lp=no
@@ -404,8 +408,8 @@ c
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- define one ocean point at northern tip of each basin
-ccc      data iseed/1,49,1/,jseed/1,65,137/	!  3 basins  1.4deg
-      data iseed/71,104,77/,jseed/164,32,91/	!  3 basins  2.0deg (ieq=115)
+ccc      data iseed/1,49,1/,jseed/1,65,137/        !  3 basins  1.4deg
+      data iseed/71,104,77/,jseed/164,32,91/        !  3 basins  2.0deg (ieq=115)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       if (nbasin.ne.nbasn) then
