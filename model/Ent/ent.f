@@ -1,0 +1,115 @@
+      module ent
+      
+!@sum Contains main routines to perform single time step Ent model simulation
+!@sum on a single grid cell, entcell, whose parameters are set previously by
+!@sum ent_driver routines and the subroutine ent_model called by a 
+!@sum main program.
+
+!@auth N. Kiang
+
+      !Ent MODULES TO USE
+      use ent_const
+      use ent_types
+
+      implicit none
+      private
+      save
+
+      public ent_integrate
+
+      contains
+      !*********************************************************************
+      subroutine ent_integrate(dtsec, time, entcell)
+      use phenology
+      use disturbance
+      use canopyrad
+      use disturbance
+      use reproduction
+      use cohorts
+      use patches
+      use util
+
+      implicit none
+      real*8 :: dtsec  !dt in seconds
+      type(timestruct) :: time !Time in year.fraction, Greenwich Mean Time
+      type(entcelltype) :: entcell
+
+      !dtsec = dtyr*YEARSEC(entdata%tt%year)
+      !Convert to local time here?
+      !---------
+
+      !Flag when it's time to update vegetation structure
+      !May be at set time intervals, or function of biomass accumulation, etc.
+
+      write(*,*) 'Ecosystem dynamics for (long,lat)=(',
+     & entcell%long,entcell%lat,'),time=',time
+
+      if (STRUCT_FLAG(time,entcell)) then
+        !* Update phenology and disturbance
+        call phenology_update (dtsec,time, entcell)
+        call fire_frequency (dtsec,time, entcell)
+        call recalc_radpar (entcell)
+      end if
+
+      call calc_cell_disturbance_rates(dtsec,time,entcell)
+      call ent_bgc(dtsec,time,entcell)
+
+      if (STRUCT_FLAG(time,entcell)) then
+        call reproduction_calc(dtsec, time, entcell)
+        call reorganize_cohorts(entcell)
+      end if
+
+      if (STRUCT_FLAG(time,entcell)) then
+        call reorganize_patches(entcell)
+      end if
+
+      end subroutine ent_integrate
+
+      !*********************************************************************
+
+      function STRUCT_FLAG(time, entcell) Result(update_struct)
+!@sum Flag to determine if it's time to update vegetation structure.
+!@sum Below is a simple beginning-of-the-month flag, but can make more
+!@sum sophisticated as a function of biomass increment, etc.
+
+        type(timestruct) :: time
+        type(entcelltype) :: entcell
+        logical :: update_struct
+        
+        real*8 :: hourfrac
+        
+        hourfrac = time%hour + time%minute/60.0 + time%seconds/3600.0
+        if ((time%day.eq.1).and.
+     &       (hourfrac.eq.0.0)) then
+          update_struct = .true.
+        else
+           update_struct = .false.
+        end if
+      end function STRUCT_FLAG
+
+      !*********************************************************************
+      subroutine ent_bgc(dtsec, time, entcell)
+!@sum Calculate canopy conductance and fluxes of CO2 and N, update pools.
+
+      use biophysics
+      use growthallometry
+      use phenology
+      use soilbgc
+
+      implicit none
+
+      real*8 :: dtsec
+      type(timestruct) :: time
+      type(entcelltype) :: entcell
+
+      call photosynth_cond(dtsec, entcell)
+      call uptake_N(dtsec, entcell)
+      call litter(dtsec, time, entcell)
+      call soil_bgc(dtsec, entcell)
+      
+
+      end subroutine ent_bgc
+
+!*****************************************************************************
+ 
+      end module ent
