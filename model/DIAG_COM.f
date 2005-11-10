@@ -167,7 +167,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
      &     64,17,  62,16,  41,28,  36,28,  57,34,
      &     38,31,  51,30,  63,16,  23,14,  37,30,
      &     23,12,  41,29,  37,29,  40,31 /
-      DATA NAMDD   
+      DATA NAMDD
      &    /'AUSD', 'MWST', 'SAHL', 'EPAC', 'AF01',
      &     'AF02', 'AF03', 'AF04', 'AF05', 'ASA1',
      &     'AF06', 'AME1', 'AF07', 'AF08', 'AF09',
@@ -637,11 +637,11 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,idd_w1,idd_w2,idd_w3,idd_w4,idd_w5,idd_w6
      *     ,idd_w7,idd_w8,idd_w9,idd_w10,idd_w11,idd_phi1,idd_phi2
      *     ,idd_phi3,idd_phi4,idd_phi5,idd_phi6,idd_phi7,idd_phi8
-     *     ,idd_phi9,idd_phi10,idd_phi11  
+     *     ,idd_phi9,idd_phi10,idd_phi11
      *     ,idd_load1,idd_load2,idd_load3,idd_load4,idd_load5
      *     ,idd_load6,idd_load7,idd_load8,idd_load9,idd_load10
      *     ,idd_load11,idd_conc1,idd_conc2,idd_conc3,idd_conc4
-     *     ,idd_conc5,idd_conc6,idd_conc7,idd_conc8,idd_conc9  
+     *     ,idd_conc5,idd_conc6,idd_conc7,idd_conc8,idd_conc9
      *     ,idd_conc10,idd_conc11,idd_emis,idd_emis2
      *     ,idd_tau1,idd_tau2,idd_tau3,idd_tau4
      *     ,idd_tau5,idd_tau6,idd_tau7,idd_tau8,idd_tau9,idd_tau10
@@ -660,7 +660,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,idd_vabl8,idd_uvabl1,idd_uvabl2,idd_uvabl3
      *     ,idd_uvabl4,idd_uvabl5,idd_uvabl6,idd_uvabl7
      *     ,idd_uvabl8,idd_tabl1,idd_tabl2,idd_tabl3,idd_tabl4
-     *     ,idd_tabl5,idd_tabl6,idd_tabl7,idd_tabl8,idd_qabl1   
+     *     ,idd_tabl5,idd_tabl6,idd_tabl7,idd_tabl8,idd_qabl1
      *     ,idd_qabl2,idd_qabl3,idd_qabl4,idd_qabl5,idd_qabl6
      *     ,idd_qabl7,idd_qabl8,idd_zhat1,idd_zhat2,idd_zhat3
      *     ,idd_zhat4,idd_zhat5,idd_zhat6,idd_zhat7,idd_e1,idd_e2
@@ -864,11 +864,11 @@ c idacc-indices of various processes
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
            END IF
-          endif 
+          endif
           CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST)
           CALL ESMF_BCAST(grid, idacc)
           CALL ESMF_BCAST(grid, it   )
-          
+
         CASE (IOREAD_SINGLE)      !
 !ESMF-- Allow all processes to read to avoid scattering monac1 and idac1.
           if (AM_I_ROOT())
@@ -985,7 +985,7 @@ C**** The regular model (Kradia le 0)
 
         Call BCAST_Scalars()
         Call Scatter_Diagnostics()
-        
+
       CASE (IOREAD_SINGLE)      !
         If (AM_I_ROOT()) Then
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ4,
@@ -1034,7 +1034,7 @@ C**** The regular model (Kradia le 0)
         AJK   = AJK4
         AIJK  = AIJK4
 
-        Call Scatter_Diagnostics()
+CCCCC   Call Scatter_Diagnostics()
 
         TSFREZ_LOC(:,J_0:J_1,:)=TSFREZ(:,J_0:J_1,:)
         AJ_loc(J_0:J_1,:,:)=AJ_loc(J_0:J_1,:,:)+AJ(J_0:J_1,:,:)
@@ -1047,7 +1047,7 @@ C**** The regular model (Kradia le 0)
         AIJK_loc(:,J_0:J_1,:,:)=AIJK_loc(:,J_0:J_1,:,:)+
      *       AIJK(:,J_0:J_1,:,:)
 
-          
+
 
 !@var idacc(5) is the length of a time series (daily energy history).
 !****   If combining acc-files, rather than concatenating these series,
