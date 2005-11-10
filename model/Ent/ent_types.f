@@ -328,7 +328,6 @@
       !*****************
       !* SOIL / HYDROLOGY
       !*****************
-      integer,parameter :: N_SOILCOV = 2 !sand, "dirt" (GISS)
       integer,parameter :: N_DEPTH = 6  !Number of soil layers.  Eventually
                                         !this should be taken from hydrology
 
@@ -371,6 +370,7 @@
       !6-evergreen needleleaf forest, 7-tropical rainforest, 8-crops
       !9-boreal forest
       integer,parameter :: N_PFT = 8
+      integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
       integer,parameter :: N_OTHER = 1
 
 !      type(pftype),parameter :: pfpar(N_PFT) =         & !PFT parameters
@@ -390,42 +390,8 @@
       !**NOTE:  Above, sstar and swilt are guesses for all except grassland
       ! and savanna.
 
-      !---  parameters for different types of vegetation
-!---          tundr  grass  shrub  trees  decid evrgr  rainf crops
-      real*8, parameter :: alamax(8) =
-     $     (/ 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0/)
-      real*8, parameter :: alamin(8) =
-     $     (/ 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0/)
 
-      real*8, parameter :: aroot(8) =
-     $     (/ 12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0/)
-      real*8, parameter :: broot(8) =
-     $     (/  1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0/)
-      real*8, parameter :: rsar(8) =
-     $     (/100d0, 100d0, 200d0, 200d0, 200d0, 300d0,250d0, 125d0/)
-      real*8, parameter :: vhght(8) =
-     $     (/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0/)
-! Mean canopy nitrogen (nmv; g/m2[leaf]) and Rubisco factors (nfv) for each
-! vegetation type (adf)
-      real*8, parameter :: nmv(8) =
-     $     (/1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,2.50d0/)
-      real*8, parameter :: nfv(8) =
-     $     (/1.4d0,1.5d0 ,1.3d0 ,1.3d0 ,1.5d0 ,0.9d0,1.1d0,1.3d0 /)
-      integer, parameter :: laday(8) =
-     $     (/ 196,  196,  196,  196,  196,  196,  196,  196/)
-      real*8, parameter :: can_w_coef(8) =
-     &     (/ 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4 /)
 
-! Specific leaf areas (sleafa, kg[C]/m2) (adf, nyk)
-! Values below 1/(m2/kg) to get kg/m2 for multiplying.
-! Sources: White, M.A., et.al. (2000), Earth Interactions, 4:1-85.
-!          Leonardos,E.D.,et.al.(2003), Physiologia Plantarum, 117:521+.
-!               From winter wheat grown at 20 C (20 m2/kg[dry mass])
-!                                      and  5 C (13 m2/kg[dry mass])
-!          Francesco Tubiello, personal communication, crop 18-20 m2/kg.
-      real*8, parameter :: sleafa(8) =
-     $     (/ 1./30.5d0,1./49.0d0,1./30.5d0,1./40.5d0,1./32.0d0,
-     $        1./8.2d0,1./32.0d0,1./18.0d0/)
       !***************************************************
       !*         END - GISS VEGETATION TYPES             *
       !***************************************************
