@@ -372,6 +372,7 @@
       integer,parameter :: N_PFT = 8
       integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
       integer,parameter :: N_OTHER = 1
+      integer,parameter :: N_COVERTYPES = 11
 
 !      type(pftype),parameter :: pfpar(N_PFT) =         & !PFT parameters
 !     !     pst,  hwilt,    sstar, swilt,  nf !
