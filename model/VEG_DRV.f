@@ -662,4 +662,19 @@ C**** Modify the vegetation fractions
       end subroutine updveg
 
 
+#ifndef ENABLE_DYNAMIC_VEGETATION 
+      module DVEG_COUPLER
+!@sum dummy subroutenes. Will be replaced with real ones when model is
+!@+   compiled with dynamic vegetation module
+      implicit none
 
+      contains
+      subroutine step_dveg(dt)
+      real*8 dt
+      end subroutine step_dveg
+
+      subroutine init_dveg
+      end subroutine init_dveg
+
+      end module DVEG_COUPLER
+#endif

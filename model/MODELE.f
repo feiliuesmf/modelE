@@ -713,6 +713,7 @@ C****
       USE MODEL_COM, only: clock
 #endif
       USE ATMDYN, only : init_ATMDYN,CALC_AMPK
+      USE DVEG_COUPLER, only : init_dveg
 
       IMPLICIT NONE
       CHARACTER(*) :: ifile
@@ -1406,6 +1407,7 @@ C**** Recompute Ground hydrology data if redoGH (new soils data)
 C****
       if (Kradia.gt.0) then   !  radiative forcing run
         CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
+        CALL init_dveg   ! needed here ? -I.A.
         CALL init_RAD(istart)
         if(istart.lt.0) CALL init_DIAG(ISTART,num_acc_files)
         WRITE (6,INPUTZ)
@@ -1417,6 +1419,7 @@ C****
         return
       end if                  !  Kradia>0; radiative forcing run
       CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART)
+      CALL init_dveg      ! initialize dynamic vegetation module
 C**** Initialize pbl (and read in file containing roughness length data)
       if(istart.gt.0) CALL init_pbl(iniPBL)
 C****
