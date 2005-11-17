@@ -211,7 +211,7 @@
       !---------------------------------------------------------------
       !              FILL IN CODE                                    
       !---------------------------------------------------------------
-
+      !Not needed in GISS replication test.
       
       end subroutine reorganize_patches
 

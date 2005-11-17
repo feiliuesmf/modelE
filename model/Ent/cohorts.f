@@ -227,7 +227,7 @@
       !---------------------------------------------------------------
       !              FILL IN CODE                                    
       !---------------------------------------------------------------
-
+      !Not need in GISS replication test.
       
       end subroutine reorganize_cohorts
 

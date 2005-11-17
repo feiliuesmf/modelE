@@ -101,12 +101,16 @@
       real*8 :: dtsec
       type(timestruct) :: time
       type(entcelltype) :: entcell
+      type(patch),pointer :: pp
 
-      call photosynth_cond(dtsec, entcell)
-      call uptake_N(dtsec, entcell)
-      call litter(dtsec, time, entcell)
-      call soil_bgc(dtsec, entcell)
-      
+      pp = entcell%oldest
+      do while (allocated(pp))
+        call photosynth_cond(dtsec, pp)
+        call uptake_N(dtsec, pp)
+        call litter(dtsec, time, pp)
+        call soil_bgc(dtsec, pp)
+        pp = pp%younger
+      end do
 
       end subroutine ent_bgc
 

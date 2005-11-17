@@ -39,6 +39,8 @@
       real*8, parameter :: EPS = 1.d-8  !Small error
       real*8, parameter :: EPS2 = 1.d-12 !Smaller error
       
-
+      !************************************************************************
+      !* Geographic variables
+      integer :: JEQUATOR !Will get calculated in ent_init.
 
       end module ent_const

@@ -17,7 +17,7 @@
       !---------------------------------------------------------------
       !              FILL IN CODE                                    
       !---------------------------------------------------------------
-
+      !Not needed in GISS replication test.
 
       end subroutine reproduction_calc
 

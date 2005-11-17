@@ -235,22 +235,23 @@
       real*8 :: Solarzen        !Solar zenith angle
       real*8 :: fdir            !Fraction of surface vis rad that is direct 
 
-      GCANOPY = entcell%GCANOPY
-      Qf = entcell%Qf
-      TcanopyC = entcell%TcanopyC
-      Qv = entcell%Qv
-      P_mbar = entcell%P_mbar
-      Ca = entcell%Ca
-      Soilmoist = entcell%Soilmoist
-      betad = entcell%betad
-      Precip = entcell%Precip
-      Ch = entcell%Ch
-      U = entcell%U
-      IPAR = entcell%IPAR
-      fdir = entcell%fdir
-      Solarzen = entcell%Solarzen
+      GCANOPY = pptr%cellptr%GCANOPY
+      Qf = pptr%cellptr%Qf
+      TcanopyC = pptr%cellptr%TcanopyC
+      Qv = pptr%cellptr%Qv
+      P_mbar = pptr%cellptr%P_mbar
+      Ca = pptr%cellptr%Ca
+      Soilmoist = pptr%cellptr%Soilmoist
+      betad = pptr%cellptr%betad
+      Precip = pptr%cellptr%Precip
+      Ch = pptr%cellptr%Ch
+      U = pptr%cellptr%U
+      IPAR = pptr%cellptr%IPAR
+      fdir = pptr%cellptr%fdir
+      Solarzen = pptr%cellptr%Solarzen
 
       !do loop over cohorts
+      !* GISS replication test hack:  average cohort properties to patch level
       cptr = pptr%tallest
       Ci = cptr%Ci
       do cptr=cptr

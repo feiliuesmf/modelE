@@ -206,7 +206,8 @@
 !****************************************************************************
 !****************************************************************************
       type entcelltype
-         real*8 :: long, lat
+         real*8 :: long, lat      !longitude, latitude
+         integer :: longi, latj    !grid cell i,j
          real*8 :: area         !Area km^2
          type(patch), pointer:: youngest
          type(patch), pointer:: oldest
@@ -232,6 +233,7 @@
          !real*8 :: VOCflux     !Other kind of fluxes, aerosols from fire, etc.
          !Cell-level diagnostic values - BIOLOGICAL
          !e.g. LAI, biomass pools, nitrogen pools, PFT fractions, GDD, GPP, etc
+         real*8 :: LAI
          real*8 :: froot        !Fraction of roots in soil layer
          !-----
          
