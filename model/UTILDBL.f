@@ -154,7 +154,7 @@ C**** parse options
 
       call findunit( iunit )
 
-      write(6,*) "FILEMANAGER: Before Opening file ",trim(filename) !RKF debug
+!dbug write(6,*) "FILEMANAGER: Before Opening file ",trim(filename) !RKF debug
       if ( form == "FORMATTED" ) then
         open( iunit, FILE=filename, FORM=form, STATUS=status,
 #ifdef CONVERT_BIGENDIAN
@@ -169,7 +169,7 @@ C**** parse options
      *       ERR=10 )
       endif
 
-      write(6,*) "FILEMANAGER: Opened file ",trim(filename) !RKF debug
+!dbug write(6,*) "FILEMANAGER: Opened file ",trim(filename) !RKF debug
 
       Units(iunit)%in_use = .true.
       name_len = len_trim(filename)
@@ -524,7 +524,7 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
         write (6,*) " Error in PARAM: Can't use sync_param."
         write (6,*) " Will use default dump_core = ", dump_core
       endif
-#ifdef USE_ESMF      
+#ifdef USE_ESMF
       call mpi_comm_rank(MPI_COMM_WORLD, rank, mpi_err)
 #else
       rank =0
