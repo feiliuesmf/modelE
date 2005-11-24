@@ -93,6 +93,7 @@
          real*8 :: root_d         ! Root half spheroid diameter (m)
          real*8 :: LAI
          real*8 :: clump          ! Leaf clumping parameter (TBA)
+         real*8 :: froot(N_DEPTH) ! Fraction of roots in soil layer
 
          !* BIOMASS POOLS
          real*8 :: LMA            ! Leaf mass per leaf area (kgC/m2-leaf)
@@ -169,6 +170,7 @@
          !* DIAGNOSTIC SUMMARIES
          !* Biomass pools - patch total
          real*8 :: LAI_p
+         real*8 :: froot(N_DEPTH) !Fraction of roots in soil layer
          real*8 :: plant_ag_Cp !Total above-gnd biomass carbon (kgC/m2)
          real*8 :: plant_bg_Cp !Total below-gnd biomass carbon (kgC/m2)
          real*8 :: plant_ag_Np !Total above-gnd nitrogen (kgN/m2)
@@ -234,7 +236,8 @@
          !Cell-level diagnostic values - BIOLOGICAL
          !e.g. LAI, biomass pools, nitrogen pools, PFT fractions, GDD, GPP, etc
          real*8 :: LAI
-         real*8 :: froot        !Fraction of roots in soil layer
+         real*8 :: froot(N_DEPTH)        !Fraction of roots in soil layer
+         real*8 :: C_froot
          !-----
          
 
@@ -292,11 +295,33 @@
 
       !************************************************************************
       !* Ent CONSTANTS
+
+      !********************
+      !* SOIL / HYDROLOGY *
+      !********************
+      integer,parameter :: N_DEPTH = 6  !Number of soil layers.  Eventually
+                                        !this should be taken from hydrology
+
+      !**********************
+      !* RADIATIVE TRANSFER *
+      !**********************
+
+      integer,parameter :: N_BANDS = 3 !Number of spectral bands (VIS,NIR,MIR)
+                                !Expect to adjust to hyperspectral
+
+      !***********************
+      !* ECOLOGICAL DYNAMICS *
+      !***********************
+      integer,parameter :: N_DIST_TYPES = 2 !Number of disturbance types
+
+
       !***********
       !* BIOLOGY *
       !***********
       integer,parameter :: N_PFT = 13 !Number of plant functional types
+      integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
       integer,parameter :: N_OTHER = 0
+      integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
       !* 1 - evergreen broadleaf early successional
       !* 2 - evergreen broadleaf late successional
       !* 3 - evergreen needleleaf early successional
@@ -311,27 +336,17 @@
       !* 12- arctic C3 grass
       !* 13- C4 crops
 
-      integer,parameter :: PST_PFT(N_PFT) !Photosynthetic pathway for pft
-     &     = (/1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 2/)       !1=C3, 2=C4
+!      integer,parameter :: PST_PFT(N_PFT) !Photosynthetic pathway for pft
+!     &     = (/1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 2/)       !1=C3, 2=C4
 
-      real,parameter :: SSTAR_PFT(N_PFT)!Soil moisture stress point for pft
-     &     = (/0.6, 0.6, 0.55, 0.55, 0.5, 0.5, 0.45, 0.5, 0.4, 
-     &     0.65, 0.55, 0.6, 0.65/) !Guesses, except for pfts 7 and 10
+!      real,parameter :: SSTAR_PFT(N_PFT)!Soil moisture stress point for pft
+!     &     = (/0.6, 0.6, 0.55, 0.55, 0.5, 0.5, 0.45, 0.5, 0.4, 
+!     &     0.65, 0.55, 0.6, 0.65/) !Guesses, except for pfts 7 and 10
 
-      real,parameter :: NF_PFT(N_PFT) !Kull&Kruijt ps cap/leaf N param
-     &     = (/1.3, 1.2, 0.9, 0.85, 1.5, 1.4, 1.4, 1.4, 1.3, 
-     &         0.5, 0.76, 1.4, 0.76/)  ! Guesses from Friend&Kiang (2005)
+!      real,parameter :: NF_PFT(N_PFT) !Kull&Kruijt ps cap/leaf N param
+!     &     = (/1.3, 1.2, 0.9, 0.85, 1.5, 1.4, 1.4, 1.4, 1.3, 
+!     &         0.5, 0.76, 1.4, 0.76/)  ! Guesses from Friend&Kiang (2005)
 
-      integer,parameter :: N_DIST_TYPES = 2 !Number of disturbance types
-
-      integer,parameter :: N_BANDS = 3 !Number of spectral bands (VIS,NIR,MIR)
-                                !Expect to adjust to hyperspectral
-
-      !*****************
-      !* SOIL / HYDROLOGY
-      !*****************
-      integer,parameter :: N_DEPTH = 6  !Number of soil layers.  Eventually
-                                        !this should be taken from hydrology
 
       !******************
       !* PATCH DYNAMICS *
@@ -363,40 +378,5 @@
      &     pftype(2,   -100.d0,  .65d0, .27d0,  0.76d0) &
      &     /)
 
-      !***************************************************
-      !*            GISS VEGETATION TYPES                *
-      !***************************************************
-      !Types: These are GISS GCM types until we get full data sets for Ent.
-      !       In addition, boreal forest from BOREAS SOBS is added.
-      !1-tundra, 2-grassland, 3-shrubland, 4-savanna, 5-deciduous forest,
-      !6-evergreen needleleaf forest, 7-tropical rainforest, 8-crops
-      !9-boreal forest
-      integer,parameter :: N_PFT = 8
-      integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
-      integer,parameter :: N_OTHER = 1
-      integer,parameter :: N_COVERTYPES = 11
-
-!      type(pftype),parameter :: pfpar(N_PFT) =         & !PFT parameters
-!     !     pst,  hwilt,    sstar, swilt,  nf !
-!     &           (/                                     &       
-!     &     pftype(1,   -100.d0,  .50d0, .30d0,  1.4d0), &
-!     &     pftype(2,   -100.d0,  .45d0, .27d0,  1.5d0),&
-!     &     pftype(2,   -100.d0,  .65d0, .22d0,  1.3d0),&
-!     &     pftype(2,   -100.d0,  .65d0, .22d0,  1.3d0),&
-!     &     pftype(1,   -100.d0,  .55d0, .29d0,  1.5d0),&
-!     &     pftype(1,   -100.d0,  .60d0, .25d0,  0.9d0),&
-!     &     pftype(1,   -100.d0,  .55d0, .26d0,  1.1d0),&
-!     &     pftype(2,   -100.d0,  .45d0, .27d0,  1.3d0),&
-!     &     pftype(1,   -100.d0,  .50d0, .30d0,  0.76d0)&
-!     &     /)
-
-      !**NOTE:  Above, sstar and swilt are guesses for all except grassland
-      ! and savanna.
-
-
-
-      !***************************************************
-      !*         END - GISS VEGETATION TYPES             *
-      !***************************************************
 
       end module ent_types

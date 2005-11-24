@@ -22,8 +22,13 @@
       end subroutine uptake_N
       !*********************************************************************
 
+      subroutine init_rootdistr(froot, pft)
+      real*8 :: froot(N_DEPTH)
+      integer :: pft
 
+      !GISS TEMPORARY
+      call GISS_calc_froot(froot, pft)
 
-
+      end subroutine init_rootdistr
       !*********************************************************************
       end module growthallometry

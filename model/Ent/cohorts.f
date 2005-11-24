@@ -10,7 +10,7 @@
       contains
       !*********************************************************************
       subroutine insert_cohort(pp,pft,n, h,
-     &     crown_dx, crown_dy,dbh, root_d,LAI,clump,
+     &     crown_dx, crown_dy,dbh, root_d,LAI,clump,froot(:),
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     GCANOPY, GPP, NPP, R_growth,R_maint,
@@ -20,7 +20,8 @@
       integer :: pft, n
       real*8 :: h,
      &     crown_dx, crown_dy,dbh, root_d,LAI,clump,
-     &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
+      real*8 :: froot(:)
+      real*8 :: LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     GCANOPY, GPP, NPP, R_growth,R_maint,
      &     N_up, C_litter,N_litter,C_to_Nfix
@@ -188,30 +189,31 @@
             cop%root_d
             cop%LAI
             cop%clump
+            call init_rootdistr(cop%froot, cop%pft)
 
             !* BIOMASS POOLS *!
-            cop%LMA
-            cop%C_fol
-            cop%N_fol
-            cop%C_sw
-            cop%N_sw
-            cop%C_lab
-            cop%N_lab
-            cop%C_froot
-            cop%N_froot
-            cop%C_croot
-            cop%N_croot
+            cop%LMA = 0.0
+            cop%C_fol = 0.0
+            cop%N_fol = 0.0
+            cop%C_sw = 0.0
+            cop%N_sw = 0.0
+            cop%C_lab = 0.0
+            cop%N_lab = 0.0
+            cop%C_froot = 1.0 !Dummy
+            cop%N_froot = 0.0
+            cop%C_croot = 0.0
+            cop%N_croot = 0.0
 
             !* FLUXES *!
-            cop%GCANOPY
-            cop%GPP
-            cop%NPP
-            cop%R_growth
-            cop%R_maint
-            cop%N_up
-            cop%C_litter
-            cop%N_litter
-            cop%C_to_Nfix
+            cop%GCANOPY = 0.0
+            cop%GPP = 0.0
+            cop%NPP = 0.0
+            cop%R_growth = 0.0
+            cop%R_maint = 0.0
+            cop%N_up = 0.0
+            cop%C_litter = 0.0
+            cop%N_litter = 0.0
+            cop%C_to_Nfix = 0.0
 
             !* REPRODUCTION *!
             !cop%

@@ -22,13 +22,13 @@
         call allocate(gp%youngest%younger)
         gp%youngest%older = gp%youngest
         gp%youngest = gp%youngest%younger
-        call init_patch_defaults(gp%youngest,gp,area)
+        call init_patch(gp%youngest,gp,area)
       else !first patch on entcell
         call allocate(gp%oldest)
         gp%youngest = gp%oldest
         call nullify(gp%oldest%older)
         call nullify(gp%oldest%younger)
-        call init_patch_defaults(gp%oldest, gp, area)
+        call init_patch(gp%oldest, gp, area)
       end if
 
       end subroutine insert_patch
@@ -68,11 +68,24 @@
       pp%age = pp%age + !*TIME SINCE LAST UPDATE *!
       !pp%area=area
       !pp%cellptr = gp
-                                !* Flux variables for GCM/EWB - patch total
+
+      !* Flux variables for GCM/EWB - patch total
       !pp%albedo =               !## Get GISS albveg ##!
-      pp%z0 =                   !## Get GISS z0 ######!
-      pp%GCANOPY = 0.d0         !Will be updated in biophysics.f
-      pp%CO2flux = 0.d0 
+      !pp%z0 =                   !## Get GISS z0 ######!
+      !pp%GCANOPY = 0.d0         !Will be updated in biophysics.f
+      !pp%CO2flux = 0.d0         !Will be updated in biophysics.f
+
+      !* Zero out summary variables *!
+      do n=1,N_PFT
+        pp%albedo(N_BANDS) = 0.0
+        pp%LAI(n) = 0.0
+        pp%froot(n) = 0.0
+        pp%plant_ag_Cp(n) = 0.0
+        pp%plant_bg_C(n) = 0.d0 !## Dummy ##!
+        pp%plant_ag_N(n) = 0.d0 !## Dummy ##!
+        pp%plant_bg_N(n) = 0.d0 !## Dummy ##!
+
+      end do
 
       cop = pp%tallest
       do while(allocated(cop))
@@ -81,51 +94,66 @@
         !              FILL IN CODE                                    
         !---------------------------------------------------------------
 
-        !* Variables calculated by GCM/EWB - downscaled from grid cell
-        pp%Soilmoist =          !## Get GISS soil moisture layers ##!
-        pp%N_deposit = 0.d0
-
         !* Variables for biophysics and biogeochemistry
         !pp%crad%##### = !## Get GORT canopy radiation params ##!
+        !pp%albedo(n) =
 
         !* Disturbance values
-        pp%fuel = 0.d0          !## Dummy ##!
-        pp%ignition_rate =0.d0  !## Dummy ##!
-        pp%lambda1 = 0.d0       !## Dummy ##!
-        pp%disturbance_rate = 0.d0 !## Dummy ##!
+        !pp%fuel = 0.d0          !## Dummy ##!
+        !pp%ignition_rate =0.d0  !## Dummy ##!
+        !pp%lambda1 = 0.d0       !## Dummy ##!
+        !pp%disturbance_rate = 0.d0 !## Dummy ##!
 
         !* DIAGNOSTIC SUMMARIES
-        !* Biomass pools - patch total
+        !* Biomass pools - patch total *!
         pp%LAI_p = pp%LAI_p + cop%LAI
-        pp%plant_ag_Cp = 0.d0   !## Dummy ##!
-        pp%plant_bg_Cp = 0.d0   !## Dummy ##!
-        pp%plant_ag_Np = 0.d0   !## Dummy ##!
-        pp%plant_bg_Np = 0.d0   !## Dummy ##!
+        call sum_roots_cohorts2patch(pp) !froot and C_froot
+
+        sC_froot = sC_froot + cop%C_froot
+        do n=1,N_DEPTH
+          pp%C_froot(n) = froot(n) + cop%C_froot*cop%froot(n)
+        end do
+
+        !* NOTE:  Labile stored carbon can be both above- and below-ground.
+        !*        May want to separate this pool, but for now is added to ag.
+        pp%plant_ag_Cp = pp%plant_ag_Cp + 
+                         cop%C_fol + cop%C_sw + cop%C_hw + cop%C_lab
+        pp%plant_bg_Cp = pp%plant_bg_Cp + cop%C_froot + cop%C_croot
+        pp%plant_ag_Np = pp%plant_ag_Np + 
+                         cop%N_fol + cop%N_sw + cop%N_hw + cop%N_lab
+        pp%plant_bg_Np = pp%plant_bg_Np + cop%N_froot + cop%N_croot
         
-        !* Biomass pools - by pft
-        pp%LAI(pnum) = alai(longi,latj,pnum)
-        pp%plant_ag_C(pnum) = 0.d0 !## Dummy ##!
-        pp%plant_bg_C(pnum) = 0.d0 !## Dummy ##!
-        pp%plant_ag_N(pnum) = 0.d0 !## Dummy ##!
-        pp%plant_bg_N(pnum) = 0.d0 !## Dummy ##!
+        !* Biomass pools - by pft *!
+        pp%LAI(cop%pft) = pp%LAI(cop%pft) + cop%LAI
         
-        !* Soil pools - patch total
-        pp%REW =                !## GET FROM GISS SOIL MOISTURE
-        pp%soil_labile_C = 0.d0 !## Dummy ##!
-        pp%soil_slow_C = 0.d0   !## Dummy ##!
-        pp%soil_labile_N = 0.d0 !## Dummy ##!
-        pp%soil_slow_N = 0.d0   !## Dummy ##!
-        pp%mineral_N = 0.d0     !## Dummy ##!
+        if (cop%pft == pnum) then 
+!        pp%plant_ag_C(pnum) = pp%plant_ag_C(pnum) + 
+!     &       cop%C_fol + cop%C_sw + cop%C_hw
+!        pp%plant_bg_C(pnum) = pp%plant_bg_C(pnum) +
+!     &       cop%C_froot + cop %C_croot
+!        pp%plant_ag_N(pnum) = pp%plant_ag_N(pnum) +
+!     &       cop%N_fol + cop%N_sw + cop%N_hw
+!        pp%plant_bg_N(pnum) = pp%plant_bg_N(pnum) +
+!     &       cop%N_froot + cop%N_croot
+        end if
+
+        !* Soil pools - patch total *!
+!        pp%REW =                !## GET FROM GISS SOIL MOISTURE
+!        pp%soil_labile_C = pp%soil_labile_C +
+!        pp%soil_slow_C = pp%soil_slow_C +
+!        pp%soil_labile_N = pp%soil_labile_N +
+!        pp%soil_slow_N = pp%soil_slow_N +
+!        pp%mineral_N = pp%mineral_N +
 
         !* Rates of change - patch total
-        pp%dadt = 0.d0          !## Dummy ##!
-        pp%dpdt = 0.d0          !## Dummy ##!
-        pp%dwdt = 0.d0          !## Dummy ##!
+!        pp%dadt = 0.d0          !## Dummy ##!
+!        pp%dpdt = 0.d0          !## Dummy ##!
+!        pp%dwdt = 0.d0          !## Dummy ##!
         
         !* Activity diagnostics - can be summed by month, year, etc.
-        pp%GPP = 0.d0           !## Dummy ##!
-        pp%NPP = 0.d0           !## Dummy ##!
-        pp%Soil_resp = 0.d0     !## Dummy ##!
+        pp%GPP = pp%GPP + cop%GPP
+!        pp%NPP = pp%NPP + cop%NPP
+!        pp%Soil_resp = 0.d0     !## Dummy ##!
         
         !Next
         cop = cop%shorter
@@ -135,23 +163,26 @@
 
       !*********************************************************************
 
-      subroutine init_patch_defaults(pp,gp,area)
+      subroutine init_patch(pp,gp,area)
       type(patch),pointer :: pp
       type(entcelltype),pointer :: gp
       real*8 :: area
+      integer :: n
 
             pp%age=0.d0
             pp%area=area
             pp%cellptr = gp
 
             !* Flux variables for GCM/EWB - patch total
-            pp%albedo = !## Get GISS albveg ##!
-            pp%z0 =     !## Get GISS z0 ######!
+            pp%albedo = 0.0!## Get GISS albveg ##!
+            pp%z0 = 0.0    !## Get GISS z0 ######!
             pp%GCANOPY = 0.d0 !Will be updated in biophysics.f
             pp%CO2flux = 0.d0 
 
             !* Variables calculated by GCM/EWB - downscaled from grid cell
-            pp%Soilmoist = !## Get GISS soil moisture layers ##!
+            do n=1,N_DEPTH
+              pp%Soilmoist = 0.0   !## Get GISS soil moisture layers ##!
+            end do
             pp%N_deposit = 0.d0
 
             !* Variables for biophysics and biogeochemistry
@@ -166,13 +197,17 @@
             !* DIAGNOSTIC SUMMARIES
             !* Biomass pools - patch total
             pp%LAI_p = !## Get GISS alai ##!
+            do n=1,N_DEPTH
+              pp%froot(n) = 0.0
+            end do
+
             pp%plant_ag_Cp = 0.d0 !## Dummy ##!
             pp%plant_bg_Cp = 0.d0 !## Dummy ##!
             pp%plant_ag_Np = 0.d0 !## Dummy ##!
             pp%plant_bg_Np = 0.d0 !## Dummy ##!
 
             !* Biomass pools - by pft
-            pp%LAI(pnum) = alai(longi,latj,pnum)
+            pp%LAI(cop%pft) = pp%LAI(cop%pft) + cop%LAI
             pp%plant_ag_C(pnum) = 0.d0 !## Dummy ##!
             pp%plant_bg_C(pnum) = 0.d0 !## Dummy ##!
             pp%plant_ag_N(pnum) = 0.d0 !## Dummy ##!
@@ -196,7 +231,71 @@
             pp%NPP = 0.d0 !## Dummy ##!
             pp%Soil_resp = 0.d0 !## Dummy ##!
 
-      end subroutine init_patch_defaults
+      end subroutine init_patch
+
+      !*********************************************************************
+      !*********************************************************************
+      subroutine sum_roots_cohorts2patch(pp)
+      !@sum Calculate patch-level depth- and mass-weighted average
+      !@sum of fine roots.
+      type(patch),pointer :: pp
+      !-----Local variables-------
+      type(cohort),pointer :: cop
+      integer :: n
+      real*8 :: froot(N_DEPTH)
+      real*8 :: frootC_total
+
+      do n=1,N_DEPTH  !Initialize
+        froot(n) = 0.0
+      end do 
+      frootC_total = 0.0
+
+      cop = pp%tallest
+      do while(allocated(cop)) 
+        frootC_total = frootC_total + cop%C_froot
+        do n=1,N_DEPTH
+          froot(n) = froot(n) + cop%C_froot*cop%froot(n)
+        end do
+        cop = cop%shorter
+      end do
+      if (frootC_total > 0.0) then
+        pp%froot = froot/frootC_total
+      end if
+      pp%C_froot = frootC_total
+
+      end subroutine sum_roots_cohorts2patch
+      !*********************************************************************
+
+      subroutine sum_roots_patches2cell(ecp)
+      !@sum Calculate grid-averaged depth-, mass-, and cover-weighted average
+      !@sum of fine roots.
+      type(entcell),pointer :: ecp
+      !-----Local variables-------
+      type(patch),pointer :: pp
+      integer :: n
+      real*8 :: froot(N_DEPTH)
+      real*8 :: frootC_total
+      real*8 :: cf, tcf !cover fraction, total cover fraction
+
+      do n=1,N_DEPTH
+        froot(n) = 0.0
+      end do
+      frootC_total = 0.0
+      cf = 0.0
+      tcf = 0.0
+
+      pp = ecp%oldest
+      do while (allocated(pp))
+        cf = pp%area/ecp%area
+        tcf = tcf + cf
+        frootC_total = frootC_total + pp%C_froot
+        do n=1,N_DEPTH
+          froot(n) = froot(n) + cf*pp%froot(n)*pp%C_froot
+        end do
+        pp = pp%younger
+      end do
+      ecp%froot = froot/(tcf*frootC_total)
+      end subroutine sum_roots_patches2cell
 
       !*********************************************************************
       !*********************************************************************

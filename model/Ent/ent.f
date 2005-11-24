@@ -114,6 +114,61 @@
 
       end subroutine ent_bgc
 
+      subroutine ent_bgc_GISShack(dtsec, time, entcell)
+!@sum Calculate canopy conductance and fluxes of CO2 and N, update pools.
+!@sum Temporary hack to replicate the grid-cell-level averaging of vegetation
+!@sum properties done in the GISS GCM. 
+
+      use biophysics
+      use growthallometry
+      use phenology
+      use soilbgc
+      use patches
+
+      implicit none
+
+      real*8 :: dtsec
+      type(timestruct) :: time
+      type(entcelltype) :: entcell
+      !--------Local vars--------
+      type(patch),pointer :: pp
+      type(patch),pointer :: tempp
+
+      real*8 :: sfv, salai, svh, snm, snf
+      real*8 :: tfv
+
+      call allocate(tempp)
+      call init_patch(tempp,entcell,entcell%area)
+      sfv = 0.0
+      salai = 0.0
+      svh = 0.0
+      snm = 0.0
+      snf = 0.0
+      almass = 0.0
+      tfv = 0.0
+
+      !Average vegetation properties to grid cell level and put into a
+      !dummy patch structure to pass to biophysics.
+      pp = entcell%oldest
+      do while (allocated(pp))
+        sfv = pp%area/pp%cellptr%area  !vegfraction
+        tfv = tfv + sfv                !Make sure vegfraction adds up to 1.
+        salai = salai + sfv*pp%tallest%LAI !Weighted average by vegfraction
+        svh = svh + sfv*pp%tallest%h
+        snm = snm + sfv*pp%tallest%nm
+        snf = snf + sfv*pfpar(pp%tallest%pft)%nf
+        
+        pp = pp%younger
+      end do
+      salai = salai/tfv                !Account for bare soil not covered.
+      svh = svh/tfv
+      snm = snm/tfv
+      snf = snf/tfv
+      
+      call photosynth_cond(dtsec, pp)
+
+      end subroutine ent_bgc_GISShack
+
 !*****************************************************************************
  
       end module ent
