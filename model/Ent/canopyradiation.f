@@ -43,8 +43,14 @@
       end subroutine get_patchalbedo
 
 
-      subroutine get_gcm_albedo(jday,ALBVNH)
-!@sum get vegetation albedo as it is computed in GISS modelE
+      subroutine GISS_veg_albedo(pft, jday, hemi, albedo)
+!@sum returns albedo for vegetation of type pft 
+!@+   as it is computed in GISS modelE
+      integer, intent(in) :: pft !@var pftlike iv, plant functional type
+      integer, intent(in) :: jday !@jday julian day
+      integer, intent(in) :: hemi !@hemi hemisphere (-1 south, +1 north)
+      real*8, intent(out) :: albedo(6) !@albedo returned albedo
+
       !@var SEASON julian day for start of season (used for veg albedo calc)
 C                      1       2       3       4
 C                    WINTER  SPRING  SUMMER  AUTUMN
@@ -108,45 +114,35 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
      4 .500,.026,.032,.033,.020,.022,.018,.018,.032,.000,.200,.032
      *     /),(/NV,4,6/) )
 C
-!@var jday julian day
-      integer, intent(in) :: jday
-!@var ALBVNH albedo in (..2) - North. Hemisphere, (..1) - South. Hemisphere
-      real*8, intent(out) :: ALBVNH(:,:,:)
 ccc or pass k-vegetation type, L-band and 1 or 2 for Hemisphere
-      integer K,KS1,KS2,KN1,KN2,L
-      real*8 SEASN1,SEASN2,WT2,WT1
-C
-C                      Define Seasonal Albedo Dependence
-C                      ---------------------------------
-C
-      SEASN1=-77.0D0
-      DO K=1,4
-        SEASN2=SEASON(K)
-        IF(JDAY.LE.SEASN2) GO TO 120
-        SEASN1=SEASN2
-      END DO
-      K=1
-      SEASN2=380.0D0
-  120 CONTINUE
-      WT2=(JDAY-SEASN1)/(SEASN2-SEASN1)
-      WT1=1.D0-WT2
-      KS1=1+MOD(K,4)
-      KS2=1+MOD(K+1,4)
-      KN1=1+MOD(K+2,4)
-      KN2=K
+      integer ks1,ks2,kn1,kn2,l,kh1,kh2
+      real*8 seasn1,seasn2,wt2,wt1
+c
+c                      define seasonal albedo dependence
+c                      ---------------------------------
+c
+      seasn1=-77.0d0
+      do k=1,4
+        seasn2=SEASON(k)
+        if(jday.le.seasn2) go to 120
+        seasn1=seasn2
+      end do
+      k=1
+      seasn2=380.0d0
+  120 continue
+      wt2=(jday-seasn1)/(seasn2-seasn1)
+      wt1=1.d0-wt2
+      if ( hemi == -1 ) then    ! southern hemisphere
+        kh1=1+mod(k,4)
+        kh2=1+mod(k+1,4)
+      else                      ! northern hemisphere
+        kh1=1+mod(k+2,4)
+        kh2=k
+      endif
 
-      DO K=1,NV
-      DO L=1,6
-C     -------------------
-C     Southern Hemisphere
-C     -------------------
-        ALBVNH(K,L,1)=WT1*ALBVND(K,KS1,L)+WT2*ALBVND(K,KS2,L)
-C     -------------------
-C     Northern Hemisphere
-C     -------------------
-        ALBVNH(K,L,2)=WT1*ALBVND(K,KN1,L)+WT2*ALBVND(K,KN2,L)
-      END DO
-      END DO
+      do l=1,6
+        albedo(l)=wt1*ALBVND(pft,kh1,l)+wt2*ALBVND(pft,kh2,l)
+      enddo
 
       end subroutine get_gcm_albedo
 
