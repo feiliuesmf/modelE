@@ -147,8 +147,8 @@ c
       end subroutine get_gcm_albedo
 
 
-
       !*********************************************************************
+
       subroutine recalc_radpar(entcell)
 !@sum Calculate canopy radiation geometrical parameters following structural
 !@sum changes.

@@ -242,7 +242,7 @@
          
 
          !VEGETATION - PRIVATE
-!         real*8 :: Ci           !Internal foliage CO2 (mol/m3) !!Cohort level
+         real*8 :: Ci           !Internal foliage CO2 (mol/m3) !!Cohort level
          real*8 :: Qf           !Foliage surface vapor mixing ratio (kg/kg)
 
          !METEOROLOGICAL - IMPORT STATE VARIABLES

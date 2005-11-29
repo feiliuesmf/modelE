@@ -17,8 +17,8 @@
      &     N_up, C_litter,N_litter,C_to_Nfix
 
       type(patch),pointer :: pp
-      integer :: pft, n
-      real*8 :: h,
+      integer :: pft
+      real*8 :: n, h,
      &     crown_dx, crown_dy,dbh, root_d,LAI,clump,
       real*8 :: froot(:)
       real*8 :: LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,

@@ -164,8 +164,18 @@
       svh = svh/tfv
       snm = snm/tfv
       snf = snf/tfv
-      
-      call photosynth_cond(dtsec, pp)
+
+      call sum_roots_patches2cell(entcell)
+
+      !* Put entcell grid-average values into a hack patch data structure.
+      !* One cohort with grid-averaged values.
+      !* Dummy 1.0 values are used for parameters not relevant to GISS ModelE
+      call insert_cohort(tempp,entcell%oldest%tallest%pft,
+     &     1.0, svh, 1.0, 1.0, 1.0, 1.0, salai, 1.0, entcell%froot,
+     &     1.0, 1.0,1.0,1.0,1.0,1.0,1.0,
+     &     
+       
+      call photosynth_cond(dtsec, tempp)
 
       end subroutine ent_bgc_GISShack
 

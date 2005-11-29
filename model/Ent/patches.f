@@ -266,37 +266,6 @@
       end subroutine sum_roots_cohorts2patch
       !*********************************************************************
 
-      subroutine sum_roots_patches2cell(ecp)
-      !@sum Calculate grid-averaged depth-, mass-, and cover-weighted average
-      !@sum of fine roots.
-      type(entcell),pointer :: ecp
-      !-----Local variables-------
-      type(patch),pointer :: pp
-      integer :: n
-      real*8 :: froot(N_DEPTH)
-      real*8 :: frootC_total
-      real*8 :: cf, tcf !cover fraction, total cover fraction
-
-      do n=1,N_DEPTH
-        froot(n) = 0.0
-      end do
-      frootC_total = 0.0
-      cf = 0.0
-      tcf = 0.0
-
-      pp = ecp%oldest
-      do while (allocated(pp))
-        cf = pp%area/ecp%area
-        tcf = tcf + cf
-        frootC_total = frootC_total + pp%C_froot
-        do n=1,N_DEPTH
-          froot(n) = froot(n) + cf*pp%froot(n)*pp%C_froot
-        end do
-        pp = pp%younger
-      end do
-      ecp%froot = froot/(tcf*frootC_total)
-      end subroutine sum_roots_patches2cell
-
       !*********************************************************************
       !*********************************************************************
       !*********************************************************************
