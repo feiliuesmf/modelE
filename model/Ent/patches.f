@@ -22,13 +22,21 @@
         call allocate(gp%youngest%younger)
         gp%youngest%older = gp%youngest
         gp%youngest = gp%youngest%younger
+        call nullify(gp%youngest%tallest)
+        call nullify(gp%youngeset%shortest)
+        call allocate(gp%youngest%sumcohort)
+        call allocate(gp%youngest%avgcohort)
         call init_patch(gp%youngest,gp,area)
       else !first patch on entcell
         call allocate(gp%oldest)
         gp%youngest = gp%oldest
-        call nullify(gp%oldest%older)
-        call nullify(gp%oldest%younger)
-        call init_patch(gp%oldest, gp, area)
+        call nullify(gp%youngest%older)
+        call nullify(gp%youngest%younger)
+        call nullify(gp%youngest%tallest)
+        call nullify(gp%youngeset%shortest)
+        call allocate(gp%youngest%sumcohort)
+        call allocate(gp%youngest%avgcohort)
+        call init_patch(gp%youngest,gp,area)
       end if
 
       end subroutine insert_patch
@@ -58,7 +66,7 @@
       end subroutine delete_patch
 
       !*********************************************************************
-      subroutine summarize_patch(pp)
+      subroutine summarize_patch_OLD(pp)
       !* Recalculates patch-level summary values, parsing through cohorts.
       type(patch),pointer :: pp
       type(cohort),pointer :: cop
@@ -159,6 +167,102 @@
         cop = cop%shorter
       end do
 
+      end subroutine summarize_patch_OLD
+
+      !*********************************************************************
+      subroutine sum_patch(pp)
+      !* Recalculates patch-level summary values, parsing through cohorts.
+      !* Put sums in pp%sumcohort
+      type(patch),pointer :: pp
+      type(cohort),pointer :: acop, cop
+      !-----Local variables-------
+      integer :: n
+
+      !If !allocated(pp) ERROR
+      
+      !* Flux variables for GCM/EWB - patch total
+      !pp%albedo =               !## Get GISS albveg ##!
+      !pp%z0 =                   !## Get GISS z0 ######!
+      !pp%GCANOPY = 0.d0         !Will be updated in biophysics.f
+      !pp%CO2flux = 0.d0         !Will be updated in biophysics.f
+
+      acop = pp%sumcohort
+
+      !* Zero out summary variables *!
+      call zero_cohort(acop)
+
+      cop = pp%tallest
+      do while(allocated(cop))
+        !Sum up biomass, carbon, nitrogen pools
+        !---------------------------------------------------------------
+        !              FILL IN CODE                                    
+        !---------------------------------------------------------------
+
+        !* Variables for biophysics and biogeochemistry
+        !pp%crad%##### = !## Get GORT canopy radiation params ##!
+        !pp%albedo(n) =
+
+        !* Disturbance values
+        !pp%fuel = 0.d0          !## Dummy ##!
+        !pp%ignition_rate =0.d0  !## Dummy ##!
+        !pp%lambda1 = 0.d0       !## Dummy ##!
+        !pp%disturbance_rate = 0.d0 !## Dummy ##!
+
+        !* DIAGNOSTIC SUMMARIES
+                                !* Biomass pools - patch total *!
+        acop%LAI = acop%LAI + cop%LAI
+        call sum_roots_cohorts2patch(pp) !froot and C_froot
+
+        sC_froot = sC_froot + cop%C_froot
+        do n=1,N_DEPTH
+          pp%C_froot(n) = froot(n) + cop%C_froot*cop%froot(n)
+        end do
+
+        !* NOTE:  Labile stored carbon can be both above- and below-ground.
+        !*        May want to separate this pool, but for now is added to ag.
+        pp%plant_ag_Cp = pp%plant_ag_Cp + 
+                         cop%C_fol + cop%C_sw + cop%C_hw + cop%C_lab
+        pp%plant_bg_Cp = pp%plant_bg_Cp + cop%C_froot + cop%C_croot
+        pp%plant_ag_Np = pp%plant_ag_Np + 
+                         cop%N_fol + cop%N_sw + cop%N_hw + cop%N_lab
+        pp%plant_bg_Np = pp%plant_bg_Np + cop%N_froot + cop%N_croot
+        
+        !* Biomass pools - by pft *!
+        pp%LAI(cop%pft) = pp%LAI(cop%pft) + cop%LAI
+        
+        if (cop%pft == pnum) then 
+!        pp%plant_ag_C(pnum) = pp%plant_ag_C(pnum) + 
+!     &       cop%C_fol + cop%C_sw + cop%C_hw
+!        pp%plant_bg_C(pnum) = pp%plant_bg_C(pnum) +
+!     &       cop%C_froot + cop %C_croot
+!        pp%plant_ag_N(pnum) = pp%plant_ag_N(pnum) +
+!     &       cop%N_fol + cop%N_sw + cop%N_hw
+!        pp%plant_bg_N(pnum) = pp%plant_bg_N(pnum) +
+!     &       cop%N_froot + cop%N_croot
+        end if
+
+        !* Soil pools - patch total *!
+!        pp%REW =                !## GET FROM GISS SOIL MOISTURE
+!        pp%soil_labile_C = pp%soil_labile_C +
+!        pp%soil_slow_C = pp%soil_slow_C +
+!        pp%soil_labile_N = pp%soil_labile_N +
+!        pp%soil_slow_N = pp%soil_slow_N +
+!        pp%mineral_N = pp%mineral_N +
+
+        !* Rates of change - patch total
+!        pp%dadt = 0.d0          !## Dummy ##!
+!        pp%dpdt = 0.d0          !## Dummy ##!
+!        pp%dwdt = 0.d0          !## Dummy ##!
+        
+        !* Activity diagnostics - can be summed by month, year, etc.
+        pp%GPP = pp%GPP + cop%GPP
+!        pp%NPP = pp%NPP + cop%NPP
+!        pp%Soil_resp = 0.d0     !## Dummy ##!
+        
+        !Next
+        cop = cop%shorter
+      end do
+
       end subroutine summarize_patch
 
       !*********************************************************************
@@ -172,6 +276,24 @@
             pp%age=0.d0
             pp%area=area
             pp%cellptr = gp
+
+            !* sumcohort *!
+            call zero_cohort(pp%sumcohort)
+            cop = pp%sumcohort
+            cop%pptr = pp
+            cop%pft = 0
+            cop%n = 0
+            cop%nm = 0.0
+            cop%Ntot = 0.0
+
+            !* avgcohort *!
+            call zero_cohort(pp%avgcohort)
+            cop = pp%avgcohort
+            cop%pptr = pp
+            cop%pft = 0
+            cop%n = 0
+            cop%nm = 0.0
+            cop%Ntot = 0.0
 
             !* Flux variables for GCM/EWB - patch total
             pp%albedo = 0.0!## Get GISS albveg ##!

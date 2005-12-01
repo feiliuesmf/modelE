@@ -165,59 +165,67 @@
       end subroutine assign_cohort
       !*********************************************************************
       subroutine init_cohort_defaults(cop,pnum)
-      !Initialize a cohort with default values
+!     @sum Initialize a cohort with default values
       type(cohort),pointer :: cop
       integer :: pnum
 
-            cop%pft = pnum
-            cop%n = 1   !## Dummy ##!
-!            cop%pptr = pp
-!            call nullify(cop%taller) !Only one cohort
-!            call nullify(cop%shorter)
-!            call nullify(cop%csptaller)
-!            call nullify(cop%cspshorter)            
+      cop%pft = pnum
+      cop%n = 1                 !## Dummy ##!
+!     cop%pptr = pp
+!     call nullify(cop%taller) !Only one cohort
+!     call nullify(cop%shorter)
+!     call nullify(cop%csptaller)
+!     call nullify(cop%cspshorter)            
 
-            cop%nm = pfpar(pnum,5)  !## This is nf.  Need to calc nm ##!
-            cop%Ntot = !## Get from GISS GCM ##!
+      cop%nm = pfpar(pnum,5)    !## This is nf.  Need to calc nm ##!
+      cop%Ntot =                !## Get from GISS GCM ##!
+      
+      call zero_cohort(cop)
+      
+      end subroutine init_cohort_defaults(cop, pnum)
 
-            !* Individual plant properties *!
-            !* GEOMETRY *!
-            cop%h
-            cop%crown_dx
-            cop%crown_dy
-            cop%dbh
-            cop%root_d
-            cop%LAI
-            cop%clump
-            call init_rootdistr(cop%froot, cop%pft)
+      subroutine zero_cohort(cop)
+!@sum Zero all real variables in cohort record.      
+      type(cohort),pointer :: cop
 
-            !* BIOMASS POOLS *!
-            cop%LMA = 0.0
-            cop%C_fol = 0.0
-            cop%N_fol = 0.0
-            cop%C_sw = 0.0
-            cop%N_sw = 0.0
-            cop%C_lab = 0.0
-            cop%N_lab = 0.0
-            cop%C_froot = 1.0 !Dummy
-            cop%N_froot = 0.0
-            cop%C_croot = 0.0
-            cop%N_croot = 0.0
+      !* Individual plant properties *!
+      !* GEOMETRY *!
+      cop%h
+      cop%crown_dx
+      cop%crown_dy
+      cop%dbh
+      cop%root_d
+      cop%LAI
+      cop%clump
+      call init_rootdistr(cop%froot, cop%pft)
 
-            !* FLUXES *!
-            cop%GCANOPY = 0.0
-            cop%GPP = 0.0
-            cop%NPP = 0.0
-            cop%R_growth = 0.0
-            cop%R_maint = 0.0
-            cop%N_up = 0.0
-            cop%C_litter = 0.0
-            cop%N_litter = 0.0
-            cop%C_to_Nfix = 0.0
+      !* BIOMASS POOLS *!
+      cop%LMA = 0.0
+      cop%C_fol = 0.0
+      cop%N_fol = 0.0
+      cop%C_sw = 0.0
+      cop%N_sw = 0.0
+      cop%C_lab = 0.0
+      cop%N_lab = 0.0
+      cop%C_froot = 1.0         !Dummy
+      cop%N_froot = 0.0
+      cop%C_croot = 0.0
+      cop%N_croot = 0.0
+      
+      !* FLUXES *!
+      cop%GCANOPY = 0.0
+      cop%GPP = 0.0
+      cop%NPP = 0.0
+      cop%R_growth = 0.0
+      cop%R_maint = 0.0
+      cop%N_up = 0.0
+      cop%C_litter = 0.0
+      cop%N_litter = 0.0
+      cop%C_to_Nfix = 0.0
 
-            !* REPRODUCTION *!
-            !cop%
-      end subroutine init_cohort_defaults
+      !* REPRODUCTION *!
+      !cop%
+      end subroutine zero_cohort
 
 
       !*********************************************************************

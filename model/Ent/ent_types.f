@@ -147,7 +147,9 @@
          type(patch),pointer :: younger !Pointer to next younger patch
          type(cohort),pointer :: tallest !Pointer to tallest cohort
          type(cohort),pointer :: shortest !Pointer to shortest cohort
-         
+         type(cohort),pointer :: sumcohort !Sums of properties of cohorts.
+         type(cohort),pointer :: avgcohort !Average properties of cohorts.
+
          !* Flux variables for GCM/EWB - patch total
          real*8 :: albedo(N_BANDS) !Spectral albedo, average over patch
          real*8 :: z0              !Roughness length, average over patch
@@ -169,21 +171,8 @@
 
          !* DIAGNOSTIC SUMMARIES
          !* Biomass pools - patch total
-         real*8 :: LAI_p
-         real*8 :: froot(N_DEPTH) !Fraction of roots in soil layer
-         real*8 :: plant_ag_Cp !Total above-gnd biomass carbon (kgC/m2)
-         real*8 :: plant_bg_Cp !Total below-gnd biomass carbon (kgC/m2)
-         real*8 :: plant_ag_Np !Total above-gnd nitrogen (kgN/m2)
-         real*8 :: plant_bg_Np !Total below-gnd nitrogen (kgN/m2)
-         !real*8 :: etc. foliage, sapwood, labile, storage, etc.
-
-         !* Biomass pools - by pft
-         real*8 :: LAI(N_PFT)
-         real*8 :: plant_ag_C(N_PFT) !Total above-gnd biomass carbon (kgC/m2)
-         real*8 :: plant_bg_C(N_PFT) !Total below-gnd biomass carbon (kgC/m2)
-         real*8 :: plant_ag_N(N_PFT) !Total above-gnd nitrogen (kgN/m2)
-         real*8 :: plant_bg_N(N_PFT) !Total below-bnd nitrogen (kgN/m2)
-         !real*8 :: etc. foliage, sapwood, labile, storage, etc.
+         !* SEE avgcohort and sumcohort
+         
 
          !* Soil pools - patch total
          real*8 :: REW               !Relative extractable water (REW)
