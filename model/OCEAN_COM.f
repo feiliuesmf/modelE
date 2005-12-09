@@ -128,3 +128,8 @@ C****
       END SUBROUTINE init_solar
 C****
       END MODULE SW2OCEAN
+
+      subroutine alloc_static_ocean(grid) ! dummy routine
+      USE DOMAIN_DECOMP, only : GRID
+      return
+      end subroutine alloc_static_ocean

@@ -335,29 +335,29 @@ ccc be computed (i.e. f[bv] is not zero)
 C***
 C***   Thread Private Common Block GHYTPC
 C***
-!$    COMMON /GHYTPC/
-!$   &     abeta,abetab,abetad,abetap,abetat,abetav,acna,acnc,agpp
-!$   &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
-!$   &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu,aflmlt,aintercep
-!$   &     ,ashg,atrg,betad,betat,ch,gpp,d,devapbs_dt,devapvs_dt
-!$   &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb,epbs,epvs,epvg  ! dt dlm
-!$   &     ,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
-!$   &     ,evapbs,evapdl,evapvd,evapvs,evapvw,evapvg,f !evapor,
-!$   &     ,fb,fc,fch,fd,fd0,fh,fhsng,fhsng_scale,fice,flmlt,flmlt_scale
-!$   &     ,fm,fr,fr_sat,fr_snow,fv,fw,fw0,h,hsn,ht !hlm
-!$   &     ,htdrips,htdripw,htpr,htprs,pr,pres,prs,q,qk,qm1,qs
-!$   &     ,rho,rnf,rnff,shc,sl,snowd,snowm,snsh,snsh_tot !veg rs,
-!$   &     ,snshs,srht,tbcs,theta,thetm,thets,thrm_tot,thrmsn !thm
-!$   &     ,top_index,top_stdev,tp,trht,ts,tsn1,vsm,w,ws,wsn,xinfc,xk
-!$   &     ,xkh,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
-!$   &     ,ijdebug,n,nsn !nth
-!$   &     ,flux_snow,wsn_for_tr,trans_sw
+      COMMON /GHYTPC/
+     &     abeta,abetab,abetad,abetap,abetat,abetav,acna,acnc,agpp
+     &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
+     &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu,aflmlt,aintercep
+     &     ,ashg,atrg,betad,betat,ch,gpp,d,devapbs_dt,devapvs_dt
+     &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb,epbs,epvs,epvg  ! dt dlm
+     &     ,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
+     &     ,evapbs,evapdl,evapvd,evapvs,evapvw,evapvg,f !evapor,
+     &     ,fb,fc,fch,fd,fd0,fh,fhsng,fhsng_scale,fice,flmlt,flmlt_scale
+     &     ,fm,fr,fr_sat,fr_snow,fv,fw,fw0,h,hsn,ht !hlm
+     &     ,htdrips,htdripw,htpr,htprs,pr,pres,prs,q,qk,qm1,qs
+     &     ,rho,rnf,rnff,shc,sl,snowd,snowm,snsh,snsh_tot !veg rs,
+     &     ,snshs,srht,tbcs,theta,thetm,thets,thrm_tot,thrmsn !thm
+     &     ,top_index,top_stdev,tp,trht,ts,tsn1,vsm,w,ws,wsn,xinfc,xk
+     &     ,xkh,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
+     &     ,ijdebug,n,nsn !nth
+     &     ,flux_snow,wsn_for_tr,trans_sw
 
 !----------------------------------------------------------------------!
-!$   &     ,i_bare,i_vege,process_bare,process_vege
+     &     ,i_bare,i_vege,process_bare,process_vege
 #ifdef TRACERS_WATER
-!$   &     ,trpr, tr_surf, tr_w, tr_wsn,tr_evap,tr_rnff ! ntg
-!$   &     ,atr_evap,atr_rnff,atr_g
+     &     ,trpr, tr_surf, tr_w, tr_wsn,tr_evap,tr_rnff ! ntg
+     &     ,atr_evap,atr_rnff,atr_g
 #endif
 c     not sure if it works with derived type. if not - comment the
 c     next line out (debug_data used only for debug output)
@@ -782,8 +782,8 @@ c     fr(k) is the fraction of roots in layer k
 c     Get canopy conductivity cnc and gpp
         qv  = qsat(tp(0,2)+tfrz,lhe,pres) ! for cond_scheme==2
         call veg_conductance(
-     &       cnc 
-     &       ,gpp 
+     &       cnc
+     &       ,gpp
      &       ,trans_sw       !nyk
      &       ,betad          ! evaporation efficiency
      &       ,tp(0,2)          ! canopy temperature C
@@ -899,7 +899,7 @@ c     evapvw is wet evaporation from canopy (from interception)
         evapvg = min(epvg,evap_max_vegsoil)
         ! keep evapv <= epv
         evapvg = min( evapvg, epv - evapvd*fd - evapvw*fw )
-        evapvg = max( evapvg, 0.d0 )        
+        evapvg = max( evapvg, 0.d0 )
 #endif
 !      evapor(2) = fr_snow(2)*fm*evapvs + (1.-fr_snow(2)*fm)*
 !     &     ( theta(0,2)*evapvw + (1.-theta(0,2))*evapvd )
@@ -1030,7 +1030,7 @@ ccc   for bare soil drip is precipitation
       htdrips(1) = min( htpr, 0.d0 )
       dripw(1) = pr - drips(1)
       htdripw(1) = htpr - htdrips(1)
-      if ( snow_cover_same_as_rad .ne. 0 ) then 
+      if ( snow_cover_same_as_rad .ne. 0 ) then
 #define TRY_TO_MELT_FRESH_SNOW_ON_WARM_GROUND
 #ifdef TRY_TO_MELT_FRESH_SNOW_ON_WARM_GROUND
         do ibv=1,2
@@ -1784,10 +1784,10 @@ cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
         call update_veg_locals(evap_tot(2), rho, rhow, ch, vsm,qs)
 
 #ifdef TRACERS_WATER
-C**** finalise surface tracer concentration here        
+C**** finalise surface tracer concentration here
         tot_w1 = fb*( w(1,1)*(1.d0-fr_snow(1))
      &       + wsn(1,1)*fr_snow(1) )
-     &       + fv*( w(0,2)*(1.d0-fm*fr_snow(2)) 
+     &       + fv*( w(0,2)*(1.d0-fm*fr_snow(2))
      &       + wsn(1,2)*fm*fr_snow(2) )
         if ( tot_w1 > 1.d-30 ) then
           atr_g(:ntg) =         ! instantaneous
@@ -2742,7 +2742,7 @@ ccc soil layers
       enddo
 
 ccc evap from bare soil
-      if ( process_bare .and. evapb >= 0.d0 ) then        
+      if ( process_bare .and. evapb >= 0.d0 ) then
         evap_tmp(:m) = evapb*(1.d0-fr_snow(1))
 #ifdef TRACERS_SPECIAL_O18
         if ( evap_tmp(1)*dts < wi(1,1) .and. tp(1,1) > 0.d0 ) then
