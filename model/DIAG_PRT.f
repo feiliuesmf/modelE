@@ -1854,24 +1854,16 @@ C
       END DO
 C****
 C**** Calculate a density field on tracer grid, edge pressure
-C**** (Check this!)
+C****     (not quite ok if K-1 is underground?)
       DO K=1,KM-1
       DO J=1,JM
-        IF (K.eq.1) RHO(J,K)=100.*PME(K)/(RGAS*(tf+AJK(J,K,jk_temp)/
-     *       (AJK(J,K,jk_dpa)+teeny)))
-        IF (K.gt.1) RHO(J,K)=100.*PME(K)/(RGAS*(tf+AJK(J,K-1,jk_temp)/
-     *       (AJK(J,K-1,jk_dpa)+teeny)+
-     *       (AJK(J,K  ,jk_temp)/(AJK(J,K-1,jk_dpa)+teeny)
+        IF (K.eq.1) RHO(J,K)=100.*PME(K)/(RGAS*(tf+
+     *        AJK(J,K  ,jk_temp)/(AJK(J,K  ,jk_dpa)+teeny)))
+        IF (K.gt.1) RHO(J,K)=100.*PME(K)/(RGAS*(tf+
+     *        AJK(J,K-1,jk_temp)/(AJK(J,K-1,jk_dpa)+teeny)+
+     *       (AJK(J,K  ,jk_temp)/(AJK(J,K  ,jk_dpa)+teeny)
      *       -AJK(J,K-1,jk_temp)/(AJK(J,K-1,jk_dpa)+teeny))
      *       *(PME(K)-PLM(K-1))/(PLM(K)-PLM(K-1))))
-        IF(RHO(J,K).LE.1.D-10) THEN
-c          print*,"rho<1d-10",j,k,rho(j,k)
-          RHO(J,K)=100.*PME(K)/(RGAS*(tf+AJK(J+1,K-1,jk_temp)/
-     *         (AJK(J+1,K-1,jk_dpa)+teeny)+
-     *         (AJK(J+1,K  ,jk_temp)/(AJK(J+1,K-1,jk_dpa)+teeny)
-     *         -AJK(J+1,K-1,jk_temp)/(AJK(J+1,K-1,jk_dpa)+teeny))
-     *         *(PME(K)-PLM(K-1))/(PLM(K)-PLM(K-1))))
-        END IF
       END DO
       END DO
 C****

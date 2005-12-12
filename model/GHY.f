@@ -1563,7 +1563,7 @@ ccc should be removed when program is rewritten in a more clean way...
 !         endif
       enddo
 
-      if(tp(1,1).gt.100.d0.or.tp(0,2).gt.100.d0
+      if(tp(1,1).gt.120.d0.or.tp(0,2).gt.120.d0
      &     .or. tp(1,1)<-150.d0 .or. tp(0,2)<-150.d0 )then
         write(6,*)'retp tp bounds error'
         write(6,*)'ijdebug',ijdebug
@@ -1571,7 +1571,7 @@ ccc should be removed when program is rewritten in a more clean way...
         call hydra
         call outw(1)
         call stop_model(
-     &       'retp: tground > 100C - see soil_outw and fort.99',255)
+     &       'retp: tground > 120C - see soil_outw and fort.99',255)
       endif
       return
       end subroutine retp
@@ -1607,7 +1607,7 @@ ccc     rest of the fluxes
 
 ccc   do we need this check ?
       if ( w(0,2) < 0.d0 ) then
-        if (w(0,2) < -1.d-12) call stop_model('GHY:Canopy H2O < 0',255)
+        if (w(0,2)<-1.d-12)write(0,*)'GHY:CanopyH2O<0 at',ijdebug,w(0,2)
         w(0,2) = 0.d0
       endif
 
@@ -2851,8 +2851,10 @@ c     &           ibv, i, flmlt(ibv), fr_snow(ibv)
      $       - pr + evap_tot(1) + sum(rnff(1:n,1)) + rnf(1)
         if (abs(error_water)>1.d-15)
      $       write(99,*)'bare',ijdebug,error_water
-        if ( abs( error_water ) > 1.d-13 )
-     &       call stop_model('GHY: water conservation problem',255)
+        if ( abs( error_water ) > 1.d-13 ) then
+c    &       call stop_model('GHY: water conservation problem',255)
+           write(0,*)'evap_tot(1)',ijdebug,evap_tot(1)
+        endif
       endif
 
       ! vegetated soil
@@ -2861,10 +2863,10 @@ c     &           ibv, i, flmlt(ibv), fr_snow(ibv)
      &       - pr + evap_tot(2) + sum(rnff(1:n,2)) + rnf(2)
         if (abs(error_water)>1.d-15)
      $       write(99,*)'vege',ijdebug,error_water
-        if ( abs( error_water ) > 1.d-13 ) then
-          write(99,*)'evap_tot(2)',evap_tot(2)
-          call stop_model(
-     &       'GHY: water conservation problem in veg. soil',255)
+        if ( abs( error_water ) > 1.d-10 ) then
+          write(0,*)'evap_tot(2)',ijdebug,evap_tot(2)
+c         call stop_model(
+c    &       'GHY: water conservation problem in veg. soil',255)
         endif
       endif
 
@@ -2920,7 +2922,7 @@ c     &           ibv, i, flmlt(ibv), fr_snow(ibv)
      &       + rnf(2)*max(tp(1,2),0.d0) )
      &       - srht - trht + thrm_tot(2) + snsh_tot(2)
 
-      if ( abs( error_energy ) > 1.d-5) call stop_model(
+      if ( abs( error_energy ) > 1.d-4) call stop_model(
      &     'GHY: energy conservation problem in veg. soil',255)
       endif
 
