@@ -20,8 +20,8 @@
       USE TRDIAG_COM, only : taijn  => taijn_loc
       USE TRDIAG_COM, only : tajln  => tajln_loc
 
-!!!!  USE TRDIAG_COM, only : taijln 
-!!!!  USE TRDIAG_COM, only : taijn 
+!!!!  USE TRDIAG_COM, only : taijln
+!!!!  USE TRDIAG_COM, only : taijn
 !!!!  USE TRDIAG_COM, only : tajln
       USE TRDIAG_COM, only : tij_mass
       USE TRDIAG_COM, only : tij_conc
@@ -160,7 +160,7 @@ C**** Save current value in TCONSRV(NI)
       implicit none
       integer, intent(in) :: nt
 !@var total = zonal total of tracer (kg)
-      real*8, intent(out), 
+      real*8, intent(out),
      *        dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: total
       real*8 :: sstm,stm
       integer :: i,j,l,ltop
@@ -218,7 +218,7 @@ C****
 !@var NT index denoting tracer number
       INTEGER, INTENT(IN) :: nt
 !@var DTRACER change of conserved quantity at this time
-      REAL*8, DIMENSION(Jm) :: DTRACER
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DTRACER
       INTEGER :: j,nm
       REAL*8 stm
 
@@ -466,9 +466,9 @@ C****
       USE GEOM, only: bydxyp,dxyp,lat_dg
       USE TRACER_COM
       USE DIAG_COM, only: linect,plm,acc_period,qdiag,lm_req,apj,ia_dga
-      USE TRDIAG_COM, only : PDSIGJL 
-      USE TRDIAG_COM, only : tajln  
-      USE TRDIAG_COM, only : tajls 
+      USE TRDIAG_COM, only : PDSIGJL
+      USE TRDIAG_COM, only : tajln
+      USE TRDIAG_COM, only : tajls
       USE TRDIAG_COM, only : lname_jln
       USE TRDIAG_COM, only : sname_jln
       USE TRDIAG_COM, only : units_jln
@@ -493,7 +493,7 @@ C****
       USE TRDIAG_COM, only : jlnt_cldh2o
 #endif
       USE TRDIAG_COM, only : jlnt_nt_tot
-      USE TRDIAG_COM, only : jlnt_nt_mm 
+      USE TRDIAG_COM, only : jlnt_nt_mm
       USE TRDIAG_COM, only : jlnt_lscond
       USE TRDIAG_COM, only : jlnt_turb
       USE TRDIAG_COM, only : jlnt_vt_tot
@@ -536,7 +536,7 @@ C****
       onespo(1)  = fim
       onespo(jm) = fim
       ones(:) = 1.d0
-      byapo(1:JM)=bydxyp(1:JM)*onespo(1:JM)/fim 
+      byapo(1:JM)=bydxyp(1:JM)*onespo(1:JM)/fim
       do L=1,LS1-1
         pdsigjl(1:JM,L)=dsig(l)*onespo(1:JM)*APJ(1:JM,1)/
      *     (fim*IDACC(ia_dga)+teeny)
@@ -708,8 +708,8 @@ C**** TURBULENCE (or Dry Convection)
   400 CONTINUE
 C****
 C**** JL Specials (incl. Sources and sinks)
-C**** Partial move towards correct units (kg/(mb m^2 s)). 
-C**** Plot depends on jwt_jls. 
+C**** Partial move towards correct units (kg/(mb m^2 s)).
+C**** Plot depends on jwt_jls.
 C**** Note that only jwt_jls=3 is resolution independent.
 C****
       do k=1,ktajls
@@ -721,12 +721,12 @@ C****
           CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm,
      *         tajls(1,1,k),scalet,onespo,ones,jls_ltop(k),jwt_jls(k)
      *         ,jgrid_jls(k))
-          
+
         case (2)   !  area weighting (like kg/m^2 s)
           CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm
      *         ,tajls(1,1,k),scalet,bydxyp,ones,jls_ltop(k),jwt_jls(k)
      *         ,jgrid_jls(k))
-          
+
         case (3)   !  area + pressure weighting (like kg/mb m^2 s)
           CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm
      *         ,tajls(1,1,k),scalet,byapo,ones,jls_ltop(k),jwt_jls(k)
@@ -893,7 +893,7 @@ C**** WHEN JWT=1, THE INSIDE NUMBERS ARE NOT AREA WEIGHTED AND THE
 C****    HEMISPHERIC AND GLOBAL NUMBERS ARE SUMMATIONS.
 C**** WHEN JWT=2, ALL NUMBERS ARE PER UNIT AREA.
 C**** WHEN JWT=3, ALL NUMBERS ARE PER UNIT AREA AND PRESSURE, THE
-C****    VERTICAL INTEGRAL GIVES TOTAL 
+C****    VERTICAL INTEGRAL GIVES TOTAL
 C**** JG INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE
@@ -968,7 +968,7 @@ C****
 
 c GISS-ESMF EXCEPTIONAL CASE
 c   Hemisphere specific Loops and I/O issues, plus
-c   N-Hemi, S-Hemi, and Global Sums 
+c   N-Hemi, S-Hemi, and Global Sums
 
 
       DO 230 JHEMI=1,2
@@ -1004,9 +1004,9 @@ c   N-Hemi, S-Hemi, and Global Sums
         HSUM(2) = HSUM(2)+FHEM(2)*DSIG(L)/SDSIG
         GSUM    = GSUM   +FGLOB  *DSIG(L)/SDSIG
       ELSE
-        HSUM(1) = HSUM(1)+FHEM(1)*PJSUM(1) 
+        HSUM(1) = HSUM(1)+FHEM(1)*PJSUM(1)
         HSUM(2) = HSUM(2)+FHEM(2)*PJSUM(2)
-        GSUM    = GSUM   +FGLOB 
+        GSUM    = GSUM   +FGLOB
         FGLOB=2.*FGLOB/(PJSUM(1)+PJSUM(2))
       ENDIF
 C**** Output for each layer
@@ -1017,7 +1017,7 @@ C**** Output for each layer
   240 CONTINUE   ! loop over Layer
       WRITE (6,905) (DASH,J=JG,JM,INC)
       IF (JWT.eq.3) THEN ! scale integrated sums to look neater
-        ASUM(:)= ASUM(:)*1d-3 
+        ASUM(:)= ASUM(:)*1d-3
         HSUM(:)= HSUM(:)*1d-3
         GSUM   = GSUM   *1d-3
       END IF
@@ -1085,7 +1085,7 @@ C****
       USE TRDIAG_COM, only : tij_mass
 #ifdef TRACERS_DRYDEP
       USE TRDIAG_COM, only : tij_drydep
-      USE TRDIAG_COM, only : tij_gsdep 
+      USE TRDIAG_COM, only : tij_gsdep
 #endif
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : tij_prec
@@ -1264,7 +1264,7 @@ C**** Fill in maplet indices for sources and sinks
 #endif
 #if (defined TRACERS_AEROSOLS_Koch)
        if (name(k)(1:8).eq.'DMS_con_' .or. name(k)(1:8).eq.
-     *   'SO2_con_' .or. name(k)(1:8).eq.'SO4_con_') ijtype(k)=2 
+     *   'SO2_con_' .or. name(k)(1:8).eq.'SO4_con_') ijtype(k)=2
 #endif
       end do
 

@@ -2,10 +2,10 @@
 
 #ifdef TRACERS_ON
 !@sum  TRACERS: generic tracer routines used for all tracers
-!@+    Routines included: 
+!@+    Routines included:
 !@+      Generic diags: set_generic_tracer_diags
-!@+      Apply previously set sources: apply_tracer_sources 
-!@+      Radioactive Decay: tdecay 
+!@+      Apply previously set sources: apply_tracer_sources
+!@+      Radioactive Decay: tdecay
 !@+      Gravitaional Settling: trgrav
 !@+      Check routine: checktr
 !@auth Jean Lerner/Gavin Schmidt
@@ -41,14 +41,14 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("supsatfac",supsatfac)
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-C**** decide on AEROCOM or standard emissions 
+C**** decide on AEROCOM or standard emissions
       call sync_param("imAER",imAER)
-C**** decide if preindustrial emissions  
+C**** decide if preindustrial emissions
       call sync_param("imPI",imPI)
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-C**** decide on AEROCOM or interactive emissions 
+C**** decide on AEROCOM or interactive emissions
       CALL sync_param('imDUST',imDUST)
 #endif
 #ifdef TRACERS_QUARZHEM
@@ -78,7 +78,7 @@ C**** Get factor to convert from mass mixing ratio to volume mr
 C****
 C**** TAJLN(J,L,KQ,N)  (SUM OVER LONGITUDE AND TIME OF)
 C****
-C**** jlq_power Exponent associated with a physical process 
+C**** jlq_power Exponent associated with a physical process
 C****      (for printing tracers).   (ntm_power+jlq_power)
 C**** jls_power Exponent associated with a source/sink (for printing)
 C**** Defaults for JLN
@@ -90,8 +90,8 @@ C**** Tracer concentration
       do n=1,ntm
         k = 1        ! <<<<< Be sure to do this
         jlnt_conc = k
-        sname_jln(k,n) = trim(trname(n))//'_CONCENTRATION' 
-        lname_jln(k,n) = trim(trname(n))//' CONCENTRATION' 
+        sname_jln(k,n) = trim(trname(n))//'_CONCENTRATION'
+        lname_jln(k,n) = trim(trname(n))//' CONCENTRATION'
         jlq_power(k) = 0.
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),cmr(n))
         scale_jlq(k) = 1.d0
@@ -102,8 +102,8 @@ C**** Tracer concentration
 C**** Tracer mass
         k = k + 1
         jlnt_mass = k
-        sname_jln(k,n) = trim(trname(n))//'_MASS' 
-        lname_jln(k,n) = trim(trname(n))//' MASS' 
+        sname_jln(k,n) = trim(trname(n))//'_MASS'
+        lname_jln(k,n) = trim(trname(n))//' MASS'
         jlq_power(k) = 4
 #ifdef TRACERS_AEROSOLS_Koch
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)+13
@@ -118,8 +118,8 @@ C**** Tracer mass
 C****   TRACER CONCENTRATION IN CLOUD WATER
         k = k + 1
         jlnt_cldh2o = k
-        sname_jln(k,n) = trim(trname(n))//'_WM_CONC' 
-        lname_jln(k,n) = trim(trname(n))//' CLOUD WATER CONCENTRATION' 
+        sname_jln(k,n) = trim(trname(n))//'_WM_CONC'
+        lname_jln(k,n) = trim(trname(n))//' CLOUD WATER CONCENTRATION'
         jlq_power(k) = 4
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)
      *       ,'kg/kg water')
@@ -128,7 +128,7 @@ C****   TRACER CONCENTRATION IN CLOUD WATER
 #endif
 C**** Physical processes affecting tracers
 C****   F (TOTAL NORTHWARD TRANSPORT OF TRACER MASS)  (kg)
-        k = k + 1 
+        k = k + 1
         jlnt_nt_tot = k
         sname_jln(k,n) = 'tr_nt_tot_'//trname(n)
         lname_jln(k,n) = 'TOTAL NORTHWARD TRANSPORT OF '//
@@ -137,7 +137,7 @@ C****   F (TOTAL NORTHWARD TRANSPORT OF TRACER MASS)  (kg)
         jgrid_jlq(k) = 2
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
 C****   STM/SM (MEAN MERIDIONAL N.T. OF TRACER MASS)  (kg)
-        k = k + 1 
+        k = k + 1
         jlnt_nt_mm = k
         sname_jln(k,n) = 'tr_nt_mm_'//trname(n)
         lname_jln(k,n) = 'NORTHWARD TRANS. OF '//
@@ -189,7 +189,7 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY DRY CONVEC)  (kg)
       end do
 
       if (k.gt. ktajl) then
-        write (6,*) 
+        write (6,*)
      &   'tjl_defs: Increase ktajl=',ktajl,' to at least ',k
         call stop_model('ktajl too small',255)
       end if
@@ -209,7 +209,7 @@ C**** Set defaults that are true for all tracers and layers
 C**** Tracer concentrations (TAIJLN)
       do n=1,ntm
       do l=1,lm
-        write(sname_ijt(l,n),'(a,i2.2)') trim(TRNAME(n))//'_L_',l 
+        write(sname_ijt(l,n),'(a,i2.2)') trim(TRNAME(n))//'_L_',l
         write(lname_ijt(l,n),'(a,i2)')   trim(TRNAME(n))//' L ',l
         units_ijt(l,n) = unit_string(ijtc_power(n),cmr(n))
         scale_ijt(l,n) = MMR_to_VMR(n)*10.**(-ijtc_power(n))
@@ -245,7 +245,7 @@ C**** Surface concentration
      *                 REAL(NIsurf,KIND=8)
 #ifdef TRACERS_WATER
 C**** the following diagnostics are set assuming that the particular
-C**** tracer exists in water. 
+C**** tracer exists in water.
 C**** Tracers in precipitation (=Wet deposition)
       k = k+1
       tij_prec = k
@@ -341,7 +341,7 @@ C**** Tracers conc. in lakes (layer 2)
           units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
         end if
         scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
-C**** Tracers conc. in soil water 
+C**** Tracers conc. in soil water
       k = k+1
       tij_soil = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_Soil'
@@ -377,7 +377,7 @@ C**** Tracers dry deposition flux.
 #endif
 
       if (k .gt. ktaij) then
-        write (6,*) 
+        write (6,*)
      &   'tij_defs: Increase ktaij=',ktaij,' to at least ',k
         call stop_model('ktaij too small',255)
       end if
@@ -423,12 +423,12 @@ C**** diagnostics
           taijs(:,:,naij) = taijs(:,:,naij) + trsource(:,:,ns,n)*dtstep
           najl = jls_source(ns,n)
           IF (najl > 0) THEN
-            DO J=1,Jm
+            DO J=J_0,J_1
               tajls(j,1,najl) = tajls(j,1,najl)+
      *             sum(trsource(1:imaxj(j),j,ns,n))*dtstep
             END  DO
           END IF
-          DO J=1,Jm
+          DO J=J_0,J_1
             dtracer(j)=0.
             do i=1,imaxj(j)
               dtracer(j)=dtracer(j)+trsource(i,j,ns,n)*dtstep
@@ -442,9 +442,9 @@ C**** trflux1 is total flux into first layer
 cC**** Interactive sources  ! this is definitely not right.
 cC**** diagnostics
 c        do ns=1,ntisurfsrc(n)
-c         naij = ijts_isrc(ns,n)  
+c         naij = ijts_isrc(ns,n)
 c         taijs(:,:,naij) = taijs(:,:,naij) + trsrfflx(:,:,n)*dtstep
-c         najl = jls_isrc(ns,n)   
+c         najl = jls_isrc(ns,n)
 c         do j=1,jm
 c           tajls(j,1,najl) = tajls(j,1,najl)+
 c     *         sum(trsrfflx(1:imaxj(j),j,n))*dtstep
@@ -452,15 +452,17 @@ c         end do
 cc        call DIAGTCA(itcon_surf(ns,n),n)  ????
 c        end do
 C**** modify vertical moments (only from non-interactive sources)
-        trmom( mz,:,:,1,n) = trmom( mz,:,:,1,n)-1.5*trflux1(:,:,n)
+       do j=j_0,j_1
+        trmom( mz,:,j,1,n) = trmom( mz,:,j,1,n)-1.5*trflux1(:,j,n)
      *       *dtstep
-        trmom(mzz,:,:,1,n) = trmom(mzz,:,:,1,n)+0.5*trflux1(:,:,n)
+        trmom(mzz,:,j,1,n) = trmom(mzz,:,j,1,n)+0.5*trflux1(:,j,n)
      *       *dtstep
 
 C**** Accumulate interactive sources as well
-        trflux1(:,:,n) = trflux1(:,:,n)+trsrfflx(:,:,n)
+        trflux1(:,j,n) = trflux1(:,j,n)+trsrfflx(:,j,n)
+       end do
 
-C**** Technically speaking the vertical moments should be modified here 
+C**** Technically speaking the vertical moments should be modified here
 C**** as well. But for consistency with water vapour we only modify
 C**** moments for dew.
         do j=J_0,J_1
@@ -575,7 +577,7 @@ C****
 
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
-      if (ifirst) then               
+      if (ifirst) then
         do n=1,ntm
           if (trdecay(n).gt.0.0) expdec(n)=exp(-trdecay(n)*dtsrc)
         end do
@@ -621,7 +623,7 @@ C**** atmospheric diagnostics
      *           +trwm(1:imaxj(j),j,l,n)
 #endif
      *           -told(1:imaxj(j),j,l))
-          enddo 
+          enddo
           enddo
 
 
@@ -634,7 +636,7 @@ C****
 
 
       SUBROUTINE TRGRAV
-!@sum TRGRAV gravitationally settles particular tracers 
+!@sum TRGRAV gravitationally settles particular tracers
 !@auth Gavin Schmidt/Reha Cakmur
       USE CONSTANT, only : grav,deltx,lhe,rgas
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo,t,q
@@ -644,18 +646,22 @@ C****
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius
      *     ,trname
       USE TRDIAG_COM, only : tajls=>tajls_loc,jls_grav
+      USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
       real*8 :: stokevdt,fgrfluxd,fluxd,fluxu,press,airden,temp,rh,qsat
      *     ,vgs
-      real*8, dimension(im,jm,lm) :: told
+      real*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told
       integer n,najl,i,j,l
+      integer :: J_0, J_1
+
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
       do n=1,ntm
         if (trradius(n).gt.0. .and. itime.ge.itime_tr0(n)) then
-C**** Gravitational settling 
+C**** Gravitational settling
 !$OMP  PARALLEL DO PRIVATE (l,i,j,press,airden,temp,rh,stokevdt,
 !$OMP* fgrfluxd,fluxd,fluxu)
-          do j=1,jm
+          do j=J_0,J_1
           do i=1,imaxj(j)
             fluxd=0.
             do l=lm,1,-1        ! loop down
@@ -663,17 +669,17 @@ C**** Gravitational settling
 C**** air density + relative humidity (wrt water)
               press=pmid(l,i,j)
               temp=pk(l,i,j)*t(i,j,l)
-              airden=100.d0*press/(rgas*temp*(1.+q(i,j,l)*deltx)) 
+              airden=100.d0*press/(rgas*temp*(1.+q(i,j,l)*deltx))
               rh=q(i,j,l)/qsat(temp,lhe,press)
 
 C**** calculate stoke's velocity (including possible hydration effects
 C**** and slip correction factor)
-              stokevdt=dtsrc*vgs(airden,rh,n)           
+              stokevdt=dtsrc*vgs(airden,rh,n)
 
               fluxu=fluxd       ! from previous level
 
 C**** Calculate height differences using geopotential
-              if (l.eq.1) then  ! layer 1 
+              if (l.eq.1) then  ! layer 1
                 fgrfluxd=0.     ! calc now done in PBL
 c               fgrfluxd=stokevdt*grav/(gz(i,j,l)-zatmo(i,j))
 c#ifdef TRACERS_DRYDEP
@@ -695,7 +701,7 @@ c#endif
           najl = jls_grav(n)
           IF (najl > 0) THEN
             do l=1,lm
-              do j=1,jm
+              do j=J_0,J_1
                 tajls(j,l,najl)=tajls(j,l,najl)
      &               +sum(trm(1:imaxj(j),j,l,n)-told(1:imaxj(j),j,l))
               enddo
@@ -726,11 +732,11 @@ C****
       real*8 r_h,den_h,rh
 #endif
 
-C**** calculate stoke's velocity 
+C**** calculate stoke's velocity
       vgs=2.*grav*trpdens(n)*trradius(n)**2/(9.*visc_air)
 
 #ifdef TRACERS_AEROSOLS_Koch
-c need to hydrate the sea salt before determining settling	    
+c need to hydrate the sea salt before determining settling
       if (trname(n).eq.'seasalt1' .or. trname(n).eq.'seasalt2')
      *     then
         rh=max(0.01d0,min(rh1,0.99d0))
@@ -738,14 +744,14 @@ c hydrated radius
         r_h=(c1*trradius(n)**(c2)/(c3*trradius(n)**(c4)-log10(rh))
      *       + trradius(n)**3)**by3
 c hydrated density
-        den_h=((r_h**3 - trradius(n)**3)*1000.d0 
+        den_h=((r_h**3 - trradius(n)**3)*1000.d0
      *       + trradius(n)**3*trpdens(n))/r_h**3
         vgs=2.*grav*den_h*r_h**2/(9.*visc_air)
       end if
 #endif
 C**** slip correction factor
 c wmf is the additional velocity if the particle size is small compared
-c   to the mean free path of the air; important in the stratosphere  
+c   to the mean free path of the air; important in the stratosphere
       frpath=1d-3*mair/(pi*rt2*avog*airden*(dair)**2.)
       wmf=frpath/trradius(n)*(s1+s2*exp(-s3*trradius(n)/frpath))
       vgs=(1.d0+wmf)*vgs
@@ -769,7 +775,7 @@ C****
       USE DOMAIN_DECOMP, only : READT_PARALLEL, REWIND_PARALLEL
       USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
       implicit none
-      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     tlca,tlcb,data
       real*8 :: frac
       integer imon,iu,jdlast
@@ -853,7 +859,7 @@ C**** check for negative tracer amounts (if t_qlimit is set)
           do i=1,imaxj(j)
             if (trm(i,j,l,n).lt.0) then
               write(6,*) "Negative mass for ",trname(n),i,j,l,trm(i,j,l
-     *             ,n)," after ",SUBR,"." 
+     *             ,n)," after ",SUBR,"."
               QCHECKT=.true.
             end if
           end do
@@ -864,9 +870,9 @@ C**** check for negative tracer amounts (if t_qlimit is set)
         end if
 
 C**** check whether air mass is conserved
-        
+
         if (trname(n).eq.'Air') then
-          errmax = 0. ; lmax=1 ; imax=1 ; jmax=1 
+          errmax = 0. ; lmax=1 ; imax=1 ; jmax=1
           do l=1,lm
           do j=j_0,j_1
           do i=1,imaxj(j)
@@ -882,7 +888,7 @@ C**** check whether air mass is conserved
      *         ,jmax,lmax,errmax,trm(imax,jmax,lmax,n),am(lmax,imax
      *         ,jmax)*dxyp(jmax)
         end if
-      
+
 #ifdef TRACERS_WATER
         if (trname(n).eq.'Water') then
           errmax = 0. ; lmax=1 ; imax=1 ; jmax=1
@@ -898,7 +904,7 @@ C**** check whether air mass is conserved
             if ((wm(i,j,l).eq.0 .and.trwm(i,j,l,n).gt.1) .or. (wm(i,j,l)
      *           .gt.teeny .and.trwm(i,j,l,n).eq.0))
      *           print*,"Liquid water mismatch: ",subr,i,j,l,trwm(i,j,l
-     *           ,n),wm(i,j,l)*am(l,i,j)*dxyp(j) 
+     *           ,n),wm(i,j,l)*am(l,i,j)*dxyp(j)
             do m=1,nmom
               relerr=max(relerr,(trmom(m,i,j,l,n)-qmom(m,i,j,l)*am(l,i,j
      *             )*dxyp(j))/errsc)
@@ -929,7 +935,7 @@ C**** check whether air mass is conserved
 !@sum  io_tracer reads and writes tracer variables to file
 !@auth Jean Lerner
 !@ver  1.0
-#ifdef TRACERS_ON      
+#ifdef TRACERS_ON
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
       USE DOMAIN_DECOMP, only : grid, AM_I_ROOT
       USE DOMAIN_DECOMP, only :   PACK_DATA,   PACK_COLUMN
@@ -965,7 +971,7 @@ C**** check whether air mass is conserved
 
       write (MODULE_HEADER(lhead+1:80),'(a,i2,a,a,i1,a,i2,a,i2,a)')
      *     'R8 TRM(im,jm,lm,',NTM,')',
-     *     ',TRmom(',NMOM,',im,jm,lm,',NTM,'),trwm(im,jm,lm,',NTM,')' 
+     *     ',TRmom(',NMOM,',im,jm,lm,',NTM,'),trwm(im,jm,lm,',NTM,')'
 #else
       CHARACTER*80 :: HEADER, MODULE_HEADER = "TRACER01"
 
@@ -982,7 +988,7 @@ C**** check whether air mass is conserved
           CALL PACK_DATA(grid, TRM(:,:,:,ITM), TRM_GLOB(:,:,:,ITM))
           CALL PACK_COLUMN(grid, TRmom(:,:,:,:,ITM),
      &         TRmom_GLOB(:,:,:,:,ITM))
-#ifdef TRACERS_WATER 
+#ifdef TRACERS_WATER
           CALL PACK_DATA(grid, TRWM(:,:,:,ITM), TRWM_GLOB(:,:,:,ITM))
 #endif
         END DO
