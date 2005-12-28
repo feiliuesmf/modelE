@@ -4,11 +4,12 @@ Subroutine assert_(line, fname, msg)
   Integer,          Intent(In) :: line
   Character(Len=*), Intent(In) :: fname
   Character(Len=*), Intent(In) :: msg
-  
+  integer :: status
+
   Write(*,*) 'Assertion failed at line',line,'in file',fname
   Write(*,*) msg
 #ifdef USE_ESMF
-  Call ESMF_Finalize()
+  Call ESMF_Finalize(rc=status)
 #endif
   Stop
 

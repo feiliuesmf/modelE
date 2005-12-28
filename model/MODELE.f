@@ -23,10 +23,10 @@ CAOO   Just to test CVS
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: fv_core
       USE FV_INTERFACE_MOD, only: Initialize
-      USE FV_INTERFACE_MOD, only: Compute_Tendencies
       USE FV_INTERFACE_MOD, only: Run
       USE FV_INTERFACE_MOD, only: Checkpoint
       USE FV_INTERFACE_MOD, only: Finalize
+      USE FV_INTERFACE_MOD, only: Compute_Tendencies
       USE FV_INTERFACE_MOD, only: init_app_clock
       USE MODEL_COM, only: clock
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
@@ -204,12 +204,13 @@ C****
          IF (MODD5D.EQ.0) IDACC(7)=IDACC(7)+1
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
-#ifdef USE_FVCORE
-      CALL Compute_Tendencies(fv)
-#endif
+
       CALL DYNAM
-#ifdef USE_FVCORE
+#ifndef USE_FVCORE
+#else
+      ! Using FV instead
       CALL Run(fv, clock)
+
 #endif
       CALL CHECKT ('DYNAM1')
       CALL QDYNAM  ! Advection of Q by integrated fluxes
@@ -358,6 +359,10 @@ C**** Accumulate tracer distribution diagnostics
          CALL CHECKT ('T3DSRC')
 #endif
       end if                                  ! full model,kradia le 0
+
+#ifdef USE_FVCORE
+      Call Compute_Tendencies(fv)
+#endif
 
 C****
 C**** WRITE SUB-DAILY DIAGNOSTICS EVERY NSUBDD hours

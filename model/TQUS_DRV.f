@@ -519,15 +519,17 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
      &        dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
      &                                         sfbm,sbm,sbf
       character*8 tname
-      integer :: i,j,l,ierr,nerr,ns,nstep(lm),ICKERR, ICKERR_LOC
-      REAL*8 :: m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
-      REAL*8 :: dm_sp,dm_np,drm_sp,drm_np,drzm_sp,drzm_np,drzzm_sp,
-     &     drzzm_np
+      integer :: i,j,l,ierr,ns,nstep(lm),ICKERR, ICKERR_LOC
+      integer :: err_loc(3)
+      REAL*8, DIMENSION(LM) :: m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,
+     &     rzzm_sp,rzzm_np
+      REAL*8, DIMENSION(LM) :: dm_sp,dm_np,drm_sp,drm_np,drzm_sp,
+     &     drzm_np,drzzm_sp, drzzm_np
 
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: fqv
-!!!   REAL*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::  BM,F_J
-      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::  F_J,BM
-      REAL*8  FMOM_J(NMOM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+     &     F_J,BM
+      REAL*8  FMOM_J(NMOM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
 
       INTEGER :: nm
 
@@ -535,6 +537,7 @@ c****Get relevant local distributed parameters
       INTEGER J_0, J_1
       INTEGER J_0H, J_1H
       INTEGER J_0S, J_1S
+      INTEGER :: idx(LM)
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 C****
@@ -548,111 +551,115 @@ C****
 
 c**** loop over layers
       ICKERR_LOC=0
-!$OMP  PARALLEL DO PRIVATE (I,J,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZM_NP,
-!$OMP*                RZZM_SP,RZZM_NP,BM,F_J,FMOM_J,NS,IERR,NERR,
-!$OMP*                nm)
-!$OMP* SHARED(JM,QLIMIT,YSTRIDE)
+c**** loop over timesteps
+        do ns=1,maxval(nstep)
+
+!$OMP  PARALLEL DO PRIVATE (I,J,L)
+!$OMP* SHARED(JM,QLIMIT,YSTRIDE,ns)
 !$OMP* REDUCTION(+:ICKERR_LOC)
       do l=1,lm
-        fqv(:,:,l)=0
-c**** loop over timesteps
-        do ns=1,nstep(l)
+        if (ns == 1)  fqv(:,:,l)=0
+        if (ns > nstep(l)) cycle
 
 c**** scale polar boxes to their full extent
           If (HAVE_SOUTH_POLE) THEN
             mass(:,1,l)=mass(:,1,l)*im
-            m_sp = mass(1,1 ,l)
+            m_sp(l) = mass(1,1 ,l)
             rm(:,1,l)=rm(:,1,l)*im
-            rm_sp = rm(1,1 ,l)
+            rm_sp(l) = rm(1,1 ,l)
             do i=1,im
               rmom(:,i,1 ,l)=rmom(:,i,1 ,l)*im
             enddo
-            rzm_sp  = rmom(mz ,1,1 ,l)
-            rzzm_sp = rmom(mzz,1,1 ,l)
+            rzm_sp(l)  = rmom(mz ,1,1 ,l)
+            rzzm_sp(l) = rmom(mzz,1,1 ,l)
           End If
 
           If (HAVE_NORTH_POLE) THEN
             mass(:,jm,l)=mass(:,jm,l)*im
-            m_np = mass(1,jm,l)
+            m_np(l) = mass(1,jm,l)
             rm(:,jm,l)=rm(:,jm,l)*im
-            rm_np = rm(1,jm,l)
+            rm_np(l) = rm(1,jm,l)
             do i=1,im
               rmom(:,i,jm,l)=rmom(:,i,jm,l)*im
             enddo
-            rzm_np  = rmom(mz ,1,jm,l)
-            rzzm_np = rmom(mzz,1,jm,l)
+            rzm_np(l)  = rmom(mz ,1,jm,l)
+            rzzm_np(l) = rmom(mzz,1,jm,l)
           End IF
 
-c***c**** loop over longitudes
-c***      do i = 1,grid%ni_loc
 c****
 c**** load 1-dimensional arrays
 c****
-          bm (:,:) = mv(:,:,l)/nstep(l)
+          bm (:,:,l) = mv(:,:,l)/nstep(l)
           If (HAVE_SOUTH_POLE) rmom(ihmoms,:,1,l)=0
           If (HAVE_NORTH_POLE) THEN
-            bm(:,jm) = 0.
+            bm(:,jm,l) = 0.
             rmom(ihmoms,:,jm,l) = 0.
           End IF
+      enddo  ! end loop over levels
+!$OMP  END PARALLEL DO
+
 c****
 c**** call 1-d advection routine
 c****
-c***          DO i=1,im
-c***        call adv1d( rm(I,j_0,l), rmom(1,i,j_0,l), 
-c***     &       f_j(i,j_0:j_1),fmom_j(1,i,j_0), mass(i,j_0,l),
-c***     &       bm(i,j_0:j_1),j_1-j_0+1,qlimit,ystride,ydir,ierr,nerr)
-c***        end do
-        call advection_1D_custom( rm(1,j_0h,l), rmom(1,1,j_0h,l), 
-     &       f_j(1,j_0h),fmom_j(1,1,j_0h), mass(1,j_0h,l),
-     &       bm(1,j_0h),j_1-j_0+1,qlimit,ystride,ydir,ierr,nerr)
-
-
-c***c****
-c***c**** call 1-d advection routine
-c***c****
-c***        call adv1d( rm_tr(i,1,l), rmom_tr(1,i,1,l), f_j_tr,
-c***     &       fmom_j_tr, mass_tr(i,1,l),
-c***     &       bm,jm,qlimit,grid%ni_loc,ydir,ierr,nerr)
+      idx =(ns <= nstep)
+        call advection_1D_custom( rm(1,j_0h,1), rmom(1,1,j_0h,1), 
+     &       f_j(1,j_0h,1),fmom_j(1,1,j_0h,1), mass(1,j_0h,1),
+     &       bm(1,j_0h,1),j_1-j_0+1,LM,idx,
+     &     qlimit,ystride,ydir,ierr,err_loc)
 
       if (ierr.gt.0) then
-        write(6,*) "Error in aadvQy: i,j,l=",i,nerr,l,' ',tname
+        write(6,*) "Error in aadvQy: i,j,l=",err_loc,' ',tname
         if (ierr.eq.2) write(6,*) "Error in qlimit: abs(b) > 1"
         if (ierr.eq.2) ICKERR_LOC=ICKERR_LOC+1
       end if
+
+!$OMP  PARALLEL DO PRIVATE (I,J,L)
+!$OMP* SHARED(JM,QLIMIT,YSTRIDE,ns)
+!$OMP* REDUCTION(+:ICKERR_LOC)
+      do l = 1,LM
+        if (ns > nstep(l)) cycle
+
 ! horizontal moments are zero at pole
         IF (HAVE_SOUTH_POLE) rmom(ihmoms,:,1, l) = 0
         IF (HAVE_NORTH_POLE) rmom(ihmoms,:,jm,l) = 0.
 c     sbfijl(i,:,l) = sbfijl(i,:,l)+f_j(:)
 
-      fqv(:,j_0:j_1,l) = fqv(:,j_0:j_1,l) + f_j(:,j_0:j_1)  !store tracer flux in fqv array
+      fqv(:,j_0:j_1,l) = fqv(:,j_0:j_1,l) + f_j(:,j_0:j_1,l)  !store tracer flux in fqv array
       If (HAVE_NORTH_POLE) fqv(:,jm,l) = 0.       ! play it safe
 
 
 c**** average and unscale polar boxes
       if (HAVE_SOUTH_POLE) then
-        mass(:,1 ,l) = (m_sp + sum(mass(:,1 ,l)-m_sp))*byim
-        rm(:,1 ,l) = (rm_sp + sum(rm(:,1 ,l)-rm_sp))*byim
-        rmom(mz ,:,1 ,l) = (rzm_sp + sum(rmom(mz ,:,1 ,l)-rzm_sp ))*byim
-        rmom(mzz,:,1 ,l) = (rzzm_sp+ sum(rmom(mzz,:,1 ,l)-rzzm_sp))*byim
+        mass(:,1 ,l) = (m_sp(l) + sum(mass(:,1 ,l)-m_sp(l)))*byim
+        rm(:,1 ,l) = (rm_sp(l) + sum(rm(:,1 ,l)-rm_sp(l)))*byim
+        rmom(mz ,:,1 ,l) =
+     &       (rzm_sp(l) + sum(rmom(mz ,:,1 ,l)-rzm_sp(l) ))*byim
+        rmom(mzz,:,1 ,l) =
+     &       (rzzm_sp(l)+ sum(rmom(mzz,:,1 ,l)-rzzm_sp(l)))*byim
       end if   !SOUTH POLE
 
       if (HAVE_NORTH_POLE) then
-        mass(:,jm,l) = (m_np + sum(mass(:,jm,l)-m_np))*byim
-        rm(:,jm,l) = (rm_np + sum(rm(:,jm,l)-rm_np))*byim
-        rmom(mz ,:,jm,l) = (rzm_np + sum(rmom(mz ,:,jm,l)-rzm_np ))*byim
-        rmom(mzz,:,jm,l) = (rzzm_np+ sum(rmom(mzz,:,jm,l)-rzzm_np))*byim
+        mass(:,jm,l) = (m_np(l) + sum(mass(:,jm,l)-m_np(l)))*byim
+        rm(:,jm,l) = (rm_np(l) + sum(rm(:,jm,l)-rm_np(l)))*byim
+        rmom(mz ,:,jm,l) =
+     &       (rzm_np(l) + sum(rmom(mz ,:,jm,l)-rzm_np(l) ))*byim
+        rmom(mzz,:,jm,l) =
+     &       (rzzm_np(l)+ sum(rmom(mzz,:,jm,l)-rzzm_np(l)))*byim
       end if  !NORTH POLE
 
-      END DO ! time steps
-
-      do j=J_0,J_1S             !diagnostics
-         sfbm(j,l) = sfbm(j,l) + sum(fqv(:,j,l)/(mv(:,j,l)+teeny))
-         sbm (j,l) = sbm (j,l) + sum(mv(:,j,l))
-         sbf (j,l) = sbf (j,l) + sum(fqv(:,j,l))
-      enddo
-      
       enddo  ! end loop over levels
 !$OMP  END PARALLEL DO
+
+      end do ! time step
+
+      do l=1,lm
+        do j=J_0,J_1S           !diagnostics
+          sfbm(j,l) = sfbm(j,l) + sum(fqv(:,j,l)/(mv(:,j,l)+teeny))
+          sbm (j,l) = sbm (j,l) + sum(mv(:,j,l))
+          sbf (j,l) = sbf (j,l) + sum(fqv(:,j,l))
+        enddo
+      end do
+      
 
 
 C

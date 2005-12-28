@@ -446,6 +446,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
 
       WRITE(*,*)'INIT_APP: ', IM, JM, NP_LON, NP_LAT, RANK_LON, RANK_LAT
+     &     ,'my_pet=',MY_PET
 
 #ifdef DEBUG_DECOMP
       IF (AM_I_ROOT()) CALL openunit('CHKSUM_DECOMP', CHECKSUM_UNIT)
@@ -1134,7 +1135,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #endif
 
 #ifdef USE_ESMF      
-      CALL ESMF_FINALIZE(ier)
+      CALL ESMF_FINALIZE(rc=ier)
 #endif
 
       END SUBROUTINE FINISH_APP
@@ -1553,6 +1554,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
                If (nik == dik_map(p)) Then
                   dik_sum=dik_sum+dik_map(p)*(grd_dum%dj)
                   p = p+1
+                  if (p == npes) exit
                   nik= 0
                   ijk = dik_map(p)*(j-1)
                End If
@@ -3021,7 +3023,8 @@ C****  convert from real*4 to real*8
         integer status
         integer, dimension(ESMF_MAXGRIDDIM) :: dims
 
-        call ESMF_GridGet(grid, globalcellcountperdim=dims, rc=status)
+        call ESMF_GridGet(grid, horzRelLoc=ESMF_CELL_CENTER,
+     &     globalcellcountperdim=dims, rc=status)
    
         IM_WORLD = dims(1)
         JM_WORLD = dims(2)
@@ -4642,7 +4645,6 @@ C--------------------------------
       Integer :: p, scount, offset
       Integer, Allocatable :: rcounts(:), displs(:)
       Type (ESMF_Axisindex), Pointer :: AI(:,:)
-      Integer :: halo_width
       Integer :: i, n_its = 1
       ! create a new mpi type for use in communication
       !-------------------------------
@@ -4666,7 +4668,6 @@ C--------------------------------
      &     shp_glob,dist_idx)
       Deallocate(AI)
 
-      halo_width = shp(dist_idx) - rcounts(my_pet)
       scount = rcounts(my_pet+1)
       If (scount == shp(dist_idx)) Then ! no halo
         offset = 1
@@ -4723,7 +4724,6 @@ c***      print*,expensive(arr_loc(offset))
       Integer :: p, rcount, offset
       Integer, Allocatable :: scounts(:), displs(:)
       Type (ESMF_Axisindex), Pointer :: AI(:,:)
-      Integer :: halo_width
 
       ! create a new mpi type for use in communication
       !-------------------------------
@@ -4745,7 +4745,6 @@ c***      print*,expensive(arr_loc(offset))
       orig_type = CreateDist_MPI_Type(MPI_DOUBLE_PRECISION,
      &     shp_glob,dist_idx)
 
-      halo_width = shp(dist_idx) - scounts(my_pet)
       rcount = scounts(my_pet+1)
       If (rcount == shp(dist_idx)) Then ! no halo
         offset = 1

@@ -12,7 +12,7 @@
 !***********************************************************
 #include "assert.h"
 Module ESMF_CUSTOM_MOD
-  Use ESMF_MOD, Only: Grid => ESMF_Grid
+  Use ESMF_MOD, Only: tGrid => ESMF_Grid
   Use ESMF_MOD, Only: Field => ESMF_Field
   Use ESMF_MOD, Only: ESMF_Grid
   Use ESMF_MOD, Only: ESMF_Field
@@ -50,7 +50,7 @@ Module ESMF_CUSTOM_MOD
   Implicit None
   Private
 
-  Public :: Grid
+  Public :: tGrid
   Public :: Field
 
   Public :: Initialize_App
@@ -211,7 +211,7 @@ Contains
     Implicit None
     Integer :: rc
 
-    call ESMF_Finalize(rc)
+    call ESMF_Finalize(rc=rc)
 #endif
 
   End Subroutine Finalize_App

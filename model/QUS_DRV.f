@@ -373,16 +373,13 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
       logical ::  qlimit
       REAL*8, intent(out), dimension(im,grid%J_STRT_HALO:
      &                                  grid%J_STOP_HALO) :: fqv
-      REAL*8      HFQV(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
-     &                 BM(IM,grid%J_STRT_HALO:grid%J_STOP_HALO),
+      REAL*8      BM(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
      &                F_J(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
-     &        FMOM_J(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
-      integer :: i,j,l,ierr,nerr,ICKERR
-      REAL*8 ::
+     &        FMOM_J(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
+      integer :: i,j,l,ierr,ICKERR, err_loc(3)
+      REAL*8, DIMENSION(LM) ::
      &     m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
 
-c****Temporary global arrays
-      INTEGER :: nm
 
 c****Get relevant local distributed parameters
       INTEGER J_0,J_1,J_0H,J_1H
@@ -396,9 +393,8 @@ c****Get relevant local distributed parameters
 
 c**** loop over layers
       ICKERR=0
-!$OMP  PARALLEL DO PRIVATE(I,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZZM_SP,
-!$OMP*             FMOM_J,RZM_NP,RZZM_NP,BM,IERR,NERR,
-!$OMP*             nm)
+      fqv = 0
+!$OMP  PARALLEL DO PRIVATE(I,L)
 !$OMP* SHARED(JM,QLIMIT,YSTRIDE)
 !$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
@@ -406,26 +402,26 @@ c**** loop over layers
 c**** scale polar boxes to their full extent
       if (HAVE_SOUTH_POLE) then
         mass(:,1,l)=mass(:,1,l)*im
-        m_sp = mass(1,1 ,l)
+        m_sp(l) = mass(1,1 ,l)
         rm(:,1,l)=rm(:,1,l)*im
-        rm_sp = rm(1,1 ,l)
+        rm_sp(l) = rm(1,1 ,l)
         do i=1,im
            rmom(:,i,1 ,l)=rmom(:,i,1 ,l)*im
         enddo
-        rzm_sp  = rmom(mz ,1,1 ,l)
-        rzzm_sp = rmom(mzz,1,1 ,l)
+        rzm_sp(l)  = rmom(mz ,1,1 ,l)
+        rzzm_sp(l) = rmom(mzz,1,1 ,l)
       end if                       !SOUTH POLE
 
       if (HAVE_NORTH_POLE) then
         mass(:,jm,l)=mass(:,jm,l)*im
-        m_np = mass(1,jm,l)
+        m_np(l) = mass(1,jm,l)
         rm(:,jm,l)=rm(:,jm,l)*im
-        rm_np = rm(1,jm,l)
+        rm_np(l) = rm(1,jm,l)
         do i=1,im
            rmom(:,i,jm,l)=rmom(:,i,jm,l)*im
         enddo
-        rzm_np  = rmom(mz ,1,jm,l)
-        rzzm_np = rmom(mzz,1,jm,l)
+        rzm_np(l)  = rmom(mz ,1,jm,l)
+        rzzm_np(l) = rmom(mzz,1,jm,l)
       end if                       !NORTH POLE
 
 c***c**** loop over longitudes
@@ -433,24 +429,27 @@ c***      do i=1,im
 c****
 c**** load 1-dimensional arrays
 c****
-      bm   (:,:) = mv(:,:,l) !/nstep
+      bm   (:,:,l) = mv(:,:,l) !/nstep
 
 c**** POLES
       IF (HAVE_SOUTH_POLE)  rmom(ihmoms,:,1,l ) = 0. ! horizontal moments are zero at pole
       IF (HAVE_NORTH_POLE) THEN
-        bm(:,jm)= 0.
+        bm(:,jm,l)= 0.
         rmom(ihmoms,:,jm,l) = 0.
       END IF
+      end do
+!$OMP END PARALLEL DO
 
 c****
 c**** call 1-d advection routine
 c****
-        call advection_1D_custom( rm(1,j_0h,l), rmom(1,1,j_0h,l), 
-     &       f_j(1,j_0h,l),fmom_j(1,1,j_0h), mass(1,j_0h,l),
-     &       bm(1,j_0h),j_1-j_0+1,qlimit,ystride,ydir,ierr,nerr)
+        call advection_1D_custom( rm(1,j_0h,1), rmom(1,1,j_0h,1), 
+     &     f_j(1,j_0h,1),fmom_j(1,1,j_0h,1), mass(1,j_0h,1),
+     &     bm(1,j_0h,1),j_1-j_0+1,LM,(/ (.true.,l=1,lm) /),
+     &     qlimit,ystride,ydir,ierr,err_loc)
 
         if (ierr.gt.0) then
-          write(6,*) "Error in aadvty: j,l=",nerr,l
+          write(6,*) "Error in aadvty: i,j,l=",err_loc
           if (ierr.eq.2) then
             write(0,*) "Error in qlimit: abs(b) > 1"
 ccc         call stop_model('Error in qlimit: abs(b) > 1',11)
@@ -458,30 +457,32 @@ ccc         call stop_model('Error in qlimit: abs(b) > 1',11)
           endif
         end if
 ! horizontal moments are zero at pole
-        IF (HAVE_SOUTH_POLE) rmom(ihmoms,:,1, l) = 0
-        IF (HAVE_NORTH_POLE) rmom(ihmoms,:,jm,l) = 0.
+        IF (HAVE_SOUTH_POLE) rmom(ihmoms,:,1, :) = 0
+        IF (HAVE_NORTH_POLE) rmom(ihmoms,:,jm,:) = 0.
 
-c***      End Do ! longitudes
 
-c**** store tracer flux in fqv array
-ccc   fqv(i,:) = fqv(i,:) + f_j(:)
-ccc    if (HAVE_NORTH_POLE) fqv(i,jm) = 0.   ! play it safe
-
-      hfqv(:,:,l) = f_j(:,:,l)
+!$OMP  PARALLEL DO PRIVATE(I,L)
+!$OMP* SHARED(JM,QLIMIT,YSTRIDE)
+!$OMP* REDUCTION(+:ICKERR)
+      do l=1,lm
 
 c**** average and unscale polar boxes
       if (HAVE_SOUTH_POLE) then
-        mass(:,1 ,l) = (m_sp + sum(mass(:,1 ,l)-m_sp))*byim
-        rm(:,1 ,l) = (rm_sp + sum(rm(:,1 ,l)-rm_sp))*byim
-        rmom(mz ,:,1 ,l) = (rzm_sp + sum(rmom(mz ,:,1 ,l)-rzm_sp ))*byim
-        rmom(mzz,:,1 ,l) = (rzzm_sp+ sum(rmom(mzz,:,1 ,l)-rzzm_sp))*byim
+        mass(:,1 ,l) = (m_sp(l) + sum(mass(:,1 ,l)-m_sp(l)))*byim
+        rm(:,1 ,l) = (rm_sp(l) + sum(rm(:,1 ,l)-rm_sp(l)))*byim
+        rmom(mz ,:,1 ,l) = (rzm_sp(l) + 
+     *       sum(rmom(mz ,:,1 ,l)-rzm_sp(l) ))*byim
+        rmom(mzz,:,1 ,l) = (rzzm_sp(l)+ 
+     *       sum(rmom(mzz,:,1 ,l)-rzzm_sp(l)))*byim
       end if   !SOUTH POLE
 
       if (HAVE_NORTH_POLE) then
-        mass(:,jm,l) = (m_np + sum(mass(:,jm,l)-m_np))*byim
-        rm(:,jm,l) = (rm_np + sum(rm(:,jm,l)-rm_np))*byim
-        rmom(mz ,:,jm,l) = (rzm_np + sum(rmom(mz ,:,jm,l)-rzm_np ))*byim
-        rmom(mzz,:,jm,l) = (rzzm_np+ sum(rmom(mzz,:,jm,l)-rzzm_np))*byim
+        mass(:,jm,l) = (m_np(l) + sum(mass(:,jm,l)-m_np(l)))*byim
+        rm(:,jm,l) = (rm_np(l) + sum(rm(:,jm,l)-rm_np(l)))*byim
+        rmom(mz ,:,jm,l) = (rzm_np(l) + 
+     &       sum(rmom(mz ,:,jm,l)-rzm_np(l) ))*byim
+        rmom(mzz,:,jm,l) = (rzzm_np(l)+ 
+     &       sum(rmom(mzz,:,jm,l)-rzzm_np(l)))*byim
       end if  !NORTH POLE
 
       enddo ! end loop over levels
@@ -491,10 +492,10 @@ c     sum into fqv
 c
 !$OMP  PARALLEL DO PRIVATE(J,L)
       do j=J_0,J_1
-      do l=1,lm
-         fqv(:,j)  = fqv(:,j) + f_j(:,j,l)
-      enddo ! j
-      enddo ! l
+        do l=1,lm
+          fqv(:,j)  = fqv(:,j) + f_j(:,j,l)
+        enddo                   ! l
+      enddo                     ! j
 !$OMP  END PARALLEL DO
       if (HAVE_NORTH_POLE) fqv(:,jm) = 0. ! not really needed
 C

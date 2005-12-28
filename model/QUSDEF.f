@@ -222,7 +222,7 @@ c-----------------------------------------------------------------
 c************************************************************************
 
       subroutine advection_1D_custom(s,smom, f,fmom, mass,dm, nx, 
-     *     qlimit,stride,dir,ierr,nerr)
+     *     nlev,idx, qlimit,stride,dir,ierr, err_loc)
 !@sum  advection_1d_custom is a parallel variant of adv1d which does not
 !@sum  include qlimits.  This increases locality such that global 
 !@sum  communication can be significantly reduced for advection along
@@ -250,25 +250,38 @@ c--------------------------------------------------------------
 !@var stride spacing in s array between elements of relevant 1D array
 !@var dir    direction switch (equals one of xdir ydir or zdir)
 !@var ierr, nerr error codes
-      integer, intent(in) :: nx,stride
+      integer, intent(in) :: nx,nlev,stride
+      logical, intent(in) :: idx(nlev)
       logical, intent(in) :: qlimit
-      REAL*8, dimension(stride,0:nx+1) :: dm, f
-      REAL*8, dimension(stride,0:nx+1) :: s,mass
-      REAL*8, dimension(nmom,stride,0:nx+1) :: smom
-      REAL*8, dimension(nmom,stride,0:nx+1) :: fmom
+      REAL*8, dimension(stride,0:nx+1,nlev) :: dm, f
+      REAL*8, dimension(stride,0:nx+1,nlev) :: s
+      REAL*8, dimension(stride,0:nx+1,nlev) :: mass
+      REAL*8, dimension(nmom,stride,0:nx+1,nlev) :: smom
+      REAL*8, dimension(nmom,stride,0:nx+1,nlev) :: fmom
       integer, dimension(nmom) :: dir
       integer :: mx,my,mz,mxx,myy,mzz,mxy,myz,mzx
       integer :: n,np1,nm1,nn,ns
-      integer,intent(out) :: ierr,nerr
+      integer,intent(out) :: ierr,err_loc(3) ! 3 dimensions
       REAL*8 :: fracm,frac1,bymnew,mnew,dm2,tmp
       INTEGER :: i
+      INTEGER :: l
       INTEGER :: J_0, J_1, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE
       ! qlimit variables
       REAL*8 :: an, anm1, fn, fnm1, sn, sxn, sxxn
       !
+
+! cpp used to avoid numerous detailed changes in source for
+! new arrangement.
+#define S(i,j) s(i,j,l)
+#define DM(i,j) dm(i,j,l)
+#define F(i,j)  f(i,j,l)
+#define MASS(i,j) mass(i,j,l)
+#define SMOM(i,j,k) smom(i,j,k,l)
+#define FMOM(i,j,k) fmom(i,j,k,l)
       
-      ierr=0 ; nerr=0
+
+      ierr=0
       mx  = dir(1)
       my  = dir(2)
       mz  = dir(3)
@@ -291,27 +304,36 @@ c--------------------------------------------------------------
       CALL HALO_UPDATE(grid, s,    FROM=NORTH)
       CALL HALO_UPDATE_COLUMN(grid, smom, FROM=NORTH)
 
-      Do i=1, stride
-        Call calc_tracer_mass_flux()
-      End Do
+      DO l=1,nlev
+        if (.not. idx(l)) cycle
+        Do i=1, stride
+          Call calc_tracer_mass_flux()
+        End Do
+      end do
 
       ! Limit fluxes to maintain positive mean values?
       CALL HALO_UPDATE_COLUMN(grid, fmom, FROM=NORTH+SOUTH)
 
       If (qlimit) Then
          
-        Call HALO_UPDATE_COLUMN(grid, f, FROM=NORTH+SOUTH)
-        Do i=1, stride
-          Call apply_limiter()
-        End Do
-        Call HALO_UPDATE_COLUMN(grid, f, FROM=NORTH+SOUTH)
+        Call HALO_UPDATE(grid, f, FROM=NORTH+SOUTH)
+        DO l=1,nlev
+          if (.not. idx(l)) cycle
+          Do i=1, stride
+            Call apply_limiter()
+          End Do
+        end do
+        Call HALO_UPDATE(grid, f, FROM=NORTH+SOUTH)
       End If
 c--------------------------------------------------------------------
          ! calculate tracer fluxes of slopes and curvatures
 c--------------------------------------------------------------------
-      Do i=1, stride
-         Call tracer_slopes_and_curvatures()
-      End Do
+      DO l=1,nlev
+        if (.not. idx(l)) cycle
+        Do i=1, stride
+          Call tracer_slopes_and_curvatures()
+        end do
+      end do
 c-------------------------------------------------------------------
 c update tracer mass, moments of tracer mass, air mass distribution
 c-------------------------------------------------------------------
@@ -319,9 +341,12 @@ c-------------------------------------------------------------------
       CALL HALO_UPDATE(grid, dm,    FROM=SOUTH)
       CALL HALO_UPDATE_COLUMN(grid, fmom, FROM=SOUTH)
 
-      DO i = 1, stride
-         Call update_tracer_mass()
-      END DO
+      DO l=1,nlev
+        if (.not. idx(l)) cycle
+        DO i = 1, stride
+          Call update_tracer_mass()
+        end do
+      enddo
 
       return
 
@@ -383,17 +408,17 @@ c-------------------------------------------------------------------
 
       Do n = J_0, J_1
 
-        nn = NeighborByFlux(n, dm(i,n))
-        fracm = MassFraction(dm(i,n), mass(i,nn))
+        nn = NeighborByFlux(n, DM(i,n))
+        fracm = MassFraction(DM(i,n), MASS(i,nn))
 
-        frac1 = fracm + FluxFraction(dm(i,n))
+        frac1 = fracm + FluxFraction(DM(i,n))
 
-        f(i,n)=fracm*(s(i,nn)-frac1*(smom(mx,i,nn)-
-     *                               (frac1+fracm)*smom(mxx,i,nn)))
+        F(i,n)=fracm*(S(i,nn)-frac1*(SMOM(mx,i,nn)-
+     *               (frac1+fracm)*SMOM(mxx,i,nn)))
       ! temporary storage of fracm in fx, to be used below
-        fmom(mx,i,n)=fracm
+        FMOM(mx,i,n)=fracm
       ! temporary storage of frac1 in fxx, to be used below
-        fmom(mxx,i,n)=frac1
+        FMOM(mxx,i,n)=frac1
       !
       enddo
       End Subroutine calc_tracer_mass_flux
@@ -402,26 +427,32 @@ c-------------------------------------------------------------------
 
       Do n = J_0, J_1
 
-        nn = NeighborByFlux(n, dm(i,n))
+        nn = NeighborByFlux(n, DM(i,n))
       ! retrieving fracm, which was stored in fx
-        fracm=fmom(mx,i,n)
+        fracm=FMOM(mx,i,n)
       ! retrieving frac1, which was stored in fxx
-        frac1=fmom(mxx,i,n)
+        frac1=FMOM(mxx,i,n)
       !
-        fmom(mx,i,n)=dm(i,n)*(fracm*fracm*(smom(mx,i,nn)
-     &       -3.*frac1*smom(mxx,i,nn))-3.*f(i,n))
-        fmom(mxx,i,n)=dm(i,n)*(dm(i,n)*fracm**3 *smom(mxx,i,nn)
-     &       -5.*(dm(i,n)*f(i,n)+fmom(mx,i,n)))
+        FMOM(mx,i,n)=
+     &    DM(i,n)*(fracm*fracm*(SMOM(mx,i,nn)
+     &     -3.*frac1*SMOM(mxx,i,nn))-3.*F(i,n))
+        FMOM(mxx,i,n)=
+     &    DM(i,n)*(DM(i,n)*fracm**3 *SMOM(mxx,i,nn)
+     &     -5.*(DM(i,n)*F(i,n)+FMOM(mx,i,n)))
       ! cross moments
-         fmom(my,i,n)  = fracm*(smom(my,i,nn)-frac1*smom(mxy,i,nn))
-         fmom(mxy,i,n) = dm(i,n)*(fracm*fracm*smom(mxy,i,nn)
-     &                            -3.*fmom(my,i,n))
-         fmom(mz,i,n)  = fracm*(smom(mz,i,nn)-frac1*smom(mzx,i,nn))
-         fmom(mzx,i,n) = dm(i,n)*(fracm*fracm*smom(mzx,i,nn)
-     &                            -3.*fmom(mz,i,n))
-         fmom(myy,i,n) = fracm*smom(myy,i,nn)
-         fmom(mzz,i,n) = fracm*smom(mzz,i,nn)
-         fmom(myz,i,n) = fracm*smom(myz,i,nn)
+        FMOM(my,i,n)=
+     &       fracm*(SMOM(my,i,nn)-frac1*SMOM(mxy,i,nn))
+         FMOM(mxy,i,n)=
+     &       DM(i,n)*(fracm*fracm*SMOM(mxy,i,nn)
+     &                            -3.*FMOM(my,i,n))
+         FMOM(mz,i,n)=
+     &        fracm*(SMOM(mz,i,nn)-frac1*SMOM(mzx,i,nn))
+         FMOM(mzx,i,n)=
+     &        DM(i,n)*(fracm*fracm*SMOM(mzx,i,nn)
+     &                        -3.*FMOM(mz,i,n))
+         FMOM(myy,i,n) = fracm*SMOM(myy,i,nn)
+         FMOM(mzz,i,n) = fracm*SMOM(mzz,i,nn)
+         FMOM(myz,i,n) = fracm*SMOM(myz,i,nn)
 
       enddo
       End Subroutine tracer_slopes_and_curvatures
@@ -429,43 +460,43 @@ c-------------------------------------------------------------------
       Subroutine apply_limiter
       If (HAVE_SOUTH_POLE) Then
          n = J_0
-         an = fmom(mx,i,n)      ! reading fracm which was stored in fx
+         an = FMOM(mx,i,n)      ! reading fracm which was stored in fx
          anm1 = 0
-         fn = f(i,n)
+         fn = F(i,n)
          fnm1 = 0
-         sn = s(i,n)
-         sxn = smom(mx,i,n)
-         sxxn = smom(mxx,i,n)
+         sn = S(i,n)
+         sxn = SMOM(mx,i,n)
+         sxxn = SMOM(mxx,i,n)
          call limitq(anm1,an,fnm1,fn,sn,sxn,sxxn,ierr)
          if (ierr.gt.0) then
-            nerr=n
-            if (ierr.eq.2) return
+           err_loc = (/ i, n, l /)
+           if (ierr.eq.2) return
          end if
-         f(i,n)   = fn
-         f(i,n-1) = fnm1
-         smom(mx,i,n) = sxn
-         smom(mxx,i,n) = sxxn
+         F(i,n)   = fn
+         F(i,n-1) = fnm1
+         SMOM(mx,i,n) = sxn
+         SMOM(mxx,i,n) = sxxn
       End If
 
       nm1=J_0S-1
       DO n = J_0S, J_1S+1
 
-         an = fmom(mx,i,n)      ! reading fracm which was stored in fx
-         anm1 = fmom(mx,i,nm1)
-         fn = f(i,n)
-         fnm1 = f(i,nm1)
-         sn = s(i,n)
-         sxn = smom(mx,i,n)
-         sxxn = smom(mxx,i,n)
+         an = FMOM(mx,i,n)      ! reading fracm which was stored in fx
+         anm1 = FMOM(mx,i,nm1)
+         fn = F(i,n)
+         fnm1 = F(i,nm1)
+         sn = S(i,n)
+         sxn = SMOM(mx,i,n)
+         sxxn = SMOM(mxx,i,n)
          call limitq(anm1,an,fnm1,fn,sn,sxn,sxxn,ierr)
          if (ierr.gt.0) then
-            nerr=n
-            if (ierr.eq.2) return
+           err_loc = (/ i, n, l /)
+           if (ierr.eq.2) return
          end if
-         f(i,n)   = fn
-         f(i,nm1) = fnm1
-         smom(mx,i,n) = sxn
-         smom(mxx,i,n) = sxxn
+         F(i,n)   = fn
+         F(i,nm1) = fnm1
+         SMOM(mx,i,n) = sxn
+         SMOM(mxx,i,n) = sxxn
          nm1 = n
       enddo
 
@@ -475,118 +506,147 @@ c-------------------------------------------------------------------
 
       If (HAVE_SOUTH_POLE) THEN
          n = J_0
-!        mnew=mass(ns)+dm(nm1)-dm(n)
-        tmp=mass(i,n)
-        mnew=tmp-dm(i,n)
+
+        tmp=MASS(i,n)
+        mnew=tmp-DM(i,n)
 
          bymnew = 1./mnew
-         dm2=dm(i,n)
+         dm2=DM(i,n)
 
-!       s(i,n)=s(i,n)+f(nm1)-f(n)
-         tmp=s(i,n)
-         s(i,n)=tmp-f(i,n)
+         tmp=S(i,n)
+         S(i,n)=tmp-F(i,n)
 
-         smom(mx,i,n)=(smom(mx,i,n)*mass(i,n)-
-     &                  3.*(-dm2*s(i,n)
-     &                      +mass(i,n)*(f(i,n)))+
-     &                  (-fmom(mx,i,n)))*bymnew
-         smom(mxx,i,n) = (smom(mxx,i,n)*mass(i,n)*mass(i,n)
-     &     +2.5*s(i,n)*(mass(i,n)*mass(i,n)-mnew*mnew-3.*dm2*dm2)
-     &     +5.*(mass(i,n)*(mass(i,n)*(-f(i,n))
-     &     -fmom(mx,i,n))+dm2*smom(mx,i,n)*mnew)
-     &     +(-fmom(mxx,i,n))) * (bymnew*bymnew)
+         SMOM(mx,i,n)=(SMOM(mx,i,n)*MASS(i,n)-
+     &                  3.*(-dm2*S(i,n)
+     &                      +MASS(i,n)*(F(i,n)))+
+     &                  (-FMOM(mx,i,n)))*bymnew
+         SMOM(mxx,i,n)=
+     &     (SMOM(mxx,i,n)*MASS(i,n)*MASS(i,n)
+     &     +2.5*S(i,n)*(MASS(i,n)*MASS(i,n)-mnew*mnew-3.*dm2*dm2)
+     &     +5.*(MASS(i,n)*(MASS(i,n)*(-F(i,n))
+     &     -FMOM(mx,i,n))+dm2*SMOM(mx,i,n)*mnew)
+     &     +(-FMOM(mxx,i,n))) * (bymnew*bymnew)
       ! cross moments
-         smom(my,i,n)=smom(my,i,n)-fmom(my,i,n)
-         smom(mxy,i,n)=(smom(mxy,i,n)*mass(i,n)
-     &                   -3.*(-dm2*smom(my,i,n) +
-     &                       mass(i,n)*(fmom(my,i,n))) +
-     &        (-fmom(mxy,i,n)))*bymnew
-         smom(mz,i,n)=smom(mz,i,n)-fmom(mz,i,n)
-         smom(mzx,i,n)=(smom(mzx,i,n)*mass(i,n)
-     &                   -3.*(-dm2*smom(mz,i,n) +
-     &        mass(i,n)*(+fmom(mz,i,n))) +
-     &        (-fmom(mzx,i,n)))*bymnew
+         SMOM(my,i,n)=SMOM(my,i,n)-FMOM(my,i,n)
+         SMOM(mxy,i,n)=(SMOM(mxy,i,n)*MASS(i,n)
+     &               -3.*(-dm2*SMOM(my,i,n) +
+     &                    MASS(i,n)*(FMOM(my,i,n))) +
+     &        (-FMOM(mxy,i,n)))*bymnew
+         SMOM(mz,i,n)=SMOM(mz,i,n)-FMOM(mz,i,n)
+         SMOM(mzx,i,n)=(SMOM(mzx,i,n)*MASS(i,n)
+     &                   -3.*(-dm2*SMOM(mz,i,n) +
+     &        MASS(i,n)*(+FMOM(mz,i,n))) +
+     &        (-FMOM(mzx,i,n)))*bymnew
       !
-         smom(myy,i,n)=smom(myy,i,n)-fmom(myy,i,n)
-         smom(mzz,i,n)=smom(mzz,i,n)-fmom(mzz,i,n)
-         smom(myz,i,n)=smom(myz,i,n)-fmom(myz,i,n)
+         SMOM(myy,i,n)=SMOM(myy,i,n)-FMOM(myy,i,n)
+         SMOM(mzz,i,n)=SMOM(mzz,i,n)-FMOM(mzz,i,n)
+         SMOM(myz,i,n)=SMOM(myz,i,n)-FMOM(myz,i,n)
       !
 c------------------------------------------------------------------
-         mass(i,n) = mnew
-         if(mass(i,n).le.0.) then
-            s(i,n)=0.
-            smom(:,i,n)=0.
+         MASS(i,n) = mnew
+         if(MASS(i,n).le.0.) then
+            S(i,n)=0.
+            SMOM(:,i,n)=0.
          endif
          if (qlimit .and. prather_limits.eq.1) then ! force Prather limits
-           smom(mx,i,n)=min(1.5*s(i,n),max(-1.5*s(i,n),smom(mx,i,n)))
-           smom(mxx,i,n)=min(2.*s(i,n)-abs(smom(mx,i,n))/3.,
-     *          max(abs(smom(mx,i,n))-s(i,n),smom(mxx,i,n)))
-           smom(mxy,i,n)=min(s(i,n),max(-s(i,n),smom(mxy,i,n)))
-           smom(mzx,i,n)=min(s(i,n),max(-s(i,n),smom(mzx,i,n)))
+           SMOM(mx,i,n)=
+     &          min(1.5*S(i,n),
+     &    max(-1.5*S(i,n),SMOM(mx,i,n)))
+           SMOM(mxx,i,n)=
+     &          min(2.*S(i,n)-abs(SMOM(mx,i,n))/3.,
+     &          max(abs(SMOM(mx,i,n))-S(i,n),
+     &          SMOM(mxx,i,n)))
+           SMOM(mxy,i,n)=min(S(i,n),
+     &    max(-S(i,n),SMOM(mxy,i,n)))
+           SMOM(mzx,i,n)=min(S(i,n),
+     &    max(-S(i,n),SMOM(mzx,i,n)))
          end if
 
 c-----------------------------------------------------------------
          if (qlimit .and. prather_limits.eq.1) then ! force Prather limits
-           smom(mx,i,n)=min(1.5*s(i,n),max(-1.5*s(i,n),smom(mx,i,n)))
-           smom(mxx,i,n)=min(2.*s(i,n)-abs(smom(mx,i,n))/3.,
-     *          max(abs(smom(mx,i,n))-s(i,n),smom(mxx,i,n)))
-           smom(mxy,i,n)=min(s(i,n),max(-s(i,n),smom(mxy,i,n)))
-           smom(mzx,i,n)=min(s(i,n),max(-s(i,n),smom(mzx,i,n)))
+           SMOM(mx,i,n)=
+     &          min(1.5*S(i,n),
+     &    max(-1.5*S(i,n),SMOM(mx,i,n)))
+           SMOM(mxx,i,n)=
+     &          min(2.*S(i,n)-abs(SMOM(mx,i,n))/3.,
+     &          max(abs(SMOM(mx,i,n))-S(i,n),SMOM(mxx,i,n)))
+           SMOM(mxy,i,n)=
+     &          min(S(i,n),
+     &    max(-S(i,n),SMOM(mxy,i,n)))
+           SMOM(mzx,i,n)=
+     &          min(S(i,n),
+     &    max(-S(i,n),SMOM(mzx,i,n)))
          end if
 
       End If
 
       Do n=J_0S,J_1
          nm1 = n-1
-!        mnew=mass(ns)+dm(nm1)-dm(n)
-        tmp=mass(i,n)+dm(i,nm1)
-        mnew=tmp-dm(i,n)
+
+        tmp=MASS(i,n)+DM(i,nm1)
+        mnew=tmp-DM(i,n)
 
          bymnew = 1./mnew
-         dm2=dm(i,nm1)+dm(i,n)
+         dm2=DM(i,nm1)+DM(i,n)
 
-!       s(i,n)=s(i,n)+f(nm1)-f(n)
-         tmp=s(i,n)+f(i,nm1)
-         s(i,n)=tmp-f(i,n)
+         tmp=S(i,n)+F(i,nm1)
+         S(i,n)=tmp-F(i,n)
 
-         smom(mx,i,n)=(smom(mx,i,n)*mass(i,n)-
-     &                  3.*(-dm2*s(i,n)
-     &                      +mass(i,n)*(f(i,nm1)+f(i,n)))+
-     &                  (fmom(mx,i,nm1)-fmom(mx,i,n)))*bymnew
-         smom(mxx,i,n) = (smom(mxx,i,n)*mass(i,n)*mass(i,n)
-     &     +2.5*s(i,n)*(mass(i,n)*mass(i,n)-mnew*mnew-3.*dm2*dm2)
-     &     +5.*(mass(i,n)*(mass(i,n)*(f(i,nm1)-f(i,n))-fmom(mx,i,nm1)
-     &     -fmom(mx,i,n))+dm2*smom(mx,i,n)*mnew)
-     &     +(fmom(mxx,i,nm1)-fmom(mxx,i,n))) * (bymnew*bymnew)
+         SMOM(mx,i,n)=(SMOM(mx,i,n)*MASS(i,n)-
+     &         3.*(-dm2*S(i,n)
+     &         +MASS(i,n)*(F(i,nm1)+F(i,n)))+
+     &         (FMOM(mx,i,nm1)-FMOM(mx,i,n)))*bymnew
+         SMOM(mxx,i,n) = (SMOM(mxx,i,n)*MASS(i,n)*MASS(i,n)
+     &     +2.5*S(i,n)*(MASS(i,n)*MASS(i,n)-mnew*mnew-3.*dm2*dm2)
+     &     +5.*(MASS(i,n)*(MASS(i,n)*
+     &        (F(i,nm1)-F(i,n))-FMOM(mx,i,nm1)
+     &     -FMOM(mx,i,n))+dm2*SMOM(mx,i,n)*mnew)
+     &     +(FMOM(mxx,i,nm1)-
+     &     FMOM(mxx,i,n))) * (bymnew*bymnew)
       ! cross moments
-         smom(my,i,n)=smom(my,i,n)+fmom(my,i,nm1)-fmom(my,i,n)
-         smom(mxy,i,n)=(smom(mxy,i,n)*mass(i,n)
-     &                   -3.*(-dm2*smom(my,i,n) +
-     &                       mass(i,n)*(fmom(my,i,nm1)+fmom(my,i,n))) +
-     &        (fmom(mxy,i,nm1)-fmom(mxy,i,n)))*bymnew
-         smom(mz,i,n)=smom(mz,i,n)+fmom(mz,i,nm1)-fmom(mz,i,n)
-         smom(mzx,i,n)=(smom(mzx,i,n)*mass(i,n)
-     &                   -3.*(-dm2*smom(mz,i,n) +
-     &        mass(i,n)*(fmom(mz,i,nm1)+fmom(mz,i,n))) +
-     &        (fmom(mzx,i,nm1)-fmom(mzx,i,n)))*bymnew
+         SMOM(my,i,n)=
+     &    SMOM(my,i,n)+FMOM(my,i,nm1)-FMOM(my,i,n)
+         SMOM(mxy,i,n)=
+     &    (SMOM(mxy,i,n)*MASS(i,n)
+     &       -3.*(-dm2*SMOM(my,i,n) +
+     &      MASS(i,n)*(FMOM(my,i,nm1)+FMOM(my,i,n))) +
+     &      (FMOM(mxy,i,nm1)-FMOM(mxy,i,n)))*bymnew
+         SMOM(mz,i,n)=
+     &    SMOM(mz,i,n)+FMOM(mz,i,nm1)-FMOM(mz,i,n)
+         SMOM(mzx,i,n)=
+     &    (SMOM(mzx,i,n)*MASS(i,n)
+     &                   -3.*(-dm2*SMOM(mz,i,n) +
+     &        MASS(i,n)*(FMOM(mz,i,nm1)+FMOM(mz,i,n))) +
+     &        (FMOM(mzx,i,nm1)-FMOM(mzx,i,n)))*bymnew
       !
-         smom(myy,i,n)=smom(myy,i,n)+fmom(myy,i,nm1)-fmom(myy,i,n)
-         smom(mzz,i,n)=smom(mzz,i,n)+fmom(mzz,i,nm1)-fmom(mzz,i,n)
-         smom(myz,i,n)=smom(myz,i,n)+fmom(myz,i,nm1)-fmom(myz,i,n)
+         SMOM(myy,i,n)=
+     &    SMOM(myy,i,n)+
+     &        FMOM(myy,i,nm1)-FMOM(myy,i,n)
+         SMOM(mzz,i,n)=SMOM(mzz,i,n)+
+     &        FMOM(mzz,i,nm1)-FMOM(mzz,i,n)
+         SMOM(myz,i,n)=SMOM(myz,i,n)+
+     &        FMOM(myz,i,nm1)-FMOM(myz,i,n)
       !
 c------------------------------------------------------------------
-         mass(i,n) = mnew
-         if(mass(i,n).le.0.) then
-            s(i,n)=0.
-            smom(:,i,n)=0.
+         MASS(i,n) = mnew
+         if(MASS(i,n).le.0.) then
+            S(i,n)=0.
+            SMOM(:,i,n)=0.
          endif
 c-----------------------------------------------------------------
          if (qlimit .and. prather_limits.eq.1) then ! force Prather limits
-           smom(mx,i,n)=min(1.5*s(i,n),max(-1.5*s(i,n),smom(mx,i,n)))
-           smom(mxx,i,n)=min(2.*s(i,n)-abs(smom(mx,i,n))/3.,
-     *          max(abs(smom(mx,i,n))-s(i,n),smom(mxx,i,n)))
-           smom(mxy,i,n)=min(s(i,n),max(-s(i,n),smom(mxy,i,n)))
-           smom(mzx,i,n)=min(s(i,n),max(-s(i,n),smom(mzx,i,n)))
+           SMOM(mx,i,n)=
+     &          min(1.5*S(i,n),
+     &    max(-1.5*S(i,n),SMOM(mx,i,n)))
+           SMOM(mxx,i,n)=
+     &          min(2.*S(i,n)-abs(SMOM(mx,i,n))/3.,
+     &          max(abs(SMOM(mx,i,n))-S(i,n),SMOM(mxx,i,n)))
+           SMOM(mxy,i,n)=
+     &          min(S(i,n),
+     &    max(-S(i,n),SMOM(mxy,i,n)))
+           SMOM(mzx,i,n)=
+     &          min(S(i,n),
+     &    max(-S(i,n),SMOM(mzx,i,n)))
          end if
 
       enddo

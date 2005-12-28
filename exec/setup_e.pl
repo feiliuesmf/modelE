@@ -255,7 +255,8 @@ if ( $uname =~ /IRIX64/ ) {
 } elsif ( $uname =~ /AIX/ ) {
     $omp_run = "export MP_SET_NUMTHREADS=\$NP; "; #?? check
 } elsif ( $uname =~ /Linux/ ) {
-     $omp_run = "export OMP_NUM_THREADS=\$NP; ";
+    $omp_run = "export OMP_NUM_THREADS=\$NP; ";
+    $mpi_run = "mpirun -np \$NP ";
 }
 
 chmod 0777 & $umask_inv, "${runID}ln", "${runID}uln", "runtime_opts";

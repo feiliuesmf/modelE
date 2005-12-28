@@ -151,9 +151,9 @@ endif
 ifeq ($(COMPILER),Intel8)
 F90 = ifort
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
-FFLAGS = -fpp -O2 -Wp,-P -tpp2 -convert big_endian -assume dummy_aliases
-F90FLAGS = -fpp -O2 -Wp,-P -tpp2 -convert big_endian -free -assume dummy_aliases
-LFLAGS = -O2 -tpp2 -assume dummy_aliases
+FFLAGS = -fpp -O2 -Wp,-P -tpp2 -convert big_endian 
+F90FLAGS = -fpp -O2 -Wp,-P -tpp2 -convert big_endian -free 
+LFLAGS = -O2 -tpp2 
 CPP = /lib/cpp -P -traditional
 CPPFLAGS = -DMACHINE_Linux
 F90_VERSION = $(shell $(F90) -v 2>&1)
@@ -359,8 +359,18 @@ endif
 # end of machine - specific options
 
 ifeq ($(ESMF),YES)
+ifeq ($(UNAME),OSF1)
 CPPFLAGS += -DUSE_ESMF
 LIBS += -lesmf -lmpi
+endif
+ifeq ($(COMPILER),Intel8)
+ESMFINCLUDEDIR = ${ESMF_DIR}/include
+ESMFLIBDIR = ${ESMF_DIR}/lib/lib${ESMF_BOPT}/Linux.intel.64.default
+CPPFLAGS += -DUSE_ESMF
+LIBS += -size_lp64 -mp -L${ESMFLIBDIR} -L${MPIDIR}/lib -lesmf  -lmpi -lmpi++  -lcprts -limf -lm -lcxa -lunwind -lrt -ldl -threads -lnetcdf_stubs
+FFLAGS += -I${ESMFINCLUDEDIR}
+INCS += -I ${ESMFINCLUDEDIR}
+endif
 endif
 
 ifeq ($(FVCORE),YES)
@@ -369,8 +379,11 @@ ifeq ($(FVCORE),YES)
   endif
   CPPFLAGS += -DUSE_FVCORE
   FVINC = -I$(FVCORE_ROOT)/$(UNAME)/include
-  INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio $(FVINC)/GMAO_cfio $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp  -I/unsipp/trayanov/esmf/esmf_2_0_0/mod/modg/OSF1.default.64.default
-  LIBS += -L$(FVCORE_ROOT)/$(UNAME)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio -lGMAO_cfio -lGEOS_Shared -lGEOS_Base -L/unsipp/trayanov/esmf/esmf_2_0_0/lib/libg/OSF1.default.64.default
+#  INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio $(FVINC)/GMAO_cfio $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp  -I/unsipp/trayanov/esmf/esmf_2_0_0/mod/modg/OSF1.default.64.default
+#  LIBS += -L$(FVCORE_ROOT)/$(UNAME)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio -lGMAO_cfio -lGEOS_Shared -lGEOS_Base -L/unsipp/trayanov/esmf/esmf_2_0_0/lib/libg/OSF1.default.64.default
+
+  INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio $(FVINC)/GMAO_cfio $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp  -I$(BASEDIR)/mod/modg/OSF1.default.64.default
+  LIBS += -L$(FVCORE_ROOT)/$(UNAME)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio -lGMAO_cfio -lGEOS_Shared -lGEOS_Base -L$(BASEDIR)/lib/libg/OSF1.default.64.default
 endif
 ifeq ($(SKIP_FV),YES)
   CPPFLAGS+=-DSKIP_FV
@@ -390,7 +403,8 @@ endif
 endif
 
 # access new interfaces in sub-directory.
-FFLAGS+= -I$(ESMF_Interface) $(INCS)
+FFLAGS+= -I$(ESMF_Interface)
+F90FLAGS+= -I$(ESMF_Interface)
 FFLAGSF += -I$(ESMF_Interface) $(INCS)
 CPPFLAGS+=$(INCS)
 
