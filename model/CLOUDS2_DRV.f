@@ -1329,12 +1329,12 @@ C
 C**** Save the conservation quantities for tracers
       do nx=1,ntx
         n=ntix(nx)
-        if (itcon_mc(n).gt.0) call diagtcb(dtr_mc(1,nx),itcon_mc(n),n)
-        if (itcon_ss(n).gt.0) call diagtcb(dtr_ss(1,nx),itcon_ss(n),n)
+        if (itcon_mc(n).gt.0) call diagtcb(dtr_mc(:,nx),itcon_mc(n),n)
+        if (itcon_ss(n).gt.0) call diagtcb(dtr_ss(:,nx),itcon_ss(n),n)
 #ifndef TRACERS_WATER
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-        if (itcon_wt(n).gt.0) call diagtcb(dtr_wt(1,nx),itcon_wt(n),n)
+        if (itcon_wt(n).gt.0) call diagtcb(dtr_wt(:,nx),itcon_wt(n),n)
 #endif
 #endif
       end do

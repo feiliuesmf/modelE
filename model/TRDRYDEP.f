@@ -43,6 +43,7 @@ C       Environmental Protection Agency Report EPA/600/3-88/025,
 C       Research Triangle Park (NC), 1988.   
 C     Wesely, M.L., same title, Atmos. Environ., 23, 1293-1304, 1989.
 C*********************************************************************
+      USE DOMAIN_DECOMP, only   : grid
       USE TRACER_COM, only   : ntm
       USE MODEL_COM, only   : im,jm
 c
@@ -80,7 +81,8 @@ c
      &                      NVEGTYPE= 74
       REAL*8,  DIMENSION(IM,JM,NTYPE)     :: XYLAI,XLAI,XLAI2
       REAL*8,  DIMENSION(NPOLY)           :: DRYCOEFF
-      REAL*8,  DIMENSION(JM,ntm,2)        :: dtr_dd
+      REAL*8,  DIMENSION(grid%j_strt_halo:grid%j_stop_halo,ntm,2)     
+     &                                    :: dtr_dd
       INTEGER, DIMENSION(IM,JM)           :: IJREG,IREG
       INTEGER, DIMENSION(IM,JM,NTYPE)     :: IJLAND,IJUSE
       INTEGER, DIMENSION(NVEGTYPE)        :: IDEP

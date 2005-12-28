@@ -428,6 +428,7 @@ C**** diagnostics
      *             sum(trsource(1:imaxj(j),j,ns,n))*dtstep
             END  DO
           END IF
+          dtracer(:)=0.
           DO J=J_0,J_1
             dtracer(j)=0.
             do i=1,imaxj(j)
@@ -435,7 +436,7 @@ C**** diagnostics
             end do
           end do
           if (itcon_surf(ns,n).gt.0)
-     *         call DIAGTCB(dtracer,itcon_surf(ns,n),n)
+     *         call DIAGTCB(dtracer(:),itcon_surf(ns,n),n)
 C**** trflux1 is total flux into first layer
           trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)
         end do

@@ -1023,8 +1023,8 @@ C
 C**** Save the conservation quantities for tracers
       do nx=1,ntx
         n=ntix(nx)
-        if (itcon_mc(n).gt.0)call diagtcb(dtr_mc(j_0h,nx),itcon_mc(n),n)
-        if (itcon_ss(n).gt.0)call diagtcb(dtr_ss(j_0h,nx),itcon_ss(n),n)
+        if (itcon_mc(n).gt.0)call diagtcb(dtr_mc(:,nx),itcon_mc(n),n)
+        if (itcon_ss(n).gt.0)call diagtcb(dtr_ss(:,nx),itcon_ss(n),n)
       end do
 #endif
 
