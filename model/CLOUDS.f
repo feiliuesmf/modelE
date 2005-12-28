@@ -1506,6 +1506,7 @@ C**   Set CDNC for moist conv. clds (const at present)
             TAUMCL(L)=1.5*TEM/(FCLD*RCLDE+1.E-20)
             IF(TAUMCL(L).GT.100.) TAUMCL(L)=100.
          END IF
+         IF(TAUMCL(L).LT.0..and.CLDMCL(L).le.0.) TAUMCL(L)=0.
       END DO
 
       RETURN
