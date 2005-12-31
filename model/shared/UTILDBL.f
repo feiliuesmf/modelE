@@ -529,27 +529,36 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
 #else
       rank =0
 #endif
-      If (rank == 0) Then
+      if (rank == 0) then
         write (6,'(//2(" ",132("*")/))')
         write (6,*) ' Program terminated due to the following reason:'
         write (6,*) ' >>  ', message, '  <<'
         write (6,'(/2(" ",132("*")/))')
-      End If
 
-      if ( retcode .ne. 12 .and. retcode .ne. 13 ) then
-        open( iu_err, file='error_message',
+        if ( retcode .ne. 12 .and. retcode .ne. 13 ) then
+          open( iu_err, file='error_message',
      &       form='FORMATTED', status='REPLACE', ERR=10 )
-        write ( iu_err, *, ERR=10 ) message
-        close( iu_err )
+          write ( iu_err, *, ERR=10 ) message
+          close( iu_err )
+          goto 11
+ 10       continue
+          write( 0, * ) "Can't write to the error_message file"
+          write( 0, * ) "ERROR:", message 
+ 11       continue
+        endif
       endif
 
       call sys_flush(6)
 
-      if ( retcode > 13 .and. dump_core > 0 ) then
+      if ( retcode > 13 ) then
 #ifdef USE_ESMF
         call mpi_abort(MPI_COMM_WORLD, retcode,iu_err)
 #else
-        call sys_abort
+        if ( dump_core > 0 ) then
+          call sys_abort
+        else 
+          call exit_rc ( retcode )
+        endif
 #endif
       else
 #ifdef USE_ESMF
@@ -558,9 +567,5 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
         call exit_rc ( retcode )
       endif
 
- 10   continue
-c**** something is terribly wrong, writing to stderr instead ...
-      write( 0, * ) "Can't write to the error_message file"
-      write( 0, * ) message
-      call exit_rc ( retcode )
       end subroutine stop_model
+

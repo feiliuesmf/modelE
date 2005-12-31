@@ -323,7 +323,8 @@ print <<`EOC`;
 EOC
 
 $rcode = $? >> 8;
-if ( $rcode != 13 && $rcode != 12 ) {
+# mpirun returns 0 on success...
+if ( $rcode != 13 && $rcode != 12  && $rcode != 0 ) {
     print " Problem encountered while running hour 1 :\n"; 
     $error_message = `cat error_message`; chop $error_message;
     print " >>> $error_message <<<\n";
