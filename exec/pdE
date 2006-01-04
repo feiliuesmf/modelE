@@ -33,12 +33,20 @@ cat <<EOF > Ipd
 EOF
 fi
 
+# hack: check if should run with mpirun
+prefix=
+grep "^ *mpirun" $RUNDIR/${runID} >/dev/null
+rc=$?
+if [ $rc -eq 0 ] ; then
+  prefix="mpirun -np 1"
+fi
+
 rm -f error_message
 if [ -f $RUNDIR/runtime_opts ] ; then
   . $RUNDIR/runtime_opts
 fi
 do_uln=0 ; if [ ! -L TOPO ] ; then $RUNDIR/${runID}ln ; do_uln=1 ; fi
-$RUNDIR/${runID}.exe -i Ipd $* < Ipd > pd.PRT
+$prefix $RUNDIR/${runID}.exe -i Ipd $* < Ipd > pd.PRT
 # hack to process older runs (which don't support -i)
 rc=$?
 if [ $rc -eq 255 ] ; then 
