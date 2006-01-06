@@ -537,7 +537,7 @@ c****Get relevant local distributed parameters
       INTEGER J_0, J_1
       INTEGER J_0H, J_1H
       INTEGER J_0S, J_1S
-      INTEGER :: idx(LM)
+      LOGICAL :: idx(LM)
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 C****
