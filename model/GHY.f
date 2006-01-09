@@ -2910,7 +2910,8 @@ c    &       'GHY: water conservation problem in veg. soil',255)
      &       - srht - trht + thrm_tot(1) + snsh_tot(1)
 
         if ( abs( error_energy ) > 1.d-5 )
-     &       call stop_model('GHY: energy conservation problem',255)
+c    &       call stop_model('GHY: energy conservation problem',255)
+     &       write(0,*)'GHY:bare soil error_energy',ijdebug,error_energy
       endif
 
       ! vegetated soil
@@ -2922,8 +2923,9 @@ c    &       'GHY: water conservation problem in veg. soil',255)
      &       + rnf(2)*max(tp(1,2),0.d0) )
      &       - srht - trht + thrm_tot(2) + snsh_tot(2)
 
-      if ( abs( error_energy ) > 1.d-4) call stop_model(
-     &     'GHY: energy conservation problem in veg. soil',255)
+       if ( abs( error_energy ) > 1.d-5)
+c    &   call stop_model('GHY: energy cons problem in veg. soil',255)
+     &       write(0,*)'GHY:veg soil error_energy',ijdebug,error_energy
       endif
 
       ghy_debug%energy(:) = total_energy(:)
