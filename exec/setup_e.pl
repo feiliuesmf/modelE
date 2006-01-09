@@ -235,10 +235,12 @@ if ( $uname =~ /IRIX64/ ) {
     print RUNTIMEOPTS "export G95_ENDIAN=BIG\n";   #needed for g95
 }
 print RUNTIMEOPTS <<EOF;
-    if [ `ulimit -s` -lt $MIN_STACK ] ; then
-      ulimit -s $MIN_STACK || \\
-        echo "!!! Could not set required stack size !!!" ;
-      echo "current stack: `ulimit -s`"
+    if [ `ulimit -s` != 'unlimited' ] ; then
+      if [ `ulimit -s` -lt $MIN_STACK ] ; then
+        ulimit -s $MIN_STACK || \\
+          echo "!!! Could not set required stack size !!!" ;
+        echo "current stack: `ulimit -s`"
+      fi
     fi
 EOF
 close RUNTIMEOPTS;
