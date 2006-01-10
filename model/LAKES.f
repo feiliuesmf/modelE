@@ -1,4 +1,4 @@
-#include "rundeck_opts.h" 
+#include "rundeck_opts.h"
 C23456789012345678901234567890123456789012345678901234567890123456789012
       MODULE LAKES
 !@sum  LAKES subroutines for Lakes and Rivers
@@ -25,7 +25,7 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 !@var IFLOW,JFLOW grid box indexes for downstream direction
       INTEGER, ALLOCATABLE, DIMENSION (:,:) :: IFLOW,JFLOW
 !@param NRVRMX Max No. of specified rivers
-      INTEGER, PARAMETER :: NRVRMX = 42 
+      INTEGER, PARAMETER :: NRVRMX = 42
 !@var NRVR actual No. of specified rivers
       INTEGER :: NRVR
 !@var IRVRMTH,JRVRMTH indexes for specified river mouths
@@ -81,7 +81,7 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 #endif
 #endif
 !@var emin min energy deficit required before ice forms (J/m^2)
-      REAL*8, PARAMETER :: emin=-1d-10 
+      REAL*8, PARAMETER :: emin=-1d-10
       REAL*8 ENRGF1, ACEF1, ENRGF2, ACEF2, FHO, FHI, FH0, FH1, FH2, FSR2
       REAL*8 ENRGI, ENRGI2, ENRGO, ENRGO2, RUNO, RUNI, TLK2, DM2, DH2
       REAL*8 FRATO,FRATI,E2O,E2I
@@ -367,7 +367,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@ver  1.0
       USE DOMAIN_DECOMP, only: DIST_GRID, GET
       USE MODEL_COM, only : IM, JM
-      USE LAKES, ONLY: RATE, DHORZ,KDIREC,IFLOW,JFLOW 
+      USE LAKES, ONLY: RATE, DHORZ,KDIREC,IFLOW,JFLOW
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
       INTEGER IER
@@ -376,12 +376,12 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
      *            IFLOW  (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      *            JFLOW  (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      *            RATE   (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     *            DHORZ  (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) 
+     *            DHORZ  (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
      *            )
       RETURN
       END SUBROUTINE ALLOC_LAKES
 
-  
+
       SUBROUTINE init_LAKES(inilake,istart)
 !@sum  init_LAKES initiallises lake variables
 !@auth Gary Russell/Gavin Schmidt
@@ -427,7 +427,7 @@ c***      Type (ESMF_HaloDirection) :: direction
       CALL GET(GRID, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &               J_STRT_HALO= J_0H, J_STOP_HALO= J_1H,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C****
@@ -551,7 +551,6 @@ C**** read in named rivers (if any)
 
 
 C**** Create integral direction array KDIREC from CDIREC
-      INM=0
       CALL HALO_UPDATE(GRID, FEARTH, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(GRID, FLICE,  FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(GRID, FLAKE0, FROM=NORTH+SOUTH)
@@ -577,22 +576,33 @@ C**** Also ensure that all ocean boxes are done properly
         END IF
 C**** Check for specified river mouths
         IF (KD.GE.17 .AND. KD.LE.42) THEN
+          IF (FOCEAN(I,J).le.0) THEN
+            WRITE(6,*)
+     *       "Warning: Named river outlet must be in ocean",i
+     *           ,j,FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J)
+     *           ,FEARTH(I,J)
+          END IF
+        END IF
+      END DO
+      END DO
+
+      INM=0
+      DO J=1,JM
+      DO I=1,IM
+C**** KD: -16 = blank, 0-8 directions >8 named rivers
+        KD= ICHAR(CDIREC(I,J)) - 48
+C**** Check for specified river mouths
+        IF (KD.GE.17 .AND. KD.LE.42) THEN
           INM=INM+1
           IRVRMTH(INM)=I
           JRVRMTH(INM)=J
           IF (CDIREC(I,J).ne.NAMERVR(INM)(1:1)) THEN
-            WRITE(6,*) 
+            WRITE(6,*)
      *           "Warning: Named river in RVR does not correspond"
      *           //" with letter in direction file. Please check"
             WRITE(6,*) "INM, CDIREC, NAMERVR = ",INM,CDIREC(I,J)
      *           ," ",NAMERVR(INM)
             NAMERVR(INM)=CDIREC(I,J)  ! set default
-          END IF
-          IF (FOCEAN(I,J).le.0) THEN
-            WRITE(6,*) 
-     *       "Warning: Named river outlet must be in ocean",i
-     *           ,j,NAMERVR(INM),FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J)
-     *           ,FEARTH(I,J) 
           END IF
         END IF
       END DO
@@ -741,7 +751,7 @@ C****
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD,JR,ITYPE
       REAL*8 MWLSILL,DMM,DGM,HLK1,DPE
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     FLOW,EFLOW
       REAL*8,
      & DIMENSION(size(areg,1),GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
@@ -1025,13 +1035,11 @@ C****
 !@sum  diag_RIVER prints out the river outflow for various rivers
 !@auth Gavin Schmidt
 !@ver  1.0
-!@sum  ESMF: This subroutine should only be called from a serial region.
-!@&          It is NOT parallelized.
- 
+
       USE CONSTANT, only : rhow,sday,teeny,undef
       USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
      *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH, 
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH,
      *    WRITE_PARALLEL
       USE GEOM, only : bydxyp
       USE DIAG_COM, only : aij,ij_mrvr
@@ -1062,8 +1070,8 @@ C**** convert kg/(source time step) to km^3/mon
           RVROUT(I) = SCALERVR*AIJ(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM)
      *         ,IJ_MRVR)/IDACC(1)
         END DO
-        WRITE(out_line,901) 
-     *     (NAMERVR(I-1+INM),RVROUT(I),I=1,MIN(6,NRVR+1-INM)) 
+        WRITE(out_line,901)
+     *     (NAMERVR(I-1+INM),RVROUT(I),I=1,MIN(6,NRVR+1-INM))
         CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
       END DO
 
@@ -1083,11 +1091,11 @@ c     *               +INM),TIJ_RVR,N)/(trw0(n)*AIJ(IRVRMTH(I-1+INM)
 c     *               ,JRVRMTH(I-1+INM),IJ_MRVR)*BYDXYP(JRVRMTH(I-1+INM
 c     *               ))) -1.)
                 if (TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM),TIJ_RVR
-     *               ,N_water).gt.0) then 
+     *               ,N_water).gt.0) then
                   TRRVOUT(I,N)=1d3*(TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1
      *                 +INM),TIJ_RVR,N)/(trw0(n)*TAIJN(IRVRMTH(I-1+INM)
      *                 ,JRVRMTH(I-1+INM),TIJ_RVR,N_water))-1.)
-                else 
+                else
                   TRRVOUT(I,N)=undef
                 endif
               else
@@ -1101,7 +1109,7 @@ c     *               ))) -1.)
               END IF
             END DO
             WRITE(out_line,901) (NAMERVR(I-1+INM),TRRVOUT(I,N),
-     *           I=1,MIN(6,NRVR+1-INM)) 
+     *           I=1,MIN(6,NRVR+1-INM))
             CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
           END DO
         end if
@@ -1189,7 +1197,7 @@ C**** Check for neg tracers in lake
             if (fearth(i,j).gt.0) then
               if (trlake(n,1,i,j).lt.0 .or. trlake(n,2,i,j).lt.0) then
                 print*,"Neg tracer in lake after ",SUBR,i,j,trname(n)
-     *               ,trlake(n,:,i,j) 
+     *               ,trlake(n,:,i,j)
                 QCHECKL=.TRUE.
               end if
             end if
@@ -1382,7 +1390,7 @@ C****
       USE CONSTANT, only : rhow,shw,teeny
       USE MODEL_COM, only : im,jm,flice,fland,hlake
      *     ,fearth,dtsrc,itlake,itlkice
-      USE DOMAIN_DECOMP, only : GRID, GET,GLOBALSUM, HALO_UPDATE, 
+      USE DOMAIN_DECOMP, only : GRID, GET,GLOBALSUM, HALO_UPDATE,
      *    NORTH,SOUTH
 
       USE GEOM, only : imaxj,dxyp
@@ -1411,7 +1419,7 @@ C**** grid box variables
 C**** fluxes
       REAL*8 EVAPO, FIDT, FODT, RUN0, ERUN0, RUNLI, RUNE, ERUNE,
      *     HLK1,TLK1,TLK2,TKE,SROX(2),FSR2, U2RHO
-      REAL*8, 
+      REAL*8,
      & DIMENSION(size(areg,1),GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
      & :: AREG_part
       REAL*8  :: AREGSUM(size(areg,1),2)
