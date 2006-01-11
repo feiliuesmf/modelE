@@ -170,8 +170,8 @@
       end subroutine summarize_patch_OLD
 
       !*********************************************************************
-      subroutine sum_patch(pp)
-      !* Recalculates patch-level summary values, parsing through cohorts.
+      subroutine sum_cohorts(pp)
+      !* Calculates patch-level summary values of cohort pools.
       !* Put sums in pp%sumcohort
       type(patch),pointer :: pp
       type(cohort),pointer :: acop, cop
@@ -220,12 +220,14 @@
 
         !* NOTE:  Labile stored carbon can be both above- and below-ground.
         !*        May want to separate this pool, but for now is added to ag.
-        pp%plant_ag_Cp = pp%plant_ag_Cp + 
-                         cop%C_fol + cop%C_sw + cop%C_hw + cop%C_lab
-        pp%plant_bg_Cp = pp%plant_bg_Cp + cop%C_froot + cop%C_croot
-        pp%plant_ag_Np = pp%plant_ag_Np + 
-                         cop%N_fol + cop%N_sw + cop%N_hw + cop%N_lab
-        pp%plant_bg_Np = pp%plant_bg_Np + cop%N_froot + cop%N_croot
+        pp%plant_ag_Cp = pp%plant_ag_Cp + cop%n*(
+     &       cop%C_fol + cop%C_sw + cop%C_hw + cop%C_lab)
+        pp%plant_bg_Cp = pp%plant_bg_Cp + cop%n*(
+     &       cop%C_froot + cop%C_croot
+        pp%plant_ag_Np = pp%plant_ag_Np + cop%n*(
+     &       cop%N_fol + cop%N_sw + cop%N_hw + cop%N_lab
+        pp%plant_bg_Np = pp%plant_bg_Np + cop%n*(
+     &       cop%N_froot + cop%N_croot
         
         !* Biomass pools - by pft *!
         pp%LAI(cop%pft) = pp%LAI(cop%pft) + cop%LAI
@@ -263,7 +265,7 @@
         cop = cop%shorter
       end do
 
-      end subroutine summarize_patch
+      end subroutine sum_cohorts
 
       !*********************************************************************
 
@@ -374,9 +376,9 @@
 
       cop = pp%tallest
       do while(allocated(cop)) 
-        frootC_total = frootC_total + cop%C_froot
+        frootC_total = frootC_total + cop%n*cop%C_froot
         do n=1,N_DEPTH
-          froot(n) = froot(n) + cop%C_froot*cop%froot(n)
+          froot(n) = froot(n) + cop%n*cop%C_froot*cop%froot(n)
         end do
         cop = cop%shorter
       end do

@@ -19,7 +19,7 @@
 
       contains
       !*********************************************************************
-      subroutine ent_integrate(dtsec, time, entcell)
+      subroutine ent_integrate(dtsec, time, pp)
       use phenology
       use disturbance
       use canopyrad
@@ -32,7 +32,7 @@
       implicit none
       real*8 :: dtsec  !dt in seconds
       type(timestruct) :: time !Time in year.fraction, Greenwich Mean Time
-      type(entcelltype) :: entcell
+      type(patch),pointer :: pp
 
       !dtsec = dtyr*YEARSEC(entdata%tt%year)
       !Convert to local time here?
@@ -52,7 +52,11 @@
       end if
 
       call calc_cell_disturbance_rates(dtsec,time,entcell)
-      call ent_bgc(dtsec,time,entcell)
+!*      call ent_bgc(dtsec,time,entcell)
+        call photosynth_cond(dtsec, pp)
+        call uptake_N(dtsec, pp)
+        call litter(dtsec, time, pp)
+        call soil_bgc(dtsec, pp)
 
       if (STRUCT_FLAG(time,entcell)) then
         call reproduction_calc(dtsec, time, entcell)
