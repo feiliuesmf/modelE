@@ -44,28 +44,32 @@
       write(*,*) 'Ecosystem dynamics for (long,lat)=(',
      & entcell%long,entcell%lat,'),time=',time
 
-      if (STRUCT_FLAG(time,entcell)) then
-        !* Update phenology and disturbance
-        call phenology_update (dtsec,time, entcell)
-        call fire_frequency (dtsec,time, entcell)
-        call recalc_radpar (entcell)
-      end if
+      pp = entcell%youngest
+      do while (ASSOCIATED(pp)) 
+        if (STRUCT_FLAG(time,entcell)) then
+          !* Update phenology and disturbance
+          call phenology_update (dtsec,time, pp)
+          call fire_frequency (dtsec,time, pp)
+          call recalc_radpar (pp)
+        end if
 
-      call calc_cell_disturbance_rates(dtsec,time,entcell)
-!*      call ent_bgc(dtsec,time,entcell)
+        call calc_cell_disturbance_rates(dtsec,time,pp)
         call photosynth_cond(dtsec, pp)
         call uptake_N(dtsec, pp)
         call litter(dtsec, time, pp)
         call soil_bgc(dtsec, pp)
 
-      if (STRUCT_FLAG(time,entcell)) then
-        call reproduction_calc(dtsec, time, entcell)
-        call reorganize_cohorts(entcell)
-      end if
+        if (STRUCT_FLAG(time,entcell)) then
+          call reproduction_calc(dtsec, time, pp)
+          call reorganize_cohorts(pp)
+        end if
+      end do
 
       if (STRUCT_FLAG(time,entcell)) then
         call reorganize_patches(entcell)
       end if
+
+      call sum_patches(entcell)
 
       end subroutine ent_integrate
 

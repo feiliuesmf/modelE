@@ -12,9 +12,9 @@
       contains
       !*********************************************************************
       
-      subroutine soil_bgc(dtsec, entcell)
+      subroutine soil_bgc(dtsec, pptr)
       real*8, intent(in) :: dtsec
-      type(entcelltype) :: entcell
+      type(patch),pointer :: pptr
 
       !---------------------------------------------------------------
       !              FILL IN CODE                                    

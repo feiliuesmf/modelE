@@ -149,9 +149,26 @@ c
 
       !*********************************************************************
 
-      subroutine recalc_radpar(entcell)
+      subroutine recalc_radpar(pptr)
 !@sum Calculate canopy radiation geometrical parameters following structural
-!@sum changes.
+!@sum changes.  At patch level.
+
+      type(patch),pointer :: pptr
+
+      if (ASSOCIATED(pptr)) 
+        call GORT_clumping(pptr)
+      !---------------------------------------------------------------
+      !              FILL IN CODE                                    
+      !---------------------------------------------------------------
+      end if
+
+      end subroutine recalc_radpar
+
+
+      !*********************************************************************
+      subroutine recalc_radpar_OLD(entcell)
+!@sum Calculate canopy radiation geometrical parameters following structural
+!@sum changes.  At entcell level.
 
       type(entcelltype) :: entcell
       type(patch),pointer :: pptr
@@ -166,7 +183,7 @@ c
       !---------------------------------------------------------------
       end do
 
-      end subroutine recalc_radpar
+      end subroutine recalc_radpar_OLD
 
 
       !*********************************************************************

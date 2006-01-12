@@ -9,10 +9,10 @@
       contains
       !*********************************************************************
 
-      subroutine reproduction_calc(dtsec, time, entcell)
+      subroutine reproduction_calc(dtsec, time, pptr)
       real*8 :: dtsec           !dt in seconds
       type(timestruct) :: time  !Greenwich Mean Time
-      type(entcelltype) :: entcell
+      type(patch),pointer :: pptr
 
       !---------------------------------------------------------------
       !              FILL IN CODE                                    
