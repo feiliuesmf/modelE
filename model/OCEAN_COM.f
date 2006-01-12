@@ -129,7 +129,7 @@ C****
 C****
       END MODULE SW2OCEAN
 
-      subroutine alloc_static_ocean(grid) ! dummy routine
+      subroutine alloc_ocean(grid) ! dummy routine
       USE DOMAIN_DECOMP, only : GRID
       return
-      end subroutine alloc_static_ocean
+      end subroutine alloc_ocean

@@ -43,8 +43,11 @@
       REAL*8 :: SSS0=34.7d0
 
 !@var OTA,OTB,OTC ocean heat transport coefficients
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OTA,OTB
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: OTC
+!allocREAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OTA,OTB
+!allocREAL*8, ALLOCATABLE, DIMENSION(:,:) :: OTC
+!alloc  Currently the fixed arrays OTA,OTB,OTC are not subdivided -
+!alloc  if they ever are, change the way they are read in below
+      REAL*8  OTA(im,jm,4),OTB(im,jm,4),OTC(im,jm)  ! non_alloc
 !@var SINANG,COSANG Fourier coefficients for heat transports
       REAL*8 :: SINANG,SN2ANG,SN3ANG,SN4ANG,
      *          COSANG,CS2ANG,CS3ANG,CS4ANG
@@ -139,7 +142,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       USE DOMAIN_DECOMP, ONLY : GLOBALSUM,AM_I_ROOT
       IMPLICIT NONE
 
-C now allocated from ALLOC_STATIC OCEAN      REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
+C now allocated from ALLOC_OCEAN   REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       LOGICAL, INTENT(IN) :: end_of_day
 
       INTEGER n,J,I,LSTMON,K,m,m1,JR
@@ -503,11 +506,11 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
       END IF
       END DO
       END DO
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
      &  gsum(1:NREG,1)
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
      &  gsum(1:NREG,1)
@@ -601,7 +604,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 
       END MODULE STATIC_OCEAN
 
-      SUBROUTINE ALLOC_STATIC_OCEAN(grid)
+      SUBROUTINE ALLOC_OCEAN(grid)
       USE MODEL_COM, only : im
       USE STATIC_OCEAN, only  : TOCEAN,OTA,OTB,OTC,Z1O,Z1OOLD,Z12O,
      &                          DM,AOST,EOST1,EOST0,BOST,
@@ -616,12 +619,12 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 
       ALLOCATE(TOCEAN(3,IM,J_0H:J_1H),
      &    STAT=IER)
-      ALLOCATE(OTA(IM,J_0H:J_1H,4),
-     &         OTB(IM,J_0H:J_1H,4),
-     &    STAT=IER)
+!allocALLOCATE(OTA(IM,J_0H:J_1H,4),
+!all &         OTB(IM,J_0H:J_1H,4),
+!all &    STAT=IER)
       ALLOCATE(KRSI(IM,J_0H:J_1H),
      &    STAT=IER)
-      ALLOCATE(OTC(IM,J_0H:J_1H),
+      ALLOCATE(   !alloc OTC(IM,J_0H:J_1H),
      &         Z1O(IM,J_0H:J_1H),
      &         Z1OOLD(IM,J_0H:J_1H),
      &         Z12O(IM,J_0H:J_1H),
@@ -639,7 +642,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      &         XZO(IM,J_0H:J_1H),
      &         XZN(IM,J_0H:J_1H),
      &    STAT=IER)
-      END SUBROUTINE ALLOC_STATIC_OCEAN
+      END SUBROUTINE ALLOC_OCEAN
 
 
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
@@ -688,7 +691,7 @@ C****   set conservation diagnostic for ocean heat
      *       "(W/M^2)         ",1d-6,1d0,icon_OCE)
       end if
 
-      if (istart.le.0) then 
+      if (istart.le.0) then
         if(kocean.ge.1) call init_ODEEP(.false.)
         return
       end if
@@ -729,6 +732,7 @@ C****   Read in constant factor relating RSI to MSI from sea ice clim.
 C****   DATA FOR QFLUX MIXED LAYER OCEAN RUNS
 C****   read in ocean heat transport coefficients
         call openunit("OHT",iu_OHT,.true.,.true.)
+calloc  if OTA,OTB,OTC are made allocatable, modify the next line
         READ (iu_OHT) OTA,OTB,OTC,z12o_max
         WRITE(6,*) "Read ocean heat transports from OHT"
         call closeunit (iu_OHT)
@@ -929,11 +933,11 @@ C**** Additional mass (precip) is balanced by deep removal
         END IF
       END DO
       END DO
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
      &  gsum(1:NREG,1)
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
      &  gsum(1:NREG,1)
@@ -981,7 +985,7 @@ C**** output from OSOURC
       INTEGER :: J_0,J_1
       REAL*8 :: AREG_part(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,KAJ)
       REAL*8 :: gsum(NREG,1)
-     
+
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
       areg_part = 0
@@ -1061,11 +1065,11 @@ C**** store surface temperatures
         END IF
       END DO
       END DO
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
      &  gsum(1:NREG,1)
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
      &  gsum(1:NREG,1)
@@ -1169,11 +1173,11 @@ C**** regional diagnostics
         END IF
       END DO
       END DO
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
      &  gsum(1:NREG,1)
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
      &  gsum(1:NREG,1)
