@@ -4,7 +4,8 @@
 .SUFFIXES: .o .U .S .GCM .OCN .f .F
 .SUFFIXES:
 
-.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc esmf_interface unit_tests
+.PHONY: FORCE rundeck depend gcm setup clean vclean newstart exe cmp .R \
+htmldoc esmf_interface unit_tests
 VPATH = ESMF_Interface
 #
 # Print Usage if no targets were given
@@ -103,7 +104,12 @@ sinclude ~/.modelErc
 
 #
 # Lists of objects and dependencies
-# 
+#
+
+# list of subdirectories with modelE code (eventually should be read
+# from the rundeck)
+SUBDIRS = Ent
+OBJS_IN_SUBDIRS = Ent/interface_ent.o
 
 ifneq ($(MAKECMDGOALS),rundeck)
 ifeq ($(shell [ -s $(RUNDECK) ] && echo yes),yes)
@@ -281,9 +287,10 @@ ESMF_Interface/esmf_custom_mod.mod: ESMF_Interface/ESMF_CUSTOM_MOD.F90
 gcm: $(BIN_DIR)/$(RUN).exe
 
 #$(BIN_DIR)/$(RUN).exe: $(RUNDECK) esmf_interface fvdycore $(OBJS)
-$(BIN_DIR)/$(RUN).exe: $(RUNDECK) esmf_interface $(OBJS)
+$(BIN_DIR)/$(RUN).exe: $(RUNDECK) esmf_interface modelsubdirs $(OBJS)
 	echo linking executable $(MSG)
-	$(F90) $(LFLAGS) $(OBJS) $(F90OBJS) $(ESMF_OBJS) $(LIBS) -o $(RUN).exe  $(LINK_OUTPUT)
+	$(F90) $(LFLAGS) $(OBJS) $(F90OBJS) $(ESMF_OBJS) $(OBJS_IN_SUBDIRS) \
+             $(LIBS) -o $(RUN).exe  $(LINK_OUTPUT)
 ifdef LINK_OUTPUT
 	if [ -s $(RUN).ERR ] ; then cat $(RUN).ERR; else rm -f $(RUN).ERR; fi
 endif
@@ -341,3 +348,10 @@ src_cpp_dir: $(FSRCS_CPP)
 export $(FFLAGS)
 unit_tests:
 	$(MAKE) -C Unit_Tests Etest
+
+#  extra stuff for inclusion of subdirectories
+
+modelsubdirs: $(patsubst %, _dir_%, $(SUBDIRS))
+
+$(patsubst %, _dir_%, $(SUBDIRS)) : FORCE
+	$(MAKE) -C $(patsubst _dir_%, %, $@) ESMF_Interface=$(ESMF_Interface)

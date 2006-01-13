@@ -518,7 +518,7 @@ c***********************************************************************
 !@+   hydrology driver
 !@auth I. Alienov/F. Abramopolous
       use model_com, only : im,jm
-      use veg_drv, only : cosday,sinday
+      !use veg_drv, only : cosday,sinday
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       USE pbl_drv,ONLY : dust_flux,dust_flux2,z,km,gh,gm,zhat,lmonin,
@@ -622,8 +622,8 @@ c****
      *     canopy_temp_ij,snowe,tearth,wearth,aiearth,
      &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
 
-      use vegetation, only :
-     &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_vsm=>vsm !ia
+!      use vegetation, only :
+!     &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_vsm=>vsm !ia
 
   !    USE SOCPBL, only :
   !   &     dtsurf               ! zgs,     ! global
@@ -927,14 +927,14 @@ c***********************************************************************
 c****
 c  define extra variables to be passed in surfc:
       pres  =ps
-      veg_pres = ps
+      !veg_pres = ps
       rho   =rhosrf
       vsm   =pbl_args%ws
-      veg_vsm = pbl_args%ws
+      !veg_vsm = pbl_args%ws
       ch    =cdh
-      veg_ch = cdh
+      !veg_ch = cdh
       srht  =srheat
-      veg_srht = srheat
+      !veg_srht = srheat
       trht  =trheat
 c***********************************************************************
 c****
@@ -1666,7 +1666,8 @@ c**** modifications needed for split of bare soils into 2 types
 #ifdef TRACERS_WATER
       use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0,needtrs
       use fluxes, only : gtracer
-      use veg_com, only:  afb, avh
+      !use veg_com, only:  afb, avh
+      use interface_ent, only : ent_get_value
 #endif
       use fluxes, only : gtemp
       use ghy_com
@@ -1829,8 +1830,8 @@ c code transplanted from subroutine input
 c**** recompute ground hydrology data if necessary (new soils data)
       if (redogh) then
         jday=1+mod(itime/nday,365)
-        cosday=cos(twopi/edpery*jday)
-        sinday=sin(twopi/edpery*jday)
+        !cosday=cos(twopi/edpery*jday)
+        !sinday=sin(twopi/edpery*jday)
 
         do j=J_0,J_1
         do i=1,im
@@ -1924,8 +1925,8 @@ ccc!!! restart file (without snow model data)
             fr_snow_ij(:,i,j) = 0.
           else
             jday=1+mod(itime/nday,365)
-            cosday=cos(twopi/edpery*jday)
-            sinday=sin(twopi/edpery*jday)
+            !cosday=cos(twopi/edpery*jday)
+            !sinday=sin(twopi/edpery*jday)
 
             w(1:ngm,1) =   wbare(1:ngm,i,j)
             w(0:ngm,2) =   wvege(0:ngm,i,j)
@@ -1975,7 +1976,9 @@ ccc still not quite correct (assumes fw=1)
       do j=J_0,J_1
         do i=1,im
           if (fearth(i,j).le.0.d0) cycle
-          fb=afb(i,j) ; fv=1.-fb
+          !fb=afb(i,j) ; fv=1.-fb
+          call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+          fb = 1. - fv
           fm=1.d0-exp(-snowbv(2,i,j)/((avh(i,j)*spgsn) + 1d-12))
           if ( fm < 1.d-3 ) fm=0.d0
           wsoil_tot=fb*( wbare(1,i,j)*(1.d0-fr_snow_ij(1,i,j))
@@ -2104,7 +2107,8 @@ c****
      *     ,top_index_ij,top_dev_ij
      &     ,wbare,wvege,htbare,htvege,snowbv,nsn_ij,dzsn_ij,wsn_ij
      &     ,hsn_ij,fr_snow_ij
-      use veg_com, only: afb
+      !use veg_com, only: afb
+      use interface_ent, only : ent_get_value
       USE DOMAIN_DECOMP, ONLY : GRID, GET
 !      use veg_drv, only : veg_set_cell
 
@@ -2168,9 +2172,10 @@ c**** calculate the layer centers, based on the boundaries.
         zc(k)=.5*(zb(k)+zb(k+1))
       end do
 c**** fb,fv: bare, vegetated fraction (1=fb+fv)
-      fb=afb(i0,j0)
-      fv=1.-fb
-
+!      fb=afb(i0,j0)
+!      fv=1.-fb
+      call ent_get_value( i0, j0, fraction_of_vegetated_soil=fv )
+      fb = 1. - fv
 c****
       do ibv=1,2
         do k=1,n
@@ -2446,7 +2451,7 @@ c**** check for reasonable temperatures over earth
 !@calls RDLAI
       use constant, only : rhow,twopi,edpery,tf
       use model_com, only : nday,nisurf,jday,jyear,fearth,wfcs
-      use veg_com, only : vdata                 !nyk
+      !use veg_com, only : vdata                 !nyk
       use geom, only : imaxj
       use diag_com, only : aij=>aij_loc
      *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
@@ -2486,8 +2491,8 @@ C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
 c****
 c**** find leaf-area index & water field capacity for ground layer 1
 c****
-      cosday=cos(twopi/edpery*jday)
-      sinday=sin(twopi/edpery*jday)
+      !cosday=cos(twopi/edpery*jday)
+      !sinday=sin(twopi/edpery*jday)
       do j=J_0,J_1
         if(j.le.jm/2) then      !nyk added northsouth
           northsouth=1.d0       !southern hemisphere
@@ -2503,21 +2508,22 @@ c****
             !          Must run without restarting.
             !albvnh(9,6,2)=albvnh(1+8veg,6bands,2hemi), band 1 is VIS.
             !if RUNDECK selects new conductance scheme
-            if (.true.) then ! assume cond_scheme.eq.2
-              aalbveg0 = 0.d0
-              sfv=0.d0
-              do iv=1,11
-                if ( iv==9 .or. iv==10 ) cycle
-                fvp=vdata(i,j,iv+1)
-                sfv=sfv+fvp
-                aalbveg0 = aalbveg0 + fvp*(ALBVNH(iv+1,1,northsouth))
-                !write (99,*) 'fvp',fvp
-                !write (99,*) 'ALBVNH',ALBVNH(iv+1,1,northsouth)
-              end do
-              aalbveg(i,j) = 0.08D0
-              if(sfv.gt.0.) aalbveg(i,j) = aalbveg0/sfv !nyk
-             !write (99,*) 'daily aalbveg', aalbveg(i,j)
-            end if
+!!! if average albedo is still needed it should be computed elsewhere
+!            if (.true.) then ! assume cond_scheme.eq.2
+!              aalbveg0 = 0.d0
+!              sfv=0.d0
+!              do iv=1,11
+!                if ( iv==9 .or. iv==10 ) cycle
+!                fvp=vdata(i,j,iv+1)
+!                sfv=sfv+fvp
+!                aalbveg0 = aalbveg0 + fvp*(ALBVNH(iv+1,1,northsouth))
+!                !write (99,*) 'fvp',fvp
+!                !write (99,*) 'ALBVNH',ALBVNH(iv+1,1,northsouth)
+!              end do
+!              aalbveg(i,j) = 0.08D0
+!              if(sfv.gt.0.) aalbveg(i,j) = aalbveg0/sfv !nyk
+!             !write (99,*) 'daily aalbveg', aalbveg(i,j)
+!            end if
             !-----------------------------------------------------------
 
             call ghinij(i,j)
@@ -2606,7 +2612,7 @@ c****
       use DOMAIN_DECOMP, only : GLOBALSUM
       use ghy_com, only : snowe, tearth,wearth,aiearth,wbare,wvege
      *     ,snowbv,fr_snow_ij,fr_snow_rad_ij, gdeep, dzsn_ij, nsn_ij
-      use veg_com, only : afb
+      !use veg_com, only : afb
       use diag_com, only : aj=>aj_loc,areg,aij=>aij_loc
      *     ,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
@@ -2614,10 +2620,11 @@ c****
      *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_gice, ij_gwtr1
      &     ,ij_zsnow
       use fluxes, only : e0,e1,evapor,eprec
+      use interface_ent, only : ent_get_value
       implicit none
 
       real*8 snow,tg1,tg2,f0dt,f1dt,evap,wtr1,wtr2,ace1,ace2
-     *     ,pearth,enrgp,scove
+     *     ,pearth,enrgp,scove,fb,fv
       integer i,j,jr,k
 
 C**** Work array for regional diagnostic accumulation
@@ -2661,9 +2668,11 @@ c        scove = pearth *
 c     *       ( afb(i,j)*fr_snow_ij(1,i,j)
 c     *       + (1.-afb(i,j))*fr_snow_ij(2,i,j) )
 c**** the following computes the snow cover as it is used in RAD_DRV.f
+      call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+      fb = 1. - fv
         scove = pearth *
-     *       ( afb(i,j)*fr_snow_rad_ij(1,i,j)
-     *       + (1.-afb(i,j))*fr_snow_rad_ij(2,i,j) )
+     *       ( fb*fr_snow_rad_ij(1,i,j)
+     *       + fv*fr_snow_rad_ij(2,i,j) )
 
         !if (snowe(i,j).gt.0.) scove=pearth
         aj(j,j_rsnow,itearth)=aj(j,j_rsnow,itearth)+scove
@@ -2697,9 +2706,9 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
         aij(i,j,ij_g28)=aij(i,j,ij_g28)+snowbv(1,i,j)
         aij(i,j,ij_g29)=aij(i,j,ij_g29)+snowbv(2,i,j)
         aij(i,j,ij_zsnow)=aij(i,j,ij_zsnow) + pearth *
-     &       ( afb(i,j)*fr_snow_ij(1,i,j)
+     &       ( fb*fr_snow_ij(1,i,j)
      &           * sum( dzsn_ij(1:nsn_ij(1,i,j),1,i,j) )
-     &       + (1.-afb(i,j))*fr_snow_ij(2,i,j)
+     &       + fv*fr_snow_ij(2,i,j)
      &           * sum( dzsn_ij(1:nsn_ij(2,i,j),2,i,j) ) )
       end if
 c****
@@ -2732,7 +2741,8 @@ c****
       use model_com, only : fim,fearth
       use geom, only : imaxj
       use ghy_com, only : ngm,wbare,wvege,snowbv
-      use veg_com, only : afb
+      !use veg_com, only : afb
+      use interface_ent, only : ent_get_value
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
 !@var waterg zonal ground water (kg/m^2)
@@ -2740,7 +2750,7 @@ c****
      &     waterg
 
       integer i,j,n
-      real*8 wij,fb
+      real*8 wij,fb,fv
 
 C**** define local grid
       integer :: J_0, J_1
@@ -2757,7 +2767,9 @@ C****
         waterg(j)=0
         do i=1,imaxj(j)
           if (fearth(i,j).gt.0) then
-            fb=afb(i,j)
+            !fb=afb(i,j)
+            call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+            fb = 1. - fv
             wij=fb*snowbv(1,i,j)+(1.-fb)*(wvege(0,i,j)+snowbv(2,i,j))
             do n=1,ngm
               wij=wij+fb*wbare(n,i,j)+(1.-fb)*wvege(n,i,j)
@@ -2778,7 +2790,8 @@ c****
       use model_com, only : fim,fearth
       use geom, only : imaxj, dxyp
       use ghy_com, only : ngm,htbare,htvege,fr_snow_ij,nsn_ij,hsn_ij
-      use veg_com, only : afb
+      !use veg_com, only : afb
+      use interface_ent, only : ent_get_value
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
 !@var heatg zonal ground heat (J/m^2)
@@ -2802,8 +2815,10 @@ C****
         heatg(j)=0
         do i=1,imaxj(j)
           if (fearth(i,j).le.0) cycle
-          fb=afb(i,j)
-          fv=(1.d0-fb)
+          !fb=afb(i,j)
+          !fv=(1.d0-fb)
+          call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+          fb = 1. - fv
           hij=fb*sum( htbare(1:ngm,i,j) )
      &       +  fv*sum( htvege(0:ngm,i,j) )
      &       +  fb*fr_snow_ij(1,i,j)*sum( hsn_ij(1:nsn_ij(1,i,j),1,i,j))
@@ -2831,7 +2846,8 @@ ccc of the 'surface' to check water conservation
       use DOMAIN_DECOMP, only : GRID, GET
       use fluxes, only : prec,evapor,runoe
       use ghy_com, only : ngm,wbare,wvege,htbare,htvege,snowbv,dz_ij
-      use veg_com, only : afb
+      !use veg_com, only : afb
+      use interface_ent, only : ent_get_value
       implicit none
       integer flag
       real*8 total_water(im,jm), error_water
@@ -2860,8 +2876,10 @@ ccc just checking ...
      &           call stop_model('incompatible dz',255)
           enddo
 
-          fb = afb(i,j)
-          fv = 1.d0 - fb
+          !fb = afb(i,j)
+          !fv = 1.d0 - fb
+          call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+          fb = 1. - fv
           total_water(i,j) = fb*sum( wbare(1:ngm,i,j) )
      &         + fv*sum( wvege(0:ngm,i,j) )
      &         + fb*snowbv(1,i,j) + fv*snowbv(2,i,j)
@@ -2881,8 +2899,10 @@ ccc just checking ...
           !print *,'fearth = ', i, j, fearth(i,j)
 
           if ( fearth(i,j) <= 0.d0 ) cycle
-          fb = afb(i,j)
-          fv = 1.d0 - fb
+          !fb = afb(i,j)
+          !fv = 1.d0 - fb
+          call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+          fb = 1. - fv
           error_water = ( total_water(i,j) - old_total_water(i,j) )*rhow
      &         - prec(i,j) + evapor(i,j,4) + runoe(i,j)
 

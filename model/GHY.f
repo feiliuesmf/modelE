@@ -1662,7 +1662,7 @@ c**** retp,reth,fl,flg,runoff,sink,sinkh,fllmt,flh,flhg.
 c**** also uses surf with its required variables.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
-      use vegetation, only: update_veg_locals
+      !use vegetation, only: update_veg_locals
 
       real*8 dtm,tb0,tc0,dtr,tot_w1
       integer limit,nit
