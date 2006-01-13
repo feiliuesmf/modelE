@@ -184,6 +184,9 @@ ccc   soil internal variables wchich need to be passed from/to ghinij
      &     ,thets(0:ng,2),thetm(0:ng,2),ws(0:ngm,2),shc(0:ng,2)
      &     ,thm(0:64,imt-1)
 !veg     &     ,nm,nf,vh ! added by adf ! ,alai
+!@var ws_can canopy water holding capacity (m) - input from veg
+!@var shc_can canopy heat capacity (J/C/m^2) - input from veg
+      real*8, public :: ws_can,shc_can
 !@var n the worst choice for global name: number of soil layers
 !@var nth some magic number computed in hl0, used in ghinij and hydra
       integer, public :: n,nth
@@ -678,7 +681,8 @@ c     solve for alph0 in s=((1+alph0)**n-1)/alph0
       subroutine evap_limits( compute_evap, evap_max_out, fr_sat_out )
 !@sum computes maximal evaporation fluxes for current soil properties
 !@calls cond
-      use vegetation, only : veg_conductance
+      !use vegetation, only : veg_conductance
+      use interface_ent, only : veg_conductance
 !@var compute_evap if .true. compute evap, else just evap_max,fr_sat
 !@var evap_max_out max evaporation from unsaturated soil
 !@var fr_sat_out fraction of saturated soil
@@ -1685,6 +1689,10 @@ ccc normal case (both present)
         process_vege = .false.
       endif
 
+      ! copy input parameters to local arrays
+      ws(0,2) = ws_can
+      shc(0,2) = shc_can
+
 !debug debug!
 !      pr = 0.d0
 !      htpr = 0.d0
@@ -1781,7 +1789,8 @@ cddd     &     , tr_w(1,:,2) - w(:,2) * 1000.d0
 cddd      print '(a,i6,10(e12.4))', 'ghy_temp ', ijdebug,
 cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 
-        call update_veg_locals(evap_tot(2), rho, rhow, ch, vsm,qs)
+!!! insted of this call should compute Qf and pass it to Ent
+!!!        call update_veg_locals(evap_tot(2), rho, rhow, ch, vsm,qs)
 
 #ifdef TRACERS_WATER
 C**** finalise surface tracer concentration here

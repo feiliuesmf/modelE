@@ -696,7 +696,7 @@ C****
      *     ,irsficno,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name
       USE SOMTQ_COM, only : tmom,qmom
-      USE GEOM, only : geom_b,imaxj
+      USE GEOM, only : geom_b,imaxj,dxyp
       USE RANDOM
       USE RAD_COM, only : rqt,lm_req,cloud_rad_forc
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
@@ -721,7 +721,7 @@ C****
       USE MODEL_COM, only: clock
 #endif
       USE ATMDYN, only : init_ATMDYN,CALC_AMPK
-      USE DVEG_COUPLER, only : init_dveg
+      USE INTERFACE_ENT, only : init_module_ent
 
       IMPLICIT NONE
       CHARACTER(*) :: ifile
@@ -745,7 +745,8 @@ C****
 
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE., inilake = .FALSE.,
      &           iniSNOW = .FALSE.  ! true = restart from "no snow" rsf
-     &           ,iniOCEAN = .FALSE.
+     &           ,iniOCEAN = .FALSE., iniENT = .TRUE. 
+!!! set iniENT = .FALSE. later for restart from rsf files
 
       CHARACTER NLREC*80,filenm*100,RLABEL*132
       NAMELIST/INPUTZ/ ISTART,IRANDI
@@ -1415,7 +1416,7 @@ C**** Recompute Ground hydrology data if redoGH (new soils data)
 C****
       if (Kradia.gt.0) then   !  radiative forcing run
         CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
-        CALL init_dveg   ! needed here ? -I.A.
+        CALL init_module_ent(iniENT,grid,jday,dxyp)
         CALL init_RAD(istart)
         if(istart.lt.0) CALL init_DIAG(ISTART,num_acc_files)
         WRITE (6,INPUTZ)
@@ -1427,7 +1428,7 @@ C****
         return
       end if                  !  Kradia>0; radiative forcing run
       CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART)
-      CALL init_dveg      ! initialize dynamic vegetation module
+      CALL init_module_ent(iniENT,grid,jday,dxyp)
 C**** Initialize pbl (and read in file containing roughness length data)
       if(istart.gt.0) CALL init_pbl(iniPBL)
 C****

@@ -84,6 +84,9 @@ ccc TRSNOWBV is not used
 !@var TRSNOWBV tracer amount in snow over bare and veg. soil (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRSNOWBV0
 #endif
+!@var aalbveg vegetation albedo, eventually should be moved to a 
+!@+   better place
+      real*8, ALLOCATABLE, dimension(:,:) :: aalbveg
 
       END MODULE GHY_COM
 
@@ -139,11 +142,14 @@ C****
       ALLOCATE(     GDEEP(IM,J_0H:J_1H,3),
      *         STAT=IER)
 
-        ALLOCATE(    TOP_INDEX_IJ(IM,J_0H:J_1H),
+      ALLOCATE(    TOP_INDEX_IJ(IM,J_0H:J_1H),
      *                 top_dev_ij(IM,J_0H:J_1H),
      *                evap_max_ij(IM,J_0H:J_1H),
      *                  fr_sat_ij(IM,J_0H:J_1H),
      *                      qg_ij(IM,J_0H:J_1H),
+     *           STAT=IER)
+
+      ALLOCATE(     aalbveg(im,J_0H:J_1H),
      *           STAT=IER)
 
 C**** Initialize evaporation limits

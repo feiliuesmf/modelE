@@ -356,6 +356,8 @@ c**** adjust canopy conductance for incoming solar radiation
 ! New equilibrium canopy conductance to moisture (m/s). 
       CNCN=betad*(1.0D0-0.0075D0*vh)*650.0D-6*Anet_max*
      &   ((Ci+0.004D0)/(Ci+EPS))*2.8D0**(-80.0D0*dQs)
+!!! debug
+      print *,"CNCN ", CNCN, Qv, Qf, -80.0D0*dQs
 ! Required change in canopy conductance to reach equilibrium (m/s).
       dCNC=CNCN-CNC
 !nu Limit CNC change over timestep because of guard cell mechanics (m/s)

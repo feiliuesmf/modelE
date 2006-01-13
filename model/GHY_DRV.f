@@ -564,7 +564,7 @@ c***********************************************************************
 
       !real*8 cosday,sinday
       !real*8 cosdaym1, sindaym1               !nyk TEMPORARY for jday-1
-      real*8 adlmass          ! accumulator for dleafmass in daily_earth
+!      real*8 adlmass            ! accumulator for dleafmass in daily_earth
 
       real*8 spgsn !@var spgsn specific gravity of snow
 !@dbparam snow_cover_coef coefficient for topography variance in
@@ -610,9 +610,10 @@ c****
      &    aruns,arunu,aeruns,aerunu,
      &    tbcs,af0dt,af1dt,
      &    qm1,qs,
-     &    pres,rho,ts,vsm,ch,srht,trht
+     &    pres,rho,ts,vsm,ch,srht,trht,
+     &    ws_can,shc_can
 
-      use veg_drv, only: veg_save_cell,veg_set_cell
+      !use veg_drv, only: veg_save_cell,veg_set_cell
 
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
      *     ,runoe,erunoe,gtemp,precss
@@ -647,6 +648,7 @@ c****
       use ghy_tracers, only : ghy_tracers_set_step,ghy_tracers_set_cell,
      &     ghy_tracers_save_cell
 #endif
+      use interface_ent, only : ent_get_value
       implicit none
 
       integer, intent(in) :: ns,moddsf,moddd
@@ -942,11 +944,16 @@ c     call qsbal
 
 
       call ghinij (i,j)
-      call veg_set_cell(i,j)
+      !call veg_set_cell(i,j)
+      call ent_get_value( i, j,
+     &     canopy_holding_capacity=ws_can,
+     &     canopy_heat_capacity=shc_can,
+     &     fraction_of_vegetated_soil=fv )
+      fb = 1.d0 - fv
       call advnc
       call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
 
-      call veg_save_cell(i,j)
+      !call veg_save_cell(i,j)
       call ghy_save_cell(i,j)
 
       tg1=tbcs
@@ -1666,8 +1673,7 @@ c**** modifications needed for split of bare soils into 2 types
       use dynamics, only : pedn
       use snow_drvm, only : snow_cover_coef2=>snow_cover_coef
      &     ,snow_cover_same_as_rad
-      use veg_drv, only : init_vegetation
-      use veg_com, only : vdata
+      !use veg_drv, only : init_vegetation
 
       implicit none
 
@@ -1771,7 +1777,8 @@ c spgsn is the specific gravity of snow
       spgsn=.1d0
 
 ccc read and initialize vegetation here
-      call init_vegetation(redogh,istart)
+!!! now all initialization should be done in init_module_ent
+      !call init_vegetation(redogh,istart)
 
       ! no need to continue computations for postprocessing
       if (istart.le.0) return
@@ -2002,7 +2009,7 @@ ccc still not quite correct (assumes fw=1)
       !use model_com, only: vdata
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       use ghy_com
-      use veg_drv, only : reset_veg_to_defaults
+      use interface_ent, only : ent_reset_veg_to_defaults
       logical, intent(in) :: reset_prognostic
       integer i,j
 
@@ -2015,7 +2022,7 @@ C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 ccc ugly, should fix later
-      call reset_veg_to_defaults( reset_prognostic )
+      call ent_reset_veg_to_defaults( reset_prognostic )
 
       do j=J_0,J_1
       do i=1,im
@@ -2444,20 +2451,23 @@ c**** check for reasonable temperatures over earth
       use diag_com, only : aij=>aij_loc
      *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
-      use ghy_com, only : snoage, snoage_def
-      use veg_com, only : almass,aalbveg       !nyk
-      use vegetation, only: crops_yr,cond_scheme,vegCO2X_off !nyk
+      use ghy_com, only : snoage, snoage_def, aalbveg
+      !use veg_com, only : almass,aalbveg       !nyk
+      !use vegetation, only: crops_yr,cond_scheme,vegCO2X_off !nyk
       use surf_albedo, only: albvnh, updsur  !nyk
       USE DOMAIN_DECOMP, ONLY : GRID, GET
-      use sle001, only : fb,fv,ws
-      use veg_drv, only : veg_set_cell
+      !use sle001, only : fb,fv,ws
+      use sle001, only : ws
+      !use veg_drv, only : veg_set_cell
+      use interface_ent, only : ent_get_value, ent_update_crops
 
       implicit none
       real*8 tsavg,wfc1
-      real*8 aleafmass, aalbveg0, fvp, sfv  !nyk veg ! , aleafmasslast
+      real*8 aalbveg0, fvp, sfv  !nyk veg ! , aleafmasslast
       integer i,j,itype
       integer northsouth,iv  !nyk
       logical, intent(in) :: end_of_day
+      real*8 fb, fv, ws_can
 
 C**** define local grid
       integer J_0, J_1
@@ -2468,8 +2478,11 @@ C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
-      if(crops_yr.eq.0) call updveg(jyear,.true.)
-      if(cond_scheme.eq.2) call updsur (0,jday)
+      ! if(crops_yr.eq.0) - should be checked inside Ent
+      call ent_update_crops(jyear)
+      !if(cond_scheme.eq.2) call updsur (0,jday)
+      ! we don't use cond_scheme==1 any more, so call it always
+      call updsur (0,jday)
 c****
 c**** find leaf-area index & water field capacity for ground layer 1
 c****
@@ -2490,7 +2503,7 @@ c****
             !          Must run without restarting.
             !albvnh(9,6,2)=albvnh(1+8veg,6bands,2hemi), band 1 is VIS.
             !if RUNDECK selects new conductance scheme
-            if (cond_scheme.eq.2) then
+            if (.true.) then ! assume cond_scheme.eq.2
               aalbveg0 = 0.d0
               sfv=0.d0
               do iv=1,11
@@ -2508,15 +2521,19 @@ c****
             !-----------------------------------------------------------
 
             call ghinij(i,j)
-            call veg_set_cell(i,j,.true.)
-            wfc1=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
+            !call veg_set_cell(i,j,.true.)
+            call ent_get_value( i, j, canopy_holding_capacity=ws_can )
+            call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+            fb = 1.d0 - fv
+            wfc1=fb*ws(1,1)+fv*(ws_can+ws(1,2))
             wfcs(i,j)=rhow*wfc1 ! canopy part changes
 
+         !!! this diag belongs to Ent - commenting out
             !-----------------------------------------------------------
             !nyk - TEMPORARY calculate change in leaf mass per day
             !get aleafmass(i,j) at jday
-            aleafmass=
-     $           almass(1,i,j)+cosday*almass(2,i,j)+sinday*almass(3,i,j)
+!!            aleafmass=
+!!     $           almass(1,i,j)+cosday*almass(2,i,j)+sinday*almass(3,i,j)
 
             !Calculate dlmass(i,j) increment from last jday
             !cosdaym1=cos(twopi/edpery*(jday-1))
@@ -2525,9 +2542,9 @@ c****
 !     $      !     sindaym1*almass(3,i,j)
             !accumulate dlmass
             !adlmass = aleafmass - aleafmasslast
-            adlmass = aleafmass
+!!            adlmass = aleafmass
             !aij(i,j,ij_dleaf)=aij(i,j,ij_dleaf)+adlmass
-            aij(i,j,ij_dleaf)=adlmass  !accumulate just instant. value
+!!            aij(i,j,ij_dleaf)=adlmass  !accumulate just instant. value
             !PRINT '(F4.4)',adlmass                            !DEBUG
             !call stop_model('Just did adlmass',255)           !DEBUG
           end if

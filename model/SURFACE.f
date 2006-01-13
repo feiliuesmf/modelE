@@ -147,7 +147,6 @@ C**** Interface to PBL
      *     ,tij_drydep,tij_gsdep,itcon_dd
 #endif
 #endif
-      USE DVEG_COUPLER, only : step_dveg
       USE SOIL_DRV, only: earth
 
       IMPLICIT NONE
@@ -1277,7 +1276,9 @@ C****
 C****
 C**** dycamic vegetation time step
 C****
-      call step_dveg(dtsurf)
+!!! probably don't need this call unless something can be done 
+!   separately from ground hydrology on i,j grid
+!      call step_dveg(dtsurf)
 C****
 C**** EARTH
 C****
