@@ -93,7 +93,7 @@
          real*8 :: root_d         ! Root half spheroid diameter (m)
          real*8 :: LAI
          real*8 :: clump          ! Leaf clumping parameter (TBA)
-         real*8 :: froot(N_DEPTH) ! Fraction of roots in soil layer
+         real*8,ALLOCATABLE :: froot(:) ! Fraction of roots in soil layer
 
          !* BIOMASS POOLS
          real*8 :: LMA            ! Leaf mass per leaf area (kgC/m2-leaf)
@@ -157,7 +157,7 @@
          real*8 :: CO2flux         !Net CO2 flux up (umol-CO2/m2-gnd/s)
 
          !* Variables calculated by GCM/EWB - downscaled from grid cell
-         real*8 :: Soilmoist(N_DEPTH) !Available soil moisture by depth (mm)
+         real*8,ALLOCATABLE :: Soilmoist(:) !Available soil moisture by depth (mm)
          real*8 :: N_deposit          !N deposition (kgN/m2)
 
          !* Variables for biophysics and biogeochemistry
@@ -227,7 +227,7 @@
          !Cell-level diagnostic values - BIOLOGICAL
          !e.g. LAI, biomass pools, nitrogen pools, PFT fractions, GDD, GPP, etc
          real*8 :: LAI
-         real*8 :: froot(N_DEPTH)        !Fraction of roots in soil layer
+         real*8,ALLOCATABLE :: froot(:)        !Fraction of roots in soil layer
          real*8 :: C_froot
          !-----
          
@@ -242,7 +242,7 @@
          real*8 :: Qv           !Canopy air specif humidity (kg vapor/ kg air)
          real*8 :: P_mbar       !Atmospheric pressure (mb)
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
-         real*8 :: Soilmoist(N_DEPTH) !May be an array by depth (units TBA)
+         real*8,ALLOCATABLE :: Soilmoist(:) !May be an array by depth (units TBA)
          real*8 :: fice         !Fraction of soil layer that is ice
          real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
          real*8 :: Precip       !Precipitation (mm)
@@ -290,8 +290,7 @@
       !********************
       !* SOIL / HYDROLOGY *
       !********************
-      integer,parameter :: N_DEPTH = 6  !Number of soil layers.  Eventually
-                                        !this should be taken from hydrology
+      integer :: N_DEPTH        !Number of soil layers.  SET IN ENT_INIT
 
       !**********************
       !* RADIATIVE TRANSFER *
