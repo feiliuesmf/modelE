@@ -902,7 +902,7 @@ C     OUTPUT DATA
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
       USE GHY_COM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
      *     ,aiearth,fr_snow_rad_ij
-      USE VEG_COM, only : vdata
+      !USE VEG_COM, only : vdata
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : gtemp,nstype
@@ -910,6 +910,7 @@ C     OUTPUT DATA
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
       USE DOMAIN_DECOMP, ONLY: GLOBALSUM, AM_I_ROOT, HERE
       USE RAD_COSZ0, only : COSZT,COSZS
+      use interface_ent, only : ent_get_value
 
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
@@ -1519,9 +1520,10 @@ C****
       else                            ! rad.frc. model
         wearth = wsoil(i,j)
       end if
-      DO K=1,12
-        PVT(K)=VDATA(I,J,K)
-      END DO
+      !DO K=1,12
+      !  PVT(K)=VDATA(I,J,K)
+      !END DO
+      call ent_get_value( i, j, vegetation_fractions=PVT )
       WMAG=WSAVG(I,J)
 C****
 C**** Radiative interaction and forcing diagnostics:
