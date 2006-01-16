@@ -82,6 +82,8 @@
          real*8 :: nm
          !@var Ntot Total cohort nitrogen (g/m[ground]2).
          real*8 Ntot
+         !@var LAI Total cohort leaf area index (m2[leaf]/m2[ground])
+         real*8 LAI
 
          !* ALL QUANTITIES BELOW ARE FOR AN INDIVIDUAL *!
 
@@ -91,7 +93,7 @@
          real*8 :: crown_dy       ! Crown vertical axis length (m)
          real*8 :: dbh            ! Stem diameter at breast height (m)
          real*8 :: root_d         ! Root half spheroid diameter (m)
-         real*8 :: LAI
+         !real*8 :: LA           ! Leaf area (m2[leaf])
          real*8 :: clump          ! Leaf clumping parameter (TBA)
          real*8,ALLOCATABLE :: froot(:) ! Fraction of roots in soil layer
 
@@ -147,8 +149,11 @@
          type(patch),pointer :: younger !Pointer to next younger patch
          type(cohort),pointer :: tallest !Pointer to tallest cohort
          type(cohort),pointer :: shortest !Pointer to shortest cohort
-         type(cohort),pointer :: sumcohort !Sums of properties of cohorts.
-         type(cohort),pointer :: avgcohort !Average properties of cohorts.
+         type(cohort),pointer :: sumcohort !Summary of properties of cohorts.
+         !NOTE:  In sumcohort:  
+         ! * Intensive properties (e.g. geometry, LMA) are averages weighted by
+         ! total number of individuals (may want to do by biomass of cohort)
+         ! * Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
 
          !* Flux variables for GCM/EWB - patch total
          real*8 :: albedo(N_BANDS) !Spectral albedo, average over patch
@@ -306,12 +311,12 @@
 
 
       !***********
-      !* BIOLOGY *
+      !* BIOLOGY *  MOVE TO ent_pfts_XXXX.f 
       !***********
-      integer,parameter :: N_PFT = 13 !Number of plant functional types
-      integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
-      integer,parameter :: N_OTHER = 0
-      integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
+!      integer,parameter :: N_PFT = 13 !Number of plant functional types
+!      integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
+!      integer,parameter :: N_OTHER = 0
+!      integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
       !* 1 - evergreen broadleaf early successional
       !* 2 - evergreen broadleaf late successional
       !* 3 - evergreen needleleaf early successional

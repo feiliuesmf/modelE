@@ -19,11 +19,37 @@
 
       contains
       !*********************************************************************
-      subroutine ent_integrate(dtsec, time, pp)
+      subroutine ent_ecosystem_dynamics(dtsec,time,ecp)
+!@sum Ent ecosystem dynamics.
       use phenology
       use disturbance
       use canopyrad
       use disturbance
+      
+!      write(*,*) 'Ecosystem dynamics for (long,lat)=(',
+!     & ecp%long,ecp%lat,'),time=',time
+
+      call ent_integrate(dtsec,time,ecp) !Biophysics, growth/allom, reproduction
+      
+      !Flag when it's time to update disturbance.
+      !May be at set time intervals, or function of biomass accumulation, etc.
+      !For now, monthly update as a place holder.
+      if (STRUCT_FLAG_MONTH(time,ecp)) then
+        !* Update phenology and disturbance
+        !call phenology_update (dtsec,time, pp) !UPDATE LAI - put in ent_integrate
+        call fire_frequency_cell (dtsec,time, ecp) !DUMMY
+        call recalc_radpar_cell (ecp) !
+        call reorganize_patches(ecp)
+        call calc_cell_disturbance_rates(dtsec,time,ecp)
+      else
+        call calc_cell_disturbance_rates(dtsec,time,ecp)
+      end if
+
+      end subroutine ent_ecosystem_dynamics
+
+      !*********************************************************************
+      subroutine ent_integrate(dtsec, time, ecp)
+!@sum Ent biophysics/biogeochemistry
       use reproduction
       use cohorts
       use patches
@@ -32,56 +58,72 @@
       implicit none
       real*8 :: dtsec  !dt in seconds
       type(timestruct) :: time !Time in year.fraction, Greenwich Mean Time
+      type(entcell),pointer :: ecp
+      !-----local--------
       type(patch),pointer :: pp
 
-      !dtsec = dtyr*YEARSEC(entdata%tt%year)
-      !Convert to local time here?
-      !---------
-
-      !Flag when it's time to update vegetation structure
-      !May be at set time intervals, or function of biomass accumulation, etc.
-
-      write(*,*) 'Ecosystem dynamics for (long,lat)=(',
-     & entcell%long,entcell%lat,'),time=',time
-
-      pp = entcell%youngest
+      pp = ecp%youngest
       do while (ASSOCIATED(pp)) 
-        if (STRUCT_FLAG(time,entcell)) then
-          !* Update phenology and disturbance
-          call phenology_update (dtsec,time, pp)
-          call fire_frequency (dtsec,time, pp)
-          call recalc_radpar (pp)
-        end if
-
-        call calc_cell_disturbance_rates(dtsec,time,pp)
         call photosynth_cond(dtsec, pp)
         call uptake_N(dtsec, pp)
         call litter(dtsec, time, pp)
         call soil_bgc(dtsec, pp)
-
-        if (STRUCT_FLAG(time,entcell)) then
+        if (STRUCT_FLAG(time,ecp)) then
           call reproduction_calc(dtsec, time, pp)
           call reorganize_cohorts(pp)
         end if
       end do
 
-      if (STRUCT_FLAG(time,entcell)) then
-        call reorganize_patches(entcell)
+      if (STRUCT_FLAG(time,pp%cellptr)) then
+        call phenology_update (dtsec,time, pp) !UPDATE LAI
+        call recalc_radpar (pp) !UPDATE canopy radiative transfer
       end if
 
-      call sum_patches(entcell)
-
+      call sum_patches(ecp)
       end subroutine ent_integrate
 
       !*********************************************************************
 
-      function STRUCT_FLAG(time, entcell) Result(update_struct)
+      function STRUCT_FLAG(time, ecp) Result(update_struct)
+!@sum Flag to determine if it's time to update vegetation structure.
+        type(timestruct) :: time
+        type(entcelltype) :: ecp !Not needed this version, but will be.
+        logical :: update_struct
+        !------local------
+        update_struct = STRUCT_FLAG_DAY(time,ecp)
+
+      end function STRUCT_FLAG
+      !*********************************************************************
+
+      function STRUCT_FLAG_DAY(time, ecp) Result(update_struct)
+!@sum Flag to determine if it's time to update vegetation structure.
+!@sum Below is a simple end-of-day flag, but can make more
+!@sum sophisticated as a function of biomass increment, etc.
+
+        type(timestruct) :: time
+        type(entcelltype) :: ecp !Not needed this version, but will be.
+        logical :: update_struct
+        !-----local----------
+        real*8 :: hourfrac
+        
+        hourfrac = time%hour + time%minute/60.0 + time%seconds/3600.0
+!        if (hourfrac.le.dtsec) then !Midnight
+        if (hourfrac.eq.0.0)) then  !Midnight
+          update_struct = .true.
+        else
+           update_struct = .false.
+        end if
+      end function STRUCT_FLAG_DAY
+
+      !*********************************************************************
+
+      function STRUCT_FLAG_MONTH(time, ecp) Result(update_struct)
 !@sum Flag to determine if it's time to update vegetation structure.
 !@sum Below is a simple beginning-of-the-month flag, but can make more
 !@sum sophisticated as a function of biomass increment, etc.
 
         type(timestruct) :: time
-        type(entcelltype) :: entcell
+        type(entcelltype) :: ecp !Not needed this version, but will be.
         logical :: update_struct
         
         real*8 :: hourfrac
@@ -93,7 +135,7 @@
         else
            update_struct = .false.
         end if
-      end function STRUCT_FLAG
+      end function STRUCT_FLAG_MONTH
 
       !*********************************************************************
       subroutine ent_bgc(dtsec, time, entcell)

@@ -170,12 +170,109 @@
       end subroutine summarize_patch_OLD
 
       !*********************************************************************
-      subroutine sum_cohorts(pp)
+      subroutine summarize_patch(pp)
       !* Calculates patch-level summary values of cohort pools.
-      !* Put sums in pp%sumcohort
+      ! * Intensive properties (e.g. geometry, LMA) are averages weighted by
+      ! total number of individuals (may want to do by biomass of cohort)
+      ! * Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
+
       type(patch),pointer :: pp
-      type(cohort),pointer :: acop, cop
       !-----Local variables-------
+      type(cohort),pointer :: scop, cop
+      integer :: nc  !#individuals
+
+      scop = pp%sumcohort
+
+      !* Zero out summary variables *!
+      call zero_cohort(scop)
+      scop%pnum = pp%tallest%pft
+      nc = 0
+      scop%n = nc
+
+      cop = pp%tallest
+      do while(allocated(cop))
+        nc = nc + cop%n  !Number of individuals summed for wtd avg.
+        !* PFT PARAMETERS
+        ! Only need to index array of pftypes.
+         
+        !* NITROGEN status - CANOPY*/
+        scop%nm = scop%nm + cop%nm*cop%n  !wtd avg
+        scop%Ntot = scop%Ntot + cop%Ntot  !Total
+        scop%LAI = scop%LAI + cop%LAI  !Total
+
+         !* ALL QUANTITIES BELOW ARE FOR AN INDIVIDUAL *!
+
+         !* GEOMETRY - WEIGHTED AVERAGES
+        scop%h = scop%h + cop%h*cop%n  !wtd avg
+        scop%crown_dx = scop%crown_dx + cop%crown_dx*cop%n !wtd avg
+        scop%crown_dy = scop%crown_dy + cop%crown_dy*cop%n !wtd avg
+        scop%dbh = scop%dbh + cop%dbh*cop%n !wtd avg
+        scop%root_d = scop%root_d + cop%root_d*cop%n !wtd avg
+        scop%clump = scop%clump + cop%clump*cop%n !wtd avg
+        !* Do froot(:) outside this loop, below.
+
+         !* BIOMASS POOLS - TOTALS
+        scop%LMA = scop%LMA + cop%LMA*cop%n !wtd avg
+        scop%C_fol = scop%C_fol + cop%C_fol !Total
+        scop%N_fol = scop%N_fol + cop%N_fol
+        scop%C_sw = scop%C_sw + cop%C_sw    
+        scop%N_sw = scop%N_sw + cop%N_sw    
+        scop%C_hw = scop%C_hw + cop%C_hw    
+        scop%N_hw = scop%N_hw + cop%N_hw    
+        scop%C_lab = scop%C_lab + cop%C_lab   
+        scop%N_lab = scop%N_lab + cop%N_lab   
+        scop%C_froot = scop%C_froot + cop%C_froot 
+        scop%N_froot = scop%N_froot + cop%N_froot 
+        scop%C_croot = scop%C_croot + cop%C_croot 
+        scop%N_croot = scop%N_croot + cop%N_croot 
+
+         !* FLUXES - TOTALS
+        scop%gcanopy = scop%gcanopy + cop%gcanopy 
+        scop%GPP = scop%GPP + cop%GPP     
+        scop%NPP = scop%NPP + cop%NPP
+        scop%R_growth = scop%R_growth + cop%R_growth
+        scop%R_maint = scop%R_maint + cop%R_maint 
+        scop%N_up = scop%N_up + cop%N_up
+        scop%C_litter = scop%C_litter + cop%C_litter
+        scop%N_litter = scop%N_litter + cop%N_litter  
+        scop%C_to_Nfix = scop%C_to_Nfix + cop%C_to_Nfix 
+
+         !* REPRODUCTION
+         !scop%------        ! ASK PAUL
+        
+        cop = cop%shorter
+      end do
+
+      !* ------- DO AVERAGES ----------------------------------------------*!
+      !* NITROGEN status */
+      scop%nm = scop%nm/nc
+
+      !* GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
+      scop%h = sumh/nc
+      scop%crown_dx = acop%crown_dx/nc
+      scop%crown_dy = acop%crown_dy/nc
+      scop%dbh = cop%dbh/nc
+      scop%root_d = scop%root_d/nc
+      scop%clump = scop%clump/nc
+      CALL  sum_roots_cohorts2patch(pp) !froot and C_froot
+      
+      !* BIOMASS POOLS - TOTALS
+      scop%LMA = scop%LMA/nc
+
+      !* Total individuals *!
+      scop%n = nc
+      end subroutine summarize_patch
+      !*********************************************************************
+
+      subroutine summarize_patch_OLD(pp)
+      !* Calculates patch-level summary values of cohort pools.
+      !* - Put sums in pp%sumcohort. Where sum is not meaningful, 
+      !* such as height, the max value is taken.
+      !* - Put averages in pp%avgcohort.
+
+      type(patch),pointer :: pp
+      !-----Local variables-------
+      type(cohort),pointer :: scop, acop, cop
       integer :: n
 
       !If !allocated(pp) ERROR
@@ -186,9 +283,11 @@
       !pp%GCANOPY = 0.d0         !Will be updated in biophysics.f
       !pp%CO2flux = 0.d0         !Will be updated in biophysics.f
 
+      scop = pp%avgcohort
       acop = pp%sumcohort
 
       !* Zero out summary variables *!
+      call zero_cohort(scop)
       call zero_cohort(acop)
 
       cop = pp%tallest
@@ -209,8 +308,8 @@
         !pp%disturbance_rate = 0.d0 !## Dummy ##!
 
         !* DIAGNOSTIC SUMMARIES
-                                !* Biomass pools - patch total *!
-        acop%LAI = acop%LAI + cop%LAI
+        !* Biomass pools - patch total *!
+        scop%LAI = scop%LAI + cop%LAI
         call sum_roots_cohorts2patch(pp) !froot and C_froot
 
         sC_froot = sC_froot + cop%C_froot
@@ -265,7 +364,7 @@
         cop = cop%shorter
       end do
 
-      end subroutine sum_cohorts
+      end subroutine summarize_patch_OLD
 
       !*********************************************************************
 

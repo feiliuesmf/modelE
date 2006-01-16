@@ -3,6 +3,7 @@
 !@sum budburst/leafout, albedo change, senescence
 
       use ent_types
+      use ent_const, only : JEQUATOR
 
       implicit none
 
@@ -10,6 +11,20 @@
       public phenology_update, litter
 
       contains
+      !*********************************************************************
+      subroutine phenology_update_cell(dtsec,time,ecp)
+!@sum Updates phenology for all patches in an entcell.
+      real*8 :: dtsec           !dt in seconds
+      type(timestruct) :: time  !Greenwich Mean Time
+      type(entcell),pointer :: ecp
+      !------local--------
+      type(patch),pointer :: pp
+
+      pp = ecp%youngest
+      do while (ASSOCIATED(pp))
+        call phenology_update(dtsec, time, pp)
+      end do
+      end subroutine phenology_update_cell
       !*********************************************************************
       
       subroutine phenology_update(dtsec, time, pp)
@@ -22,8 +37,7 @@
       type(cohort),pointer :: cop
       real*8 :: laip  !patch-level summary of LAI
       real*8 :: laig  !entcell grid-level summary of LAI
-      !---------------------------------------------------------------
-      !              FILL IN CODE                                    
+      integer :: hemi !-1: S.hemisphere, 1: N.hemisphere
       !---------------------------------------------------------------
       !* DUMMY TEMPORARY GISS 
       !* JUST UPDATES LAI USING MATTHEWS PRESCRIPTION
@@ -36,7 +50,8 @@
         laip = 0.0
         cop = pp%tallest
         do while (allocated(cop))
-          call GISS_calc_lai(cop%LAI,cop%pft, time%jday, hemi)
+          ccount = ccount + 1
+          cop%lai = GISS_calc_lai(cop%pft, time%jday, hemi)
           laip = laip + cop%LAI
           cop = cop%shorter
         end do

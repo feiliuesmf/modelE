@@ -10,6 +10,7 @@
       contains
       !*********************************************************************
       subroutine insert_cohort(pp,pft,n, h,
+     &     nm,
      &     crown_dx, crown_dy,dbh, root_d,LAI,clump,froot(:),
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
@@ -18,7 +19,7 @@
 
       type(patch),pointer :: pp
       integer :: pft
-      real*8 :: n, h,
+      real*8 :: n, h, nm,
      &     crown_dx, crown_dy,dbh, root_d,LAI,clump,
       real*8 :: froot(:)
       real*8 :: LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
@@ -35,12 +36,14 @@
       !* since most new cohorts will be shortest.
         call allocate(newc)
         newc%pptr = pp
-        call assign_cohort(newc,pft,n, h,
-     &       crown_dx, crown_dy,dbh, root_d,LAI,clump,
+        call assign_cohort(newc,pft,n, h, nm, LAI,
+     &       crown_dx, crown_dy,dbh, root_d,clump,
      &       LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &       C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &       GCANOPY, GPP, NPP, R_growth,R_maint,
      &       N_up, C_litter,N_litter,C_to_Nfix)
+
+        newc%Ntot = nm*LAI
 
         if (allocated(pp%shortest)) then !A. There are other cohorts.
           if (pp%shortest%h.ge.newc%h) then !newc is shortest
@@ -114,8 +117,8 @@
       end subroutine insert_cohort
       !*********************************************************************
       
-      subroutine assign_cohort(cop,pft,n, h,
-     &     crown_dx, crown_dy,dbh, root_d,LAI,clump,
+      subroutine assign_cohort(cop,pft,n, h, nm, LAI,
+     &     crown_dx, crown_dy,dbh, root_d,clump,
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     GCANOPY, GPP, NPP, R_growth,R_maint,
@@ -124,8 +127,9 @@
 
       type(cohort),pointer :: cop
       integer :: pft, n
-      real*8 :: h,
-     &     crown_dx, crown_dy,dbh, root_d,LAI,clump,
+      !real*8,optional :: nm, Ntot
+      real*8 :: h, nm, LAI,
+     &     crown_dx, crown_dy,dbh, root_d,clump,
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     GCANOPY, GPP, NPP, R_growth,R_maint,
@@ -133,12 +137,12 @@
 
       cop%pft = pft
       cop%n = n
+      cop%LAI = LAI
       cop%h = h
       cop%crown_dx =  crown_dx 
       cop%crown_dy =  crown_dy
       cop%dbh =  dbh 
       cop%root_d = root_d
-      cop%LAI = LAI
       cop%clump = clump
       cop%LMA =  LMA 
       cop%C_fol =  C_fol 
@@ -177,9 +181,6 @@
 !     call nullify(cop%csptaller)
 !     call nullify(cop%cspshorter)            
 
-      cop%nm = pfpar(pnum,5)    !## This is nf.  Need to calc nm ##!
-      cop%Ntot =                !## Get from GISS GCM ##!
-      
       call zero_cohort(cop)
       
       end subroutine init_cohort_defaults(cop, pnum)
@@ -188,15 +189,18 @@
 !@sum Zero all real variables in cohort record.      
       type(cohort),pointer :: cop
 
+      cop%nm = 0.0
+      cop%Ntot = 0.0
+
       !* Individual plant properties *!
       !* GEOMETRY *!
-      cop%h
-      cop%crown_dx
-      cop%crown_dy
-      cop%dbh
-      cop%root_d
-      cop%LAI
-      cop%clump
+      cop%h = 0.0
+      cop%crown_dx = 0.0
+      cop%crown_dy = 0.0
+      cop%dbh = 0.0
+      cop%root_d = 0.0
+      cop%LAI = 0.0
+      cop%clump = 0.0
       call init_rootdistr(cop%froot, cop%pft)
 
       !* BIOMASS POOLS *!
