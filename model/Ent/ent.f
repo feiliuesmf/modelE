@@ -45,6 +45,7 @@
         call calc_cell_disturbance_rates(dtsec,time,ecp)
       end if
 
+      call summarize_entcell(ecp)
       end subroutine ent_ecosystem_dynamics
 
       !*********************************************************************
