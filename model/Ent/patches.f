@@ -26,7 +26,6 @@
         call nullify(gp%youngest%tallest)
         call nullify(gp%youngeset%shortest)
         call allocate(gp%youngest%sumcohort)
-        call allocate(gp%youngest%avgcohort)
         call init_patch(gp%youngest,gp,area)
       else !first patch on entcell
         call allocate(gp%oldest)
@@ -36,7 +35,6 @@
         call nullify(gp%youngest%tallest)
         call nullify(gp%youngeset%shortest)
         call allocate(gp%youngest%sumcohort)
-        call allocate(gp%youngest%avgcohort)
         call init_patch(gp%youngest,gp,area)
       end if
 

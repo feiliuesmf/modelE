@@ -207,8 +207,7 @@
          real*8 :: area         !Area km^2
          type(patch), pointer:: youngest
          type(patch), pointer:: oldest
-         type(patch), pointer:: sumpatch !sum of patch pools
-         type(patch), pointer:: avgpatch !avg patch, weighted by area
+         type(patch), pointer:: sumpatch !summary of patches in entcell
 
          !Cell-level summary values - PHYSICAL
          !EXPORT - from radiative transfer
