@@ -16,30 +16,39 @@
       !*********************************************************************
       
       subroutine get_patchalbedo(gcmtime,pp)
-      !* Parse through cohorts to calculate patch albedo via GORT clumping.
+!@sum !* Return albedo for patch.
       !* This version reads in vegetation structure from GISS data set.
       type(timestruct) :: gcmtime
       type(patch),pointer :: pp
       !------
       type(cohort),pointer :: cop
+      integer :: hemi
 
-      do cop=pp%tallest
-      !* Copy GISS code for calculating seasonal aalbveg here.
       !---------------------------------------------------------------
-      !              FILL IN CODE                                    
+      !* GISS version for calculating seasonal aalbveg.
+      !* Assumes each GISS grid cell vegetation fraction corresponds to
+      !* one patch, which contains one cohort, which gives the albedo.
+      !  Should be same as assigning
+      !  pp%albedo = aalbveg(i,j)
       !---------------------------------------------------------------
+      if (pp%cellptr%latj < JEQUATOR) then
+        hemi = -1
+      else
+        hemi = 1
+      end if
+      call GISS_veg_albedo(pp%tallest%pft, gcmtime%jday, hemi, albedo)
+
+      !---------------------------------------------------------------
+      !* Ent template for GORT clumping index canopy radiative transfer.
+      !---------------------------------------------------------------
+!      do cop=pp%tallest
         !Get albedo of cop%pft for given gcmtime
         !   - Summarize foliage density in layers
-        !Calculate patch albedo using GORT clumping.
-        cop = cop%shorter
-        if DEALLOCATED(cop) then exit
-      end do
-      
-      !* Return seasonal albedo for patch
-      !   - To reproduce GISS albedoes, just assign the one cohort's albedo
-      !     to the patch.
-      !  should be same as assigning
-      !  pp%albedo = aalbveg(i,j)
+        !* CALCULATE PATCH ALBEDO USING GORT CLUMPING INDEX
+!        cop = cop%shorter
+!        if DEALLOCATED(cop) then exit
+!      end do
+
       end subroutine get_patchalbedo
 
 
@@ -50,7 +59,7 @@
       integer, intent(in) :: jday !@jday julian day
       integer, intent(in) :: hemi !@hemi hemisphere (-1 south, +1 north)
       real*8, intent(out) :: albedo(6) !@albedo returned albedo
-
+      !----------Local----------
       !@var SEASON julian day for start of season (used for veg albedo calc)
 C                      1       2       3       4
 C                    WINTER  SPRING  SUMMER  AUTUMN
@@ -144,7 +153,7 @@ c
         albedo(l)=wt1*ALBVND(pft,kh1,l)+wt2*ALBVND(pft,kh2,l)
       enddo
 
-      end subroutine get_gcm_albedo
+      end subroutine GISS_veg_albedo
 
 
       !*********************************************************************

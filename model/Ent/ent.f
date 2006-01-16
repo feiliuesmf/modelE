@@ -79,7 +79,7 @@
         call recalc_radpar (pp) !UPDATE canopy radiative transfer
       end if
 
-      call sum_patches(ecp)
+      call summarize_patches(time,ecp)
       end subroutine ent_integrate
 
       !*********************************************************************

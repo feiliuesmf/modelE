@@ -301,7 +301,7 @@
       !* RADIATIVE TRANSFER *
       !**********************
 
-      integer,parameter :: N_BANDS = 3 !Number of spectral bands (VIS,NIR,MIR)
+      integer,parameter :: N_BANDS = 6 !Number of spectral bands (GISS 6)
                                 !Expect to adjust to hyperspectral
 
       !***********************
