@@ -11,6 +11,7 @@
       subroutine insert_patch(gp, area)
       !* Insert patch at youngest end of patch list. *!
       !* Blank patch with no cohorts.
+      implicit none
       type(entcelltype), pointer :: gp
       type(patch), pointer :: pp
       real*8 :: area
@@ -45,6 +46,7 @@
       subroutine delete_patch(gp, pp)
       !* Delete patch pointed to by pp
       !* NOTE:  THIS DOES NOT AUTOMATICALLY UPDATE ENTCELL SUMMMARY VALUES
+      implicit none
       type(entcelltype), pointer :: gp
       type(patch), pointer :: pp
 
@@ -72,7 +74,8 @@
       ! * Intensive properties (e.g. geometry, LMA) are averages weighted by
       ! total number of individuals (may want to do by biomass of cohort)
       ! * Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
-
+      use canopyrad
+      implicit none
       type(timestruct),pointer :: ttime
       type(patch),pointer :: pp
       !-----Local variables-------
@@ -163,16 +166,16 @@
       !* ------- DO PATCH-LEVEL SUMMARIES OF scop ------------------------*!
       !* Flux variables for GCM/EWB - patch total
       call get_patchalbedo(ttime,pp)
-      pp%z0 =0.d0      !## Dummy ##!
+      !pp%z0 =0.d0               !## Dummy ##!
       !pp%GCANOPY      !Calculated by biophysics
       !pp%CO2flux      !Calculate by biophysics
 
       !* Variables calculated by GCM/EWB - downscaled from grid cell
-      !   real*8,ALLOCATABLE :: Soilmoist(:) !Available soil moisture by depth (mm)
+      !Soilmoist(:)        !Calculated by GCM/EWB
       !pp%N_deposit = 0.0  !Dummy until we have N cycle
       
       !* Variables for biophysics and biogeochemistry
-      call NULLIFY(pp%crad)  !Data structure for light profile
+      !call NULLIFY(pp%crad)     !Dummy until we have GORT clumping.
 
       !* Disturbance values - UPDATE WHEN WE INCLUDE DISTURBANCE
       !pp%fuel = 0.d0          !## Dummy ##!
@@ -184,8 +187,9 @@
       end subroutine summarize_patch
       !*********************************************************************
 
-
       subroutine init_patch(pp,gp,area)
+!@sum Initialize patch, zeroing variables, and nulling or setting pointers.
+      implicit none
       type(patch),pointer :: pp
       type(entcelltype),pointer :: gp
       real*8 :: area
@@ -278,6 +282,7 @@
       subroutine sum_roots_cohorts2patch(pp)
       !@sum Calculate patch-level depth- and mass-weighted average
       !@sum of fine roots.
+      implicit none
       type(patch),pointer :: pp
       !-----Local variables-------
       type(cohort),pointer :: cop
@@ -313,6 +318,7 @@
       !*********************************************************************
       
       subroutine reorganize_patches(entcell)
+      implicit none
       type(entcelltype) :: entcell
 
 
