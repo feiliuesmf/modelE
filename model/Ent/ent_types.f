@@ -155,6 +155,11 @@
          ! total number of individuals (may want to do by biomass of cohort)
          ! * Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
 
+         !* Structural variables *!
+         real*8 :: LAI  !Leaf area index (m^2[leaf]/m^2[ground])
+         real*8 :: nm   !Mean canopy nitrogen (g/m2[leaf]) over patch
+         real*8 :: h    !Canopy height (m)
+         
          !* Flux variables for GCM/EWB - patch total
          real*8 :: albedo(N_BANDS) !Spectral albedo, average over patch
          real*8 :: z0              !Roughness length, average over patch

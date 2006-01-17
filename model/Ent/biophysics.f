@@ -193,7 +193,7 @@
       contains
       !************************************************************************
 
-      subroutine photosynth_cond(dtsec, pptr)
+      subroutine photosynth_cond(dtsec, pp)
       !Computes photosynthesis and conductance for a patch
       ! by summing through cohorts.
 
@@ -202,7 +202,7 @@
       implicit none
 
       real*8, intent(in) :: dtsec
-      type(patch),pointer :: pptr  
+      type(patch),pointer :: pp  
       type(cohort),pointer :: cp
 
       !     SIMULATED PHYSICS variables specific to vegetation
@@ -235,35 +235,43 @@
       real*8 :: Solarzen        !Solar zenith angle
       real*8 :: fdir            !Fraction of surface vis rad that is direct 
 
-      GCANOPY = pptr%cellptr%GCANOPY
-      Qf = pptr%cellptr%Qf
-      TcanopyC = pptr%cellptr%TcanopyC
-      Qv = pptr%cellptr%Qv
-      P_mbar = pptr%cellptr%P_mbar
-      Ca = pptr%cellptr%Ca
-      Soilmoist = pptr%cellptr%Soilmoist
-      betad = pptr%cellptr%betad
-      Precip = pptr%cellptr%Precip
-      Ch = pptr%cellptr%Ch
-      U = pptr%cellptr%U
-      IPAR = pptr%cellptr%IPAR
-      fdir = pptr%cellptr%fdir
-      Solarzen = pptr%cellptr%Solarzen
+      GCANOPY = pp%cellptr%GCANOPY
+      Qf = pp%cellptr%Qf
+      TcanopyC = pp%cellptr%TcanopyC
+      Qv = pp%cellptr%Qv
+      P_mbar = pp%cellptr%P_mbar
+      Ca = pp%cellptr%Ca
+      Soilmoist = pp%cellptr%Soilmoist
+      betad = pp%cellptr%betad
+      Precip = pp%cellptr%Precip
+      Ch = pp%cellptr%Ch
+      U = pp%cellptr%U
+      IPAR = pp%cellptr%IPAR
+      fdir = pp%cellptr%fdir
+      Solarzen = pp%cellptr%Solarzen
 
-      !*do loop over cohorts - final Ent version
-      !cp = pptr%tallest 
-      !* GISS replication test hack:  average cohort properties to patch level
-      cp = pptr%sumcohort
-      Ci = cp%Ci
 
-      call veg_conductance(
+      !* Assign vegpar
+      !** GISS replication test hack:  grid cell average patch properties
+      vegpar%lai = pp%LAI
+      vegpar%nm = pp%nm
+      vegpar%vh = pp%h
+      vegpar%vegalbedo = pp%albedo
+      Ci = pp%cellptr%Ci  !GISS hack at grid cell level for Ci
+      Qf = pp%cellptr%Qf  !GISS hack at grid cell level for Qf
+
+      call veg_conductance(dtsec,
      &     GCANOPY, Ci, Qf, TRANS_SW,GPP,NPP,pft,
-     &     vegpar%lai,vegpar%nm,vegpar%vh,vegpar%vegalbedo, dtsec,
+     &     vegpar%lai,vegpar%nm,vegpar%vh,vegpar%vegalbedo, 
      &     nsoillayer, soilmp, fice, froot,
      &     TcanopyC, P_mbar, Ch, U, 
-     &     IPAR, fdir,sin(Solarzen), Ca )
+     &     IPAR, fdir,Solarzen, Ca )
 
 
+      !OUTPUTS TO pp
+      pp%GCANOPY = GCANOPY
+      pp%GPP = GPP
+      
       !OUTPUTS FROM ENT TO GCM/EWB
       entcell%GCANOPY = GCANOPY
       entcell%Ci = Ci
@@ -328,6 +336,7 @@
       !************************************************************************
 
       subroutine veg_conductance(
+     i     ,dt_in               !GHY time step (seconds)
      &     CNC_INOUT            !Canopy conductance of water vapor (m/s)
      &     ,Ci_INOUT            !Internal foliage CO2 (mol/m3)
      i     ,Qf_IN               !Foliage surface vapor mixing ratio (kg/kg)
@@ -339,7 +348,6 @@
      i     ,nm                  !Mean N (g-N/m2-leaf)
      i     ,vh                  !canopy height (m)
      i     ,vegalbedo           !Canopy albedo **THIS COULD BE AN OUTPUT VAR **
-     i     ,dt_in               !GHY time step (seconds)
      i     ,nsoillayer          !No. of soil layers
      i     ,soilmp_in           !Soil matric potential (m)
      i     ,fice_in             !Fraction of soil layer that is ice

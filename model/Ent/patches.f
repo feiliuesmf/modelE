@@ -145,7 +145,7 @@
       !* ------- DO AVERAGES ----------------------------------------------*!
       !* NITROGEN status */
       scop%nm = scop%nm/nc
-
+      
       !* GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
       scop%h = sumh/nc
       scop%crown_dx = acop%crown_dx/nc
@@ -153,6 +153,7 @@
       scop%dbh = cop%dbh/nc
       scop%root_d = scop%root_d/nc
       scop%clump = scop%clump/nc
+
       CALL  sum_roots_cohorts2patch(pp) !froot and C_froot
       
       !* BIOMASS POOLS - TOTALS
@@ -162,6 +163,11 @@
       scop%n = nc
 
       !* ------- DO PATCH-LEVEL SUMMARIES OF scop ------------------------*!
+      !* Structural variables
+      pp%LAI = scop%LAI
+      pp%nm = scop%nm
+      pp%h = scop%h
+
       !* Flux variables for GCM/EWB - patch total
       call get_patchalbedo(ttime,pp)
       !pp%z0 =0.d0               !## Dummy ##!

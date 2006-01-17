@@ -64,8 +64,11 @@
       !-----local--------
       type(patch),pointer :: pp
 
-      pp = ecp%youngest
-      do while (ASSOCIATED(pp)) 
+      !****Ent final version:  loop through patches
+      !pp = ecp%youngest
+      !do while (ASSOCIATED(pp)) 
+      !***GISS version:  pass in ecp%sumpatch
+      pp = ecp%sumpatch
         call photosynth_cond(dtsec, pp)
         call uptake_N(dtsec, pp)
         call litter(dtsec, tt, pp)
@@ -74,14 +77,15 @@
           call reproduction_calc(dtsec, tt, pp)
           call reorganize_cohorts(pp)
         end if
-      end do
+      !end do !****Ent final version
 
       if (STRUCT_FLAG(tt,pp%cellptr)) then
         call phenology_update (dtsec,tt, pp) !UPDATE LAI
-        call recalc_radpar (pp) !UPDATE canopy radiative transfer
+        call recalc_radpar (tt,pp) !UPDATE canopy radiative transfer
       end if
 
-      call summarize_patches(tt,ecp)
+      call summarize_patch(tt,pp)
+
       end subroutine ent_integrate
 
       !*********************************************************************
