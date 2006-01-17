@@ -42,7 +42,5 @@
       !************************************************************************
       !*  GISS CONSTANTS
       integer :: JEQUATOR !Will get calculated in ent_init.
-      real*8 :: EDPERY  !Will get calculated in ent_init.
-      real*8 :: TWOPI   !Will get calculated in ent_init.
       
       end module ent_const
