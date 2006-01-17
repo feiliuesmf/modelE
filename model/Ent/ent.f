@@ -19,7 +19,7 @@
 
       contains
       !*********************************************************************
-      subroutine ent_ecosystem_dynamics(dtsec,time,ecp)
+      subroutine ent_ecosystem_dynamics(dtsec,tt,ecp)
 !@sum Ent ecosystem dynamics.
       use phenology
       use disturbance
@@ -27,29 +27,30 @@
       use disturbance
       
 !      write(*,*) 'Ecosystem dynamics for (long,lat)=(',
-!     & ecp%long,ecp%lat,'),time=',time
+!     & ecp%long,ecp%lat,'),tt=',tt
 
-      call ent_integrate(dtsec,time,ecp) !Biophysics, growth/allom, reproduction
+      call ent_integrate(dtsec,tt,ecp) !Biophysics, growth/allom, reproduction
       
       !Flag when it's time to update disturbance.
       !May be at set time intervals, or function of biomass accumulation, etc.
       !For now, monthly update as a place holder.
-      if (STRUCT_FLAG_MONTH(time,ecp)) then
+      if (STRUCT_FLAG_MONTH(tt,ecp)) then
         !* Update phenology and disturbance
-        !call phenology_update (dtsec,time, pp) !UPDATE LAI - put in ent_integrate
-        call fire_frequency_cell (dtsec,time, ecp) !DUMMY
+        !call phenology_update (dtsec,tt, pp) !UPDATE LAI - put in ent_integrate
+        call fire_frequency_cell (dtsec,tt, ecp) !DUMMY
         call recalc_radpar_cell (ecp) !
         call reorganize_patches(ecp)
-        call calc_cell_disturbance_rates(dtsec,time,ecp)
+        call calc_cell_disturbance_rates(dtsec,tt,ecp)
       else
-        call calc_cell_disturbance_rates(dtsec,time,ecp)
+        call calc_cell_disturbance_rates(dtsec,tt,ecp)
       end if
 
       call summarize_entcell(ecp)
+
       end subroutine ent_ecosystem_dynamics
 
       !*********************************************************************
-      subroutine ent_integrate(dtsec, time, ecp)
+      subroutine ent_integrate(dtsec, tt, ecp)
 !@sum Ent biophysics/biogeochemistry
       use reproduction
       use cohorts
@@ -58,7 +59,7 @@
 
       implicit none
       real*8 :: dtsec  !dt in seconds
-      type(timestruct) :: time !Time in year.fraction, Greenwich Mean Time
+      type(timestruct) :: tt !Time in year.fraction, Greenwich Mean Time
       type(entcell),pointer :: ecp
       !-----local--------
       type(patch),pointer :: pp
@@ -67,47 +68,47 @@
       do while (ASSOCIATED(pp)) 
         call photosynth_cond(dtsec, pp)
         call uptake_N(dtsec, pp)
-        call litter(dtsec, time, pp)
+        call litter(dtsec, tt, pp)
         call soil_bgc(dtsec, pp)
-        if (STRUCT_FLAG(time,ecp)) then
-          call reproduction_calc(dtsec, time, pp)
+        if (STRUCT_FLAG(tt,ecp)) then
+          call reproduction_calc(dtsec, tt, pp)
           call reorganize_cohorts(pp)
         end if
       end do
 
-      if (STRUCT_FLAG(time,pp%cellptr)) then
-        call phenology_update (dtsec,time, pp) !UPDATE LAI
+      if (STRUCT_FLAG(tt,pp%cellptr)) then
+        call phenology_update (dtsec,tt, pp) !UPDATE LAI
         call recalc_radpar (pp) !UPDATE canopy radiative transfer
       end if
 
-      call summarize_patches(time,ecp)
+      call summarize_patches(tt,ecp)
       end subroutine ent_integrate
 
       !*********************************************************************
 
-      function STRUCT_FLAG(time, ecp) Result(update_struct)
+      function STRUCT_FLAG(tt, ecp) Result(update_struct)
 !@sum Flag to determine if it's time to update vegetation structure.
-        type(timestruct) :: time
+        type(timestruct) :: tt
         type(entcelltype) :: ecp !Not needed this version, but will be.
         logical :: update_struct
         !------local------
-        update_struct = STRUCT_FLAG_DAY(time,ecp)
+        update_struct = STRUCT_FLAG_DAY(tt,ecp)
 
       end function STRUCT_FLAG
       !*********************************************************************
 
-      function STRUCT_FLAG_DAY(time, ecp) Result(update_struct)
+      function STRUCT_FLAG_DAY(tt, ecp) Result(update_struct)
 !@sum Flag to determine if it's time to update vegetation structure.
 !@sum Below is a simple end-of-day flag, but can make more
 !@sum sophisticated as a function of biomass increment, etc.
 
-        type(timestruct) :: time
+        type(timestruct) :: tt
         type(entcelltype) :: ecp !Not needed this version, but will be.
         logical :: update_struct
         !-----local----------
         real*8 :: hourfrac
         
-        hourfrac = time%hour + time%minute/60.0 + time%seconds/3600.0
+        hourfrac = tt%hour + tt%minute/60.0 + tt%seconds/3600.0
 !        if (hourfrac.le.dtsec) then !Midnight
         if (hourfrac.eq.0.0)) then  !Midnight
           update_struct = .true.
@@ -118,19 +119,19 @@
 
       !*********************************************************************
 
-      function STRUCT_FLAG_MONTH(time, ecp) Result(update_struct)
+      function STRUCT_FLAG_MONTH(tt, ecp) Result(update_struct)
 !@sum Flag to determine if it's time to update vegetation structure.
 !@sum Below is a simple beginning-of-the-month flag, but can make more
 !@sum sophisticated as a function of biomass increment, etc.
 
-        type(timestruct) :: time
+        type(timestruct) :: tt
         type(entcelltype) :: ecp !Not needed this version, but will be.
         logical :: update_struct
         
         real*8 :: hourfrac
         
-        hourfrac = time%hour + time%minute/60.0 + time%seconds/3600.0
-        if ((time%day.eq.1).and.
+        hourfrac = tt%hour + tt%minute/60.0 + tt%seconds/3600.0
+        if ((tt%day.eq.1).and.
      &       (hourfrac.eq.0.0)) then
           update_struct = .true.
         else
@@ -139,7 +140,7 @@
       end function STRUCT_FLAG_MONTH
 
       !*********************************************************************
-      subroutine ent_bgc(dtsec, time, entcell)
+      subroutine ent_bgc(dtsec, tt, entcell)
 !@sum Calculate canopy conductance and fluxes of CO2 and N, update pools.
 
       use biophysics
@@ -150,7 +151,7 @@
       implicit none
 
       real*8 :: dtsec
-      type(timestruct) :: time
+      type(timestruct) :: tt
       type(entcelltype) :: entcell
       type(patch),pointer :: pp
 
@@ -158,14 +159,14 @@
       do while (allocated(pp))
         call photosynth_cond(dtsec, pp)
         call uptake_N(dtsec, pp)
-        call litter(dtsec, time, pp)
+        call litter(dtsec, tt, pp)
         call soil_bgc(dtsec, pp)
         pp = pp%younger
       end do
 
       end subroutine ent_bgc
 
-      subroutine ent_bgc_GISShack(dtsec, time, entcell)
+      subroutine ent_bgc_GISShack(dtsec, tt, entcell)
 !@sum Calculate canopy conductance and fluxes of CO2 and N, update pools.
 !@sum Temporary hack to replicate the grid-cell-level averaging of vegetation
 !@sum properties done in the GISS GCM. 
@@ -179,7 +180,7 @@
       implicit none
 
       real*8 :: dtsec
-      type(timestruct) :: time
+      type(timestruct) :: tt
       type(entcelltype) :: entcell
       !--------Local vars--------
       type(patch),pointer :: pp

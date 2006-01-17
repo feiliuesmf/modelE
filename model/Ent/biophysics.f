@@ -203,7 +203,7 @@
 
       real*8, intent(in) :: dtsec
       type(patch),pointer :: pptr  
-      type(cohort),pointer :: cptr
+      type(cohort),pointer :: cp
 
       !     SIMULATED PHYSICS variables specific to vegetation
       real*8 :: GCANOPY
@@ -250,11 +250,11 @@
       fdir = pptr%cellptr%fdir
       Solarzen = pptr%cellptr%Solarzen
 
-      !do loop over cohorts
+      !*do loop over cohorts - final Ent version
+      !cp = pptr%tallest 
       !* GISS replication test hack:  average cohort properties to patch level
-      cptr = pptr%tallest
-      Ci = cptr%Ci
-      do cptr=cptr
+      cp = pptr%sumcohort
+      Ci = cp%Ci
 
       call veg_conductance(
      &     GCANOPY, Ci, Qf, TRANS_SW,GPP,NPP,pft,

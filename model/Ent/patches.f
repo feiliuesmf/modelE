@@ -13,7 +13,7 @@
       !* Blank patch with no cohorts.
       implicit none
       type(entcelltype), pointer :: gp
-      type(patch), pointer :: pp
+      !type(patch), pointer :: pp
       real*8 :: area
 
       !* If !allocated(gp) ERROR *!
@@ -181,7 +181,6 @@
       !pp%lambda1(T_SUB) = 0.d0!## Dummy ##!
       !pp%disturbance_rate(N_DIST_TYPES)=0.d0 !## Dummy ##!
 
-      
       end subroutine summarize_patch
       !*********************************************************************
 
