@@ -353,5 +353,5 @@ unit_tests:
 
 modelsubdirs: $(patsubst %, _dir_%, $(SUBDIRS))
 
-$(patsubst %, _dir_%, $(SUBDIRS)) : FORCE
+$(patsubst %, _dir_%, $(SUBDIRS)) : FORCE DOMAIN_DECOMP.mod
 	$(MAKE) -C $(patsubst _dir_%, %, $@) ESMF_Interface=$(ESMF_Interface)

@@ -584,7 +584,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
      &                        J_STRT, J_STOP, J_STRT_HALO, J_STOP_HALO,
      &                        J_STRT_SKP, J_STOP_SKP,      
      &                        J_STRT_STGR, J_STOP_STGR,      
-     &                        HAVE_SOUTH_POLE, HAVE_NORTH_POLE)
+     &                        HAVE_SOUTH_POLE, HAVE_NORTH_POLE,
+     &                        IM_WORLD, JM_WORLD )
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
       INTEGER, OPTIONAL :: I_STRT, I_STOP
       INTEGER, OPTIONAL :: I_STRT_HALO, I_STOP_HALO
@@ -592,6 +593,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER, OPTIONAL :: J_STRT_HALO, J_STOP_HALO
       INTEGER, OPTIONAL :: J_STRT_SKP, J_STOP_SKP
       INTEGER, OPTIONAL :: J_STRT_STGR, J_STOP_STGR
+      INTEGER, OPTIONAL :: IM_WORLD, JM_WORLD
       LOGICAL, OPTIONAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       IF (PRESENT(I_STRT)) I_STRT = grd_dum%I_STRT
@@ -611,6 +613,9 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       
       IF (PRESENT(J_STRT_STGR)) J_STRT_STGR = grd_dum%J_STRT_STGR
       IF (PRESENT(J_STOP_STGR)) J_STOP_STGR = grd_dum%J_STOP_STGR
+      
+      IF (PRESENT(IM_WORLD)) IM_WORLD = grd_dum%IM_WORLD
+      IF (PRESENT(JM_WORLD)) JM_WORLD = grd_dum%JM_WORLD
       
       IF (PRESENT(HAVE_SOUTH_POLE)) 
      &             HAVE_SOUTH_POLE= grd_dum%HAVE_SOUTH_POLE

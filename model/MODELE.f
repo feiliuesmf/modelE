@@ -754,6 +754,7 @@ C****
      *     ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
+      integer ISTART_kradia, nl_soil
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
@@ -1414,9 +1415,17 @@ C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
 C**** Recompute Ground hydrology data if redoGH (new soils data)
 C****
+!!! hack: make sure that ISTART_kradia==0 if Kradia>0
+!!! do we need it ? I.A.
+      ISTART_kradia = ISTART
+      if ( Kradia.gt.0 ) ISTART_kradia = 0
+      CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART_kradia, nl_soil)
+      CALL init_module_ent(iniENT,grid,dxyp, nl_soil,
+     &     Jyear,Jmon,Jday,Jdate,Jhour)
+
       if (Kradia.gt.0) then   !  radiative forcing run
-        CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
-        CALL init_module_ent(iniENT,grid,jday,dxyp)
+        !CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
+        !CALL init_module_ent(iniENT,grid,jday,dxyp)
         CALL init_RAD(istart)
         if(istart.lt.0) CALL init_DIAG(ISTART,num_acc_files)
         WRITE (6,INPUTZ)
@@ -1427,8 +1436,8 @@ C****
      &       CALL stop_model ('Terminated normally, istart<0',13)
         return
       end if                  !  Kradia>0; radiative forcing run
-      CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART)
-      CALL init_module_ent(iniENT,grid,jday,dxyp)
+!      CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART)
+!      CALL init_module_ent(iniENT,grid,jday,dxyp)
 C**** Initialize pbl (and read in file containing roughness length data)
       if(istart.gt.0) CALL init_pbl(iniPBL)
 C****

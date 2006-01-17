@@ -1651,7 +1651,7 @@ ccc                               currently using only topography part
       end subroutine snow_cover
 
 
-      subroutine init_gh(dtsurf,redogh,inisnow,istart)
+      subroutine init_gh(dtsurf,redogh,inisnow,istart,nl_soil)
 c**** modifications needed for split of bare soils into 2 types
       use filemanager
       use param
@@ -1681,6 +1681,7 @@ c**** modifications needed for split of bare soils into 2 types
       real*8, intent(in) :: dtsurf
       integer, intent(in) :: istart
       logical, intent(in) :: redogh, inisnow
+      integer, intent(out) :: nl_soil
       integer iu_soil,iu_top_index
       integer jday
       real*8 snowdp,wtr1,wtr2,ace1,ace2,tg1,tg2
@@ -1735,6 +1736,9 @@ c**** read rundeck parameters
       call sync_param( "snow_cover_same_as_rad", snow_cover_same_as_rad)
       call sync_param( "snoage_def", snoage_def )
       call sync_param( "ghy_default_data", ghy_default_data )
+
+c**** set number of layers for vegetation module
+      nl_soil = ngm
 
 c**** read land surface parameters or use defaults
       if ( ghy_default_data == 0 ) then ! read from files
