@@ -210,6 +210,8 @@
 !      real*8 :: Ci  !Cohort level
       real*8 :: Qf
       real*8 :: TRANS_SW
+      real*8 :: betad       !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
+      real*8 :: betadl(N_DEPTH) !Water stress in layers
 
       !     DIAGNOSTIC VARIABLES
       real*8 :: GPP
@@ -221,8 +223,7 @@
       real*8 :: P_mbar          !Atmospheric pressure (mb)
       real*8 :: Ca              !@Atmos CO2 conc at surface height (mol/m3).
       real*8 :: Soilmoist(N_DEPTH) !May be an array by depth (units TBA)
-                                !soilmp
-      real*8 :: betad       !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
+      real*8 :: Soilmp(N_DEPTH)  !Soil matric potential
       real*8 :: Precip          !Precipitation (mm)
       real*8 :: Ch              !Ground to surface heat transfer coefficient 
       real*8 :: U               !Surface layer wind speed (m s-1)
@@ -241,8 +242,10 @@
       Qv = pp%cellptr%Qv
       P_mbar = pp%cellptr%P_mbar
       Ca = pp%cellptr%Ca
-      Soilmoist = pp%cellptr%Soilmoist
-      betad = pp%cellptr%betad
+      Soilmoist = pp%cellptr%Soilmoist  !Will be patch level later
+      Soilmp = pp%cellptr%Soilmp        !Will be patch level later
+      fice = pp%cellptr%fice
+      froot = pp%cellptr%froot
       Precip = pp%cellptr%Precip
       Ch = pp%cellptr%Ch
       U = pp%cellptr%U
@@ -261,12 +264,11 @@
       Qf = pp%cellptr%Qf  !GISS hack at grid cell level for Qf
 
       call veg_conductance(dtsec,
-     &     GCANOPY, Ci, Qf, TRANS_SW,GPP,NPP,pft,
-     &     vegpar%lai,vegpar%nm,vegpar%vh,vegpar%vegalbedo, 
-     &     nsoillayer, soilmp, fice, froot,
+     &     GCANOPY, Ci, Qf, TRANS_SW,GPP,NPP,betad,betadl,
+     &     pft, vegpar%lai,vegpar%nm,vegpar%vh,vegpar%vegalbedo, 
+     &     N_DEPTH, Soilmp, fice, froot,  
      &     TcanopyC, P_mbar, Ch, U, 
      &     IPAR, fdir,Solarzen, Ca )
-
 
       !OUTPUTS TO pp
       pp%GCANOPY = GCANOPY
@@ -278,6 +280,8 @@
       entcell%Qf = Qf
       entcell%GPP = GPP
       entcell%TRANS_SW = TRANS_SW
+      entcell%betad = betad
+      entcell%betadl = betadl
 
       end subroutine photosynth_cond
 
@@ -335,6 +339,7 @@
 
       !************************************************************************
 
+
       subroutine veg_conductance(
      i     ,dt_in               !GHY time step (seconds)
      &     CNC_INOUT            !Canopy conductance of water vapor (m/s)
@@ -343,6 +348,8 @@
      o     ,TRANS_SW_OUT        !SW transmissivity of canopy to ground
      o     ,GPP_OUT             !Gross primary productivitiy (umol[CO2]/m2/s)
      o     ,NPP_OUT             !Net primary productivity (kg[C]/m2/s)
+     o     ,betad               !Water stress
+     o     ,betadl              !Water stress in layers
      i     ,pft                 !PFT number
      i     ,lai                 !LAI
      i     ,nm                  !Mean N (g-N/m2-leaf)
@@ -370,6 +377,8 @@
       real*8, intent(out) :: TRANS_SW_OUT
       real*8, intent(out) :: GPP_OUT
       real*8, intent(out) :: NPP_OUT
+      real*8, intent(out) :: betad
+      real*8, intent(out) :: betadl(:)
 
 !     VEGETATION STRUCTURE
       integer,intent(in) :: pft
@@ -653,7 +662,7 @@
 
 !----------------------------------------------------------------------!
       function water_stress(nlayers, soilmp, froot, fice,
-     &     hwilt) Result(betad)
+     &     hwilt, betadl) Result(betad)
       !1. Rosensweig & Abramopoulos water stress fn.
 
       implicit none
@@ -662,13 +671,16 @@
       real*8,intent(in) :: froot(:) !Fraction of roots in layer
       real*8,intent(in) :: fice(:)  !Fraction of ice in layer
       real*8,intent(in) :: hwilt  !Wilting point of pft, matric pot. (m)
+      real*8,intent(out) :: betadl(:) !Water stress in layers
       real*8 :: betad !Stress value, 0-1, 1=no stress
+      !---Local-----------
       integer :: k
       
       betad = 0.d0
       do k = 1,nlayers
-        betad = betad +  (1.d0-fice(k))*froot(k)*
-     &       max((hwilt-soilmp(k))/hwilt,0.d0)
+        betad(k) = (1.d0-fice(k))*froot(k)
+     &       *max((hwilt-soilmp(k))/hwilt,0.d0)
+        betad = betad + betad(k) 
       end do
       if (betad < EPS2) betad=0.d0
 

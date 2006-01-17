@@ -236,8 +236,10 @@
          !Cell-level diagnostic values - BIOLOGICAL
          !e.g. LAI, biomass pools, nitrogen pools, PFT fractions, GDD, GPP, etc
          real*8 :: LAI
-         real*8,ALLOCATABLE :: froot(:)        !Fraction of roots in soil layer
+         real*8,ALLOCATABLE :: froot(:) !Fraction of roots in soil layer
          real*8 :: C_froot
+         real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
+         real*8,ALLOCATABLE :: betadl(:) !Water stress in layers.
          !-----
          
 
@@ -248,12 +250,12 @@
          !METEOROLOGICAL - IMPORT STATE VARIABLES
          !Cell-level summary values - CALCULATED BY GCM/EWB OR OFF-LINE FILE
          real*8 :: TcanopyC     !Canopy temperatue (Celsius)
-         real*8 :: Qv           !Canopy air specif humidity (kg vapor/ kg air)
+         real*8 :: Qv           !Canopy saturated spec humidity (kg vapor/ kg air)
          real*8 :: P_mbar       !Atmospheric pressure (mb)
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
          real*8,ALLOCATABLE :: Soilmoist(:) !May be an array by depth (units TBA)
+         real*8,ALLOCATABLE :: Soilmp(:) !Soil matric potential
          real*8 :: fice         !Fraction of soil layer that is ice
-         real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
          real*8 :: Precip       !Precipitation (mm)
          real*8 :: Ch           !Ground to surface heat transfer coefficient 
          real*8 :: U            !Surface layer wind speed (m s-1)
