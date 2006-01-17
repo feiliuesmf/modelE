@@ -164,6 +164,7 @@
 
       !* ------- DO PATCH-LEVEL SUMMARIES OF scop ------------------------*!
       !* Structural variables
+      pp%pft = pp%tallest%pft  !Patch tallest pft is considered dominant.
       pp%LAI = scop%LAI
       pp%nm = scop%nm
       pp%h = scop%h
@@ -188,6 +189,7 @@
       !pp%disturbance_rate(N_DIST_TYPES)=0.d0 !## Dummy ##!
 
       end subroutine summarize_patch
+
       !*********************************************************************
 
       subroutine init_patch(pp,gp,area)
@@ -243,7 +245,7 @@
 
             !* DIAGNOSTIC SUMMARIES
             !* Biomass pools - patch total
-            pp%LAI_p = !## Get GISS alai ##!
+            pp%LAI = 0.0 !## Get GISS alai ##!
             do n=1,N_DEPTH
               pp%froot(n) = 0.0
             end do

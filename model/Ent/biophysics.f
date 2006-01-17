@@ -5,6 +5,7 @@
       !Ent MODULES TO USE
       use ent_const
       use ent_types
+      use ent_pfts
 
       implicit none
       private
@@ -203,11 +204,10 @@
 
       real*8, intent(in) :: dtsec
       type(patch),pointer :: pp  
-      type(cohort),pointer :: cp
 
       !     SIMULATED PHYSICS variables specific to vegetation
       real*8 :: GCANOPY
-!      real*8 :: Ci  !Cohort level
+      real*8 :: Ci  
       real*8 :: Qf
       real*8 :: TRANS_SW
       real*8 :: betad       !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
@@ -224,6 +224,8 @@
       real*8 :: Ca              !@Atmos CO2 conc at surface height (mol/m3).
       real*8 :: Soilmoist(N_DEPTH) !May be an array by depth (units TBA)
       real*8 :: Soilmp(N_DEPTH)  !Soil matric potential
+      real*8 :: fice(N_DEPTH)   !Fraction of soil water that is ice.
+      real*8 :: froot(N_DEPTH)  !Fraction of roots in layer.
       real*8 :: Precip          !Precipitation (mm)
       real*8 :: Ch              !Ground to surface heat transfer coefficient 
       real*8 :: U               !Surface layer wind speed (m s-1)
@@ -256,16 +258,16 @@
 
       !* Assign vegpar
       !** GISS replication test hack:  grid cell average patch properties
-      vegpar%lai = pp%LAI
+      vegpar%alai = pp%LAI
       vegpar%nm = pp%nm
       vegpar%vh = pp%h
-      vegpar%vegalbedo = pp%albedo
+      vegpar%vegalbedo = pp%albedo(1) !Visible band
       Ci = pp%cellptr%Ci  !GISS hack at grid cell level for Ci
       Qf = pp%cellptr%Qf  !GISS hack at grid cell level for Qf
 
       call veg_conductance(dtsec,
      &     GCANOPY, Ci, Qf, TRANS_SW,GPP,NPP,betad,betadl,
-     &     pft, vegpar%lai,vegpar%nm,vegpar%vh,vegpar%vegalbedo, 
+     &     pp%pft, vegpar%alai,vegpar%nm,vegpar%vh,vegpar%vegalbedo, 
      &     N_DEPTH, Soilmp, fice, froot,  
      &     TcanopyC, P_mbar, Ch, U, 
      &     IPAR, fdir,Solarzen, Ca )
@@ -275,13 +277,14 @@
       pp%GPP = GPP
       
       !OUTPUTS FROM ENT TO GCM/EWB
-      entcell%GCANOPY = GCANOPY
-      entcell%Ci = Ci
-      entcell%Qf = Qf
-      entcell%GPP = GPP
-      entcell%TRANS_SW = TRANS_SW
-      entcell%betad = betad
-      entcell%betadl = betadl
+      !*** GISS HACK. PATCH VALUES ASSIGNED TO ENTCELL LEVEL. ****!!!
+      pp%cellptr%GCANOPY = GCANOPY
+      pp%cellptr%Ci = Ci
+      pp%cellptr%Qf = Qf
+      pp%cellptr%GPP = GPP
+      pp%cellptr%TRANS_SW = TRANS_SW
+      pp%cellptr%betad = betad
+      pp%cellptr%betadl = betadl
 
       end subroutine photosynth_cond
 
@@ -341,8 +344,8 @@
 
 
       subroutine veg_conductance(
-     i     ,dt_in               !GHY time step (seconds)
-     &     CNC_INOUT            !Canopy conductance of water vapor (m/s)
+     i     dt_in               !GHY time step (seconds)
+     &     ,CNC_INOUT            !Canopy conductance of water vapor (m/s)
      &     ,Ci_INOUT            !Internal foliage CO2 (mol/m3)
      i     ,Qf_IN               !Foliage surface vapor mixing ratio (kg/kg)
      o     ,TRANS_SW_OUT        !SW transmissivity of canopy to ground
@@ -378,7 +381,7 @@
       real*8, intent(out) :: GPP_OUT
       real*8, intent(out) :: NPP_OUT
       real*8, intent(out) :: betad
-      real*8, intent(out) :: betadl(:)
+      real*8, intent(out) :: betadl(N_DEPTH)
 
 !     VEGETATION STRUCTURE
       integer,intent(in) :: pft
@@ -430,7 +433,7 @@
       !Global meterological variables specific to grid cell.
       dt = dt_in
       betad = water_stress(nsoillayer, soilmp_in(:),froot_in(:),
-     &     fice_in(:), pfpar(pft)%hwilt)
+     &     fice_in(:), pfpar(pft)%hwilt, betadl(:))
       tcan = tcan_in
       pres = pres_in
       ch = ch_in
@@ -678,9 +681,9 @@
       
       betad = 0.d0
       do k = 1,nlayers
-        betad(k) = (1.d0-fice(k))*froot(k)
+        betadl(k) = (1.d0-fice(k))*froot(k)
      &       *max((hwilt-soilmp(k))/hwilt,0.d0)
-        betad = betad + betad(k) 
+        betad = betad + betadl(k) 
       end do
       if (betad < EPS2) betad=0.d0
 

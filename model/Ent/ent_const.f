@@ -42,5 +42,10 @@
       !************************************************************************
       !*  GISS CONSTANTS
       integer :: JEQUATOR !Will get calculated in ent_init.
+
+      integer,parameter :: N_PFT = 8
+      integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
+      integer,parameter :: N_OTHER = 1
+      integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
       
       end module ent_const

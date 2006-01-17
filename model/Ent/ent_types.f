@@ -1,9 +1,44 @@
       module ent_types
         use ent_const
+
         implicit none
 
 
 !        contains
+!****************************************************************************
+!*    CONSTANTS
+!****************************************************************************
+
+
+      !************************************************************************
+       !* ASTRONOMICAL CONSTANTS
+      real*8,parameter :: sday = 86400.! sec per day (s)
+
+      !************************************************************************
+      !* RUN CONTROL
+      integer,parameter :: PATCH_DYNAMICS = 0 ! 0-No, 1=Yes
+
+      !************************************************************************
+      !* Ent CONSTANTS
+
+      !********************
+      !* SOIL / HYDROLOGY *
+      !********************
+      integer :: N_DEPTH        !Number of soil layers.  SET IN ENT_INIT
+
+      !**********************
+      !* RADIATIVE TRANSFER *
+      !**********************
+
+      integer,parameter :: N_BANDS = 6 !Number of spectral bands (GISS 6)
+                                !Expect to adjust to hyperspectral
+
+      !***********************
+      !* ECOLOGICAL DYNAMICS *
+      !***********************
+      integer,parameter :: N_DIST_TYPES = 2 !Number of disturbance types
+
+
 !****************************************************************************
 !*       TYPE DECLARATIONS
 !****************************************************************************
@@ -95,7 +130,7 @@
          real*8 :: root_d         ! Root half spheroid diameter (m)
          !real*8 :: LA           ! Leaf area (m2[leaf])
          real*8 :: clump          ! Leaf clumping parameter (TBA)
-         real*8,ALLOCATABLE :: froot(:) ! Fraction of roots in soil layer
+         real*8,pointer :: froot(:) ! Fraction of roots in soil layer
 
          !* BIOMASS POOLS
          real*8 :: LMA            ! Leaf mass per leaf area (kgC/m2-leaf)
@@ -156,6 +191,7 @@
          ! * Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
 
          !* Structural variables *!
+         integer :: pft  !Tallest pft
          real*8 :: LAI  !Leaf area index (m^2[leaf]/m^2[ground])
          real*8 :: nm   !Mean canopy nitrogen (g/m2[leaf]) over patch
          real*8 :: h    !Canopy height (m)
@@ -167,7 +203,7 @@
          real*8 :: CO2flux         !Net CO2 flux up (umol-CO2/m2-gnd/s)
 
          !* Variables calculated by GCM/EWB - downscaled from grid cell
-         real*8,ALLOCATABLE :: Soilmoist(:) !Available soil moisture by depth (mm)
+         real*8,pointer :: Soilmoist(:) !Available soil moisture by depth (mm)
          real*8 :: N_deposit          !N deposition (kgN/m2)
 
          !* Variables for biophysics and biogeochemistry
@@ -236,12 +272,12 @@
          !Cell-level diagnostic values - BIOLOGICAL
          !e.g. LAI, biomass pools, nitrogen pools, PFT fractions, GDD, GPP, etc
          real*8 :: LAI
-         real*8,ALLOCATABLE :: froot(:) !Fraction of roots in soil layer
+         real*8,pointer :: froot(:) !Fraction of roots in soil layer
          real*8 :: C_froot
          real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
-         real*8,ALLOCATABLE :: betadl(:) !Water stress in layers.
+         real*8,pointer :: betadl(:) !Water stress in layers.
          !-----
-         
+
 
          !VEGETATION - PRIVATE
          real*8 :: Ci           !Internal foliage CO2 (mol/m3) !!Cohort level
@@ -253,8 +289,8 @@
          real*8 :: Qv           !Canopy saturated spec humidity (kg vapor/ kg air)
          real*8 :: P_mbar       !Atmospheric pressure (mb)
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
-         real*8,ALLOCATABLE :: Soilmoist(:) !May be an array by depth (units TBA)
-         real*8,ALLOCATABLE :: Soilmp(:) !Soil matric potential
+         real*8,pointer :: Soilmoist(:) !May be an array by depth (units TBA)
+         real*8,pointer :: Soilmp(:) !Soil matric potential
          real*8 :: fice         !Fraction of soil layer that is ice
          real*8 :: Precip       !Precipitation (mm)
          real*8 :: Ch           !Ground to surface heat transfer coefficient 
@@ -282,38 +318,6 @@
       end type entdatatype
 
 
-!****************************************************************************
-!*    CONSTANTS
-!****************************************************************************
-
-
-      !************************************************************************
-       !* ASTRONOMICAL CONSTANTS
-      real*8,parameter :: sday = 86400.! sec per day (s)
-
-      !************************************************************************
-      !* RUN CONTROL
-      integer,parameter :: PATCH_DYNAMICS = 0 ! 0-No, 1=Yes
-
-      !************************************************************************
-      !* Ent CONSTANTS
-
-      !********************
-      !* SOIL / HYDROLOGY *
-      !********************
-      integer :: N_DEPTH        !Number of soil layers.  SET IN ENT_INIT
-
-      !**********************
-      !* RADIATIVE TRANSFER *
-      !**********************
-
-      integer,parameter :: N_BANDS = 6 !Number of spectral bands (GISS 6)
-                                !Expect to adjust to hyperspectral
-
-      !***********************
-      !* ECOLOGICAL DYNAMICS *
-      !***********************
-      integer,parameter :: N_DIST_TYPES = 2 !Number of disturbance types
 
 
       !***********
@@ -358,26 +362,6 @@
       !real etc -------------
 
 
-
-      !***************************************************
-      !Temp values for Ent pfts (See ent_const.f for types)
-      type(pftype),parameter :: pfpar(N_PFT) =         & !PFT parameters
-     !     pst,  hwilt,    sstar, swilt,  nf !
-     &           (/                                     &       
-     &     pftype(1,   -100.d0,  .60d0, .29d0,  1.3d0), &
-     &     pftype(1,   -100.d0,  .60d0, .29d0,  1.2d0), &
-     &     pftype(1,   -100.d0,  .55d0, .25d0,  0.9d0), &
-     &     pftype(1,   -100.d0,  .55d0, .25d0,  0.85d0),&
-     &     pftype(1,   -100.d0,  .50d0, .29d0,  1.5d0), &
-     &     pftype(1,   -100.d0,  .50d0, .29d0,  1.4d0), &
-     &     pftype(1,   -100.d0,  .45d0, .22d0,  1.4d0), &
-     &     pftype(1,   -100.d0,  .50d0, .22d0,  1.4d0), &
-     &     pftype(1,   -100.d0,  .40d0, .22d0,  1.3d0), &
-     &     pftype(1,   -100.d0,  .65d0, .27d0,  1.5d0), &
-     &     pftype(2,   -100.d0,  .55d0, .22d0,  0.76d0),&
-     &     pftype(1,   -100.d0,  .60d0, .27d0,  1.4d0), &
-     &     pftype(2,   -100.d0,  .65d0, .27d0,  0.76d0) &
-     &     /)
 
 
       end module ent_types
