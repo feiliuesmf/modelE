@@ -235,8 +235,8 @@
       !*********************************************************************
       !*********************************************************************
        
-      subroutine reorganize_cohorts(entcell)
-      type(entcelltype) :: entcell
+      subroutine reorganize_cohorts(pp)
+      type(patch),pointer :: pp
 
       !---------------------------------------------------------------
       !              FILL IN CODE                                    

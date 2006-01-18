@@ -48,11 +48,11 @@
       type(entcelltype), pointer :: gp
       type(patch), pointer :: pp
 
-      if (pp == gp%oldest) then
+      if (.NOT.ASSOCIATED(pp%older)) then !is oldest
         gp%oldest = gp%oldest%younger
         call nullify(gp%oldest%older)
         call deallocate(pp)
-      else if(pp.eq.gp%youngest) then
+      else if(.NOT.ASSOCIATED(pp%younger)) then !is youngest
         gp%youngest = gp%youngest%older
         call nullify(gp%youngest%younger)
         call deallocate(pp)
@@ -215,15 +215,6 @@
             cop%nm = 0.0
             cop%Ntot = 0.0
 
-            !* avgcohort *!
-            call zero_cohort(pp%avgcohort)
-            cop = pp%avgcohort
-            cop%pptr = pp
-            cop%pft = 0
-            cop%n = 0
-            cop%nm = 0.0
-            cop%Ntot = 0.0
-
             !* Flux variables for GCM/EWB - patch total
             pp%albedo = 0.0!## Get GISS albveg ##!
             pp%z0 = 0.0    !## Get GISS z0 ######!
@@ -251,6 +242,7 @@
             do n=1,N_DEPTH
               pp%froot(n) = 0.0
             end do
+            pp%C_froot = 0.d0
 
 #ifdef NEWDIAG
             pp%plant_ag_Cp = 0.d0 !## Dummy ##!

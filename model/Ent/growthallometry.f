@@ -10,9 +10,9 @@
       contains
       !*********************************************************************
       
-      subroutine uptake_N(dtsec, entcell)
+      subroutine uptake_N(dtsec, pp)
       real*8 :: dtsec           !dt in seconds
-      type(entcelltype) :: entcell
+      type(patch),pointer :: pp
 
       !*****************************************************************
       !*              FILL IN CODE                                     *

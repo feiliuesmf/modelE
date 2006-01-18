@@ -25,7 +25,10 @@
       use disturbance
       use canopyrad
       use disturbance
-      
+
+      real*8,intent(in) :: dtsec
+      type(timestruct) :: tt
+      type(entcelltype),pointer :: ecp
 !      write(*,*) 'Ecosystem dynamics for (long,lat)=(',
 !     & ecp%long,ecp%lat,'),tt=',tt
 
@@ -59,8 +62,8 @@
 
       implicit none
       real*8 :: dtsec  !dt in seconds
-      type(timestruct) :: tt !Time in year.fraction, Greenwich Mean Time
-      type(entcell),pointer :: ecp
+      type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
+      type(entcelltype),pointer :: ecp
       !-----local--------
       type(patch),pointer :: pp
 
@@ -114,7 +117,7 @@
         
         hourfrac = tt%hour + tt%minute/60.0 + tt%seconds/3600.0
 !        if (hourfrac.le.dtsec) then !Midnight
-        if (hourfrac.eq.0.0)) then  !Midnight
+        if (hourfrac.eq.0.0) then  !Midnight
           update_struct = .true.
         else
            update_struct = .false.

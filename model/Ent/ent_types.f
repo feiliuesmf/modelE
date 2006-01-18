@@ -181,10 +181,11 @@
          real*8 :: disturbance_rate(N_DIST_TYPES)
 
          !* DIAGNOSTIC SUMMARIES
-#ifdef NEWDIAG
          !* Biomass pools - patch total
          !* SEE avgcohort and sumcohort
-         
+         real*8 :: C_froot           !Carbon in fine roots.
+
+#ifdef NEWDIAG
          !* Soil pools - patch total
          real*8 :: REW               !Relative extractable water (REW)
          real*8 :: soil_labile_C     !Labile soil carbon (kgC/m2)
@@ -238,7 +239,7 @@
          !e.g. LAI, biomass pools, nitrogen pools, PFT fractions, GDD, GPP, etc
          real*8 :: LAI
          real*8,pointer :: froot(:) !Fraction of roots in soil layer
-         real*8 :: C_froot
+         real*8 :: C_froot      !Carbon in fine roots
          real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
          real*8,pointer :: betadl(:) !Water stress in layers.
          !-----

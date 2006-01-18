@@ -16,7 +16,7 @@
 !@sum Updates phenology for all patches in an entcell.
       real*8 :: dtsec           !dt in seconds
       type(timestruct) :: time  !Greenwich Mean Time
-      type(entcell),pointer :: ecp
+      type(entcelltype),pointer :: ecp
       !------local--------
       type(patch),pointer :: pp
 
@@ -29,23 +29,23 @@
       
       subroutine phenology_update(dtsec, tt, pp)
 !@sum Update phenology for a patch.
-      use ent_GCM_coupler, only : GISS_phenology_update
+      use ent_GCM_coupler, only : GISS_phenology
       real*8 :: dtsec           !dt in seconds
       type(timestruct) :: tt  !Greenwich Mean Time
       type(patch),pointer :: pp
 
       !---------------------------------------------------------------
       !* GISS VERSION:  JUST UPDATES LAI USING MATTHEWS PRESCRIPTION
-      call GISS_phenology_update(tt%jday, pp)
+      call GISS_phenology(tt%jday, pp)
 
       end subroutine phenology_update
 
 
       !*********************************************************************
-      subroutine litter(dtsec, time, entcell)
+      subroutine litter(dtsec, tt, pp)
       real*8 :: dtsec           !dt in seconds
-      type(timestruct) :: time  !Greenwich Mean Time
-      type(entcelltype) :: entcell
+      type(timestruct) :: tt  !Greenwich Mean Time
+      type(patch),pointer :: pp
 
       !---------------------------------------------------------------
       !              FILL IN CODE                                    
