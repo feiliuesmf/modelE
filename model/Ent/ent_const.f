@@ -29,6 +29,10 @@
       real*8,parameter :: Avogadro=6.023d23 !Avogadro's constant (atmos/mole)
       real*8,parameter :: cp=1012. !Heat capacity of dry air (J kg-1 K-1)
 
+
+      !************************************************************************
+      !* GISS MODELE CONSTANTS
+      
       !************************************************************************
        !* ASTRONOMICAL CONSTANTS
 
@@ -40,12 +44,39 @@
       real*8, parameter :: EPS2 = 1.d-12 !Smaller error
       
       !************************************************************************
-      !*  GISS CONSTANTS
+      !*  GISS VEGETATION CONSTANTS
       integer :: JEQUATOR !Will get calculated in ent_init.
 
       integer,parameter :: N_PFT = 8
       integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
       integer,parameter :: N_OTHER = 1
       integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
+
+      !************************************************************************
+      !* Ent CONSTANTS
+
+      !************************************************************************
+       !* ASTRONOMICAL CONSTANTS
+      real*8,parameter :: sday = 86400.! sec per day (s)
+
+      !************************************************************************
+      !* RUN CONTROL
+      integer,parameter :: PATCH_DYNAMICS = 0 ! 0-No, 1=Yes
+      !********************
+      !* SOIL / HYDROLOGY *
+      !********************
+      integer :: N_DEPTH        !Number of soil layers.  SET IN ENT_INIT
+
+      !**********************
+      !* RADIATIVE TRANSFER *
+      !**********************
+
+      integer,parameter :: N_BANDS = 6 !Number of spectral bands (GISS 6)
+                                !Expect to adjust to hyperspectral
+
+      !***********************
+      !* ECOLOGICAL DYNAMICS *
+      !***********************
+      integer,parameter :: N_DIST_TYPES = 2 !Number of disturbance types
       
       end module ent_const

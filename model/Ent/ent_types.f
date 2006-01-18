@@ -3,42 +3,6 @@
 
         implicit none
 
-
-!        contains
-!****************************************************************************
-!*    CONSTANTS
-!****************************************************************************
-
-
-      !************************************************************************
-       !* ASTRONOMICAL CONSTANTS
-      real*8,parameter :: sday = 86400.! sec per day (s)
-
-      !************************************************************************
-      !* RUN CONTROL
-      integer,parameter :: PATCH_DYNAMICS = 0 ! 0-No, 1=Yes
-
-      !************************************************************************
-      !* Ent CONSTANTS
-
-      !********************
-      !* SOIL / HYDROLOGY *
-      !********************
-      integer :: N_DEPTH        !Number of soil layers.  SET IN ENT_INIT
-
-      !**********************
-      !* RADIATIVE TRANSFER *
-      !**********************
-
-      integer,parameter :: N_BANDS = 6 !Number of spectral bands (GISS 6)
-                                !Expect to adjust to hyperspectral
-
-      !***********************
-      !* ECOLOGICAL DYNAMICS *
-      !***********************
-      integer,parameter :: N_DIST_TYPES = 2 !Number of disturbance types
-
-
 !****************************************************************************
 !*       TYPE DECLARATIONS
 !****************************************************************************
@@ -195,7 +159,8 @@
          real*8 :: LAI  !Leaf area index (m^2[leaf]/m^2[ground])
          real*8 :: nm   !Mean canopy nitrogen (g/m2[leaf]) over patch
          real*8 :: h    !Canopy height (m)
-         
+         real*8,pointer :: froot(:)!Fraction of roots in soil layer
+
          !* Flux variables for GCM/EWB - patch total
          real*8 :: albedo(N_BANDS) !Spectral albedo, average over patch
          real*8 :: z0              !Roughness length, average over patch
@@ -216,10 +181,10 @@
          real*8 :: disturbance_rate(N_DIST_TYPES)
 
          !* DIAGNOSTIC SUMMARIES
+#ifdef NEWDIAG
          !* Biomass pools - patch total
          !* SEE avgcohort and sumcohort
          
-
          !* Soil pools - patch total
          real*8 :: REW               !Relative extractable water (REW)
          real*8 :: soil_labile_C     !Labile soil carbon (kgC/m2)
@@ -233,7 +198,7 @@
          real*8 :: dadt              !Rate of change of patch age = 1
          real*8 :: dpdt              !Rate of change of patch area
          real*8 :: dwdt              !Rate of change of available soil water
-
+#endif
          !* Activity diagnostics - can be summed by month, year, etc.
          real*8 :: GPP               !Gross primary productivity (kgC/m2/day)
          real*8 :: NPP               !Net primary productivity (kgC/m2/day)
@@ -299,7 +264,7 @@
          !Radiation - IMPORT STATE VARIABLE
          !may later be broken down into hyperspectral increments.
          ! in an array
-         real*8 :: Isw          !Incident shortwave 100-2000 nm (W m-2)
+         real*8 :: Ivis          !Incident visible  (W m-2)
          real*8 :: IPAR         !Incident PAR 400-700 nm (W m-2)
          real*8 :: Ibeam        !Incident beam radiation (W m-2)
          real*8 :: Idiff        !Incident diffuse radiation (W m-2),

@@ -18,7 +18,7 @@
       subroutine get_patchalbedo(tt,pp)
 !@sum !* Return albedo for patch.
       !* This version reads in vegetation structure from GISS data set.
-      use ent_GCM_coupler, only :: GISS_veg_albedo
+      use ent_GCM_coupler, only : GISS_veg_albedo
       implicit none
       type(timestruct) :: tt
       type(patch),pointer :: pp
@@ -33,7 +33,7 @@
       !---------------------------------------------------------------
 
       call GISS_veg_albedo(pp%cellptr%latj,pp%tallest%pft,
-     &     tt%jday, albedo)
+     &     tt%jday, pp%albedo)
 
       !---------------------------------------------------------------
       !* Ent template for GORT clumping index canopy radiative transfer.
@@ -137,10 +137,10 @@
 
       type(canradtype) :: crad
 
-      real*8 :: Solarzen, Isw, IPAR, Ibeam, Idiff 
+      real*8 :: Solarzen, Ivis, IPAR, Ibeam, Idiff 
 
       Solarzen = pptr%cellptr%Solarzen
-      Isw = pptr%cellptr%Isw
+      Ivis = pptr%cellptr%Ivis
       IPAR = pptr%cellptr%IPAR
       Ibeam = pptr%cellptr%Ibeam
       Idiff = pptr%cellptr%Idiff

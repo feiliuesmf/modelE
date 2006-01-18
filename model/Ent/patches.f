@@ -16,15 +16,15 @@
       !type(patch), pointer :: pp
       real*8 :: area
 
-      !* If !allocated(gp) ERROR *!
+      !* If !ASSOCIATED(gp) ERROR *!
 
       !* If there exist patches, then insert.  If no patches, then allocate.
-      if (allocated(gp%youngest)) then
+      if (ASSOCIATED(gp%youngest)) then
         call allocate(gp%youngest%younger)
         gp%youngest%older = gp%youngest
         gp%youngest = gp%youngest%younger
         call nullify(gp%youngest%tallest)
-        call nullify(gp%youngeset%shortest)
+        call nullify(gp%youngest%shortest)
         call allocate(gp%youngest%sumcohort)
         call init_patch(gp%youngest,gp,area)
       else !first patch on entcell
@@ -33,7 +33,7 @@
         call nullify(gp%youngest%older)
         call nullify(gp%youngest%younger)
         call nullify(gp%youngest%tallest)
-        call nullify(gp%youngeset%shortest)
+        call nullify(gp%youngest%shortest)
         call allocate(gp%youngest%sumcohort)
         call init_patch(gp%youngest,gp,area)
       end if
@@ -48,7 +48,7 @@
       type(entcelltype), pointer :: gp
       type(patch), pointer :: pp
 
-      if (pp.eq.gp%oldest) then
+      if (pp == gp%oldest) then
         gp%oldest = gp%oldest%younger
         call nullify(gp%oldest%older)
         call deallocate(pp)
@@ -58,7 +58,7 @@
         call deallocate(pp)
       else !pp points somewhere in the middle of patch list
         pp%older%younger = pp%younger
-        pp%%younger%older = pp%older
+        pp%younger%older = pp%older
         call nullify(pp)
         call deallocate(pp)
       end if
@@ -84,12 +84,12 @@
 
       !* Zero out summary variables *!
       call zero_cohort(scop)
-      scop%pnum = pp%tallest%pft
+      scop%pft = pp%tallest%pft
       nc = 0
       scop%n = nc
 
       cop = pp%tallest
-      do while(allocated(cop))
+      do while(ASSOCIATED(cop))
         nc = nc + cop%n  !Number of individuals summed for wtd avg.
         !* PFT PARAMETERS
         ! Only need to index array of pftypes.
@@ -147,10 +147,10 @@
       scop%nm = scop%nm/nc
       
       !* GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
-      scop%h = sumh/nc
-      scop%crown_dx = acop%crown_dx/nc
-      scop%crown_dy = acop%crown_dy/nc
-      scop%dbh = cop%dbh/nc
+      scop%h = scop%h/nc
+      scop%crown_dx = scop%crown_dx/nc
+      scop%crown_dy = scop%crown_dy/nc
+      scop%dbh = scop%dbh/nc
       scop%root_d = scop%root_d/nc
       scop%clump = scop%clump/nc
 
@@ -198,7 +198,9 @@
       type(patch),pointer :: pp
       type(entcelltype),pointer :: gp
       real*8 :: area
+      !----Local----
       integer :: n
+      type(cohort),pointer :: cop
 
             pp%age=0.d0
             pp%area=area
@@ -250,6 +252,7 @@
               pp%froot(n) = 0.0
             end do
 
+#ifdef NEWDIAG
             pp%plant_ag_Cp = 0.d0 !## Dummy ##!
             pp%plant_bg_Cp = 0.d0 !## Dummy ##!
             pp%plant_ag_Np = 0.d0 !## Dummy ##!
@@ -263,7 +266,7 @@
             pp%plant_bg_N(pnum) = 0.d0 !## Dummy ##!
 
             !* Soil pools - patch total
-            pp%REW = !## CALCULATE FROM GISS SOIL MOISTURE
+            pp%REW = 0.0!## CALCULATE FROM GISS SOIL MOISTURE
             pp%soil_labile_C = 0.d0 !## Dummy ##!
             pp%soil_slow_C = 0.d0 !## Dummy ##!
             pp%soil_labile_N = 0.d0 !## Dummy ##!
@@ -274,6 +277,7 @@
             pp%dadt = 0.d0 !## Dummy ##!
             pp%dpdt = 0.d0 !## Dummy ##!
             pp%dwdt = 0.d0 !## Dummy ##!
+#endif
 
             !* Activity diagnostics - can be summed by month, year, etc.
             pp%GPP = 0.d0 !## Dummy ##!
@@ -301,7 +305,7 @@
       frootC_total = 0.0
 
       cop = pp%tallest
-      do while(allocated(cop)) 
+      do while(ASSOCIATED(cop)) 
         frootC_total = frootC_total + cop%n*cop%C_froot
         do n=1,N_DEPTH
           froot(n) = froot(n) + cop%n*cop%C_froot*cop%froot(n)

@@ -36,7 +36,7 @@
 
       !---------------------------------------------------------------
       !* GISS VERSION:  JUST UPDATES LAI USING MATTHEWS PRESCRIPTION
-      call GISS_phenology_update(tt, pp)
+      call GISS_phenology_update(tt%jday, pp)
 
       end subroutine phenology_update
 

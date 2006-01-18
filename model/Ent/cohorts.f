@@ -1,7 +1,7 @@
       module cohorts
 !@sum Routines to organize cohorts within an entcell.
 
-
+      use ent_const
       use ent_types
 
       implicit none
@@ -11,17 +11,17 @@
       !*********************************************************************
       subroutine insert_cohort(pp,pft,n, h,
      &     nm,
-     &     crown_dx, crown_dy,dbh, root_d,LAI,clump,froot(:),
+     &     crown_dx, crown_dy,dbh, root_d,LAI,clump,froot,
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     GCANOPY, GPP, NPP, R_growth,R_maint,
-     &     N_up, C_litter,N_litter,C_to_Nfix
+     &     N_up, C_litter,N_litter,C_to_Nfix)
 
       type(patch),pointer :: pp
       integer :: pft
       real*8 :: n, h, nm,
-     &     crown_dx, crown_dy,dbh, root_d,LAI,clump,
-      real*8 :: froot(:)
+     &     crown_dx, crown_dy,dbh, root_d,LAI,clump
+      real*8 :: froot(N_DEPTH)
       real*8 :: LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     GCANOPY, GPP, NPP, R_growth,R_maint,
@@ -29,7 +29,7 @@
       !------------------
       type(cohort),pointer :: cop, csp, newc
 
-      !If !allocated(pp) then ERROR
+      !If !ASSOCIATED(pp) then ERROR
 
       !* If pp has cohorts, then insert, else allocate.
       !* Insert at correct height in list, starting from shortest,
@@ -45,7 +45,7 @@
 
         newc%Ntot = nm*LAI
 
-        if (allocated(pp%shortest)) then !A. There are other cohorts.
+        if (ASSOCIATED(pp%shortest)) then !A. There are other cohorts.
           if (pp%shortest%h.ge.newc%h) then !newc is shortest
             pp%shortest%shorter = newc
             newc%taller = pp%shortest
@@ -62,13 +62,13 @@
             newc%taller = cop
             newc%shorter = cop%shorter
             newc%shorter%taller = newc
-            cop%shorter = new
+            cop%shorter = newc
           end if
           !Now parse through csp's
           csp = newc%taller
-          if (allocated(csp)) then
+          if (ASSOCIATED(csp)) then
             do while (csp%pft.ne.newc%pft)
-              if (allocated(csp%taller).and.(csp%pft.ne.newc%pft)) then
+              if (ASSOCIATED(csp%taller).and.(csp%pft.ne.newc%pft)) then
                 csp = csp%taller
               else
                 exit !exit loop
@@ -84,11 +84,11 @@
           else  !3. no taller con-specifics
             call nullify(newc%csptaller)
           end if
-          if (unallocated(newc%cspshorter)) then !Case 1 did not hold
+          if (.NOT.ASSOCIATED(newc%cspshorter)) then !Case 1 did not hold
             csp = newc%shorter
-            if (allocated(csp)) then
-              do while (csp%pft.ne.newc%pft))
-                if (allocated(csp%shorter).and.
+            if (ASSOCIATED(csp)) then
+              do while (csp%pft.ne.newc%pft)
+                if (ASSOCIATED(csp%shorter).and.
      &               (csp%pft.ne.newc%pft)) then
                   csp = csp%shorter
                 else
@@ -126,14 +126,14 @@
       !Given cohort's characteristics, assign to cohort data variable.
 
       type(cohort),pointer :: cop
-      integer :: pft, n
+      integer :: pft
       !real*8,optional :: nm, Ntot
-      real*8 :: h, nm, LAI,
+      real*8 :: n, h, nm, LAI,
      &     crown_dx, crown_dy,dbh, root_d,clump,
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     GCANOPY, GPP, NPP, R_growth,R_maint,
-     &     N_up, C_litter,N_litter,C_to_Nfix
+     &     N_up, C_litter,N_litter, C_to_Nfix
 
       cop%pft = pft
       cop%n = n
@@ -164,7 +164,7 @@
       cop%R_maint = R_maint
       cop%N_up =  N_up 
       cop%N_litter = N_litter
-      cop%C_to_N = fixC_to_Nfix
+      cop%C_to_Nfix = C_to_Nfix
 
       end subroutine assign_cohort
       !*********************************************************************
@@ -183,7 +183,7 @@
 
       call zero_cohort(cop)
       
-      end subroutine init_cohort_defaults(cop, pnum)
+      end subroutine init_cohort_defaults
 
       subroutine zero_cohort(cop)
 !@sum Zero all real variables in cohort record.      
