@@ -6,7 +6,8 @@
       !Ent MODULES TO USE
       use ent_const
       use ent_types
-      use patches, cohorts
+      use patches
+      use cohorts
 
       implicit none
       private
@@ -59,14 +60,14 @@
       end do
       ecp%C_froot = 0.0
 
-     !-----
+      !-----
          
-     !VEGETATION - PRIVATE - Initial values not zero.
+      !VEGETATION - PRIVATE - Initial values not zero.
       ecp%Ci = 0.0127D0         !Internal foliage CO2 (mol/m3) !!Cohort level or patch??
       ecp%Qf = 3.D-6            !Foliage surface vapor mixing ratio (kg/kg)
       
-     !METEOROLOGICAL - IMPORT STATE VARIABLES
-     !Cell-level summary values - CALCULATED BY GCM/EWB OR OFF-LINE FILE
+      !METEOROLOGICAL - IMPORT STATE VARIABLES
+      !Cell-level summary values - CALCULATED BY GCM/EWB OR OFF-LINE FILE
       ecp%TcanopyC = 0.0         !Canopy temperatue (Celsius)
       ecp%Qv = 0.0               !Canopy air specif humidity (kg vapor/ kg air)
       ecp%P_mbar = 0.0           !Atmospheric pressure (mb)
@@ -80,12 +81,11 @@
       !Radiation - IMPORT STATE VARIABLE
       !may later be broken down into hyperspectral increments.
       ! in an array
-      ecp%Isw = 0.0              !Incident shortwave 100-2000 nm (W m-2)
-      ecp%IPAR = 0.0             !Incident PAR 400-700 nm (W m-2)
-      ecp%Ibeam = 0.0            !Incident beam radiation (W m-2)
-      ecp%Idiff = 0.0            !Incident diffuse radiation (W m-2),
+      ecp%Ivis = 0.0              !Incident shortwave 100-2000 nm (W m-2)
+      ecp%Idir = 0.0             !Incident PAR 400-700 nm (W m-2)
       ecp%Solarzen = 0.0         !Solar zenith angle
-      ecp%fdir = 0.0             !Fraction of surface vis rad that is direct 
+!!! probably shoud remove next line and also remove fdir from structure
+!!      ecp%fdir = 0.0             !Fraction of surface vis rad that is direct 
 
       end subroutine zero_entcell
 !**************************************************************************
@@ -105,7 +105,7 @@
       integer :: ip             !#patches
       integer :: ia             !counter variable
 
-      call init_patch(ecp%sumpatch,ecp,0.0) !Summary patch reset to zero area.
+      call init_patch(ecp%sumpatch,ecp,0.d0) !Summary patch reset to zero area.
       spp = ecp%sumpatch
 
       ip = 0
@@ -118,7 +118,7 @@
         spp%LAI = spp%LAI + pp%LAI*pp%area
 
         do ia=1,N_BANDS  !Area-weighted average
-          spp%albedo(i) = spp%albedo(i) + pp%albedo(i)*pp%area
+          spp%albedo(ia) = spp%albedo(ia) + pp%albedo(ia)*pp%area
         end do
         spp%z0 = spp%z0 + pp%z0*pp%area !Area-weighted average
           
@@ -173,7 +173,7 @@
       spp%LAI = spp%LAI/spp%area
 
       do ia=1,N_BANDS           !Area-weighted average
-        spp%albedo(i) = spp%albedo(i)/spp%area
+        spp%albedo(ia) = spp%albedo(ia)/spp%area
       end do
       spp%z0 = spp%z0/spp%area  !Area-weighted average
           
@@ -201,7 +201,7 @@
       subroutine sum_roots_patches2cell(ecp)
       !@sum Calculate grid-averaged depth-, mass-, and cover-weighted average
       !@sum of fine roots.
-      type(entcell),pointer :: ecp
+      type(entcelltype),pointer :: ecp
       !-----Local variables-------
       type(patch),pointer :: pp
       integer :: n

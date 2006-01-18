@@ -251,8 +251,11 @@
       Precip = pp%cellptr%Precip
       Ch = pp%cellptr%Ch
       U = pp%cellptr%U
-      IPAR = pp%cellptr%IPAR
-      fdir = pp%cellptr%fdir
+      IPAR = 0.82d0*pp%cellptr%Ivis*pp%cellptr%Solarzen
+      !fdir = pp%cellptr%fdir
+      fdir = 0.d0
+      if ( pp%cellptr%Ivis > 1.e-30 )
+     &     fdir = pp%cellptr%Idir / pp%cellptr%Ivis
       Solarzen = pp%cellptr%Solarzen
 
 

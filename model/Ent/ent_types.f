@@ -270,7 +270,7 @@
 !         real*8 :: Ibeam        !Incident beam radiation (W m-2)
 !         real*8 :: Idiff        !Incident diffuse radiation (W m-2),
          real*8 :: Solarzen     !Solar zenith angle
-         real*8 :: fdir         !Fraction of surface vis rad that is direct 
+!         real*8 :: fdir         !Fraction of surface vis rad that is direct 
 
       end type entcelltype
 
