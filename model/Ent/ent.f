@@ -15,7 +15,7 @@
       private
       save
 
-      public ent_integrate
+      public ent_ecosystem_dynamics
 
       contains
       !*********************************************************************
