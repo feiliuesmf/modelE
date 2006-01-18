@@ -141,9 +141,10 @@
 
       Solarzen = pptr%cellptr%Solarzen
       Ivis = pptr%cellptr%Ivis
-      IPAR = pptr%cellptr%IPAR
-      Ibeam = pptr%cellptr%Ibeam
-      Idiff = pptr%cellptr%Idiff
+      ! the values below were removed from ent cell structure
+      !IPAR = pptr%cellptr%IPAR
+      !Ibeam = pptr%cellptr%Ibeam
+      !Idiff = pptr%cellptr%Idiff
 
       !Get incident light profiles in canopy and return in crad
       !---------------------------------------------------------------
