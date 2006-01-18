@@ -96,12 +96,7 @@
 !@sum variable ppt%crad
       type(patch),pointer :: pptr
       !--------------------------
-      type(cohort),pointer :: cptrhi, cptrlo, cptr
-      type(canradtype) :: crad
-
-      cptrhi = pptr%tallest
-      cptrlo = pptr%shortest
-      cptr = cptrhi
+!      type(canradtype) :: crad
 
       !DEFINE LAYERS FOR LAI AND CLUMPING INDICES
       !---------------------------------------------------------------
@@ -109,15 +104,10 @@
       !---------------------------------------------------------------
 
 
-      do while (ASSOCIATED(cptr)) 
         !Allocate leaf area/crown volume within canopy layers
       !---------------------------------------------------------------
       !              FILL IN CODE                                    
       !---------------------------------------------------------------
-
-        
-        cptr = cptr%shorter  !next
-      end do
 
       !Calculate GORT clumping index for each layer 
       !---------------------------------------------------------------
@@ -135,24 +125,12 @@
       real*8 :: h               !Height in canopy
       !--------------------------
 
-      type(canradtype) :: crad
-
-      real*8 :: Solarzen, Ivis, IPAR, Ibeam, Idiff 
-
-      Solarzen = pptr%cellptr%Solarzen
-      Ivis = pptr%cellptr%Ivis
-      ! the values below were removed from ent cell structure
-      !IPAR = pptr%cellptr%IPAR
-      !Ibeam = pptr%cellptr%Ibeam
-      !Idiff = pptr%cellptr%Idiff
 
       !Get incident light profiles in canopy and return in crad
       !---------------------------------------------------------------
       !              FILL IN CODE                                    
       !---------------------------------------------------------------
 
-
-      pptr%crad = crad
       end subroutine calc_canopy_rad
       
       !*********************************************************************
