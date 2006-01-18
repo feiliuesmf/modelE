@@ -27,7 +27,7 @@
       use disturbance
 
       real*8,intent(in) :: dtsec
-      type(timestruct) :: tt
+      type(timestruct),pointer :: tt
       type(entcelltype),pointer :: ecp
 !      write(*,*) 'Ecosystem dynamics for (long,lat)=(',
 !     & ecp%long,ecp%lat,'),tt=',tt
@@ -146,97 +146,6 @@
         end if
       end function STRUCT_FLAG_MONTH
 
-      !*********************************************************************
-      subroutine ent_bgc(dtsec, tt, entcell)
-!@sum Calculate canopy conductance and fluxes of CO2 and N, update pools.
-
-      use biophysics
-      use growthallometry
-      use phenology
-      use soilbgc
-
-      implicit none
-
-      real*8 :: dtsec
-      type(timestruct) :: tt
-      type(entcelltype) :: entcell
-      type(patch),pointer :: pp
-
-      pp = entcell%oldest
-      do while (allocated(pp))
-        call photosynth_cond(dtsec, pp)
-        call uptake_N(dtsec, pp)
-        call litter(dtsec, tt, pp)
-        call soil_bgc(dtsec, pp)
-        pp = pp%younger
-      end do
-
-      end subroutine ent_bgc
-
-      subroutine ent_bgc_GISShack(dtsec, tt, entcell)
-!@sum Calculate canopy conductance and fluxes of CO2 and N, update pools.
-!@sum Temporary hack to replicate the grid-cell-level averaging of vegetation
-!@sum properties done in the GISS GCM. 
-
-      use biophysics
-      use growthallometry
-      use phenology
-      use soilbgc
-      use patches
-
-      implicit none
-
-      real*8 :: dtsec
-      type(timestruct) :: tt
-      type(entcelltype) :: entcell
-      !--------Local vars--------
-      type(patch),pointer :: pp
-      type(patch),pointer :: tempp
-
-      real*8 :: sfv, salai, svh, snm, snf
-      real*8 :: tfv
-
-      call allocate(tempp)
-      call init_patch(tempp,entcell,entcell%area)
-      sfv = 0.0
-      salai = 0.0
-      svh = 0.0
-      snm = 0.0
-      snf = 0.0
-      almass = 0.0
-      tfv = 0.0
-
-      !Average vegetation properties to grid cell level and put into a
-      !dummy patch structure to pass to biophysics.
-      pp = entcell%oldest
-      do while (allocated(pp))
-        sfv = pp%area/pp%cellptr%area  !vegfraction
-        tfv = tfv + sfv                !Make sure vegfraction adds up to 1.
-        salai = salai + sfv*pp%tallest%LAI !Weighted average by vegfraction
-        svh = svh + sfv*pp%tallest%h
-        snm = snm + sfv*pp%tallest%nm
-        snf = snf + sfv*pfpar(pp%tallest%pft)%nf
-        
-        pp = pp%younger
-      end do
-      salai = salai/tfv                !Account for bare soil not covered.
-      svh = svh/tfv
-      snm = snm/tfv
-      snf = snf/tfv
-
-      call sum_roots_patches2cell(entcell)
-
-      !* Put entcell grid-average values into a hack patch data structure.
-      !* One cohort with grid-averaged values.
-      !* Dummy 1.0 values are used for parameters not relevant to GISS ModelE
-      call insert_cohort(tempp,entcell%oldest%tallest%pft,
-     &     1.0, svh, 1.0, 1.0, 1.0, 1.0, salai, 1.0, entcell%froot,
-     &     1.0, 1.0,1.0,1.0,1.0,1.0,1.0,
-     &     
-       
-      call photosynth_cond(dtsec, tempp)
-
-      end subroutine ent_bgc_GISShack
 
 !*****************************************************************************
  
