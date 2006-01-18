@@ -212,9 +212,8 @@ ccc   tsn1 is private
 !@var tsn1 temperature of the upper layer of snow (C)
       real*8 tsn1(2)
 
-      real*8 betat,betad
+      real*8 betat,betad,betadl(ngm)
       real*8 gpp,dts,trans_sw
-      real*8  cnc
 
 ccc fractions of dry,wet,covered by snow canopy
 !@var fd effective fraction of dry canopy (=0 if dew)
@@ -331,10 +330,8 @@ ccc tracers output:
 
 ccc the following variables are needed for the interface with 
 ccc dynamic vegetation module, i.e. Ent
-!@var longi,latj corresponding coordinate of the cell
-      integer longi,latj
-      real*8 Ci,Qf,Ca
-      integer Jyear,Jmon,Jday,Jdate,Jhour
+      real*8, public :: Ci,Qf,cnc
+
 
 ccc the data below this line is not in GHYTPC yet !
 ccc the following vars control if bare/vegetated fraction has to
@@ -715,10 +712,10 @@ ccc   local variables
       integer ibv, k
 !@var hw the wilting point (m)
       real*8, parameter :: hw = -100.d0
-!@var betadl transpiration efficiency for each soil layer
-      real*8 betadl(ngm) ! used in evaps_limits only
+!!! !@var betadl transpiration efficiency for each soil layer
+      !real*8 betadl(ngm) ! used in evaps_limits only
       real*8 pot_evap_can
-      real*8 cnc         ! local cnc from veg_conductance, nyk
+!!!      real*8 cnc         ! local cnc from veg_conductance, nyk
 #ifdef EVAP_VEG_GROUND
       real*8 evap_max_vegsoil
 #endif
@@ -731,7 +728,7 @@ ccc make sure that important vars are initialized (needed for ibv hack)
       evap_max_snow(:) = 0.d0
       evap_max_wet(:) = 0.d0
       evap_max_dry(:) = 0.d0
-      betadl(:) = 0.d0
+      !betadl(:) = 0.d0
       betad = 0.d0
       abetad = 0.d0
       acna = 0.d0
@@ -783,25 +780,33 @@ ccc !!! it''s a hack should call it somewhere else !!!
 c     betad is the the root beta for transpiration.
 c     hw is the wilting point.
 c     fr(k) is the fraction of roots in layer k
+!!! the conductance is now called from advnc and betadl is computed
+!!! inside Ent
+!        betad=0.d0
+!        do 30 k=1,n
+!          betadl(k)=(1.d0-fice(k,2))*fr(k)*max((hw-h(k,2))/hw,zero)
+!          betad=betad+betadl(k)
+! 30     continue
+!        if ( betad < 1.d-12 ) betad = 0.d0 ! to avoid 0/0 divisions
+!        abetad=betad            ! return to old diagnostics
+!c     Get canopy conductivity cnc and gpp
+!        qv  = qsat(tp(0,2)+tfrz,lhe,pres) ! for cond_scheme==2
+!        call veg_conductance(
+!     &       cnc
+!     &       ,gpp
+!     &       ,trans_sw       !nyk
+!     &       ,betad          ! evaporation efficiency
+!     &       ,tp(0,2)          ! canopy temperature C
+!     &       ,qv
+!     &       ,dts
+!     &       )
         betad=0.d0
-        do 30 k=1,n
-          betadl(k)=(1.d0-fice(k,2))*fr(k)*max((hw-h(k,2))/hw,zero)
+        do k=1,n
           betad=betad+betadl(k)
- 30     continue
+        enddo
         if ( betad < 1.d-12 ) betad = 0.d0 ! to avoid 0/0 divisions
-        abetad=betad            ! return to old diagnostics
-c     Get canopy conductivity cnc and gpp
-        qv  = qsat(tp(0,2)+tfrz,lhe,pres) ! for cond_scheme==2
-        call veg_conductance(
-     &       cnc
-     &       ,gpp
-     &       ,trans_sw       !nyk
-     &       ,betad          ! evaporation efficiency
-     &       ,tp(0,2)          ! canopy temperature C
-     &       ,qv
-     &       ,dts
-     &       )
 
+        
 !!!! test
  !!!       trans_sw = .1d0
  !!!       print *,'trans_sw = ', trans_sw
@@ -1640,7 +1645,10 @@ ccc check for under/over-saturation
       end subroutine apply_fluxes
 
 
-      subroutine advnc
+      subroutine advnc( longi,latj,
+     &     Jyear,Jmon,Jday,Jdate,Jhour,
+     &     Ca, cosz1, vis_rad, direct_vis_rad
+     &     )
 c**** advances quantities by one time step.
 c**** input:
 c**** dt - time step, s
@@ -1670,10 +1678,15 @@ c**** also uses surf with its required variables.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
       !use vegetation, only: update_veg_locals
-      use interface_ent, only : ent_init
+      use interface_ent, only : ent_model
+!@var longi,latj corresponding coordinate of the cell
+      integer, intent (in) :: longi,latj
+      integer, intent(in) :: Jyear,Jmon,Jday,Jdate,Jhour
+      real*8, intent(in) :: Ca, cosz1, vis_rad, direct_vis_rad
       real*8 dtm,tb0,tc0,dtr,tot_w1
       integer limit,nit
       real*8 dum1, dum2, dumrad
+
       limit=300   ! 200 increase to avoid a few more stops
       nit=0
       dtr=dt
@@ -1723,32 +1736,19 @@ ccc accm0 was not called here in older version - check
 !debug
 !        fm = 1.d0
 !!!
-!!! had to move computation of time step before canopy conductance...
-        call xklh
-        call gdtm(dtm)
-        !print *,'dtm ', ijdebug, dtm
-        if ( dtm >= dtr ) then
-          dts = dtr
-          dtr = 0.d0
-        else
-          dts = min( dtm, dtr*0.5d0 )
-          dtr=dtr-dts
-        endif
-
 !!!! insert new canopy conductance here (call to Ent)
 
         call ent_model(
      &       longi=longi,latj=latj,
      &       dtsec=dts,
      &       Jyear=Jyear,Jmon=Jmon,Jday=Jday,Jdate=Jdate,Jhour=Jhour,
-!!!     i     year,month, day, hour, minute, seconds,
      o       GCANOPY=cnc, Ci=Ci, Qf=Qf, GPP=GPP,
-     &       TRANS_SW=TRANS_SW, betadl=betadl,
+     o       TRANS_SW=TRANS_SW, betadl=betadl,
      &       Precip=pr, TcanopyC=tp(0,2), Qv=qsat(tp(0,2),lhe,pres),
      &       P_mbar=pres, Ch=ch, U=vsm, 
-     &       Isw=dumrad, IPAR=dumrad, Ibeam=dumrad, Idiff=dumrad,
-     &       Solarzen=dumrad,
-     &       Ca=Ca, Soilmoist=w(1:ngm,2) )
+     &       Ivis=vis_rad, Idir=direct_vis_rad, Solarzen=cosz1,
+     &       Ca=Ca, Soilmoist=w(1:ngm,2), Soilmp=h(1:ngm,2),
+     &       fice=fice(1:ngm,2) )
 
 
         call evap_limits( .true., dum1, dum2 )
@@ -1768,6 +1768,16 @@ ccc accm0 was not called here in older version - check
 !         endif
 !!!
 
+        call xklh
+        call gdtm(dtm)
+        !print *,'dtm ', ijdebug, dtm
+        if ( dtm >= dtr ) then
+          dts = dtr
+          dtr = 0.d0
+        else
+          dts = min( dtm, dtr*0.5d0 )
+          dtr=dtr-dts
+        endif
 !!!
  !       drips = 0
  !       dripw = 0
@@ -2061,18 +2071,15 @@ c**** use timestep based on coefficient of drag
       rho3=.001d0*rho
       betas(1:2) = 1.d0 ! it''s an overkill but it makes the things
                         ! simpler.
-!!! for the time being assume maximal canopy conductance while
-!!! estimating time step (decause td has to be passed to canopy 
-!!! conductance routine... )
       if(epb.le.0.d0)then
-!!!       betas(1)=1.0d0
+       betas(1)=1.0d0
       else
-!!!       betas(1)=evapb/epb
+       betas(1)=evapb/epb
       endif
       if(epv.le.0.d0)then
-!!!       betas(2)=1.0d0
+       betas(2)=1.0d0
       else
-!!!       betas(2)=(evapvw*fw+evapvd*(1.d0-fw))/epv
+       betas(2)=(evapvw*fw+evapvd*(1.d0-fw))/epv
       endif
       do ibv=i_bare,i_vege
         k=2-ibv

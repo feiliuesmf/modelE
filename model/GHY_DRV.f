@@ -570,6 +570,7 @@ c***********************************************************************
 !@dbparam snow_cover_coef coefficient for topography variance in
 !@+       snow cover parameterisation for albedo
       real*8 :: snow_cover_coef = .15d0
+      integer :: vegCO2X_off = 0
 
       ! Indexes used for adiurn and hdiurn
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
@@ -590,16 +591,18 @@ c***********************************************************************
 !@auth I. Alienov/F. Abramopolous
 c****
       use constant, only : grav,rgas,lhe,lhs
-     *     ,sha,tf,rhow,deltx
+     *     ,sha,tf,rhow,deltx,gasc
       use model_com, only : t,p,q,dtsrc,nisurf,dsig,jdate
      *     ,jday,jhour,nday,itime,jeq,fearth
      *     ,u,v
+     &     ,Jyear,Jmon,Jday,Jdate,Jhour
       use DOMAIN_DECOMP, only : GRID, GET
       use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
       use DOMAIN_DECOMP, only : GLOBALSUM, AM_I_ROOT
       use geom, only : imaxj
       use dynamics, only : pmid,pk,pek,pedn,am
-      use rad_com, only : trhr,fsf, cosz1
+      use rad_com, only : trhr,fsf, cosz1, FSRDIR, SRVISSURF,
+     &     CO2X, CO2ppm
 
       !use surf_albedo, only: albvnh   ! added 5/23/03 from RADIATION.f
       !albvnh(9,6,2)=albvnh(sand+8veg,6bands,2hemi) - only need 1st band
@@ -726,7 +729,8 @@ C**** Work array for regional diagnostic accumulation
 #endif
       INTEGER :: ih, ihm, ii, ivar, kr
       INTEGER :: idx(n_idx)
-
+      real*8 Ca !@Ca concentration of CO2 at surface (mol/m3)
+      real*8 vis_rad, direct_vis_rad, cos_zen_angle
 
 
 C****   define local grid
@@ -942,6 +946,12 @@ c**** calculate ground fluxes
 c     call qsbal
 !!! insert htprs here ???
 
+ccc stuff needed for dynamic vegetation
+      Ca = CO2X*CO2ppm*(1.0D-06)*pres*100.0/gasc/ts
+      if (vegCO2X_off==0) Ca = Ca * CO2X
+      vis_rad        = SRVISSURF(i,j)
+      direct_vis_rad = SRVISSURF(i,j) * FSRDIR(i,j)
+      cos_zen_angle = cosz1(i,j)
 
       call ghinij (i,j)
       !call veg_set_cell(i,j)
@@ -950,7 +960,8 @@ c     call qsbal
      &     canopy_heat_capacity=shc_can,
      &     fraction_of_vegetated_soil=fv )
       fb = 1.d0 - fv
-      call advnc
+      call advnc( i,j, Jyear,Jmon,Jday,Jdate,Jhour, Ca,
+     &     cos_zen_angle, vis_rad, direct_vis_rad )
       call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
 
       !call veg_save_cell(i,j)
@@ -1736,6 +1747,7 @@ c**** read rundeck parameters
       call sync_param( "snow_cover_same_as_rad", snow_cover_same_as_rad)
       call sync_param( "snoage_def", snoage_def )
       call sync_param( "ghy_default_data", ghy_default_data )
+      call sync_param( "vegCO2X_off", vegCO2X_off)
 
 c**** set number of layers for vegetation module
       nl_soil = ngm
@@ -2107,10 +2119,12 @@ c****
      *     ,htpr
      *     ,top_index,top_stdev
      &     ,w,ht,snowd,nsn,dzsn,wsn,hsn,fr_snow
+     &     ,Ci, Qf, cnc
       use ghy_com, only : ngm,imt,nlsn,dz_ij,sl_ij,q_ij,qk_ij
      *     ,top_index_ij,top_dev_ij
      &     ,wbare,wvege,htbare,htvege,snowbv,nsn_ij,dzsn_ij,wsn_ij
      &     ,hsn_ij,fr_snow_ij
+     &     ,Ci_ij, Qf_ij, cnc_ij
       !use veg_com, only: afb
       use interface_ent, only : ent_get_value
       USE DOMAIN_DECOMP, ONLY : GRID, GET
@@ -2142,6 +2156,10 @@ ccc extracting snow variables
       wsn(1:nlsn, 1:2)  = wsn_ij    (1:nlsn, 1:2, i0, j0)
       hsn(1:nlsn, 1:2)  = hsn_ij    (1:nlsn, 1:2, i0, j0)
       fr_snow(1:2)      = fr_snow_ij(1:2, i0, j0)
+ccc extracting vegetation prognostic variables
+      cnc = cnc_ij(i0,j0)
+      Ci = Ci_ij(i0,j0)
+      Qf = Qf_ij(i0,j0)
 
 ccc setting vegetation
  !     call veg_set_cell(i0,j0)

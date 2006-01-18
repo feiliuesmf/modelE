@@ -109,7 +109,7 @@ sinclude ~/.modelErc
 # list of subdirectories with modelE code (eventually should be read
 # from the rundeck)
 SUBDIRS = Ent
-OBJS_IN_SUBDIRS = Ent/interface_ent.o
+OBJS_IN_SUBDIRS = Ent/interface_ent.o Ent/ent_driver.o
 
 ifneq ($(MAKECMDGOALS),rundeck)
 ifeq ($(shell [ -s $(RUNDECK) ] && echo yes),yes)

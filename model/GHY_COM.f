@@ -84,8 +84,17 @@ ccc TRSNOWBV is not used
 !@var TRSNOWBV tracer amount in snow over bare and veg. soil (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRSNOWBV0
 #endif
+
+ccc stuff that got back from VEG_COM, maybe should be relocated to Ent
+!@var Cint Internal foliage CO2 concentration (mol/m3)
+      real*8, ALLOCATABLE, dimension(:,:) :: Ci_ij
+!@var Qfol Foliage surface mixing ratio (kg/kg)
+      real*8, ALLOCATABLE, dimension(:,:) :: Qf_ij
+!@var cnc_ij canopy conductance
+      real*8, ALLOCATABLE, dimension(:,:) :: cnc_ij
+
 !@var aalbveg vegetation albedo, eventually should be moved to a 
-!@+   better place
+!@+   better place DO WE NEED THIS ???
       real*8, ALLOCATABLE, dimension(:,:) :: aalbveg
 
       END MODULE GHY_COM
@@ -150,6 +159,9 @@ C****
      *           STAT=IER)
 
       ALLOCATE(     aalbveg(im,J_0H:J_1H),
+     *              Ci_ij(im,J_0H:J_1H),
+     *              Qf_ij(im,J_0H:J_1H),
+     *              cnc_ij(im,J_0H:J_1H),
      *           STAT=IER)
 
 C**** Initialize evaporation limits
@@ -450,3 +462,53 @@ cgsfc        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
       RETURN
       END SUBROUTINE io_snow
 
+
+      subroutine io_veg_related(kunit,iaction,ioerr)
+!@sum  reads and writes data needed to drive vegetation module
+!@auth I. Aleinov
+!@ver  1.0
+      use model_com, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
+      use model_com, only : im,jm
+      use domain_decomp, only : grid, am_i_root
+      use domain_decomp, only : pack_data, unpack_data
+      use ghy_com, only : Ci_ij, Qf_ij, cnc_ij
+      implicit none
+
+      integer kunit   !@var kunit unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+!@var ioerr 1 (or -1) if there is (or is not) an error in i/o
+      integer, intent(inout) :: ioerr
+!@var header character string label for individual records
+      character*80 :: header, module_header = "vegetation01"
+!@var Ci_ij_glob work array for parallel_io
+!@var Qf_ij_glob work array for parallel_io
+!@var cnc_ij_glob work array for parallel_io
+      real*8, dimension(im,jm) :: Ci_ij_glob, Qf_ij_glob, cnc_ij_glob
+
+      write(module_header(lhead+1:80),'(a)') 'Ci_ij,Qf_ij,cnc_ij'
+
+      select case (iaction)
+      case (:iowrite)            ! output to standard restart file
+        call pack_data(grid, Ci_ij, Ci_ij_glob)
+        call pack_data(grid, Qf_ij, Qf_ij_glob)
+        call pack_data(grid, cnc_ij, cnc_ij_glob)
+        if (am_i_root())
+     &    write (kunit,err=10) module_header,Ci_ij_glob,Qf_ij_glob,
+     &                         cnc_ij_glob
+      case (ioread:)            ! input from restart file
+        if ( AM_I_ROOT() ) then
+          read(kunit,err=10) header, Ci_ij_glob, Qf_ij_glob, cnc_ij_glob
+          if (header(1:lhead).ne.module_header(1:lhead)) then
+            print*,"discrepancy in module version ",header,module_header
+            go to 10
+          end if
+        end if
+        call unpack_data(grid, Ci_ij_glob,   Ci_ij)
+        call unpack_data(grid, Qf_ij_glob,   Qf_ij)
+        call unpack_data(grid, cnc_ij_glob, cnc_ij)
+      end select
+
+      return
+ 10   ioerr=1
+      return
+      end subroutine io_veg_related
