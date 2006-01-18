@@ -244,7 +244,6 @@
          real*8,pointer :: betadl(:) !Water stress in layers.
          !-----
 
-
          !VEGETATION - PRIVATE
          real*8 :: Ci           !Internal foliage CO2 (mol/m3) !!Cohort level
          real*8 :: Qf           !Foliage surface vapor mixing ratio (kg/kg)
@@ -257,7 +256,7 @@
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
          real*8,pointer :: Soilmoist(:) !May be an array by depth (units TBA)
          real*8,pointer :: Soilmp(:) !Soil matric potential
-         real*8 :: fice         !Fraction of soil layer that is ice
+         real*8,pointer :: fice(:) !Fraction of soil layer that is ice
          real*8 :: Precip       !Precipitation (mm)
          real*8 :: Ch           !Ground to surface heat transfer coefficient 
          real*8 :: U            !Surface layer wind speed (m s-1)
@@ -281,7 +280,7 @@
         real longmin, longmax, latmin, latmax
         integer longi,latj
         type(timestruct),pointer :: tt      !Greenwich Mean Time
-        type (entcelltype), pointer :: grid(:,:)
+        type (entcelltype) :: grid(:,:)
       end type entdatatype
 
 

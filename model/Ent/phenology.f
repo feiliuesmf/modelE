@@ -16,7 +16,7 @@
 !@sum Updates phenology for all patches in an entcell.
       real*8 :: dtsec           !dt in seconds
       type(timestruct) :: time  !Greenwich Mean Time
-      type(entcelltype),pointer :: ecp
+      type(entcelltype) :: ecp
       !------local--------
       type(patch),pointer :: pp
 

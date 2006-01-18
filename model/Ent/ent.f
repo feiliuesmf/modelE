@@ -28,7 +28,7 @@
 
       real*8,intent(in) :: dtsec
       type(timestruct),pointer :: tt
-      type(entcelltype),pointer :: ecp
+      type(entcelltype) :: ecp
 !      write(*,*) 'Ecosystem dynamics for (long,lat)=(',
 !     & ecp%long,ecp%lat,'),tt=',tt
 
@@ -63,7 +63,7 @@
       implicit none
       real*8 :: dtsec  !dt in seconds
       type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
-      type(entcelltype),pointer :: ecp
+      type(entcelltype) :: ecp
       !-----local--------
       type(patch),pointer :: pp
 

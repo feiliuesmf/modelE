@@ -12,7 +12,7 @@
       !* Insert patch at youngest end of patch list. *!
       !* Blank patch with no cohorts.
       implicit none
-      type(entcelltype), pointer :: gp
+      type(entcelltype) :: gp
       !type(patch), pointer :: pp
       real*8 :: area
 
@@ -45,7 +45,7 @@
       !* Delete patch pointed to by pp
       !* NOTE:  THIS DOES NOT AUTOMATICALLY UPDATE ENTCELL SUMMMARY VALUES
       implicit none
-      type(entcelltype), pointer :: gp
+      type(entcelltype) :: gp
       type(patch), pointer :: pp
 
       if (.NOT.ASSOCIATED(pp%older)) then !is oldest
@@ -196,7 +196,7 @@
 !@sum Initialize patch, zeroing variables, and nulling or setting pointers.
       implicit none
       type(patch),pointer :: pp
-      type(entcelltype),pointer :: gp
+      type(entcelltype) :: gp
       real*8 :: area
       !----Local----
       integer :: n

@@ -21,7 +21,7 @@
 
       subroutine zero_entcell(ecp)
       !@sum Zeros import/export variables of entdata type
-      type(entcelltype),pointer :: ecp
+      type(entcelltype) :: ecp
       integer :: n
 
       ecp%area = 0.0
@@ -91,7 +91,7 @@
 !**************************************************************************
       subroutine summarize_entcell(ecp)
 !@sum Sum patch properties within a grid cell.
-      type(entcelltype), pointer :: ecp
+      type(entcelltype) :: ecp
       !-----Local variables------------
       type(patch),pointer :: spp, pp
       real*8 :: albedo(N_BANDS)
