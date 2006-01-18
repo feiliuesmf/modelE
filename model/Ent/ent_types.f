@@ -280,7 +280,7 @@
         real longmin, longmax, latmin, latmax
         integer longi,latj
         type(timestruct),pointer :: tt      !Greenwich Mean Time
-        type (entcelltype) :: grid(:,:)
+        type (entcelltype),pointer :: grid(:,:)
       end type entdatatype
 
 
