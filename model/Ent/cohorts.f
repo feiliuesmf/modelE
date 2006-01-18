@@ -34,7 +34,7 @@
       !* If pp has cohorts, then insert, else allocate.
       !* Insert at correct height in list, starting from shortest,
       !* since most new cohorts will be shortest.
-        call allocate(newc)
+        ALLOCATE(newc)
         newc%pptr = pp
         call assign_cohort(newc,pft,n, h, nm, LAI,
      &       crown_dx, crown_dy,dbh, root_d,clump,

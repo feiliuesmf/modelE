@@ -20,21 +20,21 @@
 
       !* If there exist patches, then insert.  If no patches, then allocate.
       if (ASSOCIATED(gp%youngest)) then
-        call allocate(gp%youngest%younger)
+        allocate(gp%youngest%younger)
         gp%youngest%older = gp%youngest
         gp%youngest = gp%youngest%younger
-        call nullify(gp%youngest%tallest)
-        call nullify(gp%youngest%shortest)
-        call allocate(gp%youngest%sumcohort)
+        nullify(gp%youngest%tallest)
+        nullify(gp%youngest%shortest)
+        allocate(gp%youngest%sumcohort)
         call init_patch(gp%youngest,gp,area)
       else !first patch on entcell
-        call allocate(gp%oldest)
+        allocate(gp%oldest)
         gp%youngest = gp%oldest
-        call nullify(gp%youngest%older)
-        call nullify(gp%youngest%younger)
-        call nullify(gp%youngest%tallest)
-        call nullify(gp%youngest%shortest)
-        call allocate(gp%youngest%sumcohort)
+        nullify(gp%youngest%older)
+        nullify(gp%youngest%younger)
+        nullify(gp%youngest%tallest)
+        nullify(gp%youngest%shortest)
+        allocate(gp%youngest%sumcohort)
         call init_patch(gp%youngest,gp,area)
       end if
 
@@ -50,17 +50,17 @@
 
       if (.NOT.ASSOCIATED(pp%older)) then !is oldest
         gp%oldest = gp%oldest%younger
-        call nullify(gp%oldest%older)
-        call deallocate(pp)
+        nullify(gp%oldest%older)
+        deallocate(pp)
       else if(.NOT.ASSOCIATED(pp%younger)) then !is youngest
         gp%youngest = gp%youngest%older
-        call nullify(gp%youngest%younger)
-        call deallocate(pp)
+        nullify(gp%youngest%younger)
+        deallocate(pp)
       else !pp points somewhere in the middle of patch list
         pp%older%younger = pp%younger
         pp%younger%older = pp%older
-        call nullify(pp)
-        call deallocate(pp)
+        nullify(pp)
+        deallocate(pp)
       end if
 
       end subroutine delete_patch
@@ -180,7 +180,7 @@
       !pp%N_deposit = 0.0  !Dummy until we have N cycle
       
       !* Variables for biophysics and biogeochemistry
-      !call NULLIFY(pp%crad)     !Dummy until we have GORT clumping.
+      !nullify(pp%crad)     !Dummy until we have GORT clumping.
 
       !* Disturbance values - UPDATE WHEN WE INCLUDE DISTURBANCE
       !pp%fuel = 0.d0          !## Dummy ##!

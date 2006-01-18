@@ -43,7 +43,7 @@
         !   - Summarize foliage density in layers
         !* CALCULATE PATCH ALBEDO USING GORT CLUMPING INDEX
 !        cop = cop%shorter
-!        if DEALLOCATED(cop) then exit
+!        if (.NOT.ASSOCIATED(cop)) then exit
 !      end do
 
       end subroutine get_patchalbedo

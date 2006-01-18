@@ -110,7 +110,7 @@
 
       ip = 0
       pp = ecp%oldest
-      do while (allocated(pp)) 
+      do while (ASSOCIATED(pp)) 
         ip = ip + 1
         spp%age = spp%age + pp%age
         spp%area = spp%area + pp%area 
@@ -217,7 +217,7 @@
       tcf = 0.0
 
       pp = ecp%oldest
-      do while (allocated(pp))
+      do while (ASSOCIATED(pp))
         cf = pp%area/ecp%area
         tcf = tcf + cf
         frootC_total = frootC_total + pp%C_froot
