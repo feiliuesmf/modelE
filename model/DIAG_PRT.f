@@ -4136,7 +4136,7 @@ c Check the count
      &     im,jm,fim,jeq,byim,DTsrc,ptop,
      &     IDACC,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
-     &     NDAY,Itime,Itime0,XLABEL,LRUNID,focean
+     &     NDAY,Itime,Itime0,XLABEL,LRUNID
       USE DIAG_COM
       USE BDIJ
 
