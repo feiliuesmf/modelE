@@ -89,8 +89,11 @@ C****
 C**** If run is already done, just produce diagnostic printout
 C****
       IF (Itime.GE.ItimeE.and.Kradia.le.0) then ! includes ISTART<1 case
-        call aPERIOD (JMON0,JYEAR0,months,1,0, acc_period,Ldate)
-        call print_diags(1)
+        if (ItimeE.gt.0) then
+          months=(Jyear-Jyear0)*JMperY + JMON-JMON0
+          call aPERIOD (JMON0,JYEAR0,months,1,0, acc_period,Ldate)
+        end if
+        call print_diags(0)
         CALL stop_model ('The run has already completed',13)
         ! no output files are affected
       END IF
@@ -431,7 +434,7 @@ C****
 C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
       IF (NIPRNT.GT.0) THEN
         acc_period='PARTIAL      '
-        call print_diags(2)
+        call print_diags(1)
         NIPRNT=NIPRNT-1
         call set_param( "NIPRNT", NIPRNT, 'o' )
       END IF
@@ -446,7 +449,7 @@ C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
       call aPERIOD (JMON0,JYEAR0,months,1,0, aDATE(1:12),Ldate)
       acc_period=aDATE(1:12)
       WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),JYEAR
-      if (kradia.le.0) call print_diags(3)
+      if (kradia.le.0) call print_diags(0)
 
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
         IF (KCOPY.GT.0) THEN
@@ -1417,7 +1420,7 @@ C****
         CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
         CALL init_dveg   ! needed here ? -I.A.
         CALL init_RAD(istart)
-        if(istart.lt.0) CALL init_DIAG(ISTART,num_acc_files)
+        if(istart.lt.0) CALL init_DIAG(0,num_acc_files) !post-processing
         WRITE (6,INPUTZ)
         call print_param( 6 )
         WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
@@ -1435,7 +1438,7 @@ C**** Initialize the use of gravity wave drag diagnostics
 C****
       CALL init_GWDRAG
 C
-C**** Initialize nuding
+C**** Initialize nudging
 #ifdef NUDGE_ON
        CALL NUDGE_INIT
 #endif
@@ -1443,7 +1446,7 @@ C****
       if(istart.gt.0) CALL RINIT (IRAND)
       CALL FFT0 (IM)
       CALL init_CLD
-      CALL init_DIAG(ISTART,num_acc_files)
+      CALL init_DIAG(istart,num_acc_files) ! initialize for accumulation
       CALL UPDTYPE
       if(istart.gt.0) CALL init_QUS(grid,im,jm,lm)
       if(istart.gt.0) CALL init_ATMDYN

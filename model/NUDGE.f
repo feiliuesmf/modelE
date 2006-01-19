@@ -1,13 +1,13 @@
 c *****************************************************************
       MODULE NUDGE_COM
 !@sum  NUDGE_COM contains all the nudging related variables
-!@auth 
-!@ver  
+!@auth
+!@ver
       USE MODEL_COM, only : im,jm,lm
       USE DOMAIN_DECOMP, only : grid
       IMPLICIT NONE
       SAVE
-!@param  nlevnc vertical levels of NCEP data  
+!@param  nlevnc vertical levels of NCEP data
       INTEGER, PARAMETER :: nlevnc =17
 !@var  U1, V1 NCEP wind at prior ncep timestep (m/s)
 !@var  U2, V2 NCEP wind at the following ncep timestep (m/s)
@@ -17,7 +17,7 @@ c *****************************************************************
 !@var netcdf integer
       INTEGER :: ncidu,ncidv,uid,vid,plid
       INTEGER :: step_rea=1,zirk=0
-!@var tau nuding time interpoltation
+!@var tau nudging time interpolation
       REAL*8 :: tau
 !@param  anudgeu anudgev relaxation constant
       REAL*8 :: anudgeu = 0., anudgev = 0.
@@ -29,7 +29,7 @@ c------------------------------------------------------------------
 c******************************************************************
 !@sum  Nudging of the horizontal wind comonents to reanalysis data sets
 !@auth Susanne Bauer
-!@ver  
+!@ver
       USE MODEL_COM, only : im,jm,lm,plbot
       USE DOMAIN_DECOMP, only : grid
       USE NUDGE_COM, only : u1,v1,u2,v2,tau,anudgeu,anudgev,pl,nlevnc
@@ -80,7 +80,7 @@ c------------------------------------------------------------------
 c******************************************************************
 !@sum  Nudging of the horizontal wind comonents to reanalysis data sets
 !@auth Susanne
-!@ver  
+!@ver
       USE MODEL_COM, only: im,jm,lm,jhour,jday,itime,nday,jyear,iyear1
       USE NUDGE_COM
       IMPLICIT NONE
@@ -92,7 +92,7 @@ C-----------------------------------------------------------------------
 
       if (jday.eq.1.and.mod(itime,nday).eq.0) then
             zirk = jyear - iyear1
-      endif 
+      endif
       if (step_rea.eq.1460.) then
             zirk = jyear - iyear1 + 1
 c      endif
@@ -104,13 +104,13 @@ c -----------------------------------------------------------------
            write(nstr1,'(I1)') zirk
         elseif (zirk.lt.100) then
            write(nstr1,'(I2)') zirk
-        endif   
+        endif
 
         if (zirk+1.lt.10) then
            write(nstr2,'(I1)') zirk +1
         elseif (zirk+1.lt.100) then
            write(nstr2,'(I2)') zirk + 1
-        endif   
+        endif
 
       print*, '  I N    N U D G E : OPEN NF FILES','  u',nstr2,'.nc'
 
@@ -144,13 +144,13 @@ C-----------------------------------------------------------------------
       RETURN
       END SUBROUTINE NUDGE_PREP
 
-   
+
 c -----------------------------------------------------------------
       SUBROUTINE READ_ANA(timestep)
 c******************************************************************
 !@sum  read in analysis data sets
 !@auth Susanne Bauer
-!@ver  
+!@ver
       USE MODEL_COM, only : im,jm,lm
       USE NUDGE_COM
       USE DOMAIN_DECOMP, only : grid
@@ -189,12 +189,12 @@ c -----------------------------------------------------------------
 c**********************************************************
 !@sum  vertical interpolation
 !@auth Susanne Bauer
-!@ver  
+!@ver
       USE MODEL_COM, only : im,jm,lm
       USE DYNAMICS, only : PMID  ! Pressure at mid point of box (mb)
       USE DOMAIN_DECOMP, only : grid
        IMPLICIT NONE
-c 
+c
 c ==============
 
        INTEGER lmo ! vertical dimensions of input
@@ -204,7 +204,7 @@ c ==============
         REAL varo(im,jm-1,lmo)!  Variable on the old grid (input)
         REAL varn(im,jm,lm) !  Variable on the new grid (output)
         real coef,dp1,dp2
- 
+
         J_0SG = grid%J_STRT_STGR
         J_1SG = grid%J_STOP_STGR
         do j= J_OSG, J_1SG             ! Please pay attention j starts at 2
@@ -245,7 +245,7 @@ c------------------------------------------------------------------
 c******************************************************************
 !@sum  Initialization for Nudging
 !@auth Susanne
-!@ver  
+!@ver
       USE MODEL_COM, only : im,jm,lm,jhour,jday,itime,nday,jyear,iyear1
       USE NUDGE_COM
       USE PARAM
@@ -266,7 +266,7 @@ C-----------------------------------------------------------------------
 
       if (jday.eq.1.and.mod(itime,nday).eq.0) then
             zirk = jyear - iyear1
-      endif 
+      endif
       if (step_rea.eq.1460.) then
             zirk = jyear - iyear1 + 1
       endif
@@ -278,14 +278,14 @@ c -----------------------------------------------------------------
            write(nstr1,'(I1)') zirk
         elseif (zirk.lt.100) then
            write(nstr1,'(I2)') zirk
-        endif   
+        endif
 
             status=NF_OPEN('u'//trim(nstr1)//'.nc',NCNOWRIT,ncidu)
             status=NF_OPEN('v'//trim(nstr1)//'.nc',NCNOWRIT,ncidv)
 
             status=NF_INQ_VARID(ncidu,'level',plid)
             status=NF_INQ_VARID(ncidu,'uwnd',uid)
-            status=NF_INQ_VARID(ncidv,'vwnd',vid) 
+            status=NF_INQ_VARID(ncidv,'vwnd',vid)
 
 C------------------------------------------------------------------
 c -----------------------------------------------------------------

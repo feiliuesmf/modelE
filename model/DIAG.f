@@ -134,7 +134,7 @@ C**** Some local constants
       USE DOMAIN_DECOMP, only : AM_I_ROOT
       IMPLICIT NONE
       REAL*8, DIMENSION(LM) :: GMEAN
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: 
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      &     GMEAN_part
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &        TIL,UI,UMAX,PI,EL,RI,DUDVSQ
@@ -352,7 +352,7 @@ C**** END AMIP
         END DO
       END DO
 C****          AREG(JR,J_TX1)=AREG(JR,J_TX1)+(TX(I,J,1)-TF)*DXYPJ
-     
+
       CALL GLOBALSUM(grid,AREG_part(1:size(AREG,1),:,1:1),
      &    AREGSUM(1:size(AREG,1),1:1),ALL=.TRUE.)
       AREG(1:size(AREG,1),J_TX1)=AREG(1:size(AREG,1),J_TX1)
@@ -762,18 +762,18 @@ C****
       END DO
 
 
-      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum, 
+      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum,
      &      jband=(/J5SUV,J5NUV/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_UEQ) = 
+      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_UEQ) =
      &       AIL(1:IM,1:LM,IL_UEQ)+gsum
-      CALL GLOBALSUM(grid, V(1:IM,:,1:LM), gsum, 
+      CALL GLOBALSUM(grid, V(1:IM,:,1:LM), gsum,
      &       jband=(/J5SUV,J5NUV/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_VEQ) = 
+      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_VEQ) =
      &       AIL(1:IM,1:LM,IL_VEQ)+gsum
 
-      CALL GLOBALSUM(grid, TX(1:IM,:,1:LM)-TF, gsum, 
+      CALL GLOBALSUM(grid, TX(1:IM,:,1:LM)-TF, gsum,
      &       jband=(/J5S,J5N/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_TEQ) = 
+      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_TEQ) =
      &       AIL(1:IM,1:LM,IL_TEQ)+gsum
       allocate(TMP(1:IM,
      &  grid%J_STRT_HALO:grid%J_STOP_HALO,1:LM))
@@ -784,17 +784,17 @@ C****
       END DO
       END DO
       END DO
-      CALL GLOBALSUM(grid, TMP(1:IM,:,1:LM), gsum, 
+      CALL GLOBALSUM(grid, TMP(1:IM,:,1:LM), gsum,
      &       jband=(/J5S,J5N/))
       deallocate(TMP)
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_QEQ) = 
+      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_QEQ) =
      &       AIL(1:IM,1:LM,IL_QEQ)+gsum
 
       CALL GLOBALSUM(grid, TX(1:IM,:,1:LM)-TF, gsum,
      &       jband=(/J50N,J50N/))
       IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_T50N)=
      &       AIL(1:IM,1:LM,IL_T50N)+gsum
-      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum, 
+      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum,
      &       jband =(/J50N,J50N+1/))
       IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_U50N)=
      &       AIL(1:IM,1:LM,IL_U50N)+gsum
@@ -803,7 +803,7 @@ C****
      &       jband=(/J70N,J70N/))
       IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_T70N)=
      &       AIL(1:IM,1:LM,IL_T70N)+gsum
-      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum, 
+      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum,
      &       jband =(/J70N,J70N+1/))
       IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_U70N)=
      &       AIL(1:IM,1:LM,IL_U70N)+gsum
@@ -821,17 +821,17 @@ C****
           END DO
         END DO
       END DO
-      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1), 
+      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1),
      &     jband=(/J5S,J5N/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_WEQ) = 
+      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_WEQ) =
      &    AIL(1:IM,1:LM-1,IL_WEQ)+gsum(1:IM,1:LM-1)
-      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1), 
+      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1),
      &     jband=(/J50N,J50N/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_W50N) = 
+      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_W50N) =
      &     AIL(1:IM,1:LM-1,IL_W50N)+gsum(1:IM,1:LM-1)
-      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1), 
+      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1),
      &     jband=(/J70N,J70N/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_W70N) = 
+      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_W70N) =
      &     AIL(1:IM,1:LM-1,IL_W70N)+gsum(1:IM,1:LM-1)
 C****
 C**** ELIASSEN PALM FLUX
@@ -1215,7 +1215,7 @@ c***      END DO
       PS=SP+PTOP
       DO 286 L=1,LS1-1
   286 PL(L)=SP*SIGE(L)+PTOP
-      IF (PM(K+1).GE.PS) THEN 
+      IF (PM(K+1).GE.PS) THEN
         pm_ge_ps(i,j,k) = 1.
         UDX(I,J,K)=BIG
       ELSE
@@ -2756,7 +2756,7 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
           ENDIF
           IF(HAVE_SOUTH_POLE) THGSUM_part(1)  = FIM*THJSP(LUP)*DXYP(1)
           IF(HAVE_NORTH_POLE) THGSUM_part(JM) = FIM*THJNP(LUP)*DXYP(JM)
-          
+
           DO J=J_0S,J_1S
             THJSUM=0.
             DO I=1,IM
@@ -2764,10 +2764,10 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
             ENDDO
             THGSUM_part(J) = THJSUM*DXYP(J)
           ENDDO
-          
+
           CALL GLOBALSUM(grid, THGSUM_part, THGSUM, ALL=.TRUE.)
           THGM(LUP)=THGSUM/AREAG
-          
+
         End IF
 
         IF (LUP < 2) CYCLE
@@ -2785,15 +2785,15 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
           GMSUM(JM,L)=((THJNP(LUP)-THJNP(LDN))*DXYP(JM)*
      *       (SIG(L)*P(1,JM)+PTOP)/(SQRTP(1,JM)*P(1,JM)*PK(L,1,JM)))*FIM
         END IF
-        
+
         DO J=J_0S,J_1S
-          
+
           IF (J < JEQ) THEN
             JHEMI = 1
           ELSE
             JHEMI = 2
           END IF
-          
+
           GMTMP = 0
           DO I=1,IM
             X(I)=T(I,J,L)*SQRTP(I,J)-THGM(L)
@@ -2816,9 +2816,9 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
             END DO
           END IF
         END DO
-        
+
       END DO
-        
+
       CALL GLOBALSUM(grid, GMSUM, GMEAN)
       CALL GLOBALSUM(grid, VAR_part, VAR)
 
@@ -3888,7 +3888,7 @@ c****
      *     ,idd_tr5,idd_tr6,idd_tr7,idd_tr8,idd_tr9,idd_tr10,idd_tr11
      *     ,idd_load1,idd_load2,idd_load3,idd_load4,idd_load5
      *     ,idd_load6,idd_load7,idd_load8,idd_load9,idd_load10
-     *     ,idd_load11,idd_conc1,idd_conc2,idd_conc3,idd_conc4   
+     *     ,idd_load11,idd_conc1,idd_conc2,idd_conc3,idd_conc4
      *     ,idd_conc5,idd_conc6,idd_conc7,idd_conc8,idd_conc9
      *     ,idd_conc10,idd_conc11
      *     ,idd_tau1,idd_tau2,idd_tau3,idd_tau4,idd_tau5,idd_tau6
@@ -3938,8 +3938,8 @@ C****
             adiurn(ih,idd_u11,kr)=adiurn(ih,idd_u11,kr)+u(i,j,11)
 
             adiurn(ih,idd_v1,kr)=adiurn(ih,idd_v1,kr)+v(i,j,1)
-            adiurn(ih,idd_v2,kr)=adiurn(ih,idd_v2,kr)+v(i,j,2)  
-            adiurn(ih,idd_v3,kr)=adiurn(ih,idd_v3,kr)+v(i,j,3)  
+            adiurn(ih,idd_v2,kr)=adiurn(ih,idd_v2,kr)+v(i,j,2)
+            adiurn(ih,idd_v3,kr)=adiurn(ih,idd_v3,kr)+v(i,j,3)
             adiurn(ih,idd_v4,kr)=adiurn(ih,idd_v4,kr)+v(i,j,4)
             adiurn(ih,idd_v5,kr)=adiurn(ih,idd_v5,kr)+v(i,j,5)
             adiurn(ih,idd_v6,kr)=adiurn(ih,idd_v6,kr)+v(i,j,6)
@@ -3971,7 +3971,7 @@ C****
      *           +sqrt( u(i,j,10)*u(i,j,10) + v(i,j,10)*v(i,j,10))
             adiurn(ih,idd_uv11,kr)=adiurn(ih,idd_uv11,kr)
      *           +sqrt( u(i,j,11)*u(i,j,11) + v(i,j,11)*v(i,j,11))
-          
+
             adiurn(ih,idd_t1,kr)=adiurn(ih,idd_t1,kr)+t(i,j,1)*psk
             adiurn(ih,idd_t2,kr)=adiurn(ih,idd_t2,kr)+t(i,j,2)*psk
             adiurn(ih,idd_t3,kr)=adiurn(ih,idd_t3,kr)+t(i,j,3)*psk
@@ -4019,9 +4019,9 @@ C****
             adiurn(ih,idd_p11,kr)=adiurn(ih,idd_p11,kr)
      *           +p(i,j)*sig(11)+ptop
 
-            adiurn(ih,idd_w1,kr)=adiurn(ih,idd_w1,kr)+wsave(i,j,1)      
+            adiurn(ih,idd_w1,kr)=adiurn(ih,idd_w1,kr)+wsave(i,j,1)
             adiurn(ih,idd_w2,kr)=adiurn(ih,idd_w2,kr)+wsave(i,j,2)
-            adiurn(ih,idd_w3,kr)=adiurn(ih,idd_w3,kr)+wsave(i,j,3)      
+            adiurn(ih,idd_w3,kr)=adiurn(ih,idd_w3,kr)+wsave(i,j,3)
             adiurn(ih,idd_w4,kr)=adiurn(ih,idd_w4,kr)+wsave(i,j,4)
             adiurn(ih,idd_w5,kr)=adiurn(ih,idd_w5,kr)+wsave(i,j,5)
             adiurn(ih,idd_w6,kr)=adiurn(ih,idd_w6,kr)+wsave(i,j,6)
@@ -4054,9 +4054,9 @@ C****
             adiurn(ih,idd_phi11,kr)=adiurn(ih,idd_phi11,kr)
      *           +phi(i,j,11)*bygrav
 
-            adiurn(ih,idd_sr1,kr)=adiurn(ih,idd_sr1,kr)  
+            adiurn(ih,idd_sr1,kr)=adiurn(ih,idd_sr1,kr)
      *           +srnflb_save(i,j,1)*cosz1(i,j)
-            adiurn(ih,idd_sr2,kr)=adiurn(ih,idd_sr2,kr)  
+            adiurn(ih,idd_sr2,kr)=adiurn(ih,idd_sr2,kr)
      *           +srnflb_save(i,j,2)*cosz1(i,j)
             adiurn(ih,idd_sr3,kr)=adiurn(ih,idd_sr3,kr)
      *           +srnflb_save(i,j,3)*cosz1(i,j)
@@ -4152,28 +4152,28 @@ C****
               adiurn(ih,idd_tau1,kr)=adiurn(ih,idd_tau1,kr)
      *             +ttausv_save(i,j,n1,1)
               adiurn(ih,idd_tau2,kr)=adiurn(ih,idd_tau2,kr)
-     *             +ttausv_save(i,j,n1,2)           
+     *             +ttausv_save(i,j,n1,2)
               adiurn(ih,idd_tau3,kr)=adiurn(ih,idd_tau3,kr)
-     *             +ttausv_save(i,j,n1,3)           
+     *             +ttausv_save(i,j,n1,3)
               adiurn(ih,idd_tau4,kr)=adiurn(ih,idd_tau4,kr)
-     *             +ttausv_save(i,j,n1,4)           
+     *             +ttausv_save(i,j,n1,4)
               adiurn(ih,idd_tau5,kr)=adiurn(ih,idd_tau5,kr)
-     *             +ttausv_save(i,j,n1,5)           
+     *             +ttausv_save(i,j,n1,5)
               adiurn(ih,idd_tau6,kr)=adiurn(ih,idd_tau6,kr)
-     *             +ttausv_save(i,j,n1,6)           
+     *             +ttausv_save(i,j,n1,6)
               adiurn(ih,idd_tau7,kr)=adiurn(ih,idd_tau7,kr)
-     *             +ttausv_save(i,j,n1,7)           
+     *             +ttausv_save(i,j,n1,7)
               adiurn(ih,idd_tau8,kr)=adiurn(ih,idd_tau8,kr)
-     *             +ttausv_save(i,j,n1,8)           
+     *             +ttausv_save(i,j,n1,8)
               adiurn(ih,idd_tau9,kr)=adiurn(ih,idd_tau9,kr)
-     *             +ttausv_save(i,j,n1,9)           
+     *             +ttausv_save(i,j,n1,9)
               adiurn(ih,idd_tau10,kr)=adiurn(ih,idd_tau10,kr)
-     *             +ttausv_save(i,j,n1,10)           
+     *             +ttausv_save(i,j,n1,10)
               adiurn(ih,idd_tau11,kr)=adiurn(ih,idd_tau11,kr)
-     *             +ttausv_save(i,j,n1,11)           
+     *             +ttausv_save(i,j,n1,11)
 
-              adiurn(ih,idd_tau_cs1,kr)=adiurn(ih,idd_tau_cs1,kr)    
-     *             +ttausv_cs_save(i,j,n1,1) 
+              adiurn(ih,idd_tau_cs1,kr)=adiurn(ih,idd_tau_cs1,kr)
+     *             +ttausv_cs_save(i,j,n1,1)
               adiurn(ih,idd_tau_cs2,kr)=adiurn(ih,idd_tau_cs2,kr)
      *             +ttausv_cs_save(i,j,n1,2)
               adiurn(ih,idd_tau_cs3,kr)=adiurn(ih,idd_tau_cs3,kr)
@@ -4208,7 +4208,7 @@ C****
       return
       end subroutine ahourly
 
-      SUBROUTINE init_DIAG(ISTART,num_acc_files)
+      SUBROUTINE init_DIAG(istart,num_acc_files)
 !@sum  init_DIAG initializes the diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -4227,7 +4227,7 @@ C****
       USE DIAG_COM, only : PLM, p1000k, icon_AM, NOFM
       USE DIAG_COM, only : PLE_DN, icon_KE, NSUM_CON, IA_CON, SCALE_CON
       USE DIAG_COM, only : TITLE_CON, PSPEC, LSTR, NSPHER, KLAYER
-      USE DIAG_COM, only : ISTRAT, kgz, pmb, kgz_max 
+      USE DIAG_COM, only : ISTRAT, kgz, pmb, kgz_max
       USE DIAG_COM, only : TF_DAY1, TF_LAST, TF_LKON, TF_LKOFF
       USE DIAG_COM, only : name_consrv, units_consrv, lname_consrv
       USE DIAG_COM, only : CONPT0, icon_MS, icon_TPE, icon_WM, icon_EWM
@@ -4237,7 +4237,7 @@ C****
       USE FILEMANAGER
       USE DOMAIN_DECOMP, only: GRID,GET,WRITE_PARALLEL
       IMPLICIT NONE
-      integer, intent(in) :: ISTART,num_acc_files
+      integer, intent(in) :: istart,num_acc_files
       INTEGER I,J,L,K,KL,ioerr,months,years,mswitch,ldate,iu_AIC
      *     ,jday0,jday,moff,kb,iu_ACC,l850,l300,l50
       REAL*8 PLE_tmp
@@ -4254,7 +4254,7 @@ C****
       call sync_param( "isccp_diags",isccp_diags)
       call sync_param( "adiurn_dust",adiurn_dust)
 
-      IF(ISTART.LT.0) THEN
+      IF(ISTART.LT.1) THEN  ! initialize for post-processing
         call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
      *       ,amon0)
         call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
@@ -4549,7 +4549,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
         if (isum.eq.1) return
         go to 100
       end if
-      AJ_loc=0    ; AREG=0 
+      AJ_loc=0    ; AREG=0
 
       APJ_loc=0   ; AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
       AIL=0   ; ENERGY=0 ; CONSRV_loc=0
@@ -4570,7 +4570,10 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       call reset_ODIAG(isum)  ! ocean diags if required
       call reset_icdiag       ! ice dynamic diags if required
 
-      if (isum.eq.1) return
+      if (isum.eq.1) then ! prepare to add up acc-files
+         AJ=0 ; APJ=0 ; AJL=0 ; ASJL=0 ; AIJ=0 ; AJK=0 ; AIJK=0
+         return
+      end if
 
       AIJ_loc(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
 

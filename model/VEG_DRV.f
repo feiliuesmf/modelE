@@ -97,7 +97,7 @@ c**** add data on c4 grass
               vdata(i,j,3) = vdata(i,j,3) - vdata(i,j,12)
             end if
           enddo
-        enddo      
+        enddo
         deallocate( veg_c4 )
         call closeunit(iu_VEG)
       endif
@@ -205,7 +205,7 @@ c**** check whether ground hydrology data exist at this point.
 !          Francesco Tubiello, personal communication, crop 18-20 m2/kg.
       real*8, parameter :: sleafa(11) =
      $     (/ 1./30.5d0,1./49.0d0,1./30.5d0,1./40.5d0,1./32.0d0,
-     $        1./8.2d0,1./32.0d0,1./18.0d0, 0.d0, 0.d0, 1./49.0d0 /) 
+     $        1./8.2d0,1./32.0d0,1./18.0d0, 0.d0, 0.d0, 1./49.0d0 /)
 
 c****             tundr grass shrub trees decid evrgr rainf crops
 c****
@@ -232,7 +232,6 @@ c****
 !@dbparam ghy_default_data if == 1 reset all GHY data to defaults
 !@+ (do not read it from files)
       integer :: ghy_default_data = 0
-      integer :: northsouth  !1=south, 2=north hemisphere
 
       INTEGER :: I_0, I_1, J_1, J_0, J_1H, J_0H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
@@ -266,9 +265,7 @@ c****
 
       do j=J_0,J_1
         if(j.le.jm/2) then
-          northsouth=1.d0  !southern hemisphere
         else
-          northsouth=2.d0  !northern hemisphere
         end if
         do i=1,im
           pearth=fearth(i,j)
@@ -483,9 +480,9 @@ c???  cnc=alai/rs   redefined before being used (qsbal,cond)
 !      sfv=0.d0
 !      if (j0.le.jm/2) then
 !
-!       northsouth=1.d0         !southern hemisphere
+!       northsouth=1            !southern hemisphere
 !      else
-!        northsouth=2.d0         !northern hemisphere
+!        northsouth=2            !northern hemisphere
 !      end if
 !      do iv=1,8
 !        aalbveg0 = aalbveg0 + fv*(ALBVNH(iv+1,1,northsouth))
@@ -623,7 +620,7 @@ C****     open and read input file
         read(title,*) year1
         Allocate(crop1(IM,J_0H:J_1H), crop2(IM,J_0H:J_1H),
      &           VDATA0(IM,J_0H:J_1H,12))
-        crop1(:,J_0:J_1)=crop4(:,J_0:J_1) 
+        crop1(:,J_0:J_1)=crop4(:,J_0:J_1)
         crop2(:,J_0:J_1)=crop4(:,J_0:J_1)
         year2=year1
         if (year1.ge.year)          year2=year+1
@@ -662,7 +659,7 @@ C**** Modify the vegetation fractions
       end subroutine updveg
 
 
-#ifndef ENABLE_DYNAMIC_VEGETATION 
+#ifndef ENABLE_DYNAMIC_VEGETATION
       module DVEG_COUPLER
 !@sum dummy subroutenes. Will be replaced with real ones when model is
 !@+   compiled with dynamic vegetation module

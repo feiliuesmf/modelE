@@ -725,14 +725,14 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
 !------------------------------------------------
 
 
-      subroutine print_diags(ipos)
+      subroutine print_diags(partial)
 !@sum print_diag prints out binary and ascii diag output.
 !@auth  Original Development Team
       USE MODEL_COM, only : itime,itimeI
       USE DIAG_COM, only : kdiag,keynr,keyct,isccp_diags
       IMPLICIT NONE
-!@var ipos =1 (after input), =2 (current diags), =3 (end of diag period)
-      INTEGER, INTENT(IN) :: ipos
+!@var partial : accum period is complete (if =0) or partial (if =1)
+      INTEGER, INTENT(IN) :: partial
 
       CALL DIAG_GATHER
 
@@ -745,7 +745,7 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       IF (KDIAG(3).LT.9) CALL DIAGIJ
       IF (KDIAG(9).LT.9) CALL DIAGCP
       IF (KDIAG(5).LT.9) CALL DIAG5P
-      IF (ipos.ne.2. .and. KDIAG(6).LT.9) CALL DIAGDD
+      IF (partial.eq.0 .and. KDIAG(6).LT.9) CALL DIAGDD  ! full period
 #ifndef TRACERS_DUST
 #ifndef TRACERS_MINERALS
 #ifndef TRACERS_QUARZHEM
@@ -758,7 +758,7 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       IF (KDIAG(12).LT.9) CALL diag_OCEAN
       IF (KDIAG(12).LT.9) CALL diag_ICEDYN
       IF (isccp_diags.eq.1) CALL diag_ISCCP
-      IF (ipos.ne.2 .or. Itime.LE.ItimeI+1) THEN
+      IF (partial.eq.0 .or. Itime.LE.ItimeI+1) THEN  ! full period or IC
         CALL DIAGKN
       ELSE                      ! RESET THE UNUSED KEYNUMBERS TO ZERO
         KEYNR(1:42,KEYCT)=0
@@ -4197,7 +4197,7 @@ c**** ratios (the denominators)
           else if (index(lname_ij(k),' x POCEAN') .gt. 0) then
             do j=1,jm      ! full ocean box (no lake)
             do i=1,im
-              adenom(i,j) = focean(i,j)
+              adenom(i,j) = wt_ij(i,j,2) ! focean_glob
             end do
             end do
           else if (index(lname_ij(k),' x POICE') .gt. 0) then

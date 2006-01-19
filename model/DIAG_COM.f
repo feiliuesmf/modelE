@@ -1017,37 +1017,24 @@ C**** The regular model (Kradia le 0)
 #else
           AISCCP=AISCCP+AISCCP4 ; HDIURN=HDIURN+HDIURN4
 #endif
+          ! Now for the distributed arrays
+          TSFREZ= TSFREZ4
+          AJ    = AJ     + AJ4
+          APJ   = APJ    + APJ4
+          AJL   = AJL    + AJL4
+          ASJL  = ASJL   + ASJL4
+          AIJ   = AIJ    + AIJ4
+          CONSRV= CONSRV + CONSRV4
+          AJK   = AJK    + AJK4
+          AIJK  = AIJK   + AIJK4
+
           IDACC = IDACC + IDAC1
         End If
 
         ! Send to other processors
         Call BCAST_Scalars()
 
-        ! Now for the distributed arrays
-        TSFREZ= TSFREZ4
-        AJ    = AJ4
-        APJ   = APJ4
-        AJL   = AJL4
-        ASJL  = ASJL4
-        AIJ   = AIJ4
-        CONSRV= CONSRV4
-        AJK   = AJK4
-        AIJK  = AIJK4
-
-CCCCC   Call Scatter_Diagnostics()
-
-        TSFREZ_LOC(:,J_0:J_1,:)=TSFREZ(:,J_0:J_1,:)
-        AJ_loc(J_0:J_1,:,:)=AJ_loc(J_0:J_1,:,:)+AJ(J_0:J_1,:,:)
-        APJ_loc(J_0:J_1,:)=APJ_loc(J_0:J_1,:)+APJ(J_0:J_1,:)
-        AJL_loc(J_0:J_1,:,:)=AJL_loc(J_0:J_1,:,:)+AJL(J_0:J_1,:,:)
-        ASJL_loc(J_0:J_1,:,:)=ASJL_loc(J_0:J_1,:,:)+ASJL(J_0:J_1,:,:)
-        AIJ_loc(:,J_0:J_1,:)=AIJ_loc(:,J_0:J_1,:)+AIJ(:,J_0:J_1,:)
-        CONSRV_loc(J_0:J_1,:)=CONSRV_loc(J_0:J_1,:)+CONSRV(J_0:J_1,:)
-        AJK_loc(J_0:J_1,:,:)=AJK_loc(J_0:J_1,:,:)+AJK(J_0:J_1,:,:)
-        AIJK_loc(:,J_0:J_1,:,:)=AIJK_loc(:,J_0:J_1,:,:)+
-     *       AIJK(:,J_0:J_1,:,:)
-
-
+        Call Scatter_Diagnostics()
 
 !@var idacc(5) is the length of a time series (daily energy history).
 !****   If combining acc-files, rather than concatenating these series,
