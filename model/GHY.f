@@ -686,7 +686,7 @@ c     solve for alph0 in s=((1+alph0)**n-1)/alph0
 !@sum computes maximal evaporation fluxes for current soil properties
 !@calls cond
       !use vegetation, only : veg_conductance
-      use interface_ent, only : veg_conductance
+      !use interface_ent, only : veg_conductance
 !@var compute_evap if .true. compute evap, else just evap_max,fr_sat
 !@var evap_max_out max evaporation from unsaturated soil
 !@var fr_sat_out fraction of saturated soil

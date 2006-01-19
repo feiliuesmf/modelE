@@ -109,7 +109,13 @@ sinclude ~/.modelErc
 # list of subdirectories with modelE code (eventually should be read
 # from the rundeck)
 SUBDIRS = Ent
-OBJS_IN_SUBDIRS = Ent/interface_ent.o Ent/ent_driver.o
+OBJS_IN_SUBDIRS = Ent/interface_ent.o Ent/ent_driver.o  Ent/ent.o \
+ Ent/cohorts.o  Ent/patches.o  Ent/entcells.o \
+ Ent/biophysics.o  Ent/canopyradiation.o \
+ Ent/growthallometry.o  Ent/reproduction.o  Ent/phenology.o \
+ Ent/disturbance.o  Ent/soilbgc.o  Ent/ent_const.o \
+ Ent/util.o  \
+ Ent/ent_types.o   Ent/ent_pfts.o Ent/ent_GCM_coupler.o
 
 ifneq ($(MAKECMDGOALS),rundeck)
 ifeq ($(shell [ -s $(RUNDECK) ] && echo yes),yes)
@@ -338,6 +344,7 @@ clean:
 vclean:
 	rm -f *.o *.mod *.vo *.inc .depend* *.sig
 	$(MAKE) -C $(ESMF_Interface) clean
+	$(MAKE) -C Ent clean
 
 src_cpp_dir: $(FSRCS_CPP)
 	mkdir $(DECKS_DIR)/$(RUN)_src
@@ -354,4 +361,6 @@ unit_tests:
 modelsubdirs: $(patsubst %, _dir_%, $(SUBDIRS))
 
 $(patsubst %, _dir_%, $(SUBDIRS)) : FORCE DOMAIN_DECOMP.mod
-	$(MAKE) -C $(patsubst _dir_%, %, $@) ESMF_Interface=$(ESMF_Interface)
+	$(MAKE) -C $(patsubst _dir_%, %, $@) depend
+	$(MAKE) -C $(patsubst _dir_%, %, $@) all \
+          ESMF_Interface=$(ESMF_Interface)
