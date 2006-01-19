@@ -23,6 +23,7 @@
       !*********************************************************************
 
       subroutine init_rootdistr(froot, pft)
+      use ent_GCM_coupler, only : GISS_calc_froot
       real*8 :: froot(N_DEPTH)
       integer :: pft
 

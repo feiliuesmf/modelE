@@ -25,6 +25,8 @@
       use disturbance
       use canopyrad
       use disturbance
+      use patches, only : reorganize_patches
+      use entcells, only : summarize_entcell
 
       real*8,intent(in) :: dtsec
       type(timestruct),pointer :: tt
@@ -59,6 +61,12 @@
       use cohorts
       use patches
       use util
+      use biophysics, only : photosynth_cond
+      use growthallometry, only : uptake_N
+      use phenology, only : litter
+      use soilbgc, only : soil_bgc
+      use phenology, only : phenology_update
+      use canopyrad, only : recalc_radpar
 
       implicit none
       real*8 :: dtsec  !dt in seconds
@@ -84,7 +92,7 @@
 
       if (STRUCT_FLAG(tt,pp%cellptr)) then
         call phenology_update (dtsec,tt, pp) !UPDATE LAI
-        call recalc_radpar (tt,pp) !UPDATE canopy radiative transfer
+        call recalc_radpar (pp) !UPDATE canopy radiative transfer
       end if
 
       call summarize_patch(tt,pp)

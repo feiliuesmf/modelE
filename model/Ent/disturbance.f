@@ -8,7 +8,7 @@
       contains
       !*********************************************************************
 
-      subroutine fire_frequency(dtsec,time, entcell)
+      subroutine fire_frequency_cell(dtsec,time, entcell)
       real*8 :: dtsec           !dt in seconds
       type(timestruct) :: time  !Greenwich Mean Time
       type(entcelltype) :: entcell
@@ -18,7 +18,7 @@
       !---------------------------------------------------------------
 
 
-      end subroutine fire_frequency
+      end subroutine fire_frequency_cell
 
       !*********************************************************************
       subroutine calc_cell_disturbance_rates(dtsec,time,entcell)

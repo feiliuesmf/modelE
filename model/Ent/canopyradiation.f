@@ -10,7 +10,7 @@
       private
       save
 
-      public recalc_radpar, get_patchalbedo
+      public recalc_radpar_cell, get_patchalbedo, recalc_radpar
 
       contains
       !*********************************************************************
@@ -52,19 +52,38 @@
       !*********************************************************************
 
 
-      subroutine recalc_radpar(pptr)
+      subroutine recalc_radpar_cell(pptr)
 !@sum Calculate canopy radiation geometrical parameters following structural
 !@sum changes.  At patch level.
 
-      type(patch),pointer :: pptr
+      type(entcelltype) :: pptr
 
-      if (ASSOCIATED(pptr)) then 
+!!! passing actual structure instead of pointer, change if necessary
+!!!      if (ASSOCIATED(pptr)) then 
         !call get_patchalbedo(tt,pptr) !*This is called by summarize_patch
         !call GORT_clumping(pptr)
       !---------------------------------------------------------------
       !              FILL IN CODE                                    
       !---------------------------------------------------------------
-      end if
+!!!      end if
+
+      end subroutine recalc_radpar_cell
+
+
+      subroutine recalc_radpar(pptr)
+!@sum Calculate canopy radiation geometrical parameters following structural
+!@sum changes.  At patch level.
+
+      type(patch) :: pptr
+
+!!! passing actual structure instead of pointer, change if necessary
+!!!      if (ASSOCIATED(pptr)) then 
+        !call get_patchalbedo(tt,pptr) !*This is called by summarize_patch
+        !call GORT_clumping(pptr)
+      !---------------------------------------------------------------
+      !              FILL IN CODE                                    
+      !---------------------------------------------------------------
+!!!      end if
 
       end subroutine recalc_radpar
 

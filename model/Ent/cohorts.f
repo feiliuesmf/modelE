@@ -79,10 +79,10 @@
               newc%cspshorter = csp%cspshorter
               csp%cspshorter = newc
             else !2. no taller con-specifics
-              call nullify(newc%csptaller)
+              nullify(newc%csptaller)
             end if
           else  !3. no taller con-specifics
-            call nullify(newc%csptaller)
+            nullify(newc%csptaller)
           end if
           if (.NOT.ASSOCIATED(newc%cspshorter)) then !Case 1 did not hold
             csp = newc%shorter
@@ -100,19 +100,19 @@
                 newc%csptaller = csp%csptaller
                 csp%csptaller = newc
               else !5. no shorter con-specifics
-                call nullify(newc%cspshorter)
+                nullify(newc%cspshorter)
               end if
             else !6. no shorter con-specifics
-              call nullify(newc%cspshorter)
+              nullify(newc%cspshorter)
             end if
           end if
         else !B. newc is the only cohort
           pp%tallest = newc
           pp%shortest = newc
-          call nullify(newc%taller) 
-          call nullify(newc%shorter)
-          call nullify(newc%csptaller)
-          call nullify(newc%cspshorter)
+          nullify(newc%taller) 
+          nullify(newc%shorter)
+          nullify(newc%csptaller)
+          nullify(newc%cspshorter)
         end if
       end subroutine insert_cohort
       !*********************************************************************
@@ -187,6 +187,7 @@
 
       subroutine zero_cohort(cop)
 !@sum Zero all real variables in cohort record.      
+      use growthallometry,only : init_rootdistr
       type(cohort),pointer :: cop
 
       cop%nm = 0.0

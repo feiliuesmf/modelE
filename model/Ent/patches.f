@@ -72,6 +72,7 @@
       ! * Intensive properties (e.g. geometry, LMA) are averages weighted by
       ! total number of individuals (may want to do by biomass of cohort)
       ! * Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
+      use cohorts, only: zero_cohort
       use canopyrad
       implicit none
       type(timestruct),pointer :: ttime
@@ -194,6 +195,7 @@
 
       subroutine init_patch(pp,gp,area)
 !@sum Initialize patch, zeroing variables, and nulling or setting pointers.
+      use cohorts, only: zero_cohort
       implicit none
       type(patch),pointer :: pp
       type(entcelltype) :: gp
