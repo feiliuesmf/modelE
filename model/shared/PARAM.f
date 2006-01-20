@@ -763,7 +763,7 @@
 
       if ( lnum_param < 1 ) return   ! no parameters in the records
 
-#if (defined MACHINE_DEC) 
+#if defined(MACHINE_DEC) || defined(MACHINE_Linux)
       ! COMPAQ needs big/little endian conversion
       do n=1,lnum_param
         call swap_bytes_4( LParams(n)%indx, 1 )
@@ -808,7 +808,7 @@
       write (MODULE_HEADER(9:80),'(i10,a)')
      *  num_param,' is the current number of parameters in database DB'
 
-#ifdef MACHINE_DEC
+#if defined(MACHINE_DEC) || defined(MACHINE_Linux)
       ! converting it manually to big-endian for COMPAQ compiler
       do n=1,num_param
         call swap_bytes_4( Params(n)%indx, 1 )
@@ -823,7 +823,7 @@
      *     ( Idata(n), n=1,min(num_iparam,MAX_IPARAMS) ),
      *     ( Cdata(n), n=1,min(num_cparam,MAX_CPARAMS) )
 
-#ifdef MACHINE_DEC
+#if defined(MACHINE_DEC) || defined(MACHINE_Linux)
       ! and back to little-endian ...
       do n=1,num_param
         call swap_bytes_4( Params(n)%indx, 1 )
