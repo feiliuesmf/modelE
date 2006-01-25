@@ -30,6 +30,20 @@
       real*8,parameter :: cp=1012. !Heat capacity of dry air (J kg-1 K-1)
 
       !************************************************************************
+      !* CONSTANTS FROM GISS CONST.f
+      !@param mwat molecular weight of water vapour
+      real*8,parameter :: mwat = 18.015d0
+      !@param mair molecular weight of dry air (28.9655 g/mol)
+      real*8,parameter :: mair = 28.9655d0
+      !@param mrat  mass ratio of air to water vapour (0.62197)
+      real*8,parameter :: mrat = mwat/mair    ! = 0.62197....
+      !@param rvap  gas constant for water vapour (461.5 J/K kg)
+      !**** defined as R/M_W = 1000* 8.314510 J/mol K /18.015 g/mol
+      real*8,parameter :: rvap = 1d3 * gasc / mwat ! = 461.5...
+      !@param tf freezing point of water at 1 atm (273.16 K)
+      real*8,parameter :: tf = tfrz
+
+      !************************************************************************
        !* ASTRONOMICAL CONSTANTS
 
       !************************************************************************
