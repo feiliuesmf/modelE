@@ -106,11 +106,10 @@ c
 c
       real sum,coord,x,x1,totl,sumice,fusion,saldif,sofsig,tf
      .    ,sigocn,kappaf,check,apehyc,pechg_hyc_bolus
-     .    ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,tavini,dpini(kdm)
+     .    ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,dpini(kdm)
      .    ,thkchg,flxdiv
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
      .       ,OMP_GET_NUM_THREADS,io,jo,ipa(iia,jja),nsub
-      common/sst/tavini
       external rename
       logical master,slave,diag_ape
       character util(idm*jdm+14)*2,charac(20)*1,string*20,
@@ -394,8 +393,8 @@ c
       if (JDendOfM(jmon).eq.jday.and.Jhour.eq.24.and.nsub.eq.nstepi) 
      .                                    diagno=.true. ! end of month
 c
+      if (nstep.eq.1) diagno=.true.
       diag_ape=diagno
-      if (nstep.eq.1) diag_ape=.true.
 c
       trcadv_time = 0.0
       if (dotrcr) then
@@ -678,7 +677,7 @@ c$OMP PARALLEL DO
         do 3 i=ifp(j,l),ilp(j,l)
  3      p(i,j,k+1)=p(i,j,k)+dp(i,j,k+mm)
 c$OMP END PARALLEL DO
-      call overtn(mm)
+css     call overtn(mm)
 c
       write (lp,105) nstep
  105  format (' step',i9,' -- archiving completed --')

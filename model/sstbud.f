@@ -15,9 +15,9 @@ c
 c
       integer maxpro,nproc,lgth,no
       parameter (maxpro=6)
-      common/sst/tavini,sstold,tndcy,protxt
+      common/sst/sstold,tndcy,protxt
       data no/29/
-      real sstold(idm,jdm),sstnew(idm,jdm),tavini,q
+      real sstold(idm,jdm),sstnew(idm,jdm),q
       real*4 tndcy(idm,jdm,maxpro)
       character text*16,protxt(maxpro)*16,flnm*64,string*20
 c
