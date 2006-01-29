@@ -113,22 +113,22 @@ c     flnmovt = location (pathname) of ovtn.xxxxxx files
 c     flnmlat = location (pathname) of lat/lon at vorticity points
 c
       data flnmlat/
-     .   '/giss2/giss/sun/cplinput/latlon195x180.4bin'/
+     .   '/giss/cplinput/latlon195x180.4bin'/
       data flnmdep/
-     .   '/giss2/giss/sun/cplinput/depth195x180.4bin'/
+     .   '/giss/cplinput/depth195x180.4bin'/
       data flnmint/
-     .   '/giss2/giss/sun/cplinput/temp181x180x20jan_lt_SL.asc'/
+     .   '/giss/cplinput/temp181x180x20jan_lt_SL.asc'/
       data flnmins/
-     .   '/giss2/giss/sun/cplinput/salt181x180x20jan_lt_SL.asc'/
+     .   '/giss/cplinput/salt181x180x20jan_lt_SL.asc'/
       data flnminp/
-     .   '/giss2/giss/sun/cplinput/pout181x180x20jan_lt_SL.asc'/
+     .   '/giss/cplinput/pout181x180x20jan_lt_SL.asc'/
       data flnmbas/
-     .   '/giss2/giss/sun/cplinput/basinmasks.195x180'/
-      data flnma2o    /'/giss2/giss/sun/cplinput/flxa2o195x180.8bin'/
-      data flnma2o_tau/'/giss2/giss/sun/cplinput/taua2o195x180.8bin'/
-      data flnmo2a    /'/giss2/giss/sun/cplinput/ssto2a195x180.8bin'/
-      data flnmcoso   /'/giss2/giss/sun/cplinput/cososino195x180.8bin'/
-ccc   data flnmcosa   /'/giss2/giss/sun/cplinput/cosasina195x180.8bin'/
+     .   '/giss/cplinput/basinmasks.195x180'/
+      data flnma2o    /'/giss/cplinput/flxa2o195x180.8bin'/
+      data flnma2o_tau/'/giss/cplinput/taua2o195x180.8bin'/
+      data flnmo2a    /'/giss/cplinput/ssto2a195x180.8bin'/
+      data flnmcoso   /'/giss/cplinput/cososino195x180.8bin'/
+ccc   data flnmcosa   /'/giss/sun/cplinput/cosasina195x180.8bin'/
       data flnmovt/'./'/
 c
       end
