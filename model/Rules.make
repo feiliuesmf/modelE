@@ -130,6 +130,7 @@ endif
 ifeq ($(COMPILER),Intel)
 F90 = efc
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler INTEL-ifc-on-LINUX
 FFLAGS = -fpp -Wp,-P -O2 -w95 -w90 -cm -tpp2 -common_args
 F90FLAGS = -fpp -Wp,-P -O2 -FR -w95 -w90 -cm -tpp2 -common_args
 LFLAGS = -O2 -w95 -w90 -tpp2 -common_args -Vaxlib
@@ -153,9 +154,10 @@ endif
 ifeq ($(COMPILER),Intel8)
 F90 = ifort
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
-FFLAGS = -fpp -O2 -Wp,-P -tpp2 -convert big_endian 
-F90FLAGS = -fpp -O2 -Wp,-P -tpp2 -convert big_endian -free 
-LFLAGS = -O2 -tpp2 
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler INTEL-ifort-on-LINUX
+FFLAGS = -fpp -O2 -Wp,-P  -convert big_endian 
+F90FLAGS = -fpp -O2 -Wp,-P  -convert big_endian -free 
+LFLAGS = -O2
 CPP = /lib/cpp -P -traditional
 CPPFLAGS = -DMACHINE_Linux
 F90_VERSION = $(shell $(F90) -v 2>&1)
@@ -176,7 +178,8 @@ endif
 ifeq ($(COMPILER),Lahey)
 F90 = lf95
 CPP = /usr/bin/cpp -P -traditional
-FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend 
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler LAHEY-lf95-on-LINUX
 CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux
 FFLAGS = -O -Cpp
 LFLAGS = 
@@ -199,6 +202,7 @@ ifeq ($(COMPILER),Absoft)
 F90 = f90
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler ABSOFT-f95-on-LINUX
 CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux
 FFLAGS = -O2
 F90FLAGS = -O2 -f free
@@ -253,6 +257,7 @@ MACHINE = IBM
 F90 = xlf90_r
 CPP = /lib/cpp -P
 FMAKEDEP = perl $(SCRIPTS_DIR)/sfmakedepend
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler IBM-xlf90-on-AIX
 # ibm compiler doesn't understand "-D" . Have to use "-WF,-D..."
 CPPFLAGS =
 FFLAGS = -O2 -qfixed -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
@@ -269,6 +274,7 @@ MACHINE = DEC
 F90 = f90
 CPP = /lib/cpp -P
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler DEC-f90-on-OSF1
 # CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_DEC
 # FFLAGS = -O2 -cpp
 # LFLAGS = -O2
@@ -300,6 +306,7 @@ ifeq ($(COMPILER),Absoft)
 F90 = f90
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler ABSOFT-f95-on-DARWIN
 CPPFLAGS = -DMACHINE_MAC -DCOMPILER_ABSOFT
 FFLAGS = -O2
 F90FLAGS = -O2 -f free
@@ -477,7 +484,7 @@ endif
 endif
 endif
 ifeq ($(COMPARE_MODULES_HACK),YES)
-	@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
+	if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
 	  do if [ ! -s $$i.sig ] || [ `find $$i -newer $$i.sig` ] ; then \
 	  echo $@ > $$i.sig; \
 	  if [ -f $$i.old ] && $(CMP_MOD) $$i $$i.old; then \
