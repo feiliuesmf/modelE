@@ -40,6 +40,7 @@ endif
 NO_COMMAND = echo Requested target is not supported on $(UNAME); exit 1;
 F90 = $(NO_COMMAND)
 FMAKEDEP = $(NO_COMMAND)
+CMP_MOD = $(NO_COMMAND)
 F =  $(NO_COMMAND)
 U = $(NO_COMMAND)
 SETUP = $(SCRIPTS_DIR)/setup_e.pl
@@ -61,6 +62,7 @@ MACHINE = SGI
 F90 = f90
 CPP = /lib/cpp -P
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -H
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler MIPSPRO_f90_on_IRIX64
 F       = $(SCRIPTS_DIR)/fco2_90
 U	= $(SCRIPTS_DIR)/uco2_f90
 CPPFLAGS = -DMACHINE_SGI
@@ -474,9 +476,21 @@ endif
 endif
 endif
 endif
-	-@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
+ifeq ($(COMPARE_MODULES_HACK),YES)
+	@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
 	  do if [ ! -s $$i.sig ] || [ `find $$i -newer $$i.sig` ] ; then \
-	  echo $@ > $$i.sig; fi; done; fi 
+	  echo $@ > $$i.sig; \
+	  if [ -f $$i.old ] && $(CMP_MOD) $$i $$i.old; then \
+	    touch -r $$i.old $$i; \
+	    else \
+	    cp -f $$i $$i.old; \
+	    fi; \
+	 fi; done; fi 
+else
+	@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
+	  do if [ ! -s $$i.sig ] || [ `find $$i -newer $$i.sig` ] ; then \
+	  echo $@ > $$i.sig; fi; done; fi
+endif
 	@touch -r .timestamp $@
 	@if [ -s $*.ERR ] ; then echo $(MSG); else echo Done $(MSG); fi
 ifdef COMP_OUTPUT
