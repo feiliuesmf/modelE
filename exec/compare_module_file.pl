@@ -1,3 +1,5 @@
+#!/usr/bin/perl 
+
 # Compare two .mod files which are given on the command line.
 #
 # Note that if a compiler (i.e. a compiler and operating system) is specified on
@@ -8,7 +10,7 @@
 #*******************************************************************************
 # (c) Daniel Grimwood, University of Western Australia, 2000-2003
 #
-# $Id: compare_module_file.pl,v 2.1 2006/01/31 04:19:30 ialeinov Exp $
+# $Id: compare_module_file.pl,v 2.2 2006/01/31 09:42:36 ialeinov Exp $
 #
 #*******************************************************************************
 
