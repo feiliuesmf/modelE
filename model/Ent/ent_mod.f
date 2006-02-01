@@ -10,11 +10,7 @@
 
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_results, ent_set_forcings
-
-! the next lines should be relocated to better palce (ent_types?)
-!@var MAX_PATCHES maximal number of patches per cell
-!@var MAX_COHORTS maximal number of cohorts per patch
-      integer, parameter :: MAX_PATCHES=32, MAX_COHORTS=64
+      public ent_run, ent_run_slow_pysics
 
       type entcelltype_public
         private
@@ -31,92 +27,42 @@
        module procedure ent_get_results_array
       end interface
 
-
-
+      interface copy_vars
+        copy_vars_single
+        copy_vars_array
+      end interface
 
       contains
 
-      subroutine copy_vars( buf, n, var, flag )
-!@copy variable to/from buffer
-!@+   !!! may need to write similar for arrays and create an interface
-!@+   !!! in that case "n" will have non-triial value
-      real*8, intent(out) :: buf(:)
-      integer, intent(out) :: n
-      real*8, intent(in):: var
-!@var flag defines the actual action:
-!@+     -1 copy from var to buffer
-!@+      1 copy from buffer to var
-!@+      0 do nothing - just return the number of fields
-      integer, intent(in) :: flag
+      subroutine ent_run(entcell)
+      use ent_driver, only : ent_model
+      type(entcelltype_public), intent(in) :: entcell
+      !---
+
+      call ent_model( entcell%entcell )
+
+      end subroutine ent_run
+
+
+      subroutine ent_run_slow_pysics(entcell,
+     &     jday
+! insert any needed input parameters here
+     &     )
+!@sum this call updates variable that change on a long time scale.
+!@+   Right now (before real dynamic vegetation is implemented)
+!@+   it should perform prescribed seasonal update of vegatation
+!@+   parameters (LAI, root fraction etc.)
+!@+   I think extra input parameters needed here should be passed 
+!@+   as formal parameters and not be packed into entcell structure.
+!@+   Is it OK from ESMF point of view?
+      use ent_driver, only : ent_update_veg_structure
+      type(entcelltype_public), intent(in) :: entcell
+      integer jday
       !---
       
-      n = 1
-      if ( flag == 0 ) return
+      ent_update_veg_structure( entcell%entcell, jday )
 
-      if ( flag == -1 ) then
-        buf(1) = var
-      else if ( flag == 1 ) then
-        var = buf(1)
-      else
-        call stop_model("ent_mod:copy_vars: flag .ne. 0,-1,1",255)
-      endif
-
-      end subroutine copy_vars
-
-!**************************************************************
-!   the following two functions are all that user has to modify
-!   when the list of i/o variable is changed
-
-!   i didn't include any i/o sub for cell since it looks like 
-!   patch will not have any i/o vars
-
-      subroutine copy_patch_vars(buf, n, p, flag)
-      real*8, intent(out) :: buf(0:)
-      integer, intent(out) :: n
-      type(patch), intent(in):: p
-!@var flag defines the actual action:
-!@+     -1 copy from patch to buffer
-!@+      1 copy from buffer to patch
-!@+      0 do nothing - just return the number of fields
-      integer, intent(in) :: flag
-      !---
-      integer dc
-
-      dc = 0
-
-      ! include all patch variables that need i/o
-      call copy_vars( buf(dc:), nn,  p%age,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  p%area, flag ); dc = dc + nn
-
-      n = dc
-
-      end subroutine copy_patch_vars
-
-
-      subroutine copy_cohort_vars(buf, n, c, flag)
-      real*8, intent(out) :: buf(0:)
-      integer, intent(out) :: n
-      type(cohort), intent(in):: c
-!@var flag defines the actual action:
-!@+     -1 copy from patch to buffer
-!@+      1 copy from buffer to patch
-!@+      0 do nothing - just return the number of fields
-      integer, intent(in) :: flag
-      !---
-      integer dc
-
-      dc = 0
-
-      ! include all cohort variables that need i/o
-      call copy_vars( buf(dc:), nn,  c%_any_var_,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%_any_var2_, flag ); dc = dc + nn
-
-      n = dc
-
-      end subroutine copy_cohort_vars
-
-
-!******************************************************************
+      end subroutine ent_run_slow_pysics
 
 
       subroutine ent_cell_pack(ibuf, dbuf, entcell)
@@ -127,13 +73,14 @@
       type(entcelltype_public), intent(in) :: entcell ! pointer ?
       !---
       ! allocate tmp arrays of a fixed size MAX_NIBIF+1, MAX_NDBUF+1
-      integer, parameter :: MAX_NIBIF=32, MAX_NDBUF=128
-      integer, pointer, intent(out) :: ibuf(0:MAX_NIBIF)
-      real*8, pointer, intent(out) :: dbuf(0:MAX_NDBUF)
+! the MAX_* params may need to be relocated to better palce (ent_types?)
+!@var MAX_PATCHES maximal number of patches per cell
+!@var MAX_COHORTS maximal number of cohorts per patch
+      integer, parameter :: MAX_PATCHES=32, MAX_COHORTS=64
       type(patch), pointer :: p  !@var p current patch
       type(cohort), pointer :: c !@var current cohort
       integer :: np              !@var np number of patches in the cell
-      integer :: nc(MAX_COHORTS) !@var nc number of cohorts in the patch
+      integer :: nc(MAX_PATCHES) !@var nc number of cohorts in the patch
       integer :: ic, dc
 
 
@@ -210,7 +157,7 @@
       type(patch), pointer :: p, pprev  !@var p current patch
       type(cohort), pointer :: c, cprev !@var current cohort
       integer :: np              !@var np number of patches in the cell
-      integer :: nc(MAX_COHORTS) !@var nc number of cohorts in the patch
+      integer, allocatable :: nc(:) !@var nc number of cohorts in the patch
       integer ic, dc
       integer i, j
       integer npdebug, ncdebug ! these are for debuging
@@ -219,6 +166,7 @@
 
       ! doesn't seem that we need to restore anything for the cell
       np = ibuf(ic); ic = ic + 1
+      allocate( nc(np) )
       nc(1:np) = ibuf(ic:ic+np-1); ic = ic + np
 
       if ( np <= 0 ) return  ! nothing to restore...
@@ -241,21 +189,22 @@
       entcell%entcell%youngest => p
 
       ! now restore pointer lists in opposite direction
-      npdebug
+      npdebug = 0
       nullify( pprev )
+      p => entcell%entcell%youngest
       do while ( associated(p) )
         p%younger => pprev
         npdebug = npdebug + 1
-        if ( npdebug > MAX_PATCHES )
-     &       call stop_model("ent_cell_pack: too many patches",255)
+        if ( npdebug > np )
+     &       call stop_model("ent_cell_unpack: broken struct: np",255)
         ncdebug = 0
         nullify( cprev)
         c => p%shortest
         do while ( associated(c) )
           c%shorter => cprev
           ncdebug = ncdebug + 1
-          if ( ncdebug > MAX_COHORTS )
-     &         call stop_model("ent_cell_pack: too many cohorts",255)
+          if ( ncdebug > nc(npdebug) )
+     &         call stop_model("ent_cell_unpack: broken struct: nc",255)
           cprev => c
           c => c%taller
         enddo
@@ -265,8 +214,120 @@
       enddo
       entcell%entcell%oldest => pprev
 
+      deallocate( nc )
+
       end subroutine ent_cell_unpack
 
+
+      subroutine copy_vars_single( buf, n, var, flag )
+!@copy variable to/from buffer
+!@+   !!! may need to write similar for arrays and create an interface
+!@+   !!! in that case "n" will have non-triial value
+      real*8, intent(out) :: buf(:)
+      integer, intent(out) :: n
+      real*8, intent(in):: var
+!@var flag defines the actual action:
+!@+     -1 copy from var to buffer
+!@+      1 copy from buffer to var
+!@+      0 do nothing - just return the number of fields
+      integer, intent(in) :: flag
+      !---
+      
+      n = 1
+      if ( flag == 0 ) return
+
+      if ( flag == -1 ) then
+        buf(1) = var
+      else if ( flag == 1 ) then
+        var = buf(1)
+      else
+        call stop_model("ent_mod:copy_vars: flag .ne. 0,-1,1",255)
+      endif
+
+      end subroutine copy_vars_single
+
+      subroutine copy_vars_array( buf, n, var, flag )
+!@copy variable to/from buffer
+!@+   !!! may need to write similar for arrays and create an interface
+!@+   !!! in that case "n" will have non-triial value
+      real*8, intent(out) :: buf(:)
+      integer, intent(out) :: n
+      real*8, intent(in):: var(:)
+!@var flag defines the actual action:
+!@+     -1 copy from var to buffer
+!@+      1 copy from buffer to var
+!@+      0 do nothing - just return the number of fields
+      integer, intent(in) :: flag
+      !---
+      
+      n = size(var)
+      if ( flag == 0 ) return
+
+      if ( flag == -1 ) then
+        buf(1:n) = var(1:n)
+      else if ( flag == 1 ) then
+        var(1:n) = buf(1:n)
+      else
+        call stop_model("ent_mod:copy_vars: flag .ne. 0,-1,1",255)
+      endif
+
+      end subroutine copy_vars_array
+
+
+!**************************************************************
+!   the following two functions are all that user has to modify
+!   when the list of i/o variables is changed
+
+!   i didn't include any i/o sub for cell since it looks like 
+!   patch will not have any i/o vars
+
+      subroutine copy_patch_vars(buf, n, p, flag)
+      real*8, intent(out) :: buf(0:)
+      integer, intent(out) :: n
+      type(patch), intent(in):: p
+!@var flag defines the actual action:
+!@+     -1 copy from patch to buffer
+!@+      1 copy from buffer to patch
+!@+      0 do nothing - just return the number of fields
+      integer, intent(in) :: flag
+      !---
+      integer dc
+
+      dc = 0
+
+      ! include all patch variables that need i/o
+      call copy_vars( buf(dc:), nn,  p%age,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  p%area, flag ); dc = dc + nn
+
+      n = dc
+
+      end subroutine copy_patch_vars
+
+
+      subroutine copy_cohort_vars(buf, n, c, flag)
+      real*8, intent(out) :: buf(0:)
+      integer, intent(out) :: n
+      type(cohort), intent(in):: c
+!@var flag defines the actual action:
+!@+     -1 copy from patch to buffer
+!@+      1 copy from buffer to patch
+!@+      0 do nothing - just return the number of fields
+      integer, intent(in) :: flag
+      !---
+      integer dc
+
+      dc = 0
+
+      ! include all cohort variables that need i/o
+      call copy_vars( buf(dc:), nn,  c%_any_var_,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%_any_var2_, flag ); dc = dc + nn
+
+      n = dc
+
+      end subroutine copy_cohort_vars
+
+
+!******************************************************************
 
 
       subroutine ent_set_forcings_single( entcell,
