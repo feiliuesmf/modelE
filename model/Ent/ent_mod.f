@@ -27,6 +27,11 @@
        module procedure ent_get_results_array
       end interface
 
+      interface ent_run
+        module procedure ent_run_single
+        module procedure ent_run_array
+      end interface
+
       interface copy_vars
         copy_vars_single
         copy_vars_array
@@ -34,14 +39,29 @@
 
       contains
 
-      subroutine ent_run(entcell)
+      subroutine ent_run_single(entcell)
       use ent_driver, only : ent_model
-      type(entcelltype_public), intent(in) :: entcell
+      type(entcelltype_public), intent(inout) :: entcell
       !---
 
       call ent_model( entcell%entcell )
 
-      end subroutine ent_run
+      end subroutine ent_run_single
+
+
+      subroutine ent_run_array(entcell)
+      use ent_driver, only : ent_model
+      type(entcelltype_public), intent(inout) :: entcell(:)
+      !---
+      integer n, nc
+
+      nc = size(entcell)
+      do n=1,nc
+        call ent_model( entcell(n)%entcell )
+      enddo
+
+      end subroutine ent_run_array
+
 
 
       subroutine ent_run_slow_pysics(entcell,
@@ -277,6 +297,10 @@
 !**************************************************************
 !   the following two functions are all that user has to modify
 !   when the list of i/o variables is changed
+!   I wrote it in such a complicated way so that the list of
+!   i/o variable appears only once (and is used both for input
+!   and output). This prevents possible confusion due to
+!   non-synchronized input and output lists.
 
 !   i didn't include any i/o sub for cell since it looks like 
 !   patch will not have any i/o vars
@@ -356,8 +380,9 @@
       type(entcelltype_public), intent(in) :: entcell(:)
       ! forcings probably should not be optional ...
       real*8 :: canopy_temperature(:)
-      real*8 :: direct_short_wave(:)
-      !----------
+      real*8 :: direct_visible_rad(:)
+      real*8 :: total_visible_rad(:)
+     !----------
       real*8 alai
 
       entcell(:)%entcell%TcanopyC = canopy_temperature(:)
@@ -457,6 +482,8 @@
       type(ent_storage) :: buffer(NUMCELLS)
       type(entcelltype_public) entcells(NUMCELLS)
       integer i
+      real*8 Tcan(NUMCELLS),Idir(NUMCELLS),Ivis(NUMCELLS) ! forcings
+      real*8 cond(NUMCELLS)                               ! results
 
       ! to pack ent cells entcells(1:NUMCELLS) into arrays dbuf, ibuf :
       do i=1,NUMCELLS
@@ -476,7 +503,20 @@
 !!! One should be carefull not unpacking into allocated cells,
 !!! since the old memory will not be de-allocated and this will
 !!! lead to a memor leak
-      
+
+! and here is an example of how one performs one time step
+
+      call ent_set_forcings( entcells,
+     &     canopy_temperature=Tcan,
+     &     direct_visible_rad=Idir,
+     &     total_visible_rad=Ivis,
+     &     )
+
+      call ent_run( entcells )
+
+      call ent_get_results( entcells,
+     &     canopy_conductance=cond
+     &     )
 
       end
 
