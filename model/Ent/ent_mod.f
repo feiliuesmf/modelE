@@ -4,6 +4,7 @@
  
       ! need to know about internal structure of Ent types
       use ent_types, only : entcelltype, patch, cohort
+      implicit none
 
       private
 
