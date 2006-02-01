@@ -62,7 +62,7 @@ MACHINE = SGI
 F90 = f90
 CPP = /lib/cpp -P
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -H
-CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler MIPSPRO_f90_on_IRIX64
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler MIPSPRO-f90-on-IRIX64
 F       = $(SCRIPTS_DIR)/fco2_90
 U	= $(SCRIPTS_DIR)/uco2_f90
 CPPFLAGS = -DMACHINE_SGI
@@ -154,7 +154,7 @@ endif
 ifeq ($(COMPILER),Intel8)
 F90 = ifort
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
-CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler INTEL-ifort-on-LINUX
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler INTEL-ifort-9-0-on-LINUX
 FFLAGS = -fpp -O2 -Wp,-P  -convert big_endian 
 F90FLAGS = -fpp -O2 -Wp,-P  -convert big_endian -free 
 LFLAGS = -O2

@@ -10,7 +10,7 @@
 #*******************************************************************************
 # (c) Daniel Grimwood, University of Western Australia, 2000-2003
 #
-# $Id: compare_module_file.pl,v 2.2 2006/01/31 09:42:36 ialeinov Exp $
+# $Id: compare_module_file.pl,v 2.3 2006/02/01 00:47:16 ialeinov Exp $
 #
 #*******************************************************************************
 
@@ -37,6 +37,7 @@ my (%compiler_array);
   "IBM-xlf90-on-AIX"       =>  IBM_xlf90_on_AIX,
   "INTEL-ifc-on-LINUX"     =>  INTEL_ifc_on_LINUX,
   "INTEL-ifort-on-LINUX"   =>  INTEL_ifort_on_LINUX,
+  "INTEL-ifort-9-0-on-LINUX"   =>  INTEL_ifort_9_0_on_LINUX,
   "LAHEY-lf95-on-LINUX"    =>  LAHEY_lf95_on_LINUX,
   "MIPSPRO-f90-on-IRIX64"  =>  MIPSPRO_f90_on_IRIX64,
   "WORKSHOP-f90-on-SUNOS"  =>  WORKSHOP_f90_on_SUNOS,
@@ -199,6 +200,11 @@ sub INTEL_ifc_on_LINUX {
 sub INTEL_ifort_on_LINUX {
   # version 8.0.
   push @skip_array,(45,46,47,48);
+}
+
+sub INTEL_ifort_9_0_on_LINUX {
+  # version 8.0.
+  push @skip_array,(49,50,179,180,181,182,183,184);
 }
 
 sub LAHEY_lf95_on_LINUX {
