@@ -64,7 +64,7 @@
 
 !****************************************************************************
       type cohort
-         integer :: pft           ! PFT number
+         integer :: pft           !* PFT number
          real*8 :: n              ! Number of individuals in cohort
          type(entcelltype),pointer :: cellptr !Pointer to ent grid cell
          type(patch),pointer :: pptr    !Pointer to patch
@@ -82,17 +82,17 @@
          !@var Ntot Total cohort nitrogen (g/m[ground]2).
          real*8 Ntot
          !@var LAI Total cohort leaf area index (m2[leaf]/m2[ground])
-         real*8 LAI
+         real*8 LAI               !*
 
          !* ALL QUANTITIES BELOW ARE FOR AN INDIVIDUAL *!
 
          !* GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
-         real*8 :: h              ! Height (m)
+         real*8 :: h              !* Height (m)
          real*8 :: crown_dx       ! Crown horizontal axis length (m)
          real*8 :: crown_dy       ! Crown vertical axis length (m)
          real*8 :: dbh            ! Stem diameter at breast height (m)
          real*8 :: root_d         ! Root half spheroid diameter (m)
-         !real*8 :: LA           ! Leaf area (m2[leaf])
+         !real*8 :: LA            ! Leaf area (m2[leaf])
          real*8 :: clump          ! Leaf clumping parameter (TBA)
          real*8,pointer :: froot(:) ! Fraction of roots in soil layer
 
@@ -141,8 +141,8 @@
 
 !****************************************************************************
       type patch
-         real*8 :: age                !Patch age (years)
-         real*8 :: area               !Patch area (units?)
+         real*8 :: age                !*Patch age (years)
+         real*8 :: area               !*Patch area (units?)
          type(entcelltype),pointer:: cellptr !Pointer to grid cell
          type(patch),pointer :: older !Pointer to next older patch
          type(patch),pointer :: younger !Pointer to next younger patch
@@ -155,11 +155,7 @@
          ! * Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
 
          !* Structural variables *!
-         integer :: pft  !Tallest pft
-         real*8 :: LAI  !Leaf area index (m^2[leaf]/m^2[ground])
          real*8 :: nm   !Mean canopy nitrogen (g/m2[leaf]) over patch
-         real*8 :: h    !Canopy height (m)
-         real*8,pointer :: froot(:)!Fraction of roots in soil layer
 
          !* Flux variables for GCM/EWB - patch total
          real*8 :: albedo(N_BANDS) !Spectral albedo, average over patch
@@ -209,8 +205,8 @@
 !****************************************************************************
 !****************************************************************************
       type entcelltype
-         real*8 :: long, lat      !longitude, latitude
-         integer :: longi, latj    !grid cell i,j
+ !        real*8 :: long, lat      !longitude, latitude
+ !        integer :: longi, latj    !grid cell i,j
          real*8 :: area         !Area km^2
          type(patch), pointer:: youngest
          type(patch), pointer:: oldest
@@ -237,16 +233,16 @@
          !real*8 :: VOCflux     !Other kind of fluxes, aerosols from fire, etc.
          !Cell-level diagnostic values - BIOLOGICAL
          !e.g. LAI, biomass pools, nitrogen pools, PFT fractions, GDD, GPP, etc
-         real*8 :: LAI
+         real*8 :: LAI 
          real*8,pointer :: froot(:) !Fraction of roots in soil layer
          real*8 :: C_froot      !Carbon in fine roots
          real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
          real*8,pointer :: betadl(:) !Water stress in layers.
          !-----
 
-         !VEGETATION - PRIVATE
-         real*8 :: Ci           !Internal foliage CO2 (mol/m3) !!Cohort level
-         real*8 :: Qf           !Foliage surface vapor mixing ratio (kg/kg)
+         !VEGETATION - PUBLIC
+         real*8 :: Ci           !*Internal foliage CO2 (mol/m3) !!Cohort level
+         real*8 :: Qf           !*Foliage surface vapor mixing ratio (kg/kg)
 
          !METEOROLOGICAL - IMPORT STATE VARIABLES
          !Cell-level summary values - CALCULATED BY GCM/EWB OR OFF-LINE FILE
