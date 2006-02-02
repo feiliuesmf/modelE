@@ -9,7 +9,7 @@
       private
 
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
-      public ent_get_results, ent_set_forcings
+      public ent_get_exports, ent_set_forcings
       public ent_run, ent_run_slow_pysics
 
       type entcelltype_public
@@ -22,9 +22,9 @@
        module procedure ent_set_forcings_array
       end interface
 
-      interface ent_get_results
-       module procedure ent_get_results_single
-       module procedure ent_get_results_array
+      interface ent_get_exports
+       module procedure ent_get_exports_single
+       module procedure ent_get_exports_array
       end interface
 
       interface ent_run
@@ -68,16 +68,19 @@
      &     jday
 ! insert any needed input parameters here
      &     )
+!!! it is not clear yet for me how this call will be implemented ...
 !@sum this call updates variable that change on a long time scale.
 !@+   Right now (before real dynamic vegetation is implemented)
 !@+   it should perform prescribed seasonal update of vegatation
 !@+   parameters (LAI, root fraction etc.)
 !@+   I think extra input parameters needed here should be passed 
 !@+   as formal parameters and not be packed into entcell structure.
+!@+   It seems that for prescribed variation of vegeatation
+!@+   parameters we need only "jday"
 !@+   Is it OK from ESMF point of view?
       use ent_driver, only : ent_update_veg_structure
       type(entcelltype_public), intent(in) :: entcell
-      integer jday
+      integer jday !@var jday Julian day of the year
       !---
       
       ent_update_veg_structure( entcell%entcell, jday )
@@ -393,7 +396,7 @@
 
 
 
-      subroutine ent_get_results_single( entcell,
+      subroutine ent_get_exports_single( entcell,
      &     canopy_conductance,
      &     canopy_gpp,
      &     canopy_max_H2O,
@@ -441,10 +444,10 @@
       endif
 
 
-      end subroutine ent_get_results_single
+      end subroutine ent_get_exports_single
 
 
-      subroutine ent_get_results_array( entcell,
+      subroutine ent_get_exports_array( entcell,
      &     canopy_conductance,
      &     canopy_gpp
      &     )
@@ -465,7 +468,7 @@
         canopy_gpp(:) = entcell(:)%entcell%GPP
       endif
 
-      end subroutine ent_get_results_array
+      end subroutine ent_get_exports_array
 
 
       end module ent_mod
@@ -514,7 +517,7 @@
 
       call ent_run( entcells )
 
-      call ent_get_results( entcells,
+      call ent_get_exports( entcells,
      &     canopy_conductance=cond
      &     )
 
@@ -533,5 +536,12 @@
  2    Who allocates entcell_public (i.e. the the cell itself, not
       its contents) ? (in above example it is allocated by GCM).
 
+ 3    Can we always rely on dimensions of assumed shaped arrays to
+      be passed correctly? i.e. the the following should always
+      give the correct answer:
+         subroutine a(x)
+         real*8 x(:)
+         dim_x = size(x) ! returns correct number of elements in x
+      or should we always pass the dimension as an extra argument?
 
 #end
