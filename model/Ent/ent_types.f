@@ -131,12 +131,9 @@
       type canradtype
          !Arrays in height levels in the canopy
          real*8,pointer :: heights !height levels (m) betwn layers (#layers+1)
-         real*8,pointer :: GORTclump(:)
-         real*8,pointer :: LAI(:)
-         real*8,pointer :: Isw(:) 
-         real*8,pointer :: IPAR(:)
-         real*8,pointer :: Ibeam(:)
-         real*8,pointer :: Idiff(:)
+         real*8,pointer :: LAI(:) !LAI within height level
+         !Whole-canopy foliage clumping factor
+         real*8 :: GORTclump
       end type canradtype
 
 !****************************************************************************

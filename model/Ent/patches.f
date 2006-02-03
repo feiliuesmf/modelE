@@ -165,10 +165,7 @@
 
       !* ------- DO PATCH-LEVEL SUMMARIES OF scop ------------------------*!
       !* Structural variables
-      pp%pft = pp%tallest%pft  !Patch tallest pft is considered dominant.
-      pp%LAI = scop%LAI
       pp%nm = scop%nm
-      pp%h = scop%h
 
       !* Flux variables for GCM/EWB - patch total
       call get_patchalbedo(ttime,pp)
@@ -216,6 +213,9 @@
             cop%n = 0
             cop%nm = 0.0
             cop%Ntot = 0.0
+
+            !* Structural variables *!
+            pp%nm = 0.0
 
             !* Flux variables for GCM/EWB - patch total
             pp%albedo = 0.0!## Get GISS albveg ##!
