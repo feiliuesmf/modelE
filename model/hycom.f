@@ -393,7 +393,7 @@ c
       if (JDendOfM(jmon).eq.jday.and.Jhour.eq.24.and.nsub.eq.nstepi) 
      .                                    diagno=.true. ! end of month
 c
-      if (nstep.eq.1) diagno=.true.
+css   if (nstep.eq.1) diagno=.true.    ! initial condition
       diag_ape=diagno
 c
       trcadv_time = 0.0
@@ -677,7 +677,7 @@ c$OMP PARALLEL DO
         do 3 i=ifp(j,l),ilp(j,l)
  3      p(i,j,k+1)=p(i,j,k)+dp(i,j,k+mm)
 c$OMP END PARALLEL DO
-css     call overtn(mm)
+css   call overtn(mm)
 c
       write (lp,105) nstep
  105  format (' step',i9,' -- archiving completed --')
