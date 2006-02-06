@@ -1,6 +1,6 @@
-E3hyc20.R GISS Model E  coupled version      rar   8/31/2005
+E3hyc01.R GISS Model E  coupled version      rar   8/31/2005
 
-E3hyc20: E3AoM20A + hycom kpp refinement
+E3hyc01: E3AoM20A + hycom kpp refinement
 
 modelE1 (3.0) 4x5 hor. grid with 20 lyrs, top at .1 mb (+ 3 rad.lyrs)
 atmospheric composition from year 1880
@@ -88,7 +88,7 @@ TOP_INDEX=top_index_72x46.ij.ext
 MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:
-E3hyc20 (as E3r20p6, but difs/visc=.1/.3)
+E3hyc01 (as E3r20p6, but difs/visc=.1/.3)
 
 DTFIX=300
 &&PARAMETERS
