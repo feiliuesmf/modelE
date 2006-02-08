@@ -16,6 +16,7 @@ filters: U,V in E-W direction (after every dynamics time step)              ?
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
+#define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -85,9 +86,9 @@ O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
 O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
 O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
 O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=mar2004_o3_shindelltrop_72x46x49x12_1980
-O3file_09=mar2004_o3_shindelltrop_72x46x49x12_1990
-O3trend=mar2004_o3timetrend_46x49x2412_1850_2050
+O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
+O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
+O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
