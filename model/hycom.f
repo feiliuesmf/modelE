@@ -817,3 +817,21 @@ c> Apr. 2001 - eliminated stmt_funcs.h
 c> June 2001 - corrected sign error in diaflx
 c> July 2001 - replaced archiving statements by 'call archiv'
 c> Oct  2004 - map ice mass to agcm, and then calculate E
+
+
+!!! I am putting the following routine here as a hack, since it has to be
+!!! present somewhere among ocean routines
+!!! it may actually get filled with the real data when porting to ESMF
+!!! is complete.
+!!! If you think there is better place to put this routine, please move
+!!! it there - I.A.
+      SUBROUTINE ALLOC_OCEAN(grid)
+!@sum dummy routine for allocation of ocean arrays
+      USE DOMAIN_DECOMP, only : DIST_GRID
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(IN) :: grid
+
+      ! do nothing for now ...
+
+      END SUBROUTINE ALLOC_OCEAN
+

@@ -17,19 +17,20 @@ End Preprocessor Options
 Object modules: (in order of decreasing priority)
 RES_M20AT                           ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
+TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
-CLOUDS2n CLOUDS2_DRV CLOUDS_COM        ! clouds modules
-SURFACEn FLUXES                      ! surface calculation and fluxes
-GHY_COM GHY_DRVn GHY                 ! land surface and soils
+CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
+SURFACE FLUXES                      ! surface calculation and fluxes
+GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ATURB                               ! turbulence in whole atmosphere
-LAKES_COM LAKES_Jun08               ! lake modules
+LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
@@ -42,9 +43,10 @@ mxkprf|-r8| newbot|-r8| overtn|-r8| prtetc|-r8| reflux|-r8|      !ocean model
 sigetc|-r8| sphdis|-r8| sstbud|-r8| thermf|-r8| trcadv|-r8|      !ocean model
 tsadvf|-r8|  zebra|-r8|                                          !ocean model
 SNOW_DRV SNOW                       ! snow model
-RAD_COM RAD_DRVnnn RADIATIONnn         ! radiation modules
-DIAG_COM DIAGnn DEFACC DIAG_PRT       ! diagnostics
-CONST FFT72 UTILDBLn SYSTEM          ! utilities
+RAD_COM RAD_DRV RADIATION           ! radiation modules
+RAD_UTILS ALBEDO                    ! radiation and albedo
+DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
+CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
