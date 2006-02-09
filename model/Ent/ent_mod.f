@@ -4,27 +4,41 @@
  
       ! need to know about internal structure of Ent types
       use ent_types, only : entcelltype, patch, cohort
+     &     MAX_PATCHES, MAX_COHORTS
       implicit none
 
       private
 
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings
+      public ent_cell_construct, ent_cell_destruct
       public ent_run, ent_run_slow_pysics
 
       type entcelltype_public
         private
-        type(entcelltype) :: entcell
+        type(entcelltype), pointer :: entcell
       end type entcelltype_public
 
+      interface ent_cell_construct
+        module procedure ent_cell_construct_single
+        module procedure ent_cell_construct_array_1d
+        module procedure ent_cell_construct_array_2d
+      end interface
+
+      interface ent_cell_construct
+        module procedure ent_cell_destruct_single
+        module procedure ent_cell_destruct_array_1d
+        module procedure ent_cell_destruct_array_2d
+      end interface
+
       interface ent_set_forcings
-       module procedure ent_set_forcings_single
-       module procedure ent_set_forcings_array
+        module procedure ent_set_forcings_single
+        module procedure ent_set_forcings_array
       end interface
 
       interface ent_get_exports
-       module procedure ent_get_exports_single
-       module procedure ent_get_exports_array
+        module procedure ent_get_exports_single
+        module procedure ent_get_exports_array
       end interface
 
       interface ent_run
@@ -88,6 +102,130 @@
       end subroutine ent_run_slow_pysics
 
 
+!---- Constructor / Destructor -----
+
+
+      subroutine ent_cell_construct_single(entcell)
+      use entcells, only : zero_entcell
+      type(entcelltype_public), intent(inout) :: entcell
+
+      allocate( entcell%entcell )
+
+      ! don't allocate patches, just set all pointers to NULL
+      nullify( entcell%entcell%youngest )
+      nullify( entcell%entcell%oldest   )
+      nullify( entcell%entcell%sumpatch )
+      ! for now set all values o zero or defaults
+      call zero_entcell(entcell%entcell)
+
+      end subroutine ent_cell_construct_single
+
+
+      subroutine ent_cell_construct_array_1d(entcell)
+      type(entcelltype_public), intent(inout) :: entcell(:)
+      integer n, nc
+
+      nc = size(entcell)
+
+      do n=1,nc
+        call ent_cell_construct_single( entcell(n)%entcell )
+      enddo
+
+      end subroutine ent_cell_construct_array_1d
+
+
+      subroutine ent_cell_construct_array_2d(entcell)
+      type(entcelltype_public), intent(inout) :: entcell(:,:)
+      integer i, ic, j, jc
+
+      ic = size(entcell,1)
+      jc = size(entcell,2)
+
+      do j=1,jc
+        do i=1,ic
+          call ent_cell_construct_single( entcell(i,j)%entcell )
+        enddo
+      enddo
+
+      end subroutine ent_cell_construct_array_1d
+
+
+      subroutine ent_cell_destruct_single(entcell)
+      use entcells, only : zero_entcell
+      type(entcelltype_public), intent(inout) :: entcell
+      type(patch), pointer :: p  !@var p current patch
+      type(cohort), pointer :: c !@var current cohort
+      integer np, nc
+
+
+      np = 0
+      p => entcell%entcell%oldest      
+      do while ( associated(p) )
+        np = np + 1
+        if ( np > MAX_PATCHES )
+     &       call stop_model("ent_cell_destruct: too many patches",255)
+        nc = 0
+        c => p%tallest
+        do while ( associated(c) )
+          nc = nc + 1
+          if ( nc(np) > MAX_COHORTS )
+     &         call stop_model("ent_cell_destruct: too many chrts",255)
+          ! destroy cohort here
+          deallocate( c )
+          c => c%shorter
+        enddo
+        ! destroy patch here
+        if (associated(p%sumcohort) ) deallocate( p%sumcohort )
+        deallocate( p )
+        p => p%younger
+      enddo
+
+      ! destroy cell here
+      if (associated(entcell%entcell%sumpatch)
+     &     deallocate( entcell%entcell%sumpatch )
+
+      deallocate( entcell%entcell )
+      nullify( entcell%entcell )
+
+      end subroutine ent_cell_destruct_single
+
+
+      subroutine ent_cell__array_1d(entcell)
+      type(entcelltype_public), intent(inout) :: entcell(:)
+      integer n, nc
+
+      nc = size(entcell)
+
+      do n=1,nc
+        call ent_cell_destruct_single( entcell(n)%entcell )
+      enddo
+
+      end subroutine ent_cell_destruct_array_1d
+
+
+      subroutine ent_cell_destruct_array_2d(entcell)
+      type(entcelltype_public), intent(inout) :: entcell(:,:)
+      integer i, ic, j, jc
+
+      ic = size(entcell,1)
+      jc = size(entcell,2)
+
+      do j=1,jc
+        do i=1,ic
+          call ent_cell_destruct_single( entcell(i,j)%entcell )
+        enddo
+      enddo
+
+      end subroutine ent_cell_destruct_array_1d
+
+
+!---- END of  Constructor / Destructor -----
+
+
+
+
+
+
       subroutine ent_cell_pack(ibuf, dbuf, entcell)
 !@sum allocate two linear arrays ibuf, dbuf and pack contents of
 !@+   entcell into them
@@ -95,11 +233,6 @@
       real*8, pointer, intent(out) :: dbuf(:)
       type(entcelltype_public), intent(in) :: entcell ! pointer ?
       !---
-      ! allocate tmp arrays of a fixed size MAX_NIBIF+1, MAX_NDBUF+1
-! the MAX_* params may need to be relocated to better palce (ent_types?)
-!@var MAX_PATCHES maximal number of patches per cell
-!@var MAX_COHORTS maximal number of cohorts per patch
-      integer, parameter :: MAX_PATCHES=32, MAX_COHORTS=64
       type(patch), pointer :: p  !@var p current patch
       type(cohort), pointer :: c !@var current cohort
       integer :: np              !@var np number of patches in the cell

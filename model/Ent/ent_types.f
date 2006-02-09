@@ -3,6 +3,13 @@
 
         implicit none
 
+! the following two parameters are basically needed for integrity 
+! checks (to avoid infinite loops when processing linked lists)
+!@var MAX_PATCHES maximal number of patches per cell
+!@var MAX_COHORTS maximal number of cohorts per patch
+        integer, parameter :: MAX_PATCHES=32, MAX_COHORTS=64
+
+
 !****************************************************************************
 !*       TYPE DECLARATIONS
 !****************************************************************************
