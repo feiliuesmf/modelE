@@ -169,30 +169,33 @@
 
       !------DO AVERAGES-----------------------------------------
       !!!CHECK IF SPP%AREA IS ZERO!
-      spp%age = spp%age/spp%area
-      spp%LAI = spp%LAI/spp%area
+      if (ASSOCIATED(ecp%oldest)) then
+        spp%age = spp%age/spp%area
+        spp%LAI = spp%LAI/spp%area
+        
+        do ia=1,N_BANDS         !Area-weighted average
+          spp%albedo(ia) = spp%albedo(ia)/spp%area
+        end do
+        spp%z0 = spp%z0/spp%area !Area-weighted average
+        
+        !* Flux variables for GCM/EWB - patch total
+        spp%GCANOPY = spp%GCANOPY/spp%area
+        spp%CO2flux = spp%CO2flux/spp%area
 
-      do ia=1,N_BANDS           !Area-weighted average
-        spp%albedo(ia) = spp%albedo(ia)/spp%area
-      end do
-      spp%z0 = spp%z0/spp%area  !Area-weighted average
-          
-      !* Flux variables for GCM/EWB - patch total
-      spp%GCANOPY = spp%GCANOPY/spp%area
-      spp%CO2flux = spp%CO2flux/spp%area
+        !* Variables calculated by GCM/EWB - downscaled from grid cell
+        do ia=1,N_DEPTH
+          spp%Soilmoist(ia) = spp%Soilmoist(ia)/spp%area
+        end do
+        !spp%N_deposit     !N deposition (kgN/m2)
 
-      !* Variables calculated by GCM/EWB - downscaled from grid cell
-      do ia=1,N_DEPTH
-        spp%Soilmoist(ia) = spp%Soilmoist(ia)/spp%area
-      end do
-      !spp%N_deposit     !N deposition (kgN/m2)
+        !* Variables for biophysics and biogeochemistry
+        !type(canradtype) :: crad !Data structure for light profile
 
-      !* Variables for biophysics and biogeochemistry
-      !type(canradtype) :: crad !Data structure for light profile
+        !* Disturbance values
+        spp%fuel = spp%fuel/spp%area
+        spp%ignition_rate = spp%ignition_rate/spp%area
+      end if
 
-      !* Disturbance values
-      spp%fuel = spp%fuel/spp%area
-      spp%ignition_rate = spp%ignition_rate/spp%area
       end subroutine summarize_entcell
 !**************************************************************************
 !**************************************************************************
