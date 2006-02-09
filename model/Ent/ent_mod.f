@@ -12,46 +12,72 @@
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings
       public ent_cell_construct, ent_cell_destruct
-      public ent_run, ent_run_slow_pysics
+      public ent_run, ent_seasonal_update, ent_vegcover_update
 
       type entcelltype_public
         private
         type(entcelltype), pointer :: entcell
       end type entcelltype_public
 
+      !---- public interfaces ---
+
+      !--- consttructor/destructor ---
       interface ent_cell_construct
         module procedure ent_cell_construct_single
         module procedure ent_cell_construct_array_1d
         module procedure ent_cell_construct_array_2d
       end interface
 
-      interface ent_cell_construct
+      interface ent_cell_destruct
         module procedure ent_cell_destruct_single
         module procedure ent_cell_destruct_array_1d
         module procedure ent_cell_destruct_array_2d
       end interface
 
+      !--- set forcings / get exports ---
       interface ent_set_forcings
         module procedure ent_set_forcings_single
-        module procedure ent_set_forcings_array
+        module procedure ent_set_forcings_array_1d
+        module procedure ent_set_forcings_array_2d
       end interface
 
       interface ent_get_exports
         module procedure ent_get_exports_single
-        module procedure ent_get_exports_array
+        module procedure ent_get_exports_array_1d
+        module procedure ent_get_exports_array_2d
       end interface
 
+      !--- run model for fast/medium/slow physics ---
       interface ent_run
         module procedure ent_run_single
-        module procedure ent_run_array
+        module procedure ent_run_array_1d
+        module procedure ent_run_array_2d
       end interface
 
+      interface ent_seasonal_update
+        module procedure ent_seasonal_update_single
+        module procedure ent_seasonal_update_array_1d
+        module procedure ent_seasonal_update_array_2d
+      end interface
+
+      interface ent_vegcover_update
+        module procedure ent_vegcover_update_single
+        module procedure ent_vegcover_update_array_1d
+        module procedure ent_vegcover_update_array_2d
+      end interface
+
+
+!!! do we need 1d and 2d array interfaces for pack/unpack ?
+
+      !---- private interfaces ----
       interface copy_vars
         copy_vars_single
         copy_vars_array
       end interface
 
       contains
+
+!---- interfaces to run the model one time step ----
 
       subroutine ent_run_single(entcell)
       use ent_driver, only : ent_model
@@ -63,22 +89,36 @@
       end subroutine ent_run_single
 
 
-      subroutine ent_run_array(entcell)
-      use ent_driver, only : ent_model
+      subroutine ent_run_array_1d(entcell)
       type(entcelltype_public), intent(inout) :: entcell(:)
       !---
       integer n, nc
 
       nc = size(entcell)
       do n=1,nc
-        call ent_model( entcell(n)%entcell )
+        call ent_run_single( entcell(n) )
       enddo
 
-      end subroutine ent_run_array
+      end subroutine ent_run_array_1d
 
 
+      subroutine ent_run_array_2d(entcell)
+      type(entcelltype_public), intent(inout) :: entcell(:,:)
+      integer i, ic, j, jc
 
-      subroutine ent_run_slow_pysics(entcell,
+      ic = size(entcell,1)
+      jc = size(entcell,2)
+
+      do j=1,jc
+        do i=1,ic
+          call ent_run_single( entcell(i,j) )
+        enddo
+      enddo
+
+      end subroutine ent_cell_construct_array_1d
+
+
+      subroutine ent_seasonal_update_single(entcell,
      &     jday
 ! insert any needed input parameters here
      &     )
@@ -94,16 +134,94 @@
 !@+   Is it OK from ESMF point of view?
       use ent_driver, only : ent_update_veg_structure
       type(entcelltype_public), intent(in) :: entcell
-      integer jday !@var jday Julian day of the year
+      integer, intent(in) :: jday !@var jday Julian day of the year
       !---
       
       ent_update_veg_structure( entcell%entcell, jday )
 
-      end subroutine ent_run_slow_pysics
+      end subroutine ent_seasonal_update_single
+
+
+      subroutine ent_seasonal_update_array_1d(entcell, jday)
+      type(entcelltype_public), intent(inout) :: entcell(:)
+      integer, intent(in) :: jday
+      !---
+      integer n, nc
+
+      nc = size(entcell)
+      do n=1,nc
+        call ent_seasonal_update_single( entcell(n), jday )
+      enddo
+
+      end subroutine ent_seasonal_update_array_1d
+
+
+      subroutine ent_seasonal_update_array_2d(entcell, jday)
+      type(entcelltype_public), intent(inout) :: entcell(:,:)
+      integer, intent(in) :: jday
+      !---
+      integer i, ic, j, jc
+
+      ic = size(entcell,1)
+      jc = size(entcell,2)
+
+      do j=1,jc
+        do i=1,ic
+          call ent_seasonal_update_single( entcell(i,j), jday )
+        enddo
+      enddo
+
+      end subroutine ent_seasonal_update_array_2d
+
+
+      subroutine ent_vegcover_update_single(entcell,
+     $     jday,
+     $     jyear
+     $     )
+      type(entcelltype_public), intent(in) :: entcell
+      integer, intent(in) :: jday, jyear
+       
+
+      ! no code for vegcover_update yet ...
+
+      end subroutine ent_vegcover_update_single
+
+
+      subroutine ent_vegcover_update_array_1d(entcell, jday, jyear)
+      type(entcelltype_public), intent(inout) :: entcell(:)
+      integer, intent(in) :: jday, jyear
+      !---
+      integer n, nc
+
+      nc = size(entcell)
+      do n=1,nc
+        call ent_vegcover_update_single( entcell(n), jday, jyear )
+      enddo
+
+      end subroutine ent_vegcover_update_array_1d
+
+
+      subroutine ent_vegcover_update_array_2d(entcell, jday, jyear)
+      type(entcelltype_public), intent(inout) :: entcell(:,:)
+      integer, intent(in) :: jday, jyear
+      !---      
+      integer i, ic, j, jc
+
+      ic = size(entcell,1)
+      jc = size(entcell,2)
+
+      do j=1,jc
+        do i=1,ic
+          call ent_vegcover_update_single( entcell(i,j), jday, jyear )
+        enddo
+      enddo
+
+      end subroutine ent_vegcover_update_array_2d
+
+!---- END interfaces to run the model one time step ----
 
 
 !---- Constructor / Destructor -----
-
 
       subroutine ent_cell_construct_single(entcell)
       use entcells, only : zero_entcell
@@ -128,7 +246,7 @@
       nc = size(entcell)
 
       do n=1,nc
-        call ent_cell_construct_single( entcell(n)%entcell )
+        call ent_cell_construct_single( entcell(n) )
       enddo
 
       end subroutine ent_cell_construct_array_1d
@@ -143,7 +261,7 @@
 
       do j=1,jc
         do i=1,ic
-          call ent_cell_construct_single( entcell(i,j)%entcell )
+          call ent_cell_construct_single( entcell(i,j) )
         enddo
       enddo
 
@@ -508,7 +626,7 @@
 
       end subroutine ent_set_forcings_single
 
-      subroutine ent_set_forcings_array( entcell,
+      subroutine ent_set_forcings_array_1d( entcell,
      &     canopy_temperature,
      &     direct_visible_rad,
      &     total_visible_rad,
@@ -525,7 +643,27 @@
       entcell(:)%entcell%Idir     = total_visible_rad(:)
       entcell(:)%entcell%Ivis     = direct_visible_rad(:)
 
-      end subroutine ent_set_forcings_array
+      end subroutine ent_set_forcings_array_1d
+
+
+      subroutine ent_set_forcings_array_2d( entcell,
+     &     canopy_temperature,
+     &     direct_visible_rad,
+     &     total_visible_rad,
+     &     )
+      type(entcelltype_public), intent(in) :: entcell(:,:)
+      ! forcings probably should not be optional ...
+      real*8 :: canopy_temperature(:,:)
+      real*8 :: direct_visible_rad(:,:)
+      real*8 :: total_visible_rad(:,:)
+     !----------
+      real*8 alai
+
+      entcell(:,:)%entcell%TcanopyC = canopy_temperature(:,:)
+      entcell(:,:)%entcell%Idir     = total_visible_rad(:,:)
+      entcell(:,:)%entcell%Ivis     = direct_visible_rad(:,:)
+
+      end subroutine ent_set_forcings_array_2d
 
 
 
@@ -580,7 +718,7 @@
       end subroutine ent_get_exports_single
 
 
-      subroutine ent_get_exports_array( entcell,
+      subroutine ent_get_exports_array_1d( entcell,
      &     canopy_conductance,
      &     canopy_gpp
      &     )
@@ -588,20 +726,33 @@
       real*8, optional :: canopy_conductance(:)
       real*8, optional :: canopy_gpp(:)
       !----------
-      real*8 alai
 
-!!!! Can I rely on correctly passed dimensions here, i.e.
-!!!  is (:) always the correct extent ?
+      if ( present(canopy_conductance) )
+     &     canopy_conductance(:) = entcell(:)%entcell%GCANOPY
+ 
+      if ( present(canopy_gpp) )
+     &     canopy_gpp(:) = entcell(:)%entcell%GPP
 
-      if ( present(canopy_conductance) ) then
-        canopy_conductance(:) = entcell(:)%entcell%GCANOPY
-      endif
+      end subroutine ent_get_exports_array_1d
 
-      if ( present(canopy_gpp) ) then
-        canopy_gpp(:) = entcell(:)%entcell%GPP
-      endif
 
-      end subroutine ent_get_exports_array
+      subroutine ent_get_exports_array_2d( entcell,
+     &     canopy_conductance,
+     &     canopy_gpp
+     &     )
+      type(entcelltype_public), intent(in) :: entcell(:,:)
+      real*8, optional :: canopy_conductance(:,:)
+      real*8, optional :: canopy_gpp(:,:)
+      !----------
+
+      if ( present(canopy_conductance) )
+     &     canopy_conductance(:,:) = entcell(:,:)%entcell%GCANOPY
+ 
+      if ( present(canopy_gpp) )
+     &     canopy_gpp(:,:) = entcell(:,:)%entcell%GPP
+
+      end subroutine ent_get_exports_array_2d
+
 
 
       end module ent_mod
@@ -666,15 +817,5 @@
       cell?, i.e. np = 0
       Or should it be treated as a type of vegetation?
 
- 2    Who allocates entcell_public (i.e. the the cell itself, not
-      its contents) ? (in above example it is allocated by GCM).
-
- 3    Can we always rely on dimensions of assumed shaped arrays to
-      be passed correctly? i.e. the the following should always
-      give the correct answer:
-         subroutine a(x)
-         real*8 x(:)
-         dim_x = size(x) ! returns correct number of elements in x
-      or should we always pass the dimension as an extra argument?
 
 #end
