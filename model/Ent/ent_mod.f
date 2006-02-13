@@ -12,7 +12,7 @@
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings
       public ent_cell_construct, ent_cell_destruct
-      public ent_run, ent_seasonal_update, ent_vegcover_update
+      public ent_biophysics, ent_seasonal_update, ent_vegcover_update
 
       type entcelltype_public
         private
@@ -48,10 +48,10 @@
       end interface
 
       !--- run model for fast/medium/slow physics ---
-      interface ent_run
-        module procedure ent_run_single
-        module procedure ent_run_array_1d
-        module procedure ent_run_array_2d
+      interface ent_fast_processes
+        module procedure ent_fast_processes_single
+        module procedure ent_fast_processes_array_1d
+        module procedure ent_fast_processes_array_2d
       end interface
 
       interface ent_seasonal_update
@@ -79,30 +79,30 @@
 
 !---- interfaces to run the model one time step ----
 
-      subroutine ent_run_single(entcell)
+      subroutine ent_fast_processes_single(entcell)
       use ent_driver, only : ent_model
       type(entcelltype_public), intent(inout) :: entcell
       !---
 
       call ent_model( entcell%entcell )
 
-      end subroutine ent_run_single
+      end subroutine ent_fast_processes_single
 
 
-      subroutine ent_run_array_1d(entcell)
+      subroutine ent_fast_processes_array_1d(entcell)
       type(entcelltype_public), intent(inout) :: entcell(:)
       !---
       integer n, nc
 
       nc = size(entcell)
       do n=1,nc
-        call ent_run_single( entcell(n) )
+        call ent_fast_processes_single( entcell(n) )
       enddo
 
-      end subroutine ent_run_array_1d
+      end subroutine ent_fast_processes_array_1d
 
 
-      subroutine ent_run_array_2d(entcell)
+      subroutine ent_fast_processes_array_2d(entcell)
       type(entcelltype_public), intent(inout) :: entcell(:,:)
       integer i, ic, j, jc
 
@@ -111,7 +111,7 @@
 
       do j=1,jc
         do i=1,ic
-          call ent_run_single( entcell(i,j) )
+          call ent_fast_processes_single( entcell(i,j) )
         enddo
       enddo
 
@@ -799,7 +799,7 @@
      &     total_visible_rad=Ivis,
      &     )
 
-      call ent_run( entcells )
+      call ent_fast_processes( entcells )
 
       call ent_get_exports( entcells,
      &     canopy_conductance=cond
