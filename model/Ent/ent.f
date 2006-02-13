@@ -95,14 +95,15 @@
         call recalc_radpar (pp) !UPDATE canopy radiative transfer
       end if
 
-      call summarize_patch(tt,pp)
+      call summarize_patch(jday,pp)
 
       end subroutine ent_integrate
 
       !*********************************************************************
-      subroutine ent_biophysics(dtsec, ecp)
+      subroutine ent_biophysics(dtsec, jday, ecp)
       implicit none
       real*8 :: dtsec  !dt in seconds
+      integer :: jday  !Day of year.
       type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
       type(entcelltype) :: ecp
       !-----local--------
@@ -110,7 +111,7 @@
 
       pp = ecp%sumpatch
       call photosynth_cond(dtsec, pp)
-      call summarize_patch(tt,pp)
+      call summarize_patch(jday,pp)
 
       end subroutine ent_biophysics
       !*********************************************************************

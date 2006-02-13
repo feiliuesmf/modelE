@@ -15,12 +15,13 @@
       contains
       !*********************************************************************
       
-      subroutine get_patchalbedo(tt,pp)
+      subroutine get_patchalbedo(jday,pp)
 !@sum !* Return albedo for patch.
       !* This version reads in vegetation structure from GISS data set.
       use ent_GCM_coupler, only : GISS_veg_albedo
       implicit none
-      type(timestruct) :: tt
+      integer :: jday  !Day of year.
+      !type(timestruct) :: tt
       type(patch),pointer :: pp
       !------
 
@@ -33,7 +34,7 @@
       !---------------------------------------------------------------
 
       call GISS_veg_albedo(pp%cellptr%latj,pp%tallest%pft,
-     &     tt%jday, pp%albedo)
+     &     jday, pp%albedo)
 
       !---------------------------------------------------------------
       !* Ent template for GORT clumping index canopy radiative transfer.

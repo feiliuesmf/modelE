@@ -276,12 +276,12 @@
 
 
 !****************************************************************************
-      type entdatatype
-        real longmin, longmax, latmin, latmax
-        integer longi,latj
-        type(timestruct),pointer :: tt      !Greenwich Mean Time
-        type (entcelltype),pointer :: grid(:,:)
-      end type entdatatype
+!      type entdatatype
+!        real longmin, longmax, latmin, latmax
+!        integer longi,latj
+!        type(timestruct),pointer :: tt      !Greenwich Mean Time
+!        type (entcelltype),pointer :: grid(:,:)
+!      end type entdatatype
 
 
       end module ent_types
