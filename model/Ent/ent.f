@@ -100,6 +100,20 @@
       end subroutine ent_integrate
 
       !*********************************************************************
+      subroutine ent_biophysics(dtsec, ecp)
+      implicit none
+      real*8 :: dtsec  !dt in seconds
+      type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
+      type(entcelltype) :: ecp
+      !-----local--------
+      type(patch),pointer :: pp
+
+      pp = ecp%sumpatch
+      call photosynth_cond(dtsec, pp)
+      call summarize_patch(tt,pp)
+
+      end subroutine ent_biophysics
+      !*********************************************************************
 
       function STRUCT_FLAG(tt, ecp) Result(update_struct)
 !@sum Flag to determine if it's time to update vegetation structure.
