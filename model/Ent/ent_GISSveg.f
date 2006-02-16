@@ -1,7 +1,7 @@
-      module ent_GCM_coupler
+      module ent_GISSveg
 
       use ent_const, only : pi, JEQUATOR, N_COVERTYPES,N_DEPTH
-      use ent_types, only : timestruct
+      use ent_types
       !use GCM_module, only:  GCMi, GCMj !Fix to names from GCM
 
       implicit none
@@ -33,7 +33,7 @@
       !*********************************************************************
 
       subroutine GISS_vegdata(jday, year, im,jm,I0,I1,J0,J1,
-     &     vegdata,laidata,hdata,nmdata)
+     &     vegdata,laidata,hdata,nmdata,frootdata)
       integer,intent(in) :: jday, year
       integer,intent(in) :: im,jm,I0,I1,J0,J1 !long/lat grid number range
       real*8,intent(out) :: vegdata(I0:I1,J0:J1,N_COVERTYPES)
@@ -52,13 +52,14 @@
       call GISS_get_initnm(nmdata) !nm
       call GISS_get_froot(frootdata)
 
-      end subroutine GISS_get_vegdata
+      end subroutine GISS_vegdata
 
       !*********************************************************************
       subroutine init_simple_entcell( ecp, jday,
      i vegdata,laidata,hdata,nmdata,frootdata )
       !@sum Initializes an entcell assuming one cohort per patch.
       type(entcelltype) :: ecp
+      integer,intent(in) :: jday
       real*8,intent(out) :: vegdata(N_COVERTYPES) !Veg cover fractions.
       real*8,intent(out) :: laidata(N_COVERTYPES) !LAI
       real*8,intent(out) :: hdata(N_COVERTYPES) !Height
@@ -77,7 +78,7 @@
           !## Supply also geometry, clumping index
           call insert_cohort(pp,pnum,0.d0,hdata(pnum),
      &         nmdata(pnum),
-     &         0.d0,0.d0,0.d0,0.d0,laidata(i,j,pnum),0.d0,froot,
+     &         0.d0,0.d0,0.d0,0.d0,laidata(pnum),0.d0,frootdata,
      &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
      &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
      &         0.d0,0.d0,0.d0,0.d0,0.d0,
@@ -90,17 +91,27 @@
       end subroutine init_simple_entcell
 
       !*********************************************************************
-      subroutine ent_GISS_vegupdate(entcells,im,jm,jday,year,latj)
-      type(entcelltype) :: entcell(:,:)
-      integer :: im,jm,jday,year,latj
+      subroutine ent_GISS_vegupdate(entcells,im,jm,jday,year,latj,
+     i     YEAR_FLAG)
+      type(entcelltype) :: entcells(:,:)
+      integer,intent(in) :: im,jm,jday,year,latj
+      integer,intent(in) :: YEAR_FLAG
+      !----Local------
+      integer :: i,j
+      type(patch),pointer :: pp
 
-      pp = entcells%oldest
-      do while ASSOCIATE(pp)
-        call GISS_phenology(jday,latj, pp)
-        pp = pp%younger
+      do i=1,im
+        do j=1,jm
+          pp = entcells(i,j)%oldest
+          do while (ASSOCIATED(pp))
+            call GISS_phenology(jday,latj, pp)
+            call summarize_patch(pp)
+            pp = pp%younger
+          end do
+        end do
       end do
 
-      if (YEAR_FLAG) call ent_GISS_init(entcells,im,jm,jday,year)
+      if (YEAR_FLAG.eq.0) call ent_GISS_init(entcells,im,jm,jday,year)
       !!!### REORGANIZE WTIH ent_prog.f ####!!!
       
       end subroutine ent_GISS_vegupdate
