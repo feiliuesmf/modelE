@@ -19,7 +19,7 @@
 
       contains
       !*********************************************************************
-      subroutine ent_ecosystem_dynamics(dtsec,tt,ecp)
+      subroutine ent_ecosystem_dynamics(dtsec,tt,latj,ecp)
 !@sum Ent ecosystem dynamics.
       use phenology
       use disturbance
@@ -30,12 +30,28 @@
 
       real*8,intent(in) :: dtsec
       type(timestruct),pointer :: tt
+      integer,intent(in) :: latj
       type(entcelltype) :: ecp
+      type(patch) :: pp
 !      write(*,*) 'Ecosystem dynamics for (long,lat)=(',
 !     & ecp%long,ecp%lat,'),tt=',tt
 
-      call ent_integrate(dtsec,tt,ecp) !Biophysics, growth/allom, reproduction
-      
+      pp = ecp%sumpatch
+
+      if (ALBEDO_FLAG) then
+        call get_patchalbedo(pp)
+      end if
+
+      call ent_integrate(dtsec,tt,ecp) !Biophysics, respiration
+
+      if (STRUCT_FLAG(tt,ecp)) then
+        call reproduction_calc(dtsec, tt, pp)
+        call reorganize_cohorts(pp)
+        call phenology_update (dtsec,tt,latj, pp) !UPDATE LAI
+        call recalc_radpar (pp) !UPDATE canopy radiative transfer
+      end if
+      call summarize_patch(pp)
+
       !Flag when it's time to update disturbance.
       !May be at set time intervals, or function of biomass accumulation, etc.
       !For now, monthly update as a place holder.
@@ -55,7 +71,7 @@
       end subroutine ent_ecosystem_dynamics
 
       !*********************************************************************
-      subroutine ent_integrate(dtsec, tt, ecp)
+      subroutine ent_integrate(dtsec, tt, latj,ecp)
 !@sum Ent biophysics/biogeochemistry
       use reproduction
       use cohorts
@@ -71,6 +87,7 @@
       implicit none
       real*8 :: dtsec  !dt in seconds
       type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
+      integer,intent(in) :: latj
       type(entcelltype) :: ecp
       !-----local--------
       type(patch),pointer :: pp
@@ -80,20 +97,12 @@
       !do while (ASSOCIATED(pp)) 
       !***GISS version:  pass in ecp%sumpatch
       pp = ecp%sumpatch
-        call photosynth_cond(dtsec, pp)
-        call uptake_N(dtsec, pp)
-        call litter(dtsec, tt, pp)
-        call soil_bgc(dtsec, pp)
-        if (STRUCT_FLAG(tt,ecp)) then
-          call reproduction_calc(dtsec, tt, pp)
-          call reorganize_cohorts(pp)
-        end if
-      !end do !****Ent final version
+      call photosynth_cond(dtsec, pp)
+      call uptake_N(dtsec, pp)!?
+      call litter(dtsec, tt, pp) 
+      call soil_bgc(dtsec, pp)
 
-      if (STRUCT_FLAG(tt,pp%cellptr)) then
-        call phenology_update (dtsec,tt, pp) !UPDATE LAI
-        call recalc_radpar (pp) !UPDATE canopy radiative transfer
-      end if
+      !end do !****Ent final version
 
       call summarize_patch(jday,pp)
 

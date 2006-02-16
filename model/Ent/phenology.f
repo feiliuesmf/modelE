@@ -27,16 +27,17 @@
       end subroutine phenology_update_cell
       !*********************************************************************
       
-      subroutine phenology_update(dtsec, tt, pp)
+      subroutine phenology_update(dtsec, tt, latj,pp)
 !@sum Update phenology for a patch.
       use ent_GCM_coupler, only : GISS_phenology
       real*8 :: dtsec           !dt in seconds
       type(timestruct) :: tt  !Greenwich Mean Time
+      integer,intent(in) :: latj !j index for latitude of entcell
       type(patch),pointer :: pp
 
       !---------------------------------------------------------------
       !* GISS VERSION:  JUST UPDATES LAI USING MATTHEWS PRESCRIPTION
-      call GISS_phenology(tt%jday, pp)
+      call GISS_phenology(tt%jday,latj, pp)
 
       end subroutine phenology_update
 

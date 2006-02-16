@@ -67,7 +67,7 @@
 
       !*********************************************************************
 
-      subroutine summarize_patch(jday,pp)
+      subroutine summarize_patch(pp)
       !* Calculates patch-level summary values of cohort pools.
       ! * Intensive properties (e.g. geometry, LMA) are averages weighted by
       ! total number of individuals (may want to do by biomass of cohort)
@@ -75,8 +75,6 @@
       use cohorts, only: zero_cohort
       use canopyrad
       implicit none
-      !type(timestruct),pointer :: ttime
-      integer :: jday
       type(patch),pointer :: pp
       !-----Local variables-------
       type(cohort),pointer :: scop, cop
@@ -169,7 +167,7 @@
       pp%nm = scop%nm
 
       !* Flux variables for GCM/EWB - patch total
-      call get_patchalbedo(jday,pp)
+      !##### call get_patchalbedo(jday,pp)######
       !pp%z0 =0.d0               !## Dummy ##!
       !pp%GCANOPY      !Calculated by biophysics
       !pp%CO2flux      !Calculate by biophysics
