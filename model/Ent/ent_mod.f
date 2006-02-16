@@ -653,7 +653,7 @@
       entcell%entcell%Idir = total_visible_rad
       entcell%entcell%Ivis = direct_visible_rad
       entcell%entcell%Solarzen = solar_zenith_angle
-      do n=1,NSOILLAYERS
+      do n=1,N_DEPTH
         entcell%entcell%Soilmoist(n) = soil_water(n)
         entcell%entcell%Soilmp(n) = soil_matric_pot(n)
         entcell%entcell%fice(n) = soil_ice_fraction(n)
@@ -707,7 +707,7 @@
       entcell%entcell%Idir = total_visible_rad
       entcell%entcell%Ivis = direct_visible_rad
       entcell%entcell%Solarzen = solar_zenith_angle
-      do n=1,NSOILLAYERS
+      do n=1,N_DEPTH
         entcell(:)%entcell%Soilmoist(n) = soil_water(n,:)
         entcell(:)%entcell%Soilmp(n) = soil_matric_pot(n,:)
         entcell(:)%entcell%fice(n) = soil_ice_fraction(n,:)
@@ -761,7 +761,7 @@
       entcell%entcell%Idir = total_visible_rad
       entcell%entcell%Ivis = direct_visible_rad
       entcell%entcell%Solarzen = solar_zenith_angle
-      do n=1,NSOILLAYERS
+      do n=1,N_DEPTH
         entcell(:,:)%entcell%Soilmoist(n) = soil_water(n,:,:)
         entcell(:,:)%entcell%Soilmp(n) = soil_matric_pot(n,:,:)
         entcell(:,:)%entcell%fice(n) = soil_ice_fraction(n,:,:)
@@ -838,7 +838,7 @@
         ! compute it here ?
 
       if ( present(beta_soil_layers) ) then
-        do n=1,NSOILLAYERS
+        do n=1,N_DEPTH
           beta_soil_layers(n) = entcell%entcell%betadl(n)
         enddo
       endif
@@ -926,13 +926,13 @@
         ! compute it here ?
 
       if ( present(beta_soil_layers) ) then
-        do n=1,NSOILLAYERS
+        do n=1,N_DEPTH
           beta_soil_layers(n:,) = entcell(:)%entcell%betadl(n)
         enddo
       endif
 
       if ( present(beta_soil_layers) ) then
-        do n=1,NSOILLAYERS
+        do n=1,N_DEPTH
           beta_soil_layers(n,:) = entcell(:)%entcell%betadl(n)
         enddo
       endif
@@ -1021,7 +1021,7 @@
         endif
 
       if ( present(beta_soil_layers) ) then
-        do n=1,NSOILLAYERS
+        do n=1,N_DEPTH
           beta_soil_layers(n,:,:) = entcell(:,:)%entcell%betadl(n)
         enddo
       endif
