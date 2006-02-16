@@ -10,7 +10,7 @@
 
 
       public 
-     &     GISS_vegdata,
+     &     GISS_vegdata,ent_GISS_vegupdate,
      &     GISS_get_vdata, GISS_get_laidata, 
      &     GISS_get_hdata, GISS_get_initnm,
      &     GISS_update_vegcrops, GISS_phenology,
@@ -90,7 +90,7 @@
       end subroutine init_simple_entcell
 
       !*********************************************************************
-      subroutine ent_prescribed_vegupdate(entcells,im,jm,jday,year,latj)
+      subroutine ent_GISS_vegupdate(entcells,im,jm,jday,year,latj)
       type(entcelltype) :: entcell(:,:)
       integer :: im,jm,jday,year,latj
 
@@ -103,7 +103,7 @@
       if (YEAR_FLAG) call ent_GISS_init(entcells,im,jm,jday,year)
       !!!### REORGANIZE WTIH ent_prog.f ####!!!
       
-      end subroutine ent_prescribed_vegupdate
+      end subroutine ent_GISS_vegupdate
       !*********************************************************************
 
       subroutine GISS_get_vdata(im,I0,I1,J0,J1,vdata)
