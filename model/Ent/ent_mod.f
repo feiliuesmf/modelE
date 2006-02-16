@@ -610,96 +610,224 @@
 
       subroutine ent_set_forcings_single( entcell,
      &     canopy_temperature,
-     &     direct_visible_rad,
+     &     canopy_air_humidity,      
+     &     surf_pressure,            
+     &     surf_CO2,                 
+     &     precip,                   
+     &     heat_transfer_coef,       
+     &     wind_speed,               
      &     total_visible_rad,
-     &     )
+     &     direct_visible_rad,
+     &     solar_zenith_angle,
+     &     soil_water,
+     &     soil_matric_pot,
+     &     soil_ice_fraction,
+     &     ) ! need to pass Ci, Qf ??
       type(entcelltype_public), intent(in) :: entcell
       ! forcings probably should not be optional ...
-      real*8 :: canopy_temperature
-      real*8 :: direct_short_wave
+      real*8, intent(in) ::
+     &     canopy_temperature,
+     &     canopy_air_humidity,
+     &     surf_pressure,
+     &     surf_CO2,
+     &     precip,
+     &     heat_transfer_coef,
+     &     wind_speed,
+     &     total_visible_rad,
+     &     direct_visible_rad,
+     &     solar_zenith_angle
+      real*8, dimension(:), intent(in) ::
+     &     soil_water,
+     &     soil_matric_pot,
+     &     soil_ice_fraction
       !----------
-      real*8 alai
+      integer n
 
       entcell%entcell%TcanopyC = canopy_temperature
-      entcell%entcell%Idir     = total_visible_rad
-      entcell%entcell%Ivis     = direct_visible_rad
+      entcell%entcell%Qv = canopy_air_humidity
+      entcell%entcell%P_mbar = surf_pressure
+      entcell%entcell%Ca = surf_CO2
+      entcell%entcell%Precip = precip
+      entcell%entcell%Ch = heat_transfer_coef
+      entcell%entcell%U = wind_speed
+      entcell%entcell%Idir = total_visible_rad
+      entcell%entcell%Ivis = direct_visible_rad
+      entcell%entcell%Solarzen = solar_zenith_angle
+      do n=1,NSOILLAYERS
+        entcell%entcell%Soilmoist(n) = soil_water(n)
+        entcell%entcell%Soilmp(n) = soil_matric_pot(n)
+        entcell%entcell%fice(n) = soil_ice_fraction(n)
+      enddo
 
       end subroutine ent_set_forcings_single
 
+
       subroutine ent_set_forcings_array_1d( entcell,
      &     canopy_temperature,
-     &     direct_visible_rad,
+     &     canopy_air_humidity,      
+     &     surf_pressure,            
+     &     surf_CO2,                 
+     &     precip,                   
+     &     heat_transfer_coef,       
+     &     wind_speed,               
      &     total_visible_rad,
-     &     )
-      type(entcelltype_public), intent(in) :: entcell(:)
+     &     direct_visible_rad,
+     &     solar_zenith_angle,
+     &     soil_water,
+     &     soil_matric_pot,
+     &     soil_ice_fraction,
+     &     ) ! need to pass Ci, Qf ??
+      type(entcelltype_public), dimension(:) intent(in) :: entcell
       ! forcings probably should not be optional ...
-      real*8 :: canopy_temperature(:)
-      real*8 :: direct_visible_rad(:)
-      real*8 :: total_visible_rad(:)
-     !----------
-      real*8 alai
+      real*8, dimension(:)  ::
+     &     canopy_temperature,
+     &     canopy_air_humidity,
+     &     surf_pressure,
+     &     surf_CO2,
+     &     precip,
+     &     heat_transfer_coef,
+     &     wind_speed,
+     &     total_visible_rad,
+     &     direct_visible_rad,
+     &     solar_zenith_angle
+      real*8, dimension(:,:), intent(in) ::
+     &     soil_water,
+     &     soil_matric_pot,
+     &     soil_ice_fraction
+      !----------
+      integer n
 
-      entcell(:)%entcell%TcanopyC = canopy_temperature(:)
-      entcell(:)%entcell%Idir     = total_visible_rad(:)
-      entcell(:)%entcell%Ivis     = direct_visible_rad(:)
+      entcell%entcell%TcanopyC = canopy_temperature
+      entcell%entcell%Qv = canopy_air_humidity
+      entcell%entcell%P_mbar = surf_pressure
+      entcell%entcell%Ca = surf_CO2
+      entcell%entcell%Precip = precip
+      entcell%entcell%Ch = heat_transfer_coef
+      entcell%entcell%U = wind_speed
+      entcell%entcell%Idir = total_visible_rad
+      entcell%entcell%Ivis = direct_visible_rad
+      entcell%entcell%Solarzen = solar_zenith_angle
+      do n=1,NSOILLAYERS
+        entcell(:)%entcell%Soilmoist(n) = soil_water(n,:)
+        entcell(:)%entcell%Soilmp(n) = soil_matric_pot(n,:)
+        entcell(:)%entcell%fice(n) = soil_ice_fraction(n,:)
+      enddo
 
       end subroutine ent_set_forcings_array_1d
 
 
       subroutine ent_set_forcings_array_2d( entcell,
      &     canopy_temperature,
-     &     direct_visible_rad,
+     &     canopy_air_humidity,      
+     &     surf_pressure,            
+     &     surf_CO2,                 
+     &     precip,                   
+     &     heat_transfer_coef,       
+     &     wind_speed,               
      &     total_visible_rad,
-     &     )
-      type(entcelltype_public), intent(in) :: entcell(:,:)
+     &     direct_visible_rad,
+     &     solar_zenith_angle,
+     &     soil_water,
+     &     soil_matric_pot,
+     &     soil_ice_fraction,
+     &     ) ! need to pass Ci, Qf ??
+      type(entcelltype_public), dimension(:,:) intent(in) :: entcell
       ! forcings probably should not be optional ...
-      real*8 :: canopy_temperature(:,:)
-      real*8 :: direct_visible_rad(:,:)
-      real*8 :: total_visible_rad(:,:)
-     !----------
-      real*8 alai
+      real*8, dimension(:,:)  ::
+     &     canopy_temperature,
+     &     canopy_air_humidity,
+     &     surf_pressure,
+     &     surf_CO2,
+     &     precip,
+     &     heat_transfer_coef,
+     &     wind_speed,
+     &     total_visible_rad,
+     &     direct_visible_rad,
+     &     solar_zenith_angle
+      real*8, dimension(:,:,:), intent(in) ::
+     &     soil_water,
+     &     soil_matric_pot,
+     &     soil_ice_fraction
+      !----------
+      integer n
 
-      entcell(:,:)%entcell%TcanopyC = canopy_temperature(:,:)
-      entcell(:,:)%entcell%Idir     = total_visible_rad(:,:)
-      entcell(:,:)%entcell%Ivis     = direct_visible_rad(:,:)
+      entcell%entcell%TcanopyC = canopy_temperature
+      entcell%entcell%Qv = canopy_air_humidity
+      entcell%entcell%P_mbar = surf_pressure
+      entcell%entcell%Ca = surf_CO2
+      entcell%entcell%Precip = precip
+      entcell%entcell%Ch = heat_transfer_coef
+      entcell%entcell%U = wind_speed
+      entcell%entcell%Idir = total_visible_rad
+      entcell%entcell%Ivis = direct_visible_rad
+      entcell%entcell%Solarzen = solar_zenith_angle
+      do n=1,NSOILLAYERS
+        entcell(:,:)%entcell%Soilmoist(n) = soil_water(n,:,:)
+        entcell(:,:)%entcell%Soilmp(n) = soil_matric_pot(n,:,:)
+        entcell(:,:)%entcell%fice(n) = soil_ice_fraction(n,:,:)
+      enddo
 
       end subroutine ent_set_forcings_array_2d
 
 
 
+
       subroutine ent_get_exports_single( entcell,
      &     canopy_conductance,
+     &     beta_soil_layers,
+     &     shortwave_transmit,
+     &     foliage_CO2,
+     &     foliage_humidity,
      &     canopy_gpp,
+     &     roughness_length,
+     &     flux_CO2,
+     &     albedo,
      &     canopy_max_H2O,
      &     canopy_heat_capacity,
      &     fraction_of_vegetated_soil,
      &     vegetation_fractions
      &     )
       type(entcelltype_public), intent(in) :: entcell
-      real*8, optional :: canopy_conductance
-      real*8, optional :: canopy_gpp
-      real*8, optional :: canopy_holding_capacity
-      real*8, optional :: canopy_heat_capacity
-      real*8, optional :: fraction_of_vegetated_soil
-      real*8, optional, dimension(:) :: vegetation_fractions
+      real*8, optional, intent(out) ::
+     &     canopy_conductance,
+     &     shortwave_transmit,
+     &     foliage_CO2,
+     &     foliage_humidity,
+     &     canopy_gpp,
+     &     roughness_length,
+     &     flux_CO2,
+     &     canopy_max_H2O,
+     &     canopy_heat_capacity,
+     &     fraction_of_vegetated_soil
+      real*8, dimension(:), optional, intent(out) ::
+     &     beta_soil_layers,
+     &     albedo,
+     &     vegetation_fractions
       !----------
-      real*8 alai
 
-      if ( present(canopy_conductance) ) then
-        canopy_conductance = entcell%entcell%GCANOPY
-      endif
+      if ( present(canopy_conductance) )
+     &     canopy_conductance = entcell%entcell%gcanopy
 
-      if ( present(canopy_gpp) ) then
-        canopy_gpp = entcell%entcell%GPP
-      endif
+      if ( present(shortwave_transmit) )
+     &     shortwave_transmit = entcell%entcell%TRANS_SW
 
-      ! the values below are needed by GISS GCM
-      ! haven't decided yet what is the best way to extract them
+      if ( present(foliage_CO2) )
+     &     foliage_CO2 = entcell%entcell%Ci
 
-      if ( present(canopy_holding_capacity) ) then
-        alai = entcell%entcell%alai
-        canopy_max_H2O = .0001d0 * alai
-      endif
+      if ( present(foliage_humidity) )
+     &     foliage_humidity = entcell%entcell%Qf
+
+      if ( present(canopy_gpp) )
+     &     canopy_gpp = entcell%entcell%GPP
+
+      if ( present(roughness_length) )
+     &     roughness_length = entcell%entcell%z0
+
+      if ( present(flux_CO2) )
+     &     flux_CO2 = entcell%entcell%CO2flux
+
+      if ( present(canopy_max_H2O) )
+     &     canopy_max_H2O = entcell%entcell%LAI * .0001d0 !!! GISS setting
 
       if ( present(canopy_heat_capacity) ) then
         !aa=ala(1,i0,j0)
@@ -707,51 +835,213 @@
       endif
 
       if ( present(fraction_of_vegetated_soil) ) then
-        !fraction_of_vegetated_soil = sum( vdata(i,j,2:9 )
+        ! compute it here ?
+
+      if ( present(beta_soil_layers) ) then
+        do n=1,NSOILLAYERS
+          beta_soil_layers(n) = entcell%entcell%betadl(n)
+        enddo
+      endif
+
+      if ( present(albedo) ) then
+        do n=1,N_BANDS
+          albedo(n) = entcell%entcell%albedo(n)
+        enddo
       endif
 
       if ( present(vegetation_fractions) ) then
+        do n=1,N_PFT
+        ! extract those here ?
         !vegetation_fractions(:) = vdata(i,j,:)
+        enddo
       endif
-
 
       end subroutine ent_get_exports_single
 
 
       subroutine ent_get_exports_array_1d( entcell,
      &     canopy_conductance,
-     &     canopy_gpp
+     &     beta_soil_layers,
+     &     shortwave_transmit,
+     &     foliage_CO2,
+     &     foliage_humidity,
+     &     canopy_gpp,
+     &     roughness_length,
+     &     flux_CO2,
+     &     albedo,
+     &     canopy_max_H2O,
+     &     canopy_heat_capacity,
+     &     fraction_of_vegetated_soil,
+     &     vegetation_fractions
      &     )
-      type(entcelltype_public), intent(in) :: entcell(:)
-      real*8, optional :: canopy_conductance(:)
-      real*8, optional :: canopy_gpp(:)
+      type(entcelltype_public), dimension(:) intent(in) :: entcell
+      real*8, dimension(:), optional, intent(out) ::
+     &     canopy_conductance,
+     &     shortwave_transmit,
+     &     foliage_CO2,
+     &     foliage_humidity,
+     &     canopy_gpp,
+     &     roughness_length,
+     &     flux_CO2,
+     &     canopy_max_H2O,
+     &     canopy_heat_capacity,
+     &     fraction_of_vegetated_soil
+      real*8, dimension(:,:), optional, intent(out) ::
+     &     beta_soil_layers,
+     &     albedo,
+     &     vegetation_fractions
       !----------
+      integer n
 
       if ( present(canopy_conductance) )
-     &     canopy_conductance(:) = entcell(:)%entcell%GCANOPY
- 
+     &     canopy_conductance = entcell%entcell%gcanopy
+
+      if ( present(shortwave_transmit) )
+     &     shortwave_transmit = entcell%entcell%TRANS_SW
+
+      if ( present(foliage_CO2) )
+     &     foliage_CO2 = entcell%entcell%Ci
+
+      if ( present(foliage_humidity) )
+     &     foliage_humidity = entcell%entcell%Qf
+
       if ( present(canopy_gpp) )
-     &     canopy_gpp(:) = entcell(:)%entcell%GPP
+     &     canopy_gpp = entcell%entcell%GPP
+
+      if ( present(roughness_length) )
+     &     roughness_length = entcell%entcell%z0
+
+      if ( present(flux_CO2) )
+     &     flux_CO2 = entcell%entcell%CO2flux
+
+      if ( present(canopy_max_H2O) )
+     &     canopy_max_H2O = entcell%entcell%LAI * .0001d0 !!! GISS setting
+
+      if ( present(canopy_heat_capacity) ) then
+        !aa=ala(1,i0,j0)
+        !canopy_heat_capacity=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+      endif
+
+      if ( present(fraction_of_vegetated_soil) ) then
+        ! compute it here ?
+
+      if ( present(beta_soil_layers) ) then
+        do n=1,NSOILLAYERS
+          beta_soil_layers(n:,) = entcell(:)%entcell%betadl(n)
+        enddo
+      endif
+
+      if ( present(beta_soil_layers) ) then
+        do n=1,NSOILLAYERS
+          beta_soil_layers(n,:) = entcell(:)%entcell%betadl(n)
+        enddo
+      endif
+
+      if ( present(albedo) ) then
+        do n=1,N_BANDS
+          albedo(n,:) = entcell(:)%entcell%albedo(n)
+        enddo
+      endif
+
+      if ( present(vegetation_fractions) ) then
+        do n=1,N_PFT
+        ! extract those here ?
+        !vegetation_fractions(:) = vdata(i,j,:)
+        enddo
+      endif
 
       end subroutine ent_get_exports_array_1d
 
 
       subroutine ent_get_exports_array_2d( entcell,
      &     canopy_conductance,
-     &     canopy_gpp
+     &     beta_soil_layers,
+     &     shortwave_transmit,
+     &     foliage_CO2,
+     &     foliage_humidity,
+     &     canopy_gpp,
+     &     roughness_length,
+     &     flux_CO2,
+     &     albedo,
+     &     canopy_max_H2O,
+     &     canopy_heat_capacity,
+     &     fraction_of_vegetated_soil,
+     &     vegetation_fractions
      &     )
-      type(entcelltype_public), intent(in) :: entcell(:,:)
-      real*8, optional :: canopy_conductance(:,:)
-      real*8, optional :: canopy_gpp(:,:)
+      type(entcelltype_public), dimension(:,:) intent(in) :: entcell
+      real*8, dimension(:,:), optional, intent(out) ::
+     &     canopy_conductance,
+     &     shortwave_transmit,
+     &     foliage_CO2,
+     &     foliage_humidity,
+     &     canopy_gpp,
+     &     roughness_length,
+     &     flux_CO2,
+     &     canopy_max_H2O,
+     &     canopy_heat_capacity,
+     &     fraction_of_vegetated_soil
+      real*8, dimension(:,:,:), optional, intent(out) ::
+     &     beta_soil_layers,
+     &     albedo,
+     &     vegetation_fractions
       !----------
+      integer n
 
       if ( present(canopy_conductance) )
-     &     canopy_conductance(:,:) = entcell(:,:)%entcell%GCANOPY
- 
+     &     canopy_conductance = entcell%entcell%gcanopy
+
+      if ( present(shortwave_transmit) )
+     &     shortwave_transmit = entcell%entcell%TRANS_SW
+
+      if ( present(foliage_CO2) )
+     &     foliage_CO2 = entcell%entcell%Ci
+
+      if ( present(foliage_humidity) )
+     &     foliage_humidity = entcell%entcell%Qf
+
       if ( present(canopy_gpp) )
-     &     canopy_gpp(:,:) = entcell(:,:)%entcell%GPP
+     &     canopy_gpp = entcell%entcell%GPP
+
+      if ( present(roughness_length) )
+     &     roughness_length = entcell%entcell%z0
+
+      if ( present(flux_CO2) )
+     &     flux_CO2 = entcell%entcell%CO2flux
+
+      if ( present(canopy_max_H2O) )
+     &     canopy_max_H2O = entcell%entcell%LAI * .0001d0 !!! GISS setting
+
+      if ( present(canopy_heat_capacity) ) then
+        !aa=ala(1,i0,j0)
+        !canopy_heat_capacity=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+      endif
+
+      if ( present(fraction_of_vegetated_soil) ) then
+        ! compute it here ?
+        endif
+
+      if ( present(beta_soil_layers) ) then
+        do n=1,NSOILLAYERS
+          beta_soil_layers(n,:,:) = entcell(:,:)%entcell%betadl(n)
+        enddo
+      endif
+
+      if ( present(albedo) ) then
+        do n=1,N_BANDS
+          albedo(n,:,:) = entcell(:,:)%entcell%albedo(n)
+        enddo
+      endif
+
+      if ( present(vegetation_fractions) ) then
+        do n=1,N_PFT
+        ! extract those here ?
+        !vegetation_fractions(:) = vdata(i,j,:)
+        enddo
+      endif
 
       end subroutine ent_get_exports_array_2d
+
+
 
 
 
