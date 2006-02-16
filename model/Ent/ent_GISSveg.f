@@ -527,4 +527,4 @@ c**** calculate root fraction afr averaged over vegetation types
       end subroutine GISS_get_initnm
 
 !*************************************************************************
-      end module ent_GCM_coupler
+      end module ent_GISSveg
