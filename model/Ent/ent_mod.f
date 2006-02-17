@@ -455,8 +455,8 @@
       subroutine ent_cell_pack(ibuf, dbuf, entcell)
 !@sum allocate two linear arrays ibuf, dbuf and pack contents of
 !@+   entcell into them
-      integer, pointer, intent(out) :: ibuf(:)
-      real*8, pointer, intent(out) :: dbuf(:)
+      integer, pointer :: ibuf(:)
+      real*8, pointer :: dbuf(:)
       type(entcelltype_public), intent(in) :: entcell ! pointer ?
       !---
       type(patch), pointer :: p  !@var p current patch
