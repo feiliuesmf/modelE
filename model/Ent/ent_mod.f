@@ -34,6 +34,13 @@
         module procedure ent_cell_destruct_array_2d
       end interface
 
+      !--- passing initial data to ent cells ---
+      interface ent_cell_set
+        module procedure ent_cell_set_single
+        module procedure ent_cell_set_array_1d
+        module procedure ent_cell_set_array_2d
+      end interface
+
       !--- set forcings / get exports ---
       interface ent_set_forcings
         module procedure ent_set_forcings_single
@@ -339,8 +346,97 @@
 
 !---- END of  Constructor / Destructor -----
 
+      
+      subroutine ent_cell_set_single(entcell,
+     &     veg_fraction,
+     &     population_density,
+     &     leaf_area_index,
+     &     pft_hights,
+     &     pft_nmdata,
+     &     pft_froots
+     &     )
+      type(entcelltype_public), intent(out) :: entcell
+      real*8, dimension(:)  ::   ! dim=N_COVERTYPES
+     &     veg_fraction,
+     &     population_density,
+     &     leaf_area_index
+      real*8, dimension(:)  ::   ! dim=N_COVERTYPES
+     &     pft_hights,
+     &     pft_nmdata
+      real*8, dimension(:,:)  :: pft_froots
+
+      call init_simple_entcell( entcell%entcell,
+     &     veg_fraction, population_density, leaf_area_index,
+     &     pft_hights, pft_nmdata, pft_froots )
+      
+      end subroutine ent_cell_set_single
 
 
+      subroutine ent_cell_set_array_1d(entcell,
+     &     veg_fraction,
+     &     population_density,
+     &     leaf_area_index,
+     &     pft_hights,
+     &     pft_nmdata,
+     &     pft_froots
+     &     )
+      type(entcelltype_public), intent(out) :: entcell(:)
+      real*8, dimension(:,:)  ::   ! dim=N_COVERTYPES, n
+     &     veg_fraction,
+     &     population_density,
+     &     leaf_area_index,
+      real*8, dimension(:)  ::   ! dim=N_COVERTYPES
+     &     pft_hights,
+     &     pft_nmdata
+      real*8, dimension(:,:)  :: pft_froots
+      !---
+      integer n, nc
+
+      nc = size(entcell, 1)
+
+      do n=1,nc
+        call init_simple_entcell( entcell(n)%entcell,
+     &       veg_fraction(:,n), population_density(:,n),
+     &       leaf_area_index(:,n),
+     &       pft_hights, pft_nmdata, pft_froots )
+      enddo
+      
+      end subroutine ent_cell_set_array_1d
+
+
+      subroutine ent_cell_set_array_2d(entcell,
+     &     veg_fraction,
+     &     population_density,
+     &     leaf_area_index,
+     &     pft_hights,
+     &     pft_nmdata,
+     &     pft_froots
+     &     )
+      type(entcelltype_public), intent(out) :: entcell(:,:)
+      real*8, dimension(:,:,:)  ::   ! dim=N_COVERTYPES, n
+     &     veg_fraction,
+     &     population_density,
+     &     leaf_area_index,
+      real*8, dimension(:)  ::   ! dim=N_COVERTYPES
+     &     pft_hights,
+     &     pft_nmdata
+      real*8, dimension(:,:)  :: pft_froots
+      !---
+      integer i, j, ic, jc
+
+      ic = size(entcell, 1)
+      jc = size(entcell, 2)
+
+      do j=1,jc
+        do i=1,ic
+          call init_simple_entcell( entcell(i,j)%entcell,
+     &         veg_fraction(:,i,j), population_density(:,i,j),
+     &         leaf_area_index(:,i,j),
+     &         pft_hights, pft_nmdata, pft_froots )
+        enddo
+      enddo
+      
+      end subroutine ent_cell_set_array_2d
 
 
 

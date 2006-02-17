@@ -36,8 +36,8 @@
      &     vegdata,laidata,hdata,nmdata,frootdata)
       integer,intent(in) :: jday, year
       integer,intent(in) :: im,jm,I0,I1,J0,J1 !long/lat grid number range
-      real*8,intent(out) :: vegdata(I0:I1,J0:J1,N_COVERTYPES)
-      real*8,intent(out) :: laidata(I0:I1,J0:J1,N_COVERTYPES)
+      real*8,intent(out) :: vegdata(N_COVERTYPES,I0:I1,J0:J1)
+      real*8,intent(out) :: laidata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: hdata(N_COVERTYPES)
       real*8,intent(out) :: nmdata(N_COVERTYPES)
       real*8,intent(out) :: frootdata(N_COVERTYPES,N_DEPTH)
@@ -117,33 +117,31 @@
       end subroutine ent_GISS_vegupdate
       !*********************************************************************
 
-      subroutine GISS_get_vdata(im,I0,I1,J0,J1,vdata)
+      subroutine GISS_get_vdata(im,jm,I0,I1,J0,J1,vdata)
       !* This version reads in vegetation structure from GISS data set.
 #ifdef tempdebug
-      use DOMAIN_DECOMP :  GRID,READT_PARALLEL
       use FILEMANAGER, only : openunit,closeunit,nameunit
 #endif
-      integer, intent(in) :: im,I0,I1,J0,J1
-      real*8 :: vdata(I0:I1,J0:J1,N_COVERTYPES) 
+      integer, intent(in) :: im,jm,I0,I1,J0,J1
+      real*8, intent(out) :: vdata(N_COVERTYPES,I0:I1,J0:J1) 
       !------Local---------------------
       !1    2    3    4    5    6    7    8    9   10   11    12
       !BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE GRAC4
 #ifdef tempdebug
+      character*80 :: title
+      real*4 :: buf(im,jm)
       integer :: iu_VEG
       integer :: k
 
-      !call GET(grid, J_STRT=J_0, J_STOP=J_1, I_STOP=im)
-
-      !**** vdata ***!
+      ! make sure that unused fractions are set to 0
+      vdata(:,:,:) = 0.d0
       call openunit("VEG",iu_VEG,.true.,.true.)
 
       do k=1,N_COVERTYPES  !## HACK - this should be related to N_COVERTYPES
-        CALL READT_PARALLEL
-v     *    (grid,iu_VEG,NAMEUNIT(iu_VEG),0,vdata(:,:,k),1)
+        read(iu_VEG) title, buf
+        vdata(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1)
       end do
-      !zero-out vdata(11) until it is properly read in
-      vdata(:,:,11) = 0.
-      vdata(:,:,12) = 0.
+
       call closeunit(iu_VEG)
 #endif
       end subroutine GISS_get_vdata
@@ -203,7 +201,7 @@ v     *    (grid,iu_VEG,NAMEUNIT(iu_VEG),0,vdata(:,:,k),1)
       !* Modify vegdata given new cropdata.
       integer,intent(in) :: year
       integer, intent(in) :: i0,i1,j0,j1
-      real*8, intent(inout) :: vegdata(i0:i1,j0:j1,12)
+      real*8, intent(inout) :: vegdata(:,i0:i1,j0:j1)
       !--------
       real*8,ALLOCATABLE,dimension(:,:) :: cropdata !grid array
       integer :: i,j
@@ -220,16 +218,16 @@ v     *    (grid,iu_VEG,NAMEUNIT(iu_VEG),0,vdata(:,:,k),1)
       do j=J0,J1
         do i=I0,I1
           if ( cropdata(i,j) == 1.d0 ) then
-            vegdata(i,j,:) = 0.d0
-            vegdata(i,j,9) = 1.d0
+            vegdata(:,i,j) = 0.d0
+            vegdata(:,i,j) = 1.d0
           else
-            crops_old = vegdata(i,j,9)
+            crops_old = vegdata(9,i,j)
             if ( crops_old == 1.d0 ) then
               call stop_model("incompatible crops: old=1, new<1",255)
             endif
-            vegdata(i,j,:) = vegdata(i,j,:)
+            vegdata(:,i,j) = vegdata(:,i,j)
      $           * (1.d0-cropdata(i,j))/(1.d0-crops_old)
-            vegdata(i,j,9) = cropdata(i,j)
+            vegdata(9,i,j) = cropdata(i,j)
           endif
         end do
       end do
@@ -245,7 +243,7 @@ v     *    (grid,iu_VEG,NAMEUNIT(iu_VEG),0,vdata(:,:,k),1)
       use ent_const,only : JEQUATOR,N_COVERTYPES
       integer,intent(in) :: jday
       integer :: I0,I1,J0,J1
-      real*8 :: laidata(I0:I1,J0:J1,N_COVERTYPES) 
+      real*8 :: laidata(N_COVERTYPES,I0:I1,J0:J1) 
       !----------
       integer :: pft !@var pft vegetation type
       integer :: hemi !@var hemi =1 in N. hemisphere, =-1 in South
@@ -259,7 +257,7 @@ v     *    (grid,iu_VEG,NAMEUNIT(iu_VEG),0,vdata(:,:,k),1)
         if (j < JEQUATOR) hemi = -1
         do i=I0,I1
           do pft=1,N_COVERTYPES
-            laidata(i,j,pft) = GISS_calc_lai(pft,jday,hemi)
+            laidata(pft,i,j) = GISS_calc_lai(pft,jday,hemi)
           enddo
         enddo
       enddo
@@ -510,8 +508,8 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8 :: hdata(N_COVERTYPES) 
       !------
       real*8, parameter :: vhght(N_COVERTYPES) =
-      !* tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
-     $     (/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0
+      !* bsand tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
+     $     (/0.d0, 0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0
      &     ,0.d0, 0.d0, 1.5d0 /)
 
       !* Copy GISS code for calculating seasonal canopy height here.
@@ -529,8 +527,8 @@ c**** calculate root fraction afr averaged over vegetation types
 !@sum  Mean canopy nitrogen (nmv; g/m2[leaf])
       real*8 :: nmdata(N_COVERTYPES)
       !-------
-      real*8, parameter :: nmv(11) =
-     $     (/1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,2.50d0
+      real*8, parameter :: nmv(N_COVERTYPES) =
+     $     (/0.d0,1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,2.50d0
      &     ,0.d0, 0.d0, 0.82d0 /)
 
       !* Return intial nm for all vegetation and cover types
