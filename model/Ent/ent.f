@@ -19,27 +19,32 @@
 
       contains
       !*********************************************************************
-      subroutine ent_ecosystem_dynamics(dtsec,tt,latj,ecp)
+      subroutine ent_ecosystem_dynamics(dtsec,tt,ecp,ALBEDO_FLAG)
 !@sum Ent ecosystem dynamics.
       use phenology
       use disturbance
       use canopyrad
       use disturbance
-      use patches, only : reorganize_patches
+      use reproduction
+      use cohorts, only : reorganize_cohorts
+      use patches, only : reorganize_patches, summarize_patch
       use entcells, only : summarize_entcell
 
       real*8,intent(in) :: dtsec
       type(timestruct),pointer :: tt
-      integer,intent(in) :: latj
       type(entcelltype) :: ecp
-      type(patch) :: pp
+      logical, optional, intent(in) :: ALBEDO_FLAG
+      !---
+!>>>> I assume you want to assign a pointer IA
+      type(patch), pointer :: pp
 !      write(*,*) 'Ecosystem dynamics for (long,lat)=(',
 !     & ecp%long,ecp%lat,'),tt=',tt
 
-      pp = ecp%sumpatch
+!>>>> I assume you want to assign a pointer IA
+      pp => ecp%sumpatch
 
       if (ALBEDO_FLAG) then
-        call get_patchalbedo(pp)
+!>>>>> IA        call get_patchalbedo(pp)
       end if
 
       call ent_integrate(dtsec,tt,ecp) !Biophysics, respiration
@@ -47,7 +52,7 @@
       if (STRUCT_FLAG(tt,ecp)) then
         call reproduction_calc(dtsec, tt, pp)
         call reorganize_cohorts(pp)
-        call phenology_update (dtsec,tt,latj, pp) !UPDATE LAI
+!>>>>> IA        call phenology_update (dtsec,tt, pp) !UPDATE LAI
         call recalc_radpar (pp) !UPDATE canopy radiative transfer
       end if
       call summarize_patch(pp)
@@ -71,7 +76,7 @@
       end subroutine ent_ecosystem_dynamics
 
       !*********************************************************************
-      subroutine ent_integrate(dtsec, tt, latj,ecp)
+      subroutine ent_integrate(dtsec, tt, ecp)
 !@sum Ent biophysics/biogeochemistry
       use reproduction
       use cohorts
@@ -87,7 +92,6 @@
       implicit none
       real*8 :: dtsec  !dt in seconds
       type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
-      integer,intent(in) :: latj
       type(entcelltype) :: ecp
       !-----local--------
       type(patch),pointer :: pp
@@ -104,12 +108,14 @@
 
       !end do !****Ent final version
 
-      call summarize_patch(jday,pp)
+      call summarize_patch(pp)
 
       end subroutine ent_integrate
 
       !*********************************************************************
       subroutine ent_biophysics(dtsec, jday, ecp)
+      use biophysics, only : photosynth_cond
+      use patches, only : summarize_patch
       implicit none
       real*8 :: dtsec  !dt in seconds
       integer :: jday  !Day of year.
@@ -120,7 +126,7 @@
 
       pp = ecp%sumpatch
       call photosynth_cond(dtsec, pp)
-      call summarize_patch(jday,pp)
+      call summarize_patch(pp)
 
       end subroutine ent_biophysics
       !*********************************************************************

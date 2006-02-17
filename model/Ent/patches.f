@@ -80,7 +80,8 @@
       type(cohort),pointer :: scop, cop
       integer :: nc  !#individuals
 
-      scop = pp%sumcohort
+!>>>> I assume you want to assign a pointer IA
+      scop => pp%sumcohort
 
       !* Zero out summary variables *!
       call zero_cohort(scop)
@@ -239,9 +240,9 @@
 
             !* DIAGNOSTIC SUMMARIES
             !* Biomass pools - patch total
-            pp%LAI = 0.0 !## Get GISS alai ##!
+!>>>>> IA            pp%LAI = 0.0 !## Get GISS alai ##!
             do n=1,N_DEPTH
-              pp%froot(n) = 0.0
+!>>>>> IA              pp%froot(n) = 0.0
             end do
             pp%C_froot = 0.d0
 
@@ -306,7 +307,7 @@
         cop = cop%shorter
       end do
       if (frootC_total > 0.0) then
-        pp%froot = froot/frootC_total
+!>>>>>> IA        pp%froot = froot/frootC_total
       end if
       pp%C_froot = frootC_total
 

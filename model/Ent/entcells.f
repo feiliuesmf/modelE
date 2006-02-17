@@ -14,7 +14,7 @@
       save
 
       public zero_entcell, summarize_entcell
-
+      public init_simple_entcell
 
 
       contains
@@ -115,7 +115,7 @@
         spp%age = spp%age + pp%age
         spp%area = spp%area + pp%area 
 
-        spp%LAI = spp%LAI + pp%LAI*pp%area
+ !>>>>> IA       spp%LAI = spp%LAI + pp%LAI*pp%area
 
         do ia=1,N_BANDS  !Area-weighted average
           spp%albedo(ia) = spp%albedo(ia) + pp%albedo(ia)*pp%area
@@ -171,7 +171,7 @@
       !!!CHECK IF SPP%AREA IS ZERO!
       if (ASSOCIATED(ecp%oldest)) then
         spp%age = spp%age/spp%area
-        spp%LAI = spp%LAI/spp%area
+!>>>>> IA        spp%LAI = spp%LAI/spp%area
         
         do ia=1,N_BANDS         !Area-weighted average
           spp%albedo(ia) = spp%albedo(ia)/spp%area
@@ -225,7 +225,7 @@
         tcf = tcf + cf
         frootC_total = frootC_total + pp%C_froot
         do n=1,N_DEPTH
-          froot(n) = froot(n) + cf*pp%froot(n)*pp%C_froot
+ !>>>>> IA         froot(n) = froot(n) + cf*pp%froot(n)*pp%C_froot
         end do
         pp = pp%younger
       end do
@@ -234,4 +234,44 @@
 
 !**************************************************************************
 
+      subroutine init_simple_entcell( ecp,
+     i vegdata,popdens,laidata,hdata,nmdata,frootdata )
+      !@sum Initializes an entcell assuming one cohort per patch.
+      use patches, only : summarize_patch
+      type(entcelltype) :: ecp
+      real*8,intent(in) :: vegdata(N_COVERTYPES) !Veg cover fractions.
+      real*8,intent(in) :: popdens(N_COVERTYPES) !Veg population density
+      real*8,intent(in) :: laidata(N_COVERTYPES) !LAI
+      real*8,intent(in) :: hdata(N_COVERTYPES) !Height
+      real*8,intent(in) :: nmdata(N_COVERTYPES) !Nitrogen parameter
+      real*8,intent(in) :: frootdata(N_COVERTYPES,N_DEPTH) !Root profile.
+      !-----Local---------
+      integer :: pnum
+      type(patch),pointer :: pp
+
+      do pnum=1,N_PFT           !One patch with one cohort per pft
+      !Get from GISS GCM ## vfraction of grid cell and area.
+        if (vegdata(pnum)>0.0) then
+          !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
+          call insert_patch(ecp,vegdata(pnum))
+          pp = ecp%youngest
+          !## Supply also geometry, clumping index
+          ! insert cohort only if population density > 0 (i.e. skip bare soil)
+          if ( popdens(pnum) > EPS ) then 
+            call insert_cohort(pp,pnum,0.d0,hdata(pnum),
+     &           nmdata(pnum),
+     &           0.d0,0.d0,0.d0,0.d0,laidata(pnum),0.d0,frootdata,
+     &           0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
+     &           0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
+     &           0.d0,0.d0,0.d0,0.d0,0.d0,
+     &           0.d0,0.d0,0.d0,0.d0)
+          endif
+          call summarize_patch(pp)
+        end if
+      end do
+      call summarize_entcell(ecp)
+
+      end subroutine init_simple_entcell
+
+ !*********************************************************************
       end module entcells

@@ -3,16 +3,23 @@
 !@+   this is the only module that should be visible to GCM
  
       ! need to know about internal structure of Ent types
-      use ent_types, only : entcelltype, patch, cohort
+      use ent_types, only : entcelltype, patch, cohort, timestruct,
      &     MAX_PATCHES, MAX_COHORTS
+      use ent_const, only : N_BANDS, N_COVERTYPES, N_DEPTH
+      !use ent_GISSveg
+      use entcells
       implicit none
 
       private
 
+      !--- public constants ---
+      public N_BANDS, N_COVERTYPES, N_DEPTH
+
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings
       public ent_cell_construct, ent_cell_destruct
-      public ent_biophysics, ent_seasonal_update, ent_vegcover_update
+      public ent_fast_processes,ent_seasonal_update,ent_vegcover_update
+      public ent_cell_set
 
       type entcelltype_public
         private
@@ -78,39 +85,44 @@
 
       !---- private interfaces ----
       interface copy_vars
-        copy_vars_single
-        copy_vars_array
+        module procedure copy_vars_single
+        module procedure copy_vars_array
       end interface
 
       contains
 
 !---- interfaces to run the model one time step ----
 
-      subroutine ent_fast_processes_single(entcell)
-      use ent_driver, only : ent_model
+      subroutine ent_fast_processes_single(entcell, dt)
+      use ent, only : ent_ecosystem_dynamics
       type(entcelltype_public), intent(inout) :: entcell
+      real*8, intent(in) :: dt
       !---
-
-      call ent_model( entcell%entcell )
+      type(timestruct),pointer :: tt !!!! dummy structure 
+                                     !!!! for interface compatibility only !
+      call ent_ecosystem_dynamics(dt, tt, entcell%entcell)
 
       end subroutine ent_fast_processes_single
 
 
-      subroutine ent_fast_processes_array_1d(entcell)
+      subroutine ent_fast_processes_array_1d(entcell, dt)
       type(entcelltype_public), intent(inout) :: entcell(:)
+      real*8, intent(in) :: dt
       !---
       integer n, nc
 
       nc = size(entcell)
       do n=1,nc
-        call ent_fast_processes_single( entcell(n) )
+        call ent_fast_processes_single( entcell(n), dt )
       enddo
 
       end subroutine ent_fast_processes_array_1d
 
 
-      subroutine ent_fast_processes_array_2d(entcell)
+      subroutine ent_fast_processes_array_2d(entcell, dt)
       type(entcelltype_public), intent(inout) :: entcell(:,:)
+      real*8, intent(in) :: dt
+      !---
       integer i, ic, j, jc
 
       ic = size(entcell,1)
@@ -118,11 +130,11 @@
 
       do j=1,jc
         do i=1,ic
-          call ent_fast_processes_single( entcell(i,j) )
+          call ent_fast_processes_single( entcell(i,j), dt )
         enddo
       enddo
 
-      end subroutine ent_cell_construct_array_1d
+      end subroutine ent_fast_processes_array_2d
 
 
       subroutine ent_seasonal_update_single(entcell,
@@ -139,12 +151,12 @@
 !@+   It seems that for prescribed variation of vegeatation
 !@+   parameters we need only "jday"
 !@+   Is it OK from ESMF point of view?
-      use ent_driver, only : ent_update_veg_structure
+      !use ent_driver, only : ent_update_veg_structure
       type(entcelltype_public), intent(in) :: entcell
       integer, intent(in) :: jday !@var jday Julian day of the year
       !---
       
-      ent_update_veg_structure( entcell%entcell, jday )
+      !call ent_update_veg_structure( entcell%entcell, jday )
 
       end subroutine ent_seasonal_update_single
 
@@ -272,7 +284,7 @@
         enddo
       enddo
 
-      end subroutine ent_cell_construct_array_1d
+      end subroutine ent_cell_construct_array_2d
 
 
       subroutine ent_cell_destruct_single(entcell)
@@ -293,7 +305,7 @@
         c => p%tallest
         do while ( associated(c) )
           nc = nc + 1
-          if ( nc(np) > MAX_COHORTS )
+          if ( nc > MAX_COHORTS )
      &         call stop_model("ent_cell_destruct: too many chrts",255)
           ! destroy cohort here
           deallocate( c )
@@ -306,7 +318,7 @@
       enddo
 
       ! destroy cell here
-      if (associated(entcell%entcell%sumpatch)
+      if ( associated(entcell%entcell%sumpatch) )
      &     deallocate( entcell%entcell%sumpatch )
 
       deallocate( entcell%entcell )
@@ -315,14 +327,14 @@
       end subroutine ent_cell_destruct_single
 
 
-      subroutine ent_cell__array_1d(entcell)
+      subroutine ent_cell_destruct_array_1d(entcell)
       type(entcelltype_public), intent(inout) :: entcell(:)
       integer n, nc
 
       nc = size(entcell)
 
       do n=1,nc
-        call ent_cell_destruct_single( entcell(n)%entcell )
+        call ent_cell_destruct_single( entcell(n) )
       enddo
 
       end subroutine ent_cell_destruct_array_1d
@@ -337,11 +349,11 @@
 
       do j=1,jc
         do i=1,ic
-          call ent_cell_destruct_single( entcell(i,j)%entcell )
+          call ent_cell_destruct_single( entcell(i,j) )
         enddo
       enddo
 
-      end subroutine ent_cell_destruct_array_1d
+      end subroutine ent_cell_destruct_array_2d
 
 
 !---- END of  Constructor / Destructor -----
@@ -384,7 +396,7 @@
       real*8, dimension(:,:)  ::   ! dim=N_COVERTYPES, n
      &     veg_fraction,
      &     population_density,
-     &     leaf_area_index,
+     &     leaf_area_index
       real*8, dimension(:)  ::   ! dim=N_COVERTYPES
      &     pft_hights,
      &     pft_nmdata
@@ -416,7 +428,7 @@
       real*8, dimension(:,:,:)  ::   ! dim=N_COVERTYPES, n
      &     veg_fraction,
      &     population_density,
-     &     leaf_area_index,
+     &     leaf_area_index
       real*8, dimension(:)  ::   ! dim=N_COVERTYPES
      &     pft_hights,
      &     pft_nmdata
@@ -451,7 +463,7 @@
       type(cohort), pointer :: c !@var current cohort
       integer :: np              !@var np number of patches in the cell
       integer :: nc(MAX_PATCHES) !@var nc number of cohorts in the patch
-      integer :: ic, dc
+      integer :: ic, dc, ndbuf, nn
 
 
       ! first compute number of patches and cohorts in the cell
@@ -521,14 +533,14 @@
       subroutine ent_cell_unpack(ibuf, dbuf, entcell)
 ! this program is not finished yet: have to assign all the pointers
       integer, intent(in) :: ibuf(0:)
-      real*8, intent(in) :: dbuf(0:)
+      real*8, intent(inout) :: dbuf(0:)
       type(entcelltype_public), intent(out) :: entcell ! pointer ?
       !---
       type(patch), pointer :: p, pprev  !@var p current patch
       type(cohort), pointer :: c, cprev !@var current cohort
       integer :: np              !@var np number of patches in the cell
       integer, allocatable :: nc(:) !@var nc number of cohorts in the patch
-      integer ic, dc
+      integer ic, dc, nn
       integer i, j
       integer npdebug, ncdebug ! these are for debuging
 
@@ -549,7 +561,7 @@
         nullify( cprev)
         do j=1,nc(i)
           allocate( c )
-          call copy_cohort_vars(dbuf, nn, c, -1); dc = dc + nn
+          call copy_cohort_vars(dbuf, nn, c, 1); dc = dc + nn
           c%taller => cprev
           cprev => c
         enddo
@@ -593,9 +605,9 @@
 !@copy variable to/from buffer
 !@+   !!! may need to write similar for arrays and create an interface
 !@+   !!! in that case "n" will have non-triial value
-      real*8, intent(out) :: buf(:)
+      real*8, intent(inout) :: buf(:)
       integer, intent(out) :: n
-      real*8, intent(in):: var
+      real*8, intent(inout):: var
 !@var flag defines the actual action:
 !@+     -1 copy from var to buffer
 !@+      1 copy from buffer to var
@@ -620,9 +632,9 @@
 !@copy variable to/from buffer
 !@+   !!! may need to write similar for arrays and create an interface
 !@+   !!! in that case "n" will have non-triial value
-      real*8, intent(out) :: buf(:)
+      real*8, intent(inout) :: buf(:)
       integer, intent(out) :: n
-      real*8, intent(in):: var(:)
+      real*8, intent(inout):: var(:)
 !@var flag defines the actual action:
 !@+     -1 copy from var to buffer
 !@+      1 copy from buffer to var
@@ -656,16 +668,16 @@
 !   patch will not have any i/o vars
 
       subroutine copy_patch_vars(buf, n, p, flag)
-      real*8, intent(out) :: buf(0:)
+      real*8, intent(inout) :: buf(0:)
       integer, intent(out) :: n
-      type(patch), intent(in):: p
+      type(patch), intent(inout):: p
 !@var flag defines the actual action:
 !@+     -1 copy from patch to buffer
 !@+      1 copy from buffer to patch
 !@+      0 do nothing - just return the number of fields
       integer, intent(in) :: flag
       !---
-      integer dc
+      integer dc, nn
 
       dc = 0
 
@@ -679,22 +691,22 @@
 
 
       subroutine copy_cohort_vars(buf, n, c, flag)
-      real*8, intent(out) :: buf(0:)
+      real*8, intent(inout) :: buf(0:)
       integer, intent(out) :: n
-      type(cohort), intent(in):: c
+      type(cohort), intent(inout):: c
 !@var flag defines the actual action:
 !@+     -1 copy from patch to buffer
 !@+      1 copy from buffer to patch
 !@+      0 do nothing - just return the number of fields
       integer, intent(in) :: flag
       !---
-      integer dc
+      integer dc, nn
 
       dc = 0
 
       ! include all cohort variables that need i/o
-      call copy_vars( buf(dc:), nn,  c%_any_var_,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%_any_var2_, flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%lai,  flag ); dc = dc + nn
+!      call copy_vars( buf(dc:), nn,  c%_any_var2_, flag ); dc = dc + nn
 
       n = dc
 
@@ -717,9 +729,9 @@
      &     solar_zenith_angle,
      &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction,
+     &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public), intent(in) :: entcell
+      type(entcelltype_public), intent(out) :: entcell
       ! forcings probably should not be optional ...
       real*8, intent(in) ::
      &     canopy_temperature,
@@ -771,9 +783,9 @@
      &     solar_zenith_angle,
      &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction,
+     &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public), dimension(:) intent(in) :: entcell
+      type(entcelltype_public), dimension(:), intent(out) :: entcell
       ! forcings probably should not be optional ...
       real*8, dimension(:)  ::
      &     canopy_temperature,
@@ -792,21 +804,26 @@
      &     soil_ice_fraction
       !----------
       integer n
+      integer i, ic
 
-      entcell%entcell%TcanopyC = canopy_temperature
-      entcell%entcell%Qv = canopy_air_humidity
-      entcell%entcell%P_mbar = surf_pressure
-      entcell%entcell%Ca = surf_CO2
-      entcell%entcell%Precip = precip
-      entcell%entcell%Ch = heat_transfer_coef
-      entcell%entcell%U = wind_speed
-      entcell%entcell%Idir = total_visible_rad
-      entcell%entcell%Ivis = direct_visible_rad
-      entcell%entcell%Solarzen = solar_zenith_angle
-      do n=1,N_DEPTH
-        entcell(:)%entcell%Soilmoist(n) = soil_water(n,:)
-        entcell(:)%entcell%Soilmp(n) = soil_matric_pot(n,:)
-        entcell(:)%entcell%fice(n) = soil_ice_fraction(n,:)
+      ic = size(entcell, 1)
+
+      do i=1,ic
+        entcell(i)%entcell%TcanopyC = canopy_temperature(i)
+        entcell(i)%entcell%Qv = canopy_air_humidity(i)
+        entcell(i)%entcell%P_mbar = surf_pressure(i)
+        entcell(i)%entcell%Ca = surf_CO2(i)
+        entcell(i)%entcell%Precip = precip(i)
+        entcell(i)%entcell%Ch = heat_transfer_coef(i)
+        entcell(i)%entcell%U = wind_speed(i)
+        entcell(i)%entcell%Idir = total_visible_rad(i)
+        entcell(i)%entcell%Ivis = direct_visible_rad(i)
+        entcell(i)%entcell%Solarzen = solar_zenith_angle(i)
+        do n=1,N_DEPTH
+          entcell(i)%entcell%Soilmoist(n) = soil_water(n,i)
+          entcell(i)%entcell%Soilmp(n) = soil_matric_pot(n,i)
+          entcell(i)%entcell%fice(n) = soil_ice_fraction(n,i)
+        enddo
       enddo
 
       end subroutine ent_set_forcings_array_1d
@@ -825,9 +842,9 @@
      &     solar_zenith_angle,
      &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction,
+     &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public), dimension(:,:) intent(in) :: entcell
+      type(entcelltype_public), dimension(:,:), intent(out) :: entcell
       ! forcings probably should not be optional ...
       real*8, dimension(:,:)  ::
      &     canopy_temperature,
@@ -846,21 +863,29 @@
      &     soil_ice_fraction
       !----------
       integer n
+      integer i, j, ic, jc
 
-      entcell%entcell%TcanopyC = canopy_temperature
-      entcell%entcell%Qv = canopy_air_humidity
-      entcell%entcell%P_mbar = surf_pressure
-      entcell%entcell%Ca = surf_CO2
-      entcell%entcell%Precip = precip
-      entcell%entcell%Ch = heat_transfer_coef
-      entcell%entcell%U = wind_speed
-      entcell%entcell%Idir = total_visible_rad
-      entcell%entcell%Ivis = direct_visible_rad
-      entcell%entcell%Solarzen = solar_zenith_angle
-      do n=1,N_DEPTH
-        entcell(:,:)%entcell%Soilmoist(n) = soil_water(n,:,:)
-        entcell(:,:)%entcell%Soilmp(n) = soil_matric_pot(n,:,:)
-        entcell(:,:)%entcell%fice(n) = soil_ice_fraction(n,:,:)
+      ic = size(entcell, 1)
+      jc = size(entcell, 2)
+      
+      do j=1,jc
+        do i=1,ic
+          entcell(i,j)%entcell%TcanopyC = canopy_temperature(i,j)
+          entcell(i,j)%entcell%Qv = canopy_air_humidity(i,j)
+          entcell(i,j)%entcell%P_mbar = surf_pressure(i,j)
+          entcell(i,j)%entcell%Ca = surf_CO2(i,j)
+          entcell(i,j)%entcell%Precip = precip(i,j)
+          entcell(i,j)%entcell%Ch = heat_transfer_coef(i,j)
+          entcell(i,j)%entcell%U = wind_speed(i,j)
+          entcell(i,j)%entcell%Idir = total_visible_rad(i,j)
+          entcell(i,j)%entcell%Ivis = direct_visible_rad(i,j)
+          entcell(i,j)%entcell%Solarzen = solar_zenith_angle(i,j)
+          do n=1,N_DEPTH
+            entcell(i,j)%entcell%Soilmoist(n) = soil_water(n,i,j)
+            entcell(i,j)%entcell%Soilmp(n) = soil_matric_pot(n,i,j)
+            entcell(i,j)%entcell%fice(n) = soil_ice_fraction(n,i,j)
+          enddo
+        enddo
       enddo
 
       end subroutine ent_set_forcings_array_2d
@@ -900,6 +925,7 @@
      &     albedo,
      &     vegetation_fractions
       !----------
+      integer n
 
       if ( present(canopy_conductance) )
      &     canopy_conductance = entcell%entcell%gcanopy
@@ -932,6 +958,7 @@
 
       if ( present(fraction_of_vegetated_soil) ) then
         ! compute it here ?
+      endif
 
       if ( present(beta_soil_layers) ) then
         do n=1,N_DEPTH
@@ -946,7 +973,7 @@
       endif
 
       if ( present(vegetation_fractions) ) then
-        do n=1,N_PFT
+        do n=1,N_COVERTYPES
         ! extract those here ?
         !vegetation_fractions(:) = vdata(i,j,:)
         enddo
@@ -970,7 +997,7 @@
      &     fraction_of_vegetated_soil,
      &     vegetation_fractions
      &     )
-      type(entcelltype_public), dimension(:) intent(in) :: entcell
+      type(entcelltype_public), dimension(:), intent(in) :: entcell
       real*8, dimension(:), optional, intent(out) ::
      &     canopy_conductance,
      &     shortwave_transmit,
@@ -987,31 +1014,34 @@
      &     albedo,
      &     vegetation_fractions
       !----------
-      integer n
+      integer n, i, ic
 
+      ic = size(entcell, 1)
+
+      do i=1,ic
       if ( present(canopy_conductance) )
-     &     canopy_conductance = entcell%entcell%gcanopy
+     &     canopy_conductance(i) = entcell(i)%entcell%gcanopy
 
       if ( present(shortwave_transmit) )
-     &     shortwave_transmit = entcell%entcell%TRANS_SW
+     &     shortwave_transmit(i) = entcell(i)%entcell%TRANS_SW
 
       if ( present(foliage_CO2) )
-     &     foliage_CO2 = entcell%entcell%Ci
+     &     foliage_CO2(i) = entcell(i)%entcell%Ci
 
       if ( present(foliage_humidity) )
-     &     foliage_humidity = entcell%entcell%Qf
+     &     foliage_humidity(i) = entcell(i)%entcell%Qf
 
       if ( present(canopy_gpp) )
-     &     canopy_gpp = entcell%entcell%GPP
+     &     canopy_gpp(i) = entcell(i)%entcell%GPP
 
       if ( present(roughness_length) )
-     &     roughness_length = entcell%entcell%z0
+     &     roughness_length(i) = entcell(i)%entcell%z0
 
       if ( present(flux_CO2) )
-     &     flux_CO2 = entcell%entcell%CO2flux
+     &     flux_CO2(i) = entcell(i)%entcell%CO2flux
 
       if ( present(canopy_max_H2O) )
-     &     canopy_max_H2O = entcell%entcell%LAI * .0001d0 !!! GISS setting
+     &     canopy_max_H2O(i) = entcell(i)%entcell%LAI * .0001d0 !!! GISS setting
 
       if ( present(canopy_heat_capacity) ) then
         !aa=ala(1,i0,j0)
@@ -1020,31 +1050,33 @@
 
       if ( present(fraction_of_vegetated_soil) ) then
         ! compute it here ?
+      endif
 
       if ( present(beta_soil_layers) ) then
         do n=1,N_DEPTH
-          beta_soil_layers(n:,) = entcell(:)%entcell%betadl(n)
+          beta_soil_layers(n,i) = entcell(i)%entcell%betadl(n)
         enddo
       endif
 
       if ( present(beta_soil_layers) ) then
         do n=1,N_DEPTH
-          beta_soil_layers(n,:) = entcell(:)%entcell%betadl(n)
+          beta_soil_layers(n,i) = entcell(i)%entcell%betadl(n)
         enddo
       endif
 
       if ( present(albedo) ) then
         do n=1,N_BANDS
-          albedo(n,:) = entcell(:)%entcell%albedo(n)
+          albedo(n,i) = entcell(i)%entcell%albedo(n)
         enddo
       endif
 
       if ( present(vegetation_fractions) ) then
-        do n=1,N_PFT
+        do n=1,N_COVERTYPES
         ! extract those here ?
         !vegetation_fractions(:) = vdata(i,j,:)
         enddo
       endif
+      enddo
 
       end subroutine ent_get_exports_array_1d
 
@@ -1064,7 +1096,7 @@
      &     fraction_of_vegetated_soil,
      &     vegetation_fractions
      &     )
-      type(entcelltype_public), dimension(:,:) intent(in) :: entcell
+      type(entcelltype_public), dimension(:,:), intent(in) :: entcell
       real*8, dimension(:,:), optional, intent(out) ::
      &     canopy_conductance,
      &     shortwave_transmit,
@@ -1081,31 +1113,36 @@
      &     albedo,
      &     vegetation_fractions
       !----------
-      integer n
+      integer n, i, j, ic, jc
 
+      ic = size(entcell, 1)
+      jc = size(entcell, 2)
+
+      do j=1,jc
+      do i=1,ic
       if ( present(canopy_conductance) )
-     &     canopy_conductance = entcell%entcell%gcanopy
+     &     canopy_conductance(i,j) = entcell(i,j)%entcell%gcanopy
 
       if ( present(shortwave_transmit) )
-     &     shortwave_transmit = entcell%entcell%TRANS_SW
+     &     shortwave_transmit(i,j) = entcell(i,j)%entcell%TRANS_SW
 
       if ( present(foliage_CO2) )
-     &     foliage_CO2 = entcell%entcell%Ci
+     &     foliage_CO2(i,j) = entcell(i,j)%entcell%Ci
 
       if ( present(foliage_humidity) )
-     &     foliage_humidity = entcell%entcell%Qf
+     &     foliage_humidity(i,j) = entcell(i,j)%entcell%Qf
 
       if ( present(canopy_gpp) )
-     &     canopy_gpp = entcell%entcell%GPP
+     &     canopy_gpp(i,j) = entcell(i,j)%entcell%GPP
 
       if ( present(roughness_length) )
-     &     roughness_length = entcell%entcell%z0
+     &     roughness_length(i,j) = entcell(i,j)%entcell%z0
 
       if ( present(flux_CO2) )
-     &     flux_CO2 = entcell%entcell%CO2flux
+     &     flux_CO2(i,j) = entcell(i,j)%entcell%CO2flux
 
       if ( present(canopy_max_H2O) )
-     &     canopy_max_H2O = entcell%entcell%LAI * .0001d0 !!! GISS setting
+     &     canopy_max_H2O(i,j) = entcell(i,j)%entcell%LAI * .0001d0 !!! GISS setting
 
       if ( present(canopy_heat_capacity) ) then
         !aa=ala(1,i0,j0)
@@ -1114,26 +1151,28 @@
 
       if ( present(fraction_of_vegetated_soil) ) then
         ! compute it here ?
-        endif
+      endif
 
       if ( present(beta_soil_layers) ) then
         do n=1,N_DEPTH
-          beta_soil_layers(n,:,:) = entcell(:,:)%entcell%betadl(n)
+          beta_soil_layers(n,i,j) = entcell(i,j)%entcell%betadl(n)
         enddo
       endif
 
       if ( present(albedo) ) then
         do n=1,N_BANDS
-          albedo(n,:,:) = entcell(:,:)%entcell%albedo(n)
+          albedo(n,i,j) = entcell(i,j)%entcell%albedo(n)
         enddo
       endif
 
       if ( present(vegetation_fractions) ) then
-        do n=1,N_PFT
+        do n=1,N_COVERTYPES
         ! extract those here ?
         !vegetation_fractions(:) = vdata(i,j,:)
         enddo
       endif
+      enddo
+      enddo
 
       end subroutine ent_get_exports_array_2d
 
@@ -1144,58 +1183,6 @@
       end module ent_mod
 
 
-
-#ifdef DEBUG_PACK_UNPACK
-      program foo
-      use ent_mod
-      type ent_storage
-        real*8, pointer :: dbuf
-        iteger, pointer :: ibuf
-      end type
-      type(ent_storage) :: buffer(NUMCELLS)
-      type(entcelltype_public) entcells(NUMCELLS)
-      integer i
-      real*8 Tcan(NUMCELLS),Idir(NUMCELLS),Ivis(NUMCELLS) ! forcings
-      real*8 cond(NUMCELLS)                               ! results
-
-      ! to pack ent cells entcells(1:NUMCELLS) into arrays dbuf, ibuf :
-      do i=1,NUMCELLS
-        ! this call also allocates ibuf, dbuf
-        ! entcells is left untouched
-        call ent_cell_pack( buffer(i)%ibif, buffer(i)%dbuf, entcells(i) )
-      enddo
-      ! ic and dc contain total lengths of arrays used
-
-      !to unpack:
-      do i=1,NUMCELLS
-        ! this call also allocates structures inside entcells
-        ! buffer(i)%ibif, buffer(i)%dbuf are left untouched
-        call ent_cell_unpack( buffer(i)%ibif, buffer(i)%dbuf, entcells(i) )
-      enddo
-
-!!! One should be carefull not unpacking into allocated cells,
-!!! since the old memory will not be de-allocated and this will
-!!! lead to a memor leak
-
-! and here is an example of how one performs one time step
-
-      call ent_set_forcings( entcells,
-     &     canopy_temperature=Tcan,
-     &     direct_visible_rad=Idir,
-     &     total_visible_rad=Ivis,
-     &     )
-
-      call ent_fast_processes( entcells )
-
-      call ent_get_exports( entcells,
-     &     canopy_conductance=cond
-     &     )
-
-      end
-
-#endif
-
-
 #ifdef COMMENTED_AREA
       Questions:
 
@@ -1204,4 +1191,4 @@
       Or should it be treated as a type of vegetation?
 
 
-#end
+#endif

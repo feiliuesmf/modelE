@@ -74,7 +74,9 @@
       !********************
       !* SOIL / HYDROLOGY *
       !********************
-      integer :: N_DEPTH        !Number of soil layers.  SET IN ENT_INIT
+!      integer :: N_DEPTH        !Number of soil layers.  SET IN ENT_INIT
+      !!! setting it to constant for the time being to simplify the compilation
+      integer, parameter :: N_DEPTH = 6
 
       !**********************
       !* RADIATIVE TRANSFER *
@@ -94,7 +96,7 @@
 
       integer,parameter :: N_PFT = 8
       integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
-      integer,parameter :: N_OTHER = 1
+      integer,parameter :: N_OTHER = 2 ! algae, c4 grass
       integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
 
       !************************************************************************

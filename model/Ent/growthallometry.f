@@ -23,12 +23,13 @@
       !*********************************************************************
 
       subroutine init_rootdistr(froot, pft)
-      use ent_GCM_coupler, only : GISS_calc_froot
+      !use ent_GISSveg, only : GISS_calc_froot
       real*8 :: froot(N_DEPTH)
       integer :: pft
 
       !GISS TEMPORARY
-      call GISS_calc_froot(froot, pft)
+!>>>> Circular  dependency IA
+!      call GISS_calc_froot(froot, pft)
 
       end subroutine init_rootdistr
       !*********************************************************************

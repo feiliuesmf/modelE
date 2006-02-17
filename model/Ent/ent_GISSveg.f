@@ -17,6 +17,7 @@
      &     GISS_veg_albedo,GISS_calc_froot
 !     &     GCM_get_grid, GCM_get_time, GCM_getdrv_cell, GCM_EWB,
 
+
       !*********************************************************************
 
       real*8,parameter :: EDPERY=365. !GISS CONST.f
@@ -33,10 +34,11 @@
       !*********************************************************************
 
       subroutine GISS_vegdata(jday, year, im,jm,I0,I1,J0,J1,
-     &     vegdata,laidata,hdata,nmdata,frootdata)
+     &     vegdata,popdens,laidata,hdata,nmdata,frootdata)
       integer,intent(in) :: jday, year
       integer,intent(in) :: im,jm,I0,I1,J0,J1 !long/lat grid number range
       real*8,intent(out) :: vegdata(N_COVERTYPES,I0:I1,J0:J1)
+      real*8,intent(out) :: popdens(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: laidata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: hdata(N_COVERTYPES)
       real*8,intent(out) :: nmdata(N_COVERTYPES)
@@ -44,7 +46,10 @@
  
       !-----Local------
 
-      call GISS_get_vdata(im,I0,I1,J0,J1,vegdata)   !veg fractions
+      call GISS_get_vdata(im,jm,I0,I1,J0,J1,vegdata)   !veg fractions
+      ! set population density =1 for supported vegetation, =0 otherwise
+      popdens(:,:,:) = 0.d0
+      popdens(2:9,:,:) = 1.d0     ! supported vegetation
       call GISS_get_laidata(jday,I0,I1,J0,J1,laidata) !lai
       call GISS_update_vegcrops(year,I0,I1,J0,J1,vegdata)
 
@@ -55,44 +60,9 @@
       end subroutine GISS_vegdata
 
       !*********************************************************************
-      subroutine init_simple_entcell( ecp, jday,
-     i vegdata,laidata,hdata,nmdata,frootdata )
-      !@sum Initializes an entcell assuming one cohort per patch.
-      type(entcelltype) :: ecp
-      integer,intent(in) :: jday
-      real*8,intent(out) :: vegdata(N_COVERTYPES) !Veg cover fractions.
-      real*8,intent(out) :: laidata(N_COVERTYPES) !LAI
-      real*8,intent(out) :: hdata(N_COVERTYPES) !Height
-      real*8,intent(out) :: nmdata(N_COVERTYPES) !Nitrogen parameter
-      real*8,intent(out) :: frootdata(N_COVERTYPES,N_DEPTH) !Root profile.
-      !-----Local---------
-      integer :: pnum
-      type(patch),pointer :: pp
-
-      do pnum=1,N_PFT           !One patch with one cohort per pft
-      !Get from GISS GCM ## vfraction of grid cell and area.
-        if (vegdata(pnum)>0.0) then
-          !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
-          call insert_patch(ecp,vegdata(pnum))
-          pp = ecp%youngest
-          !## Supply also geometry, clumping index
-          call insert_cohort(pp,pnum,0.d0,hdata(pnum),
-     &         nmdata(pnum),
-     &         0.d0,0.d0,0.d0,0.d0,laidata(pnum),0.d0,frootdata,
-     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     &         0.d0,0.d0,0.d0,0.d0,0.d0,
-     &         0.d0,0.d0,0.d0,0.d0)
-          call summarize_patch(pp)
-        end if
-      end do
-      call summarize_entcell(ecp)
-
-      end subroutine init_simple_entcell
-
-      !*********************************************************************
       subroutine ent_GISS_vegupdate(entcells,im,jm,jday,year,latj,
      i     YEAR_FLAG)
+      use patches, only : summarize_patch
       type(entcelltype) :: entcells(:,:)
       integer,intent(in) :: im,jm,jday,year,latj
       integer,intent(in) :: YEAR_FLAG
@@ -111,7 +81,9 @@
         end do
       end do
 
-      if (YEAR_FLAG.eq.0) call ent_GISS_init(entcells,im,jm,jday,year)
+      ! this function is located up in the dependency tree
+      ! can't be called here ... IA
+      !if (YEAR_FLAG.eq.0) call ent_GISS_init(entcells,im,jm,jday,year)
       !!!### REORGANIZE WTIH ent_prog.f ####!!!
       
       end subroutine ent_GISS_vegupdate
@@ -119,15 +91,12 @@
 
       subroutine GISS_get_vdata(im,jm,I0,I1,J0,J1,vdata)
       !* This version reads in vegetation structure from GISS data set.
-#ifdef tempdebug
       use FILEMANAGER, only : openunit,closeunit,nameunit
-#endif
       integer, intent(in) :: im,jm,I0,I1,J0,J1
       real*8, intent(out) :: vdata(N_COVERTYPES,I0:I1,J0:J1) 
       !------Local---------------------
       !1    2    3    4    5    6    7    8    9   10   11    12
       !BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE GRAC4
-#ifdef tempdebug
       character*80 :: title
       real*4 :: buf(im,jm)
       integer :: iu_VEG
@@ -143,7 +112,6 @@
       end do
 
       call closeunit(iu_VEG)
-#endif
       end subroutine GISS_get_vdata
 !**************************************************************************
 
@@ -201,7 +169,7 @@
       !* Modify vegdata given new cropdata.
       integer,intent(in) :: year
       integer, intent(in) :: i0,i1,j0,j1
-      real*8, intent(inout) :: vegdata(:,i0:i1,j0:j1)
+      real*8, intent(inout) :: vegdata(N_COVERTYPES,i0:i1,j0:j1)
       !--------
       real*8,ALLOCATABLE,dimension(:,:) :: cropdata !grid array
       integer :: i,j
@@ -276,15 +244,15 @@
       integer, intent(in) :: jday !@var jday julian day
       integer, intent(in) :: hemi !@var hemi =1 in N. hemisphere, =-1 S.hemi
       !-----Local variables------
- !--- tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
+ !--- sand tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
       real*8, parameter :: alamax(N_COVERTYPES) =
-     $     (/ 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0
+     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0
      &     ,0.d0, 0.d0, 2.d0 /)
       real*8, parameter :: alamin(N_COVERTYPES) =
-     $     (/ 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0
+     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0
      &     ,0.d0, 0.d0, 1.d0 /)
       integer, parameter :: laday(N_COVERTYPES) =
-     $     (/ 196,  196,  196,  196,  196,  196,  196,  196
+     $     (/ 0.d0, 196,  196,  196,  196,  196,  196,  196,  196
      &     ,0, 0, 196 /)
       real*8 dphi
 
