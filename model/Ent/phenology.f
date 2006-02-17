@@ -22,22 +22,24 @@
 
       pp = ecp%youngest
       do while (ASSOCIATED(pp))
-!>>>> IA        call phenology_update(dtsec, time, pp)
+        call phenology_update(dtsec, time, pp)
       end do
       end subroutine phenology_update_cell
       !*********************************************************************
       
-      subroutine phenology_update(dtsec, tt, latj,pp)
+      subroutine phenology_update(dtsec, tt, pp)
 !@sum Update phenology for a patch.
-      use ent_GISSveg, only : GISS_phenology
+      !use ent_GISSveg, only : GISS_phenology
       real*8 :: dtsec           !dt in seconds
       type(timestruct) :: tt  !Greenwich Mean Time
-      integer,intent(in) :: latj !j index for latitude of entcell
+      !integer,intent(in) :: latj !j index for latitude of entcell
       type(patch),pointer :: pp
 
       !---------------------------------------------------------------
       !* GISS VERSION:  JUST UPDATES LAI USING MATTHEWS PRESCRIPTION
-      call GISS_phenology(tt%jday,latj, pp)
+      !* Prescribed phenology is passed in.
+      !call GISS_phenology(tt%jday,latj, pp)
+      !* Prognostic phenology is calculated here.
 
       end subroutine phenology_update
 

@@ -27,9 +27,10 @@
       real*8 :: froot(N_DEPTH)
       integer :: pft
 
-      !GISS TEMPORARY
-!>>>> Circular  dependency IA
+      !GISS TEMPORARY - prescribed roots should be passed in
 !      call GISS_calc_froot(froot, pft)
+
+      !* Prognostic roots calculated here *!.
 
       end subroutine init_rootdistr
       !*********************************************************************

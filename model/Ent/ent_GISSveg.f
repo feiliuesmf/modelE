@@ -34,30 +34,66 @@
       !*********************************************************************
 
       subroutine GISS_vegdata(jday, year, im,jm,I0,I1,J0,J1,
-     &     vegdata,popdens,laidata,hdata,nmdata,frootdata)
+     &     vegdata,laidata,hdata,nmdata,frootdata,popdata)
       integer,intent(in) :: jday, year
       integer,intent(in) :: im,jm,I0,I1,J0,J1 !long/lat grid number range
       real*8,intent(out) :: vegdata(N_COVERTYPES,I0:I1,J0:J1)
-      real*8,intent(out) :: popdens(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: laidata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: hdata(N_COVERTYPES)
       real*8,intent(out) :: nmdata(N_COVERTYPES)
       real*8,intent(out) :: frootdata(N_COVERTYPES,N_DEPTH)
+      real*8,intent(out) :: popdata(N_COVERTYPES)
  
       !-----Local------
 
       call GISS_get_vdata(im,jm,I0,I1,J0,J1,vegdata)   !veg fractions
-      ! set population density =1 for supported vegetation, =0 otherwise
-      popdens(:,:,:) = 0.d0
-      popdens(2:9,:,:) = 1.d0     ! supported vegetation
       call GISS_get_laidata(jday,I0,I1,J0,J1,laidata) !lai
       call GISS_update_vegcrops(year,I0,I1,J0,J1,vegdata)
 
       call GISS_get_hdata(hdata) !height
       call GISS_get_initnm(nmdata) !nm
       call GISS_get_froot(frootdata)
+      call GISS_get_pop(popdata)
 
       end subroutine GISS_vegdata
+
+      !*********************************************************************
+
+      subroutine init_simple_entcell( ecp, jday,
+     i vegdata,laidata,hdata,nmdata,frootdata,popdata )
+      !@sum Initializes an entcell assuming one cohort per patch.
+      type(entcelltype) :: ecp
+      integer,intent(in) :: jday
+      real*8,intent(in) :: vegdata(N_COVERTYPES) !Veg cover fractions.
+      real*8,intent(in) :: laidata(N_COVERTYPES) !LAI
+      real*8,intent(in) :: hdata(N_COVERTYPES) !Height
+      real*8,intent(in) :: nmdata(N_COVERTYPES) !Nitrogen parameter
+      real*8,intent(in) :: frootdata(N_COVERTYPES,N_DEPTH) !Root profile.
+      real*8,intent(in) :: popdata(N_COVERTYPES) !Dummy population density, 0-bare soil, 1-veg
+      !-----Local---------
+      integer :: pnum
+      type(patch),pointer :: pp
+
+      do pnum=1,N_PFT           !One patch with one cohort per pft
+      !Get from GISS GCM ## vfraction of grid cell and area.
+        if (vegdata(pnum)>0.0) then
+          !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
+          call insert_patch(ecp,vegdata(pnum))
+          pp = ecp%youngest
+          !## Supply also geometry, clumping index
+          call insert_cohort(pp,pnum,0.d0,hdata(pnum),
+     &         nmdata(pnum),
+     &         0.d0,0.d0,0.d0,0.d0,laidata(pnum),0.d0,frootdata,
+     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
+     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
+     &         0.d0,0.d0,0.d0,0.d0,0.d0,
+     &         0.d0,0.d0,0.d0,0.d0)
+          call summarize_patch(pp)
+        end if
+      end do
+      call summarize_entcell(ecp)
+
+      end subroutine init_simple_entcell
 
       !*********************************************************************
       subroutine ent_GISS_vegupdate(entcells,im,jm,jday,year,latj,
@@ -107,6 +143,9 @@
       call openunit("VEG",iu_VEG,.true.,.true.)
 
       do k=1,N_COVERTYPES  !## HACK - this should be related to N_COVERTYPES
+
+        CALL READT_PARALLEL
+     *    (grid,iu_VEG,NAMEUNIT(iu_VEG),0,vdata(:,:,k),1)
         read(iu_VEG) title, buf
         vdata(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1)
       end do
@@ -424,11 +463,11 @@ c
      &     0.29771447d+00,  0.51368874d+00,  0.88633960d+00,
      &     0.15293264d+01 /)
  !--- tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
-      real*8, parameter :: aroot(11) = !N_COVERTYPES
-     $     (/ 12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0
+      real*8, parameter :: aroot(N_COVERTYPES) = 
+     $     (/ 0.d0,12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0
      &     ,0.d0, 0.d0, 0.9d0 /)
-      real*8, parameter :: broot(11) = !N_COVERTYPES
-     $     (/  1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0
+      real*8, parameter :: broot(N_COVERTYPES) = 
+     $     (/ 0.d0, 1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0
      &     ,0.d0, 0.d0, 0.9d0 /)
       integer :: n,l
       real*8 :: z, frup,frdn
@@ -503,5 +542,25 @@ c**** calculate root fraction afr averaged over vegetation types
       nmdata = nmv
       end subroutine GISS_get_initnm
 
+!*************************************************************************
+      subroutine GISS_get_pop(popdata)
+      !* Return array parameter of GISS vegetation heights.
+      real*8 :: popdata(N_COVERTYPES) 
+      !------
+      real*8, parameter :: popdens(N_COVERTYPES) =
+      !* tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
+     $     (/0.d0, 1.0d0, 1.0d0,  1.0d0, 1.0d0,  1.0d0, 1.0d0, 1.0d0
+     &     ,1.0d0 ,0.d0, 0.d0, 1.0d0 /)
+
+      ! For GISS Model E replication, don't need to fill in an
+      ! i,j array of vegetation density, but just can use
+      ! constant arry for each vegetation pft type.
+      ! For full-fledged Ent, will need to read in a file entdata
+      ! containing vegetation density.
+
+      !* Return popdata population density for all vegetation types
+      popdata = popdens
+
+      end subroutine GISS_get_pop
 !*************************************************************************
       end module ent_GISSveg

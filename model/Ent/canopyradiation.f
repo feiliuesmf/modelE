@@ -33,14 +33,12 @@
       !  pp%albedo = aalbveg(i,j)
       !---------------------------------------------------------------
 
-!>>>>> hack to make sure model compiles IA
+      !* Prescribed albedo is passed in.
  !     call GISS_veg_albedo(pp%cellptr%latj,pp%tallest%pft,
  !    &     jday, pp%albedo)
-!>>>> circular dependecy  - had to comment out 
-!!! code should be re-arranged
-!      call GISS_veg_albedo(1,pp%tallest%pft,
- !    &     jday, pp%albedo)
 
+
+      !* Prognostic albedo is calculated here.
       !---------------------------------------------------------------
       !* Ent template for GORT clumping index canopy radiative transfer.
       !---------------------------------------------------------------

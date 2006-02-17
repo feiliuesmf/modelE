@@ -261,9 +261,8 @@
 
       !* Assign vegpar
       !** GISS replication test hack:  grid cell average patch properties
-!!!>>>>> changed next 3 lines correct ? IA
-      vegpar%alai = pp%tallest%LAI
-      vegpar%nm = pp%nm
+      vegpar%alai = pp%sumcohort%LAI
+      vegpar%nm = pp%sumcohort%nm
       vegpar%vh = pp%tallest%h
       vegpar%vegalbedo = pp%albedo(1) !Visible band
       Ci = pp%cellptr%Ci  !GISS hack at grid cell level for Ci
@@ -271,7 +270,7 @@
 
       call veg_conductance(dtsec,
      &     GCANOPY, Ci, Qf, TRANS_SW,GPP,NPP,betad,betadl,
-     &     pp%tallest%pft, !!!>>>>> changed this line. correct ? IA
+     &     pp%tallest%pft, 
      &     vegpar%alai,vegpar%nm,vegpar%vh,vegpar%vegalbedo, 
      &     N_DEPTH, Soilmp, fice, froot,  
      &     TcanopyC, P_mbar, Ch, U, 

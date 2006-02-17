@@ -105,6 +105,7 @@
       integer :: ip             !#patches
       integer :: ia             !counter variable
 
+      ecp%LAI = 0.0  !Re-zero
       call init_patch(ecp%sumpatch,ecp,0.d0) !Summary patch reset to zero area.
       spp = ecp%sumpatch
 
@@ -115,7 +116,7 @@
         spp%age = spp%age + pp%age
         spp%area = spp%area + pp%area 
 
- !>>>>> IA       spp%LAI = spp%LAI + pp%LAI*pp%area
+        ecp%LAI = ecp%LAI + pp%LAI*pp%area !Check area vs. fraction !>>>
 
         do ia=1,N_BANDS  !Area-weighted average
           spp%albedo(ia) = spp%albedo(ia) + pp%albedo(ia)*pp%area
@@ -171,7 +172,7 @@
       !!!CHECK IF SPP%AREA IS ZERO!
       if (ASSOCIATED(ecp%oldest)) then
         spp%age = spp%age/spp%area
-!>>>>> IA        spp%LAI = spp%LAI/spp%area
+        ecp%LAI = ecp%LAI/spp%area
         
         do ia=1,N_BANDS         !Area-weighted average
           spp%albedo(ia) = spp%albedo(ia)/spp%area
@@ -212,6 +213,7 @@
       real*8 :: frootC_total
       real*8 :: cf, tcf !cover fraction, total cover fraction
 
+      !* Re-zero summary variable.
       do n=1,N_DEPTH
         froot(n) = 0.0
       end do
@@ -225,11 +227,11 @@
         tcf = tcf + cf
         frootC_total = frootC_total + pp%C_froot
         do n=1,N_DEPTH
- !>>>>> IA         froot(n) = froot(n) + cf*pp%froot(n)*pp%C_froot
+          froot(n) = froot(n) + cf*pp%froot(n)*pp%C_froot  !>>>>pointer?
         end do
         pp = pp%younger
       end do
-      ecp%froot = froot/(tcf*frootC_total)
+      ecp%froot => froot/(tcf*frootC_total)
       end subroutine sum_roots_patches2cell
 
 !**************************************************************************

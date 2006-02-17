@@ -35,16 +35,14 @@
       type(entcelltype) :: ecp
       logical, optional, intent(in) :: ALBEDO_FLAG
       !---
-!>>>> I assume you want to assign a pointer IA
       type(patch), pointer :: pp
 !      write(*,*) 'Ecosystem dynamics for (long,lat)=(',
 !     & ecp%long,ecp%lat,'),tt=',tt
 
-!>>>> I assume you want to assign a pointer IA
       pp => ecp%sumpatch
 
       if (ALBEDO_FLAG) then
-!>>>>> IA        call get_patchalbedo(pp)
+        call get_patchalbedo(pp)
       end if
 
       call ent_integrate(dtsec,tt,ecp) !Biophysics, respiration
@@ -52,7 +50,7 @@
       if (STRUCT_FLAG(tt,ecp)) then
         call reproduction_calc(dtsec, tt, pp)
         call reorganize_cohorts(pp)
-!>>>>> IA        call phenology_update (dtsec,tt, pp) !UPDATE LAI
+        call phenology_update (dtsec,tt, pp) !UPDATE LAI
         call recalc_radpar (pp) !UPDATE canopy radiative transfer
       end if
       call summarize_patch(pp)
