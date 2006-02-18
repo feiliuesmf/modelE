@@ -452,10 +452,9 @@
 
 
 
-      subroutine ent_cell_pack(ibuf, dbuf, entcell)
+      subroutine ent_cell_pack(dbuf, entcell)
 !@sum allocate two linear arrays ibuf, dbuf and pack contents of
 !@+   entcell into them
-      integer, pointer :: ibuf(:)
       real*8, pointer :: dbuf(:)
       type(entcelltype_public), intent(in) :: entcell ! pointer ?
       !---
@@ -463,8 +462,10 @@
       type(cohort), pointer :: c !@var current cohort
       integer :: np              !@var np number of patches in the cell
       integer :: nc(MAX_PATCHES) !@var nc number of cohorts in the patch
-      integer :: ic, dc, ndbuf, nn
+      integer :: dc, ndbuf, nn
+      real*8, pointer :: NULL(:) !@var NULL dummy pointer
 
+      nullify(NULL)
 
       ! first compute number of patches and cohorts in the cell
       ! this actually can be save in the cell structure 
@@ -477,7 +478,7 @@
         np = np + 1
         if ( np > MAX_PATCHES )
      &       call stop_model("ent_cell_pack: too many patches",255)
-        call copy_patch_vars(dbuf, nn, p, 0); ndbuf = ndbuf + nn
+        call copy_patch_vars(NULL, nn, p, 0); ndbuf = ndbuf + nn
         nc(np) = 0
         c => p%tallest
         do while ( associated(c) )
@@ -486,20 +487,16 @@
      &         call stop_model("ent_cell_pack: too many cohorts",255)
           !save cohort
           !dbuf(dc) = c%_any_value_ ; dc = dc + 1
-          call copy_cohort_vars(dbuf, nn, c, 0); ndbuf = ndbuf + nn
+          call copy_cohort_vars(NULL, nn, c, 0); ndbuf = ndbuf + nn
           c => c%shorter
         enddo
         p => p%younger
       enddo
 
-      ! ibuf contains np and nc(np)
-      allocate( ibuf(0:np) )
-      ic = 0
-      ibuf(ic) = np; ic = ic + 1
-      ibuf(ic:ic+np-1) = nc(1:np); ic = ic + 1
-
-      allocate( dbuf(0:ndbuf-1) )
+      allocate( dbuf(0:ndbuf-1+1+np) ) !i.e. num reals + num int's
       dc = 0
+      dbuf(dc) = real( np, kind(0d0) );               dc = dc + 1
+      dbuf(dc:dc+np-1) = real( nc(1:np), kind(0d0) ); dc = dc + 1
 
       ! now do the real saving
       ! no need to count patches and cohorts again, but leaving it here
@@ -530,9 +527,8 @@
       end subroutine ent_cell_pack
 
 
-      subroutine ent_cell_unpack(ibuf, dbuf, entcell)
+      subroutine ent_cell_unpack(dbuf, entcell)
 ! this program is not finished yet: have to assign all the pointers
-      integer, intent(in) :: ibuf(0:)
       real*8, intent(inout) :: dbuf(0:)
       type(entcelltype_public), intent(out) :: entcell ! pointer ?
       !---
@@ -540,16 +536,16 @@
       type(cohort), pointer :: c, cprev !@var current cohort
       integer :: np              !@var np number of patches in the cell
       integer, allocatable :: nc(:) !@var nc number of cohorts in the patch
-      integer ic, dc, nn
+      integer dc, nn
       integer i, j
       integer npdebug, ncdebug ! these are for debuging
 
-      ic = 0; dc = 0
+      dc = 0
 
       ! doesn't seem that we need to restore anything for the cell
-      np = ibuf(ic); ic = ic + 1
+      np = nint( dbuf(dc) ); dc = dc + 1
       allocate( nc(np) )
-      nc(1:np) = ibuf(ic:ic+np-1); ic = ic + np
+      nc(1:np) = nint( dbuf(dc:dc+np-1) ); dc = dc + np
 
       if ( np <= 0 ) return  ! nothing to restore...
 
