@@ -58,44 +58,6 @@
       end subroutine GISS_vegdata
 
       !*********************************************************************
-
-      subroutine init_simple_entcell( ecp, jday,
-     i vegdata,laidata,hdata,nmdata,frootdata,popdata )
-      !@sum Initializes an entcell assuming one cohort per patch.
-      type(entcelltype) :: ecp
-      integer,intent(in) :: jday
-      real*8,intent(in) :: vegdata(N_COVERTYPES) !Veg cover fractions.
-      real*8,intent(in) :: laidata(N_COVERTYPES) !LAI
-      real*8,intent(in) :: hdata(N_COVERTYPES) !Height
-      real*8,intent(in) :: nmdata(N_COVERTYPES) !Nitrogen parameter
-      real*8,intent(in) :: frootdata(N_COVERTYPES,N_DEPTH) !Root profile.
-      real*8,intent(in) :: popdata(N_COVERTYPES) !Dummy population density, 0-bare soil, 1-veg
-      !-----Local---------
-      integer :: pnum
-      type(patch),pointer :: pp
-
-      do pnum=1,N_PFT           !One patch with one cohort per pft
-      !Get from GISS GCM ## vfraction of grid cell and area.
-        if (vegdata(pnum)>0.0) then
-          !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
-          call insert_patch(ecp,vegdata(pnum))
-          pp = ecp%youngest
-          !## Supply also geometry, clumping index
-          call insert_cohort(pp,pnum,0.d0,hdata(pnum),
-     &         nmdata(pnum),
-     &         0.d0,0.d0,0.d0,0.d0,laidata(pnum),0.d0,frootdata,
-     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     &         0.d0,0.d0,0.d0,0.d0,0.d0,
-     &         0.d0,0.d0,0.d0,0.d0)
-          call summarize_patch(pp)
-        end if
-      end do
-      call summarize_entcell(ecp)
-
-      end subroutine init_simple_entcell
-
-      !*********************************************************************
       subroutine ent_GISS_vegupdate(entcells,im,jm,jday,year,latj,
      i     YEAR_FLAG)
       use patches, only : summarize_patch
@@ -144,8 +106,6 @@
 
       do k=1,N_COVERTYPES  !## HACK - this should be related to N_COVERTYPES
 
-        CALL READT_PARALLEL
-     *    (grid,iu_VEG,NAMEUNIT(iu_VEG),0,vdata(:,:,k),1)
         read(iu_VEG) title, buf
         vdata(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1)
       end do

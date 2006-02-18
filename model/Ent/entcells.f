@@ -116,7 +116,9 @@
         spp%age = spp%age + pp%age
         spp%area = spp%area + pp%area 
 
-        ecp%LAI = ecp%LAI + pp%LAI*pp%area !Check area vs. fraction !>>>
+!>>>> IA        ecp%LAI = ecp%LAI + pp%LAI*pp%area !Check area vs. fraction !>>>
+! Nancy did you mean this
+        ecp%LAI = ecp%LAI + pp%sumcohort%LAI*pp%area
 
         do ia=1,N_BANDS  !Area-weighted average
           spp%albedo(ia) = spp%albedo(ia) + pp%albedo(ia)*pp%area
@@ -227,11 +229,17 @@
         tcf = tcf + cf
         frootC_total = frootC_total + pp%C_froot
         do n=1,N_DEPTH
-          froot(n) = froot(n) + cf*pp%froot(n)*pp%C_froot  !>>>>pointer?
+!!!! there is no froot in the patch. either include froot in the patch
+!!!! structure or change the next line
+!>>>> IA          froot(n) = froot(n) + cf*pp%froot(n)*pp%C_froot  !>>>>pointer?
         end do
         pp = pp%younger
       end do
-      ecp%froot => froot/(tcf*frootC_total)
+!>>>> IA      ecp%froot => froot/(tcf*frootC_total)
+! do you need pointer assignement or want to copy data to ecp%froot ?
+! I assume you want
+      ecp%froot = froot/(tcf*frootC_total)
+
       end subroutine sum_roots_patches2cell
 
 !**************************************************************************

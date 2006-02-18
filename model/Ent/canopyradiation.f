@@ -15,12 +15,12 @@
       contains
       !*********************************************************************
       
-      subroutine get_patchalbedo(jday,pp)
+      subroutine get_patchalbedo(pp)
 !@sum !* Return albedo for patch.
       !* This version reads in vegetation structure from GISS data set.
       !use ent_GISSveg, only : GISS_veg_albedo
       implicit none
-      integer :: jday  !Day of year.
+!!!       integer :: jday  !Day of year. - not needed for real simulation
       !type(timestruct) :: tt
       type(patch),pointer :: pp
       !------
