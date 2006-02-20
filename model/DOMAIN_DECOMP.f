@@ -1451,7 +1451,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       TYPE (DIST_GRID),   INTENT(IN) :: grd_dum
       REAL*8,             INTENT(IN) :: arr(:,grd_dum%j_strt_halo:,:)
       REAL*8,             INTENT(OUT):: gsum(size(arr,1), size(arr,3))
-      INTEGER,	          INTENT(IN) :: jband(2)
+      INTEGER,            INTENT(IN) :: jband(2)
       Logical,OPTIONAL,   INTENT(IN) :: all
 
       INTEGER :: k
