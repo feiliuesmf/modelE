@@ -94,14 +94,14 @@
       type(entcelltype) :: ecp
       !-----Local variables------------
       type(patch),pointer :: spp, pp
-      real*8 :: albedo(N_BANDS)
-      real*8 :: z0              !Roughness length, average over patch
-      real*8 :: GCANOPY         !Canopy conductance of water vapor (mm/s)
-      real*8 :: CO2flux         !Net CO2 flux up (umol-CO2/m2-gnd/s)
-      real*8 :: Soilmoist(N_DEPTH) !Available soil moisture by depth (mm)
-      real*8 :: N_deposit       !N deposition (kgN/m2)
-      real*8 :: LAI
-      real*8 :: froot(N_DEPTH)
+      !real*8 :: albedo(N_BANDS)
+      !real*8 :: z0              !Roughness length, average over patch
+      !real*8 :: GCANOPY         !Canopy conductance of water vapor (mm/s)
+      !real*8 :: CO2flux         !Net CO2 flux up (umol-CO2/m2-gnd/s)
+      !real*8 :: Soilmoist(N_DEPTH) !Available soil moisture by depth (mm)
+      !real*8 :: N_deposit       !N deposition (kgN/m2)
+      !real*8 :: LAI
+      !real*8 :: froot(N_DEPTH)
       integer :: ip             !#patches
       integer :: ia             !counter variable
 
@@ -116,8 +116,6 @@
         spp%age = spp%age + pp%age
         spp%area = spp%area + pp%area 
 
-!>>>> IA        ecp%LAI = ecp%LAI + pp%LAI*pp%area !Check area vs. fraction !>>>
-! Nancy did you mean this
         ecp%LAI = ecp%LAI + pp%sumcohort%LAI*pp%area
 
         do ia=1,N_BANDS  !Area-weighted average
@@ -229,15 +227,11 @@
         tcf = tcf + cf
         frootC_total = frootC_total + pp%C_froot
         do n=1,N_DEPTH
-!!!! there is no froot in the patch. either include froot in the patch
-!!!! structure or change the next line
-!>>>> IA          froot(n) = froot(n) + cf*pp%froot(n)*pp%C_froot  !>>>>pointer?
+          froot(n) = froot(n) + cf*pp%sumcohort%froot(n)*pp%C_froot  
         end do
         pp = pp%younger
       end do
-!>>>> IA      ecp%froot => froot/(tcf*frootC_total)
-! do you need pointer assignement or want to copy data to ecp%froot ?
-! I assume you want
+
       ecp%froot = froot/(tcf*frootC_total)
 
       end subroutine sum_roots_patches2cell

@@ -117,7 +117,7 @@
       implicit none
       real*8 :: dtsec  !dt in seconds
       integer :: jday  !Day of year.
-      type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
+      !type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
       type(entcelltype) :: ecp
       !-----local--------
       type(patch),pointer :: pp
