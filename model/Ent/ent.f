@@ -15,7 +15,7 @@
       private
       save
 
-      public ent_ecosystem_dynamics
+      public ent_ecosystem_dynamics, ent_biophysics
 
       contains
       !*********************************************************************
@@ -111,13 +111,11 @@
       end subroutine ent_integrate
 
       !*********************************************************************
-      subroutine ent_biophysics(dtsec, jday, ecp)
+      subroutine ent_biophysics(dtsec, ecp)
       use biophysics, only : photosynth_cond
       use patches, only : summarize_patch
       implicit none
       real*8 :: dtsec  !dt in seconds
-      integer :: jday  !Day of year.
-      !type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
       type(entcelltype) :: ecp
       !-----local--------
       type(patch),pointer :: pp

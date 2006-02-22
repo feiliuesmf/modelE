@@ -34,10 +34,11 @@
       !*********************************************************************
 
       subroutine GISS_vegdata(jday, year, im,jm,I0,I1,J0,J1,
-     &     vegdata,laidata,hdata,nmdata,frootdata,popdata)
+     &     vegdata,albedodata,laidata,hdata,nmdata,frootdata,popdata)
       integer,intent(in) :: jday, year
       integer,intent(in) :: im,jm,I0,I1,J0,J1 !long/lat grid number range
       real*8,intent(out) :: vegdata(N_COVERTYPES,I0:I1,J0:J1)
+      real*8,intent(out) :: albedodata(N_COVERTYPES,1:2,N_BANDS)
       real*8,intent(out) :: laidata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: hdata(N_COVERTYPES)
       real*8,intent(out) :: nmdata(N_COVERTYPES)
@@ -47,6 +48,7 @@
       !-----Local------
 
       call GISS_get_vdata(im,jm,I0,I1,J0,J1,vegdata)   !veg fractions
+      call GISS_veg_albedodata(jday, albedodata)
       call GISS_get_laidata(jday,I0,I1,J0,J1,laidata) !lai
       call GISS_update_vegcrops(year,I0,I1,J0,J1,vegdata)
 
@@ -58,11 +60,12 @@
       end subroutine GISS_vegdata
 
       !*********************************************************************
-      subroutine ent_GISS_vegupdate(entcells,im,jm,jday,year,latj,
+      subroutine ent_GISS_vegupdate(entcellarray,im,jm,jday,year,
      i     YEAR_FLAG)
       use patches, only : summarize_patch
-      type(entcelltype) :: entcells(:,:)
-      integer,intent(in) :: im,jm,jday,year,latj
+      use entcells,only : summarize_entcell
+      type(entcelltype) :: entcellarray(:,:)
+      integer,intent(in) :: im,jm,jday,year
       integer,intent(in) :: YEAR_FLAG
       !----Local------
       integer :: i,j
@@ -70,18 +73,19 @@
 
       do i=1,im
         do j=1,jm
-          pp = entcells(i,j)%oldest
+          pp = entcellarray(i,j)%oldest
           do while (ASSOCIATED(pp))
-            call GISS_phenology(jday,latj, pp)
+            call GISS_phenology(jday,j, pp)
             call summarize_patch(pp)
             pp = pp%younger
           end do
+          call summarize_entcell(entcellarray(i,j))
         end do
       end do
 
       ! this function is located up in the dependency tree
       ! can't be called here ... IA
-      !if (YEAR_FLAG.eq.0) call ent_GISS_init(entcells,im,jm,jday,year)
+      !if (YEAR_FLAG.eq.0) call ent_GISS_init(entcellarray,im,jm,jday,year)
       !!!### REORGANIZE WTIH ent_prog.f ####!!!
       
       end subroutine ent_GISS_vegupdate
@@ -295,9 +299,25 @@
           cop = cop%shorter
         end do
         pp%sumcohort%LAI = laip
+      call GISS_veg_albedo(latj, pp%sumcohort%pft, 
+     &       jday, pp%albedo)
       endif
       end subroutine GISS_phenology
 
+!**************************************************************************
+      subroutine GISS_veg_albedodata(jday, albedodata)
+      integer :: jday
+      real*8 :: albedodata(N_COVERTYPES,1:2,N_BANDS)
+      integer :: hemi, pft
+      
+      do hemi=1,2
+        do pft = 1, N_COVERTYPES
+        call GISS_veg_albedo((-1)**hemi + JEQUATOR,pft,jday,
+     &         albedodata(pft,hemi,:))
+        end do
+      end do
+
+      end subroutine GISS_veg_albedodata
 !**************************************************************************
 
       subroutine GISS_veg_albedo(latj, pft, jday, albedo)
@@ -306,7 +326,7 @@
       integer, intent(in) :: latj !@latj j index for latitude
       integer, intent(in) :: pft !@var pftlike iv, plant functional type
       integer, intent(in) :: jday !@jday julian day
-      real*8, intent(out) :: albedo(6) !@albedo returned albedo
+      real*8, intent(out) :: albedo(N_BANDS) !@albedo returned albedo
       !----------Local----------
       integer, parameter :: NV=12
       !@var SEASON julian day for start of season (used for veg albedo calc)

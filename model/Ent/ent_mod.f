@@ -92,15 +92,23 @@
       contains
 
 !---- interfaces to run the model one time step ----
+      subroutine ent_prescribe_vegupdate(entcell,im,jm,jday,year)
+      use ent_GISSveg, only:  ent_GISS_vegupdate
+      type(entcelltype_public), intent(inout) :: entcell(:,:)
+      integer,intent(in) :: im,jm,jday,year
+      
+      call ent_GISS_vegupdate(entcell(:,:),im,jm,jday,year,-9999)
+      end subroutine ent_prescribe_vegupdate
+      
+
 
       subroutine ent_fast_processes_single(entcell, dt)
-      use ent, only : ent_ecosystem_dynamics
+      use ent, only : ent_biophysics
       type(entcelltype_public), intent(inout) :: entcell
       real*8, intent(in) :: dt
       !---
-      type(timestruct),pointer :: tt !!!! dummy structure 
-                                     !!!! for interface compatibility only !
-      call ent_ecosystem_dynamics(dt, tt, entcell%entcell)
+      
+      call ent_biophysics(dt, entcell%entcell)
 
       end subroutine ent_fast_processes_single
 
