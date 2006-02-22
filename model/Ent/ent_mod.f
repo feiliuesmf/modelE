@@ -20,6 +20,7 @@
       public ent_cell_construct, ent_cell_destruct
       public ent_fast_processes,ent_seasonal_update,ent_vegcover_update
       public ent_cell_set
+      public ent_prescribe_vegupdate
 
       type entcelltype_public
         private
@@ -92,12 +93,24 @@
       contains
 
 !---- interfaces to run the model one time step ----
-      subroutine ent_prescribe_vegupdate(entcell,im,jm,jday,year)
+      subroutine ent_prescribe_vegupdate(entcell,hemi,jday,year)
       use ent_GISSveg, only:  ent_GISS_vegupdate
       type(entcelltype_public), intent(inout) :: entcell(:,:)
-      integer,intent(in) :: im,jm,jday,year
-      
-      call ent_GISS_vegupdate(entcell(:,:),im,jm,jday,year,-9999)
+      integer, intent(in) :: hemi(:,:)
+      integer,intent(in) :: jday,year
+      !---
+      integer i, ic, j, jc
+
+      ic = size(entcell,1)
+      jc = size(entcell,2)
+
+      do j=1,jc
+        do i=1,ic      
+          call ent_GISS_vegupdate(entcell(i,j)%entcell, hemi(i,j),
+     &         jday, year, -9999)
+        enddo
+      enddo
+
       end subroutine ent_prescribe_vegupdate
       
 

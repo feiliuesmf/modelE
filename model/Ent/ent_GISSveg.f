@@ -60,28 +60,22 @@
       end subroutine GISS_vegdata
 
       !*********************************************************************
-      subroutine ent_GISS_vegupdate(entcellarray,im,jm,jday,year,
-     i     YEAR_FLAG)
+      subroutine ent_GISS_vegupdate(entcell,hemi,jday,year,YEAR_FLAG)
       use patches, only : summarize_patch
       use entcells,only : summarize_entcell
-      type(entcelltype) :: entcellarray(:,:)
-      integer,intent(in) :: im,jm,jday,year
+      type(entcelltype) :: entcell
+      integer,intent(in) :: jday,year,hemi
       integer,intent(in) :: YEAR_FLAG
       !----Local------
-      integer :: i,j
       type(patch),pointer :: pp
 
-      do i=1,im
-        do j=1,jm
-          pp = entcellarray(i,j)%oldest
-          do while (ASSOCIATED(pp))
-            call GISS_phenology(jday,j, pp)
-            call summarize_patch(pp)
-            pp = pp%younger
-          end do
-          call summarize_entcell(entcellarray(i,j))
-        end do
+      pp = entcell%oldest
+      do while (ASSOCIATED(pp))
+        call GISS_phenology(jday,hemi, pp)
+        call summarize_patch(pp)
+        pp = pp%younger
       end do
+      call summarize_entcell(entcell)
 
       ! this function is located up in the dependency tree
       ! can't be called here ... IA
@@ -273,24 +267,18 @@
 
 
 !**************************************************************************
-      subroutine GISS_phenology(jday,latj, pp)
+      subroutine GISS_phenology(jday,hemi, pp)
       use ent_types
       use ent_pfts
       implicit none
       integer,intent(in) :: jday !Day of year.
-      integer,intent(in) :: latj !j of entcell latitude
+      integer,intent(in) :: hemi !@var hemi -1: S.hemisphere, 1: N.hemisphere
       type(patch),pointer :: pp
       !-------local-----
       type(cohort),pointer :: cop
       real*8 :: laip  !patch-level summary of LAI
 !      real*8 :: laig  !entcell grid-level summary of LAI
-      integer :: hemi !-1: S.hemisphere, 1: N.hemisphere
       if (ASSOCIATED(pp)) then
-        if (latj < JEQUATOR) then 
-          hemi = -1
-        else 
-          hemi = 1
-        end if
         laip = 0.0
         cop = pp%tallest
         do while (ASSOCIATED(cop))
@@ -299,7 +287,7 @@
           cop = cop%shorter
         end do
         pp%sumcohort%LAI = laip
-      call GISS_veg_albedo(latj, pp%sumcohort%pft, 
+      call GISS_veg_albedo(hemi, pp%sumcohort%pft, 
      &       jday, pp%albedo)
       endif
       end subroutine GISS_phenology
@@ -312,7 +300,7 @@
       
       do hemi=1,2
         do pft = 1, N_COVERTYPES
-        call GISS_veg_albedo((-1)**hemi + JEQUATOR,pft,jday,
+        call GISS_veg_albedo(hemi*2-3,pft,jday,
      &         albedodata(pft,hemi,:))
         end do
       end do
@@ -320,10 +308,10 @@
       end subroutine GISS_veg_albedodata
 !**************************************************************************
 
-      subroutine GISS_veg_albedo(latj, pft, jday, albedo)
+      subroutine GISS_veg_albedo(hemi, pft, jday, albedo)
 !@sum returns albedo for vegetation of type pft 
 !@+   as it is computed in GISS modelE
-      integer, intent(in) :: latj !@latj j index for latitude
+      integer, intent(in) :: hemi !@hemi hemisphere (-1 south, +1 north)
       integer, intent(in) :: pft !@var pftlike iv, plant functional type
       integer, intent(in) :: jday !@jday julian day
       real*8, intent(out) :: albedo(N_BANDS) !@albedo returned albedo
@@ -395,17 +383,10 @@ C
 ccc or pass k-vegetation type, L-band and 1 or 2 for Hemisphere
       integer k,kh1,kh2,l
       real*8 seasn1,seasn2,wt2,wt1
-      integer :: hemi !@hemi hemisphere (-1 south, +1 north)
 c
 c                      define seasonal albedo dependence
 c                      ---------------------------------
 c
-      if (latj < JEQUATOR) then
-        hemi = -1
-      else
-        hemi = 1
-      end if
-
       seasn1=-77.0d0
       do k=1,4
         seasn2=SEASON(k)
