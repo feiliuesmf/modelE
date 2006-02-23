@@ -79,7 +79,6 @@
       use reproduction
       use cohorts
       use patches
-      use util
       use biophysics, only : photosynth_cond
       use growthallometry, only : uptake_N
       use phenology, only : litter
