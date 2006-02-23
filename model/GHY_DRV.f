@@ -651,7 +651,7 @@ c****
       use ghy_tracers, only : ghy_tracers_set_step,ghy_tracers_set_cell,
      &     ghy_tracers_save_cell
 #endif
-      use interface_ent, only : ent_get_value
+      use ent_com, only : entcells
       implicit none
 
       integer, intent(in) :: ns,moddsf,moddd
@@ -731,6 +731,8 @@ C**** Work array for regional diagnostic accumulation
       INTEGER :: idx(n_idx)
       real*8 Ca !@Ca concentration of CO2 at surface (mol/m3)
       real*8 vis_rad, direct_vis_rad, cos_zen_angle
+      integer hemi(1:IM,grid%J_STRT:grid%J_STOP)
+      integer :: JEQUATOR=JM/2
 
 
 C****   define local grid
@@ -804,6 +806,11 @@ C**** halo update u and v for distributed parallelization
      &      ,idd_ri1,idd_ri2,idd_ri3,idd_ri4,idd_ri5,idd_ri6,idd_ri7
 #endif
      &      /)
+
+      !--- at the moment update vegetation every time step
+      hemi(:,JEQUATOR+1:J_1) = 1
+      hemi(:,J_0:JEQUATOR) = -1
+      call ent_prescribe_vegupdate(entcells,hemi,jday,jyear)
 
 !$OMP  PARALLEL DO PRIVATE
 !$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
@@ -955,12 +962,13 @@ ccc stuff needed for dynamic vegetation
 
       call ghinij (i,j)
       !call veg_set_cell(i,j)
-      call ent_get_value( i, j,
-     &     canopy_holding_capacity=ws_can,
-     &     canopy_heat_capacity=shc_can,
-     &     fraction_of_vegetated_soil=fv )
-      fb = 1.d0 - fv
-      call advnc( i,j, Jyear,Jmon,Jday,Jdate,Jhour, Ca,
+!i move the following part inside GHY
+!i      call ent_get_value( i, j,
+!i     &     canopy_holding_capacity=ws_can,
+!i     &     canopy_heat_capacity=shc_can,
+!i     &     fraction_of_vegetated_soil=fv )
+!i      fb = 1.d0 - fv
+      call advnc( entcells(i,j), Ca,
      &     cos_zen_angle, vis_rad, direct_vis_rad )
       call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
 
@@ -2041,7 +2049,10 @@ C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 ccc ugly, should fix later
-      call ent_reset_veg_to_defaults( reset_prognostic )
+!!!      call ent_reset_veg_to_defaults( reset_prognostic )
+
+      call stop_model(
+     &     "reset_gh_to_defaults not implemented yet for Ent",255)
 
       do j=J_0,J_1
       do i=1,im
@@ -2764,7 +2775,7 @@ c****
       use geom, only : imaxj
       use ghy_com, only : ngm,wbare,wvege,snowbv
       !use veg_com, only : afb
-      use interface_ent, only : ent_get_value
+      use ent_mod, only : ent_get_exports
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
 !@var waterg zonal ground water (kg/m^2)

@@ -1645,8 +1645,7 @@ ccc check for under/over-saturation
       end subroutine apply_fluxes
 
 
-      subroutine advnc( longi,latj,
-     &     Jyear,Jmon,Jday,Jdate,Jhour,
+      subroutine advnc( entcell,
      &     Ca, cosz1, vis_rad, direct_vis_rad
      &     )
 c**** advances quantities by one time step.
@@ -1678,10 +1677,9 @@ c**** also uses surf with its required variables.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
       !use vegetation, only: update_veg_locals
-      use interface_ent, only : ent_model
+      use ent_mod
 !@var longi,latj corresponding coordinate of the cell
-      integer, intent (in) :: longi,latj
-      integer, intent(in) :: Jyear,Jmon,Jday,Jdate,Jhour
+      type(entcelltype_public) entcell
       real*8, intent(in) :: Ca, cosz1, vis_rad, direct_vis_rad
       real*8 dtm,tb0,tc0,dtr,tot_w1
       integer limit,nit
@@ -1697,6 +1695,14 @@ ccc reset main water/heat fluxes, so they are always initialized
       fh(:,:) = 0.d0
       fc(:) = 0.d0
       fch(:) = 0.d0
+
+ccc get necessary data from ent
+      call ent_get_exports( entcell,
+     &     canopy_max_H2O=ws_can,
+     &     canopy_heat_capacity=shc_can,
+     &     fraction_of_vegetated_soil=fv
+     &     )
+      fb = 1.d0 - fv
 ccc normal case (both present)
       i_bare = 1; i_vege = 2
       process_bare = .true.; process_vege = .true.
@@ -1738,19 +1744,35 @@ ccc accm0 was not called here in older version - check
 !!!
 !!!! insert new canopy conductance here (call to Ent)
 
-        call ent_model(
-     &       longi=longi,latj=latj,
-     &       dtsec=dts,
-     &       Jyear=Jyear,Jmon=Jmon,Jday=Jday,Jdate=Jdate,Jhour=Jhour,
-     o       GCANOPY=cnc, Ci=Ci, Qf=Qf, GPP=GPP,
-     o       TRANS_SW=TRANS_SW, betadl=betadl,
-     &       Precip=pr, TcanopyC=tp(0,2), Qv=qsat(tp(0,2),lhe,pres),
-     &       P_mbar=pres, Ch=ch, U=vsm, 
-     &       Ivis=vis_rad, Idir=direct_vis_rad, Solarzen=cosz1,
-     &       Ca=Ca, Soilmoist=w(1:ngm,2), Soilmp=h(1:ngm,2),
-     &       fice=fice(1:ngm,2) )
+        call ent_set_forcings( entcell,
+     &       canopy_temperature=tp(0,2),
+     &       canopy_air_humidity=qsat(tp(0,2),lhe,pres),
+     &       surf_pressure=pres,
+     &       surf_CO2=Ca,
+     &       precip=pr,
+     &       heat_transfer_coef=ch,
+     &       wind_speed=vsm,
+     &       total_visible_rad=vis_rad,
+     &       direct_visible_rad=direct_vis_rad,
+     &       solar_zenith_angle=cosz1,
+     &       soil_water=w(1:ngm,2),
+     &       soil_matric_pot=h(1:ngm,2),
+     &       soil_ice_fraction=fice(1:ngm,2) 
+     &       )
 
+!!!! dt is not correct at the moment !!
+!!! should eventualy call gdtm(dtm) first ...
+        call ent_fast_processes( entcell, dt )
 
+ccc unpack necessary data
+        call ent_get_exports( entcell,
+     &       canopy_conductance=cnc,
+     &       beta_soil_layers=betadl,
+     &       shortwave_transmit=TRANS_SW,
+     &       foliage_CO2=Ci,
+     &       foliage_humidity=Qf,
+     &       canopy_gpp=GPP
+     &     )
         call evap_limits( .true., dum1, dum2 )
         call sensible_heat
 !debug debug!

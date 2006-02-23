@@ -361,6 +361,6 @@ unit_tests:
 modelsubdirs: $(patsubst %, _dir_%, $(SUBDIRS))
 
 $(patsubst %, _dir_%, $(SUBDIRS)) : FORCE DOMAIN_DECOMP.mod
-	$(MAKE) -C $(patsubst _dir_%, %, $@) depend
+	$(MAKE) -C $(patsubst _dir_%, %, $@) depend ONLINE=YES
 	$(MAKE) -C $(patsubst _dir_%, %, $@) all \
-          ESMF_Interface=$(ESMF_Interface)
+          ESMF_Interface=$(ESMF_Interface) ONLINE=YES

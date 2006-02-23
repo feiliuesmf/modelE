@@ -9,7 +9,7 @@
 !@+     io_ocdiag,io_icedyn,io_icdiag
       USE DOMAIN_DECOMP, only : REWIND_PARALLEL
       USE MODEL_COM, only : ioread_single,iowrite_single,Kradia
-      USE INTERFACE_ENT, only : io_ent
+      !USE ENT_COM, only : io_vegetation
 
       IMPLICIT NONE
 !@var iaction flag for reading or writing rsf file
@@ -48,7 +48,7 @@ C**** Calls to individual i/o routines
         call io_seaice (kunit,iaction,ioerr)
         call io_earth  (kunit,iaction,ioerr)
         call io_soils  (kunit,iaction,ioerr)
-!        call io_vegetation  (kunit,iaction,ioerr)
+        call io_vegetation  (kunit,iaction,ioerr)
         call io_veg_related  (kunit,iaction,ioerr)
         call io_ent    (kunit,iaction,ioerr)
         call io_snow   (kunit,iaction,ioerr)

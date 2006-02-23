@@ -31,7 +31,7 @@ c set-up for MPI implementation
 #endif
       call alloc_tracer_adv(grid)
 !!! should be done in init_module_ent
-      !call alloc_veg_com(grid)
+      call alloc_ent_com(grid)
       call alloc_static_ocean(grid)
 #ifdef TRACERS_ON
       call alloc_trdiag_com

@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      module veg_com
+      module ent_com
 !@sum  ENT_COM contains the data needed for Dynamic Vegetation Model (ENT)
 !@auth I. Aleinov
 !@ver  1.0
@@ -49,7 +49,6 @@
           call ent_cell_unpack(buffer, entcells(i,j))
         enddo
       enddo
-      call closeunit(iu_entstate)
 
       end subroutine ent_read_state
 
@@ -73,10 +72,10 @@
           deallocate(buffer)
         enddo
       enddo
-      call closeunit(iu_entstate)
 
+      end subroutine ent_write_state
 
-      end module veg_com
+      end module ent_com
 
 
       subroutine io_vegetation(kunit,iaction,ioerr)
@@ -87,7 +86,7 @@
       use model_com, only : im,jm
       use domain_decomp, only : grid, am_i_root
       use domain_decomp, only : pack_data, unpack_data
-      use veg_com, only : Cint, Qfol, cnc_ij, entcells
+      use ent_com, only : Cint, Qfol, cnc_ij, entcells
       use ent_mod
       
       implicit none
@@ -133,12 +132,13 @@
       return
       end subroutine io_vegetation
 
-      SUBROUTINE ALLOC_VEG_COM(grid)
+      SUBROUTINE ALLOC_ENT_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
-      USE VEG_COM
+      USE ENT_MOD
+      USE ENT_COM
       USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -164,5 +164,5 @@ C****
      *         STAT=IER)
 
 
-      END SUBROUTINE ALLOC_VEG_COM
+      END SUBROUTINE ALLOC_ENT_COM
 

@@ -1420,8 +1420,7 @@ C****
       ISTART_kradia = ISTART
       if ( Kradia.gt.0 ) ISTART_kradia = 0
       CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART_kradia, nl_soil)
-      CALL init_module_ent(iniENT,grid,dxyp, nl_soil,
-     &     Jyear,Jmon,Jday,Jdate,Jhour)
+      CALL init_module_ent(iniENT, Jday, Jyear)
 
       if (Kradia.gt.0) then   !  radiative forcing run
         !CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)

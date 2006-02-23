@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
       module ent_drv
-!@sum veg_drv contains variables and routines for vegetation driver
+!@sum ent_drv contains variables and routines for vegetation driver
 !@auth I. Alienov, N. Kiang
 
       use model_com, only : im,jm
@@ -9,10 +9,7 @@
       private
       save
 
-      public init_vegetation,reset_veg_to_defaults
-     &     ,veg_set_cell, veg_save_cell,upd_gh
-
-      real*8,public :: cosday,sinday
+      public init_module_ent
 
       contains
 
@@ -28,88 +25,32 @@
       logical, intent(in) :: iniENT
       !---
       integer I_0, I_1, J_0, J_1
+      ! the following are rundeck parameters which need to be
+      ! passed to ent (and used there)
+      integer cond_scheme, vegCO2X_off, crops_yr, read_c4_grass
 
-
-
-      if (iniENT ) then
-        call ent_GISS_init( entcells(I_0:I_1,J_0:J_1),
-     &       IM, JM, I_0, I_1, J_0, J_1, jday, year )
-      endif
-
-      call read_veg_data(redogh,istart)
-      end subroutine init_vegetation
-
-
-      subroutine read_veg_data(redogh,istart)
-!@sum reads vegetation arrays and rundeck parameters
-      use filemanager
-      use param
-      use DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL
-      use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
-      use veg_com
-      use model_com, only : fearth,jyear
-
-      implicit none
-
-      integer, intent(in) :: istart
-      logical, intent(in) :: redogh
-
-      INTEGER :: J_1, J_0, J_1H, J_0H
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
-
-      integer iu_veg
-      integer i, j, k
-      logical veg_data_missing
-
-      real*8, allocatable :: veg_c4(:,:)
-      real*8 :: vc4
-      integer :: read_c4_grass = 0
-
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+     &               I_STRT     =I_0,    IO_STOP    =I_1)
 
-c**** read rundeck parameters
+      c**** read rundeck parameters
       call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03
       call sync_param( "vegCO2X_off", vegCO2X_off)  !nyk 3/2/04
       call sync_param( "crops_yr", crops_yr)
       call sync_param( "read_c4_grass", read_c4_grass)
 
-c**** read land surface parameters or use defaults
-      call openunit("VEG",iu_VEG,.true.,.true.)
-      do k=1,10                 !  11 ????
-        CALL READT_PARALLEL
-     *    (grid,iu_VEG,NAMEUNIT(iu_VEG),0,vdata(:,:,K),1)
-      end do
-c**** zero-out vdata(11) until it is properly read in
-      vdata(:,:,11) = 0.
-      vdata(:,:,12) = 0.
-      call closeunit(iu_VEG)
-c**** add data on c4 grass
-      if ( read_c4_grass >= 1 ) then
-        print *,"Adding c4 grass data"
-        call openunit("VEG_C4",iu_VEG,.true.,.true.)
-        allocate( veg_c4(im,J_0H:J_1H) )
-        CALL READT_PARALLEL
-     *       (grid,iu_VEG,NAMEUNIT(iu_VEG),0,veg_c4(:,:),1)
-        do j=J_0,J_1
-          do i=1,im
-            if (fearth(i,j).gt.0) then
-              ! normalize to earth fraction
-              vc4 = veg_c4(i,j) / fearth(i,j)
-              ! add c4 grass up to max amount of current grass
-              vdata(i,j,12) = min( vdata(i,j,3), vc4 )
-              vdata(i,j,3) = vdata(i,j,3) - vdata(i,j,12)
-            end if
-          enddo
-        enddo      
-        deallocate( veg_c4 )
-        call closeunit(iu_VEG)
+
+      ! maybe call "ent_initialize" ? , i.e.
+      ! call ent_initialize(cond_scheme,vegCO2X_off,crops_yr,nl_soil, etc)
+      ! ask Max if OK
+
+      if (iniENT ) then
+        call set_vegetation_data( entcells(I_0:I_1,J_0:J_1),
+     &       IM, JM, I_0, I_1, J_0, J_1 jday, year )
       endif
+
+      ! the following parts of the code should be implemented
+      ! somewhere in dynamic vegetation
+#ifdef UNFINISHED_CODE
 C**** Update vegetation file if necessary (i.e. crops_yr =0 or >0)
       if(crops_yr.eq.0) call updveg(jyear,.false.)
       if(crops_yr.gt.0) call updveg(crops_yr,.false.)
@@ -143,39 +84,37 @@ c**** check whether ground hydrology data exist at this point.
      &       'Vegetation data is missing at some cells',255)
       endif
 
-      end subroutine read_veg_data
+#endif
+      end subroutine init_module_ent
 
 
+      subroutine set_vegetation_data( entcells,
+     &     im, jm, i0, i1, j0, j1 jday, year )
+!@sum read standard GISS vegetation BC's and pass them to Ent for
+!@+   initialization of Ent cells. Halo cells ignored, i.e.
+!@+   entcells should be a slice without halo
+      use ent_GISSveg, only : GISS_vegdata
+      type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
+      integer, intent(in) :: im, jm, i0, i1, j0, j1 jday, year
+      !Local variables
+      real*8, dimension(N_COVERTYPES,I0:I1,J0:J1)) :: vegdata, laidata
+      real*8, dimension(N_COVERTYPES,1:2,N_BANDS) :: albedodata
+      real*8, dimension(N_COVERTYPES) :: hdata, nmdata, popdata
+      real*8, dimension(N_COVERTYPES,N_DEPTH) :: frootdata
+      !-----Local---------
+
+      !Read land surface parameters or use defaults
+      !GISS data sets:
+      call GISS_vegdata(jday, year, 
+     &     im,jm,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
+     &     frootdata,popdata)
+
+      !Translate gridded data to Entdata structure
+      !GISS data:  a patch per vegetation cover fraction, one cohort per patch
+      call ent_cell_set(entcells, vegdata, laidata,
+     &     hdata, nmdata, frootdata, popdata)
+
+      end subroutine set_vegetation_data
 
 
-      subroutine reset_veg_to_defaults( reset_prognostic )
-      use veg_com, only: vdata
-      use DOMAIN_DECOMP, only : GRID, GET
-      logical, intent(in) :: reset_prognostic
-      integer i,j
-
-      INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
-
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
-
-      do j=J_0,J_1
-      do i=1,im
-
-      vdata(i,j,1:12)= (/  0.00000000d+00,  0.00000000d+00,
-     &     0.00000000d+00,  0.00000000d+00,  0.00000000d+00,
-     &     0.62451148d+00,  0.00000000d+00,  0.00000000d+00,
-     &     0.37548852d+00,  0.00000000d+00,  0.00000000d+00,
-     &     0.00000000d+00 /)
-      enddo
-      enddo
-
-      end subroutine reset_veg_to_defaults
-
-
-
+      end module ent_drv
