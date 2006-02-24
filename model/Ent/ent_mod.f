@@ -93,11 +93,13 @@
       contains
 
 !---- interfaces to run the model one time step ----
-      subroutine ent_prescribe_vegupdate(entcell,hemi,jday,year)
+      subroutine ent_prescribe_vegupdate(entcell,hemi,jday,year,
+     &     update_crops)
       use ent_GISSveg, only:  ent_GISS_vegupdate
       type(entcelltype_public), intent(inout) :: entcell(:,:)
       integer, intent(in) :: hemi(:,:)
       integer,intent(in) :: jday,year
+      logical, intent(in) :: update_crops
       !---
       integer i, ic, j, jc
 
@@ -107,7 +109,7 @@
       do j=1,jc
         do i=1,ic      
           call ent_GISS_vegupdate(entcell(i,j)%entcell, hemi(i,j),
-     &         jday, year, -9999)
+     &         jday, year, update_crops)
         enddo
       enddo
 

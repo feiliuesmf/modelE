@@ -60,12 +60,12 @@
       end subroutine GISS_vegdata
 
       !*********************************************************************
-      subroutine ent_GISS_vegupdate(entcell,hemi,jday,year,YEAR_FLAG)
+      subroutine ent_GISS_vegupdate(entcell,hemi,jday,year,update_crops)
       use patches, only : summarize_patch
       use entcells,only : summarize_entcell
       type(entcelltype) :: entcell
       integer,intent(in) :: jday,year,hemi
-      integer,intent(in) :: YEAR_FLAG
+      logical,intent(in) :: update_crops
       !----Local------
       type(patch),pointer :: pp
 
@@ -76,6 +76,10 @@
         pp = pp%younger
       end do
       call summarize_entcell(entcell)
+
+      if (update_crops) then
+        ! re-read crops data and update the vegetation
+      endif
 
       ! this function is located up in the dependency tree
       ! can't be called here ... IA
