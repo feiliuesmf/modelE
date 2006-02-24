@@ -721,7 +721,7 @@ C****
       USE MODEL_COM, only: clock
 #endif
       USE ATMDYN, only : init_ATMDYN,CALC_AMPK
-      USE INTERFACE_ENT, only : init_module_ent
+      USE ENT_DRV, only : init_module_ent
 
       IMPLICIT NONE
       CHARACTER(*) :: ifile

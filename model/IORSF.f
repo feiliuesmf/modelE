@@ -50,7 +50,7 @@ C**** Calls to individual i/o routines
         call io_soils  (kunit,iaction,ioerr)
         call io_vegetation  (kunit,iaction,ioerr)
         call io_veg_related  (kunit,iaction,ioerr)
-        call io_ent    (kunit,iaction,ioerr)
+        !call io_ent    (kunit,iaction,ioerr)
         call io_snow   (kunit,iaction,ioerr)
         call io_landice(kunit,iaction,ioerr)
         call io_bldat  (kunit,iaction,ioerr)

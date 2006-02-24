@@ -6115,7 +6115,9 @@ C****
 #endif
       USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, PACK_DATAj, GET
       USE DOMAIN_DECOMP, ONLY : CHECKSUMj,CHECKSUM
-      use interface_ent, only : ent_get_value
+      !use interface_ent, only : ent_get_value
+      use ent_com, only : entcells
+      use ent_mod, only : ent_get_exports      
       IMPLICIT NONE
       INTEGER :: J_0, J_1, J_0H, J_1H
       REAL*8, ALLOCATABLE :: tmp(:,:), fract_vege(:,:)
@@ -6157,12 +6159,15 @@ C****
       CALL PACK_DATA(GRID, flice,  wt_ij(:,:,4))
       CALL PACK_DATA(GRID, fearth, wt_ij(:,:,5))
 
-      do j=J_0,J_1
-        do i=1,IM
-          call ent_get_value( i, j,
-     &         fraction_of_vegetated_soil=fract_vege(i,j) )
-        enddo
-      enddo
+!      do j=J_0,J_1
+!        do i=1,IM
+!          call ent_get_value( i, j,
+!     &         fraction_of_vegetated_soil=fract_vege(i,j) )
+!        enddo
+!      enddo
+      call ent_get_exports( entcells(1:IM,J_0:J_1),
+     &           fraction_of_vegetated_soil=fract_vege(1:IM,J_0:J_1) )
+
       tmp(:,J_0:J_1) = fearth(:,J_0:J_1) * (1.d0-fract_vege(:,J_0:J_1))
 !     &     (vdata(:,J_0:J_1,1)+vdata(:,J_0:J_1,10))
       CALL PACK_DATA(GRID, tmp, wt_ij(:,:,6))

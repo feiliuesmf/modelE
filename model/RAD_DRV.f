@@ -910,7 +910,8 @@ C     OUTPUT DATA
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
       USE DOMAIN_DECOMP, ONLY: GLOBALSUM, AM_I_ROOT, HERE
       USE RAD_COSZ0, only : COSZT,COSZS
-      use interface_ent, only : ent_get_value
+      use ent_com, only : entcells
+      use ent_mod, only : ent_get_exports
 
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
@@ -1523,7 +1524,10 @@ C****
       !DO K=1,12
       !  PVT(K)=VDATA(I,J,K)
       !END DO
-      call ent_get_value( i, j, vegetation_fractions=PVT )
+      !call ent_get_value( i, j, vegetation_fractions=PVT )
+      call ent_get_exports( entcells(i,j),
+     &     vegetation_fractions=PVT )
+
       WMAG=WSAVG(I,J)
 C****
 C**** Radiative interaction and forcing diagnostics:

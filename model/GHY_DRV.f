@@ -652,6 +652,7 @@ c****
      &     ghy_tracers_save_cell
 #endif
       use ent_com, only : entcells
+      use ent_mod, only : ent_prescribe_vegupdate
       implicit none
 
       integer, intent(in) :: ns,moddsf,moddd
@@ -810,7 +811,7 @@ C**** halo update u and v for distributed parallelization
       !--- at the moment update vegetation every time step
       hemi(:,JEQUATOR+1:J_1) = 1
       hemi(:,J_0:JEQUATOR) = -1
-      call ent_prescribe_vegupdate(entcells,hemi,jday,jyear)
+      call ent_prescribe_vegupdate(entcells,hemi,jday,jyear,.false.)
 
 !$OMP  PARALLEL DO PRIVATE
 !$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
@@ -1686,7 +1687,8 @@ c**** modifications needed for split of bare soils into 2 types
       use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0,needtrs
       use fluxes, only : gtracer
       !use veg_com, only:  afb, avh
-      use interface_ent, only : ent_get_value
+      use ent_com, only : entcells
+      use ent_mod, only : ent_get_exports
 #endif
       use fluxes, only : gtemp
       use ghy_com
@@ -2001,7 +2003,9 @@ ccc still not quite correct (assumes fw=1)
         do i=1,im
           if (fearth(i,j).le.0.d0) cycle
           !fb=afb(i,j) ; fv=1.-fb
-          call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+          !call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+          call ent_get_exports(entcells(i,j),
+     &         fraction_of_vegetated_soil=fv)
           fb = 1. - fv
           fm=1.d0-exp(-snowbv(2,i,j)/((avh(i,j)*spgsn) + 1d-12))
           if ( fm < 1.d-3 ) fm=0.d0
@@ -2036,7 +2040,7 @@ ccc still not quite correct (assumes fw=1)
       !use model_com, only: vdata
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       use ghy_com
-      use interface_ent, only : ent_reset_veg_to_defaults
+      !use interface_ent, only : ent_reset_veg_to_defaults
       logical, intent(in) :: reset_prognostic
       integer i,j
 
@@ -2137,7 +2141,8 @@ c****
      &     ,hsn_ij,fr_snow_ij
      &     ,Ci_ij, Qf_ij, cnc_ij
       !use veg_com, only: afb
-      use interface_ent, only : ent_get_value
+      use ent_com, only : entcells
+      use ent_mod, only : ent_get_exports
       USE DOMAIN_DECOMP, ONLY : GRID, GET
 !      use veg_drv, only : veg_set_cell
 
@@ -2207,7 +2212,9 @@ c**** calculate the layer centers, based on the boundaries.
 c**** fb,fv: bare, vegetated fraction (1=fb+fv)
 !      fb=afb(i0,j0)
 !      fv=1.-fb
-      call ent_get_value( i0, j0, fraction_of_vegetated_soil=fv )
+      !call ent_get_value( i0, j0, fraction_of_vegetated_soil=fv )
+      call ent_get_exports( entcells(i0,j0),
+     &     fraction_of_vegetated_soil=fv )
       fb = 1. - fv
 c****
       do ibv=1,2
@@ -2497,7 +2504,8 @@ c**** check for reasonable temperatures over earth
       !use sle001, only : fb,fv,ws
       use sle001, only : ws
       !use veg_drv, only : veg_set_cell
-      use interface_ent, only : ent_get_value, ent_update_crops
+      use ent_com, only : entcells
+      use ent_mod, only : ent_get_exports, ent_prescribe_vegupdate
 
       implicit none
       real*8 tsavg,wfc1
@@ -2506,6 +2514,8 @@ c**** check for reasonable temperatures over earth
       integer northsouth,iv  !nyk
       logical, intent(in) :: end_of_day
       real*8 fb, fv, ws_can
+      integer hemi(1:IM,grid%J_STRT:grid%J_STOP)
+      integer :: JEQUATOR=JM/2
 
 C**** define local grid
       integer J_0, J_1
@@ -2517,7 +2527,12 @@ C****
 
 C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
       ! if(crops_yr.eq.0) - should be checked inside Ent
-      call ent_update_crops(jyear)
+      !call ent_update_crops(jyear)
+      if (jday==1) then ! i guess we need to call it only once per year
+        hemi(:,JEQUATOR+1:J_1) = 1
+        hemi(:,J_0:JEQUATOR) = -1
+        call ent_prescribe_vegupdate(entcells,hemi,jday,jyear, .true.)
+      endif
       !if(cond_scheme.eq.2) call updsur (0,jday)
       ! we don't use cond_scheme==1 any more, so call it always
       call updsur (0,jday)
@@ -2561,8 +2576,11 @@ c****
 
             call ghinij(i,j)
             !call veg_set_cell(i,j,.true.)
-            call ent_get_value( i, j, canopy_holding_capacity=ws_can )
-            call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+            !call ent_get_value( i, j, canopy_holding_capacity=ws_can )
+            !call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+            call ent_get_exports( entcells(i,j),
+     &           canopy_max_H2O=ws_can,
+     &           fraction_of_vegetated_soil=fv )
             fb = 1.d0 - fv
             wfc1=fb*ws(1,1)+fv*(ws_can+ws(1,2))
             wfcs(i,j)=rhow*wfc1 ! canopy part changes
@@ -2653,7 +2671,9 @@ c****
      *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_gice, ij_gwtr1
      &     ,ij_zsnow
       use fluxes, only : e0,e1,evapor,eprec
-      use interface_ent, only : ent_get_value
+      !use interface_ent, only : ent_get_value
+      use ent_com, only : entcells
+      use ent_mod, only : ent_get_exports
       implicit none
 
       real*8 snow,tg1,tg2,f0dt,f1dt,evap,wtr1,wtr2,ace1,ace2
@@ -2701,7 +2721,9 @@ c        scove = pearth *
 c     *       ( afb(i,j)*fr_snow_ij(1,i,j)
 c     *       + (1.-afb(i,j))*fr_snow_ij(2,i,j) )
 c**** the following computes the snow cover as it is used in RAD_DRV.f
-      call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+      !call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+      call ent_get_exports( entcells(i,j),
+     &     fraction_of_vegetated_soil=fv )
       fb = 1. - fv
         scove = pearth *
      *       ( fb*fr_snow_rad_ij(1,i,j)
@@ -2775,6 +2797,7 @@ c****
       use geom, only : imaxj
       use ghy_com, only : ngm,wbare,wvege,snowbv
       !use veg_com, only : afb
+      use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
@@ -2801,7 +2824,9 @@ C****
         do i=1,imaxj(j)
           if (fearth(i,j).gt.0) then
             !fb=afb(i,j)
-            call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+            !call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+            call ent_get_exports( entcells(i,j),
+     &           fraction_of_vegetated_soil=fv )
             fb = 1. - fv
             wij=fb*snowbv(1,i,j)+(1.-fb)*(wvege(0,i,j)+snowbv(2,i,j))
             do n=1,ngm
@@ -2824,7 +2849,9 @@ c****
       use geom, only : imaxj, dxyp
       use ghy_com, only : ngm,htbare,htvege,fr_snow_ij,nsn_ij,hsn_ij
       !use veg_com, only : afb
-      use interface_ent, only : ent_get_value
+      !use interface_ent, only : ent_get_value
+      use ent_com, only : entcells
+      use ent_mod, only : ent_get_exports
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
 !@var heatg zonal ground heat (J/m^2)
@@ -2850,7 +2877,9 @@ C****
           if (fearth(i,j).le.0) cycle
           !fb=afb(i,j)
           !fv=(1.d0-fb)
-          call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+          !call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+          call ent_get_exports( entcells(i,j),
+     &         fraction_of_vegetated_soil=fv )
           fb = 1. - fv
           hij=fb*sum( htbare(1:ngm,i,j) )
      &       +  fv*sum( htvege(0:ngm,i,j) )
@@ -2880,7 +2909,9 @@ ccc of the 'surface' to check water conservation
       use fluxes, only : prec,evapor,runoe
       use ghy_com, only : ngm,wbare,wvege,htbare,htvege,snowbv,dz_ij
       !use veg_com, only : afb
-      use interface_ent, only : ent_get_value
+      !use interface_ent, only : ent_get_value
+      use ent_com, only : entcells
+      use ent_mod, only : ent_get_exports
       implicit none
       integer flag
       real*8 total_water(im,jm), error_water
@@ -2911,7 +2942,9 @@ ccc just checking ...
 
           !fb = afb(i,j)
           !fv = 1.d0 - fb
-          call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+          !call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+          call ent_get_exports( entcells(i,j),
+     &     fraction_of_vegetated_soil=fv )
           fb = 1. - fv
           total_water(i,j) = fb*sum( wbare(1:ngm,i,j) )
      &         + fv*sum( wvege(0:ngm,i,j) )
@@ -2934,7 +2967,9 @@ ccc just checking ...
           if ( fearth(i,j) <= 0.d0 ) cycle
           !fb = afb(i,j)
           !fv = 1.d0 - fb
-          call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+          !call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+          call ent_get_exports( entcells(i,j),
+     &         fraction_of_vegetated_soil=fv )
           fb = 1. - fv
           error_water = ( total_water(i,j) - old_total_water(i,j) )*rhow
      &         - prec(i,j) + evapor(i,j,4) + runoe(i,j)

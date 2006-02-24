@@ -109,13 +109,13 @@ sinclude ~/.modelErc
 # list of subdirectories with modelE code (eventually should be read
 # from the rundeck)
 SUBDIRS = Ent
-OBJS_IN_SUBDIRS = Ent/interface_ent.o Ent/ent_driver.o  Ent/ent.o \
- Ent/cohorts.o  Ent/patches.o  Ent/entcells.o \
- Ent/biophysics.o  Ent/canopyradiation.o \
- Ent/growthallometry.o  Ent/reproduction.o  Ent/phenology.o \
- Ent/disturbance.o  Ent/soilbgc.o  Ent/ent_const.o \
- Ent/util.o  \
- Ent/ent_types.o   Ent/ent_pfts.o Ent/ent_GCM_coupler.o
+FSRC_ENT = ent_mod.f ent_GISSveg.f ent.f \
+cohorts.f patches.f entcells.f \
+biophysics.f canopyradiation.f \
+growthallometry.f reproduction.f phenology.f \
+disturbance.f soilbgc.f ent_const.f \
+ent_types.f  ent_pfts.f
+OBJS_IN_SUBDIRS = $(patsubst %, Ent/%, $(FSRC_ENT:.f=.o))
 
 ifneq ($(MAKECMDGOALS),rundeck)
 ifeq ($(shell [ -s $(RUNDECK) ] && echo yes),yes)

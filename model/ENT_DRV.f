@@ -5,6 +5,7 @@
 !@auth I. Alienov, N. Kiang
 
       use model_com, only : im,jm
+      use ent_mod
       implicit none
       private
       save
@@ -18,8 +19,7 @@
       subroutine init_module_ent(iniENT, Jday, Jyear)
 !@sum initializes vegetation
       use param
-      use ent_GISSveg, only :: ent_GISS_init
-      use ent_com, only :: entcells
+      use ent_com, only : entcells
       use DOMAIN_DECOMP, only : GRID, GET
       integer, intent(in) :: Jday, Jyear
       logical, intent(in) :: iniENT
@@ -30,9 +30,9 @@
       integer cond_scheme, vegCO2X_off, crops_yr, read_c4_grass
 
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               I_STRT     =I_0,    IO_STOP    =I_1)
+     &               I_STRT     =I_0,    I_STOP     =I_1)
 
-      c**** read rundeck parameters
+      !--- read rundeck parameters
       call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03
       call sync_param( "vegCO2X_off", vegCO2X_off)  !nyk 3/2/04
       call sync_param( "crops_yr", crops_yr)
@@ -45,7 +45,7 @@
 
       if (iniENT ) then
         call set_vegetation_data( entcells(I_0:I_1,J_0:J_1),
-     &       IM, JM, I_0, I_1, J_0, J_1 jday, year )
+     &       IM, JM, I_0, I_1, J_0, J_1, jday, jyear )
       endif
 
       ! the following parts of the code should be implemented
@@ -89,15 +89,15 @@ c**** check whether ground hydrology data exist at this point.
 
 
       subroutine set_vegetation_data( entcells,
-     &     im, jm, i0, i1, j0, j1 jday, year )
+     &     im, jm, i0, i1, j0, j1, jday, year )
 !@sum read standard GISS vegetation BC's and pass them to Ent for
 !@+   initialization of Ent cells. Halo cells ignored, i.e.
 !@+   entcells should be a slice without halo
       use ent_GISSveg, only : GISS_vegdata
       type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
-      integer, intent(in) :: im, jm, i0, i1, j0, j1 jday, year
+      integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, year
       !Local variables
-      real*8, dimension(N_COVERTYPES,I0:I1,J0:J1)) :: vegdata, laidata
+      real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: vegdata, laidata
       real*8, dimension(N_COVERTYPES,1:2,N_BANDS) :: albedodata
       real*8, dimension(N_COVERTYPES) :: hdata, nmdata, popdata
       real*8, dimension(N_COVERTYPES,N_DEPTH) :: frootdata

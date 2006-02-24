@@ -86,7 +86,8 @@
       use model_com, only : im,jm
       use domain_decomp, only : grid, am_i_root
       use domain_decomp, only : pack_data, unpack_data
-      use ent_com, only : Cint, Qfol, cnc_ij, entcells
+      use ent_com, only : Cint, Qfol, cnc_ij, entcells,
+     &     ent_read_state,ent_write_state
       use ent_mod
       
       implicit none
