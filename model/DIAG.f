@@ -2986,7 +2986,7 @@ C****
 !@sum SUBDAILY defines variables associated with the sub-daily diags
 !@auth Gavin Schmidt
       USE MODEL_COM, only : im,jm,lm,itime
-      USE FILEMANAGER, only : openunit, closeunits
+      USE FILEMANAGER, only : openunit, closeunits, nameunit
       USE DIAG_COM, only : kgz_max,pmname,P_acc
       USE PARAM
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
@@ -3253,7 +3253,7 @@ C****
       USE RAD_COM, only : trhr,srdn,salb,cfrac,cosz1
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,kgz_max,pmname,tdiurn
      *     ,p_acc,pmb
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP, only : GRID,GET,WRITEI_PARALLEL
       IMPLICIT NONE
       REAL*4, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
       INTEGER :: I,J,K,L,kp,kunit
@@ -3445,7 +3445,9 @@ C**** fix polar values
         IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
         IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
-        call writei(iu_subdd(kunit),itime,data,im*jm)
+        !call writei(iu_subdd(kunit),itime,data,im*jm)
+        call writei_parallel(grid,
+     &       iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
         cycle
 
 C**** diags on fixed pressure levels or velocity
@@ -3474,7 +3476,9 @@ C**** fix polar values
               IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
               IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
               cycle
             end if
           end do
@@ -3500,7 +3504,9 @@ C**** fix polar values
               IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
               IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
             end do
             cycle
           end if
@@ -3530,7 +3536,9 @@ C**** fix polar values
                 IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
               end select
 C**** write out
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
             end do
             cycle
           end if
@@ -3554,7 +3562,9 @@ C**** fix polar values for W only (calculated on tracer points)
                 data(2:im,1) =data(1,1)
                 data(2:im,jm)=data(1,jm)
               end select
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
               cycle
             end if
           end do
@@ -3573,7 +3583,9 @@ C**** fix polar values
               IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
               IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
             end do
             cycle
           end if
@@ -3596,7 +3608,9 @@ C**** fix polar values
               IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
               IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
               cycle
             end if
           end do
@@ -3616,7 +3630,9 @@ C**** fix polar values
               data(2:im,1) =data(1,1)
               data(2:im,jm)=data(1,jm)
 C**** write out
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
             end do
             cycle
           end if
@@ -3639,7 +3655,9 @@ C**** fix polar values
               data(2:im,1) =data(1,1)
               data(2:im,jm)=data(1,jm)
 C**** write out
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
               cycle
             end if
           end do
@@ -3730,7 +3748,9 @@ C**** fix polar values
               data(2:im,1) =data(1,1)
               data(2:im,jm)=data(1,jm)
              end select
-             call writei(iu_subdd(kunit),itime,data,im*jm)
+             !call writei(iu_subdd(kunit),itime,data,im*jm)
+             call writei_parallel(grid,
+     &            iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
              cycle
           end do
 #endif
@@ -3755,7 +3775,9 @@ C**** fix polar values
 C**** fix polar values
             data(2:im,1) =data(1,1)
             data(2:im,jm)=data(1,jm)
-            CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            !CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
           END DO
 #ifdef TRACERS_DUST
         CASE ('DUEMIS2')   ! Dust emission flux 2 (diag. var. only) [kg/m^2/s]
@@ -3765,7 +3787,9 @@ C**** fix polar values
 C**** fix polar values
             data(2:im,1) =data(1,1)
             data(2:im,jm)=data(1,jm)
-            CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            !CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
           END DO
 #endif
 #ifdef TRACERS_DRYDEP
@@ -3780,7 +3804,9 @@ C**** fix polar values
 C**** fix polar values
               data(2:im,1) =data(1,1)
               data(2:im,jm)=data(1,jm)
-              CALL writei(iu_subdd(kunit),itime,data,im*jm)
+              !CALL writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
             END IF
           END DO
         CASE ('DUDEPGRAV')  ! Gravit. settling flux of dust tracers [kg/m^2/s]
@@ -3815,7 +3841,9 @@ C**** fix polar values
 C**** fix polar values
               data(2:im,1) =data(1,1)
               data(2:im,jm)=data(1,jm)
-              CALL writei(iu_subdd(kunit),itime,data,im*jm)
+              !CALL writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
 #ifdef TRACERS_WATER
             END IF
 #endif
@@ -3829,7 +3857,9 @@ C**** fix polar values
 C**** fix polar values
             data(2:im,1) =data(1,1)
             data(2:im,jm)=data(1,jm)
-            CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            !CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
           END DO
           CASE ('DULOAD')       ! Dust load [kg/m^2]
           kunit=kunit+1
@@ -3845,7 +3875,9 @@ C**** fix polar values
 C**** fix polar values
             data(2:im,1) =data(1,1)
             data(2:im,jm)=data(1,jm)
-            CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            !CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
           END DO
         END SELECT
 #endif

@@ -84,6 +84,7 @@
       PUBLIC :: READT_PARALLEL
       PUBLIC :: READ_PARALLEL
       PUBLIC :: WRITE_PARALLEL
+      PUBLIC :: WRITEI_PARALLEL
       PUBLIC :: TRANSP
       PUBLIC :: TRANSPOSE_COLUMN
 !@var GLOBALMAX Generic wrapper for Real/integer
@@ -200,6 +201,10 @@
          module procedure WRITE_PARALLEL_STRING_0
          module procedure WRITE_PARALLEL_STRING_1
 
+      end interface
+
+      interface WRITEI_PARALLEL
+        module procedure WRITEI_PARALLEL_2D
       end interface
 
 
@@ -1993,6 +1998,41 @@ C****  convert from real*4 to real*8
       EndIf
 
       END SUBROUTINE READT_PARALLEL_3D
+
+
+      SUBROUTINE WRITEI_PARALLEL_2D (grd_dum,IUNIT,NAME,buf,it)
+!@sum	READT_PARALLEL  Parallel version of UTILDBL.f:READT for (im,jm) arrays
+!@auth	NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
+      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of record being read
+      REAL*4,       INTENT(OUT) :: buf(:,grd_dum%J_STRT_HALO:)  !@var  buf real*8 array
+      INTEGER,      INTENT(IN)  :: it       !@var  it iteration
+      REAL*4 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD)  !@var  AIN  real*4 array
+      INTEGER :: IERR
+
+!!! not sure if it is implemented for real*4 ...
+#ifdef USE_ESMF
+      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
+#else
+      buf_glob = buf(:,grd_dum%J_STRT:grd_dum%J_STOP)
+#endif
+
+      If (AM_I_ROOT()) then
+        WRITE (IUNIT, IOSTAT=IERR) it, buf_glob, it
+      EndIf
+
+      If (IERR==0) Then
+        WRITE(6,*) "Wrote to file ",TRIM(NAME)
+        RETURN
+      Else
+        WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
+        call stop_model('WRITEI_PARALLEL: WRITE ERROR',255)
+      EndIf
+
+      END SUBROUTINE WRITEI_PARALLEL_2D
+
 
       subroutine ESMF_IArrayScatter_IJ(egrid, local_array, global_array)
       integer      , dimension (:,:) :: local_array, global_array
