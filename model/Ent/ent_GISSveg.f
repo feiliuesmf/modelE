@@ -1,6 +1,6 @@
       module ent_GISSveg
 
-      use ent_const, only : pi, JEQUATOR, N_COVERTYPES,N_DEPTH
+      use ent_const, only : pi, N_COVERTYPES, N_DEPTH
       use ent_types
       !use GCM_module, only:  GCMi, GCMj !Fix to names from GCM
 
@@ -33,10 +33,10 @@
       !*    SUBROUTINES TO READ IN GISS VEGETATION DATA SETS 
       !*********************************************************************
 
-      subroutine GISS_vegdata(jday, year, im,jm,I0,I1,J0,J1,
+      subroutine GISS_vegdata(jday, year, IM,JM,I0,I1,J0,J1,
      &     vegdata,albedodata,laidata,hdata,nmdata,frootdata,popdata)
       integer,intent(in) :: jday, year
-      integer,intent(in) :: im,jm,I0,I1,J0,J1 !long/lat grid number range
+      integer,intent(in) :: IM,JM,I0,I1,J0,J1 !long/lat grid number range
       real*8,intent(out) :: vegdata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: albedodata(N_COVERTYPES,1:2,N_BANDS)
       real*8,intent(out) :: laidata(N_COVERTYPES,I0:I1,J0:J1)
@@ -47,10 +47,10 @@
  
       !-----Local------
 
-      call GISS_get_vdata(im,jm,I0,I1,J0,J1,vegdata)   !veg fractions
+      call GISS_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
       call GISS_veg_albedodata(jday, albedodata)
-      call GISS_get_laidata(jday,I0,I1,J0,J1,laidata) !lai
-      call GISS_update_vegcrops(year,I0,I1,J0,J1,vegdata)
+      call GISS_get_laidata(jday,JM,I0,I1,J0,J1,laidata) !lai
+      call GISS_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
 
       call GISS_get_hdata(hdata) !height
       call GISS_get_initnm(nmdata) !nm
@@ -106,17 +106,18 @@
       vdata(:,:,:) = 0.d0
       call openunit("VEG",iu_VEG,.true.,.true.)
 
-      do k=1,N_COVERTYPES  !## HACK - this should be related to N_COVERTYPES
+      do k=1,10  !## HACK - this should be related to N_COVERTYPES
 
         read(iu_VEG) title, buf
         vdata(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1)
+        print *,"read VEG:", title
       end do
 
       call closeunit(iu_VEG)
       end subroutine GISS_get_vdata
 !**************************************************************************
 
-      subroutine GISS_get_cropdata(year,im,jm,J0,J1,cropdata)
+      subroutine GISS_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropdata)
       !* This version reads in crop distribution from GISS data set.
       !* And calculates crop fraction for given year.
 
@@ -124,15 +125,15 @@
       use FILEMANAGER, only : openunit,closeunit,nameunit
 #endif
       integer, intent(in) :: year
-      integer, intent(in) :: im, jm, J0, J1
-      real*8, intent(out) :: cropdata(im,J0:J1)
+      integer, intent(in) :: IM, JM, I0, I1, J0, J1
+      real*8, intent(out) :: cropdata(I0:I1,J0:J1)
       !----------
       integer :: i
 #ifdef tempdebug
       integer :: iu_CROPS
       integer :: year1, year2
       real*4 crop4(im,jm)
-      real*8 wt, crop1(im,J0:J1), crop2(im,J0:J1)
+      real*8 wt, crop1(I0:I1,J0:J1), crop2(I0:I1,J0:J1)
       character*80 title
 
       !* Calculate fraction for given gcmtime:  interpolate between years*/
@@ -147,14 +148,14 @@
         crop1(:,:) = crop2(:,:)
         read (iu_CROPS,end=10) title, crop4
         read(title,*) year2
-        crop2(:,J0:J1) = crop4(:,J0:J1)
+        crop2(I0:I1,J0:J1) = crop4(I0:I1,J0:J1)
       enddo
       wt = (year-year1)/(real(year2-year1,kind=8))
  10   continue
       call closeunit(iu_CROPS)
 
-      cropdata(:,J0:J1) = crop1(:,J0:J1)
-     &     + wt * (crop2(:,J0:J1) - crop1(:,J0:J1))
+      cropdata(:,:) = crop1(:,:)
+     &     + wt * (crop2(:,:) - crop1(:,:))
 #endif
       !*TEMPORARY ZERO OUT CROPDATA IFDEF *!
       do i=1,im
@@ -165,12 +166,12 @@
 
 !**************************************************************************
 
-      subroutine GISS_update_vegcrops(year,i0,i1,j0,j1,
+      subroutine GISS_update_vegcrops(year,IM,JM,I0,I1,J0,J1,
      &     vegdata)
       !* Modify vegdata given new cropdata.
       integer,intent(in) :: year
-      integer, intent(in) :: i0,i1,j0,j1
-      real*8, intent(inout) :: vegdata(N_COVERTYPES,i0:i1,j0:j1)
+      integer, intent(in) :: IM,JM,I0,I1,J0,J1
+      real*8, intent(inout) :: vegdata(N_COVERTYPES,I0:I1,J0:J1)
       !--------
       real*8,ALLOCATABLE,dimension(:,:) :: cropdata !grid array
       integer :: i,j
@@ -179,7 +180,7 @@
       ALLOCATE(cropdata(I0:I1,J0:J1))
 
       !* Loop *!
-      call GISS_get_cropdata(year,I0,I1,J0,J1,cropdata) !crop fraction
+      call GISS_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropdata) !crop fraction
 
       !* If cropdata was prepared somewhere else, then cover is as simple as
       !* modifying the vegetation fractions.  Need to update cohort and
@@ -207,23 +208,22 @@
 
 !**************************************************************************
 
-      subroutine GISS_get_laidata(jday,I0,I1,J0,J1,laidata)
+      subroutine GISS_get_laidata(jday,JM,I0,I1,J0,J1,laidata)
 !@sum Returns GISS GCM leaf area index for entire grid and given jday.
-      use ent_const,only : JEQUATOR,N_COVERTYPES
+      use ent_const,only : N_COVERTYPES
       integer,intent(in) :: jday
-      integer :: I0,I1,J0,J1
+      integer, intent(in) :: JM,I0,I1,J0,J1
       real*8 :: laidata(N_COVERTYPES,I0:I1,J0:J1) 
       !----------
       integer :: pft !@var pft vegetation type
       integer :: hemi !@var hemi =1 in N. hemisphere, =-1 in South
-      integer i,j
-      !real*8 :: jeq   !NEED TO ASSIGN EITHER TO ENT CONSTANT OR GISS MODEL_COM
-      !* SEE JEQUATOR INITIALIZED IN ENT_INIT
-      
+      integer i,j,jeq
+
+      jeq = JM/2
+
       do j=J0,J1
         hemi = 1
-        !if ( j < jeq <<<equator ) hemi = -1
-        if (j < JEQUATOR) hemi = -1
+        if (j <= jeq) hemi = -1
         do i=I0,I1
           do pft=1,N_COVERTYPES
             laidata(pft,i,j) = GISS_calc_lai(pft,jday,hemi)
@@ -258,8 +258,6 @@
       real*8 dphi
 
       dphi = 0
-      !hemi = 1
-      !if ( latj < jeq <<<equator ) hemi = -1
       if ( hemi < 0 ) dphi = 2d0*pi*.5d0
 
       !* Return lai *!

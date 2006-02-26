@@ -3,8 +3,7 @@
 !@sum budburst/leafout, albedo change, senescence
 
       use ent_types
-      use ent_const, only : JEQUATOR
-
+ 
       implicit none
 
 

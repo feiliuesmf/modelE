@@ -271,6 +271,13 @@
 
       allocate( entcell%entcell )
 
+      ! allocate internal arrays
+      allocate( entcell%entcell%froot(N_DEPTH) )
+      allocate( entcell%entcell%betadl(N_DEPTH) )
+      allocate( entcell%entcell%Soilmoist(N_DEPTH) )
+      allocate( entcell%entcell%Soilmp(N_DEPTH) )
+      allocate( entcell%entcell%fice(N_DEPTH) )
+
       ! don't allocate patches, just set all pointers to NULL
       nullify( entcell%entcell%youngest )
       nullify( entcell%entcell%oldest   )
@@ -298,11 +305,14 @@
       type(entcelltype_public), intent(inout) :: entcell(:,:)
       integer i, ic, j, jc
 
+      print *,"ent_cell_construct_array_2d:"
+
       ic = size(entcell,1)
       jc = size(entcell,2)
 
       do j=1,jc
         do i=1,ic
+          !print *,"i,j=",i,j
           call ent_cell_construct_single( entcell(i,j) )
         enddo
       enddo
@@ -343,6 +353,12 @@
       ! destroy cell here
       if ( associated(entcell%entcell%sumpatch) )
      &     deallocate( entcell%entcell%sumpatch )
+
+      deallocate( entcell%entcell%froot )
+      deallocate( entcell%entcell%betadl )
+      deallocate( entcell%entcell%Soilmoist )
+      deallocate( entcell%entcell%Soilmp )
+      deallocate( entcell%entcell%fice )
 
       deallocate( entcell%entcell )
       nullify( entcell%entcell )
