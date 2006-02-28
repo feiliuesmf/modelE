@@ -30,6 +30,9 @@
       !GISS TEMPORARY - prescribed roots should be passed in
 !      call GISS_calc_froot(froot, pft)
 
+      ! at least set it to zero, since it is called in zero_cohort...
+      froot(:) = 0.d0
+
       !* Prognostic roots calculated here *!.
 
       end subroutine init_rootdistr

@@ -34,7 +34,8 @@
       !*********************************************************************
 
       subroutine GISS_vegdata(jday, year, IM,JM,I0,I1,J0,J1,
-     &     vegdata,albedodata,laidata,hdata,nmdata,frootdata,popdata)
+     &     vegdata,albedodata,laidata,hdata,nmdata,frootdata,
+     &     popdata,soildata)
       integer,intent(in) :: jday, year
       integer,intent(in) :: IM,JM,I0,I1,J0,J1 !long/lat grid number range
       real*8,intent(out) :: vegdata(N_COVERTYPES,I0:I1,J0:J1)
@@ -44,6 +45,7 @@
       real*8,intent(out) :: nmdata(N_COVERTYPES)
       real*8,intent(out) :: frootdata(N_COVERTYPES,N_DEPTH)
       real*8,intent(out) :: popdata(N_COVERTYPES)
+      integer,intent(out) :: soildata(N_COVERTYPES)
  
       !-----Local------
 
@@ -56,6 +58,7 @@
       call GISS_get_initnm(nmdata) !nm
       call GISS_get_froot(frootdata)
       call GISS_get_pop(popdata)
+      call GISS_get_soil_types(soildata)
 
       end subroutine GISS_vegdata
 
@@ -525,5 +528,26 @@ c**** calculate root fraction afr averaged over vegetation types
       popdata = popdens
 
       end subroutine GISS_get_pop
+!*************************************************************************
+
+      subroutine GISS_get_soil_types(soildata)
+      !* Return array parameter of GISS vegetation heights.
+      integer :: soildata(N_COVERTYPES) 
+      !------
+      real*8, parameter :: soil_types(N_COVERTYPES) =
+      !* tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
+     $     (/1, 2, 2,  2, 2, 2, 2, 2
+     &     ,2, 2, 2, 2 /)
+
+      ! For GISS Model E replication, don't need to fill in an
+      ! i,j array of vegetation density, but just can use
+      ! constant arry for each vegetation pft type.
+      ! For full-fledged Ent, will need to read in a file entdata
+      ! containing vegetation density.
+
+      !* Return popdata population density for all vegetation types
+      soildata(:) = soil_types(:)
+
+      end subroutine GISS_get_soil_types
 !*************************************************************************
       end module ent_GISSveg

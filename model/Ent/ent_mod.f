@@ -266,24 +266,26 @@
 !---- Constructor / Destructor -----
 
       subroutine ent_cell_construct_single(entcell)
-      use entcells, only : zero_entcell
+      use entcells, only : entcell_construct
       type(entcelltype_public), intent(inout) :: entcell
 
-      allocate( entcell%entcell )
+cddd      allocate( entcell%entcell )
+cddd
+cddd      ! allocate internal arrays
+cddd      allocate( entcell%entcell%froot(N_DEPTH) )
+cddd      allocate( entcell%entcell%betadl(N_DEPTH) )
+cddd      allocate( entcell%entcell%Soilmoist(N_DEPTH) )
+cddd      allocate( entcell%entcell%Soilmp(N_DEPTH) )
+cddd      allocate( entcell%entcell%fice(N_DEPTH) )
+cddd
+cddd      ! don't allocate patches, just set all pointers to NULL
+cddd      nullify( entcell%entcell%youngest )
+cddd      nullify( entcell%entcell%oldest   )
+cddd      nullify( entcell%entcell%sumpatch )
+cddd      ! for now set all values o zero or defaults
+cddd      call zero_entcell(entcell%entcell)
 
-      ! allocate internal arrays
-      allocate( entcell%entcell%froot(N_DEPTH) )
-      allocate( entcell%entcell%betadl(N_DEPTH) )
-      allocate( entcell%entcell%Soilmoist(N_DEPTH) )
-      allocate( entcell%entcell%Soilmp(N_DEPTH) )
-      allocate( entcell%entcell%fice(N_DEPTH) )
-
-      ! don't allocate patches, just set all pointers to NULL
-      nullify( entcell%entcell%youngest )
-      nullify( entcell%entcell%oldest   )
-      nullify( entcell%entcell%sumpatch )
-      ! for now set all values o zero or defaults
-      call zero_entcell(entcell%entcell)
+      call entcell_construct(entcell%entcell)
 
       end subroutine ent_cell_construct_single
 
@@ -404,7 +406,8 @@
      &     pft_hights,
      &     pft_nmdata,
      &     pft_froots,
-     &     pft_population_density
+     &     pft_population_density,
+     &     pft_soil_type
      &     )
       type(entcelltype_public), intent(out) :: entcell
       real*8, dimension(:)  ::   ! dim=N_COVERTYPES
@@ -415,10 +418,12 @@
      &     pft_nmdata,
      &     pft_population_density
       real*8, dimension(:,:)  :: pft_froots
+      integer, dimension(:)  :: pft_soil_type
 
       call init_simple_entcell( entcell%entcell,
      &     veg_fraction,  leaf_area_index,
-     &     pft_hights, pft_nmdata, pft_froots, pft_population_density)
+     &     pft_hights, pft_nmdata, pft_froots,
+     &     pft_population_density, pft_soil_type)
       
       end subroutine ent_cell_set_single
 
@@ -429,7 +434,8 @@
      &     pft_hights,
      &     pft_nmdata,
      &     pft_froots,
-     &     pft_population_density
+     &     pft_population_density,
+     &     pft_soil_type
      &     )
       type(entcelltype_public), intent(out) :: entcell(:)
       real*8, dimension(:,:)  ::   ! dim=N_COVERTYPES, n
@@ -440,6 +446,7 @@
      &     pft_nmdata,
      &     pft_population_density
       real*8, dimension(:,:)  :: pft_froots
+      integer, dimension(:)  :: pft_soil_type
       !---
       integer n, nc
 
@@ -449,7 +456,8 @@
         call init_simple_entcell( entcell(n)%entcell,
      &       veg_fraction(:,n),
      &       leaf_area_index(:,n),
-     &       pft_hights, pft_nmdata, pft_froots, pft_population_density)
+     &       pft_hights, pft_nmdata, pft_froots,
+     &       pft_population_density, pft_soil_type)
       enddo
       
       end subroutine ent_cell_set_array_1d
@@ -461,7 +469,8 @@
      &     pft_hights,
      &     pft_nmdata,
      &     pft_froots,
-     &     pft_population_density
+     &     pft_population_density,
+     &     pft_soil_type
      &     )
       type(entcelltype_public), intent(out) :: entcell(:,:)
       real*8, dimension(:,:,:)  ::   ! dim=N_COVERTYPES, n
@@ -472,6 +481,7 @@
      &     pft_nmdata,
      &     pft_population_density
       real*8, dimension(:,:)  :: pft_froots
+      integer, dimension(:)  :: pft_soil_type
       !---
       integer i, j, ic, jc
 
@@ -483,7 +493,8 @@
           call init_simple_entcell( entcell(i,j)%entcell,
      &         veg_fraction(:,i,j),
      &         leaf_area_index(:,i,j),
-     &         pft_hights,pft_nmdata,pft_froots,pft_population_density)
+     &         pft_hights,pft_nmdata,pft_froots,
+     &         pft_population_density, pft_soil_type)
         enddo
       enddo
       

@@ -14,7 +14,7 @@
       save
 
       public zero_entcell, summarize_entcell
-      public init_simple_entcell
+      public init_simple_entcell, entcell_construct
 
 
       contains
@@ -106,7 +106,8 @@
       integer :: ia             !counter variable
 
       ecp%LAI = 0.0  !Re-zero
-      call init_patch(ecp%sumpatch,ecp,0.d0) !Summary patch reset to zero area.
+      !call init_patch(ecp%sumpatch,ecp,0.d0) !Summary patch reset to zero area.
+      call zero_patch(ecp%sumpatch)
       spp = ecp%sumpatch
 
       ip = 0
@@ -239,7 +240,7 @@
 !**************************************************************************
 
       subroutine init_simple_entcell( ecp,
-     i vegdata,popdens,laidata,hdata,nmdata,frootdata )
+     i vegdata,popdens,laidata,hdata,nmdata,frootdata,soildata )
       !@sum Initializes an entcell assuming one cohort per patch.
       use patches, only : summarize_patch
       type(entcelltype) :: ecp
@@ -249,6 +250,7 @@
       real*8,intent(in) :: hdata(N_COVERTYPES) !Height
       real*8,intent(in) :: nmdata(N_COVERTYPES) !Nitrogen parameter
       real*8,intent(in) :: frootdata(N_COVERTYPES,N_DEPTH) !Root profile.
+      integer,intent(in) :: soildata(N_COVERTYPES)
       !-----Local---------
       integer :: pnum
       type(patch),pointer :: pp
@@ -257,14 +259,15 @@
       !Get from GISS GCM ## vfraction of grid cell and area.
         if (vegdata(pnum)>0.0) then
           !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
-          call insert_patch(ecp,vegdata(pnum))
+          call insert_patch(ecp,vegdata(pnum),soildata(pnum))
           pp = ecp%youngest
           !## Supply also geometry, clumping index
           ! insert cohort only if population density > 0 (i.e. skip bare soil)
           if ( popdens(pnum) > EPS ) then 
             call insert_cohort(pp,pnum,0.d0,hdata(pnum),
      &           nmdata(pnum),
-     &           0.d0,0.d0,0.d0,0.d0,laidata(pnum),0.d0,frootdata,
+     &           0.d0,0.d0,0.d0,0.d0,laidata(pnum),0.d0,
+     &           frootdata(pnum,:),
      &           0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
      &           0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
      &           0.d0,0.d0,0.d0,0.d0,0.d0,
@@ -276,6 +279,81 @@
       call summarize_entcell(ecp)
 
       end subroutine init_simple_entcell
+
+ !*********************************************************************
+
+      subroutine entcell_construct(ecp)
+      implicit none
+      type(entcelltype), pointer :: ecp
+
+      ! allocate memory
+      allocate( ecp )
+      allocate( ecp%froot(N_DEPTH) )
+      allocate( ecp%betadl(N_DEPTH) )
+      allocate( ecp%Soilmoist(N_DEPTH) )
+      allocate( ecp%Soilmp(N_DEPTH) )
+      allocate( ecp%fice(N_DEPTH) )
+
+      ! set pointers
+      nullify( ecp%youngest )
+      nullify( ecp%oldest   )
+
+      ! for now set all values to zero or defaults
+      call zero_entcell(ecp)
+
+      ! create sumpatch
+      call patch_construct(ecp%sumpatch, ecp, 0.d0, 0)
+
+      end subroutine entcell_construct
+
+ !*********************************************************************
+
+      subroutine entcell_destruct(ecp)
+      implicit none
+      type(entcelltype), pointer :: ecp
+
+
+
+
+      end subroutine entcell_destruct
+
+#ifdef UNFINISHED
+ !*********************************************************************
+
+      subroutine entcell_delete_patches(ecp)
+      implicit none
+      type(entcelltype), pointer :: ecp
+
+      type(patch), pointer :: p  !@var p current patch
+      type(cohort), pointer :: c !@var current cohort
+      integer np, nc
+
+
+      np = 0
+      p => ecp%oldest      
+      do while ( associated(p) )
+        np = np + 1
+        if ( np > MAX_PATCHES )
+     &       call stop_model("ent_cell_destruct: too many patches",255)
+        nc = 0
+        c => p%tallest
+        do while ( associated(c) )
+          nc = nc + 1
+          if ( nc > MAX_COHORTS )
+     &         call stop_model("ent_cell_destruct: too many chrts",255)
+          ! destroy cohort here
+          deallocate( c )
+          c => c%shorter
+        enddo
+        ! destroy patch here
+        if (associated(p%sumcohort) ) deallocate( p%sumcohort )
+        deallocate( p )
+        p => p%younger
+      enddo
+      
+
+      end subroutine entcell_delete_patches
+#endif
 
  !*********************************************************************
       end module entcells

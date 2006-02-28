@@ -34,17 +34,21 @@
       !* If pp has cohorts, then insert, else allocate.
       !* Insert at correct height in list, starting from shortest,
       !* since most new cohorts will be shortest.
-        ALLOCATE(newc)
-        newc%pptr = pp
+        !!ALLOCATE(newc)
+        !!newc%pptr = pp
+        call cohort_construct(newc, pp, pft)
         call assign_cohort(newc,pft,n, h, nm, LAI,
      &       crown_dx, crown_dy,dbh, root_d,clump,
      &       LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &       C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &       GCANOPY, GPP, NPP, R_growth,R_maint,
-     &       N_up, C_litter,N_litter,C_to_Nfix)
+     &       N_up, C_litter,N_litter,C_to_Nfix,froot)
 
         newc%Ntot = nm*LAI
 
+        ! >>>>
+        ! Nancy, make sure that you distinguish between = and =>
+        ! in the following code
         if (ASSOCIATED(pp%shortest)) then !A. There are other cohorts.
           if (pp%shortest%h.ge.newc%h) then !newc is shortest
             pp%shortest%shorter = newc
@@ -107,12 +111,13 @@
             end if
           end if
         else !B. newc is the only cohort
-          pp%tallest = newc
-          pp%shortest = newc
-          nullify(newc%taller) 
-          nullify(newc%shorter)
-          nullify(newc%csptaller)
-          nullify(newc%cspshorter)
+          pp%tallest => newc
+          pp%shortest => newc
+          ! actually following are already nullified in cohort_construct
+          !nullify(newc%taller) 
+          !nullify(newc%shorter)
+          !nullify(newc%csptaller)
+          !nullify(newc%cspshorter)
         end if
       end subroutine insert_cohort
       !*********************************************************************
@@ -122,10 +127,10 @@
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     GCANOPY, GPP, NPP, R_growth,R_maint,
-     &     N_up, C_litter,N_litter,C_to_Nfix)
+     &     N_up, C_litter,N_litter,C_to_Nfix, froot)
       !Given cohort's characteristics, assign to cohort data variable.
 
-      type(cohort),pointer :: cop
+      type(cohort) :: cop
       integer :: pft
       !real*8,optional :: nm, Ntot
       real*8 :: n, h, nm, LAI,
@@ -133,7 +138,7 @@
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     GCANOPY, GPP, NPP, R_growth,R_maint,
-     &     N_up, C_litter,N_litter, C_to_Nfix
+     &     N_up, C_litter,N_litter, C_to_Nfix, froot(:)
 
       cop%pft = pft
       cop%n = n
@@ -165,25 +170,27 @@
       cop%N_up =  N_up 
       cop%N_litter = N_litter
       cop%C_to_Nfix = C_to_Nfix
+      cop%froot(:) = froot(:)
 
       end subroutine assign_cohort
       !*********************************************************************
-      subroutine init_cohort_defaults(cop,pnum)
-!     @sum Initialize a cohort with default values
-      type(cohort),pointer :: cop
-      integer :: pnum
-
-      cop%pft = pnum
-      cop%n = 1                 !## Dummy ##!
-!     cop%pptr = pp
-!     call nullify(cop%taller) !Only one cohort
-!     call nullify(cop%shorter)
-!     call nullify(cop%csptaller)
-!     call nullify(cop%cspshorter)            
-
-      call zero_cohort(cop)
-      
-      end subroutine init_cohort_defaults
+!!! basically replaced with cohort_construct()
+cddd      subroutine init_cohort_defaults(cop,pnum)
+cddd!     @sum Initialize a cohort with default values
+cddd      type(cohort),pointer :: cop
+cddd      integer :: pnum
+cddd
+cddd      cop%pft = pnum
+cddd      cop%n = 1                 !## Dummy ##!
+cddd!     cop%pptr = pp
+cddd!     call nullify(cop%taller) !Only one cohort
+cddd!     call nullify(cop%shorter)
+cddd!     call nullify(cop%csptaller)
+cddd!     call nullify(cop%cspshorter)            
+cddd
+cddd      call zero_cohort(cop)
+cddd      
+cddd      end subroutine init_cohort_defaults
 
       subroutine zero_cohort(cop)
 !@sum Zero all real variables in cohort record.      
@@ -202,7 +209,7 @@
       cop%root_d = 0.0
       cop%LAI = 0.0
       cop%clump = 0.0
-      call init_rootdistr(cop%froot, cop%pft)
+      cop%froot(:) = 0.0
 
       !* BIOMASS POOLS *!
       cop%LMA = 0.0
@@ -245,9 +252,57 @@
       !Not need in GISS replication test.
       
       end subroutine reorganize_cohorts
-
-
       !*********************************************************************
-  
+
+
+      subroutine cohort_construct(cop, parent_patch, pnum)
+      !@sum create a cohort with default values. if optional values
+      !@+ are provided - set them
+      ! this function may eventually be combined with assign_cohort
+      ! for better performance
+      type(cohort),pointer :: cop
+      integer, optional :: pnum
+      type(patch), optional, target :: parent_patch
+
+      ! allocate memory
+      allocate( cop )
+      allocate( cop%froot(N_DEPTH) )
+
+      ! set pointers if any
+      nullify(cop%cellptr )
+      nullify(cop%pptr )
+      nullify(cop%taller )
+      nullify(cop%shorter )
+      nullify(cop%csptaller )
+      nullify(cop%cspshorter )
+      if ( present(parent_patch) ) then
+        cop%pptr => parent_patch
+        if ( associated( cop%pptr%cellptr ) )
+     &       cop%cellptr => cop%pptr%cellptr
+      endif
+
+      ! set variables
+      cop%pft = -1              ! = -1 if pft not set
+      if ( present(pnum) ) cop%pft = pnum
+      cop%n = 1                                 !## Dummy ##!
+
+      call zero_cohort(cop)
+
+      end subroutine cohort_construct
+      !*********************************************************************
+
+
+      subroutine cohort_destruct(cop)
+      !@sum deallocate memory used by cohort
+      type(cohort),pointer :: cop
+
+      ! we may want ot collapse hole between "taller" and "shorter"
+      ! here if this functionality is needed
+
+      ! deallocate all memory
+      deallocate( cop%froot )
+      deallocate( cop )
+
+      end subroutine cohort_destruct
 
       end module cohorts

@@ -185,6 +185,9 @@
          !* SEE avgcohort and sumcohort
          real*8 :: C_froot           !Carbon in fine roots.
 
+         !* Soil data (needed for albedo computation)
+         integer soil_type      ! 1 - sand (bright) ; 2 - dirt (dark)
+
 #ifdef NEWDIAG
          !* Soil pools - patch total
          real*8 :: REW               !Relative extractable water (REW)

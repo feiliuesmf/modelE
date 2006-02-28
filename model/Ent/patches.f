@@ -8,34 +8,30 @@
 
       contains
       !*********************************************************************
-      subroutine insert_patch(gp, area)
+      subroutine insert_patch(gp, area, soil_type)
       !* Insert patch at youngest end of patch list. *!
       !* Blank patch with no cohorts.
       implicit none
       type(entcelltype) :: gp
-      !type(patch), pointer :: pp
-      real*8 :: area
+      real*8, intent(in) :: area
+      integer, intent(in) :: soil_type
+      !---
+      type(patch), pointer :: pp
 
       !* If !ASSOCIATED(gp) ERROR *!
 
+      ! create patch
+      call patch_construct(pp, gp, area, soil_type)
+
       !* If there exist patches, then insert.  If no patches, then allocate.
       if (ASSOCIATED(gp%youngest)) then
-        allocate(gp%youngest%younger)
-        gp%youngest%older = gp%youngest
-        gp%youngest = gp%youngest%younger
-        nullify(gp%youngest%tallest)
-        nullify(gp%youngest%shortest)
-        allocate(gp%youngest%sumcohort)
-        call init_patch(gp%youngest,gp,area)
+        !allocate(gp%youngest%younger)
+        gp%youngest%younger => pp
+        pp%older => gp%youngest
+        gp%youngest => pp
       else !first patch on entcell
-        allocate(gp%oldest)
-        gp%youngest = gp%oldest
-        nullify(gp%youngest%older)
-        nullify(gp%youngest%younger)
-        nullify(gp%youngest%tallest)
-        nullify(gp%youngest%shortest)
-        allocate(gp%youngest%sumcohort)
-        call init_patch(gp%youngest,gp,area)
+        gp%oldest => pp
+        gp%youngest => pp
       end if
 
       end subroutine insert_patch
@@ -49,19 +45,17 @@
       type(patch), pointer :: pp
 
       if (.NOT.ASSOCIATED(pp%older)) then !is oldest
-        gp%oldest = gp%oldest%younger
+        gp%oldest => gp%oldest%younger
         nullify(gp%oldest%older)
-        deallocate(pp)
       else if(.NOT.ASSOCIATED(pp%younger)) then !is youngest
-        gp%youngest = gp%youngest%older
+        gp%youngest => gp%youngest%older
         nullify(gp%youngest%younger)
-        deallocate(pp)
       else !pp points somewhere in the middle of patch list
-        pp%older%younger = pp%younger
-        pp%younger%older = pp%older
+        pp%older%younger => pp%younger
+        pp%younger%older => pp%older
         nullify(pp)
-        deallocate(pp)
       end if
+      call patch_destruct(pp)
 
       end subroutine delete_patch
 
@@ -189,29 +183,15 @@
 
       !*********************************************************************
 
-      subroutine init_patch(pp,gp,area)
-!@sum Initialize patch, zeroing variables, and nulling or setting pointers.
-      use cohorts, only: zero_cohort
+      subroutine zero_patch(pp)
+!@sum Initialize patch, zeroing variables.
       implicit none
       type(patch),pointer :: pp
-      type(entcelltype) :: gp
-      real*8 :: area
       !----Local----
       integer :: n
-      type(cohort),pointer :: cop
 
             pp%age=0.d0
-            pp%area=area
-            pp%cellptr = gp
-
-            !* sumcohort *!
-            call zero_cohort(pp%sumcohort)
-            cop = pp%sumcohort
-            cop%pptr = pp
-            cop%pft = 0
-            cop%n = 0
-            cop%nm = 0.0
-            cop%Ntot = 0.0
+            pp%area = 0.d0
 
             !* Structural variables *!
             pp%nm = 0.0
@@ -223,9 +203,7 @@
             pp%CO2flux = 0.d0 
 
             !* Variables calculated by GCM/EWB - downscaled from grid cell
-            do n=1,N_DEPTH
-              pp%Soilmoist = 0.0   !## Get GISS soil moisture layers ##!
-            end do
+            pp%Soilmoist(:) = 0.0 !## Get GISS soil moisture layers ##!
             pp%N_deposit = 0.d0
 
             !* Variables for biophysics and biogeochemistry
@@ -240,6 +218,9 @@
             !* DIAGNOSTIC SUMMARIES
             !* Biomass pools - patch total
             pp%C_froot = 0.d0
+
+            !* Soil type
+            pp%soil_type = 0    ! set to undefined soil type (maybe use -1?)
 
 #ifdef NEWDIAG
             pp%plant_ag_Cp = 0.d0 !## Dummy ##!
@@ -273,7 +254,7 @@
             pp%NPP = 0.d0 !## Dummy ##!
             pp%Soil_resp = 0.d0 !## Dummy ##!
 
-      end subroutine init_patch
+      end subroutine zero_patch
 
       !*********************************************************************
       !*********************************************************************
@@ -329,6 +310,57 @@
 
 
       !*********************************************************************
+
+      subroutine patch_construct(pp, parent_entcell, area, soil_type)
+      use cohorts, only : cohort_construct
+      implicit none
+      type(patch), pointer :: pp
+      type(entcelltype), intent(in), target :: parent_entcell
+      real*8, intent(in) :: area
+      integer, intent(in) :: soil_type
+      !---
+
+      ! allocate memory
+      allocate( pp )
+      allocate( pp%Soilmoist(N_DEPTH) )
+
+      ! set pointers
+      pp%cellptr => parent_entcell
+      nullify( pp%older )
+      nullify( pp%younger )
+      nullify( pp%tallest )
+      nullify( pp%shortest )
+
+      ! set variables
+      call zero_patch(pp)
+
+      pp%area = area
+      pp%soil_type = soil_type
+      
+      ! create sumcohort
+      call cohort_construct(pp%sumcohort, pp)
+
+      end subroutine patch_construct
+
+      !*********************************************************************
+
+      subroutine patch_destruct(pp)
+      use cohorts, only : cohort_destruct
+      implicit none
+      type(patch), pointer :: pp
+      !---
+
+      ! destroy sumcohort
+      call cohort_destruct(pp%sumcohort)
+
+      ! destroy other cohorts
+
+      ! deallocate memory
+      deallocate( pp%Soilmoist )
+      deallocate( pp )
+
+      end subroutine patch_destruct
+      
 
 
       end module patches
