@@ -72,11 +72,11 @@
       !----Local------
       type(patch),pointer :: pp
 
-      pp = entcell%oldest
+      pp => entcell%oldest
       do while (ASSOCIATED(pp))
         call GISS_phenology(jday,hemi, pp)
         call summarize_patch(pp)
-        pp = pp%younger
+        pp => pp%younger
       end do
       call summarize_entcell(entcell)
 
@@ -285,11 +285,11 @@
 !      real*8 :: laig  !entcell grid-level summary of LAI
       if (ASSOCIATED(pp)) then
         laip = 0.0
-        cop = pp%tallest
+        cop => pp%tallest
         do while (ASSOCIATED(cop))
           cop%lai = GISS_calc_lai(cop%pft, jday, hemi)
           laip = laip + cop%LAI
-          cop = cop%shorter
+          cop => cop%shorter
         end do
         pp%sumcohort%LAI = laip
       call GISS_veg_albedo(hemi, pp%sumcohort%pft, 

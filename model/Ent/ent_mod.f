@@ -323,47 +323,10 @@ cddd      call zero_entcell(entcell%entcell)
 
 
       subroutine ent_cell_destruct_single(entcell)
-      use entcells, only : zero_entcell
+      use entcells, only : entcell_destruct
       type(entcelltype_public), intent(inout) :: entcell
-      type(patch), pointer :: p  !@var p current patch
-      type(cohort), pointer :: c !@var current cohort
-      integer np, nc
 
-
-      np = 0
-      p => entcell%entcell%oldest      
-      do while ( associated(p) )
-        np = np + 1
-        if ( np > MAX_PATCHES )
-     &       call stop_model("ent_cell_destruct: too many patches",255)
-        nc = 0
-        c => p%tallest
-        do while ( associated(c) )
-          nc = nc + 1
-          if ( nc > MAX_COHORTS )
-     &         call stop_model("ent_cell_destruct: too many chrts",255)
-          ! destroy cohort here
-          deallocate( c )
-          c => c%shorter
-        enddo
-        ! destroy patch here
-        if (associated(p%sumcohort) ) deallocate( p%sumcohort )
-        deallocate( p )
-        p => p%younger
-      enddo
-
-      ! destroy cell here
-      if ( associated(entcell%entcell%sumpatch) )
-     &     deallocate( entcell%entcell%sumpatch )
-
-      deallocate( entcell%entcell%froot )
-      deallocate( entcell%entcell%betadl )
-      deallocate( entcell%entcell%Soilmoist )
-      deallocate( entcell%entcell%Soilmp )
-      deallocate( entcell%entcell%fice )
-
-      deallocate( entcell%entcell )
-      nullify( entcell%entcell )
+      call entcell_destruct( entcell%entcell )
 
       end subroutine ent_cell_destruct_single
 

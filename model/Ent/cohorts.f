@@ -302,6 +302,7 @@ cddd      end subroutine init_cohort_defaults
       ! deallocate all memory
       deallocate( cop%froot )
       deallocate( cop )
+      nullify( cop )
 
       end subroutine cohort_destruct
 

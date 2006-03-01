@@ -263,7 +263,8 @@
       !** GISS replication test hack:  grid cell average patch properties
       vegpar%alai = pp%sumcohort%LAI
       vegpar%nm = pp%sumcohort%nm
-      vegpar%vh = pp%tallest%h
+!>>>>      vegpar%vh = pp%tallest%h
+      vegpar%vh = pp%sumcohort%h
       vegpar%vegalbedo = pp%albedo(1) !Visible band
       Ci = pp%cellptr%Ci  !GISS hack at grid cell level for Ci
       Qf = pp%cellptr%Qf  !GISS hack at grid cell level for Qf

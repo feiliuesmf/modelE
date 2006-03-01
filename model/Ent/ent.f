@@ -119,7 +119,7 @@
       !-----local--------
       type(patch),pointer :: pp
 
-      pp = ecp%sumpatch
+      pp => ecp%sumpatch
       call photosynth_cond(dtsec, pp)
       call summarize_patch(pp)
 

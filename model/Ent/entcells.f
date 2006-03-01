@@ -14,7 +14,7 @@
       save
 
       public zero_entcell, summarize_entcell
-      public init_simple_entcell, entcell_construct
+      public init_simple_entcell, entcell_construct, entcell_destruct
 
 
       contains
@@ -108,10 +108,10 @@
       ecp%LAI = 0.0  !Re-zero
       !call init_patch(ecp%sumpatch,ecp,0.d0) !Summary patch reset to zero area.
       call zero_patch(ecp%sumpatch)
-      spp = ecp%sumpatch
+      spp => ecp%sumpatch
 
       ip = 0
-      pp = ecp%oldest
+      pp => ecp%oldest
       do while (ASSOCIATED(pp)) 
         ip = ip + 1
         spp%age = spp%age + pp%age
@@ -166,7 +166,7 @@
         !spp%NPP                 !Net primary productivity (kgC/m2/day)
         !spp%Soil_resp           !Soil heterotrophic respiration (kgC/m2/day)
 
-        pp = pp%younger
+        pp => pp%younger
       end do
 
       !------DO AVERAGES-----------------------------------------
@@ -253,14 +253,25 @@
       integer,intent(in) :: soildata(N_COVERTYPES)
       !-----Local---------
       integer :: pnum
-      type(patch),pointer :: pp
+      type(patch),pointer :: pp, pp_tmp
+
+      ! destroy all existing patches since we are goin to 
+      ! re-initialize the cell
+      pp => ecp%oldest      
+      do while ( associated(pp) )
+        pp_tmp => pp
+        pp => pp%younger
+        call patch_destruct(pp_tmp)
+      enddo
+      nullify(ecp%oldest)
+      nullify(ecp%youngest)
 
       do pnum=1,N_PFT           !One patch with one cohort per pft
       !Get from GISS GCM ## vfraction of grid cell and area.
         if (vegdata(pnum)>0.0) then
           !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
           call insert_patch(ecp,vegdata(pnum),soildata(pnum))
-          pp = ecp%youngest
+          pp => ecp%youngest
           !## Supply also geometry, clumping index
           ! insert cohort only if population density > 0 (i.e. skip bare soil)
           if ( popdens(pnum) > EPS ) then 
@@ -301,6 +312,10 @@
       ! for now set all values to zero or defaults
       call zero_entcell(ecp)
 
+      ! maybe the following is not needed, but I guess we wanted
+      ! to initialize the cells by default to bare soil (sand)
+      call insert_patch(ecp,1.d0,1)
+
       ! create sumpatch
       call patch_construct(ecp%sumpatch, ecp, 0.d0, 0)
 
@@ -311,49 +326,31 @@
       subroutine entcell_destruct(ecp)
       implicit none
       type(entcelltype), pointer :: ecp
+      !---
+      type(patch), pointer :: pp, pp_tmp
 
+      ! destroy sumpatch
+      call patch_destruct(ecp%sumpatch)
 
+      ! destroy other patches
+      pp => ecp%oldest      
+      do while ( associated(pp) )
+        pp_tmp => pp
+        pp => pp%younger
+        call patch_destruct(pp_tmp)
+      enddo
 
+      ! deallocate memory
+      deallocate( ecp%fice )
+      deallocate( ecp%Soilmp )
+      deallocate( ecp%Soilmoist )
+      deallocate( ecp%betadl )
+      deallocate( ecp%froot )
+      deallocate( ecp )
+      nullify( ecp )
 
       end subroutine entcell_destruct
 
-#ifdef UNFINISHED
- !*********************************************************************
-
-      subroutine entcell_delete_patches(ecp)
-      implicit none
-      type(entcelltype), pointer :: ecp
-
-      type(patch), pointer :: p  !@var p current patch
-      type(cohort), pointer :: c !@var current cohort
-      integer np, nc
-
-
-      np = 0
-      p => ecp%oldest      
-      do while ( associated(p) )
-        np = np + 1
-        if ( np > MAX_PATCHES )
-     &       call stop_model("ent_cell_destruct: too many patches",255)
-        nc = 0
-        c => p%tallest
-        do while ( associated(c) )
-          nc = nc + 1
-          if ( nc > MAX_COHORTS )
-     &         call stop_model("ent_cell_destruct: too many chrts",255)
-          ! destroy cohort here
-          deallocate( c )
-          c => c%shorter
-        enddo
-        ! destroy patch here
-        if (associated(p%sumcohort) ) deallocate( p%sumcohort )
-        deallocate( p )
-        p => p%younger
-      enddo
-      
-
-      end subroutine entcell_delete_patches
-#endif
 
  !*********************************************************************
       end module entcells

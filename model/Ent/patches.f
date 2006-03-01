@@ -78,11 +78,13 @@
 
       !* Zero out summary variables *!
       call zero_cohort(scop)
-      scop%pft = pp%tallest%pft
       nc = 0
       scop%n = nc
+      if ( .not. associated(pp%tallest) ) return ! no cohorts in this patch
 
-      cop = pp%tallest
+      scop%pft = pp%tallest%pft
+
+      cop => pp%tallest
       do while(ASSOCIATED(cop))
         nc = nc + cop%n  !Number of individuals summed for wtd avg.
         !* PFT PARAMETERS
@@ -133,7 +135,7 @@
          !* REPRODUCTION
          !scop%------        ! ASK PAUL
         
-        cop = cop%shorter
+        cop => cop%shorter
       end do
 
       !* ------- DO AVERAGES ----------------------------------------------*!
@@ -274,13 +276,13 @@
       end do 
       frootC_total = 0.0
 
-      cop = pp%tallest
+      cop => pp%tallest
       do while(ASSOCIATED(cop)) 
         frootC_total = frootC_total + cop%n*cop%C_froot
         do n=1,N_DEPTH
           froot(n) = froot(n) + cop%n*cop%C_froot*cop%froot(n)
         end do
-        cop = cop%shorter
+        cop => cop%shorter
       end do
       if (frootC_total > 0.0) then
         pp%sumcohort%froot = froot/frootC_total
@@ -349,15 +351,25 @@
       implicit none
       type(patch), pointer :: pp
       !---
+      type(cohort),pointer :: cop, cop_tmp
 
       ! destroy sumcohort
       call cohort_destruct(pp%sumcohort)
 
       ! destroy other cohorts
+      cop => pp%tallest
+      do while( associated(cop) )
+        cop_tmp => cop
+        cop => cop%shorter
+        call cohort_destruct(cop_tmp)
+      enddo
+      !nullify(pp%tallest)
+      !nullify(pp%shortest)
 
       ! deallocate memory
       deallocate( pp%Soilmoist )
       deallocate( pp )
+      nullify( pp )
 
       end subroutine patch_destruct
       
