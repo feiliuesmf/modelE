@@ -2220,7 +2220,7 @@ C****   Find O3 data files and fill array IYEAR from title(1:4)
         do n=1,nfo3X    !  files have the generic names O3file_01,....
           ddfile(n)=' '
           write (ddfile(n),'(a7,i2.2)') 'O3file_',n
-          inquire (file=ddfile(n),exist=qexist)
+          inquire (file=trim(ddfile(n)),exist=qexist)
           if(.not.qexist) go to 10 !  exit
           call openunit (ddfile(n),ifile,qbinary)
           read(ifile) title
