@@ -271,7 +271,7 @@
 
       call veg_conductance(dtsec,
      &     GCANOPY, Ci, Qf, TRANS_SW,GPP,NPP,betad,betadl,
-     &     pp%tallest%pft, 
+     &     pp%sumcohort%pft, ! >>>> pp%tallest%pft
      &     vegpar%alai,vegpar%nm,vegpar%vh,vegpar%vegalbedo, 
      &     N_DEPTH, Soilmp, fice, froot,  
      &     TcanopyC, P_mbar, Ch, U, 
