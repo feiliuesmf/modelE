@@ -210,6 +210,10 @@
 
             !* Variables for biophysics and biogeochemistry
             !pp%crad%##### = !## Get GORT canopy radiation params ##!
+            ! initializing it at least to something 
+            nullify(pp%crad%heights)
+            nullify(pp%crad%lai)
+            pp%crad%gortclump = 0.d0
 
             !* Disturbance values
             pp%fuel = 0.d0      !## Dummy ##!
@@ -372,7 +376,40 @@
       nullify( pp )
 
       end subroutine patch_destruct
-      
 
+
+      subroutine patch_print(pp,prefix)
+      use cohorts, only : cohort_print
+      type(patch) :: pp
+      character*(*), optional :: prefix
+      integer n, nc
+      type(cohort),pointer :: cop
+      character*8 prefix_c
+
+      prefix_c = "        "
+
+      print '(a,a," = ",f10.7)',prefix,"area",pp%area
+      print '(a,a," = ",f10.7)',prefix,"age ",pp%age
+      print '(a,"soil moisture:")',prefix
+      do n=1,N_DEPTH
+        print '(a,"      ",f10.7)',prefix,pp%Soilmoist(n)
+      enddo
+      print '(a,a," = ",i7)',prefix,"soil type",pp%soil_type
+      print '(a,"cohorts:")',prefix
+
+      cop => pp%tallest
+      nc = 0
+      do while( associated(cop) )
+        nc = nc + 1
+        write( prefix_c, '(i2,"      ")' ) nc
+        call cohort_print(cop,prefix//prefix_c)
+        cop => cop%shorter
+      enddo
+
+      print '(a,"sumcohort:")',prefix
+      call cohort_print(pp%sumcohort,prefix//"s       ")
+
+
+      end subroutine patch_print
 
       end module patches

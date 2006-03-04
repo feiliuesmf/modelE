@@ -306,4 +306,25 @@ cddd      end subroutine init_cohort_defaults
 
       end subroutine cohort_destruct
 
+
+      subroutine cohort_print(cop, prefix)
+      type(cohort) :: cop
+      character*(*), optional :: prefix
+      integer n
+
+      print '(a,a," = ",i7)',prefix,"pft ",cop%pft
+      print '(a,a," = ",f10.7)',prefix,"n   ",cop%n
+      print '(a,a," = ",f10.7)',prefix,"nm  ",cop%nm
+      print '(a,a," = ",f10.7)',prefix,"Ntot",cop%Ntot
+      print '(a,a," = ",f10.7)',prefix,"LAI ",cop%LAI
+      print '(a,"froots = " )',prefix
+      do n=1,N_DEPTH
+        print '(a,"      ",f10.7)',prefix,cop%froot(n)
+      enddo
+      print '(a,a," = ",f10.7)',prefix,"Gcan",cop%gcanopy
+      print '(a,a," = ",f10.7)',prefix,"GPP ",cop%GPP
+
+
+      end subroutine cohort_print
+
       end module cohorts

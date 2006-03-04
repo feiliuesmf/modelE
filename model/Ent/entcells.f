@@ -56,7 +56,7 @@
         ecp%betadl(n) = 0.0
       end do
       do n=1,N_DEPTH
-        ecp%froot(N_DEPTH) = 0.0 !Fraction of roots in soil layer
+        ecp%froot(n) = 0.0 !Fraction of roots in soil layer
       end do
       ecp%C_froot = 0.0
 
@@ -72,7 +72,7 @@
       ecp%Qv = 0.0               !Canopy air specif humidity (kg vapor/ kg air)
       ecp%P_mbar = 0.0           !Atmospheric pressure (mb)
       ecp%Ca = 0.0               !@Atmos CO2 conc at surface height (mol/m3).
-      ecp%Soilmoist(N_DEPTH) = 0.0 !May be an array by depth (units TBA)
+      ecp%Soilmoist(:) = 0.0 !May be an array by depth (units TBA)
       ecp%fice = 0.0             !Fraction of soil layer that is ice
       ecp%Precip = 0.0           !Precipitation (mm)
       ecp%Ch = 0.0               !Ground to surface heat transfer coefficient 
@@ -289,6 +289,8 @@
       end do
       call summarize_entcell(ecp)
 
+      call entcell_print(ecp)
+
       end subroutine init_simple_entcell
 
  !*********************************************************************
@@ -351,6 +353,31 @@
 
       end subroutine entcell_destruct
 
+ !*********************************************************************
+      
+      subroutine entcell_print(ecp)
+      use patches, only : patch_print
+      type(entcelltype) :: ecp
+      type(patch), pointer :: pp
+      character*1 :: prefix=" "
+      character*8 prefix_p
+      integer np
+
+      print '(a,"patches:")',prefix
+
+      pp => ecp%oldest
+      np = 0
+      do while( associated(pp) )
+        np = np + 1
+        write( prefix_p, '(i2,"      ")' ) np
+        call patch_print(pp,prefix//prefix_p)
+        pp => pp%younger
+      enddo
+
+      print '(a,"sumpatch:")',prefix
+      call patch_print(ecp%sumpatch,prefix//"s       ")
+
+      end subroutine entcell_print
 
  !*********************************************************************
       end module entcells

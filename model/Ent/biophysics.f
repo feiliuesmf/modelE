@@ -200,6 +200,7 @@
 
       use ent_const
       use ent_types
+      use patches, only : patch_print
       implicit none
 
       real*8, intent(in) :: dtsec
@@ -236,7 +237,10 @@
 !      real*8 :: Ibeam           !Incident beam radiation (W m-2)
 !      real*8 :: Idiff           !Incident diffuse radiation (W m-2),
       real*8 :: Solarzen        !Solar zenith angle
-      real*8 :: fdir            !Fraction of surface vis rad that is direct 
+      real*8 :: fdir            !Fraction of surface vis rad that is direct
+
+      print *,"Started photosynth_cond with patch:"
+      call patch_print(pp," ")
 
       GCANOPY = pp%cellptr%GCANOPY
       Qf = pp%cellptr%Qf
@@ -247,7 +251,8 @@
       Soilmoist = pp%cellptr%Soilmoist  !Will be patch level later
       Soilmp = pp%cellptr%Soilmp        !Will be patch level later
       fice = pp%cellptr%fice
-      froot = pp%cellptr%froot
+      !!froot = pp%cellptr%froot
+      froot = pp%sumcohort%froot
       Precip = pp%cellptr%Precip
       Ch = pp%cellptr%Ch
       U = pp%cellptr%U
@@ -434,6 +439,37 @@
       real*8, intent(in) :: Ca_in 
 
 !----------------------------------------------------------------------------
+!!! debugging...
+      print *,"------------------------------------------------------"
+      print *,"Input data passed to veg_conductance:"
+      print *,"dt_in",        dt_in        !GHY time step (seconds)
+      print *,"CNC_INOUT",    CNC_INOUT    !Canopy conductance of water vapor (m/s)
+      print *,"Ci_INOUT",     Ci_INOUT     !Internal foliage CO2 (mol/m3)
+      print *,"Qf_IN",        Qf_IN        !Foliage surface vapor mixing ratio (kg/kg)
+      print *,"TRANS_SW_OUT", TRANS_SW_OUT !SW transmissivity of canopy to ground
+      print *,"GPP_OUT",      GPP_OUT      !Gross primary productivitiy (umol[CO2]/m2/s)
+      print *,"NPP_OUT",      NPP_OUT      !Net primary productivity (kg[C]/m2/s)
+      print *,"betad",        betad        !Water stress
+      print *,"betadl",       betadl       !Water stress in layers
+      print *,"pft",          pft          !PFT number
+      print *,"lai",          lai          !LAI
+      print *,"nm",           nm           !Mean N (g-N/m2-leaf)
+      print *,"vh",           vh           !canopy height (m)
+      print *,"vegalbedo",    vegalbedo    !Canopy albedo **THIS COULD BE AN OUTPUT VAR **
+      print *,"nsoillayer",   nsoillayer   !No. of soil layers
+      print *,"soilmp_in",    soilmp_in    !Soil matric potential (m)
+      print *,"fice_in",      fice_in      !Fraction of soil layer that is ice
+      print *,"froot_in",     froot_in     !Fraction of roots in soil layer
+      print *,"tcan_in",      tcan_in      !Canopy temperature (C)
+      print *,"pres_in",      pres_in      !See below for descriptions and units.
+      print *,"ch_in",        ch_in        !Heat transfer coefficient
+      print *,"U_in",         U_in         !Wind speed (m/s)
+      print *,"parinc_in",    parinc_in    !Incid ent PAR (visible solar, dir+dir) (W/m2)
+      print *,"fdir_in",      fdir_in      !Fraction of PAR that is direct
+      print *,"solarzen_in",  solarzen_in  !Solar zenith angle
+      print *,"Ca_in",        Ca_in        !CO2 concentration at surface height (mol/m3)
+     
+
 
       !Global meterological variables specific to grid cell.
       dt = dt_in
