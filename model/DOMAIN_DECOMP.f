@@ -334,7 +334,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
 
       INTEGER, PARAMETER :: HALO_WIDTH = 1
-      integer, parameter :: root=0
+      integer ::  root
 
       ! Local grid information
       TYPE DIST_GRID
@@ -422,6 +422,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       Call Initialize_App(IM, JM, LM,rc=rc)
 
       Call ESMF_VMGet(vm, localPET = my_pet, petCount = NPES, rc=rc)
+      root = NPES-1
       compmodelE  = ESMF_GridCompCreate(vm,"ModelE ESMF", rc=rc)
 
       ! The default layout is not what we want - it splits in the "I" direction.
@@ -4728,7 +4729,7 @@ C--------------------------------
      &       arr_glob(1), rcounts, displs, new_type, 
      &       root, MPI_COMM_WORLD, ier)
       End If
-c***      print*,expensive(arr_loc(offset))
+
       End Do
 
       Call MPI_Type_Free(new_type, ier)
@@ -4737,20 +4738,6 @@ c***      print*,expensive(arr_loc(offset))
       Call MPI_Type_Free(orig_type, ier)
 
       End SUBROUTINE gather
-
-      Function expensive(x)
-      Real*8 :: x, expensive
-
-      Integer :: i
-      
-      Real*8 :: y,s
-      s = 0
-      Do i = 1, 3000
-        Call Random_Number(y)
-        s = s + y
-      End Do
-      expensive = s
-      End Function expensive
 
       Subroutine scatter(grid, arr_glob, arr_loc, shp, dist_idx)
       Type (Esmf_Grid) :: grid
@@ -4795,7 +4782,6 @@ c***      print*,expensive(arr_loc(offset))
       Call MPI_ScatterV(arr_glob(1), scounts, displs, orig_type,
      &     arr_loc(offset), rcount, new_type,
      &     root, MPI_COMM_WORLD, ier)
-c***      print*,expensive(arr_loc(offset))
 
       Call MPI_Type_Free(new_type, ier)
       Call MPI_Type_Free(orig_type, ier)
