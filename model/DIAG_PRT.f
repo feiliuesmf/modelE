@@ -5735,6 +5735,9 @@ C**** IJL diags are done separately
      &     aijk,acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
      *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk,kaijkx
      *     ,ijl_cf,ijk_w,ia_rad,ia_dga
+#ifdef CLD_AER_CDNC
+     *    ,ijl_rewm,ijl_rews,ijl_cdwm,ijl_cdws,ijl_cwwm,ijl_cwws
+#endif
       use filemanager
       IMPLICIT NONE
 
@@ -5885,6 +5888,147 @@ C****
       END DO
       CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
      *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+#ifdef CLD_AER_CDNC
+      k=ijl_rewm
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+c      if (AIJK(I,J,L,K).gt.5.d0)
+c    * write(6,*)"Reff",AIJK(I,J,L,K),I,J,L
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_rews
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_cdws
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+     CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_cdwm
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_cwwm
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_cwws
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+#endif
 C****
       call close_ijl
 C****

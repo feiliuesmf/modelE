@@ -56,7 +56,7 @@ cgsfc      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: ASJL_loc
 
 !@param KAIJ,KAIJX number of AIJ diagnostics, KAIJX includes composites
-      INTEGER, PARAMETER :: KAIJ=230 , KAIJX=KAIJ+100
+      INTEGER, PARAMETER :: KAIJ=320 , KAIJX=KAIJ+400
 !@var AIJ latitude/longitude diagnostics
       REAL*8, DIMENSION(IM,JM,KAIJ) :: AIJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AIJ_loc
@@ -200,7 +200,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJK_loc
 
 !@param KAIJK,KAIJX number of lat/lon constant pressure diagnostics
-      INTEGER, PARAMETER :: KAIJK=16, kaijkx=kaijk+100
+      INTEGER, PARAMETER :: KAIJK=22, kaijkx=kaijk+400
 !@var KAIJK lat/lon constant pressure diagnostics
       REAL*8, DIMENSION(IM,JM,LM,KAIJK) :: AIJK
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: AIJK_loc
@@ -415,6 +415,8 @@ C****      names, indices, units, idacc-numbers, etc.
 #ifdef CLD_AER_CDNC
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
      *     ,ij_3drwm,ij_3drim,ij_3drws,ij_3dris
+     *     ,ij_3dlwm,ij_3dlim,ij_3dlws,ij_3dlis
+     *     ,ij_ssprec,ij_mcprec
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -578,6 +580,9 @@ C****      names, indices, units, idacc-numbers, etc.
       INTEGER :: IJK_U, IJK_V, IJK_DSE, IJK_DP, IJK_T, IJK_Q, IJK_R,
      *     IJK_W, IJK_PF, IJL_CF ,IJK_UV, IJK_VQ, IJK_VT, IJK_UU,
      *     IJK_VV, IJK_TT
+#ifdef CLD_AER_CDNC
+     *    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
+#endif
 !@var SCALE_IJK scaling for weighted AIJK diagnostics
       REAL*8, DIMENSION(KAIJKx) :: SCALE_IJK
 !@var OFF_IJK offset for weighted AIJK diagnostics

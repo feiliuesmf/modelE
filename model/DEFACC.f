@@ -1176,7 +1176,7 @@ c
 #ifdef CLD_AER_CDNC
       k=k+1
       IJ_3dNWM = k
-      lname_ij(k) = '3D Warm Moist Cnv CDNC '
+      lname_ij(k) = '2D Warm Moist Cnv CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = '3dNwm'
       ia_ij(k) = ia_src
@@ -1184,7 +1184,7 @@ c
 c
       k=k+1
       IJ_3dNIM = k
-      lname_ij(k) = '3D Cold Moist Cnv CDNC '
+      lname_ij(k) = '2D Cold Moist Cnv CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = '3dNim'
       ia_ij(k) = ia_src
@@ -1192,7 +1192,7 @@ c
 c
       k=k+1
       IJ_3dRWM = k
-      lname_ij(k) = '3D Warm Moist Conv Reff '
+      lname_ij(k) = '2D Warm Moist Conv Reff '
       units_ij(k) = 'um'
       name_ij(k) = '3dRwm'
       ia_ij(k) = ia_src
@@ -1200,15 +1200,31 @@ c
 c
       k=k+1
       IJ_3dRIM = k
-      lname_ij(k) = '3D Cold Moist Conv Reff '
+      lname_ij(k) = '2D Cold Moist Conv Reff '
       units_ij(k) = 'um'
       name_ij(k) = '3dRim'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
 c
       k=k+1
+      IJ_3dLWM = k
+      lname_ij(k) = '2D Warm Moist Conv LWC  '
+      units_ij(k) = 'g m-3'
+      name_ij(k) = '3dLwm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_3dLIM = k
+      lname_ij(k) = '2D Cold Moist Conv LWC  '
+      units_ij(k) = 'g m-3'
+      name_ij(k) = '3dLim'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
       IJ_3dNWS = k
-      lname_ij(k) = '3D Warm Large-scale CDNC '
+      lname_ij(k) = '2D Warm Large-scale CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = '3dNws'
       ia_ij(k) = ia_src
@@ -1216,7 +1232,7 @@ c
 c
       k=k+1
       IJ_3dNIS = k
-      lname_ij(k) = '3D Cold Large-scale CDNC '
+      lname_ij(k) = '2D Cold Large-scale CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = '3dNis'
       ia_ij(k) = ia_src
@@ -1224,7 +1240,7 @@ c
 c
       k=k+1
       IJ_3dRWS = k
-      lname_ij(k) = '3D Warm Large-scale Reff '
+      lname_ij(k) = '2D Warm Large-scale Reff '
       units_ij(k) = 'um'
       name_ij(k) = '3dRws'
       ia_ij(k) = ia_src
@@ -1232,9 +1248,25 @@ c
 c
       k=k+1
       IJ_3dRIS = k
-      lname_ij(k) = '3D Cold Large-scale Reff '
+      lname_ij(k) = '2D Cold Large-scale Reff '
       units_ij(k) = 'um'
       name_ij(k) = '3dRis'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_3dLWS = k
+      lname_ij(k) = '2D Warm Large-scale LWC '
+      units_ij(k) = 'g m-3'
+      name_ij(k) = '3dLws'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_3dLIS = k
+      lname_ij(k) = '2D Cold Large-scale LWC '
+      units_ij(k) = 'g m-3'
+      name_ij(k) = '3dLis'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
 #endif
@@ -2050,6 +2082,27 @@ c
       ia_ij(k) = ia_src
       scale_ij(k) = 10.
       ir_ij(k) = ir_0_18
+c
+#ifdef CLD_AER_CDNC
+c
+      k=k+1 !
+      IJ_WMCLWP = k ! MC LIQUID WATER PATH (kg/m**2)             1 CL
+      lname_ij(k) = 'MC LIQUID WATER PATH'
+      units_ij(k) = '.1 kg/m^2'
+      name_ij(k) = 'mclwp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 10.
+      ir_ij(k) = ir_0_18
+c
+      k=k+1 !
+      IJ_WMCTWP = k ! MC Total WATER PATH (kg/m**2)             1 CL
+      lname_ij(k) = 'MC TOTAL WATER PATH'
+      units_ij(k) = '.1 kg/m^2'
+      name_ij(k) = 'mctwp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 10.
+      ir_ij(k) = ir_0_18
+#endif
 c
       k=k+1 !
       IJ_QM = k ! ATMOSPHERIC WATER VAPOUR CONTENT (kg/m**2)             1 CL
@@ -4430,6 +4483,102 @@ c
       scale_ijk(k) = 100.
       off_ijk(k)   = 0.
 c
+#ifdef CLD_AER_CDNC
+      k=k+1
+      IJL_REWM=k    ! exception - Reff is on model layers
+      name_ijk(k) = 'rewm'
+      lname_ijk(k) = 'Warm C Reff'
+      units_ijk(k) = 'um'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_REWS=k    ! exception - Reff is on model layers
+      name_ijk(k) = 'rews'
+      lname_ijk(k) = 'Warm S Reff'
+      units_ijk(k) = 'um'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CDWM=k    ! exception - CDNC is on model layers
+      name_ijk(k) = 'cdwm'
+      lname_ijk(k) = 'Warm C CDNC'
+      units_ijk(k) = 'cm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CDWS=k    ! exception - CDNC is on model layers
+      name_ijk(k) = 'cdws'
+      lname_ijk(k) = 'Warm S CDNC'
+      units_ijk(k) = 'cm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CWWM=k    ! exception - LWC is on model layers
+      name_ijk(k) = 'cwwm'
+      lname_ijk(k) = 'Warm C LWC'
+      units_ijk(k) = 'gm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CWWS=k    ! exception - LWC is on model layers
+      name_ijk(k) = 'cwws'
+      lname_ijk(k) = 'Warm S LWC'
+      units_ijk(k) = 'gm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_REIM=k    ! exception - Reff is on model layers
+      name_ijk(k) = 'reim'
+      lname_ijk(k) = 'Cold C Reff'
+      units_ijk(k) = 'um'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_REIS=k    ! exception - Reff is on model layers
+      name_ijk(k) = 'reis'
+      lname_ijk(k) = 'Cold S Reff'
+      units_ijk(k) = 'um'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CDIM=k    ! exception - CDNC is on model layers
+      name_ijk(k) = 'cdim'
+      lname_ijk(k) = 'Cold C CDNC'
+      units_ijk(k) = 'cm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CDIS=k    ! exception - CDNC is on model layers
+      name_ijk(k) = 'cdis'
+      lname_ijk(k) = 'Cold S CDNC'
+      units_ijk(k) = 'cm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+      k=k+1
+      IJL_CWIM=k    ! exception - LWC is on model layers
+      name_ijk(k) = 'cwim'
+      lname_ijk(k) = 'Cold C LWC'
+      units_ijk(k) = 'gm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CWIS=k    ! exception - LWC is on model layers
+      name_ijk(k) = 'cwis'
+      lname_ijk(k) = 'Cold S LWC'
+      units_ijk(k) = 'gm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+#endif
       write (6,*) 'Number of AIJK diagnostics defined: kaijkmax=',k
       if(.not.qcheck) return
       do kk=1,k
