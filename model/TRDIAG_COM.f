@@ -105,15 +105,11 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #ifdef TRACERS_SPECIAL_Shindell
       INTEGER, DIMENSION(LM) :: ijs_OH,ijs_NO3,ijs_HO2,ijs_JH2O2
 #endif
-#if (defined TRACERS_AEROSOLS_Koch)
-      INTEGER, DIMENSION(LM) :: ijs_dms_dens, ijs_so2_dens, 
-     & ijs_so4_dens
-#endif
 !@param KTAIJS number of special lat/lon tracer diagnostics
 #if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
       INTEGER,PARAMETER :: ktaijs=216
 #else
-      integer, parameter :: ktaijs= 203
+      integer, parameter :: ktaijs= 364
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -244,7 +240,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #ifdef regional_Ox_tracers
       INTEGER, PARAMETER :: ktajls=108
 #else
-      INTEGER, PARAMETER :: ktajls=96
+      INTEGER, PARAMETER :: ktajls=164  !96
 #endif
 #else
 #ifdef TRACERS_MINERALS

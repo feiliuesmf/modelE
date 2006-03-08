@@ -16,25 +16,38 @@ c!@var SS1_AER        SALT bin 1 prescribed by AERONET (kg S/day/box)
       real*4 SS1_AER(im,jm,366)
 c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       real*4 SS2_AER(im,jm,366)
+#ifdef EDGAR_1995
+      INTEGER, PARAMETER :: nso2src  = 6
+#else
       INTEGER, PARAMETER :: nso2src  = 1
+#endif
 !@var SO2_src    SO2 industry: surface source (kg/s/box)
       real*8 SO2_src(im,jm,nso2src)
 !@var BCI_src    BC Industrial source (kg/s/box)
       real*8 BCI_src(im,jm)
 !@var BCB_src    BC Biomass source (kg/s/box)
       real*8 BCB_src(im,jm,lmAER,12)
+!@var BCBt_src    BC Biomass source (kg/s/box)
+      real*8 BCBt_src(im,jm)
 !@var OCI_src    OC Industrial source (kg/s/box)
-      real*8 OCI_src(im,jm)
+#ifdef TRACERS_OM_SP
+      INTEGER, PARAMETER :: nomsrc  = 8
+#else
+      INTEGER, PARAMETER :: nomsrc  = 1
+#endif
+      real*8 OCI_src(im,jm,nomsrc)
 !@var OCT_src    OC Terpene source (kg/s/box)
       real*8 OCT_src(im,jm,12)
 !@var OCB_src    OC Biomass source (kg/s/box)
       real*8 OCB_src(im,jm,lmAER,12)
+!@var OCBt_src OC trend Biomass source (kg/s/box)
+      real*8 OCBt_src(im,jm)
 !@var BCII_src_3D  BCI aircraft source (kg/s)
       real*8 BCI_src_3D(im,jm,lm)
 !@var ss_src  Seasalt sources in 2 bins (kg/s/m2)
       INTEGER, PARAMETER :: nsssrc = 2
       real*8 ss_src(im,jm,nsssrc)
-      INTEGER, PARAMETER :: nso2src_3D  = 3
+      INTEGER, PARAMETER :: nso2src_3D  = 4
 !@var SO2_src_3D SO2 volcanic, aircraft sources (and biomass) (kg/s)
       real*8 SO2_src_3D(im,jm,lm,nso2src_3D)
 !@var SO2_biosrc_3D SO2  biomass(kg/s)
@@ -44,8 +57,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       real*8, DIMENSION(IM,JM):: PBLH = 0,shdtt = 0.   ! ,MDF
       real*8, DIMENSION(IM,JM,LM):: ohr,dho2r,perjr,
      *   tno3r,oh,dho2,perj,tno3,o3_offline
-      real*4, DIMENSION(Im,JM):: ohsr
-      real*8, DIMENSION(IM,JM,LM,ntm):: aer_tau
+      real*4, DIMENSION(IM,JM):: ohsr
       END MODULE AEROSOL_SOURCES
 
       MODULE LAKI_SOURCE
@@ -98,7 +110,7 @@ C
       j = 0
       do k=nanns+1,1
         j = j+1
-        call read_monthly_O3_3D_source(levo3,mon_units(j),jdlast,
+        call read_monthly_O3_3D(levo3,mon_units(j),jdlast,
      *       tlca,tlcb,src(1,1,1,k),imon(j),ifirst)
       end do
       ifirst=.FALSE.
@@ -116,7 +128,7 @@ C
 
       END SUBROUTINE get_O3_offline
 
-      SUBROUTINE read_monthly_O3_3D_source(Ldim,iu,jdlast,tlca,tlcb,
+      SUBROUTINE read_monthly_O3_3D(Ldim,iu,jdlast,tlca,tlcb,
      *     data1,imon,ifirst)
 !@sum Read in monthly sources and interpolate to current day
 !@ Author Greg Faluvegi 
@@ -145,6 +157,8 @@ C
 !@var frac weighting factor for interpolation between months
 !@var A2D,B2D 2 dimensional fields to read in data
       REAL*8 :: frac,A2D(im,jm),B2D(im,jm)
+
+      idofm(2)=46
 
       IF (ifirst) THEN          ! NEED TO READ IN FIRST MONTH OF DATA AT START
         REWIND iu
@@ -198,8 +212,360 @@ c**** Interpolate two months of data to current day
       write(6,*) 'Read in ozone offline fields for in cloud oxidation 
      *     interpolated to current day',frac
 
-      return
-      end subroutine read_monthly_O3_3D_source
+      END SUBROUTINE read_monthly_O3_3D
+
+      SUBROUTINE read_E95_SO2_source(nt,iact)
+!@sum reads in SO2 surface sources: Edgar 1995 (RIVM)
+C**** There are 2 monthly sources and 4 annual sources
+C**** Annual sources are read in at start and re-start of run only
+C**** Monthly sources are interpolated each day
+      USE MODEL_COM, only: itime,jday,JDperY,im,jm,DTsrc,
+     * ls1,jmon,t,lm
+      USE GEOM, only: BYDXYP
+      USE CONSTANT, only: sday,hrday
+      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE TRACER_COM, only: itime_tr0,trname
+      USE AEROSOL_SOURCES, only: src=>SO2_src,nsrc=>nso2src,
+     *  SO2_biosrc_3D
+
+      implicit none
+      character*80 title
+      logical :: ifirst=.true.
+!@var nanns,nmons: number of annual and monthly input files
+      integer, parameter :: nanns=4,nmons=2
+      integer ann_units(nanns),mon_units(nmons)
+      character*12 :: ann_files(nanns) =
+     * (/'SO2_FFNB_E95','SO2_INNB_E95','SO2_WHNB_E95',
+     *  'SO2_BFNB_E95'/)
+      logical :: ann_bins(nanns)=(/.true.,.true.,.true.,.true./) ! binary file?
+      character*12 :: mon_files(nmons) =
+     * (/'SO2_AGNB_E95','SO2_BBNB_E95'/)
+      logical :: mon_bins(nmons)=(/.true.,.true./)
+      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
+      real*8 frac,bySperHr
+      integer i,j,jj,nt,iact,iu,k,imon(nmons)
+      integer :: jdlast=0
+      save ifirst,jdlast,tlca,tlcb,mon_units,imon
+
+C Edgar-1995 has its own biomass (2D) source and diagnostic.
+C To avoid complications with indexing of 3D sources, leave in the
+C 3D biomass array and diagnostic but fill it with Edgar 1995
+C emissions. Make all levels other than surface equal to zero (nbell)
+
+      so2_biosrc_3D(:,:,:,:)=0.
+C Now the Edgar-1995 sources
+C
+C    K=1    Fossil fuel combustion           (edgar 95 annual)
+C    K=2    industrial prod & cons processes (edgar 95 annual)
+C    K=3    wastehandling (edgar 95 annual)
+C    These 3 are from edgar 95, but with our monthly variation from
+C    biomass burning applied to the annual values:
+C    K=4    agricultural waste burning
+C    K=5    biofuel production, transformation, combustion
+C    K=6    biomass burning
+C
+      if (itime.lt.itime_tr0(nt)) return
+      bySperHr = 1.d0/3600.d0
+
+C****
+C**** Annual Edgar-1995 Sources
+C**** The EDGAR-1995 sources are in KGSO2/4x5grid/HR and need to be
+C**** converted to KGSO2/m2/sec:
+C****
+      if (ifirst) then
+        call openunits(ann_files,ann_units,ann_bins,nanns)
+        k = 0
+        do iu = ann_units(1),ann_units(nanns)
+          k = k+1
+          call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
+
+          do j=1,jm
+            src(:,j,k) = src(:,j,k)*bydxyp(j)*bySperHr
+          end do
+        end do
+        call closeunits(ann_units,nanns)
+        call openunits(mon_files,mon_units,mon_bins,nmons)
+      endif
+C****
+C**** Monthly sources are interpolated to the current day
+C**** The EDGAR-1995 sources are in KG/4x5grid/HR and need to be
+C**** converted to KG/m2/sec:
+
+C****
+      ifirst = .false.
+      jj = 0
+      do k=nanns+1,nsrc
+        jj = jj+1
+        call read_monthly_sources(mon_units(jj),jdlast,
+     *    tlca(1,1,jj),tlcb(1,1,jj),src(1,1,k),frac,imon(jj))
+        do j=1,jm
+C Also fill 3D biomass array
+C Units are kgSO2/s
+          if (k.eq.6) then
+          so2_biosrc_3D(:,j,1,jmon)= src(:,j,k)*bySperHr
+          endif
+
+          src(:,j,k) = src(:,j,k)*bydxyp(j)*bySperHr
+        end do
+      end do
+      jdlast = jday
+
+c      write(6,*) trname(nt),'Sources interpolated to current day',frac
+      call sys_flush(6)
+C****
+      END SUBROUTINE read_E95_SO2_source
+
+      SUBROUTINE get_hist_BM(iact)
+c historic biomass: linear increase in tropics from 1/2 present day in 1875
+      USE AEROSOL_SOURCES, only: BCB_src,OCB_src,BCBt_src,OCBt_src
+      USE MODEL_COM, only: jyear,im,jm,jmon
+      USE GEOM, only: dxyp
+      USE TRACER_COM, only: aer_int_yr,imPI,imAER
+      USE FILEMANAGER, only: openunit,closeunit
+      integer ihyr,i,j,mmm,ii,jj,iuc,mm
+      real*8 carbstuff,tfac,ratb(im,jm)
+
+      BCBt_src(:,:)=0.d0
+      OCBt_src(:,:)=0.d0
+      if (iact.eq.0) then
+      BCB_src(:,:,:,:)=0.d0
+      OCB_src(:,:,:,:)=0.d0
+      ratb(:,:)=0.d0
+      call openunit('BC_BIOMASS',iuc,.false.)
+      do mmm=1,9999
+      read(iuc,*) mm,ii,jj,carbstuff
+      if (ii.eq.0.) go to 71
+      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
+      carbstuff=carbstuff*dxyp(jj)
+      BCB_src(ii,jj,1,mm)=carbstuff
+      end do
+ 71   continue
+      call closeunit(iuc)
+      if (imAER.eq.2) then
+      if (aer_int_yr.lt.1990.or.aer_int_yr.gt.2010) then
+      call openunit('BC_BM_RAT',iuc,.false.)
+      do mmm=1,9999
+      read(iuc,*) ii,jj,carbstuff
+      if (ii.eq.0.) go to 5
+      ratb(ii,jj)=carbstuff
+      end do
+ 5    call closeunit(iuc)
+      do mm=1,12
+      BCB_src(:,:,1,mm)=BCB_src(:,:,1,mm)*ratb(:,:)
+      end do
+      ratb(:,:)=0.d0
+      endif
+      endif
+      call openunit('OC_BIOMASS',iuc,.false.)
+      do mmm=1,9999
+      read(iuc,*) mm,ii,jj,carbstuff
+      if (ii.eq.0.) go to 72
+      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
+      carbstuff=carbstuff*dxyp(jj)
+      OCB_src(ii,jj,1,mm)=carbstuff !this is OM
+      end do
+ 72   continue
+      call closeunit(iuc)
+      if (imAER.eq.2) then
+      if (aer_int_yr.lt.1990.or.aer_int_yr.gt.2010) then
+      call openunit('OC_BM_RAT',iuc,.false.)
+      do mmm=1,9999
+      read(iuc,*) ii,jj,carbstuff
+      if (ii.eq.0.) go to 6
+      ratb(ii,jj)=carbstuff
+      end do
+ 6    call closeunit(iuc)
+      do mm=1,12
+      OCB_src(:,:,1,mm)=OCB_src(:,:,1,mm)*ratb(:,:)
+      end do
+      endif
+      endif
+      endif
+
+      if (aer_int_yr.eq.0) then
+      ihyr=jyear
+      else
+      ihyr=aer_int_yr
+      endif
+      do j=1,jm
+      if (ihyr.le.1990.and.imAER.eq.3) then
+      if (j.ge.15.and.j.le.29) then
+      tfac=0.5d0*(1.d0+real(ihyr-1875)/115.d0)
+      else
+      tfac=1.d0
+      endif
+      BCBt_src(:,j)=BCB_src(:,j,1,jmon)*tfac
+      OCBt_src(:,j)=OCB_src(:,j,1,jmon)*tfac
+      else
+      BCBt_src(:,j)=BCB_src(:,j,1,jmon)
+      OCBt_src(:,j)=OCB_src(:,j,1,jmon)
+      endif
+      end do
+      end subroutine get_hist_BM
+
+      SUBROUTINE read_hist_BCOC(iact)
+c historic BC emissions
+      USE MODEL_COM, only: jyear, jday,im,jm
+      USE FILEMANAGER, only: openunit,closeunit
+      USE TRACER_COM, only: aer_int_yr
+      USE AEROSOL_SOURCES, only: BCI_src,OCI_src
+      USE GEOM, only: dxyp
+      implicit none
+      character*8 hname1,hname2
+      integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,
+     * iy,ip
+      real*4 hBC(im,jm,2),hBC_all(im,jm,8)
+     * ,hOC_all(im,jm,8),hOC(im,jm,2)
+      real*8 d1,d2,d3,xbcff,xbcbm,xombm
+      save hbc,hoc,jb1,jb2
+
+      BCI_src(:,:)=0.d0
+      OCI_src(:,:,:)=0.d0
+      if (aer_int_yr.eq.0) then
+      ihyr=jyear
+      else
+      ihyr=aer_int_yr
+      endif
+c if run just starting or if it is a new year
+c   then open new files
+      if (iact.eq.0.or.jday.eq.1) then
+      hbc(:,:,:)=0.0
+      hoc(:,:,:)=0.0
+      hoc_all(:,:,:)=0.0
+      hbc_all(:,:,:)=0.0
+      if (ihyr.ge.1875.and.ihyr.lt.1900) then
+      jb1=1875
+      jb2=1900
+      irr=1
+      else if (ihyr.ge.1900.and.ihyr.lt.1925) then
+      jb1=1900
+      jb2=1925
+      irr=2
+      else if (ihyr.ge.1925.and.ihyr.lt.1950) then
+      jb1=1925
+      jb2=1950
+      irr=3
+      else if (ihyr.ge.1950.and.ihyr.lt.1960) then
+      jb1=1950
+      jb2=1960
+      irr=4
+      else if (ihyr.ge.1960.and.ihyr.lt.1970) then
+      jb1=1960
+      jb2=1970
+      irr=5
+      else if (ihyr.ge.1970.and.ihyr.lt.1980) then
+      jb1=1970
+      jb2=1980
+      irr=6
+      else if (ihyr.ge.1980.and.ihyr.le.1990) then
+      jb1=1980
+      jb2=1990
+      irr=7
+      endif
+      call openunit('BC_INDh',iuc, .false.)
+      do ip=1,7326
+      read(iuc,*) ii,jj,iy,xbcff,xbcbm,xombm
+      hbc_all(ii,jj,iy)=xbcff+xbcbm
+      hoc_all(ii,jj,iy)=xbcff*2.d0+xombm
+      end do
+      call closeunit(iuc)
+      hbc(:,:,1:2)=hbc_all(:,:,irr:irr+1)
+      hoc(:,:,1:2)=hoc_all(:,:,irr:irr+1)
+c kg/year to kg/s
+      do id=1,2
+      do i=1,im
+      do j=1,jm
+      hbc(i,j,id)=hbc(i,j,id)/(365.d0*24.d0*3600.d0)
+      hoc(i,j,id)=hoc(i,j,id)/(365.d0*24.d0*3600.d0)
+      end do
+      end do
+      end do
+      endif
+c interpolate to model year
+c    
+      d1=real(ihyr-jb1)
+      d2=real(jb2-ihyr)
+      d3=real(jb2-jb1)
+      BCI_src(:,:)=(d1*hbc(:,:,2)+d2*hbc(:,:,1))/d3
+      OCI_src(:,:,1)=(d1*hoc(:,:,2)+d2*hoc(:,:,1))/d3
+  
+      end subroutine read_hist_BCOC
+
+      SUBROUTINE read_hist_SO2(iact)
+c historic SO2 emissions
+      USE MODEL_COM, only: jyear, jday,im,jm
+      USE FILEMANAGER, only: openunit,closeunit
+      USE TRACER_COM, only: aer_int_yr
+      USE AEROSOL_SOURCES, only: SO2_src
+      USE GEOM, only: dxyp
+      implicit none
+      character*8 hname1,hname2
+      integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact
+      real*4 hso2(im,jm,2),hso2_all(im,jm,8)
+      real*8 d1,d2,d3
+      save hso2,jb1,jb2
+
+      SO2_src(:,:,:)=0.d0
+      if (aer_int_yr.eq.0) then
+      ihyr=jyear
+      else
+      ihyr=aer_int_yr
+      endif
+c if run just starting or if it is a new year
+c   then open new files
+      if (iact.eq.0.or.jday.eq.1) then
+      if (ihyr.ge.1875.and.ihyr.lt.1900) then
+      jb1=1875
+      jb2=1900
+      irr=1
+      else if (ihyr.ge.1900.and.ihyr.lt.1925) then
+      jb1=1900
+      jb2=1925
+      irr=2
+      else if (ihyr.ge.1925.and.ihyr.lt.1950) then
+      jb1=1925
+      jb2=1950
+      irr=3
+      else if (ihyr.ge.1950.and.ihyr.lt.1960) then
+      jb1=1950
+      jb2=1960
+      irr=4
+      else if (ihyr.ge.1960.and.ihyr.lt.1970) then
+      jb1=1960
+      jb2=1970
+      irr=5
+      else if (ihyr.ge.1970.and.ihyr.lt.1980) then
+      jb1=1970
+      jb2=1980
+      irr=6
+      else if (ihyr.ge.1980.and.ihyr.le.1990) then
+      jb1=1980
+      jb2=1990
+      irr=7
+      endif
+      call openunit('SO2_INDh',iuc, .true.)
+      read(iuc) hso2_all
+      call closeunit(iuc)
+      hso2(:,:,1:2)=hso2_all(:,:,irr:irr+1)
+c kg S/m2/year to kg SO2/s
+      do id=1,2
+      do i=1,im
+      do j=1,jm
+      hso2(i,j,id)=hso2(i,j,id)*dxyp(j)*2.d0
+     *    /(365.d0*24.d0*3600.d0)
+      end do
+      end do
+      end do
+      endif
+c interpolate to model year
+c    
+      d1=real(ihyr-jb1)
+      d2=real(jb2-ihyr)
+      d3=real(jb2-jb1)
+      SO2_src(:,:,1)=(d1*hso2(:,:,2)+d2*hso2(:,:,1))/d3
+
+      end subroutine read_hist_SO2
+
 
       subroutine read_SO2_source(nt)
 !@sum reads in industrial, biomass, volcanic and aircraft SO2 sources
@@ -401,19 +767,15 @@ c want kg DMS/m2/s
       USE MODEL_COM, only: jmon,jday
       USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
       implicit none
-c     include 'netcdf.inc'
-c     integer start(3),count(3),status,ncidu,id1
       integer jread
       REAL*8 akw,erate
-c     real*4 DMS_AER
       real*8, INTENT(OUT) :: DMS_flux
       real*8, INTENT(IN) :: swind
       integer, INTENT(IN) :: itype,i,j
 
       DMS_flux=0
-c     if (itype.eq.1) then
         erate=0.d0
-        if (imAER.eq.0) then
+        if (imAER.ne.1) then
         if (itype.eq.1) then
 c Nightingale et al
         akw = 0.23d0*swind*swind + 0.1d0 * swind
@@ -423,20 +785,6 @@ c Nightingale et al
         endif
         else !AEROCOM run, prescribed flux
 
-c         status=NF_OPEN('DMS_SEA',NCNOWRIT,ncidu)
-c         status=NF_INQ_VARID(ncidu,'dms',id1)
-
-c         start(1)=i
-c         start(2)=j
-c         start(3)=jday  
-
-c         count(1)=1
-c         count(2)=1
-c         count(3)=1
-
-c         status=NF_GET_VARA_REAL(ncidu,id1,start,count,DMS_AER)
-c         status=NF_CLOSE('DMS.2000_AEROCOM.nc',NCNOWRIT,ncidu)
-c        write(6,*)'DMS RRR',i,j,jday,DMS_AER(i,j,jday)
 c if after Feb 28 skip the leapyear day
          jread=jday
          if (jday.gt.59) jread=jday+1
@@ -445,7 +793,6 @@ c if after Feb 28 skip the leapyear day
          erate=DMS_AER(i,j,jread)/sday/dxyp(j)*tr_mm(n_DMS)/32.d0
         endif
         DMS_flux=erate          ! units are kg/m2/s
-c     endif
 c
       return
       end subroutine read_DMS_sources
@@ -468,7 +815,7 @@ c want kg seasalt/m2/s, for now in 2 size bins
 c
       ss=0.
         erate=0.d0
-       if (imAER.eq.0) then
+       if (imAER.ne.1) then
        if (itype.eq.1) then
 c Monahan 1971, bubble source, important for small (<10um) particles
         erate= 1.373d0 * swind**(3.41d0)
@@ -489,7 +836,6 @@ c if after Feb 28 skip the leapyear day
          ss=SS2_AER(i,j,jread)/sday/dxyp(j)
         endif
        endif
-c     endif
       return
       end subroutine read_seasalt_sources
 
@@ -498,9 +844,10 @@ c     endif
 !@sum aerosol gas phase chemistry
 !@auth Dorothy Koch
       USE TRACER_COM
-      USE TRDIAG_COM, only : tajls   !,jls_3Dsource,itcon_3Dsrc
+      USE TRDIAG_COM, only : tajls,taijs
+#ifdef TRACERS_AEROSOLS_Koch  
      *     ,jls_OHconk,jls_HO2con,jls_NO3,jls_phot
-     *     , taijs, ijs_dms_dens,ijs_so2_dens,ijs_so4_dens
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
      &     ,jls_OHcon
 #endif
@@ -525,7 +872,6 @@ c Aerosol chemistry
       real*8 ppres,te,tt,mm,dmm,ohmc,r1,d1,r2,d2,ttno3,r3,d3,
      * ddno3,dddms,ddno3a,fmom,dtt
       real*8 rk4,ek4,r4,d4
-      real*8, DIMENSION(IM,JM,LM):: dms_dens,so2_dens,so4_dens
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
      * r5,d5,dmssink
 #ifdef TRACERS_HETCHEM
@@ -566,9 +912,21 @@ C**** initialise source arrays
           tr3Dsource(:,:,l,1,n_OCII)=0. ! OCII sink
           tr3Dsource(:,:,l,1,n_OCIA)=0. ! OCIA source
         end if
+        if (n_OCI1.gt.0) then
+          tr3Dsource(:,:,l,2,n_OCI1)=0. ! OCI1 sink
+          tr3Dsource(:,:,l,1,n_OCA1)=0. ! OCA1 source
+        end if
+        if (n_OCI2.gt.0) then
+          tr3Dsource(:,:,l,2,n_OCI2)=0. ! OCI2 sink
+          tr3Dsource(:,:,l,1,n_OCA2)=0. ! OCA2 source
+        end if
+        if (n_OCI3.gt.0) then
+          tr3Dsource(:,:,l,1,n_OCI3)=0. ! OCI3 sink
+          tr3Dsource(:,:,l,1,n_OCA3)=0. ! OCA3 source
+        end if
       end do
 !$OMP END PARALLEL DO
-
+#ifdef TRACERS_AEROSOLS_Koch
 C Coupled mode: use on-line radical concentrations
       if (coupled_chem.eq.1) then
 !$OMP PARALLEL DO PRIVATE (L)
@@ -631,6 +989,7 @@ c calculation of heterogeneous reaction rates: SO2 on seasalt
       CALL SULFSEAS 
       CALL GET_O3_OFFLINE
 #endif
+#endif
       dtt=dtsrc
 C**** THIS LOOP SHOULD BE PARALLELISED
       do 20 l=1,LM
@@ -638,9 +997,6 @@ C**** THIS LOOP SHOULD BE PARALLELISED
       do 22 i=1,imaxj(j)
 c
 C Initialise       
-        dms_dens(i,j,l)=0.0D0
-        so2_dens(i,j,l)=0.0D0
-        so4_dens(i,j,l)=0.0D0
         maxl = ltropo(i,j)
 #ifdef TRACERS_SPECIAL_Shindell
         if(which_trop.eq.1)maxl=ls1-1
@@ -674,6 +1030,19 @@ c       ociage=3.D-7*trm(i,j,l,n)
         tr3Dsource(i,j,l,1,n)=-ociage        
         tr3Dsource(i,j,l,1,n_OCIA)=ociage        
 
+        case ('OCI1')
+        ociage=4.3D-6*trm(i,j,l,n)
+        tr3Dsource(i,j,l,2,n)=-ociage
+        tr3Dsource(i,j,l,1,n_OCA1)=ociage
+        case ('OCI2')
+        ociage=4.3D-6*trm(i,j,l,n)
+        tr3Dsource(i,j,l,2,n)=-ociage
+        tr3Dsource(i,j,l,1,n_OCA2)=ociage
+        case ('OCI3')
+        ociage=4.3D-6*trm(i,j,l,n)
+        tr3Dsource(i,j,l,2,n)=-ociage
+        tr3Dsource(i,j,l,1,n_OCA3)=ociage
+#ifdef TRACERS_AEROSOLS_Koch
         case ('DMS')
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA
 C***2.DMS + OH -> SO2
@@ -724,6 +1093,7 @@ c SO2 production from DMS
           
           najl = jls_NO3
           tajls(j,l,najl) = tajls(j,l,najl)+ttno3
+#endif
         end select
         
  23   CONTINUE
@@ -755,19 +1125,15 @@ cg       call DIAGTCA(itcon_3Dsrc(3,n_SO2),n_SO2)
 #ifdef TRACERS_HETCHEM
       o3mc = o3_offline(i,j,l)*dmm*(28.0D0/48.0D0)*BYDXYP(J)*BYAM(L,I,J)
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
       do 33 n=1,ntm
-
         select case (trname(n))
-
-
         case ('SO2')
 c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 
           r4=rsulf4(i,j,l)*ohmc
           d4 = exp(-r4*dtsrc)
 
-c     IF (I.EQ.30.AND.J.EQ.30.and.L.EQ.2) WRITE(6,*)'msulf',TE,DMM,
-c     *  PPRES,RK4,EK4,R4,D4,ohmc
           IF (d4.GE.1.) d4=0.99999d0
 #ifdef TRACERS_HETCHEM
       rsulfo3 = 4.39d11*exp(-4131/te)+( 2.56d3*exp(-966/te)) * 10.d5 !assuming pH=5
@@ -776,8 +1142,8 @@ c     *  PPRES,RK4,EK4,R4,D4,ohmc
        d42 = exp(-rxts2(i,j,l)*dtsrc)     
        d43 = exp(-rxts3(i,j,l)*dtsrc)     
        d44 = exp(-rxts4(i,j,l)*dtsrc)     
-       d45 = (exp(-rxtss1(i,j,l)*dtsrc)) *(1.d0-rsulfo3)   
-       d46 = (exp(-rxtss2(i,j,l)*dtsrc)) *(1.d0-rsulfo3)
+c      d45 = (exp(-rxtss1(i,j,l)*dtsrc)) *(1.d0-rsulfo3)   
+c      d46 = (exp(-rxtss2(i,j,l)*dtsrc)) *(1.d0-rsulfo3)
        tr3Dsource(i,j,l,5,n) = (-trm(i,j,l,n)*(1.d0-d41)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d4)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d42)/dtsrc)
@@ -819,28 +1185,6 @@ c sulfate production from SO2 on mineral dust aerosol
 
        tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
      *             tr_mm(n_so2)*(1.d0-d43)*trm(i,j,l,n_so2)
-     *         * (1.d0-rsulfo3)                              !+ O3
-     *           /dtsrc
-       case ('SO4_d4')
-c sulfate production from SO2 on mineral dust aerosol
-
-       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
-     *             tr_mm(n_so2)*(1.d0-d44)*trm(i,j,l,n_so2)
-     *         * (1.d0-rsulfo3)                              !+ O3
-     *           /dtsrc
-       case ('SO4_s1')
-c sulfate production from SO2 on seasalt1
-
-       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
-     *             tr_mm(n_so2)*(1.d0-d45)*trm(i,j,l,n_so2)
-     *         * (1.d0-rsulfo3)                              !+ O3
-     *           /dtsrc
-
-       case ('SO4_s2')
-c sulfate production from SO2 on seasalt2
-
-       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
-     *             tr_mm(n_so2)*(1.d0-d46)*trm(i,j,l,n_so2)
      *         * (1.d0-rsulfo3)                              !+ O3
      *           /dtsrc
 
@@ -887,34 +1231,13 @@ c H2O2 losses:5 and 6
           
           najl = jls_phot
           tajls(j,l,najl) = tajls(j,l,najl)+perj(i,j,l)
-
         end select
 
  140    CONTINUE
 
  33   CONTINUE
-
-C Calculate diagnostics for chemistry
-C Number density (molecule/cm3) of DMS,SO2,SO4 
-          dms_dens(i,j,l)=trm(I,J,L,n_DMS)*dmm*(28.0D0/62.0D0)*
-     *   BYDXYP(J)*BYAM(L,I,J)
-          so2_dens(i,j,l)=trm(I,J,L,n_SO2)*dmm*(28.0D0/64.0D0)*
-     *   BYDXYP(J)*BYAM(L,I,J)
-          so4_dens(i,j,l)=trm(I,J,L,n_SO4)*dmm*(28.0D0/96.0D0)*
-     *   BYDXYP(J)*BYAM(L,I,J)
-
-        endif           ! end troposphere
-
-C Accumulate diagnostics for chemistry
-          taijs(i,j,ijs_dms_dens(l))=taijs(i,j,ijs_dms_dens(l))
-     * + dms_dens(i,j,l)
-
-          taijs(i,j,ijs_so2_dens(l))=taijs(i,j,ijs_so2_dens(l))
-     * + so2_dens(i,j,l)
-
-          taijs(i,j,ijs_so4_dens(l))=taijs(i,j,ijs_so4_dens(l))
-     * + so4_dens(i,j,l)
-
+#endif
+      endif
  32   CONTINUE
  31   CONTINUE
  30   CONTINUE
@@ -1122,7 +1445,14 @@ c     REAL*8,  INTENT(OUT)::
         sulfout(N)=0.
         tr_left(N)=1.
       end do
-
+#ifdef TRACERS_COSMO
+      do n=1,ntx
+       select case (trname(ntix(n)))
+       case ('Pb210   ','Be7     ','Be10    ','Rn222')
+       go to 333
+       end select
+      end do
+#endif
 c
 C**** CALCULATE the fraction of tracer mass that becomes condensate:
 c
@@ -1284,331 +1614,4 @@ c can't be more than moles going in:
  333  RETURN
       END SUBROUTINE GET_SULFATE
 
-      SUBROUTINE HETER
-!@sum heterogeneous production of sulfate
-!@auth Dorothy Koch
-      USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,pi
-      USE TRACER_COM, only:tr_RKD,tr_DHD,n_H2O2_s,n_SO2
-     *     ,trname,ntm,tr_mm,n_SO4,trm,trmom,n_H2O2
-      USE MODEL_COM, only: im,jm,lm,ls1,dtsrc,t,p,coupled_chem
-      USE CLOUDS_COM, only:rhsav
-      USE DYNAMICS, only: pmid,am,pk,ltropo
-      USE GEOM, only: dxyp,imaxj
-      USE FLUXES, only : tr3Dsource
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: which_trop
-#endif
-
-      IMPLICIT NONE
-      integer i,j,l,n,najl
-      REAL*8, PARAMETER :: BY298K=3.3557D-3
-      real*8, parameter :: rk1=1.3d-2 !M
-      real*8, parameter :: dh1=-1.6736d4 !J/mol
-      real*8, parameter :: rk=6.357d14    !1/(M*M*s)
-      real*8, parameter :: ea=3.95d4 !J/mol
-      real*8 te,amass,ppas,rk1f,tfac,ssfac,RKD,Henry_const(ntm),
-     * pph(ntm),r1,A,B,pp,rr,aa,bb,BA,B2,xx,y,pn,tv,avol,
-     * dso4g,dso4gt,tso2,th2o2,sulfout,sulfin,wv,ss,clwc,
-     * rkdm(ntm),trmol(ntm),tt1,tt2,tt3,ptr
-#ifdef TRACERS_SPECIAL_Shindell
-!@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
-#endif
-      integer maxl
-
-      ptr=0.3d0  !um
-      DO 19 L=1,LM
-      DO 21 J=1,JM
-      DO 20 I=1,IMAXJ(J)
-
-C**** initialise source arrays
-        tr3Dsource(i,j,l,2,n_SO4)=0.
-        tr3Dsource(i,j,l,6,n_SO2)=0.
-        tr3Dsource(i,j,l,3,n_H2O2_s)=0.
-
-        maxl = ltropo(i,j)
-#ifdef TRACERS_SPECIAL_Shindell
-        if(which_trop.eq.1)maxl=ls1-1
-#endif
-
-      if(l.le.maxl) then
-
-      amass=am(l,i,j)*DXYP(j)   !kg
-      ppas=pmid(l,i,j)*100.    !Pa
-      te=pk(l,i,j)*t(i,j,l)
-      tfac = (1./te - by298k)*bygasc  !mol/J
-c  water from deliquescence; assume complete dissociation of (NH)2SO4
-c   Assume average radius of 0.1 um
-      ss=rhsav(l,i,j)
-      if (ss.gt.0.99d0.or.ss.le.0.0d0) go to 88
-         R1=log(SS)
-         A=3.2d-7/te*1d6
-c        B=1.09d-4*7.4 !7.4 is particle mass for 0.1 um particle
-         B=1.09d-4*4.d0*pi/3.d0*1760.d0*ptr*ptr*ptr
-         pp=-A/R1
-         rr=B/R1
-         aa=-pp*pp/3.
-         bb=(2.*pp*pp*pp+27.*rr)/27.
-         BA=(-bb/2.+sqrt(bb*bb/4.+aa*aa*aa/27.))**(1./3.)
-         B2=(-(bb/2.+sqrt(bb*bb/4.+aa*aa*aa/27.)))**(1./3.)
-         xx=BA+B2
-         y=xx-pp/3.
-c y is wet diameter. wv is volume of water per particle
-       wv=4./3.*pi*(y-ptr)**3.d0*1000.d0/1.E18
-c pn is number of particles
-       pn=trm(i,j,l,n_so4)/1760.d0*3.d0/(4.d0*pi)*1.E18/(ptr)**3
-c tv is total volume
-       tv=wv*pn
-c clwc is vol water/volume air
-c      clwc=wmxtr*mair*ppas/temp*bygasc/1.D6/fcloud
-c avol is air volume
-      avol=amass/mair*1000.d0*gasc*te/ppas*1000.d0   !L
-      clwc=tv/avol
-c
-      rk1f=rk1*exp(-dh1*tfac)
-
-
-      if (coupled_chem.eq.1) then
-      if (trm(i,j,l,n_so2).lt.teeny.or.
-     *  trm(i,j,l,n_h2o2).lt.teeny.or.tv.lt.teeny) then
-      go to 88
-      endif
-      endif
-
-      if (coupled_chem.eq.0) then
-      if (trm(i,j,l,n_so2).lt.teeny.or.
-     *  trm(i,j,l,n_h2o2_s).lt.teeny.or.tv.lt.teeny) then
-      go to 88
-      endif
-      endif
-
-      DO N=1,NTM
-       select case (trname(n))
-       case('SO2')
-      tso2=trm(i,j,l,n)
-
-c modified Henry's Law coefficient assuming pH of 4.5
-      rkdm(n)=tr_rkd(n)*(1.+ rk1f/3.2d-5)
-c mole of tracer, used to limit so4 production
-      trmol(n)=1000.*trm(i,j,l,n)/tr_mm(n)
-c partial pressure of gas x henry's law coefficient
-      pph(n)=mair*1.d-3*ppas/tr_mm(n)/amass*
-     *   tr_rkd(n)*exp(-tr_dhd(n)*tfac)
-c the following is from Phil:
-c      reduction in partial pressure as species dissolves
-      henry_const(n)=rkdm(n)*exp(-tr_dhd(n)*tfac)
-      pph(n)=pph(n)/(1+(henry_const(n)*clwc*gasc*te))
-
-       case('H2O2','H2O2_s')
-
-        if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 402
-        if (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1) goto 402
-
-      th2o2=trm(i,j,l,n)
-c modified Henry's Law coefficient assuming pH of 4.5
-      rkdm(n)=tr_rkd(n)*(1.+ rk1f/3.2d-5)
-c mole of tracer, used to limit so4 production
-      trmol(n)=1000.*trm(i,j,l,n)/tr_mm(n)
-c partial pressure of gas x henry's law coefficient
-      pph(n)=mair*1.d-3*ppas/tr_mm(n)/amass*
-     *   tr_rkd(n)*exp(-tr_dhd(n)*tfac)
-c the following is from Phil:
-c      reduction in partial pressure as species dissolves
-      henry_const(n)=rkdm(n)*exp(-tr_dhd(n)*tfac)
-      pph(n)=pph(n)/(1+(henry_const(n)*clwc*gasc*te))
-
- 402  CONTINUE
-
-      end select
-      END DO
-
-c this part from gas phase:moles/kg/kg
-        if(coupled_chem.eq.1) then
-      dso4g=rk*exp(-ea/(gasc*te))*rk1f
-     *    *pph(n_h2o2)*pph(n_so2)*dtsrc*tv
-         endif
-        if(coupled_chem.eq.0) then
-      dso4g=rk*exp(-ea/(gasc*te))*rk1f
-     *    *pph(n_h2o2_s)*pph(n_so2)*dtsrc*tv
-         endif
-
-c check to make sure no overreaction: moles of production:
-      dso4gt=dso4g*tso2*th2o2
-c can't be more than moles going in:
-      if (dso4gt.gt.trmol(n_so2)) then
-        dso4g=trmol(n_so2)/(tso2*th2o2)
-      endif
-      dso4gt=dso4g*tso2*th2o2
-
-       if (coupled_chem.eq.1) then
-      if (dso4gt.gt.trmol(n_h2o2)) then
-        dso4g=trmol(n_h2o2)/(tso2*th2o2)
-      endif
-       endif
-       if (coupled_chem.eq.0) then
-      if (dso4gt.gt.trmol(n_h2o2_s)) then
-        dso4g=trmol(n_h2o2_s)/(tso2*th2o2)
-      endif
-       endif
-
-      do n=1,ntm
-       select case (trname(n))
-       case('SO4')
-       sulfin=0.
-       sulfout=tr_mm(n)/1000.*(dso4g*tso2*th2o2) !kg
-c diagnostic
-       tr3Dsource(i,j,l,2,n)=sulfout/dtsrc
-
-       sulfin=0.
-       case('SO2')
-       sulfin=-dso4g*th2o2*tr_mm(n)/1000. !dimnless
-       sulfin=max(-1d0,sulfin)
-
-       tr3Dsource(i,j,l,6,n)=trm(i,j,l,n)*sulfin/dtsrc
-
-       case('H2O2','H2O2_s')
-        if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 403
-        if (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1) goto 403
-
-       sulfin=-dso4g*tso2*tr_mm(n)/1000. !dimnless
-       sulfin=max(-1d0,sulfin)
-
-       tr3Dsource(i,j,l,3,n)=trm(i,j,l,n)*sulfin/dtsrc
-
- 403   CONTINUE
-
-      end select
-      END DO
-
-
-  88  continue
-       endif
-
-  20  CONTINUE
-  21  CONTINUE
-  19  CONTINUE
-
-      return
-      END subroutine HETER
-
-      SUBROUTINE GET_TAU
-!@sum  calculate aerosol optical thickness
-!@auth Dorothy Koch
-      USE TRACER_COM, only:
-     *     trname,ntm,trm
-      USE MODEL_COM, only: im,jm,lm,idacc
-      USE CLOUDS_COM, only:rhsav
-      USE GEOM, only: imaxj,dxyp
-      USE AEROSOL_SOURCES, only: aer_tau
-      USE TRDIAG_COM, only : taijs,ijts_tau,ia_ijts
-
-      integer i,j,l,n,naijs
-      real*8 rhh,tf
-c For now we are using the hydrated extinction efficiencies
-c   from Chin et al 2002.
-c No need to divide by dxyp here because it is done in TRACER_PRT
-      DO L=1,LM
-      DO J=1,JM
-      DO I=1,IMAXJ(J)
-      rhh=rhsav(l,i,j)*100.d0
-      DO N=1,NTM
-       select case (trname(n))
-       case('SO4')
-       if (rhh.le.10.) then
-       tf=5.
-       else if (rhh.le.20.) then
-       tf=6.
-       else if (rhh.le.30.) then
-       tf=7.
-       else if (rhh.le.40.) then
-       tf=8.
-       else if (rhh.le.50.) then
-       tf=10.
-       else if (rhh.le.60.) then
-       tf=12.
-       else if (rhh.le.70.) then
-       tf=14.
-       else if (rhh.le.82.) then
-       tf=17.
-       else if (rhh.le.87.) then
-       tf=18.
-       else if (rhh.le.93.) then
-       tf=20.
-       else if (rhh.le.97.) then
-       tf=26.
-       else
-       tf=36.
-       endif
-       aer_tau(i,j,l,n)=trm(i,j,l,n)*1000.*tf/dxyp(j)
-
-       case ('seasalt1')
-       if (rhh.le.10.) then
-       tf=1.
-       else if (rhh.le.20.) then
-       tf=2.
-       else if (rhh.le.30.) then
-       tf=2.5
-       else if (rhh.le.40.) then
-       tf=3.
-       else if (rhh.le.50.) then
-       tf=3.3
-       else if (rhh.le.60.) then
-       tf=3.6
-       else if (rhh.le.70.) then
-       tf=4.
-       else if (rhh.le.82.) then
-       tf=4.5
-       else if (rhh.le.87.) then
-       tf=5.
-       else if (rhh.le.93.) then
-       tf=6.
-       else if (rhh.le.97.) then
-       tf=8.
-       else
-       tf=20.
-       endif
-       aer_tau(i,j,l,n)=trm(i,j,l,n)*1000.*tf/dxyp(j)
-
-       case ('seasalt2')
-       if (rhh.le.10.) then
-       tf=0.1
-       else if (rhh.le.30.) then
-       tf=.2
-       else if (rhh.le.40.) then
-       tf=.3
-       else if (rhh.le.50.) then
-       tf=.35
-       else if (rhh.le.60.) then
-       tf=.4
-       else if (rhh.le.70.) then
-       tf=.45
-       else if (rhh.le.82.) then
-       tf=.5
-       else if (rhh.le.87.) then
-       tf=.6
-       else if (rhh.le.93.) then
-       tf=.7
-       else if (rhh.le.97.) then
-       tf=1.
-       else
-       tf=2.5
-       endif
-       aer_tau(i,j,l,n)=trm(i,j,l,n)*1000.*tf/dxyp(j)
-
-       end select
-C**** diagnostics
-       if (ijts_tau(1,n).gt.0) then
-         naijs=ijts_tau(1,n)
-         taijs(i,j,naijs)=taijs(i,j,naijs)+aer_tau(i,j,l,n)
-       end if
-      END DO
-      END DO
-      END DO
-      END DO
-
-c     write(6,*) 'AER_TAU',jhour,
-c    * ijts_tau(4),idacc(ia_ijts(ijts_tau(4))),idacc(1)
-c     write(6,*) aer_tau(54,14,1,4),aer_tau(20,20,2,6)
-c     write(6,*) taijs(20,20,ijts_tau(4))
-      return
-      END subroutine GET_TAU
 

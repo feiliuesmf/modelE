@@ -184,11 +184,23 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
       character*8, parameter :: trname(ntm)=(/
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
      *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
-     *    'OCII    ','OCIA    ','OCB     '/)
+     *    'OCB     ','OCII    ','OCIA    '/)
+c     integer, parameter :: ntm=3
+c     character*8, parameter :: trname(ntm)=(/
+c    *    'OCII    ','OCIA    ','OCB     '/)
+c    *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+c    *    'OCII    ','OCB     '/)
+    
 c use these for Rutgers runs
 c     integer, parameter :: ntm=4
 c     character*8, parameter :: trname(ntm)=(/
 c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
+#else
+#ifdef TRACERS_OM_SP
+      integer, parameter :: ntm=7
+      character*8, parameter :: trname(ntm)=(/
+     *    'OCI1    ','OCI2    ','OCI3    ','OCA1    ','OCA2    ',
+     *    'OCA3    ','OCA4    '/)
 #else
 #ifdef TRACERS_DUST
 !@var Ntm_dust number of dust tracers
@@ -228,6 +240,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #else ! default for TRACERS_ON
       integer, parameter :: ntm=1
       character*8, parameter :: trname(ntm)=(/'Air     '/)
+#endif
 #endif
 #endif
 #endif
@@ -274,6 +287,8 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *     n_SO4_d3=0, n_SO4_d4=0, n_SO4_s1=0,  n_SO4_s2=0,
      *     n_BCII=0,  n_BCIA=0,  n_BCB=0,
      *     n_OCII=0,  n_OCIA=0,  n_OCB=0,
+     *     n_OCI1=0,  n_OCI2=0,  n_OCI3=0,
+     *     n_OCA1=0,  n_OCA2=0,  n_OCA3=0, n_OCA4,
      *     n_OxREG1=0,n_OxREG2=0,n_OxREG3=0,
      *     n_OxREG4=0,n_OxREG5=0,n_OxREG6=0,
      &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0, n_silt4=0,
@@ -304,8 +319,9 @@ C****    The following are set in tracer_IC
 c for gas phase sulfur chemistry used by aerosol and chemistry models
       real*8, DIMENSION(IM,JM,LM):: rsulf1, rsulf2,rsulf3,rsulf4 
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
-!@dbparam imAER is 1 for AEROCOM-prescribed simulations, 0 otherwise
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
+!@dbparam imAER 0 determines emission choice: 0 present-day, 1 AEROCOM,
+c  2 Bond/Streets past, present, future using sector inputs; 3 historic
       integer :: imAER = 1
 !@dbparam imPI is 0 for industrial simulations, 1 for pre-industrial
       integer :: imPI = 0
@@ -314,6 +330,8 @@ c for gas phase sulfur chemistry used by aerosol and chemistry models
 !@var SNFST0,TNFST0 are instantaneous SW, LW aerosol forcings for AEROCOM
       real*8 SNFST0(2,NTM,IM,JM),TNFST0(2,NTM,IM,JM)
 #endif
+!@dbparam rnsrc is 0=standard, 1=Conen&Robertson, 2=modified Schery&Wasiolek
+      integer :: rnsrc = 0
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
 !@dbparam imDUST is 1 for AEROCOM-prescribed simulations, 0 interactive

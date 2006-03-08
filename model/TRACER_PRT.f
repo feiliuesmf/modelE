@@ -589,14 +589,15 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       end if
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
+    (defined TRACERS_OM_SP)
 C****
 C**** Mass diagnostic (this is saved for everyone, but only output
 C**** for Dorothy and Drew for the time being)
 C****
       k=jlnt_mass
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
       jtpow = ntm_power(n)+jlq_power(k)+13
       scalet = scalet*10.**(-jtpow)
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
@@ -1061,10 +1062,6 @@ C****
      *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
       USE DIAG_COM
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) || (defined TRACERS_SPECIAL_Shindell)
-!     USE DIAG_COM, only : ij_cldcv
-#endif
-
 
       USE TRDIAG_COM, only : taijln
       USE TRDIAG_COM, only : taijn
@@ -1245,7 +1242,7 @@ C**** Fill in maplet indices for sources and sinks
         scale(k) = scale_ijts(kx)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP)
        if (name(k)(1:3).eq.'tau'.or.name(k)(1:3).eq.'swf'.or
      *  .name(k)(1:3).eq.'lwf' .OR. name(k)(1:3) .EQ. 'no_' .OR.
      &   name(k)(1:5) .EQ. 'wtrsh') ijtype(k)=2
