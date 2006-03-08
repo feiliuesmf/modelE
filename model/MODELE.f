@@ -32,7 +32,8 @@ CAOO   Just to test CVS
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
 #endif
       USE ATMDYN, only : DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
-     &     ,DISSIP,FILTER,CALC_AMPK
+     &     ,DISSIP,FILTER,CALC_AMPK, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
+     &     ,COMPUTE_WSAVE
 #ifdef TRACERS_ON
      &     ,trdynam
 #endif
@@ -59,7 +60,7 @@ C**** Command line options
       Type (FV_CORE) :: fv
 #endif
       integer :: tloopcurrent
-      integer :: count0, count1, countrate
+      integer :: L
 
         call init_app(grid,im,jm,lm)
         call alloc_drv()
@@ -155,7 +156,6 @@ C****
 C**** MAIN LOOP
 C****
       call gettime(tloopcurrent)
-      call system_clock(count0)
       tloopbegin=tloopcurrent/100.d0
       DO WHILE (Itime.lt.ItimeE)
 C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
@@ -211,13 +211,29 @@ C****
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
 
-      CALL DYNAM
+
+      PTOLD = P ! save for clouds
+C**** Initialize mass fluxes used by tracers and Q
+      PS (:,:)   = P(:,:)
+        
+
 #ifndef USE_FVCORE
+      CALL DYNAM()
 #else
       ! Using FV instead
       CALL Run(fv, clock)
-
 #endif
+      call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(PHI, PU, PV, PUA, PVA, DT)
+      SD_CLOUDS(:,:,:) = CONV(:,:,:)
+      call COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
+C**** Scale WM mixing ratios to conserve liquid water
+!$OMP  PARALLEL DO PRIVATE (L)
+      DO L=1,LS1-1
+        WM(:,:,L)=WM(:,:,L)* (PTOLD/P)
+      END DO
+!$OMP  END PARALLEL DO
+
+
       CALL CHECKT ('DYNAM1')
       CALL QDYNAM  ! Advection of Q by integrated fluxes
       CALL CHECKT ('DYNAM2')
@@ -529,9 +545,7 @@ C**** Flag to continue run has been turned off
       END DO
       call gettime(tloopcurrent)
       tloopend=tloopcurrent/100.d0
-      call system_clock(count1, countrate)
       print *, "Time spent in the main loop in seconds:", tloopend
-     * ,real(count1-count0),countrate
 C****
 C**** END OF MAIN LOOP
 C****
@@ -729,7 +743,6 @@ C****
 #endif
       USE ATMDYN, only : init_ATMDYN,CALC_AMPK
       USE DVEG_COUPLER, only : init_dveg
-      USE hybrid_mpi_omp_coupler, only: init_hybrid_coupler
       IMPLICIT NONE
       CHARACTER(*) :: ifile
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF unit numbers for input files
