@@ -40,8 +40,8 @@ C**** Decide on water tracer conc. units from rundeck if it exists
 C**** set super saturation parameter for isotopes if needed
       call sync_param("supsatfac",supsatfac)
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
-C**** decide on AEROCOM or standard emissions
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
+C**** decide on emissions
       call sync_param("imAER",imAER)
 C**** decide if preindustrial emissions
       call sync_param("imPI",imPI)
@@ -105,7 +105,7 @@ C**** Tracer mass
         sname_jln(k,n) = trim(trname(n))//'_MASS'
         lname_jln(k,n) = trim(trname(n))//' MASS'
         jlq_power(k) = 4
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)+13
      *       ,'kg')
 #else
@@ -113,7 +113,6 @@ C**** Tracer mass
      *       ,'kg/m^2')
 #endif
         scale_jlq(k) = 1.d0
-
 #ifdef TRACERS_WATER
 C****   TRACER CONCENTRATION IN CLOUD WATER
         k = k + 1
@@ -839,7 +838,6 @@ c**** Interpolate two months of data to current day
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
       INTEGER :: J_0, J_1, nj
-
       CALL GET(GRID, J_STRT=J_0, J_STOP=J_1)
       nj = J_1 - J_0 + 1
 
