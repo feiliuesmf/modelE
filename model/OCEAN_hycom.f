@@ -1,10 +1,40 @@
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
-      USE MODEL_COM, only : im,jm,focean
-      USE FLUXES, only : gtemp
+      use DOMAIN_DECOMP, only: AM_I_ROOT
+      use hybrid_mpi_omp_coupler, only: init_hybrid_coupler
+      use hybrid_mpi_omp_coupler, only: gatherDistributedQuantities
+      use hybrid_mpi_omp_coupler, only: scatterDistributedQuantities
+      use hybrid_mpi_omp_coupler, only: startMultiThreaded
+      use hybrid_mpi_omp_coupler, only: startSingleThreaded
+
       integer istart
+
+      call init_hybrid_coupler()
+
+      call gatherDistributedQuantities()
+
+      if (AM_I_ROOT()) then
+         call startMultiThreaded()
+
+        !--------------------------
+        call init_OCEAN_internal(iniOCEAN, istart)
+        !--------------------------
+
+        call startSingleThreaded()
+      end if
+      call scatterDistributedQuantities()
+
+      END SUBROUTINE init_OCEAN
+
+      SUBROUTINE init_OCEAN_internal(iniOcean, istart)
+      USE MODEL_COM, only : im,jm,focean
+      ! From FLUXES
+      use hybrid_mpi_omp_coupler, only: gtemp
+      integer istart
+
 #include "dimensions.h"
 #include "dimension2.h"
 #include "cpl.h"
+
       call geopar                             ! hycom
       call inicon
 c
@@ -18,7 +48,7 @@ c
       END DO
       endif
 c
-      END SUBROUTINE init_OCEAN
+      END SUBROUTINE init_OCEAN_internal
 c
       SUBROUTINE DUMMY_OCN
 !@sum  DUMMY necessary entry points for non-dynamic/non-deep oceans
@@ -56,12 +86,37 @@ c
       RETURN
       END SUBROUTINE DUMMY_OCN
 c
-      SUBROUTINE io_ocean(kunit,iaction,ioerr)
+
+      SUBROUTINE io_ocean(kunit, iaction, ioerr)
+      use DOMAIN_DECOMP, only: AM_I_ROOT
+      use hybrid_mpi_omp_coupler, only: gatherDistributedQuantities
+      use hybrid_mpi_omp_coupler, only: scatterDistributedQuantities
+      use hybrid_mpi_omp_coupler, only: startMultiThreaded
+      use hybrid_mpi_omp_coupler, only: startSingleThreaded
+
+      integer kunit, iaction, ioerr
+
+      call gatherDistributedQuantities()
+
+      if (AM_I_ROOT()) then
+
+        !--------------------------
+        call io_ocean_internal(kunit, iaction, ioerr)
+        !--------------------------
+
+      end if
+      call scatterDistributedQuantities()
+
+      END SUBROUTINE io_ocean
+      
+      SUBROUTINE io_ocean_internal(kunit,iaction,ioerr)
 !@sum  io_ocean outputs ocean related fields for restart
 !@ver  1.0       
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
      *     ,irsficnt,irerun,lhead
-      USE FLUXES, only : sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi
+      ! from FLUXES
+      use hybrid_mpi_omp_coupler, only: sss,ogeoza,uosurf,vosurf,
+     *     dmsi,dhsi,dssi
       IMPLICIT NONE
 #include "dimensions.h"
 #include "common_blocks.h"
@@ -151,7 +206,7 @@ css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
  10   IOERR=1
       RETURN
 C****
-      END SUBROUTINE io_ocean
+      END SUBROUTINE io_ocean_internal
 c
       SUBROUTINE CHECKO(SUBR)
 !@sum  CHECKO Checks whether Ocean are reasonable

@@ -1,4 +1,26 @@
       subroutine OCEANS
+      use DOMAIN_DECOMP, only: AM_I_ROOT
+      use hybrid_mpi_omp_coupler, only: gatherDistributedQuantities
+      use hybrid_mpi_omp_coupler, only: scatterDistributedQuantities
+      use hybrid_mpi_omp_coupler, only: startMultiThreaded
+      use hybrid_mpi_omp_coupler, only: startSingleThreaded
+
+      call gatherDistributedQuantities()
+      if (AM_I_ROOT()) then
+         call startMultiThreaded()
+
+        !---------------------
+        call OCEANS_internal
+        !---------------------
+
+        call startSingleThreaded()
+      end if
+      call scatterDistributedQuantities()
+
+      end subroutine OCEANS
+
+
+      subroutine OCEANS_internal
 c
 c --- ------------------------------
 c --- MICOM-based hybrid ocean model
@@ -82,14 +104,20 @@ c underestimated in HYCOM. This problem is alleviated by using
 c vertical mixing schemes like KPP (with time step trcfrq*baclin).
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
+      ! From FLUXES
+      USE hybrid_mpi_omp_coupler, only: e0,prec,eprec,evapor,flowo
+     . ,eflowo,dmua,dmva
      . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
      . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
      . ,gmelt,egmelt,solar
-      USE SEAICE_COM, only : rsi,msi
-      USE SEAICE, only : fsss,tfrez
+      ! From SEAICE_COM
+      USE hybrid_mpi_omp_coupler, only : rsi,msi
+      ! From SEAICE
+      USE hybrid_mpi_omp_coupler, only : fsss,tfrez
+      ! From MODEL_COM
+      USE hybrid_mpi_omp_coupler, only : focean
+
       USE GEOM, only : dxyp
-      USE MODEL_COM, only : focean
       USE CONSTANT, only : lhm,shi,shw
       USE MODEL_COM, only: dtsrc
      *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
@@ -392,6 +420,8 @@ c
       diagno=.false.
       if (JDendOfM(jmon).eq.jday.and.Jhour.eq.24.and.nsub.eq.nstepi) 
      .                                    diagno=.true. ! end of month
+c TLC - temporary mod for faster testing
+      if (jday == 7 .and. jhour==24) diagno = .true.
 c
 css   if (nstep.eq.1) diagno=.true.    ! initial condition
       diag_ape=diagno

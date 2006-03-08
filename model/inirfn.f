@@ -1,10 +1,13 @@
       subroutine inicon
 c
 c --- hycom version 0.9
-      USE FLUXES, only : e0,prec,evapor,flowo,eflowo,dmua,dmva
+      ! FLUXES
+      use hybrid_mpi_omp_coupler, only: e0,prec,evapor,flowo
+     .      ,eflowo,dmua,dmva
      .      ,erunosi,runosi,runpsi,dmui,dmvi,dmsi,dhsi,dssi
      .      ,gtemp,sss,mlhc
-      USE MODEL_COM, only : focean
+      ! MODEL_COM
+      USE hybrid_mpi_omp_coupler, only : focean
       implicit none
 c
       include 'dimensions.h'
@@ -159,8 +162,10 @@ c
      .   +thbase,kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k)),
      .    temp(i,j,k),saln(i,j,k),p(i,j,k)/onem
 c
-      if (k.gt.1 .and. thstar(i,j,k).lt.thstar(i,j,k-1))
-     .   totlj(j,k-1)=totlj(j,k-1)+1
+      if (k.gt.1) then 
+         if (thstar(i,j,k).lt.thstar(i,j,k-1))
+     .      totlj(j,k-1)=totlj(j,k-1)+1
+      endif
  11   continue
 c$OMP END PARALLEL DO
 c

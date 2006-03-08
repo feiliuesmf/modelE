@@ -59,6 +59,7 @@ C**** Command line options
       Type (FV_CORE) :: fv
 #endif
       integer :: tloopcurrent
+      integer :: count0, count1, countrate
 
         call init_app(grid,im,jm,lm)
         call alloc_drv()
@@ -154,6 +155,7 @@ C****
 C**** MAIN LOOP
 C****
       call gettime(tloopcurrent)
+      call system_clock(count0)
       tloopbegin=tloopcurrent/100.d0
       DO WHILE (Itime.lt.ItimeE)
 C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
@@ -527,7 +529,9 @@ C**** Flag to continue run has been turned off
       END DO
       call gettime(tloopcurrent)
       tloopend=tloopcurrent/100.d0
+      call system_clock(count1, countrate)
       print *, "Time spent in the main loop in seconds:", tloopend
+     * ,real(count1-count0),countrate
 C****
 C**** END OF MAIN LOOP
 C****
@@ -725,7 +729,7 @@ C****
 #endif
       USE ATMDYN, only : init_ATMDYN,CALC_AMPK
       USE DVEG_COUPLER, only : init_dveg
-
+      USE hybrid_mpi_omp_coupler, only: init_hybrid_coupler
       IMPLICIT NONE
       CHARACTER(*) :: ifile
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF unit numbers for input files
