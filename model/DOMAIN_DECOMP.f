@@ -2015,7 +2015,8 @@ C****  convert from real*4 to real*8
 
 !!! not sure if it is implemented for real*4 ...
 #ifdef USE_ESMF
-      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
+c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
+      buf_glob = -99999999. ! not implemented
 #else
       buf_glob = buf(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
