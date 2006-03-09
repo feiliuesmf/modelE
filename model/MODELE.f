@@ -163,6 +163,7 @@ C**** write restart information alternately onto 2 disk files
       IF (MOD(Itime-ItimeI,Ndisk).eq.0) THEN
          CALL RFINAL (IRAND)
          call set_param( "IRAND", IRAND, 'o' )
+         iu_RSF=-1
          IF (AM_I_ROOT())
      *        call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
          call io_rsf(iu_RSF,Itime,iowrite,ioerr)
@@ -215,7 +216,7 @@ C****
       PTOLD = P ! save for clouds
 C**** Initialize mass fluxes used by tracers and Q
       PS (:,:)   = P(:,:)
-        
+
 
 #ifndef USE_FVCORE
       CALL DYNAM()
