@@ -22,7 +22,7 @@
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,bydxyp,dxyp
-      USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am,dke
+      USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am,dke,pmid
       USE DOMAIN_DECOMP, ONLY : grid, get, SOUTH, NORTH
       USE DOMAIN_DECOMP, ONLY : halo_update_column
       USE DOMAIN_DECOMP, ONLY : halo_update       
@@ -44,15 +44,15 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       integer, intent(in) :: lbase_min,lbase_max
       real*8, intent(in) :: dtime
 
-      real*8, parameter :: qmin=1.d-20
+      real*8, parameter :: ustar_min=.01d0,qmin=1.d-12,pblp_max=400.!mb
       integer, parameter :: itest= 1,jtest=11
       logical, parameter :: call_diag=.false.
 
-      real*8, dimension(lm) :: u,v,t,q,e,u0,v0,t0,q0,e0
+      real*8, dimension(lm) :: u,v,t,q,e,u0,v0,t0,q0,e0,p
      &    ,dudz,dvdz,dtdz,dqdz,g_alpha,as2,an2
      &    ,rhoebydz,bydzerho,rho,rhoe,dz,dze
      &    ,km,kh,ke,wt_nl,wq_nl
-     &    ,lscale,qturb,p3,p4,rhobydze,bydzrhoe,w2,uw,vw,wt,wq
+     &    ,lscale,qturb,p3,p4,rhobydze,bydzrhoe,w2,uw,vw,wt,wq,z
       real*8, dimension(lm+1) :: ze
 
       real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo) :: 
@@ -61,14 +61,14 @@ cc      USE SOMTQ_COM, only : tmom,qmom
      &    ,dz_3d_bgrid,dze_3d_bgrid,rho_3d_bgrid,rhoe_3d_bgrid
      &    ,wt_3d,v_3d_old
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: 
-     &     tvsurf,uflux_bgrid,vflux_bgrid
+     &     tvsurf,uflux_bgrid,vflux_bgrid,dz0
 cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 
       real*8 :: uflx,vflx,tvflx,qflx,tvs
      &   ,ustar2,t0ijl,tijl,rak,alpha1,ustar
      &   ,flux_bot,flux_top,x_surf
-     &   ,wstar,dbl,lmonin,tpe0,tpe1,ediff
-      integer :: idik,idjk,ldbl,kmax,
+     &   ,wstar,dbl,lmonin,tpe0,tpe1,ediff,den
+      integer :: idik,idjk,ldbl,kmax,ldbl_max,
      &    i,j,l,k,n,iter !@i,j,l,k,n,iter loop variable
 #ifdef TRACERS_ON
 !@var tr0ij initial vertical tracer concentration profile (kg/kg)
@@ -135,14 +135,14 @@ C****
       call ave_uv_to_agrid(u_3d,v_3d,u_3d_agrid,v_3d_agrid,lm)
 
       call getdz(t_3d_virtual,dz_3d,dze_3d,rho_3d,rhoe_3d,tvsurf
-     &     ,lm)
+     &     ,dz0,im,jm,lm)
 
 !$OMP  PARALLEL DO PRIVATE (L,I,J,u,v,t,q,e,rho,rhoe,t0,q0,e0,qturb,
 !$OMP*   dze,dz,bydzerho,rhobydze,bydzrhoe,rhoebydz,tvs,uflx,vflx,
 !$OMP*   qflx,tvflx,ustar,ustar2,alpha1,dudz,dvdz,dtdz,dqdz,g_alpha,
 !$OMP*   an2,as2,ze,lscale,dbl,ldbl,wstar,kh,km,ke,wt,wq,w2,uw,vw,
 !$OMP*   wt_nl,wq_nl,lmonin,p3,p4,x_surf,flux_bot,flux_top,t0ijl,tijl,
-!$OMP*   tpe0,tpe1,ediff
+!$OMP*   tpe0,tpe1,ediff,p,ldbl_max,z,den
 #ifdef TRACERS_ON
 !$OMP*   ,n,nx,trij,tr0ij,trflx,wc_nl
 #endif
@@ -165,6 +165,7 @@ cc            qmomij(:,l)=qmom(:,i,j,l)
 cc            tmomij(:,l)=tmom(:,i,j,l) ! vert. grad. should virtual ?
             if(q(l).lt.qmin) q(l)=qmin
             e(l)=e_3d(l,i,j) !e_3d was called egcM
+            p(l)=pmid(l,i,j)
             ! t2(l)=t2_3d(l,i,j)  ! not in use
             rho(l)=rho_3d(l,i,j)
             rhoe(l)=rhoe_3d(l,i,j)
@@ -214,6 +215,7 @@ C**** minus sign needed for ATURB conventions
           if(abs(uflx).lt.teeny) uflx=sign(teeny,uflx)
           if(abs(vflx).lt.teeny) vflx=sign(teeny,vflx)
           ustar=(uflx*uflx+vflx*vflx)**(0.25d0)
+          ustar=max(ustar,ustar_min)
           ustar2=ustar*ustar
           alpha1=atan2(vflx,uflx)
 
@@ -226,6 +228,9 @@ C**** minus sign needed for ATURB conventions
           dqdz(1)=(qflx*prt/ustar)/(kappa*zgs)
 
           g_alpha(1)=grav/tvs
+          den=kappa*g_alpha(1)*tvflx
+          if(den.eq.0.) den=teeny
+          lmonin=ustar**3/den
 
           ! calculate z-derivatives on the edges of the layers
 
@@ -245,18 +250,42 @@ C**** minus sign needed for ATURB conventions
             as2(l)=dudz(l)*dudz(l)+dvdz(l)*dvdz(l)
           end do
 
-          ! calculate turbulence length scale lscale
-          call zze(dze,ze,lm)
-          call l_gcm(ze,lscale,lm)
+          call zze(dz,dze,dz0(i,j),z,ze,lm)
 
-          call find_pbl_top(e,ze,dbl,ldbl,lm)
+          !@var ldbl_max the maximum number of layers allowed in the pbl
+          ldbl_max=1
+          do l=2,lm
+            if(p(l).ge.pblp_max) then
+              ldbl_max=ldbl_max+1
+            else
+              exit
+            endif
+          end do
+
+          ! calculate pbl depth and pbl top level
+
+          call find_pbl_top(z,u,v,t,ustar,ustar2,tvflx,lmonin
+     &        ,dbl,ldbl,ldbl_max,lm)
+
+
           if(tvflx.lt.0.) then ! convective case
             wstar=(-g_alpha(1)*tvflx*dbl)**by3
           else
-            wstar=0.
+            wstar=teeny
           endif
-          ! calculate turbulent diffusivities km,kh and ke
-          call k_gcm(tvflx,qflx,ustar,wstar,dbl
+
+          ! calculate turbulence length scale lscale
+
+          call l_gcm(ze,dbl,lmonin,ustar,qturb,an2,lscale,lm)
+
+          ! calculate turbulent kinetic energy e
+
+          call e_gcm(tvflx,wstar,ustar,dbl,lmonin,ze,g_alpha
+     &              ,an2,as2,lscale,e,lm)
+
+          ! calculate turbulent diffusivities and non-local terms
+
+          call k_gcm(tvflx,qflx,ustar,wstar,dbl,lmonin
      &        ,ze,lscale,e,qturb,an2,as2,dtdz,dqdz,dudz,dvdz
      &        ,kh,km,ke,wt,wq,w2,uw,vw,wt_nl,wq_nl
 #ifdef TRACERS_ON
@@ -264,12 +293,9 @@ C**** minus sign needed for ATURB conventions
 #endif
      &        ,lm)
 
-          call e_gcm(tvflx,wstar,ustar,dbl,lmonin,ze,g_alpha
-     &              ,an2,as2,lscale,e,lm)
-
-          ! integrate differential eqn for e
-          p3(1)=0. ; p3(lm)=0.
-          p4(1)=0. ; p4(lm)=0.
+c         ! integrate differential eqn for e
+c         p3(1)=0. ; p3(lm)=0.
+c         p4(1)=0. ; p4(lm)=0.
 c         do l=2,lm-1
 c             p3(l)=2.d0*(qturb(l)/(b1*lscale(l)))
 c             p4(l)=-uw(l)*dudz(l)-vw(l)*dvdz(l)+g_alpha(l)*wt(l)
@@ -353,7 +379,6 @@ C**** fix first layer for rare tracer problems
 cc          call diff_mom(trmomij)
           end do
 #endif
-          call find_pbl_top(e,ze,dbl,ldbl,lm)
           dclev(i,j)=real(ldbl)
 
 C**** calculate possible energy loss
@@ -402,7 +427,7 @@ cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
           ! Write out diagnostics if at selected grid point:
 
           if (call_diag.and.(i.eq.itest).and.(j.eq.jtest)) then
-            call dout(ze,dz,u,v,t,q,ke,dtdz,dqdz,an2,as2
+            call dout(z,ze,dz,u,v,t,q,ke,dtdz,dqdz,an2,as2
      &         ,wt_nl,wq_nl,kh,km,e,lscale
      &         ,uflx,vflx,tvflx,qflx,dbl,ldbl,i,j,lm)
           endif
@@ -561,13 +586,14 @@ C**** Save additional changes in KE for addition as heat later
       return
       end subroutine atm_diffus
 
-      subroutine getdz(tv,dz,dze,rho,rhoe,tvsurf,lm)
+      subroutine getdz(tv,dz,dze,rho,rhoe,tvsurf,dz0,im,jm,lm)
 !@sum  getdz computes the 3-d finite difference dz and dze
 !@+    as well as the 3-d density rho and rhoe
 !@+    called at the primary grid (A-grid)
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var  tv virtual potential temp. referenced at 1 mb
+!@var  dz0 z(1)-ze(1)
 !@var  dz main grid spacing
 !@var  dze edge grid spacing
 !@var  rho,rhoe air density at the main/edge grids
@@ -590,6 +616,8 @@ C**** Save additional changes in KE for addition as heat later
       !                    -------------------------    2
       !                1   - - - - - - - - - - - - -
       !                    -------------------------    1
+      !
+      !           dz0(i,j) z(1,i,j) - ze(1,i,j)
       !           dz(l,i,j) z(l+1,i,j) - z(l,i,j)
       !           dze(l,i,j) ze(l+1,i,j) - ze(l,i,j)
       !           rhoe(l+1,i,j)=100.d0*(pl-pl1)/(grav*dz(l,i,j))
@@ -600,15 +628,16 @@ C**** Save additional changes in KE for addition as heat later
       !
       USE CONSTANT, only : grav,rgas
       USE GEOM, only : imaxj
-      USE MODEL_COM, only : im,jm
       USE DYNAMICS, only : pmid,pk,pedn
       USE DOMAIN_DECOMP, ONLY : grid
 
       implicit none
 
-      integer, intent(in) :: lm
+      integer, intent(in) :: im,jm,lm
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo), 
      &        intent(in) :: tvsurf
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo), 
+     &        intent(out) :: dz0
       real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo), 
      &        intent(in) :: tv
       real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo), 
@@ -654,6 +683,8 @@ C****
             rhoe(l+1,i,j)=100.d0*(pl-pl1)/(grav*dz(l,i,j))
             rho(l,i,j)=100.d0*(ple-pl1e)/(grav*dze(l,i,j))
             if(l.eq.1) then
+              dz0(i,j)=-(rgas/grav)*.5d0*(temp0+tvsurf(i,j))
+     &                 *log(pl/ple)
               rhoe(1,i,j)=100.d0*ple/(tvsurf(i,j)*rgas)
             endif
             if(l.eq.lm-1) then
@@ -671,7 +702,7 @@ C****
       return
       end subroutine getdz
 
-      subroutine dout(ze,dz,u,v,t,q,ke,dtdz,dqdz,an2,as2
+      subroutine dout(z,ze,dz,u,v,t,q,ke,dtdz,dqdz,an2,as2
      &      ,wt_nl,wq_nl,kh,km,e,lscale
      &      ,uflx,vflx,tvflx,qflx,dbl,ldbl,i,j,n)
 !@sum dout writes out diagnostics at (i,j)
@@ -703,24 +734,25 @@ C****
 !@var n number of vertical main layers
 
       USE DYNAMICS, only : pmid,pedn,pk,pek
+      USE SOCPBL, only : rimax
 
       implicit none
 
       integer, intent(in) :: ldbl,i,j,n 
       real*8, dimension(n), intent(in) ::
      &   dz,u,v,t,q,ke,dtdz,dqdz,an2,as2
-     &   ,wt_nl,wq_nl,kh,km,e,lscale
+     &   ,wt_nl,wq_nl,kh,km,e,lscale,z
       real*8, dimension(n+1), intent(in) :: ze
       real*8, intent(in) :: uflx,vflx,tvflx,qflx,dbl
 
       real*8, dimension(n) :: p,pe
-      real*8 :: z,ri,wt_lcl,wq_lcl
+      real*8 :: ri,wt_lcl,wq_lcl,zj
       integer :: l  !@var l loop variable
 
       Write (67,1100) "i=",i,"j=",j
       Write (67,1200) "uflx=",uflx,"vflx=",vflx
       Write (67,1200) "tvflx=",tvflx*pek(1,i,j),"qflx=",qflx
-      Write (67,1250) "ldbl=",ldbl,"dbl=",dbl
+      Write (67,1250) "ldbl=",ldbl,"dbl=",dbl,"rimax=",rimax
 
       ! pressure at main and edge layers
 
@@ -733,8 +765,8 @@ C****
 
       write (67,1300)
       do l=1,n
-        z=.5d0*(ze(l)+ze(l+1))
-        write (67,2000) l,p(l),z,dz(l),u(l),v(l),t(l)*pk(l,i,j),q(l)
+        zj=z(j)
+        write (67,2000) l,p(l),zj,dz(l),u(l),v(l),t(l)*pk(l,i,j),q(l)
      &                  ,ke(l)
       end do
       write (67,*)
@@ -754,7 +786,7 @@ C****
       return
 1100  format(3(2x,a,i6))
 1200  format(2(2x,a,1pe14.4))
-1250  format(2x,a,i6,2x,a,1pe14.4)
+1250  format(2x,a,i6,2x,a,1pe14.4,2x,a,1pe14.4)
 1300  format (' ',' l',1x,
      1            '     p     ',1x,
      2            '     z     ',1x,'     dz    ',1x,'     u     ',1x,
@@ -1334,10 +1366,13 @@ C**** Halo updates from the south
       return
       end subroutine apply_fluxes_to_atm
 
-      subroutine zze(dze,ze,n)
-!@sum finds the layer edge height ze
+      subroutine zze(dz,dze,dz0,z,ze,n)
+!@sum finds the layer middle and edge heights, z and ze
+!@var  z vertical coordinate associated with SIG(l)
 !@var  ze vertical coordinate associated with SIGE(l)
+!@var  dz(l) z(l+1) - z(l)
 !@var  dze(l) ze(l+1) - ze(l)
+!@var  dz0 z(1) - ze(1)
 !@var  n number of layers
 
       USE SOCPBL, only : zgs
@@ -1345,55 +1380,84 @@ C**** Halo updates from the south
       implicit none
 
       integer, intent(in) :: n
-      real*8, dimension(n), intent(in) :: dze
+      real*8, dimension(n), intent(in) :: dz,dze
+      real*8, intent(in) :: dz0
+      real*8, dimension(n), intent(out) :: z
       real*8, dimension(n+1), intent(out) :: ze
       integer :: j  !@var j loop variable
 
-c GISS-ESMF EXCEPTIONAL CASE
-c This looks like a loop which is always over levels for all
-c calls to this routine.
       ze(1)=zgs
-      do j=2,n+1
+      z(1)=ze(1)+dz0
+      do j=2,n
           ze(j)=ze(j-1)+dze(j-1)
+          z(j)=z(j-1)+dz(j-1)
       end do
+      ze(n+1)=ze(n)+dze(n)
+
       return
       end subroutine zze
 
-
-      subroutine l_gcm(ze,lscale,n)
+      subroutine l_gcm(ze,dbl,lmonin,ustar,qturb,an2,lscale,n)
 !@sum l_gcm calculates the turbulent length scale
+!@Ref Nakanishi(2001)'s surface length scale
+!@Ref Holtslag and Boville 1993, J. Climate, 6, 1825-1842.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var ze height (meters) of layer edge
+!@var dbl pbl depth (meters)
 !@var lscale turbulent length scale
 !@var n number of layers
 
-      USE CONSTANT, only : teeny
+      USE CONSTANT, only : teeny,by3
       USE SOCPBL, only : kappa
 
       implicit none
 
       integer, intent(in) :: n
       real*8, dimension(n+1), intent(in) :: ze
+      real*8, dimension(n), intent(in) :: qturb,an2
+      real*8, intent(in) :: dbl,lmonin,ustar
       real*8, dimension(n), intent(out) :: lscale
 
-      real*8 :: l0,kz
+      real*8, parameter :: fac=0.3d0,l0min=30.d0
+      real*8 :: z,zeta,kz,l0,ls,lb,l1,an,qty
       integer :: j  !@var j loop variable
 
-c GISS-ESMF EXCEPTIONAL CASE
-c This looks like a loop which is always over levels for all
-c calls to this routine.
-      !@ Ref: Holtslag and Boville 1993, J. Climate, 6, 1825-1842.
       do j=1,n
-        l0=30.+270.*exp(1.-1.d-3*ze(j))
-        kz=kappa*ze(j)
-        lscale(j)=l0*kz/(l0+kz)
+         z=ze(j)
+         kz=kappa*z
+         if(z.lt.dbl) then         ! within pbl
+            zeta=z/lmonin
+            l0=.3d0*dbl
+            if(zeta.ge.1.) then
+               ls=kz/3.7d0
+            elseif(zeta.ge.0.) then
+               ls=kz/(1.+2.7d0*zeta)
+            else
+               ls=kz*(1.-100.*zeta)**0.2d0
+            endif
+            if (an2(j).gt.0.) then
+               an=sqrt(an2(j))
+               if(zeta.ge.0.) then
+                  lb=qturb(j)/an
+               else
+                  qty=(ustar/((-kappa*lmonin*l0*l0)**by3*an))**0.5d0
+                  lb=qturb(j)*(1.+5.*qty)/an
+               endif
+            else
+               lb=1.d30
+            endif
+            lscale(j)=l0*ls*lb/(l0*ls+l0*lb+ls*lb)
+        else                     ! above pbl
+            l1=l0min+max(fac*dbl-l0min,0.d0)*exp(1.-z/dbl)
+            lscale(j)=l1*kz/(l1+kz)
+        endif
       end do
 
       return
       end subroutine l_gcm
 
-      subroutine k_gcm(tvflx,qflx,ustar,wstar,dbl
+      subroutine k_gcm(tvflx,qflx,ustar,wstar,dbl,lmonin
      &  ,ze,lscale,e,qturb,an2,as2,dtdz,dqdz,dudz,dvdz
      &  ,kh,km,ke,wt,wq,w2,uw,vw,wt_nl,wq_nl
 #ifdef TRACERS_ON
@@ -1403,6 +1467,8 @@ c calls to this routine.
 
 !@sum k_gcm computes the turbulent stability functions Km, Kc
 !@+   and the non-local part of the fluxes
+!@Ref Holtslag and Boville, 1993, J. Climate, 6, 1825-1842.
+!@Ref Cheng et al. 2002, J. Atmos. Sci., 59, 1550-1565.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var tvflx virtual potential temperature flux at surface
@@ -1430,7 +1496,7 @@ c calls to this routine.
 !@var wc_nl non-local part of tracer flux
 !@var n number of layers
 
-      USE CONSTANT, only : teeny,by3
+      USE CONSTANT, only : teeny,by3,sha
       USE SOCPBL, only : kappa,prt,ghmin,ghmax,d1,d2,d3,d4,d5
      &                  ,s0,s1,s2,s4,s5,s6,s7,s8,b1,g5
 
@@ -1441,27 +1507,44 @@ c calls to this routine.
       integer, intent(in) :: nta
       real*8, dimension(n,nta),intent(out) :: wc_nl
       real*8, dimension(nta),intent(in) :: trflx
+      real*8, dimension(nta) :: cgtr
       integer nt
 #endif
 
-      real*8, intent(in) :: tvflx,qflx,ustar,wstar,dbl
+      real*8, intent(in) :: tvflx,qflx,ustar,wstar,dbl,lmonin
       real*8, dimension(n), intent(in) :: lscale,e,qturb,an2,as2
      &        ,dtdz,dqdz,dudz,dvdz
       real*8, dimension(n+1), intent(in) :: ze
       real*8, dimension(n), intent(out) ::
      &  kh,km,ke,wt,wq,w2,uw,vw,wt_nl,wq_nl
 
-      real*8, parameter :: kmmin=1.5d-5,khmin=2.5d-5,kmax=600.d0
-      real*8 :: tmp0,tmp,tau,gm,gh,gmmax,byden,sm,sh
-     &    ,ustar2,wstar3,zzi,tau_pt,w2j
+      real*8, parameter :: k_min=.01d0,k_max=1000.d0
+      real*8 :: tmp,tau,gm,gh,gmmax,byden,sm,sh
+     &    ,ustar2,wstar3,zzi,tau_pt,w2j,zil,phih1,by_phim1,wm1,pr1
+     &    ,cgh1,cgq1,km_n,kh_n,pr,cgh,cgq,zl,phih,by_phim,wm,kz
       integer :: j  !@var j loop variable
       
-      !@ Ref: Holtslag and Moeng 1991, JAS, 48, 1690-1698.
+      !@ Non-local model: Holtslag and Boville, 1993.
+      !@ Local model: Cheng et al. 2002.
       ustar2=ustar*ustar
       wstar3=wstar*wstar*wstar
 
-      tmp0=-wstar/(g5*dbl)
+      !@ some quantities independent of z:
+      zil=dbl/lmonin
+      phih1=(1.+1.5d0*abs(zil))**(-.5d0)
+      by_phim1=(1.+1.5d0*abs(zil))**by3
+      wm1=ustar*by_phim1
+      pr1=phih1*by_phim1+.72d0*kappa*wstar/wm1
+      cgh1=7.2*wstar*(-tvflx)/(wm1**2*dbl)
+      cgq1=7.2*wstar*(-qflx)/(wm1**2*dbl)
+#ifdef TRACERS_ON
+      do nt=1,nta
+        cgtr(nt)=7.2*wstar*(-trflx(nt))/(wm1**2*dbl)
+      end do
+#endif
+
       do j=1,n
+          kz=kappa*ze(j)
           tau=b1*lscale(j)/(qturb(j)+teeny)
           gh=tau*tau*an2(j)
           gm=tau*tau*as2(j)
@@ -1471,35 +1554,48 @@ c calls to this routine.
           if(gm.gt.gmmax) gm=gmmax
           byden=1./(1.+d1*gh+d2*gm+d3*gh*gh+d4*gh*gm+d5*gm*gm)
           sm=(s0+s1*gh+s2*gm)*byden
-          km(j)=min(max(tau*e(j)*sm,kmmin),kmax)
-          if(ze(j).le.dbl) then
-              tau_pt=tau/g5
-              zzi=ze(j)/dbl
-              tmp=(1.6d0*ustar2*(1.-zzi)+teeny)**1.5d0
+          sh=(s4+s5*gh+s6*gm)*byden
+          km(j)=min(max(tau*e(j)*sm,k_min),k_max)
+          kh(j)=min(max(tau*e(j)*sh,k_min),k_max)
+          wt_nl(j)=0.
+          wq_nl(j)=0.
+#ifdef TRACERS_ON
+          do nt=1,nta
+            wc_nl(j,nt)=0.
+          end do
+#endif
+          zzi=ze(j)/dbl
+          zl=ze(j)/lmonin
+          if((zzi.le.1.).and.(tvflx.lt.0.)) then  ! within the pbl and unstable
+             if(zzi.lt.(.1)) then     !!! in surface layer
+                phih=(1.-15.*zl)**(-.5d0)
+                by_phim=(1.-15.*zl)**by3
+                wm=ustar*by_phim
+                km_n=kz*wm*(1.-zzi)**2
+                pr=phih*by_phim
+                kh_n=km_n/pr
+             else                     !!! in outer layer of pbl
+                km_n=kz*wm1*(1.-zzi)**2
+                kh_n=km_n/pr1
+                wt_nl(j)=kh_n*cgh1
+                wq_nl(j)=kh_n*cgq1
+#ifdef TRACERS_ON
+                do nt=1,nta
+                   wc_nl(j,nt)=kh_n*cgtr(nt)
+                end do
+#endif
+             endif
+             tmp=(1.6d0*ustar2*(1.-zzi)+teeny)**1.5d0
      &           +1.2d0*wstar3*zzi*(1.-.9d0*zzi)**1.5d0
-              w2j=tmp**(2.*by3)
-              kh(j)=min(max(.5d0*w2j*tau_pt,khmin),kmax)
-              tmp=tmp0*tau
-              wt_nl(j)=tmp*tvflx
-              wq_nl(j)=tmp*qflx
-#ifdef TRACERS_ON
-              do nt=1,nta
-                wc_nl(j,nt)=tmp*trflx(nt)
-              end do
-#endif
-          else
-              sh=(s4+s5*gh+s6*gm)*byden
-              kh(j)=min(max(tau*e(j)*sh,khmin),kmax)
-              wt_nl(j)=0.
-              wq_nl(j)=0.
-              w2j=by3*(2.*e(j)-tau*(s7*km(j)*as2(j)+s8*kh(j)*an2(j)))
-#ifdef TRACERS_ON
-              do nt=1,nta
-                wc_nl(j,nt)=0.
-              end do
-#endif
+             w2j=tmp**(2.*by3)
+          else                 ! above the pbl
+             km_n=0.
+             kh_n=0.
+             w2j=by3*(2.*e(j)-tau*(s7*km(j)*as2(j)+s8*kh(j)*an2(j)))
           endif
+
           ke(j)=5.*km(j)
+          kh(j)=max(kh_n,kh(j))
           wt(j) = -kh(j)*dtdz(j)+wt_nl(j)
           wq(j) = -kh(j)*dqdz(j)+wq_nl(j)
           w2(j) = min(max(0.24d0*e(j),w2j),2.*e(j))
@@ -1513,32 +1609,34 @@ c calls to this routine.
       subroutine e_gcm(tvflx,wstar,ustar,dbl,lmonin,ze,g_alpha
      &    ,an2,as2,lscale,e,n)
 !@sum e_gcm finds e according to the parameterization of les data
-!@+   (Moeng and Sullivan 1994) for ze<=dbl and using the giss
-!@+   soc model (level 2) for ze>dbl
+!@Ref Moeng and Sullivan 1994, J. Atmos. Sci., 51, 999-1022.
+!@Ref Cheng et al. 2002, J. Atmos. Sci., 59, 1550-1565.
 !@auth  Ye Cheng
 !@ver   1.0
 !@var (see subroutine k_gcm)
 !@var lmonin Monin-Obukov length
 !@var g_alpha grav*alpha
       USE CONSTANT, only : teeny,by3
-      USE SOCPBL, only : kappa,emax,rimax,b1,c1,c2,c3,c4,c5
+      USE SOCPBL, only : kappa,emax,rimax,b1,c1,c2,c3,c4,c5,gm_at_rimax
 
       implicit none
 
       integer, intent(in) :: n   !@var n  array dimension
-      real*8, intent(in) :: tvflx,wstar,ustar,dbl
+      real*8, intent(in) :: tvflx,wstar,ustar,dbl,lmonin
       real*8, dimension(n), intent(in)   :: g_alpha,an2,as2,lscale
       real*8, dimension(n+1), intent(in) :: ze
       real*8, dimension(n), intent(out) :: e
-      real*8, intent(out) :: lmonin
+      real*8, parameter :: emin=1.d-6
       integer :: j !@var j loop variable
-      real*8 :: ri,gm,aa,bb,cc,phi_m,tmp,wstar3,ustar3,zj,zeta
+      real*8 :: ri,gm,aa,bb,cc,phi_m,tmp,wstar3,ustar3,zj,zeta,eps,ej
+     &         ,kz
 
       ustar3=ustar*ustar*ustar
       wstar3=wstar*wstar*wstar
-      lmonin=ustar3/(kappa*g_alpha(1)*tvflx)  ! tvflx=-(wtv)_0
       do j=1,n   ! Dyer 1974
         zj=ze(j)
+        kz=kappa*zj
+c       if((zj.le.dbl).and.(lmonin.lt.0.)) then
         if(zj.le.dbl) then
           zeta=zj/lmonin
           if(zeta.ge.0.) then ! stable or neutral
@@ -1550,8 +1648,9 @@ c calls to this routine.
           else                ! unstable
             phi_m=(1.-15.*zeta)**(-.25d0)
           endif
-          tmp=.4d0*wstar3+ustar3*(dbl-zj)*phi_m/(kappa*zj)
-          e(j)=min(max(tmp**(2.*by3),teeny),emax)
+          eps=.4d0*wstar3/dbl+ustar3*(1.-zj/dbl)*phi_m/kz
+          ej=.5d0*(24.d0*lscale(j)*eps)**(2.*by3)
+          e(j)=min(max(ej,emin),emax)
         else
           ri=an2(j)/max(as2(j),teeny)
           if(ri.lt.rimax) then
@@ -1564,47 +1663,99 @@ c calls to this routine.
               tmp=bb*bb-4.*aa*cc
               gm=(-bb-sqrt(tmp))/(2.*aa)
             endif
-            tmp=0.5d0*(b1*lscale(j))**2*as2(j)/max(gm,teeny)
-            e(j)=min(max(tmp,teeny),emax)
           else
-            e(j)=teeny
+            ri=rimax
+            gm=gm_at_rimax
           endif
+          tmp=0.5d0*(b1*lscale(j))**2*as2(j)/max(gm,teeny)
+          e(j)=min(max(tmp,emin),emax)
         endif
       end do
       return
       end subroutine e_gcm
 
-      subroutine find_pbl_top(e,ze,dbl,ldbl,n)
-!@sum find_pbl_top finds the pbl top (at main level)
+      subroutine find_pbl_top(z,u,v,t,ustar,ustar2,tvflx,lmonin
+     &   ,dbl,ldbl,ldbl_max,n)
+!@sum find_pbl_top finds the pbl depth (dbl, in meters)
+!@+   and the closest corresponding main level (ldbl)
 !@auth  Ye Cheng
-!@ver   1.0
-!@var e turbulent kinetic energy
-!@var ze height at the edge level (meters)
-!@var ldbl the (main) layer corresponding to top of pbl
-!@var dbl the height (in meters) of the pbl, at main layer
+!@ver   1.1
+!@var z height at the main level (meters)
+!@var ldbl the main layer corresponding to top of pbl
+!@var dbl the depth (in meters) of the pbl
 !@+   this dbl is different from the dbl in module socpbl,
 !@+   the latter is itype dependent
-!@var n number of layers
+!@var tvflx minus virtual heat flux at the surface
+!@var ldbl_max the maximum allowable number of layers in the pbl
+!@var n total number of layers
+!@ref Holtslag and Boville (1993)
+
+      USE CONSTANT, only : grav,teeny,by3
 
       implicit none
 
-      integer, intent(in) :: n
-      real*8, dimension(n), intent(in) :: e
-      real*8, dimension(n+1), intent(in) :: ze
+      integer, intent(in) :: ldbl_max,n
+      real*8, dimension(n), intent(in) :: z,u,v,t
+      real*8, intent(in) :: ustar,ustar2,tvflx,lmonin
+
       real*8, intent(out) :: dbl
       integer, intent(out) :: ldbl
 
-      real*8, parameter :: dbl_max=3000.,fraction = 0.1d0
-      real*8 :: e1p    ! a fraction of e(1)
+      real*8,  parameter :: fac=100.,ri_cr=1.0d0,b=8.5d0
+
+      real*8, dimension(n) :: ri
+      real*8 :: v2l,wtvs,wm,t1_w_excess,dbl_min,den
       integer :: l
 
-      e1p=fraction*e(1)
-      do l=2,n
-        if (e(l).lt.e1p) exit
+      dbl=z(1)
+      ri(1)=0.
+      do l=2,ldbl_max
+        v2l=max((u(l)-u(1))**2+(v(l)-v(1))**2+fac*ustar2,teeny)
+        ri(l)=(z(l)-z(1))*grav*(t(l)-t(1))/(t(1)*v2l)
+        if(ri(l).ge.ri_cr) then
+          den=ri(l)-ri(l-1)
+          if(den.eq.0.) den=teeny
+          dbl=z(l-1)+(z(l)-z(l-1))*(ri_cr-ri(l-1))/den
+          exit
+        endif
+        if(l.eq.ldbl_max) dbl=z(l)
       end do
-      ldbl=l-1
-      dbl=.5d0*(ze(l-1)+ze(l))  ! dbl is at main layer (l-1)
-      dbl=min(dbl,dbl_max)
+      ! tvflx = - <w*tv> at surface
+      wtvs=-tvflx
+      if(wtvs.gt.0.) then
+        wm=ustar*(1-1.5d0*dbl/lmonin)**by3  ! 15*(0.1*dbl)=1.5*dbl
+        t1_w_excess=t(1)+b*wtvs/(wm+teeny)
+        do l=2,ldbl_max
+          v2l=max((u(l)-u(1))**2+(v(l)-v(1))**2+fac*ustar2,teeny)
+          ri(l)=(z(l)-z(1))*grav*(t(l)-t1_w_excess)/(t(1)*v2l)
+          if(ri(l).ge.ri_cr) then
+            den=ri(l)-ri(l-1)+teeny
+            dbl=z(l-1)+(z(l)-z(l-1))*(ri_cr-ri(l-1))/den
+            exit
+          endif
+          if(l.eq.ldbl_max) dbl=z(l)
+        end do
+      endif
+
+      !@var ldbl the level number closest to the pbl depth
+      dbl_min=700.*ustar
+      dbl_min=10.
+      dbl=max(dbl,dbl_min)
+      ldbl=1
+      do l=2,ldbl_max
+        if(dbl.gt.z(l-1).and.dbl.le.z(l)) then
+          ldbl=l
+          exit
+        endif
+        if(l.eq.ldbl_max) ldbl=ldbl_max
+      end do
+c     if((ldbl.gt.1).and.(dbl-z(ldbl-1).lt.z(ldbl)-dbl)) then
+c       ldbl=ldbl-1
+c     endif
+c     write(98,'(2i4,9e14.4)') ldbl,ldbl_max,dbl,dbl_min
+c     write(98,'(9e14.4)') z(1),z(2),z(3),z(4) 
+c     write(98,'(i4,9e14.4)') 
+c     call flush(98)
     
       return
       end subroutine find_pbl_top
