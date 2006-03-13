@@ -2904,19 +2904,17 @@ c      IF (CLDSSL(L).GT.0.d0) then    !divide by CLDSSL for in-cld value
 c        IF (LHX.EQ.LHE) CL3DL(L) = WMX(L)*RHODK !/CLDSSL(L)   ! cld water
 c        IF (LHX.EQ.LHS) CI3DL(L) = WMX(L)*RHODK !/CLDSSL(L)   ! ice water
 c      ENDIF
-       if(L.eq.ILTOP) then
+c      if(L.eq.ILTOP) then
           CTEML(L)=TEMPR
 c         write(6,*)"ILTOP",L,CTEML(L),ILTOP
-       else
-          CTEML(L)=-1.d0
-       endif
+c      else
+c         CTEML(L)=-1.d0
+c      endif
        D3DL(L)=DPP/PPRES*TEMPR/GRAV*0.082d0*101325.d0/1000.d0/0.029d0
        IF(CLDSSL(L).GT.0.d0) CD3DL(L)=-1.d0*D3DL(L)*CLDSAVL(L)/CLDSSL(L)
 c      IF (CLDSSL(L).GT.0.d0) then    !divide by CLDSSL for in-cld value
-         IF (SVLHXL(L).EQ.LHE) CL3DL(L) = WMX(L)*RHODK*CD3DL(L) !/CLDSSL(L)   !
-cld water kg m-2
-         IF (SVLHXL(L).EQ.LHS) CI3DL(L) = WMX(L)*RHODK*CD3DL(L) !/CLDSSL(L)   !
-ice water kg m-2
+       IF (SVLHXL(L).EQ.LHE) CL3DL(L) = WMX(L)*RHODK*CD3DL(L) ! cld water kg m-2
+       IF (SVLHXL(L).EQ.LHS) CI3DL(L) = WMX(L)*RHODK*CD3DL(L) ! ice water kg m-2
 c      ENDIF
 c      if(l.eq.1)
 c    *write(6,*)"CT",WMX(L),SVLHXL(L),LHX,LHE,LHS,CD3DL(l),CLDSSL(L),
