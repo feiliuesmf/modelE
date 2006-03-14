@@ -638,7 +638,7 @@ C****
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C****
-      DTHR=2./NIdyn
+      DTHR=2./NIdyn  ! = dt_dyn_leapfrog/dt_source=1/(#calls/phys.call)
       BYDT1 = 1./DT1
 
 !$OMP  PARALLEL DO PRIVATE(I,J,L)

@@ -1,7 +1,7 @@
 #define VERIFY_(rc) If (rc /= ESMF_SUCCESS) Call abort_core(__LINE__,rc)
 #define RETURN_(status) If (Present(rc)) rc=status; return
 
-!#define NO_FORCING 
+!#define NO_FORCING
 
 
 !---------------------------------------------------------------------------------------------
@@ -29,7 +29,7 @@ module FV_INTERFACE_MOD
 
 
   ! This data structure is o convenient entity for storing persistent data between
-  ! calls to this module.  In addition to 
+  ! calls to this module.  In addition to
   Type FV_CORE
      PRIVATE
 
@@ -51,7 +51,7 @@ module FV_INTERFACE_MOD
 
      ! modelE does not work directly with tendencies.  Instead, tendencies are derived
      ! by differencing before and after physics.  Therefore, the final dynamical state
-     ! must be preserved for the following 
+     ! must be preserved for the following
      ! of modelE fields
      real*8, pointer, dimension(:,:,:) :: U_old, V_old, dPT_old, PE_old
 
@@ -86,7 +86,7 @@ module FV_INTERFACE_MOD
      Module Procedure ConvertPressure_GISS2FV_r4
      Module Procedure ConvertPressure_GISS2FV_r8
   End Interface
-  
+
   ! The following parameters address the fact that FV and modelE use
   ! different units and different reference pressures for potential temperature.
   ! Superficially there is redundancy between the two sets, but in some sense
@@ -95,7 +95,7 @@ module FV_INTERFACE_MOD
   Real*8, parameter :: REF_PRESSURE_GISS = 100 ! 1 mb = 100 pa
   Real*8, parameter :: REF_PRESSURE_FV   =   1 ! pa
   Real*8, parameter :: REF_RATIO = REF_PRESSURE_FV / REF_PRESSURE_GISS
-  
+
   Real*8, parameter :: PRESSURE_UNIT_GISS  =  100 ! 1 mb
   Real*8, parameter :: PRESSURE_UNIT_FV    =    1 ! 1 pa
   Real*8, parameter :: PRESSURE_UNIT_RATIO = PRESSURE_UNIT_GISS/PRESSURE_UNIT_FV
@@ -131,7 +131,7 @@ contains
     !  ------------------------------------------------------------------
     fv%gc = ESMF_GridCompCreate ( vm=vm, name='FV dynamics', &
          & grid=grid, gridcomptype=ESMF_ATM,              &
-         & config=cf, rc=rc)  
+         & config=cf, rc=rc)
     VERIFY_(rc)
 
 
@@ -150,7 +150,7 @@ contains
     !  ----------------------------------------------
 
     ! The FV components requires its own restart file for managing
-    ! its internal state.  We check to see if the file already exists, and if not 
+    ! its internal state.  We check to see if the file already exists, and if not
     ! create one based upon modelE's internal state.
     call create_restart_file(fv, cf, clock)
 
@@ -290,13 +290,13 @@ contains
   subroutine run_fv(fv, clock)
     USE DOMAIN_DECOMP, only: grid
     USE MODEL_COM, Only : U, V, T, P, IM, JM, LM, ZATMO
-    USE MODEL_COM, only : NSTEP, NIdyn, NDAA, MRCH
+    USE MODEL_COM, only : NIdyn ! , NSTEP, NDAA, MRCH
     USE SOMTQ_COM, only: TMOM, MZ
     USE ATMDYN, only: CALC_AMP, CALC_PIJL, AFLUX
     USE DYNAMICS, only: MA, PHI, GZ
     Type (FV_CORE)    :: fv
     Type (ESMF_Clock) :: clock
-    
+
     REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: PIJL
     integer :: istep, NS
 
@@ -320,14 +320,6 @@ contains
     phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
     gz  = phi
 
-    NS = NIdyn
-    MRCH=2
-
-    IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
-       CALL DIAGA
-       CALL DIAGB
-       CALL EPFLUX (U,V,T,P)
-    ENDIF
 
   end subroutine run_fv
 
@@ -499,7 +491,7 @@ contains
 
   CONTAINS
 
-    
+
     ! Computes virtual pot. temp. from pot. temp. and specific humidity
     !------------------------------------------------------------------
     Function VirtualTemp(T, Q) Result(T_virt)
@@ -546,7 +538,7 @@ contains
       pk=0
       peln=0
       pkz=0
-      
+
       CALL pkez(1, IM, LM, J_0, J_1, 1, LM, 1, IM, PE_trans(:,:,j_0:j_1), &
            &  PK(:,j_0:j_1,:), KAPA, LS1-1, PELN(:,:,j_0:j_1), pkz(:,j_0:j_1,:), .true.)
 
@@ -657,11 +649,11 @@ contains
     USE CONSTANT, only: KAPA
 
     REAL*8 :: PE(IM,grid%J_STRT:grid%J_STOP,LM+1)
-    
+
     INTEGER :: L, j_0, j_1
-    
+
     call get(grid, J_STRT=J_0, J_STOP=J_1)
-    
+
     Do L = 1, LM+1
 
        If (L < LS1) THEN
@@ -682,11 +674,11 @@ contains
 
     REAL*8 :: PE
     REAL*8 :: PKZ(IM,grid%J_STRT:grid%J_STOP,LM)
-    
+
     INTEGER :: L, j_0, j_1
-    
+
     call get(grid, J_STRT=J_0, J_STOP=J_1)
-    
+
     Do L = 1, LM
 
        If (L < LS1) THEN
@@ -713,7 +705,7 @@ contains
 
     PKZ = PKZ_GISS()
     T_dry = PKZ * T(:,J_0:J_1,:)
-    
+
   end function DryTemp_GISS
 
   ! Convert Potential Temperature into (dry) Temperature
@@ -734,7 +726,7 @@ contains
     do k = 1, LM
        dPT(:,:,k) = (PE(:,:,k)-PE(:,:,k+1)) * T_dry(:,:,k)
     end do
-    
+
   end function DeltPressure_DryTemp_GISS
 
   Subroutine Copy_modelE_to_FV_import(fv)
@@ -745,7 +737,7 @@ contains
     Type (FV_CORE) :: fv
 
     Integer :: nq
-    
+
     Integer :: j_0, j_1
 
     Call Get(grid, j_strt=j_0, j_stop=j_1)
@@ -830,7 +822,7 @@ contains
     Real*8, intent(out) :: P_fv(:,:,:)   ! no halo in this case
 
     P_fv = Reverse(P_giss * PRESSURE_UNIT_RATIO)
-    
+
   end Subroutine ConvertPressure_GISS2FV_r8
 
   ! Convert pressure from GISS representation to FV representation.
@@ -972,7 +964,7 @@ contains
        Do j = j_0s,j_1s
           im1 = IM
           Do i = 1, IM
-             
+
              u_a(im1,j,k) = (ub_halo(im1,j,k) + ub_halo(i,j,k) + ub_halo(im1,j+1,k) + ub_halo(i,j+1,k))/4
              v_a(im1,j,k) = (vb_halo(im1,j,k) + vb_halo(i,j,k) + vb_halo(im1,j+1,k) + vb_halo(i,j+1,k))/4
              im1 = i
@@ -1009,11 +1001,11 @@ contains
       Integer :: k
 
       do k = 1, LM
-         
+
          us = Sum( -ub(:,k) * SINIP - vb(:,k) * COSIP) / IM
          vs = Sum(  ub(:,k) * COSIP - vb(:,k) * SINIP) / IM
 
-         ua(:,k) = -us * SINIV + vs * COSIV 
+         ua(:,k) = -us * SINIV + vs * COSIV
          va(:,k) = -us * COSIV - vs * SINIV
 
       end do
@@ -1052,7 +1044,7 @@ contains
        ! 1st interpolate to 'A' grid
        Call FixPole(U_b(:,JM,:), V_b(:,JM,:), U_d(:,JM-1,:))
        V_d(:,JM-1,:) = (V_b(:,JM,:) + CSHIFT(V_b(:,JM,:),1,1))/2
-       
+
        U_d(:,JM,:)=0 ! not used (but needs legal value)
        V_d(:,JM,:)=0 ! not used (but needs legal value)
     End If
@@ -1079,7 +1071,7 @@ contains
       Integer :: k
 
       do k = 1, LM
-         
+
          us = Sum( -ub(:,k) * SINIP - vb(:,k) * COSIP) / IM
          vs = Sum(  ub(:,k) * COSIP - vb(:,k) * SINIP) / IM
 
@@ -1099,13 +1091,13 @@ contains
     Integer, parameter :: K_IDX = 3
     Integer :: k, n
 
-    
+
     n = Size(A, K_IDX)
 
     Do k = 1, n
        B(:,:,k) = A(:,:,1+n-k)
     End Do
-    
+
   End Function reverse_3d_r8
 
   ! Single precision variant of Reverse()
@@ -1121,15 +1113,15 @@ contains
     Do k = 1, n
        B(:,:,k) = A(:,:,1+n-k)
     End Do
-    
+
   End Function reverse_3d_r4
-  
+
   Subroutine Write_Profile(arr, name)
     Use RESOLUTION,    Only: IM, JM, LM
     Use DOMAIN_DECOMP, Only: grid, PACK_DATA, AM_I_ROOT
     Real*8, intent(in) :: arr(:,:,:)
     character(len=*), intent(in) :: name
-    
+
     Integer :: k, km
     Real*8 :: rng(3,LM)
     Real*8 :: arr_global(IM,JM,size(arr,3))
@@ -1143,18 +1135,18 @@ contains
        rng(1,:) = MINVAL(MINVAL(arr_global,DIM=1),DIM=1)
        rng(2,:) = MAXVAL(MAXVAL(arr_global,DIM=1),DIM=1)
        rng(3,:) = SUM(SUM(arr_global,DIM=1),DIM=1)/(IM*JM)
-       
+
        print*,'***********'
        print*,'stats for ',trim(name)
        km = size(arr,3)
-       
+
        Do k = 1, km
           Write(*,'(a,i4.0,3(f21.9,1x))')'k:',k,rng(:,k)
        End Do
        print*,'***********'
        print*,' '
     End IF
-    
+
   End Subroutine Write_Profile
 
   function compute_phi(P, T, SZ, zatmo) result(phi)
@@ -1196,7 +1188,7 @@ contains
           PDN=PIJ+PTOP
           PKDN=PDN**KAPA
           PHIDN=ZATMO(I,J)
-          
+
           !**** LOOP OVER THE LAYERS
           DO L=1,LM
              PKPDN=PKDN*PDN
@@ -1235,31 +1227,31 @@ contains
        END DO
     END DO
     !$OMP END PARALLEL DO
-    
+
     !**** SET POLAR VALUES FROM THOSE AT I=1
     IF (HAVE_SOUTH_POLE) THEN
        DO L=1,LM
           PHI(2:IM,1,L)=PHI(1,1,L)
        END DO
     END IF
-    
+
     IF (HAVE_NORTH_POLE) THEN
        DO L=1,LM
           PHI(2:IM,JM,L)=PHI(1,JM,L)
        END DO
     END IF
-    
+
   end function compute_phi
-  
+
   subroutine clear_accumulated_mass_fluxes()
     USE DYNAMICS, ONLY: PUA,PVA,SDA
-    
+
     PUA(:,:,:) = 0.0
     PVA(:,:,:) = 0.0
     SDA(:,:,:) = 0.0
-    
+
   end subroutine clear_accumulated_mass_fluxes
-  
+
   subroutine accumulate_mass_fluxes(fv)
     Use Resolution, only: IM,JM,LM,LS1
     USE DYNAMICS, ONLY: PUA,PVA,SDA
@@ -1270,10 +1262,10 @@ contains
     real*4, Dimension(:,:,:), Pointer :: mfx_X, mfx_Y, mfx_Z
     integer :: J_0, J_1
     integer :: rc
-    
+
     Call Get(grid, j_strt=j_0, j_stop=j_1)
 
-    ! Horizontal and Vertical mass fluxes 
+    ! Horizontal and Vertical mass fluxes
     !---------------
     call ESMFL_StateGetPointerToData ( fv%export,mfx_X,'MFX',rc=rc)
     VERIFY_(rc)
@@ -1281,7 +1273,7 @@ contains
     VERIFY_(rc)
     call ESMFL_StateGetPointerToData ( fv%export,mfx_Z,'MFZ',rc=rc)
     VERIFY_(rc)
-    
+
     mfx_X = Reverse(mfx_X)/PRESSURE_UNIT_RATIO
     mfx_Y = Reverse(mfx_Y)/PRESSURE_UNIT_RATIO
     mfx_Z = Reverse(mfx_Z)/PRESSURE_UNIT_RATIO
@@ -1291,7 +1283,7 @@ contains
     PUA = PUA + PU
     PVA = PVA + PV
     SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,J_0:J_1,1:LM-1)
-    
+
 !!$$    call write_profile(PUA          ,'GEOS mfx_X')
 !!$$    call write_profile(PVA          ,'GEOS mfx_Y')
 !!$$    call write_profile(SDA          ,'GEOS mfx_Z')

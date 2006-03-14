@@ -222,7 +222,13 @@ C**** Initialize mass fluxes used by tracers and Q
       CALL DYNAM()
 #else
       ! Using FV instead
+         IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
       CALL Run(fv, clock)
+         IF (MOD(Itime-ItimeI,NDAA).eq.0) THEN
+           CALL DIAGA
+           CALL DIAGB
+           CALL EPFLUX (U,V,T,P)
+         ENDIF
 #endif
       call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(PHI, PU, PV, PUA, PVA, DT)
       SD_CLOUDS(:,:,:) = CONV(:,:,:)
@@ -1317,20 +1323,24 @@ C****
 C**** Alternate (old) way of specifying end time
       if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/HR_IN_DAY
 
-C**** Recompute dtsrc,dt making NIdyn=dtsrc/dt(dyn) a multiple of 2
-C****
+C**** Check consistency of DTsrc (with NDAY) and dt (with NIdyn)
       if (is_set_param("DTsrc") .and. nint(sday/DTsrc).ne.NDAY) then
         write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to',SDAY/NDAY
         call stop_model('INPUT: DTsrc inappropriately set',255)
       end if
-      DTsrc = SDAY/NDAY   ! currently 1 hour
+      DTsrc = SDAY/NDAY 
       call set_param( "DTsrc", DTsrc, 'o' )   ! copy DTsrc into DB
 
+      NIdyn=nint(dtsrc/dt)
+#ifndef USE_FVCORE
+C**** NIdyn=dtsrc/dt(dyn) has to be a multiple of 2
+C****
       NIdyn = 2*nint(.5*dtsrc/dt)
       if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
         write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
         call stop_model('INPUT: DT inappropriately set',255)
       end if
+#endif
       DT = DTsrc/NIdyn
       call set_param( "DT", DT, 'o' )         ! copy DT into DB
 
