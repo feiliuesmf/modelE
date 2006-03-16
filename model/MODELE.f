@@ -230,7 +230,7 @@ C**** Initialize mass fluxes used by tracers and Q
            CALL EPFLUX (U,V,T,P)
          ENDIF
 #endif
-      call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(PHI, PU, PV, PUA, PVA, DT)
+      call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(PUA, PVA, DT)
       SD_CLOUDS(:,:,:) = CONV(:,:,:)
       call COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
 C**** Scale WM mixing ratios to conserve liquid water

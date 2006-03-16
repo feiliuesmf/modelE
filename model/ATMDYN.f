@@ -8,7 +8,7 @@
       public init_ATMDYN, DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
      &     ,DISSIP,FILTER,CALC_AMPK,CALC_AMP
      &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS, COMPUTE_WSAVE
-     &     ,AFLUX, CALC_PIJL
+     &     ,AFLUX, CALC_PIJL, COMPUTE_MASS_FLUX_DIAGS
 #ifdef TRACERS_ON
      &     ,trdynam
 #endif
@@ -30,8 +30,9 @@
      *     ,pmtop
       USE GEOM, only : dyv,dxv,dxyp,areag,bydxyp
       USE SOMTQ_COM, only : tmom,mz
-      USE DYNAMICS, only : ptold,pu,pv,sd,dut,dvt
+      USE DYNAMICS, only : ptold,pu,pv,sd,phi,dut,dvt
      &    ,pua,pva,sda,ps,mb,pk,pmid,sd_clouds,pedn
+      USE DIAG_COM, only : aij => aij_loc,ij_fmv,ij_fgzv
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GLOBALSUM
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
@@ -211,6 +212,8 @@ CCC   TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
       CALL CALC_PIJL(LS1-1,PC,PIJL)
       CALL PGF (U,V,P,UT,VT,TT,TZT,Pijl,DTLF)    !PC->pijl
 
+      call compute_mass_flux_diags(PHI, PU, PV, dt)
+
       CALL CALC_AMPK(LS1-1)
       if (QUVfilter) CALL FLTRUV(U,V,UT,VT)
       PC(:,:) = P(:,:)      ! LOAD P TO PC
@@ -279,32 +282,23 @@ C**** and convert to WSAVE, units of m/s):
 
       end subroutine COMPUTE_WSAVE
 
-      subroutine COMPUTE_DYNAM_AIJ_DIAGNOSTICS(
-     &     PHI, PU, PV, PUA, PVA, dt)
-      use CONSTANT,      only: BY3
-      use DOMAIN_DECOMP, only: grid, get, halo_update, SOUTH
-      use DIAG_COM, only: AIJ => AIJ_loc, 
-     &     IJ_FGZU, IJ_FGZV, IJ_FMV, IJ_FMU
-      use MODEL_COM, only: IM,JM,LM
+      Subroutine compute_mass_flux_diags(PHI, PU, PV, dt)
+      use MODEL_COM, only: IM, LM
+      use DOMAIN_DECOMP, only: grid, halo_update, SOUTH, get
+      use DIAG_COM, only: AIJ => AIJ_loc, IJ_FGZU, IJ_FGZV
 
       real*8, intent(inout) :: PHI(:,grid%J_STRT_HALO:,:)
       real*8, intent(in) :: PU(:,grid%J_STRT_HALO:,:)
       real*8, intent(in) :: PV(:,grid%J_STRT_HALO:,:)
-      real*8, intent(in) :: PUA(:,grid%J_STRT_HALO:,:)
-      real*8, intent(in) :: PVA(:,grid%J_STRT_HALO:,:)
       real*8, intent(in) :: dt
 
-      integer :: I, IP1, J, L
-      integer :: J_0STG, J_1STG, J_0S, J_1S
-      logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
-      real*8 :: dtlf
 
-      dtlf = 2.*dt
+      integer :: J_0S, J_1S
+      integer :: J_0STG, J_1STG
+      integer :: I, IP1, L, J
 
       call get(grid, J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG,
-     &               J_STRT_SKP =J_0S,  J_STOP_SKP =J_1S,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
+     &               J_STRT_SKP =J_0S,  J_STOP_SKP =J_1S)
 
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
 !$OMP  PARALLEL DO PRIVATE (J,L,I,IP1)
@@ -329,6 +323,32 @@ C**** and convert to WSAVE, units of m/s):
       END DO
       END DO
 !$OMP  END PARALLEL DO
+
+      end subroutine compute_mass_flux_diags
+
+      subroutine COMPUTE_DYNAM_AIJ_DIAGNOSTICS(
+     &    PUA, PVA, dt)
+      use CONSTANT,      only: BY3
+      use DOMAIN_DECOMP, only: grid, get, halo_update, SOUTH
+      use DIAG_COM, only: AIJ => AIJ_loc, 
+     &     IJ_FGZU, IJ_FGZV, IJ_FMV, IJ_FMU
+      use MODEL_COM, only: IM,JM,LM
+
+      real*8, intent(in) :: PUA(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: PVA(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: dt
+
+      integer :: I, IP1, J, L
+      integer :: J_0STG, J_1STG, J_0S, J_1S
+      logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+      real*8 :: dtlf
+
+      dtlf = 2.*dt
+
+      call get(grid, J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG,
+     &               J_STRT_SKP =J_0S,  J_STOP_SKP =J_1S,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
 
 !$OMP  PARALLEL DO PRIVATE (J,L)
       do j=J_0STG,J_1STG
