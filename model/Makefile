@@ -283,7 +283,7 @@ gcm: $(BIN_DIR)/$(RUN).exe
 #$(BIN_DIR)/$(RUN).exe: $(RUNDECK) esmf_interface fvdycore $(OBJS)
 $(BIN_DIR)/$(RUN).exe: $(RUNDECK) esmf_interface $(OBJS)
 	echo linking executable $(MSG)
-	$(F90) $(LFLAGS) $(OBJS) $(F90OBJS) $(ESMF_OBJS) $(LIBS) -o $(RUN).exe  $(LINK_OUTPUT)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) $(OBJS) $(F90OBJS) $(ESMF_OBJS) $(LIBS) -o $(RUN).exe  $(LINK_OUTPUT)
 ifdef LINK_OUTPUT
 	if [ -s $(RUN).ERR ] ; then cat $(RUN).ERR; else rm -f $(RUN).ERR; fi
 endif

@@ -13,6 +13,12 @@
 # -listing  - create listings (.L)
 EXTRA_FFLAGS =
 
+# EXTRA_LFLAGS specifies some extra flags you want to pass 
+# to linker. Currently needed as a hack to compile hybrid MPI/OpenMP
+# code to pass "-openmp" to linker
+EXTRA_LFLAGS =
+
+
 # CPPFLAGS specifies some pre-processor directives you want to pass 
 # to Fortarn compiler, like
 # -DCOMPILER=Absoft    - compile code that is specific to Absoft
