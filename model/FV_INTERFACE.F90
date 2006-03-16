@@ -311,15 +311,22 @@ contains
     do istep = 1, NIdyn
        call ESMF_GridCompRun ( fv%gc, fv%import, fv%export, clock, rc )
        call accumulate_mass_fluxes(fv)
+       TMOM = 0 ! for now
+       phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
+       call compute_mass_flux_diags(phi, pu, pv, dt)
     end do
     call Copy_FV_export_to_modelE(fv) ! inside loop to accumulate PUA,PVA,SDA
 
-    call AFLUX(U, V, PIJL)
-
-    TMOM = 0 ! for now
-    phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
     gz  = phi
 
+    NS = NIdyn
+    MRCH=2
+
+    IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
+       CALL DIAGA
+       CALL DIAGB
+       CALL EPFLUX (U,V,T,P)
+    ENDIF
 
   end subroutine run_fv
 
