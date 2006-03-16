@@ -255,7 +255,7 @@ C**** and convert to WSAVE, units of m/s):
 
       subroutine COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
       use CONSTANT, only: rgas, bygrav
-      use MODEL_COM, only: NIdyn
+      !use MODEL_COM, only: NIdyn
       use DOMAIN_DECOMP, only: grid, GET
       use GEOM, only: bydxyp
       use MODEL_COM, only: IM,JM,LM
