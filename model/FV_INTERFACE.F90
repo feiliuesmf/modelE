@@ -290,15 +290,16 @@ contains
   subroutine run_fv(fv, clock)
     USE DOMAIN_DECOMP, only: grid
     USE MODEL_COM, Only : U, V, T, P, IM, JM, LM, ZATMO
-    USE MODEL_COM, only : NIdyn ! , NSTEP, NDAA, MRCH
+    USE MODEL_COM, only : NIdyn, DT
     USE SOMTQ_COM, only: TMOM, MZ
-    USE ATMDYN, only: CALC_AMP, CALC_PIJL, AFLUX
+    USE ATMDYN, only: CALC_AMP, CALC_PIJL, AFLUX, COMPUTE_MASS_FLUX_DIAGS
     USE DYNAMICS, only: MA, PHI, GZ
+    USE DYNAMICS, ONLY: PU, PV
     Type (FV_CORE)    :: fv
     Type (ESMF_Clock) :: clock
 
     REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: PIJL
-    integer :: istep, NS
+    integer :: istep, NS, NIdyn_fv
 
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
     call calc_amp(P, MA)
@@ -308,25 +309,18 @@ contains
 
     call clear_accumulated_mass_fluxes()
     ! Run dycore
-    do istep = 1, NIdyn
+    NIdyn_fv = NIdyn/2 ! no leapfrog
+    do istep = 1, NIdyn_fv
        call ESMF_GridCompRun ( fv%gc, fv%import, fv%export, clock, rc )
        call accumulate_mass_fluxes(fv)
        TMOM = 0 ! for now
        phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
        call compute_mass_flux_diags(phi, pu, pv, dt)
     end do
+
     call Copy_FV_export_to_modelE(fv) ! inside loop to accumulate PUA,PVA,SDA
 
     gz  = phi
-
-    NS = NIdyn
-    MRCH=2
-
-    IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
-       CALL DIAGA
-       CALL DIAGB
-       CALL EPFLUX (U,V,T,P)
-    ENDIF
 
   end subroutine run_fv
 
@@ -610,7 +604,7 @@ contains
       Write(unit,*)'    im: ',IM
       Write(unit,*)'    jm: ',JM
       Write(unit,*)'    km: ',LM
-      Write(unit,*)'    dt: ',DT
+      Write(unit,*)'    dt: ',DT*2
       Write(unit,*)'nsplit: ',0
       Write(unit,*)' ntotq: ',1
       Write(unit,*)'    nq: ',1
@@ -808,7 +802,6 @@ contains
     ! Just need surface pressure - Ptop
     P(:,J_0:J_1) = (fv%PE_old(:,:,1) - Ptop)/SIGE(1)
     CALL CALC_AMPK(LS1-1)
-
 
     ! Preserve state information for later computation of tendencies.
     fv%dPT_old = DeltPressure_DryTemp_GISS()
@@ -1280,20 +1273,18 @@ contains
     VERIFY_(rc)
     call ESMFL_StateGetPointerToData ( fv%export,mfx_Z,'MFZ',rc=rc)
     VERIFY_(rc)
+    
+    mfx_X = Reverse(mfx_X)/PRESSURE_UNIT_RATIO 
+    mfx_Y = Reverse(mfx_Y)/PRESSURE_UNIT_RATIO 
+    mfx_Z = Reverse(mfx_Z)/PRESSURE_UNIT_RATIO 
 
-    mfx_X = Reverse(mfx_X)/PRESSURE_UNIT_RATIO
-    mfx_Y = Reverse(mfx_Y)/PRESSURE_UNIT_RATIO
-    mfx_Z = Reverse(mfx_Z)/PRESSURE_UNIT_RATIO
-
-    call Regrid_A_to_B(mfx_X, mfx_Y(:,1:j_1-j_0+1,:), PU(1:IM,j_0:j_1,1:LM), PV(1:IM,j_0:j_1,1:LM))
+    PU(:,J_0:J_1,:) = mfx_X
+    PV(:,J_0:J_1,:) = mfx_Y
     SD(:,J_0:J_1,1:LM-1) = mfx_Z(:,:,1:LM-1) ! SD only goes up to LM-1
-    PUA = PUA + PU
-    PVA = PVA + PV
-    SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,J_0:J_1,1:LM-1)
 
-!!$$    call write_profile(PUA          ,'GEOS mfx_X')
-!!$$    call write_profile(PVA          ,'GEOS mfx_Y')
-!!$$    call write_profile(SDA          ,'GEOS mfx_Z')
+    PUA(:,J_0:J_1,:) = PUA(:,J_0:J_1,:) + PU(:,J_0:J_1,:)  ! correct for timestep
+    PVA(:,J_0:J_1,:) = PVA(:,J_0:J_1,:) + PV(:,J_0:J_1,:)  ! correct for timestep
+    SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,J_0:J_1,1:LM-1)  ! correct for timestep
 
   end subroutine accumulate_mass_fluxes
 
