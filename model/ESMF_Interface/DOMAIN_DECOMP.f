@@ -422,7 +422,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       Call Initialize_App(IM, JM, LM,rc=rc)
 
       Call ESMF_VMGet(vm, localPET = my_pet, petCount = NPES, rc=rc)
-      root = NPES-1
+c***      root = NPES-1
+      root = ROOT_ID
       compmodelE  = ESMF_GridCompCreate(vm,"ModelE ESMF", rc=rc)
 
       ! The default layout is not what we want - it splits in the "I" direction.
