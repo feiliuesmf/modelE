@@ -858,10 +858,11 @@ c> Oct  2004 - map ice mass to agcm, and then calculate E
       SUBROUTINE ALLOC_OCEAN(grid)
 !@sum dummy routine for allocation of ocean arrays
       USE DOMAIN_DECOMP, only : DIST_GRID
+      use hybrid_mpi_omp_coupler, only: init_hybrid_coupler
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      ! do nothing for now ...
+      call init_hybrid_coupler()
 
       END SUBROUTINE ALLOC_OCEAN
 
