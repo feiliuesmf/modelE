@@ -48,7 +48,7 @@ c******************   TRACERS             ******************************
      *     ,tij_evap,tij_grnd,tij_soil
 #endif
 #ifdef TRACERS_DRYDEP
-     *     ,tij_drydep,tij_gsdep,itcon_dd
+     *     ,tij_drydep,tij_gsdep,itcon_dd,dtr_dd
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_DUST) ||\
     (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
@@ -79,7 +79,6 @@ c******************   TRACERS             ******************************
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
-      use tracers_DRYDEP, only : dtr_dd
 #endif
 
 #ifdef TRACERS_WATER

@@ -365,6 +365,8 @@ C**** include some extra troposphere only ones
 #ifdef TRACERS_DRYDEP
 !@var itcon_dd Index array for dry deposition conserv. diags
       INTEGER, DIMENSION(ntmxcon,2) :: itcon_dd
+!@var dtr_dd to save drydep change for conservation quantities
+      REAL*8,ALLOCATABLE :: dtr_dd(:,:,:)
 #endif
 #ifndef TRACERS_WATER
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -688,6 +690,9 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE ( TAJLS4_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
       ALLOCATE ( TCONSRV4_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
 
+#ifdef TRACERS_DRYDEP
+      ALLOCATE (dtr_dd(J_0H:J_1H,Ntm,2),stat=status)
+#endif
 #endif
       RETURN
       END SUBROUTINE ALLOC_TRDIAG_COM

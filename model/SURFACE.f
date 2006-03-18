@@ -135,7 +135,6 @@ C**** Interface to PBL
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
-      use tracers_DRYDEP, only : dtr_dd
 #endif
       USE TRDIAG_COM, only : taijn=>taijn_loc , tij_surf
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_isrc
@@ -144,7 +143,7 @@ C**** Interface to PBL
      *     ,tij_evap,tij_grnd
 #endif
 #ifdef TRACERS_DRYDEP
-     *     ,tij_drydep,tij_gsdep,itcon_dd
+     *     ,tij_drydep,tij_gsdep,itcon_dd,dtr_dd
 #endif
 #endif
       USE DVEG_COUPLER, only : step_dveg

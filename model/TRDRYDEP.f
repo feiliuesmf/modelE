@@ -74,15 +74,12 @@ C
 !@var XLAI2 leaf area index variable
 !@var DRYCOEFF polynomial fittings coeffcients  
 !@var CZ Altitude (m) at which deposition velocity would be computed
-!@var dtr_dd to save drydep change for conservation quantities
 c
       INTEGER, PARAMETER :: NPOLY   = 20,
      &                      NTYPE   = 16,
      &                      NVEGTYPE= 74
       REAL*8,  DIMENSION(IM,JM,NTYPE)     :: XYLAI,XLAI,XLAI2
       REAL*8,  DIMENSION(NPOLY)           :: DRYCOEFF
-      REAL*8,  DIMENSION(grid%j_strt_halo:grid%j_stop_halo,ntm,2)     
-     &                                    :: dtr_dd
       INTEGER, DIMENSION(IM,JM)           :: IJREG,IREG
       INTEGER, DIMENSION(IM,JM,NTYPE)     :: IJLAND,IJUSE
       INTEGER, DIMENSION(NVEGTYPE)        :: IDEP
