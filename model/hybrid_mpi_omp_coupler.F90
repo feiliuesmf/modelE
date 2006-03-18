@@ -212,14 +212,10 @@ contains
     end if
 
     ! must be root process
-!$  call PXFGETENV('OMP_NUM_THREADS', len('OMP_NUM_THREADS'), buf, len(buf), ier)
-!$  read(buf,*) OMP_NUM_THREADS
-!$  print*,'OMP trying to use',OMP_NUM_THREADS, ' threads.'
 !$  call PXFGETENV('NUM_THREADS_HYCOM', len('NUM_THREADS_HYCOM'), buf, len(buf), ier)
 !$  read(buf,*) NUM_THREADS_HYCOM
 !$  print*,'HYCOM using ',NUM_THREADS_HYCOM, ' threads.'
 !$  call omp_set_num_threads(NUM_THREADS_HYCOM)
-!$  call omp_set_dynamic(.false.)
 
     allocate(e0(IM,JM,NSTYPE))
     allocate(prec(IM,JM))
@@ -311,11 +307,11 @@ contains
   end subroutine finalize
 
   subroutine startMultiThreaded()
-!$      call omp_set_num_threads(NUM_THREADS_HYCOM)
+!!$!$      call omp_set_num_threads(NUM_THREADS_HYCOM)
   end subroutine startMultiThreaded
 
   subroutine startSingleThreaded()
-!$      call omp_set_num_threads(SINGLE_THREADED)
+!!$!$      call omp_set_num_threads(SINGLE_THREADED)
   end subroutine startSingleThreaded
 
 end module hybrid_mpi_omp_coupler

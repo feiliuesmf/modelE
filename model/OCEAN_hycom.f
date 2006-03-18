@@ -8,8 +8,6 @@
 
       integer istart
 
-      call init_hybrid_coupler()
-
       call gatherDistributedQuantities()
 
       if (AM_I_ROOT()) then
