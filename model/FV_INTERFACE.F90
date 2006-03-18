@@ -1282,9 +1282,9 @@ contains
     PV(:,J_0:J_1,:) = mfx_Y
     SD(:,J_0:J_1,1:LM-1) = mfx_Z(:,:,1:LM-1) ! SD only goes up to LM-1
 
-    PUA(:,J_0:J_1,:) = PUA(:,J_0:J_1,:) + PU(:,J_0:J_1,:)  ! correct for timestep
-    PVA(:,J_0:J_1,:) = PVA(:,J_0:J_1,:) + PV(:,J_0:J_1,:)  ! correct for timestep
-    SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,J_0:J_1,1:LM-1)  ! correct for timestep
+    PUA(:,J_0:J_1,:) = PUA(:,J_0:J_1,:) + PU(:,J_0:J_1,:)
+    PVA(:,J_0:J_1,:) = PVA(:,J_0:J_1,:) + PV(:,J_0:J_1,:)
+    SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,J_0:J_1,1:LM-1)
 
   end subroutine accumulate_mass_fluxes
 
