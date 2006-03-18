@@ -141,7 +141,7 @@ FFLAGS = -fpp -Wp,-P -O2 -w95 -w90 -cm -tpp2 -common_args
 F90FLAGS = -fpp -Wp,-P -O2 -FR -w95 -w90 -cm -tpp2 -common_args
 LFLAGS = -O2 -w95 -w90 -tpp2 -common_args -Vaxlib
 CPP = /lib/cpp -P -traditional
-CPPFLAGS = -DMACHINE_Linux
+CPPFLAGS = -DMACHINE_Linux -DCOMPILER_Intel
 F90_VERSION = $(shell $(F90) -V 2>&1 | grep Build)
 ifeq ($(MP),YES)
 FFLAGS += -openmp
@@ -165,7 +165,7 @@ FFLAGS = -fpp -O2 -Wp,-P  -convert big_endian
 F90FLAGS = -fpp -O2 -Wp,-P  -convert big_endian -free 
 LFLAGS = -O2
 CPP = /lib/cpp -P -traditional
-CPPFLAGS = -DMACHINE_Linux
+CPPFLAGS = -DMACHINE_Linux -DCOMPILER_Intel8
 F90_VERSION = $(shell $(F90) -v 2>&1)
 ifeq ($(MP),YES)
 FFLAGS += -openmp
@@ -186,7 +186,7 @@ F90 = lf95
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler LAHEY-lf95-on-LINUX
-CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux
+CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux -DCOMPILER_Lahey
 FFLAGS = -O -Cpp
 LFLAGS = 
 F90_VERSION = $(shell $(F90) --version | grep Release)
@@ -209,7 +209,7 @@ F90 = f90
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
 CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler ABSOFT-f95-on-LINUX
-CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux
+CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux -DCOMPILER_Absoft
 FFLAGS = -O2
 F90FLAGS = -O2 -f free
 LFLAGS = -lf90math -lV77 -lU77
@@ -226,7 +226,7 @@ ifeq ($(COMPILER),PGI)
 F90 = pgf90 -Mbyteswapio
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
-CPPFLAGS = -DMACHINE_Linux
+CPPFLAGS = -DMACHINE_Linux -DCOMPILER_PGI
 FFLAGS = -O2
 LFLAGS = 
 ifeq ($(MP),YES)   # edit for PGI OpenMP compatability???

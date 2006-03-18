@@ -77,7 +77,8 @@
       RETURN
       END SUBROUTINE RFINAL
 
-#if defined( MACHINE_DEC )
+#if defined( MACHINE_DEC ) \
+ || ( defined(MACHINE_Linux) && defined(COMPILER_Intel8) ) 
       SUBROUTINE BURN_RANDOM(n)
 !@sum  BURN_RANDOM burns a set number of random numbers. It is used to
 !                  maintain bit-wise correspondence on parallel runs.
