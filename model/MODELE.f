@@ -50,6 +50,7 @@ CAOO   Just to test CVS
       CHARACTER*8 :: flg_go='___GO___'      ! green light
       integer :: iflag=1
       external sig_stop_model
+
 C**** Command line options
       LOGICAL :: qcrestart=.false.
       CHARACTER*32 :: ifile
@@ -61,6 +62,8 @@ C**** Command line options
 #endif
       integer :: tloopcurrent
       integer :: L
+      integer :: c0, crate
+      real*8 :: time_rate
 
         call init_app(grid,im,jm,lm)
         call alloc_drv()
@@ -156,7 +159,9 @@ C****
 C**** MAIN LOOP
 C****
       call gettime(tloopcurrent)
-      tloopbegin=tloopcurrent/100.d0
+      call system_clock(c0, crate)
+      time_rate=crate
+      tloopbegin=tloopcurrent/time_rate
       DO WHILE (Itime.lt.ItimeE)
 C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
 C**** write restart information alternately onto 2 disk files
@@ -550,9 +555,11 @@ C**** Flag to continue run has been turned off
       END IF
 
       END DO
+      
       call gettime(tloopcurrent)
-      tloopend=tloopcurrent/100.d0
-      print *, "Time spent in the main loop in seconds:", tloopend
+      tloopend=tloopcurrent/time_rate
+      print *, "Time spent in the main loop in seconds:",
+     *     tloopend-tloopbegin
 C****
 C**** END OF MAIN LOOP
 C****
