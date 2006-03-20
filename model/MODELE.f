@@ -517,7 +517,7 @@ C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
 
 C**** PRINT AND ZERO OUT THE TIMING NUMBERS
         CALL TIMER (MNOW,MDIAG)
-        TOTALT=.01*(MNOW-MSTART)      ! in seconds
+        TOTALT=(MNOW-MSTART)/time_rate      ! in seconds
         DO M=1,NTIMEACC
           PERCENT(M) = TIMING(M)/(TOTALT+.00001)
         END DO
@@ -555,7 +555,7 @@ C**** Flag to continue run has been turned off
       END IF
 
       END DO
-      
+
       call gettime(tloopcurrent)
       tloopend=tloopcurrent/time_rate
       print *, "Time spent in the main loop in seconds:",
@@ -1335,7 +1335,7 @@ C**** Check consistency of DTsrc (with NDAY) and dt (with NIdyn)
         write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to',SDAY/NDAY
         call stop_model('INPUT: DTsrc inappropriately set',255)
       end if
-      DTsrc = SDAY/NDAY 
+      DTsrc = SDAY/NDAY
       call set_param( "DTsrc", DTsrc, 'o' )   ! copy DTsrc into DB
 
       NIdyn=nint(dtsrc/dt)

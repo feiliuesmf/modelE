@@ -354,6 +354,7 @@ C****
 
       CALL GETTIME(MNOW)
       MINC  = MNOW - MLAST
+      if(minc.lt.0) minc=minc+huge(minc) ! system_clock reset
       TIMING(MSUM)  = TIMING(MSUM) + MINC
       MLAST = MNOW
       RETURN
@@ -374,6 +375,7 @@ C****
 
       CALL GETTIME(MNOW)
       MINC  = MNOW - MBEGIN
+      if(minc.lt.0) minc=minc+huge(minc) ! system_clock reset
       TIMING(MIN)  = TIMING(MIN)  + MINC
       TIMING(MOUT) = TIMING(MOUT) - MINC
       RETURN
