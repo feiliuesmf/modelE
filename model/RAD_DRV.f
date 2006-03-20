@@ -598,7 +598,6 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       NTRIX(1:NTRACE)=
      *     (/n_OCA4/)
       WTTR(1:NTRACE) = 1d0
-      NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       if (rad_interact_tr.gt.0) then  ! if BC's sol.effect are doubled:
@@ -619,7 +618,6 @@ C**** for the diagnostics
 C**** define weighting (only used for clays so far)
       WTTR(1:NTRACE) = 1d0
 C**** If some tracers are not being used reduce NTRACE accordingly
-      NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #endif
 
 #ifdef TRACERS_DUST
@@ -673,7 +671,6 @@ C**** define weighting for different clays
      &       1D0/)
       END SELECT
 C**** If some tracers are not being used reduce NTRACE accordingly
-      NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #else
 #ifdef TRACERS_MINERALS
 C**** add minerals optionally to radiatively active aerosol tracers
@@ -717,7 +714,6 @@ C**** define weighting for different clays
      &     0.081D0,0.234D0,0.676D0,0.009D0,0.081D0,0.234D0,0.676D0,1D0,
      &     1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0/)
 C**** If some tracers are not being used reduce NTRACE accordingly
-      NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #endif
 #ifdef TRACERS_QUARZHEM
 C**** add quartz/hematite optionally to radiatively active aerosol tracers
@@ -741,7 +737,6 @@ C**** for the diagnostics. Adjust if number of dust tracers changes.
 C**** define weighting
       WTTR(n1:NTRACE)=(/1.D0,1.D0,1.D0/)
 C**** If some tracers are not being used reduce NTRACE accordingly
-      NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #endif
 #endif
 
@@ -1581,51 +1576,54 @@ C**** Aerosols incl. Dust:
         set_claycalc=.FALSE.
         set_clayquar=.FALSE.
         do n=1,NTRACE
-          IF (trname(NTRIX(n)).eq."seasalt2") CYCLE ! not for seasalt2
-          IF (trname(ntrix(n)) == 'ClayIlli' .AND. set_clayilli) cycle
-          IF (trname(ntrix(n)) == 'ClayKaol' .AND. set_claykaol) cycle
-          IF (trname(ntrix(n)) == 'ClaySmec' .AND. set_claysmec) cycle
-          IF (trname(ntrix(n)) == 'ClayCalc' .AND. set_claycalc) cycle
-          IF (trname(ntrix(n)) == 'ClayQuar' .AND. set_clayquar) cycle
-          FSTOPX(n)=1-onoff ; FTTOPX(n)=1-onoff ! turn on/off tracer
+          IF (ntrix(n) > 0) THEN
+            IF (trname(NTRIX(n)).eq."seasalt2") CYCLE ! not for seasalt2
+            IF (trname(ntrix(n)) == 'ClayIlli' .AND. set_clayilli) cycle
+            IF (trname(ntrix(n)) == 'ClayKaol' .AND. set_claykaol) cycle
+            IF (trname(ntrix(n)) == 'ClaySmec' .AND. set_claysmec) cycle
+            IF (trname(ntrix(n)) == 'ClayCalc' .AND. set_claycalc) cycle
+            IF (trname(ntrix(n)) == 'ClayQuar' .AND. set_clayquar) cycle
+            FSTOPX(n)=1-onoff ; FTTOPX(n)=1-onoff ! turn on/off tracer
 C**** Warning: small bit of hardcoding assumes that seasalt1 is
 C**** one before seasalt2 in NTRACE array
-          IF (trname(NTRIX(n)).eq."seasalt1") THEN ! add seasalt1 to seasalt2
-            FSTOPX(n+1)=1-onoff ; FTTOPX(n+1)=1-onoff
-          END IF
+            IF (trname(NTRIX(n)).eq."seasalt1") THEN ! add seasalt1 to seasalt2
+              FSTOPX(n+1)=1-onoff ; FTTOPX(n+1)=1-onoff
+            END IF
 C**** Do radiation calculations for all clay classes at once
 C**** Assumes that 4 clay tracers are adjacent in NTRACE array
-          SELECT CASE (trname(ntrix(n)))
-          CASE ('ClayIlli')
-            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
-            set_clayilli=.true.
-          CASE ('ClayKaol')
-            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
-            set_claykaol=.true.
-          CASE ('ClaySmec')
-            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
-            set_claysmec=.true.
-          CASE ('ClayCalc')
-            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
-            set_claycalc=.true.
-          CASE ('ClayQuar')
-            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
-            set_clayquar=.true.
-          END SELECT
-          kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
-          CALL RCOMPX
-          SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
-          TNFST(1,n,I,J)=TRNFLB(1)
-          SNFST(2,n,I,J)=SRNFLB(LFRC)
-          TNFST(2,n,I,J)=TRNFLB(LFRC)
-          FSTOPX(n)=onoff ; FTTOPX(n)=onoff ! back to default
-          IF (trname(NTRIX(n)).eq."seasalt1") THEN ! for seasalt2 as well
-            FSTOPX(n+1)=onoff ; FTTOPX(n+1)=onoff
+            SELECT CASE (trname(ntrix(n)))
+            CASE ('ClayIlli')
+              fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+              set_clayilli=.true.
+            CASE ('ClayKaol')
+              fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+              set_claykaol=.true.
+            CASE ('ClaySmec')
+              fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+              set_claysmec=.true.
+            CASE ('ClayCalc')
+              fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+              set_claycalc=.true.
+            CASE ('ClayQuar')
+              fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+              set_clayquar=.true.
+            END SELECT
+            kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+            CALL RCOMPX
+            SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
+            TNFST(1,n,I,J)=TRNFLB(1)
+            SNFST(2,n,I,J)=SRNFLB(LFRC)
+            TNFST(2,n,I,J)=TRNFLB(LFRC)
+            FSTOPX(n)=onoff ; FTTOPX(n)=onoff ! back to default
+            IF (trname(NTRIX(n)).eq."seasalt1") THEN ! for seasalt2 as well
+              FSTOPX(n+1)=onoff ; FTTOPX(n+1)=onoff
+            END IF
+            SELECT CASE (trname(ntrix(n)))
+            CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc',
+     &           'ClayQuar')
+              fstopx(n+1:n+3)=onoff ; fttopx(n+1:n+3)=onoff ! for clays as well
+            END SELECT
           END IF
-          SELECT CASE (trname(ntrix(n)))
-          CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar')
-            fstopx(n+1:n+3)=onoff ; fttopx(n+1:n+3)=onoff  ! for clays as well
-          END SELECT
         end do
       end if
 #endif
@@ -1674,62 +1672,68 @@ C*****************************************************
     (defined TRACERS_OM_SP)
 C**** Save optical depth diags
       do n=1,NTRACE
-        SELECT CASE (trname(ntrix(n)))
-        CASE ('Clay')
-          n1=n-nrad_clay+1
-          IF (ijts_tausub(1,ntrix(n),n1) > 0)
-     &         taijs(i,j,ijts_tausub(1,ntrix(n),n1))
-     &         =taijs(i,j,ijts_tausub(1,ntrix(n),n1))
-     &         +SUM(ttausv(1:Lm,n))
-          IF (ijts_tausub(2,ntrix(n),n1) > 0)
-     &         taijs(i,j,ijts_tausub(2,ntrix(n),n1))
-     &         =taijs(i,j,ijts_tausub(2,ntrix(n),n1))
-     &         +SUM(ttausv(1:Lm,n))*OPNSKY
-          if (ijts_3Dtau(1,NTRIX(n)).gt.0) 
-     *         taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n1)))
-     *         =taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n1)))+TTAUSV(1:lm,n)
-        CASE DEFAULT
-          if (ijts_tau(1,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(1,NTRIX(n)))
-     *         =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
-          if (ijts_tau(2,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(2,NTRIX(n)))
-     *         =taijs(i,j,ijts_tau(2,NTRIX(n)))
-     &         +SUM(TTAUSV(1:lm,n))*OPNSKY
-          if (ijts_3Dtau(1,NTRIX(n)).gt.0) 
-     *         taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n)))
-     *         =taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n)))+TTAUSV(1:lm,n)
-        END SELECT
+        IF (ntrix(n) > 0) THEN
+          SELECT CASE (trname(ntrix(n)))
+          CASE ('Clay')
+            n1=n-nrad_clay+1
+            IF (ijts_tausub(1,ntrix(n),n1) > 0)
+     &           taijs(i,j,ijts_tausub(1,ntrix(n),n1))
+     &           =taijs(i,j,ijts_tausub(1,ntrix(n),n1))
+     &           +SUM(ttausv(1:Lm,n))
+            IF (ijts_tausub(2,ntrix(n),n1) > 0)
+     &           taijs(i,j,ijts_tausub(2,ntrix(n),n1))
+     &           =taijs(i,j,ijts_tausub(2,ntrix(n),n1))
+     &           +SUM(ttausv(1:Lm,n))*OPNSKY
+            if (ijts_3Dtau(1,NTRIX(n)).gt.0) 
+     *           taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n1)))
+     *           =taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n1)))+TTAUSV(1:lm,n)
+          CASE DEFAULT
+            if (ijts_tau(1,NTRIX(n)).gt.0)
+     &           taijs(i,j,ijts_tau(1,NTRIX(n)))
+     *           =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
+            if (ijts_tau(2,NTRIX(n)).gt.0)
+     &           taijs(i,j,ijts_tau(2,NTRIX(n)))
+     *           =taijs(i,j,ijts_tau(2,NTRIX(n)))
+     &           +SUM(TTAUSV(1:lm,n))*OPNSKY
+            if (ijts_3Dtau(1,NTRIX(n)).gt.0) 
+     *           taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n)))
+     *           =taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n)))+TTAUSV(1:lm,n)
+          END SELECT
+        END IF
       end do
 #endif
 
 #ifdef TRACERS_DUST
       IF (adiurn_dust == 1) THEN
         DO n=1,NTRACE
-          SELECT CASE (trname(ntrix(n)))
-          CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
-            ttausv_save(i,j,ntrix(n),1)=ttausv(1,n)
-            ttausv_save(i,j,ntrix(n),2)=ttausv(2,n)
-            ttausv_save(i,j,ntrix(n),3)=ttausv(3,n)
-            ttausv_save(i,j,ntrix(n),4)=ttausv(4,n)
-            ttausv_save(i,j,ntrix(n),5)=ttausv(5,n)
-            ttausv_save(i,j,ntrix(n),6)=ttausv(6,n)
-            ttausv_save(i,j,ntrix(n),7)=ttausv(7,n)
-            ttausv_save(i,j,ntrix(n),8)=ttausv(8,n)
-            ttausv_save(i,j,ntrix(n),9)=ttausv(9,n)
-            ttausv_save(i,j,ntrix(n),10)=ttausv(10,n)
-            ttausv_save(i,j,ntrix(n),11)=ttausv(11,n)
+          IF (ntrix(n) > 0) THEN
+            SELECT CASE (trname(ntrix(n)))
+            CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
+              ttausv_save(i,j,ntrix(n),1)=ttausv(1,n)
+              ttausv_save(i,j,ntrix(n),2)=ttausv(2,n)
+              ttausv_save(i,j,ntrix(n),3)=ttausv(3,n)
+              ttausv_save(i,j,ntrix(n),4)=ttausv(4,n)
+              ttausv_save(i,j,ntrix(n),5)=ttausv(5,n)
+              ttausv_save(i,j,ntrix(n),6)=ttausv(6,n)
+              ttausv_save(i,j,ntrix(n),7)=ttausv(7,n)
+              ttausv_save(i,j,ntrix(n),8)=ttausv(8,n)
+              ttausv_save(i,j,ntrix(n),9)=ttausv(9,n)
+              ttausv_save(i,j,ntrix(n),10)=ttausv(10,n)
+              ttausv_save(i,j,ntrix(n),11)=ttausv(11,n)
 
-            ttausv_cs_save(i,j,ntrix(n),1)=ttausv(1,n)*OPNSKY
-            ttausv_cs_save(i,j,ntrix(n),2)=ttausv(2,n)*OPNSKY
-            ttausv_cs_save(i,j,ntrix(n),3)=ttausv(3,n)*OPNSKY
-            ttausv_cs_save(i,j,ntrix(n),4)=ttausv(4,n)*OPNSKY
-            ttausv_cs_save(i,j,ntrix(n),5)=ttausv(5,n)*OPNSKY
-            ttausv_cs_save(i,j,ntrix(n),6)=ttausv(6,n)*OPNSKY
-            ttausv_cs_save(i,j,ntrix(n),7)=ttausv(7,n)*OPNSKY
-            ttausv_cs_save(i,j,ntrix(n),8)=ttausv(8,n)*OPNSKY
-            ttausv_cs_save(i,j,ntrix(n),9)=ttausv(9,n)*OPNSKY
-            ttausv_cs_save(i,j,ntrix(n),10)=ttausv(10,n)*OPNSKY
-            ttausv_cs_save(i,j,ntrix(n),11)=ttausv(11,n)*OPNSKY
-          END SELECT
+              ttausv_cs_save(i,j,ntrix(n),1)=ttausv(1,n)*OPNSKY
+              ttausv_cs_save(i,j,ntrix(n),2)=ttausv(2,n)*OPNSKY
+              ttausv_cs_save(i,j,ntrix(n),3)=ttausv(3,n)*OPNSKY
+              ttausv_cs_save(i,j,ntrix(n),4)=ttausv(4,n)*OPNSKY
+              ttausv_cs_save(i,j,ntrix(n),5)=ttausv(5,n)*OPNSKY
+              ttausv_cs_save(i,j,ntrix(n),6)=ttausv(6,n)*OPNSKY
+              ttausv_cs_save(i,j,ntrix(n),7)=ttausv(7,n)*OPNSKY
+              ttausv_cs_save(i,j,ntrix(n),8)=ttausv(8,n)*OPNSKY
+              ttausv_cs_save(i,j,ntrix(n),9)=ttausv(9,n)*OPNSKY
+              ttausv_cs_save(i,j,ntrix(n),10)=ttausv(10,n)*OPNSKY
+              ttausv_cs_save(i,j,ntrix(n),11)=ttausv(11,n)*OPNSKY
+            END SELECT
+          END IF
         END DO
       END IF
 #endif
@@ -2126,104 +2130,106 @@ c     ..........
            set_claycalc=.FALSE.
            set_clayquar=.FALSE.
            do n=1,ntrace
-             SELECT CASE (trname(ntrix(n)))
-             CASE ('Clay')
-               n1=n-nrad_clay+1
-c shortwave forcing (TOA or TROPO) of Clay sub size classes
-               if (ijts_fcsub(1,ntrix(n),n1) > 0)
-     &              taijs(i,j,ijts_fcsub(1,ntrix(n),n1))
-     &              =taijs(i,j,ijts_fcsub(1,ntrix(n),n1))
-     &              +rsign*(snfst(2,n,i,j)-snfs(lfrc,i,j))*csz2
-c longwave forcing  (TOA or TROPO) of Clay size sub classes
-               if (ijts_fcsub(2,ntrix(n),n1) > 0)
-     &              taijs(i,j,ijts_fcsub(2,ntrix(n),n1))
-     &              =taijs(i,j,ijts_fcsub(2,ntrix(n),n1))
-     &              -rsign*(tnfst(2,n,i,j)-tnfs(lfrc,i,j))
-c shortwave forcing (TOA or TROPO) clear sky of Clay sub size classes
-               if (ijts_fcsub(5,ntrix(n),n1) > 0)
-     &              taijs(i,j,ijts_fcsub(5,ntrix(n),n1))
-     &              =taijs(i,j,ijts_fcsub(5,ntrix(n),n1))
-     &              +rsign*(snfst(2,n,i,j)-snfs(lfrc,i,j))*csz2
-     &              *(1.D0-cfrac(i,j))
-c longwave forcing  (TOA or TROPO) clear sky of Clay sub size classes
-               if (ijts_fcsub(6,ntrix(n),n1) > 0)
-     &              taijs(i,j,ijts_fcsub(6,ntrix(n),n1))
-     &              =taijs(i,j,ijts_fcsub(6,ntrix(n),n1))
-     &              -rsign*(tnfst(2,n,i,j)-tnfs(lfrc,i,j))
-     &              *(1.D0-cfrac(i,j))
-c shortwave forcing at surface (if required) of Clay sub size classes
-               if (ijts_fcsub(3,ntrix(n),n1) > 0)
-     &              taijs(i,j,ijts_fcsub(3,ntrix(n),n1))
-     &              =taijs(i,j,ijts_fcsub(3,ntrix(n),n1))
-     &              +rsign*(snfst(1,n,i,j)-snfs(1,i,j))*csz2
-c longwave forcing at surface (if required) of Clay sub size classes
-               if (ijts_fcsub(4,ntrix(n),n1) > 0)
-     &              taijs(i,j,ijts_fcsub(4,ntrix(n),n1))
-     &              =taijs(i,j,ijts_fcsub(4,ntrix(n),n1))
-     &              -rsign*(tnfst(1,n,i,j)-tnfs(1,i,j))
-             CASE DEFAULT
+             IF (ntrix(n) > 0) THEN
                SELECT CASE (trname(ntrix(n)))
-               CASE ('seasalt2')
-                 CYCLE
-               CASE ('ClayIlli')
-                 IF (set_clayilli) CYCLE
-                 set_clayilli=.TRUE.
-               CASE ('ClayKaol')
-                 IF (set_claykaol) CYCLE
-                 set_claykaol=.TRUE.
-               CASE ('ClaySmec')
-                 IF (set_claysmec) CYCLE
-                 set_claysmec=.TRUE.
-               CASE ('ClayCalc')
-                 IF (set_claycalc) CYCLE
-                 set_claycalc=.TRUE.
-               CASE ('ClayQuar')
-                 IF (set_clayquar) CYCLE
-                 set_clayquar=.TRUE.
-               END SELECT
+               CASE ('Clay')
+                 n1=n-nrad_clay+1
+c shortwave forcing (TOA or TROPO) of Clay sub size classes
+                 if (ijts_fcsub(1,ntrix(n),n1) > 0)
+     &                taijs(i,j,ijts_fcsub(1,ntrix(n),n1))
+     &                =taijs(i,j,ijts_fcsub(1,ntrix(n),n1))
+     &                +rsign*(snfst(2,n,i,j)-snfs(lfrc,i,j))*csz2
+c longwave forcing  (TOA or TROPO) of Clay size sub classes
+                 if (ijts_fcsub(2,ntrix(n),n1) > 0)
+     &                taijs(i,j,ijts_fcsub(2,ntrix(n),n1))
+     &                =taijs(i,j,ijts_fcsub(2,ntrix(n),n1))
+     &                -rsign*(tnfst(2,n,i,j)-tnfs(lfrc,i,j))
+c shortwave forcing (TOA or TROPO) clear sky of Clay sub size classes
+                 if (ijts_fcsub(5,ntrix(n),n1) > 0)
+     &                taijs(i,j,ijts_fcsub(5,ntrix(n),n1))
+     &                =taijs(i,j,ijts_fcsub(5,ntrix(n),n1))
+     &                +rsign*(snfst(2,n,i,j)-snfs(lfrc,i,j))*csz2
+     &                *(1.D0-cfrac(i,j))
+c longwave forcing  (TOA or TROPO) clear sky of Clay sub size classes
+                 if (ijts_fcsub(6,ntrix(n),n1) > 0)
+     &                taijs(i,j,ijts_fcsub(6,ntrix(n),n1))
+     &                =taijs(i,j,ijts_fcsub(6,ntrix(n),n1))
+     &                -rsign*(tnfst(2,n,i,j)-tnfs(lfrc,i,j))
+     &                *(1.D0-cfrac(i,j))
+c shortwave forcing at surface (if required) of Clay sub size classes
+                 if (ijts_fcsub(3,ntrix(n),n1) > 0)
+     &                taijs(i,j,ijts_fcsub(3,ntrix(n),n1))
+     &                =taijs(i,j,ijts_fcsub(3,ntrix(n),n1))
+     &                +rsign*(snfst(1,n,i,j)-snfs(1,i,j))*csz2
+c longwave forcing at surface (if required) of Clay sub size classes
+                 if (ijts_fcsub(4,ntrix(n),n1) > 0)
+     &                taijs(i,j,ijts_fcsub(4,ntrix(n),n1))
+     &                =taijs(i,j,ijts_fcsub(4,ntrix(n),n1))
+     &                -rsign*(tnfst(1,n,i,j)-tnfs(1,i,j))
+               CASE DEFAULT
+                 SELECT CASE (trname(ntrix(n)))
+                 CASE ('seasalt2')
+                   CYCLE
+                 CASE ('ClayIlli')
+                   IF (set_clayilli) CYCLE
+                   set_clayilli=.TRUE.
+                 CASE ('ClayKaol')
+                   IF (set_claykaol) CYCLE
+                   set_claykaol=.TRUE.
+                 CASE ('ClaySmec')
+                   IF (set_claysmec) CYCLE
+                   set_claysmec=.TRUE.
+                 CASE ('ClayCalc')
+                   IF (set_claycalc) CYCLE
+                   set_claycalc=.TRUE.
+                 CASE ('ClayQuar')
+                   IF (set_clayquar) CYCLE
+                   set_clayquar=.TRUE.
+                 END SELECT
 c shortwave forcing (TOA or TROPO)
-               if (ijts_fc(1,ntrix(n)).gt.0)
-     &              taijs(i,j,ijts_fc(1,ntrix(n)))
-     &              =taijs(i,j,ijts_fc(1,ntrix(n)))
-     &              +rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
+                 if (ijts_fc(1,ntrix(n)).gt.0)
+     &                taijs(i,j,ijts_fc(1,ntrix(n)))
+     &                =taijs(i,j,ijts_fc(1,ntrix(n)))
+     &                +rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
 c longwave forcing  (TOA or TROPO)
-               if (ijts_fc(2,ntrix(n)).gt.0)
-     &              taijs(i,j,ijts_fc(2,ntrix(n)))
-     &              =taijs(i,j,ijts_fc(2,ntrix(n)))
-     &              -rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
+                 if (ijts_fc(2,ntrix(n)).gt.0)
+     &                taijs(i,j,ijts_fc(2,ntrix(n)))
+     &                =taijs(i,j,ijts_fc(2,ntrix(n)))
+     &                -rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
 c shortwave forcing (TOA or TROPO) clear sky
-               if (ijts_fc(5,ntrix(n)).gt.0)
-     &              taijs(i,j,ijts_fc(5,ntrix(n)))
-     &              =taijs(i,j,ijts_fc(5,ntrix(n)))
-     &              +rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
-     &              *(1.d0-CFRAC(I,J))
+                 if (ijts_fc(5,ntrix(n)).gt.0)
+     &                taijs(i,j,ijts_fc(5,ntrix(n)))
+     &                =taijs(i,j,ijts_fc(5,ntrix(n)))
+     &                +rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
+     &                *(1.d0-CFRAC(I,J))
 c longwave forcing  (TOA or TROPO) clear sky
-               if (ijts_fc(6,ntrix(n)).gt.0)
-     &              taijs(i,j,ijts_fc(6,ntrix(n)))
-     &              =taijs(i,j,ijts_fc(6,ntrix(n)))
-     &              -rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
-     &              *(1.d0-CFRAC(I,J))
+                 if (ijts_fc(6,ntrix(n)).gt.0)
+     &                taijs(i,j,ijts_fc(6,ntrix(n)))
+     &                =taijs(i,j,ijts_fc(6,ntrix(n)))
+     &                -rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
+     &                *(1.d0-CFRAC(I,J))
 c shortwave forcing at surface (if required)
-               if (ijts_fc(3,ntrix(n)).gt.0)
-     &              taijs(i,j,ijts_fc(3,ntrix(n)))
-     &              =taijs(i,j,ijts_fc(3,ntrix(n)))
-     &              +rsign*(SNFST(1,N,I,J)-SNFS(1,I,J))*CSZ2
+                 if (ijts_fc(3,ntrix(n)).gt.0)
+     &                taijs(i,j,ijts_fc(3,ntrix(n)))
+     &                =taijs(i,j,ijts_fc(3,ntrix(n)))
+     &                +rsign*(SNFST(1,N,I,J)-SNFS(1,I,J))*CSZ2
 c longwave forcing at surface (if required)
-               if (ijts_fc(4,ntrix(n)).gt.0)
-     &              taijs(i,j,ijts_fc(4,ntrix(n)))
-     &              =taijs(i,j,ijts_fc(4,ntrix(n)))
-     &              -rsign*(TNFST(1,N,I,J)-TNFS(1,I,J))
-             END SELECT
+                 if (ijts_fc(4,ntrix(n)).gt.0)
+     &                taijs(i,j,ijts_fc(4,ntrix(n)))
+     &                =taijs(i,j,ijts_fc(4,ntrix(n)))
+     &                -rsign*(TNFST(1,N,I,J)-TNFS(1,I,J))
+               END SELECT
 #ifdef TRACERS_AEROSOLS_Koch
-             SNFST0(1,ntrix(n),I,J)=SNFST0(1,ntrix(n),I,J)
-     &            +rsign*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2
-             SNFST0(2,ntrix(n),I,J)=SNFST0(2,ntrix(n),I,J)
-     &            +rsign*(SNFST(1,n,I,J)-SNFS(1,I,J))*CSZ2
-             TNFST0(1,ntrix(n),I,J)=TNFST0(1,ntrix(n),I,J)
-     &            -rsign*(TNFST(2,n,I,J)-TNFS(LFRC,I,J))
-             TNFST0(2,ntrix(n),I,J)=TNFST0(2,ntrix(n),I,J)
-     &            -rsign*(TNFST(1,n,I,J)-TNFS(1,I,J))
+               SNFST0(1,ntrix(n),I,J)=SNFST0(1,ntrix(n),I,J)
+     &              +rsign*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2
+               SNFST0(2,ntrix(n),I,J)=SNFST0(2,ntrix(n),I,J)
+     &              +rsign*(SNFST(1,n,I,J)-SNFS(1,I,J))*CSZ2
+               TNFST0(1,ntrix(n),I,J)=TNFST0(1,ntrix(n),I,J)
+     &              -rsign*(TNFST(2,n,I,J)-TNFS(LFRC,I,J))
+               TNFST0(2,ntrix(n),I,J)=TNFST0(2,ntrix(n),I,J)
+     &              -rsign*(TNFST(1,n,I,J)-TNFS(1,I,J))
 #endif
+             END IF
            end do
          end if
 
