@@ -11,12 +11,13 @@
       CHARACTER*80 FILEIN
       INTEGER N,NARGS,K,iargc,KFILE,I,days_togo,itm,iu_RSF
       INTEGER :: ioerr=0, KSTART=1, ItimeMax=0
-      REAL*8 TOT,yrs_togo,FAC,FACT,xfac,hour
+      REAL*8 TOT,yrs_togo,FAC,FACT,xfac,hour, ix,rate
       LOGICAL :: QCALL = .FALSE., QCMIN=.FALSE., QCRESTART=.FALSE.
 !@var QCRESTART if TRUE compute max Itime and do printout for "runpm"
 
       NARGS = IARGC()
       IF(NARGS.LE.0)  GO TO 800
+      call system_clock(ix,rate)
 C**** check for arguments
  10   CALL GETARG(KSTART,FILEIN)
       IF (FILEIN(1:1).eq."-") THEN
@@ -62,7 +63,7 @@ C**** check for arguments
         TOT = TOT + TIMING(N)
       END DO
       IF (Itime-Itime0.gt.0) THEN
-        FACT = NDAY/(600000.*(Itime-Itime0))
+        FACT = NDAY/(60.*rate*(Itime-Itime0))
       ELSE
         FACT = 0.
       END IF
