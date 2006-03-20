@@ -62,7 +62,7 @@ C**** check for arguments
         TOT = TOT + TIMING(N)
       END DO
       IF (Itime-Itime0.gt.0) THEN
-        FACT = NDAY/(6000.*(Itime-Itime0))
+        FACT = NDAY/(600000.*(Itime-Itime0))
       ELSE
         FACT = 0.
       END IF
