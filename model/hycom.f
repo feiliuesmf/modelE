@@ -420,8 +420,6 @@ c
       diagno=.false.
       if (JDendOfM(jmon).eq.jday.and.Jhour.eq.24.and.nsub.eq.nstepi) 
      .                                    diagno=.true. ! end of month
-c TLC - temporary mod for faster testing
-      if (jday == 7 .and. jhour==24) diagno = .true.
 c
 css   if (nstep.eq.1) diagno=.true.    ! initial condition
       diag_ape=diagno
