@@ -25,7 +25,9 @@
       END SUBROUTINE init_OCEAN
 
       SUBROUTINE init_OCEAN_internal(iniOcean, istart)
-      USE MODEL_COM, only : im,jm,focean
+      USE MODEL_COM, only : im,jm
+      ! MODEL_COM module
+      USE hybrid_mpi_omp_coupler, only : focean
       ! From FLUXES
       use hybrid_mpi_omp_coupler, only: gtemp
       integer istart
@@ -88,15 +90,12 @@ c
 
       SUBROUTINE io_ocean(kunit, iaction, ioerr)
       use DOMAIN_DECOMP, only: AM_I_ROOT
-      use hybrid_mpi_omp_coupler, only: gatherDistributedQuantities
-      use hybrid_mpi_omp_coupler, only: scatterDistributedQuantities
-      use hybrid_mpi_omp_coupler, only: startMultiThreaded
-      use hybrid_mpi_omp_coupler, only: startSingleThreaded
+      use hybrid_mpi_omp_coupler, only: gatherDistributedQuantities_IO
+      use hybrid_mpi_omp_coupler, only: scatterDistributedQuantities_IO
 
       integer kunit, iaction, ioerr
 
-      call gatherDistributedQuantities()
-
+      call gatherDistributedQuantities_IO()
       if (AM_I_ROOT()) then
 
         !--------------------------
@@ -104,7 +103,8 @@ c
         !--------------------------
 
       end if
-      call scatterDistributedQuantities()
+
+      call scatterDistributedQuantities_IO()
 
       END SUBROUTINE io_ocean
       
@@ -211,8 +211,29 @@ c
 !@sum  CHECKO Checks whether Ocean are reasonable
 !@ver  1.0
       USE MODEL_COM, only : im,jm
-      USE FLUXES, only : gtemp
-      USE MODEL_COM, only : focean
+      use hybrid_mpi_omp_coupler, only: gatherDistributedQuantities
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
+
+      call gatherDistributedQuantities()
+
+      if (AM_I_ROOT()) then
+
+        !--------------------------
+         call CHECKO_internal(SUBR)
+        !--------------------------
+
+      end if
+
+      END SUBROUTINE CHECKO
+
+      SUBROUTINE CHECKO_internal(SUBR)
+!@sum  CHECKO Checks whether Ocean are reasonable
+!@ver  1.0
+      USE MODEL_COM, only : im,jm
+      ! FLUXES module
+      use hybrid_mpi_omp_coupler, only: gtemp
+      ! MODEL_COM module
+      USE hybrid_mpi_omp_coupler, only : focean
 
       IMPLICIT NONE
       integer i,j
@@ -224,7 +245,7 @@ c
       write(*,'(10f7.2)') ((gtemp(1,1,i,j),i=1,10),j=15,20)
       write(*,'(a)') 'focean'
       write(*,'(10f7.2)') ((focean(i,j),i=1,10),j=15,20)
-      END SUBROUTINE CHECKO
+      END SUBROUTINE CHECKO_internal
 c
 
       SUBROUTINE daily_OCEAN
