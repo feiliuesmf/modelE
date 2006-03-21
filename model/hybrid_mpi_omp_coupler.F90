@@ -4,8 +4,6 @@ module hybrid_mpi_omp_coupler
   USE SEAICE, only:     fsss   ! scalar
   USE SEAICE, only:     tfrez  ! procedure
 
-!!$  USE MODEL_COM, only: focean
-
   USE MODEL_COM, only: dtsrc,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
 
   USE GEOM, only: dxyp
@@ -17,6 +15,8 @@ module hybrid_mpi_omp_coupler
   public :: init_hybrid_coupler
   public :: gatherDistributedQuantities
   public :: scatterDistributedQuantities
+  public :: gatherDistributedQuantities_IO
+  public :: scatterDistributedQuantities_IO
   public :: startMultiThreaded
   public :: startSingleThreaded
 
@@ -193,6 +193,35 @@ contains
 
   end subroutine scatterDistributedQuantities
 
+  subroutine gatherDistributedQuantities_IO()
+    use MODEL_COM, only: IM, JM
+    USE DOMAIN_DECOMP, ONLY: GRID, PACK_DATA, PACK_COLUMN, PACK_BLOCK
+    use hybrid_mpi_omp_renamer
+    ! initial 1-processor implementation
+
+    call pack_column(grid, dmsi_loc   , dmsi   ) 
+    call pack_column(grid, dhsi_loc   , dhsi   )
+    call pack_column(grid, dssi_loc   , dssi   )
+                                                                 
+    call pack_block(grid, gtemp_loc  , gtemp )
+    call pack_data(grid, sss_loc    , sss    )
+    call pack_data(grid, ogeoza_loc , ogeoza )
+    call pack_data(grid, uosurf_loc , uosurf )
+    call pack_data(grid, vosurf_loc , vosurf )
+
+  end subroutine gatherDistributedQuantities_IO
+
+  subroutine scatterDistributedQuantities_IO()
+    use MODEL_COM, only: IM, JM
+    USE DOMAIN_DECOMP, ONLY: GRID, UNPACK_DATA, UNPACK_COLUMN
+    use hybrid_mpi_omp_renamer
+    ! initial 1-processor implementation
+
+    ! list identical with that used to couple run step
+    call scatterDistributedQuantities()
+
+  end subroutine scatterDistributedQuantities_IO
+
   subroutine init_hybrid_coupler()
     use MODEL_COM, only: IM, JM
     use FLUXES, only: NSTYPE
@@ -238,6 +267,7 @@ contains
     allocate(dssi(2,IM,JM))
 
     allocate(gtemp(2, NSTYPE, IM, JM))
+    gtemp=0
     allocate(sss(IM,JM))
     allocate(mlhc(IM,JM))
     allocate(ogeoza(IM,JM))
