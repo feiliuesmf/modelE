@@ -6,8 +6,6 @@ c --- hycom version 0.9
      .      ,eflowo,dmua,dmva
      .      ,erunosi,runosi,runpsi,dmui,dmvi,dmsi,dhsi,dssi
      .      ,gtemp,sss,mlhc
-      ! MODEL_COM
-      USE hybrid_mpi_omp_coupler, only : focean
       implicit none
 c
       include 'dimensions.h'
