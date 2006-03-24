@@ -1582,7 +1582,7 @@ C**** and save changes in KE for addition as heat later
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : grav,by3
       USE MODEL_COM, only : dtsrc,ls1,sige,lm,psfmpt,ptop,plbot,jm
-      USE DOMAIN_DECOMP, only : GRID
+      USE DOMAIN_DECOMP, only : GRID, AM_I_ROOT
       USE GEOM, only : lat_dg
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00
@@ -1622,7 +1622,8 @@ C**** SEARCH FOR THE 50 MB LEVEL
         PLE=.25*(SIGE(L)+2.*SIGE(L+1)+SIGE(L+2))*PSFMPT+PTOP
         IF (PLE.LT.50.) LP50=L
       END DO
-      write(6,*) "Maximum level for LSCOND calculations (50mb): ",LP50
+      if (AM_I_ROOT())  write(6,*) 
+     *     "Maximum level for LSCOND calculations (50mb): ",LP50
 
 C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
       DO L=1,LM
@@ -1635,7 +1636,7 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
       END DO
       LHI=LM
       IF (LMID+1.GT.LHI) LHI=LMID+1
-      WRITE (6,47) LLOW,LLOW+1,LMID,LMID+1,LHI
+      if (AM_I_ROOT()) WRITE (6,47) LLOW,LLOW+1,LMID,LMID+1,LHI
  47   FORMAT (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN',
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
 

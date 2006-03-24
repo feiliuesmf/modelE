@@ -1187,13 +1187,15 @@ C****
 C****
 C**** PRODUCE REGIONAL STATISTICS
 C****
-      WRITE (6,901) XLABEL
-      WRITE (6,902) '   (REGIONS)    ',
-     *               JYEAR0,AMON0,JDATE0,JHOUR0,
-     *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
-      write(6,fmt=fmt918) RESHAPE( (/NAMREG(1,1:23),NAMREG(2,1:23)/),
-     *                              (/23*2/) )
-c      write(6,fmt=fmt918) NAMREG(1,1:23)
+      if (AM_I_ROOT()) then
+         WRITE (6,901) XLABEL
+         WRITE (6,902) '   (REGIONS)    ',
+     *        JYEAR0,AMON0,JDATE0,JHOUR0,
+     *        JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+         write(6,fmt=fmt918) RESHAPE( (/NAMREG(1,1:23),NAMREG(2,1:23)/),
+     *        (/23*2/) )
+c     write(6,fmt=fmt918) NAMREG(1,1:23)
+      END IF
       NDER=1
       KDER=1
       DO N=1,k_j_out

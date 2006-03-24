@@ -327,7 +327,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE CONSTANT, only : grav,bysha,twopi
       USE MODEL_COM, only : jm,lm,ls1,dsig,sige,psfmpt,ptop,dtsrc,nrad
      *     ,kradia
-      USE DOMAIN_DECOMP, only : grid, get, write_parallel
+      USE DOMAIN_DECOMP, only : grid, get, write_parallel, am_i_root
       USE GEOM, only : dlat,lat_dg
       USE RADPAR, only : !rcomp1,writer,writet       ! routines
      &      PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR
@@ -764,7 +764,7 @@ C***********************************************************************
 C     Main Radiative Initializations
 C     ------------------------------------------------------------------
       CALL RCOMP1 (NRFUN)
-      CALL WRITER(6,0)  ! print out ispare/fspare control parameters
+      if (am_i_root()) CALL WRITER(6,0)  ! print out ispare/fspare control parameters
 C***********************************************************************
       DO IU=1,14
         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE                ! not used in GCM
@@ -876,6 +876,7 @@ C     OUTPUT DATA
 #ifdef TRACERS_DUST
      &     ,srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
 #endif
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -1738,7 +1739,9 @@ C**** Save optical depth diags
       END IF
 #endif
 
-      IF(I.EQ.IWRITE.AND.J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
+      IF(I.EQ.IWRITE.AND.J.EQ.JWRITE) then
+         if (AM_I_ROOT()) CALL WRITER(6,ITWRITE)
+      END IF
       CSZ2=COSZ2(I,J)
       do L=1,LM
         O3_rad_save(L,I,J)=O3_OUT(L)
@@ -3038,6 +3041,7 @@ C                    Ocean         Land      ! r**3: r=.085,.052 microns
 !@ver  1.0
       USE FILEMANAGER
       USE RAD_COM, only : depoBC
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer, intent(in)   :: year
 
@@ -3085,7 +3089,8 @@ C****   read whole input file and find range: year0->yearL
         wt = (year-year1)/(real(year2-year1,kind=8))
       end if
 
-      write(6,*) 'Using BCdep data from year',year1+wt*(year2-year1)
+      if (AM_I_ROOT())  write(6,*) 
+     *     'Using BCdep data from year',year1+wt*(year2-year1)
       call closeunit(iu)
 
 C**** Set the Black Carbon deposition array

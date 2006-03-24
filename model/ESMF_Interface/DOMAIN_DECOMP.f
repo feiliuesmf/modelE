@@ -449,10 +449,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       call INIT_GRID(grid_TRANS,JM,IM,LM,width=0)
 #endif
 
-
-
-      WRITE(*,*)'INIT_APP: ', IM, JM, NP_LON, NP_LAT, RANK_LON, RANK_LAT
-     &     ,'my_pet=',MY_PET
+      WRITE(*,*)'Domain Decomposition for rank: ',MY_PET,RANK_LAT,
+     &     RANK_LON
 
 #ifdef DEBUG_DECOMP
       IF (AM_I_ROOT()) CALL openunit('CHKSUM_DECOMP', CHECKSUM_UNIT)
@@ -1594,7 +1592,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
       Call MPI_Gatherv(tsum, dik, mpi_double_precision,
      & gsum, dik_map, rdspl, mpi_double_precision,
-     & 0, mpi_comm_world, ier)
+     & root, mpi_comm_world, ier)
 
       Deallocate(recv_buf)
       Deallocate(send_buf)
@@ -1765,14 +1763,15 @@ C****  convert from real*4 to real*8
 #else
       AVAR(:,1:grd_dum%JM_WORLD)=AOUT
 #endif
-
-      If (IERR==0) Then
-         WRITE(6,*) "Read from file ",TRIM(NAME)
-         RETURN
-      Else
-         WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR 
-         call stop_model('DREAD_PARALLEL: READ ERROR',255)
-      EndIf
+      if (AM_I_ROOT()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR 
+            call stop_model('DREAD_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
 
       END SUBROUTINE DREAD_PARALLEL_2D
 
@@ -1810,13 +1809,15 @@ C****  convert from real*4 to real*8
       AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=AOUT
 #endif
 
-      If (IERR==0) Then
-         WRITE(6,*) "Read from file ",TRIM(NAME)
-         RETURN
-      Else
-         WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR 
-         call stop_model('DREAD_PARALLEL: READ ERROR',255)
-      EndIf
+      if (AM_I_ROOT()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR 
+            call stop_model('DREAD_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
 
       END SUBROUTINE DREAD_PARALLEL_3D
 
@@ -1853,13 +1854,15 @@ C****  convert from real*4 to real*8
       AVAR=AOUT
 #endif
 
-      If (IERR==0) Then
-         WRITE(6,*) "Read from file ",TRIM(NAME)
-         RETURN
-      Else
-         WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR 
-         call stop_model('MREAD_PARALLEL: READ ERROR',255)
-      EndIf
+      if (AM_I_ROOT()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR 
+            call stop_model('MREAD_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
 
       END SUBROUTINE MREAD_PARALLEL_2D
 
@@ -1898,13 +1901,15 @@ C****  convert from real*4 to real*8
       AVAR=AOUT
 #endif
 
-      If (IERR==0) Then
-         WRITE(6,*) "Read from file ",TRIM(NAME)
-         RETURN
-      Else
-         WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR 
-         call stop_model('MREAD_PARALLEL: READ ERROR',255)
-      EndIf
+      if (AM_I_ROOT()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR 
+            call stop_model('MREAD_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
 
       END SUBROUTINE MREAD_PARALLEL_3D
 
@@ -1946,14 +1951,16 @@ C****  convert from real*4 to real*8
       AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP)=AOUT
 #endif
 
-      If (IERR==0) Then
-         WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
-         RETURN
-      Else
-         WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': ',
-     &                      TRIM(TITLE),' IOSTAT=',IERR 
-         call stop_model('READT_PARALLEL: READ ERROR',255)
-      EndIf
+      if (AM_I_ROOT()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': ',
+     &           TRIM(TITLE),' IOSTAT=',IERR 
+            call stop_model('READT_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
 
       END SUBROUTINE READT_PARALLEL_2D
 
@@ -1995,14 +2002,16 @@ C****  convert from real*4 to real*8
       AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=AOUT
 #endif
 
-      If (IERR==0) Then
-         WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
-         RETURN
-      Else
-         WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
-     &                      ',TRIM(TITLE),' IOSTAT=',IERR 
-         call stop_model('READT_PARALLEL: READ ERROR',255)
-      EndIf
+      if (am_i_root()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
+     &           ',TRIM(TITLE),' IOSTAT=',IERR 
+            call stop_model('READT_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
 
       END SUBROUTINE READT_PARALLEL_3D
 
@@ -2032,13 +2041,15 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
         WRITE (IUNIT, IOSTAT=IERR) it, buf_glob, it
       EndIf
 
-      If (IERR==0) Then
-        WRITE(6,*) "Wrote to file ",TRIM(NAME)
-        RETURN
-      Else
-        WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR 
-        call stop_model('WRITEI_PARALLEL: WRITE ERROR',255)
-      EndIf
+      if (AM_I_ROOT()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Wrote to file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR 
+            call stop_model('WRITEI_PARALLEL: WRITE ERROR',255)
+         EndIf
+      end if
 
       END SUBROUTINE WRITEI_PARALLEL_2D
 

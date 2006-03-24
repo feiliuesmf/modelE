@@ -32,6 +32,7 @@ c-----------------------------------------------------------------------
       use CONSTANT, only : grav,sday,shw,rgas,omega,bygrav,gamd
       use MODEL_COM, only : jm,lm,ls1,dtsrc,fim,sige,kocean,qcheck
       use DIAG_COM
+      use DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -776,15 +777,17 @@ c
       scale_j(k) = 1.
       ia_j(k) = ia_rad
 c
-      if (k .gt. kaj) then
-        write (6,*) 'j_defs: Increase kaj=',kaj,' to at least ',k
-        call stop_model( 'kaj too small', 255 )
+      if (AM_I_ROOT()) then
+         if (k .gt. kaj) then
+            write (6,*) 'j_defs: Increase kaj=',kaj,' to at least ',k
+            call stop_model( 'kaj too small', 255 )
+         end if
+         write (6,*) 'Number of AJ diagnostics defined: kajmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_j(kk))
+         end do
       end if
-      write (6,*) 'Number of AJ diagnostics defined: kajmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_j(kk))
-      end do
 
       return
       end subroutine j_defs
@@ -793,6 +796,7 @@ c
       use constant
       use MODEL_COM
       use DIAG_COM
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -3067,23 +3071,26 @@ c
       ia_ij(k) = ia_srf
 #endif
 c
-      if (k .gt. kaij) then
-        write (6,*) 'ij_defs: Increase kaij=',kaij,' to at least ',k
-        call stop_model( 'kaij too small', 255 )
+      if (AM_I_ROOT()) then
+         if (k .gt. kaij) then
+            write (6,*) 'ij_defs: Increase kaij=',kaij,' to at least ',k
+            call stop_model( 'kaij too small', 255 )
+         end if
+         
+         write (6,*) 'Number of AIJ diagnostics defined: kaijmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_ij(kk))
+         end do
       end if
 
-      write (6,*) 'Number of AIJ diagnostics defined: kaijmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_ij(kk))
-      end do
       return
       end subroutine ij_defs
 
       subroutine il_defs
       USE CONSTANT, only : grav,rgas,by3,sha,bygrav
       USE MODEL_COM, only : dtsrc,jeq,qcheck
-      USE DOMAIN_DECOMP, only : grid,get
+      USE DOMAIN_DECOMP, only : grid,get, AM_I_ROOT
       USE GEOM, only : dxyp
       use DIAG_COM
       implicit none
@@ -3216,12 +3223,15 @@ c
       scale_il(k) = 0.5
       ia_il(k)    = ia_dga
 c
-      write (6,*) 'Number of IL diagnostics defined: kailmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_il(kk))
-      end do
-      return
+      if (AM_I_ROOT()) then
+         write (6,*) 'Number of IL diagnostics defined: kailmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_il(kk))
+         end do
+         return
+      end if
+
       end subroutine il_defs
 
 
@@ -3230,6 +3240,7 @@ c
       use MODEL_COM, only : fim,dtsrc,nidyn,byim,do_gwdrag,qcheck
       use GEOM, only : dlon
       use DIAG_COM
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -3838,16 +3849,19 @@ c
       ia_jl(k) = ia_rad
       jgrid_jl(k) = 1
 
-      if (k .gt. kajl) then
-        write (6,*) 'jl_defs: Increase kajl=',kajl,' to at least ',k
-        call stop_model( 'kajl too small', 255 )
-      end if
 
-      write (6,*) 'Number of AJL diagnostics defined: kajlmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_jl(kk))
-      end do
+      if (AM_I_ROOT()) then
+         if (k .gt. kajl) then
+            write (6,*) 'jl_defs: Increase kajl=',kajl,' to at least ',k
+            call stop_model( 'kajl too small', 255 )
+         end if
+         
+         write (6,*) 'Number of AJL diagnostics defined: kajlmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_jl(kk))
+         end do
+      end if
       return
       end subroutine jl_defs
 
@@ -3855,6 +3869,7 @@ c
       use CONSTANT, only : grav,sday,sha,bygrav
       use MODEL_COM, only : byim,qcheck
       use DIAG_COM
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -3894,12 +3909,14 @@ c
       scale_sjl(k) = -100.D-2*GRAV*SDAY*BYIM/SHA
       ia_sjl(k) = ia_rad
 c
-      write (6,*) 'Number of ASJL diagnostics defined: kasjlmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_sjl(kk))
-      end do
-      return
+      if (AM_I_ROOT()) then
+         write (6,*) 'Number of ASJL diagnostics defined: kasjlmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_sjl(kk))
+         end do
+      end if
+         return
       end subroutine sjl_defs
 
       subroutine jk_defs
@@ -3907,6 +3924,7 @@ c
       use MODEL_COM, only : fim,byim,dt,qcheck
       use GEOM, only : dlon
       use DIAG_COM
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -4328,11 +4346,13 @@ c
       scale_jk(k) = 1.
       jgrid_jk(k) = 1
 c
-      write (6,*) 'Number of AJK diagnostics defined: kajkmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_jk(kk))
-      end do
+      if (AM_I_ROOT()) then
+         write (6,*) 'Number of AJK diagnostics defined: kajkmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_jk(kk))
+         end do
+      end if
       return
       end subroutine jk_defs
 
@@ -4340,6 +4360,7 @@ c
       use CONSTANT, only : bygrav,tf
       use MODEL_COM, only : qcheck
       use DIAG_COM
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -4579,11 +4600,13 @@ c
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
 #endif
-      write (6,*) 'Number of AIJK diagnostics defined: kaijkmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_ijk(kk))
-      end do
+      if (AM_I_ROOT()) then
+         write (6,*) 'Number of AIJK diagnostics defined: kaijkmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_ijk(kk))
+         end do
+      end if
       return
       end subroutine ijk_defs
 
@@ -4591,6 +4614,7 @@ c
       subroutine wave_defs
       use DIAG_COM
       use MODEL_COM, only : qcheck
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -4662,11 +4686,13 @@ c
       lname_wave(k) = 'unknown'
       units_wave(k) = 'unknown'
 c
-      write (6,*) 'Number of Wave diagnostics defined: kwavemax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(name_wave(kk))
-      end do
+      if (AM_I_ROOT()) then
+         write (6,*) 'Number of Wave diagnostics defined: kwavemax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(name_wave(kk))
+         end do
+      end if
       return
       end subroutine wave_defs
 
@@ -4744,6 +4770,7 @@ c
       use CONSTANT, only : sha,rgas,twopi,sday,grav
       use MODEL_COM, only : dtsrc,nisurf,qcheck
       use DIAG_COM
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -6885,16 +6912,18 @@ c
       END IF
 #endif
 
-      if (k .gt. Ndiuvar) then
-        write (6,*) 'idd_defs: Increase Ndiuvar=',Ndiuvar,
-     &       ' to at least ',k
-        call stop_model( 'Ndiuvar too small', 255 )
+      if (AM_I_ROOT()) then
+         if (k .gt. Ndiuvar) then
+            write (6,*) 'idd_defs: Increase Ndiuvar=',Ndiuvar,
+     &           ' to at least ',k
+            call stop_model( 'Ndiuvar too small', 255 )
+         end if
+         
+         write (6,*) 'Number of Diurn diagnostics defined: kaddmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_dd(kk))
+         end do
       end if
-
-      write (6,*) 'Number of Diurn diagnostics defined: kaddmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_dd(kk))
-      end do
       return
       end subroutine diurn_defs

@@ -829,6 +829,7 @@ C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
       CONTAINS
 
       SUBROUTINE RCOMP1(NRFUN)
+      use DOMAIN_DECOMP, only: AM_I_ROOT
       IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     Solar,GHG Trend, VolcAer Size Selection Parameters:    Defaults
@@ -1411,7 +1412,7 @@ C****   Read in annual-mean data
             UVLEAN(I,K)=FSLEAN(K)*SFNORM
           END DO
         END DO
-  908   write(6,*) 'read S0-history: ',yr1S0,' - ',yr2S0
+  908   if(Am_I_Root()) write(6,*) 'read S0-history: ',yr1S0,' - ',yr2S0
       END IF
       GO TO 949
 
@@ -2145,6 +2146,7 @@ C
 
 !!!   use RADPAR, only : IM=>MLON72,JM=>MLAT46,NL,PLB0,U0GAS,MADO3M
       USE FILEMANAGER, only : openunit,closeunit
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       IMPLICIT NONE
       integer, parameter :: im=mlon72,jm=mlat46
 
@@ -2216,7 +2218,7 @@ C**** Deal with out-of-range years (incl. starts before 1850)
       IF(MADO3M.lt.0) then
 C****   Find O3 data files and fill array IYEAR from title(1:4)
         nfo3=0
-        write(6,'(/a)') ' List of O3 files used:'
+        if (AM_I_ROOT()) write(6,'(/a)') ' List of O3 files used:'
         do n=1,nfo3X    !  files have the generic names O3file_01,....
           ddfile(n)=' '
           write (ddfile(n),'(a7,i2.2)') 'O3file_',n
@@ -2225,7 +2227,8 @@ C****   Find O3 data files and fill array IYEAR from title(1:4)
           call openunit (ddfile(n),ifile,qbinary)
           read(ifile) title
           call closeunit (ifile)
-          write(6,'(a,a)') ' read O3 file, record 1: ',title
+          if (AM_I_ROOT()) 
+     *         write(6,'(a,a)') ' read O3 file, record 1: ',title
           read(title(1:4),*) IYEAR(n)
           nfo3=nfo3+1
         end do
@@ -2251,7 +2254,9 @@ C**** Prior to first year of data, cycle through first year of data
         call openunit (OTFILE,ifile,qbinary)
         READ (IFILE) OTREND    ! strat O3 time-trend OTREND(JM,18,2412)
         call closeunit (ifile)
-        if(MADO3M.lt.0) write(6,'(a,a)') ' read ',OTfile
+        if (AM_I_ROOT()) then
+           if(MADO3M.lt.0) write(6,'(a,a)') ' read ',OTfile
+        end if
       end if
 
       if(IY.GT.0) then
@@ -7296,6 +7301,7 @@ c      USE SURF_ALBEDO, only : AVSCAT, ANSCAT, AVFOAM, ANFOAM,
 c     *     WETTRA, WETSRA, ZOCSRA, ZSNSRA, ZICSRA, ZDSSRA, ZVGSRA,
 c     *     EOCTRA, ESNTRA, EICTRA, EDSTRA, EVGTRA, AGEXPF, ALBDIF
       USE SURF_ALBEDO, only : get_albedo_data
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       IMPLICIT NONE
 C
 C     ------------------------------------------------------------------
@@ -7427,12 +7433,13 @@ C
 C-------------
    90 CONTINUE
 C-------------
-C
-      WRITE(KW,6000)
+      IF (AM_I_ROOT()) THEN
+        WRITE(KW,6000)
  6000 FORMAT(' CALL WRITER(KW,0) :',2X,'PAGE 1/2  '
      +          ,'CONTROL PARAMS   DEFINITIONS'/
      +      /' CONTROL PARAMTER      DEFAULT  PARAMETER DESCRIPTION')
-      WRITE(KW,6001)                              KUVFAC,KSNORM
+
+       WRITE(KW,6001)                              KUVFAC,KSNORM
      + ,KWTRAB,KGGVDF,KPGRAD,KLATZ0,KCLDEM,KANORM,KPFCO2,KPFOZO,KSIALB
      + ,KORDER,KUFH2O,KUFCO2,KCSELF,KCFORN
  6001 FORMAT( ! 7X,'   KVRAER = ',I1,'     1      Repartition Aer VDist'
@@ -7513,6 +7520,7 @@ C
  6019 FORMAT(/'  GHGAS',9X,'PPMVK0    PPMVDF    PPGRAD')
       WRITE(KW,6020) (ghg(I),PPMVK0(I),PPMVDF(I),PPGRAD(I),I=1,12)
  6020 FORMAT(1X,a6,' ',F15.7,F10.5,F10.5)
+      END IF
       GO TO 9999
 C
 C-------------

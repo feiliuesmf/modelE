@@ -32,7 +32,7 @@
 !@sum reads vegetation arrays and rundeck parameters
       use filemanager
       use param
-      use DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL
+      use DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL, AM_I_ROOT
       use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       use veg_com
       use model_com, only : fearth,jyear
@@ -127,11 +127,13 @@ c**** check whether ground hydrology data exist at this point.
         enddo
       enddo
       if ( veg_data_missing ) then
-        write(6,*) 'Vegetation data is missing at some pts'
-        write(6,*) 'If you have a non-standard land mask, please'
-        write(6,*) 'consider using extended GH data and rfs file.'
-        call stop_model(
-     &       'Vegetation data is missing at some cells',255)
+         if (AM_I_ROOT()) then
+            write(6,*) 'Vegetation data is missing at some pts'
+            write(6,*) 'If you have a non-standard land mask, please'
+            write(6,*) 'consider using extended GH data and rfs file.'
+            call stop_model(
+     &           'Vegetation data is missing at some cells',255)
+         end if
       endif
 
       end subroutine read_veg_data
@@ -570,7 +572,7 @@ c shc(0,2) is the heat capacity of the canopy
 !@ver  1.0
       USE FILEMANAGER
       USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
       use veg_com, only : vdata
       USE GEOM, only : imaxj
       use veg_drv, only : upd_gh
@@ -637,7 +639,8 @@ C****     save orig. (no-crop) vdata to preserve restart-independence
       end do
       wt = (year-year1)/(real(year2-year1,kind=8))
    10 continue
-      write(6,*) 'Using crops data from year',year1+wt*(year2-year1)
+      if (AM_I_ROOT()) write(6,*)
+     *     'Using crops data from year',year1+wt*(year2-year1)
 
 C**** Modify the vegetation fractions
       do j=J_0,J_1
