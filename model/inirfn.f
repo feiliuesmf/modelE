@@ -1,10 +1,11 @@
       subroutine inicon
 c
 c --- hycom version 0.9
-      USE FLUXES, only : e0,prec,evapor,flowo,eflowo,dmua,dmva
+      ! FLUXES
+      use hybrid_mpi_omp_coupler, only: e0,prec,evapor,flowo
+     .      ,eflowo,dmua,dmva
      .      ,erunosi,runosi,runpsi,dmui,dmvi,dmsi,dhsi,dssi
      .      ,gtemp,sss,mlhc
-      USE MODEL_COM, only : focean
       implicit none
 c
       include 'dimensions.h'
@@ -24,7 +25,7 @@ c --- set minimum salinity for each isopycnic layer
       cold=-2.5
       do 13 k=2,kk
  13   salmin(k)=sofsig(sigma(k),cold)
-      print *,'chk salmin(2:kk)=',salmin(2:kk)
+      print *,' chk salmin=',salmin
 c
 c --- subtract constant 'thbase' from sigma to reduce roundoff errors
 c
@@ -59,7 +60,7 @@ c
 c
       call refinp(equato,equatn,ipo,util1,saln(1,1,k))
       if (k.eq.1) 
-     .    call prtmsk(ip,saln(1,1,k),util1,idm,139,jj,0.,1.,'s_rfn')
+     .    call prtmsk(ip,saln(1,1,k),util1,idm,139,jj,0.,1.,'saln')
       enddo
       close (32)
       write (lp,100) 'saln field read, layers, 1 -',kk
@@ -149,7 +150,7 @@ css      tracer(i,j,k)=0.                 ! moved to hycom.f temperarily
       temp(i,j,k+kk)=temp(i,j,k)
       saln(i,j,k+kk)=saln(i,j,k)
       thermb(i,j,k)=kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k))
-css  .             *(1000.+th3d(i,j,k)+thbase)
+     .             *(1000.+th3d(i,j,k)+thbase)
       thermb(i,j,k+kk)=thermb(i,j,k)
       thstar(i,j,k)=th3d(i,j,k)+thermb(i,j,k)
 c
@@ -157,30 +158,14 @@ c
      . write (lp,'(2i5,i3,a,3f7.3,3x,2f7.3,f8.1)')
      .  i,j,k,'  dens,thstar,kappa=',th3d(i,j,k)+thbase,thstar(i,j,k)
      .   +thbase,kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k)),
-     .    temp(i,j,k),saln(i,j,k),p(i,j,k+1)/onem
+     .    temp(i,j,k),saln(i,j,k),p(i,j,k)/onem
 c
-      if (k.gt.1 .and. thstar(i,j,k).lt.thstar(i,j,k-1))
-     .   totlj(j,k-1)=totlj(j,k-1)+1
+      if (k.gt.1) then 
+         if (thstar(i,j,k).lt.thstar(i,j,k-1))
+     .      totlj(j,k-1)=totlj(j,k-1)+1
+      endif
  11   continue
 c$OMP END PARALLEL DO
-c
-      do k=1,kk
-      write (*,'(i5,a,2i5,a/7x,7(i3,3x),3x,7(i3,3x)/
-     .  (/(7(i4,7f6.0,3x,7f6.0/))))') 
-     .  k,' i,j=',itest,jtest,' input data (t,s,p,depth)'
-     . ,        (j,j=jtest-3,jtest+3),(j,j=jtest-3,jtest+3)
-     . ,(i,(temp(i,j,k),j=jtest-3,jtest+3)
-     . ,   (saln(i,j,k),j=jtest-3,jtest+3),i=itest-3,itest+3)
-     . ,(i,(p(i,j,k+1)/onem,j=jtest-3,jtest+3)
-     . ,    (depths(i,j),j=jtest-3,jtest+3),i=itest-3,itest+3)
-c
-c    .write (*,'(2i4,a,i2/(5(5f7.1,3x,5f7.1/)))')
-c    . itest,jtest,' input data (t,s,p,depth) at k',k,
-c    . ((temp(i,j,k),j=jtest-2,jtest+2)
-c    . ,(saln(i,j,k),j=jtest-2,jtest+2),i=itest-2,itest+2)
-c    . ,((p(i,j,k+1)/onem,j=jtest-2,jtest+2)
-c    . , (depth(i,j),j=jtest-2,jtest+2),i=itest-2,itest+2)
-      enddo
 c
       do 18 k=1,kk-1
       totl(k)=0
@@ -217,20 +202,10 @@ cc$OMP END PARALLEL DO
       call ssto2a(saln,sss)
 c     call ssto2a(omlhc,mlhc)
 c
-      call findmx(ip,temp,ii,ii,jj,'ini sst')
-      call findmx(ip,saln,ii,ii,jj,'ini sss')
 c$OMP PARALLEL DO
       do 22 ja=1,jja
       do 22 ia=1,iia
-      if (focean(ia,ja).gt.0.) then
-        gtemp(1,1,ia,ja)=asst(ia,ja)
-        if (sss(ia,ja).le.20.) then
-          write(*,'(a,2i3,a,f6.1)')
-     .     'chk low saln at agcm ',ia,ja,' sss=',sss(ia,ja)
-          stop 'wrong sss in agcm'
-        endif
-      endif
- 22   continue
+ 22   gtemp(1,1,ia,ja)=asst(ia,ja)
 c$OMP END PARALLEL DO
 c
       else                                !  nstep0 > 0
@@ -261,11 +236,13 @@ c
 c
       end if                                !  nstep0 > 0  or  = 0
 c
-      print *,'chk ini. gtemp at nstep=',nstep0
+      print *,'ini. gtemp at nstep=',nstep0
       call zebra(asst,iia,iia,jja)
+      write(*,'(10f7.2)') ((asst(i,j),i=20,29),j=37,46)
 c
-      print *,'chk ini. sss at nstep=',nstep0
+      print *,'ini. sss at nstep=',nstep0
       call zebra(sss,iia,iia,jja)
+      write(*,'(10f7.2)') ((sss(i,j),i=20,29),j=37,46)
 c
       if (itest.gt.0.and.jtest.gt.0) write (lp,103) nstep,itest,jtest,
      .  '  init.profile  temp    saln  thstar   thkns    dpth   montg',
