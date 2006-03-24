@@ -1307,7 +1307,8 @@ C**** CHOOSE DATA SET TO RESTART ON
          ISTART=110
          go to 430
       end if
-      WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT',
+      if (AM_I_ROOT())
+     * WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT',
      *   KDISK,', Time=',Itime,' ',XLABEL(1:80)
 
 C**** Switch KDISK if the other file is (or may be) bad (istart>10)
