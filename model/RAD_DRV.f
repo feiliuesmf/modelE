@@ -866,6 +866,7 @@ C     OUTPUT DATA
      &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS ,SRDVIS
      &          ,BTEMPW ,O3_OUT ,TTAUSV ,SRAEXT ,SRASCT ,SRAGCB
      &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
+     &          ,aesqex,aesqsc,aesqcb
       USE RADPAR, only : writer,rcompx
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
@@ -926,8 +927,9 @@ C     OUTPUT DATA
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,SNFST0,TNFST0
 #endif
-      USE TRDIAG_COM, only: taijs=>taijs_loc,ijts_fc,ijts_tau,
-     &     ijts_tausub,ijts_fcsub,ijts_3dtau
+      USE TRDIAG_COM, only: taijs=>taijs_loc,ijts_fc,ijts_tau
+     &     ,ijts_tausub,ijts_fcsub,ijts_3dtau,ijts_sqex,ijts_sqexsub
+     &     ,ijts_sqsc,ijts_sqscsub,ijts_sqcb,ijts_sqcbsub,diag_rad
 #endif
       IMPLICIT NONE
 C
@@ -1688,6 +1690,23 @@ C**** Save optical depth diags
             if (ijts_3Dtau(1,NTRIX(n)).gt.0) 
      *           taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n1)))
      *           =taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n1)))+TTAUSV(1:lm,n)
+            IF (diag_rad == 1) THEN
+              DO kr=1,6
+                IF (ijts_sqexsub(kr,ntrix(n),n1) > 0)
+     &               taijs(i,j,ijts_sqexsub(kr,ntrix(n),n1))
+     &               =taijs(i,j,ijts_sqexsub(kr,ntrix(n),n1))
+     &               +SUM(aesqex(1:Lm,kr,n1))
+                IF (ijts_sqscsub(kr,ntrix(n),n1) > 0)
+     &               taijs(i,j,ijts_sqscsub(kr,ntrix(n),n1))
+     &               =taijs(i,j,ijts_sqscsub(kr,ntrix(n),n1))
+     &               +SUM(aesqsc(1:Lm,kr,n1))
+                IF (ijts_sqcbsub(kr,ntrix(n),n1) > 0)
+     &               taijs(i,j,ijts_sqcbsub(kr,ntrix(n),n1))
+     &               =taijs(i,j,ijts_sqcbsub(kr,ntrix(n),n1))
+     &               +SUM(aesqcb(1:Lm,kr,n1))
+     &               /(SUM(aesqsc(1:Lm,kr,n1))+1.D-10)
+              END DO
+            END IF
           CASE DEFAULT
             if (ijts_tau(1,NTRIX(n)).gt.0)
      &           taijs(i,j,ijts_tau(1,NTRIX(n)))
@@ -1699,6 +1718,23 @@ C**** Save optical depth diags
             if (ijts_3Dtau(1,NTRIX(n)).gt.0) 
      *           taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n)))
      *           =taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n)))+TTAUSV(1:lm,n)
+            IF (diag_rad == 1) THEN
+              DO kr=1,6
+                IF (ijts_sqex(kr,ntrix(n)) > 0)
+     &               taijs(i,j,ijts_sqex(kr,ntrix(n)))
+     &               =taijs(i,j,ijts_sqex(kr,ntrix(n)))
+     &               +SUM(aesqex(1:Lm,kr,n))
+                IF (ijts_sqsc(kr,ntrix(n)) > 0)
+     &               taijs(i,j,ijts_sqsc(kr,ntrix(n)))
+     &               =taijs(i,j,ijts_sqsc(kr,ntrix(n)))
+     &               +SUM(aesqsc(1:Lm,kr,n))
+                IF (ijts_sqcb(kr,ntrix(n)) > 0)
+     &               taijs(i,j,ijts_sqcb(kr,ntrix(n)))
+     &               =taijs(i,j,ijts_sqcb(kr,ntrix(n)))
+     &               +SUM(aesqcb(1:Lm,kr,n))
+     &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)
+              END DO
+            END IF
           END SELECT
         END IF
       end do

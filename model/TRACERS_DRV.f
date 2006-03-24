@@ -51,9 +51,10 @@
 #endif
       USE FILEMANAGER, only: openunit,closeunit
       implicit none
-      integer :: l,k,n,ntemp,n2,ltop,g
+      integer :: l,k,n,ntemp,n2,ltop,g,kr,n1
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
       character*10 CMR
+      CHARACTER*16 :: cform
 #ifdef TRACERS_ON
       logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
 #endif
@@ -119,6 +120,9 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
 #endif
 #ifdef TRACERS_OCEAN
       trglac = 0.
+#endif
+#ifdef TRACERS_ON
+      CALL sync_param("diag_rad",diag_rad)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       call sync_param("which_trop",which_trop)
@@ -5114,6 +5118,60 @@ c dust longwave radiative forcing at surface of four sub size classes
           ijts_power(k) = -2.
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          IF (diag_rad == 1) THEN
+            DO kr=1,6
+              DO n1=1,4
+c extinction optical thickness in six solar bands for four clay sub classes
+                k=k+1
+                ijts_sqexsub(kr,n,n1)=k
+                ijts_index(k)=n
+                ia_ijts(k)=ia_rad
+                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
+     &               ',I1,A26,I1)'
+                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
+     &               ' SW total extinction band ',kr
+                WRITE(cform,'(A11,I1,A4)') '(A8,I1,A1,A',
+     &               LEN_TRIM(trname(n)),',I1)'
+                WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',
+     &               TRIM(trname(n)),n1
+                ijts_power(k) = -4.
+                units_ijts(k) = unit_string(ijts_power(k),' ')
+                scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering optical thickness in six solar bands for four clay sub classes
+                k=k+1
+                ijts_sqscsub(kr,n,n1)=k
+                ijts_index(k)=n
+                ia_ijts(k)=ia_rad
+                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
+     &               ',I1,A28,I1)'
+                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
+     &               ' SW scatter extinction band ',kr
+                WRITE(cform,'(A11,I1,A4)') '(A8,I1,A1,A',
+     &               LEN_TRIM(trname(n)),',I1)'
+                WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',
+     &               TRIM(trname(n)),n1
+                ijts_power(k) = -4.
+                units_ijts(k) = unit_string(ijts_power(k),' ')
+                scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering asymmetry factor in six solar bands for four clay sub classes
+                k=k+1
+                ijts_sqcbsub(kr,n,n1)=k
+                ijts_index(k)=n
+                ia_ijts(k)=ia_rad
+                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
+     &               ',I1,A26,I1)'
+                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
+     &               ' SW asymmetry factor band ',kr
+                WRITE(cform,'(A11,I1,A4)') '(A8,I1,A1,A',
+     &               LEN_TRIM(trname(n)),',I1)'
+                WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',
+     &               TRIM(trname(n)),n1
+                ijts_power(k) = -2.
+                units_ijts(k) = unit_string(ijts_power(k),' ')
+                scale_ijts(k) = 10.**(-ijts_power(k))
+              END DO
+            END DO
+          END IF
         CASE('Silt1','Silt2','Silt3','Silt4',
      &     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
      &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
@@ -5180,6 +5238,58 @@ c dust longwave radiative forcing at surface
           ijts_power(k) = -2.
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          IF (diag_rad == 1) THEN
+            DO kr=1,6
+c extinction optical thickness in six solar bands
+              k=k+1
+              ijts_sqex(kr,n)=k
+              ijts_index(k)=n
+              ia_ijts(k)=ia_rad
+              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &             ',A26,I1)'
+              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &             ' SW total extinction band ',kr
+              WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &             LEN_TRIM(trname(n)),')'
+              WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',
+     &             TRIM(trname(n))
+              ijts_power(k) = -4.
+              units_ijts(k) = unit_string(ijts_power(k),' ')
+              scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering optical thickness in six solar bands
+              k=k+1
+              ijts_sqsc(kr,n)=k
+              ijts_index(k)=n
+              ia_ijts(k)=ia_rad
+              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &             ',A28,I1)'
+              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &             ' SW scatter extinction band ',kr
+              WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &             LEN_TRIM(trname(n)),')'
+              WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',
+     &             TRIM(trname(n))
+              ijts_power(k) = -4.
+              units_ijts(k) = unit_string(ijts_power(k),' ')
+              scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering asymmetry factor in six solar bands
+              k=k+1
+              ijts_sqcb(kr,n)=k
+              ijts_index(k)=n
+              ia_ijts(k)=ia_rad
+              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &             ',A26,I1)'
+              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &             ' SW asymmetry factor band ',kr
+              WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &             LEN_TRIM(trname(n)),')'
+              WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',
+     &             TRIM(trname(n))
+              ijts_power(k) = -2.
+              units_ijts(k) = unit_string(ijts_power(k),' ')
+              scale_ijts(k) = 10.**(-ijts_power(k))
+            END DO
+          END IF
         END SELECT
 #endif
 

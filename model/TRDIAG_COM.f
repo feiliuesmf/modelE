@@ -107,9 +107,18 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #endif
 !@param KTAIJS number of special lat/lon tracer diagnostics
 #if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
-      INTEGER,PARAMETER :: ktaijs=216
+      INTEGER,PARAMETER :: ktaijs=601
+#else
+#ifdef TRACERS_MINERALS
+      INTEGER,PARAMETER :: ktaijs=523
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_AEROSOLS_Koch) &&\
+    (defined TRACERS_NITRATE) && (defined TRACERS_SPECIAL_Shindell)
+      INTEGER,PARAMETER :: ktaijs=482
 #else
       integer, parameter :: ktaijs= 364
+#endif
+#endif
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -134,8 +143,10 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@param MaxSubCl Maximum number of sub classes of tracers for rad. diagnostics
       INTEGER,PARAMETER :: MaxSubCl=4
 !@param MaxSpec Maximum number special diagnostics not associated with specific
-!@param tracer
+!@+ tracer
       INTEGER,PARAMETER :: MaxSpec=3
+!@dbparam diag_rad switches on/off comprehensive radiative diags for tracers
+      INTEGER :: diag_rad=0 ! =off (default)
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, DIMENSION(IM,JM,ktaijs)       :: TAIJS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS_loc
@@ -153,6 +164,21 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER ijts_3Dtau(lm,ntm)
 !@var ijts_tausub index for TAIJS opt. thick. for tracer sub classes
       INTEGER ijts_tausub(2,Ntm,MaxSubCl)
+!@var ijts_sqex index for TAIJS total extinction for 6 radiation bands
+      INTEGER ijts_sqex(6,Ntm)
+!@var ijts_sqexsub index for TAIJS total extinction for 6 radiation bands for
+!@+   tracer sub classes
+      INTEGER ijts_sqexsub(6,Ntm,MaxSubCl)
+!@var ijts_sqsc index for TAIJS scattering extinction for 6 radiation bands
+      INTEGER ijts_sqsc(6,Ntm)
+!@var ijts_sqscsub index for TAIJS scattering extinction for 6 radiation
+!@+   bands for tracer sub classes
+      INTEGER ijts_sqscsub(6,Ntm,MaxSubCl)
+!@var ijts_sqcb index for TAIJS sct asymmetry factor for 6 radiation bands
+      INTEGER ijts_sqcb(6,Ntm)
+!@var ijts_sqcbsub index for TAIJS sct asymmetry factor for 6 radiation bands
+!@+   for tracer sub classes
+      INTEGER ijts_sqcbsub(6,Ntm,MaxSubCl)
 !@var ijts_fc tracer independent array for TAIJS SW/LW rad. forcings
       INTEGER ijts_fc(6,ntm)
 !@var ijts_fcsub index for TAIJS SW/LW rad. forc. for tracer sub classes

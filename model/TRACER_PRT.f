@@ -1243,9 +1243,11 @@ C**** Fill in maplet indices for sources and sinks
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP)
-       if (name(k)(1:3).eq.'tau'.or.name(k)(1:3).eq.'swf'.or
-     *  .name(k)(1:3).eq.'lwf' .OR. name(k)(1:3) .EQ. 'no_' .OR.
-     &   name(k)(1:5) .EQ. 'wtrsh') ijtype(k)=2
+       if (name(k)(1:3).eq.'tau'.or.name(k)(1:3).eq.'swf'.or.
+     *  name(k)(1:3).eq.'lwf' .OR. name(k)(1:3) .EQ. 'no_' .OR.
+     &   name(k)(1:5) .EQ. 'wtrsh' .OR. name(k)(1:8) .EQ. 'ext_band'
+     &   .OR. name(k)(1:8) .EQ. 'sct_band' .OR. name(k)(1:8) .EQ.
+     &   'asf_band') ijtype(k)=2
        if (name(k)(5:6).eq.'CS') then
        ijtype(k)=3
        aij1(:,:,k)=aij1(:,:,k)*scale(k)

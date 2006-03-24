@@ -187,6 +187,9 @@ C--------------------------------------------------------
 !@var LBOTCL,LTOPCL  bottom and top cloud level (lbot < ltop)
 !@var O3_OUT column variable for exporting ozone field to rest of model
 !@var TTAUSV saves special aerosol optical thickness for diagnostic
+!@var aesqex saves extinction aerosol optical thickness
+!@var aesqsc saves scattering aerosol optical thickness
+!@var aesqcb saves aerosol scattering asymmetry factor
 
       real*8, dimension(lx) :: TRDFLB,TRUFLB,TRNFLB,TRFCRL,
      *     SRDFLB,SRUFLB,SRNFLB,SRFHRL,O3_OUT
@@ -201,7 +204,8 @@ C--------------------------------------------------------
 !sl  K             ,FTAUSL(33),TAUSL(33)    ! input rather than output ?
 !nu  K             ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV   !nu = not used
 !sl  K             ,TRSLTS,TRSLTG,TRSLBS
-      real*8 TTAUSV(LX,ITRMAX)
+      real*8 TTAUSV(LX,ITRMAX),aesqex(lx,6,itrmax),aesqsc(lx,6,itrmax),
+     &     aesqcb(lx,6,itrmax)
 
       integer :: LBOTCL,LTOPCL
 
@@ -218,7 +222,7 @@ C--------------------------------------------------------
 !sl  K             ,FTAUSL,TAUSL    ! input rather than output ?
 !nu  K             ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV   !nu = not used
 !sl  K             ,TRSLTS,TRSLTG,TRSLBS
-     K             ,O3_OUT,TTAUSV
+     K             ,O3_OUT,TTAUSV,aesqex,aesqsc,aesqcb
      L             ,LBOTCL,LTOPCL   ! integers last for alignment
 !$OMP THREADPRIVATE(/RADPAR_OUTPUT_IJDATA/)
 !nu   EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
@@ -3480,6 +3484,9 @@ C     ------------------------------------------------------------------
       SRBGCB(L,K)=SRBGQL/(SRBSCT(L,K)+1.D-10)
       END IF
       if (K.EQ.6) TTAUSV(L,NT)=SRTQEX(K,NRHNAN(L,NA),NT)*RHFTAU
+      aesqex(l,k,nt)=srtqex(k,nrhnan(l,na),nt)*rhftau
+      aesqsc(l,k,nt)=srtqsc(k,nrhnan(l,na),nt)*rhftau
+      aesqcb(l,k,nt)=srtqcb(k,nrhnan(l,na),nt)*aesqsc(l,k,nt)
       END DO
       END DO
       END DO
