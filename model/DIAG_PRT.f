@@ -620,7 +620,7 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
 
 
       SUBROUTINE GLOBALSUM_J(grd_dum, garr, gsum,
-     &                       hsum, istag, iskip, polefirst,all)
+     &                       hsum, istag, iskip, all)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       REAL*8,            INTENT(IN) :: garr(grd_dum%jm_world)
@@ -628,7 +628,6 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       REAL*8, OPTIONAL,  INTENT(OUT):: hsum(2)
       INTEGER,OPTIONAL,  INTENT(IN) :: istag
       INTEGER,OPTIONAL,  INTENT(IN) :: iskip
-      LOGICAL,OPTIONAL,  INTENT(IN) :: polefirst
       LOGICAL,OPTIONAL,  INTENT(IN) :: all
 
       INTEGER :: IM, JM, J, ier
@@ -648,34 +647,24 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
         If (iskip == 1) iskip_ = .true.
       End If
 
-
-      If (Present(polefirst)) Then
-        If (polefirst) Then
-          gsum = garr(1) + garr(JM)
-          DO J = 2, JM-1
-            gsum = gsum + garr(J)
-          END DO
-        End IF
+      If (istag_) then
+        gsum = sum(garr(2:JM),1)
+      ElseIf (iskip_) then
+        gsum = sum(garr(2:JM-1),1)
       Else
+        gsum = sum(garr(1:JM),1)
+      EndIf
+      If (Present(hsum)) then
         If (istag_) then
-          gsum = sum(garr(2:JM),1)
-        ElseIf (iskip_) then
-          gsum = sum(garr(2:JM-1),1)
+          hsum(1)   = Sum( garr(2     :JM/2),1   )
+          hsum(2)   = Sum( garr(2+JM/2:JM  ),1   )
+          hsum(1)   = hsum(1) + 0.5*garr(1+JM/2)
+          hsum(2)   = hsum(2) + 0.5*garr(1+JM/2)
         Else
-          gsum = sum(garr(1:JM),1)
+          hsum(1)   = Sum( garr(1     :JM/2),1   )
+          hsum(2)   = Sum( garr(1+JM/2:JM  ),1   )
         EndIf
-        If (Present(hsum)) then
-          If (istag_) then
-            hsum(1)   = Sum( garr(2     :JM/2),1   )
-            hsum(2)   = Sum( garr(2+JM/2:JM  ),1   )
-            hsum(1)   = hsum(1) + 0.5*garr(1+JM/2)
-            hsum(2)   = hsum(2) + 0.5*garr(1+JM/2)
-          Else
-            hsum(1)   = Sum( garr(1     :JM/2),1   )
-            hsum(2)   = Sum( garr(1+JM/2:JM  ),1   )
-          EndIf
-        EndIf
-      Endif
+      EndIf
 
       END SUBROUTINE GLOBALSUM_J
 

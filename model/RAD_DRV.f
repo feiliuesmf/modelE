@@ -1132,8 +1132,8 @@ c**** find scaling factors for surface albedo reduction
          sumda_psum(JM)=im*dxyp(jm)*rsi(1,jm)
          tauda_psum(JM)=im*dxyp(jm)*rsi(1,jm)*depobc_1990(1,46)
       END IF
-      CALL GLOBALSUM(grid, sumda_psum,sumda,polefirst=.true.,all=.true.)
-      CALL GLOBALSUM(grid, tauda_psum,tauda,polefirst=.true.,all=.true.)
+      CALL GLOBALSUM(grid, sumda_psum,sumda,all=.true.)
+      CALL GLOBALSUM(grid, tauda_psum,tauda,all=.true.)
 
       xdalbs=-dalbsnX*sumda/tauda
       IF(QCHECK) write(6,*) 'coeff. for snow alb reduction',xdalbs

@@ -1173,7 +1173,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       END SUBROUTINE GLOBALSUM_INT_REDUCE
 
       SUBROUTINE GLOBALSUM_J(grd_dum, arr, gsum,
-     &                       hsum, istag, iskip, polefirst,all, jband)
+     &                       hsum, istag, iskip, all, jband)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       REAL*8,            INTENT(IN) :: arr(grd_dum%j_strt_halo:)
@@ -1181,7 +1181,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       REAL*8, OPTIONAL,  INTENT(OUT):: hsum(2)
       INTEGER,OPTIONAL,  INTENT(IN) :: istag
       INTEGER,OPTIONAL,  INTENT(IN) :: iskip
-      LOGICAL,OPTIONAL,  INTENT(IN) :: polefirst
       LOGICAL,OPTIONAL,  INTENT(IN) :: all
       INTEGER, OPTIONAL, INTENT(IN) :: jband(2)
 
@@ -1237,14 +1236,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #endif
 
       If (AM_I_ROOT()) then
-         If (Present(polefirst)) Then
-            If (polefirst) Then
-               gsum = garr(1) + garr(JM)
-               DO J = 2, JM-1
-                  gsum = gsum + garr(J)
-               END DO
-            End IF
-         Else
          If (istag_) then
            gsum = sum(garr(2:JM),1)
          ElseIf (iskip_) then
@@ -1263,7 +1254,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
                hsum(2)   = Sum( garr(1+JM/2:JM  ),1   )
             EndIf
          EndIf
-         Endif
       EndIf
 
 #ifdef USE_ESMF
