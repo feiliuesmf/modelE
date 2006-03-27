@@ -1801,27 +1801,3 @@ C**** check tracers
       return
       end subroutine print_restart_info
 
-      subroutine test_save(line,itm)
-      use hybrid_mpi_omp_coupler
-      use MODEL_COM, only: IM, JM
-      use DOMAIN_DECOMP, only: am_i_root
-      implicit none
-
-      integer :: line, itm
-      integer :: k,l,i,j
-
-      call gatherDistributedQuantities()
-      if (am_i_root()) then
-         l = 1
-         k = 1
-         do j = 1, JM,2
-            do i = 1, IM,2
-        write(70+itm,'(3(I4,1x),2f24.17)') line,i,j,gtemp(:,1,i,j)
-        write(70+itm,'(15x,2f15.10)')focean(i,j), sss(i,j)
-        write(70+itm,'(15x,3f15.10)')ogeoza(i,j),uosurf(i,j),vosurf(i,j)
-        write(70+itm,'(15x,6f15.10)')dmsi(:,i,j),dhsi(:,i,j),dssi(:,i,j)
-
-            end do
-         end do
-      end if
-      end subroutine test_save
