@@ -1375,7 +1375,7 @@ C**********************************************************************
       REAL*8 YV2,YVJ,YVJM1,X1,XI,XIM1
       INTEGER, PARAMETER :: NSHAP=8  ! NSHAP MUST BE EVEN
       REAL*8, PARAMETER :: BY16=1./16., by4toN=1./(4.**NSHAP)
-      REAL*8 ediff,angm,dpt,D2V,D2U
+      REAL*8 angm,dpt,D2V,D2U
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -1612,23 +1612,7 @@ c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
 C**** Call diagnostics and KE dissipation only for even time step
       IF (MRCH.eq.2) THEN
         CALL DIAGCD(5,UT,VT,DUT,DVT,DT1)
-        
-        CALL HALO_UPDATE(grid, DKE, FROM=NORTH)
-
-C**** Add in dissipiated KE as heat locally
-!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
-        DO L=1,LM
-          DO J=J_0,J_1
-            DO I=1,IMAXJ(J)
-              ediff=0.
-              DO K=1,KMAXJ(J)   ! loop over surrounding vel points
-                ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
-              END DO
-              T(I,J,L)=T(I,J,L)-ediff/(SHA*PK(L,I,J))
-            END DO
-          END DO
-        END DO
-!$OMP  END PARALLEL DO
+        call addEnergyAsLocalHeat(DKE)
       END IF
 
       RETURN
@@ -2075,7 +2059,7 @@ C**** regime (but not above P_CSDRAG)
      *        ang_mom, sum_airm
 !@param wmax imposed limit for stratospheric winds (m/s)
       real*8, parameter :: wmax = 200.d0 , wmaxp = wmax*3.d0/4.d0
-      real*8 ediff,wmaxj,xjud
+      real*8 wmaxj,xjud
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -2160,22 +2144,7 @@ C*
         end do
       end if
 
-      CALL HALO_UPDATE(grid, DKE, FROM=NORTH)
-
-C***** Add in dissipiated KE as heat locally
-!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
-      DO L=1,LM
-        DO J=J_0,J_1
-          DO I=1,IMAXJ(J)
-            ediff=0.
-            DO K=1,KMAXJ(J)     ! loop over surrounding vel points
-              ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
-            END DO
-            T(I,J,L)=T(I,J,L)-ediff/(SHA*PK(L,I,J))
-          END DO
-        END DO
-      END DO
-!$OMP  END PARALLEL DO
+      call addEnergyAsLocalHeat(DKE)
 
 C**** conservation diagnostic
 C**** (technically we should use U,V from before but this is ok)
@@ -2242,7 +2211,6 @@ C**** Find WMO Definition of Tropopause to Nearest L
       USE DOMAIN_DECOMP, Only : NORTH, SOUTH
       IMPLICIT NONE
       INTEGER I,J,L,K
-      REAL*8 ediff
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -2254,21 +2222,7 @@ c**** Extract domain decomposition info
 
 C**** DKE (m^2/s^2) is saved from surf,dry conv,aturb and m.c
 
-      CALL HALO_UPDATE(grid, DKE, FROM=NORTH)
-
-!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
-      DO L=1,LM
-        DO J=J_0,J_1
-          DO I=1,IMAXJ(J)
-            ediff=0.
-            DO K=1,KMAXJ(J)     ! loop over surrounding vel points
-              ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
-            END DO
-            T(I,J,L)=T(I,J,L)-ediff/(SHA*PK(L,I,J))
-          END DO
-        END DO
-      END DO
-!$OMP  END PARALLEL DO
+      call addEnergyAsLocalHeat(DKE)
 
       END SUBROUTINE DISSIP
 
@@ -2427,6 +2381,9 @@ c****
       end subroutine tropwmo
 
       function getTotalEnergy() result(totalEnergy)
+!@sum  getTotalEnergy returns the sum of kinetic and potential energy.
+!@auth Tom Clune (SIVO)
+!@ver  1.0
       use GEOM, only: DXYP, AREAG
       use DOMAIN_DECOMP, only: grid, GLOBALSUM, get
       REAL*8 :: totalEnergy
@@ -2450,6 +2407,9 @@ c****
       end function getTotalEnergy
 
       subroutine addEnergyAsDiffuseHeat(deltaEnergy)
+!@sum  addEnergyAsDiffuseHeat adds in energy increase as diffuse heat.
+!@auth Tom Clune (SIVO)
+!@ver  1.0
       use CONSTANT, only: sha, mb2kg
       use MODEL_COM, only: T, PSF, PMTOP, LM
       use DYNAMICS, only: PK
@@ -2470,5 +2430,40 @@ c****
 !$OMP  END PARALLEL DO
 
       end subroutine addEnergyAsDiffuseHeat
+
+C***** Add in dissipiated KE as heat locally
+      subroutine addEnergyAsLocalHeat(deltaKE)
+!@sum  addEnergyAsLocalHeat adds in dissipated kinetic energy as heat locally.
+!@auth Tom Clune (SIVO)
+!@ver  1.0
+      use CONSTANT, only: SHA
+      use GEOM, only: IDIJ, IDJJ, RAPJ, IMAXJ, KMAXJ
+      use MODEL_COM, only: LM, T
+      use DYNAMICS, only: PK
+      use DOMAIN_DECOMP, only: grid, get, HALO_UPDATE, NORTH
+      implicit none
+      real*8 :: deltaKE(:,grid%j_strt_halo:,:)
+
+      integer :: i, j, k, l
+      real*8 :: ediff
+      integer :: J_0, J_1
+
+      call get(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL HALO_UPDATE(grid, deltaKE, FROM=NORTH)
+
+!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
+      DO L=1,LM
+        DO J=J_0,J_1
+          DO I=1,IMAXJ(J)
+            ediff=0.
+            DO K=1,KMAXJ(J)     ! loop over surrounding vel points
+              ediff=ediff+deltaKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
+            END DO
+            T(I,J,L)=T(I,J,L)-ediff/(SHA*PK(L,I,J))
+          END DO
+        END DO
+      END DO
+!$OMP  END PARALLEL DO
+      end subroutine addEnergyAsLocalHeat
 
       end module ATMDYN
