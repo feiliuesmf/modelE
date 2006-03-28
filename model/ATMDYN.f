@@ -9,7 +9,8 @@
      &     ,DISSIP,FILTER,CALC_AMPK,CALC_AMP
      &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS, COMPUTE_WSAVE
      &     ,AFLUX, CALC_PIJL, COMPUTE_MASS_FLUX_DIAGS
-     &     ,getTotalEnergy, addEnergyAsDiffuseHeat
+     &     ,getTotalEnergy
+     &     ,addEnergyAsDiffuseHeat, addEnergyAsLocalHeat
 #ifdef TRACERS_ON
      &     ,trdynam
 #endif
@@ -1612,7 +1613,7 @@ c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
 C**** Call diagnostics and KE dissipation only for even time step
       IF (MRCH.eq.2) THEN
         CALL DIAGCD(5,UT,VT,DUT,DVT,DT1)
-        call addEnergyAsLocalHeat(DKE)
+        call addEnergyAsLocalHeat(DKE, T, PK)
       END IF
 
       RETURN
@@ -2144,7 +2145,7 @@ C*
         end do
       end if
 
-      call addEnergyAsLocalHeat(DKE)
+      call addEnergyAsLocalHeat(DKE, T, PK)
 
 C**** conservation diagnostic
 C**** (technically we should use U,V from before but this is ok)
@@ -2222,7 +2223,7 @@ c**** Extract domain decomposition info
 
 C**** DKE (m^2/s^2) is saved from surf,dry conv,aturb and m.c
 
-      call addEnergyAsLocalHeat(DKE)
+      call addEnergyAsLocalHeat(DKE, T, PK)
 
       END SUBROUTINE DISSIP
 
@@ -2432,17 +2433,20 @@ c****
       end subroutine addEnergyAsDiffuseHeat
 
 C***** Add in dissipiated KE as heat locally
-      subroutine addEnergyAsLocalHeat(deltaKE)
+      subroutine addEnergyAsLocalHeat(deltaKE, T, PK, diagIndex)
 !@sum  addEnergyAsLocalHeat adds in dissipated kinetic energy as heat locally.
 !@auth Tom Clune (SIVO)
 !@ver  1.0
       use CONSTANT, only: SHA
       use GEOM, only: IDIJ, IDJJ, RAPJ, IMAXJ, KMAXJ
-      use MODEL_COM, only: LM, T
-      use DYNAMICS, only: PK
+      use MODEL_COM, only: LM
       use DOMAIN_DECOMP, only: grid, get, HALO_UPDATE, NORTH
+      use DIAG_COM, only: ajl => ajl_loc
       implicit none
       real*8 :: deltaKE(:,grid%j_strt_halo:,:)
+      real*8 :: T(:,grid%j_strt_halo:,:)
+      real*8 :: PK(:,:,grid%j_strt_halo:)
+      integer, optional, intent(in) :: diagIndex
 
       integer :: i, j, k, l
       real*8 :: ediff
@@ -2459,7 +2463,11 @@ C***** Add in dissipiated KE as heat locally
             DO K=1,KMAXJ(J)     ! loop over surrounding vel points
               ediff=ediff+deltaKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
             END DO
-            T(I,J,L)=T(I,J,L)-ediff/(SHA*PK(L,I,J))
+            ediff = ediff / (SHA*PK(L,I,J))
+            T(I,J,L)=T(I,J,L)-ediff
+            if (present(diagIndex)) then
+              AJL(J,L,diagIndex) = AJL(J,L,diagIndex) - ediff
+            end if
           END DO
         END DO
       END DO
