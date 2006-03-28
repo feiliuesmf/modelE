@@ -9,6 +9,7 @@
      &     ,DISSIP,FILTER,CALC_AMPK,CALC_AMP
      &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS, COMPUTE_WSAVE
      &     ,AFLUX, CALC_PIJL, COMPUTE_MASS_FLUX_DIAGS
+     &     ,getTotalEnergy, addEnergyAsDiffuseHeat
 #ifdef TRACERS_ON
      &     ,trdynam
 #endif
@@ -51,9 +52,6 @@
       INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
       INTEGER NS, NSOLD,MODDA    !? ,NIdynO
 
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
-      REAL*8 ediff,TE0,TE,TE0_a,TE0_b
-      
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -70,14 +68,6 @@ c**** Extract domain decomposition info
       NS=0
       NSOLD=0                            ! strat
 
-C**** Initialise total energy (J/m^2)
-      call conserv_PE(PEJ)
-      call conserv_KE(KEJ)
-!     TE0=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
-      PEJ(J_0:J_1)=PEJ(J_0:J_1)*DXYP(J_0:J_1)
-      CALL GLOBALSUM(grid, PEJ, TE0_a,ALL=.true.)
-      CALL GLOBALSUM(grid, KEJ, TE0_b, istag = 1,ALL=.true.)
-      TE0 = (TE0_a + TE0_b)/AREAG
 !$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          PUA(:,:,L) = 0.
@@ -227,24 +217,6 @@ C**** Restart after 8 steps due to divergence of solutions
       IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
       NSOLD=NS
       IF (NS.LT.NIdyn) GO TO 300
-
-
-C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
-C**** Currently energy is put in uniformly weighted by mass
-      call conserv_PE(PEJ)
-      call conserv_KE(KEJ)
-
-      PEJ(J_0:J_1)=PEJ(J_0:J_1)*DXYP(J_0:J_1)
-      CALL GLOBALSUM(grid, PEJ, TE0_a,ALL=.true.)
-      CALL GLOBALSUM(grid, KEJ, TE0_b, istag = 1,ALL=.true.)
-      TE = (TE0_a + TE0_b)/AREAG
-      ediff=(TE-TE0)/((PSF-PMTOP)*SHA*mb2kg)        ! C
-!$OMP  PARALLEL DO PRIVATE (L)
-      do l=1,lm
-        T(:,J_0:J_1,L)=T(:,J_0:J_1,L)-ediff/PK(L,:,J_0:J_1)
-      end do
-!$OMP  END PARALLEL DO
-
 
       RETURN
       END SUBROUTINE DYNAM
@@ -1246,22 +1218,19 @@ C****
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: X,Y
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *        POLD, PRAT
-      REAL*8 PSUMO,PSUMN,PDIF,AKAP,TE0,TE,ediff,TE0_a,TE0_b,TE_a,TE_b
+      REAL*8 PSUMO,PSUMN,PDIF,AKAP
       INTEGER I,J,L,N  !@var I,J,L  loop variables
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
+      REAL*8 initialTotalEnergy, finalTotalEnergy
+
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 
       IF (MOD(MFILTR,2).NE.1) GO TO 200
 C**** Initialise total energy (J/m^2)
-      call conserv_PE(PEJ)
-      call conserv_KE(KEJ)
-      PEJ(J_0:J_1)=PEJ(J_0:J_1)*DXYP(J_0:J_1)
-      CALL GLOBALSUM(grid, PEJ, TE0_a,ALL=.true.)
-      CALL GLOBALSUM(grid, KEJ, TE0_b, istag = 1,ALL=.true.)
-      TE0 = (TE0_a + TE0_b)/AREAG
+      initialTotalEnergy = getTotalEnergy()
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
@@ -1339,18 +1308,8 @@ C**** But if n_air=0 this will cause problems...
       CALL CALC_AMPK(LS1-1)
 
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
-      call conserv_PE(PEJ)
-      call conserv_KE(KEJ)
-      PEJ(J_0:J_1)=PEJ(J_0:J_1)*DXYP(J_0:J_1)
-      CALL GLOBALSUM(grid, PEJ, TE_a,ALL=.true.)
-      CALL GLOBALSUM(grid, KEJ, TE_b, istag = 1,ALL=.true.)
-      TE = (TE_a + TE_b)/AREAG
-      ediff=(TE-TE0)/((PSF-PMTOP)*SHA*mb2kg)        ! C
-!$OMP  PARALLEL DO PRIVATE (L)
-      do l=1,lm
-        T(:,J_0:J_1,L)=T(:,J_0:J_1,L)-ediff/PK(L,:,J_0:J_1)
-      end do
-!$OMP  END PARALLEL DO
+      finalTotalEnergy = getTotalEnergy()
+      call addEnergyAsDiffuseHeat(finalTotalEnergy - initialTotalEnergy)
 
   200 IF (MFILTR.LT.2) RETURN
 C****
@@ -2466,5 +2425,50 @@ c****
 c****
       return
       end subroutine tropwmo
+
+      function getTotalEnergy() result(totalEnergy)
+      use GEOM, only: DXYP, AREAG
+      use DOMAIN_DECOMP, only: grid, GLOBALSUM, get
+      REAL*8 :: totalEnergy
+
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
+      REAL*8 :: totalPotentialEnergy
+      REAL*8 :: totalKineticEnergy
+      integer :: J_0, J_1
+
+      call get(grid, J_STRT=J_0, J_STOP=J_1)
+
+      call conserv_PE(PEJ)
+      call conserv_KE(KEJ)
+!     TE0=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
+      PEJ(J_0:J_1)=PEJ(J_0:J_1)*DXYP(J_0:J_1)
+      CALL GLOBALSUM(grid, PEJ, totalPotentialEnergy, ALL=.true.)
+      CALL GLOBALSUM(grid, KEJ, totalKineticEnergy, istag = 1,
+     *     ALL=.true.)
+      totalEnergy = (totalPotentialEnergy + totalKineticEnergy)/AREAG
+
+      end function getTotalEnergy
+
+      subroutine addEnergyAsDiffuseHeat(deltaEnergy)
+      use CONSTANT, only: sha, mb2kg
+      use MODEL_COM, only: T, PSF, PMTOP, LM
+      use DYNAMICS, only: PK
+      use DOMAIN_DECOMP, only: grid, get
+      real*8, intent(in) :: deltaEnergy
+
+      real*8 :: ediff
+      integer :: l
+      integer :: J_0, J_1
+
+      call get(grid, J_STRT=J_0, J_STOP=J_1)
+
+      ediff = deltaEnergy / ((PSF-PMTOP)*SHA*mb2kg)
+!$OMP  PARALLEL DO PRIVATE (L)
+      do l=1,lm
+        T(:,J_0:J_1,L)=T(:,J_0:J_1,L)-ediff/PK(L,:,J_0:J_1)
+      end do
+!$OMP  END PARALLEL DO
+
+      end subroutine addEnergyAsDiffuseHeat
 
       end module ATMDYN

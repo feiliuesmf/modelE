@@ -33,7 +33,7 @@ CAOO   Just to test CVS
 #endif
       USE ATMDYN, only : DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
      &     ,DISSIP,FILTER,CALC_AMPK, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
-     &     ,COMPUTE_WSAVE
+     &     ,COMPUTE_WSAVE, getTotalEnergy, addEnergyAsDiffuseHeat
 #ifdef TRACERS_ON
      &     ,trdynam
 #endif
@@ -64,6 +64,7 @@ C**** Command line options
       integer :: L
       integer :: c0, crate
       real*8 :: time_rate
+      real*8 :: initialTotalEnergy, finalTotalEnergy
 
         call init_app(grid,im,jm,lm)
         call alloc_drv()
@@ -226,6 +227,8 @@ C****
 C**** Initialize mass fluxes used by tracers and Q
       PS (:,:)   = P(:,:)
 
+C**** Initialise total energy (J/m^2)
+      initialTotalEnergy = getTotalEnergy()
 
 #ifndef USE_FVCORE
       CALL DYNAM()
@@ -239,6 +242,10 @@ C**** Initialize mass fluxes used by tracers and Q
            CALL EPFLUX (U,V,T,P)
          ENDIF
 #endif
+C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
+C**** Currently energy is put in uniformly weighted by mass
+      finalTotalEnergy = getTotalEnergy()
+      call addEnergyAsDiffuseHeat(finalTotalEnergy - initialTotalEnergy)
       call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(PUA, PVA, DT)
       SD_CLOUDS(:,:,:) = CONV(:,:,:)
       call COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
@@ -248,6 +255,7 @@ C**** Scale WM mixing ratios to conserve liquid water
         WM(:,:,L)=WM(:,:,L)* (PTOLD/P)
       END DO
 !$OMP  END PARALLEL DO
+
 
 
 
