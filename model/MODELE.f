@@ -919,10 +919,12 @@ C****
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
-      if (AM_I_ROOT()) write(6,*) '...and Jean/David tracers and chemistry'
+      if (AM_I_ROOT()) 
+     *     write(6,*) '...and Jean/David tracers and chemistry'
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      if (AM_I_ROOT()) write(6,*) '...and Drew Shindell tracers and chemistry'
+      if (AM_I_ROOT()) 
+     *     write(6,*) '...and Drew Shindell tracers and chemistry'
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       if (AM_I_ROOT()) write(6,*) '...and Dorothy Koch aerosols'
