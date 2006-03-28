@@ -2389,21 +2389,22 @@ c****
       use DOMAIN_DECOMP, only: grid, GLOBALSUM, get
       REAL*8 :: totalEnergy
 
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) ::KEJ,PEJ,TEJ
       REAL*8 :: totalPotentialEnergy
       REAL*8 :: totalKineticEnergy
       integer :: J_0, J_1
+      logical :: HAVE_SOUTH_POLE
 
-      call get(grid, J_STRT=J_0, J_STOP=J_1)
+      call get(grid, J_STRT=J_0, J_STOP=J_1, 
+     *     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
 
       call conserv_PE(PEJ)
       call conserv_KE(KEJ)
-!     TE0=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
-      PEJ(J_0:J_1)=PEJ(J_0:J_1)*DXYP(J_0:J_1)
-      CALL GLOBALSUM(grid, PEJ, totalPotentialEnergy, ALL=.true.)
-      CALL GLOBALSUM(grid, KEJ, totalKineticEnergy, istag = 1,
-     *     ALL=.true.)
-      totalEnergy = (totalPotentialEnergy + totalKineticEnergy)/AREAG
+      if (HAVE_SOUTH_POLE) KEJ(1) = 0
+
+      TEJ(J_0:J_1)= (KEJ(J_0:J_1) + PEJ(J_0:J_1)*DXYP(J_0:J_1))/AREAG
+
+      CALL GLOBALSUM(grid, TEJ, totalEnergy, ALL=.true.)
 
       end function getTotalEnergy
 
