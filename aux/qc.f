@@ -10,8 +10,8 @@
       IMPLICIT NONE
       CHARACTER*80 FILEIN
       INTEGER N,NARGS,K,iargc,KFILE,I,days_togo,itm,iu_RSF
-      INTEGER :: ioerr=0, KSTART=1, ItimeMax=0
-      REAL*8 TOT,yrs_togo,FAC,FACT,xfac,hour, ix,rate
+      INTEGER :: ioerr=0, KSTART=1, ItimeMax=0, ix,rate
+      REAL*8 TOT,yrs_togo,FAC,FACT,xfac,hour
       LOGICAL :: QCALL = .FALSE., QCMIN=.FALSE., QCRESTART=.FALSE.
 !@var QCRESTART if TRUE compute max Itime and do printout for "runpm"
 
