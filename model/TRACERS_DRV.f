@@ -13,7 +13,7 @@
 !@sum init_tracer initializes trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
       USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim,ptop,psf,sig,lm,jm,itime
       USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,npts,ia_rad
@@ -205,7 +205,7 @@ C**** Define individual tracer characteristics
           call openunit('N2O_IC',iu_data,.true.,.true.)
           read (iu_data) title,N2OICIN
           call closeunit(iu_data)
-          write(6,*) title,' read from N2O_IC'
+          if (AM_I_ROOT()) write(6,*) title,' read from N2O_IC'
           do j=J_0,J_1  ; do i=1,im
            N2OICINL(:)=N2OICIN(I,J,:)
            CALL LOGPINT(LCOalt,PCOalt,N2OICINL,LM,PRES,N2OICL,.true.)
@@ -340,7 +340,7 @@ C**** Get solar variability coefficient from namelist if it exits
           call openunit('Ox_IC',iu_data,.true.,.true.)
           read (iu_data) title,OxICIN
           call closeunit(iu_data)
-          write(6,*) title,' read from OxIC'
+          if (AM_I_ROOT()) write(6,*) title,' read from OxIC'
           do j=J_0,J_1  ; do i=1,im
            OxICINL(:)=OxICIN(I,J,:)
            CALL LOGPINT(LCOalt,PCOalt,OxICINL,LM,PRES,OxICL,.true.)
@@ -350,7 +350,7 @@ c         read stratospheric correction from files:
           call openunit('Ox_corr',iu_data,.true.,.true.)
           read (iu_data) title,corrOxIN
           call closeunit(iu_data)
-          write(6,*) title,' read from Ox_corr'
+          if (AM_I_ROOT()) write(6,*) title,' read from Ox_corr'
           DO m=1,12; DO j=1,jm
            tempOx1(:)=CorrOxIN(J,:,M)
            CALL LOGPINT(LcorrOX,PcorrOx,tempOx1,LM,PRES,
@@ -447,7 +447,7 @@ C         Interpolate ClONO2 altitude-dependence to model resolution:
           call openunit('CFC_IC',iu_data,.true.,.true.)
           read (iu_data) title,CFCICIN
           call closeunit(iu_data)
-          write(6,*) title,' read from CFC_IC'
+          if (AM_I_ROOT()) write(6,*) title,' read from CFC_IC'
           do j=J_0,J_1  ; do i=1,im
            CFCICINL(:)=CFCICIN(I,J,:)
            CALL LOGPINT(LCOalt,PCOalt,CFCICINL,LM,PRES,CFCICL,.true.)
@@ -2760,7 +2760,8 @@ c
 C**** Checks
       if (ntsurfsrc(n).gt.ntsurfsrcmax) then
 !       write(6,*) ' ntsurfsrc too large for ',trname(n)
-        write(6,*) ' Increase ntsurfsrcmax to at least',ntsurfsrc(n)
+        if (am_i_root()) 
+     &      write(6,*) ' Increase ntsurfsrcmax to at least',ntsurfsrc(n)
         call stop_model(
      &       ' Ntsurfsrc too large.  Increase ntsurfsrcmax',255)
       end if
@@ -2881,7 +2882,7 @@ c Oxidants
 #endif
 
       if (k.gt. ktajls) then
-        write (6,*)
+        if (AM_I_ROOT()) write (6,*)
      &   'tjl_defs: Increase ktajls=',ktajls,' to at least ',k
         call stop_model('ktajls too small',255)
       end if
@@ -5429,7 +5430,8 @@ c     end do
 #endif
 
       if (k .gt. ktaijs) then
-        write (6,*)'ijt_defs: Increase ktaijs=',ktaijs,' to at least ',k
+       if (AM_I_ROOT()) 
+     *  write (6,*)'ijt_defs: Increase ktaijs=',ktaijs,' to at least ',k
         call stop_model('ktaijs too small',255)
       end if
 
@@ -6525,6 +6527,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       SUBROUTINE tracer_IC
 !@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
 #ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
@@ -6724,7 +6727,7 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
 C**** ESMF: Each processor reads the global array co2ic
           read (iu_data) title,co2ic
           call closeunit(iu_data)
-          write(6,*) title,' read from CO2_IC'
+          if (AM_I_ROOT()) write(6,*) title,' read from CO2_IC'
           do l=1,lm         !ppmv==>ppmm
           do j=J_0,J_1
             trm(:,j,l,n) = co2ic(:,j,l)*am(l,:,j)*dxyp(j)*1.54d-6
@@ -6736,7 +6739,7 @@ C**** ESMF: Each processor reads the global array co2ic
 C**** ESMF: Each processor reads the global array: N2Oic
           read (iu_data) title,N2Oic     ! unit is PPMM/(M*DXYP)
           call closeunit(iu_data)
-          write(6,*) title,' read from N2O_IC'
+          if (AM_I_ROOT()) write(6,*) title,' read from N2O_IC'
           do l=1,lm         !ppmv==>ppmm
           do j=J_0,J_1
             trm(:,j,l,n) = am(l,:,j)*dxyp(j)*N2Oic(j,l)
@@ -7172,7 +7175,8 @@ C**** Initialise pbl profile if necessary
         end do
       end if
 
-      write(6,*) ' Tracer ',trname(n),' initialized at itime=',itime
+        if (AM_I_ROOT())
+     *    write(6,*) ' Tracer ',trname(n),' initialized at itime=',itime
       end if
       end do
 #endif

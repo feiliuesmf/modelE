@@ -1138,7 +1138,7 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 c**** always skip unused fields
       Qk = .true.
 C**** Fill in the undefined pole box duplicates
-      print *, 'In DIAGIjt: taijs(1,1,10)=',taijs(1,1,10)
+        print *, 'In DIAGIjt: taijs(1,1,10)=',taijs(1,1,10)
       do i=2,im
         taijln(i,1,:,:) = taijln(1,1,:,:)
         taijln(i,jm,:,:) = taijln(1,jm,:,:)
@@ -1388,6 +1388,7 @@ c assuming igrid=jgrid for now
      *                            smap,smapj,gm,jgrid,jgrid)
           Qk(n) = .false.
         end if
+
 c**** copy virtual half-page to paper if appropriate
         if (kcolmn.eq.3 .or. n.eq.nmaplets) then
           do k=1,nlines
@@ -1423,7 +1424,6 @@ C****
 !@sum ijt_MAPk returns the map data and related terms for the k-th field
 !@+   for tracers and tracer sources/sinks
       USE CONSTANT, only: teeny
-      USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only:im,jm, idacc
       USE GEOM, only: dxyp
       USE TRACER_COM
@@ -1441,19 +1441,9 @@ C****
 !@var isumz,isumg = 1 or 2 if zon,glob sums or means are appropriate
       integer isumz,isumg,k1
 
-      INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
       isumz = 2 ; isumg = 2  !  default: in most cases MEANS are needed
       iwt = 1 ; jgrid = 1
 
@@ -1461,7 +1451,7 @@ C****
       byiacc = 1./(idacc(iacc)+teeny)
 c**** tracer amounts (divide by area) and Sources and sinks
       if (nmap.eq.1) then
-        do j=J_0,J_1
+        do j=1,JM
         do i=1,im
           anum(i,j)=aij1(i,j)*byiacc*scale/dxyp(j)
         end do
@@ -1473,7 +1463,7 @@ c**** tracer sums and means (no division by area)
           adenom(:,:)=aij(:,:,ij_rsoi)*byiacc
           lname(k1:80)=''
         end if
-        do j=J_0,J_1
+        do j=1,JM
         do i=1,im
           anum(i,j)=aij1(i,j)*byiacc*scale
         end do
@@ -1484,7 +1474,7 @@ c**** ratios (i.e. per mil diags)
           k1 = index(lname,' x ')
           lname(k1:80)=''
         end if
-        do j=J_0,J_1
+        do j=1,JM
         do i=1,im
           anum(i,j)=aij1(i,j)
           adenom(i,j)=aij2(i,j)

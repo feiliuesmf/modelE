@@ -70,8 +70,8 @@ C**** accumulated in the routines contained herein
       USE PARAM
       USE CONSTANT, only : twopi,kapa
       USE MODEL_COM, only : im,jm,lm,ls1,do_gwdrag,ptop,sig,psfmpt,sige
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE,
-     *                          NORTH, SOUTH,
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE,AM_I_ROOT,
+     *                          NORTH, SOUTH, PACK_DATA,
      *                          DREAD_PARALLEL,
      *                          READT_PARALLEL
       USE GEOM, only : areag,dxyv,dlat_dg
@@ -81,6 +81,7 @@ C**** accumulated in the routines contained herein
       IMPLICIT NONE
       REAL*8 PLEV,PLEVE,EKS,EK1,EK2,EKX
       REAL*8 :: TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,4)
+      REAL*8 :: EK_GLOB(JM)
       INTEGER I,J,L,iu_zvar
 
       INTEGER :: I_0, I_1, J_1, J_0, J_0H, J_1H
@@ -129,11 +130,13 @@ C**** need testing for other resolutions
         IF (PLEV.GE.200.) LDEFM=L
         IF (PLEV.GE.0.2d0) LD2=L
       END DO
+      if (AM_I_ROOT()) then
       WRITE (*,*) ' LEVEL FOR DEFORMATION IS: LDEF,PDEF= ',LDEF,PSFMPT
      *     *SIG(LDEF)+PTOP,' LDEFM=',LDEFM
       WRITE (*,*) ' LEVELS FOR WIND SHEAR GENERATION: LSHR,LD2= ',LSHR
      *     ,LD2
       WRITE (*,*) ' LBREAK=',LBREAK
+      end if
 C****
 C**** TOPOGRAPHY VARIANCE FOR MOUNTAIN WAVES
 C****
@@ -180,8 +183,11 @@ C**** box and a model grid box weighted by 1/EK; wave_length=root(area)
       END DO
       EKS=EKS*IM/AREAG
       EK(3:NM,J_0:J_1)=EKS
-      WRITE (6,970) (J,EK(1,J),J=J_0STG,J_1STG)
-      WRITE (6,971) EKS
+      call PACK_DATA(grid, EK(1,:), EK_GLOB)
+      if (AM_I_ROOT()) then
+        WRITE (6,970) (J,EK_GLOB(J),J=2,JM)
+        WRITE (6,971) EKS
+      end if
   970 FORMAT ('0  J,EK:',9X,1P,7(I4,E12.2)/,9(1X,8(I4,E12.2)/))
   971 FORMAT ('   AVG EK: ',4X,E12.2)
 

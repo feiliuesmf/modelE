@@ -21,6 +21,7 @@
       USE TRACER_COM
       USE TRDIAG_COM
       USE PARAM
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: l,k,n
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
@@ -188,7 +189,7 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY DRY CONVEC)  (kg)
       end do
 
       if (k.gt. ktajl) then
-        write (6,*)
+        if (AM_I_ROOT()) write (6,*)
      &   'tjl_defs: Increase ktajl=',ktajl,' to at least ',k
         call stop_model('ktajl too small',255)
       end if
@@ -376,7 +377,7 @@ C**** Tracers dry deposition flux.
 #endif
 
       if (k .gt. ktaij) then
-        write (6,*)
+        if (AM_I_ROOT()) write (6,*)
      &   'tij_defs: Increase ktaij=',ktaij,' to at least ',k
         call stop_model('ktaij too small',255)
       end if
@@ -771,7 +772,7 @@ C****
 !@+   Output: interpolated data array + two monthly data arrays
 !@auth Jean Lerner and others
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
       USE DOMAIN_DECOMP, only : READT_PARALLEL, REWIND_PARALLEL
       USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
       implicit none
@@ -798,7 +799,7 @@ C****
       else              ! Do we need to read in second month?
         if (jday.ne.jdlast+1) then ! Check that data is read in daily
           if (jday.ne.1 .OR. jdlast.ne.365) then
-            write(6,*)
+            if (AM_I_ROOT()) write(6,*)
      *      'Incorrect values in Tracer Source:JDAY,JDLAST=',JDAY,JDLAST
             call stop_model('stopped in TRACERS.f',255)
           end if
@@ -830,7 +831,7 @@ c**** Interpolate two months of data to current day
       USE DYNAMICS, only : am
       USE FLUXES, only : gtracer
       USE TRACER_COM
-      USE DOMAIN_DECOMP, ONLY: GRID, GET, HERE
+      USE DOMAIN_DECOMP, ONLY: GRID, GET, HERE, AM_I_ROOT
       IMPLICIT NONE
       LOGICAL QCHECKT
       INTEGER I,J,L,N,m, imax,jmax,lmax
@@ -857,7 +858,8 @@ C**** check for negative tracer amounts (if t_qlimit is set)
           do j=j_0,j_1
           do i=1,imaxj(j)
             if (trm(i,j,l,n).lt.0) then
-              write(6,*) "Negative mass for ",trname(n),i,j,l,trm(i,j,l
+              if (AM_I_ROOT())
+     *         write(6,*) "Negative mass for ",trname(n),i,j,l,trm(i,j,l
      *             ,n)," after ",SUBR,"."
               QCHECKT=.true.
             end if
