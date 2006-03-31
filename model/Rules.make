@@ -387,6 +387,15 @@ LIBS += -size_lp64 -mp -L${ESMFLIBDIR} -L${MPIDIR}/lib -lesmf  -lmpi -lmpi++  -l
 FFLAGS += -I${ESMFINCLUDEDIR}
 INCS += -I ${ESMFINCLUDEDIR}
 endif
+
+ifeq ($(UNAME),IRIX64)
+ESMFINCLUDEDIR = ${ESMF_DIR}/mod/mod${ESMF_BOPT}/IRIX64.default.64.default
+ESMFLIBDIR = ${ESMF_DIR}/lib/lib${ESMF_BOPT}/IRIX64.default.64.default
+CPPFLAGS += -DUSE_ESMF
+FFLAGS += -I${ESMFINCLUDEDIR}
+F90FLAGS += -I${ESMFINCLUDEDIR}
+LIBS += -L${ESMFLIBDIR} -lesmf  -lnetcdf_stubs -rpath . -lC -lCio -lc -lmpi++ -lmpi -lpthread
+endif
 endif
 
 ifeq ($(FVCORE),YES)
