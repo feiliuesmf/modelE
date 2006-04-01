@@ -6,23 +6,23 @@ C****                      -OPT:reorg_comm=off -w2 -listing
 C**** Note that since it uses modules and routines from the model, it
 C**** must be compiled after the model
       USE CONSTANT, only : lhm,shi
-      USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,xlabel
+      USE MODEL_COM, only : im,jm,lm  !  ,wm,u,v,t,p,q,xlabel
      *     ,iowrite_mon,focean,nday,itime,itimei,itimee,itime0,iyear1
      *     ,ioread,iowrite,ioreadnt
-      USE SOMTQ_COM
-      USE GHY_COM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
+!     USE SOMTQ_COM
+      USE GHY_COM, only : snowe,tearth,wearth,aiearth,wbare,wvege
      *     ,htbare,htvege,snowbv,ngm,evap_max_ij,fr_sat_ij,qg_ij
-      USE RAD_COM, only : rqt,lm_req
-      USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
-      USE DIAG_COM, only : keynr,tsfrez
-      USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq
-     *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,
-     *     ustar_pbl,egcm,tgvavg,qgavg
-      USE STATIC_OCEAN, only : tocean,z1o,sss0
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
-      USE SEAICE, only : ace1i,xsi,ac2oim,ssi0,tfrez
-      USE LANDICE_COM, only : tlandi,snowli
-      USE LAKES_COM, only : flake
+!     USE RAD_COM, only : rqt,lm_req
+!     USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
+!     USE DIAG_COM, only : keynr,tsfrez
+!     USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq
+!    *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,
+!    *     ustar_pbl,egcm,tgvavg,qgavg
+!     USE STATIC_OCEAN, only : tocean,z1o,sss0
+!     USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
+!     USE SEAICE, only : ace1i,xsi,ac2oim,ssi0,tfrez
+!     USE LANDICE_COM, only : tlandi,snowli
+!     USE LAKES_COM, only : flake
       USE FILEMANAGER
       USE DOMAIN_DECOMP, ONLY : init_app,grid,finish_app
       IMPLICIT NONE
@@ -105,7 +105,7 @@ C**** extending ground hydrology
           end do
         end do
       endif
-      
+
 
 c??   OPEN(iu_GIC,FILE=trim(outfile),
 c??  *     FORM="UNFORMATTED",STATUS="UNKNOWN")
