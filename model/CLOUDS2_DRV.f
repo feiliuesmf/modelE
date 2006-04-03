@@ -85,8 +85,16 @@
      *     ,itcon_ss
 #ifdef TRACERS_WATER
      *     ,jls_prec,taijn=>taijn_loc,tajls=>tajls_loc,tij_prec
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+     &     ,taijs=>taijs_loc
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
-     *     ,jls_incloud,taijs=>taijs_loc,ijts_aq
+     *     ,jls_incloud,ijts_aq
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,jls_trdpmc,jls_trdpls,ijts_trdpmc,ijts_trdpls
 #endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -100,6 +108,12 @@
      *     ,trwml,trsvwml,trprmc,trprss
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,dt_sulf_mc,dt_sulf_ss
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,trcond_mc,trdvap_mc,trflcw_mc,trprcp_mc,trnvap_mc,trwash_mc
+     &     ,trwash_ls,trevap_ls,trclwc_ls,trprcp_ls,trclwe_ls,trcond_ls
+     &     ,diag_wetdep
 #endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -1251,6 +1265,66 @@ C**** diagnostics
      *         ,jls_prec(2,n))+trprec(n,i,j)*focean(i,j)*bydxyp(j)
           taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) +
      *         trprec(n,i,j)*bydxyp(j)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+c     ..........
+c     accumulates special wet depo diagnostics
+c     ..........
+          IF (diag_wetdep == 1) THEN
+            DO l=1,lmcmax
+              IF (jls_trdpmc(1,n) > 0) tajls(j,l,jls_trdpmc(1,n))
+     &             =tajls(j,l,jls_trdpmc(1,n))+trcond_mc(l,nx)
+              IF (jls_trdpmc(2,n) > 0) tajls(j,l,jls_trdpmc(2,n))
+     &             =tajls(j,l,jls_trdpmc(2,n))+trdvap_mc(l,nx)
+              IF (jls_trdpmc(3,n) > 0) tajls(j,l,jls_trdpmc(3,n))
+     &             =tajls(j,l,jls_trdpmc(3,n))+trflcw_mc(l,nx)
+              IF (jls_trdpmc(4,n) > 0) tajls(j,l,jls_trdpmc(4,n))
+     &             =tajls(j,l,jls_trdpmc(4,n))+trprcp_mc(l,nx)
+              IF (jls_trdpmc(5,n) > 0) tajls(j,l,jls_trdpmc(5,n))
+     &             =tajls(j,l,jls_trdpmc(5,n))+trnvap_mc(l,nx)
+              IF (jls_trdpmc(6,n) > 0) tajls(j,l,jls_trdpmc(6,n))
+     &             =tajls(j,l,jls_trdpmc(6,n))+trwash_mc(l,nx)
+            END DO
+            IF (ijts_trdpmc(1,n) > 0) taijs(i,j,ijts_trdpmc(1,n))
+     &          =taijs(i,j,ijts_trdpmc(1,n))+SUM(trcond_mc(1:lmcmax,nx))
+            IF (ijts_trdpmc(2,n) > 0) taijs(i,j,ijts_trdpmc(2,n))
+     &          =taijs(i,j,ijts_trdpmc(2,n))+SUM(trdvap_mc(1:lmcmax,nx))
+            IF (ijts_trdpmc(3,n) > 0) taijs(i,j,ijts_trdpmc(3,n))
+     &          =taijs(i,j,ijts_trdpmc(3,n))+SUM(trflcw_mc(1:lmcmax,nx))
+            IF (ijts_trdpmc(4,n) > 0) taijs(i,j,ijts_trdpmc(4,n))
+     &          =taijs(i,j,ijts_trdpmc(4,n))+SUM(trprcp_mc(1:lmcmax,nx))
+            IF (ijts_trdpmc(5,n) > 0) taijs(i,j,ijts_trdpmc(5,n))
+     &          =taijs(i,j,ijts_trdpmc(5,n))+SUM(trnvap_mc(1:lmcmax,nx))
+            IF (ijts_trdpmc(6,n) > 0) taijs(i,j,ijts_trdpmc(6,n))
+     &          =taijs(i,j,ijts_trdpmc(6,n))+SUM(trwash_mc(1:lmcmax,nx))
+            DO l=1,lp50
+              IF (jls_trdpls(1,n) > 0) tajls(j,l,jls_trdpls(1,n))
+     &             =tajls(j,l,jls_trdpls(1,n))+trwash_ls(l,nx)
+              IF (jls_trdpls(2,n) > 0) tajls(j,l,jls_trdpls(2,n))
+     &             =tajls(j,l,jls_trdpls(2,n))+trprcp_ls(l,nx)
+              IF (jls_trdpls(3,n) > 0) tajls(j,l,jls_trdpls(3,n))
+     &             =tajls(j,l,jls_trdpls(3,n))+trclwc_ls(l,nx)
+              IF (jls_trdpls(4,n) > 0) tajls(j,l,jls_trdpls(4,n))
+     &             =tajls(j,l,jls_trdpls(4,n))+trevap_ls(l,nx)
+              IF (jls_trdpls(5,n) > 0) tajls(j,l,jls_trdpls(5,n))
+     &             =tajls(j,l,jls_trdpls(5,n))+trclwe_ls(l,nx)
+              IF (jls_trdpls(6,n) > 0) tajls(j,l,jls_trdpls(6,n))
+     &             =tajls(j,l,jls_trdpls(6,n))+trcond_ls(l,nx)
+            END DO
+            IF (ijts_trdpls(1,n) > 0) taijs(i,j,ijts_trdpls(1,n))
+     &           =taijs(i,j,ijts_trdpls(1,n))+SUM(trwash_ls(1:lp50,nx))
+            IF (ijts_trdpls(2,n) > 0) taijs(i,j,ijts_trdpls(2,n))
+     &           =taijs(i,j,ijts_trdpls(2,n))+SUM(trprcp_ls(1:lp50,nx))
+            IF (ijts_trdpls(3,n) > 0) taijs(i,j,ijts_trdpls(3,n))
+     &           =taijs(i,j,ijts_trdpls(3,n))+SUM(trclwc_ls(1:lp50,nx))
+            IF (ijts_trdpls(4,n) > 0) taijs(i,j,ijts_trdpls(4,n))
+     &           =taijs(i,j,ijts_trdpls(4,n))+SUM(trevap_ls(1:lp50,nx))
+            IF (ijts_trdpls(5,n) > 0) taijs(i,j,ijts_trdpls(5,n))
+     &           =taijs(i,j,ijts_trdpls(5,n))+SUM(trclwe_ls(1:lp50,nx))
+            IF (ijts_trdpls(6,n) > 0) taijs(i,j,ijts_trdpls(6,n))
+     &           =taijs(i,j,ijts_trdpls(6,n))+SUM(trcond_ls(1:lp50,nx))
+          END IF
+#endif
 #ifdef TRACERS_DUST
           IF (adiurn_dust == 1) THEN
             DO kr=1,Ndiupt

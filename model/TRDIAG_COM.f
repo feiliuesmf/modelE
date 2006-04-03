@@ -106,17 +106,55 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER, DIMENSION(LM) :: ijs_OH,ijs_NO3,ijs_HO2,ijs_JH2O2
 #endif
 !@param KTAIJS number of special lat/lon tracer diagnostics
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
+    (defined TRACERS_NITRATE) && (defined  EDGAR_HYDE_SOURCES)
+      INTEGER,PARAMETER :: ktaijs=530
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
+    (defined TRACERS_NITRATE)
+      INTEGER,PARAMETER :: ktaijs=511
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
+    (defined  EDGAR_HYDE_SOURCES)
+      INTEGER,PARAMETER :: ktaijs=521
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
+      INTEGER,PARAMETER :: ktaijs=502
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_NITRATE) &&\
+    (defined EDGAR_HYDE_SOURCES)
+      INTEGER,PARAMETER :: ktaijs=493
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_NITRATE)
+      INTEGER,PARAMETER :: ktaijs=474
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined EDGAR_HYDE_SOURCES)
+      INTEGER,PARAMETER :: ktaijs=401
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell)
+      INTEGER,PARAMETER :: ktaijs=382
+#else
 #if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
-      INTEGER,PARAMETER :: ktaijs=601
+      INTEGER,PARAMETER :: ktaijs=854
 #else
 #ifdef TRACERS_MINERALS
-      INTEGER,PARAMETER :: ktaijs=523
-#else
-#if (defined TRACERS_DUST) && (defined TRACERS_AEROSOLS_Koch) &&\
-    (defined TRACERS_NITRATE) && (defined TRACERS_SPECIAL_Shindell)
-      INTEGER,PARAMETER :: ktaijs=482
+      INTEGER,PARAMETER :: ktaijs=743
 #else
       integer, parameter :: ktaijs= 364
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
 #endif
 #endif
 #endif
@@ -142,6 +180,11 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 
 !@param MaxSubCl Maximum number of sub classes of tracers for rad. diagnostics
       INTEGER,PARAMETER :: MaxSubCl=4
+#ifdef TRACERS_WATER
+!@param MaxDMc Maximum number of special wet depo diags for MC clouds
+!@param MaxDLs Maximum number of special wet depo diags for LS clouds
+      INTEGER,PARAMETER :: MaxDMc=6,MaxDLs=6
+#endif
 !@param MaxSpec Maximum number special diagnostics not associated with specific
 !@+ tracer
       INTEGER,PARAMETER :: MaxSpec=3
@@ -186,7 +229,12 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_spec index for TAIJS for special diags. not associated with single
 !@var ijts_spec tracer
       INTEGER :: ijts_spec(MaxSpec)
-#ifndef TRACERS_WATER
+#ifdef TRACERS_WATER
+!@var ijts_trdpmc indices of taijs special wet depo diags for MC clouds
+      INTEGER :: ijts_trdpmc(MaxDMc,Ntm)
+!@var ijts_trdpls indices of taijs special wet depo diags for LS clouds
+      INTEGER :: ijts_trdpls(MaxDLs,Ntm)
+#else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
 !@var ijts_wet tracer independent array for TAIJS wet depo diagnostics
@@ -262,6 +310,20 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf,jls_day
 #endif
 
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
+    (defined  EDGAR_HYDE_SOURCES)
+      INTEGER,PARAMETER :: ktajls=203
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
+      INTEGER,PARAMETER :: ktajls=184
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_NITRATE) &&\
+    (defined EDGAR_HYDE_SOURCES)
+      INTEGER,PARAMETER :: ktajls=181
+#else
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
 #ifdef regional_Ox_tracers
       INTEGER, PARAMETER :: ktajls=108
@@ -269,14 +331,25 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, PARAMETER :: ktajls=164  !96
 #endif
 #else
-#ifdef TRACERS_MINERALS
-#ifdef TRACERS_QUARZHEM
-      INTEGER,PARAMETER :: ktajls=96
+#if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
+      INTEGER,PARAMETER :: ktajls=325
 #else
-      INTEGER,PARAMETER :: ktajls=80
-#endif
+#ifdef TRACERS_MINERALS
+      INTEGER,PARAMETER :: ktajls=283
+#else
+#ifdef TRACERS_QUARZHEM
+      INTEGER,PARAMETER :: ktajls=45
+#else
+#ifdef TRACERS_DUST
+      INTEGER,PARAMETER :: Ktajls=78
 #else
       INTEGER, PARAMETER :: ktajls=36   ! default
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
 #endif
 #endif
 
@@ -315,7 +388,12 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, DIMENSION(NTM) :: jls_grav
 !@var jls_prec tracer independent array for precipitation/wet dep
       INTEGER, DIMENSION(2,NTM) :: jls_prec
-#ifndef TRACERS_WATER
+#ifdef TRACERS_WATER
+!@var jls_trdpmc indices of tajls special wet depo diags for MC clouds
+      INTEGER :: jls_trdpmc(MaxDMc,Ntm)
+!@var jls_trdpls indices of tajls special wet depo diags for LS clouds
+      INTEGER :: jls_trdpls(MaxDLs,Ntm)
+#else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
 !@var jls_wet tracer independent array for wet deposition

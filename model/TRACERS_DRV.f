@@ -31,6 +31,10 @@
 #ifdef TRACERS_WATER
       USE LANDICE_COM, only : trli0    ! should these be in tracer_com?
       USE SEAICE_COM, only : trsi0
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      USE clouds, ONLY : diag_wetdep
+#endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM,only:COaltIN,LCOalt,PCOalt,COalt,
@@ -123,6 +127,12 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
 #endif
 #ifdef TRACERS_ON
       CALL sync_param("diag_rad",diag_rad)
+#ifdef TRACERS_WATER
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      CALL sync_param("diag_wetdep",diag_wetdep)
+#endif
+#endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       call sync_param("which_trop",which_trop)
@@ -2734,7 +2744,97 @@ c gravitational settling of ss2
           jls_ltop(k)=Lm
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
-#ifndef TRACERS_WATER
+#ifdef TRACERS_WATER
+        IF (diag_wetdep == 1) THEN
+        k=k+1
+          jls_trdpmc(1,n)=k
+          lname_jls(k)='MC Condensation of '//TRIM(trname(n))
+          sname_jls(k)=TRIM(trname(n))//'_cond_mc'
+          jls_ltop(k)=Lm
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        k=k+1
+          jls_trdpmc(2,n)=k
+          lname_jls(k)='Evaporated '//TRIM(trname(n))
+     &         //' in MC Downdrafts'
+          sname_jls(k)=TRIM(trname(n))//'_downeva_mc'
+          jls_ltop(k)=Lm
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        k=k+1
+          jls_trdpmc(3,n)=k
+          lname_jls(k)='Condensed '//TRIM(trname(n))//' in MC CLW'
+          sname_jls(k)=TRIM(trname(n))//'_conclw_mc'
+          jls_ltop(k)=Lm
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        k=k+1
+          jls_trdpmc(4,n)=k
+          lname_jls(k)='Precipitated '//TRIM(trname(n))//' by MC'
+          sname_jls(k)=TRIM(trname(n))//'_precip_mc'
+          jls_ltop(k)=Lm
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        k=k+1
+          jls_trdpmc(5,n)=k
+          lname_jls(k)='Reevaporated '//TRIM(trname(n))
+     &         //' from MC Precip'
+          sname_jls(k)=TRIM(trname(n))//'_reevap_mc'
+          jls_ltop(k)=Lm
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        k=k+1
+          jls_trdpmc(6,n)=k
+          lname_jls(k)='MC Washout of '//TRIM(trname(n))
+          sname_jls(k)=TRIM(trname(n))//'_washout_mc'
+          jls_ltop(k)=Lm
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        k=k+1
+          jls_trdpls(1,n)=k
+          lname_jls(k)='LS Washout of '//TRIM(trname(n))
+          sname_jls(k)=TRIM(trname(n))//'_washout_ls'
+          jls_ltop(k)=Lm
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        k=k+1
+          jls_trdpls(2,n)=k
+          lname_jls(k)='Precipitated '//TRIM(trname(n))//' by LS'
+          sname_jls(k)=TRIM(trname(n))//'_precip_ls'
+          jls_ltop(k)=Lm
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        k=k+1
+          jls_trdpls(3,n)=k
+          lname_jls(k)='Condensed '//TRIM(trname(n))// ' in LS CLW'
+          sname_jls(k)=TRIM(trname(n))//'_conclw_ls'
+          jls_ltop(k)=Lm
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        k=k+1
+          jls_trdpls(4,n)=k
+          lname_jls(k)='Reevaporated '//TRIM(trname(n))
+     &         //' from LS Precip'
+          sname_jls(k)=TRIM(trname(n))//'_reevap_ls'
+          jls_ltop(k)=Lm
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        k=k+1
+          jls_trdpls(5,n)=k
+          lname_jls(k)='Evaporated '//TRIM(trname(n))//' from LS CLW'
+          sname_jls(k)=TRIM(trname(n))//'_clwevap_ls'
+          jls_ltop(k)=Lm
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        k=k+1
+          jls_trdpls(6,n)=k
+          lname_jls(k)='LS Condensation of '//TRIM(trname(n))
+          sname_jls(k)=TRIM(trname(n))//'_cond_ls'
+          jls_ltop(k)=Lm
+          jls_power(k)=1
+          units_jls(k)=unit_string(jls_power(k),'kg/s')
+        END IF
+#else
         k=k+1
           jls_wet(n)=k
           lname_jls(k)='Loss by wet deposition of '//TRIM(trname(n))
@@ -4884,7 +4984,121 @@ c ss2 clear sky optical thickness
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
-#ifndef TRACERS_WATER
+#ifdef TRACERS_WATER
+        IF (diag_wetdep == 1) THEN
+          k=k+1
+          ijts_trdpmc(1,n)=k
+          lname_ijts(k)='MC Condensation of '//TRIM(trname(n))
+          sname_ijts(k)=TRIM(trname(n))//'_cond_mc'
+          ijts_index(k)=n
+          ia_ijts(k)=ia_src
+          ijts_power(k) = -13.
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          k=k+1
+          ijts_trdpmc(2,n)=k
+          lname_ijts(k)='Evaporated '//TRIM(trname(n))
+     &         //' in MC Downdrafts'
+          sname_ijts(k)=TRIM(trname(n))//'_downeva_mc'
+          ijts_index(k)=n
+          ia_ijts(k)=ia_src
+          ijts_power(k) = -13.
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          k=k+1
+          ijts_trdpmc(3,n)=k
+          lname_ijts(k)='Condensed '//TRIM(trname(n))//' in MC CLW'
+          sname_ijts(k)=TRIM(trname(n))//'_conclw_mc'
+          ijts_index(k)=n
+          ia_ijts(k)=ia_src
+          ijts_power(k) = -13.
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          k=k+1
+          ijts_trdpmc(4,n)=k
+          lname_ijts(k)='Precipitated '//TRIM(trname(n))//' by MC'
+          sname_ijts(k)=TRIM(trname(n))//'_precip_mc'
+          ijts_index(k)=n
+          ia_ijts(k)=ia_src
+          ijts_power(k) = -13.
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          k=k+1
+          ijts_trdpmc(5,n)=k
+          lname_ijts(k)='Reevaporated '//TRIM(trname(n))
+     &         //' from MC Precip'
+          sname_ijts(k)=TRIM(trname(n))//'_reevap_mc'
+          ijts_index(k)=n
+          ia_ijts(k)=ia_src
+          ijts_power(k) = -13.
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          k=k+1
+          ijts_trdpmc(6,n)=k
+          lname_ijts(k)='MC Washout of '//TRIM(trname(n))
+          sname_ijts(k)=TRIM(trname(n))//'_washout_mc'
+          ijts_index(k)=n
+          ia_ijts(k)=ia_src
+          ijts_power(k) = -13.
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          k=k+1
+          ijts_trdpls(1,n)=k
+          lname_ijts(k)='LS Washout of '//TRIM(trname(n))
+          sname_ijts(k)=TRIM(trname(n))//'_washout_ls'
+          ijts_index(k)=n
+          ia_ijts(k)=ia_src
+          ijts_power(k) = -13.
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          k=k+1
+          ijts_trdpls(2,n)=k
+          lname_ijts(k)='Precipitated '//TRIM(trname(n))//' by LS'
+          sname_ijts(k)=TRIM(trname(n))//'_precip_ls'
+          ijts_index(k)=n
+          ia_ijts(k)=ia_src
+          ijts_power(k) = -13.
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          k=k+1
+          ijts_trdpls(3,n)=k
+          lname_ijts(k)='Condensed '//TRIM(trname(n))// ' in LS CLW'
+          sname_ijts(k)=TRIM(trname(n))//'_conclw_ls'
+          ijts_index(k)=n
+          ia_ijts(k)=ia_src
+          ijts_power(k) = -13.
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          k=k+1
+          ijts_trdpls(4,n)=k
+          lname_ijts(k)='Reevaporated '//TRIM(trname(n))
+     &         //' from LS Precip'
+          sname_ijts(k)=TRIM(trname(n))//'_reevap_ls'
+          ijts_index(k)=n
+          ia_ijts(k)=ia_src
+          ijts_power(k) = -13.
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          k=k+1
+          ijts_trdpls(5,n)=k
+          lname_ijts(k)='Evaporated '//TRIM(trname(n))//' from LS CLW'
+          sname_ijts(k)=TRIM(trname(n))//'_clwevap_ls'
+          ijts_index(k)=n
+          ia_ijts(k)=ia_src
+          ijts_power(k) = -13.
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          k=k+1
+          ijts_trdpls(6,n)=k
+          lname_ijts(k)='LS Condensation of '//TRIM(trname(n))
+          sname_ijts(k)=TRIM(trname(n))//'_cond_ls'
+          ijts_index(k)=n
+          ia_ijts(k)=ia_src
+          ijts_power(k) = -13.
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        END IF
+#else
       k=k+1
         ijts_wet(n)=k
         lname_ijts(k)='Wet deposition of '//TRIM(trname(n))
@@ -8630,7 +8844,12 @@ c#endif
           endif
 c complete dissolution in convective clouds
 c with double dissolution if partially soluble
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+          IF (fq_aer(ntix(n)) > 0. .AND. tr_conv) THEN
+#else
           if (TR_CONV) then
+#endif
            if (LHX.EQ.LHE) then !liquid cloud
                fq=(1.d0+fq_aer(ntix(n)))/2.d0
 c              fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0
