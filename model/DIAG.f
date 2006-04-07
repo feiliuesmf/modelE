@@ -3003,7 +3003,7 @@ C****
 #ifdef TRACERS_AEROSOLS_Koch
       USE TRACER_COM, only : n_SO4
 #ifdef TRACERS_HETCHEM
-     *       ,n_SO4_d1,n_SO4_d2, n_SO4_d3, n_SO4_d4, n_SO4_s1, n_SO4_s2
+     *       ,n_SO4_d1,n_SO4_d2, n_SO4_d3
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -3205,6 +3205,10 @@ C****
 !@+                    CTEM,CD3D,CI3D,CL3D,CDN3D,CRE3D,CLWP
 !@+                    TAUSS,TAUMC,CLDSS,CLDMC
 #endif
+#ifdef TRACERS_HETCHEM
+!@+                    SO4_d1,SO4_d2,SO4_d3,
+!@+                    Clay, Silt1, Silt2, Silt3
+#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
 !@+                    DUEMIS,DUDEPTURB,DUDEPGRAV,DUDEPWET,DUTRS,DULOAD
@@ -3246,6 +3250,7 @@ C****
 #ifdef TRACERS_DUST
      &     ,dust_flux2_glob
 #endif
+      USE TRACER_COM
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
@@ -3429,9 +3434,6 @@ c          data=sday*prec/dtsrc
      *               +trm(i,j,1,n_SO4_d1)
      *               +trm(i,j,1,n_SO4_d2)
      *               +trm(i,j,1,n_SO4_d3)
-     *               +trm(i,j,1,n_SO4_d4)
-     *               +trm(i,j,1,n_SO4_s1)
-     *               +trm(i,j,1,n_SO4_s2)
 #endif
 
           end do
@@ -3663,7 +3665,127 @@ C**** write out
           end do
 #endif
         end select
-
+#ifdef TRACERS_HETCHEM
+            select case (namedd(k))
+        case ("SO2")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_SO2)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do
+        case ("SO4")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_SO4)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do
+        case ("SO4_d1")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_SO4_d1)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do        
+        case ("SO4_d2")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)= trm(i,j,l,n_SO4_d2)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do
+        case ("SO4_d3")  
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_SO4_d3)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do        
+        case ("Clay")  
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_Clay)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do        
+        case ("Silt1")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_Silt1)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do  
+        case ("Silt2")  
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_Silt2)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do
+        case ("Silt3")  
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_Silt3)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do
+             end select
+#endif
 #ifdef CLD_AER_CDNC   !for 3 hrly diagnostics
             select case (namedd(k))
               case ("CTEM")

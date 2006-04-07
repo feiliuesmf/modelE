@@ -507,6 +507,9 @@ C****
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
       USE TRDIAG_COM, only : to_per_mil
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRDIAG_COM, only : jls_H2Omr, jls_day
+#endif
       USE TRDIAG_COM, only : ktajls
       USE BDJLT
       IMPLICIT NONE

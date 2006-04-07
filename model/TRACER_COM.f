@@ -36,6 +36,134 @@ C**** Each tracer has a variable name and a unique index
      *     'Air     ','SF6     ','Rn222   ','CO2     ','N2O     ',
      *     'CFC11   ','14CO2   ','CH4     ','O3      '/)
 #else
+
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) && (defined TRACERS_NITRATE)
+!@var ntm_chem number of drew-only tracers
+#ifdef regional_Ox_tracers
+      integer, parameter :: ntm=47,ntm_chem=21,ntm_dust=4
+C Note: please always put the regional Ox tracers at the end,
+C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'OxREG1  ','OxREG2  ','OxREG3  ','OxREG4  ','OxREG5  ',
+     *    'OxREG6  ',
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     ','Clay    ','Silt1   ',
+     *    'Silt2   ','Silt3   ','NH3     ','NH4     ','NO3p    ',
+     *    'SO4_d1  ','SO4_d2  ','SO4_d3  ',
+     *    'N_d1    ','N_d2    ','N_d3    '/)
+#else
+      integer, parameter :: ntm=41,ntm_chem=15,ntm_dust=4
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     ',
+     *    'Clay    ','Silt1   ','Silt2   ','Silt3   ','NH3     ',
+     *    'NH4     ','NO3p    ','SO4_d1  ','SO4_d2  ','SO4_d3  ',
+     *    'N_d1    ','N_d2    ','N_d3    '/)
+#endif
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
+!@var ntm_chem number of drew-only tracers
+#ifdef regional_Ox_tracers
+      integer, parameter :: ntm=44,ntm_chem=21,ntm_dust=4
+C Note: please always put the regional Ox tracers at the end,
+C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'OxREG1  ','OxREG2  ','OxREG3  ','OxREG4  ','OxREG5  ',
+     *    'OxREG6  ',
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     ','Clay    ','Silt1   ',
+     *    'Silt2   ','Silt3   ','SO4_d1  ','SO4_d2  ','SO4_d3  ',
+     *    'N_d1    ','N_d2    ','N_d3    '/)
+#else
+      integer, parameter :: ntm=38,ntm_chem=15,ntm_dust=4
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     ','Clay    ','Silt1   ',
+     *    'Silt2   ','Silt3   ','SO4_d1  ','SO4_d2  ','SO4_d3  ',
+     *    'N_d1    ','N_d2    ','N_d3    '/)
+#endif
+#else
+#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
+!@var ntm_chem number of drew-only tracers
+#ifdef regional_Ox_tracers
+      integer, parameter :: ntm=40,ntm_chem=21
+C Note: please always put the regional Ox tracers at the end,
+C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'OxREG1  ','OxREG2  ','OxREG3  ','OxREG4  ','OxREG5  ',
+     *    'OxREG6  ',
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     ','Clay    ',
+     *    'SO4_d1  ','SO4_d2  ','SO4_d3  ',
+     *    'N_d1    ','N_d2    ','N_d3    '/)
+#else
+      integer, parameter :: ntm=34,ntm_chem=15
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     ',
+     *    'SO4_d1  ','SO4_d2  ','SO4_d3  ',
+     *    'N_d1    ','N_d2    ','N_d3    '/)
+#endif
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_NITRATE)
+!@var ntm_chem number of drew-only tracers
+#ifdef regional_Ox_tracers
+      integer, parameter :: ntm=35,ntm_chem=21,ntm_dust=4
+C Note: please always put the regional Ox tracers at the end,
+C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'OxREG1  ','OxREG2  ','OxREG3  ','OxREG4  ','OxREG5  ',
+     *    'OxREG6  ',
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2','NH3     ','NH4     ','NO3p    ',
+     *    'Clay    ','Silt1   ','Silt2   ','Silt3   '/)
+#else
+      integer, parameter :: ntm=35,ntm_chem=15,ntm_dust=4
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     ','NH3     ','NH4     ',
+     *    'NO3p    ','Clay    ','Silt1   ','Silt2   ','Silt3   '/)
+#endif
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_NITRATE)
+      integer, parameter :: ntm=20,ntm_dust=4
+      character*8, parameter :: trname(ntm)=(/
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     ','NH3     ','NH4     ',
+     *    'NO3p    ','Clay    ','Silt1   ','Silt2   ','Silt3   '/)
+#else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
 !@var ntm_chem number of drew-only tracers
 #ifdef regional_Ox_tracers
@@ -150,14 +278,12 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
 #endif
 #else
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
-      integer, parameter :: ntm=23,Ntm_dust=4
+      integer, parameter :: ntm=20,Ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
      *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
      *    'OCII    ','OCIA    ','OCB     ','Clay    ','Silt1   ',
-     *    'Silt2   ','Silt3   ',
-     *    'SO4_s1  ','SO4_s2  ','SO4_d1  ','SO4_d2  ','SO4_d3  ',
-     *    'SO4_d4  '/)
+     *    'Silt2   ','Silt3   ','SO4_d1  ','SO4_d2  ','SO4_d3  '/)
 #else
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_DUST)
       integer, parameter :: ntm=17,ntm_dust=4
@@ -247,7 +373,12 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #endif
 #endif
 #endif
+#endif
+#endif
+#endif
+#endif
 #endif 
+#endif
 #endif
 #endif
 #endif
@@ -284,7 +415,8 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *     n_HBr=0,    n_HOBr=0,  n_BrONO2=0,n_CFC=0,
      *     n_Pb210 = 0,n_Be7=0,   n_Be10=0,
      *     n_seasalt1=0,  n_seasalt2=0, n_SO4_d1=0,  n_SO4_d2=0,
-     *     n_SO4_d3=0, n_SO4_d4=0, n_SO4_s1=0,  n_SO4_s2=0,
+     *     n_SO4_d3=0,n_N_d1=0,  n_N_d2=0,  n_N_d3=0,
+     &     n_NH3=0,   n_NH4=0,   n_NO3p=0,
      *     n_BCII=0,  n_BCIA=0,  n_BCB=0,
      *     n_OCII=0,  n_OCIA=0,  n_OCB=0,
      *     n_OCI1=0,  n_OCI2=0,  n_OCI3=0,
@@ -390,7 +522,7 @@ C****
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: trmom
 
 !@var ntsurfsrcmax maximum number of surface 2D sources/sinks
-      integer, parameter :: ntsurfsrcmax=14
+      integer, parameter :: ntsurfsrcmax=15
 !@var ntsurfsrc no. of non-interactive surface sources for each tracer
       integer, dimension(ntm) :: ntsurfsrc 
 !@var ntisurfsrc no. of interactive surface sources for each tracer
@@ -452,8 +584,8 @@ C note, tr_evap_fact is not dimensioned as NTM:
 #ifdef TRACERS_HETCHEM
       integer, parameter :: rhet=3
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
-     *                                         ,rxts4,rxtss1,rxtss2
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: krate
+     *                                         ,rxts4
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: krate
 #endif
 
       END MODULE TRACER_COM
@@ -486,9 +618,8 @@ C****
 #endif
 #ifdef TRACERS_HETCHEM
       ALLOCATE( rxts(IM,J_0H:J_1H,LM),rxts1(IM,J_0H:J_1H,LM),
-     *         rxtss1(IM,J_0H:J_1H,LM),rxtss2(IM,J_0H:J_1H,LM),
      *         rxts2(IM,J_0H:J_1H,LM),rxts3(IM,J_0H:J_1H,LM),
-     *         rxts4(IM,J_0H:J_1H,LM),krate(IM,J_0H:J_1H,LM,rhet) )
+     *         rxts4(IM,J_0H:J_1H,LM),krate(IM,J_0H:J_1H,LM,8,rhet))
 #endif
 
       END SUBROUTINE ALLOC_TRACER_COM

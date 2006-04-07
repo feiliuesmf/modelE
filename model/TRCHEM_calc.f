@@ -32,7 +32,7 @@ C
      &         ,NregOx,regOx_t,regOx_b,regOx_n,regOx_s,regOx_e,regOx_w
 #endif
 #ifdef TRACERS_HETCHEM
-     &                  ,krate
+     &                  ,krate,n_N_d1,n_N_d2,n_N_d3
 #endif
       USE TRCHEM_Shindell_COM, only: chemrate,photrate,mass2vol,
      &                   yCH3O2,yC2O3,yXO2,yXO2N,yRXPAR,yAldehyde,
@@ -191,7 +191,7 @@ c      HCHO, Alkenes, and CO per rxn, correct here following Houweling
        prod(n_HCHO,L)=prod(n_HCHO,L)-0.10d0*chemrate(31,L)
        prod(n_Alkenes,L)=prod(n_Alkenes,L)-0.45d0*chemrate(31,L)
 #ifdef TRACERS_HETCHEM
-       dest(n_HNO3,l) = dest(n_HNO3,l)-krate(i,j,l,1)*y(n_HNO3,l)*dt2
+       dest(n_HNO3,l) = dest(n_HNO3,l)-krate(i,j,l,1,1)*y(n_HNO3,l)*dt2
 #endif
       enddo
 c
@@ -618,7 +618,7 @@ c
 #ifdef TRACERS_HETCHEM
          if(igas.eq.n_HNO3) write(6,'(a48,a6,e10.3)')
      *    'destruction from HNO3 +dust ','dy = ',
-     *    -y(n_HNO3,lprn)*krate(iprn,jprn,lprn,1)*dt2
+     *    -y(n_HNO3,lprn)*krate(iprn,jprn,lprn,1,1)*dt2
 #endif
          if(igas.eq.n_Paraffin) write(6,'(a48,a6,e10.3)')
      *    'destruction from RXPAR ',
@@ -936,7 +936,7 @@ c     (since equilibration of short lived gases may alter this)
 #endif
 #ifdef TRACERS_HETCHEM
        write(*,*) 'HNO3 loss on dust replaced for cons ',
-     &  (krate(i,j,lprn,1)*y(n_HNO3,lprn)*dt2)*rMAbyM(lprn)*dxyp(J)
+     &  (krate(i,j,lprn,1,1)*y(n_HNO3,lprn)*dt2)*rMAbyM(lprn)*dxyp(J)
 #endif
       endif
 c
@@ -962,15 +962,19 @@ c       First check for nitrogen loss > 100%
      &  changeL(L,n_BrONO2)=1.d0-trm(I,J,L,n_BrONO2)
 #endif
 c
+#ifdef TRACERS_HETCHEM
+       changeL(L,n_HNO3)=changeL(L,n_HNO3)+(krate(i,j,l,1,1)
+     & *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)/mass2vol(n_HNO3)
+       if(i.eq.iprn.and.j.eq.jprn) print *, changeL(L,n_HNO3)
+     &  ,krate(i,j,l,1,1),y(n_HNO3,l)
+#endif
 c       Next insure balance between dNOx and sum of dOthers
         sumN=(2.d0*changeL(L,n_N2O5))*mass2vol(n_N2O5)+
      *  (changeL(L,n_HNO3))*mass2vol(n_HNO3)+
      *  (changeL(L,n_HO2NO2))*mass2vol(n_HO2NO2)+
      *  (changeL(L,n_PAN))*mass2vol(n_PAN)+
      *  (changeL(L,n_AlkylNit))*mass2vol(n_AlkylNit)
-#ifdef TRACERS_HETCHEM
-       sumN = sumN+(krate(i,j,l,1)*y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)
-#endif
+
 #ifdef SHINDELL_STRAT_CHEM
           if(L.ge.maxT+1)sumN=sumN+
      *     changeL(L,n_ClONO2)*mass2vol(n_ClONO2)+
@@ -1041,7 +1045,7 @@ c          reduce NOx production to match N loss
      *      2.d0*sv_changeN2O(L)*mass2vol(n_N2O)/mass2vol(n_NOx)
 #endif
           endif
-         else
+          else
 c         NOx being destroyed (net change is negative)
           if (ratio.gt.1.d0)then
            sumP=0
@@ -1115,6 +1119,17 @@ c          increase N production to match NOx loss (12/4/2001)
           endif
          endif
 
+#ifdef TRACERS_HETCHEM
+      changeL(L,n_HNO3)=changeL(L,n_HNO3)-(krate(i,j,l,1,1)
+     & *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)/mass2vol(n_HNO3)
+      changeL(L,n_N_d1)=changeL(L,n_N_d1)+(krate(i,j,l,2,1)
+     & *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)/mass2vol(n_HNO3)
+      changeL(L,n_N_d2)=changeL(L,n_N_d2)+(krate(i,j,l,3,1)
+     & *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)/mass2vol(n_HNO3)
+      changeL(L,n_N_d3)=changeL(L,n_N_d3)+(krate(i,j,l,4,1)
+     & *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)/mass2vol(n_HNO3)
+
+#endif
         END IF ! skipped section above if ratio very close to one
 C
         if(prnchg.and.J.eq.jprn.and.I.eq.iprn.and.L.eq.lprn)

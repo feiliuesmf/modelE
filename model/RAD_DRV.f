@@ -605,10 +605,10 @@ c       FS8OPX = (/0d0, 0d0, 1d0, 0d0, 2d0, 2d0,  1d0 , 1d0/)
         FS8OPX = (/0d0, 0d0, 1d0, 0d0, 0d0, 0d0,  1d0 , 1d0/)
         FT8OPX = (/0d0, 0d0, 1d0, 0d0, 0d0, 0d0, 1.3d0, 1d0/)
       end if
-c       NTRACE=0
+#ifndef TRACERS_NITRATE
       NTRACE=6
       TRRDRY(1:NTRACE)=(/ .2d0, .44d0, 1.7d0, .3d0, .1d0, .1d0/)
-c tracer 1 is sulfate, tracers 2 and 3 are seasalt
+cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
       ITR(1:NTRACE) = (/ 1,2,2,4, 5,6/)
       KRHTRA(1:NTRACE)=(/1,1,1,1, 0,0/)
 C**** Define indices to map model tracer arrays to radiation arrays
@@ -617,7 +617,20 @@ C**** for the diagnostics
      *     (/ n_sO4, n_seasalt1, n_seasalt2, n_OCIA, n_BCIA, n_BCB/)
 C**** define weighting (only used for clays so far)
       WTTR(1:NTRACE) = 1d0
-C**** If some tracers are not being used reduce NTRACE accordingly
+#else
+      NTRACE=7
+      TRRDRY(1:NTRACE)=(/ .2d0, .44d0, 1.7d0, .3d0, .1d0, .1d0, 0.3d0/)
+cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
+      ITR(1:NTRACE) = (/ 1,2,2,4, 5,6,3/)
+      KRHTRA(1:NTRACE)=(/1,1,1,1, 0,0,1/)
+C**** Define indices to map model tracer arrays to radiation arrays
+C**** for the diagnostics
+      NTRIX(1:NTRACE)=
+     *     (/ n_sO4, n_seasalt1, n_seasalt2, n_OCIA, n_BCIA, n_BCB, 
+     *       n_NO3p/)
+C**** define weighting (only used for clays so far)
+      WTTR(1:NTRACE) = 1d0
+#endif
 #endif
 
 #ifdef TRACERS_DUST
@@ -873,7 +886,7 @@ C     OUTPUT DATA
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
-     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
+     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,cosz2
 #ifdef TRACERS_DUST
      &     ,srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
 #endif
@@ -917,7 +930,7 @@ C     OUTPUT DATA
       USE FLUXES, only : gtemp,nstype
       USE DOMAIN_DECOMP, ONLY: grid,GET, write_parallel
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
-      USE DOMAIN_DECOMP, ONLY: GLOBALSUM, AM_I_ROOT, HERE
+      USE DOMAIN_DECOMP, ONLY: GLOBALSUM, HERE
       USE RAD_COSZ0, only : COSZT,COSZS
 
 #ifdef TRACERS_ON
@@ -941,7 +954,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
 !$OMP  THREADPRIVATE(/RADPAR_hybrid/)
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     *     COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
+     *     COSZA,TRINCG,BTMPW,WSOIL,fmp_com
       REAL*8, DIMENSION(4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFS,TNFS
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::

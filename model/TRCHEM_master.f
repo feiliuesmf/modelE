@@ -31,7 +31,7 @@ c
      &                  ,NregOx,n_OxREG1
 #endif
 #ifdef TRACERS_HETCHEM
-     &                  ,krate
+     &                  ,krate,n_N_d1,n_N_d2,n_N_d3
 #endif
       USE CONSTANT, only: radian,gasc,mair,mb2kg,pi,avog
       USE TRDIAG_COM, only : jls_N2O5sulf,tajls,taijs,ijs_JH2O2
@@ -93,6 +93,9 @@ C**** Local parameters and variables and arguments:
      *     ,gwprodN2O5,wprod_sulf,wprodCO,dNO3,wprodHCHO,prod_sulf
      *     ,RVELN2O5,changeAldehyde,changeAlkenes,changeAlkylNit
      &     ,changeIsoprene,changeHCHO,changeHNO3,changeNOx,changeN2O5
+#ifdef TRACERS_HETCHEM
+     *     ,changeN_d1,changeN_d2,changeN_d3
+#endif
 #ifdef SHINDELL_STRAT_CHEM
       REAL*8, DIMENSION(LM)      :: ClOx_old 
       REAL*8, DIMENSION(LM), PARAMETER      :: thick = (/
@@ -125,6 +128,10 @@ C++++ First, some INITIALIZATIONS :
 
 C Calculation of gas phase reaction rates for sulfur chemistry
       CALL GET_SULF_GAS_RATES
+#ifdef TRACERS_HETCHEM
+c calculation of removal rates on dust surfaces
+      CALL HETCDUST
+#endif
 C
 c Set "chemical time step". Really this is a method of applying only
 c a fraction of the chemistry change to the tracer mass for the first
@@ -177,13 +184,12 @@ C
 #ifdef regional_Ox_tracers
 !$OMP* bysumOx, sumOx,     n2,
 #endif
+#ifdef TRACERS_HETCHEM
+!$OMP* changeN_d1,changeN_d2,changeN_d3,
+#endif
 !$OMP* igas, inss, J, L, LL, Lqq, maxl, N, error )
 !$OMP* SHARED (N_NOX,N_HNO3,N_N2O5,N_HCHO,N_ALKENES,N_ISOPRENE,
 !$OMP* N_ALKYLNIT)
-#ifdef TRACERS_HETCHEM
-c calculation of removal rates on dust surfaces
-      CALL HETCDUST
-#endif
 c
       DO J=1,JM                          ! >>>> MAIN J LOOP BEGINS <<<<
 #ifdef SHINDELL_STRAT_CHEM
@@ -688,8 +694,11 @@ c
      &                                           changeAlkylNit*ratioN
          endif
 #ifdef TRACERS_HETCHEM
-C Reaktions on Dust
-           changeHNO3 = changeHNO3 - krate(i,j,l,1) * y(n_HNO3,l) * dt2
+C Reactions on Dust
+           changeHNO3 = changeHNO3 - krate(i,j,l,1,1) * y(n_HNO3,l) *dt2
+           changeN_d1 = krate(i,j,l,2,1) * y(n_HNO3,l) *dt2
+           changeN_d2 = krate(i,j,l,3,1) * y(n_HNO3,l) *dt2
+           changeN_d3 = krate(i,j,l,4,1) * y(n_HNO3,l) *dt2
 #endif
 C
 C Apply Alkenes, AlkyNit, and Aldehyde changes here:
@@ -724,6 +733,28 @@ C -- HNO3 --  (HNO3 from gas and het phase rxns )
            changeL(l,n_HNO3) = 1.d0 - trm(i,j,l,n_HNO3)
            changeHNO3=changeL(L,n_HNO3)*mass2vol(n_HNO3)*bypfactor
          END IF
+#ifdef TRACERS_HETCHEM
+         changeL(L,n_N_d1)=changeN_d1*pfactor*bymass2vol(n_N_d1)
+           if(i.eq.36.and.j.eq.28.and.l.eq.1) then
+           print*, 'Mchange L 2 ', changeL(L,n_N_d1),changeN_d1
+           endif
+         IF((trm(i,j,l,n_N_d1)+changeL(l,n_N_d1)).lt.1.d0) THEN
+           changeL(l,n_N_d1) = 1.d0 - trm(i,j,l,n_N_d1)
+           changeN_d1=changeL(L,n_N_d1)*mass2vol(n_N_d1)*bypfactor
+         END IF
+
+         changeL(L,n_N_d2)=changeN_d2*pfactor*bymass2vol(n_N_d2)
+         IF((trm(i,j,l,n_N_d2)+changeL(l,n_N_d2)).lt.1.d0) THEN
+           changeL(l,n_N_d2) = 1.d0 - trm(i,j,l,n_N_d2)
+           changeN_d2=changeL(L,n_N_d2)*mass2vol(n_N_d2)*bypfactor
+         END IF
+
+         changeL(L,n_N_d3)=changeN_d3*pfactor*bymass2vol(n_N_d3)
+         IF((trm(i,j,l,n_N_d3)+changeL(l,n_N_d3)).lt.1.d0) THEN
+           changeL(l,n_N_d3) = 1.d0 - trm(i,j,l,n_N_d3)
+           changeN_d3=changeL(L,n_N_d3)*mass2vol(n_N_d3)*bypfactor
+         END IF
+#endif
 C -- N2O5 --  (N2O5 from gas and het phase rxns)
          changeL(L,n_N2O5)=changeN2O5*pfactor*bymass2vol(n_N2O5)
          IF((trm(i,j,l,n_N2O5)+changeL(l,n_N2O5)).lt.1.d0) THEN
@@ -787,8 +818,8 @@ c Some More Chemistry Diagnostics:
      *     ,y(n_HNO3,L),'(',1.d9*y(n_HNO3,L)/y(nM,L),' ppbv)'
 #ifdef TRACERS_HETCHEM
           write(6,198) ay(n_HNO3),': ',
-     *    (-krate(i,j,l,1)*y(n_HNO3,l)*dt2),' molecules dest dust ',
-     *    (100.d0*(-krate(i,j,l,1)*y(n_HNO3,l)*dt2))/y(n_HNO3,L),
+     *    (-krate(i,j,l,1,1)*y(n_HNO3,l)*dt2),' molecules dest dust ',
+     *    (100.d0*(-krate(i,j,l,1,1)*y(n_HNO3,l)*dt2))/y(n_HNO3,L),
      *    ' percent of'
      *     ,y(n_HNO3,L),'(',1.d9*y(n_HNO3,L)/y(nM,L),' ppbv)'
 #endif
@@ -1192,6 +1223,12 @@ C Save chemistry changes for updating tracers in apply_tracer_3Dsource.
         DO N=1,NTM_CHEM
           tr3Dsource(i,j,l,nChemistry,n) = changeL(l,n) * bydtsrc
         END DO
+#ifdef TRACERS_HETCHEM
+        tr3Dsource(i,j,l,nChemistry,n_N_d1) = changeL(l,n_N_d1) *bydtsrc
+        tr3Dsource(i,j,l,nChemistry,n_N_d2) = changeL(l,n_N_d2) *bydtsrc
+        tr3Dsource(i,j,l,nChemistry,n_N_d3) = changeL(l,n_N_d3) *bydtsrc
+#endif
+
 c Save new tracer Ox field, in case interactive ozone is used:
 !
         o3_tracer_save(l,i,j)=

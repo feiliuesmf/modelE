@@ -875,7 +875,7 @@ c Aerosol chemistry
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
      * r5,d5,dmssink
 #ifdef TRACERS_HETCHEM
-     *       ,d41,d42,d43,d44,d45,d46,d40,o3mc,rsulfo3
+     *       ,d41,d42,d43,d44,o3mc,rsulfo3
 #endif
       real*8 bciage,ociage
       integer i,j,l,n,iuc,iun,itau,ixx1,ixx2,ichemi,itopen,itt,
@@ -897,12 +897,9 @@ C**** initialise source arrays
         tr3Dsource(:,:,l,1,n_H2O2_s)=0. ! H2O2 chem source
         tr3Dsource(:,:,l,2,n_H2O2_s)=0. ! H2O2 chem sink
 #ifdef TRACERS_HETCHEM
-        tr3Dsource(:,:,l,1,n_SO4_s1) =0. ! SO4 on seasalt1
-        tr3Dsource(:,:,l,1,n_SO4_s2) =0. ! SO4 on seasalt2
         tr3Dsource(:,:,l,1,n_SO4_d1) =0. ! SO4 on dust
         tr3Dsource(:,:,l,1,n_SO4_d2) =0. ! SO4 on dust
         tr3Dsource(:,:,l,1,n_SO4_d3) =0. ! SO4 on dust
-        tr3Dsource(:,:,l,1,n_SO4_d4) =0. ! SO4 on dust
 #endif
         if (n_BCII.gt.0) then
           tr3Dsource(:,:,l,1,n_BCII)=0. ! BCII sink
@@ -986,7 +983,7 @@ c      endif
 c calculation of heterogeneous reaction rates: SO2 on dust 
       CALL SULFDUST
 c calculation of heterogeneous reaction rates: SO2 on seasalt
-      CALL SULFSEAS 
+c      CALL SULFSEAS 
       CALL GET_O3_OFFLINE
 #endif
 #endif
@@ -1141,16 +1138,12 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
        d41 = exp(-rxts1(i,j,l)*dtsrc)     
        d42 = exp(-rxts2(i,j,l)*dtsrc)     
        d43 = exp(-rxts3(i,j,l)*dtsrc)     
-       d44 = exp(-rxts4(i,j,l)*dtsrc)     
-c      d45 = (exp(-rxtss1(i,j,l)*dtsrc)) *(1.d0-rsulfo3)   
-c      d46 = (exp(-rxtss2(i,j,l)*dtsrc)) *(1.d0-rsulfo3)
+c       d44 = exp(-rxts4(i,j,l)*dtsrc)     
        tr3Dsource(i,j,l,5,n) = (-trm(i,j,l,n)*(1.d0-d41)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d4)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d42)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d43)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d44)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d45)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d46)/dtsrc)
+c     .                       + ( -trm(i,j,l,n)*(1.d0-d44)/dtsrc)
 #else
        tr3Dsource(i,j,l,5,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
 #endif        
