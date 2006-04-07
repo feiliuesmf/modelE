@@ -378,7 +378,6 @@ C         Only alter Ox between 250 and 30 hPa:
           F0(n) = 1.8d0
           HSTAR(n) = 1.d-2
 #endif
-
       case ('NOx')
       n_NOx = n
           ntm_power(n) = -11
@@ -740,31 +739,31 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           trradius(n)=4.4D-06 !m this is silt2 value
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
-      case ('SO4_d4')
-      n_SO4_d4 = n
+      case ('N_d1')
+      n_N_d1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)=2.65d3   !kg/m3 this is silt3 value
-          trradius(n)=6.7D-06 !m this is silt3 value
+          tr_mm(n) = 62.   ! NO3
+          trpdens(n)=2.5d3   !kg/m3 this is clay density
+          trradius(n)=0.75D-06 !m
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
-      case ('SO4_s1')
-      n_SO4_s1 = n
+      case ('N_d2')
+      n_N_d2 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 96.   !!!! Sulfat
-          trpdens(n)=1.7d3   !kg/m3 
-          trradius(n)=3.d-7 !m
+          tr_mm(n) = 62.
+          trpdens(n)=2.65d3   !kg/m3 this is silt1 value
+          trradius(n)=2.2D-06 !m
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
-      case ('SO4_s2')
-      n_SO4_s2 = n
+      case ('N_d3')
+      n_N_d3 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 96.   !!!! Sulfat
-          trpdens(n)=1.7d3   !kg/m3 this is clay density
-          trradius(n)=3.D-7 !m
+          tr_mm(n) = 62.
+          trpdens(n)=2.65d3   !this is silt2 value
+          trradius(n)=4.4D-06 !m this is silt2 value
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 #endif
@@ -950,6 +949,37 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 #endif
           fq_aer(n)=1.0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
+#ifdef TRACERS_NITRATE
+      case ('NH3')
+      n_NH3 = n
+          ntsurfsrc(n) = 1   
+          ntm_power(n) = -10
+          tr_mm(n) = 17. 
+       tr_RKD(n) = 0.7303   !tr_RKD=74 M/atm
+       tr_DHD(n) = -2.84d4  !tr_DHD=-6.80 kcal/mole
+       tr_wd_TYPE(n) = nGAS
+#ifdef TRACERS_DRYDEP
+          HSTAR(n)=tr_RKD(n)*convert_HSTAR
+#endif
+      case ('NH4')
+      n_NH4 = n
+          ntsurfsrc(n) = 0   
+          ntm_power(n) = -10
+          tr_mm(n) = 18. 
+          trpdens(n)=1.7d3 
+          trradius(n)=3.d-7
+          fq_aer(n)=1.0   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+      case ('NO3p')
+      n_NO3p = n
+          ntsurfsrc(n) = 0   
+          ntm_power(n) = -11
+          tr_mm(n) = 62. 
+          trpdens(n)=1.7d3 
+          trradius(n)=3.d-7
+          fq_aer(n)=1.0   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+#endif TRACERS_NITRATE
 
 #ifdef TRACERS_DUST
       CASE('Clay')
@@ -1820,7 +1850,16 @@ C**** special one unique to HTO
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
-
+#ifdef TRACERS_NITRAE
+       case ('HNO3')
+        k = k + 1
+        jls_3Dsource(nChemistry,n) = k
+        sname_jls(k) = 'chemistry_nitrat_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF HNO3 BY NITRAT C'
+        jls_ltop(k) = LTOP
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif
        case ('CO')
         k = k + 1
         jls_3Dsource(nChemistry,n) = k
@@ -2326,24 +2365,6 @@ c gravitational settling of SO4_d3
         jls_grav(n) = k
         sname_jls(k) = 'grav_sett_of'//trname(n)
         lname_jls(k) = 'Gravitational Settling of SO4_d3'
-        jls_ltop(k) = LM
-        jls_power(k) = -3
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-
-        case ('SO4_d4')
-c gas phase source of SO4_d4
-        k = k + 1
-        jls_3Dsource(1,n) = k
-        sname_jls(k) = 'gas_phase_source_of'//trname(n)
-        lname_jls(k) = 'SO4_d4 gas phase source'
-        jls_ltop(k) = LM
-        jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-c gravitational settling of SO4_d4
-        k = k + 1
-        jls_grav(n) = k
-        sname_jls(k) = 'grav_sett_of'//trname(n)
-        lname_jls(k) = 'Gravitational Settling of SO4_d4'
         jls_ltop(k) = LM
         jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -4655,6 +4676,101 @@ c SO4 clear sky longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
+#ifdef TRACERS_NITRATE
+      case ('NH3')
+c production of NH3 from all emissions
+        k = k + 1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'NH3 source from emission'
+        sname_ijts(k) = 'NH3_source_from_emission'
+        ijts_power(k) = -15.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+      case ('NO3p')  
+c NO3 optical thickness
+        k = k + 1
+        ijts_tau(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'NO3 optical thickness'
+        sname_ijts(k) = 'tau_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c NO3 clear sky optical thickness
+        k = k + 1
+        ijts_tau(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'NO3 clr sky optical thickness'
+        sname_ijts(k) = 'tau_CS_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c NO3 shortwave radiative forcing
+        k = k + 1
+        ijts_fc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'NO3 SW radiative forcing'
+        sname_ijts(k) = 'swf_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c NO3 longwave radiative forcing
+        k = k + 1
+        ijts_fc(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'NO3 LW radiative forcing'
+        sname_ijts(k) = 'lwf_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c NO3 shortwave surface radiative forcing
+        k = k + 1
+        ijts_fc(3,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'NO3 SW surface rad forcing'
+        sname_ijts(k) = 'swf_surf_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c NO3 longwave surface radiative forcing
+        k = k + 1
+        ijts_fc(4,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'NO3 LW surface rad forcing'
+        sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c NO3 clear sky shortwave radiative forcing
+        k = k + 1
+        ijts_fc(5,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'NO3 clr sky SW rad forcing'
+        sname_ijts(k) = 'swf_CS'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c NO3 clear sky longwave radiative forcing
+        k = k + 1
+        ijts_fc(6,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'NO3 clr sky LW rad forcing'
+        sname_ijts(k) = 'lwf_CS'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+#endif
 #ifdef TRACERS_HETCHEM
       case ('SO4_d1')
 c chemical production of SO4 from SO2 on dust
@@ -4664,36 +4780,6 @@ c chemical production of SO4 from SO2 on dust
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4d1 Chemical source'
         sname_ijts(k) = 'SO4d1_Chemical_source'
-        ijts_power(k) = -10.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-c SO4 dry dep
-        k = k + 1
-        ijts_source(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4d1 Dry Dep'
-        sname_ijts(k) = 'SO4d1_Dry_Dep'
-        ijts_power(k) = -10.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-c SO4 wet dep
-        k = k + 1
-        ijts_source(3,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4d1 Wet Dep'
-        sname_ijts(k) = 'SO4d1_Wet_Dep'
-        ijts_power(k) = -10.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-c SO4 settling
-        k = k + 1
-        ijts_source(4,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Gravitational settling of '//trname(n)
-        sname_ijts(k) = 'Grav_Settle_of_'//trname(n)
         ijts_power(k) = -10.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -4708,16 +4794,6 @@ c chemical production of SO4 from SO2 on dust
         ijts_power(k) = -10.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-c SO4 dry dep
-        k = k + 1
-        ijts_source(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4d2 Dry Dep'
-        sname_ijts(k) = 'SO4d2_Dry_Dep'
-        ijts_power(k) = -10.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       case ('SO4_d3')
 c chemical production of SO4 from SO2 on dust
         k = k + 1
@@ -4726,37 +4802,6 @@ c chemical production of SO4 from SO2 on dust
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4d3 Chemical source'
         sname_ijts(k) = 'SO4d3_Chemical_source'
-        ijts_power(k) = -10.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-c SO4 dry dep
-        k = k + 1
-        ijts_source(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4d3 Dry Dep'
-        sname_ijts(k) = 'SO4d3_Dry_Dep'
-        ijts_power(k) = -10.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      case ('SO4_d4')
-c chemical production of SO4 from SO2 on dust
-        k = k + 1
-        ijts_source(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4d4 Chemical source'
-        sname_ijts(k) = 'SO4d4_Chemical_source'
-        ijts_power(k) = -10.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-c SO4 dry dep
-        k = k + 1
-        ijts_source(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4d4 Dry Dep'
-        sname_ijts(k) = 'SO4d4_Dry_Dep'
         ijts_power(k) = -10.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -5930,6 +5975,16 @@ C**** set some defaults
       conpts(g-12)='Strat Overwrite'
       qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #endif
+
+#ifdef TRACERS_NITRATE
+       select case (trname(n)) 
+       case ('HNO3')
+      g=g+1; itcon_3Dsrc(3,N) = g
+      qcon(itcon_3Dsrc(3,N)) = .true.
+      conpts(g-12)='Nitrate Chemistry'
+      qsum(itcon_3Dsrc(3,N)) = .true.
+       end select
+#endif
 #ifdef TRACERS_WATER
       if(dowetdep(n)) then
         g=g+1; itcon_mc(n) = g
@@ -6530,7 +6585,7 @@ C**** set some defaults
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
 #ifdef TRACERS_HETCHEM
-      case ('SO4_s1','SO4_s2','SO4_d1', 'SO4_d2', 'SO4_d3', 'SO4_d4')
+      case ('SO4_d1', 'SO4_d2','SO4_d3','N_d1','N_d2','N_d3')
       itcon_3Dsrc(1,N) = 13
       qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
       qsum(itcon_3Dsrc(1,N)) = .true.
@@ -6555,7 +6610,80 @@ C**** set some defaults
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 #endif
-
+#ifdef TRACERS_NITRATE
+      case ('NH3')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_mc(n) =14
+      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =15
+      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n,1)=16
+        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+        qsum(itcon_dd(n,1)) = .false.
+        itcon_dd(n,2)=17
+        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+        qsum(itcon_dd(n,2)) = .false.
+      end if
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+      case ('NH4')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_mc(n) =14
+      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =15
+      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n,1)=16
+        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+        qsum(itcon_dd(n,1)) = .false.
+        itcon_dd(n,2)=17
+        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+        qsum(itcon_dd(n,2)) = .false.
+      end if
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+      case ('NO3p')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_mc(n) =14
+      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =15
+      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n,1)=16
+        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+        qsum(itcon_dd(n,1)) = .false.
+        itcon_dd(n,2)=17
+        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+        qsum(itcon_dd(n,2)) = .false.
+      end if
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+#endif
       case ('Be7')
       itcon_3Dsrc(1,N) =13
       qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'COSMO SRC'
@@ -6820,6 +6948,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,Mtrac,minfr
 #endif
+#endif
+#ifdef TRACERS_NITRATE
+      USE NITRATE_AEROSOL
 #endif
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr
@@ -7217,7 +7348,17 @@ c**** earth
 #endif
           end do; end do; end do
 #endif
+        case('N_d1','N_d2','N_d3')  
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
 
+#ifdef TRACERS_NITRATE
+        case('NH3','NH4','NO3p')  
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+#endif
         case ('H2O2')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*5.d-10
@@ -7347,10 +7488,10 @@ C         AM=kg/m2, and DXYP=m2:
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-13
           end do; end do; end do
 
-        case('MSA', 'SO2', 'SO4', 'SO4_d1', 'SO4_d2', 'SO4_d3','SO4_d4',
+        case('MSA', 'SO2', 'SO4', 'SO4_d1', 'SO4_d2', 'SO4_d3',
      *         'BCII', 'BCIA', 'BCB', 'OCII', 'OCIA', 'OCB', 'H2O2_s',
      *         'OCI1', 'OCI2', 'OCI3', 'OCA1','OCA2', 'OCA3', 'OCA4',
-     *         'seasalt1', 'seasalt2','SO4_s1','SO4_s2')
+     *         'seasalt1', 'seasalt2')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
@@ -7450,6 +7591,49 @@ c read in AEROCOM seasalt
           status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS2_AER)
           status=NF_CLOSE('SALT2',NCNOWRIT,ncidu)
       endif
+#ifdef TRACERS_NITRATE
+c read in NH3 emissions
+c Industrial
+      NH3_src_nat_con(:,:)=0.d0
+      NH3_src_nat_cyc(:,:)=0.d0
+      NH3_src_hum_con(:,:)=0.d0
+      NH3_src_hum_cyc(:,:)=0.d0
+
+      call openunit('NH3SOURCE_N_A',iuc,.false.)
+      do mm=1,9999
+      read(iuc,*) ii,jj,carbstuff
+      if (ii.eq.0.) go to 53
+! conversion [kg N/gb/a] -> [kg NH3 /gb/s]  (should be [kg/m2/s], but tr3dsource has no dxyp ) 
+      NH3_src_nat_cyc(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/dxyp(j)
+      end do
+ 53   call closeunit(iuc)
+
+      call openunit('NH3SOURCE_N_C',iuc,.false.)
+      do mm=1,9999
+      read(iuc,*) ii,jj,carbstuff
+      if (ii.eq.0.) go to 54
+      NH3_src_nat_con(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/dxyp(j)
+      end do
+ 54   call closeunit(iuc)
+
+      call openunit('NH3SOURCE_H_A',iuc,.false.)
+      do mm=1,9999
+      read(iuc,*) ii,jj,carbstuff
+      if (ii.eq.0.) go to 55
+      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
+      NH3_src_hum_cyc(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/dxyp(j)
+      end do
+ 55   call closeunit(iuc)
+
+      call openunit('NH3SOURCE_H_C',iuc,.false.)
+      do mm=1,9999
+      read(iuc,*) ii,jj,carbstuff
+      if (ii.eq.0.) go to 56
+      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
+      NH3_src_hum_con(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/dxyp(j)
+      end do
+ 56   call closeunit(iuc)
+#endif
 c read in AEROCOM SO2 emissions
 c Industrial
       SO2_src_3D(:,:,:,:)=0.d0
@@ -8022,11 +8206,15 @@ C**** at the start of any day
 #ifdef TRACERS_COSMO
        USE COSMO_SOURCES, only: rn_src
 #endif
-
+#ifdef TRACERS_NITRATE
+       USE NITRATE_AEROSOL
+      USE apply3d, only : apply_tracer_3Dsource
+      USE RAD_COM,  only : cosz2
+#endif
       implicit none
       integer :: i,j,ns,l,ky,n
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
-     *  steph,stepx,stepp,tmon,bydt,tnew
+     *  steph,stepx,stepp,tmon,bydt,tnew,scca(im)
       REAL*8 :: sarea_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
       INTEGER J_0, J_1
@@ -8261,7 +8449,18 @@ C**** No non-interactive surface sources of Water
 C****
       case ('Water')
         trsource(:,J_0:J_1,:,n)=0
-
+#ifdef TRACERS_NITRATE
+      case ('NH3')
+         scca(:) = 0.d0
+        do j=J_0,J_1
+          do i = 1,im
+           if (cosz2(i,j) > 0.) scca(i) = cosz2(i,j) * 4.
+          enddo 
+            trsource(:,j,1,n) = NH3_src_hum_con(:,j) + 
+     *      NH3_src_nat_con(:,j)+ NH3_src_nat_cyc(:,j)*SCCA(:)
+     *      + NH3_src_hum_cyc(:,j)*SCCA(:)
+        end do
+#endif TRACERS_NITRATE
 #ifdef TRACERS_SPECIAL_Shindell
       case ('CO')
         do ns=1,ntsurfsrc(n)
@@ -8393,6 +8592,9 @@ c Laki emissions
       USE MODEL_COM, only: jday,jyear
       USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
 #endif
+#ifdef TRACERS_NITRATE
+      USE NITRATE_AEROSOL
+#endif TRACERS_NITRATE
       implicit none
       INTEGER n,ns,najl,i,j,l,mnow,blay
       INTEGER J_0, J_1
@@ -8635,6 +8837,11 @@ C**** Make sure that these 3D sources for all chem tracers start at 0.:
 #ifndef SHINDELL_STRAT_CHEM
       tr3Dsource(:,J_0:J_1,:,nStratwrite,1:ntm_chem) = 0.
 #endif
+#if (defined TRACERS_HETCHEM) && (defined TRACERS_NITRATE)
+       tr3Dsource(:,J_0:J_1,:,nChemistry,n_N_d1)  = 0.d0
+       tr3Dsource(:,J_0:J_1,:,nChemistry,n_N_d2)  = 0.d0
+       tr3Dsource(:,J_0:J_1,:,nChemistry,n_N_d3)  = 0.d0
+#endif
 C**** Call the model CHEMISTRY and STRATOSPHERE OVERWRITE:
 
       CALL masterchem ! does chemistry and stratospheric over-writing.
@@ -8648,9 +8855,28 @@ C**** Apply chemistry and stratosphere overwrite changes:
         call apply_tracer_3Dsource(nStratwrite,n)
 #endif
       end do
+#if (defined TRACERS_HETCHEM) && (defined TRACERS_NITRATE)
+       call apply_tracer_3Dsource(nChemistry,n_N_d1) ! NO3 chem prod on dust
+       call apply_tracer_3Dsource(nChemistry,n_N_d2) ! NO3 chem prod on dust
+       call apply_tracer_3Dsource(nChemistry,n_N_d3) ! NO3 chem prod on dust
+#endif
       CALL TIMER (MNOW,MCHEM)
 #endif
-
+#ifdef TRACERS_NITRATE
+#ifdef TRACERS_SPECIAL_Shindell
+       tr3Dsource(:,J_0:J_1,:,3,n_HNO3) = 0.d0
+#endif
+       tr3Dsource(:,J_0:J_1,:,1,n_NO3p) = 0.d0
+       tr3Dsource(:,J_0:J_1,:,1,n_NH4)  = 0.d0
+       tr3Dsource(:,J_0:J_1,:,1,n_NH3)  = 0.d0
+       call EQSAM_DRV
+       call apply_tracer_3Dsource(1,n_NO3p) ! NO3 chem prod 
+#ifdef TRACERS_SPECIAL_Shindell
+       call apply_tracer_3Dsource(3,n_HNO3) ! NO3 chem prod
+#endif 
+       call apply_tracer_3Dsource(1,n_NH4)  ! NO3 chem prod 
+       call apply_tracer_3Dsource(1,n_NH3)  ! NH3 
+#endif TRACERS_NITRATE
       return
       END SUBROUTINE tracer_3Dsource
 #endif
@@ -8674,8 +8900,8 @@ C**** GLOBAL parameters and variables:
      &     ,supsatfac
 #endif
 #ifdef TRACERS_HETCHEM
-     *     ,trm ,n_SO4_d1, n_SO4_d2, n_SO4_d3, n_SO4_d4
-
+     *     ,trm ,n_SO4_d1, n_SO4_d2, n_SO4_d3,n_SO4
+     *     ,n_N_d1,n_N_d2,n_N_d3,n_NO3p
       USE MODEL_COM, only  : dtsrc
 #endif
 c      USE CLOUDS, only: PL, NTIX
@@ -8804,36 +9030,52 @@ C**** this is a parameterisation from Georg Hoffmann
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP)
 c only dissolve if the cloud has grown
-c#ifdef TRACERS_HETCHEM
-c      select case(trname(ntix(n)))
-c      case('Clay')
-c         if (trm(ii,j,l,n_SO4_d1)  > 0.1 ) then
-c            fq_aer(NTIX(N))  = 1.
-c         else
-c            fq_aer(NTIX(N))  = 0.
-c         endif
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_DUST) &&\
+    (defined TRACERS_HETCHEM)
+      select case(trname(ntix(n)))
+      case('Clay')
+         if ( ( TM(l,ntix(n_SO4_d1)) /trpdens(n_SO4)) >
+     *      (( TM(l,ntix(n))  /trpdens(n)) * 0.03 ) ) then
+            fq_aer(NTIX(N))  = 1.
+         else
+            fq_aer(NTIX(N))  = 0.
+         endif
+#ifdef TRACERS_NITRATE
+         if ( ( TM(l,ntix(n_N_d1)) /trpdens(n_NO3p)) >
+     *      (( TM(l,ntix(n))  /trpdens(n)) * 0.03 ) ) then
+            fq_aer(NTIX(N))  = 1.
+         endif
+#endif         
     
-c      case('Silt1')
-c         if (trm(ii,j,l,n_SO4_d2)  > 0.1 ) then
-c            fq_aer(NTIX(N))  = 1.
-c         else
-c            fq_aer(NTIX(N))  = 0.
-c         endif
-   
-c      case('Silt2')
-c         if (trm(ii,j,l,n_SO4_d3)  > 0.1 ) then
-c            fq_aer(NTIX(N))  = 1.
-c         else
-c            fq_aer(NTIX(N))  = 0.
-c         endif
-c      case('Silt3')
-c         if (trm(ii,j,l,n_SO4_d4)  > 0.1 ) then
-c            fq_aer(NTIX(N))  = 1.
-c         else
-c            fq_aer(NTIX(N))  = 0.
-c         endif
-c      end select
-c#endif
+      case('Silt1')
+        if ( ( TM(l,ntix(n_SO4_d2)) /trpdens(n_SO4)) >
+     *      (( TM(l,ntix(n))  /trpdens(n)) * 0.03 ) ) then
+            fq_aer(NTIX(N))  = 1.
+         else
+            fq_aer(NTIX(N))  = 0.
+        endif
+#ifdef TRACERS_NITRATE
+         if ( ( TM(l,ntix(n_N_d2)) /trpdens(n_NO3p)) >
+     *      (( TM(l,ntix(n))  /trpdens(n)) * 0.03 ) ) then
+            fq_aer(NTIX(N))  = 1.
+         endif
+#endif         
+    
+      case('Silt2')
+        if ( ( TM(l,ntix(n_SO4_d3)) /trpdens(n_SO4)) >
+     *      (( TM(l,ntix(n))  /trpdens(n)) * 0.03 ) ) then
+            fq_aer(NTIX(N))  = 1.
+         else
+            fq_aer(NTIX(N))  = 0.
+        endif
+#ifdef TRACERS_NITRATE
+         if ( ( TM(l,ntix(n_N_d3)) /trpdens(n_NO3p)) >
+     *      (( TM(l,ntix(n))  /trpdens(n)) * 0.03 ) ) then
+            fq_aer(NTIX(N))  = 1.
+         endif
+#endif         
+      end select
+#endif
            CLDINC=CLDSAVT-FCLOUD 
           if (fq0.gt.0.and.CLDINC.gt.0.) then 
           if(LHX.EQ.LHE) then !liquid cloud
@@ -9091,10 +9333,10 @@ C**** no fractionation for ice evap
 #endif
  
 C Initialise
-      rsulf1(:,:,:)=0.0
-      rsulf2(:,:,:)=0.0
-      rsulf3(:,:,:)=0.0
-      rsulf4(:,:,:)=0.0
+      rsulf1(:,:,:)=0.d0
+      rsulf2(:,:,:)=0.d0
+      rsulf3(:,:,:)=0.d0
+      rsulf4(:,:,:)=0.d0
 
 C Reactions
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA
