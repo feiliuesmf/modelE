@@ -543,20 +543,6 @@ c------------------------------------------------------------------
             S(i,n)=0.
             SMOM(:,i,n)=0.
          endif
-         if (qlimit .and. prather_limits.eq.1) then ! force Prather limits
-           SMOM(mx,i,n)=
-     &          min(1.5*S(i,n),
-     &    max(-1.5*S(i,n),SMOM(mx,i,n)))
-           SMOM(mxx,i,n)=
-     &          min(2.*S(i,n)-abs(SMOM(mx,i,n))/3.,
-     &          max(abs(SMOM(mx,i,n))-S(i,n),
-     &          SMOM(mxx,i,n)))
-           SMOM(mxy,i,n)=min(S(i,n),
-     &    max(-S(i,n),SMOM(mxy,i,n)))
-           SMOM(mzx,i,n)=min(S(i,n),
-     &    max(-S(i,n),SMOM(mzx,i,n)))
-         end if
-
 c-----------------------------------------------------------------
          if (qlimit .and. prather_limits.eq.1) then ! force Prather limits
            SMOM(mx,i,n)=
