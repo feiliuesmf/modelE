@@ -420,7 +420,9 @@ C**** Non-interactive sources
         do ns=1,ntsurfsrc(n)
 C**** diagnostics
           naij = ijts_source(ns,n)
+          IF (naij > 0) THEN
           taijs(:,:,naij) = taijs(:,:,naij) + trsource(:,:,ns,n)*dtstep
+          ENDIF
           najl = jls_source(ns,n)
           IF (najl > 0) THEN
             DO J=J_0,J_1
