@@ -10,7 +10,7 @@
 !   Susanne E Bauer, 2003
 !-----------------------------------------------------------------------
 
-      USE MODEL_COM, only : im,jm,lm     ! dimensions (72, 46, 12)
+      USE MODEL_COM, only : im,lm     ! dimensions (72, 46, 12)
      $                     ,jday         ! time in ITU
      $                     ,t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
@@ -21,16 +21,18 @@
       USE DYNAMICS,   only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
 c                                          and pk is t mess up factor
       USE CONSTANT,   only:  pi, avog, gasc
-
+      USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
 !-----------------------------------------------------------------------
 !       ... Dummy arguments
 !-----------------------------------------------------------------------
       real                  :: erf
       integer, parameter    :: ndtr = 8  ! # dust bins
-      real*8                 :: rxtnox(im,jm,lm,ndtr,rhet) !rate for single dust tracers
-      real*8                :: dusttx(im,jm,lm,ndtr) ! dust (kg/kg) 
-      real                  :: dustnc(im,jm,lm,ndtr) ! dust number concentr.
+      REAL*8, 
+     * DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr,rhet) :: 
+     * rxtnox
+      REAL*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr) ::
+     * dusttx,dustnc
 !-----------------------------------------------------------------------
 !       ... Look up variables
 !----------------------------------------------------------------------- 
@@ -41,11 +43,12 @@ c                                          and pk is t mess up factor
 !-----------------------------------------------------------------------
 !       ... Local variables
 !-----------------------------------------------------------------------
+
+
+      INTEGER J_0, J_1
       integer :: i, j, k, nd, l ,ll, il
       integer, parameter :: ktoa = 300
 ! 1-SO2
-c      real, parameter :: alph1  = 0.0001 !uptake coeff of Rossi EPFL (independent of humidity)
-!      real, parameter :: alph(rhet)=(/0.001,0.001,0.003/) !uptake coeff for HNO3,N2O5,NO3
       real, parameter :: alph(rhet)=(/0.0001,0.001,0.003/) !uptake coeff for HNO3,N2O5,NO3
       real, parameter :: mQ(rhet)=(/0.063,0.108,0.062/)
       real, parameter :: xx    = 0.  !correction factor anisotropic movement
@@ -71,6 +74,11 @@ C**** functions
      $                               1.5e-6,2.5e-6,4.e-6,8.e-6/)
       real, parameter  :: rop(8) = (/ 2500.,  2500.,  2500.,  2500.
      $                              , 2600.,  2600.,  2600.,  2600./)
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 !-----------------------------------------------------------------
 !    1000 Intervals for Radius = 0.01ym ->10ym
 !-----------------------------------------------------------------
@@ -156,7 +164,7 @@ c--------------------------------------------------------------
       dusttx(:,:,:,:)= 0.
       
       DO l  = 1,lm   
-      DO j  = 1,jm   
+      DO j  = J_0,J_1  
       
       dusttx(:,j,l,5)= trm(:,j,l,n_clay) * byam(l,:,j)* bydxyp (j)
       dusttx(:,j,l,6)= trm(:,j,l,n_silt1)* byam(l,:,j)* bydxyp (j)
@@ -188,7 +196,7 @@ C Net removal rates [s-1]
       DO nd = 1,ndtr    ! Loop over dust tracers
 #endif
       DO l  = 1,lm   
-      DO j  = 1,jm
+      DO j  = J_0,J_1
       DO i  = 1,im
 
        if(dusttx(i,j,l,nd).GT.0.) then
@@ -274,7 +282,7 @@ c      print*,' KRATE NR:,', krate(36,28,1,:,:)
 !   Susanne E Bauer, 2003
 !-----------------------------------------------------------------------
 
-      USE MODEL_COM, only : im,jm,lm     ! dimensions (72, 46, 12)
+      USE MODEL_COM, only : im,lm     ! dimensions (72, 46, 12)
      $                     ,jday         ! time in ITU
      $                     ,t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
@@ -284,16 +292,15 @@ c      print*,' KRATE NR:,', krate(36,28,1,:,:)
       USE GEOM,       only:  bydxyp
       USE DYNAMICS,   only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
       USE CONSTANT,   only:  pi, avog, gasc
-
+      USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
 !-----------------------------------------------------------------------
 !       ... Dummy arguments
 !-----------------------------------------------------------------------
       real                   :: erf
       integer, parameter     :: ndtr = 8  ! # dust bins
-      real*8                 :: rxt(im,jm,lm,ndtr) !rate for single dust tracers
-      real*8                   :: dusttx(im,jm,lm,ndtr) ! dust (kg/kg) 
-      real                  :: dustnc(im,jm,lm,ndtr) ! dust number concentr.
+      REAL*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr) ::
+     * rxt,dusttx,dustnc
 !-----------------------------------------------------------------------
 !       ... Look up variables
 !----------------------------------------------------------------------- 
@@ -305,14 +312,13 @@ c      print*,' KRATE NR:,', krate(36,28,1,:,:)
 !       ... Local variables
 !-----------------------------------------------------------------------
       integer :: i, j, k, nd, l ,ll
+      INTEGER J_0, J_1
       integer, parameter :: ktoa = 300
 ! 1-SO2
 c      real, parameter :: alph1  = 0.0001 !uptake coeff of Rossi EPFL (independent of humidity)
       real, parameter :: alph1  = 0.000001 !uptake coeff for SO2: RH < 60 %
       real, parameter :: alph2  = 0.0001    !uptake coeff for SO2: RH > 60 %
-c      real, parameter :: alph1  = 0.1 !reactive uptake coefficient for HNO3
       real, parameter :: mQ1    = 64./1000.    ! kg/mol SO2
-c      real, parameter :: mQ1    = 63./1000. ! kg/mol HNO3
       real, parameter :: xx    = 0.  !correction factor anisotropic movement
       real, parameter :: Bolz  = 1.3807e-23 !Boltzmann kg m2/s2 K molec.
       real, parameter :: Mgas  = 28.97 /1000. ! Molekular Gewicht Luft
@@ -336,6 +342,11 @@ C**** functions
      $                               1.5e-6,2.5e-6,4.e-6,8.e-6/)
       real, parameter  :: rop(8) = (/ 2500.,  2500.,  2500.,  2500.
      $                              , 2600.,  2600.,  2600.,  2600./)
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
 !-----------------------------------------------------------------
 !    1000 Intervals for Radius = 0.01ym ->10ym
 !-----------------------------------------------------------------
@@ -372,7 +383,6 @@ c      entereda = .true.
 
        DO i   = 2, klo
        md_look(i) = md_look(i-1) +  Rrange 
-c       write(*,*) 'MD_LOOK ', i, md_look(i)
        END DO
 
       DO ip  = 1, 11  !pressure from 1000 to 0 hPa 
@@ -430,16 +440,11 @@ c--------------------------------------------------------------
 
 c  Or use online dust 
 #ifdef TRACERS_DUST      
-c      CALL READDUST(dusttx)
-c      print*, 'OFF-LINE DUST TRACER'
-c      print*,'MAX OFF LINE:  ',maxval(dusttx(:,:,:,:))
-      
-c
-      dusttx(:,:,:,:)= 0.
+      dusttx(:,:,:,:)= 0.d0
       
       DO l  = 1,lm   
-      DO j  = 1,jm   
-      dusttx(:,j,l,5)= trm(:,j,l,n_clay) * byam(l,:,j)* bydxyp (J)
+      DO j  = J_0,J_1   
+      dusttx(:,j,l,5)= trm(:,j,l,n_clay) * byam(l,:,j)* bydxyp (j)
       dusttx(:,j,l,6)= trm(:,j,l,n_silt1)* byam(l,:,j)* bydxyp (j)
       dusttx(:,j,l,7)= trm(:,j,l,n_silt2)* byam(l,:,j)* bydxyp (j)
       dusttx(:,j,l,8)= trm(:,j,l,n_silt3)* byam(l,:,j)* bydxyp (j)
@@ -463,7 +468,7 @@ C Net removal rate for SO2 [s-1]
       DO nd = 1,ndtr    ! Loop over dust tracers
 #endif
       DO l  = 1,lm   
-      DO j  = 1,jm
+      DO j  = J_0,J_1
       DO i  = 1,im
 
 c number concentration
@@ -504,18 +509,18 @@ c        if  (dustnc(i,j,l,nd).gt.1000.)
         rxt(i,j,l,nd) = klook* dustnc(i,j,l,nd)
      .              / (287.054 * te / (pmid(l,i,j)*100.))
         else
-        rxt(i,j,l,nd) = 0.    
+        rxt(i,j,l,nd) = 0.d0    
         endif
 
         else
-        rxt(i,j,l,nd) = 0.
+        rxt(i,j,l,nd) = 0.d0
         endif
       ENDDO ! i
       ENDDO ! j
       ENDDO ! l
       ENDDO ! nd
 
-         rxts(:,:,:) = 0.
+         rxts(:,:,:) = 0.d0
 
 #ifdef TRACERS_DUST
       DO nd = 5,ndtr  !1,ndtr
@@ -552,17 +557,28 @@ c        if  (dustnc(i,j,l,nd).gt.1000.)
 !@+       Continuation line for @sum/@calls/@con
 C     ------------------------------------------------------------------ 
 
-      USE MODEL_COM, only    : im,jm,lm,jday
+      USE MODEL_COM, only    : im,lm,jday
       USE FILEMANAGER, only  : openunit, closeunit
+      USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
 
       integer, parameter     :: ndtr = 8  ! # dust tracers
       integer nn,n,j,i,l,ma,mb
+      INTEGER J_0, J_1
       REAL*8    wmb,wma,xmo        ! alles integer ???
       integer odust_trcl
-      real*8, intent(inout)       :: dusttx(im,jm,lm,ndtr) ! dust (kg/kg) 
-
-      real*4    ::  OFFDUST(im,jm,9,ndtr,12), DUST(im,jm,lm,ndtr,12)
+      REAL*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr) ::
+     *        dusttx
+      REAL*4,
+     *   DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,9,ndtr,12)::
+     *  OFFDUST
+      REAL*4,
+     *  DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr,12)::
+     *  DUST
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
                 
       call openunit ("OFFDUST",odust_trcl,.TRUE.,.TRUE.)
       READ(odust_trcl) OFFDUST
@@ -570,7 +586,7 @@ C     ------------------------------------------------------------------
 
       do nn=1,12
          do n=1,ndtr
-            do j=1,jm
+            do j=J_0,J_1
                do i=1,im                                                 
                   do l=1,6                                               
                      DUST(i,j,l,n,nn)=OFFDUST(i,j,l,n,nn)                    
@@ -609,5 +625,3 @@ C
       RETURN
       END
 #endif   ! TRACERS_AEROSOLS_Koch
-
-
