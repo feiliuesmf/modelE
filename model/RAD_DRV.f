@@ -886,7 +886,7 @@ C     OUTPUT DATA
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
-     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,cosz2
+     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
 #ifdef TRACERS_DUST
      &     ,srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
 #endif
@@ -954,7 +954,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
 !$OMP  THREADPRIVATE(/RADPAR_hybrid/)
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     *     COSZA,TRINCG,BTMPW,WSOIL,fmp_com
+     *     COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
       REAL*8, DIMENSION(4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFS,TNFS
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::

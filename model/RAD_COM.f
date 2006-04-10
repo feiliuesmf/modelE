@@ -99,8 +99,6 @@ C**** exactly the same as the default values.
 
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: COSZ1
-!@var COSZ2 Mean Solar Zenith angle for curr. physics(not rad) time step
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: COSZ2
 !@dbparam S0X solar constant multiplication factor
       REAL*8 :: S0X = 1.
 !@dbparam S0_yr,S0_day obs.date of solar constant (if 0: time var)
@@ -180,7 +178,7 @@ C**** Local variables initialised in init_RAD
       USE RAD_COM, ONLY : LM_REQ
       USE RAD_COM, ONLY : RQT, Tchg, SRHR, TRHR, FSF, FSRDIR, SRVISSURF,
      *     SRDN, CFRAC, RCLD, O3_rad_save, O3_tracer_save, KLIQ, COSZ1,
-     *     COSZ2,dH2O, ALB, SALB, SINJ, COSJ,srnflb_save,trnflb_save,
+     *     dH2O, ALB, SALB, SINJ, COSJ,srnflb_save,trnflb_save,
      &     ttausv_save,ttausv_cs_save
 
       IMPLICIT NONE
@@ -205,7 +203,6 @@ C**** Local variables initialised in init_RAD
      *     O3_tracer_save(LM, IM, J_0H:J_1H),
      *     KLIQ(LM,4, IM, J_0H:J_1H),
      *     COSZ1(IM, J_0H:J_1H),
-     *     COSZ2(IM, J_0H:J_1H),
      *     dH2O(J_0H:J_1H, LM, 12),
      *     ALB(IM, J_0H:J_1H, 9),
      *     SINJ(J_0H:J_1H),

@@ -8209,7 +8209,7 @@ C**** at the start of any day
 #ifdef TRACERS_NITRATE
        USE NITRATE_AEROSOL
       USE apply3d, only : apply_tracer_3Dsource
-      USE RAD_COM,  only : cosz2
+      USE RAD_COM,  only : cosz1
 #endif
       implicit none
       integer :: i,j,ns,l,ky,n
@@ -8454,7 +8454,7 @@ C****
          scca(:) = 0.d0
         do j=J_0,J_1
           do i = 1,im
-           if (cosz2(i,j) > 0.) scca(i) = cosz2(i,j) * 4.
+           if (cosz1(i,j) > 0.) scca(i) = cosz1(i,j) * 4.
           enddo 
             trsource(:,j,1,n) = NH3_src_hum_con(:,j) + 
      *      NH3_src_nat_con(:,j)+ NH3_src_nat_cyc(:,j)*SCCA(:)
