@@ -2053,6 +2053,8 @@ c for tracers in general, added by Koch
 !@var THWASH Henry's Law for below cloud dissolution
 !@var TMFAC,TMFAC2 used to adjust tracer moments
 !@var CLDSAVT is present cloud fraction, saved for tracer use
+!@var cldprec cloud fraction at lowest precipitating level
+      REAL*8 :: cldprec
 #ifdef TRACERS_AEROSOLS_Koch
 c for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
@@ -2700,12 +2702,14 @@ c precip. tracer evap
           if (wmxtr.lt.0.) wmxtr=0.
 cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *     ,TEMP,LHX,WMXTR,CLDSAVT,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
+     *     ,TEMP,LHX,WMXTR,cldprec,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
         ELSE
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
-          b_beta_DT = FCLD*CM*dtsrc
+          b_beta_DT = cldsavt*CM*dtsrc
+c         saves cloud fraction at lowest precipitating level for washout
+          cldprec=cldsavt
            CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
      *         ,FQTOWT,.false.,TRWML,TM,THLAW,TR_LEF,PL(L),ntix,CLDSAVT)
 cdmk added arguments above; THLAW added below (no way to factor this)
