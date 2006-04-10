@@ -1941,6 +1941,7 @@ c     write(6,*)"RCLD",RCLDE,RCLD,Rbeta,WTEM,L,MCDNCW
             IF(TAUMCL(L).GT.100.) TAUMCL(L)=100.
          END IF
          IF(TAUMCL(L).LT.0..and.CLDMCL(L).le.0.) TAUMCL(L)=0.
+#ifdef TRACERS_WATER
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
          IF (diag_wetdep == 1) THEN
@@ -1951,6 +1952,7 @@ c     write(6,*)"RCLD",RCLDE,RCLD,Rbeta,WTEM,L,MCDNCW
            trnvap_mc(l,1:ntx)=trnvap_mc(l,1:ntx)*fmc1
            trwash_mc(l,1:ntx)=trwash_mc(l,1:ntx)*fmc1
          END IF
+#endif
 #endif
       END DO
 
