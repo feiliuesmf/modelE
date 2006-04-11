@@ -933,10 +933,12 @@ C****
       if (AM_I_ROOT()) write(6,*) '...and tracer dry deposition'
 #endif
 #ifdef EDGAR_HYDE_SOURCES
-      if (AM_I_ROOT()) write(6,*) '...and EDGAR HYDE sources instead of GISS'
+      if (AM_I_ROOT()) write(6,*) 
+     *     '...and EDGAR HYDE sources instead of GISS'
 #endif
 #ifdef SHINDELL_STRAT_CHEM
-      if (AM_I_ROOT()) write(6,*) '...and Drew Shindell stratospheric chemistry'
+      if (AM_I_ROOT()) write(6,*) 
+     *    '...and Drew Shindell stratospheric chemistry'
 #endif
 #ifdef regional_Ox_tracers
       if (AM_I_ROOT()) write(6,*) '...and regional Ox tracers'
