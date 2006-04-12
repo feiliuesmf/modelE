@@ -765,20 +765,6 @@ C**** total chemical change for O3
       end if
 #endif
 
-#ifdef TRACERS_SPECIAL_Shindell
-C**** some special JL diags for chemistry
-      k=jls_H2Omr
-      kw=jls_day
-      scalet = scale_jls(k)*10.**(-jls_power(k))
-      do l=1,lm
-        do j=1,jm
-          a(j,l)=tajls(j,l,k)/(tajls(j,1,kw)+teeny)
-        end do
-      end do
-      CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm,a,scalet
-     *     ,ones,ones,jls_ltop(k),jwt_jls(k),jgrid_jls(k))
-#endif
-
 #ifdef TRACERS_COSMO
 C**** ratios : Be7/Pb210 and Be10/Be7
       if (n_Be7.gt.0 .and. n_Be10.gt.0 .and. n_Pb210.gt.0) then
