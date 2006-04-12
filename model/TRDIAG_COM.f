@@ -307,7 +307,11 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER jls_OHconk,jls_HO2con,jls_NO3,jls_phot,jls_incloud(2,ntm)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf,jls_day
+      INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf,jls_day,
+     &jls_COd,jls_COp,jls_Oxd,jls_Oxp
+#ifdef SHINDELL_STRAT_CHEM
+     &        ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
+#endif
 #endif
 
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
@@ -326,9 +330,9 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #else
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
 #ifdef regional_Ox_tracers
-      INTEGER, PARAMETER :: ktajls=108
+      INTEGER, PARAMETER :: ktajls=176
 #else
-      INTEGER, PARAMETER :: ktajls=164  !96
+      INTEGER, PARAMETER :: ktajls=164
 #endif
 #else
 #if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
