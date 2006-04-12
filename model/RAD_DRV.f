@@ -873,20 +873,20 @@ C     INPUT DATA  (i,j) dependent
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
      *             ,TRACER,NTRACE,FSTOPX,FTTOPX,O3_IN,FTAUC
 C     OUTPUT DATA
-     &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
+     &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL ,chem_out
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
      &          ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
      &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS ,SRDVIS
-     &          ,BTEMPW ,O3_OUT ,TTAUSV ,SRAEXT ,SRASCT ,SRAGCB
+     &          ,BTEMPW ,TTAUSV ,SRAEXT ,SRASCT ,SRAGCB
      &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
      &          ,aesqex,aesqsc,aesqcb
       USE RADPAR, only : writer,rcompx
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
-     *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
+     *     ,O3_tracer_save,rad_interact_tr,kliq,RHfix
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
-     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
+     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,rad_to_chem
 #ifdef TRACERS_DUST
      &     ,srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
 #endif
@@ -1575,12 +1575,12 @@ C**** or not.
     (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
     (defined TRACERS_OM_SP)
 c if ozone also interacts with radiation it needs to be set
-c   to default here
+c to default here:
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Ozone:
       if (rad_interact_tr.gt.0) then
-      O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
-      use_tracer_ozone=1
+        O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
+        use_tracer_ozone=1
       endif
 #endif
 C**** Aerosols incl. Dust:
@@ -1647,7 +1647,6 @@ C**** Assumes that 4 clay tracers are adjacent in NTRACE array
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Ozone:
       O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
-
       use_tracer_ozone=1-onoff
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
       CALL RCOMPX
@@ -1793,7 +1792,7 @@ C**** Save optical depth diags
       END IF
       CSZ2=COSZ2(I,J)
       do L=1,LM
-        O3_rad_save(L,I,J)=O3_OUT(L)
+        rad_to_chem(L,i,j,:)=chem_out(L,:)
         do k=1,4
           kliq(L,k,i,j)=kdeliq(L,k) ! save updated flags
         end do
