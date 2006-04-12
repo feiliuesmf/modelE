@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
       MODULE tracers_DRYDEP
-c
+
 !@sum  tracers_DRYDEP tracer dry deposition from Harvard CTM.
 !@+    Current version only calculates the "bulk surface resistance
 !@+    to deposition" component of the deposition velocity.
@@ -43,13 +43,12 @@ C       Environmental Protection Agency Report EPA/600/3-88/025,
 C       Research Triangle Park (NC), 1988.   
 C     Wesely, M.L., same title, Atmos. Environ., 23, 1293-1304, 1989.
 C*********************************************************************
-      USE DOMAIN_DECOMP, only   : grid
       USE TRACER_COM, only   : ntm
-      USE MODEL_COM, only   : im,jm
-c
+      USE MODEL_COM, only    : im
+
       IMPLICIT NONE
       SAVE
-C
+
 !@param NPOLY ?
 !@param NVEGTYPE number of Olson vegetation types
 !@param NTYPE number of surface types
@@ -74,21 +73,67 @@ C
 !@var XLAI2 leaf area index variable
 !@var DRYCOEFF polynomial fittings coeffcients  
 !@var CZ Altitude (m) at which deposition velocity would be computed
-c
+!@var dtr_dd to save drydep change for conservation quantities
+!@var ILAND Land type ID for element LDT=1,IREG(I,J)
+!@var IUSE per mil fraction of grid area with by land type element LDT
+!@var FRCLND land fraction 
       INTEGER, PARAMETER :: NPOLY   = 20,
      &                      NTYPE   = 16,
      &                      NVEGTYPE= 74
-      REAL*8,  DIMENSION(IM,JM,NTYPE)     :: XYLAI,XLAI,XLAI2
-      REAL*8,  DIMENSION(NPOLY)           :: DRYCOEFF
-      INTEGER, DIMENSION(IM,JM)           :: IJREG,IREG
-      INTEGER, DIMENSION(IM,JM,NTYPE)     :: IJLAND,IJUSE
-      INTEGER, DIMENSION(NVEGTYPE)        :: IDEP
-      INTEGER, DIMENSION(NTYPE)           :: IRI,IRLU,IRAC,IRGSS,
-     &                                       IRGSO,IRCLS,IRCLO,IVSMAX
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: XYLAI,XLAI,XLAI2
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: dtr_dd    
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)    :: FRCLND,IREG_loc 
+      REAL*8, DIMENSION(NPOLY)               :: DRYCOEFF
+      INTEGER, ALLOCATABLE, DIMENSION(:,:)   :: IJREG,IREG
+      INTEGER, ALLOCATABLE, DIMENSION(:,:,:) :: IJLAND,IJUSE,ILAND,IUSE
+      INTEGER, DIMENSION(NVEGTYPE)           :: IDEP
+      INTEGER, DIMENSION(NTYPE)              :: IRI,IRLU,IRAC,IRGSS,
+     &                                      IRGSO,IRCLS,IRCLO,IVSMAX
        
       END MODULE tracers_DRYDEP
-C
-C      
+
+
+
+      subroutine alloc_trdrydep(grid)
+!@SUM  To alllocate arrays whose sizes now need to be determined
+!@+    at run-time
+!@auth G.Faluvegi
+!@ver  1.0
+      use domain_decomp, only : dist_grid, get
+      use tracers_DRYDEP, only: ntype,dtr_dd,XYLAI,XLAI,XLAI2,IJREG,
+     &              IREG_loc,   IREG,IJLAND,IJUSE,ILAND,IUSE,FRCLND
+      use tracer_com, only    : ntm
+      use model_com, only     : im
+
+      IMPLICIT NONE
+
+      type (dist_grid), intent(in) :: grid
+      integer :: ier, J_1H, J_0H
+      logical :: init = .false.
+
+      if(init)return
+      init=.true.
+    
+      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+ 
+      allocate(  dtr_dd(J_0H:J_1H,ntm,2)    )
+      allocate(   XYLAI(IM,J_0H:J_1H,NTYPE) )
+      allocate(    XLAI(IM,J_0H:J_1H,NTYPE) )
+      allocate(   XLAI2(IM,J_0H:J_1H,NTYPE) )
+      allocate(   FRCLND(IM,J_0H:J_1H)      )      
+      allocate(   IJREG(IM,J_0H:J_1H)       )
+      allocate(    IREG(IM,J_0H:J_1H)       )
+      allocate(IREG_loc(IM,J_0H:J_1H)       )
+      allocate(  IJLAND(IM,J_0H:J_1H,NTYPE) )
+      allocate(   IJUSE(IM,J_0H:J_1H,NTYPE) )
+      allocate(   ILAND(IM,J_0H:J_1H,NTYPE) )
+      allocate(    IUSE(IM,J_0H:J_1H,NTYPE) )
+            
+      return
+      end subroutine alloc_trdrydep 
+
+
+
 #ifdef TRACERS_DRYDEP
       SUBROUTINE get_dep_vel(I,J,ITYPE,OBK,ZHH,USTARR,TEMPK,DEP_VEL)
 !@sum  get_dep_vel computes the Bulk surface reistance to
@@ -104,15 +149,14 @@ C      uses functions: BIOFIT,DIFFG
 c
 C**** GLOBAL parameters and variables:  
 C
-      USE MODEL_COM,  only : im,jm
+      USE MODEL_COM,  only : im
       USE GEOM,       only : imaxj
       USE CONSTANT,   only : tf     
-      USE RAD_COM,     only : COSZ1,cfrac,srdn
- ! tr_wd_TYPE,nPART are defined if drydep on
+      USE RAD_COM,     only: COSZ1,cfrac,srdn
       USE TRACER_COM, only : ntm, tr_wd_TYPE, nPART, trname, tr_mm,
-     &     dodrydep, F0_glob=>F0, HSTAR_glob=>HSTAR
+     & dodrydep, F0_glob=>F0, HSTAR_glob=>HSTAR
 #ifdef TRACERS_SPECIAL_Shindell
-     &     , n_NOx
+     & , n_NOx
       USE TRCHEM_Shindell_COM, only : pNOx
 #endif
       USE tracers_DRYDEP, only: NPOLY,IJREG,IJLAND,XYLAI,
@@ -167,66 +211,63 @@ C
       REAL*8,  DIMENSION(ntm,NTYPE) :: RSURFACE
       REAL*8,  DIMENSION(ntm)   :: TOTA,VD,HSTAR,F0
       REAL*8,  DIMENSION(NTYPE) :: RI,RLU,RAC,RGSS,RGSO,RCLS,RCLO
-      REAL*8 RT,RAD0,RIX,GFACT,GFACI,RDC,RIXX,RLUXX,RGSX,RCLX,VDS,
+      REAL*8 :: RT,RAD0,RIX,GFACT,GFACI,RDC,RIXX,RLUXX,RGSX,RCLX,VDS,
      &       DTMP1,DTMP2,DTMP3,DTMP4,CZH,DUMMY1,DUMMY2,DUMMY3,DUMMY4,
      &       TEMPC,byTEMPC,BIOFIT,DIFFG,tr_mm_temp,SUNCOS
       REAL*8, INTENT(IN) :: OBK,ZHH,USTARR,TEMPK
 !@var dep_vel the deposition velocity = 1/bulk sfc. res. (m/s)
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: dep_vel
-      INTEGER k,n,LDT,II,IW,IOLSON
+      INTEGER :: k,n,LDT,II,IW,IOLSON
       INTEGER, INTENT(IN) :: I,J,ITYPE  
-      LOGICAL problem_point
-C
+      LOGICAL :: problem_point
+
 C Use cosine of the solar zenith angle from the radiation code,
 C ...which seems to have a minumum of 0, like suncos used to have
 C when defined in SCALERAD subroutine from Harvard CTM.
-C
+
       SUNCOS = COSZ1(I,J)
-c
+
 C* Initialize VD and RSURFACE and reciprocal: 
       DO K = 1,ntm
-       if(dodrydep(K))then
-        DO LDT = 1,NTYPE 
-          RSURFACE(K,LDT) = 0.
-        END DO             
-        VD(K)             = 0.
-        dep_vel(K)        = 0.
+        if(dodrydep(K))then
+          RSURFACE(K,1:NTYPE) = 0.d0
+          VD(K)               = 0.d0
+          dep_vel(K)          = 0.d0
        end if
       END DO    
-C
+
 C** TEMPK and TEMPC are surface air temperatures in K and in C  
-ccc      TEMPK was BLDATA(I,J,2) now input as argument
-      TEMPC = TEMPK-tf
+      TEMPC = TEMPK-tf ! TEMPK was BLDATA(I,J,2)
       byTEMPC = 1.D0/TEMPC    
       RAD0 = srdn(I,J)*suncos
-C               
+              
 C* Compute bulk surface resistance for gases.
 C*   
 C* Adjust external surface resistances for temperature;
 C* from Wesely [1989], expression given in text on p. 1296.
 C* Note: the sign of 4.0 was fixed after consulting w/ Harvard.
-C* 
-      RT = 1000.0*EXP(-TEMPC-4.0)
-C
+
+      RT = 1.d3*EXP(-TEMPC-4.0)
+
 C  Check for species-dependant corrections to drydep parameters:      
       DO K = 1,ntm
-       if(dodrydep(K)) then
-         HSTAR(K)=HSTAR_glob(K)
-         F0(K)=F0_glob(K)
+        if(dodrydep(K)) then
+          HSTAR(K)=HSTAR_glob(K)
+          F0(K)=F0_glob(K)
 #ifdef TRACERS_SPECIAL_Shindell
-c       For NOx, sum deposition for NO and NO2
-c       HSTAR: NO2 = 0.01, NO = 0.002, F0: NO2 = 0.1, NO = 0.0
-         if(trname(K).eq.'NOx')then
-           HSTAR(K)=pNOx(i,j,1)*0.01d0+(1.-pNOx(i,j,1))*.002d0
-           F0(K)=pNOx(i,j,1)*0.1d0
-         endif 
+          ! For NOx, sum deposition for NO and NO2
+          ! HSTAR: NO2 = 0.01, NO = 0.002, F0: NO2 = 0.1, NO = 0.0
+          if(trname(K) == 'NOx')then
+             HSTAR(K)=pNOx(i,j,1)*0.01d0+(1.-pNOx(i,j,1))*2.d-3
+             F0(K)=pNOx(i,j,1)*1.d-1
+          endif 
 #endif
-       end if
+        end if
       END DO
-C
+
       SELECT CASE(ITYPE)
       CASE(4)     ! LAND*************************************
-C   
+
 C    Get surface resistances - loop over land types LDT   
 C**********************************************************************
 C* The land types within each grid square are defined using the Olson
@@ -247,17 +288,17 @@ C**********************************************************************
 C* first check for any points that are ITYPE=4 but all ice/water:
         problem_point=.true.
         DO LDT=1, IJREG(I,J)
-         II=IDEP(IJLAND(I,J,LDT)+1)
-         if(II.ne.1.and.II.ne.11) problem_point=.false.
+          II=IDEP(IJLAND(I,J,LDT)+1)
+          if(II /= 1 .and. II /= 11) problem_point=.false.
         END DO
 
         DO LDT = 1,IJREG(I,J)
-          IF (IJUSE(I,J,LDT) .NE. 0) THEN
+          IF (IJUSE(I,J,LDT)  /=  0) THEN
             IOLSON = IJLAND(I,J,LDT)+1  
             II = IDEP(IOLSON)
             ! exclude ice and water (except for problem points) :
-            IF((II.ne.1.and.II.ne.11).or.problem_point) THEN
-C**   
+            IF((II /= 1 .and. II /= 11) .or. problem_point) THEN
+   
 C** Here, we should probably put some provisions that if the GCM land
 C** grid box is mostly snow-covered, set II=1 <<<<<<<<<<<<<<<<<<<<<<<
 C**       
@@ -265,37 +306,37 @@ C* Read the internal resistance RI (minimum stomatal resistance for
 C* water vapor, per unit area of leaf) from the IRI array; a '9999'
 C* value means no deposition to stomata so we impose a very large   
 C* value for RI.  
-C*
+
             RI(LDT) = REAL(IRI(II))   
-            IF (RI(LDT).GE. 9999.) RI(LDT)= 1.E12
-C**
+            IF (RI(LDT) >=  9999.) RI(LDT)= 1.d12
+
 C** Cuticular resistances IRLU read in from 'drydep.table' 
 C** are per unit area of leaf; divide them by the LAI to get
 C** a cuticular resistance for the bulk canopy.  If IRLU is '9999' it
 C** means there are no cuticular surfaces on which to deposit so we  
 C** impose a very large value for RLU.  
-C**  
-            IF (IRLU(II).GE. 9999 .OR. XYLAI(I,J,LDT).LE.0.) THEN
-              RLU(LDT)  = 1.E6
+
+            IF (IRLU(II) >=  9999 .OR. XYLAI(I,J,LDT) <= 0.) THEN
+              RLU(LDT)  = 1.d6
             ELSE
               RLU(LDT)= REAL(IRLU(II))/XYLAI(I,J,LDT) + RT
             ENDIF
-C**  
+
 C** The following are the remaining resistances for the Wesely   
 C** resistance-in-series model for a surface canopy   
 C** (see Atmos. Environ. paper, Fig.1).
-C**
-            RAC(LDT)  = MAX(REAL(IRAC(II)), 1.) 
-            IF (RAC(LDT)  .GE. 9999.) RAC(LDT)  = 1.E12 
-            RGSS(LDT) = MAX(REAL(IRGSS(II)) + RT ,1.D0)
-            IF (RGSS(LDT) .GE. 9999.) RGSS(LDT) = 1.E12
-            RGSO(LDT) = MAX(REAL(IRGSO(II)) + RT ,1.D0)
-            IF (RGSO(LDT) .GE. 9999.) RGSO(LDT) = 1.E12
-            RCLS(LDT) = REAL(IRCLS(II)) + RT
-            IF (RCLS(LDT) .GE. 9999.) RCLS(LDT) = 1.E12
-            RCLO(LDT) = REAL(IRCLO(II)) + RT
-            IF (RCLO(LDT) .GE. 9999.) RCLO(LDT) = 1.E12
-C                  
+
+            RAC(LDT)  = MAX(DBLE(IRAC(II)), 1.d0) 
+            IF (RAC(LDT)   >=  9999.) RAC(LDT)  = 1.d12 
+            RGSS(LDT) = MAX(DBLE(IRGSS(II)) + RT ,1.d0)
+            IF (RGSS(LDT)  >=  9999.) RGSS(LDT) = 1.d12
+            RGSO(LDT) = MAX(DBLE(IRGSO(II)) + RT ,1.d0)
+            IF (RGSO(LDT)  >=  9999.) RGSO(LDT) = 1.d12
+            RCLS(LDT) = DBLE(IRCLS(II)) + RT
+            IF (RCLS(LDT)  >=  9999.) RCLS(LDT) = 1.d12
+            RCLO(LDT) = DBLE(IRCLO(II)) + RT
+            IF (RCLO(LDT)  >=  9999.) RCLO(LDT) = 1.d12
+ 
 C**********************************************************************
 C*  Adjust stomatal resistances for insolation and temperature:
 C*  Temperature adjustment is from Wesely [1989], equation (3).
@@ -322,47 +363,47 @@ C*  canopy value because that's already done in the GFACI formulation.
 C**********************************************************************
 
             RIX = RI(LDT)  
-            IF (RIX .LT. 9999.) THEN
-              IF (TEMPC.GT.0. .AND. TEMPC.LT.40.) THEN
-                GFACT = 400.*byTEMPC/(40.0-TEMPC)  
+            IF (RIX  <  9999.) THEN
+              IF (TEMPC > 0. .AND. TEMPC < 40.) THEN
+                GFACT = 400.d0*byTEMPC/(40.d0-TEMPC)  
               ELSE
-                GFACT = 100.
+                GFACT = 100.d0
               END IF
-              IF (RAD0.GT.0. .AND. XYLAI(I,J,LDT).GT.0.) THEN  
+              IF (RAD0 > 0. .AND. XYLAI(I,J,LDT) > 0.) THEN  
                 GFACI=1./BIOFIT
      *          (DRYCOEFF,XYLAI(I,J,LDT),SUNCOS,CFRAC(I,J))
               ELSE
-                GFACI = 100.
+                GFACI = 100.d0
               ENDIF   
               RIX = RIX*GFACT*GFACI   
             END IF
-C*
+
 C*    Compute aerodynamic resistance to lower elements in lower part
 C*    of the canopy or structure, assuming level terrain -
 C*    equation (5) of Wesely [1989].
-C*  
-            RDC = 100.*(1.+1000./(RAD0 + 10.))
-C*
+
+            RDC = 100.d0*(1.+1000.d0/(RAD0 + 10.d0))
+
 C*    Loop over species; species-dependent corrections to resistances
 C*    are from equations (6)-(9) of Wesely [1989].
-C*
+
             DO K = 1,ntm
              if(dodrydep(K))then
-              tr_mm_temp = tr_mm(k)*1.D-3
+              tr_mm_temp = tr_mm(k)*1.d-3
 #ifdef TRACERS_SPECIAL_Shindell
-c             For NOx, use NO2 molecular weight to get collision diameter:
-              if(trname(K).eq.'NOx') tr_mm_temp = 4.4d-2
+              ! For NOx, use NO2 mol. wt. to get collision diameter:
+              if(trname(K) == 'NOx') tr_mm_temp = 4.4d-2
 #endif
 C**           For non-aerosols:
-              IF(tr_wd_TYPE(K).ne.nPART) THEN
+              IF(tr_wd_TYPE(K) /= nPART) THEN
                 RIXX=RIX*DIFFG(TEMPK,XMWH2O)/DIFFG(TEMPK,tr_mm_temp)
-     &          + 1./(HSTAR(K)/3.D3+100.*F0(K))
-                IF(RLU(LDT).LT.9999.) THEN
-                  RLUXX = RLU(LDT)/(1.D-5*HSTAR(K)+F0(K))
+     &          + 1.d0/(HSTAR(K)/3.d3+100.d0*F0(K))
+                IF(RLU(LDT) < 9999.) THEN
+                  RLUXX = RLU(LDT)/(1.d-5*HSTAR(K)+F0(K))
                 ELSE
-                  RLUXX = 1.E12
+                  RLUXX = 1.d12
                 END IF
-C*
+
 C* To prevent virtually zero resistance to species with huge HSTAR,
 C* such as HNO3, a minimum value of RLUXX needs to be set. The
 C* rationality of the existence of such a minimum is demonstrated by
@@ -370,76 +411,78 @@ C* the observed relationship between Vd(NOy-NOx) and Ustar in Munger
 C* et al.[1996]; Vd(HNO3) never exceeds 2 cm s-1 in observations. The
 C* corresponding minimum resistance is 50 s m-1.  This correction
 C* was introduced by J.Y. Liang on 7/9/95.  
-C* 
-                IF(RLUXX .LT. 50.) RLUXX = 50.
-                RGSX = 1./(1.D-5*HSTAR(K)/RGSS(LDT)+F0(K)/RGSO(LDT))   
-                RCLX = 1./(1.D-5*HSTAR(K)/RCLS(LDT)+F0(K)/RCLO(LDT))      
+
+                IF(RLUXX  <  50.) RLUXX = 50.d0
+                RGSX = 1.d0/(1.d-5*HSTAR(K)/RGSS(LDT)+F0(K)/RGSO(LDT))
+                RCLX = 1.d0/(1.d-5*HSTAR(K)/RCLS(LDT)+F0(K)/RCLO(LDT))      
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C Note from Greg & Gavin: it might be necessary to 
 C limit some of these other resistances too:
-                IF(RGSX.LT. 50.) RGSX= 50.
-C               IF(RCLX.LT. 50.) RCLX= 50.
-C               IF(RIXX.LT. 50.) RIXX= 50.
-C               IF(RDC.LT. 50.) RDC= 50.
-C               IF(RAC(LDT).LT. 50.) RAC(LDT)= 50.
+                IF(RGSX <  50.) RGSX= 50.d0
+C               IF(RCLX <  50.) RCLX= 50.d0
+C               IF(RIXX <  50.) RIXX= 50.d0
+C               IF(RDC <  50.) RDC= 50.d0
+C               IF(RAC(LDT) <  50.) RAC(LDT)= 50.d0
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C** Get bulk surface resistance of the canopy, from the network
 C** of resistances in parallel and in series (Fig. 1 of Wesely [1989])
-                DTMP1=1./RIXX
-                DTMP2=1./RLUXX   
-                DTMP3=1./(RAC(LDT)+RGSX)
-                DTMP4=1./(RDC+RCLX)
-                RSURFACE(K,LDT) = 1./(DTMP1+DTMP2+DTMP3+DTMP4)
+                DTMP1=1.d0/RIXX
+                DTMP2=1.d0/RLUXX   
+                DTMP3=1.d0/(RAC(LDT)+RGSX)
+                DTMP4=1.d0/(RDC+RCLX)
+                RSURFACE(K,LDT) = 1.d0/(DTMP1+DTMP2+DTMP3+DTMP4)
               END IF                                 ! gases (above)
             
-              IF (tr_wd_TYPE(K).eq.nPART) THEN ! aerosols (below)
-C**             get surface deposition velocity for aerosols if needed;
-C**             equations (15)-(17) of Walcek et al. [1986]            
-                VDS = 0.002*USTARR
-                IF(OBK.LT.0.)VDS = VDS*(1.+(-300./OBK)**0.6667)
-                IF(OBK.EQ.0.) call stop_model('OBK=0 in TRDRYDEP',255)
+              IF (tr_wd_TYPE(K) == nPART) THEN ! aerosols (below)
+C**             Get surface deposition velocity for aerosols if needed
+C**             Equations (15)-(17) of Walcek et al. [1986]            
+                VDS = 0.002d0*USTARR
+                IF(OBK < 0.)VDS = VDS*(1.d0+(-300.d0/OBK)**0.6667)
+                IF(OBK == 0.) call stop_model('OBK=0 in TRDRYDEP',255)
                 CZH  = ZHH/OBK
-                IF(CZH.LT.-30.)VDS=0.0009*USTARR*(-CZH)**0.6667
-C*
+                IF(CZH < -30.)VDS=0.0009d0*USTARR*(-CZH)**0.6667
+
 C* Set VDS to be less than VDSMAX (entry in input file divided by 1.D4)
 C* VDSMAX is taken from Table 2 of Walcek et al. [1986].
 C* Invert to get corresponding R
-C*
-                RSURFACE(K,LDT)=1.D0/MIN(VDS,1.D-4*REAL(IVSMAX(II)))
+
+                RSURFACE(K,LDT)=1.d0/MIN(VDS,1.d-4*REAL(IVSMAX(II)))
               END IF ! aerosols
-C*
+
 C*    Set max and min values for bulk surface resistances:
-C*
-              RSURFACE(K,LDT)=MAX(1.D0, MIN(RSURFACE(K,LDT), 9999.D0))
+
+              RSURFACE(K,LDT)=MAX(1.d0, MIN(RSURFACE(K,LDT), 9999.d0))
              end if! dodrydep
             END DO ! K loop   
             END IF ! end ice and water exclusion          
           END IF   ! IJUSE ne 0   
         END DO   ! LDT loop
-C*
+
 C* Loop through the different landuse types present in the grid square.
 C* IJUSE is the fraction of the grid square occupied by surface LDT
 C* in units of per mil (IJUSE=500 -> 50% of the grid square).  Add the
 C* contribution of surface type LDT to the bulk surface resistance:
-C*        
-        TOTA = 0. ! total non-water, non-ice area
+
+        TOTA = 0.d0 ! total non-water, non-ice area
         DO LDT=1, IJREG(I,J)
-          IF (IJUSE(I,J,LDT) .NE. 0) THEN
+          IF (IJUSE(I,J,LDT)  /=  0) THEN
             IOLSON = IJLAND(I,J,LDT)+1  
             II = IDEP(IOLSON)
             ! exclude ice and water (except for problem points) :
-            IF((II.ne.1.and.II.ne.11).or.problem_point) THEN 
-            DO K = 1,ntm
-             if(dodrydep(K))then
-              VD(K) = VD(K) + 
-     &        .001*REAL(IJUSE(I,J,LDT))/RSURFACE(K,LDT)
-              TOTA(K)=TOTA(K)+.001*REAL(IJUSE(I,J,LDT))
-             end if  ! dodrydep
-            END DO   ! K
+            IF((II /= 1 .and. II /= 11) .or. problem_point) THEN 
+             DO K = 1,ntm
+              if(dodrydep(K))then
+                VD(K) = VD(K) + 
+     &          .001d0*REAL(IJUSE(I,J,LDT))/RSURFACE(K,LDT)
+                TOTA(K)=TOTA(K)+.001d0*REAL(IJUSE(I,J,LDT))
+              end if  ! dodrydep
+             END DO   ! K
             END IF   ! end ice and water exclusion
           END IF     ! IJUSE ne 0
         END DO       ! LDT  
+
 C* Calculate the deposition velocity, to be returned:
+
         DO K = 1,ntm
           if(dodrydep(K))dep_vel(K) = VD(K)/TOTA(K)
         END DO        
@@ -448,96 +491,95 @@ C* Calculate the deposition velocity, to be returned:
         
 C       Please see comments in land case above:     
         II = 1                  ! ice
-        IF(ITYPE.eq.1) II  = 11 ! water
+        IF(ITYPE == 1) II  = 11 ! water
         LDT=1 ! just so we don't have to use all new variables
-        RI(LDT)   = 1.E12 ! No stomatal deposition
-        RLU(LDT)  = 1.E6  ! No cuticular surface deposition 
-        RAC(LDT)  = 1.D0
-        RGSS(LDT) = MAX(REAL(IRGSS(II)) + RT ,1.D0)
-        IF (RGSS(LDT) .GE. 9999.) RGSS(LDT) = 1.E12
-        RGSO(LDT) = MAX(REAL(IRGSO(II)) + RT ,1.D0)
-        IF (RGSO(LDT) .GE. 9999.) RGSO(LDT) = 1.E12
-        RCLS(LDT) = 1.E12
+        RI(LDT)   = 1.d12 ! No stomatal deposition
+        RLU(LDT)  = 1.d6  ! No cuticular surface deposition 
+        RAC(LDT)  = 1.d0
+        RGSS(LDT) = MAX(REAL(IRGSS(II)) + RT ,1.d0)
+        IF (RGSS(LDT)  >=  9999.) RGSS(LDT) = 1.d12
+        RGSO(LDT) = MAX(REAL(IRGSO(II)) + RT ,1.d0)
+        IF (RGSO(LDT)  >=  9999.) RGSO(LDT) = 1.d12
+        RCLS(LDT) = 1.d12
         RCLO(LDT) = REAL(IRCLO(II)) + RT
-        IF (RCLO(LDT) .GE. 9999.) RCLO(LDT) = 1.E12
+        IF (RCLO(LDT)  >=  9999.) RCLO(LDT) = 1.d12
         RIX = RI(LDT)  
-        IF (RIX .LT. 9999.) THEN
-          IF (TEMPC.GT.0. .AND. TEMPC.LT.40.) THEN
-            GFACT = 400.*byTEMPC/(40.0-TEMPC)
+        IF (RIX  <  9999.) THEN
+          IF (TEMPC > 0. .AND. TEMPC < 40.) THEN
+            GFACT = 400.d0*byTEMPC/(40.d0-TEMPC)
           ELSE
-            GFACT = 100.
+            GFACT = 100.d0
           END IF
-          IF (RAD0.GT.0. .AND. XYLAI(I,J,LDT).GT.0.) THEN
-            GFACI=1./BIOFIT
+          IF (RAD0 > 0. .AND. XYLAI(I,J,LDT) > 0.) THEN
+            GFACI=1.d0/BIOFIT
      *      (DRYCOEFF,XYLAI(I,J,LDT),SUNCOS,CFRAC(I,J))
           ELSE
-            GFACI = 100.
+            GFACI = 100.d0
           ENDIF
           RIX = RIX*GFACT*GFACI
         END IF
-        RDC = 100.*(1.+1000./(RAD0 + 10.))
+        RDC = 100.d0*(1.+1000.d0/(RAD0 + 10.d0))
         DO K = 1,ntm
          if(dodrydep(K)) then
-          tr_mm_temp = tr_mm(k)*1.D-3
+          tr_mm_temp = tr_mm(k)*1.d-3
 #ifdef TRACERS_SPECIAL_Shindell
 c         For NOx, use NO2 molecular weight to get collision diameter:
-          if(trname(K).eq.'NOx') tr_mm_temp = 4.4d-2
+          if(trname(K) == 'NOx') tr_mm_temp = 4.4d-2
 #endif
-          IF(tr_wd_TYPE(K).ne.nPART) THEN  ! NON-AEROSOLS
+          IF(tr_wd_TYPE(K) /= nPART) THEN  ! NON-AEROSOLS
             RIXX = RIX*DIFFG(TEMPK,XMWH2O)/DIFFG(TEMPK,tr_mm_temp)
-     &      + 1./(HSTAR(K)/3.D3+100.*F0(K))
-            RLUXX = 1.E12
-            RGSX = 1. / (1.D-5*HSTAR(K)/RGSS(LDT)+F0(K)/RGSO(LDT))
-            RCLX = 1. / (1.D-5*HSTAR(K)/RCLS(LDT)+F0(K)/RCLO(LDT))
+     &      + 1.d0/(HSTAR(K)/3.d3+100.d0*F0(K))
+            RLUXX = 1.d12
+            RGSX = 1.d0 / (1.d-5*HSTAR(K)/RGSS(LDT)+F0(K)/RGSO(LDT))
+            RCLX = 1.d0 / (1.d-5*HSTAR(K)/RCLS(LDT)+F0(K)/RCLO(LDT))
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C Note from Greg & Gavin: it might be necessary to 
 C limit some of these other resistances too:
-            IF(RGSX.LT. 50.) RGSX= 50.
-C           IF(RCLX.LT. 50.) RCLX= 50.
-C           IF(RIXX.LT. 50.) RIXX= 50.
-C           IF(RDC.LT. 50.) RDC= 50.
-C           IF(RAC(LDT).LT. 50.) RAC(LDT)= 50.
+            IF(RGSX <  50.) RGSX= 50.d0
+C           IF(RCLX <  50.) RCLX= 50.d0
+C           IF(RIXX <  50.) RIXX= 50.d0
+C           IF(RDC <  50.) RDC= 50.d0
+C           IF(RAC(LDT) <  50.) RAC(LDT)= 50.d0
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-            DTMP1=1./RIXX
-            DTMP2=1./RLUXX   
-            DTMP3=1./(RAC(LDT)+RGSX)
-            DTMP4=1./(RDC+RCLX)
-            RSURFACE(K,LDT) = 1./(DTMP1+DTMP2+DTMP3+DTMP4)
-          ELSE IF (tr_wd_TYPE(K).eq.nPART) THEN ! AEROSOLS        
-            VDS = 0.002*USTARR
-            IF(OBK.LT.0.)VDS = VDS*(1.+(-300./OBK)**0.6667) 
-            IF(OBK.EQ.0.) call stop_model('OBK=0 in TRDRYDEP',255)
+            DTMP1=1.d0/RIXX
+            DTMP2=1.d0/RLUXX   
+            DTMP3=1.d0/(RAC(LDT)+RGSX)
+            DTMP4=1.d0/(RDC+RCLX)
+            RSURFACE(K,LDT) = 1.d0/(DTMP1+DTMP2+DTMP3+DTMP4)
+          ELSE IF (tr_wd_TYPE(K) == nPART) THEN ! AEROSOLS        
+            VDS = 0.002d0*USTARR
+            IF(OBK < 0.)VDS = VDS*(1.d0+(-300.d0/OBK)**0.6667) 
+            IF(OBK == 0.) call stop_model('OBK=0 in TRDRYDEP',255)
             CZH  = ZHH/OBK
-            IF(CZH.LT.-30.)VDS=0.0009*USTARR*(-CZH)**0.6667
-            RSURFACE(K,LDT)=1.D0/MIN(VDS,1.D-4*REAL(IVSMAX(II)))
+            IF(CZH < -30.)VDS=0.0009d0*USTARR*(-CZH)**0.6667
+            RSURFACE(K,LDT)=1.d0/MIN(VDS,1.d-4*REAL(IVSMAX(II)))
           END IF ! tracer type
-          dep_vel(K)=1./MAX(1.D0, MIN(RSURFACE(K,LDT), 9999.D0))
+          dep_vel(K)=1.d0/MAX(1.d0, MIN(RSURFACE(K,LDT), 9999.d0))
          end if  ! do drydep
         END DO   ! tracer loop                  
-C
+
       CASE DEFAULT
         call stop_model('ITYPE error in TRDRYDEP',255)
       END SELECT
-C
+
       RETURN
       END SUBROUTINE get_dep_vel 
-C      
-C
+
+
+
       REAL*8 FUNCTION BIOFIT(COEFF1,XLAI1,SUNCOS1,CFRAC1)
 !@sum BIOFIT Calculates the 'light correction' for the stomatal 
 !@+   resistance?
 !@auth Y.H. Wang
 !@ver ? 
 
-c
 C**** GLOBAL parameters and variables:  
-C
+
       USE tracers_DRYDEP, only : NPOLY
      
       IMPLICIT NONE
-c
+
 C**** Local parameters and variables and arguments
-C
 !@param KK number of terms
 !@param ND scaling factor for each variable
 !@param X0 maximum for each variable
@@ -555,20 +597,20 @@ C
       REAL*8, DIMENSION(KK)                :: TERM
       REAL*8, DIMENSION(NPOLY)             :: REALTERM
       REAL*8, INTENT(IN) :: XLAI1,SUNCOS1,CFRAC1
-      REAL*8 XLOW
-      INTEGER I, K, K1, K2, K3
+      REAL*8                               :: XLOW
+      INTEGER                              :: I, K, K1, K2, K3
 
-      TERM(1)=1. 
+      TERM(1)=1.d0 
       TERM(2)=XLAI1 
       TERM(3)=SUNCOS1 
       TERM(4)=CFRAC1
 C --- this section relaces SUNPARAM routine --- 
       DO I=2,KK ! NN
         TERM(I)=MIN(TERM(I),X0(I))
-        IF (I.NE.KK) THEN ! hardcode of array position !
+        IF (I /= KK) THEN ! hardcode of array position !
           XLOW=X0(I)/REAL(ND(I))
         ELSE
-          XLOW= 0.
+          XLOW= 0.d0
         END IF
         TERM(I)=MAX(TERM(I),XLOW)
         TERM(I)=TERM(I)/X0(I)
@@ -583,15 +625,16 @@ C ---------------------------------------------
           END DO 
         END DO 
       END DO 
-      BIOFIT=0. 
+      BIOFIT=0.d0 
       DO K=1,NPOLY 
         BIOFIT=BIOFIT+COEFF1(K)*REALTERM(K) 
       END DO 
-      IF (BIOFIT.LT.0.1) BIOFIT=0.1 
+      IF (BIOFIT < 0.1) BIOFIT=0.1d0 
       RETURN 
       END FUNCTION BIOFIT
-C      
-C
+     
+
+
       REAL*8 FUNCTION DIFFG(TK,XM)
 !@sum DIFFG to calculate tracer molecular diffusivity.
 !@auth ? HARVARD CTM
@@ -627,24 +670,25 @@ C======================================================================
      &                     RADAIR= 1.2D-10,
      &                     PRESS=  1.0d5
       REAL*8, INTENT(IN):: TK,XM
-      REAL*8 Z,DIAM,FRPATH,SPEED,AIRDEN     
-C
+      REAL*8 :: Z,DIAM,FRPATH,SPEED,AIRDEN     
+
 C* Calculate air density AIRDEN:
       AIRDEN = PRESS*avog*bygasc/TK ! can't we get this from the GCM?
 C* Calculate the mean free path for gas X in air: eq. 8.5 of Seinfeld
 C*  [1986]; DIAM is the collision diameter for gas X with air :
       Z = XM/XMAIR
       DIAM = RADX+RADAIR
-      FRPATH = 1./(PI*SQRT(1.+Z)*AIRDEN*(DIAM**2.))
+      FRPATH = 1.d0/(PI*SQRT(1.d0+Z)*AIRDEN*(DIAM**2.))
 C* Calculate average speed of gas X; eq. 15.47 of Levine [1988]
-      SPEED = SQRT(8.*gasc*TK/(PI*XM))
+      SPEED = SQRT(8.d0*gasc*TK/(PI*XM))
 C* Calculate diffusion coefficient of gas X in air; eq. 8.9 of 
 C* Seinfeld [1986]  :
-      DIFFG = (3.*PI*0.03125)*(1.+Z)*FRPATH*SPEED
+      DIFFG = (3.d0*PI*0.03125d0)*(1.d0+Z)*FRPATH*SPEED
       RETURN
       END
-C
-C
+
+
+
       SUBROUTINE RDDRYCF
 !@sum RDDRYCF Read the polynomial dry deposition coefficients from
 !@+   the formatted input file 'drydep.coef'.
@@ -652,21 +696,18 @@ C
 !@ver ? 
 !@calls openunit
 
-c
 C**** GLOBAL parameters and variables:  
-C
       USE FILEMANAGER, only: openunit,closeunit
       USE tracers_DRYDEP, only: NPOLY,DRYCOEFF
      
       IMPLICIT NONE
-c
+
 C**** Local parameters and variables and arguments
-C
 !@var DUM dummy variable for 80 character reading
 !@var iu_data unit number for read
 !@var I dummmy loop variable
-      CHARACTER*80 DUM
-      INTEGER iu_data,I
+      CHARACTER*80 :: DUM
+      INTEGER :: iu_data,I
      
       call openunit('DRYCOEFF',iu_data,.false.,.true.)
       READ(iu_data,'(A80)') DUM
@@ -675,6 +716,7 @@ C--   read polynomial coefficients for drydep:
       call closeunit(iu_data)
       RETURN
       END SUBROUTINE RDDRYCF
+      
       
 
       SUBROUTINE RDLAND
@@ -685,17 +727,16 @@ C--   read polynomial coefficients for drydep:
 !@auth ? HARVARD CTM
 !@ver ? 
 !@calls openunit, MODIN
-c
-C      Results in non-gridded arrays:
-C      IJREG(I,J), IJLAND(I,J,LDT), IJUSE(I,J,LDT)
 C
 C**** GLOBAL parameters and variables:  
 C
+      use domain_decomp, only : grid, get, AM_I_ROOT, UNPACK_DATA,
+     & write_parallel
       USE FILEMANAGER, only   : openunit,closeunit
-      USE MODEL_COM, only    : im,jm
+      USE MODEL_COM, only     : im,jm 
       USE tracers_DRYDEP, only: IJREG,IJLAND,IJUSE,IREG,NTYPE,IDEP,
-     &                          IRI,IRLU,IRAC,IRGSS,IRGSO,IRCLS,
-     &                          IRCLO,IVSMAX,NVEGTYPE
+     & IRI,IRLU,IRAC,IRGSS,IRGSO,IRCLS,IRCLO,IVSMAX,NVEGTYPE,FRCLND,
+     & ILAND,IUSE,IREG_loc
      
       IMPLICIT NONE
 c
@@ -704,10 +745,6 @@ C
 !@var IREG # of landtypes in grid square (read in, gridded)
 !@var I,J local lat lon index
 !@var K,L,IDUMMY dummy loop indicies
-!@var ILAND Land type ID for element LDT=1,IREG(I,J) (read in, gridded)
-!@var IUSE per mil fraction of grid area with by land type element LDT
-!@+   (read in, gridded)
-!@var FRCLND land fraction (read in, gridded)
 !@param NWAT number of olsons land types that are water
 !@var NWAT2 Number of Olson's surface types that are water (read in)
 !@var IWATER ID index for Olson's surface types that are water
@@ -715,76 +752,93 @@ C
 !@var iu_data unit number for read
 !@var iols temp read in index
 !@var IZO roughness height for given surface type
-      INTEGER, PARAMETER               :: NWAT=6
-      CHARACTER*1 COM(70)
-      REAL*8,  DIMENSION(IM,JM)        :: FRCLND
-      INTEGER, DIMENSION(IM,JM,NTYPE)  :: ILAND, IUSE
-      INTEGER, DIMENSION(NVEGTYPE)     :: IZO
-      INTEGER I,J,K,L,NWAT2,IDUMMY,iu_data,iols
-      INTEGER, DIMENSION(NWAT)         :: IWATER
+      integer, dimension(IM,JM) :: IREG_glob
+      real*8 , dimension(IM,JM) :: IREG_real
+      integer, dimension(IM,JM,NTYPE) :: ILAND_glob,IUSE_glob
+      INTEGER, PARAMETER :: NWAT=6
+      CHARACTER*1, dimension(70) :: COM
+      character(len=300) :: out_line
+      INTEGER, DIMENSION(NVEGTYPE) :: IZO
+      INTEGER :: I,J,K,L,NWAT2,IDUMMY,iu_data,iols
+      INTEGER, DIMENSION(NWAT) :: IWATER
+      integer :: J_0, J_1, J_1H, J_0H
       
-      WRITE(6,*) 'READING land types and fractions ...'
-      call openunit('VEGTYPE',iu_data,.false.,.true.)
+      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     &                 J_STRT     =J_0 , J_STOP     =J_1 )
       
-100   READ(iu_data,'(20I4)',end=110) I,J,IREG(I,J),
-     1                     (ILAND(I,J,K),K=1,IREG(I,J)),
-     2                     (IUSE(I,J,K),K=1,IREG(I,J))
-      GO TO 100
-110   CONTINUE
-      call closeunit(iu_data)
-      DO J=1,JM
+      if ( AM_I_ROOT() ) then
+        write(6,*) 'READING land types and fractions ...'
+        call openunit('VEGTYPE',iu_data,.false.,.true.)
+100     READ(iu_data,'(20I4)',end=110) I,J,IREG_glob(I,J),
+     &  (ILAND_glob(I,J,K),K=1,IREG_glob(I,J)),
+     &  (IUSE_glob(I,J,K),K=1,IREG_glob(I,J))
+        IREG_real(:,:)=REAL(IREG_glob(:,:))
+        GO TO 100
+110     CONTINUE
+        call closeunit(iu_data)
+      endif
+      CALL UNPACK_DATA(grid, IREG_real, IREG_loc)
+      IREG(:,J_0:J_1)=NINT(IREG_loc(:,J_0:J_1))
+      CALL UNPACK_DATA(grid, ILAND_glob, ILAND)
+      CALL UNPACK_DATA(grid, IUSE_glob, IUSE)
+      DO J=J_0,J_1
         DO I=1,IM
-          FRCLND(I,J) = 1000.
+          FRCLND(I,J) = 1000.d0
           IJREG(I,J) = IREG(I,J)
           DO K=1,IJREG(I,J)
             IJLAND(I,J,K) = ILAND(I,J,K)
             IJUSE(I,J,K)  = IUSE(I,J,K)
-            IF (IJLAND(I,J,K) .EQ. 0 )
+            IF (IJLAND(I,J,K)  ==  0 )
      &      FRCLND(I,J) = FRCLND(I,J) - IJUSE(I,J,K)
           END DO ! K
-          FRCLND(I,J) = FRCLND(I,J) * 1.E-3
+          FRCLND(I,J) = FRCLND(I,J) * 1.d-3
         END DO   ! I
       END DO     ! J
-C
+
 C********* this section replaces call to MODIN *******************
-      WRITE(6,*) 'READING drydep.table ...'
-      call openunit('OLSON',iu_data,.false.,.true.)
+      WRITE(out_line,*) 'READING drydep.table ...'
+      call write_parallel(trim(out_line))
       
+      call openunit('OLSON',iu_data,.false.,.true.)
+          write(6,*)'dong ',am_i_root( )
+          call sys_flush(6)
       DO L = 1,5
         READ(iu_data,'(70A1)') COM
       END DO
 C** Read Olson's surf. types, corresponding deposition surf. types, z0:
       DO L = 1,NVEGTYPE
-         READ(iu_data,'(3I6)')  iols, IDEP(iols), IZO(iols)
+        READ(iu_data,'(3I6)')  iols, IDEP(iols), IZO(iols)
       END DO
 C** For the water surface types, zO is input as 1.E-4 m but is
 C** recalculated elsewhere as function of wind speed.  Read the # of
 C** Olson's surface types that are water (NWAT) and the corresponding
 C** IDs (IWATER):
-         READ(iu_data,'(70A1)') COM
-         READ(iu_data,'(10I3)') NWAT2, (IWATER(I), I=1,NWAT)
-         IF(NWAT2.ne.NWAT) 
-     &   call stop_model('problem with NWAT vs NWAT2 in RDLAND',255)
+      READ(iu_data,'(70A1)') COM
+      READ(iu_data,'(10I3)') NWAT2, (IWATER(I), I=1,NWAT)
+      IF(NWAT2 /= NWAT) 
+     &call stop_model('problem with NWAT vs NWAT2 in RDLAND',255)
 C** Read parameters for each deposition surface type:
       DO IDUMMY=1,3
         READ(iu_data,'(70A1)') COM
       ENDDO
       DO L=1,NVEGTYPE
-         READ(iu_data,'(9I5)', END=400) I,IRI(I),IRLU(I),IRAC(I),
-     *   IRGSS(I),IRGSO(I),IRCLS(I),IRCLO(I),IVSMAX(I)
+        READ(iu_data,'(9I5)', END=400) I,IRI(I),IRLU(I),IRAC(I),
+     &  IRGSS(I),IRGSO(I),IRCLS(I),IRCLO(I),IVSMAX(I)
       END DO
  400  CONTINUE
       call closeunit(iu_data)
 C******************** END MODIN SECTION **************************
       RETURN
       END SUBROUTINE RDLAND
-c      
-c                
+ 
+
+           
       SUBROUTINE RDLAI
 !@sum RDLAI Updates the Leaf Area Index (LAI) daily.
 !@auth HARVARD CTM
 !@calls READLAI
 C**** GLOBAL parameters and variables:  
+      use domain_decomp, only : grid, get
       USE tracers_DRYDEP, only: IJREG,XYLAI,XLAI,XLAI2,IREG
       USE MODEL_COM, only: IM,JM,JDmidOfM,JMperY,JDAY,JMON
       IMPLICIT NONE
@@ -796,22 +850,27 @@ C**** Local parameters and variables and arguments
 !@var M,K,I,J dummy loop variables
 !@var JDAY current julian day
 !@var byrITD reciprocol of real(ITD)
-      INTEGER STARTDAY(JMperY),IMUL,ITD,M,K,I,J
-      REAL*8 byrITD
+      INTEGER, dimension(JMperY) :: STARTDAY
+      integer :: IMUL,ITD,M,K,I,J
+      REAL*8 :: byrITD
       INTEGER, SAVE :: ISAVE=0
-c
+      integer :: J_0, J_1, J_1H, J_0H
+      
+      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     &                 J_STRT     =J_0 , J_STOP     =J_1 )
+     
       DO M=1,JMperY
         STARTDAY(M) = JDmidOfM(M) - 1
       END DO
-c    
-      IF (ISAVE.EQ.0) THEN
+    
+      IF (ISAVE == 0) THEN
         ISAVE=1
-        IF (JDAY.LT.STARTDAY(1)) THEN
+        IF (JDAY < STARTDAY(1)) THEN
           IMUL=365-STARTDAY(JMperY)+JDAY
           ITD = 31
         ELSE
           IMUL=JDAY-STARTDAY(JMON)
-          IF (JMON.lt.JMperY) THEN
+          IF (JMON < JMperY) THEN
             ITD = STARTDAY(JMON+1) - STARTDAY(JMON)
           ELSE
             ITD = 365 + STARTDAY(1) - STARTDAY(JMON)
@@ -819,41 +878,41 @@ c
         END IF
         byrITD = 1.E0/REAL(ITD)
         CALL READLAI
-        DO J=1,JM
-        DO I=1,IM
-        DO K=1,IREG(I,J)
-          XLAI2(I,J,K) = (XLAI2(I,J,K)-XLAI(I,J,K))*byrITD
-          XLAI(I,J,K)=XLAI(I,J,K)+ XLAI2(I,J,K) * REAL(IMUL)
-        END DO
-        END DO
+        DO J=J_0,J_1
+          DO I=1,IM
+            DO K=1,IREG(I,J)
+              XLAI2(I,J,K) = (XLAI2(I,J,K)-XLAI(I,J,K))*byrITD
+              XLAI(I,J,K) = XLAI(I,J,K) + XLAI2(I,J,K)*REAL(IMUL)
+            END DO
+          END DO
         END DO
       ELSE
-        IF (JDAY.EQ.STARTDAY(JMON)) THEN
-          IF (JMON.lt.JMperY) THEN
+        IF (JDAY == STARTDAY(JMON)) THEN
+          IF (JMON < JMperY) THEN
             ITD = STARTDAY(JMON+1) - STARTDAY(JMON)
           ELSE
             ITD = 365 + STARTDAY(1) - STARTDAY(JMON)
           END IF
-          byrITD = 1.E0/REAL(ITD)
+          byrITD = 1.d0/REAL(ITD)
           CALL READLAI
-          DO J=1,JM
-          DO I=1,IM
-          DO K=1,IREG(I,J)        
-            XLAI2(I,J,K) = (XLAI2(I,J,K)-XLAI(I,J,K))*byrITD
-          END DO
-          END DO
+          DO J=J_0,J_1
+            DO I=1,IM
+              DO K=1,IREG(I,J)        
+                XLAI2(I,J,K) = (XLAI2(I,J,K)-XLAI(I,J,K))*byrITD
+              END DO
+            END DO
           END DO
         ELSE   
-          DO J=1,JM
-          DO I=1,IM
-          DO K=1,IREG(I,J)
-            XLAI(I,J,K)=XLAI(I,J,K)+ XLAI2(I,J,K)
-          END DO
-          END DO
+          DO J=J_0,J_1
+            DO I=1,IM
+              DO K=1,IREG(I,J)
+                XLAI(I,J,K)=XLAI(I,J,K)+ XLAI2(I,J,K)
+              END DO
+            END DO
           END DO
         END IF
       END IF
-      DO J=1,JM
+      DO J=J_0,J_1
         DO I=1,IM
           DO K=1,IJREG(I,J)
             XYLAI(I,J,K)=XLAI(I,J,K)
@@ -862,25 +921,25 @@ c
       END DO
       RETURN
       END SUBROUTINE RDLAI
-c
-c
+
+
+
       SUBROUTINE READLAI
 !@sum READDLAI read in leaf area indicies from formatted file
 !@+   (chem_files/lai##.global) for one month.
 !@auth ? HARVARD CTM
 !@ver ? 
 !@calls openunit
-c
+
 C**** GLOBAL parameters and variables:  
-C
-      USE tracers_DRYDEP, only: XLAI,XLAI2,IREG
+      use domain_decomp, only : grid,get,AM_I_ROOT,UNPACK_DATA,PACK_DATA
+      USE tracers_DRYDEP, only: XLAI,XLAI2,IREG,ntype
       USE MODEL_COM, only: IM,JM,JMON,JMperY
       USE FILEMANAGER, only: openunit,closeunit
-C     
+
       IMPLICIT NONE
-c
+
 C**** Local parameters and variables and arguments
-C    
 !@var CMONTH 2-digit of current month (character)  
 !@var i,j,k dummy loop indicies
 !@var IUNIT unuit number of current file being read
@@ -888,37 +947,48 @@ C
 !@var INDEX ?
       CHARACTER*2, PARAMETER, DIMENSION(JMperY) :: CMONTH =
      &(/'01','02','03','04','05','06','07','08','09','10','11','12'/)
-      INTEGER I,J,K,IUNIT,MMM,INDEX
-C     
-C lai's are in reference coordinates.  initialize them:
-      DO J=1,JM
-      DO I=1,IM
-      DO K=1,IREG(I,J)
-            XLAI(I,J,K)= 0.
-            XLAI2(I,J,K)=0.
-      END DO
-      END DO
-      END DO
+      INTEGER :: I,J,K,IUNIT,MMM,INDEX
+      real*8, dimension(im,jm,ntype) :: XLAI_glob, XLAI2_glob
+      integer, dimension(IM,JM) :: IREG_glob
+      integer :: J_0, J_1, J_1H, J_0H
       
-C Read current month's lai:
+      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     &                 J_STRT     =J_0 , J_STOP     =J_1 )
 
-      call openunit('LAI'//CMONTH(JMON),IUNIT,.false.,.true.)
-10    READ(IUNIT,"(3I3,20F5.1)",END=20) I,J,INDEX,
-     &(XLAI(I,J,K),K=1,INDEX)
-      GOTO 10
- 20   call closeunit(iunit)
+      CALL PACK_DATA(grid, IREG, IREG_glob) 
+      if ( AM_I_ROOT() ) then      
+C       lai's are in reference coordinates.  initialize them:
+        DO J=1,JM;  DO I=1,IM; DO K=1,IREG_glob(I,J)
+          XLAI_glob(I,J,K)= 0.d0
+          XLAI2_glob(I,J,K)=0.d0
+        END DO   ;  END DO   ; END DO
       
-C Read following months lai:
-      IF(JMON.eq.12) THEN
-        MMM=0
-      ELSE
-        MMM=JMON
-      END IF
-      call openunit('LAI'//CMONTH(MMM+1),IUNIT,.false.,.true.)
-30    READ(IUNIT,"(3I3,20F5.1)",END=40) I,J,INDEX,
-     &(XLAI2(I,J,K),K=1,INDEX)
-      GOTO 30
-40    call closeunit(iunit)
+C       Read current month's lai:
+        call openunit('LAI'//CMONTH(JMON),IUNIT,.false.,.true.)
+10      READ(IUNIT,"(3I3,20F5.1)",END=20) I,J,INDEX,
+     &  (XLAI_glob(I,J,K),K=1,INDEX)
+        GOTO 10
+20      call closeunit(iunit)
+      endif
+      
+      CALL UNPACK_DATA(grid, XLAI_glob, XLAI)
+       
+      if ( AM_I_ROOT() ) then 
+C       Read following month's lai:
+        IF(JMON == 12) THEN
+          MMM=0
+        ELSE
+          MMM=JMON
+        END IF
+        call openunit('LAI'//CMONTH(MMM+1),IUNIT,.false.,.true.)
+30      READ(IUNIT,"(3I3,20F5.1)",END=40) I,J,INDEX,
+     &  (XLAI2_glob(I,J,K),K=1,INDEX)
+        GOTO 30
+40      call closeunit(iunit)
+      endif
+      
+      CALL UNPACK_DATA(grid, XLAI2_glob, XLAI2)
+
       RETURN
       END SUBROUTINE READLAI
 #endif
