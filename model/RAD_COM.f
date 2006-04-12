@@ -69,10 +69,13 @@ C**** exactly the same as the default values.
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CFRAC ! saved in rsf
 !@var RCLD Total cloud optical depth as seen be radiation
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: RCLD ! saved in rsf
-!@var O3_rad_save 3D ozone saved from radiation for use elsewhere
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: O3_rad_save !saved in rsf
 !@var O3_tracer_save 3D ozone saved elsewhere for use in radiation
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: O3_tracer_save!saved rsf
+!@var rad_to_chem save 3D quantities from radiation code for use in 
+!@+   chemistry (or rest of model). 1=Ozone, 2=aerosol ext, 3=N2O, 4=CH4,
+!@+   5=CFC11+CFC12
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: rad_to_chem !saved in rsf
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: rad_to_file              
 !@var KLIQ Flag indicating dry(0)/wet(1) atmosphere (memory feature)
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:,:) :: KLIQ ! saved in rsf
 !@dbparam Ikliq 0,1,-1 initialize kliq as dry,equil,current model state
@@ -176,10 +179,10 @@ C**** Local variables initialised in init_RAD
       USE tracer_com,ONLY : Ntm
 #endif
       USE RAD_COM, ONLY : LM_REQ
-      USE RAD_COM, ONLY : RQT, Tchg, SRHR, TRHR, FSF, FSRDIR, SRVISSURF,
-     *     SRDN, CFRAC, RCLD, O3_rad_save, O3_tracer_save, KLIQ, COSZ1,
-     *     dH2O, ALB, SALB, SINJ, COSJ,srnflb_save,trnflb_save,
-     &     ttausv_save,ttausv_cs_save
+      USE RAD_COM, ONLY : RQT,Tchg,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,
+     *     SRDN, CFRAC, RCLD, O3_tracer_save,rad_to_chem,rad_to_file,
+     *     KLIQ, COSZ1, dH2O, ALB, SALB, SINJ, COSJ, 
+     *     srnflb_save, trnflb_save, ttausv_save, ttausv_cs_save
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -199,8 +202,9 @@ C**** Local variables initialised in init_RAD
      *     SRDN(IM, J_0H:J_1H),
      *     CFRAC(IM, J_0H:J_1H),
      *     RCLD(LM, IM, J_0H:J_1H),
-     *     O3_rad_save(LM, IM, J_0H:J_1H),
      *     O3_tracer_save(LM, IM, J_0H:J_1H),
+     *     rad_to_chem(LM, IM, J_0H:J_1H,5),
+     *     rad_to_file(LM, IM, J_0H:J_1H,5),
      *     KLIQ(LM,4, IM, J_0H:J_1H),
      *     COSZ1(IM, J_0H:J_1H),
      *     dH2O(J_0H:J_1H, LM, 12),
@@ -256,8 +260,8 @@ C**** Local variables initialised in init_RAD
       REAL*8  :: FSF_GLOB(4,IM,JM)
       REAL*8, DIMENSION(IM, JM) :: FSRDIR_GLOB, SRVISSURF_GLOB,
      &           SRDN_GLOB, CFRAC_GLOB, SALB_GLOB
-      REAL*8, DIMENSION(LM, IM, JM) :: RCLD_GLOB, O3_rad_save_GLOB,
-     &           O3_tracer_save_GLOB
+      REAL*8, DIMENSION(LM, IM, JM) :: RCLD_GLOB,O3_tracer_save_GLOB
+      REAL*8, DIMENSION(LM, IM, JM, 5) :: rad_to_chem_GLOB
       REAL*8,DIMENSION(Im,Jm,Lm) :: srnflb_save_glob,trnflb_save_glob
 #ifdef TRACERS_ON
       REAL*8,DIMENSION(Im,Jm,Ntm,Lm) :: ttausv_save_glob,
@@ -314,8 +318,10 @@ C**** Local variables initialised in init_RAD
         CALL PACK_DATA( grid, CFRAC    ,  CFRAC_GLOB)
 
         CALL PACK_COLUMN(grid, RCLD          , RCLD_GLOB)
-        CALL PACK_COLUMN(grid, O3_rad_save   , O3_rad_save_GLOB)
+#ifdef TRACERS_SPECIAL_Shindell
         CALL PACK_COLUMN(grid, O3_tracer_save, O3_tracer_save_GLOB)
+        CALL PACK_COLUMN(grid, rad_to_chem, rad_to_chem_GLOB)
+#endif
         CALL PACK_DATA(grid,srnflb_save,srnflb_save_glob)
         CALL PACK_DATA(grid,trnflb_save,trnflb_save_glob)
 #ifdef TRACERS_ON
@@ -328,7 +334,9 @@ C**** Local variables initialised in init_RAD
   ! rest needed only if MODRAD>0 at restart
      *      ,S0,  SRHR_GLOB, TRHR_GLOB, FSF_GLOB , FSRDIR_GLOB
      *      ,SRVISSURF_GLOB, SALB_GLOB, SRDN_GLOB, CFRAC_GLOB,RCLD_GLOB
-     *      ,O3_rad_save_GLOB,O3_tracer_save_GLOB
+#ifdef TRACERS_SPECIAL_Shindell
+     *      ,O3_tracer_save_GLOB,rad_to_chem_GLOB
+#endif
 #ifdef TRACERS_DUST
      &      ,srnflb_save_glob,trnflb_save_glob,ttausv_save_glob
      &      ,ttausv_cs_save_glob
@@ -342,7 +350,9 @@ C**** Local variables initialised in init_RAD
   ! rest needed only if MODRAD>0 at restart
      *       ,S0,  SRHR_GLOB, TRHR_GLOB, FSF_GLOB , FSRDIR_GLOB
      *       ,SRVISSURF_GLOB, SALB_GLOB, SRDN_GLOB, CFRAC_GLOB,RCLD_GLOB
-     *       ,O3_rad_save_GLOB,O3_tracer_save_GLOB
+#ifdef TRACERS_SPECIAL_Shindell
+     *       ,O3_tracer_save_GLOB,rad_to_chem_GLOB
+#endif
 #ifdef TRACERS_DUST
      &       ,srnflb_save_glob,trnflb_save_glob,ttausv_save_glob
      &       ,ttausv_cs_save_glob
@@ -368,9 +378,11 @@ C**** Local variables initialised in init_RAD
           CALL UNPACK_DATA( grid, CFRAC_glob    ,  CFRAC)
   
           CALL UNPACK_COLUMN(grid, RCLD_glob          ,RCLD)
-          CALL UNPACK_COLUMN(grid, O3_rad_save_glob   ,O3_rad_save)
+#ifdef TRACERS_SPECIAL_Shindell
           CALL UNPACK_COLUMN(grid, O3_tracer_save_glob,
      &         O3_tracer_save)
+          CALL UNPACK_COLUMN(grid, rad_to_chem_glob, rad_to_chem)
+#endif
           CALL UNPACK_DATA(grid,srnflb_save_glob,srnflb_save)
           CALL UNPACK_DATA(grid,trnflb_save_glob,trnflb_save)
 #ifdef TRACERS_ON
