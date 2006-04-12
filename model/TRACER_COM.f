@@ -249,6 +249,18 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'OxREG1  ','OxREG2  ','OxREG3  ','OxREG4  ','OxREG5  ',
      *    'OxREG6  '/)
 #else
+#ifdef SHINDELL_STRAT_EXTRA
+      integer, parameter :: ntm=26,ntm_chem=25
+CCC   integer, parameter :: ntm=28,ntm_chem=25
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','ClOx    ','BrOx    ','N2O5    ',
+     *    'HNO3    ','H2O2    ','CH3OOH  ','HCHO    ','HO2NO2  ',
+     *    'CO      ','CH4     ','PAN     ','Isoprene','AlkylNit',
+     *    'Alkenes ','Paraffin','HCl     ','HOCl    ','ClONO2  ',
+     *    'HBr     ','HOBr    ','BrONO2  ','N2O     ','CFC     ',
+     &                          'GLT     '/)
+CCC  &    'Be7     ','Be10    ','GLT     '/)
+#else
       integer, parameter :: ntm=25,ntm_chem=25
       character*8, parameter :: trname(ntm)=(/
      *    'Ox      ','NOx     ','ClOx    ','BrOx    ','N2O5    ',
@@ -256,6 +268,7 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'CO      ','CH4     ','PAN     ','Isoprene','AlkylNit',
      *    'Alkenes ','Paraffin','HCl     ','HOCl    ','ClONO2  ',
      *    'HBr     ','HOBr    ','BrONO2  ','N2O     ','CFC     '/)
+#endif
 #endif
 #else
 #ifdef regional_Ox_tracers
@@ -412,7 +425,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *     n_Isoprene=0, n_AlkylNit=0, n_Alkenes=0, n_Paraffin=0,
      *     n_DMS=0,    n_MSA=0,   n_SO2=0,   n_SO4=0,    n_H2O2_s=0,
      *     n_ClOx=0,   n_BrOx=0,  n_HCl=0,   n_HOCl=0,   n_ClONO2=0,
-     *     n_HBr=0,    n_HOBr=0,  n_BrONO2=0,n_CFC=0,
+     *     n_HBr=0,    n_HOBr=0,  n_BrONO2=0,n_CFC=0,    n_GLT=0,
      *     n_Pb210 = 0,n_Be7=0,   n_Be10=0,
      *     n_seasalt1=0,  n_seasalt2=0, n_SO4_d1=0,  n_SO4_d2=0,
      *     n_SO4_d3=0,n_N_d1=0,  n_N_d2=0,  n_N_d3=0,
@@ -449,7 +462,7 @@ C****    The following are set in tracer_IC
       integer mchem
 !@var RSULF1, RSULF2, RSULF3, RSULF4: rate coefficients
 c for gas phase sulfur chemistry used by aerosol and chemistry models
-      real*8, DIMENSION(IM,JM,LM):: rsulf1, rsulf2,rsulf3,rsulf4 
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)::rsulf1,rsulf2,rsulf3,rsulf4
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
 !@dbparam imAER 0 determines emission choice: 0 present-day, 1 AEROCOM,
@@ -620,6 +633,10 @@ C****
       ALLOCATE( rxts(IM,J_0H:J_1H,LM),rxts1(IM,J_0H:J_1H,LM),
      *         rxts2(IM,J_0H:J_1H,LM),rxts3(IM,J_0H:J_1H,LM),
      *         rxts4(IM,J_0H:J_1H,LM),krate(IM,J_0H:J_1H,LM,8,rhet))
+#endif
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
+      ALLOCATE(  rsulf1(IM,J_0H:J_1H,LM),rsulf2(IM,J_0H:J_1H,LM),
+     *           rsulf3(IM,J_0H:J_1H,LM),rsulf4(IM,J_0H:J_1H,LM) )
 #endif
 
       END SUBROUTINE ALLOC_TRACER_COM
