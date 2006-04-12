@@ -163,7 +163,7 @@ C    *     ,egcm                       ! not needed
 #endif
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
-      use tracer_sources, only : avg_modPT
+      use tracer_sources, only : n__prec
 #endif
       USE FILEMANAGER, only: openunit,closeunit
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -310,6 +310,9 @@ CRKF...FIX
 
 C**** Initialize
       AJEQIL(:,:,:)=0.
+#ifdef TRACERS_SPECIAL_Shindell
+      RNOx_lgt(:,:)=0.d0
+#endif
 #ifndef TRACERS_DUST
 #ifndef TRACERS_MINERALS
 #ifndef TRACERS_QUARZHEM
@@ -407,10 +410,6 @@ C**** Find the ntx active tracers ntix(1->ntx)
         ntix(nx) = n
       end do
       ntx = nx
-#ifdef TRACERS_SPECIAL_Shindell
-C**** Make sure the NOx from lightning is initialized:
-      RNOx_lgt=0.
-#endif
 #endif
 C****
 C**** MAIN J LOOP
@@ -1123,7 +1122,7 @@ C**** between kinds of rain in the ground hydrology.
       PRECSS(I,J)=PRCPSS*100.*BYGRAV  ! large scale precip (kg/m^2)
 #ifdef INTERACTIVE_WETLANDS_CH4
 C**** update running-average of precipitation (in mm/day):
-      call running_average(prcp*sday*byDTsrc,I,J,avg_modPT(I,J,1),1,1)
+      call running_average(prcp*sday*byDTsrc,I,J,1.d0,n__prec)
 #endif
 
       DO L=1,LM
