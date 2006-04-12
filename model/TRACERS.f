@@ -940,16 +940,20 @@ C**** check whether air mass is conserved
 !@ver  1.0
 #ifdef TRACERS_ON
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
-      USE DOMAIN_DECOMP, only : grid, AM_I_ROOT
-      USE DOMAIN_DECOMP, only :   PACK_DATA,   PACK_COLUMN
-      USE DOMAIN_DECOMP, only : UNPACK_DATA, UNPACK_COLUMN
-      USE domain_decomp, ONLY : esmf_bcast
+      USE DOMAIN_DECOMP, only : grid, AM_I_ROOT, PACK_DATA, UNPACK_DATA
+     &,PACK_DATAj, UNPACK_DATAj, PACK_BLOCK, UNPACK_BLOCK, PACK_COLUMN
+     &,UNPACK_COLUMN, esmf_bcast
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
-     & yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,corrOx
+     & yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,corrOx,JPPJ
 #ifdef SHINDELL_STRAT_CHEM
-     & ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
+     & ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4 
+      use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
+     & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod
+     & ,max_days,nra_ncep,nra_ch4,maxHR_ch4
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -967,7 +971,28 @@ C**** check whether air mass is conserved
 
       REAL*8, DIMENSION(NMOM,IM,JM,LM,NTM) :: TRMOM_GLOB
       REAL*8, DIMENSION(     IM,JM,LM,NTM) :: TRM_GLOB
-      INTEGER :: ITM
+            
+#ifdef TRACERS_SPECIAL_Shindell
+      REAL*8, DIMENSION(IM,JM,LM) :: yNO3_glob,pHOx_glob,pNOx_glob,
+     &pOx_glob,yCH3O2_glob,yC2O3_glob,yROR_glob,yXO2_glob,
+     &yAldehyde_glob,yXO2N_glob,yRXPAR_glob
+#ifdef SHINDELL_STRAT_CHEM
+     &,SF3_glob,SF2_glob,pClOx_glob,pClx_glob,pOClOx_glob,
+     &pBrOx_glob,yCl2_glob,yCl2O2_glob
+#endif     
+      REAL*8, DIMENSION(JM,LM,12) :: corrOx_glob
+      REAL*8, DIMENSION(JPPJ,LM,IM,JM) :: ss_glob     
+#ifdef INTERACTIVE_WETLANDS_CH4 
+      REAL*8, dimension(IM,JM,max_days,nra_ncep) :: day_ncep_glob
+      REAL*8, dimension(IM,JM,max_days,nra_ch4)  :: DRA_ch4_glob
+      REAL*8, dimension(IM,JM,nra_ncep)          :: sum_ncep_glob
+      REAL*8, dimension(IM,JM,nra_ch4)           :: PRS_ch4_glob
+      REAL*8, dimension(IM,JM,maxHR_ch4,nra_ch4) :: HRA_ch4_glob
+      INTEGER, dimension(IM,JM,nra_ch4) :: iHch4_glob,iDch4_glob,
+     &                                     i0ch4_glob,first_mod_glob
+#endif
+#endif     
+      INTEGER :: ITM,ITM1,ITM2
 #ifdef TRACERS_WATER
       CHARACTER*80 :: HEADER, MODULE_HEADER = "TRACERW01"
       REAL*8, DIMENSION(     IM,JM,LM,NTM) :: TRWM_GLOB
@@ -981,12 +1006,67 @@ C**** check whether air mass is conserved
       write (MODULE_HEADER(lhead+1:80),'(a,i2,a,a,i1,a,i2,a)')
      *           'R8 TRM(im,jm,lm,',NTM,')',
      *  ',TRmom(',NMOM,',im,jm,lm,',NTM,')'
-
 #endif
 
       SELECT CASE (IACTION)
 
       CASE (:IOWRITE) ! output to end-of-month restart file
+      
+#ifdef TRACERS_SPECIAL_Shindell
+       CALL PACK_DATA(grid, yNO3     , yNO3_glob)
+       CALL PACK_DATA(grid, pHOx     , pHOx_glob)
+       CALL PACK_DATA(grid, pNOx     , pNOx_glob)
+       CALL PACK_DATA(grid, pOx      , pOx_glob)
+       CALL PACK_DATA(grid, yCH3O2   , yCH3O2_glob)
+       CALL PACK_DATA(grid, yC2O3    , yC2O3_glob)
+       CALL PACK_DATA(grid, yROR     , yROR_glob)
+       CALL PACK_DATA(grid, yXO2     , yXO2_glob)
+       CALL PACK_DATA(grid, yAldehyde, yAldehyde_glob)
+       CALL PACK_DATA(grid, yXO2N    , yXO2N_glob)
+       CALL PACK_DATA(grid, yRXPAR   , yRXPAR_glob)  
+       DO ITM=1,12
+         CALL PACK_DATAj(grid, corrOx(:,:,ITM), corrOx_glob(:,:,ITM))
+       END DO
+       CALL PACK_BLOCK(grid, ss(:,:,:,:), ss_glob(:,:,:,:))
+#ifdef SHINDELL_STRAT_CHEM
+       CALL PACK_DATA(grid, SF3      , SF3_glob)
+       CALL PACK_DATA(grid, SF2      , SF2_glob)
+       CALL PACK_DATA(grid, pClOx    , pClOx_glob)
+       CALL PACK_DATA(grid, pClx     , pClx_glob)
+       CALL PACK_DATA(grid, pOClOx   , pOClOx_glob)
+       CALL PACK_DATA(grid, pBrOx    , pBrOx_glob)
+       CALL PACK_DATA(grid, yCl2     , yCl2_glob)
+       CALL PACK_DATA(grid, yCl2O2   , yCl2O2_glob)
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+       DO ITM=1,max_days
+        DO ITM2=1,nra_ncep
+         CALL PACK_DATA(grid,day_ncep(:,:,ITM,ITM2),
+     &   day_ncep_glob(:,:,ITM,ITM2))
+        END DO
+        DO ITM2=1,nra_ch4
+         CALL PACK_DATA(grid,DRA_ch4(:,:,ITM,ITM2),
+     &   DRA_ch4_glob(:,:,ITM,ITM2))
+        END DO
+       END DO 
+       DO ITM1=1,nra_ncep
+        CALL PACK_DATA(grid,sum_ncep(:,:,ITM1),sum_ncep_glob(:,:,ITM1))
+       END DO 
+       DO ITM1=1,nra_ch4
+        CALL PACK_DATA(grid,PRS_ch4(:,:,ITM1),PRS_ch4_glob(:,:,ITM1))
+       END DO
+       DO ITM=1,maxHR_ch4
+        DO ITM2=1,nra_ch4
+         CALL PACK_DATA(grid,HRA_ch4(:,:,ITM,ITM2),
+     &   HRA_ch4_glob(:,:,ITM,ITM2))
+        END DO
+       END DO       
+       CALL PACK_DATA(grid,iHch4(:,:,:),iHch4_glob(:,:,:)) !integer
+       CALL PACK_DATA(grid,iDch4(:,:,:),iDch4_glob(:,:,:)) !integer
+       CALL PACK_DATA(grid,i0ch4(:,:,:),i0ch4_glob(:,:,:)) !integer
+       CALL PACK_DATA(grid,first_mod(:,:,:),first_mod_glob(:,:,:)) !integer
+#endif
+#endif
         DO ITM=1,NTM
           CALL PACK_DATA(grid, TRM(:,:,:,ITM), TRM_GLOB(:,:,:,ITM))
           CALL PACK_COLUMN(grid, TRmom(:,:,:,:,ITM),
@@ -1001,11 +1081,17 @@ C**** check whether air mass is conserved
      *       ,TRWM_glob
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-C***    ESMF Exception: need to read global arrays-- delayed until exercised.
-     *       ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
-     *       ,yXO2N,yRXPAR,corrOx,ss
+     *       ,yNO3_glob,pHOx_glob,pNOx_glob,pOx_glob,yCH3O2_glob
+     *       ,yC2O3_glob,yROR_glob,yXO2_glob,yAldehyde_glob
+     *       ,yXO2N_glob,yRXPAR_glob,corrOx_glob,ss_glob
 #ifdef SHINDELL_STRAT_CHEM
-     *       ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
+     *       ,SF3_glob,SF2_glob,pClOx_glob,pClx_glob,pOClOx_glob
+     *       ,pBrOx_glob,yCl2_glob,yCl2O2_glob
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4 
+     *       ,day_ncep_glob,DRA_ch4_glob,sum_ncep_glob,PRS_ch4_glob
+     *       ,HRA_ch4_glob,iday_ncep    ,i0_ncep     ,iHch4_glob
+     *       ,iDch4_glob,i0ch4_glob,first_ncep     ,first_mod_glob
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -1023,10 +1109,17 @@ C***    ESMF Exception: need to read global arrays-- delayed until exercised.
      *       ,TRWM_glob
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     *       ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
-     *       ,yXO2N,yRXPAR,corrOx,ss
+     *       ,yNO3_glob,pHOx_glob,pNOx_glob,pOx_glob,yCH3O2_glob
+     *       ,yC2O3_glob,yROR_glob,yXO2_glob,yAldehyde_glob
+     *       ,yXO2N_glob,yRXPAR_glob,corrOx_glob,ss_glob
 #ifdef SHINDELL_STRAT_CHEM
-     *       ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
+     *       ,SF3_glob,SF2_glob,pClOx_glob,pClx_glob,pOClOx_glob
+     *       ,pBrOx_glob,yCl2_glob,yCl2O2_glob
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4 
+     *       ,day_ncep_glob,DRA_ch4_glob,sum_ncep_glob,PRS_ch4_glob
+     *       ,HRA_ch4_glob,iday_ncep     ,i0_ncep     ,iHch4_glob
+     *       ,iDch4_glob,i0ch4_glob,first_ncep     ,first_mod_glob
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -1050,32 +1143,63 @@ C**** ESMF: Copy global read data into the corresponding local (distributed) arr
      &                              TRWM(:,:,:,  itm))
 #endif
         END DO
-
-C**** ESMF: Broadcast all non-distributed read arrays.
 #ifdef TRACERS_SPECIAL_Shindell
-        call ESMF_BCAST( grid, yNO3 )
-        call ESMF_BCAST( grid, pHOx )
-        call ESMF_BCAST( grid, pNOx )
-        call ESMF_BCAST( grid, pOx )
-        call ESMF_BCAST( grid, yCH3O2 )
-        call ESMF_BCAST( grid, yC2O3 )
-        call ESMF_BCAST( grid, yROR )
-        call ESMF_BCAST( grid, yXO2 )
-        call ESMF_BCAST( grid, yAldehyde )
-        call ESMF_BCAST( grid, yXO2N )
-        call ESMF_BCAST( grid, yRXPAR )
-        call ESMF_BCAST( grid, corrOx )
-        call ESMF_BCAST( grid, ss )
+       CALL UNPACK_DATA(grid, yNO3_glob     , yNO3)
+       CALL UNPACK_DATA(grid, pHOx_glob     , pHOx)
+       CALL UNPACK_DATA(grid, pNOx_glob     , pNOx)
+       CALL UNPACK_DATA(grid, pOx_glob      , pOx)
+       CALL UNPACK_DATA(grid, yCH3O2_glob   , yCH3O2)
+       CALL UNPACK_DATA(grid, yC2O3_glob    , yC2O3)
+       CALL UNPACK_DATA(grid, yROR_glob     , yROR)
+       CALL UNPACK_DATA(grid, yXO2_glob     , yXO2)
+       CALL UNPACK_DATA(grid, yAldehyde_glob, yAldehyde)
+       CALL UNPACK_DATA(grid, yXO2N_glob    , yXO2N)
+       CALL UNPACK_DATA(grid, yRXPAR_glob   , yRXPAR)  
+       DO ITM=1,12
+         CALL UNPACK_DATAj(grid, corrOx_glob(:,:,ITM), corrOx(:,:,ITM))
+       END DO
+       CALL UNPACK_BLOCK(grid, ss_glob(:,:,:,:), ss(:,:,:,:))
 #ifdef SHINDELL_STRAT_CHEM
-        call ESMF_BCAST( grid, SF3 )
-        call ESMF_BCAST( grid, pClOx )
-        call ESMF_BCAST( grid, pClx )
-        call ESMF_BCAST( grid, pOClOx )
-        call ESMF_BCAST( grid, pBrOx )
-        call ESMF_BCAST( grid, yCl2 )
-        call ESMF_BCAST( grid, yCl2O2 )
+       CALL UNPACK_DATA(grid, SF3_glob      , SF3)
+       CALL UNPACK_DATA(grid, SF2_glob      , SF2)
+       CALL UNPACK_DATA(grid, pClOx_glob    , pClOx)
+       CALL UNPACK_DATA(grid, pClx_glob     , pClx)
+       CALL UNPACK_DATA(grid, pOClOx_glob   , pOClOx)
+       CALL UNPACK_DATA(grid, pBrOx_glob    , pBrOx)
+       CALL UNPACK_DATA(grid, yCl2_glob     , yCl2)
+       CALL UNPACK_DATA(grid, yCl2O2_glob   , yCl2O2)
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+       DO ITM=1,max_days
+        DO ITM2=1,nra_ncep
+         CALL UNPACK_DATA(grid,day_ncep_glob(:,:,ITM,ITM2),
+     &   day_ncep(:,:,ITM,ITM2))
+        END DO
+        DO ITM2=1,nra_ch4
+         CALL UNPACK_DATA(grid,DRA_ch4_glob(:,:,ITM,ITM2),
+     &   DRA_ch4(:,:,ITM,ITM2))
+        END DO
+       END DO 
+       DO ITM1=1,nra_ncep
+        CALL UNPACK_DATA(grid,sum_ncep_glob(:,:,ITM1),
+     &  sum_ncep(:,:,ITM1))
+       END DO 
+       DO ITM1=1,nra_ch4
+        CALL UNPACK_DATA(grid,PRS_ch4_glob(:,:,ITM1),PRS_ch4(:,:,ITM1))
+       END DO
+       DO ITM=1,maxHR_ch4
+        DO ITM2=1,nra_ch4
+         CALL UNPACK_DATA(grid,HRA_ch4_glob(:,:,ITM,ITM2),
+     &   HRA_ch4(:,:,ITM,ITM2))
+        END DO
+       END DO       
+       CALL UNPACK_DATA(grid,iHch4_glob(:,:,:),iHch4(:,:,:)) !integer
+       CALL UNPACK_DATA(grid,iDch4_glob(:,:,:),iDch4(:,:,:)) !integer
+       CALL UNPACK_DATA(grid,i0ch4_glob(:,:,:),i0ch4(:,:,:)) !integer
+       CALL UNPACK_DATA(grid,first_mod_glob(:,:,:),first_mod(:,:,:)) !integer
 #endif
 #endif
+C**** ESMF: Broadcast all non-distributed read arrays.
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
         call ESMF_BCAST( grid, hbaij )
@@ -1083,8 +1207,11 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         call ESMF_BCAST( grid, pprec )
         call ESMF_BCAST( grid, pevap )
 #endif
-
-
+#ifdef INTERACTIVE_WETLANDS_CH4
+        call ESMF_BCAST( grid, iday_ncep )
+        call ESMF_BCAST( grid, i0_ncep   )
+        call ESMF_BCAST( grid, first_ncep)
+#endif
         END SELECT
       END SELECT
 
