@@ -755,7 +755,6 @@ C****
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b,imaxj
       USE RANDOM
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
       USE RAD_COM, only : rqt,lm_req,cloud_rad_forc
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
@@ -771,7 +770,7 @@ C****
      &  ,egcm,w2gcm,tgvavg,qgavg
       USE LAKES_COM, only : flake
       USE SOIL_DRV, only: init_gh
-      USE DOMAIN_DECOMP, only : grid, GET, READT_PARALLEL
+      USE DOMAIN_DECOMP, only : grid, GET, READT_PARALLEL, AM_I_ROOT
       USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: init_app_clock
@@ -895,6 +894,7 @@ C****
       XLABEL(81-NOFF:132)=NLREC(1:52+NOFF)
       if (AM_I_ROOT()) WRITE (6,'(A,A/)') '0',XLABEL
       RLABEL = XLABEL !@var RLABEL rundeck-label
+      IF(AM_I_ROOT()) THEN
 C****
 C**** Print preprocessing options (if any are defined)
 C****
@@ -937,12 +937,16 @@ C****
      *     '...and EDGAR HYDE sources instead of GISS'
 #endif
 #ifdef SHINDELL_STRAT_CHEM
-      if (AM_I_ROOT()) write(6,*) 
-     *    '...and Drew Shindell stratospheric chemistry'
+      if (AM_I_ROOT()) 
+     & write(6,*) '...and Drew Shindell stratospheric chemistry'
+#endif
+#ifdef SHINDELL_STRAT_EXTRA
+      write(6,*) '...and Drew Shindell extra strat tracers'
 #endif
 #ifdef regional_Ox_tracers
       if (AM_I_ROOT()) write(6,*) '...and regional Ox tracers'
 #endif
+      ENDIF ! AM_I_ROOT()
 C****
 C**** Read parameters from the rundeck to database and namelist
 C****
