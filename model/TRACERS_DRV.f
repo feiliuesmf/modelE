@@ -13,7 +13,8 @@
 !@sum init_tracer initializes trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
-      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP, only:GRID,GET,AM_I_ROOT,PACK_DATA,UNPACK_DATA,
+     & UNPACK_DATAj,write_parallel
       USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim,ptop,psf,sig,lm,jm,itime
       USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,npts,ia_rad
@@ -39,18 +40,25 @@
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM,only:COaltIN,LCOalt,PCOalt,COalt,
      & mass2vol,bymass2vol,CH4altINT,CH4altINX,LCH4alt,PCH4alt,
-     &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,
+     &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
      &     OxICIN,OxIC,OxICINL,OxICL,corrOxIN,corrOx,LcorrOx,PcorrOx
      &     ,pfix_CH4_N,pfix_CH4_S,fix_CH4_chemistry,which_trop,
      &     PI_run,PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other,
-     &     PIratio_indus,PIratio_bburn
+     &     PIratio_indus,PIratio_bburn,CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,
+     &     rad_FL,use_rad_ch4
 #ifdef SHINDELL_STRAT_CHEM
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
-     &     CFCICIN,CFCIC,CFCICINL,CFCICL
+     &     CFCICIN,CFCIC,CFCICINL,CFCICL,PIratio_N2O,PIratio_CFC,
+     &     use_rad_n2o,use_rad_cfc
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+      USE TRACER_SOURCES, only:int_wet_dist,topo_lim,sat_lim,gw_ulim,
+     & gw_llim,sw_lim,exclude_us_eu,nn_or_zon
 #endif
 #endif
-#ifdef TRACERS_COSMO
+#if (defined TRACERS_COSMO)
+CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE COSMO_SOURCES, only: be7_src_param
 #endif
       USE FILEMANAGER, only: openunit,closeunit
@@ -78,6 +86,10 @@
       REAL*8, DIMENSION(LcorrOx) :: tempOx1
       integer iu_data,m,i,j,nq
       character*80 title
+      character(len=300) :: out_line
+      real*8, dimension(im,jm,lm) :: N2OICIN_glob,CH4ICIN_glob,
+     & OxICIN_glob,CFCICIN_glob
+      real*8, dimension(jm,LcorrOx,12) :: corrOxIN_glob
 #ifdef regional_Ox_tracers
 !@var Ox_a_tracer logical is true if Ox is one of the tracers
       logical Ox_a_tracer
@@ -143,6 +155,24 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       call sync_param("PIratio_other",PIratio_other)
       call sync_param("PIratio_indus",PIratio_indus)
       call sync_param("PIratio_bburn",PIratio_bburn)
+      call sync_param("rad_FL",rad_fl)
+      call sync_param("use_rad_ch4",use_rad_ch4)
+#ifdef SHINDELL_STRAT_CHEM
+      call sync_param("use_rad_n2o",use_rad_n2o)
+      call sync_param("use_rad_cfc",use_rad_cfc)
+      call sync_param("PIratio_N2O",PIratio_N2O)
+      call sync_param("PIratio_CFC",PIratio_CFC)
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+      call sync_param("int_wet_dist",int_wet_dist)
+      call sync_param("topo_lim",topo_lim)
+      call sync_param("sat_lim",sat_lim)
+      call sync_param("gw_ulim",gw_ulim)
+      call sync_param("gw_llim",gw_llim)
+      call sync_param("sw_lim",sw_lim)
+      call sync_param("exclude_us_eu",exclude_us_eu)
+      call sync_param("nn_or_zon",nn_or_zon)
+#endif
       PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
 #ifdef regional_Ox_tracers
       Ox_a_tracer=.false.
@@ -154,20 +184,14 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       ntemp=0
 #endif
 C**** initialise source arrays
-       do l=1,lm
-       do j=1,jm
-       do i=1,im
-       oh_live(i,j,l)=0.0d0
-       no3_live(i,j,l)=0.0d0
-       end do
-       end do
-       end do
+       oh_live(:,:,:) =0.d0  ;  no3_live(:,:,:)=0.d0
 #endif
 
 C**** Define a max layer for some optionally trop/strat tracers
       LTOP = LM
 
-#ifdef TRACERS_COSMO
+#if (defined TRACERS_COSMO)
+CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 C**** get rundeck parameter for cosmogenic source factor
       call sync_param("be7_src_param", be7_src_param)
 #endif
@@ -212,10 +236,14 @@ C**** Define individual tracer characteristics
           tcscale(n_MPtable(n)) = 1.
 #endif
 #ifdef SHINDELL_STRAT_CHEM
-          call openunit('N2O_IC',iu_data,.true.,.true.)
-          read (iu_data) title,N2OICIN
-          call closeunit(iu_data)
-          if (AM_I_ROOT()) write(6,*) title,' read from N2O_IC'
+          if(AM_I_ROOT( ))then
+            call openunit('N2O_IC',iu_data,.true.,.true.)
+            read (iu_data) title,N2OICIN_glob
+            call closeunit(iu_data)
+          endif
+          write(out_line,*) title,' read from N2O_IC'
+          call write_parallel(trim(out_line))
+          call UNPACK_DATA( grid, N2OICIN_glob, N2OICIN )
           do j=J_0,J_1  ; do i=1,im
            N2OICINL(:)=N2OICIN(I,J,:)
            CALL LOGPINT(LCOalt,PCOalt,N2OICINL,LM,PRES,N2OICL,.true.)
@@ -256,6 +284,7 @@ C**** This is only effective with a complete restart.
           call sync_param("pfix_CH4_N",pfix_CH4_N)
           call sync_param("pfix_CH4_S",pfix_CH4_S)
           call sync_param("fix_CH4_chemistry",fix_CH4_chemistry)
+          call sync_param("scale_ch4_IC_file",scale_ch4_IC_file)
 #ifdef EDGAR_HYDE_SOURCES
           ntsurfsrc(n) = 15
 #else
@@ -265,6 +294,21 @@ C**** This is only effective with a complete restart.
 C         Interpolate CH4 altitude-dependence to model resolution:
           CALL LOGPINT(LCH4alt,PCH4alt,CH4altINT,LM,PRES,CH4altT,.true.)
           CALL LOGPINT(LCH4alt,PCH4alt,CH4altINX,LM,PRES,CH4altX,.true.)
+          if(fix_CH4_chemistry.eq.-1)then
+            if(AM_I_ROOT( ))then
+              call openunit('CH4_IC',iu_data,.true.,.true.)
+              read (iu_data) title,CH4ICIN_glob
+              call closeunit(iu_data)
+            endif
+            write(out_line,*) title,' read from CH4_IC'
+            call write_parallel(trim(out_line))
+            call UNPACK_DATA( grid, CH4ICIN_glob, CH4ICIN )
+            do j=J_0,J_1  ; do i=1,im
+             CH4ICINL(:)=CH4ICIN(I,J,:)
+             CALL LOGPINT(LCOalt,PCOalt,CH4ICINL,LM,PRES,CH4ICL,.true.)
+             CH4ICX(I,J,:)=CH4ICL(:)*scale_ch4_IC_file
+            end do     ; end do
+          end if
 #endif
 
       case ('O3')
@@ -347,26 +391,37 @@ C**** Get solar variability coefficient from namelist if it exits
 #ifdef TRACERS_SPECIAL_Shindell
       case ('Ox')
       n_Ox = n
-          call openunit('Ox_IC',iu_data,.true.,.true.)
-          read (iu_data) title,OxICIN
-          call closeunit(iu_data)
-          if (AM_I_ROOT()) write(6,*) title,' read from OxIC'
+          if(AM_I_ROOT( ))then
+            call openunit('Ox_IC',iu_data,.true.,.true.)
+            read (iu_data) title,OxICIN_glob
+            call closeunit(iu_data)
+          endif
+          write(out_line,*) title,' read from Ox_IC'
+          call write_parallel(trim(out_line))
+          call UNPACK_DATA( grid, OxICIN_glob, OxICIN )
           do j=J_0,J_1  ; do i=1,im
            OxICINL(:)=OxICIN(I,J,:)
            CALL LOGPINT(LCOalt,PCOalt,OxICINL,LM,PRES,OxICL,.true.)
            OxIC(I,J,:)=OxICL(:)
           end do     ; end do
 c         read stratospheric correction from files:
-          call openunit('Ox_corr',iu_data,.true.,.true.)
-          read (iu_data) title,corrOxIN
-          call closeunit(iu_data)
-          if (AM_I_ROOT()) write(6,*) title,' read from Ox_corr'
-          DO m=1,12; DO j=1,jm
-           tempOx1(:)=CorrOxIN(J,:,M)
-           CALL LOGPINT(LcorrOX,PcorrOx,tempOx1,LM,PRES,
-     &                  tempOx2,.true.)
-           CorrOx(J,:,M)=tempOx2(:)
-          END DO   ; END DO
+          if(AM_I_ROOT( ))then
+            call openunit('Ox_corr',iu_data,.true.,.true.)
+            read (iu_data) title,corrOxIN_glob
+            call closeunit(iu_data)
+          endif
+          write(out_line,*) title,' read from Ox_corr'
+          call write_parallel(trim(out_line))
+          do m=1,12
+           call 
+     &     UNPACK_DATAj(grid,corrOxIN_glob(:,:,m),corrOxIN(:,:,m))        
+           DO J=J_0,J_1
+            tempOx1(:)=CorrOxIN(J,:,M)
+            CALL LOGPINT(LcorrOX,PcorrOx,tempOx1,LM,PRES,
+     &                   tempOx2,.true.)
+            CorrOx(J,:,M)=tempOx2(:)
+           END DO
+          enddo
 C         Only alter Ox between 250 and 30 hPa:
           DO L=1,LM
             IF(PRES(L).lt.30.d0.or.PRES(L).gt.250.d0)
@@ -375,7 +430,7 @@ C         Only alter Ox between 250 and 30 hPa:
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
-          F0(n) = 1.8d0
+          F0(n) = 1.4d0
           HSTAR(n) = 1.d-2
 #endif
       case ('NOx')
@@ -430,7 +485,7 @@ C         Interpolate ClONO2 altitude-dependence to model resolution:
 
       case ('HOCl')
       n_HOCl = n
-          ntm_power(n) = -14
+          ntm_power(n) = -12
           tr_mm(n) = 52.5d0
 
       case ('HBr')
@@ -445,7 +500,7 @@ C         Interpolate ClONO2 altitude-dependence to model resolution:
 
       case ('BrONO2')
       n_BrONO2 = n
-          ntm_power(n) = -11
+          ntm_power(n) = -14
           tr_mm(n) = 141.9d0
 
       case ('CFC')
@@ -453,10 +508,26 @@ C         Interpolate ClONO2 altitude-dependence to model resolution:
           ntm_power(n) = -12
           tr_mm(n) = 137.4d0 !CFC11
 #ifdef SHINDELL_STRAT_CHEM
-          call openunit('CFC_IC',iu_data,.true.,.true.)
-          read (iu_data) title,CFCICIN
-          call closeunit(iu_data)
-          if (AM_I_ROOT()) write(6,*) title,' read from CFC_IC'
+          if(AM_I_ROOT( ))then
+C          check on GHG file:
+           call openunit('GHG',iu_data,.false.,.true.)
+           read(iu_data,'(a80)') title
+           if(title(1:39).ne.' Greenhouse Gas Mixing Ratios  3/4/2002')
+     &     then 
+            write(6,*) 'cfc_rad95 in TRCHEM_Shindell_COM was from'
+            write(6,*) 'GHG.1850-2050.Mar2002. It appears you changed'
+            write(6,*) 'that file. Please check on cfc_rad95'
+            call stop_model('Check on cfc_rad95',255)
+           end if
+           call closeunit(iu_data)   
+C          read the CFC initial conditions:
+           call openunit('CFC_IC',iu_data,.true.,.true.)
+           read (iu_data) title,CFCICIN_glob
+           call closeunit(iu_data)
+          endif
+          write(out_line,*) title,' read from CFC_IC'
+          call write_parallel(trim(out_line))
+          call UNPACK_DATA( grid, CFCICIN_glob, CFCICIN )
           do j=J_0,J_1  ; do i=1,im
            CFCICINL(:)=CFCICIN(I,J,:)
            CALL LOGPINT(LCOalt,PCOalt,CFCICINL,LM,PRES,CFCICL,.true.)
@@ -482,6 +553,13 @@ C         Interpolate ClONO2 altitude-dependence to model resolution:
 #ifdef TRACERS_DRYDEP
           HSTAR(n)=tr_RKD(n)*convert_HSTAR
           F0(n) = 1.d0
+#endif
+
+#ifdef SHINDELL_STRAT_EXTRA
+      case ('GLT') ! generic linear tracer
+      n_GLT = n
+          ntm_power(n) = -11
+          tr_mm(n) = mair
 #endif
 
       case ('CH3OOH')
@@ -888,7 +966,11 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 
       case ('Be7')
       n_Be7 = n
+CCC#ifdef SHINDELL_STRAT_EXTRA
+CCC          ntm_power(n) = -21        ! power of ten for tracer
+CCC#else
           ntm_power(n) = -23        ! power of ten for tracer
+CCC#endif
           tr_mm(n) = 7.d0
           trdecay(n) =  1.51d-7
           trpdens(n) = 1.7d3    !kg/m3 this is SO4 value
@@ -898,7 +980,11 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 
       case ('Be10')
       n_Be10 = n
+CCC#ifdef SHINDELL_STRAT_EXTRA
+CCC          ntm_power(n) = -21
+CCC#else
           ntm_power(n) = -23
+CCC#endif
           tr_mm(n) = 10.d0
           trpdens(n) = 1.7d3   !kg/m3 this is SO4 value
           trradius(n) = 1.d-7  !appropriate for stratosphere
@@ -1404,10 +1490,18 @@ C****
       case ('N2O')
 #ifdef TRACERS_SPECIAL_Shindell
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
         jls_ltop(k) = LM
+        jls_power(k) = -1.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(nStratwrite,n) = k
+        sname_jls(k) = 'overwrite_source_of'//trname(n)
+        lname_jls(k) = 
+     &  'CHANGE OF '//trname(n)//' BY OVERWRITE'
+        jls_ltop(k) = 1 ! really L=1 overwrite only
         jls_power(k) = -1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
@@ -1626,15 +1720,13 @@ C****
         jls_ltop(k) = LTOP
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#ifndef SHINDELL_STRAT_CHEM
         k = k + 1
         jls_3Dsource(nStratwrite,n) = k
-        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
-        lname_jls(k) = 'CHANGE OF CH4 BY STRATOSPHERIC OVERWRITE'
+        sname_jls(k) = 'overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF CH4 BY OVERWRITE'
         jls_ltop(k) = LM
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
 #else
        k = k + 1
         jls_3Dsource(1,n) = k
@@ -1725,15 +1817,13 @@ C**** special one unique to HTO
         jls_ltop(k) = LTOP
         jls_power(k) = -1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#ifndef SHINDELL_STRAT_CHEM
         k = k + 1
         jls_3Dsource(nStratwrite,n) = k
-        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
-        lname_jls(k) = 'CHANGE OF NOx BY STRATOSPHERIC OVERWRITE'
+        sname_jls(k) = 'overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF NOx BY OVERWRITE'
         jls_ltop(k) = LM
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
         k = k + 1
         jls_3Dsource(nLightning,n) = k
         sname_jls(k) = 'lightning_source_of'//trname(n)
@@ -1840,16 +1930,15 @@ C**** special one unique to HTO
           jls_power(k) = -1.
         end select
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#ifndef SHINDELL_STRAT_CHEM
         k = k + 1
         jls_3Dsource(nStratwrite,n) = k
-        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'overwrite_source_of'//trname(n)
         lname_jls(k) =
-     &  'CHANGE OF '//trname(n)//' BY STRATOSPHERIC OVERWRITE'
+     &  'CHANGE OF '//trname(n)//' BY OVERWRITE'
         jls_ltop(k) = LM
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
+
 #ifdef TRACERS_NITRAE
        case ('HNO3')
         k = k + 1
@@ -1860,6 +1949,7 @@ C**** special one unique to HTO
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
+
        case ('CO')
         k = k + 1
         jls_3Dsource(nChemistry,n) = k
@@ -1868,15 +1958,13 @@ C**** special one unique to HTO
         jls_ltop(k) = LTOP
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#ifndef SHINDELL_STRAT_CHEM
         k = k + 1
         jls_3Dsource(nStratwrite,n) = k
-        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
-        lname_jls(k) = 'CHANGE OF CO BY STRATOSPHERIC OVERWRITE'
+        sname_jls(k) = 'overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF CO BY OVERWRITE'
         jls_ltop(k) = LM
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
 #ifdef EDGAR_HYDE_SOURCES
         k = k + 1
         jls_source(1,n) = k
@@ -1937,6 +2025,17 @@ C**** special one unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
 
+#ifdef SHINDELL_STRAT_EXTRA
+      case ('GLT')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'L1_overwrite_soure_'//trname(n)
+        lname_jls(k) = trname(n)//'L1 overwrite source'
+        jls_ltop(k) = 1
+        jls_power(k) = -5.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif
+
       case ('Isoprene')
         k = k + 1
         jls_3Dsource(nChemistry,n) = k
@@ -1945,15 +2044,13 @@ C**** special one unique to HTO
         jls_ltop(k) = LTOP
         jls_power(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#ifndef SHINDELL_STRAT_CHEM
         k = k + 1
         jls_3Dsource(nStratwrite,n) = k
-        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
-        lname_jls(k) = 'CHANGE OF Isoprene BY STRATOSPHERIC OVERWRITE'
+        sname_jls(k) = 'overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF Isoprene BY OVERWRITE'
         jls_ltop(k) = LM
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
         k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'Vegetation_source_of'//trname(n)
@@ -1970,16 +2067,14 @@ C**** special one unique to HTO
         jls_ltop(k) = LTOP
         jls_power(k) = -1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#ifndef SHINDELL_STRAT_CHEM
         k = k + 1
         jls_3Dsource(nStratwrite,n) = k
-        sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
+        sname_jls(k) = 'overwrite_source_of'//trname(n)
         lname_jls(k) =
-     &  'CHANGE OF '//trname(n)//' BY STRATOSPHERIC OVERWRITE'
+     &  'CHANGE OF '//trname(n)//' BY OVERWRITE'
         jls_ltop(k) = LM
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
         k = k + 1
         jls_source(3,n) = k
         sname_jls(k) = 'Vegetation_source_of'//trname(n)
@@ -2057,13 +2152,29 @@ C**** special one unique to HTO
 !! #3 is (common) vegetation source. See above.
 #endif 
 
-      case ('ClOx','BrOx','HCl','HOCl','ClONO2',
-     &      'HBr','HOBr','BrONO2','CFC')
+      case ('HCl','HOCl','ClONO2','HBr','HOBr','BrONO2')
         k = k + 1
         jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
         jls_ltop(k) = LM
+        jls_power(k) = -1.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+      case ('CFC','BrOx','ClOx')
+        k = k + 1
+        jls_3Dsource(nChemistry,n) = k
+        sname_jls(k) = 'chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
+        jls_ltop(k) = LM
+        jls_power(k) = -1.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(nStratwrite,n) = k
+        sname_jls(k) = 'overwrite_source_of'//trname(n)
+        lname_jls(k) =
+     &  'CHANGE OF '//trname(n)//' BY OVERWRITE'
+        jls_ltop(k) = 1 ! L=1 overwrite only
         jls_power(k) = -1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
@@ -2892,6 +3003,64 @@ C**** Checks
 C**** Additional Special JL diagnostics
 C**** (not necessary associated with a particular tracer)
 #ifdef TRACERS_SPECIAL_Shindell
+#ifdef SHINDELL_STRAT_CHEM
+        k = k + 1
+        jls_ClOcon=k
+        sname_jls(k) = 'ClO_conc'
+        lname_jls(k) = 'ClO concentration'
+        jls_ltop(k)  = LTOP
+        jls_power(k) = -11.
+        scale_jls(k) = byim
+        units_jls(k) = unit_string(jls_power(k),'V/V air')
+        k = k + 1
+        jls_H2Ocon=k
+        sname_jls(k) = 'H2O_conc'
+        lname_jls(k) = 'H2O concentration'
+        jls_ltop(k)  = LTOP
+        jls_power(k) = -7.
+        scale_jls(k) = byim
+        units_jls(k) = unit_string(jls_power(k),'V/V air')
+        k = k + 1
+        jls_H2Ochem=k
+        sname_jls(k) = 'H2O_chem'
+        lname_jls(k) = 'H2O change due to chemistry'
+        jls_ltop(k)  = LTOP
+        jls_power(k) = -4.
+        scale_jls(k) = byim/DTsrc
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif
+        k = k + 1
+        jls_Oxp=k
+        sname_jls(k) = 'Ox_chem_prod'
+        lname_jls(k) = 'Ox production due to chemistry'
+        jls_ltop(k)  = LTOP
+        jls_power(k) = 1.
+        scale_jls(k) = byim/DTsrc
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_Oxd=k
+        sname_jls(k) = 'Ox_chem_dest'
+        lname_jls(k) = 'Ox destruction due to chemistry'
+        jls_ltop(k)  = LTOP
+        jls_power(k) = 1.
+        scale_jls(k) = byim/DTsrc
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_COp=k
+        sname_jls(k) = 'CO_chem_prod'
+        lname_jls(k) = 'CO production due to chemistry'
+        jls_ltop(k)  = LTOP
+        jls_power(k) = 0.
+        scale_jls(k) = byim/DTsrc
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_COd=k
+        sname_jls(k) = 'CO_dest_prod'
+        lname_jls(k) = 'CO destruction due to chemistry'
+        jls_ltop(k)  = LTOP
+        jls_power(k) = 0.
+        scale_jls(k) = byim/DTsrc
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_OHcon=k
         sname_jls(k) = 'OH_conc'
@@ -3111,14 +3280,25 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
         k = k + 1
-        ijts_3Dsource(1,n) = k
+        ijts_3Dsource(nChemistry,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'N2O Chemistry'
-        sname_ijts(k) = 'N2O_chem'
+        lname_ijts(k) = trname(n)//' Chemistry'
+        sname_ijts(k) = trname(n)//'_chem'
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifdef TRACERS_SPECIAL_Shindell
+        k = k + 1
+        ijts_3Dsource(nStratwrite,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = trname(n)//' Overwrite'
+        sname_ijts(k) = trname(n)//'_overw'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
 
       case ('CFC11')
       k = k + 1
@@ -3254,17 +3434,15 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#ifndef SHINDELL_STRAT_CHEM
       k = k + 1
         ijts_3Dsource(nStratwrite,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'NOx Stratospheric Overwrite'
-        sname_ijts(k) = 'NOx_strat'
+        lname_ijts(k) = 'NOx Overwrite'
+        sname_ijts(k) = 'NOx_overw'
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
       k = k + 1
         ijts_3Dsource(nLightning,n) = k
         ijts_index(k) = n
@@ -3369,17 +3547,15 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#ifndef SHINDELL_STRAT_CHEM
       k = k + 1
         ijts_3Dsource(nStratwrite,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CO Stratospheric Overwrite'
-        sname_ijts(k) = 'CO_strat'
+        lname_ijts(k) = 'CO Overwrite'
+        sname_ijts(k) = 'CO_overw'
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
 
       case ('CH4')
       k = k + 1
@@ -3602,17 +3778,15 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#ifndef SHINDELL_STRAT_CHEM
       k = k + 1
         ijts_3Dsource(nStratwrite,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CH4 Stratospheric Overwrite'
-        sname_ijts(k) = 'CH4_strat'
+        lname_ijts(k) = 'CH4 Overwrite'
+        sname_ijts(k) = 'CH4_overw'
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
 #else
       k = k + 1
         ijts_3Dsource(1,n) = k
@@ -3663,6 +3837,19 @@ C**** This needs to be 'hand coded' depending on circumstances
         case ('HTO')
 #endif
 
+#ifdef SHINDELL_STRAT_EXTRA
+      case ('GLT')
+      k = k+1
+        ijts_3Dsource(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = trname(n)//'L1 overwrite source'
+        sname_ijts(k) = trname(n)//'L1_overwrite'
+        ijts_power(k) = -15.  
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
+
       case ('Isoprene')
       k = k+1
         ijts_source(1,n) = k
@@ -3682,17 +3869,15 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#ifndef SHINDELL_STRAT_CHEM
       k = k + 1
         ijts_3Dsource(nStratwrite,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Isoprene Stratospheric Overwrite'
-        sname_ijts(k) = 'Isoprene_strat'
+        lname_ijts(k) = 'Isoprene Overwrite'
+        sname_ijts(k) = 'Isoprene_overw'
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
 
       case ('Alkenes','Paraffin')
 #ifdef EDGAR_HYDE_SOURCES
@@ -3800,26 +3985,44 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#ifndef SHINDELL_STRAT_CHEM
       k = k + 1
         ijts_3Dsource(nStratwrite,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        lname_ijts(k) = trname(n)//' Stratospheric Overwrite'
-        sname_ijts(k) = trname(n)//'_strat'
+        lname_ijts(k) = trname(n)//' Overwrite'
+        sname_ijts(k) = trname(n)//'_overw'
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
 
       case ('ClOx','BrOx','HCl','HOCl','ClONO2',
-     &      'HBr','HOBr','BrONO2','CFC')
+     &      'HBr','HOBr','BrONO2')
       k = k + 1
         ijts_3Dsource(nChemistry,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
         sname_ijts(k) = trname(n)//'_chem'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+      case ('CFC')
+      k = k + 1
+        ijts_3Dsource(nChemistry,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = trname(n)//' Chemistry'
+        sname_ijts(k) = trname(n)//'_chem'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      k = k + 1
+        ijts_3Dsource(nStratwrite,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = trname(n)//' Overwrite'
+        sname_ijts(k) = trname(n)//'_overw'
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -3836,21 +4039,20 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#ifndef SHINDELL_STRAT_CHEM
       k = k + 1
         ijts_3Dsource(nStratwrite,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        lname_ijts(k) = trname(n)//' Stratospheric Overwrite'
-        sname_ijts(k) = trname(n)//'_strat'
+        lname_ijts(k) = trname(n)//' Overwrite'
+        sname_ijts(k) = trname(n)//'_overw'
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
+
         select case(trname(n))
         case('Ox')
         k = k + 1
-          ijts_fc(1,n) = k
+CCtemp    ijts_fc(1,n) = k
           ijts_index(k) = n
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trname(n)//' SW radiative forcing'
@@ -3859,7 +4061,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
         k = k + 1
-          ijts_fc(2,n) = k
+CCtemp    ijts_fc(2,n) = k
           ijts_index(k) = n
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trname(n)//' LW radiative forcing'
@@ -5783,16 +5985,12 @@ C**** set some defaults
       kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12)= 'Chemistry'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        g=g+1; itcon_dd(n,1)=g
-        qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'DRY DEP'
-        qsum(itcon_dd(n,1)) = .false.
-      end if
-#endif
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N))=.true.; conpts(g-12)='Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N))=.true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N))=.true.; conpts(g-12)='Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
@@ -5826,12 +6024,9 @@ C**** set some defaults
       g=13; itcon_3Dsrc(nChemistry,N) = g
       qcon(itcon_3Dsrc(nChemistry,N)) =.true.; conpts(g-12)='Chemistry'
       qsum(itcon_3Dsrc(nChemistry,N)) = .true.
-#ifndef SHINDELL_STRAT_CHEM
       g=g+1; itcon_3Dsrc(nStratwrite,N) = g
-      qcon(itcon_3Dsrc(nStratwrite,N))=.true.
-      conpts(g-12)='Strat Overwrite'
+      qcon(itcon_3Dsrc(nStratwrite,N))=.true.; conpts(g-12)='Overwrite'
       qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
-#endif
       g=g+1; itcon_surf(6,N) = g; qcon(itcon_surf(6,N)) = .true.
       conpts(g-12)= 'Soil sink'
       g=g+1; itcon_surf(7,N) = g; qcon(itcon_surf(7,N)) = .true.
@@ -5952,11 +6147,11 @@ C**** set some defaults
       case ('Ox','OxREG1','OxREG2','OxREG3','OxREG4','OxREG5','OxREG6',
      &      'N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN',
      &      'AlkylNit','ClOx','BrOx','HCl','HOCl','ClONO2','HBr',
-     &      'HOBr','BrONO2','CFC') ! N2O done above
+     &      'HOBr','BrONO2') ! N2O done above, CFC below
        select case (trname(n)) 
        case ('N2O5','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit',
      &       'ClOx','BrOx','HCl','HOCl','ClONO2','HBr',
-     &       'HOBr','BrONO2','CFC')
+     &       'HOBr','BrONO2')
          kt_power_change(n) = -14
        case ('HNO3','H2O2')
          kt_power_change(n) = -13
@@ -5969,21 +6164,16 @@ C**** set some defaults
       qcon(itcon_3Dsrc(nChemistry,N)) = .true.
       conpts(g-12) = 'Chemistry'
       qsum(itcon_3Dsrc(nChemistry,N)) = .true.
-#ifndef SHINDELL_STRAT_CHEM
       g=g+1; itcon_3Dsrc(nStratwrite,N) = g
       qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
-      conpts(g-12)='Strat Overwrite'
+      conpts(g-12)='Overwrite'
       qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
-#endif
-
 #ifdef TRACERS_NITRATE
-       select case (trname(n)) 
-       case ('HNO3')
-      g=g+1; itcon_3Dsrc(3,N) = g
-      qcon(itcon_3Dsrc(3,N)) = .true.
-      conpts(g-12)='Nitrate Chemistry'
-      qsum(itcon_3Dsrc(3,N)) = .true.
-       end select
+      case ('HNO3')
+       g=g+1; itcon_3Dsrc(3,N) = g
+       qcon(itcon_3Dsrc(3,N)) = .true.
+       conpts(g-12)='Nitrate Chemistry'
+       qsum(itcon_3Dsrc(3,N)) = .true.
 #endif
 #ifdef TRACERS_WATER
       if(dowetdep(n)) then
@@ -6004,7 +6194,23 @@ C**** set some defaults
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
-
+      case ('CFC')
+      kt_power_change(n) = -14
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      g=13; itcon_3Dsrc(nChemistry,N) = g
+      qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+      conpts(g-12) = 'Chemistry'
+      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
+      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+      qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+      conpts(g-12)='Overwrite'
+      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+      
       case ('NOx')
       kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
@@ -6013,12 +6219,10 @@ C**** set some defaults
       qcon(itcon_3Dsrc(nChemistry,N)) = .true.
       conpts(g-12) = 'Chemistry'
       qsum(itcon_3Dsrc(nChemistry,N)) = .true.
-#ifndef SHINDELL_STRAT_CHEM
       g=g+1; itcon_3Dsrc(nStratwrite,N) = g
       qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
-      conpts(g-12)='Strat Overwrite'
+      conpts(g-12)='Overwrite'
       qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
-#endif
       g=g+1; itcon_3Dsrc(nLightning,N) = g
       qcon(itcon_3Dsrc(nLightning,N)) = .true.
       conpts(g-12) = 'Lightning'
@@ -6070,12 +6274,10 @@ C**** set some defaults
       qcon(itcon_3Dsrc(nChemistry,N)) = .true.
       conpts(g-12) = 'Chemistry'
       qsum(itcon_3Dsrc(nChemistry,N)) = .true.
-#ifndef SHINDELL_STRAT_CHEM
       g=g+1; itcon_3Dsrc(nStratwrite,N) = g
       qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
-      conpts(g-12)='Strat Overwrite'
+      conpts(g-12)='Overwrite'
       qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
-#endif
 #ifdef EDGAR_HYDE_SOURCES
       g=g+1; itcon_surf(1,N) = g; qcon(itcon_surf(1,N)) = .true.
       conpts(g-12) = 'EH fossil fuel comb.'
@@ -6107,6 +6309,20 @@ C**** set some defaults
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
+#ifdef SHINDELL_STRAT_EXTRA
+      case ('GLT')
+      kt_power_change(n) = -17
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      g=13 ; itcon_3Dsrc(1,N) = g
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'L1 overwriting'
+      qsum(itcon_3Dsrc(1,N)) = .false.
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+#endif
+
       case ('Isoprene')
       kt_power_change(n) = -13
       scale_change(n) = 10d0**(-kt_power_change(n))
@@ -6115,12 +6331,10 @@ C**** set some defaults
       qcon(itcon_3Dsrc(nChemistry,N)) = .true.
       conpts(g-12) = 'Chemistry'
       qsum(itcon_3Dsrc(nChemistry,N)) = .true.
-#ifndef SHINDELL_STRAT_CHEM
       g=g+1; itcon_3Dsrc(nStratwrite,N) = g
       qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
-      conpts(g-12)='Strat Overwrite'
+      conpts(g-12)='Overwrite'
       qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
-#endif
       g=g+1; itcon_surf(1,N) = g
       qcon(itcon_surf(1,N)) = .true.; conpts(g-12) = 'Vegetation'
       qsum(itcon_surf(1,N)) = .false.
@@ -6144,12 +6358,10 @@ C**** set some defaults
       qcon(itcon_3Dsrc(nChemistry,N)) = .true.
       conpts(g-12) = 'Chemistry'
       qsum(itcon_3Dsrc(nChemistry,N)) = .true.
-#ifndef SHINDELL_STRAT_CHEM
       g=g+1; itcon_3Dsrc(nStratwrite,N) = g
       qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
-      conpts(g-12)='Strat Overwrite'
+      conpts(g-12)='Overwrite'
       qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
-#endif
       g=g+1; itcon_surf(3,N) = g
       qcon(itcon_surf(3,N)) = .true.; conpts(g-12) = 'Vegetation'
 #ifdef EDGAR_HYDE_SOURCES
@@ -6854,7 +7066,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       call special_layers_init
 #endif
 #endif
-#ifdef TRACERS_COSMO
+#if (defined TRACERS_COSMO)
+CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       do n=1,ntm
         if (trname(n) .eq. "Be7" .OR. trname(n) .eq. "Be10") then
           call read_Be_source
@@ -6886,7 +7099,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
     (defined TRACERS_QUARZHEM)
      &     ,JMperY,JDperY
 #endif
-      USE DOMAIN_DECOMP, only : GRID, GET
+     &  ,jyear
+      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT, UNPACK_COLUMN,
+     & write_parallel
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
      *   tr_mm,rnsrc
@@ -6923,13 +7138,20 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
       USE FILEMANAGER, only: openunit,closeunit
 #ifdef TRACERS_SPECIAL_Shindell
-      USE RAD_COM, ONLY : O3_tracer_save
-      USE TRCHEM_Shindell_COM,only:O3MULT,COlat,MDOFM
-     &  ,COalt,JCOlat,OxIC,byO3MULT,pfix_CH4_S,pfix_CH4_N,PI_run,
-     &  fix_CH4_chemistry,PIratio_N,PIratio_CO_T,PIratio_CO_S,
-     &  PIratio_other
+      USE RAD_COM, only : O3_tracer_save,rad_to_file
+      USE TRCHEM_Shindell_COM,only:O3MULT,COlat,MDOFM,ch4icx,
+     &  COalt,JCOlat,OxIC,byO3MULT,PI_run,fix_CH4_chemistry,
+     &  PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other
+     &  ,bymass2vol,use_rad_n2o,use_rad_cfc,use_rad_ch4
 #ifdef SHINDELL_STRAT_CHEM
      &  ,ClOxalt,BrOxalt,ClONO2alt,HClalt,N2OICX,CFCIC
+     &  ,PIratio_N2O,PIratio_CFC
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+      USE TRACER_SOURCES, only:first_mod,first_ncep
+#endif
+#ifdef SHINDELL_STRAT_EXTRA     
+      USE TRACER_SOURCES, only:GLTic
 #endif
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
@@ -6953,8 +7175,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       USE NITRATE_AEROSOL
 #endif
       IMPLICIT NONE
-      INTEGER i,n,l,j,iu_data,ipbl,it,lr
+      INTEGER i,n,l,j,iu_data,ipbl,it,lr,m
       CHARACTER*80 title
+      CHARACTER*300 out_line
       REAL*8 CFC11ic,conv
       REAL*8 :: trinit =1., tmominit=0.
 
@@ -6969,6 +7192,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 !@param byjm 1./JM
       REAL*8, PARAMETER :: bymair = 1.d0/mair, byjm =1.d0/JM
 #ifdef TRACERS_SPECIAL_Shindell
+      character*4 ghg_name
+      character*80 ghg_file
+      real*8, dimension(LM,IM,JM,5) :: rad_to_file_glob
 !@var imonth dummy index for choosing the right month
 !@var ICfactor varying factor for altering initial conditions
       INTEGER imonth, J2
@@ -7091,9 +7317,40 @@ C**** ESMF: Each processor reads the global array: N2Oic
           enddo; enddo
 #endif
 #ifdef SHINDELL_STRAT_CHEM
+         if(use_rad_n2o.le.0)then 
+          select case(PI_run)
+          case(1)     ; ICfactor=PIratio_N2O
+          case default; ICfactor=1.d0
+          end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = N2OICX(i,j,l)
+            trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
           end do   ; end do   ; end do
+         else
+#ifdef INITIAL_GHG_SETUP
+          select case(PI_run)
+          case(1)     ; ICfactor=PIratio_N2O
+          case default; ICfactor=1.d0
+          end select
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
+          end do   ; end do   ; end do
+#else
+          if(AM_I_ROOT( ))then
+            write(ghg_name,'(I4)') JYEAR
+            ghg_file='GHG_IC_'//ghg_name
+            call openunit(ghg_file,iu_data,.true.,.true.)
+            do m=1,3;read(iu_data)title,rad_to_file_glob(:,:,:,m);enddo
+            call closeunit(iu_data)
+          endif
+          do m=1,3
+            call UNPACK_COLUMN
+     &      (grid, rad_to_file_glob(:,:,:,m), rad_to_file(:,:,:,m))
+          end do
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(I,J,L,n) = rad_to_file(l,i,j,3)
+          end do   ; end do   ; end do    
+#endif
+         endif
 #endif
 
         case ('CFC11')   !!! should start April 1
@@ -7114,17 +7371,48 @@ C**** ESMF: Each processor reads the global array: N2Oic
 
         case ('CH4')
 #ifdef TRACERS_SPECIAL_Shindell
-          select case(fix_CH4_chemistry)
-          case(1)
-            do l=1,lm; do j=J_0,J_1/2
-              trm(:,j,l,n)=am(l,:,j)*dxyp(j)*TR_MM(n)*bymair*pfix_CH4_S
-            end do; end do
-            do l=1,lm; do j=(J_1/2)+1,J_1
-              trm(:,j,l,n)=am(l,:,j)*dxyp(j)*TR_MM(n)*bymair*pfix_CH4_N
-            end do; end do
+         if(use_rad_ch4.le.0)then
+          select case (fix_CH4_chemistry)
           case default
-            call get_CH4_IC ! defines trm(:,:,:,n_CH4) within
+            call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
+          case(-1) ! ICs from file...
+            call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
+            do l=ls1,lm; do j=J_0,J_1; do i=1,im
+              trm(I,J,L,n) = CH4ICX(I,J,L)
+            end do   ; end do   ; end do
           end select
+#ifdef INTERACTIVE_WETLANDS_CH4
+          first_mod(:,:,:)=1
+          first_ncep(:)=1
+#endif
+         else
+#ifdef INITIAL_GHG_SETUP
+          select case (fix_CH4_chemistry)
+          case default
+            call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
+          case(-1) ! ICs from file...
+            call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
+            do l=ls1,lm; do j=J_0,J_1; do i=1,im
+              trm(I,J,L,n) = CH4ICX(I,J,L)
+            end do   ; end do   ; end do
+          end select
+#else
+          if(AM_I_ROOT( ))then
+            write(ghg_name,'(I4)') JYEAR
+            ghg_file='GHG_IC_'//ghg_name
+            call openunit(ghg_file,iu_data,.true.,.true.)
+            do m=1,4;read(iu_data)title,rad_to_file_glob(:,:,:,m);enddo
+            call closeunit(iu_data)
+          endif
+          do m=1,4
+            call UNPACK_COLUMN
+     &      (grid, rad_to_file_glob(:,:,:,m), rad_to_file(:,:,:,m))
+          end do
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(I,J,L,n) = rad_to_file(l,i,j,4)
+          end do   ; end do   ; end do 
+#endif
+         endif
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
           call get_wofsy_gas_IC(trname(n),CH4ic)
@@ -7333,7 +7621,6 @@ c**** earth
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12*ICfactor
           end do; end do; end do
 #endif
-
         case ('HNO3')
 #ifdef TRACERS_SPECIAL_Shindell
           select case(PI_run)
@@ -7364,6 +7651,13 @@ c**** earth
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*5.d-10
           end do; end do; end do
 
+#ifdef SHINDELL_STRAT_EXTRA
+        case ('GLT')
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(i,j,l,n) = GLTic*bymass2vol(n)*am(l,i,j)*dxyp(j)
+          end do; end do; end do
+#endif
+
         case ('CH3OOH')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
@@ -7374,8 +7668,8 @@ c**** earth
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
           end do; end do; end do
 
-        case ('HO2NO2')
 #ifdef TRACERS_SPECIAL_Shindell
+        case ('HO2NO2')
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_N
           case default; ICfactor=1.d0
@@ -7460,9 +7754,40 @@ C         AM=kg/m2, and DXYP=m2:
 
         case ('CFC')
 #ifdef SHINDELL_STRAT_CHEM
+         if(use_rad_cfc.le.0)then
+          select case(PI_run)
+          case(1)     ; ICfactor=PIratio_CFC  
+          case default; ICfactor=1.d0
+          end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(I,J,L,n) = CFCIC(I,J,L)*4.25d0 ! note factor
+            trm(I,J,L,n) = CFCIC(I,J,L)*ICfactor
           end do   ; end do   ; end do
+         else
+#ifdef INITIAL_GHG_SETUP
+          select case(PI_run)
+          case(1)     ; ICfactor=PIratio_CFC
+          case default; ICfactor=1.d0
+          end select
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(I,J,L,n) = CFCIC(I,J,L)*ICfactor
+          end do   ; end do   ; end do
+#else
+          if(AM_I_ROOT( ))then
+            write(ghg_name,'(I4)') JYEAR
+            ghg_file='GHG_IC_'//ghg_name
+            call openunit(ghg_file,iu_data,.true.,.true.)
+            do m=1,5;read(iu_data)title,rad_to_file_glob(:,:,:,m);enddo
+            call closeunit(iu_data)
+          endif
+          do m=1,5
+            call UNPACK_COLUMN
+     &      (grid, rad_to_file_glob(:,:,:,m), rad_to_file(:,:,:,m))
+          end do
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(I,J,L,n) = rad_to_file(l,i,j,5)
+          end do   ; end do   ; end do 
+#endif
+         endif
 #endif
 
         case ('BrONO2','HBr','HOBr')
@@ -7530,8 +7855,9 @@ C**** Initialise pbl profile if necessary
         end do
       end if
 
-        if (AM_I_ROOT())
-     *    write(6,*) ' Tracer ',trname(n),' initialized at itime=',itime
+      write(out_line,*) ' Tracer ',trname(n),' initialized at itime=',itime
+      call write_parallel(trim(out_line))
+
       end if
       end do
 #endif
@@ -8031,7 +8357,7 @@ c index of table for GCM surface wind speed from 0.0001 to 30 m/s
 !@auth Jean Lerner
 C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only: jmon,itime,coupled_chem
-      USE DOMAIN_DECOMP, only : grid, get
+      USE DOMAIN_DECOMP, only : grid, get, write_parallel
       USE TRACER_COM, only: ntm,trname,itime_tr0,nLightning,nAircraft
 #ifdef TRACERS_AEROSOLS_Koch
      * ,aer_int_yr,imAER
@@ -8042,7 +8368,8 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE FLUXES, only: tr3Dsource
-      USE TRCHEM_Shindell_COM,only: PI_run
+      USE TRCHEM_Shindell_COM,only: PI_run, use_rad_ch4, rad_FL,
+     & dms_offline,so2_offline,sulfate
 #endif
       IMPLICIT NONE
       INTEGER n,iact,last_month
@@ -8109,22 +8436,24 @@ C**** Tracer specific call for CH4
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
+C**** Next line for fastj photon fluxes to vary with time:
+      if(rad_FL.gt.0) call READ_FL(IACT)    
 C**** Daily tracer-specific calls to read 2D and 3D sources:
-          if (COUPLED_CHEM.ne.1) then
-          call get_dms_offline   !not applied directly;used in chemistry.
-          call get_so2_offline   !not applied directly;used in chemistry.
-          endif
+      if (COUPLED_CHEM.ne.1) then
+        call read_aero(dms_offline,'DMS_FIELD') !not applied directly to tracer
+        call read_aero(so2_offline,'SO2_FIELD') !not applied directly to tracer
+      endif
       do n=1,ntm
         select case (trname(n))
         case ('NOx')
           tr3Dsource(:,J_0:J_1,:,nAircraft,n)  = 0.
-          if(PI_run.ne.1)call get_aircraft_NOx
+          if(PI_run.ne.1) call get_aircraft_NOx
           call      read_NOx_sources(n,iact)
 C         (lightning called from tracer_3Dsource)
         case ('CO')
           call       read_CO_sources(n,iact)
         case ('CH4')
-          call      read_CH4_sources(n,iact)
+          if(use_rad_ch4.eq.0) call read_CH4_sources(n,iact)
         case ('Isoprene')
           call read_Isoprene_sources(n,iact)
         case ('Alkenes')
@@ -8134,7 +8463,7 @@ C         (lightning called from tracer_3Dsource)
         case ('N2O5')
           tr3Dsource(:,J_0:J_1,:,:,n) = 0.
           if (COUPLED_CHEM.ne.1)
-     &    call get_sulfate_N2O5 !not applied directly;used in chemistry.
+     &    call read_aero(sulfate,'SULFATE_SA') !not applied directly to tracer
         end select
       end do
 #endif
@@ -8180,8 +8509,8 @@ C**** at the start of any day
 !@sum tracer_source calculates non-interactive sources for tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: FEARTH,itime,JDperY,fland,psf,pmtop,jmpery
-     *  ,dtsrc,jmon,nday
-      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM
+     *  ,dtsrc,jmon
+      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM, write_parallel
 
       USE GEOM, only: dxyp,areag,lat_dg
       USE QUSDEF
@@ -8198,6 +8527,7 @@ C**** at the start of any day
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRACER_SOURCES, only: CO_src,ch4_src,NOx_src,Isoprene_src,
      &                          Alkenes_src,Paraffin_src
+      USE TRCHEM_Shindell_COM,only: use_rad_ch4
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
        USE AEROSOL_SOURCES, only: SO2_src,BCI_src,OCI_src,BCB_src,
@@ -8463,46 +8793,31 @@ C****
 #endif TRACERS_NITRATE
 #ifdef TRACERS_SPECIAL_Shindell
       case ('CO')
-        do ns=1,ntsurfsrc(n)
-         do j=J_0,J_1
+        do ns=1,ntsurfsrc(n); do j=J_0,J_1
             trsource(:,j,ns,n) = CO_src(:,j,ns)*dxyp(j)
-         end do
-        end do
-
+        end do ; end do
       case ('CH4')
-        do ns=1,ntsurfsrc(n)
-          do j=J_0,J_1
+        if(use_rad_ch4.eq.0) then
+          do ns=1,ntsurfsrc(n); do j=J_0,J_1
             trsource(:,j,ns,n) = ch4_src(:,j,ns)*dxyp(j)
-          end do
-        end do
-
+          end do ; end do
+        end if
       case ('Alkenes')
-        do ns=1,ntsurfsrc(n)
-         do j=J_0,J_1
+        do ns=1,ntsurfsrc(n); do j=J_0,J_1
             trsource(:,j,ns,n) = Alkenes_src(:,j,ns)*dxyp(j)
-         end do
-        end do
-
+        end do ; end do
       case ('Paraffin')
-        do ns=1,ntsurfsrc(n)
-          do j=J_0,J_1
+        do ns=1,ntsurfsrc(n); do j=J_0,J_1
             trsource(:,j,ns,n) = Paraffin_src(:,j,ns)*dxyp(j)
-          end do
-        end do
-
+        end do ; end do
       case ('Isoprene')
-        do ns=1,ntsurfsrc(n)
-         do j=J_0,J_1
+        do ns=1,ntsurfsrc(n); do j=J_0,J_1
             trsource(:,j,ns,n) = Isoprene_src(:,j,ns)*dxyp(j)
-         end do
-        end do
-
+        end do; end do
       case ('NOx')
-        do ns=1,ntsurfsrc(n)
-          do j=J_0,J_1
+        do ns=1,ntsurfsrc(n); do j=J_0,J_1
             trsource(:,j,ns,n) = NOx_src(:,j,ns)*dxyp(j)
-          end do
-        end do
+        end do ; end do
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       case ('SO2')
@@ -8572,14 +8887,15 @@ C****
 !@+   is used, all diagnostics and moments are updated automatically.
 !@auth Jean Lerner/Greg Faluvegi
 !@calls DIAGTCA, masterchem, apply_tracer_3Dsource
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : GRID, GET, write_parallel
       USE TRACER_COM
       USE FLUXES, only: tr3Dsource
       USE MODEL_COM, only: itime,jmon
       USE GEOM, only: dxyp,bydxyp
       USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
       USE apply3d, only : apply_tracer_3Dsource
-#ifdef TRACERS_COSMO
+CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
+#if (defined TRACERS_COSMO)
       USE COSMO_SOURCES, only: be7_src_3d, be7_src_param
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
@@ -8762,7 +9078,8 @@ c**** biomass + industrial for OC species
       end do; end do
       call apply_tracer_3Dsource(1,n) ! biomass+industrial
 #endif
-#ifdef TRACERS_COSMO
+CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
+#if (defined TRACERS_COSMO) 
 C****
       case ('Be7')
 c cosmogenic src
@@ -8827,33 +9144,33 @@ C are done for chemistry.  It might be better to do it like surface
 C sources are done? -- GSF 11/26/02)
 c
       CALL TIMER (MNOW,MTRACE)
+#ifdef SHINDELL_STRAT_EXTRA
+      tr3Dsource(:,J_0:J_1,:,1,n_GLT) = 0.d0
+      call overwrite_GLT
+      call apply_tracer_3Dsource(1,n_GLT)
+#endif
       call apply_tracer_3Dsource(nAircraft,n_NOx)
-      tr3Dsource(:,J_0:J_1,:,nLightning,n_NOx) = 0.
+      tr3Dsource(:,J_0:J_1,:,nLightning,n_NOx) = 0.d0
       call get_lightning_NOx
       call apply_tracer_3Dsource(nLightning,n_NOx)
 c
 C**** Make sure that these 3D sources for all chem tracers start at 0.:
-      tr3Dsource(:,J_0:J_1,:,nChemistry,1:ntm_chem)  = 0.
-#ifndef SHINDELL_STRAT_CHEM
-      tr3Dsource(:,J_0:J_1,:,nStratwrite,1:ntm_chem) = 0.
-#endif
+      tr3Dsource(:,J_0:J_1,:,nChemistry,1:ntm_chem)  = 0.d0
+      tr3Dsource(:,J_0:J_1,:,nStratwrite,1:ntm_chem) = 0.d0
 #if (defined TRACERS_HETCHEM) && (defined TRACERS_NITRATE)
-       tr3Dsource(:,J_0:J_1,:,nChemistry,n_N_d1)  = 0.d0
-       tr3Dsource(:,J_0:J_1,:,nChemistry,n_N_d2)  = 0.d0
-       tr3Dsource(:,J_0:J_1,:,nChemistry,n_N_d3)  = 0.d0
+      tr3Dsource(:,J_0:J_1,:,nChemistry,n_N_d1)  = 0.d0
+      tr3Dsource(:,J_0:J_1,:,nChemistry,n_N_d2)  = 0.d0
+      tr3Dsource(:,J_0:J_1,:,nChemistry,n_N_d3)  = 0.d0
 #endif
-C**** Call the model CHEMISTRY and STRATOSPHERE OVERWRITE:
 
-      CALL masterchem ! does chemistry and stratospheric over-writing.
+C**** Call the model CHEMISTRY and OVERWRITEs:
+      call masterchem ! does chemistry and over-writing.
                       ! tr3Dsource defined within, for both processes
 
-C**** Apply chemistry and stratosphere overwrite changes:
-
+C**** Apply chemistry and overwrite changes:
       do n=1,ntm_chem
         call apply_tracer_3Dsource(nChemistry,n)
-#ifndef SHINDELL_STRAT_CHEM
         call apply_tracer_3Dsource(nStratwrite,n)
-#endif
       end do
 #if (defined TRACERS_HETCHEM) && (defined TRACERS_NITRATE)
        call apply_tracer_3Dsource(nChemistry,n_N_d1) ! NO3 chem prod on dust
@@ -9232,7 +9549,8 @@ C
         CASE(nPART)                           ! aerosols
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP) ||\
+    (defined SHINDELL_STRAT_EXTRA)
           fq = -b_beta_DT*(EXP(-PREC*rc_wash)-1.D0)
           if (FCLOUD.lt.1.D-16) fq=0.d0
           if (fq.lt.0.) fq=0.d0
@@ -9319,19 +9637,22 @@ C**** no fractionation for ice evap
 !@auth Bell
 !@ver  1.0
       USE MODEL_COM, only: im,jm,lm,t,ls1
+      USE DOMAIN_DECOMP, only : GRID, GET, write_parallel
       USE DYNAMICS, only: pmid,am,pk,LTROPO
       USE GEOM, only: dxyp,imaxj
       USE TRACER_COM, only: rsulf1,rsulf2,rsulf3,rsulf4 
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: which_trop
 #endif
-
-      real*8 ppres,te,tt,mm,dmm,rk4,ek4
+      INTEGER J_0, J_1
+      real*8 ppres,te,tt,mm,dmm,rk4,ek4,a,b,c,d,f
 #ifdef TRACERS_SPECIAL_Shindell
 !@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
       integer maxl
 #endif
- 
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
 C Initialise
       rsulf1(:,:,:)=0.d0
       rsulf2(:,:,:)=0.d0
@@ -9344,8 +9665,14 @@ C***2.DMS + OH -> SO2
 C***3.DMS + NO3 -> HNO3 + SO2
 C***4.SO2 + OH -> SO4 + HO2
 
+CGreg: certain things now done outside the loops for speed:
+      a= 73.41463d20 ! 6.02d20/.082d0
+      b= 0.357d-42   ! 1.7d-22*0.21d0*1.d-20
+      c= 1.155d-31   ! 5.5d-20*0.21d0*1.d-11
+      d= 4.0d-31     ! 4.0d-20*1.d-11
+      
       do l=1,LM
-      do j=1,jm
+      do j=J_0,J_1
       do i=1,imaxj(j)
 c
       maxl = ltropo(i,j)
@@ -9362,20 +9689,23 @@ C Calculate effective temperature
         tt = 1.d0/te
 
 c DMM is number density of air in molecules/cm3
-        dmm=ppres/(.082d0*te)*6.02d20
 
-        rsulf1(i,j,l) = 1.7d-22*dmm*0.21d0*1.d-20*exp(7810.d0*tt)/
-     *       (1.d0+5.5d-20*exp(7460.d0*tt)*dmm*0.21d0*1.d-11)
+        dmm=ppres*tt*a
+        rsulf1(i,j,l) = 
+     &  b*dmm*exp(7810.d0*tt)/(1.d0+c*exp(7460.d0*tt)*dmm)
         
         rsulf2(i,j,l) = 9.6d-12*exp(-234.d0*tt)
         
         rsulf3(i,j,l) = 1.9d-13*exp(520.d0*tt)
         
-        rk4 = 4.0d-20 *((tt*300.d0)**(3.3d0))*dmm*1.d-11
-        ek4 = 1.d0/(1.d0 + ((log10(rk4/2.0d-12))**2.d0))
+        rk4 = ((tt*300.d0)**(3.3d0))*dmm*d
+!greg   ek4 = 1.d0/(1.d0 + ((log10(rk4/2.0d-12))**2.d0))
+        f=log10(2.d12*rk4)
+        ek4 = 1.d0/(1.d0 + (f*f))
         
-        rsulf4(i,j,l) = (rk4/(1.d0 + rk4/2.0d-12))*(0.45d0**ek4)
-
+!greg   rsulf4(i,j,l) = (rk4/(1.d0 + rk4/2.0d-12))*(0.45d0**ek4)
+        rsulf4(i,j,l) = (rk4/(1.d0 + 2.d12*rk4  ))*(0.45d0**ek4)
+        
       endif
 
       end do
