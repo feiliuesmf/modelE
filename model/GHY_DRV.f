@@ -100,10 +100,6 @@ c******************   TRACERS             ******************************
      &     ,dust_flux,dust_flux2,z,km,gh,gm,zhat,lmonin,wsubtke,wsubwd
      &     ,wsubwm,dust_event1,dust_event2,wtrsh
 #endif
-#ifdef INTERACTIVE_WETLANDS_CH4
-      use tracer_sources, only : avg_modPT
-#endif
-
 
 ccc extra stuff which was present in "earth" by default
 #ifdef TRACERS_WATER
@@ -257,15 +253,24 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       end subroutine ghy_tracers_set_cell
 
 
-      subroutine ghy_tracers_save_cell(i,j,ptype,dtsurf,rhosrf)
+      subroutine ghy_tracers_save_cell(i,j,ptype,dtsurf,rhosrf
+#ifdef INTERACTIVE_WETLANDS_CH4
+     & ,ra_temp,ra_sat,ra_gwet
+#endif
+     & )
 !@sum tracers code to be called after the i,j cell is processed
-      use model_com, only : itime,qcheck
+      use model_com, only : itime,qcheck,nisurf
+      use ghy_com, only : tearth
       use somtq_com, only : mz
  !     use socpbl, only : dtsurf
       use geom, only : dxyp
       use sle001, only : nsn,fb,fv
 #if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
       USE trdiag_com,ONLY : rts_save
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+      use constant, only : tf
+      use tracer_sources, only : n__temp,n__sat,n__gwet
 #endif
       implicit none
       integer, intent(in) :: i,j
@@ -277,6 +282,9 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       integer n,nx
 #ifdef TRACERS_DRYDEP
       real*8 tdryd,tdd,td1,rtsdt,rts
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+      real*8, intent(IN) :: ra_temp,ra_sat,ra_gwet
 #endif
 
 ccc tracers
@@ -495,7 +503,9 @@ c     ..........
 
 #ifdef INTERACTIVE_WETLANDS_CH4
 C**** update running-average of ground temperature:
-      call running_average(tg1,I,J,avg_modPT(I,J,2),nisurf,2)
+      call running_average(ra_temp,I,J,dble(nisurf),n__temp)
+      call running_average(ra_sat,I,J,dble(nisurf),n__sat)
+      call running_average(ra_gwet,I,J,dble(nisurf),n__gwet)
 #endif
       end subroutine ghy_tracers_save_cell
       
@@ -605,7 +615,7 @@ c****
       use sle001, only : advnc,evap_limits,
      &    pr,htpr,prs,htprs,w,snowd,tp,fice,
      &    fv,fb,ashg,alhg,
-     &    aevap,
+     &    aevap,abetad,
      &    aruns,arunu,aeruns,aerunu,
      &    tbcs,af0dt,af1dt,
      &    qm1,qs,
@@ -1021,7 +1031,11 @@ c****
 
 c**** update tracers
 #ifdef TRACERS_ON
-      call ghy_tracers_save_cell(i,j,ptype,pbl_args%dtsurf,rhosrf)
+      call ghy_tracers_save_cell(i,j,ptype,pbl_args%dtsurf,rhosrf
+#ifdef INTERACTIVE_WETLANDS_CH4
+     & ,tg1,ts-tf,1.d2*abetad/real(nisurf)
+#endif
+     & )
 #endif
 
       end do loop_i
