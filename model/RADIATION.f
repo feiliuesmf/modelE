@@ -185,14 +185,16 @@ C--------------------------------------------------------
 !@var etc etc
 !sl!@var FTAUSL,TAUSL,...  surface layer computations commented out: !sl
 !@var LBOTCL,LTOPCL  bottom and top cloud level (lbot < ltop)
-!@var O3_OUT column variable for exporting ozone field to rest of model
+!@var chem_out column variable for exporting radiation code quantities
+!@    1=Ozone, 2=aerosol ext, 3=N2O, 4=CH4,5=CFC11+CFC12
 !@var TTAUSV saves special aerosol optical thickness for diagnostic
 !@var aesqex saves extinction aerosol optical thickness
 !@var aesqsc saves scattering aerosol optical thickness
 !@var aesqcb saves aerosol scattering asymmetry factor
 
       real*8, dimension(lx) :: TRDFLB,TRUFLB,TRNFLB,TRFCRL,
-     *     SRDFLB,SRUFLB,SRNFLB,SRFHRL,O3_OUT
+     *     SRDFLB,SRUFLB,SRNFLB,SRFHRL
+      real*8, dimension(lx,5) :: chem_out
       real*8 :: SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,
      *     SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,
      *     SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR,
@@ -222,7 +224,7 @@ C--------------------------------------------------------
 !sl  K             ,FTAUSL,TAUSL    ! input rather than output ?
 !nu  K             ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV   !nu = not used
 !sl  K             ,TRSLTS,TRSLTG,TRSLBS
-     K             ,O3_OUT,TTAUSV,aesqex,aesqsc,aesqcb
+     K             ,TTAUSV,chem_out,aesqex,aesqsc,aesqcb
      L             ,LBOTCL,LTOPCL   ! integers last for alignment
 !$OMP THREADPRIVATE(/RADPAR_OUTPUT_IJDATA/)
 !nu   EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
@@ -424,6 +426,7 @@ C            RADMAD6_SOLARUV_DECADAL          (user SETSOL)     radfile9
 !@var icycs0,mcycs0 solar cycle in yrs,months used to extend S0 history
 !@var KSOLAR controls which data are used: <0 Thekaekara, else Lean:
 !@+          1: use monthly data, 2: use annual data, 0: constant data
+!@+          9: use annual data from file but with Thekaekara bins
       integer :: KSOLAR=1       ! MADLUV=KSOLAR=0 only possible OFF-line
 
       integer, parameter :: iy1S0=1882, MS0X=12*(1998-iy1S0+1)
@@ -856,7 +859,7 @@ C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
       REAL*4 OZONLJ(44,46),R72X46(72,46),VTAUR4(1800,24)
       REAL*8 :: EJMLAT(47),E20LAT(20)
       INTEGER :: I,J,K,L,M,N,N1,N2,NRFU,KK,NN,IYEAR,IMONTH,JJDAYS,JYEARS
-     *     ,JJDAYG,JYEARG
+     *     ,JJDAYG,JYEARG,yr2S0i
       REAL*8 :: WAVNA,WAVNB,PFWI,TKOFPF,SUM,EPK,EPL,DEP,SFNORM,D,O,Q,S
      *     ,OCM,WCM
 !@var GTAU,TGDATA temporary array to read data and pass it to RAD_UTILS
@@ -1372,6 +1375,7 @@ C                                      ---------------------------------
       IF(MADLUV.LT.1) GO TO 909
       NRFU=NRFUN(9)
 
+      IF(KSOLAR.NE.9) THEN
       READ(NRFU,'(a80)') TITLE
       if(ksolar.ge.2 .and. TITLE(1:3).ne.'ANN')
      &     call stop_model('rcomp1: change RADN9 to ann.file',255)
@@ -1387,6 +1391,7 @@ C                                      ---------------------------------
       END DO
       READ(NRFU,'(a80)') TITLE
       READ(NRFU,'(a80)') TITLE
+      END IF
       IF(KSOLAR.LT.2) THEN
 C****   Read in monthly-mean data
         DO I=1,Ms0X
@@ -1404,8 +1409,14 @@ C****   Read in monthly-mean data
       ELSE
 C****   Read in annual-mean data
         DO I=1,Ms0X
+          IF(KSOLAR.NE.9) THEN
           READ(NRFU,'(F12.1,2F15.4)',end=908) yr2S0,TSI1(I),TSI2(I)
+          ELSE
+          READ(NRFU,'(I6,2F17.6)',end=908) yr2S0i,TSI1(I),TSI2(I)
+          yr2S0=real(yr2S0i)+0.5
+          END IF
           if(I.eq.1) yr1S0 = yr2S0
+          IF(KSOLAR.NE.9) THEN
           READ(NRFU,'(5E14.6)')               (FSLEAN(K),K=1,190)
           SUM=0.D0
           DO K=1,190
@@ -1415,6 +1426,9 @@ C****   Read in annual-mean data
           DO K=1,190
             UVLEAN(I,K)=FSLEAN(K)*SFNORM
           END DO
+          ELSE ! ksolar=9
+          READ(NRFU,'(5E14.6)')               (UVLEAN(I,K),K=1,190)
+          ENDIF
         END DO
   908   if(Am_I_Root()) write(6,*) 'read S0-history: ',yr1S0,' - ',yr2S0
       END IF
@@ -1703,8 +1717,7 @@ C      -----------------------------------------------------------------
 C--------------------------------
 !!!                   CALL GETO3D(ILON,JLAT)
       CALL REPART(O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
-      O3_OUT(:)=U0GAS(:,3) ! to save 3D ozone field in SUBR. RADIA
-      if(use_tracer_ozone .eq. 1) U0GAS(1:NL-3,3)=O3_IN(1:NL-3)
+      if(use_tracer_ozone.eq.1) ULGAS(1:NL-3,3)=O3_IN(1:NL-3)!was U0GAS
       ! The -3 in the line above is just a fudge for the 23-layer model.
       ! Gavin said he'd think about how to do this properly.
                       CALL GETGAS
@@ -1721,6 +1734,7 @@ C--------------------------------
        ELSE ; SRDEXT=0.     ; SRDSCT=0. ; SRDGCB=0. ; TRDALK=0. ; END IF
       IF(MADVOL.GT.0) THEN ; CALL GETVOL
        ELSE ; SRVEXT=0.     ; SRVSCT=0. ; SRVGCB=0. ; TRVALK=0. ; END IF
+      chem_out(:,2)=SRVEXT(:,6) ! save 3D aerosol extinction in SUB RADIA
 C--------------------------------
 
 
@@ -1814,6 +1828,8 @@ C     KSOLAR= 0  Uses Lean99 Solar Flux as set for Time= (JYEARS,JJDAYS)
 C     KSOLAR= 1  Sets Lean99 Solar Flux to Current Time= (JYEARS,JJDAYS)
 C     KSOLAR= 2  same as 1 but based on annual (not monthly) data
 C                (JJDAYS used to select the specified Monthly-Mean Flux)
+C     KSOLAR= 9  annual data for current time from file, but Thekaekhara
+C                wavelength bins
 C
 C-----------------------------------------------------------------------
 C
@@ -1875,13 +1891,19 @@ C                        and TSI1/TSI2 normalization of Lean input data.
 C                        -----------------------------------------------
 
 c      CORFAC=1366.2911D0/1366.4487855D0
+      IF(KSOLAR.NE.9) THEN
       FLXSUM=0.D0
       DO 110 K=1,190
       IF(MADLUV.EQ.0) FLXSUM=FLXSUM+FRLEAN(K)*DSLEAN(K)*CORFAC
       IF(MADLUV.GT.0) FLXSUM=FLXSUM+UVLEAN(LMO,K)*DSLEAN(K)
   110 CONTINUE
       S00WM2=FLXSUM
+      ELSE
+      FLXSUM=TSI2(LMO)
+      S00WM2=TSI2(LMO)
+      END IF
 
+      IF(KSOLAR.NE.9) THEN
       I=0
       DO 120 K=1,50
       I=I+1
@@ -1893,6 +1915,14 @@ c      CORFAC=1366.2911D0/1366.4487855D0
       FSOLAR(I)=FSOLAR(I-1)
   120 CONTINUE
       NWSUV=100
+      ELSE
+      DO 199 I=1,190
+      WSOLAR(I)=WTHEK(I)
+      IF(MADLUV.EQ.0)call stop_model("invalid MADLUV for KSOLAR=9",255)
+      IF(MADLUV.GT.0) FSOLAR(I)=UVLEAN(LMO,I)
+  199 CONTINUE
+      NWSUV=190
+      END IF
 C                                          Thekaekhara Solar Flux Option
 C                                          -----------------------------
       ELSE
@@ -1991,11 +2021,17 @@ C--------------------------------
       IF(KSOLAR.GE.0) THEN
 C                                               Select Lean99 Solar Flux
 C                                               ------------------------
+      IF(KSOLAR.NE.9)THEN
       FLXSUM=0.D0
       DO 210 K=1,190
       FLXSUM=FLXSUM+UVLEAN(LMO,K)*DSLEAN(K)
   210 CONTINUE
+      ELSE
+      FLXSUM=TSI2(LMO)
+      S00WM2=TSI2(LMO)
+      END IF
 
+      IF(KSOLAR.NE.9) THEN
       I=0
       DO 220 K=1,50
       I=I+1
@@ -2006,6 +2042,13 @@ C                                               ------------------------
       FSOLAR(I)=FSOLAR(I-1)
   220 CONTINUE
       NWSUV=100
+      ELSE
+      DO 299 I=1,190
+      WSOLAR(I)=WTHEK(I)
+      FSOLAR(I)=UVLEAN(LMO,I)
+  299 CONTINUE
+      NWSUV=190
+      END IF
       ELSE
 C                                          Select Thekaekhara Solar Flux
 C                                          -----------------------------
@@ -2884,6 +2927,12 @@ C****
           ENDIF
         ENDIF
       ENDIF
+
+      chem_out(:,1)=ULGAS(:,3)              ! O3
+C     chem_out(:,2)= _________              ! set in RCOMPX
+      chem_out(:,3)=ULGAS(:,6)              ! N2O
+      chem_out(:,4)=ULGAS(:,7)              ! CH4
+      chem_out(:,5)=ULGAS(:,8)+ULGAS(:,9)   ! CFC11(+)   +  CFC12(+)
 
 C-----------------
       CALL  TAUGAS
@@ -9195,7 +9244,7 @@ C
                                  SFL0(5)=SFL0(5)+UVLEAN(LMO,K)*DSLEAN(K)
   320 CONTINUE
 C
-      if(ksolar.eq.2)
+      if(ksolar.eq.2.or.ksolar.eq.9)
      *   WRITE(KW,6299) int(yr1s0),int(yr2s0),JYRREF,JYRNOW,SFL0(5)
       if(ksolar.lt.2) WRITE(KW,6300) JYRREF,JYRNOW,SFL0(5)
  6299 FORMAT(/' (3)=INDEX  Annual-mean Solar flux (from J.Lean annual'
