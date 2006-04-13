@@ -12,7 +12,8 @@
 
       integer, parameter :: TYPE_DOUBLE=0, TYPE_INT=1
       integer, parameter :: max_num=140
-
+      real*8, public :: EPS=1.d-36
+      integer, public :: max_err=10
 
       type db_str
         character*32 name
@@ -160,14 +161,14 @@
 
 
       subroutine do_compare
-      real*8, parameter :: EPS=1.d-36
+!     real*8, parameter :: EPS=1.d-36
       integer m, nerr, n
       real*8 err, rel_err, abs_val
       integer i,j,k,l,nn
       real*8 v1,v2
       integer*4 iv1(2), iv2(2)
       equivalence (v1,iv1(1)), (v2,iv2(1))
-      
+
 
       do m=1,num
         nerr = 0
@@ -186,11 +187,13 @@
             call stop_model("wrong type in DB",255)
           end select
           !if values are binary identical skip the rest of the test
-          !this should work also for NaN's 
+          !this should work also for NaN's
           if ( iv1(1) == iv2(1) .and. iv1(2) == iv2(2) ) cycle
           if ( isNaN(v1) .or. isNaN(v2) ) then
             !NaN
-            err = 1.d30 ; rel_err = 1.d30
+            err = 0 ; rel_err = 1.d30
+            if ( isNaN(v1) ) err = err + 10
+            if ( isNaN(v2) ) err = err +  2
           else
             !normal number
             err = v2 -v1
@@ -209,7 +212,7 @@
             print '(i6,": ",i6,3i4,"    ",4e24.16)', &
                n, i+1,j+1,k+1,l+1, v1,v2,err,rel_err
             nerr = nerr+1
-            if ( nerr > 10 ) exit
+            if ( max_err > 0 .and. nerr > max_err ) exit
           endif
         enddo
       enddo
@@ -262,6 +265,10 @@
            ,speca,atpe,adiurn,wave,ajk,aijk,aisccp,hdiurn
       use model_com, only : idacc
 
+#ifdef CHECK_OCEAN
+      use odiag, only: oij,oijl,ol,olnst
+#endif
+
 !ccc  include tracers data here
 #ifdef TRACERS_ON
       use pblcom, only : trabl
@@ -306,9 +313,9 @@
       character*120 file_name(2)
       integer fd,i
 
-      IF(IARGC().NE.2) then
+      IF(IARGC().le.1) then
          print *,"CMPE002 compares data in two restart files"
-         print *,"Usage: CMPE002 file_1 file_2"
+         print *,"Usage: CMPE002 file_1 file_2 tolerance(1.d-36) #_shown(10,0=all)"
          call stop_model("Incorrect arguments",255)
       endif
 
@@ -319,6 +326,15 @@
 !C****
 !C**** Read ReStartFiles
 !C****
+      if(IARGC().ge.3) then
+        call getarg ( 3, file_name(1) )
+        read(file_name(1),*) EPS
+      end if
+      if(IARGC().ge.4) then
+        call getarg ( 4, file_name(1) )
+        read(file_name(1),*) max_err
+      end if
+      write(*,*) 'listing differences >',eps
       call getarg ( 1, file_name(1) )
       call getarg ( 2, file_name(2) )
 
@@ -497,6 +513,13 @@
           check("ICIJ",ICIJ)
         end if
 
+#ifdef CHECK_OCEAN
+        check("oij",oij)
+        check("oijl",oijl)
+        check("ol",ol)
+        check("olnst",olnst)
+#endif
+
 !ccc    compare tracers data here
 #ifdef TRACERS_ON
         check("TRM",TRM)
@@ -545,6 +568,10 @@
 #  endif
 
 #  ifdef CHECK_OCEAN
+         check("oij",oij)
+         check("oijl",oijl)
+         check("ol",ol)
+         check("olnst",olnst)
 #    ifdef TRACERS_WATER
        check("trsist",trsist)
 #      ifdef TRACERS_OCEAN
