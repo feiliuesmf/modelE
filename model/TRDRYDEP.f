@@ -800,8 +800,6 @@ C********* this section replaces call to MODIN *******************
       call write_parallel(trim(out_line))
       
       call openunit('OLSON',iu_data,.false.,.true.)
-          write(6,*)'dong ',am_i_root( )
-          call sys_flush(6)
       DO L = 1,5
         READ(iu_data,'(70A1)') COM
       END DO
