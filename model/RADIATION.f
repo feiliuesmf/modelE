@@ -1717,7 +1717,10 @@ C      -----------------------------------------------------------------
 C--------------------------------
 !!!                   CALL GETO3D(ILON,JLAT)
       CALL REPART(O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
-      if(use_tracer_ozone.eq.1) ULGAS(1:NL-3,3)=O3_IN(1:NL-3)!was U0GAS
+      if(use_tracer_ozone.eq.1) then
+        U0GAS(1:NL-3,3)=O3_IN(1:NL-3)
+        FULGAS(3)=1.d0
+      endif
       ! The -3 in the line above is just a fudge for the 23-layer model.
       ! Gavin said he'd think about how to do this properly.
                       CALL GETGAS
