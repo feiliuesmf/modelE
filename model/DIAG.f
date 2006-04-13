@@ -3250,7 +3250,9 @@ C****
 #ifdef TRACERS_DUST
      &     ,dust_flux2_glob
 #endif
+#ifdef TRACERS_ON
       USE TRACER_COM
+#endif
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
