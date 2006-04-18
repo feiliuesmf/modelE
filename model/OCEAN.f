@@ -1272,3 +1272,8 @@ C****
       return
       end subroutine tracer_ic_ocean
 #endif
+
+      subroutine gather_odiags
+C     nothing to gather - ocean prescribed
+      return
+      end gather_odiags

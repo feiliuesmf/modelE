@@ -12,12 +12,14 @@
       IMPLICIT NONE
       SAVE
 !@var KPL level to which mixed layer descends (1)
-      INTEGER, DIMENSION(IM,JM) :: KPL
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: KPL
+      INTEGER, DIMENSION(IM,JM) :: KPL_glob    ! for serial ocnGM ???
 
-      REAL*8, DIMENSION(IM,JM,LSRPD) :: G0M1
-      REAL*8, DIMENSION(IM,JM) :: MO1,GXM1,GYM1,S0M1,SXM1,SYM1,UO1,VO1
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::    G0M1
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) ::  MO1,GXM1,SXM1, UO1
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: S0M1,GYM1,SYM1, VO1
 #ifdef TRACERS_OCEAN
-      REAL*8, DIMENSION(NTM,IM,JM) :: TRMO1,TXMO1,TYMO1
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMO1,TXMO1,TYMO1
 #endif
 
       END MODULE KPP_COM
@@ -1072,10 +1074,15 @@ C**** Is this still necessary now that fluxes are saved?
 #ifdef TRACERS_OCEAN
      *     ,trmo1,txmo1,tymo1
 #endif
+      use domain_decomp, only : grid, get
+
       IMPLICIT NONE
       INTEGER I,J
+      integer :: j_0,j_1
+
+      call get (grid, j_strt=j_0, j_stop=j_1)
 C**** Save surface values
-      DO J=1,JM
+      DO J=J_0,J_1
          DO I=1,IM
             G0M1(I,J,1:LSRPD) = G0M(I,J,1:LSRPD)
             GXM1(I,J) = GXMO(I,J,1)
@@ -1094,7 +1101,7 @@ C**** Save surface values
          END DO
       END DO
       RETURN
-      END
+      END SUBROUTINE KVINIT
 
       SUBROUTINE OCONV
 !@sum  OCONV does vertical mixing using coefficients from KPP scheme
@@ -1109,18 +1116,26 @@ C**** Save surface values
      *     ,ogeoz,hocean,ze,bydxypo,mo,sinpo,dts,lmm,lmv,lmu,ramvs
      *     ,dxypo,cosic,sinic,uo,vo,ramvn,bydts
       USE SEAICE_COM, only : rsi
-      USE ODIAG, only : oijl,oij,ij_hbl,ij_bo,ij_bosol,ij_ustar,ijl_kvm
-     *     ,ijl_kvg,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
+      USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc
+     *     ,ij_hbl,ij_bo,ij_bosol,ij_ustar,ijl_kvm,ijl_kvg
+     *     ,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
 #ifdef TRACERS_OCEAN
      *     ,trmo1,txmo1,tymo1
 #endif
       USE FLUXES, only : solar,dmua,dmva,dmui,dmvi
       USE SW2OCEAN, only : fsr,lsrpd
+      use domain_decomp, only : grid,get
+      use domain_decomp, only : HALO_UPDATE, NORTH, SOUTH
+      use domain_decomp, only : HALO_UPDATE_COLUMN
+      use domain_decomp, only : am_i_root,globalsum
+
       IMPLICIT NONE
 
-      LOGICAL*4 QPOLE
-      REAL*8 UT(IM,JM,LMO),VT(IM,JM,LMO),UL(LMO,IM+2),MML(LMO),
+      LOGICAL*4 QPOLE,ir
+      REAL*8,
+     *   DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: UT,VT
+      REAL*8 UL(LMO,IM+2),MML(LMO),
      *     G0ML(LMO,2,2),S0ML(LMO,2,2),GZML(LMO,2,2),SZML(LMO,2,2),
      *     BYMML(LMO),DTBYDZ(LMO),BYDZ2(LMO),RAVM(IM+1),RAMV(IM+1),
      *     UL0(LMO,IM+2),G0ML0(LMO,2,2),S0ML0(LMO,2,2),MML0(LMO),
@@ -1142,16 +1157,27 @@ C**** KPP variables
      *     ,talpha(LMO),sbeta(LMO),dbloc(LMO),dbsfc(LMO),Ritop(LMO),
      *     alphaDT(LMO),betaDS(LMO),ghat(LMO),byhwide(0:LMO+1)
       REAL*8 G(LMO),S(LMO),TO(LMO),BYRHO(LMO),RHO(LMO),PO(LMO)
-      REAL*8 UKJM(LMO,IM+1),UKM(LMO,4,2,2,IM,2:JM-1),OLJ(3,LMO,JM)
+      REAL*8 UKJM(LMO,IM+1)  !  ,UKM(LMO,4,2,2,IM,2:JM-1),OLJ(3,LMO,JM)
+      REAL*8 UKM(LMO,4,2,2,IM,grid%J_STRT_HALO:grid%J_STOP_HALO),
+     *              OLJ(3,LMO,grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8, DIMENSION(LMO) :: OL_RHO,OL_TEMP,OL_SALT
+
       LOGICAL, PARAMETER :: LDD = .FALSE.
       INTEGER I,J,K,L,IQ,JQ,LMIJ,KMUV,IM1,ITER,NSIGG,NSIGS,KBL,II
       REAL*8 CORIOL,UISTR,VISTR,U2rho,DELTAM,DELTAE,DELTASR,ANSTR
      *     ,RJ,RI,ZSCALE,HBL,HBLP,Ustar,BYSHC,B0,Bosol,R,R2,DTBYDZ2,DM
      *     ,RHOM,RHO1,Bo,DELTAS
       REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS,TEMGS
+      integer :: j_1,j_0s,j_1s
+      logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      call get (grid, j_stop=j_1, j_strt_skp=j_0s, j_stop_skp=j_1s,
+     * HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
 
 C**** Load UO,VO into UT,VT.  UO,VO will be updated, while UT,VT
 C**** will be fixed during convection.
+      call halo_update (grid, VO, from=south)
 !$OMP PARALLEL DO PRIVATE(L)
       DO L=1,LMO
         UT(:,:,L) = UO(:,:,L)
@@ -1162,6 +1188,8 @@ C****
 C**** Outside loop over J
 C**** Processes are checked and applied on every horizontal quarter box.
 C****
+      call halo_update (grid,  VO1, from=south)
+      call halo_update (grid, DMVI, from=south)
 !$OMP PARALLEL DO  PRIVATE(ANSTR,AKVM,AKVS,AKVG,ALPHADT, BYMML,BYMMLT,
 !$OMP&  BYMML0,BYHWIDE,BYRHO,BYSHC,BO,BOSOL,BETADS,BYDZ2, CORIOL,DBLOC,
 !$OMP&  DBSFC,DELTAE,DELTAM,DELTAS,DELTASR,DM,DTBYDZ,DTBYDZ2,DVSQ,
@@ -1174,7 +1202,7 @@ C****
 #endif
 !$OMP&  UL,UL0, U2RHO,UISTR,USTAR, VISTR, ZGRID,ZSCALE)
 !$OMP&  SHARED(DTS)
-      DO 790 J=2,JM
+      DO 790 J=j_0s,j_1
 C**** coriolis parameter, defined at tracer point
       Coriol = 2d0*OMEGA*SINPO(J)
 C**** initialise diagnostics saved over quarter boxes and longitude
@@ -1392,10 +1420,10 @@ C****
 #endif
 
 C**** Calculate surface heat and salt flux: dE(W/m^2);dS,dTr(kg/m^2/s)
-      DELTAE=4d0*(G0ML0(1,IQ,JQ)-G0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS 
-      DELTAS=4d0*(S0ML0(1,IQ,JQ)-S0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS 
+      DELTAE=4d0*(G0ML0(1,IQ,JQ)-G0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS
+      DELTAS=4d0*(S0ML0(1,IQ,JQ)-S0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS
 #ifdef TRACERS_OCEAN
-      DELTATR(:)=4d0*(TRML(1,:,IQ,JQ)-TRML1(:,IQ,JQ))*BYDXYPO(J)*BYDTS 
+      DELTATR(:)=4d0*(TRML(1,:,IQ,JQ)-TRML1(:,IQ,JQ))*BYDXYPO(J)*BYDTS
 #endif
 C****
 C**** Vertical mixing dependent on KPP boundary layer scheme
@@ -1764,13 +1792,15 @@ C**** End of outside J loop
 C**** Update velocities outside parallel region
 
 C**** North pole
+      if (have_north_pole) then
       DO I=1,IM
         VO(I,JM-1,1:LMV(I,JM-1))=VO(I,JM-1,1:LMV(I,JM-1))+
      *       UKJM(1:LMV(I,JM-1),I)
       END DO
       UO(1,JM,1:LMU(1,JM))=UO(1,JM,1:LMU(1,JM)) + UKJM(1:LMU(1,JM),IM+1)
+      end if
 C**** Everywhere else
-      DO J=2,JM-1
+      DO J=j_0s,j_1s
         IM1=IM
         DO I=1,IM
           DO IQ=1,2
@@ -1788,14 +1818,43 @@ C**** Everywhere else
           IM1=I
         END DO
       END DO
-C**** sum global mean diagnostics
-      DO J=2,JM
-        DO L=1,LMO
-          OL(L,L_RHO) = OL(L,L_RHO) + OLJ(1,L,J)
-          OL(L,L_TEMP)= OL(L,L_TEMP)+ OLJ(2,L,J)
-          OL(L,L_SALT)= OL(L,L_SALT)+ OLJ(3,L,J)
+      call halo_update_column (grid, UKM, from=north)
+      if (.not.have_north_pole) then
+        j=j_1s+1
+        IM1=IM
+        DO I=1,IM
+          DO IQ=1,2
+          DO JQ=1,2
+            VO(I,J-1,1:LMV(I,J-1))=VO(I,J-1,1:LMV(I,J-1)) +
+     *           UKM(1:LMV(I,J-1),3,IQ,JQ,I,J)
+          END DO
+          END DO
+          IM1=I
         END DO
-      END DO
+      end if
+C**** sum global mean diagnostics
+c     DO J=j_0s,j_1
+c       DO L=1,LMO
+c         OL(L,L_RHO) = OL(L,L_RHO) + OLJ(1,L,J)
+c         OL(L,L_TEMP)= OL(L,L_TEMP)+ OLJ(2,L,J)
+c         OL(L,L_SALT)= OL(L,L_SALT)+ OLJ(3,L,J)
+c       END DO
+c     END DO
+
+      olj(1,:,1) = OL(:,L_RHO )
+      olj(2,:,1) = OL(:,L_TEMP)
+      olj(3,:,1) = OL(:,L_SALT)
+      call globalsum(grid,OLJ(1,:,:),OL(:,L_RHO)  ,jband=(/1,jm/) )
+      call globalsum(grid,OLJ(2,:,:),OL(:,L_TEMP) ,jband=(/1,jm/) )
+      call globalsum(grid,OLJ(3,:,:),OL(:,L_SALT) ,jband=(/1,jm/) )
+c     call globalsum(grid,OLJ(1,:,:),OL_RHO   ,jband=(/1,jm/) )
+c     call globalsum(grid,OLJ(2,:,:),OL_TEMP  ,jband=(/1,jm/) )
+c     call globalsum(grid,OLJ(3,:,:),OL_SALT  ,jband=(/1,jm/) )
+c     if (am_i_root()) then
+c        OL(:,L_RHO ) = OL(:,L_RHO ) + OL_RHO
+c        OL(:,L_TEMP) = OL(:,L_TEMP) + OL_TEMP
+c        OL(:,L_SALT) = OL(:,L_SALT) + OL_SALT
+c     end if
 C****
       RETURN
       END SUBROUTINE OCONV
@@ -2129,7 +2188,7 @@ C**** Calculate operators for tridiagonal solver
       CALL TRIDIAG(A,B,C,R,U,LMIJ)
 
       RETURN
-      END
+      END SUBROUTINE OVDIFF
 
       SUBROUTINE OVDIFFS(U,K,GHAT,DTBYDZ,BYDZ2,DT,LMIJ,U0,FL)
 !@sum  OVDIFFS Implicit vertical diff + non local transport for tracers
@@ -2176,7 +2235,7 @@ C**** Calculate operators for tridiagonal solver
       END DO
 C****
       RETURN
-      END
+      END SUBROUTINE OVDIFFS
 
       SUBROUTINE REDUCE_FIG(NSIG,RX)
 !@sub reduce_fig reduce significant figures if calculation is garbage
@@ -2190,4 +2249,41 @@ C****
      *     SCALE(REAL(NINT(SCALE(RX,-NSIG)),KIND=8),NSIG)
 
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE REDUCE_FIG
+
+      SUBROUTINE alloc_kpp_com(grid)
+!@sum  To allocate arrays who sizes now need to be determined at
+!@+    run-time
+!@auth Reto Ruedy
+!@ver  1.0
+
+      USE DOMAIN_DECOMP, only : dist_grid,get
+
+      USE KPP_COM
+
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(IN) :: grid
+
+      INTEGER :: J_1H, J_0H
+      INTEGER :: IER
+
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      ALLOCATE(  KPL(IM,J_0H:J_1H)    , STAT = IER)
+
+      ALLOCATE( G0M1(IM,J_0H:J_1H,LSRPD) , STAT = IER)
+
+      ALLOCATE(  MO1(IM,J_0H:J_1H),    S0M1(IM,J_0H:J_1H),
+     *          GXM1(IM,J_0H:J_1H),    SXM1(IM,J_0H:J_1H),
+     *          GYM1(IM,J_0H:J_1H),    SYM1(IM,J_0H:J_1H),
+     *           UO1(IM,J_0H:J_1H),     VO1(IM,J_0H:J_1H),
+     *   STAT = IER)
+
+#ifdef TRACERS_OCEAN
+      ALLOCATE( TRMO1(NTM,IM,J_0H:J_1H),
+     *          TXMO1(NTM,IM,J_0H:J_1H),
+     *          TYMO1(NTM,IM,J_0H:J_1H),
+     *   STAT = IER)
+#endif
+
+      END SUBROUTINE alloc_kpp_com

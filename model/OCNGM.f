@@ -4,9 +4,12 @@
 !@ver  1.0
       USE CONSTANT, only : radius,omega,grav
       USE OCEAN, only : im,jm,lmo,lmm,lmu,lmv,dts,cospo,sinpo,ze,dxypo
-     *     ,mo,dypo,dyvo,dxpo
-      USE KPP_COM, only : kpl
-      USE OCEAN_DYN, only  : dh, vbar
+     *     ,mo=>mo_glob,dypo,dyvo,dxpo      ! serial version
+!mpi *     ,mo,dypo,dyvo,dxpo               ! non-serial version
+!mpi  USE KPP_COM, only : kpl               ! non-serial version
+!mpi  USE OCEAN_DYN, only  : dh, vbar       ! non-serial version
+      USE KPP_COM, only : kpl=>kpl_glob     ! serial version
+      USE OCEAN_DYN, only  : dh=>dh_glob, vbar=>vbar_glob !serial vers'n
       IMPLICIT NONE
       SAVE
 !@var AI0,AI1,AI2,AI3 Cmponents of GM mixing coeff = F(isopycnal slopes)
@@ -732,7 +735,7 @@ C**** Calculate average density + gradients over [1,LUP]
             END IF
 C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
-            IF (ARHOZ.gt.0) THEN 
+            IF (ARHOZ.gt.0) THEN
               AN = SQRT(GRAV * ARHOZ / ARHO)
               RD = AN * HUP / CORI
               IF (RD.gt.ABS(J-.5*(JM+1))*DYPO(J)) RD=SQRT(AN*HUP/BETA)
@@ -754,7 +757,7 @@ C**** Calculate average density + gradients over [1,LUP]
         DO L=1,LAV
           ARHO  = ARHO  + RHO(1,JM,L)
           DO I=1,IM
-            IF(LMV(I,JM-1).ge.L) THEN 
+            IF(LMV(I,JM-1).ge.L) THEN
 ! take abs to get a non-directional scale
               ARHOY = ARHOY + ABS(RHOY(I,JM-1,L))
               LAVY = LAVY + 1
@@ -771,7 +774,7 @@ C**** Calculate average density + gradients over [1,LUP]
         END IF
 C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
-        IF (ARHOZ.gt.0) THEN 
+        IF (ARHOZ.gt.0) THEN
           AN = SQRT(GRAV * ARHOZ / ARHO)
           CORI = ABS(2d0*OMEGA*SINPO(JM))
           RD = AN * HUP / CORI

@@ -6297,6 +6297,8 @@ C****
       CALL PACK_DATA(GRID, tmp, wt_ij(:,:,7))
       DEALLOCATE(tmp)
 
+      call gather_odiags
+
       END SUBROUTINE DIAG_GATHER
 
       SUBROUTINE DIAG_SCATTER
