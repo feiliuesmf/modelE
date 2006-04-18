@@ -11,7 +11,7 @@
       end interface
 
       integer, parameter :: TYPE_DOUBLE=0, TYPE_INT=1
-      integer, parameter :: max_num=140
+      integer, parameter :: max_num=170
       real*8, public :: EPS=1.d-36
       integer, public :: max_err=10
 
@@ -289,14 +289,19 @@
       use icedyn_com, only : ticij
 #  endif
 
-#  ifdef TRACERS_SPECIAL_Shindell
-      use TRCHEM_Shindell_COM, only : &
-           yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2 &
-           ,yAldehyde,yXO2N,yRXPAR,corrOx,ss &
-#  ifdef SHINDELL_STRAT_CHEM
-           ,SF3,pClOx,pClx,pOClOx,pBrOx
-#  endif
-#  endif
+#ifdef TRACERS_SPECIAL_Shindell
+      use TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3 &
+       ,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,corrOx,JPPJ 
+#ifdef SHINDELL_STRAT_CHEM
+      use TRCHEM_Shindell_COM, only: &
+       SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4 
+      use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4, &
+       HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod &
+       ,max_days,nra_ncep,nra_ch4,maxHR_ch4
+#endif
+#endif
 
 #  ifdef CHECK_OCEAN
 #    ifdef TRACERS_WATER
@@ -573,10 +578,27 @@
         check("ss",ss)
 #  ifdef SHINDELL_STRAT_CHEM
         check("SF3",SF3)
+        check("SF2",SF2)
         check("pClOx",pClOx)
         check("pClx",pClx)
         check("pOClOx",pOClOx)
         check("pBrOx",pBrOx)
+        check("yCl2",yCl2)
+        check("yCl2O2",yCl2O2)
+#  endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+        check("day_ncep",day_ncep)
+        check("DRA_ch4",DRA_ch4)
+        check("sum_ncep",sum_ncep)
+        check("PRS_ch4",PRS_ch4)
+        check("HRA_ch4",HRA_ch4)
+        check("iday_ncep",iday_ncep)
+        check("i0_ncep",i0_ncep)
+        check("iHch4",iHch4)
+        check("iDch4",iDch4)
+        check("i0ch4",i0ch4)
+        check("first_ncep",first_ncep)
+        check("first_mod",first_mod)
 #  endif
 #  endif
 
