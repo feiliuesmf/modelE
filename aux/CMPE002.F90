@@ -256,8 +256,13 @@
       use clouds_com, only : ttold,qtold,svlhx,rhsav,cldsav,airx,lmc
       use somtq_com, only : tmom,qmom
       use rad_com, only : tchg,rqt,kliq,  s0,srhr,trhr,fsf, &
-           fsrdir,srvissurf,srdn,cfrac,rcld,salb,O3_rad_save, &
-           O3_trac=>O3_tracer_save
+           fsrdir,srvissurf,srdn,cfrac,rcld,salb
+#ifdef TRACERS_SPECIAL_Shindell
+      use rad_com, only : O3_trac=>O3_tracer_save, rad_to_chem
+#endif
+#ifdef TRACERS_DUST
+      use rad_com, only : srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
+#endif
       use icedyn_com, only : rsix,rsiy,usi,vsi,icij
       use icedyn, only : imic
       use diag_com, only : keynr,tsfrez,tdiurn,oa
@@ -472,8 +477,16 @@
         check("srdn",srdn)
         check("cfrac",cfrac)
         check("rcld",rcld)
-        check("O3_rad_save",O3_rad_save)
+#ifdef TRACERS_SPECIAL_Shindell
+        check("rad_to_chem",rad_to_chem)
         check("O3_trac",O3_trac)
+#endif
+#ifdef TRACERS_DUST
+        check("srnflb_save",srnflb_save)
+        check("trnflb_save",trnflb_save)
+        check("ttausv_save",ttausv_save)
+        check("ttausv_cs_save",ttausv_cs_save)
+#endif
         ! icedyn
         if(imic.gt.0) then
           check("RSIX",RSIX)
