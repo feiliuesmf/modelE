@@ -1276,4 +1276,4 @@ C****
       subroutine gather_odiags
 C     nothing to gather - ocean prescribed
       return
-      end gather_odiags
+      end subroutine gather_odiags
