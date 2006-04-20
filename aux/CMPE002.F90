@@ -117,7 +117,7 @@
       db(i)%km = dims(3)
       n = n/dims(3)
       if ( n<=1 ) return
-      db(i)%lm = dims(4)
+      db(i)%lm = n ! all other dimensions combined
 
       return
       end subroutine guess_dims
@@ -172,7 +172,7 @@
 
       do m=1,num
         nerr = 0
-        print '(" dims=  ",i6,3i4,"  name=  ",a16,"     tot. points= ",i7)', &
+        print '(" dims=  ",i6,3i4,"  name=  ",a16,"     tot. points=",i8)', &
            db(m)%im, db(m)%jm, db(m)%km,  db(m)%lm, trim(db(m)%name), &
            db(m)%n
         do n=1,db(m)%n
@@ -291,12 +291,12 @@
 
 #ifdef TRACERS_SPECIAL_Shindell
       use TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3 &
-       ,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,corrOx,JPPJ 
+       ,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,corrOx,JPPJ
 #ifdef SHINDELL_STRAT_CHEM
       use TRCHEM_Shindell_COM, only: &
        SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
-#ifdef INTERACTIVE_WETLANDS_CH4 
+#ifdef INTERACTIVE_WETLANDS_CH4
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4, &
        HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod &
        ,max_days,nra_ncep,nra_ch4,maxHR_ch4
