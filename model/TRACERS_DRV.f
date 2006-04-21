@@ -4052,7 +4052,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         select case(trname(n))
         case('Ox')
         k = k + 1
-          ijts_fc(1,n) = k
+CCCtemp   ijts_fc(1,n) = k
           ijts_index(k) = n
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trname(n)//' SW radiative forcing'
@@ -4061,7 +4061,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
         k = k + 1
-          ijts_fc(2,n) = k
+CCCtemp   ijts_fc(2,n) = k
           ijts_index(k) = n
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trname(n)//' LW radiative forcing'
