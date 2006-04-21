@@ -626,7 +626,7 @@ cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
 C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics
       NTRIX(1:NTRACE)=
-     *     (/ n_sO4, n_seasalt1, n_seasalt2, n_OCIA, n_BCIA, n_BCB, 
+     *     (/ n_sO4, n_seasalt1, n_seasalt2, n_OCIA, n_BCIA, n_BCB,
      *       n_NO3p/)
 C**** define weighting (only used for clays so far)
       WTTR(1:NTRACE) = 1d0
@@ -1559,7 +1559,7 @@ C**** If no radiatively active tracers are defined, nothing changes.
 C**** Currently this works for aerosols and ozone but should be extended
 C**** to cope with all trace gases.
 C****
-      FSTOPX(:)=1. ; FTTOPX(:)=1.     ! defaults
+      FSTOPX(:)=1. ; FTTOPX(:)=1. ; FTAUC=1. ! deflts (aeros/clouds on)
       use_tracer_ozone = 0 ! by default use climatological ozone
 C**** Set level for inst. rad. forc. calcs for aerosols/trace gases
 C**** This is set from the rundeck.
@@ -1625,7 +1625,7 @@ C**** Assumes that 4 clay tracers are adjacent in NTRACE array
               set_clayquar=.true.
             END SELECT
             kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
-            CALL RCOMPX
+            CALL RCOMPX  ! tr.aero.Koch/dust/miner./quarz/om_sp
             SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
             TNFST(1,n,I,J)=TRNFLB(1)
             SNFST(2,n,I,J)=SRNFLB(LFRC)
@@ -1649,7 +1649,7 @@ C**** Ozone:
       O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
       use_tracer_ozone=1-onoff
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
-      CALL RCOMPX
+      CALL RCOMPX        ! tr_Shindell
       SNFST_ozone(1,I,J)=SRNFLB(1)  ! surface
       TNFST_ozone(1,I,J)=TRNFLB(1)
       SNFST_ozone(2,I,J)=SRNFLB(LFRC)
@@ -1661,7 +1661,7 @@ C**** Optional calculation of CRF using a clear sky calc.
       if (cloud_rad_forc.gt.0) then
         FTAUC=0.   ! turn off cloud tau (tauic +tauwc)
         kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
-        CALL RCOMPX
+        CALL RCOMPX          ! cloud_rad_forc>0 : clr sky
         SNFSCRF(I,J)=SRNFLB(LM+LM_REQ+1)   ! always TOA
         TNFSCRF(I,J)=TRNFLB(LM+LM_REQ+1)   ! always TOA
 C       BEGIN AMIP
@@ -1699,7 +1699,7 @@ C**** Save optical depth diags
      &           taijs(i,j,ijts_tausub(2,ntrix(n),n1))
      &           =taijs(i,j,ijts_tausub(2,ntrix(n),n1))
      &           +SUM(ttausv(1:Lm,n))*OPNSKY
-            if (ijts_3Dtau(1,NTRIX(n)).gt.0) 
+            if (ijts_3Dtau(1,NTRIX(n)).gt.0)
      *           taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n1)))
      *           =taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n1)))+TTAUSV(1:lm,n)
             IF (diag_rad == 1) THEN
@@ -1727,7 +1727,7 @@ C**** Save optical depth diags
      &           taijs(i,j,ijts_tau(2,NTRIX(n)))
      *           =taijs(i,j,ijts_tau(2,NTRIX(n)))
      &           +SUM(TTAUSV(1:lm,n))*OPNSKY
-            if (ijts_3Dtau(1,NTRIX(n)).gt.0) 
+            if (ijts_3Dtau(1,NTRIX(n)).gt.0)
      *           taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n)))
      *           =taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n)))+TTAUSV(1:lm,n)
             IF (diag_rad == 1) THEN
@@ -2314,7 +2314,7 @@ c shortwave forcing at surface (if required)
 c longwave forcing at surface (if required)
            if (ijts_fc(4,n_Ox).gt.0)
      &          taijs(i,j,ijts_fc(4,n_Ox))=taijs(i,j,ijts_fc(4,n_Ox))
-     &          -rsign*(TNFST_ozone(1,I,J)-TNFS(1,I,J))           
+     &          -rsign*(TNFST_ozone(1,I,J)-TNFS(1,I,J))
          END IF
 #endif
 
@@ -3137,7 +3137,7 @@ C****   read whole input file and find range: year0->yearL
         wt = (year-year1)/(real(year2-year1,kind=8))
       end if
 
-      if (AM_I_ROOT())  write(6,*) 
+      if (AM_I_ROOT())  write(6,*)
      *     'Using BCdep data from year',year1+wt*(year2-year1)
       call closeunit(iu)
 
