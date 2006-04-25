@@ -7100,7 +7100,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
      &     ,JMperY,JDperY
 #endif
      &  ,jyear
-      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT, UNPACK_COLUMN,
+      USE DOMAIN_DECOMP, only : GRID, GET, UNPACK_COLUMN,
      & write_parallel
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
