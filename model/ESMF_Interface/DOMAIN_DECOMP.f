@@ -1905,6 +1905,7 @@ C****  convert from real*4 to real*8
 
 #ifdef USE_ESMF
       Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
+      CALL ESMF_BCAST(grd_dum, M   )
 #else
       AVAR=AOUT
 #endif
@@ -1951,6 +1952,7 @@ C****  convert from real*4 to real*8
 
 #ifdef USE_ESMF
       Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
+      CALL ESMF_BCAST(grd_dum, M   )
 #else
       AVAR=AOUT
 #endif
