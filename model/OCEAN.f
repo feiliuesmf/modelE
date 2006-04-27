@@ -208,7 +208,8 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
             CALL BACKSPACE_PARALLEL( iu_OSST )
             CALL MREAD_PARALLEL
      *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),m,IM*JM,EOST0)
-            WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M
+            IF (AM_I_ROOT())
+     *      WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M
             IF(M.NE.LSTMON)
      &         call stop_model('Read error: ocean data',255)
           end if
@@ -224,7 +225,8 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
      *           (GRID,iu_OSST,NAMEUNIT(iu_OSST), m,IM*JM,EOST0)
           CALL MREAD_PARALLEL
      *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),m1,IM*JM,ERSI0)
-          WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M,M1
+          IF (AM_I_ROOT())
+     *    WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M,M1
           IF(M.NE.M1.OR.M.NE.LSTMON)
      &         call stop_model('Read error: ocean data',255)
         end if
@@ -255,7 +257,8 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
      *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),M,0,TEMP_LOCAL)
           AOST  = TEMP_LOCAL(:,:,1)
           EOST1 = TEMP_LOCAL(:,:,2)
-          WRITE(6,*) 'Read in ocean data for month',JMON,M
+          IF (AM_I_ROOT())
+     *    WRITE(6,*) 'Read in ocean data for month',JMON,M
           IF(JMON.NE.MOD(M-1,12)+1)
      &       call stop_model('Error: Ocean data',255)
         end if
@@ -268,7 +271,8 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
      *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),M1,0,TEMP_LOCAL)
         ARSI  = TEMP_LOCAL(:,:,1)
         ERSI1 = TEMP_LOCAL(:,:,2)
-        WRITE(6,*) 'Read in ocean data for month',JMON,M,M1
+        IF (AM_I_ROOT())
+     *  WRITE(6,*) 'Read in ocean data for month',JMON,M,M1
         IF(M.NE.M1.OR.JMON.NE.MOD(M-1,12)+1)
      &       call stop_model('Error: Ocean data',255)
       end if
@@ -465,7 +469,8 @@ C**** limit it to the annual maxmimal mixed layer depth z12o
         Z1OMIN=1.+FWSIM(I,J)/(RHOWS*RSI(I,J))
         IF (Z1OMIN.GT.Z1O(I,J)) THEN
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
-          WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
+          IF (AM_I_ROOT())
+     *    WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
  602      FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,3F10.3)
           Z1O(I,J)=MIN(Z1OMIN, z12o(i,j))
           IF (Z1OMIN.GT.Z12O(I,J)) THEN
@@ -651,7 +656,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 !@ver  1.0
       USE FILEMANAGER
       USE PARAM
-      USE DOMAIN_DECOMP, only : GRID, GET,
+      USE DOMAIN_DECOMP, only : GRID, GET, am_I_root,
      *                          DREAD_PARALLEL,
      *                          MREAD_PARALLEL,
      *                          READT_PARALLEL,
@@ -717,7 +722,7 @@ C**** if starting from AIC/GIC files need additional read for ocean
 C****   set up unit numbers for ocean climatologies
         call openunit("OSST",iu_OSST,.true.,.true.)
         call openunit("SICE",iu_SICE,.true.,.true.)
-        if (ocn_cycl.ne.1) then
+        if (ocn_cycl.ne.1 .and. am_I_root()) then
           write(6,*) '********************************************'
           write(6,*) '* Make sure that IYEAR1 is consistent with *'
           write(6,*) '*    the ocean data files OSST and SICE    *'
@@ -734,7 +739,7 @@ C****   read in ocean heat transport coefficients
         call openunit("OHT",iu_OHT,.true.,.true.)
 calloc  if OTA,OTB,OTC are made allocatable, modify the next line
         READ (iu_OHT) OTA,OTB,OTC,z12o_max
-        WRITE(6,*) "Read ocean heat transports from OHT"
+        if(am_I_root()) WRITE(6,*) "Read ocean heat transports from OHT"
         call closeunit (iu_OHT)
 
 C****   Set up unit number of observed mixed layer depth data
@@ -755,7 +760,8 @@ ccc     the above line could substitute for next 3 lines w/o any change
           end do
         end do
         CALL REWIND_PARALLEL( iu_OCNML )
-        write(6,*) 'Mixed Layer Depths limited to',z12o_max
+        IF (AM_I_ROOT())
+     *     write(6,*)'Mixed Layer Depths limited to',z12o_max
 
 C****   initialise deep ocean arrays if required
         call init_ODEEP(iniOCEAN)
@@ -1122,7 +1128,8 @@ C**** Ensure that we don't run out of ocean if ice gets too thick
             Z1OMIN=1.+FWSIM(I,J)/(RHOWS*RSI(I,J))
             IF (Z1OMIN.GT.Z1O(I,J)) THEN
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
-              WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
+              IF (AM_I_ROOT())
+     *        WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
  602          FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,3F10.3)
               Z1O(I,J)=MIN(Z1OMIN, z12o(i,j))
               IF (Z1OMIN.GT.Z12O(I,J)) THEN
