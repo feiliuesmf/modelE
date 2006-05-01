@@ -1,4 +1,4 @@
-  
+        
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
@@ -250,7 +250,8 @@ C----------------   in multi-cpu mode, each cpu needs its own copy !!
       real*8 :: UXGAS(LX,9),TAUN(33*LX),BXA(7),PRNB(6,4),PRNX(6,4)
      *     ,Q55H2S,RIJTCK(6,33),FDXTCK(3,33),ALBTCK(3,33),FEMTCK(3,33)
      *     ,QVH2S(6),SVH2S(6),GVH2S(6),XTRU(LX,4),XTRD(LX,4)
-      integer, dimension(LX) :: ITLB,ITLT
+     *     ,DXAERU(LX,4,4,25+4),DXAERD(LX,4,4,25+4)
+      integer :: ITLB(LX),ITLT(LX),IP24C9(LX)
 C**** local except for special radiative aerosol diagnostics aadiag
       real*8  ATAULX(LX,6)
       integer NRHNAN(LX,8)
@@ -278,8 +279,8 @@ C**** local except for special radiative aerosol diagnostics aadiag
      V             ,O2FHRL,SRAXNL,SRASNL,SRAGNL,AO3X
      W             ,O2FHRB,AO3D,AO3U
      X             ,HTPROF,QVH2S,SVH2S,GVH2S,AVH2S
-     F             ,XTRU,XTRD,                  ATAULX
-     I             ,ITLB,ITLT,                  NRHNAN   ! integers last
+     F             ,XTRU,XTRD,DXAERU,DXAERD,    ATAULX
+     I             ,ITLB,ITLT,IP24C9,           NRHNAN   ! integers last
 !$OMP  THREADPRIVATE(/WORKDATA/)
 
       real*8 ::                      !  Temp data used by WRITER, WRITET
@@ -317,6 +318,7 @@ C            RADDAT_TR_SGP_TABLES          read from  radfile1, radfile2
      G             ,CXUO3(7,15),CXUCO2(7,15),XTU0(24,3)
      H             ,XTD0(24,3),XUCH40(9),XUN2O0(9)
       integer, parameter :: ITPFT0=123 ,ITNEXT=250 ! offsets for lookups
+      real*4 :: DXTRUA(24,3,4,13),DXTRDA(24,3,4,13),SAX(4,13)
 
 C            RADDAT_AERCLD_MIEPAR          read from            radfile3
       real*8 ::
@@ -992,7 +994,7 @@ C       ----------------------------------------------------------------
       NRFU=NRFUN(2)
       READ(NRFU) TAUTBL,TAUWV0,PLANCK,XKCFC,H2OCN8,H2OCF8, XUN2O,XUN2O0,
      *  XUCH4,XUCH40, XTRUP,XTU0, XTRDN,XTD0, CXUCO2,CXUO3,ULOX,DUX
-
+      READ(NRFU) DXTRUA,DXTRDA,SAX
 
 C        Define Window Flux to Brightness Temperature Conversion Factors
 C        ---------------------------------------------------------------
@@ -2277,7 +2279,7 @@ C****   Find O3 data files and fill array IYEAR from title(1:4)
           call openunit (ddfile(n),ifile,qbinary)
           read(ifile) title
           call closeunit (ifile)
-          if (AM_I_ROOT()) 
+          if (AM_I_ROOT())
      *         write(6,'(a,a)') ' read O3 file, record 1: ',title
           read(title(1:4),*) IYEAR(n)
           nfo3=nfo3+1
@@ -4876,12 +4878,13 @@ C        O2  NO2  N2O    CH4     F11     F12  N2C    F11+  F12+  SO2
       INTEGER I,K,L,IP,IM,IULOW,IU1,IU2,IU,II,IPX,IAA,IBA,ITX,ITX1
      *     ,ITX2,IPXM1,IGAS,NG,KK,IK0,IKF,IPU,IPUI,IPU1,IK,IGCFC,NU,IUA
      *     ,IUB,IAAA,IAAB,IABA,IABB,IBAA,IBAB,IBBA,IBBB,IH2O0,IG
+     *     ,IA,I24,IPP,ISKIPU,ISKIPD,IP24C(LX)
       REAL*8 UH2O,UCO2,UO3,UCH4,UN2O,UH2OL,UCO2L,UO3LL,UCH4L,UN2OL,CXCO2
      *     ,CXO3,DUH2,DU1,DU2,DUCO,DUO3,DUCH,XCH4,DUN2,XN2O,PLI,DENO
      *     ,ANUM,DELP24,PRAT,XTR0,WPB,WTB,WBB,WBA,WAB,WAA,UGAS,XF
      *     ,FPL,U,PU2,WTPU,TAUT1,TAUT2,TAUHCN,UP,TAUHFB,XA,XB,XK,TAUCF
      *     ,XUA,XUB,QAA,QAB,QBA,QBB,FNU1,UAB,UBB,UAA,UBA,WAAA,WAAB,WABA
-     *     ,WABB,WBAA,WBAB,WBBA,WBBB,TAUIPG,TAUSUM,TAU11,TAU12
+     *     ,WABB,WBAA,WBAB,WBBA,WBBB,TAUIPG,TAUSUM,TAU11,TAU12 ,pratt
 
       DO 100 K=1,33
       DO 100 L=1,NL
@@ -5046,6 +5049,49 @@ C              ---------------------------------------------------------
       XTRD(NL,IM)=1.D0
   270 CONTINUE
 
+C**** Find IP24C s.t. P24(IP24C(L)) is closest to PL(L)
+      I24=1
+      DO L=1,NL
+        do while (P24(I24)>=PL(L) .and. I24<24) ; I24=I24+1 ; end do
+        IP24C(L)=I24  ; if (I24 == 1) go to 273
+        if (P24(I24-1)-PL(L) <= PL(L)-P24(I24)) IP24C(L)=I24-1
+  273   IP24C9(L) = MIN( IP24C(L) , 9 )
+      END DO
+
+C**** Compute the correction terms DXAERU, DXAERD
+      DXAERU(1:NL,1:4,1:4,1:29)=0.
+      DXAERD(1:NL,1:4,1:4,1:29)=0.
+
+      DO 275 L=1,NL
+      IP=IP24C(L)
+      PRAT=DPL(L)/DP24(IP)
+C*    Find terms for up to 25 cloud levels and 4 aerosols
+      DO 275 IAA=1,29
+      ISKIPU=0
+      ISKIPD=0
+      IPP=IP
+      PRATT=PRAT
+      IF (IAA > 25 ) IA=IAA-16           ! IA=10-13 for aerosols
+      IF (IAA < 26 ) THEN
+        IF (IAA > NL) GO TO 275
+        IA = IP24C9(IAA)                 ! IA= 1- 9 for clouds
+        IF (L < IAA) ISKIPU=1
+        IF (L > IAA) ISKIPD=1
+        IF (L > IAA .AND. IPP == IA) IPP=MIN(IPP+1,24)
+        IF (L < IAA .AND. IPP == IA) IPP=MAX(IPP-1, 1)
+        PRATT = DPL(L)/DP24(IPP)
+      END IF
+
+      DO IU=1,4
+        IF(ISKIPU==0) DXAERU(L,2:4,IU,IAA) = 1 - XTRU(L,2:4) -
+     -     ( 1 - (XTU(IPP,1:3) + DXTRUA(IPP,1:3,IU,IA)) )*PRATT
+
+        IF(ISKIPD==0) DXAERD(L,2:4,IU,IAA) = MAX(0.D0, 1 - XTRD(L,2:4) -
+     -     ( 1 - (XTD(IPP,1:3) + MIN(1.,DXTRDA(IPP,1:3,IU,IA))) )*PRATT)
+        END DO
+  275 CONTINUE
+
+C**** Find TRGXLK
       IPX=2
       DO 600 IP=1,NL
   280 CONTINUE
@@ -5372,6 +5418,8 @@ C     ------------------------------------------------------------------
      *     ,BDIF,BBTA,BBTB,BBTC,TAUA2,TRANA,TAUB2,TRANB,TAUC2,TRANC,DEC
      *     ,DEB,DEA,COALB1,COALB2,COALB3,FDNABC,UNA,UNB,UNC,FUNABC
      *     ,PFW,DPF,CTP,DP1,DP2,TAUBG,TAUCG,DDFLUX,XTRUL
+      REAL*8 suma(29),dxtua(lx,4),dxtda(lx,4),csum
+      integer lcl(lx),ia,iaa,ic,iu,lvlo,lvhi,lskip,lcbot,lstop,nclds
       INTEGER K,L,N,II,ITL,ICT,IT1,IT2,IP1,IP2,ICG,IG1,IG2,ITK0,IMOL
      *     ,IPF,ICP
 
@@ -5497,6 +5545,67 @@ C     ------------------------------------------------------------------
 !sl   TRSLTG=0.D0
 !sl   TRSLBS=0.D0
 
+C**** Collect cloud and aerosol transmissions (SUMA)
+      SUMA(:)=0.
+      LVLO=0 ; LVHI=0 ! range of layers with volc. aerosols
+      IC=0   ; CSUM=0 ! number of cloudy levels ; tot cloud transmission
+      LSKIP=0         ! if >0 : lowest level above which cld transm.<.69
+      DO L=NL,1,-1
+        if (L < 26 .and. TRCALK(L,1) > 1.E-2) then ! Cloud aerosols
+          SUMA(L)=TRCALK(L,1)
+          CSUM=CSUM+SUMA(L)
+          IC=IC+1
+          LCL(IC)=L
+          LCBOT=L
+          IF (CSUM > .69 .and. LSKIP==0) LSKIP=L
+        end if
+        SUMA(26)=SUMA(26)+TRAALK(L,1)             ! atm.aerosols
+        SUMA(27)=SUMA(27)+TRBALK(L,1)             ! bkground aerosols
+        SUMA(28)=SUMA(28)+TRDALK(L,1)             ! dust aerosols
+        if (TRVALK(L,1) > 1.E-4) then             ! volc.aerosols
+          SUMA(29)=SUMA(29)+TRVALK(L,1)
+          if (LVLO==0) LVHI=L
+          LVLO=L
+        end if
+      END DO
+      NCLDS=IC
+      LSTOP=LCBOT/2
+
+C**** Set transmission corrections DXTUA,DXTDA  from DXAERU,DXAERD
+      DXTUA(:,:)=0. ; DXTDA(:,:)=0. ; IC=0
+
+      DO 195 IAA=29,1,-1
+      if (IAA < 26) then                   ! Clouds
+        if (SUMA(IAA) < 1.E-2) GO TO 195   !   includes IAA>NL
+        IA=IP24C9(IAA)                     !   0<IA<10 for clouds
+        IC=IC+1
+      else                                 ! aerosols
+        if (SUMA(IAA) < 1.E-4) GO TO 195
+        IA=IAA-16                          ! IA=10-13 (13=volc.aeros)
+      end if
+C**   Find IU=2,3(,4 for volc.aeros) s.t. SAX(IU-1)<SUMA<SAX(IU)
+      IU=3
+      IF (IA==13 .and. SUMA(IAA) > SAX(3,IA)) IU=4 ! volc.aeros only
+      IF (SUMA(IAA) > SAX(IU,IA)) SUMA(IAA)=SAX(IU,IA)
+      IF (SUMA(IAA) <= SAX(2,IA)) IU=2
+
+      WT1=(SUMA(IAA)-SAX(IU-1,IA))/(SAX(IU,IA)-SAX(IU-1,IA))
+      WT2=1.-WT1
+      DO L=NL,1,-1
+        IF (IA==13 .and. L<LVLO) GO TO 193
+        DXTUA(L,2:4) = DXTUA(L,2:4) +
+     +    (DXAERU(L,2:4,IU,IAA)*WT1 + DXAERU(L,2:4,IU-1,IAA)*WT2)
+  193   IF (IA==13 .and. L>LVHI) CYCLE
+        if (L<=LSKIP.and.L>LSTOP) then ; XTRD(L,2:4)=1 ; CYCLE ; end if
+        IF (L<=LCL(IC+1) .and. IC /= NCLDS) CYCLE      ! next L
+        DXTDA(L,2:4) = DXTDA(L,2:4) +
+     +    (DXAERD(L,2:4,IU,IAA)*WT1 + DXAERD(L,2:4,IU-1,IAA)*WT2)
+      END DO
+  195 CONTINUE
+
+C     ------------------------------------------------------------------
+C                                              DOWNWARD FLUX COMPUTATION
+C     ------------------------------------------------------------------
       K=0
       IMOL=0
   200 CONTINUE
@@ -5540,7 +5649,7 @@ C     ------------------------------------------------------------------
       GO TO 200
   215 CONTINUE
   220 CONTINUE
-      XTRDL=XTRD(L,IMOL+1)
+      XTRDL=XTRD(L,IMOL+1)+DXTDA(L,IMOL+1)
 
       ITL=ITLT(L)+ITK0
       BTOP=PLANCK(ITL)-(PLANCK(ITL)-PLANCK(ITL+1))*WTLT(L)
@@ -5582,6 +5691,7 @@ C                     TAUB absorber-dependent extinction path adjustment
 C                     --------------------------------------------------
 
       PLBN=PLB(L)
+      TAUAG=TAUAX
       TAUBG=TAUAG+TAUAG
       TAUCG=10.D0*TAUAG
 
@@ -5690,11 +5800,9 @@ C                     --------------------------------------------------
       ENDIF
   222 CONTINUE
 
-      TAUBP=TAUAP+TAUAP
-      TAUCP=10.D0*TAUAP
-      TAUA=TAUAG+TAUAP
-      TAUB=TAUBG+TAUBP
-      TAUC=TAUCG+TAUCP
+      TAUA=TAUAG
+      TAUB=TAUBG
+      TAUC=TAUCG
 
       IF(L.EQ.LTOPCL.AND.KCLDEM.EQ.1) GO TO 225
 
@@ -5768,6 +5876,11 @@ C                          and fluxes at the top-cloud (L=LTOPCL) level.
 C                          ---------------------------------------------
 
   225 CONTINUE
+      TAUBP=TAUAP*(TAUBG/TAUAG)
+      TAUCP=TAUAP*(TAUCG/TAUAG)
+      TAUBG=TRGXLK(L,K)*(TAUBG/TAUAG)
+      TAUCG=TRGXLK(L,K)*(TAUCG/TAUAG)
+      TAUAG=TAUAG-TAUAP
       TRA(L)=EXP(-TAUAG-TAUAP*FDXTCK(3,K))
       TRB(L)=EXP(-TAUBG-TAUBP*FDXTCK(2,K))
       TRC(L)=EXP(-TAUCG-TAUCP*FDXTCK(1,K))
@@ -5899,7 +6012,7 @@ C       ----------------------------------------------------------------
       GO TO 250
   255 CONTINUE
       ENDIF
-      XTRUL=XTRU(L,IMOL+1)
+      XTRUL=XTRU(L,IMOL+1)+DXTUA(L,IMOL+1)
       TX=TRA(L)*XTRUL
       IF(TX.GT.1.D0) TX=1.D0
       UNA=UNA*TX+ENA(L)

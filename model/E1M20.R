@@ -125,8 +125,8 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 U00ice=.59      ! increase U00ice to decrease albedo    goals: NetHtz0=0,plan.alb=30%
-U00wtrX=1.40    ! U00wtrX+.01=>nethtz0+.7                      for global annual mean
-!use  U00wtrX=1.39    for 1979 atmosphere/ocean
+U00wtrX=1.35    ! U00wtrX+.01=>nethtz0+.7                      for global annual mean
+!use  U00wtrX=1.34    for 1979 atmosphere/ocean
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
 
 CO2X=1.
