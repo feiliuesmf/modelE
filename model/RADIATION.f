@@ -5546,7 +5546,7 @@ C     ------------------------------------------------------------------
 !sl   TRSLBS=0.D0
 
 C**** Collect cloud and aerosol transmissions (SUMA)
-      SUMA(:)=0.
+      SUMA(:)=0. ; LCL(:)=0
       LVLO=0 ; LVHI=0 ! range of layers with volc. aerosols
       IC=0   ; CSUM=0 ! number of cloudy levels ; tot cloud transmission
       LSKIP=0         ! if >0 : lowest level above which cld transm.<.69
