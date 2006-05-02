@@ -188,7 +188,7 @@ c for diagnostics
 !@var trcond_mc saves condensed tracer in MC clouds [kg]
 !@var trdvap_mc saves tracers evaporated in downdraft of MC clouds [kg]
 !@var trflcw_mc saves tracers condensed in cloud water of MC clouds [kg]
-!@var trprcp_mc saves tracer precipitated at lmax of MC clouds [kg]
+!@var trprcp_mc saves tracer precipitated by MC clouds [kg]
 !@var trnvap_mc saves reevaporated tracer of MC clouds precip [kg]
 !@var trwash_mc saves tracers washed out below MC clouds [kg]
       REAL*8,DIMENSION(Lm,Ntm) :: trcond_mc,trdvap_mc,trflcw_mc,
@@ -1799,6 +1799,11 @@ C**** ADD PRECIPITATION AND LATENT HEAT BELOW
       PRCP=PRCP+COND(L)
 #ifdef TRACERS_WATER
       TRPRCP(1:NTX) = TRPRCP(1:NTX) + TRCOND(1:NTX,L)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IF (diag_wetdep == 1)
+     &     trprcp_mc(l,1:ntx)=trprcp_mc(l,1:ntx)+trcond(1:ntx,l)
+#endif
 #ifdef TRACERS_SPECIAL_O18
 C**** Isotopic equilibration of liquid precip with water vapour
       IF (LHX.eq.LHE .and. PRCP.gt.0) THEN
@@ -2876,6 +2881,11 @@ cdmkf and below, extra arguments for GET_COND, addition of THLAW
 C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
 #ifdef TRACERS_WATER
         TRPRBAR(1:NTX,L) = TRPRBAR(1:NTX,L) + TRWML(1:NTX,L)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        IF (diag_wetdep == 1)
+     &       trprcp_ls(l,1:ntx)=trprcp_ls(l,1:ntx)+trwml(1:ntx,l)
+#endif
         TRWML(1:NTX,L) = 0.
 #endif
         PREBAR(L)=PREBAR(L)+WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
@@ -3056,6 +3066,11 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
         WMX(L+1)=0.
 #ifdef TRACERS_WATER
         TM(L+1,1:NTX)=TM(L+1,1:NTX)+TRWML(1:NTX,L+1)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        IF (diag_wetdep == 1)
+     &       trclwe_ls(l+1,1:ntx)=trclwe_ls(l+1,1:ntx)+trwml(1:ntx,l+1)
+#endif
         TRWML(1:NTX,L+1)=0.
 #endif
         IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
