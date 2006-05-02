@@ -254,7 +254,7 @@
          !METEOROLOGICAL - IMPORT STATE VARIABLES
          !Cell-level summary values - CALCULATED BY GCM/EWB OR OFF-LINE FILE
          real*8 :: TcanopyC     !Canopy temperatue (Celsius)
-         real*8 :: Qv           !Canopy saturated spec humidity (kg vapor/ kg air)
+         real*8 :: Qv           !Canopy saturated vapor pressure (kg vapor/ kg air)
          real*8 :: P_mbar       !Atmospheric pressure (mb)
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
          real*8,pointer :: Soilmoist(:) !May be an array by depth (units TBA)
