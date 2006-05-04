@@ -81,8 +81,8 @@
       !Radiation - IMPORT STATE VARIABLE
       !may later be broken down into hyperspectral increments.
       ! in an array
-      ecp%Ivis = 0.0              !Incident shortwave 100-2000 nm (W m-2)
-      ecp%Idir = 0.0             !Incident PAR 400-700 nm (W m-2)
+      ecp%IPARdif = 0.0         !Incident diffuse PAR 400-700 nm (W m-2)
+      ecp%IPARdir = 0.0         !Incident direct PAR 400-700 nm (W m-2)
       ecp%Solarzen = 0.0         !Solar zenith angle
 !!! probably shoud remove next line and also remove fdir from structure
 !!      ecp%fdir = 0.0             !Fraction of surface vis rad that is direct 

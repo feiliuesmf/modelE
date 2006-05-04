@@ -264,16 +264,15 @@
          real*8 :: Ch           !Ground to surface heat transfer coefficient 
          real*8 :: U            !Surface layer wind speed (m s-1)
 
-         !Radiation - IMPORT STATE VARIABLE
+         !Radiation - IMPORT STATE VARIABLES
          !may later be broken down into hyperspectral increments.
          ! in an array
-         real*8 :: Ivis          !Incident visible  (W m-2)
-         real*8 :: Idir          !Incident direct visible  (W m-2)
+!         real*8 :: Ivis          !Incident visible  (W m-2)
+!         real*8 :: Idir          !Incident direct visible  (W m-2)
 !         real*8 :: IPAR         !Incident PAR 400-700 nm (W m-2)
-!         real*8 :: Ibeam        !Incident beam radiation (W m-2)
-!         real*8 :: Idiff        !Incident diffuse radiation (W m-2),
+         real*8 :: IPARdir        !Incident direct PAR (W m-2)
+         real*8 :: IPARdif        !Incident diffuse PAR (W m-2)
          real*8 :: Solarzen     !Solar zenith angle
-!         real*8 :: fdir         !Fraction of surface vis rad that is direct 
 
       end type entcelltype
 

@@ -234,8 +234,6 @@
         ! in an array
 !      real*8 :: Isw             !Incident shortwave 100-2000 nm (W m-2)
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
-!      real*8 :: Ibeam           !Incident beam radiation (W m-2)
-!      real*8 :: Idiff           !Incident diffuse radiation (W m-2),
       real*8 :: Solarzen        !Solar zenith angle
       real*8 :: fdir            !Fraction of surface vis rad that is direct
 
@@ -256,11 +254,11 @@
       Precip = pp%cellptr%Precip
       Ch = pp%cellptr%Ch
       U = pp%cellptr%U
-      IPAR = 0.82d0*pp%cellptr%Ivis*pp%cellptr%Solarzen
-      !fdir = pp%cellptr%fdir
-      fdir = 0.d0
-      if ( pp%cellptr%Ivis > 1.e-30 )
-     &     fdir = pp%cellptr%Idir / pp%cellptr%Ivis
+      IPAR = pp%cellptr%IPARdir + pp%cellptr%IPARdif
+      fdir = pp%cellptr%IPARdir / IPAR
+      !IPAR = 0.82d0*pp%cellptr%Ivis*pp%cellptr%Solarzen
+!      if ( pp%cellptr%Ivis > 1.e-30 )
+!     &     fdir = pp%cellptr%Idir / pp%cellptr%Ivis
       Solarzen = pp%cellptr%Solarzen
 
 

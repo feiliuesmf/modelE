@@ -767,8 +767,8 @@ cddd      call zero_entcell(entcell%entcell)
       entcell%entcell%Precip = precip
       entcell%entcell%Ch = heat_transfer_coef
       entcell%entcell%U = wind_speed
-      entcell%entcell%Idir = total_visible_rad
-      entcell%entcell%Ivis = direct_visible_rad
+      entcell%entcell%IPARdif = total_visible_rad-direct_visible_rad
+      entcell%entcell%IPARdir = direct_visible_rad
       entcell%entcell%Solarzen = solar_zenith_angle
       do n=1,N_DEPTH
         entcell%entcell%Soilmoist(n) = soil_water(n)
@@ -825,8 +825,9 @@ cddd      call zero_entcell(entcell%entcell)
         entcell(i)%entcell%Precip = precip(i)
         entcell(i)%entcell%Ch = heat_transfer_coef(i)
         entcell(i)%entcell%U = wind_speed(i)
-        entcell(i)%entcell%Idir = total_visible_rad(i)
-        entcell(i)%entcell%Ivis = direct_visible_rad(i)
+        entcell(i)%entcell%IPARdif = total_visible_rad(i)-
+     &       direct_visible_rad(i)
+        entcell(i)%entcell%IPARdir = direct_visible_rad(i)
         entcell(i)%entcell%Solarzen = solar_zenith_angle(i)
         do n=1,N_DEPTH
           entcell(i)%entcell%Soilmoist(n) = soil_water(n,i)
@@ -886,8 +887,9 @@ cddd      call zero_entcell(entcell%entcell)
           entcell(i,j)%entcell%Precip = precip(i,j)
           entcell(i,j)%entcell%Ch = heat_transfer_coef(i,j)
           entcell(i,j)%entcell%U = wind_speed(i,j)
-          entcell(i,j)%entcell%Idir = total_visible_rad(i,j)
-          entcell(i,j)%entcell%Ivis = direct_visible_rad(i,j)
+          entcell(i,j)%entcell%IPARdif = total_visible_rad(i,j)-
+     &       direct_visible_rad(i,j)
+          entcell(i,j)%entcell%IPARdir = direct_visible_rad(i,j)
           entcell(i,j)%entcell%Solarzen = solar_zenith_angle(i,j)
           do n=1,N_DEPTH
             entcell(i,j)%entcell%Soilmoist(n) = soil_water(n,i,j)

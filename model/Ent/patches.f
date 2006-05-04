@@ -190,7 +190,6 @@
       implicit none
       type(patch),pointer :: pp
       !----Local----
-      integer :: n
 
             pp%age=0.d0
             pp%area = 0.d0
