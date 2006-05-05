@@ -123,7 +123,7 @@
       subroutine GISS_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropdata)
       !* This version reads in crop distribution from GISS data set.
       !* And calculates crop fraction for given year.
-
+#define tempdebug
 #ifdef tempdebug
       use FILEMANAGER, only : openunit,closeunit,nameunit
 #endif
@@ -159,11 +159,12 @@
 
       cropdata(:,:) = crop1(:,:)
      &     + wt * (crop2(:,:) - crop1(:,:))
-#endif
+#else
       !*TEMPORARY ZERO OUT CROPDATA IFDEF *!
-      do i=1,im
+      do i=I0,I1
           cropdata(i,J0:J1) = 0.0
       end do
+#endif
       !* Return cropdata single layer crop fraction.
       end subroutine GISS_get_cropdata
 
