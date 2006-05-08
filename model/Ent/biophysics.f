@@ -227,7 +227,6 @@
       real*8 :: Soilmp(N_DEPTH)  !Soil matric potential
       real*8 :: fice(N_DEPTH)   !Fraction of soil water that is ice.
       real*8 :: froot(N_DEPTH)  !Fraction of roots in layer.
-      real*8 :: Precip          !Precipitation (mm)
       real*8 :: Ch              !Ground to surface heat transfer coefficient 
       real*8 :: U               !Surface layer wind speed (m s-1)
         !Radiation may later be broken down into hyperspectral increments.
@@ -251,7 +250,6 @@
       fice = pp%cellptr%fice
       !!froot = pp%cellptr%froot
       froot = pp%sumcohort%froot
-      Precip = pp%cellptr%Precip
       Ch = pp%cellptr%Ch
       U = pp%cellptr%U
       IPAR = pp%cellptr%IPARdir + pp%cellptr%IPARdif

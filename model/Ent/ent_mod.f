@@ -730,7 +730,6 @@ cddd      call zero_entcell(entcell%entcell)
      &     canopy_air_humidity,      
      &     surf_pressure,            
      &     surf_CO2,                 
-     &     precip,                   
      &     heat_transfer_coef,       
      &     wind_speed,               
      &     total_visible_rad,
@@ -747,7 +746,6 @@ cddd      call zero_entcell(entcell%entcell)
      &     canopy_air_humidity,
      &     surf_pressure,
      &     surf_CO2,
-     &     precip,
      &     heat_transfer_coef,
      &     wind_speed,
      &     total_visible_rad,
@@ -764,7 +762,6 @@ cddd      call zero_entcell(entcell%entcell)
       entcell%entcell%Qv = canopy_air_humidity
       entcell%entcell%P_mbar = surf_pressure
       entcell%entcell%Ca = surf_CO2
-      entcell%entcell%Precip = precip
       entcell%entcell%Ch = heat_transfer_coef
       entcell%entcell%U = wind_speed
       entcell%entcell%IPARdif = total_visible_rad-direct_visible_rad
@@ -784,7 +781,6 @@ cddd      call zero_entcell(entcell%entcell)
      &     canopy_air_humidity,      
      &     surf_pressure,            
      &     surf_CO2,                 
-     &     precip,                   
      &     heat_transfer_coef,       
      &     wind_speed,               
      &     total_visible_rad,
@@ -801,7 +797,6 @@ cddd      call zero_entcell(entcell%entcell)
      &     canopy_air_humidity,
      &     surf_pressure,
      &     surf_CO2,
-     &     precip,
      &     heat_transfer_coef,
      &     wind_speed,
      &     total_visible_rad,
@@ -822,7 +817,6 @@ cddd      call zero_entcell(entcell%entcell)
         entcell(i)%entcell%Qv = canopy_air_humidity(i)
         entcell(i)%entcell%P_mbar = surf_pressure(i)
         entcell(i)%entcell%Ca = surf_CO2(i)
-        entcell(i)%entcell%Precip = precip(i)
         entcell(i)%entcell%Ch = heat_transfer_coef(i)
         entcell(i)%entcell%U = wind_speed(i)
         entcell(i)%entcell%IPARdif = total_visible_rad(i)-
@@ -844,7 +838,6 @@ cddd      call zero_entcell(entcell%entcell)
      &     canopy_air_humidity,      
      &     surf_pressure,            
      &     surf_CO2,                 
-     &     precip,                   
      &     heat_transfer_coef,       
      &     wind_speed,               
      &     total_visible_rad,
@@ -861,7 +854,6 @@ cddd      call zero_entcell(entcell%entcell)
      &     canopy_air_humidity,
      &     surf_pressure,
      &     surf_CO2,
-     &     precip,
      &     heat_transfer_coef,
      &     wind_speed,
      &     total_visible_rad,
@@ -884,7 +876,6 @@ cddd      call zero_entcell(entcell%entcell)
           entcell(i,j)%entcell%Qv = canopy_air_humidity(i,j)
           entcell(i,j)%entcell%P_mbar = surf_pressure(i,j)
           entcell(i,j)%entcell%Ca = surf_CO2(i,j)
-          entcell(i,j)%entcell%Precip = precip(i,j)
           entcell(i,j)%entcell%Ch = heat_transfer_coef(i,j)
           entcell(i,j)%entcell%U = wind_speed(i,j)
           entcell(i,j)%entcell%IPARdif = total_visible_rad(i,j)-

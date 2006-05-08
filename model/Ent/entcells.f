@@ -74,7 +74,6 @@
       ecp%Ca = 0.0               !@Atmos CO2 conc at surface height (mol/m3).
       ecp%Soilmoist(:) = 0.0 !May be an array by depth (units TBA)
       ecp%fice = 0.0             !Fraction of soil layer that is ice
-      ecp%Precip = 0.0           !Precipitation (mm)
       ecp%Ch = 0.0               !Ground to surface heat transfer coefficient 
       ecp%U = 0.0                !Surface layer wind speed (m s-1)
 

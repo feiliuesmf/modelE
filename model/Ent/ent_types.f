@@ -260,7 +260,6 @@
          real*8,pointer :: Soilmoist(:) !May be an array by depth (units TBA)
          real*8,pointer :: Soilmp(:) !Soil matric potential
          real*8,pointer :: fice(:) !Fraction of soil layer that is ice
-         real*8 :: Precip       !Precipitation (mm)
          real*8 :: Ch           !Ground to surface heat transfer coefficient 
          real*8 :: U            !Surface layer wind speed (m s-1)
 
