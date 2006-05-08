@@ -417,10 +417,10 @@ cddd      call zero_entcell(entcell%entcell)
 
       do n=1,nc
         call init_simple_entcell( entcell(n)%entcell,
-     &       veg_fraction(:,n),
+     &       veg_fraction(:,n), pft_population_density,
      &       leaf_area_index(:,n),
      &       pft_heights, pft_nmdata, pft_froots,
-     &       pft_population_density, pft_soil_type)
+     &       pft_soil_type)
       enddo
       
       end subroutine ent_cell_set_array_1d
@@ -454,10 +454,10 @@ cddd      call zero_entcell(entcell%entcell)
       do j=1,jc
         do i=1,ic
           call init_simple_entcell( entcell(i,j)%entcell,
-     &         veg_fraction(:,i,j),
+     &         veg_fraction(:,i,j),pft_population_density,
      &         leaf_area_index(:,i,j),
      &         pft_heights,pft_nmdata,pft_froots,
-     &         pft_population_density, pft_soil_type)
+     &         pft_soil_type)
         enddo
       enddo
       
