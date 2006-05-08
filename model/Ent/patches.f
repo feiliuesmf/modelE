@@ -281,9 +281,12 @@
 
       cop => pp%tallest
       do while(ASSOCIATED(cop)) 
-        frootC_total = frootC_total + cop%n*cop%C_froot
+        print *,"sum..cohorts, cop%froot:",cop%froot  !##
+        !frootC_total = frootC_total + cop%n*cop%C_froot !Mass wtd avg.
+        frootC_total = frootC_total + cop%n !##HACK UNTIL CAN DO frootC wtd avg
         do n=1,N_DEPTH
-          froot(n) = froot(n) + cop%n*cop%C_froot*cop%froot(n)
+          !froot(n) = froot(n) + cop%n*cop%C_froot*cop%froot(n) !Mass wtd avg.
+          froot(n) = froot(n) + cop%n*cop%froot(n) !Population wtd avg.##HACK
         end do
         cop => cop%shorter
       end do
