@@ -515,7 +515,7 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8 :: popdata(N_COVERTYPES) 
       !------
       real*8, parameter :: popdens(N_COVERTYPES) =
-      !* tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
+      !* xx tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
      $     (/0.d0, 1.0d0, 1.0d0,  1.0d0, 1.0d0,  1.0d0, 1.0d0, 1.0d0
      &     ,1.0d0 ,0.d0, 0.d0, 1.0d0 /)
 

@@ -274,7 +274,8 @@
           !## Supply also geometry, clumping index
           ! insert cohort only if population density > 0 (i.e. skip bare soil)
           if ( popdens(pnum) > EPS ) then 
-            call insert_cohort(pp,pnum,0.d0,hdata(pnum),
+            print *,"pnum, popdens(pnum)",pnum, popdens(pnum)
+            call insert_cohort(pp,pnum,popdens(pnum),hdata(pnum),
      &           nmdata(pnum),
      &           0.d0,0.d0,0.d0,0.d0,laidata(pnum),0.d0,
      &           frootdata(pnum,:),
@@ -288,6 +289,7 @@
       end do
       call summarize_entcell(ecp)
 
+      print *,"In init_simple_entcell:"
       call entcell_print(ecp)
 
       end subroutine init_simple_entcell
