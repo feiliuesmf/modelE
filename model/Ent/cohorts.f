@@ -43,9 +43,7 @@
      &       C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &       GCANOPY, GPP, NPP, R_growth,R_maint,
      &       N_up, C_litter,N_litter,C_to_Nfix,froot)
-        print *,"n",n
-        print *,"In insert_cohort after assign_cohort..."
-        call cohort_print(newc,"Insert_cohort...")
+
         newc%Ntot = nm*LAI
 
         ! >>>>
