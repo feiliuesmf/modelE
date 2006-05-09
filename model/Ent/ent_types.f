@@ -249,12 +249,11 @@
 
          !VEGETATION - PUBLIC
          real*8 :: Ci           !*Internal foliage CO2 (mol/m3) !!Cohort level
-         real*8 :: Qf           !*Foliage surface vapor mixing ratio (kg/kg)
 
          !METEOROLOGICAL - IMPORT STATE VARIABLES
          !Cell-level summary values - CALCULATED BY GCM/EWB OR OFF-LINE FILE
          real*8 :: TcanopyC     !Canopy temperatue (Celsius)
-         real*8 :: Qv           !Canopy saturated vapor pressure (kg vapor/ kg air)
+         real*8 :: Qf           !*Foliage surface vapor mixing ratio (kg/kg)
          real*8 :: P_mbar       !Atmospheric pressure (mb)
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
          real*8,pointer :: Soilmoist(:) !May be an array by depth (units TBA)

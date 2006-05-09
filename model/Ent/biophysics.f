@@ -141,8 +141,8 @@
       real*8 :: betad
 !@var tcan   Canopy temperature (Celsius)
       real*8 :: tcan
-!@var qv  Canopy saturated specific humidity (kg vapor/ kg air)
-      real*8 :: qvsat
+!@var qfol  Foliage surface specific humidity (kg vapor/ kg air)
+      real*8 :: qfol
 !@var dt  Model time step (s)
       real*8 :: dt
 !@var pres  Surface air pressure (mbar)
@@ -209,7 +209,7 @@
       !     SIMULATED PHYSICS variables specific to vegetation
       real*8 :: GCANOPY
       real*8 :: Ci  
-      real*8 :: Qf
+!      real*8 :: Qf !Put in DRIVERS section
       real*8 :: TRANS_SW
       real*8 :: betad       !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
       real*8 :: betadl(N_DEPTH) !Water stress in layers
@@ -220,7 +220,7 @@
 
       !     METEOROLOGICAL DRIVERS
       real*8 :: TcanopyC        !Canopy temperatue (Celsius)
-      real*8 :: Qv              !Canopy air specif humidity (kg vapor/ kg air)
+      real*8 :: Qf              !Canopy air specif humidity (kg vapor/ kg air)
       real*8 :: P_mbar          !Atmospheric pressure (mb)
       real*8 :: Ca              !@Atmos CO2 conc at surface height (mol/m3).
       real*8 :: Soilmoist(N_DEPTH) !May be an array by depth (units TBA)
@@ -242,7 +242,7 @@
       GCANOPY = pp%cellptr%GCANOPY
       Qf = pp%cellptr%Qf
       TcanopyC = pp%cellptr%TcanopyC
-      Qv = pp%cellptr%Qv
+      Qf = pp%cellptr%Qf
       P_mbar = pp%cellptr%P_mbar
       Ca = pp%cellptr%Ca
       Soilmoist = pp%cellptr%Soilmoist  !Will be patch level later
@@ -472,6 +472,7 @@
       betad = water_stress(nsoillayer, soilmp_in(:),froot_in(:),
      &     fice_in(:), pfpar(pft)%hwilt, betadl(:))
       tcan = tcan_in
+      qfol = Qf_IN
       pres = pres_in
       ch = ch_in
       U = U_in
@@ -579,6 +580,8 @@
       real*8 gt
 !----------------------------------------------------------------------------
       real*8 :: sbeta  !Gets sin(solarzen)
+!@var qv  Canopy saturated specific humidity (kg vapor/ kg air)
+      real*8 :: qvsat
 !----------------------------------------------------------------------------
 ! Make sure there is some leaf area (m2/m2).
       if(vegpar%alai.le.EPS) vegpar%alai=EPS

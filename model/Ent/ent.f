@@ -119,9 +119,13 @@
       !-----local--------
       type(patch),pointer :: pp
 
-      pp => ecp%sumpatch
+      pp => ecp%oldest
+      !do while(ASSOCIATED(pp))
       call photosynth_cond(dtsec, pp)
       call summarize_patch(pp)
+      !pp => pp%younger
+      !end do
+      !Add other code to sum up conductances and summarize patches.
 
       end subroutine ent_biophysics
       !*********************************************************************

@@ -759,7 +759,7 @@ cddd      call zero_entcell(entcell%entcell)
       integer n
 
       entcell%entcell%TcanopyC = canopy_temperature
-      entcell%entcell%Qv = canopy_air_humidity
+      entcell%entcell%Qf = canopy_air_humidity
       entcell%entcell%P_mbar = surf_pressure
       entcell%entcell%Ca = surf_CO2
       entcell%entcell%Ch = heat_transfer_coef
@@ -814,7 +814,7 @@ cddd      call zero_entcell(entcell%entcell)
 
       do i=1,ic
         entcell(i)%entcell%TcanopyC = canopy_temperature(i)
-        entcell(i)%entcell%Qv = canopy_air_humidity(i)
+        entcell(i)%entcell%Qf = canopy_air_humidity(i)
         entcell(i)%entcell%P_mbar = surf_pressure(i)
         entcell(i)%entcell%Ca = surf_CO2(i)
         entcell(i)%entcell%Ch = heat_transfer_coef(i)
@@ -873,7 +873,7 @@ cddd      call zero_entcell(entcell%entcell)
       do j=1,jc
         do i=1,ic
           entcell(i,j)%entcell%TcanopyC = canopy_temperature(i,j)
-          entcell(i,j)%entcell%Qv = canopy_air_humidity(i,j)
+          entcell(i,j)%entcell%Qf = canopy_air_humidity(i,j)
           entcell(i,j)%entcell%P_mbar = surf_pressure(i,j)
           entcell(i,j)%entcell%Ca = surf_CO2(i,j)
           entcell(i,j)%entcell%Ch = heat_transfer_coef(i,j)

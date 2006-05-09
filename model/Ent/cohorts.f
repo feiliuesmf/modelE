@@ -285,7 +285,7 @@ cddd      end subroutine init_cohort_defaults
       ! set variables
       cop%pft = -1              ! = -1 if pft not set
       if ( present(pnum) ) cop%pft = pnum
-      cop%n = 1                                 !## Dummy ##!
+      cop%n = 0.0
 
       call zero_cohort(cop)
 

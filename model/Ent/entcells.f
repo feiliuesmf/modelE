@@ -13,7 +13,7 @@
       private
       save
 
-      public zero_entcell, summarize_entcell
+      public zero_entcell, summarize_entcell, entcell_print
       public init_simple_entcell, entcell_construct, entcell_destruct
 
 
@@ -69,7 +69,7 @@
       !METEOROLOGICAL - IMPORT STATE VARIABLES
       !Cell-level summary values - CALCULATED BY GCM/EWB OR OFF-LINE FILE
       ecp%TcanopyC = 0.0         !Canopy temperatue (Celsius)
-      ecp%Qv = 0.0               !Canopy air specif humidity (kg vapor/ kg air)
+!      ecp%Qv = 0.0               !Canopy air specif humidity (kg vapor/ kg air)
       ecp%P_mbar = 0.0           !Atmospheric pressure (mb)
       ecp%Ca = 0.0               !@Atmos CO2 conc at surface height (mol/m3).
       ecp%Soilmoist(:) = 0.0 !May be an array by depth (units TBA)
