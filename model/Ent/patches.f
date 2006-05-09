@@ -393,6 +393,9 @@
       print '(a,a," = ",f10.7)',prefix,"area",pp%area
       print '(a,a," = ",f10.7)',prefix,"age ",pp%age
       print '(a,"soil moisture:")',prefix
+      do n=1,N_BANDS
+        print '(a,"      ",f10.7)',prefix,pp%albedo(n)
+      enddo
       do n=1,N_DEPTH
         print '(a,"      ",f10.7)',prefix,pp%Soilmoist(n)
       enddo

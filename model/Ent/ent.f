@@ -123,6 +123,7 @@
       !do while(ASSOCIATED(pp))
       call photosynth_cond(dtsec, pp)
       call summarize_patch(pp)
+      print *,"Got here end of ent_biophysics."
       !pp => pp%younger
       !end do
       !Add other code to sum up conductances and summarize patches.

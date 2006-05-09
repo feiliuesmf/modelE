@@ -239,7 +239,8 @@
 !**************************************************************************
 
       subroutine init_simple_entcell( ecp,
-     i vegdata,popdens,laidata,hdata,nmdata,frootdata,soildata )
+     i     vegdata,popdens,laidata,hdata,nmdata,
+     i     frootdata,soildata,albedodata )
       !@sum Initializes an entcell assuming one cohort per patch.
       use patches, only : summarize_patch
       type(entcelltype) :: ecp
@@ -250,6 +251,7 @@
       real*8,intent(in) :: nmdata(N_COVERTYPES) !Nitrogen parameter
       real*8,intent(in) :: frootdata(N_COVERTYPES,N_DEPTH) !Root profile.
       integer,intent(in) :: soildata(N_COVERTYPES)
+      real*8,intent(in) :: albedodata(N_COVERTYPES,1:2,N_BANDS) !patch, NOTE:snow
       !-----Local---------
       integer :: pnum
       type(patch),pointer :: pp, pp_tmp
@@ -285,6 +287,8 @@
      &           0.d0,0.d0,0.d0,0.d0)
           endif
           call summarize_patch(pp)
+          !CALL CALC_ALBEDO HERE
+          pp%albedo = albedodata(pnum,1,:) !##GISS HACK - need hemi
         end if
       end do
       call summarize_entcell(ecp)

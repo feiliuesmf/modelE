@@ -370,7 +370,8 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_heights,
      &     pft_nmdata,
      &     pft_froots,
-     &     pft_soil_type
+     &     pft_soil_type,
+     &     pft_vegalbedo
      &     )
       type(entcelltype_public), intent(out) :: entcell
       real*8, dimension(:)  ::   ! dim=N_COVERTYPES
@@ -382,11 +383,12 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_population_density
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
+      real*8, dimension(:,:,:)  ::  pft_vegalbedo ! dim=N_COVERTYPES, n
 
       call init_simple_entcell( entcell%entcell,
      &     veg_fraction, pft_population_density, leaf_area_index,
      &     pft_heights, pft_nmdata, pft_froots,
-     &     pft_soil_type)
+     &     pft_soil_type, pft_vegalbedo)
       
       end subroutine ent_cell_set_single
 
@@ -398,7 +400,8 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_heights,
      &     pft_nmdata,
      &     pft_froots,
-     &     pft_soil_type
+     &     pft_soil_type,
+     &     pft_vegalbedo
      &     )
       type(entcelltype_public), intent(out) :: entcell(:)
       real*8, dimension(:,:)  ::   ! dim=N_COVERTYPES, n
@@ -410,6 +413,7 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_population_density
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
+      real*8, dimension(:,:,:)  ::  pft_vegalbedo ! dim=N_COVERTYPES, n
       !---
       integer n, nc
 
@@ -420,7 +424,7 @@ cddd      call zero_entcell(entcell%entcell)
      &       veg_fraction(:,n), pft_population_density,
      &       leaf_area_index(:,n),
      &       pft_heights, pft_nmdata, pft_froots,
-     &       pft_soil_type)
+     &       pft_soil_type, pft_vegalbedo)
       enddo
       
       end subroutine ent_cell_set_array_1d
@@ -433,7 +437,8 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_heights,
      &     pft_nmdata,
      &     pft_froots,
-     &     pft_soil_type
+     &     pft_soil_type,
+     &     pft_vegalbedo
      &     )
       type(entcelltype_public), intent(out) :: entcell(:,:)
       real*8, dimension(:,:,:)  ::   ! dim=N_COVERTYPES, n
@@ -445,6 +450,7 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_population_density
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
+      real*8, dimension(:,:,:)  ::  pft_vegalbedo ! dim=N_COVERTYPES, n
       !---
       integer i, j, ic, jc
 
@@ -457,7 +463,7 @@ cddd      call zero_entcell(entcell%entcell)
      &         veg_fraction(:,i,j),pft_population_density,
      &         leaf_area_index(:,i,j),
      &         pft_heights,pft_nmdata,pft_froots,
-     &         pft_soil_type)
+     &         pft_soil_type,pft_vegalbedo(:,:,:))
         enddo
       enddo
       
@@ -1124,6 +1130,8 @@ cddd      call zero_entcell(entcell%entcell)
       do i=1,ic
       if ( present(canopy_conductance) )
      &     canopy_conductance(i,j) = entcell(i,j)%entcell%gcanopy
+      print *,"Got here in ent_get_exports."
+
 
       if ( present(shortwave_transmit) )
      &     shortwave_transmit(i,j) = entcell(i,j)%entcell%TRANS_SW

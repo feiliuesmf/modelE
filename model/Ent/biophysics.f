@@ -270,6 +270,7 @@
       Ci = pp%cellptr%Ci  !GISS hack at grid cell level for Ci
       Qf = pp%cellptr%Qf  !GISS hack at grid cell level for Qf
 
+      print *,"Got here before veg_conductance."
       call veg_conductance(dtsec,
      &     GCANOPY, Ci, Qf, TRANS_SW,GPP,NPP,betad,betadl,
      &     pp%sumcohort%pft, ! >>>> pp%tallest%pft
@@ -495,6 +496,7 @@
 
       call veg (pft, CNC_INOUT, CI_INOUT, Qf_IN,
      &       TRANS_SW_OUT,GPP_OUT,NPP_OUT)
+      print *,"Got here after veg..."
       end subroutine veg_conductance
 
 
