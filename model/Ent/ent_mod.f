@@ -307,7 +307,7 @@ cddd      call zero_entcell(entcell%entcell)
       type(entcelltype_public), intent(inout) :: entcell(:,:)
       integer i, ic, j, jc
 
-      print *,"ent_cell_construct_array_2d:"
+      !print *,"ent_cell_construct_array_2d:"
 
       ic = size(entcell,1)
       jc = size(entcell,2)
