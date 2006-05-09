@@ -39,7 +39,7 @@
       integer,intent(in) :: jday, year
       integer,intent(in) :: IM,JM,I0,I1,J0,J1 !long/lat grid number range
       real*8,intent(out) :: vegdata(N_COVERTYPES,I0:I1,J0:J1)
-      real*8,intent(out) :: albedodata(N_COVERTYPES,1:2,N_BANDS)
+      real*8,intent(out) :: albedodata(N_BANDS,N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: laidata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: hdata(N_COVERTYPES)
       real*8,intent(out) :: nmdata(N_COVERTYPES)
@@ -50,7 +50,7 @@
       !-----Local------
 
       call GISS_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
-      call GISS_veg_albedodata(jday, albedodata)
+      call GISS_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
       call GISS_get_laidata(jday,JM,I0,I1,J0,J1,laidata) !lai
       call GISS_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
 
@@ -298,17 +298,26 @@
       end subroutine GISS_phenology
 
 !**************************************************************************
-      subroutine GISS_veg_albedodata(jday, albedodata)
-      integer :: jday
-      real*8 :: albedodata(N_COVERTYPES,1:2,N_BANDS)
+      subroutine GISS_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
+      integer,intent(in) :: jday
+      integer, intent(in) :: JM,I0,I1,J0,J1
+      real*8 :: albedodata(N_BANDS,N_COVERTYPES,I0:I1,J0:J1)
+      !----------
       integer :: hemi, pft
+      integer i,j,jeq
       
-      do hemi=1,2
-        do pft = 1, N_COVERTYPES
-        call GISS_veg_albedo(hemi*2-3,pft,jday,
-     &         albedodata(pft,hemi,:))
-        end do
-      end do
+      jeq = JM/2
+
+      do j=J0,J1
+        hemi = 1
+        if (j <= jeq) hemi = -1
+        do i=I0,I1
+          do pft = 1, N_COVERTYPES
+            call GISS_veg_albedo(hemi,pft,jday,
+     &           albedodata(:,pft,i,j))
+          end do
+        enddo
+      enddo
 
       end subroutine GISS_veg_albedodata
 !**************************************************************************
@@ -440,12 +449,11 @@ c
 
 c**** calculate root fraction afr averaged over vegetation types
       !Initialize zero
-      do n=1,N_DEPTH
-        froot(n) = 0.0
+      do l=1,N_DEPTH
+        froot(l) = 0.0
       end do
-      n=1
-      do while ((dz_soil(n) > 0.0).and.(n<=N_DEPTH)) !Get last layer w/roots in it.
-        n = n + 1
+      do n=1,N_DEPTH
+        if (dz_soil(n) <= 0.0) exit !Get last layer w/roots in it.
       end do
       n=n-1
       z=0.

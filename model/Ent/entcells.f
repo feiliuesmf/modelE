@@ -254,7 +254,7 @@
       real*8,intent(in) :: nmdata(N_COVERTYPES) !Nitrogen parameter
       real*8,intent(in) :: frootdata(N_COVERTYPES,N_DEPTH) !Root profile.
       integer,intent(in) :: soildata(N_COVERTYPES)
-      real*8,intent(in) :: albedodata(N_COVERTYPES,1:2,N_BANDS) !patch, NOTE:snow
+      real*8,intent(in) :: albedodata(N_BANDS,N_COVERTYPES) !patch, NOTE:snow
       !-----Local---------
       integer :: pnum
       type(patch),pointer :: pp, pp_tmp
@@ -291,7 +291,7 @@
           endif
           call summarize_patch(pp)
           !CALL CALC_ALBEDO HERE
-          pp%albedo = albedodata(pnum,1,:) !##GISS HACK - need hemi
+          pp%albedo = albedodata(:,pnum) !##GISS HACK
         end if
       end do
       call summarize_entcell(ecp)
