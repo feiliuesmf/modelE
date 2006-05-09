@@ -115,6 +115,8 @@
         ip = ip + 1
         spp%age = spp%age + pp%age
         spp%area = spp%area + pp%area 
+        
+        spp%nm = spp%nm + pp%nm*pp%area
 
         ecp%LAI = ecp%LAI + pp%sumcohort%LAI*pp%area
 
@@ -172,6 +174,7 @@
       !!!CHECK IF SPP%AREA IS ZERO!
       if (ASSOCIATED(ecp%oldest)) then
         spp%age = spp%age/spp%area
+        spp%nm = spp%nm/spp%area
         ecp%LAI = ecp%LAI/spp%area
         
         do ia=1,N_BANDS         !Area-weighted average
@@ -368,8 +371,12 @@
       character*8 prefix_p
       integer np
 
-      print '(a,"patches:")',prefix
+      print '(a,"entcell:")',prefix
+      print '(a," = ",f10.7)',"GCANOPY ",ecp%GCANOPY
+      print '(a," = ",f10.7)',"GPP ",ecp%GPP
+      print '(a," = ",f10.7)',"LAI ",ecp%LAI
 
+      print '(a,"patches:")',prefix
       pp => ecp%oldest
       np = 0
       do while( associated(pp) )

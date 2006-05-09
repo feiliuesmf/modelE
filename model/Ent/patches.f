@@ -391,7 +391,7 @@
       prefix_c = "        "
 
       print '(a,a," = ",f10.7)',prefix,"area",pp%area
-      print '(a,a," = ",f10.7)',prefix,"age ",pp%age
+      print '(a,a," = ",f10.2)',prefix,"age ",pp%age
       print '(a,"soil moisture:")',prefix
       do n=1,N_BANDS
         print '(a,"      ",f10.7)',prefix,pp%albedo(n)
@@ -400,6 +400,8 @@
         print '(a,"      ",f10.7)',prefix,pp%Soilmoist(n)
       enddo
       print '(a,a," = ",i7)',prefix,"soil type",pp%soil_type
+      print '(a,a," = ",f10.7)',prefix,"GCANOPY ",pp%GCANOPY
+      print '(a,a," = ",f10.7)',prefix,"nm ",pp%nm
       print '(a,"cohorts:")',prefix
 
       cop => pp%tallest

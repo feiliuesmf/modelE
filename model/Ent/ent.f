@@ -113,6 +113,7 @@
       subroutine ent_biophysics(dtsec, ecp)
       use biophysics, only : photosynth_cond
       use patches, only : summarize_patch
+      use entcells, only : summarize_entcell, entcell_print
       implicit none
       real*8 :: dtsec  !dt in seconds
       type(entcelltype) :: ecp
@@ -122,11 +123,15 @@
       pp => ecp%oldest
       !do while(ASSOCIATED(pp))
       call photosynth_cond(dtsec, pp)
+      pp%age = pp%age + dtsec
       call summarize_patch(pp)
-      print *,"Got here end of ent_biophysics."
       !pp => pp%younger
       !end do
-      !Add other code to sum up conductances and summarize patches.
+      call summarize_entcell(ecp)
+      
+      print *,"End of ent_biophysics"
+      call entcell_print(ecp)
+      print *,"*"
 
       end subroutine ent_biophysics
       !*********************************************************************
