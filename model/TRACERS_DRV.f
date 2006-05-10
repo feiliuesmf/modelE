@@ -8369,7 +8369,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_SPECIAL_Shindell
       USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM,only: PI_run, use_rad_ch4, rad_FL,
-     & dms_offline,so2_offline,sulfate
+     & dms_offline,so2_offline,sulfate,PIratio_indus
 #endif
       IMPLICIT NONE
       INTEGER n,iact,last_month
@@ -8447,7 +8447,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         select case (trname(n))
         case ('NOx')
           tr3Dsource(:,J_0:J_1,:,nAircraft,n)  = 0.
-          if(PI_run.ne.1) call get_aircraft_NOx
+          if(PI_run /= 1 .or. PIratio_indus == 1.) call get_aircraft_NOx
           call      read_NOx_sources(n,iact)
 C         (lightning called from tracer_3Dsource)
         case ('CO')
