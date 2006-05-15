@@ -1006,11 +1006,9 @@ C**** The regular model (Kradia le 0)
             PRINT*,"io_diags: compare aj,aj4, ... dimensions"
             GO TO 10            ! or should that be just a warning ??
           end if
-        End If
 
         ! copy to full precision variables
         ! First "non-distributed" arrays
-        If (AM_I_ROOT()) Then
           AREG=AREG+AREG4
           AIL=AIL+AIL4
           ENERGY=ENERGY+ENERGY4
@@ -1048,11 +1046,16 @@ C**** The regular model (Kradia le 0)
         if (Kcomb.gt.1) IDACC(5) = MIN(IDACC(5)-IDAC1(5),IDAC1(5))
         monacc = monacc + monac1
       CASE (irerun)      ! only keynr,tsfrez needed at beg of acc-period
-        READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ  ! 'it' not read
-        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
+        If (AM_I_ROOT()) Then
+          READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ  ! 'it' not read
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
+        End If
+        CALL ESMF_BCAST(grid, keyct )
+        CALL ESMF_BCAST(grid, KEYNR )
+        CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc)
       END SELECT
 
       RETURN
