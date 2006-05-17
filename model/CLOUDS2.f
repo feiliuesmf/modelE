@@ -1739,8 +1739,39 @@ c     *         ,FPRCPT,TRPRCP(N)
 #endif
         END DO
       END IF
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IF (.NOT. below_cloud .AND. prcp > teeny) THEN
+        wmxtr=prcp*byam(l)
+        precip_mm=prcp*100.*bygrav
+        b_beta_DT=fplume
+        DO n=1,ntx
+          SELECT CASE(trname(ntix(n)))
+          CASE('Clay','Silt1','Silt2','Silt3','Silt4',
+     &         'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &         'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &         'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &         'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &         'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+            CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,tnx,lhx,
+     &         wmxtr,fplume,l,tm,trprcp,thlaw,pl(l),ntix)
+            trprcp(n)=fwasht*tm(l,n)+trprcp(n)+thlaw
+            IF (diag_wetdep == 1)
+     &           trwash_mc(l,n)=trwash_mc(l,n)+fwasht*tm(l,n)+thlaw
+            IF (tm(l,n) > teeny) THEN
+              tmfac=thlaw/tm(l,n)
+            ELSE
+              tmfac=0.
+            ENDIF
+            tm(l,n)=tm(l,n)*(1.-fwasht)-thlaw
+            tmom(xymoms,l,n)=tmom(xymoms,l,n)*(1.-fwasht-tmfac)
+          END SELECT
+        END DO
 C**** WASHOUT of TRACERS BELOW CLOUD
+      ELSE IF (below_cloud .AND. prcp > teeny) THEN
+#else
       IF(BELOW_CLOUD.and.PRCP.gt.teeny) THEN ! BELOW CLOUD
+#endif
         WMXTR = PRCP*BYAM(L)
         precip_mm = PRCP*100.*bygrav
         b_beta_DT = FPLUME
@@ -2711,6 +2742,23 @@ cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
      *     ,TEMP,LHX,WMXTR,cldprec,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
         ELSE
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+          SELECT CASE(trname(ntix(n)))
+          CASE('Clay','Silt1','Silt2','Silt3','Silt4',
+     &         'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &         'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &         'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &         'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &         'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+            precip_mm = prebar(l+1)*100.*dtsrc
+            wmxtr=prebar(l+1)*grav*byam(l)*dtsrc
+            IF (precip_mm < 0.) precip_mm=0.
+            IF (wmxtr < 0.) wmxtr=0.
+            CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,temp,lhx,
+     &         wmxtr,cldprec,l,tm,trprbar(1,l),thwash,pl(l),ntix) !washout
+          END SELECT
+#endif
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
@@ -2730,11 +2778,27 @@ cdmk added arguments above; THLAW added below (no way to factor this)
         ENDIF
         CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,CLDSAVT,FPR,FPRT,ntix) !precip CLW
 c ---------------------- calculate fluxes ------------------------
-        DTWRT = FWASHT*TM(L,N)
         DTERT = FERT  *TRPRBAR(N,L+1)
         DTPRT = FPRT  *TRWML(N,L)
         DTQWT =
      &  FQTOWT*TR_LEF*(TM(L,N)+DTERT)-FWTOQT*TRWML(N,L)*(1.-FPRT)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        SELECT CASE(trname(ntix(n)))
+        CASE('Clay','Silt1','Silt2','Silt3','Silt4',
+     &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &       'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+          dtwrt=fwasht*(tm(l,n)-dtqwt)
+        CASE DEFAULT
+#endif
+          dtwrt=fwasht*tm(l,n)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        END SELECT
+#endif
 c ---------------------- apply fluxes ------------------------
         TRWML(N,L) = TRWML(N,L)*(1.-FPRT)  + DTQWT+THLAW
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
