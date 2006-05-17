@@ -264,7 +264,7 @@ c--------------------------------------------------------------
       REAL*8 :: fracm,frac1,bymnew,mnew,dm2,tmp
       INTEGER :: i
       INTEGER :: l
-      INTEGER :: J_0, J_1, J_0S, J_1S
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H
       LOGICAL :: HAVE_SOUTH_POLE
       ! qlimit variables
       REAL*8 :: an, anm1, fn, fnm1, sn, sxn, sxxn
@@ -293,7 +293,8 @@ c--------------------------------------------------------------
 
       CALL GET(grid, J_STRT = J_0, J_STOP=J_1,
      &     J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
-     &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
+     &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &     J_STRT_HALO=J_0H)
 
       CALL HALO_UPDATE(grid, mass, FROM=NORTH)
       CALL HALO_UPDATE(grid, s,    FROM=NORTH)
@@ -467,8 +468,10 @@ c-------------------------------------------------------------------
            err_loc = (/ i, n, l /)
            if (ierr.eq.2) return
          end if
+  !!!       F(i,n-1) = fnm1 --> out of bounds in serial case
+  !!!                          please check if my correction is ok
+         F(i,J_0H) = fnm1
          F(i,n)   = fn
-         F(i,n-1) = fnm1
          SMOM(mx,i,n) = sxn
          SMOM(mxx,i,n) = sxxn
       End If
