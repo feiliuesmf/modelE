@@ -1976,7 +1976,7 @@ C****
       EXTERNAL conserv_AM,conserv_KE,conserv_MS,conserv_PE
      *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_OMSI
      *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI
-     *     ,conserv_MLI,conserv_HLI,conserv_WTG,conserv_HTG
+     *     ,conserv_MLI,conserv_HLI
       INTEGER MNOW
       INTEGER NT
 
