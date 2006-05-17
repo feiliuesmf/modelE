@@ -126,7 +126,13 @@
       subroutine GETTIME(counter)
       implicit none
       integer, intent(out) :: counter
+#if defined(COMPILER_G95)
+      integer*8 counter_8
+      call system_clock(counter_8)
+      counter = counter_8
+#else
       call system_clock(counter)
+#endif
       end subroutine GETTIME
 
 
@@ -152,13 +158,19 @@
       RETURN
       END SUBROUTINE exit_rc
 
-      SUBROUTINE sys_flush (unit)
+      SUBROUTINE sys_flush (unit_in)
 !@sum system call to flush corresponding I/O unit
 !@auth I. Aleinov
 !@ver  1.0 (SGI,IBM,Linux,DEC)
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: unit !@var unit 
+      INTEGER, INTENT(IN) :: unit_in !@var unit 
       INTEGER status
+#if defined(COMPILER_G95)
+      INTEGER*8 unit
+#else
+      INTEGER unit
+#endif
+      unit = unit_in
 #if defined(MACHINE_SGI)
       call flush(unit,status)
 #elif defined(MACHINE_Linux) || defined(MACHINE_DEC) \

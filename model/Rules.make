@@ -241,12 +241,12 @@ endif
 
 ## This is for the G95 GNU compiler
 ifeq ($(COMPILER),G95)
-F90 = /tmp/g95-install/bin/i686-pc-linux-gnu-g95
+F90 = g95
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CPPFLAGS = -DMACHINE_Linux -DCOMPILER_G95
-FFLAGS = -O0 # -cpp
-F90FLAGS = -O0 -f free
+FFLAGS = -i4 -O0 # -cpp
+F90FLAGS = -i4 -O0 -ffree-form
 LFLAGS =
 # uncomment next two lines for extensive debugging
 # the following switch adds extra debugging
