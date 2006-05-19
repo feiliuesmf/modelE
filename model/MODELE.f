@@ -62,11 +62,7 @@ C**** Command line options
 #endif
       integer :: tloopcurrent
       integer :: L
-#ifdef COMPILER_G95
-      integer*8 :: c0, crate
-#else
       integer :: c0, crate
-#endif
       real*8 :: time_rate
       real*8 :: initialTotalEnergy, finalTotalEnergy
 

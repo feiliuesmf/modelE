@@ -245,8 +245,8 @@ F90 = g95
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CPPFLAGS = -DMACHINE_Linux -DCOMPILER_G95
-FFLAGS = -i4 -O0 # -cpp
-F90FLAGS = -i4 -O0 -ffree-form
+FFLAGS = -O2 # -cpp
+F90FLAGS = -O2 -ffree-form
 LFLAGS =
 # uncomment next two lines for extensive debugging
 # the following switch adds extra debugging
@@ -396,6 +396,18 @@ FFLAGS += -I${ESMFINCLUDEDIR}
 F90FLAGS += -I${ESMFINCLUDEDIR}
 LIBS += -L${ESMFLIBDIR} -lesmf  -lnetcdf_stubs -rpath . -lC -lCio -lc -lmpi++ -lmpi -lpthread
 endif
+
+ifeq ($(COMPILER),G95)
+ESMFINCLUDEDIR = ${ESMF_DIR}/mod/mod${ESMF_BOPT}/Linux.g95.64.default
+ESMFLIBDIR = ${ESMF_DIR}/lib/lib${ESMF_BOPT}/Linux.g95.64.default
+
+CPPFLAGS += -DUSE_ESMF
+LIBS += -L${ESMFLIBDIR} -L${MPIDIR}/lib  -lesmf  -lmpi -llam  -lpthread -lnetcdf_stubs -lrt -lc
+#-lesmf -lmpi -llam -lm -lrt -ldl -lnetcdf_stubs
+FFLAGS += -I${ESMFINCLUDEDIR}
+INCS += -I ${ESMFINCLUDEDIR}
+endif
+
 endif
 
 ifeq ($(FVCORE),YES)
