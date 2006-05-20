@@ -23,16 +23,15 @@
       subroutine zero_entcell(ecp)
       !@sum Zeros import/export variables of entdata type
       type(entcelltype) :: ecp
-      integer :: n
 
       ecp%area = 0.0
 
       !Cell-level summary values - PHYSICAL
       !EXPORT - from radiative transfer
-      do n = 1,N_BANDS
-        ecp%albedo(n) = 0.0      !Albedo may be in bands or hyperspectral
-      end do
-      ecp%TRANS_SW = 0.0
+!      do n = 1,N_BANDS
+!        ecp%albedo(n) = 0.0      !Albedo may be in bands or hyperspectral
+!      end do
+!      ecp%TRANS_SW = 0.0
       
       !SOIL - IMPORT
       ecp%soil_Phi = 0.0         !Soil porosity (m3/m3)
@@ -43,27 +42,27 @@
 
       !VEGETATION - EXPORT STATE
       ecp%z0 = 0.0               !Roughness length (m)
-      ecp%GCANOPY = 0.0          !Canopy cond. of water vap (mm s-1) = CNC
-      ecp%CO2flux = 0.0          !CO2 flux (umol m-2 s-1)
-      ecp%GPP = 0.0              !GPP
+!      ecp%GCANOPY = 0.0          !Canopy cond. of water vap (mm s-1) = CNC
+!      ecp%CO2flux = 0.0          !CO2 flux (umol m-2 s-1)
+!      ecp%GPP = 0.0              !GPP
       !ecp%NPP = 0.0          !NPP
       !ecp%VOCflux = 0.0     !Other kind of fluxes, aerosols from fire, etc.
       !Cell-level diagnostic values - BIOLOGICAL
       !e.g. LAI, biomass pools, nitrogen pools, PFT fractions, GDD, GPP, etc
-      ecp%LAI = 0.0
-      ecp%betad = 0.0          !Water stress #CALC FROM Soilmoist & SSTAR by PFT
-      do n=1,N_DEPTH           !Water stress in layers
-        ecp%betadl(n) = 0.0
-      end do
-      do n=1,N_DEPTH
-        ecp%froot(n) = 0.0 !Fraction of roots in soil layer
-      end do
-      ecp%C_froot = 0.0
+      ecp%LAI= 0.d0
+!      ecp%betad = 0.0          !Water stress #CALC FROM Soilmoist & SSTAR by PFT
+!      do n=1,N_DEPTH           !Water stress in layers
+!        ecp%betadl(n) = 0.0
+!      end do
+!      do n=1,N_DEPTH
+!        ecp%froot(n) = 0.0 !Fraction of roots in soil layer
+!      end do
+!      ecp%C_froot = 0.0
 
       !-----
          
       !VEGETATION - PRIVATE - Initial values not zero.
-      ecp%Ci = 0.0127D0         !Internal foliage CO2 (mol/m3) !!Cohort level or patch??
+!      ecp%Ci = 0.0127D0         !Internal foliage CO2 (mol/m3) !!Cohort level or patch??
       ecp%Qf = 3.D-6            !Foliage surface vapor mixing ratio (kg/kg)
       
       !METEOROLOGICAL - IMPORT STATE VARIABLES
@@ -104,8 +103,8 @@
       integer :: ip             !#patches
       integer :: ia             !counter variable
 
-      ecp%LAI = 0.0  !Re-zero
       !call init_patch(ecp%sumpatch,ecp,0.d0) !Summary patch reset to zero area.
+      ecp%LAI = 0.d0 !Re-zero
       call zero_patch(ecp%sumpatch)
       spp => ecp%sumpatch
 
@@ -118,20 +117,27 @@
         
         spp%nm = spp%nm + pp%nm*pp%area
 
-        ecp%LAI = ecp%LAI + pp%sumcohort%LAI*pp%area
+        do ia=1,N_COVERTYPES
+          spp%LAI(ia) = spp%LAI(ia) + pp%LAI(ia)*pp%area
+          ecp%LAI = ecp%LAI + pp%LAI(ia)*pp%area !Area-weighted average
+        end do
 
         do ia=1,N_BANDS  !Area-weighted average
           spp%albedo(ia) = spp%albedo(ia) + pp%albedo(ia)*pp%area
         end do
         spp%z0 = spp%z0 + pp%z0*pp%area !Area-weighted average
-          
+        spp%TRANS_SW = spp%TRANS_SW + pp%TRANS_SW*pp%area !Area-weighted average
+
         !* Flux variables for GCM/EWB - patch total
         spp%GCANOPY = spp%GCANOPY + pp%GCANOPY*pp%area
         spp%CO2flux = spp%CO2flux + pp%CO2flux*pp%area
+        spp%Ci = spp%Ci + pp%Ci*pp%area
+        spp%betad = spp%betad + pp%betad*pp%area
 
         !* Variables calculated by GCM/EWB - downscaled from grid cell
         do ia=1,N_DEPTH
           spp%Soilmoist(ia) = spp%Soilmoist(ia)+pp%Soilmoist(ia)*pp%area
+          spp%betadl(ia) = spp%betadl(ia) + pp%betadl(ia)*pp%area
         end do
         !spp%N_deposit     !N deposition (kgN/m2)
 
@@ -175,20 +181,27 @@
       if (ASSOCIATED(ecp%oldest)) then
         spp%age = spp%age/spp%area
         spp%nm = spp%nm/spp%area
+        do ia=1,N_COVERTYPES
+          spp%LAI(ia) = spp%LAI(ia)/spp%area
+        end do
         ecp%LAI = ecp%LAI/spp%area
-        
+
         do ia=1,N_BANDS         !Area-weighted average
           spp%albedo(ia) = spp%albedo(ia)/spp%area
         end do
         spp%z0 = spp%z0/spp%area !Area-weighted average
+        spp%TRANS_SW = spp%TRANS_SW/spp%area !Area-weighted average
         
         !* Flux variables for GCM/EWB - patch total
         spp%GCANOPY = spp%GCANOPY/spp%area
         spp%CO2flux = spp%CO2flux/spp%area
+        spp%Ci = spp%Ci/spp%area
+        spp%betad = spp%betad/spp%area
 
         !* Variables calculated by GCM/EWB - downscaled from grid cell
         do ia=1,N_DEPTH
           spp%Soilmoist(ia) = spp%Soilmoist(ia)/spp%area
+          spp%betadl(ia) = spp%betadl(ia)/spp%area
         end do
         !spp%N_deposit     !N deposition (kgN/m2)
 
@@ -204,7 +217,7 @@
 !**************************************************************************
 !**************************************************************************
 
-
+#ifdef SUMROOTSCELL
       subroutine sum_roots_patches2cell(ecp)
       !@sum Calculate grid-averaged depth-, mass-, and cover-weighted average
       !@sum of fine roots.
@@ -238,6 +251,7 @@
       ecp%froot = froot/(tcf*frootC_total)
 
       end subroutine sum_roots_patches2cell
+#endif
 
 !**************************************************************************
 
@@ -290,14 +304,17 @@
      &           0.d0,0.d0,0.d0,0.d0)
           endif
           call summarize_patch(pp)
+
           !CALL CALC_ALBEDO HERE
           pp%albedo = albedodata(:,pnum) !##GISS HACK
         end if
       end do
+      print *,"Got here before summarize_entcell"
       call summarize_entcell(ecp)
+      print *,"Got here after summarize_entcell"
 
-      print *,"In init_simple_entcell:"
-      call entcell_print(ecp)
+      !print *,"In init_simple_entcell:"
+      !call entcell_print(ecp)
 
       end subroutine init_simple_entcell
 
@@ -309,8 +326,8 @@
 
       ! allocate memory
       allocate( ecp )
-      allocate( ecp%froot(N_DEPTH) )
-      allocate( ecp%betadl(N_DEPTH) )
+!      allocate( ecp%froot(N_DEPTH) )
+!      allocate( ecp%betadl(N_DEPTH) )
       allocate( ecp%Soilmoist(N_DEPTH) )
       allocate( ecp%Soilmp(N_DEPTH) )
       allocate( ecp%fice(N_DEPTH) )
@@ -351,11 +368,6 @@
       enddo
 
       ! deallocate memory
-      deallocate( ecp%fice )
-      deallocate( ecp%Soilmp )
-      deallocate( ecp%Soilmoist )
-      deallocate( ecp%betadl )
-      deallocate( ecp%froot )
       deallocate( ecp )
       nullify( ecp )
 
@@ -372,9 +384,7 @@
       integer np
 
       print '(a,"entcell:")',prefix
-      print '(a," = ",f10.7)',"GCANOPY ",ecp%GCANOPY
-      print '(a," = ",f10.7)',"GPP ",ecp%GPP
-      print '(a," = ",f10.7)',"LAI ",ecp%LAI
+      !print '(a," = ",f10.7)',"GCANOPY ",ecp%GCANOPY
 
       print '(a,"patches:")',prefix
       pp => ecp%oldest

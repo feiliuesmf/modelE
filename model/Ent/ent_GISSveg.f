@@ -59,6 +59,7 @@
       call GISS_get_froot(frootdata)
       call GISS_get_pop(popdata)
       call GISS_get_soil_types(soildata)
+      print *,"Got here in GISS_vegdata"
 
       end subroutine GISS_vegdata
 
@@ -78,6 +79,7 @@
         call summarize_patch(pp)
         pp => pp%younger
       end do
+
       call summarize_entcell(entcell)
 
       if (update_crops) then

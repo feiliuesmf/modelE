@@ -121,18 +121,23 @@
       type(patch),pointer :: pp
 
       pp => ecp%oldest
-      !do while(ASSOCIATED(pp))
-      call photosynth_cond(dtsec, pp)
-      pp%age = pp%age + dtsec
-      call summarize_patch(pp)
-      !pp => pp%younger
-      !end do
+      do while(ASSOCIATED(pp))
+        call photosynth_cond(dtsec, pp)
+        pp%age = pp%age + dtsec
+        call summarize_patch(pp)
+        write(92,*) pp%GCANOPY
+        write(93,*) pp%Ci
+        pp => pp%younger
+      end do
       call summarize_entcell(ecp)
-      
+
+      !# DEBUG
       print *,"End of ent_biophysics"
       call entcell_print(ecp)
       print *,"*"
-
+      !write(90,*) ecp%GCANOPY
+      write(90,*) ecp%sumpatch%GCANOPY
+      write(91,*) ecp%sumpatch%Ci
       end subroutine ent_biophysics
       !*********************************************************************
 

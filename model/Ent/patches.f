@@ -73,6 +73,7 @@
       !-----Local variables-------
       type(cohort),pointer :: scop, cop
       integer :: nc  !#individuals
+      integer :: ia  !array index
 
       scop => pp%sumcohort
 
@@ -81,6 +82,10 @@
       nc = 0
       scop%n = nc
       if ( .not. associated(pp%tallest) ) return ! no cohorts in this patch
+
+      do ia=1,N_COVERTYPES
+        pp%LAI(ia) = 0.d0
+      end do
 
       scop%pft = pp%tallest%pft
 
@@ -94,6 +99,7 @@
         scop%nm = scop%nm + cop%nm*cop%n  !wtd avg
         scop%Ntot = scop%Ntot + cop%Ntot  !Total
         scop%LAI = scop%LAI + cop%LAI  !Total
+        pp%LAI(cop%pft) = pp%LAI(cop%pft) + cop%LAI
 
          !* ALL QUANTITIES BELOW ARE FOR AN INDIVIDUAL *!
 
@@ -163,8 +169,9 @@
       pp%nm = scop%nm
 
       !* Flux variables for GCM/EWB - patch total
-      !##### call get_patchalbedo(jday,pp)######
       !pp%z0 =0.d0               !## Dummy ##!
+      !##### call get_patchalbedo(jday,pp)######
+      !##### Calculate TRANS_SW ################
       !pp%GCANOPY      !Calculated by biophysics
       !pp%CO2flux      !Calculate by biophysics
 
@@ -198,10 +205,14 @@
             pp%nm = 0.0
 
             !* Flux variables for GCM/EWB - patch total
-            pp%albedo = 0.0!## Get GISS albveg ##!
             pp%z0 = 0.0    !## Get GISS z0 ######!
+            pp%albedo = 0.0!## Get GISS albveg ##!
+            pp%TRANS_SW = 0.0 !## Calculate ##!
             pp%GCANOPY = 0.d0 !Will be updated in biophysics.f
             pp%CO2flux = 0.d0 
+            pp%Ci = 0.0127D0  !Initial value not zero.
+            pp%betad = 0.d0
+            pp%betadl = 0.d0
 
             !* Variables calculated by GCM/EWB - downscaled from grid cell
             pp%Soilmoist(:) = 0.0 !## Get GISS soil moisture layers ##!
@@ -211,6 +222,7 @@
             !pp%crad%##### = !## Get GORT canopy radiation params ##!
             ! initializing it at least to something 
             nullify(pp%crad%heights)
+            
             nullify(pp%crad%lai)
             pp%crad%gortclump = 0.d0
 
@@ -222,6 +234,7 @@
 
             !* DIAGNOSTIC SUMMARIES
             !* Biomass pools - patch total
+            pp%LAI(:) = 0.d0
             pp%C_froot = 0.d0
 
             !* Soil type
@@ -234,7 +247,6 @@
             pp%plant_bg_Np = 0.d0 !## Dummy ##!
 
             !* Biomass pools - by pft
-            pp%LAI(cop%pft) = pp%LAI(cop%pft) + cop%LAI
             pp%plant_ag_C(pnum) = 0.d0 !## Dummy ##!
             pp%plant_bg_C(pnum) = 0.d0 !## Dummy ##!
             pp%plant_ag_N(pnum) = 0.d0 !## Dummy ##!
@@ -331,6 +343,8 @@
       ! allocate memory
       allocate( pp )
       allocate( pp%Soilmoist(N_DEPTH) )
+      allocate( pp%betadl(N_DEPTH) )
+!      allocate( pp%LAI(N_COVERTYPES))
 
       ! set pointers
       pp%cellptr => parent_entcell
@@ -392,6 +406,9 @@
 
       print '(a,a," = ",f10.7)',prefix,"area",pp%area
       print '(a,a," = ",f10.2)',prefix,"age ",pp%age
+      print '(a,a," = ",f10.7)',prefix,"GCANOPY ",pp%GCANOPY
+      print '(a,a," = ",f10.7)',prefix,"Ci ",pp%Ci
+      print '(a,a," = ",f10.7)',prefix,"nm ",pp%nm
       print '(a,"soil moisture:")',prefix
       do n=1,N_BANDS
         print '(a,"      ",f10.7)',prefix,pp%albedo(n)
@@ -400,8 +417,6 @@
         print '(a,"      ",f10.7)',prefix,pp%Soilmoist(n)
       enddo
       print '(a,a," = ",i7)',prefix,"soil type",pp%soil_type
-      print '(a,a," = ",f10.7)',prefix,"GCANOPY ",pp%GCANOPY
-      print '(a,a," = ",f10.7)',prefix,"nm ",pp%nm
       print '(a,"cohorts:")',prefix
 
       cop => pp%tallest

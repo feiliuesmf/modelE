@@ -162,11 +162,15 @@
          real*8 :: nm   !Mean canopy nitrogen (g/m2[leaf]) over patch
 
          !* Flux variables for GCM/EWB - patch total
-         real*8 :: albedo(N_BANDS) !Spectral albedo, average over patch
          real*8 :: z0              !Roughness length, average over patch
+         real*8 :: albedo(N_BANDS) !Spectral albedo, average over patch
+         real*8 :: TRANS_SW     !Transmittance of shortwave radiation to the ground (fraction)
          real*8 :: GCANOPY         !Canopy conductance of water vapor (mm/s)
          real*8 :: CO2flux         !Net CO2 flux up (umol-CO2/m2-gnd/s)
-
+         real*8 :: Ci           !*Internal foliage CO2 (mol/m3) !!Cohort level
+         real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
+         real*8,pointer :: betadl(:) !Water stress in layers.
+         
          !* Variables calculated by GCM/EWB - downscaled from grid cell
          real*8,pointer :: Soilmoist(:) !Available soil moisture by depth (mm)
          real*8 :: N_deposit          !N deposition (kgN/m2)
@@ -183,6 +187,7 @@
          !* DIAGNOSTIC SUMMARIES
          !* Biomass pools - patch total
          !* SEE avgcohort and sumcohort
+         real*8 :: LAI(N_COVERTYPES)
          real*8 :: C_froot           !Carbon in fine roots.
 
          !* Soil data (needed for albedo computation)
@@ -222,7 +227,7 @@
          !Cell-level summary values - PHYSICAL
          !EXPORT - from radiative transfer
          real*8 :: albedo(N_BANDS) !Albedo may be in bands or hyperspectral
-         real*8 :: TRANS_SW
+         real*8 :: TRANS_SW  !Transmittance of shortwave radiation to the ground (fraction)
 
          !SOIL - IMPORT
          real*8 :: soil_Phi      !Soil porosity (m3/m3)
@@ -233,22 +238,23 @@
 
          !VEGETATION - EXPORT STATE
          real*8 :: z0           !Roughness length (m)
-         real*8 :: GCANOPY      !Canopy conductance of water vapor (mm s-1)
-         real*8 :: CO2flux      !CO2 flux (umol m-2 s-1)
-         real*8 :: GPP          !GPP
-         !real*8 :: NPP          !NPP
-         !real*8 :: VOCflux     !Other kind of fluxes, aerosols from fire, etc.
+!         real*8 :: GCANOPY      !Canopy conductance of water vapor (mm s-1)
+!         real*8 :: CO2flux      !CO2 flux (umol m-2 s-1)
+!         real*8 :: GPP          !GPP
+!         !real*8 :: NPP          !NPP
+!         !real*8 :: VOCflux     !Other kind of fluxes, aerosols from fire, etc.
          !Cell-level diagnostic values - BIOLOGICAL
          !e.g. LAI, biomass pools, nitrogen pools, PFT fractions, GDD, GPP, etc
-         real*8 :: LAI 
-         real*8,pointer :: froot(:) !Fraction of roots in soil layer
-         real*8 :: C_froot      !Carbon in fine roots
-         real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
-         real*8,pointer :: betadl(:) !Water stress in layers.
+!         real*8 :: LAI(N_COVERTYPES)
+         real*8 :: LAI  !Total LAI
+!         real*8,pointer :: froot(:) !Fraction of roots in soil layer
+!         real*8 :: C_froot      !Carbon in fine roots
+!         real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
+!         real*8,pointer :: betadl(:) !Water stress in layers.
          !-----
 
          !VEGETATION - PUBLIC
-         real*8 :: Ci           !*Internal foliage CO2 (mol/m3) !!Cohort level
+!         real*8 :: Ci           !*Internal foliage CO2 (mol/m3) !!Cohort level
 
          !METEOROLOGICAL - IMPORT STATE VARIABLES
          !Cell-level summary values - CALCULATED BY GCM/EWB OR OFF-LINE FILE

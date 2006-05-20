@@ -236,10 +236,10 @@
       real*8 :: Solarzen        !Solar zenith angle
       real*8 :: fdir            !Fraction of surface vis rad that is direct
 
-      print *,"Started photosynth_cond with patch:"
-      call patch_print(pp," ")
+      print *,"Started photosynth_cond" ! with patch:"
+      !call patch_print(pp," ")
 
-      GCANOPY = pp%cellptr%GCANOPY
+      GCANOPY = pp%GCANOPY
       Qf = pp%cellptr%Qf
       TcanopyC = pp%cellptr%TcanopyC
       Qf = pp%cellptr%Qf
@@ -267,7 +267,8 @@
 !>>>>      vegpar%vh = pp%tallest%h
       vegpar%vh = pp%sumcohort%h
       vegpar%vegalbedo = pp%albedo(1) !Visible band
-      Ci = pp%cellptr%Ci  !GISS hack at grid cell level for Ci
+      Ci = pp%Ci  
+      !Ci = pp%cellptr%Ci        !GISS hack at grid cell level for Ci
       Qf = pp%cellptr%Qf  !GISS hack at grid cell level for Qf
 
       print *,"Got here before veg_conductance."
@@ -282,16 +283,21 @@
       !OUTPUTS TO pp
       pp%GCANOPY = GCANOPY
       pp%GPP = GPP
-      
+      pp%Ci = Ci
+      pp%TRANS_SW = TRANS_SW
+      pp%GPP = GPP
+      pp%betad = betad
+      pp%betadl = betadl
+
       !OUTPUTS FROM ENT TO GCM/EWB
       !*** GISS HACK. PATCH VALUES ASSIGNED TO ENTCELL LEVEL. ****!!!
-      pp%cellptr%GCANOPY = GCANOPY
-      pp%cellptr%Ci = Ci
-      pp%cellptr%Qf = Qf
-      pp%cellptr%GPP = GPP
-      pp%cellptr%TRANS_SW = TRANS_SW
-      pp%cellptr%betad = betad
-      pp%cellptr%betadl = betadl
+      !pp%cellptr%GCANOPY = GCANOPY
+      !pp%cellptr%Ci = Ci
+      !pp%cellptr%Qf = Qf  !Calculated by hydrology scheme.
+      !pp%cellptr%GPP = GPP
+      !pp%cellptr%TRANS_SW = TRANS_SW
+      !pp%cellptr%betad = betad
+      !pp%cellptr%betadl = betadl
 
       end subroutine photosynth_cond
 
@@ -496,7 +502,7 @@
 
       call veg (pft, CNC_INOUT, CI_INOUT, Qf_IN,
      &       TRANS_SW_OUT,GPP_OUT,NPP_OUT)
-      print *,"Got here after veg..."
+
       end subroutine veg_conductance
 
 
