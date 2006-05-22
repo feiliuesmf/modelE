@@ -1691,60 +1691,90 @@ C**** Save optical depth diags
           SELECT CASE (trname(ntrix(n)))
           CASE ('Clay')
             n1=n-nrad_clay+1
-            IF (ijts_tausub(1,ntrix(n),n1) > 0)
-     &           taijs(i,j,ijts_tausub(1,ntrix(n),n1))
-     &           =taijs(i,j,ijts_tausub(1,ntrix(n),n1))
-     &           +SUM(ttausv(1:Lm,n))
-            IF (ijts_tausub(2,ntrix(n),n1) > 0)
-     &           taijs(i,j,ijts_tausub(2,ntrix(n),n1))
-     &           =taijs(i,j,ijts_tausub(2,ntrix(n),n1))
-     &           +SUM(ttausv(1:Lm,n))*OPNSKY
+            IF (diag_rad /= 1) THEN
+              IF (ijts_tausub(1,ntrix(n),n1) > 0)
+     &             taijs(i,j,ijts_tausub(1,ntrix(n),n1))
+     &             =taijs(i,j,ijts_tausub(1,ntrix(n),n1))
+     &             +SUM(ttausv(1:Lm,n))
+              IF (ijts_tausub(2,ntrix(n),n1) > 0)
+     &             taijs(i,j,ijts_tausub(2,ntrix(n),n1))
+     &             =taijs(i,j,ijts_tausub(2,ntrix(n),n1))
+     &             +SUM(ttausv(1:Lm,n))*OPNSKY
+            END IF
             if (ijts_3Dtau(1,NTRIX(n)).gt.0)
      *           taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n1)))
      *           =taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n1)))+TTAUSV(1:lm,n)
             IF (diag_rad == 1) THEN
               DO kr=1,6
-                IF (ijts_sqexsub(kr,ntrix(n),n1) > 0)
-     &               taijs(i,j,ijts_sqexsub(kr,ntrix(n),n1))
-     &               =taijs(i,j,ijts_sqexsub(kr,ntrix(n),n1))
+                IF (ijts_sqexsub(1,kr,ntrix(n),n1) > 0)
+     &               taijs(i,j,ijts_sqexsub(1,kr,ntrix(n),n1))
+     &               =taijs(i,j,ijts_sqexsub(1,kr,ntrix(n),n1))
      &               +SUM(aesqex(1:Lm,kr,n1))
-                IF (ijts_sqscsub(kr,ntrix(n),n1) > 0)
-     &               taijs(i,j,ijts_sqscsub(kr,ntrix(n),n1))
-     &               =taijs(i,j,ijts_sqscsub(kr,ntrix(n),n1))
+                IF (ijts_sqexsub(2,kr,ntrix(n),n1) > 0)
+     &               taijs(i,j,ijts_sqexsub(2,kr,ntrix(n),n1))
+     &               =taijs(i,j,ijts_sqexsub(2,kr,ntrix(n),n1))
+     &               +SUM(aesqex(1:Lm,kr,n1))*OPNSKY
+                IF (ijts_sqscsub(1,kr,ntrix(n),n1) > 0)
+     &               taijs(i,j,ijts_sqscsub(1,kr,ntrix(n),n1))
+     &               =taijs(i,j,ijts_sqscsub(1,kr,ntrix(n),n1))
      &               +SUM(aesqsc(1:Lm,kr,n1))
-                IF (ijts_sqcbsub(kr,ntrix(n),n1) > 0)
-     &               taijs(i,j,ijts_sqcbsub(kr,ntrix(n),n1))
-     &               =taijs(i,j,ijts_sqcbsub(kr,ntrix(n),n1))
+                IF (ijts_sqscsub(2,kr,ntrix(n),n1) > 0)
+     &               taijs(i,j,ijts_sqscsub(2,kr,ntrix(n),n1))
+     &               =taijs(i,j,ijts_sqscsub(2,kr,ntrix(n),n1))
+     &               +SUM(aesqsc(1:Lm,kr,n1))*OPNSKY
+                IF (ijts_sqcbsub(1,kr,ntrix(n),n1) > 0)
+     &               taijs(i,j,ijts_sqcbsub(1,kr,ntrix(n),n1))
+     &               =taijs(i,j,ijts_sqcbsub(1,kr,ntrix(n),n1))
      &               +SUM(aesqcb(1:Lm,kr,n1))
      &               /(SUM(aesqsc(1:Lm,kr,n1))+1.D-10)
+                IF (ijts_sqcbsub(2,kr,ntrix(n),n1) > 0)
+     &               taijs(i,j,ijts_sqcbsub(2,kr,ntrix(n),n1))
+     &               =taijs(i,j,ijts_sqcbsub(2,kr,ntrix(n),n1))
+     &               +SUM(aesqcb(1:Lm,kr,n1))
+     &               /(SUM(aesqsc(1:Lm,kr,n1))+1.D-10)*OPNSKY
               END DO
             END IF
           CASE DEFAULT
-            if (ijts_tau(1,NTRIX(n)).gt.0)
-     &           taijs(i,j,ijts_tau(1,NTRIX(n)))
-     *           =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
-            if (ijts_tau(2,NTRIX(n)).gt.0)
-     &           taijs(i,j,ijts_tau(2,NTRIX(n)))
-     *           =taijs(i,j,ijts_tau(2,NTRIX(n)))
-     &           +SUM(TTAUSV(1:lm,n))*OPNSKY
+            IF (diag_rad /= 1) THEN
+              if (ijts_tau(1,NTRIX(n)).gt.0)
+     &             taijs(i,j,ijts_tau(1,NTRIX(n)))
+     *             =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
+              if (ijts_tau(2,NTRIX(n)).gt.0)
+     &             taijs(i,j,ijts_tau(2,NTRIX(n)))
+     *             =taijs(i,j,ijts_tau(2,NTRIX(n)))
+     &             +SUM(TTAUSV(1:lm,n))*OPNSKY
+            END IF
             if (ijts_3Dtau(1,NTRIX(n)).gt.0)
      *           taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n)))
      *           =taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n)))+TTAUSV(1:lm,n)
             IF (diag_rad == 1) THEN
               DO kr=1,6
-                IF (ijts_sqex(kr,ntrix(n)) > 0)
-     &               taijs(i,j,ijts_sqex(kr,ntrix(n)))
-     &               =taijs(i,j,ijts_sqex(kr,ntrix(n)))
+                IF (ijts_sqex(1,kr,ntrix(n)) > 0)
+     &               taijs(i,j,ijts_sqex(1,kr,ntrix(n)))
+     &               =taijs(i,j,ijts_sqex(1,kr,ntrix(n)))
      &               +SUM(aesqex(1:Lm,kr,n))
-                IF (ijts_sqsc(kr,ntrix(n)) > 0)
-     &               taijs(i,j,ijts_sqsc(kr,ntrix(n)))
-     &               =taijs(i,j,ijts_sqsc(kr,ntrix(n)))
+                IF (ijts_sqex(2,kr,ntrix(n)) > 0)
+     &               taijs(i,j,ijts_sqex(2,kr,ntrix(n)))
+     &               =taijs(i,j,ijts_sqex(2,kr,ntrix(n)))
+     &               +SUM(aesqex(1:Lm,kr,n))*OPNSKY
+                IF (ijts_sqsc(1,kr,ntrix(n)) > 0)
+     &               taijs(i,j,ijts_sqsc(1,kr,ntrix(n)))
+     &               =taijs(i,j,ijts_sqsc(1,kr,ntrix(n)))
      &               +SUM(aesqsc(1:Lm,kr,n))
-                IF (ijts_sqcb(kr,ntrix(n)) > 0)
-     &               taijs(i,j,ijts_sqcb(kr,ntrix(n)))
-     &               =taijs(i,j,ijts_sqcb(kr,ntrix(n)))
+                IF (ijts_sqsc(2,kr,ntrix(n)) > 0)
+     &               taijs(i,j,ijts_sqsc(2,kr,ntrix(n)))
+     &               =taijs(i,j,ijts_sqsc(2,kr,ntrix(n)))
+     &               +SUM(aesqsc(1:Lm,kr,n))*OPNSKY
+                IF (ijts_sqcb(1,kr,ntrix(n)) > 0)
+     &               taijs(i,j,ijts_sqcb(1,kr,ntrix(n)))
+     &               =taijs(i,j,ijts_sqcb(1,kr,ntrix(n)))
      &               +SUM(aesqcb(1:Lm,kr,n))
      &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)
+                IF (ijts_sqcb(2,kr,ntrix(n)) > 0)
+     &               taijs(i,j,ijts_sqcb(2,kr,ntrix(n)))
+     &               =taijs(i,j,ijts_sqcb(2,kr,ntrix(n)))
+     &               +SUM(aesqcb(1:Lm,kr,n))
+     &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
               END DO
             END IF
           END SELECT

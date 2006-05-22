@@ -37,7 +37,9 @@ C**** Each tracer has a variable name and a unique index
      *     'CFC11   ','14CO2   ','CH4     ','O3      '/)
 #else
 
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) && (defined TRACERS_NITRATE)
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
+    (defined TRACERS_NITRATE)
 !@var ntm_chem number of drew-only tracers
 #ifdef regional_Ox_tracers
       integer, parameter :: ntm=47,ntm_chem=21,ntm_dust=4
@@ -69,7 +71,8 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'N_d1    ','N_d2    ','N_d3    '/)
 #endif
 #else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
 !@var ntm_chem number of drew-only tracers
 #ifdef regional_Ox_tracers
       integer, parameter :: ntm=44,ntm_chem=21,ntm_dust=4
@@ -99,7 +102,8 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'N_d1    ','N_d2    ','N_d3    '/)
 #endif
 #else
-#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
+#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch) &&\
+    (defined TRACERS_HETCHEM)
 !@var ntm_chem number of drew-only tracers
 #ifdef regional_Ox_tracers
       integer, parameter :: ntm=40,ntm_chem=21
@@ -129,7 +133,8 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'N_d1    ','N_d2    ','N_d3    '/)
 #endif
 #else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_NITRATE)
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_NITRATE)
 !@var ntm_chem number of drew-only tracers
 #ifdef regional_Ox_tracers
       integer, parameter :: ntm=35,ntm_chem=21,ntm_dust=4
@@ -156,7 +161,8 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'NO3p    ','Clay    ','Silt1   ','Silt2   ','Silt3   '/)
 #endif
 #else
-#if (defined TRACERS_DUST) && (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_NITRATE)
+#if (defined TRACERS_DUST) && (defined TRACERS_AEROSOLS_Koch) &&\
+    (defined TRACERS_NITRATE)
       integer, parameter :: ntm=20,ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
@@ -164,7 +170,8 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'OCII    ','OCIA    ','OCB     ','NH3     ','NH4     ',
      *    'NO3p    ','Clay    ','Silt1   ','Silt2   ','Silt3   '/)
 #else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch)
 !@var ntm_chem number of drew-only tracers
 #ifdef regional_Ox_tracers
       integer, parameter :: ntm=32,ntm_chem=21,ntm_dust=4
@@ -290,7 +297,8 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
 #endif
 #endif
 #else
-#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
+    (defined TRACERS_DUST)
       integer, parameter :: ntm=20,Ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',

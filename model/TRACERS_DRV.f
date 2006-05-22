@@ -66,7 +66,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       integer :: l,k,n,ntemp,n2,ltop,g,kr,n1
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
       character*10 CMR
-      CHARACTER*16 :: cform
+      CHARACTER*17 :: cform
 #ifdef TRACERS_ON
       logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
 #endif
@@ -4111,26 +4111,124 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
+        IF (diag_rad /= 1) THEN
 c BCI optical thickness
-        k = k + 1
-        ijts_tau(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = 'BCI optical thickness'
-        sname_ijts(k) = 'tau_BCI'
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(1,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = 'BCI optical thickness'
+          sname_ijts(k) = 'tau_BCI'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c BCI clear sky optical thickness
-        k = k + 1
-        ijts_tau(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = 'BCI clr sky optical thickness'
-        sname_ijts(k) = 'tau_CS_BCI'
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(2,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = 'BCI clr sky optical thickness'
+          sname_ijts(k) = 'tau_CS_BCI'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        ELSE
+          DO kr=1,6
+c extinction optical thickness in six solar bands
+            k=k+1
+            ijts_sqex(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A26,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW total extinction band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky extinction optical thickness in six solar bands
+            k=k+1
+            ijts_sqex(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A29,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW total extinction band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering optical thickness in six solar bands
+            k=k+1
+            ijts_sqsc(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A28,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW scatter extinction band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering optical thickness in six solar bands
+            k=k+1
+            ijts_sqsc(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A31,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW scatter extinction band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A26,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW asymmetry factor band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A29,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW asymmetry factor band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+          END DO
+        END IF
 c BCI shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
@@ -4204,26 +4302,124 @@ c BCI longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
+        IF (diag_rad /= 1) THEN
 c BCB optical thickness
-        k = k + 1
-        ijts_tau(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = 'BCB optical thickness'
-        sname_ijts(k) = 'tau_BCB'
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(1,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = 'BCB optical thickness'
+          sname_ijts(k) = 'tau_BCB'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c BCB clear sky optical thickness
-        k = k + 1
-        ijts_tau(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = 'BCB clr sky optical thickness'
-        sname_ijts(k) = 'tau_CS_BCB'
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(2,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = 'BCB clr sky optical thickness'
+          sname_ijts(k) = 'tau_CS_BCB'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        ELSE
+          DO kr=1,6
+c extinction optical thickness in six solar bands
+            k=k+1
+            ijts_sqex(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A26,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW total extinction band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky extinction optical thickness in six solar bands
+            k=k+1
+            ijts_sqex(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A29,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW total extinction band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering optical thickness in six solar bands
+            k=k+1
+            ijts_sqsc(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A28,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW scatter extinction band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering optical thickness in six solar bands
+            k=k+1
+            ijts_sqsc(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A31,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW scatter extinction band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A26,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW asymmetry factor band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A29,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW asymmetry factor band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_'
+     &           ,TRIM(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+          END DO
+        END IF
 c BCB shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
@@ -4373,26 +4569,124 @@ c BCB clear sky longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_OM_SP
+        IF (diag_rad /= 1) THEN
 c OC optical thickness
-        k = k + 1
-        ijts_tau(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = TRIM(trname(n))//' optical thickness'
-        sname_ijts(k) = 'tau_'//TRIM(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(1,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = TRIM(trname(n))//' optical thickness'
+          sname_ijts(k) = 'tau_'//TRIM(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c OC clear sky optical thickness
-        k = k + 1
-        ijts_tau(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = TRIM(trname(n))//' clr sky opt thickness'
-        sname_ijts(k) = 'tau_CS_'//TRIM(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(2,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = TRIM(trname(n))//' clr sky opt thickness'
+          sname_ijts(k) = 'tau_CS_'//TRIM(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        ELSE
+          DO kr=1,6
+c extinction optical thickness in six solar bands
+            k=k+1
+            ijts_sqex(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A26,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW total extinction band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky extinction optical thickness in six solar bands
+            k=k+1
+            ijts_sqex(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A29,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW total extinction band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering optical thickness in six solar bands
+            k=k+1
+            ijts_sqsc(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A28,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW scatter extinction band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering optical thickness in six solar bands
+            k=k+1
+            ijts_sqsc(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A31,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW scatter extinction band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A26,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW asymmetry factor band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A29,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW asymmetry factor band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+          END DO
+        END IF
 c OC shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
@@ -4466,26 +4760,124 @@ c OC clear sky longwave radiative forcing
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
+        IF (diag_rad /= 1) THEN
 c OC optical thickness
-        k = k + 1
-        ijts_tau(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = TRIM(trname(n))//' optical thickness'
-        sname_ijts(k) = 'tau_'//TRIM(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(1,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = TRIM(trname(n))//' optical thickness'
+          sname_ijts(k) = 'tau_'//TRIM(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c OC clear sky optical thickness
-        k = k + 1
-        ijts_tau(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = TRIM(trname(n))//' clr sky opt thickness'
-        sname_ijts(k) = 'tau_CS_'//TRIM(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(2,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = TRIM(trname(n))//' clr sky opt thickness'
+          sname_ijts(k) = 'tau_CS_'//TRIM(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        ELSE
+          DO kr=1,6
+c extinction optical thickness in six solar bands
+            k=k+1
+            ijts_sqex(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A26,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW total extinction band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky extinction optical thickness in six solar bands
+            k=k+1
+            ijts_sqex(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A29,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW total extinction band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering optical thickness in six solar bands
+            k=k+1
+            ijts_sqsc(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A28,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW scatter extinction band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering optical thickness in six solar bands
+            k=k+1
+            ijts_sqsc(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A31,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW scatter extinction band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A26,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW asymmetry factor band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A29,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW asymmetry factor band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+          END DO
+        END IF
 c OC shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
@@ -4797,26 +5189,124 @@ c put in source of SO4 from aqueous chem
         ijts_power(k) = -15.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        IF (diag_rad /= 1) THEN
 c SO4 optical thickness
-        k = k + 1
-        ijts_tau(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = 'SO4 optical thickness'
-        sname_ijts(k) = 'tau_'//trim(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(1,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = 'SO4 optical thickness'
+          sname_ijts(k) = 'tau_'//trim(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c SO4 clear sky optical thickness
-        k = k + 1
-        ijts_tau(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = 'SO4 clr sky optical thickness'
-        sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(2,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = 'SO4 clr sky optical thickness'
+          sname_ijts(k) = 'tau_CS_'//trim(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        ELSE
+          DO kr=1,6
+c extinction optical thickness in six solar bands
+            k=k+1
+            ijts_sqex(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A26,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW total extinction band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky extinction optical thickness in six solar bands
+            k=k+1
+            ijts_sqex(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A29,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW total extinction band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering optical thickness in six solar bands
+            k=k+1
+            ijts_sqsc(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A28,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW scatter extinction band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering optical thickness in six solar bands
+            k=k+1
+            ijts_sqsc(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A31,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW scatter extinction band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A26,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW asymmetry factor band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A29,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW asymmetry factor band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+          END DO
+        END IF
 c SO4 shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
@@ -5077,26 +5567,124 @@ c source of Pb210 from Rn222 decay
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
+        IF (diag_rad /= 1) THEN
 c ss1 optical thickness
-        k = k + 1
-        ijts_tau(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = 'ss1 optical thickness'
-        sname_ijts(k) = 'tau_'//trim(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(1,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = 'ss1 optical thickness'
+          sname_ijts(k) = 'tau_'//trim(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c ss1 clear sky optical thickness
-        k = k + 1
-        ijts_tau(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = 'ss1 clr sky optical thickness'
-        sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(2,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = 'ss1 clr sky optical thickness'
+          sname_ijts(k) = 'tau_CS_'//trim(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        ELSE
+          DO kr=1,6
+c extinction optical thickness in six solar bands
+            k=k+1
+            ijts_sqex(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A26,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW total extinction band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky extinction optical thickness in six solar bands
+            k=k+1
+            ijts_sqex(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A29,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW total extinction band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering optical thickness in six solar bands
+            k=k+1
+            ijts_sqsc(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A28,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW scatter extinction band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering optical thickness in six solar bands
+            k=k+1
+            ijts_sqsc(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A31,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW scatter extinction band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A26,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW asymmetry factor band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A29,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW asymmetry factor band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+          END DO
+        END IF
 c SS shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
@@ -5169,26 +5757,124 @@ c SS clear sky longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
+        IF (diag_rad /= 1) THEN
 c ss2 optical thickness
-        k = k + 1
-        ijts_tau(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = 'ss2 optical thickness'
-        sname_ijts(k) = 'tau_'//trim(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(1,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = 'ss2 optical thickness'
+          sname_ijts(k) = 'tau_'//trim(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c ss2 clear sky optical thickness
-        k = k + 1
-        ijts_tau(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = 'ss2 clr sky optical thickness'
-        sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-        ijts_power(k) = -2.
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_tau(2,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = 'ss2 clr sky optical thickness'
+          sname_ijts(k) = 'tau_CS_'//trim(trname(n))
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        ELSE
+          DO kr=1,6
+c extinction optical thickness in six solar bands
+            k=k+1
+            ijts_sqex(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A26,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW total extinction band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky extinction optical thickness in six solar bands
+            k=k+1
+            ijts_sqex(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A29,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW total extinction band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering optical thickness in six solar bands
+            k=k+1
+            ijts_sqsc(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A28,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW scatter extinction band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering optical thickness in six solar bands
+            k=k+1
+            ijts_sqsc(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A31,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW scatter extinction band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -4.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(1,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A26,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' SW asymmetry factor band ',kr
+            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(2,kr,n)=k
+            ijts_index(k)=n
+            ia_ijts(k)=ia_rad
+            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &           ',A29,I1)'
+            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &           ' CS SW asymmetry factor band ',kr
+            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &           LEN_TRIM(trname(n)),')'
+            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
+     &           TRIM(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+          END DO
+        END IF
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -5358,80 +6044,186 @@ c ss2 clear sky optical thickness
 #endif
         SELECT CASE (trname(n))
         CASE ('Clay')
+          IF (diag_rad /= 1) THEN
 c dust optical thickness of four clay sub size classes
-          k = k + 1
-          ijts_tausub(1,n,1) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'1 optical thickness'
-          sname_ijts(k) = 'tau_'//trim(trname(n))//'1'
-          ijts_power(k) = -2.
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_tausub(1,n,2) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'2 optical thickness'
-          sname_ijts(k) = 'tau_'//trim(trname(n))//'2'
-          ijts_power(k) = -2.
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_tausub(1,n,3) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'3 optical thickness'
-          sname_ijts(k) = 'tau_'//trim(trname(n))//'3'
-          ijts_power(k) = -2.
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_tausub(1,n,4) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'4 optical thickness'
-          sname_ijts(k) = 'tau_'//trim(trname(n))//'4'
-          ijts_power(k) = -2.
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
+            k = k + 1
+            ijts_tausub(1,n,1) = k
+            ijts_index(k) = n
+            ia_ijts(k) = ia_rad
+            lname_ijts(k) = trim(trname(n))//'1 optical thickness'
+            sname_ijts(k) = 'tau_'//trim(trname(n))//'1'
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            k = k + 1
+            ijts_tausub(1,n,2) = k
+            ijts_index(k) = n
+            ia_ijts(k) = ia_rad
+            lname_ijts(k) = trim(trname(n))//'2 optical thickness'
+            sname_ijts(k) = 'tau_'//trim(trname(n))//'2'
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            k = k + 1
+            ijts_tausub(1,n,3) = k
+            ijts_index(k) = n
+            ia_ijts(k) = ia_rad
+            lname_ijts(k) = trim(trname(n))//'3 optical thickness'
+            sname_ijts(k) = 'tau_'//trim(trname(n))//'3'
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            k = k + 1
+            ijts_tausub(1,n,4) = k
+            ijts_index(k) = n
+            ia_ijts(k) = ia_rad
+            lname_ijts(k) = trim(trname(n))//'4 optical thickness'
+            sname_ijts(k) = 'tau_'//trim(trname(n))//'4'
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
 c dust clear sky optical thickness of four clay sub size classes
-          k = k + 1
-          ijts_tausub(2,n,1) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'1 CS optical thickness'
-          sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'1'
-          ijts_power(k) = -2.
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_tausub(2,n,2) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'2 CS optical thickness'
-          sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'2'
-          ijts_power(k) = -2.
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_tausub(2,n,3) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'3 CS optical thickness'
-          sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'3'
-          ijts_power(k) = -2.
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_tausub(2,n,4) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'4 CS optical thickness'
-          sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'4'
-          ijts_power(k) = -2.
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
+            k = k + 1
+            ijts_tausub(2,n,1) = k
+            ijts_index(k) = n
+            ia_ijts(k) = ia_rad
+            lname_ijts(k) = trim(trname(n))//'1 CS optical thickness'
+            sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'1'
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            k = k + 1
+            ijts_tausub(2,n,2) = k
+            ijts_index(k) = n
+            ia_ijts(k) = ia_rad
+            lname_ijts(k) = trim(trname(n))//'2 CS optical thickness'
+            sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'2'
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            k = k + 1
+            ijts_tausub(2,n,3) = k
+            ijts_index(k) = n
+            ia_ijts(k) = ia_rad
+            lname_ijts(k) = trim(trname(n))//'3 CS optical thickness'
+            sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'3'
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            k = k + 1
+            ijts_tausub(2,n,4) = k
+            ijts_index(k) = n
+            ia_ijts(k) = ia_rad
+            lname_ijts(k) = trim(trname(n))//'4 CS optical thickness'
+            sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'4'
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+          ELSE
+            DO kr=1,6
+              DO n1=1,4
+c extinction optical thickness in six solar bands for four clay sub classes
+                k=k+1
+                ijts_sqexsub(1,kr,n,n1)=k
+                ijts_index(k)=n
+                ia_ijts(k)=ia_rad
+                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
+     &               ',I1,A26,I1)'
+                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
+     &               ' SW total extinction band ',kr
+                WRITE(cform,'(A11,I1,A4)') '(A8,I1,A1,A',
+     &               LEN_TRIM(trname(n)),',I1)'
+                WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',
+     &               TRIM(trname(n)),n1
+                ijts_power(k) = -4.
+                units_ijts(k) = unit_string(ijts_power(k),' ')
+                scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky extinction optical thickness in six solar bands for four clay
+c sub classes
+                k=k+1
+                ijts_sqexsub(2,kr,n,n1)=k
+                ijts_index(k)=n
+                ia_ijts(k)=ia_rad
+                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
+     &               ',I1,A29,I1)'
+                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
+     &               ' CS SW total extinction band ',kr
+                WRITE(cform,'(A12,I1,A4)') '(A11,I1,A1,A',
+     &               LEN_TRIM(trname(n)),',I1)'
+                WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
+     &               TRIM(trname(n)),n1
+                ijts_power(k) = -4.
+                units_ijts(k) = unit_string(ijts_power(k),' ')
+                scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering optical thickness in six solar bands for four clay sub classes
+                k=k+1
+                ijts_sqscsub(1,kr,n,n1)=k
+                ijts_index(k)=n
+                ia_ijts(k)=ia_rad
+                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
+     &               ',I1,A28,I1)'
+                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
+     &               ' SW scatter extinction band ',kr
+                WRITE(cform,'(A11,I1,A4)') '(A8,I1,A1,A',
+     &               LEN_TRIM(trname(n)),',I1)'
+                WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',
+     &               TRIM(trname(n)),n1
+                ijts_power(k) = -4.
+                units_ijts(k) = unit_string(ijts_power(k),' ')
+                scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering optical thickness in six solar bands for four clay
+c sub classes
+                k=k+1
+                ijts_sqscsub(2,kr,n,n1)=k
+                ijts_index(k)=n
+                ia_ijts(k)=ia_rad
+                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
+     &               ',I1,A31,I1)'
+                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
+     &               ' CS SW scatter extinction band ',kr
+                WRITE(cform,'(A12,I1,A4)') '(A11,I1,A1,A',
+     &               LEN_TRIM(trname(n)),',I1)'
+                WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
+     &               TRIM(trname(n)),n1
+                ijts_power(k) = -4.
+                units_ijts(k) = unit_string(ijts_power(k),' ')
+                scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering asymmetry factor in six solar bands for four clay sub classes
+                k=k+1
+                ijts_sqcbsub(1,kr,n,n1)=k
+                ijts_index(k)=n
+                ia_ijts(k)=ia_rad
+                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
+     &               ',I1,A26,I1)'
+                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
+     &               ' SW asymmetry factor band ',kr
+                WRITE(cform,'(A11,I1,A4)') '(A8,I1,A1,A',
+     &               LEN_TRIM(trname(n)),',I1)'
+                WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',
+     &               TRIM(trname(n)),n1
+                ijts_power(k) = -2.
+                units_ijts(k) = unit_string(ijts_power(k),' ')
+                scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering asymmetry factor in six solar bands for four clay
+c sub classes
+                k=k+1
+                ijts_sqcbsub(2,kr,n,n1)=k
+                ijts_index(k)=n
+                ia_ijts(k)=ia_rad
+                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
+     &               ',I1,A29,I1)'
+                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
+     &               ' CS SW asymmetry factor band ',kr
+                WRITE(cform,'(A12,I1,A4)') '(A11,I1,A1,A',
+     &               LEN_TRIM(trname(n)),',I1)'
+                WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
+     &               TRIM(trname(n)),n1
+                ijts_power(k) = -2.
+                units_ijts(k) = unit_string(ijts_power(k),' ')
+                scale_ijts(k) = 10.**(-ijts_power(k))
+              END DO
+            END DO
+          END IF
 c dust shortwave radiative forcing of four clay sub size classes
           k = k + 1
           ijts_fcsub(1,n,1) = k
@@ -5580,86 +6372,133 @@ c dust longwave radiative forcing at surface of four sub size classes
           ijts_power(k) = -2.
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
-          IF (diag_rad == 1) THEN
-            DO kr=1,6
-              DO n1=1,4
-c extinction optical thickness in six solar bands for four clay sub classes
-                k=k+1
-                ijts_sqexsub(kr,n,n1)=k
-                ijts_index(k)=n
-                ia_ijts(k)=ia_rad
-                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
-     &               ',I1,A26,I1)'
-                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
-     &               ' SW total extinction band ',kr
-                WRITE(cform,'(A11,I1,A4)') '(A8,I1,A1,A',
-     &               LEN_TRIM(trname(n)),',I1)'
-                WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',
-     &               TRIM(trname(n)),n1
-                ijts_power(k) = -4.
-                units_ijts(k) = unit_string(ijts_power(k),' ')
-                scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering optical thickness in six solar bands for four clay sub classes
-                k=k+1
-                ijts_sqscsub(kr,n,n1)=k
-                ijts_index(k)=n
-                ia_ijts(k)=ia_rad
-                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
-     &               ',I1,A28,I1)'
-                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
-     &               ' SW scatter extinction band ',kr
-                WRITE(cform,'(A11,I1,A4)') '(A8,I1,A1,A',
-     &               LEN_TRIM(trname(n)),',I1)'
-                WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',
-     &               TRIM(trname(n)),n1
-                ijts_power(k) = -4.
-                units_ijts(k) = unit_string(ijts_power(k),' ')
-                scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering asymmetry factor in six solar bands for four clay sub classes
-                k=k+1
-                ijts_sqcbsub(kr,n,n1)=k
-                ijts_index(k)=n
-                ia_ijts(k)=ia_rad
-                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
-     &               ',I1,A26,I1)'
-                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
-     &               ' SW asymmetry factor band ',kr
-                WRITE(cform,'(A11,I1,A4)') '(A8,I1,A1,A',
-     &               LEN_TRIM(trname(n)),',I1)'
-                WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',
-     &               TRIM(trname(n)),n1
-                ijts_power(k) = -2.
-                units_ijts(k) = unit_string(ijts_power(k),' ')
-                scale_ijts(k) = 10.**(-ijts_power(k))
-              END DO
-            END DO
-          END IF
         CASE('Silt1','Silt2','Silt3','Silt4',
      &     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
      &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &     'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &     'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
      &     'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+          IF (diag_rad /= 1) THEN
 c dust optical thickness
-          k = k + 1
-          ijts_tau(1,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//' optical thickness'
-          sname_ijts(k) = 'tau_'//trim(trname(n))
-          ijts_power(k) = -2.
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
+            k = k + 1
+            ijts_tau(1,n) = k
+            ijts_index(k) = n
+            ia_ijts(k) = ia_rad
+            lname_ijts(k) = trim(trname(n))//' optical thickness'
+            sname_ijts(k) = 'tau_'//trim(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
 c dust clear sky optical thickness
-          k = k + 1
-          ijts_tau(2,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//' CS optical thickness'
-          sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-          ijts_power(k) = -2.
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
+            k = k + 1
+            ijts_tau(2,n) = k
+            ijts_index(k) = n
+            ia_ijts(k) = ia_rad
+            lname_ijts(k) = trim(trname(n))//' CS optical thickness'
+            sname_ijts(k) = 'tau_CS_'//trim(trname(n))
+            ijts_power(k) = -2.
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+          ELSE
+            DO kr=1,6
+c extinction optical thickness in six solar bands
+              k=k+1
+              ijts_sqex(1,kr,n)=k
+              ijts_index(k)=n
+              ia_ijts(k)=ia_rad
+              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &             ',A26,I1)'
+              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &             ' SW total extinction band ',kr
+              WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &             LEN_TRIM(trname(n)),')'
+              WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',
+     &             TRIM(trname(n))
+              ijts_power(k) = -4.
+              units_ijts(k) = unit_string(ijts_power(k),' ')
+              scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky extinction optical thickness in six solar bands
+              k=k+1
+              ijts_sqex(2,kr,n)=k
+              ijts_index(k)=n
+              ia_ijts(k)=ia_rad
+              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &             ',A29,I1)'
+              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &             ' CS SW total extinction band ',kr
+              WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &             LEN_TRIM(trname(n)),')'
+              WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
+     &             TRIM(trname(n))
+              ijts_power(k) = -4.
+              units_ijts(k) = unit_string(ijts_power(k),' ')
+              scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering optical thickness in six solar bands
+              k=k+1
+              ijts_sqsc(1,kr,n)=k
+              ijts_index(k)=n
+              ia_ijts(k)=ia_rad
+              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &             ',A28,I1)'
+              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &             ' SW scatter extinction band ',kr
+              WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &             LEN_TRIM(trname(n)),')'
+              WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',
+     &             TRIM(trname(n))
+              ijts_power(k) = -4.
+              units_ijts(k) = unit_string(ijts_power(k),' ')
+              scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering optical thickness in six solar bands
+              k=k+1
+              ijts_sqsc(2,kr,n)=k
+              ijts_index(k)=n
+              ia_ijts(k)=ia_rad
+              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &             ',A31,I1)'
+              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &             ' CS SW scatter extinction band ',kr
+              WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &             LEN_TRIM(trname(n)),')'
+              WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
+     &             TRIM(trname(n))
+              ijts_power(k) = -4.
+              units_ijts(k) = unit_string(ijts_power(k),' ')
+              scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering asymmetry factor in six solar bands
+              k=k+1
+              ijts_sqcb(1,kr,n)=k
+              ijts_index(k)=n
+              ia_ijts(k)=ia_rad
+              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &             ',A26,I1)'
+              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &             ' SW asymmetry factor band ',kr
+              WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &             LEN_TRIM(trname(n)),')'
+              WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',
+     &             TRIM(trname(n))
+              ijts_power(k) = -2.
+              units_ijts(k) = unit_string(ijts_power(k),' ')
+              scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering asymmetry factor in six solar bands
+              k=k+1
+              ijts_sqcb(2,kr,n)=k
+              ijts_index(k)=n
+              ia_ijts(k)=ia_rad
+              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &             ',A29,I1)'
+              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &             ' CS SW asymmetry factor band ',kr
+              WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &             LEN_TRIM(trname(n)),')'
+              WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
+     &             TRIM(trname(n))
+              ijts_power(k) = -2.
+              units_ijts(k) = unit_string(ijts_power(k),' ')
+              scale_ijts(k) = 10.**(-ijts_power(k))
+            END DO
+          END IF
 c dust shortwave radiative forcing
           k = k + 1
           ijts_fc(1,n) = k
@@ -5700,58 +6539,6 @@ c dust longwave radiative forcing at surface
           ijts_power(k) = -2.
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
-          IF (diag_rad == 1) THEN
-            DO kr=1,6
-c extinction optical thickness in six solar bands
-              k=k+1
-              ijts_sqex(kr,n)=k
-              ijts_index(k)=n
-              ia_ijts(k)=ia_rad
-              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &             ',A26,I1)'
-              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &             ' SW total extinction band ',kr
-              WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &             LEN_TRIM(trname(n)),')'
-              WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',
-     &             TRIM(trname(n))
-              ijts_power(k) = -4.
-              units_ijts(k) = unit_string(ijts_power(k),' ')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering optical thickness in six solar bands
-              k=k+1
-              ijts_sqsc(kr,n)=k
-              ijts_index(k)=n
-              ia_ijts(k)=ia_rad
-              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &             ',A28,I1)'
-              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &             ' SW scatter extinction band ',kr
-              WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &             LEN_TRIM(trname(n)),')'
-              WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',
-     &             TRIM(trname(n))
-              ijts_power(k) = -4.
-              units_ijts(k) = unit_string(ijts_power(k),' ')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering asymmetry factor in six solar bands
-              k=k+1
-              ijts_sqcb(kr,n)=k
-              ijts_index(k)=n
-              ia_ijts(k)=ia_rad
-              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &             ',A26,I1)'
-              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &             ' SW asymmetry factor band ',kr
-              WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &             LEN_TRIM(trname(n)),')'
-              WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',
-     &             TRIM(trname(n))
-              ijts_power(k) = -2.
-              units_ijts(k) = unit_string(ijts_power(k),' ')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-            END DO
-          END IF
         END SELECT
 #endif
 

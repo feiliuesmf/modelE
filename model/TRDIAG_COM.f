@@ -109,45 +109,87 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
     (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
     (defined TRACERS_NITRATE) && (defined  EDGAR_HYDE_SOURCES)
-      INTEGER,PARAMETER :: ktaijs=530
+      INTEGER,PARAMETER :: ktaijs=846
 #else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
     (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
     (defined TRACERS_NITRATE)
-      INTEGER,PARAMETER :: ktaijs=511
+      INTEGER,PARAMETER :: ktaijs=827
 #else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
     (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
     (defined  EDGAR_HYDE_SOURCES)
-      INTEGER,PARAMETER :: ktaijs=521
+      INTEGER,PARAMETER :: ktaijs=837
 #else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
     (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
-      INTEGER,PARAMETER :: ktaijs=502
+      INTEGER,PARAMETER :: ktaijs=818
+#else
+#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch) &&\
+    (defined TRACERS_HETCHEM) && (defined  EDGAR_HYDE_SOURCES)
+      INTEGER,PARAMETER :: ktaijs=498
+#else
+#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch) &&\
+    (defined TRACERS_HETCHEM)
+      INTEGER,PARAMETER :: ktaijs=479
 #else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
     (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_NITRATE) &&\
     (defined EDGAR_HYDE_SOURCES)
-      INTEGER,PARAMETER :: ktaijs=493
+      INTEGER,PARAMETER :: ktaijs=707
 #else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
     (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_NITRATE)
-      INTEGER,PARAMETER :: ktaijs=474
+      INTEGER,PARAMETER :: ktaijs=688
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch) && (defined  EDGAR_HYDE_SOURCES)
+      INTEGER,PARAMETER :: ktaijs=698
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch)
+      INTEGER,PARAMETER :: ktaijs=679
 #else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
     (defined EDGAR_HYDE_SOURCES)
-      INTEGER,PARAMETER :: ktaijs=401
+      INTEGER,PARAMETER :: ktaijs=513
 #else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell)
-      INTEGER,PARAMETER :: ktaijs=382
+      INTEGER,PARAMETER :: ktaijs=494
+#else
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined EDGAR_HYDE_SOURCES)
+      INTEGER,PARAMETER :: ktaijs=495
+#else
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
+      INTEGER,PARAMETER :: ktaijs=476
+#else
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
+    (defined TRACERS_DUST)
+      INTEGER,PARAMETER :: ktaijs=663
+#else
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_DUST)
+      INTEGER,PARAMETER :: ktaijs=660
+#else
+#ifdef TRACERS_DUST
+      INTEGER,PARAMETER :: ktaijs=393
 #else
 #if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
-      INTEGER,PARAMETER :: ktaijs=854
+      INTEGER,PARAMETER :: ktaijs=1222
 #else
 #ifdef TRACERS_MINERALS
-      INTEGER,PARAMETER :: ktaijs=743
+      INTEGER,PARAMETER :: ktaijs=1063
 #else
       integer, parameter :: ktaijs= 364
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
 #endif
 #endif
 #endif
@@ -208,20 +250,20 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_tausub index for TAIJS opt. thick. for tracer sub classes
       INTEGER ijts_tausub(2,Ntm,MaxSubCl)
 !@var ijts_sqex index for TAIJS total extinction for 6 radiation bands
-      INTEGER ijts_sqex(6,Ntm)
+      INTEGER ijts_sqex(2,6,Ntm)
 !@var ijts_sqexsub index for TAIJS total extinction for 6 radiation bands for
 !@+   tracer sub classes
-      INTEGER ijts_sqexsub(6,Ntm,MaxSubCl)
+      INTEGER ijts_sqexsub(2,6,Ntm,MaxSubCl)
 !@var ijts_sqsc index for TAIJS scattering extinction for 6 radiation bands
-      INTEGER ijts_sqsc(6,Ntm)
+      INTEGER ijts_sqsc(2,6,Ntm)
 !@var ijts_sqscsub index for TAIJS scattering extinction for 6 radiation
 !@+   bands for tracer sub classes
-      INTEGER ijts_sqscsub(6,Ntm,MaxSubCl)
+      INTEGER ijts_sqscsub(2,6,Ntm,MaxSubCl)
 !@var ijts_sqcb index for TAIJS sct asymmetry factor for 6 radiation bands
-      INTEGER ijts_sqcb(6,Ntm)
+      INTEGER ijts_sqcb(2,6,Ntm)
 !@var ijts_sqcbsub index for TAIJS sct asymmetry factor for 6 radiation bands
 !@+   for tracer sub classes
-      INTEGER ijts_sqcbsub(6,Ntm,MaxSubCl)
+      INTEGER ijts_sqcbsub(2,6,Ntm,MaxSubCl)
 !@var ijts_fc tracer independent array for TAIJS SW/LW rad. forcings
       INTEGER ijts_fc(6,ntm)
 !@var ijts_fcsub index for TAIJS SW/LW rad. forc. for tracer sub classes
@@ -328,6 +370,10 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
     (defined EDGAR_HYDE_SOURCES)
       INTEGER,PARAMETER :: ktajls=181
 #else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined TRACERS_AEROSOLS_Koch) && (defined EDGAR_HYDE_SOURCES)
+      INTEGER,PARAMETER :: ktajls=181
+#else
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
 #ifdef regional_Ox_tracers
       INTEGER, PARAMETER :: ktajls=176
@@ -335,19 +381,20 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, PARAMETER :: ktajls=164
 #endif
 #else
+#ifdef TRACERS_DUST
+      INTEGER,PARAMETER :: Ktajls=83
+#else
 #if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
       INTEGER,PARAMETER :: ktajls=325
 #else
 #ifdef TRACERS_MINERALS
-      INTEGER,PARAMETER :: ktajls=283
+      INTEGER,PARAMETER :: ktajls=303
 #else
 #ifdef TRACERS_QUARZHEM
       INTEGER,PARAMETER :: ktajls=45
 #else
-#ifdef TRACERS_DUST
-      INTEGER,PARAMETER :: Ktajls=78
-#else
       INTEGER, PARAMETER :: ktajls=36   ! default
+#endif
 #endif
 #endif
 #endif
