@@ -349,6 +349,10 @@
       read(10,*) Tc, Ci, Qf, CNC
       close(10)
 
+      !ALTERNATE DEFAULT VALUES
+      !Ci = 0.7 * 380e-06 * Pa/(R*TKelvin)  !Gives mol m-3
+      !CNC = 0.0006*LAI
+
       !* DEBUG *!
       !write(10,*) Tc, Ci, Qf, CNC
       end subroutine veg_set_init
