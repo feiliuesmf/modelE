@@ -211,7 +211,7 @@
       real*8 :: Ci  
 !      real*8 :: Qf !Put in DRIVERS section
       real*8 :: TRANS_SW
-      real*8 :: betad       !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
+      !real*8 :: betad           !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
       real*8 :: betadl(N_DEPTH) !Water stress in layers
 
       !     DIAGNOSTIC VARIABLES
@@ -447,34 +447,49 @@
 
 !----------------------------------------------------------------------------
 !!! debugging...
-      print *,"------------------------------------------------------"
-      print *,"Input data passed to veg_conductance:"
-      print *,"dt_in",        dt_in        !GHY time step (seconds)
-      print *,"CNC_INOUT",    CNC_INOUT    !Canopy conductance of water vapor (m/s)
-      print *,"Ci_INOUT",     Ci_INOUT     !Internal foliage CO2 (mol/m3)
-      print *,"Qf_IN",        Qf_IN        !Foliage surface vapor mixing ratio (kg/kg)
-      print *,"TRANS_SW_OUT", TRANS_SW_OUT !SW transmissivity of canopy to ground
-      print *,"GPP_OUT",      GPP_OUT      !Gross primary productivitiy (umol[CO2]/m2/s)
-      print *,"NPP_OUT",      NPP_OUT      !Net primary productivity (kg[C]/m2/s)
-      print *,"betad",        betad        !Water stress
-      print *,"betadl",       betadl       !Water stress in layers
-      print *,"pft",          pft          !PFT number
-      print *,"lai",          lai          !LAI
-      print *,"nm",           nm           !Mean N (g-N/m2-leaf)
-      print *,"vh",           vh           !canopy height (m)
-      print *,"vegalbedo",    vegalbedo    !Canopy albedo **THIS COULD BE AN OUTPUT VAR **
-      print *,"nsoillayer",   nsoillayer   !No. of soil layers
-      print *,"soilmp_in",    soilmp_in    !Soil matric potential (m)
-      print *,"fice_in",      fice_in      !Fraction of soil layer that is ice
-      print *,"froot_in",     froot_in     !Fraction of roots in soil layer
-      print *,"tcan_in",      tcan_in      !Canopy temperature (C)
-      print *,"pres_in",      pres_in      !See below for descriptions and units.
-      print *,"ch_in",        ch_in        !Heat transfer coefficient
-      print *,"U_in",         U_in         !Wind speed (m/s)
-      print *,"parinc_in",    parinc_in    !Incid ent PAR (visible solar, dir+dir) (W/m2)
-      print *,"fdir_in",      fdir_in      !Fraction of PAR that is direct
-      print *,"solarzen_in",  solarzen_in  !Solar zenith angle
-      print *,"Ca_in",        Ca_in        !CO2 concentration at surface height (mol/m3)
+      !print *,"------------------------------------------------------"
+      !print *,"Input data passed to veg_conductance:"
+      !print *,"dt_in",        dt_in        !GHY time step (seconds)
+      !print *,"CNC_INOUT",    CNC_INOUT    !Canopy conductance of water vapor (m/s)
+      !print *,"Ci_INOUT",     Ci_INOUT     !Internal foliage CO2 (mol/m3)
+      !print *,"Qf_IN",        Qf_IN        !Foliage surface vapor mixing ratio (kg/kg)
+      !print *,"TRANS_SW_OUT", TRANS_SW_OUT !SW transmissivity of canopy to ground
+      !print *,"GPP_OUT",      GPP_OUT      !Gross primary productivitiy (umol[CO2]/m2/s)
+      !print *,"NPP_OUT",      NPP_OUT      !Net primary productivity (kg[C]/m2/s)
+      !print *,"betad",        betad        !Water stress
+      !print *,"betadl",       betadl       !Water stress in layers
+      !print *,"pft",          pft          !PFT number
+      !print *,"lai",          lai          !LAI
+      !print *,"nm",           nm           !Mean N (g-N/m2-leaf)
+      !print *,"vh",           vh           !canopy height (m)
+      !print *,"vegalbedo",    vegalbedo    !Canopy albedo **THIS COULD BE AN OUTPUT VAR **
+      !print *,"nsoillayer",   nsoillayer   !No. of soil layers
+      !print *,"soilmp_in",    soilmp_in    !Soil matric potential (m)
+      !print *,"fice_in",      fice_in      !Fraction of soil layer that is ice
+      !print *,"froot_in",     froot_in     !Fraction of roots in soil layer
+      !print *,"tcan_in",      tcan_in      !Canopy temperature (C)
+      !print *,"pres_in",      pres_in      !See below for descriptions and units.
+      !print *,"ch_in",        ch_in        !Heat transfer coefficient
+      !print *,"U_in",         U_in         !Wind speed (m/s)
+      !print *,"parinc_in",    parinc_in    !Incid ent PAR (visible solar, dir+dir) (W/m2)
+      !print *,"fdir_in",      fdir_in      !Fraction of PAR that is direct
+      !print *,"solarzen_in",  solarzen_in  !Solar zenith angle
+      !print *,"Ca_in",        Ca_in        !CO2 concentration at surface height (mol/m3)
+
+      !## DEBUG ##
+!      write(96,*) "dt_in,CNC_INOUT,Ci_INOUT,Qf_IN,TRANS_SW_OUT
+!     &,GPP_OUT,NPP_OUT
+!     &,betad,betadl1,betadl2,betadl3,betadl4,betadl5,betadl6
+!     &,pft,lai,nm,vh,vegalbedo,
+!     &nsoillayer,soilmp_in1,soilmp2,soilmp3,soilmp4,soilmp5,soilmp6
+!     &,fice_in,fice2,fice3,fice4,fice5,fice6
+!     &froot_in,froot2,froot3,froot4,froot5,froot6
+!     &,tcan_in,pres_in,ch_in,U_in,parinc_in,fdir_in,solarzen_in,Ca_in"
+
+!      write(96,*) dt_in, CNC_INOUT,Ci_INOUT,Qf_IN,TRANS_SW_OUT,GPP_OUT
+!     &     ,NPP_OUT,betad,betadl,pft,lai,nm,vh,vegalbedo,nsoillayer
+!     &     ,soilmp_in,fice_in,froot_in,tcan_in,pres_in,ch_in,U_in
+!     &     ,parinc_in,fdir_in,solarzen_in,Ca_in,
      
 
 
@@ -667,6 +682,9 @@
      &   ((Ci_INOUT+0.004D0)/(Ci_INOUT+EPS))*2.8D0**(-80.0D0*dQs)
 ! Required change in canopy conductance to reach equilibrium (m/s).
       dCNC=CNCN-CNC_INOUT
+      !## DEBUG ##
+!      write(94,*) "betad, vegpar%vh, Ci_INOUT,dQs,CNCN,dCNC", betad,
+!     &     vegpar%vh, Ci_INOUT, dQs, CNCN, dCNC
 !nu Limit CNC change over timestep because of guard cell mechanics (m/s)
       dCNC_max=dt*vegpar%alai*(0.006D0-0.00006D0)/1800.0D0
       if( dCNC.gt.dCNC_max)CNCN=CNC_INOUT+dCNC_max
