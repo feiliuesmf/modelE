@@ -508,7 +508,7 @@ C**** update running-average of ground temperature:
       call running_average(ra_gwet,I,J,dble(nisurf),n__gwet)
 #endif
       end subroutine ghy_tracers_save_cell
-      
+
       end module ghy_tracers
 #endif
 c******************   END   TRACERS             ************************
@@ -775,8 +775,8 @@ C**** halo update u and v for distributed parallelization
 #endif
 #endif
 
-       idx = 
-     &     (/ idd_ts,  idd_tg1, idd_qs,  idd_qg,  idd_swg, 
+       idx =
+     &     (/ idd_ts,  idd_tg1, idd_qs,  idd_qg,  idd_swg,
      &        idd_lwg, idd_sh,  idd_lh,  idd_hz0, idd_ug,
      &        idd_vg,  idd_wg,  idd_us,  idd_vs,  idd_ws,
      &        idd_cia, idd_cm,  idd_ch,  idd_cq,  idd_eds,
@@ -1046,7 +1046,7 @@ c**** update tracers
       ih=1+jhour
       ihm = ih+(jdate-1)*24
 
-    
+
       DO kr = 1, ndiupt
         DO ii = 1, N_IDX
           ivar = idx(ii)
@@ -1086,7 +1086,7 @@ c**** update tracers
         END DO
       END DO
 
-C***Initialize work array 
+C***Initialize work array
       areg_part(:,:,1:9) = 0.
 
       DO 825 J=J_0,J_1
@@ -1429,7 +1429,7 @@ c**** quantities accumulated hourly for diagDD
       if ( moddd == 0 ) then
         do kr=1,ndiupt
           if(i.eq.ijdd(1,kr).and.j.eq.ijdd(2,kr)) then
-            
+
             tmp(idd_ts)=+ts*ptype
             tmp(idd_tg1)=+(tg1+tf)*ptype
             tmp(idd_qs)=+qs*ptype
@@ -1527,25 +1527,25 @@ c**** quantities accumulated hourly for diagDD
      *             +            vabl(1,i,j,itype)*vabl(1,i,j,itype))
               tmp(idd_uvabl2)=
      *             +ptype*sqrt( uabl(2,i,j,itype)*uabl(2,i,j,itype)
-     *             +            vabl(2,i,j,itype)*vabl(2,i,j,itype)) 
+     *             +            vabl(2,i,j,itype)*vabl(2,i,j,itype))
               tmp(idd_uvabl3)=
      *             +ptype*sqrt( uabl(3,i,j,itype)*uabl(3,i,j,itype)
-     *             +            vabl(3,i,j,itype)*vabl(3,i,j,itype)) 
+     *             +            vabl(3,i,j,itype)*vabl(3,i,j,itype))
               tmp(idd_uvabl4)=
      *             +ptype*sqrt( uabl(4,i,j,itype)*uabl(4,i,j,itype)
-     *             +            vabl(4,i,j,itype)*vabl(4,i,j,itype)) 
+     *             +            vabl(4,i,j,itype)*vabl(4,i,j,itype))
               tmp(idd_uvabl5)=
      *             +ptype*sqrt( uabl(5,i,j,itype)*uabl(5,i,j,itype)
-     *             +            vabl(5,i,j,itype)*vabl(5,i,j,itype)) 
+     *             +            vabl(5,i,j,itype)*vabl(5,i,j,itype))
               tmp(idd_uvabl6)=
      *             +ptype*sqrt( uabl(6,i,j,itype)*uabl(6,i,j,itype)
-     *             +            vabl(6,i,j,itype)*vabl(6,i,j,itype)) 
+     *             +            vabl(6,i,j,itype)*vabl(6,i,j,itype))
               tmp(idd_uvabl7)=
      *             +ptype*sqrt( uabl(7,i,j,itype)*uabl(7,i,j,itype)
-     *             +            vabl(7,i,j,itype)*vabl(7,i,j,itype)) 
+     *             +            vabl(7,i,j,itype)*vabl(7,i,j,itype))
               tmp(idd_uvabl8)=
      *             +ptype*sqrt( uabl(8,i,j,itype)*uabl(8,i,j,itype)
-     *             +            vabl(8,i,j,itype)*vabl(8,i,j,itype)) 
+     *             +            vabl(8,i,j,itype)*vabl(8,i,j,itype))
 
               tmp(idd_tabl1)=+ptype*tabl(1,i,j,itype)
               tmp(idd_tabl2)=+ptype*tabl(2,i,j,itype)
@@ -1599,7 +1599,7 @@ c**** quantities accumulated hourly for diagDD
 
             END IF
 #endif
-            
+
             ADIURN_part(J,idx(:),kr)=ADIURN_part(J,idx(:),kr) +
      *           tmp(idx(:))
 #ifndef TRACERS_DUST
@@ -1712,7 +1712,7 @@ c**** 11*ngm+1           sl
       integer :: ghy_default_data = 0
 
        real*8 :: evap_max_ij_sum
-C****	define local grid
+C**** define local grid
       integer J_0, J_1
       integer J_0H, J_1H
 
@@ -1751,10 +1751,10 @@ c**** read soils parameters
         ALLOCATE(TEMP_LOCAL(IM,J_0H:J_1H,11*NGM+1))
         call DREAD_PARALLEL(grid,iu_SOIL,NAMEUNIT(iu_SOIL),TEMP_LOCAL)
         DZ_IJ(:,:,:)   = TEMP_LOCAL(:,:,1:NGM)
-         Q_IJ(:,J_0:J_1,:,:) = RESHAPE( TEMP_LOCAL(:,J_0:J_1,1+NGM:) , 
+         Q_IJ(:,J_0:J_1,:,:) = RESHAPE( TEMP_LOCAL(:,J_0:J_1,1+NGM:) ,
      *                   (/im,J_1-J_0+1,imt,ngm/) )
-        QK_IJ(:,J_0:J_1,:,:) = 
-     *                 RESHAPE( TEMP_LOCAL(:,J_0:J_1,1+NGM+NGM*IMT:) , 
+        QK_IJ(:,J_0:J_1,:,:) =
+     *                 RESHAPE( TEMP_LOCAL(:,J_0:J_1,1+NGM+NGM*IMT:) ,
      *                   (/im,J_1-J_0+1,imt,ngm/) )
         SL_IJ(:,J_0:J_1)  = TEMP_LOCAL(:,J_0:J_1,1+NGM+NGM*IMT+NGM*IMT)
         DEALLOCATE(TEMP_LOCAL)
@@ -1897,9 +1897,9 @@ C-BMP Global sum on evap_max_ij
 
 ccc if not initialized yet, set evap_max_ij, fr_sat_ij, qg_ij
 ccc to something more appropriate
-       
-       call globalsum(grid, evap_max_ij,evap_max_ij_sum, 
-     &                all=.true.) 
+
+       call globalsum(grid, evap_max_ij,evap_max_ij_sum,
+     &                all=.true.)
       if ( evap_max_ij_sum > im*jm-1.d0 ) then ! old default
         do j=J_0,J_1
           do i=1,im
@@ -2156,9 +2156,9 @@ c**** set up layers
       n=0
       do k=1,ngm
         if(dz(k).le.0.) exit
-        n=k                
+        n=k
       end do
-          
+
       if(n.le.0) then
          write (99,*) 'ghinij:  n <= 0:  i,j,n=',i0,j0,n,(dz(k),k=1,43)
          call stop_model('stopped in GHY_DRV.f',255)
@@ -2475,34 +2475,26 @@ c**** check for reasonable temperatures over earth
 C**** define local grid
       integer J_0, J_1
 
-C****
 C**** Extract useful local domain parameters from "grid"
-C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
       if(crops_yr.eq.0) call updveg(jyear,.true.)
-      if(cond_scheme.eq.2) call updsur (0,jday)
-c****
+
 c**** find leaf-area index & water field capacity for ground layer 1
-c****
+      if(cond_scheme.eq.2) call updsur (0,jday) ! Update vegn albedos
+            !albvnh(9,6,2)=albvnh(1+8veg,6bands,2hemi), band 1 is VIS.
       cosday=cos(twopi/edpery*jday)
       sinday=sin(twopi/edpery*jday)
       do j=J_0,J_1
         if(j.le.jm/2) then      !nyk added northsouth
-          northsouth=1.d0       !southern hemisphere
+          northsouth=1          !southern hemisphere
         else
-          northsouth=2.d0       !northern hemisphere
+          northsouth=2          !northern hemisphere
         end if
         do i=1,im
           wfcs(i,j)=24.
           if (fearth(i,j).gt.0.) then
-            !-----------------------------------------------------------
-            !nyk Update vegetation albedos.
-            !WARNING:  ALBVNH is not saved in a restart file.
-            !          Must run without restarting.
-            !albvnh(9,6,2)=albvnh(1+8veg,6bands,2hemi), band 1 is VIS.
-            !if RUNDECK selects new conductance scheme
             if (cond_scheme.eq.2) then
               aalbveg0 = 0.d0
               sfv=0.d0
@@ -2518,7 +2510,6 @@ c****
               if(sfv.gt.0.) aalbveg(i,j) = aalbveg0/sfv !nyk
              !write (99,*) 'daily aalbveg', aalbveg(i,j)
             end if
-            !-----------------------------------------------------------
 
             call ghinij(i,j)
             call veg_set_cell(i,j,.true.)
@@ -2622,7 +2613,7 @@ C**** Work array for regional diagnostic accumulation
      &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,6 )
      &        :: AREG_PART
 
-C****	define local grid
+C**** define local grid
       integer J_0, J_1, J_0H, J_1H
 
 C****
@@ -2689,7 +2680,7 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
           aij(i,j,ij_g07+k-1)=aij(i,j,ij_g07+k-1)+wvege(k-1,i,j)
         end do
         aij(i,j,ij_g04)=aij(i,j,ij_g04)+wbare(6,i,j)
-        aij(i,j,ij_g10)=aij(i,j,ij_g10)+wvege(6,i,j)        
+        aij(i,j,ij_g10)=aij(i,j,ij_g10)+wvege(6,i,j)
         aij(i,j,ij_g28)=aij(i,j,ij_g28)+snowbv(1,i,j)
         aij(i,j,ij_g29)=aij(i,j,ij_g29)+snowbv(2,i,j)
         aij(i,j,ij_zsnow)=aij(i,j,ij_zsnow) + pearth *
@@ -2702,19 +2693,19 @@ c****
       end do
       end do
 
-      call globalsum(grid,areg_part(1:size(areg,1),:,1:6), 
+      call globalsum(grid,areg_part(1:size(areg,1),:,1:6),
      &    areg_sum(1:size(areg,1),1:6), all=.true.)
-      areg(1:size(areg,1),j_rsnow)=areg(1:size(areg,1),j_rsnow) 
+      areg(1:size(areg,1),j_rsnow)=areg(1:size(areg,1),j_rsnow)
      &    + areg_sum(1:size(areg,1),1)
-      areg(1:size(areg,1),j_snow)=areg(1:size(areg,1),j_snow) 
+      areg(1:size(areg,1),j_snow)=areg(1:size(areg,1),j_snow)
      &    + areg_sum(1:size(areg,1),2)
-      areg(1:size(areg,1),j_wtr1)=areg(1:size(areg,1),j_wtr1) 
+      areg(1:size(areg,1),j_wtr1)=areg(1:size(areg,1),j_wtr1)
      &    + areg_sum(1:size(areg,1),3)
-      areg(1:size(areg,1),j_ace1)=areg(1:size(areg,1),j_ace1) 
+      areg(1:size(areg,1),j_ace1)=areg(1:size(areg,1),j_ace1)
      &    + areg_sum(1:size(areg,1),4)
-      areg(1:size(areg,1),j_wtr2)=areg(1:size(areg,1),j_wtr2) 
+      areg(1:size(areg,1),j_wtr2)=areg(1:size(areg,1),j_wtr2)
      &    + areg_sum(1:size(areg,1),5)
-      areg(1:size(areg,1),j_ace2)=areg(1:size(areg,1),j_ace2) 
+      areg(1:size(areg,1),j_ace2)=areg(1:size(areg,1),j_ace2)
      &    + areg_sum(1:size(areg,1),6)
 
 
