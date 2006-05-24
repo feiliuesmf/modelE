@@ -272,10 +272,10 @@ $(BIN_DIR):
 ESMF_Interface=$(shell pwd)/ESMF_Interface
 export
 esmf_interface: $(wildcard ESMF_Interface/*.F90)
-	$(MAKE) -C $(ESMF_Interface) all
+	$(MAKE) -C $(ESMF_Interface) all RFLAGS=""
 
 ESMF_Interface/esmf_custom_mod.mod: ESMF_Interface/ESMF_CUSTOM_MOD.F90
-	$(MAKE) -C $(ESMF_Interface) all
+	$(MAKE) -C $(ESMF_Interface) all RFLAGS=""
 
 # Create an executable
 gcm: $(BIN_DIR)/$(RUN).exe
