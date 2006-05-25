@@ -1028,7 +1028,8 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
 C**** Check the vertical layering defined in RES_ (is sige(ls1)=0 ?)
       IF (SIGE(LS1).ne.0.) then
         if (AM_I_ROOT()) 
-     *        write(6,*) 'bad vertical layering: ls1,sige(ls1)',ls1,sige(ls1)
+     *       write(6,*) 'bad vertical layering: ls1,sige(ls1)',
+     &       ls1,sige(ls1)
         call stop_model('INPUT: ls1 incorrectly set in RES_',255)
       END IF
 C****
