@@ -245,8 +245,8 @@ F90 = g95
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CPPFLAGS = -DMACHINE_Linux -DCOMPILER_G95
-FFLAGS = -fno-second-underscore -O0 # -cpp
-F90FLAGS = -fno-second-underscore -O0 -ffree-form
+FFLAGS = -fno-second-underscore -O0 -fendian=big
+F90FLAGS = -fno-second-underscore -O0 -ffree-form -fendian=big
 LFLAGS =
 # uncomment next two lines for extensive debugging
 # the following switch adds extra debugging
@@ -402,9 +402,20 @@ ESMFINCLUDEDIR = ${ESMF_DIR}/mod/mod${ESMF_BOPT}/Linux.g95.64.default
 ESMFLIBDIR = ${ESMF_DIR}/lib/lib${ESMF_BOPT}/Linux.g95.64.default
 
 CPPFLAGS += -DUSE_ESMF
-#LIBS += -L${ESMFLIBDIR} -L${MPIDIR}/lib  -lesmf  -lmpi -llam  -lpthread -lnetcdf_stubs -lrt -lc
-LIBS += -L${ESMFLIBDIR} -L${MPIDIR}/lib  -lesmf  -lmpi -lmpi++ -lstdc++  -lpthread -lnetcdf_stubs -lrt -lc
-#-lesmf -lmpi -llam -lm -lrt -ldl -lnetcdf_stubs
+
+ifeq ($(MPIDISTR),LAM)
+# these libs work on desktop with default LAM
+LIBS += -L${ESMFLIBDIR} -L${MPIDIR}/lib  -lesmf   -llammpi++ -lmpi \
+-llam -llamf77mpi  -lpthread -lnetcdf_stubs -lrt -lc /usr/lib64/libstdc++.so.6
+# default LAM distribution has double underscores
+CPPFLAGS += -DMPILIB_DOUBLE_UNDERSCORE
+else
+# these libs are supposed to work on "palm"
+LIBS += -L${ESMFLIBDIR} -L${MPIDIR}/lib  -lesmf  -lmpi -lmpi++ \
+-lstdc++  -lpthread -lnetcdf_stubs -lrt -lc
+endif
+
+
 FFLAGS += -I${ESMFINCLUDEDIR} -I${MPIDIR}/include
 INCS += -I ${ESMFINCLUDEDIR} -I${MPIDIR}/include
 endif
