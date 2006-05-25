@@ -1,3 +1,5 @@
+#include "mpi_defs.h"
+
       MODULE DOMAIN_DECOMP
 !@sum  DOMAIN_DECOMP encapsulates lat-lon decomposition information
 !@+    for the message passing (ESMF) implementation.
@@ -1636,7 +1638,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
          rdspl(p)=rdspl(p-1)+rcnts(p-1)
       End Do
 
-      Call MPI_AllToAllv(send_buf, scnts, sdspl, mpi_double_precision,
+      Call MPI_ALLTOALLV(send_buf, scnts, sdspl, mpi_double_precision,
      &             recv_buf, rcnts, rdspl, mpi_double_precision,
      &             mpi_comm_world, ier)
 
@@ -1648,7 +1650,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
          rdspl(p)=rdspl(p-1)+rcnts(p-1)
       End Do
 
-      Call MPI_Gatherv(tsum, dik, mpi_double_precision,
+      Call MPI_GatherV(tsum, dik, mpi_double_precision,
      & gsum, dik_map, rdspl, mpi_double_precision,
      & root, mpi_comm_world, ier)
 
@@ -2306,7 +2308,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
           global_array(I1:IN,J1:JN) =
      &         RESHAPE(var(displs(J):displs(I)-1),
      &         shape=(/size(local_array,1),
-     &         size(local_array,2)/))
+     &         JN-J1+1/))
+   !  &         size(local_array,2)/))
         enddo
       endif
       deallocate(VAR, stat=status)
@@ -2374,7 +2377,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
           global_array(I1:IN,J1:JN) =
      &         RESHAPE(var(displs(J):displs(I)-1),
      &         shape=(/size(local_array,1),
-     &         size(local_array,2)/))
+     &         JN-J1+1/))
+ !    &         size(local_array,2)/))
         enddo
       endif
 
@@ -3255,7 +3259,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #endif
 #endif
 #ifdef USE_ESMF
-      CALL MPI_Barrier(MPI_COMM_WORLD, ier)
+      CALL MPI_BARRIER(MPI_COMM_WORLD, ier)
 #endif
       END SUBROUTINE HERE
 
@@ -3303,7 +3307,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       INTEGER  :: ier
 
 #ifdef USE_ESMF
-      CALL MPI_Allreduce(val, val_max, 1, MPI_DOUBLE_PRECISION, MPI_MAX,
+      CALL MPI_Allreduce(val, val_max, 1, MPI_DOUBLE_PRECISION,MPI_MAX,
      &     MPI_COMM_WORLD, ier)
 #else
       val_max = val
