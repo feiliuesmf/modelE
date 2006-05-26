@@ -635,21 +635,23 @@
       real*8 :: sbeta  !Gets sin(solarzen)
 !@var qv  Canopy saturated specific humidity (kg vapor/ kg air)
       real*8 :: qvsat
-      real*8 :: Ci_old
+      real*8 :: Ci_old, Ci
       real*8 :: dts,dtt
       integer :: N
 
-!## DEBUG  ##!
+#ifdef DEBUG
       write(95,*)  dt, pft,tcan,pres,ch,U,parinc,fdir,solarzen,Ca,
      i     betad,
      i     Qf_IN, 
      &     vegpar,
      &     CNC_INOUT, Ci_INOUT, 
      o     TRANS_SW_OUT, GPP_OUT, NPP_OUT 
+#endif
 
       N = 0
       dts = dt
       dtt = 0.d0
+      Ci = Ci_INOUT
       Ci_old = Ci_INOUT
 !----------------------------------------------------------------------------
 ! Make sure there is some leaf area (m2/m2).
@@ -660,7 +662,7 @@
       prpa=100.0D0*pres
 ! Internal foliage CO2 partial pressure from concentration (Pa).
 !      CiPa=Ci_INOUT*(gasc*tk)
- 10   CiPa=Ci_INOUT*(gasc*tk)
+ 10   CiPa=Ci*(gasc*tk)
       ps%Oi = 20.9D0
       ps%k = 0.11D0
 
@@ -721,15 +723,15 @@
 !----------------------------------------------------------------------!
 ! New equilibrium canopy conductance to moisture (m/s). 
       CNCN=betad*(1.0D0-0.0075D0*vegpar%vh)*650.0D-6*Anet_max*
-     &   ((Ci_INOUT+0.004D0)/(Ci_INOUT+EPS))*2.8D0**(-80.0D0*dQs)
-      N = N + 1
+     &   ((Ci+0.004D0)/(Ci+EPS))*2.8D0**(-80.0D0*dQs)
 ! Required change in canopy conductance to reach equilibrium (m/s).
       dCNC=CNCN-CNC_INOUT
       !## DEBUG ##
-      !write(94,*) "betad, vegpar%vh, Ci_INOUT,dQs,CNCN,dCNC"
+      !write(94,*) "betad, vegpar%vh, Ci,dQs,CNCN,dCNC"
 !nu Limit CNC change over timestep because of guard cell mechanics (m/s)
 !      dCNC_max=dt*vegpar%alai*(0.006D0-0.00006D0)/1800.0D0
- 20   dCNC_max=dts*vegpar%alai*(0.006D0-0.00006D0)/1800.0D0
+ 20   N = N + 1
+      dCNC_max=dts*vegpar%alai*(0.006D0-0.00006D0)/1800.0D0
       if( dCNC.gt.dCNC_max)CNCN=CNC_INOUT+dCNC_max
       IF(-dCNC.gt.dCNC_max)CNCN=CNC_INOUT-dCNC_max
 ! Biological limits of absolute CNC (m/s).
@@ -744,48 +746,51 @@
 ! where CO2 is assumed at Ca.
       gt=1.0D0/(1.42D0/CNCN+1.65D0/(ch*U+EPS))
 ! Ci update.
-      Ci_INOUT=Ca-1.0D-6*Anet/gt !(mol/m3)
+      Ci=Ca-1.0D-6*Anet/gt !(mol/m3)
 
-      write(94,*) dts,Ci_old,Ci_INOUT, CNCN, dCNC, dCNC_max,gt,
-     &     Rcan,Acan,Amax, betad,vegpar%vh, dQs,Ca
 ! Limit Cin to physical realism (mol/m3). It is possible that
 ! oscillations could occur due to the Ci<>CNC feedback. Also, something
 ! to watch out for is that setting Ci like this does not conserve CO2.
 !#ifdef DEBUG
-      !* Iterate to match Ci_INOUT and CNCN
-!      if ((Ci_INOUT.lt.(0.5*Ca)).AND.(dts.gt.1.d0)) then 
-!      if ((abs(Ci_INOUT-Ci_old)/Ci_old.gt.(0.5*Ci_old)).AND.
-      if ((Ci_INOUT.lt.EPS).AND.(dts.gt.1.d0)) then 
+      !* Iterate to match Ci and CNCN
+!      if ((Ci.lt.(0.5*Ca)).AND.(dts.gt.1.d0)) then 
+!      if ((abs(Ci-Ci_old)/Ci_old.gt.(0.5*Ci_old)).AND.
+!      if ((Ci.lt.EPS).AND.(dts.gt.1.d0)) then 
+      if ((Ci.lt.EPS).AND.(N.lt.50)) then 
         dts = 0.5*dts
-        Ci_INOUT = Ci_old !Reduce time step until new Ci remains positive.
+        Ci = Ci_old !Reduce time step until new Ci remains positive.
 !        dtt = dtt + dts
-        !if(Ci_INOUT.lt.EPS) Ci_INOUT=EPS  
-        if (N.lt.50) go to 20
+        go to 20
       else
-        if(Ci_INOUT.lt.EPS) Ci_INOUT=EPS 
-        Ci_old = Ci_INOUT
+        if(Ci.lt.EPS) Ci=EPS 
+        Ci_old = Ci
       end if
 
-      if (dtt<dt) then
+!#ifdef DEBUG
+      write(94,*) dts,Ci_old,Ci, CNCN, dCNC, dCNC_max,gt,
+     &     Rcan,Acan,Amax, betad,vegpar%vh, dQs,Ca
+!#endif
+
+      if ((dtt<dt).AND.(N.lt.50)) then
         dtt = dtt + dts
         dts = dts + dts
 !        dts = max(dts, (dt-dtt)/20.d0)
-        if (N.lt.50.) go to 10  !Recalculate Acan with new Ci
+        go to 10  !Recalculate Acan with new Ci
       end if
 !#endif
 
-      if(Ci_INOUT.lt.EPS) Ci_INOUT=EPS  
+      if(Ci.lt.EPS) Ci=EPS  
 !        if ((I0df+I0dr).gt.50.d0) then
-!          write(101,*) "1",Anet, Ci_INOUT, CNCN, gt
-!          Anet = Anet - (EPS-Ci_INOUT)*CNCN/1.42d0
-!          Ci_INOUT = EPS
-!          CNCN=1.42d0/((Ca-Ci_INOUT)/(1.0d-6*Anet) - 1.65d0/(ch*U+EPS))
-!          write(101,*) "2",Anet, Ci_INOUT, CNCN, gt
+!          write(101,*) "1",Anet, Ci, CNCN, gt
+!          Anet = Anet - (EPS-Ci)*CNCN/1.42d0
+!          Ci = EPS
+!          CNCN=1.42d0/((Ca-Ci)/(1.0d-6*Anet) - 1.65d0/(ch*U+EPS))
+!          write(101,*) "2",Anet, Ci, CNCN, gt
 !        else
-!          Ci_INOUT = EPS
+!          Ci = EPS
 !        end if
 !      end if
-!      Ci_INOUT = 0.7*Ca  !## DEBUG HACK
+!      Ci = 0.7*Ca  !## DEBUG HACK
 !......................................................................
 ! NOTE:  Land surface ground hydrology module must update Qf immediately 
 !        following this subroutine call, because Qf requires evap_tot 
@@ -808,6 +813,8 @@
 !     NEE = NPP - 0.012D-6* SoilRespir
 ! Updata canopy conductance for next timestep (m/s).
       CNC_INOUT=CNCN
+! Updata leaf CO2 concentration for next timestep (mol/m3).
+      Ci_INOUT=Ci
 !----------------------------------------------------------------------!
       return
       end subroutine veg
