@@ -128,17 +128,8 @@
          real*8 :: k  !=0.11D0
       end type photosynth_par_type
 
-!**** PUBLIC FUNCTIONS*********************************************************
-!      public veg_conductance, update_veg_locals
-
-!GLOBAL TO MODULE ONLY:
-      type(veg_par_type) :: vegpar
-
-!----------------------------------------------------------------------------
-
 !     METEOROLOGICAL DRIVERS
-!@var betad  Vegetation water stress (0-1, 1=unstressed)
-      real*8 :: betad
+      type met_drv_type 
 !@var tcan   Canopy temperature (Celsius)
       real*8 :: tcan
 !@var qfol  Foliage surface specific humidity (kg vapor/ kg air)
@@ -160,6 +151,17 @@
       real*8 :: solarzen
 !@var Ca Atmospheric CO2 concentration at surface height (mol/m3).
       real*8 :: Ca 
+!@var betad  Vegetation water stress (0-1, 1=unstressed)
+      real*8 :: betad
+      end type met_drv_type
+
+!**** PUBLIC FUNCTIONS*********************************************************
+!      public veg_conductance, update_veg_locals
+
+!GLOBAL TO MODULE ONLY:
+!      type(veg_par_type) :: vegpar
+!----------------------------------------------------------------------------
+
 
 !Physics variables specific to vegetetation
 !@var Ci Original internal foliage CO2 (mol/m3) (adf)
@@ -197,7 +199,6 @@
       subroutine photosynth_cond(dtsec, pp)
       !Computes photosynthesis and conductance for a patch
       ! by summing through cohorts.
-
       use ent_const
       use ent_types
       use patches, only : patch_print
@@ -205,89 +206,86 @@
 
       real*8, intent(in) :: dtsec
       type(patch),pointer :: pp  
-
-      !     SIMULATED PHYSICS variables specific to vegetation
-      real*8 :: GCANOPY
-      real*8 :: Ci  
-!      real*8 :: Qf !Put in DRIVERS section
-      real*8 :: TRANS_SW
-      !real*8 :: betad           !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
-      real*8 :: betadl(N_DEPTH) !Water stress in layers
-
-      !     DIAGNOSTIC VARIABLES
-      real*8 :: GPP
-      real*8 :: NPP
-
-      !     METEOROLOGICAL DRIVERS
-      real*8 :: TcanopyC        !Canopy temperatue (Celsius)
-      real*8 :: Qf              !Canopy air specif humidity (kg vapor/ kg air)
-      real*8 :: P_mbar          !Atmospheric pressure (mb)
-      real*8 :: Ca              !@Atmos CO2 conc at surface height (mol/m3).
-      real*8 :: Soilmoist(N_DEPTH) !May be an array by depth (units TBA)
-      real*8 :: Soilmp(N_DEPTH)  !Soil matric potential
-      real*8 :: fice(N_DEPTH)   !Fraction of soil water that is ice.
-      real*8 :: froot(N_DEPTH)  !Fraction of roots in layer.
-      real*8 :: Ch              !Ground to surface heat transfer coefficient 
-      real*8 :: U               !Surface layer wind speed (m s-1)
-        !Radiation may later be broken down into hyperspectral increments.
-        ! in an array
-!      real*8 :: Isw             !Incident shortwave 100-2000 nm (W m-2)
+      !-----Local----------!
+!      type(met_drv_type) :: metvar
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
-      real*8 :: Solarzen        !Solar zenith angle
-      real*8 :: fdir            !Fraction of surface vis rad that is direct
+      real*8 :: fdir            !Fraction of IPAR that is direct
+      type(veg_par_type) :: vegpar !Vegetation parameters
 
       print *,"Started photosynth_cond" ! with patch:"
       !call patch_print(pp," ")
 
-      GCANOPY = pp%GCANOPY
-      Qf = pp%cellptr%Qf
-      TcanopyC = pp%cellptr%TcanopyC
-      Qf = pp%cellptr%Qf
-      P_mbar = pp%cellptr%P_mbar
-      Ca = pp%cellptr%Ca
-      Soilmoist = pp%cellptr%Soilmoist  !Will be patch level later
-      Soilmp = pp%cellptr%Soilmp        !Will be patch level later
-      fice = pp%cellptr%fice
-      !!froot = pp%cellptr%froot
-      froot = pp%sumcohort%froot
-      Ch = pp%cellptr%Ch
-      U = pp%cellptr%U
+!      GCANOPY = pp%GCANOPY
+!      Qf = pp%cellptr%Qf
+!      TcanopyC = pp%cellptr%TcanopyC
+!      P_mbar = pp%cellptr%P_mbar
+!      Ca = pp%cellptr%Ca
+!      Ch = pp%cellptr%Ch
+!      U = pp%cellptr%U
+
+      pp%betad = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
+     i     ,pp%sumcohort%froot(:)
+     i     ,pp%cellptr%fice(:), pfpar(pp%sumcohort%pft)%hwilt
+     o     , pp%betadl(:))
+
       IPAR = pp%cellptr%IPARdir + pp%cellptr%IPARdif
-      fdir = pp%cellptr%IPARdir / IPAR
-      !IPAR = 0.82d0*pp%cellptr%Ivis*pp%cellptr%Solarzen
+      if (pp%cellptr%IPARdir.eq.0.d0) then
+        fdir = 0.d0
+      else
+        fdir = pp%cellptr%IPARdir / IPAR
+      endif
+      write(98,*) pp%cellptr%IPARdif,pp%cellptr%IPARdir,fdir
+!      IPAR = 0.82d0*pp%cellptr%Ivis*pp%cellptr%Solarzen
 !      if ( pp%cellptr%Ivis > 1.e-30 )
 !     &     fdir = pp%cellptr%Idir / pp%cellptr%Ivis
-      Solarzen = pp%cellptr%Solarzen
-
+!      Solarzen = pp%cellptr%Solarzen
 
       !* Assign vegpar
       !** GISS replication test hack:  grid cell average patch properties
       vegpar%alai = pp%sumcohort%LAI
       vegpar%nm = pp%sumcohort%nm
-!>>>>      vegpar%vh = pp%tallest%h
+      !vegpar%vh = pp%tallest%h
       vegpar%vh = pp%sumcohort%h
       vegpar%vegalbedo = pp%albedo(1) !Visible band
-      Ci = pp%Ci  
-      !Ci = pp%cellptr%Ci        !GISS hack at grid cell level for Ci
-      Qf = pp%cellptr%Qf  !GISS hack at grid cell level for Qf
 
-      print *,"Got here before veg_conductance."
-      call veg_conductance(dtsec,
-     &     GCANOPY, Ci, Qf, TRANS_SW,GPP,NPP,betad,betadl,
-     &     pp%sumcohort%pft, ! >>>> pp%tallest%pft
-     &     vegpar%alai,vegpar%nm,vegpar%vh,vegpar%vegalbedo, 
-     &     N_DEPTH, Soilmp, fice, froot,  
-     &     TcanopyC, P_mbar, Ch, U, 
-     &     IPAR, fdir,Solarzen, Ca )
+      !* ZERO SOME OUTPUT VARIABLES
+      pp%TRANS_SW = 0.
+      pp%GPP = 0.
+      pp%NPP = 0.
+!      CNC = 
+!      Ci = 
+!      Qf = 
+
+!      print *,"Got here before veg_conductance."
+!      call veg_conductance(dtsec,
+!     &     GCANOPY, Ci, Qf, TRANS_SW,GPP,NPP,betad,betadl,
+!     &     pp%sumcohort%pft, ! >>>> pp%tallest%pft
+!     &     vegpar%alai,vegpar%nm,vegpar%vh,vegpar%vegalbedo, 
+!     &     N_DEPTH, Soilmp, fice, froot,  
+!     &     TcanopyC, P_mbar, Ch, U, 
+!     &     IPAR, fdir,Solarzen, Ca )
+
+      print *,"Calling veg..."
+      call veg(
+     i     dtsec, pp%sumcohort%pft,
+     i     pp%cellptr%TcanopyC,
+     i     pp%cellptr%P_mbar,pp%cellptr%Ch,pp%cellptr%U,
+     i     IPAR,fdir,pp%cellptr%Solarzen,
+     i     pp%cellptr%Ca,
+     i     pp%betad,
+     i     pp%cellptr%Qf, 
+     &     vegpar,
+     &     pp%GCANOPY, pp%Ci, 
+     o     pp%TRANS_SW, pp%GPP, pp%NPP )
 
       !OUTPUTS TO pp
-      pp%GCANOPY = GCANOPY
-      pp%GPP = GPP
-      pp%Ci = Ci
-      pp%TRANS_SW = TRANS_SW
-      pp%GPP = GPP
-      pp%betad = betad
-      pp%betadl = betadl
+!      pp%GCANOPY = GCANOPY
+!      pp%GPP = GPP
+!      pp%Ci = Ci
+!      pp%TRANS_SW = TRANS_SW
+!      pp%GPP = GPP
+!      pp%betad = betad
+!      pp%betadl = betadl
 
       !OUTPUTS FROM ENT TO GCM/EWB
       !*** GISS HACK. PATCH VALUES ASSIGNED TO ENTCELL LEVEL. ****!!!
@@ -302,9 +300,9 @@
       end subroutine photosynth_cond
 
       !************************************************************************
-
-      subroutine veg_set_struct( 
-     i     rsfile)              !Name of restart file
+!NOT USED
+!      subroutine veg_set_struct( 
+!     i     rsfile)              !Name of restart file
 !     o     alaip,               !LAI
 !     o     nmp,                 !nitrogen per leaf area (g-N/m^2-leaf)
 !     o     nfp,                 !nitrogen parameter
@@ -315,18 +313,18 @@
       ! Called by driver module to set up vegetation structural variables.
       ! Need this for restarts or to set up a grid cell.
 
-      implicit none
+!      implicit none
       
       !Set up vegetation structural parameters
-      character*60, intent(in) :: rsfile
+!      character*60, intent(in) :: rsfile
       !real*8, intent(out) ::  alaip, nmp, nfp, vhp, vegalbedop
 
-      open(10,File=rsfile)
-      read(10,*) !Skip header line
-      read(10,*)  vegpar%alai,vegpar%nm,vegpar%vh,vegpar%vegalbedo
-      close(10)
+!      open(10,File=rsfile)
+!      read(10,*) !Skip header line
+!      read(10,*)  vegpar%alai,vegpar%nm,vegpar%vh,vegpar%vegalbedo
+!      close(10)
 
-      end subroutine veg_set_struct
+!      end subroutine veg_set_struct
 
       !************************************************************************
 
@@ -359,7 +357,7 @@
 
       !************************************************************************
 
-
+#ifdef DUMMY
       subroutine veg_conductance(
      i     dt_in               !GHY time step (seconds)
      &     ,CNC_INOUT            !Canopy conductance of water vapor (m/s)
@@ -486,51 +484,60 @@
 !     &froot_in,froot2,froot3,froot4,froot5,froot6
 !     &,tcan_in,pres_in,ch_in,U_in,parinc_in,fdir_in,solarzen_in,Ca_in"
 
-!      write(96,*) dt_in, CNC_INOUT,Ci_INOUT,Qf_IN,TRANS_SW_OUT,GPP_OUT
-!     &     ,NPP_OUT,betad,betadl,pft,lai,nm,vh,vegalbedo,nsoillayer
-!     &     ,soilmp_in,fice_in,froot_in,tcan_in,pres_in,ch_in,U_in
-!     &     ,parinc_in,fdir_in,solarzen_in,Ca_in,
+      write(96,*) dt_in, CNC_INOUT,Ci_INOUT,Qf_IN,TRANS_SW_OUT,GPP_OUT
+     &     ,NPP_OUT,betad,betadl,pft,lai,nm,vh,vegalbedo,nsoillayer
+     &     ,soilmp_in,fice_in,froot_in,tcan_in,pres_in,ch_in,U_in
+     &     ,parinc_in,fdir_in,solarzen_in,Ca_in
      
 
 
       !Global meterological variables specific to grid cell.
-      dt = dt_in
-      betad = water_stress(nsoillayer, soilmp_in(:),froot_in(:),
-     &     fice_in(:), pfpar(pft)%hwilt, betadl(:))
-      tcan = tcan_in
-      qfol = Qf_IN
-      pres = pres_in
-      ch = ch_in
-      U = U_in
-      parinc = parinc_in
-      fdir = fdir_in
-      solarzen = solarzen_in
-      Ca = Ca_in
+!      dt = dt_in
+!      betad = water_stress(nsoillayer, soilmp_in(:),froot_in(:),
+!     &     fice_in(:), pfpar(pft)%hwilt, betadl(:))
+!      tcan = tcan_in
+!      qfol = Qf_IN
+!      pres = pres_in
+!      ch = ch_in
+!      U = U_in
+!      parinc = parinc_in
+!      fdir = fdir_in
+!      solarzen = solarzen_in
+!      Ca = Ca_in
 !      CNC = 
 !      Ci = 
 !      Qf = 
       
-      TRANS_SW_OUT = 0.
-      GPP_OUT = 0.
-      NPP_OUT = 0.
+!      TRANS_SW_OUT = 0.
+!      GPP_OUT = 0.
+!      NPP_OUT = 0.
 
-      vegpar%alai = lai
-      vegpar%nm = nm
-      vegpar%vh = vh
-      vegpar%vegalbedo = vegalbedo
+!      vegpar%alai = lai
+!      vegpar%nm = nm
+!      vegpar%vh = vh
+!      vegpar%vegalbedo = vegalbedo
 
-      call veg (pft, CNC_INOUT, CI_INOUT, Qf_IN,
-     &       TRANS_SW_OUT,GPP_OUT,NPP_OUT)
+!      call veg (pft, CNC_INOUT, CI_INOUT, Qf_IN,
+!     &       TRANS_SW_OUT,GPP_OUT,NPP_OUT)
 
+      !###DUMMY OLD ROUTINE ### DELETE THIS SUBROUTINE #####!
       end subroutine veg_conductance
-
+#endif
 
 !***********************************************************************
 
+!      subroutine veg(
+!     i     pft,
+!     &     CNC_INOUT, Ci_INOUT, 
+!     i     Qf_IN, 
+!     o     TRANS_SW_OUT, GPP_OUT, NPP_OUT )
+
       subroutine veg(
-     i     pft,
-     &     CNC_INOUT, Ci_INOUT, 
+     i     dt, pft,tcan,pres,ch,U,parinc,fdir,solarzen,Ca,
+     i     betad,
      i     Qf_IN, 
+     &     vegpar,
+     &     CNC_INOUT, Ci_INOUT, 
      o     TRANS_SW_OUT, GPP_OUT, NPP_OUT )
 
 !----------------------------------------------------------------------!
@@ -543,26 +550,45 @@
 !----------------------------------------------------------------------!
       implicit none
 !----------------------------------------------------------------------!
-      !external FUNCTIONS
- !     real*8 :: QSAT
-!----------------------------------------------------------------------!
 !@var dt  Time step (seconds)
-!      real*8, intent(in) :: dt
+      real*8, intent(in) :: dt
 !@var pft Plant functional type number
       integer, intent(in) :: pft
+!@var tcan   Canopy temperature (Celsius)
+      real*8, intent(in) :: tcan
+!@var pres  Surface air pressure (mbar)
+      real*8, intent(in) :: pres  !Atmospheric pressure (mb)
+!@var ch   Ground to surface heat transfer coefficient 
+      real*8, intent(in) :: ch    
+!@var U  Surface layer wind speed (m s-1)
+      real*8, intent(in) :: U
+!@var parinc Incident photosynthetically active (visible solar, dir+dif)
+!@+   radiation on the surface (W/m2) (nyk)
+      real*8, intent(in) :: parinc
+!@var fdir Fraction of surface visible radiation that is direct (adf)
+      real*8, intent(in) :: fdir
+!@var solarzen Solar zenith angle (rad).
+      real*8, intent(in) :: solarzen
+!@var Ca Atmospheric CO2 concentration at surface height (mol/m3).
+      real*8, intent(in) :: Ca 
+!@var betad  Vegetation water stress (0-1, 1=unstressed)
+      real*8, intent(in) :: betad
+
+!var Qf_IN Foliage surface H2O vapor mixing ratio (kg[H2O]/kg[air])
+      real*8, intent(in) :: Qf_IN
+      type(veg_par_type) :: vegpar
+!---OUTPUT VARIABLES--------------
 !@var TRANS_SW_OUT  Transmittance of shortwave through canopy to soil surface.
       real*8, intent(out) :: TRANS_SW_OUT
 !var CNC_inout  Canopy conductance of water vapor (m s-1). 
       real*8, intent(inout) :: CNC_INOUT
 !var Ci_INOUT Internal foliage CO2 concentration (mol/m3)
       real*8, intent(inout) :: Ci_INOUT
-!var Qf_IN Foliage surface H2O vapor mixing ratio (kg[H2O]/kg[air])
-      real*8, intent(in) :: Qf_IN
 !@var GPP_OUT  Gross primary productivity (kg[C]/m2/s).
       real*8, intent(out) :: GPP_OUT
 !@var NPP_OUT Net primary productivity (kg[C]/m2/s)
       real*8, intent(out) :: NPP_OUT
-
+!----Local------------------------
 !var ps  Photosynthetic parameters (nyk)
       type(photosynth_par_type) :: ps
 
@@ -609,6 +635,20 @@
       real*8 :: sbeta  !Gets sin(solarzen)
 !@var qv  Canopy saturated specific humidity (kg vapor/ kg air)
       real*8 :: qvsat
+      real*8 :: Ci_old
+      real*8 :: dts,dtt
+
+!## DEBUG  ##!
+      write(95,*)  dt, pft,tcan,pres,ch,U,parinc,fdir,solarzen,Ca,
+     i     betad,
+     i     Qf_IN, 
+     &     vegpar,
+     &     CNC_INOUT, Ci_INOUT, 
+     o     TRANS_SW_OUT, GPP_OUT, NPP_OUT 
+
+      dts = dt
+      dtt = 0.d0
+      Ci_old = Ci_INOUT
 !----------------------------------------------------------------------------
 ! Make sure there is some leaf area (m2/m2).
       if(vegpar%alai.le.EPS) vegpar%alai=EPS
@@ -617,8 +657,8 @@
 ! Convert atmospheric pressure from mbar to Pa.
       prpa=100.0D0*pres
 ! Internal foliage CO2 partial pressure from concentration (Pa).
-      CiPa=Ci_INOUT*(gasc*tk)
-
+!      CiPa=Ci_INOUT*(gasc*tk)
+ 10   CiPa=Ci_INOUT*(gasc*tk)
       ps%Oi = 20.9D0
       ps%k = 0.11D0
 
@@ -626,8 +666,8 @@
       !Get incident diffuse and direction PAR radiation 
       !and set up canopy radiative transfer parameters.
       sbeta = sin(solarzen)
-      call canopy_rad_setup(sbeta, fdir, parinc,vegpar,
-     o     I0df, I0dr)
+      call canopy_rad_setup(sbeta, fdir, parinc,
+     o     vegpar,I0df, I0dr)
 !#############################################################################
 
 ! Photorespiratory compensation point (Pa).
@@ -670,7 +710,7 @@
 ! Net canopy photosynthesis (umol/m[ground]2/s).
       Anet=Acan-Rcan
 ! Net canopy photosynthesis at saturating CiPa (umol/m[ground]2/s).
-      Anet_max=Amax-Rcan
+      Anet_max=max(Amax-Rcan,0.d0)
 !----------------------------------------------------------------------!
 ! Humidity deficit across canopy surface (kg/kg).
       qvsat = QSAT(tk,2500800.-2360.*tk*(101325./prpa)**(gasc/cp),pres)
@@ -683,10 +723,10 @@
 ! Required change in canopy conductance to reach equilibrium (m/s).
       dCNC=CNCN-CNC_INOUT
       !## DEBUG ##
-!      write(94,*) "betad, vegpar%vh, Ci_INOUT,dQs,CNCN,dCNC", betad,
-!     &     vegpar%vh, Ci_INOUT, dQs, CNCN, dCNC
+      !write(94,*) "betad, vegpar%vh, Ci_INOUT,dQs,CNCN,dCNC"
 !nu Limit CNC change over timestep because of guard cell mechanics (m/s)
-      dCNC_max=dt*vegpar%alai*(0.006D0-0.00006D0)/1800.0D0
+!      dCNC_max=dt*vegpar%alai*(0.006D0-0.00006D0)/1800.0D0
+      dCNC_max=dts*vegpar%alai*(0.006D0-0.00006D0)/1800.0D0
       if( dCNC.gt.dCNC_max)CNCN=CNC_INOUT+dCNC_max
       IF(-dCNC.gt.dCNC_max)CNCN=CNC_INOUT-dCNC_max
 ! Biological limits of absolute CNC (m/s).
@@ -694,8 +734,7 @@
 !NOTE:  Water balance issue due to not modeling canopy water content
 !       explicitly.  This needs to be considered at some point. -nyk
       if(CNCN.lt.0.00006*vegpar%alai)CNCN=0.00006*vegpar%alai
-!----------------------------------------------------------------------!
-! OUTPUTS:
+
 !----------------------------------------------------------------------!
 ! Update Ci for next time step:
 ! Total conductance from inside foliage to surface height at 30m (m/s),
@@ -703,10 +742,41 @@
       gt=1.0D0/(1.42D0/CNCN+1.65D0/(ch*U+EPS))
 ! Ci update.
       Ci_INOUT=Ca-1.0D-6*Anet/gt !(mol/m3)
+
+      write(94,*) dts,Ci_old,Ci_INOUT, CNCN, dCNC, dCNC_max,gt,
+     &     Rcan,Acan,Amax, betad,vegpar%vh, dQs,Ca
 ! Limit Cin to physical realism (mol/m3). It is possible that
 ! oscillations could occur due to the Ci<>CNC feedback. Also, something
 ! to watch out for is that setting Ci like this does not conserve CO2.
-      if(Ci_INOUT.lt.EPS)Ci_INOUT=EPS
+#ifdef DEBUG
+      !* Iterate to match Ci_INOUT and CNCN
+      if ((Ci_INOUT.lt.(0.5*Ca)).AND.(dts.gt.1.d0)) then 
+        dts = 0.5*dts
+!        dtt = dtt + dts
+        if(Ci_INOUT.lt.EPS) Ci_INOUT=EPS  
+        go to 10
+      else
+        if(Ci_INOUT.lt.EPS) Ci_INOUT=EPS  
+      end if
+
+      if (dtt<dt) then
+        dtt = dtt + dts
+        go to 10
+      end if
+#endif
+
+      if(Ci_INOUT.lt.EPS) Ci_INOUT=EPS  
+!        if ((I0df+I0dr).gt.50.d0) then
+!          write(101,*) "1",Anet, Ci_INOUT, CNCN, gt
+!          Anet = Anet - (EPS-Ci_INOUT)*CNCN/1.42d0
+!          Ci_INOUT = EPS
+!          CNCN=1.42d0/((Ca-Ci_INOUT)/(1.0d-6*Anet) - 1.65d0/(ch*U+EPS))
+!          write(101,*) "2",Anet, Ci_INOUT, CNCN, gt
+!        else
+!          Ci_INOUT = EPS
+!        end if
+!      end if
+!      Ci_INOUT = 0.7*Ca  !## DEBUG HACK
 !......................................................................
 ! NOTE:  Land surface ground hydrology module must update Qf immediately 
 !        following this subroutine call, because Qf requires evap_tot 
@@ -824,7 +894,6 @@
 
 
       !************************************************************************
-
       subroutine qsimp(vpar,ppar,S,sbeta,I0dr,I0df,Ci,T,P)
 !----------------------------------------------------------------------!
 ! qsimp calculates canopy photosynthesis by increasing the number of
@@ -841,6 +910,7 @@
 !Local variables
 !nu   real*8, parameter :: EPS=1.D-3
       integer, parameter :: MAXIT=6
+      real*8,parameter :: ERRLIM=0.1d0
       integer IT, canopylayers
       real*8 A, B, OST,OS,ST,ERROR
 !----------------------------------------------------------------------!
@@ -857,7 +927,7 @@
      $       sbeta,I0dr,I0df,Ci,T,P,canopylayers,vpar,ppar)
          S=(4.D0*ST-OST)/3.D0
          ERROR=ABS(S-OS)
-         IF (ERROR.lt.0.1D0) RETURN
+         IF (ERROR.lt.ERRLIM) RETURN
          OS=S
          OST=ST
          if(IT.gt.1) canopylayers=canopylayers*2
@@ -869,7 +939,6 @@
       end subroutine qsimp
 
       !************************************************************************
-
       subroutine trapzd(A,B,S,N,
      $     sbeta,I0dr,I0df,Ci,T,P,canopylayers,vpar,ppar)
 !----------------------------------------------------------------------!
@@ -878,17 +947,20 @@
 !----------------------------------------------------------------------!
       implicit none
 !----------------------------------------------------------------------!
-      integer N,canopylayers, L
-      real*8 A,B,S,sbeta,I0dr,I0df,Ci,T,P 
+      integer :: N,canopylayers
+      real*8 :: A,B,S,sbeta,I0dr,I0df,Ci,T,P 
       !nf,pcp,Kc,Oi,Ko,N0,k,n1,n2,m1,msat
       !real*8 sigma,temp,rhor,kdf,kbl
       type(veg_par_type) :: vpar
       type(photosynth_par_type) :: ppar
-      real*8 DEL,X,SUM,RCL
+      !----Local----------------------
+      integer :: L
+      real*8 :: DEL,X,SUM,RCL
 !@var func1 Mean net photosynthesis at Lc (umol[CO2]/m2/s).
-      real*8 func1
+      real*8 :: func1
 !@var func2 Mean net photosynthesis at Lc (umol[CO2]/m2/s).
-      real*8 func2
+      real*8 :: func2
+
       if(N.eq.1)then
          call phot(A,sbeta,I0dr,I0df,Ci,T,P,B,func1,vpar,ppar)
          call phot(B,sbeta,I0dr,I0df,Ci,T,P,B,func2,vpar,ppar)
@@ -909,7 +981,6 @@
       end subroutine trapzd
 
       !************************************************************************
-
       subroutine phot(Lc,sbeta,I0dr,I0df,Ci,T,P,alai,func,vpar,ppar)
 !----------------------------------------------------------------------!
 ! Calculate mean leaf photosynthesis at cumulative leaf area index Lc
@@ -917,9 +988,13 @@
 !----------------------------------------------------------------------!
       implicit none
 !----------------------------------------------------------------------!
-      real*8 :: func,sbeta,I0dr,I0df,Ci,T,P,alai
+      real*8 :: func,sbeta,I0dr,I0df
+      real*8 :: Ci  !(Pa)
+      real*8 :: T,P,alai
       type(veg_par_type) :: vpar
       type(photosynth_par_type) :: ppar
+!@var Lc Cumulative LAI from top of canopy (m2/m2).
+      real*8 Lc
 !----------------------------------------------------------------------!
 !@var alpha Intrinsic quantum efficiency (?units).
       real*8, parameter :: alpha=0.08D0
@@ -927,8 +1002,6 @@
       real*8, parameter :: ka=0.005D0
 !@var n3 Ratio of foliage chlorophyll to N (?units).
       real*8 n3
-!@var Lc Cumulative LAI from top of canopy (m2/m2).
-      real*8 Lc
 !@var Np Foliage nitrogen content (mmol/m2).
       real*8 Np
 !@var Isha PAR penetrating shaded foliage at Lc (umol/m[foliage]2/s).
@@ -958,7 +1031,6 @@
 !############################ RADIATIVE TRANSFER #############################
 ! Get incident radiation on layer, diffuse/direct, sunlit/shaded.
       call canopy_rad(sbeta, Lc, I0df, I0dr, vpar,Isla, Isha, fsl)
-
 !#############################################################################
 !----------------------------------------------------------------------!
 ! Cumulative nitrogen concentration at which photosynthesis becomes
@@ -998,6 +1070,12 @@
 ! Mean photosynthesis in layer (umol/m2/s).
       func=fsl*FUNCsl+(1.0D0-fsl)*FUNCsh
 !----------------------------------------------------------------------!
+      !## DEBUG ##
+      if (Ci.ne.1.0d6) then
+      !write(97,*)"sbeta,Lc,I0df,I0dr,vpar.sigma,sqrtexpr,kdf,rhor,kbl,alai,nm,vh,Ntot,vegalbedo,Isla,Isha,fsl,func",
+        write(97,*) sbeta,Lc,I0df,I0dr,vpar,ppar,Isla,Isha,fsl,Ci,
+     &       FUNCsl,FUNCsh,func
+      end if
       return
       end subroutine phot
 
@@ -1009,6 +1087,7 @@
       subroutine canopy_rad_setup(
      i     sbeta, fdir, parinc_W_m2,vegpar,
      o     I0df, I0dr)
+
       implicit none
 
 ! NOTES FOR GISS GCM ONLY:
@@ -1030,10 +1109,10 @@
 
       !Input parameters
       real*8 :: sbeta, fdir, parinc_W_m2
-      type(veg_par_type) :: vegpar
       !Output parameters
-      real*8 :: I0df, I0dr
-      !Local var
+      real*8 :: I0df, I0dr !(umol/m2/s)
+      type(veg_par_type) :: vegpar
+      !----Local var---------------------
       real*8 :: PAR
 
       PAR=4.05d0*parinc_W_m2          !W/m2 to umol/m2/s

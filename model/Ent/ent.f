@@ -120,6 +120,7 @@
       !-----local--------
       type(patch),pointer :: pp
 
+
       pp => ecp%oldest
       do while(ASSOCIATED(pp))
         call photosynth_cond(dtsec, pp)
