@@ -637,6 +637,7 @@
       real*8 :: qvsat
       real*8 :: Ci_old
       real*8 :: dts,dtt
+      integer :: N
 
 !## DEBUG  ##!
       write(95,*)  dt, pft,tcan,pres,ch,U,parinc,fdir,solarzen,Ca,
@@ -646,6 +647,7 @@
      &     CNC_INOUT, Ci_INOUT, 
      o     TRANS_SW_OUT, GPP_OUT, NPP_OUT 
 
+      N = 0
       dts = dt
       dtt = 0.d0
       Ci_old = Ci_INOUT
@@ -720,13 +722,14 @@
 ! New equilibrium canopy conductance to moisture (m/s). 
       CNCN=betad*(1.0D0-0.0075D0*vegpar%vh)*650.0D-6*Anet_max*
      &   ((Ci_INOUT+0.004D0)/(Ci_INOUT+EPS))*2.8D0**(-80.0D0*dQs)
+      N = N + 1
 ! Required change in canopy conductance to reach equilibrium (m/s).
       dCNC=CNCN-CNC_INOUT
       !## DEBUG ##
       !write(94,*) "betad, vegpar%vh, Ci_INOUT,dQs,CNCN,dCNC"
 !nu Limit CNC change over timestep because of guard cell mechanics (m/s)
 !      dCNC_max=dt*vegpar%alai*(0.006D0-0.00006D0)/1800.0D0
-      dCNC_max=dts*vegpar%alai*(0.006D0-0.00006D0)/1800.0D0
+ 20   dCNC_max=dts*vegpar%alai*(0.006D0-0.00006D0)/1800.0D0
       if( dCNC.gt.dCNC_max)CNCN=CNC_INOUT+dCNC_max
       IF(-dCNC.gt.dCNC_max)CNCN=CNC_INOUT-dCNC_max
 ! Biological limits of absolute CNC (m/s).
@@ -748,22 +751,33 @@
 ! Limit Cin to physical realism (mol/m3). It is possible that
 ! oscillations could occur due to the Ci<>CNC feedback. Also, something
 ! to watch out for is that setting Ci like this does not conserve CO2.
-#ifdef DEBUG
+!#ifdef DEBUG
       !* Iterate to match Ci_INOUT and CNCN
-      if ((Ci_INOUT.lt.(0.5*Ca)).AND.(dts.gt.1.d0)) then 
+!      if ((Ci_INOUT.lt.(0.5*Ca)).AND.(dts.gt.1.d0)) then 
+!      if ((abs(Ci_INOUT-Ci_old)/Ci_old.gt.(0.5*Ci_old)).AND.
+      if ((Ci_INOUT.lt.EPS).AND.(dts.gt.1.d0)) then 
         dts = 0.5*dts
+        Ci_INOUT = Ci_old !Reduce time step until new Ci remains positive.
 !        dtt = dtt + dts
-        if(Ci_INOUT.lt.EPS) Ci_INOUT=EPS  
-        go to 10
+        !if(Ci_INOUT.lt.EPS) Ci_INOUT=EPS  
+        if (N.lt.50) go to 20
+!        goto 20
       else
-        if(Ci_INOUT.lt.EPS) Ci_INOUT=EPS  
+        if(Ci_INOUT.lt.EPS) then
+          Ci_INOUT=EPS 
+!        else
+!          Ci_old = Ci_INOUT
+        end if
       end if
 
       if (dtt<dt) then
         dtt = dtt + dts
-        go to 10
+        dts = dts + dts
+!        dts = max(dts, (dt-dtt)/20.d0)
+        if (N.lt.50.) go to 10
+!        goto 10
       end if
-#endif
+!#endif
 
       if(Ci_INOUT.lt.EPS) Ci_INOUT=EPS  
 !        if ((I0df+I0dr).gt.50.d0) then
