@@ -1476,7 +1476,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
       INTEGER :: k
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM, jb1, jb2
-      Logical :: all_, ier
+      Logical :: all_
+      INTEGER :: ier
 #ifdef USE_ESMF
       REAL*8  :: garr(size(arr,1),grd_dum%jm_world)
 #endif
@@ -1520,7 +1521,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
       INTEGER :: k
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM, jb1, jb2
-      Logical :: all_, ier
+      Logical :: all_
+      INTEGER :: ier
 #ifdef USE_ESMF
       REAL*8  :: garr(size(arr,1),grd_dum%jm_world,size(arr,3))
 #endif
@@ -1562,7 +1564,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       Logical,OPTIONAL,   INTENT(IN) :: all
 
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM, LM
-      Logical :: all_, ier
+      Logical :: all_
+      INTEGER :: ier
 #ifdef USE_ESMF
       REAL*8  :: garr(size(arr,1),grd_dum%jm_world,size(arr,3))
 #endif
