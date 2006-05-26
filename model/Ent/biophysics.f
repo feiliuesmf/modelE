@@ -639,6 +639,10 @@
       real*8 :: dts,dtt
       integer :: N
 
+!hack!!!
+      !Ci_INOUT = 0.02d0
+
+!## DEBUG  ##!
 #ifdef DEBUG
       write(95,*)  dt, pft,tcan,pres,ch,U,parinc,fdir,solarzen,Ca,
      i     betad,
