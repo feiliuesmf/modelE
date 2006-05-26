@@ -2307,9 +2307,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
           global_array(I1:IN,J1:JN) =
      &         RESHAPE(var(displs(J):displs(I)-1),
-     &         shape=(/size(local_array,1),
+     &         shape=(/IN-I1+1,
      &         JN-J1+1/))
-   !  &         size(local_array,2)/))
         enddo
       endif
       deallocate(VAR, stat=status)
@@ -2376,9 +2375,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
           global_array(I1:IN,J1:JN) =
      &         RESHAPE(var(displs(J):displs(I)-1),
-     &         shape=(/size(local_array,1),
+     &         shape=(/IN-I1+1,
      &         JN-J1+1/))
- !    &         size(local_array,2)/))
         enddo
       endif
 
