@@ -761,21 +761,16 @@
 !        dtt = dtt + dts
         !if(Ci_INOUT.lt.EPS) Ci_INOUT=EPS  
         if (N.lt.50) go to 20
-!        goto 20
       else
-        if(Ci_INOUT.lt.EPS) then
-          Ci_INOUT=EPS 
-!        else
-!          Ci_old = Ci_INOUT
-        end if
+        if(Ci_INOUT.lt.EPS) Ci_INOUT=EPS 
+        Ci_old = Ci_INOUT
       end if
 
       if (dtt<dt) then
         dtt = dtt + dts
         dts = dts + dts
 !        dts = max(dts, (dt-dtt)/20.d0)
-        if (N.lt.50.) go to 10
-!        goto 10
+        if (N.lt.50.) go to 10  !Recalculate Acan with new Ci
       end if
 !#endif
 
