@@ -255,6 +255,12 @@ c
 C****
       RETURN
       END SUBROUTINE daily_OCEAN
+
+      subroutine gather_odiags
+C     nothing to gather yet      ! TNL
+      return
+      end subroutine gather_odiags
+
 c
 css   REAL*8 FUNCTION TFREZS (SIN)
 C****
