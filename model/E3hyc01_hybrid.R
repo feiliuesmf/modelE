@@ -18,7 +18,7 @@ Object modules: (in order of decreasing priority)
 RES_M20AT                           ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
-MODELE |-openmp -O2|                    ! Main and model overhead
+MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
@@ -177,6 +177,6 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
  &INPUTZ
    YEARI=1800,MONTHI=1,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
    YEARE=2101,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
-   ISTART=2,IRANDI=0,YEARE=1800,MONTHE=1,DATEE=8,HOURE=0,IWRITE=1,JWRITE=1,
+   ISTART=2,IRANDI=0,YEARE=1800,MONTHE=1,DATEE=2,HOURE=0,IWRITE=1,JWRITE=1,
  &END
 linkkpprfn_20
