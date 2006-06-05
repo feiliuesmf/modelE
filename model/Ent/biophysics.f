@@ -207,21 +207,16 @@
       real*8, intent(in) :: dtsec
       type(patch),pointer :: pp  
       !-----Local----------!
-!      type(met_drv_type) :: metvar
+
+      integer :: pft
+      real*8 :: TcanopyC,P_mbar,Ch,U,Solarzen,Ca,betad,Qf
+      real*8 :: GCANOPY,Ci,TRANS_SW,GPP,NPP
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
       type(veg_par_type) :: vegpar !Vegetation parameters
 
       print *,"Started photosynth_cond" ! with patch:"
       !call patch_print(pp," ")
-
-!      GCANOPY = pp%GCANOPY
-!      Qf = pp%cellptr%Qf
-!      TcanopyC = pp%cellptr%TcanopyC
-!      P_mbar = pp%cellptr%P_mbar
-!      Ca = pp%cellptr%Ca
-!      Ch = pp%cellptr%Ch
-!      U = pp%cellptr%U
 
       pp%betad = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
      i     ,pp%sumcohort%froot(:)
@@ -234,7 +229,7 @@
       else
         fdir = pp%cellptr%IPARdir / IPAR
       endif
-      write(98,*) pp%cellptr%IPARdif,pp%cellptr%IPARdir,fdir
+!      write(98,*) pp%cellptr%IPARdif,pp%cellptr%IPARdir,fdir
 !      IPAR = 0.82d0*pp%cellptr%Ivis*pp%cellptr%Solarzen
 !      if ( pp%cellptr%Ivis > 1.e-30 )
 !     &     fdir = pp%cellptr%Idir / pp%cellptr%Ivis
@@ -256,36 +251,55 @@
 !      Ci = 
 !      Qf = 
 
-!      print *,"Got here before veg_conductance."
-!      call veg_conductance(dtsec,
-!     &     GCANOPY, Ci, Qf, TRANS_SW,GPP,NPP,betad,betadl,
-!     &     pp%sumcohort%pft, ! >>>> pp%tallest%pft
-!     &     vegpar%alai,vegpar%nm,vegpar%vh,vegpar%vegalbedo, 
-!     &     N_DEPTH, Soilmp, fice, froot,  
-!     &     TcanopyC, P_mbar, Ch, U, 
-!     &     IPAR, fdir,Solarzen, Ca )
+      pft =  pp%sumcohort%pft
+      TcanopyC = pp%cellptr%TcanopyC
+      P_mbar = pp%cellptr%P_mbar
+      Ch = pp%cellptr%Ch
+      U = pp%cellptr%U
+      !IPAR,fdir
+      Solarzen = pp%cellptr%Solarzen
+      Ca = pp%cellptr%Ca
+      betad = pp%betad
+      Qf = pp%cellptr%Qf
+      !vegpar
+      GCANOPY = pp%GCANOPY
+      Ci = pp%Ci
+      TRANS_SW = pp%TRANS_SW
+      GPP =  pp%GPP
+      NPP =  pp%NPP
 
       print *,"Calling veg..."
+!      call veg(
+!     i     dtsec, pp%sumcohort%pft,
+!     i     pp%cellptr%TcanopyC,
+!     i     pp%cellptr%P_mbar,pp%cellptr%Ch,pp%cellptr%U,
+!     i     IPAR,fdir,pp%cellptr%Solarzen,
+!      i     pp%cellptr%Ca,
+!     i     pp%betad,
+!     i     pp%cellptr%Qf, 
+!     &     vegpar,
+!     &     pp%GCANOPY, pp%Ci, 
+!     o     pp%TRANS_SW, pp%GPP, pp%NPP )
       call veg(
-     i     dtsec, pp%sumcohort%pft,
-     i     pp%cellptr%TcanopyC,
-     i     pp%cellptr%P_mbar,pp%cellptr%Ch,pp%cellptr%U,
-     i     IPAR,fdir,pp%cellptr%Solarzen,
-     i     pp%cellptr%Ca,
-     i     pp%betad,
-     i     pp%cellptr%Qf, 
+     i     dtsec, pft,
+     i     TcanopyC,
+     i     P_mbar,Ch,U,
+     i     IPAR,fdir,Solarzen,
+     i     Ca,
+     i     betad,
+     i     Qf, 
      &     vegpar,
-     &     pp%GCANOPY, pp%Ci, 
-     o     pp%TRANS_SW, pp%GPP, pp%NPP )
+     &     GCANOPY, Ci, 
+     o     TRANS_SW, GPP, NPP )
 
-      !OUTPUTS TO pp
-!      pp%GCANOPY = GCANOPY
-!      pp%GPP = GPP
-!      pp%Ci = Ci
-!      pp%TRANS_SW = TRANS_SW
-!      pp%GPP = GPP
-!      pp%betad = betad
-!      pp%betadl = betadl
+      !OUTPUT VARIABLES
+      !vegpar
+      pp%GCANOPY = GCANOPY
+      pp%Ci = Ci
+      pp%TRANS_SW = TRANS_SW
+      pp%GPP = GPP
+      pp%NPP = NPP
+      !betad, betadl
 
       !OUTPUTS FROM ENT TO GCM/EWB
       !*** GISS HACK. PATCH VALUES ASSIGNED TO ENTCELL LEVEL. ****!!!
@@ -731,7 +745,7 @@
 ! Required change in canopy conductance to reach equilibrium (m/s).
       dCNC=CNCN-CNC_INOUT
       !## DEBUG ##
-      !write(94,*) "betad, vegpar%vh, Ci,dQs,CNCN,dCNC"
+      write(94,*) betad, vegpar%vh, Ci,dQs,CNCN,dCNC,CNC_INOUT
 !nu Limit CNC change over timestep because of guard cell mechanics (m/s)
 !      dCNC_max=dt*vegpar%alai*(0.006D0-0.00006D0)/1800.0D0
  20   N = N + 1
@@ -771,8 +785,8 @@
       end if
 
 !#ifdef DEBUG
-      write(94,*) dts,Ci_old,Ci, CNCN, dCNC, dCNC_max,gt,
-     &     Rcan,Acan,Amax, betad,vegpar%vh, dQs,Ca
+!      write(94,*) dts,Ci_old,Ci, CNCN, dCNC, dCNC_max,gt,
+!     &     Rcan,Acan,Amax, betad,vegpar%vh, dQs,Ca
 !#endif
 
       if ((dtt<dt).AND.(N.lt.50)) then
