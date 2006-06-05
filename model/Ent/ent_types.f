@@ -31,6 +31,9 @@
          real*8 :: sstar  !Rel. soil moist at stress onset (Rodriguez-Iturbe)
          real*8 :: swilt  !Normalized soil water at wilting point (dim'less)
          real*8 :: nf !Canopy nitrogen factor (dimensionless) (Kull and Kruijt)
+         !CASA parameters
+         real*8 :: sla !Specific leaf area (m^2 leaf area/kg C)
+         real*8 :: stressCD !CASA cold/drought dress
          real*8 :: lrage !CASA Age of leaves and roots (years)
          real*8 :: woodage !CASA Age of stems (years)
          real*8 :: lit_C2N !CASA litcn_casa (C:N ratio) IS THIS FOLIAGE&ROOTS?
@@ -198,10 +201,9 @@
          integer soil_type      ! 1 - sand (bright) ; 2 - dirt (dark)
 
          !* CASA carbon pools *!
-         !"live":
-         real*8, DIMENSION(NLIVE) :: Clive !(UNITS??)
-         !"dead":
-         real*8, DIMENSION(NDEAD) :: Cdead !(UNITS??)
+         real*8, DIMENSION(NLIVE) :: livefr !(g-C/m^2) Fraction of NPP allocated to plant growth
+         !"live" & "dead"
+         real*8, DIMENSION(2,NPOOLS) :: Tpool !(g-C/m^2, CASA Tpools, single cell)
 
 #ifdef NEWDIAG
          !* Soil pools - patch total
