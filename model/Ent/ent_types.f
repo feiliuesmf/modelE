@@ -31,6 +31,10 @@
          real*8 :: sstar  !Rel. soil moist at stress onset (Rodriguez-Iturbe)
          real*8 :: swilt  !Normalized soil water at wilting point (dim'less)
          real*8 :: nf !Canopy nitrogen factor (dimensionless) (Kull and Kruijt)
+         real*8 :: lrage !CASA Turnover time of leaves and roots (years)
+         real*8 :: woodage !CASA Turnover time of stems (years)
+         real*8 :: lit_C2N !CASA litcn_casa (C:N ratio) IS THIS FOLIAGE&ROOTS?
+         real*8 :: lignin  !CASA lignin (UNITS?  lignin content of ??)
          !real*8 :: !Phenological parameters, other
       end type pftype
 !****************************************************************************
@@ -193,6 +197,12 @@
          !* Soil data (needed for albedo computation)
          integer soil_type      ! 1 - sand (bright) ; 2 - dirt (dark)
 
+         !* CASA carbon pools *!
+         !"live":
+         real*8, DIMENSION(NLIVE) :: Clive !(UNITS??)
+         !"dead":
+         real*8, DIMENSION(NDEAD) :: Cdead !(UNITS??)
+
 #ifdef NEWDIAG
          !* Soil pools - patch total
          real*8 :: REW               !Relative extractable water (REW)
@@ -263,7 +273,8 @@
          real*8 :: P_mbar       !Atmospheric pressure (mb)
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
          real*8,pointer :: Soilmoist(:) !May be an array by depth (units TBA)
-         real*8,pointer :: Soilmp(:) !Soil matric potential
+         real*8,pointer :: Soilmp(:) !Soil matric potential (m)
+         real*8,pointer :: Soiltemp(:) !Soil temperature (Celsius)
          real*8,pointer :: fice(:) !Fraction of soil layer that is ice
          real*8 :: Ch           !Ground to surface heat transfer coefficient 
          real*8 :: U            !Surface layer wind speed (m s-1)

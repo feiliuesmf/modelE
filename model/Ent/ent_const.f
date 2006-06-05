@@ -100,5 +100,28 @@
       integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
 
       !************************************************************************
+      !* CASA SOIL CONSTANTS
+      !* THESE SHOULD GO IN THE CASA MODULE BUT NEED TO BE USED IN ENT_TYPES.F
+      !* Array sizes
+      integer,parameter :: NLIVE = 3
+      integer,parameter :: NDEAD = 9
+
+      !* Live pool array indices
+      integer,parameter :: LEAF = 1  !Array index
+      integer,parameter :: ROOT = 2  !Array index
+      integer,parameter :: WOOD = 3  !Array index
+
+      !* Dead pool array indices
+      integer,parameter :: SURFMET = 1 !sfc metabolic
+      integer,parameter :: SURFSTR = 2 !sfc structural
+      integer,parameter :: SOILMET = 3 !soil metabolic
+      integer,parameter :: SOILSTR = 4 !soil structural
+      integer,parameter :: CWD = 5 !coarse woody debris
+      integer,parameter :: SURFMIC = 6 !sfc microbial
+      integer,parameter :: SOILMIC = 7 !soil microbial
+      integer,parameter :: SLOWMIC = 8 !slowly decomposing soil o.m. pool (up to a decade)
+      integer,parameter :: PASSIVE = 9 !very slowly decomposing soil o.m. pool (decades-centuries)
+
+      !************************************************************************
       
       end module ent_const

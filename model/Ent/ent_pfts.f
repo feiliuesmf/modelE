@@ -21,17 +21,26 @@
 !      integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
 
       type(pftype),parameter :: pfpar(N_PFT) =          !PFT parameters
-     &!            pst,  hwilt,    sstar, swilt,  nf ! 
+     &!        pst,hwilt,sstar,swilt,nf,lrage,woodage,lit_C2N,lignin ! 
      &     (/                                          
-     &     pftype(1,   -100.d0,  .50d0, .30d0,  1.4d0),
-     &     pftype(2,   -100.d0,  .45d0, .27d0,  1.5d0),
-     &     pftype(2,   -100.d0,  .65d0, .22d0,  1.3d0),
-     &     pftype(2,   -100.d0,  .65d0, .22d0,  1.3d0),
-     &     pftype(1,   -100.d0,  .55d0, .29d0,  1.5d0),
-     &     pftype(1,   -100.d0,  .60d0, .25d0,  0.9d0),
-     &     pftype(1,   -100.d0,  .55d0, .26d0,  1.1d0),
-     &     pftype(2,   -100.d0,  .45d0, .27d0,  1.3d0)
+     &     pftype(1,   -100.d0,  .50d0, .30d0,  1.4d0,
+     &     0.0d0,0.0d0,0.0d0,0.0d0),
+     &     pftype(2,   -100.d0,  .45d0, .27d0,  1.5d0,
+     &     0.0d0,0.0d0,0.0d0,0.0d0),
+     &     pftype(2,   -100.d0,  .65d0, .22d0,  1.3d0,
+     &     0.0d0,0.0d0,0.0d0,0.0d0),
+     &     pftype(2,   -100.d0,  .65d0, .22d0,  1.3d0,
+     &     0.0d0,0.0d0,0.0d0,0.0d0),
+     &     pftype(1,   -100.d0,  .55d0, .29d0,  1.5d0,
+     &     0.0d0,0.0d0,0.0d0,0.0d0),
+     &     pftype(1,   -100.d0,  .60d0, .25d0,  0.9d0,
+     &     0.0d0,0.0d0,0.0d0,0.0d0),
+     &     pftype(1,   -100.d0,  .55d0, .26d0,  1.1d0,
+     &     0.0d0,0.0d0,0.0d0,0.0d0),
+     &     pftype(2,   -100.d0,  .45d0, .27d0,  1.3d0,
+     &     0.0d0,0.0d0,0.0d0,0.0d0)
 !     &     pftype(1,   -100.d0,  .50d0, .30d0,  0.76d0)&
+!     &     0.0d0,0.0d0,0.0d0,0.0d0)
      &     /)
 
       !**NOTE:  Above, sstar and swilt are guesses for all except grassland
