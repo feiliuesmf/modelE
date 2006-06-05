@@ -31,8 +31,8 @@
          real*8 :: sstar  !Rel. soil moist at stress onset (Rodriguez-Iturbe)
          real*8 :: swilt  !Normalized soil water at wilting point (dim'less)
          real*8 :: nf !Canopy nitrogen factor (dimensionless) (Kull and Kruijt)
-         real*8 :: lrage !CASA Turnover time of leaves and roots (years)
-         real*8 :: woodage !CASA Turnover time of stems (years)
+         real*8 :: lrage !CASA Age of leaves and roots (years)
+         real*8 :: woodage !CASA Age of stems (years)
          real*8 :: lit_C2N !CASA litcn_casa (C:N ratio) IS THIS FOLIAGE&ROOTS?
          real*8 :: lignin  !CASA lignin (UNITS?  lignin content of ??)
          !real*8 :: !Phenological parameters, other
