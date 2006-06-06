@@ -1707,29 +1707,29 @@ C**** Save optical depth diags
                 IF (ijts_sqexsub(1,kr,ntrix(n),n1) > 0)
      &               taijs(i,j,ijts_sqexsub(1,kr,ntrix(n),n1))
      &               =taijs(i,j,ijts_sqexsub(1,kr,ntrix(n),n1))
-     &               +SUM(aesqex(1:Lm,kr,n1))
+     &               +SUM(aesqex(1:Lm,kr,n))
                 IF (ijts_sqexsub(2,kr,ntrix(n),n1) > 0)
      &               taijs(i,j,ijts_sqexsub(2,kr,ntrix(n),n1))
      &               =taijs(i,j,ijts_sqexsub(2,kr,ntrix(n),n1))
-     &               +SUM(aesqex(1:Lm,kr,n1))*OPNSKY
+     &               +SUM(aesqex(1:Lm,kr,n))*OPNSKY
                 IF (ijts_sqscsub(1,kr,ntrix(n),n1) > 0)
      &               taijs(i,j,ijts_sqscsub(1,kr,ntrix(n),n1))
      &               =taijs(i,j,ijts_sqscsub(1,kr,ntrix(n),n1))
-     &               +SUM(aesqsc(1:Lm,kr,n1))
+     &               +SUM(aesqsc(1:Lm,kr,n))
                 IF (ijts_sqscsub(2,kr,ntrix(n),n1) > 0)
      &               taijs(i,j,ijts_sqscsub(2,kr,ntrix(n),n1))
      &               =taijs(i,j,ijts_sqscsub(2,kr,ntrix(n),n1))
-     &               +SUM(aesqsc(1:Lm,kr,n1))*OPNSKY
+     &               +SUM(aesqsc(1:Lm,kr,n))*OPNSKY
                 IF (ijts_sqcbsub(1,kr,ntrix(n),n1) > 0)
      &               taijs(i,j,ijts_sqcbsub(1,kr,ntrix(n),n1))
      &               =taijs(i,j,ijts_sqcbsub(1,kr,ntrix(n),n1))
-     &               +SUM(aesqcb(1:Lm,kr,n1))
-     &               /(SUM(aesqsc(1:Lm,kr,n1))+1.D-10)
+     &               +SUM(aesqcb(1:Lm,kr,n))
+     &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)
                 IF (ijts_sqcbsub(2,kr,ntrix(n),n1) > 0)
      &               taijs(i,j,ijts_sqcbsub(2,kr,ntrix(n),n1))
      &               =taijs(i,j,ijts_sqcbsub(2,kr,ntrix(n),n1))
-     &               +SUM(aesqcb(1:Lm,kr,n1))
-     &               /(SUM(aesqsc(1:Lm,kr,n1))+1.D-10)*OPNSKY
+     &               +SUM(aesqcb(1:Lm,kr,n))
+     &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
               END DO
             END IF
           CASE DEFAULT
