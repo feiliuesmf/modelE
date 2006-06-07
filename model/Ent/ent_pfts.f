@@ -19,7 +19,18 @@
 !      integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
 !      integer,parameter :: N_OTHER = 1
 !      integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
- 
+       !pst - photosynthetic pathway, 1-C3, 2-C4
+      !hwilt - wilting point (m)
+      !sstar - soil moisture stress onset point (fraction of soil volumetric saturation)
+      !swilt - wilting point (fraction of soil volumetric saturation)
+      !nf - canopy nitrogen factor (dimnesionless)
+      !sla - specific leaf area (m2 leaf area/kg leaf C)(CASA)
+      !stressCD - cold and drought stress factor (dimensionless) (CASA)
+      !lrage - leaf and root litter age (years) (CASA)
+      !woodage - stem litter age (years) (CASA)
+      !lit_C2N - litter C:N (CASA)
+      !lignin - lignin content
+
       type(pftype),parameter :: pfpar(N_PFT) =          !PFT parameters
      &!        pst,hwilt,sstar,swilt,nf,sla,stressCD, lrage,woodage,lit_C2N,lignin ! 
      &     (/
