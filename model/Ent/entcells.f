@@ -294,7 +294,6 @@
           !## Supply also geometry, clumping index
           ! insert cohort only if population density > 0 (i.e. skip bare soil)
           if ( popdens(pnum) > EPS ) then 
-            print *,"pnum, popdens(pnum)",pnum, popdens(pnum)
             call insert_cohort(pp,pnum,popdens(pnum),hdata(pnum),
      &           nmdata(pnum),
      &           0.d0,0.d0,0.d0,0.d0,laidata(pnum),0.d0,
@@ -310,9 +309,7 @@
           pp%albedo = albedodata(:,pnum) !##GISS HACK
         end if
       end do
-      print *,"Got here before summarize_entcell"
       call summarize_entcell(ecp)
-      print *,"Got here after summarize_entcell"
 
       !print *,"In init_simple_entcell:"
       !call entcell_print(ecp)

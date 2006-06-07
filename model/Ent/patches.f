@@ -240,6 +240,7 @@
             !* Soil type
             pp%soil_type = 0    ! set to undefined soil type (maybe use -1?)
 
+
 #ifdef NEWDIAG
             pp%plant_ag_Cp = 0.d0 !## Dummy ##!
             pp%plant_bg_Cp = 0.d0 !## Dummy ##!
@@ -293,7 +294,6 @@
 
       cop => pp%tallest
       do while(ASSOCIATED(cop)) 
-        print *,"sum..cohorts, cop%froot:",cop%froot  !##
         !frootC_total = frootC_total + cop%n*cop%C_froot !Mass wtd avg.
         frootC_total = frootC_total + cop%n !##HACK UNTIL CAN DO frootC wtd avg
         do n=1,N_DEPTH

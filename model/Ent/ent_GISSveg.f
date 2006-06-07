@@ -59,7 +59,6 @@
       call GISS_get_froot(frootdata)
       call GISS_get_pop(popdata)
       call GISS_get_soil_types(soildata)
-      print *,"Got here in GISS_vegdata"
 
       end subroutine GISS_vegdata
 

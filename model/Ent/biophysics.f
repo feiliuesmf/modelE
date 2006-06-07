@@ -215,8 +215,10 @@
       real*8 :: fdir            !Fraction of IPAR that is direct
       type(veg_par_type) :: vegpar !Vegetation parameters
 
+#ifdef DEBUG
       print *,"Started photosynth_cond" ! with patch:"
       !call patch_print(pp," ")
+#endif
 
       pp%betad = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
      i     ,pp%sumcohort%froot(:)
@@ -268,7 +270,7 @@
       GPP =  pp%GPP
       NPP =  pp%NPP
 
-      print *,"Calling veg..."
+!      print *,"Calling veg..."
 !      call veg(
 !     i     dtsec, pp%sumcohort%pft,
 !     i     pp%cellptr%TcanopyC,
@@ -569,8 +571,9 @@
      &   ((Ci+0.004D0)/(Ci+EPS))*2.8D0**(-80.0D0*dQs)
 ! Required change in canopy conductance to reach equilibrium (m/s).
       dCNC=CNCN-CNC_INOUT
-      !## DEBUG ##
+#ifdef DEBUG      !## DEBUG ##
       write(94,*) betad, vegpar%vh, Ci,dQs,CNCN,dCNC,CNC_INOUT
+#endif
 !nu Limit CNC change over timestep because of guard cell mechanics (m/s)
 !      dCNC_max=dt*vegpar%alai*(0.006D0-0.00006D0)/1800.0D0
  20   N = N + 1
@@ -929,12 +932,13 @@
 ! Mean photosynthesis in layer (umol/m2/s).
       func=fsl*FUNCsl+(1.0D0-fsl)*FUNCsh
 !----------------------------------------------------------------------!
-      !## DEBUG ##
+#ifdef DEBUG      !## DEBUG ##
       if (Ci.ne.1.0d6) then
       !write(97,*)"sbeta,Lc,I0df,I0dr,vpar.sigma,sqrtexpr,kdf,rhor,kbl,alai,nm,vh,Ntot,vegalbedo,Isla,Isha,fsl,func",
         write(97,*) sbeta,Lc,I0df,I0dr,vpar,ppar,Isla,Isha,fsl,Ci,
      &       FUNCsl,FUNCsh,func
       end if
+#endif
       return
       end subroutine phot
 

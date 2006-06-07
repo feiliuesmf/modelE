@@ -1133,7 +1133,6 @@ cddd      call zero_entcell(entcell%entcell)
      &       entcell(i,j)%entcell%sumpatch%GCANOPY
       print *,"Got here in ent_get_exports."
 
-
       if ( present(shortwave_transmit) )
      &     shortwave_transmit(i,j) = 
      &     entcell(i,j)%entcell%sumpatch%TRANS_SW
