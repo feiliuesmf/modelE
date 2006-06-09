@@ -383,7 +383,16 @@ ESMFINCLUDEDIR = ${ESMF_DIR}/mod/mod${ESMF_BOPT}/Linux.intel.64.default
 ESMFLIBDIR = ${ESMF_DIR}/lib/lib${ESMF_BOPT}/Linux.intel.64.default
 
 CPPFLAGS += -DUSE_ESMF
-LIBS += -size_lp64 -mp -L${ESMFLIBDIR} -L${MPIDIR}/lib -lesmf  -lmpi -lmpi++  -lcprts -limf -lm -lcxa -lunwind -lrt -ldl -threads -lnetcdf_stubs
+ifeq ($(MPIDISTR),LAM)
+LIBS += -mp -L${ESMFLIBDIR} -L${MPIDIR}/lib  -lesmf   -llammpi++ -lmpi \
+-llam -llamf77mpi  -lpthread -lnetcdf_stubs -lrt -lc \
+/usr/lib64/libstdc++.so.6
+CPPFLAGS += -DMPILIB_DOUBLE_UNDERSCORE
+else
+LIBS += -size_lp64 -mp -L${ESMFLIBDIR} -L${MPIDIR}/lib -lesmf  -lmpi \
+-lmpi++  -lcprts -limf -lm -lcxa -lunwind -lrt -ldl -threads \
+-lnetcdf_stubs
+endif
 FFLAGS += -I${ESMFINCLUDEDIR}
 INCS += -I ${ESMFINCLUDEDIR}
 endif
