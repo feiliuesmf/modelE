@@ -10,153 +10,159 @@
 
       IMPLICIT NONE
       SAVE
+      private
+
+      public LM_REQ,im,jm,lm,imh,ntype,istrat
+
 C**** Accumulating_period information
-      INTEGER, DIMENSION(12) :: MONACC  !@var MONACC(1)=#Januaries, etc
-      CHARACTER*12 :: ACC_PERIOD='PARTIAL'    !@var string MONyyr1-yyr2
+      INTEGER, DIMENSION(12), public :: MONACC  !@var MONACC(1)=#Januaries, etc
+      CHARACTER*12, public :: ACC_PERIOD='PARTIAL'    !@var string MONyyr1-yyr2
 !@var AMON0,JMON0,JDATE0,JYEAR0,JHOUR0,Itime0  beg.of acc-period
 
 !!  WARNING: if new diagnostics are added, change io_diags/reset_DIAG !!
 C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@param KAJ number of accumulated zonal budget diagnostics
-      INTEGER, PARAMETER :: KAJ=80
+      INTEGER, PARAMETER, public :: KAJ=80
 !@var AJ zonal budget diagnostics for each surface type
-      REAL*8, DIMENSION(JM,KAJ,NTYPE) :: AJ
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJ_loc
+      REAL*8, DIMENSION(JM,KAJ,NTYPE), public :: AJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJ_loc
 
 !@var SQRTM moved from DIAG5A where it was a saved local array to this
 !@var place so its size could be allocated dynamically and still have
 !@var it preserved from call to call of DIAG5A
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SQRTM
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: SQRTM
 !@param NREG number of regions for budget diagnostics
-      INTEGER, PARAMETER :: NREG=24
+      INTEGER, PARAMETER, public :: NREG=24
 !@var AREG regional budget diagnostics
-      REAL*8, DIMENSION(NREG,KAJ) :: AREG
+      REAL*8, DIMENSION(NREG,KAJ), public :: AREG
 !@var TITREG,NAMREG title and names of regions for AREG diagnostics
-      CHARACTER*4 TITREG*80,NAMREG(2,23)
+      CHARACTER*4, public :: TITREG*80,NAMREG(2,23)
 !@var JREH lat/lon array defining regions for AREG diagnostics
-cgsfc      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: JREG
-      INTEGER, DIMENSION(IM,JM) :: JREG
+cgsfc      INTEGER, ALLOCATABLE, DIMENSION(:,:), public :: JREG
+      INTEGER, DIMENSION(IM,JM), public :: JREG
 
 !@param KAPJ number of zonal pressure diagnostics
-      INTEGER, PARAMETER :: KAPJ=2
+      INTEGER, PARAMETER, public :: KAPJ=2
 !@var APJ zonal pressure diagnostics
-      REAL*8, DIMENSION(JM,KAPJ) :: APJ
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: APJ_loc
+      REAL*8, DIMENSION(JM,KAPJ), public :: APJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: APJ_loc
 
 !@param KAJL,KAJLX number of AJL diagnostics,KAJLX includes composites
-      INTEGER, PARAMETER :: KAJL=70+KEP, KAJLX=KAJL+50
+      INTEGER, PARAMETER, public :: KAJL=70+KEP, KAJLX=KAJL+50
 !@var AJL latitude/height diagnostics
-      REAL*8, DIMENSION(JM,LM,KAJL) :: AJL
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJL_loc
+      REAL*8, DIMENSION(JM,LM,KAJL), public :: AJL
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJL_loc
 
 !@param KASJL number of ASJL diagnostics
-      INTEGER, PARAMETER :: KASJL=4
+      INTEGER, PARAMETER, public :: KASJL=4
 !@var ASJL latitude/height supplementary diagnostics (merge with AJL?)
-      REAL*8, DIMENSION(JM,LM_REQ,KASJL) :: ASJL
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: ASJL_loc
+      REAL*8, DIMENSION(JM,LM_REQ,KASJL), public :: ASJL
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL_loc
 
 !@param KAIJ,KAIJX number of AIJ diagnostics, KAIJX includes composites
-      INTEGER, PARAMETER :: KAIJ=320 , KAIJX=KAIJ+400
+      INTEGER, PARAMETER, public :: KAIJ=320 , KAIJX=KAIJ+400
 !@var AIJ latitude/longitude diagnostics
-      REAL*8, DIMENSION(IM,JM,KAIJ) :: AIJ
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AIJ_loc
+      REAL*8, DIMENSION(IM,JM,KAIJ), public :: AIJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ_loc
 
 !@param KAIL number of AIL diagnostics
-      INTEGER, PARAMETER :: KAIL=15
+      INTEGER, PARAMETER, public :: KAIL=15
 !@var AIL longitude/height diagnostics
-      REAL*8, DIMENSION(IM,LM,KAIL) :: AIL
+      REAL*8, DIMENSION(IM,LM,KAIL), public :: AIL
 !@var J50N,J70N,J5NUV,J5SUV,J5S,J5N special latitudes for AIL diags
-      INTEGER, PARAMETER :: J50N  = (50.+90.)*(JM-1)/180.+1.5
-      INTEGER, PARAMETER :: J70N  = (70.+90.)*(JM-1)/180.+1.5
-      INTEGER, PARAMETER :: J5NUV = (90.+5.)*(JM-1.)/180.+2.
-      INTEGER, PARAMETER :: J5SUV = (90.-5.)*(JM-1.)/180.+2.
-      INTEGER, PARAMETER :: J5N   = (90.+5.)*(JM-1.)/180.+1.5
-      INTEGER, PARAMETER :: J5S   = (90.-5.)*(JM-1.)/180.+1.5
+      INTEGER, PARAMETER, public :: J50N  = (50.+90.)*(JM-1)/180.+1.5
+      INTEGER, PARAMETER, public :: J70N  = (70.+90.)*(JM-1)/180.+1.5
+      INTEGER, PARAMETER, public :: J5NUV = (90.+5.)*(JM-1.)/180.+2.
+      INTEGER, PARAMETER, public :: J5SUV = (90.-5.)*(JM-1.)/180.+2.
+      INTEGER, PARAMETER, public :: J5N   = (90.+5.)*(JM-1.)/180.+1.5
+      INTEGER, PARAMETER, public :: J5S   = (90.-5.)*(JM-1.)/180.+1.5
 
 C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param NED number of different energy history diagnostics
 !@param NEHIST,HIST_DAYS number of energy history columns,rows (max)
-      INTEGER, PARAMETER :: NED=10
-      INTEGER, PARAMETER :: NEHIST=NED*(2+ISTRAT)
-      INTEGER, PARAMETER :: HIST_DAYS=100
+      INTEGER, PARAMETER, public :: NED=10
+      INTEGER, PARAMETER, public :: NEHIST=NED*(2+ISTRAT)
+      INTEGER, PARAMETER, public :: HIST_DAYS=100
 !@var ENERGY energy diagnostics
-      REAL*8, DIMENSION(NEHIST,HIST_DAYS) :: ENERGY
+      REAL*8, DIMENSION(NEHIST,HIST_DAYS), public :: ENERGY
 
 !@var NPTS number of points at which standard conserv. diags are called
-      INTEGER, PARAMETER :: NPTS = 11
+      INTEGER, PARAMETER, public :: NPTS = 11
 !@param NQUANT Number of conserved quantities in conservation diags
-      INTEGER, PARAMETER :: NQUANT=22
+      INTEGER, PARAMETER, public :: NQUANT=22
 !@param KCON number of conservation diagnostics
-      INTEGER, PARAMETER :: KCON=170
+      INTEGER, PARAMETER, public :: KCON=170
 !@var CONSRV conservation diagnostics
-      REAL*8, DIMENSION(JM,KCON) :: CONSRV
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CONSRV_loc
+      REAL*8, DIMENSION(JM,KCON), public :: CONSRV
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: CONSRV_loc
 !@var SCALE_CON scales for conservation diagnostics
-      REAL*8, DIMENSION(KCON) :: SCALE_CON
+      REAL*8, DIMENSION(KCON), public :: SCALE_CON
 !@var TITLE_CON titles for conservation diagnostics
-      CHARACTER*32, DIMENSION(KCON) :: TITLE_CON
+      CHARACTER*32, DIMENSION(KCON), public :: TITLE_CON
 !@var NSUM_CON indices for summation of conservation diagnostics
 !@var IA_CON IDACC numbers for conservation diagnostics
-      INTEGER, DIMENSION(KCON) :: NSUM_CON, IA_CON
+      INTEGER, DIMENSION(KCON), public :: NSUM_CON, IA_CON
 !@var NOFM indices for CONSRV array
-      INTEGER, DIMENSION(NPTS+1,NQUANT) :: NOFM
+      INTEGER, DIMENSION(NPTS+1,NQUANT), public :: NOFM
 !@var icon_xx indexes for conservation quantities
-      INTEGER icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM,icon_LKM
+      INTEGER, public ::
+     &     icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM,icon_LKM
      *     ,icon_LKE,icon_EWM,icon_WTG,icon_HTG,icon_OCE,icon_OMSI
      *     ,icon_OHSI,icon_OSSI,icon_LMSI,icon_LHSI,icon_MLI,icon_HLI
 !@var KCMX actual number of conservation diagnostics
-      INTEGER :: KCMX = 25 ! take up first 25 indexes for special cases
+      INTEGER, public :: KCMX = 25 ! take up first 25 indexes for special cases
 !@var CONPT0 default titles for each point where conserv diags. are done
-      CHARACTER*10, DIMENSION(NPTS) :: CONPT0 = (/
+      CHARACTER*10, DIMENSION(NPTS), public :: CONPT0 = (/
      *     "DYNAMICS  ","CONDENSATN","RADIATION ","PRECIPITAT",
      *     "LAND SURFC","SURFACE   ","FILTER    ","OCEAN     ",
      *     "DAILY     ","SRF OCN FL","OCN DYNAM "/)
 
 !@param KSPECA,NSPHER number of spectral diagnostics, and harmonics used
-      INTEGER, PARAMETER :: KSPECA=20
-      INTEGER, PARAMETER :: NSPHER=4*(2+ISTRAT)
+      INTEGER, PARAMETER, public :: KSPECA=20
+      INTEGER, PARAMETER, public :: NSPHER=4*(2+ISTRAT)
 !@var SPECA spectral diagnostics
-      REAL*8, DIMENSION((IMH+1),KSPECA,NSPHER) :: SPECA
+      REAL*8, DIMENSION((IMH+1),KSPECA,NSPHER), public :: SPECA
 !@var KLAYER index for dividing up atmosphere into layers for spec.anal.
-      INTEGER, DIMENSION(LM) :: KLAYER
+      INTEGER, DIMENSION(LM), public :: KLAYER
 !@param PSPEC pressure levels at which layers are seperated and defined
 C**** 1000 - 150: troposphere           150 - 10 : low strat.
 C****   10 - 1: mid strat               1 and up : upp strat.
-      REAL*8, DIMENSION(4), PARAMETER :: PSPEC = (/ 150., 10., 1., 0. /)
+      REAL*8, DIMENSION(4), PARAMETER, public ::
+     &     PSPEC = (/ 150., 10., 1., 0. /)
 !@var LSTR level of interface between low and mid strat. (approx 10 mb)
-      INTEGER :: LSTR = LM   ! defaults to model top.
+      INTEGER, public :: LSTR = LM   ! defaults to model top.
 
 !@param KTPE number of spectral diagnostics for pot. enthalpy
-      INTEGER, PARAMETER :: KTPE=8
-      integer, parameter :: NHEMI=2
+      INTEGER, PARAMETER, public :: KTPE=8
+      integer, parameter, public :: NHEMI=2
 !@var ATPE pot. enthalpy spectral diagnostics
-      REAL*8, DIMENSION(KTPE,NHEMI) :: ATPE
+      REAL*8, DIMENSION(KTPE,NHEMI), public :: ATPE
 
 !@param HR_IN_DAY hours in day
-      INTEGER, PARAMETER :: HR_IN_DAY=24
+      INTEGER, PARAMETER, public :: HR_IN_DAY=24
 !@param NDIUVAR number of diurnal diagnostics
 #ifdef TRACERS_DUST
-      INTEGER, PARAMETER :: NDIUVAR=302
+      INTEGER, PARAMETER, public :: NDIUVAR=302
 #else
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-      INTEGER, PARAMETER :: NDIUVAR=61
+      INTEGER, PARAMETER, public :: NDIUVAR=61
 #else
-      INTEGER, PARAMETER :: NDIUVAR=56
+      INTEGER, PARAMETER, public :: NDIUVAR=56
 #endif
 #endif
 !@param NDIUPT number of points where diurnal diagnostics are kept
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      INTEGER, PARAMETER :: NDIUPT=34
+      INTEGER, PARAMETER, public :: NDIUPT=34
 #else
-      INTEGER, PARAMETER :: NDIUPT=4
+      INTEGER, PARAMETER, public :: NDIUPT=4
 #endif
 !@dpparam adiurn_dust  flag to switch on/off intra daily diagnostics for dust
 !@+                    default=1 (on)
-      INTEGER :: adiurn_dust=1
+      INTEGER, public :: adiurn_dust=1
 !@dbparam IJDD,NAMDD (i,j)-coord.,names of boxes w/diurnal cycle diag
-      INTEGER, DIMENSION(2,NDIUPT) :: IJDD
-      CHARACTER*4, DIMENSION(NDIUPT) :: NAMDD
+      INTEGER, DIMENSION(2,NDIUPT), public :: IJDD
+      CHARACTER*4, DIMENSION(NDIUPT), public :: NAMDD
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       DATA IJDD
@@ -180,79 +186,81 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       DATA        NAMDD   / 'AUSD', 'MWST', 'SAHL', 'EPAC' /
 #endif
 !@var ADIURN diurnal diagnostics (24 hour cycles at selected points)
-      REAL*8, DIMENSION(HR_IN_DAY,NDIUVAR,NDIUPT) :: ADIURN
+      REAL*8, DIMENSION(HR_IN_DAY,NDIUVAR,NDIUPT), public :: ADIURN
 !@param HR_IN_MONTH hours in month
-      INTEGER, PARAMETER :: HR_IN_MONTH=HR_IN_DAY*31
+      INTEGER, PARAMETER, public :: HR_IN_MONTH=HR_IN_DAY*31
 #ifndef TRACERS_DUST
 #ifndef TRACERS_MINERALS
 #ifndef TRACERS_QUARZHEM
 !@var HDIURN hourly diagnostics (hourly value at selected points)
 !@+     Same quantities as ADIURN but not averaged over the month
-      REAL*8, DIMENSION(HR_IN_MONTH,NDIUVAR,NDIUPT) :: HDIURN
+      REAL*8, DIMENSION(HR_IN_MONTH,NDIUVAR,NDIUPT), public :: HDIURN
 #endif
 #endif
 #endif
 !@param KAJK number of zonal constant pressure diagnostics
 !@param KAJKX number of zonal constant pressure composit diagnostics
-      INTEGER, PARAMETER :: KAJK=51, KAJKX=KAJK+100
+      INTEGER, PARAMETER, public :: KAJK=51, KAJKX=KAJK+100
 !@var AJK zonal constant pressure diagnostics
-      REAL*8, DIMENSION(JM,LM,KAJK) :: AJK
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJK_loc
+      REAL*8, DIMENSION(JM,LM,KAJK), public :: AJK
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJK_loc
 
 !@param KAIJK,KAIJX number of lat/lon constant pressure diagnostics
-      INTEGER, PARAMETER :: KAIJK=22, kaijkx=kaijk+400
+      INTEGER, PARAMETER, public :: KAIJK=22, kaijkx=kaijk+400
 !@var KAIJK lat/lon constant pressure diagnostics
-      REAL*8, DIMENSION(IM,JM,LM,KAIJK) :: AIJK
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: AIJK_loc
+      REAL*8, DIMENSION(IM,JM,LM,KAIJK), public :: AIJK
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:), public :: AIJK_loc
 
 !@param NWAV_DAG number of components in spectral diagnostics
-      INTEGER, PARAMETER :: NWAV_DAG=min(9,imh)
+      INTEGER, PARAMETER, public :: NWAV_DAG=min(9,imh)
 !@param Max12HR_sequ,Min12HR_sequ lengths of time series for wave powers
-      INTEGER, PARAMETER :: Max12HR_sequ=2*31, Min12HR_sequ=2*28
+      INTEGER, PARAMETER, public :: Max12HR_sequ=2*31, Min12HR_sequ=2*28
 !@param RE_AND_IM complex components of wave power diagnostics
-      INTEGER, PARAMETER :: RE_AND_IM=2
+      INTEGER, PARAMETER, public :: RE_AND_IM=2
 !@param KWP number of wave power diagnostics
-      INTEGER, PARAMETER :: KWP=12
+      INTEGER, PARAMETER, public :: KWP=12
 !@var WAVE frequency diagnostics (wave power)
-      REAL*8,
-     &     DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP) :: WAVE
+      REAL*8, DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP), public ::
+     &     WAVE
 
 C**** parameters and variables for ISCCP diags
 !@param ntau,npress number of ISCCP optical depth,pressure categories
-      integer, parameter :: ntau=7,npres=7
+      integer, parameter, public :: ntau=7,npres=7
 !@param nisccp number of ISCCP histogram regions
-      integer, parameter :: nisccp = 5
+      integer, parameter, public :: nisccp = 5
 !@var isccp_press pressure mid points for isccp histogram
-      INTEGER, PARAMETER :: isccp_press(npres) = (/ 90, 245, 375, 500,
+      INTEGER, PARAMETER, public ::
+     &     isccp_press(npres) = (/ 90, 245, 375, 500,
      *     630, 740, 900 /)
 !@var isccp_tau lower bound of optical depth for each isccp tau category
-      REAL*8, PARAMETER :: isccp_tau(ntau) = (/ 0d0,.1d0,1.3d0,3.6d0,
+      REAL*8, PARAMETER, public ::
+     &     isccp_tau(ntau) = (/ 0d0,.1d0,1.3d0,3.6d0,
      *     9.4d0,23d0,60d0 /)
 !@var isccp_late edge latitudes for each isccp lat category (region)
 !@var isccp_lat midpoint latitudes for each isccp lat category (region)
 ! calculation of midpoints is hard-coded until all fortran compilers
 ! allow array arithmetic in PARAMETERS
-      REAL*8, PARAMETER ::
+      REAL*8, PARAMETER, public ::
      &  isccp_late(nisccp+1)=(/-60,-30,-15,15,30,60/)
      & ,isccp_lat(nisccp)=(/-45.,-22.5,0.,22.5,45./)
 !@var isccp_reg latitudinal index for ISCCP histogram regions
-      integer :: isccp_reg(JM)
+      integer, public :: isccp_reg(JM)
 !@var AISCCP accumlated array of ISCCP histogram
-      real*8 :: AISCCP(ntau,npres,nisccp)
+      real*8, public :: AISCCP(ntau,npres,nisccp)
 
 !@param KGZ number of pressure levels for some diags
-      INTEGER, PARAMETER :: KGZ = 13
+      INTEGER, PARAMETER, public :: KGZ = 13
 !@param kgz_max is the actual number of geopotential heights saved
-      INTEGER kgz_max
+      INTEGER, public :: kgz_max
 !@param PMB pressure levels for geopotential heights (extends to strat)
 !@param GHT ~mean geopotential heights at PMB level (extends to strat)
 !@param PMNAME strings describing PMB pressure levels
-      REAL*8, DIMENSION(KGZ), PARAMETER ::
+      REAL*8, DIMENSION(KGZ), PARAMETER, public ::
      &     PMB=(/1000d0,850d0,700d0,500d0,300d0,100d0,30d0,10d0,
      *     3.4d0,.7d0,.16d0,.07d0,.03d0/),
      *     GHT=(/0.,1500.,3000.,5600.,9500.,16400.,24000.,30000.,
      *     40000.,50000.,61000.,67000.,72000./)
-      CHARACTER*4, DIMENSION(KGZ), PARAMETER :: PMNAME=(/
+      CHARACTER*4, DIMENSION(KGZ), PARAMETER, public :: PMNAME=(/
      *     "1000","850 ","700 ","500 ","300 ","100 ","30  ","10  ",
      *     "3.4 ","0.7 ",".16 ",".07 ",".03 " /)
 
@@ -261,23 +269,24 @@ C**** Instantaneous constant pressure level fields
 !@var RH_inst saved instantaneous relative hum (at PMB levels)
 !@var T_inst saved instantaneous temperature(at PMB levels)
 !@var P_acc accumulated precip (special for SUBDD)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: Z_inst,RH_inst,T_inst
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: P_acc
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public ::
+     &     Z_inst,RH_inst,T_inst
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: P_acc
 
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: AFLX_ST
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:), public :: AFLX_ST
 
 !@param KTSF number of freezing temperature diagnostics
-      integer, parameter :: ktsf=4
+      integer, parameter, public :: ktsf=4
 !@var TSFREZ freezing temperature diagnostics
 C****   1  FIRST DAY OF GROWING SEASON (JULIAN DAY)
 C****   2  LAST DAY OF GROWING SEASON (JULIAN DAY)
 C****   3  LAST DAY OF ICE-FREE LAKE (JULIAN DAY)
 C****   4  LAST DAY OF ICED-UP LAKE  (JULIAN DAY)
-      REAL*8, DIMENSION(IM,JM,KTSF) :: TSFREZ
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TSFREZ_loc
+      REAL*8, DIMENSION(IM,JM,KTSF), public :: TSFREZ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: TSFREZ_loc
 
 !@param KTD number of diurnal temperature diagnostics
-      INTEGER, PARAMETER :: KTD=9
+      INTEGER, PARAMETER, public :: KTD=9
 !@var TDIURN diurnal range temperature diagnostics
 C****   1  MIN TG1 OVER EARTH FOR CURRENT DAY (C)
 C****   2  MAX TG1 OVER EARTH FOR CURRENT DAY (C)
@@ -288,26 +297,26 @@ C****   6  MAX COMPOSITE TS FOR CURRENT DAY (K)
 C****   7  MAX TG1 OVER OCEAN ICE FOR CURRENT DAY (C)
 C****   8  MAX TG1 OVER LAND ICE FOR CURRENT DAY (C)
 C****   9  MIN COMPOSITE TS FOR CURRENT DAY (K)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TDIURN
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: TDIURN
 
 !@nlparam KDIAG array of flags to control diagnostics printout
-      INTEGER, DIMENSION(13) :: KDIAG
+      INTEGER, DIMENSION(13), public :: KDIAG
 
 !@param NKEYNR number of key number diagnostics
-      INTEGER, PARAMETER :: NKEYNR=42
+      INTEGER, PARAMETER, public :: NKEYNR=42
 !@param NKEYMO number of months key diagnostics are saved
-      INTEGER, PARAMETER :: NKEYMO=50
+      INTEGER, PARAMETER, public :: NKEYMO=50
 !@var KEYNR time-series of key numbers
-      INTEGER, DIMENSION(NKEYNR,NKEYMO) :: KEYNR = 0
+      INTEGER, DIMENSION(NKEYNR,NKEYMO), public :: KEYNR = 0
 !@var KEYCT next index in KEYNR to be used (1->nkeymo)
-      INTEGER :: KEYCT = 1
+      INTEGER, public :: KEYCT = 1
 
 !@nlparam IWRITE,JWRITE,ITWRITE control rad.debug output (i,j,amount)
-      INTEGER :: IWRITE = 0, JWRITE = 0, ITWRITE = 23
+      INTEGER, public :: IWRITE = 0, JWRITE = 0, ITWRITE = 23
 !@nlparam QDIAG TRUE for outputting binary diagnostics
-      LOGICAL :: QDIAG = .FALSE.
+      LOGICAL, public :: QDIAG = .FALSE.
 !@nlparam QDIAG_ratios TRUE for forming ratios if title="q1 x q2"
-      LOGICAL :: QDIAG_ratios = .TRUE.
+      LOGICAL, public :: QDIAG_ratios = .TRUE.
 
 !@var OA generic diagnostic array for ocean heat transport calculations
 C****
@@ -330,25 +339,26 @@ C**** Extra array needed for dealing with advected ice
 C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
 C****
 !@param KOA number of diagnostics needed for ocean heat transp. calcs
-      INTEGER, PARAMETER :: KOA = 13  ! 12
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OA
+      INTEGER, PARAMETER, public :: KOA = 13  ! 12
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: OA
 
 C****
 C**** Information about acc-arrays:
 C****      names, indices, units, idacc-numbers, etc.
 
 !@var iparm/dparm int/double global parameters written to acc-file
-      integer, parameter :: niparm_max=100
-      character(len=20), dimension(niparm_max) :: iparm_name
-      integer, dimension(niparm_max) :: iparm
-      integer :: niparm=0
-      integer, parameter :: ndparm_max=100
-      character(len=20), dimension(ndparm_max) :: dparm_name
-      REAL*8, dimension(ndparm_max) :: dparm
-      integer :: ndparm=0
+      integer, parameter, public :: niparm_max=100
+      character(len=20), dimension(niparm_max), public :: iparm_name
+      integer, dimension(niparm_max), public :: iparm
+      integer, public :: niparm=0
+      integer, parameter, public :: ndparm_max=100
+      character(len=20), dimension(ndparm_max), public :: dparm_name
+      REAL*8, dimension(ndparm_max), public :: dparm
+      integer, public :: ndparm=0
 
 !@var J_xxx zonal J diagnostic names
-      INTEGER :: J_SRINCP0, J_SRNFP0, J_SRNFP1, J_SRABS, J_SRINCG,
+      INTEGER, public ::
+     &     J_SRINCP0, J_SRNFP0, J_SRNFP1, J_SRABS, J_SRINCG,
      *     J_SRNFG, J_TRNFP0, J_TRNFP1, J_TRHDT, J_RNFP0, J_RNFP1,
      *     J_RHDT, J_SHDT, J_EVHDT, J_HZ1, J_TG2, J_TG1, J_EVAP,
      *     J_PRCP, J_TX, J_TX1, J_TSRF, J_DTSGST, J_DTDGTR, J_RICST,
@@ -362,24 +372,25 @@ C****      names, indices, units, idacc-numbers, etc.
      *     J_PLAVIS,J_PLANIR,J_ALBVIS, J_ALBNIR, J_SRRVIS, J_SRRNIR,
      *     J_SRAVIS,J_SRANIR,J_CLDDEP, J_CLRTOA, J_CLRTRP, J_TOTTRP
 !@var NAME_J,UNITS_J Names/Units of zonal J diagnostics
-      character(len=20), dimension(kaj) :: name_j,units_j
+      character(len=20), dimension(kaj), public :: name_j,units_j
 !@var LNAME_J Long names of zonal J diagnostics
-      character(len=80), dimension(kaj) :: lname_j
+      character(len=80), dimension(kaj), public :: lname_j
 !@var STITLE_J short titles for print out for zonal J diagnostics
-      character(len=16), dimension(kaj) :: stitle_j
+      character(len=16), dimension(kaj), public :: stitle_j
 !@var SCALE_J scale for zonal J diagnostics
-      real*8, dimension(kaj) :: scale_j
+      real*8, dimension(kaj), public :: scale_j
 !@var IA_J IDACC indexes for zonal J diagnostics
-      integer, dimension(kaj) :: ia_j
+      integer, dimension(kaj), public :: ia_j
 !@var k_j_out number of directly printed out budget diags
-      integer k_j_out
+      integer, public :: k_j_out
 
-      character(len=20), dimension(kaj) :: name_reg
-      character(len=20), dimension(kapj) :: name_pj,units_pj
-      character(len=80), dimension(kapj) :: lname_pj
+      character(len=20), dimension(kaj), public :: name_reg
+      character(len=20), dimension(kapj), public :: name_pj,units_pj
+      character(len=80), dimension(kapj), public :: lname_pj
 
 !@var IJ_xxx AIJ diagnostic names
-      INTEGER :: IJ_RSOI, IJ_RSNW, IJ_SNOW, IJ_SHDT, IJ_PREC, IJ_EVAP,
+      INTEGER, public ::
+     &     IJ_RSOI, IJ_RSNW, IJ_SNOW, IJ_SHDT, IJ_PREC, IJ_EVAP,
      *     IJ_SSAT, IJ_BETA,  IJ_SLP1,  IJ_P4UV, IJ_PRES, IJ_PHI1K,
      *     IJ_PHI850, IJ_PHI700, IJ_PHI500, IJ_PHI300, IJ_PHI100,
      *     IJ_PHI30, IJ_PHI10, IJ_PHI3p4, IJ_PHI0p7, IJ_PHI0p16,
@@ -423,18 +434,21 @@ C****      names, indices, units, idacc-numbers, etc.
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
 #endif
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
-      INTEGER :: IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
+      INTEGER, public ::
+     &   IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
      *     IJ_G08,IJ_G09,IJ_G10,IJ_G11,IJ_G12,IJ_G13,IJ_G14,IJ_G15,
      *     IJ_G16,IJ_G17,IJ_G18,IJ_G19,IJ_G20,IJ_G21,IJ_G22,IJ_G23,
      *     IJ_G24,IJ_G25,IJ_G26,IJ_G27,IJ_G28,IJ_G29
 !@var IJ_GWx names for gravity wave diagnostics
-      INTEGER :: IJ_GW1,IJ_GW2,IJ_GW3,IJ_GW4,IJ_GW5,IJ_GW6,IJ_GW7,IJ_GW8
+      INTEGER, public ::
+     &     IJ_GW1,IJ_GW2,IJ_GW3,IJ_GW4,IJ_GW5,IJ_GW6,IJ_GW7,IJ_GW8
      *     ,IJ_GW9
 !@var IJ_xxxI names for ISCCP diagnostics
-      INTEGER :: IJ_CTPI,IJ_TAUI,IJ_LCLDI,IJ_MCLDI,IJ_HCLDI,IJ_TCLDI
+      INTEGER, public ::
+     &     IJ_CTPI,IJ_TAUI,IJ_LCLDI,IJ_MCLDI,IJ_HCLDI,IJ_TCLDI
 
 !@param LEGEND "contour levels" for ij-maps
-      CHARACTER(LEN=40), DIMENSION(25), PARAMETER :: LEGEND=(/ !
+      CHARACTER(LEN=40), DIMENSION(25), PARAMETER, public :: LEGEND=(/ !
      1  '0=0,1=5...9=45,A=50...K=100             ', ! ir_pct    fac=.2
      2  '0=0...9=90,A=100...I=180...R=270        ', ! ir_angl       .1
      3  '1=.5...9=4.5,A=5...Z=17.5,+=MORE        ', ! ir_0_18        2
@@ -461,7 +475,8 @@ C****      names, indices, units, idacc-numbers, etc.
      4  '1=5...9=45,A=50...Z=175,+=MORE          ', ! ir_0_180      .2
      5  '9=-512...1=-2,0=0,A=2,B=4,C=8...+=MORE  '/)! ir_log2       1.
 !@var ir_xxxx names for indices to LEGEND indicating the (rounded) range
-      integer, parameter :: ir_pct=1, ir_angl=2, ir_0_18=3, ir_0_4=4,
+      integer, parameter, public ::
+     &     ir_pct=1, ir_angl=2, ir_0_18=3, ir_0_4=4,
      * ir_0_71=5, ir_0_1775=6, ir_0_3550=7, ir_0_710=8, ir_0_26_150=9,
      * ir_0_3_15=10, ir_m80_28=11, ir_m265_95=12, ir_m530_190=13,
      * ir_m1325_475=14, ir_m2650_950=15, ir_m3975_1425=16,
@@ -469,7 +484,7 @@ C****      names, indices, units, idacc-numbers, etc.
      * ir_m190_530=21, ir_m9_26=22, ir_m38_106=23, ir_0_180=24,
      * ir_log2=25
 !@var fac_legnd = 1/(range_of_1_colorbox)
-      real*8, dimension(25) :: fac_legnd=(/
+      real*8, dimension(25), public :: fac_legnd=(/
      1      1d0/5,  1d0/10,    2.d0,   10.d0,   1d0/2,
      6     1d0/50, 1d0/100,  1d0/20,    1.d0,   10.d0,
      1      1d0/3,  1d0/10,  1d0/20,  1d0/50, 1d0/100,
@@ -477,43 +492,44 @@ C****      names, indices, units, idacc-numbers, etc.
      1     1d0/20,    1.d0,   1d0/4,   1d0/5,     1d0  /)
 
 !@param CBAR "color bars" for ij-maps
-      CHARACTER(LEN=38), PARAMETER, DIMENSION(5) :: CBAR=(/
+      CHARACTER(LEN=38), PARAMETER, DIMENSION(5), public :: CBAR=(/
      &     ' 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+',  ! ib_pos
      &     ' 0123456789ABCDEFGHIJKX               ',  ! ib_pct
      &     '-9876543210ABCDEFGHIJKLMNOPQRSTUVWXYZ+',  ! ib_npp,ib_ntr
      &     ' 0ABCDEFGHIJKLMNOPQRSTUVWXYZ3456789+* ',  ! ib_hyb
      &     '-ZYXWVUTSRQPONMLKJIHGFEDCBA0123456789+'/) ! ib_nnp
 !@var ib_xxx indices for color bars
-      integer, parameter :: ib_pos=1,ib_pct=2,ib_npp=3,ib_hyb=4,ib_nnp=5
+      integer, parameter, public ::
+     &     ib_pos=1,ib_pct=2,ib_npp=3,ib_hyb=4,ib_nnp=5
      &     ,ib_ntr=6
 
 !@dbparam isccp_diags: if 1 accumulate ISCCP cloud data (default 0)
-      INTEGER :: isccp_diags = 0
+      INTEGER, public :: isccp_diags = 0
 
 !@var SCALE_IJ scaling for weighted AIJ diagnostics
-      REAL*8, DIMENSION(KAIJ) :: SCALE_IJ
+      REAL*8, DIMENSION(KAIJ), public :: SCALE_IJ
 !@var NAME_IJ,UNITS_IJ Names/Units of lat/lon IJ diagnostics
-      character(len=30), dimension(kaijx) :: name_ij,units_ij
+      character(len=30), dimension(kaijx), public :: name_ij,units_ij
 !@var LNAME_IJ Long names of lat/lon IJ diagnostics
-      character(len=80), dimension(kaijx) :: lname_ij
+      character(len=80), dimension(kaijx), public :: lname_ij
 !@var IW_IJ weighting indices for IJ diagnostics
-      integer, dimension(kaij) :: iw_ij
+      integer, dimension(kaij), public :: iw_ij
 !@var nwts_ij = number of weight-ij-arrays used in IJ-diagnostics
-      integer, parameter :: nwts_ij = 7
+      integer, parameter, public :: nwts_ij = 7
 !@var wt_ij various weight-arrays use in ij-diagnostics
-      real*8, dimension(IM,JM,NWTS_IJ) :: wt_ij
+      real*8, dimension(IM,JM,NWTS_IJ), public :: wt_ij
 !@var IW_xxx index for weight-array
-      integer, parameter :: iw_all=1 , iw_ocn=2 , iw_lake=3,
+      integer, parameter, public :: iw_all=1 , iw_ocn=2 , iw_lake=3,
      *   iw_lice=4 , iw_soil=5 , iw_bare=6 , iw_veg=7
 !@var IR_IJ range indices for IJ diagnostics
-      integer, dimension(kaij) :: ir_ij
+      integer, dimension(kaij), public :: ir_ij
 !@var IA_IJ IDACC indexes for lat/lon IJ diagnostics
-      integer, dimension(kaij) :: ia_ij
+      integer, dimension(kaij), public :: ia_ij
 !@var [ij]grid_ij 1=primary grid  2=secondary grid
-      integer, dimension(kaij) :: igrid_ij,jgrid_ij
+      integer, dimension(kaij), public :: igrid_ij,jgrid_ij
 
 !@var JL_xxx names for JL diagnostic indices
-      INTEGER ::
+      INTEGER, public ::
      &     jl_mcmflx,jl_srhr,jl_trcr,jl_sshr,jl_trbhr,jl_mchr,jl_totntlh
      *     ,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh,jl_ape,jl_dtdyn,jl_dudfmdrg
      *     ,jl_totcld,jl_dumtndrg,jl_dushrdrg,jl_dumcdrgm10
@@ -530,27 +546,27 @@ C****      names, indices, units, idacc-numbers, etc.
 #endif
 
 !@var SNAME_JL Names of lat-sigma JL diagnostics
-      character(len=30), dimension(kajlx) :: sname_jl
+      character(len=30), dimension(kajlx), public :: sname_jl
 !@var LNAME_JL,UNITS_JL Descriptions/Units of JL diagnostics
-      character(len=50), dimension(kajlx) :: lname_jl,units_jl
+      character(len=50), dimension(kajlx), public :: lname_jl,units_jl
 !@var SCALE_JL printout scaling factors for JL diagnostics
-      REAL*8, dimension(kajlx) :: scale_jl
+      REAL*8, dimension(kajlx), public :: scale_jl
 !@var IA_JL,JGRID_JL idacc-numbers,gridtypes for JL diagnostics
-      integer, dimension(kajlx) :: ia_jl,jgrid_jl
+      integer, dimension(kajlx), public :: ia_jl,jgrid_jl
 !@var POW_JL printed output scaled by 10**(-pow_jl)
-      integer, dimension(kajlx) :: pow_jl
+      integer, dimension(kajlx), public :: pow_jl
 
 !@var NAME_SJL Names of radiative-layer-only SJL diagnostics
-      character(len=30), dimension(kasjl) :: name_sjl
+      character(len=30), dimension(kasjl), public :: name_sjl
 !@var LNAME_SJL,UNITS_SJL Descriptions/Units of SJL diagnostics
-      character(len=50), dimension(kasjl) :: lname_sjl,units_sjl
+      character(len=50), dimension(kasjl), public :: lname_sjl,units_sjl
 !@var SCALE_SJL printout scaling factors for SJL diagnostics
-      REAL*8, dimension(kasjl) :: scale_sjl
+      REAL*8, dimension(kasjl), public :: scale_sjl
 !@var IA_SJL idacc-numbers for SJL diagnostics
-      integer, dimension(kasjl) :: ia_sjl
+      integer, dimension(kasjl), public :: ia_sjl
 
 !@var JK_xxx names for JK diagnostic indices
-      INTEGER ::
+      INTEGER, public ::
      &     JK_dpa ,JK_dpb ,JK_temp ,JK_hght
      &    ,JK_q ,JK_theta ,JK_rh ,JK_u
      &    ,JK_v ,JK_zmfke ,JK_totke ,JK_zmfntsh
@@ -566,56 +582,61 @@ C****      names, indices, units, idacc-numbers, etc.
      &    ,JK_totdtdt ,JK_eddvtpt ,JK_cldh2o
 
 !@var SNAME_JK Names of lat-pressure JK diagnostics
-      character(len=30), dimension(kajkx) :: sname_jk
+      character(len=30), dimension(kajkx), public :: sname_jk
 !@var LNAME_JK,UNITS_JK Descriptions/Units of JK diagnostics
-      character(len=50), dimension(kajkx) :: lname_jk,units_jk
+      character(len=50), dimension(kajkx), public :: lname_jk,units_jk
 !@var SCALE_JK printout scaling factors for JK diagnostics
-      REAL*8, dimension(kajkx) :: scale_jk
+      REAL*8, dimension(kajkx), public :: scale_jk
 !@var IA_JK,JGRID_JK idacc-numbers,gridtypes for JK diagnostics
-      integer, dimension(kajkx) :: ia_jk,jgrid_jk
+      integer, dimension(kajkx), public :: ia_jk,jgrid_jk
 !@var POW_JK printed output scaled by 10**(-pow_jk)
-      integer, dimension(kajkx) :: pow_jk
+      integer, dimension(kajkx), public :: pow_jk
 
 !@var IJK_xxx AIJK diagnostic names
-      INTEGER :: IJK_U, IJK_V, IJK_DSE, IJK_DP, IJK_T, IJK_Q, IJK_R,
+      INTEGER, public ::
+     &     IJK_U, IJK_V, IJK_DSE, IJK_DP, IJK_T, IJK_Q, IJK_R,
      *     IJK_W, IJK_PF, IJL_CF ,IJK_UV, IJK_VQ, IJK_VT, IJK_UU,
      *     IJK_VV, IJK_TT
 #ifdef CLD_AER_CDNC
      *    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
 #endif
 !@var SCALE_IJK scaling for weighted AIJK diagnostics
-      REAL*8, DIMENSION(KAIJKx) :: SCALE_IJK
+      REAL*8, DIMENSION(KAIJKx), public :: SCALE_IJK
 !@var OFF_IJK offset for weighted AIJK diagnostics
-      REAL*8, DIMENSION(KAIJKx) :: OFF_IJK
+      REAL*8, DIMENSION(KAIJKx), public :: OFF_IJK
 
 !@var NAME_IJK Names of lon-lat-pressure IJK diagnostics
-      character(len=30), dimension(kaijkx) :: name_ijk
+      character(len=30), dimension(kaijkx), public :: name_ijk
 !@var LNAME_IJK,UNITS_IJK Descriptions/Units of IJK diagnostics
-      character(len=50), dimension(kaijkx) :: lname_ijk,units_ijk
+      character(len=50), dimension(kaijkx), public ::
+     &     lname_ijk,units_ijk
 !@var jgrid_ijk 1=primary grid  2=secondary grid
-      integer, dimension(KAIJKx) :: jgrid_ijk
+      integer, dimension(KAIJKx), public :: jgrid_ijk
 
-      character(len=20), dimension(kwp) :: name_wave,units_wave
-      character(len=80), dimension(kwp) :: lname_wave
+      character(len=20), dimension(kwp), public :: name_wave,units_wave
+      character(len=80), dimension(kwp), public :: lname_wave
 
-      character(len=20), dimension(kcon) :: name_consrv,units_consrv
-      character(len=80), dimension(kcon) :: lname_consrv
+      character(len=20), dimension(kcon), public ::
+     &     name_consrv,units_consrv
+      character(len=80), dimension(kcon), public :: lname_consrv
 
-      character(len=20), dimension(kail) :: name_il,units_il
-      character(len=80), dimension(kail) :: lname_il
-      real*8, dimension(kail) :: scale_il
-      integer, dimension(kail) :: ia_il
+      character(len=20), dimension(kail), public :: name_il,units_il
+      character(len=80), dimension(kail), public :: lname_il
+      real*8, dimension(kail), public :: scale_il
+      integer, dimension(kail), public :: ia_il
 !@var IL_xxx names for longitude height diagnostics
-      INTEGER :: IL_UEQ,IL_VEQ,IL_WEQ,IL_TEQ,IL_QEQ,IL_MCEQ,IL_REQ
+      INTEGER, public ::
+     &     IL_UEQ,IL_VEQ,IL_WEQ,IL_TEQ,IL_QEQ,IL_MCEQ,IL_REQ
      *     ,IL_W50N,IL_T50N,IL_R50N,IL_U50N,IL_W70N,IL_T70N,IL_R70N
      *     ,IL_U70N
 
-      character(len=20), dimension(ndiuvar) :: name_dd,units_dd
-      character(len=80), dimension(ndiuvar) :: lname_dd
-      real*8, dimension(ndiuvar) :: scale_dd
+      character(len=20), dimension(ndiuvar), public :: name_dd,units_dd
+      character(len=80), dimension(ndiuvar), public :: lname_dd
+      real*8, dimension(ndiuvar), public :: scale_dd
 
 !@var IDD_xxx names for diurnal diagnostics
-      INTEGER :: IDD_ISW, IDD_PALB, IDD_GALB, IDD_ABSA, IDD_ECND,
+      INTEGER, public ::
+     &     IDD_ISW, IDD_PALB, IDD_GALB, IDD_ABSA, IDD_ECND,
      *     IDD_SPR, IDD_PT5, IDD_PT4, IDD_PT3, IDD_PT2, IDD_PT1, IDD_TS,
      *     IDD_TG1, IDD_Q5, IDD_Q4, IDD_Q3, IDD_Q2, IDD_Q1, IDD_QS,
      *     IDD_QG, IDD_SWG, IDD_LWG, IDD_SH, IDD_LH, IDD_HZ0, IDD_UG,
@@ -627,10 +648,12 @@ C****      names, indices, units, idacc-numbers, etc.
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      INTEGER :: idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf,idd_wtrsh
+      INTEGER, public ::
+     &   idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf,idd_wtrsh
 #endif
 #ifdef TRACERS_DUST
-      INTEGER :: idd_u1,idd_u2,idd_u3,idd_u4,idd_u5,idd_u6,idd_u7
+      INTEGER, public ::
+     &     idd_u1,idd_u2,idd_u3,idd_u4,idd_u5,idd_u6,idd_u7
      *     ,idd_u8,idd_u9,idd_u10,idd_u11,idd_v1,idd_v2,idd_v3,idd_v4
      *     ,idd_v5,idd_v6,idd_v7,idd_v8,idd_v9,idd_v10,idd_v11
      *     ,idd_uv1,idd_uv2,idd_uv3,idd_uv4,idd_uv5,idd_uv6,idd_uv7
@@ -676,38 +699,40 @@ C****      names, indices, units, idacc-numbers, etc.
 #endif
 
 !@var tf_xxx tsfrez diagnostic names
-      INTEGER :: tf_day1,tf_last,tf_lkon,tf_lkoff
-      character(len=20), dimension(ktsf) :: name_tsf,units_tsf
-      character(len=80), dimension(ktsf) :: lname_tsf
+      INTEGER, public :: tf_day1,tf_last,tf_lkon,tf_lkoff
+      character(len=20), dimension(ktsf), public :: name_tsf,units_tsf
+      character(len=80), dimension(ktsf), public :: lname_tsf
 
-      character(len=8), dimension(ntype) :: stype_names=
+      character(len=8), dimension(ntype), public :: stype_names=
      &     (/ 'OCEAN   ','OCEANICE','EARTH   ',
      &        'LANDICE ','LAKE    ','LAKEICE ' /)
 
 c idacc-indices of various processes
-      integer, parameter ::
+      integer, parameter, public ::
      &     ia_src=1, ia_rad=2, ia_srf=3, ia_dga=4, ia_d4a=5, ia_d5f=6,
      *     ia_d5d=7, ia_d5s=8, ia_12hr=9, ia_filt=10, ia_ocn=11,
      *     ia_inst=12
 
 !@var PLE,PLM, PLE_DN ref pressures at upper, middle and lower edge
-      REAL*8, DIMENSION(LM) :: PLE
-      REAL*8, DIMENSION(LM) :: PLE_DN
-      REAL*8, DIMENSION(LM+LM_REQ) :: PLM
+      REAL*8, DIMENSION(LM), public :: PLE
+      REAL*8, DIMENSION(LM), public :: PLE_DN
+      REAL*8, DIMENSION(LM+LM_REQ), public :: PLM
 !@var P1000K scaling to change reference pressure from 1mb to 1000mb
-      REAL*8 :: P1000K
+      REAL*8, public :: P1000K
 !@var inci,incj print increments for i and j, so maps/tables fit on page
-      integer, parameter :: inci=(im+35)/36,incj=(JM+23)/24, jmby2=jm/2
+      integer, parameter, public ::
+     &     inci=(im+35)/36,incj=(JM+23)/24, jmby2=jm/2
 !@var linect = current line on page of print out
-      integer linect
+      integer, public :: linect
 
 !@var XWON scale factor for diag. printout needed for Wonderland model
-      REAL*8 :: XWON = TWOPI/(DLON*FIM)
+      REAL*8, public :: XWON = TWOPI/(DLON*FIM)
 
 !@var LMOMAX max no. of layers in any ocean
-      INTEGER, PARAMETER :: LMOMAX=50
+      INTEGER, PARAMETER, public :: LMOMAX=50
 !@var ZOC, ZOC1 ocean depths for diagnostics (m) (ONLY FOR DEEP OCEAN)
-      REAL*8 :: ZOC(LMOMAX) = 0. , ZOC1(LMOMAX+1) = 0.
+      REAL*8, public :: ZOC(LMOMAX) = 0. , ZOC1(LMOMAX+1) = 0.
+
 
       END MODULE DIAG_COM
 

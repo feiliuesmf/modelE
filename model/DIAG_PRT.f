@@ -1260,7 +1260,7 @@ C****
 !@ver  1.0
       use filemanager
       USE CONSTANT, only : sday,bygrav,sha,lhe
-      USE MODEL_COM, only : byim,DTsrc
+      USE MODEL_COM, only : byim,DTsrc,fim
       USE BDjkjl
       USE DIAG_COM
       IMPLICIT NONE
@@ -1672,7 +1672,7 @@ c Check the count
       USE MODEL_COM, only :
      &     im,jm,lm,fim, xlabel,lrunid,DO_GWDRAG,
      &     BYIM,DSIG,BYDSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,nidyn,
-     &     PTOP,PMTOP,PSFMPT,SIG,SIGE,JHOUR
+     &     PTOP,PMTOP,PSFMPT,SIG,SIGE,JHOUR,kep
       USE GEOM, only : JRANGE_HEMI,
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
      &    ,BYDXYV,lat_dg
