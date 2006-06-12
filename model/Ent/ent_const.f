@@ -106,6 +106,7 @@
       integer,parameter :: NLIVE = 3
       integer,parameter :: NDEAD = 9
       integer,parameter :: NPOOLS = NLIVE + NDEAD
+      !* Total pool array indices
       integer,parameter :: Carbon = 1
       integer,parameter :: Nitrogen = 2
 

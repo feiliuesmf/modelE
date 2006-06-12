@@ -33,9 +33,8 @@
          real*8 :: nf !Canopy nitrogen factor (dimensionless) (Kull and Kruijt)
          !CASA parameters
          real*8 :: sla !Specific leaf area (m^2 leaf area/kg C)
-         real*8 :: stressCD !CASA cold/drought dress
-         real*8 :: lrage !CASA Age of leaves and roots (years)
-         real*8 :: woodage !CASA Age of stems (years)
+         real*8 :: lrage !CASA Turnover time of leaves and roots (years)
+         real*8 :: woodage !CASA Turnover time of stems (years)
          real*8 :: lit_C2N !CASA litcn_casa (C:N ratio) IS THIS FOLIAGE&ROOTS?
          real*8 :: lignin  !CASA lignin (UNITS?  lignin content of ??)
          !real*8 :: !Phenological parameters, other

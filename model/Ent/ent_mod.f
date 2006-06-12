@@ -1131,7 +1131,7 @@ cddd      call zero_entcell(entcell%entcell)
       if ( present(canopy_conductance) )
      &     canopy_conductance(i,j) = 
      &       entcell(i,j)%entcell%sumpatch%GCANOPY
-!      print *,"Got here in ent_get_exports."
+      print *,"Got here in ent_get_exports."
 
       if ( present(shortwave_transmit) )
      &     shortwave_transmit(i,j) = 
