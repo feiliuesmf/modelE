@@ -35,7 +35,7 @@ C****
       data month_day /31,28,31,30,31,30,31,31,30,31,30,31/
       off_line = .true. ! skip unneeded parts in OCLIM
 !AOO calls to init routines for dynamically allocated arrays:part 2 of 3
-      call init_app(grid,im,jm)
+      call init_app(grid,im,jm,lm)
       call alloc_drv()
 !AOO end of part 2 of 3
       call getarg(1,title)

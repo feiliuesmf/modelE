@@ -24,7 +24,7 @@ C****
       use domain_decomp, only : init_app, grid, finish_app
 !AOO end of part 1 of 3
 !!    use model_com, only : ioread
-      use model_com, only : im,jm
+      use model_com, only : im,jm,lm
       USE PARAM
       USE CONSTANT, only : twopi,sday,rhows
       USE MODEL_COM, only: lm,iowrite_mon,irerun
@@ -83,7 +83,7 @@ C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
 C****
       off_line = .true. ! skip unneeded parts in OCLIM
 !AOO calls to init routines for dynamically allocated arrays:part 2 of 3
-      call init_app(grid,im,jm)
+      call init_app(grid,im,jm,lm)
       call alloc_drv()
 !AOO end of part 2 of 3
       call getarg(1,RunID )

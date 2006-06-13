@@ -531,11 +531,11 @@ C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
 
 C**** PRINT AND ZERO OUT THE TIMING NUMBERS
         CALL TIMER (MNOW,MDIAG)
-        TOTALT=(MNOW-MSTART)/time_rate      ! in seconds
         DO M=1,NTIMEACC
-          PERCENT(M) = TIMING(M)/(TOTALT+.00001)
+          PERCENT(M) = 100d0*TIMING(M)/(MNOW-MSTART+.00001)
         END DO
-        DTIME = NDAY*TOTALT/(60.*(Itime-Itime0))  ! minutes/day
+        TOTALT=(MNOW-MSTART)/(60.*time_rate)      ! in minutes
+        DTIME = NDAY*TOTALT/(Itime-Itime0)        ! minutes/day
         WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)')
      *   '0TIME',DTIME,'(MINUTES) ',(TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
         TIMING = 0
@@ -569,12 +569,12 @@ C**** Flag to continue run has been turned off
       END IF
 
 c$$$      call test_save(__LINE__, itime-1)
-         
+
       END DO
 
       call gettime(tloopcurrent)
       tloopend=tloopcurrent/time_rate
-      if (AM_I_ROOT()) 
+      if (AM_I_ROOT())
      *     write(*,*) "Time spent in the main loop in seconds:",
      *     tloopend-tloopbegin
 C****
@@ -919,11 +919,11 @@ C****
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
-      if (AM_I_ROOT()) 
+      if (AM_I_ROOT())
      *     write(6,*) '...and Jean/David tracers and chemistry'
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      if (AM_I_ROOT()) 
+      if (AM_I_ROOT())
      *     write(6,*) '...and Drew Shindell tracers and chemistry'
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
@@ -933,11 +933,11 @@ C****
       if (AM_I_ROOT()) write(6,*) '...and tracer dry deposition'
 #endif
 #ifdef EDGAR_HYDE_SOURCES
-      if (AM_I_ROOT()) write(6,*) 
+      if (AM_I_ROOT()) write(6,*)
      *     '...and EDGAR HYDE sources instead of GISS'
 #endif
 #ifdef SHINDELL_STRAT_CHEM
-      if (AM_I_ROOT()) 
+      if (AM_I_ROOT())
      & write(6,*) '...and Drew Shindell stratospheric chemistry'
 #endif
 #ifdef SHINDELL_STRAT_EXTRA
@@ -1009,7 +1009,7 @@ C****
 
 C**** Get Start Time; at least YearI HAS to be specified in the rundeck
       IF (YearI.lt.0) then
-        IF (AM_I_ROOT()) 
+        IF (AM_I_ROOT())
      *   WRITE(6,*) 'Please choose a proper start year yearI, not',yearI
         call stop_model('INPUT: yearI not provided',255)
       END IF
@@ -1027,7 +1027,7 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
       END IF
 C**** Check the vertical layering defined in RES_ (is sige(ls1)=0 ?)
       IF (SIGE(LS1).ne.0.) then
-        if (AM_I_ROOT()) 
+        if (AM_I_ROOT())
      *       write(6,*) 'bad vertical layering: ls1,sige(ls1)',
      &       ls1,sige(ls1)
         call stop_model('INPUT: ls1 incorrectly set in RES_',255)
@@ -1050,7 +1050,7 @@ C**** Read in ground initial conditions
         call io_soils  (iu_GIC,ioreadnt,ioerr)
         call io_landice(iu_GIC,ioreadnt,ioerr)
         if (ioerr.eq.1) then
-          IF (AM_I_ROOT()) 
+          IF (AM_I_ROOT())
      *          WRITE(6,*) "I/O ERROR IN GIC FILE: KUNIT=",iu_GIC
           call stop_model("INPUT: GIC READ IN ERROR",255)
         end if
@@ -1231,13 +1231,13 @@ C****        tropospheric temperatures changed by at most 1 degree C
         END DO
         END DO
         END DO
-        IF (AM_I_ROOT()) 
+        IF (AM_I_ROOT())
      *       WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
       END IF
 C**** Close "AIC" here if it was opened
       IF (ISTART.gt.1) call closeunit(iu_AIC)
 
-      IF (AM_I_ROOT()) 
+      IF (AM_I_ROOT())
      *     WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)')
      *  '0Model started on',datei,aMONTH(monthi),yeari,' Hr',houri,
      *  'ISTART =',ISTART,XLABEL(1:80)    ! report input file label
@@ -1284,7 +1284,7 @@ C****        tropospheric temperatures are changed by at most 1 degree C
           END DO
           END DO
           END DO
-          IF (AM_I_ROOT()) 
+          IF (AM_I_ROOT())
      *         WRITE(6,*) 'Current temperatures were perturbed !!',IRANDI
         END IF
         TIMING = 0
@@ -1371,7 +1371,7 @@ C**** Alternate (old) way of specifying end time
 
 C**** Check consistency of DTsrc (with NDAY) and dt (with NIdyn)
       if (is_set_param("DTsrc") .and. nint(sday/DTsrc).ne.NDAY) then
-        if (AM_I_ROOT()) 
+        if (AM_I_ROOT())
      *        write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to',SDAY/NDAY
         call stop_model('INPUT: DTsrc inappropriately set',255)
       end if
@@ -1384,7 +1384,7 @@ C**** NIdyn=dtsrc/dt(dyn) has to be a multiple of 2
 C****
       NIdyn = 2*nint(.5*dtsrc/dt)
       if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
-        if (AM_I_ROOT()) 
+        if (AM_I_ROOT())
      *        write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
         call stop_model('INPUT: DT inappropriately set',255)
       end if
@@ -1397,7 +1397,7 @@ C**** NMONAV has to be 1(default),2,3,4,6,12, i.e. a factor of 12
         write (6,*) 'NMONAV has to be 1,2,3,4,6 or 12, not',NMONAV
         call stop_model('INPUT: nmonav inappropriately set',255)
       end if
-      if (AM_I_ROOT()) 
+      if (AM_I_ROOT())
      *     write (6,*) 'Diag. acc. period:',NMONAV,' month(s)'
 
 C**** Updating Parameters: If any of them changed beyond this line
@@ -1419,7 +1419,7 @@ C****
 C****   READ SPECIAL REGIONS FROM UNIT 29
         call openunit("REG",iu_REG,.true.,.true.)
         READ(iu_REG) TITREG,JREG,NAMREG
-        IF (AM_I_ROOT()) 
+        IF (AM_I_ROOT())
      &       WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
         call closeunit(iu_REG)
       end if  ! full model: Kradia le 0
@@ -1462,7 +1462,7 @@ C**** as residual terms. (deals with SP=>DP problem)
         IF (FOCEAN(I,J).gt.0) THEN
           FLAND(I,J)=1.-FOCEAN(I,J) ! Land fraction
           IF (FLAKE(I,J).gt.0) THEN
-           IF (AM_I_ROOT()) WRITE(6,*) 
+           IF (AM_I_ROOT()) WRITE(6,*)
      *            "Ocean and lake cannot co-exist in same grid box"
      *       ,i,j,FOCEAN(I,J),FLAKE(I,J)
             FLAKE(I,J)=0
@@ -1811,7 +1811,7 @@ C**** check tracers
 
       call getdte(
      &     ItimeMax,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
-      if (AM_I_ROOT()) 
+      if (AM_I_ROOT())
      &     write(6,"('QCRESTART_DATA: ',I10,1X,I2,'-',I2.2,'-',I4.4)")
      &     ItimeMax*24/Nday, Jmon, Jdate, Jyear
 
