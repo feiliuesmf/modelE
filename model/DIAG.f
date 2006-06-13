@@ -2037,7 +2037,7 @@ C****
       module DIAG
       contains
 
-      SUBROUTINE DIAGCD (M,UX,VX,DUT,DVT,DT1,PIT)
+      SUBROUTINE DIAGCD (grid,M,UX,VX,DUT,DVT,DT1,PIT)
 !@sum  DIAGCD Keeps track of the conservation properties of angular
 !@+    momentum and kinetic energy inside dynamics routines
 !@auth Gary Russell
@@ -2046,7 +2046,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,fim,mdiag,mdyn
       USE GEOM, only : cosv,radius,ravpn,ravps
       USE DIAG_COM, only : consrv=>consrv_loc
-      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, DIST_GRID
       USE DOMAIN_DECOMP, only : SOUTH
       IMPLICIT NONE
 C****
@@ -2058,6 +2058,7 @@ C****   4  AFTER STRATOS DRAG IN DYNAMICS
 C****   5  AFTER FLTRUV IN DYNAMICS
 C****   6  AFTER GRAVITY WAVE DRAG IN DYNAMICS
 C****
+      TYPE (DIST_GRID), INTENT(IN) :: grid
 !@var M index denoting from where DIAGCD is called
       INTEGER, INTENT(IN) :: M
 !@var DT1 current time step

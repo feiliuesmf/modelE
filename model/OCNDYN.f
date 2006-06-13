@@ -2287,8 +2287,8 @@ c****Get relevant local distributed parameters
 
 c**** loop over layers
       ICKERR=0
-!$OMP  PARALLEL DO PRIVATE(I,L)
-!$OMP* SHARED(JM,im)
+!$OMP  PARALLEL DO PRIVATE(I,J,L) DEFAULT(SHARED)
+!!! !$OMP* SHARED(JM,im)
       do L=1,lmo
 
 c****   fill in and save polar values
@@ -2358,8 +2358,8 @@ c       end if
            rx(:,jm,:) = 0. ; ry(:,jm,:) = 0.
         end if
 
-!$OMP  PARALLEL DO PRIVATE(I,L)
-!$OMP* SHARED(JM,IM)
+!$OMP  PARALLEL DO PRIVATE(I,L) DEFAULT(SHARED)
+!!! !$OMP* SHARED(JM,IM)
       do l=1,lmo
 
 c****   average and update polar boxes

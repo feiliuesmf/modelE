@@ -1054,7 +1054,7 @@ C
 C**** CALL DIAGNOSTICS
       IF(MRCH.GT.0) THEN
          IF(MODD5K.LT.MRCH) CALL DIAG5D (6,MRCH,DUT,DVT)
-         CALL DIAGCD (3,U,V,DUT,DVT,DT1)
+         CALL DIAGCD (grid,3,U,V,DUT,DVT,DT1)
       ENDIF
 C****
 C****
@@ -1235,7 +1235,7 @@ C**** Initialise total energy (J/m^2)
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
-!$OMP  PARALLEL DO PRIVATE(I,J)
+!$OMP  PARALLEL DO DEFAULT(SHARED) PRIVATE(I,J) 
       DO J=J_0S,J_1S
         DO I=1,IM
           POLD(I,J)=P(I,J)      ! Save old pressure
@@ -1612,7 +1612,7 @@ c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
 
 C**** Call diagnostics and KE dissipation only for even time step
       IF (MRCH.eq.2) THEN
-        CALL DIAGCD(5,UT,VT,DUT,DVT,DT1)
+        CALL DIAGCD(grid,5,UT,VT,DUT,DVT,DT1)
         call addEnergyAsLocalHeat(DKE, T, PK)
       END IF
 
@@ -2149,7 +2149,7 @@ C*
 
 C**** conservation diagnostic
 C**** (technically we should use U,V from before but this is ok)
-      CALL DIAGCD (4,U,V,DUT,DVT,DT1)
+      CALL DIAGCD (grid,4,U,V,DUT,DVT,DT1)
       RETURN
       END SUBROUTINE SDRAG
 
