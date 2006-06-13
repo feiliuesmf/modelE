@@ -44,9 +44,9 @@
 
 
       !*********************************************************************
-      subroutine litter(dtsec, tt, pp)
+      subroutine litter(dtsec, pp)
       real*8 :: dtsec           !dt in seconds
-      type(timestruct) :: tt  !Greenwich Mean Time
+      !type(timestruct) :: tt    !Greenwich Mean Time
       type(patch),pointer :: pp
 
       !---------------------------------------------------------------

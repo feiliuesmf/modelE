@@ -15,7 +15,7 @@
       private
       save
 
-      public ent_ecosystem_dynamics, ent_biophysics
+      public ent_ecosystem_dynamics, ent_integrate_GISS, ent_biophysics
 
       contains
       !*********************************************************************
@@ -37,7 +37,7 @@
       !---
       type(patch), pointer :: pp
 !      write(*,*) 'Ecosystem dynamics for (long,lat)=(',
-!     & ecp%long,ecp%lat,'),tt=',tt
+
 
       pp => ecp%sumpatch
 
@@ -45,7 +45,7 @@
         call get_patchalbedo(pp)
       end if
 
-      call ent_integrate(dtsec,tt,ecp) !Biophysics, respiration
+      call ent_integrate(dtsec,ecp) !Biophysics, respiration
 
       if (STRUCT_FLAG(tt,ecp)) then
         call reproduction_calc(dtsec, tt, pp)
@@ -74,7 +74,7 @@
       end subroutine ent_ecosystem_dynamics
 
       !*********************************************************************
-      subroutine ent_integrate(dtsec, tt, ecp)
+      subroutine ent_integrate_GISS(ecp, dtsec)
 !@sum Ent biophysics/biogeochemistry
       use reproduction
       use cohorts
@@ -85,29 +85,79 @@
       use soilbgc, only : soil_bgc
       use phenology, only : phenology_update
       use canopyrad, only : recalc_radpar
+      use entcells, only : summarize_entcell, entcell_print
+
+      implicit none
+      type(entcelltype) :: ecp
+      real*8 :: dtsec  !dt in seconds
+!      type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
+      !-----local--------
+      type(patch),pointer :: pp
+
+      !***GISS version:  pass in ecp%sumpatch
+      !pp = ecp%sumpatch
+      pp = ecp%oldest
+      do while (ASSOCIATED(pp)) 
+        call photosynth_cond(dtsec, pp)
+        call uptake_N(dtsec, pp) !Dummy
+        call litter(dtsec, pp)  !Update litter pools
+        call soil_bgc(dtsec, pp)
+        pp%age = pp%age + dtsec
+        call summarize_patch(pp)
+        pp = pp%younger
+      end do
+      call summarize_entcell(ecp)
+
+
+      end subroutine ent_integrate_GISS
+
+      !*********************************************************************
+
+      subroutine ent_integrate(dtsec, ecp)
+!@sum Ent biophysics/biogeochemistry
+      use reproduction
+      use cohorts
+      use patches
+      use biophysics, only : photosynth_cond
+      use growthallometry, only : uptake_N
+      use phenology, only : litter
+      use soilbgc, only : soil_bgc
+      use phenology, only : phenology_update
+      use canopyrad, only : recalc_radpar
+      use entcells, only : summarize_entcell, entcell_print
 
       implicit none
       real*8 :: dtsec  !dt in seconds
-      type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
+      !type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
       type(entcelltype) :: ecp
       !-----local--------
       type(patch),pointer :: pp
 
-      !****Ent final version:  loop through patches
-      !pp = ecp%youngest
-      !do while (ASSOCIATED(pp)) 
-      !***GISS version:  pass in ecp%sumpatch
-      pp = ecp%sumpatch
-      call photosynth_cond(dtsec, pp)
-      call uptake_N(dtsec, pp)!?
-      call litter(dtsec, tt, pp) 
-      call soil_bgc(dtsec, pp)
+      !* Loop through patches
+      pp = ecp%oldest
+      do while (ASSOCIATED(pp)) 
+        call photosynth_cond(dtsec, pp)
+        call uptake_N(dtsec, pp) !?
+        call litter(dtsec, pp) 
+        call soil_bgc(dtsec, pp)
+        pp%age = pp%age + dtsec
+        call summarize_patch(pp)
+        pp = pp%younger
+      end do 
 
-      !end do !****Ent final version
+      call summarize_entcell(ecp)
 
-      call summarize_patch(pp)
+#ifdef DEBUG      !# DEBUG
+      print *,"End of ent_biophysics"
+      call entcell_print(ecp)
+      print *,"*"
+      !write(90,*) ecp%GCANOPY
+      !write(90,*) ecp%sumpatch%GCANOPY
+      !write(91,*) ecp%sumpatch%Ci
+#endif
 
       end subroutine ent_integrate
+
 
       !*********************************************************************
       subroutine ent_biophysics(dtsec, ecp)

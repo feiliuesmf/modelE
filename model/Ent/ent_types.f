@@ -109,7 +109,7 @@
          real*8 :: clump          ! Leaf clumping parameter (TBA)
          real*8,pointer :: froot(:) ! Fraction of roots in soil layer
 
-         !* BIOMASS POOLS
+         !* BIOMASS POOLS (SHOULD CONVERT TO PER INDIVIDUAL LATER)
          real*8 :: LMA            ! Leaf mass per leaf area (kgC/m2-leaf)
          real*8 :: C_fol          ! Foliage carbon (=LMA*LAI = kgC/m2-gnd)
          real*8 :: N_fol          ! Foliage nitrogen (gN/m2-gnd)

@@ -274,7 +274,7 @@
       integer :: pnum
       type(patch),pointer :: pp, pp_tmp
 
-      ! destroy all existing patches since we are goin to 
+      ! destroy all existing patches since we are going to 
       ! re-initialize the cell
       pp => ecp%oldest      
       do while ( associated(pp) )
@@ -286,7 +286,9 @@
       nullify(ecp%youngest)
 
       do pnum=1,N_PFT           !One patch with one cohort per pft
-      !Get from GISS GCM ## vfraction of grid cell and area.
+
+        !### Get from GISS GCM ## vfraction of grid cell and area.
+
         if (vegdata(pnum)>0.0) then
           !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
           call insert_patch(ecp,vegdata(pnum),soildata(pnum))

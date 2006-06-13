@@ -282,13 +282,17 @@
       type(patch),pointer :: pp
       !-------local-----
       type(cohort),pointer :: cop
+      real*8 :: coplaiprev
+
       real*8 :: laip  !patch-level summary of LAI
 !      real*8 :: laig  !entcell grid-level summary of LAI
       if (ASSOCIATED(pp)) then
         laip = 0.0
         cop => pp%tallest
         do while (ASSOCIATED(cop))
+          coplaiprev = cop%lai
           cop%lai = GISS_calc_lai(cop%pft, jday, hemi)
+          !call GISS_calc_litter(cop, OUT POOLS HERE)
           laip = laip + cop%LAI
           cop => cop%shorter
         end do

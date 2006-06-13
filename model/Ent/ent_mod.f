@@ -161,9 +161,10 @@
 
 
       subroutine ent_seasonal_update_single(entcell,
-     &     jday
+     &     dt
 ! insert any needed input parameters here
      &     )
+      use ent, only : ent_integrate_GISS
 !!! it is not clear yet for me how this call will be implemented ...
 !@sum this call updates variable that change on a long time scale.
 !@+   Right now (before real dynamic vegetation is implemented)
@@ -176,31 +177,33 @@
 !@+   Is it OK from ESMF point of view?
       !use ent_driver, only : ent_update_veg_structure
       type(entcelltype_public), intent(in) :: entcell
-      integer, intent(in) :: jday !@var jday Julian day of the year
+      real*8, intent(in) :: dt !Time step (s)
       !---
       
       !call ent_update_veg_structure( entcell%entcell, jday )
+      call ent_integrate_GISS(entcell%entcell,dt)
 
       end subroutine ent_seasonal_update_single
 
 
-      subroutine ent_seasonal_update_array_1d(entcell, jday)
+      subroutine ent_seasonal_update_array_1d(entcell, dt)
       type(entcelltype_public), intent(inout) :: entcell(:)
-      integer, intent(in) :: jday
+      real*8, intent(in) :: dt !Time step (s)
       !---
       integer n, nc
 
       nc = size(entcell)
       do n=1,nc
-        call ent_seasonal_update_single( entcell(n), jday )
+        call ent_seasonal_update_single( entcell(n), dt)
       enddo
 
       end subroutine ent_seasonal_update_array_1d
 
 
-      subroutine ent_seasonal_update_array_2d(entcell, jday)
+      subroutine ent_seasonal_update_array_2d(entcell,dt)
       type(entcelltype_public), intent(inout) :: entcell(:,:)
-      integer, intent(in) :: jday
+      real*8, intent(in) :: dt !Time step (s)
+!      integer, intent(in) :: jday
       !---
       integer i, ic, j, jc
 
@@ -209,7 +212,7 @@
 
       do j=1,jc
         do i=1,ic
-          call ent_seasonal_update_single( entcell(i,j), jday )
+          call ent_seasonal_update_single( entcell(i,j), dt )
         enddo
       enddo
 
