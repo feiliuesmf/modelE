@@ -414,7 +414,7 @@ C**** Save AM change and update U,V
   300 I=IP1
 C**** conservation diagnostic
       IF (MRCH.gt.0) THEN
-        CALL DIAGCD (6,UT,VT,DUT,DVT,DT1)
+        CALL DIAGCD (GRID,6,UT,VT,DUT,DVT,DT1)
 
         call addEnergyAsLocalHeat(DKE, T, PK, diagIndex=JL_dTdtsdrg)
       END IF
@@ -1166,7 +1166,7 @@ C****
 
       IF (MRCH.EQ.2) THEN
 C**** conservation diagnostic
-        CALL DIAGCD (6,UT,VT,DUT3,DVT3,DT1)
+        CALL DIAGCD (GRID,6,UT,VT,DUT3,DVT3,DT1)
 
         call addEnergyAsLocalHeat(DKE,T,PK, diagIndex=JL_dTdtsdrg)
 

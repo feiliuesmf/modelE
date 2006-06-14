@@ -12,7 +12,7 @@
       SAVE
       private
 
-      public LM_REQ,im,jm,lm,imh,ntype,istrat
+      public LM_REQ,im,jm,lm,imh,ntype,istrat,kep
 
 C**** Accumulating_period information
       INTEGER, DIMENSION(12), public :: MONACC  !@var MONACC(1)=#Januaries, etc
