@@ -1,8 +1,10 @@
       module patches
 !@sum Routines to organize patches in an entcell.
 
+      use ent_const
       use ent_types
-
+      use ent_pfts
+      
       implicit none
 
 
@@ -74,6 +76,7 @@
       type(cohort),pointer :: scop, cop
       integer :: nc  !#individuals
       integer :: ia  !array index
+      integer :: pft
 
       scop => pp%sumcohort
 
@@ -83,14 +86,17 @@
       scop%n = nc
       if ( .not. associated(pp%tallest) ) return ! no cohorts in this patch
 
+      !Zero some patch variables that must be summarized from cohorts.
       do ia=1,N_COVERTYPES
         pp%LAI(ia) = 0.d0
+        pp%Tpool(:,:,:) = 0.d0
       end do
 
-      scop%pft = pp%tallest%pft
 
       cop => pp%tallest
       do while(ASSOCIATED(cop))
+        scop%pft = pp%tallest%pft
+        pft = scop%pft
         nc = nc + cop%n  !Number of individuals summed for wtd avg.
         !* PFT PARAMETERS
         ! Only need to index array of pftypes.
@@ -99,7 +105,14 @@
         scop%nm = scop%nm + cop%nm*cop%n  !wtd avg
         scop%Ntot = scop%Ntot + cop%Ntot  !Total
         scop%LAI = scop%LAI + cop%LAI  !Total
-        pp%LAI(cop%pft) = pp%LAI(cop%pft) + cop%LAI
+        pp%LAI(pft) = pp%LAI(pft) + cop%LAI
+        pp%Tpool(CARBON,LEAF,pft) = pp%Tpool(CARBON,LEAF,pft)
+     &       + cop%LAI * pfpar(pft)%sla
+!        pp%Tpool(CARBON,FROOT,pft) = pp%Tpool(CARBON,FROOT,pft)
+!     &       + cop%LAI * 
+!        pp%Tpool(CARBON,WOOD,pft) = pp%Tpool(CARBON,WOOD,pft)
+!     &       + cop%LAI * 
+        !* Tpool(NITROGEN,:,:) gets updated in casa_bgfluxes.f
 
          !* ALL QUANTITIES BELOW ARE FOR AN INDIVIDUAL *!
 
@@ -240,6 +253,8 @@
             !* Soil type
             pp%soil_type = 0    ! set to undefined soil type (maybe use -1?)
 
+            !* Carbon pools for CASA
+            pp%Tpool(:,:,:) = 0.d0
 
 #ifdef NEWDIAG
             pp%plant_ag_Cp = 0.d0 !## Dummy ##!

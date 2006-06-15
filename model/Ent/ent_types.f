@@ -1,7 +1,7 @@
       module ent_types
-        use ent_const
+      use ent_const
 
-        implicit none
+      implicit none
 
 ! the following two parameters are basically needed for integrity 
 ! checks (to avoid infinite loops when processing linked lists)
@@ -200,9 +200,8 @@
          integer soil_type      ! 1 - sand (bright) ; 2 - dirt (dark)
 
          !* CASA carbon pools *!
-         real*8, DIMENSION(NLIVE) :: livefr !(g-C/m^2) Fraction of NPP allocated to plant growth
          !"live" & "dead"
-         real*8, DIMENSION(2,NPOOLS) :: Tpool !(g-C/m^2, CASA Tpools, single cell)
+         real*8, DIMENSION(PTRACE,NPOOLS,N_PFT) :: Tpool !(g-C/m^2, CASA Tpools, single cell)
 
 #ifdef NEWDIAG
          !* Soil pools - patch total

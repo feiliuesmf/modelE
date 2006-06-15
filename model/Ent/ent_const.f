@@ -18,6 +18,7 @@
       !* NUMERICAL CONSTANTS
       real*8,parameter :: pi = 3.1415926535897932d0 !@param pi    pi
       real*8,parameter :: zero = 0d0
+      real*8,parameter :: secpy = 31536000
 
       !************************************************************************
       !* PHYSICAL CONSTANTS
@@ -107,12 +108,13 @@
       integer,parameter :: NDEAD = 9
       integer,parameter :: NPOOLS = NLIVE + NDEAD
       !* Total pool array indices
+      integer,parameter :: PTRACE = 2 !Trace elements in Tpools, C and N
       integer,parameter :: Carbon = 1
       integer,parameter :: Nitrogen = 2
 
       !* Live pool array indices
       integer,parameter :: LEAF = 1  !Array index
-      integer,parameter :: ROOT = 2  !Array index
+      integer,parameter :: FROOT = 2  !Array index
       integer,parameter :: WOOD = 3  !Array index
 
       !* Dead pool array indices
@@ -127,5 +129,23 @@
       integer,parameter :: PASSIVE = 12 !very slowly decomposing soil o.m. pool (decades-centuries)
 
       !************************************************************************
-      
+      real*8 :: CNratio(NPOOLS)
+            data CNratio/
+     1            30.0,       ! C:N ratio of leaf pool
+     2           130.0,       ! C:N ratio of wood pool
+     3            55.0,       ! C:N ratio of froot pool
+     4            30.0,       ! C:N ratio of surfmet pool
+     5            50.0,       ! C:N ratio of surfstr pool
+     6            25.0,       ! C:N ratio of soilmet pool
+     7            50.0,       ! C:N ratio of soilstr pool
+     8           135.0,       ! C:N ratio of cwd pool
+     9            12.5,       ! C:N ratio of surfmic pool
+     a            12.5,       ! C:N ratio of soilmic pool
+     b            12.5,       ! C:N ratio of slow pool
+     c             8.5/       ! C:N ratio of passive pool
+
+      real*8,dimension(N_PFT,NPOOLS) :: annK !CASA turnover times
+      !real*8,dimension(N_PFT,NPOOLS) :: kdt !CASA turnover times for wood & dead
+      real*8,dimension(N_PFT) :: solubfract !Soluble ("metabolic") fraction of litter 
+
       end module ent_const

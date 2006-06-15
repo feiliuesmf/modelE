@@ -1,7 +1,9 @@
       module ent_GISSveg
 
       use ent_const, only : pi, N_COVERTYPES, N_DEPTH
+     &     
       use ent_types
+      use ent_pfts
       !use GCM_module, only:  GCMi, GCMj !Fix to names from GCM
 
       implicit none
@@ -14,7 +16,8 @@
      &     GISS_get_vdata, GISS_get_laidata, 
      &     GISS_get_hdata, GISS_get_initnm,
      &     GISS_update_vegcrops, GISS_phenology,
-     &     GISS_veg_albedo,GISS_calc_froot
+     &     GISS_veg_albedo,GISS_calc_froot,
+     &     GISS_calcconst
 !     &     GCM_get_grid, GCM_get_time, GCM_getdrv_cell, GCM_EWB,
 
 
@@ -28,6 +31,55 @@
       !*********************************************************************
       !*********************************************************************
       !*********************************************************************
+      !*********************************************************************
+      !*    SUBROUTINE TO CALCULATE CONSTANT ARRAYS                     
+      subroutine GISS_calcconst() 
+      use ent_const
+      !--Local------
+      integer :: n
+      real*8, DIMENSION(N_PFT) :: lrage, woodage
+      real*8 :: lnscl
+
+      !* annK - Turnover time of litter and soil carbon *!
+      do n = 1, N_PFT
+        if(lrage(n).gt.0.0)then
+          annK(n,LEAF)  = (1.0/(lrage(n)*secpy))
+          annK(n,FROOT) = (1.0/(lrage(n)*secpy))
+        else
+          annK(n,LEAF)  = 1.0d-40  !CASA originally 1.0e-40
+          annK(n,FROOT) = 1.0d-40
+        end if
+
+        if(woodage(n).gt.0.0)then
+          annK(n,WOOD)  = 1.0/(woodage(n)*secpy)
+        else
+          annK(n,WOOD)  = 1.0d-40
+        end if
+       !* iyf: 1/(turnover times) for dead pools.  Want annK in sec-1.
+        annK(n,SURFMET)    = 14.8  /secpy
+        annK(n,SURFMIC)    = 6.0   /secpy
+        annK(n,SURFSTR)    = 3.9   /secpy
+        annK(n,SOILMET)    = 18.5  /secpy
+        annK(n,SOILMIC)    = 7.3   /secpy
+        annK(n,SOILSTR)    = 4.9   /secpy        ! 4.8 in casa v3.0
+        annK(n,CWD)        = 0.2424/secpy
+        annK(n,SLOW)       = 0.2   /secpy
+        annK(n,PASSIVE)    = 0.1 * 0.02  /secpy
+      enddo
+
+      !* solubfrac - Soluble fraction of litter*!
+      do n = 1,N_PFT
+        lnscl = pfpar(n)%lit_C2N * pfpar(n)%lignin * 2.22 !lignin:nitrogen scalar        
+        solubfract(n) = 0.85 - (0.018 * lnscl)
+      end do
+
+
+      !*******************************************************************
+      !* INSERT CALCULATION OF SOIL TEXTURE PARAMETER FOR MICROBE TURNOVER
+      !*******************************************************************
+
+      end subroutine GISS_calcconst
+
       !*********************************************************************
       !*********************************************************************
       !*    SUBROUTINES TO READ IN GISS VEGETATION DATA SETS 
