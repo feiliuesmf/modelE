@@ -246,6 +246,10 @@
          real*8 :: k_sat        !Saturated hydraulic conductivity
          real*8 :: root_Phi     !Infiltration factor promoted by roots (units?)
 
+         !SOIL - CONSTANTS
+         real*8 :: soil_texture(N_SOIL_TYPES) ! fractions of soil textures
+                                              ! in upper 30 cm of soil
+
          !VEGETATION - EXPORT STATE
          real*8 :: z0           !Roughness length (m)
 !         real*8 :: GCANOPY      !Canopy conductance of water vapor (mm s-1)

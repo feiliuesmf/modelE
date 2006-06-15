@@ -87,7 +87,7 @@
 
       subroutine GISS_vegdata(jday, year, IM,JM,I0,I1,J0,J1,
      &     vegdata,albedodata,laidata,hdata,nmdata,frootdata,
-     &     popdata,soildata)
+     &     popdata,soil_color,soil_texture)
       integer,intent(in) :: jday, year
       integer,intent(in) :: IM,JM,I0,I1,J0,J1 !long/lat grid number range
       real*8,intent(out) :: vegdata(N_COVERTYPES,I0:I1,J0:J1)
@@ -97,7 +97,8 @@
       real*8,intent(out) :: nmdata(N_COVERTYPES)
       real*8,intent(out) :: frootdata(N_COVERTYPES,N_DEPTH)
       real*8,intent(out) :: popdata(N_COVERTYPES)
-      integer,intent(out) :: soildata(N_COVERTYPES)
+      integer,intent(out) :: soil_color(N_COVERTYPES)
+      real*8,intent(out) :: soil_texture(N_SOIL_TYPES,I0:I1,J0:J1)
  
       !-----Local------
 
@@ -110,7 +111,8 @@
       call GISS_get_initnm(nmdata) !nm
       call GISS_get_froot(frootdata)
       call GISS_get_pop(popdata)
-      call GISS_get_soil_types(soildata)
+      call GISS_get_soil_types(IM,JM,I0,I1,J0,J1,
+     &     soil_color,soil_texture)
 
       end subroutine GISS_vegdata
 
@@ -595,15 +597,21 @@ c**** calculate root fraction afr averaged over vegetation types
       end subroutine GISS_get_pop
 !*************************************************************************
 
-      subroutine GISS_get_soil_types(soildata)
+      subroutine GISS_get_soil_types(im,jm,I0,I1,J0,J1,
+     &     soil_color,soil_texture)
       !* Return array parameter of GISS vegetation heights.
-      integer :: soildata(N_COVERTYPES) 
+      use FILEMANAGER, only : openunit,closeunit
+      integer, intent(in) :: im,jm,I0,I1,J0,J1
+      integer, intent(out) :: soil_color(N_COVERTYPES)
+      real*8, intent(out) :: soil_texture(N_SOIL_TYPES,I0:I1,J0:J1)
       !------
-      real*8, parameter :: soil_types(N_COVERTYPES) =
+      integer, parameter :: soil_color_prescribed(N_COVERTYPES) =
       !* tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
      $     (/1, 2, 2,  2, 2, 2, 2, 2
      &     ,2, 2, 2, 2 /)
-
+      real*8 :: buf(im,jm,N_SOIL_TYPES)
+      integer :: iu_SOIL
+      integer k,i,j
       ! For GISS Model E replication, don't need to fill in an
       ! i,j array of vegetation density, but just can use
       ! constant arry for each vegetation pft type.
@@ -611,8 +619,22 @@ c**** calculate root fraction afr averaged over vegetation types
       ! containing vegetation density.
 
       !* Return popdata population density for all vegetation types
-      soildata(:) = soil_types(:)
+      soil_color(:) = soil_color_prescribed(:)
 
+      call openunit("soil_textures",iu_SOIL,.true.,.true.)
+      read(iu_SOIL) buf
+      call closeunit(iu_SOIL)
+
+      do k=1,N_SOIL_TYPES
+        soil_texture(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1,k)
+      enddo
+
+      do j=J0,J1
+        do i=I0,I1
+          print *, soil_texture(:,i,j) , sum(soil_texture(:,i,j))
+        enddo
+      enddo
       end subroutine GISS_get_soil_types
 !*************************************************************************
       end module ent_GISSveg
+

@@ -5,7 +5,7 @@
       ! need to know about internal structure of Ent types
       use ent_types, only : entcelltype, patch, cohort, timestruct,
      &     MAX_PATCHES, MAX_COHORTS
-      use ent_const, only : N_BANDS, N_COVERTYPES, N_DEPTH
+      use ent_const, only : N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TYPES
       !use ent_GISSveg
       use entcells
       implicit none
@@ -13,7 +13,7 @@
       private
 
       !--- public constants ---
-      public N_BANDS, N_COVERTYPES, N_DEPTH
+      public N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TYPES
 
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings
@@ -374,7 +374,8 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_nmdata,
      &     pft_froots,
      &     pft_soil_type,
-     &     vegalbedo
+     &     vegalbedo,
+     &     soil_texture
      &     )
       type(entcelltype_public), intent(out) :: entcell
       real*8, dimension(:)  ::   ! dim=N_COVERTYPES
@@ -387,11 +388,13 @@ cddd      call zero_entcell(entcell%entcell)
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:)  ::  vegalbedo ! dim=N_BANDS,N_COVERTYPES
+      real*8, dimension(:)  ::   ! dim=N_SOIL_TYPES
+     &     soil_texture
 
       call init_simple_entcell( entcell%entcell,
      &     veg_fraction, pft_population_density, leaf_area_index,
      &     pft_heights, pft_nmdata, pft_froots,
-     &     pft_soil_type, vegalbedo)
+     &     pft_soil_type, vegalbedo, soil_texture)
       
       end subroutine ent_cell_set_single
 
@@ -404,7 +407,8 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_nmdata,
      &     pft_froots,
      &     pft_soil_type,
-     &     vegalbedo
+     &     vegalbedo,
+     &     soil_texture
      &     )
       type(entcelltype_public), intent(out) :: entcell(:)
       real*8, dimension(:,:)  ::   ! dim=N_COVERTYPES, n
@@ -417,6 +421,8 @@ cddd      call zero_entcell(entcell%entcell)
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:,:)  ::  vegalbedo ! dim=N_BANDS,N_COVERTYPES
+      real*8, dimension(:,:)  ::   ! dim=N_SOIL_TYPES
+     &     soil_texture
       !---
       integer n, nc
 
@@ -427,7 +433,7 @@ cddd      call zero_entcell(entcell%entcell)
      &       veg_fraction(:,n), pft_population_density,
      &       leaf_area_index(:,n),
      &       pft_heights, pft_nmdata, pft_froots,
-     &       pft_soil_type, vegalbedo(:,:,n))
+     &       pft_soil_type, vegalbedo(:,:,n), soil_texture(:,n))
       enddo
       
       end subroutine ent_cell_set_array_1d
@@ -441,7 +447,8 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_nmdata,
      &     pft_froots,
      &     pft_soil_type,
-     &     vegalbedo
+     &     vegalbedo,
+     &     soil_texture
      &     )
       type(entcelltype_public), intent(out) :: entcell(:,:)
       real*8, dimension(:,:,:)  ::   ! dim=N_COVERTYPES, n
@@ -454,6 +461,8 @@ cddd      call zero_entcell(entcell%entcell)
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:,:,:)  ::  vegalbedo ! dim=N_COVERTYPES, n
+      real*8, dimension(:,:,:)  ::   ! dim=N_SOIL_TYPES
+     &     soil_texture
       !---
       integer i, j, ic, jc
 
@@ -466,7 +475,7 @@ cddd      call zero_entcell(entcell%entcell)
      &         veg_fraction(:,i,j),pft_population_density,
      &         leaf_area_index(:,i,j),
      &         pft_heights,pft_nmdata,pft_froots,
-     &         pft_soil_type,vegalbedo(:,:,i,j))
+     &         pft_soil_type,vegalbedo(:,:,i,j), soil_texture(:,i,j))
         enddo
       enddo
       
@@ -1134,7 +1143,7 @@ cddd      call zero_entcell(entcell%entcell)
       if ( present(canopy_conductance) )
      &     canopy_conductance(i,j) = 
      &       entcell(i,j)%entcell%sumpatch%GCANOPY
-      print *,"Got here in ent_get_exports."
+      !print *,"Got here in ent_get_exports."
 
       if ( present(shortwave_transmit) )
      &     shortwave_transmit(i,j) = 

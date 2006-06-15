@@ -258,7 +258,7 @@
 
       subroutine init_simple_entcell( ecp,
      i     vegdata,popdens,laidata,hdata,nmdata,
-     i     frootdata,soildata,albedodata )
+     i     frootdata,soildata,albedodata,soil_texture)
       !@sum Initializes an entcell assuming one cohort per patch.
       use patches, only : summarize_patch
       type(entcelltype) :: ecp
@@ -270,6 +270,7 @@
       real*8,intent(in) :: frootdata(N_COVERTYPES,N_DEPTH) !Root profile.
       integer,intent(in) :: soildata(N_COVERTYPES)
       real*8,intent(in) :: albedodata(N_BANDS,N_COVERTYPES) !patch, NOTE:snow
+      real*8,intent(in) :: soil_texture(N_SOIL_TYPES) !Veg cover fractions.
       !-----Local---------
       integer :: pnum
       type(patch),pointer :: pp, pp_tmp
@@ -311,6 +312,10 @@
           pp%albedo = albedodata(:,pnum) !##GISS HACK
         end if
       end do
+
+      ! soil textures for CASA
+      ecp%soil_texture(:) = soil_texture(:)
+
       call summarize_entcell(ecp)
 
       !print *,"In init_simple_entcell:"

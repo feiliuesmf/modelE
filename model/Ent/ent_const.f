@@ -104,6 +104,7 @@
       !* CASA SOIL CONSTANTS
       !* THESE SHOULD GO IN THE CASA MODULE BUT NEED TO BE USED IN ENT_TYPES.F
       !* Array sizes
+      integer,parameter :: N_SOIL_TYPES = 5
       integer,parameter :: NLIVE = 3
       integer,parameter :: NDEAD = 9
       integer,parameter :: NPOOLS = NLIVE + NDEAD
