@@ -4446,11 +4446,11 @@ C              ---------------------------------------------------------
       XN2O = XUN2(I+1)*(1-WT) + XUN2(I)*WT
 
 C**** Find XTRU and XTRD from XTU and XTD
-      XTRU(L1:NL,1)=1. ; XTRD(L1:NL,1)=1.
+      XTRU(L1:NL,1:4)=1. ; XTRD(L1:NL,1:4)=1.            ! defaults
       IP=2
       DO 100 L=L1,NL
       PLL=PL(L)
-      IF(PLL >= P24(1)) THEN                          ! PLL > P24_bottom
+      IF(PLL >= P24(1)) THEN                             ! PLL>P24_bot
         PRAT = DPL(L)/DP24(1)
         XTRU(L,2:4)=1-PRAT*(1 - XTU(1,1:3))
         XTRD(L,2:4)=1-PRAT*(1 - XTD(1,1:3))
@@ -4458,24 +4458,17 @@ C**** Find XTRU and XTRD from XTU and XTD
       ENDIF
       DO WHILE (PLL < P24(IP))
         IP=IP+1
-        IF(IP > 24) THEN                              ! PLL < P24_top
-          DO LL=L,NL
-            XTRU(LL,2:4)=XTU(24,1:3)
-            XTRD(LL,2:4)=XTD(24,1:3)
-          END DO
-          GO TO 102
-        END IF
-      END DO
-                                           !  P24(IP) < PLL < P24(IP-1)
+        IF(IP > 24) GO TO 200                 ! deflts for PLL<P24_top
+      END DO                                     ! P24(IP)<PLL<P24(IP-1)
       WT = (P24(IP) - PLL) / (P24(IP) - P24(IP-1))
       PRAT        = DPL(L) / (DP24(IP-1)*WT + DP24(IP)*(1-WT))
       XTRU(L,2:4) = 1-PRAT*(1 - (XTU(IP-1,1:3)*WT + XTU(IP,1:3)*(1-WT)))
       XTRD(L,2:4) = 1-PRAT*(1 - (XTD(IP-1,1:3)*WT + XTD(IP,1:3)*(1-WT)))
   100 CONTINUE
-  102 XTRD(NL,2:4)= 1
+      XTRD(NL,2:4)= 1
 
 C**** Find IP24C s.t. P24(IP24C(L)) is closest to PL(L)
-      I24=1
+  200 I24=1
       DO L=L1,NL
         do while (P24(I24)>=PL(L) .and. I24<24) ; I24=I24+1 ; end do
         IP24C(L)=I24  ; if (I24 == 1) go to 270

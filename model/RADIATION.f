@@ -62,7 +62,7 @@ C     Input data               for the 1-d radiation
 C----------------
 
 !@var LASTVC if >= 0 picks sample atmosph. and ground data, OFFLINE only
-      INTEGER :: LASTVC=-123456  
+      INTEGER :: LASTVC=-123456
 
 !@var COSZ          cosine of zenith angle  (1)
       REAL*8 cosz
@@ -82,7 +82,7 @@ C----------------
       REAL*8, dimension(LX+1) :: PLB,HLB,TLB
       REAL*8, dimension(LX)   :: TLT,TLM,SHL,RHL
 !@var KEEPRH  if 0: find RH from SH, 1: find SH from RH, 2: keep both
-      INTEGER :: KEEPRH=2    
+      INTEGER :: KEEPRH=2
 
 !@var ULGAS         current gas amounts, 13 types  (cm atm) (in getgas)
 !@var TAUWC,TAUIC   opt.depth of water,ice cloud layer (1)
@@ -230,7 +230,7 @@ C--------------------------------------------------------
 !nu   EQUIVALENCE (SRXATM(3),XXAVIS),(SRXATM(4),XXANIR)  !nu = not used
 
 C----------------   scratch pad for temporary arrays that are passed to
-C     Work arrays   other routines while working on a lat/lon point; 
+C     Work arrays   other routines while working on a lat/lon point;
 C----------------   but with openMP, each cpu needs its own copy !!
 
       REAL*8, dimension(LX,6) ::
@@ -2865,7 +2865,7 @@ C     ------------------------------------------------------------------
       HXPB=1.D0
       DO 102 L=1,NL0
       HXPT=HLB0(L+1)/C                       ! orig. hlb not hlb0
-      IF(HXPT > 80.D0) GO TO 102
+      IF(HXPT > 80.D0) GO TO 102 
       HXPT=EXP(HXPT)
       ABCD=ABC/(1.D0+BC*HXPB)
      +    -ABC/(1.D0+BC*HXPT)
@@ -4445,11 +4445,11 @@ C              ---------------------------------------------------------
       XN2O = XUN2(I+1)*(1-WT) + XUN2(I)*WT
 
 C**** Find XTRU and XTRD from XTU and XTD
-      XTRU(L1:NL,1)=1. ; XTRD(L1:NL,1)=1.
+      XTRU(L1:NL,1:4)=1. ; XTRD(L1:NL,1:4)=1.            ! defaults
       IP=2
       DO 100 L=L1,NL
       PLL=PL(L)
-      IF(PLL >= P24(1)) THEN                          ! PLL > P24_bottom
+      IF(PLL >= P24(1)) THEN                             ! PLL>P24_bot
         PRAT = DPL(L)/DP24(1)
         XTRU(L,2:4)=1-PRAT*(1 - XTU(1,1:3))
         XTRD(L,2:4)=1-PRAT*(1 - XTD(1,1:3))
@@ -4457,24 +4457,17 @@ C**** Find XTRU and XTRD from XTU and XTD
       ENDIF
       DO WHILE (PLL < P24(IP))
         IP=IP+1
-        IF(IP > 24) THEN                              ! PLL < P24_top
-          DO LL=L,NL
-            XTRU(LL,2:4)=XTU(24,1:3)
-            XTRD(LL,2:4)=XTD(24,1:3)
-          END DO
-          GO TO 102
-        END IF
-      END DO
-                                           !  P24(IP) < PLL < P24(IP-1)
+        IF(IP > 24) GO TO 200                 ! deflts for PLL<P24_top
+      END DO                                     ! P24(IP)<PLL<P24(IP-1)
       WT = (P24(IP) - PLL) / (P24(IP) - P24(IP-1))
       PRAT        = DPL(L) / (DP24(IP-1)*WT + DP24(IP)*(1-WT))
       XTRU(L,2:4) = 1-PRAT*(1 - (XTU(IP-1,1:3)*WT + XTU(IP,1:3)*(1-WT)))
       XTRD(L,2:4) = 1-PRAT*(1 - (XTD(IP-1,1:3)*WT + XTD(IP,1:3)*(1-WT)))
   100 CONTINUE
-  102 XTRD(NL,2:4)= 1
+      XTRD(NL,2:4)= 1
 
 C**** Find IP24C s.t. P24(IP24C(L)) is closest to PL(L)
-      I24=1
+  200 I24=1
       DO L=L1,NL
         do while (P24(I24)>=PL(L) .and. I24<24) ; I24=I24+1 ; end do
         IP24C(L)=I24  ; if (I24 == 1) go to 270
