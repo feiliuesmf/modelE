@@ -107,7 +107,7 @@
         scop%LAI = scop%LAI + cop%LAI  !Total
         pp%LAI(pft) = pp%LAI(pft) + cop%LAI
         pp%Tpool(CARBON,LEAF,pft) = pp%Tpool(CARBON,LEAF,pft)
-     &       + cop%LAI * pfpar(pft)%sla
+     &       + cop%LAI / pfpar(pft)%sla   !kg-C/m^2-ground
 !        pp%Tpool(CARBON,FROOT,pft) = pp%Tpool(CARBON,FROOT,pft)
 !     &       + cop%LAI * 
 !        pp%Tpool(CARBON,WOOD,pft) = pp%Tpool(CARBON,WOOD,pft)

@@ -606,7 +606,7 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8, intent(out) :: soil_texture(N_SOIL_TYPES,I0:I1,J0:J1)
       !------
       integer, parameter :: soil_color_prescribed(N_COVERTYPES) =
-      !* tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
+      !* bsand tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
      $     (/1, 2, 2,  2, 2, 2, 2, 2
      &     ,2, 2, 2, 2 /)
       real*8 :: buf(im,jm,N_SOIL_TYPES)
