@@ -201,7 +201,7 @@
 
          !* CASA carbon pools *!
          !"live" & "dead"
-         real*8, DIMENSION(PTRACE,NPOOLS,N_PFT) :: Tpool !(g-C/m^2, CASA Tpools, single cell)
+         real*8, DIMENSION(PTRACE,NPOOLS) :: Tpool !(g-C/m^2, CASA Tpools, single cell)
 
 #ifdef NEWDIAG
          !* Soil pools - patch total

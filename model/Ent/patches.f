@@ -89,7 +89,7 @@
       !Zero some patch variables that must be summarized from cohorts.
       do ia=1,N_COVERTYPES
         pp%LAI(ia) = 0.d0
-        pp%Tpool(:,:,:) = 0.d0
+        pp%Tpool(:,:) = 0.d0
       end do
 
 
@@ -106,7 +106,7 @@
         scop%Ntot = scop%Ntot + cop%Ntot  !Total
         scop%LAI = scop%LAI + cop%LAI  !Total
         pp%LAI(pft) = pp%LAI(pft) + cop%LAI
-        pp%Tpool(CARBON,LEAF,pft) = pp%Tpool(CARBON,LEAF,pft)
+        pp%Tpool(CARBON,LEAF) = pp%Tpool(CARBON,LEAF)
      &       + cop%LAI / pfpar(pft)%sla   !kg-C/m^2-ground
 !        pp%Tpool(CARBON,FROOT,pft) = pp%Tpool(CARBON,FROOT,pft)
 !     &       + cop%LAI * 
@@ -254,7 +254,7 @@
             pp%soil_type = 0    ! set to undefined soil type (maybe use -1?)
 
             !* Carbon pools for CASA
-            pp%Tpool(:,:,:) = 0.d0
+            pp%Tpool(:,:) = 0.d0
 
 #ifdef NEWDIAG
             pp%plant_ag_Cp = 0.d0 !## Dummy ##!
