@@ -54,8 +54,8 @@
       type(patch),pointer :: pp
       !--Local-----------------
       type(cohort),pointer :: cop
-      real*8 :: Closs(PTRACE,NPOOLS) !Carbon loss from leaf,wood,froot
-      real*8 :: Clossacc(PTRACE,NPOOLS) !Closs accumulator
+      real*8 :: Closs(PTRACE,NPOOLS) !Litter per cohort.
+      real*8 :: Clossacc(PTRACE,NPOOLS) !Litter accumulator.
       integer :: n,pft
 
       Closs(:,:) = 0.d0
@@ -66,6 +66,7 @@
       do while(ASSOCIATED(cop)) 
         !*## NOTE:  betad should eventually be defined at cohort level!!##
         pft = cop%pft
+
         !* NLIVE POOLS *!
         Closs(CARBON,LEAF) = 
      &       pp%Tpool(CARBON,LEAF) * (annK(pft,LEAF)-pp%betad)*dtsec !* x tune factor
@@ -74,6 +75,13 @@
         Closs(CARBON,WOOD) = 
      &       pp%Tpool(CARBON,WOOD) * 
      &       (1.d0-exp(-annK(pft,WOOD)*dtsec)) !* expr is kdt; x tune factor
+
+        Clossacc(CARBON,LEAF) = Clossacc(CARBON,LEAF)
+     &       + Closs(CARBON,LEAF)
+        Clossacc(CARBON,FROOT) = Clossacc(CARBON,FROOT) 
+     &       + Closs(CARBON,FROOT)
+        Clossacc(CARBON,WOOD) = Clossacc(CARBON,WOOD) 
+     &       + Closs(CARBON,WOOD)
 
         !* NDEAD POOLS *!
         Clossacc(CARBON,SURFMET) = Clossacc(CARBON,SURFMET) 
