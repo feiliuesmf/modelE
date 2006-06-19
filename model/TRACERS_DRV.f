@@ -6956,11 +6956,13 @@ C**** set some defaults
       conpts(g-12)='Overwrite'
       qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
 #ifdef TRACERS_NITRATE
-      case ('HNO3')
-       g=g+1; itcon_3Dsrc(3,N) = g
-       qcon(itcon_3Dsrc(3,N)) = .true.
-       conpts(g-12)='Nitrate Chemistry'
-       qsum(itcon_3Dsrc(3,N)) = .true.
+       select case (trname(n)) 
+       case ('HNO3')
+      g=g+1; itcon_3Dsrc(3,N) = g
+      qcon(itcon_3Dsrc(3,N)) = .true.
+      conpts(g-12)='Nitrate Chemistry'
+      qsum(itcon_3Dsrc(3,N)) = .true.
+       end select
 #endif
 #ifdef TRACERS_WATER
       if(dowetdep(n)) then
@@ -8000,7 +8002,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
       integer start(3),count(3),status,ncidu,id1
       REAL*8 dmsconc
-      INTEGER mon_unit, mont,ii,jj,ir,mm,iuc,m,mmm,ll
+      INTEGER mon_unit, mont,ii,jj,ir,mm,iuc,mmm,ll
       INTEGER iuc2
       real*8 carbstuff,ccnv,carb(8)
       real*4 :: craft(im,jm,lm)
