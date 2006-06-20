@@ -4100,6 +4100,12 @@ c
       lname_ij(k) = 'MSU-channel 4 TEMPERATURE'
       units_ij(k) = 'C'
 
+      k = k + 1
+      ij_Tatm = k
+      name_ij(k) = 'Tatm'
+      lname_ij(k) = 'ATMOSPHERIC TEMPERATURE'
+      units_ij(k) = 'C'
+
 c Check the count
       if (k .gt. kaijx) then
         write (6,*) 'Increase kaijx=',kaijx,' to at least ',k
@@ -4436,6 +4442,15 @@ c**** precipitable water
         end do
         end do
         anum = anum*byiacc
+
+c**** column atmospheric temperature
+      else if (k.eq.ij_tatm) then
+        do j=2,jm
+        do i=1,im
+          anum(i,j) = .25*sum(aijk(i,j,1:lm,ijk_t))/
+     /                    sum(aijk(i,j,1:lm,ijk_dp)) - TF
+        end do
+        end do
 
       else  ! should not happen
         write (6,*) 'no field defined for ij_index',k
