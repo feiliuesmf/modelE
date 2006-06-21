@@ -145,7 +145,7 @@ C**** sea ice melt and iceberg/glacial melt.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: ftrsi_io
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 !@var trprec_dust dust/mineral tracers in precip [kg]
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:):: trprec_dust
 #endif
@@ -155,7 +155,7 @@ C**** sea ice melt and iceberg/glacial melt.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRDRYDEP 
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 !@var pprec precipitation at previous time step [kg/m^2]
       REAL*8,ALLOCATABLE,DIMENSION(:,:) :: pprec
 !@var pevap evaporation at previous time step [kg/m^2]
@@ -163,14 +163,14 @@ C**** sea ice melt and iceberg/glacial melt.
 !@var dust_flux_glob global array of dust emission flux [kg/m^2/s]
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: dust_flux_glob
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_AMP)
 !@var dust_flux2_glob global array of cubic dust emission flux (for diags only)
 !@+   [kg/m^2/s]
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: dust_flux2_glob
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 #ifdef TRACERS_DRYDEP
 !@var depo_turb_glob global array of flux due to dry turb. dep. of tracers
 !@+   [kg/m^2/s]
@@ -200,7 +200,7 @@ C**** sea ice melt and iceberg/glacial melt.
 #ifdef TRACERS_ON
       USE tracer_com,ONLY : Ntm
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,Ntm_dust
 #endif
 #endif
@@ -329,7 +329,7 @@ C**** sea ice melt and iceberg/glacial melt.
 #endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       ALLOCATE(trprec_dust(Ntm_dust,I_0H:I_1H ,J_0H:J_1H),STAT=ier)
 #endif
 #endif
@@ -339,7 +339,7 @@ C**** sea ice melt and iceberg/glacial melt.
          TRDRYDEP = 0.   !Initialize to 0.
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       ALLOCATE(pprec(I_0H:I_1H,J_0H:J_1H),STAT = IER)
       ALLOCATE(pevap(I_0H:I_1H,J_0H:J_1H,NSTYPE),STAT = IER)
       ALLOCATE(dust_flux_glob(I_0H:I_1H,J_0H:J_1H,Ntm_dust),STAT = IER)
@@ -351,7 +351,7 @@ C**** sea ice melt and iceberg/glacial melt.
 #endif
       ALLOCATE(trs_glob(I_0H:I_1H,J_0H:J_1H,Nstype,Ntm),STAT = IER)
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_AMP)
       ALLOCATE(dust_flux2_glob(I_0H:I_1H,J_0H:J_1H,Ntm_dust),STAT = IER)
 #endif
 #endif

@@ -10,7 +10,7 @@
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,jyear,jmon
 #endif
       USE DOMAIN_DECOMP, only : HALO_UPDATE,GRID,GET
@@ -60,7 +60,7 @@
      *     ,itcon_ss
 #ifdef TRACERS_WATER
      *     ,jls_prec,taijn=>taijn_loc,tajls=>tajls_loc,tij_prec  !use trdiag_com
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,jls_incloud,ijts_aq,taijs=>taijs_loc                 !use trdiag_com
 #endif
 #endif
@@ -68,7 +68,7 @@
      *     ,ntx,ntix              ! global (same for all i,j)
 #ifdef TRACERS_WATER
      *     ,trwml,trsvwml,trprmc,trprss
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,dt_sulf_mc,dt_sulf_ss
 #endif
 #endif
@@ -103,6 +103,9 @@
 #ifdef TRACERS_WATER
      *     ,trprec
 #endif
+#ifdef TRACERS_AMP
+      USE AMP_AEROSOL, only : AQsulfRATE
+#endif  
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
       integer rc
@@ -992,7 +995,7 @@ C**** TRACERS: Use only the active ones
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
           trwm(i,j,l,n) = trwml(nx,l)
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
           if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
      *         H2O2_s") then
             tajls(j,l,jls_incloud(1,n))=tajls(j,l,jls_incloud(1,n))+
@@ -1002,6 +1005,9 @@ C**** TRACERS: Use only the active ones
           if (ijts_aq(n).gt.0) then
            taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+
      *           dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
+#ifdef TRACERS_AMP
+           AQsulfRATE(i,j,l)=  dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
+#endif
           end if
           end if
 #endif

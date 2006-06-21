@@ -41,7 +41,8 @@ C**** Decide on water tracer conc. units from rundeck if it exists
 C**** set super saturation parameter for isotopes if needed
       call sync_param("supsatfac",supsatfac)
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
+    (defined TRACERS_AMP)
 C**** decide on emissions
       call sync_param("imAER",imAER)
 C**** decide if preindustrial emissions
@@ -106,7 +107,8 @@ C**** Tracer mass
         sname_jln(k,n) = trim(trname(n))//'_MASS'
         lname_jln(k,n) = trim(trname(n))//' MASS'
         jlq_power(k) = 4
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
+    (defined TRACERS_AMP)
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)+13
      *       ,'kg')
 #else
@@ -729,7 +731,7 @@ C****
       real*8  wmf,frpath
       real*8, parameter :: dair=3.65d-10 !m diameter of air molecule
       integer, intent(in) :: n
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       real*8, parameter :: c1=0.7674d0, c2=3.079d0, c3=2.573d-11,
      *     c4=-1.424d0
       real*8 r_h,den_h,rh

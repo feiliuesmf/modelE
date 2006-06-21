@@ -890,7 +890,9 @@ C**** initialise source arrays
 !$OMP PARALLEL DO PRIVATE (L)
       do l=1,lm
         tr3Dsource(:,:,l,1,n_DMS)=0. ! DMS chem sink
+#ifndef TRACERS_AMP
         tr3Dsource(:,:,l,1,n_MSA)=0. ! MSA chem sink
+#endif
         tr3Dsource(:,:,l,4,n_SO2)=0. ! SO2 chem source
         tr3Dsource(:,:,l,5,n_SO2)=0. ! SO2 chem sink
         tr3Dsource(:,:,l,1,n_SO4)=0. ! SO4 chem source
@@ -1184,10 +1186,10 @@ c sulfate production from SO2 on mineral dust aerosol
 #endif
         case('SO4')
 C SO4 production
-
+#ifndef TRACERS_AMP
           tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n)+tr_mm(n)
      *         /tr_mm(n_so2)*trm(i,j,l,n_so2)*(1.d0 -d4)/dtsrc
-
+#endif
         case('H2O2_s')
 
           if (coupled_chem.eq.1) go to 140

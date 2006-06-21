@@ -35,7 +35,7 @@
 #ifdef TRACERS_DUST
      &     ,Ntm_dust,n_clay
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) ||(defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: SHDTT
 #endif
 #endif
@@ -62,7 +62,7 @@ C**** Interface to PBL
 #ifdef TRACERS_DRYDEP
      *     ,dep_vel,gs_vel
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,DMS_flux, ss1_flux, ss2_flux
 #endif
 #endif
@@ -145,6 +145,9 @@ C**** Interface to PBL
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,tij_gsdep,itcon_dd,dtr_dd
 #endif
+#endif
+#ifdef TRACERS_AMP
+      USE AMP_AEROSOL, only : EMIS_SOURCE
 #endif
       USE DVEG_COUPLER, only : step_dveg
       USE SOIL_DRV, only: earth
@@ -696,7 +699,7 @@ c       EVHDT=DTSURF*(EVHEAT+dQS*dEVdQS) ! latent heat flux
         SHDT = DTSURF*SHEAT
         EVHDT=DTSURF*EVHEAT              ! latent heat flux
         TRHDT=DTSURF*TRHEAT
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         SHDTT(I,J)=SHDT
 #endif
 C****
@@ -846,7 +849,7 @@ C**** Limit evaporation if lake mass is at minimum
           TREVAPOR(n,ITYPE,I,J)=TREVAPOR(n,ITYPE,I,J)+TEVAP
         END IF
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+c#ifdef TRACERS_AEROSOLS_Koch
         select case (trname(n))
         case ('DMS')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+DMS_flux*dxyp(j)*ptype
@@ -866,8 +869,13 @@ C**** Limit evaporation if lake mass is at minimum
      &         ss2_flux*dxyp(j)*ptype*dtsurf
           tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
      *         ss2_flux*dxyp(j)*ptype*dtsurf
-        end select
+#ifdef TRACERS_AMP          
+         case ('M_SSA_SS')
+       EMIS_SOURCE(i,j,1,5)=EMIS_SOURCE(i,j,1,5)+ss1_flux*dxyp(j)*ptype
+       EMIS_SOURCE(i,j,1,6)=EMIS_SOURCE(i,j,1,6)+ss2_flux*dxyp(j)*ptype
 #endif
+        end select
+c#endif
 #ifdef TRACERS_DRYDEP
 C****
 C**** Calculate Tracer Dry Deposition (including gravitational settling)

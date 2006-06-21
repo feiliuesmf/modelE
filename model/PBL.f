@@ -20,7 +20,7 @@
      &     ,dodrydep
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,Ntm_dust
 #endif
 #ifdef TRACERS_DUST
@@ -136,11 +136,11 @@ CCC      real*8 :: bgrid
 #if defined(TRACERS_DRYDEP)
      *     dep_vel,gs_vel,
 #endif
-#if defined(TRACERS_AEROSOLS_Koch)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     DMS_flux, ss1_flux, ss2_flux,
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ptype,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm,
      &     zhat,lmonin,dust_event1,dust_event2,wtrsh,
 #endif
@@ -239,7 +239,7 @@ c  internals:
       real*8 , intent(out), dimension(ntm) :: dep_vel,gs_vel
       real*8 vgs
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       real*8, intent(out) :: DMS_flux, ss1_flux, ss2_flux
 #endif
 #endif
@@ -257,7 +257,7 @@ C****
       real*8 :: sig0,delt,wt,wmin,wmax
       integer :: icase
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       REAL*8,INTENT(IN) :: ptype
       REAL*8,INTENT(OUT) :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),
      &     wsubtke,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
@@ -386,7 +386,7 @@ c**** the same as that used for q
 c      wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
       wsm = wsh
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       wsgcm=sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
 #endif
 
@@ -396,7 +396,7 @@ C**** To use, uncomment next two lines and adapt the next chunk for
 C**** your tracers. The integrated wind value is passed back to SURFACE
 C**** and GHY_DRV. This may need to be tracer dependent?
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       delt = t(1)/(1.+q(1)*deltx) - tgrnd/(1.+qgrnd*deltx)
       CALL sig(e(1),mdf,dbl,delt,ch,wsgcm,t(1),wsubtke,wsubwd,wsubwm)
       CALL get_wspdf(wsubtke,wsubwd,wsubwm,wsgcm,wspdf)
@@ -426,7 +426,7 @@ C**** for all dry deposited tracers
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       CALL dust_emission_constraints(ilong,jlat,itype,ptype,wsgcm,
      &   dust_event1,dust_event2,wtrsh)
 #endif
@@ -470,7 +470,7 @@ C****   get setling velocity
 #endif
 
 C****   4) tracers with interactive sources
-#ifdef TRACERS_AEROSOLS_Koch
+c#ifdef TRACERS_AEROSOLS_Koch
         select case (trname(ntix(itr)))
         case ('DMS')
           call read_DMS_sources(wsm,itype,ilong,jlat,DMS_flux)
@@ -481,8 +481,16 @@ C****   4) tracers with interactive sources
         case ('seasalt2')
           call read_seasalt_sources(wsm,itype,2,ilong,jlat,ss2_flux)
           trcnst=ss2_flux *byrho
-        end select
+#ifdef TRACERS_AMP
+        case ('M_SSA_SS')
+          call read_seasalt_sources(wsm,itype,1,ilong,jlat,ss1_flux)
+          trcnst=ss1_flux*byrho
+        case ('M_SSC_SS')
+          call read_seasalt_sources(wsm,itype,2,ilong,jlat,ss2_flux)
+          trcnst=ss2_flux *byrho
 #endif
+        end select
+c#endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -520,6 +528,26 @@ ccc dust emission from earth
           dust_flux(n1)=dsrcflx
           dust_flux2(n1)=dsrcflx2
         END SELECT
+#endif
+#ifdef TRACERS_AMP
+        SELECT CASE (trname(ntix(itr)))
+        case ('M_DD1_DU')
+         do n1=1,2!ntm_dust
+          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
+     &         dsrcflx,dsrcflx2)
+           trcnst=dsrcflx*byrho
+           dust_flux(n1)=dsrcflx
+           dust_flux2(n1)=dsrcflx2
+         enddo  
+        case ('M_DD2_DU')
+         do n1=3,ntm_dust
+          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
+     &         dsrcflx,dsrcflx2)
+           trcnst=dsrcflx*byrho
+           dust_flux(n1)=dsrcflx
+           dust_flux2(n1)=dsrcflx2
+         enddo  
+         END SELECT
 #endif
 
 C**** solve tracer transport equation
@@ -2677,7 +2705,7 @@ C**** Use approximate value for small sig and unresolved delta function
 !@auth Reha Cakmur/Jan Perlwitz
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 
       USE tracer_com,ONLY : kim,kjm,table1,x11,x21
 
@@ -2763,7 +2791,7 @@ c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
       SUBROUTINE polint2dlin(x1a,x2a,ya,m,n,x1,x2,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       IMPLICIT NONE
       INTEGER,INTENT(IN) :: m,n
       REAL*8,INTENT(IN) :: x1a(m),x2a(n),ya(m,n),x1,x2
@@ -2804,7 +2832,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       SUBROUTINE polint2dcub(x1a,x2a,ya,m,n,x1,x2,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       IMPLICIT NONE
       INTEGER,INTENT(IN) :: m,n
       REAL*8,INTENT(IN) :: x1a(m),x2a(n),ya(m,n),x1,x2
@@ -2845,7 +2873,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       SUBROUTINE polintpbl(xa,ya,n,x,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: n
       REAL*8, INTENT(OUT) :: y,dy
@@ -2895,7 +2923,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 !@sum locates parameters of integration in lookup table
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       implicit none
       INTEGER, INTENT(IN):: n
       INTEGER, INTENT(OUT):: j

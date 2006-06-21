@@ -4,12 +4,13 @@
 !@auth Reha Cakmur, Jan Perlwitz, Ina Tegen
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE constant,ONLY : By6
       USE resolution,ONLY : Im,Jm,Lm
       USE model_com,ONLY : JMperY,JDperY
+#ifndef TRACERS_AMP
       USE tracer_com,ONLY : Ntm_dust
-
+#endif
       IMPLICIT NONE
 
 !@param uplfac uplift factor for each size class of soil dust [kg*s**2/m**5]

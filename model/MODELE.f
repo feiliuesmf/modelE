@@ -763,6 +763,13 @@ C****
      *     ,mchem
 #endif
 #endif
+#ifdef TRACERS_AMP
+      USE AERO_CONFIG
+      USE AERO_COAG  
+      USE AERO_INIT  
+      USE AERO_SUBS  
+      USE AERO_NPF  
+#endif
       USE DIAG_COM, only : acc_period,monacc,jreg,titreg,namreg
      &  ,hr_in_day,iwrite,jwrite,itwrite,kdiag,qdiag,qdiag_ratios,oa
       USE PBLCOM
@@ -1523,6 +1530,17 @@ C**** Initialize nudging
 #ifdef NUDGE_ON
        CALL NUDGE_INIT
 #endif
+#ifdef TRACERS_AMP
+        CALL SETUP_CONFIG           
+        CALL SETUP_SPECIES_MAPS
+        CALL SETUP_AERO_MASS_MAP 
+        CALL SETUP_COAG_TENSORS
+        CALL SETUP_DP0     
+        CALL SETUP_KIJ   
+        CALL SETUP_EMIS  
+        CALL SETUP_KCI
+        CALL SETUP_NPFMASS
+#endif       
 C****
       if(istart.gt.0) CALL RINIT (IRAND)
       CALL FFT0 (IM)

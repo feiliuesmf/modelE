@@ -96,7 +96,8 @@ C**** TAIJN
 
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijs_XXX index for diags not specific to a certain tracer
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
+    (defined TRACERS_AMP)
       INTEGER ijs_flash,ijs_CtoG    ! ,ijs_OxL1
 #ifdef regional_Ox_tracers
       INTEGER ijs_Oxloss, ijs_Oxprod
@@ -271,6 +272,8 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_spec index for TAIJS for special diags. not associated with single
 !@var ijts_spec tracer
       INTEGER :: ijts_spec(MaxSpec)
+!@var ijts_MAPemis tracer idependent array for MAP emission
+      INTEGER ijts_MAPemis(ntm)
 #ifdef TRACERS_WATER
 !@var ijts_trdpmc indices of taijs special wet depo diags for MC clouds
       INTEGER :: ijts_trdpmc(MaxDMc,Ntm)
@@ -345,7 +348,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #ifdef regional_Ox_tracers
       INTEGER jls_Oxloss, jls_Oxprod
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       INTEGER jls_OHconk,jls_HO2con,jls_NO3,jls_phot,jls_incloud(2,ntm)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -374,7 +377,8 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
     (defined TRACERS_AEROSOLS_Koch) && (defined EDGAR_HYDE_SOURCES)
       INTEGER,PARAMETER :: ktajls=181
 #else
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
+    (defined TRACERS_AMP)
 #ifdef regional_Ox_tracers
       INTEGER, PARAMETER :: ktajls=176
 #else

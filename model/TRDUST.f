@@ -5,7 +5,7 @@
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE model_com,ONLY : dtsrc,nisurf,wfcs
       USE tracer_com,ONLY : imDUST
       USE fluxes,ONLY : prec,pprec,pevap
@@ -228,7 +228,7 @@ c     &              sigma,soilvtrsh,ans,dy)
       SUBROUTINE local_dust_emission(i,j,n,wsgcm,ptype,dsrcflx,dsrcflx2)
 !@sum  selects routine for calculating local dust source flux
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
-
+#ifndef TRACERS_AMP
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       USE constant,ONLY : sday
@@ -257,7 +257,7 @@ c     &              sigma,soilvtrsh,ans,dy)
 c     Interactive dust emission
 
       IF (.NOT. qdust(i,j)) THEN
-        dsrcflx=0D0
+        dsrcflx=0.D0
         dsrcflx2=0.D0
       ELSE
 #ifdef TRACERS_DUST
@@ -448,6 +448,81 @@ c     prescribed AEROCOM dust emission
       END IF
 
 #endif
+# else ! TRACER_AMP
+     
+      USE constant,ONLY : sday
+      USE model_com,ONLY : jday,jmon
+      USE geom,ONLY : dxyp
+      USE tracer_com,ONLY : trname,imDUST,n_clay,n_clayilli
+      USE tracers_dust,ONLY : pdfint,Fracl,Frasi,frclay,frsilt,gin_data,
+     &     qdust,upclsi,vtrsh,d_dust,ers_data
+
+      IMPLICIT NONE
+      INTEGER,INTENT(IN) :: i,j,n
+      REAL*8,INTENT(IN) :: ptype,wsgcm
+      REAL*8,INTENT(OUT) :: dsrcflx,dsrcflx2
+
+      INTEGER :: n1
+      REAL*8 :: frtrac,zfac
+
+      IF (imDUST == 0) THEN !Interactive dust emission
+      IF (.NOT. qdust(i,j)) THEN
+        dsrcflx=0.D0
+        dsrcflx2=0.D0
+      ELSE
+        if (N.gt.4) PRINT*,'WRONG DUST EMISSION TRACER' 
+        if (N.gt.4) stop 
+#ifdef TRACERS_DUST_CUB_SAH
+        if (n.eq.1) then
+          frtrac=frclay(i,j)*Fracl
+        else  
+          frtrac=frsilt(i,j)*Frasi
+        endif
+        dsrcflx=Upclsi*frtrac*(wsgcm-vtrsh(i,j))*wsgcm**2
+#else 
+
+        if (n.eq.1) then   
+          frtrac=Fracl
+        else  
+          frtrac=Frasi
+        endif
+c ..........
+c dust emission above threshold from sub grid scale wind fluctuations
+c ..........
+        dsrcflx=Upclsi*frtrac*ers_data(i,j,jmon)*gin_data(i,j)
+     &       *pdfint(i,j)
+c ..........
+c emission according to cubic scheme
+c ..........
+        IF (vtrsh(i,j) > 0. .AND. wsgcm > vtrsh(i,j)) THEN
+          dsrcflx2=Upclsi*frtrac*gin_data(i,j)*ers_data(i,j,jmon)
+     &         *(wsgcm-vtrsh(i,j))*wsgcm**2
+        ELSE
+          dsrcflx2=0.D0
+        END IF
+#endif
+
+#ifdef TRACERS_DUST_CUB_SAH
+        dsrcflx=Upclsi*frtrac*(wsgcm-vtrsh(i,j))*wsgcm**2
+#else
+        dsrcflx=Upclsi*frtrac*ers_data(i,j,jmon)*gin_data(i,j)
+     &       *pdfint(i,j)
+#endif
+
+      END IF
+      ELSE IF (imDUST == 1) THEN !prescribed AEROCOM dust emission
+      IF (.NOT. qdust(i,j)) THEN
+        dsrcflx=0.D0
+      ELSE
+!        n1=n-n_clay+1 n stuff needs to be sorted out SUSA
+!        dsrcflx=d_dust(i,j,n1,jday)/Sday/dxyp(j)/ptype
+!        dsrcflx=dsrcflx*frtrac/Sday/dxyp(j)/ptype
+
+      END IF
+      END IF
+
+#endif ! TRACER_AMP  
+
             
       RETURN
       END SUBROUTINE local_dust_emission
@@ -455,7 +530,7 @@ c     prescribed AEROCOM dust emission
       SUBROUTINE polint3dlin(x1a,x2a,x3a,ya,m,n,lkm,x1,x2,x3,y,dy) 
  
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) 
+    (defined TRACERS_QUARZHEM)  || (defined TRACERS_AMP)
 
       implicit none 
       INTEGER, INTENT(IN) :: m,n,lkm 
@@ -506,7 +581,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       SUBROUTINE polint3dcub(x1a,x2a,x3a,ya,m,n,lkm,x1,x2,x3,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       implicit none
       INTEGER, INTENT(IN) :: m,n,lkm
       REAL*8, INTENT(IN) :: x1,x2,x3,x1a(m),x2a(n),x3a(lkm),ya(m,n,lkm)
@@ -556,7 +631,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       SUBROUTINE polint(xa,ya,n,x,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 
       IMPLICIT NONE
 
@@ -605,7 +680,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       SUBROUTINE locate(xx,n,x,j)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       implicit none
       INTEGER, INTENT(IN):: n
       INTEGER, INTENT(OUT):: j

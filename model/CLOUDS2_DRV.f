@@ -10,7 +10,7 @@
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,jyear,jmon
 #endif
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,GET
@@ -86,10 +86,11 @@
 #ifdef TRACERS_WATER
      *     ,jls_prec,taijn=>taijn_loc,tajls=>tajls_loc,tij_prec
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
+    (defined TRACERS_AMP)
      &     ,taijs=>taijs_loc
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,jls_incloud,ijts_aq
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -106,7 +107,7 @@
      *     ,ntx,ntix              ! global (same for all i,j)
 #ifdef TRACERS_WATER
      *     ,trwml,trsvwml,trprmc,trprss
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,dt_sulf_mc,dt_sulf_ss
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -162,6 +163,9 @@ C    *     ,egcm                       ! not needed
      &     ,trprec_dust
 #endif
 #endif
+#ifdef TRACERS_AMP
+      USE AMP_AEROSOL, only : AQsulfRATE
+#endif  
 #ifdef INTERACTIVE_WETLANDS_CH4
       use tracer_sources, only : n__prec
 #endif
@@ -1240,7 +1244,7 @@ C**** TRACERS: Use only the active ones
 #endif
           trm(i,j,l,n) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
           trmom(:,i,j,l,n) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.-fssl(l))
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
           if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
      *         H2O2_s") then
             tajls(j,l,jls_incloud(1,n))=tajls(j,l,jls_incloud(1,n))+
@@ -1250,6 +1254,9 @@ C**** TRACERS: Use only the active ones
           if (ijts_aq(n).gt.0) then
             taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+
      *           dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
+#ifdef TRACERS_AMP
+           AQsulfRATE(i,j,l)=  dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
+#endif
           endif
           end if
 #endif

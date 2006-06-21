@@ -1,20 +1,3 @@
-      MODULE NITRATE_AEROSOL
-!@sum module for Nitrate aerosol sources, chemistry, etc.
-!@auth Susanne Bauer
-      USE TRACER_COM
-      IMPLICIT NONE
-      SAVE
-!@var NH3_src    NH3 Industrial source
-      real*8 NH3_src_nat_con(im,jm)
-      real*8 NH3_src_nat_cyc(im,jm)
-      real*8 NH3_src_hum_con(im,jm)
-      real*8 NH3_src_hum_cyc(im,jm)
-      real*4 off_HNO3(im,jm,lm)
-      integer,parameter :: NitOUT = 0
-      END MODULE NITRATE_AEROSOL
-
-
-
       SUBROUTINE EQSAM_DRV
       USE TRACER_COM
       USE NITRATE_AEROSOL

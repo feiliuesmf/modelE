@@ -12,7 +12,7 @@ c******************   TRACERS             ******************************
      &     ,tr_name
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       use sle001,ONLY : aevap
 #endif
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
@@ -28,7 +28,7 @@ c******************   TRACERS             ******************************
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,trname
 #endif
 #ifdef TRACERS_DUST
@@ -68,7 +68,7 @@ c******************   TRACERS             ******************************
      *     ,trevapor,trunoe,gtracer,trprec
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,prec,pprec,pevap,dust_flux_glob,trs_glob
 #ifdef TRACERS_DRYDEP
      &     ,depo_turb_glob,depo_grav_glob
@@ -92,15 +92,17 @@ c******************   TRACERS             ******************************
 #ifdef TRACERS_DRYDEP
      *     ,dep_vel,gs_vel
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,DMS_flux, ss1_flux, ss2_flux
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,dust_flux,dust_flux2,z,km,gh,gm,zhat,lmonin,wsubtke,wsubwd
      &     ,wsubwm,dust_event1,dust_event2,wtrsh
 #endif
-
+#ifdef TRACERS_AMP
+      USE AMP_AEROSOL, only : EMIS_SOURCE
+#endif
 ccc extra stuff which was present in "earth" by default
 #ifdef TRACERS_WATER
       use ghy_com, only : ngm,nlsn
@@ -276,8 +278,8 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       integer, intent(in) :: i,j
       real*8, intent(in) :: ptype,dtsurf,rhosrf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      integer n1
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      integer :: n1
 #endif
       integer n,nx
 #ifdef TRACERS_DRYDEP
@@ -297,7 +299,7 @@ ccc tracers
       enddo
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 c     saves precipitation for dust emission calculation at next time step
       pprec(i,j)=prec(i,j)
 c     saves evaporation for dust emission calculation at next time step
@@ -320,7 +322,7 @@ ccc accumulate tracer evaporation and runoff
       DO nx=1,ntx
         n=ntix(nx)
 
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 C**** technicallly these are ocean emissions, but if fixed datasets
 C**** are used, it can happen over land as well.
         select case (trname(n))
@@ -342,6 +344,16 @@ C**** are used, it can happen over land as well.
      &         ss2_flux*dxyp(j)*ptype*dtsurf
           tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
      *         ss2_flux*dxyp(j)*ptype*dtsurf
+#ifdef TRACERS_AMP
+        case ('M_SSA_SS')
+       EMIS_SOURCE(i,j,1,5)=EMIS_SOURCE(i,j,1,5)+ss1_flux*dxyp(j)*ptype
+       EMIS_SOURCE(i,j,1,6)=EMIS_SOURCE(i,j,1,6)+ss2_flux*dxyp(j)*ptype
+        case ('M_DD1_DU')
+       EMIS_SOURCE(i,j,1,7)=EMIS_SOURCE(i,j,1,7)
+     * +(dust_flux(1)+dust_flux(2))*dxyp(j)*ptype
+       EMIS_SOURCE(i,j,1,8)=EMIS_SOURCE(i,j,1,8)
+     * +(dust_flux(3)+dust_flux(4))*dxyp(j)*ptype
+#endif
         end select
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\

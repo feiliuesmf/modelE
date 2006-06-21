@@ -392,6 +392,67 @@ c use these for Rutgers runs
 c     integer, parameter :: ntm=4
 c     character*8, parameter :: trname(ntm)=(/
 c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
+s
+#else
+#ifdef TRACERS_AMP
+#ifdef TRACERS_AMP_M1
+      integer, parameter :: ntm=59,ntmAMP=54,ntm_dust=4
+      character*8, parameter :: trname(ntm)=(/
+     *    'M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',
+     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',   
+     *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',
+     *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',
+     *    'M_SSA_SS','N_SSA_1 ','M_SSC_SU','M_SSC_SS','N_SSC_1 ',   
+     *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',
+     *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BC3_SU',
+     *    'M_BC3_BC','N_BC3_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',
+     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',   
+     *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',
+     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ',  
+     *    'DMS     ','SO2     ','SO4     ','H2O2_s  ','NH3     '/)
+#endif
+#ifdef TRACERS_AMP_M2
+      integer, parameter :: ntm=59,ntmAMP=54,ntm_dust=4
+      character*8, parameter :: trname(ntm)=(/
+     *    'M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',
+     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',
+     *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',
+     *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',
+     *    'M_SSA_SS','N_SSA_1 ','M_SSC_SU','M_SSC_SS','N_SSC_1 ',
+     *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',
+     *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_OCS_SU',
+     *    'M_OCS_OC','N_OCS_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',
+     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',
+     *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',
+     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ',     
+     *    'DMS     ','SO2     ','SO4     ','H2O2_s  ','NH3     '/)
+#endif
+#ifdef TRACERS_AMP_M3
+      integer, parameter :: ntm=49,ntmAMP=44,ntm_dust=4
+      character*8, parameter :: trname(ntm)=(/     
+     *    'M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',
+     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',
+     *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',
+     *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',
+     *    'M_SSA_SS','N_SSA_1 ','M_SSC_SU','M_SSC_SS','N_SSC_1 ',
+     *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',
+     *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BOC_SU',
+     *    'M_BOC_BC','M_BOC_OC','N_BOC_1 ','M_MXX_SU','M_MXX_BC',
+     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ',
+     *    'DMS     ','SO2     ','SO4     ','H2O2_s  ','NH3     '/)
+#endif
+#ifdef TRACERS_AMP_M4
+      integer, parameter :: ntm=40,ntmAMP=35,ntm_dust=4
+      character*8, parameter :: trname(ntm)=(/     
+     *    'M_NO3   ','M_NH4   ','M_H2O   ','M_ACC_SU','N_ACC_1 ',      
+     *    'M_DD1_SU','M_DD1_DU','N_DD1_1 ','M_DS1_SU','M_DS1_DU',
+     *    'N_DS1_1 ','M_DD2_SU','M_DD2_DU','N_DD2_1 ','M_DS2_SU',
+     *    'M_DS2_DU','N_DS2_1 ','M_SSS_SU','M_SSS_SS','N_SSS_1 ',
+     *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',
+     *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_MXX_SU',
+     *    'M_MXX_BC','M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ',     
+     *    'DMS     ','SO2     ','SO4     ','H2O2_s  ','NH3     '/)
+#endif
 #else
 #ifdef TRACERS_OM_SP
       integer, parameter :: ntm=7
@@ -437,6 +498,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #else ! default for TRACERS_ON
       integer, parameter :: ntm=1
       character*8, parameter :: trname(ntm)=(/'Air     '/)
+#endif
 #endif
 #endif
 #endif
@@ -503,7 +565,22 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      &     n_sil1hema=0,n_sil1gyps=0,n_sil2quar=0,n_sil2feld=0,
      &     n_sil2calc=0,n_sil2hema=0,n_sil2gyps=0,n_sil3quar=0,
      &     n_sil3feld=0,n_sil3calc=0,n_sil3hema=0,n_sil3gyps=0,
-     &     n_sil1quhe=0,n_sil2quhe=0,n_sil3quhe=0
+     &     n_sil1quhe=0,n_sil2quhe=0,n_sil3quhe=0,
+     *     n_M_NO3=0,   n_M_NH4=0,   n_M_H2O=0,   n_M_AKK_SU=0,
+     *     n_N_AKK_1=0, n_M_ACC_SU=0,n_N_ACC_1=0, n_M_DD1_SU=0,
+     *     n_M_DD1_DU=0,n_N_DD1_1=0, n_M_DS1_SU=0,n_M_DS1_DU=0,
+     *     n_N_DS1_1 =0,n_M_DD2_SU=0,n_M_DD2_DU=0,n_N_DD2_1 =0,
+     *     n_M_DS2_SU=0,n_M_DS2_DU=0,n_N_DS2_1 =0,n_M_SSA_SU=0,
+     *     n_M_SSA_SS=0,n_N_SSA_1 =0,n_M_SSC_SU=0,n_M_SSC_SS=0,
+     *     n_N_SSC_1=0, n_M_OCC_SU=0,n_M_OCC_OC=0,n_N_OCC_1 =0,
+     *     n_M_BC1_SU=0,n_M_BC1_BC=0,n_N_BC1_1 =0,n_M_BC2_SU=0,
+     *     n_M_BC2_BC=0,n_N_BC2_1 =0,n_M_BC3_SU=0,n_M_BC3_BC=0,
+     *     n_N_BC3_1 =0,n_M_DBC_SU=0,n_M_DBC_BC=0,n_M_DBC_DU=0,
+     *     n_N_DBC_1 =0,n_M_BOC_SU=0,n_M_BOC_BC=0,n_M_BOC_OC=0,
+     *     n_N_BOC_1=0, n_M_BCS_SU=0,n_M_BCS_BC=0,n_N_BCS_1 =0,
+     *     n_M_MXX_SU=0,n_M_MXX_BC=0,n_M_MXX_OC=0,n_M_MXX_DU=0,
+     *     n_M_MXX_SS=0,n_N_MXX_1 =0,n_M_OCS_SU=0,n_M_OCS_OC=0,
+     *     n_N_OCS_1=0
 
 !@var 3D on-line radical array for interactive aerosol and gas
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oh_live
@@ -518,14 +595,16 @@ C****    The following are set in tracer_IC
       integer, dimension(ntm) :: itime_tr0
 !@var MTRACE: timing index for tracers
       integer mtrace
-#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_AMP)
 !@var MCHEM: timing index for chemistry
       integer mchem
 !@var RSULF1, RSULF2, RSULF3, RSULF4: rate coefficients
 c for gas phase sulfur chemistry used by aerosol and chemistry models
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)::rsulf1,rsulf2,rsulf3,rsulf4
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
+    (defined TRACERS_AMP)
 !@dbparam imAER 0 determines emission choice: 0 present-day, 1 AEROCOM,
 c  2 Bond/Streets past, present, future using sector inputs; 3 historic
       integer :: imAER = 1
@@ -539,7 +618,7 @@ c  2 Bond/Streets past, present, future using sector inputs; 3 historic
 !@dbparam rnsrc is 0=standard, 1=Conen&Robertson, 2=modified Schery&Wasiolek
       integer :: rnsrc = 0
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 !@dbparam imDUST is 1 for AEROCOM-prescribed simulations, 0 interactive
       INTEGER :: imDUST=0
 !@param lim dimension 1 of lookup table for mean surface wind speed integration
@@ -695,10 +774,24 @@ C****
      *         rxts2(IM,J_0H:J_1H,LM),rxts3(IM,J_0H:J_1H,LM),
      *         rxts4(IM,J_0H:J_1H,LM),krate(IM,J_0H:J_1H,LM,8,rhet))
 #endif
-#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_AMP)
       ALLOCATE(  rsulf1(IM,J_0H:J_1H,LM),rsulf2(IM,J_0H:J_1H,LM),
      *           rsulf3(IM,J_0H:J_1H,LM),rsulf4(IM,J_0H:J_1H,LM) )
 #endif
 
       END SUBROUTINE ALLOC_TRACER_COM
 
+      MODULE NITRATE_AEROSOL
+!@sum module for Nitrate aerosol sources, chemistry, etc.
+!@auth Susanne Bauer
+      USE TRACER_COM
+      IMPLICIT NONE
+      SAVE
+!@var NH3_src    NH3 Industrial source
+      real*8 NH3_src_nat_con(im,jm)
+      real*8 NH3_src_nat_cyc(im,jm)
+      real*8 NH3_src_hum_con(im,jm)
+      real*8 NH3_src_hum_cyc(im,jm)
+      real*4 off_HNO3(im,jm,lm)
+      END MODULE NITRATE_AEROSOL

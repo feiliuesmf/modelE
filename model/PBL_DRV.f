@@ -4,7 +4,7 @@
 #ifdef TRACERS_ON
       use tracer_com, only : ntm
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,Ntm_dust
 #endif
 #endif
@@ -30,11 +30,11 @@ C**** Tracer input/output common block for PBL
 !@var gs_vel gravitational settling velocity (m/s)
       real*8, dimension(ntm) :: dep_vel,gs_vel
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       real*8 :: DMS_flux,ss1_flux,ss2_flux
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),wsubtke,wsubwd,
      &   wsubwm,dust_event1,dust_event2,wtrsh
 !@param npbl  no of pbl. layers
@@ -49,11 +49,11 @@ C**** Tracer input/output common block for PBL
 #ifdef TRACERS_DRYDEP
      *     ,dep_vel,gs_vel
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,DMS_flux,ss1_flux,ss2_flux
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm,zhat
      &     ,lmonin,dust_event1,dust_event2,wtrsh
 #endif
@@ -75,7 +75,7 @@ C**** Tracer input/output common block for PBL
         REAL*8 :: ustar,zgs
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,wsgcm,wspdf
 #endif
       end type t_pbl_args
@@ -109,10 +109,10 @@ C          ,UG,VG,WG,W2_1
 #ifdef TRACERS_ON
      *     ,tr
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,wsgcm,wspdf
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: PBLH
 #endif
 #endif
@@ -256,7 +256,8 @@ c     ELSE
 
 c     ENDIF
 
-#if (defined TRACERS_DRYDEP) && (defined TRACERS_AEROSOLS_Koch)
+#if (defined TRACERS_DRYDEP) && (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_AMP)
       IF (ITYPE.eq.1) PBLH(I,J)=dbl
 #endif
   !    ppbl=pedn(l,i,j)  ! - not used anywhere ?
@@ -323,11 +324,11 @@ c     ENDIF
 #if defined(TRACERS_DRYDEP)
      *     dep_vel,gs_vel,
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     DMS_flux,ss1_flux,ss2_flux,
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ptype,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm,
      &     zhat,lmonin,dust_event1,dust_event2,wtrsh,
 #endif
