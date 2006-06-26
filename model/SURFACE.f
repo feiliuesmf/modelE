@@ -849,7 +849,7 @@ C**** Limit evaporation if lake mass is at minimum
           TREVAPOR(n,ITYPE,I,J)=TREVAPOR(n,ITYPE,I,J)+TEVAP
         END IF
 #endif
-c#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         select case (trname(n))
         case ('DMS')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+DMS_flux*dxyp(j)*ptype
@@ -875,7 +875,7 @@ c#ifdef TRACERS_AEROSOLS_Koch
        EMIS_SOURCE(i,j,1,6)=EMIS_SOURCE(i,j,1,6)+ss2_flux*dxyp(j)*ptype
 #endif
         end select
-c#endif
+#endif
 #ifdef TRACERS_DRYDEP
 C****
 C**** Calculate Tracer Dry Deposition (including gravitational settling)

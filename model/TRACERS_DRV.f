@@ -3701,7 +3701,24 @@ C**** This needs to be 'hand coded' depending on circumstances
       k = 0
       do n=1,ntm
       select case (trname(n))
-
+#ifdef TRACERS_AMP
+c       do n=1,ntm
+c       select case(trname(n))
+       CASE('M_AKK_SU','M_ACC_SU','M_BC1_BC','M_OCC_OC','M_DD1_DU',
+     *      'M_SSA_SS','M_SSC_SS','M_BOC_BC','M_BOC_OC','M_DD2_DU')
+       k = k + 1
+         ijts_MAPemis(n)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         lname_ijts(k) = 'Emission_'//trim(trname(n))
+         sname_ijts(k) = 'Emission_'//trim(trname(n))
+         ijts_power(k) = -11.
+         units_ijts(k) = unit_string(ijts_power(k),' ')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+      
+c      end select
+c      end do
+#endif
       case ('SF6')
       k = k+1
         ijts_source(1,n) = k
@@ -7190,24 +7207,7 @@ c     end do
 c     end select
 c     end do
 #endif
-#ifdef TRACERS_AMP
-       do n=1,ntm
-       select case(trname(n))
-       CASE('M_AKK_SU','M_ACC_SU','M_BC1_BC','M_OCC_OC','M_DD1_DU',
-     *      'M_SSA_SS','M_SSC_SS','M_BOC_BC','M_BOC_OC','M_DD2_DU')
-       k = k + 1
-         ijts_MAPemis(n)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Emission_'//trim(trname(n))
-         sname_ijts(k) = 'Emission_'//trim(trname(n))
-         ijts_power(k) = -11.
-         units_ijts(k) = unit_string(ijts_power(k),' ')
-         scale_ijts(k) = 10.**(-ijts_power(k))
-      
-      end select
-      end do
-#endif
+
       if (k .gt. ktaijs) then
        if (AM_I_ROOT())
      *  write (6,*)'ijt_defs: Increase ktaijs=',ktaijs,' to at least ',k
@@ -10362,7 +10362,7 @@ C****
 cc      call DIAGTCA(itcon_3Dsrc(1,n),n)
 C****
 #endif
-c#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       case ('SO2')
 C**** three 3D sources (aircraft, volcanos and biomass) read in from files
 c  Laki
@@ -10433,7 +10433,7 @@ C**** biomass source for OC
       tr3Dsource(:,J_0:J_1,1:lmAER,1,n) = OCB_src(:,J_0:J_1,:,jmon)
       endif
       call apply_tracer_3Dsource(1,n) ! biomass
-c#endif
+#endif
 #ifdef TRACERS_OM_SP
       case ('OCI1')
 c**** biomass + industrial for OC species

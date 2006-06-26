@@ -470,7 +470,7 @@ C****   get setling velocity
 #endif
 
 C****   4) tracers with interactive sources
-c#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         select case (trname(ntix(itr)))
         case ('DMS')
           call read_DMS_sources(wsm,itype,ilong,jlat,DMS_flux)
@@ -490,7 +490,7 @@ c#ifdef TRACERS_AEROSOLS_Koch
           trcnst=ss2_flux *byrho
 #endif
         end select
-c#endif
+#endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
