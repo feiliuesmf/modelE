@@ -54,13 +54,13 @@ TRCHEM_master                       ! trop chem "driver"/strat prescrioption
 TRDRYDEP                            ! tracer dry deposition from Harvard CTM
 TRACERS                             ! generic tracer code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
-CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
+CLOUDS2_E1 CLOUDS2_DRV CLOUDS_COM   ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
-PBL_COM PBL_DRV PBL                 ! atmospheric pbl
+PBL_COM PBL_DRV PBL_E1              ! atmospheric pbl
 ! pick exactly one of the next 2 choices: ATURB or DRYCNV
-ATURB                               ! turbulence in whole atmosphere
+ATURB_E1                            ! turbulence in whole atmosphere
 ! DRYCNV                            ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
@@ -68,7 +68,7 @@ LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN ICEDYN_DRV                   ! dynamic ice modules
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
-RAD_COM RAD_DRV RADIATION           ! radiation modules
+RAD_COM RAD_DRV RADIATION_E1        ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 CONST FFT72 UTILDBL SYSTEM          ! utilities
