@@ -45,6 +45,7 @@ c I tried to use ntsurfsrc( ) instead of these !!!
 !@dbparam nn_or_zon approach to use for expanding wetlands 1=
 !@+ zonal average, 0=nearest neighbor average
 !@dbparam int_wet_dist to turn on/off interacive SPATIAL wetlands
+!@dbparam ice_age if not = 0 allows no wetl emis for J >= ice_age
 !@dbparam exclude_us_eu to exclude (=1) the U.S. and E.U. from 
 !@+ interactive wetland distributiont
 !@dbparam topo_lim upper limit on topography for int wetl dist
@@ -80,7 +81,7 @@ c I tried to use ntsurfsrc( ) instead of these !!!
       integer, parameter :: nra_ch4 = 5, maxHR_ch4=24*1*3600/1800,
      & nra_ncep=2, n__prec=1, n__temp=2, n__SW=3, n__SAT=4, n__gwet=5,
      & max_days=28
-      integer :: int_wet_dist=0,exclude_us_eu=1,nn_or_zon=0
+      integer :: int_wet_dist=0,exclude_us_eu=1,nn_or_zon=0,ice_age=0
       real*8 :: topo_lim = 205.d0, sat_lim=-9.d0,
      & gw_ulim=100.d0, gw_llim=18.d0, SW_lim=27.d0
       real*8, parameter, dimension(nra_ncep) ::fact_ncep=(/24.d0,1.d0/)
@@ -286,7 +287,7 @@ C**** Monthly sources are interpolated each day
      &       ,i0_ncep,avg_ncep,sum_ncep,fact_ncep,avg_model,nra_ncep
      &       ,max_days,int_wet_dist,topo_lim,sat_lim,gw_ulim,gw_llim
      &       ,SW_lim,exclude_us_eu,nra_ch4,first_mod,n__temp,n__sw
-     &       ,n__gwet,n__SAT,nn_or_zon,nday_ch4 ! fland used above
+     &       ,n__gwet,n__SAT,nn_or_zon,nday_ch4,ice_age
       use ghy_com, only : top_dev_ij
       use GEOM, only : lat_dg, lon_dg, imaxj
 #endif
@@ -391,6 +392,8 @@ C****
           select case(PI_run)
           case(1) ! pre-industrial
             select case(k)
+            case(1)        ; PIfact=0.18d0 ! animals
+            case(6)        ; PIfact=0.38d0 ! soil abs
             case(2,3,4,5,8); PIfact=PIratio_indus
             case default; PIfact=1.d0
             end select
@@ -431,6 +434,10 @@ C****
         case(1) ! pre-industrial
           select case(k)
           case(nanns+1); PIfact=PIratio_bburn
+          case(nanns+2); PIfact=PIratio_indus ! rice
+#ifdef INTERACTIVE_WETLANDS_CH4
+          case(nanns+3); PIfact=1.1d0         ! wetlands
+#endif
           case default; PIfact=1.d0
           end select
         case default
@@ -598,6 +605,11 @@ C First, determine if there are new wetlands for given point:
       
 C Limit wetlands source to be positive:
       CH4_src(:,J_0:J_1,kwet)=max(CH4_src(:,J_0:J_1,kwet),0.d0) 
+C No emissions over glacier latitudes if desired:
+      do j=J_0,J_1
+        if(ice_age /= 0 .and. j >= ice_age)
+     &  CH4_src(:,j,kwet)=0.d0 
+      enddo
 #endif
       return
       end subroutine read_CH4_sources
