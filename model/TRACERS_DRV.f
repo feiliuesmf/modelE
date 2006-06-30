@@ -54,7 +54,7 @@
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only:int_wet_dist,topo_lim,sat_lim,gw_ulim,
-     & gw_llim,sw_lim,exclude_us_eu,nn_or_zon
+     & gw_llim,sw_lim,exclude_us_eu,nn_or_zon,ice_age
 #endif
 #endif
 #if (defined TRACERS_COSMO)
@@ -164,6 +164,7 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       call sync_param("PIratio_CFC",PIratio_CFC)
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
+      call sync_param("ice_age",ice_age)
       call sync_param("int_wet_dist",int_wet_dist)
       call sync_param("topo_lim",topo_lim)
       call sync_param("sat_lim",sat_lim)
